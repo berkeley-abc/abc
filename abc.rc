@@ -1,0 +1,26 @@
+alias b balance
+alias clp collapse
+alias f fraig
+alias fs fraig_sweep
+alias pf print_factor
+alias pfan print_fanio
+alias pio print_io
+alias ps print_stats 
+alias q quit
+alias r read
+alias rl read_blif
+alias rb read_bench
+alias rv read_verilog
+alias rsup read_super
+alias rlib read_library
+alias sa set autoexec ps
+alias so source -x
+alias st strash
+alias u undo
+alias wb write_blif
+alias wg write_gate
+alias wl write_blif
+alias cnf   "st; renode -c; write_cnf"
+alias prove "st; renode -c; sat"
+alias opt   "st; b; renode; sop; ps"
+alias opts  "st; b; renode; sop; st; b; ps"
