@@ -59,7 +59,7 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk )
     if ( Abc_NtkIsLogicSop(pNtk) )   
     {
         fprintf( pFile, "  cube = %5d",  Abc_NtkGetCubeNum(pNtk) );
-//        fprintf( pFile, "  lit(sop) = %5d",  Abc_NtkGetLitNum(pNtk) );
+        fprintf( pFile, "  lit(sop) = %5d",  Abc_NtkGetLitNum(pNtk) );
         fprintf( pFile, "  lit(fac) = %5d",  Abc_NtkGetLitFactNum(pNtk) );
     }
     else if ( Abc_NtkIsLogicBdd(pNtk) )

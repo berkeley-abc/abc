@@ -107,6 +107,7 @@ void Abc_NtkStrashPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
 
     // perform strashing
     vNodes = Abc_NtkDfs( pNtk );
+//    vNodes = Abc_AigCollectAll( pNtk );
     pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
     for ( i = 0; i < vNodes->nSize; i++ )
     {

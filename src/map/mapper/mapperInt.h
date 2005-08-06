@@ -121,6 +121,7 @@ struct Map_ManStruct_t_
     unsigned            uTruthsLarge[10][32]; // the elementary truth tables
     int                 nCounts[32];   // the counter of minterms
     int                 nCountsBest[32];// the counter of minterms
+    Map_NodeVec_t *     vVisited;      // the visited cuts during cut computation
 
     // simulation info from the FRAIG manager
     int                 nSimRounds;    // the number of words in the simulation info
@@ -262,13 +263,7 @@ struct Map_CutStruct_t_
     char                nVolume;       // the volume of this cut
     char                fMark;         // the mark to denote visited cut
     char                Phase;         // the mark to denote complemented cut
-//    float               fLevel;        // the average level of the fanins
-
-    unsigned            uTruthTemp[2]; // the temporary truth table used to derive other cuts
-    unsigned            uTruthZero[2]; // the temporary truth table used to derive other cuts
-    unsigned            uTruthDc[2];   // the don't-cares (SDCs) computed for this cut
-
-    Map_Match_t         M[2];          // the matches for the positive/negative phase
+    Map_Match_t         M[2];          // the matches for positive/negative phase
 };
 
 // the supergate internally represented

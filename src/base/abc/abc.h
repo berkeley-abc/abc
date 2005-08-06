@@ -480,6 +480,7 @@ extern bool               Abc_NtkMiterSat( Abc_Ntk_t * pNtk, int fVerbose );
 extern solver *           Abc_NtkMiterSatCreate( Abc_Ntk_t * pNtk );
 /*=== abcSop.c ==========================================================*/
 extern char *             Abc_SopRegister( Extra_MmFlex_t * pMan, char * pName );
+extern char *             Abc_SopStart( Extra_MmFlex_t * pMan, int nCubes, int nVars );
 extern int                Abc_SopGetCubeNum( char * pSop );
 extern int                Abc_SopGetLitNum( char * pSop );
 extern int                Abc_SopGetVarNum( char * pSop );

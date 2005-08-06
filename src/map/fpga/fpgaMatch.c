@@ -724,6 +724,112 @@ clk = clock();
 }
 
 #endif
+
+
+/**function*************************************************************
+
+  synopsis    [Performs area minimization using a heuristic algorithm.]
+
+  description []
+               
+  sideeffects []
+
+  seealso     []
+
+***********************************************************************/
+float Fpga_FindBestNode( Fpga_Man_t * p, Fpga_NodeVec_t * vNodes, Fpga_Node_t ** ppNode, Fpga_Cut_t ** ppCutBest )
+{
+    Fpga_Node_t * pNode;
+    Fpga_Cut_t * pCut;
+    float Gain, CutArea1, CutArea2, CutArea3;
+    int i;
+
+    Gain = 0;
+    for ( i = 0; i < vNodes->nSize; i++ )
+    {
+        pNode = vNodes->pArray[i];
+        // deref the current cut
+        CutArea1 = Fpga_CutDeref( p, pNode, pNode->pCutBest, 0 );
+
+        // ref all the cuts
+        for ( pCut = pNode->pCuts->pNext; pCut; pCut = pCut->pNext )
+        {
+            if ( pCut == pNode->pCutBest )
+                continue;
+            if ( pCut->tArrival > pNode->tRequired )
+                continue;
+
+            CutArea2 = Fpga_CutGetAreaDerefed( p, pCut );
+            if ( Gain < CutArea1 - CutArea2 )
+            {
+                *ppNode = pNode;
+                *ppCutBest = pCut;
+                Gain = CutArea1 - CutArea2;
+            }
+        }
+        // ref the old cut
+        CutArea3 = Fpga_CutRef( p, pNode, pNode->pCutBest, 0 );
+        assert( CutArea1 == CutArea3 );
+    }
+    if ( Gain == 0 )
+        printf( "Returning no gain.\n" );
+
+    return Gain;
+}
+
+/**function*************************************************************
+
+  synopsis    [Performs area minimization using a heuristic algorithm.]
+
+  description []
+               
+  sideeffects []
+
+  seealso     []
+
+***********************************************************************/
+void Fpga_MappingExplore( Fpga_Man_t * p )
+{
+    Fpga_Cut_t * pCutBest;
+    Fpga_Node_t * pNodeBest;
+    Fpga_NodeVec_t * vNodes;
+    float Area, Gain, CutArea1, CutArea2;
+    int i;
+
+    // compute the arrival times
+    Fpga_TimePropagateArrival( p );
+    p->fRequiredGlo = Fpga_TimeComputeArrivalMax( p );
+    Fpga_TimeComputeRequired( p, p->fRequiredGlo );
+
+    // assign the refs
+    Area = Fpga_MappingSetRefsAndArea( p );
+    // collect the nodes
+    vNodes = Fpga_MappingCollectRefed( p );
+    // find the best node to update
+    for ( i = 0; Gain = Fpga_FindBestNode(p, vNodes, &pNodeBest, &pCutBest); i++ )
+    {
+        // update the node
+        assert( pNodeBest->pCutBest != pCutBest );
+        // deref the current cut
+        CutArea1 = Fpga_CutDeref( p, pNodeBest, pNodeBest->pCutBest, 0 );
+        // ref the new cut
+        CutArea2 = Fpga_CutRef( p, pNodeBest, pCutBest, 0 );
+        assert( CutArea1 - CutArea2 == Gain );
+        printf( "Iteration %2d: Gain = %5.2f.\n", i, Gain );
+        // update the node
+        pNodeBest->pCutBest = pCutBest;
+        // collect new nodes
+        Fpga_NodeVecFree( vNodes );
+        vNodes = Fpga_MappingCollectRefed( p );
+        // compute the arrival and required times
+        Fpga_TimePropagateArrival( p );
+        Fpga_TimeComputeRequired( p, p->fRequiredGlo );
+    }
+
+
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

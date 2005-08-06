@@ -334,6 +334,7 @@ extern float             Fpga_TimeComputeArrivalMax( Fpga_Man_t * p );
 extern void              Fpga_TimeComputeRequiredGlobal( Fpga_Man_t * p );
 extern void              Fpga_TimeComputeRequired( Fpga_Man_t * p, float fRequired );
 extern void              Fpga_TimePropagateRequired( Fpga_Man_t * p, Fpga_NodeVec_t * vNodes );
+extern void              Fpga_TimePropagateArrival( Fpga_Man_t * p );
 /*=== fpgaTruth.c ===============================================================*/
 extern void              Fpga_MappingTruths( Fpga_Man_t * pMan );
 /*=== fpgaVec.c =============================================================*/
@@ -368,6 +369,7 @@ extern float             Fpga_MappingGetAreaFlow( Fpga_Man_t * p );
 extern float             Fpga_MappingArea( Fpga_Man_t * pMan );
 extern float             Fpga_MappingComputeCutAreas( Fpga_Man_t * pMan );
 extern float             Fpga_MappingSetRefsAndArea( Fpga_Man_t * pMan );
+extern Fpga_NodeVec_t *  Fpga_MappingCollectRefed( Fpga_Man_t * pMan );
 extern int               Fpga_MappingCountLevels( Fpga_Man_t * pMan );
 extern void              Fpga_MappingUnmark( Fpga_Man_t * pMan );
 extern void              Fpga_MappingUnmark_rec( Fpga_Node_t * pNode );

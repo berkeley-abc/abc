@@ -52,6 +52,8 @@ Map_Node_t *    Map_ManReadConst1 ( Map_Man_t * p )                     { return
 Map_Time_t *    Map_ManReadInputArrivals( Map_Man_t * p )               { return p->pInputArrivals;}
 Mio_Library_t * Map_ManReadGenLib ( Map_Man_t * p )                     { return p->pSuperLib->pGenlib; }
 bool            Map_ManReadVerbose( Map_Man_t * p )                     { return p->fVerbose;   }
+float           Map_ManReadAreaFinal( Map_Man_t * p )                   { return p->AreaFinal;  }
+float           Map_ManReadRequiredGlo( Map_Man_t * p )                 { return p->fRequiredGlo;  }
 void            Map_ManSetTimeToMap( Map_Man_t * p, int Time )          { p->timeToMap = Time;  }
 void            Map_ManSetTimeToNet( Map_Man_t * p, int Time )          { p->timeToNet = Time;  }
 void            Map_ManSetTimeSweep( Map_Man_t * p, int Time )          { p->timeSweep = Time;  }
@@ -126,6 +128,7 @@ Map_Node_t **   Map_CutReadLeaves( Map_Cut_t * p )                { return p->pp
 unsigned        Map_CutReadPhaseBest( Map_Cut_t * p, int fPhase ) { return p->M[fPhase].uPhaseBest;}
 unsigned        Map_CutReadPhase0( Map_Cut_t * p )                { return p->M[0].uPhaseBest;}
 unsigned        Map_CutReadPhase1( Map_Cut_t * p )                { return p->M[1].uPhaseBest;}
+Map_Cut_t *     Map_CutReadNext( Map_Cut_t * p )                  { return p->pNext;          }
 
 /**Function*************************************************************
 
@@ -190,7 +193,8 @@ Map_Man_t * Map_ManCreate( int nInputs, int nOutputs, int fVerbose )
     p->pSuperLib = Abc_FrameReadLibSuper(Abc_FrameGetGlobalFrame());
     p->nVarsMax  = p->pSuperLib->nVarsMax;
     p->fVerbose  = fVerbose;
-    p->fEpsilon  = (float)0.00001;
+//    p->fEpsilon  = (float)0.00001;
+    p->fEpsilon  = (float)0.001;
     assert( p->nVarsMax > 0 );
 
     // start various data structures
@@ -210,6 +214,7 @@ Map_Man_t * Map_ManCreate( int nInputs, int nOutputs, int fVerbose )
     p->vMapping   = Map_NodeVecAlloc( 100 );
     p->vInside    = Map_NodeVecAlloc( 100 );
     p->vFanins    = Map_NodeVecAlloc( 100 );
+    p->vVisited   = Map_NodeVecAlloc( 100 );
 
     // create the PI nodes
     p->nInputs = nInputs;
@@ -253,6 +258,8 @@ void Map_ManFree( Map_Man_t * p )
         Map_NodeVecFree( p->vNodesTemp );
     if ( p->vMapping )    
         Map_NodeVecFree( p->vMapping );
+    if ( p->vVisited )    
+        Map_NodeVecFree( p->vVisited );
     Extra_MmFixedStop( p->mmNodes, 0 );
     Extra_MmFixedStop( p->mmCuts, 0 );
     FREE( p->pInputArrivals );

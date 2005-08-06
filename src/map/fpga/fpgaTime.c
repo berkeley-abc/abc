@@ -182,6 +182,34 @@ void Fpga_TimePropagateRequired( Fpga_Man_t * p, Fpga_NodeVec_t * vNodes )
 }
 
 
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the required times of all nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fpga_TimePropagateArrival( Fpga_Man_t * p )
+{
+    Fpga_Node_t * pNode;
+    Fpga_Cut_t * pCut;
+    int i;
+
+    // clean the required times and the fanout counts for all nodes
+    for ( i = 0; i < p->vAnds->nSize; i++ )
+    {
+        pNode = p->vAnds->pArray[i];
+        for ( pCut = pNode->pCuts->pNext; pCut; pCut = pCut->pNext )
+            pCut->tArrival = Fpga_TimeCutComputeArrival( p, pCut );
+    }
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

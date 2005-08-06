@@ -33,6 +33,12 @@ static Abc_Obj_t *  Abc_NodeFromMap_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNode
 static Abc_Obj_t *  Abc_NodeFromMapPhase_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap, int fPhase );
 static Abc_Obj_t *  Abc_NodeFromMapSuper_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap, Map_Super_t * pSuper, Abc_Obj_t * pNodePis[], int nNodePis );
 static Abc_Obj_t *  Abc_NtkFixCiDriver( Abc_Obj_t * pNode );
+
+static Abc_Ntk_t *  Abc_NtkFromMapSuperChoice( Map_Man_t * pMan, Abc_Ntk_t * pNtk );
+static void         Abc_NodeSuperChoice( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode );
+static void         Abc_NodeFromMapCutPhase( Abc_Ntk_t * pNtkNew, Map_Cut_t * pCut, int fPhase );
+static Abc_Obj_t *  Abc_NodeFromMapSuperChoice_rec( Abc_Ntk_t * pNtkNew, Map_Super_t * pSuper, Abc_Obj_t * pNodePis[], int nNodePis );
+
  
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -53,8 +59,8 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, int
 {
     int fCheck = 1;
     Abc_Ntk_t * pNtkNew;
-
     Map_Man_t * pMan;
+    int clk;
 
     assert( Abc_NtkIsAig(pNtk) );
 
@@ -81,11 +87,13 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, int
     pMan = Abc_NtkToMap( pNtk, DelayTarget, fRecovery, fVerbose );
     if ( pMan == NULL )
         return NULL;
+clk = clock();
     if ( !Map_Mapping( pMan ) )
     {
         Map_ManFree( pMan );
         return NULL;
     }
+    Map_ManPrintStatsToFile( pNtk->pSpec, Map_ManReadAreaFinal(pMan), Map_ManReadRequiredGlo(pMan), clock()-clk );
 
     // reconstruct the network after mapping
     pNtkNew = Abc_NtkFromMap( pMan, pNtk );
@@ -430,6 +438,265 @@ Abc_Obj_t * Abc_NtkFixCiDriver( Abc_Obj_t * pNode )
     return NULL;
 }
 
+
+
+
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Interface with the mapping package.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkSuperChoice( Abc_Ntk_t * pNtk )
+{
+    int fCheck = 1;
+    Abc_Ntk_t * pNtkNew;
+
+    Map_Man_t * pMan;
+
+    assert( Abc_NtkIsAig(pNtk) );
+
+    // check that the library is available
+    if ( Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()) == NULL )
+    {
+        printf( "The current library is not available.\n" );
+        return 0;
+    }
+
+    // derive the supergate library
+    if ( Abc_FrameReadLibSuper(Abc_FrameGetGlobalFrame()) == NULL && Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()) )
+    {
+        printf( "A simple supergate library is derived from gate library \"%s\".\n", 
+            Mio_LibraryReadName(Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame())) );
+        Map_SuperLibDeriveFromGenlib( Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()) );
+    }
+
+    // print a warning about choice nodes
+    if ( Abc_NtkCountChoiceNodes( pNtk ) )
+        printf( "Performing mapping with choices.\n" );
+
+    // perform the mapping
+    pMan = Abc_NtkToMap( pNtk, -1, 1, 0 );
+    if ( pMan == NULL )
+        return NULL;
+    if ( !Map_Mapping( pMan ) )
+    {
+        Map_ManFree( pMan );
+        return NULL;
+    }
+
+    // reconstruct the network after mapping
+    pNtkNew = Abc_NtkFromMapSuperChoice( pMan, pNtk );
+    if ( pNtkNew == NULL )
+        return NULL;
+    Map_ManFree( pMan );
+
+    // make sure that everything is okay
+    if ( fCheck && !Abc_NtkCheck( pNtkNew ) )
+    {
+        printf( "Abc_NtkMap: The network check has failed.\n" );
+        Abc_NtkDelete( pNtkNew );
+        return NULL;
+    }
+    return pNtkNew;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Creates the mapped network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkFromMapSuperChoice( Map_Man_t * pMan, Abc_Ntk_t * pNtk )
+{
+    ProgressBar * pProgress;
+    Abc_Ntk_t * pNtkNew, * pNtkNew2;
+    Abc_Obj_t * pNode;
+    int i;
+
+    // save the pointer to the mapped nodes
+    Abc_NtkForEachCi( pNtk, pNode, i )
+        pNode->pNext = pNode->pCopy;
+    Abc_NtkForEachPo( pNtk, pNode, i )
+        pNode->pNext = pNode->pCopy;
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        pNode->pNext = pNode->pCopy;
+
+    // duplicate the network
+    pNtkNew2 = Abc_NtkDup( pNtk );
+    pNtkNew  = Abc_NtkRenode( pNtkNew2, 0, 20, 0, 0, 1 );
+    Abc_NtkBddToSop( pNtkNew );
+
+    // set the old network to point to the new network
+    Abc_NtkForEachCi( pNtk, pNode, i )
+        pNode->pCopy = pNode->pCopy->pCopy;
+    Abc_NtkForEachPo( pNtk, pNode, i )
+        pNode->pCopy = pNode->pCopy->pCopy;
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        pNode->pCopy = pNode->pCopy->pCopy;
+    Abc_NtkDelete( pNtkNew2 );
+
+    // set the pointers from the mapper to the new nodes
+    Abc_NtkForEachCi( pNtk, pNode, i )
+    {
+        Map_NodeSetData( Map_ManReadInputs(pMan)[i], 0, (char *)Abc_NodeCreateInv(pNtkNew,pNode->pCopy) );
+        Map_NodeSetData( Map_ManReadInputs(pMan)[i], 1, (char *)pNode->pCopy );
+    }
+    Abc_NtkForEachNode( pNtk, pNode, i )
+    {
+        if ( Abc_NodeIsConst(pNode) )
+            continue;
+        Map_NodeSetData( (Map_Node_t *)pNode->pNext, 0, (char *)Abc_NodeCreateInv(pNtkNew,pNode->pCopy) );
+        Map_NodeSetData( (Map_Node_t *)pNode->pNext, 1, (char *)pNode->pCopy );
+    }
+
+    // assign the mapping of the required phase to the POs
+    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkNodeNum(pNtk) );
+    Abc_NtkForEachNode( pNtk, pNode, i )
+    {
+        Extra_ProgressBarUpdate( pProgress, i, NULL );
+        if ( Abc_NodeIsConst(pNode) )
+            continue;
+        Abc_NodeSuperChoice( pNtkNew, pNode );
+    }
+    Extra_ProgressBarStop( pProgress );
+    return pNtkNew;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Creates the mapped network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NodeSuperChoice( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode )
+{
+    Map_Node_t * pMapNode = (Map_Node_t *)pNode->pNext;
+    Map_Cut_t * pCuts, * pTemp;
+
+    pCuts = Map_NodeReadCuts(pMapNode);
+    for ( pTemp = Map_CutReadNext(pCuts); pTemp; pTemp = Map_CutReadNext(pTemp) )
+    {
+        Abc_NodeFromMapCutPhase( pNtkNew, pTemp, 0 );
+        Abc_NodeFromMapCutPhase( pNtkNew, pTemp, 1 );
+    }
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Constructs the nodes corrresponding to one node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NodeFromMapCutPhase( Abc_Ntk_t * pNtkNew, Map_Cut_t * pCut, int fPhase )
+{
+    Abc_Obj_t * pNodePIs[10];
+    Map_Node_t ** ppLeaves;
+    Map_Super_t * pSuperBest;
+    unsigned uPhaseBest;
+    int i, fInvPin, nLeaves;
+
+    pSuperBest = Map_CutReadSuperBest( pCut, fPhase );
+    if ( pSuperBest == NULL )
+        return;
+
+    // get the information about the best cut 
+    uPhaseBest = Map_CutReadPhaseBest( pCut, fPhase );
+    nLeaves    = Map_CutReadLeavesNum( pCut );
+    ppLeaves   = Map_CutReadLeaves( pCut );
+
+    // collect the PI nodes
+    for ( i = 0; i < nLeaves; i++ )
+    {
+        fInvPin = ((uPhaseBest & (1 << i)) > 0);
+        pNodePIs[i] = (Abc_Obj_t *)Map_NodeReadData( ppLeaves[i], !fInvPin );
+        assert( pNodePIs[i] != NULL );
+    }
+
+    // implement the supergate
+    Abc_NodeFromMapSuperChoice_rec( pNtkNew, pSuperBest, pNodePIs, nLeaves );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Constructs the nodes corrresponding to one supergate.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Abc_NodeFromMapSuperChoice_rec( Abc_Ntk_t * pNtkNew, Map_Super_t * pSuper, Abc_Obj_t * pNodePis[], int nNodePis )
+{
+    Mio_Gate_t * pRoot;
+    Map_Super_t ** ppFanins;
+    Abc_Obj_t * pNodeNew, * pNodeFanin;
+    int nFanins, Number, i;
+
+    // get the parameters of the supergate
+    pRoot = Map_SuperReadRoot(pSuper);
+    if ( pRoot == NULL )
+    {
+        Number = Map_SuperReadNum(pSuper);
+        if ( Number < nNodePis )  
+        {
+            return pNodePis[Number];
+        }
+        else
+        {  
+//            assert( 0 );
+            /* It might happen that a super gate with 5 inputs is constructed that
+             * actually depends only on the first four variables; i.e the fifth is a
+             * don't care -- in that case we connect constant node for the fifth
+             * (since the cut only has 4 variables). An interesting question is what
+             * if the first variable (and not the fifth one is the redundant one;
+             * can that happen?) */
+            return Abc_NodeCreateConst0(pNtkNew);
+        }
+    }
+
+    // get information about the fanins of the supergate
+    nFanins  = Map_SuperReadFaninNum( pSuper );
+    ppFanins = Map_SuperReadFanins( pSuper );
+    // create a new node with these fanins
+    pNodeNew = Abc_NtkCreateNode( pNtkNew );
+    for ( i = 0; i < nFanins; i++ )
+    {
+        pNodeFanin = Abc_NodeFromMapSuperChoice_rec( pNtkNew, ppFanins[i], pNodePis, nNodePis );
+        Abc_ObjAddFanin( pNodeNew, pNodeFanin );
+    }
+    pNodeNew->pData = Abc_SopRegister( pNtkNew->pManFunc, Mio_GateReadSop(pRoot) );
+    return pNodeNew;
+}
 
 
 ////////////////////////////////////////////////////////////////////////

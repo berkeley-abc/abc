@@ -130,6 +130,8 @@ void Abc_NtkRenodeInt( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
     Abc_NtkForEachCo( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
+        if ( Abc_ObjIsTerm(Abc_ObjFanin0(pNode)) )
+            continue;
         Abc_NtkRenode_rec( pNtkNew, Abc_ObjFanin0(pNode) );
     }
     Extra_ProgressBarStop( pProgress );

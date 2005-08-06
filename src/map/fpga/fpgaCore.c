@@ -127,11 +127,18 @@ int Fpga_MappingPostProcess( Fpga_Man_t * p )
     float aSwitchTotalPrev, aSwitchTotalCur;
     int Iter, clk;
 
+
 if ( p->fVerbose )
 {
 printf( "Iteration %dD :  Area = %11.1f  ", 0, Fpga_MappingArea( p ) );
 PRT( "Time", p->timeMatch );
 }
+
+
+//    Fpga_MappingExplore( p );
+//    p->fAreaGlo = Fpga_MappingArea( p );
+//    return;
+
 
 //    aAreaTotalCur = FPGA_FLOAT_LARGE;
     aAreaTotalCur = Fpga_MappingSetRefsAndArea( p );
@@ -157,6 +164,11 @@ PRT( "Time", clock() - clk );
             aSwitchTotalCur = Fpga_MappingPrintSwitching( p );
         // quit if this iteration reduced area flow by less than 1%
     } while ( aAreaTotalPrev > 1.02 * aAreaTotalCur );
+
+
+//    Fpga_MappingExplore( p );
+//    p->fAreaGlo = Fpga_MappingArea( p );
+//    return;
 
 
 /*

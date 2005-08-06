@@ -61,6 +61,37 @@ char * Abc_SopRegister( Extra_MmFlex_t * pMan, char * pName )
 
 /**Function*************************************************************
 
+  Synopsis    [Starts the constant 1 cover with the given number of variables and cubes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_SopStart( Extra_MmFlex_t * pMan, int nCubes, int nVars )
+{
+    char * pSopCover;
+    char * pCube;
+    int i, v;
+    pSopCover = Extra_MmFlexEntryFetch( pMan, nCubes * (nVars + 3) + 1 );
+    for ( i = 0; i < nCubes; i++ )
+    {
+        pCube = pSopCover + i * (nVars + 3);
+        for ( v = 0; v < nVars; v++ )
+            pCube[v] = '-';
+        pCube[nVars + 0] = ' ';
+        pCube[nVars + 1] = '1';
+        pCube[nVars + 2] = '\n';
+    }
+    pSopCover[nCubes * (nVars + 3)] = 0;
+    return pSopCover;
+}
+
+
+/**Function*************************************************************
+
   Synopsis    [Reads the number of cubes in the cover.]
 
   Description []

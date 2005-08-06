@@ -82,8 +82,8 @@ int Map_Mapping( Map_Man_t * p )
     p->AreaBase = Map_MappingGetArea( p, p->vMapping );
 if ( p->fVerbose )
 {
-printf( "Delay    : FanViols = %5d  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
-                    0, Map_MappingGetAreaFlow(p), p->AreaBase, 0.0 );
+printf( "Delay    : Delay = %5.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
+                    p->fRequiredGlo, Map_MappingGetAreaFlow(p), p->AreaBase, 0.0 );
 PRT( "Time", p->timeMatch );
 }
     //////////////////////////////////////////////////////////////////////
@@ -103,8 +103,8 @@ PRT( "Time", p->timeMatch );
         p->AreaFinal = Map_MappingGetArea( p, p->vMapping );
 if ( p->fVerbose )
 {
-printf( "AreaFlow : FanViols = %5d  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
-                    0, Map_MappingGetAreaFlow(p), p->AreaFinal, 
+printf( "AreaFlow : Delay = %5.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
+                    p->fRequiredGlo, Map_MappingGetAreaFlow(p), p->AreaFinal, 
                     100.0*(p->AreaBase-p->AreaFinal)/p->AreaBase );
 PRT( "Time", clock() - clk );
 }
@@ -127,8 +127,8 @@ PRT( "Time", clock() - clk );
         p->AreaFinal = Map_MappingGetArea( p, p->vMapping );
 if ( p->fVerbose )
 {
-printf( "Area     : FanViols = %5d  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
-                    0, 0.0, p->AreaFinal, 
+printf( "Area     : Delay = %5.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
+                    p->fRequiredGlo, 0.0, p->AreaFinal, 
                     100.0*(p->AreaBase-p->AreaFinal)/p->AreaBase );
 PRT( "Time", clock() - clk );
 }
@@ -151,8 +151,8 @@ PRT( "Time", clock() - clk );
         p->AreaFinal = Map_MappingGetArea( p, p->vMapping );
 if ( p->fVerbose )
 {
-printf( "Area     : FanViols = %5d  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
-                    0, 0.0, p->AreaFinal, 
+printf( "Area     : Delay = %5.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
+                    p->fRequiredGlo, 0.0, p->AreaFinal, 
                     100.0*(p->AreaBase-p->AreaFinal)/p->AreaBase );
 PRT( "Time", clock() - clk );
 }

@@ -768,6 +768,11 @@ Vec_Ptr_t * Abc_AigCollectAll( Abc_Ntk_t * pNtk )
     vNodes = Vec_PtrAlloc( 100 );
     Abc_NtkForEachNode( pNtk, pNode, i )
         Vec_PtrPush( vNodes, pNode );
+
+    // works only if the levels are set!!!
+    if ( !Abc_NtkIsAig(pNtk) )
+        Abc_NtkGetLevelNum(pNtk);
+
     Vec_PtrSort( vNodes, Abc_NodeCompareLevelsIncrease );
     return vNodes;
 }

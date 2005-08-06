@@ -67,7 +67,12 @@ Abc_Ntk_t * Abc_NtkLogic( Abc_Ntk_t * pNtk )
             Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
     // create and connect the POs
     Abc_NtkForEachPo( pNtk, pObj, i )
-        Abc_ObjAddFanin( Abc_NtkCreateTermPo(pNtkNew), Abc_ObjFanin0(pObj)->pCopy );
+    {
+        if ( Abc_ObjFaninNum(pObj) == 0 )
+            Abc_ObjAddFanin( Abc_NtkCreateTermPo(pNtkNew), pObj->pCopy );
+        else
+            Abc_ObjAddFanin( Abc_NtkCreateTermPo(pNtkNew), Abc_ObjFanin0(pObj)->pCopy );
+    }
     // connect the latches
     Abc_NtkForEachLatch( pNtk, pObj, i )
         Abc_ObjAddFanin( pObj->pCopy, Abc_ObjFanin0(pObj)->pCopy );

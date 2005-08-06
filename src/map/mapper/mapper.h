@@ -82,6 +82,8 @@ extern Map_Node_t *    Map_ManReadConst1 ( Map_Man_t * p );
 extern Map_Time_t *    Map_ManReadInputArrivals( Map_Man_t * p );
 extern Mio_Library_t * Map_ManReadGenLib ( Map_Man_t * p );
 extern bool            Map_ManReadVerbose( Map_Man_t * p );
+extern float           Map_ManReadAreaFinal( Map_Man_t * p );
+extern float           Map_ManReadRequiredGlo( Map_Man_t * p );
 extern void            Map_ManSetTimeToMap( Map_Man_t * p, int Time );
 extern void            Map_ManSetTimeToNet( Map_Man_t * p, int Time );
 extern void            Map_ManSetTimeSweep( Map_Man_t * p, int Time );
@@ -125,6 +127,7 @@ extern Map_Node_t **   Map_CutReadLeaves( Map_Cut_t * p );
 extern unsigned        Map_CutReadPhaseBest( Map_Cut_t * p, int fPhase );
 extern unsigned        Map_CutReadPhase0( Map_Cut_t * p );
 extern unsigned        Map_CutReadPhase1( Map_Cut_t * p );
+extern Map_Cut_t *     Map_CutReadNext( Map_Cut_t * p );
 
 extern char *          Map_SuperReadFormula( Map_Super_t * p );
 extern Mio_Gate_t *    Map_SuperReadRoot( Map_Super_t * p );

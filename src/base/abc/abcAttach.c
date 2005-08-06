@@ -267,6 +267,8 @@ void Abc_AttachComputeTruth( char * pSop, unsigned uTruthsIn[][2], unsigned * uT
             }
             uTruthRes[0] |= uSignCube[0];
         }
+        if ( Abc_SopGetPhase(pSop) == 0 )
+            uTruthRes[0] = ~uTruthRes[0];
         if ( nInputs < 5 )
             uTruthRes[0] &= ATTACH_MASK(1<<nInputs);
     }
@@ -294,6 +296,13 @@ void Abc_AttachComputeTruth( char * pSop, unsigned uTruthsIn[][2], unsigned * uT
             }
             uTruthRes[0] |= uSignCube[0];
             uTruthRes[1] |= uSignCube[1];
+        }
+
+        // complement if the SOP is complemented
+        if ( Abc_SopGetPhase(pSop) == 0 )
+        {
+            uTruthRes[0] = ~uTruthRes[0];
+            uTruthRes[1] = ~uTruthRes[1];
         }
     }
 }

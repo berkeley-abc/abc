@@ -22,6 +22,7 @@
 #include "mainInt.h"
 #include "ft.h"
 #include "fraig.h"
+#include "fxu.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -37,6 +38,7 @@ static int Ntk_CommandStrash       ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int Ntk_CommandBalance      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Ntk_CommandRenode       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Ntk_CommandCleanup      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Ntk_CommandFx           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Ntk_CommandLogic        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Ntk_CommandMiter        ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -55,6 +57,7 @@ static int Ntk_CommandFraigSweep   ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int Ntk_CommandMap          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Ntk_CommandUnmap        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Ntk_CommandAttach       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Ntk_CommandSuperChoice  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Ntk_CommandFpga         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -88,6 +91,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "balance",       Ntk_CommandBalance,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "renode",        Ntk_CommandRenode,           1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "cleanup",       Ntk_CommandCleanup,          1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "fx",            Ntk_CommandFx,               1 );
 
     Cmd_CommandAdd( pAbc, "Various",      "logic",         Ntk_CommandLogic,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "miter",         Ntk_CommandMiter,            1 );
@@ -106,6 +110,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "SC mapping",   "map",           Ntk_CommandMap,              1 );
     Cmd_CommandAdd( pAbc, "SC mapping",   "unmap",         Ntk_CommandUnmap,            1 );
     Cmd_CommandAdd( pAbc, "SC mapping",   "attach",        Ntk_CommandAttach,           1 );
+    Cmd_CommandAdd( pAbc, "SC mapping",   "sc",            Ntk_CommandSuperChoice,      1 );
 
     Cmd_CommandAdd( pAbc, "FPGA mapping", "fpga",          Ntk_CommandFpga,             1 );
 
@@ -750,6 +755,127 @@ usage:
     return 1;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntk_CommandFx( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk;
+    FILE * pOut, * pErr;
+    Fxu_Data_t * p = NULL;
+    int c;
+    extern bool Abc_NtkFastExtract( Abc_Ntk_t * pNtk, Fxu_Data_t * p );
+    extern void Abc_NtkFxuFreeInfo( Fxu_Data_t * p );
+
+    pNtk = Abc_FrameReadNet(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // allocate the structure
+    p = ALLOC( Fxu_Data_t, 1 );
+    memset( p, 0, sizeof(Fxu_Data_t) );
+    // set the defaults
+    p->nPairsMax = 30000;
+    p->nNodesExt = 10000;
+    p->fOnlyS    = 0;
+    p->fOnlyD    = 0;
+    p->fUse0     = 0;
+    p->fUseCompl = 1;
+    p->fVerbose  = 0;
+    util_getopt_reset();
+    while ( (c = util_getopt(argc, argv, "lnsdzcvh")) != EOF ) 
+    {
+        switch (c) 
+        {
+            case 'l':
+                if ( util_optind >= argc )
+                {
+                    fprintf( pErr, "Command line switch \"-l\" should be followed by an integer.\n" );
+                    goto usage;
+                }
+                p->nPairsMax = atoi(argv[util_optind]);
+                util_optind++;
+                if ( p->nPairsMax < 0 ) 
+                    goto usage;
+                break;
+            case 'n':
+                if ( util_optind >= argc )
+                {
+                    fprintf( pErr, "Command line switch \"-n\" should be followed by an integer.\n" );
+                    goto usage;
+                }
+                p->nNodesExt = atoi(argv[util_optind]);
+                util_optind++;
+                if ( p->nNodesExt < 0 ) 
+                    goto usage;
+                break;
+            case 's':
+                p->fOnlyS ^= 1;
+                break;
+            case 'd':
+                p->fOnlyD ^= 1;
+                break;
+            case 'z':
+                p->fUse0 ^= 1;
+                break;
+            case 'c':
+                p->fUseCompl ^= 1;
+                break;
+            case 'v':
+                p->fVerbose ^= 1;
+                break;
+            case 'h':
+                goto usage;
+                break;
+            default:
+                goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        Abc_NtkFxuFreeInfo( p );
+        return 1;
+    }
+
+    if ( Abc_NtkNodeNum(pNtk) == 0 )
+    {
+        fprintf( pErr, "The network does not have internal nodes.\n" );
+        Abc_NtkFxuFreeInfo( p );
+        return 1;
+    }
+
+    // the nodes to be merged are linked into the special linked list
+    Abc_NtkFastExtract( pNtk, p );
+    Abc_NtkFxuFreeInfo( p );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: fx [-n num] [-l num] [-sdzcvh]\n");
+    fprintf( pErr, "\t         performs unate fast extract on the current network\n");
+    fprintf( pErr, "\t-n num : the maximum number of divisors to extract [default = %d]\n", p->nNodesExt );  
+    fprintf( pErr, "\t-l num : the maximum number of cube pairs to consider [default = %d]\n", p->nPairsMax );  
+    fprintf( pErr, "\t-s     : use only single-cube divisors [default = %s]\n", p->fOnlyS? "yes": "no" );  
+    fprintf( pErr, "\t-d     : use only double-cube divisors [default = %s]\n", p->fOnlyD? "yes": "no" );  
+    fprintf( pErr, "\t-z     : use zero-weight divisors [default = %s]\n", p->fUse0? "yes": "no" );  
+    fprintf( pErr, "\t-c     : use complement in the binary case [default = %s]\n", p->fUseCompl? "yes": "no" );  
+    fprintf( pErr, "\t-v     : print verbose information [default = %s]\n", p->fVerbose? "yes": "no" ); 
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    Abc_NtkFxuFreeInfo( p );
+    return 1;       
+}
+
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -1189,6 +1315,7 @@ int Ntk_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     Fraig_Params_t Params;
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
+    int fAllNodes;
     int c;
 
     pNtk = Abc_FrameReadNet(pAbc);
@@ -1196,6 +1323,7 @@ int Ntk_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
+    fAllNodes = 0;
     Params.nPatsRand  = 2048; // the number of words of random simulation info
     Params.nPatsDyna  = 2048; // the number of words of dynamic simulation info
     Params.nBTLimit   = 99;   // the max number of backtracks to perform
@@ -1208,7 +1336,7 @@ int Ntk_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     Params.fVerbose   =  0;   // the verbosiness flag
     Params.fVerboseP  =  0;   // the verbosiness flag
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "RDBrscpvh" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "RDBrscpvah" ) ) != EOF )
     {
         switch ( c )
         {
@@ -1262,7 +1390,9 @@ int Ntk_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'v':
             Params.fVerbose ^= 1;
             break;
-
+        case 'a':
+            fAllNodes ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -1286,11 +1416,11 @@ int Ntk_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // get the new network
     if ( Abc_NtkIsAig(pNtk) )
-        pNtkRes = Abc_NtkFraig( pNtk, &Params, 0 );
+        pNtkRes = Abc_NtkFraig( pNtk, &Params, fAllNodes );
     else
     {
         pNtk = Abc_NtkStrash( pNtk );
-        pNtkRes = Abc_NtkFraig( pNtk, &Params, 0 );
+        pNtkRes = Abc_NtkFraig( pNtk, &Params, fAllNodes );
         Abc_NtkDelete( pNtk );
     }
     if ( pNtkRes == NULL )
@@ -1308,7 +1438,7 @@ int Ntk_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     sprintf( Buffer, "%d", Params.nBTLimit );
-    fprintf( pErr, "usage: fraig [-R num] [-D num] [-B num] [-rscpvh]\n" );
+    fprintf( pErr, "usage: fraig [-R num] [-D num] [-B num] [-rscpvah]\n" );
     fprintf( pErr, "\t         transforms a logic network into a functionally reduced AIG\n" );
     fprintf( pErr, "\t-R num : number of random patterns (127 < num < 32769) [default = %d]\n",     Params.nPatsRand );
     fprintf( pErr, "\t-D num : number of systematic patterns (127 < num < 32769) [default = %d]\n", Params.nPatsDyna );
@@ -1318,6 +1448,7 @@ usage:
     fprintf( pErr, "\t-c     : toggle accumulation of choices [default = %s]\n",              Params.fChoicing? "yes": "no" );
     fprintf( pErr, "\t-p     : toggle proving the final miter [default = %s]\n",              Params.fTryProve? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n",                       Params.fVerbose?  "yes": "no" );
+    fprintf( pErr, "\t-a     : toggle between all nodes and DFS nodes [default = %s]\n",      fAllNodes? "all": "dfs" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -1886,6 +2017,72 @@ int Ntk_CommandAttach( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     fprintf( pErr, "usage: attach [-h]\n" );
     fprintf( pErr, "\t        replaces the SOP functions by the gates from the library\n" );
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntk_CommandSuperChoice( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c;
+    extern Abc_Ntk_t * Abc_NtkSuperChoice( Abc_Ntk_t * pNtk );
+
+    pNtk = Abc_FrameReadNet(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkIsAig(pNtk) )
+    {
+        fprintf( pErr, "Works only for the AIG representation.\n" );
+        return 1;
+    }
+
+    // get the new network
+    pNtkRes = Abc_NtkSuperChoice( pNtk );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Superchoicing has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: sc [-h]\n" );
+    fprintf( pErr, "\t        performs superchoicing\n" );
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }

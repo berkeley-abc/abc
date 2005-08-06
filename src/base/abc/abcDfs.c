@@ -223,9 +223,12 @@ int Abc_NtkGetLevelNum( Abc_Ntk_t * pNtk )
     }
     else
     {
-        Abc_NtkForEachCo( pNtk, pNode, i )
+//        Abc_NtkForEachCo( pNtk, pNode, i )
+        Abc_NtkForEachNode( pNtk, pNode, i )
         {
-            pDriver = Abc_ObjFanin0( pNode );
+//            pDriver = Abc_ObjFanin0( pNode );
+            pDriver = pNode;
+
             Abc_NtkGetLevelNum_rec( pDriver );
             if ( LevelsMax < pDriver->Level )
                 LevelsMax = pDriver->Level;

@@ -493,6 +493,32 @@ float Fpga_MappingSetRefsAndArea_rec( Fpga_Man_t * pMan, Fpga_Node_t * pNode )
 
 /**Function*************************************************************
 
+  Synopsis    [Collect the referenced nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Fpga_NodeVec_t * Fpga_MappingCollectRefed( Fpga_Man_t * pMan )
+{
+    Fpga_NodeVec_t * vNodes;
+    int i;
+    vNodes = Fpga_NodeVecAlloc( 100 );
+    for ( i = 0; i < pMan->vNodesAll->nSize; i++ )
+    {
+        if ( Fpga_NodeIsVar(pMan->vNodesAll->pArray[i]) )
+            continue;
+        if ( pMan->vNodesAll->pArray[i]->nRefs )
+            Fpga_NodeVecPush( vNodes, pMan->vNodesAll->pArray[i] );
+    }
+    return vNodes;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Computes the number of logic levels not counting PIs/POs.]
 
   Description []

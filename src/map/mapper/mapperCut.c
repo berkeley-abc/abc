@@ -23,9 +23,9 @@
 ////////////////////////////////////////////////////////////////////////
 
 // the largest number of cuts considered
-#define  MAP_CUTS_MAX_COMPUTE   200
+#define  MAP_CUTS_MAX_COMPUTE   1000
 // the largest number of cuts used
-#define  MAP_CUTS_MAX_USE       50
+#define  MAP_CUTS_MAX_USE       250
 
 // temporary hash table to store the cuts
 typedef struct Map_CutTableStrutct_t Map_CutTable_t;
@@ -373,6 +373,14 @@ Map_Cut_t * Map_CutMergeLists( Map_Man_t * p, Map_CutTable_t * pTable,
             pTemp1 = ppArray1[i];
             pTemp2 = ppArray2[k];
 
+            if ( pTemp1->nLeaves == p->nVarsMax && pTemp2->nLeaves == p->nVarsMax )
+            {
+                if ( pTemp1->ppLeaves[0] != pTemp2->ppLeaves[0] )
+                    continue;
+                if ( pTemp1->ppLeaves[1] != pTemp2->ppLeaves[1] )
+                    continue;
+            }
+
             // check if k-feasible cut exists
             nNodes = Map_CutMergeTwo( pTemp1, pTemp2, ppNodes, p->nVarsMax );
             if ( nNodes == 0 )
@@ -396,6 +404,14 @@ Map_Cut_t * Map_CutMergeLists( Map_Man_t * p, Map_CutTable_t * pTable,
         {
             pTemp1 = ppArray1[k];
             pTemp2 = ppArray2[i];
+
+            if ( pTemp1->nLeaves == p->nVarsMax && pTemp2->nLeaves == p->nVarsMax )
+            {
+                if ( pTemp1->ppLeaves[0] != pTemp2->ppLeaves[0] )
+                    continue;
+                if ( pTemp1->ppLeaves[1] != pTemp2->ppLeaves[1] )
+                    continue;
+            }
 
             // check if k-feasible cut exists
             nNodes = Map_CutMergeTwo( pTemp1, pTemp2, ppNodes, p->nVarsMax );
@@ -423,6 +439,14 @@ Map_Cut_t * Map_CutMergeLists( Map_Man_t * p, Map_CutTable_t * pTable,
         {
             pTemp1 = ppArray1[k];
             pTemp2 = ppArray2[i];
+
+            if ( pTemp1->nLeaves == p->nVarsMax && pTemp2->nLeaves == p->nVarsMax )
+            {
+                if ( pTemp1->ppLeaves[0] != pTemp2->ppLeaves[0] )
+                    continue;
+                if ( pTemp1->ppLeaves[1] != pTemp2->ppLeaves[1] )
+                    continue;
+            }
 
             // check if k-feasible cut exists
             nNodes = Map_CutMergeTwo( pTemp1, pTemp2, ppNodes, p->nVarsMax );
