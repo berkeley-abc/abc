@@ -85,6 +85,32 @@ void Abc_ObjDeleteFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFanin )
     }
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Destroys fanout/fanin relationship between the nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_ObjRemoveFanins( Abc_Obj_t * pObj )
+{
+    Vec_Fan_t * vFaninsOld;
+    Abc_Obj_t * pFanin;
+    int k;
+    // remove old fanins
+    vFaninsOld = &pObj->vFanins;
+    for ( k = vFaninsOld->nSize - 1; k >= 0; k-- )
+    {
+        pFanin = Abc_NtkObj( pObj->pNtk, vFaninsOld->pArray[k].iFan );
+        Abc_ObjDeleteFanin( pObj, pFanin );
+    }
+}
+
 /**Function*************************************************************
 
   Synopsis    [Replaces a fanin of the node.]

@@ -172,7 +172,7 @@ Fpga_Man_t * Fpga_ManCreate( int nInputs, int nOutputs, int fVerbose )
     p->fAreaRecovery = 1;
     p->fTree     = 0;
     p->fRefCount = 1;
-    p->fEpsilon  = (float)0.00001;
+    p->fEpsilon  = (float)0.001;
 
     Fpga_TableCreate( p );
 //if ( p->fVerbose )

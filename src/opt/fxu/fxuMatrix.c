@@ -77,6 +77,7 @@ Fxu_Matrix * Fxu_MatrixAllocate()
 #endif
     p->pHeapDouble = Fxu_HeapDoubleStart();
     p->pHeapSingle = Fxu_HeapSingleStart();
+    p->vPairs = Vec_PtrAlloc( 100 );
     return p;
 }
 
@@ -132,9 +133,10 @@ void Fxu_MatrixDelete( Fxu_Matrix * p )
     Extra_MmFixedStop( p->pMemMan, 0 );
 #endif
 
+    Vec_PtrFree( p->vPairs );
     FREE( p->pppPairs );
     FREE( p->ppPairs );
-    FREE( p->pPairsTemp );
+//    FREE( p->pPairsTemp );
     FREE( p->pTable );
     FREE( p->ppVars );
     FREE( p );
@@ -305,20 +307,8 @@ void Fxu_MatrixAddDivisor( Fxu_Matrix * p, Fxu_Cube * pCube1, Fxu_Cube * pCube2 
 
     // canonicize the pair
     Fxu_PairCanonicize( &pCube1, &pCube2 );
-
-/*
     // compute the hash key
-    if ( p->fMvNetwork )
-//    if ( 0 )
-    {   // in case of MV network, if all the values in the cube-free divisor
-        // belong to the same MV variable, this cube pair is not a divisor
-        Key = Fxu_PairHashKeyMv( p, pCube1, pCube2, &nBase, &nLits1, &nLits2 );
-        if ( Key == 0 )
-            return;
-    }
-    else
-*/
-        Key = Fxu_PairHashKey( p, pCube1, pCube2, &nBase, &nLits1, &nLits2 );
+    Key = Fxu_PairHashKey( p, pCube1, pCube2, &nBase, &nLits1, &nLits2 );
 
     // create the cube pair
     pPair = Fxu_PairAlloc( p, pCube1, pCube2 );
@@ -330,11 +320,13 @@ void Fxu_MatrixAddDivisor( Fxu_Matrix * p, Fxu_Cube * pCube1, Fxu_Cube * pCube2 
     fFound = 0;
     Key %= p->nTableSize;
     Fxu_TableForEachDouble( p, Key, pDiv )
+    {
         if ( Fxu_PairCompare( pPair, pDiv->lPairs.pTail ) ) // they are equal
         {
             fFound = 1;
             break;
         }
+    }
 
     if ( !fFound )
     {   // create the new divisor

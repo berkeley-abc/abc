@@ -353,7 +353,7 @@ Abc_Obj_t * Abc_NodeFromMapSuper_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap
         }
         else
         {  
-            assert( 0 );
+//            assert( 0 );
             /* It might happen that a super gate with 5 inputs is constructed that
              * actually depends only on the first four variables; i.e the fifth is a
              * don't care -- in that case we connect constant node for the fifth

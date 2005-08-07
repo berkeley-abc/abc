@@ -52,7 +52,10 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk )
         fprintf( pFile, "  nd = %5d", Abc_NtkNodeNum(pNtk) );
     }
     else if ( Abc_NtkIsAig(pNtk) )
+    {
         fprintf( pFile, "  and = %5d", Abc_NtkNodeNum(pNtk) );
+        fprintf( pFile, "  choice = %5d", Abc_NtkCountChoiceNodes(pNtk) );
+    }
     else 
         fprintf( pFile, "  nd = %5d", Abc_NtkNodeNum(pNtk) );
 
@@ -86,19 +89,19 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk )
 ***********************************************************************/
 void Abc_NtkPrintIo( FILE * pFile, Abc_Ntk_t * pNtk )
 {
-    Abc_Obj_t * pNet, * pLatch;
+    Abc_Obj_t * pObj, * pLatch;
     int i;
 
     if ( Abc_NtkIsNetlist(pNtk) )
     {
         fprintf( pFile, "Primary inputs (%d): ", Abc_NtkPiNum(pNtk) );    
-        Abc_NtkForEachPi( pNtk, pNet, i )
-            fprintf( pFile, " %s", Abc_ObjName(pNet) );
+        Abc_NtkForEachPi( pNtk, pObj, i )
+            fprintf( pFile, " %s", Abc_ObjName(pObj) );
         fprintf( pFile, "\n" );   
     
         fprintf( pFile, "Primary outputs (%d):", Abc_NtkPoNum(pNtk) );    
-        Abc_NtkForEachPo( pNtk, pNet, i )
-            fprintf( pFile, " %s", Abc_ObjName(pNet) );
+        Abc_NtkForEachPo( pNtk, pObj, i )
+            fprintf( pFile, " %s", Abc_ObjName(pObj) );
         fprintf( pFile, "\n" );    
   
         fprintf( pFile, "Latches (%d):  ", Abc_NtkLatchNum(pNtk) );  
@@ -109,12 +112,12 @@ void Abc_NtkPrintIo( FILE * pFile, Abc_Ntk_t * pNtk )
     else
     {
         fprintf( pFile, "Primary inputs (%d): ", Abc_NtkPiNum(pNtk) );    
-        Abc_NtkForEachPi( pNtk, pNet, i )
+        Abc_NtkForEachPi( pNtk, pObj, i )
             fprintf( pFile, " %s", pNtk->vNamesPi->pArray[i] );
         fprintf( pFile, "\n" );   
     
         fprintf( pFile, "Primary outputs (%d):", Abc_NtkPoNum(pNtk) );    
-        Abc_NtkForEachPo( pNtk, pNet, i )
+        Abc_NtkForEachPo( pNtk, pObj, i )
             fprintf( pFile, " %s", pNtk->vNamesPo->pArray[i] );
         fprintf( pFile, "\n" );    
   
@@ -279,7 +282,6 @@ void Abc_NodePrintFactor( FILE * pFile, Abc_Obj_t * pNode )
     Ft_FactorPrint( stdout, vFactor, NULL, Abc_ObjName(pNode) );
     Vec_IntFree( vFactor );
 }
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

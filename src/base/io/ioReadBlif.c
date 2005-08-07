@@ -88,7 +88,7 @@ Abc_Ntk_t * Io_ReadBlif( char * pFileName, int fCheck )
         Io_ReadBlifFree( p );
         return NULL;
     }
-    Abc_NtkTimeFinalize( pNtk );
+    Abc_NtkTimeInitialize( pNtk );
 
     // read the EXDC network
     if ( p->fParsingExdc )

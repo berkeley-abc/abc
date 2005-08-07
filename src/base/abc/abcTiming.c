@@ -228,7 +228,7 @@ void Abc_NtkTimeSetRequired( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkTimeFinalize( Abc_Ntk_t * pNtk )
+void Abc_NtkTimeInitialize( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj;
     Abc_Time_t ** ppTimes, * pTime;
@@ -283,11 +283,12 @@ void Abc_NtkTimePrepare( Abc_Ntk_t * pNtk )
     if ( pNtk->pManTime == NULL )
     {
         pNtk->pManTime = Abc_ManTimeStart();
-        Abc_NtkTimeFinalize( pNtk );
+        Abc_NtkTimeInitialize( pNtk );
         return;
     }
-    // if timing manager is given, clean arrivals except for PIs
-    // and required except for POs
+    // if timing manager is given, expand it if necessary
+    Abc_ManTimeExpand( pNtk->pManTime, Abc_NtkObjNum(pNtk), 0 );
+    // clean arrivals except for PIs
     ppTimes = (Abc_Time_t **)pNtk->pManTime->vArrs->pArray;
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
@@ -299,6 +300,7 @@ void Abc_NtkTimePrepare( Abc_Ntk_t * pNtk )
         pTime = ppTimes[pObj->Id];
         pTime->Fall = pTime->Rise = pTime->Worst = -ABC_INFINITY;
     }
+    // clean required except for POs
 }
 
 
@@ -392,7 +394,7 @@ void Abc_ManTimeDup( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew )
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Expends the storage for timing information.]
 
   Description []
                

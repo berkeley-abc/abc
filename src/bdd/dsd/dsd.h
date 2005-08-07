@@ -88,6 +88,7 @@ extern Dsd_Node_t *    Dsd_NodeReadDec ( Dsd_Node_t * p, int i );
 extern int             Dsd_NodeReadDecsNum( Dsd_Node_t * p );
 extern int             Dsd_NodeReadMark( Dsd_Node_t * p );
 extern void            Dsd_NodeSetMark( Dsd_Node_t * p, int Mark ); 
+extern DdManager *     Dsd_ManagerReadDd( Dsd_Manager_t * pMan );
 extern Dsd_Node_t *    Dsd_ManagerReadRoot( Dsd_Manager_t * pMan, int i );
 extern Dsd_Node_t *    Dsd_ManagerReadInput( Dsd_Manager_t * pMan, int i );
 /*=== dsdMan.c =======================================================*/
@@ -95,6 +96,7 @@ extern Dsd_Manager_t * Dsd_ManagerStart( DdManager * dd, int nSuppMax, int fVerb
 extern void            Dsd_ManagerStop( Dsd_Manager_t * dMan );
 /*=== dsdProc.c =======================================================*/
 extern void            Dsd_Decompose( Dsd_Manager_t * dMan, DdNode ** pbFuncs, int nFuncs );
+extern Dsd_Node_t *    Dsd_DecomposeOne( Dsd_Manager_t * pDsdMan, DdNode * bFunc );
 /*=== dsdTree.c =======================================================*/
 extern void            Dsd_TreeNodeGetInfo( Dsd_Manager_t * dMan, int * DepthMax, int * GateSizeMax );
 extern void            Dsd_TreeNodeGetInfoOne( Dsd_Node_t * pNode, int * DepthMax, int * GateSizeMax );
@@ -104,6 +106,7 @@ extern int             Dsd_TreeCountPrimeNodes( Dsd_Manager_t * pDsdMan );
 extern int             Dsd_TreeCountPrimeNodesOne( Dsd_Node_t * pRoot );
 extern int             Dsd_TreeCollectDecomposableVars( Dsd_Manager_t * dMan, int * pVars );
 extern Dsd_Node_t **   Dsd_TreeCollectNodesDfs( Dsd_Manager_t * dMan, int * pnNodes );
+extern Dsd_Node_t **   Dsd_TreeCollectNodesDfsOne( Dsd_Manager_t * pDsdMan, Dsd_Node_t * pNode, int * pnNodes );
 extern void            Dsd_TreePrint( FILE * pFile, Dsd_Manager_t * dMan, char * pInputNames[], char * pOutputNames[], int fShortNames, int Output );
 /*=== dsdLocal.c =======================================================*/
 extern DdNode *        Dsd_TreeGetPrimeFunction( DdManager * dd, Dsd_Node_t * pNode );

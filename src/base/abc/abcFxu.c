@@ -52,6 +52,8 @@ static void Abc_NtkFxuReconstruct( Abc_Ntk_t * pNtk, Fxu_Data_t * p );
 ***********************************************************************/
 bool Abc_NtkFastExtract( Abc_Ntk_t * pNtk, Fxu_Data_t * p )
 {
+    int fCheck = 1;
+
     assert( Abc_NtkIsLogicBdd(pNtk) || Abc_NtkIsLogicSop(pNtk) );
     // convert nodes to SOPs
     if ( Abc_NtkIsLogicBdd(pNtk) )
@@ -70,20 +72,19 @@ bool Abc_NtkFastExtract( Abc_Ntk_t * pNtk, Fxu_Data_t * p )
     // sweep removes useless nodes
     Abc_NtkCleanup( pNtk, 0 );
     // collect information about the covers
-    // make sure all covers are SCC free
-    // allocate literal array for each cover
     Abc_NtkFxuCollectInfo( pNtk, p );
     // call the fast extract procedure
-    // returns the number of divisor extracted
     if ( Fxu_FastExtract(p) > 0 )
     {
         // update the network
         Abc_NtkFxuReconstruct( pNtk, p );
         // make sure everything is okay
-        if ( !Abc_NtkCheck( pNtk ) )
+        if ( fCheck && !Abc_NtkCheck( pNtk ) )
             printf( "Abc_NtkFastExtract: The network check has failed.\n" );
         return 1;
     }
+    else
+        printf( "Warning: The network has not been changed by \"fx\".\n" );
     return 0;
 }
 
@@ -199,7 +200,6 @@ void Abc_NtkFxuFreeInfo( Fxu_Data_t * p )
 ***********************************************************************/
 void Abc_NtkFxuReconstruct( Abc_Ntk_t * pNtk, Fxu_Data_t * p )
 {
-    Vec_Fan_t * vFaninsOld;
     Vec_Int_t * vFanins;
     Abc_Obj_t * pNode, * pFanin;
     int i, k;
@@ -221,12 +221,7 @@ void Abc_NtkFxuReconstruct( Abc_Ntk_t * pNtk, Fxu_Data_t * p )
             continue;
         // remove old fanins
         pNode = Abc_NtkObj( pNtk, i );
-        vFaninsOld = &pNode->vFanins;
-        for ( k = vFaninsOld->nSize - 1; k >= 0; k-- )
-        {
-            pFanin = Abc_NtkObj( pNtk, vFaninsOld->pArray[k].iFan );
-            Abc_ObjDeleteFanin( pNode, pFanin );
-        }
+        Abc_ObjRemoveFanins( pNode );
         // add new fanins
         vFanins = p->vFaninsNew->pArray[i];
         for ( k = 0; k < vFanins->nSize; k++ )

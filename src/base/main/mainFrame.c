@@ -205,19 +205,19 @@ bool Abc_FrameSetMode( Abc_Frame_t * p, bool fNameMode )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_FrameSetCurrentNetwork( Abc_Frame_t * p, Abc_Ntk_t * pNetNew )
+void Abc_FrameSetCurrentNetwork( Abc_Frame_t * p, Abc_Ntk_t * pNtkNew )
 {
-    Abc_Ntk_t * pNet, * pNet2, * pNet3;
+    Abc_Ntk_t * pNtk, * pNtk2, * pNtk3;
     int nNetsPresent;
     int nNetsToSave;
     char * pValue;
 
     // link it to the previous network
-    Abc_NtkSetBackup( pNetNew, p->pNtkCur );
+    Abc_NtkSetBackup( pNtkNew, p->pNtkCur );
     // set the step of this network
-    Abc_NtkSetStep( pNetNew, ++p->nSteps );
+    Abc_NtkSetStep( pNtkNew, ++p->nSteps );
     // set this network to be the current network
-    p->pNtkCur = pNetNew;
+    p->pNtkCur = pNtkNew;
 
     // remove any extra network that may happen to be in the stack
     pValue = Cmd_FlagReadByName( p, "savesteps" );
@@ -229,20 +229,20 @@ void Abc_FrameSetCurrentNetwork( Abc_Frame_t * p, Abc_Ntk_t * pNetNew )
     
     // count the network, remember the last one, and the one before the last one
     nNetsPresent = 0;
-    pNet2 = pNet3 = NULL;
-    for ( pNet = p->pNtkCur; pNet; pNet = Abc_NtkBackup(pNet2) )
+    pNtk2 = pNtk3 = NULL;
+    for ( pNtk = p->pNtkCur; pNtk; pNtk = Abc_NtkBackup(pNtk2) )
     {
         nNetsPresent++;
-        pNet3 = pNet2;
-        pNet2 = pNet;
+        pNtk3 = pNtk2;
+        pNtk2 = pNtk;
     }
 
     // remove the earliest backup network if it is more steps away than we store
     if ( nNetsPresent - 1 > nNetsToSave )
     { // delete the last network
-        Abc_NtkDelete( pNet2 );
+        Abc_NtkDelete( pNtk2 );
         // clean the pointer of the network before the last one
-        Abc_NtkSetBackup( pNet3, NULL );
+        Abc_NtkSetBackup( pNtk3, NULL );
     }
 }
 
@@ -259,31 +259,31 @@ void Abc_FrameSetCurrentNetwork( Abc_Frame_t * p, Abc_Ntk_t * pNetNew )
 ***********************************************************************/
 void Abc_FrameSwapCurrentAndBackup( Abc_Frame_t * p )
 {
-    Abc_Ntk_t * pNtkCur, * pNetBack, * pNetBack2;
+    Abc_Ntk_t * pNtkCur, * pNtkBack, * pNtkBack2;
     int iStepCur, iStepBack;
 
     pNtkCur  = p->pNtkCur;
-    pNetBack = Abc_NtkBackup( pNtkCur );
+    pNtkBack = Abc_NtkBackup( pNtkCur );
     iStepCur = Abc_NtkStep  ( pNtkCur );
 
     // if there is no backup nothing to reset
-    if ( pNetBack == NULL )
+    if ( pNtkBack == NULL )
         return;
 
     // remember the backup of the backup
-    pNetBack2 = Abc_NtkBackup( pNetBack );
-    iStepBack = Abc_NtkStep  ( pNetBack );
+    pNtkBack2 = Abc_NtkBackup( pNtkBack );
+    iStepBack = Abc_NtkStep  ( pNtkBack );
 
     // set pNtkCur to be the next after the backup's backup
-    Abc_NtkSetBackup( pNtkCur, pNetBack2 );
+    Abc_NtkSetBackup( pNtkCur, pNtkBack2 );
     Abc_NtkSetStep  ( pNtkCur, iStepBack );
 
     // set pNtkCur to be the next after the backup
-    Abc_NtkSetBackup( pNetBack, pNtkCur );
-    Abc_NtkSetStep  ( pNetBack, iStepCur );
+    Abc_NtkSetBackup( pNtkBack, pNtkCur );
+    Abc_NtkSetStep  ( pNtkBack, iStepCur );
 
     // set the current network
-    p->pNtkCur = pNetBack;
+    p->pNtkCur = pNtkBack;
 }
 
 
@@ -299,26 +299,45 @@ void Abc_FrameSwapCurrentAndBackup( Abc_Frame_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_FrameReplaceCurrentNetwork( Abc_Frame_t * p, Abc_Ntk_t * pNet )
+void Abc_FrameReplaceCurrentNetwork( Abc_Frame_t * p, Abc_Ntk_t * pNtk )
 {
-    if ( pNet == NULL )
+    if ( pNtk == NULL )
         return;
 
     // transfer the parameters to the new network
     if ( p->pNtkCur )
     {
-        Abc_NtkSetBackup( pNet, Abc_NtkBackup(p->pNtkCur) );
-        Abc_NtkSetStep( pNet, Abc_NtkStep(p->pNtkCur) );
+        Abc_NtkSetBackup( pNtk, Abc_NtkBackup(p->pNtkCur) );
+        Abc_NtkSetStep( pNtk, Abc_NtkStep(p->pNtkCur) );
         // delete the current network
         Abc_NtkDelete( p->pNtkCur );
     }
     else
     {
-        Abc_NtkSetBackup( pNet, NULL );
-        Abc_NtkSetStep( pNet, ++p->nSteps );
+        Abc_NtkSetBackup( pNtk, NULL );
+        Abc_NtkSetStep( pNtk, ++p->nSteps );
     }
     // set the new current network
-    p->pNtkCur = pNet;
+    p->pNtkCur = pNtk;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Removes library binding of all currently stored networks.]
+
+  Description [This procedure is called when the library is freed.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_FrameUnmapAllNetworks( Abc_Frame_t * p )
+{
+    Abc_Ntk_t * pNtk;
+    for ( pNtk = p->pNtkCur; pNtk; pNtk = Abc_NtkBackup(pNtk) )
+        if ( Abc_NtkIsLogicMap(pNtk) )
+            Abc_NtkUnmap( pNtk );
 }
 
 /**Function*************************************************************
@@ -334,14 +353,14 @@ void Abc_FrameReplaceCurrentNetwork( Abc_Frame_t * p, Abc_Ntk_t * pNet )
 ***********************************************************************/
 void Abc_FrameDeleteAllNetworks( Abc_Frame_t * p )
 {
-    Abc_Ntk_t * pNet, * pNet2;
+    Abc_Ntk_t * pNtk, * pNtk2;
     // delete all the currently saved networks
-    for ( pNet  = p->pNtkCur, 
-          pNet2 = pNet? Abc_NtkBackup(pNet): NULL; 
-          pNet; 
-          pNet  = pNet2, 
-          pNet2 = pNet? Abc_NtkBackup(pNet): NULL )
-        Abc_NtkDelete( pNet );
+    for ( pNtk  = p->pNtkCur, 
+          pNtk2 = pNtk? Abc_NtkBackup(pNtk): NULL; 
+          pNtk; 
+          pNtk  = pNtk2, 
+          pNtk2 = pNtk? Abc_NtkBackup(pNtk): NULL )
+        Abc_NtkDelete( pNtk );
     // set the current network empty
     p->pNtkCur = NULL;
     fprintf( p->Out, "All networks have been deleted.\n" );

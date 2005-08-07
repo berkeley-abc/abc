@@ -108,11 +108,11 @@ bool Abc_NtkCheck( Abc_Ntk_t * pNtk )
     // check the EXDC network if present
     if ( pNtk->pExdc )
     {
-        if ( pNtk->Type != pNtk->pExdc->Type )
-        {
-            fprintf( stdout, "NetworkCheck: Network and its EXDC have different types.\n" );
-            return 0;
-        }
+//        if ( pNtk->Type != pNtk->pExdc->Type )
+//        {
+//            fprintf( stdout, "NetworkCheck: Network and its EXDC have different types.\n" );
+//            return 0;
+//        }
         return Abc_NtkCheck( pNtk->pExdc );
     }
     return 1;

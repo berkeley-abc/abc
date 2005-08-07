@@ -24,13 +24,13 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-extern int         Fxu_PreprocessCubePairs( Fxu_Matrix * p, Vec_Ptr_t * vCovers, int nPairsTotal, int nPairsMax );
-
 static void        Fxu_CreateMatrixAddCube( Fxu_Matrix * p, Fxu_Cube * pCube, char * pSopCube, Vec_Fan_t * vFanins, int * pOrder );
 static int         Fxu_CreateMatrixLitCompare( int * ptrX, int * ptrY );
 static void        Fxu_CreateCoversNode( Fxu_Matrix * p, Fxu_Data_t * pData, int iNode, Fxu_Cube * pCubeFirst, Fxu_Cube * pCubeNext );
 static Fxu_Cube *  Fxu_CreateCoversFirstCube( Fxu_Matrix * p, Fxu_Data_t * pData, int iNode );
 static Abc_Fan_t * s_pLits;
+
+extern int         Fxu_PreprocessCubePairs( Fxu_Matrix * p, Vec_Ptr_t * vCovers, int nPairsTotal, int nPairsMax );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -38,7 +38,7 @@ static Abc_Fan_t * s_pLits;
 
 /**Function*************************************************************
 
-  Synopsis    [Creates the sparse matrix from the array of Sop covers.]
+  Synopsis    [Creates the sparse matrix from the array of SOPs.]
 
   Description []
                
@@ -53,6 +53,7 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
     Fxu_Var * pVar;
     Fxu_Cube * pCubeFirst, * pCubeNew;
     Fxu_Cube * pCube1, * pCube2;
+    Vec_Fan_t * vFanins;
     char * pSopCover;
     char * pSopCube;
     int * pOrder, nBitsMax;
@@ -63,12 +64,11 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
     int nCubes;
     int iCube, iPair;
     int nFanins;
-    Vec_Fan_t * vFanins;
 
     // collect all sorts of statistics
-    nCubesTotal = 0;
-    nPairsTotal = 0;
-    nPairsStore = 0;
+    nCubesTotal =  0;
+    nPairsTotal =  0;
+    nPairsStore =  0;
     nBitsMax    = -1;
     for ( i = 0; i < pData->nNodesOld; i++ )
         if ( pSopCover = pData->vSops->pArray[i] )
@@ -158,12 +158,11 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
         Abc_SopForEachCube( pSopCover, nFanins, pSopCube )
         {
             // create the cube
-            pCubeNew = Fxu_MatrixAddCube( p, pVar, c );
+            pCubeNew = Fxu_MatrixAddCube( p, pVar, c++ );
             Fxu_CreateMatrixAddCube( p, pCubeNew, pSopCube, vFanins, pOrder );
             if ( pCubeFirst == NULL )
                 pCubeFirst = pCubeNew;
             pCubeNew->pFirst = pCubeFirst;
-            c++;
         }
         // set the first cube of this var
         pVar->pFirst = pCubeFirst;
@@ -185,10 +184,7 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
     // add the var pairs to the heap
     Fxu_MatrixComputeSingles( p );
 
-    // allocate temporary storage for pairs
-    if ( pData->nPairsMax < 1000 )
-        pData->nPairsMax = 1000;
-    p->pPairsTemp = ALLOC( Fxu_Pair *, pData->nPairsMax * 10 + 100 );
+    // print stats
     if ( pData->fVerbose )
     {
         double Density;
@@ -254,8 +250,8 @@ void Fxu_CreateMatrixAddCube( Fxu_Matrix * p, Fxu_Cube * pCube, char * pSopCube,
 void Fxu_CreateCovers( Fxu_Matrix * p, Fxu_Data_t * pData )
 {
     Fxu_Cube * pCube, * pCubeFirst, * pCubeNext;
-    int iNode, n;
     char * pSopCover;
+    int iNode, n;
 
     // get the first cube of the first internal node 
     pCubeFirst = Fxu_CreateCoversFirstCube( p, pData, 0 );
@@ -306,13 +302,11 @@ void Fxu_CreateCovers( Fxu_Matrix * p, Fxu_Data_t * pData )
 void Fxu_CreateCoversNode( Fxu_Matrix * p, Fxu_Data_t * pData, int iNode, Fxu_Cube * pCubeFirst, Fxu_Cube * pCubeNext )
 {
     Vec_Int_t * vInputsNew;
-    char * pSopCover;
-    char * pSopCube;
+    char * pSopCover, * pSopCube;
     Fxu_Var * pVar;
     Fxu_Cube * pCube;
     Fxu_Lit * pLit;
     int iNum, nCubes, v;
-    int fEmptyCube;
 
     // collect positive polarity variable in the cubes between pCubeFirst and pCubeNext
     Fxu_MatrixRingVarsStart( p );
@@ -362,7 +356,6 @@ void Fxu_CreateCoversNode( Fxu_Matrix * p, Fxu_Data_t * pData, int iNode, Fxu_Cu
         // get hold of the SOP cube
         pSopCube = pSopCover + nCubes * (vInputsNew->nSize + 3);
         // insert literals
-        fEmptyCube = 1;
         for ( pLit = pCube->lLits.pHead; pLit; pLit = pLit->pHNext )
         {
             iNum = pLit->pVar->lLits.nItems; // hack - reuse lLits.nItems
@@ -371,14 +364,13 @@ void Fxu_CreateCoversNode( Fxu_Matrix * p, Fxu_Data_t * pData, int iNode, Fxu_Cu
                 pSopCube[iNum] = (pLit->pVar->iVar & 1)? '0' : '1';   // reverse CST
             else
                 pSopCube[iNum] = (pLit->pVar->iVar & 1)? '1' : '0';   // no CST
-            fEmptyCube = 0;
         }
-        assert( !fEmptyCube );
         // count the cube
         nCubes++;
     }
     assert( nCubes == Abc_SopGetCubeNum(pSopCover) );
 
+    // set the new cover and the array of fanins
     pData->vSopsNew->pArray[iNode]   = pSopCover;
     pData->vFaninsNew->pArray[iNode] = vInputsNew;
 }

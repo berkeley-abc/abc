@@ -48,7 +48,7 @@ void Mio_LibraryDelete( Mio_Library_t * pLib )
     if ( pLib == NULL )
         return;
     // free the bindings of nodes to gates from this library for all networks
-//    Mv_FrameFreeNetworkBindings( Mv_FrameGetGlobalFrame() );
+    Abc_FrameUnmapAllNetworks( Abc_FrameGetGlobalFrame() );
     // free the library
     FREE( pLib->pName );
     Mio_LibraryForEachGateSafe( pLib, pGate, pGate2 )

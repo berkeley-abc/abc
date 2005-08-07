@@ -166,7 +166,7 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk )
         assert( pNode->pData );
         bFunc = pNode->pData;
 //Extra_bddPrint( dd, bFunc ); printf( "\n" ); printf( "\n" );
-        pNode->pData = Abc_ConvertBddToSop( pNtk->pManFunc, dd, bFunc, Abc_ObjFaninNum(pNode), vCube, -1 );
+        pNode->pData = Abc_ConvertBddToSop( pNtk->pManFunc, dd, bFunc, bFunc, Abc_ObjFaninNum(pNode), vCube, -1 );
         if ( pNode->pData == NULL )
             return 0;
         Cudd_RecursiveDeref( dd, bFunc );
@@ -193,18 +193,20 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_ConvertBddToSop( Extra_MmFlex_t * pMan, DdManager * dd, DdNode * bFunc, int nFanins, Vec_Str_t * vCube, int fMode )
+char * Abc_ConvertBddToSop( Extra_MmFlex_t * pMan, DdManager * dd, DdNode * bFuncOn, DdNode * bFuncOnDc, int nFanins, Vec_Str_t * vCube, int fMode )
 {
+    int fVerify = 1;
     char * pSop;
     DdNode * bFuncNew, * bCover, * zCover, * zCover0, * zCover1;
     int nCubes, nCubes0, nCubes1, fPhase;
 
-    if ( Cudd_IsConstant(bFunc) )
+    assert( bFuncOn == bFuncOnDc || Cudd_bddLeq( dd, bFuncOn, bFuncOnDc ) );
+    if ( Cudd_IsConstant(bFuncOn) || Cudd_IsConstant(bFuncOnDc) )
     {
         Vec_StrFill( vCube, nFanins, '-' );
         Vec_StrPush( vCube, '\0' );
         pSop = Extra_MmFlexEntryFetch( pMan, nFanins + 4 );
-        if ( bFunc == Cudd_ReadLogicZero(dd) )
+        if ( bFuncOn == Cudd_ReadLogicZero(dd) )
             sprintf( pSop, "%s 0\n", vCube->pArray );
         else
             sprintf( pSop, "%s 1\n", vCube->pArray );
@@ -216,14 +218,14 @@ char * Abc_ConvertBddToSop( Extra_MmFlex_t * pMan, DdManager * dd, DdNode * bFun
     { // try both phases
 
         // get the ZDD of the negative polarity
-        bCover = Cudd_zddIsop( dd, Cudd_Not(bFunc), Cudd_Not(bFunc), &zCover0 );
+        bCover = Cudd_zddIsop( dd, Cudd_Not(bFuncOnDc), Cudd_Not(bFuncOn), &zCover0 );
         Cudd_Ref( zCover0 );
         Cudd_Ref( bCover );
         Cudd_RecursiveDeref( dd, bCover );
         nCubes0 = Abc_CountZddCubes( dd, zCover0 );
 
         // get the ZDD of the positive polarity
-        bCover = Cudd_zddIsop( dd, bFunc, bFunc, &zCover1 );
+        bCover = Cudd_zddIsop( dd, bFuncOn, bFuncOnDc, &zCover1 );
         Cudd_Ref( zCover1 );
         Cudd_Ref( bCover );
         Cudd_RecursiveDeref( dd, bCover );
@@ -248,7 +250,7 @@ char * Abc_ConvertBddToSop( Extra_MmFlex_t * pMan, DdManager * dd, DdNode * bFun
     else if ( fMode == 0 )
     {
         // get the ZDD of the positive polarity
-        bCover = Cudd_zddIsop( dd, Cudd_Not(bFunc), Cudd_Not(bFunc), &zCover );
+        bCover = Cudd_zddIsop( dd, Cudd_Not(bFuncOnDc), Cudd_Not(bFuncOn), &zCover );
         Cudd_Ref( zCover );
         Cudd_Ref( bCover );
         Cudd_RecursiveDeref( dd, bCover );
@@ -258,7 +260,7 @@ char * Abc_ConvertBddToSop( Extra_MmFlex_t * pMan, DdManager * dd, DdNode * bFun
     else if ( fMode == 1 )
     {
         // get the ZDD of the positive polarity
-        bCover = Cudd_zddIsop( dd, bFunc, bFunc, &zCover );
+        bCover = Cudd_zddIsop( dd, bFuncOn, bFuncOnDc, &zCover );
         Cudd_Ref( zCover );
         Cudd_Ref( bCover );
         Cudd_RecursiveDeref( dd, bCover );
@@ -271,7 +273,10 @@ char * Abc_ConvertBddToSop( Extra_MmFlex_t * pMan, DdManager * dd, DdNode * bFun
     }
 
     // allocate memory for the cover
-    pSop = Extra_MmFlexEntryFetch( pMan, (nFanins + 3) * nCubes + 1 );
+    if ( pMan )
+        pSop = Extra_MmFlexEntryFetch( pMan, (nFanins + 3) * nCubes + 1 );
+    else 
+        pSop = ALLOC( char, (nFanins + 3) * nCubes + 1 );
     pSop[(nFanins + 3) * nCubes] = 0;
     // create the SOP
     Vec_StrFill( vCube, nFanins, '-' );
@@ -280,12 +285,21 @@ char * Abc_ConvertBddToSop( Extra_MmFlex_t * pMan, DdManager * dd, DdNode * bFun
     Cudd_RecursiveDerefZdd( dd, zCover );
 
     // verify
-    bFuncNew = Abc_ConvertSopToBdd( dd, pSop, nFanins );  Cudd_Ref( bFuncNew );
-//Extra_bddPrint( dd, bFunc );
-//Extra_bddPrint( dd, bFuncNew );
-    if ( bFuncNew != bFunc )
-        printf( "Verification failed.\n" );
-    Cudd_RecursiveDeref( dd, bFuncNew );
+    if ( fVerify )
+    {
+        bFuncNew = Abc_ConvertSopToBdd( dd, pSop, nFanins );  Cudd_Ref( bFuncNew );
+        if ( bFuncOn == bFuncOnDc )
+        {
+            if ( bFuncNew != bFuncOn )
+                printf( "Verification failed.\n" );
+        }
+        else
+        {
+            if ( !Cudd_bddLeq(dd, bFuncOn, bFuncNew) || !Cudd_bddLeq(dd, bFuncNew, bFuncOnDc) )
+                printf( "Verification failed.\n" );
+        }
+        Cudd_RecursiveDeref( dd, bFuncNew );
+    }
     return pSop;
 }
 
@@ -359,8 +373,8 @@ int Abc_ConvertZddToSop( DdManager * dd, DdNode * zCover, char * pSop, int nFani
 void Abc_NodeBddToCnf( Abc_Obj_t * pNode, Extra_MmFlex_t * pMmMan, Vec_Str_t * vCube, char ** ppSop0, char ** ppSop1 )
 {
     assert( Abc_NtkIsLogicBdd(pNode->pNtk) ); 
-    *ppSop0 = Abc_ConvertBddToSop( pMmMan, pNode->pNtk->pManFunc, pNode->pData, Abc_ObjFaninNum(pNode), vCube, 0 );
-    *ppSop1 = Abc_ConvertBddToSop( pMmMan, pNode->pNtk->pManFunc, pNode->pData, Abc_ObjFaninNum(pNode), vCube, 1 );
+    *ppSop0 = Abc_ConvertBddToSop( pMmMan, pNode->pNtk->pManFunc, pNode->pData, pNode->pData, Abc_ObjFaninNum(pNode), vCube, 0 );
+    *ppSop1 = Abc_ConvertBddToSop( pMmMan, pNode->pNtk->pManFunc, pNode->pData, pNode->pData, Abc_ObjFaninNum(pNode), vCube, 1 );
 }
 
 

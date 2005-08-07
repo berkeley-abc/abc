@@ -51,8 +51,8 @@ Abc_Ntk_t * Abc_NtkMiter( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb )
     Abc_Ntk_t * pTemp = NULL;
     int fRemove1, fRemove2;
     // make sure the circuits are strashed 
-    fRemove1 = (!Abc_NtkIsAig(pNtk1)) && (pNtk1 = Abc_NtkStrash(pNtk1));
-    fRemove2 = (!Abc_NtkIsAig(pNtk2)) && (pNtk2 = Abc_NtkStrash(pNtk2));
+    fRemove1 = (!Abc_NtkIsAig(pNtk1)) && (pNtk1 = Abc_NtkStrash(pNtk1, 0));
+    fRemove2 = (!Abc_NtkIsAig(pNtk2)) && (pNtk2 = Abc_NtkStrash(pNtk2, 0));
     if ( pNtk1 && pNtk2 )
     {
         // check that the networks have the same PIs/POs/latches

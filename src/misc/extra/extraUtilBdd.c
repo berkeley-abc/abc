@@ -656,6 +656,34 @@ DdNode * Extra_bddGetOneCube( DdManager * dd, DdNode * bFunc )
     return bRes;
 }
 
+/**Function********************************************************************
+
+  Synopsis    [Performs the reordering-sensitive step of Extra_bddMove().]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+DdNode * Extra_bddComputeRangeCube( DdManager * dd, int iStart, int iStop )
+{
+    DdNode * bTemp, * bProd;
+    int i;
+    assert( iStart <= iStop );
+    assert( iStart >= 0 && iStart <= dd->size );
+    assert( iStop >= 0  && iStop  <= dd->size );
+    bProd = b1;         Cudd_Ref( bProd );
+    for ( i = iStart; i < iStop; i++ )
+    {
+        bProd = Cudd_bddAnd( dd, bTemp = bProd, dd->vars[i] );      Cudd_Ref( bProd );
+        Cudd_RecursiveDeref( dd, bTemp ); 
+    }
+    Cudd_Deref( bProd );
+    return bProd;
+}
+
 /*---------------------------------------------------------------------------*/
 /* Definition of internal functions                                          */
 /*---------------------------------------------------------------------------*/

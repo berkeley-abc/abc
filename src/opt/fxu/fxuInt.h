@@ -25,6 +25,7 @@
 
 #include "util.h"
 #include "extra.h"
+#include "vec.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -158,9 +159,6 @@ struct FxuHeapSingle
 // sparse matrix
 struct FxuMatrix // ~ 30 words
 {
-    // information about the network
-//    int              fMvNetwork;  // set to 1 if the network has MV nodes
-//    int *            pValue2Node; // the mapping of values into nodes
     // the cubes
     Fxu_ListCube     lCubes;      // the double linked list of cubes
     // the values (binary literals)
@@ -185,9 +183,7 @@ struct FxuMatrix // ~ 30 words
     Fxu_Var *        pOrderVars;
     Fxu_Var **       ppTailVars;
     // temporary storage for pairs
-    Fxu_Pair **      pPairsTemp;
-    int              nPairsTemp;
-//    int              nPairsMax;
+    Vec_Ptr_t *      vPairs;
     // statistics
     int              nEntries;    // the total number of entries in the sparse matrix
     int              nDivs1;      // the single cube divisors taken

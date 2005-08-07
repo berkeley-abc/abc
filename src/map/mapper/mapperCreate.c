@@ -193,7 +193,6 @@ Map_Man_t * Map_ManCreate( int nInputs, int nOutputs, int fVerbose )
     p->pSuperLib = Abc_FrameReadLibSuper(Abc_FrameGetGlobalFrame());
     p->nVarsMax  = p->pSuperLib->nVarsMax;
     p->fVerbose  = fVerbose;
-//    p->fEpsilon  = (float)0.00001;
     p->fEpsilon  = (float)0.001;
     assert( p->nVarsMax > 0 );
 

@@ -48,6 +48,9 @@ struct Vec_Ptr_t_
 ///                      MACRO DEFITIONS                             ///
 ////////////////////////////////////////////////////////////////////////
 
+#define Vec_PtrForEachEntry( vVec, pEntry, i )                                               \
+    for ( i = 0; (i < Vec_PtrSize(vVec)) && (((pEntry) = Vec_PtrEntry(vVec, i)), 1); i++ )
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
@@ -414,6 +417,29 @@ static inline void * Vec_PtrPop( Vec_Ptr_t * p )
 {
     assert( p->nSize > 0 );
     return p->pArray[--p->nSize];
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_PtrRemove( Vec_Ptr_t * p, void * Entry )
+{
+    int i;
+    for ( i = 0; i < p->nSize; i++ )
+        if ( p->pArray[i] == Entry )
+            break;
+    assert( i < p->nSize );
+    for ( i++; i < p->nSize; i++ )
+        p->pArray[i-1] = p->pArray[i];
+    p->nSize--;
 }
 
 /**Function*************************************************************

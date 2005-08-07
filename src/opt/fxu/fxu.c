@@ -39,21 +39,14 @@ static int s_MemoryPeak;
 
   Synopsis    [Performs fast_extract on a set of covers.]
 
-  Description [All the covers are given in the array p->ppCovers. 
-  The resulting covers are returned in the array p->ppCoversNew.
-  The number of entries in both cover arrays is equal to the number
-  of all values in the current nodes plus the max expected number 
-  of extracted nodes (p->nValuesCi + p->nValuesInt + p->nValuesExtMax). 
-  The first p->nValuesCi entries, corresponding to the CI nodes, are NULL.
-  The next p->nValuesInt entries, corresponding to the int nodes, are covers
-  from which the divisors are extracted. The last p->nValuesExtMax entries  
-  are reserved for the new covers to be extracted. The number of extracted 
-  covers is returned. This number does not exceed the given number (p->nNodesExt). 
+  Description [All the covers are given in the array p->vSops. 
+  The resulting covers are returned in the array p->vSopsNew.
+  The entries in these arrays correspond to objects in the network.
+  The entries corresponding to the PI and objects with trivial covers are NULL.
+  The number of extracted covers (not exceeding p->nNodesExt) is returned. 
   Two other things are important for the correct operation of this procedure:
-  (1) The input covers should be SCC-free. (2) The literal array (pCover->pLits) 
-  is allocated in each cover. The i-th entry in the literal array of a cover
-  is the number of the cover in the array p->ppCovers, which represents this
-  literal (variable value) in the given cover.]
+  (1) The input covers do not have duplicated fanins and are SCC-free. 
+  (2) The fanins array contains the numbers of the fanin objects.]
                
   SideEffects []
 

@@ -84,6 +84,7 @@ extern void            Abc_FrameRestart( Abc_Frame_t * p );
 extern void            Abc_FrameSetCurrentNetwork( Abc_Frame_t * p, Abc_Ntk_t * pNet );
 extern void            Abc_FrameSwapCurrentAndBackup( Abc_Frame_t * p );
 extern void            Abc_FrameReplaceCurrentNetwork( Abc_Frame_t * p, Abc_Ntk_t * pNet );
+extern void            Abc_FrameUnmapAllNetworks( Abc_Frame_t * p );
 extern void            Abc_FrameDeleteAllNetworks( Abc_Frame_t * p );
 
 extern void               Abc_FrameSetGlobalFrame( Abc_Frame_t * p );

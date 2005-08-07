@@ -27,7 +27,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 // static functions
-static void        Abc_NtkStrashPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig );
+static void        Abc_NtkStrashPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig, bool fAllNodes );
 static Abc_Obj_t * Abc_NodeStrash( Abc_Aig_t * pMan, Abc_Obj_t * pNode );
 static Abc_Obj_t * Abc_NodeStrashSop( Abc_Aig_t * pMan, Abc_Obj_t * pNode, char * pSop );
 static Abc_Obj_t * Abc_NodeStrashFactor( Abc_Aig_t * pMan, Abc_Obj_t * pNode, char * pSop );
@@ -53,7 +53,7 @@ extern char *      Mio_GateReadSop( void * pGate );
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk )
+Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes )
 {
     int fCheck = 1;
     Abc_Ntk_t * pNtkAig;
@@ -68,14 +68,14 @@ Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk )
         printf( "Warning: The choice nodes in the initial AIG are removed by strashing.\n" );
     // perform strashing
     pNtkAig = Abc_NtkStartFrom( pNtk, ABC_NTK_AIG );
-    Abc_NtkStrashPerform( pNtk, pNtkAig );
+    Abc_NtkStrashPerform( pNtk, pNtkAig, fAllNodes );
     Abc_NtkFinalize( pNtk, pNtkAig );
     // print warning about self-feed latches
     if ( Abc_NtkCountSelfFeedLatches(pNtkAig) )
         printf( "The network has %d self-feeding latches.\n", Abc_NtkCountSelfFeedLatches(pNtkAig) );
     // duplicate EXDC 
     if ( pNtk->pExdc )
-        pNtkAig->pExdc = Abc_NtkStrash( pNtk->pExdc );
+        pNtkAig->pExdc = Abc_NtkStrash( pNtk->pExdc, 0 );
     // make sure everything is okay
     if ( fCheck && !Abc_NtkCheck( pNtkAig ) )
     {
@@ -97,7 +97,7 @@ Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkStrashPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
+void Abc_NtkStrashPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, bool fAllNodes )
 {
     ProgressBar * pProgress;
     Abc_Aig_t * pMan = pNtkNew->pManFunc;
@@ -106,8 +106,10 @@ void Abc_NtkStrashPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
     int i;
 
     // perform strashing
-    vNodes = Abc_NtkDfs( pNtk );
-//    vNodes = Abc_AigCollectAll( pNtk );
+    if ( fAllNodes )
+        vNodes = Abc_AigCollectAll( pNtk );
+    else
+        vNodes = Abc_NtkDfs( pNtk );
     pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
     for ( i = 0; i < vNodes->nSize; i++ )
     {
@@ -255,7 +257,7 @@ Abc_Obj_t * Abc_NodeStrashFactor( Abc_Aig_t * pMan, Abc_Obj_t * pRoot, char * pS
     assert( vForm->nSize > nVars );
     assert( nVars == Abc_ObjFaninNum(pRoot) );
 
-    // check for constant Andtion
+    // check for constant function
     pFtNode = Ft_NodeRead( vForm, 0 );
     if ( pFtNode->fConst )
     {
@@ -268,7 +270,7 @@ Abc_Obj_t * Abc_NodeStrashFactor( Abc_Aig_t * pMan, Abc_Obj_t * pRoot, char * pS
     Abc_ObjForEachFanin( pRoot, pFanin, i )
         Vec_PtrPush( vAnds, pFanin->pCopy );
 
-    // compute the Andtions of other nodes
+    // compute the function of other nodes
     for ( i = nVars; i < vForm->nSize; i++ )
     {
         pFtNode = Ft_NodeRead( vForm, i );
@@ -322,7 +324,7 @@ int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
     Abc_NtkForEachCi( pNtk2, pObj, i )
         pObj->pCopy = Abc_NtkCi(pNtk1, i); 
     // add pNtk2 to pNtk1 while strashing
-    Abc_NtkStrashPerform( pNtk2, pNtk1 );
+    Abc_NtkStrashPerform( pNtk2, pNtk1, 1 );
     // make sure that everything is okay
     if ( fCheck && !Abc_NtkCheck( pNtk1 ) )
     {

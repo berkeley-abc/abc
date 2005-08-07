@@ -225,6 +225,22 @@ s_Loops2Useless = 0;
 
 /**Function*************************************************************
 
+  Synopsis    [Performs decomposition for one function.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Dsd_Node_t * Dsd_DecomposeOne( Dsd_Manager_t * pDsdMan, DdNode * bFunc )
+{
+    return dsdKernelDecompose_rec( pDsdMan, bFunc );
+}
+
+/**Function*************************************************************
+
   Synopsis    [The main function of this module. Recursive implementation of DSD.]
 
   Description []
@@ -1053,7 +1069,7 @@ if ( s_Show )
                     // go through the decomposition list of pPrev and find components 
                     // whose support does not overlap with supp(Lower) 
 
-                    Dsd_Node_t ** pNonOverlap = ALLOC( Dsd_Node_t *, dd->size );
+                    static Dsd_Node_t * pNonOverlap[MAXINPUTS];
                     int i, nNonOverlap = 0;
                     for ( i = 0; i < pPrev->nDecs; i++ )
                     {
@@ -1089,7 +1105,6 @@ if ( s_Show )
                         // assign the support to be subtracted from both components
                         bSuppSubract = pDENew->S;
                     }
-                    free( pNonOverlap );
                 }
                 
                 // subtract its support from the support of upper component
@@ -1106,8 +1121,8 @@ if ( s_Show )
             } // end of if ( !fEqualLevel )
             else // if ( fEqualLevel ) -- they have the same top level var
             {
-                Dsd_Node_t ** pMarkedLeft = ALLOC( Dsd_Node_t *, dd->size ); // the pointers to the marked blocks
-                char * pMarkedPols = ALLOC( char, dd->size );                // polarities of the marked blocks
+                static Dsd_Node_t * pMarkedLeft[MAXINPUTS]; // the pointers to the marked blocks
+                static char pMarkedPols[MAXINPUTS]; // polarities of the marked blocks
                 int nMarkedLeft = 0;
 
                 int fPolarity = 0;
@@ -1197,9 +1212,6 @@ if ( s_Show )
 
                 SuppH = Cudd_bddExistAbstract( dd, bTemp = SuppH, bSuppSubract ), Cudd_Ref( SuppH );
                 Cudd_RecursiveDeref(dd, bTemp);
-
-                free( pMarkedLeft );
-                free( pMarkedPols );
 
             } // end of if ( fEqualLevel ) 
 
@@ -1333,7 +1345,7 @@ Dsd_Node_t * dsdKernelFindContainingComponent( Dsd_Manager_t * pDsdMan, Dsd_Node
 ***********************************************************************/
 int dsdKernelFindCommonComponents( Dsd_Manager_t * pDsdMan, Dsd_Node_t * pL, Dsd_Node_t * pH, Dsd_Node_t *** pCommon, Dsd_Node_t ** pLastDiffL, Dsd_Node_t ** pLastDiffH )
 {
-    Dsd_Node_t ** Common = ALLOC( Dsd_Node_t *, pDsdMan->dd->size );
+    static Dsd_Node_t * Common[MAXINPUTS];
     int nCommon = 0;
 
     // pointers to the current decomposition entries
@@ -1402,7 +1414,6 @@ int dsdKernelFindCommonComponents( Dsd_Manager_t * pDsdMan, Dsd_Node_t * pL, Dsd
     // return the pointer to the array
     *pCommon = Common;
     // return the number of common components
-    free( Common );
     return nCommon;            
 }
 
@@ -1567,7 +1578,7 @@ int dsdKernelVerifyDecomposition( Dsd_Manager_t * pDsdMan, Dsd_Node_t * pDE )
     else if ( pR->Type == DSD_NODE_PRIME )
     {
         int i;
-        DdNode ** bGVars = ALLOC( DdNode *, dd->size );
+        static DdNode * bGVars[MAXINPUTS];
         // transform the function of this block, so that it depended on inputs
         // corresponding to the formal inputs
         DdNode * bNewFunc = Dsd_TreeGetPrimeFunctionOld( dd, pR, 1 );  Cudd_Ref( bNewFunc );
@@ -1589,7 +1600,6 @@ int dsdKernelVerifyDecomposition( Dsd_Manager_t * pDsdMan, Dsd_Node_t * pDE )
         RetValue = (int)( bRes == pR->G );//|| bRes == Cudd_Not(pR->G) );
         /////////////////////////////////////////////////////////
         Cudd_Deref( bRes );
-        free( bGVars );
     }
     else
     {

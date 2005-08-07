@@ -24,7 +24,6 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static DdManager * Abc_NtkGlobalBdds( Abc_Ntk_t * pNtk );
 static DdNode *    Abc_NtkGlobalBdds_rec( DdManager * dd, Abc_Obj_t * pNode );
 static Abc_Ntk_t * Abc_NtkFromGlobalBdds( DdManager * dd, Abc_Ntk_t * pNtk );
 static Abc_Obj_t * Abc_NodeFromGlobalBdds( Abc_Ntk_t * pNtkNew, DdManager * dd, DdNode * bFunc );
@@ -52,33 +51,16 @@ Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fVerbose )
 
     assert( Abc_NtkIsAig(pNtk) );
 
-    // perform FPGA mapping
-    dd = Abc_NtkGlobalBdds( pNtk );    
+    // compute the global BDDs
+    dd = Abc_NtkGlobalBdds( pNtk, 0 );    
     if ( dd == NULL )
         return NULL;
     if ( fVerbose )
         printf( "The shared BDD size is %d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
-/*
-    {
-        Abc_Obj_t * pNode;
-        int i;
-        Abc_NtkForEachPo( pNtk, pNode, i )
-        {
-            Cudd_RecursiveDeref( dd, (DdNode *)pNode->pNext );
-            pNode->pNext = NULL;
-        }
-        Abc_NtkForEachLatch( pNtk, pNode, i )
-        {
-            Cudd_RecursiveDeref( dd, (DdNode *)pNode->pNext );
-            pNode->pNext = NULL;
-        }
-    }
-    Extra_StopManager( dd );
-    return NULL;
-*/
 
-    // transform the result of mapping into a BDD network
+    // create the new network
     pNtkNew = Abc_NtkFromGlobalBdds( dd, pNtk );
+    Abc_NtkFreeGlobalBdds( dd, pNtk );
     if ( pNtkNew == NULL )
     {
         Cudd_Quit( dd );
@@ -110,8 +92,9 @@ Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-DdManager * Abc_NtkGlobalBdds( Abc_Ntk_t * pNtk )
+DdManager * Abc_NtkGlobalBdds( Abc_Ntk_t * pNtk, int fLatchOnly )
 {
+    int fReorder = 1;
     ProgressBar * pProgress;
     Abc_Obj_t * pNode;
     DdNode * bFunc;
@@ -120,7 +103,8 @@ DdManager * Abc_NtkGlobalBdds( Abc_Ntk_t * pNtk )
 
     // start the manager
     dd = Cudd_Init( Abc_NtkCiNum(pNtk), 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
-    Cudd_AutodynEnable( dd, CUDD_REORDER_SYMM_SIFT );
+    if ( fReorder )
+        Cudd_AutodynEnable( dd, CUDD_REORDER_SYMM_SIFT );
 
     // set the elementary variables
     Abc_NtkCleanCopy( pNtk );
@@ -130,31 +114,60 @@ DdManager * Abc_NtkGlobalBdds( Abc_Ntk_t * pNtk )
     pNode = Abc_AigConst1( pNtk->pManFunc );
     pNode->pCopy = (Abc_Obj_t *)dd->one;   Cudd_Ref( dd->one );
 
-    // construct the BDDs
-    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );
-    Abc_NtkForEachCo( pNtk, pNode, i )
+    if ( fLatchOnly )
     {
-        Extra_ProgressBarUpdate( pProgress, i, NULL );
-        bFunc = Abc_NtkGlobalBdds_rec( dd, Abc_ObjFanin0(pNode) );
-        if ( bFunc == NULL )
+        // construct the BDDs
+        pProgress = Extra_ProgressBarStart( stdout, Abc_NtkLatchNum(pNtk) );
+        Abc_NtkForEachLatch( pNtk, pNode, i )
         {
-            printf( "Constructing global BDDs timed out.\n" );
-            Extra_ProgressBarStop( pProgress );
-            Cudd_Quit( dd );
-            return NULL;
+            Extra_ProgressBarUpdate( pProgress, i, NULL );
+            bFunc = Abc_NtkGlobalBdds_rec( dd, Abc_ObjFanin0(pNode) );
+            if ( bFunc == NULL )
+            {
+                printf( "Constructing global BDDs timed out.\n" );
+                Extra_ProgressBarStop( pProgress );
+                Cudd_Quit( dd );
+                return NULL;
+            }
+            bFunc = Cudd_NotCond( bFunc, Abc_ObjFaninC0(pNode) );
+            pNode->pNext = (Abc_Obj_t *)bFunc;   Cudd_Ref( bFunc );
         }
-        bFunc = Cudd_NotCond( bFunc, Abc_ObjFaninC0(pNode) );
-        pNode->pNext = (Abc_Obj_t *)bFunc;   Cudd_Ref( bFunc );
+        Extra_ProgressBarStop( pProgress );
     }
-    Extra_ProgressBarStop( pProgress );
+    else
+    {
+        // construct the BDDs
+        pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );
+        Abc_NtkForEachCo( pNtk, pNode, i )
+        {
+            Extra_ProgressBarUpdate( pProgress, i, NULL );
+            bFunc = Abc_NtkGlobalBdds_rec( dd, Abc_ObjFanin0(pNode) );
+            if ( bFunc == NULL )
+            {
+                printf( "Constructing global BDDs timed out.\n" );
+                Extra_ProgressBarStop( pProgress );
+                Cudd_Quit( dd );
+                return NULL;
+            }
+            bFunc = Cudd_NotCond( bFunc, Abc_ObjFaninC0(pNode) );
+            pNode->pNext = (Abc_Obj_t *)bFunc;   Cudd_Ref( bFunc );
+        }
+        Extra_ProgressBarStop( pProgress );
+    }
 
     // derefence the intermediate BDDs
     Abc_NtkForEachNode( pNtk, pNode, i )
         if ( pNode->pCopy ) 
+        {
             Cudd_RecursiveDeref( dd, (DdNode *)pNode->pCopy );
-    Abc_NtkCleanCopy( pNtk );
+            pNode->pCopy = NULL;
+        }
     // reorder one more time
-    Cudd_ReduceHeap( dd, CUDD_REORDER_SYMM_SIFT, 0 );
+    if ( fReorder )
+    {
+        Cudd_ReduceHeap( dd, CUDD_REORDER_SYMM_SIFT, 1 );
+        Cudd_AutodynDisable( dd );
+    }
     return dd;
 }
 
@@ -227,9 +240,6 @@ Abc_Ntk_t * Abc_NtkFromGlobalBdds( DdManager * dd, Abc_Ntk_t * pNtk )
         Extra_ProgressBarUpdate( pProgress, i, NULL );
         pNodeNew = Abc_NodeFromGlobalBdds( pNtkNew, dd, (DdNode *)pNode->pNext );
         Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
-        // deref the BDD of the PO
-        Cudd_RecursiveDeref( dd, (DdNode *)pNode->pNext );
-        pNode->pNext = NULL;
     }
     Extra_ProgressBarStop( pProgress );
     // transfer the names
@@ -261,6 +271,30 @@ Abc_Obj_t * Abc_NodeFromGlobalBdds( Abc_Ntk_t * pNtkNew, DdManager * dd, DdNode 
     // transfer the function
     pNodeNew->pData = Extra_TransferLevelByLevel( dd, pNtkNew->pManFunc, bFunc );  Cudd_Ref( pNodeNew->pData );
     return pNodeNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Dereferences global functions of the network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkFreeGlobalBdds( DdManager * dd, Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNode;
+    int i;
+    Abc_NtkForEachCo( pNtk, pNode, i )
+    {
+        if ( pNode->pNext == NULL )
+            continue;
+        Cudd_RecursiveDeref( dd, (DdNode *)pNode->pNext );
+        pNode->pNext = NULL;
+    }
 }
 
 

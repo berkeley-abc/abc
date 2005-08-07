@@ -6,13 +6,13 @@
 --------------------Configuration: abc - Win32 Debug--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP448.tmp" with contents
+Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP84B.tmp" with contents
 [
 /nologo /MLd /W3 /Gm /GX /ZI /Od /I "src\base\abc" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\mvc" /I "src\sop\ft" /I "src\sat\asat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\fxa" /I "src\opt\fxu" /I "src\map\fpga" /I "src\map\mapper" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\util" /I "src\misc\vec" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /D "HAVE_ASSERT_H" /FR"Debug/" /Fp"Debug/abc.pch" /YX /Fo"Debug/" /Fd"Debug/" /FD /GZ /c 
-"C:\_projects\abc\src\opt\fxu\fxu.c"
+"C:\_projects\abc\src\base\abc\abcRes.c"
 ]
-Creating command line "cl.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP448.tmp" 
-Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP449.tmp" with contents
+Creating command line "cl.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP84B.tmp" 
+Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP84C.tmp" with contents
 [
 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /incremental:yes /pdb:"Debug/abc.pdb" /debug /machine:I386 /out:"_TEST/abc.exe" /pdbtype:sept 
 .\Debug\abc.obj
@@ -27,6 +27,7 @@ kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32
 .\Debug\abcFpga.obj
 .\Debug\abcFraig.obj
 .\Debug\abcFunc.obj
+.\Debug\abcFxu.obj
 .\Debug\abcLatch.obj
 .\Debug\abcMap.obj
 .\Debug\abcMinBase.obj
@@ -36,11 +37,14 @@ kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32
 .\Debug\abcPrint.obj
 .\Debug\abcRefs.obj
 .\Debug\abcRenode.obj
+.\Debug\abcRes.obj
 .\Debug\abcSat.obj
+.\Debug\abcShow.obj
 .\Debug\abcSop.obj
 .\Debug\abcStrash.obj
 .\Debug\abcSweep.obj
 .\Debug\abcTiming.obj
+.\Debug\abcUnreach.obj
 .\Debug\abcUtil.obj
 .\Debug\abcVerify.obj
 .\Debug\cmd.obj
@@ -188,6 +192,18 @@ kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32
 .\Debug\fraigTable.obj
 .\Debug\fraigUtil.obj
 .\Debug\fraigVec.obj
+.\Debug\fxu.obj
+.\Debug\fxuCreate.obj
+.\Debug\fxuHeapD.obj
+.\Debug\fxuHeapS.obj
+.\Debug\fxuList.obj
+.\Debug\fxuMatrix.obj
+.\Debug\fxuPair.obj
+.\Debug\fxuPrint.obj
+.\Debug\fxuReduce.obj
+.\Debug\fxuSelect.obj
+.\Debug\fxuSingle.obj
+.\Debug\fxuUpdate.obj
 .\Debug\fpga.obj
 .\Debug\fpgaCore.obj
 .\Debug\fpgaCreate.obj
@@ -242,26 +258,13 @@ kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32
 .\Debug\safe_mem.obj
 .\Debug\strsav.obj
 .\Debug\texpand.obj
-.\Debug\fxuUpdate.obj
-.\Debug\fxu.obj
-.\Debug\fxuCreate.obj
-.\Debug\fxuHeapD.obj
-.\Debug\fxuHeapS.obj
-.\Debug\fxuList.obj
-.\Debug\fxuMatrix.obj
-.\Debug\fxuPair.obj
-.\Debug\fxuPrint.obj
-.\Debug\fxuReduce.obj
-.\Debug\fxuSelect.obj
-.\Debug\fxuSingle.obj
-.\Debug\abcFxu.obj
 ]
-Creating command line "link.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP449.tmp"
+Creating command line "link.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP84C.tmp"
 <h3>Output Window</h3>
 Compiling...
-fxu.c
+abcRes.c
 Linking...
-Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP44A.tmp" with contents
+Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP84D.tmp" with contents
 [
 /nologo /o"Debug/abc.bsc" 
 .\Debug\abc.sbr
@@ -276,6 +279,7 @@ Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP44A.tmp" with conte
 .\Debug\abcFpga.sbr
 .\Debug\abcFraig.sbr
 .\Debug\abcFunc.sbr
+.\Debug\abcFxu.sbr
 .\Debug\abcLatch.sbr
 .\Debug\abcMap.sbr
 .\Debug\abcMinBase.sbr
@@ -285,11 +289,14 @@ Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP44A.tmp" with conte
 .\Debug\abcPrint.sbr
 .\Debug\abcRefs.sbr
 .\Debug\abcRenode.sbr
+.\Debug\abcRes.sbr
 .\Debug\abcSat.sbr
+.\Debug\abcShow.sbr
 .\Debug\abcSop.sbr
 .\Debug\abcStrash.sbr
 .\Debug\abcSweep.sbr
 .\Debug\abcTiming.sbr
+.\Debug\abcUnreach.sbr
 .\Debug\abcUtil.sbr
 .\Debug\abcVerify.sbr
 .\Debug\cmd.sbr
@@ -437,6 +444,18 @@ Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP44A.tmp" with conte
 .\Debug\fraigTable.sbr
 .\Debug\fraigUtil.sbr
 .\Debug\fraigVec.sbr
+.\Debug\fxu.sbr
+.\Debug\fxuCreate.sbr
+.\Debug\fxuHeapD.sbr
+.\Debug\fxuHeapS.sbr
+.\Debug\fxuList.sbr
+.\Debug\fxuMatrix.sbr
+.\Debug\fxuPair.sbr
+.\Debug\fxuPrint.sbr
+.\Debug\fxuReduce.sbr
+.\Debug\fxuSelect.sbr
+.\Debug\fxuSingle.sbr
+.\Debug\fxuUpdate.sbr
 .\Debug\fpga.sbr
 .\Debug\fpgaCore.sbr
 .\Debug\fpgaCreate.sbr
@@ -490,21 +509,8 @@ Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP44A.tmp" with conte
 .\Debug\pathsearch.sbr
 .\Debug\safe_mem.sbr
 .\Debug\strsav.sbr
-.\Debug\texpand.sbr
-.\Debug\fxuUpdate.sbr
-.\Debug\fxu.sbr
-.\Debug\fxuCreate.sbr
-.\Debug\fxuHeapD.sbr
-.\Debug\fxuHeapS.sbr
-.\Debug\fxuList.sbr
-.\Debug\fxuMatrix.sbr
-.\Debug\fxuPair.sbr
-.\Debug\fxuPrint.sbr
-.\Debug\fxuReduce.sbr
-.\Debug\fxuSelect.sbr
-.\Debug\fxuSingle.sbr
-.\Debug\abcFxu.sbr]
-Creating command line "bscmake.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP44A.tmp"
+.\Debug\texpand.sbr]
+Creating command line "bscmake.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP84D.tmp"
 Creating browse info file...
 <h3>Output Window</h3>
 

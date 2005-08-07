@@ -111,6 +111,7 @@ extern int *        Extra_SupportArray( DdManager * dd, DdNode * F, int * suppor
 extern int *        Extra_VectorSupportArray( DdManager * dd, DdNode ** F, int n, int * support );
 extern DdNode *     Extra_bddFindOneCube( DdManager * dd, DdNode * bF );
 extern DdNode *     Extra_bddGetOneCube( DdManager * dd, DdNode * bFunc );
+extern DdNode *     Extra_bddComputeRangeCube( DdManager * dd, int iStart, int iStop );
 
 /*=== extraUtilFile.c ========================================================*/
 

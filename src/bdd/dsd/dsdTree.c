@@ -517,6 +517,33 @@ Dsd_Node_t ** Dsd_TreeCollectNodesDfs( Dsd_Manager_t * pDsdMan, int * pnNodes )
     return ppNodes;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Creates the DFS ordered array of DSD nodes in the tree.]
+
+  Description [The collected nodes do not include the terminal nodes
+  and the constant 1 node. The array of nodes is returned. The number
+  of entries in the array is returned in the variale pnNodes.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Dsd_Node_t ** Dsd_TreeCollectNodesDfsOne( Dsd_Manager_t * pDsdMan, Dsd_Node_t * pNode, int * pnNodes )
+{
+    Dsd_Node_t ** ppNodes;
+    int nNodes, nNodesAlloc;
+    nNodesAlloc = Dsd_TreeCountNonTerminalNodesOne(pNode);
+    nNodes  = 0;
+    ppNodes = ALLOC( Dsd_Node_t *, nNodesAlloc );
+    Dsd_TreeCollectNodesDfs_rec( Dsd_Regular(pNode), ppNodes, &nNodes );
+    Dsd_TreeUnmark_rec(Dsd_Regular(pNode));
+    assert( nNodesAlloc == nNodes );
+    *pnNodes = nNodes;
+    return ppNodes;
+}
+
 
 /**Function*************************************************************
 
@@ -777,9 +804,7 @@ DdNode * Dsd_TreeGetPrimeFunctionOld( DdManager * dd, Dsd_Node_t * pNode, int fR
     DdNode * bCof0,  * bCof1, * bCube0, * bCube1, * bNewFunc, * bTemp;
     int i;
     int fAllBuffs = 1;
-    int * pPermute;
-
-    pPermute = ALLOC( int, dd->size );
+    static int Permute[MAXINPUTS];
 
     assert( pNode );
     assert( !Dsd_IsComplement( pNode ) );
@@ -821,14 +846,13 @@ DdNode * Dsd_TreeGetPrimeFunctionOld( DdManager * dd, Dsd_Node_t * pNode, int fR
         // remap the function to the first variables of the manager
         for ( i = 0; i < pNode->nDecs; i++ )
     //        Permute[ pNode->pDecs[i]->S->index ] = dd->invperm[i];
-            pPermute[ pNode->pDecs[i]->S->index ] = i;
+            Permute[ pNode->pDecs[i]->S->index ] = i;
 
-        bNewFunc = Cudd_bddPermute( dd, bTemp = bNewFunc, pPermute );   Cudd_Ref( bNewFunc );
+        bNewFunc = Cudd_bddPermute( dd, bTemp = bNewFunc, Permute );   Cudd_Ref( bNewFunc );
         Cudd_RecursiveDeref( dd, bTemp );
     }
 
     Cudd_Deref( bNewFunc );
-    free( pPermute );
     return bNewFunc;
 }
 

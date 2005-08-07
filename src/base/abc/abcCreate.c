@@ -157,34 +157,6 @@ void Abc_NtkFinalize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
 
 /**Function*************************************************************
 
-  Synopsis    [Finalizes the network using the existing network as a model.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkFinalizeRegular( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
-{
-    Abc_Obj_t * pObj, * pDriver, * pDriverNew;
-    int i;
-    assert( !Abc_NtkIsNetlist(pNtk) );
-    // set the COs of the strashed network
-    Abc_NtkForEachCo( pNtk, pObj, i )
-    {
-        pDriver    = Abc_ObjFanin0(pObj);
-        pDriverNew = pDriver->pCopy;
-        Abc_ObjAddFanin( pObj->pCopy, pDriverNew );
-    }
-    // transfer the names
-    Abc_NtkDupNameArrays( pNtk, pNtkNew );
-    Abc_ManTimeDup( pNtk, pNtkNew );
-}
-
-/**Function*************************************************************
-
   Synopsis    [Duplicate the Ntk.]
 
   Description []
@@ -635,7 +607,58 @@ void Abc_NtkRemovePoNode( Abc_Obj_t * pNode )
 ***********************************************************************/
 Abc_Obj_t * Abc_NtkFindNode( Abc_Ntk_t * pNtk, char * pName )
 {
-    return NULL;
+    Abc_Obj_t * pNode, * pDriver;
+    int i, Num;
+    // check if the node is among CIs
+    Abc_NtkForEachCi( pNtk, pNode, i )
+    {
+        if ( strcmp( Abc_NtkNameCi(pNtk,i), pName ) == 0 )
+        {
+            if ( i < Abc_NtkPiNum(pNtk) )
+                printf( "Node \"%s\" is a primary input.\n", pName );
+            else
+                printf( "Node \"%s\" is a latch output.\n", pName );
+            return NULL;
+        }
+    }
+    // search the node among COs
+    Abc_NtkForEachCo( pNtk, pNode, i )
+    {
+        if ( strcmp( Abc_NtkNameCo(pNtk,i), pName ) == 0 )
+        {
+            pDriver = Abc_ObjFanin0(pNode);
+            if ( !Abc_ObjIsNode(pDriver) )
+            {
+                printf( "Node \"%s\" does not have logic associated with it.\n", pName );
+                return NULL;
+            }
+            return pDriver;
+        }
+    }
+    // find the internal node
+    if ( pName[0] != '[' || pName[strlen(pName)-1] != ']' )
+    {
+        printf( "Node \"%s\" has non-standard name (expected name is \"[integer]\").\n", pName );
+        return NULL;
+    }
+    Num = atoi( pName + 1 );
+    if ( Num < 0 || Num > Abc_NtkObjNum(pNtk) )
+    {
+        printf( "The node \"%s\" with ID %d is not in the current network.\n", pName, Num );
+        return NULL;
+    }
+    pNode = Abc_NtkObj( pNtk, Num );
+    if ( pNode == NULL )
+    {
+        printf( "The node \"%s\" with ID %d has been removed from the current network.\n", pName, Num );
+        return NULL;
+    }
+    if ( !Abc_ObjIsNode(pNode) )
+    {
+        printf( "Object with ID %d is not a node.\n", Num );
+        return NULL;
+    }
+    return pNode;
 }
 
 /**Function*************************************************************
@@ -997,6 +1020,27 @@ Abc_Obj_t * Abc_NodeCreateMux( Abc_Ntk_t * pNtk, Abc_Obj_t * pNodeC, Abc_Obj_t *
     return pNode;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Clones the given node but does not assign the function.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Abc_NodeClone( Abc_Obj_t * pNode )
+{
+    Abc_Obj_t * pClone, * pFanin;
+    int i;
+    assert( Abc_ObjIsNode(pNode) );
+    pClone = Abc_NtkCreateNode( pNode->pNtk );   
+    Abc_ObjForEachFanin( pNode, pFanin, i )
+        Abc_ObjAddFanin( pClone, pFanin );
+    return pClone;
+}
 
 
 

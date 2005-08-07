@@ -189,7 +189,15 @@ SOURCE=.\src\base\abc\abcRenode.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abc\abcRes.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abc\abcSat.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abc\abcShow.c
 # End Source File
 # Begin Source File
 
@@ -206,6 +214,10 @@ SOURCE=.\src\base\abc\abcSweep.c
 # Begin Source File
 
 SOURCE=.\src\base\abc\abcTiming.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abc\abcUnreach.c
 # End Source File
 # Begin Source File
 

@@ -28,41 +28,45 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static int Ntk_CommandPrintStats   ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Ntk_CommandPrintIo      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Ntk_CommandPrintFanio   ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Ntk_CommandPrintFactor  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintStats   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintIo      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintFanio   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintFactor  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandShowBdd      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Ntk_CommandCollapse     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Ntk_CommandStrash       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Ntk_CommandBalance      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Ntk_CommandRenode       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Ntk_CommandCleanup      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Ntk_CommandFx           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandCollapse     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandStrash       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandBalance      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRenode       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandCleanup      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFastExtract  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDisjoint     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRes          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Ntk_CommandLogic        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Ntk_CommandMiter        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Ntk_CommandFrames       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Ntk_CommandSop          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Ntk_CommandBdd          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Ntk_CommandSat          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandLogic        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandMiter        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFrames       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSop          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandBdd          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSat          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandExtSeqDcs    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Ntk_CommandFraig        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Ntk_CommandFraigTrust   ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Ntk_CommandFraigStore   ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Ntk_CommandFraigRestore ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Ntk_CommandFraigClean   ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Ntk_CommandFraigSweep   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFraig        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFraigTrust   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFraigStore   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFraigRestore ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFraigClean   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFraigSweep   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Ntk_CommandMap          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Ntk_CommandUnmap        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Ntk_CommandAttach       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Ntk_CommandSuperChoice  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandMap          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandUnmap        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAttach       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSuperChoice  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Ntk_CommandFpga         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFpga         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Ntk_CommandCec          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Ntk_CommandSec          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandCec          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSec          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -81,41 +85,46 @@ static int Ntk_CommandSec          ( Abc_Frame_t * pAbc, int argc, char ** argv 
 ***********************************************************************/
 void Abc_Init( Abc_Frame_t * pAbc )
 {
-    Cmd_CommandAdd( pAbc, "Printing",     "print_stats",   Ntk_CommandPrintStats,       0 ); 
-    Cmd_CommandAdd( pAbc, "Printing",     "print_io",      Ntk_CommandPrintIo,          0 );
-    Cmd_CommandAdd( pAbc, "Printing",     "print_fanio",   Ntk_CommandPrintFanio,       0 );
-    Cmd_CommandAdd( pAbc, "Printing",     "print_factor",  Ntk_CommandPrintFactor,      0 );
+    Cmd_CommandAdd( pAbc, "Printing",     "print_stats",   Abc_CommandPrintStats,       0 ); 
+    Cmd_CommandAdd( pAbc, "Printing",     "print_io",      Abc_CommandPrintIo,          0 );
+    Cmd_CommandAdd( pAbc, "Printing",     "print_fanio",   Abc_CommandPrintFanio,       0 );
+    Cmd_CommandAdd( pAbc, "Printing",     "print_factor",  Abc_CommandPrintFactor,      0 );
 
-    Cmd_CommandAdd( pAbc, "Synthesis",    "collapse",      Ntk_CommandCollapse,         1 );
-    Cmd_CommandAdd( pAbc, "Synthesis",    "strash",        Ntk_CommandStrash,           1 );
-    Cmd_CommandAdd( pAbc, "Synthesis",    "balance",       Ntk_CommandBalance,          1 );
-    Cmd_CommandAdd( pAbc, "Synthesis",    "renode",        Ntk_CommandRenode,           1 );
-    Cmd_CommandAdd( pAbc, "Synthesis",    "cleanup",       Ntk_CommandCleanup,          1 );
-    Cmd_CommandAdd( pAbc, "Synthesis",    "fx",            Ntk_CommandFx,               1 );
+    Cmd_CommandAdd( pAbc, "Printing",     "show_bdd",      Abc_CommandShowBdd,          0 );
 
-    Cmd_CommandAdd( pAbc, "Various",      "logic",         Ntk_CommandLogic,            1 );
-    Cmd_CommandAdd( pAbc, "Various",      "miter",         Ntk_CommandMiter,            1 );
-    Cmd_CommandAdd( pAbc, "Various",      "frames",        Ntk_CommandFrames,           1 );
-    Cmd_CommandAdd( pAbc, "Various",      "sop",           Ntk_CommandSop,              0 );
-    Cmd_CommandAdd( pAbc, "Various",      "bdd",           Ntk_CommandBdd,              0 );
-    Cmd_CommandAdd( pAbc, "Various",      "sat",           Ntk_CommandSat,              0 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "collapse",      Abc_CommandCollapse,         1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "strash",        Abc_CommandStrash,           1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "balance",       Abc_CommandBalance,          1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "renode",        Abc_CommandRenode,           1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "cleanup",       Abc_CommandCleanup,          1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "fx",            Abc_CommandFastExtract,      1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "dsd",           Abc_CommandDisjoint,         1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "res",           Abc_CommandRes,              1 );
 
-    Cmd_CommandAdd( pAbc, "Fraiging",     "fraig",         Ntk_CommandFraig,            1 );
-    Cmd_CommandAdd( pAbc, "Fraiging",     "fraig_trust",   Ntk_CommandFraigTrust,       1 );
-    Cmd_CommandAdd( pAbc, "Fraiging",     "fraig_store",   Ntk_CommandFraigStore,       0 );
-    Cmd_CommandAdd( pAbc, "Fraiging",     "fraig_restore", Ntk_CommandFraigRestore,     1 );
-    Cmd_CommandAdd( pAbc, "Fraiging",     "fraig_clean",   Ntk_CommandFraigClean,       0 );
-    Cmd_CommandAdd( pAbc, "Fraiging",     "fraig_sweep",   Ntk_CommandFraigSweep,       1 );
+    Cmd_CommandAdd( pAbc, "Various",      "logic",         Abc_CommandLogic,            1 );
+    Cmd_CommandAdd( pAbc, "Various",      "miter",         Abc_CommandMiter,            1 );
+    Cmd_CommandAdd( pAbc, "Various",      "frames",        Abc_CommandFrames,           1 );
+    Cmd_CommandAdd( pAbc, "Various",      "sop",           Abc_CommandSop,              0 );
+    Cmd_CommandAdd( pAbc, "Various",      "bdd",           Abc_CommandBdd,              0 );
+    Cmd_CommandAdd( pAbc, "Various",      "sat",           Abc_CommandSat,              0 );
+    Cmd_CommandAdd( pAbc, "Various",      "ext_seq_dcs",   Abc_CommandExtSeqDcs,        0 );
 
-    Cmd_CommandAdd( pAbc, "SC mapping",   "map",           Ntk_CommandMap,              1 );
-    Cmd_CommandAdd( pAbc, "SC mapping",   "unmap",         Ntk_CommandUnmap,            1 );
-    Cmd_CommandAdd( pAbc, "SC mapping",   "attach",        Ntk_CommandAttach,           1 );
-    Cmd_CommandAdd( pAbc, "SC mapping",   "sc",            Ntk_CommandSuperChoice,      1 );
+    Cmd_CommandAdd( pAbc, "Fraiging",     "fraig",         Abc_CommandFraig,            1 );
+    Cmd_CommandAdd( pAbc, "Fraiging",     "fraig_trust",   Abc_CommandFraigTrust,       1 );
+    Cmd_CommandAdd( pAbc, "Fraiging",     "fraig_store",   Abc_CommandFraigStore,       0 );
+    Cmd_CommandAdd( pAbc, "Fraiging",     "fraig_restore", Abc_CommandFraigRestore,     1 );
+    Cmd_CommandAdd( pAbc, "Fraiging",     "fraig_clean",   Abc_CommandFraigClean,       0 );
+    Cmd_CommandAdd( pAbc, "Fraiging",     "fraig_sweep",   Abc_CommandFraigSweep,       1 );
 
-    Cmd_CommandAdd( pAbc, "FPGA mapping", "fpga",          Ntk_CommandFpga,             1 );
+    Cmd_CommandAdd( pAbc, "SC mapping",   "map",           Abc_CommandMap,              1 );
+    Cmd_CommandAdd( pAbc, "SC mapping",   "unmap",         Abc_CommandUnmap,            1 );
+    Cmd_CommandAdd( pAbc, "SC mapping",   "attach",        Abc_CommandAttach,           1 );
+    Cmd_CommandAdd( pAbc, "SC mapping",   "sc",            Abc_CommandSuperChoice,      1 );
 
-    Cmd_CommandAdd( pAbc, "Verification", "cec",           Ntk_CommandCec,              0 );
-    Cmd_CommandAdd( pAbc, "Verification", "sec",           Ntk_CommandSec,              0 );
+    Cmd_CommandAdd( pAbc, "FPGA mapping", "fpga",          Abc_CommandFpga,             1 );
+
+    Cmd_CommandAdd( pAbc, "Verification", "cec",           Abc_CommandCec,              0 );
+    Cmd_CommandAdd( pAbc, "Verification", "sec",           Abc_CommandSec,              0 );
 
     Ft_FactorStartMan();
 }
@@ -148,7 +157,7 @@ void Abc_End()
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
@@ -202,7 +211,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_CommandPrintIo( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandPrintIo( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
@@ -271,7 +280,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_CommandPrintFanio( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandPrintFanio( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
@@ -322,7 +331,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_CommandPrintFactor( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandPrintFactor( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
@@ -391,6 +400,81 @@ usage:
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandShowBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    Abc_Obj_t * pNode;
+    int c;
+    extern void Abc_NodePrintBdd( Abc_Obj_t * pNode );
+
+    pNtk = Abc_FrameReadNet(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkIsLogicBdd(pNtk) )
+    {
+        fprintf( pErr, "Printing BDDs can only be done for logic BDD networks.\n" );
+        return 1;
+    }
+
+    if ( argc != util_optind + 1 )
+    {
+        fprintf( pErr, "Wrong number of auguments.\n" );
+        goto usage;
+    }
+
+    pNode = Abc_NtkFindNode( pNtk, argv[util_optind] );
+    if ( pNode == NULL )
+    {
+        fprintf( pErr, "Cannot find node \"%s\".\n", argv[util_optind] );
+        return 1;
+    }
+    Abc_NodePrintBdd( pNode );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: show_bdd [-h] <node>\n" );
+    fprintf( pErr, "       visualizes the BDD of a node using DOT and GSVIEW\n" );
+#ifdef WIN32
+    fprintf( pErr, "       \"dot.exe\" and \"gsview32.exe\" should be set in the paths\n" );
+    fprintf( pErr, "       (\"gsview32.exe\" may be in \"C:\\Program Files\\Ghostgum\\gsview\\\")\n" );
+#endif
+    fprintf( pErr, "\tnode  : the node to consider\n");
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
+
 
 /**Function*************************************************************
 
@@ -403,7 +487,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
@@ -443,7 +527,7 @@ int Ntk_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
         pNtkRes = Abc_NtkCollapse( pNtk, 1 );
     else
     {
-        pNtk = Abc_NtkStrash( pNtk );
+        pNtk = Abc_NtkStrash( pNtk, 0 );
         pNtkRes = Abc_NtkCollapse( pNtk, 1 );
         Abc_NtkDelete( pNtk );
     }
@@ -475,22 +559,27 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_CommandStrash( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandStrash( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
     int c;
+    int fAllNodes;
 
     pNtk = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
+    fAllNodes = 0;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "ah" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'a':
+            fAllNodes ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -505,7 +594,7 @@ int Ntk_CommandStrash( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    pNtkRes = Abc_NtkStrash( pNtk );
+    pNtkRes = Abc_NtkStrash( pNtk, fAllNodes );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Strashing has failed.\n" );
@@ -516,8 +605,9 @@ int Ntk_CommandStrash( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: strash [-h]\n" );
+    fprintf( pErr, "usage: strash [-ah]\n" );
     fprintf( pErr, "\t        transforms combinational logic into an AIG\n" );
+    fprintf( pErr, "\t-a    : toggles between using all nodes and DFS nodes [default = %s]\n", fAllNodes? "all": "DFS" );
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -533,7 +623,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_CommandBalance( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandBalance( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
@@ -602,7 +692,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
@@ -709,7 +799,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_CommandCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
@@ -767,7 +857,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_CommandFx( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk;
     FILE * pOut, * pErr;
@@ -875,6 +965,129 @@ usage:
     return 1;       
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandDisjoint( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes, * pNtkNew;
+    int fGlobal, fRecursive, fVerbose, fPrint, fShort, c;
+
+    extern Abc_Ntk_t * Abc_NtkDsdGlobal( Abc_Ntk_t * pNtk, bool fVerbose, bool fPrint, bool fShort );
+    extern int         Abc_NtkDsdRecursive( Abc_Ntk_t * pNtk, bool fVerbose );
+
+    pNtk = Abc_FrameReadNet(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fGlobal    = 1;
+    fRecursive = 0;
+    fVerbose   = 0;
+    fPrint     = 0;
+    fShort     = 0;
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "grvpsh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'g':
+                fGlobal ^= 1;
+                break;
+            case 'r':
+                fRecursive ^= 1;
+                break;
+            case 'v':
+                fVerbose ^= 1;
+                break;
+            case 'p':
+                fPrint ^= 1;
+                break;
+            case 's':
+                fShort ^= 1;
+                break;
+            case 'h':
+                goto usage;
+                break;
+            default:
+                goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( !fGlobal && !fRecursive )
+    {
+        fprintf( pErr, "Decomposition should be either global or recursive.\n" );
+        return 1;
+    }
+
+    if ( fGlobal )
+    {
+        // get the new network
+        if ( !Abc_NtkIsAig(pNtk) )
+        {
+            pNtkNew = Abc_NtkStrash( pNtk, 0 );
+            pNtkRes = Abc_NtkDsdGlobal( pNtkNew, fVerbose, fPrint, fShort );
+            Abc_NtkDelete( pNtkNew );
+        }
+        else
+        {
+            pNtkRes = Abc_NtkDsdGlobal( pNtk, fVerbose, fPrint, fShort );
+        }
+        if ( pNtkRes == NULL )
+        {
+            fprintf( pErr, "Global disjoint support decomposition has failed.\n" );
+            return 1;
+        }
+        if ( fRecursive )
+        {
+            if ( !Abc_NtkDsdRecursive( pNtkRes, fVerbose ) )
+            {
+                fprintf( pErr, "Recursive decomposition has failed.\n" );
+                Abc_NtkDelete( pNtkRes );
+                return 1;
+            }
+        }
+        // replace the current network
+        Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    }
+    else if ( fRecursive )
+    {
+        if ( !Abc_NtkIsLogicBdd( pNtk ) )
+        {
+            fprintf( pErr, "This command is only applicable to logic BDD networks.\n" );
+            return 1;
+        }
+        if ( !Abc_NtkDsdRecursive( pNtk, fVerbose ) )
+            fprintf( pErr, "Recursive decomposition has failed.\n" );
+    }
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: dsd [-grvpsh]\n" );
+    fprintf( pErr, "\t     decomposes the network using disjoint-support decomposition\n" );
+    fprintf( pErr, "\t-g     : collapses the network and decomposes shared BDDs [default = %s]\n", fGlobal? "yes": "no" );  
+    fprintf( pErr, "\t-r     : applied DSD and MUX-decomposition recursively [default = %s]\n", fRecursive? "yes": "no" );  
+    fprintf( pErr, "\t-v     : prints DSD statistics and runtime [default = %s]\n", fVerbose? "yes": "no" ); 
+    fprintf( pErr, "\t-p     : prints DSD structure to the standard output [default = %s]\n", fPrint? "yes": "no" ); 
+    fprintf( pErr, "\t-s     : use short PI names when printing DSD structure [default = %s]\n", fShort? "yes": "no" ); 
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
 
 /**Function*************************************************************
 
@@ -887,7 +1100,106 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_CommandLogic( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandRes( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+    Abc_ManRes_t * p;
+    extern int Abc_NtkAigResynthesize( Abc_Ntk_t * pNtk, Abc_ManRes_t * p );
+
+    pNtk = Abc_FrameReadNet(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    p = Abc_NtkManResStart();
+    p->fVerbose     =  0;
+    p->nNodeSizeMax = 10;
+    p->nConeSizeMax = 10;
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "ncvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'n':
+            if ( util_optind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-n\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            p->nNodeSizeMax = atoi(argv[util_optind]);
+            util_optind++;
+            if ( p->nNodeSizeMax < 0 ) 
+                goto usage;
+            break;
+        case 'c':
+            if ( util_optind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-c\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            p->nConeSizeMax = atoi(argv[util_optind]);
+            util_optind++;
+            if ( p->nConeSizeMax < 0 ) 
+                goto usage;
+            break;
+        case 'v':
+            p->fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        Abc_NtkManResStop( p );
+        return 1;
+    }
+    if ( !Abc_NtkIsAig(pNtk) )
+    {
+        fprintf( pErr, "This command can only be applied to an AIG.\n" );
+        Abc_NtkManResStop( p );
+        return 1;
+    }
+    if ( Abc_NtkCountChoiceNodes(pNtk) )
+    {
+        fprintf( pErr, "AIG resynthesis cannot be applied to AIGs with choice nodes.\n" );
+        Abc_NtkManResStop( p );
+        return 1;
+    }
+
+    // modify the current network
+    Abc_NtkAigResynthesize( pNtk, p );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: res [-n num] [-c num] [-vh]\n" );
+    fprintf( pErr, "\t         performs technology-independent resynthesis of the AIG\n" );
+    fprintf( pErr, "\t-n num : the max support of the collapsed node [default = %d]\n", p->nNodeSizeMax );  
+    fprintf( pErr, "\t-c num : the max support of the containing cone [default = %d]\n", p->nConeSizeMax );  
+    fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", p->fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandLogic( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
@@ -951,7 +1263,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtk1, * pNtk2, * pNtkRes;
@@ -1025,7 +1337,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_CommandFrames( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandFrames( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkTemp, * pNtkRes;
@@ -1075,7 +1387,7 @@ int Ntk_CommandFrames( Abc_Frame_t * pAbc, int argc, char ** argv )
     // get the new network
     if ( !Abc_NtkIsAig(pNtk) )
     {
-        pNtkTemp = Abc_NtkStrash( pNtk );
+        pNtkTemp = Abc_NtkStrash( pNtk, 0 );
         pNtkRes  = Abc_NtkFrames( pNtkTemp, nFrames, fInitial );
         Abc_NtkDelete( pNtkTemp );
     }
@@ -1111,7 +1423,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_CommandSop( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandSop( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
@@ -1171,7 +1483,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_CommandBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
@@ -1231,7 +1543,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
@@ -1295,6 +1607,76 @@ usage:
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandExtSeqDcs( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+    int fVerbose;
+    extern int Abc_NtkExtractSequentialDcs( Abc_Ntk_t * pNet, bool fVerbose );
+
+    pNtk = Abc_FrameReadNet(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fVerbose = 0;
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( Abc_NtkLatchNum(pNtk) == 0 )
+    {
+        fprintf( stdout, "The current network has no latches.\n" );
+        return 0;
+    }
+    if ( !Abc_NtkIsAig(pNtk) )
+    {
+        fprintf( stdout, "This command works only for AIGs.\n" );
+        return 0;
+    }
+    if ( !Abc_NtkExtractSequentialDcs( pNtk, fVerbose ) )
+    {
+        fprintf( stdout, "Extracting sequential don't-cares has failed.\n" );
+        return 1;
+    }
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: ext_seq_dcs [-vh]\n" );
+    fprintf( pErr, "\t         create EXDC network using unreachable states\n" );
+    fprintf( pErr, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
 
 
 
@@ -1309,7 +1691,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     char Buffer[100];
     Fraig_Params_t Params;
@@ -1419,7 +1801,7 @@ int Ntk_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
         pNtkRes = Abc_NtkFraig( pNtk, &Params, fAllNodes );
     else
     {
-        pNtk = Abc_NtkStrash( pNtk );
+        pNtk = Abc_NtkStrash( pNtk, 0 );
         pNtkRes = Abc_NtkFraig( pNtk, &Params, fAllNodes );
         Abc_NtkDelete( pNtk );
     }
@@ -1464,7 +1846,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_CommandFraigTrust( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandFraigTrust( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
@@ -1528,7 +1910,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_CommandFraigStore( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandFraigStore( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
@@ -1589,7 +1971,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_CommandFraigRestore( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandFraigRestore( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
@@ -1653,7 +2035,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_CommandFraigClean( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandFraigClean( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
@@ -1702,7 +2084,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_CommandFraigSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandFraigSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
@@ -1779,7 +2161,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
@@ -1840,7 +2222,7 @@ int Ntk_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( !Abc_NtkIsAig(pNtk) )
     {
-        pNtk = Abc_NtkStrash( pNtk );
+        pNtk = Abc_NtkStrash( pNtk, 0 );
         if ( pNtk == NULL )
         {
             fprintf( pErr, "Strashing before mapping has failed.\n" );
@@ -1909,7 +2291,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_CommandUnmap( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandUnmap( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
@@ -1970,7 +2352,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_CommandAttach( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandAttach( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
@@ -2033,7 +2415,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_CommandSuperChoice( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandSuperChoice( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
@@ -2098,7 +2480,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
@@ -2141,7 +2523,7 @@ int Ntk_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( !Abc_NtkIsAig(pNtk) )
     {
         // strash and balance the network
-        pNtk = Abc_NtkStrash( pNtk );
+        pNtk = Abc_NtkStrash( pNtk, 0 );
         if ( pNtk == NULL )
         {
             fprintf( pErr, "Strashing before FPGA mapping has failed.\n" );
@@ -2202,7 +2584,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtk1, * pNtk2;
@@ -2273,7 +2655,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_CommandSec( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandSec( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtk1, * pNtk2;

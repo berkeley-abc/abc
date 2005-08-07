@@ -287,10 +287,12 @@ void Fxu_UpdateDoublePairs( Fxu_Matrix * p, Fxu_Double * pDouble, Fxu_Var * pVar
 
     // collect and sort the pairs
     Fxu_UpdatePairsSort( p, pDouble );
-    for ( i = 0; i < p->nPairsTemp; i++ )
+//    for ( i = 0; i < p->nPairsTemp; i++ )
+    for ( i = 0; i < p->vPairs->nSize; i++ )
     {
         // get the pair
-        pPair = p->pPairsTemp[i];
+//        pPair = p->pPairsTemp[i];
+        pPair = p->vPairs->pArray[i];
         // out of the two cubes, select the one which comes earlier
         pCubeUse = Fxu_PairMinCube( pPair );
         pCubeRem = Fxu_PairMaxCube( pPair );
@@ -312,7 +314,7 @@ void Fxu_UpdateDoublePairs( Fxu_Matrix * p, Fxu_Double * pDouble, Fxu_Var * pVar
         // remove the pair
         MEM_FREE_FXU( p, Fxu_Pair, 1, pPair );
     }
-    p->nPairsTemp = 0;
+    p->vPairs->nSize = 0;
 }
 
 /**Function*************************************************************
@@ -575,18 +577,17 @@ void Fxu_UpdateMatrixSingleClean( Fxu_Matrix * p, Fxu_Var * pVar1, Fxu_Var * pVa
 void Fxu_UpdatePairsSort( Fxu_Matrix * p, Fxu_Double * pDouble )
 {
     Fxu_Pair * pPair;
-    // order the pairs by the first cube to ensure that 
-    // new literals are added to the matrix from top to bottom
-    // collect pairs into the array
-    p->nPairsTemp = 0;
+    // order the pairs by the first cube to ensure that new literals are added 
+    // to the matrix from top to bottom - collect pairs into the array
+    p->vPairs->nSize = 0;
     Fxu_DoubleForEachPair( pDouble, pPair )
-        p->pPairsTemp[ p->nPairsTemp++ ] = pPair;
-    if ( p->nPairsTemp > 1 )
-    {   // sort
-        qsort( (void *)p->pPairsTemp, p->nPairsTemp, sizeof(Fxu_Pair *), 
-            (int (*)(const void *, const void *)) Fxu_UpdatePairCompare );
-        assert( Fxu_UpdatePairCompare( p->pPairsTemp, p->pPairsTemp + p->nPairsTemp - 1 ) < 0 );
-    }
+        Vec_PtrPush( p->vPairs, pPair );
+    if ( p->vPairs->nSize < 2 )
+        return;
+    // sort
+    qsort( (void *)p->vPairs->pArray, p->vPairs->nSize, sizeof(Fxu_Pair *), 
+        (int (*)(const void *, const void *)) Fxu_UpdatePairCompare );
+    assert( Fxu_UpdatePairCompare( (Fxu_Pair**)p->vPairs->pArray, (Fxu_Pair**)p->vPairs->pArray + p->vPairs->nSize - 1 ) < 0 );
 }
 
 /**Function*************************************************************

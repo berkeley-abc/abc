@@ -57,6 +57,8 @@ struct Vec_Fan_t_
 ///                      MACRO DEFITIONS                             ///
 ////////////////////////////////////////////////////////////////////////
 
+#define Vec_FanForEachEntry( vVec, Entry, i )                                               \
+    for ( i = 0; (i < Vec_FanSize(vVec)) && (((Entry) = Vec_FanEntry(vVec, i)), 1); i++ )
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///

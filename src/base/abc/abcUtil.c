@@ -777,6 +777,47 @@ Vec_Ptr_t * Abc_AigCollectAll( Abc_Ntk_t * pNtk )
     return vNodes;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Gets fanin node names.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_NodeGetFaninNames( Abc_Obj_t * pNode )
+{
+    Vec_Ptr_t * vNodes;
+    Abc_Obj_t * pFanin;
+    int i;
+    vNodes = Vec_PtrAlloc( 100 );
+    Abc_ObjForEachFanin( pNode, pFanin, i )
+        Vec_PtrPush( vNodes, util_strsav(Abc_ObjName(pFanin)) );
+    return vNodes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gets fanin node names.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NodeFreeFaninNames( Vec_Ptr_t * vNames )
+{
+    int i;
+    for ( i = 0; i < vNames->nSize; i++ )
+        free( vNames->pArray[i] );
+    Vec_PtrFree( vNames );
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

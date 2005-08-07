@@ -213,7 +213,7 @@ int Mio_GateParseFormula( Mio_Gate_t * pGate )
     Cudd_Ref( pGate->bFunc );
 
     // derive the cover (SOP)
-    pGate->pSop = Abc_ConvertBddToSop( pGate->pLib->pMmFlex, dd, pGate->bFunc, nPins, pGate->pLib->vCube, -1 );
+    pGate->pSop = Abc_ConvertBddToSop( pGate->pLib->pMmFlex, dd, pGate->bFunc, pGate->bFunc, nPins, pGate->pLib->vCube, -1 );
     return 0;
 }
 

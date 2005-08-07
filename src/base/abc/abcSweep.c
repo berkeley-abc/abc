@@ -61,7 +61,7 @@ bool Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fVerbose )
     assert( !Abc_NtkIsAig(pNtk) );
 
     // derive the AIG
-    pNtkAig = Abc_NtkStrash( pNtk );
+    pNtkAig = Abc_NtkStrash( pNtk, 0 );
     // perform fraiging of the AIG
     Fraig_ParamsSetDefault( &Params );
     pMan = Abc_NtkToFraig( pNtkAig, &Params, 0 );    

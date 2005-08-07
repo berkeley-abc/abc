@@ -21,25 +21,6 @@
 #ifndef __ABC_H__
 #define __ABC_H__
 
-/*
-    In the netlist, the PI/PO arrays store PI/PO nets.
-    The names belongs to the nets and are stored in pNet->pData.
-    When a netlist is made combinational:
-    - LO/LI nets are added to PI/PO arrays,
-    - the array of latches is temporarily stored in vLatch2,
-    - the original number of PIs/POs is remembered in nPisOld/nPosOld.
-
-    In a logic network, the PI/PO arrays store PI/PO nodes.
-    The PO nodes have only one fanin edge, which can be complemented.
-    The arrays vNamesPi/vNamesPo/vNamesLatch store PI/PO/latch names.
-    The internal nodes are nameless.
-    When a logic network is made combinational:
-    - laches are added to the PI/PO arrays,
-    - the arrays of names are not changed,
-    - the array of latches is temporarily stored in vLatch2,
-    - the original number of PIs/POs is remembered in nPisOld/nPosOld.
-*/
-
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -103,6 +84,7 @@ typedef struct Abc_Obj_t_     Abc_Obj_t;
 typedef struct Abc_Ntk_t_     Abc_Ntk_t;
 typedef struct Abc_Aig_t_     Abc_Aig_t;
 typedef struct Abc_ManTime_t_ Abc_ManTime_t;
+typedef struct Abc_ManRes_t_  Abc_ManRes_t;
 typedef struct Abc_Time_t_    Abc_Time_t;
 
 struct Abc_Time_t_
@@ -180,6 +162,30 @@ struct Abc_Ntk_t_
     Extra_MmFlex_t * pMmNames;      // memory manager for net names
     Extra_MmFixed_t* pMmObj;        // memory manager for objects
     Extra_MmStep_t * pMmStep;       // memory manager for arrays
+};
+
+struct Abc_ManRes_t_
+{
+    // user specified parameters
+    int              nNodeSizeMax;  // the limit on the size of the supernode
+    int              nConeSizeMax;  // the limit on the size of the containing cone
+    int              fVerbose;      // the verbosity flag
+    // internal parameters
+    DdManager *      dd;            // the BDD manager
+    DdNode *         bCubeX;        // the cube of PI variables
+    Abc_Obj_t *      pNode;         // the node currently considered
+    Vec_Ptr_t *      vFaninsNode;   // fanins of the supernode
+    Vec_Ptr_t *      vInsideNode;   // inside of the supernode
+    Vec_Ptr_t *      vFaninsCone;   // fanins of the containing cone
+    Vec_Ptr_t *      vInsideCone;   // inside of the containing cone
+    Vec_Ptr_t *      vVisited;      // the visited nodes
+    Vec_Str_t *      vCube;         // temporary cube for generating covers
+    Vec_Int_t *      vForm;         // the factored form (temporary)
+    // runtime statistics
+    int              time1;
+    int              time2;
+    int              time3;
+    int              time4;
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -380,11 +386,12 @@ extern bool               Abc_NtkCheck( Abc_Ntk_t * pNtk );
 extern bool               Abc_NtkCompareSignals( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb );
 /*=== abcCollapse.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fVerbose );
+extern DdManager *        Abc_NtkGlobalBdds( Abc_Ntk_t * pNtk, int fLatchOnly );
+extern void               Abc_NtkFreeGlobalBdds( DdManager * dd, Abc_Ntk_t * pNtk );
 /*=== abcCreate.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkAlloc( Abc_NtkType_t Type );
 extern Abc_Ntk_t *        Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type );
 extern void               Abc_NtkFinalize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
-extern void               Abc_NtkFinalizeRegular( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
 extern Abc_Ntk_t *        Abc_NtkDup( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkDelete( Abc_Ntk_t * pNtk );
 extern Abc_Obj_t *        Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj );
@@ -407,6 +414,7 @@ extern Abc_Obj_t *        Abc_NodeCreateBuf( Abc_Ntk_t * pNtk, Abc_Obj_t * pFani
 extern Abc_Obj_t *        Abc_NodeCreateAnd( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins );
 extern Abc_Obj_t *        Abc_NodeCreateOr( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins );
 extern Abc_Obj_t *        Abc_NodeCreateMux( Abc_Ntk_t * pNtk, Abc_Obj_t * pNodeC, Abc_Obj_t * pNode1, Abc_Obj_t * pNode0 );
+extern Abc_Obj_t *        Abc_NodeClone( Abc_Obj_t * pNode );
 /*=== abcDfs.c ==========================================================*/
 extern Vec_Ptr_t *        Abc_NtkDfs( Abc_Ntk_t * pNtk );
 extern Vec_Ptr_t *        Abc_AigDfs( Abc_Ntk_t * pNtk );
@@ -415,6 +423,7 @@ extern bool               Abc_NtkIsAcyclic( Abc_Ntk_t * pNtk );
 /*=== abcFanio.c ==========================================================*/
 extern void               Abc_ObjAddFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFanin );
 extern void               Abc_ObjDeleteFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFanin );
+extern void               Abc_ObjRemoveFanins( Abc_Obj_t * pObj );
 extern void               Abc_ObjPatchFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFaninOld, Abc_Obj_t * pFaninNew );
 extern void               Abc_ObjTransferFanout( Abc_Obj_t * pObjOld, Abc_Obj_t * pObjNew );
 extern void               Abc_ObjReplace( Abc_Obj_t * pObjOld, Abc_Obj_t * pObjNew );
@@ -426,7 +435,7 @@ extern Abc_Ntk_t *        Abc_NtkFraigRestore();
 extern void               Abc_NtkFraigStoreClean();
 /*=== abcFunc.c ==========================================================*/
 extern int                Abc_NtkSopToBdd( Abc_Ntk_t * pNtk );
-extern char *             Abc_ConvertBddToSop( Extra_MmFlex_t * pMan, DdManager * dd, DdNode * bFunc, int nFanins, Vec_Str_t * vCube, int fMode );
+extern char *             Abc_ConvertBddToSop( Extra_MmFlex_t * pMan, DdManager * dd, DdNode * bFuncOn, DdNode * bFuncOnDc, int nFanins, Vec_Str_t * vCube, int fMode );
 extern int                Abc_NtkBddToSop( Abc_Ntk_t * pNtk );
 extern void               Abc_NodeBddToCnf( Abc_Obj_t * pNode, Extra_MmFlex_t * pMmMan, Vec_Str_t * vCube, char ** ppSop0, char ** ppSop1 );
 extern int                Abc_CountZddCubes( DdManager * dd, DdNode * zCover );
@@ -475,6 +484,9 @@ extern int                Abc_NodeMffcRemove( Abc_Obj_t * pNode );
 /*=== abcRenode.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkRenode( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax, int fCnf, int fMulti, int fSimple );
 extern DdNode *           Abc_NtkRenodeDeriveBdd( DdManager * dd, Abc_Obj_t * pNodeOld, Vec_Ptr_t * vFaninsOld );
+/*=== abcRes.c ==========================================================*/
+extern Abc_ManRes_t *     Abc_NtkManResStart();
+extern void               Abc_NtkManResStop( Abc_ManRes_t * p );
 /*=== abcSat.c ==========================================================*/
 extern bool               Abc_NtkMiterSat( Abc_Ntk_t * pNtk, int fVerbose );
 extern solver *           Abc_NtkMiterSatCreate( Abc_Ntk_t * pNtk );
@@ -497,7 +509,7 @@ extern bool               Abc_SopCheck( char * pSop, int nFanins );
 extern void               Abc_SopWriteCnf( FILE * pFile, char * pClauses, Vec_Int_t * vVars );
 extern void               Abc_SopAddCnfToSolver( solver * pSat, char * pClauses, Vec_Int_t * vVars, Vec_Int_t * vTemp );
 /*=== abcStrash.c ==========================================================*/
-extern Abc_Ntk_t *        Abc_NtkStrash( Abc_Ntk_t * pNtk );
+extern Abc_Ntk_t *        Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes );
 extern int                Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 );
 extern Abc_Ntk_t *        Abc_NtkBalance( Abc_Ntk_t * pNtk, bool fDuplicate );
 /*=== abcSweep.c ==========================================================*/
@@ -512,7 +524,7 @@ extern void               Abc_NtkTimeSetDefaultArrival( Abc_Ntk_t * pNtk, float 
 extern void               Abc_NtkTimeSetDefaultRequired( Abc_Ntk_t * pNtk, float Rise, float Fall );
 extern void               Abc_NtkTimeSetArrival( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall );
 extern void               Abc_NtkTimeSetRequired( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall );
-extern void               Abc_NtkTimeFinalize( Abc_Ntk_t * pNtk );
+extern void               Abc_NtkTimeInitialize( Abc_Ntk_t * pNtk );
 extern void               Abc_ManTimeStop( Abc_ManTime_t * p );
 extern void               Abc_ManTimeDup( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew );
 extern void               Abc_NtkSetNodeLevelsArrival( Abc_Ntk_t * pNtk );
@@ -549,6 +561,9 @@ extern void               Abc_NodeCollectFanouts( Abc_Obj_t * pNode, Vec_Ptr_t *
 extern int                Abc_NodeCompareLevelsIncrease( Abc_Obj_t ** pp1, Abc_Obj_t ** pp2 );
 extern int                Abc_NodeCompareLevelsDecrease( Abc_Obj_t ** pp1, Abc_Obj_t ** pp2 );
 extern Vec_Ptr_t *        Abc_AigCollectAll( Abc_Ntk_t * pNtk );
+extern Vec_Ptr_t *        Abc_NodeGetFaninNames( Abc_Obj_t * pNode );
+extern void               Abc_NodeFreeFaninNames( Vec_Ptr_t * vNames );
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -10,6 +10,7 @@ SRC +=    src/base/abc/abc.c \
     src/base/abc/abcFpga.c \
     src/base/abc/abcFraig.c \
     src/base/abc/abcFunc.c \
+        src/base/abc/abcFxu.c \
     src/base/abc/abcLatch.c \
     src/base/abc/abcMap.c \
     src/base/abc/abcMinBase.c \
@@ -19,10 +20,13 @@ SRC +=    src/base/abc/abc.c \
     src/base/abc/abcPrint.c \
     src/base/abc/abcRefs.c \
     src/base/abc/abcRenode.c \
+    src/base/abc/abcRes.c \
     src/base/abc/abcSat.c \
+    src/base/abc/abcShow.c \
     src/base/abc/abcSop.c \
     src/base/abc/abcStrash.c \
     src/base/abc/abcSweep.c \
     src/base/abc/abcTiming.c \
+    src/base/abc/abcUnreach.c \
     src/base/abc/abcUtil.c \
     src/base/abc/abcVerify.c 
