@@ -32,6 +32,8 @@ static int Abc_CommandPrintStats   ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int Abc_CommandPrintIo      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintFanio   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintFactor  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintSupport ( Abc_Frame_t * pAbc, int argc, char ** argv );
+
 static int Abc_CommandShowBdd      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandCollapse     ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -50,6 +52,7 @@ static int Abc_CommandSop          ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int Abc_CommandBdd          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSat          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandExtSeqDcs    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSplit        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandFraig        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFraigTrust   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -89,6 +92,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Printing",     "print_io",      Abc_CommandPrintIo,          0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_fanio",   Abc_CommandPrintFanio,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_factor",  Abc_CommandPrintFactor,      0 );
+    Cmd_CommandAdd( pAbc, "Printing",     "print_supp",    Abc_CommandPrintSupport,     0 );
 
     Cmd_CommandAdd( pAbc, "Printing",     "show_bdd",      Abc_CommandShowBdd,          0 );
 
@@ -108,6 +112,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "bdd",           Abc_CommandBdd,              0 );
     Cmd_CommandAdd( pAbc, "Various",      "sat",           Abc_CommandSat,              0 );
     Cmd_CommandAdd( pAbc, "Various",      "ext_seq_dcs",   Abc_CommandExtSeqDcs,        0 );
+    Cmd_CommandAdd( pAbc, "Various",      "split",         Abc_CommandSplit,            1 );
 
     Cmd_CommandAdd( pAbc, "Fraiging",     "fraig",         Abc_CommandFraig,            1 );
     Cmd_CommandAdd( pAbc, "Fraiging",     "fraig_trust",   Abc_CommandFraigTrust,       1 );
@@ -396,6 +401,62 @@ usage:
     fprintf( pErr, "usage: print_factor [-h] <node>\n" );
     fprintf( pErr, "\t        prints the factored forms of nodes\n" );
     fprintf( pErr, "\tnode  : (optional) one node to consider\n");
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandPrintSupport( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+    extern void * Sim_ComputeSupp( Abc_Ntk_t * pNtk );
+
+    pNtk = Abc_FrameReadNet(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkIsAig(pNtk) )
+    {
+        fprintf( pErr, "This command works only for AIGs.\n" );
+        return 1;
+    }
+    Sim_ComputeSupp( pNtk );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: print_supp [-h]\n" );
+    fprintf( pErr, "\t        prints the supports of the CO nodes\n" );
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -1674,6 +1735,120 @@ usage:
     fprintf( pErr, "\t         create EXDC network using unreachable states\n" );
     fprintf( pErr, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
     fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandSplit( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    Abc_Obj_t * pNode;
+    int c;
+    int fUseAllCis;
+    int Output;
+
+    pNtk = Abc_FrameReadNet(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fUseAllCis = 0;
+    Output = -1;
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "oah" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'o':
+            if ( util_optind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-o\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Output = atoi(argv[util_optind]);
+            util_optind++;
+            if ( Output < 0 ) 
+                goto usage;
+            break;
+        case 'a':
+            fUseAllCis ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkIsLogic(pNtk) && !Abc_NtkIsAig(pNtk) )
+    {
+        fprintf( pErr, "Currently can only be applied to the logic network or an AIG.\n" );
+        return 1;
+    }
+
+    if ( argc > util_optind + 1 )
+    {
+        fprintf( pErr, "Wrong number of auguments.\n" );
+        goto usage;
+    }
+
+    if ( argc == util_optind + 1 )
+    {
+        pNode = Abc_NtkFindCo( pNtk, argv[util_optind] );
+        if ( pNode == NULL )
+        {
+            fprintf( pErr, "Cannot find CO node \"%s\".\n", argv[util_optind] );
+            return 1;
+        }
+        pNtkRes = Abc_NtkSplitOutput( pNtk, pNode, fUseAllCis );
+    }
+    else
+    {
+        if ( Output == -1 )
+        {
+            fprintf( pErr, "The output is not specified.\n" );
+            return 1;
+        }
+        if ( Output >= Abc_NtkCoNum(pNtk) )
+        {
+            fprintf( pErr, "The 0-based output number (%d) is larger than the number of outputs (%d).\n", Output, Abc_NtkCoNum(pNtk) );
+            return 1;
+        }
+        pNtkRes = Abc_NtkSplitOutput( pNtk, Abc_NtkCo(pNtk,Output), fUseAllCis );
+    }
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Splitting one output has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: split [-o num] [-ah] <name>\n" );
+    fprintf( pErr, "\t         replaces the current network by the logic cone of one output\n" );
+    fprintf( pErr, "\t-a     : toggle writing all CIs or structral support only [default = %s]\n", fUseAllCis? "all": "structural" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    fprintf( pErr, "\t-o num : (optional) the 0-based number of the output\n");
+    fprintf( pErr, "\tname   : (optional) the name of the output\n");
     return 1;
 }
 

@@ -35,6 +35,7 @@ static int IoCommandWriteBlif   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteGate   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteBench  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteCnf    ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandWritePla    ( Abc_Frame_t * pAbc, int argc, char **argv );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -63,6 +64,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "write_gate",    IoCommandWriteGate,    0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_bench",   IoCommandWriteBench,   0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_cnf",     IoCommandWriteCnf,     0 );
+    Cmd_CommandAdd( pAbc, "I/O", "write_pla",     IoCommandWritePla,     0 );
 }
 
 /**Function*************************************************************
@@ -445,9 +447,7 @@ int IoCommandReadPla( Abc_Frame_t * pAbc, int argc, char ** argv )
     fclose( pFile );
 
     // set the new network
-//    pNtk = Io_ReadPla( FileName, fCheck );
-    fprintf( pAbc->Err, "This command is currently not implemented.\n" );
-    pNtk = NULL;
+    pNtk = Io_ReadPla( FileName, fCheck );
     if ( pNtk == NULL )
     {
         fprintf( pAbc->Err, "Reading network from PLA file has failed.\n" );
@@ -754,6 +754,69 @@ int IoCommandWriteCnf( Abc_Frame_t * pAbc, int argc, char **argv )
 usage:
     fprintf( pAbc->Err, "usage: write_cnf [-h] <file>\n" );
     fprintf( pAbc->Err, "\t         write the miter cone into a CNF file\n" );
+    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IoCommandWritePla( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    char * FileName;
+    int c;
+
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+
+    if ( pAbc->pNtkCur == NULL )
+    {
+        fprintf( pAbc->Out, "Empty network.\n" );
+        return 0;
+    }
+
+    if ( Abc_NtkGetLevelNum(pAbc->pNtkCur) > 1 )
+    {
+        fprintf( pAbc->Out, "PLA writing is available for collapsed networks.\n" );
+        return 0;
+    }
+
+    if ( argc != util_optind + 1 )
+    {
+        goto usage;
+    }
+
+    // get the input file name
+    FileName = argv[util_optind];
+    // write the file
+    if ( !Io_WritePla( pAbc->pNtkCur, FileName ) )
+    {
+        printf( "Writing PLA has failed.\n" );
+        return 1;
+    }
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: write_pla [-h] <file>\n" );
+    fprintf( pAbc->Err, "\t         write the collapsed network into a PLA file\n" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
     return 1;

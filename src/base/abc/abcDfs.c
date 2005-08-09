@@ -75,6 +75,45 @@ Vec_Ptr_t * Abc_NtkDfs( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the DFS ordered array of logic nodes.]
+
+  Description [Collects only the internal nodes, leaving out PIs, POs and latches.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_NtkDfsNodes( Abc_Ntk_t * pNtk, Abc_Obj_t ** ppNodes, int nNodes )
+{
+    Vec_Ptr_t * vNodes;
+    int i, fMadeComb;
+    // set the traversal ID
+    Abc_NtkIncrementTravId( pNtk );
+    // start the array of nodes
+    vNodes = Vec_PtrAlloc( 100 );
+    // go through the PO nodes and call for each of them
+    if ( Abc_NtkIsNetlist(pNtk) )
+    {
+        fMadeComb = Abc_NtkMakeComb( pNtk );
+        for ( i = 0; i < nNodes; i++ )
+            Abc_NtkDfs_rec( ppNodes[i], vNodes );
+        if ( fMadeComb )  
+            Abc_NtkMakeSeq( pNtk );
+    }
+    else
+    {
+        for ( i = 0; i < nNodes; i++ )
+            if ( Abc_ObjIsCo(ppNodes[i]) )
+                Abc_NtkDfs_rec( Abc_ObjFanin0(ppNodes[i]), vNodes );
+            else if ( Abc_ObjIsNode(ppNodes[i]) )
+                Abc_NtkDfs_rec( ppNodes[i], vNodes );
+    }
+    return vNodes;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs DFS for one node.]
 
   Description []
@@ -89,16 +128,17 @@ void Abc_NtkDfs_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
     Abc_Obj_t * pFanin;
     int i;
     assert( !Abc_ObjIsComplement( pNode ) );
-    // skip the PI
-    if ( Abc_ObjIsPi(pNode) || Abc_ObjIsLatch(pNode) )
-        return;
-    assert( Abc_ObjIsNode( pNode ) );
 
     // if this node is already visited, skip
     if ( Abc_NodeIsTravIdCurrent( pNode ) )
         return;
     // mark the node as visited
     Abc_NodeSetTravIdCurrent( pNode );
+
+    // skip the PI
+    if ( Abc_ObjIsPi(pNode) || Abc_ObjIsLatch(pNode) )
+        return;
+    assert( Abc_ObjIsNode( pNode ) );
 
     // visit the transitive fanin of the node
     if ( Abc_NtkIsNetlist(pNode->pNtk) )
@@ -164,15 +204,15 @@ void Abc_AigDfs_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
     Abc_Obj_t * pFanin;
     int i;
     assert( !Abc_ObjIsComplement( pNode ) );
-    // skip the PI
-    if ( Abc_ObjIsPi(pNode) || Abc_ObjIsLatch(pNode) )
-        return;
-    assert( Abc_ObjIsNode( pNode ) );
     // if this node is already visited, skip
     if ( Abc_NodeIsTravIdCurrent( pNode ) )
         return;
     // mark the node as visited
     Abc_NodeSetTravIdCurrent( pNode );
+    // skip the PI
+    if ( Abc_ObjIsPi(pNode) || Abc_ObjIsLatch(pNode) )
+        return;
+    assert( Abc_ObjIsNode( pNode ) );
     // visit the transitive fanin of the node
     Abc_ObjForEachFanin( pNode, pFanin, i )
         Abc_AigDfs_rec( pFanin, vNodes );
@@ -184,6 +224,75 @@ void Abc_AigDfs_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
     Vec_PtrPush( vNodes, pNode );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Collects nodes in the DFS manner by level.]
+
+  Description [The number of levels should be set!!!]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_DfsLevelizedTfo_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vLevels )
+{
+    Abc_Obj_t * pFanout;
+    int i;
+
+    // if this node is already visited, skip
+    if ( Abc_NodeIsTravIdCurrent( pNode ) )
+        return;
+    // mark the node as visited
+    Abc_NodeSetTravIdCurrent( pNode );
+
+    // skip the terminals
+    if ( Abc_ObjIsTerm(pNode) || Abc_ObjIsLatch(pNode) )
+        return;
+    assert( Abc_ObjIsNode(pNode) );
+
+    // add the node to the structure
+    if ( vLevels->nSize <= (int)pNode->Level )
+    {
+        Vec_PtrGrow( vLevels, pNode->Level + 1 );
+        for ( i = vLevels->nSize; i <= (int)pNode->Level; i++ )
+            vLevels->pArray[i] = Vec_PtrAlloc( 16 );
+        vLevels->nSize = pNode->Level + 1;
+    }
+    Vec_PtrPush( vLevels->pArray[pNode->Level], pNode );
+
+    // visit the TFO
+    Abc_ObjForEachFanout( pNode, pFanout, i )
+        Abc_DfsLevelizedTfo_rec( pFanout, vLevels );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects nodes in the DFS manner by level.]
+
+  Description [The number of levels should be set!!!]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_DfsLevelized( Abc_Obj_t * pNode, bool fTfi )
+{
+    Vec_Ptr_t * vLevels;
+    Abc_Obj_t * pFanout;
+    int i;
+    assert( fTfi == 0 );
+    // set the traversal ID
+    Abc_NtkIncrementTravId( pNode->pNtk );
+    vLevels = Vec_PtrAlloc( 100 );
+    if ( Abc_ObjIsNode(pNode) )
+        Abc_DfsLevelizedTfo_rec( pNode, vLevels );
+    else
+        Abc_ObjForEachFanout( pNode, pFanout, i )
+            Abc_DfsLevelizedTfo_rec( pFanout, vLevels );
+    return vLevels;
+}
 
 
 /**Function*************************************************************

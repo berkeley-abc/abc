@@ -17,7 +17,7 @@
   Revision    [$Id: io.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
- 
+
 #ifndef __IO_H__
 #define __IO_H__
 
@@ -54,6 +54,8 @@ extern Abc_Ntk_t *        Io_ReadBench( char * pFileName, int fCheck );
 /*=== abcReadVerilog.c ==========================================================*/
 extern Abc_Ntk_t *        Io_ReadVerilog( char * pFileName, int fCheck );
 extern void               Io_ReadSetNonDrivenNets( Abc_Ntk_t * pNet );
+/*=== abcReadPla.c ==========================================================*/
+extern Abc_Ntk_t *        Io_ReadPla( char * pFileName, int fCheck );
 /*=== abcWriteBlif.c ==========================================================*/
 extern void               Io_WriteBlif( Abc_Ntk_t * pNtk, char * pFileName );
 extern void               Io_WriteTimingInfo( FILE * pFile, Abc_Ntk_t * pNtk );
@@ -65,6 +67,8 @@ extern int                Io_WriteBench( Abc_Ntk_t * pNtk, char * FileName );
 extern int                Io_WriteGate( Abc_Ntk_t * pNtk, char * FileName );
 /*=== abcWriteCnf.c ==========================================================*/
 extern int                Io_WriteCnf( Abc_Ntk_t * pNtk, char * FileName );
+/*=== abcWritePla.c ==========================================================*/
+extern int                Io_WritePla( Abc_Ntk_t * pNtk, char * FileName );
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

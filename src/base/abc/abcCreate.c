@@ -223,6 +223,86 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
+  Synopsis    [Creates the network composed of one output.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkSplitOutput( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, int fUseAllCis )
+{
+    Vec_Ptr_t * vNodes;
+    Abc_Ntk_t * pNtkNew; 
+    Abc_Obj_t * pObj, * pFanin;
+    char Buffer[1000];
+    int i, k, Output;
+
+    assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsAig(pNtk) );
+    assert( Abc_ObjIsTerm(pNode) || Abc_ObjIsLatch(pNode) ); 
+    // get the number of this output
+    Output = -1;
+    Abc_NtkForEachCo( pNtk, pObj, i )
+        if ( pObj == pNode )
+        {
+            Output = i;
+            break;
+        }
+    assert( Output >= 0 );
+    
+    // start the network
+    pNtkNew = Abc_NtkAlloc( pNtk->Type );
+    // duplicate the name and the spec
+    sprintf( Buffer, "%s_%s", pNtk->pName, Abc_NtkNameCo(pNtk,Output) );
+    pNtkNew->pName = util_strsav(Buffer);
+
+    // collect the nodes in the TFI of the output
+    vNodes = Abc_NtkDfsNodes( pNtk, &pNode, 1 );
+    // create the PIs
+    Abc_NtkForEachCi( pNtk, pObj, i )
+    {
+        if ( fUseAllCis || Abc_NodeIsTravIdCurrent(pObj) ) // TravId is set by DFS
+        {
+            pObj->pCopy = Abc_NtkCreateTermPi(pNtkNew);
+            Abc_NtkLogicStoreName( pObj->pCopy, Abc_NtkNameCi(pNtk, i) );
+        }
+    }
+    // establish connection between the constant nodes
+    if ( Abc_NtkIsAig(pNtk) )
+        Abc_AigConst1(pNtk->pManFunc)->pCopy = Abc_AigConst1(pNtkNew->pManFunc);
+
+    // copy the nodes
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+    {
+        // if it is an AIG, add to the hash table
+        if ( Abc_NtkIsAig(pNtk) )
+        {
+            pObj->pCopy = Abc_AigAnd( pNtkNew->pManFunc, 
+                Abc_ObjNotCond( Abc_ObjFanin0(pObj)->pCopy, Abc_ObjFaninC0(pObj) ),
+                Abc_ObjNotCond( Abc_ObjFanin1(pObj)->pCopy, Abc_ObjFaninC1(pObj) )  );
+        }
+        else
+        {
+            Abc_NtkDupObj( pNtkNew, pObj );
+            Abc_ObjForEachFanin( pObj, pFanin, k )
+                Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
+        }
+    }
+    Vec_PtrFree( vNodes );
+    // add the PO corresponding to this output
+    pNode->pCopy = Abc_NtkCreateTermPo( pNtkNew );
+    Abc_ObjAddFanin( pNode->pCopy, Abc_ObjFanin0(pNode)->pCopy );
+    Abc_NtkLogicStoreName( pNode->pCopy, Abc_NtkNameCo(pNtk, Output) );
+
+    if ( !Abc_NtkCheck( pNtkNew ) )
+        fprintf( stdout, "Abc_NtkDup(): Network check has failed.\n" );
+    return pNtkNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Deletes the Ntk.]
 
   Description []
@@ -659,6 +739,30 @@ Abc_Obj_t * Abc_NtkFindNode( Abc_Ntk_t * pNtk, char * pName )
         return NULL;
     }
     return pNode;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the net with the given name.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Abc_NtkFindCo( Abc_Ntk_t * pNtk, char * pName )
+{
+    Abc_Obj_t * pNode;
+    int i;
+    // search the node among COs
+    Abc_NtkForEachCo( pNtk, pNode, i )
+    {
+        if ( strcmp( Abc_NtkNameCo(pNtk,i), pName ) == 0 )
+            return pNode;
+    }
+    return NULL;
 }
 
 /**Function*************************************************************

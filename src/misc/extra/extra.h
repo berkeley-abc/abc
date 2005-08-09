@@ -113,6 +113,24 @@ extern DdNode *     Extra_bddFindOneCube( DdManager * dd, DdNode * bF );
 extern DdNode *     Extra_bddGetOneCube( DdManager * dd, DdNode * bFunc );
 extern DdNode *     Extra_bddComputeRangeCube( DdManager * dd, int iStart, int iStop );
 
+/*=== extraUtilBitMatrix.c ================================================================*/
+
+typedef struct Extra_BitMat_t_ Extra_BitMat_t;
+extern Extra_BitMat_t * Extra_BitMatrixStart( int nSize );
+extern void         Extra_BitMatrixClean( Extra_BitMat_t * p );
+extern void         Extra_BitMatrixStop( Extra_BitMat_t * p );
+extern void         Extra_BitMatrixPrint( Extra_BitMat_t * p );
+extern int          Extra_BitMatrixReadSize( Extra_BitMat_t * p );
+extern void         Extra_BitMatrixInsert1( Extra_BitMat_t * p, int i, int k );
+extern int          Extra_BitMatrixLookup1( Extra_BitMat_t * p, int i, int k );
+extern void         Extra_BitMatrixDelete1( Extra_BitMat_t * p, int i, int k );
+extern void         Extra_BitMatrixInsert2( Extra_BitMat_t * p, int i, int k );
+extern int          Extra_BitMatrixLookup2( Extra_BitMat_t * p, int i, int k );
+extern void         Extra_BitMatrixDelete2( Extra_BitMat_t * p, int i, int k );
+extern void         Extra_BitMatrixOr( Extra_BitMat_t * p, int i, unsigned * pInfo );
+extern void         Extra_BitMatrixOrTwo( Extra_BitMat_t * p, int i, int j );
+extern int          Extra_BitMatrixCountOnesUpper( Extra_BitMat_t * p );
+
 /*=== extraUtilFile.c ========================================================*/
 
 extern char *       Extra_FileGetSimilarName( char * pFileNameWrong, char * pS1, char * pS2, char * pS3, char * pS4, char * pS5 );

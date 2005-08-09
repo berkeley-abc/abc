@@ -51,6 +51,10 @@ struct Vec_Ptr_t_
 #define Vec_PtrForEachEntry( vVec, pEntry, i )                                               \
     for ( i = 0; (i < Vec_PtrSize(vVec)) && (((pEntry) = Vec_PtrEntry(vVec, i)), 1); i++ )
 
+#define Vec_PtrForEachEntryByLevel( vVec, pEntry, i, k )                                     \
+    for ( i = 0; i < Vec_PtrSize(vVec); i++ )                                                \
+        Vec_PtrForEachEntry( ((Vec_Ptr_t *)Vec_PtrEntry(vVec, i)), pEntry, k ) 
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
@@ -169,7 +173,7 @@ static inline Vec_Ptr_t * Vec_PtrDupArray( Vec_Ptr_t * pVec )
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Frees the vector.]
 
   Description []
                
@@ -459,6 +463,46 @@ static inline void Vec_PtrReorder( Vec_Ptr_t * p, int nItems )
     Vec_PtrGrow( p, nItems + p->nSize );
     memmove( (char **)p->pArray + p->nSize, p->pArray, nItems * sizeof(void*) );
     memmove( p->pArray, (char **)p->pArray + nItems, p->nSize * sizeof(void*) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Frees the vector of vectors.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_PtrFreeFree( Vec_Ptr_t * p )
+{
+    Vec_Ptr_t * vVec;
+    int i;
+    Vec_PtrForEachEntry( p, vVec, i )
+        Vec_PtrFree( vVec );
+    Vec_PtrFree( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Frees the vector of vectors.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_PtrSizeSize( Vec_Ptr_t * p )
+{
+    Vec_Ptr_t * vVec;
+    int i, Counter = 0;
+    Vec_PtrForEachEntry( p, vVec, i )
+        Counter += vVec->nSize;
+    return Counter;
 }
 
 /**Function*************************************************************

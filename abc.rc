@@ -7,10 +7,12 @@ alias pf print_factor
 alias pfan print_fanio
 alias pio print_io
 alias ps print_stats 
+alias psu print_supp
 alias q quit
 alias r read
 alias rl read_blif
 alias rb read_bench
+alias rp read_pla
 alias rv read_verilog
 alias rsup read_super mcnc5_old.super
 alias rlib read_library
@@ -21,6 +23,7 @@ alias u undo
 alias wb write_blif
 alias wg write_gate
 alias wl write_blif
+alias wp write_pla
 alias cnf   "st; renode -c; write_cnf"
 alias prove "st; renode -c; sat"
 alias opt   "st; b; renode; sop; ps"

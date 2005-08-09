@@ -301,8 +301,8 @@ static inline void Vec_StrGrow( Vec_Str_t * p, int nCapMin )
 {
     if ( p->nCap >= nCapMin )
         return;
-    p->pArray = REALLOC( char, p->pArray, nCapMin ); 
-    p->nCap   = nCapMin;
+    p->pArray = REALLOC( char, p->pArray, 2 * nCapMin ); 
+    p->nCap   = 2 * nCapMin;
 }
 
 /**Function*************************************************************
@@ -379,6 +379,26 @@ static inline void Vec_StrPush( Vec_Str_t * p, char Entry )
             Vec_StrGrow( p, 2 * p->nCap );
     }
     p->pArray[p->nSize++] = Entry;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Appends the string to the char vector.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_StrAppend( Vec_Str_t * p, char * pString )
+{
+    int i, nLength = strlen(pString);
+    Vec_StrGrow( p, p->nSize + nLength );
+    for ( i = 0; i < nLength; i++ )
+        p->pArray[p->nSize + i] = pString[i];
+    p->nSize += nLength;
 }
 
 /**Function*************************************************************

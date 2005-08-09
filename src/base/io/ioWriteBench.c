@@ -55,7 +55,7 @@ int Io_WriteBench( Abc_Ntk_t * pNtk, char * pFileName )
         fprintf( stdout, "Io_WriteBench(): Cannot open the output file.\n" );
         return 0;
     }
-    fprintf( pFile, "# Benchmark \"%s\" written by ABC on %s\n", pNtk->pSpec, Extra_TimeStamp() );
+    fprintf( pFile, "# Benchmark \"%s\" written by ABC on %s\n", pNtk->pName, Extra_TimeStamp() );
     // write the network
     Io_WriteBenchOne( pFile, pNtk );
     // write EXDC network if it exists

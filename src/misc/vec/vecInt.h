@@ -430,6 +430,29 @@ static inline int Vec_IntPop( Vec_Int_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_IntRemove( Vec_Int_t * p, int Entry )
+{
+    int i;
+    for ( i = 0; i < p->nSize; i++ )
+        if ( p->pArray[i] == Entry )
+            break;
+    assert( i < p->nSize );
+    for ( i++; i < p->nSize; i++ )
+        p->pArray[i-1] = p->pArray[i];
+    p->nSize--;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Comparison procedure for two integers.]
 
   Description []

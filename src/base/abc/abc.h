@@ -393,6 +393,7 @@ extern Abc_Ntk_t *        Abc_NtkAlloc( Abc_NtkType_t Type );
 extern Abc_Ntk_t *        Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type );
 extern void               Abc_NtkFinalize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
 extern Abc_Ntk_t *        Abc_NtkDup( Abc_Ntk_t * pNtk );
+extern Abc_Ntk_t *        Abc_NtkSplitOutput( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, int fUseAllCis );
 extern void               Abc_NtkDelete( Abc_Ntk_t * pNtk );
 extern Abc_Obj_t *        Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj );
 extern void               Abc_NtkDeleteObj( Abc_Obj_t * pObj );
@@ -401,6 +402,7 @@ extern void               Abc_NtkMarkNetPo( Abc_Obj_t * pObj );
 extern Abc_Obj_t *        Abc_NtkAddPoNode( Abc_Obj_t * pObj );
 extern void               Abc_NtkRemovePoNode( Abc_Obj_t * pNode );
 extern Abc_Obj_t *        Abc_NtkFindNode( Abc_Ntk_t * pNtk, char * pName );
+extern Abc_Obj_t *        Abc_NtkFindCo( Abc_Ntk_t * pNtk, char * pName );
 extern Abc_Obj_t *        Abc_NtkFindNet( Abc_Ntk_t * pNtk, char * pName );
 extern Abc_Obj_t *        Abc_NtkFindOrCreateNet( Abc_Ntk_t * pNtk, char * pName );
 extern Abc_Obj_t *        Abc_NtkCreateNode( Abc_Ntk_t * pNtk );
@@ -417,7 +419,9 @@ extern Abc_Obj_t *        Abc_NodeCreateMux( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode
 extern Abc_Obj_t *        Abc_NodeClone( Abc_Obj_t * pNode );
 /*=== abcDfs.c ==========================================================*/
 extern Vec_Ptr_t *        Abc_NtkDfs( Abc_Ntk_t * pNtk );
+extern Vec_Ptr_t *        Abc_NtkDfsNodes( Abc_Ntk_t * pNtk, Abc_Obj_t ** ppNodes, int nNodes );
 extern Vec_Ptr_t *        Abc_AigDfs( Abc_Ntk_t * pNtk );
+extern Vec_Ptr_t *        Abc_DfsLevelized( Abc_Obj_t * pNode, bool fTfi );
 extern int                Abc_NtkGetLevelNum( Abc_Ntk_t * pNtk );
 extern bool               Abc_NtkIsAcyclic( Abc_Ntk_t * pNtk );
 /*=== abcFanio.c ==========================================================*/

@@ -293,6 +293,10 @@ SOURCE=.\src\base\io\ioReadBlif.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\io\ioReadPla.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\io\ioReadVerilog.c
 # End Source File
 # Begin Source File
@@ -314,6 +318,10 @@ SOURCE=.\src\base\io\ioWriteCnf.c
 # Begin Source File
 
 SOURCE=.\src\base\io\ioWriteGate.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\io\ioWritePla.c
 # End Source File
 # End Group
 # Begin Group "main"
@@ -972,6 +980,38 @@ SOURCE=.\src\sat\fraig\fraigUtil.c
 SOURCE=.\src\sat\fraig\fraigVec.c
 # End Source File
 # End Group
+# Begin Group "sim"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\sat\sim\sim.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\sim\simMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\sim\simSat.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\sim\simSupp.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\sim\simSym.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\sim\simUnate.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\sim\simUtils.c
+# End Source File
+# End Group
 # End Group
 # Begin Group "opt"
 
@@ -1262,6 +1302,10 @@ SOURCE=.\src\misc\extra\extra.h
 # Begin Source File
 
 SOURCE=.\src\misc\extra\extraUtilBdd.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\extra\extraUtilBitMatrix.c
 # End Source File
 # Begin Source File
 
