@@ -121,7 +121,7 @@ stmm_table * Abc_NtkFraigEquiv( Fraig_Man_t * p, Abc_Ntk_t * pNtk, int fUseInv, 
         if ( Abc_ObjFaninNum(pNode) == 0 )
             continue;
         // skip the nodes that fanout into POs
-        if ( Abc_NtkIsLogicMap(pNtk) && Abc_NodeHasUniqueNamedFanout(pNode) )
+        if ( Abc_NodeHasUniqueCoFanout(pNode) )
             continue;
         // get the FRAIG node
         gNode = Fraig_NotCond( Abc_ObjRegular(pNodeAig)->pCopy, Abc_ObjIsComplement(pNodeAig) );
@@ -254,8 +254,8 @@ void Abc_NtkFraigMergeClassMapped( Abc_Ntk_t * pNtk, Abc_Obj_t * pChain, int fUs
     {
         Arrival1 = Abc_NodeReadArrival(pNodeMin)->Worst;
         Arrival2 = Abc_NodeReadArrival(pNode   )->Worst;
-        assert( Abc_ObjIsPi(pNodeMin) || Arrival1 > 0 );
-        assert( Abc_ObjIsPi(pNode)    || Arrival2 > 0 );
+        assert( Abc_ObjIsCi(pNodeMin) || Arrival1 > 0 );
+        assert( Abc_ObjIsCi(pNode)    || Arrival2 > 0 );
         if (  Arrival1 > Arrival2 ||
               Arrival1 == Arrival2 && pNodeMin->Level >  pNode->Level || 
               Arrival1 == Arrival2 && pNodeMin->Level == pNode->Level && 
@@ -274,8 +274,8 @@ void Abc_NtkFraigMergeClassMapped( Abc_Ntk_t * pNtk, Abc_Obj_t * pChain, int fUs
     {
         Arrival1 = Abc_NodeReadArrival(pNodeMin)->Worst;
         Arrival2 = Abc_NodeReadArrival(pNode   )->Worst;
-        assert( Abc_ObjIsPi(pNodeMin) || Arrival1 > 0 );
-        assert( Abc_ObjIsPi(pNode)    || Arrival2 > 0 );
+        assert( Abc_ObjIsCi(pNodeMin) || Arrival1 > 0 );
+        assert( Abc_ObjIsCi(pNode)    || Arrival2 > 0 );
         if (  Arrival1 > Arrival2 ||
               Arrival1 == Arrival2 && pNodeMin->Level >  pNode->Level || 
               Arrival1 == Arrival2 && pNodeMin->Level == pNode->Level && 

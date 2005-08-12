@@ -82,7 +82,7 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p )
     ProgressBar * pProgress;
     Vec_Ptr_t * vTokens;
     Abc_Ntk_t * pNtk;
-    Abc_Obj_t * pNet, * pNode;
+    Abc_Obj_t * pTerm, * pNode;
     Vec_Str_t ** ppSops;
     char Buffer[100];
     int nInputs = -1, nOutputs = -1, nProducts = -1;
@@ -90,11 +90,7 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p )
     int i, k, iLine, nDigits, nCubes;
  
     // allocate the empty network
-    pNtk = Abc_NtkAlloc( ABC_NTK_NETLIST );
-
-    // set the specs
-    pNtk->pName = util_strsav( Extra_FileReaderGetFileName(p) );
-    pNtk->pSpec = util_strsav( Extra_FileReaderGetFileName(p) );
+    pNtk = Abc_NtkStartRead( Extra_FileReaderGetFileName(p) );
 
     // go through the lines of the file
     nCubes = 0;
@@ -126,26 +122,14 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p )
             if ( vTokens->nSize - 1 != nInputs )
                 printf( "Warning: Mismatch between the number of PIs on the .i line (%d) and the number of PIs on the .ilb line (%d).\n", nInputs, vTokens->nSize - 1 );
             for ( i = 1; i < vTokens->nSize; i++ )
-            {
-                pNet = Abc_NtkFindOrCreateNet( pNtk, vTokens->pArray[i] );
-                if ( Abc_ObjIsPi(pNet) )
-                    printf( "Warning: PI net \"%s\" appears twice in the list.\n", vTokens->pArray[1] );
-                else
-                    Abc_NtkMarkNetPi( pNet );
-            }
+                Io_ReadCreatePi( pNtk, vTokens->pArray[i] );
         }
         else if ( strcmp( vTokens->pArray[0], ".ob" ) == 0 )
         {
             if ( vTokens->nSize - 1 != nOutputs )
                 printf( "Warning: Mismatch between the number of POs on the .o line (%d) and the number of POs on the .ob line (%d).\n", nOutputs, vTokens->nSize - 1 );
             for ( i = 1; i < vTokens->nSize; i++ )
-            {
-                pNet = Abc_NtkFindOrCreateNet( pNtk, vTokens->pArray[i] );
-                if ( Abc_ObjIsPo(pNet) )
-                    printf( "Warning: PO net \"%s\" appears twice in the list.\n", vTokens->pArray[1] );
-                else
-                    Abc_NtkMarkNetPo( pNet );
-            }
+                Io_ReadCreatePo( pNtk, vTokens->pArray[i] );
         }
         else
         {
@@ -162,8 +146,7 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p )
                 for ( i = 0; i < nInputs; i++ )
                 {
                     sprintf( Buffer, "x%0*d", nDigits, i );
-                    pNet = Abc_NtkFindOrCreateNet( pNtk, Buffer );
-                    Abc_NtkMarkNetPi( pNet );
+                    Io_ReadCreatePi( pNtk, Buffer );
                 }
             }
             if ( Abc_NtkPoNum(pNtk) == 0 )
@@ -178,8 +161,7 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p )
                 for ( i = 0; i < nOutputs; i++ )
                 {
                     sprintf( Buffer, "z%0*d", nDigits, i );
-                    pNet = Abc_NtkFindOrCreateNet( pNtk, Buffer );
-                    Abc_NtkMarkNetPo( pNet );
+                    Io_ReadCreatePo( pNtk, Buffer );
                 }
             }
             if ( Abc_NtkNodeNum(pNtk) == 0 )
@@ -187,13 +169,13 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p )
                 // create the PO drivers and add them
                 // start the SOP covers
                 ppSops = ALLOC( Vec_Str_t *, nOutputs );
-                Abc_NtkForEachPo( pNtk, pNet, i )
+                Abc_NtkForEachPo( pNtk, pTerm, i )
                 {
                     ppSops[i] = Vec_StrAlloc( 100 );
                     pNode = Abc_NtkCreateNode(pNtk);
                     for ( k = 0; k < nInputs; k++ )
                         Abc_ObjAddFanin( pNode, Abc_NtkPi(pNtk,k) );
-                    Abc_ObjAddFanin( pNet, pNode );
+                    Abc_ObjAddFanin( Abc_ObjFanout0(pTerm), pNode );
                 }
             }
             // read the cubes
@@ -237,9 +219,9 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p )
             nCubes, nProducts );
 
     // add the SOP covers
-    Abc_NtkForEachPo( pNtk, pNet, i )
+    Abc_NtkForEachPo( pNtk, pTerm, i )
     {
-        pNode = Abc_ObjFanin0(pNet);
+        pNode = Abc_ObjFanin0Ntk(pTerm);
         if ( ppSops[i]->nSize == 0 )
         {
             Abc_ObjRemoveFanins(pNode);
@@ -251,6 +233,7 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p )
         Vec_StrFree( ppSops[i] );
     }
     free( ppSops );
+    Abc_NtkFinalizeRead( pNtk );
     return pNtk;
 }
 

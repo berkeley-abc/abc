@@ -26,8 +26,6 @@
 
 static int    Io_WriteBenchOne( FILE * pFile, Abc_Ntk_t * pNtk );
 static int    Io_WriteBenchOneNode( FILE * pFile, Abc_Obj_t * pNode );
-static char * Io_BenchNodeName( Abc_Obj_t * pObj, int fPhase );
-static char * Io_BenchNodeNameInv( Abc_Obj_t * pObj );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -48,7 +46,7 @@ int Io_WriteBench( Abc_Ntk_t * pNtk, char * pFileName )
 {
     Abc_Ntk_t * pExdc;
     FILE * pFile;
-    assert( Abc_NtkIsAig(pNtk) );
+    assert( Abc_NtkIsNetlistSop(pNtk) );
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {
@@ -61,12 +59,7 @@ int Io_WriteBench( Abc_Ntk_t * pNtk, char * pFileName )
     // write EXDC network if it exists
     pExdc = Abc_NtkExdc( pNtk );
     if ( pExdc )
-    {
         printf( "Io_WriteBench: EXDC is not written (warning).\n" );
-//        fprintf( pFile, "\n" );
-//        fprintf( pFile, ".exdc\n" );
-//        Io_LogicWriteOne( pFile, pExdc );
-    }
     // finalize the file
     fclose( pFile );
     return 1;
@@ -89,51 +82,23 @@ int Io_WriteBenchOne( FILE * pFile, Abc_Ntk_t * pNtk )
     Abc_Obj_t * pNode;
     int i;
 
-    assert( Abc_NtkIsLogicSop(pNtk) || Abc_NtkIsAig(pNtk) );
-
     // write the PIs/POs/latches
     Abc_NtkForEachPi( pNtk, pNode, i )
-        fprintf( pFile, "INPUT(%s)\n", Abc_NtkNamePi(pNtk,i) );
+        fprintf( pFile, "INPUT(%s)\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
     Abc_NtkForEachPo( pNtk, pNode, i )
-        fprintf( pFile, "OUTPUT(%s)\n", Abc_NtkNamePo(pNtk,i) );
+        fprintf( pFile, "OUTPUT(%s)\n", Abc_ObjName(Abc_ObjFanin0(pNode)) );
     Abc_NtkForEachLatch( pNtk, pNode, i )
         fprintf( pFile, "%-11s = DFF(%s)\n", 
-            Abc_NtkNameLatch(pNtk,i), Abc_NtkNameLatchInput(pNtk,i) );
-
-    // set the node names 
-    Abc_NtkCleanCopy( pNtk );
-    Abc_NtkForEachCi( pNtk, pNode, i )
-        pNode->pCopy = (Abc_Obj_t *)Abc_NtkNameCi(pNtk,i);
-
-    // write intervers for COs appearing in negative polarity
-    Abc_NtkForEachCi( pNtk, pNode, i )
-    {
-        if ( Abc_AigNodeIsUsedCompl(pNode) )
-            fprintf( pFile, "%-11s = NOT(%s)\n", 
-                Io_BenchNodeNameInv(pNode), 
-                Abc_NtkNameCi(pNtk,i) );
-    }
+            Abc_ObjName(pNode), Abc_ObjName(Abc_ObjFanin0(pNode)) );
 
     // write internal nodes
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkNodeNum(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
-        if ( Abc_NodeIsConst(pNode) )
-            continue;
         Io_WriteBenchOneNode( pFile, pNode );
     }
     Extra_ProgressBarStop( pProgress );
-
-    // write buffers for CO
-    Abc_NtkForEachCo( pNtk, pNode, i )
-    {
-        fprintf( pFile, "%-11s = BUFF(%s)\n", 
-            (i < Abc_NtkPoNum(pNtk))? Abc_NtkNamePo(pNtk,i) : 
-                Abc_NtkNameLatchInput( pNtk, i-Abc_NtkPoNum(pNtk) ), 
-            Io_BenchNodeName( Abc_ObjFanin0(pNode), !Abc_ObjFaninC0(pNode) ) );
-    }
-    Abc_NtkCleanCopy( pNtk );
     return 1;
 }
 
@@ -151,70 +116,36 @@ int Io_WriteBenchOne( FILE * pFile, Abc_Ntk_t * pNtk )
 ***********************************************************************/
 int Io_WriteBenchOneNode( FILE * pFile, Abc_Obj_t * pNode )
 {
-    assert( Abc_ObjIsNode(pNode) );
-    // write the AND gate
-    fprintf( pFile, "%-11s",       Io_BenchNodeName( pNode, 1 ) );
-    fprintf( pFile, " = AND(%s, ", Io_BenchNodeName( Abc_ObjFanin0(pNode), !Abc_ObjFaninC0(pNode) ) ); 
-    fprintf( pFile, "%s)\n",       Io_BenchNodeName( Abc_ObjFanin1(pNode), !Abc_ObjFaninC1(pNode) ) );
+    int nFanins;
 
-    // write the inverter if necessary
-    if ( Abc_AigNodeIsUsedCompl(pNode) )
-    {
-        fprintf( pFile, "%-11s = NOT(",   Io_BenchNodeName( pNode, 0 ) );
-        fprintf( pFile, "%s)\n",          Io_BenchNodeName( pNode, 1 ) );
+    assert( Abc_ObjIsNode(pNode) );
+    nFanins = Abc_ObjFaninNum(pNode);
+    if ( nFanins == 0 )
+    {   // write the constant 1 node
+        assert( Abc_NodeIsConst1(pNode) );
+        fprintf( pFile, "%-11s",          Abc_ObjName(Abc_ObjFanout0(pNode)) );
+        fprintf( pFile, " = vdd\n" );
+    }
+    else if ( nFanins == 1 )
+    {   // write the interver/buffer
+        if ( Abc_NodeIsBuf(pNode) )
+        {
+            fprintf( pFile, "%-11s = BUFF(",  Abc_ObjName(Abc_ObjFanout0(pNode)) );
+            fprintf( pFile, "%s)\n",          Abc_ObjName(Abc_ObjFanin0(pNode)) );
+        }
+        else
+        {
+            fprintf( pFile, "%-11s = NOT(",   Abc_ObjName(Abc_ObjFanout0(pNode)) );
+            fprintf( pFile, "%s)\n",          Abc_ObjName(Abc_ObjFanin0(pNode)) );
+        }
+    }
+    else
+    {   // write the AND gate
+        fprintf( pFile, "%-11s",       Abc_ObjName(Abc_ObjFanout0(pNode)) );
+        fprintf( pFile, " = AND(%s, ", Abc_ObjName(Abc_ObjFanin0(pNode)) );
+        fprintf( pFile, "%s)\n",       Abc_ObjName(Abc_ObjFanin1(pNode)) );
     }
     return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Returns the name of an internal AIG node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-char * Io_BenchNodeName( Abc_Obj_t * pObj, int fPhase )
-{
-    static char Buffer[500];
-    if ( pObj->pCopy ) // PIs and latches
-    {
-        sprintf( Buffer, "%s%s", (char *)pObj->pCopy, (fPhase? "":"_c") );
-        return Buffer;
-    }
-    assert( Abc_ObjIsNode(pObj) );
-    if ( Abc_NodeIsConst(pObj) ) // constant node
-    {
-        if ( fPhase )
-            sprintf( Buffer, "%s", "vdd" );
-        else
-            sprintf( Buffer, "%s", "gnd" );
-        return Buffer;
-    }
-    // internal nodes
-    sprintf( Buffer, "%s%s", Abc_ObjName(pObj), (fPhase? "":"_c") );
-    return Buffer;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Returns the name of an internal AIG node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-char * Io_BenchNodeNameInv( Abc_Obj_t * pObj )
-{
-    static char Buffer[500];
-    sprintf( Buffer, "%s%s", Abc_ObjName(pObj), "_c" );
-    return Buffer;
 }
 
 ////////////////////////////////////////////////////////////////////////

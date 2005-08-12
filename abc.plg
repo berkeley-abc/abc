@@ -6,13 +6,13 @@
 --------------------Configuration: abc - Win32 Debug--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSPD94.tmp" with contents
+Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP4DC.tmp" with contents
 [
 /nologo /MLd /W3 /Gm /GX /ZI /Od /I "src\base\abc" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\mvc" /I "src\sop\ft" /I "src\sat\asat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\fxa" /I "src\opt\fxu" /I "src\map\fpga" /I "src\map\mapper" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\util" /I "src\misc\vec" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /D "HAVE_ASSERT_H" /FR"Debug/" /Fp"Debug/abc.pch" /YX /Fo"Debug/" /Fd"Debug/" /FD /GZ /c 
-"C:\_projects\abc\src\sat\sim\simSupp.c"
+"C:\_projects\abc\src\base\abc\abcMap.c"
 ]
-Creating command line "cl.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSPD94.tmp" 
-Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSPD95.tmp" with contents
+Creating command line "cl.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP4DC.tmp" 
+Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP4DD.tmp" with contents
 [
 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /incremental:yes /pdb:"Debug/abc.pdb" /debug /machine:I386 /out:"_TEST/abc.exe" /pdbtype:sept 
 .\Debug\abc.obj
@@ -59,11 +59,8 @@ kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32
 .\Debug\ioReadBlif.obj
 .\Debug\ioReadPla.obj
 .\Debug\ioReadVerilog.obj
-.\Debug\ioWriteBench.obj
 .\Debug\ioWriteBlif.obj
-.\Debug\ioWriteBlifLogic.obj
 .\Debug\ioWriteCnf.obj
-.\Debug\ioWriteGate.obj
 .\Debug\ioWritePla.obj
 .\Debug\main.obj
 .\Debug\mainFrame.obj
@@ -194,6 +191,12 @@ kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32
 .\Debug\fraigTable.obj
 .\Debug\fraigUtil.obj
 .\Debug\fraigVec.obj
+.\Debug\simMan.obj
+.\Debug\simSat.obj
+.\Debug\simSupp.obj
+.\Debug\simSym.obj
+.\Debug\simUnate.obj
+.\Debug\simUtils.obj
 .\Debug\fxu.obj
 .\Debug\fxuCreate.obj
 .\Debug\fxuHeapD.obj
@@ -245,6 +248,7 @@ kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32
 .\Debug\superGate.obj
 .\Debug\superWrite.obj
 .\Debug\extraUtilBdd.obj
+.\Debug\extraUtilBitMatrix.obj
 .\Debug\extraUtilFile.obj
 .\Debug\extraUtilMemory.obj
 .\Debug\extraUtilMisc.obj
@@ -260,20 +264,15 @@ kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32
 .\Debug\safe_mem.obj
 .\Debug\strsav.obj
 .\Debug\texpand.obj
-.\Debug\simUtils.obj
-.\Debug\simSat.obj
-.\Debug\simSupp.obj
-.\Debug\simSym.obj
-.\Debug\simUnate.obj
-.\Debug\simMan.obj
-.\Debug\extraUtilBitMatrix.obj
+.\Debug\ioUtil.obj
+.\Debug\ioWriteBench.obj
 ]
-Creating command line "link.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSPD95.tmp"
+Creating command line "link.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP4DD.tmp"
 <h3>Output Window</h3>
 Compiling...
-simSupp.c
+abcMap.c
 Linking...
-Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSPD96.tmp" with contents
+Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP4DE.tmp" with contents
 [
 /nologo /o"Debug/abc.bsc" 
 .\Debug\abc.sbr
@@ -320,11 +319,8 @@ Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSPD96.tmp" with conte
 .\Debug\ioReadBlif.sbr
 .\Debug\ioReadPla.sbr
 .\Debug\ioReadVerilog.sbr
-.\Debug\ioWriteBench.sbr
 .\Debug\ioWriteBlif.sbr
-.\Debug\ioWriteBlifLogic.sbr
 .\Debug\ioWriteCnf.sbr
-.\Debug\ioWriteGate.sbr
 .\Debug\ioWritePla.sbr
 .\Debug\main.sbr
 .\Debug\mainFrame.sbr
@@ -455,6 +451,12 @@ Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSPD96.tmp" with conte
 .\Debug\fraigTable.sbr
 .\Debug\fraigUtil.sbr
 .\Debug\fraigVec.sbr
+.\Debug\simMan.sbr
+.\Debug\simSat.sbr
+.\Debug\simSupp.sbr
+.\Debug\simSym.sbr
+.\Debug\simUnate.sbr
+.\Debug\simUtils.sbr
 .\Debug\fxu.sbr
 .\Debug\fxuCreate.sbr
 .\Debug\fxuHeapD.sbr
@@ -506,6 +508,7 @@ Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSPD96.tmp" with conte
 .\Debug\superGate.sbr
 .\Debug\superWrite.sbr
 .\Debug\extraUtilBdd.sbr
+.\Debug\extraUtilBitMatrix.sbr
 .\Debug\extraUtilFile.sbr
 .\Debug\extraUtilMemory.sbr
 .\Debug\extraUtilMisc.sbr
@@ -521,14 +524,9 @@ Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSPD96.tmp" with conte
 .\Debug\safe_mem.sbr
 .\Debug\strsav.sbr
 .\Debug\texpand.sbr
-.\Debug\simUtils.sbr
-.\Debug\simSat.sbr
-.\Debug\simSupp.sbr
-.\Debug\simSym.sbr
-.\Debug\simUnate.sbr
-.\Debug\simMan.sbr
-.\Debug\extraUtilBitMatrix.sbr]
-Creating command line "bscmake.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSPD96.tmp"
+.\Debug\ioUtil.sbr
+.\Debug\ioWriteBench.sbr]
+Creating command line "bscmake.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP4DE.tmp"
 Creating browse info file...
 <h3>Output Window</h3>
 

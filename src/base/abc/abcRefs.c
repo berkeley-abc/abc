@@ -86,7 +86,7 @@ int Abc_NodeRefDeref( Abc_Obj_t * pNode, bool fFanouts, bool fReference )
 {
     Abc_Obj_t * pNode0, * pNode1;
     int Counter;
-    if ( Abc_ObjIsPi(pNode) || Abc_ObjIsLatch(pNode) )
+    if ( Abc_ObjIsCi(pNode) )
         return 0;
     pNode0 = Abc_ObjFanin( pNode, 0 );
     pNode1 = Abc_ObjFanin( pNode, 1 );

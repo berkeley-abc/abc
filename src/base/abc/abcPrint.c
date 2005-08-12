@@ -72,6 +72,10 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk )
         fprintf( pFile, "  area = %5.2f", Abc_NtkGetMappedArea(pNtk) );
         fprintf( pFile, "  delay = %5.2f", Abc_NtkDelayTrace(pNtk) );
     }
+    else if ( !Abc_NtkIsAig(pNtk) )
+    {
+        assert( 0 );
+    }
     fprintf( pFile, "  lev = %2d", Abc_NtkGetLevelNum(pNtk) );
     fprintf( pFile, "\n" );
 }
@@ -89,43 +93,87 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk )
 ***********************************************************************/
 void Abc_NtkPrintIo( FILE * pFile, Abc_Ntk_t * pNtk )
 {
-    Abc_Obj_t * pObj, * pLatch;
+    Abc_Obj_t * pObj;
     int i;
 
-    if ( Abc_NtkIsNetlist(pNtk) )
+    fprintf( pFile, "Primary inputs (%d): ", Abc_NtkPiNum(pNtk) );    
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        fprintf( pFile, " %s", Abc_ObjName(pObj) );
+    fprintf( pFile, "\n" );   
+
+    fprintf( pFile, "Primary outputs (%d):", Abc_NtkPoNum(pNtk) );    
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        fprintf( pFile, " %s", Abc_ObjName(pObj) );
+    fprintf( pFile, "\n" );    
+
+    fprintf( pFile, "Latches (%d):  ", Abc_NtkLatchNum(pNtk) );  
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+        fprintf( pFile, " %s", Abc_ObjName(pObj) );
+    fprintf( pFile, "\n" );   
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints statistics about latches.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkPrintLatch( FILE * pFile, Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pLatch;
+    int i, Counter0, Counter1, Counter2;
+    int Init0, Init1, Init2;
+
+    if ( Abc_NtkLatchNum(pNtk) == 0 )
     {
-        fprintf( pFile, "Primary inputs (%d): ", Abc_NtkPiNum(pNtk) );    
-        Abc_NtkForEachPi( pNtk, pObj, i )
-            fprintf( pFile, " %s", Abc_ObjName(pObj) );
-        fprintf( pFile, "\n" );   
-    
-        fprintf( pFile, "Primary outputs (%d):", Abc_NtkPoNum(pNtk) );    
-        Abc_NtkForEachPo( pNtk, pObj, i )
-            fprintf( pFile, " %s", Abc_ObjName(pObj) );
-        fprintf( pFile, "\n" );    
-  
-        fprintf( pFile, "Latches (%d):  ", Abc_NtkLatchNum(pNtk) );  
-        Abc_NtkForEachLatch( pNtk, pLatch, i )
-            fprintf( pFile, " %s", Abc_ObjName(Abc_ObjFanout0(pLatch)) );
-        fprintf( pFile, "\n" );   
+        fprintf( pFile, "The network is combinational.\n" );
+        return;
     }
-    else
+
+    assert( !Abc_NtkIsNetlist(pNtk) );
+
+    Init0 = Init1 = Init2 = 0;
+    Counter0 = Counter1 = Counter2 = 0;
+
+    Abc_NtkForEachLatch( pNtk, pLatch, i )
     {
-        fprintf( pFile, "Primary inputs (%d): ", Abc_NtkPiNum(pNtk) );    
-        Abc_NtkForEachPi( pNtk, pObj, i )
-            fprintf( pFile, " %s", pNtk->vNamesPi->pArray[i] );
-        fprintf( pFile, "\n" );   
-    
-        fprintf( pFile, "Primary outputs (%d):", Abc_NtkPoNum(pNtk) );    
-        Abc_NtkForEachPo( pNtk, pObj, i )
-            fprintf( pFile, " %s", pNtk->vNamesPo->pArray[i] );
-        fprintf( pFile, "\n" );    
-  
-        fprintf( pFile, "Latches (%d):  ", Abc_NtkLatchNum(pNtk) );  
-        Abc_NtkForEachLatch( pNtk, pLatch, i )
-            fprintf( pFile, " %s", pNtk->vNamesLatch->pArray[i] );
-        fprintf( pFile, "\n" );   
+        if ( pLatch->pData == (void *)0 )
+            Init0++;
+        else if ( pLatch->pData == (void *)1 )
+            Init1++;
+        else if ( pLatch->pData == (void *)2 )
+            Init2++;
+        else
+            assert( 0 );
+
+        if ( Abc_ObjFaninNum( Abc_ObjFanin0(pLatch) ) == 0 )
+        {
+            Counter0++;
+            if ( pLatch->pData == (void *)2 )
+                Counter1++;
+            else 
+            {
+                if ( Abc_NtkIsAig(pNtk) )
+                {
+                    if ( (pLatch->pData == (void *)1) ^ Abc_ObjFaninC0(pLatch) )
+                        Counter2++;
+                }
+                else
+                {
+                    if ( (pLatch->pData == (void *)1) ^ Abc_NodeIsConst0(pLatch) )
+                        Counter2++;
+                }
+            }
+        }
     }
+    fprintf( pFile, "Latches = %5d:  Init 0 = %5d. Init 1 = %5d. Init any = %5d.\n", Abc_NtkLatchNum(pNtk), Init0, Init1, Init2 );
+    fprintf( pFile, "Constant driver = %4d. Init any = %4d. Init match = %4d.\n", Counter0, Counter1, Counter2 );
+    fprintf( pFile, "The network has %d self-feeding latches.\n", Abc_NtkCountSelfFeedLatches(pNtk) );
 }
 
 /**Function*************************************************************
@@ -245,7 +293,7 @@ void Abc_NtkPrintFactor( FILE * pFile, Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
     int i;
-    assert( Abc_NtkIsNetlist(pNtk) || Abc_NtkIsLogicSop(pNtk) );
+    assert( Abc_NtkIsLogicSop(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
         Abc_NodePrintFactor( pFile, pNode );
 }
@@ -264,7 +312,7 @@ void Abc_NtkPrintFactor( FILE * pFile, Abc_Ntk_t * pNtk )
 void Abc_NodePrintFactor( FILE * pFile, Abc_Obj_t * pNode )
 {
     Vec_Int_t * vFactor;
-    if ( Abc_ObjIsPo(pNode) )
+    if ( Abc_ObjIsCo(pNode) )
         pNode = Abc_ObjFanin0(pNode);
     if ( Abc_ObjIsPi(pNode) )
     {

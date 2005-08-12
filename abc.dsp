@@ -301,6 +301,10 @@ SOURCE=.\src\base\io\ioReadVerilog.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\io\ioUtil.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\io\ioWriteBench.c
 # End Source File
 # Begin Source File
@@ -309,15 +313,7 @@ SOURCE=.\src\base\io\ioWriteBlif.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\io\ioWriteBlifLogic.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\base\io\ioWriteCnf.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\io\ioWriteGate.c
 # End Source File
 # Begin Source File
 

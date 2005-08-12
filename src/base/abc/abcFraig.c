@@ -250,7 +250,7 @@ Abc_Ntk_t * Abc_NtkFraigTrust( Abc_Ntk_t * pNtk )
     int fCheck = 1;
     Abc_Ntk_t * pNtkNew;
 
-    if ( !Abc_NtkIsNetlist(pNtk) && !Abc_NtkIsLogicSop(pNtk) )
+    if ( !Abc_NtkIsLogicSop(pNtk) )
     {
         printf( "Abc_NtkFraigTrust: Trust mode works for netlists and logic SOP networks.\n" );
         return NULL;

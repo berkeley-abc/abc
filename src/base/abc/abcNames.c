@@ -73,122 +73,6 @@ char * Abc_NtkRegisterNamePlus( Abc_Ntk_t * pNtk, char * pName, char * pSuffix )
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the hash table of node names.]
-
-  Description [Creates the hash table of names into nodes for the given
-  type of nodes. Additionally, sets the node copy pointers to the names.
-  Returns NULL if name duplication is detected.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-stmm_table * Abc_NtkLogicHashNames( Abc_Ntk_t * pNtk, int Type, int fComb )
-{
-    stmm_table * tNames;
-    int i, Limit;
-    tNames = stmm_init_table( strcmp, stmm_strhash );
-    if ( Type == 0 ) // PI
-    {
-        Limit = fComb? Abc_NtkCiNum(pNtk) : Abc_NtkPiNum(pNtk);
-        for ( i = 0; i < Limit; i++ )
-        {
-            if ( stmm_insert( tNames, Abc_NtkNameCi(pNtk,i), (char *)Abc_NtkCi(pNtk,i) ) )
-            {
-                printf( "Error: The name is already in the table...\n" );
-                return NULL;
-            }
-            Abc_NtkCi(pNtk,i)->pCopy = (Abc_Obj_t *)Abc_NtkNameCi(pNtk,i);
-        }
-    }
-    else if ( Type == 1 ) // PO
-    {
-        Limit = fComb? Abc_NtkCoNum(pNtk) : Abc_NtkPoNum(pNtk);
-        for ( i = 0; i < Limit; i++ )
-        {
-            if ( stmm_insert( tNames, Abc_NtkNameCo(pNtk,i), (char *)Abc_NtkCo(pNtk,i) ) )
-            {
-                printf( "Error: The name is already in the table...\n" );
-                return NULL;
-            }
-            Abc_NtkCo(pNtk,i)->pCopy = (Abc_Obj_t *)Abc_NtkNameCo(pNtk,i);
-        }
-    }
-    else if ( Type == 2 ) // latch
-    {
-        for ( i = 0; i < Abc_NtkLatchNum(pNtk); i++ )
-        {
-            if ( stmm_insert( tNames, Abc_NtkNameLatch(pNtk,i), (char *)Abc_NtkLatch(pNtk,i) ) )
-            {
-                printf( "Error: The name is already in the table...\n" );
-                return NULL;
-            }
-            Abc_NtkLatch(pNtk,i)->pCopy = (Abc_Obj_t *)Abc_NtkNameLatch(pNtk,i);
-        }
-    }
-    return tNames;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Transfers the names to the node copy pointers.]
-
-  Description [This procedure is used for writing networks into a file.
-  Assumes that the latch input names are created from latch names using
-  suffix "_in".]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkLogicTransferNames( Abc_Ntk_t * pNtk )
-{
-    Abc_Obj_t * pNode, * pDriver, * pFanoutNamed;
-    int i;
-    // transfer the PI/PO/latch names
-    Abc_NtkForEachPi( pNtk, pNode, i )
-        pNode->pCopy = (Abc_Obj_t *)Abc_NtkNamePi(pNtk,i);
-    Abc_NtkForEachPo( pNtk, pNode, i )
-        pNode->pCopy = (Abc_Obj_t *)Abc_NtkNamePo(pNtk,i);
-    Abc_NtkForEachLatch( pNtk, pNode, i )
-        pNode->pCopy = (Abc_Obj_t *)Abc_NtkNameLatch(pNtk,i);
-    Abc_NtkForEachNode( pNtk, pNode, i )
-        pNode->pCopy = NULL;
-    // additionally, transfer the names to the CO drivers if they have unique COs
-    Abc_NtkForEachPo( pNtk, pNode, i )
-    {
-        pDriver = Abc_ObjFanin0(pNode);
-        // skip the drivers already having names
-        if ( pDriver->pCopy )
-            continue;
-        // get the named fanout
-        pFanoutNamed = Abc_NodeHasUniqueNamedFanout( pDriver );
-        if ( pFanoutNamed == NULL || pFanoutNamed != pNode )
-            continue;
-        // assign the name;
-        assert( pNode == pFanoutNamed );
-        pDriver->pCopy = pFanoutNamed->pCopy;
-    }
-    Abc_NtkForEachLatch( pNtk, pNode, i )
-    {
-        pDriver = Abc_ObjFanin0(pNode);
-        // skip the drivers already having names
-        if ( pDriver->pCopy )
-            continue;
-        // get the named fanout
-        pFanoutNamed = Abc_NodeHasUniqueNamedFanout( pDriver );
-        if ( pFanoutNamed == NULL || pFanoutNamed != pNode )
-            continue;
-        // assign the name;
-        assert( pNode == Abc_NtkLatch(pNtk,i) );
-        pDriver->pCopy = (Abc_Obj_t *)Abc_NtkRegisterName( pNtk, Abc_NtkNameLatchInput(pNtk,i) );
-    }
-}
-
-/**Function*************************************************************
-
   Synopsis    [Gets the long name of the node.]
 
   Description [This name is the output net's name.]
@@ -198,10 +82,35 @@ void Abc_NtkLogicTransferNames( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_NtkNameLatchInput( Abc_Ntk_t * pNtk, int i )
+char * Abc_ObjName( Abc_Obj_t * pObj )
 {
     static char Buffer[500];
-    sprintf( Buffer, "%s_in", Abc_NtkNameLatch(pNtk, i) );
+    char * pName;
+
+    // check if the object is in the lookup table
+    if ( stmm_lookup( pObj->pNtk->tObj2Name, (char *)pObj, &pName ) )
+        return pName;
+
+    // consider network types
+    if ( Abc_NtkIsNetlist(pObj->pNtk) )
+    {
+        // in a netlist, nets have names, nodes have no names
+        if ( Abc_ObjIsNode(pObj) )
+            pObj = Abc_ObjFanout0(pObj);
+        assert( Abc_ObjIsNet(pObj) );
+        // if the name is not given, invent it
+        if ( pObj->pData )
+            sprintf( Buffer, "%s", pObj->pData );
+        else
+            sprintf( Buffer, "[%d]", pObj->Id ); // make sure this name is unique!!!
+    }
+    else
+    {
+        // in a logic network, PI/PO/latch names are stored in the hash table
+        // internal nodes have made up names
+        assert( Abc_ObjIsNode(pObj) );
+        sprintf( Buffer, "[%d]", pObj->Id );
+    }
     return Buffer;
 }
 
@@ -216,31 +125,10 @@ char * Abc_NtkNameLatchInput( Abc_Ntk_t * pNtk, int i )
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_ObjName( Abc_Obj_t * pObj )
+char * Abc_ObjNameSuffix( Abc_Obj_t * pObj, char * pSuffix )
 {
     static char Buffer[500];
-    assert( !Abc_NtkIsSeq(pObj->pNtk) );
-    // consider network types
-    if ( Abc_NtkIsNetlist(pObj->pNtk) )
-    {
-        // in a netlist, nets have names, nodes have no names
-        assert( Abc_ObjIsNet(pObj) );
-        // if the name is not given, invent it
-        if ( pObj->pData )
-            sprintf( Buffer, "%s", pObj->pData );
-        else
-            sprintf( Buffer, "[%d]", pObj->Id ); // make sure this name is unique!!!
-    }
-    else
-    {
-        // in a logic network, PIs/POs/latches have names, internal nodes have no names
-        // (exception: an internal node borrows name from its unique non-complemented CO fanout)
-        assert( !Abc_ObjIsNet(pObj) );
-        if ( pObj->pCopy )
-            sprintf( Buffer, "%s", (char *)pObj->pCopy );
-        else
-            sprintf( Buffer, "[%d]", pObj->Id );
-    }
+    sprintf( Buffer, "%s%s", Abc_ObjName(pObj), pSuffix );
     return Buffer;
 }
 
@@ -277,32 +165,25 @@ char * Abc_ObjNameUnique( Abc_Ntk_t * pNtk, char * pName )
 
   Synopsis    [Adds new name to the network.]
 
-  Description []
+  Description [The new object (pObjNew) is a PI, PO or latch. The name
+  is registered and added to the hash table.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_NtkLogicStoreName( Abc_Obj_t * pNodeNew, char * pNameOld )
+char * Abc_NtkLogicStoreName( Abc_Obj_t * pObjNew, char * pNameOld )
 {
     char * pNewName;
-    assert( !Abc_ObjIsComplement(pNodeNew) );
+    assert( Abc_ObjIsCio(pObjNew) );
     // get the new name
-    pNewName = Abc_NtkRegisterName( pNodeNew->pNtk, pNameOld );
-    // add the name
-    if ( Abc_ObjIsPi(pNodeNew) )
-        Vec_PtrPush( pNodeNew->pNtk->vNamesPi, pNewName );
-    else if ( Abc_ObjIsPo(pNodeNew) )
-        Vec_PtrPush( pNodeNew->pNtk->vNamesPo, pNewName );
-    else if ( Abc_ObjIsLatch(pNodeNew) )
+    pNewName = Abc_NtkRegisterName( pObjNew->pNtk, pNameOld );
+    // add the name to the table
+    if ( stmm_insert( pObjNew->pNtk->tObj2Name, (char *)pObjNew, pNewName ) )
     {
-        Vec_PtrPush( pNodeNew->pNtk->vNamesLatch, pNewName );
-        Vec_PtrPush( pNodeNew->pNtk->vNamesPi, pNewName );
-        Vec_PtrPush( pNodeNew->pNtk->vNamesPo, pNewName );
+        assert( 0 ); // the object is added for the second time
     }
-    else
-        assert( 0 );
     return pNewName;
 }
 
@@ -317,26 +198,18 @@ char * Abc_NtkLogicStoreName( Abc_Obj_t * pNodeNew, char * pNameOld )
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_NtkLogicStoreNamePlus( Abc_Obj_t * pNodeNew, char * pNameOld, char * pSuffix )
+char * Abc_NtkLogicStoreNamePlus( Abc_Obj_t * pObjNew, char * pNameOld, char * pSuffix )
 {
     char * pNewName;
-    assert( !Abc_ObjIsComplement(pNodeNew) );
     assert( pSuffix );
+    assert( Abc_ObjIsCio(pObjNew) );
     // get the new name
-    pNewName = Abc_NtkRegisterNamePlus( pNodeNew->pNtk, pNameOld, pSuffix );
-    // add the name
-    if ( Abc_ObjIsPi(pNodeNew) )
-        Vec_PtrPush( pNodeNew->pNtk->vNamesPi, pNewName );
-    else if ( Abc_ObjIsPo(pNodeNew) )
-        Vec_PtrPush( pNodeNew->pNtk->vNamesPo, pNewName );
-    else if ( Abc_ObjIsLatch(pNodeNew) )
+    pNewName = Abc_NtkRegisterNamePlus( pObjNew->pNtk, pNameOld, pSuffix );
+    // add the name to the table
+    if ( stmm_insert( pObjNew->pNtk->tObj2Name, (char *)pObjNew, pNewName ) )
     {
-        Vec_PtrPush( pNodeNew->pNtk->vNamesLatch, pNewName );
-        Vec_PtrPush( pNodeNew->pNtk->vNamesPi, pNewName );
-        Vec_PtrPush( pNodeNew->pNtk->vNamesPo, pNewName );
+        assert( 0 ); // the object is added for the second time
     }
-    else
-        assert( 0 );
     return pNewName;
 }
 
@@ -351,22 +224,18 @@ char * Abc_NtkLogicStoreNamePlus( Abc_Obj_t * pNodeNew, char * pNameOld, char * 
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkCreateNameArrays( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
+void Abc_NtkCreateCioNamesTable( Abc_Ntk_t * pNtk )
 {
-    Abc_Obj_t * pNet, * pLatch;
+    Abc_Obj_t * pObj;
     int i;
     assert( Abc_NtkIsNetlist(pNtk) );
-    assert( !Abc_NtkIsNetlist(pNtkNew) );
-    assert( Abc_NtkPiNum(pNtk) == Abc_NtkPiNum(pNtkNew) );
-    assert( Abc_NtkPoNum(pNtk) == Abc_NtkPoNum(pNtkNew) );
-    assert( Abc_NtkLatchNum(pNtk) == Abc_NtkLatchNum(pNtkNew) );
-    assert( st_count(pNtkNew->tName2Net) == 0 );
-    Abc_NtkForEachPi( pNtk, pNet, i )
-        Abc_NtkLogicStoreName( pNtkNew->vPis->pArray[i], pNet->pData );
-    Abc_NtkForEachPo( pNtk, pNet, i )
-        Abc_NtkLogicStoreName( pNtkNew->vPos->pArray[i], pNet->pData );
-    Abc_NtkForEachLatch( pNtk, pLatch, i )
-        Abc_NtkLogicStoreName( pNtkNew->vLatches->pArray[i], Abc_ObjFanout0(pLatch)->pData );
+    assert( st_count(pNtk->tObj2Name) == 0 );
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        Abc_NtkLogicStoreName( pObj, Abc_ObjFanout0(pObj)->pData );
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        Abc_NtkLogicStoreName( pObj, Abc_ObjFanin0(pObj)->pData );
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+        Abc_NtkLogicStoreName( pObj, Abc_ObjFanout0(pObj)->pData );
 }
 
 /**Function*************************************************************
@@ -380,23 +249,22 @@ void Abc_NtkCreateNameArrays( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkDupNameArrays( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
+void Abc_NtkDupCioNamesTable( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
 {
-    Abc_Obj_t * pObj, * pLatch;
+    Abc_Obj_t * pObj;
     int i;
-    assert( !Abc_NtkIsNetlist(pNtk) );
-    assert( !Abc_NtkIsNetlist(pNtkNew) );
     assert( Abc_NtkPiNum(pNtk) == Abc_NtkPiNum(pNtkNew) );
     assert( Abc_NtkPoNum(pNtk) == Abc_NtkPoNum(pNtkNew) );
     assert( Abc_NtkLatchNum(pNtk) == Abc_NtkLatchNum(pNtkNew) );
-    assert( st_count(pNtkNew->tName2Net) == 0 );
+    assert( st_count(pNtk->tObj2Name) > 0 );
+    assert( st_count(pNtkNew->tObj2Name) == 0 );
     // copy the CI/CO names if given
     Abc_NtkForEachPi( pNtk, pObj, i )
-        Abc_NtkLogicStoreName( pNtkNew->vPis->pArray[i], pNtk->vNamesPi->pArray[i] );
-    Abc_NtkForEachPo( pNtk, pObj, i )
-        Abc_NtkLogicStoreName( pNtkNew->vPos->pArray[i], pNtk->vNamesPo->pArray[i] );
-    Abc_NtkForEachLatch( pNtk, pLatch, i )
-        Abc_NtkLogicStoreName( pNtkNew->vLatches->pArray[i], pNtk->vNamesLatch->pArray[i] );
+        Abc_NtkLogicStoreName( Abc_NtkPi(pNtkNew,i),    Abc_ObjName(pObj) );
+    Abc_NtkForEachPo( pNtk, pObj, i ) 
+        Abc_NtkLogicStoreName( Abc_NtkPo(pNtkNew,i),    Abc_ObjName(pObj) );
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+        Abc_NtkLogicStoreName( Abc_NtkLatch(pNtkNew,i), Abc_ObjName(pObj) );
 }
 
 ////////////////////////////////////////////////////////////////////////

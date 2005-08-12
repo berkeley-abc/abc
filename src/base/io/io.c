@@ -32,7 +32,6 @@ static int IoCommandReadVerilog ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadPla     ( Abc_Frame_t * pAbc, int argc, char **argv );
 
 static int IoCommandWriteBlif   ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int IoCommandWriteGate   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteBench  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteCnf    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWritePla    ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -61,7 +60,6 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "read_pla",      IoCommandReadPla,      1 );
 
     Cmd_CommandAdd( pAbc, "I/O", "write_blif",    IoCommandWriteBlif,    0 );
-    Cmd_CommandAdd( pAbc, "I/O", "write_gate",    IoCommandWriteGate,    0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_bench",   IoCommandWriteBench,   0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_cnf",     IoCommandWriteCnf,     0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_pla",     IoCommandWritePla,     0 );
@@ -214,7 +212,7 @@ int IoCommandReadBlif( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    pNtk = Abc_NtkLogic( pTemp = pNtk );
+    pNtk = Abc_NtkNetlistToLogic( pTemp = pNtk );
     Abc_NtkDelete( pTemp );
     if ( pNtk == NULL )
     {
@@ -294,7 +292,7 @@ int IoCommandReadBench( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    pNtk = Abc_NtkLogic( pTemp = pNtk );
+    pNtk = Abc_NtkNetlistToLogic( pTemp = pNtk );
     Abc_NtkDelete( pTemp );
     if ( pNtk == NULL )
     {
@@ -374,7 +372,7 @@ int IoCommandReadVerilog( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    pNtk = Abc_NtkLogic( pTemp = pNtk );
+    pNtk = Abc_NtkNetlistToLogic( pTemp = pNtk );
     Abc_NtkDelete( pTemp );
     if ( pNtk == NULL )
     {
@@ -454,7 +452,7 @@ int IoCommandReadPla( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    pNtk = Abc_NtkLogic( pTemp = pNtk );
+    pNtk = Abc_NtkNetlistToLogic( pTemp = pNtk );
     Abc_NtkDelete( pTemp );
     if ( pNtk == NULL )
     {
@@ -488,8 +486,8 @@ usage:
 ***********************************************************************/
 int IoCommandWriteBlif( Abc_Frame_t * pAbc, int argc, char **argv )
 {
+    Abc_Ntk_t * pNtk;
     char * FileName;
-    int fMadeComb;
     int fWriteLatches;
     int c;
 
@@ -509,7 +507,8 @@ int IoCommandWriteBlif( Abc_Frame_t * pAbc, int argc, char **argv )
         }
     }
 
-    if ( pAbc->pNtkCur == NULL )
+    pNtk = pAbc->pNtkCur;
+    if ( pNtk == NULL )
     {
         fprintf( pAbc->Out, "Empty network.\n" );
         return 0;
@@ -519,38 +518,15 @@ int IoCommandWriteBlif( Abc_Frame_t * pAbc, int argc, char **argv )
     {
         goto usage;
     }
-
-    if ( Abc_NtkIsLogicMap(pAbc->pNtkCur) )
-    {
-        fprintf( pAbc->Out, "Use \"write_gate\" or unmap the network (\"unmap\").\n" );
-        return 1;
-    }
-
-    // get the input file name
     FileName = argv[util_optind];
-    // write the file
-    if ( Abc_NtkIsNetlist(pAbc->pNtkCur) )
+
+    // check the network type
+    if ( !Abc_NtkIsLogic(pNtk) && !Abc_NtkIsAig(pNtk) )
     {
-        if ( !fWriteLatches )
-            fMadeComb = Abc_NtkMakeComb( pAbc->pNtkCur );
-        Io_WriteBlif( pAbc->pNtkCur, FileName );
-        if ( !fWriteLatches && fMadeComb )
-            Abc_NtkMakeSeq( pAbc->pNtkCur );
+        fprintf( pAbc->Out, "Currently can only write logic networks and AIGs.\n" );
+        return 0;
     }
-    else if ( Abc_NtkIsLogicSop(pAbc->pNtkCur) || Abc_NtkIsAig(pAbc->pNtkCur) )
-    {
-        Io_WriteBlifLogic( pAbc->pNtkCur, FileName, fWriteLatches );
-    }
-    else if ( Abc_NtkIsLogicBdd(pAbc->pNtkCur) )
-    {
-//        printf( "Converting node functions from BDD to SOP.\n" );
-        Abc_NtkBddToSop(pAbc->pNtkCur);
-        Io_WriteBlifLogic( pAbc->pNtkCur, FileName, fWriteLatches );
-    }
-    else
-    {
-        assert( 0 );
-    }
+    Io_WriteBlifLogic( pNtk, FileName, fWriteLatches );
     return 0;
 
 usage:
@@ -573,14 +549,13 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int IoCommandWriteGate( Abc_Frame_t * pAbc, int argc, char **argv )
+int IoCommandWriteBench( Abc_Frame_t * pAbc, int argc, char **argv )
 {
-    Abc_Ntk_t * pNtk;
+    Abc_Ntk_t * pNtk, * pNtkTemp;
     char * FileName;
     int fWriteLatches;
     int c;
 
-    pNtk = pAbc->pNtkCur;
     fWriteLatches = 1;
     util_getopt_reset();
     while ( ( c = util_getopt( argc, argv, "lh" ) ) != EOF )
@@ -597,84 +572,19 @@ int IoCommandWriteGate( Abc_Frame_t * pAbc, int argc, char **argv )
         }
     }
 
+    pNtk = pAbc->pNtkCur;
     if ( pNtk == NULL )
     {
         fprintf( pAbc->Out, "Empty network.\n" );
         return 0;
     }
 
-    if ( !Abc_NtkIsLogicMap(pNtk) )
-    {
-        fprintf( pAbc->Out, "The network is not mapped.\n" );
-        return 0;
-    }
-/*
-    if ( Abc_NtkLatchNum(pNtk) > 0 )
-    {
-        fprintf( pAbc->Out, "The network has latches.\n" );
-        return 0;
-    }
-*/
     if ( argc != util_optind + 1 )
     {
         goto usage;
     }
-
     // get the input file name
     FileName = argv[util_optind];
-    // write the file
-    Io_WriteGate( pNtk, FileName );
-    return 0;
-
-usage:
-    fprintf( pAbc->Err, "usage: write_gate [-h] <file>\n" );
-    fprintf( pAbc->Err, "\t         write the network into a mapped BLIF file (.gate ...)\n" );
-//    fprintf( pAbc->Err, "\t-l     : toggle writing latches [default = %s]\n", fWriteLatches? "yes":"no" );
-    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
-    fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int IoCommandWriteBench( Abc_Frame_t * pAbc, int argc, char **argv )
-{
-    Abc_Ntk_t * pNtk;
-    char * FileName;
-    int fWriteLatches;
-    int c;
-
-    pNtk = pAbc->pNtkCur;
-    fWriteLatches = 1;
-    util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "lh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-            case 'l':
-                fWriteLatches ^= 1;
-                break;
-            case 'h':
-                goto usage;
-            default:
-                goto usage;
-        }
-    }
-
-    if ( pNtk == NULL )
-    {
-        fprintf( pAbc->Out, "Empty network.\n" );
-        return 0;
-    }
 
     if ( !Abc_NtkIsAig(pNtk) )
     {
@@ -682,15 +592,15 @@ int IoCommandWriteBench( Abc_Frame_t * pAbc, int argc, char **argv )
         return 0;
     }
 
-    if ( argc != util_optind + 1 )
+    // derive the netlist
+    pNtkTemp = Abc_NtkLogicToNetlistBench(pNtk);
+    if ( pNtkTemp == NULL )
     {
-        goto usage;
+        fprintf( pAbc->Out, "Writing BENCH has failed.\n" );
+        return 0;
     }
-
-    // get the input file name
-    FileName = argv[util_optind];
-    // write the file
-    Io_WriteBench( pNtk, FileName );
+    Io_WriteBench( pNtkTemp, FileName );
+    Abc_NtkDelete( pNtkTemp );
     return 0;
 
 usage:
@@ -772,6 +682,7 @@ usage:
 ***********************************************************************/
 int IoCommandWritePla( Abc_Frame_t * pAbc, int argc, char **argv )
 {
+    Abc_Ntk_t * pNtk, * pNtkTemp;
     char * FileName;
     int c;
 
@@ -787,15 +698,22 @@ int IoCommandWritePla( Abc_Frame_t * pAbc, int argc, char **argv )
         }
     }
 
-    if ( pAbc->pNtkCur == NULL )
+    pNtk = pAbc->pNtkCur;
+    if ( pNtk == NULL )
     {
         fprintf( pAbc->Out, "Empty network.\n" );
         return 0;
     }
 
-    if ( Abc_NtkGetLevelNum(pAbc->pNtkCur) > 1 )
+    if ( Abc_NtkGetLevelNum(pNtk) > 1 )
     {
         fprintf( pAbc->Out, "PLA writing is available for collapsed networks.\n" );
+        return 0;
+    }
+
+    if ( Abc_NtkLatchNum(pNtk) > 0 )
+    {
+        fprintf( pAbc->Out, "Latches are writed at PI/PO pairs in the PLA file.\n" );
         return 0;
     }
 
@@ -803,15 +721,18 @@ int IoCommandWritePla( Abc_Frame_t * pAbc, int argc, char **argv )
     {
         goto usage;
     }
-
     // get the input file name
     FileName = argv[util_optind];
-    // write the file
-    if ( !Io_WritePla( pAbc->pNtkCur, FileName ) )
+
+    // derive the netlist
+    pNtkTemp = Abc_NtkLogicToNetlist(pNtk);
+    if ( pNtkTemp == NULL )
     {
-        printf( "Writing PLA has failed.\n" );
-        return 1;
+        fprintf( pAbc->Out, "Writing PLA has failed.\n" );
+        return 0;
     }
+    Io_WritePla( pNtkTemp, FileName );
+    Abc_NtkDelete( pNtkTemp );
     return 0;
 
 usage:

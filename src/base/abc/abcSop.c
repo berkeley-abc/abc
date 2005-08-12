@@ -72,21 +72,197 @@ char * Abc_SopRegister( Extra_MmFlex_t * pMan, char * pName )
 ***********************************************************************/
 char * Abc_SopStart( Extra_MmFlex_t * pMan, int nCubes, int nVars )
 {
-    char * pSopCover;
-    char * pCube;
-    int i, v;
-    pSopCover = Extra_MmFlexEntryFetch( pMan, nCubes * (nVars + 3) + 1 );
+    char * pSopCover, * pCube;
+    int i, Length;
+
+    Length = nCubes * (nVars + 3);
+    pSopCover = Extra_MmFlexEntryFetch( pMan, Length + 1 );
+    memset( pSopCover, '-', Length );
+    pSopCover[Length] = 0;
+
     for ( i = 0; i < nCubes; i++ )
     {
         pCube = pSopCover + i * (nVars + 3);
-        for ( v = 0; v < nVars; v++ )
-            pCube[v] = '-';
         pCube[nVars + 0] = ' ';
         pCube[nVars + 1] = '1';
         pCube[nVars + 2] = '\n';
     }
-    pSopCover[nCubes * (nVars + 3)] = 0;
     return pSopCover;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Starts the constant 1 cover with the given number of variables and cubes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_SopCreateAnd2( Extra_MmFlex_t * pMan, int fCompl0, int fCompl1 )
+{
+    char Buffer[6];
+    Buffer[0] = '1' - fCompl0;
+    Buffer[1] = '1' - fCompl1;
+    Buffer[2] = ' ';
+    Buffer[3] = '1';
+    Buffer[4] = '\n';
+    Buffer[5] = 0;
+    return Abc_SopRegister( pMan, Buffer );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Starts the constant 1 cover with the given number of variables and cubes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_SopCreateAnd( Extra_MmFlex_t * pMan, int nVars )
+{
+    char * pSop;
+    int i;
+    pSop = Abc_SopStart( pMan, 1, nVars );
+    for ( i = 0; i < nVars; i++ )
+        pSop[i] = '1';
+    return pSop;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Starts the constant 1 cover with the given number of variables and cubes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_SopCreateNand( Extra_MmFlex_t * pMan, int nVars )
+{
+    char * pSop;
+    int i;
+    pSop = Abc_SopStart( pMan, 1, nVars );
+    for ( i = 0; i < nVars; i++ )
+        pSop[i] = '1';
+    pSop[nVars + 1] = '0';
+    return pSop;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Starts the constant 1 cover with the given number of variables and cubes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_SopCreateOr( Extra_MmFlex_t * pMan, int nVars, int * pfCompl )
+{
+    char * pSop;
+    int i;
+    pSop = Abc_SopStart( pMan, 1, nVars );
+    for ( i = 0; i < nVars; i++ )
+        pSop[i] = '0' + (pfCompl? pfCompl[i] : 0);
+    pSop[nVars + 1] = '0';
+    return pSop;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Starts the constant 1 cover with the given number of variables and cubes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_SopCreateNor( Extra_MmFlex_t * pMan, int nVars )
+{
+    char * pSop;
+    int i;
+    pSop = Abc_SopStart( pMan, 1, nVars );
+    for ( i = 0; i < nVars; i++ )
+        pSop[i] = '0';
+    return pSop;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Starts the constant 1 cover with the given number of variables and cubes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_SopCreateXor( Extra_MmFlex_t * pMan, int nVars )
+{
+    assert( nVars == 2 );
+    return Abc_SopRegister(pMan, "01 1\n10 1\n");
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Starts the constant 1 cover with the given number of variables and cubes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_SopCreateNxor( Extra_MmFlex_t * pMan, int nVars )
+{
+    assert( nVars == 2 );
+    return Abc_SopRegister(pMan, "11 1\n11 1\n");
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Starts the constant 1 cover with the given number of variables and cubes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_SopCreateInv( Extra_MmFlex_t * pMan )
+{
+    return Abc_SopRegister(pMan, "0 1\n");
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Starts the constant 1 cover with the given number of variables and cubes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_SopCreateBuf( Extra_MmFlex_t * pMan )
+{
+    return Abc_SopRegister(pMan, "1 1\n");
 }
 
 

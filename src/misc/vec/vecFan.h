@@ -39,9 +39,8 @@
 typedef struct Abc_Fan_t_       Abc_Fan_t;
 struct Abc_Fan_t_ // 1 word
 {
-    unsigned         iFan    : 21;  // the ID of the object
-    unsigned         nLats   :  3;  // the number of latches (up to 7)
-    unsigned         Inits   :  7;  // the initial values of the latches
+    unsigned         iFan    : 26;  // the ID of the object
+    unsigned         nLats   :  5;  // the number of latches (up to 31)
     unsigned         fCompl  :  1;  // the complemented attribute
 };
 

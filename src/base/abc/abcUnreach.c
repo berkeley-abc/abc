@@ -285,7 +285,7 @@ Abc_Ntk_t * Abc_NtkConstructExdc( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bUn
     pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC_BDD );
     // create PIs corresponding to LOs
     Abc_NtkForEachLatch( pNtk, pNode, i )
-        pNode->pCopy = Abc_NtkCreateTermPi(pNtkNew);
+        pNode->pCopy = Abc_NtkCreatePi(pNtkNew);
 
     // create a new node
     pNodeNew = Abc_NtkCreateNode(pNtkNew);
@@ -306,15 +306,15 @@ Abc_Ntk_t * Abc_NtkConstructExdc( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bUn
 
     // make the new node drive all the COs
     Abc_NtkForEachCo( pNtk, pNode, i )
-        Abc_ObjAddFanin( Abc_NtkCreateTermPo(pNtkNew), pNodeNew );
+        Abc_ObjAddFanin( Abc_NtkCreatePo(pNtkNew), pNodeNew );
 
     // copy the CI/CO names
     Abc_NtkForEachLatch( pNtk, pNode, i )
-        Abc_NtkLogicStoreName( pNtkNew->vPis->pArray[i], Abc_NtkNameLatch(pNtk, i) );
+        Abc_NtkLogicStoreName( Abc_NtkPi(pNtkNew,i), Abc_ObjName(pNode) );
     Abc_NtkForEachPo( pNtk, pNode, i )
-        Abc_NtkLogicStoreName( pNtkNew->vPos->pArray[i], Abc_NtkNamePo(pNtk, i) );
+        Abc_NtkLogicStoreName( Abc_NtkPo(pNtkNew,i), Abc_ObjName(pNode) );
     Abc_NtkForEachLatch( pNtk, pNode, i )
-        Abc_NtkLogicStoreName( pNtkNew->vPos->pArray[Abc_NtkPoNum(pNtk) + i], Abc_NtkNameLatchInput(pNtk, i) );
+        Abc_NtkLogicStoreName( Abc_NtkCo(pNtkNew,Abc_NtkPoNum(pNtk) + i), Abc_ObjName(pNode) );
 
     // transform the network to the SOP representation
     Abc_NtkBddToSop( pNtkNew );

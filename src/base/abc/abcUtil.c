@@ -72,7 +72,7 @@ int Abc_NtkGetCubeNum( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
     int i, nCubes = 0;
-    assert( Abc_NtkIsNetlist(pNtk) || Abc_NtkIsLogicSop(pNtk) );
+    assert( Abc_NtkIsSop(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         assert( pNode->pData );
@@ -96,7 +96,7 @@ int Abc_NtkGetLitNum( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
     int i, nLits = 0;
-    assert( Abc_NtkIsNetlist(pNtk) || Abc_NtkIsLogicSop(pNtk) );
+    assert( Abc_NtkIsSop(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         assert( pNode->pData );
@@ -121,7 +121,7 @@ int Abc_NtkGetLitFactNum( Abc_Ntk_t * pNtk )
     Vec_Int_t * vFactor;
     Abc_Obj_t * pNode;
     int nNodes, i;
-    assert( Abc_NtkIsNetlist(pNtk) || Abc_NtkIsLogicSop(pNtk) );
+    assert( Abc_NtkIsSop(pNtk) );
     nNodes = 0;
 //    Ft_FactorStartMan();
     Abc_NtkForEachNode( pNtk, pNode, i )
@@ -281,120 +281,138 @@ void Abc_NtkCleanCopy( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_NodeHasUniqueNamedFanout( Abc_Obj_t * pNode )
+Abc_Obj_t * Abc_NodeHasUniqueCoFanout( Abc_Obj_t * pNode )
 {
-    Abc_Obj_t * pFanout, * pFanoutNamed;
+    Abc_Obj_t * pFanout, * pFanoutCo;
     int i, Counter;
     if ( !Abc_ObjIsNode(pNode) )
         return NULL;
     Counter = 0;
     Abc_ObjForEachFanout( pNode, pFanout, i )
     {
-        if ( (Abc_ObjIsPo(pFanout) || Abc_ObjIsLatch(pFanout)) && !Abc_ObjFaninC0(pFanout) )
+        if ( Abc_ObjIsCo(pFanout) && !Abc_ObjFaninC0(pFanout) )
         {
             assert( Abc_ObjFaninNum(pFanout) == 1 );
             assert( Abc_ObjFanin0(pFanout) == pNode );
-            pFanoutNamed = pFanout;
+            pFanoutCo = pFanout;
             Counter++;
         }
     }
     if ( Counter == 1 )
-        return pFanoutNamed;
+        return pFanoutCo;
     return NULL;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Returns 1 if the PO names can be written directly.]
+  Synopsis    [Returns 1 if COs of a logic network are simple.]
 
-  Description [This is true if the POs of the logic network are
-  not complemented and not duplicated. This condition has to be
-  specifically enforced after mapping, to make sure additional 
-  INVs/BUFs are not written into the file.]
+  Description [The COs of a logic network are simple under three conditions:
+  (1) The edge from CO to its driver is not complemented.
+  (2) No two COs share the same driver. 
+  (3) The driver is not a CI unless the CI and the CO have the same name 
+  (and so the inv/buf should not be written into a file).]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_NtkLogicHasSimplePos( Abc_Ntk_t * pNtk )
+bool Abc_NtkLogicHasSimpleCos( Abc_Ntk_t * pNtk )
 {
-    Abc_Obj_t * pNode;
+    Abc_Obj_t * pNode, * pDriver;
     int i;
     assert( !Abc_NtkIsNetlist(pNtk) );
     // check if there are complemented or idential POs
     Abc_NtkIncrementTravId( pNtk );
-    Abc_NtkForEachPo( pNtk, pNode, i ) 
+    Abc_NtkForEachCo( pNtk, pNode, i ) 
     {
-        pNode = Abc_ObjChild0(pNode);
-        if ( Abc_ObjIsComplement(pNode) )
+        pDriver = Abc_ObjFanin0(pNode);
+        if ( Abc_ObjFaninC0(pNode) )
             return 0;
-        if ( Abc_NodeIsTravIdCurrent(pNode) )
+        if ( Abc_NodeIsTravIdCurrent(pDriver) )
             return 0;
-        Abc_NodeSetTravIdCurrent(pNode);
+        if ( Abc_ObjIsCi(pDriver) && strcmp( Abc_ObjName(pDriver), Abc_ObjName(pNode) ) != 0 )
+            return 0;
+        Abc_NodeSetTravIdCurrent(pDriver);
     }
     return 1;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Transforms the network to have simple POs.]
+  Synopsis    [Transforms the network to have simple COs.]
 
-  Description [The POs are simple if the POs of the logic network are
-  not complemented and not duplicated. This condition has to be
-  specifically enforced after FPGA mapping, to make sure additional 
-  INVs/BUFs are not written into the file.]
+  Description [The COs of a logic network are simple under three conditions:
+  (1) The edge from the CO to its driver is not complemented.
+  (2) No two COs share the same driver. 
+  (3) The driver is not a CI unless the CI and the CO have the same name 
+  (and so the inv/buf should not be written into a file).
+  In some cases, such as FPGA mapping, we prevent the increase in delay
+  by duplicating the driver nodes, rather than adding invs/bufs.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkLogicMakeSimplePos( Abc_Ntk_t * pNtk )
+int Abc_NtkLogicMakeSimpleCos( Abc_Ntk_t * pNtk, bool fDuplicate )
 {
-    Abc_Obj_t * pNode, * pDriver, * pDriverDup, * pFanin;
+    Abc_Obj_t * pNode, * pDriver, * pDriverNew, * pFanin;
     int i, k, nDupGates = 0;
     assert( Abc_NtkIsLogic(pNtk) );
-    // if a PO driver has more than one fanout, duplicate it
+    // process the COs by adding inverters and buffers when necessary
     Abc_NtkForEachCo( pNtk, pNode, i ) 
     {
         pDriver = Abc_ObjFanin0(pNode);
-        if ( Abc_ObjFanoutNum(pDriver) == 1 )
-            continue;
-        // do not modify CI
-        if ( !Abc_ObjIsNode(pDriver) )
-            continue;
-        pDriverDup = Abc_NtkDupObj( pNtk, pDriver ); 
-        Abc_ObjForEachFanin( pDriver, pFanin, k )
-            Abc_ObjAddFanin( pDriverDup, pFanin );
+        if ( Abc_ObjIsCi(pDriver) )
+        {
+            // skip the case when the CI deriver has the same name as CO
+            if ( strcmp(Abc_ObjName(pDriver), Abc_ObjName(pNode)) == 0 )
+                continue;
+        }
+        else
+        {
+            // skip the case when the driver's unique CO fanout is this CO
+            if ( Abc_NodeHasUniqueCoFanout(pDriver) == pNode )
+                continue;
+        }
+        if ( fDuplicate && !Abc_ObjIsCi(pDriver) )
+        {
+            pDriverNew = Abc_NtkDupObj( pNtk, pDriver ); 
+            Abc_ObjForEachFanin( pDriver, pFanin, k )
+                Abc_ObjAddFanin( pDriverNew, pFanin );
+            if ( Abc_ObjFaninC0(pNode) )
+            {
+                // change polarity of the duplicated driver
+                if ( Abc_NtkIsLogicSop(pNtk) )
+                    Abc_SopComplement( pDriverNew->pData );
+                else if ( Abc_NtkIsLogicBdd(pNtk) )
+                    pDriverNew->pData = Cudd_Not( pDriverNew->pData );
+                else
+                    assert( 0 );
+                Abc_ObjXorFaninC(pNode, 0);
+            }
+        }
+        else
+        {
+            // add inverters and buffers when necessary
+            if ( Abc_ObjFaninC0(pNode) )
+            {
+                pDriverNew = Abc_NodeCreateInv( pNtk, pDriver );
+                Abc_ObjXorFaninC( pNode, 0 );
+            }
+            else
+                pDriverNew = Abc_NodeCreateBuf( pNtk, pDriver );        
+        }
         // update the fanin of the PO node
-        Abc_ObjPatchFanin( pNode, pDriver, pDriverDup );
-        assert( Abc_ObjFanoutNum(pDriverDup) == 1 );
+        Abc_ObjPatchFanin( pNode, pDriver, pDriverNew );
+        assert( Abc_ObjFanoutNum(pDriverNew) == 1 );
         nDupGates++;
     }
-    // if a PO comes complemented change the drivers function
-    Abc_NtkForEachCo( pNtk, pNode, i ) 
-    {
-        pDriver = Abc_ObjFanin0(pNode);
-        if ( !Abc_ObjFaninC0(pNode) )
-            continue;
-        // do not modify PIs and LOs
-        if ( !Abc_ObjIsNode(pDriver) )
-            continue;
-        // the driver is complemented - change polarity
-        if ( Abc_NtkIsLogicSop(pNtk) )
-            Abc_SopComplement( pDriver->pData );
-        else if ( Abc_NtkIsLogicBdd(pNtk) )
-            pDriver->pData = Cudd_Not( pDriver->pData );
-        else
-            assert( 0 );
-        // update the complemented edge of the fanin
-        Abc_ObjXorFaninC(pNode, 0);
-        assert( !Abc_ObjFaninC0(pNode) );
-    }
+    assert( Abc_NtkLogicHasSimpleCos(pNtk) );
     return nDupGates;
 }
-
 
 /**Function*************************************************************
 
@@ -444,7 +462,7 @@ bool Abc_NodeIsMuxType( Abc_Obj_t * pNode )
     // check that the node is regular
     assert( !Abc_ObjIsComplement(pNode) );
     // if the node is not AND, this is not MUX
-    if ( !Abc_NodeIsAnd(pNode) )
+    if ( !Abc_NodeIsAigAnd(pNode) )
         return 0;
     // if the children are not complemented, this is not MUX
     if ( !Abc_ObjFaninC0(pNode) || !Abc_ObjFaninC1(pNode) )
@@ -576,7 +594,7 @@ int Abc_NtkCountChoiceNodes( Abc_Ntk_t * pNtk )
         return 0;
     Counter = 0;
     Abc_NtkForEachNode( pNtk, pNode, i )
-        Counter += Abc_NodeIsChoice( pNode );
+        Counter += Abc_NodeIsAigChoice( pNode );
     return Counter;
 }
 
@@ -816,6 +834,37 @@ void Abc_NodeFreeFaninNames( Vec_Ptr_t * vNames )
     for ( i = 0; i < vNames->nSize; i++ )
         free( vNames->pArray[i] );
     Vec_PtrFree( vNames );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects the CI or CO names.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char ** Abc_NtkCollectCioNames( Abc_Ntk_t * pNtk, int fCollectCos )
+{
+    Abc_Obj_t * pObj;
+    char ** ppNames;
+    int i;
+    if ( fCollectCos )
+    {
+        ppNames = ALLOC( char *, Abc_NtkCoNum(pNtk) );
+        Abc_NtkForEachCo( pNtk, pObj, i )
+            ppNames[i] = Abc_ObjName(pObj);
+    }
+    else
+    {
+        ppNames = ALLOC( char *, Abc_NtkCiNum(pNtk) );
+        Abc_NtkForEachCi( pNtk, pObj, i )
+            ppNames[i] = Abc_ObjName(pObj);
+    }
+    return ppNames;
 }
 
 

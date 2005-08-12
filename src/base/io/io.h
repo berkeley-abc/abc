@@ -53,18 +53,22 @@ extern Abc_Ntk_t *        Io_ReadBlif( char * pFileName, int fCheck );
 extern Abc_Ntk_t *        Io_ReadBench( char * pFileName, int fCheck );
 /*=== abcReadVerilog.c ==========================================================*/
 extern Abc_Ntk_t *        Io_ReadVerilog( char * pFileName, int fCheck );
-extern void               Io_ReadSetNonDrivenNets( Abc_Ntk_t * pNet );
 /*=== abcReadPla.c ==========================================================*/
 extern Abc_Ntk_t *        Io_ReadPla( char * pFileName, int fCheck );
+/*=== abcUtil.c ==========================================================*/
+extern Abc_Obj_t *        Io_ReadCreatePi( Abc_Ntk_t * pNtk, char * pName );
+extern Abc_Obj_t *        Io_ReadCreatePo( Abc_Ntk_t * pNtk, char * pName );
+extern Abc_Obj_t *        Io_ReadCreateLatch( Abc_Ntk_t * pNtk, char * pNetLI, char * pNetLO );
+extern Abc_Obj_t *        Io_ReadCreateNode( Abc_Ntk_t * pNtk, char * pNameOut, char * pNamesIn[], int nInputs );
+extern Abc_Obj_t *        Io_ReadCreateConst( Abc_Ntk_t * pNtk, char * pName, bool fConst1 );
+extern Abc_Obj_t *        Io_ReadCreateInv( Abc_Ntk_t * pNtk, char * pNameIn, char * pNameOut );
+extern Abc_Obj_t *        Io_ReadCreateBuf( Abc_Ntk_t * pNtk, char * pNameIn, char * pNameOut );
 /*=== abcWriteBlif.c ==========================================================*/
-extern void               Io_WriteBlif( Abc_Ntk_t * pNtk, char * pFileName );
-extern void               Io_WriteTimingInfo( FILE * pFile, Abc_Ntk_t * pNtk );
-/*=== abcWriteBlifLogic.c ==========================================================*/
+extern void               Io_WriteBlif( Abc_Ntk_t * pNtk, char * pFileName, int fWriteLatches );
 extern void               Io_WriteBlifLogic( Abc_Ntk_t * pNtk, char * pFileName, int fWriteLatches );
+extern void               Io_WriteTimingInfo( FILE * pFile, Abc_Ntk_t * pNtk );
 /*=== abcWriteBench.c ==========================================================*/
 extern int                Io_WriteBench( Abc_Ntk_t * pNtk, char * FileName );
-/*=== abcWriteGate.c ==========================================================*/
-extern int                Io_WriteGate( Abc_Ntk_t * pNtk, char * FileName );
 /*=== abcWriteCnf.c ==========================================================*/
 extern int                Io_WriteCnf( Abc_Ntk_t * pNtk, char * FileName );
 /*=== abcWritePla.c ==========================================================*/

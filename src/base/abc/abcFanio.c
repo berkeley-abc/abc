@@ -45,10 +45,10 @@ void Abc_ObjAddFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFanin )
     assert( !Abc_ObjIsComplement(pObj) );
     assert( pObj->pNtk == pFaninR->pNtk );
     assert( pObj->Id >= 0 && pFaninR->Id >= 0 );
-    assert( pObj->Id    < (1<<21)-1 );  // created but forgot to add it to the network?
-    assert( pFaninR->Id < (1<<21)-1 );  // created but forgot to add it to the network?
+    assert( pObj->Id    < (1<<26)-1 );  // created but forgot to add it to the network?
+    assert( pFaninR->Id < (1<<26)-1 );  // created but forgot to add it to the network?
     Vec_FanPush( pObj->pNtk->pMmStep, &pObj->vFanins,     Vec_Int2Fan(pFaninR->Id) );
-    Vec_FanPush( pObj->pNtk->pMmStep, &pFaninR->vFanouts, Vec_Int2Fan(pObj->Id)   );
+    Vec_FanPush( pObj->pNtk->pMmStep, &pFaninR->vFanouts, Vec_Int2Fan(pObj->Id)    );
     if ( Abc_ObjIsComplement(pFanin) )
         Abc_ObjSetFaninC( pObj, Abc_ObjFaninNum(pObj)-1 );
 }
@@ -71,8 +71,8 @@ void Abc_ObjDeleteFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFanin )
     assert( !Abc_ObjIsComplement(pFanin) );
     assert( pObj->pNtk == pFanin->pNtk );
     assert( pObj->Id >= 0 && pFanin->Id >= 0 );
-    assert( pObj->Id   < (1<<21)-1 );  // created but forgot to add it to the network?
-    assert( pFanin->Id < (1<<21)-1 );  // created but forgot to add it to the network?
+    assert( pObj->Id   < (1<<26)-1 );  // created but forgot to add it to the network?
+    assert( pFanin->Id < (1<<26)-1 );  // created but forgot to add it to the network?
     if ( !Vec_FanDeleteEntry( &pObj->vFanins, pFanin->Id ) )
     {
         printf( "The obj %d is not found among the fanins of obj %d ...\n", pFanin->Id, pObj->Id );

@@ -108,11 +108,11 @@ Fpga_Man_t * Abc_NtkToFpga( Abc_Ntk_t * pNtk, int fRecovery, int fVerbose )
     assert( Abc_NtkIsAig(pNtk) );
 
     // start the mapping manager and set its parameters
-    pMan = Fpga_ManCreate( Abc_NtkPiNum(pNtk) + Abc_NtkLatchNum(pNtk), Abc_NtkPoNum(pNtk) + Abc_NtkLatchNum(pNtk), fVerbose );
+    pMan = Fpga_ManCreate( Abc_NtkCiNum(pNtk), Abc_NtkCoNum(pNtk), fVerbose );
     if ( pMan == NULL )
         return NULL;
     Fpga_ManSetAreaRecovery( pMan, fRecovery );
-    Fpga_ManSetOutputNames( pMan, (char **)pNtk->vNamesPo->pArray );
+    Fpga_ManSetOutputNames( pMan, Abc_NtkCollectCioNames(pNtk, 1) );
     Fpga_ManSetInputArrivals( pMan, Abc_NtkGetCiArrivalFloats(pNtk) );
 
     // create PIs and remember them in the old nodes
@@ -141,7 +141,7 @@ Fpga_Man_t * Abc_NtkToFpga( Abc_Ntk_t * pNtk, int fRecovery, int fVerbose )
         // remember the node
         pNode->pCopy = (Abc_Obj_t *)pNodeFpga;
         // set up the choice node
-        if ( Abc_NodeIsChoice( pNode ) )
+        if ( Abc_NodeIsAigChoice( pNode ) )
             for ( pPrev = pNode, pFanin = pNode->pData; pFanin; pPrev = pFanin, pFanin = pFanin->pData )
             {
                 Fpga_NodeSetNextE( (Fpga_Node_t *)pPrev->pCopy, (Fpga_Node_t *)pFanin->pCopy );
@@ -197,7 +197,7 @@ Abc_Ntk_t * Abc_NtkFromFpga( Fpga_Man_t * pMan, Abc_Ntk_t * pNtk )
     // finalize the new network
     Abc_NtkFinalize( pNtk, pNtkNew );
     // decouple the PO driver nodes to reduce the number of levels
-    nDupGates = Abc_NtkLogicMakeSimplePos( pNtkNew );
+    nDupGates = Abc_NtkLogicMakeSimpleCos( pNtkNew, 1 );
     if ( nDupGates && Fpga_ManReadVerbose(pMan) )
         printf( "Duplicated %d gates to decouple the PO drivers.\n", nDupGates );
     return pNtkNew;

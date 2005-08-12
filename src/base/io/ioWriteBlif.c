@@ -19,14 +19,17 @@
 ***********************************************************************/
 
 #include "io.h"
+#include "main.h"
+#include "mio.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static void Io_NtkWriteOne( FILE * pFile, Abc_Ntk_t * pNtk );
-static void Io_NtkWritePis( FILE * pFile, Abc_Ntk_t * pNtk );
-static void Io_NtkWritePos( FILE * pFile, Abc_Ntk_t * pNtk );
+static void Io_NtkWriteOne( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches );
+static void Io_NtkWritePis( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches );
+static void Io_NtkWritePos( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches );
+static void Io_NtkWriteNodeGate( FILE * pFile, Abc_Obj_t * pNode );
 static void Io_NtkWriteNodeFanins( FILE * pFile, Abc_Obj_t * pNode );
 static void Io_NtkWriteNode( FILE * pFile, Abc_Obj_t * pNode );
 static void Io_NtkWriteLatch( FILE * pFile, Abc_Obj_t * pLatch );
@@ -46,7 +49,32 @@ static void Io_NtkWriteLatch( FILE * pFile, Abc_Obj_t * pLatch );
   SeeAlso     []
 
 ***********************************************************************/
-void Io_WriteBlif( Abc_Ntk_t * pNtk, char * FileName )
+void Io_WriteBlifLogic( Abc_Ntk_t * pNtk, char * FileName, int fWriteLatches )
+{
+    Abc_Ntk_t * pNtkTemp;
+    // derive the netlist
+    pNtkTemp = Abc_NtkLogicToNetlist(pNtk);
+    if ( pNtkTemp == NULL )
+    {
+        fprintf( stdout, "Writing BLIF has failed.\n" );
+        return;
+    }
+    Io_WriteBlif( pNtkTemp, FileName, fWriteLatches );
+    Abc_NtkDelete( pNtkTemp );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Write the network into a BLIF file with the given name.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Io_WriteBlif( Abc_Ntk_t * pNtk, char * FileName, int fWriteLatches )
 {
     Abc_Ntk_t * pExdc;
     FILE * pFile;
@@ -60,14 +88,14 @@ void Io_WriteBlif( Abc_Ntk_t * pNtk, char * FileName )
     // write the model name
     fprintf( pFile, ".model %s\n", Abc_NtkName(pNtk) );
     // write the network
-    Io_NtkWriteOne( pFile, pNtk );
+    Io_NtkWriteOne( pFile, pNtk, fWriteLatches );
     // write EXDC network if it exists
     pExdc = Abc_NtkExdc( pNtk );
     if ( pExdc )
     {
         fprintf( pFile, "\n" );
         fprintf( pFile, ".exdc\n" );
-        Io_NtkWriteOne( pFile, pExdc );
+        Io_NtkWriteOne( pFile, pExdc, fWriteLatches );
     }
     // finalize the file
     fprintf( pFile, ".end\n" );
@@ -88,7 +116,7 @@ void Io_WriteBlif( Abc_Ntk_t * pNtk, char * FileName )
   SeeAlso     []
 
 ***********************************************************************/
-void Io_NtkWriteOne( FILE * pFile, Abc_Ntk_t * pNtk )
+void Io_NtkWriteOne( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches )
 {
     ProgressBar * pProgress;
     Abc_Obj_t * pNode, * pLatch;
@@ -96,19 +124,19 @@ void Io_NtkWriteOne( FILE * pFile, Abc_Ntk_t * pNtk )
 
     // write the PIs
     fprintf( pFile, ".inputs" );
-    Io_NtkWritePis( pFile, pNtk );
+    Io_NtkWritePis( pFile, pNtk, fWriteLatches );
     fprintf( pFile, "\n" );
 
     // write the POs
     fprintf( pFile, ".outputs" );
-    Io_NtkWritePos( pFile, pNtk );
+    Io_NtkWritePos( pFile, pNtk, fWriteLatches );
     fprintf( pFile, "\n" );
 
     // write the timing info
     Io_WriteTimingInfo( pFile, pNtk );
 
     // write the latches
-    if ( !Abc_NtkIsComb(pNtk) )
+    if ( fWriteLatches && !Abc_NtkIsComb(pNtk) )
     {
         fprintf( pFile, "\n" );
         Abc_NtkForEachLatch( pNtk, pLatch, i )
@@ -138,9 +166,9 @@ void Io_NtkWriteOne( FILE * pFile, Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Io_NtkWritePis( FILE * pFile, Abc_Ntk_t * pNtk )
+void Io_NtkWritePis( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches )
 {
-    Abc_Obj_t * pNet;
+    Abc_Obj_t * pTerm, * pNet;
     int LineLength;
     int AddedLength;
     int NameCounter;
@@ -148,20 +176,44 @@ void Io_NtkWritePis( FILE * pFile, Abc_Ntk_t * pNtk )
 
     LineLength  = 7;
     NameCounter = 0;
-    Abc_NtkForEachPi( pNtk, pNet, i )
+
+    if ( fWriteLatches )
     {
-        // get the line length after this name is written
-        AddedLength = strlen(Abc_ObjName(pNet)) + 1;
-        if ( NameCounter && LineLength + AddedLength + 3 > IO_WRITE_LINE_LENGTH )
-        { // write the line extender
-            fprintf( pFile, " \\\n" );
-            // reset the line length
-            LineLength  = 0;
-            NameCounter = 0;
+        Abc_NtkForEachPi( pNtk, pTerm, i )
+        {
+            pNet = Abc_ObjFanout0(pTerm);
+            // get the line length after this name is written
+            AddedLength = strlen(Abc_ObjName(pNet)) + 1;
+            if ( NameCounter && LineLength + AddedLength + 3 > IO_WRITE_LINE_LENGTH )
+            { // write the line extender
+                fprintf( pFile, " \\\n" );
+                // reset the line length
+                LineLength  = 0;
+                NameCounter = 0;
+            }
+            fprintf( pFile, " %s", Abc_ObjName(pNet) );
+            LineLength += AddedLength;
+            NameCounter++;
         }
-        fprintf( pFile, " %s", Abc_ObjName(pNet) );
-        LineLength += AddedLength;
-        NameCounter++;
+    }
+    else
+    {
+        Abc_NtkForEachCi( pNtk, pTerm, i )
+        {
+            pNet = Abc_ObjFanout0(pTerm);
+            // get the line length after this name is written
+            AddedLength = strlen(Abc_ObjName(pNet)) + 1;
+            if ( NameCounter && LineLength + AddedLength + 3 > IO_WRITE_LINE_LENGTH )
+            { // write the line extender
+                fprintf( pFile, " \\\n" );
+                // reset the line length
+                LineLength  = 0;
+                NameCounter = 0;
+            }
+            fprintf( pFile, " %s", Abc_ObjName(pNet) );
+            LineLength += AddedLength;
+            NameCounter++;
+        }
     }
 }
 
@@ -176,9 +228,9 @@ void Io_NtkWritePis( FILE * pFile, Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Io_NtkWritePos( FILE * pFile, Abc_Ntk_t * pNtk )
+void Io_NtkWritePos( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches )
 {
-    Abc_Obj_t * pNet;
+    Abc_Obj_t * pTerm, * pNet;
     int LineLength;
     int AddedLength;
     int NameCounter;
@@ -186,20 +238,44 @@ void Io_NtkWritePos( FILE * pFile, Abc_Ntk_t * pNtk )
 
     LineLength  = 8;
     NameCounter = 0;
-    Abc_NtkForEachPo( pNtk, pNet, i )
+
+    if ( fWriteLatches )
     {
-        // get the line length after this name is written
-        AddedLength = strlen(Abc_ObjName(pNet)) + 1;
-        if ( NameCounter && LineLength + AddedLength + 3 > IO_WRITE_LINE_LENGTH )
-        { // write the line extender
-            fprintf( pFile, " \\\n" );
-            // reset the line length
-            LineLength  = 0;
-            NameCounter = 0;
+        Abc_NtkForEachPo( pNtk, pTerm, i )
+        {
+            pNet = Abc_ObjFanin0(pTerm);
+            // get the line length after this name is written
+            AddedLength = strlen(Abc_ObjName(pNet)) + 1;
+            if ( NameCounter && LineLength + AddedLength + 3 > IO_WRITE_LINE_LENGTH )
+            { // write the line extender
+                fprintf( pFile, " \\\n" );
+                // reset the line length
+                LineLength  = 0;
+                NameCounter = 0;
+            }
+            fprintf( pFile, " %s", Abc_ObjName(pNet) );
+            LineLength += AddedLength;
+            NameCounter++;
         }
-        fprintf( pFile, " %s", Abc_ObjName(pNet) );
-        LineLength += AddedLength;
-        NameCounter++;
+    }
+    else
+    {
+        Abc_NtkForEachCo( pNtk, pTerm, i )
+        {
+            pNet = Abc_ObjFanin0(pTerm);
+            // get the line length after this name is written
+            AddedLength = strlen(Abc_ObjName(pNet)) + 1;
+            if ( NameCounter && LineLength + AddedLength + 3 > IO_WRITE_LINE_LENGTH )
+            { // write the line extender
+                fprintf( pFile, " \\\n" );
+                // reset the line length
+                LineLength  = 0;
+                NameCounter = 0;
+            }
+            fprintf( pFile, " %s", Abc_ObjName(pNet) );
+            LineLength += AddedLength;
+            NameCounter++;
+        }
     }
 }
 
@@ -224,8 +300,8 @@ void Io_NtkWriteLatch( FILE * pFile, Abc_Obj_t * pLatch )
     Reset  = (int)Abc_ObjData( pLatch );
     // write the latch line
     fprintf( pFile, ".latch" );
-    fprintf( pFile, " %10s",      Abc_ObjName(pNetLi) );
-    fprintf( pFile, " %10s",      Abc_ObjName(pNetLo) );
+    fprintf( pFile, " %10s",    Abc_ObjName(pNetLi) );
+    fprintf( pFile, " %10s",    Abc_ObjName(pNetLo) );
     fprintf( pFile, "  %d\n",   Reset );
 }
 
@@ -243,12 +319,46 @@ void Io_NtkWriteLatch( FILE * pFile, Abc_Obj_t * pLatch )
 ***********************************************************************/
 void Io_NtkWriteNode( FILE * pFile, Abc_Obj_t * pNode )
 {
-    // write the .names line
-    fprintf( pFile, ".names" );
-    Io_NtkWriteNodeFanins( pFile, pNode );
-    fprintf( pFile, "\n" );
-    // write the cubes
-    fprintf( pFile, "%s", Abc_ObjData(pNode) );
+    if ( Abc_NtkIsNetlistMap(pNode->pNtk) )
+    {
+        // write the .gate line
+        fprintf( pFile, ".gate" );
+        Io_NtkWriteNodeGate( pFile, pNode );
+        fprintf( pFile, "\n" );
+    }
+    else
+    {
+        // write the .names line
+        fprintf( pFile, ".names" );
+        Io_NtkWriteNodeFanins( pFile, pNode );
+        fprintf( pFile, "\n" );
+        // write the cubes
+        fprintf( pFile, "%s", Abc_ObjData(pNode) );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Writes the primary input list.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Io_NtkWriteNodeGate( FILE * pFile, Abc_Obj_t * pNode )
+{
+    Mio_Gate_t * pGate = pNode->pData;
+    Mio_Pin_t * pGatePin;
+    int i;
+    // write the node
+    fprintf( pFile, " %s ", Mio_GateReadName(pGate) );
+    for ( pGatePin = Mio_GateReadPins(pGate), i = 0; pGatePin; pGatePin = Mio_PinReadNext(pGatePin), i++ )
+        fprintf( pFile, "%s=%s ", Mio_PinReadName(pGatePin), Abc_ObjName( Abc_ObjFanin(pNode,i) ) );
+    assert ( i == Abc_ObjFaninNum(pNode) );
+    fprintf( pFile, "%s=%s", Mio_GateReadOutName(pGate), Abc_ObjName(pNode) );
 }
 
 /**Function*************************************************************
@@ -332,7 +442,7 @@ void Io_WriteTimingInfo( FILE * pFile, Abc_Ntk_t * pNtk )
         pTime = Abc_NodeReadArrival(pNode);
         if ( pTime->Rise == pTimeDef->Rise && pTime->Fall == pTimeDef->Fall )
             continue;
-        fprintf( pFile, ".input_arrival %s %g %g\n", Abc_NtkNamePi(pNtk,i), pTime->Rise, pTime->Fall );
+        fprintf( pFile, ".input_arrival %s %g %g\n", Abc_ObjName(pNode), pTime->Rise, pTime->Fall );
     }
 }
 

@@ -255,12 +255,41 @@ Abc_Obj_t * Abc_AigMiter( Abc_Aig_t * pMan, Vec_Ptr_t * vPairs )
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_AigNodeIsUsedCompl( Abc_Obj_t * pNode )
+bool Abc_AigNodeHasComplFanoutEdge( Abc_Obj_t * pNode )
 {
     Abc_Obj_t * pFanout;
     int i, iFanin;
     Abc_ObjForEachFanout( pNode, pFanout, i )
     {
+        iFanin = Vec_FanFindEntry( &pFanout->vFanins, pNode->Id );
+        assert( iFanin >= 0 );
+        if ( Abc_ObjFaninC( pFanout, iFanin ) )
+            return 1;
+    }
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if the node has at least one complemented fanout.]
+
+  Description [A fanout is complemented if the fanout's fanin edge pointing
+  to the given node is complemented. Only the fanouts with current TravId
+  are counted.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+bool Abc_AigNodeHasComplFanoutEdgeTrav( Abc_Obj_t * pNode )
+{
+    Abc_Obj_t * pFanout;
+    int i, iFanin;
+    Abc_ObjForEachFanout( pNode, pFanout, i )
+    {
+        if ( !Abc_NodeIsTravIdCurrent(pFanout) )
+            continue;
         iFanin = Vec_FanFindEntry( &pFanout->vFanins, pNode->Id );
         assert( iFanin >= 0 );
         if ( Abc_ObjFaninC( pFanout, iFanin ) )

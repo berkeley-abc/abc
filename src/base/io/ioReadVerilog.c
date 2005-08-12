@@ -271,9 +271,15 @@ Abc_Ntk_t * Io_ReadVerNetwork( Io_ReadVer_t * p )
     pModelName = vTokens->pArray[1];
 
     // allocate the empty network
-    pNtk = Abc_NtkAlloc( ABC_NTK_NETLIST );
+    pNtk = Abc_NtkAlloc( ABC_NTK_NETLIST_SOP );
     pNtk->pName = util_strsav( pModelName );
     pNtk->pSpec = util_strsav( p->pFileName );
+
+    // create constant nodes and nets
+    Abc_NtkFindOrCreateNet( pNtk, "1'b0" );
+    Abc_NtkFindOrCreateNet( pNtk, "1'b1" );
+    Io_ReadCreateConst( pNtk, "1'b0", 0 );
+    Io_ReadCreateConst( pNtk, "1'b1", 1 );
 
     // read the inputs/outputs
     pProgress = Extra_ProgressBarStart( stdout, Extra_FileReaderGetFileSize(p->pReader) );
@@ -348,7 +354,7 @@ Abc_Ntk_t * Io_ReadVerNetwork( Io_ReadVer_t * p )
         for ( i = 0; i < p->vSkipped->nSize; i++ )
             free( p->vSkipped->pArray[i] );
     }
-    Io_ReadSetNonDrivenNets( pNtk );
+    Abc_NtkFinalizeRead( pNtk );
     return pNtk;
 }
 
@@ -365,48 +371,25 @@ Abc_Ntk_t * Io_ReadVerNetwork( Io_ReadVer_t * p )
 ***********************************************************************/
 bool Io_ReadVerNetworkAssign( Io_ReadVer_t * p, Abc_Ntk_t * pNtk, Vec_Ptr_t * vTokens )
 {
-    Abc_Obj_t * pNet, * pNode;
-
     assert( strcmp( vTokens->pArray[0], "assign" ) == 0 );
-
-    if ( strcmp( vTokens->pArray[3], "1'b0" ) != 0 && strcmp( vTokens->pArray[3], "1'b1" ) != 0 )
+    // make sure the driving variable exists
+    if ( !Abc_NtkFindNet( pNtk, vTokens->pArray[3] ) )
     {
-        // handle assignment to a variable
-        if ( vTokens->nSize == 4 && (pNet = Abc_NtkFindNet(pNtk, vTokens->pArray[3])) )
-        {
-            // allocate the buffer node
-            pNode = Abc_NtkCreateNode( pNtk );
-            Abc_ObjSetData( pNode, Abc_SopRegister(pNtk->pManFunc, "1 1\n") );
-            // add the fanin net
-            Abc_ObjAddFanin( pNode, pNet );
-            // add the fanout net
-            pNet = Abc_NtkFindNet(pNtk, vTokens->pArray[1]);
-            Abc_ObjAddFanin( pNet, pNode );
-            return 1;
-        }
-        // produce error in case of more complex assignment
         p->LineCur = Extra_FileReaderGetLineNumber( p->pReader, 0 );
-        sprintf( p->sError, "The assign operator is handled only for assignment to a variable and a constant." );
+        sprintf( p->sError, "Cannot find net \"%s\". The assign operator is handled only for assignment to a variable and a constant.", vTokens->pArray[3] );
         Io_ReadVerPrintErrorMessage( p );
         return 0;
     }
-    // allocate constant node
-    pNode = Abc_NtkCreateNode( pNtk );
-    // set the constant function
-    if ( ((char *)vTokens->pArray[3])[3] == '0' )
-        Abc_ObjSetData( pNode, Abc_SopRegister(pNtk->pManFunc, " 0\n") );
-    else
-        Abc_ObjSetData( pNode, Abc_SopRegister(pNtk->pManFunc, " 1\n") );
-    // set the fanout net
-    pNet = Abc_NtkFindNet( pNtk, vTokens->pArray[1] );
-    if ( pNet == NULL )
+    // make sure the driven variable exists
+    if ( !Abc_NtkFindNet( pNtk, vTokens->pArray[1] ) )
     {
-        p->LineCur = Extra_FileReaderGetLineNumber( p->pReader, 1 );
+        p->LineCur = Extra_FileReaderGetLineNumber( p->pReader, 0 );
         sprintf( p->sError, "Cannot find net \"%s\".", vTokens->pArray[1] );
         Io_ReadVerPrintErrorMessage( p );
         return 0;
     }
-    Abc_ObjAddFanin( pNet, pNode );
+    // create a buffer
+    Io_ReadCreateBuf( pNtk, vTokens->pArray[3], vTokens->pArray[1] );  
     return 1;
 }
 
@@ -423,8 +406,8 @@ bool Io_ReadVerNetworkAssign( Io_ReadVer_t * p, Abc_Ntk_t * pNtk, Vec_Ptr_t * vT
 ***********************************************************************/
 bool Io_ReadVerNetworkSignal( Io_ReadVer_t * p, Abc_Ntk_t * pNtk, Vec_Ptr_t * vTokens, int LineType )
 {
-    char Buffer[1000];
     Abc_Obj_t * pNet;
+    char Buffer[1000];
     char * pToken;
     int nSignals, k, Start, s;
     
@@ -455,25 +438,26 @@ bool Io_ReadVerNetworkSignal( Io_ReadVer_t * p, Abc_Ntk_t * pNtk, Vec_Ptr_t * vT
             for ( s = 0; s < nSignals; s++ )
             {
                 sprintf( Buffer, "%s[%d]", pToken, s );
-                pNet = Abc_NtkFindOrCreateNet( pNtk, Buffer );
                 if ( LineType == VER_INPUT || LineType == VER_INOUT )
-                    Abc_NtkMarkNetPi( pNet );
+                    Io_ReadCreatePi( pNtk, Buffer );
                 if ( LineType == VER_OUTPUT || LineType == VER_INOUT )
-                    Abc_NtkMarkNetPo( pNet );
+                    Io_ReadCreatePo( pNtk, Buffer );
+                if ( LineType != VER_INPUT && LineType != VER_OUTPUT && LineType != VER_INOUT )
+                    pNet = Abc_NtkFindOrCreateNet( pNtk, Buffer );
             }
         }
         else
         {
-            pNet = Abc_NtkFindOrCreateNet( pNtk, pToken );
             if ( LineType == VER_INPUT || LineType == VER_INOUT )
-                Abc_NtkMarkNetPi( pNet );
+                Io_ReadCreatePi( pNtk, pToken );
             if ( LineType == VER_OUTPUT || LineType == VER_INOUT )
-                Abc_NtkMarkNetPo( pNet );
+                Io_ReadCreatePo( pNtk, pToken );
+            if ( LineType != VER_INPUT && LineType != VER_OUTPUT && LineType != VER_INOUT )
+                pNet = Abc_NtkFindOrCreateNet( pNtk, pToken );
         }
     }
     return 1;
 }
-
 
 /**Function*************************************************************
 
@@ -488,17 +472,15 @@ bool Io_ReadVerNetworkSignal( Io_ReadVer_t * p, Abc_Ntk_t * pNtk, Vec_Ptr_t * vT
 ***********************************************************************/
 bool Io_ReadVerNetworkGateSimple( Io_ReadVer_t * p, Abc_Ntk_t * pNtk, Vec_Ptr_t * vTokens, int LineType )
 {
-    Abc_Obj_t * pNode, * pNet, * pNodeConst, * pNetConst;
+    Abc_Obj_t * pNet, * pNode;
     char * pToken;
     int nFanins, k;
 
     // create the node
     pNode = Abc_NtkCreateNode( pNtk );
-    // set the function
-    Abc_ObjSetData( pNode, Abc_SopRegister(pNtk->pManFunc, s_CadenceGates[LineType][3]) );
-    // skip the gate type and gate name
     // add the fanin nets
     nFanins = s_CadenceGates[LineType][1][0] - '0';
+    // skip the gate type and gate name
     for ( k = 2; k < vTokens->nSize - 1; k++ )
     {
         pToken = vTokens->pArray[k];
@@ -508,23 +490,6 @@ bool Io_ReadVerNetworkGateSimple( Io_ReadVer_t * p, Abc_Ntk_t * pNtk, Vec_Ptr_t 
         if ( pNet )
         {
             Abc_ObjAddFanin( pNode, pNet );
-            continue;
-        }
-        // handle the case of a constant
-        if ( strcmp( pToken, "1'b0" ) == 0 || strcmp( pToken, "1'b1" ) == 0 )
-        {
-            // create the net and link it to the node
-            pNetConst = Abc_NtkFindOrCreateNet( pNtk, pToken );
-            Abc_ObjAddFanin( pNode, pNetConst );
-            // allocate constant node
-            pNodeConst = Abc_NtkCreateNode( pNtk );
-            // set the constant function
-            if ( pToken[3] == '0' )
-                Abc_ObjSetData( pNodeConst, Abc_SopRegister(pNtk->pManFunc, " 0\n") );
-            else
-                Abc_ObjSetData( pNodeConst, Abc_SopRegister(pNtk->pManFunc, " 1\n") );
-            // add this node as the fanin of the constant net
-            Abc_ObjAddFanin( pNetConst, pNodeConst );
             continue;
         }
         p->LineCur = Extra_FileReaderGetLineNumber( p->pReader, 0 );
@@ -558,6 +523,8 @@ bool Io_ReadVerNetworkGateSimple( Io_ReadVer_t * p, Abc_Ntk_t * pNtk, Vec_Ptr_t 
         return 0;
     }
     Abc_ObjAddFanin( pNet, pNode );
+    // set the function
+    Abc_ObjSetData( pNode, Abc_SopRegister(pNtk->pManFunc, s_CadenceGates[LineType][3]) );
     return 1;
 }
 
@@ -580,9 +547,7 @@ bool Io_ReadVerNetworkGateComplex( Io_ReadVer_t * p, Abc_Ntk_t * pNtk, Vec_Ptr_t
 
     // create the nodes
     pNode1 = Abc_NtkCreateNode( pNtk );     
-    Abc_ObjSetData( pNode1, Abc_SopRegister(pNtk->pManFunc, s_CadenceGates[LineType][3]) );
     pNode2 = Abc_NtkCreateNode( pNtk );     
-    Abc_ObjSetData( pNode2, Abc_SopRegister(pNtk->pManFunc, s_CadenceGates[LineType][4]) );
     // skip the gate type and gate name
     // add the fanin nets
     nFanins = s_CadenceGates[LineType][1][0] - '0';
@@ -649,6 +614,8 @@ bool Io_ReadVerNetworkGateComplex( Io_ReadVer_t * p, Abc_Ntk_t * pNtk, Vec_Ptr_t
         return 0;
     }
     Abc_ObjAddFanin( pNet, pNode2 );
+    Abc_ObjSetData( pNode1, Abc_SopRegister(pNtk->pManFunc, s_CadenceGates[LineType][3]) );
+    Abc_ObjSetData( pNode2, Abc_SopRegister(pNtk->pManFunc, s_CadenceGates[LineType][4]) );
     return 1;
 }
 
@@ -665,7 +632,7 @@ bool Io_ReadVerNetworkGateComplex( Io_ReadVer_t * p, Abc_Ntk_t * pNtk, Vec_Ptr_t
 ***********************************************************************/
 bool Io_ReadVerNetworkLatch( Io_ReadVer_t * p, Abc_Ntk_t * pNtk, Vec_Ptr_t * vTokens )
 {
-    Abc_Obj_t * pLatch, * pNet, * pNode;
+    Abc_Obj_t * pLatch, * pNet;
     char * pToken, * pToken2, * pTokenRN, * pTokenSN, * pTokenSI, * pTokenSE, * pTokenD, * pTokenQ, * pTokenQN;
     int k, fRN1, fSN1;
 
@@ -717,59 +684,20 @@ bool Io_ReadVerNetworkLatch( Io_ReadVer_t * p, Abc_Ntk_t * pNtk, Vec_Ptr_t * vTo
         Io_ReadVerPrintErrorMessage( p );
         return 0;
     }
+    if ( Abc_NtkFindNet( pNtk, pTokenD ) == NULL )
+    {
+        p->LineCur = Extra_FileReaderGetLineNumber( p->pReader, 0 );
+        sprintf( p->sError, "Cannot find latch input net \"%s\".", pTokenD );
+        Io_ReadVerPrintErrorMessage( p );
+        return 0;
+    }
 
     // create the latch
-    pLatch = Abc_NtkCreateLatch( pNtk );
-    // create the LO (PI)
-    pNet = Abc_NtkFindOrCreateNet( pNtk, vTokens->pArray[1] );
-    Abc_ObjAddFanin( pNet, pLatch );
-    Abc_ObjSetSubtype( pNet, ABC_OBJ_SUBTYPE_LO );
-    // save the LI (PO)
-    pNet = Abc_NtkFindNet( pNtk, pTokenD );
-    if ( pNet == NULL )
-    {
-        // check the case if it is not a constant input
-        if ( strcmp( pTokenD, "1'b0" ) && strcmp( pTokenD, "1'b1" ) )
-        {
-            p->LineCur = Extra_FileReaderGetLineNumber( p->pReader, 0 );
-            sprintf( p->sError, "Cannot find latch input net \"%s\".", pTokenD );
-            Io_ReadVerPrintErrorMessage( p );
-            return 0;
-        }
-
-        // create the constant net
-        if ( strcmp( pTokenD, "1'b0" ) == 0 )
-            pNet = Abc_NtkFindOrCreateNet( pNtk, "Constant0" );
-        else
-            pNet = Abc_NtkFindOrCreateNet( pNtk, "Constant1" );
-
-        // drive it with the constant node
-        if ( Abc_ObjFaninNum( pNet ) == 0 )
-        {
-            // allocate constant node
-            pNode = Abc_NtkCreateNode( pNtk );
-            // set the constant function
-            if ( strcmp( pTokenD, "1'b0" ) == 0 )
-                Abc_ObjSetData( pNode, Abc_SopRegister(pNtk->pManFunc, " 0\n") );
-            else
-                Abc_ObjSetData( pNode, Abc_SopRegister(pNtk->pManFunc, " 1\n") );
-            // add the fanout net
-            Abc_ObjAddFanin( pNet, pNode );
-        }
-    }
-    Abc_ObjAddFanin( pLatch, pNet );
-    Abc_ObjSetSubtype( pNet, ABC_OBJ_SUBTYPE_LI );
+    pLatch = Io_ReadCreateLatch( pNtk, pTokenD, vTokens->pArray[1] );
 
     // create the buffer if Q signal is available
     if ( pTokenQ )
     {
-        // create the node
-        pNode = Abc_NtkCreateNode( pNtk);
-        // set the function
-        Abc_ObjSetData( pNode, Abc_SopRegister(pNtk->pManFunc, "1 1\n") );
-        // create fanin and fanout nets
-        pNet = Abc_NtkFindNet( pNtk, vTokens->pArray[1] );
-        Abc_ObjAddFanin( pNode, pNet );
         pNet = Abc_NtkFindNet( pNtk, pTokenQ );
         if ( pNet == NULL )
         {
@@ -778,17 +706,10 @@ bool Io_ReadVerNetworkLatch( Io_ReadVer_t * p, Abc_Ntk_t * pNtk, Vec_Ptr_t * vTo
             Io_ReadVerPrintErrorMessage( p );
             return 0;
         }
-        Abc_ObjAddFanin( pNet, pNode );
+        Io_ReadCreateBuf( pNtk, vTokens->pArray[1], pTokenQ );
     }
     if ( pTokenQN )
     {
-        // create the node
-        pNode = Abc_NtkCreateNode( pNtk );
-        // set the function
-        Abc_ObjSetData( pNode, Abc_SopRegister(pNtk->pManFunc, "0 1\n") );
-        // create fanin and fanout nets
-        pNet = Abc_NtkFindNet( pNtk, vTokens->pArray[1] );
-        Abc_ObjAddFanin( pNode, pNet );
         pNet = Abc_NtkFindNet( pNtk, pTokenQN );
         if ( pNet == NULL )
         {
@@ -797,7 +718,7 @@ bool Io_ReadVerNetworkLatch( Io_ReadVer_t * p, Abc_Ntk_t * pNtk, Vec_Ptr_t * vTo
             Io_ReadVerPrintErrorMessage( p );
             return 0;
         }
-        Abc_ObjAddFanin( pNet, pNode );
+        Io_ReadCreateInv( pNtk, vTokens->pArray[1], pTokenQN );
     }
 
     // set the initial value
@@ -823,62 +744,6 @@ bool Io_ReadVerNetworkLatch( Io_ReadVer_t * p, Abc_Ntk_t * pNtk, Vec_Ptr_t * vTo
     }
     return 1;
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Reads the verilog file.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Io_ReadSetNonDrivenNets( Abc_Ntk_t * pNtk )
-{ 
-    Vec_Ptr_t * vNets;
-    Abc_Obj_t * pNet, * pNode;
-    int i;
-
-    // check for non-driven nets
-    vNets = Vec_PtrAlloc( 100 );
-    Abc_NtkForEachNet( pNtk, pNet, i )
-    {
-        if ( !Abc_ObjIsPi(pNet) && Abc_ObjFaninNum(pNet) == 0 )
-        {
-            // add the constant 0 driver
-            pNode = Abc_NtkCreateNode( pNtk );
-            // set the constant function
-            Abc_ObjSetData( pNode, Abc_SopRegister(pNtk->pManFunc, " 0\n") );
-            // add the fanout net
-            Abc_ObjAddFanin( pNet, pNode );
-            // add the net to those for which the warning will be printed
-            Vec_PtrPush( vNets, pNet->pData );
-        }
-    }
-
-    // print the warning
-    if ( vNets->nSize > 0 )
-    {
-        printf( "The reader added constant-zero driver to %d non-driven nets:\n", vNets->nSize );
-        for ( i = 0; i < vNets->nSize; i++ )
-        {
-            if ( i == 0 )
-                printf( "%s", vNets->pArray[i] );
-            else if ( i == 1 )
-                printf( ", %s", vNets->pArray[i] );
-            else if ( i == 2 )
-            {
-                printf( ", %s, etc.", vNets->pArray[i] );
-                break;
-            }
-        }
-        printf( "\n" );
-    }
-    Vec_PtrFree( vNets );
-}
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

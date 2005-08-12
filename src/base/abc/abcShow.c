@@ -91,7 +91,6 @@ void Abc_NodePrintBdd( Abc_Obj_t * pNode )
         return;
     }
     // set the node names 
-    Abc_NtkLogicTransferNames( pNode->pNtk );
     vNamesIn = Abc_NodeGetFaninNames( pNode );
     pNameOut = Abc_ObjName(pNode);
     Cudd_DumpDot( pNode->pNtk->pManFunc, 1, (DdNode **)&pNode->pData, (char **)vNamesIn->pArray, &pNameOut, pFile );

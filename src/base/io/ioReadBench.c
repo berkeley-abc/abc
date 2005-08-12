@@ -82,17 +82,13 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
     ProgressBar * pProgress;
     Vec_Ptr_t * vTokens;
     Abc_Ntk_t * pNtk;
-    Abc_Obj_t * pNet, * pLatch, * pNode;
+    Abc_Obj_t * pNet, * pNode;
     Vec_Str_t * vString;
-    char * pType;
-    int SymbolIn, SymbolOut, i, iLine;
+    char * pType, ** ppNames;
+    int iLine, nNames;
     
     // allocate the empty network
-    pNtk = Abc_NtkAlloc( ABC_NTK_NETLIST );
-
-    // set the specs
-    pNtk->pName = util_strsav( Extra_FileReaderGetFileName(p) );
-    pNtk->pSpec = util_strsav( Extra_FileReaderGetFileName(p) );
+    pNtk = Abc_NtkStartRead( Extra_FileReaderGetFileName(p) );
 
     // go through the lines of the file
     vString = Vec_StrAlloc( 100 );
@@ -110,113 +106,59 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
 
         // get the type of the line
         if ( strncmp( vTokens->pArray[0], "INPUT", 5 ) == 0 )
-        {
-            pNet = Abc_NtkFindOrCreateNet( pNtk, vTokens->pArray[1] );
-            if ( Abc_ObjIsPi(pNet) )
-                printf( "Warning: PI net \"%s\" appears twice in the list.\n", vTokens->pArray[1] );
-            else
-                Abc_NtkMarkNetPi( pNet );
-        }
+            Io_ReadCreatePi( pNtk, vTokens->pArray[1] );
         else if ( strncmp( vTokens->pArray[0], "OUTPUT", 5 ) == 0 )
-        {
-            pNet = Abc_NtkFindOrCreateNet( pNtk, vTokens->pArray[1] );
-            if ( Abc_ObjIsPo(pNet) )
-                printf( "Warning: PO net \"%s\" appears twice in the list.\n", vTokens->pArray[1] );
-            else
-                Abc_NtkMarkNetPo( pNet );
-        }
+            Io_ReadCreatePo( pNtk, vTokens->pArray[1] );
         else 
         {
             // get the node name and the node type
             pType = vTokens->pArray[1];
             if ( strcmp(pType, "DFF") == 0 )
-            {
-                // create a new node and add it to the network
-                pLatch = Abc_NtkCreateLatch( pNtk );
-                // create the LO (PI)
-                pNet = Abc_NtkFindOrCreateNet( pNtk, vTokens->pArray[0] );
-                Abc_ObjAddFanin( pNet, pLatch );
-                Abc_ObjSetSubtype( pNet, ABC_OBJ_SUBTYPE_LO );
-                // save the LI (PO)
-                pNet = Abc_NtkFindOrCreateNet( pNtk, vTokens->pArray[2] );
-                Abc_ObjAddFanin( pLatch, pNet );
-                Abc_ObjSetSubtype( pNet, ABC_OBJ_SUBTYPE_LI );
-            }
+                Io_ReadCreateLatch( pNtk, vTokens->pArray[2], vTokens->pArray[0] );
             else
             {
                 // create a new node and add it to the network
-                pNode = Abc_NtkCreateNode( pNtk );
-                // get the input symbol to be inserted
-                if ( !strncmp(pType, "BUF", 3) || !strcmp(pType, "AND") || !strcmp(pType, "NAND") )
-                    SymbolIn = '1';
-                else if ( !strncmp(pType, "NOT", 3) || !strcmp(pType, "OR") || !strcmp(pType, "NOR") )
-                    SymbolIn = '0';
-                else if ( !strcmp(pType, "XOR") || !strcmp(pType, "NXOR") )
-                    SymbolIn = '*';
-                else
+                ppNames = (char **)vTokens->pArray + 2;
+                nNames  = vTokens->nSize - 2;
+                pNode = Io_ReadCreateNode( pNtk, vTokens->pArray[0], ppNames, nNames );
+                // assign the cover
+                if ( strcmp(pType, "AND") == 0 )
+                    Abc_ObjSetData( pNode, Abc_SopCreateAnd(pNtk->pManFunc, nNames) );
+                else if ( strcmp(pType, "OR") == 0 )
+                    Abc_ObjSetData( pNode, Abc_SopCreateOr(pNtk->pManFunc, nNames, NULL) );
+                else if ( strcmp(pType, "NAND") == 0 )
+                    Abc_ObjSetData( pNode, Abc_SopCreateNand(pNtk->pManFunc, nNames) );
+                else if ( strcmp(pType, "NOR") == 0 )
+                    Abc_ObjSetData( pNode, Abc_SopCreateNor(pNtk->pManFunc, nNames) );
+                else if ( strcmp(pType, "XOR") == 0 )
+                    Abc_ObjSetData( pNode, Abc_SopCreateXor(pNtk->pManFunc, nNames) );
+                else if ( strcmp(pType, "NXOR") == 0 )
+                    Abc_ObjSetData( pNode, Abc_SopCreateNxor(pNtk->pManFunc, nNames) );
+                else if ( strncmp(pType, "BUF", 3) == 0 )
+                    Abc_ObjSetData( pNode, Abc_SopCreateBuf(pNtk->pManFunc) );
+                else if ( strcmp(pType, "NOT") == 0 )
+                    Abc_ObjSetData( pNode, Abc_SopCreateInv(pNtk->pManFunc) );
+                else 
                 {
                     printf( "Cannot determine gate type \"%s\" in line %d.\n", pType, Extra_FileReaderGetLineNumber(p, 0) );
                     Abc_NtkDelete( pNtk );
                     return NULL;
                 }
-                // get the output symbol
-                if ( !strcmp(pType, "NAND") || !strcmp(pType, "OR") || !strcmp(pType, "NXOR") )
-                    SymbolOut = '0';
-                else
-                    SymbolOut = '1';
-
-                // add the fanout net
-                pNet = Abc_NtkFindOrCreateNet( pNtk, vTokens->pArray[0] );
-                Abc_ObjAddFanin( pNet, pNode );
-                // add the fanin nets
-                for ( i = 2; i < vTokens->nSize; i++ )
-                {
-                    pNet = Abc_NtkFindOrCreateNet( pNtk, vTokens->pArray[i] );
-                    Abc_ObjAddFanin( pNode, pNet );
-                }
-                if ( SymbolIn != '*' )
-                {
-                    // fill in the function
-                    Vec_StrFill( vString, vTokens->nSize - 2, (char)SymbolIn );
-                    Vec_StrPush( vString, ' ' );
-                    Vec_StrPush( vString, (char)SymbolOut );
-                    Vec_StrPush( vString, '\n' );
-                    Vec_StrPush( vString, '\0' );
-                    Abc_ObjSetData( pNode, Abc_SopRegister(pNtk->pManFunc, vString->pArray) );
-                }
-                else
-                { // write XOR/NXOR gates
-                    assert( i == 4 );
-                    if ( SymbolOut == '1' )
-                        Abc_ObjSetData( pNode, Abc_SopRegister(pNtk->pManFunc, "01 1\n10 1\n") );
-                    else
-                        Abc_ObjSetData( pNode, Abc_SopRegister(pNtk->pManFunc, "00 1\n11 1\n") );
-                }
             }
         }
     }
     Extra_ProgressBarStop( pProgress );
+    Vec_StrFree( vString );
+
     // check if constant have been added
     if ( pNet = Abc_NtkFindNet( pNtk, "vdd" ) )
-    {
-        // create the constant 1 node
-        pNode = Abc_NtkCreateNode( pNtk );
-        Abc_ObjAddFanin( pNet, pNode );
-        Abc_ObjSetData( pNode, Abc_SopRegister(pNtk->pManFunc, " 1\n") );
-    }
+        Io_ReadCreateConst( pNtk, "vdd", 1 );
     if ( pNet = Abc_NtkFindNet( pNtk, "gnd" ) )
-    {
-        // create the constant 1 node
-        pNode = Abc_NtkCreateNode( pNtk );
-        Abc_ObjAddFanin( pNet, pNode );
-        Abc_ObjSetData( pNode, Abc_SopRegister(pNtk->pManFunc, " 0\n") );
-    }
+        Io_ReadCreateConst( pNtk, "gnd", 0 );
 
-    Io_ReadSetNonDrivenNets( pNtk );
-    Vec_StrFree( vString );
+    Abc_NtkFinalizeRead( pNtk );
     return pNtk;
 }
-
 
 
 ////////////////////////////////////////////////////////////////////////

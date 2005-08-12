@@ -57,17 +57,15 @@ Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type )
     pNtk->Type        = Type;
     // start the object storage
     pNtk->vObjs       = Vec_PtrAlloc( 100 );
-    pNtk->vLatches    = Vec_PtrAlloc( 100 );
-    pNtk->vPis        = Vec_PtrAlloc( 100 );
-    pNtk->vPos        = Vec_PtrAlloc( 100 );
-    pNtk->vNamesPi    = Vec_PtrAlloc( 100 );
-    pNtk->vNamesPo    = Vec_PtrAlloc( 100 );
-    pNtk->vNamesLatch = Vec_PtrAlloc( 100 );
+    pNtk->vLats       = Vec_PtrAlloc( 100 );
+    pNtk->vCis        = Vec_PtrAlloc( 100 );
+    pNtk->vCos        = Vec_PtrAlloc( 100 );
     pNtk->vPtrTemp    = Vec_PtrAlloc( 100 );
     pNtk->vIntTemp    = Vec_IntAlloc( 100 );
     pNtk->vStrTemp    = Vec_StrAlloc( 100 );
     // start the hash table
     pNtk->tName2Net   = stmm_init_table(strcmp, stmm_strhash);
+    pNtk->tObj2Name   = stmm_init_table(stmm_ptrcmp, stmm_ptrhash);
     // start the memory managers
     pNtk->pMmNames    = Extra_MmFlexStart();
     pNtk->pMmObj      = Extra_MmFixedStart( sizeof(Abc_Obj_t) );
@@ -75,13 +73,15 @@ Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type )
     // get ready to assign the first Obj ID
     pNtk->nTravIds    = 1;
     // start the functionality manager
-    if ( Abc_NtkIsNetlist(pNtk) || Abc_NtkIsLogicSop(pNtk) )
+    if ( Abc_NtkIsSop(pNtk) )
         pNtk->pManFunc = Extra_MmFlexStart();
     else if ( Abc_NtkIsLogicBdd(pNtk) )
         pNtk->pManFunc = Cudd_Init( 20, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
     else if ( Abc_NtkIsAig(pNtk) )
         pNtk->pManFunc = Abc_AigAlloc( pNtk );
-    else if ( !Abc_NtkIsLogicMap(pNtk) )
+    else if ( Abc_NtkIsMapped(pNtk) )
+        pNtk->pManFunc = Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame());
+    else
         assert( 0 );
     return pNtk;
 }
@@ -104,7 +104,6 @@ Abc_Ntk_t * Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type )
     int i;
     if ( pNtk == NULL )
         return NULL;
-    assert( Type != ABC_NTK_NETLIST );
     // start the network
     pNtkNew = Abc_NtkAlloc( Type );
     // duplicate the name and the spec
@@ -118,12 +117,15 @@ Abc_Ntk_t * Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type )
     Abc_NtkForEachLatch( pNtk, pObj, i )
     {
         pObjNew = Abc_NtkDupObj(pNtkNew, pObj);
-        Vec_PtrPush( pNtkNew->vPis, pObjNew );
-        Vec_PtrPush( pNtkNew->vPos, pObjNew );
+        Vec_PtrPush( pNtkNew->vCis, pObjNew );
+        Vec_PtrPush( pNtkNew->vCos, pObjNew );
     }
     // clean the node copy fields
     Abc_NtkForEachNode( pNtk, pObj, i )
         pObj->pCopy = NULL;
+    // transfer the names
+    Abc_NtkDupCioNamesTable( pNtk, pNtkNew );
+    Abc_ManTimeDup( pNtk, pNtkNew );
     return pNtkNew;
 }
 
@@ -142,22 +144,68 @@ void Abc_NtkFinalize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
 {
     Abc_Obj_t * pObj, * pDriver, * pDriverNew;
     int i;
-    assert( !Abc_NtkIsNetlist(pNtk) );
     // set the COs of the strashed network
     Abc_NtkForEachCo( pNtk, pObj, i )
     {
-        pDriver    = Abc_ObjFanin0(pObj);
+        pDriver    = Abc_ObjFanin0Ntk( Abc_ObjFanin0(pObj) );
         pDriverNew = Abc_ObjNotCond(pDriver->pCopy, Abc_ObjFaninC0(pObj));
         Abc_ObjAddFanin( pObj->pCopy, pDriverNew );
     }
-    // transfer the names
-    Abc_NtkDupNameArrays( pNtk, pNtkNew );
-    Abc_ManTimeDup( pNtk, pNtkNew );
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Duplicate the Ntk.]
+  Synopsis    [Starts a new network using existing network as a model.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkStartRead( char * pName )
+{
+    Abc_Ntk_t * pNtkNew; 
+    // allocate the empty network
+    pNtkNew = Abc_NtkAlloc( ABC_NTK_NETLIST_SOP );
+    // set the specs
+    pNtkNew->pName = util_strsav( pName );
+    pNtkNew->pSpec = util_strsav( pName );
+    return pNtkNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Finalizes the network using the existing network as a model.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkFinalizeRead( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pLatch;
+    int i;
+    assert( Abc_NtkIsNetlist(pNtk) );
+    // fix the net drivers
+    Abc_NtkFixNonDrivenNets( pNtk );
+    // create the names table
+    Abc_NtkCreateCioNamesTable( pNtk );
+    // add latches to the CI/CO arrays
+    Abc_NtkForEachLatch( pNtk, pLatch, i )
+    {
+        Vec_PtrPush( pNtk->vCis, pLatch );
+        Vec_PtrPush( pNtk->vCos, pLatch );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicate the network.]
 
   Description []
                
@@ -173,46 +221,28 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
     int i, k;
     if ( pNtk == NULL )
         return NULL;
+    assert( !Abc_NtkIsSeq(pNtk) );
     // start the network
-    pNtkNew = Abc_NtkAlloc( pNtk->Type );
-    // duplicate the name and the spec
-    pNtkNew->pName = util_strsav(pNtk->pName);
-    pNtkNew->pSpec = util_strsav(pNtk->pSpec);
-    // duplicate the objects
+    pNtkNew = Abc_NtkStartFrom( pNtk, pNtk->Type );
+    // duplicate the nets and nodes
     Abc_NtkForEachObj( pNtk, pObj, i )
-        Abc_NtkDupObj(pNtkNew, pObj);
+        if ( pObj->pCopy == NULL )
+            Abc_NtkDupObj(pNtkNew, pObj);
     // connect the objects
     Abc_NtkForEachObj( pNtk, pObj, i )
         Abc_ObjForEachFanin( pObj, pFanin, k )
-        {
             Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
-            if ( Abc_ObjFaninC( pObj, k ) )
-                Abc_ObjSetFaninC( pObj->pCopy, k );
-            // latch numbers on edges are not copied
-        }
-    // postprocess
-    if ( Abc_NtkIsNetlist(pNtk) )
+    // for AIGs copy the complemented attributes
+    if ( Abc_NtkIsAig(pNtk) )
     {
-        // mark the PI/PO nets of the new network
-        Abc_NtkForEachPi( pNtk, pObj, i )
-            Abc_NtkMarkNetPi( pObj->pCopy );
-        Abc_NtkForEachPo( pNtk, pObj, i )
-            Abc_NtkMarkNetPo( pObj->pCopy );
+        // set the data pointers and complemented attributes
+        Abc_NtkForEachObj( pNtk, pObj, i )
+            Abc_ObjForEachFanin( pObj, pFanin, k )
+                if ( Abc_ObjFaninC( pObj, k ) )
+                    Abc_ObjSetFaninC( pObj->pCopy, k );
+        // add the nodes to the structural hashing table
+        // TODO ???
     }
-    else
-    {
-        // add latches to the PI/PO lists to work as CIs/COs
-        Abc_NtkForEachLatch( pNtk, pObj, i )
-        {
-            Vec_PtrPush( pNtkNew->vPis, pObj->pCopy );
-            Vec_PtrPush( pNtkNew->vPos, pObj->pCopy );
-        }
-    }
-    // copy the CI/CO names if saved
-    if ( !Abc_NtkIsNetlist(pNtk) )
-        Abc_NtkDupNameArrays( pNtk, pNtkNew );
-    // copy the timing info
-    Abc_ManTimeDup( pNtk, pNtkNew );
     // duplicate the EXDC Ntk
     if ( pNtk->pExdc )
         pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );
@@ -238,24 +268,15 @@ Abc_Ntk_t * Abc_NtkSplitOutput( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, int fUseAll
     Abc_Ntk_t * pNtkNew; 
     Abc_Obj_t * pObj, * pFanin;
     char Buffer[1000];
-    int i, k, Output;
+    int i, k;
 
     assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsAig(pNtk) );
-    assert( Abc_ObjIsTerm(pNode) || Abc_ObjIsLatch(pNode) ); 
-    // get the number of this output
-    Output = -1;
-    Abc_NtkForEachCo( pNtk, pObj, i )
-        if ( pObj == pNode )
-        {
-            Output = i;
-            break;
-        }
-    assert( Output >= 0 );
+    assert( Abc_ObjIsCo(pNode) ); 
     
     // start the network
     pNtkNew = Abc_NtkAlloc( pNtk->Type );
-    // duplicate the name and the spec
-    sprintf( Buffer, "%s_%s", pNtk->pName, Abc_NtkNameCo(pNtk,Output) );
+    // set the name
+    sprintf( Buffer, "%s_%s", pNtk->pName, Abc_ObjName(pNode) );
     pNtkNew->pName = util_strsav(Buffer);
 
     // collect the nodes in the TFI of the output
@@ -265,8 +286,8 @@ Abc_Ntk_t * Abc_NtkSplitOutput( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, int fUseAll
     {
         if ( fUseAllCis || Abc_NodeIsTravIdCurrent(pObj) ) // TravId is set by DFS
         {
-            pObj->pCopy = Abc_NtkCreateTermPi(pNtkNew);
-            Abc_NtkLogicStoreName( pObj->pCopy, Abc_NtkNameCi(pNtk, i) );
+            pObj->pCopy = Abc_NtkCreatePi(pNtkNew);
+            Abc_NtkLogicStoreName( pObj->pCopy, Abc_ObjName(pObj) );
         }
     }
     // establish connection between the constant nodes
@@ -291,10 +312,11 @@ Abc_Ntk_t * Abc_NtkSplitOutput( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, int fUseAll
         }
     }
     Vec_PtrFree( vNodes );
+
     // add the PO corresponding to this output
-    pNode->pCopy = Abc_NtkCreateTermPo( pNtkNew );
+    pNode->pCopy = Abc_NtkCreatePo( pNtkNew );
     Abc_ObjAddFanin( pNode->pCopy, Abc_ObjFanin0(pNode)->pCopy );
-    Abc_NtkLogicStoreName( pNode->pCopy, Abc_NtkNameCo(pNtk, Output) );
+    Abc_NtkLogicStoreName( pNode->pCopy, Abc_ObjName(pNode) );
 
     if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkDup(): Network check has failed.\n" );
@@ -343,17 +365,15 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
         Abc_NtkDelete( pNtk->pExdc );
     // free the arrays
     Vec_PtrFree( pNtk->vObjs );
-    Vec_PtrFree( pNtk->vLatches );
-    Vec_PtrFree( pNtk->vPis );
-    Vec_PtrFree( pNtk->vPos );
-    Vec_PtrFree( pNtk->vNamesPi );
-    Vec_PtrFree( pNtk->vNamesPo );
-    Vec_PtrFree( pNtk->vNamesLatch );
+    Vec_PtrFree( pNtk->vLats );
+    Vec_PtrFree( pNtk->vCis );
+    Vec_PtrFree( pNtk->vCos );
     Vec_PtrFree( pNtk->vPtrTemp );
     Vec_IntFree( pNtk->vIntTemp );
     Vec_StrFree( pNtk->vStrTemp );
     // free the hash table of Obj name into Obj ID
     stmm_free_table( pNtk->tName2Net );
+    stmm_free_table( pNtk->tObj2Name );
     TotalMemory  = 0;
     TotalMemory += Extra_MmFlexReadMemUsage(pNtk->pMmNames);
     TotalMemory += Extra_MmFixedReadMemUsage(pNtk->pMmObj);
@@ -367,15 +387,69 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     if ( pNtk->pManTime )
         Abc_ManTimeStop( pNtk->pManTime );
     // start the functionality manager
-    if ( Abc_NtkIsNetlist(pNtk) || Abc_NtkIsLogicSop(pNtk) )
+    if ( Abc_NtkIsSop(pNtk) )
         Extra_MmFlexStop( pNtk->pManFunc, 0 );
     else if ( Abc_NtkIsLogicBdd(pNtk) )
         Extra_StopManager( pNtk->pManFunc );
     else if ( Abc_NtkIsAig(pNtk) )
         Abc_AigFree( pNtk->pManFunc );
-    else if ( !Abc_NtkIsLogicMap(pNtk) )
+    else if ( !Abc_NtkIsMapped(pNtk) )
         assert( 0 );
     free( pNtk );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reads the verilog file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkFixNonDrivenNets( Abc_Ntk_t * pNtk )
+{ 
+    Vec_Ptr_t * vNets;
+    Abc_Obj_t * pNet, * pNode;
+    int i;
+
+    // check for non-driven nets
+    vNets = Vec_PtrAlloc( 100 );
+    Abc_NtkForEachNet( pNtk, pNet, i )
+    {
+        if ( Abc_ObjFaninNum(pNet) > 0 )
+            continue;
+        // add the constant 0 driver
+        pNode = Abc_NtkCreateNode( pNtk );
+        // set the constant function
+        Abc_ObjSetData( pNode, Abc_SopRegister(pNtk->pManFunc, " 0\n") );
+        // add the fanout net
+        Abc_ObjAddFanin( pNet, pNode );
+        // add the net to those for which the warning will be printed
+        Vec_PtrPush( vNets, pNet->pData );
+    }
+
+    // print the warning
+    if ( vNets->nSize > 0 )
+    {
+        printf( "Constant-zero drivers were added to %d non-driven nets:\n", vNets->nSize );
+        for ( i = 0; i < vNets->nSize; i++ )
+        {
+            if ( i == 0 )
+                printf( "%s", vNets->pArray[i] );
+            else if ( i == 1 )
+                printf( ", %s", vNets->pArray[i] );
+            else if ( i == 2 )
+            {
+                printf( ", %s, etc.", vNets->pArray[i] );
+                break;
+            }
+        }
+        printf( "\n" );
+    }
+    Vec_PtrFree( vNets );
 }
 
 
@@ -451,24 +525,22 @@ void Abc_ObjAdd( Abc_Obj_t * pObj )
     }
     else if ( Abc_ObjIsNode(pObj) )
     {
-        assert( pObj->Subtype == 0 );
         pNtk->nNodes++;
     }
     else if ( Abc_ObjIsLatch(pObj) )
     {
-        Vec_PtrPush( pNtk->vLatches, pObj );
+        Vec_PtrPush( pNtk->vLats, pObj );
         pNtk->nLatches++;
     }
-    else if ( Abc_ObjIsTerm(pObj) )
+    else if ( Abc_ObjIsPi(pObj) )
     {
-        // if it is PIs/POs, add it
-        assert( !(Abc_ObjIsPi(pObj) && Abc_ObjIsPo(pObj)) );
-        if ( Abc_ObjIsPi(pObj) )
-            Vec_PtrPush( pNtk->vPis, pObj ), pNtk->nPis++;
-        else if ( Abc_ObjIsPo(pObj) )
-            Vec_PtrPush( pNtk->vPos, pObj ), pNtk->nPos++;
-        else
-            assert( 0 );
+        Vec_PtrPush( pNtk->vCis, pObj );
+        pNtk->nPis++;
+    }
+    else if ( Abc_ObjIsPo(pObj) )
+    {
+        Vec_PtrPush( pNtk->vCos, pObj );
+        pNtk->nPos++;
     }
     else
     {
@@ -492,14 +564,13 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
 {
     Abc_Obj_t * pObjNew;
     pObjNew = Abc_ObjAlloc( pNtkNew, pObj->Type );
-    pObjNew->Subtype = pObj->Subtype;
     if ( Abc_ObjIsNode(pObj) ) // copy the function
     {
-        if ( Abc_NtkIsNetlist(pNtkNew) || Abc_NtkIsLogicSop(pNtkNew) )
+        if ( Abc_NtkIsSop(pNtkNew) )
             pObjNew->pData = Abc_SopRegister( pNtkNew->pManFunc, pObj->pData );
         else if ( Abc_NtkIsLogicBdd(pNtkNew) )
             pObjNew->pData = Cudd_bddTransfer(pObj->pNtk->pManFunc, pNtkNew->pManFunc, pObj->pData), Cudd_Ref(pObjNew->pData);
-        else if ( Abc_NtkIsLogicMap(pNtkNew) )
+        else if ( Abc_NtkIsMapped(pNtkNew) )
             pObjNew->pData = pObj->pData;
         else if ( !Abc_NtkIsAig(pNtkNew) )
             assert( 0 );
@@ -566,108 +637,10 @@ void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
         pNtk->nLatches--;
         assert( 0 ); // currently do not allow removing latches
     }
-    else if ( Abc_ObjIsTerm(pObj) )
-    {
-        assert( 0 ); // currently do not allow removing latches
-    }
-    else
+    else 
         assert( 0 );
     // recycle the net itself
     Abc_ObjRecycle( pObj );
-}
-
-
-
-
-/**Function*************************************************************
-
-  Synopsis    [Adds a new PI net to the network.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkMarkNetPi( Abc_Obj_t * pObj )
-{
-    assert( Abc_NtkIsNetlist(pObj->pNtk) );
-    assert( Abc_ObjIsNet(pObj) );
-    assert( pObj->Id >= 0 );
-    Abc_ObjSetSubtype( pObj, ABC_OBJ_SUBTYPE_PI );
-    Vec_PtrPush( pObj->pNtk->vPis, pObj );
-    pObj->pNtk->nPis++;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Adds a new PO Obj to the Objwork.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkMarkNetPo( Abc_Obj_t * pObj )
-{
-    assert( Abc_NtkIsNetlist(pObj->pNtk) );
-    assert( Abc_ObjIsNet(pObj) );
-    assert( pObj->Id >= 0 );
-    Abc_ObjSetSubtype( pObj, ABC_OBJ_SUBTYPE_PO );
-    Vec_PtrPush( pObj->pNtk->vPos, pObj );
-    pObj->pNtk->nPos++;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Adds a new PO node to the network.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Obj_t * Abc_NtkAddPoNode( Abc_Obj_t * pDriver )
-{
-    Abc_Obj_t * pNodePo, * pDriverR = Abc_ObjRegular(pDriver);
-    Abc_Ntk_t * pNtk = pDriverR->pNtk;
-    // this function only works for logic networks
-    assert( !Abc_NtkIsNetlist(pNtk) );
-    assert( pDriverR->Id >= 0 );
-    // the cannot be a PO node
-    assert( !Abc_ObjIsPo(pDriverR) );
-    // create a new PO node
-    pNodePo = Abc_NtkCreateTermPo( pNtk ); 
-    // create the fanin (possibly complemented)
-    Abc_ObjAddFanin( pNodePo, pDriver );
-    return pNodePo;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Removes a node from the network.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkRemovePoNode( Abc_Obj_t * pNode )
-{
-    assert( Abc_ObjFanoutNum(pNode) == 0 );
-    assert( Abc_ObjIsPo(pNode) );
-    Abc_ObjDeleteFanin( pNode, Abc_ObjFanin0(pNode) );
-    pNode->pNtk->vObjs->pArray[ pNode->Id ] = NULL;
-    pNode->pNtk->nNodes--;
-    pNode->pNtk->nPos--;
-    Abc_ObjRecycle( pNode );
 }
 
 
@@ -687,12 +660,12 @@ void Abc_NtkRemovePoNode( Abc_Obj_t * pNode )
 ***********************************************************************/
 Abc_Obj_t * Abc_NtkFindNode( Abc_Ntk_t * pNtk, char * pName )
 {
-    Abc_Obj_t * pNode, * pDriver;
+    Abc_Obj_t * pObj, * pDriver;
     int i, Num;
     // check if the node is among CIs
-    Abc_NtkForEachCi( pNtk, pNode, i )
+    Abc_NtkForEachCi( pNtk, pObj, i )
     {
-        if ( strcmp( Abc_NtkNameCi(pNtk,i), pName ) == 0 )
+        if ( strcmp( Abc_ObjName(pObj), pName ) == 0 )
         {
             if ( i < Abc_NtkPiNum(pNtk) )
                 printf( "Node \"%s\" is a primary input.\n", pName );
@@ -702,11 +675,11 @@ Abc_Obj_t * Abc_NtkFindNode( Abc_Ntk_t * pNtk, char * pName )
         }
     }
     // search the node among COs
-    Abc_NtkForEachCo( pNtk, pNode, i )
+    Abc_NtkForEachCo( pNtk, pObj, i )
     {
-        if ( strcmp( Abc_NtkNameCo(pNtk,i), pName ) == 0 )
+        if ( strcmp( Abc_ObjName(pObj), pName ) == 0 )
         {
-            pDriver = Abc_ObjFanin0(pNode);
+            pDriver = Abc_ObjFanin0(pObj);
             if ( !Abc_ObjIsNode(pDriver) )
             {
                 printf( "Node \"%s\" does not have logic associated with it.\n", pName );
@@ -727,18 +700,18 @@ Abc_Obj_t * Abc_NtkFindNode( Abc_Ntk_t * pNtk, char * pName )
         printf( "The node \"%s\" with ID %d is not in the current network.\n", pName, Num );
         return NULL;
     }
-    pNode = Abc_NtkObj( pNtk, Num );
-    if ( pNode == NULL )
+    pObj = Abc_NtkObj( pNtk, Num );
+    if ( pObj == NULL )
     {
         printf( "The node \"%s\" with ID %d has been removed from the current network.\n", pName, Num );
         return NULL;
     }
-    if ( !Abc_ObjIsNode(pNode) )
+    if ( !Abc_ObjIsNode(pObj) )
     {
         printf( "Object with ID %d is not a node.\n", Num );
         return NULL;
     }
-    return pNode;
+    return pObj;
 }
 
 /**Function*************************************************************
@@ -759,7 +732,7 @@ Abc_Obj_t * Abc_NtkFindCo( Abc_Ntk_t * pNtk, char * pName )
     // search the node among COs
     Abc_NtkForEachCo( pNtk, pNode, i )
     {
-        if ( strcmp( Abc_NtkNameCo(pNtk,i), pName ) == 0 )
+        if ( strcmp( Abc_ObjName(pNode), pName ) == 0 )
             return pNode;
     }
     return NULL;
@@ -803,7 +776,7 @@ Abc_Obj_t * Abc_NtkFindOrCreateNet( Abc_Ntk_t * pNtk, char * pName )
     if ( pNet = Abc_NtkFindNet( pNtk, pName ) )
         return pNet;
     // create a new net
-    pNet = Abc_ObjAlloc( pNtk, ABC_OBJ_TYPE_NET );
+    pNet = Abc_ObjAlloc( pNtk, ABC_OBJ_NET );
     pNet->pData = Abc_NtkRegisterName( pNtk, pName );
     Abc_ObjAdd( pNet );
     return pNet;
@@ -823,7 +796,7 @@ Abc_Obj_t * Abc_NtkFindOrCreateNet( Abc_Ntk_t * pNtk, char * pName )
 Abc_Obj_t * Abc_NtkCreateNode( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj;
-    pObj = Abc_ObjAlloc( pNtk, ABC_OBJ_TYPE_NODE );     
+    pObj = Abc_ObjAlloc( pNtk, ABC_OBJ_NODE );     
     Abc_ObjAdd( pObj );
     return pObj;
 }
@@ -839,11 +812,10 @@ Abc_Obj_t * Abc_NtkCreateNode( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_NtkCreateTermPi( Abc_Ntk_t * pNtk )
+Abc_Obj_t * Abc_NtkCreatePi( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj;
-    pObj = Abc_ObjAlloc( pNtk, ABC_OBJ_TYPE_TERM );     
-    Abc_ObjSetSubtype( pObj, ABC_OBJ_SUBTYPE_PI );
+    pObj = Abc_ObjAlloc( pNtk, ABC_OBJ_PI );     
     Abc_ObjAdd( pObj );
     return pObj;
 }
@@ -859,13 +831,11 @@ Abc_Obj_t * Abc_NtkCreateTermPi( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_NtkCreateTermPo( Abc_Ntk_t * pNtk )
+Abc_Obj_t * Abc_NtkCreatePo( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj;
-    pObj = Abc_ObjAlloc( pNtk, ABC_OBJ_TYPE_TERM );     
-    Abc_ObjSetSubtype( pObj, ABC_OBJ_SUBTYPE_PO );
+    pObj = Abc_ObjAlloc( pNtk, ABC_OBJ_PO );     
     Abc_ObjAdd( pObj );
-//    Abc_NtkAddPo( pObj );
     return pObj;
 }
 
@@ -883,7 +853,7 @@ Abc_Obj_t * Abc_NtkCreateTermPo( Abc_Ntk_t * pNtk )
 Abc_Obj_t * Abc_NtkCreateLatch( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj;
-    pObj = Abc_ObjAlloc( pNtk, ABC_OBJ_TYPE_LATCH );     
+    pObj = Abc_ObjAlloc( pNtk, ABC_OBJ_LATCH );     
     Abc_ObjAdd( pObj );
     return pObj;
 }
@@ -902,13 +872,12 @@ Abc_Obj_t * Abc_NtkCreateLatch( Abc_Ntk_t * pNtk )
 Abc_Obj_t * Abc_NodeCreateConst0( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
-    assert( Abc_NtkIsLogic(pNtk) );
     pNode = Abc_NtkCreateNode( pNtk );   
-    if ( Abc_NtkIsLogicSop(pNtk) )
+    if ( Abc_NtkIsSop(pNtk) )
         pNode->pData = Abc_SopRegister( pNtk->pManFunc, " 0\n" );
     else if ( Abc_NtkIsLogicBdd(pNtk) )
         pNode->pData = Cudd_ReadLogicZero(pNtk->pManFunc), Cudd_Ref( pNode->pData );
-    else if ( Abc_NtkIsLogicMap(pNtk) )
+    else if ( Abc_NtkIsMapped(pNtk) )
         pNode->pData = Mio_LibraryReadConst0(Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()));
     else
         assert( 0 );
@@ -929,13 +898,12 @@ Abc_Obj_t * Abc_NodeCreateConst0( Abc_Ntk_t * pNtk )
 Abc_Obj_t * Abc_NodeCreateConst1( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
-    assert( Abc_NtkIsLogic(pNtk) );
     pNode = Abc_NtkCreateNode( pNtk );   
-    if ( Abc_NtkIsLogicSop(pNtk) )
+    if ( Abc_NtkIsSop(pNtk) )
         pNode->pData = Abc_SopRegister( pNtk->pManFunc, " 1\n" );
     else if ( Abc_NtkIsLogicBdd(pNtk) )
         pNode->pData = Cudd_ReadOne(pNtk->pManFunc), Cudd_Ref( pNode->pData );
-    else if ( Abc_NtkIsLogicMap(pNtk) )
+    else if ( Abc_NtkIsMapped(pNtk) )
         pNode->pData = Mio_LibraryReadConst1(Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()));
     else
         assert( 0 );
@@ -956,14 +924,14 @@ Abc_Obj_t * Abc_NodeCreateConst1( Abc_Ntk_t * pNtk )
 Abc_Obj_t * Abc_NodeCreateInv( Abc_Ntk_t * pNtk, Abc_Obj_t * pFanin )
 {
     Abc_Obj_t * pNode;
-    assert( Abc_NtkIsLogic(pNtk) );
+    assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsNetlist(pNtk) );
     pNode = Abc_NtkCreateNode( pNtk );   
     Abc_ObjAddFanin( pNode, pFanin );
-    if ( Abc_NtkIsLogicSop(pNtk) )
+    if ( Abc_NtkIsSop(pNtk) )
         pNode->pData = Abc_SopRegister( pNtk->pManFunc, "0 1\n" );
     else if ( Abc_NtkIsLogicBdd(pNtk) )
         pNode->pData = Cudd_Not(Cudd_bddIthVar(pNtk->pManFunc,0)), Cudd_Ref( pNode->pData );
-    else if ( Abc_NtkIsLogicMap(pNtk) )
+    else if ( Abc_NtkIsMapped(pNtk) )
         pNode->pData = Mio_LibraryReadInv(Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()));
     else
         assert( 0 );
@@ -984,14 +952,14 @@ Abc_Obj_t * Abc_NodeCreateInv( Abc_Ntk_t * pNtk, Abc_Obj_t * pFanin )
 Abc_Obj_t * Abc_NodeCreateBuf( Abc_Ntk_t * pNtk, Abc_Obj_t * pFanin )
 {
     Abc_Obj_t * pNode;
-    assert( Abc_NtkIsLogic(pNtk) );
+    assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsNetlist(pNtk) );
     pNode = Abc_NtkCreateNode( pNtk );   
     Abc_ObjAddFanin( pNode, pFanin );
-    if ( Abc_NtkIsLogicSop(pNtk) )
+    if ( Abc_NtkIsSop(pNtk) )
         pNode->pData = Abc_SopRegister( pNtk->pManFunc, "1 1\n" );
     else if ( Abc_NtkIsLogicBdd(pNtk) )
         pNode->pData = Cudd_bddIthVar(pNtk->pManFunc,0), Cudd_Ref( pNode->pData );
-    else if ( Abc_NtkIsLogicMap(pNtk) )
+    else if ( Abc_NtkIsMapped(pNtk) )
         pNode->pData = Mio_LibraryReadBuf(Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()));
     else
         assert( 0 );
@@ -1017,7 +985,7 @@ Abc_Obj_t * Abc_NodeCreateAnd( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins )
     pNode = Abc_NtkCreateNode( pNtk );   
     for ( i = 0; i < vFanins->nSize; i++ )
         Abc_ObjAddFanin( pNode, vFanins->pArray[i] );
-    if ( Abc_NtkIsLogicSop(pNtk) )
+    if ( Abc_NtkIsSop(pNtk) )
     {
         char * pSop;
         pSop = Extra_MmFlexEntryFetch( pNtk->pManFunc, vFanins->nSize + 4 );
@@ -1066,7 +1034,7 @@ Abc_Obj_t * Abc_NodeCreateOr( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins )
     pNode = Abc_NtkCreateNode( pNtk );   
     for ( i = 0; i < vFanins->nSize; i++ )
         Abc_ObjAddFanin( pNode, vFanins->pArray[i] );
-    if ( Abc_NtkIsLogicSop(pNtk) )
+    if ( Abc_NtkIsSop(pNtk) )
     {
         char * pSop;
         pSop = Extra_MmFlexEntryFetch( pNtk->pManFunc, vFanins->nSize + 4 );
@@ -1115,7 +1083,7 @@ Abc_Obj_t * Abc_NodeCreateMux( Abc_Ntk_t * pNtk, Abc_Obj_t * pNodeC, Abc_Obj_t *
     Abc_ObjAddFanin( pNode, pNodeC );
     Abc_ObjAddFanin( pNode, pNode1 );
     Abc_ObjAddFanin( pNode, pNode0 );
-    if ( Abc_NtkIsLogicSop(pNtk) )
+    if ( Abc_NtkIsSop(pNtk) )
         pNode->pData = Abc_SopRegister( pNtk->pManFunc, "11- 1\n0-1 1\n" );
     else if ( Abc_NtkIsLogicBdd(pNtk) )
         pNode->pData = Cudd_bddIte(pNtk->pManFunc,Cudd_bddIthVar(pNtk->pManFunc,0),Cudd_bddIthVar(pNtk->pManFunc,1),Cudd_bddIthVar(pNtk->pManFunc,2)), Cudd_Ref( pNode->pData );
@@ -1164,13 +1132,13 @@ bool Abc_NodeIsConst0( Abc_Obj_t * pNode )
     Abc_Ntk_t * pNtk = pNode->pNtk;
     assert(Abc_ObjIsNode(pNode));      
     assert(Abc_NodeIsConst(pNode));
-    if ( Abc_NtkIsNetlist(pNtk) || Abc_NtkIsLogicSop(pNtk) )
+    if ( Abc_NtkIsSop(pNtk) )
         return Abc_SopIsConst0(pNode->pData);
     if ( Abc_NtkIsLogicBdd(pNtk) )
         return Cudd_IsComplement(pNode->pData);
     if ( Abc_NtkIsAig(pNtk) )
         return Abc_ObjNot(pNode) == Abc_AigConst1(pNode->pNtk->pManFunc);
-    if ( Abc_NtkIsLogicMap(pNtk) )
+    if ( Abc_NtkIsMapped(pNtk) )
         return pNode->pData == Mio_LibraryReadConst0(Abc_FrameReadLibSuper(Abc_FrameGetGlobalFrame()));
     assert( 0 );
     return 0;
@@ -1192,13 +1160,13 @@ bool Abc_NodeIsConst1( Abc_Obj_t * pNode )
     Abc_Ntk_t * pNtk = pNode->pNtk;
     assert(Abc_ObjIsNode(pNode));      
     assert(Abc_NodeIsConst(pNode));
-    if ( Abc_NtkIsNetlist(pNtk) || Abc_NtkIsLogicSop(pNtk) )
+    if ( Abc_NtkIsSop(pNtk) )
         return Abc_SopIsConst1(pNode->pData);
     if ( Abc_NtkIsLogicBdd(pNtk) )
         return !Cudd_IsComplement(pNode->pData);
     if ( Abc_NtkIsAig(pNtk) )
         return pNode == Abc_AigConst1(pNode->pNtk->pManFunc);
-    if ( Abc_NtkIsLogicMap(pNtk) )
+    if ( Abc_NtkIsMapped(pNtk) )
         return pNode->pData == Mio_LibraryReadConst1(Abc_FrameReadLibSuper(Abc_FrameGetGlobalFrame()));
     assert( 0 );
     return 0;
@@ -1221,13 +1189,13 @@ bool Abc_NodeIsBuf( Abc_Obj_t * pNode )
     assert(Abc_ObjIsNode(pNode)); 
     if ( Abc_ObjFaninNum(pNode) != 1 )
         return 0;
-    if ( Abc_NtkIsNetlist(pNtk) || Abc_NtkIsLogicSop(pNtk) )
+    if ( Abc_NtkIsSop(pNtk) )
         return Abc_SopIsBuf(pNode->pData);
     if ( Abc_NtkIsLogicBdd(pNtk) )
         return !Cudd_IsComplement(pNode->pData);
     if ( Abc_NtkIsAig(pNtk) )
         return 0;
-    if ( Abc_NtkIsLogicMap(pNtk) )
+    if ( Abc_NtkIsMapped(pNtk) )
         return pNode->pData == Mio_LibraryReadBuf(Abc_FrameReadLibSuper(Abc_FrameGetGlobalFrame()));
     assert( 0 );
     return 0;
@@ -1250,13 +1218,13 @@ bool Abc_NodeIsInv( Abc_Obj_t * pNode )
     assert(Abc_ObjIsNode(pNode)); 
     if ( Abc_ObjFaninNum(pNode) != 1 )
         return 0;
-    if ( Abc_NtkIsNetlist(pNtk) || Abc_NtkIsLogicSop(pNtk) )
+    if ( Abc_NtkIsSop(pNtk) )
         return Abc_SopIsInv(pNode->pData);
     if ( Abc_NtkIsLogicBdd(pNtk) )
         return Cudd_IsComplement(pNode->pData);
     if ( Abc_NtkIsAig(pNtk) )
         return 0;
-    if ( Abc_NtkIsLogicMap(pNtk) )
+    if ( Abc_NtkIsMapped(pNtk) )
         return pNode->pData == Mio_LibraryReadInv(Abc_FrameReadLibSuper(Abc_FrameGetGlobalFrame()));
     assert( 0 );
     return 0;

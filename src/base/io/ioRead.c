@@ -58,7 +58,7 @@ Abc_Ntk_t * Io_Read( char * pFileName, int fCheck )
     }
     if ( pNtk == NULL )
         return NULL;
-    pNtk = Abc_NtkLogic( pTemp = pNtk );
+    pNtk = Abc_NtkNetlistToLogic( pTemp = pNtk );
     Abc_NtkDelete( pTemp );
     if ( pNtk == NULL )
     {

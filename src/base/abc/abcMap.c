@@ -138,7 +138,7 @@ Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, i
     if ( pMan == NULL )
         return NULL;
     Map_ManSetAreaRecovery( pMan, fRecovery );
-    Map_ManSetOutputNames( pMan, (char **)pNtk->vNamesPo->pArray );
+    Map_ManSetOutputNames( pMan, Abc_NtkCollectCioNames(pNtk, 1) );
     Map_ManSetDelayTarget( pMan, (float)DelayTarget );
     Map_ManSetInputArrivals( pMan, (Map_Time_t *)Abc_NtkGetCiArrivalTimes(pNtk) );
 
@@ -168,7 +168,7 @@ Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, i
         // remember the node
         pNode->pCopy = (Abc_Obj_t *)pNodeMap;
         // set up the choice node
-        if ( Abc_NodeIsChoice( pNode ) )
+        if ( Abc_NodeIsAigChoice( pNode ) )
             for ( pPrev = pNode, pFanin = pNode->pData; pFanin; pPrev = pFanin, pFanin = pFanin->pData )
             {
                 Map_NodeSetNextE( (Map_Node_t *)pPrev->pCopy, (Map_Node_t *)pFanin->pCopy );
@@ -203,7 +203,7 @@ Abc_Ntk_t * Abc_NtkFromMap( Map_Man_t * pMan, Abc_Ntk_t * pNtk )
     Abc_Obj_t * pNode, * pNodeNew;
     int i, nDupGates;
 
-        // create the new network
+    // create the new network
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC_MAP );
     // make the mapper point to the new network
     Map_ManCleanData( pMan );
@@ -226,12 +226,8 @@ Abc_Ntk_t * Abc_NtkFromMap( Map_Man_t * pMan, Abc_Ntk_t * pNtk )
         Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
     }
     Extra_ProgressBarStop( pProgress );
-
-    // transfer the names
-    Abc_NtkDupNameArrays( pNtk, pNtkNew );
-    Abc_ManTimeDup( pNtk, pNtkNew );
     // decouple the PO driver nodes to reduce the number of levels
-    nDupGates = Abc_NtkLogicMakeSimplePos( pNtkNew );
+    nDupGates = Abc_NtkLogicMakeSimpleCos( pNtkNew, 1 );
     if ( nDupGates && Map_ManReadVerbose(pMan) )
         printf( "Duplicated %d gates to decouple the PO drivers.\n", nDupGates );
     return pNtkNew;
@@ -398,7 +394,7 @@ int Abc_NtkUnmap( Abc_Ntk_t * pNtk )
 
     assert( Abc_NtkIsLogicMap(pNtk) );
     // update the functionality manager
-    assert( pNtk->pManFunc == NULL );
+    assert( pNtk->pManFunc == Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()) );
     pNtk->pManFunc = Extra_MmFlexStart();
     pNtk->Type     = ABC_NTK_LOGIC_SOP;
     // update the nodes

@@ -103,6 +103,7 @@ Abc_Ntk_t * Abc_NtkDsdInternal( DdManager * dd, Abc_Ntk_t * pNtk, bool fVerbose,
 {
     Dsd_Manager_t * pManDsd;
     Abc_Ntk_t * pNtkNew;
+    char ** ppNamesCi, ** ppNamesCo;
 
     // perform the decomposition
     pManDsd = Abc_NtkDsdPerform( dd, pNtk, fVerbose );
@@ -120,7 +121,13 @@ Abc_Ntk_t * Abc_NtkDsdInternal( DdManager * dd, Abc_Ntk_t * pNtk, bool fVerbose,
     Abc_NtkFinalize( pNtk, pNtkNew );
 
     if ( fPrint )
-    Dsd_TreePrint( stdout, pManDsd, (char **)pNtk->vNamesPi->pArray, (char **)pNtk->vNamesPo->pArray, fShort, -1 );
+    {
+        ppNamesCi = Abc_NtkCollectCioNames( pNtk, 0 );
+        ppNamesCo = Abc_NtkCollectCioNames( pNtk, 1 );
+        Dsd_TreePrint( stdout, pManDsd, ppNamesCi, ppNamesCo, fShort, -1 );
+        free( ppNamesCi );
+        free( ppNamesCo );
+    }
 
     // stop the DSD manager
     Dsd_ManagerStop( pManDsd );

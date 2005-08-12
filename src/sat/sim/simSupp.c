@@ -183,7 +183,7 @@ int Sim_ComputeSuppRoundNode( Sim_Man_t * p, int iNumCi, bool fUseTargets )
             
             // detect the differences in the simulation info
             Sim_UtilInfoDetectDiffs( p->vSim0->pArray[pNode->Id], p->vSim1->pArray[pNode->Id], p->nSimWords, p->vDiffs );
-            // create patterns
+            // create new patterns
             Vec_IntForEachEntry( p->vDiffs, LuckyPat, k )
             {
                 // set the new pattern
@@ -194,6 +194,7 @@ int Sim_ComputeSuppRoundNode( Sim_Man_t * p, int iNumCi, bool fUseTargets )
                     if ( Sim_SimInfoHasVar( p, pNodeCi, LuckyPat ) )
                         Sim_SetBit( pPat->pData, v );
                 Vec_PtrPush( p->vFifo, pPat );
+                break;
             }
         }
     }
@@ -256,6 +257,13 @@ void Sim_ComputeSuppSetTargets( Sim_Man_t * p )
 ***********************************************************************/
 void Sim_UtilAssignFromFifo( Sim_Man_t * p )
 {
+    Sim_Pat_t * pPat;
+    int i;
+    for ( i = 0; i < p->nSimBits; i++ )
+    {
+        pPat = Vec_PtrPop( p->vFifo );
+
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////

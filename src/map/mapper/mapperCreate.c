@@ -265,7 +265,7 @@ void Map_ManFree( Map_Man_t * p )
     FREE( p->pInputs );
     FREE( p->pOutputs );
     FREE( p->pBins );
-//    FREE( p->ppOutputNames );
+    FREE( p->ppOutputNames );
     if ( p->pSimInfo ) FREE( p->pSimInfo[0] );
     FREE( p->pSimInfo );
     FREE( p );

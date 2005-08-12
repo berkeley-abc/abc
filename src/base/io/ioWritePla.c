@@ -46,7 +46,7 @@ int Io_WritePla( Abc_Ntk_t * pNtk, char * pFileName )
     Abc_Ntk_t * pExdc;
     FILE * pFile;
 
-    assert( Abc_NtkIsLogicSop(pNtk) );
+    assert( Abc_NtkIsNetlistSop(pNtk) );
     assert( Abc_NtkGetLevelNum(pNtk) == 1 );
 
     pFile = fopen( pFileName, "w" );
@@ -61,12 +61,7 @@ int Io_WritePla( Abc_Ntk_t * pNtk, char * pFileName )
     // write EXDC network if it exists
     pExdc = Abc_NtkExdc( pNtk );
     if ( pExdc )
-    {
         printf( "Io_WritePla: EXDC is not written (warning).\n" );
-//        fprintf( pFile, "\n" );
-//        fprintf( pFile, ".exdc\n" );
-//        Io_LogicWriteOne( pFile, pExdc );
-    }
     // finalize the file
     fclose( pFile );
     return 1;
@@ -91,9 +86,9 @@ int Io_WritePlaOne( FILE * pFile, Abc_Ntk_t * pNtk )
     int i, k, nProducts, nInputs, nOutputs, nFanins;
 
     nProducts = 0;
-    Abc_NtkForEachPo( pNtk, pNode, i )
+    Abc_NtkForEachCo( pNtk, pNode, i )
     {
-        pDriver = Abc_ObjFanin0(pNode);
+        pDriver = Abc_ObjFanin0Ntk(pNode);
         if ( !Abc_ObjIsNode(pDriver) )
         {
             nProducts++;
@@ -121,11 +116,11 @@ int Io_WritePlaOne( FILE * pFile, Abc_Ntk_t * pNtk )
     fprintf( pFile, ".o %d\n", nOutputs );
     fprintf( pFile, ".ilb" );
     Abc_NtkForEachCi( pNtk, pNode, i )
-        fprintf( pFile, " %s", Abc_NtkNameCi(pNtk, i) );
+        fprintf( pFile, " %s", Abc_ObjName(Abc_ObjFanout0(pNode)) );
     fprintf( pFile, "\n" );
     fprintf( pFile, ".ob" );
     Abc_NtkForEachCo( pNtk, pNode, i )
-        fprintf( pFile, " %s", Abc_NtkNameCo(pNtk, i) );
+        fprintf( pFile, " %s", Abc_ObjName(Abc_ObjFanin0(pNode)) );
     fprintf( pFile, "\n" );
     fprintf( pFile, ".p %d\n", nProducts );
 
@@ -143,7 +138,7 @@ int Io_WritePlaOne( FILE * pFile, Abc_Ntk_t * pNtk )
         pCubeOut[i] = '1';
 
         // consider special cases of nodes
-        pDriver = Abc_ObjFanin0(pNode);
+        pDriver = Abc_ObjFanin0Ntk(pNode);
         if ( !Abc_ObjIsNode(pDriver) )
         {
             pCubeIn[(int)pDriver->pCopy] = '1' - Abc_ObjFaninC0(pNode);

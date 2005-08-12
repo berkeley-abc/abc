@@ -30,6 +30,7 @@
 
 static int Abc_CommandPrintStats   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintIo      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintLatch   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintFanio   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintFactor  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintSupport ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -90,6 +91,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 {
     Cmd_CommandAdd( pAbc, "Printing",     "print_stats",   Abc_CommandPrintStats,       0 ); 
     Cmd_CommandAdd( pAbc, "Printing",     "print_io",      Abc_CommandPrintIo,          0 );
+    Cmd_CommandAdd( pAbc, "Printing",     "print_latch",   Abc_CommandPrintLatch,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_fanio",   Abc_CommandPrintFanio,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_factor",  Abc_CommandPrintFactor,      0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_supp",    Abc_CommandPrintSupport,     0 );
@@ -285,6 +287,56 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandPrintLatch( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+
+    pNtk = Abc_FrameReadNet(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    // print the nodes
+    Abc_NtkPrintLatch( pOut, pNtk );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: print_latch [-h]\n" );
+    fprintf( pErr, "\t        prints information about latches\n" );
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandPrintFanio( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
@@ -366,9 +418,9 @@ int Abc_CommandPrintFactor( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( !Abc_NtkIsNetlist(pNtk) && !Abc_NtkIsLogicSop(pNtk) )
+    if ( !Abc_NtkIsLogicSop(pNtk) )
     {
-        fprintf( pErr, "Printing factored forms can be done for netlist and SOP networks.\n" );
+        fprintf( pErr, "Printing factored forms can be done for SOP networks.\n" );
         return 1;
     }
 
@@ -1296,7 +1348,7 @@ int Abc_CommandLogic( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    pNtkRes = Abc_NtkLogic( pNtk );
+    pNtkRes = Abc_NtkNetlistToLogic( pNtk );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Converting to a logic network has failed.\n" );
@@ -2297,14 +2349,14 @@ int Abc_CommandFraigSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Empty network.\n" );
         return 1;
     }
-    if ( Abc_NtkIsNetlist(pNtk) )
-    {
-        fprintf( pErr, "Cannot sweep a netlist. Please transform into a logic network.\n" );
-        return 1;
-    }
     if ( Abc_NtkIsAig(pNtk) )
     {
         fprintf( pErr, "Cannot sweep AIGs (use \"fraig\").\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsLogic(pNtk) )
+    {
+        fprintf( pErr, "Transform the current network into a logic network.\n" );
         return 1;
     }
     // modify the current network

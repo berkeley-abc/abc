@@ -242,9 +242,6 @@ Abc_Ntk_t * Abc_NtkFromGlobalBdds( DdManager * dd, Abc_Ntk_t * pNtk )
         Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
     }
     Extra_ProgressBarStop( pProgress );
-    // transfer the names
-    Abc_NtkDupNameArrays( pNtk, pNtkNew );
-    Abc_ManTimeDup( pNtk, pNtkNew );
     return pNtkNew;
 }
 
