@@ -32,8 +32,6 @@ static Abc_Obj_t *   Abc_ObjAlloc( Abc_Ntk_t * pNtk, Abc_ObjType_t Type );
 static void          Abc_ObjRecycle( Abc_Obj_t * pObj );
 static void          Abc_ObjAdd( Abc_Obj_t * pObj );
 
-extern void          Extra_StopManager( DdManager * dd );
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
@@ -78,7 +76,9 @@ Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type )
     else if ( Abc_NtkIsLogicBdd(pNtk) )
         pNtk->pManFunc = Cudd_Init( 20, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
     else if ( Abc_NtkIsAig(pNtk) )
-        pNtk->pManFunc = Abc_AigAlloc( pNtk );
+        pNtk->pManFunc = Abc_AigAlloc( pNtk, 0 );
+    else if ( Abc_NtkIsSeq(pNtk) )
+        pNtk->pManFunc = Abc_AigAlloc( pNtk, 1 );
     else if ( Abc_NtkIsMapped(pNtk) )
         pNtk->pManFunc = Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame());
     else
@@ -150,6 +150,30 @@ void Abc_NtkFinalize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
         pDriver    = Abc_ObjFanin0Ntk( Abc_ObjFanin0(pObj) );
         pDriverNew = Abc_ObjNotCond(pDriver->pCopy, Abc_ObjFaninC0(pObj));
         Abc_ObjAddFanin( pObj->pCopy, pDriverNew );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Finalizes the network adding latches to CI/CO lists and creates their names.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkFinalizeLatches( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pLatch;
+    int i;
+    // set the COs of the strashed network
+    Abc_NtkForEachLatch( pNtk, pLatch, i )
+    {
+        Vec_PtrPush( pNtk->vCis, pLatch );
+        Vec_PtrPush( pNtk->vCos, pLatch );
+        Abc_NtkLogicStoreName( pLatch, Abc_ObjNameSuffix(pLatch, "L") );
     }
 }
 
@@ -564,16 +588,19 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
 {
     Abc_Obj_t * pObjNew;
     pObjNew = Abc_ObjAlloc( pNtkNew, pObj->Type );
-    if ( Abc_ObjIsNode(pObj) ) // copy the function
+    if ( Abc_ObjIsNode(pObj) ) // copy the function if network is the same type
     {
-        if ( Abc_NtkIsSop(pNtkNew) )
-            pObjNew->pData = Abc_SopRegister( pNtkNew->pManFunc, pObj->pData );
-        else if ( Abc_NtkIsLogicBdd(pNtkNew) )
-            pObjNew->pData = Cudd_bddTransfer(pObj->pNtk->pManFunc, pNtkNew->pManFunc, pObj->pData), Cudd_Ref(pObjNew->pData);
-        else if ( Abc_NtkIsMapped(pNtkNew) )
-            pObjNew->pData = pObj->pData;
-        else if ( !Abc_NtkIsAig(pNtkNew) )
-            assert( 0 );
+        if ( pNtkNew->Type == pObj->pNtk->Type || Abc_NtkIsNetlist(pObj->pNtk) || Abc_NtkIsNetlist(pNtkNew) ) 
+        {
+            if ( Abc_NtkIsSop(pNtkNew) )
+                pObjNew->pData = Abc_SopRegister( pNtkNew->pManFunc, pObj->pData );
+            else if ( Abc_NtkIsLogicBdd(pNtkNew) )
+                pObjNew->pData = Cudd_bddTransfer(pObj->pNtk->pManFunc, pNtkNew->pManFunc, pObj->pData), Cudd_Ref(pObjNew->pData);
+            else if ( Abc_NtkIsMapped(pNtkNew) )
+                pObjNew->pData = pObj->pData;
+            else if ( !Abc_NtkIsAig(pNtkNew) )
+                assert( 0 );
+        }
     }
     else if ( Abc_ObjIsNet(pObj) ) // copy the name
         pObjNew->pData = Abc_NtkRegisterName( pNtkNew, pObj->pData );
@@ -584,6 +611,55 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
     Abc_ObjAdd( pObjNew );
     return pObjNew;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Creates a new constant node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Abc_NtkDupConst1( Abc_Ntk_t * pNtkAig, Abc_Ntk_t * pNtkNew )  
+{ 
+    Abc_Obj_t * pConst1;
+    assert( Abc_NtkIsAig(pNtkAig) );
+    pConst1 = Abc_AigConst1(pNtkAig->pManFunc);
+    if ( Abc_ObjFanoutNum( pConst1 ) > 0 )
+        pConst1->pCopy = Abc_NodeCreateConst1( pNtkNew );
+    return pConst1->pCopy; 
+} 
+
+/**Function*************************************************************
+
+  Synopsis    [Creates a new constant node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Abc_NtkDupReset( Abc_Ntk_t * pNtkAig, Abc_Ntk_t * pNtkNew )  
+{ 
+    Abc_Obj_t * pReset, * pConst1;
+    assert( Abc_NtkIsAig(pNtkAig) );
+    assert( Abc_NtkIsLogicSop(pNtkNew) );
+    pReset = Abc_AigReset(pNtkAig->pManFunc);
+    if ( Abc_ObjFanoutNum( pReset ) > 0 )
+    {
+        // create new latch with reset value 0
+        pReset->pCopy = Abc_NtkCreateLatch( pNtkNew );
+        // add constant node fanin to the latch
+        pConst1 = Abc_AigConst1(pNtkAig->pManFunc);
+        Abc_ObjAddFanin( pReset->pCopy, pConst1->pCopy );
+    }
+    return pReset->pCopy; 
+} 
 
 /**Function*************************************************************
 
@@ -614,6 +690,7 @@ void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
 
     // remove from the list of objects
     Vec_PtrWriteEntry( pNtk->vObjs, pObj->Id, NULL );
+    pObj->Id = (1<<26)-1;
     pNtk->nObjs--;
 
     // perform specialized operations depending on the object type
@@ -625,8 +702,8 @@ void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
             printf( "Error: The net is not in the table...\n" );
             assert( 0 );
         }
+        pObj->pData = NULL;
         pNtk->nNets--;
-        assert( !Abc_ObjIsPi(pObj) && !Abc_ObjIsPo(pObj) );
     }
     else if ( Abc_ObjIsNode(pObj) )
     {
@@ -898,6 +975,8 @@ Abc_Obj_t * Abc_NodeCreateConst0( Abc_Ntk_t * pNtk )
 Abc_Obj_t * Abc_NodeCreateConst1( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
+    if ( Abc_NtkIsAig(pNtk) || Abc_NtkIsSeq(pNtk) )
+        return Abc_AigConst1(pNtk->pManFunc);
     pNode = Abc_NtkCreateNode( pNtk );   
     if ( Abc_NtkIsSop(pNtk) )
         pNode->pData = Abc_SopRegister( pNtk->pManFunc, " 1\n" );

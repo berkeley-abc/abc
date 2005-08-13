@@ -22,6 +22,8 @@ SRC +=    src/base/abc/abc.c \
     src/base/abc/abcRenode.c \
     src/base/abc/abcRes.c \
     src/base/abc/abcSat.c \
+    src/base/abc/abcSeq.c \
+    src/base/abc/abcSeqRetime.c \
     src/base/abc/abcShow.c \
     src/base/abc/abcSop.c \
     src/base/abc/abcStrash.c \

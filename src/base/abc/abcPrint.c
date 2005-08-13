@@ -40,11 +40,15 @@
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk )
+void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
 {
     fprintf( pFile, "%-15s:",       pNtk->pName );
     fprintf( pFile, "  i/o = %3d/%3d", Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk) );
-    fprintf( pFile, "  lat = %4d", Abc_NtkLatchNum(pNtk) );
+
+    if ( !Abc_NtkIsSeq(pNtk) )
+        fprintf( pFile, "  lat = %4d", Abc_NtkLatchNum(pNtk) );
+    else
+        fprintf( pFile, "  lat = %4d", Abc_NtkSeqLatchNum(pNtk) );
 
     if ( Abc_NtkIsNetlist(pNtk) )
     {
@@ -56,14 +60,17 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk )
         fprintf( pFile, "  and = %5d", Abc_NtkNodeNum(pNtk) );
         fprintf( pFile, "  choice = %5d", Abc_NtkCountChoiceNodes(pNtk) );
     }
+    else if ( Abc_NtkIsSeq(pNtk) )
+        fprintf( pFile, "  and = %5d", Abc_NtkNodeNum(pNtk) );
     else 
         fprintf( pFile, "  nd = %5d", Abc_NtkNodeNum(pNtk) );
 
     if ( Abc_NtkIsLogicSop(pNtk) )   
     {
         fprintf( pFile, "  cube = %5d",  Abc_NtkGetCubeNum(pNtk) );
-        fprintf( pFile, "  lit(sop) = %5d",  Abc_NtkGetLitNum(pNtk) );
-        fprintf( pFile, "  lit(fac) = %5d",  Abc_NtkGetLitFactNum(pNtk) );
+//        fprintf( pFile, "  lit(sop) = %5d",  Abc_NtkGetLitNum(pNtk) );
+        if ( fFactored )
+            fprintf( pFile, "  lit(fac) = %5d",  Abc_NtkGetLitFactNum(pNtk) );
     }
     else if ( Abc_NtkIsLogicBdd(pNtk) )
         fprintf( pFile, "  bdd = %5d",  Abc_NtkGetBddNodeNum(pNtk) );
@@ -72,11 +79,14 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk )
         fprintf( pFile, "  area = %5.2f", Abc_NtkGetMappedArea(pNtk) );
         fprintf( pFile, "  delay = %5.2f", Abc_NtkDelayTrace(pNtk) );
     }
-    else if ( !Abc_NtkIsAig(pNtk) )
+    else if ( !Abc_NtkIsAig(pNtk) && !Abc_NtkIsSeq(pNtk) )
     {
         assert( 0 );
     }
-    fprintf( pFile, "  lev = %2d", Abc_NtkGetLevelNum(pNtk) );
+
+    if ( !Abc_NtkIsSeq(pNtk) )
+        fprintf( pFile, "  lev = %2d", Abc_NtkGetLevelNum(pNtk) );
+
     fprintf( pFile, "\n" );
 }
 

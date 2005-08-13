@@ -69,6 +69,9 @@ static int Abc_CommandSuperChoice  ( Abc_Frame_t * pAbc, int argc, char ** argv 
 
 static int Abc_CommandFpga         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
+static int Abc_CommandSeq          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRetime       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+
 static int Abc_CommandCec          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSec          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -130,6 +133,9 @@ void Abc_Init( Abc_Frame_t * pAbc )
 
     Cmd_CommandAdd( pAbc, "FPGA mapping", "fpga",          Abc_CommandFpga,             1 );
 
+    Cmd_CommandAdd( pAbc, "Sequential",   "seq",           Abc_CommandSeq,              1 );
+    Cmd_CommandAdd( pAbc, "Sequential",   "retime",        Abc_CommandRetime,           1 );
+
     Cmd_CommandAdd( pAbc, "Verification", "cec",           Abc_CommandCec,              0 );
     Cmd_CommandAdd( pAbc, "Verification", "sec",           Abc_CommandSec,              0 );
 
@@ -170,20 +176,25 @@ int Abc_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk;
     bool fShort;
     int c;
+    int fFactor;
 
     pNtk = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set the defaults
-    fShort = 1;
+    fShort  = 1;
+    fFactor = 0;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "sh" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "sfh" ) ) != EOF )
     {
         switch ( c )
         {
         case 's':
             fShort ^= 1;
+            break;
+        case 'f':
+            fFactor ^= 1;
             break;
         case 'h':
             goto usage;
@@ -197,12 +208,13 @@ int Abc_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( Abc_FrameReadErr(pAbc), "Empty network\n" );
         return 1;
     }
-    Abc_NtkPrintStats( pOut, pNtk );
+    Abc_NtkPrintStats( pOut, pNtk, fFactor );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: print_stats [-h]\n" );
+    fprintf( pErr, "usage: print_stats [-fh]\n" );
     fprintf( pErr, "\t        prints the network statistics and\n" );
+    fprintf( pErr, "\t-f    : toggles printing the literal count in the factored forms [default = %s]\n", fFactor? "yes": "no" );
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -2798,6 +2810,147 @@ usage:
 }
 
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandSeq( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c;
+    extern Abc_Ntk_t * Abc_NtkSuperChoice( Abc_Ntk_t * pNtk );
+
+    pNtk = Abc_FrameReadNet(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkIsAig(pNtk) )
+    {
+        fprintf( pErr, "Works only for AIG.\n" );
+        return 1;
+    }
+
+    // get the new network
+    pNtkRes = Abc_NtkAigToSeq( pNtk );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Converting to sequential AIG has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: seq [-h]\n" );
+    fprintf( pErr, "\t        converts AIG into sequential AIG (while sweeping latches)\n" );
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+    int fForward;
+    int fBackward;
+
+    extern Abc_Ntk_t * Abc_NtkSuperChoice( Abc_Ntk_t * pNtk );
+
+    pNtk = Abc_FrameReadNet(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fForward = 0;
+    fBackward = 0;
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "fbh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'f':
+            fForward ^= 1;
+            break;
+        case 'b':
+            fBackward ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkIsSeq(pNtk) )
+    {
+        fprintf( pErr, "Works only for sequential AIG.\n" );
+        return 1;
+    }
+
+    // get the new network
+    if ( fForward )
+        Abc_NtkSeqRetimeForward( pNtk );
+    else if ( fBackward )
+        Abc_NtkSeqRetimeBackward( pNtk );
+    else
+        Abc_NtkSeqRetimeDelay( pNtk );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: retime [-fbh]\n" );
+    fprintf( pErr, "\t        retimes sequential AIG (default is Pan's algorithm)\n" );
+    fprintf( pErr, "\t-f    : toggle forward retiming [default = %s]\n", fForward? "yes": "no" );
+    fprintf( pErr, "\t-b    : toggle backward retiming [default = %s]\n", fBackward? "yes": "no" );
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
 
 
 /**Function*************************************************************

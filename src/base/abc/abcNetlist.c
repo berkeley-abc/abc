@@ -230,15 +230,21 @@ Abc_Ntk_t * Abc_NtkAigToLogicSop( Abc_Ntk_t * pNtk )
     assert( Abc_NtkIsAig(pNtk) );
     // start the network
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC_SOP );
+    // create the constant node
+    Abc_NtkDupConst1( pNtk, pNtkNew );
     // duplicate the nodes and create node functions
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
+        if ( Abc_NodeIsConst(pObj) )
+            continue;
         Abc_NtkDupObj(pNtkNew, pObj);
         pObj->pCopy->pData = Abc_SopCreateAnd2( pNtkNew->pManFunc, Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj) );
     }
     // create the choice nodes
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
+        if ( Abc_NodeIsConst(pObj) )
+            continue;
         if ( !Abc_NodeIsAigChoice(pObj) )
             continue;
         // create an OR gate
@@ -255,12 +261,10 @@ Abc_Ntk_t * Abc_NtkAigToLogicSop( Abc_Ntk_t * pNtk )
         // set the new node
         pObj->pCopy = pNodeNew;
     }
-    // connect the objects
+    // connect the objects, including the COs
     Abc_NtkForEachObj( pNtk, pObj, i )
         Abc_ObjForEachFanin( pObj, pFanin, k )
             Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
-    // connect the COs
-    Abc_NtkFinalize( pNtk, pNtkNew );
     // fix the problem with complemented and duplicated CO edges
     Abc_NtkLogicMakeSimpleCos( pNtkNew, 0 );
     // duplicate the EXDC Ntk
@@ -299,6 +303,8 @@ Abc_Ntk_t * Abc_NtkAigToLogicSopBench( Abc_Ntk_t * pNtk )
         printf( "Warning: Choice nodes are skipped.\n" );
     // start the network
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC_SOP );
+    // create the constant node
+    Abc_NtkDupConst1( pNtk, pNtkNew );
     // collect the nodes to be used (marks all nodes with current TravId)
     vNodes = Abc_NtkDfs( pNtk );
     // create inverters for the CI and remember them
@@ -308,8 +314,11 @@ Abc_Ntk_t * Abc_NtkAigToLogicSopBench( Abc_Ntk_t * pNtk )
     // duplicate the nodes, create node functions, and inverters
     Vec_PtrForEachEntry( vNodes, pObj, i )
     {
-        Abc_NtkDupObj( pNtkNew, pObj );
-        pObj->pCopy->pData = Abc_SopCreateAnd( pNtkNew->pManFunc, 2 );
+        if ( !Abc_NodeIsConst(pObj) )
+        {
+            Abc_NtkDupObj( pNtkNew, pObj );
+            pObj->pCopy->pData = Abc_SopCreateAnd( pNtkNew->pManFunc, 2 );
+        }
         if ( Abc_AigNodeHasComplFanoutEdgeTrav(pObj) )
             pObj->pCopy->pCopy = Abc_NodeCreateInv( pNtkNew, pObj->pCopy );
     }
@@ -324,7 +333,14 @@ Abc_Ntk_t * Abc_NtkAigToLogicSopBench( Abc_Ntk_t * pNtk )
         }
     Vec_PtrFree( vNodes );
     // connect the COs
-    Abc_NtkFinalize( pNtk, pNtkNew );
+    Abc_NtkForEachCo( pNtk, pObj, i )
+    {
+        pFanin = Abc_ObjFanin0(pObj);
+        if ( Abc_ObjFaninC0( pObj ) )
+            Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy->pCopy );
+        else
+            Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
+    }
     // fix the problem with complemented and duplicated CO edges
     Abc_NtkLogicMakeSimpleCos( pNtkNew, 0 );
     // duplicate the EXDC Ntk

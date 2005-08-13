@@ -197,6 +197,14 @@ SOURCE=.\src\base\abc\abcSat.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abc\abcSeq.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abc\abcSeqRetime.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abc\abcShow.c
 # End Source File
 # Begin Source File
