@@ -49,6 +49,8 @@ Abc_Ntk_t * Io_Read( char * pFileName, int fCheck )
         pNtk = Io_ReadVerilog( pFileName, fCheck );
     else if ( Extra_FileNameCheckExtension( pFileName, "bench" ) )
         pNtk = Io_ReadBench( pFileName, fCheck );
+    else if ( Extra_FileNameCheckExtension( pFileName, "edf" ) )
+        pNtk = Io_ReadEdif( pFileName, fCheck );
     else if ( Extra_FileNameCheckExtension( pFileName, "pla" ) )
         pNtk = Io_ReadPla( pFileName, fCheck );
     else 
@@ -58,6 +60,7 @@ Abc_Ntk_t * Io_Read( char * pFileName, int fCheck )
     }
     if ( pNtk == NULL )
         return NULL;
+
     pNtk = Abc_NtkNetlistToLogic( pTemp = pNtk );
     Abc_NtkDelete( pTemp );
     if ( pNtk == NULL )

@@ -143,10 +143,10 @@ void Abc_NtkFxuCollectInfo( Abc_Ntk_t * pNtk, Fxu_Data_t * p )
     p->vFanins    = Vec_PtrAlloc(0);
     p->vSopsNew   = Vec_PtrAlloc(0);
     p->vFaninsNew = Vec_PtrAlloc(0);
-    Vec_PtrFill( p->vSops,      pNtk->vObjs->nSize, NULL );
-    Vec_PtrFill( p->vFanins,    pNtk->vObjs->nSize, NULL );
-    Vec_PtrFill( p->vSopsNew,   pNtk->vObjs->nSize + p->nNodesExt, NULL );
-    Vec_PtrFill( p->vFaninsNew, pNtk->vObjs->nSize + p->nNodesExt, NULL );
+    Vec_PtrFill( p->vSops,      Abc_NtkObjNumMax(pNtk), NULL );
+    Vec_PtrFill( p->vFanins,    Abc_NtkObjNumMax(pNtk), NULL );
+    Vec_PtrFill( p->vSopsNew,   Abc_NtkObjNumMax(pNtk) + p->nNodesExt, NULL );
+    Vec_PtrFill( p->vFaninsNew, Abc_NtkObjNumMax(pNtk) + p->nNodesExt, NULL );
     // add SOPs and fanin array
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
@@ -157,7 +157,7 @@ void Abc_NtkFxuCollectInfo( Abc_Ntk_t * pNtk, Fxu_Data_t * p )
         p->vSops->pArray[i]   = pNode->pData;
         p->vFanins->pArray[i] = &pNode->vFanins;
     }
-    p->nNodesOld = pNtk->vObjs->nSize;
+    p->nNodesOld = Abc_NtkObjNumMax(pNtk);
 }
 
 /**Function*************************************************************

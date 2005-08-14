@@ -57,6 +57,8 @@ Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes )
 {
     int fCheck = 1;
     Abc_Ntk_t * pNtkAig;
+    int nNodes;
+
     assert( !Abc_NtkIsNetlist(pNtk) );
     if ( Abc_NtkIsLogicBdd(pNtk) )
     {
@@ -73,6 +75,8 @@ Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes )
     // print warning about self-feed latches
     if ( Abc_NtkCountSelfFeedLatches(pNtkAig) )
         printf( "The network has %d self-feeding latches.\n", Abc_NtkCountSelfFeedLatches(pNtkAig) );
+    if ( nNodes = Abc_AigCleanup(pNtkAig->pManFunc) )
+        printf( "Cleanup has removed %d nodes.\n", nNodes );
     // duplicate EXDC 
     if ( pNtk->pExdc )
         pNtkAig->pExdc = Abc_NtkStrash( pNtk->pExdc, 0 );
@@ -106,16 +110,12 @@ void Abc_NtkStrashPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, bool fAllNodes
     int i;
 
     // perform strashing
-    if ( fAllNodes )
-        vNodes = Abc_AigCollectAll( pNtk );
-    else
-        vNodes = Abc_NtkDfs( pNtk );
+    vNodes = Abc_NtkDfs( pNtk, fAllNodes );
     pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
-    for ( i = 0; i < vNodes->nSize; i++ )
+    Vec_PtrForEachEntry( vNodes, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
         // get the node
-        pNode = vNodes->pArray[i];
         assert( Abc_ObjIsNode(pNode) );
          // strash the node
         pNodeNew = Abc_NodeStrash( pMan, pNode );
@@ -159,9 +159,7 @@ Abc_Obj_t * Abc_NodeStrash( Abc_Aig_t * pMan, Abc_Obj_t * pNode )
 //        pChild1 = Abc_ObjFanin1(pNode);
         if ( Abc_NodeIsConst(pNode) )
             return Abc_AigConst1(pMan);
-        return Abc_AigAnd( pMan, 
-            Abc_ObjNotCond( Abc_ObjFanin0(pNode)->pCopy, Abc_ObjFaninC0(pNode) ),
-            Abc_ObjNotCond( Abc_ObjFanin1(pNode)->pCopy, Abc_ObjFaninC1(pNode) )  );
+        return Abc_AigAnd( pMan, Abc_ObjChild0Copy(pNode), Abc_ObjChild1Copy(pNode) );
     }
 
     // get the SOP of the node
@@ -471,7 +469,6 @@ Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, bool
 ***********************************************************************/
 int Abc_NodeBalanceCone_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vSuper, bool fFirst, bool fDuplicate )
 {
-    Abc_Obj_t * p0, * p1;
     int RetValue1, RetValue2, i;
     // check if the node is visited
     if ( Abc_ObjRegular(pNode)->fMarkB )
@@ -496,12 +493,9 @@ int Abc_NodeBalanceCone_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vSuper, bool fFirst,
     }
     assert( !Abc_ObjIsComplement(pNode) );
     assert( Abc_ObjIsNode(pNode) );
-    // get the children
-    p0 = Abc_ObjNotCond( Abc_ObjFanin0(pNode), Abc_ObjFaninC0(pNode) );
-    p1 = Abc_ObjNotCond( Abc_ObjFanin1(pNode), Abc_ObjFaninC1(pNode) );
     // go through the branches
-    RetValue1 = Abc_NodeBalanceCone_rec( p0, vSuper, 0, fDuplicate );
-    RetValue2 = Abc_NodeBalanceCone_rec( p1, vSuper, 0, fDuplicate );
+    RetValue1 = Abc_NodeBalanceCone_rec( Abc_ObjChild0(pNode), vSuper, 0, fDuplicate );
+    RetValue2 = Abc_NodeBalanceCone_rec( Abc_ObjChild1(pNode), vSuper, 0, fDuplicate );
     if ( RetValue1 == -1 || RetValue2 == -1 )
         return -1;
     // return 1 if at least one branch has a duplicate

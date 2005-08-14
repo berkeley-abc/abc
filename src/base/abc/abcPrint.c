@@ -43,7 +43,7 @@
 void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
 {
     fprintf( pFile, "%-15s:",       pNtk->pName );
-    fprintf( pFile, "  i/o = %3d/%3d", Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk) );
+    fprintf( pFile, "  i/o = %4d/%4d", Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk) );
 
     if ( !Abc_NtkIsSeq(pNtk) )
         fprintf( pFile, "  lat = %4d", Abc_NtkLatchNum(pNtk) );
@@ -65,7 +65,7 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
     else 
         fprintf( pFile, "  nd = %5d", Abc_NtkNodeNum(pNtk) );
 
-    if ( Abc_NtkIsLogicSop(pNtk) )   
+    if ( Abc_NtkIsLogicSop(pNtk) || Abc_NtkIsNetlistSop(pNtk) )   
     {
         fprintf( pFile, "  cube = %5d",  Abc_NtkGetCubeNum(pNtk) );
 //        fprintf( pFile, "  lit(sop) = %5d",  Abc_NtkGetLitNum(pNtk) );
@@ -74,7 +74,7 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
     }
     else if ( Abc_NtkIsLogicBdd(pNtk) )
         fprintf( pFile, "  bdd = %5d",  Abc_NtkGetBddNodeNum(pNtk) );
-    else if ( Abc_NtkIsLogicMap(pNtk) )
+    else if ( Abc_NtkIsLogicMap(pNtk) || Abc_NtkIsNetlistMap(pNtk) )
     {
         fprintf( pFile, "  area = %5.2f", Abc_NtkGetMappedArea(pNtk) );
         fprintf( pFile, "  delay = %5.2f", Abc_NtkDelayTrace(pNtk) );
@@ -85,7 +85,7 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
     }
 
     if ( !Abc_NtkIsSeq(pNtk) )
-        fprintf( pFile, "  lev = %2d", Abc_NtkGetLevelNum(pNtk) );
+        fprintf( pFile, "  lev = %3d", Abc_NtkGetLevelNum(pNtk) );
 
     fprintf( pFile, "\n" );
 }
@@ -135,7 +135,7 @@ void Abc_NtkPrintIo( FILE * pFile, Abc_Ntk_t * pNtk )
 ***********************************************************************/
 void Abc_NtkPrintLatch( FILE * pFile, Abc_Ntk_t * pNtk )
 {
-    Abc_Obj_t * pLatch;
+    Abc_Obj_t * pLatch, * pFanin;
     int i, Counter0, Counter1, Counter2;
     int Init0, Init1, Init2;
 
@@ -152,38 +152,46 @@ void Abc_NtkPrintLatch( FILE * pFile, Abc_Ntk_t * pNtk )
 
     Abc_NtkForEachLatch( pNtk, pLatch, i )
     {
-        if ( pLatch->pData == (void *)0 )
+        if ( Abc_LatchIsInit0(pLatch) )
             Init0++;
-        else if ( pLatch->pData == (void *)1 )
+        else if ( Abc_LatchIsInit1(pLatch) )
             Init1++;
-        else if ( pLatch->pData == (void *)2 )
+        else if ( Abc_LatchIsInitDc(pLatch) )
             Init2++;
         else
             assert( 0 );
 
-        if ( Abc_ObjFaninNum( Abc_ObjFanin0(pLatch) ) == 0 )
+        pFanin = Abc_ObjFanin0(pLatch);
+        if ( !Abc_ObjIsNode(pFanin) || !Abc_NodeIsConst(pFanin) )
+            continue;
+
+        // the latch input is a constant node
+        Counter0++;
+        if ( Abc_LatchIsInitDc(pLatch) )
         {
-            Counter0++;
-            if ( pLatch->pData == (void *)2 )
-                Counter1++;
-            else 
-            {
-                if ( Abc_NtkIsAig(pNtk) )
-                {
-                    if ( (pLatch->pData == (void *)1) ^ Abc_ObjFaninC0(pLatch) )
-                        Counter2++;
-                }
-                else
-                {
-                    if ( (pLatch->pData == (void *)1) ^ Abc_NodeIsConst0(pLatch) )
-                        Counter2++;
-                }
-            }
+            Counter1++;
+            continue;
+        }
+        // count the number of cases when the constant is equal to the initial value
+        if ( Abc_NtkIsAig(pNtk) )
+        {
+            if ( Abc_LatchIsInit1(pLatch) == !Abc_ObjFaninC0(pLatch) )
+                Counter2++;
+        }
+        else
+        {
+            if ( Abc_LatchIsInit1(pLatch) == Abc_NodeIsConst1(pLatch) )
+                Counter2++;
         }
     }
-    fprintf( pFile, "Latches = %5d:  Init 0 = %5d. Init 1 = %5d. Init any = %5d.\n", Abc_NtkLatchNum(pNtk), Init0, Init1, Init2 );
-    fprintf( pFile, "Constant driver = %4d. Init any = %4d. Init match = %4d.\n", Counter0, Counter1, Counter2 );
-    fprintf( pFile, "The network has %d self-feeding latches.\n", Abc_NtkCountSelfFeedLatches(pNtk) );
+//    fprintf( pFile, "%-15s: ", pNtk->pName );
+//    fprintf( pFile, "L = %5d: 0 = %4d. 1 = %3d. DC = %4d. ", Abc_NtkLatchNum(pNtk), Init0, Init1, Init2 );
+//    fprintf( pFile, "Con = %3d. DC = %3d. Mat = %3d. ", Counter0, Counter1, Counter2 );
+//    fprintf( pFile, "SFeed = %2d.\n", Abc_NtkCountSelfFeedLatches(pNtk) );
+    fprintf( pFile, "%-15s:  ", pNtk->pName );
+    fprintf( pFile, "Lat = %5d: 0 = %4d. 1 = %3d. DC = %4d. \n", Abc_NtkLatchNum(pNtk), Init0, Init1, Init2 );
+    fprintf( pFile, "Con = %3d. DC = %3d. Mat = %3d. ", Counter0, Counter1, Counter2 );
+    fprintf( pFile, "SFeed = %2d.\n", Abc_NtkCountSelfFeedLatches(pNtk) );
 }
 
 /**Function*************************************************************
@@ -270,21 +278,17 @@ void Abc_NodePrintFanio( FILE * pFile, Abc_Obj_t * pNode )
     if ( Abc_ObjIsPo(pNode) )
         pNode = Abc_ObjFanin0(pNode);
 
+    fprintf( pFile, "Node %s", Abc_ObjName(pNode) );    
+    fprintf( pFile, "\n" ); 
+
     fprintf( pFile, "Fanins (%d): ", Abc_ObjFaninNum(pNode) );    
     Abc_ObjForEachFanin( pNode, pNode2, i )
-    {
-        pNode2->pCopy = NULL;
         fprintf( pFile, " %s", Abc_ObjName(pNode2) );
-    }
     fprintf( pFile, "\n" ); 
     
-    fprintf( pFile, "\n" );    
     fprintf( pFile, "Fanouts (%d): ", Abc_ObjFaninNum(pNode) );    
     Abc_ObjForEachFanout( pNode, pNode2, i )
-    {
-        pNode2->pCopy = NULL;
         fprintf( pFile, " %s", Abc_ObjName(pNode2) );
-    }
     fprintf( pFile, "\n" );   
 }
 
@@ -326,19 +330,120 @@ void Abc_NodePrintFactor( FILE * pFile, Abc_Obj_t * pNode )
         pNode = Abc_ObjFanin0(pNode);
     if ( Abc_ObjIsPi(pNode) )
     {
-        printf( "Skipping the PI node.\n" );
+        fprintf( pFile, "Skipping the PI node.\n" );
         return;
     }
     if ( Abc_ObjIsLatch(pNode) )
     {
-        printf( "Skipping the latch.\n" );
+        fprintf( pFile, "Skipping the latch.\n" );
         return;
     }
     assert( Abc_ObjIsNode(pNode) );
     vFactor = Ft_Factor( pNode->pData );
-    pNode->pCopy = NULL;
     Ft_FactorPrint( stdout, vFactor, NULL, Abc_ObjName(pNode) );
     Vec_IntFree( vFactor );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Prints the level stats of the PO node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkPrintLevel( FILE * pFile, Abc_Ntk_t * pNtk, int fProfile )
+{
+    Abc_Obj_t * pNode;
+    int i, Length;
+    assert( Abc_NtkIsAig(pNtk) );
+
+    // print the delay profile
+    if ( fProfile )
+    {
+        int LevelMax, * pLevelCounts;
+        int nOutsSum, nOutsTotal;
+
+        LevelMax = 0;
+        Abc_NtkForEachCo( pNtk, pNode, i )
+            if ( LevelMax < (int)Abc_ObjFanin0(pNode)->Level )
+                LevelMax = Abc_ObjFanin0(pNode)->Level;
+        pLevelCounts = ALLOC( int, LevelMax + 1 );
+        memset( pLevelCounts, 0, sizeof(int) * (LevelMax + 1) );
+        Abc_NtkForEachCo( pNtk, pNode, i )
+            pLevelCounts[Abc_ObjFanin0(pNode)->Level]++;
+
+        nOutsSum   = 0;
+        nOutsTotal = Abc_NtkCoNum(pNtk);
+        for ( i = 0; i <= LevelMax; i++ )
+            if ( pLevelCounts[i] )
+            {
+                nOutsSum += pLevelCounts[i];
+                printf( "Level = %4d.  COs = %4d.   %5.1f %%\n", i, pLevelCounts[i], 100.0 * nOutsSum/nOutsTotal );
+            }
+        return;
+    }
+
+    // find the longest name
+    Length = 0;
+    Abc_NtkForEachCo( pNtk, pNode, i )
+        if ( Length < (int)strlen(Abc_ObjName(pNode)) )
+            Length = strlen(Abc_ObjName(pNode));
+    if ( Length < 5 )
+        Length = 5;
+    // print stats for each output
+    Abc_NtkForEachCo( pNtk, pNode, i )
+    {
+        fprintf( pFile, "CO %4d :  %*s    ", i, Length, Abc_ObjName(pNode) ); 
+        Abc_NodePrintLevel( pFile, pNode );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints the factored form of one node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NodePrintLevel( FILE * pFile, Abc_Obj_t * pNode )
+{
+    Abc_Obj_t * pDriver;
+    Vec_Ptr_t * vNodes;
+
+    pDriver = Abc_ObjIsCo(pNode)? Abc_ObjFanin0(pNode) : pNode;
+    if ( Abc_ObjIsPi(pDriver) )
+    {
+        fprintf( pFile, "Primary input.\n" );
+        return;
+    }
+    if ( Abc_ObjIsLatch(pDriver) )
+    {
+        fprintf( pFile, "Latch.\n" );
+        return;
+    }
+    if ( Abc_NodeIsConst(pDriver) )
+    {
+        fprintf( pFile, "Constant %d.\n", !Abc_ObjFaninC0(pNode) );
+        return;
+    }
+    // print the level
+    fprintf( pFile, "Level = %3d.  ", pDriver->Level );
+    // print the size of MFFC
+    fprintf( pFile, "Mffc = %5d.  ", Abc_NodeMffcSize(pDriver) );
+    // print the size of the shole cone
+    vNodes = Abc_NtkDfsNodes( pNode->pNtk, &pDriver, 1 );
+    fprintf( pFile, "Cone = %5d.  ", Vec_PtrSize(vNodes) );
+    Vec_PtrFree( vNodes );
+    fprintf( pFile, "\n" );
 }
 
 ////////////////////////////////////////////////////////////////////////

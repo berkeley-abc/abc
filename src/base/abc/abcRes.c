@@ -79,7 +79,7 @@ int Abc_NtkAigResynthesize( Abc_Ntk_t * pNtk, Abc_ManRes_t * p )
     pProgress = Extra_ProgressBarStart( stdout, 100 );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
-        Approx = (int)(100.0 * i / pNtk->vObjs->nSize );
+        Approx = (int)(100.0 * i / Abc_NtkObjNumMax(pNtk) );
         Extra_ProgressBarUpdate( pProgress, Approx, NULL );
         p->pNode = pNode;
         Abc_NodeResyn( p );

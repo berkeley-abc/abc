@@ -190,7 +190,7 @@ DdNode * Abc_NtkInitStateAndVarMap( DdManager * dd, Abc_Ntk_t * pNtk, int fVerbo
         pbVarsX[i] = dd->vars[ Abc_NtkPiNum(pNtk) + i ];
         pbVarsY[i] = dd->vars[ Abc_NtkCiNum(pNtk) + i ];
         // get the initial value of the latch
-        bVar  = Cudd_NotCond( pbVarsX[i], (((int)pLatch->pData) != 1) );
+        bVar  = Cudd_NotCond( pbVarsX[i], !Abc_LatchIsInit1(pLatch) );
         bProd = Cudd_bddAnd( dd, bTemp = bProd, bVar );      Cudd_Ref( bProd );
         Cudd_RecursiveDeref( dd, bTemp ); 
     }

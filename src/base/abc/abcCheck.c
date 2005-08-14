@@ -28,7 +28,7 @@
 static bool Abc_NtkCheckNames( Abc_Ntk_t * pNtk );
 static bool Abc_NtkCheckPis( Abc_Ntk_t * pNtk );
 static bool Abc_NtkCheckPos( Abc_Ntk_t * pNtk );
-static bool Abc_NtkCheckObj( Abc_Ntk_t * pNtk, Abc_Obj_t * pObj );
+//static bool Abc_NtkCheckObj( Abc_Ntk_t * pNtk, Abc_Obj_t * pObj );
 static bool Abc_NtkCheckNet( Abc_Ntk_t * pNtk, Abc_Obj_t * pNet );
 static bool Abc_NtkCheckNode( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode );
 static bool Abc_NtkCheckLatch( Abc_Ntk_t * pNtk, Abc_Obj_t * pLatch );
@@ -57,7 +57,7 @@ bool Abc_NtkCheck( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pObj, * pNet, * pNode;
     int i;
 
-    if ( !Abc_NtkIsNetlist(pNtk) && !Abc_NtkIsLogic(pNtk) && !Abc_NtkIsAig(pNtk) )
+    if ( !Abc_NtkIsNetlist(pNtk) && !Abc_NtkIsLogic(pNtk) && !Abc_NtkIsAig(pNtk) && !Abc_NtkIsSeq(pNtk) )
     {
         fprintf( stdout, "NetworkCheck: Unknown network type.\n" );
         return 0;
@@ -110,9 +110,18 @@ bool Abc_NtkCheck( Abc_Ntk_t * pNtk )
     }
 
     // check the nodes
-    Abc_NtkForEachNode( pNtk, pNode, i )
-        if ( !Abc_NtkCheckNode( pNtk, pNode ) )
-            return 0;
+    if ( Abc_NtkIsAig(pNtk) || Abc_NtkIsSeq(pNtk) )
+    {
+        if ( Abc_NtkIsAig(pNtk) ) 
+            Abc_AigCheck( pNtk->pManFunc );
+    }
+    else
+    {
+        Abc_NtkForEachNode( pNtk, pNode, i )
+            if ( !Abc_NtkCheckNode( pNtk, pNode ) )
+                return 0;
+    }
+
     // check the latches
     Abc_NtkForEachLatch( pNtk, pNode, i )
         if ( !Abc_NtkCheckLatch( pNtk, pNode ) )
@@ -120,7 +129,7 @@ bool Abc_NtkCheck( Abc_Ntk_t * pNtk )
 
     // finally, check for combinational loops
 //  clk = clock();
-    if ( !Abc_NtkIsAcyclic( pNtk ) )
+    if ( !Abc_NtkIsSeq( pNtk ) && !Abc_NtkIsAcyclic( pNtk ) )
     {
         fprintf( stdout, "NetworkCheck: Network contains a combinational loop.\n" );
         return 0;
@@ -352,7 +361,7 @@ bool Abc_NtkCheckPos( Abc_Ntk_t * pNtk )
 bool Abc_NtkCheckObj( Abc_Ntk_t * pNtk, Abc_Obj_t * pObj )
 {
     Abc_Obj_t * pFanin, * pFanout;
-    int i, Value = 1;
+    int i, k, Value = 1;
 
     // check the network
     if ( pObj->pNtk != pNtk )
@@ -361,7 +370,7 @@ bool Abc_NtkCheckObj( Abc_Ntk_t * pNtk, Abc_Obj_t * pObj )
         return 0;
     }
     // check the object ID
-    if ( pObj->Id < 0 || (int)pObj->Id > pNtk->vObjs->nSize )
+    if ( pObj->Id < 0 || (int)pObj->Id >= Abc_NtkObjNumMax(pNtk) )
     {
         fprintf( stdout, "NetworkCheck: Object \"%s\" has incorrect ID.\n", Abc_ObjName(pObj) );
         return 0;
@@ -386,6 +395,24 @@ bool Abc_NtkCheckObj( Abc_Ntk_t * pNtk, Abc_Obj_t * pObj )
             Value = 0;
         }
     }
+/*
+    // make sure fanins are not duplicated
+    for ( i = 0; i < pObj->vFanins.nSize; i++ )
+        for ( k = i + 1; k < pObj->vFanins.nSize; k++ )
+            if ( pObj->vFanins.pArray[k].iFan == pObj->vFanins.pArray[i].iFan )
+            {
+                printf( "Warning: Node %s has", Abc_ObjName(pObj) );
+                printf( " duplicated fanin %s.\n", Abc_ObjName(Abc_ObjFanin(pObj,k)) );
+            }
+    // make sure fanouts are not duplicated
+    for ( i = 0; i < pObj->vFanouts.nSize; i++ )
+        for ( k = i + 1; k < pObj->vFanouts.nSize; k++ )
+            if ( pObj->vFanouts.pArray[k].iFan == pObj->vFanouts.pArray[i].iFan )
+            {
+                printf( "Warning: Node %s has", Abc_ObjName(pObj) );
+                printf( " duplicated fanout %s.\n", Abc_ObjName(Abc_ObjFanout(pObj,k)) );
+            }
+*/
     return Value;
 }
 
@@ -435,9 +462,9 @@ bool Abc_NtkCheckNode( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode )
         return 0;
     }
     // the node should have a function assigned unless it is an AIG
-    if ( pNode->pData == NULL && !Abc_NtkIsAig(pNtk) )
+    if ( pNode->pData == NULL )
     {
-        fprintf( stdout, "NodeCheck: An internal node \"%s\" has no logic function.\n", Abc_ObjName(pNode) );
+        fprintf( stdout, "NodeCheck: An internal node \"%s\" does not have a logic function.\n", Abc_ObjName(pNode) );
         return 0;
     }
     // the netlist and SOP logic network should have SOPs
@@ -458,7 +485,7 @@ bool Abc_NtkCheckNode( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode )
             return 0;
         }
     }
-    else if ( !Abc_NtkIsAig(pNtk) && !Abc_NtkIsLogicMap(pNtk) && !Abc_NtkIsNetlistMap(pNtk) )
+    else if ( !Abc_NtkIsMapped(pNtk) )
     {
         assert( 0 );
     }
@@ -562,7 +589,7 @@ bool Abc_NtkComparePos( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb )
         printf( "Networks have different number of primary outputs.\n" );
         return 0;
     }
-    // for each PI of pNet1 find corresponding PI of pNet2 and reorder them
+    // for each PO of pNet1 find corresponding PO of pNet2 and reorder them
     Abc_NtkForEachPo( pNtk1, pObj1, i )
     {
         if ( strcmp( Abc_ObjName(pObj1), Abc_ObjName(Abc_NtkPo(pNtk2,i)) ) != 0 )
@@ -623,12 +650,14 @@ bool Abc_NtkCompareLatches( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb )
 ***********************************************************************/
 bool Abc_NtkCompareSignals( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb )
 {
+    Abc_NtkAlphaOrderSignals( pNtk1, fComb );
+    Abc_NtkAlphaOrderSignals( pNtk2, fComb );
     if ( !Abc_NtkCompareLatches( pNtk1, pNtk2, fComb ) )
         return 0;
     if ( !Abc_NtkComparePis( pNtk1, pNtk2, fComb ) )
         return 0;
-//    if ( !Abc_NtkComparePos( pNtk1, pNtk2, fComb ) )
-//        return 0;
+    if ( !Abc_NtkComparePos( pNtk1, pNtk2, fComb ) )
+        return 0;
     return 1;
 }
 

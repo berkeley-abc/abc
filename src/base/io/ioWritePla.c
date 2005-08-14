@@ -32,7 +32,7 @@ static int    Io_WritePlaOne( FILE * pFile, Abc_Ntk_t * pNtk );
 
 /**Function*************************************************************
 
-  Synopsis    [Writes the network in BENCH format.]
+  Synopsis    [Writes the network in PLA format.]
 
   Description []
                
@@ -69,7 +69,7 @@ int Io_WritePla( Abc_Ntk_t * pNtk, char * pFileName )
 
 /**Function*************************************************************
 
-  Synopsis    [Writes the network in BENCH format.]
+  Synopsis    [Writes the network in PLA format.]
 
   Description []
                

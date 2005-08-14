@@ -66,9 +66,9 @@ static int Io_ReadBlifNetworkDefaultInputArrival( Io_ReadBlif_t * p, Vec_Ptr_t *
 
 /**Function*************************************************************
 
-  Synopsis    [Read the network from BLIF file.]
+  Synopsis    [Reads the network from a BLIF file.]
 
-  Description []
+  Description [Works only for flat (non-hierarchical) BLIF.]
                
   SideEffects []
 

@@ -492,8 +492,8 @@ void Abc_NtkRenodeSetBoundsCnf( Abc_Ntk_t * pNtk )
             nMuxes++;
     }
     printf( "The number of MUXes detected = %d (%5.2f %% of logic).\n", nMuxes, 300.0*nMuxes/Abc_NtkNodeNum(pNtk) );
-}
-
+} 
+ 
 /**Function*************************************************************
 
   Synopsis    [Sets the expansion boundary for conversion into multi-input AND graph.]

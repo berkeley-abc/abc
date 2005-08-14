@@ -57,7 +57,7 @@ void Abc_NtkCecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
     if ( RetValue == 1 )
     {
         Abc_NtkDelete( pMiter );
-        printf( "Networks are not equivalent.\n" );
+        printf( "Networks are NOT EQUIVALENT after structural hashing.\n" );
         return;
     }
     if ( RetValue == 0 )
@@ -78,9 +78,9 @@ void Abc_NtkCecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
 
     // solve the CNF using the SAT solver
     if ( Abc_NtkMiterSat( pCnf, 0 ) )
-        printf( "Networks are not equivalent.\n" );
+        printf( "Networks are NOT EQUIVALENT after SAT.\n" );
     else
-        printf( "Networks are equivalent.\n" );
+        printf( "Networks are equivalent after SAT.\n" );
     Abc_NtkDelete( pCnf );
 }
 
@@ -96,7 +96,7 @@ void Abc_NtkCecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
+void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fVerbose )
 {
     Fraig_Params_t Params;
     Abc_Ntk_t * pMiter;
@@ -114,7 +114,7 @@ void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
     if ( RetValue == 1 )
     {
         Abc_NtkDelete( pMiter );
-        printf( "Networks are not equivalent.\n" );
+        printf( "Networks are NOT EQUIVALENT after structural hashing.\n" );
         return;
     }
     if ( RetValue == 0 )
@@ -126,6 +126,7 @@ void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
 
     // convert the miter into a FRAIG
     Fraig_ParamsSetDefault( &Params );
+    Params.fVerbose = fVerbose;
     pFraig = Abc_NtkFraig( pMiter, &Params, 0 );
     Abc_NtkDelete( pMiter );
     if ( pFraig == NULL )
@@ -140,7 +141,7 @@ void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
         printf( "Networks are equivalent after fraiging.\n" );
         return;
     }
-    printf( "Networks are not equivalent.\n" );
+    printf( "Networks are NOT EQUIVALENT after fraiging.\n" );
 }
 
 /**Function*************************************************************
@@ -172,7 +173,7 @@ void Abc_NtkSecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames )
     if ( RetValue == 1 )
     {
         Abc_NtkDelete( pMiter );
-        printf( "Networks are not equivalent.\n" );
+        printf( "Networks are NOT EQUIVALENT after structural hashing.\n" );
         return;
     }
     if ( RetValue == 0 )
@@ -194,7 +195,7 @@ void Abc_NtkSecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames )
     if ( RetValue == 1 )
     {
         Abc_NtkDelete( pFrames );
-        printf( "Networks are not equivalent.\n" );
+        printf( "Networks are NOT EQUIVALENT after framing.\n" );
         return;
     }
     if ( RetValue == 0 )
@@ -215,9 +216,9 @@ void Abc_NtkSecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames )
 
     // solve the CNF using the SAT solver
     if ( Abc_NtkMiterSat( pCnf, 0 ) )
-        printf( "Networks are not equivalent.\n" );
+        printf( "Networks are NOT EQUIVALENT after SAT.\n" );
     else
-        printf( "Networks are equivalent.\n" );
+        printf( "Networks are equivalent after SAT.\n" );
     Abc_NtkDelete( pCnf );
 }
 
@@ -251,7 +252,7 @@ void Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames )
     if ( RetValue == 1 )
     {
         Abc_NtkDelete( pMiter );
-        printf( "Networks are not equivalent.\n" );
+        printf( "Networks are NOT EQUIVALENT after structural hashing.\n" );
         return;
     }
     if ( RetValue == 0 )
@@ -273,7 +274,7 @@ void Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames )
     if ( RetValue == 1 )
     {
         Abc_NtkDelete( pFrames );
-        printf( "Networks are not equivalent.\n" );
+        printf( "Networks are NOT EQUIVALENT after framing.\n" );
         return;
     }
     if ( RetValue == 0 )
@@ -285,7 +286,7 @@ void Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames )
 
     // convert the miter into a FRAIG
     Fraig_ParamsSetDefault( &Params );
-    pFraig = Abc_NtkFraig( pMiter, &Params, 0 );
+    pFraig = Abc_NtkFraig( pFrames, &Params, 0 );
     Abc_NtkDelete( pFrames );
     if ( pFraig == NULL )
     {
@@ -299,7 +300,7 @@ void Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames )
         printf( "Networks are equivalent after fraiging.\n" );
         return;
     }
-    printf( "Networks are not equivalent.\n" );
+    printf( "Networks are NOT EQUIVALENT after fraiging.\n" );
 }
 
 

@@ -39,8 +39,8 @@
 typedef struct Abc_Fan_t_       Abc_Fan_t;
 struct Abc_Fan_t_ // 1 word
 {
-    unsigned         iFan    : 26;  // the ID of the object
-    unsigned         nLats   :  5;  // the number of latches (up to 31)
+    unsigned         iFan    : 24;  // the ID of the object
+    unsigned         nLats   :  7;  // the number of latches (up to 31)
     unsigned         fCompl  :  1;  // the complemented attribute
 };
 
@@ -279,6 +279,7 @@ static inline int Vec_FanFindEntry( Vec_Fan_t * p, unsigned iFan )
 ***********************************************************************/
 static inline int Vec_FanDeleteEntry( Vec_Fan_t * p, unsigned iFan )
 {
+/*
     int i, k, fFound = 0;
     for ( i = k = 0; i < p->nSize; i++ )
     {
@@ -289,6 +290,17 @@ static inline int Vec_FanDeleteEntry( Vec_Fan_t * p, unsigned iFan )
     }
     p->nSize = k;
     return fFound;
+*/
+    int i;
+    for ( i = 0; i < p->nSize; i++ )
+        if ( p->pArray[i].iFan == iFan )
+            break;
+    if ( i == p->nSize )
+        return 0;
+    for ( i++; i < p->nSize; i++ )
+        p->pArray[i-1] = p->pArray[i];
+    p->nSize--;
+    return 1;
 }
 
 /**Function*************************************************************

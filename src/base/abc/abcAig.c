@@ -97,7 +97,7 @@ static void        Abc_AigDelete_int( Abc_Aig_t * pMan );
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Aig_t * Abc_AigAlloc( Abc_Ntk_t * pNtkAig, bool fSeq )
+Abc_Aig_t * Abc_AigAlloc( Abc_Ntk_t * pNtkAig )
 {
     Abc_Aig_t * pMan;
     // start the manager
@@ -113,8 +113,11 @@ Abc_Aig_t * Abc_AigAlloc( Abc_Ntk_t * pNtkAig, bool fSeq )
     pMan->vStackReplaceNew = Vec_PtrAlloc( 100 );
     // save the current network
     pMan->pNtkAig = pNtkAig;
+    // allocate constant nodes
     pMan->pConst1 = Abc_NtkCreateNode( pNtkAig );    
-    pMan->pReset  = fSeq? Abc_NtkCreateNode( pNtkAig ) : NULL;    
+    pMan->pReset  = Abc_NtkCreateNode( pNtkAig );
+    // subtract these nodes from the total number
+    pNtkAig->nNodes -= 2;
     return pMan;
 }
 
@@ -122,19 +125,54 @@ Abc_Aig_t * Abc_AigAlloc( Abc_Ntk_t * pNtkAig, bool fSeq )
 
   Synopsis    [Duplicated the AIG manager.]
 
-  Description []
+  Description [Assumes that CI/CO nodes are already created.
+  Transfers the latch attributes on the edges.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Aig_t * Abc_AigDup( Abc_Aig_t * pMan, bool fSeq )
+Abc_Aig_t * Abc_AigDup( Abc_Aig_t * pMan, Abc_Aig_t * pManNew )
 {
-    Abc_Aig_t * pManNew;
-    pManNew = Abc_AigAlloc( pMan->pNtkAig, fSeq );
-
-
+    Vec_Ptr_t * vNodes;
+    Abc_Obj_t * pObj;
+    int i;
+    assert( Abc_NtkCiNum(pMan->pNtkAig)    == Abc_NtkCiNum(pManNew->pNtkAig) );
+    assert( Abc_NtkCoNum(pMan->pNtkAig)    == Abc_NtkCoNum(pManNew->pNtkAig) );
+    assert( Abc_NtkLatchNum(pMan->pNtkAig) == Abc_NtkLatchNum(pManNew->pNtkAig) );
+    // set mapping of the constant nodes
+    Abc_AigConst1( pMan )->pCopy = Abc_AigConst1( pManNew );
+    Abc_AigReset( pMan )->pCopy  = Abc_AigReset( pManNew );
+    // set the mapping of CIs/COs
+    Abc_NtkForEachPi( pMan->pNtkAig, pObj, i )
+        pObj->pCopy = Abc_NtkPi( pManNew->pNtkAig, i );
+    Abc_NtkForEachPo( pMan->pNtkAig, pObj, i )
+        pObj->pCopy = Abc_NtkPo( pManNew->pNtkAig, i );
+    Abc_NtkForEachLatch( pMan->pNtkAig, pObj, i )
+        pObj->pCopy = Abc_NtkLatch( pManNew->pNtkAig, i );
+    // copy internal nodes
+    vNodes = Abc_AigDfs( pMan->pNtkAig, 1 );
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+    {
+        if ( !Abc_NodeIsAigAnd(pObj) )
+            continue;
+        pObj->pCopy = Abc_AigAnd( pManNew, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
+        // transfer latch attributes
+        Abc_ObjSetFaninL0( pObj->pCopy, Abc_ObjFaninL0(pObj) );
+        Abc_ObjSetFaninL1( pObj->pCopy, Abc_ObjFaninL1(pObj) );
+    }
+    Vec_PtrFree( vNodes );
+    // relink the CO nodes
+    Abc_NtkForEachCo( pMan->pNtkAig, pObj, i )
+    {
+        Abc_ObjAddFanin( pObj->pCopy, Abc_ObjChild0Copy(pObj) );
+        Abc_ObjSetFaninL0( pObj->pCopy, Abc_ObjFaninL0(pObj) );
+    }
+    // get the number of nodes before and after
+    if ( Abc_NtkNodeNum(pMan->pNtkAig) != Abc_NtkNodeNum(pManNew->pNtkAig) )
+        printf( "Warning: Structural hashing reduced %d nodes (should not happen).\n",
+            Abc_NtkNodeNum(pMan->pNtkAig) - Abc_NtkNodeNum(pManNew->pNtkAig) );
     return pManNew;
 }
 
@@ -183,7 +221,10 @@ int Abc_AigCleanup( Abc_Aig_t * pMan )
     for ( i = 0; i < pMan->nBins; i++ )
         Abc_AigBinForEachEntry( pMan->pBins[i], pAnd )
             if ( Abc_ObjFanoutNum(pAnd) == 0 )
+            {
                 Vec_PtrPush( pMan->vStackDelete, pAnd );
+                pAnd->fMarkA = 1;
+            }
     // process the dangling nodes and their MFFCs
     for ( Counter = 0; Vec_PtrSize(pMan->vStackDelete) > 0; Counter++ )
         Abc_AigDelete_int( pMan );
@@ -239,7 +280,7 @@ bool Abc_AigCheck( Abc_Aig_t * pMan )
     for ( i = 0; i < pMan->nBins; i++ )
         Abc_AigBinForEachEntry( pMan->pBins[i], pAnd )
             Counter++;
-    if ( Counter + 1 + Abc_NtkIsSeq(pMan->pNtkAig) != Abc_NtkNodeNum(pMan->pNtkAig) )
+    if ( Counter != Abc_NtkNodeNum(pMan->pNtkAig) )
     {
         printf( "Abc_AigCheck: The number of nodes in the structural hashing table is wrong.\n", Counter );
         return 0;
@@ -329,10 +370,11 @@ Abc_Obj_t * Abc_AigAndCreate( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 )
 ***********************************************************************/
 Abc_Obj_t * Abc_AigAndCreateFrom( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1, Abc_Obj_t * pAnd )
 {
+    Abc_Obj_t * pTemp;
     unsigned Key;
     // order the arguments
     if ( Abc_ObjRegular(p0)->Id > Abc_ObjRegular(p1)->Id )
-        pAnd = p0, p0 = p1, p1 = pAnd;
+        pTemp = p0, p0 = p1, p1 = pTemp;
     // create the new node
     Abc_ObjAddFanin( pAnd, p0 );
     Abc_ObjAddFanin( pAnd, p1 );
@@ -384,10 +426,7 @@ Abc_Obj_t * Abc_AigAndLookup( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 )
     Key = Abc_HashKey2( p0, p1, pMan->nBins );
     // find the mataching node in the table
     Abc_AigBinForEachEntry( pMan->pBins[Key], pAnd )
-        if ( Abc_ObjFanin0(pAnd)  == Abc_ObjRegular(p0) && 
-             Abc_ObjFanin1(pAnd)  == Abc_ObjRegular(p1) &&  
-             Abc_ObjFaninC0(pAnd) == Abc_ObjIsComplement(p0) && 
-             Abc_ObjFaninC1(pAnd) == Abc_ObjIsComplement(p1) )
+        if ( p0 == Abc_ObjChild0(pAnd) && p1 == Abc_ObjChild1(pAnd) )
              return pAnd;
     return NULL;
 }
@@ -408,7 +447,6 @@ void Abc_AigAndDelete( Abc_Aig_t * pMan, Abc_Obj_t * pThis )
     Abc_Obj_t * pAnd, ** ppPlace;
     unsigned Key;
     assert( !Abc_ObjIsComplement(pThis) );
-    assert( Abc_ObjFanoutNum(pThis) == 0 );
     assert( pMan->pNtkAig == pThis->pNtk );
     // get the hash key for these two nodes
     Key = Abc_HashKey2( Abc_ObjChild0(pThis), Abc_ObjChild1(pThis), pMan->nBins );
@@ -454,7 +492,7 @@ clk = clock();
     for ( i = 0; i < pMan->nBins; i++ )
         Abc_AigBinForEachEntrySafe( pMan->pBins[i], pEnt, pEnt2 )
         {
-            Key = Abc_HashKey2( Abc_ObjFanin(pEnt,0), Abc_ObjFanin(pEnt,1), nBinsNew );
+            Key = Abc_HashKey2( Abc_ObjChild0(pEnt), Abc_ObjChild1(pEnt), nBinsNew );
             pEnt->pNext   = pBinsNew[Key];
             pBinsNew[Key] = pEnt;
             Counter++;
@@ -597,7 +635,7 @@ void Abc_AigReplace_int( Abc_Aig_t * pMan )
     pNew = Vec_PtrPop( pMan->vStackReplaceNew );
     // make sure the old node is regular and has fanouts
     // the new node can be complemented and can have fanouts
-    assert( !Abc_ObjIsComplement(pOld) == 0 );
+    assert( !Abc_ObjIsComplement(pOld) );
     assert( Abc_ObjFanoutNum(pOld) > 0 );
     // look at the fanouts of old node
     Abc_NodeCollectFanouts( pOld, pMan->vNodes );
@@ -632,7 +670,11 @@ void Abc_AigReplace_int( Abc_Aig_t * pMan )
         Abc_AigAndCreateFrom( pMan, pFanin1, pFanin2, pFanout );
     }
     // schedule deletion of the old node
-    Vec_PtrPush( pMan->vStackDelete, pOld );
+    if ( Abc_NodeIsAigAnd(pOld) && pOld->fMarkA == 0 )
+    {
+        Vec_PtrPush( pMan->vStackDelete, pOld );
+        pOld->fMarkA = 1;
+    }
 }
 
 /**Function*************************************************************
@@ -653,18 +695,21 @@ void Abc_AigDelete_int( Abc_Aig_t * pMan )
     // get the node to delete
     assert( Vec_PtrSize(pMan->vStackDelete) > 0 );
     pNode = Vec_PtrPop( pMan->vStackDelete );
+
     // make sure the node is regular and dangling
-    assert( !Abc_ObjIsComplement(pNode) == 0 );
+    assert( !Abc_ObjIsComplement(pNode) );
     assert( Abc_ObjFanoutNum(pNode) == 0 );
-    // skip the constant node
-    if ( pNode == pMan->pConst1 )
-        return;
+    assert( pNode != pMan->pConst1 );
     // schedule fanins for deletion if they dangle
     Abc_ObjForEachFanin( pNode, pFanin, k )
     {
         assert( Abc_ObjFanoutNum(pFanin) > 0 );
         if ( Abc_ObjFanoutNum(pFanin) == 1 )
-            Vec_PtrPush( pMan->vStackDelete, pFanin );
+            if ( Abc_NodeIsAigAnd(pFanin) && pFanin->fMarkA == 0 )
+            {
+                Vec_PtrPush( pMan->vStackDelete, pFanin );
+                pFanin->fMarkA = 1;
+            }
     }
     // remove the node from the table
     Abc_AigAndDelete( pMan, pNode );

@@ -84,20 +84,26 @@ Abc_Ntk_t * Abc_NtkNetlistToLogic( Abc_Ntk_t * pNtk )
 Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk )
 {
     Abc_Ntk_t * pNtkNew, * pNtkTemp; 
-    assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsAig(pNtk) );
-    if ( Abc_NtkIsLogicBdd(pNtk) )
-    {
-        Abc_NtkBddToSop(pNtk);
-        pNtkNew = Abc_NtkLogicSopToNetlist( pNtk );
-        Abc_NtkSopToBdd(pNtk);
-    }
-    else if ( Abc_NtkIsAig(pNtk) )
+    assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsAig(pNtk) || Abc_NtkIsSeq(pNtk) );
+    if ( Abc_NtkIsAig(pNtk) )
     {
         pNtkTemp = Abc_NtkAigToLogicSop(pNtk);
         pNtkNew = Abc_NtkLogicSopToNetlist( pNtkTemp );
         Abc_NtkDelete( pNtkTemp );
     }
-    else
+    else if ( Abc_NtkIsSeq(pNtk) )
+    {
+        pNtkTemp = Abc_NtkSeqToLogicSop(pNtk);
+        pNtkNew = Abc_NtkLogicSopToNetlist( pNtkTemp );
+        Abc_NtkDelete( pNtkTemp );
+    }
+    else if ( Abc_NtkIsLogicBdd(pNtk) )
+    {
+        Abc_NtkBddToSop(pNtk);
+        pNtkNew = Abc_NtkLogicSopToNetlist( pNtk );
+        Abc_NtkSopToBdd(pNtk);
+    }
+    else 
         pNtkNew = Abc_NtkLogicSopToNetlist( pNtk );
     return pNtkNew;
 }
@@ -261,10 +267,12 @@ Abc_Ntk_t * Abc_NtkAigToLogicSop( Abc_Ntk_t * pNtk )
         // set the new node
         pObj->pCopy = pNodeNew;
     }
-    // connect the objects, including the COs
-    Abc_NtkForEachObj( pNtk, pObj, i )
+    // connect the internal nodes
+    Abc_NtkForEachNode( pNtk, pObj, i )
         Abc_ObjForEachFanin( pObj, pFanin, k )
             Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
+    // connect the COs
+    Abc_NtkFinalize( pNtk, pNtkNew );
     // fix the problem with complemented and duplicated CO edges
     Abc_NtkLogicMakeSimpleCos( pNtkNew, 0 );
     // duplicate the EXDC Ntk
@@ -306,7 +314,7 @@ Abc_Ntk_t * Abc_NtkAigToLogicSopBench( Abc_Ntk_t * pNtk )
     // create the constant node
     Abc_NtkDupConst1( pNtk, pNtkNew );
     // collect the nodes to be used (marks all nodes with current TravId)
-    vNodes = Abc_NtkDfs( pNtk );
+    vNodes = Abc_NtkDfs( pNtk, 0 );
     // create inverters for the CI and remember them
     Abc_NtkForEachCi( pNtk, pObj, i )
         if ( Abc_AigNodeHasComplFanoutEdgeTrav(pObj) )

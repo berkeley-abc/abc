@@ -301,6 +301,10 @@ SOURCE=.\src\base\io\ioReadBlif.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\io\ioReadEdif.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\io\ioReadPla.c
 # End Source File
 # Begin Source File

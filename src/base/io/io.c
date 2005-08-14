@@ -28,6 +28,7 @@
 static int IoCommandRead        ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadBlif    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadBench   ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandReadEdif    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadVerilog ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadPla     ( Abc_Frame_t * pAbc, int argc, char **argv );
 
@@ -56,6 +57,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "read",          IoCommandRead,         1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_blif",     IoCommandReadBlif,     1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_bench",    IoCommandReadBench,    1 );
+    Cmd_CommandAdd( pAbc, "I/O", "read_edif",     IoCommandReadEdif,     1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_verilog",  IoCommandReadVerilog,  1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_pla",      IoCommandReadPla,      1 );
 
@@ -232,6 +234,7 @@ usage:
     fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
     return 1;
 }
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -306,6 +309,86 @@ int IoCommandReadBench( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     fprintf( pAbc->Err, "usage: read_bench [-ch] <file>\n" );
     fprintf( pAbc->Err, "\t         read the network in BENCH format\n" );
+    fprintf( pAbc->Err, "\t-c     : toggle network check after reading [default = %s]\n", fCheck? "yes":"no" );
+    fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IoCommandReadEdif( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk, * pTemp;
+    char * FileName;
+    FILE * pFile;
+    int fCheck;
+    int c;
+
+    fCheck = 1;
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "ch" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'c':
+                fCheck ^= 1;
+                break;
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+
+    if ( argc != util_optind + 1 )
+    {
+        goto usage;
+    }
+
+    // get the input file name
+    FileName = argv[util_optind];
+    if ( (pFile = fopen( FileName, "r" )) == NULL )
+    {
+        fprintf( pAbc->Err, "Cannot open input file \"%s\". ", FileName );
+        if ( FileName = Extra_FileGetSimilarName( FileName, ".mv", ".blif", ".pla", ".mvpla", NULL ) )
+            fprintf( pAbc->Err, "Did you mean \"%s\"?", FileName );
+        fprintf( pAbc->Err, "\n" );
+        return 1;
+    }
+    fclose( pFile );
+
+    // set the new network
+    pNtk = Io_ReadEdif( FileName, fCheck );
+    if ( pNtk == NULL )
+    {
+        fprintf( pAbc->Err, "Reading network from EDIF file has failed.\n" );
+        return 1;
+    }
+
+    pNtk = Abc_NtkNetlistToLogic( pTemp = pNtk );
+    Abc_NtkDelete( pTemp );
+    if ( pNtk == NULL )
+    {
+        fprintf( pAbc->Err, "Converting to logic network after reading has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: read_edif [-ch] <file>\n" );
+    fprintf( pAbc->Err, "\t         read the network in EDIF (works only for ISCAS benchmarks)\n" );
     fprintf( pAbc->Err, "\t-c     : toggle network check after reading [default = %s]\n", fCheck? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
     fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
@@ -521,12 +604,13 @@ int IoCommandWriteBlif( Abc_Frame_t * pAbc, int argc, char **argv )
     FileName = argv[util_optind];
 
     // check the network type
-    if ( !Abc_NtkIsLogic(pNtk) && !Abc_NtkIsAig(pNtk) )
+    if ( !Abc_NtkIsLogic(pNtk) && !Abc_NtkIsAig(pNtk) && !Abc_NtkIsSeq(pNtk) )
     {
-        fprintf( pAbc->Out, "Currently can only write logic networks and AIGs.\n" );
+        fprintf( pAbc->Out, "Currently can only write logic networks, AIGs, and seq AIGs.\n" );
         return 0;
     }
     Io_WriteBlifLogic( pNtk, FileName, fWriteLatches );
+//    Io_WriteBlif( pNtk, FileName, fWriteLatches );
     return 0;
 
 usage:

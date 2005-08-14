@@ -104,15 +104,11 @@ Fraig_Man_t * Abc_NtkToFraig( Abc_Ntk_t * pNtk, Fraig_Params_t * pParams, int fA
     pConst1 = Abc_AigConst1( pNtk->pManFunc );
 
     // perform strashing
-    if ( fAllNodes )
-        vNodes = Abc_AigCollectAll( pNtk );
-    else
-        vNodes = Abc_AigDfs( pNtk );
+    vNodes = Abc_AigDfs( pNtk, fAllNodes );
     pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
-    for ( i = 0; i < vNodes->nSize; i++ )
+    Vec_PtrForEachEntry( vNodes, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
-        pNode = vNodes->pArray[i];
         if ( pNode == pConst1 )
             pNodeFraig = Fraig_ManReadConst1(pMan);
         else
@@ -328,13 +324,12 @@ void Abc_NtkFraigTrustOne( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
     int i;
 
     // perform strashing
-    vNodes = Abc_NtkDfs( pNtk );
+    vNodes = Abc_NtkDfs( pNtk, 0 );
     pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
-    for ( i = 0; i < vNodes->nSize; i++ )
+    Vec_PtrForEachEntry( vNodes, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
         // get the node
-        pNode = vNodes->pArray[i];
         assert( Abc_ObjIsNode(pNode) );
          // strash the node
         pNodeNew = Abc_NodeFraigTrust( pMan, pNode );

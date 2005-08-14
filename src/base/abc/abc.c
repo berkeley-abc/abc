@@ -33,6 +33,7 @@ static int Abc_CommandPrintIo      ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int Abc_CommandPrintLatch   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintFanio   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintFactor  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintLevel   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintSupport ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandShowBdd      ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -97,6 +98,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Printing",     "print_latch",   Abc_CommandPrintLatch,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_fanio",   Abc_CommandPrintFanio,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_factor",  Abc_CommandPrintFactor,      0 );
+    Cmd_CommandAdd( pAbc, "Printing",     "print_level",   Abc_CommandPrintLevel,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_supp",    Abc_CommandPrintSupport,     0 );
 
     Cmd_CommandAdd( pAbc, "Printing",     "show_bdd",      Abc_CommandShowBdd,          0 );
@@ -466,6 +468,88 @@ usage:
     fprintf( pErr, "\t        prints the factored forms of nodes\n" );
     fprintf( pErr, "\tnode  : (optional) one node to consider\n");
     fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandPrintLevel( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    Abc_Obj_t * pNode;
+    int c;
+    int fProfile;
+
+    pNtk = Abc_FrameReadNet(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fProfile = 0;
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "ph" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'p':
+            fProfile ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkIsAig(pNtk) )
+    {
+        fprintf( pErr, "This command works only for AIGs.\n" );
+        return 1;
+    }
+
+    if ( argc > util_optind + 1 )
+    {
+        fprintf( pErr, "Wrong number of auguments.\n" );
+        goto usage;
+    }
+
+    if ( argc == util_optind + 1 )
+    {
+        pNode = Abc_NtkFindNode( pNtk, argv[util_optind] );
+        if ( pNode == NULL )
+        {
+            fprintf( pErr, "Cannot find node \"%s\".\n", argv[util_optind] );
+            return 1;
+        }
+        Abc_NodePrintLevel( pOut, pNode );
+        return 0;
+    }
+    // process all COs
+    Abc_NtkPrintLevel( pOut, pNtk, fProfile );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: print_level [-ph] <node>\n" );
+    fprintf( pErr, "\t        prints information about node level and cone size\n" );
+    fprintf( pErr, "\t-p    : toggles printing level profile [default = %s]\n", fProfile? "yes": "no" );
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    fprintf( pErr, "\tnode  : (optional) one node to consider\n");
     return 1;
 }
 
@@ -2973,9 +3057,10 @@ int Abc_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nArgcNew;
     int c;
     int fSat;
+    int fVerbose;
 
     extern void Abc_NtkCecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 );
-    extern void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 );
+    extern void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fVerbose );
 
 
     pNtk = Abc_FrameReadNet(pAbc);
@@ -2983,14 +3068,18 @@ int Abc_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fSat   = 0;
+    fSat     = 0;
+    fVerbose = 0;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "sh" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "svh" ) ) != EOF )
     {
         switch ( c )
         {
         case 's':
             fSat ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
             break;
         default:
             goto usage;
@@ -3006,16 +3095,17 @@ int Abc_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fSat )
         Abc_NtkCecSat( pNtk1, pNtk2 );
     else
-        Abc_NtkCecFraig( pNtk1, pNtk2 );
+        Abc_NtkCecFraig( pNtk1, pNtk2, fVerbose );
 
     if ( fDelete1 ) Abc_NtkDelete( pNtk1 );
     if ( fDelete2 ) Abc_NtkDelete( pNtk2 );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: cec [-sh] <file1> <file2>\n" );
+    fprintf( pErr, "usage: cec [-svh] <file1> <file2>\n" );
     fprintf( pErr, "\t        performs combinational equivalence checking\n" );
     fprintf( pErr, "\t-s    : toggle \"SAT only\" and \"FRAIG + SAT\" [default = %s]\n", fSat? "SAT only": "FRAIG + SAT" );
+    fprintf( pErr, "\t-v    : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h    : print the command usage\n");
     fprintf( pErr, "\tfile1 : (optional) the file with the first network\n");
     fprintf( pErr, "\tfile2 : (optional) the file with the second network\n");

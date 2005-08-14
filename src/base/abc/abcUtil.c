@@ -640,7 +640,13 @@ int Abc_NtkPrepareCommand( FILE * pErr, Abc_Ntk_t * pNtk, char ** argv, int argc
         else
             fclose( pFile );
 
-        pNtk1 = pNtk;
+        if ( Abc_NtkIsSeq(pNtk) )
+        {
+            pNtk1 = Abc_NtkSeqToLogicSop(pNtk);
+            *pfDelete1 = 1;
+        }
+        else
+            pNtk1 = pNtk;
         pNtk2 = Io_Read( pNtk->pSpec, fCheck );
         if ( pNtk2 == NULL )
             return 0;
@@ -653,7 +659,13 @@ int Abc_NtkPrepareCommand( FILE * pErr, Abc_Ntk_t * pNtk, char ** argv, int argc
             fprintf( pErr, "Empty current network.\n" );
             return 0;
         }
-        pNtk1 = pNtk;
+        if ( Abc_NtkIsSeq(pNtk) )
+        {
+            pNtk1 = Abc_NtkSeqToLogicSop(pNtk);
+            *pfDelete1 = 1;
+        }
+        else
+            pNtk1 = pNtk;
         pNtk2 = Io_Read( argv[util_optind], fCheck );
         if ( pNtk2 == NULL )
             return 0;
@@ -766,10 +778,9 @@ int Abc_NodeCompareLevelsDecrease( Abc_Obj_t ** pp1, Abc_Obj_t ** pp2 )
     return 0; 
 }
 
-
 /**Function*************************************************************
 
-  Synopsis    [Collect all nodes by level.]
+  Synopsis    [Procedure used for sorting the nodes in decreasing order of levels.]
 
   Description []
                
@@ -778,22 +789,16 @@ int Abc_NodeCompareLevelsDecrease( Abc_Obj_t ** pp1, Abc_Obj_t ** pp2 )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Abc_AigCollectAll( Abc_Ntk_t * pNtk )
+int Abc_NodeCompareNames( Abc_Obj_t ** pp1, Abc_Obj_t ** pp2 )
 {
-    Vec_Ptr_t * vNodes;
-    Abc_Obj_t * pNode;
-    int i;
-    vNodes = Vec_PtrAlloc( 100 );
-    Abc_NtkForEachNode( pNtk, pNode, i )
-        Vec_PtrPush( vNodes, pNode );
-
-    // works only if the levels are set!!!
-    if ( !Abc_NtkIsAig(pNtk) )
-        Abc_NtkGetLevelNum(pNtk);
-
-    Vec_PtrSort( vNodes, Abc_NodeCompareLevelsIncrease );
-    return vNodes;
+    int Diff = strcmp( (char *)(*pp1)->pCopy, (char *)(*pp2)->pCopy );
+    if ( Diff < 0 )
+        return -1;
+    if ( Diff > 0 ) 
+        return 1;
+    return 0; 
 }
+
 
 /**Function*************************************************************
 
@@ -867,6 +872,53 @@ char ** Abc_NtkCollectCioNames( Abc_Ntk_t * pNtk, int fCollectCos )
     return ppNames;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Orders PIs/POs/latches alphabetically.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkAlphaOrderSignals( Abc_Ntk_t * pNtk, int fComb )
+{
+    Abc_Obj_t * pObj;
+    int i;
+    // temporarily store the names in the copy field
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        pObj->pCopy = (Abc_Obj_t *)Abc_ObjName(pObj);
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        pObj->pCopy = (Abc_Obj_t *)Abc_ObjName(pObj);
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+        pObj->pCopy = (Abc_Obj_t *)Abc_ObjName(pObj);
+    // order objects alphabetically
+    qsort( pNtk->vCis->pArray, pNtk->nPis, sizeof(Abc_Obj_t *), 
+        (int (*)(const void *, const void *)) Abc_NodeCompareNames );
+    qsort( pNtk->vCos->pArray, pNtk->nPos, sizeof(Abc_Obj_t *), 
+        (int (*)(const void *, const void *)) Abc_NodeCompareNames );
+    // if the comparison if combinational (latches as PIs/POs), order them too
+    if ( fComb )
+    {
+        qsort( pNtk->vLats->pArray, pNtk->nLatches, sizeof(Abc_Obj_t *), 
+            (int (*)(const void *, const void *)) Abc_NodeCompareNames );
+        // add latches to make COs
+        Abc_NtkForEachLatch( pNtk, pObj, i )
+        {
+            Vec_PtrWriteEntry( pNtk->vCis, pNtk->nPis + i, pObj );
+            Vec_PtrWriteEntry( pNtk->vCos, pNtk->nPos + i, pObj );
+        }
+    }
+    // clean the copy fields
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        pObj->pCopy = NULL;
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        pObj->pCopy = NULL;
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+        pObj->pCopy = NULL;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

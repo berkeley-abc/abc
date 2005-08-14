@@ -32,7 +32,6 @@ static Abc_Ntk_t *  Abc_NtkFromMap( Map_Man_t * pMan, Abc_Ntk_t * pNtk );
 static Abc_Obj_t *  Abc_NodeFromMap_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap, int fPhase );
 static Abc_Obj_t *  Abc_NodeFromMapPhase_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap, int fPhase );
 static Abc_Obj_t *  Abc_NodeFromMapSuper_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap, Map_Super_t * pSuper, Abc_Obj_t * pNodePis[], int nNodePis );
-static Abc_Obj_t *  Abc_NtkFixCiDriver( Abc_Obj_t * pNode );
 
 static Abc_Ntk_t *  Abc_NtkFromMapSuperChoice( Map_Man_t * pMan, Abc_Ntk_t * pNtk );
 static void         Abc_NodeSuperChoice( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode );
@@ -148,13 +147,12 @@ Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, i
         pNode->pCopy = (Abc_Obj_t *)Map_ManReadInputs(pMan)[i];
 
     // load the AIG into the mapper
-    vNodes = Abc_AigDfs( pNtk );
+    vNodes = Abc_AigDfs( pNtk, 0 );
     pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
-    for ( i = 0; i < vNodes->nSize; i++ )
+    Vec_PtrForEachEntry( vNodes, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
         // consider the case of a constant
-        pNode = vNodes->pArray[i];
         if ( Abc_NodeIsConst(pNode) )
         {
             Abc_AigConst1(pNtk->pManFunc)->pCopy = (Abc_Obj_t *)Map_ManReadConst1(pMan);
@@ -221,8 +219,6 @@ Abc_Ntk_t * Abc_NtkFromMap( Map_Man_t * pMan, Abc_Ntk_t * pNtk )
         pNodeMap = Map_ManReadOutputs(pMan)[i];
         pNodeNew = Abc_NodeFromMap_rec( pNtkNew, Map_Regular(pNodeMap), !Map_IsComplement(pNodeMap) );
         assert( !Abc_ObjIsComplement(pNodeNew) );
-        if ( !Abc_ObjIsNode(pNodeNew) )
-            pNodeNew = Abc_NtkFixCiDriver( pNodeNew );
         Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
     }
     Extra_ProgressBarStop( pProgress );
@@ -408,36 +404,6 @@ int Abc_NtkUnmap( Abc_Ntk_t * pNtk )
 }
 
 
-/**Function*************************************************************
-
-  Synopsis    [Add buffer when the CO driver is a CI.]
-
-  Description [Hack: If the PO has the same name as the PI, it will still count
-  as the buffer but this node will not be written into file during writing]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Obj_t * Abc_NtkFixCiDriver( Abc_Obj_t * pNode )
-{
-    Mio_Gate_t * pGateBuffer = Mio_LibraryReadBuf(Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame())); 
-    Mio_Gate_t * pGateInv    = Mio_LibraryReadInv(Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame())); 
-    // add the buffer
-    if ( pGateBuffer )
-        return Abc_NodeCreateBuf( pNode->pNtk, pNode ); 
-    // add two inverters
-    if ( pGateInv )
-        return Abc_NodeCreateInv( pNode->pNtk, Abc_NodeCreateInv(pNode->pNtk, pNode) ); 
-    assert( 0 );
-    return NULL;
-}
-
-
-
-
-
 
 
 /**Function*************************************************************
@@ -561,7 +527,7 @@ Abc_Ntk_t * Abc_NtkFromMapSuperChoice( Map_Man_t * pMan, Abc_Ntk_t * pNtk )
     }
 
     // assign the mapping of the required phase to the POs
-    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkNodeNum(pNtk) );
+    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkObjNumMax(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );

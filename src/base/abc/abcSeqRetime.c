@@ -121,7 +121,7 @@ int Abc_NtkRetimeForPeriod( Abc_Ntk_t * pNtk, int Fi )
     int RetValue, i, k;
 
     // set l-values of all nodes to be minus infinity
-    Vec_IntFill( pNtk->pData, Abc_NtkObjNum(pNtk), -ABC_INFINITY );
+    Vec_IntFill( pNtk->pData, Abc_NtkObjNumMax(pNtk), -ABC_INFINITY );
 
     // start the frontier by including PI fanouts
     vFrontier = Vec_PtrAlloc( 100 );

@@ -926,6 +926,7 @@ Map_Cut_t * Map_CutTableConsider( Map_Man_t * pMan, Map_CutTable_t * p, Map_Node
     Map_Cut_t * pCut;
     int Place, i;
 //    int clk;
+/*
     // check the cut
     Place = Map_CutTableLookup( p, ppNodes, nNodes );
     if ( Place == -1 )
@@ -933,6 +934,7 @@ Map_Cut_t * Map_CutTableConsider( Map_Man_t * pMan, Map_CutTable_t * p, Map_Node
     assert( nNodes > 0 );
     // create the new cut
 //clk = clock();
+*/
     pCut = Map_CutAlloc( pMan );
 //pMan->time1 += clock() - clk;
     pCut->nLeaves = nNodes;
@@ -942,12 +944,15 @@ Map_Cut_t * Map_CutTableConsider( Map_Man_t * pMan, Map_CutTable_t * p, Map_Node
         pCut->ppLeaves[i] = ppNodes[i];
 //        pCut->fLevel += ppNodes[i]->Level;
     }
+/*
 //    pCut->fLevel /= nNodes;
     // add the cut to the table
     assert( p->pBins[Place] == NULL );
     p->pBins[Place] = pCut;
     // add the cut to the new list
     p->pCuts[ p->nCuts++ ] = Place;
+*/
+
     return pCut;
 }
 

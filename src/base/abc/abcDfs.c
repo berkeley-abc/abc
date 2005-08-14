@@ -46,7 +46,7 @@ static bool     Abc_NtkIsAcyclic_rec( Abc_Obj_t * pNode );
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Abc_NtkDfs( Abc_Ntk_t * pNtk )
+Vec_Ptr_t * Abc_NtkDfs( Abc_Ntk_t * pNtk, int fCollectAll )
 {
     Vec_Ptr_t * vNodes;
     Abc_Obj_t * pNode;
@@ -59,6 +59,13 @@ Vec_Ptr_t * Abc_NtkDfs( Abc_Ntk_t * pNtk )
     {
         Abc_NodeSetTravIdCurrent( pNode );
         Abc_NtkDfs_rec( Abc_ObjFanin0Ntk(Abc_ObjFanin0(pNode)), vNodes );
+    }
+    // collect dangling nodes if asked to
+    if ( fCollectAll )
+    {
+        Abc_NtkForEachNode( pNtk, pNode, i )
+            if ( !Abc_NodeIsTravIdCurrent(pNode) )
+                Abc_NtkDfs_rec( pNode, vNodes );
     }
     return vNodes;
 }
@@ -141,12 +148,12 @@ void Abc_NtkDfs_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Abc_AigDfs( Abc_Ntk_t * pNtk )
+Vec_Ptr_t * Abc_AigDfs( Abc_Ntk_t * pNtk, int fCollectAll )
 {
     Vec_Ptr_t * vNodes;
     Abc_Obj_t * pNode;
     int i;
-    assert( Abc_NtkIsAig(pNtk) );
+    assert( Abc_NtkIsAig(pNtk) || Abc_NtkIsSeq(pNtk) );
     // set the traversal ID
     Abc_NtkIncrementTravId( pNtk );
     // start the array of nodes
@@ -156,6 +163,13 @@ Vec_Ptr_t * Abc_AigDfs( Abc_Ntk_t * pNtk )
     {
         Abc_NodeSetTravIdCurrent( pNode );
         Abc_AigDfs_rec( Abc_ObjFanin0(pNode), vNodes );
+    }
+    // collect dangling nodes if asked to
+    if ( fCollectAll )
+    {
+        Abc_NtkForEachNode( pNtk, pNode, i )
+            if ( !Abc_NodeIsTravIdCurrent(pNode) )
+                Abc_AigDfs_rec( pNode, vNodes );
     }
     return vNodes;
 }
@@ -308,7 +322,7 @@ int Abc_NtkGetLevelNum( Abc_Ntk_t * pNtk )
 int Abc_NtkGetLevelNum_rec( Abc_Obj_t * pNode )
 {
     Abc_Obj_t * pFanin;
-    int i;
+    int i, Level;
     assert( !Abc_ObjIsNet(pNode) );
     // skip the PI
     if ( Abc_ObjIsCi(pNode) )
@@ -323,9 +337,9 @@ int Abc_NtkGetLevelNum_rec( Abc_Obj_t * pNode )
     pNode->Level = 0;
     Abc_ObjForEachFanin( pNode, pFanin, i )
     {
-        Abc_NtkGetLevelNum_rec( Abc_ObjFanin0Ntk(pFanin) );
-        if ( pNode->Level < pFanin->Level )
-            pNode->Level = pFanin->Level;
+        Level = Abc_NtkGetLevelNum_rec( Abc_ObjFanin0Ntk(pFanin) );
+        if ( pNode->Level < (unsigned)Level )
+            pNode->Level = Level;
     }
     pNode->Level++;
     return pNode->Level;

@@ -124,9 +124,9 @@ static void           Io_ReadVerFree( Io_ReadVer_t * p );
 
 /**Function*************************************************************
 
-  Synopsis    [Read the network from BENCH file.]
+  Synopsis    [Reads the network from a Verilog file.]
 
-  Description [Currently works only for the miter cone.]
+  Description [Works only for IWLS 2005 benchmarks.]
                
   SideEffects []
 
@@ -633,8 +633,12 @@ bool Io_ReadVerNetworkGateComplex( Io_ReadVer_t * p, Abc_Ntk_t * pNtk, Vec_Ptr_t
 bool Io_ReadVerNetworkLatch( Io_ReadVer_t * p, Abc_Ntk_t * pNtk, Vec_Ptr_t * vTokens )
 {
     Abc_Obj_t * pLatch, * pNet;
+    char * pLatchName;
     char * pToken, * pToken2, * pTokenRN, * pTokenSN, * pTokenSI, * pTokenSE, * pTokenD, * pTokenQ, * pTokenQN;
     int k, fRN1, fSN1;
+
+    // get the latch name
+    pLatchName = vTokens->pArray[1];
 
     // collect the FF signals
     pTokenRN = pTokenSN = pTokenSI = pTokenSE = pTokenD = pTokenQ = pTokenQN = NULL;
@@ -666,21 +670,21 @@ bool Io_ReadVerNetworkLatch( Io_ReadVer_t * p, Abc_Ntk_t * pNtk, Vec_Ptr_t * vTo
     if ( pTokenD == NULL )
     {
         p->LineCur = Extra_FileReaderGetLineNumber( p->pReader, 1 );
-        sprintf( p->sError, "Cannot read pin D of the latch \"%s\".", vTokens->pArray[1] );
+        sprintf( p->sError, "Cannot read pin D of the latch \"%s\".", pLatchName );
         Io_ReadVerPrintErrorMessage( p );
         return 0;
     }
     if ( pTokenQ == NULL && pTokenQN == NULL )
     {
         p->LineCur = Extra_FileReaderGetLineNumber( p->pReader, 1 );
-        sprintf( p->sError, "Cannot read pins Q/QN of the latch \"%s\".", vTokens->pArray[1] );
+        sprintf( p->sError, "Cannot read pins Q/QN of the latch \"%s\".", pLatchName );
         Io_ReadVerPrintErrorMessage( p );
         return 0;
     }
     if ( (pTokenRN == NULL) ^ (pTokenSN == NULL) )
     {
         p->LineCur = Extra_FileReaderGetLineNumber( p->pReader, 1 );
-        sprintf( p->sError, "Cannot read pins RN/SN of the latch \"%s\".", vTokens->pArray[1] );
+        sprintf( p->sError, "Cannot read pins RN/SN of the latch \"%s\".", pLatchName );
         Io_ReadVerPrintErrorMessage( p );
         return 0;
     }
@@ -693,7 +697,7 @@ bool Io_ReadVerNetworkLatch( Io_ReadVer_t * p, Abc_Ntk_t * pNtk, Vec_Ptr_t * vTo
     }
 
     // create the latch
-    pLatch = Io_ReadCreateLatch( pNtk, pTokenD, vTokens->pArray[1] );
+    pLatch = Io_ReadCreateLatch( pNtk, pTokenD, pLatchName );
 
     // create the buffer if Q signal is available
     if ( pTokenQ )
@@ -706,7 +710,7 @@ bool Io_ReadVerNetworkLatch( Io_ReadVer_t * p, Abc_Ntk_t * pNtk, Vec_Ptr_t * vTo
             Io_ReadVerPrintErrorMessage( p );
             return 0;
         }
-        Io_ReadCreateBuf( pNtk, vTokens->pArray[1], pTokenQ );
+        Io_ReadCreateBuf( pNtk, pLatchName, pTokenQ );
     }
     if ( pTokenQN )
     {
@@ -718,26 +722,26 @@ bool Io_ReadVerNetworkLatch( Io_ReadVer_t * p, Abc_Ntk_t * pNtk, Vec_Ptr_t * vTo
             Io_ReadVerPrintErrorMessage( p );
             return 0;
         }
-        Io_ReadCreateInv( pNtk, vTokens->pArray[1], pTokenQN );
+        Io_ReadCreateInv( pNtk, pLatchName, pTokenQN );
     }
 
     // set the initial value
     if ( pTokenRN == NULL && pTokenSN == NULL )
-        Abc_ObjSetData( pLatch, (char *)2 );
+        Abc_LatchSetInitDc( pLatch );
     else 
     {
         fRN1 = (strcmp( pTokenRN, "1'b1" ) == 0);
         fSN1 = (strcmp( pTokenSN, "1'b1" ) == 0);
         if ( fRN1 && fSN1 )
-            Abc_ObjSetData( pLatch, (char *)2 );
+            Abc_LatchSetInitDc( pLatch );
         else if ( fRN1 )
-            Abc_ObjSetData( pLatch, (char *)1 );
+            Abc_LatchSetInit1( pLatch );
         else if ( fSN1 )
-            Abc_ObjSetData( pLatch, (char *)0 );
+            Abc_LatchSetInit0( pLatch );
         else
         {
             p->LineCur = Extra_FileReaderGetLineNumber( p->pReader, 0 );
-            sprintf( p->sError, "Cannot read the initial value of latch \"%s\".", vTokens->pArray[1] );
+            sprintf( p->sError, "Cannot read the initial value of latch \"%s\".", pLatchName );
             Io_ReadVerPrintErrorMessage( p );
             return 0;
         }

@@ -235,7 +235,7 @@ void Abc_NtkTimeInitialize( Abc_Ntk_t * pNtk )
     int i;
     if ( pNtk->pManTime == NULL )
         return;
-    Abc_ManTimeExpand( pNtk->pManTime, Abc_NtkObjNum(pNtk), 0 );
+    Abc_ManTimeExpand( pNtk->pManTime, Abc_NtkObjNumMax(pNtk), 0 );
     // set the default timing
     ppTimes = (Abc_Time_t **)pNtk->pManTime->vArrs->pArray;
     Abc_NtkForEachPi( pNtk, pObj, i )
@@ -287,7 +287,7 @@ void Abc_NtkTimePrepare( Abc_Ntk_t * pNtk )
         return;
     }
     // if timing manager is given, expand it if necessary
-    Abc_ManTimeExpand( pNtk->pManTime, Abc_NtkObjNum(pNtk), 0 );
+    Abc_ManTimeExpand( pNtk->pManTime, Abc_NtkObjNumMax(pNtk), 0 );
     // clean arrivals except for PIs
     ppTimes = (Abc_Time_t **)pNtk->pManTime->vArrs->pArray;
     Abc_NtkForEachNode( pNtk, pObj, i )
@@ -376,7 +376,7 @@ void Abc_ManTimeDup( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew )
     assert( Abc_NtkLatchNum(pNtkOld) == Abc_NtkLatchNum(pNtkNew) );
     // create the new timing manager
     pNtkNew->pManTime = Abc_ManTimeStart();
-    Abc_ManTimeExpand( pNtkNew->pManTime, Abc_NtkObjNum(pNtkNew), 0 );
+    Abc_ManTimeExpand( pNtkNew->pManTime, Abc_NtkObjNumMax(pNtkNew), 0 );
     // set the default timing
     pNtkNew->pManTime->tArrDef = pNtkOld->pManTime->tArrDef;
     pNtkNew->pManTime->tReqDef = pNtkOld->pManTime->tReqDef;
@@ -556,7 +556,7 @@ float Abc_NtkDelayTrace( Abc_Ntk_t * pNtk )
     assert( Abc_NtkIsLogicMap(pNtk) );
 
     Abc_NtkTimePrepare( pNtk );
-    vNodes = Abc_NtkDfs( pNtk );
+    vNodes = Abc_NtkDfs( pNtk, 1 );
     for ( i = 0; i < vNodes->nSize; i++ )
         Abc_NodeDelayTraceArrival( vNodes->pArray[i] );
     Vec_PtrFree( vNodes );

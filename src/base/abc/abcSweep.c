@@ -395,7 +395,7 @@ int Abc_NtkCleanup( Abc_Ntk_t * pNtk, int fVerbose )
     Abc_Obj_t * pNode;
     int i, Counter;
     // mark the nodes reachable from the POs
-    vNodes = Abc_NtkDfs( pNtk );
+    vNodes = Abc_NtkDfs( pNtk, 0 );
     for ( i = 0; i < vNodes->nSize; i++ )
     {
         pNode = vNodes->pArray[i];

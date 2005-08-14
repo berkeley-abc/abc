@@ -92,7 +92,7 @@ int Io_WriteBenchOne( FILE * pFile, Abc_Ntk_t * pNtk )
             Abc_ObjName(pNode), Abc_ObjName(Abc_ObjFanin0(pNode)) );
 
     // write internal nodes
-    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkNodeNum(pNtk) );
+    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkObjNumMax(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );

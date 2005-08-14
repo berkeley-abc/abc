@@ -51,6 +51,8 @@ extern Abc_Ntk_t *        Io_Read( char * pFileName, int fCheck );
 extern Abc_Ntk_t *        Io_ReadBlif( char * pFileName, int fCheck );
 /*=== abcReadBench.c ==========================================================*/
 extern Abc_Ntk_t *        Io_ReadBench( char * pFileName, int fCheck );
+/*=== abcReadEdif.c ==========================================================*/
+extern Abc_Ntk_t *        Io_ReadEdif( char * pFileName, int fCheck );
 /*=== abcReadVerilog.c ==========================================================*/
 extern Abc_Ntk_t *        Io_ReadVerilog( char * pFileName, int fCheck );
 /*=== abcReadPla.c ==========================================================*/

@@ -32,9 +32,9 @@ static Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p );
 
 /**Function*************************************************************
 
-  Synopsis    [Read the network from BENCH file.]
+  Synopsis    [Reads the network from a PLA file.]
 
-  Description [Currently works only for the miter cone.]
+  Description []
                
   SideEffects []
 
@@ -68,9 +68,9 @@ Abc_Ntk_t * Io_ReadPla( char * pFileName, int fCheck )
 }
 /**Function*************************************************************
 
-  Synopsis    [Read the network from BENCH file.]
+  Synopsis    []
 
-  Description [Currently works only for the miter cone.]
+  Description []
                
   SideEffects []
 

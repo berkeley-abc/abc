@@ -75,10 +75,8 @@ Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type )
         pNtk->pManFunc = Extra_MmFlexStart();
     else if ( Abc_NtkIsLogicBdd(pNtk) )
         pNtk->pManFunc = Cudd_Init( 20, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
-    else if ( Abc_NtkIsAig(pNtk) )
-        pNtk->pManFunc = Abc_AigAlloc( pNtk, 0 );
-    else if ( Abc_NtkIsSeq(pNtk) )
-        pNtk->pManFunc = Abc_AigAlloc( pNtk, 1 );
+    else if ( Abc_NtkIsAig(pNtk) || Abc_NtkIsSeq(pNtk) )
+        pNtk->pManFunc = Abc_AigAlloc( pNtk );
     else if ( Abc_NtkIsMapped(pNtk) )
         pNtk->pManFunc = Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame());
     else
@@ -245,27 +243,21 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
     int i, k;
     if ( pNtk == NULL )
         return NULL;
-    assert( !Abc_NtkIsSeq(pNtk) );
     // start the network
     pNtkNew = Abc_NtkStartFrom( pNtk, pNtk->Type );
-    // duplicate the nets and nodes
-    Abc_NtkForEachObj( pNtk, pObj, i )
-        if ( pObj->pCopy == NULL )
-            Abc_NtkDupObj(pNtkNew, pObj);
-    // connect the objects
-    Abc_NtkForEachObj( pNtk, pObj, i )
-        Abc_ObjForEachFanin( pObj, pFanin, k )
-            Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
-    // for AIGs copy the complemented attributes
+    // copy the internal nodes
     if ( Abc_NtkIsAig(pNtk) )
+        Abc_AigDup( pNtk->pManFunc, pNtkNew->pManFunc );
+    else
     {
-        // set the data pointers and complemented attributes
+        // duplicate the nets and nodes (CIs/COs/latches already dupped)
+        Abc_NtkForEachObj( pNtk, pObj, i )
+            if ( pObj->pCopy == NULL )
+                Abc_NtkDupObj(pNtkNew, pObj);
+        // reconnect all objects (no need to transfer attributes on edges)
         Abc_NtkForEachObj( pNtk, pObj, i )
             Abc_ObjForEachFanin( pObj, pFanin, k )
-                if ( Abc_ObjFaninC( pObj, k ) )
-                    Abc_ObjSetFaninC( pObj->pCopy, k );
-        // add the nodes to the structural hashing table
-        // TODO ???
+                Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
     }
     // duplicate the EXDC Ntk
     if ( pNtk->pExdc )
@@ -324,9 +316,7 @@ Abc_Ntk_t * Abc_NtkSplitOutput( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, int fUseAll
         // if it is an AIG, add to the hash table
         if ( Abc_NtkIsAig(pNtk) )
         {
-            pObj->pCopy = Abc_AigAnd( pNtkNew->pManFunc, 
-                Abc_ObjNotCond( Abc_ObjFanin0(pObj)->pCopy, Abc_ObjFaninC0(pObj) ),
-                Abc_ObjNotCond( Abc_ObjFanin1(pObj)->pCopy, Abc_ObjFaninC1(pObj) )  );
+            pObj->pCopy = Abc_AigAnd( pNtkNew->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
         }
         else
         {
@@ -415,7 +405,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
         Extra_MmFlexStop( pNtk->pManFunc, 0 );
     else if ( Abc_NtkIsLogicBdd(pNtk) )
         Extra_StopManager( pNtk->pManFunc );
-    else if ( Abc_NtkIsAig(pNtk) )
+    else if ( Abc_NtkIsAig(pNtk) || Abc_NtkIsSeq(pNtk) )
         Abc_AigFree( pNtk->pManFunc );
     else if ( !Abc_NtkIsMapped(pNtk) )
         assert( 0 );
@@ -598,7 +588,7 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
                 pObjNew->pData = Cudd_bddTransfer(pObj->pNtk->pManFunc, pNtkNew->pManFunc, pObj->pData), Cudd_Ref(pObjNew->pData);
             else if ( Abc_NtkIsMapped(pNtkNew) )
                 pObjNew->pData = pObj->pData;
-            else if ( !Abc_NtkIsAig(pNtkNew) )
+            else if ( !Abc_NtkIsAig(pNtkNew) && !Abc_NtkIsSeq(pNtkNew) )
                 assert( 0 );
         }
     }
@@ -626,9 +616,10 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
 Abc_Obj_t * Abc_NtkDupConst1( Abc_Ntk_t * pNtkAig, Abc_Ntk_t * pNtkNew )  
 { 
     Abc_Obj_t * pConst1;
-    assert( Abc_NtkIsAig(pNtkAig) );
+    assert( Abc_NtkIsAig(pNtkAig) || Abc_NtkIsSeq(pNtkAig) );
+    assert( Abc_NtkIsLogicSop(pNtkNew) );
     pConst1 = Abc_AigConst1(pNtkAig->pManFunc);
-    if ( Abc_ObjFanoutNum( pConst1 ) > 0 )
+    if ( Abc_ObjFanoutNum(pConst1) > 0 )
         pConst1->pCopy = Abc_NodeCreateConst1( pNtkNew );
     return pConst1->pCopy; 
 } 
@@ -647,16 +638,16 @@ Abc_Obj_t * Abc_NtkDupConst1( Abc_Ntk_t * pNtkAig, Abc_Ntk_t * pNtkNew )
 Abc_Obj_t * Abc_NtkDupReset( Abc_Ntk_t * pNtkAig, Abc_Ntk_t * pNtkNew )  
 { 
     Abc_Obj_t * pReset, * pConst1;
-    assert( Abc_NtkIsAig(pNtkAig) );
+    assert( Abc_NtkIsAig(pNtkAig) || Abc_NtkIsSeq(pNtkAig) );
     assert( Abc_NtkIsLogicSop(pNtkNew) );
     pReset = Abc_AigReset(pNtkAig->pManFunc);
-    if ( Abc_ObjFanoutNum( pReset ) > 0 )
+    if ( Abc_ObjFanoutNum(pReset) > 0 )
     {
         // create new latch with reset value 0
         pReset->pCopy = Abc_NtkCreateLatch( pNtkNew );
         // add constant node fanin to the latch
-        pConst1 = Abc_AigConst1(pNtkAig->pManFunc);
-        Abc_ObjAddFanin( pReset->pCopy, pConst1->pCopy );
+        pConst1 = Abc_NodeCreateConst1( pNtkNew );
+        Abc_ObjAddFanin( pReset->pCopy, pConst1 );
     }
     return pReset->pCopy; 
 } 
@@ -712,7 +703,6 @@ void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
     else if ( Abc_ObjIsLatch(pObj) )
     {
         pNtk->nLatches--;
-        assert( 0 ); // currently do not allow removing latches
     }
     else 
         assert( 0 );
@@ -772,7 +762,7 @@ Abc_Obj_t * Abc_NtkFindNode( Abc_Ntk_t * pNtk, char * pName )
         return NULL;
     }
     Num = atoi( pName + 1 );
-    if ( Num < 0 || Num > Abc_NtkObjNum(pNtk) )
+    if ( Num < 0 || Num >= Abc_NtkObjNumMax(pNtk) )
     {
         printf( "The node \"%s\" with ID %d is not in the current network.\n", pName, Num );
         return NULL;

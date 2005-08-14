@@ -108,7 +108,7 @@ char * Abc_ObjName( Abc_Obj_t * pObj )
     {
         // in a logic network, PI/PO/latch names are stored in the hash table
         // internal nodes have made up names
-        assert( Abc_ObjIsNode(pObj) );
+        assert( Abc_ObjIsNode(pObj) || Abc_ObjIsLatch(pObj) );
         sprintf( Buffer, "[%d]", pObj->Id );
     }
     return Buffer;
