@@ -26,7 +26,8 @@
 
 static void     Abc_NtkDfs_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes );
 static void     Abc_AigDfs_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes );
-static void     Abc_DfsLevelizedTfo_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vLevels );
+static void     Abc_NtkDfsReverse_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes );
+static void     Abc_DfsLevelizedTfo_rec( Abc_Obj_t * pNode, Vec_Vec_t * vLevels );
 static int      Abc_NtkGetLevelNum_rec( Abc_Obj_t * pNode );
 static bool     Abc_NtkIsAcyclic_rec( Abc_Obj_t * pNode );
 
@@ -49,23 +50,23 @@ static bool     Abc_NtkIsAcyclic_rec( Abc_Obj_t * pNode );
 Vec_Ptr_t * Abc_NtkDfs( Abc_Ntk_t * pNtk, int fCollectAll )
 {
     Vec_Ptr_t * vNodes;
-    Abc_Obj_t * pNode;
+    Abc_Obj_t * pObj;
     int i;
     // set the traversal ID
     Abc_NtkIncrementTravId( pNtk );
     // start the array of nodes
     vNodes = Vec_PtrAlloc( 100 );
-    Abc_NtkForEachCo( pNtk, pNode, i )
+    Abc_NtkForEachCo( pNtk, pObj, i )
     {
-        Abc_NodeSetTravIdCurrent( pNode );
-        Abc_NtkDfs_rec( Abc_ObjFanin0Ntk(Abc_ObjFanin0(pNode)), vNodes );
+        Abc_NodeSetTravIdCurrent( pObj );
+        Abc_NtkDfs_rec( Abc_ObjFanin0Ntk(Abc_ObjFanin0(pObj)), vNodes );
     }
     // collect dangling nodes if asked to
     if ( fCollectAll )
     {
-        Abc_NtkForEachNode( pNtk, pNode, i )
-            if ( !Abc_NodeIsTravIdCurrent(pNode) )
-                Abc_NtkDfs_rec( pNode, vNodes );
+        Abc_NtkForEachNode( pNtk, pObj, i )
+            if ( !Abc_NodeIsTravIdCurrent(pObj) )
+                Abc_NtkDfs_rec( pObj, vNodes );
     }
     return vNodes;
 }
@@ -131,6 +132,75 @@ void Abc_NtkDfs_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
     // visit the transitive fanin of the node
     Abc_ObjForEachFanin( pNode, pFanin, i )
         Abc_NtkDfs_rec( Abc_ObjFanin0Ntk(pFanin), vNodes );
+    // add the node after the fanins have been added
+    Vec_PtrPush( vNodes, pNode );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the reverse DFS ordered array of logic nodes.]
+
+  Description [Collects only the internal nodes, leaving CIs and CO.
+  However it marks with the current TravId both CIs and COs.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_NtkDfsReverse( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vNodes;
+    Abc_Obj_t * pObj, * pFanout;
+    int i, k;
+    // set the traversal ID
+    Abc_NtkIncrementTravId( pNtk );
+    // start the array of nodes
+    vNodes = Vec_PtrAlloc( 100 );
+    Abc_NtkForEachCi( pNtk, pObj, i )
+    {
+        Abc_NodeSetTravIdCurrent( pObj );
+        pObj = Abc_ObjFanout0Ntk(pObj);
+        Abc_ObjForEachFanout( pObj, pFanout, k )
+            Abc_NtkDfsReverse_rec( pFanout, vNodes );
+    }
+    // add constant nodes in the end
+    Abc_NtkForEachNode( pNtk, pObj, i )
+        if ( Abc_NodeIsConst(pObj) )
+            Vec_PtrPush( vNodes, pObj );
+    return vNodes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs DFS for one node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkDfsReverse_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
+{
+    Abc_Obj_t * pFanout;
+    int i;
+    assert( !Abc_ObjIsNet(pNode) );
+    // if this node is already visited, skip
+    if ( Abc_NodeIsTravIdCurrent( pNode ) )
+        return;
+    // mark the node as visited
+    Abc_NodeSetTravIdCurrent( pNode );
+    // skip the CI
+    if ( Abc_ObjIsCo(pNode) )
+        return;
+    assert( Abc_ObjIsNode( pNode ) );
+    // visit the transitive fanin of the node
+    pNode = Abc_ObjFanout0Ntk(pNode);
+    Abc_ObjForEachFanout( pNode, pFanout, i )
+        Abc_NtkDfsReverse_rec( pFanout, vNodes );
     // add the node after the fanins have been added
     Vec_PtrPush( vNodes, pNode );
 }
@@ -220,20 +290,21 @@ void Abc_AigDfs_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Abc_DfsLevelized( Abc_Obj_t * pNode, bool fTfi )
+Vec_Vec_t * Abc_DfsLevelized( Abc_Obj_t * pNode, bool fTfi )
 {
-    Vec_Ptr_t * vLevels;
+    Vec_Vec_t * vLevels;
     Abc_Obj_t * pFanout;
     int i;
     assert( fTfi == 0 );
     assert( !Abc_NtkIsNetlist(pNode->pNtk) );
     // set the traversal ID
     Abc_NtkIncrementTravId( pNode->pNtk );
-    vLevels = Vec_PtrAlloc( 100 );
+    vLevels = Vec_VecAlloc( 100 );
     if ( Abc_ObjIsNode(pNode) )
         Abc_DfsLevelizedTfo_rec( pNode, vLevels );
     else
     {
+        assert( Abc_ObjIsCi(pNode) );
         Abc_NodeSetTravIdCurrent( pNode );
         Abc_ObjForEachFanout( pNode, pFanout, i )
             Abc_DfsLevelizedTfo_rec( pFanout, vLevels );
@@ -252,7 +323,7 @@ Vec_Ptr_t * Abc_DfsLevelized( Abc_Obj_t * pNode, bool fTfi )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_DfsLevelizedTfo_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vLevels )
+void Abc_DfsLevelizedTfo_rec( Abc_Obj_t * pNode, Vec_Vec_t * vLevels )
 {
     Abc_Obj_t * pFanout;
     int i;
@@ -266,14 +337,7 @@ void Abc_DfsLevelizedTfo_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vLevels )
         return;
     assert( Abc_ObjIsNode(pNode) );
     // add the node to the structure
-    if ( vLevels->nSize <= (int)pNode->Level )
-    {
-        Vec_PtrGrow( vLevels, pNode->Level + 1 );
-        for ( i = vLevels->nSize; i <= (int)pNode->Level; i++ )
-            vLevels->pArray[i] = Vec_PtrAlloc( 16 );
-        vLevels->nSize = pNode->Level + 1;
-    }
-    Vec_PtrPush( vLevels->pArray[pNode->Level], pNode );
+    Vec_VecPush( vLevels, pNode->Level, pNode );
     // visit the TFO
     Abc_ObjForEachFanout( pNode, pFanout, i )
         Abc_DfsLevelizedTfo_rec( pFanout, vLevels );
@@ -373,7 +437,7 @@ bool Abc_NtkIsAcyclic( Abc_Ntk_t * pNtk )
     Abc_NtkIncrementTravId( pNtk );   
     // pNode->TravId == pNet->nTravIds      means "pNode is on the path"
     // pNode->TravId == pNet->nTravIds - 1  means "pNode is visited but is not on the path"
-    // pNode->TravId < pNet->nTravIds - 1   means "pNode is not visited"
+    // pNode->TravId <  pNet->nTravIds - 1  means "pNode is not visited"
     // traverse the network to detect cycles
     fAcyclic = 1;
     Abc_NtkForEachCo( pNtk, pNode, i )
@@ -381,12 +445,12 @@ bool Abc_NtkIsAcyclic( Abc_Ntk_t * pNtk )
         pNode = Abc_ObjFanin0Ntk(Abc_ObjFanin0(pNode));
         if ( Abc_NodeIsTravIdPrevious(pNode) )
             continue;
-        // traverse the output logic cone to detect the combinational loops
-        if ( ( fAcyclic = Abc_NtkIsAcyclic_rec(pNode) ) == 0 ) 
-        { // stop as soon as the first loop is detected
-            fprintf( stdout, " (the output node)\n" );
-            break;
-        }
+        // traverse the output logic cone
+        if ( fAcyclic = Abc_NtkIsAcyclic_rec(pNode) )
+            continue;
+        // stop as soon as the first loop is detected
+        fprintf( stdout, " (cone of CO \"%s\")\n", Abc_ObjName(pNode) );
+        break;
     }
     return fAcyclic;
 }
@@ -408,7 +472,6 @@ bool Abc_NtkIsAcyclic_rec( Abc_Obj_t * pNode )
     Abc_Obj_t * pFanin;
     int fAcyclic, i;
     assert( !Abc_ObjIsNet(pNode) );
-    // skip the PI
     if ( Abc_ObjIsCi(pNode) )
         return 1;
     assert( Abc_ObjIsNode( pNode ) );
@@ -433,14 +496,12 @@ bool Abc_NtkIsAcyclic_rec( Abc_Obj_t * pNode )
         // check if the fanin is visited
         if ( Abc_NodeIsTravIdPrevious(pFanin) ) 
             continue;
-        // traverse searching for the loop
-        fAcyclic = Abc_NtkIsAcyclic_rec( pFanin );
+        // traverse the fanin's cone searching for the loop
+        if ( fAcyclic = Abc_NtkIsAcyclic_rec(pFanin) )
+            continue;
         // return as soon as the loop is detected
-        if ( fAcyclic == 0 ) 
-        {
-            fprintf( stdout, "  <--  %s", Abc_ObjName(pNode) );
-            return 0;
-        }
+        fprintf( stdout, " <-- %s", Abc_ObjName(pNode) );
+        return 0;
     }
     // mark this node as a visited node
     Abc_NodeSetTravIdPrevious( pNode );

@@ -31,6 +31,7 @@ static void        Abc_NtkStrashPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig, 
 static Abc_Obj_t * Abc_NodeStrash( Abc_Aig_t * pMan, Abc_Obj_t * pNode );
 static Abc_Obj_t * Abc_NodeStrashSop( Abc_Aig_t * pMan, Abc_Obj_t * pNode, char * pSop );
 static Abc_Obj_t * Abc_NodeStrashFactor( Abc_Aig_t * pMan, Abc_Obj_t * pNode, char * pSop );
+static Abc_Obj_t * Abc_NodeStrashFactor2( Abc_Aig_t * pMan, Abc_Obj_t * pNode, char * pSop );
 
 static void        Abc_NtkBalancePerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig, bool fDuplicate );
 static Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, bool fDuplicate );
@@ -179,7 +180,7 @@ Abc_Obj_t * Abc_NodeStrash( Abc_Aig_t * pMan, Abc_Obj_t * pNode )
 
     // decide when to use factoring
     if ( fUseFactor && Abc_ObjFaninNum(pNode) > 2 && Abc_SopGetCubeNum(pSop) > 1 )
-        return Abc_NodeStrashFactor( pMan, pNode, pSop );
+        return Abc_NodeStrashFactor2( pMan, pNode, pSop );
     return Abc_NodeStrashSop( pMan, pNode, pSop );
 }
 
@@ -284,6 +285,81 @@ Abc_Obj_t * Abc_NodeStrashFactor( Abc_Aig_t * pMan, Abc_Obj_t * pRoot, char * pS
     pFtNode = Ft_NodeReadLast( vForm );
     pAnd = Abc_ObjNotCond( pAnd, pFtNode->fCompl );
     Vec_IntFree( vForm );
+    return pAnd;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Strashes one logic node using its SOP.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Abc_NodeStrashFactor2( Abc_Aig_t * pMan, Abc_Obj_t * pRoot, char * pSop )
+{
+    Vec_Int_t * vForm;
+    Vec_Ptr_t * vAnds;
+    Abc_Obj_t * pAnd, * pFanin;
+    int i;
+    // derive the factored form
+    vForm = Ft_Factor( pSop );
+    // collect the fanins
+    vAnds = Vec_PtrAlloc( 20 );
+    Abc_ObjForEachFanin( pRoot, pFanin, i )
+        Vec_PtrPush( vAnds, pFanin->pCopy );
+    // perform strashing
+    pAnd = Abc_NodeStrashDec( pMan, vAnds, vForm );
+    Vec_PtrFree( vAnds );
+    Vec_IntFree( vForm );
+    return pAnd;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Strashes one logic node using its SOP.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Abc_NodeStrashDec( Abc_Aig_t * pMan, Vec_Ptr_t * vFanins, Vec_Int_t * vForm )
+{
+    Abc_Obj_t * pAnd, * pAnd0, * pAnd1;
+    Ft_Node_t * pFtNode;
+    int i, nVars;
+
+    // sanity checks
+    nVars = Ft_FactorGetNumVars( vForm );
+    assert( nVars >= 0 );
+    assert( vForm->nSize > nVars );
+    assert( nVars == vFanins->nSize );
+
+    // check for constant function
+    pFtNode = Ft_NodeRead( vForm, 0 );
+    if ( pFtNode->fConst )
+        return Abc_ObjNotCond( Abc_AigConst1(pMan), pFtNode->fCompl );
+
+    // compute the function of other nodes
+    for ( i = nVars; i < vForm->nSize; i++ )
+    {
+        pFtNode = Ft_NodeRead( vForm, i );
+        pAnd0   = Abc_ObjNotCond( vFanins->pArray[pFtNode->iFanin0], pFtNode->fCompl0 ); 
+        pAnd1   = Abc_ObjNotCond( vFanins->pArray[pFtNode->iFanin1], pFtNode->fCompl1 ); 
+        pAnd    = Abc_AigAnd( pMan, pAnd0, pAnd1 );
+        Vec_PtrPush( vFanins, pAnd );
+    }
+    assert( vForm->nSize = vFanins->nSize );
+
+    // complement the result if necessary
+    pFtNode = Ft_NodeReadLast( vForm );
+    pAnd = Abc_ObjNotCond( pAnd, pFtNode->fCompl );
     return pAnd;
 }
 

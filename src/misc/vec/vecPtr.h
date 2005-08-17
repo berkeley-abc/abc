@@ -48,15 +48,11 @@ struct Vec_Ptr_t_
 ///                      MACRO DEFITIONS                             ///
 ////////////////////////////////////////////////////////////////////////
 
+// iterators through entries
 #define Vec_PtrForEachEntry( vVec, pEntry, i )                                               \
     for ( i = 0; (i < Vec_PtrSize(vVec)) && (((pEntry) = Vec_PtrEntry(vVec, i)), 1); i++ )
-
 #define Vec_PtrForEachEntryStart( vVec, pEntry, i, Start )                                   \
     for ( i = Start; (i < Vec_PtrSize(vVec)) && (((pEntry) = Vec_PtrEntry(vVec, i)), 1); i++ )
-
-#define Vec_PtrForEachEntryByLevel( vVec, pEntry, i, k )                                     \
-    for ( i = 0; i < Vec_PtrSize(vVec); i++ )                                                \
-        Vec_PtrForEachEntry( ((Vec_Ptr_t *)Vec_PtrEntry(vVec, i)), pEntry, k ) 
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///

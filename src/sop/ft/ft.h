@@ -52,16 +52,17 @@ struct Ft_Node_t_
 };
 
 /*
-    The factored form of a SOP is an array (Vec_Int_t) of entries Ft_Node_t.
+    The factored form of an SOP is an array (Vec_Int_t) of entries of type Ft_Node_t.
     If the SOP has n input variables (some of them may not be in the true support)
-    the first n entries of the factored form array have 0s. This representation 
-    makes it each to translate the factored form into an AIG.
-
-    The node structure contains fanins of the node and their complemented attributes 
-    (using AIG semantics). The elementary variable (buffer or interver) are 
-    represented as a node with the same fanins. For example: x' = AND( x', x' ).
-    The constant node cannot be represented. Constant functions should be detected
-    before calling the factoring procedure.
+    the first n entries of the factored form array are zeros. The other entries of the array
+    represent the internal AND nodes of the factored form, and possibly the constant node.
+    This representation makes it easy to translate the factored form into an AIG.
+    The factored AND nodes contains fanins of the node and their complemented attributes 
+    (using AIG semantics). The elementary variable (buffer or interver) are represented 
+    as a node with the same fanins. For example: x' = AND( x', x' ).
+    The constant node is represented a special node with the constant flag set. 
+    If the constant node and the elementary variable are present, no other internal 
+    AND nodes are allowed in the factored form.
 */
 
 // working with complemented attributes of objects

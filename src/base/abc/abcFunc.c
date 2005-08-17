@@ -195,7 +195,7 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 char * Abc_ConvertBddToSop( Extra_MmFlex_t * pMan, DdManager * dd, DdNode * bFuncOn, DdNode * bFuncOnDc, int nFanins, Vec_Str_t * vCube, int fMode )
 {
-    int fVerify = 1;
+    int fVerify = 0;
     char * pSop;
     DdNode * bFuncNew, * bCover, * zCover, * zCover0, * zCover1;
     int nCubes, nCubes0, nCubes1, fPhase;

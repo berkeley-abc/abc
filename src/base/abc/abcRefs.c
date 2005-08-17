@@ -24,7 +24,7 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static int Abc_NodeRefDeref( Abc_Obj_t * pNode, bool fFanouts, bool fReference );
+static int Abc_NodeRefDeref( Abc_Obj_t * pNode, bool fReference, bool fLabel );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -47,7 +47,7 @@ int Abc_NodeMffcSize( Abc_Obj_t * pNode )
     assert( !Abc_ObjIsComplement( pNode ) );
     assert( Abc_ObjIsNode( pNode ) );
     nConeSize1 = Abc_NodeRefDeref( pNode, 0, 0 ); // dereference
-    nConeSize2 = Abc_NodeRefDeref( pNode, 0, 1 ); // reference
+    nConeSize2 = Abc_NodeRefDeref( pNode, 1, 0 ); // reference
     assert( nConeSize1 == nConeSize2 );
     assert( nConeSize1 > 0 );
     return nConeSize1;
@@ -55,7 +55,7 @@ int Abc_NodeMffcSize( Abc_Obj_t * pNode )
 
 /**Function*************************************************************
 
-  Synopsis    [Procedure returns the size of the MFFC of the node.]
+  Synopsis    [Lavels MFFC with the current traversal ID.]
 
   Description []
                
@@ -64,11 +64,16 @@ int Abc_NodeMffcSize( Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NodeMffcRemove( Abc_Obj_t * pNode )
+int Abc_NodeMffcLabel( Abc_Obj_t * pNode )
 {
+    int nConeSize1, nConeSize2;
     assert( !Abc_ObjIsComplement( pNode ) );
     assert( Abc_ObjIsNode( pNode ) );
-    return Abc_NodeRefDeref( pNode, 1, 0 ); // dereference
+    nConeSize1 = Abc_NodeRefDeref( pNode, 0, 0 ); // dereference
+    nConeSize2 = Abc_NodeRefDeref( pNode, 1, 1 ); // reference
+    assert( nConeSize1 == nConeSize2 );
+    assert( nConeSize1 > 0 );
+    return nConeSize1;
 }
 
 /**Function*************************************************************
@@ -82,10 +87,12 @@ int Abc_NodeMffcRemove( Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NodeRefDeref( Abc_Obj_t * pNode, bool fFanouts, bool fReference )
+int Abc_NodeRefDeref( Abc_Obj_t * pNode, bool fReference, bool fLabel )
 {
     Abc_Obj_t * pNode0, * pNode1;
     int Counter;
+    if ( fLabel )
+        Abc_NodeSetTravIdCurrent( pNode );
     if ( Abc_ObjIsCi(pNode) )
         return 0;
     pNode0 = Abc_ObjFanin( pNode, 0 );
@@ -94,34 +101,18 @@ int Abc_NodeRefDeref( Abc_Obj_t * pNode, bool fFanouts, bool fReference )
     if ( fReference )
     {
         if ( pNode0->vFanouts.nSize++ == 0 )
-        {
-            Counter += Abc_NodeRefDeref( pNode0, fFanouts, fReference );
-            if ( fFanouts )  
-                Abc_ObjAddFanin( pNode, pNode0 );
-        }
+            Counter += Abc_NodeRefDeref( pNode0, fReference, fLabel );
         if ( pNode1->vFanouts.nSize++ == 0 )
-        {
-            Counter += Abc_NodeRefDeref( pNode1, fFanouts, fReference );
-            if ( fFanouts )  
-                Abc_ObjAddFanin( pNode, pNode1 );
-        }
+            Counter += Abc_NodeRefDeref( pNode1, fReference, fLabel );
     }
     else
     {
         assert( pNode0->vFanouts.nSize > 0 );
         assert( pNode1->vFanouts.nSize > 0 );
         if ( --pNode0->vFanouts.nSize == 0 )
-        {
-            Counter += Abc_NodeRefDeref( pNode0, fFanouts, fReference );
-            if ( fFanouts )  
-                Abc_ObjDeleteFanin( pNode, pNode0 );
-        }
+            Counter += Abc_NodeRefDeref( pNode0, fReference, fLabel );
         if ( --pNode1->vFanouts.nSize == 0 )
-        {
-            Counter += Abc_NodeRefDeref( pNode1, fFanouts, fReference );
-            if ( fFanouts )  
-                Abc_ObjDeleteFanin( pNode, pNode1 );
-        }
+            Counter += Abc_NodeRefDeref( pNode1, fReference, fLabel );
     }
     return Counter;
 }

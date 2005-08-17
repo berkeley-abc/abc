@@ -31,8 +31,9 @@
 
 #include "vecFan.h"
 #include "vecInt.h"
-#include "vecPtr.h"
 #include "vecStr.h"
+#include "vecPtr.h"
+#include "vecVec.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///

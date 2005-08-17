@@ -447,9 +447,62 @@ void Abc_VecObjPushUniqueOrderByLevel( Vec_Ptr_t * p, Abc_Obj_t * pNode )
 
 /**Function*************************************************************
 
+  Synopsis    [Marks and counts the number of exors.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkCountExors( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNode;
+    int i, Counter = 0;
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        Counter += pNode->fExor;
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if the node is the root of EXOR/NEXOR.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+bool Abc_NodeIsExorType( Abc_Obj_t * pNode )
+{
+    Abc_Obj_t * pNode0, * pNode1;
+    // check that the node is regular
+    assert( !Abc_ObjIsComplement(pNode) );
+    // if the node is not AND, this is not EXOR
+    if ( !Abc_NodeIsAigAnd(pNode) )
+        return 0;
+    // if the children are not complemented, this is not EXOR
+    if ( !Abc_ObjFaninC0(pNode) || !Abc_ObjFaninC1(pNode) )
+        return 0;
+    // get children
+    pNode0 = Abc_ObjFanin0(pNode);
+    pNode1 = Abc_ObjFanin1(pNode);
+    // if the children are not ANDs, this is not EXOR
+    if ( Abc_ObjFaninNum(pNode0) != 2 || Abc_ObjFaninNum(pNode1) != 2 )
+        return 0;
+    // otherwise, the node is EXOR iff its grand-children are the same
+    return (Abc_ObjFaninId0(pNode0) == Abc_ObjFaninId0(pNode1) || Abc_ObjFaninId0(pNode0) == Abc_ObjFaninId1(pNode1)) &&
+           (Abc_ObjFaninId1(pNode0) == Abc_ObjFaninId0(pNode1) || Abc_ObjFaninId1(pNode0) == Abc_ObjFaninId1(pNode1));
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns 1 if the node is the root of MUX or EXOR/NEXOR.]
 
-  Description [The node can be complemented.]
+  Description []
                
   SideEffects []
 
@@ -918,6 +971,54 @@ void Abc_NtkAlphaOrderSignals( Abc_Ntk_t * pNtk, int fComb )
         pObj->pCopy = NULL;
     Abc_NtkForEachLatch( pNtk, pObj, i )
         pObj->pCopy = NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkShortNames( Abc_Ntk_t * pNtk )
+{
+    stmm_table * tObj2NameNew;
+    Abc_Obj_t * pObj;
+    char Buffer[100];
+    char * pNameNew;
+    int Length, i;
+
+    tObj2NameNew = stmm_init_table(stmm_ptrcmp, stmm_ptrhash);
+    // create new names and add them to the table
+    Length = Extra_Base10Log( Abc_NtkPiNum(pNtk) );
+    Abc_NtkForEachPi( pNtk, pObj, i )
+    {
+        sprintf( Buffer, "pi%0*d", Length, i );
+        pNameNew = Abc_NtkRegisterName( pNtk, Buffer );
+        stmm_insert( tObj2NameNew, (char *)pObj, pNameNew );
+    }
+    // create new names and add them to the table
+    Length = Extra_Base10Log( Abc_NtkPoNum(pNtk) );
+    Abc_NtkForEachPo( pNtk, pObj, i )
+    {
+        sprintf( Buffer, "po%0*d", Length, i );
+        pNameNew = Abc_NtkRegisterName( pNtk, Buffer );
+        stmm_insert( tObj2NameNew, (char *)pObj, pNameNew );
+    }
+    // create new names and add them to the table
+    Length = Extra_Base10Log( Abc_NtkLatchNum(pNtk) );
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+    {
+        sprintf( Buffer, "lat%0*d", Length, i );
+        pNameNew = Abc_NtkRegisterName( pNtk, Buffer );
+        stmm_insert( tObj2NameNew, (char *)pObj, pNameNew );
+    }
+    stmm_free_table( pNtk->tObj2Name );
+    pNtk->tObj2Name = tObj2NameNew;
 }
 
 ////////////////////////////////////////////////////////////////////////

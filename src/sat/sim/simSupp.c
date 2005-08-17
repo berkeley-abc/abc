@@ -136,7 +136,7 @@ int Sim_ComputeSuppRoundNode( Sim_Man_t * p, int iNumCi, bool fUseTargets )
 {
     Sim_Pat_t * pPat;
     Vec_Int_t * vTargets;
-    Vec_Ptr_t * vNodesByLevel;
+    Vec_Vec_t * vNodesByLevel;
     Abc_Obj_t * pNodeCi, * pNode;
     int i, k, v, Output, LuckyPat, fType0, fType1;
     int Counter = 0;
@@ -147,7 +147,7 @@ int Sim_ComputeSuppRoundNode( Sim_Man_t * p, int iNumCi, bool fUseTargets )
     // complement the simulation info of the selected CI
     Sim_UtilFlipSimInfo( p, pNodeCi );
     // simulate the levelized structure of nodes
-    Vec_PtrForEachEntryByLevel( vNodesByLevel, pNode, i, k )
+    Vec_VecForEachEntry( vNodesByLevel, pNode, i, k )
     {
         fType0 = Abc_NodeIsTravIdCurrent( Abc_ObjFanin0(pNode) );
         fType1 = Abc_NodeIsTravIdCurrent( Abc_ObjFanin1(pNode) );
@@ -213,7 +213,7 @@ int Sim_ComputeSuppRoundNode( Sim_Man_t * p, int iNumCi, bool fUseTargets )
             }
         }
     }
-    Vec_PtrFreeFree( vNodesByLevel );
+    Vec_VecFree( vNodesByLevel );
     return Counter;
 }
 

@@ -98,6 +98,9 @@ void Map_TruthsCut( Map_Man_t * p, Map_Cut_t * pCut )
         return;
     Map_TruthsCutOne( p, pCut, uTruth );
 
+//assert( pCut->nLeaves < 5 );
+//Rwt_ManExploreCount( uTruth[0] & 0xFFFF );
+
     // compute the canonical form for the positive phase
     Map_CanonComputeSlow( p->uTruths, p->nVarsMax, pCut->nLeaves, uTruth, uPhases, uCanon );
     pCut->M[1].pSupers = Map_SuperTableLookupC( p->pSuperLib, uCanon );

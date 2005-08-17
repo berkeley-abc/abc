@@ -42,6 +42,8 @@
 ***********************************************************************/
 void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
 {
+    int Num;
+
     fprintf( pFile, "%-15s:",       pNtk->pName );
     fprintf( pFile, "  i/o = %4d/%4d", Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk) );
 
@@ -58,7 +60,10 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
     else if ( Abc_NtkIsAig(pNtk) )
     {
         fprintf( pFile, "  and = %5d", Abc_NtkNodeNum(pNtk) );
-        fprintf( pFile, "  choice = %5d", Abc_NtkCountChoiceNodes(pNtk) );
+        if ( Num = Abc_NtkCountChoiceNodes(pNtk) )
+            fprintf( pFile, " (choice = %d)", Num );
+        if ( Num = Abc_NtkCountExors(pNtk) )
+            fprintf( pFile, " (exor = %d)", Num );
     }
     else if ( Abc_NtkIsSeq(pNtk) )
         fprintf( pFile, "  and = %5d", Abc_NtkNodeNum(pNtk) );
@@ -84,7 +89,9 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
         assert( 0 );
     }
 
-    if ( !Abc_NtkIsSeq(pNtk) )
+    if ( Abc_NtkIsAig(pNtk) )
+        fprintf( pFile, "  lev = %3d", Abc_AigGetLevelNum(pNtk) );
+    else if ( !Abc_NtkIsSeq(pNtk) )
         fprintf( pFile, "  lev = %3d", Abc_NtkGetLevelNum(pNtk) );
 
     fprintf( pFile, "\n" );
@@ -360,13 +367,48 @@ void Abc_NtkPrintLevel( FILE * pFile, Abc_Ntk_t * pNtk, int fProfile )
 {
     Abc_Obj_t * pNode;
     int i, Length;
-    assert( Abc_NtkIsAig(pNtk) );
 
     // print the delay profile
-    if ( fProfile )
+    if ( fProfile && Abc_NtkIsMapped(pNtk) )
+    {
+        int nIntervals = 12;
+        float DelayMax, DelayCur, DelayDelta;
+        int * pLevelCounts;
+        int DelayInt, nOutsSum, nOutsTotal;
+
+        // get the max delay and delta
+        DelayMax   = Abc_NtkDelayTrace( pNtk );
+        DelayDelta = DelayMax/nIntervals;
+        // collect outputs by delay
+        pLevelCounts = ALLOC( int, nIntervals );
+        memset( pLevelCounts, 0, sizeof(int) * nIntervals );
+        Abc_NtkForEachCo( pNtk, pNode, i )
+        {
+            DelayCur  = Abc_NodeReadArrival( Abc_ObjFanin0(pNode) )->Worst;
+            DelayInt  = (int)(DelayCur / DelayDelta);
+            if ( DelayInt >= nIntervals )
+                DelayInt = nIntervals - 1;
+            pLevelCounts[DelayInt]++;
+        }
+
+        nOutsSum   = 0;
+        nOutsTotal = Abc_NtkCoNum(pNtk);
+        for ( i = 0; i < nIntervals; i++ )
+        {
+            nOutsSum += pLevelCounts[i];
+            printf( "[%8.2f - %8.2f] :   COs = %4d.   %5.1f %%\n", 
+                DelayDelta * i, DelayDelta * (i+1), pLevelCounts[i], 100.0 * nOutsSum/nOutsTotal );
+        }
+        free( pLevelCounts );
+        return;
+    }
+    else if ( fProfile )
     {
         int LevelMax, * pLevelCounts;
         int nOutsSum, nOutsTotal;
+
+        if ( !Abc_NtkIsAig(pNtk) )
+            Abc_NtkGetLevelNum(pNtk);
 
         LevelMax = 0;
         Abc_NtkForEachCo( pNtk, pNode, i )
@@ -385,8 +427,10 @@ void Abc_NtkPrintLevel( FILE * pFile, Abc_Ntk_t * pNtk, int fProfile )
                 nOutsSum += pLevelCounts[i];
                 printf( "Level = %4d.  COs = %4d.   %5.1f %%\n", i, pLevelCounts[i], 100.0 * nOutsSum/nOutsTotal );
             }
+        free( pLevelCounts );
         return;
     }
+    assert( Abc_NtkIsAig(pNtk) );
 
     // find the longest name
     Length = 0;

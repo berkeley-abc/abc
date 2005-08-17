@@ -181,6 +181,10 @@ SOURCE=.\src\base\abc\abcPrint.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abc\abcReconv.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abc\abcRefs.c
 # End Source File
 # Begin Source File
@@ -190,6 +194,10 @@ SOURCE=.\src\base\abc\abcRenode.c
 # Begin Source File
 
 SOURCE=.\src\base\abc\abcRes.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abc\abcResRef.c
 # End Source File
 # Begin Source File
 
@@ -1088,6 +1096,38 @@ SOURCE=.\src\opt\fxu\fxuSingle.c
 SOURCE=.\src\opt\fxu\fxuUpdate.c
 # End Source File
 # End Group
+# Begin Group "rwr"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\opt\rwr\rwr.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\rwr\rwrCut.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\rwr\rwrEva.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\rwr\rwrExp.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\rwr\rwrLib.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\rwr\rwrMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\rwr\rwrUtil.c
+# End Source File
+# End Group
 # End Group
 # Begin Group "map"
 
@@ -1426,6 +1466,10 @@ SOURCE=.\src\misc\vec\vecPtr.h
 # Begin Source File
 
 SOURCE=.\src\misc\vec\vecStr.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\vec\vecVec.h
 # End Source File
 # End Group
 # End Group

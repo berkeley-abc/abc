@@ -23,18 +23,20 @@
 /*
     AIG is an And-Inv Graph with structural hashing.
     It is always structurally hashed. It means that at any time:
+    - for each AND gate, there are no other AND gates with the same children
     - the constants are propagated
     - there is no single-input nodes (inverters/buffers)
-    - for each AND gate, there are no other AND gates with the same children.
+    - there are no dangling nodes (the nodes without fanout)
+    - the level of each AND gate reflects the levels of this fanins
+    - the EXOR-status of each node is up-to-date
     The operations that are performed on AIG:
     - building new nodes (Abc_AigAnd)
-    - elementary Boolean operations (Abc_AigOr, Abc_AigXor, etc)
-    - propagation of constants (Abc_AigReplace)
-    - variable substitution (Abc_AigReplace)
-
+    - performing elementary Boolean operations (Abc_AigOr, Abc_AigXor, etc)
+    - replacing one node by another (Abc_AigReplace)
+    - propagating constants (Abc_AigReplace)
     When AIG is duplicated, the new graph is struturally hashed too.
     If this repeated hashing leads to fewer nodes, it means the original
-    AIG was not strictly hashed (using the three criteria above).
+    AIG was not strictly hashed (one of the conditions above is violated).
 */
 
 ////////////////////////////////////////////////////////////////////////
@@ -54,6 +56,7 @@ struct Abc_Aig_t_
     Vec_Ptr_t *       vStackDelete;      // the nodes to be deleted
     Vec_Ptr_t *       vStackReplaceOld;  // the nodes to be replaced
     Vec_Ptr_t *       vStackReplaceNew;  // the nodes to be used for replacement
+    Vec_Vec_t *       vLevels;           // the nodes to be updated
 };
 
 // iterators through the entries in the linked lists of nodes
@@ -81,6 +84,7 @@ static void        Abc_AigResize( Abc_Aig_t * pMan );
 // incremental AIG procedures
 static void        Abc_AigReplace_int( Abc_Aig_t * pMan );
 static void        Abc_AigDelete_int( Abc_Aig_t * pMan );
+static void        Abc_AigUpdateLevel_int( Abc_Aig_t * pMan );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -111,6 +115,7 @@ Abc_Aig_t * Abc_AigAlloc( Abc_Ntk_t * pNtkAig )
     pMan->vStackDelete     = Vec_PtrAlloc( 100 );
     pMan->vStackReplaceOld = Vec_PtrAlloc( 100 );
     pMan->vStackReplaceNew = Vec_PtrAlloc( 100 );
+    pMan->vLevels          = Vec_VecAlloc( 100 );
     // save the current network
     pMan->pNtkAig = pNtkAig;
     // allocate constant nodes
@@ -193,6 +198,7 @@ void Abc_AigFree( Abc_Aig_t * pMan )
     assert( Vec_PtrSize( pMan->vStackReplaceOld ) == 0 );
     assert( Vec_PtrSize( pMan->vStackReplaceNew ) == 0 );
     // free the table
+    Vec_VecFree( pMan->vLevels );
     Vec_PtrFree( pMan->vStackDelete );
     Vec_PtrFree( pMan->vStackReplaceOld );
     Vec_PtrFree( pMan->vStackReplaceNew );
@@ -268,12 +274,11 @@ bool Abc_AigCheck( Abc_Aig_t * pMan )
             printf( "Abc_AigCheck: The AIG has non-standard nodes.\n" );
             return 0;
         }
+        if ( pObj->Level != 1 + ABC_MAX( Abc_ObjFanin0(pObj)->Level, Abc_ObjFanin1(pObj)->Level ) )
+            printf( "Abc_AigCheck: Node \"%s\" has level that does not agree with the fanin levels.\n", Abc_ObjName(pObj) );
         pAnd = Abc_AigAndLookup( pMan, Abc_ObjChild0(pObj), Abc_ObjChild1(pObj) );
         if ( pAnd != pObj )
-        {
             printf( "Abc_AigCheck: Node \"%s\" is not in the structural hashing table.\n", Abc_ObjName(pObj) );
-            return 0;
-        }
     }
     // count the number of nodes in the table
     Counter = 0;
@@ -286,6 +291,30 @@ bool Abc_AigCheck( Abc_Aig_t * pMan )
         return 0;
     }
     return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the number of logic levels not counting PIs/POs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_AigGetLevelNum( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNode;
+    int i, LevelsMax;
+    assert( Abc_NtkIsAig(pNtk) );
+    // perform the traversal
+    LevelsMax = 0;
+    Abc_NtkForEachCo( pNtk, pNode, i )
+        if ( LevelsMax < (int)Abc_ObjFanin0(pNode)->Level )
+            LevelsMax = (int)Abc_ObjFanin0(pNode)->Level;
+    return LevelsMax;
 }
 
 /**Function*************************************************************
@@ -349,6 +378,7 @@ Abc_Obj_t * Abc_AigAndCreate( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 )
     Abc_ObjAddFanin( pAnd, p1 );
     // set the level of the new node
     pAnd->Level      = 1 + ABC_MAX( Abc_ObjRegular(p0)->Level, Abc_ObjRegular(p1)->Level ); 
+    pAnd->fExor      = Abc_NodeIsExorType(pAnd);
     // add the node to the corresponding linked list in the table
     Key = Abc_HashKey2( p0, p1, pMan->nBins );
     pAnd->pNext      = pMan->pBins[Key];
@@ -612,6 +642,7 @@ void Abc_AigReplace( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew )
         Abc_AigReplace_int( pMan );
     while ( Vec_PtrSize(pMan->vStackDelete) )
         Abc_AigDelete_int( pMan );
+    Abc_AigUpdateLevel_int( pMan );
 }
 
 /**Function*************************************************************
@@ -627,8 +658,8 @@ void Abc_AigReplace( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew )
 ***********************************************************************/
 void Abc_AigReplace_int( Abc_Aig_t * pMan )
 {
-    Abc_Obj_t * pOld, * pNew, * pFanin1, * pFanin2, * pFanout, * pFanoutNew;
-    int k, iFanin;
+    Abc_Obj_t * pOld, * pNew, * pFanin1, * pFanin2, * pFanout, * pFanoutNew, * pFanoutFanout;
+    int k, v, iFanin;
     // get the pair of nodes to replace
     assert( Vec_PtrSize(pMan->vStackReplaceOld) > 0 );
     pOld = Vec_PtrPop( pMan->vStackReplaceOld );
@@ -668,6 +699,12 @@ void Abc_AigReplace_int( Abc_Aig_t * pMan )
         Abc_ObjRemoveFanins( pFanout );
         // update the old fanout with new fanins and add it to the table
         Abc_AigAndCreateFrom( pMan, pFanin1, pFanin2, pFanout );
+        // schedule the updated node for updating level
+        Vec_VecPush( pMan->vLevels, pFanout->Level, pFanout );
+        // the node has changed, update EXOR status of the fanouts
+        Abc_ObjForEachFanout( pFanout, pFanoutFanout, v )
+            if ( Abc_NodeIsAigAnd(pFanoutFanout) )
+                pFanoutFanout->fExor = Abc_NodeIsExorType(pFanoutFanout);
     }
     // schedule deletion of the old node
     if ( Abc_NodeIsAigAnd(pOld) && pOld->fMarkA == 0 )
@@ -675,6 +712,25 @@ void Abc_AigReplace_int( Abc_Aig_t * pMan )
         Vec_PtrPush( pMan->vStackDelete, pOld );
         pOld->fMarkA = 1;
     }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs internal deletion step.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_AigDeleteNode( Abc_Aig_t * pMan, Abc_Obj_t * pOld )
+{
+    assert( Vec_PtrSize(pMan->vStackDelete) == 0 );
+    Vec_PtrPush( pMan->vStackDelete, pOld );
+    while ( Vec_PtrSize(pMan->vStackDelete) )
+        Abc_AigDelete_int( pMan );
 }
 
 /**Function*************************************************************
@@ -716,6 +772,52 @@ void Abc_AigDelete_int( Abc_Aig_t * pMan )
     // remove the node fro the network
     Abc_NtkDeleteObj( pNode );
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Updates the level of the node after it has changed.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_AigUpdateLevel_int( Abc_Aig_t * pMan )
+{
+    Abc_Obj_t * pNode, * pFanout;
+    Vec_Ptr_t * vVec;
+    unsigned LevelNew;
+    int i, k, v;
+
+    // go through the nodes and update the level of their fanouts
+    Vec_VecForEachLevel( pMan->vLevels, vVec, i )
+    {
+        if ( Vec_PtrSize(vVec) == 0 )
+            continue;
+        Vec_PtrForEachEntry( vVec, pNode, k )
+        {
+            assert( Abc_ObjIsNode(pNode) );
+            Abc_ObjForEachFanout( pNode, pFanout, v )
+            {
+                if ( Abc_ObjIsCo(pFanout) )
+                    continue;
+                // get the new level of this fanout
+                LevelNew = 1 + ABC_MAX( Abc_ObjFanin0(pFanout)->Level, Abc_ObjFanin1(pFanout)->Level );
+                if ( pFanout->Level == LevelNew ) // no change
+                    continue;
+                // update the fanout level
+                pFanout->Level = LevelNew;
+                // add the fanout to be updated
+                Vec_VecPush( pMan->vLevels, pFanout->Level, pFanout );
+            }
+        }
+        Vec_PtrClear( vVec );
+    }
+}
+
+
 
 
 
@@ -774,6 +876,7 @@ bool Abc_AigNodeHasComplFanoutEdgeTrav( Abc_Obj_t * pNode )
     }
     return 0;
 }
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

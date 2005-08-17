@@ -18,6 +18,8 @@ alias rp read_pla
 alias rv read_verilog
 alias rsup read_super mcnc5_old.super
 alias rlib read_library
+alias rw rewrite
+alias rf refactor
 alias sa set autoexec ps
 alias so source -x
 alias st strash
