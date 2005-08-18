@@ -20,7 +20,8 @@ SRC +=    src/base/abc/abc.c \
     src/base/abc/abcPrint.c \
     src/base/abc/abcRefs.c \
     src/base/abc/abcRenode.c \
-    src/base/abc/abcRes.c \
+    src/base/abc/abcRefactor.c \
+    src/base/abc/abcRewrite.c \
     src/base/abc/abcSat.c \
     src/base/abc/abcSeq.c \
     src/base/abc/abcSeqRetime.c \

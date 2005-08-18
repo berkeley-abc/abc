@@ -52,49 +52,6 @@ Vec_Int_t * Rwt_NtkFanoutCounters( Abc_Ntk_t * pNtk )
     return vFanNums;
 }
 
-/**Function*************************************************************
-
-  Synopsis    [Creates the array of required times.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Int_t * Rwt_NtkRequiredLevels( Abc_Ntk_t * pNtk )
-{
-    Vec_Int_t * vReqTimes;
-    Vec_Ptr_t * vNodes;
-    Abc_Obj_t * pObj, * pFanout;
-    int i, k, nLevelsMax, nLevelsCur;
-    // start the required times
-    vReqTimes = Vec_IntAlloc( 0 );
-    Vec_IntFill( vReqTimes, Abc_NtkObjNumMax(pNtk), ABC_INFINITY );
-    // compute levels in reverse topological order
-    Abc_NtkForEachCo( pNtk, pObj, i )
-        Vec_IntWriteEntry( vReqTimes, pObj->Id, 0 );
-    vNodes = Abc_NtkDfsReverse( pNtk );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
-    {
-        nLevelsCur = 0;
-        Abc_ObjForEachFanout( pObj, pFanout, k )
-            if ( nLevelsCur < Vec_IntEntry(vReqTimes, pFanout->Id) )
-                nLevelsCur = Vec_IntEntry(vReqTimes, pFanout->Id);
-        Vec_IntWriteEntry( vReqTimes, pObj->Id, nLevelsCur + 1 );
-    }
-    Vec_PtrFree( vNodes );
-    // convert levels into required times: RetTime = NumLevels + 1 - Level
-    nLevelsMax = Abc_AigGetLevelNum(pNtk) + 1;
-    Abc_NtkForEachNode( pNtk, pObj, i )
-        Vec_IntWriteEntry( vReqTimes, pObj->Id, nLevelsMax - Vec_IntEntry(vReqTimes, pObj->Id) );
-//    Abc_NtkForEachNode( pNtk, pObj, i )
-//        printf( "(%d,%d)", pObj->Level, Vec_IntEntry(vReqTimes, pObj->Id) );
-//    printf( "\n" );
-    return vReqTimes;
-}
-
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

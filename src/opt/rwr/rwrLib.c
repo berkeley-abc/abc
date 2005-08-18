@@ -24,14 +24,15 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static Rwr_Node_t *        Rwr_ManTryNode( Abc_ManRwr_t * p, Rwr_Node_t * p0, Rwr_Node_t * p1, int fExor, int Level, int Volume );
-static Rwr_Node_t *        Rwr_ManAddNode( Abc_ManRwr_t * p, Rwr_Node_t * p0, Rwr_Node_t * p1, int fExor, int Level, int Volume );
-static int                 Rwr_ManNodeVolume( Abc_ManRwr_t * p, Rwr_Node_t * p0, Rwr_Node_t * p1 );
+static Rwr_Node_t *        Rwr_ManTryNode( Rwr_Man_t * p, Rwr_Node_t * p0, Rwr_Node_t * p1, int fExor, int Level, int Volume );
+static Rwr_Node_t *        Rwr_ManAddNode( Rwr_Man_t * p, Rwr_Node_t * p0, Rwr_Node_t * p1, int fExor, int Level, int Volume );
+static int                 Rwr_ManNodeVolume( Rwr_Man_t * p, Rwr_Node_t * p0, Rwr_Node_t * p1 );
 
-static void                Rwr_ManIncTravId_int( Abc_ManRwr_t * p );
-static inline void         Rwr_ManIncTravId( Abc_ManRwr_t * p )     { if ( p->nTravIds++ == 0x8FFFFFFF ) Rwr_ManIncTravId_int( p ); }
+static void                Rwr_ManIncTravId_int( Rwr_Man_t * p );
+static inline void         Rwr_ManIncTravId( Rwr_Man_t * p )     { if ( p->nTravIds++ == 0x8FFFFFFF ) Rwr_ManIncTravId_int( p ); }
 
-static void                Rwr_MarkUsed_rec( Abc_ManRwr_t * p, Rwr_Node_t * pNode );
+static void                Rwr_MarkUsed_rec( Rwr_Man_t * p, Rwr_Node_t * pNode );
+static void                Rwr_ListAddToTail( Rwr_Node_t ** ppList, Rwr_Node_t * pNode );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -48,7 +49,7 @@ static void                Rwr_MarkUsed_rec( Abc_ManRwr_t * p, Rwr_Node_t * pNod
   SeeAlso     []
 
 ***********************************************************************/
-void Rwr_ManPrecompute( Abc_ManRwr_t * p )
+void Rwr_ManPrecompute( Rwr_Man_t * p )
 {
     Rwr_Node_t * p0, * p1;
     int i, k, Level, Volume;
@@ -80,7 +81,7 @@ void Rwr_ManPrecompute( Abc_ManRwr_t * p )
         // compute the level and volume of the new nodes
         Level  = 1 + ABC_MAX( p0->Level, p1->Level );
         Volume = 1 + Rwr_ManNodeVolume( p, p0, p1 );
-        // try four different nodes
+        // try four different AND nodes
         Rwr_ManTryNode( p,         p0 ,         p1 , 0, Level, Volume );
         Rwr_ManTryNode( p, Rwr_Not(p0),         p1 , 0, Level, Volume );
         Rwr_ManTryNode( p,         p0 , Rwr_Not(p1), 0, Level, Volume );
@@ -136,7 +137,7 @@ save :
   SeeAlso     []
 
 ***********************************************************************/
-void Rwr_ManWriteToFile( Abc_ManRwr_t * p, char * pFileName )
+void Rwr_ManWriteToFile( Rwr_Man_t * p, char * pFileName )
 {
     FILE * pFile;
     Rwr_Node_t * pNode;
@@ -173,7 +174,7 @@ void Rwr_ManWriteToFile( Abc_ManRwr_t * p, char * pFileName )
   SeeAlso     []
 
 ***********************************************************************/
-void Rwr_ManLoadFromFile( Abc_ManRwr_t * p, char * pFileName )
+void Rwr_ManLoadFromFile( Rwr_Man_t * p, char * pFileName )
 {
     FILE * pFile;
     Rwr_Node_t * p0, * p1;
@@ -227,7 +228,7 @@ void Rwr_ManLoadFromFile( Abc_ManRwr_t * p, char * pFileName )
   SeeAlso     []
 
 ***********************************************************************/
-void Rwr_ManIncTravId_int( Abc_ManRwr_t * p )
+void Rwr_ManIncTravId_int( Rwr_Man_t * p )
 {
     Rwr_Node_t * pNode;
     int i;
@@ -247,7 +248,7 @@ void Rwr_ManIncTravId_int( Abc_ManRwr_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Rwr_MarkUsed_rec( Abc_ManRwr_t * p, Rwr_Node_t * pNode )
+void Rwr_MarkUsed_rec( Rwr_Man_t * p, Rwr_Node_t * pNode )
 {
     if ( pNode->fUsed || pNode->TravId == p->nTravIds )
         return;
@@ -268,7 +269,7 @@ void Rwr_MarkUsed_rec( Abc_ManRwr_t * p, Rwr_Node_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-void Rwr_Trav_rec( Abc_ManRwr_t * p, Rwr_Node_t * pNode, int * pVolume )
+void Rwr_Trav_rec( Rwr_Man_t * p, Rwr_Node_t * pNode, int * pVolume )
 {
     if ( pNode->fMark || pNode->TravId == p->nTravIds )
         return;
@@ -291,7 +292,7 @@ void Rwr_Trav_rec( Abc_ManRwr_t * p, Rwr_Node_t * pNode, int * pVolume )
   SeeAlso     []
 
 ***********************************************************************/
-void Rwr_Trav2_rec( Abc_ManRwr_t * p, Rwr_Node_t * pNode, int * pVolume )
+void Rwr_Trav2_rec( Rwr_Man_t * p, Rwr_Node_t * pNode, int * pVolume )
 {
     if ( pNode->fMark || pNode->TravId == p->nTravIds )
         return;
@@ -312,7 +313,7 @@ void Rwr_Trav2_rec( Abc_ManRwr_t * p, Rwr_Node_t * pNode, int * pVolume )
   SeeAlso     []
 
 ***********************************************************************/
-int Rwr_ManNodeVolume( Abc_ManRwr_t * p, Rwr_Node_t * p0, Rwr_Node_t * p1 )
+int Rwr_ManNodeVolume( Rwr_Man_t * p, Rwr_Node_t * p0, Rwr_Node_t * p1 )
 {
     int Volume = 0;
     Rwr_ManIncTravId( p );
@@ -332,10 +333,10 @@ int Rwr_ManNodeVolume( Abc_ManRwr_t * p, Rwr_Node_t * p0, Rwr_Node_t * p1 )
   SeeAlso     []
 
 ***********************************************************************/
-Rwr_Node_t * Rwr_ManTryNode( Abc_ManRwr_t * p, Rwr_Node_t * p0, Rwr_Node_t * p1, int fExor, int Level, int Volume )
+Rwr_Node_t * Rwr_ManTryNode( Rwr_Man_t * p, Rwr_Node_t * p0, Rwr_Node_t * p1, int fExor, int Level, int Volume )
 {
     Rwr_Node_t * pOld, * pNew, ** ppPlace;
-    unsigned uTruth, uCanon;
+    unsigned uTruth;
     // compute truth table, level, volume
     p->nConsidered++;
     if ( fExor )
@@ -346,12 +347,11 @@ Rwr_Node_t * Rwr_ManTryNode( Abc_ManRwr_t * p, Rwr_Node_t * p0, Rwr_Node_t * p1,
     else
         uTruth = (Rwr_IsComplement(p0)? ~Rwr_Regular(p0)->uTruth : Rwr_Regular(p0)->uTruth) & 
                  (Rwr_IsComplement(p1)? ~Rwr_Regular(p1)->uTruth : Rwr_Regular(p1)->uTruth) & 0xFFFF;
-    uCanon = p->puCanons[uTruth];
     // skip non-practical classes
-    if ( Level > 2 && p->pPractical[uCanon] == 0 )
+    if ( Level > 2 && !p->pPractical[p->puCanons[uTruth]] )
         return NULL;
     // enumerate through the nodes with the same canonical form
-    ppPlace = p->pTable + uCanon;
+    ppPlace = p->pTable + uTruth;
     for ( pOld = *ppPlace; pOld; ppPlace = &pOld->pNext, pOld = pOld->pNext )
     {
         if ( pOld->Level <  (unsigned)Level && pOld->Volume < (unsigned)Volume )
@@ -361,8 +361,19 @@ Rwr_Node_t * Rwr_ManTryNode( Abc_ManRwr_t * p, Rwr_Node_t * p0, Rwr_Node_t * p1,
 //        if ( pOld->Level <  (unsigned)Level && pOld->Volume == (unsigned)Volume )
 //            return NULL;
     }
-//    if ( fExor )
-//        printf( "Adding EXOR of %d and %d.\n", p0->Id, p1->Id );
+    // enumerate through the nodes with the opposite polarity
+    for ( pOld = p->pTable[~uTruth & 0xFFFF]; pOld; pOld = pOld->pNext )
+    {
+        if ( pOld->Level <  (unsigned)Level && pOld->Volume < (unsigned)Volume )
+            return NULL;
+        if ( pOld->Level == (unsigned)Level && pOld->Volume < (unsigned)Volume )
+            return NULL;
+//        if ( pOld->Level <  (unsigned)Level && pOld->Volume == (unsigned)Volume )
+//            return NULL;
+    }
+    // count the classes
+    if ( p->pTable[uTruth] == NULL && p->puCanons[uTruth] == uTruth )
+        p->nClasses++;
     // create the new node
     pNew = (Rwr_Node_t *)Extra_MmFixedEntryFetch( p->pMmNode );
     pNew->Id     = p->vForest->nSize;
@@ -378,8 +389,6 @@ Rwr_Node_t * Rwr_ManTryNode( Abc_ManRwr_t * p, Rwr_Node_t * p0, Rwr_Node_t * p1,
     pNew->pNext  = NULL;
     Vec_PtrPush( p->vForest, pNew );
     *ppPlace     = pNew;
-    if ( p->pTable[uCanon] == pNew )
-        p->nClasses++;
     return pNew;
 }
 
@@ -394,10 +403,10 @@ Rwr_Node_t * Rwr_ManTryNode( Abc_ManRwr_t * p, Rwr_Node_t * p0, Rwr_Node_t * p1,
   SeeAlso     []
 
 ***********************************************************************/
-Rwr_Node_t * Rwr_ManAddNode( Abc_ManRwr_t * p, Rwr_Node_t * p0, Rwr_Node_t * p1, int fExor, int Level, int Volume )
+Rwr_Node_t * Rwr_ManAddNode( Rwr_Man_t * p, Rwr_Node_t * p0, Rwr_Node_t * p1, int fExor, int Level, int Volume )
 {
-    Rwr_Node_t * pOld, * pNew;
-    unsigned uTruth, uCanon;
+    Rwr_Node_t * pNew;
+    unsigned uTruth;
     // compute truth table, leve, volume
     p->nConsidered++;
     if ( fExor )
@@ -405,10 +414,6 @@ Rwr_Node_t * Rwr_ManAddNode( Abc_ManRwr_t * p, Rwr_Node_t * p0, Rwr_Node_t * p1,
     else
         uTruth = (Rwr_IsComplement(p0)? ~Rwr_Regular(p0)->uTruth : Rwr_Regular(p0)->uTruth) & 
                  (Rwr_IsComplement(p1)? ~Rwr_Regular(p1)->uTruth : Rwr_Regular(p1)->uTruth) & 0xFFFF;
-    uCanon = p->puCanons[uTruth];
-    // skip non-practical classes
-//    if ( p->pPractical[uCanon] == 0 )
-//        return NULL;
     // create the new node
     pNew = (Rwr_Node_t *)Extra_MmFixedEntryFetch( p->pMmNode );
     pNew->Id     = p->vForest->nSize;
@@ -424,16 +429,14 @@ Rwr_Node_t * Rwr_ManAddNode( Abc_ManRwr_t * p, Rwr_Node_t * p0, Rwr_Node_t * p1,
     pNew->pNext  = NULL;
     Vec_PtrPush( p->vForest, pNew );
     // do not add if the node is not essential
-    if ( uTruth != uCanon )
+    if ( uTruth != p->puCanons[uTruth] )
         return pNew;
 
     // add to the list
     p->nAdded++;
-    pOld = p->pTable[uCanon];
-    if ( pOld == NULL )
+    if ( p->pTable[p->pMap[uTruth]] == NULL )
         p->nClasses++;
-    pNew->pNext = pOld;
-    p->pTable[uCanon] = pNew;
+    Rwr_ListAddToTail( p->pTable + p->pMap[uTruth], pNew );
     return pNew;
 }
 
@@ -448,7 +451,7 @@ Rwr_Node_t * Rwr_ManAddNode( Abc_ManRwr_t * p, Rwr_Node_t * p0, Rwr_Node_t * p1,
   SeeAlso     []
 
 ***********************************************************************/
-Rwr_Node_t * Rwr_ManAddVar( Abc_ManRwr_t * p, unsigned uTruth )
+Rwr_Node_t * Rwr_ManAddVar( Rwr_Man_t * p, unsigned uTruth, char * pFileName )
 {
     Rwr_Node_t * pNew;
     pNew = (Rwr_Node_t *)Extra_MmFixedEntryFetch( p->pMmNode );
@@ -461,13 +464,37 @@ Rwr_Node_t * Rwr_ManAddVar( Abc_ManRwr_t * p, unsigned uTruth )
     pNew->fUsed  = 1;
     pNew->fExor  = 0;
     pNew->p0     = NULL;
-    pNew->p1     = NULL;    pNew->pNext  = NULL;
+    pNew->p1     = NULL;    
+    pNew->pNext  = NULL;
     Vec_PtrPush( p->vForest, pNew );
-    assert( p->pTable[p->puCanons[uTruth]] == NULL );
-    p->pTable[p->puCanons[uTruth]] = pNew;
+    if ( pFileName == NULL )
+        Rwr_ListAddToTail( p->pTable + uTruth, pNew );
+//    else
+//        Rwr_ListAddToTail( p->pTable + p->pMap[uTruth], pNew );
     return pNew;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Adds the node to the end of the list.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Rwr_ListAddToTail( Rwr_Node_t ** ppList, Rwr_Node_t * pNode )
+{
+    Rwr_Node_t * pTemp;
+    // find the last one
+    for ( pTemp = *ppList; pTemp; pTemp = pTemp->pNext )
+        ppList = &pTemp->pNext;
+    // attach at the end
+    *ppList = pNode;
+}
 
 /**Function*************************************************************
 
@@ -567,16 +594,17 @@ void Rwr_NodePrint_rec( FILE * pFile, Rwr_Node_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-void Rwr_NodePrint( FILE * pFile, Abc_ManRwr_t * p, Rwr_Node_t * pNode )
+void Rwr_NodePrint( FILE * pFile, Rwr_Man_t * p, Rwr_Node_t * pNode )
 {
     unsigned uTruth;
-    fprintf( pFile, "%5d :", pNode->Id );
-    fprintf( pFile, " tt=", pNode->Id );
+    fprintf( pFile, "%5d : ", pNode->Id );
+    Extra_PrintHex( pFile, pNode->uTruth, 4 );
+    fprintf( pFile, " tt=" );
     uTruth = pNode->uTruth;
     Extra_PrintBinary( pFile, &uTruth, 16 );
-    fprintf( pFile, " cn=", pNode->Id );
-    uTruth = p->puCanons[pNode->uTruth];
-    Extra_PrintBinary( pFile, &uTruth, 16 );
+//    fprintf( pFile, " cn=", pNode->Id );
+//    uTruth = p->puCanons[pNode->uTruth];
+//    Extra_PrintBinary( pFile, &uTruth, 16 );
     fprintf( pFile, " lev=%d", pNode->Level );
     fprintf( pFile, " vol=%d", pNode->Volume );
     fprintf( pFile, "  " );
@@ -595,45 +623,26 @@ void Rwr_NodePrint( FILE * pFile, Abc_ManRwr_t * p, Rwr_Node_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-void Rwr_ManPrint( Abc_ManRwr_t * p )
+void Rwr_ManPrintFirst( Rwr_Man_t * p )
 {
-/*
-    Rwr_Node_t * pNode;
-    unsigned uTruth;
-    int Limit = 4;
-    int i;
-
-    for ( i = 0; i < p->nFuncs; i++ )
-    {
-        if ( p->pTable[i] == NULL )
-            continue;
-        if ( Limit-- == 0 )
-            break;
-        printf( "\nClass " );
-        uTruth = i;
-        Extra_PrintBinary( stdout, &uTruth, 16 );
-        printf( "\n" );
-        for ( pNode = p->pTable[i]; pNode; pNode = pNode->pNext )
-            if ( pNode->uTruth == p->puCanons[pNode->uTruth] )
-                Rwr_NodePrint( p, pNode );
-    }
-*/
     FILE * pFile;
     Rwr_Node_t * pNode;
     unsigned uTruth;
-    int Limit = 4;
+    int nFuncs;
     int Counter;
     int i;
 
     pFile = fopen( "graph_lib.txt", "w" );
 
     Counter = 0;
-    for ( i = 0; i < p->nFuncs; i++ )
+    nFuncs = (1 << 16);
+    for ( i = 0; i < nFuncs; i++ )
     {
         if ( p->pTable[i] == NULL )
             continue;
-//        if ( Limit-- == 0 )
-//            break;
+        if ( i != p->puCanons[i] )
+            continue;
+
         fprintf( pFile, "\nClass %3d  ", Counter++ );
 
         // count the volume of the bush
@@ -642,15 +651,74 @@ void Rwr_ManPrint( Abc_ManRwr_t * p )
             int nFuncs = 0;
             Rwr_ManIncTravId( p );
             for ( pNode = p->pTable[i]; pNode; pNode = pNode->pNext )
-                if ( pNode->uTruth == p->puCanons[pNode->uTruth] )
-                {
-                    nFuncs++;
-                    Rwr_Trav2_rec( p, pNode, &Volume );
-                }
+            {
+                if ( pNode->uTruth != p->puCanons[pNode->uTruth] )
+                    continue;
+                nFuncs++;
+                Rwr_Trav2_rec( p, pNode, &Volume );
+            }
             fprintf( pFile, "Functions = %2d. Volume = %2d. ", nFuncs, Volume );
         }
 
         uTruth = i;
+        Extra_PrintBinary( pFile, &uTruth, 16 );
+        fprintf( pFile, "\n" );
+
+        for ( pNode = p->pTable[i]; pNode; pNode = pNode->pNext )
+            if ( pNode->uTruth == p->puCanons[pNode->uTruth] )
+                Rwr_NodePrint( pFile, p, pNode );
+    }
+
+    fclose( pFile );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints one rwr node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Rwr_ManPrintNext( Rwr_Man_t * p )
+{
+    FILE * pFile;
+    Rwr_Node_t * pNode;
+    unsigned uTruth;
+    int nFuncs;
+    int Counter;
+    int i;
+
+    pFile = fopen( "graph_lib2.txt", "w" );
+
+    Counter = 0;
+    nFuncs = (1 << 16);
+    for ( i = 0; i < 222; i++ )
+    {
+        if ( p->pTable[i] == NULL )
+            continue;
+
+        fprintf( pFile, "\nClass %3d  ", Counter++ );
+
+        // count the volume of the bush
+        {
+            int Volume = 0;
+            int nFuncs = 0;
+            Rwr_ManIncTravId( p );
+            for ( pNode = p->pTable[i]; pNode; pNode = pNode->pNext )
+            {
+                if ( pNode->uTruth != p->puCanons[pNode->uTruth] )
+                    continue;
+                nFuncs++;
+                Rwr_Trav2_rec( p, pNode, &Volume );
+            }
+            fprintf( pFile, "Functions = %2d. Volume = %2d. ", nFuncs, Volume );
+        }
+
+        uTruth = p->pTable[i]->uTruth;
         Extra_PrintBinary( pFile, &uTruth, 16 );
         fprintf( pFile, "\n" );
 

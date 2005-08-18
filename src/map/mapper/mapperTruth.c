@@ -91,6 +91,7 @@ void Map_MappingTruths( Map_Man_t * pMan )
 void Map_TruthsCut( Map_Man_t * p, Map_Cut_t * pCut )
 {
     unsigned uTruth[2], uCanon[2];
+//    unsigned uCanon1, uCanon2;
     unsigned char uPhases[16];
 
     // generally speaking, 1-input cut can be matched into a wire!
@@ -98,14 +99,14 @@ void Map_TruthsCut( Map_Man_t * p, Map_Cut_t * pCut )
         return;
     Map_TruthsCutOne( p, pCut, uTruth );
 
-//assert( pCut->nLeaves < 5 );
-//Rwt_ManExploreCount( uTruth[0] & 0xFFFF );
 
     // compute the canonical form for the positive phase
     Map_CanonComputeSlow( p->uTruths, p->nVarsMax, pCut->nLeaves, uTruth, uPhases, uCanon );
     pCut->M[1].pSupers = Map_SuperTableLookupC( p->pSuperLib, uCanon );
     pCut->M[1].uPhase  = uPhases[0];
     p->nCanons++;
+
+//uCanon1 = uCanon[0] & 0xFFFF;
 
     // compute the canonical form for the negative phase
     uTruth[0] = ~uTruth[0];
@@ -114,6 +115,11 @@ void Map_TruthsCut( Map_Man_t * p, Map_Cut_t * pCut )
     pCut->M[0].pSupers = Map_SuperTableLookupC( p->pSuperLib, uCanon );
     pCut->M[0].uPhase  = uPhases[0];
     p->nCanons++;
+
+//uCanon2 = uCanon[0] & 0xFFFF;
+
+//assert( p->nVarsMax == 4 );
+//Rwt_Man4ExploreCount( uCanon1 < uCanon2 ? uCanon1 : uCanon2 );
 
     // restore the truth table
     uTruth[0] = ~uTruth[0];

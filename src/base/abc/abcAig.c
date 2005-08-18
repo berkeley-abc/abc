@@ -78,7 +78,6 @@ static inline unsigned Abc_HashKey2( Abc_Obj_t * p0, Abc_Obj_t * p1, int TableSi
 // structural hash table procedures
 static Abc_Obj_t * Abc_AigAndCreate( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 );
 static Abc_Obj_t * Abc_AigAndCreateFrom( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1, Abc_Obj_t * pAnd );
-static Abc_Obj_t * Abc_AigAndLookup( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 );
 static void        Abc_AigAndDelete( Abc_Aig_t * pMan, Abc_Obj_t * pThis );
 static void        Abc_AigResize( Abc_Aig_t * pMan );
 // incremental AIG procedures

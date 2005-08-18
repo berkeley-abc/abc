@@ -24,8 +24,8 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-typedef struct Abc_ManRwrExp_t_ Abc_ManRwrExp_t;
-struct Abc_ManRwrExp_t_
+typedef struct Rwr_Man4_t_ Rwr_Man4_t;
+struct Rwr_Man4_t_
 {
     // internal lookups
     int                nFuncs;           // the number of four-var functions
@@ -35,13 +35,21 @@ struct Abc_ManRwrExp_t_
     int                nClasses;         // the number of NN classes
 };
 
-static Abc_ManRwrExp_t * s_pManRwrExp = NULL;
+typedef struct Rwr_Man5_t_ Rwr_Man5_t;
+struct Rwr_Man5_t_
+{
+    // internal lookups
+    stmm_table *       tTableNN;         // the NN canonical forms
+    stmm_table *       tTableNPN;        // the NPN canonical forms
+};
+
+static Rwr_Man4_t * s_pManRwrExp4 = NULL;
+static Rwr_Man5_t * s_pManRwrExp5 = NULL;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
-
 /**Function*************************************************************
 
   Synopsis    [Collects stats about 4-var functions appearing in netlists.]
@@ -53,43 +61,19 @@ static Abc_ManRwrExp_t * s_pManRwrExp = NULL;
   SeeAlso     []
 
 ***********************************************************************/
-void Rwt_ManExploreStart()
+void Rwt_Man4ExploreStart()
 {
-    Abc_ManRwrExp_t * p;
-    unsigned uTruth;
-    int i, k, nClasses;
-    int clk = clock();
-
-    p = ALLOC( Abc_ManRwrExp_t, 1 );
-    memset( p, 0, sizeof(Abc_ManRwrExp_t) );
+    Rwr_Man4_t * p;
+    p = ALLOC( Rwr_Man4_t, 1 );
+    memset( p, 0, sizeof(Rwr_Man4_t) );
     // canonical forms
     p->nFuncs    = (1<<16);
-    p->puCanons  = ALLOC( unsigned short, p->nFuncs );
-    memset( p->puCanons, 0, sizeof(unsigned short) * p->nFuncs );
+    // canonical forms, phases, perms
+    Extra_Truth4VarNPN( &p->puCanons, NULL, NULL );
     // counters
     p->pnCounts  = ALLOC( int, p->nFuncs );
     memset( p->pnCounts, 0, sizeof(int) * p->nFuncs );
-
-    // initialize the canonical forms
-    nClasses = 1;
-    for ( i = 1; i < p->nFuncs-1; i++ )
-    {
-        if ( p->puCanons[i] )
-            continue;
-        nClasses++;
-        for ( k = 0; k < 32; k++ )
-        {
-            uTruth = Rwr_FunctionPhase( (unsigned)i, (unsigned)k );
-            if ( p->puCanons[uTruth] == 0 )
-                p->puCanons[uTruth] = (unsigned short)i;
-            else
-                assert( p->puCanons[uTruth] == (unsigned short)i );
-        }
-    }
-    // set info for constant 1
-    p->puCanons[p->nFuncs-1] = 0;
-    printf( "The number of NN-canonical forms = %d.\n", nClasses );
-    s_pManRwrExp = p;
+    s_pManRwrExp4 = p;
 }
 
 /**Function*************************************************************
@@ -103,10 +87,10 @@ void Rwt_ManExploreStart()
   SeeAlso     []
 
 ***********************************************************************/
-void Rwt_ManExploreCount( unsigned uTruth )
+void Rwt_Man4ExploreCount( unsigned uTruth )
 {
     assert( uTruth < (1<<16) );
-    s_pManRwrExp->pnCounts[ s_pManRwrExp->puCanons[uTruth] ]++;    
+    s_pManRwrExp4->pnCounts[ s_pManRwrExp4->puCanons[uTruth] ]++;    
 }
 
 /**Function*************************************************************
@@ -120,7 +104,7 @@ void Rwt_ManExploreCount( unsigned uTruth )
   SeeAlso     []
 
 ***********************************************************************/
-void Rwt_ManExplorePrint()
+void Rwt_Man4ExplorePrint()
 {
     FILE * pFile;
     int i, CountMax, CountWrite, nCuts, nClasses;
@@ -129,12 +113,12 @@ void Rwt_ManExplorePrint()
     // find the max number of occurences
     nCuts = nClasses = 0;
     CountMax = 0;
-    for ( i = 0; i < s_pManRwrExp->nFuncs; i++ )
+    for ( i = 0; i < s_pManRwrExp4->nFuncs; i++ )
     {
-        if ( CountMax < s_pManRwrExp->pnCounts[i] )
-            CountMax = s_pManRwrExp->pnCounts[i];
-        nCuts += s_pManRwrExp->pnCounts[i];
-        if ( s_pManRwrExp->pnCounts[i] > 0 )
+        if ( CountMax < s_pManRwrExp4->pnCounts[i] )
+            CountMax = s_pManRwrExp4->pnCounts[i];
+        nCuts += s_pManRwrExp4->pnCounts[i];
+        if ( s_pManRwrExp4->pnCounts[i] > 0 )
             nClasses++;
     }
     printf( "Number of cuts considered       = %8d.\n", nCuts );
@@ -143,10 +127,10 @@ void Rwt_ManExplorePrint()
     pDistrib = ALLOC( int, CountMax + 1 );
     pReprs   = ALLOC( int, CountMax + 1 );
     memset( pDistrib, 0, sizeof(int)*(CountMax + 1) );
-    for ( i = 0; i < s_pManRwrExp->nFuncs; i++ )
+    for ( i = 0; i < s_pManRwrExp4->nFuncs; i++ )
     {
-        pDistrib[ s_pManRwrExp->pnCounts[i] ]++;
-        pReprs[ s_pManRwrExp->pnCounts[i] ] = i;
+        pDistrib[ s_pManRwrExp4->pnCounts[i] ]++;
+        pReprs[ s_pManRwrExp4->pnCounts[i] ] = i;
     }
 
     printf( "Occurence = %6d.  Num classes = %4d.  \n", 0, 2288-nClasses );
@@ -161,16 +145,186 @@ void Rwt_ManExplorePrint()
     free( pReprs );
     // write into a file all classes above limit (5)
     CountWrite = 0;
-    pFile = fopen( "nnclass_stats.txt", "w" );
-    for ( i = 0; i < s_pManRwrExp->nFuncs; i++ )
-        if ( s_pManRwrExp->pnCounts[i] > 5 )
+    pFile = fopen( "npnclass_stats4.txt", "w" );
+    for ( i = 0; i < s_pManRwrExp4->nFuncs; i++ )
+        if ( s_pManRwrExp4->pnCounts[i] > 0 )
         {
-            fprintf( pFile, "%d ", i );
+            Extra_PrintHex( pFile, i, 4 );
+            fprintf( pFile, " %10d\n", s_pManRwrExp4->pnCounts[i] );
+//            fprintf( pFile, "%d ", i );
             CountWrite++;
         }
     fclose( pFile );
-    printf( "%d classes written into file \"%s\".\n", CountWrite, "nnclass_stats.txt" );
+    printf( "%d classes written into file \"%s\".\n", CountWrite, "npnclass_stats4.txt" );
 }
+
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Collects stats about 4-var functions appearing in netlists.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Rwt_Man5ExploreStart()
+{
+    Rwr_Man5_t * p;
+    p = ALLOC( Rwr_Man5_t, 1 );
+    memset( p, 0, sizeof(Rwr_Man5_t) );
+    p->tTableNN  = stmm_init_table( st_numcmp, st_numhash );
+    p->tTableNPN = stmm_init_table( st_numcmp, st_numhash );
+    s_pManRwrExp5 = p;
+
+//Extra_PrintHex( stdout, Extra_TruthCanonNPN( 0x0000FFFF, 5 ), 5 );
+//printf( "\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects stats about 4-var functions appearing in netlists.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Rwt_Man5ExploreCount( unsigned uTruth )
+{
+    int * pCounter;
+    if ( !stmm_find_or_add( s_pManRwrExp5->tTableNN, (char *)uTruth, (char***)&pCounter ) )
+        *pCounter = 0;
+    (*pCounter)++;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects stats about 4-var functions appearing in netlists.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Rwt_Man5ExplorePrint()
+{
+    FILE * pFile;
+    stmm_generator * gen;
+    int i, CountMax, nCuts, Counter;
+    int * pDistrib;
+    unsigned * pReprs;
+    unsigned uTruth, uTruthC;
+    int clk = clock();
+    Vec_Int_t * vClassesNN, * vClassesNPN;
+
+    // find the max number of occurences
+    nCuts = 0;
+    CountMax = 0;
+    stmm_foreach_item( s_pManRwrExp5->tTableNN, gen, (char **)&uTruth, (char **)&Counter )
+    {
+        nCuts += Counter;
+        if ( CountMax < Counter )
+            CountMax = Counter;
+    }
+    printf( "Number of cuts considered       = %8d.\n", nCuts );
+    printf( "Classes occurring at least once = %8d.\n", stmm_count(s_pManRwrExp5->tTableNN) );
+    printf( "The largest number of occurence = %8d.\n", CountMax );
+
+    // print the distribution of classes
+    pDistrib = ALLOC( int, CountMax + 1 );
+    pReprs   = ALLOC( unsigned, CountMax + 1 );
+    memset( pDistrib, 0, sizeof(int)*(CountMax + 1) );
+    stmm_foreach_item( s_pManRwrExp5->tTableNN, gen, (char **)&uTruth, (char **)&Counter )
+    {
+        assert( Counter <= CountMax );
+        pDistrib[ Counter ]++;
+        pReprs[ Counter ] = uTruth;
+    }
+
+    for ( i = 1; i <= CountMax; i++ )
+        if ( pDistrib[i] )
+        {
+            printf( "Occurence = %6d.  Num classes = %4d.  Repr = ", i, pDistrib[i] );
+            Extra_PrintBinary( stdout, pReprs + i, 32 ); 
+            printf( "\n" );
+        }
+    free( pDistrib );
+    free( pReprs );
+
+
+    // put them into an array
+    vClassesNN = Vec_IntAlloc( stmm_count(s_pManRwrExp5->tTableNN) );
+    stmm_foreach_item( s_pManRwrExp5->tTableNN, gen, (char **)&uTruth, NULL )
+        Vec_IntPush( vClassesNN, (int)uTruth );
+    Vec_IntSortUnsigned( vClassesNN );
+
+    // write into a file all classes
+    pFile = fopen( "nnclass_stats5.txt", "w" );
+    Vec_IntForEachEntry( vClassesNN, uTruth, i )
+    {
+        if ( !stmm_lookup( s_pManRwrExp5->tTableNN, (char *)uTruth, (char **)&Counter ) )
+        {
+            assert( 0 );
+        }
+        Extra_PrintHex( pFile, uTruth, 5 );
+        fprintf( pFile, " %10d\n", Counter );
+    }
+    fclose( pFile );
+    printf( "%d classes written into file \"%s\".\n", vClassesNN->nSize, "nnclass_stats5.txt" );
+
+
+clk = clock();
+    // how many NPN classes exist?
+    Vec_IntForEachEntry( vClassesNN, uTruth, i )
+    {
+        int * pCounter;
+        uTruthC = Extra_TruthCanonNPN( uTruth, 5 );
+        if ( !stmm_find_or_add( s_pManRwrExp5->tTableNPN, (char *)uTruthC, (char***)&pCounter ) )
+            *pCounter = 0;
+        if ( !stmm_lookup( s_pManRwrExp5->tTableNN, (char *)uTruth, (char **)&Counter ) )
+        {
+            assert( 0 );
+        }
+        (*pCounter) += Counter;
+    }
+    printf( "The numbe of NPN classes = %d.\n", stmm_count(s_pManRwrExp5->tTableNPN) );
+PRT( "Computing NPN classes", clock() - clk );
+
+    // put them into an array
+    vClassesNPN = Vec_IntAlloc( stmm_count(s_pManRwrExp5->tTableNPN) );
+    stmm_foreach_item( s_pManRwrExp5->tTableNPN, gen, (char **)&uTruth, NULL )
+        Vec_IntPush( vClassesNPN, (int)uTruth );
+    Vec_IntSortUnsigned( vClassesNPN );
+
+    // write into a file all classes
+    pFile = fopen( "npnclass_stats5.txt", "w" );
+    Vec_IntForEachEntry( vClassesNPN, uTruth, i )
+    {
+        if ( !stmm_lookup( s_pManRwrExp5->tTableNPN, (char *)uTruth, (char **)&Counter ) )
+        {
+            assert( 0 );
+        }
+        Extra_PrintHex( pFile, uTruth, 5 );
+        fprintf( pFile, " %10d\n", Counter );
+    }
+    fclose( pFile );
+    printf( "%d classes written into file \"%s\".\n", vClassesNPN->nSize, "npnclass_stats5.txt" );
+
+
+    // can they be uniquely characterized?
+
+}
+
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

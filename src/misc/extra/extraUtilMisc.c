@@ -329,6 +329,414 @@ void Extra_Permutations_rec( char ** pRes, int nFact, int n, char Array[] )
 
 /**Function*************************************************************
 
+  Synopsis    [Permutes the given vector of minterms.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Extra_TruthPermute_int( int * pMints, int nMints, char * pPerm, int nVars, int * pMintsP )
+{
+    int m, v;
+    // clean the storage for minterms
+    memset( pMintsP, 0, sizeof(int) * nMints );
+    // go through minterms and add the variables
+    for ( m = 0; m < nMints; m++ )
+        for ( v = 0; v < nVars; v++ )
+            if ( pMints[m] & (1 << v) )
+                pMintsP[m] |= (1 << pPerm[v]);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Permutes the function.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned Extra_TruthPermute( unsigned Truth, char * pPerms, int nVars, int fReverse )
+{
+    unsigned Result;
+    int * pMints;
+    int * pMintsP;
+    int nMints;
+    int i, m;
+
+    assert( nVars < 6 );
+    nMints  = (1 << nVars);
+    pMints  = ALLOC( int, nMints );
+    pMintsP = ALLOC( int, nMints );
+    for ( i = 0; i < nMints; i++ )
+        pMints[i] = i;
+
+    Extra_TruthPermute_int( pMints, nMints, pPerms, nVars, pMintsP );
+
+    Result = 0;
+    if ( fReverse )
+    {
+        for ( m = 0; m < nMints; m++ )
+            if ( Truth & (1 << pMintsP[m]) )
+                Result |= (1 << m);
+    }
+    else
+    {
+        for ( m = 0; m < nMints; m++ )
+            if ( Truth & (1 << m) )
+                Result |= (1 << pMintsP[m]);
+    }
+
+    free( pMints );
+    free( pMintsP );
+
+    return Result;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Changes the phase of the function.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned Extra_TruthPolarize( unsigned uTruth, int Polarity, int nVars )
+{
+    // elementary truth tables
+    static unsigned Signs[5] = {
+        0xAAAAAAAA,    // 1010 1010 1010 1010 1010 1010 1010 1010
+        0xCCCCCCCC,    // 1010 1010 1010 1010 1010 1010 1010 1010
+        0xF0F0F0F0,    // 1111 0000 1111 0000 1111 0000 1111 0000
+        0xFF00FF00,    // 1111 1111 0000 0000 1111 1111 0000 0000
+        0xFFFF0000     // 1111 1111 1111 1111 0000 0000 0000 0000
+    };
+    unsigned uTruthRes, uCof0, uCof1;
+    int nMints, Shift, v;
+    assert( nVars < 6 );
+    nMints = (1 << nVars);
+    uTruthRes = uTruth;
+    for ( v = 0; v < nVars; v++ )
+        if ( Polarity & (1 << v) )
+        {
+            uCof0  = uTruth & ~Signs[v];
+            uCof1  = uTruth &  Signs[v];
+            Shift  = (1 << v);
+            uCof0 <<= Shift;
+            uCof1 >>= Shift;
+            uTruth = uCof0 | uCof1;
+        }
+    if ( nVars < 5 )
+        uTruth &= ((~0) >> (32-nMints));
+    return uTruth;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes N-canonical form using brute-force methods.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned Extra_TruthCanonN( unsigned uTruth, int nVars )
+{
+    unsigned uTruthMin, uPhase;
+    int nMints, p;
+    nMints    = (1 << nVars);
+    uTruthMin = 0xFFFFFFFF;
+    for ( p = 0; p < nMints; p++ )
+    {
+        uPhase = Extra_TruthPolarize( uTruth, p, nVars ); 
+        if ( uTruthMin > uPhase )
+            uTruthMin = uPhase;
+    }
+    return uTruthMin;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes NN-canonical form using brute-force methods.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned Extra_TruthCanonNN( unsigned uTruth, int nVars )
+{
+    unsigned uTruthMin, uTruthC, uPhase;
+    int nMints, p;
+    nMints    = (1 << nVars);
+    uTruthC   = (unsigned)( (~uTruth) & ((~((unsigned)0)) >> (32-nMints)) );
+    uTruthMin = 0xFFFFFFFF;
+    for ( p = 0; p < nMints; p++ )
+    {
+        uPhase = Extra_TruthPolarize( uTruth, p, nVars ); 
+        if ( uTruthMin > uPhase )
+            uTruthMin = uPhase;
+        uPhase = Extra_TruthPolarize( uTruthC, p, nVars ); 
+        if ( uTruthMin > uPhase )
+            uTruthMin = uPhase;
+    }
+    return uTruthMin;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes P-canonical form using brute-force methods.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned Extra_TruthCanonP( unsigned uTruth, int nVars )
+{
+    static int nVarsOld, nPerms;
+    static char ** pPerms = NULL;
+
+    unsigned uTruthMin, uPerm;
+    int k;
+
+    if ( pPerms == NULL )
+    {
+        nPerms = Extra_Factorial( nVars );   
+        pPerms = Extra_Permutations( nVars );
+        nVarsOld = nVars;
+    }
+    else if ( nVarsOld != nVars )
+    {
+        free( pPerms );
+        nPerms = Extra_Factorial( nVars );   
+        pPerms = Extra_Permutations( nVars );
+        nVarsOld = nVars;
+    }
+
+    uTruthMin = 0xFFFFFFFF;
+    for ( k = 0; k < nPerms; k++ )
+    {
+        uPerm = Extra_TruthPermute( uTruth, pPerms[k], nVars, 0 );
+        if ( uTruthMin > uPerm )
+            uTruthMin = uPerm;
+    }
+    return uTruthMin;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes NP-canonical form using brute-force methods.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned Extra_TruthCanonNP( unsigned uTruth, int nVars )
+{
+    static int nVarsOld, nPerms;
+    static char ** pPerms = NULL;
+
+    unsigned uTruthMin, uPhase, uPerm;
+    int nMints, k, p;
+
+    if ( pPerms == NULL )
+    {
+        nPerms = Extra_Factorial( nVars );   
+        pPerms = Extra_Permutations( nVars );
+        nVarsOld = nVars;
+    }
+    else if ( nVarsOld != nVars )
+    {
+        free( pPerms );
+        nPerms = Extra_Factorial( nVars );   
+        pPerms = Extra_Permutations( nVars );
+        nVarsOld = nVars;
+    }
+
+    nMints    = (1 << nVars);
+    uTruthMin = 0xFFFFFFFF;
+    for ( p = 0; p < nMints; p++ )
+    {
+        uPhase = Extra_TruthPolarize( uTruth, p, nVars ); 
+        for ( k = 0; k < nPerms; k++ )
+        {
+            uPerm = Extra_TruthPermute( uPhase, pPerms[k], nVars, 0 );
+            if ( uTruthMin > uPerm )
+                uTruthMin = uPerm;
+        }
+    }
+    return uTruthMin;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes NPN-canonical form using brute-force methods.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned Extra_TruthCanonNPN( unsigned uTruth, int nVars )
+{
+    static int nVarsOld, nPerms;
+    static char ** pPerms = NULL;
+
+    unsigned uTruthMin, uTruthC, uPhase, uPerm;
+    int nMints, k, p;
+
+    if ( pPerms == NULL )
+    {
+        nPerms = Extra_Factorial( nVars );   
+        pPerms = Extra_Permutations( nVars );
+        nVarsOld = nVars;
+    }
+    else if ( nVarsOld != nVars )
+    {
+        free( pPerms );
+        nPerms = Extra_Factorial( nVars );   
+        pPerms = Extra_Permutations( nVars );
+        nVarsOld = nVars;
+    }
+
+    nMints    = (1 << nVars);
+    uTruthC   = (unsigned)( (~uTruth) & ((~((unsigned)0)) >> (32-nMints)) );
+    uTruthMin = 0xFFFFFFFF;
+    for ( p = 0; p < nMints; p++ )
+    {
+        uPhase = Extra_TruthPolarize( uTruth, p, nVars ); 
+        for ( k = 0; k < nPerms; k++ )
+        {
+            uPerm = Extra_TruthPermute( uPhase, pPerms[k], nVars, 0 );
+            if ( uTruthMin > uPerm )
+                uTruthMin = uPerm;
+        }
+        uPhase = Extra_TruthPolarize( uTruthC, p, nVars ); 
+        for ( k = 0; k < nPerms; k++ )
+        {
+            uPerm = Extra_TruthPermute( uPhase, pPerms[k], nVars, 0 );
+            if ( uTruthMin > uPerm )
+                uTruthMin = uPerm;
+        }
+    }
+    return uTruthMin;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes NPN canonical forms for 4-variable functions.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Extra_Truth4VarNPN( unsigned short ** puCanons, char ** puPhases, char ** puPerms )
+{
+    unsigned short * uCanons;
+    unsigned uTruth, uPhase, uPerm;
+    char ** pPerms4, * uPhases, * uPerms;
+    int nFuncs, nClasses;
+    int p, k;
+
+    nFuncs  = (1 << 16);
+    uCanons = ALLOC( unsigned short, nFuncs );
+    uPhases = ALLOC( char, nFuncs );
+    uPerms  = ALLOC( char, nFuncs );
+    memset( uCanons, 0, sizeof(unsigned short) * nFuncs );
+    memset( uPhases, 0, sizeof(char) * nFuncs );
+    memset( uPerms,  0, sizeof(char) * nFuncs );
+    pPerms4 = Extra_Permutations( 4 );
+
+    nClasses = 1;
+    nFuncs = (1 << 15);
+    for ( uTruth = 1; uTruth < (unsigned)nFuncs; uTruth++ )
+    {
+        // skip already assigned
+        if ( uCanons[uTruth] )
+            continue;
+        nClasses++;
+        for ( p = 0; p < 16; p++ )
+        {
+            uPhase = Extra_TruthPolarize( uTruth, p, 4 );
+            for ( k = 0; k < 24; k++ )
+            {
+                uPerm = Extra_TruthPermute( uPhase, pPerms4[k], 4, 0 );
+                if ( uCanons[uPerm] == 0 )
+                {
+                    uCanons[uPerm] = uTruth;
+                    uPhases[uPerm] = p;
+                    uPerms[uPerm]  = k;
+
+                    uPerm = ~uPerm & 0xFFFF;
+                    uCanons[uPerm] = uTruth;
+                    uPhases[uPerm] = p | 16;
+                    uPerms[uPerm]  = k;
+                }
+                else
+                    assert( uCanons[uPerm] == uTruth );
+            }
+            uPhase = Extra_TruthPolarize( ~uTruth & 0xFFFF, p, 4 ); 
+            for ( k = 0; k < 24; k++ )
+            {
+                uPerm = Extra_TruthPermute( uPhase, pPerms4[k], 4, 0 );
+                if ( uCanons[uPerm] == 0 )
+                {
+                    uCanons[uPerm] = uTruth;
+                    uPhases[uPerm] = p;
+                    uPerms[uPerm]  = k;
+
+                    uPerm = ~uPerm & 0xFFFF;
+                    uCanons[uPerm] = uTruth;
+                    uPhases[uPerm] = p | 16;
+                    uPerms[uPerm]  = k;
+                }
+                else
+                    assert( uCanons[uPerm] == uTruth );
+            }
+        }
+    }
+    uPhases[(1<<16)-1] = 16;
+    assert( nClasses == 222 );
+    free( pPerms4 );
+    if ( puCanons ) 
+        *puCanons = uCanons;
+    else
+        free( uCanons );
+    if ( puPhases ) 
+        *puPhases = uPhases;
+    else
+        free( uPhases );
+    if ( puPerms ) 
+        *puPerms = uPerms;
+    else
+        free( uPerms );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns the smallest prime larger than the number.]
 
   Description []

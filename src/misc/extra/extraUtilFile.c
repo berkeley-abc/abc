@@ -318,6 +318,35 @@ void Extra_PrintBinary( FILE * pFile, unsigned Sign[], int nBits )
 //  fprintf( pFile, "\n" );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Prints the hex unsigned into a file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Extra_PrintHex( FILE * pFile, unsigned uTruth, int nVars )
+{
+    int nMints, nDigits, Digit, k;
+
+    // write the number into the file
+    fprintf( pFile, "0x" );
+    nMints  = (1 << nVars);
+    nDigits = nMints / 4;
+    for ( k = nDigits - 1; k >= 0; k-- )
+    {
+        Digit = ((uTruth >> (k * 4)) & 15);
+        if ( Digit < 10 )
+            fprintf( pFile, "%d", Digit );
+        else
+            fprintf( pFile, "%c", 'a' + Digit-10 );
+    }
+//    fprintf( pFile, "\n" );
+}
 
 /**Function*************************************************************
 

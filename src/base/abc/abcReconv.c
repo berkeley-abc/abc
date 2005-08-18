@@ -31,7 +31,6 @@ struct Abc_ManCut_t_
     int              nNodeSizeMax;  // the limit on the size of the supernode
     int              nConeSizeMax;  // the limit on the size of the containing cone
     // internal parameters
-    Abc_Obj_t *      pNode;         // the node currently considered
     Vec_Ptr_t *      vFaninsNode;   // fanins of the supernode
     Vec_Ptr_t *      vInsideNode;   // inside of the supernode
     Vec_Ptr_t *      vFaninsCone;   // fanins of the containing cone
@@ -60,20 +59,20 @@ static void          Abc_NodeConeUnmark( Vec_Ptr_t * vVisited );
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NodeFindCut( Abc_ManCut_t * p )
+Vec_Ptr_t * Abc_NodeFindCut( Abc_ManCut_t * p, Abc_Obj_t * pRoot )
 {
-    Abc_Obj_t * pNode = p->pNode;
+    Abc_Obj_t * pNode;
     int i;
 
     // mark TFI using fMarkA
     Vec_PtrClear( p->vVisited );
-    Abc_NodeConeMarkCollect_rec( pNode, p->vVisited );
+    Abc_NodeConeMarkCollect_rec( pRoot, p->vVisited );
 
     // start the reconvergence-driven node
     Vec_PtrClear( p->vInsideNode );
     Vec_PtrClear( p->vFaninsNode );
-    Vec_PtrPush( p->vFaninsNode, pNode );
-    pNode->fMarkB = 1;
+    Vec_PtrPush( p->vFaninsNode, pRoot );
+    pRoot->fMarkB = 1;
 
     // compute reconvergence-driven node
     while ( Abc_NodeFindCut_int( p->vInsideNode, p->vFaninsNode, p->nNodeSizeMax ) );
@@ -107,6 +106,7 @@ void Abc_NodeFindCut( Abc_ManCut_t * p )
 
     // unmark TFI using fMarkA
     Abc_NodeConeUnmark( p->vVisited );
+    return p->vFaninsNode;
 }
 
 /**Function*************************************************************
@@ -311,16 +311,18 @@ DdNode * Abc_NodeConeBdd( DdManager * dd, DdNode ** pbVars, Abc_Obj_t * pNode, V
   SeeAlso     []
 
 ***********************************************************************/
-Abc_ManCut_t * Abc_NtkManCutStart()
+Abc_ManCut_t * Abc_NtkManCutStart( int nNodeSizeMax, int nConeSizeMax )
 {
     Abc_ManCut_t * p;
     p = ALLOC( Abc_ManCut_t, 1 );
     memset( p, 0, sizeof(Abc_ManCut_t) );
-    p->vFaninsNode = Vec_PtrAlloc( 100 );
-    p->vInsideNode = Vec_PtrAlloc( 100 );
-    p->vFaninsCone = Vec_PtrAlloc( 100 );
-    p->vInsideCone = Vec_PtrAlloc( 100 );
-    p->vVisited    = Vec_PtrAlloc( 100 );
+    p->vFaninsNode  = Vec_PtrAlloc( 100 );
+    p->vInsideNode  = Vec_PtrAlloc( 100 );
+    p->vFaninsCone  = Vec_PtrAlloc( 100 );
+    p->vInsideCone  = Vec_PtrAlloc( 100 );
+    p->vVisited     = Vec_PtrAlloc( 100 );
+    p->nNodeSizeMax = nNodeSizeMax;
+    p->nConeSizeMax = nConeSizeMax;
     return p;
 }
 

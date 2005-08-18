@@ -467,6 +467,17 @@ int Map_LibraryDeriveGateInfo( Map_SuperLib_t * pLib, st_table * tExcludeGate )
         pGate->nPhases = Map_CanonComputeSlow( pLib->uTruths, pLib->nVarsMax, nRealVars, pGate->uTruth, pGate->uPhases, uCanon );
         // add the supergate into the table by its N-canonical table
         Map_SuperTableInsertC( pLib->tTableC, uCanon, pGate );
+/*
+        {
+            int uCanon1, uCanon2;
+            uCanon1 = uCanon[0];
+            pGate->uTruth[0] = ~pGate->uTruth[0];
+            pGate->uTruth[1] = ~pGate->uTruth[1];
+            Map_CanonComputeSlow( pLib->uTruths, pLib->nVarsMax, nRealVars, pGate->uTruth, pGate->uPhases, uCanon );
+            uCanon2 = uCanon[0];
+Rwt_Man5ExploreCount( uCanon1 < uCanon2 ? uCanon1 : uCanon2 );
+        }
+*/
     }
     // sort the gates in each line
     Map_SuperTableSortSupergatesByDelay( pLib->tTableC, pLib->nSupersAll );

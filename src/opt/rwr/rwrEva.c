@@ -24,8 +24,8 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static void Rwr_CutEvaluate( Abc_ManRwr_t * p, Rwr_Cut_t * pCut );
-static void Rwr_CutDecompose( Abc_ManRwr_t * p, Rwr_Cut_t * pCut, Vec_Int_t * vForm );
+static void Rwr_CutEvaluate( Rwr_Man_t * p, Abc_Obj_t * pNode, Rwr_Cut_t * pCut );
+static void Rwr_CutDecompose( Rwr_Man_t * p, Abc_Obj_t * pNode, Rwr_Cut_t * pCut, Vec_Int_t * vForm );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -49,12 +49,15 @@ static void Rwr_CutDecompose( Abc_ManRwr_t * p, Rwr_Cut_t * pCut, Vec_Int_t * vF
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NodeRwrRewrite( Abc_ManRwr_t * p, Abc_Obj_t * pNode )
+int Rwr_NodeRewrite( Rwr_Man_t * p, Abc_Obj_t * pNode )
 {
     Vec_Ptr_t Vector = {0,0,0}, * vFanins = &Vector;
     Rwr_Cut_t * pCut, * pCutBest;
     int BestGain = -1;
     int i, Required = Vec_IntEntry( p->vReqTimes, pNode->Id );
+
+    // compute the cuts of the node
+    Rwr_NodeComputeCuts( p, pNode );
 
     // go through the cuts
     for ( pCut = (Rwr_Cut_t *)pNode->pCopy, pCut = pCut->pNext; pCut; pCut = pCut->pNext )
@@ -64,7 +67,7 @@ int Abc_NodeRwrRewrite( Abc_ManRwr_t * p, Abc_Obj_t * pNode )
         vFanins->pArray = pCut->ppLeaves;
         Abc_NodeCollectTfoCands( pNode->pNtk, pNode, vFanins, Required, p->vLevels, p->vTfo );
         // evaluate the cut
-        Rwr_CutEvaluate( p, pCut );
+        Rwr_CutEvaluate( p, pNode, pCut );
         // check if the cut is the best
         if ( pCut->fTime && pCut->fGain )
         {
@@ -83,14 +86,14 @@ int Abc_NodeRwrRewrite( Abc_ManRwr_t * p, Abc_Obj_t * pNode )
     // collect the TFO again
     Abc_NodeCollectTfoCands( pNode->pNtk, pNode, p->vFanins, Required, p->vLevels, p->vTfo );
     // perform the decomposition
-    Rwr_CutDecompose( p, pCutBest, p->vForm );
+    Rwr_CutDecompose( p, pNode, pCutBest, p->vForm );
     // the best fanins are in p->vFanins, the result of decomposition is in p->vForm
     return BestGain;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Evaluates one cut.]
+  Synopsis    [Evaluates the cut.]
 
   Description []
                
@@ -99,13 +102,46 @@ int Abc_NodeRwrRewrite( Abc_ManRwr_t * p, Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-void Rwr_CutEvaluate( Abc_ManRwr_t * p, Rwr_Cut_t * pCut )
+void Rwr_CutEvaluate( Rwr_Man_t * p, Abc_Obj_t * pRoot, Rwr_Cut_t * pCut )
 {
+    Abc_Obj_t * pNode, * pFanin0, * pFanin1;
+    Rwr_Node_t * pNodeFor;
+    int i;
+    // mark forest PIs corresponding to cut leaves
+    Vec_PtrClear( p->vTfoFor );
+    for ( i = 0; i < (int)pCut->nLeaves; i++ )
+    {
+        pNodeFor = p->vForest->pArray[i];
+        Vec_PtrPush( p->vTfoFor, pNodeFor );
+        pCut->ppLeaves[i]->pData = pNodeFor;
+        pNodeFor->fMark = 1;
+    }
+    // detect forest nodes corresponding to TFO
+    Vec_PtrForEachEntry( p->vTfo, pNode, i )
+    {
+        pFanin0 = Abc_ObjFanin0(pNode);
+        if ( pFanin0->pData == NULL )
+            continue;
+        pFanin1 = Abc_ObjFanin1(pNode);
+        if ( pFanin1->pData == NULL )
+            continue;
+
+    }
+
+    // find the best implementation of the root
+
+    // assign costs
+
+    // clean the nodes
+    for ( i = 0; i < (int)pCut->nLeaves; i++ )
+        pCut->ppLeaves[i]->pData = NULL;
+    Vec_PtrForEachEntry( p->vTfo, pNode, i )
+        pNode->pData = NULL;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Evaluates one cut.]
+  Synopsis    [Decomposes the cut.]
 
   Description []
                
@@ -114,12 +150,10 @@ void Rwr_CutEvaluate( Abc_ManRwr_t * p, Rwr_Cut_t * pCut )
   SeeAlso     []
 
 ***********************************************************************/
-void Rwr_CutDecompose( Abc_ManRwr_t * p, Rwr_Cut_t * pCut, Vec_Int_t * vForm )
+void Rwr_CutDecompose( Rwr_Man_t * p, Abc_Obj_t * pRoot, Rwr_Cut_t * pCut, Vec_Int_t * vForm )
 {
+
 }
-
-
-
 
 
 ////////////////////////////////////////////////////////////////////////

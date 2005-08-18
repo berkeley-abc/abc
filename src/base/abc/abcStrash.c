@@ -320,7 +320,7 @@ Abc_Obj_t * Abc_NodeStrashFactor2( Abc_Aig_t * pMan, Abc_Obj_t * pRoot, char * p
 
 /**Function*************************************************************
 
-  Synopsis    [Strashes one logic node using its SOP.]
+  Synopsis    [Strashes the factored form into the AIG.]
 
   Description []
                
@@ -361,6 +361,71 @@ Abc_Obj_t * Abc_NodeStrashDec( Abc_Aig_t * pMan, Vec_Ptr_t * vFanins, Vec_Int_t 
     pFtNode = Ft_NodeReadLast( vForm );
     pAnd = Abc_ObjNotCond( pAnd, pFtNode->fCompl );
     return pAnd;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of new nodes added when using this factored form,]
+
+  Description [Returns -1 if the number of nodes and levels exceeded the given limit.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NodeStrashDecCount( Abc_Aig_t * pMan, Vec_Ptr_t * vFanins, Vec_Int_t * vForm, Vec_Int_t * vLevels, int NodeMax, int LevelMax )
+{
+    Abc_Obj_t * pAnd, * pAnd0, * pAnd1;
+    Ft_Node_t * pFtNode;
+    int i, nVars, Counter, LevelNew;
+
+    // sanity checks
+    nVars = Ft_FactorGetNumVars( vForm );
+    assert( nVars >= 0 );
+    assert( vForm->nSize > nVars );
+    assert( nVars == vFanins->nSize );
+
+    // check for constant function
+    pFtNode = Ft_NodeRead( vForm, 0 );
+    if ( pFtNode->fConst )
+        return 0;
+
+    // set the levels
+    Vec_IntClear( vLevels );
+    Vec_PtrForEachEntry( vFanins, pAnd, i )
+        Vec_IntPush( vLevels, pAnd->Level );
+
+    // compute the function of other nodes
+    Counter = 0;
+    for ( i = nVars; i < vForm->nSize; i++ )
+    {
+        pFtNode = Ft_NodeRead( vForm, i );
+        pAnd0   = Abc_ObjNotCond( Vec_PtrEntry(vFanins, pFtNode->iFanin0), pFtNode->fCompl0 ); 
+        if ( pAnd0 )
+        {
+            pAnd1 = Abc_ObjNotCond( Vec_PtrEntry(vFanins, pFtNode->iFanin1), pFtNode->fCompl1 ); 
+            pAnd  = pAnd1? Abc_AigAndLookup( pMan, pAnd0, pAnd1 ) : NULL;
+        }
+        else
+            pAnd = NULL;
+        // count the number of added nodes
+        if ( pAnd == NULL || Abc_NodeIsTravIdCurrent(pAnd) )
+        {
+            Counter++;
+            if ( Counter > NodeMax )
+                return -1;
+        }
+        // count the number of new levels
+        LevelNew = 1 + ABC_MAX( Vec_IntEntry(vLevels, pFtNode->iFanin0), Vec_IntEntry(vLevels, pFtNode->iFanin1) );
+        assert( pAnd == NULL || LevelNew == (int)Abc_ObjRegular(pAnd)->Level );
+        if ( LevelNew > LevelMax )
+            return -1;
+        Vec_PtrPush( vFanins, pAnd );
+        Vec_IntPush( vLevels, LevelNew );
+    }
+    assert( vForm->nSize = vFanins->nSize );
+    return Counter;
 }
 
 /**Function*************************************************************

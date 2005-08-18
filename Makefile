@@ -10,8 +10,8 @@ MODULES := src/base/abc src/base/cmd src/base/io src/base/main \
            src/bdd/cudd src/bdd/dsd src/bdd/epd src/bdd/mtr src/bdd/parse src/bdd/reo \
            src/map/fpga src/map/mapper src/map/mio src/map/super \
            src/misc/extra src/misc/st src/misc/util src/misc/vec \
-	   src/opt/fxu \
-           src/sat/asat src/sat/fraig src/sat/msat \
+	   src/opt/fxu src/opt/rwr \
+           src/sat/asat src/sat/fraig src/sat/msat src/sat/sim \
            src/seq \
            src/sop/ft src/sop/mvc
 

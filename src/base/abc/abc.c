@@ -148,7 +148,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "sec",           Abc_CommandSec,              0 );
 
     Ft_FactorStartMan();
-//    Rwt_ManExploreStart();
+//    Rwt_Man4ExploreStart();
 }
 
 /**Function*************************************************************
@@ -166,7 +166,7 @@ void Abc_End()
 {
     Ft_FactorStopMan();
     Abc_NtkFraigStoreClean();
-//    Rwt_ManExplorePrint();
+//    Rwt_Man4ExplorePrint();
 }
 
 /**Function*************************************************************
@@ -1323,20 +1323,23 @@ int Abc_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk;
     int c;
     bool fVerbose;
+    // external functions
+    extern void * Abc_NtkManRwrStart( char * pFileName );
+    extern void   Abc_NtkManRwrStop( void * p );
+    extern int    Abc_NtkRewrite( Abc_Ntk_t * pNtk );
 
+/*
     {
-        Abc_ManRwr_t * p;
+        void * p;
         int fFlag = 0;
-
         if ( fFlag )
             p = Abc_NtkManRwrStart( NULL );
         else
             p = Abc_NtkManRwrStart( "data.aaa" );
-
         Abc_NtkManRwrStop( p );
         return 0;
     }
-
+*/
     pNtk = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
@@ -1406,22 +1409,23 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
     int c;
-    Abc_ManRef_t * p;
-    bool fVerbose;
     int nNodeSizeMax;
     int nConeSizeMax;
+    bool fUseDcs;
+    bool fVerbose;
+    extern int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, bool fUseDcs, bool fVerbose );
 
     pNtk = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    p = Abc_NtkManRefStart();
-    fVerbose     =  0;
     nNodeSizeMax = 10;
     nConeSizeMax = 10;
+    fUseDcs      =  0;
+    fVerbose     =  0;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "ncvh" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "ncdvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -1447,6 +1451,9 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nConeSizeMax < 0 ) 
                 goto usage;
             break;
+        case 'd':
+            fUseDcs ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -1460,24 +1467,21 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pNtk == NULL )
     {
         fprintf( pErr, "Empty network.\n" );
-        Abc_NtkManRefStop( p );
         return 1;
     }
     if ( !Abc_NtkIsAig(pNtk) )
     {
         fprintf( pErr, "This command can only be applied to an AIG.\n" );
-        Abc_NtkManRefStop( p );
         return 1;
     }
     if ( Abc_NtkCountChoiceNodes(pNtk) )
     {
         fprintf( pErr, "AIG resynthesis cannot be applied to AIGs with choice nodes.\n" );
-        Abc_NtkManRefStop( p );
         return 1;
     }
 
     // modify the current network
-    if ( !Abc_NtkRefactor( pNtk, p ) )
+    if ( !Abc_NtkRefactor( pNtk, nNodeSizeMax, nConeSizeMax, fUseDcs, fVerbose ) )
     {
         fprintf( pErr, "Refactoring has failed.\n" );
         return 1;
@@ -1485,10 +1489,11 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: refactor [-n num] [-c num] [-vh]\n" );
+    fprintf( pErr, "usage: refactor [-n num] [-c num] [-dvh]\n" );
     fprintf( pErr, "\t         performs technology-independent refactoring of the AIG\n" );
     fprintf( pErr, "\t-n num : the max support of the collapsed node [default = %d]\n", nNodeSizeMax );  
     fprintf( pErr, "\t-c num : the max support of the containing cone [default = %d]\n", nConeSizeMax );  
+    fprintf( pErr, "\t-d     : toggle use of don't-cares [default = %s]\n", fUseDcs? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;

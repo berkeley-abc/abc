@@ -143,6 +143,7 @@ extern char *       Extra_TimeStamp();
 extern char *       Extra_StringAppend( char * pStrGiven, char * pStrAdd );
 extern unsigned     Extra_ReadBinary( char * Buffer );
 extern void         Extra_PrintBinary( FILE * pFile, unsigned Sign[], int nBits );
+extern void         Extra_PrintHex( FILE * pFile, unsigned uTruth, int nVars );
 extern void         Extra_PrintSymbols( FILE * pFile, char Char, int nTimes, int fPrintNewLine );
 
 /*=== extraUtilReader.c ========================================================*/
@@ -198,6 +199,18 @@ extern int *       Extra_DeriveRadixCode( int Number, int Radix, int nDigits );
 extern int         Extra_Factorial( int n );
 /* the permutation of the given number of elements */
 extern char **     Extra_Permutations( int n );
+/* permutation and complementation of a truth table */
+unsigned           Extra_TruthPermute( unsigned Truth, char * pPerms, int nVars, int fReverse );
+unsigned           Extra_TruthPolarize( unsigned uTruth, int Polarity, int nVars );
+/* canonical forms of a truth table */
+extern unsigned    Extra_TruthCanonN( unsigned uTruth, int nVars );
+extern unsigned    Extra_TruthCanonNN( unsigned uTruth, int nVars );
+extern unsigned    Extra_TruthCanonP( unsigned uTruth, int nVars );
+extern unsigned    Extra_TruthCanonNP( unsigned uTruth, int nVars );
+extern unsigned    Extra_TruthCanonNPN( unsigned uTruth, int nVars );
+/* canonical forms of 4-variable functions */
+extern void        Extra_Truth4VarNPN( unsigned short ** puCanons, char ** puPhases, char ** puPerms );
+/* for independence from CUDD */
 extern unsigned int Cudd_PrimeCopy( unsigned int  p );
 
 /*=== extraUtilProgress.c ================================================================*/

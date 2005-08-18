@@ -24,9 +24,9 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static Rwr_Cut_t * Rwr_CutAlloc( Abc_ManRwr_t * p );
-static Rwr_Cut_t * Rwr_CutCreateTriv( Abc_ManRwr_t * p, Abc_Obj_t * pNode );
-static Rwr_Cut_t * Rwr_CutsMerge( Abc_ManRwr_t * p, Rwr_Cut_t * pCut0, Rwr_Cut_t * pCut1, int fCompl0, int fCompl1 );
+static Rwr_Cut_t * Rwr_CutAlloc( Rwr_Man_t * p );
+static Rwr_Cut_t * Rwr_CutCreateTriv( Rwr_Man_t * p, Abc_Obj_t * pNode );
+static Rwr_Cut_t * Rwr_CutsMerge( Rwr_Man_t * p, Rwr_Cut_t * pCut0, Rwr_Cut_t * pCut1, int fCompl0, int fCompl1 );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -34,7 +34,7 @@ static Rwr_Cut_t * Rwr_CutsMerge( Abc_ManRwr_t * p, Rwr_Cut_t * pCut0, Rwr_Cut_t
 
 /**Function*************************************************************
 
-  Synopsis    [Assigns elementary cuts to the PIs.]
+  Synopsis    [Computes cuts for one node.]
 
   Description []
                
@@ -43,7 +43,7 @@ static Rwr_Cut_t * Rwr_CutsMerge( Abc_ManRwr_t * p, Rwr_Cut_t * pCut0, Rwr_Cut_t
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkManRwrStartCuts( Abc_ManRwr_t * p, Abc_Ntk_t * pNtk )
+void Rwr_NtkStartCuts( Rwr_Man_t * p, Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
     int i;
@@ -51,10 +51,6 @@ void Abc_NtkManRwrStartCuts( Abc_ManRwr_t * p, Abc_Ntk_t * pNtk )
     Abc_NtkCleanCopy( pNtk );
     Abc_NtkForEachCi( pNtk, pNode, i )
         pNode->pCopy = (Abc_Obj_t *)Rwr_CutCreateTriv( p, pNode );
-    // precompute the required times for all internal nodes
-    p->vFanNums = Rwt_NtkFanoutCounters( pNtk );
-    // save the fanout counters for all internal nodes
-    p->vReqTimes = Rwt_NtkRequiredLevels( pNtk );
 }
 
 /**Function*************************************************************
@@ -68,7 +64,7 @@ void Abc_NtkManRwrStartCuts( Abc_ManRwr_t * p, Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NodeRwrComputeCuts( Abc_ManRwr_t * p, Abc_Obj_t * pNode )
+void Rwr_NodeComputeCuts( Rwr_Man_t * p, Abc_Obj_t * pNode )
 {
     Rwr_Cut_t * pCuts0, * pCuts1, * pTemp0, * pTemp1, * pCut;
     Rwr_Cut_t * pList = NULL, ** ppPlace = &pList; // linked list of cuts
@@ -107,7 +103,7 @@ void Abc_NodeRwrComputeCuts( Abc_ManRwr_t * p, Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-Rwr_Cut_t * Rwr_CutsMerge( Abc_ManRwr_t * p, Rwr_Cut_t * pCut0, Rwr_Cut_t * pCut1, int fCompl0, int fCompl1 )
+Rwr_Cut_t * Rwr_CutsMerge( Rwr_Man_t * p, Rwr_Cut_t * pCut0, Rwr_Cut_t * pCut1, int fCompl0, int fCompl1 )
 {
     Abc_Obj_t * ppNodes[4], * pNodeTemp;
     Rwr_Cut_t * pCut;
@@ -219,7 +215,7 @@ Rwr_Cut_t * Rwr_CutsMerge( Abc_ManRwr_t * p, Rwr_Cut_t * pCut0, Rwr_Cut_t * pCut
   SeeAlso     []
 
 ***********************************************************************/
-Rwr_Cut_t * Rwr_CutAlloc( Abc_ManRwr_t * p )
+Rwr_Cut_t * Rwr_CutAlloc( Rwr_Man_t * p )
 {
     Rwr_Cut_t * pCut;
     pCut = (Rwr_Cut_t *)Extra_MmFixedEntryFetch( p->pMmNode );
@@ -238,7 +234,7 @@ Rwr_Cut_t * Rwr_CutAlloc( Abc_ManRwr_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Rwr_Cut_t * Rwr_CutCreateTriv( Abc_ManRwr_t * p, Abc_Obj_t * pNode )
+Rwr_Cut_t * Rwr_CutCreateTriv( Rwr_Man_t * p, Abc_Obj_t * pNode )
 {
     Rwr_Cut_t * pCut;
     pCut = Rwr_CutAlloc( p );

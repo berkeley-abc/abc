@@ -37,40 +37,18 @@
  
 #define RWR_LIMIT  1048576/4  // ((1 << 20) 
 
+typedef struct Rwr_Man_t_   Rwr_Man_t;
 typedef struct Rwr_Node_t_  Rwr_Node_t;
-struct Rwr_Node_t_ // 24 bytes
-{
-    int                Id;               // ID 
-    int                TravId;           // traversal ID
-    unsigned           uTruth : 16;      // truth table
-    unsigned           Volume :  8;      // volume
-    unsigned           Level  :  5;      // level
-    unsigned           fMark  :  1;      // mark
-    unsigned           fUsed  :  1;      // mark
-    unsigned           fExor  :  1;      // mark
-    Rwr_Node_t *       p0;               // first child
-    Rwr_Node_t *       p1;               // second child
-    Rwr_Node_t *       pNext;            // next in the table
-};
+typedef struct Rwr_Cut_t_   Rwr_Cut_t;
 
-typedef struct Rwr_Cut_t_  Rwr_Cut_t;
-struct Rwr_Cut_t_ // 24 bytes
-{
-    unsigned           nLeaves : 3;      // the number of leaves
-    unsigned           fTime  :  1;      // set to 1 if meets the required times
-    unsigned           fGain  :  1;      // set to 1 if does not increase nodes
-    unsigned           Volume : 11;      // the gain in the number of nodes
-    unsigned           uTruth : 16;      // the truth table
-    Abc_Obj_t *        ppLeaves[4];      // the leaves
-    Rwr_Cut_t *        pNext;            // the next cut in the list
-};
-
-struct Abc_ManRwr_t_
+struct Rwr_Man_t_
 {
     // internal lookups
     int                nFuncs;           // the number of four var functions
     unsigned short *   puCanons;         // canonical forms
-    char *             puPhases;         // canonical phases
+    char *             pPhases;          // canonical phases
+    char *             pPerms;           // canonical permutations
+    unsigned char *    pMap;             // mapping of functions into class numbers
     char *             pPractical;       // practical classes
     unsigned short     puPerms[256][16]; // permutations for three var functions
     // node space
@@ -88,6 +66,7 @@ struct Abc_ManRwr_t_
     Vec_Int_t *        vForm;            // the decomposition tree (temporary)
     Vec_Ptr_t *        vFanins;          // the fanins array (temporary)
     Vec_Ptr_t *        vTfo;             // the TFO node array (temporary)
+    Vec_Ptr_t *        vTfoFor;          // the TFO node array (temporary)
     Vec_Vec_t *        vLevels;          // the levelized structure (temporary)
     int                nGainMax;
     // runtime statistics
@@ -96,6 +75,33 @@ struct Abc_ManRwr_t_
     int                time3;
     int                time4;
 };
+
+struct Rwr_Node_t_ // 24 bytes
+{
+    int                Id;               // ID 
+    int                TravId;           // traversal ID
+    unsigned           uTruth : 16;      // truth table
+    unsigned           Volume :  8;      // volume
+    unsigned           Level  :  5;      // level
+    unsigned           fMark  :  1;      // mark
+    unsigned           fUsed  :  1;      // mark
+    unsigned           fExor  :  1;      // mark
+    Rwr_Node_t *       p0;               // first child
+    Rwr_Node_t *       p1;               // second child
+    Rwr_Node_t *       pNext;            // next in the table
+};
+
+struct Rwr_Cut_t_ // 24 bytes
+{
+    unsigned           nLeaves : 3;      // the number of leaves
+    unsigned           fTime  :  1;      // set to 1 if meets the required times
+    unsigned           fGain  :  1;      // set to 1 if does not increase nodes
+    unsigned           Volume : 11;      // the gain in the number of nodes
+    unsigned           uTruth : 16;      // the truth table
+    Abc_Obj_t *        ppLeaves[4];      // the leaves
+    Rwr_Cut_t *        pNext;            // the next cut in the list
+};
+
 
 // manipulation of complemented attributes
 static inline bool         Rwr_IsComplement( Rwr_Node_t * p )    { return (bool)(((unsigned)p) & 01);           }
@@ -111,17 +117,27 @@ static inline Rwr_Node_t * Rwr_NotCond( Rwr_Node_t * p, int c )  { return (Rwr_N
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/*=== rwrLib.c ==========================================================*/
-extern void                Rwr_ManPrecompute( Abc_ManRwr_t * p );
-extern void                Rwr_ManWriteToFile( Abc_ManRwr_t * p, char * pFileName );
-extern void                Rwr_ManLoadFromFile( Abc_ManRwr_t * p, char * pFileName );
-extern void                Rwr_ManPrint( Abc_ManRwr_t * p );
-extern Rwr_Node_t *        Rwr_ManAddVar( Abc_ManRwr_t * p, unsigned uTruth );
-/*=== rwrMan.c ==========================================================*/
-extern unsigned short      Rwr_FunctionPhase( unsigned uTruth, unsigned uPhase );
-/*=== rwrUtil.c ==========================================================*/
-extern Vec_Int_t *         Rwt_NtkFanoutCounters( Abc_Ntk_t * pNtk );
-extern Vec_Int_t *         Rwt_NtkRequiredLevels( Abc_Ntk_t * pNtk );
+/*=== rwrCut.c ========================================================*/
+extern void              Rwr_NtkStartCuts( Rwr_Man_t * p, Abc_Ntk_t * pNtk );
+extern void              Rwr_NodeComputeCuts( Rwr_Man_t * p, Abc_Obj_t * pNode );
+/*=== rwrEva.c ========================================================*/
+extern int               Rwr_NodeRewrite( Rwr_Man_t * p, Abc_Obj_t * pNode );
+/*=== rwrLib.c ========================================================*/
+extern void              Rwr_ManPrecompute( Rwr_Man_t * p );
+extern void              Rwr_ManWriteToFile( Rwr_Man_t * p, char * pFileName );
+extern void              Rwr_ManLoadFromFile( Rwr_Man_t * p, char * pFileName );
+extern void              Rwr_ManPrintFirst( Rwr_Man_t * p );
+extern void              Rwr_ManPrintNext( Rwr_Man_t * p );
+extern Rwr_Node_t *      Rwr_ManAddVar( Rwr_Man_t * p, unsigned uTruth, char * pFileName  );
+/*=== rwrMan.c ========================================================*/
+extern Rwr_Man_t *       Rwr_ManStart( char * pFileName );
+extern void              Rwr_ManStop( Rwr_Man_t * p );
+extern void              Rwr_ManPrepareNetwork( Rwr_Man_t * p, Abc_Ntk_t * pNtk );
+extern Vec_Ptr_t *       Rwr_ManReadFanins( Rwr_Man_t * p );
+extern Vec_Int_t *       Rwr_ManReadDecs( Rwr_Man_t * p );
+extern unsigned short    Rwr_FunctionPhase( unsigned uTruth, unsigned uPhase );
+/*=== rwrUtil.c ========================================================*/
+extern Vec_Int_t *       Rwt_NtkFanoutCounters( Abc_Ntk_t * pNtk );
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

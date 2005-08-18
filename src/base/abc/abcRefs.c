@@ -117,6 +117,32 @@ int Abc_NodeRefDeref( Abc_Obj_t * pNode, bool fReference, bool fLabel )
     return Counter;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Replaces MFFC of the node by the new factored.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NodeUpdate( Abc_Obj_t * pNode, Vec_Ptr_t * vFanins, Vec_Int_t * vForm, int nGain )
+{
+    Abc_Obj_t * pNodeNew;
+    int nNodesNew, nNodesOld;
+    nNodesOld = Abc_NtkNodeNum(pNode->pNtk);
+    // create the new structure of nodes
+    assert( Vec_PtrSize(vFanins) < Vec_IntSize(vForm) );
+    pNodeNew = Abc_NodeStrashDec( pNode->pNtk->pManFunc, vFanins, vForm );
+    // remove the old nodes
+    Abc_AigReplace( pNode->pNtk->pManFunc, pNode, pNodeNew );
+    // compare the gains
+    nNodesNew = Abc_NtkNodeNum(pNode->pNtk);
+    assert( nGain <= nNodesOld - nNodesNew );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
