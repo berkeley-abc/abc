@@ -23,7 +23,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 static void Map_TruthsCut( Map_Man_t * pMan, Map_Cut_t * pCut );
-static void Map_TruthsCutOne( Map_Man_t * p, Map_Cut_t * pCut, unsigned uTruth[] );
+extern void Map_TruthsCutOne( Map_Man_t * p, Map_Cut_t * pCut, unsigned uTruth[] );
 static void Map_CutsCollect_rec( Map_Cut_t * pCut, Map_NodeVec_t * vVisited );
 
 ////////////////////////////////////////////////////////////////////////
@@ -90,18 +90,30 @@ void Map_MappingTruths( Map_Man_t * pMan )
 ***********************************************************************/
 void Map_TruthsCut( Map_Man_t * p, Map_Cut_t * pCut )
 {
-    unsigned uTruth[2], uCanon[2];
 //    unsigned uCanon1, uCanon2;
+    unsigned uTruth[2], uCanon[2];
     unsigned char uPhases[16];
+    int fUseFast = 1;
 
     // generally speaking, 1-input cut can be matched into a wire!
     if ( pCut->nLeaves == 1 )
         return;
+/*
+    if ( p->nVarsMax == 5 )
+    {
+        uTruth[0] = pCut->uTruth;
+        uTruth[1] = pCut->uTruth;
+    }
+    else
+*/
     Map_TruthsCutOne( p, pCut, uTruth );
 
 
     // compute the canonical form for the positive phase
-    Map_CanonComputeSlow( p->uTruths, p->nVarsMax, pCut->nLeaves, uTruth, uPhases, uCanon );
+    if ( fUseFast )
+        Map_CanonComputeFast( p, p->nVarsMax, pCut->nLeaves, uTruth, uPhases, uCanon );
+    else
+        Map_CanonComputeSlow( p->uTruths, p->nVarsMax, pCut->nLeaves, uTruth, uPhases, uCanon );
     pCut->M[1].pSupers = Map_SuperTableLookupC( p->pSuperLib, uCanon );
     pCut->M[1].uPhase  = uPhases[0];
     p->nCanons++;
@@ -111,13 +123,15 @@ void Map_TruthsCut( Map_Man_t * p, Map_Cut_t * pCut )
     // compute the canonical form for the negative phase
     uTruth[0] = ~uTruth[0];
     uTruth[1] = ~uTruth[1];
-    Map_CanonComputeSlow( p->uTruths, p->nVarsMax, pCut->nLeaves, uTruth, uPhases, uCanon );
+    if ( fUseFast )
+        Map_CanonComputeFast( p, p->nVarsMax, pCut->nLeaves, uTruth, uPhases, uCanon );
+    else
+        Map_CanonComputeSlow( p->uTruths, p->nVarsMax, pCut->nLeaves, uTruth, uPhases, uCanon );
     pCut->M[0].pSupers = Map_SuperTableLookupC( p->pSuperLib, uCanon );
     pCut->M[0].uPhase  = uPhases[0];
     p->nCanons++;
 
 //uCanon2 = uCanon[0] & 0xFFFF;
-
 //assert( p->nVarsMax == 4 );
 //Rwt_Man4ExploreCount( uCanon1 < uCanon2 ? uCanon1 : uCanon2 );
 

@@ -36,7 +36,10 @@
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
- 
+
+// uncomment to have fanouts represented in the mapping graph
+//#define MAP_ALLOCATE_FANOUT  1
+
 ////////////////////////////////////////////////////////////////////////
 ///                       MACRO DEFITIONS                            ///
 ////////////////////////////////////////////////////////////////////////
@@ -123,17 +126,14 @@ struct Map_ManStruct_t_
     int                 nCountsBest[32];// the counter of minterms
     Map_NodeVec_t *     vVisited;      // the visited cuts during cut computation
 
-    // simulation info from the FRAIG manager
-    int                 nSimRounds;    // the number of words in the simulation info
-    unsigned **         pSimInfo;      // the simulation info for each PI
-
-    // don't-care computation
-    Map_NodeVec_t *     vInside;       // the array of nodes for SDC computation
-    Map_NodeVec_t *     vFanins;       // the array of nodes for SDC computation
-
     // the memory managers
     Extra_MmFixed_t *   mmNodes;       // the memory manager for nodes
     Extra_MmFixed_t *   mmCuts;        // the memory manager for cuts
+
+    // precomputed N-canonical forms
+    unsigned short *    uCanons;       // N-canonical forms
+    char **             uPhases;       // N-canonical phases
+    char *              pCounters;     // counters of phases
 
     // various statistical variables
     int                 nChoiceNodes;  // the number of choice nodes
@@ -211,27 +211,25 @@ struct Map_NodeStruct_t_
     int                 nRefAct[3];    // estimated fanout for current covering phase, neg and pos and sum
     float               nRefEst[3];    // actual fanout for previous covering phase, neg and pos and sum
 
-    // the successors of this node     
+    // connectivity
     Map_Node_t *        p1;            // the first child
     Map_Node_t *        p2;            // the second child
     Map_Node_t *        pNextE;        // the next functionally equivalent node
     Map_Node_t *        pRepr;         // the representative of the functionally equivalent class
-//    Map_NodeVec_t *     vFanouts;      // the array of fanouts of the node
 
+#ifdef MAP_ALLOCATE_FANOUT
     // representation of node's fanouts
     Map_Node_t *        pFanPivot;     // the first fanout of this node
     Map_Node_t *        pFanFanin1;    // the next fanout of p1
     Map_Node_t *        pFanFanin2;    // the next fanout of p2
-
-    unsigned *          pSims;         // the simulation info
-    float               SwitchProb;    // the switching probability
+//    Map_NodeVec_t *     vFanouts;      // the array of fanouts of the gate
+#endif
 
     // the delay information
     Map_Time_t          tArrival[2];   // the best arrival time of the neg (0) and pos (1) phases
     Map_Time_t          tRequired[2];  // the required time of the neg (0) and pos (1) phases
 
     // misc information  
-    Map_Cut_t *         pCutOld[2];    // the old mapping for neg and pos phase
     Map_Cut_t *         pCutBest[2];   // the best mapping for neg and pos phase
     Map_Cut_t *         pCuts;         // mapping choices for the node (elementary comes first)
     char *              pData0;        // temporary storage for the corresponding network node
@@ -259,6 +257,7 @@ struct Map_CutStruct_t_
     Map_Cut_t *         pOne;          // the father of this cut
     Map_Cut_t *         pTwo;          // the mother of this cut
     Map_Node_t *        ppLeaves[6];   // the leaves of this cut
+    unsigned            uTruth;        // truth table for five-input cuts
     char                nLeaves;       // the number of leaves
     char                nVolume;       // the volume of this cut
     char                fMark;         // the mark to denote visited cut

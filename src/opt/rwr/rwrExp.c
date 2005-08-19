@@ -69,7 +69,7 @@ void Rwt_Man4ExploreStart()
     // canonical forms
     p->nFuncs    = (1<<16);
     // canonical forms, phases, perms
-    Extra_Truth4VarNPN( &p->puCanons, NULL, NULL );
+    Extra_Truth4VarNPN( &p->puCanons, NULL, NULL, NULL );
     // counters
     p->pnCounts  = ALLOC( int, p->nFuncs );
     memset( p->pnCounts, 0, sizeof(int) * p->nFuncs );

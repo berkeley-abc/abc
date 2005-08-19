@@ -50,7 +50,9 @@ int Abc_NtkRewrite( Abc_Ntk_t * pNtk )
 
     assert( Abc_NtkIsAig(pNtk) );
     // start the rewriting manager
-    p = Rwr_ManStart( "data.aaa" );
+    p = Rwr_ManStart( 0 );
+    if ( p == NULL )
+        return 0;
     Rwr_ManPrepareNetwork( p, pNtk );
 
     // resynthesize each node once

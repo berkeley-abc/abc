@@ -24,15 +24,10 @@
 
 static void  Fpga_MappingDfs_rec( Fpga_Node_t * pNode, Fpga_NodeVec_t * vNodes, int fCollectEquiv );
 static void  Fpga_MappingDfsCuts_rec( Fpga_Node_t * pNode, Fpga_NodeVec_t * vNodes );
-static float Fpga_MappingArea_rec( Fpga_Man_t * pMan, Fpga_Node_t * pNode, Fpga_NodeVec_t * vNodes );
-static int   Fpga_MappingCountLevels_rec( Fpga_Node_t * pNode );
-static void  Fpga_MappingMarkUsed_rec( Fpga_Node_t * pNode );
 static int   Fpga_MappingCompareOutputDelay( int * pOut1, int * pOut2 );
-static float Fpga_MappingSetRefsAndArea_rec( Fpga_Man_t * pMan, Fpga_Node_t * pNode );
-static Fpga_Man_t * s_pMan = NULL;
-
 static void  Fpga_DfsLim_rec( Fpga_Node_t * pNode, int Level, Fpga_NodeVec_t * vNodes );
-static int Fpga_CollectNodeTfo_rec( Fpga_Node_t * pNode, Fpga_Node_t * pPivot, Fpga_NodeVec_t * vVisited, Fpga_NodeVec_t * vTfo );
+static int   Fpga_CollectNodeTfo_rec( Fpga_Node_t * pNode, Fpga_Node_t * pPivot, Fpga_NodeVec_t * vVisited, Fpga_NodeVec_t * vTfo );
+static Fpga_Man_t * s_pMan = NULL;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -131,184 +126,6 @@ Fpga_NodeVec_t * Fpga_MappingDfsNodes( Fpga_Man_t * pMan, Fpga_Node_t ** ppNodes
     return vNodes;
 }
 
-
-/**Function*************************************************************
-
-  Synopsis    [Computes the number of logic levels not counting PIs/POs.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Fpga_CountLevels( Fpga_Man_t * pMan )
-{
-    int i, LevelsMax, LevelsCur;
-    // perform the traversal
-    LevelsMax = -1;
-    for ( i = 0; i < pMan->nOutputs; i++ )
-    {
-        LevelsCur = Fpga_Regular(pMan->pOutputs[i])->Level;
-        if ( LevelsMax < LevelsCur )
-            LevelsMax = LevelsCur;
-    }
-    return LevelsMax;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Computes the number of logic levels not counting PIs/POs.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Fpga_CountLevelsNodes( Fpga_Man_t * pMan, Fpga_Node_t ** ppRoots, int nRoots )
-{
-    int i, LevelsMax, LevelsCur;
-    // perform the traversal
-    LevelsMax = -1;
-    for ( i = 0; i < nRoots; i++ )
-    {
-        LevelsCur = Fpga_Regular(ppRoots[i])->Level;
-        if ( LevelsMax < LevelsCur )
-            LevelsMax = LevelsCur;
-    }
-    return LevelsMax;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Computes the DFS ordering of the nodes visible in current mapping.]
-
-  Description [The node is visible if it appears as a root of one of the best
-  cuts (that is cuts selected for the current mapping).]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Fpga_NodeVec_t * Fpga_MappingDfsCuts( Fpga_Man_t * pMan )
-{
-    Fpga_NodeVec_t * vNodes;
-    int i;
-    // perform the traversal
-    vNodes = Fpga_NodeVecAlloc( 100 );
-    for ( i = 0; i < pMan->nOutputs; i++ )
-        Fpga_MappingDfsCuts_rec( Fpga_Regular(pMan->pOutputs[i]), vNodes );
-    for ( i = 0; i < vNodes->nSize; i++ )
-        vNodes->pArray[i]->fMark0 = 0;
-    return vNodes;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Computes the DFS ordering of the nodes visible in current mapping.]
-
-  Description [The node is visible if it appears as a root of one of the best
-  cuts (that is cuts selected for the current mapping).]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Fpga_NodeVec_t * Fpga_MappingDfsCutsNode( Fpga_Man_t * pMan, Fpga_Node_t * pNode )
-{
-    Fpga_NodeVec_t * vNodes;
-    int i;
-    // perform the traversal
-    vNodes = Fpga_NodeVecAlloc( 100 );
-    Fpga_MappingDfsCuts_rec( pNode, vNodes );
-    for ( i = 0; i < vNodes->nSize; i++ )
-        vNodes->pArray[i]->fMark0 = 0;
-    return vNodes;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Recursively computes the DFS ordering of the nodes.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Fpga_MappingDfsCuts_rec( Fpga_Node_t * pNode, Fpga_NodeVec_t * vNodes )
-{
-    int i;
-    assert( !Fpga_IsComplement(pNode) );
-    if ( !Fpga_NodeIsAnd(pNode) )
-        return;
-    if ( pNode->fMark0 )
-        return;
-    assert( pNode->pCutBest != NULL );
-    // visit the transitive fanin of the selected cut
-    for ( i = 0; i < pNode->pCutBest->nLeaves; i++ )
-        Fpga_MappingDfsCuts_rec( pNode->pCutBest->ppLeaves[i], vNodes );
-    // make sure the node is not visited through the fanin nodes
-    assert( pNode->fMark0 == 0 );
-    // mark the node as visited
-    pNode->fMark0 = 1;
-    // add the node to the list
-    Fpga_NodeVecPush( vNodes, pNode );
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    [Marks the nodes used in the mapping.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Fpga_MappingMarkUsed( Fpga_Man_t * pMan )
-{
-    int i;
-    for ( i = 0; i < pMan->nOutputs; i++ )
-        Fpga_MappingMarkUsed_rec( Fpga_Regular(pMan->pOutputs[i]) );
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Fpga_MappingMarkUsed_rec( Fpga_Node_t * pNode )
-{
-    int i;
-    assert( !Fpga_IsComplement(pNode) );
-    if ( pNode->fUsed )
-        return;
-    pNode->fUsed = 1;
-    if ( !Fpga_NodeIsAnd(pNode) )
-        return;
-    assert( pNode->pCutBest != NULL );
-    // visit the transitive fanin of the selected cut
-    for ( i = 0; i < pNode->pCutBest->nLeaves; i++ )
-        Fpga_MappingMarkUsed_rec( pNode->pCutBest->ppLeaves[i] );
-}
-
-
-
 /**Function*************************************************************
 
   Synopsis    []
@@ -346,22 +163,16 @@ float Fpga_MappingGetAreaFlow( Fpga_Man_t * p )
 ***********************************************************************/
 float Fpga_MappingArea( Fpga_Man_t * pMan )
 {
-    Fpga_NodeVec_t * vNodes;
+    Fpga_Node_t * pNode;
     float aTotal;
     int i;
     // perform the traversal
     aTotal = 0;
-    vNodes = Fpga_NodeVecAlloc( 100 );
-    for ( i = 0; i < pMan->nOutputs; i++ )
+    for ( i = 0; i < pMan->vMapping->nSize; i++ )
     {
-        aTotal += Fpga_MappingArea_rec( pMan, Fpga_Regular(pMan->pOutputs[i]), vNodes );
-        // add the area for single-input nodes (if any) at the POs
-//        if ( Fpga_NodeIsVar(pMan->pOutputs[i]) || Fpga_IsComplement(pMan->pOutputs[i]) )
-//            aTotal += pMan->pLutLib->pLutAreas[1];
+        pNode = pMan->vMapping->pArray[i];
+        aTotal += pMan->pLutLib->pLutAreas[pNode->pCutBest->nLeaves];
     }
-    for ( i = 0; i < vNodes->nSize; i++ )
-        vNodes->pArray[i]->fMark0 = 0;
-    Fpga_NodeVecFree( vNodes );
     return aTotal;
 }
 
@@ -401,10 +212,9 @@ float Fpga_MappingArea_rec( Fpga_Man_t * pMan, Fpga_Node_t * pNode, Fpga_NodeVec
     return aArea;
 }
 
-
 /**Function*************************************************************
 
-  Synopsis    [Sets the correct reference counts for the mapping.]
+  Synopsis    [Computes the area of the current mapping.]
 
   Description []
                
@@ -413,55 +223,22 @@ float Fpga_MappingArea_rec( Fpga_Man_t * pMan, Fpga_Node_t * pNode, Fpga_NodeVec
   SeeAlso     []
 
 ***********************************************************************/
-float Fpga_MappingComputeCutAreas( Fpga_Man_t * pMan )
+float Fpga_MappingAreaTrav( Fpga_Man_t * pMan )
 {
     Fpga_NodeVec_t * vNodes;
-    Fpga_Node_t * pNode;
-    float Area = 0;
+    float aTotal;
     int i;
-    // collect nodes reachable from POs in the DFS order through the best cuts
-    vNodes = Fpga_MappingDfsCuts( pMan );
-    for ( i = 0; i < vNodes->nSize; i++ )
-    {
-        pNode = vNodes->pArray[i];
-        pNode->pCutBest->aFlow = Fpga_CutGetAreaRefed( pMan, pNode->pCutBest );
-        Area += pMan->pLutLib->pLutAreas[pNode->pCutBest->nLeaves];
-    }
-    Fpga_NodeVecFree( vNodes );
-    return Area;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Sets the correct reference counts for the mapping.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-float Fpga_MappingSetRefsAndArea( Fpga_Man_t * pMan )
-{
-    Fpga_Node_t * pNode;
-    float aArea;
-    int i;
-    // clean all references
-    for ( i = 0; i < pMan->vNodesAll->nSize; i++ )
-        pMan->vNodesAll->pArray[i]->nRefs = 0;
-    // collect nodes reachable from POs in the DFS order through the best cuts
-    aArea = 0;
+    // perform the traversal
+    aTotal = 0;
+    vNodes = Fpga_NodeVecAlloc( 100 );
     for ( i = 0; i < pMan->nOutputs; i++ )
-    {
-        pNode = Fpga_Regular(pMan->pOutputs[i]);
-        if ( pNode == pMan->pConst1 )
-            continue;
-        aArea += Fpga_MappingSetRefsAndArea_rec( pMan, pNode );
-        pNode->nRefs++;
-    }
-    return aArea;
+        aTotal += Fpga_MappingArea_rec( pMan, Fpga_Regular(pMan->pOutputs[i]), vNodes );
+    for ( i = 0; i < vNodes->nSize; i++ )
+        vNodes->pArray[i]->fMark0 = 0;
+    Fpga_NodeVecFree( vNodes );
+    return aTotal;
 }
+
 
 /**Function*************************************************************
 
@@ -474,7 +251,7 @@ float Fpga_MappingSetRefsAndArea( Fpga_Man_t * pMan )
   SeeAlso     []
 
 ***********************************************************************/
-float Fpga_MappingSetRefsAndArea_rec( Fpga_Man_t * pMan, Fpga_Node_t * pNode )
+float Fpga_MappingSetRefsAndArea_rec( Fpga_Man_t * pMan, Fpga_Node_t * pNode, Fpga_Node_t ** ppStore )
 {
     float aArea;
     int i;
@@ -484,217 +261,63 @@ float Fpga_MappingSetRefsAndArea_rec( Fpga_Man_t * pMan, Fpga_Node_t * pNode )
     if ( !Fpga_NodeIsAnd(pNode) )
         return 0;
     assert( pNode->pCutBest != NULL );
+    // store the node in the structure by level
+    pNode->pData0 = (char *)ppStore[pNode->Level]; 
+    ppStore[pNode->Level] = pNode;
     // visit the transitive fanin of the selected cut
     aArea = pMan->pLutLib->pLutAreas[pNode->pCutBest->nLeaves];
     for ( i = 0; i < pNode->pCutBest->nLeaves; i++ )
-        aArea += Fpga_MappingSetRefsAndArea_rec( pMan, pNode->pCutBest->ppLeaves[i] );
+        aArea += Fpga_MappingSetRefsAndArea_rec( pMan, pNode->pCutBest->ppLeaves[i], ppStore );
     return aArea;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Collect the referenced nodes.]
+  Synopsis    [Sets the correct reference counts for the mapping.]
 
-  Description []
+  Description [Collects the nodes in reverse topological order
+  and places in them in array pMan->vMapping.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-Fpga_NodeVec_t * Fpga_MappingCollectRefed( Fpga_Man_t * pMan )
+float Fpga_MappingSetRefsAndArea( Fpga_Man_t * pMan )
 {
-    Fpga_NodeVec_t * vNodes;
-    int i;
-    vNodes = Fpga_NodeVecAlloc( 100 );
+    Fpga_Node_t * pNode, ** ppStore;
+    float aArea;
+    int i, LevelMax;
+
+    // clean all references
     for ( i = 0; i < pMan->vNodesAll->nSize; i++ )
+        pMan->vNodesAll->pArray[i]->nRefs = 0;
+
+    // allocate place to store the nodes
+    LevelMax = Fpga_MappingMaxLevel( pMan );
+    ppStore = ALLOC( Fpga_Node_t *, LevelMax + 1 );
+    memset( ppStore, 0, sizeof(Fpga_Node_t *) * (LevelMax + 1) );
+
+    // collect nodes reachable from POs in the DFS order through the best cuts
+    aArea = 0;
+    for ( i = 0; i < pMan->nOutputs; i++ )
     {
-        if ( Fpga_NodeIsVar(pMan->vNodesAll->pArray[i]) )
+        pNode = Fpga_Regular(pMan->pOutputs[i]);
+        if ( pNode == pMan->pConst1 )
             continue;
-        if ( pMan->vNodesAll->pArray[i]->nRefs )
-            Fpga_NodeVecPush( vNodes, pMan->vNodesAll->pArray[i] );
+        aArea += Fpga_MappingSetRefsAndArea_rec( pMan, pNode, ppStore );
+        pNode->nRefs++;
     }
-    return vNodes;
+
+    // reconnect the nodes in reverse topological order
+    pMan->vMapping->nSize = 0;
+    for ( i = LevelMax; i > 0; i-- )
+        for ( pNode = ppStore[i]; pNode; pNode = (Fpga_Node_t *)pNode->pData0 )
+            Fpga_NodeVecPush( pMan->vMapping, pNode );
+    free( ppStore );
+    return aArea;
 }
 
-/**Function*************************************************************
-
-  Synopsis    [Computes the number of logic levels not counting PIs/POs.]
-
-  Description []
-               
-  SideEffects [Note that this procedure will reassign the levels assigned
-  originally by NodeCreate() because it counts the number of levels with 
-  choices differently!]
-
-  SeeAlso     []
-
-***********************************************************************/
-int Fpga_MappingCountLevels( Fpga_Man_t * pMan )
-{
-    int i, LevelsMax, LevelsCur;
-    // perform the traversal
-    LevelsMax = -1;
-    for ( i = 0; i < pMan->nOutputs; i++ )
-    {
-        LevelsCur = Fpga_MappingCountLevels_rec( Fpga_Regular(pMan->pOutputs[i]) );
-        if ( LevelsMax < LevelsCur )
-            LevelsMax = LevelsCur;
-    }
-    for ( i = 0; i < pMan->nOutputs; i++ )
-        Fpga_MappingUnmark_rec( Fpga_Regular(pMan->pOutputs[i]) );
-    return LevelsMax;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Recursively computes the number of logic levels.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Fpga_MappingCountLevels_rec( Fpga_Node_t * pNode )
-{
-    int Level1, Level2;
-    assert( !Fpga_IsComplement(pNode) );
-    if ( !Fpga_NodeIsAnd(pNode) )
-    {
-        pNode->Level = 0;
-        return 0;
-    }
-    if ( pNode->fMark0 )
-        return pNode->Level;
-    pNode->fMark0 = 1;
-    // visit the transitive fanin
-    Level1 = Fpga_MappingCountLevels_rec( Fpga_Regular(pNode->p1) );
-    Level2 = Fpga_MappingCountLevels_rec( Fpga_Regular(pNode->p2) );
-    // set the number of levels
-    pNode->Level = 1 + ((Level1>Level2)? Level1: Level2);
-    return pNode->Level;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Unmarks the nodes.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Fpga_MappingUnmark( Fpga_Man_t * pMan )
-{
-    int i;
-    for ( i = 0; i < pMan->nOutputs; i++ )
-        Fpga_MappingUnmark_rec( Fpga_Regular(pMan->pOutputs[i]) );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Recursively unmarks the nodes.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Fpga_MappingUnmark_rec( Fpga_Node_t * pNode )
-{
-    assert( !Fpga_IsComplement(pNode) );
-    if ( pNode->fMark0 == 0 )
-        return;
-    pNode->fMark0 = 0;
-    if ( !Fpga_NodeIsAnd(pNode) )
-        return;
-    Fpga_MappingUnmark_rec( Fpga_Regular(pNode->p1) );
-    Fpga_MappingUnmark_rec( Fpga_Regular(pNode->p2) );
-    // visit the equivalent nodes
-    if ( pNode->pNextE )
-        Fpga_MappingUnmark_rec( pNode->pNextE );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Recursively unmarks the nodes.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Fpga_MappingMark_rec( Fpga_Node_t * pNode )
-{
-    assert( !Fpga_IsComplement(pNode) );
-    if ( pNode->fMark0 == 1 )
-        return;
-    pNode->fMark0 = 1;
-    if ( !Fpga_NodeIsAnd(pNode) )
-        return;
-    Fpga_MappingMark_rec( Fpga_Regular(pNode->p1) );
-    Fpga_MappingMark_rec( Fpga_Regular(pNode->p2) );
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Fpga_MappedMark_rec( Fpga_Node_t * pNode )
-{
-    int i;
-    assert( !Fpga_IsComplement(pNode) );
-    if ( pNode->fMark0 == 1 )
-        return;
-    pNode->fMark0 = 1;
-    if ( !Fpga_NodeIsAnd(pNode) )
-        return;
-    assert( pNode->pCutBest != NULL );
-    // visit the transitive fanin of the selected cut
-    for ( i = 0; i < pNode->pCutBest->nLeaves; i++ )
-        Fpga_MappedMark_rec( pNode->pCutBest->ppLeaves[i] );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Recursively unmarks the nodes.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Fpga_MappedUnmark_rec( Fpga_Node_t * pNode )
-{
-    int i;
-    assert( !Fpga_IsComplement(pNode) );
-    if ( pNode->fMark0 == 0 )
-        return;
-    pNode->fMark0 = 0;
-    if ( !Fpga_NodeIsAnd(pNode) )
-        return;
-    assert( pNode->pCutBest != NULL );
-    // visit the transitive fanin of the selected cut
-    for ( i = 0; i < pNode->pCutBest->nLeaves; i++ )
-        Fpga_MappedUnmark_rec( pNode->pCutBest->ppLeaves[i] );
-}
 
 /**Function*************************************************************
 
@@ -710,7 +333,7 @@ void Fpga_MappedUnmark_rec( Fpga_Node_t * pNode )
 void Fpga_MappingPrintOutputArrivals( Fpga_Man_t * p )
 {
     Fpga_Node_t * pNode;
-    int fCompl, Limit, i;
+    int fCompl, Limit, MaxNameSize, i;
     int * pSorted;
 
     // sort outputs by arrival time
@@ -723,15 +346,21 @@ void Fpga_MappingPrintOutputArrivals( Fpga_Man_t * p )
     assert( Fpga_MappingCompareOutputDelay( pSorted, pSorted + p->nOutputs - 1 ) <= 0 );
     s_pMan = NULL;
 
-    // print the latest outputs
+    // determine max size of the node's name
+    MaxNameSize = 0;
     Limit = (p->nOutputs > 5)? 5 : p->nOutputs;
+    for ( i = 0; i < Limit; i++ )
+        if ( MaxNameSize < (int)strlen(p->ppOutputNames[pSorted[i]]) )
+            MaxNameSize = strlen(p->ppOutputNames[pSorted[i]]);
+
+    // print the latest outputs
     for ( i = 0; i < Limit; i++ )
     {
         // get the i-th latest output
         pNode  = Fpga_Regular(p->pOutputs[pSorted[i]]);
         fCompl = Fpga_IsComplement(p->pOutputs[pSorted[i]]);
         // print out the best arrival time
-        printf( "Output  %20s : ", p->ppOutputNames[pSorted[i]] );
+        printf( "Output  %-*s : ", MaxNameSize + 3, p->ppOutputNames[pSorted[i]] );
         printf( "Delay = %8.2f  ",     (double)pNode->pCutBest->tArrival );
         if ( fCompl )
             printf( "NEG" );
@@ -1169,7 +798,7 @@ float Fpga_MappingPrintSwitching( Fpga_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Fpga_GetMaxLevel( Fpga_Man_t * pMan )
+int Fpga_MappingMaxLevel( Fpga_Man_t * pMan )
 {
     int nLevelMax, i;
     nLevelMax = 0;
@@ -1269,11 +898,11 @@ void Fpga_ManReportChoices( Fpga_Man_t * pMan )
     int i, LevelMax1, LevelMax2;
 
     // report the number of levels
-    LevelMax1 = Fpga_GetMaxLevel( pMan );
+    LevelMax1 = Fpga_MappingMaxLevel( pMan );
     pMan->nTravIds++;
     for ( i = 0; i < pMan->nOutputs; i++ )
         Fpga_MappingUpdateLevel_rec( pMan, Fpga_Regular(pMan->pOutputs[i]), 0 );
-    LevelMax2 = Fpga_GetMaxLevel( pMan );
+    LevelMax2 = Fpga_MappingMaxLevel( pMan );
 
     // report statistics about choices
     nChoiceNodes = nChoices = 0;

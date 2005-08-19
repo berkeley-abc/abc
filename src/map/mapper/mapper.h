@@ -152,8 +152,8 @@ extern void            Map_NodeSetChoice( Map_Man_t * pMan, Map_Node_t * pNodeOl
 
 /*=== resmCanon.c =============================================================*/
 extern int             Map_CanonComputeSlow( unsigned uTruths[][2], int nVarsMax, int nVarsReal, unsigned uTruth[], unsigned char * puPhases, unsigned uTruthRes[] );
+extern int             Map_CanonComputeFast( Map_Man_t * p, int nVarsMax, int nVarsReal, unsigned uTruth[], unsigned char * puPhases, unsigned uTruthRes[] );
 /*=== mapperCut.c =============================================================*/
-extern void            Map_MappingCreatePiCuts( Map_Man_t * p );
 extern Map_Cut_t *     Map_CutAlloc( Map_Man_t * p );
 /*=== mapperCutUtils.c =============================================================*/
 extern void            Map_CutCreateFromNode( Map_Man_t * p, Map_Super_t * pSuper, int iRoot, unsigned uPhaseRoot, 

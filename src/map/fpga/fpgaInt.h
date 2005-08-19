@@ -35,6 +35,9 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
  
+// uncomment to have fanouts represented in the mapping graph
+//#define FPGA_ALLOCATE_FANOUT  1
+
 ////////////////////////////////////////////////////////////////////////
 ///                       MACRO DEFITIONS                            ///
 ////////////////////////////////////////////////////////////////////////
@@ -104,10 +107,11 @@ struct Fpga_ManStruct_t_
     Fpga_Node_t **      pOutputs;      // the array of outputs
     int                 nOutputs;      // the number of outputs
     int                 nNodes;        // the total number of nodes
-    Fpga_Node_t *       pConst1;       // the constant 1 node
-    Fpga_NodeVec_t *    vAnds;         // the array of pointer to nodes by number
-    Fpga_NodeVec_t *    vNodesAll;     // the array of pointer to nodes by number
     int                 nLatches;      // the number of latches in the circuit
+    Fpga_Node_t *       pConst1;       // the constant 1 node
+    Fpga_NodeVec_t *    vNodesAll;     // the nodes by number
+    Fpga_NodeVec_t *    vAnds;         // the nodes reachable from COs
+    Fpga_NodeVec_t *    vMapping;      // the nodes used in the current mapping
 
     // info about the original circuit
     char *              pFileName;     // the file name
@@ -116,12 +120,12 @@ struct Fpga_ManStruct_t_
 
     // mapping parameters
     int                 nVarsMax;      // the max number of variables
-    int                 fTree;         // the flag to enable tree mapping
-    int                 fPower;        // the flag to enable power optimization
+//    int                 fTree;         // the flag to enable tree mapping
+//    int                 fPower;        // the flag to enable power optimization
     int                 fAreaRecovery; // the flag to use area flow as the first parameter
     int                 fVerbose;      // the verbosiness flag
-    int                 fRefCount;     // enables reference counting
-    int                 fSequential;   // use sequential mapping
+//    int                 fRefCount;     // enables reference counting
+//    int                 fSequential;   // use sequential mapping
     int                 nTravIds;
 
     // support of choice nodes
@@ -133,15 +137,11 @@ struct Fpga_ManStruct_t_
  
     // the supergate library
     Fpga_LutLib_t *     pLutLib;       // the current LUT library
-    unsigned            uTruths[6][2]; // the elementary truth tables
+//    unsigned            uTruths[6][2]; // the elementary truth tables
 
     // the memory managers
     Extra_MmFixed_t *   mmNodes;       // the memory manager for nodes
     Extra_MmFixed_t *   mmCuts;        // the memory manager for cuts
-
-    // simulation info from the FRAIG manager
-    int                 nSimRounds;    // the number of words in the simulation info
-    unsigned **         pSimInfo;      // the simulation info for each PI
 
     // resynthesis parameters
     int                 fResynthesis;  // the resynthesis flag
@@ -203,12 +203,14 @@ struct Fpga_NodeStruct_t_
     Fpga_Node_t *       p2;            // the second child
     Fpga_Node_t *       pNextE;        // the next functionally equivalent node
     Fpga_Node_t *       pRepr;         // the representative of the functionally equivalent class
-//    Fpga_NodeVec_t *    vFanouts;      // the array of fanouts of the node
 
+#ifdef FPGA_ALLOCATE_FANOUT
     // representation of node's fanouts
     Fpga_Node_t *       pFanPivot;     // the first fanout of this node
     Fpga_Node_t *       pFanFanin1;    // the next fanout of p1
     Fpga_Node_t *       pFanFanin2;    // the next fanout of p2
+//    Fpga_NodeVec_t *    vFanouts;      // the array of fanouts of the gate
+#endif
 
     // the delay information
     float               tRequired;     // the best area flow 
@@ -335,8 +337,6 @@ extern void              Fpga_TimeComputeRequiredGlobal( Fpga_Man_t * p );
 extern void              Fpga_TimeComputeRequired( Fpga_Man_t * p, float fRequired );
 extern void              Fpga_TimePropagateRequired( Fpga_Man_t * p, Fpga_NodeVec_t * vNodes );
 extern void              Fpga_TimePropagateArrival( Fpga_Man_t * p );
-/*=== fpgaTruth.c ===============================================================*/
-extern void              Fpga_MappingTruths( Fpga_Man_t * pMan );
 /*=== fpgaVec.c =============================================================*/
 extern Fpga_NodeVec_t *  Fpga_NodeVecAlloc( int nCap );
 extern void              Fpga_NodeVecFree( Fpga_NodeVec_t * p );
@@ -359,23 +359,11 @@ extern void              Fpga_NodeVecReverse( Fpga_NodeVec_t * vNodes );
 /*=== fpgaUtils.c ===============================================================*/
 extern Fpga_NodeVec_t *  Fpga_MappingDfs( Fpga_Man_t * pMan, int fCollectEquiv );
 extern Fpga_NodeVec_t *  Fpga_MappingDfsNodes( Fpga_Man_t * pMan, Fpga_Node_t ** ppNodes, int nNodes, int fEquiv );
-extern Fpga_NodeVec_t *  Fpga_MappingDfsCutsNode( Fpga_Man_t * pMan, Fpga_Node_t * pNode );
-//extern Sat_IntVec_t *    Fpga_MappingDfsNodesSat( Fpga_Man_t * pMan, Fpga_Node_t ** ppNodes, int nNodes );
-extern Fpga_NodeVec_t *  Fpga_MappingDfsCuts( Fpga_Man_t * pMan );
 extern int               Fpga_CountLevels( Fpga_Man_t * pMan );
-extern int               Fpga_CountLevelsNodes( Fpga_Man_t * pMan, Fpga_Node_t ** ppRoots, int nRoots );
-extern void              Fpga_MappingMarkUsed( Fpga_Man_t * pMan );
 extern float             Fpga_MappingGetAreaFlow( Fpga_Man_t * p );
 extern float             Fpga_MappingArea( Fpga_Man_t * pMan );
-extern float             Fpga_MappingComputeCutAreas( Fpga_Man_t * pMan );
+extern float             Fpga_MappingAreaTrav( Fpga_Man_t * pMan );
 extern float             Fpga_MappingSetRefsAndArea( Fpga_Man_t * pMan );
-extern Fpga_NodeVec_t *  Fpga_MappingCollectRefed( Fpga_Man_t * pMan );
-extern int               Fpga_MappingCountLevels( Fpga_Man_t * pMan );
-extern void              Fpga_MappingUnmark( Fpga_Man_t * pMan );
-extern void              Fpga_MappingUnmark_rec( Fpga_Node_t * pNode );
-extern void              Fpga_MappingMark_rec( Fpga_Node_t * pNode );
-extern void              Fpga_MappedMark_rec( Fpga_Node_t * pNode );
-extern void              Fpga_MappedUnmark_rec( Fpga_Node_t * pNode );
 extern void              Fpga_MappingPrintOutputArrivals( Fpga_Man_t * p );
 extern void              Fpga_MappingSetupTruthTables( unsigned uTruths[][2] );
 extern void              Fpga_MappingSetupMask( unsigned uMask[], int nVarsMax );
@@ -383,7 +371,7 @@ extern void              Fpga_MappingSortByLevel( Fpga_Man_t * pMan, Fpga_NodeVe
 extern Fpga_NodeVec_t *  Fpga_DfsLim( Fpga_Man_t * pMan, Fpga_Node_t * pNode, int nLevels );
 extern Fpga_NodeVec_t *  Fpga_MappingLevelize( Fpga_Man_t * pMan, Fpga_NodeVec_t * vNodes );
 extern float             Fpga_MappingPrintSwitching( Fpga_Man_t * pMan );
-extern int               Fpga_GetMaxLevel( Fpga_Man_t * pMan );
+extern int               Fpga_MappingMaxLevel( Fpga_Man_t * pMan );
 extern void              Fpga_ManReportChoices( Fpga_Man_t * pMan );
 extern void              Fpga_MappingSetChoiceLevels( Fpga_Man_t * pMan );
 

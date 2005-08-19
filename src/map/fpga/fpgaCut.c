@@ -206,8 +206,9 @@ Fpga_Cut_t * Fpga_CutCompute( Fpga_Man_t * p, Fpga_CutTable_t * pTable, Fpga_Nod
     Fpga_Node_t * pTemp;
     Fpga_Cut_t * pList, * pList1, * pList2;
     Fpga_Cut_t * pCut;
-    int fPivot1 = p->fTree && (Fpga_NodeReadRef(pNode->p1)>2);
-    int fPivot2 = p->fTree && (Fpga_NodeReadRef(pNode->p2)>2);
+    int fTree = 0;
+    int fPivot1 = fTree && (Fpga_NodeReadRef(pNode->p1)>2);
+    int fPivot2 = fTree && (Fpga_NodeReadRef(pNode->p2)>2);
 
     // if the cuts are computed return them
     if ( pNode->pCuts )

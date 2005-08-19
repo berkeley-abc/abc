@@ -39,7 +39,6 @@ static Ft_Node_t *       Ft_FactorTrivialCubeCascade( Vec_Int_t * vForm, Mvc_Cov
 static Ft_Node_t *       Ft_FactorNodeCreate( Vec_Int_t * vForm, int Type, Ft_Node_t * pNode1, Ft_Node_t * pNode2 );
 static Ft_Node_t *       Ft_FactorLeafCreate( Vec_Int_t * vForm, int iLit );
 static void              Ft_FactorFinalize( Vec_Int_t * vForm, Ft_Node_t * pNode, int nVars );
-static void              Ft_FactorComplement( Vec_Int_t * vForm );
 static Vec_Int_t *       Ft_FactorConst( int fConst1 );
 
 // temporary procedures that work with the covers
@@ -585,8 +584,6 @@ int Ft_FactorGetNumNodes( Vec_Int_t * vForm )
 void Ft_FactorComplement( Vec_Int_t * vForm )
 {
     Ft_Node_t * pNode;
-    int nVars = Ft_FactorGetNumVars( vForm );
-    assert( nVars >= 0 );
     pNode = Ft_NodeReadLast(vForm);
     pNode->fCompl ^= 1;
 }

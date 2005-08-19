@@ -128,21 +128,15 @@ void Fpga_TimeComputeRequiredGlobal( Fpga_Man_t * p )
 ***********************************************************************/
 void Fpga_TimeComputeRequired( Fpga_Man_t * p, float fRequired )
 {
-    Fpga_NodeVec_t * vNodes;
     int i;
-
     // clean the required times and the fanout counts for all nodes
     for ( i = 0; i < p->vAnds->nSize; i++ )
         p->vAnds->pArray[i]->tRequired = FPGA_FLOAT_LARGE;
-
     // set the required times for the POs
     for ( i = 0; i < p->nOutputs; i++ )
         Fpga_Regular(p->pOutputs[i])->tRequired = fRequired;
-
     // collect nodes reachable from POs in the DFS order through the best cuts
-    vNodes = Fpga_MappingDfsCuts( p );
-    Fpga_TimePropagateRequired( p, vNodes );
-    Fpga_NodeVecFree( vNodes );
+    Fpga_TimePropagateRequired( p, p->vMapping );
 }
 
 /**Function*************************************************************
@@ -163,7 +157,9 @@ void Fpga_TimePropagateRequired( Fpga_Man_t * p, Fpga_NodeVec_t * vNodes )
     int i, k;
 
     // sorts the nodes in the decreasing order of levels
-    Fpga_MappingSortByLevel( p, vNodes, 0 );
+//    Fpga_MappingSortByLevel( p, vNodes, 0 );
+    // the nodes area already sorted in Fpga_MappingSetRefsAndArea()
+
     // go through the nodes in the reverse topological order
     for ( k = 0; k < vNodes->nSize; k++ )
     {

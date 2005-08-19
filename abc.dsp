@@ -1125,6 +1125,10 @@ SOURCE=.\src\opt\rwr\rwrMan.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\opt\rwr\rwrPrint.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\opt\rwr\rwrUtil.c
 # End Source File
 # End Group

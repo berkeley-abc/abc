@@ -89,6 +89,10 @@
 (((((((unsigned)(a) + (unsigned)(b)) * DD_P1 + (unsigned)(c)) * DD_P2 + \
    (unsigned)(d)) * DD_P3 + (unsigned)(e)) * DD_P1) % TSIZE)
 
+#ifndef PRT
+#define PRT(a,t)  printf("%s = ", (a)); printf("%6.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC))
+#endif
+
 /*===========================================================================*/
 /*     Various Utilities                                                     */
 /*===========================================================================*/
@@ -209,7 +213,13 @@ extern unsigned    Extra_TruthCanonP( unsigned uTruth, int nVars );
 extern unsigned    Extra_TruthCanonNP( unsigned uTruth, int nVars );
 extern unsigned    Extra_TruthCanonNPN( unsigned uTruth, int nVars );
 /* canonical forms of 4-variable functions */
-extern void        Extra_Truth4VarNPN( unsigned short ** puCanons, char ** puPhases, char ** puPerms );
+extern void        Extra_Truth4VarNPN( unsigned short ** puCanons, char ** puPhases, char ** puPerms, unsigned char ** puMap );
+extern void        Extra_Truth4VarN( unsigned short ** puCanons, char *** puPhases, char ** ppCounters, int nPhasesMax );
+/* permutation mapping */
+extern void **     Extra_ArrayAlloc( int nCols, int nRows, int Size );
+extern unsigned short ** Extra_TruthPerm43();
+extern unsigned ** Extra_TruthPerm53();
+extern unsigned ** Extra_TruthPerm54();
 /* for independence from CUDD */
 extern unsigned int Cudd_PrimeCopy( unsigned int  p );
 

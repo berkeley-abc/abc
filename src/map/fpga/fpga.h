@@ -80,10 +80,7 @@ extern void            Fpga_ManSetTimeToNet( Fpga_Man_t * p, int Time );
 extern void            Fpga_ManSetTimeTotal( Fpga_Man_t * p, int Time );
 extern void            Fpga_ManSetOutputNames( Fpga_Man_t * p, char ** ppNames );
 extern void            Fpga_ManSetInputArrivals( Fpga_Man_t * p, float * pArrivals );
-extern void            Fpga_ManSetTree( Fpga_Man_t * p, int fTree );
-extern void            Fpga_ManSetPower( Fpga_Man_t * p, int fPower );
 extern void            Fpga_ManSetAreaRecovery( Fpga_Man_t * p, int fAreaRecovery );
-extern void            Fpga_ManSetResyn( Fpga_Man_t * p, int fResynthesis );
 extern void            Fpga_ManSetDelayLimit( Fpga_Man_t * p, float DelayLimit );
 extern void            Fpga_ManSetAreaLimit( Fpga_Man_t * p, float AreaLimit );
 extern void            Fpga_ManSetTimeLimit( Fpga_Man_t * p, float TimeLimit );
@@ -95,7 +92,6 @@ extern void            Fpga_ManSetChoiceNodeNum( Fpga_Man_t * p, int nChoiceNode
 extern void            Fpga_ManSetChoiceNum( Fpga_Man_t * p, int nChoices );
 extern void            Fpga_ManSetVerbose( Fpga_Man_t * p, int fVerbose );
 extern void            Fpga_ManSetLatchNum( Fpga_Man_t * p, int nLatches );
-extern void            Fpga_ManSetSequential( Fpga_Man_t * p, int fSequential );
 extern void            Fpga_ManSetName( Fpga_Man_t * p, char * pFileName );
 
 extern int             Fpga_LibReadLutMax( Fpga_LutLib_t * pLib );

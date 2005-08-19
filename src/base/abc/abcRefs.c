@@ -46,6 +46,8 @@ int Abc_NodeMffcSize( Abc_Obj_t * pNode )
     int nConeSize1, nConeSize2;
     assert( !Abc_ObjIsComplement( pNode ) );
     assert( Abc_ObjIsNode( pNode ) );
+    if ( Abc_ObjFaninNum(pNode) == 0 )
+        return 0;
     nConeSize1 = Abc_NodeRefDeref( pNode, 0, 0 ); // dereference
     nConeSize2 = Abc_NodeRefDeref( pNode, 1, 0 ); // reference
     assert( nConeSize1 == nConeSize2 );
@@ -69,6 +71,8 @@ int Abc_NodeMffcLabel( Abc_Obj_t * pNode )
     int nConeSize1, nConeSize2;
     assert( !Abc_ObjIsComplement( pNode ) );
     assert( Abc_ObjIsNode( pNode ) );
+    if ( Abc_ObjFaninNum(pNode) == 0 )
+        return 0;
     nConeSize1 = Abc_NodeRefDeref( pNode, 0, 0 ); // dereference
     nConeSize2 = Abc_NodeRefDeref( pNode, 1, 1 ); // reference
     assert( nConeSize1 == nConeSize2 );

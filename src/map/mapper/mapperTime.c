@@ -252,7 +252,9 @@ void Map_TimeComputeRequired( Map_Man_t * p, float fRequired )
 
     // sorts the nodes in the decreasing order of levels
     // this puts the nodes in reverse topological order
-    Map_MappingSortByLevel( p, p->vMapping );
+//    Map_MappingSortByLevel( p, p->vMapping );
+    // the array is already sorted by construction in Map_MappingSetRefs()
+
     Map_TimePropagateRequired( p, p->vMapping );
 }
 

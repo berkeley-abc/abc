@@ -154,6 +154,95 @@ void Map_CanonComputePhase6( unsigned uTruths[][2], int nVars, unsigned uTruth[]
         }
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Computes the N-canonical form of the Boolean function.]
+
+  Description [The N-canonical form is defined as the truth table with 
+  the minimum integer value. This function exhaustively enumerates 
+  through the complete set of 2^N phase assignments.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Map_CanonComputeFast( Map_Man_t * p, int nVarsMax, int nVarsReal, unsigned uTruth[], unsigned char * puPhases, unsigned uTruthRes[] )
+{
+    unsigned uTruth0, uTruth1;
+    unsigned uCanon0, uCanon1, uCanonBest;
+    int i, Limit;
+
+    if ( nVarsMax != 5 || nVarsReal < 5 )
+        return Map_CanonComputeSlow( p->uTruths, nVarsMax, nVarsReal, uTruth, puPhases, uTruthRes );
+
+    assert( nVarsMax == 5 );
+    uTruth0 = uTruth[0] & 0xFFFF;
+    uTruth1 = (uTruth[0] >> 16);
+    if ( uTruth1 == 0 )
+    {
+        uTruthRes[0] = p->uCanons[uTruth0];
+        uTruthRes[1] = uTruthRes[0];
+        Limit = (p->pCounters[uTruth0] > 4)? 4 : p->pCounters[uTruth0];
+        for ( i = 0; i < Limit; i++ )
+            puPhases[i] = p->uPhases[uTruth0][i];
+        return Limit;
+    }
+    else if ( uTruth0 == 0 )
+    {
+        uTruthRes[0] = p->uCanons[uTruth1];
+        uTruthRes[1] = uTruthRes[0];
+        Limit = (p->pCounters[uTruth1] > 4)? 4 : p->pCounters[uTruth1];
+        for ( i = 0; i < Limit; i++ )
+        {
+            puPhases[i] = p->uPhases[uTruth1][i];
+            puPhases[i] |= (1 << 4);
+        }
+        return Limit;
+    }
+    uCanon0 = p->uCanons[uTruth0];
+    uCanon1 = p->uCanons[uTruth1];
+    if ( uCanon0 && uCanon1 && uCanon0 > uCanon1 ) // using nCanon1 as the main one
+    {
+        assert( p->pCounters[uTruth1] > 0 );
+        uCanonBest = 0xFFFF;
+        for ( i = 0; i < p->pCounters[uTruth1]; i++ )
+        {
+            uCanon0 = Extra_TruthPolarize( uTruth0, p->uPhases[uTruth1][i], 4 );
+            if ( uCanonBest > uCanon0 )
+                uCanonBest = uCanon0;
+        }
+        uTruthRes[0] = (uCanon1 << 16) | uCanonBest;
+        uTruthRes[1] = uTruthRes[0];
+        Limit = (p->pCounters[uTruth1] > 4)? 4 : p->pCounters[uTruth1];
+        for ( i = 0; i < Limit; i++ )
+            puPhases[i] = p->uPhases[uTruth1][i];
+        return Limit;
+    }
+    else if ( uCanon0 && uCanon1 && uCanon0 < uCanon1 )
+    {
+        assert( p->pCounters[uTruth0] > 0 );
+        uCanonBest = 0xFFFF;
+        for ( i = 0; i < p->pCounters[uTruth0]; i++ )
+        {
+            uCanon1 = Extra_TruthPolarize( uTruth1, p->uPhases[uTruth0][i], 4 );
+            if ( uCanonBest > uCanon1 )
+                uCanonBest = uCanon1;
+        }
+        uTruthRes[0] = (uCanon0 << 16) | uCanonBest;
+        uTruthRes[1] = uTruthRes[0];
+        Limit = (p->pCounters[uTruth0] > 4)? 4 : p->pCounters[uTruth0];
+        for ( i = 0; i < Limit; i++ )
+        {
+            puPhases[i]  = p->uPhases[uTruth0][i];
+            puPhases[i] |= (1 << 4);
+        }
+        return Limit;
+    }
+    else
+        return Map_CanonComputeSlow( p->uTruths, nVarsMax, nVarsReal, uTruth, puPhases, uTruthRes );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

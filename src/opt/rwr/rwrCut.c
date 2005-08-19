@@ -174,7 +174,7 @@ Rwr_Cut_t * Rwr_CutsMerge( Rwr_Man_t * p, Rwr_Cut_t * pCut0, Rwr_Cut_t * pCut1, 
         }
         assert( uPhase < 16 );
         assert( pCut0->uTruth < 256 );
-        uTruth0 = p->puPerms[pCut0->uTruth][uPhase];
+        uTruth0 = p->puPerms43[pCut0->uTruth][uPhase];
     }
 
     // find the mapping from the old nodes to the new
@@ -192,7 +192,7 @@ Rwr_Cut_t * Rwr_CutsMerge( Rwr_Man_t * p, Rwr_Cut_t * pCut0, Rwr_Cut_t * pCut1, 
         }
         assert( uPhase < 16 );
         assert( pCut1->uTruth < 256 );
-        uTruth1 = p->puPerms[pCut1->uTruth][uPhase];
+        uTruth1 = p->puPerms43[pCut1->uTruth][uPhase];
     }
 
     // create the cut

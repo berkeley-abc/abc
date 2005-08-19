@@ -1323,34 +1323,26 @@ int Abc_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk;
     int c;
     bool fVerbose;
+    bool fPrecompute;
     // external functions
-    extern void * Abc_NtkManRwrStart( char * pFileName );
-    extern void   Abc_NtkManRwrStop( void * p );
+    extern void   Rwr_Precompute();
     extern int    Abc_NtkRewrite( Abc_Ntk_t * pNtk );
 
-/*
-    {
-        void * p;
-        int fFlag = 0;
-        if ( fFlag )
-            p = Abc_NtkManRwrStart( NULL );
-        else
-            p = Abc_NtkManRwrStart( "data.aaa" );
-        Abc_NtkManRwrStop( p );
-        return 0;
-    }
-*/
     pNtk = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fVerbose     =  0;
+    fVerbose    = 0;
+    fPrecompute = 0;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "zvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'z':
+            fPrecompute ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -1359,6 +1351,12 @@ int Abc_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
         default:
             goto usage;
         }
+    }
+
+    if ( fPrecompute )
+    {
+        Rwr_Precompute();
+        return 0;
     }
 
     if ( pNtk == NULL )

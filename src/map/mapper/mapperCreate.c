@@ -196,6 +196,9 @@ Map_Man_t * Map_ManCreate( int nInputs, int nOutputs, int fVerbose )
     p->fEpsilon  = (float)0.001;
     assert( p->nVarsMax > 0 );
 
+    if ( p->nVarsMax == 5 )
+        Extra_Truth4VarN( &p->uCanons, &p->uPhases, &p->pCounters, 16 );
+
     // start various data structures
     Map_TableCreate( p );
     Map_MappingSetupTruthTables( p->uTruths );
@@ -211,8 +214,6 @@ Map_Man_t * Map_ManCreate( int nInputs, int nOutputs, int fVerbose )
     p->vNodesAll  = Map_NodeVecAlloc( 100 );
     p->vNodesTemp = Map_NodeVecAlloc( 100 );
     p->vMapping   = Map_NodeVecAlloc( 100 );
-    p->vInside    = Map_NodeVecAlloc( 100 );
-    p->vFanins    = Map_NodeVecAlloc( 100 );
     p->vVisited   = Map_NodeVecAlloc( 100 );
 
     // create the PI nodes
@@ -245,10 +246,6 @@ void Map_ManFree( Map_Man_t * p )
 //    for ( i = 0; i < p->vNodesAll->nSize; i++ )
 //        Map_NodeVecFree( p->vNodesAll->pArray[i]->vFanouts );
 //    Map_NodeVecFree( p->pConst1->vFanouts );
-    if ( p->vInside )    
-        Map_NodeVecFree( p->vInside );
-    if ( p->vFanins )    
-        Map_NodeVecFree( p->vFanins );
     if ( p->vAnds )    
         Map_NodeVecFree( p->vAnds );
     if ( p->vNodesAll )    
@@ -259,6 +256,9 @@ void Map_ManFree( Map_Man_t * p )
         Map_NodeVecFree( p->vMapping );
     if ( p->vVisited )    
         Map_NodeVecFree( p->vVisited );
+    if ( p->uCanons )   free( p->uCanons );
+    if ( p->uPhases )   free( p->uPhases );
+    if ( p->pCounters ) free( p->pCounters );
     Extra_MmFixedStop( p->mmNodes, 0 );
     Extra_MmFixedStop( p->mmCuts, 0 );
     FREE( p->pInputArrivals );
@@ -266,8 +266,6 @@ void Map_ManFree( Map_Man_t * p )
     FREE( p->pOutputs );
     FREE( p->pBins );
     FREE( p->ppOutputNames );
-    if ( p->pSimInfo ) FREE( p->pSimInfo[0] );
-    FREE( p->pSimInfo );
     FREE( p );
 }
 
@@ -357,9 +355,11 @@ Map_Node_t * Map_NodeCreate( Map_Man_t * p, Map_Node_t * p1, Map_Node_t * p2 )
     // set the level of this node
     if ( p1 ) 
     {
+#ifdef MAP_ALLOCATE_FANOUT
         // create the fanout info
         Map_NodeAddFaninFanout( Map_Regular(p1), pNode );
         Map_NodeAddFaninFanout( Map_Regular(p2), pNode );
+#endif
         pNode->Level = 1 + MAP_MAX(Map_Regular(pNode->p1)->Level, Map_Regular(pNode->p2)->Level);
         pNode->fInv  = Map_NodeIsSimComplement(p1) & Map_NodeIsSimComplement(p2);
     }

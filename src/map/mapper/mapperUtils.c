@@ -405,7 +405,7 @@ void Map_MappingPrintOutputArrivals( Map_Man_t * p )
     Map_Time_t * pTimes;
     Map_Node_t * pNode;
     int fPhase, Limit, i;
-    int nOutputs;
+    int nOutputs, MaxNameSize;
     int * pSorted;
 
     // sort outputs by arrival time
@@ -423,8 +423,14 @@ void Map_MappingPrintOutputArrivals( Map_Man_t * p )
     assert( Map_MappingCompareOutputDelay( pSorted, pSorted + nOutputs - 1 ) <= 0 );
     s_pMan = NULL;
 
-    // print the latest outputs
+    // determine max size of the node's name
+    MaxNameSize = 0;
     Limit = (nOutputs > 5)? 5 : nOutputs;
+    for ( i = 0; i < Limit; i++ )
+        if ( MaxNameSize < (int)strlen(p->ppOutputNames[pSorted[i]]) )
+            MaxNameSize = strlen(p->ppOutputNames[pSorted[i]]);
+
+    // print the latest outputs
     for ( i = 0; i < Limit; i++ )
     {
         // get the i-th latest output
@@ -432,7 +438,7 @@ void Map_MappingPrintOutputArrivals( Map_Man_t * p )
         fPhase =!Map_IsComplement(p->pOutputs[pSorted[i]]);
         pTimes = pNode->tArrival + fPhase;
         // print out the best arrival time
-        printf( "Out  %20s : ", p->ppOutputNames[pSorted[i]] );
+        printf( "Output  %-*s : ", MaxNameSize + 3, p->ppOutputNames[pSorted[i]] );
         printf( "Delay = (%5.2f, %5.2f)  ", (double)pTimes->Rise, (double)pTimes->Fall );
         printf( "%s", fPhase? "POS" : "NEG" );
         printf( "\n" );
@@ -1012,136 +1018,6 @@ void Map_MappingReportChoices( Map_Man_t * pMan )
     printf( "Maximum level: Original = %d. Reduced due to choices = %d.\n", LevelMax1, LevelMax2 );
     printf( "Choice stats:  Choice nodes = %d. Total choices = %d.\n", nChoiceNodes, nChoices );
 }
-
-/*
-void Map_MappingReportChoices( Map_Man_t * pMan )
-{
-    Map_Node_t * pNode, * pTemp;
-    int nChoiceNodes, nChoices;
-    int i, LevelMax1, LevelMax2;
-    int DiffMaxTotal, DiffMinTotal, Min, Max;
-    int CounterByMin[300]={0}, CounterByMax[300]={0};
-
-    // report the number of levels
-    LevelMax1 = Map_MappingGetMaxLevel( pMan );
-    pMan->nTravIds++;
-    for ( i = 0; i < pMan->nOutputs; i++ )
-//        Map_MappingUpdateLevel_rec( pMan, Map_Regular(pMan->pOutputs[i]), 0 );
-        Map_MappingUpdateLevel_rec( pMan, Map_Regular(pMan->pOutputs[i]), 1 );
-    LevelMax2 = Map_MappingGetMaxLevel( pMan );
-
-    // report statistics about choices
-    nChoiceNodes = nChoices = 0;
-    DiffMaxTotal = DiffMinTotal = 0;
-    for ( i = 0; i < pMan->vAnds->nSize; i++ )
-    {
-        pNode = pMan->vAnds->pArray[i];
-        if ( pNode->pRepr == NULL && pNode->pNextE != NULL )
-        { // this is a choice node = the primary node that has equivalent nodes
-            nChoiceNodes++;
-            for ( pTemp = pNode; pTemp; pTemp = pTemp->pNextE )
-                nChoices++;
-            // call to compare the levels
-            Map_MappingGetChoiceLevels( pMan, pNode, pNode->pNextE, &Min, &Max );
-            assert( Min < (int)pNode->Level );
-            assert( Max < (int)pNode->Level );
-            DiffMinTotal += pNode->Level - Max;
-            DiffMaxTotal += pNode->Level - Min;
-
-            CounterByMin[pNode->Level - Max]++;
-            CounterByMax[pNode->Level - Min]++;
-
-        }
-    }
-    printf( "Maximum level: Original = %d. Reduced due to choices = %d.\n", LevelMax1, LevelMax2 );
-    printf( "Choice stats:  Choice nodes = %d. Total choices = %d.\n", nChoiceNodes, nChoices );
-    printf( "Choice depth:  Minimum = %4.2f. Maximum = %4.2f.\n", 
-        ((float)DiffMinTotal)/nChoiceNodes, ((float)DiffMaxTotal)/nChoiceNodes );
-
-    {
-    FILE * pTable;
-    pTable = fopen( "statsc.txt", "a+" );
-    fprintf( pTable, "%6d ", pMan->vAnds->nSize );
-    fprintf( pTable, "%5d ", LevelMax2 );
-    fprintf( pTable, "%5d ", nChoiceNodes );
-    fprintf( pTable, "%5d ", nChoices );
-    fprintf( pTable, "%5.2f ", ((float)DiffMinTotal)/nChoiceNodes );
-    fprintf( pTable, "%5.2f ", ((float)DiffMaxTotal)/nChoiceNodes );
-//    fprintf( pTable, "%4.2f\n", (float)(Time)/(float)(CLOCKS_PER_SEC) );
-    fprintf( pTable, "\n" );
-    fclose( pTable );
-    }
-
-
-    printf( "Distribution by min/max levels:\n" );
-    for ( i = 0; i < LevelMax2; i++ )
-        printf( "%3d :  %5d  %5d\n", i, CounterByMin[i], CounterByMax[i] );
-    printf( "\n" );
-}
-*/
-
-/*
-void Map_MappingReportChoices( Map_Man_t * pMan )
-{
-    Map_Node_t * pNode, * pTemp;
-    int nChoiceNodes, nChoices;
-    int i, LevelMax1, LevelMax2;
-    int CounterByVol[1000]={0};
-    float VolumeAve, Volume;
-
-    // report the number of levels
-    LevelMax1 = Map_MappingGetMaxLevel( pMan );
-    pMan->nTravIds++;
-    for ( i = 0; i < pMan->nOutputs; i++ )
-        Map_MappingUpdateLevel_rec( pMan, Map_Regular(pMan->pOutputs[i]), 0 );
-//        Map_MappingUpdateLevel_rec( pMan, Map_Regular(pMan->pOutputs[i]), 1 );
-    LevelMax2 = Map_MappingGetMaxLevel( pMan );
-
-    // report statistics about choices
-    nChoiceNodes = nChoices = 0;
-    VolumeAve = 0.0;
-    for ( i = 0; i < pMan->vAnds->nSize; i++ )
-    {
-        pNode = pMan->vAnds->pArray[i];
-        if ( pNode->pRepr == NULL && pNode->pNextE != NULL )
-        { // this is a choice node = the primary node that has equivalent nodes
-            nChoiceNodes++;
-            for ( pTemp = pNode; pTemp; pTemp = pTemp->pNextE )
-                nChoices++;
-            Volume = Map_MappingGetChoiceVolumes( pMan, pNode, pNode->pNextE );
-            VolumeAve += Volume;
-            assert( Volume < 1000 );
-            CounterByVol[(int)Volume]++;
-        }
-    }
-    printf( "Maximum level: Original = %d. Reduced due to choices = %d.\n", LevelMax1, LevelMax2 );
-    printf( "Choice stats:  Choice nodes = %d. Total choices = %d.\n", nChoiceNodes, nChoices );
-    printf( "Average volume = %5.4f.\n", VolumeAve/nChoiceNodes );
-*/
-/*
-    {
-    FILE * pTable;
-    pTable = fopen( "statsv.txt", "a+" );
-    fprintf( pTable, "%6d ", Map_MappingCountUsedNodes(pMan,1) );
-    fprintf( pTable, "%6d ", Map_MappingCountUsedNodes(pMan,0) );
-    fprintf( pTable, "%5d ", LevelMax1 );
-    fprintf( pTable, "   " );
-    fprintf( pTable, "%5d ", nChoiceNodes );
-    fprintf( pTable, "%5d ", nChoices );
-    fprintf( pTable, "   " );
-    fprintf( pTable, "%5.4f ", VolumeAve/nChoiceNodes );
-    fprintf( pTable, "\n" );
-    fclose( pTable );
-    }
-    printf( "Distribution by volume:\n" );
-    for ( i = 0; i < 1000; i++ )
-        if ( CounterByVol[i] > 0 )
-        printf( "%3d :  %5d\n", i, CounterByVol[i] );
-    printf( "\n" );
-*/
-/*
-}
-*/
 
 /**Function*************************************************************
 

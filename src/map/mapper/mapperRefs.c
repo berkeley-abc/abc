@@ -25,7 +25,7 @@
 static int   Map_NodeIncRefPhaseAct( Map_Node_t * pNode, int fPhase );
 static int   Map_NodeDecRefPhaseAct( Map_Node_t * pNode, int fPhase );
 static float Map_CutRefDeref( Map_Cut_t * pCut, int fPhase, int fReference );
-static void  Map_MappingSetRefs_rec( Map_Man_t * pMan, Map_Node_t * pNode );
+static void  Map_MappingSetRefs_rec( Map_Man_t * pMan, Map_Node_t * pNode, Map_Node_t ** ppStore );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -401,8 +401,9 @@ float Map_CutRefDeref( Map_Cut_t * pCut, int fPhase, int fReference )
 
   Synopsis    [Computes actual reference counters.]
 
-  Description [Stores all the nodes used in the mapping in the array pMan->vMapping.
-  The nodes are stored in the random order.]
+  Description [Collects the nodes used in the mapping in array pMan->vMapping.
+  Nodes are collected in reverse topological order to facilitate the 
+  computation of required times.]
                
   SideEffects []
 
@@ -411,8 +412,9 @@ float Map_CutRefDeref( Map_Cut_t * pCut, int fPhase, int fReference )
 ***********************************************************************/
 void Map_MappingSetRefs( Map_Man_t * pMan )
 {
-    Map_Node_t * pNode;
-    int i, fPhase;
+    Map_Node_t * pNode, ** ppStore;
+    int i, fPhase, LevelMax;
+
     // clean all references
     for ( i = 0; i < pMan->vNodesAll->nSize; i++ )
     {
@@ -421,18 +423,32 @@ void Map_MappingSetRefs( Map_Man_t * pMan )
         pNode->nRefAct[1] = 0;
         pNode->nRefAct[2] = 0;
     }
+
+    // find the largest level of a node
+    LevelMax = 0;
+    for ( i = 0; i < pMan->nOutputs; i++ )
+        if ( LevelMax < (int)Map_Regular(pMan->pOutputs[i])->Level )
+            LevelMax = Map_Regular(pMan->pOutputs[i])->Level;
+
+    // allocate place to store the nodes
+    ppStore = ALLOC( Map_Node_t *, LevelMax + 1 );
+    memset( ppStore, 0, sizeof(Map_Node_t *) * (LevelMax + 1) );
+
     // visit nodes reachable from POs in the DFS order through the best cuts
-    pMan->vMapping->nSize = 0;
     for ( i = 0; i < pMan->nOutputs; i++ )
     {
         pNode  = pMan->pOutputs[i];
         fPhase = !Map_IsComplement(pNode);
         if ( !Map_NodeIsConst(pNode) )
-            Map_MappingSetRefs_rec( pMan, pNode );
-        // reference count the PO node
-//        Map_Regular(pNode)->nRefAct[fPhase]++;
-//        Map_Regular(pNode)->nRefAct[2]++;
+            Map_MappingSetRefs_rec( pMan, pNode, ppStore );
     }
+
+    // reconnect the nodes in reverse topological order
+    pMan->vMapping->nSize = 0;
+    for ( i = LevelMax; i >= 0; i-- )
+        for ( pNode = ppStore[i]; pNode; pNode = (Map_Node_t *)pNode->pData0 )
+            Map_NodeVecPush( pMan->vMapping, pNode );
+    free( ppStore );
 }
 
 /**Function*************************************************************
@@ -446,7 +462,7 @@ void Map_MappingSetRefs( Map_Man_t * pMan )
   SeeAlso     []
 
 ***********************************************************************/
-void Map_MappingSetRefs_rec( Map_Man_t * pMan, Map_Node_t * pNode )
+void Map_MappingSetRefs_rec( Map_Man_t * pMan, Map_Node_t * pNode, Map_Node_t ** ppStore )
 {
     Map_Cut_t * pCut;
     Map_Node_t * pNodeR;
@@ -459,7 +475,8 @@ void Map_MappingSetRefs_rec( Map_Man_t * pMan, Map_Node_t * pNode )
 
     // add the node to the list of all visited nodes
     if ( pNodeR->nRefAct[2]++ == 0 )
-        Map_NodeVecPush( pMan->vMapping, pNodeR );
+//        Map_NodeVecPush( pMan->vMapping, pNodeR );
+        pNodeR->pData0 = (char *)ppStore[pNodeR->Level], ppStore[pNodeR->Level] = pNodeR;
 
     // quit if the node was already visited in this phase
     if ( pNodeR->nRefAct[fPhase]++ )
@@ -482,7 +499,7 @@ void Map_MappingSetRefs_rec( Map_Man_t * pMan, Map_Node_t * pNode )
     for ( i = 0; i < pCut->nLeaves; i++ )
     {
         fInvPin = ((uPhase & (1 << i)) > 0);
-        Map_MappingSetRefs_rec( pMan, Map_NotCond(pCut->ppLeaves[i], fInvPin) );
+        Map_MappingSetRefs_rec( pMan, Map_NotCond(pCut->ppLeaves[i], fInvPin), ppStore );
     }
 }
 

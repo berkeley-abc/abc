@@ -58,10 +58,7 @@ void            Fpga_ManSetTimeToNet( Fpga_Man_t * p, int Time )          { p->t
 void            Fpga_ManSetTimeTotal( Fpga_Man_t * p, int Time )          { p->timeTotal = Time;  }
 void            Fpga_ManSetOutputNames( Fpga_Man_t * p, char ** ppNames ) { p->ppOutputNames = ppNames; }
 void            Fpga_ManSetInputArrivals( Fpga_Man_t * p, float * pArrivals ) { p->pInputArrivals = pArrivals; }
-void            Fpga_ManSetTree( Fpga_Man_t * p, int fTree )              { p->fTree = fTree;           }
-void            Fpga_ManSetPower( Fpga_Man_t * p, int fPower )              { p->fPower = fPower;           }
 void            Fpga_ManSetAreaRecovery( Fpga_Man_t * p, int fAreaRecovery ) { p->fAreaRecovery = fAreaRecovery;}
-void            Fpga_ManSetResyn( Fpga_Man_t * p, int fResynthesis )         { p->fResynthesis = fResynthesis;  }
 void            Fpga_ManSetDelayLimit( Fpga_Man_t * p, float DelayLimit )    { p->DelayLimit   = DelayLimit;    }
 void            Fpga_ManSetAreaLimit( Fpga_Man_t * p, float AreaLimit )      { p->AreaLimit    = AreaLimit;     }
 void            Fpga_ManSetTimeLimit( Fpga_Man_t * p, float TimeLimit )      { p->TimeLimit    = TimeLimit;     }
@@ -69,7 +66,6 @@ void            Fpga_ManSetChoiceNodeNum( Fpga_Man_t * p, int nChoiceNodes ) { p
 void            Fpga_ManSetChoiceNum( Fpga_Man_t * p, int nChoices )         { p->nChoices = nChoices;          }   
 void            Fpga_ManSetVerbose( Fpga_Man_t * p, int fVerbose )           { p->fVerbose = fVerbose;          }   
 void            Fpga_ManSetLatchNum( Fpga_Man_t * p, int nLatches )          { p->nLatches = nLatches;          }   
-void            Fpga_ManSetSequential( Fpga_Man_t * p, int fSequential )     { p->fSequential = fSequential;    }   
 void            Fpga_ManSetName( Fpga_Man_t * p, char * pFileName )          { p->pFileName = pFileName;        }   
 
 /**Function*************************************************************
@@ -170,8 +166,6 @@ Fpga_Man_t * Fpga_ManCreate( int nInputs, int nOutputs, int fVerbose )
     p->nVarsMax  = p->pLutLib->LutMax;
     p->fVerbose  = fVerbose;
     p->fAreaRecovery = 1;
-    p->fTree     = 0;
-    p->fRefCount = 1;
     p->fEpsilon  = (float)0.001;
 
     Fpga_TableCreate( p );
@@ -181,13 +175,14 @@ Fpga_Man_t * Fpga_ManCreate( int nInputs, int nOutputs, int fVerbose )
     p->mmCuts   = Extra_MmFixedStart( sizeof(Fpga_Cut_t) );
 
     assert( p->nVarsMax > 0 );
-    Fpga_MappingSetupTruthTables( p->uTruths );
+//    Fpga_MappingSetupTruthTables( p->uTruths );
 
     // make sure the constant node will get index -1
     p->nNodes = -1;
     // create the constant node
     p->pConst1 = Fpga_NodeCreate( p, NULL, NULL );
-    p->vNodesAll = Fpga_NodeVecAlloc( 100 );
+    p->vNodesAll = Fpga_NodeVecAlloc( 1000 );
+    p->vMapping = Fpga_NodeVecAlloc( 1000 );
 
     // create the PI nodes
     p->nInputs = nInputs;
@@ -216,27 +211,23 @@ Fpga_Man_t * Fpga_ManCreate( int nInputs, int nOutputs, int fVerbose )
 void Fpga_ManFree( Fpga_Man_t * p )
 {
 //    Fpga_ManStats( p );
-
 //    int i;
 //    for ( i = 0; i < p->vNodesAll->nSize; i++ )
 //        Fpga_NodeVecFree( p->vNodesAll->pArray[i]->vFanouts );
 //    Fpga_NodeVecFree( p->pConst1->vFanouts );
+    if ( p->vMapping )
+        Fpga_NodeVecFree( p->vMapping );
     if ( p->vAnds )    
         Fpga_NodeVecFree( p->vAnds );
     if ( p->vNodesAll )    
         Fpga_NodeVecFree( p->vNodesAll );
     Extra_MmFixedStop( p->mmNodes, 0 );
     Extra_MmFixedStop( p->mmCuts, 0 );
+    FREE( p->ppOutputNames );
     FREE( p->pInputArrivals );
     FREE( p->pInputs );
     FREE( p->pOutputs );
     FREE( p->pBins );
-    FREE( p->ppOutputNames );
-    if ( p->pSimInfo )
-    {
-    FREE( p->pSimInfo[0] );
-    FREE( p->pSimInfo );
-    }
     FREE( p );
 }
 
@@ -316,19 +307,18 @@ Fpga_Node_t * Fpga_NodeCreate( Fpga_Man_t * p, Fpga_Node_t * p1, Fpga_Node_t * p
     // set the level of this node
     if ( p1 ) 
     {
+#ifdef FPGA_ALLOCATE_FANOUT
         // create the fanout info
         Fpga_NodeAddFaninFanout( Fpga_Regular(p1), pNode );
         Fpga_NodeAddFaninFanout( Fpga_Regular(p2), pNode );
+#endif
         // compute the level
         pNode->Level = 1 + FPGA_MAX(Fpga_Regular(p1)->Level, Fpga_Regular(p2)->Level);
         pNode->fInv  = Fpga_NodeIsSimComplement(p1) & Fpga_NodeIsSimComplement(p2);
     }
-    // reference the inputs (will be used to compute the number of fanouts)
-    if ( p->fRefCount )
-    {
-        if ( p1 ) Fpga_NodeRef(p1);
-        if ( p2 ) Fpga_NodeRef(p2);
-    }
+    // reference the inputs 
+    if ( p1 ) Fpga_NodeRef(p1);
+    if ( p2 ) Fpga_NodeRef(p2);
     return pNode;
 }
 
