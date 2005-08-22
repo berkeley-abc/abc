@@ -429,8 +429,6 @@ unsigned Extra_TruthPolarize( unsigned uTruth, int Polarity, int nVars )
             uCof1 >>= Shift;
             uTruth = uCof0 | uCof1;
         }
-    if ( nVars < 5 )
-        uTruth &= ((~0) >> (32-nMints));
     return uTruth;
 }
 
@@ -752,6 +750,74 @@ void Extra_Truth4VarNPN( unsigned short ** puCanons, char ** puPhases, char ** p
   SeeAlso     []
 
 ***********************************************************************/
+void Extra_Truth3VarN( unsigned ** puCanons, char *** puPhases, char ** ppCounters )
+{
+    int nPhasesMax = 8;
+    unsigned * uCanons;
+    unsigned uTruth, uPhase, uTruth32;
+    char ** uPhases, * pCounters;
+    int nFuncs, nClasses, i;
+
+    nFuncs  = (1 << 8);
+    uCanons = ALLOC( unsigned, nFuncs );
+    memset( uCanons, 0, sizeof(unsigned) * nFuncs );
+    pCounters = ALLOC( char, nFuncs );
+    memset( pCounters, 0, sizeof(char) * nFuncs );
+    uPhases = (char **)Extra_ArrayAlloc( nFuncs, nPhasesMax, sizeof(char) );
+    nClasses = 0;
+    for ( uTruth = 0; uTruth < (unsigned)nFuncs; uTruth++ )
+    {
+        // skip already assigned
+        uTruth32 = ((uTruth << 24) | (uTruth << 16) | (uTruth << 8) | uTruth);
+        if ( uCanons[uTruth] )
+        {
+            assert( uTruth32 > uCanons[uTruth] );
+            continue;
+        }
+        nClasses++;
+        for ( i = 0; i < 8; i++ )
+        {
+            uPhase = Extra_TruthPolarize( uTruth, i, 3 );
+            if ( uCanons[uPhase] == 0 && (uTruth || i==0) )
+            {
+                uCanons[uPhase]    = uTruth32;
+                uPhases[uPhase][0] = i;
+                pCounters[uPhase]  = 1;
+            }
+            else
+            {
+                assert( uCanons[uPhase] == uTruth32 );
+                if ( pCounters[uPhase] < nPhasesMax )
+                    uPhases[uPhase][ pCounters[uPhase]++ ] = i;
+            }
+        }
+    }
+    if ( puCanons ) 
+        *puCanons = uCanons;
+    else
+        free( uCanons );
+    if ( puPhases ) 
+        *puPhases = uPhases;
+    else
+        free( uPhases );
+    if ( ppCounters ) 
+        *ppCounters = pCounters;
+    else
+        free( pCounters );
+    printf( "The number of 3N-classes = %d.\n", nClasses );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes NPN canonical forms for 4-variable functions.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Extra_Truth4VarN( unsigned short ** puCanons, char *** puPhases, char ** ppCounters, int nPhasesMax )
 {
     unsigned short * uCanons;
@@ -778,7 +844,7 @@ void Extra_Truth4VarN( unsigned short ** puCanons, char *** puPhases, char ** pp
         for ( i = 0; i < 16; i++ )
         {
             uPhase = Extra_TruthPolarize( uTruth, i, 4 );
-            if ( uCanons[uPhase] == 0 )
+            if ( uCanons[uPhase] == 0 && (uTruth || i==0) )
             {
                 uCanons[uPhase]    = uTruth;
                 uPhases[uPhase][0] = i;
@@ -804,6 +870,7 @@ void Extra_Truth4VarN( unsigned short ** puCanons, char *** puPhases, char ** pp
         *ppCounters = pCounters;
     else
         free( pCounters );
+    printf( "The number of 4N-classes = %d.\n", nClasses );
 }
 
 /**Function*************************************************************
@@ -1005,6 +1072,208 @@ unsigned Extra_TruthPerm5One( unsigned uTruth, int Phase )
 
 /**Function*************************************************************
 
+  Synopsis    [Computes a phase of the 3-var function.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Extra_TruthPerm6One( unsigned * uTruth, int Phase, unsigned * uTruthRes )
+{
+    // cases
+    static unsigned Cases[64] = {
+        0,          // 000000  - skip
+        0,          // 000001  - skip
+        0xCCCCCCCC, // 000010  - single var
+        0,          // 000011  - skip
+        0xF0F0F0F0, // 000100  - single var
+        1,          // 000101
+        1,          // 000110
+        0,          // 000111  - skip
+        0xFF00FF00, // 001000  - single var
+        1,          // 001001
+        1,          // 001010
+        1,          // 001011
+        1,          // 001100
+        1,          // 001101
+        1,          // 001110
+        0,          // 001111  - skip
+        0xFFFF0000, // 010000  - skip
+        1,          // 010001
+        1,          // 010010
+        1,          // 010011
+        1,          // 010100
+        1,          // 010101
+        1,          // 010110
+        1,          // 010111  - four var
+        1,          // 011000
+        1,          // 011001
+        1,          // 011010
+        1,          // 011011  - four var
+        1,          // 011100
+        1,          // 011101  - four var
+        1,          // 011110  - four var
+        0,          // 011111  - skip
+        0xFFFFFFFF, // 100000  - single var
+        1,          // 100001 
+        1,          // 100010  
+        1,          // 100011  
+        1,          // 100100  
+        1,          // 100101
+        1,          // 100110
+        1,          // 100111  
+        1,          // 101000  
+        1,          // 101001
+        1,          // 101010
+        1,          // 101011
+        1,          // 101100
+        1,          // 101101
+        1,          // 101110
+        1,          // 101111  
+        1,          // 110000  
+        1,          // 110001
+        1,          // 110010
+        1,          // 110011
+        1,          // 110100
+        1,          // 110101
+        1,          // 110110
+        1,          // 110111  
+        1,          // 111000
+        1,          // 111001
+        1,          // 111010
+        1,          // 111011  
+        1,          // 111100
+        1,          // 111101  
+        1,          // 111110  
+        0           // 111111  - skip
+    };
+    // permutations
+    static int Perms[64][6] = {
+        { 0, 0, 0, 0, 0, 0 }, // 000000  - skip
+        { 0, 0, 0, 0, 0, 0 }, // 000001  - skip
+        { 0, 0, 0, 0, 0, 0 }, // 000010  - single var
+        { 0, 0, 0, 0, 0, 0 }, // 000011  - skip
+        { 0, 0, 0, 0, 0, 0 }, // 000100  - single var
+        { 0, 2, 1, 3, 4, 5 }, // 000101
+        { 2, 0, 1, 3, 4, 5 }, // 000110
+        { 0, 0, 0, 0, 0, 0 }, // 000111  - skip
+        { 0, 0, 0, 0, 0, 0 }, // 001000  - single var
+        { 0, 2, 3, 1, 4, 5 }, // 001001
+        { 2, 0, 3, 1, 4, 5 }, // 001010
+        { 0, 1, 3, 2, 4, 5 }, // 001011
+        { 2, 3, 0, 1, 4, 5 }, // 001100
+        { 0, 3, 1, 2, 4, 5 }, // 001101
+        { 3, 0, 1, 2, 4, 5 }, // 001110
+        { 0, 0, 0, 0, 0, 0 }, // 001111  - skip
+        { 0, 0, 0, 0, 0, 0 }, // 010000  - skip
+        { 0, 4, 2, 3, 1, 5 }, // 010001
+        { 4, 0, 2, 3, 1, 5 }, // 010010
+        { 0, 1, 3, 4, 2, 5 }, // 010011
+        { 2, 3, 0, 4, 1, 5 }, // 010100
+        { 0, 3, 1, 4, 2, 5 }, // 010101
+        { 3, 0, 1, 4, 2, 5 }, // 010110
+        { 0, 1, 2, 4, 3, 5 }, // 010111  - four var
+        { 2, 3, 4, 0, 1, 5 }, // 011000
+        { 0, 3, 4, 1, 2, 5 }, // 011001
+        { 3, 0, 4, 1, 2, 5 }, // 011010
+        { 0, 1, 4, 2, 3, 5 }, // 011011  - four var
+        { 3, 4, 0, 1, 2, 5 }, // 011100
+        { 0, 4, 1, 2, 3, 5 }, // 011101  - four var
+        { 4, 0, 1, 2, 3, 5 }, // 011110  - four var
+        { 0, 0, 0, 0, 0, 0 }, // 011111  - skip
+        { 0, 0, 0, 0, 0, 0 }, // 100000  - single var
+        { 0, 2, 3, 4, 5, 1 }, // 100001 
+        { 2, 0, 3, 4, 5, 1 }, // 100010  
+        { 0, 1, 3, 4, 5, 2 }, // 100011  
+        { 2, 3, 0, 4, 5, 1 }, // 100100  
+        { 0, 3, 1, 4, 5, 2 }, // 100101
+        { 3, 0, 1, 4, 5, 2 }, // 100110
+        { 0, 1, 2, 4, 5, 3 }, // 100111  
+        { 2, 3, 4, 0, 5, 1 }, // 101000  
+        { 0, 3, 4, 1, 5, 2 }, // 101001
+        { 3, 0, 4, 1, 5, 2 }, // 101010
+        { 0, 1, 4, 2, 5, 3 }, // 101011
+        { 3, 4, 0, 1, 5, 2 }, // 101100
+        { 0, 4, 1, 2, 5, 3 }, // 101101
+        { 4, 0, 1, 2, 5, 3 }, // 101110
+        { 0, 1, 2, 3, 5, 4 }, // 101111  
+        { 2, 3, 4, 5, 0, 1 }, // 110000  
+        { 0, 3, 4, 5, 1, 2 }, // 110001
+        { 3, 0, 4, 5, 1, 2 }, // 110010
+        { 0, 1, 4, 5, 2, 3 }, // 110011
+        { 3, 4, 0, 5, 1, 2 }, // 110100
+        { 0, 4, 1, 5, 2, 3 }, // 110101
+        { 4, 0, 1, 5, 2, 3 }, // 110110
+        { 0, 1, 2, 5, 3, 4 }, // 110111  
+        { 3, 4, 5, 0, 1, 2 }, // 111000
+        { 0, 4, 5, 1, 2, 3 }, // 111001
+        { 4, 0, 5, 1, 2, 3 }, // 111010
+        { 0, 1, 5, 2, 3, 4 }, // 111011  
+        { 4, 5, 0, 1, 2, 3 }, // 111100
+        { 0, 5, 1, 2, 3, 4 }, // 111101  
+        { 5, 0, 1, 2, 3, 4 }, // 111110  
+        { 0, 0, 0, 0, 0, 0 }  // 111111  - skip
+    };
+    int i, k, iRes;
+    assert( Phase >= 0 && Phase < 64 );
+    if ( Cases[Phase] == 0 )
+    {
+        uTruthRes[0] = uTruth[0];
+        uTruthRes[1] = uTruth[1];
+        return;
+    }
+    if ( Cases[Phase] > 1 )
+    {
+        if ( Phase == 32 )
+        {
+            uTruthRes[0] = 0x00000000;
+            uTruthRes[1] = 0xFFFFFFFF;
+        }
+        else
+        {
+            uTruthRes[0] = Cases[Phase];
+            uTruthRes[1] = Cases[Phase];
+        }
+        return;
+    }
+    uTruthRes[0] = 0;
+    uTruthRes[1] = 0;
+    for ( i = 0; i < 64; i++ )
+    {
+        if ( i < 32 )
+        {
+            if ( uTruth[0] & (1 << i) )
+            {
+                for ( iRes = 0, k = 0; k < 6; k++ )
+                    if ( i & (1 << Perms[Phase][k]) )
+                        iRes |= (1 << k);
+                if ( iRes < 32 )
+                    uTruthRes[0] |= (1 << iRes);
+                else
+                    uTruthRes[1] |= (1 << (iRes-32));
+            }
+        }
+        else
+        {
+            if ( uTruth[1] & (1 << (i-32)) )
+            {
+                for ( iRes = 0, k = 0; k < 6; k++ )
+                    if ( i & (1 << Perms[Phase][k]) )
+                        iRes |= (1 << k);
+                if ( iRes < 32 )
+                    uTruthRes[0] |= (1 << iRes);
+                else
+                    uTruthRes[1] |= (1 << (iRes-32));
+            }
+        }
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Allocated lookup table for truth table permutation.]
 
   Description []
@@ -1079,6 +1348,33 @@ unsigned ** Extra_TruthPerm54()
         pTable[i][1] = Extra_TruthPerm5One( uTruth, 31-4 );
         pTable[i][2] = Extra_TruthPerm5One( uTruth, 31-2 );
         pTable[i][3] = Extra_TruthPerm5One( uTruth, 31-1 );
+    }
+    return pTable;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Allocated lookup table for truth table permutation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned ** Extra_TruthPerm63()
+{
+    unsigned ** pTable;
+    unsigned uTruth[2];
+    int i, k;
+    pTable = (unsigned **)Extra_ArrayAlloc( 256, 64, 8 );
+    for ( i = 0; i < 256; i++ )
+    {
+        uTruth[0] = (i << 24) | (i << 16) | (i << 8) | i;
+        uTruth[1] = uTruth[0];
+        for ( k = 0; k < 64; k++ )
+            Extra_TruthPerm6One( uTruth, k, &pTable[i][k] );
     }
     return pTable;
 }

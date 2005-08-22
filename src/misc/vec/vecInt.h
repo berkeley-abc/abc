@@ -50,6 +50,8 @@ struct Vec_Int_t_
 
 #define Vec_IntForEachEntry( vVec, Entry, i )                                               \
     for ( i = 0; (i < Vec_IntSize(vVec)) && (((Entry) = Vec_IntEntry(vVec, i)), 1); i++ )
+#define Vec_IntForEachEntryStart( vVec, Entry, i, Start )                                   \
+    for ( i = Start; (i < Vec_IntSize(vVec)) && (((Entry) = Vec_IntEntry(vVec, i)), 1); i++ )
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///

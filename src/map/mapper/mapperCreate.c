@@ -197,7 +197,7 @@ Map_Man_t * Map_ManCreate( int nInputs, int nOutputs, int fVerbose )
     assert( p->nVarsMax > 0 );
 
     if ( p->nVarsMax == 5 )
-        Extra_Truth4VarN( &p->uCanons, &p->uPhases, &p->pCounters, 16 );
+        Extra_Truth4VarN( &p->uCanons, &p->uPhases, &p->pCounters, 8 );
 
     // start various data structures
     Map_TableCreate( p );

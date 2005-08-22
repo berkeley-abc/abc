@@ -692,6 +692,7 @@ int Map_MappingCountAllCuts( Map_Man_t * pMan )
     Map_Cut_t * pCut;
     int i, nCuts;
 //    int nCuts55 = 0, nCuts5x = 0, nCuts4x = 0, nCuts3x = 0;
+//    int pCounts[7] = {0};
     nCuts = 0;
     for ( i = 0; i < pMan->nBins; i++ )
         for ( pNode = pMan->pBins[i]; pNode; pNode = pNode->pNext )
@@ -708,9 +709,14 @@ int Map_MappingCountAllCuts( Map_Man_t * pMan )
                         nCuts4x++;
                     else if ( Map_CutRegular(pCut->pOne)->nLeaves == 3 || Map_CutRegular(pCut->pTwo)->nLeaves == 3 )
                         nCuts3x++;
-*/
+*/                  
+//                    pCounts[ Map_CutRegular(pCut->pOne)->nLeaves ]++;
+//                    pCounts[ Map_CutRegular(pCut->pTwo)->nLeaves ]++;
                 }
 //    printf( "Total cuts = %6d. 55 = %6d. 5x = %6d. 4x = %6d. 3x = %6d.\n", nCuts, nCuts55, nCuts5x, nCuts4x, nCuts3x );
+
+//    printf( "Total cuts = %6d. 6= %6d. 5= %6d. 4= %6d. 3= %6d. 2= %6d. 1= %6d.\n", 
+//        nCuts, pCounts[6], pCounts[5], pCounts[4], pCounts[3], pCounts[2], pCounts[1] );
     return nCuts;
 }
 

@@ -156,7 +156,7 @@ Abc_Aig_t * Abc_AigDup( Abc_Aig_t * pMan, Abc_Aig_t * pManNew )
     Abc_NtkForEachLatch( pMan->pNtkAig, pObj, i )
         pObj->pCopy = Abc_NtkLatch( pManNew->pNtkAig, i );
     // copy internal nodes
-    vNodes = Abc_AigDfs( pMan->pNtkAig, 1 );
+    vNodes = Abc_AigDfs( pMan->pNtkAig, 1, 0 );
     Vec_PtrForEachEntry( vNodes, pObj, i )
     {
         if ( !Abc_NodeIsAigAnd(pObj) )

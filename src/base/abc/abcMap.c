@@ -147,7 +147,7 @@ Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, i
         pNode->pCopy = (Abc_Obj_t *)Map_ManReadInputs(pMan)[i];
 
     // load the AIG into the mapper
-    vNodes = Abc_AigDfs( pNtk, 0 );
+    vNodes = Abc_AigDfs( pNtk, 0, 0 );
     pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
     Vec_PtrForEachEntry( vNodes, pNode, i )
     {

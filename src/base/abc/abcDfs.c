@@ -141,8 +141,8 @@ void Abc_NtkDfs_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
 
   Synopsis    [Returns the reverse DFS ordered array of logic nodes.]
 
-  Description [Collects only the internal nodes, leaving CIs and CO.
-  However it marks with the current TravId both CIs and COs.]
+  Description [Collects only the internal nodes, leaving out CIs/COs.
+  However it marks both CIs and COs with the current TravId.]
                
   SideEffects []
 
@@ -210,15 +210,15 @@ void Abc_NtkDfsReverse_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
 
   Synopsis    [Returns the DFS ordered array of logic nodes.]
 
-  Description [Collects only the internal nodes, leaving CIs and CO.
-  However it marks with the current TravId both CIs and COs.]
+  Description [Collects only the internal nodes, leaving out CIs/COs.
+  However it marks both CIs and COs with the current TravId.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Abc_AigDfs( Abc_Ntk_t * pNtk, int fCollectAll )
+Vec_Ptr_t * Abc_AigDfs( Abc_Ntk_t * pNtk, int fCollectAll, int fCollectCos )
 {
     Vec_Ptr_t * vNodes;
     Abc_Obj_t * pNode;
@@ -231,8 +231,10 @@ Vec_Ptr_t * Abc_AigDfs( Abc_Ntk_t * pNtk, int fCollectAll )
     // go through the PO nodes and call for each of them
     Abc_NtkForEachCo( pNtk, pNode, i )
     {
-        Abc_NodeSetTravIdCurrent( pNode );
         Abc_AigDfs_rec( Abc_ObjFanin0(pNode), vNodes );
+        Abc_NodeSetTravIdCurrent( pNode );
+        if ( fCollectCos )
+            Vec_PtrPush( vNodes, pNode );
     }
     // collect dangling nodes if asked to
     if ( fCollectAll )

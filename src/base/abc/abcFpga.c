@@ -121,7 +121,7 @@ Fpga_Man_t * Abc_NtkToFpga( Abc_Ntk_t * pNtk, int fRecovery, int fVerbose )
         pNode->pCopy = (Abc_Obj_t *)Fpga_ManReadInputs(pMan)[i];
 
     // load the AIG into the mapper
-    vNodes = Abc_AigDfs( pNtk, 0 );
+    vNodes = Abc_AigDfs( pNtk, 0, 0 );
     pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
     Vec_PtrForEachEntry( vNodes, pNode, i )
     {

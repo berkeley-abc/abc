@@ -216,12 +216,21 @@ extern unsigned    Extra_TruthCanonNPN( unsigned uTruth, int nVars );
 extern void        Extra_Truth4VarNPN( unsigned short ** puCanons, char ** puPhases, char ** puPerms, unsigned char ** puMap );
 extern void        Extra_Truth4VarN( unsigned short ** puCanons, char *** puPhases, char ** ppCounters, int nPhasesMax );
 /* permutation mapping */
+extern unsigned short Extra_TruthPerm4One( unsigned uTruth, int Phase );
+extern unsigned    Extra_TruthPerm5One( unsigned uTruth, int Phase );
+extern void        Extra_TruthPerm6One( unsigned * uTruth, int Phase, unsigned * uTruthRes );
+/* precomputing tables for permutation mapping */
 extern void **     Extra_ArrayAlloc( int nCols, int nRows, int Size );
 extern unsigned short ** Extra_TruthPerm43();
 extern unsigned ** Extra_TruthPerm53();
 extern unsigned ** Extra_TruthPerm54();
 /* for independence from CUDD */
 extern unsigned int Cudd_PrimeCopy( unsigned int  p );
+
+/*=== extraUtilCanon.c ========================================================*/
+
+/* fast computation of N-canoninical form up to 6 inputs */
+extern int         Extra_TruthCanonFastN( int nVarsMax, int nVarsReal, unsigned * pt, unsigned ** pptRes, char ** ppfRes );
 
 /*=== extraUtilProgress.c ================================================================*/
 

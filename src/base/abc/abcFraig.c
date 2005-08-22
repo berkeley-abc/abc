@@ -104,7 +104,7 @@ Fraig_Man_t * Abc_NtkToFraig( Abc_Ntk_t * pNtk, Fraig_Params_t * pParams, int fA
     pConst1 = Abc_AigConst1( pNtk->pManFunc );
 
     // perform strashing
-    vNodes = Abc_AigDfs( pNtk, fAllNodes );
+    vNodes = Abc_AigDfs( pNtk, fAllNodes, 0 );
     pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
     Vec_PtrForEachEntry( vNodes, pNode, i )
     {

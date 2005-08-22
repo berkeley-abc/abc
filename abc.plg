@@ -6,14 +6,14 @@
 --------------------Configuration: abc - Win32 Release--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1976.tmp" with contents
+Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP22F6.tmp" with contents
 [
-/nologo /ML /W3 /GX /O2 /I "src\base\abc" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\mvc" /I "src\sop\ft" /I "src\sat\asat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\fxa" /I "src\opt\fxu" /I "src\opt\rwr" /I "src\map\fpga" /I "src\map\mapper" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\util" /I "src\misc\vec" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /D "HAVE_ASSERT_H" /FR"Release/" /Fp"Release/abc.pch" /YX /Fo"Release/" /Fd"Release/" /FD /c 
-"C:\_projects\abc\src\map\mapper\mapperCore.c"
-"C:\_projects\abc\src\map\mapper\mapperCut.c"
+/nologo /ML /W3 /GX /O2 /I "src\base\abc" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\mvc" /I "src\sop\ft" /I "src\sat\asat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\fxa" /I "src\opt\fxu" /I "src\opt\rwr" /I "src\opt\cut" /I "src\map\fpga" /I "src\map\mapper" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\util" /I "src\misc\vec" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /D "HAVE_ASSERT_H" /FR"Release/" /Fp"Release/abc.pch" /YX /Fo"Release/" /Fd"Release/" /FD /c 
+"C:\_projects\abc\src\opt\cut\cutMan.c"
+"C:\_projects\abc\src\misc\extra\extraUtilMisc.c"
 ]
-Creating command line "cl.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1976.tmp" 
-Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1977.tmp" with contents
+Creating command line "cl.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP22F6.tmp" 
+Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP22F7.tmp" with contents
 [
 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /incremental:no /pdb:"Release/abc.pdb" /machine:I386 /out:"_TEST/abc.exe" 
 .\Release\abc.obj
@@ -22,6 +22,7 @@ kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32
 .\Release\abcCheck.obj
 .\Release\abcCollapse.obj
 .\Release\abcCreate.obj
+.\Release\abcCut.obj
 .\Release\abcDfs.obj
 .\Release\abcDsd.obj
 .\Release\abcFanio.obj
@@ -222,7 +223,13 @@ kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32
 .\Release\rwrExp.obj
 .\Release\rwrLib.obj
 .\Release\rwrMan.obj
+.\Release\rwrPrint.obj
 .\Release\rwrUtil.obj
+.\Release\cutMan.obj
+.\Release\cutNode.obj
+.\Release\cutSeq.obj
+.\Release\cutTable.obj
+.\Release\cutTruth.obj
 .\Release\fpga.obj
 .\Release\fpgaCore.obj
 .\Release\fpgaCreate.obj
@@ -278,15 +285,16 @@ kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32
 .\Release\safe_mem.obj
 .\Release\strsav.obj
 .\Release\texpand.obj
-.\Release\rwrPrint.obj
+.\Release\cutMerge.obj
+.\Release\extraUtilCanon.obj
 ]
-Creating command line "link.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1977.tmp"
+Creating command line "link.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP22F7.tmp"
 <h3>Output Window</h3>
 Compiling...
-mapperCore.c
-mapperCut.c
+cutMan.c
+extraUtilMisc.c
 Linking...
-Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1979.tmp" with contents
+Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP22F9.tmp" with contents
 [
 /nologo /o"Release/abc.bsc" 
 .\Release\abc.sbr
@@ -295,6 +303,7 @@ Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1979.tmp" with cont
 .\Release\abcCheck.sbr
 .\Release\abcCollapse.sbr
 .\Release\abcCreate.sbr
+.\Release\abcCut.sbr
 .\Release\abcDfs.sbr
 .\Release\abcDsd.sbr
 .\Release\abcFanio.sbr
@@ -495,7 +504,13 @@ Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1979.tmp" with cont
 .\Release\rwrExp.sbr
 .\Release\rwrLib.sbr
 .\Release\rwrMan.sbr
+.\Release\rwrPrint.sbr
 .\Release\rwrUtil.sbr
+.\Release\cutMan.sbr
+.\Release\cutNode.sbr
+.\Release\cutSeq.sbr
+.\Release\cutTable.sbr
+.\Release\cutTruth.sbr
 .\Release\fpga.sbr
 .\Release\fpgaCore.sbr
 .\Release\fpgaCreate.sbr
@@ -551,8 +566,9 @@ Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1979.tmp" with cont
 .\Release\safe_mem.sbr
 .\Release\strsav.sbr
 .\Release\texpand.sbr
-.\Release\rwrPrint.sbr]
-Creating command line "bscmake.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1979.tmp"
+.\Release\cutMerge.sbr
+.\Release\extraUtilCanon.sbr]
+Creating command line "bscmake.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP22F9.tmp"
 Creating browse info file...
 <h3>Output Window</h3>
 

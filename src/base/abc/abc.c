@@ -23,6 +23,7 @@
 #include "ft.h"
 #include "fraig.h"
 #include "fxu.h"
+#include "cut.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -58,6 +59,7 @@ static int Abc_CommandSat          ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int Abc_CommandExtSeqDcs    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSplit        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandShortNames   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandCut         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandFraig        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFraigTrust   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -126,6 +128,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "ext_seq_dcs",   Abc_CommandExtSeqDcs,        0 );
     Cmd_CommandAdd( pAbc, "Various",      "split",         Abc_CommandSplit,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "short_names",   Abc_CommandShortNames,       0 );
+    Cmd_CommandAdd( pAbc, "Various",      "cut",           Abc_CommandCut,              0 );
 
     Cmd_CommandAdd( pAbc, "Fraiging",     "fraig",         Abc_CommandFraig,            1 );
     Cmd_CommandAdd( pAbc, "Fraiging",     "fraig_trust",   Abc_CommandFraigTrust,       1 );
@@ -149,6 +152,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
 
     Ft_FactorStartMan();
 //    Rwt_Man4ExploreStart();
+//    Map_Var3Print();
+//    Map_Var4Test();
 }
 
 /**Function*************************************************************
@@ -929,14 +934,14 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
     fMulti    =  0;
     fSimple   =  0;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "tfmcsh" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "TFmcsh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 't':
+        case 'T':
             if ( util_optind >= argc )
             {
-                fprintf( pErr, "Command line switch \"-t\" should be followed by an integer.\n" );
+                fprintf( pErr, "Command line switch \"-T\" should be followed by an integer.\n" );
                 goto usage;
             }
             nThresh = atoi(argv[util_optind]);
@@ -944,10 +949,10 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nThresh < 0 ) 
                 goto usage;
             break;
-        case 'f':
+        case 'F':
             if ( util_optind >= argc )
             {
-                fprintf( pErr, "Command line switch \"-f\" should be followed by an integer.\n" );
+                fprintf( pErr, "Command line switch \"-F\" should be followed by an integer.\n" );
                 goto usage;
             }
             nFaninMax = atoi(argv[util_optind]);
@@ -994,10 +999,10 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: renode [-t num] [-f num] [-cmsh]\n" );
+    fprintf( pErr, "usage: renode [-T num] [-F num] [-cmsh]\n" );
     fprintf( pErr, "\t          transforms an AIG into a logic network by creating larger nodes\n" );
-    fprintf( pErr, "\t-t num  : the threshold for AIG node duplication [default = %d]\n", nThresh );
-    fprintf( pErr, "\t-f num  : the maximum fanin size after renoding [default = %d]\n", nFaninMax );
+    fprintf( pErr, "\t-T num  : the threshold for AIG node duplication [default = %d]\n", nThresh );
+    fprintf( pErr, "\t-F num  : the maximum fanin size after renoding [default = %d]\n", nFaninMax );
     fprintf( pErr, "\t-c      : performs renoding to derive the CNF [default = %s]\n", fCnf? "yes": "no" );
     fprintf( pErr, "\t-m      : creates multi-input AND graph [default = %s]\n", fMulti? "yes": "no" );
     fprintf( pErr, "\t-s      : creates a simple AIG (no renoding) [default = %s]\n", fSimple? "yes": "no" );
@@ -1099,14 +1104,14 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
     p->fUseCompl = 1;
     p->fVerbose  = 0;
     util_getopt_reset();
-    while ( (c = util_getopt(argc, argv, "lnsdzcvh")) != EOF ) 
+    while ( (c = util_getopt(argc, argv, "LNsdzcvh")) != EOF ) 
     {
         switch (c) 
         {
-            case 'l':
+            case 'L':
                 if ( util_optind >= argc )
                 {
-                    fprintf( pErr, "Command line switch \"-l\" should be followed by an integer.\n" );
+                    fprintf( pErr, "Command line switch \"-L\" should be followed by an integer.\n" );
                     goto usage;
                 }
                 p->nPairsMax = atoi(argv[util_optind]);
@@ -1114,10 +1119,10 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
                 if ( p->nPairsMax < 0 ) 
                     goto usage;
                 break;
-            case 'n':
+            case 'N':
                 if ( util_optind >= argc )
                 {
-                    fprintf( pErr, "Command line switch \"-n\" should be followed by an integer.\n" );
+                    fprintf( pErr, "Command line switch \"-N\" should be followed by an integer.\n" );
                     goto usage;
                 }
                 p->nNodesExt = atoi(argv[util_optind]);
@@ -1168,10 +1173,10 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: fx [-n num] [-l num] [-sdzcvh]\n");
+    fprintf( pErr, "usage: fx [-N num] [-L num] [-sdzcvh]\n");
     fprintf( pErr, "\t         performs unate fast extract on the current network\n");
-    fprintf( pErr, "\t-n num : the maximum number of divisors to extract [default = %d]\n", p->nNodesExt );  
-    fprintf( pErr, "\t-l num : the maximum number of cube pairs to consider [default = %d]\n", p->nPairsMax );  
+    fprintf( pErr, "\t-N num : the maximum number of divisors to extract [default = %d]\n", p->nNodesExt );  
+    fprintf( pErr, "\t-L num : the maximum number of cube pairs to consider [default = %d]\n", p->nPairsMax );  
     fprintf( pErr, "\t-s     : use only single-cube divisors [default = %s]\n", p->fOnlyS? "yes": "no" );  
     fprintf( pErr, "\t-d     : use only double-cube divisors [default = %s]\n", p->fOnlyD? "yes": "no" );  
     fprintf( pErr, "\t-z     : use zero-weight divisors [default = %s]\n", p->fUse0? "yes": "no" );  
@@ -1423,14 +1428,14 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
     fUseDcs      =  0;
     fVerbose     =  0;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "ncdvh" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "NCdvh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'n':
+        case 'N':
             if ( util_optind >= argc )
             {
-                fprintf( pErr, "Command line switch \"-n\" should be followed by an integer.\n" );
+                fprintf( pErr, "Command line switch \"-N\" should be followed by an integer.\n" );
                 goto usage;
             }
             nNodeSizeMax = atoi(argv[util_optind]);
@@ -1438,10 +1443,10 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nNodeSizeMax < 0 ) 
                 goto usage;
             break;
-        case 'c':
+        case 'C':
             if ( util_optind >= argc )
             {
-                fprintf( pErr, "Command line switch \"-c\" should be followed by an integer.\n" );
+                fprintf( pErr, "Command line switch \"-C\" should be followed by an integer.\n" );
                 goto usage;
             }
             nConeSizeMax = atoi(argv[util_optind]);
@@ -1487,10 +1492,10 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: refactor [-n num] [-c num] [-dvh]\n" );
+    fprintf( pErr, "usage: refactor [-N num] [-C num] [-dvh]\n" );
     fprintf( pErr, "\t         performs technology-independent refactoring of the AIG\n" );
-    fprintf( pErr, "\t-n num : the max support of the collapsed node [default = %d]\n", nNodeSizeMax );  
-    fprintf( pErr, "\t-c num : the max support of the containing cone [default = %d]\n", nConeSizeMax );  
+    fprintf( pErr, "\t-N num : the max support of the collapsed node [default = %d]\n", nNodeSizeMax );  
+    fprintf( pErr, "\t-C num : the max support of the containing cone [default = %d]\n", nConeSizeMax );  
     fprintf( pErr, "\t-d     : toggle use of don't-cares [default = %s]\n", fUseDcs? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
@@ -1663,14 +1668,14 @@ int Abc_CommandFrames( Abc_Frame_t * pAbc, int argc, char ** argv )
     fInitial = 0;
     nFrames  = 5;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "fih" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "Fih" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'f':
+        case 'F':
             if ( util_optind >= argc )
             {
-                fprintf( pErr, "Command line switch \"-n\" should be followed by an integer.\n" );
+                fprintf( pErr, "Command line switch \"-F\" should be followed by an integer.\n" );
                 goto usage;
             }
             nFrames = atoi(argv[util_optind]);
@@ -1713,9 +1718,9 @@ int Abc_CommandFrames( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: frames [-f num] [-ih]\n" );
+    fprintf( pErr, "usage: frames [-F num] [-ih]\n" );
     fprintf( pErr, "\t         unrolls the network for a number of time frames\n" );
-    fprintf( pErr, "\t-f num : the number of frames to unroll [default = %d]\n", nFrames );
+    fprintf( pErr, "\t-F num : the number of frames to unroll [default = %d]\n", nFrames );
     fprintf( pErr, "\t-i     : toggles initializing the first frame [default = %s]\n", fInitial? "yes": "no" );  
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -2015,14 +2020,14 @@ int Abc_CommandSplit( Abc_Frame_t * pAbc, int argc, char ** argv )
     fUseAllCis = 0;
     Output = -1;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "oah" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "Oah" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'o':
+        case 'O':
             if ( util_optind >= argc )
             {
-                fprintf( pErr, "Command line switch \"-o\" should be followed by an integer.\n" );
+                fprintf( pErr, "Command line switch \"-O\" should be followed by an integer.\n" );
                 goto usage;
             }
             Output = atoi(argv[util_optind]);
@@ -2092,11 +2097,11 @@ int Abc_CommandSplit( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: split [-o num] [-ah] <name>\n" );
+    fprintf( pErr, "usage: split [-O num] [-ah] <name>\n" );
     fprintf( pErr, "\t         replaces the current network by the logic cone of one output\n" );
     fprintf( pErr, "\t-a     : toggle writing all CIs or structral support only [default = %s]\n", fUseAllCis? "all": "structural" );
     fprintf( pErr, "\t-h     : print the command usage\n");
-    fprintf( pErr, "\t-o num : (optional) the 0-based number of the output\n");
+    fprintf( pErr, "\t-O num : (optional) the 0-based number of the output\n");
     fprintf( pErr, "\tname   : (optional) the name of the output\n");
     return 1;
 }
@@ -2151,6 +2156,121 @@ usage:
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Cut_Params_t Params, * pParams = &Params;
+    Cut_Man_t * pCutMan;
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+    extern Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams );
+
+    pNtk = Abc_FrameReadNet(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    pParams->nVarsMax  = 5;     // the max cut size ("k" of the k-feasible cuts)
+    pParams->nKeepMax  = 250;   // the max number of cuts kept at a node
+    pParams->fTruth    = 1;     // compute truth tables
+    pParams->fHash     = 0;     // hash cuts to detect unique
+    pParams->fFilter   = 0;     // filter dominated cuts
+    pParams->fSeq      = 0;     // compute sequential cuts
+    pParams->fDrop     = 0;     // drop cuts on the fly
+    pParams->fVerbose  = 0;     // the verbosiness flag
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "KMtrfsdvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'K':
+            if ( util_optind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pParams->nVarsMax = atoi(argv[util_optind]);
+            util_optind++;
+            if ( pParams->nVarsMax < 0 ) 
+                goto usage;
+            break;
+        case 'M':
+            if ( util_optind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pParams->nKeepMax = atoi(argv[util_optind]);
+            util_optind++;
+            if ( pParams->nKeepMax < 0 ) 
+                goto usage;
+            break;
+        case 't':
+            pParams->fTruth ^= 1;
+            break;
+        case 'r':
+            pParams->fHash ^= 1;
+            break;
+        case 'f':
+            pParams->fFilter ^= 1;
+            break;
+        case 's':
+            pParams->fSeq ^= 1;
+            break;
+        case 'd':
+            pParams->fDrop ^= 1;
+            break;
+        case 'v':
+            pParams->fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsAig(pNtk) )
+    {
+        fprintf( pErr, "Cut computation is available only for AIGs.\n" );
+        return 1;
+    }
+    pCutMan = Abc_NtkCuts( pNtk, pParams );
+    Cut_ManPrintStats( pCutMan );
+    Cut_ManStop( pCutMan );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: cut [-K num] [-M num] [-trfsdvh]\n" );
+    fprintf( pErr, "\t         computes k-feasible cuts for the AIG\n" );
+    fprintf( pErr, "\t-K num : max number of leaves (4 <= num <= 6) [default = %d]\n",    pParams->nVarsMax );
+    fprintf( pErr, "\t-M num : max number of cuts stored at a node [default = %d]\n",     pParams->nKeepMax );
+    fprintf( pErr, "\t-t     : toggle truth table computation [default = %s]\n",          pParams->fTruth? "yes": "no" );
+    fprintf( pErr, "\t-r     : toggle reduction by hashing [default = %s]\n",             pParams->fHash? "yes": "no" );
+    fprintf( pErr, "\t-f     : toggle filtering by dominance [default = %s]\n",           pParams->fFilter? "yes": "no" );
+    fprintf( pErr, "\t-s     : toggle sequential cut computation [default = %s]\n",       pParams->fSeq? "yes": "no" );
+    fprintf( pErr, "\t-d     : toggle dropping when fanouts are done [default = %s]\n",   pParams->fDrop? "yes": "no" );
+    fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n",     pParams->fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
 
 
 
@@ -2168,7 +2288,7 @@ usage:
 int Abc_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     char Buffer[100];
-    Fraig_Params_t Params;
+    Fraig_Params_t Params, * pParams = &Params;
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
     int fAllNodes;
@@ -2180,17 +2300,17 @@ int Abc_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     fAllNodes = 0;
-    Params.nPatsRand  = 2048; // the number of words of random simulation info
-    Params.nPatsDyna  = 2048; // the number of words of dynamic simulation info
-    Params.nBTLimit   = 99;   // the max number of backtracks to perform
-    Params.fFuncRed   =  1;   // performs only one level hashing
-    Params.fFeedBack  =  1;   // enables solver feedback
-    Params.fDist1Pats =  1;   // enables distance-1 patterns
-    Params.fDoSparse  =  0;   // performs equiv tests for sparse functions 
-    Params.fChoicing  =  0;   // enables recording structural choices
-    Params.fTryProve  =  0;   // tries to solve the final miter
-    Params.fVerbose   =  0;   // the verbosiness flag
-    Params.fVerboseP  =  0;   // the verbosiness flag
+    pParams->nPatsRand  = 2048; // the number of words of random simulation info
+    pParams->nPatsDyna  = 2048; // the number of words of dynamic simulation info
+    pParams->nBTLimit   = 99;   // the max number of backtracks to perform
+    pParams->fFuncRed   =  1;   // performs only one level hashing
+    pParams->fFeedBack  =  1;   // enables solver feedback
+    pParams->fDist1Pats =  1;   // enables distance-1 patterns
+    pParams->fDoSparse  =  0;   // performs equiv tests for sparse functions 
+    pParams->fChoicing  =  0;   // enables recording structural choices
+    pParams->fTryProve  =  0;   // tries to solve the final miter
+    pParams->fVerbose   =  0;   // the verbosiness flag
+    pParams->fVerboseP  =  0;   // the verbosiness flag
     util_getopt_reset();
     while ( ( c = util_getopt( argc, argv, "RDBrscpvah" ) ) != EOF )
     {
@@ -2200,51 +2320,51 @@ int Abc_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'R':
             if ( util_optind >= argc )
             {
-                fprintf( pErr, "Command line switch \"-r\" should be followed by an integer.\n" );
+                fprintf( pErr, "Command line switch \"-R\" should be followed by an integer.\n" );
                 goto usage;
             }
-            Params.nPatsRand = atoi(argv[util_optind]);
+            pParams->nPatsRand = atoi(argv[util_optind]);
             util_optind++;
-            if ( Params.nPatsRand < 0 ) 
+            if ( pParams->nPatsRand < 0 ) 
                 goto usage;
             break;
         case 'D':
             if ( util_optind >= argc )
             {
-                fprintf( pErr, "Command line switch \"-d\" should be followed by an integer.\n" );
+                fprintf( pErr, "Command line switch \"-D\" should be followed by an integer.\n" );
                 goto usage;
             }
-            Params.nPatsDyna = atoi(argv[util_optind]);
+            pParams->nPatsDyna = atoi(argv[util_optind]);
             util_optind++;
-            if ( Params.nPatsDyna < 0 ) 
+            if ( pParams->nPatsDyna < 0 ) 
                 goto usage;
             break;
         case 'B':
             if ( util_optind >= argc )
             {
-                fprintf( pErr, "Command line switch \"-b\" should be followed by an integer.\n" );
+                fprintf( pErr, "Command line switch \"-B\" should be followed by an integer.\n" );
                 goto usage;
             }
-            Params.nBTLimit = atoi(argv[util_optind]);
+            pParams->nBTLimit = atoi(argv[util_optind]);
             util_optind++;
-            if ( Params.nBTLimit < 0 ) 
+            if ( pParams->nBTLimit < 0 ) 
                 goto usage;
             break;
 
         case 'r':
-            Params.fFuncRed ^= 1;
+            pParams->fFuncRed ^= 1;
             break;
         case 's':
-            Params.fDoSparse ^= 1;
+            pParams->fDoSparse ^= 1;
             break;
         case 'c':
-            Params.fChoicing ^= 1;
+            pParams->fChoicing ^= 1;
             break;
         case 'p':
-            Params.fTryProve ^= 1;
+            pParams->fTryProve ^= 1;
             break;
         case 'v':
-            Params.fVerbose ^= 1;
+            pParams->fVerbose ^= 1;
             break;
         case 'a':
             fAllNodes ^= 1;
@@ -2268,7 +2388,7 @@ int Abc_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // report the proof
-    Params.fVerboseP = Params.fTryProve;
+    pParams->fVerboseP = pParams->fTryProve;
 
     // get the new network
     if ( Abc_NtkIsAig(pNtk) )
@@ -2285,7 +2405,7 @@ int Abc_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( Params.fTryProve ) // report the result
+    if ( pParams->fTryProve ) // report the result
         Abc_NtkMiterReport( pNtkRes );
 
     // replace the current network
@@ -2293,17 +2413,17 @@ int Abc_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    sprintf( Buffer, "%d", Params.nBTLimit );
+    sprintf( Buffer, "%d", pParams->nBTLimit );
     fprintf( pErr, "usage: fraig [-R num] [-D num] [-B num] [-rscpvah]\n" );
     fprintf( pErr, "\t         transforms a logic network into a functionally reduced AIG\n" );
-    fprintf( pErr, "\t-R num : number of random patterns (127 < num < 32769) [default = %d]\n",     Params.nPatsRand );
-    fprintf( pErr, "\t-D num : number of systematic patterns (127 < num < 32769) [default = %d]\n", Params.nPatsDyna );
-    fprintf( pErr, "\t-B num : number of backtracks for one SAT problem [default = %s]\n",    Params.nBTLimit==-1? "infinity" : Buffer );
-    fprintf( pErr, "\t-r     : toggle functional reduction [default = %s]\n",                 Params.fFuncRed? "yes": "no" );
-    fprintf( pErr, "\t-s     : toggle considering sparse functions [default = %s]\n",         Params.fDoSparse? "yes": "no" );
-    fprintf( pErr, "\t-c     : toggle accumulation of choices [default = %s]\n",              Params.fChoicing? "yes": "no" );
-    fprintf( pErr, "\t-p     : toggle proving the final miter [default = %s]\n",              Params.fTryProve? "yes": "no" );
-    fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n",                       Params.fVerbose?  "yes": "no" );
+    fprintf( pErr, "\t-R num : number of random patterns (127 < num < 32769) [default = %d]\n",     pParams->nPatsRand );
+    fprintf( pErr, "\t-D num : number of systematic patterns (127 < num < 32769) [default = %d]\n", pParams->nPatsDyna );
+    fprintf( pErr, "\t-B num : number of backtracks for one SAT problem [default = %s]\n",    pParams->nBTLimit==-1? "infinity" : Buffer );
+    fprintf( pErr, "\t-r     : toggle functional reduction [default = %s]\n",                 pParams->fFuncRed? "yes": "no" );
+    fprintf( pErr, "\t-s     : toggle considering sparse functions [default = %s]\n",         pParams->fDoSparse? "yes": "no" );
+    fprintf( pErr, "\t-c     : toggle accumulation of choices [default = %s]\n",              pParams->fChoicing? "yes": "no" );
+    fprintf( pErr, "\t-p     : toggle proving the final miter [default = %s]\n",              pParams->fTryProve? "yes": "no" );
+    fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n",                       pParams->fVerbose?  "yes": "no" );
     fprintf( pErr, "\t-a     : toggle between all nodes and DFS nodes [default = %s]\n",      fAllNodes? "all": "dfs" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -2657,14 +2777,14 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     fSweep      = 1;
     fVerbose    = 0;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "dasvh" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "Dasvh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'd':
+        case 'D':
             if ( util_optind >= argc )
             {
-                fprintf( pErr, "Command line switch \"-d\" should be followed by a floating point number.\n" );
+                fprintf( pErr, "Command line switch \"-D\" should be followed by a floating point number.\n" );
                 goto usage;
             }
             DelayTarget = (float)atof(argv[util_optind]);
@@ -2743,9 +2863,9 @@ usage:
         sprintf( Buffer, "not used" );
     else
         sprintf( Buffer, "%.3f", DelayTarget );
-    fprintf( pErr, "usage: map [-d num] [-asvh]\n" );
+    fprintf( pErr, "usage: map [-D num] [-asvh]\n" );
     fprintf( pErr, "\t         performs standard cell mapping of the current network\n" );
-    fprintf( pErr, "\t-d num : sets the global required times [default = %s]\n", Buffer );  
+    fprintf( pErr, "\t-D num : sets the global required times [default = %s]\n", Buffer );  
     fprintf( pErr, "\t-a     : toggles area recovery [default = %s]\n", fRecovery? "yes": "no" );
     fprintf( pErr, "\t-s     : toggles sweep after mapping [default = %s]\n", fSweep? "yes": "no" );
     fprintf( pErr, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
@@ -3299,14 +3419,14 @@ int Abc_CommandSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     nFrames = 3;
     fSat    = 0;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "fsh" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "Fsh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'f':
+        case 'F':
             if ( util_optind >= argc )
             {
-                fprintf( pErr, "Command line switch \"-t\" should be followed by an integer.\n" );
+                fprintf( pErr, "Command line switch \"-F\" should be followed by an integer.\n" );
                 goto usage;
             }
             nFrames = atoi(argv[util_optind]);
@@ -3338,11 +3458,11 @@ int Abc_CommandSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: sec [-sh] [-f num] <file1> <file2>\n" );
+    fprintf( pErr, "usage: sec [-sh] [-F num] <file1> <file2>\n" );
     fprintf( pErr, "\t         performs bounded sequential equivalence checking\n" );
     fprintf( pErr, "\t-s     : toggle \"SAT only\" and \"FRAIG + SAT\" [default = %s]\n", fSat? "SAT only": "FRAIG + SAT" );
     fprintf( pErr, "\t-h     : print the command usage\n");
-    fprintf( pErr, "\t-f num : the number of time frames to use [default = %d]\n", nFrames );
+    fprintf( pErr, "\t-F num : the number of time frames to use [default = %d]\n", nFrames );
     fprintf( pErr, "\tfile1  : (optional) the file with the first network\n");
     fprintf( pErr, "\tfile2  : (optional) the file with the second network\n");
     fprintf( pErr, "\t         if no files are given, uses the current network and its spec\n");

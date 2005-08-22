@@ -4,6 +4,7 @@ SRC +=    src/base/abc/abc.c \
     src/base/abc/abcCheck.c \
     src/base/abc/abcCollapse.c \
     src/base/abc/abcCreate.c \
+    src/base/abc/abcCut.c \
     src/base/abc/abcDfs.c \
     src/base/abc/abcDsd.c \
     src/base/abc/abcFanio.c \

@@ -87,7 +87,7 @@ Abc_Ntk_t * Abc_NtkAigToSeq( Abc_Ntk_t * pNtk )
     }
 
     // copy internal nodes
-    vNodes = Abc_AigDfs( pNtk, 1 );
+    vNodes = Abc_AigDfs( pNtk, 1, 0 );
     Vec_PtrForEachEntry( vNodes, pObj, i )
         if ( Abc_ObjFaninNum(pObj) == 2 )
             pObj->pCopy = Abc_AigAnd( pManNew, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );

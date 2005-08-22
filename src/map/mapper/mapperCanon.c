@@ -170,13 +170,26 @@ void Map_CanonComputePhase6( unsigned uTruths[][2], int nVars, unsigned uTruth[]
 int Map_CanonComputeFast( Map_Man_t * p, int nVarsMax, int nVarsReal, unsigned uTruth[], unsigned char * puPhases, unsigned uTruthRes[] )
 {
     unsigned uTruth0, uTruth1;
-    unsigned uCanon0, uCanon1, uCanonBest;
+    unsigned uCanon0, uCanon1, uCanonBest, uPhaseBest;
     int i, Limit;
 
-    if ( nVarsMax != 5 || nVarsReal < 5 )
+    if ( nVarsMax == 6 )
         return Map_CanonComputeSlow( p->uTruths, nVarsMax, nVarsReal, uTruth, puPhases, uTruthRes );
 
+    if ( nVarsReal < 5 )
+    {
+//        return Map_CanonComputeSlow( p->uTruths, nVarsMax, nVarsReal, uTruth, puPhases, uTruthRes );
+
+        uTruth0 = uTruth[0] & 0xFFFF;
+        assert( p->pCounters[uTruth0] > 0 );
+        uTruthRes[0] = (p->uCanons[uTruth0] << 16) | p->uCanons[uTruth0];
+        uTruthRes[1] = uTruthRes[0];
+        puPhases[0] = p->uPhases[uTruth0][0];
+        return 1;
+    }
+
     assert( nVarsMax == 5 );
+    assert( nVarsReal == 5 );
     uTruth0 = uTruth[0] & 0xFFFF;
     uTruth1 = (uTruth[0] >> 16);
     if ( uTruth1 == 0 )
@@ -202,7 +215,7 @@ int Map_CanonComputeFast( Map_Man_t * p, int nVarsMax, int nVarsReal, unsigned u
     }
     uCanon0 = p->uCanons[uTruth0];
     uCanon1 = p->uCanons[uTruth1];
-    if ( uCanon0 && uCanon1 && uCanon0 > uCanon1 ) // using nCanon1 as the main one
+    if ( uCanon0 >= uCanon1 ) // using nCanon1 as the main one
     {
         assert( p->pCounters[uTruth1] > 0 );
         uCanonBest = 0xFFFF;
@@ -210,16 +223,17 @@ int Map_CanonComputeFast( Map_Man_t * p, int nVarsMax, int nVarsReal, unsigned u
         {
             uCanon0 = Extra_TruthPolarize( uTruth0, p->uPhases[uTruth1][i], 4 );
             if ( uCanonBest > uCanon0 )
+            {
                 uCanonBest = uCanon0;
+                uPhaseBest = p->uPhases[uTruth1][i];
+            }
         }
         uTruthRes[0] = (uCanon1 << 16) | uCanonBest;
         uTruthRes[1] = uTruthRes[0];
-        Limit = (p->pCounters[uTruth1] > 4)? 4 : p->pCounters[uTruth1];
-        for ( i = 0; i < Limit; i++ )
-            puPhases[i] = p->uPhases[uTruth1][i];
-        return Limit;
+        puPhases[0] = uPhaseBest;
+        return 1;
     }
-    else if ( uCanon0 && uCanon1 && uCanon0 < uCanon1 )
+    else if ( uCanon0 < uCanon1 )
     {
         assert( p->pCounters[uTruth0] > 0 );
         uCanonBest = 0xFFFF;
@@ -227,21 +241,26 @@ int Map_CanonComputeFast( Map_Man_t * p, int nVarsMax, int nVarsReal, unsigned u
         {
             uCanon1 = Extra_TruthPolarize( uTruth1, p->uPhases[uTruth0][i], 4 );
             if ( uCanonBest > uCanon1 )
+            {
                 uCanonBest = uCanon1;
+                uPhaseBest = p->uPhases[uTruth0][i];
+            }
         }
         uTruthRes[0] = (uCanon0 << 16) | uCanonBest;
         uTruthRes[1] = uTruthRes[0];
-        Limit = (p->pCounters[uTruth0] > 4)? 4 : p->pCounters[uTruth0];
-        for ( i = 0; i < Limit; i++ )
-        {
-            puPhases[i]  = p->uPhases[uTruth0][i];
-            puPhases[i] |= (1 << 4);
-        }
-        return Limit;
+        puPhases[0] = uPhaseBest | (1 << 4);
+        return 1;
     }
     else
+    {
+        assert( 0 );
         return Map_CanonComputeSlow( p->uTruths, nVarsMax, nVarsReal, uTruth, puPhases, uTruthRes );
+    }
 }
+
+
+
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
