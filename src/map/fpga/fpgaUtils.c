@@ -22,9 +22,12 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+#define FPGA_CO_LIST_SIZE  5
+
 static void  Fpga_MappingDfs_rec( Fpga_Node_t * pNode, Fpga_NodeVec_t * vNodes, int fCollectEquiv );
 static void  Fpga_MappingDfsCuts_rec( Fpga_Node_t * pNode, Fpga_NodeVec_t * vNodes );
-static int   Fpga_MappingCompareOutputDelay( int * pOut1, int * pOut2 );
+static int   Fpga_MappingCompareOutputDelay( Fpga_Node_t ** ppNode1, Fpga_Node_t ** ppNode2 );
+static void  Fpga_MappingFindLatest( Fpga_Man_t * p, int * pNodes, int nNodesMax );
 static void  Fpga_DfsLim_rec( Fpga_Node_t * pNode, int Level, Fpga_NodeVec_t * vNodes );
 static int   Fpga_CollectNodeTfo_rec( Fpga_Node_t * pNode, Fpga_Node_t * pPivot, Fpga_NodeVec_t * vVisited, Fpga_NodeVec_t * vTfo );
 static Fpga_Man_t * s_pMan = NULL;
@@ -321,6 +324,62 @@ float Fpga_MappingSetRefsAndArea( Fpga_Man_t * pMan )
 
 /**Function*************************************************************
 
+  Synopsis    [Compares the outputs by their arrival times.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fpga_MappingCompareOutputDelay( Fpga_Node_t ** ppNode1, Fpga_Node_t ** ppNode2 )
+{
+    Fpga_Node_t * pNode1 = Fpga_Regular(*ppNode1);
+    Fpga_Node_t * pNode2 = Fpga_Regular(*ppNode2);
+    float Arrival1 = pNode1->pCutBest? pNode1->pCutBest->tArrival : 0;
+    float Arrival2 = pNode2->pCutBest? pNode2->pCutBest->tArrival : 0;
+    if ( Arrival1 < Arrival2 )
+        return -1;
+    if ( Arrival1 > Arrival2 )
+        return 1;
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Finds given number of latest arriving COs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fpga_MappingFindLatest( Fpga_Man_t * p, int * pNodes, int nNodesMax )
+{
+    int nNodes, i, k, v;
+    assert( p->nOutputs >= nNodesMax );
+    pNodes[0] = 0;
+    nNodes = 1;
+    for ( i = 1; i < p->nOutputs; i++ )
+    {
+        for ( k = nNodes - 1; k >= 0; k-- )
+            if ( Fpga_MappingCompareOutputDelay( &p->pOutputs[pNodes[k]], &p->pOutputs[i] ) >= 0 )
+                break;
+        if ( k == nNodesMax - 1 )
+            continue;
+        if ( nNodes < nNodesMax )
+            nNodes++;
+        for ( v = nNodes - 1; v > k+1; v-- )
+            pNodes[v] = pNodes[v-1];
+        pNodes[k+1] = i;
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Prints a bunch of latest arriving outputs.]
 
   Description []
@@ -333,22 +392,17 @@ float Fpga_MappingSetRefsAndArea( Fpga_Man_t * pMan )
 void Fpga_MappingPrintOutputArrivals( Fpga_Man_t * p )
 {
     Fpga_Node_t * pNode;
+    int pSorted[FPGA_CO_LIST_SIZE];
     int fCompl, Limit, MaxNameSize, i;
-    int * pSorted;
 
-    // sort outputs by arrival time
-    s_pMan = p;
-    pSorted = ALLOC( int, p->nOutputs );
-    for ( i = 0; i < p->nOutputs; i++ )
-        pSorted[i] = i;
-    qsort( (void *)pSorted, p->nOutputs, sizeof(int), 
-            (int (*)(const void *, const void *)) Fpga_MappingCompareOutputDelay );
-    assert( Fpga_MappingCompareOutputDelay( pSorted, pSorted + p->nOutputs - 1 ) <= 0 );
-    s_pMan = NULL;
+    // determine the number of nodes to print
+    Limit = (p->nOutputs > FPGA_CO_LIST_SIZE)? FPGA_CO_LIST_SIZE : p->nOutputs;
+
+    // determine the order
+    Fpga_MappingFindLatest( p, pSorted, Limit );
 
     // determine max size of the node's name
     MaxNameSize = 0;
-    Limit = (p->nOutputs > 5)? 5 : p->nOutputs;
     for ( i = 0; i < Limit; i++ )
         if ( MaxNameSize < (int)strlen(p->ppOutputNames[pSorted[i]]) )
             MaxNameSize = strlen(p->ppOutputNames[pSorted[i]]);
@@ -368,32 +422,8 @@ void Fpga_MappingPrintOutputArrivals( Fpga_Man_t * p )
             printf( "POS" );
         printf( "\n" );
     }
-    free( pSorted );
 }
 
-/**Function*************************************************************
-
-  Synopsis    [Compares the outputs by their arrival times.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Fpga_MappingCompareOutputDelay( int * pOut1, int * pOut2 )
-{
-    Fpga_Node_t * pNode1 = Fpga_Regular(s_pMan->pOutputs[*pOut1]);
-    Fpga_Node_t * pNode2 = Fpga_Regular(s_pMan->pOutputs[*pOut2]);
-    float pTime1 = pNode1->pCutBest? pNode1->pCutBest->tArrival : 0;
-    float pTime2 = pNode2->pCutBest? pNode2->pCutBest->tArrival : 0;
-    if ( pTime1 > pTime2 )
-        return -1;
-    if ( pTime1 < pTime2 )
-        return 1;
-    return 0;
-}
 
 /**Function*************************************************************
 

@@ -109,7 +109,7 @@ Vec_Int_t * Rwr_CutEvaluate( Rwr_Man_t * p, Abc_Obj_t * pRoot, Rwr_Cut_t * pCut,
         vFanins->nSize  = pCut->nLeaves;
         vFanins->pArray = pCut->ppLeaves;
         // detect how many unlabeled nodes will be reused
-        GainCur = Abc_NodeStrashDecCount( pRoot->pNtk->pManFunc, vFanins, (Vec_Int_t *)pNode->pNext, 
+        GainCur = Abc_NodeStrashDecCount( pRoot->pNtk->pManFunc,  pRoot, vFanins, (Vec_Int_t *)pNode->pNext, 
             p->vLevNums, NodeMax, LevelMax );
         if ( GainBest < GainCur )
         {

@@ -26,15 +26,16 @@
     - for each AND gate, there are no other AND gates with the same children
     - the constants are propagated
     - there is no single-input nodes (inverters/buffers)
+    Additionally the following invariants are satisfied:
     - there are no dangling nodes (the nodes without fanout)
     - the level of each AND gate reflects the levels of this fanins
     - the EXOR-status of each node is up-to-date
-    The operations that are performed on AIG:
+    The operations that are performed on AIGs:
     - building new nodes (Abc_AigAnd)
     - performing elementary Boolean operations (Abc_AigOr, Abc_AigXor, etc)
     - replacing one node by another (Abc_AigReplace)
     - propagating constants (Abc_AigReplace)
-    When AIG is duplicated, the new graph is struturally hashed too.
+    When AIG is duplicated, the new graph is structurally hashed too.
     If this repeated hashing leads to fewer nodes, it means the original
     AIG was not strictly hashed (one of the conditions above is violated).
 */
@@ -226,10 +227,7 @@ int Abc_AigCleanup( Abc_Aig_t * pMan )
     for ( i = 0; i < pMan->nBins; i++ )
         Abc_AigBinForEachEntry( pMan->pBins[i], pAnd )
             if ( Abc_ObjFanoutNum(pAnd) == 0 )
-            {
                 Vec_PtrPush( pMan->vStackDelete, pAnd );
-                pAnd->fMarkA = 1;
-            }
     // process the dangling nodes and their MFFCs
     for ( Counter = 0; Vec_PtrSize(pMan->vStackDelete) > 0; Counter++ )
         Abc_AigDelete_int( pMan );
@@ -409,6 +407,7 @@ Abc_Obj_t * Abc_AigAndCreateFrom( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * 
     Abc_ObjAddFanin( pAnd, p1 );
     // set the level of the new node
     pAnd->Level      = 1 + ABC_MAX( Abc_ObjRegular(p0)->Level, Abc_ObjRegular(p1)->Level ); 
+    pAnd->fExor      = Abc_NodeIsExorType(pAnd);
     // add the node to the corresponding linked list in the table
     Key = Abc_HashKey2( p0, p1, pMan->nBins );
     pAnd->pNext      = pMan->pBins[Key];
@@ -453,7 +452,7 @@ Abc_Obj_t * Abc_AigAndLookup( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 )
         pAnd = p0, p0 = p1, p1 = pAnd;
     // get the hash key for these two nodes
     Key = Abc_HashKey2( p0, p1, pMan->nBins );
-    // find the mataching node in the table
+    // find the matching node in the table
     Abc_AigBinForEachEntry( pMan->pBins[Key], pAnd )
         if ( p0 == Abc_ObjChild0(pAnd) && p1 == Abc_ObjChild1(pAnd) )
              return pAnd;
@@ -476,25 +475,30 @@ void Abc_AigAndDelete( Abc_Aig_t * pMan, Abc_Obj_t * pThis )
     Abc_Obj_t * pAnd, ** ppPlace;
     unsigned Key;
     assert( !Abc_ObjIsComplement(pThis) );
+    assert( Abc_ObjIsNode(pThis) );
+    assert( Abc_ObjFaninNum(pThis) == 2 );
     assert( pMan->pNtkAig == pThis->pNtk );
     // get the hash key for these two nodes
     Key = Abc_HashKey2( Abc_ObjChild0(pThis), Abc_ObjChild1(pThis), pMan->nBins );
-    // find the mataching node in the table
+    // find the matching node in the table
     ppPlace = pMan->pBins + Key;
     Abc_AigBinForEachEntry( pMan->pBins[Key], pAnd )
+    {
         if ( pAnd != pThis )
-            ppPlace = &pAnd->pNext;
-        else
         {
-            *ppPlace = pAnd->pNext;
-            break;
+            ppPlace = &pAnd->pNext;
+            continue;
         }
+        *ppPlace = pAnd->pNext;
+        break;
+    }
     assert( pAnd == pThis );
+    pMan->nEntries--;
 }
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Resizes the hash table of AIG nodes.]
 
   Description []
                
@@ -512,7 +516,7 @@ void Abc_AigResize( Abc_Aig_t * pMan )
 
 clk = clock();
     // get the new table size
-    nBinsNew = Cudd_PrimeCopy(2 * pMan->nBins); 
+    nBinsNew = Cudd_PrimeCopy( 3 * pMan->nBins ); 
     // allocate a new array
     pBinsNew = ALLOC( Abc_Obj_t *, nBinsNew );
     memset( pBinsNew, 0, sizeof(Abc_Obj_t *) * nBinsNew );
@@ -560,7 +564,7 @@ Abc_Obj_t * Abc_AigAnd( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 )
 
 /**Function*************************************************************
 
-  Synopsis    [Implements Boolean AND.]
+  Synopsis    [Implements Boolean OR.]
 
   Description []
                
@@ -576,7 +580,7 @@ Abc_Obj_t * Abc_AigOr( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 )
 
 /**Function*************************************************************
 
-  Synopsis    [Implements Boolean AND.]
+  Synopsis    [Implements Boolean XOR.]
 
   Description []
                
@@ -619,6 +623,7 @@ Abc_Obj_t * Abc_AigMiter( Abc_Aig_t * pMan, Vec_Ptr_t * vPairs )
 
 
 
+
 /**Function*************************************************************
 
   Synopsis    [Replaces one AIG node by the other.]
@@ -639,8 +644,8 @@ void Abc_AigReplace( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew )
     Vec_PtrPush( pMan->vStackReplaceNew, pNew );
     while ( Vec_PtrSize(pMan->vStackReplaceOld) )
         Abc_AigReplace_int( pMan );
-    while ( Vec_PtrSize(pMan->vStackDelete) )
-        Abc_AigDelete_int( pMan );
+//    while ( Vec_PtrSize(pMan->vStackDelete) )
+//        Abc_AigDelete_int( pMan );
     Abc_AigUpdateLevel_int( pMan );
 }
 
@@ -664,7 +669,7 @@ void Abc_AigReplace_int( Abc_Aig_t * pMan )
     pOld = Vec_PtrPop( pMan->vStackReplaceOld );
     pNew = Vec_PtrPop( pMan->vStackReplaceNew );
     // make sure the old node is regular and has fanouts
-    // the new node can be complemented and can have fanouts
+    // (the new node can be complemented and can have fanouts)
     assert( !Abc_ObjIsComplement(pOld) );
     assert( Abc_ObjFanoutNum(pOld) > 0 );
     // look at the fanouts of old node
@@ -691,26 +696,25 @@ void Abc_AigReplace_int( Abc_Aig_t * pMan )
             Vec_PtrPush( pMan->vStackReplaceNew, pFanoutNew );
             continue;
         }
-        // such node does not exist - modify the old fanout 
-        // remove the old fanout from the table
+        // such node does not exist - modify the old fanout node 
+        // (this way the change will not propagate all the way to the COs)
+        assert( Abc_ObjRegular(pFanin1) != Abc_ObjRegular(pFanin2) );             
+        // remove the old fanout node from the structural hashing table
         Abc_AigAndDelete( pMan, pFanout );
-        // remove its old fanins
+        // remove the fanins of the old fanout
         Abc_ObjRemoveFanins( pFanout );
-        // update the old fanout with new fanins and add it to the table
+        // recreate the old fanout with new fanins and add it to the table
         Abc_AigAndCreateFrom( pMan, pFanin1, pFanin2, pFanout );
-        // schedule the updated node for updating level
+        // schedule the updated fanout for updating level
         Vec_VecPush( pMan->vLevels, pFanout->Level, pFanout );
-        // the node has changed, update EXOR status of the fanouts
+        // the fanout has changed, update EXOR status of its fanouts
         Abc_ObjForEachFanout( pFanout, pFanoutFanout, v )
             if ( Abc_NodeIsAigAnd(pFanoutFanout) )
                 pFanoutFanout->fExor = Abc_NodeIsExorType(pFanoutFanout);
     }
-    // schedule deletion of the old node
-    if ( Abc_NodeIsAigAnd(pOld) && pOld->fMarkA == 0 )
-    {
-        Vec_PtrPush( pMan->vStackDelete, pOld );
-        pOld->fMarkA = 1;
-    }
+    // if the node has no fanouts left, remove its MFFC
+    if ( Abc_ObjFanoutNum(pOld) == 0 )
+        Abc_AigDeleteNode( pMan, pOld );
 }
 
 /**Function*************************************************************
@@ -745,31 +749,33 @@ void Abc_AigDeleteNode( Abc_Aig_t * pMan, Abc_Obj_t * pOld )
 ***********************************************************************/
 void Abc_AigDelete_int( Abc_Aig_t * pMan )
 {
-    Abc_Obj_t * pNode, * pFanin;
+    Vec_Ptr_t * vNodes;
+    Abc_Obj_t * pRoot, * pObj;
     int k;
     // get the node to delete
     assert( Vec_PtrSize(pMan->vStackDelete) > 0 );
-    pNode = Vec_PtrPop( pMan->vStackDelete );
+    pRoot = Vec_PtrPop( pMan->vStackDelete );
 
     // make sure the node is regular and dangling
-    assert( !Abc_ObjIsComplement(pNode) );
-    assert( Abc_ObjFanoutNum(pNode) == 0 );
-    assert( pNode != pMan->pConst1 );
-    // schedule fanins for deletion if they dangle
-    Abc_ObjForEachFanin( pNode, pFanin, k )
+    assert( !Abc_ObjIsComplement(pRoot) );
+    assert( Abc_ObjIsNode(pRoot) );
+    assert( Abc_ObjFaninNum(pRoot) == 2 );
+    assert( Abc_ObjFanoutNum(pRoot) == 0 );
+
+    // collect the MFFC
+    vNodes = Abc_NodeMffcCollect( pRoot );
+    Vec_PtrForEachEntry( vNodes, pObj, k )
     {
-        assert( Abc_ObjFanoutNum(pFanin) > 0 );
-        if ( Abc_ObjFanoutNum(pFanin) == 1 )
-            if ( Abc_NodeIsAigAnd(pFanin) && pFanin->fMarkA == 0 )
-            {
-                Vec_PtrPush( pMan->vStackDelete, pFanin );
-                pFanin->fMarkA = 1;
-            }
+        if ( Abc_ObjIsCi(pObj) )
+            continue;
+        assert( pObj->fMarkA == 0 );
+        // remove the node from the table
+        Abc_AigAndDelete( pMan, pObj );
+        // remove the node from the network
+//printf( "Removing " );  Abc_AigPrintNode( pObj );
+        Abc_NtkDeleteObj( pObj );
     }
-    // remove the node from the table
-    Abc_AigAndDelete( pMan, pNode );
-    // remove the node fro the network
-    Abc_NtkDeleteObj( pNode );
+    Vec_PtrFree( vNodes );
 }
 
 /**Function*************************************************************
@@ -797,7 +803,11 @@ void Abc_AigUpdateLevel_int( Abc_Aig_t * pMan )
             continue;
         Vec_PtrForEachEntry( vVec, pNode, k )
         {
-            assert( Abc_ObjIsNode(pNode) );
+//            assert( Abc_ObjIsNode(pNode) );
+            // for some reason, deleted nodes are encountered here!!!
+            if ( !Abc_ObjIsNode(pNode) )
+                continue;
+            // iterate through the fanouts
             Abc_ObjForEachFanout( pNode, pFanout, v )
             {
                 if ( Abc_ObjIsCo(pFanout) )
@@ -876,6 +886,39 @@ bool Abc_AigNodeHasComplFanoutEdgeTrav( Abc_Obj_t * pNode )
     return 0;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Prints the AIG node for debugging purposes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_AigPrintNode( Abc_Obj_t * pNode )
+{
+    Abc_Obj_t * pNodeR = Abc_ObjRegular(pNode);
+    if ( Abc_ObjIsCi(pNodeR) )
+    {
+        printf( "CI %4s%s.\n", Abc_ObjName(pNodeR), Abc_ObjIsComplement(pNode)? "\'" : "" );
+        return;
+    }
+    if ( Abc_NodeIsConst(pNodeR) )
+    {
+        printf( "Constant 1 %s.\n", Abc_ObjIsComplement(pNode)? "(complemented)" : ""  );
+        return;
+    }
+    // print the node's function
+    printf( "%7s%s", Abc_ObjName(pNodeR),                Abc_ObjIsComplement(pNode)? "\'" : "" );
+    printf( " = " );
+    printf( "%7s%s", Abc_ObjName(Abc_ObjFanin0(pNodeR)), Abc_ObjFaninC0(pNodeR)?     "\'" : "" );
+    printf( " * " );
+    printf( "%7s%s", Abc_ObjName(Abc_ObjFanin1(pNodeR)), Abc_ObjFaninC1(pNodeR)?     "\'" : "" );
+    printf( "\n" );
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -3,6 +3,7 @@ alias clp collapse
 alias esd ext_seq_dcs
 alias f fraig
 alias fs fraig_sweep
+alias ft fraig_trust
 alias mu renode -m
 alias pf print_factor
 alias pfan print_fanio
@@ -20,6 +21,7 @@ alias rsup read_super mcnc5_old.super
 alias rlib read_library
 alias rw rewrite
 alias rf refactor
+alias rfz refactor -z
 alias sa set autoexec ps
 alias so source -x
 alias st strash

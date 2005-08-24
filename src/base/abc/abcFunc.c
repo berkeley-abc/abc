@@ -205,7 +205,10 @@ char * Abc_ConvertBddToSop( Extra_MmFlex_t * pMan, DdManager * dd, DdNode * bFun
     {
         Vec_StrFill( vCube, nFanins, '-' );
         Vec_StrPush( vCube, '\0' );
-        pSop = Extra_MmFlexEntryFetch( pMan, nFanins + 4 );
+        if ( pMan )
+            pSop = Extra_MmFlexEntryFetch( pMan, nFanins + 4 );
+        else
+            pSop = ALLOC( char, nFanins + 4 );
         if ( bFuncOn == Cudd_ReadLogicZero(dd) )
             sprintf( pSop, "%s 0\n", vCube->pArray );
         else
@@ -249,7 +252,7 @@ char * Abc_ConvertBddToSop( Extra_MmFlex_t * pMan, DdManager * dd, DdNode * bFun
     }
     else if ( fMode == 0 )
     {
-        // get the ZDD of the positive polarity
+        // get the ZDD of the negative polarity
         bCover = Cudd_zddIsop( dd, Cudd_Not(bFuncOnDc), Cudd_Not(bFuncOn), &zCover );
         Cudd_Ref( zCover );
         Cudd_Ref( bCover );

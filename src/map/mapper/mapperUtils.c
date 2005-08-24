@@ -22,6 +22,8 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+#define MAP_CO_LIST_SIZE 5
+
 static void  Map_MappingDfs_rec( Map_Node_t * pNode, Map_NodeVec_t * vNodes, int fCollectEquiv );
 static int   Map_MappingCountLevels_rec( Map_Node_t * pNode );
 static float Map_MappingSetRefsAndArea_rec( Map_Man_t * pMan, Map_Node_t * pNode );
@@ -29,7 +31,8 @@ static float Map_MappingSetRefsAndSwitch_rec( Map_Man_t * pMan, Map_Node_t * pNo
 static float Map_MappingSetRefsAndWire_rec( Map_Man_t * pMan, Map_Node_t * pNode );
 static void  Map_MappingDfsCuts_rec( Map_Node_t * pNode, Map_NodeVec_t * vNodes );
 static float Map_MappingArea_rec( Map_Man_t * pMan, Map_Node_t * pNode, Map_NodeVec_t * vNodes );
-static int   Map_MappingCompareOutputDelay( int * pOut1, int * pOut2 );
+static int   Map_MappingCompareOutputDelay( Map_Node_t ** ppNode1, Map_Node_t ** ppNode2 );
+static void  Map_MappingFindLatest( Map_Man_t * p, int * pNodes, int nNodesMax );
 static unsigned Map_MappingExpandTruth_rec( unsigned uTruth, int nVars );
 static void Map_MappingGetChoiceLevels( Map_Man_t * pMan, Map_Node_t * p1, Map_Node_t * p2, int * pMin, int * pMax );
 static float Map_MappingGetChoiceVolumes( Map_Man_t * pMan, Map_Node_t * p1, Map_Node_t * p2 );
@@ -391,6 +394,64 @@ void Map_MappingMark_rec( Map_Node_t * pNode )
 
 /**Function*************************************************************
 
+  Synopsis    [Compares the outputs by their arrival times.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Map_MappingCompareOutputDelay( Map_Node_t ** ppNode1, Map_Node_t ** ppNode2 )
+{
+    Map_Node_t * pNode1 = Map_Regular(*ppNode1);
+    Map_Node_t * pNode2 = Map_Regular(*ppNode2);
+    int fPhase1 = !Map_IsComplement(*ppNode1);
+    int fPhase2 = !Map_IsComplement(*ppNode2);
+    float Arrival1 = pNode1->tArrival[fPhase1].Worst;
+    float Arrival2 = pNode2->tArrival[fPhase2].Worst;
+    if ( Arrival1 < Arrival2 )
+        return -1;
+    if ( Arrival1 > Arrival2 )
+        return 1;
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Finds given number of latest arriving COs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Map_MappingFindLatest( Map_Man_t * p, int * pNodes, int nNodesMax )
+{
+    int nNodes, i, k, v;
+    assert( p->nOutputs >= nNodesMax );
+    pNodes[0] = 0;
+    nNodes = 1;
+    for ( i = 1; i < p->nOutputs; i++ )
+    {
+        for ( k = nNodes - 1; k >= 0; k-- )
+            if ( Map_MappingCompareOutputDelay( &p->pOutputs[pNodes[k]], &p->pOutputs[i] ) >= 0 )
+                break;
+        if ( k == nNodesMax - 1 )
+            continue;
+        if ( nNodes < nNodesMax )
+            nNodes++;
+        for ( v = nNodes - 1; v > k+1; v-- )
+            pNodes[v] = pNodes[v-1];
+        pNodes[k+1] = i;
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Prints a bunch of latest arriving outputs.]
 
   Description []
@@ -402,30 +463,20 @@ void Map_MappingMark_rec( Map_Node_t * pNode )
 ***********************************************************************/
 void Map_MappingPrintOutputArrivals( Map_Man_t * p )
 {
+    int pSorted[MAP_CO_LIST_SIZE];
     Map_Time_t * pTimes;
     Map_Node_t * pNode;
     int fPhase, Limit, i;
-    int nOutputs, MaxNameSize;
-    int * pSorted;
+    int MaxNameSize;
 
-    // sort outputs by arrival time
-    s_pMan = p;
-    pSorted = ALLOC( int, p->nOutputs );
-    nOutputs = 0;
-    for ( i = 0; i < p->nOutputs; i++ )
-    {
-        if ( Map_NodeIsConst(p->pOutputs[i]) )
-            continue;
-        pSorted[nOutputs++] = i;        
-    }
-    qsort( (void *)pSorted, nOutputs, sizeof(int), 
-            (int (*)(const void *, const void *)) Map_MappingCompareOutputDelay );
-    assert( Map_MappingCompareOutputDelay( pSorted, pSorted + nOutputs - 1 ) <= 0 );
-    s_pMan = NULL;
+    // determine the number of nodes to print
+    Limit = (p->nOutputs > MAP_CO_LIST_SIZE)? MAP_CO_LIST_SIZE : p->nOutputs;
+
+    // determine the order
+    Map_MappingFindLatest( p, pSorted, Limit );
 
     // determine max size of the node's name
     MaxNameSize = 0;
-    Limit = (nOutputs > 5)? 5 : nOutputs;
     for ( i = 0; i < Limit; i++ )
         if ( MaxNameSize < (int)strlen(p->ppOutputNames[pSorted[i]]) )
             MaxNameSize = strlen(p->ppOutputNames[pSorted[i]]);
@@ -443,33 +494,6 @@ void Map_MappingPrintOutputArrivals( Map_Man_t * p )
         printf( "%s", fPhase? "POS" : "NEG" );
         printf( "\n" );
     }
-    free( pSorted );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Compares the outputs by their arrival times.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Map_MappingCompareOutputDelay( int * pOut1, int * pOut2 )
-{
-    Map_Node_t * pNode1 = Map_Regular(s_pMan->pOutputs[*pOut1]);
-    Map_Node_t * pNode2 = Map_Regular(s_pMan->pOutputs[*pOut2]);
-    int fPhase1 = (pNode1 == s_pMan->pOutputs[*pOut1]);
-    int fPhase2 = (pNode2 == s_pMan->pOutputs[*pOut2]);
-    float Arrival1 = pNode1->tArrival[fPhase1].Worst;
-    float Arrival2 = pNode2->tArrival[fPhase2].Worst;
-    if ( Arrival1 > Arrival2 )
-        return -1;
-    if ( Arrival1 < Arrival2 )
-        return 1;
-    return 0;
 }
 
 /**Function*************************************************************

@@ -60,13 +60,16 @@ int Abc_NtkRewrite( Abc_Ntk_t * pNtk )
     pProgress = Extra_ProgressBarStart( stdout, nNodes );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
-        Extra_ProgressBarUpdate( pProgress, nNodes, NULL );
+        Extra_ProgressBarUpdate( pProgress, i, NULL );
+        // stop if all nodes have been tried once
+        if ( i >= nNodes )
+            break;
+        // skip the constant node
+        if ( Abc_NodeIsConst(pNode) )
+            continue;
         // for each cut, try to resynthesize it
         if ( (nGain = Rwr_NodeRewrite( p, pNode )) >= 0 )
             Abc_NodeUpdate( pNode, Rwr_ManReadFanins(p), Rwr_ManReadDecs(p), nGain );
-        // check the improvement
-        if ( i == nNodes )
-            break;
     }
     Extra_ProgressBarStop( pProgress );
     // delete the manager

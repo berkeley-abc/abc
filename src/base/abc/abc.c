@@ -1414,9 +1414,10 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int nNodeSizeMax;
     int nConeSizeMax;
+    bool fUseZeros;
     bool fUseDcs;
     bool fVerbose;
-    extern int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, bool fUseDcs, bool fVerbose );
+    extern int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, bool fUseZeros, bool fUseDcs, bool fVerbose );
 
     pNtk = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -1424,11 +1425,12 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     nNodeSizeMax = 10;
-    nConeSizeMax = 10;
+    nConeSizeMax = 16;
+    fUseZeros    =  0;
     fUseDcs      =  0;
-    fVerbose     =  0;
+    fVerbose     =  1;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "NCdvh" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "NCzdvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -1453,6 +1455,9 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
             util_optind++;
             if ( nConeSizeMax < 0 ) 
                 goto usage;
+            break;
+        case 'z':
+            fUseZeros ^= 1;
             break;
         case 'd':
             fUseDcs ^= 1;
@@ -1483,8 +1488,14 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
+    if ( fUseDcs && nNodeSizeMax >= nConeSizeMax )
+    {
+        fprintf( pErr, "For don't-care to work, containing cone should be larger than collapsed node.\n" );
+        return 1;
+    }
+
     // modify the current network
-    if ( !Abc_NtkRefactor( pNtk, nNodeSizeMax, nConeSizeMax, fUseDcs, fVerbose ) )
+    if ( !Abc_NtkRefactor( pNtk, nNodeSizeMax, nConeSizeMax, fUseZeros, fUseDcs, fVerbose ) )
     {
         fprintf( pErr, "Refactoring has failed.\n" );
         return 1;
@@ -1492,11 +1503,12 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: refactor [-N num] [-C num] [-dvh]\n" );
+    fprintf( pErr, "usage: refactor [-N num] [-C num] [-zdvh]\n" );
     fprintf( pErr, "\t         performs technology-independent refactoring of the AIG\n" );
     fprintf( pErr, "\t-N num : the max support of the collapsed node [default = %d]\n", nNodeSizeMax );  
     fprintf( pErr, "\t-C num : the max support of the containing cone [default = %d]\n", nConeSizeMax );  
-    fprintf( pErr, "\t-d     : toggle use of don't-cares [default = %s]\n", fUseDcs? "yes": "no" );
+    fprintf( pErr, "\t-z     : toggle using zero-cost replacements [default = %s]\n", fUseZeros? "yes": "no" );
+    fprintf( pErr, "\t-d     : toggle using don't-cares [default = %s]\n", fUseDcs? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;

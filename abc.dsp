@@ -109,6 +109,10 @@ SOURCE=.\src\base\abc\abcAttach.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abc\abcBalance.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abc\abcCheck.c
 # End Source File
 # Begin Source File

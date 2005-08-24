@@ -504,7 +504,9 @@ Abc_Obj_t * Abc_ObjAlloc( Abc_Ntk_t * pNtk, Abc_ObjType_t Type )
 ***********************************************************************/
 void Abc_ObjRecycle( Abc_Obj_t * pObj )
 {
-    Extra_MmFixedEntryRecycle( pObj->pNtk->pMmObj, (char *)pObj );
+    Abc_Ntk_t * pNtk = pObj->pNtk;
+    memset( pObj, 0, sizeof(Abc_Obj_t) );
+    Extra_MmFixedEntryRecycle( pNtk->pMmObj, (char *)pObj );
 }
 
 /**Function*************************************************************

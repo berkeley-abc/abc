@@ -82,7 +82,7 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p )
     ProgressBar * pProgress;
     Vec_Ptr_t * vTokens;
     Abc_Ntk_t * pNtk;
-    Abc_Obj_t * pTerm, * pNode;
+    Abc_Obj_t * pTermPi, * pTermPo, * pNode;
     Vec_Str_t ** ppSops;
     char Buffer[100];
     int nInputs = -1, nOutputs = -1, nProducts = -1;
@@ -169,13 +169,16 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p )
                 // create the PO drivers and add them
                 // start the SOP covers
                 ppSops = ALLOC( Vec_Str_t *, nOutputs );
-                Abc_NtkForEachPo( pNtk, pTerm, i )
+                Abc_NtkForEachPo( pNtk, pTermPo, i )
                 {
                     ppSops[i] = Vec_StrAlloc( 100 );
+                    // create the node
                     pNode = Abc_NtkCreateNode(pNtk);
-                    for ( k = 0; k < nInputs; k++ )
-                        Abc_ObjAddFanin( pNode, Abc_NtkPi(pNtk,k) );
-                    Abc_ObjAddFanin( Abc_ObjFanout0(pTerm), pNode );
+                    // connect the node to the PO net
+                    Abc_ObjAddFanin( Abc_ObjFanin0Ntk(pTermPo), pNode );
+                    // connect the node to the PI nets
+                    Abc_NtkForEachPi( pNtk, pTermPi, k )
+                        Abc_ObjAddFanin( pNode, Abc_ObjFanout0Ntk(pTermPi) );
                 }
             }
             // read the cubes
@@ -219,9 +222,9 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p )
             nCubes, nProducts );
 
     // add the SOP covers
-    Abc_NtkForEachPo( pNtk, pTerm, i )
+    Abc_NtkForEachPo( pNtk, pTermPo, i )
     {
-        pNode = Abc_ObjFanin0Ntk(pTerm);
+        pNode = Abc_ObjFanin0Ntk( Abc_ObjFanin0(pTermPo) );
         if ( ppSops[i]->nSize == 0 )
         {
             Abc_ObjRemoveFanins(pNode);

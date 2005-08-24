@@ -32,17 +32,12 @@ struct Abc_ManCut_t_
     int              nConeSizeMax;  // the limit on the size of the containing cone
     // internal parameters
     Vec_Ptr_t *      vFaninsNode;   // fanins of the supernode
-    Vec_Ptr_t *      vInsideNode;   // inside of the supernode
     Vec_Ptr_t *      vFaninsCone;   // fanins of the containing cone
-    Vec_Ptr_t *      vInsideCone;   // inside of the containing cone
     Vec_Ptr_t *      vVisited;      // the visited nodes
 };
 
-static int           Abc_NodeFindCut_int( Vec_Ptr_t * vInside, Vec_Ptr_t * vFanins, int nSizeLimit );
-static int           Abc_NodeGetFaninCost( Abc_Obj_t * pNode );
-static void          Abc_NodeConeMarkCollect_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vVisited );
-static void          Abc_NodeConeMark( Vec_Ptr_t * vVisited );
-static void          Abc_NodeConeUnmark( Vec_Ptr_t * vVisited );
+static int   Abc_NodeFindCut_int( Vec_Ptr_t * vFanins, int nSizeLimit );
+static void  Abc_NodesMarkCollect_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vVisited );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -50,7 +45,7 @@ static void          Abc_NodeConeUnmark( Vec_Ptr_t * vVisited );
 
 /**Function*************************************************************
 
-  Synopsis    [Finds a reconvergence-driven cut.]
+  Synopsis    [Unmarks the TFI cone.]
 
   Description []
                
@@ -59,53 +54,140 @@ static void          Abc_NodeConeUnmark( Vec_Ptr_t * vVisited );
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Abc_NodeFindCut( Abc_ManCut_t * p, Abc_Obj_t * pRoot )
+static inline void Abc_NodesMark( Vec_Ptr_t * vVisited )
+{
+    Abc_Obj_t * pNode;
+    int i;
+    Vec_PtrForEachEntry( vVisited, pNode, i )
+        pNode->fMarkA = 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Unmarks the TFI cone.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Abc_NodesUnmark( Vec_Ptr_t * vVisited )
+{
+    Abc_Obj_t * pNode;
+    int i;
+    Vec_PtrForEachEntry( vVisited, pNode, i )
+        pNode->fMarkA = 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Unmarks the TFI cone.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Abc_NodesUnmarkBoth( Vec_Ptr_t * vVisited )
+{
+    Abc_Obj_t * pNode;
+    int i;
+    Vec_PtrForEachEntry( vVisited, pNode, i )
+        pNode->fMarkA = pNode->fMarkB = 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Evaluate the fanin cost.]
+
+  Description [Returns the number of fanins that will be brought in.
+  Returns large number if the node cannot be added.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Abc_NodeGetFaninCost( Abc_Obj_t * pNode )
+{
+    Abc_Obj_t * pFanout;
+    int i;
+    assert( pNode->fMarkA == 1 );  // this node is in the TFI
+    assert( pNode->fMarkB == 1 );  // this node is in the constructed cone
+    // check the PI node
+    if ( Abc_ObjIsCi(pNode) )
+        return 999;
+    // skip nodes with many fanouts
+    if ( Abc_ObjFanoutNum(pNode) > 5 )
+        return 999;
+    // check the fanouts
+    Abc_ObjForEachFanout( pNode, pFanout, i )
+        if ( pFanout->fMarkA && pFanout->fMarkB == 0 ) // the fanout is in the TFI but not in the cone
+            return 999;
+    // the fanouts are in the TFI and inside the constructed cone
+    // return the number of fanins that will be on the boundary if this node is added
+    return (!Abc_ObjFanin0(pNode)->fMarkB) + (!Abc_ObjFanin1(pNode)->fMarkB);
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Finds a fanin-limited, reconvergence-driven cut for the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_NodeFindCut( Abc_ManCut_t * p, Abc_Obj_t * pRoot, bool fContain )
 {
     Abc_Obj_t * pNode;
     int i;
 
+    assert( !Abc_ObjIsComplement(pRoot) );
+    assert( Abc_ObjIsNode(pRoot) );
+
     // mark TFI using fMarkA
     Vec_PtrClear( p->vVisited );
-    Abc_NodeConeMarkCollect_rec( pRoot, p->vVisited );
+    Abc_NodesMarkCollect_rec( pRoot, p->vVisited );
 
-    // start the reconvergence-driven node
-    Vec_PtrClear( p->vInsideNode );
+    // start the cut 
     Vec_PtrClear( p->vFaninsNode );
-    Vec_PtrPush( p->vFaninsNode, pRoot );
+    Vec_PtrPush( p->vFaninsNode, Abc_ObjFanin0(pRoot) );
+    Vec_PtrPush( p->vFaninsNode, Abc_ObjFanin1(pRoot) );
     pRoot->fMarkB = 1;
+    Abc_ObjFanin0(pRoot)->fMarkB = 1;
+    Abc_ObjFanin1(pRoot)->fMarkB = 1;
 
-    // compute reconvergence-driven node
-    while ( Abc_NodeFindCut_int( p->vInsideNode, p->vFaninsNode, p->nNodeSizeMax ) );
+    // compute the cut
+    while ( Abc_NodeFindCut_int( p->vFaninsNode, p->nNodeSizeMax ) );
+    assert( Vec_PtrSize(p->vFaninsNode) <= p->nNodeSizeMax );
 
-    // compute reconvergence-driven cone
-    Vec_PtrClear( p->vInsideCone );
+    // return if containing cut is not requested
+    if ( !fContain )
+    {
+        // unmark TFI using fMarkA and fMarkB
+        Abc_NodesUnmarkBoth( p->vVisited );
+        return p->vFaninsNode;
+    }
+
+    // compute the containing cut
+    assert( p->nNodeSizeMax < p->nConeSizeMax );
+    // copy the current boundary
     Vec_PtrClear( p->vFaninsCone );
-    if ( p->nConeSizeMax > p->nNodeSizeMax )
-    {
-        // copy the node into the cone
-        Vec_PtrForEachEntry( p->vInsideNode, pNode, i )
-            Vec_PtrPush( p->vInsideCone, pNode );
-        Vec_PtrForEachEntry( p->vFaninsNode, pNode, i )
-            Vec_PtrPush( p->vFaninsCone, pNode );
-        // compute reconvergence-driven cone
-        while ( Abc_NodeFindCut_int( p->vInsideCone, p->vFaninsCone, p->nConeSizeMax ) );
-        // unmark the nodes of the sets
-        Vec_PtrForEachEntry( p->vInsideCone, pNode, i )
-            pNode->fMarkB = 0;
-        Vec_PtrForEachEntry( p->vFaninsCone, pNode, i )
-            pNode->fMarkB = 0;
-    }
-    else
-    {
-        // unmark the nodes of the sets
-        Vec_PtrForEachEntry( p->vInsideNode, pNode, i )
-            pNode->fMarkB = 0;
-        Vec_PtrForEachEntry( p->vFaninsNode, pNode, i )
-            pNode->fMarkB = 0;
-    }
-
-    // unmark TFI using fMarkA
-    Abc_NodeConeUnmark( p->vVisited );
+    Vec_PtrForEachEntry( p->vFaninsNode, pNode, i )
+        Vec_PtrPush( p->vFaninsCone, pNode );
+    // compute the containing cut
+    while ( Abc_NodeFindCut_int( p->vFaninsCone, p->nConeSizeMax ) );
+    assert( Vec_PtrSize(p->vFaninsCone) <= p->nConeSizeMax );
+    // unmark TFI using fMarkA and fMarkB
+    Abc_NodesUnmarkBoth( p->vVisited );
     return p->vFaninsNode;
 }
 
@@ -120,20 +202,37 @@ Vec_Ptr_t * Abc_NodeFindCut( Abc_ManCut_t * p, Abc_Obj_t * pRoot )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NodeFindCut_int( Vec_Ptr_t * vInside, Vec_Ptr_t * vFanins, int nSizeLimit )
+int Abc_NodeFindCut_int( Vec_Ptr_t * vFanins, int nSizeLimit )
 {
     Abc_Obj_t * pNode, * pFaninBest, * pNext;
     int CostBest, CostCur, i;
+//    int fFlagProb = (rand() & 1);
+    int fFlagProb = 1;
     // find the best fanin
     CostBest   = 100;
     pFaninBest = NULL;
-    Vec_PtrForEachEntry( vFanins, pNode, i )
+    if ( fFlagProb )
     {
-        CostCur = Abc_NodeGetFaninCost( pNode );
-        if ( CostBest > CostCur )
+        Vec_PtrForEachEntry( vFanins, pNode, i )
         {
-            CostBest   = CostCur;
-            pFaninBest = pNode;
+            CostCur = Abc_NodeGetFaninCost( pNode );
+            if ( CostBest > CostCur )
+            {
+                CostBest   = CostCur;
+                pFaninBest = pNode;
+            }
+        }
+    }
+    else
+    {
+        Vec_PtrForEachEntry( vFanins, pNode, i )
+        {
+            CostCur = Abc_NodeGetFaninCost( pNode );
+            if ( CostBest >= CostCur )
+            {
+                CostBest   = CostCur;
+                pFaninBest = pNode;
+            }
         }
     }
     if ( pFaninBest == NULL )
@@ -144,8 +243,6 @@ int Abc_NodeFindCut_int( Vec_Ptr_t * vInside, Vec_Ptr_t * vFanins, int nSizeLimi
     assert( Abc_ObjIsNode(pFaninBest) );
     // remove the node from the array
     Vec_PtrRemove( vFanins, pFaninBest );
-    // add the node to the set
-    Vec_PtrPush( vInside, pFaninBest );
     // add the left child to the fanins
     pNext = Abc_ObjFanin0(pFaninBest);
     if ( !pNext->fMarkB )
@@ -167,36 +264,6 @@ int Abc_NodeFindCut_int( Vec_Ptr_t * vInside, Vec_Ptr_t * vFanins, int nSizeLimi
 
 /**Function*************************************************************
 
-  Synopsis    [Evaluate the fanin cost.]
-
-  Description [Returns the number of fanins that will be brought in.
-  Returns large number if the node cannot be added.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_NodeGetFaninCost( Abc_Obj_t * pNode )
-{
-    Abc_Obj_t * pFanout;
-    int i;
-    assert( pNode->fMarkA == 1 );  // this node is in the TFI
-    assert( pNode->fMarkB == 1 );  // this node is in the constructed cone
-    // check the PI node
-    if ( !Abc_ObjIsNode(pNode) )
-        return 999;
-    // check the fanouts
-    Abc_ObjForEachFanout( pNode, pFanout, i )
-        if ( pFanout->fMarkA && pFanout->fMarkB == 0 ) // in the cone but not in the set
-            return 999;
-    // the fanouts are in the TFI and inside the constructed cone
-    // return the number of fanins that will be on the boundary if this node is added
-    return (!Abc_ObjFanin0(pNode)->fMarkB) + (!Abc_ObjFanin1(pNode)->fMarkB);
-}
-
-/**Function*************************************************************
-
   Synopsis    [Marks the TFI cone.]
 
   Description []
@@ -206,55 +273,19 @@ int Abc_NodeGetFaninCost( Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NodeConeMarkCollect_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vVisited )
+void Abc_NodesMarkCollect_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vVisited )
 {
     if ( pNode->fMarkA == 1 )
         return;
     // visit transitive fanin 
     if ( Abc_ObjIsNode(pNode) )
     {
-        Abc_NodeConeMarkCollect_rec( Abc_ObjFanin0(pNode), vVisited );
-        Abc_NodeConeMarkCollect_rec( Abc_ObjFanin1(pNode), vVisited );
+        Abc_NodesMarkCollect_rec( Abc_ObjFanin0(pNode), vVisited );
+        Abc_NodesMarkCollect_rec( Abc_ObjFanin1(pNode), vVisited );
     }
     assert( pNode->fMarkA == 0 );
     pNode->fMarkA = 1;
     Vec_PtrPush( vVisited, pNode );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Unmarks the TFI cone.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NodeConeMark( Vec_Ptr_t * vVisited )
-{
-    int i;
-    for ( i = 0; i < vVisited->nSize; i++ )
-        ((Abc_Obj_t *)vVisited->pArray)->fMarkA = 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Unmarks the TFI cone.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NodeConeUnmark( Vec_Ptr_t * vVisited )
-{
-    int i;
-    for ( i = 0; i < vVisited->nSize; i++ )
-        ((Abc_Obj_t *)vVisited->pArray)->fMarkA = 0;
 }
 
 
@@ -274,13 +305,13 @@ DdNode * Abc_NodeConeBdd( DdManager * dd, DdNode ** pbVars, Abc_Obj_t * pNode, V
     DdNode * bFunc0, * bFunc1, * bFunc;
     int i;
     // mark the fanins of the cone
-    Abc_NodeConeMark( vFanins );
+    Abc_NodesMark( vFanins );
     // collect the nodes in the DFS order
     Vec_PtrClear( vVisited );
-    Abc_NodeConeMarkCollect_rec( pNode, vVisited );
+    Abc_NodesMarkCollect_rec( pNode, vVisited );
     // unmark both sets
-    Abc_NodeConeUnmark( vFanins );
-    Abc_NodeConeUnmark( vVisited );
+    Abc_NodesUnmark( vFanins );
+    Abc_NodesUnmark( vVisited );
     // set the elementary BDDs
     Vec_PtrForEachEntry( vFanins, pNode, i )
         pNode->pCopy = (Abc_Obj_t *)pbVars[i];
@@ -302,6 +333,64 @@ DdNode * Abc_NodeConeBdd( DdManager * dd, DdNode ** pbVars, Abc_Obj_t * pNode, V
 
 /**Function*************************************************************
 
+  Synopsis    [Returns BDD representing the transition relation of the cone.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+DdNode * Abc_NodeConeDcs( DdManager * dd, DdNode ** pbVarsX, DdNode ** pbVarsY, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vRoots, Vec_Ptr_t * vVisited )
+{
+    DdNode * bFunc0, * bFunc1, * bFunc, * bTrans, * bTemp, * bCube, * bResult;
+    Abc_Obj_t * pNode;
+    int i;
+    // mark the fanins of the cone
+    Abc_NodesMark( vLeaves );
+    // collect the nodes in the DFS order
+    Vec_PtrClear( vVisited );
+    Vec_PtrForEachEntry( vRoots, pNode, i )
+        Abc_NodesMarkCollect_rec( pNode, vVisited );
+    // unmark both sets
+    Abc_NodesUnmark( vLeaves );
+    Abc_NodesUnmark( vVisited );
+    // set the elementary BDDs
+    Vec_PtrForEachEntry( vLeaves, pNode, i )
+        pNode->pCopy = (Abc_Obj_t *)pbVarsX[i];
+    // compute the BDDs for the collected nodes
+    Vec_PtrForEachEntry( vVisited, pNode, i )
+    {
+        bFunc0 = Cudd_NotCond( Abc_ObjFanin0(pNode)->pCopy, Abc_ObjFaninC0(pNode) );
+        bFunc1 = Cudd_NotCond( Abc_ObjFanin1(pNode)->pCopy, Abc_ObjFaninC1(pNode) );
+        bFunc  = Cudd_bddAnd( dd, bFunc0, bFunc1 );    Cudd_Ref( bFunc );
+        pNode->pCopy = (Abc_Obj_t *)bFunc;
+    }
+    // compute the transition relation of the cone
+    bTrans = b1;    Cudd_Ref( bTrans );
+    Vec_PtrForEachEntry( vRoots, pNode, i )
+    {
+        bFunc = Cudd_bddXnor( dd, (DdNode *)pNode->pCopy, pbVarsY[i] );  Cudd_Ref( bFunc );
+        bTrans = Cudd_bddAnd( dd, bTemp = bTrans, bFunc );               Cudd_Ref( bTrans );
+        Cudd_RecursiveDeref( dd, bTemp );
+        Cudd_RecursiveDeref( dd, bFunc );
+    }
+    // dereference the intermediate ones
+    Vec_PtrForEachEntry( vVisited, pNode, i )
+        Cudd_RecursiveDeref( dd, (DdNode *)pNode->pCopy );
+    // compute don't-cares
+    bCube = Extra_bddComputeRangeCube( dd, vRoots->nSize, vRoots->nSize + vLeaves->nSize );  Cudd_Ref( bCube );
+    bResult = Cudd_bddExistAbstract( dd, bTrans, bCube );                Cudd_Ref( bResult );
+    bResult = Cudd_Not( bResult );
+    Cudd_RecursiveDeref( dd, bCube );
+    Cudd_RecursiveDeref( dd, bTrans );
+    Cudd_Deref( bResult );
+    return bResult;
+}
+ 
+/**Function*************************************************************
+
   Synopsis    [Starts the resynthesis manager.]
 
   Description []
@@ -317,9 +406,7 @@ Abc_ManCut_t * Abc_NtkManCutStart( int nNodeSizeMax, int nConeSizeMax )
     p = ALLOC( Abc_ManCut_t, 1 );
     memset( p, 0, sizeof(Abc_ManCut_t) );
     p->vFaninsNode  = Vec_PtrAlloc( 100 );
-    p->vInsideNode  = Vec_PtrAlloc( 100 );
     p->vFaninsCone  = Vec_PtrAlloc( 100 );
-    p->vInsideCone  = Vec_PtrAlloc( 100 );
     p->vVisited     = Vec_PtrAlloc( 100 );
     p->nNodeSizeMax = nNodeSizeMax;
     p->nConeSizeMax = nConeSizeMax;
@@ -340,13 +427,26 @@ Abc_ManCut_t * Abc_NtkManCutStart( int nNodeSizeMax, int nConeSizeMax )
 void Abc_NtkManCutStop( Abc_ManCut_t * p )
 {
     Vec_PtrFree( p->vFaninsNode );
-    Vec_PtrFree( p->vInsideNode );
     Vec_PtrFree( p->vFaninsCone );
-    Vec_PtrFree( p->vInsideCone );
     Vec_PtrFree( p->vVisited    );
     free( p );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns the leaves of the cone.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_NtkManCutReadLeaves( Abc_ManCut_t * p )
+{
+    return p->vFaninsCone;
+}
 
 
 

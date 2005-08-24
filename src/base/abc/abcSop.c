@@ -355,6 +355,82 @@ int Abc_SopGetPhase( char * pSop )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the i-th literal of the cover.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_SopGetIthCareLit( char * pSop, int i )
+{
+    char * pCube;
+    int nVars, c;
+    nVars = Abc_SopGetVarNum( pSop );
+    for ( c = 0; ; c++ )
+    {
+        // get the cube
+        pCube = pSop + c * (nVars + 3);
+        if ( *pCube == 0 )
+            break;
+        // get the literal
+        if ( pCube[i] != '-' )
+            return pCube[i] - '0';
+    }
+    return -1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_SopComplement( char * pSop )
+{
+    char * pCur;
+    for ( pCur = pSop; *pCur; pCur++ )
+        if ( *pCur == '\n' )
+        {
+            if ( *(pCur - 1) == '0' )
+                *(pCur - 1) = '1';
+            else if ( *(pCur - 1) == '1' )
+                *(pCur - 1) = '0';
+            else
+                assert( 0 );
+        }
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+bool Abc_SopIsComplement( char * pSop )
+{
+    char * pCur;
+    for ( pCur = pSop; *pCur; pCur++ )
+        if ( *pCur == '\n' )
+            return (int)(*(pCur - 1) == '0');
+    assert( 0 );
+    return 0;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Checks if the cover is constant 0.]
 
   Description []
@@ -477,61 +553,6 @@ bool Abc_SopIsOrType( char * pSop )
             return 0;
     }
     return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Returns the i-th literal of the cover.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_SopGetIthCareLit( char * pSop, int i )
-{
-    char * pCube;
-    int nVars, c;
-    nVars = Abc_SopGetVarNum( pSop );
-    for ( c = 0; ; c++ )
-    {
-        // get the cube
-        pCube = pSop + c * (nVars + 3);
-        if ( *pCube == 0 )
-            break;
-        // get the literal
-        if ( pCube[i] != '-' )
-            return pCube[i] - '0';
-    }
-    return -1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_SopComplement( char * pSop )
-{
-    char * pCur;
-    for ( pCur = pSop; *pCur; pCur++ )
-        if ( *pCur == '\n' )
-        {
-            if ( *(pCur - 1) == '0' )
-                *(pCur - 1) = '1';
-            else if ( *(pCur - 1) == '1' )
-                *(pCur - 1) = '0';
-            else
-                assert( 0 );
-        }
 }
 
 /**Function*************************************************************

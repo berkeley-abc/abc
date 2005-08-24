@@ -101,6 +101,7 @@ struct Abc_Time_t_
 struct Abc_Obj_t_ // 12 words
 {
     // high-level information
+    Abc_Ntk_t *      pNtk;          // the host network
     unsigned         Type    :  4;  // the object type
     unsigned         fExor   :  1;  // marks AIG node that is a root of EXOR
     unsigned         Id      : 27;  // the ID of the object
@@ -115,7 +116,6 @@ struct Abc_Obj_t_ // 12 words
     Vec_Fan_t        vFanins;       // the array of fanins
     Vec_Fan_t        vFanouts;      // the array of fanouts
     // miscellaneous
-    Abc_Ntk_t *      pNtk;          // the host network
     void *           pData;         // the network specific data (SOP, BDD, gate, equiv class, etc)
     Abc_Obj_t *      pNext;         // the next pointer in the hash table
     Abc_Obj_t *      pCopy;         // the copy of this object
@@ -381,6 +381,7 @@ extern void               Abc_AigReplace( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Ab
 extern void               Abc_AigDeleteNode( Abc_Aig_t * pMan, Abc_Obj_t * pOld );
 extern bool               Abc_AigNodeHasComplFanoutEdge( Abc_Obj_t * pNode );
 extern bool               Abc_AigNodeHasComplFanoutEdgeTrav( Abc_Obj_t * pNode );
+extern void               Abc_AigPrintNode( Abc_Obj_t * pNode );
 /*=== abcAttach.c ==========================================================*/
 extern int                Abc_NtkAttach( Abc_Ntk_t * pNtk );
 /*=== abcCheck.c ==========================================================*/
@@ -495,12 +496,15 @@ extern void               Abc_NodePrintLevel( FILE * pFile, Abc_Obj_t * pNode );
 /*=== abcReconv.c ==========================================================*/
 extern Abc_ManCut_t *     Abc_NtkManCutStart( int nNodeSizeMax, int nConeSizeMax );
 extern void               Abc_NtkManCutStop( Abc_ManCut_t * p );
-extern Vec_Ptr_t *        Abc_NodeFindCut( Abc_ManCut_t * p, Abc_Obj_t * pRoot );
+extern Vec_Ptr_t *        Abc_NtkManCutReadLeaves( Abc_ManCut_t * p );
+extern Vec_Ptr_t *        Abc_NodeFindCut( Abc_ManCut_t * p, Abc_Obj_t * pRoot, bool fContain );
 extern DdNode *           Abc_NodeConeBdd( DdManager * dd, DdNode ** pbVars, Abc_Obj_t * pNode, Vec_Ptr_t * vFanins, Vec_Ptr_t * vVisited );
+extern DdNode *           Abc_NodeConeDcs( DdManager * dd, DdNode ** pbVarsX, DdNode ** pbVarsY, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vRoots, Vec_Ptr_t * vVisited );
 extern void               Abc_NodeCollectTfoCands( Abc_Ntk_t * pNtk, Abc_Obj_t * pRoot, Vec_Ptr_t * vFanins, int LevelMax, Vec_Vec_t * vLevels, Vec_Ptr_t * vResult );
 /*=== abcRefs.c ==========================================================*/
 extern int                Abc_NodeMffcSize( Abc_Obj_t * pNode );
 extern int                Abc_NodeMffcLabel( Abc_Obj_t * pNode );
+extern Vec_Ptr_t *        Abc_NodeMffcCollect( Abc_Obj_t * pNode );
 extern void               Abc_NodeUpdate( Abc_Obj_t * pNode, Vec_Ptr_t * vFanins, Vec_Int_t * vForm, int nGain );
 /*=== abcRenode.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkRenode( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax, int fCnf, int fMulti, int fSimple );
@@ -531,21 +535,22 @@ extern int                Abc_SopGetCubeNum( char * pSop );
 extern int                Abc_SopGetLitNum( char * pSop );
 extern int                Abc_SopGetVarNum( char * pSop );
 extern int                Abc_SopGetPhase( char * pSop );
+extern int                Abc_SopGetIthCareLit( char * pSop, int i );
+extern void               Abc_SopComplement( char * pSop );
+extern bool               Abc_SopIsComplement( char * pSop );
 extern bool               Abc_SopIsConst0( char * pSop );
 extern bool               Abc_SopIsConst1( char * pSop );
 extern bool               Abc_SopIsBuf( char * pSop );
 extern bool               Abc_SopIsInv( char * pSop );
 extern bool               Abc_SopIsAndType( char * pSop );
 extern bool               Abc_SopIsOrType( char * pSop );
-extern int                Abc_SopGetIthCareLit( char * pSop, int i );
-extern void               Abc_SopComplement( char * pSop );
 extern bool               Abc_SopCheck( char * pSop, int nFanins );
 extern void               Abc_SopWriteCnf( FILE * pFile, char * pClauses, Vec_Int_t * vVars );
 extern void               Abc_SopAddCnfToSolver( solver * pSat, char * pClauses, Vec_Int_t * vVars, Vec_Int_t * vTemp );
 /*=== abcStrash.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes );
 extern Abc_Obj_t *        Abc_NodeStrashDec( Abc_Aig_t * pMan, Vec_Ptr_t * vFanins, Vec_Int_t * vForm );
-extern int                Abc_NodeStrashDecCount( Abc_Aig_t * pMan, Vec_Ptr_t * vFanins, Vec_Int_t * vForm, Vec_Int_t * vLevels, int NodeMax, int LevelMax );
+extern int                Abc_NodeStrashDecCount( Abc_Aig_t * pMan, Abc_Obj_t * pRoot, Vec_Ptr_t * vFanins, Vec_Int_t * vForm, Vec_Int_t * vLevels, int NodeMax, int LevelMax );
 extern int                Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 );
 extern Abc_Ntk_t *        Abc_NtkBalance( Abc_Ntk_t * pNtk, bool fDuplicate );
 /*=== abcSweep.c ==========================================================*/

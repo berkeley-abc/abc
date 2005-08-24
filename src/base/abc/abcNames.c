@@ -73,9 +73,11 @@ char * Abc_NtkRegisterNamePlus( Abc_Ntk_t * pNtk, char * pName, char * pSuffix )
 
 /**Function*************************************************************
 
-  Synopsis    [Gets the long name of the node.]
+  Synopsis    [Gets the long name of the object.]
 
-  Description [This name is the output net's name.]
+  Description [The temporary name is stored in a static buffer inside this
+  procedure. It is important that the name is used before the function is 
+  called again!]
                
   SideEffects []
 
