@@ -626,9 +626,49 @@ void Abc_NodeDelayTraceArrival( Abc_Obj_t * pNode )
     pTimeOut->Worst = ABC_MAX( pTimeOut->Rise, pTimeOut->Fall );
 }
 
+
+
+
 /**Function*************************************************************
 
-  Synopsis    [Creates the array of required times.]
+  Synopsis    [Prepares the AIG for the comptuation of required levels.]
+
+  Description [This procedure should be called before the required times
+  are used. It starts internal data structures, which records the level 
+  from the COs of the AIG nodes in reverse topologogical order.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkStartReverseLevels( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vNodes;
+    Abc_Obj_t * pObj, * pFanout;
+    int i, k, nLevelsCur;
+    assert( Abc_NtkIsAig(pNtk) );
+    // remember the maximum number of direct levels
+    pNtk->LevelMax = Abc_AigGetLevelNum(pNtk);
+    // start the reverse levels
+    pNtk->vLevelsR = Vec_IntAlloc( 0 );
+    Vec_IntFill( pNtk->vLevelsR, Abc_NtkObjNumMax(pNtk), 0 );
+    // compute levels in reverse topological order
+    vNodes = Abc_NtkDfsReverse( pNtk );
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+    {
+        nLevelsCur = 0;
+        Abc_ObjForEachFanout( pObj, pFanout, k )
+            if ( nLevelsCur < Vec_IntEntry(pNtk->vLevelsR, pFanout->Id) )
+                nLevelsCur = Vec_IntEntry(pNtk->vLevelsR, pFanout->Id);
+        Vec_IntWriteEntry( pNtk->vLevelsR, pObj->Id, nLevelsCur + 1 );
+    }
+    Vec_PtrFree( vNodes );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Cleans the data structures used to compute required levels.]
 
   Description []
                
@@ -637,36 +677,75 @@ void Abc_NodeDelayTraceArrival( Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Abc_NtkGetRequiredLevels( Abc_Ntk_t * pNtk )
+void Abc_NtkStopReverseLevels( Abc_Ntk_t * pNtk )
 {
-    Vec_Int_t * vReqTimes;
-    Vec_Ptr_t * vNodes;
-    Abc_Obj_t * pObj, * pFanout;
-    int i, k, nLevelsMax, nLevelsCur;
-    // start the required times
-    vReqTimes = Vec_IntAlloc( 0 );
-    Vec_IntFill( vReqTimes, Abc_NtkObjNumMax(pNtk), ABC_INFINITY );
-    // compute levels in reverse topological order
-    Abc_NtkForEachCo( pNtk, pObj, i )
-        Vec_IntWriteEntry( vReqTimes, pObj->Id, 0 );
-    vNodes = Abc_NtkDfsReverse( pNtk );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
-    {
-        nLevelsCur = 0;
-        Abc_ObjForEachFanout( pObj, pFanout, k )
-            if ( nLevelsCur < Vec_IntEntry(vReqTimes, pFanout->Id) )
-                nLevelsCur = Vec_IntEntry(vReqTimes, pFanout->Id);
-        Vec_IntWriteEntry( vReqTimes, pObj->Id, nLevelsCur + 1 );
-    }
-    Vec_PtrFree( vNodes );
-    // convert levels into required times: RetTime = NumLevels + 1 - Level
-    nLevelsMax = Abc_AigGetLevelNum(pNtk) + 1;
-    Abc_NtkForEachNode( pNtk, pObj, i )
-        Vec_IntWriteEntry( vReqTimes, pObj->Id, nLevelsMax - Vec_IntEntry(vReqTimes, pObj->Id) );
-//    Abc_NtkForEachNode( pNtk, pObj, i )
-//        printf( "(%d,%d)", pObj->Level, Vec_IntEntry(vReqTimes, pObj->Id) );
-//    printf( "\n" );
-    return vReqTimes;
+    assert( pNtk->vLevelsR );
+    Vec_IntFree( pNtk->vLevelsR );
+    pNtk->vLevelsR = NULL;
+    pNtk->LevelMax = 0;
+
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sets the reverse level of the node.]
+
+  Description [The reverse level is the level of the node in reverse
+  topological order, starting from the COs.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NodeSetReverseLevel( Abc_Obj_t * pObj, int LevelR )
+{
+    Abc_Ntk_t * pNtk = pObj->pNtk;
+    assert( Abc_NtkIsAig(pNtk) );
+    assert( pNtk->vLevelsR );
+    Vec_IntFillExtra( pNtk->vLevelsR, pObj->Id + 1, 0 );
+    Vec_IntWriteEntry( pNtk->vLevelsR, pObj->Id, LevelR );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the reverse level of the node.]
+
+  Description [The reverse level is the level of the node in reverse
+  topological order, starting from the COs.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NodeReadReverseLevel( Abc_Obj_t * pObj )
+{
+    Abc_Ntk_t * pNtk = pObj->pNtk;
+    assert( Abc_NtkIsAig(pNtk) );
+    assert( pNtk->vLevelsR );
+    Vec_IntFillExtra( pNtk->vLevelsR, pObj->Id + 1, 0 );
+    return Vec_IntEntry(pNtk->vLevelsR, pObj->Id);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns required level of the node.]
+
+  Description [Converts the reverse levels of the node into its required 
+  level as follows: ReqLevel(Node) = MaxLevels(Ntk) + 1 - LevelR(Node).]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NodeReadRequiredLevel( Abc_Obj_t * pObj )
+{
+    Abc_Ntk_t * pNtk = pObj->pNtk;
+    assert( Abc_NtkIsAig(pNtk) );
+    assert( pNtk->vLevelsR );
+    return pNtk->LevelMax + 1 - Vec_IntEntry(pNtk->vLevelsR, pObj->Id);
 }
 
 ////////////////////////////////////////////////////////////////////////

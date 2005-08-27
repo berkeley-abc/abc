@@ -39,8 +39,8 @@
 typedef struct Vec_Str_t_       Vec_Str_t;
 struct Vec_Str_t_ 
 {
-    int              nSize;
     int              nCap;
+    int              nSize;
     char *           pArray;
 };
 

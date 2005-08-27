@@ -144,8 +144,13 @@ struct Abc_Ntk_t_
     int              nPos;          // the number of primary outputs
     // the functionality manager 
     void *           pManFunc;      // AIG manager, BDD manager, or memory manager for SOPs
-    // the timing manager
+    // the timing manager (for mapped networks)
     Abc_ManTime_t *  pManTime;      // stores arrival/required times for all nodes
+    // the cut manager (for AIGs)
+    void *           pManCut;       // stores information about the cuts computed for the nodes
+    // level information (for AIGs)
+    int              LevelMax;      // maximum number of levels
+    Vec_Int_t *      vLevelsR;       // level in the reverse topological order 
     // the external don't-care if given
     Abc_Ntk_t *      pExdc;         // the EXDC network
     // miscellaneous data members
@@ -423,6 +428,11 @@ extern Abc_Obj_t *        Abc_NodeCreateAnd( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFani
 extern Abc_Obj_t *        Abc_NodeCreateOr( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins );
 extern Abc_Obj_t *        Abc_NodeCreateMux( Abc_Ntk_t * pNtk, Abc_Obj_t * pNodeC, Abc_Obj_t * pNode1, Abc_Obj_t * pNode0 );
 extern Abc_Obj_t *        Abc_NodeClone( Abc_Obj_t * pNode );
+/*=== abcCut.c ==========================================================*/
+extern void *             Abc_NodeGetCutsRecursive( void * p, Abc_Obj_t * pObj );
+extern void *             Abc_NodeGetCuts( void * p, Abc_Obj_t * pObj );
+extern void *             Abc_NodeReadCuts( void * p, Abc_Obj_t * pObj );
+extern void               Abc_NodeFreeCuts( void * p, Abc_Obj_t * pObj );
 /*=== abcDfs.c ==========================================================*/
 extern Vec_Ptr_t *        Abc_NtkDfs( Abc_Ntk_t * pNtk, int fCollectAll );
 extern Vec_Ptr_t *        Abc_NtkDfsNodes( Abc_Ntk_t * pNtk, Abc_Obj_t ** ppNodes, int nNodes );
@@ -572,7 +582,11 @@ extern void               Abc_NtkSetNodeLevelsArrival( Abc_Ntk_t * pNtk );
 extern float *            Abc_NtkGetCiArrivalFloats( Abc_Ntk_t * pNtk );
 extern Abc_Time_t *       Abc_NtkGetCiArrivalTimes( Abc_Ntk_t * pNtk );
 extern float              Abc_NtkDelayTrace( Abc_Ntk_t * pNtk );
-extern Vec_Int_t *        Abc_NtkGetRequiredLevels( Abc_Ntk_t * pNtk );
+extern void               Abc_NtkStartReverseLevels( Abc_Ntk_t * pNtk );
+extern void               Abc_NtkStopReverseLevels( Abc_Ntk_t * pNtk );
+extern void               Abc_NodeSetReverseLevel( Abc_Obj_t * pObj, int LevelR );
+extern int                Abc_NodeReadReverseLevel( Abc_Obj_t * pObj );
+extern int                Abc_NodeReadRequiredLevel( Abc_Obj_t * pObj );
 /*=== abcTravId.c ==========================================================*/
 extern void               Abc_NtkIncrementTravId( Abc_Ntk_t * pNtk );
 extern void               Abc_NodeSetTravId( Abc_Obj_t * pObj, int TravId );
@@ -609,6 +623,7 @@ extern void               Abc_NodeFreeFaninNames( Vec_Ptr_t * vNames );
 extern char **            Abc_NtkCollectCioNames( Abc_Ntk_t * pNtk, int fCollectCos );
 extern void               Abc_NtkAlphaOrderSignals( Abc_Ntk_t * pNtk, int fComb );
 extern void               Abc_NtkShortNames( Abc_Ntk_t * pNtk );
+extern Vec_Int_t *        Abc_NtkFanoutCounts( Abc_Ntk_t * pNtk );
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

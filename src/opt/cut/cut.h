@@ -99,6 +99,7 @@ extern void             Cut_NodeWriteCuts( Cut_Man_t * p, int Node, Cut_Cut_t * 
 extern void             Cut_NodeFreeCuts( Cut_Man_t * p, int Node );
 extern void             Cut_NodeSetComputedAsNew( Cut_Man_t * p, int Node );
 extern void             Cut_NodeTryDroppingCuts( Cut_Man_t * p, int Node );
+extern void             Cut_CutPrint( Cut_Cut_t * pCut );
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

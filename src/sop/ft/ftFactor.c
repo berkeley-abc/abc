@@ -39,7 +39,6 @@ static Ft_Node_t *       Ft_FactorTrivialCubeCascade( Vec_Int_t * vForm, Mvc_Cov
 static Ft_Node_t *       Ft_FactorNodeCreate( Vec_Int_t * vForm, int Type, Ft_Node_t * pNode1, Ft_Node_t * pNode2 );
 static Ft_Node_t *       Ft_FactorLeafCreate( Vec_Int_t * vForm, int iLit );
 static void              Ft_FactorFinalize( Vec_Int_t * vForm, Ft_Node_t * pNode, int nVars );
-static Vec_Int_t *       Ft_FactorConst( int fConst1 );
 
 // temporary procedures that work with the covers
 static Mvc_Cover_t *     Ft_ConvertSopToMvc( char * pSop );
@@ -320,6 +319,8 @@ Ft_Node_t * Ft_FactorTrivialTree_rec( Vec_Int_t * vForm, Ft_Node_t ** ppNodes, i
         return ppNodes[0];
 
     // split the nodes into two parts
+//    nNodes1 = nNodes/2;
+//    nNodes2 = nNodes - nNodes1;
     nNodes2 = nNodes/2;
     nNodes1 = nNodes - nNodes2;
 
@@ -610,6 +611,32 @@ Vec_Int_t * Ft_FactorConst( int fConst1 )
     pNode->fIntern = 1;
     pNode->fConst  = 1;
     pNode->fCompl  = !fConst1;
+    return vForm;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates a constant 0 or 1 factored form.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Ft_FactorVar( int iVar, int nVars, int fCompl )
+{
+    Vec_Int_t * vForm;
+    Ft_Node_t * pNode;
+    // create the elementary variable node
+    vForm = Vec_IntAlloc( nVars + 1 );
+    Vec_IntFill( vForm, nVars + 1, 0 );
+    pNode = Ft_NodeReadLast( vForm );
+    pNode->iFanin0 = iVar;
+    pNode->iFanin1 = iVar;
+    pNode->fIntern = 1;
+    pNode->fCompl  = fCompl;
     return vForm;
 }
 

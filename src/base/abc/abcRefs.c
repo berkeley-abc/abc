@@ -124,10 +124,7 @@ int Abc_NodeRefDeref( Abc_Obj_t * pNode, bool fReference, bool fLabel, Vec_Ptr_t
     int Counter;
     // label visited nodes
     if ( fLabel )
-    {
         Abc_NodeSetTravIdCurrent( pNode );
-//printf( "Labeling " );  Abc_AigPrintNode( pNode );
-    }
     // collect visited nodes
     if ( vNodes )
         Vec_PtrPush( vNodes, pNode );

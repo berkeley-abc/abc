@@ -24,8 +24,6 @@
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
- 
-static Vec_Int_t * Abc_NtkFanoutCounts( Abc_Ntk_t * pNtk );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -78,8 +76,7 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
         if ( Abc_NodeIsConst(pObj) )
             continue;
         // compute the cuts to the internal node
-        Cut_NodeComputeCuts( p, pObj->Id, Abc_ObjFaninId0(pObj), Abc_ObjFaninId1(pObj),  
-            Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj) );  
+        Abc_NodeGetCuts( p, pObj );  
         // add cuts due to choices
         if ( Abc_NodeIsAigChoice(pObj) )
         {
@@ -118,7 +115,7 @@ PRT( "Total", clock() - clk );
 
 /**Function*************************************************************
 
-  Synopsis    [Creates the array of fanout counters.]
+  Synopsis    [Computes the cuts for the network.]
 
   Description []
                
@@ -127,27 +124,63 @@ PRT( "Total", clock() - clk );
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Abc_NtkFanoutCounts( Abc_Ntk_t * pNtk )
+void * Abc_NodeGetCutsRecursive( void * p, Abc_Obj_t * pObj )
 {
-    Vec_Int_t * vFanNums;
-    Abc_Obj_t * pObj;//, * pFanout;
-    int i;//, k, nFanouts;
-    vFanNums = Vec_IntAlloc( 0 );
-    Vec_IntFill( vFanNums, Abc_NtkObjNumMax(pNtk), -1 );
-    Abc_NtkForEachObj( pNtk, pObj, i )
-        if ( Abc_ObjIsCi(pObj) || Abc_ObjIsNode(pObj) )
-        {
-            Vec_IntWriteEntry( vFanNums, i, Abc_ObjFanoutNum(pObj) );
-/*
-            // get the number of non-CO fanouts
-            nFanouts = 0;
-            Abc_ObjForEachFanout( pObj, pFanout, k )
-                if ( !Abc_ObjIsCo(pFanout) )
-                    nFanouts++;
-            Vec_IntWriteEntry( vFanNums, i, nFanouts );
-*/
-        }
-    return vFanNums;
+    void * pList;
+    if ( pList = Abc_NodeReadCuts( p, pObj ) )
+        return pList;
+    Abc_NodeGetCutsRecursive( p, Abc_ObjFanin0(pObj) );
+    Abc_NodeGetCutsRecursive( p, Abc_ObjFanin1(pObj) );
+    return Abc_NodeGetCuts( p, pObj );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the cuts for the network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void * Abc_NodeGetCuts( void * p, Abc_Obj_t * pObj )
+{
+    return Cut_NodeComputeCuts( p, pObj->Id, Abc_ObjFaninId0(pObj), Abc_ObjFaninId1(pObj),  
+        Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj) );  
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the cuts for the network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void * Abc_NodeReadCuts( void * p, Abc_Obj_t * pObj )
+{
+    return Cut_NodeReadCuts( p, pObj->Id );  
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the cuts for the network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NodeFreeCuts( void * p, Abc_Obj_t * pObj )
+{
+    Cut_NodeFreeCuts( p, pObj->Id );
 }
 
 ////////////////////////////////////////////////////////////////////////

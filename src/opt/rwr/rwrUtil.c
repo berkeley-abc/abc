@@ -87,7 +87,7 @@ void Rwr_ManWriteToArray( Rwr_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Rwr_ManLoadFromArray( Rwr_Man_t * p )
+void Rwr_ManLoadFromArray( Rwr_Man_t * p, int fVerbose )
 {
     unsigned short * pArray = s_RwtAigSubgraphs;
     Rwr_Node_t * p0, * p1;
@@ -119,8 +119,11 @@ void Rwr_ManLoadFromArray( Rwr_Man_t * p )
         Rwr_ManAddNode( p, p0, p1, fExor, Level, Volume + fExor );
     }
     nEntries = i - 1;
-    printf( "The number of classes = %d. Canonical nodes = %d.\n", p->nClasses, p->nAdded );
-    printf( "The number of nodes loaded = %d.  ", nEntries );  PRT( "Loading", clock() - clk );
+    if ( fVerbose )
+    {
+        printf( "The number of classes = %d. Canonical nodes = %d.\n", p->nClasses, p->nAdded );
+        printf( "The number of nodes loaded = %d.  ", nEntries );  PRT( "Loading", clock() - clk );
+    }
 }
 
 

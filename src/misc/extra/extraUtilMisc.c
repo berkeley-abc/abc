@@ -674,7 +674,7 @@ void Extra_Truth4VarNPN( unsigned short ** puCanons, char ** puPhases, char ** p
         if ( uCanons[uTruth] )
         {
             assert( uTruth > uCanons[uTruth] );
-            uMap[uTruth] = uMap[uCanons[uTruth]];
+            uMap[~uTruth & 0xFFFF] = uMap[uTruth] = uMap[uCanons[uTruth]];
             continue;
         }
         uMap[uTruth] = nClasses++;

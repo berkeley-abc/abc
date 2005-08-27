@@ -141,8 +141,9 @@ void Cut_ManPrintStats( Cut_Man_t * p )
     printf( "Peak cuts         = %8d.\n", p->nCutsPeak );
     printf( "Total allocated   = %8d.\n", p->nCutsAlloc );
     printf( "Total deallocated = %8d.\n", p->nCutsDealloc );
-    printf( "The cut size      = %3d bytes.\n", p->EntrySize );
-    printf( "Peak memory       = %.2f Mb.\n", (float)p->nCutsPeak * p->EntrySize / (1<<20) );
+    printf( "Cuts per node     = %8.1f\n", ((float)(p->nCutsCur-p->nCutsTriv))/p->nNodes );
+    printf( "The cut size      = %8d bytes.\n", p->EntrySize );
+    printf( "Peak memory       = %8.2f Mb.\n", (float)p->nCutsPeak * p->EntrySize / (1<<20) );
     PRT( "Merge ", p->timeMerge );
     PRT( "Union ", p->timeUnion );
     PRT( "Hash  ", Cut_TableReadTime(p->tTable) );

@@ -20,10 +20,14 @@
 
 #include "abc.h"
 #include "rwr.h"
+#include "ft.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
+
+static Cut_Man_t * Abc_NtkStartCutManForRewrite( Abc_Ntk_t * pNtk, int fDrop );
+static void        Abc_NodePrintCuts( Abc_Obj_t * pNode );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -40,20 +44,28 @@
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRewrite( Abc_Ntk_t * pNtk )
+int Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUseZeros, int fVerbose )
 {
     int fCheck = 1;
+    int fDrop = 0;
     ProgressBar * pProgress;
-    Rwr_Man_t * p;
+    Cut_Man_t * pManCut;
+    Rwr_Man_t * pManRwr;
     Abc_Obj_t * pNode;
     int i, nNodes, nGain;
+    int clk, clkStart = clock();
 
     assert( Abc_NtkIsAig(pNtk) );
     // start the rewriting manager
-    p = Rwr_ManStart( 0 );
-    if ( p == NULL )
+    pManRwr = Rwr_ManStart( 0 );
+    if ( pManRwr == NULL )
         return 0;
-    Rwr_ManPrepareNetwork( p, pNtk );
+    Abc_NtkStartReverseLevels( pNtk );
+    // start the cut manager
+clk = clock();
+    pManCut = Abc_NtkStartCutManForRewrite( pNtk, fDrop );
+Rwr_ManAddTimeCuts( pManRwr, clock() - clk );
+    pNtk->pManCut = pManCut;
 
     // resynthesize each node once
     nNodes = Abc_NtkObjNumMax(pNtk);
@@ -68,12 +80,28 @@ int Abc_NtkRewrite( Abc_Ntk_t * pNtk )
         if ( Abc_NodeIsConst(pNode) )
             continue;
         // for each cut, try to resynthesize it
-        if ( (nGain = Rwr_NodeRewrite( p, pNode )) >= 0 )
-            Abc_NodeUpdate( pNode, Rwr_ManReadFanins(p), Rwr_ManReadDecs(p), nGain );
+        nGain = Rwr_NodeRewrite( pManRwr, pManCut, pNode, fUseZeros );
+        if ( nGain > 0 || nGain == 0 && fUseZeros )
+        {
+            Vec_Int_t * vForm   = Rwr_ManReadDecs(pManRwr);
+            Vec_Ptr_t * vFanins = Rwr_ManReadFanins(pManRwr);
+            int fCompl          = Rwr_ManReadCompl(pManRwr);
+            // complement the FF if needed
+            if ( fCompl ) Ft_FactorComplement( vForm );
+            Abc_NodeUpdate( pNode, vFanins, vForm, nGain );
+            if ( fCompl ) Ft_FactorComplement( vForm );
+        }
     }
     Extra_ProgressBarStop( pProgress );
-    // delete the manager
-    Rwr_ManStop( p );
+Rwr_ManAddTimeTotal( pManRwr, clock() - clkStart );
+    // print stats
+    if ( fVerbose )
+        Rwr_ManPrintStats( pManRwr );
+    // delete the managers
+    Rwr_ManStop( pManRwr );
+    Cut_ManStop( pManCut );
+    pNtk->pManCut = NULL;
+    Abc_NtkStopReverseLevels( pNtk );
     // check
     if ( fCheck && !Abc_NtkCheck( pNtk ) )
     {
@@ -83,6 +111,70 @@ int Abc_NtkRewrite( Abc_Ntk_t * pNtk )
     return 1;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Starts the cut manager for rewriting.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Cut_Man_t * Abc_NtkStartCutManForRewrite( Abc_Ntk_t * pNtk, int fDrop )
+{
+    static Cut_Params_t Params, * pParams = &Params;
+    Cut_Man_t * pManCut;
+    Abc_Obj_t * pObj;
+    int i;
+    // start the cut manager
+    memset( pParams, 0, sizeof(Cut_Params_t) );
+    pParams->nVarsMax  = 4;     // the max cut size ("k" of the k-feasible cuts)
+    pParams->nKeepMax  = 250;   // the max number of cuts kept at a node
+    pParams->fTruth    = 1;     // compute truth tables
+    pParams->fHash     = 1;     // hash cuts to detect unique
+    pParams->fFilter   = 0;     // filter dominated cuts
+    pParams->fSeq      = 0;     // compute sequential cuts
+    pParams->fDrop     = fDrop; // drop cuts on the fly
+    pParams->fVerbose  = 0;     // the verbosiness flag
+    pParams->nIdsMax   = Abc_NtkObjNumMax( pNtk );
+    pManCut = Cut_ManStart( pParams );
+    if ( pParams->fDrop )
+        Cut_ManSetFanoutCounts( pManCut, Abc_NtkFanoutCounts(pNtk) );
+    // set cuts for PIs
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        if ( Abc_ObjFanoutNum(pObj) > 0 )
+            Cut_NodeSetTriv( pManCut, pObj->Id );
+    return pManCut;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints the cuts at the nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NodePrintCuts( Abc_Obj_t * pNode )
+{
+    Cut_Cut_t * pCut;
+    unsigned uTruth;
+    printf( "\nNode %s\n", Abc_ObjName(pNode) );
+    for ( pCut = (Cut_Cut_t *)pNode->pCopy; pCut; pCut = pCut->pNext )
+    {
+        uTruth = pCut->uTruth;
+        Extra_PrintBinary( stdout, &uTruth, 16 ); 
+        printf( "   " );
+        Cut_CutPrint( pCut );   
+        printf( "\n" );
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

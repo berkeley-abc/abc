@@ -848,7 +848,7 @@ usage:
 int Abc_CommandBalance( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
-    Abc_Ntk_t * pNtk, * pNtkRes;
+    Abc_Ntk_t * pNtk, * pNtkRes, * pNtkTemp;
     int c;
     int fDuplicate;
 
@@ -878,14 +878,25 @@ int Abc_CommandBalance( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Empty network.\n" );
         return 1;
     }
-    if ( !Abc_NtkIsAig(pNtk) )
-    {
-        fprintf( pErr, "Cannot balance a network that is not an AIG.\n" );
-        return 1;
-    }
 
     // get the new network
-    pNtkRes = Abc_NtkBalance( pNtk, fDuplicate );
+    if ( Abc_NtkIsAig(pNtk) )
+    {
+        pNtkRes = Abc_NtkBalance( pNtk, fDuplicate );
+    }
+    else
+    {
+        pNtkTemp = Abc_NtkStrash( pNtk, 0 );
+        if ( pNtkTemp == NULL )
+        {
+            fprintf( pErr, "Strashing before balancing has failed.\n" );
+            return 1;
+        }
+        pNtkRes = Abc_NtkBalance( pNtkTemp, fDuplicate );
+        Abc_NtkDelete( pNtkTemp );
+    }
+
+    // check if balancing worked
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Balancing has failed.\n" );
@@ -897,7 +908,7 @@ int Abc_CommandBalance( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     fprintf( pErr, "usage: balance [-dh]\n" );
-    fprintf( pErr, "\t        transforms an AIG into a well-balanced AIG\n" );
+    fprintf( pErr, "\t        transforms the current network into a well-balanced AIG\n" );
     fprintf( pErr, "\t-d    : toggle duplication of logic [default = %s]\n", fDuplicate? "yes": "no" );
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
@@ -1327,26 +1338,31 @@ int Abc_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
     int c;
-    bool fVerbose;
     bool fPrecompute;
+    bool fUseZeros;
+    bool fVerbose;
     // external functions
     extern void   Rwr_Precompute();
-    extern int    Abc_NtkRewrite( Abc_Ntk_t * pNtk );
+    extern int    Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUseZeros, int fVerbose );
 
     pNtk = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fVerbose    = 0;
     fPrecompute = 0;
+    fUseZeros   = 0;
+    fVerbose    = 0;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "zvh" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "xzvh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'z':
+        case 'x':
             fPrecompute ^= 1;
+            break;
+        case 'z':
+            fUseZeros ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -1381,7 +1397,7 @@ int Abc_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // modify the current network
-    if ( !Abc_NtkRewrite( pNtk ) )
+    if ( !Abc_NtkRewrite( pNtk, fUseZeros, fVerbose ) )
     {
         fprintf( pErr, "Rewriting has failed.\n" );
         return 1;
@@ -1389,8 +1405,9 @@ int Abc_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: rewrite [-vh]\n" );
+    fprintf( pErr, "usage: rewrite [-zvh]\n" );
     fprintf( pErr, "\t         performs technology-independent rewriting of the AIG\n" );
+    fprintf( pErr, "\t-z     : toggle using zero-cost replacements [default = %s]\n", fUseZeros? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -1428,7 +1445,7 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
     nConeSizeMax = 16;
     fUseZeros    =  0;
     fUseDcs      =  0;
-    fVerbose     =  1;
+    fVerbose     =  0;
     util_getopt_reset();
     while ( ( c = util_getopt( argc, argv, "NCzdvh" ) ) != EOF )
     {

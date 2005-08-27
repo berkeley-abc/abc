@@ -70,6 +70,7 @@ struct Cut_ManStruct_t_
     int                nCutsPeak;
     int                nCutsTriv;
     int                nCutsNode;
+    int                nNodes;
     // runtime
     int                timeMerge;
     int                timeUnion;

@@ -39,8 +39,8 @@
 typedef struct Vec_Int_t_       Vec_Int_t;
 struct Vec_Int_t_ 
 {
-    int              nSize;
     int              nCap;
+    int              nSize;
     int *            pArray;
 };
 
@@ -322,9 +322,31 @@ static inline void Vec_IntFill( Vec_Int_t * p, int nSize, int Entry )
 {
     int i;
     Vec_IntGrow( p, nSize );
-    p->nSize = nSize;
-    for ( i = 0; i < p->nSize; i++ )
+    for ( i = 0; i < nSize; i++ )
         p->pArray[i] = Entry;
+    p->nSize = nSize;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Fills the vector with given number of entries.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_IntFillExtra( Vec_Int_t * p, int nSize, int Entry )
+{
+    int i;
+    if ( p->nSize >= nSize )
+        return;
+    Vec_IntGrow( p, nSize );
+    for ( i = p->nSize; i < nSize; i++ )
+        p->pArray[i] = Entry;
+    p->nSize = nSize;
 }
 
 /**Function*************************************************************

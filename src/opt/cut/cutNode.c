@@ -65,6 +65,8 @@ static void               Cut_CutFilter( Cut_Man_t * p, Cut_Cut_t * pList );
 ***********************************************************************/
 Cut_Cut_t * Cut_NodeReadCuts( Cut_Man_t * p, int Node )
 {
+    if ( Node >= p->vCuts->nSize )
+        return NULL;
     return Vec_PtrEntry( p->vCuts, Node );
 }
 
@@ -209,6 +211,7 @@ Cut_Cut_t * Cut_NodeComputeCuts( Cut_Man_t * p, int Node, int Node0, int Node1, 
     }
 finish :
     // set the list at the node
+    Vec_PtrFillExtra( p->vCuts, Node + 1, NULL );
     assert( Cut_NodeReadCuts(p, Node) == NULL );
     pList0 = Cut_ListFinish( &SuperList );
     Cut_NodeWriteCuts( p, Node, pList0 );
@@ -227,6 +230,7 @@ clk = clock();
     if ( p->pParams->fFilter )
         Cut_CutFilter( p, pList0 );
 p->timeFilter += clock() - clk;
+    p->nNodes++;
     return pList0;
 }
 
@@ -387,6 +391,7 @@ clk = clock();
     if ( p->pParams->fFilter )
         Cut_CutFilter( p, pList );
 p->timeFilter += clock() - clk;
+    p->nNodes -= vNodes->nSize - 1;
     return pList;
 }
 
@@ -498,7 +503,7 @@ void Cut_NodeTryDroppingCuts( Cut_Man_t * p, int Node )
 void Cut_CutPrint( Cut_Cut_t * pCut )
 {
     int i;
-    assert( pCut->nLeaves > 1 );
+    assert( pCut->nLeaves > 0 );
     printf( "%d : {", pCut->nLeaves );
     for ( i = 0; i < (int)pCut->nLeaves; i++ )
         printf( " %d", pCut->pLeaves[i] );

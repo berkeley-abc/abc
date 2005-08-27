@@ -95,6 +95,8 @@ extern Vec_Int_t *        Ft_Factor( char * pSop );
 extern int                Ft_FactorGetNumNodes( Vec_Int_t * vForm );
 extern int                Ft_FactorGetNumVars( Vec_Int_t * vForm );
 extern void               Ft_FactorComplement( Vec_Int_t * vForm );
+extern Vec_Int_t *        Ft_FactorConst( int fConst1 );
+extern Vec_Int_t *        Ft_FactorVar( int iVar, int nVars, int fCompl );
 /*=== ftPrint.c =====================================================*/
 extern void               Ft_FactorPrint( FILE * pFile, Vec_Int_t * vForm, char * pNamesIn[], char * pNameOut );
 

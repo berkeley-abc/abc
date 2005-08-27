@@ -1113,7 +1113,7 @@ SOURCE=.\src\opt\rwr\rwr.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\opt\rwr\rwrCut.c
+SOURCE=.\src\opt\rwr\rwrDec.c
 # End Source File
 # Begin Source File
 

@@ -49,14 +49,13 @@ Rwr_Man_t * Rwr_ManStart( bool fPrecompute )
     // canonical forms, phases, perms
 clk = clock();
     Extra_Truth4VarNPN( &p->puCanons, &p->pPhases, &p->pPerms, &p->pMap );
-PRT( "NPN classes precomputation time", clock() - clk ); 
+//PRT( "NPN classes precomputation time", clock() - clk ); 
     // initialize practical NPN classes
     p->pPractical  = Rwr_ManGetPractical( p );
     // create the table
     p->pTable = ALLOC( Rwr_Node_t *, p->nFuncs );
     memset( p->pTable, 0, sizeof(Rwr_Node_t *) * p->nFuncs );
     // create the elementary nodes
-    assert( sizeof(Rwr_Node_t) == sizeof(Rwr_Cut_t) );
     p->pMmNode  = Extra_MmFixedStart( sizeof(Rwr_Node_t) );
     p->vForest  = Vec_PtrAlloc( 100 );
     Rwr_ManAddVar( p, 0x0000, fPrecompute ); // constant 0
@@ -66,10 +65,11 @@ PRT( "NPN classes precomputation time", clock() - clk );
     Rwr_ManAddVar( p, 0xFF00, fPrecompute ); // var D
     p->nClasses = 5;
     // other stuff
-    p->nTravIds = 1;
-    p->puPerms43 = Extra_TruthPerm43();
-    p->vLevNums  = Vec_IntAlloc( 50 );
-    p->vFanins   = Vec_PtrAlloc( 50 );
+    p->nTravIds   = 1;
+    p->pPerms4    = Extra_Permutations( 4 );
+    p->vLevNums   = Vec_IntAlloc( 50 );
+    p->vFanins    = Vec_PtrAlloc( 50 );
+    p->vFaninsCur = Vec_PtrAlloc( 50 );
     if ( fPrecompute )
     {   // precompute subgraphs
         Rwr_ManPrecompute( p );
@@ -78,11 +78,11 @@ PRT( "NPN classes precomputation time", clock() - clk );
     }
     else
     {   // load saved subgraphs
-        Rwr_ManLoadFromArray( p );
-//        Rwr_ManPrint( p );
+        Rwr_ManLoadFromArray( p, 0 );
+        Rwr_ManPrint( p );
         Rwr_ManPreprocess( p );
-        return NULL;
     }
+p->timeStart = clock() - clk;
     return p;
 }
 
@@ -106,21 +106,60 @@ void Rwr_ManStop( Rwr_Man_t * p )
         Vec_VecForEachEntry( p->vClasses, pNode, i, k )
             Vec_IntFree( (Vec_Int_t *)pNode->pNext );
     }
-    if ( p->vFanNums )  Vec_IntFree( p->vFanNums );
-    if ( p->vReqTimes ) Vec_IntFree( p->vReqTimes );
     if ( p->vClasses )  Vec_VecFree( p->vClasses );
     Vec_PtrFree( p->vForest );
     Vec_IntFree( p->vLevNums );
     Vec_PtrFree( p->vFanins );
+    Vec_PtrFree( p->vFaninsCur );
     Extra_MmFixedStop( p->pMmNode, 0 );
     free( p->pTable );
     free( p->pPractical );
-    free( p->puPerms43 );
+    free( p->pPerms4 );
     free( p->puCanons );
     free( p->pPhases );
     free( p->pPerms );
     free( p->pMap );
     free( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Stops the resynthesis manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Rwr_ManPrintStats( Rwr_Man_t * p )
+{
+    int i, Counter = 0;
+    for ( i = 0; i < 222; i++ )
+        Counter += (p->nScores[i] > 0);
+
+    printf( "Rewriting statistics:\n" );
+    printf( "Total cuts tries  = %8d.\n", p->nCutsGood );
+    printf( "Bad cuts found    = %8d.\n", p->nCutsBad );
+    printf( "Total subgraphs   = %8d.\n", p->nSubgraphs );
+    printf( "Used NPN classes  = %8d.\n", Counter );
+    printf( "Nodes considered  = %8d.\n", p->nNodesConsidered );
+    printf( "Nodes rewritten   = %8d.\n", p->nNodesRewritten );
+    printf( "Calculated gain   = %8d.\n", p->nNodesGained     );
+    PRT( "Start       ", p->timeStart );
+    PRT( "Cuts        ", p->timeCut );
+    PRT( "Resynthesis ", p->timeRes );
+    PRT( "    Eval    ", p->timeEval );
+    PRT( "TOTAL       ", p->timeTotal );
+
+/*
+    printf( "The scores are : " );
+    for ( i = 0; i < 222; i++ )
+        if ( p->nScores[i] > 0 )
+            printf( "%d=%d ", i, p->nScores[i] );
+    printf( "\n" );
+*/
 }
 
 /**Function*************************************************************
@@ -137,11 +176,11 @@ void Rwr_ManStop( Rwr_Man_t * p )
 void Rwr_ManPrepareNetwork( Rwr_Man_t * p, Abc_Ntk_t * pNtk )
 {
     // save the fanout counters for all internal nodes
-    p->vFanNums = Rwt_NtkFanoutCounters( pNtk );
+//    p->vFanNums = Rwt_NtkFanoutCounters( pNtk );
     // precompute the required times for all internal nodes
-    p->vReqTimes = Abc_NtkGetRequiredLevels( pNtk );
+//    p->vReqTimes = Abc_NtkGetRequiredLevels( pNtk );
     // start the cut computation
-    Rwr_NtkStartCuts( p, pNtk );
+//    Rwr_NtkStartCuts( p, pNtk );
 }
 
 /**Function*************************************************************
@@ -174,6 +213,54 @@ Vec_Ptr_t * Rwr_ManReadFanins( Rwr_Man_t * p )
 Vec_Int_t * Rwr_ManReadDecs( Rwr_Man_t * p )
 {
     return p->vForm;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Stops the resynthesis manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Rwr_ManReadCompl( Rwr_Man_t * p )
+{
+    return p->fCompl;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Stops the resynthesis manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Rwr_ManAddTimeCuts( Rwr_Man_t * p, int Time )
+{
+    p->timeCut += Time;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Stops the resynthesis manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Rwr_ManAddTimeTotal( Rwr_Man_t * p, int Time )
+{
+    p->timeTotal += Time;
 }
 
 

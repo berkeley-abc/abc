@@ -209,17 +209,17 @@ void Rwr_ManPrint( Rwr_Man_t * p )
     FILE * pFile;
     Rwr_Node_t * pNode;
     unsigned uTruth;
-    int Counter, Volume, nFuncs, i;
+    int Limit, Counter, Volume, nFuncs, i;
     pFile = fopen( "graph_lib.txt", "w" );
     Counter = 0;
-    nFuncs = (1 << 16);
-    for ( i = 0; i < nFuncs; i++ )
+    Limit = (1 << 16);
+    for ( i = 0; i < Limit; i++ )
     {
         if ( p->pTable[i] == NULL )
             continue;
         if ( i != p->puCanons[i] )
             continue;
-        fprintf( pFile, "\nClass %3d  ", Counter++ );
+        fprintf( pFile, "\nClass %3d.  Func %6d.  ", p->pMap[i], Counter++ );
         Rwr_GetBushVolume( p, i, &Volume, &nFuncs );
         fprintf( pFile, "Functions = %2d. Volume = %2d. ", nFuncs, Volume );
         uTruth = i;

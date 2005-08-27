@@ -39,8 +39,8 @@
 typedef struct Vec_Ptr_t_       Vec_Ptr_t;
 struct Vec_Ptr_t_ 
 {
-    int              nSize;
     int              nCap;
+    int              nSize;
     void **          pArray;
 };
 
@@ -323,9 +323,31 @@ static inline void Vec_PtrFill( Vec_Ptr_t * p, int nSize, void * Entry )
 {
     int i;
     Vec_PtrGrow( p, nSize );
-    p->nSize = nSize;
-    for ( i = 0; i < p->nSize; i++ )
+    for ( i = 0; i < nSize; i++ )
         p->pArray[i] = Entry;
+    p->nSize = nSize;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Fills the vector with given number of entries.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_PtrFillExtra( Vec_Ptr_t * p, int nSize, void * Entry )
+{
+    int i;
+    if ( p->nSize >= nSize )
+        return;
+    Vec_PtrGrow( p, nSize );
+    for ( i = p->nSize; i < nSize; i++ )
+        p->pArray[i] = Entry;
+    p->nSize = nSize;
 }
 
 /**Function*************************************************************

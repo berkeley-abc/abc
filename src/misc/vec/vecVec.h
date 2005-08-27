@@ -39,9 +39,9 @@
 typedef struct Vec_Vec_t_       Vec_Vec_t;
 struct Vec_Vec_t_ 
 {
-    int         nSize;
-    int         nCap;
-    void **     pArray;
+    int              nCap;
+    int              nSize;
+    void **          pArray;
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -55,6 +55,8 @@ struct Vec_Vec_t_
     for ( i = LevelStart; (i < Vec_PtrSize(vGlob)) && (((vVec) = Vec_VecEntry(vGlob, i)), 1); i++ )
 #define Vec_VecForEachLevelStartStop( vGlob, vVec, i, LevelStart, LevelStop )                 \
     for ( i = LevelStart; (i <= LevelStop) && (((vVec) = Vec_VecEntry(vGlob, i)), 1); i++ )
+#define Vec_VecForEachLevelReverse( vGlob, vVec, i )                                          \
+    for ( i = Vec_VecSize(vGlob) - 1; (i >= 0) && (((vVec) = Vec_VecEntry(vGlob, i)), 1); i-- )
 
 // iteratores through entries
 #define Vec_VecForEachEntry( vGlob, pEntry, i, k )                                            \
@@ -91,6 +93,28 @@ static inline Vec_Vec_t * Vec_VecAlloc( int nCap )
     p->nSize  = 0;
     p->nCap   = nCap;
     p->pArray = p->nCap? ALLOC( void *, p->nCap ) : NULL;
+    return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Allocates a vector with the given capacity.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Vec_Vec_t * Vec_VecStart( int nSize )
+{
+    Vec_Vec_t * p;
+    int i;
+    p = Vec_VecAlloc( nSize );
+    for ( i = 0; i < nSize; i++ )
+        p->pArray[i] = Vec_PtrAlloc( 0 );
+    p->nSize = nSize;
     return p;
 }
 

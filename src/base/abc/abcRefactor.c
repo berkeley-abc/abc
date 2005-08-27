@@ -34,7 +34,7 @@ struct Abc_ManRef_t_
     int              fVerbose;          // the verbosity flag
     // internal data structures
     DdManager *      dd;                // the BDD manager
-    Vec_Int_t *      vReqTimes;         // required times for each node
+//    Vec_Int_t *      vReqTimes;         // required times for each node
     Vec_Str_t *      vCube;             // temporary
     Vec_Int_t *      vForm;             // temporary
     Vec_Int_t *      vLevNums;          // temporary
@@ -51,6 +51,7 @@ struct Abc_ManRef_t_
     int              timeDcs;
     int              timeSop;
     int              timeFact;
+    int              timeEval;
     int              timeRes;
     int              timeNtk;
     int              timeTotal;
@@ -98,7 +99,7 @@ int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, bool 
     pManCut = Abc_NtkManCutStart( nNodeSizeMax, nConeSizeMax );
     pManRef = Abc_NtkManRefStart( nNodeSizeMax, nConeSizeMax, fUseDcs, fVerbose );
     pManRef->vLeaves   = Abc_NtkManCutReadLeaves( pManCut );
-    pManRef->vReqTimes = Abc_NtkGetRequiredLevels( pNtk );
+    Abc_NtkStartReverseLevels( pNtk );
 
     // resynthesize each node once
     nNodes = Abc_NtkObjNumMax(pNtk);
@@ -137,6 +138,7 @@ pManRef->timeTotal = clock() - clkStart;
     // delete the managers
     Abc_NtkManCutStop( pManCut );
     Abc_NtkManRefStop( pManRef );
+    Abc_NtkStopReverseLevels( pNtk );
     // check
     if ( fCheck && !Abc_NtkCheck( pNtk ) )
     {
@@ -165,9 +167,12 @@ Vec_Int_t * Abc_NodeRefactor( Abc_ManRef_t * p, Abc_Obj_t * pNode, Vec_Ptr_t * v
     DdNode * bNodeFunc, * bNodeDc, * bNodeOn, * bNodeOnDc;
     char * pSop;
     int nBddNodes, nFtNodes, nNodesSaved, nNodesAdded;
-    int i, clk;
+    int i, Required, clk;
 
     p->nNodesConsidered++;
+
+    // get the required level of this node
+    Required = Abc_NodeReadRequiredLevel( pNode );
 
     // get the function of the cut
 clk = clock();
@@ -186,7 +191,7 @@ clk = clock();
 
         nMints = (1 << vFanins->nSize);
         nMintsDc = (int)Cudd_CountMinterm( p->dd, bNodeDc, vFanins->nSize );
-        printf( "Percentage of minterms = %5.2f.\n", 100.0 * nMintsDc / nMints );
+//        printf( "Percentage of minterms = %5.2f.\n", 100.0 * nMintsDc / nMints );
 
         // get the ISF
         bNodeOn   = Cudd_bddAnd( p->dd, bNodeFunc, Cudd_Not(bNodeDc) );   Cudd_Ref( bNodeOn );
@@ -204,13 +209,16 @@ p->timeDcs += clock() - clk;
     // always accept the case of constant node
     if ( Cudd_IsConstant(bNodeFunc) )
     {
-        p->nNodesGained += Abc_NodeMffcSize( pNode );
+        p->nLastGain = Abc_NodeMffcSize( pNode );
+        p->nNodesGained += p->nLastGain;
         p->nNodesRefactored++;
-        // get the costant node
-        pFanin = Abc_ObjNotCond( Abc_AigConst1(pNode->pNtk->pManFunc), Cudd_IsComplement(bNodeFunc) );
-        Abc_AigReplace( pNode->pNtk->pManFunc, pNode, pFanin );
+        // get the constant node
+//        pFanin = Abc_ObjNotCond( Abc_AigConst1(pNode->pNtk->pManFunc), Cudd_IsComplement(bNodeFunc) );
+//        Abc_AigReplace( pNode->pNtk->pManFunc, pNode, pFanin );
+//        Cudd_RecursiveDeref( p->dd, bNodeFunc );
+//printf( "Gain = %d.\n", p->nLastGain );
         Cudd_RecursiveDeref( p->dd, bNodeFunc );
-        return NULL;
+        return Ft_FactorConst( !Cudd_IsComplement(bNodeFunc) );
     }
 
     // get the SOP of the cut
@@ -241,8 +249,10 @@ p->timeFact += clock() - clk;
         pFanin->vFanouts.nSize--;
 
     // detect how many new nodes will be added (while taking into account reused nodes)
+clk = clock();
     nNodesAdded = Abc_NodeStrashDecCount( pNode->pNtk->pManFunc, pNode, vFanins, vForm, 
-        p->vLevNums, nNodesSaved, Vec_IntEntry( p->vReqTimes, pNode->Id ) );
+        p->vLevNums, nNodesSaved, Required );
+p->timeEval += clock() - clk;
     // quit if there is no improvement
     if ( nNodesAdded == -1 || nNodesAdded == nNodesSaved && !fUseZeros )
     {
@@ -316,7 +326,7 @@ Abc_ManRef_t * Abc_NtkManRefStart( int nNodeSizeMax, int nConeSizeMax, bool fUse
 void Abc_NtkManRefStop( Abc_ManRef_t * p )
 {
     Extra_StopManager( p->dd );
-    Vec_IntFree( p->vReqTimes );
+//    Vec_IntFree( p->vReqTimes );
     Vec_PtrFree( p->vVisited );
     Vec_IntFree( p->vLevNums );
     Vec_StrFree( p->vCube    );
@@ -337,15 +347,16 @@ void Abc_NtkManRefStop( Abc_ManRef_t * p )
 void Abc_NtkManRefPrintStats( Abc_ManRef_t * p )
 {
     printf( "Refactoring statistics:\n" );
-    printf( "Nodes considered  = %6d.\n", p->nNodesConsidered );
-    printf( "Nodes refactored  = %6d.\n", p->nNodesRefactored );
-    printf( "Calculated gain   = %6d.\n", p->nNodesGained     );
+    printf( "Nodes considered  = %8d.\n", p->nNodesConsidered );
+    printf( "Nodes refactored  = %8d.\n", p->nNodesRefactored );
+    printf( "Calculated gain   = %8d.\n", p->nNodesGained     );
     PRT( "Cuts       ", p->timeCut );
     PRT( "Resynthesis", p->timeRes );
     PRT( "    BDD    ", p->timeBdd );
     PRT( "    DCs    ", p->timeDcs );
     PRT( "    SOP    ", p->timeSop );
     PRT( "    FF     ", p->timeFact );
+    PRT( "    Eval   ", p->timeEval );
     PRT( "AIG update ", p->timeNtk );
     PRT( "TOTAL      ", p->timeTotal );
 }

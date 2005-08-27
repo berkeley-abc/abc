@@ -404,6 +404,11 @@ bool Abc_NtkCheckObj( Abc_Ntk_t * pNtk, Abc_Obj_t * pObj )
                 printf( "Warning: Node %s has", Abc_ObjName(pObj) );
                 printf( " duplicated fanin %s.\n", Abc_ObjName(Abc_ObjFanin(pObj,k)) );
             }
+
+    // save time: do not check large fanout lists
+    if ( pObj->vFanouts.nSize > 20 )
+        return Value;
+
     // make sure fanouts are not duplicated
     for ( i = 0; i < pObj->vFanouts.nSize; i++ )
         for ( k = i + 1; k < pObj->vFanouts.nSize; k++ )

@@ -47,8 +47,8 @@ struct Abc_Fan_t_ // 1 word
 typedef struct Vec_Fan_t_       Vec_Fan_t;
 struct Vec_Fan_t_ 
 {
-    int              nSize;
     int              nCap;
+    int              nSize;
     Abc_Fan_t *      pArray;
 };
 

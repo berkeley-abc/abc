@@ -318,12 +318,12 @@ Abc_Obj_t * Abc_NodeStrashDec( Abc_Aig_t * pMan, Vec_Ptr_t * vFanins, Vec_Int_t 
     nVars = Ft_FactorGetNumVars( vForm );
     assert( nVars >= 0 );
     assert( vForm->nSize > nVars );
-    assert( nVars == vFanins->nSize );
 
     // check for constant function
     pFtNode = Ft_NodeRead( vForm, 0 );
     if ( pFtNode->fConst )
         return Abc_ObjNotCond( Abc_AigConst1(pMan), pFtNode->fCompl );
+    assert( nVars == vFanins->nSize );
 
     // compute the function of other nodes
     for ( i = nVars; i < vForm->nSize; i++ )
@@ -365,17 +365,17 @@ int Abc_NodeStrashDecCount( Abc_Aig_t * pMan, Abc_Obj_t * pRoot, Vec_Ptr_t * vFa
     nVars = Ft_FactorGetNumVars( vForm );
     assert( nVars >= 0 );
     assert( vForm->nSize > nVars );
-    assert( nVars == vFanins->nSize ); // set the fanin number to nVars???
 
     // check for constant function
     pFtNode = Ft_NodeRead( vForm, 0 );
     if ( pFtNode->fConst )
         return 0;
+    assert( nVars == vFanins->nSize ); 
 
     // set the levels
     Vec_IntClear( vLevels );
     Vec_PtrForEachEntry( vFanins, pAnd, i )
-        Vec_IntPush( vLevels, pAnd->Level );
+        Vec_IntPush( vLevels, Abc_ObjRegular(pAnd)->Level );
 
     // compute the function of other nodes
     Counter = 0;
@@ -422,9 +422,17 @@ int Abc_NodeStrashDecCount( Abc_Aig_t * pMan, Abc_Obj_t * pRoot, Vec_Ptr_t * vFa
         }
 
         // count the number of new levels
-        if ( pAnd && Abc_ObjRegular(pAnd) == Abc_AigConst1(pMan) )
-            LevelNew = 0;
-        else
+        LevelNew = -1;
+        if ( pAnd )
+        {
+            if ( Abc_ObjRegular(pAnd) == Abc_AigConst1(pMan) )
+                LevelNew = 0;
+            else if ( Abc_ObjRegular(pAnd) == Abc_ObjRegular(pAnd0) )
+                LevelNew = (int)Abc_ObjRegular(pAnd0)->Level;
+            else if ( Abc_ObjRegular(pAnd) == Abc_ObjRegular(pAnd1) )
+                LevelNew = (int)Abc_ObjRegular(pAnd1)->Level;
+        }
+        if ( LevelNew == -1 )
             LevelNew = 1 + ABC_MAX( Vec_IntEntry(vLevels, pFtNode->iFanin0), Vec_IntEntry(vLevels, pFtNode->iFanin1) );
 
 //        assert( pAnd == NULL || LevelNew == LevelOld );
@@ -433,7 +441,11 @@ int Abc_NodeStrashDecCount( Abc_Aig_t * pMan, Abc_Obj_t * pRoot, Vec_Ptr_t * vFa
             LevelOld = (int)Abc_ObjRegular(pAnd)->Level;
             if ( LevelNew != LevelOld ) 
             {
-               int x = 0;
+                int x = 0;
+                Abc_Obj_t * pFanin0, * pFanin1;
+                pFanin0 = Abc_ObjFanin0( Abc_ObjRegular(pAnd) );
+                pFanin1 = Abc_ObjFanin1( Abc_ObjRegular(pAnd) );
+                x = 0;
             }
         }
 

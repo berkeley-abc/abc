@@ -1021,6 +1021,30 @@ void Abc_NtkShortNames( Abc_Ntk_t * pNtk )
     pNtk->tObj2Name = tObj2NameNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Creates the array of fanout counters.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Abc_NtkFanoutCounts( Abc_Ntk_t * pNtk )
+{
+    Vec_Int_t * vFanNums;
+    Abc_Obj_t * pObj;
+    int i;
+    vFanNums = Vec_IntAlloc( 0 );
+    Vec_IntFill( vFanNums, Abc_NtkObjNumMax(pNtk), -1 );
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        if ( Abc_ObjIsCi(pObj) || Abc_ObjIsNode(pObj) )
+            Vec_IntWriteEntry( vFanNums, i, Abc_ObjFanoutNum(pObj) );
+    return vFanNums;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
