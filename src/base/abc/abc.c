@@ -1065,6 +1065,11 @@ int Abc_CommandCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Empty network.\n" );
         return 1;
     }
+    if ( Abc_NtkIsAig(pNtk) )
+    {
+        fprintf( pErr, "Cleanup cannot be performed on the AIG.\n" );
+        return 1;
+    }
 
     // modify the current network
     Abc_NtkCleanup( pNtk, 0 );

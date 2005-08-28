@@ -254,23 +254,26 @@ Abc_Ntk_t * Abc_NtkAigToLogicSop( Abc_Ntk_t * pNtk )
         if ( !Abc_NodeIsAigChoice(pObj) )
             continue;
         // create an OR gate
-        pNodeNew = Abc_NtkCreateNode(pNtk);
+        pNodeNew = Abc_NtkCreateNode(pNtkNew);
         // add fanins
         Vec_IntClear( pNtk->vIntTemp );
-        for ( k = 0, pFanin = pObj; pFanin; pFanin = pFanin->pData, k++ )
+        for ( pFanin = pObj; pFanin; pFanin = pFanin->pData )
         {
             Vec_IntPush( pNtk->vIntTemp, (int)(pObj->fPhase != pFanin->fPhase) );
             Abc_ObjAddFanin( pNodeNew, pFanin->pCopy );
         }
         // create the logic function
-        pNodeNew->pData = Abc_SopCreateOr( pNtk->pManFunc, pNtk->vIntTemp->nSize, pNtk->vIntTemp->pArray );
+        pNodeNew->pData = Abc_SopCreateOrMultiCube( pNtkNew->pManFunc, pNtk->vIntTemp->nSize, pNtk->vIntTemp->pArray );
         // set the new node
-        pObj->pCopy = pNodeNew;
+        pObj->pCopy->pCopy = pNodeNew;
     }
     // connect the internal nodes
     Abc_NtkForEachNode( pNtk, pObj, i )
         Abc_ObjForEachFanin( pObj, pFanin, k )
-            Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
+            if ( pFanin->pCopy->pCopy )
+                Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy->pCopy );
+            else
+                Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
     // connect the COs
     Abc_NtkFinalize( pNtk, pNtkNew );
     // fix the problem with complemented and duplicated CO edges

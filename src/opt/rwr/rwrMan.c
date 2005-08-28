@@ -164,27 +164,6 @@ void Rwr_ManPrintStats( Rwr_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Assigns elementary cuts to the PIs.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Rwr_ManPrepareNetwork( Rwr_Man_t * p, Abc_Ntk_t * pNtk )
-{
-    // save the fanout counters for all internal nodes
-//    p->vFanNums = Rwt_NtkFanoutCounters( pNtk );
-    // precompute the required times for all internal nodes
-//    p->vReqTimes = Abc_NtkGetRequiredLevels( pNtk );
-    // start the cut computation
-//    Rwr_NtkStartCuts( p, pNtk );
-}
-
-/**Function*************************************************************
-
   Synopsis    [Stops the resynthesis manager.]
 
   Description []

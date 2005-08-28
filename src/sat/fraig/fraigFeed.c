@@ -765,6 +765,47 @@ void Fraig_ReallocateSimulationInfo( Fraig_Man_t * p )
     p->pSimsDiff = (unsigned *)Fraig_MemFixedEntryFetch( mmSimsNew );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Doubles the size of simulation info.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int * Fraig_ManSaveCounterExample( Fraig_Man_t * p, Fraig_Node_t * pNode )
+{
+    int * pModel = NULL;
+    int iPattern;
+    int i;
+
+    iPattern = Fraig_FindFirstDiff( p->pConst1, pNode, p->nWordsDyna, 0 );
+    if ( iPattern >= 0 )
+    {
+        pModel = ALLOC( int, p->vInputs->nSize );
+        memset( pModel, 0, sizeof(int) * p->vInputs->nSize );
+        for ( i = 0; i < p->vInputs->nSize; i++ )
+            if ( Fraig_BitStringHasBit( p->vInputs->pArray[i]->puSimD, iPattern ) )
+                pModel[i] = 1;
+        return pModel;
+    }
+    iPattern = Fraig_FindFirstDiff( p->pConst1, pNode, p->nWordsRand, 1 );
+    if ( iPattern >= 0 )
+    {
+        pModel = ALLOC( int, p->vInputs->nSize );
+        memset( pModel, 0, sizeof(int) * p->vInputs->nSize );
+        for ( i = 0; i < p->vInputs->nSize; i++ )
+            if ( Fraig_BitStringHasBit( p->vInputs->pArray[i]->puSimR, iPattern ) )
+                pModel[i] = 1;
+        return pModel;
+    }
+    return pModel;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

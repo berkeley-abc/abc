@@ -178,6 +178,7 @@ struct Fraig_ManStruct_t_
     Msat_Solver_t *       pSat;          // the SAT solver
     Msat_IntVec_t *       vProj;         // the temporary array of projection vars 
     int                   nSatNums;      // the counter of SAT variables
+    int *                 pModel;        // the assignment, which satisfies the miter
     // these arrays belong to the solver
     Msat_IntVec_t *       vVarsInt;      // the temporary array of variables
     Msat_ClauseVec_t *    vAdjacents;    // the temporary storage for connectivity
@@ -378,6 +379,7 @@ extern void                Fraig_FeedBackInit( Fraig_Man_t * p );
 extern void                Fraig_FeedBack( Fraig_Man_t * p, int * pModel, Msat_IntVec_t * vVars, Fraig_Node_t * pOld, Fraig_Node_t * pNew );
 extern void                Fraig_FeedBackTest( Fraig_Man_t * p );
 extern int                 Fraig_FeedBackCompress( Fraig_Man_t * p );
+extern int *               Fraig_ManSaveCounterExample( Fraig_Man_t * p, Fraig_Node_t * pNode );
 /*=== fraigMem.c =============================================================*/
 extern Fraig_MemFixed_t *  Fraig_MemFixedStart( int nEntrySize );
 extern void                Fraig_MemFixedStop( Fraig_MemFixed_t * p, int fVerbose );
@@ -404,6 +406,7 @@ extern Fraig_Node_t *      Fraig_HashTableLookupF0( Fraig_Man_t * pMan, Fraig_No
 extern void                Fraig_HashTableInsertF0( Fraig_Man_t * pMan, Fraig_Node_t * pNode );
 extern int                 Fraig_CompareSimInfo( Fraig_Node_t * pNode1, Fraig_Node_t * pNode2, int iWordLast, int fUseRand );
 extern int                 Fraig_CompareSimInfoUnderMask( Fraig_Node_t * pNode1, Fraig_Node_t * pNode2, int iWordLast, int fUseRand, unsigned * puMask );
+extern int                 Fraig_FindFirstDiff( Fraig_Node_t * pNode1, Fraig_Node_t * pNode2, int iWordLast, int fUseRand );
 extern void                Fraig_CollectXors( Fraig_Node_t * pNode1, Fraig_Node_t * pNode2, int iWordLast, int fUseRand, unsigned * puMask );
 extern void                Fraig_TablePrintStatsS( Fraig_Man_t * pMan );
 extern void                Fraig_TablePrintStatsF( Fraig_Man_t * pMan );

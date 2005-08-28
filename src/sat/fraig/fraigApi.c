@@ -57,6 +57,7 @@ int               Fraig_ManReadFeedBack( Fraig_Man_t * p )                    { 
 int               Fraig_ManReadDoSparse( Fraig_Man_t * p )                    { return p->fDoSparse;  }
 int               Fraig_ManReadChoicing( Fraig_Man_t * p )                    { return p->fChoicing;  }
 int               Fraig_ManReadVerbose( Fraig_Man_t * p )                     { return p->fVerbose;   }
+int *             Fraig_ManReadModel( Fraig_Man_t * p )                       { return p->pModel;     }
 
 /**Function*************************************************************
 

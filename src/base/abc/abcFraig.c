@@ -89,7 +89,7 @@ Fraig_Man_t * Abc_NtkToFraig( Abc_Ntk_t * pNtk, Fraig_Params_t * pParams, int fA
     ProgressBar * pProgress;
     Fraig_Node_t * pNodeFraig;
     Vec_Ptr_t * vNodes;
-    Abc_Obj_t * pNode, * pConst1;
+    Abc_Obj_t * pNode, * pConst1, * pReset;
     int i;
 
     assert( Abc_NtkIsAig(pNtk) );
@@ -102,6 +102,7 @@ Fraig_Man_t * Abc_NtkToFraig( Abc_Ntk_t * pNtk, Fraig_Params_t * pParams, int fA
     Abc_NtkForEachCi( pNtk, pNode, i )
         pNode->pCopy = (Abc_Obj_t *)Fraig_ManReadIthVar(pMan, i);
     pConst1 = Abc_AigConst1( pNtk->pManFunc );
+    pReset  = Abc_AigReset( pNtk->pManFunc );
 
     // perform strashing
     vNodes = Abc_AigDfs( pNtk, fAllNodes, 0 );
@@ -111,6 +112,8 @@ Fraig_Man_t * Abc_NtkToFraig( Abc_Ntk_t * pNtk, Fraig_Params_t * pParams, int fA
         Extra_ProgressBarUpdate( pProgress, i, NULL );
         if ( pNode == pConst1 )
             pNodeFraig = Fraig_ManReadConst1(pMan);
+        else if ( pNode == pReset )
+            continue;
         else
             pNodeFraig = Fraig_NodeAnd( pMan, 
                 Fraig_NotCond( Abc_ObjFanin0(pNode)->pCopy, Abc_ObjFaninC0(pNode) ),

@@ -92,7 +92,39 @@ char * Abc_SopStart( Extra_MmFlex_t * pMan, int nCubes, int nVars )
 
 /**Function*************************************************************
 
-  Synopsis    [Starts the constant 1 cover with the given number of variables and cubes.]
+  Synopsis    [Starts the constant 1 cover with 0 variables.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_SopCreateConst1( Extra_MmFlex_t * pMan )
+{
+    return Abc_SopRegister( pMan, " 1\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Starts the constant 1 cover with 0 variables.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_SopCreateConst0( Extra_MmFlex_t * pMan )
+{
+    return Abc_SopRegister( pMan, " 0\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Starts the AND2 cover.]
 
   Description []
                
@@ -115,7 +147,7 @@ char * Abc_SopCreateAnd2( Extra_MmFlex_t * pMan, int fCompl0, int fCompl1 )
 
 /**Function*************************************************************
 
-  Synopsis    [Starts the constant 1 cover with the given number of variables and cubes.]
+  Synopsis    [Starts the multi-input AND cover.]
 
   Description []
                
@@ -136,7 +168,7 @@ char * Abc_SopCreateAnd( Extra_MmFlex_t * pMan, int nVars )
 
 /**Function*************************************************************
 
-  Synopsis    [Starts the constant 1 cover with the given number of variables and cubes.]
+  Synopsis    [Starts the multi-input NAND cover.]
 
   Description []
                
@@ -158,7 +190,7 @@ char * Abc_SopCreateNand( Extra_MmFlex_t * pMan, int nVars )
 
 /**Function*************************************************************
 
-  Synopsis    [Starts the constant 1 cover with the given number of variables and cubes.]
+  Synopsis    [Starts the multi-input OR cover.]
 
   Description []
                
@@ -180,7 +212,32 @@ char * Abc_SopCreateOr( Extra_MmFlex_t * pMan, int nVars, int * pfCompl )
 
 /**Function*************************************************************
 
-  Synopsis    [Starts the constant 1 cover with the given number of variables and cubes.]
+  Synopsis    [Starts the multi-input OR cover.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_SopCreateOrMultiCube( Extra_MmFlex_t * pMan, int nVars, int * pfCompl )
+{
+    char * pSop, * pCube;
+    int i;
+    pSop = Abc_SopStart( pMan, nVars, nVars );
+    i = 0;
+    Abc_SopForEachCube( pSop, nVars, pCube )
+    {
+        pCube[i] = '1' - (pfCompl? pfCompl[i] : 0);
+        i++;
+    }
+    return pSop;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Starts the multi-input NOR cover.]
 
   Description []
                
@@ -201,7 +258,7 @@ char * Abc_SopCreateNor( Extra_MmFlex_t * pMan, int nVars )
 
 /**Function*************************************************************
 
-  Synopsis    [Starts the constant 1 cover with the given number of variables and cubes.]
+  Synopsis    [Starts the multi-input XOR cover.]
 
   Description []
                
@@ -218,7 +275,7 @@ char * Abc_SopCreateXor( Extra_MmFlex_t * pMan, int nVars )
 
 /**Function*************************************************************
 
-  Synopsis    [Starts the constant 1 cover with the given number of variables and cubes.]
+  Synopsis    [Starts the multi-input XNOR cover.]
 
   Description []
                
@@ -235,7 +292,7 @@ char * Abc_SopCreateNxor( Extra_MmFlex_t * pMan, int nVars )
 
 /**Function*************************************************************
 
-  Synopsis    [Starts the constant 1 cover with the given number of variables and cubes.]
+  Synopsis    [Starts the inv cover.]
 
   Description []
                
@@ -251,7 +308,7 @@ char * Abc_SopCreateInv( Extra_MmFlex_t * pMan )
 
 /**Function*************************************************************
 
-  Synopsis    [Starts the constant 1 cover with the given number of variables and cubes.]
+  Synopsis    [Starts the buf cover.]
 
   Description []
                
@@ -367,18 +424,11 @@ int Abc_SopGetPhase( char * pSop )
 int Abc_SopGetIthCareLit( char * pSop, int i )
 {
     char * pCube;
-    int nVars, c;
+    int nVars;
     nVars = Abc_SopGetVarNum( pSop );
-    for ( c = 0; ; c++ )
-    {
-        // get the cube
-        pCube = pSop + c * (nVars + 3);
-        if ( *pCube == 0 )
-            break;
-        // get the literal
+    Abc_SopForEachCube( pSop, nVars, pCube )
         if ( pCube[i] != '-' )
             return pCube[i] - '0';
-    }
     return -1;
 }
 
@@ -520,6 +570,8 @@ bool Abc_SopIsAndType( char * pSop )
     for ( pCur = pSop; *pCur != ' '; pCur++ )
         if ( *pCur == '-' )
             return 0;
+    if ( pCur[1] != '1' )
+        return 0;
     return 1;
 }
 
@@ -537,14 +589,12 @@ bool Abc_SopIsAndType( char * pSop )
 bool Abc_SopIsOrType( char * pSop )
 {
     char * pCube, * pCur;
-    int nVars, nLits, c;
+    int nVars, nLits;
     nVars = Abc_SopGetVarNum( pSop );
-    for ( c = 0; ; c++ )
+    if ( nVars != Abc_SopGetCubeNum(pSop) )
+        return 0;
+    Abc_SopForEachCube( pSop, nVars, pCube )
     {
-        // get the cube
-        pCube = pSop + c * (nVars + 3);
-        if ( *pCube == 0 )
-            break;
         // count the number of literals in the cube
         nLits = 0;
         for ( pCur = pCube; *pCur != ' '; pCur++ )

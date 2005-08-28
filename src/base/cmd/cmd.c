@@ -335,7 +335,7 @@ int CmdCommandHistory( Abc_Frame_t * pAbc, int argc, char **argv )
     int i, num;
     int size;
     int c;
-    num = 30;
+    num = 50;
 
     util_getopt_reset();
     while ( ( c = util_getopt( argc, argv, "h" ) ) != EOF )

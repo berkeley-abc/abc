@@ -97,6 +97,7 @@ extern int                 Fraig_ManReadFeedBack( Fraig_Man_t * p );
 extern int                 Fraig_ManReadDoSparse( Fraig_Man_t * p );      
 extern int                 Fraig_ManReadChoicing( Fraig_Man_t * p );      
 extern int                 Fraig_ManReadVerbose( Fraig_Man_t * p );       
+extern int *               Fraig_ManReadModel( Fraig_Man_t * p );
 
 extern void                Fraig_ManSetFuncRed( Fraig_Man_t * p, int fFuncRed );        
 extern void                Fraig_ManSetFeedBack( Fraig_Man_t * p, int fFeedBack );      
@@ -157,6 +158,7 @@ extern int                 Fraig_CountLevels( Fraig_Man_t * pMan );
 extern int                 Fraig_NodesAreEqual( Fraig_Man_t * p, Fraig_Node_t * pNode1, Fraig_Node_t * pNode2, int nBTLimit );
 extern int                 Fraig_NodeIsEquivalent( Fraig_Man_t * p, Fraig_Node_t * pOld, Fraig_Node_t * pNew, int nBTLimit );
 extern void                Fraig_ManProveMiter( Fraig_Man_t * p );
+extern int                 Fraig_ManCheckMiter( Fraig_Man_t * p );
 
 /*=== fraigVec.c ===============================================================*/
 extern Fraig_NodeVec_t *   Fraig_NodeVecAlloc( int nCap );

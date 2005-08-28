@@ -333,7 +333,64 @@ Abc_Ntk_t * Abc_NtkSplitOutput( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, int fUseAll
     Abc_NtkLogicStoreName( pNode->pCopy, Abc_ObjName(pNode) );
 
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkDup(): Network check has failed.\n" );
+        fprintf( stdout, "Abc_NtkSplitOutput(): Network check has failed.\n" );
+    return pNtkNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates the network composed of one output.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkCreateCone( Abc_Ntk_t * pNtk, Vec_Ptr_t * vRoots, Vec_Int_t * vValues )
+{
+    Vec_Ptr_t * vNodes;
+    Abc_Ntk_t * pNtkNew; 
+    Abc_Obj_t * pObj, * pFinal, * pOther, * pNodePo;
+    int i;
+
+    assert( Abc_NtkIsLogic(pNtk) );
+    
+    // start the network
+    Abc_NtkCleanCopy( pNtk );
+    pNtkNew = Abc_NtkAlloc( ABC_NTK_AIG );
+    pNtkNew->pName = util_strsav(pNtk->pName);
+
+    // collect the nodes in the TFI of the output
+    vNodes = Abc_NtkDfsNodes( pNtk, (Abc_Obj_t **)vRoots->pArray, vRoots->nSize );
+    // create the PIs
+    Abc_NtkForEachCi( pNtk, pObj, i )
+    {
+        pObj->pCopy = Abc_NtkCreatePi(pNtkNew);
+        Abc_NtkLogicStoreName( pObj->pCopy, Abc_ObjName(pObj) );
+    }
+    // copy the nodes
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+        pObj->pCopy = Abc_NodeStrash( pNtkNew->pManFunc, pObj );
+    Vec_PtrFree( vNodes );
+
+    // add the PO
+    pFinal = Abc_AigConst1( pNtkNew->pManFunc );
+    Vec_PtrForEachEntry( vRoots, pObj, i )
+    {
+        pOther = pObj->pCopy;
+        if ( Vec_IntEntry(vValues, i) == 0 )
+            pOther = Abc_ObjNot(pOther);
+        pFinal = Abc_AigAnd( pNtkNew->pManFunc, pFinal, pOther );
+    }
+
+    // add the PO corresponding to this output
+    pNodePo = Abc_NtkCreatePo( pNtkNew );
+    Abc_ObjAddFanin( pNodePo, pFinal );
+    Abc_NtkLogicStoreName( pNodePo, "miter" );
+    if ( !Abc_NtkCheck( pNtkNew ) )
+        fprintf( stdout, "Abc_NtkCreateCone(): Network check has failed.\n" );
     return pNtkNew;
 }
 

@@ -171,6 +171,7 @@ void Fraig_ManFree( Fraig_Man_t * p )
     if ( p->vProj )      Msat_IntVecFree( p->vProj );
     if ( p->vCones )     Fraig_NodeVecFree( p->vCones );
     if ( p->vPatsReal )  Msat_IntVecFree( p->vPatsReal );
+    if ( p->pModel )     free( p->pModel );
 
     Fraig_MemFixedStop( p->mmNodes, 0 );
     Fraig_MemFixedStop( p->mmSims, 0 );

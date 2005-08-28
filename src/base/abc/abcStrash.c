@@ -28,7 +28,6 @@
 
 // static functions
 static void        Abc_NtkStrashPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig, bool fAllNodes );
-static Abc_Obj_t * Abc_NodeStrash( Abc_Aig_t * pMan, Abc_Obj_t * pNode );
 static Abc_Obj_t * Abc_NodeStrashSop( Abc_Aig_t * pMan, Abc_Obj_t * pNode, char * pSop );
 static Abc_Obj_t * Abc_NodeStrashFactor( Abc_Aig_t * pMan, Abc_Obj_t * pNode, char * pSop );
 

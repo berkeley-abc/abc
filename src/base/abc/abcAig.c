@@ -172,6 +172,10 @@ Abc_Aig_t * Abc_AigDup( Abc_Aig_t * pMan, Abc_Aig_t * pManNew )
         Abc_ObjSetFaninL0( pObj->pCopy, Abc_ObjFaninL0(pObj) );
         Abc_ObjSetFaninL1( pObj->pCopy, Abc_ObjFaninL1(pObj) );
     }
+    // relink the choice nodes
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+        if ( pObj->pData )
+            pObj->pCopy->pData = ((Abc_Obj_t *)pObj->pData)->pCopy;
     Vec_PtrFree( vNodes );
     // relink the CO nodes
     Abc_NtkForEachCo( pMan->pNtkAig, pObj, i )

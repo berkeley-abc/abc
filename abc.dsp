@@ -1036,6 +1036,18 @@ SOURCE=.\src\sat\sim\simUnate.c
 SOURCE=.\src\sat\sim\simUtils.c
 # End Source File
 # End Group
+# Begin Group "csat"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\sat\csat\csat_apis.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\csat\csat_apis.h
+# End Source File
+# End Group
 # End Group
 # Begin Group "opt"
 

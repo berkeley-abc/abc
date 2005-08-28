@@ -111,6 +111,31 @@ void Fraig_ManProveMiter( Fraig_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns 1 if the miter is unsat; 0 if sat; -1 if undecided.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fraig_ManCheckMiter( Fraig_Man_t * p )
+{
+    if ( p->vOutputs->pArray[0] == Fraig_Not(p->pConst1) )
+        return 1;
+    // save the counter example
+    FREE( p->pModel );
+    p->pModel = Fraig_ManSaveCounterExample( p, Fraig_Regular(p->vOutputs->pArray[0]) );
+    // if the model is not found, return undecided
+    if ( p->pModel == NULL )
+        return -1;
+    return 0;
+}
+
+
+/**Function*************************************************************
+
   Synopsis    [Checks whether two nodes are functinally equivalent.]
 
   Description [The flag (fComp) tells whether the nodes to be checked

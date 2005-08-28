@@ -406,6 +406,7 @@ extern Abc_Ntk_t *        Abc_NtkStartRead( char * pName );
 extern void               Abc_NtkFinalizeRead( Abc_Ntk_t * pNtk );
 extern Abc_Ntk_t *        Abc_NtkDup( Abc_Ntk_t * pNtk );
 extern Abc_Ntk_t *        Abc_NtkSplitOutput( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, int fUseAllCis );
+extern Abc_Ntk_t *        Abc_NtkCreateCone( Abc_Ntk_t * pNtk, Vec_Ptr_t * vRoots, Vec_Int_t * vValues );
 extern void               Abc_NtkDelete( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkFixNonDrivenNets( Abc_Ntk_t * pNtk );
 extern Abc_Obj_t *        Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj );
@@ -532,10 +533,13 @@ extern void               Abc_NtkSeqRetimeDelay( Abc_Ntk_t * pNtk );
 /*=== abcSop.c ==========================================================*/
 extern char *             Abc_SopRegister( Extra_MmFlex_t * pMan, char * pName );
 extern char *             Abc_SopStart( Extra_MmFlex_t * pMan, int nCubes, int nVars );
+extern char *             Abc_SopCreateConst0( Extra_MmFlex_t * pMan );
+extern char *             Abc_SopCreateConst1( Extra_MmFlex_t * pMan );
 extern char *             Abc_SopCreateAnd2( Extra_MmFlex_t * pMan, int fCompl0, int fCompl1 );
 extern char *             Abc_SopCreateAnd( Extra_MmFlex_t * pMan, int nVars );
 extern char *             Abc_SopCreateNand( Extra_MmFlex_t * pMan, int nVars );
 extern char *             Abc_SopCreateOr( Extra_MmFlex_t * pMan, int nVars, int * pfCompl );
+extern char *             Abc_SopCreateOrMultiCube( Extra_MmFlex_t * pMan, int nVars, int * pfCompl );
 extern char *             Abc_SopCreateNor( Extra_MmFlex_t * pMan, int nVars );
 extern char *             Abc_SopCreateXor( Extra_MmFlex_t * pMan, int nVars );
 extern char *             Abc_SopCreateNxor( Extra_MmFlex_t * pMan, int nVars );
@@ -559,6 +563,7 @@ extern void               Abc_SopWriteCnf( FILE * pFile, char * pClauses, Vec_In
 extern void               Abc_SopAddCnfToSolver( solver * pSat, char * pClauses, Vec_Int_t * vVars, Vec_Int_t * vTemp );
 /*=== abcStrash.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes );
+extern Abc_Obj_t *        Abc_NodeStrash( Abc_Aig_t * pMan, Abc_Obj_t * pNode );
 extern Abc_Obj_t *        Abc_NodeStrashDec( Abc_Aig_t * pMan, Vec_Ptr_t * vFanins, Vec_Int_t * vForm );
 extern int                Abc_NodeStrashDecCount( Abc_Aig_t * pMan, Abc_Obj_t * pRoot, Vec_Ptr_t * vFanins, Vec_Int_t * vForm, Vec_Int_t * vLevels, int NodeMax, int LevelMax );
 extern int                Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 );

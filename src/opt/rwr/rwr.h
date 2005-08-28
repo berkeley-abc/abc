@@ -125,7 +125,6 @@ extern void              Rwr_ManIncTravId( Rwr_Man_t * p );
 extern Rwr_Man_t *       Rwr_ManStart( bool fPrecompute );
 extern void              Rwr_ManStop( Rwr_Man_t * p );
 extern void              Rwr_ManPrintStats( Rwr_Man_t * p );
-extern void              Rwr_ManPrepareNetwork( Rwr_Man_t * p, Abc_Ntk_t * pNtk );
 extern Vec_Ptr_t *       Rwr_ManReadFanins( Rwr_Man_t * p );
 extern Vec_Int_t *       Rwr_ManReadDecs( Rwr_Man_t * p );
 extern int               Rwr_ManReadCompl( Rwr_Man_t * p );
