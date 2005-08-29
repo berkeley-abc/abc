@@ -1,6 +1,6 @@
-SRC +=    bdd\dsd\dsdApi.c \
-    bdd\dsd\dsdCheck.c \
-    bdd\dsd\dsdLocal.c \
-    bdd\dsd\dsdMan.c \
-    bdd\dsd\dsdProc.c \
-    bdd\dsd\dsdTree.c
+SRC +=    src/bdd/dsd/dsdApi.c \
+    src/bdd/dsd/dsdCheck.c \
+    src/bdd/dsd/dsdLocal.c \
+    src/bdd/dsd/dsdMan.c \
+    src/bdd/dsd/dsdProc.c \
+    src/bdd/dsd/dsdTree.c

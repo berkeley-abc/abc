@@ -604,7 +604,7 @@ int IoCommandWriteBlif( Abc_Frame_t * pAbc, int argc, char **argv )
     FileName = argv[util_optind];
 
     // check the network type
-    if ( !Abc_NtkIsLogic(pNtk) && !Abc_NtkIsAig(pNtk) && !Abc_NtkIsSeq(pNtk) )
+    if ( !Abc_NtkIsLogic(pNtk) && !Abc_NtkIsStrash(pNtk) && !Abc_NtkIsSeq(pNtk) )
     {
         fprintf( pAbc->Out, "Currently can only write logic networks, AIGs, and seq AIGs.\n" );
         return 0;
@@ -670,7 +670,7 @@ int IoCommandWriteBench( Abc_Frame_t * pAbc, int argc, char **argv )
     // get the input file name
     FileName = argv[util_optind];
 
-    if ( !Abc_NtkIsAig(pNtk) )
+    if ( !Abc_NtkIsStrash(pNtk) )
     {
         fprintf( pAbc->Out, "The network should be an AIG.\n" );
         return 0;

@@ -48,7 +48,7 @@ int Abc_NtkSopToBdd( Abc_Ntk_t * pNtk )
     DdManager * dd;
     int nFaninsMax, i;
 
-    assert( Abc_NtkIsLogicSop(pNtk) ); 
+    assert( Abc_NtkIsSopLogic(pNtk) ); 
 
     // start the functionality manager
     nFaninsMax = Abc_NtkGetFaninMax( pNtk );
@@ -74,7 +74,7 @@ int Abc_NtkSopToBdd( Abc_Ntk_t * pNtk )
     pNtk->pManFunc = dd;
 
     // update the network type
-    pNtk->Type = ABC_NTK_LOGIC_BDD;
+    pNtk->ntkFunc = ABC_FUNC_BDD;
     return 1;
 }
 
@@ -152,12 +152,12 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk )
     int RetValue, i;
     Vec_Str_t * vCube;
 
-    assert( Abc_NtkIsLogicBdd(pNtk) ); 
+    assert( Abc_NtkIsBddLogic(pNtk) ); 
     Cudd_zddVarsFromBddVars( dd, 2 );
     // allocate the new manager
     pNtk->pManFunc = Extra_MmFlexStart();
     // update the network type
-    pNtk->Type = ABC_NTK_LOGIC_SOP;
+    pNtk->ntkFunc = ABC_FUNC_SOP;
 
     // go through the objects
     vCube = Vec_StrAlloc( 100 );
@@ -165,7 +165,6 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk )
     {
         assert( pNode->pData );
         bFunc = pNode->pData;
-//Extra_bddPrint( dd, bFunc ); printf( "\n" ); printf( "\n" );
         pNode->pData = Abc_ConvertBddToSop( pNtk->pManFunc, dd, bFunc, bFunc, Abc_ObjFaninNum(pNode), vCube, -1 );
         if ( pNode->pData == NULL )
             return 0;
@@ -375,7 +374,7 @@ int Abc_ConvertZddToSop( DdManager * dd, DdNode * zCover, char * pSop, int nFani
 ***********************************************************************/
 void Abc_NodeBddToCnf( Abc_Obj_t * pNode, Extra_MmFlex_t * pMmMan, Vec_Str_t * vCube, char ** ppSop0, char ** ppSop1 )
 {
-    assert( Abc_NtkIsLogicBdd(pNode->pNtk) ); 
+    assert( Abc_NtkIsBddLogic(pNode->pNtk) ); 
     *ppSop0 = Abc_ConvertBddToSop( pMmMan, pNode->pNtk->pManFunc, pNode->pData, pNode->pData, Abc_ObjFaninNum(pNode), vCube, 0 );
     *ppSop1 = Abc_ConvertBddToSop( pMmMan, pNode->pNtk->pManFunc, pNode->pData, pNode->pData, Abc_ObjFaninNum(pNode), vCube, 1 );
 }

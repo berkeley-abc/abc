@@ -60,7 +60,7 @@ Abc_Ntk_t * Abc_NtkDsdGlobal( Abc_Ntk_t * pNtk, bool fVerbose, bool fPrint, bool
     Abc_Ntk_t * pNtkNew;
     DdManager * dd;
 
-    assert( Abc_NtkIsAig(pNtk) );
+    assert( Abc_NtkIsStrash(pNtk) );
 
     // perform FPGA mapping
     dd = Abc_NtkGlobalBdds( pNtk, 0 );    
@@ -112,7 +112,7 @@ Abc_Ntk_t * Abc_NtkDsdInternal( DdManager * dd, Abc_Ntk_t * pNtk, bool fVerbose,
         return NULL;
 
     // start the new network
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC_BDD );
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_LOGIC, ABC_FUNC_BDD );
     // make sure the new manager has enough inputs
     Cudd_bddIthVar( pNtkNew->pManFunc, dd->size-1 );
     // put the results into the new network (save new CO drivers in old CO drivers)
@@ -324,7 +324,7 @@ int Abc_NtkDsdRecursive( Abc_Ntk_t * pNtk, bool fVerbose )
     Vec_Ptr_t * vNodes;
     int i;
 
-    assert( Abc_NtkIsLogicBdd(pNtk) );
+    assert( Abc_NtkIsBddLogic(pNtk) );
 
     // make the network minimum base
     Abc_NtkMinimumBase( pNtk );

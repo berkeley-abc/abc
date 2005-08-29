@@ -25,8 +25,13 @@
 ////////////////////////////////////////////////////////////////////////
 
 // precomputed data
+#ifdef _WIN32
 unsigned short s_RwrPracticalClasses[];
 unsigned short s_RwtAigSubgraphs[];
+#else
+static unsigned short s_RwrPracticalClasses[];
+static unsigned short s_RwtAigSubgraphs[];
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -218,30 +223,6 @@ void Rwr_ManLoadFromFile( Rwr_Man_t * p, char * pFileName )
     printf( "The number of nodes loaded = %d.   ", nEntries );  PRT( "Loading", clock() - clk );
 }
 
-
-/**Function*************************************************************
-
-  Synopsis    [Creates the array of fanout counters.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Int_t * Rwt_NtkFanoutCounters( Abc_Ntk_t * pNtk )
-{
-    Vec_Int_t * vFanNums;
-    Abc_Obj_t * pObj;
-    int i;
-    vFanNums = Vec_IntAlloc( 0 );
-    Vec_IntFill( vFanNums, Abc_NtkObjNumMax(pNtk), -1 );
-    Abc_NtkForEachObj( pNtk, pObj, i )
-        if ( Abc_ObjIsNode( pObj ) )
-            Vec_IntWriteEntry( vFanNums, i, Abc_ObjFanoutNum(pObj) );
-    return vFanNums;
-}
 
 /**Function*************************************************************
 

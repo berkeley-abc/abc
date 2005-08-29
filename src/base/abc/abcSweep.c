@@ -58,7 +58,7 @@ bool Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fVerbose )
     Fraig_Man_t * pMan;
     stmm_table * tEquiv;
 
-    assert( !Abc_NtkIsAig(pNtk) );
+    assert( !Abc_NtkIsStrash(pNtk) );
 
     // derive the AIG
     pNtkAig = Abc_NtkStrash( pNtk, 0 );
@@ -194,7 +194,7 @@ void Abc_NtkFraigTransform( Abc_Ntk_t * pNtk, stmm_table * tEquiv, int fUseInv, 
     // assign levels to the nodes of the network
     Abc_NtkGetLevelNum( pNtk );
     // merge nodes in the classes
-    if ( Abc_NtkIsLogicMap( pNtk ) )
+    if ( Abc_NtkHasMapping( pNtk ) )
     {
         Abc_NtkDelayTrace( pNtk );
         stmm_foreach_item( tEquiv, gen, (char **)&pList, NULL )
@@ -403,7 +403,7 @@ int Abc_NtkCleanup( Abc_Ntk_t * pNtk, int fVerbose )
     }
     Vec_PtrFree( vNodes );
     // if it is an AIG, also mark the constant 1 node
-    if ( Abc_NtkIsAig(pNtk) )
+    if ( Abc_NtkIsStrash(pNtk) )
         Abc_AigConst1(pNtk->pManFunc)->fMarkA = 1;
     // remove the non-marked nodes
     Counter = 0;

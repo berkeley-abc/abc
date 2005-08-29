@@ -320,7 +320,7 @@ void Io_NtkWriteLatch( FILE * pFile, Abc_Obj_t * pLatch )
 ***********************************************************************/
 void Io_NtkWriteNode( FILE * pFile, Abc_Obj_t * pNode )
 {
-    if ( Abc_NtkIsNetlistMap(pNode->pNtk) )
+    if ( Abc_NtkHasMapping(pNode->pNtk) )
     {
         // write the .gate line
         fprintf( pFile, ".gate" );

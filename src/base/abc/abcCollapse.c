@@ -49,7 +49,7 @@ Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fVerbose )
     Abc_Ntk_t * pNtkNew;
     DdManager * dd;
 
-    assert( Abc_NtkIsAig(pNtk) );
+    assert( Abc_NtkIsStrash(pNtk) );
 
     // compute the global BDDs
     dd = Abc_NtkGlobalBdds( pNtk, 0 );    
@@ -230,7 +230,7 @@ Abc_Ntk_t * Abc_NtkFromGlobalBdds( DdManager * dd, Abc_Ntk_t * pNtk )
     Abc_Obj_t * pNode, * pNodeNew;
     int i;
     // start the new network
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC_BDD );
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_LOGIC, ABC_FUNC_BDD );
     // make sure the new manager has the same number of inputs
     Cudd_bddIthVar( pNtkNew->pManFunc, dd->size-1 );
     // process the POs

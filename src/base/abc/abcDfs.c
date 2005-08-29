@@ -223,7 +223,7 @@ Vec_Ptr_t * Abc_AigDfs( Abc_Ntk_t * pNtk, int fCollectAll, int fCollectCos )
     Vec_Ptr_t * vNodes;
     Abc_Obj_t * pNode;
     int i;
-    assert( Abc_NtkIsAig(pNtk) || Abc_NtkIsSeq(pNtk) );
+    assert( Abc_NtkIsStrash(pNtk) );
     // set the traversal ID
     Abc_NtkIncrementTravId( pNtk );
     // start the array of nodes

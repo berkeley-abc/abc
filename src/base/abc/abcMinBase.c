@@ -45,7 +45,7 @@ int Abc_NtkMinimumBase( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
     int i, Counter;
-    assert( Abc_NtkIsLogicBdd(pNtk) );
+    assert( Abc_NtkIsBddLogic(pNtk) );
     Counter = 0;
     Abc_NtkForEachNode( pNtk, pNode, i )
         Counter += Abc_NodeMinimumBase( pNode );
@@ -70,7 +70,7 @@ int Abc_NodeMinimumBase( Abc_Obj_t * pNode )
     DdNode * bTemp;
     int i, nVars;
 
-    assert( Abc_NtkIsLogicBdd(pNode->pNtk) );
+    assert( Abc_NtkIsBddLogic(pNode->pNtk) );
     assert( Abc_ObjIsNode(pNode) );
 
     // compute support

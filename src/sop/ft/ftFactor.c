@@ -319,10 +319,10 @@ Ft_Node_t * Ft_FactorTrivialTree_rec( Vec_Int_t * vForm, Ft_Node_t ** ppNodes, i
         return ppNodes[0];
 
     // split the nodes into two parts
-//    nNodes1 = nNodes/2;
-//    nNodes2 = nNodes - nNodes1;
-    nNodes2 = nNodes/2;
-    nNodes1 = nNodes - nNodes2;
+    nNodes1 = nNodes/2;
+    nNodes2 = nNodes - nNodes1;
+//    nNodes2 = nNodes/2;
+//    nNodes1 = nNodes - nNodes2;
 
     // recursively construct the tree for the parts
     pNode1 = Ft_FactorTrivialTree_rec( vForm, ppNodes,           nNodes1, fAnd );

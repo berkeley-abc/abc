@@ -49,7 +49,7 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
     int i;
     int clk = clock();
 
-    assert( Abc_NtkIsAig(pNtk) );
+    assert( Abc_NtkIsStrash(pNtk) );
 
     // start the manager
     pParams->nIdsMax = Abc_NtkObjNumMax( pNtk );

@@ -72,7 +72,7 @@ int Abc_NtkGetCubeNum( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
     int i, nCubes = 0;
-    assert( Abc_NtkIsSop(pNtk) );
+    assert( Abc_NtkHasSop(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         assert( pNode->pData );
@@ -96,7 +96,7 @@ int Abc_NtkGetLitNum( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
     int i, nLits = 0;
-    assert( Abc_NtkIsSop(pNtk) );
+    assert( Abc_NtkHasSop(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         assert( pNode->pData );
@@ -121,16 +121,14 @@ int Abc_NtkGetLitFactNum( Abc_Ntk_t * pNtk )
     Vec_Int_t * vFactor;
     Abc_Obj_t * pNode;
     int nNodes, i;
-    assert( Abc_NtkIsSop(pNtk) );
+    assert( Abc_NtkHasSop(pNtk) );
     nNodes = 0;
-//    Ft_FactorStartMan();
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         vFactor = Ft_Factor( pNode->pData );
         nNodes += Ft_FactorGetNumNodes(vFactor);
         Vec_IntFree( vFactor );
     }
-//    Ft_FactorStopMan();
     return nNodes;
 }
 
@@ -149,7 +147,7 @@ int Abc_NtkGetBddNodeNum( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
     int i, nNodes = 0;
-    assert( Abc_NtkIsLogicBdd(pNtk) );
+    assert( Abc_NtkIsBddLogic(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         assert( pNode->pData );
@@ -175,7 +173,7 @@ int Abc_NtkGetClauseNum( Abc_Ntk_t * pNtk )
     DdNode * bCover, * zCover, * bFunc;
     DdManager * dd = pNtk->pManFunc;
     int i, nClauses = 0;
-    assert( Abc_NtkIsLogicBdd(pNtk) );
+    assert( Abc_NtkIsBddLogic(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         assert( pNode->pData );
@@ -214,7 +212,7 @@ double Abc_NtkGetMappedArea( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pNode;
     double TotalArea;
     int i;
-    assert( Abc_NtkIsLogicMap(pNtk) );
+    assert( Abc_NtkHasMapping(pNtk) );
     TotalArea = 0.0;
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
@@ -367,9 +365,12 @@ int Abc_NtkLogicMakeSimpleCos( Abc_Ntk_t * pNtk, bool fDuplicate )
         pDriver = Abc_ObjFanin0(pNode);
         if ( Abc_ObjIsCi(pDriver) )
         {
-            // skip the case when the CI deriver has the same name as CO
-            if ( strcmp(Abc_ObjName(pDriver), Abc_ObjName(pNode)) == 0 )
+            // skip the case when the driver is a different node with the same name
+            if ( pDriver != pNode && strcmp(Abc_ObjName(pDriver), Abc_ObjName(pNode)) == 0 )
+            {
+                assert( !Abc_ObjFaninC0(pNode) );
                 continue;
+            }
         }
         else
         {
@@ -385,9 +386,9 @@ int Abc_NtkLogicMakeSimpleCos( Abc_Ntk_t * pNtk, bool fDuplicate )
             if ( Abc_ObjFaninC0(pNode) )
             {
                 // change polarity of the duplicated driver
-                if ( Abc_NtkIsLogicSop(pNtk) )
+                if ( Abc_NtkHasSop(pNtk) )
                     Abc_SopComplement( pDriverNew->pData );
-                else if ( Abc_NtkIsLogicBdd(pNtk) )
+                else if ( Abc_NtkHasBdd(pNtk) )
                     pDriverNew->pData = Cudd_Not( pDriverNew->pData );
                 else
                     assert( 0 );
@@ -643,7 +644,7 @@ int Abc_NtkCountChoiceNodes( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
     int i, Counter;
-    if ( !Abc_NtkIsAig(pNtk) )
+    if ( !Abc_NtkIsStrash(pNtk) )
         return 0;
     Counter = 0;
     Abc_NtkForEachNode( pNtk, pNode, i )

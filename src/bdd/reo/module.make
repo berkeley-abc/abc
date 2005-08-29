@@ -1,7 +1,7 @@
-SRC +=    bdd\reo\reoApi.c \
-    bdd\reo\reoCore.c \
-    bdd\reo\reoProfile.c \
-    bdd\reo\reoSift.c \
-    bdd\reo\reoSwap.c \
-    bdd\reo\reoTransfer.c \
-    bdd\reo\reoUnits.c
+SRC +=    src/bdd/reo/reoApi.c \
+    src/bdd/reo/reoCore.c \
+    src/bdd/reo/reoProfile.c \
+    src/bdd/reo/reoSift.c \
+    src/bdd/reo/reoSwap.c \
+    src/bdd/reo/reoTransfer.c \
+    src/bdd/reo/reoUnits.c

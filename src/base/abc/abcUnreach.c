@@ -282,7 +282,7 @@ Abc_Ntk_t * Abc_NtkConstructExdc( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bUn
     int i;
 
     // start the new network
-    pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC_BDD );
+    pNtkNew = Abc_NtkAlloc( ABC_TYPE_LOGIC, ABC_FUNC_BDD );
     // create PIs corresponding to LOs
     Abc_NtkForEachLatch( pNtk, pNode, i )
         pNode->pCopy = Abc_NtkCreatePi(pNtkNew);
@@ -308,13 +308,20 @@ Abc_Ntk_t * Abc_NtkConstructExdc( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bUn
     Abc_NtkForEachCo( pNtk, pNode, i )
         Abc_ObjAddFanin( Abc_NtkCreatePo(pNtkNew), pNodeNew );
 
-    // copy the CI/CO names
+    // store the PI names of the EXDC network
     Abc_NtkForEachLatch( pNtk, pNode, i )
         Abc_NtkLogicStoreName( Abc_NtkPi(pNtkNew,i), Abc_ObjName(pNode) );
+    // store the PO names of the EXDC network
     Abc_NtkForEachPo( pNtk, pNode, i )
         Abc_NtkLogicStoreName( Abc_NtkPo(pNtkNew,i), Abc_ObjName(pNode) );
     Abc_NtkForEachLatch( pNtk, pNode, i )
-        Abc_NtkLogicStoreName( Abc_NtkCo(pNtkNew,Abc_NtkPoNum(pNtk) + i), Abc_ObjName(pNode) );
+        Abc_NtkLogicStoreName( Abc_NtkCo(pNtkNew,Abc_NtkPoNum(pNtk) + i), Abc_ObjNameSuffix(pNode, "_in") );
+
+    // make the network minimum base
+    Abc_NtkMinimumBase( pNtkNew );
+
+    // fix the problem with complemented and duplicated CO edges
+    Abc_NtkLogicMakeSimpleCos( pNtkNew, 0 );
 
     // transform the network to the SOP representation
     Abc_NtkBddToSop( pNtkNew );

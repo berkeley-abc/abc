@@ -294,7 +294,7 @@ bool Abc_AigCheck( Abc_Aig_t * pMan )
             Counter++;
     if ( Counter != Abc_NtkNodeNum(pMan->pNtkAig) )
     {
-        printf( "Abc_AigCheck: The number of nodes in the structural hashing table is wrong.\n", Counter );
+        printf( "Abc_AigCheck: The number of nodes in the structural hashing table is wrong.\n" );
         return 0;
     }
     return 1;
@@ -315,7 +315,7 @@ int Abc_AigGetLevelNum( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
     int i, LevelsMax;
-    assert( Abc_NtkIsAig(pNtk) );
+    assert( Abc_NtkIsStrash(pNtk) );
     // perform the traversal
     LevelsMax = 0;
     Abc_NtkForEachCo( pNtk, pNode, i )
@@ -718,12 +718,21 @@ void Abc_AigReplace_int( Abc_Aig_t * pMan )
         // such node does not exist - modify the old fanout node 
         // (this way the change will not propagate all the way to the COs)
         assert( Abc_ObjRegular(pFanin1) != Abc_ObjRegular(pFanin2) );             
+
+        // if the node is in the level structure, remove it
+        if ( pFanout->fMarkA )
+            Abc_AigRemoveFromLevelStructure( pMan->vLevels, pFanout );
+        // if the node is in the level structure, remove it
+        if ( pFanout->fMarkB )
+            Abc_AigRemoveFromLevelStructureR( pMan->vLevelsR, pFanout );
+
         // remove the old fanout node from the structural hashing table
         Abc_AigAndDelete( pMan, pFanout );
         // remove the fanins of the old fanout
         Abc_ObjRemoveFanins( pFanout );
         // recreate the old fanout with new fanins and add it to the table
         Abc_AigAndCreateFrom( pMan, pFanin1, pFanin2, pFanout );
+
         // schedule the updated fanout for updating direct level
         assert( pFanout->fMarkA == 0 );
         pFanout->fMarkA = 1;
@@ -732,6 +741,7 @@ void Abc_AigReplace_int( Abc_Aig_t * pMan )
         assert( pFanout->fMarkB == 0 );
         pFanout->fMarkB = 1;
         Vec_VecPush( pMan->vLevelsR, Abc_NodeReadReverseLevel(pFanout), pFanout );
+
         // the fanout has changed, update EXOR status of its fanouts
         Abc_ObjForEachFanout( pFanout, pFanoutFanout, v )
             if ( Abc_NodeIsAigAnd(pFanoutFanout) )

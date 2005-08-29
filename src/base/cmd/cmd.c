@@ -1300,7 +1300,7 @@ int CmdCommandSis( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     fclose( pFile );
 
-    if ( Abc_NtkIsLogicBdd(pNtk) )
+    if ( Abc_NtkIsBddLogic(pNtk) )
         Abc_NtkBddToSop(pNtk);
 
     // write out the current network
@@ -1423,7 +1423,7 @@ int CmdCommandMvsis( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     fclose( pFile );
 
-    if ( Abc_NtkIsLogicBdd(pNtk) )
+    if ( Abc_NtkIsBddLogic(pNtk) )
         Abc_NtkBddToSop(pNtk);
 
     // write out the current network

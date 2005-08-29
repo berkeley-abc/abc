@@ -60,7 +60,7 @@ void Abc_NodePrintBdd( Abc_Obj_t * pNode )
     char * pProgGsViewName;
     int RetValue;
 
-    assert( Abc_NtkIsLogicBdd(pNode->pNtk) );
+    assert( Abc_NtkIsBddLogic(pNode->pNtk) );
 
 #ifdef WIN32
     pProgDotName = "dot.exe";

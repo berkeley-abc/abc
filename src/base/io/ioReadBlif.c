@@ -292,12 +292,12 @@ Abc_Ntk_t * Io_ReadBlifNetwork( Io_ReadBlif_t * p )
         }
         pModelName = vTokens->pArray[1];
         // allocate the empty network
-        p->pNtk = Abc_NtkAlloc( ABC_NTK_NETLIST_SOP );
+        p->pNtk = Abc_NtkAlloc( ABC_TYPE_NETLIST, ABC_FUNC_SOP );
         p->pNtk->pName = util_strsav( pModelName );
         p->pNtk->pSpec = util_strsav( p->pFileName );
     }
     else
-        p->pNtk = Abc_NtkAlloc( ABC_NTK_NETLIST_SOP );
+        p->pNtk = Abc_NtkAlloc( ABC_TYPE_NETLIST, ABC_FUNC_SOP );
 
     // read the inputs/outputs
     pProgress = Extra_ProgressBarStart( stdout, Extra_FileReaderGetFileSize(p->pReader) );
@@ -581,8 +581,8 @@ int Io_ReadBlifNetworkGate( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
     // if this is the first line with gate, update the network type
     if ( Abc_NtkNodeNum(p->pNtk) == 0 )
     {
-        assert( p->pNtk->Type = ABC_NTK_NETLIST_SOP );
-        p->pNtk->Type = ABC_NTK_NETLIST_MAP;
+        assert( p->pNtk->ntkFunc == ABC_FUNC_SOP );
+        p->pNtk->ntkFunc = ABC_FUNC_MAP;
         Extra_MmFlexStop( p->pNtk->pManFunc, 0 );
         p->pNtk->pManFunc = pGenlib;
     }

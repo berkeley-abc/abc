@@ -54,9 +54,11 @@ bool Abc_NtkFastExtract( Abc_Ntk_t * pNtk, Fxu_Data_t * p )
 {
     int fCheck = 1;
 
-    assert( Abc_NtkIsLogicBdd(pNtk) || Abc_NtkIsLogicSop(pNtk) );
+    assert( Abc_NtkIsLogic(pNtk) );
     // convert nodes to SOPs
-    if ( Abc_NtkIsLogicBdd(pNtk) )
+    if ( Abc_NtkIsMappedLogic(pNtk) )
+        Abc_NtkUnmap(pNtk);
+    else if ( Abc_NtkIsBddLogic(pNtk) )
         Abc_NtkBddToSop(pNtk);
     else
     { // to make sure the SOPs are SCC-free

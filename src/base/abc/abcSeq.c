@@ -67,9 +67,9 @@ Abc_Ntk_t * Abc_NtkAigToSeq( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pObj, * pConst, * pFanout, * pFaninNew, * pLatch;
     int i, k, fChange, Counter;
 
-    assert( Abc_NtkIsAig(pNtk) );
+    assert( Abc_NtkIsStrash(pNtk) );
     // start the network
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_SEQ );
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_SEQ, ABC_FUNC_AIG );
     pManNew = pNtkNew->pManFunc;
 
     // set mapping of the constant nodes
@@ -200,7 +200,7 @@ Abc_Ntk_t * Abc_NtkSeqToLogicSop( Abc_Ntk_t * pNtk )
     int i, k, c;
     assert( Abc_NtkIsSeq(pNtk) );
     // start the network
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC_SOP );
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_LOGIC, ABC_FUNC_SOP );
     // create the constant and reset nodes
     Abc_NtkDupConst1( pNtk, pNtkNew );
     Abc_NtkDupReset( pNtk, pNtkNew );

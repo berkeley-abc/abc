@@ -94,7 +94,7 @@ int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, bool 
     int i, nNodes;
     int clk, clkStart = clock();
 
-    assert( Abc_NtkIsAig(pNtk) );
+    assert( Abc_NtkIsStrash(pNtk) );
     // start the managers
     pManCut = Abc_NtkManCutStart( nNodeSizeMax, nConeSizeMax );
     pManRef = Abc_NtkManRefStart( nNodeSizeMax, nConeSizeMax, fUseDcs, fVerbose );

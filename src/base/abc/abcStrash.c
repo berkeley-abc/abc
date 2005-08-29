@@ -56,16 +56,13 @@ Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes )
     int nNodes;
 
     assert( !Abc_NtkIsNetlist(pNtk) );
-    if ( Abc_NtkIsLogicBdd(pNtk) )
-    {
-//        printf( "Converting node functions from BDD to SOP.\n" );
+    if ( Abc_NtkIsBddLogic(pNtk) )
         Abc_NtkBddToSop(pNtk);
-    }
     // print warning about choice nodes
     if ( Abc_NtkCountChoiceNodes( pNtk ) )
         printf( "Warning: The choice nodes in the initial AIG are removed by strashing.\n" );
     // perform strashing
-    pNtkAig = Abc_NtkStartFrom( pNtk, ABC_NTK_AIG );
+    pNtkAig = Abc_NtkStartFrom( pNtk, ABC_TYPE_STRASH, ABC_FUNC_AIG );
     Abc_NtkStrashPerform( pNtk, pNtkAig, fAllNodes );
     Abc_NtkFinalize( pNtk, pNtkAig );
     // print warning about self-feed latches
@@ -106,13 +103,10 @@ int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
     Abc_Obj_t * pObj;
     int i;
     // the first network should be an AIG
-    assert( Abc_NtkIsAig(pNtk1) );
-    assert( Abc_NtkIsLogic(pNtk2) || Abc_NtkIsAig(pNtk2) ); 
-    if ( Abc_NtkIsLogicBdd(pNtk2) )
-    {
-//        printf( "Converting node functions from BDD to SOP.\n" );
+    assert( Abc_NtkIsStrash(pNtk1) );
+    assert( Abc_NtkIsLogic(pNtk2) || Abc_NtkIsStrash(pNtk2) ); 
+    if ( Abc_NtkIsBddLogic(pNtk2) )
         Abc_NtkBddToSop(pNtk2);
-    }
     // check that the networks have the same PIs
     // reorder PIs of pNtk2 according to pNtk1
     if ( !Abc_NtkCompareSignals( pNtk1, pNtk2, 1 ) )
@@ -192,7 +186,7 @@ Abc_Obj_t * Abc_NodeStrash( Abc_Aig_t * pMan, Abc_Obj_t * pNode )
     assert( Abc_ObjIsNode(pNode) );
 
     // consider the case when the graph is an AIG
-    if ( Abc_NtkIsAig(pNode->pNtk) )
+    if ( Abc_NtkIsStrash(pNode->pNtk) )
     {
 //        Abc_Obj_t * pChild0, * pChild1;
 //        pChild0 = Abc_ObjFanin0(pNode);
@@ -203,7 +197,7 @@ Abc_Obj_t * Abc_NodeStrash( Abc_Aig_t * pMan, Abc_Obj_t * pNode )
     }
 
     // get the SOP of the node
-    if ( Abc_NtkIsLogicMap(pNode->pNtk) )
+    if ( Abc_NtkHasMapping(pNode->pNtk) )
         pSop = Mio_GateReadSop(pNode->pData);
     else
         pSop = pNode->pData;

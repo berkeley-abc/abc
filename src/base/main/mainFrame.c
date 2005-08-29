@@ -336,7 +336,7 @@ void Abc_FrameUnmapAllNetworks( Abc_Frame_t * p )
 {
     Abc_Ntk_t * pNtk;
     for ( pNtk = p->pNtkCur; pNtk; pNtk = Abc_NtkBackup(pNtk) )
-        if ( Abc_NtkIsLogicMap(pNtk) )
+        if ( Abc_NtkHasMapping(pNtk) )
             Abc_NtkUnmap( pNtk );
 }
 

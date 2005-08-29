@@ -64,7 +64,7 @@ int Abc_NtkAttach( Abc_Ntk_t * pNtk )
     Mio_Gate_t ** ppGates;
     int nGates, nFanins, i;
 
-    assert( Abc_NtkIsLogicSop(pNtk) );
+    assert( Abc_NtkIsSopLogic(pNtk) );
 
     // check that the library is available
     pGenlib = Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame());
@@ -142,7 +142,7 @@ int Abc_NtkAttach( Abc_Ntk_t * pNtk )
     // replace SOP representation by the gate representation
     Abc_NtkForEachNode( pNtk, pNode, i )
         pNode->pData = pNode->pCopy, pNode->pCopy = NULL;
-    pNtk->Type = ABC_NTK_LOGIC_MAP;
+    pNtk->ntkFunc = ABC_FUNC_MAP;
     Extra_MmFlexStop( pNtk->pManFunc, 0 );
     pNtk->pManFunc = pGenlib;
 

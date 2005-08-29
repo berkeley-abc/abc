@@ -70,7 +70,7 @@ static inline int        Cut_CutReadLeaveNum( Cut_Cut_t * p )  {  return p->nLea
 static inline int *      Cut_CutReadLeaves( Cut_Cut_t * p )    {  return p->pLeaves;   }
 static inline void *     Cut_CutReadData( Cut_Cut_t * p )      {  return p->pData;     }
 
-static inline void *     Cut_CutWriteData( Cut_Cut_t * p, void * pData )  { p->pData = pData;  }
+static inline void       Cut_CutWriteData( Cut_Cut_t * p, void * pData )  { p->pData = pData;  }
 static inline void       Cut_CutWriteTruth( Cut_Cut_t * p, unsigned * puTruth )  { 
     if ( p->nVarsMax == 4 )  { p->uTruth = *puTruth;  return; }
     p->pLeaves[p->nVarsMax + p->fSeq] = (int)puTruth[0];

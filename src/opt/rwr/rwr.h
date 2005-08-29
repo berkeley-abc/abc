@@ -137,7 +137,6 @@ extern void              Rwr_ManWriteToArray( Rwr_Man_t * p );
 extern void              Rwr_ManLoadFromArray( Rwr_Man_t * p, int fVerbose );
 extern void              Rwr_ManWriteToFile( Rwr_Man_t * p, char * pFileName );
 extern void              Rwr_ManLoadFromFile( Rwr_Man_t * p, char * pFileName );
-extern Vec_Int_t *       Rwt_NtkFanoutCounters( Abc_Ntk_t * pNtk );
 extern void              Rwr_ListAddToTail( Rwr_Node_t ** ppList, Rwr_Node_t * pNode );
 extern char *            Rwr_ManGetPractical( Rwr_Man_t * p );
 

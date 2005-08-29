@@ -57,7 +57,7 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
         fprintf( pFile, "  net = %5d", Abc_NtkNetNum(pNtk) );
         fprintf( pFile, "  nd = %5d", Abc_NtkNodeNum(pNtk) );
     }
-    else if ( Abc_NtkIsAig(pNtk) )
+    else if ( Abc_NtkIsStrash(pNtk) )
     {
         fprintf( pFile, "  and = %5d", Abc_NtkNodeNum(pNtk) );
         if ( Num = Abc_NtkCountChoiceNodes(pNtk) )
@@ -70,26 +70,26 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
     else 
         fprintf( pFile, "  nd = %5d", Abc_NtkNodeNum(pNtk) );
 
-    if ( Abc_NtkIsLogicSop(pNtk) || Abc_NtkIsNetlistSop(pNtk) )   
+    if ( Abc_NtkHasSop(pNtk) )   
     {
         fprintf( pFile, "  cube = %5d",  Abc_NtkGetCubeNum(pNtk) );
 //        fprintf( pFile, "  lit(sop) = %5d",  Abc_NtkGetLitNum(pNtk) );
         if ( fFactored )
             fprintf( pFile, "  lit(fac) = %5d",  Abc_NtkGetLitFactNum(pNtk) );
     }
-    else if ( Abc_NtkIsLogicBdd(pNtk) )
+    else if ( Abc_NtkHasBdd(pNtk) )
         fprintf( pFile, "  bdd = %5d",  Abc_NtkGetBddNodeNum(pNtk) );
-    else if ( Abc_NtkIsLogicMap(pNtk) || Abc_NtkIsNetlistMap(pNtk) )
+    else if ( Abc_NtkHasMapping(pNtk) )
     {
         fprintf( pFile, "  area = %5.2f", Abc_NtkGetMappedArea(pNtk) );
         fprintf( pFile, "  delay = %5.2f", Abc_NtkDelayTrace(pNtk) );
     }
-    else if ( !Abc_NtkIsAig(pNtk) && !Abc_NtkIsSeq(pNtk) )
+    else if ( !Abc_NtkHasAig(pNtk) )
     {
         assert( 0 );
     }
 
-    if ( Abc_NtkIsAig(pNtk) )
+    if ( Abc_NtkIsStrash(pNtk) )
         fprintf( pFile, "  lev = %3d", Abc_AigGetLevelNum(pNtk) );
     else if ( !Abc_NtkIsSeq(pNtk) )
         fprintf( pFile, "  lev = %3d", Abc_NtkGetLevelNum(pNtk) );
@@ -180,7 +180,7 @@ void Abc_NtkPrintLatch( FILE * pFile, Abc_Ntk_t * pNtk )
             continue;
         }
         // count the number of cases when the constant is equal to the initial value
-        if ( Abc_NtkIsAig(pNtk) )
+        if ( Abc_NtkIsStrash(pNtk) )
         {
             if ( Abc_LatchIsInit1(pLatch) == !Abc_ObjFaninC0(pLatch) )
                 Counter2++;
@@ -314,7 +314,7 @@ void Abc_NtkPrintFactor( FILE * pFile, Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
     int i;
-    assert( Abc_NtkIsLogicSop(pNtk) );
+    assert( Abc_NtkIsSopLogic(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
         Abc_NodePrintFactor( pFile, pNode );
 }
@@ -369,7 +369,7 @@ void Abc_NtkPrintLevel( FILE * pFile, Abc_Ntk_t * pNtk, int fProfile )
     int i, Length;
 
     // print the delay profile
-    if ( fProfile && Abc_NtkIsMapped(pNtk) )
+    if ( fProfile && Abc_NtkHasMapping(pNtk) )
     {
         int nIntervals = 12;
         float DelayMax, DelayCur, DelayDelta;
@@ -407,7 +407,7 @@ void Abc_NtkPrintLevel( FILE * pFile, Abc_Ntk_t * pNtk, int fProfile )
         int LevelMax, * pLevelCounts;
         int nOutsSum, nOutsTotal;
 
-        if ( !Abc_NtkIsAig(pNtk) )
+        if ( !Abc_NtkIsStrash(pNtk) )
             Abc_NtkGetLevelNum(pNtk);
 
         LevelMax = 0;
@@ -430,7 +430,7 @@ void Abc_NtkPrintLevel( FILE * pFile, Abc_Ntk_t * pNtk, int fProfile )
         free( pLevelCounts );
         return;
     }
-    assert( Abc_NtkIsAig(pNtk) );
+    assert( Abc_NtkIsStrash(pNtk) );
 
     // find the longest name
     Length = 0;

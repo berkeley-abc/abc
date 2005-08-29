@@ -804,7 +804,7 @@ void Extra_Truth3VarN( unsigned ** puCanons, char *** puPhases, char ** ppCounte
         *ppCounters = pCounters;
     else
         free( pCounters );
-    printf( "The number of 3N-classes = %d.\n", nClasses );
+//    printf( "The number of 3N-classes = %d.\n", nClasses );
 }
 
 /**Function*************************************************************
@@ -870,7 +870,7 @@ void Extra_Truth4VarN( unsigned short ** puCanons, char *** puPhases, char ** pp
         *ppCounters = pCounters;
     else
         free( pCounters );
-    printf( "The number of 4N-classes = %d.\n", nClasses );
+//    printf( "The number of 4N-classes = %d.\n", nClasses );
 }
 
 /**Function*************************************************************

@@ -167,16 +167,17 @@ int Abc_NodeRefDeref( Abc_Obj_t * pNode, bool fReference, bool fLabel, Vec_Ptr_t
 ***********************************************************************/
 void Abc_NodeUpdate( Abc_Obj_t * pNode, Vec_Ptr_t * vFanins, Vec_Int_t * vForm, int nGain )
 {
+    Abc_Ntk_t * pNtk = pNode->pNtk;
     Abc_Obj_t * pNodeNew;
     int nNodesNew, nNodesOld;
-    nNodesOld = Abc_NtkNodeNum(pNode->pNtk);
+    nNodesOld = Abc_NtkNodeNum(pNtk);
     // create the new structure of nodes
     assert( vForm->nSize == 1 || Vec_PtrSize(vFanins) < Vec_IntSize(vForm) );
-    pNodeNew = Abc_NodeStrashDec( pNode->pNtk->pManFunc, vFanins, vForm );
+    pNodeNew = Abc_NodeStrashDec( pNtk->pManFunc, vFanins, vForm );
     // remove the old nodes
-    Abc_AigReplace( pNode->pNtk->pManFunc, pNode, pNodeNew );
+    Abc_AigReplace( pNtk->pManFunc, pNode, pNodeNew );
     // compare the gains
-    nNodesNew = Abc_NtkNodeNum(pNode->pNtk);
+    nNodesNew = Abc_NtkNodeNum(pNtk);
     assert( nGain <= nNodesOld - nNodesNew );
 }
 

@@ -55,8 +55,8 @@ Abc_Ntk_t * Abc_NtkMiter( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb )
     if ( !Abc_NtkCompareSignals( pNtk1, pNtk2, fComb ) )
         return NULL;
     // make sure the circuits are strashed 
-    fRemove1 = (!Abc_NtkIsAig(pNtk1)) && (pNtk1 = Abc_NtkStrash(pNtk1, 0));
-    fRemove2 = (!Abc_NtkIsAig(pNtk2)) && (pNtk2 = Abc_NtkStrash(pNtk2, 0));
+    fRemove1 = (!Abc_NtkIsStrash(pNtk1)) && (pNtk1 = Abc_NtkStrash(pNtk1, 0));
+    fRemove2 = (!Abc_NtkIsStrash(pNtk2)) && (pNtk2 = Abc_NtkStrash(pNtk2, 0));
     if ( pNtk1 && pNtk2 )
         pTemp = Abc_NtkMiterInt( pNtk1, pNtk2, fComb );
     if ( fRemove1 )  Abc_NtkDelete( pNtk1 );
@@ -81,11 +81,11 @@ Abc_Ntk_t * Abc_NtkMiterInt( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb )
     char Buffer[100];
     Abc_Ntk_t * pNtkMiter;
 
-    assert( Abc_NtkIsAig(pNtk1) );
-    assert( Abc_NtkIsAig(pNtk2) );
+    assert( Abc_NtkIsStrash(pNtk1) );
+    assert( Abc_NtkIsStrash(pNtk2) );
 
     // start the new network
-    pNtkMiter = Abc_NtkAlloc( ABC_NTK_AIG );
+    pNtkMiter = Abc_NtkAlloc( ABC_TYPE_STRASH, ABC_FUNC_AIG );
     sprintf( Buffer, "%s_%s_miter", pNtk1->pName, pNtk2->pName );
     pNtkMiter->pName = util_strsav(Buffer);
 
@@ -317,13 +317,13 @@ Abc_Ntk_t * Abc_NtkMiterOne( Abc_Ntk_t * pNtk, int Out, int In1, int In2 )
     Abc_Ntk_t * pNtkMiter;
     Abc_Obj_t * pRoot, * pOutput1, * pOutput2, * pMiter;
 
-    assert( Abc_NtkIsAig(pNtk) );
+    assert( Abc_NtkIsStrash(pNtk) );
     assert( Out < Abc_NtkCoNum(pNtk) );
     assert( In1 < Abc_NtkCiNum(pNtk) );
     assert( In2 < Abc_NtkCiNum(pNtk) );
 
     // start the new network
-    pNtkMiter = Abc_NtkAlloc( ABC_NTK_AIG );
+    pNtkMiter = Abc_NtkAlloc( ABC_TYPE_STRASH, ABC_FUNC_AIG );
     sprintf( Buffer, "%s_%s_miter", pNtk->pName, Abc_ObjName(Abc_NtkCo(pNtk, Out)) );
     pNtkMiter->pName = util_strsav(Buffer);
 
@@ -387,7 +387,7 @@ int Abc_NtkMiterIsConstant( Abc_Ntk_t * pMiter )
 {
     Abc_Obj_t * pNodePo, * pChild;
     int i;
-    assert( Abc_NtkIsAig(pMiter) );
+    assert( Abc_NtkIsStrash(pMiter) );
     Abc_NtkForEachPo( pMiter, pNodePo, i )
     {
         pChild = Abc_ObjChild0( Abc_NtkPo(pMiter,i) );
@@ -478,9 +478,9 @@ Abc_Ntk_t * Abc_NtkFrames( Abc_Ntk_t * pNtk, int nFrames, int fInitial )
     Abc_Obj_t * pLatch, * pLatchNew;
     int i, Counter;
     assert( nFrames > 0 );
-    assert( Abc_NtkIsAig(pNtk) );
+    assert( Abc_NtkIsStrash(pNtk) );
     // start the new network
-    pNtkFrames = Abc_NtkAlloc( ABC_NTK_AIG );
+    pNtkFrames = Abc_NtkAlloc( ABC_TYPE_STRASH, ABC_FUNC_AIG );
     sprintf( Buffer, "%s_%d_frames", pNtk->pName, nFrames );
     pNtkFrames->pName = util_strsav(Buffer);
     // create new latches (or their initial values) and remember them in the new latches

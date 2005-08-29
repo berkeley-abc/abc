@@ -48,7 +48,7 @@ bool Abc_NtkMiterSat( Abc_Ntk_t * pNtk, int fVerbose )
     lbool   status;
     int clk;
 
-    assert( Abc_NtkIsLogicBdd(pNtk) );
+    assert( Abc_NtkIsBddLogic(pNtk) );
     assert( Abc_NtkLatchNum(pNtk) == 0 );
 
     if ( Abc_NtkPoNum(pNtk) > 1 )
@@ -110,7 +110,7 @@ solver * Abc_NtkMiterSatCreate( Abc_Ntk_t * pNtk )
     char * pSop0, * pSop1;
     int i;
 
-    assert( Abc_NtkIsLogicBdd(pNtk) );
+    assert( Abc_NtkIsBddLogic(pNtk) );
 
     // start the data structures
     pSat    = solver_new();

@@ -44,9 +44,9 @@ static void Io_WriteCnfInt( FILE * pFile, Abc_Ntk_t * pNtk );
 int Io_WriteCnf( Abc_Ntk_t * pNtk, char * pFileName )
 {
     solver * pSat;
-    if ( !Abc_NtkIsLogicBdd(pNtk) )
+    if ( !Abc_NtkIsBddLogic(pNtk) )
     {
-        fprintf( stdout, "Io_WriteCnf(): Currently can process logic networks with BDDs.\n" );
+        fprintf( stdout, "Io_WriteCnf(): Currently can only process logic networks with BDDs.\n" );
         return 0;
     }
     if ( Abc_NtkPoNum(pNtk) != 1 )

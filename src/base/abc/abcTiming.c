@@ -553,7 +553,7 @@ float Abc_NtkDelayTrace( Abc_Ntk_t * pNtk )
     float tArrivalMax;
     int i;
 
-    assert( Abc_NtkIsLogicMap(pNtk) );
+    assert( Abc_NtkIsMappedLogic(pNtk) );
 
     Abc_NtkTimePrepare( pNtk );
     vNodes = Abc_NtkDfs( pNtk, 1 );
@@ -647,7 +647,7 @@ void Abc_NtkStartReverseLevels( Abc_Ntk_t * pNtk )
     Vec_Ptr_t * vNodes;
     Abc_Obj_t * pObj, * pFanout;
     int i, k, nLevelsCur;
-    assert( Abc_NtkIsAig(pNtk) );
+    assert( Abc_NtkIsStrash(pNtk) );
     // remember the maximum number of direct levels
     pNtk->LevelMax = Abc_AigGetLevelNum(pNtk);
     // start the reverse levels
@@ -701,7 +701,7 @@ void Abc_NtkStopReverseLevels( Abc_Ntk_t * pNtk )
 void Abc_NodeSetReverseLevel( Abc_Obj_t * pObj, int LevelR )
 {
     Abc_Ntk_t * pNtk = pObj->pNtk;
-    assert( Abc_NtkIsAig(pNtk) );
+    assert( Abc_NtkIsStrash(pNtk) );
     assert( pNtk->vLevelsR );
     Vec_IntFillExtra( pNtk->vLevelsR, pObj->Id + 1, 0 );
     Vec_IntWriteEntry( pNtk->vLevelsR, pObj->Id, LevelR );
@@ -722,7 +722,7 @@ void Abc_NodeSetReverseLevel( Abc_Obj_t * pObj, int LevelR )
 int Abc_NodeReadReverseLevel( Abc_Obj_t * pObj )
 {
     Abc_Ntk_t * pNtk = pObj->pNtk;
-    assert( Abc_NtkIsAig(pNtk) );
+    assert( Abc_NtkIsStrash(pNtk) );
     assert( pNtk->vLevelsR );
     Vec_IntFillExtra( pNtk->vLevelsR, pObj->Id + 1, 0 );
     return Vec_IntEntry(pNtk->vLevelsR, pObj->Id);
@@ -743,7 +743,7 @@ int Abc_NodeReadReverseLevel( Abc_Obj_t * pObj )
 int Abc_NodeReadRequiredLevel( Abc_Obj_t * pObj )
 {
     Abc_Ntk_t * pNtk = pObj->pNtk;
-    assert( Abc_NtkIsAig(pNtk) );
+    assert( Abc_NtkIsStrash(pNtk) );
     assert( pNtk->vLevelsR );
     return pNtk->LevelMax + 1 - Vec_IntEntry(pNtk->vLevelsR, pObj->Id);
 }

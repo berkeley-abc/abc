@@ -69,7 +69,7 @@ int Map_Mapping( Map_Man_t * p )
     Map_MappingTruths( p );
     p->timeTruth = clock() - clk;
     //////////////////////////////////////////////////////////////////////
-PRT( "Truths", clock() - clk );
+//PRT( "Truths", clock() - clk );
 
     //////////////////////////////////////////////////////////////////////
     // compute the minimum-delay mapping

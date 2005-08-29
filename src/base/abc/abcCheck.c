@@ -57,12 +57,17 @@ bool Abc_NtkCheck( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pObj, * pNet, * pNode;
     int i;
 
-    if ( !Abc_NtkIsNetlist(pNtk) && !Abc_NtkIsLogic(pNtk) && !Abc_NtkIsAig(pNtk) && !Abc_NtkIsSeq(pNtk) )
+    if ( !Abc_NtkIsNetlist(pNtk) && !Abc_NtkIsLogic(pNtk) && !Abc_NtkIsStrash(pNtk) && !Abc_NtkIsSeq(pNtk) )
     {
         fprintf( stdout, "NetworkCheck: Unknown network type.\n" );
         return 0;
     }
-    if ( Abc_NtkIsMapped(pNtk) )
+    if ( !Abc_NtkHasSop(pNtk) && !Abc_NtkHasBdd(pNtk) && !Abc_NtkHasAig(pNtk) && !Abc_NtkHasMapping(pNtk) )
+    {
+        fprintf( stdout, "NetworkCheck: Unknown functionality type.\n" );
+        return 0;
+    }
+    if ( Abc_NtkHasMapping(pNtk) )
     {
         if ( pNtk->pManFunc != Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()) )
         {
@@ -110,9 +115,9 @@ bool Abc_NtkCheck( Abc_Ntk_t * pNtk )
     }
 
     // check the nodes
-    if ( Abc_NtkIsAig(pNtk) || Abc_NtkIsSeq(pNtk) )
+    if ( Abc_NtkHasAig(pNtk) )
     {
-        if ( Abc_NtkIsAig(pNtk) ) 
+        if ( Abc_NtkIsStrash(pNtk) ) 
             Abc_AigCheck( pNtk->pManFunc );
     }
     else
@@ -474,7 +479,7 @@ bool Abc_NtkCheckNode( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode )
         return 0;
     }
     // the netlist and SOP logic network should have SOPs
-    if ( Abc_NtkIsNetlistSop(pNtk) || Abc_NtkIsLogicSop(pNtk) )
+    if ( Abc_NtkHasSop(pNtk) )
     {
         if ( !Abc_SopCheck( pNode->pData, Abc_ObjFaninNum(pNode) ) )
         {
@@ -482,7 +487,7 @@ bool Abc_NtkCheckNode( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode )
             return 0;
         }
     }
-    else if ( Abc_NtkIsLogicBdd(pNtk) )
+    else if ( Abc_NtkHasBdd(pNtk) )
     {
         int nSuppSize = Cudd_SupportSize(pNtk->pManFunc, pNode->pData);
         if ( nSuppSize > Abc_ObjFaninNum(pNode) )
@@ -491,7 +496,7 @@ bool Abc_NtkCheckNode( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode )
             return 0;
         }
     }
-    else if ( !Abc_NtkIsMapped(pNtk) )
+    else if ( !Abc_NtkHasMapping(pNtk) )
     {
         assert( 0 );
     }

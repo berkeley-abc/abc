@@ -445,7 +445,7 @@ int Abc_CommandPrintFactor( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( !Abc_NtkIsLogicSop(pNtk) )
+    if ( !Abc_NtkIsSopLogic(pNtk) )
     {
         fprintf( pErr, "Printing factored forms can be done for SOP networks.\n" );
         return 1;
@@ -465,15 +465,11 @@ int Abc_CommandPrintFactor( Abc_Frame_t * pAbc, int argc, char ** argv )
             fprintf( pErr, "Cannot find node \"%s\".\n", argv[util_optind] );
             return 1;
         }
-//        Ft_FactorStartMan();
         Abc_NodePrintFactor( pOut, pNode );
-//        Ft_FactorStopMan();
         return 0;
     }
     // print the nodes
-//    Ft_FactorStartMan();
     Abc_NtkPrintFactor( pOut, pNtk );
-//    Ft_FactorStopMan();
     return 0;
 
 usage:
@@ -508,7 +504,7 @@ int Abc_CommandPrintLevel( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fProfile = 0;
+    fProfile = 1;
     util_getopt_reset();
     while ( ( c = util_getopt( argc, argv, "ph" ) ) != EOF )
     {
@@ -530,7 +526,7 @@ int Abc_CommandPrintLevel( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( !fProfile && !Abc_NtkIsAig(pNtk) )
+    if ( !fProfile && !Abc_NtkIsStrash(pNtk) )
     {
         fprintf( pErr, "This command works only for AIGs.\n" );
         return 1;
@@ -607,7 +603,7 @@ int Abc_CommandPrintSupport( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( !Abc_NtkIsAig(pNtk) )
+    if ( !Abc_NtkIsStrash(pNtk) )
     {
         fprintf( pErr, "This command works only for AIGs.\n" );
         return 1;
@@ -664,7 +660,7 @@ int Abc_CommandShowBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( !Abc_NtkIsLogicBdd(pNtk) )
+    if ( !Abc_NtkIsBddLogic(pNtk) )
     {
         fprintf( pErr, "Printing BDDs can only be done for logic BDD networks.\n" );
         return 1;
@@ -738,14 +734,14 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( !Abc_NtkIsLogic(pNtk) && !Abc_NtkIsAig(pNtk) )
+    if ( !Abc_NtkIsLogic(pNtk) && !Abc_NtkIsStrash(pNtk) )
     {
         fprintf( pErr, "Can only collapse a logic network.\n" );
         return 1;
     }
 
     // get the new network
-    if ( Abc_NtkIsAig(pNtk) )
+    if ( Abc_NtkIsStrash(pNtk) )
         pNtkRes = Abc_NtkCollapse( pNtk, 1 );
     else
     {
@@ -880,7 +876,7 @@ int Abc_CommandBalance( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    if ( Abc_NtkIsAig(pNtk) )
+    if ( Abc_NtkIsStrash(pNtk) )
     {
         pNtkRes = Abc_NtkBalance( pNtk, fDuplicate );
     }
@@ -992,7 +988,7 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Empty network.\n" );
         return 1;
     }
-    if ( !Abc_NtkIsAig(pNtk) )
+    if ( !Abc_NtkIsStrash(pNtk) )
     {
         fprintf( pErr, "Cannot renode a network that is not an AIG.\n" );
         return 1;
@@ -1065,7 +1061,7 @@ int Abc_CommandCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Empty network.\n" );
         return 1;
     }
-    if ( Abc_NtkIsAig(pNtk) )
+    if ( Abc_NtkIsStrash(pNtk) )
     {
         fprintf( pErr, "Cleanup cannot be performed on the AIG.\n" );
         return 1;
@@ -1276,7 +1272,7 @@ int Abc_CommandDisjoint( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fGlobal )
     {
         // get the new network
-        if ( !Abc_NtkIsAig(pNtk) )
+        if ( !Abc_NtkIsStrash(pNtk) )
         {
             pNtkNew = Abc_NtkStrash( pNtk, 0 );
             pNtkRes = Abc_NtkDsdGlobal( pNtkNew, fVerbose, fPrint, fShort );
@@ -1305,7 +1301,7 @@ int Abc_CommandDisjoint( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else if ( fRecursive )
     {
-        if ( !Abc_NtkIsLogicBdd( pNtk ) )
+        if ( !Abc_NtkIsBddLogic( pNtk ) )
         {
             fprintf( pErr, "This command is only applicable to logic BDD networks.\n" );
             return 1;
@@ -1390,7 +1386,7 @@ int Abc_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Empty network.\n" );
         return 1;
     }
-    if ( !Abc_NtkIsAig(pNtk) )
+    if ( !Abc_NtkIsStrash(pNtk) )
     {
         fprintf( pErr, "This command can only be applied to an AIG.\n" );
         return 1;
@@ -1499,7 +1495,7 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Empty network.\n" );
         return 1;
     }
-    if ( !Abc_NtkIsAig(pNtk) )
+    if ( !Abc_NtkIsStrash(pNtk) )
     {
         fprintf( pErr, "This command can only be applied to an AIG.\n" );
         return 1;
@@ -1734,7 +1730,7 @@ int Abc_CommandFrames( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    if ( !Abc_NtkIsAig(pNtk) )
+    if ( !Abc_NtkIsStrash(pNtk) )
     {
         pNtkTemp = Abc_NtkStrash( pNtk, 0 );
         pNtkRes  = Abc_NtkFrames( pNtkTemp, nFrames, fInitial );
@@ -1802,7 +1798,7 @@ int Abc_CommandSop( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    if ( !Abc_NtkIsLogicBdd(pNtk) )
+    if ( !Abc_NtkIsBddLogic(pNtk) )
     {
         fprintf( pErr, "Converting to SOP is possible when node functions are BDDs.\n" );
         return 1;
@@ -1862,7 +1858,7 @@ int Abc_CommandBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    if ( !Abc_NtkIsLogicSop(pNtk) )
+    if ( !Abc_NtkIsSopLogic(pNtk) )
     {
         fprintf( pErr, "Converting to BDD is possible when node functions are SOPs.\n" );
         return 1;
@@ -1930,16 +1926,15 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( stdout, "Currently can only solve the miter for combinational circuits.\n" );
         return 0;
     }
-    if ( !(Abc_NtkIsLogicSop(pNtk) || Abc_NtkIsLogicBdd(pNtk)) )
+    if ( !Abc_NtkIsLogic(pNtk) )
     {
-        fprintf( stdout, "First convert node representation into BDDs or SOPs.\n" );
+        fprintf( stdout, "This command can only be applied to logic network.\n" );
         return 0;
     }
-    if ( Abc_NtkIsLogicSop(pNtk) )
-    {
-//        printf( "Converting node functions from SOP to BDD.\n" );
+    if ( Abc_NtkIsMappedLogic(pNtk) )
+        Abc_NtkUnmap(pNtk);
+    if ( Abc_NtkIsSopLogic(pNtk) )
         Abc_NtkSopToBdd(pNtk);
-    }
 
     if ( Abc_NtkMiterSat( pNtk, fVerbose ) )
         printf( "The miter is satisfiable.\n" );
@@ -2006,7 +2001,7 @@ int Abc_CommandExtSeqDcs( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( stdout, "The current network has no latches.\n" );
         return 0;
     }
-    if ( !Abc_NtkIsAig(pNtk) )
+    if ( !Abc_NtkIsStrash(pNtk) )
     {
         fprintf( stdout, "This command works only for AIGs.\n" );
         return 0;
@@ -2085,7 +2080,7 @@ int Abc_CommandSplit( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( !Abc_NtkIsLogic(pNtk) && !Abc_NtkIsAig(pNtk) )
+    if ( !Abc_NtkIsLogic(pNtk) && !Abc_NtkIsStrash(pNtk) )
     {
         fprintf( pErr, "Currently can only be applied to the logic network or an AIG.\n" );
         return 1;
@@ -2280,7 +2275,7 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Empty network.\n" );
         return 1;
     }
-    if ( !Abc_NtkIsAig(pNtk) )
+    if ( !Abc_NtkIsStrash(pNtk) )
     {
         fprintf( pErr, "Cut computation is available only for AIGs.\n" );
         return 1;
@@ -2415,9 +2410,9 @@ int Abc_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Empty network.\n" );
         return 1;
     }
-    if ( !Abc_NtkIsLogic(pNtk) && !Abc_NtkIsAig(pNtk) )
+    if ( !Abc_NtkIsLogic(pNtk) && !Abc_NtkIsStrash(pNtk) )
     {
-        fprintf( pErr, "Can only fraig a logic network.\n" );
+        fprintf( pErr, "Can only fraig a logic network or an AIG.\n" );
         return 1;
     }
 
@@ -2425,7 +2420,7 @@ int Abc_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     pParams->fVerboseP = pParams->fTryProve;
 
     // get the new network
-    if ( Abc_NtkIsAig(pNtk) )
+    if ( Abc_NtkIsStrash(pNtk) )
         pNtkRes = Abc_NtkFraig( pNtk, &Params, fAllNodes );
     else
     {
@@ -2750,7 +2745,7 @@ int Abc_CommandFraigSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Empty network.\n" );
         return 1;
     }
-    if ( Abc_NtkIsAig(pNtk) )
+    if ( Abc_NtkIsStrash(pNtk) )
     {
         fprintf( pErr, "Cannot sweep AIGs (use \"fraig\").\n" );
         return 1;
@@ -2848,7 +2843,7 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( !Abc_NtkIsAig(pNtk) )
+    if ( !Abc_NtkIsStrash(pNtk) )
     {
         pNtk = Abc_NtkStrash( pNtk, 0 );
         if ( pNtk == NULL )
@@ -2948,7 +2943,7 @@ int Abc_CommandUnmap( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Empty network.\n" );
         return 1;
     }
-    if ( !Abc_NtkIsLogicMap(pNtk) )
+    if ( !Abc_NtkHasMapping(pNtk) )
     {
         fprintf( pErr, "Cannot unmap the network that is not mapped.\n" );
         return 1;
@@ -3010,7 +3005,7 @@ int Abc_CommandAttach( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( !Abc_NtkIsLogicSop(pNtk) )
+    if ( !Abc_NtkIsSopLogic(pNtk) )
     {
         fprintf( pErr, "Can only attach gates if the nodes have SOP representations.\n" );
         return 1;
@@ -3073,7 +3068,7 @@ int Abc_CommandSuperChoice( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( !Abc_NtkIsAig(pNtk) )
+    if ( !Abc_NtkIsStrash(pNtk) )
     {
         fprintf( pErr, "Works only for the AIG representation.\n" );
         return 1;
@@ -3148,7 +3143,7 @@ int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( !Abc_NtkIsAig(pNtk) )
+    if ( !Abc_NtkIsStrash(pNtk) )
     {
         // strash and balance the network
         pNtk = Abc_NtkStrash( pNtk, 0 );
@@ -3241,7 +3236,10 @@ int Abc_CommandSeq( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( !Abc_NtkIsAig(pNtk) )
+    printf( "This command is not yet implemented.\n" );
+    return 0;
+
+    if ( !Abc_NtkIsStrash(pNtk) )
     {
         fprintf( pErr, "Works only for AIG.\n" );
         return 1;
@@ -3316,6 +3314,10 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Empty network.\n" );
         return 1;
     }
+
+    printf( "This command is not yet implemented.\n" );
+    return 0;
+
 
     if ( !Abc_NtkIsSeq(pNtk) )
     {

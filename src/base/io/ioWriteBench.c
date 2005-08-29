@@ -46,7 +46,7 @@ int Io_WriteBench( Abc_Ntk_t * pNtk, char * pFileName )
 {
     Abc_Ntk_t * pExdc;
     FILE * pFile;
-    assert( Abc_NtkIsNetlistSop(pNtk) );
+    assert( Abc_NtkIsSopNetlist(pNtk) );
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
     {

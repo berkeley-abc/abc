@@ -92,7 +92,7 @@ Fraig_Man_t * Abc_NtkToFraig( Abc_Ntk_t * pNtk, Fraig_Params_t * pParams, int fA
     Abc_Obj_t * pNode, * pConst1, * pReset;
     int i;
 
-    assert( Abc_NtkIsAig(pNtk) );
+    assert( Abc_NtkIsStrash(pNtk) );
 
     // create the FRAIG manager
     pMan = Fraig_ManCreate( pParams );
@@ -148,7 +148,7 @@ Abc_Ntk_t * Abc_NtkFromFraig( Fraig_Man_t * pMan, Abc_Ntk_t * pNtk )
     Abc_Obj_t * pNode;//, * pNodeNew;
     int i;
     // create the new network
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_AIG );
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_STRASH, ABC_FUNC_AIG );
     // make the mapper point to the new network
     Abc_NtkForEachCi( pNtk, pNode, i )
         Fraig_NodeSetData1( Fraig_ManReadIthVar(pMan, i), (Fraig_Node_t *)pNode->pCopy );
@@ -249,7 +249,7 @@ Abc_Ntk_t * Abc_NtkFraigTrust( Abc_Ntk_t * pNtk )
     int fCheck = 1;
     Abc_Ntk_t * pNtkNew;
 
-    if ( !Abc_NtkIsLogicSop(pNtk) )
+    if ( !Abc_NtkIsSopLogic(pNtk) )
     {
         printf( "Abc_NtkFraigTrust: Trust mode works for netlists and logic SOP networks.\n" );
         return NULL;
@@ -262,7 +262,7 @@ Abc_Ntk_t * Abc_NtkFraigTrust( Abc_Ntk_t * pNtk )
     }
     
     // perform strashing
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_AIG );
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_STRASH, ABC_FUNC_AIG );
     Abc_NtkFraigTrustOne( pNtk, pNtkNew );
     Abc_NtkFinalize( pNtk, pNtkNew );
 
@@ -421,9 +421,9 @@ int Abc_NtkFraigStore( Abc_Ntk_t * pNtk )
     Abc_Ntk_t * pStore;
     int nAndsOld;
 
-    if ( !Abc_NtkIsLogic(pNtk) && !Abc_NtkIsAig(pNtk) )
+    if ( !Abc_NtkIsLogic(pNtk) && !Abc_NtkIsStrash(pNtk) )
     {
-        printf( "Convert netlist into a logic network before adding to storage.\n" );
+        printf( "The netlist need to be converted into a logic network before adding it to storage.\n" );
         return 0;
     }
 

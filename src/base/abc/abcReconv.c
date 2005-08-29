@@ -472,7 +472,7 @@ void Abc_NodeCollectTfoCands( Abc_Ntk_t * pNtk, Abc_Obj_t * pRoot,
     Vec_Ptr_t * vVec;
     Abc_Obj_t * pNode, * pFanout;
     int i, k, v, LevelMin;
-    assert( Abc_NtkIsAig(pNtk) );
+    assert( Abc_NtkIsStrash(pNtk) );
 
     // assuming that the structure is clean
     Vec_VecForEachLevel( vLevels, vVec, i )

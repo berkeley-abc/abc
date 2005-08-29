@@ -47,10 +47,10 @@ Abc_Ntk_t * Abc_NtkNetlistToLogic( Abc_Ntk_t * pNtk )
     int i, k;
     assert( Abc_NtkIsNetlist(pNtk) );
     // start the network
-    if ( Abc_NtkIsNetlistSop(pNtk) )
-        pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC_SOP );
+    if ( !Abc_NtkHasMapping(pNtk) )
+        pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_LOGIC, ABC_FUNC_SOP );
     else
-        pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC_MAP );
+        pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_LOGIC, ABC_FUNC_MAP );
     // duplicate the nodes 
     Abc_NtkForEachNode( pNtk, pObj, i )
         Abc_NtkDupObj(pNtkNew, pObj);
@@ -84,8 +84,8 @@ Abc_Ntk_t * Abc_NtkNetlistToLogic( Abc_Ntk_t * pNtk )
 Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk )
 {
     Abc_Ntk_t * pNtkNew, * pNtkTemp; 
-    assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsAig(pNtk) || Abc_NtkIsSeq(pNtk) );
-    if ( Abc_NtkIsAig(pNtk) )
+    assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsStrash(pNtk) || Abc_NtkIsSeq(pNtk) );
+    if ( Abc_NtkIsStrash(pNtk) )
     {
         pNtkTemp = Abc_NtkAigToLogicSop(pNtk);
         pNtkNew = Abc_NtkLogicSopToNetlist( pNtkTemp );
@@ -97,7 +97,7 @@ Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk )
         pNtkNew = Abc_NtkLogicSopToNetlist( pNtkTemp );
         Abc_NtkDelete( pNtkTemp );
     }
-    else if ( Abc_NtkIsLogicBdd(pNtk) )
+    else if ( Abc_NtkIsBddLogic(pNtk) )
     {
         Abc_NtkBddToSop(pNtk);
         pNtkNew = Abc_NtkLogicSopToNetlist( pNtk );
@@ -122,7 +122,7 @@ Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk )
 Abc_Ntk_t * Abc_NtkLogicToNetlistBench( Abc_Ntk_t * pNtk )
 {
     Abc_Ntk_t * pNtkNew, * pNtkTemp; 
-    assert( Abc_NtkIsAig(pNtk) );
+    assert( Abc_NtkIsStrash(pNtk) );
     pNtkTemp = Abc_NtkAigToLogicSopBench( pNtk );
     pNtkNew = Abc_NtkLogicSopToNetlist( pNtkTemp );
     Abc_NtkDelete( pNtkTemp );
@@ -152,14 +152,17 @@ Abc_Ntk_t * Abc_NtkLogicSopToNetlist( Abc_Ntk_t * pNtk )
     char * pNameCo;
     int i, k;
 
-    assert( Abc_NtkIsLogicSop(pNtk) || Abc_NtkIsLogicMap(pNtk) );
+    assert( Abc_NtkIsLogic(pNtk) );
     assert( Abc_NtkLogicHasSimpleCos(pNtk) );
 
+    if ( Abc_NtkIsBddLogic(pNtk) )
+        Abc_NtkBddToSop(pNtk);
+
     // start the netlist by creating PI/PO/Latch objects
-    if ( Abc_NtkIsLogicSop(pNtk) )
-        pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_NETLIST_SOP );
+    if ( Abc_NtkIsSopLogic(pNtk) )
+        pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_NETLIST, ABC_FUNC_SOP );
     else
-        pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_NETLIST_MAP );
+        pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_NETLIST, ABC_FUNC_BDD );
     // create the CI nets and remember them in the new CI nodes
     Abc_NtkForEachCi( pNtk, pObj, i )
     {
@@ -233,9 +236,9 @@ Abc_Ntk_t * Abc_NtkAigToLogicSop( Abc_Ntk_t * pNtk )
     Abc_Ntk_t * pNtkNew; 
     Abc_Obj_t * pObj, * pFanin, * pNodeNew;
     int i, k;
-    assert( Abc_NtkIsAig(pNtk) );
+    assert( Abc_NtkIsStrash(pNtk) );
     // start the network
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC_SOP );
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_LOGIC, ABC_FUNC_SOP );
     // create the constant node
     Abc_NtkDupConst1( pNtk, pNtkNew );
     // duplicate the nodes and create node functions
@@ -281,7 +284,7 @@ Abc_Ntk_t * Abc_NtkAigToLogicSop( Abc_Ntk_t * pNtk )
     // duplicate the EXDC Ntk
     if ( pNtk->pExdc )
     {
-        if ( Abc_NtkIsAig(pNtk->pExdc) )
+        if ( Abc_NtkIsStrash(pNtk->pExdc) )
             pNtkNew->pExdc = Abc_NtkAigToLogicSop( pNtk->pExdc );
         else
             pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );
@@ -309,11 +312,11 @@ Abc_Ntk_t * Abc_NtkAigToLogicSopBench( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pObj, * pFanin;
     Vec_Ptr_t * vNodes;
     int i, k;
-    assert( Abc_NtkIsAig(pNtk) );
+    assert( Abc_NtkIsStrash(pNtk) );
     if ( Abc_NtkCountChoiceNodes(pNtk) )
         printf( "Warning: Choice nodes are skipped.\n" );
     // start the network
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC_SOP );
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_LOGIC, ABC_FUNC_SOP );
     // create the constant node
     Abc_NtkDupConst1( pNtk, pNtkNew );
     // collect the nodes to be used (marks all nodes with current TravId)

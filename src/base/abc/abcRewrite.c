@@ -55,7 +55,7 @@ int Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUseZeros, int fVerbose )
     int i, nNodes, nGain;
     int clk, clkStart = clock();
 
-    assert( Abc_NtkIsAig(pNtk) );
+    assert( Abc_NtkIsStrash(pNtk) );
     // start the rewriting manager
     pManRwr = Rwr_ManStart( 0 );
     if ( pManRwr == NULL )

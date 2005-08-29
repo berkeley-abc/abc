@@ -47,12 +47,13 @@ static void          Abc_ObjAdd( Abc_Obj_t * pObj );
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type )
+Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func )
 {
     Abc_Ntk_t * pNtk;
     pNtk = ALLOC( Abc_Ntk_t, 1 );
     memset( pNtk, 0, sizeof(Abc_Ntk_t) );
-    pNtk->Type        = Type;
+    pNtk->ntkType     = Type;
+    pNtk->ntkFunc     = Func;
     // start the object storage
     pNtk->vObjs       = Vec_PtrAlloc( 100 );
     pNtk->vLats       = Vec_PtrAlloc( 100 );
@@ -71,13 +72,13 @@ Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type )
     // get ready to assign the first Obj ID
     pNtk->nTravIds    = 1;
     // start the functionality manager
-    if ( Abc_NtkIsSop(pNtk) )
+    if ( Abc_NtkHasSop(pNtk) )
         pNtk->pManFunc = Extra_MmFlexStart();
-    else if ( Abc_NtkIsLogicBdd(pNtk) )
+    else if ( Abc_NtkHasBdd(pNtk) )
         pNtk->pManFunc = Cudd_Init( 20, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
-    else if ( Abc_NtkIsAig(pNtk) || Abc_NtkIsSeq(pNtk) )
+    else if ( Abc_NtkHasAig(pNtk) )
         pNtk->pManFunc = Abc_AigAlloc( pNtk );
-    else if ( Abc_NtkIsMapped(pNtk) )
+    else if ( Abc_NtkHasMapping(pNtk) )
         pNtk->pManFunc = Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame());
     else
         assert( 0 );
@@ -95,7 +96,7 @@ Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type )
+Abc_Ntk_t * Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_t Func )
 {
     Abc_Ntk_t * pNtkNew; 
     Abc_Obj_t * pObj, * pObjNew;
@@ -103,7 +104,7 @@ Abc_Ntk_t * Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type )
     if ( pNtk == NULL )
         return NULL;
     // start the network
-    pNtkNew = Abc_NtkAlloc( Type );
+    pNtkNew = Abc_NtkAlloc( Type, Func );
     // duplicate the name and the spec
     pNtkNew->pName = util_strsav(pNtk->pName);
     pNtkNew->pSpec = util_strsav(pNtk->pSpec);
@@ -190,7 +191,7 @@ Abc_Ntk_t * Abc_NtkStartRead( char * pName )
 {
     Abc_Ntk_t * pNtkNew; 
     // allocate the empty network
-    pNtkNew = Abc_NtkAlloc( ABC_NTK_NETLIST_SOP );
+    pNtkNew = Abc_NtkAlloc( ABC_TYPE_NETLIST, ABC_FUNC_SOP );
     // set the specs
     pNtkNew->pName = util_strsav( pName );
     pNtkNew->pSpec = util_strsav( pName );
@@ -244,9 +245,9 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
     if ( pNtk == NULL )
         return NULL;
     // start the network
-    pNtkNew = Abc_NtkStartFrom( pNtk, pNtk->Type );
+    pNtkNew = Abc_NtkStartFrom( pNtk, pNtk->ntkType, pNtk->ntkFunc );
     // copy the internal nodes
-    if ( Abc_NtkIsAig(pNtk) )
+    if ( Abc_NtkHasAig(pNtk) )
         Abc_AigDup( pNtk->pManFunc, pNtkNew->pManFunc );
     else
     {
@@ -286,11 +287,11 @@ Abc_Ntk_t * Abc_NtkSplitOutput( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, int fUseAll
     char Buffer[1000];
     int i, k;
 
-    assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsAig(pNtk) );
+    assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsStrash(pNtk) );
     assert( Abc_ObjIsCo(pNode) ); 
     
     // start the network
-    pNtkNew = Abc_NtkAlloc( pNtk->Type );
+    pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc );
     // set the name
     sprintf( Buffer, "%s_%s", pNtk->pName, Abc_ObjName(pNode) );
     pNtkNew->pName = util_strsav(Buffer);
@@ -307,14 +308,14 @@ Abc_Ntk_t * Abc_NtkSplitOutput( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, int fUseAll
         }
     }
     // establish connection between the constant nodes
-    if ( Abc_NtkIsAig(pNtk) )
+    if ( Abc_NtkIsStrash(pNtk) )
         Abc_AigConst1(pNtk->pManFunc)->pCopy = Abc_AigConst1(pNtkNew->pManFunc);
 
     // copy the nodes
     Vec_PtrForEachEntry( vNodes, pObj, i )
     {
         // if it is an AIG, add to the hash table
-        if ( Abc_NtkIsAig(pNtk) )
+        if ( Abc_NtkIsStrash(pNtk) )
         {
             pObj->pCopy = Abc_AigAnd( pNtkNew->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
         }
@@ -359,7 +360,7 @@ Abc_Ntk_t * Abc_NtkCreateCone( Abc_Ntk_t * pNtk, Vec_Ptr_t * vRoots, Vec_Int_t *
     
     // start the network
     Abc_NtkCleanCopy( pNtk );
-    pNtkNew = Abc_NtkAlloc( ABC_NTK_AIG );
+    pNtkNew = Abc_NtkAlloc( ABC_TYPE_STRASH, ABC_FUNC_AIG );
     pNtkNew->pName = util_strsav(pNtk->pName);
 
     // collect the nodes in the TFI of the output
@@ -425,7 +426,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     }
 
     // dereference the BDDs
-    if ( Abc_NtkIsLogicBdd(pNtk) )
+    if ( Abc_NtkHasBdd(pNtk) )
         Abc_NtkForEachNode( pNtk, pObj, i )
             Cudd_RecursiveDeref( pNtk->pManFunc, pObj->pData );
         
@@ -458,13 +459,13 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     if ( pNtk->pManTime )
         Abc_ManTimeStop( pNtk->pManTime );
     // start the functionality manager
-    if ( Abc_NtkIsSop(pNtk) )
+    if ( Abc_NtkHasSop(pNtk) )
         Extra_MmFlexStop( pNtk->pManFunc, 0 );
-    else if ( Abc_NtkIsLogicBdd(pNtk) )
+    else if ( Abc_NtkHasBdd(pNtk) )
         Extra_StopManager( pNtk->pManFunc );
-    else if ( Abc_NtkIsAig(pNtk) || Abc_NtkIsSeq(pNtk) )
+    else if ( Abc_NtkHasAig(pNtk) )
         Abc_AigFree( pNtk->pManFunc );
-    else if ( !Abc_NtkIsMapped(pNtk) )
+    else if ( !Abc_NtkHasMapping(pNtk) )
         assert( 0 );
     free( pNtk );
 }
@@ -637,17 +638,17 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
 {
     Abc_Obj_t * pObjNew;
     pObjNew = Abc_ObjAlloc( pNtkNew, pObj->Type );
-    if ( Abc_ObjIsNode(pObj) ) // copy the function if network is the same type
+    if ( Abc_ObjIsNode(pObj) ) // copy the function if functionality is compatible
     {
-        if ( pNtkNew->Type == pObj->pNtk->Type || Abc_NtkIsNetlist(pObj->pNtk) || Abc_NtkIsNetlist(pNtkNew) ) 
+        if ( pNtkNew->ntkFunc == pObj->pNtk->ntkFunc ) 
         {
-            if ( Abc_NtkIsSop(pNtkNew) )
+            if ( Abc_NtkHasSop(pNtkNew) )
                 pObjNew->pData = Abc_SopRegister( pNtkNew->pManFunc, pObj->pData );
-            else if ( Abc_NtkIsLogicBdd(pNtkNew) )
+            else if ( Abc_NtkHasBdd(pNtkNew) )
                 pObjNew->pData = Cudd_bddTransfer(pObj->pNtk->pManFunc, pNtkNew->pManFunc, pObj->pData), Cudd_Ref(pObjNew->pData);
-            else if ( Abc_NtkIsMapped(pNtkNew) )
+            else if ( Abc_NtkHasMapping(pNtkNew) )
                 pObjNew->pData = pObj->pData;
-            else if ( !Abc_NtkIsAig(pNtkNew) && !Abc_NtkIsSeq(pNtkNew) )
+            else if ( Abc_NtkHasAig(pNtkNew) )
                 assert( 0 );
         }
     }
@@ -675,8 +676,8 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
 Abc_Obj_t * Abc_NtkDupConst1( Abc_Ntk_t * pNtkAig, Abc_Ntk_t * pNtkNew )  
 { 
     Abc_Obj_t * pConst1;
-    assert( Abc_NtkIsAig(pNtkAig) || Abc_NtkIsSeq(pNtkAig) );
-    assert( Abc_NtkIsLogicSop(pNtkNew) );
+    assert( Abc_NtkIsStrash(pNtkAig) );
+    assert( Abc_NtkIsSopLogic(pNtkNew) );
     pConst1 = Abc_AigConst1(pNtkAig->pManFunc);
     if ( Abc_ObjFanoutNum(pConst1) > 0 )
         pConst1->pCopy = Abc_NodeCreateConst1( pNtkNew );
@@ -697,8 +698,8 @@ Abc_Obj_t * Abc_NtkDupConst1( Abc_Ntk_t * pNtkAig, Abc_Ntk_t * pNtkNew )
 Abc_Obj_t * Abc_NtkDupReset( Abc_Ntk_t * pNtkAig, Abc_Ntk_t * pNtkNew )  
 { 
     Abc_Obj_t * pReset, * pConst1;
-    assert( Abc_NtkIsAig(pNtkAig) || Abc_NtkIsSeq(pNtkAig) );
-    assert( Abc_NtkIsLogicSop(pNtkNew) );
+    assert( Abc_NtkIsStrash(pNtkAig) );
+    assert( Abc_NtkIsSopLogic(pNtkNew) );
     pReset = Abc_AigReset(pNtkAig->pManFunc);
     if ( Abc_ObjFanoutNum(pReset) > 0 )
     {
@@ -998,12 +999,13 @@ Abc_Obj_t * Abc_NtkCreateLatch( Abc_Ntk_t * pNtk )
 Abc_Obj_t * Abc_NodeCreateConst0( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
+    assert( !Abc_NtkHasAig(pNtk) );
     pNode = Abc_NtkCreateNode( pNtk );   
-    if ( Abc_NtkIsSop(pNtk) )
+    if ( Abc_NtkHasSop(pNtk) )
         pNode->pData = Abc_SopRegister( pNtk->pManFunc, " 0\n" );
-    else if ( Abc_NtkIsLogicBdd(pNtk) )
+    else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_ReadLogicZero(pNtk->pManFunc), Cudd_Ref( pNode->pData );
-    else if ( Abc_NtkIsMapped(pNtk) )
+    else if ( Abc_NtkHasMapping(pNtk) )
         pNode->pData = Mio_LibraryReadConst0(Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()));
     else
         assert( 0 );
@@ -1024,14 +1026,14 @@ Abc_Obj_t * Abc_NodeCreateConst0( Abc_Ntk_t * pNtk )
 Abc_Obj_t * Abc_NodeCreateConst1( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
-    if ( Abc_NtkIsAig(pNtk) || Abc_NtkIsSeq(pNtk) )
+    if ( Abc_NtkHasAig(pNtk) )
         return Abc_AigConst1(pNtk->pManFunc);
     pNode = Abc_NtkCreateNode( pNtk );   
-    if ( Abc_NtkIsSop(pNtk) )
+    if ( Abc_NtkHasSop(pNtk) )
         pNode->pData = Abc_SopRegister( pNtk->pManFunc, " 1\n" );
-    else if ( Abc_NtkIsLogicBdd(pNtk) )
+    else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_ReadOne(pNtk->pManFunc), Cudd_Ref( pNode->pData );
-    else if ( Abc_NtkIsMapped(pNtk) )
+    else if ( Abc_NtkHasMapping(pNtk) )
         pNode->pData = Mio_LibraryReadConst1(Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()));
     else
         assert( 0 );
@@ -1055,11 +1057,11 @@ Abc_Obj_t * Abc_NodeCreateInv( Abc_Ntk_t * pNtk, Abc_Obj_t * pFanin )
     assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsNetlist(pNtk) );
     pNode = Abc_NtkCreateNode( pNtk );   
     Abc_ObjAddFanin( pNode, pFanin );
-    if ( Abc_NtkIsSop(pNtk) )
+    if ( Abc_NtkHasSop(pNtk) )
         pNode->pData = Abc_SopRegister( pNtk->pManFunc, "0 1\n" );
-    else if ( Abc_NtkIsLogicBdd(pNtk) )
+    else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_Not(Cudd_bddIthVar(pNtk->pManFunc,0)), Cudd_Ref( pNode->pData );
-    else if ( Abc_NtkIsMapped(pNtk) )
+    else if ( Abc_NtkHasMapping(pNtk) )
         pNode->pData = Mio_LibraryReadInv(Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()));
     else
         assert( 0 );
@@ -1083,11 +1085,11 @@ Abc_Obj_t * Abc_NodeCreateBuf( Abc_Ntk_t * pNtk, Abc_Obj_t * pFanin )
     assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsNetlist(pNtk) );
     pNode = Abc_NtkCreateNode( pNtk );   
     Abc_ObjAddFanin( pNode, pFanin );
-    if ( Abc_NtkIsSop(pNtk) )
+    if ( Abc_NtkHasSop(pNtk) )
         pNode->pData = Abc_SopRegister( pNtk->pManFunc, "1 1\n" );
-    else if ( Abc_NtkIsLogicBdd(pNtk) )
+    else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_bddIthVar(pNtk->pManFunc,0), Cudd_Ref( pNode->pData );
-    else if ( Abc_NtkIsMapped(pNtk) )
+    else if ( Abc_NtkHasMapping(pNtk) )
         pNode->pData = Mio_LibraryReadBuf(Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()));
     else
         assert( 0 );
@@ -1113,7 +1115,7 @@ Abc_Obj_t * Abc_NodeCreateAnd( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins )
     pNode = Abc_NtkCreateNode( pNtk );   
     for ( i = 0; i < vFanins->nSize; i++ )
         Abc_ObjAddFanin( pNode, vFanins->pArray[i] );
-    if ( Abc_NtkIsSop(pNtk) )
+    if ( Abc_NtkHasSop(pNtk) )
     {
         char * pSop;
         pSop = Extra_MmFlexEntryFetch( pNtk->pManFunc, vFanins->nSize + 4 );
@@ -1126,7 +1128,7 @@ Abc_Obj_t * Abc_NodeCreateAnd( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins )
         assert( i == vFanins->nSize + 4 );
         pNode->pData = pSop;
     }
-    else if ( Abc_NtkIsLogicBdd(pNtk) )
+    else if ( Abc_NtkHasBdd(pNtk) )
     {
         DdManager * dd = pNtk->pManFunc;
         DdNode * bFunc, * bTemp;
@@ -1162,7 +1164,7 @@ Abc_Obj_t * Abc_NodeCreateOr( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins )
     pNode = Abc_NtkCreateNode( pNtk );   
     for ( i = 0; i < vFanins->nSize; i++ )
         Abc_ObjAddFanin( pNode, vFanins->pArray[i] );
-    if ( Abc_NtkIsSop(pNtk) )
+    if ( Abc_NtkHasSop(pNtk) )
     {
         char * pSop;
         pSop = Extra_MmFlexEntryFetch( pNtk->pManFunc, vFanins->nSize + 4 );
@@ -1175,7 +1177,7 @@ Abc_Obj_t * Abc_NodeCreateOr( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins )
         assert( i == vFanins->nSize + 4 );
         pNode->pData = pSop;
     }
-    else if ( Abc_NtkIsLogicBdd(pNtk) )
+    else if ( Abc_NtkHasBdd(pNtk) )
     {
         DdManager * dd = pNtk->pManFunc;
         DdNode * bFunc, * bTemp;
@@ -1211,9 +1213,9 @@ Abc_Obj_t * Abc_NodeCreateMux( Abc_Ntk_t * pNtk, Abc_Obj_t * pNodeC, Abc_Obj_t *
     Abc_ObjAddFanin( pNode, pNodeC );
     Abc_ObjAddFanin( pNode, pNode1 );
     Abc_ObjAddFanin( pNode, pNode0 );
-    if ( Abc_NtkIsSop(pNtk) )
+    if ( Abc_NtkHasSop(pNtk) )
         pNode->pData = Abc_SopRegister( pNtk->pManFunc, "11- 1\n0-1 1\n" );
-    else if ( Abc_NtkIsLogicBdd(pNtk) )
+    else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_bddIte(pNtk->pManFunc,Cudd_bddIthVar(pNtk->pManFunc,0),Cudd_bddIthVar(pNtk->pManFunc,1),Cudd_bddIthVar(pNtk->pManFunc,2)), Cudd_Ref( pNode->pData );
     else
         assert( 0 );
@@ -1260,13 +1262,13 @@ bool Abc_NodeIsConst0( Abc_Obj_t * pNode )
     Abc_Ntk_t * pNtk = pNode->pNtk;
     assert(Abc_ObjIsNode(pNode));      
     assert(Abc_NodeIsConst(pNode));
-    if ( Abc_NtkIsSop(pNtk) )
+    if ( Abc_NtkHasSop(pNtk) )
         return Abc_SopIsConst0(pNode->pData);
-    if ( Abc_NtkIsLogicBdd(pNtk) )
+    if ( Abc_NtkHasBdd(pNtk) )
         return Cudd_IsComplement(pNode->pData);
-    if ( Abc_NtkIsAig(pNtk) )
+    if ( Abc_NtkHasAig(pNtk) )
         return Abc_ObjNot(pNode) == Abc_AigConst1(pNode->pNtk->pManFunc);
-    if ( Abc_NtkIsMapped(pNtk) )
+    if ( Abc_NtkHasMapping(pNtk) )
         return pNode->pData == Mio_LibraryReadConst0(Abc_FrameReadLibSuper(Abc_FrameGetGlobalFrame()));
     assert( 0 );
     return 0;
@@ -1288,13 +1290,13 @@ bool Abc_NodeIsConst1( Abc_Obj_t * pNode )
     Abc_Ntk_t * pNtk = pNode->pNtk;
     assert(Abc_ObjIsNode(pNode));      
     assert(Abc_NodeIsConst(pNode));
-    if ( Abc_NtkIsSop(pNtk) )
+    if ( Abc_NtkHasSop(pNtk) )
         return Abc_SopIsConst1(pNode->pData);
-    if ( Abc_NtkIsLogicBdd(pNtk) )
+    if ( Abc_NtkHasBdd(pNtk) )
         return !Cudd_IsComplement(pNode->pData);
-    if ( Abc_NtkIsAig(pNtk) )
+    if ( Abc_NtkHasAig(pNtk) )
         return pNode == Abc_AigConst1(pNode->pNtk->pManFunc);
-    if ( Abc_NtkIsMapped(pNtk) )
+    if ( Abc_NtkHasMapping(pNtk) )
         return pNode->pData == Mio_LibraryReadConst1(Abc_FrameReadLibSuper(Abc_FrameGetGlobalFrame()));
     assert( 0 );
     return 0;
@@ -1317,13 +1319,13 @@ bool Abc_NodeIsBuf( Abc_Obj_t * pNode )
     assert(Abc_ObjIsNode(pNode)); 
     if ( Abc_ObjFaninNum(pNode) != 1 )
         return 0;
-    if ( Abc_NtkIsSop(pNtk) )
+    if ( Abc_NtkHasSop(pNtk) )
         return Abc_SopIsBuf(pNode->pData);
-    if ( Abc_NtkIsLogicBdd(pNtk) )
+    if ( Abc_NtkHasBdd(pNtk) )
         return !Cudd_IsComplement(pNode->pData);
-    if ( Abc_NtkIsAig(pNtk) )
+    if ( Abc_NtkHasAig(pNtk) )
         return 0;
-    if ( Abc_NtkIsMapped(pNtk) )
+    if ( Abc_NtkHasMapping(pNtk) )
         return pNode->pData == Mio_LibraryReadBuf(Abc_FrameReadLibSuper(Abc_FrameGetGlobalFrame()));
     assert( 0 );
     return 0;
@@ -1346,13 +1348,13 @@ bool Abc_NodeIsInv( Abc_Obj_t * pNode )
     assert(Abc_ObjIsNode(pNode)); 
     if ( Abc_ObjFaninNum(pNode) != 1 )
         return 0;
-    if ( Abc_NtkIsSop(pNtk) )
+    if ( Abc_NtkHasSop(pNtk) )
         return Abc_SopIsInv(pNode->pData);
-    if ( Abc_NtkIsLogicBdd(pNtk) )
+    if ( Abc_NtkHasBdd(pNtk) )
         return Cudd_IsComplement(pNode->pData);
-    if ( Abc_NtkIsAig(pNtk) )
+    if ( Abc_NtkHasAig(pNtk) )
         return 0;
-    if ( Abc_NtkIsMapped(pNtk) )
+    if ( Abc_NtkHasMapping(pNtk) )
         return pNode->pData == Mio_LibraryReadInv(Abc_FrameReadLibSuper(Abc_FrameGetGlobalFrame()));
     assert( 0 );
     return 0;

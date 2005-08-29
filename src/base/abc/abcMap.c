@@ -61,7 +61,7 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, int
     Map_Man_t * pMan;
     int clk;
 
-    assert( Abc_NtkIsAig(pNtk) );
+    assert( Abc_NtkIsStrash(pNtk) );
 
     // check that the library is available
     if ( Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()) == NULL )
@@ -130,7 +130,7 @@ Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, i
     Abc_Obj_t * pNode, * pFanin, * pPrev;
     int i;
 
-    assert( Abc_NtkIsAig(pNtk) );
+    assert( Abc_NtkIsStrash(pNtk) );
 
     // start the mapping manager and set its parameters
     pMan = Map_ManCreate( Abc_NtkPiNum(pNtk) + Abc_NtkLatchNum(pNtk), Abc_NtkPoNum(pNtk) + Abc_NtkLatchNum(pNtk), fVerbose );
@@ -202,7 +202,7 @@ Abc_Ntk_t * Abc_NtkFromMap( Map_Man_t * pMan, Abc_Ntk_t * pNtk )
     int i, nDupGates;
 
     // create the new network
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC_MAP );
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_LOGIC, ABC_FUNC_MAP );
     // make the mapper point to the new network
     Map_ManCleanData( pMan );
     Abc_NtkForEachCi( pNtk, pNode, i )
@@ -388,11 +388,11 @@ int Abc_NtkUnmap( Abc_Ntk_t * pNtk )
     char * pSop;
     int i;
 
-    assert( Abc_NtkIsLogicMap(pNtk) );
+    assert( Abc_NtkIsMappedLogic(pNtk) );
     // update the functionality manager
     assert( pNtk->pManFunc == Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()) );
     pNtk->pManFunc = Extra_MmFlexStart();
-    pNtk->Type     = ABC_NTK_LOGIC_SOP;
+    pNtk->ntkFunc  = ABC_FUNC_SOP;
     // update the nodes
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
@@ -424,7 +424,7 @@ Abc_Ntk_t * Abc_NtkSuperChoice( Abc_Ntk_t * pNtk )
 
     Map_Man_t * pMan;
 
-    assert( Abc_NtkIsAig(pNtk) );
+    assert( Abc_NtkIsStrash(pNtk) );
 
     // check that the library is available
     if ( Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()) == NULL )

@@ -69,7 +69,7 @@ CSAT_Manager CSAT_InitManager()
     CSAT_Manager_t * mng;
     mng = ALLOC( CSAT_Manager_t, 1 );
     memset( mng, 0, sizeof(CSAT_Manager_t) );
-    mng->pNtk = Abc_NtkAlloc( ABC_NTK_LOGIC_SOP );
+    mng->pNtk = Abc_NtkAlloc( ABC_TYPE_LOGIC, ABC_FUNC_SOP );
     mng->pNtk->pName = util_strsav("csat_network");
     mng->tName2Node = stmm_init_table(strcmp, stmm_strhash);
     mng->vNodes  = Vec_PtrAlloc( 100 );
