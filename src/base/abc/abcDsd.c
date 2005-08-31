@@ -25,8 +25,7 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
  
-static Abc_Ntk_t *     Abc_NtkDsdInternal( DdManager * dd, Abc_Ntk_t * pNtk, bool fVerbose, bool fPrint, bool fShort );
-static Dsd_Manager_t * Abc_NtkDsdPerform( DdManager * dd, Abc_Ntk_t * pNtk, bool fVerbose );
+static Abc_Ntk_t *     Abc_NtkDsdInternal( Abc_Ntk_t * pNtk, bool fVerbose, bool fPrint, bool fShort );
 static void            Abc_NtkDsdConstruct( Dsd_Manager_t * pManDsd, Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
 static Abc_Obj_t *     Abc_NtkDsdConstructNode( Dsd_Manager_t * pManDsd, Dsd_Node_t * pNodeDsd, Abc_Ntk_t * pNtkNew );
 
@@ -58,25 +57,25 @@ Abc_Ntk_t * Abc_NtkDsdGlobal( Abc_Ntk_t * pNtk, bool fVerbose, bool fPrint, bool
 {
     int fCheck = 1;
     Abc_Ntk_t * pNtkNew;
-    DdManager * dd;
 
     assert( Abc_NtkIsStrash(pNtk) );
 
     // perform FPGA mapping
-    dd = Abc_NtkGlobalBdds( pNtk, 0 );    
-    if ( dd == NULL )
+    if ( Abc_NtkGlobalBdds(pNtk, 0) == NULL )
         return NULL;
     if ( fVerbose )
-        printf( "The shared BDD size is %d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
+        printf( "The shared BDD size is %d nodes.\n", Cudd_ReadKeys(pNtk->pManGlob) - Cudd_ReadDead(pNtk->pManGlob) );
 
     // transform the result of mapping into a BDD network
-    pNtkNew = Abc_NtkDsdInternal( dd, pNtk, fVerbose, fPrint, fShort );
+    pNtkNew = Abc_NtkDsdInternal( pNtk, fVerbose, fPrint, fShort );
     if ( pNtkNew == NULL )
     {
-        Cudd_Quit( dd );
+        Cudd_Quit( pNtk->pManGlob );
+        pNtk->pManGlob = NULL;
         return NULL;
     }
-    Extra_StopManager( dd );
+    Extra_StopManager( pNtk->pManGlob );
+    pNtk->pManGlob = NULL;
 
     // make sure that everything is okay
     if ( fCheck && !Abc_NtkCheck( pNtkNew ) )
@@ -99,17 +98,33 @@ Abc_Ntk_t * Abc_NtkDsdGlobal( Abc_Ntk_t * pNtk, bool fVerbose, bool fPrint, bool
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkDsdInternal( DdManager * dd, Abc_Ntk_t * pNtk, bool fVerbose, bool fPrint, bool fShort )
+Abc_Ntk_t * Abc_NtkDsdInternal( Abc_Ntk_t * pNtk, bool fVerbose, bool fPrint, bool fShort )
 {
+    DdManager * dd = pNtk->pManGlob;
     Dsd_Manager_t * pManDsd;
     Abc_Ntk_t * pNtkNew;
+    DdNode * bFunc;
     char ** ppNamesCi, ** ppNamesCo;
+    Abc_Obj_t * pObj;
+    int i;
+
+    // complement the global functions
+    Abc_NtkForEachCo( pNtk, pObj, i )
+    {
+        bFunc = Vec_PtrEntry(pNtk->vFuncsGlob, i);
+        Vec_PtrWriteEntry(pNtk->vFuncsGlob, i, Cudd_NotCond(bFunc, Abc_ObjFaninC0(pObj)) );
+    }
 
     // perform the decomposition
-    pManDsd = Abc_NtkDsdPerform( dd, pNtk, fVerbose );
-    Abc_NtkFreeGlobalBdds( dd, pNtk );
+    assert( Vec_PtrSize(pNtk->vFuncsGlob) == Abc_NtkCoNum(pNtk) );
+    pManDsd = Dsd_ManagerStart( dd, Abc_NtkCiNum(pNtk), fVerbose );
+    Dsd_Decompose( pManDsd, (DdNode **)pNtk->vFuncsGlob->pArray, Abc_NtkCoNum(pNtk) );
+    Abc_NtkFreeGlobalBdds( pNtk );
     if ( pManDsd == NULL )
+    {
+        Cudd_Quit( dd );
         return NULL;
+    }
 
     // start the new network
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_LOGIC, ABC_FUNC_BDD );
@@ -119,6 +134,8 @@ Abc_Ntk_t * Abc_NtkDsdInternal( DdManager * dd, Abc_Ntk_t * pNtk, bool fVerbose,
     Abc_NtkDsdConstruct( pManDsd, pNtk, pNtkNew );
     // finalize the new network
     Abc_NtkFinalize( pNtk, pNtkNew );
+    // fix the problem with complemented and duplicated CO edges
+    Abc_NtkLogicMakeSimpleCos( pNtkNew, 0 );
 
     if ( fPrint )
     {
@@ -132,39 +149,6 @@ Abc_Ntk_t * Abc_NtkDsdInternal( DdManager * dd, Abc_Ntk_t * pNtk, bool fVerbose,
     // stop the DSD manager
     Dsd_ManagerStop( pManDsd );
     return pNtkNew;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Performs DSD by creating the manager and decomposing the functions.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Dsd_Manager_t * Abc_NtkDsdPerform( DdManager * dd, Abc_Ntk_t * pNtk, bool fVerbose )
-{
-    Dsd_Manager_t * pManDsd;
-    DdNode ** pbFuncsGlo;
-    Abc_Obj_t * pNode;
-    int i;
-
-    // collect global functions into the array
-    pbFuncsGlo = ALLOC( DdNode *, Abc_NtkCoNum(pNtk) );
-    Abc_NtkForEachCo( pNtk, pNode, i )
-    {
-        pbFuncsGlo[i] = Cudd_NotCond( pNode->pNext, Abc_ObjFaninC0(pNode) );
-//printf( "Output %3d : Support size = %3d. Nodes = %5d.\n", i, Cudd_SupportSize(dd, pbFuncsGlo[i]), Cudd_DagSize(pbFuncsGlo[i]) );
-    }
-
-    // start the DSD manager and decompose global functions
-    pManDsd = Dsd_ManagerStart( dd, Abc_NtkCiNum(pNtk), fVerbose );
-    Dsd_Decompose( pManDsd, pbFuncsGlo, Abc_NtkCoNum(pNtk) );
-    FREE( pbFuncsGlo );
-    return pManDsd;
 }
 
 /**Function*************************************************************

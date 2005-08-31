@@ -96,9 +96,9 @@ int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, bool 
 
     assert( Abc_NtkIsStrash(pNtk) );
     // start the managers
-    pManCut = Abc_NtkManCutStart( nNodeSizeMax, nConeSizeMax );
+    pManCut = Abc_NtkManCutStart( nNodeSizeMax, nConeSizeMax, 2, 1000 );
     pManRef = Abc_NtkManRefStart( nNodeSizeMax, nConeSizeMax, fUseDcs, fVerbose );
-    pManRef->vLeaves   = Abc_NtkManCutReadLeaves( pManCut );
+    pManRef->vLeaves   = Abc_NtkManCutReadCutLarge( pManCut );
     Abc_NtkStartReverseLevels( pNtk );
 
     // resynthesize each node once

@@ -53,6 +53,8 @@ extern Abc_Ntk_t *        Io_ReadBlif( char * pFileName, int fCheck );
 extern Abc_Ntk_t *        Io_ReadBench( char * pFileName, int fCheck );
 /*=== abcReadEdif.c ==========================================================*/
 extern Abc_Ntk_t *        Io_ReadEdif( char * pFileName, int fCheck );
+/*=== abcReadEqn.c ==========================================================*/
+extern Abc_Ntk_t *        Io_ReadEqn( char * pFileName, int fCheck );
 /*=== abcReadVerilog.c ==========================================================*/
 extern Abc_Ntk_t *        Io_ReadVerilog( char * pFileName, int fCheck );
 /*=== abcReadPla.c ==========================================================*/
@@ -73,6 +75,12 @@ extern void               Io_WriteTimingInfo( FILE * pFile, Abc_Ntk_t * pNtk );
 extern int                Io_WriteBench( Abc_Ntk_t * pNtk, char * FileName );
 /*=== abcWriteCnf.c ==========================================================*/
 extern int                Io_WriteCnf( Abc_Ntk_t * pNtk, char * FileName );
+/*=== abcWriteDot.c ==========================================================*/
+extern void               Io_WriteDot( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesShow, char * pFileName );
+/*=== abcWriteEqn.c ==========================================================*/
+extern void               Io_WriteEqn( Abc_Ntk_t * pNtk, char * pFileName );
+/*=== abcWriteGml.c ==========================================================*/
+extern void               Io_WriteGml( Abc_Ntk_t * pNtk, char * pFileName );
 /*=== abcWritePla.c ==========================================================*/
 extern int                Io_WritePla( Abc_Ntk_t * pNtk, char * FileName );
 

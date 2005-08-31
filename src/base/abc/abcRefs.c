@@ -174,6 +174,10 @@ void Abc_NodeUpdate( Abc_Obj_t * pNode, Vec_Ptr_t * vFanins, Vec_Int_t * vForm, 
     // create the new structure of nodes
     assert( vForm->nSize == 1 || Vec_PtrSize(vFanins) < Vec_IntSize(vForm) );
     pNodeNew = Abc_NodeStrashDec( pNtk->pManFunc, vFanins, vForm );
+    // in some cases, the new node may have a minor redundancy 
+    // (has to do with the precomputed subgraph library)
+    if ( !Abc_AigNodeIsAcyclic( Abc_ObjRegular(pNodeNew), pNode ) )
+        return;
     // remove the old nodes
     Abc_AigReplace( pNtk->pManFunc, pNode, pNodeNew );
     // compare the gains

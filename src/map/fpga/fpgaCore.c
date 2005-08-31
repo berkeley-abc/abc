@@ -71,7 +71,7 @@ int Fpga_Mapping( Fpga_Man_t * p )
             return 0;
         p->timeRecover = clock() - clk;
     }
-PRT( "Total mapping time", clock() - clkTotal );
+//PRT( "Total mapping time", clock() - clkTotal );
 
     // print the AI-graph used for mapping
     //Fpga_ManShow( p, "test" );

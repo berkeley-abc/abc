@@ -44,8 +44,8 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
 {
     int Num;
 
-    fprintf( pFile, "%-15s:",       pNtk->pName );
-    fprintf( pFile, "  i/o = %4d/%4d", Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk) );
+    fprintf( pFile, "%-13s:",       pNtk->pName );
+    fprintf( pFile, " i/o = %4d/%4d", Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk) );
 
     if ( !Abc_NtkIsSeq(pNtk) )
         fprintf( pFile, "  lat = %4d", Abc_NtkLatchNum(pNtk) );

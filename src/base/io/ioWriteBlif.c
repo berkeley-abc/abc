@@ -107,10 +107,7 @@ void Io_WriteBlif( Abc_Ntk_t * pNtk, char * FileName, int fWriteLatches )
 
   Synopsis    [Write one network.]
 
-  Description [Writes a network composed of PIs, POs, internal nodes,
-  and latches. The following rules are used to print the names of 
-  internal nodes:
-  ]
+  Description []
                
   SideEffects []
 

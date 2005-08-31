@@ -11,6 +11,7 @@ alias pl print_level
 alias pio print_io
 alias ps print_stats 
 alias psu print_supp
+alias psy print_symm
 alias q quit
 alias r read
 alias rl read_blif
@@ -32,7 +33,7 @@ alias wl write_blif
 alias wp write_pla
 alias cnf   "st; renode -c; write_cnf"
 alias prove "st; renode -c; sat"
-alias opt   "b; renode; b; ps"
-alias share "b; renode -m; fx; b; ps"
-alias resyn "b; rw; rf; b; rwz; rfz; b; ps"
+alias opt     "b; renode; b"
+alias share   "b; renode -m; fx; b"
+alias resyn   "b; rw; rf; b; rw; rwz; b; rfz; rwz; b"
 

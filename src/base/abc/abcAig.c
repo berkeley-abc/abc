@@ -705,8 +705,10 @@ void Abc_AigReplace_int( Abc_Aig_t * pMan )
         assert( iFanin == 0 || iFanin == 1 );
         // get the new fanin
         pFanin1 = Abc_ObjNotCond( pNew, Abc_ObjFaninC(pFanout, iFanin) );
+        assert( Abc_ObjRegular(pFanin1) != pFanout );
         // get another fanin
         pFanin2 = Abc_ObjChild( pFanout, iFanin ^ 1 );
+        assert( Abc_ObjRegular(pFanin2) != pFanout );
         // check if the node with these fanins exists
         if ( pFanoutNew = Abc_AigAndLookup( pMan, pFanin1, pFanin2 ) )
         { // such node exists (it may be a constant)
@@ -732,6 +734,7 @@ void Abc_AigReplace_int( Abc_Aig_t * pMan )
         Abc_ObjRemoveFanins( pFanout );
         // recreate the old fanout with new fanins and add it to the table
         Abc_AigAndCreateFrom( pMan, pFanin1, pFanin2, pFanout );
+        assert( Abc_AigNodeIsAcyclic(pFanout, pFanout) );
 
         // schedule the updated fanout for updating direct level
         assert( pFanout->fMarkA == 0 );
@@ -876,6 +879,7 @@ void Abc_AigUpdateLevel_int( Abc_Aig_t * pMan )
             if ( pNode == NULL )
                 continue;
             assert( Abc_ObjIsNode(pNode) );
+            assert( (int)pNode->Level == i );
             // clean the mark
             assert( pNode->fMarkA == 1 );
             pNode->fMarkA = 0;
@@ -931,6 +935,7 @@ void Abc_AigUpdateLevelR_int( Abc_Aig_t * pMan )
             if ( pNode == NULL )
                 continue;
             assert( Abc_ObjIsNode(pNode) );
+            assert( Abc_NodeReadReverseLevel(pNode) == i );
             // clean the mark
             assert( pNode->fMarkB == 1 );
             pNode->fMarkB = 0;
@@ -1111,6 +1116,56 @@ void Abc_AigPrintNode( Abc_Obj_t * pNode )
     printf( " * " );
     printf( "%7s%s", Abc_ObjName(Abc_ObjFanin1(pNodeR)), Abc_ObjFaninC1(pNodeR)?     "\'" : "" );
     printf( "\n" );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Check if the node has a combination loop of depth 1 or 2.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+bool Abc_AigNodeIsAcyclic( Abc_Obj_t * pNode, Abc_Obj_t * pRoot )
+{
+    Abc_Obj_t * pFanin0, * pFanin1;
+    Abc_Obj_t * pChild00, * pChild01;
+    Abc_Obj_t * pChild10, * pChild11;
+    if ( !Abc_NodeIsAigAnd(pNode) )
+        return 1;
+    pFanin0 = Abc_ObjFanin0(pNode);
+    pFanin1 = Abc_ObjFanin1(pNode);
+    if ( pRoot == pFanin0 || pRoot == pFanin1 )
+        return 0;
+    if ( Abc_ObjIsCi(pFanin0) )
+    {
+        pChild00 = NULL;
+        pChild01 = NULL;
+    }
+    else
+    {
+        pChild00 = Abc_ObjFanin0(pFanin0);
+        pChild01 = Abc_ObjFanin1(pFanin0);
+        if ( pRoot == pChild00 || pRoot == pChild01 )
+            return 0;
+    }
+    if ( Abc_ObjIsCi(pFanin1) )
+    {
+        pChild10 = NULL;
+        pChild11 = NULL;
+    }
+    else
+    {
+        pChild10 = Abc_ObjFanin0(pFanin1);
+        pChild11 = Abc_ObjFanin1(pFanin1);
+        if ( pRoot == pChild10 || pRoot == pChild11 )
+            return 0;
+    }
+    return 1;
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -55,8 +55,8 @@ Abc_Ntk_t * Abc_NtkMiter( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb )
     if ( !Abc_NtkCompareSignals( pNtk1, pNtk2, fComb ) )
         return NULL;
     // make sure the circuits are strashed 
-    fRemove1 = (!Abc_NtkIsStrash(pNtk1)) && (pNtk1 = Abc_NtkStrash(pNtk1, 0));
-    fRemove2 = (!Abc_NtkIsStrash(pNtk2)) && (pNtk2 = Abc_NtkStrash(pNtk2, 0));
+    fRemove1 = (!Abc_NtkIsStrash(pNtk1)) && (pNtk1 = Abc_NtkStrash(pNtk1, 0, 0));
+    fRemove2 = (!Abc_NtkIsStrash(pNtk2)) && (pNtk2 = Abc_NtkStrash(pNtk2, 0, 0));
     if ( pNtk1 && pNtk2 )
         pTemp = Abc_NtkMiterInt( pNtk1, pNtk2, fComb );
     if ( fRemove1 )  Abc_NtkDelete( pNtk1 );

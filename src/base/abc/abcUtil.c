@@ -1046,6 +1046,29 @@ Vec_Int_t * Abc_NtkFanoutCounts( Abc_Ntk_t * pNtk )
     return vFanNums;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Collects all objects into one array.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_NtkCollectObjects( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vNodes;
+    Abc_Obj_t * pNode;
+    int i;
+    vNodes = Vec_PtrAlloc( 100 );
+    Abc_NtkForEachObj( pNtk, pNode, i )
+        Vec_PtrPush( vNodes, pNode );
+    return vNodes;
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

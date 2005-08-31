@@ -1,4 +1,5 @@
-SRC +=    src/misc/extra/extraUtilBdd.c \
+SRC +=    src/misc/extra/extraBddMisc.c \
+    src/misc/extra/extraBddSymm.c \
     src/misc/extra/extraUtilBitMatrix.c \
     src/misc/extra/extraUtilCanon.c \
     src/misc/extra/extraUtilFile.c \

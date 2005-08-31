@@ -6,7 +6,7 @@
 
   PackageName [Command processing package.]
 
-  Synopsis    [Procedures to CNF of the miter cone.]
+  Synopsis    [Procedures to output CNF of the miter cone.]
 
   Author      [Alan Mishchenko]
   
@@ -23,8 +23,6 @@
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
-
-static void Io_WriteCnfInt( FILE * pFile, Abc_Ntk_t * pNtk );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///

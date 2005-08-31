@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [extraUtilBdd.c]
+  FileName    [extraBddMisc.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: extraUtilBdd.c,v 1.0 2003/09/01 00:00:00 alanmi Exp $]
+  Revision    [$Id: extraBddMisc.c,v 1.0 2003/09/01 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 

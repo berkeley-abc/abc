@@ -237,6 +237,10 @@ SOURCE=.\src\base\abc\abcSweep.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abc\abcSymm.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abc\abcTiming.c
 # End Source File
 # Begin Source File
@@ -321,6 +325,10 @@ SOURCE=.\src\base\io\ioReadEdif.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\io\ioReadEqn.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\io\ioReadPla.c
 # End Source File
 # Begin Source File
@@ -342,6 +350,18 @@ SOURCE=.\src\base\io\ioWriteBlif.c
 # Begin Source File
 
 SOURCE=.\src\base\io\ioWriteCnf.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\io\ioWriteDot.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\io\ioWriteEqn.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\io\ioWriteGml.c
 # End Source File
 # Begin Source File
 
@@ -1413,7 +1433,11 @@ SOURCE=.\src\misc\extra\extra.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\misc\extra\extraUtilBdd.c
+SOURCE=.\src\misc\extra\extraBddMisc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\extra\extraBddSymm.c
 # End Source File
 # Begin Source File
 

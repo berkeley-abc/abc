@@ -117,6 +117,57 @@ extern DdNode *     Extra_bddFindOneCube( DdManager * dd, DdNode * bF );
 extern DdNode *     Extra_bddGetOneCube( DdManager * dd, DdNode * bFunc );
 extern DdNode *     Extra_bddComputeRangeCube( DdManager * dd, int iStart, int iStop );
 
+/*=== extraBddSymm.c =================================================================*/
+
+typedef struct Extra_SymmInfo_t_  Extra_SymmInfo_t;
+struct Extra_SymmInfo_t_ {
+    int nVars;      // the number of variables in the support
+    int nVarsMax;   // the number of variables in the DD manager
+    int nSymms;     // the number of pair-wise symmetries
+    int nNodes;     // the number of nodes in a ZDD (if applicable)
+    int * pVars;    // the list of all variables present in the support
+    char ** pSymms; // the symmetry information
+};
+
+/* computes the classical symmetry information for the function - recursive */
+extern Extra_SymmInfo_t *  Extra_SymmPairsCompute( DdManager * dd, DdNode * bFunc );
+/* computes the classical symmetry information for the function - using naive approach */
+extern Extra_SymmInfo_t *  Extra_SymmPairsComputeNaive( DdManager * dd, DdNode * bFunc );
+extern int         Extra_bddCheckVarsSymmetricNaive( DdManager * dd, DdNode * bF, int iVar1, int iVar2 );
+
+/* allocates the data structure */
+extern Extra_SymmInfo_t *  Extra_SymmPairsAllocate( int nVars );
+/* deallocates the data structure */
+extern void        Extra_SymmPairsDissolve( Extra_SymmInfo_t * );
+/* print the contents the data structure */
+extern void        Extra_SymmPairsPrint( Extra_SymmInfo_t * );
+/* converts the ZDD into the Extra_SymmInfo_t structure */
+extern Extra_SymmInfo_t *  Extra_SymmPairsCreateFromZdd( DdManager * dd, DdNode * zPairs, DdNode * bVars );
+
+/* computes the classical symmetry information as a ZDD */
+extern DdNode *    Extra_zddSymmPairsCompute( DdManager * dd, DdNode * bF, DdNode * bVars );
+extern DdNode *     extraZddSymmPairsCompute( DdManager * dd, DdNode * bF, DdNode * bVars );
+/* returns a singleton-set ZDD containing all variables that are symmetric with the given one */
+extern DdNode *    Extra_zddGetSymmetricVars( DdManager * dd, DdNode * bF, DdNode * bG, DdNode * bVars );
+extern DdNode *     extraZddGetSymmetricVars( DdManager * dd, DdNode * bF, DdNode * bG, DdNode * bVars );
+/* converts a set of variables into a set of singleton subsets */
+extern DdNode *    Extra_zddGetSingletons( DdManager * dd, DdNode * bVars );
+extern DdNode *     extraZddGetSingletons( DdManager * dd, DdNode * bVars );
+/* filters the set of variables using the support of the function */
+extern DdNode *    Extra_bddReduceVarSet( DdManager * dd, DdNode * bVars, DdNode * bF );
+extern DdNode *     extraBddReduceVarSet( DdManager * dd, DdNode * bVars, DdNode * bF );
+
+/* checks the possibility that the two vars are symmetric */
+extern int         Extra_bddCheckVarsSymmetric( DdManager * dd, DdNode * bF, int iVar1, int iVar2 );
+extern DdNode *     extraBddCheckVarsSymmetric( DdManager * dd, DdNode * bF, DdNode * bVars );
+
+/* build the set of all tuples of K variables out of N from the BDD cube */
+extern DdNode *    Extra_zddTuplesFromBdd( DdManager * dd, int K, DdNode * bVarsN );
+extern DdNode *     extraZddTuplesFromBdd( DdManager * dd, DdNode * bVarsK, DdNode * bVarsN );
+/* selects one subset from a ZDD representing the set of subsets */
+extern DdNode *    Extra_zddSelectOneSubset( DdManager * dd, DdNode * zS );
+extern DdNode *     extraZddSelectOneSubset( DdManager * dd, DdNode * zS );
+
 /*=== extraUtilBitMatrix.c ================================================================*/
 
 typedef struct Extra_BitMat_t_ Extra_BitMat_t;

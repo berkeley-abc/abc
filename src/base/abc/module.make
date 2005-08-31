@@ -32,6 +32,7 @@ SRC +=    src/base/abc/abc.c \
     src/base/abc/abcSop.c \
     src/base/abc/abcStrash.c \
     src/base/abc/abcSweep.c \
+    src/base/abc/abcSymm.c \
     src/base/abc/abcTiming.c \
     src/base/abc/abcUnreach.c \
     src/base/abc/abcUtil.c \

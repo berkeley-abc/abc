@@ -91,6 +91,7 @@ int Abc_NtkExtractSequentialDcs( Abc_Ntk_t * pNtk, bool fVerbose )
     pNtk->pExdc = Abc_NtkConstructExdc( dd, pNtk, bUnreach );
     Cudd_RecursiveDeref( dd, bUnreach );
     Extra_StopManager( dd );
+    pNtk->pManGlob = NULL;
 
     // make sure that everything is okay
     if ( fCheck && !Abc_NtkCheck( pNtk->pExdc ) )
@@ -135,13 +136,13 @@ DdNode * Abc_NtkTransitionRelation( DdManager * dd, Abc_Ntk_t * pNtk, int fVerbo
     Abc_NtkForEachLatch( pNtk, pNode, i )
     {
         bVar  = Cudd_bddIthVar( dd, Abc_NtkCiNum(pNtk) + i );
-        bProd = Cudd_bddXnor( dd, bVar, (DdNode *)pNode->pNext );   Cudd_Ref( bProd );
-        bRel  = Cudd_bddAnd( dd, bTemp = bRel, bProd );             Cudd_Ref( bRel );
+        bProd = Cudd_bddXnor( dd, bVar, pNtk->vFuncsGlob->pArray[i] );  Cudd_Ref( bProd );
+        bRel  = Cudd_bddAnd( dd, bTemp = bRel, bProd );                 Cudd_Ref( bRel );
         Cudd_RecursiveDeref( dd, bTemp ); 
         Cudd_RecursiveDeref( dd, bProd ); 
     }
     // free the global BDDs
-    Abc_NtkFreeGlobalBdds( dd, pNtk );
+    Abc_NtkFreeGlobalBdds( pNtk );
 
     // quantify the PI variables
     bInputs = Extra_bddComputeRangeCube( dd, 0, Abc_NtkPiNum(pNtk) );    Cudd_Ref( bInputs );

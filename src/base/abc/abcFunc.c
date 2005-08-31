@@ -128,6 +128,57 @@ DdNode * Abc_ConvertSopToBdd( DdManager * dd, char * pSop, int nFanins )
     return bRes;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Removes complemented SOP covers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkLogicMakeDirectSops( Abc_Ntk_t * pNtk )
+{
+    DdManager * dd;
+    DdNode * bFunc;
+    Vec_Str_t * vCube;
+    Abc_Obj_t * pNode;
+    int nFaninsMax, fFound, i;
+
+    assert( Abc_NtkIsSopLogic(pNtk) );
+
+    // check if there are nodes with complemented SOPs
+    fFound = 0;
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        if ( Abc_SopIsComplement(pNode->pData) )
+        {
+            fFound = 1;
+            break;
+        }
+    if ( !fFound )
+        return;
+
+    // start the BDD package
+    nFaninsMax = Abc_NtkGetFaninMax( pNtk );
+    if ( nFaninsMax == 0 )
+        printf( "Warning: The network has only constant nodes.\n" );
+    dd = Cudd_Init( nFaninsMax, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+
+    // change the cover of negated nodes
+    vCube = Vec_StrAlloc( 100 );
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        if ( Abc_SopIsComplement(pNode->pData) )
+        {
+            bFunc = Abc_ConvertSopToBdd( dd, pNode->pData, Abc_ObjFaninNum(pNode) );  Cudd_Ref( bFunc );
+            pNode->pData = Abc_ConvertBddToSop( pNtk->pManFunc, dd, bFunc, bFunc, Abc_ObjFaninNum(pNode), vCube, 1 );
+            Cudd_RecursiveDeref( dd, bFunc );
+            assert( !Abc_SopIsComplement(pNode->pData) );
+        }
+    Vec_StrFree( vCube );
+    Extra_StopManager( dd );
+}
 
 
 

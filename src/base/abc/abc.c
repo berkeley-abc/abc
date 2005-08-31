@@ -36,8 +36,11 @@ static int Abc_CommandPrintFanio   ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int Abc_CommandPrintFactor  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintLevel   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintSupport ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintSymms   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandShowBdd      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandShowCut      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandShowAig      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandCollapse     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandStrash       ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -105,8 +108,11 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Printing",     "print_factor",  Abc_CommandPrintFactor,      0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_level",   Abc_CommandPrintLevel,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_supp",    Abc_CommandPrintSupport,     0 );
+    Cmd_CommandAdd( pAbc, "Printing",     "print_symm",    Abc_CommandPrintSymms,       0 );
 
     Cmd_CommandAdd( pAbc, "Printing",     "show_bdd",      Abc_CommandShowBdd,          0 );
+    Cmd_CommandAdd( pAbc, "Printing",     "show_cut",      Abc_CommandShowCut,          0 );
+    Cmd_CommandAdd( pAbc, "Printing",     "show_aig",      Abc_CommandShowAig,          0 );
 
     Cmd_CommandAdd( pAbc, "Synthesis",    "collapse",      Abc_CommandCollapse,         1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "strash",        Abc_CommandStrash,           1 );
@@ -297,9 +303,10 @@ int Abc_CommandPrintIo( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: print_io [-h]\n" );
+    fprintf( pErr, "usage: print_io [-h] <node>\n" );
     fprintf( pErr, "\t        prints the PIs/POs or fanins/fanouts of a node\n" );
     fprintf( pErr, "\t-h    : print the command usage\n");
+    fprintf( pErr, "\tnode  : the node to print fanins/fanouts\n");
     return 1;
 }
 
@@ -629,13 +636,85 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandPrintSymms( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+    int fUseBdds;
+    int fNaive;
+    int fVerbose;
+    extern void Abc_NtkSymmetries( Abc_Ntk_t * pNtk, int fUseBdds, int fNaive, int fVerbose );
+
+    pNtk = Abc_FrameReadNet(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fUseBdds = 1;
+    fNaive   = 0;
+    fVerbose = 0;
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "bnvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'b':
+            fUseBdds ^= 1;
+            break;
+        case 'n':
+            fNaive ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "This command works only for AIGs.\n" );
+        return 1;
+    }
+    Abc_NtkSymmetries( pNtk, fUseBdds, fNaive, fVerbose );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: print_symm [-nbvh]\n" );
+    fprintf( pErr, "\t         computes symmetries of the PO functions\n" );
+    fprintf( pErr, "\t-b     : enable efficient BDD-based computation [default = %s].\n", fUseBdds? "yes": "no" );  
+    fprintf( pErr, "\t-n     : enable naive BDD-based computation [default = %s].\n", fNaive? "yes": "no" );  
+    fprintf( pErr, "\t-v     : enable verbose output [default = %s].\n", fVerbose? "yes": "no" );  
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandShowBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
     Abc_Obj_t * pNode;
     int c;
-    extern void Abc_NodePrintBdd( Abc_Obj_t * pNode );
+    extern void Abc_NodeShowBdd( Abc_Obj_t * pNode );
 
     pNtk = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -662,7 +741,7 @@ int Abc_CommandShowBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( !Abc_NtkIsBddLogic(pNtk) )
     {
-        fprintf( pErr, "Printing BDDs can only be done for logic BDD networks.\n" );
+        fprintf( pErr, "Visualizing BDDs can only be done for logic BDD networks.\n" );
         return 1;
     }
 
@@ -678,7 +757,7 @@ int Abc_CommandShowBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Cannot find node \"%s\".\n", argv[util_optind] );
         return 1;
     }
-    Abc_NodePrintBdd( pNode );
+    Abc_NodeShowBdd( pNode );
     return 0;
 
 usage:
@@ -689,6 +768,168 @@ usage:
     fprintf( pErr, "       (\"gsview32.exe\" may be in \"C:\\Program Files\\Ghostgum\\gsview\\\")\n" );
 #endif
     fprintf( pErr, "\tnode  : the node to consider\n");
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandShowCut( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    Abc_Obj_t * pNode;
+    int c;
+    int nNodeSizeMax;
+    int nConeSizeMax;
+    extern void Abc_NodeShowCut( Abc_Obj_t * pNode, int nNodeSizeMax, int nConeSizeMax );
+
+    pNtk = Abc_FrameReadNet(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    nNodeSizeMax = 10;
+    nConeSizeMax = ABC_INFINITY;
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "NCh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'N':
+            if ( util_optind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nNodeSizeMax = atoi(argv[util_optind]);
+            util_optind++;
+            if ( nNodeSizeMax < 0 ) 
+                goto usage;
+            break;
+        case 'C':
+            if ( util_optind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nConeSizeMax = atoi(argv[util_optind]);
+            util_optind++;
+            if ( nConeSizeMax < 0 ) 
+                goto usage;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "Visualizing cuts only works for AIGs.\n" );
+        return 1;
+    }
+    if ( argc != util_optind + 1 )
+    {
+        fprintf( pErr, "Wrong number of auguments.\n" );
+        goto usage;
+    }
+
+    pNode = Abc_NtkFindNode( pNtk, argv[util_optind] );
+    if ( pNode == NULL )
+    {
+        fprintf( pErr, "Cannot find node \"%s\".\n", argv[util_optind] );
+        return 1;
+    }
+    Abc_NodeShowCut( pNode, nNodeSizeMax, nConeSizeMax );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: show_cut [-N num] [-C num] [-h] <node>\n" );
+    fprintf( pErr, "       visualizes the cut of a node using DOT and GSVIEW\n" );
+#ifdef WIN32
+    fprintf( pErr, "       \"dot.exe\" and \"gsview32.exe\" should be set in the paths\n" );
+    fprintf( pErr, "       (\"gsview32.exe\" may be in \"C:\\Program Files\\Ghostgum\\gsview\\\")\n" );
+#endif
+    fprintf( pErr, "\t-N num : the max size of the cut to be computed [default = %d]\n", nNodeSizeMax );  
+    fprintf( pErr, "\t-C num : the max support of the containing cone [default = %d]\n", nConeSizeMax );  
+    fprintf( pErr, "\tnode   : the node to consider\n");
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandShowAig( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+    extern void Abc_NtkShowAig( Abc_Ntk_t * pNtk );
+
+    pNtk = Abc_FrameReadNet(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "Visualizing AIG can only be done for AIGs.\n" );
+        return 1;
+    }
+    Abc_NtkShowAig( pNtk );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: show_aig [-h]\n" );
+    fprintf( pErr, "       visualizes the AIG with choices using DOT and GSVIEW\n" );
+#ifdef WIN32
+    fprintf( pErr, "       \"dot.exe\" and \"gsview32.exe\" should be set in the paths\n" );
+    fprintf( pErr, "       (\"gsview32.exe\" may be in \"C:\\Program Files\\Ghostgum\\gsview\\\")\n" );
+#endif
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -745,7 +986,7 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
         pNtkRes = Abc_NtkCollapse( pNtk, 1 );
     else
     {
-        pNtk = Abc_NtkStrash( pNtk, 0 );
+        pNtk = Abc_NtkStrash( pNtk, 0, 0 );
         pNtkRes = Abc_NtkCollapse( pNtk, 1 );
         Abc_NtkDelete( pNtk );
     }
@@ -783,6 +1024,7 @@ int Abc_CommandStrash( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk, * pNtkRes;
     int c;
     int fAllNodes;
+    int fCleanup;
 
     pNtk = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -790,13 +1032,17 @@ int Abc_CommandStrash( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     fAllNodes = 0;
+    fCleanup  = 1;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "ah" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "ach" ) ) != EOF )
     {
         switch ( c )
         {
         case 'a':
             fAllNodes ^= 1;
+            break;
+        case 'c':
+            fCleanup ^= 1;
             break;
         case 'h':
             goto usage;
@@ -812,7 +1058,7 @@ int Abc_CommandStrash( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    pNtkRes = Abc_NtkStrash( pNtk, fAllNodes );
+    pNtkRes = Abc_NtkStrash( pNtk, fAllNodes, fCleanup );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Strashing has failed.\n" );
@@ -823,9 +1069,10 @@ int Abc_CommandStrash( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: strash [-ah]\n" );
+    fprintf( pErr, "usage: strash [-ach]\n" );
     fprintf( pErr, "\t        transforms combinational logic into an AIG\n" );
     fprintf( pErr, "\t-a    : toggles between using all nodes and DFS nodes [default = %s]\n", fAllNodes? "all": "DFS" );
+    fprintf( pErr, "\t-c    : toggles cleanup to remove the dagling AIG nodes [default = %s]\n", fCleanup? "all": "DFS" );
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -882,7 +1129,7 @@ int Abc_CommandBalance( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else
     {
-        pNtkTemp = Abc_NtkStrash( pNtk, 0 );
+        pNtkTemp = Abc_NtkStrash( pNtk, 0, 0 );
         if ( pNtkTemp == NULL )
         {
             fprintf( pErr, "Strashing before balancing has failed.\n" );
@@ -1274,7 +1521,7 @@ int Abc_CommandDisjoint( Abc_Frame_t * pAbc, int argc, char ** argv )
         // get the new network
         if ( !Abc_NtkIsStrash(pNtk) )
         {
-            pNtkNew = Abc_NtkStrash( pNtk, 0 );
+            pNtkNew = Abc_NtkStrash( pNtk, 0, 0 );
             pNtkRes = Abc_NtkDsdGlobal( pNtkNew, fVerbose, fPrint, fShort );
             Abc_NtkDelete( pNtkNew );
         }
@@ -1732,7 +1979,7 @@ int Abc_CommandFrames( Abc_Frame_t * pAbc, int argc, char ** argv )
     // get the new network
     if ( !Abc_NtkIsStrash(pNtk) )
     {
-        pNtkTemp = Abc_NtkStrash( pNtk, 0 );
+        pNtkTemp = Abc_NtkStrash( pNtk, 0, 0 );
         pNtkRes  = Abc_NtkFrames( pNtkTemp, nFrames, fInitial );
         Abc_NtkDelete( pNtkTemp );
     }
@@ -2424,7 +2671,7 @@ int Abc_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
         pNtkRes = Abc_NtkFraig( pNtk, &Params, fAllNodes );
     else
     {
-        pNtk = Abc_NtkStrash( pNtk, 0 );
+        pNtk = Abc_NtkStrash( pNtk, fAllNodes, !fAllNodes );
         pNtkRes = Abc_NtkFraig( pNtk, &Params, fAllNodes );
         Abc_NtkDelete( pNtk );
     }
@@ -2845,7 +3092,7 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( !Abc_NtkIsStrash(pNtk) )
     {
-        pNtk = Abc_NtkStrash( pNtk, 0 );
+        pNtk = Abc_NtkStrash( pNtk, 0, 0 );
         if ( pNtk == NULL )
         {
             fprintf( pErr, "Strashing before mapping has failed.\n" );
@@ -3087,8 +3334,10 @@ int Abc_CommandSuperChoice( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     fprintf( pErr, "usage: sc [-h]\n" );
-    fprintf( pErr, "\t        performs superchoicing\n" );
-    fprintf( pErr, "\t-h    : print the command usage\n");
+    fprintf( pErr, "\t      performs superchoicing\n" );
+    fprintf( pErr, "\t      (accumulate: \"r file.blif; rsup; b; sc; f -ac; wb file_sc.blif\")\n" );
+    fprintf( pErr, "\t      (map without supergate library: \"r file_sc.blif; ft; map\")\n" );
+    fprintf( pErr, "\t-h  : print the command usage\n");
     return 1;
 }
 
@@ -3146,7 +3395,7 @@ int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( !Abc_NtkIsStrash(pNtk) )
     {
         // strash and balance the network
-        pNtk = Abc_NtkStrash( pNtk, 0 );
+        pNtk = Abc_NtkStrash( pNtk, 0, 0 );
         if ( pNtk == NULL )
         {
             fprintf( pErr, "Strashing before FPGA mapping has failed.\n" );

@@ -321,6 +321,7 @@ void * Extra_FileReaderGetTokens_int( Extra_FileReader_t * p )
     // through EXTRA_OFFSET_SIZE chars till the end of the buffer
     if ( p->pBufferStop == p->pBufferEnd ) // end of file
     {
+        *pChar = 0;
         p->fStop = 1;
         return p->vTokens;
     }

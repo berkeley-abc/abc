@@ -49,7 +49,7 @@ extern char *      Mio_GateReadSop( void * pGate );
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes )
+Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes, bool fCleanup )
 {
     int fCheck = 1;
     Abc_Ntk_t * pNtkAig;
@@ -68,11 +68,11 @@ Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes )
     // print warning about self-feed latches
     if ( Abc_NtkCountSelfFeedLatches(pNtkAig) )
         printf( "The network has %d self-feeding latches.\n", Abc_NtkCountSelfFeedLatches(pNtkAig) );
-    if ( nNodes = Abc_AigCleanup(pNtkAig->pManFunc) )
+    if ( fCleanup && (nNodes = Abc_AigCleanup(pNtkAig->pManFunc)) )
         printf( "Cleanup has removed %d nodes.\n", nNodes );
     // duplicate EXDC 
     if ( pNtk->pExdc )
-        pNtkAig->pExdc = Abc_NtkStrash( pNtk->pExdc, 0 );
+        pNtkAig->pExdc = Abc_NtkStrash( pNtk->pExdc, 0, 1 );
     // make sure everything is okay
     if ( fCheck && !Abc_NtkCheck( pNtkAig ) )
     {

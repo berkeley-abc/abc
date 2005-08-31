@@ -433,7 +433,7 @@ int Abc_NtkFraigStore( Abc_Ntk_t * pNtk )
     if ( pStore == NULL )
     {
         // start the stored network
-        pStore = Abc_NtkStrash( pNtk, 0 );
+        pStore = Abc_NtkStrash( pNtk, 0, 0 );
         if ( pStore == NULL )
         {
             printf( "Abc_NtkFraigStore: Initial strashing has failed.\n" );
