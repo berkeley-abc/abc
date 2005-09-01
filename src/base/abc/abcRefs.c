@@ -6,7 +6,7 @@
 
   PackageName [Network and node package.]
 
-  Synopsis    [Reference counting of the nodes.]
+  Synopsis    [Procedures using reference counting of the AIG nodes.]
 
   Author      [Alan Mishchenko]
   
@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 static int Abc_NodeRefDeref( Abc_Obj_t * pNode, bool fReference, bool fLabel, Vec_Ptr_t * vNodes );
+static int Abc_NodeRefDerefStop( Abc_Obj_t * pNode, bool fReference );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -32,7 +33,7 @@ static int Abc_NodeRefDeref( Abc_Obj_t * pNode, bool fReference, bool fLabel, Ve
 
 /**Function*************************************************************
 
-  Synopsis    [Procedure returns the size of the MFFC of the node.]
+  Synopsis    [Returns the MFFC size.]
 
   Description []
                
@@ -50,6 +51,31 @@ int Abc_NodeMffcSize( Abc_Obj_t * pNode )
         return 0;
     nConeSize1 = Abc_NodeRefDeref( pNode, 0, 0, NULL ); // dereference
     nConeSize2 = Abc_NodeRefDeref( pNode, 1, 0, NULL ); // reference
+    assert( nConeSize1 == nConeSize2 );
+    assert( nConeSize1 > 0 );
+    return nConeSize1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the MFFC size while stopping at the complemented edges.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NodeMffcSizeStop( Abc_Obj_t * pNode )
+{
+    int nConeSize1, nConeSize2;
+    assert( !Abc_ObjIsComplement( pNode ) );
+    assert( Abc_ObjIsNode( pNode ) );
+    if ( Abc_ObjFaninNum(pNode) == 0 )
+        return 0;
+    nConeSize1 = Abc_NodeRefDerefStop( pNode, 0 ); // dereference
+    nConeSize2 = Abc_NodeRefDerefStop( pNode, 1 ); // reference
     assert( nConeSize1 == nConeSize2 );
     assert( nConeSize1 > 0 );
     return nConeSize1;
@@ -132,8 +158,8 @@ int Abc_NodeRefDeref( Abc_Obj_t * pNode, bool fReference, bool fLabel, Vec_Ptr_t
     if ( Abc_ObjIsCi(pNode) )
         return 0;
     // process the internal node
-    pNode0 = Abc_ObjFanin( pNode, 0 );
-    pNode1 = Abc_ObjFanin( pNode, 1 );
+    pNode0 = Abc_ObjFanin0(pNode);
+    pNode1 = Abc_ObjFanin1(pNode);
     Counter = 1;
     if ( fReference )
     {
@@ -150,6 +176,47 @@ int Abc_NodeRefDeref( Abc_Obj_t * pNode, bool fReference, bool fLabel, Vec_Ptr_t
             Counter += Abc_NodeRefDeref( pNode0, fReference, fLabel, vNodes );
         if ( --pNode1->vFanouts.nSize == 0 )
             Counter += Abc_NodeRefDeref( pNode1, fReference, fLabel, vNodes );
+    }
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [References/references the node and returns MFFC size.]
+
+  Description [Stops at the complemented edges.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NodeRefDerefStop( Abc_Obj_t * pNode, bool fReference )
+{
+    Abc_Obj_t * pNode0, * pNode1;
+    int Counter;
+    // skip the CI
+    if ( Abc_ObjIsCi(pNode) )
+        return 0;
+    // process the internal node
+    pNode0 = Abc_ObjFanin0(pNode);
+    pNode1 = Abc_ObjFanin1(pNode);
+    Counter = 1;
+    if ( fReference )
+    {
+        if ( pNode0->vFanouts.nSize++ == 0 && !Abc_ObjFaninC0(pNode) )
+            Counter += Abc_NodeRefDerefStop( pNode0, fReference );
+        if ( pNode1->vFanouts.nSize++ == 0 && !Abc_ObjFaninC1(pNode) )
+            Counter += Abc_NodeRefDerefStop( pNode1, fReference );
+    }
+    else
+    {
+        assert( pNode0->vFanouts.nSize > 0 );
+        assert( pNode1->vFanouts.nSize > 0 );
+        if ( --pNode0->vFanouts.nSize == 0 && !Abc_ObjFaninC0(pNode) )
+            Counter += Abc_NodeRefDerefStop( pNode0, fReference );
+        if ( --pNode1->vFanouts.nSize == 0 && !Abc_ObjFaninC1(pNode) )
+            Counter += Abc_NodeRefDerefStop( pNode1, fReference );
     }
     return Counter;
 }

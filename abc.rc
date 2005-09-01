@@ -1,4 +1,5 @@
 alias b balance
+alias cl cleanup
 alias clp collapse
 alias esd ext_seq_dcs
 alias f fraig
@@ -14,6 +15,7 @@ alias psu print_supp
 alias psy print_symm
 alias q quit
 alias r read
+alias ren renode
 alias rl read_blif
 alias rb read_bench
 alias rp read_pla
@@ -27,13 +29,16 @@ alias rfz refactor -z
 alias sa set autoexec ps
 alias so source -x
 alias st strash
+alias sw sweep
 alias u undo
 alias wb write_blif
 alias wl write_blif
 alias wp write_pla
-alias cnf   "st; renode -c; write_cnf"
-alias prove "st; renode -c; sat"
-alias opt     "b; renode; b"
-alias share   "b; renode -m; fx; b"
-alias resyn   "b; rw; rf; b; rw; rwz; b; rfz; rwz; b"
+alias cnf      "st; renode -c; write_cnf"
+alias prove    "st; renode -c; sat"
+alias opt      "b; renode; b"
+alias share    "b; renode; fx; b"
+alias sharem   "b; renode -m; fx; b"
+alias sharedsd "b; renode; dsd -g; sw; fx; b"
+alias resyn    "b; rw; rf; b; rw; rwz; b; rfz; rwz; b"
 

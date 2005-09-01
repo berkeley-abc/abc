@@ -31,7 +31,7 @@ static DdNode *    Abc_NtkRenodeDeriveBdd_rec( DdManager * dd, Abc_Obj_t * pNode
 
 static void        Abc_NtkRenodeSetBounds( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax );
 static void        Abc_NtkRenodeSetBoundsCnf( Abc_Ntk_t * pNtk );
-static void        Abc_NtkRenodeSetBoundsMulti( Abc_Ntk_t * pNtk );
+static void        Abc_NtkRenodeSetBoundsMulti( Abc_Ntk_t * pNtk, int nThresh );
 static void        Abc_NtkRenodeSetBoundsSimple( Abc_Ntk_t * pNtk );
 static void        Abc_NtkRenodeCone( Abc_Obj_t * pNode, Vec_Ptr_t * vCone );
 
@@ -67,7 +67,7 @@ Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax, int fCn
     if ( fCnf )
         Abc_NtkRenodeSetBoundsCnf( pNtk );
     else if ( fMulti )
-        Abc_NtkRenodeSetBoundsMulti( pNtk );
+        Abc_NtkRenodeSetBoundsMulti( pNtk, nThresh );
     else if ( fSimple )
         Abc_NtkRenodeSetBoundsSimple( pNtk );
     else
@@ -393,9 +393,7 @@ void Abc_NtkRenodeSetBounds( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax )
     }
 
     // mark the PO drivers
-    Abc_NtkForEachPo( pNtk, pNode, i )
-        Abc_ObjFanin0(pNode)->fMarkA = 1;
-    Abc_NtkForEachLatch( pNtk, pNode, i )
+    Abc_NtkForEachCo( pNtk, pNode, i )
         Abc_ObjFanin0(pNode)->fMarkA = 1;
 
     // make sure the fanin limit is met
@@ -474,9 +472,7 @@ void Abc_NtkRenodeSetBoundsCnf( Abc_Ntk_t * pNtk )
     }
 
     // mark the PO drivers
-    Abc_NtkForEachPo( pNtk, pNode, i )
-        Abc_ObjFanin0(pNode)->fMarkA = 1;
-    Abc_NtkForEachLatch( pNtk, pNode, i )
+    Abc_NtkForEachCo( pNtk, pNode, i )
         Abc_ObjFanin0(pNode)->fMarkA = 1;
 
     // count the number of MUXes
@@ -505,10 +501,10 @@ void Abc_NtkRenodeSetBoundsCnf( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkRenodeSetBoundsMulti( Abc_Ntk_t * pNtk )
+void Abc_NtkRenodeSetBoundsMulti( Abc_Ntk_t * pNtk, int nThresh )
 {
     Abc_Obj_t * pNode;
-    int i;
+    int i, nFanouts, nConeSize;
 
     // make sure the mark is not set
     Abc_NtkForEachObj( pNtk, pNode, i )
@@ -521,7 +517,12 @@ void Abc_NtkRenodeSetBoundsMulti( Abc_Ntk_t * pNtk )
         if ( Abc_NodeIsConst(pNode) )
             continue;
         // mark the nodes with multiple fanouts
-        if ( Abc_ObjFanoutNum(pNode) > 1 )
+//        if ( Abc_ObjFanoutNum(pNode) > 1 )
+//            pNode->fMarkA = 1;
+        // mark the nodes with multiple fanouts
+        nFanouts = Abc_ObjFanoutNum(pNode);
+        nConeSize = Abc_NodeMffcSizeStop(pNode);
+        if ( (nFanouts - 1) * nConeSize > nThresh )
             pNode->fMarkA = 1;
         // mark the children if they are pointed by the complemented edges
         if ( Abc_ObjFaninC0(pNode) )
@@ -531,9 +532,7 @@ void Abc_NtkRenodeSetBoundsMulti( Abc_Ntk_t * pNtk )
     }
 
     // mark the PO drivers
-    Abc_NtkForEachPo( pNtk, pNode, i )
-        Abc_ObjFanin0(pNode)->fMarkA = 1;
-    Abc_NtkForEachLatch( pNtk, pNode, i )
+    Abc_NtkForEachCo( pNtk, pNode, i )
         Abc_ObjFanin0(pNode)->fMarkA = 1;
 }
 

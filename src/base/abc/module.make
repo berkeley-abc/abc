@@ -19,6 +19,7 @@ SRC +=    src/base/abc/abc.c \
     src/base/abc/abcMiter.c \
     src/base/abc/abcNames.c \
     src/base/abc/abcNetlist.c \
+    src/base/abc/abcNtbdd.c \
     src/base/abc/abcPrint.c \
     src/base/abc/abcReconv.c \
     src/base/abc/abcRefactor.c \

@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [abcUtils.c]
+  FileName    [abcUtil.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: abcUtils.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: abcUtil.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -410,6 +410,9 @@ int Abc_NtkLogicMakeSimpleCos( Abc_Ntk_t * pNtk, bool fDuplicate )
         Abc_ObjPatchFanin( pNode, pDriver, pDriverNew );
         assert( Abc_ObjFanoutNum(pDriverNew) == 1 );
         nDupGates++;
+        // remove the old driver if it dangles
+        if ( Abc_ObjFanoutNum(pDriver) == 0 )
+            Abc_NtkDeleteObj( pDriver );
     }
     assert( Abc_NtkLogicHasSimpleCos(pNtk) );
     return nDupGates;
@@ -887,9 +890,47 @@ Vec_Ptr_t * Abc_NodeGetFaninNames( Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NodeFreeFaninNames( Vec_Ptr_t * vNames )
+Vec_Ptr_t * Abc_NodeGetFakeNames( int nNames )
+{
+    Vec_Ptr_t * vNames;
+    char Buffer[5];
+    int i;
+
+    vNames = Vec_PtrAlloc( nNames );
+    for ( i = 0; i < nNames; i++ )
+    {
+        if ( nNames < 26 )
+        {
+            Buffer[0] = 'a' + i;
+            Buffer[1] = 0;
+        }
+        else
+        {
+            Buffer[0] = 'a' + i%26;
+            Buffer[1] = '0' + i/26;
+            Buffer[2] = 0;
+        }
+        Vec_PtrPush( vNames, util_strsav(Buffer) );
+    }
+    return vNames;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gets fanin node names.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NodeFreeNames( Vec_Ptr_t * vNames )
 {
     int i;
+    if ( vNames == NULL )
+        return;
     for ( i = 0; i < vNames->nSize; i++ )
         free( vNames->pArray[i] );
     Vec_PtrFree( vNames );

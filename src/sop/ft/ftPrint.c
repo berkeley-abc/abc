@@ -46,9 +46,8 @@ static int    Ft_FactorPrintOutputName( FILE * pFile, char * pNameOut, int fComp
 void Ft_FactorPrint( FILE * pFile, Vec_Int_t * vForm, char * pNamesIn[], char * pNameOut )
 {
     Ft_Node_t * pNode;
-    char Buffer[5];
-    int Pos, i, LitSizeMax, LitSizeCur, nVars;
-    int fMadeupNames;
+    Vec_Ptr_t * vNamesIn = NULL;
+    int LitSizeMax, LitSizeCur, nVars, Pos, i;
 
     // sanity checks
     nVars = Ft_FactorGetNumVars( vForm );
@@ -56,27 +55,13 @@ void Ft_FactorPrint( FILE * pFile, Vec_Int_t * vForm, char * pNamesIn[], char * 
     assert( vForm->nSize > nVars );
 
     // create the names if not given by the user
-    fMadeupNames = 0;
     if ( pNamesIn == NULL )
     {
-        fMadeupNames = 1;
-        pNamesIn = ALLOC( char *, nVars );
-        for ( i = 0; i < nVars; i++ )
-        {
-            if ( nVars < 26 )
-            {
-                Buffer[0] = 'a' + i;
-                Buffer[1] = 0;
-            }
-            else
-            {
-                Buffer[0] = 'a' + i%26;
-                Buffer[1] = '0' + i/26;
-                Buffer[2] = 0;
-            }
-            pNamesIn[i] = util_strsav( Buffer );
-        }
+        vNamesIn = Abc_NodeGetFakeNames( nVars );
+        pNamesIn = (char **)vNamesIn->pArray;
     }
+    if ( pNameOut == NULL )
+        pNameOut = "F";
 
     // get the size of the longest literal
     LitSizeMax = 0;
@@ -103,12 +88,8 @@ void Ft_FactorPrint( FILE * pFile, Vec_Int_t * vForm, char * pNamesIn[], char * 
     }
     fprintf( pFile, "\n" );
 
-    if ( fMadeupNames )
-    {
-        for ( i = 0; i < nVars; i++ )
-            free( pNamesIn[i] );
-        free( pNamesIn );
-    }
+    if ( vNamesIn )
+        Abc_NodeFreeNames( vNamesIn );
 }
 
 /**Function*************************************************************

@@ -367,7 +367,7 @@ bool Abc_NtkCheckObj( Abc_Ntk_t * pNtk, Abc_Obj_t * pObj )
 {
     Abc_Obj_t * pFanin, * pFanout;
     int i, Value = 1;
-//    int k;
+    int k;
 
     // check the network
     if ( pObj->pNtk != pNtk )
@@ -401,7 +401,7 @@ bool Abc_NtkCheckObj( Abc_Ntk_t * pNtk, Abc_Obj_t * pObj )
             Value = 0;
         }
     }
-/*
+
     // make sure fanins are not duplicated
     for ( i = 0; i < pObj->vFanins.nSize; i++ )
         for ( k = i + 1; k < pObj->vFanins.nSize; k++ )
@@ -423,7 +423,7 @@ bool Abc_NtkCheckObj( Abc_Ntk_t * pNtk, Abc_Obj_t * pObj )
                 printf( "Warning: Node %s has", Abc_ObjName(pObj) );
                 printf( " duplicated fanout %s.\n", Abc_ObjName(Abc_ObjFanout(pObj,k)) );
             }
-*/
+
     return Value;
 }
 

@@ -83,7 +83,7 @@ void Fraig_ManProveMiter( Fraig_Man_t * p )
 
     if ( !p->fTryProve )
         return;
-
+ 
     clk = clock();
     // consider all outputs of the multi-output miter
     for ( i = 0; i < p->vOutputs->nSize; i++ )

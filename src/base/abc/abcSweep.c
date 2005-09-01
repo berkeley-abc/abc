@@ -25,13 +25,17 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+extern Fraig_Man_t *  Abc_NtkToFraig( Abc_Ntk_t * pNtk, Fraig_Params_t * pParams, int fAllNodes );
+
 static stmm_table *   Abc_NtkFraigEquiv( Fraig_Man_t * p, Abc_Ntk_t * pNtk, int fUseInv, bool fVerbose );
 static void           Abc_NtkFraigTransform( Abc_Ntk_t * pNtk, stmm_table * tEquiv, int fUseInv, bool fVerbose );
 static void           Abc_NtkFraigMergeClassMapped( Abc_Ntk_t * pNtk, Abc_Obj_t * pChain, int fVerbose, int fUseInv );
 static void           Abc_NtkFraigMergeClass( Abc_Ntk_t * pNtk, Abc_Obj_t * pChain, int fVerbose, int fUseInv );
 static int            Abc_NodeDroppingCost( Abc_Obj_t * pNode );
 
-extern Fraig_Man_t *  Abc_NtkToFraig( Abc_Ntk_t * pNtk, Fraig_Params_t * pParams, int fAllNodes );
+static void           Abc_NodeSweep( Abc_Obj_t * pNode, int fVerbose );
+static void           Abc_NodeConstantInput( Abc_Obj_t * pNode, Abc_Obj_t * pFanin, bool fConst0 );
+static void           Abc_NodeComplementInput( Abc_Obj_t * pNode, Abc_Obj_t * pFanin );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -425,6 +429,175 @@ int Abc_NtkCleanup( Abc_Ntk_t * pNtk, int fVerbose )
         return -1;
     }
     return Counter;
+}
+
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Tranditional sweep of the network.]
+
+  Description [Propagates constant and single-input node, removes dangling nodes.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkSweep( Abc_Ntk_t * pNtk, int fVerbose )
+{
+    int fCheck = 1;
+    Abc_Obj_t * pNode;
+    int i, fConvert, nSwept, nSweptNew;
+    assert( Abc_NtkIsSopLogic(pNtk) || Abc_NtkIsBddLogic(pNtk) ); 
+    // convert to the BDD representation
+    fConvert = 0;
+    if ( Abc_NtkIsSopLogic(pNtk) )
+        Abc_NtkSopToBdd(pNtk), fConvert = 1;
+    // perform cleanup to get rid of dangling nodes
+    nSwept = Abc_NtkCleanup( pNtk, 0 );
+    // make the network minimum base
+    Abc_NtkRemoveDupFanins(pNtk);
+    Abc_NtkMinimumBase(pNtk);
+    do
+    {
+        // sweep constants and single-input nodes
+        Abc_NtkForEachNode( pNtk, pNode, i )
+            if ( Abc_ObjFaninNum(pNode) < 2 )
+                Abc_NodeSweep( pNode, fVerbose );
+        // make the network minimum base
+        Abc_NtkRemoveDupFanins(pNtk);
+        Abc_NtkMinimumBase(pNtk);
+        // perform final clean up (in case new danglies are created)
+        nSweptNew = Abc_NtkCleanup( pNtk, 0 );
+        nSwept += nSweptNew;
+    }
+    while ( nSweptNew );
+    // conver back to BDD
+    if ( fConvert )
+        Abc_NtkBddToSop(pNtk);
+    // report
+    if ( fVerbose )
+        printf( "Sweep removed %d nodes.\n", nSwept );
+    // check
+    if ( fCheck && !Abc_NtkCheck( pNtk ) )
+    {
+        printf( "Abc_NtkSweep: The network check has failed.\n" );
+        return -1;
+    }
+    return nSwept;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Tranditional sweep of the network.]
+
+  Description [Propagates constant and single-input node, removes dangling nodes.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NodeSweep( Abc_Obj_t * pNode, int fVerbose )
+{
+    Vec_Ptr_t * vFanout = pNode->pNtk->vPtrTemp;
+    Abc_Obj_t * pFanout, * pDriver;
+    int i;
+    assert( Abc_ObjFaninNum(pNode) < 2 );
+    assert( Abc_ObjFanoutNum(pNode) > 0 );
+    // iterate through the fanouts
+    Abc_NodeCollectFanouts( pNode, vFanout );
+    Vec_PtrForEachEntry( vFanout, pFanout, i )
+    {
+        if ( Abc_ObjIsCo(pFanout) )
+        {
+            if ( Abc_ObjFaninNum(pNode) == 1 )
+            {
+                pDriver = Abc_ObjFanin0(pNode);
+                if ( Abc_ObjIsCi(pDriver) || Abc_ObjFanoutNum(pDriver) > 1 || Abc_ObjFanoutNum(pNode) > 1 )
+                    continue;
+                // the driver is a node and its only fanout is this node
+                if ( Abc_NodeIsInv(pNode) )
+                    pDriver->pData = Cudd_Not(pDriver->pData);
+                // replace the fanin of the fanout
+                Abc_ObjPatchFanin( pFanout, pNode, pDriver );
+            }
+            continue;
+        }
+        // the fanout is a regular node
+        if ( Abc_ObjFaninNum(pNode) == 0 )
+            Abc_NodeConstantInput( pFanout, pNode, Abc_NodeIsConst0(pNode) );
+        else 
+        {
+            assert( Abc_ObjFaninNum(pNode) == 1 );
+            pDriver = Abc_ObjFanin0(pNode);
+            if ( Abc_NodeIsInv(pNode) )
+                Abc_NodeComplementInput( pFanout, pNode );
+            Abc_ObjPatchFanin( pFanout, pNode, pDriver );
+        }
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Replaces the local function by its cofactor.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NodeConstantInput( Abc_Obj_t * pNode, Abc_Obj_t * pFanin, bool fConst0 )
+{
+    DdManager * dd = pNode->pNtk->pManFunc;
+    DdNode * bVar, * bTemp;
+    int iFanin;
+    assert( Abc_NtkIsBddLogic(pNode->pNtk) ); 
+    if ( (iFanin = Vec_FanFindEntry( &pNode->vFanins, pFanin->Id )) == -1 )
+    {
+        printf( "Node %s should be among", Abc_ObjName(pFanin) );
+        printf( " the fanins of node %s...\n", Abc_ObjName(pNode) );
+        return;
+    }
+    bVar = Cudd_NotCond( Cudd_bddIthVar(dd, iFanin), fConst0 );
+    pNode->pData = Cudd_Cofactor( dd, bTemp = pNode->pData, bVar );   Cudd_Ref( pNode->pData );
+    Cudd_RecursiveDeref( dd, bTemp );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Changes the polarity of one fanin.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NodeComplementInput( Abc_Obj_t * pNode, Abc_Obj_t * pFanin )
+{
+    DdManager * dd = pNode->pNtk->pManFunc;
+    DdNode * bVar, * bCof0, * bCof1;
+    int iFanin;
+    assert( Abc_NtkIsBddLogic(pNode->pNtk) ); 
+    if ( (iFanin = Vec_FanFindEntry( &pNode->vFanins, pFanin->Id )) == -1 )
+    {
+        printf( "Node %s should be among", Abc_ObjName(pFanin) );
+        printf( " the fanins of node %s...\n", Abc_ObjName(pNode) );
+        return;
+    }
+    bVar = Cudd_bddIthVar( dd, iFanin );
+    bCof0 = Cudd_Cofactor( dd, pNode->pData, Cudd_Not(bVar) );   Cudd_Ref( bCof0 );
+    bCof1 = Cudd_Cofactor( dd, pNode->pData, bVar );             Cudd_Ref( bCof1 );
+    Cudd_RecursiveDeref( dd, pNode->pData );
+    pNode->pData = Cudd_bddIte( dd, bVar, bCof0, bCof1 );        Cudd_Ref( pNode->pData );
+    Cudd_RecursiveDeref( dd, bCof0 );
+    Cudd_RecursiveDeref( dd, bCof1 );
 }
 
 ////////////////////////////////////////////////////////////////////////

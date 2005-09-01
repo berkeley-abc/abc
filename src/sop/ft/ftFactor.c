@@ -19,6 +19,7 @@
 #include "abc.h"
 #include "mvc.h"
 #include "ft.h"
+#include "dec.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///

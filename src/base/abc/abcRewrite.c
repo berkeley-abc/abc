@@ -56,6 +56,8 @@ int Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUseZeros, int fVerbose )
     int clk, clkStart = clock();
 
     assert( Abc_NtkIsStrash(pNtk) );
+    // cleanup the AIG
+    Abc_AigCleanup(pNtk->pManFunc);
     // start the rewriting manager
     pManRwr = Rwr_ManStart( 0 );
     if ( pManRwr == NULL )

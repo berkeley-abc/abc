@@ -406,6 +406,44 @@ Abc_Ntk_t * Abc_NtkCreateCone( Abc_Ntk_t * pNtk, Vec_Ptr_t * vRoots, Vec_Int_t *
   SeeAlso     []
 
 ***********************************************************************/
+Abc_Ntk_t * Abc_NtkSplitNode( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode )
+{    
+    Abc_Ntk_t * pNtkNew; 
+    Abc_Obj_t * pFanin, * pNodePo;
+    int i;
+    // start the network
+    pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc );
+    pNtkNew->pName = util_strsav(Abc_ObjName(pNode));
+    // add the PIs corresponding to the fanins of the node
+    Abc_ObjForEachFanin( pNode, pFanin, i )
+    {
+        pFanin->pCopy = Abc_NtkCreatePi( pNtkNew );
+        Abc_NtkLogicStoreName( pFanin->pCopy, Abc_ObjName(pFanin) );
+    }
+    // duplicate and connect the node
+    pNode->pCopy = Abc_NtkDupObj( pNtkNew, pNode );
+    Abc_ObjForEachFanin( pNode, pFanin, i )
+        Abc_ObjAddFanin( pNode->pCopy, pFanin->pCopy );
+    // create the only PO
+    pNodePo = Abc_NtkCreatePo( pNtkNew );
+    Abc_ObjAddFanin( pNodePo, pNode->pCopy );
+    Abc_NtkLogicStoreName( pNodePo, Abc_ObjName(pNode) );
+    if ( !Abc_NtkCheck( pNtkNew ) )
+        fprintf( stdout, "Abc_NtkSplitNode(): Network check has failed.\n" );
+    return pNtkNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Deletes the Ntk.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Abc_NtkDelete( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj;
@@ -758,6 +796,8 @@ void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
     }
     else if ( Abc_ObjIsNode(pObj) )
     {
+        if ( Abc_NtkHasBdd(pNtk) )
+            Cudd_RecursiveDeref( pNtk->pManFunc, pObj->pData );
         pNtk->nNodes--;
     }
     else if ( Abc_ObjIsLatch(pObj) )

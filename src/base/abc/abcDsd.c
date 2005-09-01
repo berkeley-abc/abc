@@ -30,7 +30,7 @@ static void            Abc_NtkDsdConstruct( Dsd_Manager_t * pManDsd, Abc_Ntk_t *
 static Abc_Obj_t *     Abc_NtkDsdConstructNode( Dsd_Manager_t * pManDsd, Dsd_Node_t * pNodeDsd, Abc_Ntk_t * pNtkNew );
 
 static Vec_Ptr_t *     Abc_NtkCollectNodesForDsd( Abc_Ntk_t * pNtk );
-static void            Abc_NodeDecompDsdAndMux( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes, Dsd_Manager_t * pManDsd );
+static void            Abc_NodeDecompDsdAndMux( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes, Dsd_Manager_t * pManDsd, bool fRecursive );
 static bool            Abc_NodeIsForDsd( Abc_Obj_t * pNode );
 static int             Abc_NodeFindMuxVar( DdManager * dd, DdNode * bFunc, int nVars );
 
@@ -192,6 +192,8 @@ void Abc_NtkDsdConstruct( Dsd_Manager_t * pManDsd, Abc_Ntk_t * pNtk, Abc_Ntk_t *
         pDriver = Abc_ObjFanin0( pNode );
         if ( !Abc_ObjIsNode(pDriver) )
             continue;
+        if ( !Abc_NodeIsAigAnd(pDriver) )
+            continue;
         pNodeDsd = Dsd_ManagerReadRoot( pManDsd, i );
         pNodeNew = (Abc_Obj_t *)Dsd_NodeReadMark( Dsd_Regular(pNodeDsd) );
         assert( !Abc_ObjIsComplement(pNodeNew) );
@@ -300,7 +302,7 @@ Abc_Obj_t * Abc_NtkDsdConstructNode( Dsd_Manager_t * pManDsd, Dsd_Node_t * pNode
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDsdRecursive( Abc_Ntk_t * pNtk, bool fVerbose )
+int Abc_NtkDsdLocal( Abc_Ntk_t * pNtk, bool fVerbose, bool fRecursive )
 {
     int fCheck = 1;
     Dsd_Manager_t * pManDsd;
@@ -319,7 +321,7 @@ int Abc_NtkDsdRecursive( Abc_Ntk_t * pNtk, bool fVerbose )
     // collect nodes for decomposition
     vNodes = Abc_NtkCollectNodesForDsd( pNtk );
     for ( i = 0; i < vNodes->nSize; i++ )
-        Abc_NodeDecompDsdAndMux( vNodes->pArray[i], vNodes, pManDsd );
+        Abc_NodeDecompDsdAndMux( vNodes->pArray[i], vNodes, pManDsd, fRecursive );
     Vec_PtrFree( vNodes );
 
     // stop the DSD manager
@@ -371,7 +373,7 @@ Vec_Ptr_t * Abc_NtkCollectNodesForDsd( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NodeDecompDsdAndMux( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes, Dsd_Manager_t * pManDsd )
+void Abc_NodeDecompDsdAndMux( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes, Dsd_Manager_t * pManDsd, bool fRecursive )
 {
     DdManager * dd = pNode->pNtk->pManFunc;
     Abc_Obj_t * pRoot, * pFanin, * pNode1, * pNode2, * pNodeC;
@@ -384,7 +386,7 @@ void Abc_NodeDecompDsdAndMux( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes, Dsd_Manager
     pNodeDsd = Dsd_Regular( pNodeDsd );
 
     // determine what decomposition to use   
-    if ( Dsd_NodeReadDecsNum(pNodeDsd) != Abc_ObjFaninNum(pNode) )
+    if ( !fRecursive || Dsd_NodeReadDecsNum(pNodeDsd) != Abc_ObjFaninNum(pNode) )
     { // perform DSD
 
         // set the inputs
@@ -399,7 +401,7 @@ void Abc_NodeDecompDsdAndMux( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes, Dsd_Manager
         for ( i = 0; i < nNodesDsd; i++ )
         {
             pRoot = Abc_NtkDsdConstructNode( pManDsd, ppNodesDsd[i], pNode->pNtk );
-            if ( Abc_NodeIsForDsd(pRoot) )
+            if ( Abc_NodeIsForDsd(pRoot) && fRecursive )
                 Vec_PtrPush( vNodes, pRoot );
         }
         free( ppNodesDsd );
@@ -457,9 +459,24 @@ void Abc_NodeDecompDsdAndMux( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes, Dsd_Manager
 ***********************************************************************/
 bool Abc_NodeIsForDsd( Abc_Obj_t * pNode )
 {
+    DdManager * dd = pNode->pNtk->pManFunc;
+    DdNode * bFunc, * bFunc0, * bFunc1;
     assert( Abc_ObjIsNode(pNode) );
-    if ( Cudd_DagSize(pNode->pData)-1 > Abc_ObjFaninNum(pNode) )
-        return 1;
+//    if ( Cudd_DagSize(pNode->pData)-1 > Abc_ObjFaninNum(pNode) )
+//        return 1;
+//    return 0;
+
+    for ( bFunc = Cudd_Regular(pNode->pData); !cuddIsConstant(bFunc); )
+    {
+        bFunc0 = Cudd_Regular( cuddE(bFunc) );
+        bFunc1 = cuddT(bFunc);
+        if ( bFunc0 == b1 )
+            bFunc = bFunc1;
+        else if ( bFunc1 == b1 || bFunc0 == bFunc1 )
+            bFunc = bFunc0;
+        else
+            return 1;
+    }
     return 0;
 }
 
@@ -513,6 +530,7 @@ int Abc_NodeFindMuxVar( DdManager * dd, DdNode * bFunc, int nVars )
     }
     return iVar;
 }
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

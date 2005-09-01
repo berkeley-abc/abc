@@ -310,13 +310,13 @@ void Abc_NodePrintFanio( FILE * pFile, Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkPrintFactor( FILE * pFile, Abc_Ntk_t * pNtk )
+void Abc_NtkPrintFactor( FILE * pFile, Abc_Ntk_t * pNtk, int fUseRealNames )
 {
     Abc_Obj_t * pNode;
     int i;
     assert( Abc_NtkIsSopLogic(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
-        Abc_NodePrintFactor( pFile, pNode );
+        Abc_NodePrintFactor( pFile, pNode, fUseRealNames );
 }
 
 /**Function*************************************************************
@@ -330,9 +330,10 @@ void Abc_NtkPrintFactor( FILE * pFile, Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NodePrintFactor( FILE * pFile, Abc_Obj_t * pNode )
+void Abc_NodePrintFactor( FILE * pFile, Abc_Obj_t * pNode, int fUseRealNames )
 {
     Vec_Int_t * vFactor;
+    Vec_Ptr_t * vNamesIn;
     if ( Abc_ObjIsCo(pNode) )
         pNode = Abc_ObjFanin0(pNode);
     if ( Abc_ObjIsPi(pNode) )
@@ -347,7 +348,14 @@ void Abc_NodePrintFactor( FILE * pFile, Abc_Obj_t * pNode )
     }
     assert( Abc_ObjIsNode(pNode) );
     vFactor = Ft_Factor( pNode->pData );
-    Ft_FactorPrint( stdout, vFactor, NULL, Abc_ObjName(pNode) );
+    if ( fUseRealNames )
+    {
+        vNamesIn = Abc_NodeGetFaninNames(pNode);
+        Ft_FactorPrint( stdout, vFactor, (char **)vNamesIn->pArray, Abc_ObjName(pNode) );
+        Abc_NodeFreeNames( vNamesIn );
+    }
+    else
+        Ft_FactorPrint( stdout, vFactor, (char **)NULL, Abc_ObjName(pNode) );
     Vec_IntFree( vFactor );
 }
 

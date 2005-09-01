@@ -93,6 +93,71 @@ int Abc_NodeMinimumBase( Abc_Obj_t * pNode )
 
 /**Function*************************************************************
 
+  Synopsis    [Makes nodes of the network fanin-dup-free.]
+
+  Description [Returns the number of pairs of duplicated fanins.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkRemoveDupFanins( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNode;
+    int i, Counter, fChanged;
+    assert( Abc_NtkIsBddLogic(pNtk) );
+    Counter = 0;
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        while ( fChanged = Abc_NodeRemoveDupFanins(pNode) )
+            Counter += fChanged;
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Removes one pair of duplicated fanins if present.]
+
+  Description [Returns 1 if the node is changed.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NodeRemoveDupFanins( Abc_Obj_t * pNode )
+{
+    Abc_Obj_t * pFanin1, * pFanin2;
+    int i, k;
+    assert( Abc_NtkIsBddLogic(pNode->pNtk) );
+    assert( Abc_ObjIsNode(pNode) );
+    // make sure fanins are not duplicated
+    Abc_ObjForEachFanin( pNode, pFanin2, i )
+    {
+        Abc_ObjForEachFanin( pNode, pFanin1, k )
+        {
+            if ( k >= i )
+                break;
+            if ( pFanin1 == pFanin2 )
+            {
+                DdManager * dd = pNode->pNtk->pManFunc;
+                DdNode * bVar1 = Cudd_bddIthVar( dd, i );
+                DdNode * bVar2 = Cudd_bddIthVar( dd, k );
+                DdNode * bTrans, * bTemp;
+                bTrans = Cudd_bddXnor( dd, bVar1, bVar2 ); Cudd_Ref( bTrans );
+                pNode->pData = Cudd_bddAndAbstract( dd, bTemp = pNode->pData, bTrans, bVar2 ); Cudd_Ref( pNode->pData );
+                Cudd_RecursiveDeref( dd, bTemp );
+                Cudd_RecursiveDeref( dd, bTrans );
+                Abc_NodeMinimumBase( pNode );
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Computes support of the node.]
 
   Description []

@@ -68,7 +68,7 @@ void Abc_NodeShowBdd( Abc_Obj_t * pNode )
     vNamesIn = Abc_NodeGetFaninNames( pNode );
     pNameOut = Abc_ObjName(pNode);
     Cudd_DumpDot( pNode->pNtk->pManFunc, 1, (DdNode **)&pNode->pData, (char **)vNamesIn->pArray, &pNameOut, pFile );
-    Abc_NodeFreeFaninNames( vNamesIn );
+    Abc_NodeFreeNames( vNamesIn );
     Abc_NtkCleanCopy( pNode->pNtk );
     fclose( pFile );
 
