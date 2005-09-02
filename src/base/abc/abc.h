@@ -476,6 +476,7 @@ extern Abc_Ntk_t *        Abc_NtkFraigRestore();
 extern void               Abc_NtkFraigStoreClean();
 /*=== abcFunc.c ==========================================================*/
 extern int                Abc_NtkSopToBdd( Abc_Ntk_t * pNtk );
+extern DdNode *           Abc_ConvertSopToBdd( DdManager * dd, char * pSop );
 extern char *             Abc_ConvertBddToSop( Extra_MmFlex_t * pMan, DdManager * dd, DdNode * bFuncOn, DdNode * bFuncOnDc, int nFanins, Vec_Str_t * vCube, int fMode );
 extern int                Abc_NtkBddToSop( Abc_Ntk_t * pNtk );
 extern void               Abc_NodeBddToCnf( Abc_Obj_t * pNode, Extra_MmFlex_t * pMmMan, Vec_Str_t * vCube, char ** ppSop0, char ** ppSop1 );
@@ -509,6 +510,13 @@ extern char *             Abc_NtkLogicStoreName( Abc_Obj_t * pNodeNew, char * pN
 extern char *             Abc_NtkLogicStoreNamePlus( Abc_Obj_t * pNodeNew, char * pNameOld, char * pSuffix );
 extern void               Abc_NtkCreateCioNamesTable( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkDupCioNamesTable( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
+extern Vec_Ptr_t *        Abc_NodeGetFaninNames( Abc_Obj_t * pNode );
+extern Vec_Ptr_t *        Abc_NodeGetFakeNames( int nNames );
+extern void               Abc_NodeFreeNames( Vec_Ptr_t * vNames );
+extern char **            Abc_NtkCollectCioNames( Abc_Ntk_t * pNtk, int fCollectCos );
+extern int                Abc_NodeCompareNames( Abc_Obj_t ** pp1, Abc_Obj_t ** pp2 );
+extern void               Abc_NtkOrderObjsByName( Abc_Ntk_t * pNtk, int fComb );
+extern void               Abc_NtkShortNames( Abc_Ntk_t * pNtk );
 /*=== abcNetlist.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkNetlistToLogic( Abc_Ntk_t * pNtk );
 extern Abc_Ntk_t *        Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk );
@@ -546,7 +554,6 @@ extern int                Abc_NodeMffcSize( Abc_Obj_t * pNode );
 extern int                Abc_NodeMffcSizeStop( Abc_Obj_t * pNode );
 extern int                Abc_NodeMffcLabel( Abc_Obj_t * pNode );
 extern Vec_Ptr_t *        Abc_NodeMffcCollect( Abc_Obj_t * pNode );
-extern void               Abc_NodeUpdate( Abc_Obj_t * pNode, Vec_Ptr_t * vFanins, Vec_Int_t * vForm, int nGain );
 /*=== abcRenode.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkRenode( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax, int fCnf, int fMulti, int fSimple );
 extern DdNode *           Abc_NtkRenodeDeriveBdd( DdManager * dd, Abc_Obj_t * pNodeOld, Vec_Ptr_t * vFaninsOld );
@@ -594,8 +601,6 @@ extern void               Abc_SopAddCnfToSolver( solver * pSat, char * pClauses,
 /*=== abcStrash.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes, bool fCleanup );
 extern Abc_Obj_t *        Abc_NodeStrash( Abc_Aig_t * pMan, Abc_Obj_t * pNode );
-extern Abc_Obj_t *        Abc_NodeStrashDec( Abc_Aig_t * pMan, Vec_Ptr_t * vFanins, Vec_Int_t * vForm );
-extern int                Abc_NodeStrashDecCount( Abc_Aig_t * pMan, Abc_Obj_t * pRoot, Vec_Ptr_t * vFanins, Vec_Int_t * vForm, Vec_Int_t * vLevels, int NodeMax, int LevelMax );
 extern int                Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 );
 /*=== abcSweep.c ==========================================================*/
 extern bool               Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fVerbose );
@@ -622,13 +627,6 @@ extern void               Abc_NtkStopReverseLevels( Abc_Ntk_t * pNtk );
 extern void               Abc_NodeSetReverseLevel( Abc_Obj_t * pObj, int LevelR );
 extern int                Abc_NodeReadReverseLevel( Abc_Obj_t * pObj );
 extern int                Abc_NodeReadRequiredLevel( Abc_Obj_t * pObj );
-/*=== abcTravId.c ==========================================================*/
-extern void               Abc_NtkIncrementTravId( Abc_Ntk_t * pNtk );
-extern void               Abc_NodeSetTravId( Abc_Obj_t * pObj, int TravId );
-extern void               Abc_NodeSetTravIdCurrent( Abc_Obj_t * pObj );
-extern void               Abc_NodeSetTravIdPrevious( Abc_Obj_t * pObj );
-extern bool               Abc_NodeIsTravIdCurrent( Abc_Obj_t * pObj );
-extern bool               Abc_NodeIsTravIdPrevious( Abc_Obj_t * pObj );
 /*=== abcUtil.c ==========================================================*/
 extern void               Abc_NtkIncrementTravId( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkGetCubeNum( Abc_Ntk_t * pNtk );
@@ -637,28 +635,22 @@ extern int                Abc_NtkGetLitFactNum( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkGetBddNodeNum( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkGetClauseNum( Abc_Ntk_t * pNtk );
 extern double             Abc_NtkGetMappedArea( Abc_Ntk_t * pNtk );
+extern int                Abc_NtkGetExorNum( Abc_Ntk_t * pNtk );
+extern int                Abc_NtkGetChoiceNum( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkGetFaninMax( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkCleanCopy( Abc_Ntk_t * pNtk );
 extern Abc_Obj_t *        Abc_NodeHasUniqueCoFanout( Abc_Obj_t * pNode );
 extern bool               Abc_NtkLogicHasSimpleCos( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkLogicMakeSimpleCos( Abc_Ntk_t * pNtk, bool fDuplicate );
 extern void               Abc_VecObjPushUniqueOrderByLevel( Vec_Ptr_t * p, Abc_Obj_t * pNode );
-extern int                Abc_NtkCountExors( Abc_Ntk_t * pNtk );
 extern bool               Abc_NodeIsExorType( Abc_Obj_t * pNode );
 extern bool               Abc_NodeIsMuxType( Abc_Obj_t * pNode );
 extern Abc_Obj_t *        Abc_NodeRecognizeMux( Abc_Obj_t * pNode, Abc_Obj_t ** ppNodeT, Abc_Obj_t ** ppNodeE );
-extern int                Abc_NtkCountChoiceNodes( Abc_Ntk_t * pNtk );
-extern int                Abc_NtkPrepareCommand( FILE * pErr, Abc_Ntk_t * pNtk, char ** argv, int argc, Abc_Ntk_t ** ppNtk1, Abc_Ntk_t ** ppNtk2, int * pfDelete1, int * pfDelete2 );
+extern int                Abc_NtkPrepareTwoNtks( FILE * pErr, Abc_Ntk_t * pNtk, char ** argv, int argc, Abc_Ntk_t ** ppNtk1, Abc_Ntk_t ** ppNtk2, int * pfDelete1, int * pfDelete2 );
 extern void               Abc_NodeCollectFanins( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes );
 extern void               Abc_NodeCollectFanouts( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes );
 extern int                Abc_NodeCompareLevelsIncrease( Abc_Obj_t ** pp1, Abc_Obj_t ** pp2 );
 extern int                Abc_NodeCompareLevelsDecrease( Abc_Obj_t ** pp1, Abc_Obj_t ** pp2 );
-extern Vec_Ptr_t *        Abc_NodeGetFaninNames( Abc_Obj_t * pNode );
-extern Vec_Ptr_t *        Abc_NodeGetFakeNames( int nNames );
-extern void               Abc_NodeFreeNames( Vec_Ptr_t * vNames );
-extern char **            Abc_NtkCollectCioNames( Abc_Ntk_t * pNtk, int fCollectCos );
-extern void               Abc_NtkAlphaOrderSignals( Abc_Ntk_t * pNtk, int fComb );
-extern void               Abc_NtkShortNames( Abc_Ntk_t * pNtk );
 extern Vec_Int_t *        Abc_NtkFanoutCounts( Abc_Ntk_t * pNtk );
 extern Vec_Ptr_t *        Abc_NtkCollectObjects( Abc_Ntk_t * pNtk );
 

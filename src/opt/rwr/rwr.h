@@ -63,7 +63,7 @@ struct Rwr_Man_t_
     int                nClasses;         // the number of NN classes
     // the result of resynthesis
     int                fCompl;           // indicates if the output of FF should be complemented
-    Vec_Int_t *        vForm;            // the decomposition tree (temporary)
+    void *             pGraph;            // the decomposition tree (temporary)
     Vec_Ptr_t *        vFanins;          // the fanins array (temporary)
     Vec_Ptr_t *        vFaninsCur;       // the fanins array (temporary)
     Vec_Int_t *        vLevNums;         // the array of levels (temporary)
@@ -125,8 +125,7 @@ extern void              Rwr_ManIncTravId( Rwr_Man_t * p );
 extern Rwr_Man_t *       Rwr_ManStart( bool fPrecompute );
 extern void              Rwr_ManStop( Rwr_Man_t * p );
 extern void              Rwr_ManPrintStats( Rwr_Man_t * p );
-extern Vec_Ptr_t *       Rwr_ManReadFanins( Rwr_Man_t * p );
-extern Vec_Int_t *       Rwr_ManReadDecs( Rwr_Man_t * p );
+extern void *            Rwr_ManReadDecs( Rwr_Man_t * p );
 extern int               Rwr_ManReadCompl( Rwr_Man_t * p );
 extern void              Rwr_ManAddTimeCuts( Rwr_Man_t * p, int Time );
 extern void              Rwr_ManAddTimeTotal( Rwr_Man_t * p, int Time );

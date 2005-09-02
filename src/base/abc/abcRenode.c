@@ -60,7 +60,7 @@ Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax, int fCn
     assert( nFaninMax > 1 );
 
     // print a warning about choice nodes
-    if ( Abc_NtkCountChoiceNodes( pNtk ) )
+    if ( Abc_NtkGetChoiceNum( pNtk ) )
         printf( "Warning: The choice nodes in the AIG are removed by renoding.\n" );
 
     // define the boundary

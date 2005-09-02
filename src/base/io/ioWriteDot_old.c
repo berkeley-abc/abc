@@ -43,9 +43,9 @@
 void Io_WriteDot( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesShow, char * pFileName )
 {
     FILE * pFile;
-    Abc_Obj_t * pNode, * pTemp, * pPrev;
+    Abc_Obj_t * pNode, * pFanin, * pPrev, * pTemp;
     int LevelMin, LevelMax, fHasCos, Level, i;
-    int Limit = 300;
+    int Limit = 200;
 
     if ( vNodes->nSize < 1 )
     {
@@ -59,7 +59,7 @@ void Io_WriteDot( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesShow, 
         return;
     }
 
-    // start the stream
+    // start the output file
     if ( (pFile = fopen( pFileName, "w" )) == NULL )
     {
         fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", pFileName );
@@ -109,10 +109,9 @@ void Io_WriteDot( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesShow, 
 //  fprintf( pFile, "ranksep = 0.5;\n" );
 //  fprintf( pFile, "nodesep = 0.5;\n" );
     fprintf( pFile, "center = true;\n" );
-//  fprintf( pFile, "orientation = landscape;\n" );
 //  fprintf( pFile, "edge [fontsize = 10];\n" );
+//    fprintf( pFile, "edge [dir = back];\n" );
 //  fprintf( pFile, "edge [dir = none];\n" );
-    fprintf( pFile, "edge [dir = back];\n" );
     fprintf( pFile, "\n" );
 
     // labels on the left of the picture
@@ -196,9 +195,8 @@ void Io_WriteDot( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesShow, 
         {
             if ( !Abc_ObjIsCo(pNode) )
                 continue;
-            fprintf( pFile, "  Node%d%s [label = \"%s%s\"", pNode->Id, 
-                (Abc_ObjIsLatch(pNode)? "_in":""), Abc_ObjName(pNode), (Abc_ObjIsLatch(pNode)? "_in":"") );
-            fprintf( pFile, ", shape = %s", (Abc_ObjIsLatch(pNode)? "box":"invtriangle") );
+            fprintf( pFile, "  Node%d%s [label = \"%s\"", pNode->Id, (Abc_ObjIsLatch(pNode)? "Top":""), Abc_ObjName(pNode) );
+            fprintf( pFile, ", shape = invtriangle" );
             if ( pNode->fMarkB )
                 fprintf( pFile, ", style = filled" );
             fprintf( pFile, ", color = coral, fillcolor = coral" );
@@ -243,9 +241,8 @@ void Io_WriteDot( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesShow, 
         {
             if ( !Abc_ObjIsCi(pNode) )
                 continue;
-            fprintf( pFile, "  Node%d%s [label = \"%s%s\"", pNode->Id, 
-                (Abc_ObjIsLatch(pNode)? "_out":""), Abc_ObjName(pNode), (Abc_ObjIsLatch(pNode)? "_out":"") );
-            fprintf( pFile, ", shape = %s", (Abc_ObjIsLatch(pNode)? "box":"triangle") );
+            fprintf( pFile, "  Node%d%s [label = \"%s\"", pNode->Id, (Abc_ObjIsLatch(pNode)? "Bot":""), Abc_ObjName(pNode) );
+            fprintf( pFile, ", shape = triangle" );
             if ( pNode->fMarkB )
                 fprintf( pFile, ", style = filled" );
             fprintf( pFile, ", color = coral, fillcolor = coral" );
@@ -262,33 +259,34 @@ void Io_WriteDot( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesShow, 
     {
         if ( (int)pNode->Level != LevelMax )
             continue;
-        fprintf( pFile, "title2 -> Node%d%s [style = invis];\n", pNode->Id, 
-            (Abc_ObjIsLatch(pNode)? "_in":"") );
+        fprintf( pFile, "title2 -> Node%d%s [style = invis];\n", pNode->Id );
     }
 
     // generate edges
     Vec_PtrForEachEntry( vNodes, pNode, i )
-    {
+    { 
         if ( Abc_ObjFaninNum(pNode) == 0 )
             continue;
         // generate the edge from this node to the next
-        if ( Abc_ObjFanin0(pNode)->fMarkC )
+        pFanin = Abc_ObjFanin0(pNode);
+        if ( pFanin->fMarkC )
         {
-            fprintf( pFile, "Node%d%s",  pNode->Id, (Abc_ObjIsLatch(pNode)? "_in":"") );
+            fprintf( pFile, "Node%d%s", pNode->Id, (Abc_ObjIsLatch(pNode)? "Top":"") );
             fprintf( pFile, " -> " );
-            fprintf( pFile, "Node%d%s",  Abc_ObjFaninId0(pNode), (Abc_ObjIsLatch(Abc_ObjFanin0(pNode))? "_out":"") );
-            fprintf( pFile, " [style = %s]", Abc_ObjFaninC0(pNode)? "dotted" : "bold" );
+            fprintf( pFile, "Node%d%s", pFanin->Id, (Abc_ObjIsLatch(pFanin)? "Bot":"") );
+            fprintf( pFile, " [style = %s]", Abc_ObjFaninC0(pNode)? "dashed" : "bold" );
             fprintf( pFile, ";\n" );
         }
         if ( Abc_ObjFaninNum(pNode) == 1 )
             continue;
         // generate the edge from this node to the next
-        if ( Abc_ObjFanin1(pNode)->fMarkC )
+        pFanin = Abc_ObjFanin1(pNode);
+        if ( pFanin->fMarkC )
         {
             fprintf( pFile, "Node%d",  pNode->Id );
             fprintf( pFile, " -> " );
-            fprintf( pFile, "Node%d%s",  Abc_ObjFaninId1(pNode), (Abc_ObjIsLatch(Abc_ObjFanin1(pNode))? "_out":"") );
-            fprintf( pFile, " [style = %s]", Abc_ObjFaninC1(pNode)? "dotted" : "bold" );
+            fprintf( pFile, "Node%d%s",  pFanin->Id, (Abc_ObjIsLatch(pFanin)? "Bot":"") );
+            fprintf( pFile, " [style = %s]", Abc_ObjFaninC1(pNode)? "dashed" : "bold" );
             fprintf( pFile, ";\n" );
         }
         // generate the edges between the equivalent nodes
@@ -300,7 +298,7 @@ void Io_WriteDot( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesShow, 
                 fprintf( pFile, "Node%d",  pPrev->Id );
                 fprintf( pFile, " -> " );
                 fprintf( pFile, "Node%d",  pTemp->Id );
-                fprintf( pFile, " [style = %s]", (pPrev->fPhase ^ pTemp->fPhase)? "dotted" : "bold" );
+                fprintf( pFile, " [style = %s]", (pPrev->fPhase ^ pTemp->fPhase)? "dashed" : "bold" );
                 fprintf( pFile, ";\n" );
                 pPrev = pTemp;
             }

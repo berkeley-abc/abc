@@ -20,6 +20,7 @@
 
 #include "mainInt.h"
 #include "abc.h"
+#include "dec.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -58,6 +59,9 @@ Abc_Frame_t * Abc_FrameAllocate()
     // set the starting step
     p->nSteps = 1;
     p->fBatchMode = 0;
+    // initialize decomposition manager
+    p->pManDec = Dec_ManStart();
+    p->dd = Cudd_Init( 0, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
     return p;
 }
 
@@ -75,6 +79,8 @@ Abc_Frame_t * Abc_FrameAllocate()
 ***********************************************************************/
 void Abc_FrameDeallocate( Abc_Frame_t * p )
 {
+    Dec_ManStop( p->pManDec );
+    Extra_StopManager( p->dd );
     Abc_FrameDeleteAllNetworks( p );
     free( p );
     p = NULL;
@@ -417,17 +423,20 @@ Abc_Frame_t * Abc_FrameGetGlobalFrame()
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_FrameReadNtkStore       ( Abc_Frame_t * pFrame )                     { return pFrame->pStored;  } 
-int         Abc_FrameReadNtkStoreSize   ( Abc_Frame_t * pFrame )                     { return pFrame->nStored;  }
-void        Abc_FrameSetNtkStore        ( Abc_Frame_t * pFrame, Abc_Ntk_t * pNtk )   { pFrame->pStored  = pNtk;     } 
-void        Abc_FrameSetNtkStoreSize    ( Abc_Frame_t * pFrame, int nStored )        { pFrame->nStored  = nStored;  }
+Abc_Ntk_t * Abc_FrameReadNtkStore       ( Abc_Frame_t * pFrame )                     { return pFrame->pStored;    } 
+int         Abc_FrameReadNtkStoreSize   ( Abc_Frame_t * pFrame )                     { return pFrame->nStored;    }
+void        Abc_FrameSetNtkStore        ( Abc_Frame_t * pFrame, Abc_Ntk_t * pNtk )   { pFrame->pStored  = pNtk;   } 
+void        Abc_FrameSetNtkStoreSize    ( Abc_Frame_t * pFrame, int nStored )        { pFrame->nStored  = nStored;}
 
 void *      Abc_FrameReadLibLut         ( Abc_Frame_t * pFrame )                     { return pFrame->pLibLut;    } 
 void *      Abc_FrameReadLibGen         ( Abc_Frame_t * pFrame )                     { return pFrame->pLibGen;    } 
 void *      Abc_FrameReadLibSuper       ( Abc_Frame_t * pFrame )                     { return pFrame->pLibSuper;  } 
-void        Abc_FrameSetLibLut          ( Abc_Frame_t * pFrame, void * pLib )        { pFrame->pLibLut   = pLib;   } 
-void        Abc_FrameSetLibGen          ( Abc_Frame_t * pFrame, void * pLib )        { pFrame->pLibGen   = pLib;   } 
-void        Abc_FrameSetLibSuper        ( Abc_Frame_t * pFrame, void * pLib )        { pFrame->pLibSuper = pLib;   } 
+void        Abc_FrameSetLibLut          ( Abc_Frame_t * pFrame, void * pLib )        { pFrame->pLibLut   = pLib;  } 
+void        Abc_FrameSetLibGen          ( Abc_Frame_t * pFrame, void * pLib )        { pFrame->pLibGen   = pLib;  } 
+void        Abc_FrameSetLibSuper        ( Abc_Frame_t * pFrame, void * pLib )        { pFrame->pLibSuper = pLib;  } 
+
+void *      Abc_FrameReadManDd          ( Abc_Frame_t * pFrame )                     { return pFrame->dd;         } 
+void *      Abc_FrameReadManDec         ( Abc_Frame_t * pFrame )                     { return pFrame->pManDec;    } 
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

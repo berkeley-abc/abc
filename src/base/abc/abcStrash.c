@@ -20,7 +20,7 @@
 
 #include "abc.h"
 #include "extra.h"
-#include "ft.h"
+#include "dec.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -59,7 +59,7 @@ Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes, bool fCleanup )
     if ( Abc_NtkIsBddLogic(pNtk) )
         Abc_NtkBddToSop(pNtk);
     // print warning about choice nodes
-    if ( Abc_NtkCountChoiceNodes( pNtk ) )
+    if ( Abc_NtkGetChoiceNum( pNtk ) )
         printf( "Warning: The choice nodes in the initial AIG are removed by strashing.\n" );
     // perform strashing
     pNtkAig = Abc_NtkStartFrom( pNtk, ABC_TYPE_STRASH, ABC_FUNC_AIG );
@@ -188,9 +188,6 @@ Abc_Obj_t * Abc_NodeStrash( Abc_Aig_t * pMan, Abc_Obj_t * pNode )
     // consider the case when the graph is an AIG
     if ( Abc_NtkIsStrash(pNode->pNtk) )
     {
-//        Abc_Obj_t * pChild0, * pChild1;
-//        pChild0 = Abc_ObjFanin0(pNode);
-//        pChild1 = Abc_ObjFanin1(pNode);
         if ( Abc_NodeIsConst(pNode) )
             return Abc_AigConst1(pMan);
         return Abc_AigAnd( pMan, Abc_ObjChild0Copy(pNode), Abc_ObjChild1Copy(pNode) );
@@ -202,14 +199,9 @@ Abc_Obj_t * Abc_NodeStrash( Abc_Aig_t * pMan, Abc_Obj_t * pNode )
     else
         pSop = pNode->pData;
 
-    // consider the cconstant node
+    // consider the constant node
     if ( Abc_NodeIsConst(pNode) )
-    {
-        // check if the SOP is constant
-        if ( Abc_SopIsConst1(pSop) )
-            return Abc_AigConst1(pMan);
-        return Abc_ObjNot( Abc_AigConst1(pMan) );
-    }
+        return Abc_ObjNotCond( Abc_AigConst1(pMan), Abc_SopIsConst0(pSop) );
 
     // decide when to use factoring
     if ( fUseFactor && Abc_ObjFaninNum(pNode) > 2 && Abc_SopGetCubeNum(pSop) > 1 )
@@ -273,198 +265,20 @@ Abc_Obj_t * Abc_NodeStrashSop( Abc_Aig_t * pMan, Abc_Obj_t * pNode, char * pSop 
 ***********************************************************************/
 Abc_Obj_t * Abc_NodeStrashFactor( Abc_Aig_t * pMan, Abc_Obj_t * pRoot, char * pSop )
 {
-    Vec_Int_t * vForm;
-    Vec_Ptr_t * vAnds;
-    Abc_Obj_t * pAnd, * pFanin;
+    Dec_Graph_t * pFForm;
+    Dec_Node_t * pNode;
+    Abc_Obj_t * pAnd;
     int i;
-    // derive the factored form
-    vForm = Ft_Factor( pSop );
+    // perform factoring
+    pFForm = Dec_Factor( pSop );
     // collect the fanins
-    vAnds = Vec_PtrAlloc( 20 );
-    Abc_ObjForEachFanin( pRoot, pFanin, i )
-        Vec_PtrPush( vAnds, pFanin->pCopy );
+    Dec_GraphForEachLeaf( pFForm, pNode, i )
+        pNode->pFunc = Abc_ObjFanin(pRoot,i)->pCopy;
     // perform strashing
-    pAnd = Abc_NodeStrashDec( pMan, vAnds, vForm );
-    Vec_PtrFree( vAnds );
-    Vec_IntFree( vForm );
+    pAnd = Dec_GraphToNetwork( pMan, pFForm );
+    Dec_GraphFree( pFForm );
     return pAnd;
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Strashes the factored form into the AIG.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Obj_t * Abc_NodeStrashDec( Abc_Aig_t * pMan, Vec_Ptr_t * vFanins, Vec_Int_t * vForm )
-{
-    Abc_Obj_t * pAnd, * pAnd0, * pAnd1;
-    Ft_Node_t * pFtNode;
-    int i, nVars;
-
-    // sanity checks
-    nVars = Ft_FactorGetNumVars( vForm );
-    assert( nVars >= 0 );
-    assert( vForm->nSize > nVars );
-
-    // check for constant function
-    pFtNode = Ft_NodeRead( vForm, 0 );
-    if ( pFtNode->fConst )
-        return Abc_ObjNotCond( Abc_AigConst1(pMan), pFtNode->fCompl );
-    assert( nVars == vFanins->nSize );
-
-    // compute the function of other nodes
-    for ( i = nVars; i < vForm->nSize; i++ )
-    {
-        pFtNode = Ft_NodeRead( vForm, i );
-        pAnd0   = Abc_ObjNotCond( vFanins->pArray[pFtNode->iFanin0], pFtNode->fCompl0 ); 
-        pAnd1   = Abc_ObjNotCond( vFanins->pArray[pFtNode->iFanin1], pFtNode->fCompl1 ); 
-        pAnd    = Abc_AigAnd( pMan, pAnd0, pAnd1 );
-        Vec_PtrPush( vFanins, pAnd );
-//printf( "Adding " );  Abc_AigPrintNode( pAnd );
-    }
-    assert( vForm->nSize = vFanins->nSize );
-
-    // complement the result if necessary
-    pFtNode = Ft_NodeReadLast( vForm );
-    pAnd = Abc_ObjNotCond( pAnd, pFtNode->fCompl );
-    return pAnd;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Counts the number of new nodes added when using this factored form,]
-
-  Description [Returns NodeMax + 1 if the number of nodes and levels exceeded 
-  the given limit or the number of levels exceeded the maximum allowed level.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_NodeStrashDecCount( Abc_Aig_t * pMan, Abc_Obj_t * pRoot, Vec_Ptr_t * vFanins, Vec_Int_t * vForm, Vec_Int_t * vLevels, int NodeMax, int LevelMax )
-{
-    Abc_Obj_t * pAnd, * pAnd0, * pAnd1, * pTop;
-    Ft_Node_t * pFtNode;
-    int i, nVars, LevelNew, LevelOld, Counter;
-
-    // sanity checks
-    nVars = Ft_FactorGetNumVars( vForm );
-    assert( nVars >= 0 );
-    assert( vForm->nSize > nVars );
-
-    // check for constant function
-    pFtNode = Ft_NodeRead( vForm, 0 );
-    if ( pFtNode->fConst )
-        return 0;
-    assert( nVars == vFanins->nSize ); 
-
-    // set the levels
-    Vec_IntClear( vLevels );
-    Vec_PtrForEachEntry( vFanins, pAnd, i )
-        Vec_IntPush( vLevels, Abc_ObjRegular(pAnd)->Level );
-
-    // compute the function of other nodes
-    Counter = 0;
-    for ( i = nVars; i < vForm->nSize; i++ )
-    {
-        pFtNode = Ft_NodeRead( vForm, i );
-        // check for buffer/inverter
-        if ( pFtNode->iFanin0 == pFtNode->iFanin1 )
-        {
-            assert( vForm->nSize == nVars + 1 );
-            pAnd = Vec_PtrEntry(vFanins, pFtNode->iFanin0);  
-            pAnd = Abc_ObjNotCond( pAnd, pFtNode->fCompl );
-            Vec_PtrPush( vFanins, pAnd );
-            break;
-        }
-
-        pAnd0   = Vec_PtrEntry(vFanins, pFtNode->iFanin0);  
-        pAnd1   = Vec_PtrEntry(vFanins, pFtNode->iFanin1);  
-        if ( pAnd0 && pAnd1 )
-        {
-            pAnd0 = Abc_ObjNotCond( pAnd0, pFtNode->fCompl0 );
-            pAnd1 = Abc_ObjNotCond( pAnd1, pFtNode->fCompl1 );
-            pAnd  = Abc_AigAndLookup( pMan, pAnd0, pAnd1 );
-        }
-        else
-            pAnd = NULL;
-        // count the number of added nodes
-        if ( pAnd == NULL || Abc_NodeIsTravIdCurrent( Abc_ObjRegular(pAnd) ) )
-        {
-            if ( pAnd )
-            {
-//printf( "Reusing labeled " );  Abc_AigPrintNode( pAnd );
-            }
-            Counter++;
-            if ( Counter > NodeMax )
-            {
-                Vec_PtrShrink( vFanins, nVars );
-                return -1;
-            }
-        }
-        else
-        {
-//printf( "Reusing " );  Abc_AigPrintNode( pAnd );
-        }
-
-        // count the number of new levels
-        LevelNew = -1;
-        if ( pAnd )
-        {
-            if ( Abc_ObjRegular(pAnd) == Abc_AigConst1(pMan) )
-                LevelNew = 0;
-            else if ( Abc_ObjRegular(pAnd) == Abc_ObjRegular(pAnd0) )
-                LevelNew = (int)Abc_ObjRegular(pAnd0)->Level;
-            else if ( Abc_ObjRegular(pAnd) == Abc_ObjRegular(pAnd1) )
-                LevelNew = (int)Abc_ObjRegular(pAnd1)->Level;
-        }
-        if ( LevelNew == -1 )
-            LevelNew = 1 + ABC_MAX( Vec_IntEntry(vLevels, pFtNode->iFanin0), Vec_IntEntry(vLevels, pFtNode->iFanin1) );
-
-//        assert( pAnd == NULL || LevelNew == LevelOld );
-        if ( pAnd ) 
-        {
-            LevelOld = (int)Abc_ObjRegular(pAnd)->Level;
-            if ( LevelNew != LevelOld ) 
-            {
-                int x = 0;
-                Abc_Obj_t * pFanin0, * pFanin1;
-                pFanin0 = Abc_ObjFanin0( Abc_ObjRegular(pAnd) );
-                pFanin1 = Abc_ObjFanin1( Abc_ObjRegular(pAnd) );
-                x = 0;
-            }
-        }
-
-        if ( LevelNew > LevelMax )
-        {
-            Vec_PtrShrink( vFanins, nVars );
-            return -1;
-        }
-        Vec_PtrPush( vFanins, pAnd );
-        Vec_IntPush( vLevels, LevelNew );
-    }
-    assert( vForm->nSize = vFanins->nSize );
-
-    // check if this is the same form
-    pTop = Vec_PtrEntryLast(vFanins);
-    if ( Abc_ObjRegular(pTop) == pRoot )
-    {
-        assert( !Abc_ObjIsComplement(pTop) );
-        Vec_PtrShrink( vFanins, nVars );
-        return -1;
-    }
-    Vec_PtrShrink( vFanins, nVars );
-    return Counter;
-}
-
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
-#include "ft.h"
+#include "dec.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -34,10 +34,8 @@ struct Abc_ManRef_t_
     int              fVerbose;          // the verbosity flag
     // internal data structures
     DdManager *      dd;                // the BDD manager
-//    Vec_Int_t *      vReqTimes;         // required times for each node
     Vec_Str_t *      vCube;             // temporary
     Vec_Int_t *      vForm;             // temporary
-    Vec_Int_t *      vLevNums;          // temporary
     Vec_Ptr_t *      vVisited;          // temporary
     Vec_Ptr_t *      vLeaves;           // temporary
     // node statistics
@@ -60,7 +58,7 @@ struct Abc_ManRef_t_
 static void           Abc_NtkManRefPrintStats( Abc_ManRef_t * p );
 static Abc_ManRef_t * Abc_NtkManRefStart( int nNodeSizeMax, int nConeSizeMax, bool fUseDcs, bool fVerbose );
 static void           Abc_NtkManRefStop( Abc_ManRef_t * p );
-static Vec_Int_t *    Abc_NodeRefactor( Abc_ManRef_t * p, Abc_Obj_t * pNode, Vec_Ptr_t * vFanins, bool fUseZeros, bool fUseDcs, bool fVerbose );
+static Dec_Graph_t *  Abc_NodeRefactor( Abc_ManRef_t * p, Abc_Obj_t * pNode, Vec_Ptr_t * vFanins, bool fUseZeros, bool fUseDcs, bool fVerbose );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -88,11 +86,11 @@ int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, bool 
     ProgressBar * pProgress;
     Abc_ManRef_t * pManRef;
     Abc_ManCut_t * pManCut;
+    Dec_Graph_t * pFForm;
     Vec_Ptr_t * vFanins;
-    Vec_Int_t * vForm;
     Abc_Obj_t * pNode;
-    int i, nNodes;
     int clk, clkStart = clock();
+    int i, nNodes;
 
     assert( Abc_NtkIsStrash(pNtk) );
     // cleanup the AIG
@@ -109,27 +107,27 @@ int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, bool 
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
-        // stop if all nodes have been tried once
-        if ( i >= nNodes )
-            break;
         // skip the constant node
         if ( Abc_NodeIsConst(pNode) )
             continue;
+        // stop if all nodes have been tried once
+        if ( i >= nNodes )
+            break;
         // compute a reconvergence-driven cut
 clk = clock();
         vFanins = Abc_NodeFindCut( pManCut, pNode, fUseDcs );
 pManRef->timeCut += clock() - clk;
         // evaluate this cut
 clk = clock();
-        vForm = Abc_NodeRefactor( pManRef, pNode, vFanins, fUseZeros, fUseDcs, fVerbose );
+        pFForm = Abc_NodeRefactor( pManRef, pNode, vFanins, fUseZeros, fUseDcs, fVerbose );
 pManRef->timeRes += clock() - clk;
-        if ( vForm == NULL )
+        if ( pFForm == NULL )
             continue;
         // acceptable replacement found, update the graph
 clk = clock();
-        Abc_NodeUpdate( pNode, vFanins, vForm, pManRef->nLastGain );
+        Dec_GraphUpdateNetwork( pNode, pFForm, pManRef->nLastGain );
 pManRef->timeNtk += clock() - clk;
-        Vec_IntFree( vForm );
+        Dec_GraphFree( pFForm );
     }
     Extra_ProgressBarStop( pProgress );
 pManRef->timeTotal = clock() - clkStart;
@@ -161,40 +159,33 @@ pManRef->timeTotal = clock() - clkStart;
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Abc_NodeRefactor( Abc_ManRef_t * p, Abc_Obj_t * pNode, Vec_Ptr_t * vFanins, bool fUseZeros, bool fUseDcs, bool fVerbose )
+Dec_Graph_t * Abc_NodeRefactor( Abc_ManRef_t * p, Abc_Obj_t * pNode, Vec_Ptr_t * vFanins, bool fUseZeros, bool fUseDcs, bool fVerbose )
 {
     int fVeryVerbose = 0;
     Abc_Obj_t * pFanin;
-    Vec_Int_t * vForm;
-    DdNode * bNodeFunc, * bNodeDc, * bNodeOn, * bNodeOnDc;
+    Dec_Graph_t * pFForm;
+    DdNode * bNodeFunc;
+    int nNodesSaved, nNodesAdded, i, clk;
     char * pSop;
-    int nBddNodes, nFtNodes, nNodesSaved, nNodesAdded;
-    int i, Required, clk;
 
     p->nNodesConsidered++;
-
-    // get the required level of this node
-    Required = Abc_NodeReadRequiredLevel( pNode );
 
     // get the function of the cut
 clk = clock();
     bNodeFunc = Abc_NodeConeBdd( p->dd, p->dd->vars, pNode, vFanins, p->vVisited );  Cudd_Ref( bNodeFunc );
 p->timeBdd += clock() - clk;
-    nBddNodes = Cudd_DagSize(bNodeFunc);
 
     // if don't-care are used, transform the function into ISOP
     if ( fUseDcs )
     {
+        DdNode * bNodeDc, * bNodeOn, * bNodeOnDc;
         int nMints, nMintsDc;
-
 clk = clock();
         // get the don't-cares
         bNodeDc = Abc_NodeConeDcs( p->dd, p->dd->vars + vFanins->nSize, p->dd->vars, p->vLeaves, vFanins, p->vVisited ); Cudd_Ref( bNodeDc );
-
         nMints = (1 << vFanins->nSize);
         nMintsDc = (int)Cudd_CountMinterm( p->dd, bNodeDc, vFanins->nSize );
 //        printf( "Percentage of minterms = %5.2f.\n", 100.0 * nMintsDc / nMints );
-
         // get the ISF
         bNodeOn   = Cudd_bddAnd( p->dd, bNodeFunc, Cudd_Not(bNodeDc) );   Cudd_Ref( bNodeOn );
         bNodeOnDc = Cudd_bddOr ( p->dd, bNodeFunc, bNodeDc );             Cudd_Ref( bNodeOnDc );
@@ -207,58 +198,52 @@ clk = clock();
 p->timeDcs += clock() - clk;
     }
 
-//Extra_bddPrint( p->dd, bNodeFunc ); printf( "\n" );
     // always accept the case of constant node
     if ( Cudd_IsConstant(bNodeFunc) )
     {
         p->nLastGain = Abc_NodeMffcSize( pNode );
         p->nNodesGained += p->nLastGain;
         p->nNodesRefactored++;
-        // get the constant node
-//        pFanin = Abc_ObjNotCond( Abc_AigConst1(pNode->pNtk->pManFunc), Cudd_IsComplement(bNodeFunc) );
-//        Abc_AigReplace( pNode->pNtk->pManFunc, pNode, pFanin );
-//        Cudd_RecursiveDeref( p->dd, bNodeFunc );
-//printf( "Gain = %d.\n", p->nLastGain );
         Cudd_RecursiveDeref( p->dd, bNodeFunc );
-        return Ft_FactorConst( !Cudd_IsComplement(bNodeFunc) );
+        if ( Cudd_IsComplement(bNodeFunc) )
+            return Dec_GraphCreateConst0();
+        return Dec_GraphCreateConst1();
     }
 
     // get the SOP of the cut
 clk = clock();
     pSop = Abc_ConvertBddToSop( NULL, p->dd, bNodeFunc, bNodeFunc, vFanins->nSize, p->vCube, -1 );
 p->timeSop += clock() - clk;
-    Cudd_RecursiveDeref( p->dd, bNodeFunc );
 
     // get the factored form
 clk = clock();
-    vForm = Ft_Factor( pSop );
-p->timeFact += clock() - clk;
-    nFtNodes = Ft_FactorGetNumNodes( vForm );
+    pFForm = Dec_Factor( pSop );
     free( pSop );
-//Ft_FactorPrint( stdout, vForm, NULL, NULL );
+p->timeFact += clock() - clk;
 
     // mark the fanin boundary 
-    // (can mark only essential fanins, belonging to bNodeFunc!!!)
+    // (can mark only essential fanins, belonging to bNodeFunc!)
     Vec_PtrForEachEntry( vFanins, pFanin, i )
         pFanin->vFanouts.nSize++;
-
     // label MFFC with current traversal ID
     Abc_NtkIncrementTravId( pNode->pNtk );
     nNodesSaved = Abc_NodeMffcLabel( pNode );
-
-    // unmark the fanin boundary
+    // unmark the fanin boundary and set the fanins as leaves in the form
     Vec_PtrForEachEntry( vFanins, pFanin, i )
+    {
         pFanin->vFanouts.nSize--;
+        Dec_GraphNode(pFForm, i)->pFunc = pFanin;
+    }
 
     // detect how many new nodes will be added (while taking into account reused nodes)
 clk = clock();
-    nNodesAdded = Abc_NodeStrashDecCount( pNode->pNtk->pManFunc, pNode, vFanins, vForm, 
-        p->vLevNums, nNodesSaved, Required );
+    nNodesAdded = Dec_GraphToNetworkCount( pNode, pFForm, nNodesSaved, Abc_NodeReadRequiredLevel(pNode) );
 p->timeEval += clock() - clk;
     // quit if there is no improvement
     if ( nNodesAdded == -1 || nNodesAdded == nNodesSaved && !fUseZeros )
     {
-        Vec_IntFree( vForm );
+        Cudd_RecursiveDeref( p->dd, bNodeFunc );
+        Dec_GraphFree( pFForm );
         return NULL;
     }
 
@@ -272,14 +257,15 @@ p->timeEval += clock() - clk;
     {
         printf( "Node %6s : ",  Abc_ObjName(pNode) );
         printf( "Cone = %2d. ", vFanins->nSize );
-        printf( "BDD = %2d. ",  nBddNodes );
-        printf( "FF = %2d. ",   nFtNodes );
+        printf( "BDD = %2d. ",  Cudd_DagSize(bNodeFunc) );
+        printf( "FF = %2d. ",   1 + Dec_GraphNodeNum(pFForm) );
         printf( "MFFC = %2d. ", nNodesSaved );
         printf( "Add = %2d. ",  nNodesAdded );
         printf( "GAIN = %2d. ", p->nLastGain );
         printf( "\n" );
     }
-    return vForm;
+    Cudd_RecursiveDeref( p->dd, bNodeFunc );
+    return pFForm;
 }
 
 
@@ -300,7 +286,6 @@ Abc_ManRef_t * Abc_NtkManRefStart( int nNodeSizeMax, int nConeSizeMax, bool fUse
     p = ALLOC( Abc_ManRef_t, 1 );
     memset( p, 0, sizeof(Abc_ManRef_t) );
     p->vCube        = Vec_StrAlloc( 100 );
-    p->vLevNums     = Vec_IntAlloc( 100 );
     p->vVisited     = Vec_PtrAlloc( 100 );
     p->nNodeSizeMax = nNodeSizeMax;
     p->nConeSizeMax = nConeSizeMax;
@@ -328,9 +313,7 @@ Abc_ManRef_t * Abc_NtkManRefStart( int nNodeSizeMax, int nConeSizeMax, bool fUse
 void Abc_NtkManRefStop( Abc_ManRef_t * p )
 {
     Extra_StopManager( p->dd );
-//    Vec_IntFree( p->vReqTimes );
     Vec_PtrFree( p->vVisited );
-    Vec_IntFree( p->vLevNums );
     Vec_StrFree( p->vCube    );
     free( p );
 }

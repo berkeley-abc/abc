@@ -20,7 +20,7 @@
 
 #include "abc.h"
 #include "rwr.h"
-#include "ft.h"
+#include "dec.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -85,13 +85,12 @@ Rwr_ManAddTimeCuts( pManRwr, clock() - clk );
         nGain = Rwr_NodeRewrite( pManRwr, pManCut, pNode, fUseZeros );
         if ( nGain > 0 || nGain == 0 && fUseZeros )
         {
-            Vec_Int_t * vForm   = Rwr_ManReadDecs(pManRwr);
-            Vec_Ptr_t * vFanins = Rwr_ManReadFanins(pManRwr);
-            int fCompl          = Rwr_ManReadCompl(pManRwr);
+            Dec_Graph_t * pGraph = Rwr_ManReadDecs(pManRwr);
+            int fCompl           = Rwr_ManReadCompl(pManRwr);
             // complement the FF if needed
-            if ( fCompl ) Ft_FactorComplement( vForm );
-            Abc_NodeUpdate( pNode, vFanins, vForm, nGain );
-            if ( fCompl ) Ft_FactorComplement( vForm );
+            if ( fCompl ) Dec_GraphComplement( pGraph );
+            Dec_GraphUpdateNetwork( pNode, pGraph, nGain );
+            if ( fCompl ) Dec_GraphComplement( pGraph );
         }
     }
     Extra_ProgressBarStop( pProgress );

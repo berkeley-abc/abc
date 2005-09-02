@@ -865,22 +865,6 @@ SOURCE=.\src\sop\mvc\mvcSort.c
 SOURCE=.\src\sop\mvc\mvcUtils.c
 # End Source File
 # End Group
-# Begin Group "ft"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\sop\ft\ft.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sop\ft\ftFactor.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sop\ft\ftPrint.c
-# End Source File
-# End Group
 # End Group
 # Begin Group "sat"
 
@@ -1219,6 +1203,26 @@ SOURCE=.\src\opt\cut\cutTruth.c
 # Begin Source File
 
 SOURCE=.\src\opt\dec\dec.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\dec\decAbc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\dec\decFactor.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\dec\decMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\dec\decPrint.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\dec\decUtil.c
 # End Source File
 # End Group
 # End Group

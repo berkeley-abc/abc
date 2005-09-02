@@ -53,7 +53,7 @@ Abc_Ntk_t * Abc_NtkFpga( Abc_Ntk_t * pNtk, int fRecovery, int fVerbose )
     assert( Abc_NtkIsStrash(pNtk) );
 
     // print a warning about choice nodes
-    if ( Abc_NtkCountChoiceNodes( pNtk ) )
+    if ( Abc_NtkGetChoiceNum( pNtk ) )
         printf( "Performing FPGA mapping with choices.\n" );
 
     // perform FPGA mapping

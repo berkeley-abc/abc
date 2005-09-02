@@ -19,13 +19,13 @@
 ***********************************************************************/
 
 #include "rwr.h"
-#include "ft.h"
+#include "dec.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static Vec_Int_t * Rwr_CutEvaluate( Rwr_Man_t * p, Abc_Obj_t * pRoot, Cut_Cut_t * pCut, Vec_Ptr_t * vFaninsCur, int nNodesSaved, int LevelMax, int * pGainBest );
+static Dec_Graph_t * Rwr_CutEvaluate( Rwr_Man_t * p, Abc_Obj_t * pRoot, Cut_Cut_t * pCut, Vec_Ptr_t * vFaninsCur, int nNodesSaved, int LevelMax, int * pGainBest );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -40,8 +40,8 @@ static Vec_Int_t * Rwr_CutEvaluate( Rwr_Man_t * p, Abc_Obj_t * pRoot, Cut_Cut_t 
   structures precomputed and stored in the RWR manager. 
   Determines the best rewriting and computes the gain in the number of AIG
   nodes in the final network. In the end, p->vFanins contains information 
-  about the best cut that can be used for rewriting, while p->vForm gives 
-  the decomposition tree (represented using factored form data structure).
+  about the best cut that can be used for rewriting, while p->pGraph gives 
+  the decomposition dag (represented using decomposition graph data structure).
   Returns gain in the number of nodes or -1 if node cannot be rewritten.]
                
   SideEffects []
@@ -52,14 +52,14 @@ static Vec_Int_t * Rwr_CutEvaluate( Rwr_Man_t * p, Abc_Obj_t * pRoot, Cut_Cut_t 
 int Rwr_NodeRewrite( Rwr_Man_t * p, Cut_Man_t * pManCut, Abc_Obj_t * pNode, int fUseZeros )
 {
     int fVeryVerbose = 0;
-    Vec_Int_t * vForm;
+    Dec_Graph_t * pGraph;
     Cut_Cut_t * pCut;
     Abc_Obj_t * pFanin;
     unsigned uPhase, uTruthBest;
     char * pPerm;
     int Required, nNodesSaved;
     int i, GainCur, GainBest = -1;
-    int clk;
+    int clk, clk2;
 
     p->nNodesConsidered++;
     // get the required times
@@ -109,14 +109,16 @@ clk = clock();
             Abc_ObjRegular(pFanin)->vFanouts.nSize--;
 
         // evaluate the cut
-        vForm = Rwr_CutEvaluate( p, pNode, pCut, p->vFaninsCur, nNodesSaved, Required, &GainCur );
+clk2 = clock();
+        pGraph = Rwr_CutEvaluate( p, pNode, pCut, p->vFaninsCur, nNodesSaved, Required, &GainCur );
+p->timeEval += clock() - clk2;
 
         // check if the cut is better than the current best one
-        if ( vForm != NULL && GainBest < GainCur )
+        if ( pGraph != NULL && GainBest < GainCur )
         {
             // save this form
             GainBest  = GainCur;
-            p->vForm  = vForm;
+            p->pGraph  = pGraph;
             p->fCompl = ((uPhase & (1<<4)) > 0);
             uTruthBest = pCut->uTruth;
             // collect fanins in the
@@ -127,8 +129,12 @@ clk = clock();
     }
 p->timeRes += clock() - clk;
 
-    if ( GainBest == -1 || GainBest == 0 && !fUseZeros )
-        return GainBest;
+    if ( GainBest == -1 )
+        return -1;
+
+    // copy the leaves
+    Vec_PtrForEachEntry( p->vFanins, pFanin, i )
+        Dec_GraphNode(p->pGraph, i)->pFunc = pFanin;
 
     p->nScores[p->pMap[uTruthBest]]++;
     p->nNodesRewritten++;
@@ -139,7 +145,7 @@ p->timeRes += clock() - clk;
     {
         printf( "Node %6s :   ", Abc_ObjName(pNode) );
         printf( "Fanins = %d. ", p->vFanins->nSize );
-        printf( "Cone = %2d.  ", p->vForm->nSize - 4 );
+        printf( "Cone = %2d.  ", Dec_GraphNodeNum(p->pGraph) );
         printf( "GAIN = %2d.  ", GainBest );
         printf( "\n" );
     }
@@ -157,37 +163,40 @@ p->timeRes += clock() - clk;
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Rwr_CutEvaluate( Rwr_Man_t * p, Abc_Obj_t * pRoot, Cut_Cut_t * pCut, Vec_Ptr_t * vFaninsCur, int nNodesSaved, int LevelMax, int * pGainBest )
+Dec_Graph_t * Rwr_CutEvaluate( Rwr_Man_t * p, Abc_Obj_t * pRoot, Cut_Cut_t * pCut, Vec_Ptr_t * vFaninsCur, int nNodesSaved, int LevelMax, int * pGainBest )
 {
     Vec_Ptr_t * vSubgraphs;
-    Vec_Int_t * vFormBest;
-    Rwr_Node_t * pNode;
-    int nNodesAdded, GainBest = -1, i;
-    int clk = clock();
+    Dec_Graph_t * pGraphBest, * pGraphCur;
+    Rwr_Node_t * pNode, * pFanin;
+    int nNodesAdded, GainBest, i, k;
     // find the matching class of subgraphs
     vSubgraphs = Vec_VecEntry( p->vClasses, p->pMap[pCut->uTruth] );
     p->nSubgraphs += vSubgraphs->nSize;
     // determine the best subgraph
+    GainBest = -1;
     Vec_PtrForEachEntry( vSubgraphs, pNode, i )
     {
+        // get the current graph
+        pGraphCur = (Dec_Graph_t *)pNode->pNext;
+        // copy the leaves
+        Vec_PtrForEachEntry( vFaninsCur, pFanin, k )
+            Dec_GraphNode(pGraphCur, k)->pFunc = pFanin;
         // detect how many unlabeled nodes will be reused
-        nNodesAdded = Abc_NodeStrashDecCount( pRoot->pNtk->pManFunc, pRoot, vFaninsCur, 
-            (Vec_Int_t *)pNode->pNext, p->vLevNums, nNodesSaved, LevelMax );
+        nNodesAdded = Dec_GraphToNetworkCount( pRoot, pGraphCur, nNodesSaved, LevelMax );
         if ( nNodesAdded == -1 )
             continue;
         assert( nNodesSaved >= nNodesAdded );
         // count the gain at this node
         if ( GainBest < nNodesSaved - nNodesAdded )
         {
-            GainBest  = nNodesSaved - nNodesAdded;
-            vFormBest = (Vec_Int_t *)pNode->pNext;
+            GainBest   = nNodesSaved - nNodesAdded;
+            pGraphBest = pGraphCur;
         }
     }
-p->timeEval += clock() - clk;
     if ( GainBest == -1 )
         return NULL;
     *pGainBest = GainBest;
-    return vFormBest;
+    return pGraphBest;
 }
 
 ////////////////////////////////////////////////////////////////////////

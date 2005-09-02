@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
-#include "ft.h"
+#include "dec.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -60,9 +60,9 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
     else if ( Abc_NtkIsStrash(pNtk) )
     {
         fprintf( pFile, "  and = %5d", Abc_NtkNodeNum(pNtk) );
-        if ( Num = Abc_NtkCountChoiceNodes(pNtk) )
+        if ( Num = Abc_NtkGetChoiceNum(pNtk) )
             fprintf( pFile, " (choice = %d)", Num );
-        if ( Num = Abc_NtkCountExors(pNtk) )
+        if ( Num = Abc_NtkGetExorNum(pNtk) )
             fprintf( pFile, " (exor = %d)", Num );
     }
     else if ( Abc_NtkIsSeq(pNtk) )
@@ -332,7 +332,7 @@ void Abc_NtkPrintFactor( FILE * pFile, Abc_Ntk_t * pNtk, int fUseRealNames )
 ***********************************************************************/
 void Abc_NodePrintFactor( FILE * pFile, Abc_Obj_t * pNode, int fUseRealNames )
 {
-    Vec_Int_t * vFactor;
+    Dec_Graph_t * pGraph;
     Vec_Ptr_t * vNamesIn;
     if ( Abc_ObjIsCo(pNode) )
         pNode = Abc_ObjFanin0(pNode);
@@ -347,16 +347,16 @@ void Abc_NodePrintFactor( FILE * pFile, Abc_Obj_t * pNode, int fUseRealNames )
         return;
     }
     assert( Abc_ObjIsNode(pNode) );
-    vFactor = Ft_Factor( pNode->pData );
+    pGraph = Dec_Factor( pNode->pData );
     if ( fUseRealNames )
     {
         vNamesIn = Abc_NodeGetFaninNames(pNode);
-        Ft_FactorPrint( stdout, vFactor, (char **)vNamesIn->pArray, Abc_ObjName(pNode) );
+        Dec_GraphPrint( stdout, pGraph, (char **)vNamesIn->pArray, Abc_ObjName(pNode) );
         Abc_NodeFreeNames( vNamesIn );
     }
     else
-        Ft_FactorPrint( stdout, vFactor, (char **)NULL, Abc_ObjName(pNode) );
-    Vec_IntFree( vFactor );
+        Dec_GraphPrint( stdout, pGraph, (char **)NULL, Abc_ObjName(pNode) );
+    Dec_GraphFree( pGraph );
 }
 
 

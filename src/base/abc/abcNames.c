@@ -269,6 +269,233 @@ void Abc_NtkDupCioNamesTable( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
         Abc_NtkLogicStoreName( Abc_NtkLatch(pNtkNew,i), Abc_ObjName(pObj) );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Gets fanin node names.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_NodeGetFaninNames( Abc_Obj_t * pNode )
+{
+    Vec_Ptr_t * vNodes;
+    Abc_Obj_t * pFanin;
+    int i;
+    vNodes = Vec_PtrAlloc( 100 );
+    Abc_ObjForEachFanin( pNode, pFanin, i )
+        Vec_PtrPush( vNodes, util_strsav(Abc_ObjName(pFanin)) );
+    return vNodes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gets fanin node names.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_NodeGetFakeNames( int nNames )
+{
+    Vec_Ptr_t * vNames;
+    char Buffer[5];
+    int i;
+
+    vNames = Vec_PtrAlloc( nNames );
+    for ( i = 0; i < nNames; i++ )
+    {
+        if ( nNames < 26 )
+        {
+            Buffer[0] = 'a' + i;
+            Buffer[1] = 0;
+        }
+        else
+        {
+            Buffer[0] = 'a' + i%26;
+            Buffer[1] = '0' + i/26;
+            Buffer[2] = 0;
+        }
+        Vec_PtrPush( vNames, util_strsav(Buffer) );
+    }
+    return vNames;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gets fanin node names.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NodeFreeNames( Vec_Ptr_t * vNames )
+{
+    int i;
+    if ( vNames == NULL )
+        return;
+    for ( i = 0; i < vNames->nSize; i++ )
+        free( vNames->pArray[i] );
+    Vec_PtrFree( vNames );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects the CI or CO names.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char ** Abc_NtkCollectCioNames( Abc_Ntk_t * pNtk, int fCollectCos )
+{
+    Abc_Obj_t * pObj;
+    char ** ppNames;
+    int i;
+    if ( fCollectCos )
+    {
+        ppNames = ALLOC( char *, Abc_NtkCoNum(pNtk) );
+        Abc_NtkForEachCo( pNtk, pObj, i )
+            ppNames[i] = Abc_ObjName(pObj);
+    }
+    else
+    {
+        ppNames = ALLOC( char *, Abc_NtkCiNum(pNtk) );
+        Abc_NtkForEachCi( pNtk, pObj, i )
+            ppNames[i] = Abc_ObjName(pObj);
+    }
+    return ppNames;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Procedure used for sorting the nodes in decreasing order of levels.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NodeCompareNames( Abc_Obj_t ** pp1, Abc_Obj_t ** pp2 )
+{
+    int Diff = strcmp( (char *)(*pp1)->pCopy, (char *)(*pp2)->pCopy );
+    if ( Diff < 0 )
+        return -1;
+    if ( Diff > 0 ) 
+        return 1;
+    return 0; 
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Orders PIs/POs/latches alphabetically.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkOrderObjsByName( Abc_Ntk_t * pNtk, int fComb )
+{
+    Abc_Obj_t * pObj;
+    int i;
+    // temporarily store the names in the copy field
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        pObj->pCopy = (Abc_Obj_t *)Abc_ObjName(pObj);
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        pObj->pCopy = (Abc_Obj_t *)Abc_ObjName(pObj);
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+        pObj->pCopy = (Abc_Obj_t *)Abc_ObjName(pObj);
+    // order objects alphabetically
+    qsort( pNtk->vCis->pArray, pNtk->nPis, sizeof(Abc_Obj_t *), 
+        (int (*)(const void *, const void *)) Abc_NodeCompareNames );
+    qsort( pNtk->vCos->pArray, pNtk->nPos, sizeof(Abc_Obj_t *), 
+        (int (*)(const void *, const void *)) Abc_NodeCompareNames );
+    // if the comparison if combinational (latches as PIs/POs), order them too
+    if ( fComb )
+    {
+        qsort( pNtk->vLats->pArray, pNtk->nLatches, sizeof(Abc_Obj_t *), 
+            (int (*)(const void *, const void *)) Abc_NodeCompareNames );
+        // add latches to make COs
+        Abc_NtkForEachLatch( pNtk, pObj, i )
+        {
+            Vec_PtrWriteEntry( pNtk->vCis, pNtk->nPis + i, pObj );
+            Vec_PtrWriteEntry( pNtk->vCos, pNtk->nPos + i, pObj );
+        }
+    }
+    // clean the copy fields
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        pObj->pCopy = NULL;
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        pObj->pCopy = NULL;
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+        pObj->pCopy = NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkShortNames( Abc_Ntk_t * pNtk )
+{
+    stmm_table * tObj2NameNew;
+    Abc_Obj_t * pObj;
+    char Buffer[100];
+    char * pNameNew;
+    int Length, i;
+
+    tObj2NameNew = stmm_init_table(stmm_ptrcmp, stmm_ptrhash);
+    // create new names and add them to the table
+    Length = Extra_Base10Log( Abc_NtkPiNum(pNtk) );
+    Abc_NtkForEachPi( pNtk, pObj, i )
+    {
+        sprintf( Buffer, "pi%0*d", Length, i );
+        pNameNew = Abc_NtkRegisterName( pNtk, Buffer );
+        stmm_insert( tObj2NameNew, (char *)pObj, pNameNew );
+    }
+    // create new names and add them to the table
+    Length = Extra_Base10Log( Abc_NtkPoNum(pNtk) );
+    Abc_NtkForEachPo( pNtk, pObj, i )
+    {
+        sprintf( Buffer, "po%0*d", Length, i );
+        pNameNew = Abc_NtkRegisterName( pNtk, Buffer );
+        stmm_insert( tObj2NameNew, (char *)pObj, pNameNew );
+    }
+    // create new names and add them to the table
+    Length = Extra_Base10Log( Abc_NtkLatchNum(pNtk) );
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+    {
+        sprintf( Buffer, "lat%0*d", Length, i );
+        pNameNew = Abc_NtkRegisterName( pNtk, Buffer );
+        stmm_insert( tObj2NameNew, (char *)pObj, pNameNew );
+    }
+    stmm_free_table( pNtk->tObj2Name );
+    pNtk->tObj2Name = tObj2NameNew;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

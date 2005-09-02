@@ -13,11 +13,14 @@ MODULES := src/base/abc src/base/cmd src/base/io src/base/main \
 	   src/opt/cut src/opt/dec src/opt/fxu src/opt/rwr \
            src/sat/asat src/sat/csat src/sat/msat src/sat/fraig src/sat/sim \
            src/seq \
-           src/sop/ft src/sop/mvc
+           src/sop/mvc
 
 default: $(PROG)
 
-CFLAGS   += -Wall -Wno-unused-function -g -O $(patsubst %, -I%, $(MODULES)) 
+OPTFLAGS  := -DNDEBUG -O3
+#OPTFLAGS  := -g -O
+
+CFLAGS   += -Wall -Wno-unused-function $(OPTFLAGS) $(patsubst %, -I%, $(MODULES)) 
 CXXFLAGS += $(CFLAGS) 
 
 LIBS := 

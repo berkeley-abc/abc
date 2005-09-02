@@ -19,15 +19,14 @@
 ***********************************************************************/
 
 #include "rwr.h"
-#include "ft.h"
+#include "dec.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static Vec_Int_t * Rwr_NodePreprocess( Rwr_Man_t * p, Rwr_Node_t * pNode );
-static int         Rwr_TravCollect_rec( Rwr_Man_t * p, Rwr_Node_t * pNode, Vec_Int_t * vForm );
-static void        Rwr_FactorVerify( Vec_Int_t * vForm, unsigned uTruth );
+static Dec_Graph_t * Rwr_NodePreprocess( Rwr_Man_t * p, Rwr_Node_t * pNode );
+static Dec_Edge_t    Rwr_TravCollect_rec( Rwr_Man_t * p, Rwr_Node_t * pNode, Dec_Graph_t * pGraph );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -46,6 +45,7 @@ static void        Rwr_FactorVerify( Vec_Int_t * vForm, unsigned uTruth );
 ***********************************************************************/
 void Rwr_ManPreprocess( Rwr_Man_t * p )
 {
+    Dec_Graph_t * pGraph;
     Rwr_Node_t * pNode;
     int i, k;
     // put the nodes into the structure
@@ -62,9 +62,13 @@ void Rwr_ManPreprocess( Rwr_Man_t * p )
             Vec_VecPush( p->vClasses, p->pMap[pNode->uTruth], pNode );
         }
     }
-    // compute decomposition forms for each node
+    // compute decomposition forms for each node and verify them
     Vec_VecForEachEntry( p->vClasses, pNode, i, k )
-        pNode->pNext = (Rwr_Node_t *)Rwr_NodePreprocess( p, pNode );
+    {
+        pGraph = Rwr_NodePreprocess( p, pNode );
+        pNode->pNext = (Rwr_Node_t *)pGraph;
+        assert( pNode->uTruth == (Dec_GraphDeriveTruth(pGraph) & 0xFFFF) );
+    }
 }
 
 /**Function*************************************************************
@@ -78,28 +82,24 @@ void Rwr_ManPreprocess( Rwr_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Rwr_NodePreprocess( Rwr_Man_t * p, Rwr_Node_t * pNode )
+Dec_Graph_t * Rwr_NodePreprocess( Rwr_Man_t * p, Rwr_Node_t * pNode )
 {
-    Vec_Int_t * vForm;
-    int i, Root;
+    Dec_Graph_t * pGraph;
+    Dec_Edge_t eRoot;
+    assert( !Rwr_IsComplement(pNode) );
     // consider constant
     if ( pNode->uTruth == 0 )
-        return Ft_FactorConst( 0 );
+        return Dec_GraphCreateConst0();
     // consider the case of elementary var
     if ( pNode->uTruth == 0x00FF )
-        return Ft_FactorVar( 3, 4, 1 );
-    // start the factored form
-    vForm = Vec_IntAlloc( 10 );
-    for ( i = 0; i < 4; i++ )
-        Vec_IntPush( vForm, 0 );
+        return Dec_GraphCreateLeaf( 3, 4, 1 );
+    // start the subgraphs
+    pGraph = Dec_GraphCreate( 4 );
     // collect the nodes
     Rwr_ManIncTravId( p );
-    Root = Rwr_TravCollect_rec( p, pNode, vForm );
-    if ( Root & 1 )
-        Ft_FactorComplement( vForm );
-    // verify the factored form
-    Rwr_FactorVerify( vForm, pNode->uTruth );
-    return vForm;
+    eRoot = Rwr_TravCollect_rec( p, pNode, pGraph );
+    Dec_GraphSetRoot( pGraph, eRoot );
+    return pGraph;
 }
 
 /**Function*************************************************************
@@ -113,115 +113,31 @@ Vec_Int_t * Rwr_NodePreprocess( Rwr_Man_t * p, Rwr_Node_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-int Rwr_TravCollect_rec( Rwr_Man_t * p, Rwr_Node_t * pNode, Vec_Int_t * vForm )
+Dec_Edge_t Rwr_TravCollect_rec( Rwr_Man_t * p, Rwr_Node_t * pNode, Dec_Graph_t * pGraph )
 {
-    Ft_Node_t Node, NodeA, NodeB;
-    int Node0, Node1;
+    Dec_Edge_t eNode0, eNode1, eNode;
     // elementary variable
     if ( pNode->fUsed )
-        return ((pNode->Id - 1) << 1); 
+        return Dec_EdgeCreate( pNode->Id - 1, 0 );
     // previously visited node
     if ( pNode->TravId == p->nTravIds )
-        return pNode->Volume;
+        return Dec_IntToEdge( pNode->Volume );
     pNode->TravId = p->nTravIds;
     // solve for children
-    Node0 = Rwr_TravCollect_rec( p, Rwr_Regular(pNode->p0), vForm );
-    Node1 = Rwr_TravCollect_rec( p, Rwr_Regular(pNode->p1), vForm );
+    eNode0 = Rwr_TravCollect_rec( p, Rwr_Regular(pNode->p0), pGraph );
+    if ( Rwr_IsComplement(pNode->p0) )    
+        eNode0.fCompl = !eNode0.fCompl;
+    eNode1 = Rwr_TravCollect_rec( p, Rwr_Regular(pNode->p1), pGraph );
+    if ( Rwr_IsComplement(pNode->p1) )    
+        eNode1.fCompl = !eNode1.fCompl;
     // create the decomposition node(s)
     if ( pNode->fExor )
-    {
-        assert( !Rwr_IsComplement(pNode->p0) );
-        assert( !Rwr_IsComplement(pNode->p1) );
-        NodeA.fIntern = 1;
-        NodeA.fConst  = 0;
-        NodeA.fCompl  = 0;
-        NodeA.fCompl0 = !(Node0 & 1);
-        NodeA.fCompl1 =  (Node1 & 1);
-        NodeA.iFanin0 = (Node0 >> 1);
-        NodeA.iFanin1 = (Node1 >> 1);
-        Vec_IntPush( vForm, Ft_Node2Int(NodeA) );
-
-        NodeB.fIntern = 1;
-        NodeB.fConst  = 0;
-        NodeB.fCompl  = 0;
-        NodeB.fCompl0 =  (Node0 & 1);
-        NodeB.fCompl1 = !(Node1 & 1);
-        NodeB.iFanin0 = (Node0 >> 1);
-        NodeB.iFanin1 = (Node1 >> 1);
-        Vec_IntPush( vForm, Ft_Node2Int(NodeB) );
-
-        Node.fIntern = 1;
-        Node.fConst  = 0;
-        Node.fCompl  = 0;
-        Node.fCompl0 = 1;
-        Node.fCompl1 = 1;
-        Node.iFanin0 = vForm->nSize - 2;
-        Node.iFanin1 = vForm->nSize - 1;
-        Vec_IntPush( vForm, Ft_Node2Int(Node) );
-    }
+        eNode = Dec_GraphAddNodeXor( pGraph, eNode0, eNode1 );
     else
-    {
-        Node.fIntern = 1;
-        Node.fConst  = 0;
-        Node.fCompl  = 0;
-        Node.fCompl0 = Rwr_IsComplement(pNode->p0) ^ (Node0 & 1);
-        Node.fCompl1 = Rwr_IsComplement(pNode->p1) ^ (Node1 & 1);
-        Node.iFanin0 = (Node0 >> 1);
-        Node.iFanin1 = (Node1 >> 1);
-        Vec_IntPush( vForm, Ft_Node2Int(Node) );
-    }
-    // save the number of this node
-    pNode->Volume = ((vForm->nSize - 1) << 1) | pNode->fExor;
-    return pNode->Volume;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Verifies the factored form.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Rwr_FactorVerify( Vec_Int_t * vForm, unsigned uTruthGold )
-{
-    Ft_Node_t * pFtNode;
-    Vec_Int_t * vTruths;
-    unsigned uTruth, uTruth0, uTruth1;
-    int i;
-
-    vTruths = Vec_IntAlloc( vForm->nSize );
-    Vec_IntPush( vTruths, 0xAAAA );
-    Vec_IntPush( vTruths, 0xCCCC );
-    Vec_IntPush( vTruths, 0xF0F0 );
-    Vec_IntPush( vTruths, 0xFF00 );
-
-    assert( Ft_FactorGetNumVars( vForm ) == 4 );
-    for ( i = 4; i < vForm->nSize; i++ )
-    {
-        pFtNode = Ft_NodeRead( vForm, i );
-        // make sure there are no elementary variables
-        assert( pFtNode->iFanin0 != pFtNode->iFanin1 );
-
-        uTruth0 = vTruths->pArray[pFtNode->iFanin0];
-        uTruth0 = pFtNode->fCompl0? ~uTruth0 : uTruth0;
-
-        uTruth1 = vTruths->pArray[pFtNode->iFanin1];
-        uTruth1 = pFtNode->fCompl1? ~uTruth1 : uTruth1;
-
-        uTruth = uTruth0 & uTruth1;
-        Vec_IntPush( vTruths, uTruth );
-    }
-    // complement if necessary
-    if ( pFtNode->fCompl )
-        uTruth = ~uTruth;
-    uTruth &= 0xFFFF;
-    if ( uTruth != uTruthGold )
-        printf( "Verification failed\n" );
-    Vec_IntFree( vTruths );
+        eNode = Dec_GraphAddNodeAnd( pGraph, eNode0, eNode1 );
+    // save the result
+    pNode->Volume = Dec_EdgeToInt( eNode );
+    return eNode;
 }
 
 ////////////////////////////////////////////////////////////////////////

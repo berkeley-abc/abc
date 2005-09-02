@@ -313,7 +313,7 @@ Abc_Ntk_t * Abc_NtkAigToLogicSopBench( Abc_Ntk_t * pNtk )
     Vec_Ptr_t * vNodes;
     int i, k;
     assert( Abc_NtkIsStrash(pNtk) );
-    if ( Abc_NtkCountChoiceNodes(pNtk) )
+    if ( Abc_NtkGetChoiceNum(pNtk) )
         printf( "Warning: Choice nodes are skipped.\n" );
     // start the network
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_LOGIC, ABC_FUNC_SOP );

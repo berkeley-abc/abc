@@ -79,7 +79,7 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, int
     }
 
     // print a warning about choice nodes
-    if ( Abc_NtkCountChoiceNodes( pNtk ) )
+    if ( Abc_NtkGetChoiceNum( pNtk ) )
         printf( "Performing mapping with choices.\n" );
 
     // perform the mapping
@@ -442,7 +442,7 @@ Abc_Ntk_t * Abc_NtkSuperChoice( Abc_Ntk_t * pNtk )
     }
 
     // print a warning about choice nodes
-    if ( Abc_NtkCountChoiceNodes( pNtk ) )
+    if ( Abc_NtkGetChoiceNum( pNtk ) )
         printf( "Performing mapping with choices.\n" );
 
     // perform the mapping

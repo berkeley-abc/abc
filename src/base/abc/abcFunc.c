@@ -24,7 +24,6 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static DdNode *    Abc_ConvertSopToBdd( DdManager * dd, char * pSop, int nFanins );
 static int         Abc_ConvertZddToSop( DdManager * dd, DdNode * zCover, char * pSop, int nFanins, Vec_Str_t * vCube, int fPhase );
 
 ////////////////////////////////////////////////////////////////////////
@@ -61,7 +60,7 @@ int Abc_NtkSopToBdd( Abc_Ntk_t * pNtk )
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         assert( pNode->pData );
-        pNode->pData = Abc_ConvertSopToBdd( dd, pNode->pData, Abc_ObjFaninNum(pNode) );
+        pNode->pData = Abc_ConvertSopToBdd( dd, pNode->pData );
         if ( pNode->pData == NULL )
         {
             printf( "Abc_NtkSopToBdd: Error while converting SOP into BDD.\n" );
@@ -89,43 +88,37 @@ int Abc_NtkSopToBdd( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-DdNode * Abc_ConvertSopToBdd( DdManager * dd, char * pSop, int nFanins )
+DdNode * Abc_ConvertSopToBdd( DdManager * dd, char * pSop )
 {
-    DdNode * bCube, * bTemp, * bVar, * bRes;
+    DdNode * bSum, * bCube, * bTemp, * bVar;
     char * pCube;
-    int i, c;
-
-    bRes = Cudd_Not(dd->one);   Cudd_Ref( bRes );
-    for ( c = 0; ; c++ )
+    int nVars, Value, v;
+    // start the cover
+    nVars = Abc_SopGetVarNum(pSop);
+    // check the logic function of the node
+    bSum = Cudd_ReadLogicZero(dd);   Cudd_Ref( bSum );
+    Abc_SopForEachCube( pSop, nVars, pCube )
     {
-        // get the cube
-        pCube = pSop + c * (nFanins + 3);
-        if ( *pCube == 0 )
-            break;
-        // construct BDD for the cube
-        bCube = dd->one;   Cudd_Ref( bCube );
-        for ( i = 0; i < nFanins; i++ )
+        bCube = Cudd_ReadOne(dd);   Cudd_Ref( bCube );
+        Abc_CubeForEachVar( pCube, Value, v )
         {
-            if ( pCube[i] == '0' )
-                bVar = Cudd_Not( dd->vars[i] );
-            else if ( pCube[i] == '1' )
-                bVar = dd->vars[i];
+            if ( Value == '0' )
+                bVar = Cudd_Not( Cudd_bddIthVar( dd, v ) );
+            else if ( Value == '1' )
+                bVar = Cudd_bddIthVar( dd, v );
             else
                 continue;
             bCube  = Cudd_bddAnd( dd, bTemp = bCube, bVar );   Cudd_Ref( bCube );
             Cudd_RecursiveDeref( dd, bTemp );
         }
-        bRes = Cudd_bddOr( dd, bTemp = bRes, bCube );   Cudd_Ref( bRes );
+        bSum = Cudd_bddOr( dd, bTemp = bSum, bCube );   Cudd_Ref( bSum );
         Cudd_RecursiveDeref( dd, bTemp );
         Cudd_RecursiveDeref( dd, bCube );
     }
-    // decide if we need to complement the result
-    pCube = pSop + nFanins + 1;
-    assert( *pCube == '0' || *pCube == '1' );
-    if ( *pCube == '0' )
-        bRes = Cudd_Not(bRes);
-    Cudd_Deref( bRes );
-    return bRes;
+    // complement the result if necessary
+    bSum = Cudd_NotCond( bSum, !Abc_SopGetPhase(pSop) );
+    Cudd_Deref( bSum );
+    return bSum;
 }
 
 /**Function*************************************************************
@@ -171,7 +164,7 @@ void Abc_NtkLogicMakeDirectSops( Abc_Ntk_t * pNtk )
     Abc_NtkForEachNode( pNtk, pNode, i )
         if ( Abc_SopIsComplement(pNode->pData) )
         {
-            bFunc = Abc_ConvertSopToBdd( dd, pNode->pData, Abc_ObjFaninNum(pNode) );  Cudd_Ref( bFunc );
+            bFunc = Abc_ConvertSopToBdd( dd, pNode->pData );  Cudd_Ref( bFunc );
             pNode->pData = Abc_ConvertBddToSop( pNtk->pManFunc, dd, bFunc, bFunc, Abc_ObjFaninNum(pNode), vCube, 1 );
             Cudd_RecursiveDeref( dd, bFunc );
             assert( !Abc_SopIsComplement(pNode->pData) );
@@ -340,7 +333,7 @@ char * Abc_ConvertBddToSop( Extra_MmFlex_t * pMan, DdManager * dd, DdNode * bFun
     // verify
     if ( fVerify )
     {
-        bFuncNew = Abc_ConvertSopToBdd( dd, pSop, nFanins );  Cudd_Ref( bFuncNew );
+        bFuncNew = Abc_ConvertSopToBdd( dd, pSop );  Cudd_Ref( bFuncNew );
         if ( bFuncOn == bFuncOnDc )
         {
             if ( bFuncNew != bFuncOn )

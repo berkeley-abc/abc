@@ -55,7 +55,7 @@ void Abc_NodeShowBdd( Abc_Obj_t * pNode )
     char * pNameOut;
 
     assert( Abc_NtkIsBddLogic(pNode->pNtk) );
-    // create the file names
+    // create the file name
     Abc_ShowGetFileName( Abc_ObjName(pNode), FileNameDot );
     // check that the file can be opened
     if ( (pFile = fopen( FileNameDot, "w" )) == NULL )
@@ -96,7 +96,7 @@ void Abc_NtkShowAig( Abc_Ntk_t * pNtk )
     int i;
 
     assert( Abc_NtkIsStrash(pNtk) );
-    // create the file names
+    // create the file name
     Abc_ShowGetFileName( pNtk->pName, FileNameDot );
     // check that the file can be opened
     if ( (pFile = fopen( FileNameDot, "w" )) == NULL )
@@ -119,7 +119,7 @@ void Abc_NtkShowAig( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
-  Synopsis    [Visualizes reconvergence driven cut at the node.]
+  Synopsis    [Visualizes a reconvergence driven cut at the node.]
 
   Description []
                
@@ -158,7 +158,7 @@ void Abc_NodeShowCut( Abc_Obj_t * pNode, int nNodeSizeMax, int nConeSizeMax )
     Vec_PtrForEachEntry( vNodesTfo, pTemp, i )
         Vec_PtrPushUnique( vInside, pTemp );
 
-    // create the file names
+    // create the file name
     Abc_ShowGetFileName( Abc_ObjName(pNode), FileNameDot );
     // check that the file can be opened
     if ( (pFile = fopen( FileNameDot, "w" )) == NULL )

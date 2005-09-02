@@ -19,6 +19,8 @@
 ***********************************************************************/
 
 #include "rwr.h"
+#include "main.h"
+#include "dec.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -41,15 +43,18 @@
 ***********************************************************************/
 Rwr_Man_t * Rwr_ManStart( bool fPrecompute )
 {
+    Dec_Man_t * pManDec;
     Rwr_Man_t * p;
     int clk = clock();
+clk = clock();
     p = ALLOC( Rwr_Man_t, 1 );
     memset( p, 0, sizeof(Rwr_Man_t) );
     p->nFuncs = (1<<16);
-    // canonical forms, phases, perms
-clk = clock();
-    Extra_Truth4VarNPN( &p->puCanons, &p->pPhases, &p->pPerms, &p->pMap );
-//PRT( "NPN classes precomputation time", clock() - clk ); 
+    pManDec   = Abc_FrameReadManDec(Abc_FrameGetGlobalFrame());
+    p->puCanons = pManDec->puCanons; 
+    p->pPhases  = pManDec->pPhases; 
+    p->pPerms   = pManDec->pPerms; 
+    p->pMap     = pManDec->pMap; 
     // initialize practical NPN classes
     p->pPractical  = Rwr_ManGetPractical( p );
     // create the table
@@ -104,7 +109,7 @@ void Rwr_ManStop( Rwr_Man_t * p )
         Rwr_Node_t * pNode;
         int i, k;
         Vec_VecForEachEntry( p->vClasses, pNode, i, k )
-            Vec_IntFree( (Vec_Int_t *)pNode->pNext );
+            Dec_GraphFree( (Dec_Graph_t *)pNode->pNext );
     }
     if ( p->vClasses )  Vec_VecFree( p->vClasses );
     Vec_PtrFree( p->vForest );
@@ -115,10 +120,6 @@ void Rwr_ManStop( Rwr_Man_t * p )
     free( p->pTable );
     free( p->pPractical );
     free( p->pPerms4 );
-    free( p->puCanons );
-    free( p->pPhases );
-    free( p->pPerms );
-    free( p->pMap );
     free( p );
 }
 
@@ -173,25 +174,9 @@ void Rwr_ManPrintStats( Rwr_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Rwr_ManReadFanins( Rwr_Man_t * p )
+void * Rwr_ManReadDecs( Rwr_Man_t * p )
 {
-    return p->vFanins;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Stops the resynthesis manager.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Int_t * Rwr_ManReadDecs( Rwr_Man_t * p )
-{
-    return p->vForm;
+    return p->pGraph;
 }
 
 /**Function*************************************************************

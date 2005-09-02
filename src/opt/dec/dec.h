@@ -33,110 +33,89 @@
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
 
+typedef struct Dec_Edge_t_ Dec_Edge_t;
+struct Dec_Edge_t_
+{
+    unsigned          fCompl   :  1;   // the complemented bit
+    unsigned          Node     : 30;   // the decomposition node pointed by the edge
+};
+
 typedef struct Dec_Node_t_ Dec_Node_t;
 struct Dec_Node_t_
 {
-    // the first child
-    unsigned   fCompl0  :  1;    // complemented attribute of the first fanin
-    unsigned   iFanin0  : 11;    // the number of the first fanin
-    // the second child
-    unsigned   fCompl1  :  1;    // complemented attribute of the second fanin
-    unsigned   iFanin1  : 11;    // the number of the second fanin
+    Dec_Edge_t        eEdge0;          // the left child of the node
+    Dec_Edge_t        eEdge1;          // the right child of the node
     // other info
-    unsigned   fIntern  :  1;    // marks all internal nodes (to distinquish them from elementary vars) 
-    unsigned   fConst   :  1;    // marks the constant 1 function (topmost node only)
-    unsigned   fCompl   :  1;    // marks the complement of topmost node (topmost node only)
-    // printing info (factored forms only)
-    unsigned   fNodeOr  :  1;    // marks the original OR node
-    unsigned   fEdge0   :  1;    // marks the original complemented edge
-    unsigned   fEdge1   :  1;    // marks the original complemented edge
-    // some bits are left unused
+    void *            pFunc;           // the function of the node (BDD or AIG)
+    unsigned          Level    : 16;   // the level of this node in the global AIG
+    // printing info 
+    unsigned          fNodeOr  :  1;   // marks the original OR node
+    unsigned          fCompl0  :  1;   // marks the original complemented edge
+    unsigned          fCompl1  :  1;   // marks the original complemented edge
 };
 
-/*
-    The decomposition tree data structure is designed to represent relatively small
-    (up to 100 nodes) AIGs used for factoring, rewriting, and decomposition.
+typedef struct Dec_Graph_t_ Dec_Graph_t;
+struct Dec_Graph_t_
+{
+    int               fConst;          // marks the constant 1 graph
+    int               nLeaves;         // the number of leaves
+    int               nSize;           // the number of nodes (including the leaves) 
+    int               nCap;            // the number of allocated nodes
+    Dec_Node_t *      pNodes;          // the array of leaves and internal nodes
+    Dec_Edge_t        eRoot;           // the pointer to the topmost node
+};
 
-    For simplicity, the nodes of the decomposition tree are written in DFS order 
-    into an integer vector (Vec_Int_t). The decomposition node (Dec_Node_t)
-    is typecast into an integer when written into the array.
-    
-    This representation can be readily translated into the main AIG represented 
-    in the ABC network. Because of the linear order of the decomposition nodes 
-    in the array, it is easy to put the existing AIG nodes in correspondence with 
-    them. This process begins by first putting leaves of the decomposition tree 
-    in correpondence with the fanins of the cut used to derive the function, 
-    which was decomposed. Next for each internal node of the decomposition tree, 
-    we find or create a corresponding node in the AIG. Finally, the root node of 
-    the tree replaces the original root node of the cut, which was decomposed.
+typedef struct Dec_Man_t_ Dec_Man_t;
+struct Dec_Man_t_
+{
+    void *            pMvcMem;         // memory manager for MVC cover (used for factoring)
+    Vec_Int_t *       vCubes;          // storage for cubes
+    Vec_Int_t *       vLits;           // storage for literals 
+    // precomputation information about 4-variable functions
+    unsigned short *  puCanons;        // canonical forms
+    char *            pPhases;         // canonical phases
+    char *            pPerms;          // canonical permutations
+    unsigned char *   pMap;            // mapping of functions into class numbers
+};
 
-    To achieve the above scenario, we reserve the first n entries for the array
-    to the fanins of the cut (the number of fanins is n). These entries are left
-    empty in the array (that is, they are represented by 0 integer). Each entry
-    after the fanins is an internal node (flag fIntern is set to 1). The internal
-    nodes can have complemented inputs (denoted by flags fComp0 and fCompl1).
-    The last node can be complemented (fCompl), which is true if the root node
-    of the decomposition tree is represented by a complemented AIG node.
-
-    Two cases have to be specially considered: a constant function and a function
-    equal to an elementary variables (possibly complemented). In these two cases,
-    the decomposition tree/array has exactly n+1 nodes, where n in the number of 
-    fanins. (A constant function may depend on n variable, in which case these
-    are redundant variables. Similarly, a function can be a function in n-D space
-    but in fact depend only on one variable in this space.)
-
-    When the function is a constant, the last node has a flag fConst set to 1.
-    In this case the complemented flag (fCompl) shows the value of the constant.
-    (fCompl = 0 means costant 1; fCompl = 1 means constant 0).
-    When the function if an elementary variable, the last node has both pointers
-    pointing to the same elementary node, while the complemented flag (fCompl)
-    shows whether the variable is complemented. For example: x' = Not( AND(x, x) ).
-
-    When manipulating the decomposition tree, it is convenient to return the 
-    intermediate results of decomposition as an integer, which includes the number 
-    of the Dec_Node_t in the array of decomposition nodes and the complemented flag.
-    Factoring is a special case of decomposition, which demonstrates this kind
-    of manipulation.
-*/
 
 ////////////////////////////////////////////////////////////////////////
-///                      MACRO DEFITIONS                             ///
+///                        ITERATORS                                 ///
 ////////////////////////////////////////////////////////////////////////
+
+// interator throught the leaves
+#define Dec_GraphForEachLeaf( pGraph, pLeaf, i )                                              \
+    for ( i = 0; (i < (pGraph)->nLeaves) && (((pLeaf) = Dec_GraphNode(pGraph, i)), 1); i++ )
+// interator throught the internal nodes
+#define Dec_GraphForEachNode( pGraph, pAnd, i )                                               \
+    for ( i = (pGraph)->nLeaves; (i < (pGraph)->nSize) && (((pAnd) = Dec_GraphNode(pGraph, i)), 1); i++ )
 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/**Function*************************************************************
+/*=== decAbc.c ========================================================*/
+extern Abc_Obj_t *    Dec_GraphToNetwork( Abc_Aig_t * pMan, Dec_Graph_t * pGraph );
+extern int            Dec_GraphToNetworkCount( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int NodeMax, int LevelMax );
+extern void           Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int nGain );
+/*=== decFactor.c ========================================================*/
+extern Dec_Graph_t *  Dec_Factor( char * pSop );
+/*=== decMan.c ========================================================*/
+extern Dec_Man_t *    Dec_ManStart();
+extern void           Dec_ManStop( Dec_Man_t * p );
+/*=== decPrint.c ========================================================*/
+extern void           Dec_GraphPrint( FILE * pFile, Dec_Graph_t * pGraph, char * pNamesIn[], char * pNameOut );
+/*=== decUtil.c ========================================================*/
+extern DdNode *       Dec_GraphDeriveBdd( DdManager * dd, Dec_Graph_t * pGraph );
+extern unsigned       Dec_GraphDeriveTruth( Dec_Graph_t * pGraph );
 
-  Synopsis    [Cleans the decomposition node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/ 
-static inline void         Dec_NodeClean( Dec_Node_t * pNode )       {  *((int *)pNode) = 0;           }
-
-/**Function*************************************************************
-
-  Synopsis    [Convert between an interger and an decomposition node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline Dec_Node_t   Dec_Int2Node( int Num )                   {  return *((Dec_Node_t *)&Num);  }
-static inline int          Dec_Node2Int( Dec_Node_t Node )           {  return *((int *)&Node);        }
+////////////////////////////////////////////////////////////////////////
+///                     FUNCTION DEFITIONS                           ///
+////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the pointer to the i-th decomposition node.]
+  Synopsis    [Creates an edge pointing to the node in the given polarity.]
 
   Description []
                
@@ -145,72 +124,15 @@ static inline int          Dec_Node2Int( Dec_Node_t Node )           {  return *
   SeeAlso     []
 
 ***********************************************************************/
-static inline Dec_Node_t * Dec_NodeRead( Vec_Int_t * vDec, int i )   {  return (Dec_Node_t *)vDec->pArray + i;  }
-
-/**Function*************************************************************
-
-  Synopsis    [Returns the pointer to the last decomposition node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline Dec_Node_t * Dec_NodeReadLast( Vec_Int_t * vDec )      {  return (Dec_Node_t *)vDec->pArray + vDec->nSize - 1;  }
-
-/**Function*************************************************************
-
-  Synopsis    [Returns the pointer to the fanins of the i-th decomposition node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline Dec_Node_t * Dec_NodeFanin0( Vec_Int_t * vDec, int i ) { assert( Dec_NodeRead(vDec,i)->fIntern ); return (Dec_Node_t *)vDec->pArray + Dec_NodeRead(vDec,i)->iFanin0;  }
-static inline Dec_Node_t * Dec_NodeFanin1( Vec_Int_t * vDec, int i ) { assert( Dec_NodeRead(vDec,i)->fIntern ); return (Dec_Node_t *)vDec->pArray + Dec_NodeRead(vDec,i)->iFanin1;  }
-
-/**Function*************************************************************
-
-  Synopsis    [Returns the complemented attributes of the i-th decomposition node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline bool         Dec_NodeFaninC0( Vec_Int_t * vDec, int i ) { assert( Dec_NodeRead(vDec,i)->fIntern ); return (bool)Dec_NodeRead(vDec,i)->fCompl0;  }
-static inline bool         Dec_NodeFaninC1( Vec_Int_t * vDec, int i ) { assert( Dec_NodeRead(vDec,i)->fIntern ); return (bool)Dec_NodeRead(vDec,i)->fCompl1;  }
-
-/**Function*************************************************************
-
-  Synopsis    [Returns the number of leaf variables.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline int Dec_TreeNumVars( Vec_Int_t * vDec )
+static inline Dec_Edge_t Dec_EdgeCreate( int Node, int fCompl )   
 {
-    int i;
-    for ( i = 0; i < vDec->nSize; i++ )
-        if ( vDec->pArray[i] )
-            break;
-    return i;
+    Dec_Edge_t eEdge = { fCompl, Node }; 
+    return eEdge; 
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the number of AND nodes in the tree.]
+  Synopsis    [Converts the edge into unsigned integer.]
 
   Description []
                
@@ -219,20 +141,432 @@ static inline int Dec_TreeNumVars( Vec_Int_t * vDec )
   SeeAlso     []
 
 ***********************************************************************/
-static int Dec_TreeNumAnds( Vec_Int_t * vDec )
+static inline unsigned Dec_EdgeToInt( Dec_Edge_t eEdge )   
+{
+    return (eEdge.Node << 1) | eEdge.fCompl; 
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converts unsigned integer into the edge.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Dec_Edge_t Dec_IntToEdge( unsigned Edge )   
+{
+    return Dec_EdgeCreate( Edge >> 1, Edge & 1 ); 
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converts the edge into unsigned integer.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline unsigned Dec_EdgeToInt_( Dec_Edge_t eEdge )   
+{
+    return *(unsigned *)&eEdge;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converts unsigned integer into the edge.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Dec_Edge_t Dec_IntToEdge_( unsigned Edge )   
+{
+    return *(Dec_Edge_t *)&Edge;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates a graph with the given number of leaves.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Dec_Graph_t * Dec_GraphCreate( int nLeaves )   
+{
+    Dec_Graph_t * pGraph;
+    pGraph = ALLOC( Dec_Graph_t, 1 );
+    memset( pGraph, 0, sizeof(Dec_Graph_t) );
+    pGraph->nLeaves = nLeaves;
+    pGraph->nSize = nLeaves;
+    pGraph->nCap = 2 * nLeaves + 50;
+    pGraph->pNodes = ALLOC( Dec_Node_t, pGraph->nCap );
+    memset( pGraph->pNodes, 0, sizeof(Dec_Node_t) * pGraph->nSize );
+    return pGraph;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates constant 0 graph.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Dec_Graph_t * Dec_GraphCreateConst0()   
+{
+    Dec_Graph_t * pGraph;
+    pGraph = ALLOC( Dec_Graph_t, 1 );
+    memset( pGraph, 0, sizeof(Dec_Graph_t) );
+    pGraph->fConst = 1;
+    pGraph->eRoot.fCompl = 1;
+    return pGraph;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates constant 1 graph.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Dec_Graph_t * Dec_GraphCreateConst1()   
+{
+    Dec_Graph_t * pGraph;
+    pGraph = ALLOC( Dec_Graph_t, 1 );
+    memset( pGraph, 0, sizeof(Dec_Graph_t) );
+    pGraph->fConst = 1;
+    return pGraph;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates the literal graph.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Dec_Graph_t * Dec_GraphCreateLeaf( int iLeaf, int nLeaves, int fCompl )   
+{
+    Dec_Graph_t * pGraph;
+    assert( 0 <= iLeaf && iLeaf < nLeaves );
+    pGraph = Dec_GraphCreate( nLeaves );
+    pGraph->eRoot.Node   = iLeaf;
+    pGraph->eRoot.fCompl = fCompl;
+    return pGraph;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates a graph with the given number of leaves.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Dec_GraphFree( Dec_Graph_t * pGraph )   
+{
+    FREE( pGraph->pNodes );
+    free( pGraph );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if the graph is a constant.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline bool Dec_GraphIsConst( Dec_Graph_t * pGraph )   
+{
+    return pGraph->fConst;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if the graph is constant 0.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline bool Dec_GraphIsConst0( Dec_Graph_t * pGraph )   
+{
+    return pGraph->fConst && pGraph->eRoot.fCompl;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if the graph is constant 1.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline bool Dec_GraphIsConst1( Dec_Graph_t * pGraph )   
+{
+    return pGraph->fConst && !pGraph->eRoot.fCompl;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if the graph is complemented.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline bool Dec_GraphIsComplement( Dec_Graph_t * pGraph )   
+{
+    return pGraph->eRoot.fCompl;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks if the graph is complemented.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Dec_GraphComplement( Dec_Graph_t * pGraph )   
+{
+    pGraph->eRoot.fCompl ^= 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the number of leaves.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Dec_GraphLeaveNum( Dec_Graph_t * pGraph )   
+{
+    return pGraph->nLeaves;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the number of internal nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Dec_GraphNodeNum( Dec_Graph_t * pGraph )   
+{
+    return pGraph->nSize - pGraph->nLeaves;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the pointer to the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Dec_Node_t * Dec_GraphNode( Dec_Graph_t * pGraph, int i )   
+{
+    return pGraph->pNodes + i;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the pointer to the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Dec_Node_t * Dec_GraphNodeLast( Dec_Graph_t * pGraph )   
+{
+    return pGraph->pNodes + pGraph->nSize - 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the number of the given node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Dec_GraphNodeInt( Dec_Graph_t * pGraph, Dec_Node_t * pNode )   
+{
+    return pNode - pGraph->pNodes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Check if the graph represents elementary variable.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline bool Dec_GraphIsVar( Dec_Graph_t * pGraph )   
+{
+    return pGraph->eRoot.Node < (unsigned)pGraph->nLeaves;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Check if the graph represents elementary variable.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline bool Dec_GraphNodeIsVar( Dec_Graph_t * pGraph, Dec_Node_t * pNode )   
+{
+    return Dec_GraphNodeInt(pGraph,pNode) < pGraph->nLeaves;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the elementary variable elementary variable.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Dec_Node_t * Dec_GraphVar( Dec_Graph_t * pGraph )   
+{
+    assert( Dec_GraphIsVar( pGraph ) );
+    return Dec_GraphNode( pGraph, pGraph->eRoot.Node );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the number of the elementary variable.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Dec_GraphVarInt( Dec_Graph_t * pGraph )   
+{
+    assert( Dec_GraphIsVar( pGraph ) );
+    return Dec_GraphNodeInt( pGraph, Dec_GraphVar(pGraph) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sets the root of the graph.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Dec_GraphSetRoot( Dec_Graph_t * pGraph, Dec_Edge_t eRoot )   
+{
+    pGraph->eRoot = eRoot;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Appends a new node to the graph.]
+
+  Description [This procedure is meant for internal use.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Dec_Node_t * Dec_GraphAppendNode( Dec_Graph_t * pGraph )   
 {
     Dec_Node_t * pNode;
-    pNode = Dec_NodeReadLast(vDec);
-    if ( pNode->fConst ) // constant
-        return 0;
-    if ( pNode->iFanin0 == pNode->iFanin1 ) // literal
-        return 0;
-    return vDec->nSize - Dec_TreeNumVars(vDec);
+    if ( pGraph->nSize == pGraph->nCap )
+    {
+        pGraph->pNodes = REALLOC( Dec_Node_t, pGraph->pNodes, 2 * pGraph->nCap ); 
+        pGraph->nCap   = 2 * pGraph->nCap;
+    }
+    pNode = pGraph->pNodes + pGraph->nSize++;
+    memset( pNode, 0, sizeof(Dec_Node_t) );
+    return pNode;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the number of literals in the factored form.]
+  Synopsis    [Creates an AND node.]
 
   Description []
                
@@ -241,83 +575,22 @@ static int Dec_TreeNumAnds( Vec_Int_t * vDec )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Dec_TreeNumFFLits( Vec_Int_t * vDec )
+static inline Dec_Edge_t Dec_GraphAddNodeAnd( Dec_Graph_t * pGraph, Dec_Edge_t eEdge0, Dec_Edge_t eEdge1 )
 {
-    return 1 + Dec_TreeNumAnds( vDec );
-}
-
-
-
-/**Function*************************************************************
-
-  Synopsis    [Checks if the output node of the decomposition tree is complemented.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline bool Dec_TreeIsComplement( Vec_Int_t * vForm )  { return Dec_NodeReadLast(vForm)->fCompl;  }
-
-/**Function*************************************************************
-
-  Synopsis    [Complements the output node of the decomposition tree.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline void Dec_TreeComplement( Vec_Int_t * vForm )    {  Dec_NodeReadLast(vForm)->fCompl ^= 1;   }
-
-
-/**Function*************************************************************
-
-  Synopsis    [Checks if the output node is a constant.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline bool Dec_TreeIsConst( Vec_Int_t * vForm )             {   return Dec_NodeReadLast(vForm)->fConst;  }
-static inline bool Dec_TreeIsConst0( Vec_Int_t * vForm )            {   return Dec_NodeReadLast(vForm)->fConst &&  Dec_NodeReadLast(vForm)->fCompl;  }
-static inline bool Dec_TreeIsConst1( Vec_Int_t * vForm )            {   return Dec_NodeReadLast(vForm)->fConst && !Dec_NodeReadLast(vForm)->fCompl;  }
-
-/**Function*************************************************************
-
-  Synopsis    [Creates a constant 0 decomposition tree.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline Vec_Int_t * Dec_TreeCreateConst0()
-{
-    Vec_Int_t * vForm;
     Dec_Node_t * pNode;
-    // create the constant node
-    vForm = Vec_IntAlloc( 1 );
-    Vec_IntPush( vForm, 0 );
-    pNode = Dec_NodeReadLast( vForm );
-    pNode->fIntern = 1;
-    pNode->fConst  = 1;
-    pNode->fCompl  = 1;
-    return vForm;
+    // get the new node
+    pNode = Dec_GraphAppendNode( pGraph );
+    // set the inputs and other info
+    pNode->eEdge0 = eEdge0;
+    pNode->eEdge1 = eEdge1;
+    pNode->fCompl0 = eEdge0.fCompl;
+    pNode->fCompl1 = eEdge1.fCompl;
+    return Dec_EdgeCreate( pGraph->nSize - 1, 0 );
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Creates a constant 1 decomposition tree.]
+  Synopsis    [Creates an OR node.]
 
   Description []
                
@@ -326,24 +599,26 @@ static inline Vec_Int_t * Dec_TreeCreateConst0()
   SeeAlso     []
 
 ***********************************************************************/
-static inline Vec_Int_t * Dec_TreeCreateConst1()
+static inline Dec_Edge_t Dec_GraphAddNodeOr( Dec_Graph_t * pGraph, Dec_Edge_t eEdge0, Dec_Edge_t eEdge1 )
 {
-    Vec_Int_t * vForm;
     Dec_Node_t * pNode;
-    // create the constant node
-    vForm = Vec_IntAlloc( 1 );
-    Vec_IntPush( vForm, 0 );
-    pNode = Dec_NodeReadLast( vForm );
-    pNode->fIntern = 1;
-    pNode->fConst  = 1;
-    pNode->fCompl  = 0;
-    return vForm;
+    // get the new node
+    pNode = Dec_GraphAppendNode( pGraph );
+    // set the inputs and other info
+    pNode->eEdge0 = eEdge0;
+    pNode->eEdge1 = eEdge1;
+    pNode->fCompl0 = eEdge0.fCompl;
+    pNode->fCompl1 = eEdge1.fCompl;
+    // make adjustments for the OR gate
+    pNode->fNodeOr = 1;
+    pNode->eEdge0.fCompl = !pNode->eEdge0.fCompl;
+    pNode->eEdge1.fCompl = !pNode->eEdge1.fCompl;
+    return Dec_EdgeCreate( pGraph->nSize - 1, 1 );
 }
-
 
 /**Function*************************************************************
 
-  Synopsis    [Checks if the decomposition tree is an elementary var.]
+  Synopsis    [Creates an XOR node.]
 
   Description []
                
@@ -352,35 +627,19 @@ static inline Vec_Int_t * Dec_TreeCreateConst1()
   SeeAlso     []
 
 ***********************************************************************/
-static inline bool Dec_TreeIsVar( Vec_Int_t * vForm )
+static inline Dec_Edge_t Dec_GraphAddNodeXor( Dec_Graph_t * pGraph, Dec_Edge_t eEdge0, Dec_Edge_t eEdge1 )
 {
-    return Dec_NodeReadLast(vForm)->iFanin0 == Dec_NodeReadLast(vForm)->iFanin1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Creates the decomposition tree to represent an elementary var.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline Vec_Int_t * Dec_TreeCreateVar( int iVar, int nVars, int fCompl )
-{
-    Vec_Int_t * vForm;
-    Dec_Node_t * pNode;
-    // create the elementary variable node
-    vForm = Vec_IntAlloc( nVars + 1 );
-    Vec_IntFill( vForm, nVars + 1, 0 );
-    pNode = Dec_NodeReadLast( vForm );
-    pNode->iFanin0 = iVar;
-    pNode->iFanin1 = iVar;
-    pNode->fIntern = 1;
-    pNode->fCompl  = fCompl;
-    return vForm;
+    Dec_Edge_t eNode0, eNode1;
+    // derive the first AND
+    eEdge0.fCompl = !eEdge0.fCompl;
+    eNode0 = Dec_GraphAddNodeAnd( pGraph, eEdge0, eEdge1 );
+    eEdge0.fCompl = !eEdge0.fCompl;
+    // derive the second AND
+    eEdge1.fCompl = !eEdge1.fCompl;
+    eNode1 = Dec_GraphAddNodeAnd( pGraph, eEdge0, eEdge1 );
+    eEdge1.fCompl = !eEdge1.fCompl;
+    // derive the final OR
+    return Dec_GraphAddNodeOr( pGraph, eNode0, eNode1 );
 }
 
 ////////////////////////////////////////////////////////////////////////

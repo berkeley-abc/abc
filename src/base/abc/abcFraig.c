@@ -267,7 +267,7 @@ Abc_Ntk_t * Abc_NtkFraigTrust( Abc_Ntk_t * pNtk )
     Abc_NtkFinalize( pNtk, pNtkNew );
 
     // print a warning about choice nodes
-    printf( "Warning: The resulting AIG contains %d choice nodes.\n", Abc_NtkCountChoiceNodes( pNtkNew ) );
+    printf( "Warning: The resulting AIG contains %d choice nodes.\n", Abc_NtkGetChoiceNum( pNtkNew ) );
 
     // make sure that everything is okay
     if ( fCheck && !Abc_NtkCheck( pNtkNew ) )

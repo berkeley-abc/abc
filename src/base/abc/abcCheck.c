@@ -661,8 +661,8 @@ bool Abc_NtkCompareLatches( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb )
 ***********************************************************************/
 bool Abc_NtkCompareSignals( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb )
 {
-    Abc_NtkAlphaOrderSignals( pNtk1, fComb );
-    Abc_NtkAlphaOrderSignals( pNtk2, fComb );
+    Abc_NtkOrderObjsByName( pNtk1, fComb );
+    Abc_NtkOrderObjsByName( pNtk2, fComb );
     if ( !Abc_NtkCompareLatches( pNtk1, pNtk2, fComb ) )
         return 0;
     if ( !Abc_NtkComparePis( pNtk1, pNtk2, fComb ) )

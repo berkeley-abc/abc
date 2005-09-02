@@ -252,7 +252,7 @@ void Abc_NtkTimeInitialize( Abc_Ntk_t * pNtk )
         pTime = ppTimes[pObj->Id];
         if ( pTime->Worst != -ABC_INFINITY )
             continue;
-        *pTime = pNtk->pManTime->tArrDef;
+        *pTime = pNtk->pManTime->tReqDef;
     }
     // set the 0 arrival times for latches and constant nodes
     ppTimes = (Abc_Time_t **)pNtk->pManTime->vArrs->pArray;
@@ -380,16 +380,16 @@ void Abc_ManTimeDup( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew )
     // set the default timing
     pNtkNew->pManTime->tArrDef = pNtkOld->pManTime->tArrDef;
     pNtkNew->pManTime->tReqDef = pNtkOld->pManTime->tReqDef;
-    // set the PI timing
+    // set the CI timing
     ppTimesOld = (Abc_Time_t **)pNtkOld->pManTime->vArrs->pArray;
     ppTimesNew = (Abc_Time_t **)pNtkNew->pManTime->vArrs->pArray;
-    Abc_NtkForEachPi( pNtkOld, pObj, i )
-        *ppTimesNew[ Abc_NtkPi(pNtkNew,i)->Id ] = *ppTimesOld[ pObj->Id ];
-    // set the PO timing
+    Abc_NtkForEachCi( pNtkOld, pObj, i )
+        *ppTimesNew[ Abc_NtkCi(pNtkNew,i)->Id ] = *ppTimesOld[ pObj->Id ];
+    // set the CO timing
     ppTimesOld = (Abc_Time_t **)pNtkOld->pManTime->vReqs->pArray;
     ppTimesNew = (Abc_Time_t **)pNtkNew->pManTime->vReqs->pArray;
-    Abc_NtkForEachPo( pNtkOld, pObj, i )
-        *ppTimesNew[ Abc_NtkPo(pNtkNew,i)->Id ] = *ppTimesOld[ pObj->Id ];
+    Abc_NtkForEachCo( pNtkOld, pObj, i )
+        *ppTimesNew[ Abc_NtkCo(pNtkNew,i)->Id ] = *ppTimesOld[ pObj->Id ];
 }
 
 /**Function*************************************************************

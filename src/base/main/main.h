@@ -102,6 +102,9 @@ extern void            Abc_FrameSetLibLut          ( Abc_Frame_t * pFrame, void 
 extern void            Abc_FrameSetLibGen          ( Abc_Frame_t * pFrame, void * pLib );
 extern void            Abc_FrameSetLibSuper        ( Abc_Frame_t * pFrame, void * pLib );
 
+extern void *          Abc_FrameReadManDd          ( Abc_Frame_t * pFrame );
+extern void *          Abc_FrameReadManDec         ( Abc_Frame_t * pFrame );
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

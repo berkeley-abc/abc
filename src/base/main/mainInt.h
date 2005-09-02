@@ -66,6 +66,9 @@ struct Abc_Frame_t_
     // temporary storage for structural choices
     Abc_Ntk_t *     pStored;     // the stored networks
     int             nStored;     // the number of stored networks
+    // decomposition package
+    DdManager *     dd;          // temporary BDD package
+    void *          pManDec;     // decomposition manager
 
     void *          pLibLut;     // the current LUT library
     void *          pLibGen;     // the current genlib

@@ -20,7 +20,6 @@
 
 #include "abc.h"
 #include "mainInt.h"
-#include "ft.h"
 #include "fraig.h"
 #include "fxu.h"
 #include "cut.h"
@@ -162,7 +161,6 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "cec",           Abc_CommandCec,              0 );
     Cmd_CommandAdd( pAbc, "Verification", "sec",           Abc_CommandSec,              0 );
 
-    Ft_FactorStartMan();
 //    Rwt_Man4ExploreStart();
 //    Map_Var3Print();
 //    Map_Var4Test();
@@ -181,7 +179,6 @@ void Abc_Init( Abc_Frame_t * pAbc )
 ***********************************************************************/
 void Abc_End()
 {
-    Ft_FactorStopMan();
     Abc_NtkFraigStoreClean();
 //    Rwt_Man4ExplorePrint();
 }
@@ -1707,7 +1704,7 @@ int Abc_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "This command can only be applied to an AIG.\n" );
         return 1;
     }
-    if ( Abc_NtkCountChoiceNodes(pNtk) )
+    if ( Abc_NtkGetChoiceNum(pNtk) )
     {
         fprintf( pErr, "AIG resynthesis cannot be applied to AIGs with choice nodes.\n" );
         return 1;
@@ -1816,7 +1813,7 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "This command can only be applied to an AIG.\n" );
         return 1;
     }
-    if ( Abc_NtkCountChoiceNodes(pNtk) )
+    if ( Abc_NtkGetChoiceNum(pNtk) )
     {
         fprintf( pErr, "AIG resynthesis cannot be applied to AIGs with choice nodes.\n" );
         return 1;
@@ -1957,7 +1954,7 @@ int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     pArgvNew = argv + util_optind;
     nArgcNew = argc - util_optind;
-    if ( !Abc_NtkPrepareCommand( pErr, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )
+    if ( !Abc_NtkPrepareTwoNtks( pErr, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )
         return 1;
 
     // compute the miter
@@ -3858,7 +3855,7 @@ int Abc_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     pArgvNew = argv + util_optind;
     nArgcNew = argc - util_optind;
-    if ( !Abc_NtkPrepareCommand( pErr, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )
+    if ( !Abc_NtkPrepareTwoNtks( pErr, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )
         return 1;
 
     // perform equivalence checking
@@ -3943,7 +3940,7 @@ int Abc_CommandSec( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     pArgvNew = argv + util_optind;
     nArgcNew = argc - util_optind;
-    if ( !Abc_NtkPrepareCommand( pErr, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )
+    if ( !Abc_NtkPrepareTwoNtks( pErr, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )
         return 1;
 
     // perform equivalence checking
