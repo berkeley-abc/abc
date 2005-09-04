@@ -102,6 +102,7 @@ if ( fVerbose ) {
     p->tDelayInv.Fall  = Mio_LibraryReadDelayInvFall( p->pGenlib );
     p->tDelayInv.Worst = MAP_MAX( p->tDelayInv.Rise, p->tDelayInv.Fall );
     p->AreaInv         = Mio_LibraryReadAreaInv( p->pGenlib );
+    p->AreaBuf         = Mio_LibraryReadAreaBuf( p->pGenlib );
 
     // assign the interver supergate
     p->pSuperInv = (Map_Super_t *)Extra_MmFixedEntryFetch( p->mmSupers );

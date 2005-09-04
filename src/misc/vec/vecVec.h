@@ -68,6 +68,9 @@ struct Vec_Vec_t_
 #define Vec_VecForEachEntryStartStop( vGlob, pEntry, i, k, LevelStart, LevelStop )            \
     for ( i = LevelStart; i <= LevelStop; i++ )                                               \
         Vec_PtrForEachEntry( Vec_VecEntry(vGlob, i), pEntry, k ) 
+#define Vec_VecForEachEntryReverse( vGlob, pEntry, i, k )                                     \
+    for ( i = 0; i < Vec_VecSize(vGlob); i++ )                                                \
+        Vec_PtrForEachEntryReverse( Vec_VecEntry(vGlob, i), pEntry, k ) 
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///

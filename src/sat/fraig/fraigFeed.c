@@ -768,7 +768,80 @@ void Fraig_ReallocateSimulationInfo( Fraig_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Doubles the size of simulation info.]
+  Synopsis    [Generated trivial counter example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int * Fraig_ManAllocCounterExample( Fraig_Man_t * p )
+{
+    int * pModel;
+    pModel = ALLOC( int, p->vInputs->nSize );
+    memset( pModel, 0, sizeof(int) * p->vInputs->nSize );
+    return pModel;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Saves the counter example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fraig_ManSimulateBitNode_rec( Fraig_Man_t * p, Fraig_Node_t * pNode )
+{
+    int Value0, Value1;
+    if ( Fraig_NodeIsTravIdCurrent( p, pNode ) )
+        return pNode->fMark3;
+    Fraig_NodeSetTravIdCurrent( p, pNode );
+    Value0 = Fraig_ManSimulateBitNode_rec( p, Fraig_Regular(pNode->p1) );
+    Value1 = Fraig_ManSimulateBitNode_rec( p, Fraig_Regular(pNode->p2) );
+    Value0 ^= Fraig_IsComplement(pNode->p1);
+    Value1 ^= Fraig_IsComplement(pNode->p2);
+    pNode->fMark3 = Value0 & Value1;
+    return pNode->fMark3;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Simulates one bit.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fraig_ManSimulateBitNode( Fraig_Man_t * p, Fraig_Node_t * pNode, int * pModel )
+{
+    int fCompl, RetValue, i;
+    // set the PI values
+    Fraig_ManIncrementTravId( p );
+    for ( i = 0; i < p->vInputs->nSize; i++ )
+    {
+        Fraig_NodeSetTravIdCurrent( p, p->vInputs->pArray[i] );
+        p->vInputs->pArray[i]->fMark3 = pModel[i];
+    }
+    // perform the traversal
+    fCompl = Fraig_IsComplement(pNode);
+    RetValue = Fraig_ManSimulateBitNode_rec( p, Fraig_Regular(pNode) );
+    return fCompl ^ RetValue;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Saves the counter example.]
 
   Description []
                
@@ -779,32 +852,51 @@ void Fraig_ReallocateSimulationInfo( Fraig_Man_t * p )
 ***********************************************************************/
 int * Fraig_ManSaveCounterExample( Fraig_Man_t * p, Fraig_Node_t * pNode )
 {
-    int * pModel = NULL;
+    int * pModel;
     int iPattern;
-    int i;
+    int i, fCompl;
 
-    iPattern = Fraig_FindFirstDiff( p->pConst1, pNode, p->nWordsDyna, 0 );
+    // the node can be complemented
+    fCompl = Fraig_IsComplement(pNode);
+    // because we compare with constant 0, p->pConst1 should also be complemented
+    fCompl = !fCompl;
+
+    // derive the model
+    pModel = Fraig_ManAllocCounterExample( p );
+    iPattern = Fraig_FindFirstDiff( p->pConst1, Fraig_Regular(pNode), fCompl, p->nWordsRand, 1 );
     if ( iPattern >= 0 )
     {
-        pModel = ALLOC( int, p->vInputs->nSize );
-        memset( pModel, 0, sizeof(int) * p->vInputs->nSize );
-        for ( i = 0; i < p->vInputs->nSize; i++ )
-            if ( Fraig_BitStringHasBit( p->vInputs->pArray[i]->puSimD, iPattern ) )
-                pModel[i] = 1;
-        return pModel;
-    }
-    iPattern = Fraig_FindFirstDiff( p->pConst1, pNode, p->nWordsRand, 1 );
-    if ( iPattern >= 0 )
-    {
-        pModel = ALLOC( int, p->vInputs->nSize );
-        memset( pModel, 0, sizeof(int) * p->vInputs->nSize );
         for ( i = 0; i < p->vInputs->nSize; i++ )
             if ( Fraig_BitStringHasBit( p->vInputs->pArray[i]->puSimR, iPattern ) )
                 pModel[i] = 1;
+/*
+printf( "SAT solver's pattern:\n" );
+for ( i = 0; i < p->vInputs->nSize; i++ )
+    printf( "%d", pModel[i] );
+printf( "\n" );
+*/
+        assert( Fraig_ManSimulateBitNode( p, pNode, pModel ) );
         return pModel;
     }
-    return pModel;
+    iPattern = Fraig_FindFirstDiff( p->pConst1, Fraig_Regular(pNode), fCompl, p->iWordStart, 0 );
+    if ( iPattern >= 0 )
+    {
+        for ( i = 0; i < p->vInputs->nSize; i++ )
+            if ( Fraig_BitStringHasBit( p->vInputs->pArray[i]->puSimD, iPattern ) )
+                pModel[i] = 1;
+/*
+printf( "SAT solver's pattern:\n" );
+for ( i = 0; i < p->vInputs->nSize; i++ )
+    printf( "%d", pModel[i] );
+printf( "\n" );
+*/
+        assert( Fraig_ManSimulateBitNode( p, pNode, pModel ) );
+        return pModel;
+    }
+    FREE( pModel );
+    return NULL;
 }
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////
  
 static void Abc_NtkSymmetriesUsingBdds( Abc_Ntk_t * pNtk, int fNaive, int fVerbose );
+static void Abc_NtkSymmetriesUsingSandS( Abc_Ntk_t * pNtk, int fVerbose );
 static void Ntk_NetworkSymmsBdd( DdManager * dd, Abc_Ntk_t * pNtk, int fNaive, int fVerbose );
 static void Ntk_NetworkSymmsPrint( Abc_Ntk_t * pNtk, Extra_SymmInfo_t * pSymms );
 
@@ -48,7 +49,25 @@ void Abc_NtkSymmetries( Abc_Ntk_t * pNtk, int fUseBdds, int fNaive, int fVerbose
     if ( fUseBdds || fNaive )
         Abc_NtkSymmetriesUsingBdds( pNtk, fNaive, fVerbose );
     else
-        printf( "This option is currently not implemented.\n" );
+        Abc_NtkSymmetriesUsingSandS( pNtk, fVerbose );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Symmetry computation using simulation and SAT.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkSymmetriesUsingSandS( Abc_Ntk_t * pNtk, int fVerbose )
+{
+    extern int Sim_ComputeTwoVarSymms( Abc_Ntk_t * pNtk );
+    int nSymms = Sim_ComputeTwoVarSymms( pNtk );
+    printf( "The total number of symmetries is %d.\n", nSymms );
 }
 
 /**Function*************************************************************

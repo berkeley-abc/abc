@@ -25,6 +25,17 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
  
+static int bit_count[256] = {
+  0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4,1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,
+  1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
+  1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
+  2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
+  1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
+  2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
+  2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
+  3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,4,5,5,6,5,6,6,7,5,6,6,7,6,7,7,8
+};
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
@@ -44,6 +55,7 @@ Vec_Ptr_t * Sim_UtilInfoAlloc( int nSize, int nWords, bool fClean )
 {
     Vec_Ptr_t * vInfo;
     int i;
+    assert( nSize > 0 && nWords > 0 );
     vInfo = Vec_PtrAlloc( nSize );
     vInfo->pArray[0] = ALLOC( unsigned, nSize * nWords );
     if ( fClean )
@@ -137,71 +149,6 @@ void Sim_UtilInfoDetectNews( unsigned * pInfo1, unsigned * pInfo2, int nWords, V
 
 /**Function*************************************************************
 
-  Synopsis    [Computes structural supports.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Sim_UtilComputeStrSupp( Sim_Man_t * p )
-{
-    Abc_Obj_t * pNode;
-    unsigned * pSimmNode, * pSimmNode1, * pSimmNode2;
-    int i, k;
-    // assign the structural support to the PIs
-    Abc_NtkForEachCi( p->pNtk, pNode, i )
-        Sim_SuppStrSetVar( p, pNode, i );
-    // derive the structural supports of the internal nodes
-    Abc_NtkForEachNode( p->pNtk, pNode, i )
-    {
-        if ( Abc_NodeIsConst(pNode) )
-            continue;
-        pSimmNode  = p->vSuppStr->pArray[ pNode->Id ];
-        pSimmNode1 = p->vSuppStr->pArray[ Abc_ObjFaninId0(pNode) ];
-        pSimmNode2 = p->vSuppStr->pArray[ Abc_ObjFaninId1(pNode) ];
-        for ( k = 0; k < p->nSuppWords; k++ )
-            pSimmNode[k] = pSimmNode1[k] | pSimmNode2[k];
-    }
-    // set the structural supports of the PO nodes
-    Abc_NtkForEachCo( p->pNtk, pNode, i )
-    {
-        pSimmNode  = p->vSuppStr->pArray[ pNode->Id ];
-        pSimmNode1 = p->vSuppStr->pArray[ Abc_ObjFaninId0(pNode) ];
-        for ( k = 0; k < p->nSuppWords; k++ )
-            pSimmNode[k] = pSimmNode1[k];
-    }
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Assigns random simulation info to the PIs.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Sim_UtilAssignRandom( Sim_Man_t * p )
-{
-    Abc_Obj_t * pNode;
-    unsigned * pSimInfo;
-    int i, k;
-    // assign the random/systematic simulation info to the PIs
-    Abc_NtkForEachCi( p->pNtk, pNode, i )
-    {
-        pSimInfo = p->vSim0->pArray[pNode->Id];
-        for ( k = 0; k < p->nSimWords; k++ )
-            pSimInfo[k] = SIM_RANDOM_UNSIGNED;
-    }
-}
-
-/**Function*************************************************************
-
   Synopsis    [Flips the simulation info of the node.]
 
   Description []
@@ -211,12 +158,12 @@ void Sim_UtilAssignRandom( Sim_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Sim_UtilFlipSimInfo( Sim_Man_t * p, Abc_Obj_t * pNode )
+void Sim_UtilInfoFlip( Sim_Man_t * p, Abc_Obj_t * pNode )
 {
     unsigned * pSimInfo1, * pSimInfo2;
     int k;
-    pSimInfo1 = p->vSim1->pArray[pNode->Id];
-    pSimInfo2 = p->vSim0->pArray[pNode->Id];
+    pSimInfo1 = p->vSim0->pArray[pNode->Id];
+    pSimInfo2 = p->vSim1->pArray[pNode->Id];
     for ( k = 0; k < p->nSimWords; k++ )
         pSimInfo2[k] = ~pSimInfo1[k];
 }
@@ -232,12 +179,12 @@ void Sim_UtilFlipSimInfo( Sim_Man_t * p, Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-bool Sim_UtilCompareSimInfo( Sim_Man_t * p, Abc_Obj_t * pNode )
+bool Sim_UtilInfoCompare( Sim_Man_t * p, Abc_Obj_t * pNode )
 {
     unsigned * pSimInfo1, * pSimInfo2;
     int k;
-    pSimInfo1 = p->vSim1->pArray[pNode->Id];
-    pSimInfo2 = p->vSim0->pArray[pNode->Id];
+    pSimInfo1 = p->vSim0->pArray[pNode->Id];
+    pSimInfo2 = p->vSim1->pArray[pNode->Id];
     for ( k = 0; k < p->nSimWords; k++ )
         if ( pSimInfo2[k] != pSimInfo1[k] )
             return 0;
@@ -343,6 +290,44 @@ void Sim_UtilSimulateNode( Sim_Man_t * p, Abc_Obj_t * pNode, bool fType, bool fT
 
 /**Function*************************************************************
 
+  Synopsis    [Simulates one node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Sim_UtilSimulateNodeOne( Abc_Obj_t * pNode, Vec_Ptr_t * vSimInfo, int nSimWords )
+{
+    unsigned * pSimmNode, * pSimmNode1, * pSimmNode2;
+    int k, fComp1, fComp2;
+    // simulate the internal nodes
+    assert( Abc_ObjIsNode(pNode) );
+    if ( Abc_NodeIsConst(pNode) )
+        return;
+    pSimmNode  = Vec_PtrEntry(vSimInfo, pNode->Id);
+    pSimmNode1 = Vec_PtrEntry(vSimInfo, Abc_ObjFaninId0(pNode));
+    pSimmNode2 = Vec_PtrEntry(vSimInfo, Abc_ObjFaninId1(pNode));
+    fComp1 = Abc_ObjFaninC0(pNode);
+    fComp2 = Abc_ObjFaninC1(pNode);
+    if ( fComp1 && fComp2 )
+        for ( k = 0; k < nSimWords; k++ )
+            pSimmNode[k] = ~pSimmNode1[k] & ~pSimmNode2[k];
+    else if ( fComp1 && !fComp2 )
+        for ( k = 0; k < nSimWords; k++ )
+            pSimmNode[k] = ~pSimmNode1[k] &  pSimmNode2[k];
+    else if ( !fComp1 && fComp2 )
+        for ( k = 0; k < nSimWords; k++ )
+            pSimmNode[k] =  pSimmNode1[k] & ~pSimmNode2[k];
+    else // if ( fComp1 && fComp2 )
+        for ( k = 0; k < nSimWords; k++ )
+            pSimmNode[k] =  pSimmNode1[k] &  pSimmNode2[k];
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns 1 if the simulation infos are equal.]
 
   Description []
@@ -361,13 +346,106 @@ int Sim_UtilCountSuppSizes( Sim_Man_t * p, int fStruct )
     {
         Abc_NtkForEachCo( p->pNtk, pNode, i )
             Abc_NtkForEachCi( p->pNtk, pNodeCi, v )
-                Counter += Sim_SuppStrHasVar( p, pNode, v );
+                Counter += Sim_SuppStrHasVar( p->vSuppStr, pNode, v );
     }
     else
     {
         Abc_NtkForEachCo( p->pNtk, pNode, i )
             Abc_NtkForEachCi( p->pNtk, pNodeCi, v )
-                Counter += Sim_SuppFunHasVar( p, i, v );
+                Counter += Sim_SuppFunHasVar( p->vSuppFun, i, v );
+    }
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of 1's in the bitstring.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Sim_UtilCountOnes( unsigned * pSimInfo, int nSimWords )
+{
+    unsigned char * pBytes;
+    int nOnes, nBytes, i;
+    pBytes = (unsigned char *)pSimInfo;
+    nBytes = 4 * nSimWords;
+    nOnes  = 0;
+    for ( i = 0; i < nBytes; i++ )
+        nOnes += bit_count[ pBytes[i] ];
+    return nOnes;    
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the random pattern.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Sim_UtilGetRandom( unsigned * pPatRand, int nSimWords )
+{
+    int k;
+    for ( k = 0; k < nSimWords; k++ )
+        pPatRand[k] = SIM_RANDOM_UNSIGNED;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the total number of pairs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Sim_UtilCountAllPairs( Vec_Ptr_t * vSuppFun, int nSimWords, Vec_Int_t * vCounters )
+{
+    unsigned * pSupp;
+    int Counter, nOnes, nPairs, i;
+    Counter = 0;
+    Vec_PtrForEachEntry( vSuppFun, pSupp, i )
+    {
+        nOnes  = Sim_UtilCountOnes( pSupp, nSimWords );
+        nPairs = nOnes * (nOnes - 1) / 2;
+        Vec_IntWriteEntry( vCounters, i, nPairs );
+        Counter += nPairs;
+    }
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of entries in the array of matrices.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Sim_UtilCountPairs( Vec_Ptr_t * vMatrs, Vec_Int_t * vCounters )
+{
+    Extra_BitMat_t * vMat;
+    int Counter, nPairs, i;
+    Counter = 0;
+    Vec_PtrForEachEntry( vMatrs, vMat, i )
+    {
+        nPairs = Extra_BitMatrixCountOnesUpper( vMat );
+        Vec_IntWriteEntry( vCounters, i, nPairs );
+        Counter += nPairs;
     }
     return Counter;
 }

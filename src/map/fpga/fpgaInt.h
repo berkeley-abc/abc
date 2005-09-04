@@ -120,12 +120,9 @@ struct Fpga_ManStruct_t_
 
     // mapping parameters
     int                 nVarsMax;      // the max number of variables
-//    int                 fTree;         // the flag to enable tree mapping
-//    int                 fPower;        // the flag to enable power optimization
     int                 fAreaRecovery; // the flag to use area flow as the first parameter
     int                 fVerbose;      // the verbosiness flag
-//    int                 fRefCount;     // enables reference counting
-//    int                 fSequential;   // use sequential mapping
+    int                 fSwitching;    // minimize the switching activity (instead of area)
     int                 nTravIds;
 
     // support of choice nodes
@@ -137,7 +134,6 @@ struct Fpga_ManStruct_t_
  
     // the supergate library
     Fpga_LutLib_t *     pLutLib;       // the current LUT library
-//    unsigned            uTruths[6][2]; // the elementary truth tables
 
     // the memory managers
     Extra_MmFixed_t *   mmNodes;       // the memory manager for nodes
@@ -215,7 +211,7 @@ struct Fpga_NodeStruct_t_
     // the delay information
     float               tRequired;     // the best area flow 
     float               aEstFanouts;   // the fanout estimation
-    float               SwitchProb;    // the probability of switching
+    float               Switching;     // the probability of switching
     int                 LValue;        // the l-value of the node
     short               nLatches1;     // the number of latches on the first edge
     short               nLatches2;     // the number of latches on the second edge
@@ -308,9 +304,6 @@ extern float             Fpga_CutGetAreaRefed( Fpga_Man_t * pMan, Fpga_Cut_t * p
 extern float             Fpga_CutGetAreaDerefed( Fpga_Man_t * pMan, Fpga_Cut_t * pCut );
 extern float             Fpga_CutRef( Fpga_Man_t * pMan, Fpga_Node_t * pNode, Fpga_Cut_t * pCut, int fFanouts );
 extern float             Fpga_CutDeref( Fpga_Man_t * pMan, Fpga_Node_t * pNode, Fpga_Cut_t * pCut, int fFanouts );
-extern float             Fpga_CutGetSwitchDerefed( Fpga_Man_t * pMan, Fpga_Node_t * pNode, Fpga_Cut_t * pCut );
-extern float             Fpga_CutRefSwitch( Fpga_Man_t * pMan, Fpga_Node_t * pNode, Fpga_Cut_t * pCut, int fFanouts );
-extern float             Fpga_CutDerefSwitch( Fpga_Man_t * pMan, Fpga_Node_t * pNode, Fpga_Cut_t * pCut, int fFanouts );
 extern float             Fpga_CutGetAreaFlow( Fpga_Man_t * pMan, Fpga_Cut_t * pCut );
 extern void              Fpga_CutGetParameters( Fpga_Man_t * pMan, Fpga_Cut_t * pCut );
 /*=== fraigFanout.c =============================================================*/
@@ -329,6 +322,11 @@ extern int               Fpga_MappingMatchesSwitch( Fpga_Man_t * p );
 /*=== fpgaShow.c =============================================================*/
 extern void              Fpga_MappingShow( Fpga_Man_t * pMan, char * pFileName );
 extern void              Fpga_MappingShowNodes( Fpga_Man_t * pMan, Fpga_Node_t ** ppRoots, int nRoots, char * pFileName );
+/*=== fpgaSwitch.c =============================================================*/
+extern float             Fpga_CutGetSwitchDerefed( Fpga_Man_t * pMan, Fpga_Node_t * pNode, Fpga_Cut_t * pCut );
+extern float             Fpga_CutRefSwitch( Fpga_Man_t * pMan, Fpga_Node_t * pNode, Fpga_Cut_t * pCut, int fFanouts );
+extern float             Fpga_CutDerefSwitch( Fpga_Man_t * pMan, Fpga_Node_t * pNode, Fpga_Cut_t * pCut, int fFanouts );
+extern float             Fpga_MappingGetSwitching( Fpga_Man_t * pMan, Fpga_NodeVec_t * vMapping );
 /*=== fpgaTime.c ===============================================================*/
 extern float             Fpga_TimeCutComputeArrival( Fpga_Man_t * pMan, Fpga_Cut_t * pCut );
 extern float             Fpga_TimeCutComputeArrival_rec( Fpga_Man_t * pMan, Fpga_Cut_t * pCut );
@@ -370,7 +368,6 @@ extern void              Fpga_MappingSetupMask( unsigned uMask[], int nVarsMax )
 extern void              Fpga_MappingSortByLevel( Fpga_Man_t * pMan, Fpga_NodeVec_t * vNodes, int fIncreasing );
 extern Fpga_NodeVec_t *  Fpga_DfsLim( Fpga_Man_t * pMan, Fpga_Node_t * pNode, int nLevels );
 extern Fpga_NodeVec_t *  Fpga_MappingLevelize( Fpga_Man_t * pMan, Fpga_NodeVec_t * vNodes );
-extern float             Fpga_MappingPrintSwitching( Fpga_Man_t * pMan );
 extern int               Fpga_MappingMaxLevel( Fpga_Man_t * pMan );
 extern void              Fpga_ManReportChoices( Fpga_Man_t * pMan );
 extern void              Fpga_MappingSetChoiceLevels( Fpga_Man_t * pMan );

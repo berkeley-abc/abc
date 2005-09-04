@@ -52,12 +52,13 @@ static Abc_Obj_t *   Abc_NodeFraigTrust( Abc_Aig_t * pMan, Abc_Obj_t * pNode );
 Abc_Ntk_t * Abc_NtkFraig( Abc_Ntk_t * pNtk, void * pParams, int fAllNodes )
 {
     int fCheck = 1;
+    Fraig_Params_t * pPars = pParams;
     Abc_Ntk_t * pNtkNew;
     Fraig_Man_t * pMan;
     // perform fraiging
     pMan = Abc_NtkToFraig( pNtk, pParams, fAllNodes ); 
     // prove the miter if asked to
-    if ( ((Fraig_Params_t *)pParams)->fTryProve )
+    if ( pPars->fTryProve )
         Fraig_ManProveMiter( pMan );
     // reconstruct FRAIG in the new network
     pNtkNew = Abc_NtkFromFraig( pMan, pNtk );
@@ -106,10 +107,12 @@ Fraig_Man_t * Abc_NtkToFraig( Abc_Ntk_t * pNtk, Fraig_Params_t * pParams, int fA
 
     // perform strashing
     vNodes = Abc_AigDfs( pNtk, fAllNodes, 0 );
-    pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
+    if ( !pParams->fInternal )
+        pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
     Vec_PtrForEachEntry( vNodes, pNode, i )
     {
-        Extra_ProgressBarUpdate( pProgress, i, NULL );
+        if ( !pParams->fInternal )
+            Extra_ProgressBarUpdate( pProgress, i, NULL );
         if ( pNode == pConst1 )
             pNodeFraig = Fraig_ManReadConst1(pMan);
         else if ( pNode == pReset )
@@ -121,12 +124,13 @@ Fraig_Man_t * Abc_NtkToFraig( Abc_Ntk_t * pNtk, Fraig_Params_t * pParams, int fA
         assert( pNode->pCopy == NULL );
         pNode->pCopy = (Abc_Obj_t *)pNodeFraig;
     }
-    Extra_ProgressBarStop( pProgress );
+    if ( !pParams->fInternal )
+        Extra_ProgressBarStop( pProgress );
     Vec_PtrFree( vNodes );
 
     // set the primary outputs
     Abc_NtkForEachCo( pNtk, pNode, i )
-        Fraig_ManSetPo( pMan, (Fraig_Node_t *)Abc_ObjFanin0(pNode)->pCopy );
+        Fraig_ManSetPo( pMan, (Fraig_Node_t *)Abc_ObjNotCond( Abc_ObjFanin0(pNode)->pCopy, Abc_ObjFaninC0(pNode) ) );
     return pMan;
 }
 
@@ -145,7 +149,7 @@ Abc_Ntk_t * Abc_NtkFromFraig( Fraig_Man_t * pMan, Abc_Ntk_t * pNtk )
 {
     ProgressBar * pProgress;
     Abc_Ntk_t * pNtkNew;
-    Abc_Obj_t * pNode;//, * pNodeNew;
+    Abc_Obj_t * pNode, * pNodeNew;
     int i;
     // create the new network
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_STRASH, ABC_FUNC_AIG );
@@ -159,11 +163,10 @@ Abc_Ntk_t * Abc_NtkFromFraig( Fraig_Man_t * pMan, Abc_Ntk_t * pNtk )
     Abc_NtkForEachCo( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
-        Abc_ObjFanin0(pNode)->pCopy = Abc_NodeFromFraig_rec( pNtkNew, Fraig_ManReadOutputs(pMan)[i] );
+        pNodeNew = Abc_NodeFromFraig_rec( pNtkNew, Fraig_ManReadOutputs(pMan)[i] );
+        Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
     }
     Extra_ProgressBarStop( pProgress );
-    // finalize the new network
-    Abc_NtkFinalize( pNtk, pNtkNew );
     return pNtkNew;
 }
 

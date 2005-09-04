@@ -50,6 +50,7 @@ struct Fraig_ParamsStruct_t_
     int  fTryProve;     // tries to solve the final miter
     int  fVerbose;      // the verbosiness flag
     int  fVerboseP;     // the verbosiness flag (for proof reporting)
+    int  fInternal;     // is set to 1 for internal fraig calls
 };
 
 ////////////////////////////////////////////////////////////////////////

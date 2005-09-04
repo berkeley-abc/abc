@@ -164,10 +164,9 @@ Fraig_Node_t * Fraig_ManReadIthVar( Fraig_Man_t * p, int i )
 
 /**Function*************************************************************
 
-  Synopsis    [Creates a new node.]
+  Synopsis    [Creates a new PO node.]
 
-  Description [This procedure should be called to create the constant
-  node and the PI nodes first.]
+  Description [This procedure may take a complemented node.]
                
   SideEffects []
 
@@ -176,9 +175,8 @@ Fraig_Node_t * Fraig_ManReadIthVar( Fraig_Man_t * p, int i )
 ***********************************************************************/
 void Fraig_ManSetPo( Fraig_Man_t * p, Fraig_Node_t * pNode )
 {
-//    assert( pNode->fNodePo == 0 ); 
     // internal node may be a PO two times
-    pNode->fNodePo = 1;
+    Fraig_Regular(pNode)->fNodePo = 1;
     Fraig_NodeVecPush( p->vOutputs, pNode );
 }
 

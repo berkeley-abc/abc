@@ -27,7 +27,7 @@
 static Abc_Ntk_t * Abc_NtkMiterInt( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb );
 static void        Abc_NtkMiterPrepare( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Abc_Ntk_t * pNtkMiter, int fComb );
 static void        Abc_NtkMiterAddOne( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkMiter );
-static void        Abc_NtkMiterAddOneNode( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkMiter, Abc_Obj_t * pNode );
+static void        Abc_NtkMiterAddCone( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkMiter, Abc_Obj_t * pNode );
 static void        Abc_NtkMiterFinalize( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Abc_Ntk_t * pNtkMiter, int fComb );
 static void        Abc_NtkAddFrame( Abc_Ntk_t * pNetNew, Abc_Ntk_t * pNet, int iFrame, Vec_Ptr_t * vNodes );
 
@@ -121,8 +121,8 @@ void Abc_NtkMiterPrepare( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Abc_Ntk_t * pNtk
     Abc_Obj_t * pObj, * pObjNew;
     int i;
     // clean the copy field in all objects
-    Abc_NtkCleanCopy( pNtk1 );
-    Abc_NtkCleanCopy( pNtk2 );
+//    Abc_NtkCleanCopy( pNtk1 );
+//    Abc_NtkCleanCopy( pNtk2 );
     if ( fComb )
     {
         // create new PIs and remember them in the old PIs
@@ -224,7 +224,7 @@ void Abc_NtkMiterAddOne( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkMiter )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkMiterAddOneNode( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkMiter, Abc_Obj_t * pRoot )
+void Abc_NtkMiterAddCone( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkMiter, Abc_Obj_t * pRoot )
 {
     Vec_Ptr_t * vNodes;
     Abc_Obj_t * pNode, * pNodeNew, * pConst1, * pConst1New;
@@ -310,7 +310,7 @@ void Abc_NtkMiterFinalize( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Abc_Ntk_t * pNt
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkMiterOne( Abc_Ntk_t * pNtk, int Out, int In1, int In2 )
+Abc_Ntk_t * Abc_NtkMiterForCofactors( Abc_Ntk_t * pNtk, int Out, int In1, int In2 )
 {
     int fCheck = 1;
     char Buffer[100];
@@ -324,7 +324,7 @@ Abc_Ntk_t * Abc_NtkMiterOne( Abc_Ntk_t * pNtk, int Out, int In1, int In2 )
 
     // start the new network
     pNtkMiter = Abc_NtkAlloc( ABC_TYPE_STRASH, ABC_FUNC_AIG );
-    sprintf( Buffer, "%s_%s_miter", pNtk->pName, Abc_ObjName(Abc_NtkCo(pNtk, Out)) );
+    sprintf( Buffer, "%s_miter", Abc_ObjName(Abc_NtkCo(pNtk, Out)) );
     pNtkMiter->pName = util_strsav(Buffer);
 
     // get the root output
@@ -337,7 +337,7 @@ Abc_Ntk_t * Abc_NtkMiterOne( Abc_Ntk_t * pNtk, int Out, int In1, int In2 )
     if ( In2 >= 0 )
     Abc_NtkCi(pNtk, In2)->pCopy = Abc_AigConst1( pNtkMiter->pManFunc );
     // add the first cofactor
-    Abc_NtkMiterAddOneNode( pNtk, pNtkMiter, pRoot );
+    Abc_NtkMiterAddCone( pNtk, pNtkMiter, pRoot );
 
     // save the output
     pOutput1 = Abc_ObjFanin0(pRoot)->pCopy;
@@ -347,7 +347,7 @@ Abc_Ntk_t * Abc_NtkMiterOne( Abc_Ntk_t * pNtk, int Out, int In1, int In2 )
     if ( In2 >= 0 )
     Abc_NtkCi(pNtk, In2)->pCopy = Abc_ObjNot( Abc_AigConst1(pNtkMiter->pManFunc) );
     // add the second cofactor
-    Abc_NtkMiterAddOneNode( pNtk, pNtkMiter, pRoot );
+    Abc_NtkMiterAddCone( pNtk, pNtkMiter, pRoot );
 
     // save the output
     pOutput2 = Abc_ObjFanin0(pRoot)->pCopy;

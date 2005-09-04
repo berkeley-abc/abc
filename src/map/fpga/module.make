@@ -6,6 +6,7 @@ SRC +=  src/map/fpga/fpga.c \
     src/map/fpga/fpgaFanout.c \
     src/map/fpga/fpgaLib.c \
     src/map/fpga/fpgaMatch.c \
+    src/map/fpga/fpgaSwitch.c \
     src/map/fpga/fpgaTime.c \
     src/map/fpga/fpgaTruth.c \
     src/map/fpga/fpgaUtils.c \

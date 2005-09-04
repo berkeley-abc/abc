@@ -42,7 +42,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /I "src\base\abc" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\mvc" /I "src\sop\ft" /I "src\sat\asat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\rwr" /I "src\map\fpga" /I "src\map\mapper" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\util" /I "src\misc\vec" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /D "HAVE_ASSERT_H" /FR /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /I "src\base\abc" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\ft" /I "src\sat\asat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\rwr" /I "src\map\fpga" /I "src\map\mapper" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\mvc" /I "src\misc\util" /I "src\misc\vec" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /D "HAVE_ASSERT_H" /FR /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -66,7 +66,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /c
-# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "src\base\abc" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\mvc" /I "src\sop\ft" /I "src\sat\asat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\rwr" /I "src\map\fpga" /I "src\map\mapper" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\util" /I "src\misc\vec" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /D "HAVE_ASSERT_H" /FR /YX /FD /GZ /c
+# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "src\base\abc" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\ft" /I "src\sat\asat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\rwr" /I "src\map\fpga" /I "src\map\mapper" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\mvc" /I "src\misc\util" /I "src\misc\vec" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /D "HAVE_ASSERT_H" /FR /YX /FD /GZ /c
 # SUBTRACT CPP /X
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
@@ -94,10 +94,6 @@ LINK32=link.exe
 # PROP Default_Filter ""
 # Begin Source File
 
-SOURCE=.\src\base\abc\abc.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\base\abc\abc.h
 # End Source File
 # Begin Source File
@@ -106,27 +102,7 @@ SOURCE=.\src\base\abc\abcAig.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\abc\abcAttach.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abc\abcBalance.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\base\abc\abcCheck.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abc\abcCollapse.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abc\abcCreate.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abc\abcCut.c
 # End Source File
 # Begin Source File
 
@@ -134,27 +110,11 @@ SOURCE=.\src\base\abc\abcDfs.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\abc\abcDsd.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\base\abc\abcFanio.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\abc\abcFpga.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abc\abcFraig.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\base\abc\abcFunc.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abc\abcFxu.c
 # End Source File
 # Begin Source File
 
@@ -166,15 +126,7 @@ SOURCE=.\src\base\abc\abcLatch.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\abc\abcMap.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\base\abc\abcMinBase.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abc\abcMiter.c
 # End Source File
 # Begin Source File
 
@@ -186,43 +138,15 @@ SOURCE=.\src\base\abc\abcNetlist.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\abc\abcNtbdd.c
+SOURCE=.\src\base\abc\abcNtk.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\abc\abcPrint.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abc\abcReconv.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abc\abcRefactor.c
+SOURCE=.\src\base\abc\abcObj.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\src\base\abc\abcRefs.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abc\abcRenode.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abc\abcRewrite.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abc\abcSat.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abc\abcSeq.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abc\abcSeqRetime.c
 # End Source File
 # Begin Source File
 
@@ -234,31 +158,119 @@ SOURCE=.\src\base\abc\abcSop.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\abc\abcStrash.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abc\abcSweep.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abc\abcSymm.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abc\abcTiming.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abc\abcUnreach.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\base\abc\abcUtil.c
 # End Source File
+# End Group
+# Begin Group "abci"
+
+# PROP Default_Filter ""
 # Begin Source File
 
-SOURCE=.\src\base\abc\abcVerify.c
+SOURCE=.\src\base\abci\abc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcAttach.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcBalance.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcCollapse.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcCut.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcDsd.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcFpga.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcFraig.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcFxu.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcMap.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcMiter.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcNtbdd.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcPrint.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcReconv.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcRefactor.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcRenode.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcRewrite.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcSat.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcStrash.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcSweep.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcSymm.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcTiming.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcUnreach.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcVerify.c
+# End Source File
+# End Group
+# Begin Group "abcs"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\base\abcs\abcRetime.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abcs\abcSeq.c
 # End Source File
 # End Group
 # Begin Group "cmd"
@@ -790,82 +802,6 @@ SOURCE=.\src\bdd\reo\reoUnits.c
 # End Source File
 # End Group
 # End Group
-# Begin Group "sop"
-
-# PROP Default_Filter ""
-# Begin Group "mvc"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\sop\mvc\mvc.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sop\mvc\mvc.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sop\mvc\mvcApi.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sop\mvc\mvcCompare.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sop\mvc\mvcContain.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sop\mvc\mvcCover.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sop\mvc\mvcCube.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sop\mvc\mvcDivide.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sop\mvc\mvcDivisor.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sop\mvc\mvcList.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sop\mvc\mvcLits.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sop\mvc\mvcMan.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sop\mvc\mvcOpAlg.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sop\mvc\mvcOpBool.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sop\mvc\mvcPrint.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sop\mvc\mvcSort.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sop\mvc\mvcUtils.c
-# End Source File
-# End Group
-# End Group
 # Begin Group "sat"
 
 # PROP Default_Filter ""
@@ -1011,38 +947,6 @@ SOURCE=.\src\sat\fraig\fraigUtil.c
 # Begin Source File
 
 SOURCE=.\src\sat\fraig\fraigVec.c
-# End Source File
-# End Group
-# Begin Group "sim"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\sat\sim\sim.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\sim\simMan.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\sim\simSat.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\sim\simSupp.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\sim\simSym.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\sim\simUnate.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\sim\simUtils.c
 # End Source File
 # End Group
 # Begin Group "csat"
@@ -1225,6 +1129,46 @@ SOURCE=.\src\opt\dec\decPrint.c
 SOURCE=.\src\opt\dec\decUtil.c
 # End Source File
 # End Group
+# Begin Group "sim"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\opt\sim\sim.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sim\simMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sim\simSat.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sim\simSupp.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sim\simSwitch.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sim\simSym.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sim\simSymSim.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sim\simSymStr.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\sim\simUtils.c
+# End Source File
+# End Group
 # End Group
 # Begin Group "map"
 
@@ -1271,6 +1215,10 @@ SOURCE=.\src\map\fpga\fpgaLib.c
 # Begin Source File
 
 SOURCE=.\src\map\fpga\fpgaMatch.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\fpga\fpgaSwitch.c
 # End Source File
 # Begin Source File
 
@@ -1343,6 +1291,10 @@ SOURCE=.\src\map\mapper\mapperRefs.c
 # Begin Source File
 
 SOURCE=.\src\map\mapper\mapperSuper.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\mapper\mapperSwitch.c
 # End Source File
 # Begin Source File
 
@@ -1429,10 +1381,6 @@ SOURCE=.\src\map\super\superInt.h
 SOURCE=.\src\map\super\superWrite.c
 # End Source File
 # End Group
-# End Group
-# Begin Group "seq"
-
-# PROP Default_Filter ""
 # End Group
 # Begin Group "misc"
 
@@ -1547,6 +1495,78 @@ SOURCE=.\src\misc\util\texpand.c
 # Begin Source File
 
 SOURCE=.\src\misc\util\util.h
+# End Source File
+# End Group
+# Begin Group "mvc"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\misc\mvc\mvc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\mvc\mvc.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\mvc\mvcApi.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\mvc\mvcCompare.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\mvc\mvcContain.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\mvc\mvcCover.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\mvc\mvcCube.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\mvc\mvcDivide.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\mvc\mvcDivisor.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\mvc\mvcList.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\mvc\mvcLits.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\mvc\mvcMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\mvc\mvcOpAlg.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\mvc\mvcOpBool.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\mvc\mvcPrint.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\mvc\mvcSort.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\mvc\mvcUtils.c
 # End Source File
 # End Group
 # Begin Group "vec"

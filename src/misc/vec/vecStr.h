@@ -80,6 +80,26 @@ static inline Vec_Str_t * Vec_StrAlloc( int nCap )
 
 /**Function*************************************************************
 
+  Synopsis    [Allocates a vector with the given size and cleans it.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Vec_Str_t * Vec_StrStart( int nSize )
+{
+    Vec_Str_t * p;
+    p = Vec_StrAlloc( nSize );
+    p->nSize = nSize;
+    memset( p->pArray, 0, sizeof(char) * nSize );
+    return p;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Creates the vector from an integer array of the given size.]
 
   Description []

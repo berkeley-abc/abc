@@ -53,6 +53,8 @@ struct Vec_Ptr_t_
     for ( i = 0; (i < Vec_PtrSize(vVec)) && (((pEntry) = Vec_PtrEntry(vVec, i)), 1); i++ )
 #define Vec_PtrForEachEntryStart( vVec, pEntry, i, Start )                                   \
     for ( i = Start; (i < Vec_PtrSize(vVec)) && (((pEntry) = Vec_PtrEntry(vVec, i)), 1); i++ )
+#define Vec_PtrForEachEntryReverse( vVec, pEntry, i )                                        \
+    for ( i = Vec_PtrSize(vVec) - 1; (i >= 0) && (((pEntry) = Vec_PtrEntry(vVec, i)), 1); i-- )
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -78,6 +80,26 @@ static inline Vec_Ptr_t * Vec_PtrAlloc( int nCap )
     p->nSize  = 0;
     p->nCap   = nCap;
     p->pArray = p->nCap? ALLOC( void *, p->nCap ) : NULL;
+    return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Allocates a vector with the given size and cleans it.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Vec_Ptr_t * Vec_PtrStart( int nSize )
+{
+    Vec_Ptr_t * p;
+    p = Vec_PtrAlloc( nSize );
+    p->nSize = nSize;
+    memset( p->pArray, 0, sizeof(void *) * nSize );
     return p;
 }
 
@@ -484,46 +506,6 @@ static inline void Vec_PtrReorder( Vec_Ptr_t * p, int nItems )
     Vec_PtrGrow( p, nItems + p->nSize );
     memmove( (char **)p->pArray + p->nSize, p->pArray, nItems * sizeof(void*) );
     memmove( p->pArray, (char **)p->pArray + nItems, p->nSize * sizeof(void*) );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Frees the vector of vectors.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline void Vec_PtrFreeFree( Vec_Ptr_t * p )
-{
-    Vec_Ptr_t * vVec;
-    int i;
-    Vec_PtrForEachEntry( p, vVec, i )
-        Vec_PtrFree( vVec );
-    Vec_PtrFree( p );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Frees the vector of vectors.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline int Vec_PtrSizeSize( Vec_Ptr_t * p )
-{
-    Vec_Ptr_t * vVec;
-    int i, Counter = 0;
-    Vec_PtrForEachEntry( p, vVec, i )
-        Counter += vVec->nSize;
-    return Counter;
 }
 
 /**Function*************************************************************

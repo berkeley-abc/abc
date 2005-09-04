@@ -117,6 +117,7 @@ struct Map_ManStruct_t_
     bool                fObeyFanoutLimits;// Should mapper try to obey fanout limits or not
     float               DelayTarget;   // the required times set by the user
     int                 nTravIds;      // the traversal counter
+    bool                fSwitching;    // Should mapper try to obey fanout limits or not
 
     // the supergate library
     Map_SuperLib_t *    pSuperLib;     // the current supergate library
@@ -184,6 +185,7 @@ struct Map_SuperLibStruct_t_
     Mio_Gate_t *        pGateInv;      // the pointer to the intertor gate
     Map_Time_t          tDelayInv;     // the delay of the inverter
     float               AreaInv;       // the area of the inverter
+    float               AreaBuf;       // the area of the buffer
     Map_Super_t *       pSuperInv;     // the supergate representing the inverter
 
     // the memory manager for the internal table
@@ -210,6 +212,7 @@ struct Map_NodeStruct_t_
     unsigned            NumTemp:10;    // the level of the given node
     int                 nRefAct[3];    // estimated fanout for current covering phase, neg and pos and sum
     float               nRefEst[3];    // actual fanout for previous covering phase, neg and pos and sum
+    float               Switching;     // the probability of switching
 
     // connectivity
     Map_Node_t *        p1;            // the first child
@@ -378,6 +381,11 @@ extern int               Map_MappingMatches( Map_Man_t * p );
 extern float             Map_MappingCombinePhases( Map_Man_t * p );
 extern void              Map_MatchClean( Map_Match_t * pMatch );
 extern int               Map_MatchCompare( Map_Man_t * pMan, Map_Match_t * pM1, Map_Match_t * pM2, int fDoingArea );
+/*=== mapperPower.c =============================================================*/
+extern float             Map_SwitchCutGetDerefed( Map_Node_t * pNode, Map_Cut_t * pCut, int fPhase );
+extern float             Map_SwitchCutRef( Map_Node_t * pNode, Map_Cut_t * pCut, int fPhase );
+extern float             Map_SwitchCutDeref( Map_Node_t * pNode, Map_Cut_t * pCut, int fPhase );
+extern float             Map_MappingGetSwitching( Map_Man_t * pMan, Map_NodeVec_t * vMapping );
 /*=== mapperRefs.c =============================================================*/
 extern int               Map_NodeReadRefPhaseAct( Map_Node_t * pNode, int fPhase );
 extern float             Map_NodeReadRefPhaseEst( Map_Node_t * pNode, int fPhase );

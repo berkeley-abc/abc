@@ -382,28 +382,52 @@ int Fraig_CompareSimInfo( Fraig_Node_t * pNode1, Fraig_Node_t * pNode2, int iWor
   SeeAlso     []
 
 ***********************************************************************/
-int Fraig_FindFirstDiff( Fraig_Node_t * pNode1, Fraig_Node_t * pNode2, int iWordLast, int fUseRand )
+int Fraig_FindFirstDiff( Fraig_Node_t * pNode1, Fraig_Node_t * pNode2, int fCompl, int iWordLast, int fUseRand )
 {
     int i, v;
     assert( !Fraig_IsComplement(pNode1) );
     assert( !Fraig_IsComplement(pNode2) );
-    if ( fUseRand )
+    // take into account possible internal complementation
+    fCompl ^= pNode1->fInv;
+    fCompl ^= pNode2->fInv;
+    // find the pattern
+    if ( fCompl )
     {
-        // check the simulation info
-        for ( i = 0; i < iWordLast; i++ )
-            if ( pNode1->puSimR[i] !=  pNode2->puSimR[i] )
-                for ( v = 0; v < 32; v++ )
-                    if ( (pNode1->puSimR[i] ^ pNode2->puSimR[i]) & (1 << v) )
-                        return i * 32 + v;
+        if ( fUseRand )
+        {
+            for ( i = 0; i < iWordLast; i++ )
+                if ( pNode1->puSimR[i] != ~pNode2->puSimR[i] )
+                    for ( v = 0; v < 32; v++ )
+                        if ( (pNode1->puSimR[i] ^ ~pNode2->puSimR[i]) & (1 << v) )
+                            return i * 32 + v;
+        }
+        else
+        {
+            for ( i = 0; i < iWordLast; i++ )
+                if ( pNode1->puSimD[i] !=  ~pNode2->puSimD[i] )
+                    for ( v = 0; v < 32; v++ )
+                        if ( (pNode1->puSimD[i] ^ ~pNode2->puSimD[i]) & (1 << v) )
+                            return i * 32 + v;
+        }
     }
     else
     {
-        // check the simulation info
-        for ( i = 0; i < iWordLast; i++ )
-            if ( pNode1->puSimD[i] !=  pNode2->puSimD[i] )
-                for ( v = 0; v < 32; v++ )
-                    if ( (pNode1->puSimD[i] ^ pNode2->puSimD[i]) & (1 << v) )
-                        return i * 32 + v;
+        if ( fUseRand )
+        {
+            for ( i = 0; i < iWordLast; i++ )
+                if ( pNode1->puSimR[i] != pNode2->puSimR[i] )
+                    for ( v = 0; v < 32; v++ )
+                        if ( (pNode1->puSimR[i] ^ pNode2->puSimR[i]) & (1 << v) )
+                            return i * 32 + v;
+        }
+        else
+        {
+            for ( i = 0; i < iWordLast; i++ )
+                if ( pNode1->puSimD[i] !=  pNode2->puSimD[i] )
+                    for ( v = 0; v < 32; v++ )
+                        if ( (pNode1->puSimD[i] ^ pNode2->puSimD[i]) & (1 << v) )
+                            return i * 32 + v;
+        }
     }
     return -1;
 }

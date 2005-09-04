@@ -30,6 +30,7 @@ alias sa set autoexec ps
 alias so source -x
 alias st strash
 alias sw sweep
+alias t "r dalu.blif; st; psu"
 alias u undo
 alias wb write_blif
 alias wl write_blif

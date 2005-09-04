@@ -779,43 +779,6 @@ Fpga_NodeVec_t * Fpga_MappingLevelize( Fpga_Man_t * pMan, Fpga_NodeVec_t * vNode
     }
     return vLevels;
 }
-/**Function*************************************************************
-
-  Synopsis    [Prints the switching activity changes.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-float Fpga_MappingPrintSwitching( Fpga_Man_t * p )
-{
-    Fpga_Node_t * pNode;
-    float SwitchTotal = 0.0;
-    int nNodes = 0;
-    int i;
-    for ( i = 0; i < p->vNodesAll->nSize; i++ )
-    {
-        // skip primary inputs
-        pNode = p->vNodesAll->pArray[i];
-//        if ( !Fpga_NodeIsAnd( pNode ) )
-//            continue;
-        // skip a secondary node
-        if ( pNode->pRepr )
-            continue;
-        // count the switching nodes
-        if ( pNode->nRefs > 0 )
-        {
-            SwitchTotal += pNode->SwitchProb;
-            nNodes++;
-        }
-    }
-    if ( p->fVerbose )
-    printf( "Total switching = %10.2f. Average switching = %6.4f.\n", SwitchTotal, SwitchTotal/nNodes );
-    return SwitchTotal;
-}
 
 /**Function*************************************************************
 

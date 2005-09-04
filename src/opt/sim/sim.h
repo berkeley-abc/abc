@@ -33,11 +33,52 @@
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
 
+typedef struct Sym_Man_t_ Sym_Man_t;
+struct Sym_Man_t_
+{
+    // info about the network
+    Abc_Ntk_t *       pNtk;          // the network 
+    Vec_Ptr_t *       vNodes;        // internal nodes in topological order
+    int               nInputs;
+    int               nOutputs;
+    // internal simulation information
+    int               nSimWords;     // the number of bits in simulation info
+    Vec_Ptr_t *       vSim;          // simulation info
+    // support information
+    Vec_Ptr_t *       vSuppFun;      // functional supports
+    // symmetry info for each output
+    Vec_Ptr_t *       vMatrSymms;    // symmetric pairs
+    Vec_Ptr_t *       vMatrNonSymms; // non-symmetric pairs
+    Vec_Int_t *       vPairsTotal;   // total pairs
+    Vec_Int_t *       vPairsSym;     // symmetric pairs
+    Vec_Int_t *       vPairsNonSym;  // non-symmetric pairs
+    // temporary simulation info
+    unsigned *        uPatRand;
+    unsigned *        uPatCol;
+    unsigned *        uPatRow;
+    // internal data structures
+    int               nSatRuns;
+    int               nSatRunsSat;
+    int               nSatRunsUnsat;
+    // pairs
+    int               nPairsSymm;
+    int               nPairsSymmStr;
+    int               nPairsNonSymm;
+    int               nPairsTotal;
+    // runtime statistics
+    int               timeSim;
+    int               timeFraig;
+    int               timeSat;
+    int               timeTotal;
+};
+
 typedef struct Sim_Man_t_ Sim_Man_t;
 struct Sim_Man_t_
 {
-    // user specified parameters
+    // info about the network
     Abc_Ntk_t *       pNtk;
+    int               nInputs;
+    int               nOutputs;
     // internal simulation information
     int               nSimBits;      // the number of bits in simulation info
     int               nSimWords;     // the number of words in simulation info
@@ -48,25 +89,21 @@ struct Sim_Man_t_
     int               nSuppWords;    // the number of words in support info
     Vec_Ptr_t *       vSuppStr;      // structural supports
     Vec_Ptr_t *       vSuppFun;      // functional supports
-    // unateness info
-    Vec_Ptr_t *       vUnateVarsP;   // unate variables
-    Vec_Ptr_t *       vUnateVarsN;   // unate variables
-    // symmtry info
-    Extra_BitMat_t *  pMatSym;       // symmetric pairs
-    Extra_BitMat_t *  pMatNonSym;    // non-symmetric pairs
     // simulation targets
-    Vec_Ptr_t *       vSuppTargs;    // support targets
-    Vec_Ptr_t *       vUnateTargs;   // unateness targets
-    Vec_Ptr_t *       vSymmTargs;    // symmetry targets
+    Vec_Vec_t *       vSuppTargs;    // support targets
     // internal data structures
     Extra_MmFixed_t * pMmPat;   
     Vec_Ptr_t *       vFifo;
     Vec_Int_t *       vDiffs;
+    int               nSatRuns;
+    int               nSatRunsSat;
+    int               nSatRunsUnsat;
     // runtime statistics
-    int               time1;
-    int               time2;
-    int               time3;
-    int               time4;
+    int               timeSim;
+    int               timeTrav;
+    int               timeFraig;
+    int               timeSat;
+    int               timeTotal;
 };
 
 typedef struct Sim_Pat_t_ Sim_Pat_t;
@@ -84,6 +121,12 @@ struct Sim_Pat_t_
 #define SIM_NUM_WORDS(n)      ((n)/32 + (((n)%32) > 0))
 #define SIM_LAST_BITS(n)      ((((n)%32) > 0)? (n)%32 : 32)
 
+#define SIM_MASK_FULL         (0xFFFFFFFF)
+#define SIM_MASK_BEG(n)       (SIM_MASK_FULL >> (32-n))
+#define SIM_MASK_END(n)       (SIM_MASK_FULL << (n))
+#define SIM_SET_0_FROM(m,n)   ((m) & ~SIM_MASK_BEG(n))
+#define SIM_SET_1_FROM(m,n)   ((m) |  SIM_MASK_END(n))
+
 // generating random unsigned (#define RAND_MAX 0x7fff)
 #define SIM_RANDOM_UNSIGNED   ((((unsigned)rand()) << 24) ^ (((unsigned)rand()) << 12) ^ ((unsigned)rand()))
 
@@ -93,40 +136,51 @@ struct Sim_Pat_t_
 #define Sim_HasBit(p,i)      (((p)[(i)>>5]  & (1<<((i) & 31))) > 0)
 
 // macros to get hold of the support info
-#define Sim_SuppStrSetVar(pMan,pNode,v)     Sim_SetBit((unsigned*)pMan->vSuppStr->pArray[(pNode)->Id],(v))
-#define Sim_SuppStrHasVar(pMan,pNode,v)     Sim_HasBit((unsigned*)pMan->vSuppStr->pArray[(pNode)->Id],(v))
-#define Sim_SuppFunSetVar(pMan,Output,v)    Sim_SetBit((unsigned*)pMan->vSuppFun->pArray[Output],(v))
-#define Sim_SuppFunHasVar(pMan,Output,v)    Sim_HasBit((unsigned*)pMan->vSuppFun->pArray[Output],(v))
-#define Sim_SimInfoSetVar(pMan,pNode,v)     Sim_SetBit((unsigned*)pMan->vSim0->pArray[(pNode)->Id],(v))
-#define Sim_SimInfoHasVar(pMan,pNode,v)     Sim_HasBit((unsigned*)pMan->vSim0->pArray[(pNode)->Id],(v))
+#define Sim_SuppStrSetVar(vSupps,pNode,v)     Sim_SetBit((unsigned*)(vSupps)->pArray[(pNode)->Id],(v))
+#define Sim_SuppStrHasVar(vSupps,pNode,v)     Sim_HasBit((unsigned*)(vSupps)->pArray[(pNode)->Id],(v))
+#define Sim_SuppFunSetVar(vSupps,Output,v)    Sim_SetBit((unsigned*)(vSupps)->pArray[Output],(v))
+#define Sim_SuppFunHasVar(vSupps,Output,v)    Sim_HasBit((unsigned*)(vSupps)->pArray[Output],(v))
+#define Sim_SimInfoSetVar(vSupps,pNode,v)     Sim_SetBit((unsigned*)(vSupps)->pArray[(pNode)->Id],(v))
+#define Sim_SimInfoHasVar(vSupps,pNode,v)     Sim_HasBit((unsigned*)(vSupps)->pArray[(pNode)->Id],(v))
 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /*=== simMan.c ==========================================================*/
+extern Sym_Man_t *     Sym_ManStart( Abc_Ntk_t * pNtk );
+extern void            Sym_ManStop( Sym_Man_t * p );
+extern void            Sym_ManPrintStats( Sym_Man_t * p );
 extern Sim_Man_t *     Sim_ManStart( Abc_Ntk_t * pNtk );
 extern void            Sim_ManStop( Sim_Man_t * p );
+extern void            Sim_ManPrintStats( Sim_Man_t * p );
 extern Sim_Pat_t *     Sim_ManPatAlloc( Sim_Man_t * p );
 extern void            Sim_ManPatFree( Sim_Man_t * p, Sim_Pat_t * pPat );
-extern void            Sim_ManPrintStats( Sim_Man_t * p );
-
 /*=== simSupp.c ==========================================================*/
-extern Sim_Man_t *     Sim_ComputeSupp( Abc_Ntk_t * pNtk );
-
+extern Vec_Ptr_t *     Sim_ComputeStrSupp( Abc_Ntk_t * pNtk );
+extern Vec_Ptr_t *     Sim_ComputeFunSupp( Abc_Ntk_t * pNtk );
+/*=== simSym.c ==========================================================*/
+extern int             Sim_ComputeTwoVarSymms( Abc_Ntk_t * pNtk );
+/*=== simSymStr.c ==========================================================*/
+extern void            Sim_SymmsStructCompute( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMatrs );
+/*=== simSymSim.c ==========================================================*/
+extern void            Sim_SymmsSimulate( Sym_Man_t * p, unsigned * pPatRand, Vec_Ptr_t * vMatrsNonSym );
 /*=== simUtil.c ==========================================================*/
 extern Vec_Ptr_t *     Sim_UtilInfoAlloc( int nSize, int nWords, bool fClean );
 extern void            Sim_UtilInfoFree( Vec_Ptr_t * p );
 extern void            Sim_UtilInfoAdd( unsigned * pInfo1, unsigned * pInfo2, int nWords );
 extern void            Sim_UtilInfoDetectDiffs( unsigned * pInfo1, unsigned * pInfo2, int nWords, Vec_Int_t * vDiffs );
 extern void            Sim_UtilInfoDetectNews( unsigned * pInfo1, unsigned * pInfo2, int nWords, Vec_Int_t * vDiffs );
-extern void            Sim_UtilComputeStrSupp( Sim_Man_t * p );
-extern void            Sim_UtilAssignRandom( Sim_Man_t * p );
-extern void            Sim_UtilFlipSimInfo( Sim_Man_t * p, Abc_Obj_t * pNode );
-extern bool            Sim_UtilCompareSimInfo( Sim_Man_t * p, Abc_Obj_t * pNode );
+extern void            Sim_UtilInfoFlip( Sim_Man_t * p, Abc_Obj_t * pNode );
+extern bool            Sim_UtilInfoCompare( Sim_Man_t * p, Abc_Obj_t * pNode );
 extern void            Sim_UtilSimulate( Sim_Man_t * p, bool fFirst );
 extern void            Sim_UtilSimulateNode( Sim_Man_t * p, Abc_Obj_t * pNode, bool fType, bool fType1, bool fType2 );
+extern void            Sim_UtilSimulateNodeOne( Abc_Obj_t * pNode, Vec_Ptr_t * vSimInfo, int nSimWords );
 extern int             Sim_UtilCountSuppSizes( Sim_Man_t * p, int fStruct );
+extern int             Sim_UtilCountOnes( unsigned * pSimInfo, int nSimWords );
+extern void            Sim_UtilGetRandom( unsigned * pPatRand, int nSimWords );
+extern int             Sim_UtilCountAllPairs( Vec_Ptr_t * vSuppFun, int nSimWords, Vec_Int_t * vCounters );
+extern int             Sim_UtilCountPairs( Vec_Ptr_t * vMatrs, Vec_Int_t * vCounters );
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

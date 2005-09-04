@@ -239,10 +239,11 @@ struct Fraig_NodeStruct_t_
     unsigned              fMark0   :  1; // the mark used for traversals
     unsigned              fMark1   :  1; // the mark used for traversals
     unsigned              fMark2   :  1; // the mark used for traversals
+    unsigned              fMark3   :  1; // the mark used for traversals
     unsigned              fFeedUse :  1; // the presence of the variable in the feedback
     unsigned              fFeedVal :  1; // the value of the variable in the feedback
     unsigned              nFanouts :  2; // the indicator of fanouts (none, one, or many)
-    unsigned              nOnes    : 22; // the number of 1's in the random sim info
+    unsigned              nOnes    : 21; // the number of 1's in the random sim info
  
     // the children of the node
     Fraig_Node_t *        p1;            // the first child
@@ -379,6 +380,7 @@ extern void                Fraig_FeedBackInit( Fraig_Man_t * p );
 extern void                Fraig_FeedBack( Fraig_Man_t * p, int * pModel, Msat_IntVec_t * vVars, Fraig_Node_t * pOld, Fraig_Node_t * pNew );
 extern void                Fraig_FeedBackTest( Fraig_Man_t * p );
 extern int                 Fraig_FeedBackCompress( Fraig_Man_t * p );
+extern int *               Fraig_ManAllocCounterExample( Fraig_Man_t * p );
 extern int *               Fraig_ManSaveCounterExample( Fraig_Man_t * p, Fraig_Node_t * pNode );
 /*=== fraigMem.c =============================================================*/
 extern Fraig_MemFixed_t *  Fraig_MemFixedStart( int nEntrySize );
@@ -406,7 +408,7 @@ extern Fraig_Node_t *      Fraig_HashTableLookupF0( Fraig_Man_t * pMan, Fraig_No
 extern void                Fraig_HashTableInsertF0( Fraig_Man_t * pMan, Fraig_Node_t * pNode );
 extern int                 Fraig_CompareSimInfo( Fraig_Node_t * pNode1, Fraig_Node_t * pNode2, int iWordLast, int fUseRand );
 extern int                 Fraig_CompareSimInfoUnderMask( Fraig_Node_t * pNode1, Fraig_Node_t * pNode2, int iWordLast, int fUseRand, unsigned * puMask );
-extern int                 Fraig_FindFirstDiff( Fraig_Node_t * pNode1, Fraig_Node_t * pNode2, int iWordLast, int fUseRand );
+extern int                 Fraig_FindFirstDiff( Fraig_Node_t * pNode1, Fraig_Node_t * pNode2, int fCompl, int iWordLast, int fUseRand );
 extern void                Fraig_CollectXors( Fraig_Node_t * pNode1, Fraig_Node_t * pNode2, int iWordLast, int fUseRand, unsigned * puMask );
 extern void                Fraig_TablePrintStatsS( Fraig_Man_t * pMan );
 extern void                Fraig_TablePrintStatsF( Fraig_Man_t * pMan );
@@ -416,10 +418,6 @@ extern int                 Fraig_TableRehashF0( Fraig_Man_t * pMan, int fLinkEqu
 extern int                 Fraig_NodeCountPis( Msat_IntVec_t * vVars, int nVarsPi );
 extern int                 Fraig_NodeCountSuppVars( Fraig_Man_t * p, Fraig_Node_t * pNode, int fSuppStr );
 extern int                 Fraig_NodesCompareSupps( Fraig_Man_t * p, Fraig_Node_t * pOld, Fraig_Node_t * pNew );
-extern void                Fraig_ManIncrementTravId( Fraig_Man_t * pMan );
-extern void                Fraig_NodeSetTravIdCurrent( Fraig_Man_t * pMan, Fraig_Node_t * pNode );
-extern int                 Fraig_NodeIsTravIdCurrent( Fraig_Man_t * pMan, Fraig_Node_t * pNode );
-extern int                 Fraig_NodeIsTravIdPrevious( Fraig_Man_t * pMan, Fraig_Node_t * pNode );
 extern int                 Fraig_NodeAndSimpleCase_rec( Fraig_Node_t * pOld, Fraig_Node_t * pNew );
 extern int                 Fraig_NodeIsExorType( Fraig_Node_t * pNode );
 extern void                Fraig_ManSelectBestChoice( Fraig_Man_t * p );
@@ -435,6 +433,10 @@ extern int                 Fraig_NodeSimsContained( Fraig_Man_t * pMan, Fraig_No
 extern int                 Fraig_NodeIsInSupergate( Fraig_Node_t * pOld, Fraig_Node_t * pNew );
 extern Fraig_NodeVec_t *   Fraig_CollectSupergate( Fraig_Node_t * pNode, int fStopAtMux );
 extern int                 Fraig_CountPis( Fraig_Man_t * p, Msat_IntVec_t * vVarNums );
+extern void                Fraig_ManIncrementTravId( Fraig_Man_t * pMan );
+extern void                Fraig_NodeSetTravIdCurrent( Fraig_Man_t * pMan, Fraig_Node_t * pNode );
+extern int                 Fraig_NodeIsTravIdCurrent( Fraig_Man_t * pMan, Fraig_Node_t * pNode );
+extern int                 Fraig_NodeIsTravIdPrevious( Fraig_Man_t * pMan, Fraig_Node_t * pNode );
 /*=== fraigVec.c ===============================================================*/
 extern void                Fraig_NodeVecSortByRefCount( Fraig_NodeVec_t * p );
 

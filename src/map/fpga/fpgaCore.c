@@ -97,22 +97,26 @@ int Fpga_Mapping( Fpga_Man_t * p )
 ***********************************************************************/
 int Fpga_MappingPostProcess( Fpga_Man_t * p )
 {
-    float aAreaTotalPrev, aAreaTotalCur, aAreaTotalCur2;
+    int fShowSwitching    = 0;
+    int fRecoverAreaFlow  = 1;
+    int fRecoverArea      = 1;
+    float aAreaTotalCur, aAreaTotalCur2;
     int Iter, clk;
 
     // compute area, set references, and collect nodes used in the mapping
+    Iter = 1;
     aAreaTotalCur = Fpga_MappingSetRefsAndArea( p );
 if ( p->fVerbose )
 {
-printf( "Iteration %dD :  Area = %11.1f  ", 0, aAreaTotalCur );
+printf( "Iteration %dD :  Area = %8.1f  ", Iter++, aAreaTotalCur );
+if ( fShowSwitching )
+printf( "Switch = %8.1f  ", Fpga_MappingGetSwitching(p,p->vMapping) );
 PRT( "Time", p->timeMatch );
 }
 
-    Iter = 1;
-    do {
+    if ( fRecoverAreaFlow )
+    {
 clk = clock();
-        // save the previous area flow
-        aAreaTotalPrev = aAreaTotalCur;
         // compute the required times and the fanouts
         Fpga_TimeComputeRequiredGlobal( p );
         // remap topologically
@@ -124,33 +128,38 @@ clk = clock();
         // for some reason, this works better on benchmarks
 if ( p->fVerbose )
 {
-printf( "Iteration %dF :  Area = %11.1f  ", Iter++, aAreaTotalCur );
+printf( "Iteration %dF :  Area = %8.1f  ", Iter++, aAreaTotalCur );
+if ( fShowSwitching )
+printf( "Switch = %8.1f  ", Fpga_MappingGetSwitching(p,p->vMapping) );
 PRT( "Time", clock() - clk );
 }
-        // quit if this iteration reduced area flow by less than 1%
-    } while ( aAreaTotalPrev > 1.02 * aAreaTotalCur );
+    }
 
     // update reference counters
     aAreaTotalCur2 = Fpga_MappingSetRefsAndArea( p );
     assert( aAreaTotalCur == aAreaTotalCur2 );
 
-    do {
+    if ( fRecoverArea )
+    {
 clk = clock();
-        // save the previous area flow
-        aAreaTotalPrev = aAreaTotalCur;
         // compute the required times and the fanouts
         Fpga_TimeComputeRequiredGlobal( p );
         // remap topologically
-        Fpga_MappingMatchesArea( p );
+        if ( p->fSwitching )
+            Fpga_MappingMatchesSwitch( p );
+        else
+            Fpga_MappingMatchesArea( p );
         // get the resulting area
         aAreaTotalCur = Fpga_MappingSetRefsAndArea( p );
 if ( p->fVerbose )
 {
-printf( "Iteration %dA :  Area = %11.1f  ", Iter++, aAreaTotalCur );
+printf( "Iteration %d%s :  Area = %8.1f  ", Iter++, (p->fSwitching?"S":"A"), aAreaTotalCur );
+if ( fShowSwitching )
+printf( "Switch = %8.1f  ", Fpga_MappingGetSwitching(p,p->vMapping) );
 PRT( "Time", clock() - clk );
 }
-        // quit if this iteration reduced area flow by less than 1%
-    } while ( aAreaTotalPrev > 1.02 * aAreaTotalCur );
+    }
+
     p->fAreaGlo = aAreaTotalCur;
     return 1;
 }

@@ -65,6 +65,7 @@ static int Abc_CommandOneOutput    ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int Abc_CommandOneNode      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandShortNames   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCut          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandTest         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandFraig        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFraigTrust   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -140,6 +141,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "one_node",      Abc_CommandOneNode,          1 );
     Cmd_CommandAdd( pAbc, "Various",      "short_names",   Abc_CommandShortNames,       0 );
     Cmd_CommandAdd( pAbc, "Various",      "cut",           Abc_CommandCut,              0 );
+    Cmd_CommandAdd( pAbc, "Various",      "test",          Abc_CommandTest,             0 );
 
     Cmd_CommandAdd( pAbc, "Fraiging",     "fraig",         Abc_CommandFraig,            1 );
     Cmd_CommandAdd( pAbc, "Fraiging",     "fraig_trust",   Abc_CommandFraigTrust,       1 );
@@ -591,10 +593,11 @@ usage:
 ***********************************************************************/
 int Abc_CommandPrintSupport( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    Vec_Ptr_t * vSuppFun;
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
     int c;
-    extern void * Sim_ComputeSupp( Abc_Ntk_t * pNtk );
+    extern Vec_Ptr_t * Sim_ComputeFunSupp( Abc_Ntk_t * pNtk );
 
     pNtk = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -619,12 +622,20 @@ int Abc_CommandPrintSupport( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
+    if ( !Abc_NtkIsComb(pNtk) )
+    {
+        fprintf( pErr, "This command works only for combinational networks.\n" );
+        return 1;
+    }
+
     if ( !Abc_NtkIsStrash(pNtk) )
     {
         fprintf( pErr, "This command works only for AIGs.\n" );
         return 1;
     }
-    Sim_ComputeSupp( pNtk );
+    vSuppFun = Sim_ComputeFunSupp( pNtk );
+    free( vSuppFun->pArray[0] );
+    Vec_PtrFree( vSuppFun );
     return 0;
 
 usage:
@@ -660,7 +671,7 @@ int Abc_CommandPrintSymms( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fUseBdds = 1;
+    fUseBdds = 0;
     fNaive   = 0;
     fVerbose = 0;
     util_getopt_reset();
@@ -686,6 +697,11 @@ int Abc_CommandPrintSymms( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pNtk == NULL )
     {
         fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsComb(pNtk) )
+    {
+        fprintf( pErr, "This command works only for combinational networks.\n" );
         return 1;
     }
     if ( !Abc_NtkIsStrash(pNtk) )
@@ -2758,6 +2774,62 @@ usage:
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c;
+
+    pNtk = Abc_FrameReadNet(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    // run the command
+    pNtkRes = Abc_NtkMiterForCofactors( pNtk, 0, 0, -1 );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Command has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: test [-h]\n" );
+    fprintf( pErr, "\t         testbench for new procedures\n" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
 
 
 
@@ -3249,10 +3321,11 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     char Buffer[100];
     double DelayTarget;
     int fRecovery;
-    int fVerbose;
     int fSweep;
+    int fSwitching;
+    int fVerbose;
     int c;
-    extern Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, int fSwitching, int fVerbose );
 
     pNtk = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -3262,9 +3335,10 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     DelayTarget =-1;
     fRecovery   = 1;
     fSweep      = 1;
+    fSwitching  = 0;
     fVerbose    = 0;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "Dasvh" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "Daspvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -3284,6 +3358,9 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 's':
             fSweep ^= 1;
+            break;
+        case 'p':
+            fSwitching ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -3318,7 +3395,7 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         fprintf( pOut, "The network was strashed and balanced before mapping.\n" );
         // get the new network
-        pNtkRes = Abc_NtkMap( pNtk, DelayTarget, fRecovery, fVerbose );
+        pNtkRes = Abc_NtkMap( pNtk, DelayTarget, fRecovery, fSwitching, fVerbose );
         if ( pNtkRes == NULL )
         {
             Abc_NtkDelete( pNtk );
@@ -3330,7 +3407,7 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     else
     {
         // get the new network
-        pNtkRes = Abc_NtkMap( pNtk, DelayTarget, fRecovery, fVerbose );
+        pNtkRes = Abc_NtkMap( pNtk, DelayTarget, fRecovery, fSwitching, fVerbose );
         if ( pNtkRes == NULL )
         {
             fprintf( pErr, "Mapping has failed.\n" );
@@ -3350,11 +3427,12 @@ usage:
         sprintf( Buffer, "not used" );
     else
         sprintf( Buffer, "%.3f", DelayTarget );
-    fprintf( pErr, "usage: map [-D num] [-asvh]\n" );
+    fprintf( pErr, "usage: map [-D num] [-aspvh]\n" );
     fprintf( pErr, "\t         performs standard cell mapping of the current network\n" );
     fprintf( pErr, "\t-D num : sets the global required times [default = %s]\n", Buffer );  
     fprintf( pErr, "\t-a     : toggles area recovery [default = %s]\n", fRecovery? "yes": "no" );
     fprintf( pErr, "\t-s     : toggles sweep after mapping [default = %s]\n", fSweep? "yes": "no" );
+    fprintf( pErr, "\t-p     : optimizes power by minimizing switching activity [default = %s]\n", fSwitching? "yes": "no" );
     fprintf( pErr, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -3569,8 +3647,9 @@ int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk, * pNtkRes;
     int c;
     int fRecovery;
+    int fSwitching;
     int fVerbose;
-    extern Abc_Ntk_t * Abc_NtkFpga( Abc_Ntk_t * pNtk, int fRecovery, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkFpga( Abc_Ntk_t * pNtk, int fRecovery, int fSwitching, int fVerbose );
 
     pNtk = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -3578,14 +3657,18 @@ int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     fRecovery  = 1;
+    fSwitching = 0;
     fVerbose   = 0;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "avh" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "apvh" ) ) != EOF )
     {
         switch ( c )
         {
         case 'a':
             fRecovery ^= 1;
+            break;
+        case 'p':
+            fSwitching ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -3621,7 +3704,7 @@ int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         fprintf( pOut, "The network was strashed and balanced before FPGA mapping.\n" );
         // get the new network
-        pNtkRes = Abc_NtkFpga( pNtk, fRecovery, fVerbose );
+        pNtkRes = Abc_NtkFpga( pNtk, fRecovery, fSwitching, fVerbose );
         if ( pNtkRes == NULL )
         {
             Abc_NtkDelete( pNtk );
@@ -3633,7 +3716,7 @@ int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
     else
     {
         // get the new network
-        pNtkRes = Abc_NtkFpga( pNtk, fRecovery, fVerbose );
+        pNtkRes = Abc_NtkFpga( pNtk, fRecovery, fSwitching, fVerbose );
         if ( pNtkRes == NULL )
         {
             fprintf( pErr, "FPGA mapping has failed.\n" );
@@ -3645,9 +3728,10 @@ int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: fpga [-avh]\n" );
+    fprintf( pErr, "usage: fpga [-apvh]\n" );
     fprintf( pErr, "\t        performs FPGA mapping of the current network\n" );
     fprintf( pErr, "\t-a    : toggles area recovery [default = %s]\n", fRecovery? "yes": "no" );
+    fprintf( pErr, "\t-p    : optimizes power by minimizing switching activity [default = %s]\n", fSwitching? "yes": "no" );
     fprintf( pErr, "\t-v    : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h    : prints the command usage\n");
     return 1;

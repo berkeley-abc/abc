@@ -42,6 +42,7 @@ int timeAssign;
 ***********************************************************************/
 void Fraig_ParamsSetDefault( Fraig_Params_t * pParams )
 {
+    memset( pParams, 0, sizeof(Fraig_Params_t) );
     pParams->nPatsRand  = FRAIG_PATTERNS_RANDOM;  // the number of words of random simulation info
     pParams->nPatsDyna  = FRAIG_PATTERNS_DYNAMIC; // the number of words of dynamic simulation info
     pParams->nBTLimit   = 99;                     // the max number of backtracks to perform

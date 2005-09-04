@@ -279,7 +279,7 @@ float Map_CutRef( Map_Cut_t * pCut, int fPhase )
 
 /**function*************************************************************
 
-  synopsis    [References the cut.]
+  synopsis    [Dereferences the cut.]
 
   description []
                
@@ -298,8 +298,7 @@ float Map_CutDeref( Map_Cut_t * pCut, int fPhase )
   synopsis    [References or dereferences the cut.]
 
   description [This reference part is similar to Cudd_NodeReclaim(). 
-  The dereference part is similar to Cudd_RecursiveDeref(). The
-  area of the inverter is not counted.]
+  The dereference part is similar to Cudd_RecursiveDeref().]
                
   sideeffects []
 
@@ -543,10 +542,10 @@ float Map_MappingGetArea( Map_Man_t * pMan, Map_NodeVec_t * vMapping )
              (pNode->pCutBest[1] == NULL && pNode->nRefAct[1] > 0) )
             Area += pMan->pSuperLib->AreaInv;
     }
-    // add two inverters for each PO buffer
+    // add buffer for each CO driven by a CI
     for ( i = 0; i < pMan->nOutputs; i++ )
         if ( Map_NodeIsVar(pMan->pOutputs[i]) && !Map_IsComplement(pMan->pOutputs[i]) )
-            Area += 2 * pMan->pSuperLib->AreaInv;
+            Area += pMan->pSuperLib->AreaBuf;
     return Area;
 }
 

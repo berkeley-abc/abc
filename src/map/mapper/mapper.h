@@ -101,6 +101,7 @@ extern void            Map_ManSetFanoutViolations( Map_Man_t * p, int nVio );
 extern void            Map_ManSetChoiceNodeNum( Map_Man_t * p, int nChoiceNodes );
 extern void            Map_ManSetChoiceNum( Map_Man_t * p, int nChoices );
 extern void            Map_ManSetVerbose( Map_Man_t * p, int fVerbose );
+extern void            Map_ManSetSwitching( Map_Man_t * p, int fSwitching );
 
 extern Map_Man_t *     Map_NodeReadMan( Map_Node_t * p );
 extern char *          Map_NodeReadData( Map_Node_t * p, int fPhase );
@@ -113,6 +114,7 @@ extern Map_Node_t *    Map_NodeReadTwo( Map_Node_t * p );
 extern void            Map_NodeSetData( Map_Node_t * p, int fPhase, char * pData );
 extern void            Map_NodeSetNextE( Map_Node_t * p, Map_Node_t * pNextE );
 extern void            Map_NodeSetRepr( Map_Node_t * p, Map_Node_t * pRepr );
+extern void            Map_NodeSetSwitching( Map_Node_t * p, float Switching );
 
 extern int             Map_NodeIsConst( Map_Node_t * p );
 extern int             Map_NodeIsVar( Map_Node_t * p );

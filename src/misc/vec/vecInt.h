@@ -82,6 +82,26 @@ static inline Vec_Int_t * Vec_IntAlloc( int nCap )
 
 /**Function*************************************************************
 
+  Synopsis    [Allocates a vector with the given size and cleans it.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Vec_Int_t * Vec_IntStart( int nSize )
+{
+    Vec_Int_t * p;
+    p = Vec_IntAlloc( nSize );
+    p->nSize = nSize;
+    memset( p->pArray, 0, sizeof(int) * nSize );
+    return p;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Creates the vector from an integer array of the given size.]
 
   Description []
@@ -433,6 +453,27 @@ static inline void Vec_IntPushOrder( Vec_Int_t * p, int Entry )
         else
             break;
     p->pArray[i+1] = Entry;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_IntPushUnique( Vec_Int_t * p, int Entry )
+{
+    int i;
+    for ( i = 0; i < p->nSize; i++ )
+        if ( p->pArray[i] == Entry )
+            return 1;
+    Vec_IntPush( p, Entry );
+    return 0;
 }
 
 /**Function*************************************************************

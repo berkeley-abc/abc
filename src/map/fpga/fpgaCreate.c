@@ -65,6 +65,7 @@ void            Fpga_ManSetTimeLimit( Fpga_Man_t * p, float TimeLimit )      { p
 void            Fpga_ManSetChoiceNodeNum( Fpga_Man_t * p, int nChoiceNodes ) { p->nChoiceNodes = nChoiceNodes;  }  
 void            Fpga_ManSetChoiceNum( Fpga_Man_t * p, int nChoices )         { p->nChoices = nChoices;          }   
 void            Fpga_ManSetVerbose( Fpga_Man_t * p, int fVerbose )           { p->fVerbose = fVerbose;          }   
+void            Fpga_ManSetSwitching( Fpga_Man_t * p, int fSwitching )       { p->fSwitching = fSwitching;      }   
 void            Fpga_ManSetLatchNum( Fpga_Man_t * p, int nLatches )          { p->nLatches = nLatches;          }   
 void            Fpga_ManSetName( Fpga_Man_t * p, char * pFileName )          { p->pFileName = pFileName;        }   
 
@@ -104,6 +105,7 @@ void            Fpga_NodeSetData0( Fpga_Node_t * p, char * pData )         { p->
 void            Fpga_NodeSetData1( Fpga_Node_t * p, Fpga_Node_t * pNode )  { p->pLevel = pNode;  }
 void            Fpga_NodeSetNextE( Fpga_Node_t * p, Fpga_Node_t * pNextE ) { p->pNextE = pNextE; }
 void            Fpga_NodeSetRepr( Fpga_Node_t * p, Fpga_Node_t * pRepr )   { p->pRepr = pRepr;   }
+void            Fpga_NodeSetSwitching( Fpga_Node_t * p, float Switching )  { p->Switching = Switching;   }
 
 /**Function*************************************************************
 

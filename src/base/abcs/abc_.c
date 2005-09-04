@@ -1,12 +1,12 @@
 /**CFile****************************************************************
 
-  FileName    [simUnate.c]
+  FileName    [abc_.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
   PackageName [Network and node package.]
 
-  Synopsis    [Simulation to determine unateness of variables.]
+  Synopsis    []
 
   Author      [Alan Mishchenko]
   
@@ -14,12 +14,11 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: simUnate.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: abc_.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
 #include "abc.h"
-#include "sim.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///

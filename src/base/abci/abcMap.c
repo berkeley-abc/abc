@@ -27,7 +27,7 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static Map_Man_t *  Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, int fVerbose );
+static Map_Man_t *  Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, float * pSwitching, int fVerbose );
 static Abc_Ntk_t *  Abc_NtkFromMap( Map_Man_t * pMan, Abc_Ntk_t * pNtk );
 static Abc_Obj_t *  Abc_NodeFromMap_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap, int fPhase );
 static Abc_Obj_t *  Abc_NodeFromMapPhase_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap, int fPhase );
@@ -54,11 +54,14 @@ static Abc_Obj_t *  Abc_NodeFromMapSuperChoice_rec( Abc_Ntk_t * pNtkNew, Map_Sup
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, int fVerbose )
+Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, int fSwitching, int fVerbose )
 {
     int fCheck = 1;
     Abc_Ntk_t * pNtkNew;
     Map_Man_t * pMan;
+    Vec_Int_t * vSwitching;
+    float * pSwitching = NULL;
+    int fShowSwitching = 0;
     int clk;
 
     assert( Abc_NtkIsStrash(pNtk) );
@@ -82,11 +85,22 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, int
     if ( Abc_NtkGetChoiceNum( pNtk ) )
         printf( "Performing mapping with choices.\n" );
 
+    // compute switching activity
+    fShowSwitching |= fSwitching;
+    if ( fShowSwitching )
+    {
+        extern Vec_Int_t * Sim_NtkComputeSwitching( Abc_Ntk_t * pNtk, int nPatterns );
+        vSwitching = Sim_NtkComputeSwitching( pNtk, 4096 );
+        pSwitching = (float *)vSwitching->pArray;
+    }
+
     // perform the mapping
-    pMan = Abc_NtkToMap( pNtk, DelayTarget, fRecovery, fVerbose );
+    pMan = Abc_NtkToMap( pNtk, DelayTarget, fRecovery, pSwitching, fVerbose );
+    if ( pSwitching ) Vec_IntFree( vSwitching );
     if ( pMan == NULL )
         return NULL;
 clk = clock();
+    Map_ManSetSwitching( pMan, fSwitching );
     if ( !Map_Mapping( pMan ) )
     {
         Map_ManFree( pMan );
@@ -121,7 +135,7 @@ clk = clock();
   SeeAlso     []
 
 ***********************************************************************/
-Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, int fVerbose )
+Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, float * pSwitching, int fVerbose )
 {
     Map_Man_t * pMan;
     ProgressBar * pProgress;
@@ -144,7 +158,12 @@ Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, i
     // create PIs and remember them in the old nodes
     Abc_NtkCleanCopy( pNtk );
     Abc_NtkForEachCi( pNtk, pNode, i )
-        pNode->pCopy = (Abc_Obj_t *)Map_ManReadInputs(pMan)[i];
+    {
+        pNodeMap = Map_ManReadInputs(pMan)[i];
+        pNode->pCopy = (Abc_Obj_t *)pNodeMap;
+        if ( pSwitching )
+            Map_NodeSetSwitching( pNodeMap, pSwitching[pNode->Id] );
+    }
 
     // load the AIG into the mapper
     vNodes = Abc_AigDfs( pNtk, 0, 0 );
@@ -165,6 +184,8 @@ Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, i
         assert( pNode->pCopy == NULL );
         // remember the node
         pNode->pCopy = (Abc_Obj_t *)pNodeMap;
+        if ( pSwitching )
+            Map_NodeSetSwitching( pNodeMap, pSwitching[pNode->Id] );
         // set up the choice node
         if ( Abc_NodeIsAigChoice( pNode ) )
             for ( pPrev = pNode, pFanin = pNode->pData; pFanin; pPrev = pFanin, pFanin = pFanin->pData )
@@ -224,8 +245,8 @@ Abc_Ntk_t * Abc_NtkFromMap( Map_Man_t * pMan, Abc_Ntk_t * pNtk )
     Extra_ProgressBarStop( pProgress );
     // decouple the PO driver nodes to reduce the number of levels
     nDupGates = Abc_NtkLogicMakeSimpleCos( pNtkNew, 1 );
-    if ( nDupGates && Map_ManReadVerbose(pMan) )
-        printf( "Duplicated %d gates to decouple the PO drivers.\n", nDupGates );
+//    if ( nDupGates && Map_ManReadVerbose(pMan) )
+//        printf( "Duplicated %d gates to decouple the CO drivers.\n", nDupGates );
     return pNtkNew;
 }
 
@@ -446,7 +467,7 @@ Abc_Ntk_t * Abc_NtkSuperChoice( Abc_Ntk_t * pNtk )
         printf( "Performing mapping with choices.\n" );
 
     // perform the mapping
-    pMan = Abc_NtkToMap( pNtk, -1, 1, 0 );
+    pMan = Abc_NtkToMap( pNtk, -1, 1, NULL, 0 );
     if ( pMan == NULL )
         return NULL;
     if ( !Map_Mapping( pMan ) )

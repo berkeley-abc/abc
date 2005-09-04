@@ -25,8 +25,8 @@
 ////////////////////////////////////////////////////////////////////////
  
 static void        Abc_NtkBalancePerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig, bool fDuplicate );
-static Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, bool fDuplicate );
-static Vec_Ptr_t * Abc_NodeBalanceCone( Abc_Obj_t * pNode, int fDuplicate );
+static Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, Vec_Vec_t * vStorage, bool fDuplicate );
+static Vec_Ptr_t * Abc_NodeBalanceCone( Abc_Obj_t * pNode, Vec_Vec_t * vSuper, int fDuplicate );
 static int         Abc_NodeBalanceCone_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vSuper, bool fFirst, bool fDuplicate );
 
 ////////////////////////////////////////////////////////////////////////
@@ -78,6 +78,7 @@ void Abc_NtkBalancePerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig, bool fDuplica
 {
     int fCheck = 1;
     ProgressBar * pProgress;
+    Vec_Vec_t * vStorage;
     Abc_Obj_t * pNode, * pDriver;
     int i;
 
@@ -85,6 +86,8 @@ void Abc_NtkBalancePerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig, bool fDuplica
     Abc_AigConst1(pNtk->pManFunc)->pCopy = Abc_AigConst1(pNtkAig->pManFunc);
     // set the level of PIs of AIG according to the arrival times of the old network
     Abc_NtkSetNodeLevelsArrival( pNtk );
+    // allocate temporary storage for supergates
+    vStorage = Vec_VecStart( Abc_AigGetLevelNum(pNtk) + 1 );
     // perform balancing of POs
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pNode, i )
@@ -92,9 +95,10 @@ void Abc_NtkBalancePerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig, bool fDuplica
         Extra_ProgressBarUpdate( pProgress, i, NULL );
         // strash the driver node
         pDriver = Abc_ObjFanin0(pNode);
-        Abc_NodeBalance_rec( pNtkAig, pDriver, fDuplicate );
+        Abc_NodeBalance_rec( pNtkAig, pDriver, vStorage, fDuplicate );
     }
     Extra_ProgressBarStop( pProgress );
+    Vec_VecFree( vStorage );
 }
 
 /**Function*************************************************************
@@ -108,7 +112,7 @@ void Abc_NtkBalancePerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig, bool fDuplica
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, bool fDuplicate )
+Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, Vec_Vec_t * vStorage, bool fDuplicate )
 {
     Abc_Aig_t * pMan = pNtkNew->pManFunc;
     Abc_Obj_t * pNodeNew, * pNode1, * pNode2;
@@ -120,17 +124,16 @@ Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, bool
         return pNodeOld->pCopy;
     assert( Abc_ObjIsNode(pNodeOld) );
     // get the implication supergate
-    vSuper = Abc_NodeBalanceCone( pNodeOld, fDuplicate );
+    vSuper = Abc_NodeBalanceCone( pNodeOld, vStorage, fDuplicate );
     if ( vSuper->nSize == 0 )
     { // it means that the supergate contains two nodes in the opposite polarity
-        Vec_PtrFree( vSuper );
         pNodeOld->pCopy = Abc_ObjNot(Abc_AigConst1(pMan));
         return pNodeOld->pCopy;
     }
     // for each old node, derive the new well-balanced node
     for ( i = 0; i < vSuper->nSize; i++ )
     {
-        pNodeNew = Abc_NodeBalance_rec( pNtkNew, Abc_ObjRegular(vSuper->pArray[i]), fDuplicate );
+        pNodeNew = Abc_NodeBalance_rec( pNtkNew, Abc_ObjRegular(vSuper->pArray[i]), vStorage, fDuplicate );
         vSuper->pArray[i] = Abc_ObjNotCond( pNodeNew, Abc_ObjIsComplement(vSuper->pArray[i]) );
     }
     // sort the new nodes by level in the decreasing order
@@ -147,7 +150,6 @@ Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, bool
     assert( pNodeOld->pCopy == NULL );
     // mark the old node with the new node
     pNodeOld->pCopy = vSuper->pArray[0];
-    Vec_PtrFree( vSuper );
     return pNodeOld->pCopy;
 }
 
@@ -164,12 +166,13 @@ Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, bool
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Abc_NodeBalanceCone( Abc_Obj_t * pNode, int fDuplicate )
+Vec_Ptr_t * Abc_NodeBalanceCone( Abc_Obj_t * pNode, Vec_Vec_t * vStorage, int fDuplicate )
 {
     Vec_Ptr_t * vNodes;
     int RetValue, i;
     assert( !Abc_ObjIsComplement(pNode) );
-    vNodes = Vec_PtrAlloc( 4 );
+    vNodes = Vec_VecEntry( vStorage, pNode->Level );
+    Vec_PtrClear( vNodes );
     RetValue = Abc_NodeBalanceCone_rec( pNode, vNodes, 1, fDuplicate );
     assert( vNodes->nSize > 0 );
     for ( i = 0; i < vNodes->nSize; i++ )

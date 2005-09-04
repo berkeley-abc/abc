@@ -91,6 +91,7 @@ extern void            Fpga_ManSetFanoutViolations( Fpga_Man_t * p, int nVio );
 extern void            Fpga_ManSetChoiceNodeNum( Fpga_Man_t * p, int nChoiceNodes );
 extern void            Fpga_ManSetChoiceNum( Fpga_Man_t * p, int nChoices );
 extern void            Fpga_ManSetVerbose( Fpga_Man_t * p, int fVerbose );
+extern void            Fpga_ManSetSwitching( Fpga_Man_t * p, int fSwitching );
 extern void            Fpga_ManSetLatchNum( Fpga_Man_t * p, int nLatches );
 extern void            Fpga_ManSetName( Fpga_Man_t * p, char * pFileName );
 
@@ -110,6 +111,7 @@ extern void            Fpga_NodeSetData1( Fpga_Node_t * p, Fpga_Node_t * pNode )
 extern void            Fpga_NodeSetArrival( Fpga_Node_t * p, float Time );
 extern void            Fpga_NodeSetNextE( Fpga_Node_t * p, Fpga_Node_t * pNextE );
 extern void            Fpga_NodeSetRepr( Fpga_Node_t * p, Fpga_Node_t * pRepr );
+extern void            Fpga_NodeSetSwitching( Fpga_Node_t * p, float Switching );
 
 extern int             Fpga_NodeIsConst( Fpga_Node_t * p );
 extern int             Fpga_NodeIsVar( Fpga_Node_t * p );

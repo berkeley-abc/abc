@@ -9,6 +9,7 @@ SRC +=  src/map/mapper/mapper.c \
     src/map/mapper/mapperMatch.c \
     src/map/mapper/mapperRefs.c \
     src/map/mapper/mapperSuper.c \
+    src/map/mapper/mapperSwitch.c \
     src/map/mapper/mapperTable.c \
     src/map/mapper/mapperTime.c \
     src/map/mapper/mapperTree.c \

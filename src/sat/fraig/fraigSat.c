@@ -122,11 +122,23 @@ void Fraig_ManProveMiter( Fraig_Man_t * p )
 ***********************************************************************/
 int Fraig_ManCheckMiter( Fraig_Man_t * p )
 {
-    if ( p->vOutputs->pArray[0] == Fraig_Not(p->pConst1) )
-        return 1;
-    // save the counter example
+    Fraig_Node_t * pNode;
     FREE( p->pModel );
-    p->pModel = Fraig_ManSaveCounterExample( p, Fraig_Regular(p->vOutputs->pArray[0]) );
+    // get the output node (it can be complemented!)
+    pNode = p->vOutputs->pArray[0];
+    // if the miter is constant 0, the problem is UNSAT
+    if ( pNode == Fraig_Not(p->pConst1) )
+        return 1;
+    // consider the special case when the miter is constant 1
+    if ( pNode == p->pConst1 )
+    {
+        // in this case, any counter example will do to distinquish it from constant 0
+        // here we pick the counter example composed of all zeros
+        p->pModel = Fraig_ManAllocCounterExample( p );
+        return 0;
+    }
+    // save the counter example
+    p->pModel = Fraig_ManSaveCounterExample( p, pNode );
     // if the model is not found, return undecided
     if ( p->pModel == NULL )
         return -1;

@@ -69,6 +69,7 @@ void            Map_ManSetFanoutViolations( Map_Man_t * p, int nVio )   { p->nFa
 void            Map_ManSetChoiceNodeNum( Map_Man_t * p, int nChoiceNodes ) { p->nChoiceNodes = nChoiceNodes; }  
 void            Map_ManSetChoiceNum( Map_Man_t * p, int nChoices )         { p->nChoices = nChoices; }   
 void            Map_ManSetVerbose( Map_Man_t * p, int fVerbose )           { p->fVerbose = fVerbose; }   
+void            Map_ManSetSwitching( Map_Man_t * p, int fSwitching )       { p->fSwitching = fSwitching; }   
 
 /**Function*************************************************************
 
@@ -90,8 +91,9 @@ Map_Cut_t *     Map_NodeReadCutBest( Map_Node_t * p, int fPhase )     { return p
 Map_Node_t *    Map_NodeReadOne( Map_Node_t * p )                     { return p->p1;                 }
 Map_Node_t *    Map_NodeReadTwo( Map_Node_t * p )                     { return p->p2;                 }
 void            Map_NodeSetData( Map_Node_t * p, int fPhase, char * pData ) { if (fPhase) p->pData1 = pData; else p->pData0 = pData; }
-void            Map_NodeSetNextE( Map_Node_t * p, Map_Node_t * pNextE )     { p->pNextE = pNextE;  }
-void            Map_NodeSetRepr( Map_Node_t * p, Map_Node_t * pRepr )       { p->pRepr = pRepr;    }
+void            Map_NodeSetNextE( Map_Node_t * p, Map_Node_t * pNextE )     { p->pNextE = pNextE;       }
+void            Map_NodeSetRepr( Map_Node_t * p, Map_Node_t * pRepr )       { p->pRepr = pRepr;         }
+void            Map_NodeSetSwitching( Map_Node_t * p, float Switching )     { p->Switching = Switching; }
 
 /**Function*************************************************************
 

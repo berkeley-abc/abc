@@ -46,9 +46,10 @@
 ***********************************************************************/
 int Map_Mapping( Map_Man_t * p )
 {
+    int fShowSwitching         = 0;
     int fUseAreaFlow           = 1;
-    int fUseExactArea          = 1;
-    int fUseExactAreaWithPhase = 1;
+    int fUseExactArea          = !p->fSwitching;
+    int fUseExactAreaWithPhase = !p->fSwitching;
     int clk;
 
     //////////////////////////////////////////////////////////////////////
@@ -83,8 +84,10 @@ int Map_Mapping( Map_Man_t * p )
     p->AreaBase = Map_MappingGetArea( p, p->vMapping );
 if ( p->fVerbose )
 {
-printf( "Delay    : Delay = %5.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
-                    p->fRequiredGlo, Map_MappingGetAreaFlow(p), p->AreaBase, 0.0 );
+printf( "Delay    : %s = %8.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
+                    fShowSwitching? "Switch" : "Delay", 
+                    fShowSwitching? Map_MappingGetSwitching(p,p->vMapping) : p->fRequiredGlo, 
+                    Map_MappingGetAreaFlow(p), p->AreaBase, 0.0 );
 PRT( "Time", p->timeMatch );
 }
     //////////////////////////////////////////////////////////////////////
@@ -97,7 +100,7 @@ PRT( "Time", p->timeMatch );
     clk = clock();
     if ( fUseAreaFlow )
     {
-        // compute the required times and the fanouts
+        // compute the required times
         Map_TimeComputeRequiredGlobal( p );
         // recover area flow
         p->fMappingMode = 1;
@@ -107,8 +110,10 @@ PRT( "Time", p->timeMatch );
         p->AreaFinal = Map_MappingGetArea( p, p->vMapping );
 if ( p->fVerbose )
 {
-printf( "AreaFlow : Delay = %5.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
-                    p->fRequiredGlo, Map_MappingGetAreaFlow(p), p->AreaFinal, 
+printf( "AreaFlow : %s = %8.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
+                    fShowSwitching? "Switch" : "Delay", 
+                    fShowSwitching? Map_MappingGetSwitching(p,p->vMapping) : p->fRequiredGlo, 
+                    Map_MappingGetAreaFlow(p), p->AreaFinal, 
                     100.0*(p->AreaBase-p->AreaFinal)/p->AreaBase );
 PRT( "Time", clock() - clk );
 }
@@ -121,9 +126,9 @@ PRT( "Time", clock() - clk );
     clk = clock();
     if ( fUseExactArea )
     {
-        // compute the required times and the fanouts
+        // compute the required times
         Map_TimeComputeRequiredGlobal( p );
-        // recover area flow
+        // recover area
         p->fMappingMode = 2;
         Map_MappingMatches( p );
         // compute the references and collect the nodes used in the mapping
@@ -131,8 +136,10 @@ PRT( "Time", clock() - clk );
         p->AreaFinal = Map_MappingGetArea( p, p->vMapping );
 if ( p->fVerbose )
 {
-printf( "Area     : Delay = %5.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
-                    p->fRequiredGlo, 0.0, p->AreaFinal, 
+printf( "Area     : %s = %8.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
+                    fShowSwitching? "Switch" : "Delay", 
+                    fShowSwitching? Map_MappingGetSwitching(p,p->vMapping) : p->fRequiredGlo, 
+                    0.0, p->AreaFinal, 
                     100.0*(p->AreaBase-p->AreaFinal)/p->AreaBase );
 PRT( "Time", clock() - clk );
 }
@@ -145,9 +152,9 @@ PRT( "Time", clock() - clk );
     clk = clock();
     if ( fUseExactAreaWithPhase )
     {
-        // compute the required times and the fanouts
+        // compute the required times
         Map_TimeComputeRequiredGlobal( p );
-        // recover area flow
+        // recover area
         p->fMappingMode = 3;
         Map_MappingMatches( p );
         // compute the references and collect the nodes used in the mapping
@@ -155,8 +162,54 @@ PRT( "Time", clock() - clk );
         p->AreaFinal = Map_MappingGetArea( p, p->vMapping );
 if ( p->fVerbose )
 {
-printf( "Area     : Delay = %5.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
-                    p->fRequiredGlo, 0.0, p->AreaFinal, 
+printf( "Area     : %s = %8.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
+                    fShowSwitching? "Switch" : "Delay", 
+                    fShowSwitching? Map_MappingGetSwitching(p,p->vMapping) : p->fRequiredGlo, 
+                    0.0, p->AreaFinal, 
+                    100.0*(p->AreaBase-p->AreaFinal)/p->AreaBase );
+PRT( "Time", clock() - clk );
+}
+    }
+    p->timeArea += clock() - clk;
+    //////////////////////////////////////////////////////////////////////
+
+    //////////////////////////////////////////////////////////////////////
+    // perform area recovery using exact area
+    clk = clock();
+    if ( p->fSwitching )
+    {
+        // compute the required times
+        Map_TimeComputeRequiredGlobal( p );
+        // recover switching activity
+        p->fMappingMode = 4;
+        Map_MappingMatches( p );
+        // compute the references and collect the nodes used in the mapping
+        Map_MappingSetRefs( p );
+        p->AreaFinal = Map_MappingGetArea( p, p->vMapping );
+if ( p->fVerbose )
+{
+printf( "Switching: %s = %8.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
+                    fShowSwitching? "Switch" : "Delay", 
+                    fShowSwitching? Map_MappingGetSwitching(p,p->vMapping) : p->fRequiredGlo, 
+                    0.0, p->AreaFinal, 
+                    100.0*(p->AreaBase-p->AreaFinal)/p->AreaBase );
+PRT( "Time", clock() - clk );
+}
+
+        // compute the required times
+        Map_TimeComputeRequiredGlobal( p );
+        // recover switching activity
+        p->fMappingMode = 4;
+        Map_MappingMatches( p );
+        // compute the references and collect the nodes used in the mapping
+        Map_MappingSetRefs( p );
+        p->AreaFinal = Map_MappingGetArea( p, p->vMapping );
+if ( p->fVerbose )
+{
+printf( "Switching: %s = %8.2f  Flow = %11.1f  Area = %11.1f  %4.1f %%   ", 
+                    fShowSwitching? "Switch" : "Delay", 
+                    fShowSwitching? Map_MappingGetSwitching(p,p->vMapping) : p->fRequiredGlo, 
+                    0.0, p->AreaFinal, 
                     100.0*(p->AreaBase-p->AreaFinal)/p->AreaBase );
 PRT( "Time", clock() - clk );
 }
