@@ -26,11 +26,62 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static Abc_Frame_t * Abc_FrameGlobalFrame = 0;
+static Abc_Frame_t * s_GlobalFrame = NULL;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [APIs to access parameters in the flobal frame.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_FrameReadNtkStore()                  { return s_GlobalFrame->pStored;      } 
+int         Abc_FrameReadNtkStoreSize()              { return s_GlobalFrame->nStored;      }
+void *      Abc_FrameReadLibLut()                    { return s_GlobalFrame->pLibLut;      } 
+void *      Abc_FrameReadLibGen()                    { return s_GlobalFrame->pLibGen;      } 
+void *      Abc_FrameReadLibSuper()                  { return s_GlobalFrame->pLibSuper;    } 
+void *      Abc_FrameReadManDd()                     { return s_GlobalFrame->dd;           } 
+void *      Abc_FrameReadManDec()                    { return s_GlobalFrame->pManDec;      } 
+char *      Abc_FrameReadFlag( char * pFlag )        { return Cmd_FlagReadByName( s_GlobalFrame, pFlag );  } 
+
+void        Abc_FrameSetNtkStore( Abc_Ntk_t * pNtk ) { s_GlobalFrame->pStored  = pNtk;     } 
+void        Abc_FrameSetNtkStoreSize( int nStored )  { s_GlobalFrame->nStored  = nStored;  }
+void        Abc_FrameSetLibLut( void * pLib )        { s_GlobalFrame->pLibLut   = pLib;    } 
+void        Abc_FrameSetLibGen( void * pLib )        { s_GlobalFrame->pLibGen   = pLib;    } 
+void        Abc_FrameSetLibSuper( void * pLib )      { s_GlobalFrame->pLibSuper = pLib;    } 
+void        Abc_FrameSetFlag( char * pFlag, char * pValue )  { Cmd_FlagUpdateValue( s_GlobalFrame, pFlag, pValue );  } 
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if the flag is enabled without value or with value 1.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+bool Abc_FrameIsFlagEnabled( char * pFlag )
+{
+    char * pValue;
+    // if flag is not defined, it is not enabled
+    pValue = Abc_FrameReadFlag( pFlag );
+    if ( pValue == NULL )
+        return 0;
+    // if flag is defined but value is not empty (no parameter) or "1", it is not enabled
+    if ( strcmp(pValue, "") && strcmp(pValue, "1") )
+        return 0;
+    return 1;
+}
 
 /**Function*************************************************************
 
@@ -311,7 +362,7 @@ void Abc_FrameReplaceCurrentNetwork( Abc_Frame_t * p, Abc_Ntk_t * pNtk )
         return;
 
     // transfer the parameters to the new network
-    if ( p->pNtkCur )
+    if ( p->pNtkCur && Abc_FrameIsFlagEnabled( "backup" ) )
     {
         Abc_NtkSetBackup( pNtk, Abc_NtkBackup(p->pNtkCur) );
         Abc_NtkSetStep( pNtk, Abc_NtkStep(p->pNtkCur) );
@@ -322,6 +373,9 @@ void Abc_FrameReplaceCurrentNetwork( Abc_Frame_t * p, Abc_Ntk_t * pNtk )
     {
         Abc_NtkSetBackup( pNtk, NULL );
         Abc_NtkSetStep( pNtk, ++p->nSteps );
+        // delete the current network if present but backup is disabled
+        if ( p->pNtkCur )
+            Abc_NtkDelete( p->pNtkCur );
     }
     // set the new current network
     p->pNtkCur = pNtk;
@@ -385,7 +439,7 @@ void Abc_FrameDeleteAllNetworks( Abc_Frame_t * p )
 ***********************************************************************/
 void Abc_FrameSetGlobalFrame( Abc_Frame_t * p )
 {
-    Abc_FrameGlobalFrame = p;
+    s_GlobalFrame = p;
 }
 
 /**Function*************************************************************
@@ -401,42 +455,16 @@ void Abc_FrameSetGlobalFrame( Abc_Frame_t * p )
 ***********************************************************************/
 Abc_Frame_t * Abc_FrameGetGlobalFrame()
 {
-    if ( Abc_FrameGlobalFrame == 0 )
+    if ( s_GlobalFrame == 0 )
     {
         // start the framework
-        Abc_FrameGlobalFrame = Abc_FrameAllocate();
+        s_GlobalFrame = Abc_FrameAllocate();
         // perform initializations
-        Abc_FrameInit( Abc_FrameGlobalFrame );
+        Abc_FrameInit( s_GlobalFrame );
     }
-    return Abc_FrameGlobalFrame;
+    return s_GlobalFrame;
 }
 
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Ntk_t * Abc_FrameReadNtkStore       ( Abc_Frame_t * pFrame )                     { return pFrame->pStored;    } 
-int         Abc_FrameReadNtkStoreSize   ( Abc_Frame_t * pFrame )                     { return pFrame->nStored;    }
-void        Abc_FrameSetNtkStore        ( Abc_Frame_t * pFrame, Abc_Ntk_t * pNtk )   { pFrame->pStored  = pNtk;   } 
-void        Abc_FrameSetNtkStoreSize    ( Abc_Frame_t * pFrame, int nStored )        { pFrame->nStored  = nStored;}
-
-void *      Abc_FrameReadLibLut         ( Abc_Frame_t * pFrame )                     { return pFrame->pLibLut;    } 
-void *      Abc_FrameReadLibGen         ( Abc_Frame_t * pFrame )                     { return pFrame->pLibGen;    } 
-void *      Abc_FrameReadLibSuper       ( Abc_Frame_t * pFrame )                     { return pFrame->pLibSuper;  } 
-void        Abc_FrameSetLibLut          ( Abc_Frame_t * pFrame, void * pLib )        { pFrame->pLibLut   = pLib;  } 
-void        Abc_FrameSetLibGen          ( Abc_Frame_t * pFrame, void * pLib )        { pFrame->pLibGen   = pLib;  } 
-void        Abc_FrameSetLibSuper        ( Abc_Frame_t * pFrame, void * pLib )        { pFrame->pLibSuper = pLib;  } 
-
-void *      Abc_FrameReadManDd          ( Abc_Frame_t * pFrame )                     { return pFrame->dd;         } 
-void *      Abc_FrameReadManDec         ( Abc_Frame_t * pFrame )                     { return pFrame->pManDec;    } 
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

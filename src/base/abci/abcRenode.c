@@ -6,7 +6,7 @@
 
   PackageName [Network and node package.]
 
-  Synopsis    [Procedures which transform an AIG into the network of nodes.]
+  Synopsis    [Procedures which transform an AIG into the network of SOP logic nodes.]
 
   Author      [Alan Mishchenko]
   
@@ -52,7 +52,6 @@ static void        Abc_NtkRenodeCone( Abc_Obj_t * pNode, Vec_Ptr_t * vCone );
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax, int fCnf, int fMulti, int fSimple )
 {
-    int fCheck = 1;
     Abc_Ntk_t * pNtkNew;
 
     assert( Abc_NtkIsStrash(pNtk) );
@@ -93,7 +92,7 @@ Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax, int fCn
 //printf( "Maximum fanin = %d.\n", Abc_NtkGetFaninMax(pNtkNew) );
 
     // make sure everything is okay
-    if ( fCheck && !Abc_NtkCheck( pNtkNew ) )
+    if ( !Abc_NtkCheck( pNtkNew ) )
     {
         printf( "Abc_NtkRenode: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );

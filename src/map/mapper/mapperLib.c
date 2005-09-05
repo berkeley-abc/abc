@@ -139,15 +139,9 @@ void Map_SuperLibFree( Map_SuperLib_t * p )
     if ( p == NULL ) return;
     if ( p->pGenlib )
     {
-//        if ( s_pLib == p->pGenlib )
-//            s_pLib = NULL;
-//        if ( Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()) == p->pGenlib )
-//            Abc_FrameSetLibGen(Abc_FrameGetGlobalFrame(), NULL);
-//        Mio_LibraryDelete( p->pGenlib );
-
-        assert( p->pGenlib == Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()) );
+        assert( p->pGenlib == Abc_FrameReadLibGen() );
         Mio_LibraryDelete( p->pGenlib );
-        Abc_FrameSetLibGen(Abc_FrameGetGlobalFrame(), NULL);
+        Abc_FrameSetLibGen( NULL );
     }
     if ( p->tTableC )
         Map_SuperTableFree( p->tTableC );

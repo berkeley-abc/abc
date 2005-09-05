@@ -26,7 +26,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 static void Sim_SymmsCreateSquare( Sym_Man_t * p, unsigned * pPat );
-static void Sim_SymmsDeriveInfo( Sym_Man_t * p, unsigned * pPat, Abc_Obj_t * pNode, Extra_BitMat_t * pMatrix, int Output );
+static void Sim_SymmsDeriveInfo( Sym_Man_t * p, unsigned * pPat, Abc_Obj_t * pNode, Vec_Ptr_t * vMatrsNonSym, int Output );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -46,26 +46,36 @@ static void Sim_SymmsDeriveInfo( Sym_Man_t * p, unsigned * pPat, Abc_Obj_t * pNo
 void Sim_SymmsSimulate( Sym_Man_t * p, unsigned * pPat, Vec_Ptr_t * vMatrsNonSym )
 {
     Abc_Obj_t * pNode;
-    int i;
+    int i, nPairsTotal, nPairsSym, nPairsNonSym;
+    int clk;
+
     // create the simulation matrix
     Sim_SymmsCreateSquare( p, pPat );
     // simulate each node in the DFS order
+clk = clock();
     Vec_PtrForEachEntry( p->vNodes, pNode, i )
     {
         if ( Abc_NodeIsConst(pNode) )
             continue;
         Sim_UtilSimulateNodeOne( pNode, p->vSim, p->nSimWords );
     }
+p->timeSim += clock() - clk;
     // collect info into the CO matrices
+clk = clock();
     Abc_NtkForEachCo( p->pNtk, pNode, i )
     {
         pNode = Abc_ObjFanin0(pNode);
         if ( Abc_ObjIsCi(pNode) || Abc_NodeIsConst(pNode) )
             continue;
-        if ( Vec_IntEntry(p->vPairsTotal,i) == Vec_IntEntry(p->vPairsSym,i) + Vec_IntEntry(p->vPairsNonSym,i) )
+        nPairsTotal  = Vec_IntEntry(p->vPairsTotal, i);
+        nPairsSym    = Vec_IntEntry(p->vPairsSym,   i);
+        nPairsNonSym = Vec_IntEntry(p->vPairsNonSym,i);
+        assert( nPairsTotal >= nPairsSym + nPairsNonSym ); 
+        if ( nPairsTotal == nPairsSym + nPairsNonSym )
             continue;
-        Sim_SymmsDeriveInfo( p, pPat, pNode, Vec_PtrEntry(vMatrsNonSym, i), i );
+        Sim_SymmsDeriveInfo( p, pPat, pNode, vMatrsNonSym, i );
     }
+p->timeMatr += clock() - clk;
 }
 
 /**Function*************************************************************
@@ -114,40 +124,44 @@ void Sim_SymmsCreateSquare( Sym_Man_t * p, unsigned * pPat )
   SeeAlso     []
 
 ***********************************************************************/
-void Sim_SymmsDeriveInfo( Sym_Man_t * p, unsigned * pPat, Abc_Obj_t * pNode, Extra_BitMat_t * pMat, int Output )
+void Sim_SymmsDeriveInfo( Sym_Man_t * p, unsigned * pPat, Abc_Obj_t * pNode, Vec_Ptr_t * vMatrsNonSym, int Output )
 {
-    unsigned * pSuppInfo;
+    Extra_BitMat_t * pMat;
+    Vec_Int_t * vSupport;
+    unsigned * pSupport;
     unsigned * pSimInfo;
-    int i, w;
-    // get the simuation info for the node
+    int i, w, Index;
+    // get the matrix, the support, and the simulation info
+    pMat = Vec_PtrEntry( vMatrsNonSym, Output );
+    vSupport = Vec_VecEntry( p->vSupports, Output );
+    pSupport = Vec_PtrEntry( p->vSuppFun, Output );
     pSimInfo = Vec_PtrEntry( p->vSim, pNode->Id );
-    pSuppInfo = Vec_PtrEntry( p->vSuppFun, Output );
     // generate vectors A1 and A2
     for ( w = 0; w < p->nSimWords; w++ )
     {
-        p->uPatCol[w] = pSuppInfo[w] & pPat[w] &  pSimInfo[w];
-        p->uPatRow[w] = pSuppInfo[w] & pPat[w] & ~pSimInfo[w];
+        p->uPatCol[w] = pSupport[w] & pPat[w] &  pSimInfo[w];
+        p->uPatRow[w] = pSupport[w] & pPat[w] & ~pSimInfo[w];
     }
     // add two dimensions
-    for ( i = 0; i < p->nInputs; i++ )
+    Vec_IntForEachEntry( vSupport, i, Index )
         if ( Sim_HasBit( p->uPatCol, i ) )
             Extra_BitMatrixOr( pMat, i, p->uPatRow );
     // add two dimensions
-    for ( i = 0; i < p->nInputs; i++ )
+    Vec_IntForEachEntry( vSupport, i, Index )
         if ( Sim_HasBit( p->uPatRow, i ) )
             Extra_BitMatrixOr( pMat, i, p->uPatCol );
     // generate vectors B1 and B2
     for ( w = 0; w < p->nSimWords; w++ )
     {
-        p->uPatCol[w] = pSuppInfo[w] & ~pPat[w] &  pSimInfo[w];
-        p->uPatRow[w] = pSuppInfo[w] & ~pPat[w] & ~pSimInfo[w];
+        p->uPatCol[w] = pSupport[w] & ~pPat[w] &  pSimInfo[w];
+        p->uPatRow[w] = pSupport[w] & ~pPat[w] & ~pSimInfo[w];
     }
     // add two dimensions
-    for ( i = 0; i < p->nInputs; i++ )
+    Vec_IntForEachEntry( vSupport, i, Index )
         if ( Sim_HasBit( p->uPatCol, i ) )
             Extra_BitMatrixOr( pMat, i, p->uPatRow );
     // add two dimensions
-    for ( i = 0; i < p->nInputs; i++ )
+    Vec_IntForEachEntry( vSupport, i, Index )
         if ( Sim_HasBit( p->uPatRow, i ) )
             Extra_BitMatrixOr( pMat, i, p->uPatCol );
 }

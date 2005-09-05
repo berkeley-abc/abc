@@ -52,8 +52,6 @@ static void Abc_NtkFxuReconstruct( Abc_Ntk_t * pNtk, Fxu_Data_t * p );
 ***********************************************************************/
 bool Abc_NtkFastExtract( Abc_Ntk_t * pNtk, Fxu_Data_t * p )
 {
-    int fCheck = 1;
-
     assert( Abc_NtkIsLogic(pNtk) );
     // convert nodes to SOPs
     if ( Abc_NtkIsMappedLogic(pNtk) )
@@ -81,7 +79,7 @@ bool Abc_NtkFastExtract( Abc_Ntk_t * pNtk, Fxu_Data_t * p )
         // update the network
         Abc_NtkFxuReconstruct( pNtk, p );
         // make sure everything is okay
-        if ( fCheck && !Abc_NtkCheck( pNtk ) )
+        if ( !Abc_NtkCheck( pNtk ) )
             printf( "Abc_NtkFastExtract: The network check has failed.\n" );
         return 1;
     }

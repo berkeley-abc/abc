@@ -110,7 +110,7 @@ int CmdCommandDispatch( Abc_Frame_t * pAbc, int argc, char **argv )
     // get the backup network if the command is going to change the network
     if ( pCommand->fChange ) 
     {
-        if ( pAbc->pNtkCur )
+        if ( pAbc->pNtkCur && Abc_FrameIsFlagEnabled( "backup" ) )
         {
             pNetCopy = Abc_NtkDup( pAbc->pNtkCur );
             Abc_FrameSetCurrentNetwork( pAbc, pNetCopy );
@@ -122,14 +122,9 @@ int CmdCommandDispatch( Abc_Frame_t * pAbc, int argc, char **argv )
 
     // execute the command
     clk = util_cpu_time();
-    pFunc = ( int (*)( Abc_Frame_t *, int, char ** ) ) pCommand->pFunc;
+    pFunc = (int (*)(Abc_Frame_t *, int, char **))pCommand->pFunc;
     fError = (*pFunc)( pAbc, argc, argv );
     pAbc->TimeCommand += (util_cpu_time() - clk);
-
-//    if ( !fError && pCommand->fChange && pAbc->pNtkCur ) 
-//    {
-//    Cmd_HistoryAddSnapshot(pAbc, pAbc->pNet);
-//    }
 
     // automatic execution of arbitrary command after each command 
     // usually this is a passive command ... 
@@ -591,6 +586,62 @@ int CmdCommandPrintCompare( Abc_Command ** ppC1, Abc_Command ** ppC2 )
      // should not be two indentical commands
     assert( 0 );
     return 0;
+}
+ 
+/**Function*************************************************************
+
+  Synopsis    [Comparision function used for sorting commands.]
+
+  Description []
+                
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int CmdNamePrintCompare( char ** ppC1, char ** ppC2 )
+{
+    return strcmp( *ppC1, *ppC2 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Comparision function used for sorting commands.]
+
+  Description []
+                
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void CmdPrintTable( st_table * tTable, int fAliases )
+{
+    st_generator * gen;
+    char ** ppNames;
+    char * key, * value;
+    int nNames, i;
+
+    // collect keys in the array
+    ppNames = ALLOC( char *, st_count(tTable) );
+    nNames = 0;
+    st_foreach_item( tTable, gen, &key, &value )
+        ppNames[nNames++] = key;
+
+    // sort array by name
+    qsort( (void *)ppNames, nNames, sizeof(char *), 
+        (int (*)(const void *, const void *))CmdNamePrintCompare );
+
+    // print in this order
+    for ( i = 0; i < nNames; i++ )
+    {
+        st_lookup( tTable, ppNames[i], &value );
+        if ( fAliases )
+            CmdCommandAliasPrint( Abc_FrameGetGlobalFrame(), (Abc_Alias *)value );
+        else
+            fprintf( stdout, "%-15s %-15s\n", ppNames[i], value );
+    }
+    free( ppNames );
 }
 
 ////////////////////////////////////////////////////////////////////////

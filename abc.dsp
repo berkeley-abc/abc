@@ -1158,6 +1158,10 @@ SOURCE=.\src\opt\sim\simSym.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\opt\sim\simSymSat.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\opt\sim\simSymSim.c
 # End Source File
 # Begin Source File

@@ -60,7 +60,6 @@ static void        Abc_NodeSeqCreateLatches( Abc_Obj_t * pObj, int nLatches );
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkAigToSeq( Abc_Ntk_t * pNtk )
 {
-    int fCheck = 1;
     Abc_Ntk_t * pNtkNew;
     Abc_Aig_t * pManNew;
     Vec_Ptr_t * vNodes;
@@ -176,7 +175,7 @@ printf( "\n" );
 
     if ( pNtk->pExdc )
         fprintf( stdout, "Warning: EXDC is dropped when converting to sequential AIG.\n" );
-    if ( fCheck && !Abc_NtkCheck( pNtkNew ) )
+    if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkAigToSeq(): Network check has failed.\n" );
     return pNtkNew;
 }
@@ -194,7 +193,6 @@ printf( "\n" );
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkSeqToLogicSop( Abc_Ntk_t * pNtk )
 {
-    int fCheck = 1;
     Abc_Ntk_t * pNtkNew; 
     Abc_Obj_t * pObj, * pFanin, * pFaninNew;
     int i, k, c;
@@ -233,7 +231,7 @@ Abc_Ntk_t * Abc_NtkSeqToLogicSop( Abc_Ntk_t * pNtk )
     // duplicate the EXDC network
     if ( pNtk->pExdc )
         fprintf( stdout, "Warning: EXDC network is not copied.\n" );
-    if ( fCheck && !Abc_NtkCheck( pNtkNew ) )
+    if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkSeqToLogic(): Network check has failed.\n" );
     return pNtkNew;
 }

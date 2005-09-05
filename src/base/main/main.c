@@ -231,29 +231,22 @@ usage:
 
   Synopsis    [Returns 1 if s is a file type recognized, else returns 0.]
 
-  Description [Returns 1 if s is a file type recognized by VIS, else returns
-  0. Recognized types are "blif", "blif_mv", "blif_mvs", and "none".]
+  Description [Returns 1 if s is a file type recognized by ABC, else returns 0. 
+  Recognized types are "blif", "bench", "pla", and "none".]
 
   SideEffects []
 
 ******************************************************************************/
-static int
-TypeCheck(
-    Abc_Frame_t * pAbc,
-    char       * s)
+static int TypeCheck( Abc_Frame_t * pAbc, char * s )
 {
-    if (strcmp(s, "blif") == 0) {
+    if (strcmp(s, "blif") == 0)
         return 1;
-    }
-    else if (strcmp(s, "blif_mv") == 0) {
+    else if (strcmp(s, "bench") == 0)
         return 1;
-    }
-    else if (strcmp(s, "blif_mvs") == 0) {
+    else if (strcmp(s, "pla") == 0)
         return 1;
-    }
-    else if (strcmp(s, "none") == 0) {
+    else if (strcmp(s, "none") == 0)
         return 1;
-    }
     else {
         fprintf( pAbc->Err, "unknown type %s\n", s );
         return 0;

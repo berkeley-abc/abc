@@ -36,6 +36,7 @@ typedef struct Fraig_NodeStruct_t_        Fraig_Node_t;
 typedef struct Fraig_NodeVecStruct_t_     Fraig_NodeVec_t;
 typedef struct Fraig_HashTableStruct_t_   Fraig_HashTable_t;
 typedef struct Fraig_ParamsStruct_t_      Fraig_Params_t;
+typedef struct Fraig_PatternsStruct_t_    Fraig_Patterns_t;
 
 struct Fraig_ParamsStruct_t_
 {
@@ -99,6 +100,9 @@ extern int                 Fraig_ManReadDoSparse( Fraig_Man_t * p );
 extern int                 Fraig_ManReadChoicing( Fraig_Man_t * p );      
 extern int                 Fraig_ManReadVerbose( Fraig_Man_t * p );       
 extern int *               Fraig_ManReadModel( Fraig_Man_t * p );
+extern int                 Fraig_ManReadPatternNumRandom( Fraig_Man_t * p );
+extern int                 Fraig_ManReadPatternNumDynamic( Fraig_Man_t * p );
+extern int                 Fraig_ManReadPatternNumDynamicFiltered( Fraig_Man_t * p );
 
 extern void                Fraig_ManSetFuncRed( Fraig_Man_t * p, int fFuncRed );        
 extern void                Fraig_ManSetFeedBack( Fraig_Man_t * p, int fFeedBack );      
@@ -124,6 +128,8 @@ extern int                 Fraig_NodeReadNumRefs( Fraig_Node_t * p );
 extern int                 Fraig_NodeReadNumFanouts( Fraig_Node_t * p );                
 extern int                 Fraig_NodeReadSimInv( Fraig_Node_t * p );                    
 extern int                 Fraig_NodeReadNumOnes( Fraig_Node_t * p );
+extern unsigned *          Fraig_NodeReadPatternsRandom( Fraig_Node_t * p );
+extern unsigned *          Fraig_NodeReadPatternsDynamic( Fraig_Node_t * p );
 
 extern void                Fraig_NodeSetData0( Fraig_Node_t * p, Fraig_Node_t * pData );
 extern void                Fraig_NodeSetData1( Fraig_Node_t * p, Fraig_Node_t * pData );

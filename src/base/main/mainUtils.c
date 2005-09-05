@@ -161,8 +161,14 @@ void Abc_UtilsSource( Abc_Frame_t * pAbc )
     Cmd_CommandExecute( pAbc, "source -s abc.rc" );
     }
 #endif //WIN32
-
-    return;
+    {
+        // reset command history
+        char * pName; 
+        int i;
+        Vec_PtrForEachEntry( pAbc->aHistory, pName, i )
+            free( pName );
+        pAbc->aHistory->nSize = 0;
+    }
 }
 
 /**Function********************************************************************

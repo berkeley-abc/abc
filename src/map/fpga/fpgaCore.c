@@ -97,7 +97,7 @@ int Fpga_Mapping( Fpga_Man_t * p )
 ***********************************************************************/
 int Fpga_MappingPostProcess( Fpga_Man_t * p )
 {
-    int fShowSwitching    = 0;
+    int fShowSwitching    = 1;
     int fRecoverAreaFlow  = 1;
     int fRecoverArea      = 1;
     float aAreaTotalCur, aAreaTotalCur2;

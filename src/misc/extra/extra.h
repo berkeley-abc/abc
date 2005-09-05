@@ -185,6 +185,8 @@ extern void         Extra_BitMatrixDelete2( Extra_BitMat_t * p, int i, int k );
 extern void         Extra_BitMatrixOr( Extra_BitMat_t * p, int i, unsigned * pInfo );
 extern void         Extra_BitMatrixOrTwo( Extra_BitMat_t * p, int i, int j );
 extern int          Extra_BitMatrixCountOnesUpper( Extra_BitMat_t * p );
+extern int          Extra_BitMatrixIsDisjoint( Extra_BitMat_t * p1, Extra_BitMat_t * p2 );
+extern int          Extra_BitMatrixIsClique( Extra_BitMat_t * p );
 
 /*=== extraUtilFile.c ========================================================*/
 

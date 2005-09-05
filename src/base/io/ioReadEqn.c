@@ -61,7 +61,7 @@ Abc_Ntk_t * Io_ReadEqn( char * pFileName, int fCheck )
         return NULL;
 
     // make sure that everything is okay with the network structure
-    if ( fCheck && !Abc_NtkCheck( pNtk ) )
+    if ( fCheck && !Abc_NtkCheckRead( pNtk ) )
     {
         printf( "Io_ReadEqn: The network check has failed.\n" );
         Abc_NtkDelete( pNtk );

@@ -1,12 +1,12 @@
 /**CFile****************************************************************
 
-  FileName    [abcRes.c]
+  FileName    [abcRewrite.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
   PackageName [Network and node package.]
 
-  Synopsis    [Technology-independent resynthesis of the AIG.]
+  Synopsis    [Technology-independent resynthesis of the AIG based on DAG aware rewriting.]
 
   Author      [Alan Mishchenko]
   
@@ -14,13 +14,19 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: abcRes.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: abcRewrite.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
 #include "abc.h"
 #include "rwr.h"
 #include "dec.h"
+
+/*
+    The ideas realized in this package are inspired by the paper:
+    Per Bjesse, Arne Boralv, "DAG-aware circuit compression for 
+    formal verification", Proc. ICCAD 2004, pp. 42-49.
+*/
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -46,7 +52,6 @@ static void        Abc_NodePrintCuts( Abc_Obj_t * pNode );
 ***********************************************************************/
 int Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUseZeros, int fVerbose )
 {
-    int fCheck = 1;
     int fDrop = 0;
     ProgressBar * pProgress;
     Cut_Man_t * pManCut;
@@ -81,6 +86,9 @@ Rwr_ManAddTimeCuts( pManRwr, clock() - clk );
         // skip the constant node
         if ( Abc_NodeIsConst(pNode) )
             continue;
+        // skip the nodes with many fanouts
+        if ( Abc_ObjFanoutNum(pNode) > 1000 )
+            continue;
         // for each cut, try to resynthesize it
         nGain = Rwr_NodeRewrite( pManRwr, pManCut, pNode, fUseZeros );
         if ( nGain > 0 || nGain == 0 && fUseZeros )
@@ -104,7 +112,7 @@ Rwr_ManAddTimeTotal( pManRwr, clock() - clkStart );
     pNtk->pManCut = NULL;
     Abc_NtkStopReverseLevels( pNtk );
     // check
-    if ( fCheck && !Abc_NtkCheck( pNtk ) )
+    if ( !Abc_NtkCheck( pNtk ) )
     {
         printf( "Abc_NtkRewrite: The network check has failed.\n" );
         return 0;

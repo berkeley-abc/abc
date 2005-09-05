@@ -77,7 +77,6 @@ Abc_Ntk_t * Abc_NtkMiter( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb )
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkMiterInt( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb )
 {
-    int fCheck = 1;
     char Buffer[100];
     Abc_Ntk_t * pNtkMiter;
 
@@ -96,7 +95,7 @@ Abc_Ntk_t * Abc_NtkMiterInt( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb )
     Abc_NtkMiterFinalize( pNtk1, pNtk2, pNtkMiter, fComb );
 
     // make sure that everything is okay
-    if ( fCheck && !Abc_NtkCheck( pNtkMiter ) )
+    if ( !Abc_NtkCheck( pNtkMiter ) )
     {
         printf( "Abc_NtkMiter: The network check has failed.\n" );
         Abc_NtkDelete( pNtkMiter );
@@ -312,7 +311,6 @@ void Abc_NtkMiterFinalize( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Abc_Ntk_t * pNt
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkMiterForCofactors( Abc_Ntk_t * pNtk, int Out, int In1, int In2 )
 {
-    int fCheck = 1;
     char Buffer[100];
     Abc_Ntk_t * pNtkMiter;
     Abc_Obj_t * pRoot, * pOutput1, * pOutput2, * pMiter;
@@ -357,7 +355,7 @@ Abc_Ntk_t * Abc_NtkMiterForCofactors( Abc_Ntk_t * pNtk, int Out, int In1, int In
     Abc_ObjAddFanin( Abc_NtkPo(pNtkMiter,0), pMiter );
 
     // make sure that everything is okay
-    if ( fCheck && !Abc_NtkCheck( pNtkMiter ) )
+    if ( !Abc_NtkCheck( pNtkMiter ) )
     {
         printf( "Abc_NtkMiter: The network check has failed.\n" );
         Abc_NtkDelete( pNtkMiter );
@@ -470,7 +468,6 @@ void Abc_NtkMiterReport( Abc_Ntk_t * pMiter )
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkFrames( Abc_Ntk_t * pNtk, int nFrames, int fInitial )
 {
-    int fCheck = 1;
     char Buffer[100];
     ProgressBar * pProgress;
     Abc_Ntk_t * pNtkFrames;
@@ -531,7 +528,7 @@ Abc_Ntk_t * Abc_NtkFrames( Abc_Ntk_t * pNtk, int nFrames, int fInitial )
         }
     }
     // make sure that everything is okay
-    if ( fCheck && !Abc_NtkCheck( pNtkFrames ) )
+    if ( !Abc_NtkCheck( pNtkFrames ) )
     {
         printf( "Abc_NtkFrames: The network check has failed.\n" );
         Abc_NtkDelete( pNtkFrames );

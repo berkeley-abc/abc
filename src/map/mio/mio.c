@@ -83,7 +83,7 @@ void Mio_Init( Abc_Frame_t * pAbc )
     fclose( pFile );
     // read genlib from file
     pLibGen = Mio_LibraryRead( pAbc, pFileTemp, NULL, 0 );
-    Abc_FrameSetLibGen( pAbc, pLibGen );
+    Abc_FrameSetLibGen( pLibGen );
 #ifdef WIN32
         _unlink( pFileTemp );
 #else
@@ -186,15 +186,15 @@ int Mio_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
         extern void Map_SuperLibFree( Map_SuperLib_t * p );
 //        Map_SuperLibFree( s_pSuperLib );
 //        s_pSuperLib = NULL;
-        Map_SuperLibFree( Abc_FrameReadLibSuper(Abc_FrameGetGlobalFrame()) );
-        Abc_FrameSetLibSuper(Abc_FrameGetGlobalFrame(), NULL);
+        Map_SuperLibFree( Abc_FrameReadLibSuper() );
+        Abc_FrameSetLibSuper( NULL );
     }
 
     // replace the current library
 //    Mio_LibraryDelete( s_pLib );
 //    s_pLib = pLib;
-    Mio_LibraryDelete( Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()) );
-    Abc_FrameSetLibGen( Abc_FrameGetGlobalFrame(), pLib );
+    Mio_LibraryDelete( Abc_FrameReadLibGen() );
+    Abc_FrameSetLibGen( pLib );
     return 0;
 
 usage:

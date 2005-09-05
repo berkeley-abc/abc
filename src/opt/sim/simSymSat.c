@@ -20,13 +20,14 @@
 
 #include "abc.h"
 #include "sim.h"
+#include "fraig.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static int   Fraig_SymmsSatProveOne( Fraig_Man_t * p, int Var1, int Var2 );
-static int   Fraig_SymmsIsCliqueMatrix( Fraig_Man_t * p, Extra_BitMat_t * pMat );
+extern int Sim_SymmsSatProveOne( Sym_Man_t * p, int Out, int Var1, int Var2, unsigned * pPattern );
+extern Fraig_Man_t * Abc_NtkToFraig( Abc_Ntk_t * pNtk, Fraig_Params_t * pParams, int fAllNodes );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -34,95 +35,88 @@ static int   Fraig_SymmsIsCliqueMatrix( Fraig_Man_t * p, Extra_BitMat_t * pMat )
 
 /**Function*************************************************************
 
-  Synopsis    [Performs the SAT based check.]
+  Synopsis    [Tries to prove the remaining pairs using SAT.]
 
-  Description [Given two bit matrices, with symm info and non-symm info, 
-  checks the remaining pairs.]
+  Description [Continues to prove as long as it encounters symmetric pairs.
+  Returns 1 if a non-symmetric pair is found (which gives a counter-example).
+  Returns 0 if it finishes considering all pairs for all outputs.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-void Fraig_SymmsSatComputeOne( Fraig_Man_t * p, Extra_BitMat_t * pMatSym, Extra_BitMat_t * pMatNonSym )
+int Sim_SymmsGetPatternUsingSat( Sym_Man_t * p, unsigned * pPattern )
 {
-    int VarsU[512], VarsV[512];
-    int nVarsU, nVarsV;
-    int v, u, i, k;
-    int Counter = 0;
-    int satCalled = 0;
-    int satProved = 0;
-    double Density;
-    int clk = clock();
+    Vec_Int_t * vSupport;
+    Extra_BitMat_t * pMatSym, * pMatNonSym;
+    int Index1, Index2, Index3, IndexU, IndexV;
+    int v, u, i, k, b, out;
 
-    extern int symsSat;
-    extern int Fraig_CountBits( Fraig_Man_t * pMan, Fraig_Node_t * pNode );
-
-
-    // count undecided pairs
-    for ( v = 0; v < p->vInputs->nSize; v++ )
-    for ( u = v+1; u < p->vInputs->nSize; u++ )
+    // iterate through outputs
+    for ( out = p->iOutput; out < p->nOutputs; out++ )
     {
-        if ( Extra_BitMatrixLookup1( pMatSym, v, u ) || Extra_BitMatrixLookup1( pMatNonSym, v, u ) )
-            continue;
-        Counter++;
-    }
-    // compute the density of 1's in the input space of the functions
-    Density = (double)Fraig_CountBits(p, Fraig_Regular(p->vOutputs->pArray[0])) * 100.0 / FRAIG_SIM_ROUNDS / 32;
+        pMatSym    = Vec_PtrEntry( p->vMatrSymms,    out );
+        pMatNonSym = Vec_PtrEntry( p->vMatrNonSymms, out );
 
-    printf( "Ins = %3d. Pairs to test = %4d. Dens = %5.2f %%. ", 
-        p->vInputs->nSize, Counter, Density );
-
-
-    // go through the remaining variable pairs
-    for ( v = 0; v < p->vInputs->nSize; v++ )
-    for ( u = v+1; u < p->vInputs->nSize; u++ )
-    {
-        if ( Extra_BitMatrixLookup1( pMatSym, v, u ) || Extra_BitMatrixLookup1( pMatNonSym, v, u ) )
-            continue;
-        symsSat++;
-        satCalled++;
-
-        // collect the variables that are symmetric with each
-        nVarsU = nVarsV = 0;
-        for ( i = 0; i < p->vInputs->nSize; i++ )
+        // go through the remaining variable pairs
+        vSupport = Vec_VecEntry( p->vSupports, out );
+        Vec_IntForEachEntry( vSupport, v, Index1 )
+        Vec_IntForEachEntryStart( vSupport, u, Index2, Index1+1 )
         {
-            if ( Extra_BitMatrixLookup1( pMatSym, u, i ) )
-                VarsU[nVarsU++] = i;
-            if ( Extra_BitMatrixLookup1( pMatSym, v, i ) )
-                VarsV[nVarsV++] = i;
-        }
+            if ( Extra_BitMatrixLookup1( pMatSym, v, u ) || Extra_BitMatrixLookup1( pMatNonSym, v, u ) )
+                continue;
+            p->nSatRuns++;
 
-        if ( Fraig_SymmsSatProveOne( p, v, u ) )
-        { // update the symmetric variable info            
-//printf( "%d sym %d\n", v, u );
-            for ( i = 0; i < nVarsU; i++ )
-            for ( k = 0; k < nVarsV; k++ )
+            // collect the support variables that are symmetric with u and v
+            Vec_IntClear( p->vVarsU );
+            Vec_IntClear( p->vVarsV );
+            Vec_IntForEachEntry( vSupport, b, Index3 )
             {
-                Extra_BitMatrixInsert1( pMatSym, VarsU[i], VarsV[k] );   // Theorem 1
-                Extra_BitMatrixInsert2( pMatSym, VarsU[i], VarsV[k] );   // Theorem 1
-                Extra_BitMatrixOrTwo( pMatNonSym, VarsU[i], VarsV[k] );  // Theorem 2
+                if ( Extra_BitMatrixLookup1( pMatSym, u, b ) )
+                    Vec_IntPush( p->vVarsU, b );
+                if ( Extra_BitMatrixLookup1( pMatSym, v, b ) )
+                    Vec_IntPush( p->vVarsV, b );
             }
-            satProved++;
-        }
-        else
-        { // update the assymmetric variable info
-//printf( "%d non-sym %d\n", v, u );
-            for ( i = 0; i < nVarsU; i++ )
-            for ( k = 0; k < nVarsV; k++ )
-            {
-                Extra_BitMatrixInsert1( pMatNonSym, VarsU[i], VarsV[k] );   // Theorem 3
-                Extra_BitMatrixInsert2( pMatNonSym, VarsU[i], VarsV[k] );   // Theorem 3
+
+            if ( Sim_SymmsSatProveOne( p, out, v, u, pPattern ) )
+            { // update the symmetric variable info            
+                p->nSatRunsUnsat++;
+                Vec_IntForEachEntry( p->vVarsU, i, IndexU )
+                Vec_IntForEachEntry( p->vVarsV, k, IndexV )
+                {
+                    Extra_BitMatrixInsert1( pMatSym,  i, k );  // Theorem 1
+                    Extra_BitMatrixInsert2( pMatSym,  i, k );  // Theorem 1
+                    Extra_BitMatrixOrTwo( pMatNonSym, i, k );  // Theorem 2
+                }
+            }
+            else
+            { // update the assymmetric variable info
+                p->nSatRunsSat++;
+                Vec_IntForEachEntry( p->vVarsU, i, IndexU )
+                Vec_IntForEachEntry( p->vVarsV, k, IndexV )
+                {
+                    Extra_BitMatrixInsert1( pMatNonSym, i, k );   // Theorem 3
+                    Extra_BitMatrixInsert2( pMatNonSym, i, k );   // Theorem 3
+                }
+
+                // remember the out
+                p->iOutput = out;
+                p->iVar1Old = p->iVar1;
+                p->iVar2Old = p->iVar2;
+                p->iVar1 = v;
+                p->iVar2 = u;
+                return 1;
+
             }
         }
-//Extra_BitMatrixPrint( pMatSym );
-//Extra_BitMatrixPrint( pMatNonSym );
+        // make sure that the symmetry matrix contains only cliques
+        assert( Extra_BitMatrixIsClique( pMatSym ) );
     }
-printf( "SAT calls = %3d. Proved = %3d. ", satCalled, satProved );
-PRT( "Time", clock() - clk );
 
-    // make sure that the symmetry matrix contains only cliques
-    assert( Fraig_SymmsIsCliqueMatrix( p, pMatSym ) );
+    // mark that we finished all outputs
+    p->iOutput = p->nOutputs;
+    return 0;
 }
 
 /**Function*************************************************************
@@ -136,63 +130,66 @@ PRT( "Time", clock() - clk );
   SeeAlso     []
 
 ***********************************************************************/
-int Fraig_SymmsSatProveOne( Fraig_Man_t * p, int Var1, int Var2 )
+int Sim_SymmsSatProveOne( Sym_Man_t * p, int Out, int Var1, int Var2, unsigned * pPattern )
 {
-    Fraig_Node_t * pCof01, * pCof10, * pVar1, * pVar2;
-    int RetValue;
-    int nSatRuns = p->nSatCalls;
-    int nSatProof = p->nSatProof;
+    Fraig_Params_t Params;
+    Fraig_Man_t * pMan;
+    Abc_Ntk_t * pMiter;
+    int RetValue, i, clk;
+    int * pModel;
 
-    p->nBTLimit = 10;  // set the backtrack limit
+    // get the miter for this problem
+    pMiter = Abc_NtkMiterForCofactors( p->pNtk, Out, Var1, Var2 );
+    // transform the miter into a fraig
+    Fraig_ParamsSetDefault( &Params );
+    Params.fInternal = 1;
+    Params.nPatsRand = 512;
+    Params.nPatsDyna = 512;
 
-    pVar1 = p->vInputs->pArray[Var1];
-    pVar2 = p->vInputs->pArray[Var2];
-    pCof01 = Fraig_CofactorTwo( p, p->vOutputs->pArray[0], pVar1, Fraig_Not(pVar2) );
-    pCof10 = Fraig_CofactorTwo( p, p->vOutputs->pArray[0], Fraig_Not(pVar1), pVar2 );
+clk = clock();
+    pMan = Abc_NtkToFraig( pMiter, &Params, 0 ); 
+p->timeFraig += clock() - clk;
+clk = clock();
+    Fraig_ManProveMiter( pMan );
+p->timeSat += clock() - clk;
 
-//printf( "(%d,%d)", p->nSatCalls - nSatRuns, p->nSatProof - nSatProof );
-
-//    RetValue = (pCof01 == pCof10);
-//    RetValue = Fraig_NodesAreaEqual( p, pCof01, pCof10 );
-    RetValue = Fraig_NodesAreEqual( p, pCof01, pCof10, -1 );
+    // analyze the result
+    RetValue = Fraig_ManCheckMiter( pMan );
+//    assert( RetValue >= 0 );
+    // save the pattern
+    if ( RetValue == 0 )
+    {
+        // get the pattern
+        pModel = Fraig_ManReadModel( pMan );
+        assert( pModel != NULL );
+//printf( "Disproved by SAT: out = %d  pair = (%d, %d)\n", Out, Var1, Var2 );
+        // transfer the model into the pattern
+        for ( i = 0; i < p->nSimWords; i++ )
+            pPattern[i] = 0;
+        for ( i = 0; i < p->nInputs; i++ )
+            if ( pModel[i] )
+                Sim_SetBit( pPattern, i );
+        // make sure these variables have the same value (1)
+        Sim_SetBit( pPattern, Var1 );
+        Sim_SetBit( pPattern, Var2 );
+    }
+    else if ( RetValue == -1 )
+    {
+        // this should never happen; if it happens, such is life
+        // we are conservative and assume that there is no symmetry
+//printf( "STRANGE THING: out = %d %s  pair = (%d %s, %d %s)\n", 
+//                        Out, Abc_ObjName(Abc_NtkCo(p->pNtk,Out)), 
+//                        Var1, Abc_ObjName(Abc_NtkCi(p->pNtk,Var1)), 
+//                        Var2, Abc_ObjName(Abc_NtkCi(p->pNtk,Var2)) );
+        memset( pPattern, 0, sizeof(unsigned) * p->nSimWords );
+        RetValue = 0;
+    }
+    // delete the fraig manager
+    Fraig_ManFree( pMan );
+    // delete the miter
+    Abc_NtkDelete( pMiter );
     return RetValue;
 }
-
-/**Function*************************************************************
-
-  Synopsis    [A sanity check procedure.]
-
-  Description [Makes sure that the symmetry information in the matrix
-  is closed w.r.t. the relationship of transitivity (that is the symmetry
-  graph is composed of cliques).]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Fraig_SymmsIsCliqueMatrix( Fraig_Man_t * p, Extra_BitMat_t * pMat )
-{
-    int v, u, i;
-    for ( v = 0; v < p->vInputs->nSize; v++ )
-    for ( u = v+1; u < p->vInputs->nSize; u++ )
-    {
-        if ( !Extra_BitMatrixLookup1( pMat, v, u ) )
-            continue;
-        // v and u are symmetric
-        for ( i = 0; i < p->vInputs->nSize; i++ )
-        {
-            if ( i == v || i == u )
-                continue;
-            // i is neither v nor u
-            // the symmetry status of i is the same w.r.t. to v and u
-            if ( Extra_BitMatrixLookup1( pMat, i, v ) != Extra_BitMatrixLookup1( pMat, i, u ) )
-                return 0;
-        }
-    }
-    return 1;
-}
-
 
 
 ////////////////////////////////////////////////////////////////////////

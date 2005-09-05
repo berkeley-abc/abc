@@ -44,7 +44,6 @@ static Abc_Obj_t * Abc_NodeFromGlobalBdds( Abc_Ntk_t * pNtkNew, DdManager * dd, 
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fVerbose )
 {
-    int fCheck = 1;
     Abc_Ntk_t * pNtkNew;
 
     assert( Abc_NtkIsStrash(pNtk) );
@@ -71,7 +70,7 @@ Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fVerbose )
     Abc_NtkMinimumBase( pNtkNew );
 
     // make sure that everything is okay
-    if ( fCheck && !Abc_NtkCheck( pNtkNew ) )
+    if ( !Abc_NtkCheck( pNtkNew ) )
     {
         printf( "Abc_NtkCollapse: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );

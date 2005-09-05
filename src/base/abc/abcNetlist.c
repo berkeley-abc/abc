@@ -41,7 +41,6 @@
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkNetlistToLogic( Abc_Ntk_t * pNtk )
 {
-    int fCheck = 1;
     Abc_Ntk_t * pNtkNew; 
     Abc_Obj_t * pObj, * pFanin;
     int i, k;
@@ -65,7 +64,7 @@ Abc_Ntk_t * Abc_NtkNetlistToLogic( Abc_Ntk_t * pNtk )
     // duplicate EXDC 
     if ( pNtk->pExdc )
         pNtkNew->pExdc = Abc_NtkNetlistToLogic( pNtk->pExdc );
-    if ( fCheck && !Abc_NtkCheck( pNtkNew ) )
+    if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkNetlistToLogic(): Network check has failed.\n" );
     return pNtkNew;
 }
@@ -146,7 +145,6 @@ Abc_Ntk_t * Abc_NtkLogicToNetlistBench( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkLogicSopToNetlist( Abc_Ntk_t * pNtk )
 {
-    int fCheck = 1;
     Abc_Ntk_t * pNtkNew; 
     Abc_Obj_t * pObj, * pNet, * pDriver, * pFanin;
     char * pNameCo;
@@ -214,7 +212,7 @@ Abc_Ntk_t * Abc_NtkLogicSopToNetlist( Abc_Ntk_t * pNtk )
     // duplicate EXDC 
     if ( pNtk->pExdc )
         pNtkNew->pExdc = Abc_NtkLogicToNetlist( pNtk->pExdc );
-    if ( fCheck && !Abc_NtkCheck( pNtkNew ) )
+    if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkLogicSopToNetlist(): Network check has failed.\n" );
     return pNtkNew;
 }
@@ -232,7 +230,6 @@ Abc_Ntk_t * Abc_NtkLogicSopToNetlist( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkAigToLogicSop( Abc_Ntk_t * pNtk )
 {
-    int fCheck = 1;
     Abc_Ntk_t * pNtkNew; 
     Abc_Obj_t * pObj, * pFanin, * pNodeNew;
     int i, k;
@@ -289,7 +286,7 @@ Abc_Ntk_t * Abc_NtkAigToLogicSop( Abc_Ntk_t * pNtk )
         else
             pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );
     }
-    if ( fCheck && !Abc_NtkCheck( pNtkNew ) )
+    if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkAigToLogicSop(): Network check has failed.\n" );
     return pNtkNew;
 }
@@ -307,7 +304,6 @@ Abc_Ntk_t * Abc_NtkAigToLogicSop( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkAigToLogicSopBench( Abc_Ntk_t * pNtk )
 {
-    int fCheck = 1;
     Abc_Ntk_t * pNtkNew; 
     Abc_Obj_t * pObj, * pFanin;
     Vec_Ptr_t * vNodes;
@@ -360,7 +356,7 @@ Abc_Ntk_t * Abc_NtkAigToLogicSopBench( Abc_Ntk_t * pNtk )
     // duplicate the EXDC Ntk
     if ( pNtk->pExdc )
         printf( "Warning: The EXDc network is skipped.\n" );
-    if ( fCheck && !Abc_NtkCheck( pNtkNew ) )
+    if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkAigToLogicSopBench(): Network check has failed.\n" );
     return pNtkNew;
 }

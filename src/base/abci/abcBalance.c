@@ -46,7 +46,6 @@ static int         Abc_NodeBalanceCone_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vSupe
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkBalance( Abc_Ntk_t * pNtk, bool fDuplicate )
 {
-    int fCheck = 1;
     Abc_Ntk_t * pNtkAig;
     assert( Abc_NtkIsStrash(pNtk) );
     // perform balancing
@@ -54,7 +53,7 @@ Abc_Ntk_t * Abc_NtkBalance( Abc_Ntk_t * pNtk, bool fDuplicate )
     Abc_NtkBalancePerform( pNtk, pNtkAig, fDuplicate );
     Abc_NtkFinalize( pNtk, pNtkAig );
     // make sure everything is okay
-    if ( fCheck && !Abc_NtkCheck( pNtkAig ) )
+    if ( !Abc_NtkCheck( pNtkAig ) )
     {
         printf( "Abc_NtkBalance: The network check has failed.\n" );
         Abc_NtkDelete( pNtkAig );

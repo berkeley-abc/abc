@@ -73,6 +73,7 @@ extern FILE *     CmdFileOpen( Abc_Frame_t * pAbc, char * sFileName, char * sMod
 extern void       CmdFreeArgv( int argc, char ** argv );
 extern void       CmdCommandFree( Abc_Command * pCommand );
 extern void       CmdCommandPrint( Abc_Frame_t * pAbc, bool fPrintAll );
+extern void       CmdPrintTable( st_table * tTable, int fAliases );
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

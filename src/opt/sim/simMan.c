@@ -40,10 +40,10 @@
   SeeAlso     []
 
 ***********************************************************************/
-Sym_Man_t * Sym_ManStart( Abc_Ntk_t * pNtk )
+Sym_Man_t * Sym_ManStart( Abc_Ntk_t * pNtk, int fVerbose )
 {
     Sym_Man_t * p;
-    int i;
+    int i, v; 
     // start the manager
     p = ALLOC( Sym_Man_t, 1 );
     memset( p, 0, sizeof(Sym_Man_t) );
@@ -69,8 +69,15 @@ Sym_Man_t * Sym_ManStart( Abc_Ntk_t * pNtk )
     p->uPatRand = ALLOC( unsigned, p->nSimWords );
     p->uPatCol  = ALLOC( unsigned, p->nSimWords );
     p->uPatRow  = ALLOC( unsigned, p->nSimWords );
+    p->vVarsU   = Vec_IntStart( 100 );
+    p->vVarsV   = Vec_IntStart( 100 );
     // compute supports
-    p->vSuppFun = Sim_ComputeFunSupp( pNtk );
+    p->vSuppFun  = Sim_ComputeFunSupp( pNtk, fVerbose );
+    p->vSupports = Vec_VecStart( p->nOutputs );
+    for ( i = 0; i < p->nOutputs; i++ )
+        for ( v = 0; v < p->nInputs; v++ )
+            if ( Sim_SuppFunHasVar( p->vSuppFun, i, v ) )
+                Vec_VecPush( p->vSupports, i, (void *)v );
     return p;
 }
 
@@ -92,11 +99,14 @@ void Sym_ManStop( Sym_Man_t * p )
     if ( p->vSuppFun )     Sim_UtilInfoFree( p->vSuppFun );   
     if ( p->vSim )         Sim_UtilInfoFree( p->vSim );   
     if ( p->vNodes )       Vec_PtrFree( p->vNodes );
+    if ( p->vSupports )    Vec_VecFree( p->vSupports );
     for ( i = 0; i < p->nOutputs; i++ )
     {
         Extra_BitMatrixStop( p->vMatrSymms->pArray[i] );
         Extra_BitMatrixStop( p->vMatrNonSymms->pArray[i] );
     }
+    Vec_IntFree( p->vVarsU );
+    Vec_IntFree( p->vVarsV );
     Vec_PtrFree( p->vMatrSymms );
     Vec_PtrFree( p->vMatrNonSymms );
     Vec_IntFree( p->vPairsTotal );
@@ -121,17 +131,18 @@ void Sym_ManStop( Sym_Man_t * p )
 ***********************************************************************/
 void Sym_ManPrintStats( Sym_Man_t * p )
 {
-    printf( "Inputs = %d. Outputs = %d. Sim words = %d.\n", 
-        Abc_NtkCiNum(p->pNtk), Abc_NtkCoNum(p->pNtk), p->nSimWords );
-/*
-    printf( "Total struct supps = %6d.\n", Sim_UtilCountSuppSizes(p, 1) );
-    printf( "Total func supps   = %6d.\n", Sim_UtilCountSuppSizes(p, 0) );
-    printf( "Total targets      = %6d.\n", Vec_VecSizeSize(p->vSuppTargs) );
-    printf( "Total sim patterns = %6d.\n", Vec_PtrSize(p->vFifo) );
-*/
-    printf( "Sat runs SAT       = %6d.\n", p->nSatRunsSat );
-    printf( "Sat runs UNSAT     = %6d.\n", p->nSatRunsUnsat );
+//    printf( "Inputs = %5d. Outputs = %5d. Sim words = %5d.\n", 
+//        Abc_NtkCiNum(p->pNtk), Abc_NtkCoNum(p->pNtk), p->nSimWords );
+    printf( "Total symm         = %8d.\n", p->nPairsSymm );
+    printf( "Structural symm    = %8d.\n", p->nPairsSymmStr );
+    printf( "Total non-sym      = %8d.\n", p->nPairsNonSymm );
+    printf( "Total var pairs    = %8d.\n", p->nPairsTotal );
+    printf( "Sat runs SAT       = %8d.\n", p->nSatRunsSat );
+    printf( "Sat runs UNSAT     = %8d.\n", p->nSatRunsUnsat );
+    PRT( "Structural  ", p->timeStruct );
     PRT( "Simulation  ", p->timeSim );
+    PRT( "Matrix      ", p->timeMatr );
+    PRT( "Counting    ", p->timeCount );
     PRT( "Fraiging    ", p->timeFraig );
     PRT( "SAT         ", p->timeSat );
     PRT( "TOTAL       ", p->timeTotal );
@@ -217,14 +228,12 @@ void Sim_ManStop( Sim_Man_t * p )
 ***********************************************************************/
 void Sim_ManPrintStats( Sim_Man_t * p )
 {
-    printf( "Inputs = %d. Outputs = %d. Sim words = %d.\n", 
-        Abc_NtkCiNum(p->pNtk), Abc_NtkCoNum(p->pNtk), p->nSimWords );
-    printf( "Total struct supps = %6d.\n", Sim_UtilCountSuppSizes(p, 1) );
-    printf( "Total func supps   = %6d.\n", Sim_UtilCountSuppSizes(p, 0) );
-    printf( "Total targets      = %6d.\n", Vec_VecSizeSize(p->vSuppTargs) );
-    printf( "Total sim patterns = %6d.\n", Vec_PtrSize(p->vFifo) );
-    printf( "Sat runs SAT       = %6d.\n", p->nSatRunsSat );
-    printf( "Sat runs UNSAT     = %6d.\n", p->nSatRunsUnsat );
+//    printf( "Inputs = %5d. Outputs = %5d. Sim words = %5d.\n", 
+//        Abc_NtkCiNum(p->pNtk), Abc_NtkCoNum(p->pNtk), p->nSimWords );
+    printf( "Total func supps   = %8d.\n", Sim_UtilCountSuppSizes(p, 0) );
+    printf( "Total struct supps = %8d.\n", Sim_UtilCountSuppSizes(p, 1) );
+    printf( "Sat runs SAT       = %8d.\n", p->nSatRunsSat );
+    printf( "Sat runs UNSAT     = %8d.\n", p->nSatRunsUnsat );
     PRT( "Simulation  ", p->timeSim );
     PRT( "Traversal   ", p->timeTrav );
     PRT( "Fraiging    ", p->timeFraig );

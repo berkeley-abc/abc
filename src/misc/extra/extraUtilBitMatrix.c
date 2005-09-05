@@ -28,14 +28,14 @@
 
 struct Extra_BitMat_t_
 {
-    unsigned ** ppData;
-    int         nSize;
-    int         nWords;
-    int         nBitShift;
-    unsigned    uMask;
-    int         nLookups;
-    int         nInserts;
-    int         nDeletes;
+    unsigned ** ppData;      // bit data
+    int         nSize;       // the number of bits in one dimension
+    int         nWords;      // the number of words in one dimension
+    int         nBitShift;   // the number of bits to shift to get words
+    unsigned    uMask;       // the mask to get the number of bits in the word
+    int         nLookups;    // the number of lookups  
+    int         nInserts;    // the number of inserts
+    int         nDeletes;    // the number of deletions
 };
 
 /*---------------------------------------------------------------------------*/
@@ -351,6 +351,62 @@ int Extra_BitMatrixCountOnesUpper( Extra_BitMat_t * p )
             nTotal += ( (p->ppData[i][k/32] & (1 << (k%32))) > 0 );
     return nTotal;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if the matrices have no entries in common.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Extra_BitMatrixIsDisjoint( Extra_BitMat_t * p1, Extra_BitMat_t * p2 )
+{
+    int i, w;
+    assert( p1->nSize == p2->nSize );
+    for ( i = 0; i < p1->nSize; i++ )
+        for ( w = 0; w < p1->nWords; w++ )
+            if ( p1->ppData[i][w] & p2->ppData[i][w] )
+                return 0;
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if the matrix is a set of cliques.]
+
+  Description [For example pairwise symmetry info should satisfy this property.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Extra_BitMatrixIsClique( Extra_BitMat_t * pMat )
+{
+    int v, u, i;
+    for ( v = 0; v < pMat->nSize; v++ )
+    for ( u = v+1; u < pMat->nSize; u++ )
+    {
+        if ( !Extra_BitMatrixLookup1( pMat, v, u ) )
+            continue;
+        // v and u are symmetric
+        for ( i = 0; i < pMat->nSize; i++ )
+        {
+            if ( i == v || i == u )
+                continue;
+            // i is neither v nor u
+            // the symmetry status of i is the same w.r.t. to v and u
+            if ( Extra_BitMatrixLookup1( pMat, i, v ) != Extra_BitMatrixLookup1( pMat, i, u ) )
+                return 0;
+        }
+    }
+    return 1;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

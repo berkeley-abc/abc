@@ -56,7 +56,6 @@ static Abc_Obj_t *  Abc_NodeFromMapSuperChoice_rec( Abc_Ntk_t * pNtkNew, Map_Sup
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, int fSwitching, int fVerbose )
 {
-    int fCheck = 1;
     Abc_Ntk_t * pNtkNew;
     Map_Man_t * pMan;
     Vec_Int_t * vSwitching;
@@ -106,7 +105,7 @@ clk = clock();
         Map_ManFree( pMan );
         return NULL;
     }
-    Map_ManPrintStatsToFile( pNtk->pSpec, Map_ManReadAreaFinal(pMan), Map_ManReadRequiredGlo(pMan), clock()-clk );
+//    Map_ManPrintStatsToFile( pNtk->pSpec, Map_ManReadAreaFinal(pMan), Map_ManReadRequiredGlo(pMan), clock()-clk );
 
     // reconstruct the network after mapping
     pNtkNew = Abc_NtkFromMap( pMan, pNtk );
@@ -115,7 +114,7 @@ clk = clock();
     Map_ManFree( pMan );
 
     // make sure that everything is okay
-    if ( fCheck && !Abc_NtkCheck( pNtkNew ) )
+    if ( !Abc_NtkCheck( pNtkNew ) )
     {
         printf( "Abc_NtkMap: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
@@ -440,7 +439,6 @@ int Abc_NtkUnmap( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkSuperChoice( Abc_Ntk_t * pNtk )
 {
-    int fCheck = 1;
     Abc_Ntk_t * pNtkNew;
 
     Map_Man_t * pMan;
@@ -483,7 +481,7 @@ Abc_Ntk_t * Abc_NtkSuperChoice( Abc_Ntk_t * pNtk )
     Map_ManFree( pMan );
 
     // make sure that everything is okay
-    if ( fCheck && !Abc_NtkCheck( pNtkNew ) )
+    if ( !Abc_NtkCheck( pNtkNew ) )
     {
         printf( "Abc_NtkMap: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );

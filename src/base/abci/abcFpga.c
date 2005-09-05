@@ -46,12 +46,11 @@ static Abc_Obj_t *  Abc_NodeFromFpga_rec( Abc_Ntk_t * pNtkNew, Fpga_Node_t * pNo
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkFpga( Abc_Ntk_t * pNtk, int fRecovery, int fSwitching, int fVerbose )
 {
-    int fCheck = 1;
+    int fShowSwitching = 1;
     Abc_Ntk_t * pNtkNew;
     Fpga_Man_t * pMan;
     Vec_Int_t * vSwitching;
     float * pSwitching = NULL;
-    int fShowSwitching = 0;
 
     assert( Abc_NtkIsStrash(pNtk) );
 
@@ -90,7 +89,7 @@ Abc_Ntk_t * Abc_NtkFpga( Abc_Ntk_t * pNtk, int fRecovery, int fSwitching, int fV
     Abc_NtkMinimumBase( pNtkNew );
 
     // make sure that everything is okay
-    if ( fCheck && !Abc_NtkCheck( pNtkNew ) )
+    if ( !Abc_NtkCheck( pNtkNew ) )
     {
         printf( "Abc_NtkFpga: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );

@@ -29,7 +29,6 @@
 static int CmdCommandTime          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandEcho          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandQuit          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int CmdCommandUsage         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandWhich         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandHistory       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandAlias         ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -70,7 +69,6 @@ void Cmd_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Basic", "time",      CmdCommandTime,           0);
     Cmd_CommandAdd( pAbc, "Basic", "echo",      CmdCommandEcho,           0);
     Cmd_CommandAdd( pAbc, "Basic", "quit",      CmdCommandQuit,           0);
-//    Cmd_CommandAdd( pAbc, "Basic", "usage",     CmdCommandUsage,          0);
     Cmd_CommandAdd( pAbc, "Basic", "history",   CmdCommandHistory,        0);
     Cmd_CommandAdd( pAbc, "Basic", "alias",     CmdCommandAlias,          0);
     Cmd_CommandAdd( pAbc, "Basic", "unalias",   CmdCommandUnalias,        0);
@@ -79,7 +77,7 @@ void Cmd_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Basic", "set",       CmdCommandSetVariable,    0);
     Cmd_CommandAdd( pAbc, "Basic", "unset",     CmdCommandUnsetVariable,  0);
     Cmd_CommandAdd( pAbc, "Basic", "undo",      CmdCommandUndo,           0); 
-//    Cmd_CommandAdd( pAbc, "Basic", "recall",    CmdCommandRecall,         0); 
+    Cmd_CommandAdd( pAbc, "Basic", "recall",    CmdCommandRecall,         0); 
     Cmd_CommandAdd( pAbc, "Basic", "empty",     CmdCommandEmpty,          0); 
 #ifdef WIN32
     Cmd_CommandAdd( pAbc, "Basic", "ls",        CmdCommandLs,             0 );
@@ -275,45 +273,6 @@ int CmdCommandQuit( Abc_Frame_t * pAbc, int argc, char **argv )
   SeeAlso     []
 
 ******************************************************************************/
-int CmdCommandUsage( Abc_Frame_t * pAbc, int argc, char **argv )
-{
-    int c;
-
-    util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "h" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'h':
-            goto usage;
-            break;
-        default:
-            goto usage;
-        }
-    }
-
-    if ( argc != util_optind )
-        goto usage;
-    util_print_cpu_stats( pAbc->Out );
-    return 0;
-
-  usage:
-    fprintf( pAbc->Err, "usage: usage [-h]\n" );
-    fprintf( pAbc->Err, "   -h \t\tprint the command usage\n" );
-    return 1;
-}
-
-/**Function********************************************************************
-
-  Synopsis    []
-
-  Description []
-
-  SideEffects []
-
-  SeeAlso     []
-
-******************************************************************************/
 int CmdCommandWhich( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     return 0;
@@ -332,11 +291,9 @@ int CmdCommandWhich( Abc_Frame_t * pAbc, int argc, char **argv )
 ******************************************************************************/
 int CmdCommandHistory( Abc_Frame_t * pAbc, int argc, char **argv )
 {
-    int i, num;
-    int size;
-    int c;
-    num = 50;
+    int i, c, num, size;
 
+    num = 20;
     util_getopt_reset();
     while ( ( c = util_getopt( argc, argv, "h" ) ) != EOF )
     {
@@ -344,23 +301,28 @@ int CmdCommandHistory( Abc_Frame_t * pAbc, int argc, char **argv )
         {
             case 'h':
                 goto usage;
-            break;
+            default :
+                goto usage;
         }
     }
-
-    if ( argc > 3 )
+    if ( argc > 2 )
         goto usage;
 
+    // get the number of commands to print
+    if ( argc == util_optind + 1 )
+        num = atoi(argv[util_optind]);
+    // print the commands
     size = pAbc->aHistory->nSize;
     num = ( num < size ) ? num : size;
     for ( i = size - num; i < size; i++ )
         fprintf( pAbc->Out, "%s", pAbc->aHistory->pArray[i] );
     return 0;
 
-  usage:
-    fprintf( pAbc->Err, "usage: history [-h] [num]\n" );
-    fprintf( pAbc->Err, "   -h \t\tprint the command usage\n" );
-    fprintf( pAbc->Err, "   num \t\tprint the last num commands\n" );
+usage:
+    fprintf( pAbc->Err, "usage: history [-h] <num>\n" );
+    fprintf( pAbc->Err, "          prints the latest command entered on the command line\n" );
+    fprintf( pAbc->Err, " -h     : print the command usage\n" );
+    fprintf( pAbc->Err, "num     : print the last num commands\n" );
     return ( 1 );
 }
 
@@ -378,7 +340,6 @@ int CmdCommandHistory( Abc_Frame_t * pAbc, int argc, char **argv )
 int CmdCommandAlias( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     char *key, *value;
-    st_generator *gen;
     int c;
 
     util_getopt_reset();
@@ -397,8 +358,7 @@ int CmdCommandAlias( Abc_Frame_t * pAbc, int argc, char **argv )
 
     if ( argc == 1 )
     {
-        st_foreach_item( pAbc->tAliases, gen, &key, &value )
-            CmdCommandAliasPrint( pAbc, ( Abc_Alias * ) value );
+        CmdPrintTable( pAbc->tAliases, 1 );
         return 0;
 
     }
@@ -712,7 +672,6 @@ int CmdCommandSource( Abc_Frame_t * pAbc, int argc, char **argv )
 int CmdCommandSetVariable( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     char *flag_value, *key, *value;
-    st_generator *gen;
     int c;
 
     util_getopt_reset();
@@ -722,7 +681,6 @@ int CmdCommandSetVariable( Abc_Frame_t * pAbc, int argc, char **argv )
         {
         case 'h':
             goto usage;
-            break;
         default:
             goto usage;
         }
@@ -733,10 +691,7 @@ int CmdCommandSetVariable( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     else if ( argc == 1 )
     {
-        st_foreach_item( pAbc->tFlags, gen, &key, &value )
-        {
-            fprintf( pAbc->Out, "%s\t%s\n", key, value );
-        }
+        CmdPrintTable( pAbc->tFlags, 0 );
         return 0;
     }
     else
@@ -749,25 +704,18 @@ int CmdCommandSetVariable( Abc_Frame_t * pAbc, int argc, char **argv )
         }
 
         flag_value = argc == 2 ? util_strsav( "" ) : util_strsav( argv[2] );
-
-        ( void ) st_insert( pAbc->tFlags, util_strsav( argv[1] ),
-                             flag_value );
+//        flag_value = argc == 2 ? NULL : util_strsav(argv[2]);
+        st_insert( pAbc->tFlags, util_strsav(argv[1]), flag_value );
 
         if ( strcmp( argv[1], "abcout" ) == 0 )
         {
             if ( pAbc->Out != stdout )
-            {
-                ( void ) fclose( pAbc->Out );
-            }
+                fclose( pAbc->Out );
             if ( strcmp( flag_value, "" ) == 0 )
-            {
                 flag_value = "-";
-            }
             pAbc->Out = CmdFileOpen( pAbc, flag_value, "w", NIL( char * ), 0 );
             if ( pAbc->Out == NULL )
-            {
                 pAbc->Out = stdout;
-            }
 #if HAVE_SETVBUF
             setvbuf( pAbc->Out, ( char * ) NULL, _IOLBF, 0 );
 #endif
@@ -775,18 +723,12 @@ int CmdCommandSetVariable( Abc_Frame_t * pAbc, int argc, char **argv )
         if ( strcmp( argv[1], "abcerr" ) == 0 )
         {
             if ( pAbc->Err != stderr )
-            {
-                ( void ) fclose( pAbc->Err );
-            }
+                fclose( pAbc->Err );
             if ( strcmp( flag_value, "" ) == 0 )
-            {
                 flag_value = "-";
-            }
             pAbc->Err = CmdFileOpen( pAbc, flag_value, "w", NIL( char * ), 0 );
             if ( pAbc->Err == NULL )
-            {
                 pAbc->Err = stderr;
-            }
 #if HAVE_SETVBUF
             setvbuf( pAbc->Err, ( char * ) NULL, _IOLBF, 0 );
 #endif
@@ -794,28 +736,21 @@ int CmdCommandSetVariable( Abc_Frame_t * pAbc, int argc, char **argv )
         if ( strcmp( argv[1], "history" ) == 0 )
         {
             if ( pAbc->Hst != NIL( FILE ) )
-            {
-                ( void ) fclose( pAbc->Hst );
-            }
+                fclose( pAbc->Hst );
             if ( strcmp( flag_value, "" ) == 0 )
-            {
                 pAbc->Hst = NIL( FILE );
-            }
             else
             {
-                pAbc->Hst =
-                    CmdFileOpen( pAbc, flag_value, "w", NIL( char * ), 0 );
+                pAbc->Hst = CmdFileOpen( pAbc, flag_value, "w", NIL( char * ), 0 );
                 if ( pAbc->Hst == NULL )
-                {
                     pAbc->Hst = NIL( FILE );
-                }
             }
         }
         return 0;
     }
 
   usage:
-    fprintf( pAbc->Err, "usage: set [-h] [name] [value]\n" );
+    fprintf( pAbc->Err, "usage: set [-h] <name> <value>\n" );
     fprintf( pAbc->Err, "\t        sets the value of parameter <name>\n" );
     fprintf( pAbc->Err, "\t-h    : print the command usage\n" );
     return 1;
@@ -870,8 +805,9 @@ int CmdCommandUnsetVariable( Abc_Frame_t * pAbc, int argc, char **argv )
 
 
   usage:
-    fprintf( pAbc->Err, "usage: unset [-h] variables \n" );
-    fprintf( pAbc->Err, "   -h \t\tprint the command usage\n" );
+    fprintf( pAbc->Err, "usage: unset [-h] <name> \n" );
+    fprintf( pAbc->Err, "\t        removes the value of parameter <name>\n" );
+    fprintf( pAbc->Err, "\t-h    : print the command usage\n" );
     return 1;
 }
 
@@ -1014,9 +950,10 @@ int CmdCommandRecall( Abc_Frame_t * pAbc, int argc, char **argv )
 
 usage:
 
-    fprintf( pAbc->Err, "usage: recall <num>\n" );
+    fprintf( pAbc->Err, "usage: recall -h <num>\n" );
     fprintf( pAbc->Err, "         set the current network to be one of the previous networks\n" );
     fprintf( pAbc->Err, "<num> :  level to return to [default = previous]\n" );
+    fprintf( pAbc->Err, "   -h :  print the command usage\n");
     return 1;
 }
 
@@ -1260,7 +1197,9 @@ int CmdCommandSis( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     FILE * pFile;
     FILE * pOut, * pErr;
-    Abc_Ntk_t * pNtk, * pNtkNew;
+    Abc_Ntk_t * pNtk, * pNtkNew, * pNetlist;
+    char * pNameWin = "sis.exe";
+    char * pNameUnix = "sis";
     char Command[1000], Buffer[100];
     char * pSisName;
     int i;
@@ -1288,23 +1227,28 @@ int CmdCommandSis( Abc_Frame_t * pAbc, int argc, char **argv )
     if ( strcmp( argv[1], "-?" ) == 0 )
         goto usage;
 
+    // get the names from the resource file
+    if ( Cmd_FlagReadByName(pAbc, "siswin") )
+        pNameWin = Cmd_FlagReadByName(pAbc, "siswin");
+    if ( Cmd_FlagReadByName(pAbc, "sisunix") )
+        pNameUnix = Cmd_FlagReadByName(pAbc, "sisunix");
+
     // check if SIS is available
-    if ( (pFile = fopen( "sis.exe", "r" )) )
-        pSisName = "sis.exe";
-    else if ( (pFile = fopen( "sis", "r" )) )
-        pSisName = "sis";
+    if ( (pFile = fopen( pNameWin, "r" )) )
+        pSisName = pNameWin;
+    else if ( (pFile = fopen( pNameUnix, "r" )) )
+        pSisName = pNameUnix;
     else if ( pFile == NULL )
     {
-        fprintf( pErr, "Cannot find \"%s\" or \"%s\" in the current directory.\n", "sis.exe", "sis" );
+        fprintf( pErr, "Cannot find \"%s\" or \"%s\" in the current directory.\n", pNameWin, pNameUnix );
         goto usage;
     }
     fclose( pFile );
 
-    if ( Abc_NtkIsBddLogic(pNtk) )
-        Abc_NtkBddToSop(pNtk);
-
     // write out the current network
-    Io_WriteBlifLogic( pNtk, "_sis_in.blif", 1 );
+    pNetlist = Abc_NtkLogicToNetlist(pNtk);
+    Io_WriteBlif( pNetlist, "_sis_in.blif", 1 );
+    Abc_NtkDelete( pNetlist );
 
     // create the file for sis
     sprintf( Command, "%s -x -c ", pSisName );
@@ -1383,8 +1327,10 @@ int CmdCommandMvsis( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     FILE * pFile;
     FILE * pOut, * pErr;
-    Abc_Ntk_t * pNtk, * pNtkNew;
+    Abc_Ntk_t * pNtk, * pNtkNew, * pNetlist;
     char Command[1000], Buffer[100];
+    char * pNameWin = "mvsis.exe";
+    char * pNameUnix = "mvsis";
     char * pMvsisName;
     int i;
 
@@ -1411,23 +1357,29 @@ int CmdCommandMvsis( Abc_Frame_t * pAbc, int argc, char **argv )
     if ( strcmp( argv[1], "-?" ) == 0 )
         goto usage;
 
+    // get the names from the resource file
+    if ( Cmd_FlagReadByName(pAbc, "mvsiswin") )
+        pNameWin = Cmd_FlagReadByName(pAbc, "mvsiswin");
+    if ( Cmd_FlagReadByName(pAbc, "mvsisunix") )
+        pNameUnix = Cmd_FlagReadByName(pAbc, "mvsisunix");
+
     // check if MVSIS is available
-    if ( (pFile = fopen( "mvsis.exe", "r" )) )
-        pMvsisName = "mvsis.exe";
-    else if ( (pFile = fopen( "mvsis", "r" )) )
-        pMvsisName = "mvsis";
+    if ( (pFile = fopen( pNameWin, "r" )) )
+        pMvsisName = pNameWin;
+    else if ( (pFile = fopen( pNameUnix, "r" )) )
+        pMvsisName = pNameUnix;
     else if ( pFile == NULL )
     {
-        fprintf( pErr, "Cannot find \"%s\" or \"%s\" in the current directory.\n", "mvsis.exe", "mvsis" );
+        fprintf( pErr, "Cannot find \"%s\" or \"%s\" in the current directory.\n", pNameWin, pNameUnix );
         goto usage;
     }
     fclose( pFile );
 
-    if ( Abc_NtkIsBddLogic(pNtk) )
-        Abc_NtkBddToSop(pNtk);
 
     // write out the current network
-    Io_WriteBlifLogic( pNtk, "_mvsis_in.blif", 1 );
+    pNetlist = Abc_NtkLogicToNetlist(pNtk);
+    Io_WriteBlif( pNetlist, "_mvsis_in.blif", 1 );
+    Abc_NtkDelete( pNetlist );
 
     // create the file for MVSIS
     sprintf( Command, "%s -x -c ", pMvsisName );

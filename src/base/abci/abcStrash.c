@@ -51,7 +51,6 @@ extern char *      Mio_GateReadSop( void * pGate );
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes, bool fCleanup )
 {
-    int fCheck = 1;
     Abc_Ntk_t * pNtkAig;
     int nNodes;
 
@@ -74,7 +73,7 @@ Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes, bool fCleanup )
     if ( pNtk->pExdc )
         pNtkAig->pExdc = Abc_NtkStrash( pNtk->pExdc, 0, 1 );
     // make sure everything is okay
-    if ( fCheck && !Abc_NtkCheck( pNtkAig ) )
+    if ( !Abc_NtkCheck( pNtkAig ) )
     {
         printf( "Abc_NtkStrash: The network check has failed.\n" );
         Abc_NtkDelete( pNtkAig );
@@ -99,7 +98,6 @@ Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes, bool fCleanup )
 ***********************************************************************/
 int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
 {
-    int fCheck = 1;
     Abc_Obj_t * pObj;
     int i;
     // the first network should be an AIG
@@ -118,7 +116,7 @@ int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
     // add pNtk2 to pNtk1 while strashing
     Abc_NtkStrashPerform( pNtk2, pNtk1, 1 );
     // make sure that everything is okay
-    if ( fCheck && !Abc_NtkCheck( pNtk1 ) )
+    if ( !Abc_NtkCheck( pNtk1 ) )
     {
         printf( "Abc_NtkAppend: The network check has failed.\n" );
         return 0;

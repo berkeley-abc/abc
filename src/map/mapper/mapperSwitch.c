@@ -23,7 +23,6 @@
 ////////////////////////////////////////////////////////////////////////
 
 static float Map_SwitchCutRefDeref( Map_Node_t * pNode, Map_Cut_t * pCut, int fPhase, int fReference );
-static float Map_CutGetSwitching( Map_Cut_t * pCut );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -100,11 +99,13 @@ float Map_SwitchCutRefDeref( Map_Node_t * pNode, Map_Cut_t * pCut, int fPhase, i
     Map_Cut_t * pCutChild;
     float aSwitchActivity;
     int i, fPhaseChild;
+
+    // start switching activity for the node
+    aSwitchActivity = pNode->Switching;
     // consider the elementary variable
     if ( pCut->nLeaves == 1 )
-        return 0;
-    // start the area of this cut
-    aSwitchActivity = Map_CutGetSwitching( pCut );
+        return aSwitchActivity;
+
     // go through the children
     assert( pCut->M[fPhase].pSuperBest );
     for ( i = 0; i < pCut->nLeaves; i++ )
@@ -127,7 +128,7 @@ float Map_SwitchCutRefDeref( Map_Node_t * pNode, Map_Cut_t * pCut, int fPhase, i
                 // inverter should be added if the phase
                 // (a) has no reference and (b) is implemented using other phase
                 if ( pNodeChild->nRefAct[fPhaseChild]++ == 0 && pNodeChild->pCutBest[fPhaseChild] == NULL )
-                    aSwitchActivity += pNodeChild->Switching;
+                    aSwitchActivity += pNodeChild->Switching; // inverter switches the same as the node
                 // if the node is referenced, there is no recursive call
                 if ( pNodeChild->nRefAct[2]++ > 0 )
                     continue;
@@ -147,7 +148,7 @@ float Map_SwitchCutRefDeref( Map_Node_t * pNode, Map_Cut_t * pCut, int fPhase, i
                 // inverter should be added if the phase
                 // (a) has no reference and (b) is implemented using other phase
                 if ( --pNodeChild->nRefAct[fPhaseChild] == 0 && pNodeChild->pCutBest[fPhaseChild] == NULL )
-                    aSwitchActivity += pNodeChild->Switching;
+                    aSwitchActivity += pNodeChild->Switching; // inverter switches the same as the node
                 // if the node is referenced, there is no recursive call
                 if ( --pNodeChild->nRefAct[2] > 0 )
                     continue;
@@ -167,27 +168,6 @@ float Map_SwitchCutRefDeref( Map_Node_t * pNode, Map_Cut_t * pCut, int fPhase, i
         aSwitchActivity += Map_SwitchCutRefDeref( pNodeChild, pCutChild, fPhaseChild, fReference );
     }
     return aSwitchActivity;
-}
-
-/**function*************************************************************
-
-  synopsis    [Computes the exact area associated with the cut.]
-
-  description []
-               
-  sideeffects []
-
-  seealso     []
-
-***********************************************************************/
-float Map_CutGetSwitching( Map_Cut_t * pCut )
-{
-    float Result;
-    int i;
-    Result = 0.0;
-    for ( i = 0; i < pCut->nLeaves; i++ )
-        Result += pCut->ppLeaves[i]->Switching;
-    return Result;
 }
 
 /**Function*************************************************************
@@ -227,9 +207,9 @@ float Map_MappingGetSwitching( Map_Man_t * pMan, Map_NodeVec_t * vMapping )
         // count switching of the interver if we need to implement one phase with another phase
         if ( (pNode->pCutBest[0] == NULL && pNode->nRefAct[0] > 0) || 
              (pNode->pCutBest[1] == NULL && pNode->nRefAct[1] > 0) )
-            Switch += pNode->Switching;
+            Switch += pNode->Switching; // inverter switches the same as the node
     }
-    // add buffer for each CO driven by a CI
+    // add buffers for each CO driven by a CI
     for ( i = 0; i < pMan->nOutputs; i++ )
         if ( Map_NodeIsVar(pMan->pOutputs[i]) && !Map_IsComplement(pMan->pOutputs[i]) )
             Switch += pMan->pOutputs[i]->Switching;

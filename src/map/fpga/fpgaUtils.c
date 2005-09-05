@@ -314,7 +314,7 @@ float Fpga_MappingSetRefsAndArea( Fpga_Man_t * pMan )
 
     // reconnect the nodes in reverse topological order
     pMan->vMapping->nSize = 0;
-    for ( i = LevelMax; i > 0; i-- )
+    for ( i = LevelMax; i >= 0; i-- )
         for ( pNode = ppStore[i]; pNode; pNode = (Fpga_Node_t *)pNode->pData0 )
             Fpga_NodeVecPush( pMan->vMapping, pNode );
     free( ppStore );

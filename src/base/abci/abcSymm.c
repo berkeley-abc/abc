@@ -46,7 +46,7 @@ static void Ntk_NetworkSymmsPrint( Abc_Ntk_t * pNtk, Extra_SymmInfo_t * pSymms )
 ***********************************************************************/
 void Abc_NtkSymmetries( Abc_Ntk_t * pNtk, int fUseBdds, int fNaive, int fVerbose )
 {
-    if ( fUseBdds || fNaive )
+    if ( fUseBdds )
         Abc_NtkSymmetriesUsingBdds( pNtk, fNaive, fVerbose );
     else
         Abc_NtkSymmetriesUsingSandS( pNtk, fVerbose );
@@ -65,8 +65,8 @@ void Abc_NtkSymmetries( Abc_Ntk_t * pNtk, int fUseBdds, int fNaive, int fVerbose
 ***********************************************************************/
 void Abc_NtkSymmetriesUsingSandS( Abc_Ntk_t * pNtk, int fVerbose )
 {
-    extern int Sim_ComputeTwoVarSymms( Abc_Ntk_t * pNtk );
-    int nSymms = Sim_ComputeTwoVarSymms( pNtk );
+    extern int Sim_ComputeTwoVarSymms( Abc_Ntk_t * pNtk, int fVerbose );
+    int nSymms = Sim_ComputeTwoVarSymms( pNtk, fVerbose );
     printf( "The total number of symmetries is %d.\n", nSymms );
 }
 
@@ -123,12 +123,14 @@ void Ntk_NetworkSymmsBdd( DdManager * dd, Abc_Ntk_t * pNtk, int fNaive, int fVer
     Abc_Obj_t * pNode;
     DdNode * bFunc;
     int nSymms = 0;
+    int nSupps = 0;
     int i;
 
     // compute symmetry info for each PO
     Abc_NtkForEachCo( pNtk, pNode, i )
     {
         bFunc = pNtk->vFuncsGlob->pArray[i];
+        nSupps += Cudd_SupportSize( dd, bFunc );
         if ( Cudd_IsConstant(bFunc) )
             continue;
         if ( fNaive )
@@ -144,7 +146,8 @@ void Ntk_NetworkSymmsBdd( DdManager * dd, Abc_Ntk_t * pNtk, int fNaive, int fVer
 //Extra_SymmPairsPrint( pSymms );
         Extra_SymmPairsDissolve( pSymms );
     }
-    printf( "The total number of symmetries is %d.\n", nSymms );
+    printf( "Total number of vars in functional supports = %8d.\n", nSupps );
+    printf( "Total number of two-variable symmetries     = %8d.\n", nSymms );
 }
 
 /**Function*************************************************************

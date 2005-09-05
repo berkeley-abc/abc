@@ -55,7 +55,6 @@ static int             Abc_NodeFindMuxVar( DdManager * dd, DdNode * bFunc, int n
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkDsdGlobal( Abc_Ntk_t * pNtk, bool fVerbose, bool fPrint, bool fShort )
 {
-    int fCheck = 1;
     Abc_Ntk_t * pNtkNew;
 
     assert( Abc_NtkIsStrash(pNtk) );
@@ -78,7 +77,7 @@ Abc_Ntk_t * Abc_NtkDsdGlobal( Abc_Ntk_t * pNtk, bool fVerbose, bool fPrint, bool
     pNtk->pManGlob = NULL;
 
     // make sure that everything is okay
-    if ( fCheck && !Abc_NtkCheck( pNtkNew ) )
+    if ( !Abc_NtkCheck( pNtkNew ) )
     {
         printf( "Abc_NtkDsdGlobal: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
@@ -304,7 +303,6 @@ Abc_Obj_t * Abc_NtkDsdConstructNode( Dsd_Manager_t * pManDsd, Dsd_Node_t * pNode
 ***********************************************************************/
 int Abc_NtkDsdLocal( Abc_Ntk_t * pNtk, bool fVerbose, bool fRecursive )
 {
-    int fCheck = 1;
     Dsd_Manager_t * pManDsd;
     DdManager * dd = pNtk->pManFunc;
     Vec_Ptr_t * vNodes;
@@ -328,7 +326,7 @@ int Abc_NtkDsdLocal( Abc_Ntk_t * pNtk, bool fVerbose, bool fRecursive )
     Dsd_ManagerStop( pManDsd );
 
     // make sure everything is okay
-    if ( fCheck && !Abc_NtkCheck( pNtk ) )
+    if ( !Abc_NtkCheck( pNtk ) )
     {
         printf( "Abc_NtkDsdRecursive: The network check has failed.\n" );
         return 0;

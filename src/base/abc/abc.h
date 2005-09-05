@@ -413,6 +413,7 @@ extern int                Abc_NtkAttach( Abc_Ntk_t * pNtk );
 extern Abc_Ntk_t *        Abc_NtkBalance( Abc_Ntk_t * pNtk, bool fDuplicate );
 /*=== abcCheck.c ==========================================================*/
 extern bool               Abc_NtkCheck( Abc_Ntk_t * pNtk );
+extern bool               Abc_NtkCheckRead( Abc_Ntk_t * pNtk );
 extern bool               Abc_NtkCheckObj( Abc_Ntk_t * pNtk, Abc_Obj_t * pObj );
 extern bool               Abc_NtkCompareSignals( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb );
 /*=== abcCollapse.c ==========================================================*/

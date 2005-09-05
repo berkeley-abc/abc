@@ -46,7 +46,6 @@ static Abc_Ntk_t * Abc_NtkConstructExdc     ( DdManager * dd, Abc_Ntk_t * pNtk, 
 ***********************************************************************/
 int Abc_NtkExtractSequentialDcs( Abc_Ntk_t * pNtk, bool fVerbose )
 {
-    int fCheck   = 1;
     int fReorder = 1;
     DdManager * dd;
     DdNode * bRelation, * bInitial, * bUnreach;
@@ -94,7 +93,7 @@ int Abc_NtkExtractSequentialDcs( Abc_Ntk_t * pNtk, bool fVerbose )
     pNtk->pManGlob = NULL;
 
     // make sure that everything is okay
-    if ( fCheck && !Abc_NtkCheck( pNtk->pExdc ) )
+    if ( !Abc_NtkCheck( pNtk->pExdc ) )
     {
         printf( "Abc_NtkExtractSequentialDcs: The network check has failed.\n" );
         Abc_NtkDelete( pNtk->pExdc );

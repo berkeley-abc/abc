@@ -25,6 +25,7 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+static bool Abc_NtkDoCheck( Abc_Ntk_t * pNtk );
 static bool Abc_NtkCheckNames( Abc_Ntk_t * pNtk );
 static bool Abc_NtkCheckPis( Abc_Ntk_t * pNtk );
 static bool Abc_NtkCheckPos( Abc_Ntk_t * pNtk );
@@ -53,6 +54,38 @@ static bool Abc_NtkCompareLatches( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fCo
 
 ***********************************************************************/
 bool Abc_NtkCheck( Abc_Ntk_t * pNtk )
+{
+   return !Abc_FrameIsFlagEnabled( "check" ) || Abc_NtkDoCheck( pNtk );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks the integrity of the network after reading.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+bool Abc_NtkCheckRead( Abc_Ntk_t * pNtk )
+{
+   return !Abc_FrameIsFlagEnabled( "checkread" ) || Abc_NtkDoCheck( pNtk );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks the integrity of the network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+bool Abc_NtkDoCheck( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj, * pNet, * pNode;
     int i;
@@ -402,6 +435,9 @@ bool Abc_NtkCheckObj( Abc_Ntk_t * pNtk, Abc_Obj_t * pObj )
         }
     }
 
+    if ( !Abc_FrameIsFlagEnabled("checkfio") )
+        return Value;
+
     // make sure fanins are not duplicated
     for ( i = 0; i < pObj->vFanins.nSize; i++ )
         for ( k = i + 1; k < pObj->vFanins.nSize; k++ )
@@ -412,7 +448,7 @@ bool Abc_NtkCheckObj( Abc_Ntk_t * pNtk, Abc_Obj_t * pObj )
             }
 
     // save time: do not check large fanout lists
-    if ( pObj->vFanouts.nSize > 20 )
+    if ( pObj->vFanouts.nSize > 100 )
         return Value;
 
     // make sure fanouts are not duplicated

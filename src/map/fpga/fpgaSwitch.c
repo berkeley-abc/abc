@@ -22,8 +22,6 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static float Fpga_CutGetSwitching( Fpga_Cut_t * pCut );
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
@@ -64,10 +62,10 @@ float Fpga_CutRefSwitch( Fpga_Man_t * pMan, Fpga_Node_t * pNode, Fpga_Cut_t * pC
     Fpga_Node_t * pNodeChild;
     float aArea;
     int i;
-    if ( pCut->nLeaves == 1 )
-        return 0;
     // start the area of this cut
-    aArea = Fpga_CutGetSwitching( pCut );
+    aArea = pNode->Switching;
+    if ( pCut->nLeaves == 1 )
+        return aArea;
     // go through the children
     for ( i = 0; i < pCut->nLeaves; i++ )
     {
@@ -96,10 +94,10 @@ float Fpga_CutDerefSwitch( Fpga_Man_t * pMan, Fpga_Node_t * pNode, Fpga_Cut_t * 
     Fpga_Node_t * pNodeChild;
     float aArea;
     int i;
-    if ( pCut->nLeaves == 1 )
-        return 0;
     // start the area of this cut
-    aArea = Fpga_CutGetSwitching( pCut );
+    aArea = pNode->Switching;
+    if ( pCut->nLeaves == 1 )
+        return aArea;
     // go through the children
     for ( i = 0; i < pCut->nLeaves; i++ )
     {
@@ -110,27 +108,6 @@ float Fpga_CutDerefSwitch( Fpga_Man_t * pMan, Fpga_Node_t * pNode, Fpga_Cut_t * 
         aArea += Fpga_CutDerefSwitch( pMan, pNodeChild, pNodeChild->pCutBest, fFanouts );
     }
     return aArea;
-}
-
-/**function*************************************************************
-
-  synopsis    [Computes the exact area associated with the cut.]
-
-  description []
-               
-  sideeffects []
-
-  seealso     []
-
-***********************************************************************/
-float Fpga_CutGetSwitching( Fpga_Cut_t * pCut )
-{
-    float Result;
-    int i;
-    Result = 0.0;
-    for ( i = 0; i < pCut->nLeaves; i++ )
-        Result += pCut->ppLeaves[i]->Switching;
-    return Result;
 }
 
 /**Function*************************************************************
@@ -153,10 +130,8 @@ float Fpga_MappingGetSwitching( Fpga_Man_t * pMan, Fpga_NodeVec_t * vMapping )
     for ( i = 0; i < vMapping->nSize; i++ )
     {
         pNode = vMapping->pArray[i];
-        if ( !Fpga_NodeIsAnd(pNode) )
-            continue;
         // at least one phase has the best cut assigned
-        assert( pNode->pCutBest != NULL );
+        assert( !Fpga_NodeIsAnd(pNode) || pNode->pCutBest != NULL );
         // at least one phase is used in the mapping
         assert( pNode->nRefs > 0 );
         // compute the array due to the supergate

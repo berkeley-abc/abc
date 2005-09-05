@@ -68,7 +68,7 @@ void CmdCommandAliasAdd( Abc_Frame_t * pAbc, char * sName, int argc, char ** arg
 void CmdCommandAliasPrint( Abc_Frame_t * pAbc, Abc_Alias * pAlias )
 {
     int i;
-    fprintf(pAbc->Out, "%s\t", pAlias->sName);
+    fprintf(pAbc->Out, "%-15s", pAlias->sName);
     for(i = 0; i < pAlias->argc; i++) 
         fprintf( pAbc->Out, " %s", pAlias->argv[i] );
     fprintf( pAbc->Out, "\n" );

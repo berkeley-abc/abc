@@ -28,8 +28,9 @@ struct CSAT_ManagerStruct_t
 {
     // information about the problem
     stmm_table *          tName2Node;    // the hash table mapping names to nodes
+    stmm_table *          tNode2Name;    // the hash table mapping nodes to names
     Abc_Ntk_t *           pNtk;          // the starting ABC network
-    Abc_Ntk_t *           pTarget;       // the AIG of the target
+    Abc_Ntk_t *           pTarget;       // the AIG representing the target
     char *                pDumpFileName; // the name of the file to dump the target network
     // solving parameters
     int                   mode;          // 0 = baseline;  1 = resource-aware fraiging
@@ -44,6 +45,7 @@ struct CSAT_ManagerStruct_t
 
 static CSAT_Target_ResultT * CSAT_TargetResAlloc( int nVars );
 static void CSAT_TargetResFree( CSAT_Target_ResultT * p );
+static char * CSAT_GetNodeName( CSAT_Manager mng, Abc_Obj_t * pNode );
 
 // some external procedures
 extern Fraig_Man_t * Abc_NtkToFraig( Abc_Ntk_t * pNtk, Fraig_Params_t * pParams, int fAllNodes );
@@ -72,8 +74,9 @@ CSAT_Manager CSAT_InitManager()
     mng->pNtk = Abc_NtkAlloc( ABC_TYPE_LOGIC, ABC_FUNC_SOP );
     mng->pNtk->pName = util_strsav("csat_network");
     mng->tName2Node = stmm_init_table(strcmp, stmm_strhash);
-    mng->vNodes  = Vec_PtrAlloc( 100 );
-    mng->vValues = Vec_IntAlloc( 100 );
+    mng->tNode2Name = stmm_init_table(stmm_ptrcmp, stmm_ptrhash);
+    mng->vNodes     = Vec_PtrAlloc( 100 );
+    mng->vValues    = Vec_IntAlloc( 100 );
     return mng;
 }
 
@@ -90,6 +93,7 @@ CSAT_Manager CSAT_InitManager()
 ***********************************************************************/
 void CSAT_QuitManager( CSAT_Manager mng )
 {
+    if ( mng->tNode2Name ) stmm_free_table( mng->tNode2Name );
     if ( mng->tName2Node ) stmm_free_table( mng->tName2Node );
     if ( mng->pNtk )       Abc_NtkDelete( mng->pNtk );
     if ( mng->pTarget )    Abc_NtkDelete( mng->pTarget );
@@ -151,7 +155,7 @@ int CSAT_AddGate( CSAT_Manager mng, enum GateType type, char * name, int nofi, c
             { printf( "CSAT_AddGate: The PI/PPI gate \"%s\" has fanins.\n", name ); return 0; }
         // create the PI
         pObj = Abc_NtkCreatePi( mng->pNtk );
-        pObj->pNext = (Abc_Obj_t *)name;
+        stmm_insert( mng->tNode2Name, (char *)pObj, name );
         break;
     case CSAT_CONST:
     case CSAT_BAND:
@@ -234,7 +238,7 @@ int CSAT_AddGate( CSAT_Manager mng, enum GateType type, char * name, int nofi, c
             { printf( "CSAT_AddGate: The PO/PPO gate \"%s\" does not have exactly one fanin.\n", name ); return 0; }
         // create the PO
         pObj = Abc_NtkCreatePo( mng->pNtk );
-        pObj->pNext = (Abc_Obj_t *)name;
+        stmm_insert( mng->tNode2Name, (char *)pObj, name );
         // connect to the PO fanin
         if ( !stmm_lookup( mng->tName2Node, fanins[0], (char **)&pFanin ) )
             { printf( "CSAT_AddGate: The fanin gate \"%s\" is not in the network.\n", fanins[0] ); return 0; }
@@ -270,13 +274,13 @@ int CSAT_Check_Integrity( CSAT_Manager mng )
     // this procedure also finalizes construction of the ABC network
     Abc_NtkFixNonDrivenNets( pNtk );
     Abc_NtkForEachPi( pNtk, pObj, i )
-        Abc_NtkLogicStoreName( pObj, (char *)pObj->pNext );
+        Abc_NtkLogicStoreName( pObj, CSAT_GetNodeName(mng, pObj) );
     Abc_NtkForEachPo( pNtk, pObj, i )
-        Abc_NtkLogicStoreName( pObj, (char *)pObj->pNext );
+        Abc_NtkLogicStoreName( pObj, CSAT_GetNodeName(mng, pObj) );
     assert( Abc_NtkLatchNum(pNtk) == 0 );
 
     // make sure everything is okay with the network structure
-    if ( !Abc_NtkCheck( pNtk ) )
+    if ( !Abc_NtkCheckRead( pNtk ) )
     {
         printf( "CSAT_Check_Integrity: The internal network check has failed.\n" );
         return 0;
@@ -520,7 +524,7 @@ enum CSAT_StatusT CSAT_Solve( CSAT_Manager mng )
         // create the array of PI names and values
         for ( i = 0; i < mng->pResult->no_sig; i++ )
         {
-            mng->pResult->names[i] = (char *)Abc_NtkCi(mng->pNtk, i)->pNext; // returns the same string that was given
+            mng->pResult->names[i] = CSAT_GetNodeName(mng, Abc_NtkCi(mng->pNtk, i)); // returns the same string that was given
             mng->pResult->values[i] = pModel[i];
         }
     }
@@ -621,6 +625,27 @@ void CSAT_TargetResFree( CSAT_Target_ResultT * p )
     FREE( p->names );
     FREE( p->values );
     free( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Dumps the target AIG into the BENCH file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * CSAT_GetNodeName( CSAT_Manager mng, Abc_Obj_t * pNode )
+{
+    char * pName = NULL;
+    if ( !stmm_lookup( mng->tNode2Name, (char *)pNode, (char **)&pName ) )
+    {
+        assert( 0 );
+    }
+    return pName;
 }
 
 ////////////////////////////////////////////////////////////////////////

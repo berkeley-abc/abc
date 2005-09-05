@@ -21,6 +21,12 @@
 #ifndef __SIM_H__
 #define __SIM_H__
 
+/*
+    The ideas realized in this package are described in the paper:
+    "Detecting Symmetries in Boolean Functions using Circuit Representation, 
+    Simulation, and Satisfiability".
+*/
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -45,7 +51,8 @@ struct Sym_Man_t_
     int               nSimWords;     // the number of bits in simulation info
     Vec_Ptr_t *       vSim;          // simulation info
     // support information
-    Vec_Ptr_t *       vSuppFun;      // functional supports
+    Vec_Ptr_t *       vSuppFun;      // bit representation
+    Vec_Vec_t *       vSupports;     // integer representation
     // symmetry info for each output
     Vec_Ptr_t *       vMatrSymms;    // symmetric pairs
     Vec_Ptr_t *       vMatrNonSymms; // non-symmetric pairs
@@ -56,6 +63,14 @@ struct Sym_Man_t_
     unsigned *        uPatRand;
     unsigned *        uPatCol;
     unsigned *        uPatRow;
+    // temporary
+    Vec_Int_t *       vVarsU;
+    Vec_Int_t *       vVarsV;
+    int               iOutput;
+    int               iVar1;
+    int               iVar2;
+    int               iVar1Old;
+    int               iVar2Old;
     // internal data structures
     int               nSatRuns;
     int               nSatRunsSat;
@@ -64,8 +79,12 @@ struct Sym_Man_t_
     int               nPairsSymm;
     int               nPairsSymmStr;
     int               nPairsNonSymm;
+    int               nPairsRem;
     int               nPairsTotal;
     // runtime statistics
+    int               timeStruct;
+    int               timeCount;
+    int               timeMatr;
     int               timeSim;
     int               timeFraig;
     int               timeSat;
@@ -91,6 +110,7 @@ struct Sim_Man_t_
     Vec_Ptr_t *       vSuppFun;      // functional supports
     // simulation targets
     Vec_Vec_t *       vSuppTargs;    // support targets
+    int               iInput;        // the input current processed
     // internal data structures
     Extra_MmFixed_t * pMmPat;   
     Vec_Ptr_t *       vFifo;
@@ -148,7 +168,7 @@ struct Sim_Pat_t_
 ////////////////////////////////////////////////////////////////////////
 
 /*=== simMan.c ==========================================================*/
-extern Sym_Man_t *     Sym_ManStart( Abc_Ntk_t * pNtk );
+extern Sym_Man_t *     Sym_ManStart( Abc_Ntk_t * pNtk, int fVerbose );
 extern void            Sym_ManStop( Sym_Man_t * p );
 extern void            Sym_ManPrintStats( Sym_Man_t * p );
 extern Sim_Man_t *     Sim_ManStart( Abc_Ntk_t * pNtk );
@@ -158,11 +178,13 @@ extern Sim_Pat_t *     Sim_ManPatAlloc( Sim_Man_t * p );
 extern void            Sim_ManPatFree( Sim_Man_t * p, Sim_Pat_t * pPat );
 /*=== simSupp.c ==========================================================*/
 extern Vec_Ptr_t *     Sim_ComputeStrSupp( Abc_Ntk_t * pNtk );
-extern Vec_Ptr_t *     Sim_ComputeFunSupp( Abc_Ntk_t * pNtk );
+extern Vec_Ptr_t *     Sim_ComputeFunSupp( Abc_Ntk_t * pNtk, int fVerbose );
 /*=== simSym.c ==========================================================*/
-extern int             Sim_ComputeTwoVarSymms( Abc_Ntk_t * pNtk );
+extern int             Sim_ComputeTwoVarSymms( Abc_Ntk_t * pNtk, int fVerbose );
+/*=== simSymSat.c ==========================================================*/
+extern int             Sim_SymmsGetPatternUsingSat( Sym_Man_t * p, unsigned * pPattern );
 /*=== simSymStr.c ==========================================================*/
-extern void            Sim_SymmsStructCompute( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMatrs );
+extern void            Sim_SymmsStructCompute( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMatrs, Vec_Ptr_t * vSuppFun );
 /*=== simSymSim.c ==========================================================*/
 extern void            Sim_SymmsSimulate( Sym_Man_t * p, unsigned * pPatRand, Vec_Ptr_t * vMatrsNonSym );
 /*=== simUtil.c ==========================================================*/
@@ -180,7 +202,8 @@ extern int             Sim_UtilCountSuppSizes( Sim_Man_t * p, int fStruct );
 extern int             Sim_UtilCountOnes( unsigned * pSimInfo, int nSimWords );
 extern void            Sim_UtilGetRandom( unsigned * pPatRand, int nSimWords );
 extern int             Sim_UtilCountAllPairs( Vec_Ptr_t * vSuppFun, int nSimWords, Vec_Int_t * vCounters );
-extern int             Sim_UtilCountPairs( Vec_Ptr_t * vMatrs, Vec_Int_t * vCounters );
+extern void            Sim_UtilCountPairsAll( Sym_Man_t * p );
+extern int             Sim_UtilMatrsAreDisjoint( Sym_Man_t * p );
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -259,8 +259,6 @@ struct Fraig_NodeStruct_t_
     Fraig_Node_t *        pRepr;         // the canonical functional representative of the node
 
     // simulation data
-//    Fraig_Sims_t *        pSimsR;        // the random simulation info
-//    Fraig_Sims_t *        pSimsD;        // the systematic simulation info
     unsigned              uHashR;        // the hash value for random information
     unsigned              uHashD;        // the hash value for dynamic information 
     unsigned *            puSimR;        // the simulation information (random)

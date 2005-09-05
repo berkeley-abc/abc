@@ -99,13 +99,12 @@ Vec_Ptr_t * Sim_ComputeStrSupp( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Sim_ComputeFunSupp( Abc_Ntk_t * pNtk )
+Vec_Ptr_t * Sim_ComputeFunSupp( Abc_Ntk_t * pNtk, int fVerbose )
 {
     Sim_Man_t * p;
     Vec_Ptr_t * vResult;
     int nSolved, i, clk = clock();
 
-//    srand( time(NULL) );
     srand( 0xABC );
 
     // start the simulation manager
@@ -117,35 +116,40 @@ Vec_Ptr_t * Sim_ComputeFunSupp( Abc_Ntk_t * pNtk )
 
     // set the support targets 
     Sim_ComputeSuppSetTargets( p );
-printf( "Initial targets    = %5d.\n", Vec_VecSizeSize(p->vSuppTargs) );
+if ( fVerbose )
+    printf( "Number of support targets after simulation = %5d.\n", Vec_VecSizeSize(p->vSuppTargs) );
     if ( Vec_VecSizeSize(p->vSuppTargs) == 0 )
         goto exit;
 
     for ( i = 0; i < 1; i++ )
     {
-    // compute patterns using one round of random simulation
-    Sim_UtilAssignRandom( p );
-    nSolved = Sim_ComputeSuppRound( p, 1 );
-printf( "Targets = %5d.   Solved = %5d.  Fifo = %5d.\n", Vec_VecSizeSize(p->vSuppTargs), nSolved, Vec_PtrSize(p->vFifo) );
-    if ( Vec_VecSizeSize(p->vSuppTargs) == 0 )
-        goto exit;
+        // compute patterns using one round of random simulation
+        Sim_UtilAssignRandom( p );
+        nSolved = Sim_ComputeSuppRound( p, 1 );
+        if ( Vec_VecSizeSize(p->vSuppTargs) == 0 )
+            goto exit;
+
+if ( fVerbose )
+    printf( "Targets = %5d.   Solved = %5d.  Fifo = %5d.\n", 
+       Vec_VecSizeSize(p->vSuppTargs), nSolved, Vec_PtrSize(p->vFifo) );
     }
 
-
-    // simulate until saturation
+    // try to solve the support targets
     while ( Vec_VecSizeSize(p->vSuppTargs) > 0 )
     {
-        // solve randomly a given number of targets
+        // solve targets until the first disproved one (which gives counter-example)
         Sim_SolveTargetsUsingSat( p, p->nSimWords/p->nSuppWords );
         // compute additional functional support
-//        Sim_UtilAssignRandom( p );
         Sim_UtilAssignFromFifo( p );
         nSolved = Sim_ComputeSuppRound( p, 1 );
-printf( "Targets = %5d.   Solved = %5d.  Fifo = %5d.  SAT runs = %3d.\n", 
+
+if ( fVerbose )
+    printf( "Targets = %5d.   Solved = %5d.  Fifo = %5d.  SAT runs = %3d.\n", 
             Vec_VecSizeSize(p->vSuppTargs), nSolved, Vec_PtrSize(p->vFifo), p->nSatRuns );
     }
 
 exit:
+p->timeTotal = clock() - clk;
     vResult = p->vSuppFun;  
     //  p->vSuppFun = NULL;
     Sim_ManStop( p );
@@ -166,7 +170,6 @@ exit:
 int Sim_ComputeSuppRound( Sim_Man_t * p, bool fUseTargets )
 {
     Vec_Int_t * vTargets;
-    Abc_Obj_t * pNode;
     int i, Counter = 0;
     int clk;
     // perform one round of random simulation
@@ -174,7 +177,7 @@ clk = clock();
     Sim_UtilSimulate( p, 0 );
 p->timeSim += clock() - clk;
     // iterate through the CIs and detect COs that depend on them
-    Abc_NtkForEachCi( p->pNtk, pNode, i )
+    for ( i = p->iInput; i < p->nInputs; i++ )
     {
         vTargets = p->vSuppTargs->pArray[i];
         if ( fUseTargets && vTargets->nSize == 0 )
@@ -207,7 +210,8 @@ int Sim_ComputeSuppRoundNode( Sim_Man_t * p, int iNumCi, bool fUseTargets )
     int fFirst = 1;
     int clk;
     // collect nodes by level in the TFO of the CI 
-    // (this procedure increments TravId of the collected nodes)
+    // this proceduredoes not collect the CIs and COs
+    // but it increments TravId of the collected nodes and CIs/COs
 clk = clock();
     pNodeCi       = Abc_NtkCi( p->pNtk, iNumCi );
     vNodesByLevel = Abc_DfsLevelized( pNodeCi, 0 );
@@ -232,12 +236,9 @@ p->timeSim += clock() - clk;
             // get the target output
             Output = vTargets->pArray[i];
             // get the target node
-            pNode  = Abc_NtkCo( p->pNtk, Output );
+            pNode  = Abc_ObjFanin0( Abc_NtkCo(p->pNtk, Output) );
             // the output should be in the cone
             assert( Abc_NodeIsTravIdCurrent(pNode) );
-
-            // simulate the node
-            Sim_UtilSimulateNode( p, pNode, 1, 1, 1 );
 
             // skip if the simulation info is equal
             if ( Sim_UtilInfoCompare( p, pNode ) )
@@ -283,12 +284,13 @@ printf( "\n" );
         {
             if ( !Abc_NodeIsTravIdCurrent( pNode ) )
                 continue;
-            Sim_UtilSimulateNode( p, pNode, 1, 1, 1 );
-            if ( !Sim_UtilInfoCompare( p, pNode ) )
+            if ( !Sim_UtilInfoCompare( p, Abc_ObjFanin0(pNode) ) )
             {
                 if ( !Sim_SuppFunHasVar(p->vSuppFun, Output, iNumCi) )
+                {
                     Counter++;
-                Sim_SuppFunSetVar( p->vSuppFun, Output, iNumCi );
+                    Sim_SuppFunSetVar( p->vSuppFun, Output, iNumCi );
+                }
             }
         }
     }
@@ -365,7 +367,7 @@ void Sim_UtilAssignFromFifo( Sim_Man_t * p )
     Abc_Obj_t * pNode;
     Sim_Pat_t * pPat;
     unsigned * pSimInfo;
-    int iWord, iWordLim, i, w;
+    int nWordsNew, iWord, iWordLim, i, w;
     int iBeg, iEnd;
     int Counter = 0;
     // go through the patterns and fill in the dist-1 minterms for each
@@ -379,7 +381,7 @@ void Sim_UtilAssignFromFifo( Sim_Man_t * p )
             // get the first word of the next series
             iWordLim = iWord + 1; 
             // set the pattern for all PIs from iBit to iWord + p->nInputs
-            iBeg = ABC_MAX( 0, pPat->Input - 16 );
+            iBeg = p->iInput;
             iEnd = ABC_MIN( iBeg + 32, p->nInputs );
 //            for ( i = iBeg; i < iEnd; i++ )
             Abc_NtkForEachCi( p->pNtk, pNode, i )
@@ -397,9 +399,12 @@ void Sim_UtilAssignFromFifo( Sim_Man_t * p )
         }
         else
         {
+            // get the number of words for the remaining inputs
+            nWordsNew = p->nSuppWords;
+//            nWordsNew = SIM_NUM_WORDS( p->nInputs - p->iInput );
             // get the first word of the next series
-            iWordLim = (iWord + p->nSuppWords < p->nSimWords)? iWord + p->nSuppWords : p->nSimWords; 
-            // set the pattern for all PIs from iBit to iWord + p->nInputs
+            iWordLim = (iWord + nWordsNew < p->nSimWords)? iWord + nWordsNew : p->nSimWords; 
+            // set the pattern for all CIs from iWord to iWord + nWordsNew
             Abc_NtkForEachCi( p->pNtk, pNode, i )
             {
                 pSimInfo = p->vSim0->pArray[pNode->Id];
@@ -413,8 +418,10 @@ void Sim_UtilAssignFromFifo( Sim_Man_t * p )
                     for ( w = iWord; w < iWordLim; w++ )
                         pSimInfo[w] = 0;
                 }
-                // flip one bit
                 Sim_XorBit( pSimInfo + iWord, i );
+                // flip one bit
+//                if ( i >= p->iInput )
+//                    Sim_XorBit( pSimInfo + iWord, i-p->iInput );
             }
         }
         Sim_ManPatFree( p, pPat );
@@ -456,10 +463,11 @@ void Sim_SolveTargetsUsingSat( Sim_Man_t * p, int Limit )
     {
         p->nSatRuns++;
         Output = (int)pEntry;
+
         // set up the miter for the two cofactors of this output w.r.t. this input
         pMiter = Abc_NtkMiterForCofactors( p->pNtk, Output, Input, -1 );
 
-        // transform the target into a fraig
+        // transform the miter into a fraig
         Fraig_ParamsSetDefault( &Params );
         Params.fInternal = 1;
 clk = clock();
@@ -502,23 +510,23 @@ p->timeSat += clock() - clk;
             Abc_NtkForEachCi( p->pNtk, pNodeCi, v )
                 if ( pModel[v] )
                     Sim_SetBit( pPat->pData, v );
-            Sim_XorBit( pPat->pData, Input ); // flip the given bit
+            Sim_XorBit( pPat->pData, Input );  // add this bit in the opposite polarity
             Vec_PtrPush( p->vFifo, pPat );
 */
             Counter++;
         }
         // delete the fraig manager
         Fraig_ManFree( pMan );
-        // delete the target
+        // delete the miter
         Abc_NtkDelete( pMiter );
+
+        // makr the input, which we are processing
+        p->iInput = Input;
 
         // stop when we found enough patterns
 //        if ( Counter == Limit )
         if ( Counter == 1 )
             return;
-        // switch to the next input if we found one model
-        if ( pModel )
-            break;
     }
 }
 

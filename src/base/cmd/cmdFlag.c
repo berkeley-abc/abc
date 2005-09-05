@@ -43,14 +43,10 @@
 ******************************************************************************/
 char * Cmd_FlagReadByName( Abc_Frame_t * pAbc, char * flag )
 {
-  char *value;
-
-  if (st_lookup(pAbc->tFlags, flag, &value)) {
-    return value;
-  }
-  else {
-    return NIL(char);
-  }
+    char * value;
+    if ( st_lookup(pAbc->tFlags, flag, &value) )
+        return value;
+    return NULL;
 }
 
 
@@ -65,19 +61,17 @@ char * Cmd_FlagReadByName( Abc_Frame_t * pAbc, char * flag )
 ******************************************************************************/
 void Cmd_FlagUpdateValue( Abc_Frame_t * pAbc, char * key, char * value )
 {
-  char *oldValue, *newValue;
-
-  if (!key)
-    return;
-  if (value)
-    newValue = util_strsav(value);
-  else
-    newValue = util_strsav("");
-
-  if (st_delete(pAbc->tFlags, &key, &oldValue))
-    FREE(oldValue);
-
-  st_insert(pAbc->tFlags, key, newValue);
+    char * oldValue, * newValue;
+    if ( !key )
+        return;
+    if ( value )
+        newValue = util_strsav(value);
+    else
+        newValue = util_strsav("");
+//        newValue = NULL;
+    if ( st_delete(pAbc->tFlags, &key, &oldValue) )
+        FREE(oldValue);
+    st_insert( pAbc->tFlags, key, newValue );
 }
 
 
@@ -92,15 +86,14 @@ void Cmd_FlagUpdateValue( Abc_Frame_t * pAbc, char * key, char * value )
 ******************************************************************************/
 void Cmd_FlagDeleteByName( Abc_Frame_t * pAbc, char * key )
 {
-  char *value;
-
-  if (!key)
-    return;
-
-  if (st_delete(pAbc->tFlags, &key, &value)) {
-    FREE(key);
-    FREE(value);
-  }
+    char *value;
+    if ( !key )
+        return;
+    if ( st_delete( pAbc->tFlags, &key, &value ) ) 
+    {
+        FREE(key);
+        FREE(value);
+    }
 }
 
 

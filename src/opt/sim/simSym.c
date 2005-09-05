@@ -40,51 +40,99 @@
   SeeAlso     []
 
 ***********************************************************************/
-int Sim_ComputeTwoVarSymms( Abc_Ntk_t * pNtk )
+int Sim_ComputeTwoVarSymms( Abc_Ntk_t * pNtk, int fVerbose )
 {
     Sym_Man_t * p;
     Vec_Ptr_t * vResult;
     int Result;
-    int i, clk = clock();
+    int i, clk, clkTotal = clock();
 
-//    srand( time(NULL) );
     srand( 0xABC );
 
     // start the simulation manager
-    p = Sym_ManStart( pNtk );
-    p->nPairsTotal = Sim_UtilCountAllPairs( p->vSuppFun, p->nSimWords, p->vPairsTotal );
+    p = Sym_ManStart( pNtk, fVerbose );
+    p->nPairsTotal = p->nPairsRem = Sim_UtilCountAllPairs( p->vSuppFun, p->nSimWords, p->vPairsTotal );
+    if ( fVerbose )
+        printf( "Total = %8d.  Sym = %8d.  NonSym = %8d.  Remaining = %8d.\n", 
+               p->nPairsTotal, p->nPairsSymm, p->nPairsNonSymm, p->nPairsRem );
 
     // detect symmetries using circuit structure
-    Sim_SymmsStructCompute( pNtk, p->vMatrSymms );
-    p->nPairsSymm = p->nPairsSymmStr = Sim_UtilCountPairs( p->vMatrSymms, p->vPairsSym );
+clk = clock();
+    Sim_SymmsStructCompute( pNtk, p->vMatrSymms, p->vSuppFun );
+p->timeStruct = clock() - clk;
 
-printf( "Total = %6d.  Sym = %6d.  NonSym = %6d.  Remaining = %6d.\n", 
-       p->nPairsTotal, p->nPairsSymm, p->nPairsNonSymm, p->nPairsTotal-p->nPairsSymm-p->nPairsNonSymm );
+    Sim_UtilCountPairsAll( p );
+    p->nPairsSymmStr = p->nPairsSymm;
+    if ( fVerbose )
+        printf( "Total = %8d.  Sym = %8d.  NonSym = %8d.  Remaining = %8d.\n", 
+            p->nPairsTotal, p->nPairsSymm, p->nPairsNonSymm, p->nPairsRem );
 
     // detect symmetries using simulation
     for ( i = 1; i <= 1000; i++ )
     {
-        // generate random pattern
-        Sim_UtilGetRandom( p->uPatRand, p->nSimWords );
         // simulate this pattern
+        Sim_UtilGetRandom( p->uPatRand, p->nSimWords );
         Sim_SymmsSimulate( p, p->uPatRand, p->vMatrNonSymms );
-        if ( i % 100 != 0 )
+        if ( i % 50 != 0 )
             continue;
+        // check disjointness
+        assert( Sim_UtilMatrsAreDisjoint( p ) );
         // count the number of pairs
-        p->nPairsSymm    = Sim_UtilCountPairs( p->vMatrSymms,    p->vPairsSym );
-        p->nPairsNonSymm = Sim_UtilCountPairs( p->vMatrNonSymms, p->vPairsNonSym );
-
-printf( "Total = %6d.  Sym = %6d.  NonSym = %6d.  Remaining = %6d.\n", 
-       p->nPairsTotal, p->nPairsSymm, p->nPairsNonSymm, p->nPairsTotal-p->nPairsSymm-p->nPairsNonSymm );
+        Sim_UtilCountPairsAll( p );
+        if ( i % 500 != 0 )
+            continue;
+        if ( fVerbose )
+            printf( "Total = %8d.  Sym = %8d.  NonSym = %8d.  Remaining = %8d.\n", 
+                p->nPairsTotal, p->nPairsSymm, p->nPairsNonSymm, p->nPairsRem );
     }
+
+    // detect symmetries using SAT
+    for ( i = 1; Sim_SymmsGetPatternUsingSat( p, p->uPatRand ); i++ )
+    {
+        // simulate this pattern in four polarities
+        Sim_SymmsSimulate( p, p->uPatRand, p->vMatrNonSymms );
+        Sim_XorBit( p->uPatRand, p->iVar1 );
+        Sim_SymmsSimulate( p, p->uPatRand, p->vMatrNonSymms );
+        Sim_XorBit( p->uPatRand, p->iVar2 );
+        Sim_SymmsSimulate( p, p->uPatRand, p->vMatrNonSymms );
+        Sim_XorBit( p->uPatRand, p->iVar1 );
+        Sim_SymmsSimulate( p, p->uPatRand, p->vMatrNonSymms );
+        Sim_XorBit( p->uPatRand, p->iVar2 );
+/*
+        // try the previuos pair
+        Sim_XorBit( p->uPatRand, p->iVar1Old );
+        Sim_SymmsSimulate( p, p->uPatRand, p->vMatrNonSymms );
+        Sim_XorBit( p->uPatRand, p->iVar2Old );
+        Sim_SymmsSimulate( p, p->uPatRand, p->vMatrNonSymms );
+        Sim_XorBit( p->uPatRand, p->iVar1Old );
+        Sim_SymmsSimulate( p, p->uPatRand, p->vMatrNonSymms );
+*/
+        if ( i % 10 != 0 )
+            continue;
+        // check disjointness
+        assert( Sim_UtilMatrsAreDisjoint( p ) );
+        // count the number of pairs
+        Sim_UtilCountPairsAll( p );
+        if ( i % 50 != 0 )
+            continue;
+        if ( fVerbose )
+            printf( "Total = %8d.  Sym = %8d.  NonSym = %8d.  Remaining = %8d.\n", 
+                p->nPairsTotal, p->nPairsSymm, p->nPairsNonSymm, p->nPairsRem );
+    }
+
+    // count the number of pairs
+    Sim_UtilCountPairsAll( p );
+    if ( fVerbose )
+        printf( "Total = %8d.  Sym = %8d.  NonSym = %8d.  Remaining = %8d.\n", 
+            p->nPairsTotal, p->nPairsSymm, p->nPairsNonSymm, p->nPairsRem );
 
     Result = p->nPairsSymm;
     vResult = p->vMatrSymms;  
+p->timeTotal = clock() - clkTotal;
     //  p->vMatrSymms = NULL;
     Sym_ManStop( p );
     return Result;
 }
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

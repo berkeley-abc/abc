@@ -53,7 +53,8 @@ void Fraig_ParamsSetDefault( Fraig_Params_t * pParams )
     pParams->fChoicing  =  0;                     // enables recording structural choices
     pParams->fTryProve  =  1;                     // tries to solve the final miter
     pParams->fVerbose   =  0;                     // the verbosiness flag
-    pParams->fVerboseP  =  0;
+    pParams->fVerboseP  =  0;                     // the verbose flag for reporting the proof
+    pParams->fInternal  =  0;                     // the flag indicates the internal run 
 }
 
 /**Function*************************************************************

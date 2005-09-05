@@ -119,14 +119,13 @@ Abc_Ntk_t * Abc_NtkDeriveFromBdd( DdManager * dd, DdNode * bFunc, char * pNamePo
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkBddToMuxes( Abc_Ntk_t * pNtk )
 {
-    int fCheck = 1;
     Abc_Ntk_t * pNtkNew;
     assert( Abc_NtkIsBddLogic(pNtk) );
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_LOGIC, ABC_FUNC_SOP );
     Abc_NtkBddToMuxesPerform( pNtk, pNtkNew );
     Abc_NtkFinalize( pNtk, pNtkNew );
     // make sure everything is okay
-    if ( fCheck && !Abc_NtkCheck( pNtkNew ) )
+    if ( !Abc_NtkCheck( pNtkNew ) )
     {
         printf( "Abc_NtkBddToMuxes: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );

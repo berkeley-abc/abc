@@ -56,7 +56,6 @@ static void           Abc_NodeComplementInput( Abc_Obj_t * pNode, Abc_Obj_t * pF
 ***********************************************************************/
 bool Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fVerbose )
 {
-    int fCheck = 1;
     Fraig_Params_t Params;
     Abc_Ntk_t * pNtkAig;
     Fraig_Man_t * pMan;
@@ -83,7 +82,7 @@ bool Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fVerbose )
     // cleanup the dangling nodes
     Abc_NtkCleanup( pNtk, fVerbose );
     // check
-    if ( fCheck && !Abc_NtkCheck( pNtk ) )
+    if ( !Abc_NtkCheck( pNtk ) )
     {
         printf( "Abc_NtkFraigSweep: The network check has failed.\n" );
         return 0;
@@ -394,7 +393,6 @@ int Abc_NodeDroppingCost( Abc_Obj_t * pNode )
 ***********************************************************************/
 int Abc_NtkCleanup( Abc_Ntk_t * pNtk, int fVerbose )
 {
-    int fCheck = 1;
     Vec_Ptr_t * vNodes;
     Abc_Obj_t * pNode;
     int i, Counter;
@@ -423,7 +421,7 @@ int Abc_NtkCleanup( Abc_Ntk_t * pNtk, int fVerbose )
     if ( fVerbose )
         printf( "Cleanup removed %d dangling nodes.\n", Counter );
     // check
-    if ( fCheck && !Abc_NtkCheck( pNtk ) )
+    if ( !Abc_NtkCheck( pNtk ) )
     {
         printf( "Abc_NtkCleanup: The network check has failed.\n" );
         return -1;
@@ -447,7 +445,6 @@ int Abc_NtkCleanup( Abc_Ntk_t * pNtk, int fVerbose )
 ***********************************************************************/
 int Abc_NtkSweep( Abc_Ntk_t * pNtk, int fVerbose )
 {
-    int fCheck = 1;
     Abc_Obj_t * pNode;
     int i, fConvert, nSwept, nSweptNew;
     assert( Abc_NtkIsSopLogic(pNtk) || Abc_NtkIsBddLogic(pNtk) ); 
@@ -481,7 +478,7 @@ int Abc_NtkSweep( Abc_Ntk_t * pNtk, int fVerbose )
     if ( fVerbose )
         printf( "Sweep removed %d nodes.\n", nSwept );
     // check
-    if ( fCheck && !Abc_NtkCheck( pNtk ) )
+    if ( !Abc_NtkCheck( pNtk ) )
     {
         printf( "Abc_NtkSweep: The network check has failed.\n" );
         return -1;

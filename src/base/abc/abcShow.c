@@ -23,6 +23,7 @@
 #endif
 
 #include "abc.h"
+#include "main.h"
 #include "io.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -195,22 +196,26 @@ void Abc_ShowFile( char * FileNameDot )
     char * FileGeneric;
     char FileNamePs[200];
     char CommandDot[1000];
-#ifndef WIN32
-    char CommandPs[1000];
-#endif
-    char * pProgDotName;
-    char * pProgGsViewName;
+    char * pDotName;
+    char * pDotNameWin = "dot.exe";
+    char * pDotNameUnix = "dot";
+    char * pGsNameWin = "gsview32.exe";
+    char * pGsNameUnix = "gv";
     int RetValue;
 
+    // get DOT names from the resource file
+    if ( Abc_FrameReadFlag("dotwin") )
+        pDotNameWin = Abc_FrameReadFlag("dotwin");
+    if ( Abc_FrameReadFlag("dotunix") )
+        pDotNameUnix = Abc_FrameReadFlag("dotunix");
+
 #ifdef WIN32
-    pProgDotName = "dot.exe";
-    pProgGsViewName = NULL;
+    pDotName = pDotNameWin;
 #else
-    pProgDotName = "dot";
-    pProgGsViewName = "gv";
+    pDotName = pDotNameUnix;
 #endif
 
-    // check that the input file is okay
+    // check if the input DOT file is okay
     if ( (pFile = fopen( FileNameDot, "r" )) == NULL )
     {
         fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", FileNameDot );
@@ -218,27 +223,20 @@ void Abc_ShowFile( char * FileNameDot )
     }
     fclose( pFile );
 
-    // get the generic file name
-    FileGeneric = Extra_FileNameGeneric( FileNameDot );
     // create the PostScript file name
+    FileGeneric = Extra_FileNameGeneric( FileNameDot );
     sprintf( FileNamePs,  "%s.ps",  FileGeneric ); 
     free( FileGeneric );
 
-    // generate the DOT file
-    sprintf( CommandDot,  "%s -Tps -o %s %s", pProgDotName, FileNamePs, FileNameDot ); 
+    // generate the PostScript file using DOT
+    sprintf( CommandDot,  "%s -Tps -o %s %s", pDotName, FileNamePs, FileNameDot ); 
     RetValue = system( CommandDot );
-#ifdef WIN32
-        _unlink( FileNameDot );
-#else
-        unlink( FileNameDot );
-#endif
     if ( RetValue == -1 )
     {
-        fprintf( stdout, "Cannot find \"%s\".\n", pProgDotName );
+        fprintf( stdout, "Command \"%s\" did not succeed.\n", CommandDot );
         return;
     }
-
-    // check that the input file is okay
+    // check that the input PostScript file is okay
     if ( (pFile = fopen( FileNamePs, "r" )) == NULL )
     {
         fprintf( stdout, "Cannot open intermediate file \"%s\".\n", FileNamePs );
@@ -246,20 +244,33 @@ void Abc_ShowFile( char * FileNameDot )
     }
     fclose( pFile ); 
 
+
+    // get GSVIEW names from the resource file
+    if ( Abc_FrameReadFlag("gsviewwin") )
+        pGsNameWin = Abc_FrameReadFlag("gsviewwin");
+    if ( Abc_FrameReadFlag("gsviewunix") )
+        pGsNameUnix = Abc_FrameReadFlag("gsviewunix");
+
+    // spawn the viewer
 #ifdef WIN32
-    if ( _spawnl( _P_NOWAIT, "gsview32.exe", "gsview32.exe", FileNamePs, NULL ) == -1 )
+    _unlink( FileNameDot );
+    if ( _spawnl( _P_NOWAIT, pGsNameWin, pGsNameWin, FileNamePs, NULL ) == -1 )
         if ( _spawnl( _P_NOWAIT, "C:\\Program Files\\Ghostgum\\gsview\\gsview32.exe", 
             "C:\\Program Files\\Ghostgum\\gsview\\gsview32.exe", FileNamePs, NULL ) == -1 )
         {
-            fprintf( stdout, "Cannot find \"%s\".\n", "gsview32.exe" );
+            fprintf( stdout, "Cannot find \"%s\".\n", pGsNameWin );
             return;
         }
 #else
-    sprintf( CommandPs,  "%s %s &", pProgGsViewName, FileNamePs ); 
-    if ( system( CommandPs ) == -1 )
     {
-        fprintf( stdout, "Cannot execute \"%s\".\n", FileNamePs );
-        return;
+        char CommandPs[1000];
+        unlink( FileNameDot );
+        sprintf( CommandPs,  "%s %s &", pGsNameUnix, FileNamePs ); 
+        if ( system( CommandPs ) == -1 )
+        {
+            fprintf( stdout, "Cannot execute \"%s\".\n", CommandPs );
+            return;
+        }
     }
 #endif
 }

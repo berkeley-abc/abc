@@ -436,18 +436,80 @@ int Sim_UtilCountAllPairs( Vec_Ptr_t * vSuppFun, int nSimWords, Vec_Int_t * vCou
   SeeAlso     []
 
 ***********************************************************************/
-int Sim_UtilCountPairs( Vec_Ptr_t * vMatrs, Vec_Int_t * vCounters )
+int Sim_UtilCountPairsOne( Extra_BitMat_t * pMat, Vec_Int_t * vSupport )
 {
-    Extra_BitMat_t * vMat;
-    int Counter, nPairs, i;
-    Counter = 0;
-    Vec_PtrForEachEntry( vMatrs, vMat, i )
-    {
-        nPairs = Extra_BitMatrixCountOnesUpper( vMat );
-        Vec_IntWriteEntry( vCounters, i, nPairs );
-        Counter += nPairs;
-    }
+    int i, k, Index1, Index2;
+    int Counter = 0;
+//    int Counter2;
+    Vec_IntForEachEntry( vSupport, i, Index1 )
+    Vec_IntForEachEntryStart( vSupport, k, Index2, Index1+1 )
+        Counter += Extra_BitMatrixLookup1( pMat, i, k );
+//    Counter2 = Extra_BitMatrixCountOnesUpper(pMat);
+//    assert( Counter == Counter2 );
     return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of entries in the array of matrices.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Sim_UtilCountPairsAll( Sym_Man_t * p )
+{
+    int nPairsTotal, nPairsSym, nPairsNonSym, i, clk;
+clk = clock();
+    p->nPairsSymm    = 0;
+    p->nPairsNonSymm = 0;
+    for ( i = 0; i < p->nOutputs; i++ )
+    {
+        nPairsTotal  = Vec_IntEntry(p->vPairsTotal, i);
+        nPairsSym    = Vec_IntEntry(p->vPairsSym,   i);
+        nPairsNonSym = Vec_IntEntry(p->vPairsNonSym,i);
+        assert( nPairsTotal >= nPairsSym + nPairsNonSym ); 
+        if ( nPairsTotal == nPairsSym + nPairsNonSym )
+        {
+            p->nPairsSymm    += nPairsSym;
+            p->nPairsNonSymm += nPairsNonSym;
+            continue;
+        }
+        nPairsSym    = Sim_UtilCountPairsOne( Vec_PtrEntry(p->vMatrSymms,   i), Vec_VecEntry(p->vSupports, i) );
+        nPairsNonSym = Sim_UtilCountPairsOne( Vec_PtrEntry(p->vMatrNonSymms,i), Vec_VecEntry(p->vSupports, i) );
+        assert( nPairsTotal >= nPairsSym + nPairsNonSym ); 
+        Vec_IntWriteEntry( p->vPairsSym,    i, nPairsSym );
+        Vec_IntWriteEntry( p->vPairsNonSym, i, nPairsNonSym );
+        p->nPairsSymm    += nPairsSym;
+        p->nPairsNonSymm += nPairsNonSym;
+//        printf( "%d ", nPairsTotal - nPairsSym - nPairsNonSym );
+    }
+//printf( "\n" );
+    p->nPairsRem = p->nPairsTotal-p->nPairsSymm-p->nPairsNonSymm;
+p->timeCount += clock() - clk;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Sim_UtilMatrsAreDisjoint( Sym_Man_t * p )
+{
+    int i;
+    for ( i = 0; i < p->nOutputs; i++ )
+        if ( !Extra_BitMatrixIsDisjoint( Vec_PtrEntry(p->vMatrSymms,i), Vec_PtrEntry(p->vMatrNonSymms,i) ) )
+            return 0;
+    return 1;
 }
 
 ////////////////////////////////////////////////////////////////////////

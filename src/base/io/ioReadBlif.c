@@ -109,7 +109,7 @@ Abc_Ntk_t * Io_ReadBlif( char * pFileName, int fCheck )
     Io_ReadBlifFree( p );
 
     // make sure that everything is okay with the network structure
-    if ( fCheck && !Abc_NtkCheck( pNtk ) )
+    if ( fCheck && !Abc_NtkCheckRead( pNtk ) )
     {
         printf( "Io_ReadBlif: The network check has failed.\n" );
         Abc_NtkDelete( pNtk );

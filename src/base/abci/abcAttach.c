@@ -56,7 +56,6 @@ static int s_nPerms;
 ***********************************************************************/
 int Abc_NtkAttach( Abc_Ntk_t * pNtk )
 {
-    int fCheck = 1;
     Mio_Library_t * pGenlib;
     unsigned ** puTruthGates;
     unsigned uTruths[6][2];
@@ -149,7 +148,7 @@ int Abc_NtkAttach( Abc_Ntk_t * pNtk )
     printf( "Library gates are successfully attached to the nodes.\n" );
 
     // make sure that everything is okay
-    if ( fCheck && !Abc_NtkCheck( pNtk ) )
+    if ( !Abc_NtkCheck( pNtk ) )
     {
         printf( "Abc_NtkAttach: The network check has failed.\n" );
         return 0;

@@ -1,12 +1,12 @@
 /**CFile****************************************************************
 
-  FileName    [abcRes.c]
+  FileName    [abcReconv.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
   PackageName [Network and node package.]
 
-  Synopsis    [Reconvergence=driven cut computation.]
+  Synopsis    [Computation of reconvergence-driven cuts.]
 
   Author      [Alan Mishchenko]
   
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: abcRes.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: abcReconv.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 

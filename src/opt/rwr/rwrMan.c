@@ -78,13 +78,13 @@ clk = clock();
     if ( fPrecompute )
     {   // precompute subgraphs
         Rwr_ManPrecompute( p );
+//        Rwr_ManPrint( p );
         Rwr_ManWriteToArray( p );
-        Rwr_ManPrint( p );
     }
     else
     {   // load saved subgraphs
         Rwr_ManLoadFromArray( p, 0 );
-        Rwr_ManPrint( p );
+//        Rwr_ManPrint( p );
         Rwr_ManPreprocess( p );
     }
 p->timeStart = clock() - clk;

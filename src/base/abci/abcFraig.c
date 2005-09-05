@@ -51,7 +51,6 @@ static Abc_Obj_t *   Abc_NodeFraigTrust( Abc_Aig_t * pMan, Abc_Obj_t * pNode );
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkFraig( Abc_Ntk_t * pNtk, void * pParams, int fAllNodes )
 {
-    int fCheck = 1;
     Fraig_Params_t * pPars = pParams;
     Abc_Ntk_t * pNtkNew;
     Fraig_Man_t * pMan;
@@ -64,7 +63,7 @@ Abc_Ntk_t * Abc_NtkFraig( Abc_Ntk_t * pNtk, void * pParams, int fAllNodes )
     pNtkNew = Abc_NtkFromFraig( pMan, pNtk );
     Fraig_ManFree( pMan );
     // make sure that everything is okay
-    if ( fCheck && !Abc_NtkCheck( pNtkNew ) )
+    if ( !Abc_NtkCheck( pNtkNew ) )
     {
         printf( "Abc_NtkFraig: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
@@ -249,7 +248,6 @@ Abc_Obj_t * Abc_NodeFromFraig_rec( Abc_Ntk_t * pNtkNew, Fraig_Node_t * pNodeFrai
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkFraigTrust( Abc_Ntk_t * pNtk )
 {
-    int fCheck = 1;
     Abc_Ntk_t * pNtkNew;
 
     if ( !Abc_NtkIsSopLogic(pNtk) )
@@ -273,7 +271,7 @@ Abc_Ntk_t * Abc_NtkFraigTrust( Abc_Ntk_t * pNtk )
     printf( "Warning: The resulting AIG contains %d choice nodes.\n", Abc_NtkGetChoiceNum( pNtkNew ) );
 
     // make sure that everything is okay
-    if ( fCheck && !Abc_NtkCheck( pNtkNew ) )
+    if ( !Abc_NtkCheck( pNtkNew ) )
     {
         printf( "Abc_NtkFraigTrust: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
@@ -420,7 +418,6 @@ Abc_Obj_t * Abc_NodeFraigTrust( Abc_Aig_t * pMan, Abc_Obj_t * pNode )
 ***********************************************************************/
 int Abc_NtkFraigStore( Abc_Ntk_t * pNtk )
 {
-    Abc_Frame_t * p;
     Abc_Ntk_t * pStore;
     int nAndsOld;
 
@@ -431,8 +428,7 @@ int Abc_NtkFraigStore( Abc_Ntk_t * pNtk )
     }
 
     // get the network currently stored
-    p = Abc_FrameGetGlobalFrame();
-    pStore = Abc_FrameReadNtkStore(p);
+    pStore = Abc_FrameReadNtkStore();
     if ( pStore == NULL )
     {
         // start the stored network
@@ -443,8 +439,8 @@ int Abc_NtkFraigStore( Abc_Ntk_t * pNtk )
             return 0;
         }
         // save the parameters
-        Abc_FrameSetNtkStore( p, pStore );
-        Abc_FrameSetNtkStoreSize( p, 1 );
+        Abc_FrameSetNtkStore( pStore );
+        Abc_FrameSetNtkStoreSize( 1 );
         nAndsOld = 0;
     }
     else
@@ -457,7 +453,7 @@ int Abc_NtkFraigStore( Abc_Ntk_t * pNtk )
             return 0;
         }
         // set the number of networks stored
-        Abc_FrameSetNtkStoreSize( p, Abc_FrameReadNtkStoreSize(p) + 1 );
+        Abc_FrameSetNtkStoreSize( Abc_FrameReadNtkStoreSize() + 1 );
     }
     printf( "The number of AIG nodes added to storage = %5d.\n", Abc_NtkNodeNum(pStore) - nAndsOld );
     return 1;
@@ -476,22 +472,20 @@ int Abc_NtkFraigStore( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkFraigRestore()
 {
-    Abc_Frame_t * p;
     Fraig_Params_t Params;
     Abc_Ntk_t * pStore, * pFraig;
     int nWords1, nWords2, nWordsMin;
 
     // get the stored network
-    p = Abc_FrameGetGlobalFrame();
-    pStore   = Abc_FrameReadNtkStore(p);
-    Abc_FrameSetNtkStore( p, NULL );
+    pStore = Abc_FrameReadNtkStore();
+    Abc_FrameSetNtkStore( NULL );
     if ( pStore == NULL )
     {
         printf( "There are no network currently in storage.\n" );
         return NULL;
     }
     printf( "Currently stored %d networks with %d nodes will be fraiged.\n", 
-        Abc_FrameReadNtkStoreSize(p), Abc_NtkNodeNum(pStore) );
+        Abc_FrameReadNtkStoreSize(), Abc_NtkNodeNum(pStore) );
 
     // to determine the number of simulation patterns
     // use the following strategy
@@ -536,14 +530,12 @@ Abc_Ntk_t * Abc_NtkFraigRestore()
 ***********************************************************************/
 void Abc_NtkFraigStoreClean()
 {
-    Abc_Frame_t * p;
     Abc_Ntk_t * pStore;
     // get the stored network
-    p = Abc_FrameGetGlobalFrame();
-    pStore = Abc_FrameReadNtkStore(p);
+    pStore = Abc_FrameReadNtkStore();
     if ( pStore )
         Abc_NtkDelete( pStore );
-    Abc_FrameSetNtkStore( p, NULL );
+    Abc_FrameSetNtkStore( NULL );
 }
 
 /**Function*************************************************************

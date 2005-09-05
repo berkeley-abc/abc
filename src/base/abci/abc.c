@@ -546,7 +546,7 @@ int Abc_CommandPrintLevel( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( !fProfile && !Abc_NtkIsStrash(pNtk) )
     {
-        fprintf( pErr, "This command works only for AIGs.\n" );
+        fprintf( pErr, "This command works only for AIGs (run \"strash\").\n" );
         return 1;
     }
 
@@ -597,18 +597,23 @@ int Abc_CommandPrintSupport( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
     int c;
-    extern Vec_Ptr_t * Sim_ComputeFunSupp( Abc_Ntk_t * pNtk );
+    int fVerbose;
+    extern Vec_Ptr_t * Sim_ComputeFunSupp( Abc_Ntk_t * pNtk, int fVerbose );
 
     pNtk = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
+    fVerbose = 0;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "vh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'v':
+            fVerbose ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -621,26 +626,25 @@ int Abc_CommandPrintSupport( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Empty network.\n" );
         return 1;
     }
-
     if ( !Abc_NtkIsComb(pNtk) )
     {
         fprintf( pErr, "This command works only for combinational networks.\n" );
         return 1;
     }
-
     if ( !Abc_NtkIsStrash(pNtk) )
     {
-        fprintf( pErr, "This command works only for AIGs.\n" );
+        fprintf( pErr, "This command works only for AIGs (run \"strash\").\n" );
         return 1;
     }
-    vSuppFun = Sim_ComputeFunSupp( pNtk );
+    vSuppFun = Sim_ComputeFunSupp( pNtk, fVerbose );
     free( vSuppFun->pArray[0] );
     Vec_PtrFree( vSuppFun );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: print_supp [-h]\n" );
+    fprintf( pErr, "usage: print_supp [-vh]\n" );
     fprintf( pErr, "\t        prints the supports of the CO nodes\n" );
+    fprintf( pErr, "\t-v    : enable verbose output [default = %s].\n", fVerbose? "yes": "no" );  
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -706,7 +710,7 @@ int Abc_CommandPrintSymms( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( !Abc_NtkIsStrash(pNtk) )
     {
-        fprintf( pErr, "This command works only for AIGs.\n" );
+        fprintf( pErr, "This command works only for AIGs (run \"strash\").\n" );
         return 1;
     }
     Abc_NtkSymmetries( pNtk, fUseBdds, fNaive, fVerbose );
@@ -715,7 +719,7 @@ int Abc_CommandPrintSymms( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     fprintf( pErr, "usage: print_symm [-nbvh]\n" );
     fprintf( pErr, "\t         computes symmetries of the PO functions\n" );
-    fprintf( pErr, "\t-b     : enable efficient BDD-based computation [default = %s].\n", fUseBdds? "yes": "no" );  
+    fprintf( pErr, "\t-b     : toggle BDD-based or SAT-based computations [default = %s].\n", fUseBdds? "bdd": "sat" );  
     fprintf( pErr, "\t-n     : enable naive BDD-based computation [default = %s].\n", fNaive? "yes": "no" );  
     fprintf( pErr, "\t-v     : enable verbose output [default = %s].\n", fVerbose? "yes": "no" );  
     fprintf( pErr, "\t-h     : print the command usage\n");
@@ -867,7 +871,7 @@ int Abc_CommandShowCut( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( !Abc_NtkIsStrash(pNtk) )
     {
-        fprintf( pErr, "Visualizing cuts only works for AIGs.\n" );
+        fprintf( pErr, "Visualizing cuts only works for AIGs (run \"strash\").\n" );
         return 1;
     }
     if ( argc != util_optind + 1 )
@@ -942,7 +946,7 @@ int Abc_CommandShowAig( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( !Abc_NtkIsStrash(pNtk) )
     {
-        fprintf( pErr, "Visualizing AIG can only be done for AIGs.\n" );
+        fprintf( pErr, "Visualizing AIG can only be done for AIGs (run \"strash\").\n" );
         return 1;
     }
     Abc_NtkShowAig( pNtk );
@@ -1002,7 +1006,7 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( !Abc_NtkIsLogic(pNtk) && !Abc_NtkIsStrash(pNtk) )
     {
-        fprintf( pErr, "Can only collapse a logic network.\n" );
+        fprintf( pErr, "Can only collapse a logic network or an AIG.\n" );
         return 1;
     }
 
@@ -1262,7 +1266,7 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( !Abc_NtkIsStrash(pNtk) )
     {
-        fprintf( pErr, "Cannot renode a network that is not an AIG.\n" );
+        fprintf( pErr, "Cannot renode a network that is not an AIG (run \"strash\").\n" );
         return 1;
     }
 
@@ -1504,7 +1508,7 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( !Abc_NtkIsLogic(pNtk) )
     {
-        fprintf( pErr, "Fast extract can only be applied to a logic network.\n" );
+        fprintf( pErr, "Fast extract can only be applied to a logic network (run \"renode\").\n" );
         Abc_NtkFxuFreeInfo( p );
         return 1;
     }
@@ -1717,7 +1721,7 @@ int Abc_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( !Abc_NtkIsStrash(pNtk) )
     {
-        fprintf( pErr, "This command can only be applied to an AIG.\n" );
+        fprintf( pErr, "This command can only be applied to an AIG (run \"strash\").\n" );
         return 1;
     }
     if ( Abc_NtkGetChoiceNum(pNtk) )
@@ -1826,7 +1830,7 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( !Abc_NtkIsStrash(pNtk) )
     {
-        fprintf( pErr, "This command can only be applied to an AIG.\n" );
+        fprintf( pErr, "This command can only be applied to an AIG (run \"strash\").\n" );
         return 1;
     }
     if ( Abc_NtkGetChoiceNum(pNtk) )
@@ -2322,7 +2326,7 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( !Abc_NtkIsLogic(pNtk) )
     {
-        fprintf( stdout, "This command can only be applied to logic network.\n" );
+        fprintf( stdout, "This command can only be applied to logic network (run \"renode -c\").\n" );
         return 0;
     }
     if ( Abc_NtkIsMappedLogic(pNtk) )
@@ -2397,7 +2401,7 @@ int Abc_CommandExtSeqDcs( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( !Abc_NtkIsStrash(pNtk) )
     {
-        fprintf( stdout, "This command works only for AIGs.\n" );
+        fprintf( stdout, "This command works only for AIGs (run \"strash\").\n" );
         return 0;
     }
     if ( !Abc_NtkExtractSequentialDcs( pNtk, fVerbose ) )
@@ -2751,7 +2755,7 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( !Abc_NtkIsStrash(pNtk) )
     {
-        fprintf( pErr, "Cut computation is available only for AIGs.\n" );
+        fprintf( pErr, "Cut computation is available only for AIGs (run \"strash\").\n" );
         return 1;
     }
     pCutMan = Abc_NtkCuts( pNtk, pParams );
@@ -3606,7 +3610,7 @@ int Abc_CommandSuperChoice( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( !Abc_NtkIsStrash(pNtk) )
     {
-        fprintf( pErr, "Works only for the AIG representation.\n" );
+        fprintf( pErr, "Works only for the AIG representation (run \"strash\").\n" );
         return 1;
     }
 
@@ -3785,7 +3789,7 @@ int Abc_CommandSeq( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( !Abc_NtkIsStrash(pNtk) )
     {
-        fprintf( pErr, "Works only for AIG.\n" );
+        fprintf( pErr, "Works only for AIG (run \"strash\").\n" );
         return 1;
     }
 

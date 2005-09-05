@@ -90,21 +90,22 @@ extern void            Abc_FrameDeleteAllNetworks( Abc_Frame_t * p );
 extern void               Abc_FrameSetGlobalFrame( Abc_Frame_t * p );
 extern Abc_Frame_t *   Abc_FrameGetGlobalFrame();
 
-extern Abc_Ntk_t *     Abc_FrameReadNtkStore       ( Abc_Frame_t * pFrame );
-extern int             Abc_FrameReadNtkStoreSize   ( Abc_Frame_t * pFrame );
-extern void            Abc_FrameSetNtkStore        ( Abc_Frame_t * pFrame, Abc_Ntk_t * pNtk );
-extern void            Abc_FrameSetNtkStoreSize    ( Abc_Frame_t * pFrame, int nStored  );
+extern Abc_Ntk_t *     Abc_FrameReadNtkStore();                  
+extern int             Abc_FrameReadNtkStoreSize();              
+extern void *          Abc_FrameReadLibLut();                    
+extern void *          Abc_FrameReadLibGen();                    
+extern void *          Abc_FrameReadLibSuper();                  
+extern void *          Abc_FrameReadManDd();                     
+extern void *          Abc_FrameReadManDec();                    
+extern char *          Abc_FrameReadFlag( char * pFlag ); 
+extern bool            Abc_FrameIsFlagEnabled( char * pFlag );
 
-extern void *          Abc_FrameReadLibLut         ( Abc_Frame_t * pFrame );
-extern void *          Abc_FrameReadLibGen         ( Abc_Frame_t * pFrame );
-extern void *          Abc_FrameReadLibSuper       ( Abc_Frame_t * pFrame );
-extern void            Abc_FrameSetLibLut          ( Abc_Frame_t * pFrame, void * pLib );
-extern void            Abc_FrameSetLibGen          ( Abc_Frame_t * pFrame, void * pLib );
-extern void            Abc_FrameSetLibSuper        ( Abc_Frame_t * pFrame, void * pLib );
-
-extern void *          Abc_FrameReadManDd          ( Abc_Frame_t * pFrame );
-extern void *          Abc_FrameReadManDec         ( Abc_Frame_t * pFrame );
-
+extern void            Abc_FrameSetNtkStore( Abc_Ntk_t * pNtk ); 
+extern void            Abc_FrameSetNtkStoreSize( int nStored );  
+extern void            Abc_FrameSetLibLut( void * pLib );        
+extern void            Abc_FrameSetLibGen( void * pLib );        
+extern void            Abc_FrameSetLibSuper( void * pLib );      
+extern void            Abc_FrameSetFlag( char * pFlag, char * pValue );
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

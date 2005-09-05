@@ -56,9 +56,9 @@ static int Fpga_CommandPrintLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
 void Fpga_Init( Abc_Frame_t * pAbc )
 {
     // set the default library
-    //Fpga_LutLib_t    s_LutLib = { "lutlib", 6, {0,1,2,4,8,16,32}, {0,1,2,3,4,5,6} };
-    Fpga_LutLib_t    s_LutLib = { "lutlib", 5, {0,1,1,1,1,1}, {0,1,1,1,1,1} };
-    Abc_FrameSetLibLut( pAbc, Fpga_LutLibDup(&s_LutLib) );
+    //Fpga_LutLib_t s_LutLib = { "lutlib", 6, {0,1,2,4,8,16,32}, {0,1,2,3,4,5,6} };
+    Fpga_LutLib_t s_LutLib = { "lutlib", 5, {0,1,1,1,1,1}, {0,1,1,1,1,1} };
+    Abc_FrameSetLibLut( Fpga_LutLibDup(&s_LutLib) );
 
     Cmd_CommandAdd( pAbc, "FPGA mapping", "read_lut",   Fpga_CommandReadLibrary,   0 ); 
     Cmd_CommandAdd( pAbc, "FPGA mapping", "print_lut",  Fpga_CommandPrintLibrary,  0 ); 
@@ -150,8 +150,8 @@ int Fpga_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
         goto usage;
     }
     // replace the current library
-    Fpga_LutLibFree( Abc_FrameReadLibLut(Abc_FrameGetGlobalFrame()) );
-    Abc_FrameSetLibLut( Abc_FrameGetGlobalFrame(), pLib );
+    Fpga_LutLibFree( Abc_FrameReadLibLut() );
+    Abc_FrameSetLibLut( pLib );
     return 0;
 
 usage:

@@ -113,6 +113,10 @@ clk = clock();
     {
         // generate the simulation info
         pNode->puSimR[i] = FRAIG_RANDOM_UNSIGNED;
+        // for reasons that take very long to explain, it makes sense to have (0000000...) 
+        // pattern in the set (this helps if we need to return the counter-examples)
+        if ( i == 0 )
+            pNode->puSimR[i] <<= 1;
         // compute the hash key
         pNode->uHashR ^= pNode->puSimR[i] * s_FraigPrimes[i];
     }

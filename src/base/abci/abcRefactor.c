@@ -1,12 +1,12 @@
 /**CFile****************************************************************
 
-  FileName    [abcResRef.c]
+  FileName    [abcRefactor.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
   PackageName [Network and node package.]
 
-  Synopsis    [Resynthesis based on refactoring.]
+  Synopsis    [Resynthesis based on collapsing and refactoring.]
 
   Author      [Alan Mishchenko]
   
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: abcResRef.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: abcRefactor.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -82,7 +82,6 @@ static Dec_Graph_t *  Abc_NodeRefactor( Abc_ManRef_t * p, Abc_Obj_t * pNode, Vec
 ***********************************************************************/
 int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, bool fUseZeros, bool fUseDcs, bool fVerbose )
 {
-    int fCheck = 1;
     ProgressBar * pProgress;
     Abc_ManRef_t * pManRef;
     Abc_ManCut_t * pManCut;
@@ -109,6 +108,9 @@ int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, bool 
         Extra_ProgressBarUpdate( pProgress, i, NULL );
         // skip the constant node
         if ( Abc_NodeIsConst(pNode) )
+            continue;
+        // skip the nodes with many fanouts
+        if ( Abc_ObjFanoutNum(pNode) > 1000 )
             continue;
         // stop if all nodes have been tried once
         if ( i >= nNodes )
@@ -140,7 +142,7 @@ pManRef->timeTotal = clock() - clkStart;
     Abc_NtkManRefStop( pManRef );
     Abc_NtkStopReverseLevels( pNtk );
     // check
-    if ( fCheck && !Abc_NtkCheck( pNtk ) )
+    if ( !Abc_NtkCheck( pNtk ) )
     {
         printf( "Abc_NtkRefactor: The network check has failed.\n" );
         return 0;

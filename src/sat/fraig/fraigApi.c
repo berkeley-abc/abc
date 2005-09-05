@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [fraigAccess.c]
+  FileName    [fraigApi.c]
 
   PackageName [FRAIG: Functionally reduced AND-INV graphs.]
 
@@ -58,6 +58,12 @@ int               Fraig_ManReadDoSparse( Fraig_Man_t * p )                    { 
 int               Fraig_ManReadChoicing( Fraig_Man_t * p )                    { return p->fChoicing;  }
 int               Fraig_ManReadVerbose( Fraig_Man_t * p )                     { return p->fVerbose;   }
 int *             Fraig_ManReadModel( Fraig_Man_t * p )                       { return p->pModel;     }
+// returns the number of patterns used for random simulation (this number is fixed for the FRAIG run)
+int               Fraig_ManReadPatternNumRandom( Fraig_Man_t * p )            { return p->nWordsRand * 32;  }
+// returns the number of dynamic patterns accumulated at runtime (include SAT solver counter-examples and distance-1 patterns derived from them)
+int               Fraig_ManReadPatternNumDynamic( Fraig_Man_t * p )           { return p->iWordStart * 32;  }
+// returns the number of dynamic patterns proved useful to distinquish some FRAIG nodes (this number is more than 0 after the first garbage collection of patterns)
+int               Fraig_ManReadPatternNumDynamicFiltered( Fraig_Man_t * p )   { return p->iPatsPerm;        }
 
 /**Function*************************************************************
 
@@ -104,6 +110,12 @@ int             Fraig_NodeReadNumRefs( Fraig_Node_t * p )                 { retu
 int             Fraig_NodeReadNumFanouts( Fraig_Node_t * p )              { return p->nFanouts;  }
 int             Fraig_NodeReadSimInv( Fraig_Node_t * p )                  { return p->fInv;      }
 int             Fraig_NodeReadNumOnes( Fraig_Node_t * p )                 { return p->nOnes;     }
+// returns the pointer to the random simulation patterns (their number is returned by Fraig_ManReadPatternNumRandom)
+// memory pointed to by this and the following procedure is maintained by the FRAIG package and exists as long as the package runs
+unsigned *      Fraig_NodeReadPatternsRandom( Fraig_Node_t * p )          { return p->puSimR;    }
+// returns the pointer to the dynamic simulation patterns (their number is returned by Fraig_ManReadPatternNumDynamic or Fraig_ManReadPatternNumDynamicFiltered)
+// if the number of patterns is not evenly divisible by 32, the patterns beyond the given number contain garbage
+unsigned *      Fraig_NodeReadPatternsDynamic( Fraig_Node_t * p )         { return p->puSimD;    }
 
 /**Function*************************************************************
 

@@ -355,7 +355,7 @@ int Fraig_CompareSimInfo( Fraig_Node_t * pNode1, Fraig_Node_t * pNode2, int iWor
             return 0;
         // check the simulation info
         for ( i = 0; i < iWordLast; i++ )
-            if (  pNode1->puSimR[i] !=  pNode2->puSimR[i] )
+            if ( pNode1->puSimR[i] != pNode2->puSimR[i] )
                 return 0;
     }
     else
@@ -365,7 +365,7 @@ int Fraig_CompareSimInfo( Fraig_Node_t * pNode1, Fraig_Node_t * pNode2, int iWor
             return 0;
         // check the simulation info
         for ( i = 0; i < iWordLast; i++ )
-            if (  pNode1->puSimD[i] !=  pNode2->puSimD[i] )
+            if ( pNode1->puSimD[i] != pNode2->puSimD[i] )
                 return 0;
     }
     return 1;

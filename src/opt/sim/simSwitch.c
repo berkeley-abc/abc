@@ -72,8 +72,8 @@ Vec_Int_t * Sim_NtkComputeSwitching( Abc_Ntk_t * pNtk, int nPatterns )
     vNodes  = Abc_AigDfs( pNtk, 1, 0 );
     Vec_PtrForEachEntry( vNodes, pNode, i )
     {
-        Sim_UtilSimulateNodeOne( pNode, vSimInfo, nSimWords );
         pSimInfo = Vec_PtrEntry(vSimInfo, pNode->Id);
+        Sim_UtilSimulateNodeOne( pNode, vSimInfo, nSimWords );
         pSwitching[pNode->Id] = Sim_ComputeSwitching( pSimInfo, nSimWords );
     }
     Vec_PtrFree( vNodes );

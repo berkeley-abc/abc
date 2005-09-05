@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [fraigAnd.c]
+  FileName    [fraigCanon.c]
 
   PackageName [FRAIG: Functionally reduced AND-INV graphs.]
 
