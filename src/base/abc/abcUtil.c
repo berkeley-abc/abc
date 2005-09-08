@@ -883,6 +883,101 @@ Vec_Ptr_t * Abc_NtkCollectObjects( Abc_Ntk_t * pNtk )
     return vNodes;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns the array of CI IDs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Abc_NtkGetCiIds( Abc_Ntk_t * pNtk )
+{
+    Vec_Int_t * vCiIds;
+    Abc_Obj_t * pObj;
+    int i;
+    vCiIds = Vec_IntAlloc( Abc_NtkCiNum(pNtk) );
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        Vec_IntPush( vCiIds, pObj->Id );
+    return vCiIds;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Puts the nodes into the DFS order and reassign their IDs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkReassignIds( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vNodes;
+    Vec_Ptr_t * vObjsNew;
+    Abc_Obj_t * pNode, * pTemp;
+    Abc_Obj_t * pConst1 = NULL, * pReset = NULL;
+    int i, k;
+    // start the array of objects with new IDs
+    vObjsNew = Vec_PtrAlloc( pNtk->nObjs );
+    // put constant nodes (if present) first
+    if ( Abc_NtkIsStrash(pNtk) )
+    {
+        pConst1 = Abc_AigConst1(pNtk->pManFunc);
+        pConst1->Id = Vec_PtrSize( vObjsNew );
+        Vec_PtrPush( vObjsNew, pConst1 );
+        pReset = Abc_AigReset(pNtk->pManFunc);
+        pReset->Id = Vec_PtrSize( vObjsNew );
+        Vec_PtrPush( vObjsNew, pReset );
+    }
+    // put PI nodes next
+    Abc_NtkForEachPi( pNtk, pNode, i )
+    {
+        pNode->Id = Vec_PtrSize( vObjsNew );
+        Vec_PtrPush( vObjsNew, pNode );
+    }
+    // put PO nodes next
+    Abc_NtkForEachPo( pNtk, pNode, i )
+    {
+        pNode->Id = Vec_PtrSize( vObjsNew );
+        Vec_PtrPush( vObjsNew, pNode );
+    }
+    // put latches next
+    Abc_NtkForEachLatch( pNtk, pNode, i )
+    {
+        pNode->Id = Vec_PtrSize( vObjsNew );
+        Vec_PtrPush( vObjsNew, pNode );
+    }
+    // finally, internal nodes in the DFS order
+    vNodes = Abc_NtkDfs( pNtk, 1 );
+    Vec_PtrForEachEntry( vNodes, pNode, i )
+    {
+        if ( pNode == pReset || pNode == pConst1 )
+            continue;
+        pNode->Id = Vec_PtrSize( vObjsNew );
+        Vec_PtrPush( vObjsNew, pNode );
+    }
+    Vec_PtrFree( vNodes );
+    assert( Vec_PtrSize(vObjsNew) == pNtk->nObjs );
+
+    // update the fanin/fanout arrays
+    Abc_NtkForEachObj( pNtk, pNode, i )
+    {
+        Abc_ObjForEachFanin( pNode, pTemp, k )
+            pNode->vFanins.pArray[k].iFan = pTemp->Id;
+        Abc_ObjForEachFanout( pNode, pTemp, k )
+            pNode->vFanouts.pArray[k].iFan = pTemp->Id;
+    }
+
+    // replace the array of objs
+    Vec_PtrFree( pNtk->vObjs );
+    pNtk->vObjs = vObjsNew;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

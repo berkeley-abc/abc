@@ -131,11 +131,12 @@ void Msat_SolverPrintStats( Msat_Solver_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-bool Msat_SolverSolve( Msat_Solver_t * p, Msat_IntVec_t * vAssumps, int nBackTrackLimit )
+bool Msat_SolverSolve( Msat_Solver_t * p, Msat_IntVec_t * vAssumps, int nBackTrackLimit, int nTimeLimit )
 {
     Msat_SearchParams_t Params = { 0.95, 0.999 };
     double nConflictsLimit, nLearnedLimit;
     Msat_Type_t Status;
+    int timeStart = clock();
     int64 nConflictsOld = p->Stats.nConflicts;
     int64 nDecisionsOld = p->Stats.nDecisions;
 
@@ -173,6 +174,9 @@ bool Msat_SolverSolve( Msat_Solver_t * p, Msat_IntVec_t * vAssumps, int nBackTra
         nLearnedLimit   *= 1.1;
         // if the limit on the number of backtracks is given, quit the restart loop
         if ( nBackTrackLimit > 0 )
+            break;
+        // if the runtime limit is exceeded, quit the restart loop
+        if ( clock() - timeStart >= nTimeLimit * CLOCKS_PER_SEC )
             break;
     }
     Msat_SolverCancelUntil( p, 0 );

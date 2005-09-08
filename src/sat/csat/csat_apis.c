@@ -24,6 +24,8 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+#define ABC_DEFAULT_TIMEOUT     60   // 60 seconds
+
 struct CSAT_ManagerStruct_t
 {
     // information about the problem
@@ -33,7 +35,8 @@ struct CSAT_ManagerStruct_t
     Abc_Ntk_t *           pTarget;       // the AIG representing the target
     char *                pDumpFileName; // the name of the file to dump the target network
     // solving parameters
-    int                   mode;          // 0 = baseline;  1 = resource-aware fraiging
+    int                   mode;          // 0 = brute-force SAT;  1 = resource-aware FRAIG
+    int                   nSeconds;      // time limit for pure SAT solving
     Fraig_Params_t        Params;        // the set of parameters to call FRAIG package
     // information about the target 
     int                   nog;           // the numbers of gates in the target
@@ -44,11 +47,9 @@ struct CSAT_ManagerStruct_t
 };
 
 static CSAT_Target_ResultT * CSAT_TargetResAlloc( int nVars );
-static void CSAT_TargetResFree( CSAT_Target_ResultT * p );
 static char * CSAT_GetNodeName( CSAT_Manager mng, Abc_Obj_t * pNode );
 
 // some external procedures
-extern Fraig_Man_t * Abc_NtkToFraig( Abc_Ntk_t * pNtk, Fraig_Params_t * pParams, int fAllNodes );
 extern int Io_WriteBench( Abc_Ntk_t * pNtk, char * FileName );
 
 ////////////////////////////////////////////////////////////////////////
@@ -77,6 +78,7 @@ CSAT_Manager CSAT_InitManager()
     mng->tNode2Name = stmm_init_table(stmm_ptrcmp, stmm_ptrhash);
     mng->vNodes     = Vec_PtrAlloc( 100 );
     mng->vValues    = Vec_IntAlloc( 100 );
+    mng->nSeconds   = ABC_DEFAULT_TIMEOUT;
     return mng;
 }
 
@@ -107,7 +109,7 @@ void CSAT_QuitManager( CSAT_Manager mng )
 
   Synopsis    [Sets solver options for learning.]
 
-  Description [0 = baseline; 1 = resource-aware solving.]
+  Description [0 = brute-force SAT;  1 = resource-aware FRAIG.]
                
   SideEffects []
 
@@ -118,11 +120,11 @@ void CSAT_SetSolveOption( CSAT_Manager mng, enum CSAT_OptionT option )
 {
     mng->mode = option;
     if ( option == 0 )
-        printf( "CSAT_SetSolveOption: Setting baseline solving mode.\n" );
+        printf( "CSAT_SetSolveOption: Setting brute-force SAT mode.\n" );
     else if ( option == 1 )
-        printf( "CSAT_SetSolveOption: Setting resource-aware solving mode.\n" );
+        printf( "CSAT_SetSolveOption: Setting resource-aware FRAIG mode.\n" );
     else
-        printf( "CSAT_SetSolveOption: Unknown option.\n" );
+        printf( "CSAT_SetSolveOption: Unknown solving mode.\n" );
 }
 
 
@@ -280,7 +282,7 @@ int CSAT_Check_Integrity( CSAT_Manager mng )
     assert( Abc_NtkLatchNum(pNtk) == 0 );
 
     // make sure everything is okay with the network structure
-    if ( !Abc_NtkCheckRead( pNtk ) )
+    if ( !Abc_NtkDoCheck( pNtk ) )
     {
         printf( "CSAT_Check_Integrity: The internal network check has failed.\n" );
         return 0;
@@ -311,7 +313,7 @@ int CSAT_Check_Integrity( CSAT_Manager mng )
 ***********************************************************************/
 void CSAT_SetTimeLimit( CSAT_Manager mng, int runtime )
 {
-    printf( "CSAT_SetTimeLimit: The resource limit is not implemented (warning).\n" );
+    mng->nSeconds = runtime;
 }
 
 /**Function*************************************************************
@@ -458,7 +460,8 @@ void CSAT_SolveInit( CSAT_Manager mng )
     memset( pParams, 0, sizeof(Fraig_Params_t) );
     pParams->nPatsRand  = nWordsMin * 32; // the number of words of random simulation info
     pParams->nPatsDyna  = nWordsMin * 32; // the number of words of dynamic simulation info
-    pParams->nBTLimit   = 99;             // the max number of backtracks to perform at a node
+    pParams->nBTLimit   = 10;             // the max number of backtracks to perform at a node
+    pParams->nSeconds   = mng->nSeconds;  // the time out for the final proof
     pParams->fFuncRed   = mng->mode;      // performs only one level hashing
     pParams->fFeedBack  = 1;              // enables solver feedback
     pParams->fDist1Pats = 1;              // enables distance-1 patterns
@@ -498,6 +501,7 @@ void CSAT_AnalyzeTargets( CSAT_Manager mng )
 enum CSAT_StatusT CSAT_Solve( CSAT_Manager mng )
 {
     Fraig_Man_t * pMan;
+    Abc_Ntk_t * pCnf;
     int * pModel;
     int RetValue, i;
 
@@ -505,34 +509,68 @@ enum CSAT_StatusT CSAT_Solve( CSAT_Manager mng )
     if ( mng->pTarget == NULL )
         { printf( "CSAT_Solve: Target network is not derived by CSAT_SolveInit().\n" ); return UNDETERMINED; }
 
-    // transform the target into a fraig
-    pMan = Abc_NtkToFraig( mng->pTarget, &mng->Params, 0 ); 
-    Fraig_ManProveMiter( pMan );
+    // optimizations of the target go here
+    // for example, to enable one pass of rewriting, uncomment this line
+//    Abc_NtkRewrite( mng->pTarget, 0, 1, 0 );
 
-    // analyze the result
-    mng->pResult = CSAT_TargetResAlloc( Abc_NtkCiNum(mng->pTarget) );
-    RetValue = Fraig_ManCheckMiter( pMan );
-    if ( RetValue == -1 )
-        mng->pResult->status = UNDETERMINED;
-    else if ( RetValue == 1 )
-        mng->pResult->status = UNSATISFIABLE;
-    else if ( RetValue == 0 )
+    if ( mng->mode == 0 ) // brute-force SAT
     {
-        mng->pResult->status = SATISFIABLE;
-        pModel = Fraig_ManReadModel( pMan );
-        assert( pModel != NULL );
-        // create the array of PI names and values
-        for ( i = 0; i < mng->pResult->no_sig; i++ )
+        // transfor the AIG into a logic network for efficient CNF construction
+        pCnf = Abc_NtkRenode( mng->pTarget, 0, 100, 1, 0, 0 );
+        RetValue = Abc_NtkMiterSat( pCnf, mng->nSeconds, 0 );
+
+        // analyze the result
+        mng->pResult = CSAT_TargetResAlloc( Abc_NtkCiNum(mng->pTarget) );
+        if ( RetValue == -1 )
+            mng->pResult->status = UNDETERMINED;
+        else if ( RetValue == 1 )
+            mng->pResult->status = UNSATISFIABLE;
+        else if ( RetValue == 0 )
         {
-            mng->pResult->names[i] = CSAT_GetNodeName(mng, Abc_NtkCi(mng->pNtk, i)); // returns the same string that was given
-            mng->pResult->values[i] = pModel[i];
+            mng->pResult->status = SATISFIABLE;
+            // create the array of PI names and values
+            for ( i = 0; i < mng->pResult->no_sig; i++ )
+            {
+                mng->pResult->names[i] = CSAT_GetNodeName(mng, Abc_NtkCi(mng->pNtk, i)); // returns the same string that was given
+                mng->pResult->values[i] = pCnf->pModel[i];
+            }
+            FREE( mng->pTarget->pModel );
         }
+        else assert( 0 );
+        Abc_NtkDelete( pCnf );
     }
-    else 
+    else if ( mng->mode == 1 ) // resource-aware fraiging
+    {
+        // transform the target into a fraig
+        pMan = Abc_NtkToFraig( mng->pTarget, &mng->Params, 0 ); 
+        Fraig_ManProveMiter( pMan );
+        RetValue = Fraig_ManCheckMiter( pMan );
+
+        // analyze the result
+        mng->pResult = CSAT_TargetResAlloc( Abc_NtkCiNum(mng->pTarget) );
+        if ( RetValue == -1 )
+            mng->pResult->status = UNDETERMINED;
+        else if ( RetValue == 1 )
+            mng->pResult->status = UNSATISFIABLE;
+        else if ( RetValue == 0 )
+        {
+            mng->pResult->status = SATISFIABLE;
+            pModel = Fraig_ManReadModel( pMan );
+            assert( pModel != NULL );
+            // create the array of PI names and values
+            for ( i = 0; i < mng->pResult->no_sig; i++ )
+            {
+                mng->pResult->names[i] = CSAT_GetNodeName(mng, Abc_NtkCi(mng->pNtk, i)); // returns the same string that was given
+                mng->pResult->values[i] = pModel[i];
+            }
+        }
+        else assert( 0 );
+        // delete the fraig manager
+        Fraig_ManFree( pMan );
+    }
+    else
         assert( 0 );
 
-    // delete the fraig manager
-    Fraig_ManFree( pMan );
     // delete the target
     Abc_NtkDelete( mng->pTarget );
     mng->pTarget = NULL;
@@ -558,9 +596,9 @@ CSAT_Target_ResultT * CSAT_Get_Target_Result( CSAT_Manager mng, int TargetID )
 
 /**Function*************************************************************
 
-  Synopsis    [Dumps the target AIG into the BENCH file.]
+  Synopsis    [Dumps the original network into the BENCH file.]
 
-  Description []
+  Description [This procedure should be modified to dump the target.]
                
   SideEffects []
 
@@ -569,11 +607,13 @@ CSAT_Target_ResultT * CSAT_Get_Target_Result( CSAT_Manager mng, int TargetID )
 ***********************************************************************/
 void CSAT_Dump_Bench_File( CSAT_Manager mng )
 {
-    Abc_Ntk_t * pNtkTemp;
+    Abc_Ntk_t * pNtkTemp, * pNtkAig;
     char * pFileName;
-
+ 
     // derive the netlist
-    pNtkTemp = Abc_NtkLogicToNetlistBench( mng->pTarget );
+    pNtkAig = Abc_NtkStrash( mng->pNtk, 0, 0 );
+    pNtkTemp = Abc_NtkLogicToNetlistBench( pNtkAig );
+    Abc_NtkDelete( pNtkAig );
     if ( pNtkTemp == NULL ) 
         { printf( "CSAT_Dump_Bench_File: Dumping BENCH has failed.\n" ); return; }
     pFileName = mng->pDumpFileName? mng->pDumpFileName: "abc_test.bench";

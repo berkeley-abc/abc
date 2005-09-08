@@ -20,6 +20,9 @@
 
 #include "mainInt.h"
 
+// this line should be included in the library project
+#define _LIB
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -29,6 +32,8 @@ static int TypeCheck( Abc_Frame_t * pAbc, char * s);
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifndef _LIB
 
 /**Function*************************************************************
 
@@ -64,8 +69,8 @@ int main( int argc, char * argv[] )
     fInitRead   = 0;
     fFinalWrite = 0;
     sInFile = sOutFile = NULL;
-    sprintf( sReadCmd,  "read_blif_mv"  );
-    sprintf( sWriteCmd, "write_blif_mv" );
+    sprintf( sReadCmd,  "read"  );
+    sprintf( sWriteCmd, "write" );
     
     util_getopt_reset();
     while ((c = util_getopt(argc, argv, "c:hf:F:o:st:T:x")) != EOF) {
@@ -226,6 +231,62 @@ usage:
     return 1;
 }
 
+#endif
+
+/**Function*************************************************************
+
+  Synopsis    [Initialization procedure for the library project.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_Start()
+{
+    Abc_Frame_t * pAbc;
+    
+    // added to detect memory leaks:
+#ifdef _DEBUG
+    _CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
+#endif
+
+    // get global frame (singleton pattern)
+    // will be initialized on first call
+    pAbc = Abc_FrameGetGlobalFrame();
+
+    // source the resource file
+    Abc_UtilsSource( pAbc );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Deallocation procedure for the library project.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_Stop()
+{
+    Abc_Frame_t * pAbc;
+    int fStatus = 0;
+
+    // if the memory should be freed, quit packages
+    if ( fStatus == -2 ) 
+    {
+        pAbc = Abc_FrameGetGlobalFrame();
+        // perform uninitializations
+        Abc_FrameEnd( pAbc );
+        // stop the framework
+        Abc_FrameDeallocate( pAbc );
+    }
+}
 
 /**Function********************************************************************
 

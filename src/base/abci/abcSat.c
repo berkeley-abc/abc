@@ -35,18 +35,18 @@ static void Abc_NodeAddClausesTop( solver * pSat, Abc_Obj_t * pNode, Vec_Int_t *
 
   Synopsis    [Attempts to solve the miter using an internal SAT solver.]
 
-  Description [Returns 1 if the miter is SAT.]
+  Description [Returns -1 if timed out; 0 if SAT; 1 if UNSAT.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_NtkMiterSat( Abc_Ntk_t * pNtk, int fVerbose )
+int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, int nSeconds, int fVerbose )
 {
     solver * pSat;
     lbool   status;
-    int clk;
+    int RetValue, clk;
 
     assert( Abc_NtkIsBddLogic(pNtk) );
     assert( Abc_NtkLatchNum(pNtk) == 0 );
@@ -57,20 +57,18 @@ bool Abc_NtkMiterSat( Abc_Ntk_t * pNtk, int fVerbose )
     // load clauses into the solver
     clk = clock();
     pSat = Abc_NtkMiterSatCreate( pNtk );
-//    printf( "Created SAT problem with %d variable and %d clauses.   ", 
-//        solver_nvars(pSat), solver_nclauses(pSat) );
+//    printf( "Created SAT problem with %d variable and %d clauses. ", solver_nvars(pSat), solver_nclauses(pSat) );
 //    PRT( "Time", clock() - clk );
 
     // simplify the problem
     clk = clock();
     status = solver_simplify(pSat);
-//    printf( "Simplified the problem to %d variables and %d clauses. ", 
-//        solver_nvars(pSat), solver_nclauses(pSat) );
+//    printf( "Simplified the problem to %d variables and %d clauses. ", solver_nvars(pSat), solver_nclauses(pSat) );
 //    PRT( "Time", clock() - clk );
     if ( status == l_False )
     {
         solver_delete( pSat );
-        printf( "The problem is UNSAT after simplification.\n" );
+        printf( "The problem is UNSATISFIABLE after simplification.\n" );
         return 0;
     }
 
@@ -78,17 +76,38 @@ bool Abc_NtkMiterSat( Abc_Ntk_t * pNtk, int fVerbose )
     clk = clock();
     if ( fVerbose )
         pSat->verbosity = 1;
-    status = solver_solve( pSat, NULL, NULL );
-//    if ( fVerbose )
-//    {
-    printf( "The problem is %5s. ", (status == l_True)? "SAT" : "UNSAT" );
-    PRT( "SAT solver time", clock() - clk );
-//    }
+    status = solver_solve( pSat, NULL, NULL, nSeconds );
+    if ( status == l_Undef )
+    {
+//        printf( "The problem timed out.\n" );
+        RetValue = -1;
+    }
+    else if ( status == l_True )
+    {
+//        printf( "The problem is SATISFIABLE.\n" );
+        RetValue = 0;
+    }
+    else if ( status == l_False )
+    {
+//        printf( "The problem is UNSATISFIABLE.\n" );
+        RetValue = 1;
+    }
+    else
+        assert( 0 );
+//    PRT( "SAT solver time", clock() - clk );
+
+    // if the problem is SAT, get the counterexample
+    if ( status == l_True )
+    {
+        Vec_Int_t * vCiIds = Abc_NtkGetCiIds( pNtk );
+        pNtk->pModel = solver_get_model( pSat, vCiIds->pArray, vCiIds->nSize );
+        Vec_IntFree( vCiIds );
+    }
     // free the solver
     solver_delete( pSat );
-    return status == l_True;
+    return RetValue;
 }
-
+ 
 /**Function*************************************************************
 
   Synopsis    [Sets up the SAT solver.]

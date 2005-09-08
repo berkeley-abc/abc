@@ -49,6 +49,8 @@ void Rwr_ManPreprocess( Rwr_Man_t * p )
     Rwr_Node_t * pNode;
     int i, k;
     // put the nodes into the structure
+    p->pMapInv  = ALLOC( unsigned short, 222 );
+    memset( p->pMapInv, 0, sizeof(unsigned short) * 222 );
     p->vClasses = Vec_VecStart( 222 );
     for ( i = 0; i < p->nFuncs; i++ )
     {
@@ -60,6 +62,7 @@ void Rwr_ManPreprocess( Rwr_Man_t * p )
             assert( pNode->uTruth == p->pTable[i]->uTruth );
             assert( p->pMap[pNode->uTruth] >= 0 && p->pMap[pNode->uTruth] < 222 );
             Vec_VecPush( p->vClasses, p->pMap[pNode->uTruth], pNode );
+            p->pMapInv[ p->pMap[pNode->uTruth] ] = p->puCanons[pNode->uTruth];
         }
     }
     // compute decomposition forms for each node and verify them

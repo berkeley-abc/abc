@@ -49,7 +49,7 @@ static Dec_Graph_t * Rwr_CutEvaluate( Rwr_Man_t * p, Abc_Obj_t * pRoot, Cut_Cut_
   SeeAlso     []
 
 ***********************************************************************/
-int Rwr_NodeRewrite( Rwr_Man_t * p, Cut_Man_t * pManCut, Abc_Obj_t * pNode, int fUseZeros )
+int Rwr_NodeRewrite( Rwr_Man_t * p, Cut_Man_t * pManCut, Abc_Obj_t * pNode, int fUpdateLevel, int fUseZeros )
 {
     int fVeryVerbose = 0;
     Dec_Graph_t * pGraph;
@@ -63,7 +63,7 @@ int Rwr_NodeRewrite( Rwr_Man_t * p, Cut_Man_t * pManCut, Abc_Obj_t * pNode, int 
 
     p->nNodesConsidered++;
     // get the required times
-    Required = Abc_NodeReadRequiredLevel( pNode );
+    Required = fUpdateLevel? Abc_NodeReadRequiredLevel(pNode) : ABC_INFINITY;
     // get the node's cuts
 clk = clock();
     pCut = (Cut_Cut_t *)Abc_NodeGetCutsRecursive( pManCut, pNode );
@@ -98,6 +98,7 @@ clk = clock();
         }
         p->nCutsGood++;
 
+clk2 = clock();
         // mark the fanin boundary 
         Vec_PtrForEachEntry( p->vFaninsCur, pFanin, i )
             Abc_ObjRegular(pFanin)->vFanouts.nSize++;
@@ -107,6 +108,7 @@ clk = clock();
         // unmark the fanin boundary
         Vec_PtrForEachEntry( p->vFaninsCur, pFanin, i )
             Abc_ObjRegular(pFanin)->vFanouts.nSize--;
+p->timeMffc += clock() - clk2;
 
         // evaluate the cut
 clk2 = clock();

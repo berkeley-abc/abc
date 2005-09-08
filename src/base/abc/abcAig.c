@@ -83,7 +83,7 @@ static Abc_Obj_t * Abc_AigAndCreateFrom( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_O
 static void        Abc_AigAndDelete( Abc_Aig_t * pMan, Abc_Obj_t * pThis );
 static void        Abc_AigResize( Abc_Aig_t * pMan );
 // incremental AIG procedures
-static void        Abc_AigReplace_int( Abc_Aig_t * pMan );
+static void        Abc_AigReplace_int( Abc_Aig_t * pMan, int fUpdateLevel );
 static void        Abc_AigDelete_int( Abc_Aig_t * pMan );
 static void        Abc_AigUpdateLevel_int( Abc_Aig_t * pMan );
 static void        Abc_AigUpdateLevelR_int( Abc_Aig_t * pMan );
@@ -655,7 +655,7 @@ Abc_Obj_t * Abc_AigMiter( Abc_Aig_t * pMan, Vec_Ptr_t * vPairs )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_AigReplace( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew )
+void Abc_AigReplace( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew, bool fUpdateLevel )
 {
     assert( Vec_PtrSize(pMan->vStackReplaceOld) == 0 );
     assert( Vec_PtrSize(pMan->vStackReplaceNew) == 0 );
@@ -663,9 +663,12 @@ void Abc_AigReplace( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew )
     Vec_PtrPush( pMan->vStackReplaceOld, pOld );
     Vec_PtrPush( pMan->vStackReplaceNew, pNew );
     while ( Vec_PtrSize(pMan->vStackReplaceOld) )
-        Abc_AigReplace_int( pMan );
-    Abc_AigUpdateLevel_int( pMan );
-    Abc_AigUpdateLevelR_int( pMan );
+        Abc_AigReplace_int( pMan, fUpdateLevel );
+    if ( fUpdateLevel )
+    {
+        Abc_AigUpdateLevel_int( pMan );
+        Abc_AigUpdateLevelR_int( pMan );
+    }
 }
 
 /**Function*************************************************************
@@ -679,7 +682,7 @@ void Abc_AigReplace( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_AigReplace_int( Abc_Aig_t * pMan )
+void Abc_AigReplace_int( Abc_Aig_t * pMan, int fUpdateLevel )
 {
     Abc_Obj_t * pOld, * pNew, * pFanin1, * pFanin2, * pFanout, * pFanoutNew, * pFanoutFanout;
     int k, v, iFanin;
@@ -736,14 +739,17 @@ void Abc_AigReplace_int( Abc_Aig_t * pMan )
         Abc_AigAndCreateFrom( pMan, pFanin1, pFanin2, pFanout );
         assert( Abc_AigNodeIsAcyclic(pFanout, pFanout) );
 
-        // schedule the updated fanout for updating direct level
-        assert( pFanout->fMarkA == 0 );
-        pFanout->fMarkA = 1;
-        Vec_VecPush( pMan->vLevels, pFanout->Level, pFanout );
-        // schedule the updated fanout for updating reverse level
-        assert( pFanout->fMarkB == 0 );
-        pFanout->fMarkB = 1;
-        Vec_VecPush( pMan->vLevelsR, Abc_NodeReadReverseLevel(pFanout), pFanout );
+        if ( fUpdateLevel )
+        {
+            // schedule the updated fanout for updating direct level
+            assert( pFanout->fMarkA == 0 );
+            pFanout->fMarkA = 1;
+            Vec_VecPush( pMan->vLevels, pFanout->Level, pFanout );
+            // schedule the updated fanout for updating reverse level
+            assert( pFanout->fMarkB == 0 );
+            pFanout->fMarkB = 1;
+            Vec_VecPush( pMan->vLevelsR, Abc_NodeReadReverseLevel(pFanout), pFanout );
+        }
 
         // the fanout has changed, update EXOR status of its fanouts
         Abc_ObjForEachFanout( pFanout, pFanoutFanout, v )

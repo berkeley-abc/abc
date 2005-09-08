@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "abcInt.h"
 #include "main.h"
 #include "mio.h"
 
@@ -66,7 +67,13 @@ Abc_Obj_t * Abc_ObjAlloc( Abc_Ntk_t * pNtk, Abc_ObjType_t Type )
 void Abc_ObjRecycle( Abc_Obj_t * pObj )
 {
     Abc_Ntk_t * pNtk = pObj->pNtk;
+    int LargePiece = (4 << ABC_NUM_STEPS);
+    // free large fanout arrays
+    if ( pObj->vFanouts.nCap * 4 > LargePiece )
+        FREE( pObj->vFanouts.pArray );
+    // clean the memory to make deleted object distinct from the live one
     memset( pObj, 0, sizeof(Abc_Obj_t) );
+    // recycle the object
     Extra_MmFixedEntryRecycle( pNtk->pMmObj, (char *)pObj );
 }
 

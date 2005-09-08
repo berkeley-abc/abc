@@ -35,8 +35,6 @@ static void   Sim_UtilAssignFromFifo( Sim_Man_t * p );
 static void   Sim_SolveTargetsUsingSat( Sim_Man_t * p, int nCounters );
 static int    Sim_SolveSuppModelVerify( Abc_Ntk_t * pNtk, int * pModel, int Input, int Output );
 
-extern Fraig_Man_t * Abc_NtkToFraig( Abc_Ntk_t * pNtk, Fraig_Params_t * pParams, int fAllNodes );
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
@@ -469,6 +467,7 @@ void Sim_SolveTargetsUsingSat( Sim_Man_t * p, int Limit )
 
         // transform the miter into a fraig
         Fraig_ParamsSetDefault( &Params );
+        Params.nSeconds = ABC_INFINITY;
         Params.fInternal = 1;
 clk = clock();
         pMan = Abc_NtkToFraig( pMiter, &Params, 0 ); 

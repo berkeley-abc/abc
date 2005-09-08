@@ -79,7 +79,7 @@ extern bool             Msat_SolverParseDimacs( FILE * pFile, Msat_Solver_t ** p
 extern bool             Msat_SolverAddVar( Msat_Solver_t * p );
 extern bool             Msat_SolverAddClause( Msat_Solver_t * p, Msat_IntVec_t * pLits );
 extern bool             Msat_SolverSimplifyDB( Msat_Solver_t * p );
-extern bool             Msat_SolverSolve( Msat_Solver_t * p, Msat_IntVec_t * pVecAssumps, int nBackTrackLimit );
+extern bool             Msat_SolverSolve( Msat_Solver_t * p, Msat_IntVec_t * pVecAssumps, int nBackTrackLimit, int nTimeLimit );
 // printing stats, assignments, and clauses
 extern void             Msat_SolverPrintStats( Msat_Solver_t * p );
 extern void             Msat_SolverPrintAssignment( Msat_Solver_t * p );

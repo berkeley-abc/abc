@@ -27,6 +27,7 @@
 static void     Abc_NtkDfs_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes );
 static void     Abc_AigDfs_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes );
 static void     Abc_NtkDfsReverse_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes );
+static void     Abc_NtkNodeSupport_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes );
 static void     Abc_DfsLevelizedTfo_rec( Abc_Obj_t * pNode, Vec_Vec_t * vLevels );
 static int      Abc_NtkGetLevelNum_rec( Abc_Obj_t * pNode );
 static bool     Abc_NtkIsAcyclic_rec( Abc_Obj_t * pNode );
@@ -203,6 +204,68 @@ void Abc_NtkDfsReverse_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
         Abc_NtkDfsReverse_rec( pFanout, vNodes );
     // add the node after the fanins have been added
     Vec_PtrPush( vNodes, pNode );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the set of CI nodes in the support of the given nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_NtkNodeSupport( Abc_Ntk_t * pNtk, Abc_Obj_t ** ppNodes, int nNodes )
+{
+    Vec_Ptr_t * vNodes;
+    int i;
+    // set the traversal ID
+    Abc_NtkIncrementTravId( pNtk );
+    // start the array of nodes
+    vNodes = Vec_PtrAlloc( 100 );
+    // go through the PO nodes and call for each of them
+    for ( i = 0; i < nNodes; i++ )
+        if ( Abc_ObjIsCo(ppNodes[i]) )
+            Abc_NtkNodeSupport_rec( Abc_ObjFanin0(ppNodes[i]), vNodes );
+        else
+            Abc_NtkNodeSupport_rec( ppNodes[i], vNodes );
+    return vNodes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs DFS for one node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkNodeSupport_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
+{
+    Abc_Obj_t * pFanin;
+    int i;
+    assert( !Abc_ObjIsNet(pNode) );
+    // if this node is already visited, skip
+    if ( Abc_NodeIsTravIdCurrent( pNode ) )
+        return;
+    // mark the node as visited
+    Abc_NodeSetTravIdCurrent( pNode );
+    // collect the CI
+    if ( Abc_ObjIsCi(pNode) )
+    {
+        Vec_PtrPush( vNodes, pNode );
+        return;
+    }
+    assert( Abc_ObjIsNode( pNode ) );
+    // visit the transitive fanin of the node
+    Abc_ObjForEachFanin( pNode, pFanin, i )
+        Abc_NtkNodeSupport_rec( Abc_ObjFanin0Ntk(pFanin), vNodes );
 }
 
 

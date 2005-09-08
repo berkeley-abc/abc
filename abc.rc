@@ -62,4 +62,5 @@ alias sharem   "b; ren -m; fx; b"
 alias sharedsd "b; ren; dsd -g; sw; fx; b"
 alias resyn    "b; rw; rwz; b; rwz; b"
 alias resyn2   "b; rw; rf; b; rw; rwz; b; rfz; rwz; b"
+alias thin     "rwz; rfz; b; ps"
 

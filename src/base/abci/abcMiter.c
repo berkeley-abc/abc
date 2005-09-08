@@ -372,8 +372,8 @@ Abc_Ntk_t * Abc_NtkMiterForCofactors( Abc_Ntk_t * pNtk, int Out, int In1, int In
 
   Synopsis    [Checks the status of the miter.]
 
-  Description [Return 1 if the miter is sat for at least one output.
-  Return 0 if the miter is unsat for all its outputs. Returns -1 if the
+  Description [Return 0 if the miter is sat for at least one output.
+  Return 1 if the miter is unsat for all its outputs. Returns -1 if the
   miter is undecided for some outputs.]
                
   SideEffects []
@@ -396,15 +396,15 @@ int Abc_NtkMiterIsConstant( Abc_Ntk_t * pMiter )
             {
                 // if the miter is constant 1, return immediately
                 printf( "MITER IS CONSTANT 1!\n" );
-                return 1;
+                return 0;
             }
         }
         // if the miter is undecided (or satisfiable), return immediately
         else 
             return -1;
     }
-    // return 0, meaning all outputs are constant zero
-    return 0;
+    // return 1, meaning all outputs are constant zero
+    return 1;
 }
 
 /**Function*************************************************************

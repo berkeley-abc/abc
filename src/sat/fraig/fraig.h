@@ -43,6 +43,7 @@ struct Fraig_ParamsStruct_t_
     int  nPatsRand;     // the number of words of random simulation info
     int  nPatsDyna;     // the number of words of dynamic simulation info
     int  nBTLimit;      // the max number of backtracks to perform
+    int  nSeconds;      // the timeout for the final proof
     int  fFuncRed;      // performs only one level hashing
     int  fFeedBack;     // enables solver feedback
     int  fDist1Pats;    // enables distance-1 patterns
@@ -162,8 +163,8 @@ extern int                 Fraig_CheckTfi( Fraig_Man_t * pMan, Fraig_Node_t * pO
 extern int                 Fraig_CountLevels( Fraig_Man_t * pMan );
 
 /*=== fraigSat.c =============================================================*/
-extern int                 Fraig_NodesAreEqual( Fraig_Man_t * p, Fraig_Node_t * pNode1, Fraig_Node_t * pNode2, int nBTLimit );
-extern int                 Fraig_NodeIsEquivalent( Fraig_Man_t * p, Fraig_Node_t * pOld, Fraig_Node_t * pNew, int nBTLimit );
+extern int                 Fraig_NodesAreEqual( Fraig_Man_t * p, Fraig_Node_t * pNode1, Fraig_Node_t * pNode2, int nBTLimit, int nTimeLimit );
+extern int                 Fraig_NodeIsEquivalent( Fraig_Man_t * p, Fraig_Node_t * pOld, Fraig_Node_t * pNew, int nBTLimit, int nTimeLimit );
 extern void                Fraig_ManProveMiter( Fraig_Man_t * p );
 extern int                 Fraig_ManCheckMiter( Fraig_Man_t * p );
 

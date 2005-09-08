@@ -26,7 +26,6 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-extern Fraig_Man_t * Abc_NtkToFraig( Abc_Ntk_t * pNtk, Fraig_Params_t * pParams, int fAllNodes );
 static Abc_Ntk_t *   Abc_NtkFromFraig( Fraig_Man_t * pMan, Abc_Ntk_t * pNtk );
 static Abc_Obj_t *   Abc_NodeFromFraig_rec( Abc_Ntk_t * pNtkNew, Fraig_Node_t * pNodeFraig );
 
@@ -83,13 +82,14 @@ Abc_Ntk_t * Abc_NtkFraig( Abc_Ntk_t * pNtk, void * pParams, int fAllNodes )
   SeeAlso     []
 
 ***********************************************************************/
-Fraig_Man_t * Abc_NtkToFraig( Abc_Ntk_t * pNtk, Fraig_Params_t * pParams, int fAllNodes )
+void * Abc_NtkToFraig( Abc_Ntk_t * pNtk, void * pParams, int fAllNodes )
 {
     Fraig_Man_t * pMan;
     ProgressBar * pProgress;
     Fraig_Node_t * pNodeFraig;
     Vec_Ptr_t * vNodes;
     Abc_Obj_t * pNode, * pConst1, * pReset;
+    int fInternal = ((Fraig_Params_t *)pParams)->fInternal;
     int i;
 
     assert( Abc_NtkIsStrash(pNtk) );
@@ -106,11 +106,11 @@ Fraig_Man_t * Abc_NtkToFraig( Abc_Ntk_t * pNtk, Fraig_Params_t * pParams, int fA
 
     // perform strashing
     vNodes = Abc_AigDfs( pNtk, fAllNodes, 0 );
-    if ( !pParams->fInternal )
+    if ( !fInternal )
         pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
     Vec_PtrForEachEntry( vNodes, pNode, i )
     {
-        if ( !pParams->fInternal )
+        if ( !fInternal )
             Extra_ProgressBarUpdate( pProgress, i, NULL );
         if ( pNode == pConst1 )
             pNodeFraig = Fraig_ManReadConst1(pMan);
@@ -123,7 +123,7 @@ Fraig_Man_t * Abc_NtkToFraig( Abc_Ntk_t * pNtk, Fraig_Params_t * pParams, int fA
         assert( pNode->pCopy == NULL );
         pNode->pCopy = (Abc_Obj_t *)pNodeFraig;
     }
-    if ( !pParams->fInternal )
+    if ( !fInternal )
         Extra_ProgressBarStop( pProgress );
     Vec_PtrFree( vNodes );
 

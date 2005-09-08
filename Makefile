@@ -13,7 +13,7 @@ MODULES := src/base/abc src/base/abci src/base/abcs src/base/cmd src/base/io src
 	   src/opt/cut src/opt/dec src/opt/fxu src/opt/rwr src/opt/sim \
            src/sat/asat src/sat/csat src/sat/msat src/sat/fraig
 
-default: $(PROG)
+#default: $(PROG)
 
 OPTFLAGS  := -DNDEBUG -O3
 #OPTFLAGS  := -g -O
@@ -58,6 +58,10 @@ tags:
 
 $(PROG): $(OBJ)
 	$(LD) -o $@ $^ $(LIBS)
+
+lib$(PROG).a: $(OBJ)
+	ar rv $@ $?
+	ranlib $@
 
 docs:
 	doxygen doxygen.conf

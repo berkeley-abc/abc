@@ -1672,26 +1672,31 @@ int Abc_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
     int c;
+    bool fUpdateLevel;
     bool fPrecompute;
     bool fUseZeros;
     bool fVerbose;
     // external functions
-    extern void   Rwr_Precompute();
-    extern int    Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUseZeros, int fVerbose );
+    extern void Rwr_Precompute();
+    extern int  Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeros, int fVerbose );
 
     pNtk = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fPrecompute = 0;
-    fUseZeros   = 0;
-    fVerbose    = 0;
+    fUpdateLevel = 0;
+    fPrecompute  = 0;
+    fUseZeros    = 0;
+    fVerbose     = 0;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "xzvh" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "lxzvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'l':
+            fUpdateLevel ^= 1;
+            break;
         case 'x':
             fPrecompute ^= 1;
             break;
@@ -1731,7 +1736,7 @@ int Abc_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // modify the current network
-    if ( !Abc_NtkRewrite( pNtk, fUseZeros, fVerbose ) )
+    if ( !Abc_NtkRewrite( pNtk, fUpdateLevel, fUseZeros, fVerbose ) )
     {
         fprintf( pErr, "Rewriting has failed.\n" );
         return 1;
@@ -1739,8 +1744,9 @@ int Abc_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: rewrite [-zvh]\n" );
+    fprintf( pErr, "usage: rewrite [-lzvh]\n" );
     fprintf( pErr, "\t         performs technology-independent rewriting of the AIG\n" );
+    fprintf( pErr, "\t-l     : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
     fprintf( pErr, "\t-z     : toggle using zero-cost replacements [default = %s]\n", fUseZeros? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
@@ -1765,10 +1771,11 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int nNodeSizeMax;
     int nConeSizeMax;
+    bool fUpdateLevel;
     bool fUseZeros;
     bool fUseDcs;
     bool fVerbose;
-    extern int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, bool fUseZeros, bool fUseDcs, bool fVerbose );
+    extern int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, bool fUpdateLevel, bool fUseZeros, bool fUseDcs, bool fVerbose );
 
     pNtk = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -1777,11 +1784,12 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     nNodeSizeMax = 10;
     nConeSizeMax = 16;
+    fUpdateLevel =  0;
     fUseZeros    =  0;
     fUseDcs      =  0;
     fVerbose     =  0;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "NCzdvh" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "NClzdvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -1806,6 +1814,9 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
             util_optind++;
             if ( nConeSizeMax < 0 ) 
                 goto usage;
+            break;
+        case 'l':
+            fUpdateLevel ^= 1;
             break;
         case 'z':
             fUseZeros ^= 1;
@@ -1846,7 +1857,7 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // modify the current network
-    if ( !Abc_NtkRefactor( pNtk, nNodeSizeMax, nConeSizeMax, fUseZeros, fUseDcs, fVerbose ) )
+    if ( !Abc_NtkRefactor( pNtk, nNodeSizeMax, nConeSizeMax, fUpdateLevel, fUseZeros, fUseDcs, fVerbose ) )
     {
         fprintf( pErr, "Refactoring has failed.\n" );
         return 1;
@@ -1854,10 +1865,11 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: refactor [-N num] [-C num] [-zdvh]\n" );
+    fprintf( pErr, "usage: refactor [-N num] [-C num] [-lzdvh]\n" );
     fprintf( pErr, "\t         performs technology-independent refactoring of the AIG\n" );
     fprintf( pErr, "\t-N num : the max support of the collapsed node [default = %d]\n", nNodeSizeMax );  
     fprintf( pErr, "\t-C num : the max support of the containing cone [default = %d]\n", nConeSizeMax );  
+    fprintf( pErr, "\t-l     : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
     fprintf( pErr, "\t-z     : toggle using zero-cost replacements [default = %s]\n", fUseZeros? "yes": "no" );
     fprintf( pErr, "\t-d     : toggle using don't-cares [default = %s]\n", fUseDcs? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
@@ -2291,7 +2303,9 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
     int c;
+    int RetValue;
     int fVerbose;
+    int nSeconds;
 
     pNtk = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -2299,11 +2313,23 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     fVerbose = 0;
+    nSeconds = 20;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "Tvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'T':
+            if ( util_optind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nSeconds = atoi(argv[util_optind]);
+            util_optind++;
+            if ( nSeconds < 0 ) 
+                goto usage;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -2323,7 +2349,7 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         fprintf( stdout, "Currently can only solve the miter for combinational circuits.\n" );
         return 0;
-    }
+    } 
     if ( !Abc_NtkIsLogic(pNtk) )
     {
         fprintf( stdout, "This command can only be applied to logic network (run \"renode -c\").\n" );
@@ -2334,15 +2360,19 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( Abc_NtkIsSopLogic(pNtk) )
         Abc_NtkSopToBdd(pNtk);
 
-    if ( Abc_NtkMiterSat( pNtk, fVerbose ) )
-        printf( "The miter is satisfiable.\n" );
+    RetValue = Abc_NtkMiterSat( pNtk, nSeconds, fVerbose );
+    if ( RetValue == -1 )
+        printf( "The miter is UNDECIDED (SAT solver timed out).\n" );
+    else if ( RetValue == 0 )
+        printf( "The miter is SATISFIABLE.\n" );
     else
-        printf( "The miter is unsatisfiable.\n" );
+        printf( "The miter is UNSATISFIABLE.\n" );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: sat [-vh]\n" );
+    fprintf( pErr, "usage: sat [-T num] [-vh]\n" );
     fprintf( pErr, "\t         solves the miter\n" );
+    fprintf( pErr, "\t-T num : approximate runtime limit in seconds [default = %d]\n", nSeconds );
     fprintf( pErr, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -2863,6 +2893,7 @@ int Abc_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     fAllNodes = 0;
+    memset( pParams, 0, sizeof(Fraig_Params_t) );
     pParams->nPatsRand  = 2048; // the number of words of random simulation info
     pParams->nPatsDyna  = 2048; // the number of words of dynamic simulation info
     pParams->nBTLimit   = 99;   // the max number of backtracks to perform
@@ -2879,7 +2910,6 @@ int Abc_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         switch ( c )
         {
-
         case 'R':
             if ( util_optind >= argc )
             {
@@ -3913,9 +3943,10 @@ int Abc_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int fSat;
     int fVerbose;
+    int nSeconds;
 
-    extern void Abc_NtkCecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 );
-    extern void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fVerbose );
+    extern void Abc_NtkCecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds );
+    extern void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fVerbose );
 
 
     pNtk = Abc_FrameReadNet(pAbc);
@@ -3923,13 +3954,25 @@ int Abc_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fSat     = 0;
-    fVerbose = 0;
+    fSat     =  0;
+    fVerbose =  0;
+    nSeconds = 20;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "svh" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "Tsvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'T':
+            if ( util_optind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nSeconds = atoi(argv[util_optind]);
+            util_optind++;
+            if ( nSeconds < 0 ) 
+                goto usage;
+            break;
         case 's':
             fSat ^= 1;
             break;
@@ -3948,24 +3991,25 @@ int Abc_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // perform equivalence checking
     if ( fSat )
-        Abc_NtkCecSat( pNtk1, pNtk2 );
+        Abc_NtkCecSat( pNtk1, pNtk2, nSeconds );
     else
-        Abc_NtkCecFraig( pNtk1, pNtk2, fVerbose );
+        Abc_NtkCecFraig( pNtk1, pNtk2, nSeconds, fVerbose );
 
     if ( fDelete1 ) Abc_NtkDelete( pNtk1 );
     if ( fDelete2 ) Abc_NtkDelete( pNtk2 );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: cec [-svh] <file1> <file2>\n" );
-    fprintf( pErr, "\t        performs combinational equivalence checking\n" );
-    fprintf( pErr, "\t-s    : toggle \"SAT only\" and \"FRAIG + SAT\" [default = %s]\n", fSat? "SAT only": "FRAIG + SAT" );
-    fprintf( pErr, "\t-v    : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
-    fprintf( pErr, "\t-h    : print the command usage\n");
-    fprintf( pErr, "\tfile1 : (optional) the file with the first network\n");
-    fprintf( pErr, "\tfile2 : (optional) the file with the second network\n");
-    fprintf( pErr, "\t        if no files are given, uses the current network and its spec\n");
-    fprintf( pErr, "\t        if one file is given, uses the current network and the file\n");
+    fprintf( pErr, "usage: cec [-T num] [-svh] <file1> <file2>\n" );
+    fprintf( pErr, "\t         performs combinational equivalence checking\n" );
+    fprintf( pErr, "\t-T num : approximate runtime limit in seconds [default = %d]\n", nSeconds );
+    fprintf( pErr, "\t-s     : toggle \"SAT only\" and \"FRAIG + SAT\" [default = %s]\n", fSat? "SAT only": "FRAIG + SAT" );
+    fprintf( pErr, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    fprintf( pErr, "\tfile1  : (optional) the file with the first network\n");
+    fprintf( pErr, "\tfile2  : (optional) the file with the second network\n");
+    fprintf( pErr, "\t         if no files are given, uses the current network and its spec\n");
+    fprintf( pErr, "\t         if one file is given, uses the current network and the file\n");
     return 1;
 }
 
@@ -3989,10 +4033,12 @@ int Abc_CommandSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nArgcNew;
     int c;
     int fSat;
+    int fVerbose;
     int nFrames;
+    int nSeconds;
 
-    extern void Abc_NtkSecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames );
-    extern void Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames );
+    extern void Abc_NtkSecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nFrames );
+    extern void Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nFrames, int fVerbose );
 
 
     pNtk = Abc_FrameReadNet(pAbc);
@@ -4000,10 +4046,12 @@ int Abc_CommandSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nFrames = 3;
-    fSat    = 0;
+    fSat     =  0;
+    fVerbose =  0;
+    nFrames  =  3;
+    nSeconds = 20;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "Fsh" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "FTsvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -4017,6 +4065,20 @@ int Abc_CommandSec( Abc_Frame_t * pAbc, int argc, char ** argv )
             util_optind++;
             if ( nFrames < 0 ) 
                 goto usage;
+            break;
+        case 'T':
+            if ( util_optind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nSeconds = atoi(argv[util_optind]);
+            util_optind++;
+            if ( nSeconds < 0 ) 
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
             break;
         case 's':
             fSat ^= 1;
@@ -4033,20 +4095,22 @@ int Abc_CommandSec( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // perform equivalence checking
     if ( fSat )
-        Abc_NtkSecSat( pNtk1, pNtk2, nFrames );
+        Abc_NtkSecSat( pNtk1, pNtk2, nSeconds, nFrames );
     else
-        Abc_NtkSecFraig( pNtk1, pNtk2, nFrames );
+        Abc_NtkSecFraig( pNtk1, pNtk2, nSeconds, nFrames, fVerbose );
 
     if ( fDelete1 ) Abc_NtkDelete( pNtk1 );
     if ( fDelete2 ) Abc_NtkDelete( pNtk2 );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: sec [-sh] [-F num] <file1> <file2>\n" );
+    fprintf( pErr, "usage: sec [-F num] [-T num] [-svh] <file1> <file2>\n" );
     fprintf( pErr, "\t         performs bounded sequential equivalence checking\n" );
     fprintf( pErr, "\t-s     : toggle \"SAT only\" and \"FRAIG + SAT\" [default = %s]\n", fSat? "SAT only": "FRAIG + SAT" );
+    fprintf( pErr, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     fprintf( pErr, "\t-F num : the number of time frames to use [default = %d]\n", nFrames );
+    fprintf( pErr, "\t-T num : approximate runtime limit in seconds [default = %d]\n", nSeconds );
     fprintf( pErr, "\tfile1  : (optional) the file with the first network\n");
     fprintf( pErr, "\tfile2  : (optional) the file with the second network\n");
     fprintf( pErr, "\t         if no files are given, uses the current network and its spec\n");

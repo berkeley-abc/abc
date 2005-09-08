@@ -167,6 +167,10 @@ extern enum CSAT_StatusT     CSAT_Solve(CSAT_Manager mng);
 extern CSAT_Target_ResultT * CSAT_Get_Target_Result(CSAT_Manager mng, int TargetID);
 extern void                  CSAT_Dump_Bench_File(CSAT_Manager mng);
 
+// ADDED PROCEDURES:
+extern void                  CSAT_QuitManager( CSAT_Manager mng );
+extern void                  CSAT_TargetResFree( CSAT_Target_ResultT * p );
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

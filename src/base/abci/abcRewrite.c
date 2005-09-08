@@ -50,7 +50,7 @@ static void        Abc_NodePrintCuts( Abc_Obj_t * pNode );
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUseZeros, int fVerbose )
+int Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeros, int fVerbose )
 {
     int fDrop = 0;
     ProgressBar * pProgress;
@@ -67,7 +67,9 @@ int Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUseZeros, int fVerbose )
     pManRwr = Rwr_ManStart( 0 );
     if ( pManRwr == NULL )
         return 0;
-    Abc_NtkStartReverseLevels( pNtk );
+    // compute the reverse levels if level update is requested
+    if ( fUpdateLevel )
+        Abc_NtkStartReverseLevels( pNtk );
     // start the cut manager
 clk = clock();
     pManCut = Abc_NtkStartCutManForRewrite( pNtk, fDrop );
@@ -90,14 +92,16 @@ Rwr_ManAddTimeCuts( pManRwr, clock() - clk );
         if ( Abc_ObjFanoutNum(pNode) > 1000 )
             continue;
         // for each cut, try to resynthesize it
-        nGain = Rwr_NodeRewrite( pManRwr, pManCut, pNode, fUseZeros );
+        nGain = Rwr_NodeRewrite( pManRwr, pManCut, pNode, fUpdateLevel, fUseZeros );
         if ( nGain > 0 || nGain == 0 && fUseZeros )
         {
             Dec_Graph_t * pGraph = Rwr_ManReadDecs(pManRwr);
             int fCompl           = Rwr_ManReadCompl(pManRwr);
             // complement the FF if needed
             if ( fCompl ) Dec_GraphComplement( pGraph );
-            Dec_GraphUpdateNetwork( pNode, pGraph, nGain );
+clk = clock();
+            Dec_GraphUpdateNetwork( pNode, pGraph, fUpdateLevel, nGain );
+Rwr_ManAddTimeUpdate( pManRwr, clock() - clk );
             if ( fCompl ) Dec_GraphComplement( pGraph );
         }
     }
@@ -110,7 +114,13 @@ Rwr_ManAddTimeTotal( pManRwr, clock() - clkStart );
     Rwr_ManStop( pManRwr );
     Cut_ManStop( pManCut );
     pNtk->pManCut = NULL;
-    Abc_NtkStopReverseLevels( pNtk );
+    // put the nodes into the DFS order and reassign their IDs
+    Abc_NtkReassignIds( pNtk );
+    // fix the levels
+    if ( fUpdateLevel )
+        Abc_NtkStopReverseLevels( pNtk );
+    else
+        Abc_NtkGetLevelNum( pNtk );
     // check
     if ( !Abc_NtkCheck( pNtk ) )
     {

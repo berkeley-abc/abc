@@ -22,6 +22,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <stdio.h>
 #include <assert.h>
 #include <math.h>
+#include <time.h>
 
 #include "solver.h"
 
@@ -1055,13 +1056,14 @@ bool   solver_simplify(solver* s)
 }
 
 
-bool   solver_solve(solver* s, lit* begin, lit* end)
+int   solver_solve(solver* s, lit* begin, lit* end, int nSeconds)
 {
     double  nof_conflicts = 100;
     double  nof_learnts   = solver_nclauses(s) / 3;
     lbool   status        = l_Undef;
     lbool*  values        = s->assigns;
     lit*    i;
+    int     timeStart     = clock();
 
     for (i = begin; i < end; i++)
         if ((lit_sign(*i) ? -values[lit_var(*i)] : values[lit_var(*i)]) == l_False || (assume(s,*i), solver_propagate(s) != 0)){
@@ -1096,12 +1098,15 @@ bool   solver_solve(solver* s, lit* begin, lit* end)
         status = solver_search(s,(int)nof_conflicts, (int)nof_learnts);
         nof_conflicts *= 1.5;
         nof_learnts   *= 1.1;
+        // if the runtime limit is exceeded, quit the restart loop
+        if ( clock() - timeStart >= nSeconds * CLOCKS_PER_SEC )
+            break;
     }
     if (s->verbosity >= 1)
         printf("==============================================================================\n");
 
     solver_canceluntil(s,0);
-    return status != l_False;
+    return status;
 }
 
 

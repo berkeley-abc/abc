@@ -119,6 +119,30 @@ void Asat_ClauseWriteDimacs( FILE * pFile, clause * pC, bool fIncrement )
     fprintf( pFile, "\n" );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns a counter-example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int * solver_get_model( solver * p, int * pVars, int nVars )
+{
+    int * pModel;
+    int i;
+    pModel = ALLOC( int, nVars );
+    for ( i = 0; i < nVars; i++ )
+    {
+        assert( pVars[i] >= 0 && pVars[i] < p->size );
+        pModel[i] = (int)(p->model.ptr[pVars[i]] == (void *)l_True);
+    }
+    return pModel;    
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

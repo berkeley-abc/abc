@@ -49,6 +49,7 @@ struct Rwr_Man_t_
     char *             pPhases;          // canonical phases
     char *             pPerms;           // canonical permutations
     unsigned char *    pMap;             // mapping of functions into class numbers
+    unsigned short *   pMapInv;          // mapping of classes into functions
     char *             pPractical;       // practical NPN classes
     char **            pPerms4;          // four-var permutations
     // node space
@@ -63,10 +64,11 @@ struct Rwr_Man_t_
     int                nClasses;         // the number of NN classes
     // the result of resynthesis
     int                fCompl;           // indicates if the output of FF should be complemented
-    void *             pGraph;            // the decomposition tree (temporary)
+    void *             pGraph;           // the decomposition tree (temporary)
     Vec_Ptr_t *        vFanins;          // the fanins array (temporary)
     Vec_Ptr_t *        vFaninsCur;       // the fanins array (temporary)
     Vec_Int_t *        vLevNums;         // the array of levels (temporary)
+    Vec_Ptr_t *        vNodesTemp;       // the nodes in MFFC (temporary)
     // node statistics
     int                nNodesConsidered;
     int                nNodesRewritten;
@@ -80,6 +82,8 @@ struct Rwr_Man_t_
     int                timeCut;
     int                timeRes;
     int                timeEval;
+    int                timeMffc;
+    int                timeUpdate;
     int                timeTotal;
 };
 
@@ -114,7 +118,7 @@ static inline Rwr_Node_t * Rwr_NotCond( Rwr_Node_t * p, int c )  { return (Rwr_N
 /*=== rwrDec.c ========================================================*/
 extern void              Rwr_ManPreprocess( Rwr_Man_t * p );
 /*=== rwrEva.c ========================================================*/
-extern int               Rwr_NodeRewrite( Rwr_Man_t * p, Cut_Man_t * pManCut, Abc_Obj_t * pNode, int fUseZeros );
+extern int               Rwr_NodeRewrite( Rwr_Man_t * p, Cut_Man_t * pManCut, Abc_Obj_t * pNode, int fUpdateLevel, int fUseZeros );
 /*=== rwrLib.c ========================================================*/
 extern void              Rwr_ManPrecompute( Rwr_Man_t * p );
 extern Rwr_Node_t *      Rwr_ManAddVar( Rwr_Man_t * p, unsigned uTruth, int fPrecompute );
@@ -128,6 +132,7 @@ extern void              Rwr_ManPrintStats( Rwr_Man_t * p );
 extern void *            Rwr_ManReadDecs( Rwr_Man_t * p );
 extern int               Rwr_ManReadCompl( Rwr_Man_t * p );
 extern void              Rwr_ManAddTimeCuts( Rwr_Man_t * p, int Time );
+extern void              Rwr_ManAddTimeUpdate( Rwr_Man_t * p, int Time );
 extern void              Rwr_ManAddTimeTotal( Rwr_Man_t * p, int Time );
 /*=== rwrPrint.c ========================================================*/
 extern void              Rwr_ManPrint( Rwr_Man_t * p );

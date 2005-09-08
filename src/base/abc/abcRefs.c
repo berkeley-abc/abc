@@ -26,6 +26,7 @@
 
 static int Abc_NodeRefDeref( Abc_Obj_t * pNode, bool fReference, bool fLabel, Vec_Ptr_t * vNodes );
 static int Abc_NodeRefDerefStop( Abc_Obj_t * pNode, bool fReference );
+static int Abc_NodeDeref( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -108,6 +109,42 @@ int Abc_NodeMffcLabel( Abc_Obj_t * pNode )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the MFFC size.]
+
+  Description [Profiling shows that this procedure runs the same as 
+  the above one, not faster.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NodeMffcLabelFast( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
+{
+    Abc_Obj_t * pTemp;
+    int nConeSize, i;
+
+    assert( !Abc_ObjIsComplement( pNode ) );
+    assert( Abc_ObjIsNode( pNode ) );
+    if ( Abc_ObjFaninNum(pNode) == 0 )
+        return 0;
+
+    Vec_PtrClear( vNodes );
+    nConeSize = Abc_NodeDeref( pNode, vNodes );
+    // label the nodes with the current ID and ref their children
+    Vec_PtrForEachEntry( vNodes, pTemp, i )
+    {
+        Abc_NodeSetTravIdCurrent( pTemp );
+        if ( Abc_ObjIsCi(pTemp) )
+            continue;
+        Abc_ObjFanin0(pTemp)->vFanouts.nSize++;
+        Abc_ObjFanin1(pTemp)->vFanouts.nSize++;
+    }
+    return nConeSize;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Collects the nodes in MFFC in the topological order.]
 
   Description []
@@ -177,6 +214,39 @@ int Abc_NodeRefDeref( Abc_Obj_t * pNode, bool fReference, bool fLabel, Vec_Ptr_t
         if ( --pNode1->vFanouts.nSize == 0 )
             Counter += Abc_NodeRefDeref( pNode1, fReference, fLabel, vNodes );
     }
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [References/references the node and returns MFFC size.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NodeDeref( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
+{
+    Abc_Obj_t * pNode0, * pNode1;
+    int Counter;
+    // collect visited nodes
+    Vec_PtrPush( vNodes, pNode );
+    // skip the CI
+    if ( Abc_ObjIsCi(pNode) )
+        return 0;
+    // process the internal node
+    pNode0 = Abc_ObjFanin0(pNode);
+    pNode1 = Abc_ObjFanin1(pNode);
+    assert( pNode0->vFanouts.nSize > 0 );
+    assert( pNode1->vFanouts.nSize > 0 );
+    Counter = 1;
+    if ( --pNode0->vFanouts.nSize == 0 )
+        Counter += Abc_NodeDeref( pNode0, vNodes );
+    if ( --pNode1->vFanouts.nSize == 0 )
+        Counter += Abc_NodeDeref( pNode1, vNodes );
     return Counter;
 }
 

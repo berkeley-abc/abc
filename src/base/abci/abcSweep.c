@@ -25,8 +25,6 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-extern Fraig_Man_t *  Abc_NtkToFraig( Abc_Ntk_t * pNtk, Fraig_Params_t * pParams, int fAllNodes );
-
 static stmm_table *   Abc_NtkFraigEquiv( Fraig_Man_t * p, Abc_Ntk_t * pNtk, int fUseInv, bool fVerbose );
 static void           Abc_NtkFraigTransform( Abc_Ntk_t * pNtk, stmm_table * tEquiv, int fUseInv, bool fVerbose );
 static void           Abc_NtkFraigMergeClassMapped( Abc_Ntk_t * pNtk, Abc_Obj_t * pChain, int fVerbose, int fUseInv );

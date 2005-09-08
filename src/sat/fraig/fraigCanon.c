@@ -167,7 +167,7 @@ Fraig_Node_t * Fraig_NodeAndCanon( Fraig_Man_t * pMan, Fraig_Node_t * p1, Fraig_
     // there is another node which looks the same according to simulation
 
     // use SAT to resolve the ambiguity
-    if ( Fraig_NodeIsEquivalent( pMan, pNodeOld, pNodeNew, pMan->nBTLimit ) )
+    if ( Fraig_NodeIsEquivalent( pMan, pNodeOld, pNodeNew, pMan->nBTLimit, 1000000 ) )
     {
         // set the node to be equivalent with this node
         // to prevent loops, only set if the old node is not in the TFI of the new node

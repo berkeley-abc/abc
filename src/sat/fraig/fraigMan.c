@@ -46,6 +46,7 @@ void Fraig_ParamsSetDefault( Fraig_Params_t * pParams )
     pParams->nPatsRand  = FRAIG_PATTERNS_RANDOM;  // the number of words of random simulation info
     pParams->nPatsDyna  = FRAIG_PATTERNS_DYNAMIC; // the number of words of dynamic simulation info
     pParams->nBTLimit   = 99;                     // the max number of backtracks to perform
+    pParams->nSeconds   = 20;                     // the max number of seconds to solve the miter
     pParams->fFuncRed   =  1;                     // performs only one level hashing
     pParams->fFeedBack  =  1;                     // enables solver feedback
     pParams->fDist1Pats =  1;                     // enables distance-1 patterns
@@ -100,6 +101,7 @@ Fraig_Man_t * Fraig_ManCreate( Fraig_Params_t * pParams )
     p->nWordsRand = FRAIG_NUM_WORDS( pParams->nPatsRand );  // the number of words of random simulation info
     p->nWordsDyna = FRAIG_NUM_WORDS( pParams->nPatsDyna );  // the number of patterns for dynamic simulation info
     p->nBTLimit   = pParams->nBTLimit;    // -1 means infinite backtrack limit
+    p->nSeconds   = pParams->nSeconds;    // the timeout for the final miter
     p->fFuncRed   = pParams->fFuncRed;    // enables functional reduction (otherwise, only one-level hashing is performed)
     p->fFeedBack  = pParams->fFeedBack;   // enables solver feedback (the use of counter-examples in simulation)
     p->fDist1Pats = pParams->fDist1Pats;  // enables solver feedback (the use of counter-examples in simulation)

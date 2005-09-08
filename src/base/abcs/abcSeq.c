@@ -112,7 +112,7 @@ Abc_Ntk_t * Abc_NtkAigToSeq( Abc_Ntk_t * pNtk )
             if ( Abc_ObjIsCi(pFaninNew) || !Abc_NodeIsConst(pFaninNew) )
                 continue;
             pConst = Abc_ObjNotCond( Abc_AigConst1(pManNew), Abc_ObjFaninC0(pLatch) );
-            Abc_AigReplace( pManNew, pLatch, pConst );
+            Abc_AigReplace( pManNew, pLatch, pConst, 0 );
             fChange = 1;
             Counter++;
         }

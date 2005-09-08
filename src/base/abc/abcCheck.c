@@ -25,7 +25,6 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static bool Abc_NtkDoCheck( Abc_Ntk_t * pNtk );
 static bool Abc_NtkCheckNames( Abc_Ntk_t * pNtk );
 static bool Abc_NtkCheckPis( Abc_Ntk_t * pNtk );
 static bool Abc_NtkCheckPos( Abc_Ntk_t * pNtk );

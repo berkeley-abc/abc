@@ -56,13 +56,13 @@ extern void * Msat_ClauseVecReadEntry( void * p, int i );
   SeeAlso     []
 
 ***********************************************************************/
-int Fraig_NodesAreEqual( Fraig_Man_t * p, Fraig_Node_t * pNode1, Fraig_Node_t * pNode2, int nBTLimit )
+int Fraig_NodesAreEqual( Fraig_Man_t * p, Fraig_Node_t * pNode1, Fraig_Node_t * pNode2, int nBTLimit, int nTimeLimit )
 {
     if ( pNode1 == pNode2 )
         return 1;
     if ( pNode1 == Fraig_Not(pNode2) )
         return 0;
-    return Fraig_NodeIsEquivalent( p, Fraig_Regular(pNode1), Fraig_Regular(pNode2), nBTLimit );
+    return Fraig_NodeIsEquivalent( p, Fraig_Regular(pNode1), Fraig_Regular(pNode2), nBTLimit, nTimeLimit );
 }
 
 /**Function*************************************************************
@@ -95,7 +95,7 @@ void Fraig_ManProveMiter( Fraig_Man_t * p )
         // skip nodes that are different according to simulation
         if ( !Fraig_CompareSimInfo( pNode, p->pConst1, p->nWordsRand, 1 ) )
             continue;
-        if ( Fraig_NodeIsEquivalent( p, p->pConst1, pNode, -1 ) )
+        if ( Fraig_NodeIsEquivalent( p, p->pConst1, pNode, -1, p->nSeconds ) )
         {
             if ( Fraig_IsComplement(p->vOutputs->pArray[i]) )
                 p->vOutputs->pArray[i] = Fraig_Not(p->pConst1);
@@ -160,7 +160,7 @@ int Fraig_ManCheckMiter( Fraig_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Fraig_NodeIsEquivalent( Fraig_Man_t * p, Fraig_Node_t * pOld, Fraig_Node_t * pNew, int nBTLimit )
+int Fraig_NodeIsEquivalent( Fraig_Man_t * p, Fraig_Node_t * pOld, Fraig_Node_t * pNew, int nBTLimit, int nTimeLimit )
 {
     int RetValue, RetValue1, i, fComp, clk;
     int fVerbose = 0;
@@ -227,7 +227,7 @@ if ( fVerbose )
     Msat_IntVecPush( p->vProj, MSAT_VAR2LIT(pNew->Num, !fComp) );
     // run the solver
 clk = clock();
-    RetValue1 = Msat_SolverSolve( p->pSat, p->vProj, nBTLimit );
+    RetValue1 = Msat_SolverSolve( p->pSat, p->vProj, nBTLimit, nTimeLimit );
 p->timeSat += clock() - clk;
 
     if ( RetValue1 == MSAT_FALSE )
@@ -286,7 +286,7 @@ p->time3 += clock() - clk;
     Msat_IntVecPush( p->vProj, MSAT_VAR2LIT(pNew->Num, fComp) );
     // run the solver
 clk = clock();
-    RetValue1 = Msat_SolverSolve( p->pSat, p->vProj, nBTLimit );
+    RetValue1 = Msat_SolverSolve( p->pSat, p->vProj, nBTLimit, nTimeLimit );
 p->timeSat += clock() - clk;
     if ( RetValue1 == MSAT_FALSE )
     {
@@ -411,7 +411,7 @@ if ( fVerbose )
     Msat_IntVecPush( p->vProj, MSAT_VAR2LIT(pNew->Num, !fComp) );
     // run the solver
 clk = clock();
-    RetValue1 = Msat_SolverSolve( p->pSat, p->vProj, nBTLimit );
+    RetValue1 = Msat_SolverSolve( p->pSat, p->vProj, nBTLimit, 1000000 );
 p->timeSat += clock() - clk;
 
     if ( RetValue1 == MSAT_FALSE )

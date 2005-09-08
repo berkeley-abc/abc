@@ -19,14 +19,13 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "abcInt.h"
 #include "main.h"
 #include "mio.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
-
-#define ABC_NUM_STEPS  10
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -400,7 +399,10 @@ Abc_Ntk_t * Abc_NtkCreateCone( Abc_Ntk_t * pNtk, Vec_Ptr_t * vRoots, Vec_Int_t *
     pFinal = Abc_AigConst1( pNtkNew->pManFunc );
     Vec_PtrForEachEntry( vRoots, pObj, i )
     {
-        pOther = pObj->pCopy;
+        if ( Abc_ObjIsCo(pObj) )
+            pOther = Abc_ObjFanin0(pObj)->pCopy;
+        else
+            pOther = pObj->pCopy;
         if ( Vec_IntEntry(vValues, i) == 0 )
             pOther = Abc_ObjNot(pOther);
         pFinal = Abc_AigAnd( pNtkNew->pManFunc, pFinal, pOther );
@@ -477,7 +479,8 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
         // free large fanout arrays
         if ( pObj->vFanouts.nCap * 4 > LargePiece )
             FREE( pObj->vFanouts.pArray );
-        // check that the other things are okay
+        // these flags should be always zero
+        // if this is not true, something is wrong somewhere
         assert( pObj->fMarkA == 0 );
         assert( pObj->fMarkB == 0 );
         assert( pObj->fMarkC == 0 );

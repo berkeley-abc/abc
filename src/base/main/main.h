@@ -73,7 +73,11 @@ typedef struct Abc_Frame_t_      Abc_Frame_t;
 ///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
-/*=== mvFrame.c ===========================================================*/
+/*=== main.c ===========================================================*/
+extern void            Abc_Start();
+extern void            Abc_Stop();
+
+/*=== mainFrame.c ===========================================================*/
 extern Abc_Ntk_t *     Abc_FrameReadNet( Abc_Frame_t * p );
 extern FILE *          Abc_FrameReadOut( Abc_Frame_t * p );
 extern FILE *          Abc_FrameReadErr( Abc_Frame_t * p );

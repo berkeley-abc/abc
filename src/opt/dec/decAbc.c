@@ -126,7 +126,7 @@ int Dec_GraphToNetworkCount( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int NodeMa
             else if ( Abc_ObjRegular(pAnd) == Abc_ObjRegular(pAnd1) )
                 LevelNew = (int)Abc_ObjRegular(pAnd1)->Level;
             LevelOld = (int)Abc_ObjRegular(pAnd)->Level;
-            assert( LevelNew == LevelOld );
+//            assert( LevelNew == LevelOld );
         }
         if ( LevelNew > LevelMax )
             return -1;
@@ -148,7 +148,7 @@ int Dec_GraphToNetworkCount( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int NodeMa
   SeeAlso     []
 
 ***********************************************************************/
-void Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int nGain )
+void Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, bool fUpdateLevel, int nGain )
 {
     Abc_Obj_t * pRootNew;
     Abc_Ntk_t * pNtk = pRoot->pNtk;
@@ -157,7 +157,7 @@ void Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int nGain 
     // create the new structure of nodes
     pRootNew = Dec_GraphToNetwork( pNtk->pManFunc, pGraph );
     // remove the old nodes
-    Abc_AigReplace( pNtk->pManFunc, pRoot, pRootNew );
+    Abc_AigReplace( pNtk->pManFunc, pRoot, pRootNew, fUpdateLevel );
     // compare the gains
     nNodesNew = Abc_NtkNodeNum(pNtk);
     assert( nGain <= nNodesOld - nNodesNew );

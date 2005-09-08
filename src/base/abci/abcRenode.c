@@ -486,7 +486,7 @@ void Abc_NtkRenodeSetBoundsCnf( Abc_Ntk_t * pNtk )
             Abc_ObjFanin1(pNode)->fMarkA == 0 )
             nMuxes++;
     }
-    printf( "The number of MUXes detected = %d (%5.2f %% of logic).\n", nMuxes, 300.0*nMuxes/Abc_NtkNodeNum(pNtk) );
+//    printf( "The number of MUXes detected = %d (%5.2f %% of logic).\n", nMuxes, 300.0*nMuxes/Abc_NtkNodeNum(pNtk) );
 } 
  
 /**Function*************************************************************

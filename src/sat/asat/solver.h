@@ -69,7 +69,8 @@ extern void    solver_delete(solver* s);
 
 extern bool    solver_addclause(solver* s, lit* begin, lit* end);
 extern bool    solver_simplify(solver* s);
-extern bool    solver_solve(solver* s, lit* begin, lit* end);
+extern int     solver_solve(solver* s, lit* begin, lit* end, int nSeconds);
+extern int *   solver_get_model( solver * p, int * pVars, int nVars );
 
 extern int     solver_nvars(solver* s);
 extern int     solver_nclauses(solver* s);

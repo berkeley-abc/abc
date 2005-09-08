@@ -58,7 +58,7 @@ struct Abc_ManRef_t_
 static void           Abc_NtkManRefPrintStats( Abc_ManRef_t * p );
 static Abc_ManRef_t * Abc_NtkManRefStart( int nNodeSizeMax, int nConeSizeMax, bool fUseDcs, bool fVerbose );
 static void           Abc_NtkManRefStop( Abc_ManRef_t * p );
-static Dec_Graph_t *  Abc_NodeRefactor( Abc_ManRef_t * p, Abc_Obj_t * pNode, Vec_Ptr_t * vFanins, bool fUseZeros, bool fUseDcs, bool fVerbose );
+static Dec_Graph_t *  Abc_NodeRefactor( Abc_ManRef_t * p, Abc_Obj_t * pNode, Vec_Ptr_t * vFanins, bool fUpdateLevel, bool fUseZeros, bool fUseDcs, bool fVerbose );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -80,7 +80,7 @@ static Dec_Graph_t *  Abc_NodeRefactor( Abc_ManRef_t * p, Abc_Obj_t * pNode, Vec
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, bool fUseZeros, bool fUseDcs, bool fVerbose )
+int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, bool fUpdateLevel, bool fUseZeros, bool fUseDcs, bool fVerbose )
 {
     ProgressBar * pProgress;
     Abc_ManRef_t * pManRef;
@@ -98,7 +98,9 @@ int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, bool 
     pManCut = Abc_NtkManCutStart( nNodeSizeMax, nConeSizeMax, 2, 1000 );
     pManRef = Abc_NtkManRefStart( nNodeSizeMax, nConeSizeMax, fUseDcs, fVerbose );
     pManRef->vLeaves   = Abc_NtkManCutReadCutLarge( pManCut );
-    Abc_NtkStartReverseLevels( pNtk );
+    // compute the reverse levels if level update is requested
+    if ( fUpdateLevel )
+        Abc_NtkStartReverseLevels( pNtk );
 
     // resynthesize each node once
     nNodes = Abc_NtkObjNumMax(pNtk);
@@ -121,13 +123,13 @@ clk = clock();
 pManRef->timeCut += clock() - clk;
         // evaluate this cut
 clk = clock();
-        pFForm = Abc_NodeRefactor( pManRef, pNode, vFanins, fUseZeros, fUseDcs, fVerbose );
+        pFForm = Abc_NodeRefactor( pManRef, pNode, vFanins, fUpdateLevel, fUseZeros, fUseDcs, fVerbose );
 pManRef->timeRes += clock() - clk;
         if ( pFForm == NULL )
             continue;
         // acceptable replacement found, update the graph
 clk = clock();
-        Dec_GraphUpdateNetwork( pNode, pFForm, pManRef->nLastGain );
+        Dec_GraphUpdateNetwork( pNode, pFForm, fUpdateLevel, pManRef->nLastGain );
 pManRef->timeNtk += clock() - clk;
         Dec_GraphFree( pFForm );
     }
@@ -140,7 +142,13 @@ pManRef->timeTotal = clock() - clkStart;
     // delete the managers
     Abc_NtkManCutStop( pManCut );
     Abc_NtkManRefStop( pManRef );
-    Abc_NtkStopReverseLevels( pNtk );
+    // put the nodes into the DFS order and reassign their IDs
+    Abc_NtkReassignIds( pNtk );
+    // fix the levels
+    if ( fUpdateLevel )
+        Abc_NtkStopReverseLevels( pNtk );
+    else
+        Abc_NtkGetLevelNum( pNtk );
     // check
     if ( !Abc_NtkCheck( pNtk ) )
     {
@@ -161,7 +169,7 @@ pManRef->timeTotal = clock() - clkStart;
   SeeAlso     []
 
 ***********************************************************************/
-Dec_Graph_t * Abc_NodeRefactor( Abc_ManRef_t * p, Abc_Obj_t * pNode, Vec_Ptr_t * vFanins, bool fUseZeros, bool fUseDcs, bool fVerbose )
+Dec_Graph_t * Abc_NodeRefactor( Abc_ManRef_t * p, Abc_Obj_t * pNode, Vec_Ptr_t * vFanins, bool fUpdateLevel, bool fUseZeros, bool fUseDcs, bool fVerbose )
 {
     int fVeryVerbose = 0;
     Abc_Obj_t * pFanin;
@@ -169,6 +177,9 @@ Dec_Graph_t * Abc_NodeRefactor( Abc_ManRef_t * p, Abc_Obj_t * pNode, Vec_Ptr_t *
     DdNode * bNodeFunc;
     int nNodesSaved, nNodesAdded, i, clk;
     char * pSop;
+    int Required;
+
+    Required = fUpdateLevel? Abc_NodeReadRequiredLevel(pNode) : ABC_INFINITY;
 
     p->nNodesConsidered++;
 
@@ -239,7 +250,7 @@ p->timeFact += clock() - clk;
 
     // detect how many new nodes will be added (while taking into account reused nodes)
 clk = clock();
-    nNodesAdded = Dec_GraphToNetworkCount( pNode, pFForm, nNodesSaved, Abc_NodeReadRequiredLevel(pNode) );
+    nNodesAdded = Dec_GraphToNetworkCount( pNode, pFForm, nNodesSaved, Required );
 p->timeEval += clock() - clk;
     // quit if there is no improvement
     if ( nNodesAdded == -1 || nNodesAdded == nNodesSaved && !fUseZeros )

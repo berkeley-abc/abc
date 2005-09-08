@@ -75,6 +75,7 @@ clk = clock();
     p->vLevNums   = Vec_IntAlloc( 50 );
     p->vFanins    = Vec_PtrAlloc( 50 );
     p->vFaninsCur = Vec_PtrAlloc( 50 );
+    p->vNodesTemp = Vec_PtrAlloc( 50 );
     if ( fPrecompute )
     {   // precompute subgraphs
         Rwr_ManPrecompute( p );
@@ -112,11 +113,13 @@ void Rwr_ManStop( Rwr_Man_t * p )
             Dec_GraphFree( (Dec_Graph_t *)pNode->pNext );
     }
     if ( p->vClasses )  Vec_VecFree( p->vClasses );
+    Vec_PtrFree( p->vNodesTemp );
     Vec_PtrFree( p->vForest );
     Vec_IntFree( p->vLevNums );
     Vec_PtrFree( p->vFanins );
     Vec_PtrFree( p->vFaninsCur );
     Extra_MmFixedStop( p->pMmNode, 0 );
+    FREE( p->pMapInv );
     free( p->pTable );
     free( p->pPractical );
     free( p->pPerms4 );
@@ -151,14 +154,16 @@ void Rwr_ManPrintStats( Rwr_Man_t * p )
     PRT( "Start       ", p->timeStart );
     PRT( "Cuts        ", p->timeCut );
     PRT( "Resynthesis ", p->timeRes );
+    PRT( "    Mffc    ", p->timeMffc );
     PRT( "    Eval    ", p->timeEval );
+    PRT( "Update      ", p->timeUpdate );
     PRT( "TOTAL       ", p->timeTotal );
 
 /*
-    printf( "The scores are : " );
+    printf( "The scores are:\n" );
     for ( i = 0; i < 222; i++ )
         if ( p->nScores[i] > 0 )
-            printf( "%d=%d ", i, p->nScores[i] );
+            printf( "%3d = %8d  canon = %5d\n", i, p->nScores[i], p->pMapInv[i] );
     printf( "\n" );
 */
 }
@@ -209,6 +214,22 @@ int Rwr_ManReadCompl( Rwr_Man_t * p )
 void Rwr_ManAddTimeCuts( Rwr_Man_t * p, int Time )
 {
     p->timeCut += Time;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Stops the resynthesis manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Rwr_ManAddTimeUpdate( Rwr_Man_t * p, int Time )
+{
+    p->timeUpdate += Time;
 }
 
 /**Function*************************************************************
