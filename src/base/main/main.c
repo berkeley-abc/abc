@@ -21,7 +21,7 @@
 #include "mainInt.h"
 
 // this line should be included in the library project
-#define _LIB
+//#define _LIB
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///

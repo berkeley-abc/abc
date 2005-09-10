@@ -77,7 +77,7 @@ void Fpga_Init( Abc_Frame_t * pAbc )
 ***********************************************************************/
 void Fpga_End()
 {
-    Fpga_LutLibFree( Abc_FrameReadLibLut(Abc_FrameGetGlobalFrame()) );
+    Fpga_LutLibFree( Abc_FrameReadLibLut() );
 }
 
 
@@ -221,7 +221,7 @@ int Fpga_CommandPrintLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
     // set the new network
-    Fpga_LutLibPrint( Abc_FrameReadLibLut(Abc_FrameGetGlobalFrame()) );
+    Fpga_LutLibPrint( Abc_FrameReadLibLut() );
     return 0;
 
 usage:

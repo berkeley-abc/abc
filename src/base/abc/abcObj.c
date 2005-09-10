@@ -518,7 +518,7 @@ Abc_Obj_t * Abc_NodeCreateConst0( Abc_Ntk_t * pNtk )
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_ReadLogicZero(pNtk->pManFunc), Cudd_Ref( pNode->pData );
     else if ( Abc_NtkHasMapping(pNtk) )
-        pNode->pData = Mio_LibraryReadConst0(Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()));
+        pNode->pData = Mio_LibraryReadConst0(Abc_FrameReadLibGen());
     else
         assert( 0 );
     return pNode;
@@ -546,7 +546,7 @@ Abc_Obj_t * Abc_NodeCreateConst1( Abc_Ntk_t * pNtk )
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_ReadOne(pNtk->pManFunc), Cudd_Ref( pNode->pData );
     else if ( Abc_NtkHasMapping(pNtk) )
-        pNode->pData = Mio_LibraryReadConst1(Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()));
+        pNode->pData = Mio_LibraryReadConst1(Abc_FrameReadLibGen());
     else
         assert( 0 );
     return pNode;
@@ -574,7 +574,7 @@ Abc_Obj_t * Abc_NodeCreateInv( Abc_Ntk_t * pNtk, Abc_Obj_t * pFanin )
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_Not(Cudd_bddIthVar(pNtk->pManFunc,0)), Cudd_Ref( pNode->pData );
     else if ( Abc_NtkHasMapping(pNtk) )
-        pNode->pData = Mio_LibraryReadInv(Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()));
+        pNode->pData = Mio_LibraryReadInv(Abc_FrameReadLibGen());
     else
         assert( 0 );
     return pNode;
@@ -602,7 +602,7 @@ Abc_Obj_t * Abc_NodeCreateBuf( Abc_Ntk_t * pNtk, Abc_Obj_t * pFanin )
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_bddIthVar(pNtk->pManFunc,0), Cudd_Ref( pNode->pData );
     else if ( Abc_NtkHasMapping(pNtk) )
-        pNode->pData = Mio_LibraryReadBuf(Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()));
+        pNode->pData = Mio_LibraryReadBuf(Abc_FrameReadLibGen());
     else
         assert( 0 );
     return pNode;
@@ -781,7 +781,7 @@ bool Abc_NodeIsConst0( Abc_Obj_t * pNode )
     if ( Abc_NtkHasAig(pNtk) )
         return Abc_ObjNot(pNode) == Abc_AigConst1(pNode->pNtk->pManFunc);
     if ( Abc_NtkHasMapping(pNtk) )
-        return pNode->pData == Mio_LibraryReadConst0(Abc_FrameReadLibSuper(Abc_FrameGetGlobalFrame()));
+        return pNode->pData == Mio_LibraryReadConst0(Abc_FrameReadLibSuper());
     assert( 0 );
     return 0;
 }
@@ -809,7 +809,7 @@ bool Abc_NodeIsConst1( Abc_Obj_t * pNode )
     if ( Abc_NtkHasAig(pNtk) )
         return pNode == Abc_AigConst1(pNode->pNtk->pManFunc);
     if ( Abc_NtkHasMapping(pNtk) )
-        return pNode->pData == Mio_LibraryReadConst1(Abc_FrameReadLibSuper(Abc_FrameGetGlobalFrame()));
+        return pNode->pData == Mio_LibraryReadConst1(Abc_FrameReadLibSuper());
     assert( 0 );
     return 0;
 }
@@ -838,7 +838,7 @@ bool Abc_NodeIsBuf( Abc_Obj_t * pNode )
     if ( Abc_NtkHasAig(pNtk) )
         return 0;
     if ( Abc_NtkHasMapping(pNtk) )
-        return pNode->pData == Mio_LibraryReadBuf(Abc_FrameReadLibSuper(Abc_FrameGetGlobalFrame()));
+        return pNode->pData == Mio_LibraryReadBuf(Abc_FrameReadLibSuper());
     assert( 0 );
     return 0;
 }
@@ -867,7 +867,7 @@ bool Abc_NodeIsInv( Abc_Obj_t * pNode )
     if ( Abc_NtkHasAig(pNtk) )
         return 0;
     if ( Abc_NtkHasMapping(pNtk) )
-        return pNode->pData == Mio_LibraryReadInv(Abc_FrameReadLibSuper(Abc_FrameGetGlobalFrame()));
+        return pNode->pData == Mio_LibraryReadInv(Abc_FrameReadLibSuper());
     assert( 0 );
     return 0;
 }

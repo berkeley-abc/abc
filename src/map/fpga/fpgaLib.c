@@ -28,6 +28,23 @@
 
 /**Function*************************************************************
 
+  Synopsis    [APIs to access LUT library.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int         Fpga_LutLibReadVarMax( Fpga_LutLib_t * p )               { return p->LutMax;     }
+float *     Fpga_LutLibReadLutAreas( Fpga_LutLib_t * p )             { return p->pLutAreas;  }
+float *     Fpga_LutLibReadLutDelays( Fpga_LutLib_t * p )            { return p->pLutDelays; }
+float       Fpga_LutLibReadLutArea( Fpga_LutLib_t * p, int Size )    { assert( Size <= p->LutMax ); return p->pLutAreas[Size];  }
+float       Fpga_LutLibReadLutDelay( Fpga_LutLib_t * p, int Size )   { assert( Size <= p->LutMax ); return p->pLutDelays[Size]; }
+
+/**Function*************************************************************
+
   Synopsis    [Reads the description of LUTs from the LUT library file.]
 
   Description []

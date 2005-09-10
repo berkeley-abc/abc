@@ -550,7 +550,7 @@ int Io_ReadBlifNetworkGate( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
     int i, nNames;
 
     // check that the library is available
-    pGenlib = Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame());
+    pGenlib = Abc_FrameReadLibGen();
     if ( pGenlib == NULL )
     {
         p->LineCur = Extra_FileReaderGetLineNumber(p->pReader, 0);

@@ -50,7 +50,7 @@ clk = clock();
     p = ALLOC( Rwr_Man_t, 1 );
     memset( p, 0, sizeof(Rwr_Man_t) );
     p->nFuncs = (1<<16);
-    pManDec   = Abc_FrameReadManDec(Abc_FrameGetGlobalFrame());
+    pManDec   = Abc_FrameReadManDec();
     p->puCanons = pManDec->puCanons; 
     p->pPhases  = pManDec->pPhases; 
     p->pPerms   = pManDec->pPerms; 

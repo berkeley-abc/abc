@@ -63,6 +63,15 @@
 /* Macro declarations                                                        */
 /*---------------------------------------------------------------------------*/
 
+typedef unsigned char      uint8;
+typedef unsigned short     uint16;
+typedef unsigned int       uint32;
+#ifdef WIN32
+typedef unsigned __int64   uint64;
+#else
+typedef unsigned long long uint64;
+#endif
+
 /* constants of the manager */
 #define     b0     Cudd_Not((dd)->one)
 #define     b1              (dd)->one

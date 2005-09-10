@@ -556,7 +556,7 @@ void Abc_NtkFraigStoreCheck( Abc_Ntk_t * pFraig )
     int i, k;
     // check that the PO functions are correct
     nPoFinal = Abc_NtkPoNum(pFraig);
-    nStored  = Abc_FrameReadNtkStoreSize(Abc_FrameGetGlobalFrame());
+    nStored  = Abc_FrameReadNtkStoreSize();
     assert( nPoFinal % nStored == 0 );
     nPoOrig  = nPoFinal / nStored;
     for ( i = 0; i < nPoOrig; i++ )

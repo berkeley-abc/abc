@@ -49,7 +49,7 @@ Cut_Man_t * Cut_ManStart( Cut_Params_t * pParams )
     // set and correct parameters
     p->pParams = pParams;
     if ( p->pParams->fSeq )
-        p->pParams->fHash = 1;
+        p->pParams->fFilter = 1;
     // space for cuts
     p->vCuts = Vec_PtrAlloc( pParams->nIdsMax );
     Vec_PtrFill( p->vCuts, pParams->nIdsMax, NULL );
@@ -58,25 +58,17 @@ Cut_Man_t * Cut_ManStart( Cut_Params_t * pParams )
         p->vCutsNew = Vec_PtrAlloc( pParams->nIdsMax );
         Vec_PtrFill( p->vCuts, pParams->nIdsMax, NULL );
     }
-    // hash tables
-    if ( pParams->fHash )
-        p->tTable = Cut_TableStart( p->pParams->nKeepMax );
     // entry size
     p->EntrySize = sizeof(Cut_Cut_t) + (pParams->nVarsMax + pParams->fSeq) * sizeof(int);
-    if ( pParams->nVarsMax == 5 )
-        p->EntrySize += sizeof(unsigned);
-    else if ( pParams->nVarsMax == 6 )
-        p->EntrySize += 2 * sizeof(unsigned);
+    if ( pParams->fTruth )
+    {
+        if ( pParams->nVarsMax == 5 )
+            p->EntrySize += sizeof(unsigned);
+        else if ( pParams->nVarsMax == 6 )
+            p->EntrySize += 2 * sizeof(unsigned);
+    }
     // memory for cuts
     p->pMmCuts = Extra_MmFixedStart( p->EntrySize );
-    // precomputations
-//    if ( pParams->fTruth && pParams->nVarsMax == 4 )
-//        p->pPerms43 = Extra_TruthPerm43();
-//    else if ( pParams->fTruth )
-//    {
-//        p->pPerms53 = Extra_TruthPerm53();
-//        p->pPerms54 = Extra_TruthPerm54();
-//    }
     p->uTruthVars[0][1] = p->uTruthVars[0][0] = 0xAAAAAAAA;    // 1010 1010 1010 1010 1010 1010 1010 1010
     p->uTruthVars[1][1] = p->uTruthVars[1][0] = 0xCCCCCCCC;    // 1010 1010 1010 1010 1010 1010 1010 1010
     p->uTruthVars[2][1] = p->uTruthVars[2][0] = 0xF0F0F0F0;    // 1111 0000 1111 0000 1111 0000 1111 0000
@@ -104,13 +96,10 @@ void Cut_ManStop( Cut_Man_t * p )
     Cut_Cut_t * pCut;
     int i;
     Vec_PtrForEachEntry( p->vCuts, pCut, i )
-    {
         if ( pCut != NULL )
         {
             int k = 0;
         }
-    }
-
     if ( p->vCutsNew )   Vec_PtrFree( p->vCutsNew );
     if ( p->vCuts )      Vec_PtrFree( p->vCuts );
     if ( p->vFanCounts ) Vec_IntFree( p->vFanCounts );
@@ -118,7 +107,6 @@ void Cut_ManStop( Cut_Man_t * p )
     if ( p->pPerms53 )   free( p->pPerms53 );
     if ( p->pPerms54 )   free( p->pPerms54 );
     if ( p->vTemp )      Vec_PtrFree( p->vTemp );
-    if ( p->tTable )     Cut_TableStop( p->tTable );
     Extra_MmFixedStop( p->pMmCuts, 0 );
     free( p );
 }
@@ -141,12 +129,13 @@ void Cut_ManPrintStats( Cut_Man_t * p )
     printf( "Peak cuts         = %8d.\n", p->nCutsPeak );
     printf( "Total allocated   = %8d.\n", p->nCutsAlloc );
     printf( "Total deallocated = %8d.\n", p->nCutsDealloc );
+    printf( "Cuts filtered     = %8d.\n", p->nCutsFilter );
+    printf( "Nodes with limit  = %8d.\n", p->nCutsLimit );
     printf( "Cuts per node     = %8.1f\n", ((float)(p->nCutsCur-p->nCutsTriv))/p->nNodes );
     printf( "The cut size      = %8d bytes.\n", p->EntrySize );
     printf( "Peak memory       = %8.2f Mb.\n", (float)p->nCutsPeak * p->EntrySize / (1<<20) );
     PRT( "Merge ", p->timeMerge );
     PRT( "Union ", p->timeUnion );
-    PRT( "Hash  ", Cut_TableReadTime(p->tTable) );
     PRT( "Filter", p->timeFilter );
     PRT( "Truth ", p->timeTruth );
 }
@@ -166,6 +155,22 @@ void Cut_ManPrintStats( Cut_Man_t * p )
 void Cut_ManSetFanoutCounts( Cut_Man_t * p, Vec_Int_t * vFanCounts )
 {
     p->vFanCounts = vFanCounts;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cut_ManReadVarsMax( Cut_Man_t * p )
+{
+    return p->pParams->nVarsMax;
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -101,7 +101,7 @@ bool Abc_NtkDoCheck( Abc_Ntk_t * pNtk )
     }
     if ( Abc_NtkHasMapping(pNtk) )
     {
-        if ( pNtk->pManFunc != Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()) )
+        if ( pNtk->pManFunc != Abc_FrameReadLibGen() )
         {
             fprintf( stdout, "NetworkCheck: The library of the mapped network is not the global library.\n" );
             return 0;

@@ -208,7 +208,7 @@ Map_Cut_t * Map_CutCompute( Map_Man_t * p, Map_CutTable_t * pTable, Map_Node_t *
     // set at the node
     pNode->pCuts = pCut;
     // remove the dominated cuts
-//    Map_CutFilter( p, pNode );
+    Map_CutFilter( p, pNode );
     // set the phase correctly
     if ( pNode->pRepr && Map_NodeComparePhase(pNode, pNode->pRepr) )
     {

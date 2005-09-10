@@ -61,7 +61,7 @@ void Map_Init( Abc_Frame_t * pAbc )
 void Map_End()
 {
 //    Map_SuperLibFree( s_pSuperLib );
-     Map_SuperLibFree( Abc_FrameReadLibSuper(Abc_FrameGetGlobalFrame()) );
+     Map_SuperLibFree( Abc_FrameReadLibSuper() );
 }
 
 

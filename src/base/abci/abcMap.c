@@ -66,18 +66,18 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, int
     assert( Abc_NtkIsStrash(pNtk) );
 
     // check that the library is available
-    if ( Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()) == NULL )
+    if ( Abc_FrameReadLibGen() == NULL )
     {
         printf( "The current library is not available.\n" );
         return 0;
     }
 
     // derive the supergate library
-    if ( Abc_FrameReadLibSuper(Abc_FrameGetGlobalFrame()) == NULL && Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()) )
+    if ( Abc_FrameReadLibSuper() == NULL && Abc_FrameReadLibGen() )
     {
         printf( "A simple supergate library is derived from gate library \"%s\".\n", 
-            Mio_LibraryReadName(Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame())) );
-        Map_SuperLibDeriveFromGenlib( Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()) );
+            Mio_LibraryReadName(Abc_FrameReadLibGen()) );
+        Map_SuperLibDeriveFromGenlib( Abc_FrameReadLibGen() );
     }
 
     // print a warning about choice nodes
@@ -410,7 +410,7 @@ int Abc_NtkUnmap( Abc_Ntk_t * pNtk )
 
     assert( Abc_NtkIsMappedLogic(pNtk) );
     // update the functionality manager
-    assert( pNtk->pManFunc == Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()) );
+    assert( pNtk->pManFunc == Abc_FrameReadLibGen() );
     pNtk->pManFunc = Extra_MmFlexStart();
     pNtk->ntkFunc  = ABC_FUNC_SOP;
     // update the nodes
@@ -446,18 +446,18 @@ Abc_Ntk_t * Abc_NtkSuperChoice( Abc_Ntk_t * pNtk )
     assert( Abc_NtkIsStrash(pNtk) );
 
     // check that the library is available
-    if ( Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()) == NULL )
+    if ( Abc_FrameReadLibGen() == NULL )
     {
         printf( "The current library is not available.\n" );
         return 0;
     }
 
     // derive the supergate library
-    if ( Abc_FrameReadLibSuper(Abc_FrameGetGlobalFrame()) == NULL && Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()) )
+    if ( Abc_FrameReadLibSuper() == NULL && Abc_FrameReadLibGen() )
     {
         printf( "A simple supergate library is derived from gate library \"%s\".\n", 
-            Mio_LibraryReadName(Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame())) );
-        Map_SuperLibDeriveFromGenlib( Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()) );
+            Mio_LibraryReadName(Abc_FrameReadLibGen()) );
+        Map_SuperLibDeriveFromGenlib( Abc_FrameReadLibGen() );
     }
 
     // print a warning about choice nodes

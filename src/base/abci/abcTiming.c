@@ -470,9 +470,9 @@ void Abc_NtkSetNodeLevelsArrival( Abc_Ntk_t * pNtkOld )
     int i;
     if ( pNtkOld->pManTime == NULL )
         return;
-    if ( Mio_LibraryReadNand2(Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame())) == NULL )
+    if ( Mio_LibraryReadNand2(Abc_FrameReadLibGen()) == NULL )
         return;
-    tAndDelay = Mio_LibraryReadDelayNand2Max(Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()));
+    tAndDelay = Mio_LibraryReadDelayNand2Max(Abc_FrameReadLibGen());
     Abc_NtkForEachPi( pNtkOld, pNodeOld, i )
     {
         pNodeNew = pNodeOld->pCopy;

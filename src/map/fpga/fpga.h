@@ -142,6 +142,11 @@ extern Fpga_Man_t *    Fpga_ManDupFraig( Fraig_Man_t * pManFraig );
 extern Fpga_Man_t *    Fpga_ManBalanceFraig( Fraig_Man_t * pManFraig, int * pInputArrivals );
 /*=== fpgaLib.c =============================================================*/
 extern Fpga_LutLib_t * Fpga_LutLibDup( Fpga_LutLib_t * p );
+extern int             Fpga_LutLibReadVarMax( Fpga_LutLib_t * p );
+extern float *         Fpga_LutLibReadLutAreas( Fpga_LutLib_t * p );
+extern float *         Fpga_LutLibReadLutDelays( Fpga_LutLib_t * p );
+extern float           Fpga_LutLibReadLutArea( Fpga_LutLib_t * p, int Size );
+extern float           Fpga_LutLibReadLutDelay( Fpga_LutLib_t * p, int Size );
 /*=== fpgaTruth.c =============================================================*/
 extern void *          Fpga_TruthsCutBdd( void * dd, Fpga_Cut_t * pCut );
 /*=== fpgaUtil.c =============================================================*/

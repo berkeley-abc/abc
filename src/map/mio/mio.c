@@ -108,7 +108,7 @@ void Mio_Init( Abc_Frame_t * pAbc )
 void Mio_End()
 {
 //    Mio_LibraryDelete( s_pLib );
-    Mio_LibraryDelete( Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()) );
+    Mio_LibraryDelete( Abc_FrameReadLibGen() );
 }
 
 
@@ -181,7 +181,7 @@ int Mio_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
         return 1;
     }
     // free the current superlib because it depends on the old Mio library
-    if ( Abc_FrameReadLibSuper(Abc_FrameGetGlobalFrame()) )
+    if ( Abc_FrameReadLibSuper() )
     {
         extern void Map_SuperLibFree( Map_SuperLib_t * p );
 //        Map_SuperLibFree( s_pSuperLib );
@@ -252,7 +252,7 @@ int Mio_CommandPrintLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
     // set the new network
-    Mio_WriteLibrary( stdout, Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()), 0 );
+    Mio_WriteLibrary( stdout, Abc_FrameReadLibGen(), 0 );
     return 0;
 
 usage:

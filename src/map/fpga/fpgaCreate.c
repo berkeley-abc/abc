@@ -164,7 +164,7 @@ Fpga_Man_t * Fpga_ManCreate( int nInputs, int nOutputs, int fVerbose )
     // start the manager
     p = ALLOC( Fpga_Man_t, 1 );
     memset( p, 0, sizeof(Fpga_Man_t) );
-    p->pLutLib   = Abc_FrameReadLibLut(Abc_FrameGetGlobalFrame());
+    p->pLutLib   = Abc_FrameReadLibLut();
     p->nVarsMax  = p->pLutLib->LutMax;
     p->fVerbose  = fVerbose;
     p->fAreaRecovery = 1;

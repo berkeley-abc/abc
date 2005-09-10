@@ -74,7 +74,7 @@ Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func )
     else if ( Abc_NtkHasAig(pNtk) )
         pNtk->pManFunc = Abc_AigAlloc( pNtk );
     else if ( Abc_NtkHasMapping(pNtk) )
-        pNtk->pManFunc = Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame());
+        pNtk->pManFunc = Abc_FrameReadLibGen();
     else
         assert( 0 );
     return pNtk;

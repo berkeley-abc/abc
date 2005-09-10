@@ -183,7 +183,7 @@ Dec_Edge_t Dec_Factor_rec( Dec_Graph_t * pFForm, Mvc_Cover_t * pCover )
 ***********************************************************************/
 Dec_Edge_t Dec_FactorLF_rec( Dec_Graph_t * pFForm, Mvc_Cover_t * pCover, Mvc_Cover_t * pSimple )
 {
-    Dec_Man_t * pManDec = Abc_FrameReadManDec(Abc_FrameGetGlobalFrame());
+    Dec_Man_t * pManDec = Abc_FrameReadManDec();
     Vec_Int_t * vEdgeLits  = pManDec->vLits;
     Mvc_Cover_t * pDiv, * pQuo, * pRem;
     Dec_Edge_t eNodeDiv, eNodeQuo, eNodeRem;
@@ -228,7 +228,7 @@ Dec_Edge_t Dec_FactorLF_rec( Dec_Graph_t * pFForm, Mvc_Cover_t * pCover, Mvc_Cov
 ***********************************************************************/
 Dec_Edge_t Dec_FactorTrivial( Dec_Graph_t * pFForm, Mvc_Cover_t * pCover )
 {
-    Dec_Man_t * pManDec = Abc_FrameReadManDec(Abc_FrameGetGlobalFrame());
+    Dec_Man_t * pManDec = Abc_FrameReadManDec();
     Vec_Int_t * vEdgeCubes = pManDec->vCubes;
     Vec_Int_t * vEdgeLits  = pManDec->vLits;
     Mvc_Manager_t * pMem = pManDec->pMvcMem;
@@ -323,7 +323,7 @@ Dec_Edge_t Dec_FactorTrivialTree_rec( Dec_Graph_t * pFForm, Dec_Edge_t * peNodes
 ***********************************************************************/
 Mvc_Cover_t * Dec_ConvertSopToMvc( char * pSop )
 {
-    Dec_Man_t * pManDec = Abc_FrameReadManDec(Abc_FrameGetGlobalFrame());
+    Dec_Man_t * pManDec = Abc_FrameReadManDec();
     Mvc_Manager_t * pMem = pManDec->pMvcMem;
     Mvc_Cover_t * pMvc;
     Mvc_Cube_t * pMvcCube;
@@ -365,7 +365,7 @@ Mvc_Cover_t * Dec_ConvertSopToMvc( char * pSop )
 ***********************************************************************/
 int Dec_FactorVerify( char * pSop, Dec_Graph_t * pFForm )
 {
-    DdManager * dd = Abc_FrameReadManDd( Abc_FrameGetGlobalFrame() );
+    DdManager * dd = Abc_FrameReadManDd();
     DdNode * bFunc1, * bFunc2;
     int RetValue;
     bFunc1 = Abc_ConvertSopToBdd( dd, pSop );    Cudd_Ref( bFunc1 );

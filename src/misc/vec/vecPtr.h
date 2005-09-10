@@ -53,6 +53,10 @@ struct Vec_Ptr_t_
     for ( i = 0; (i < Vec_PtrSize(vVec)) && (((pEntry) = Vec_PtrEntry(vVec, i)), 1); i++ )
 #define Vec_PtrForEachEntryStart( vVec, pEntry, i, Start )                                   \
     for ( i = Start; (i < Vec_PtrSize(vVec)) && (((pEntry) = Vec_PtrEntry(vVec, i)), 1); i++ )
+#define Vec_PtrForEachEntryStop( vVec, pEntry, i, Stop )                                     \
+    for ( i = 0; (i < Stop) && (((pEntry) = Vec_PtrEntry(vVec, i)), 1); i++ )
+#define Vec_PtrForEachEntryStartStop( vVec, pEntry, i, Start, Stop )                         \
+    for ( i = Start; (i < Stop) && (((pEntry) = Vec_PtrEntry(vVec, i)), 1); i++ )
 #define Vec_PtrForEachEntryReverse( vVec, pEntry, i )                                        \
     for ( i = Vec_PtrSize(vVec) - 1; (i >= 0) && (((pEntry) = Vec_PtrEntry(vVec, i)), 1); i-- )
 

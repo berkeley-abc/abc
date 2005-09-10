@@ -105,7 +105,6 @@ PRT( "Total", clock() - clk );
         if ( Abc_NodeIsTravIdCurrent(pDriver) )
             continue;
         Abc_NodeSetTravIdCurrent(pDriver);
-        Cut_NodeSetComputedAsNew( p, pDriver->Id );
     }
     // compute as long as new cuts appear
 

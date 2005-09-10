@@ -48,7 +48,6 @@ struct Cut_ManStruct_t_
     // storage for cuts
     Vec_Ptr_t *        vCuts;            // cuts by ID
     Vec_Ptr_t *        vCutsNew;         // cuts by ID
-    Cut_HashTable_t *  tTable;           // cuts by their leaves (and root)
     // memory management
     Extra_MmFixed_t *  pMmCuts;
     int                EntrySize;
@@ -58,6 +57,7 @@ struct Cut_ManStruct_t_
     int                fCompl0;
     int                fCompl1;
     int                fSimul;
+    int                nNodeCuts;
     // precomputations
     unsigned           uTruthVars[6][2];
     unsigned short **  pPerms43;
@@ -69,7 +69,8 @@ struct Cut_ManStruct_t_
     int                nCutsDealloc;
     int                nCutsPeak;
     int                nCutsTriv;
-    int                nCutsNode;
+    int                nCutsFilter;
+    int                nCutsLimit;
     int                nNodes;
     // runtime
     int                timeMerge;
@@ -79,6 +80,22 @@ struct Cut_ManStruct_t_
     int                timeHash;
 };
 
+// iterator through all the cuts of the list
+#define Cut_ListForEachCut( pList, pCut )                 \
+    for ( pCut = pList;                                   \
+          pCut;                                           \
+          pCut = pCut->pNext )
+#define Cut_ListForEachCutStop( pList, pCut, pStop )      \
+    for ( pCut = pList;                                   \
+          pCut != pStop;                                  \
+          pCut = pCut->pNext )
+#define Cut_ListForEachCutSafe( pList, pCut, pCut2 )      \
+    for ( pCut = pList,                                   \
+          pCut2 = pCut? pCut->pNext: NULL;                \
+          pCut;                                           \
+          pCut = pCut2,                                   \
+          pCut2 = pCut? pCut->pNext: NULL )
+
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFITIONS                             ///
 ////////////////////////////////////////////////////////////////////////
@@ -87,10 +104,14 @@ struct Cut_ManStruct_t_
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+/*=== cutCut.c ==========================================================*/
+extern Cut_Cut_t *         Cut_CutAlloc( Cut_Man_t * p );
+extern Cut_Cut_t *         Cut_CutCreateTriv( Cut_Man_t * p, int Node );
+extern void                Cut_CutRecycle( Cut_Man_t * p, Cut_Cut_t * pCut );
+extern void                Cut_CutPrint( Cut_Cut_t * pCut );
+extern void                Cut_CutPrintMerge( Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 );
 /*=== cutMerge.c ==========================================================*/
 extern Cut_Cut_t *         Cut_CutMergeTwo( Cut_Man_t * p, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 );
-/*=== cutNode.c ==========================================================*/
-extern Cut_Cut_t *         Cut_CutAlloc( Cut_Man_t * p );
 /*=== cutTable.c ==========================================================*/
 extern Cut_HashTable_t *   Cut_TableStart( int Size );
 extern void                Cut_TableStop( Cut_HashTable_t * pTable );

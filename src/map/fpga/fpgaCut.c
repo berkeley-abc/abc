@@ -245,7 +245,7 @@ Fpga_Cut_t * Fpga_CutCompute( Fpga_Man_t * p, Fpga_CutTable_t * pTable, Fpga_Nod
     // set at the node
     pNode->pCuts = pCut;
     // remove the dominated cuts
-    Fpga_CutFilter( p, pNode );
+//    Fpga_CutFilter( p, pNode );
     // set the phase correctly
     if ( pNode->pRepr && Fpga_NodeComparePhase(pNode, pNode->pRepr) )
     {

@@ -43,9 +43,9 @@ typedef int                lit;
 typedef char               lbool;
 
 #ifdef _WIN32
-typedef signed __int64     uint64;   // compatible with MS VS 6.0
+typedef signed __int64  sint64;   // compatible with MS VS 6.0
 #else
-typedef unsigned long long uint64;
+typedef long long       sint64;
 #endif
 
 static const int   var_Undef = -1;
@@ -80,8 +80,8 @@ extern void    Asat_SolverWriteDimacs( solver * pSat, char * pFileName );
 
 struct stats_t
 {
-    uint64   starts, decisions, propagations, inspects, conflicts;
-    uint64   clauses, clauses_literals, learnts, learnts_literals, max_literals, tot_literals;
+    sint64   starts, decisions, propagations, inspects, conflicts;
+    sint64   clauses, clauses_literals, learnts, learnts_literals, max_literals, tot_literals;
 };
 typedef struct stats_t stats;
 

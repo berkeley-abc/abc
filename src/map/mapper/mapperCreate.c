@@ -183,7 +183,7 @@ Map_Man_t * Map_ManCreate( int nInputs, int nOutputs, int fVerbose )
     int i;
 
     // derive the supergate library
-    if ( Abc_FrameReadLibSuper(Abc_FrameGetGlobalFrame()) == NULL )
+    if ( Abc_FrameReadLibSuper() == NULL )
     {
         printf( "The supergate library is not specified. Use \"read_library\" or \"read_super\".\n" );
         return NULL;
@@ -192,7 +192,7 @@ Map_Man_t * Map_ManCreate( int nInputs, int nOutputs, int fVerbose )
     // start the manager
     p = ALLOC( Map_Man_t, 1 );
     memset( p, 0, sizeof(Map_Man_t) );
-    p->pSuperLib = Abc_FrameReadLibSuper(Abc_FrameGetGlobalFrame());
+    p->pSuperLib = Abc_FrameReadLibSuper();
     p->nVarsMax  = p->pSuperLib->nVarsMax;
     p->fVerbose  = fVerbose;
     p->fEpsilon  = (float)0.001;

@@ -66,7 +66,7 @@ int Abc_NtkAttach( Abc_Ntk_t * pNtk )
     assert( Abc_NtkIsSopLogic(pNtk) );
 
     // check that the library is available
-    pGenlib = Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame());
+    pGenlib = Abc_FrameReadLibGen();
     if ( pGenlib == NULL )
     {
         printf( "The current library is not available.\n" );

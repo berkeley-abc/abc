@@ -22,6 +22,8 @@
 #include "mainInt.h"
 #include "fraig.h"
 #include "fxu.h"
+#include "fpga.h"
+#include "pga.h"
 #include "cut.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -80,6 +82,7 @@ static int Abc_CommandAttach       ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int Abc_CommandSuperChoice  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandFpga         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPga          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandSeq          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRetime       ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -156,6 +159,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "SC mapping",   "sc",            Abc_CommandSuperChoice,      1 );
 
     Cmd_CommandAdd( pAbc, "FPGA mapping", "fpga",          Abc_CommandFpga,             1 );
+    Cmd_CommandAdd( pAbc, "FPGA mapping", "pga",           Abc_CommandPga,              1 );
 
     Cmd_CommandAdd( pAbc, "Sequential",   "seq",           Abc_CommandSeq,              1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "retime",        Abc_CommandRetime,           1 );
@@ -2720,14 +2724,13 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     pParams->nVarsMax  = 5;     // the max cut size ("k" of the k-feasible cuts)
     pParams->nKeepMax  = 250;   // the max number of cuts kept at a node
-    pParams->fTruth    = 1;     // compute truth tables
-    pParams->fHash     = 0;     // hash cuts to detect unique
-    pParams->fFilter   = 0;     // filter dominated cuts
+    pParams->fTruth    = 0;     // compute truth tables
+    pParams->fFilter   = 1;     // filter dominated cuts
     pParams->fSeq      = 0;     // compute sequential cuts
     pParams->fDrop     = 0;     // drop cuts on the fly
     pParams->fVerbose  = 0;     // the verbosiness flag
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "KMtrfsdvh" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "KMtfsdvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -2755,9 +2758,6 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 't':
             pParams->fTruth ^= 1;
-            break;
-        case 'r':
-            pParams->fHash ^= 1;
             break;
         case 'f':
             pParams->fFilter ^= 1;
@@ -2794,16 +2794,15 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: cut [-K num] [-M num] [-trfsdvh]\n" );
+    fprintf( pErr, "usage: cut [-K num] [-M num] [-tfsdvh]\n" );
     fprintf( pErr, "\t         computes k-feasible cuts for the AIG\n" );
-    fprintf( pErr, "\t-K num : max number of leaves (4 <= num <= 6) [default = %d]\n",    pParams->nVarsMax );
-    fprintf( pErr, "\t-M num : max number of cuts stored at a node [default = %d]\n",     pParams->nKeepMax );
-    fprintf( pErr, "\t-t     : toggle truth table computation [default = %s]\n",          pParams->fTruth? "yes": "no" );
-    fprintf( pErr, "\t-r     : toggle reduction by hashing [default = %s]\n",             pParams->fHash? "yes": "no" );
-    fprintf( pErr, "\t-f     : toggle filtering by dominance [default = %s]\n",           pParams->fFilter? "yes": "no" );
-    fprintf( pErr, "\t-s     : toggle sequential cut computation [default = %s]\n",       pParams->fSeq? "yes": "no" );
-    fprintf( pErr, "\t-d     : toggle dropping when fanouts are done [default = %s]\n",   pParams->fDrop? "yes": "no" );
-    fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n",     pParams->fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-K num : max number of leaves (4 <= num <= 6) [default = %d]\n",     pParams->nVarsMax );
+    fprintf( pErr, "\t-M num : max number of cuts stored at a node [default = %d]\n",      pParams->nKeepMax );
+    fprintf( pErr, "\t-t     : toggle truth table computation [default = %s]\n",           pParams->fTruth? "yes": "no" );
+    fprintf( pErr, "\t-f     : toggle filtering of duplicated/dominated [default = %s]\n", pParams->fFilter? "yes": "no" );
+    fprintf( pErr, "\t-s     : toggle sequential cut computation [default = %s]\n",        pParams->fSeq? "yes": "no" );
+    fprintf( pErr, "\t-d     : toggle dropping when fanouts are done [default = %s]\n",    pParams->fDrop? "yes": "no" );
+    fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n",      pParams->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -3767,6 +3766,123 @@ usage:
     fprintf( pErr, "\t-a    : toggles area recovery [default = %s]\n", fRecovery? "yes": "no" );
     fprintf( pErr, "\t-p    : optimizes power by minimizing switching activity [default = %s]\n", fSwitching? "yes": "no" );
     fprintf( pErr, "\t-v    : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h    : prints the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandPga( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    Pga_Params_t Params, * pParams = &Params;
+    int c;
+    extern Abc_Ntk_t * Abc_NtkPga( Pga_Params_t * pParams );
+
+    pNtk = Abc_FrameReadNet(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    memset( pParams, 0, sizeof(Pga_Params_t) );
+    pParams->pNtk       = pNtk;
+    pParams->pLutLib    = Abc_FrameReadLibLut();
+    pParams->fAreaFlow  = 1;
+    pParams->fArea      = 1;
+    pParams->fSwitching = 0;
+    pParams->fDropCuts  = 0;
+    pParams->fVerbose   = 0;
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "fapdvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'f':
+            pParams->fAreaFlow ^= 1;
+            break;
+        case 'a':
+            pParams->fArea ^= 1;
+            break;
+        case 'p':
+            pParams->fSwitching ^= 1;
+            break;
+        case 'd':
+            pParams->fDropCuts ^= 1;
+            break;
+        case 'v':
+            pParams->fVerbose ^= 1;
+            break;
+        case 'h':
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        // strash and balance the network
+        pNtk = Abc_NtkStrash( pNtk, 0, 0 );
+        if ( pNtk == NULL )
+        {
+            fprintf( pErr, "Strashing before FPGA mapping has failed.\n" );
+            return 1;
+        }
+        pNtk = Abc_NtkBalance( pNtkRes = pNtk, 0 );
+        Abc_NtkDelete( pNtkRes );
+        if ( pNtk == NULL )
+        {
+            fprintf( pErr, "Balancing before FPGA mapping has failed.\n" );
+            return 1;
+        }
+        fprintf( pOut, "The network was strashed and balanced before FPGA mapping.\n" );
+        // get the new network
+        pNtkRes = Abc_NtkPga( pParams );
+        if ( pNtkRes == NULL )
+        {
+            Abc_NtkDelete( pNtk );
+            fprintf( pErr, "FPGA mapping has failed.\n" );
+            return 1;
+        }
+        Abc_NtkDelete( pNtk );
+    }
+    else
+    {
+        // get the new network
+        pNtkRes = Abc_NtkPga( pParams );
+        if ( pNtkRes == NULL )
+        {
+            fprintf( pErr, "FPGA mapping has failed.\n" );
+            return 1;
+        }
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: pga [-fapdvh]\n" );
+    fprintf( pErr, "\t        performs FPGA mapping of the current network\n" );
+    fprintf( pErr, "\t-f    : toggles area flow recovery [default = %s]\n", pParams->fAreaFlow? "yes": "no" );
+    fprintf( pErr, "\t-a    : toggles area recovery [default = %s]\n", pParams->fArea? "yes": "no" );
+    fprintf( pErr, "\t-p    : optimizes power by minimizing switching activity [default = %s]\n", pParams->fSwitching? "yes": "no" );
+    fprintf( pErr, "\t-d    : toggles dropping cuts to save memory [default = %s]\n", pParams->fDropCuts? "yes": "no" );
+    fprintf( pErr, "\t-v    : toggles verbose output [default = %s]\n", pParams->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h    : prints the command usage\n");
     return 1;
 }
