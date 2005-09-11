@@ -169,6 +169,8 @@ struct Abc_Ntk_t_
     Vec_Ptr_t *      vSupps;
     // the satisfiable assignment of the miter
     int *            pModel;
+    // initial states
+    Vec_Int_t *      vInits; 
     // the external don't-care if given
     Abc_Ntk_t *      pExdc;         // the EXDC network
     // miscellaneous data members
@@ -305,6 +307,7 @@ static inline Abc_Obj_t * Abc_ObjChild1( Abc_Obj_t * pObj )          { return Ab
 static inline Abc_Obj_t * Abc_ObjChildCopy( Abc_Obj_t * pObj, int i ){ return Abc_ObjNotCond( Abc_ObjFanin(pObj,i)->pCopy, Abc_ObjFaninC(pObj,i) );}
 static inline Abc_Obj_t * Abc_ObjChild0Copy( Abc_Obj_t * pObj )      { return Abc_ObjNotCond( Abc_ObjFanin0(pObj)->pCopy, Abc_ObjFaninC0(pObj) );  }
 static inline Abc_Obj_t * Abc_ObjChild1Copy( Abc_Obj_t * pObj )      { return Abc_ObjNotCond( Abc_ObjFanin1(pObj)->pCopy, Abc_ObjFaninC1(pObj) );  }
+static inline Abc_Obj_t * Abc_ObjGetCopy( Abc_Obj_t * pObj )         { return Abc_ObjNotCond( Abc_ObjRegular(pObj)->pCopy, Abc_ObjIsComplement(pObj) );  }
 static inline Abc_Obj_t * Abc_ObjFanoutFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFanout ) {  assert( !Abc_NtkIsLogic(pObj->pNtk) ); return (Abc_ObjFaninId0(pFanout) == (int)pObj->Id)? Abc_ObjChild0(pFanout) : Abc_ObjChild1(pFanout);  }
 static inline void        Abc_ObjSetFaninC( Abc_Obj_t * pObj, int i ){ pObj->vFanins.pArray[i].fCompl = 1;                               }
 static inline void        Abc_ObjXorFaninC( Abc_Obj_t * pObj, int i ){ pObj->vFanins.pArray[i].fCompl ^= 1;                              }
@@ -319,6 +322,8 @@ extern void               Abc_ObjSetFanoutL( Abc_Obj_t * pObj, Abc_Obj_t * pFano
 extern void               Abc_ObjAddFanoutL( Abc_Obj_t * pObj, Abc_Obj_t * pFanout, int nLats );  
 extern int                Abc_ObjFanoutLMin( Abc_Obj_t * pObj );
 extern int                Abc_ObjFanoutLMax( Abc_Obj_t * pObj );
+extern int                Abc_ObjFanoutLSum( Abc_Obj_t * pObj );
+extern int                Abc_ObjFaninLSum( Abc_Obj_t * pObj );
 
 // checking the node type
 static inline bool        Abc_NodeIsAigAnd( Abc_Obj_t * pNode )      { assert(Abc_NtkHasAig(pNode->pNtk));           return Abc_ObjFaninNum(pNode) == 2;                         }
@@ -337,12 +342,13 @@ static inline bool        Abc_NodeIsTravIdCurrent( Abc_Obj_t * pNode )       { r
 static inline bool        Abc_NodeIsTravIdPrevious( Abc_Obj_t * pNode )      { return (bool)(pNode->TravId == pNode->pNtk->nTravIds - 1); }
 
 // checking initial state of the latches
-static inline void        Abc_LatchSetInit0( Abc_Obj_t * pLatch )   { assert(Abc_ObjIsLatch(pLatch)); pLatch->pData = (void *)0;   }
-static inline void        Abc_LatchSetInit1( Abc_Obj_t * pLatch )   { assert(Abc_ObjIsLatch(pLatch)); pLatch->pData = (void *)1;   }
-static inline void        Abc_LatchSetInitDc( Abc_Obj_t * pLatch )  { assert(Abc_ObjIsLatch(pLatch)); pLatch->pData = (void *)2;   }
+static inline void        Abc_LatchSetInit0( Abc_Obj_t * pLatch )   { assert(Abc_ObjIsLatch(pLatch)); pLatch->pData = (void *)0;          }
+static inline void        Abc_LatchSetInit1( Abc_Obj_t * pLatch )   { assert(Abc_ObjIsLatch(pLatch)); pLatch->pData = (void *)1;          }
+static inline void        Abc_LatchSetInitDc( Abc_Obj_t * pLatch )  { assert(Abc_ObjIsLatch(pLatch)); pLatch->pData = (void *)2;          }
 static inline bool        Abc_LatchIsInit0( Abc_Obj_t * pLatch )    { assert(Abc_ObjIsLatch(pLatch)); return pLatch->pData == (void *)0;  }
 static inline bool        Abc_LatchIsInit1( Abc_Obj_t * pLatch )    { assert(Abc_ObjIsLatch(pLatch)); return pLatch->pData == (void *)1;  }
 static inline bool        Abc_LatchIsInitDc( Abc_Obj_t * pLatch )   { assert(Abc_ObjIsLatch(pLatch)); return pLatch->pData == (void *)2;  }
+static inline int         Abc_LatchInit( Abc_Obj_t * pLatch )       { assert(Abc_ObjIsLatch(pLatch)); return (int)pLatch->pData;          }
 
 // outputs the runtime in seconds
 #define PRT(a,t)  printf("%s = ", (a)); printf("%6.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC))
@@ -364,6 +370,12 @@ static inline bool        Abc_LatchIsInitDc( Abc_Obj_t * pLatch )   { assert(Abc
 #define Abc_NtkForEachLatch( pNtk, pObj, i )                             \
     for ( i = 0; i < Vec_PtrSize(pNtk->vLats); i++ )                     \
         if ( pObj = Abc_NtkLatch(pNtk, i) )
+#define Abc_AigForEachAnd( pNtk, pNode, i )                              \
+    for ( i = 0; i < Vec_PtrSize(pNtk->vObjs); i++ )                     \
+        if ( (pNode = Abc_NtkObj(pNtk, i)) && Abc_NodeIsAigAnd(pNode) )
+#define Abc_SeqForEachCutsetNode( pNtk, pNode, i )                       \
+    for ( i = 0; i < Vec_PtrSize(pNtk->vLats); i++ )                     \
+        if ( (pNode = Abc_NtkLatch(pNtk, i)) )
 // inputs and outputs
 #define Abc_NtkForEachPi( pNtk, pPi, i )                                 \
     for ( i = 0; (i < Abc_NtkPiNum(pNtk)) && (((pPi) = Abc_NtkPi(pNtk, i)), 1); i++ )
@@ -529,6 +541,7 @@ extern void               Abc_NtkFreeGlobalBdds( Abc_Ntk_t * pNtk );
 /*=== abcNtk.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func );
 extern Abc_Ntk_t *        Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_t Func );
+extern Abc_Ntk_t *        Abc_NtkStartFromSeq( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_t Func );
 extern void               Abc_NtkFinalize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
 extern void               Abc_NtkFinalizeRegular( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
 extern void               Abc_NtkFinalizeLatches( Abc_Ntk_t * pNtk );
@@ -572,13 +585,20 @@ extern DdNode *           Abc_NtkRenodeDeriveBdd( DdManager * dd, Abc_Obj_t * pN
 /*=== abcSat.c ==========================================================*/
 extern int                Abc_NtkMiterSat( Abc_Ntk_t * pNtk, int nSeconds, int fVerbose );
 extern solver *           Abc_NtkMiterSatCreate( Abc_Ntk_t * pNtk );
-/*=== abcSeq.c ==========================================================*/
-extern Abc_Ntk_t *        Abc_NtkAigToSeq( Abc_Ntk_t * pNtk );
-extern Abc_Ntk_t *        Abc_NtkSeqToLogicSop( Abc_Ntk_t * pNtk );
-extern int                Abc_NtkSeqLatchNum( Abc_Ntk_t * pNtk );
+
+/*=== abcForBack.c ==========================================================*/
 extern void               Abc_NtkSeqRetimeForward( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkSeqRetimeBackward( Abc_Ntk_t * pNtk );
+/*=== abcLogic.c ==========================================================*/
+extern Abc_Ntk_t *        Abc_NtkSeqToLogicSop( Abc_Ntk_t * pNtk );
+/*=== abcRetime.c ==========================================================*/
 extern void               Abc_NtkSeqRetimeDelay( Abc_Ntk_t * pNtk );
+/*=== abcSeq.c ==========================================================*/
+extern Abc_Ntk_t *        Abc_NtkAigToSeq( Abc_Ntk_t * pNtk );
+/*=== abcUtil.c ==========================================================*/
+extern int                Abc_NtkSeqLatchNum( Abc_Ntk_t * pNtk );
+extern int                Abc_NtkSeqLatchNumShared( Abc_Ntk_t * pNtk );
+
 /*=== abcSop.c ==========================================================*/
 extern char *             Abc_SopRegister( Extra_MmFlex_t * pMan, char * pName );
 extern char *             Abc_SopStart( Extra_MmFlex_t * pMan, int nCubes, int nVars );

@@ -50,7 +50,7 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
     if ( !Abc_NtkIsSeq(pNtk) )
         fprintf( pFile, "  lat = %4d", Abc_NtkLatchNum(pNtk) );
     else
-        fprintf( pFile, "  lat = %4d", Abc_NtkSeqLatchNum(pNtk) );
+        fprintf( pFile, "  lat = %4d(%d)", Abc_NtkSeqLatchNum(pNtk), Abc_NtkSeqLatchNumShared(pNtk) );
 
     if ( Abc_NtkIsNetlist(pNtk) )
     {

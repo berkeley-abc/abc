@@ -160,9 +160,10 @@ bool Abc_NtkDoCheck( Abc_Ntk_t * pNtk )
     }
 
     // check the latches
-    Abc_NtkForEachLatch( pNtk, pNode, i )
-        if ( !Abc_NtkCheckLatch( pNtk, pNode ) )
-            return 0;
+    if ( !Abc_NtkIsSeq(pNtk) )
+        Abc_NtkForEachLatch( pNtk, pNode, i )
+            if ( !Abc_NtkCheckLatch( pNtk, pNode ) )
+                return 0;
 
     // finally, check for combinational loops
 //  clk = clock();

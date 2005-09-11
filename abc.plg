@@ -6,13 +6,13 @@
 --------------------Configuration: abc - Win32 Debug--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1748.tmp" with contents
+Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1AD8.tmp" with contents
 [
 /nologo /MLd /W3 /Gm /GX /ZI /Od /I "src\base\abc" /I "src\base\abci" /I "src\base\abcs" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\ft" /I "src\sat\asat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\rwr" /I "src\map\fpga" /I "src\map\pga" /I "src\map\mapper" /I "src\map\mapp" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\mvc" /I "src\misc\util" /I "src\misc\vec" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /D "HAVE_ASSERT_H" /FR"Debug/" /Fp"Debug/abc.pch" /YX /Fo"Debug/" /Fd"Debug/" /FD /GZ /c 
-"C:\_projects\abc\src\map\pga\pgaMan.c"
+"C:\_projects\abc\src\base\abcs\abcLogic.c"
 ]
-Creating command line "cl.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1748.tmp" 
-Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1749.tmp" with contents
+Creating command line "cl.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1AD8.tmp" 
+Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1AD9.tmp" with contents
 [
 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /incremental:yes /pdb:"Debug/abc.pdb" /debug /machine:I386 /out:"_TEST/abc.exe" /pdbtype:sept 
 .\Debug\abcAig.obj
@@ -42,6 +42,7 @@ kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32
 .\Debug\abcMap.obj
 .\Debug\abcMiter.obj
 .\Debug\abcNtbdd.obj
+.\Debug\abcPga.obj
 .\Debug\abcPrint.obj
 .\Debug\abcReconv.obj
 .\Debug\abcRefactor.obj
@@ -270,6 +271,10 @@ kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32
 .\Debug\superAnd.obj
 .\Debug\superGate.obj
 .\Debug\superWrite.obj
+.\Debug\pgaCore.obj
+.\Debug\pgaMan.obj
+.\Debug\pgaMatch.obj
+.\Debug\pgaUtil.obj
 .\Debug\extraBddMisc.obj
 .\Debug\extraBddSymm.obj
 .\Debug\extraUtilBitMatrix.obj
@@ -305,18 +310,16 @@ kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32
 .\Debug\mvcPrint.obj
 .\Debug\mvcSort.obj
 .\Debug\mvcUtils.obj
-.\Debug\pgaMan.obj
-.\Debug\pgaUtil.obj
-.\Debug\pgaMatch.obj
-.\Debug\pgaCore.obj
-.\Debug\abcPga.obj
+.\Debug\abcLogic.obj
+.\Debug\abcUtils.obj
+.\Debug\abcForBack.obj
 ]
-Creating command line "link.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1749.tmp"
+Creating command line "link.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1AD9.tmp"
 <h3>Output Window</h3>
 Compiling...
-pgaMan.c
+abcLogic.c
 Linking...
-Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP174A.tmp" with contents
+Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1ADA.tmp" with contents
 [
 /nologo /o"Debug/abc.bsc" 
 .\Debug\abcAig.sbr
@@ -346,6 +349,7 @@ Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP174A.tmp" with cont
 .\Debug\abcMap.sbr
 .\Debug\abcMiter.sbr
 .\Debug\abcNtbdd.sbr
+.\Debug\abcPga.sbr
 .\Debug\abcPrint.sbr
 .\Debug\abcReconv.sbr
 .\Debug\abcRefactor.sbr
@@ -574,6 +578,10 @@ Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP174A.tmp" with cont
 .\Debug\superAnd.sbr
 .\Debug\superGate.sbr
 .\Debug\superWrite.sbr
+.\Debug\pgaCore.sbr
+.\Debug\pgaMan.sbr
+.\Debug\pgaMatch.sbr
+.\Debug\pgaUtil.sbr
 .\Debug\extraBddMisc.sbr
 .\Debug\extraBddSymm.sbr
 .\Debug\extraUtilBitMatrix.sbr
@@ -609,12 +617,10 @@ Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP174A.tmp" with cont
 .\Debug\mvcPrint.sbr
 .\Debug\mvcSort.sbr
 .\Debug\mvcUtils.sbr
-.\Debug\pgaMan.sbr
-.\Debug\pgaUtil.sbr
-.\Debug\pgaMatch.sbr
-.\Debug\pgaCore.sbr
-.\Debug\abcPga.sbr]
-Creating command line "bscmake.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP174A.tmp"
+.\Debug\abcLogic.sbr
+.\Debug\abcUtils.sbr
+.\Debug\abcForBack.sbr]
+Creating command line "bscmake.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1ADA.tmp"
 Creating browse info file...
 <h3>Output Window</h3>
 

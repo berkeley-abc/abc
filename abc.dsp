@@ -270,11 +270,23 @@ SOURCE=.\src\base\abci\abcVerify.c
 # PROP Default_Filter ""
 # Begin Source File
 
+SOURCE=.\src\base\abcs\abcForBack.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abcs\abcLogic.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abcs\abcRetime.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\src\base\abcs\abcSeq.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abcs\abcUtils.c
 # End Source File
 # End Group
 # Begin Group "cmd"

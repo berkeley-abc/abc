@@ -186,8 +186,8 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
 Abc_Obj_t * Abc_NtkDupConst1( Abc_Ntk_t * pNtkAig, Abc_Ntk_t * pNtkNew )  
 { 
     Abc_Obj_t * pConst1;
-    assert( Abc_NtkIsStrash(pNtkAig) );
-    assert( Abc_NtkIsSopLogic(pNtkNew) );
+    assert( Abc_NtkHasAig(pNtkAig) );
+    assert( Abc_NtkIsLogic(pNtkNew) );
     pConst1 = Abc_AigConst1(pNtkAig->pManFunc);
     if ( Abc_ObjFanoutNum(pConst1) > 0 )
         pConst1->pCopy = Abc_NodeCreateConst1( pNtkNew );
@@ -208,8 +208,8 @@ Abc_Obj_t * Abc_NtkDupConst1( Abc_Ntk_t * pNtkAig, Abc_Ntk_t * pNtkNew )
 Abc_Obj_t * Abc_NtkDupReset( Abc_Ntk_t * pNtkAig, Abc_Ntk_t * pNtkNew )  
 { 
     Abc_Obj_t * pReset, * pConst1;
-    assert( Abc_NtkIsStrash(pNtkAig) );
-    assert( Abc_NtkIsSopLogic(pNtkNew) );
+    assert( Abc_NtkHasAig(pNtkAig) );
+    assert( Abc_NtkIsLogic(pNtkNew) );
     pReset = Abc_AigReset(pNtkAig->pManFunc);
     if ( Abc_ObjFanoutNum(pReset) > 0 )
     {

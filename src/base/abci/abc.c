@@ -3939,6 +3939,12 @@ int Abc_CommandSeq( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
+    if ( Abc_NtkCountSelfFeedLatches(pNtk) )
+    {
+        fprintf( pErr, "Works AIG has self-feeding latches. Cannot continue.\n" );
+        return 1;
+    }
+
     // get the new network
     pNtkRes = Abc_NtkAigToSeq( pNtk );
     if ( pNtkRes == NULL )
