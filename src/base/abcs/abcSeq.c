@@ -18,20 +18,23 @@
 
 ***********************************************************************/
 
-#include "abc.h"
+#include "abcs.h"
 
 /*
     A sequential network is similar to AIG in that it contains only
     AND gates. However, the AND-gates are currently not hashed. 
-    Const1/PIs/POs remain the same as in the original AIG.
-    Instead of the latches, a new cutset is added, which is currently
-    defined as a set of AND gates that have a latch among their fanouts.
-    The edges of a sequential AIG are labeled with latch attributes
-    in addition to the complementation attibutes. 
-    The attributes contain information about the number of latches 
-    and their initial states. 
-    The number of latches is stored directly on the edges. The initial 
-    states are stored in a special array associated with the network.
+
+    When converting AIG into sequential AIG:
+    - Const1/PIs/POs remain the same as in the original AIG.
+    - Instead of the latches, a new cutset is added, which is currently
+      defined as a set of AND gates that have a latch among their fanouts.
+    - The edges of a sequential AIG are labeled with latch attributes
+      in addition to the complementation attibutes. 
+    - The attributes contain information about the number of latches 
+       and their initial states. 
+    - The number of latches is stored directly on the edges. The initial 
+      states are stored in a special array associated with the network.
+
     The AIG of sequential network is static in the sense that the 
     new AIG nodes are never created.
     The retiming (or retiming/mapping) is performed by moving the
@@ -46,7 +49,8 @@
 ////////////////////////////////////////////////////////////////////////
 
 static Vec_Ptr_t * Abc_NtkAigCutsetCopy( Abc_Ntk_t * pNtk );
-static Abc_Obj_t * Abc_NodeAigToSeq( Abc_Obj_t * pAnd, int Num, int * pnLatches, int * pnInit );
+static Abc_Obj_t * Abc_NodeAigToSeq( Abc_Obj_t * pAnd, int Num, int * pnLatches, unsigned * pnInit );
+static Abc_Obj_t * Abc_NodeSeqToLogic( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pFanin, int nLatches, unsigned Init );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -54,11 +58,11 @@ static Abc_Obj_t * Abc_NodeAigToSeq( Abc_Obj_t * pAnd, int Num, int * pnLatches,
 
 /**Function*************************************************************
 
-  Synopsis    [Converts a normal AIG into a sequential AIG.]
+  Synopsis    [Converts combinational AIG with latches into sequential AIG.]
 
   Description [The const/PI/PO nodes are duplicated. The internal
   nodes are duplicated in the topological order. The dangling nodes
-  are not copies. The choice nodes are copied.]
+  are not duplicated. The choice nodes are duplicated.]
                
   SideEffects []
 
@@ -69,8 +73,8 @@ Abc_Ntk_t * Abc_NtkAigToSeq( Abc_Ntk_t * pNtk )
 {
     Abc_Ntk_t * pNtkNew;
     Vec_Ptr_t * vNodes;
-    Abc_Obj_t * pObj, * pFanin0, * pFanin1;
-    int i, nLatches0, nLatches1, Init0, Init1;
+    Abc_Obj_t * pObj, * pFanin;
+    int i, Init, nLatches;
     // make sure it is an AIG without self-feeding latches
     assert( Abc_NtkIsStrash(pNtk) );
     assert( Abc_NtkCountSelfFeedLatches(pNtk) == 0 );
@@ -93,32 +97,35 @@ Abc_Ntk_t * Abc_NtkAigToSeq( Abc_Ntk_t * pNtk )
     // copy the internal nodes, including choices, excluding dangling
     vNodes = Abc_AigDfs( pNtk, 0, 0 );
     Vec_PtrForEachEntry( vNodes, pObj, i )
+    {
         Abc_NtkDupObj(pNtkNew, pObj);
+        pObj->pCopy->fPhase = pObj->fPhase; // needed for choices
+    }
+    // relink the choice nodes
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+        if ( pObj->pData )
+            pObj->pCopy->pData = ((Abc_Obj_t *)pObj->pData)->pCopy;
     Vec_PtrFree( vNodes );
     // start the storage for initial states
-    pNtkNew->vInits = Vec_IntStart( Abc_NtkObjNumMax(pNtkNew) );
+    pNtkNew->vInits = Vec_IntStart( 2 * Abc_NtkObjNumMax(pNtkNew) );
     // reconnect the internal nodes
-    Abc_AigForEachAnd( pNtk, pObj, i )
+    Abc_NtkForEachObj( pNtk, pObj, i )
     {
-        // process the fanins of the AND gate (pObj)
-        pFanin0 = Abc_NodeAigToSeq( pObj, 0, &nLatches0, &Init0 );
-        pFanin1 = Abc_NodeAigToSeq( pObj, 1, &nLatches1, &Init1 );
-        Abc_ObjAddFanin( pObj->pCopy, Abc_ObjGetCopy(pFanin0) );
-        Abc_ObjAddFanin( pObj->pCopy, Abc_ObjGetCopy(pFanin1) );
-        Abc_ObjAddFaninL0( pObj->pCopy, nLatches0 );
-        Abc_ObjAddFaninL1( pObj->pCopy, nLatches1 );
-        // add the initial state
-        Vec_IntWriteEntry( pNtkNew->vInits, pObj->pCopy->Id, (Init1 << 16) | Init0 );
-    }
-    // reconnect the POs
-    Abc_NtkForEachPo( pNtk, pObj, i )
-    {
-        // process the fanins
-        pFanin0 = Abc_NodeAigToSeq( pObj, 0, &nLatches0, &Init0 );
-        Abc_ObjAddFanin( pObj->pCopy, Abc_ObjGetCopy(pFanin0) );
-        Abc_ObjAddFaninL0( pObj->pCopy, nLatches0 );
-        // add the initial state
-        Vec_IntWriteEntry( pNtkNew->vInits, pObj->pCopy->Id, Init0 );
+        // skip the constant and the PIs
+        if ( Abc_ObjFaninNum(pObj) == 0 )
+            continue;
+        // process the first fanin
+        pFanin = Abc_NodeAigToSeq( pObj, 0, &nLatches, &Init );
+        Abc_ObjAddFanin( pObj->pCopy, Abc_ObjGetCopy(pFanin) );
+        Abc_ObjAddFaninL0( pObj->pCopy, nLatches );
+        Vec_IntWriteEntry( pNtkNew->vInits, 2 * i + 0, Init );
+        if ( Abc_ObjFaninNum(pObj) == 1 )
+            continue;
+        // process the second fanin
+        pFanin = Abc_NodeAigToSeq( pObj, 1, &nLatches, &Init );
+        Abc_ObjAddFanin( pObj->pCopy, Abc_ObjGetCopy(pFanin) );
+        Abc_ObjAddFaninL1( pObj->pCopy, nLatches );
+        Vec_IntWriteEntry( pNtkNew->vInits, 2 * i + 1, Init );
     }
     // set the cutset composed of latch drivers
     pNtkNew->vLats = Abc_NtkAigCutsetCopy( pNtk );
@@ -170,29 +177,150 @@ Vec_Ptr_t * Abc_NtkAigCutsetCopy( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_NodeAigToSeq( Abc_Obj_t * pObj, int Num, int * pnLatches, int * pnInit )
+Abc_Obj_t * Abc_NodeAigToSeq( Abc_Obj_t * pObj, int Num, int * pnLatches, unsigned * pnInit )
 {
     Abc_Obj_t * pFanin;
-    int Init;
+    Abc_InitType_t Init;
     // get the given fanin of the node
     pFanin = Abc_ObjFanin( pObj, Num );
     if ( !Abc_ObjIsLatch(pFanin) )
     {
-        *pnLatches = *pnInit = 0;
+        *pnLatches = 0;
+        *pnInit = 0;
         return Abc_ObjChild( pObj, Num );
     }
     pFanin = Abc_NodeAigToSeq( pFanin, 0, pnLatches, pnInit );
     // get the new initial state
     Init = Abc_LatchInit(pObj);
-    assert( Init >= 0 && Init <= 3 );
     // complement the initial state if the inv is retimed over the latch
-    if ( Abc_ObjIsComplement(pFanin) && Init < 2 ) // not a don't-care
-        Init ^= 3;
+    if ( Abc_ObjIsComplement(pFanin) ) 
+    {
+        if ( Init == ABC_INIT_ZERO )
+            Init = ABC_INIT_ONE;
+        else if ( Init == ABC_INIT_ONE )
+            Init = ABC_INIT_ZERO;
+        else if ( Init != ABC_INIT_DC )
+            assert( 0 );
+    }
     // update the latch number and initial state
     (*pnLatches)++;
     (*pnInit) = ((*pnInit) << 2) | Init;
     return Abc_ObjNotCond( pFanin, Abc_ObjFaninC(pObj,Num) );
 }
+
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Converts a sequential AIG into a logic SOP network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkSeqToLogicSop( Abc_Ntk_t * pNtk )
+{
+    Abc_Ntk_t * pNtkNew; 
+    Abc_Obj_t * pObj, * pObjNew, * pFaninNew;
+    int i, nCutNodes, nDigits;
+    unsigned Init;
+    assert( Abc_NtkIsSeq(pNtk) );
+    // start the network without latches
+    nCutNodes = pNtk->vLats->nSize; pNtk->vLats->nSize = 0;
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_LOGIC, ABC_FUNC_SOP );
+    pNtk->vLats->nSize = nCutNodes;
+    // create the constant node
+    Abc_NtkDupConst1( pNtk, pNtkNew );
+    // duplicate the nodes, create node functions
+    Abc_NtkForEachNode( pNtk, pObj, i )
+    {
+        // skip the constant
+        if ( Abc_ObjFaninNum(pObj) == 0 )
+            continue;
+        // duplicate the node
+        Abc_NtkDupObj(pNtkNew, pObj);
+        if ( Abc_ObjFaninNum(pObj) == 1 )
+        {
+            assert( !Abc_ObjFaninC0(pObj) );
+            pObj->pCopy->pData = Abc_SopCreateBuf( pNtkNew->pManFunc );
+            continue;
+        }
+        pObj->pCopy->pData = Abc_SopCreateAnd2( pNtkNew->pManFunc, Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj) );
+    }
+    // connect the objects
+    Abc_NtkForEachObj( pNtk, pObj, i )
+    {
+        // skip PIs and the constant
+        if ( Abc_ObjFaninNum(pObj) == 0 )
+            continue;
+        // get the initial states of the latches on the fanin edge of this node
+        Init = Vec_IntEntry( pNtk->vInits, 2 * pObj->Id );
+        // create the edge
+        pFaninNew = Abc_NodeSeqToLogic( pNtkNew, Abc_ObjFanin0(pObj), Abc_ObjFaninL0(pObj), Init );
+        Abc_ObjAddFanin( pObj->pCopy, pFaninNew );
+        if ( Abc_ObjFaninNum(pObj) == 1 )
+        {
+            // create the complemented edge
+            if ( Abc_ObjFaninC0(pObj) )
+                Abc_ObjSetFaninC( pObj->pCopy, 0 );
+            continue;
+        }
+        // get the initial states of the latches on the fanin edge of this node
+        Init = Vec_IntEntry( pNtk->vInits, 2 * pObj->Id + 1 );
+        // create the edge
+        pFaninNew = Abc_NodeSeqToLogic( pNtkNew, Abc_ObjFanin1(pObj), Abc_ObjFaninL1(pObj), Init );
+        Abc_ObjAddFanin( pObj->pCopy, pFaninNew );
+        // the complemented edges are subsumed by the node function
+    }
+    // count the number of digits in the latch names
+    nDigits = Extra_Base10Log( Abc_NtkLatchNum(pNtkNew) );
+    // add the latches and their names
+    Abc_NtkForEachLatch( pNtkNew, pObjNew, i )
+    {
+        // add the latch to the CI/CO arrays
+        Vec_PtrPush( pNtkNew->vCis, pObjNew );
+        Vec_PtrPush( pNtkNew->vCos, pObjNew );
+        // create latch name
+        Abc_NtkLogicStoreName( pObjNew, Abc_ObjNameDummy("L", i, nDigits) );
+    }
+    // fix the problem with complemented and duplicated CO edges
+    Abc_NtkLogicMakeSimpleCos( pNtkNew, 0 );
+    // duplicate the EXDC network
+    if ( pNtk->pExdc )
+        fprintf( stdout, "Warning: EXDC network is not copied.\n" );
+    if ( !Abc_NtkCheck( pNtkNew ) )
+        fprintf( stdout, "Abc_NtkSeqToLogic(): Network check has failed.\n" );
+    return pNtkNew;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Creates latches on one edge.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Abc_NodeSeqToLogic( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pFanin, int nLatches, unsigned Init )
+{
+    Abc_Obj_t * pLatch;
+    if ( nLatches == 0 )
+        return pFanin->pCopy;
+    pFanin = Abc_NodeSeqToLogic( pNtkNew, pFanin, nLatches - 1, Init >> 2 );
+    pLatch = Abc_NtkCreateLatch( pNtkNew );
+    pLatch->pData = (void *)(Init & 3);
+    Abc_ObjAddFanin( pLatch, pFanin );
+    return pLatch;    
+}
+
 
 
 ////////////////////////////////////////////////////////////////////////

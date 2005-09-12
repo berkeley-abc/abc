@@ -395,7 +395,6 @@ int Io_ReadBlifNetworkLatch( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
     Abc_Ntk_t * pNtk = p->pNtk;
     Abc_Obj_t * pLatch;
     int ResetValue;
-
     if ( vTokens->nSize < 3 )
     {
         p->LineCur = Extra_FileReaderGetLineNumber(p->pReader, 0);
@@ -407,7 +406,7 @@ int Io_ReadBlifNetworkLatch( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
     pLatch = Io_ReadCreateLatch( pNtk, vTokens->pArray[1], vTokens->pArray[2] );
     // get the latch reset value
     if ( vTokens->nSize == 3 )
-        ResetValue = 2;
+        Abc_LatchSetInitDc( pLatch );
     else
     {
         ResetValue = atoi(vTokens->pArray[3]);
@@ -418,8 +417,13 @@ int Io_ReadBlifNetworkLatch( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
             Io_ReadBlifPrintErrorMessage( p );
             return 1;
         }
+        if ( ResetValue == 0 )
+            Abc_LatchSetInit0( pLatch );
+        else if ( ResetValue == 1 )
+            Abc_LatchSetInit1( pLatch );
+        else if ( ResetValue == 2 )
+            Abc_LatchSetInitDc( pLatch );
     }
-    Abc_ObjSetData( pLatch, (void *)ResetValue );
     return 0;
 }
 

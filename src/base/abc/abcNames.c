@@ -162,6 +162,24 @@ char * Abc_ObjNameUnique( Abc_Ntk_t * pNtk, char * pName )
     return NULL;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns the dummy PI name.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_ObjNameDummy( char * pPrefix, int Num, int nDigits )
+{
+    static char Buffer[100];
+    sprintf( Buffer, "%s%0*d", pPrefix, nDigits, Num );
+    return Buffer;
+}
+
 
 /**Function*************************************************************
 

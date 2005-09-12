@@ -18,7 +18,7 @@
 
 ***********************************************************************/
 
-#include "abc.h"
+#include "abcs.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -51,9 +51,11 @@ enum { ABC_UPDATE_FAIL, ABC_UPDATE_NO, ABC_UPDATE_YES };
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkSeqRetimeDelay( Abc_Ntk_t * pNtk )
+Vec_Str_t * Abc_NtkSeqRetimeDelayLags( Abc_Ntk_t * pNtk )
 {
-    int FiMax, FiBest;
+    Vec_Str_t * vLags;
+    Abc_Obj_t * pNode;
+    int i, FiMax, FiBest;
     assert( Abc_NtkIsSeq( pNtk ) );
 
     // start storage for sequential arrival times
@@ -71,9 +73,15 @@ void Abc_NtkSeqRetimeDelay( Abc_Ntk_t * pNtk )
     // print the result
     printf( "The best clock period is %3d.\n", FiBest );
 
+    // convert to lags
+    vLags = Vec_StrStart( Abc_NtkObjNumMax(pNtk) );
+    Abc_AigForEachAnd( pNtk, pNode, i )
+        Vec_StrWriteEntry( vLags, i, (char)(Abc_NodeReadLValue(pNode) / FiBest) );
+
     // free storage
     Vec_IntFree( pNtk->pData );
     pNtk->pData = NULL;
+    return vLags;
 }
 
 /**Function*************************************************************

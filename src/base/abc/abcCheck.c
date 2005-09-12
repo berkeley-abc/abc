@@ -565,7 +565,7 @@ bool Abc_NtkCheckLatch( Abc_Ntk_t * pNtk, Abc_Obj_t * pLatch )
         Value = 0;
     }
     // make sure the latch has a reasonable return value
-    if ( (int)pLatch->pData < 0 || (int)pLatch->pData > 2 )
+    if ( (int)pLatch->pData < ABC_INIT_ZERO || (int)pLatch->pData > ABC_INIT_DC )
     {
         fprintf( stdout, "NodeCheck: Latch \"%s\" has incorrect reset value (%d).\n", 
             Abc_ObjName(pLatch), (int)pLatch->pData );

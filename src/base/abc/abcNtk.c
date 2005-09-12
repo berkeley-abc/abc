@@ -504,6 +504,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     Vec_PtrFree( pNtk->vPtrTemp );
     Vec_IntFree( pNtk->vIntTemp );
     Vec_StrFree( pNtk->vStrTemp );
+    if ( pNtk->vInits )  Vec_IntFree( pNtk->vInits );
     // free the hash table of Obj name into Obj ID
     stmm_free_table( pNtk->tName2Net );
     stmm_free_table( pNtk->tObj2Name );

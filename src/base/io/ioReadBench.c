@@ -114,7 +114,10 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
             // get the node name and the node type
             pType = vTokens->pArray[1];
             if ( strcmp(pType, "DFF") == 0 )
-                Io_ReadCreateLatch( pNtk, vTokens->pArray[2], vTokens->pArray[0] );
+            {
+                pNode = Io_ReadCreateLatch( pNtk, vTokens->pArray[2], vTokens->pArray[0] );
+                Abc_LatchSetInit0( pNode );
+            }
             else
             {
                 // create a new node and add it to the network

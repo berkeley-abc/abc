@@ -300,7 +300,7 @@ void Io_NtkWriteLatch( FILE * pFile, Abc_Obj_t * pLatch )
     fprintf( pFile, ".latch" );
     fprintf( pFile, " %10s",    Abc_ObjName(pNetLi) );
     fprintf( pFile, " %10s",    Abc_ObjName(pNetLo) );
-    fprintf( pFile, "  %d\n",   Reset );
+    fprintf( pFile, "  %d\n",   Reset-1 );
 }
 
 

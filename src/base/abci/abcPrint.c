@@ -20,6 +20,7 @@
 
 #include "abc.h"
 #include "dec.h"
+#include "abcs.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///

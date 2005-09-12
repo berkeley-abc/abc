@@ -43,7 +43,7 @@
 
 // network types
 typedef enum { 
-    ABC_TYPE_NONE,      // 0:  unknown
+    ABC_TYPE_NONE = 0,  // 0:  unknown
     ABC_TYPE_NETLIST,   // 1:  network with PIs/POs, latches, nodes, and nets
     ABC_TYPE_LOGIC,     // 2:  network with PIs/POs, latches, and nodes
     ABC_TYPE_STRASH,    // 3:  structurally hashed AIG (two input AND gates with c-attributes on edges)
@@ -53,7 +53,7 @@ typedef enum {
 
 // network functionality
 typedef enum { 
-    ABC_FUNC_NONE,      // 0:  unknown
+    ABC_FUNC_NONE = 0,  // 0:  unknown
     ABC_FUNC_SOP,       // 1:  sum-of-products
     ABC_FUNC_BDD,       // 2:  binary decision diagrams
     ABC_FUNC_AIG,       // 3:  and-inverter graphs
@@ -76,7 +76,7 @@ typedef enum {
 
 // object types
 typedef enum { 
-    ABC_OBJ_NONE,       // 0:  unknown
+    ABC_OBJ_NONE = 0,   // 0:  unknown
     ABC_OBJ_NET,        // 1:  net
     ABC_OBJ_NODE,       // 2:  node
     ABC_OBJ_LATCH,      // 3:  latch
@@ -84,6 +84,14 @@ typedef enum {
     ABC_OBJ_PO,         // 5:  primary output terminal
     ABC_OBJ_OTHER       // 6:  unused
 } Abc_ObjType_t;
+
+// latch initial values
+typedef enum { 
+    ABC_INIT_NONE = 0,  // 0:  unknown
+    ABC_INIT_ZERO,      // 1:  zero
+    ABC_INIT_ONE,       // 2:  one
+    ABC_INIT_DC         // 3:  don't-care
+} Abc_InitType_t;
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -317,13 +325,6 @@ static inline void        Abc_ObjSetFaninL1( Abc_Obj_t * pObj, int nLats )      
 static inline void        Abc_ObjAddFaninL( Abc_Obj_t * pObj, int i, int nLats )  { pObj->vFanins.pArray[i].nLats += nLats;              }
 static inline void        Abc_ObjAddFaninL0( Abc_Obj_t * pObj, int nLats )        { pObj->vFanins.pArray[0].nLats += nLats;              }
 static inline void        Abc_ObjAddFaninL1( Abc_Obj_t * pObj, int nLats )        { pObj->vFanins.pArray[1].nLats += nLats;              }
-extern int                Abc_ObjFanoutL( Abc_Obj_t * pObj, Abc_Obj_t * pFanout );
-extern void               Abc_ObjSetFanoutL( Abc_Obj_t * pObj, Abc_Obj_t * pFanout, int nLats );
-extern void               Abc_ObjAddFanoutL( Abc_Obj_t * pObj, Abc_Obj_t * pFanout, int nLats );  
-extern int                Abc_ObjFanoutLMin( Abc_Obj_t * pObj );
-extern int                Abc_ObjFanoutLMax( Abc_Obj_t * pObj );
-extern int                Abc_ObjFanoutLSum( Abc_Obj_t * pObj );
-extern int                Abc_ObjFaninLSum( Abc_Obj_t * pObj );
 
 // checking the node type
 static inline bool        Abc_NodeIsAigAnd( Abc_Obj_t * pNode )      { assert(Abc_NtkHasAig(pNode->pNtk));           return Abc_ObjFaninNum(pNode) == 2;                         }
@@ -342,12 +343,12 @@ static inline bool        Abc_NodeIsTravIdCurrent( Abc_Obj_t * pNode )       { r
 static inline bool        Abc_NodeIsTravIdPrevious( Abc_Obj_t * pNode )      { return (bool)(pNode->TravId == pNode->pNtk->nTravIds - 1); }
 
 // checking initial state of the latches
-static inline void        Abc_LatchSetInit0( Abc_Obj_t * pLatch )   { assert(Abc_ObjIsLatch(pLatch)); pLatch->pData = (void *)0;          }
-static inline void        Abc_LatchSetInit1( Abc_Obj_t * pLatch )   { assert(Abc_ObjIsLatch(pLatch)); pLatch->pData = (void *)1;          }
-static inline void        Abc_LatchSetInitDc( Abc_Obj_t * pLatch )  { assert(Abc_ObjIsLatch(pLatch)); pLatch->pData = (void *)2;          }
-static inline bool        Abc_LatchIsInit0( Abc_Obj_t * pLatch )    { assert(Abc_ObjIsLatch(pLatch)); return pLatch->pData == (void *)0;  }
-static inline bool        Abc_LatchIsInit1( Abc_Obj_t * pLatch )    { assert(Abc_ObjIsLatch(pLatch)); return pLatch->pData == (void *)1;  }
-static inline bool        Abc_LatchIsInitDc( Abc_Obj_t * pLatch )   { assert(Abc_ObjIsLatch(pLatch)); return pLatch->pData == (void *)2;  }
+static inline void        Abc_LatchSetInit0( Abc_Obj_t * pLatch )   { assert(Abc_ObjIsLatch(pLatch)); pLatch->pData = (void *)ABC_INIT_ZERO;         }
+static inline void        Abc_LatchSetInit1( Abc_Obj_t * pLatch )   { assert(Abc_ObjIsLatch(pLatch)); pLatch->pData = (void *)ABC_INIT_ONE;          }
+static inline void        Abc_LatchSetInitDc( Abc_Obj_t * pLatch )  { assert(Abc_ObjIsLatch(pLatch)); pLatch->pData = (void *)ABC_INIT_DC;           }
+static inline bool        Abc_LatchIsInit0( Abc_Obj_t * pLatch )    { assert(Abc_ObjIsLatch(pLatch)); return pLatch->pData == (void *)ABC_INIT_ZERO; }
+static inline bool        Abc_LatchIsInit1( Abc_Obj_t * pLatch )    { assert(Abc_ObjIsLatch(pLatch)); return pLatch->pData == (void *)ABC_INIT_ONE;  }
+static inline bool        Abc_LatchIsInitDc( Abc_Obj_t * pLatch )   { assert(Abc_ObjIsLatch(pLatch)); return pLatch->pData == (void *)ABC_INIT_DC;   }
 static inline int         Abc_LatchInit( Abc_Obj_t * pLatch )       { assert(Abc_ObjIsLatch(pLatch)); return (int)pLatch->pData;          }
 
 // outputs the runtime in seconds
@@ -409,7 +410,6 @@ extern int                Abc_AigCleanup( Abc_Aig_t * pMan );
 extern bool               Abc_AigCheck( Abc_Aig_t * pMan );
 extern int                Abc_AigGetLevelNum( Abc_Ntk_t * pNtk );
 extern Abc_Obj_t *        Abc_AigConst1( Abc_Aig_t * pMan );
-extern Abc_Obj_t *        Abc_AigReset( Abc_Aig_t * pMan );
 extern Abc_Obj_t *        Abc_AigAnd( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 );
 extern Abc_Obj_t *        Abc_AigAndLookup( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 );
 extern Abc_Obj_t *        Abc_AigOr( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 );
@@ -515,6 +515,7 @@ extern char *             Abc_NtkRegisterNamePlus( Abc_Ntk_t * pNtk, char * pNam
 extern char *             Abc_ObjName( Abc_Obj_t * pNode );
 extern char *             Abc_ObjNameSuffix( Abc_Obj_t * pObj, char * pSuffix );
 extern char *             Abc_ObjNameUnique( Abc_Ntk_t * pNtk, char * pName );
+extern char *             Abc_ObjNameDummy( char * pPrefix, int Num, int nDigits );
 extern char *             Abc_NtkLogicStoreName( Abc_Obj_t * pNodeNew, char * pNameOld );
 extern char *             Abc_NtkLogicStoreNamePlus( Abc_Obj_t * pNodeNew, char * pNameOld, char * pSuffix );
 extern void               Abc_NtkCreateCioNamesTable( Abc_Ntk_t * pNtk );
@@ -585,20 +586,6 @@ extern DdNode *           Abc_NtkRenodeDeriveBdd( DdManager * dd, Abc_Obj_t * pN
 /*=== abcSat.c ==========================================================*/
 extern int                Abc_NtkMiterSat( Abc_Ntk_t * pNtk, int nSeconds, int fVerbose );
 extern solver *           Abc_NtkMiterSatCreate( Abc_Ntk_t * pNtk );
-
-/*=== abcForBack.c ==========================================================*/
-extern void               Abc_NtkSeqRetimeForward( Abc_Ntk_t * pNtk );
-extern void               Abc_NtkSeqRetimeBackward( Abc_Ntk_t * pNtk );
-/*=== abcLogic.c ==========================================================*/
-extern Abc_Ntk_t *        Abc_NtkSeqToLogicSop( Abc_Ntk_t * pNtk );
-/*=== abcRetime.c ==========================================================*/
-extern void               Abc_NtkSeqRetimeDelay( Abc_Ntk_t * pNtk );
-/*=== abcSeq.c ==========================================================*/
-extern Abc_Ntk_t *        Abc_NtkAigToSeq( Abc_Ntk_t * pNtk );
-/*=== abcUtil.c ==========================================================*/
-extern int                Abc_NtkSeqLatchNum( Abc_Ntk_t * pNtk );
-extern int                Abc_NtkSeqLatchNumShared( Abc_Ntk_t * pNtk );
-
 /*=== abcSop.c ==========================================================*/
 extern char *             Abc_SopRegister( Extra_MmFlex_t * pMan, char * pName );
 extern char *             Abc_SopStart( Extra_MmFlex_t * pMan, int nCubes, int nVars );

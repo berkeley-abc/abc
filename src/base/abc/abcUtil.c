@@ -22,6 +22,7 @@
 #include "main.h"
 #include "mio.h"
 #include "dec.h"
+#include "abcs.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -931,9 +932,6 @@ void Abc_NtkReassignIds( Abc_Ntk_t * pNtk )
         pConst1 = Abc_AigConst1(pNtk->pManFunc);
         pConst1->Id = Vec_PtrSize( vObjsNew );
         Vec_PtrPush( vObjsNew, pConst1 );
-        pReset = Abc_AigReset(pNtk->pManFunc);
-        pReset->Id = Vec_PtrSize( vObjsNew );
-        Vec_PtrPush( vObjsNew, pReset );
     }
     // put PI nodes next
     Abc_NtkForEachPi( pNtk, pNode, i )

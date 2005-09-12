@@ -49,7 +49,7 @@ struct Abc_Aig_t_
 {
     Abc_Ntk_t *       pNtkAig;           // the AIG network
     Abc_Obj_t *       pConst1;           // the constant 1 node
-    Abc_Obj_t *       pReset;            // the sequential reset node
+//    Abc_Obj_t *       pReset;            // the sequential reset node
     Abc_Obj_t **      pBins;             // the table bins
     int               nBins;             // the size of the table
     int               nEntries;          // the total number of entries in the table
@@ -125,9 +125,8 @@ Abc_Aig_t * Abc_AigAlloc( Abc_Ntk_t * pNtkAig )
     pMan->pNtkAig = pNtkAig;
     // allocate constant nodes
     pMan->pConst1 = Abc_NtkCreateNode( pNtkAig );    
-    pMan->pReset  = Abc_NtkCreateNode( pNtkAig );
     // subtract these nodes from the total number
-    pNtkAig->nNodes -= 2;
+    pNtkAig->nNodes -= 1;
     return pMan;
 }
 
@@ -153,7 +152,6 @@ Abc_Aig_t * Abc_AigDup( Abc_Aig_t * pMan, Abc_Aig_t * pManNew )
     assert( Abc_NtkLatchNum(pMan->pNtkAig) == Abc_NtkLatchNum(pManNew->pNtkAig) );
     // set mapping of the constant nodes
     Abc_AigConst1( pMan )->pCopy = Abc_AigConst1( pManNew );
-    Abc_AigReset( pMan )->pCopy  = Abc_AigReset( pManNew );
     // set the mapping of CIs/COs
     Abc_NtkForEachPi( pMan->pNtkAig, pObj, i )
         pObj->pCopy = Abc_NtkPi( pManNew->pNtkAig, i );
@@ -264,7 +262,7 @@ bool Abc_AigCheck( Abc_Aig_t * pMan )
         nFanins = Abc_ObjFaninNum(pObj);
         if ( nFanins == 0 )
         {
-            if ( pObj != pMan->pConst1 && pObj != pMan->pReset )
+            if ( pObj != pMan->pConst1 )
             {
                 printf( "Abc_AigCheck: The AIG has non-standard constant nodes.\n" );
                 return 0;
@@ -338,22 +336,6 @@ int Abc_AigGetLevelNum( Abc_Ntk_t * pNtk )
 Abc_Obj_t * Abc_AigConst1( Abc_Aig_t * pMan )  
 { 
     return pMan->pConst1; 
-} 
-
-/**Function*************************************************************
-
-  Synopsis    [Read the reset node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Obj_t * Abc_AigReset( Abc_Aig_t * pMan )  
-{ 
-    return pMan->pReset; 
 } 
 
 

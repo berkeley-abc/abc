@@ -515,7 +515,7 @@ enum CSAT_StatusT CSAT_Solve( CSAT_Manager mng )
 
     if ( mng->mode == 0 ) // brute-force SAT
     {
-        // transfor the AIG into a logic network for efficient CNF construction
+        // transform the AIG into a logic network for efficient CNF construction
         pCnf = Abc_NtkRenode( mng->pTarget, 0, 100, 1, 0, 0 );
         RetValue = Abc_NtkMiterSat( pCnf, mng->nSeconds, 0 );
 

@@ -114,7 +114,10 @@ Abc_Ntk_t * Io_ReadEdifNetwork( Extra_FileReader_t * p )
             vTokens = Extra_FileReaderGetTokens(p);
             pGateName = vTokens->pArray[1];
             if ( strncmp( pGateName, "Flip", 4 ) == 0 )
+            {
                 pObj = Abc_NtkCreateLatch( pNtk );
+                Abc_LatchSetInit0( pObj );
+            }
             else
             {
                 pObj = Abc_NtkCreateNode( pNtk );

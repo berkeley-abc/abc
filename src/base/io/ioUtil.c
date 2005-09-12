@@ -82,7 +82,7 @@ Abc_Obj_t * Io_ReadCreatePo( Abc_Ntk_t * pNtk, char * pName )
 
   Synopsis    [Create a latch with the given input/output.]
 
-  Description []
+  Description [By default, the latch value is unknown (ABC_INIT_NONE).]
                
   SideEffects []
 

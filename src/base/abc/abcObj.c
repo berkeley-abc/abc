@@ -196,34 +196,6 @@ Abc_Obj_t * Abc_NtkDupConst1( Abc_Ntk_t * pNtkAig, Abc_Ntk_t * pNtkNew )
 
 /**Function*************************************************************
 
-  Synopsis    [Creates a new constant node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Obj_t * Abc_NtkDupReset( Abc_Ntk_t * pNtkAig, Abc_Ntk_t * pNtkNew )  
-{ 
-    Abc_Obj_t * pReset, * pConst1;
-    assert( Abc_NtkHasAig(pNtkAig) );
-    assert( Abc_NtkIsLogic(pNtkNew) );
-    pReset = Abc_AigReset(pNtkAig->pManFunc);
-    if ( Abc_ObjFanoutNum(pReset) > 0 )
-    {
-        // create new latch with reset value 0
-        pReset->pCopy = Abc_NtkCreateLatch( pNtkNew );
-        // add constant node fanin to the latch
-        pConst1 = Abc_NodeCreateConst1( pNtkNew );
-        Abc_ObjAddFanin( pReset->pCopy, pConst1 );
-    }
-    return pReset->pCopy; 
-} 
-
-/**Function*************************************************************
-
   Synopsis    [Deletes the object from the network.]
 
   Description []
@@ -493,6 +465,7 @@ Abc_Obj_t * Abc_NtkCreateLatch( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj;
     pObj = Abc_ObjAlloc( pNtk, ABC_OBJ_LATCH );     
+    pObj->pData = (void *)ABC_INIT_NONE;
     Abc_ObjAdd( pObj );
     return pObj;
 }

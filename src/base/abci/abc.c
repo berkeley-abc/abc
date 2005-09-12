@@ -25,6 +25,7 @@
 #include "fpga.h"
 #include "pga.h"
 #include "cut.h"
+#include "abcs.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -3981,6 +3982,7 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int fForward;
     int fBackward;
+    int fInitial;
 
     extern Abc_Ntk_t * Abc_NtkSuperChoice( Abc_Ntk_t * pNtk );
 
@@ -3989,10 +3991,11 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fForward = 0;
+    fForward  = 0;
     fBackward = 0;
+    fInitial  = 0;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "fbh" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "fbih" ) ) != EOF )
     {
         switch ( c )
         {
@@ -4001,6 +4004,9 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'b':
             fBackward ^= 1;
+            break;
+        case 'i':
+            fInitial ^= 1;
             break;
         case 'h':
             goto usage;
@@ -4030,15 +4036,18 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_NtkSeqRetimeForward( pNtk );
     else if ( fBackward )
         Abc_NtkSeqRetimeBackward( pNtk );
+    else if ( fInitial )
+        Abc_NtkSeqRetimeInitial( pNtk );
     else
         Abc_NtkSeqRetimeDelay( pNtk );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: retime [-fbh]\n" );
-    fprintf( pErr, "\t        retimes sequential AIG (default is Pan's algorithm)\n" );
+    fprintf( pErr, "usage: retime [-fbih]\n" );
+    fprintf( pErr, "\t        retimes sequential AIG (default is Pan's delay-optimal retiming)\n" );
     fprintf( pErr, "\t-f    : toggle forward retiming [default = %s]\n", fForward? "yes": "no" );
     fprintf( pErr, "\t-b    : toggle backward retiming [default = %s]\n", fBackward? "yes": "no" );
+    fprintf( pErr, "\t-i    : toggle retiming for initial state [default = %s]\n", fInitial? "yes": "no" );
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
