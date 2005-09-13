@@ -98,7 +98,7 @@ Abc_Ntk_t * Abc_NtkFromGlobalBdds( Abc_Ntk_t * pNtk )
     DdManager * dd = pNtk->pManGlob;
     int i;
     // start the new network
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_LOGIC, ABC_FUNC_BDD );
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_BDD );
     // make sure the new manager has the same number of inputs
     Cudd_bddIthVar( pNtkNew->pManFunc, dd->size-1 );
     // process the POs

@@ -78,7 +78,7 @@ Abc_Ntk_t * Abc_NtkDeriveFromBdd( DdManager * dd, DdNode * bFunc, char * pNamePo
         return NULL;
 
     // start the network
-    pNtk = Abc_NtkAlloc( ABC_TYPE_LOGIC, ABC_FUNC_BDD );
+    pNtk = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_BDD );
     pNtk->pName = util_strsav(pNamePo);
     // make sure the new manager has enough inputs
     Cudd_bddIthVar( pNtk->pManFunc, Vec_PtrSize(vNamesPi) );
@@ -121,7 +121,7 @@ Abc_Ntk_t * Abc_NtkBddToMuxes( Abc_Ntk_t * pNtk )
 {
     Abc_Ntk_t * pNtkNew;
     assert( Abc_NtkIsBddLogic(pNtk) );
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_LOGIC, ABC_FUNC_SOP );
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
     Abc_NtkBddToMuxesPerform( pNtk, pNtkNew );
     Abc_NtkFinalize( pNtk, pNtkNew );
     // make sure everything is okay

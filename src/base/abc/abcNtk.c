@@ -210,7 +210,7 @@ Abc_Ntk_t * Abc_NtkStartRead( char * pName )
 {
     Abc_Ntk_t * pNtkNew; 
     // allocate the empty network
-    pNtkNew = Abc_NtkAlloc( ABC_TYPE_NETLIST, ABC_FUNC_SOP );
+    pNtkNew = Abc_NtkAlloc( ABC_NTK_NETLIST, ABC_FUNC_SOP );
     // set the specs
     pNtkNew->pName = util_strsav( pName );
     pNtkNew->pSpec = util_strsav( pName );
@@ -379,7 +379,7 @@ Abc_Ntk_t * Abc_NtkCreateCone( Abc_Ntk_t * pNtk, Vec_Ptr_t * vRoots, Vec_Int_t *
     
     // start the network
     Abc_NtkCleanCopy( pNtk );
-    pNtkNew = Abc_NtkAlloc( ABC_TYPE_STRASH, ABC_FUNC_AIG );
+    pNtkNew = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG );
     pNtkNew->pName = util_strsav(pNtk->pName);
 
     // collect the nodes in the TFI of the output

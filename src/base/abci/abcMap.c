@@ -222,7 +222,7 @@ Abc_Ntk_t * Abc_NtkFromMap( Map_Man_t * pMan, Abc_Ntk_t * pNtk )
     int i, nDupGates;
 
     // create the new network
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_LOGIC, ABC_FUNC_MAP );
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_MAP );
     // make the mapper point to the new network
     Map_ManCleanData( pMan );
     Abc_NtkForEachCi( pNtk, pNode, i )

@@ -229,6 +229,7 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p )
         {
             Abc_ObjRemoveFanins(pNode);
             pNode->pData = Abc_SopRegister( pNtk->pManFunc, " 0\n" );
+            Vec_StrFree( ppSops[i] );
             continue;
         }
         Vec_StrPush( ppSops[i], 0 );

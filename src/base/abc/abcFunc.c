@@ -193,8 +193,8 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pNode;
     DdManager * dd = pNtk->pManFunc;
     DdNode * bFunc;
-    int RetValue, i;
     Vec_Str_t * vCube;
+    int i;
 
     assert( Abc_NtkIsBddLogic(pNtk) ); 
     Cudd_zddVarsFromBddVars( dd, 2 );
@@ -211,17 +211,17 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk )
         bFunc = pNode->pData;
         pNode->pData = Abc_ConvertBddToSop( pNtk->pManFunc, dd, bFunc, bFunc, Abc_ObjFaninNum(pNode), vCube, -1 );
         if ( pNode->pData == NULL )
+        {
+            Vec_StrFree( vCube );
+            Cudd_Quit( dd );
             return 0;
+        }
         Cudd_RecursiveDeref( dd, bFunc );
     }
     Vec_StrFree( vCube );
 
     // check for remaining references in the package
-    RetValue = Cudd_CheckZeroRef( dd );
-    if ( RetValue > 0 )
-        printf( "\nThe number of referenced nodes = %d\n\n", RetValue );
-//  Cudd_PrintInfo( dd, stdout );
-    Cudd_Quit( dd );
+    Extra_StopManager( dd );
     return 1;
 }
 

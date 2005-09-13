@@ -107,7 +107,7 @@ Abc_Ntk_t * Abc_NtkFromPga( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodeCuts )
     Vec_Ptr_t * vLeaves, * vVisited;
     int i, k, nDupGates;
     // create the new network
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_LOGIC, ABC_FUNC_BDD );
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_BDD );
     dd = pNtkNew->pManFunc;
     // set the constant node
     pNode = Abc_AigConst1(pNtk->pManFunc);

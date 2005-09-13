@@ -292,12 +292,12 @@ Abc_Ntk_t * Io_ReadBlifNetwork( Io_ReadBlif_t * p )
         }
         pModelName = vTokens->pArray[1];
         // allocate the empty network
-        p->pNtk = Abc_NtkAlloc( ABC_TYPE_NETLIST, ABC_FUNC_SOP );
+        p->pNtk = Abc_NtkAlloc( ABC_NTK_NETLIST, ABC_FUNC_SOP );
         p->pNtk->pName = util_strsav( pModelName );
         p->pNtk->pSpec = util_strsav( p->pFileName );
     }
     else
-        p->pNtk = Abc_NtkAlloc( ABC_TYPE_NETLIST, ABC_FUNC_SOP );
+        p->pNtk = Abc_NtkAlloc( ABC_NTK_NETLIST, ABC_FUNC_SOP );
 
     // read the inputs/outputs
     pProgress = Extra_ProgressBarStart( stdout, Extra_FileReaderGetFileSize(p->pReader) );

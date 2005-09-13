@@ -117,7 +117,7 @@ int Abc_NtkImplementRetimingBackward( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMoves )
     vValues = Vec_IntAlloc( 100 );
 
     // create the network for the initial state computation
-    pNtkProb = Abc_NtkAlloc( ABC_TYPE_LOGIC, ABC_FUNC_SOP );
+    pNtkProb = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_SOP );
 
     // perform the backward moves and build the network
     Vec_PtrForEachEntry( vMoves, pNode, i )

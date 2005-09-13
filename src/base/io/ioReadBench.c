@@ -100,6 +100,7 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
         if ( vTokens->nSize == 1 )
         {
             printf( "%s: Wrong input file format.\n", Extra_FileReaderGetFileName(p) );
+            Vec_StrFree( vString );
             Abc_NtkDelete( pNtk );
             return NULL;
         }
@@ -144,6 +145,7 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
                 else 
                 {
                     printf( "Cannot determine gate type \"%s\" in line %d.\n", pType, Extra_FileReaderGetLineNumber(p, 0) );
+                    Vec_StrFree( vString );
                     Abc_NtkDelete( pNtk );
                     return NULL;
                 }

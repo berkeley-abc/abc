@@ -79,7 +79,7 @@ Abc_Ntk_t * Abc_NtkAigToSeq( Abc_Ntk_t * pNtk )
     assert( Abc_NtkIsStrash(pNtk) );
     assert( Abc_NtkCountSelfFeedLatches(pNtk) == 0 );
     // start the network
-    pNtkNew = Abc_NtkAlloc( ABC_TYPE_SEQ, ABC_FUNC_AIG );
+    pNtkNew = Abc_NtkAlloc( ABC_NTK_SEQ, ABC_FUNC_AIG );
     // duplicate the name and the spec
     pNtkNew->pName = util_strsav(pNtk->pName);
     pNtkNew->pSpec = util_strsav(pNtk->pSpec);
@@ -231,7 +231,7 @@ Abc_Ntk_t * Abc_NtkSeqToLogicSop( Abc_Ntk_t * pNtk )
     assert( Abc_NtkIsSeq(pNtk) );
     // start the network without latches
     nCutNodes = pNtk->vLats->nSize; pNtk->vLats->nSize = 0;
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_LOGIC, ABC_FUNC_SOP );
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
     pNtk->vLats->nSize = nCutNodes;
     // create the constant node
     Abc_NtkDupConst1( pNtk, pNtkNew );

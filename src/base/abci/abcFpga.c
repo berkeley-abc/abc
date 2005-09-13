@@ -194,7 +194,7 @@ Abc_Ntk_t * Abc_NtkFromFpga( Fpga_Man_t * pMan, Abc_Ntk_t * pNtk )
     Abc_Obj_t * pNode, * pNodeNew;
     int i, nDupGates;
     // create the new network
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_LOGIC, ABC_FUNC_BDD );
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_BDD );
     // make the mapper point to the new network
     Fpga_CutsCleanSign( pMan );
     Fpga_ManCleanData0( pMan );

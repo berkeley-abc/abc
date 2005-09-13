@@ -126,7 +126,7 @@ Abc_Ntk_t * Abc_NtkDsdInternal( Abc_Ntk_t * pNtk, bool fVerbose, bool fPrint, bo
     }
 
     // start the new network
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_LOGIC, ABC_FUNC_BDD );
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_BDD );
     // make sure the new manager has enough inputs
     Cudd_bddIthVar( pNtkNew->pManFunc, dd->size-1 );
     // put the results into the new network (save new CO drivers in old CO drivers)

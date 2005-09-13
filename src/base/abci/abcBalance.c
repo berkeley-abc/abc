@@ -49,7 +49,7 @@ Abc_Ntk_t * Abc_NtkBalance( Abc_Ntk_t * pNtk, bool fDuplicate )
     Abc_Ntk_t * pNtkAig;
     assert( Abc_NtkIsStrash(pNtk) );
     // perform balancing
-    pNtkAig = Abc_NtkStartFrom( pNtk, ABC_TYPE_STRASH, ABC_FUNC_AIG );
+    pNtkAig = Abc_NtkStartFrom( pNtk, ABC_NTK_STRASH, ABC_FUNC_AIG );
     Abc_NtkBalancePerform( pNtk, pNtkAig, fDuplicate );
     Abc_NtkFinalize( pNtk, pNtkAig );
     // make sure everything is okay

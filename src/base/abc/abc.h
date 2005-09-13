@@ -43,12 +43,12 @@
 
 // network types
 typedef enum { 
-    ABC_TYPE_NONE = 0,  // 0:  unknown
-    ABC_TYPE_NETLIST,   // 1:  network with PIs/POs, latches, nodes, and nets
-    ABC_TYPE_LOGIC,     // 2:  network with PIs/POs, latches, and nodes
-    ABC_TYPE_STRASH,    // 3:  structurally hashed AIG (two input AND gates with c-attributes on edges)
-    ABC_TYPE_SEQ,       // 4:  sequential AIG (two input AND gates with c- and latch-attributes on edges)
-    ABC_TYPE_OTHER      // 5:  unused
+    ABC_NTK_NONE = 0,   // 0:  unknown
+    ABC_NTK_NETLIST,    // 1:  network with PIs/POs, latches, nodes, and nets
+    ABC_NTK_LOGIC,      // 2:  network with PIs/POs, latches, and nodes
+    ABC_NTK_STRASH,     // 3:  structurally hashed AIG (two input AND gates with c-attributes on edges)
+    ABC_NTK_SEQ,        // 4:  sequential AIG (two input AND gates with c- and latch-attributes on edges)
+    ABC_NTK_OTHER       // 5:  unused
 } Abc_NtkType_t;
 
 // network functionality
@@ -206,21 +206,21 @@ struct Abc_Ntk_t_
 #define ABC_INFINITY      (10000000)
 
 // checking the network type
-static inline bool        Abc_NtkIsNetlist( Abc_Ntk_t * pNtk )       { return pNtk->ntkType == ABC_TYPE_NETLIST; }
-static inline bool        Abc_NtkIsLogic( Abc_Ntk_t * pNtk )         { return pNtk->ntkType == ABC_TYPE_LOGIC;   }
-static inline bool        Abc_NtkIsStrash( Abc_Ntk_t * pNtk )        { return pNtk->ntkType == ABC_TYPE_STRASH;  }
-static inline bool        Abc_NtkIsSeq( Abc_Ntk_t * pNtk )           { return pNtk->ntkType == ABC_TYPE_SEQ;     }
+static inline bool        Abc_NtkIsNetlist( Abc_Ntk_t * pNtk )       { return pNtk->ntkType == ABC_NTK_NETLIST; }
+static inline bool        Abc_NtkIsLogic( Abc_Ntk_t * pNtk )         { return pNtk->ntkType == ABC_NTK_LOGIC;   }
+static inline bool        Abc_NtkIsStrash( Abc_Ntk_t * pNtk )        { return pNtk->ntkType == ABC_NTK_STRASH;  }
+static inline bool        Abc_NtkIsSeq( Abc_Ntk_t * pNtk )           { return pNtk->ntkType == ABC_NTK_SEQ;     }
 
 static inline bool        Abc_NtkHasSop( Abc_Ntk_t * pNtk )          { return pNtk->ntkFunc == ABC_FUNC_SOP;    }
 static inline bool        Abc_NtkHasBdd( Abc_Ntk_t * pNtk )          { return pNtk->ntkFunc == ABC_FUNC_BDD;    }
 static inline bool        Abc_NtkHasAig( Abc_Ntk_t * pNtk )          { return pNtk->ntkFunc == ABC_FUNC_AIG;    }
 static inline bool        Abc_NtkHasMapping( Abc_Ntk_t * pNtk )      { return pNtk->ntkFunc == ABC_FUNC_MAP;    }
 
-static inline bool        Abc_NtkIsSopNetlist( Abc_Ntk_t * pNtk )    { return pNtk->ntkFunc == ABC_FUNC_SOP && pNtk->ntkType == ABC_TYPE_NETLIST;  }
-static inline bool        Abc_NtkIsMappedNetlist( Abc_Ntk_t * pNtk ) { return pNtk->ntkFunc == ABC_FUNC_MAP && pNtk->ntkType == ABC_TYPE_NETLIST;  }
-static inline bool        Abc_NtkIsSopLogic( Abc_Ntk_t * pNtk )      { return pNtk->ntkFunc == ABC_FUNC_SOP && pNtk->ntkType == ABC_TYPE_LOGIC  ;  }
-static inline bool        Abc_NtkIsBddLogic( Abc_Ntk_t * pNtk )      { return pNtk->ntkFunc == ABC_FUNC_BDD && pNtk->ntkType == ABC_TYPE_LOGIC  ;  }
-static inline bool        Abc_NtkIsMappedLogic( Abc_Ntk_t * pNtk )   { return pNtk->ntkFunc == ABC_FUNC_MAP && pNtk->ntkType == ABC_TYPE_LOGIC  ;  }
+static inline bool        Abc_NtkIsSopNetlist( Abc_Ntk_t * pNtk )    { return pNtk->ntkFunc == ABC_FUNC_SOP && pNtk->ntkType == ABC_NTK_NETLIST;  }
+static inline bool        Abc_NtkIsMappedNetlist( Abc_Ntk_t * pNtk ) { return pNtk->ntkFunc == ABC_FUNC_MAP && pNtk->ntkType == ABC_NTK_NETLIST;  }
+static inline bool        Abc_NtkIsSopLogic( Abc_Ntk_t * pNtk )      { return pNtk->ntkFunc == ABC_FUNC_SOP && pNtk->ntkType == ABC_NTK_LOGIC  ;  }
+static inline bool        Abc_NtkIsBddLogic( Abc_Ntk_t * pNtk )      { return pNtk->ntkFunc == ABC_FUNC_BDD && pNtk->ntkType == ABC_NTK_LOGIC  ;  }
+static inline bool        Abc_NtkIsMappedLogic( Abc_Ntk_t * pNtk )   { return pNtk->ntkFunc == ABC_FUNC_MAP && pNtk->ntkType == ABC_NTK_LOGIC  ;  }
 static inline bool        Abc_NtkIsComb( Abc_Ntk_t * pNtk )          { return pNtk->nLatches == 0;      }
 
 // reading data members of the network

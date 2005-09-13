@@ -48,9 +48,9 @@ Abc_Ntk_t * Abc_NtkNetlistToLogic( Abc_Ntk_t * pNtk )
     assert( Abc_NtkIsNetlist(pNtk) );
     // start the network
     if ( !Abc_NtkHasMapping(pNtk) )
-        pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_LOGIC, ABC_FUNC_SOP );
+        pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
     else
-        pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_LOGIC, ABC_FUNC_MAP );
+        pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_MAP );
     // duplicate the nodes 
     Abc_NtkForEachNode( pNtk, pObj, i )
         Abc_NtkDupObj(pNtkNew, pObj);
@@ -159,9 +159,9 @@ Abc_Ntk_t * Abc_NtkLogicSopToNetlist( Abc_Ntk_t * pNtk )
 
     // start the netlist by creating PI/PO/Latch objects
     if ( Abc_NtkIsSopLogic(pNtk) )
-        pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_NETLIST, ABC_FUNC_SOP );
+        pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_NETLIST, ABC_FUNC_SOP );
     else
-        pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_NETLIST, ABC_FUNC_BDD );
+        pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_NETLIST, ABC_FUNC_BDD );
     // create the CI nets and remember them in the new CI nodes
     Abc_NtkForEachCi( pNtk, pObj, i )
     {
@@ -236,7 +236,7 @@ Abc_Ntk_t * Abc_NtkAigToLogicSop( Abc_Ntk_t * pNtk )
     int i, k;
     assert( Abc_NtkIsStrash(pNtk) );
     // start the network
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_LOGIC, ABC_FUNC_SOP );
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
     // create the constant node
     Abc_NtkDupConst1( pNtk, pNtkNew );
     // duplicate the nodes and create node functions
@@ -313,7 +313,7 @@ Abc_Ntk_t * Abc_NtkAigToLogicSopBench( Abc_Ntk_t * pNtk )
     if ( Abc_NtkGetChoiceNum(pNtk) )
         printf( "Warning: Choice nodes are skipped.\n" );
     // start the network
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_LOGIC, ABC_FUNC_SOP );
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
     // create the constant node
     Abc_NtkDupConst1( pNtk, pNtkNew );
     // collect the nodes to be used (marks all nodes with current TravId)

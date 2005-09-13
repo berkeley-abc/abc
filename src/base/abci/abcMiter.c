@@ -84,7 +84,7 @@ Abc_Ntk_t * Abc_NtkMiterInt( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb )
     assert( Abc_NtkIsStrash(pNtk2) );
 
     // start the new network
-    pNtkMiter = Abc_NtkAlloc( ABC_TYPE_STRASH, ABC_FUNC_AIG );
+    pNtkMiter = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG );
     sprintf( Buffer, "%s_%s_miter", pNtk1->pName, pNtk2->pName );
     pNtkMiter->pName = util_strsav(Buffer);
 
@@ -321,7 +321,7 @@ Abc_Ntk_t * Abc_NtkMiterForCofactors( Abc_Ntk_t * pNtk, int Out, int In1, int In
     assert( In2 < Abc_NtkCiNum(pNtk) );
 
     // start the new network
-    pNtkMiter = Abc_NtkAlloc( ABC_TYPE_STRASH, ABC_FUNC_AIG );
+    pNtkMiter = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG );
     sprintf( Buffer, "%s_miter", Abc_ObjName(Abc_NtkCo(pNtk, Out)) );
     pNtkMiter->pName = util_strsav(Buffer);
 
@@ -477,7 +477,7 @@ Abc_Ntk_t * Abc_NtkFrames( Abc_Ntk_t * pNtk, int nFrames, int fInitial )
     assert( nFrames > 0 );
     assert( Abc_NtkIsStrash(pNtk) );
     // start the new network
-    pNtkFrames = Abc_NtkAlloc( ABC_TYPE_STRASH, ABC_FUNC_AIG );
+    pNtkFrames = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG );
     sprintf( Buffer, "%s_%d_frames", pNtk->pName, nFrames );
     pNtkFrames->pName = util_strsav(Buffer);
     // create new latches (or their initial values) and remember them in the new latches

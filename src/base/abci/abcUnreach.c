@@ -282,7 +282,7 @@ Abc_Ntk_t * Abc_NtkConstructExdc( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bUn
     int i;
 
     // start the new network
-    pNtkNew = Abc_NtkAlloc( ABC_TYPE_LOGIC, ABC_FUNC_BDD );
+    pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_BDD );
     // create PIs corresponding to LOs
     Abc_NtkForEachLatch( pNtk, pNode, i )
         pNode->pCopy = Abc_NtkCreatePi(pNtkNew);

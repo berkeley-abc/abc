@@ -73,7 +73,7 @@ Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax, int fCn
         Abc_NtkRenodeSetBounds( pNtk, nThresh, nFaninMax );
 
     // perform renoding for this boundary
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_LOGIC, ABC_FUNC_BDD );
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_BDD );
     Abc_NtkRenodeInt( pNtk, pNtkNew );
     Abc_NtkFinalize( pNtk, pNtkNew );
 

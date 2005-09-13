@@ -160,12 +160,13 @@ Abc_Aig_t * Abc_AigDup( Abc_Aig_t * pMan, Abc_Aig_t * pManNew )
     Abc_NtkForEachLatch( pMan->pNtkAig, pObj, i )
         pObj->pCopy = Abc_NtkLatch( pManNew->pNtkAig, i );
     // copy internal nodes
-    vNodes = Abc_AigDfs( pMan->pNtkAig, 1, 0 );
+    vNodes = Abc_AigDfs( pMan->pNtkAig, 0, 0 );
     Vec_PtrForEachEntry( vNodes, pObj, i )
     {
         if ( !Abc_NodeIsAigAnd(pObj) )
             continue;
         pObj->pCopy = Abc_AigAnd( pManNew, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
+//        printf( "Old = %4d. New = %4d.\n", pObj->Id, pObj->pCopy->Id );
         // transfer latch attributes
         Abc_ObjSetFaninL0( pObj->pCopy, Abc_ObjFaninL0(pObj) );
         Abc_ObjSetFaninL1( pObj->pCopy, Abc_ObjFaninL1(pObj) );
@@ -183,7 +184,7 @@ Abc_Aig_t * Abc_AigDup( Abc_Aig_t * pMan, Abc_Aig_t * pManNew )
     }
     // get the number of nodes before and after
     if ( Abc_NtkNodeNum(pMan->pNtkAig) != Abc_NtkNodeNum(pManNew->pNtkAig) )
-        printf( "Warning: Structural hashing reduced %d nodes (should not happen).\n",
+        printf( "Warning: Structural hashing during duplication reduced %d nodes (to fix later).\n",
             Abc_NtkNodeNum(pMan->pNtkAig) - Abc_NtkNodeNum(pManNew->pNtkAig) );
     return pManNew;
 }

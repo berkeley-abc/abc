@@ -61,7 +61,7 @@ Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes, bool fCleanup )
     if ( Abc_NtkGetChoiceNum( pNtk ) )
         printf( "Warning: The choice nodes in the initial AIG are removed by strashing.\n" );
     // perform strashing
-    pNtkAig = Abc_NtkStartFrom( pNtk, ABC_TYPE_STRASH, ABC_FUNC_AIG );
+    pNtkAig = Abc_NtkStartFrom( pNtk, ABC_NTK_STRASH, ABC_FUNC_AIG );
     Abc_NtkStrashPerform( pNtk, pNtkAig, fAllNodes );
     Abc_NtkFinalize( pNtk, pNtkAig );
     // print warning about self-feed latches

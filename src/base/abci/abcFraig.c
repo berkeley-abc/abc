@@ -148,7 +148,7 @@ Abc_Ntk_t * Abc_NtkFromFraig( Fraig_Man_t * pMan, Abc_Ntk_t * pNtk )
     Abc_Obj_t * pNode, * pNodeNew;
     int i;
     // create the new network
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_STRASH, ABC_FUNC_AIG );
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_STRASH, ABC_FUNC_AIG );
     // make the mapper point to the new network
     Abc_NtkForEachCi( pNtk, pNode, i )
         Fraig_NodeSetData1( Fraig_ManReadIthVar(pMan, i), (Fraig_Node_t *)pNode->pCopy );
@@ -260,7 +260,7 @@ Abc_Ntk_t * Abc_NtkFraigTrust( Abc_Ntk_t * pNtk )
     }
     
     // perform strashing
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_STRASH, ABC_FUNC_AIG );
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_STRASH, ABC_FUNC_AIG );
     Abc_NtkFraigTrustOne( pNtk, pNtkNew );
     Abc_NtkFinalize( pNtk, pNtkNew );
 
