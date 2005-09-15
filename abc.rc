@@ -36,6 +36,7 @@ alias r read
 alias ren renode
 alias rl read_blif
 alias rb read_bench
+alias ret retime
 alias rp read_pla
 alias rv read_verilog
 alias rsup read_super mcnc5_old.super
@@ -63,4 +64,3 @@ alias sharedsd "b; ren; dsd -g; sw; fx; b"
 alias resyn    "b; rw; rwz; b; rwz; b"
 alias resyn2   "b; rw; rf; b; rw; rwz; b; rfz; rwz; b"
 alias thin     "rwz; rfz; b; ps"
-

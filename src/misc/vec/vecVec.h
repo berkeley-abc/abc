@@ -50,13 +50,13 @@ struct Vec_Vec_t_
 
 // iterators through levels 
 #define Vec_VecForEachLevel( vGlob, vVec, i )                                                 \
-    for ( i = 0; (i < Vec_VecSize(vGlob)) && (((vVec) = Vec_VecEntry(vGlob, i)), 1); i++ )
+    for ( i = 0; (i < Vec_VecSize(vGlob)) && (((vVec) = (Vec_Ptr_t*)Vec_VecEntry(vGlob, i)), 1); i++ )
 #define Vec_VecForEachLevelStart( vGlob, vVec, i, LevelStart )                                \
-    for ( i = LevelStart; (i < Vec_VecSize(vGlob)) && (((vVec) = Vec_VecEntry(vGlob, i)), 1); i++ )
+    for ( i = LevelStart; (i < Vec_VecSize(vGlob)) && (((vVec) = (Vec_Ptr_t*)Vec_VecEntry(vGlob, i)), 1); i++ )
 #define Vec_VecForEachLevelStartStop( vGlob, vVec, i, LevelStart, LevelStop )                 \
-    for ( i = LevelStart; (i <= LevelStop) && (((vVec) = Vec_VecEntry(vGlob, i)), 1); i++ )
+    for ( i = LevelStart; (i <= LevelStop) && (((vVec) = (Vec_Ptr_t*)Vec_VecEntry(vGlob, i)), 1); i++ )
 #define Vec_VecForEachLevelReverse( vGlob, vVec, i )                                          \
-    for ( i = Vec_VecSize(vGlob) - 1; (i >= 0) && (((vVec) = Vec_VecEntry(vGlob, i)), 1); i-- )
+    for ( i = Vec_VecSize(vGlob) - 1; (i >= 0) && (((vVec) = (Vec_Ptr_t*)Vec_VecEntry(vGlob, i)), 1); i-- )
 
 // iteratores through entries
 #define Vec_VecForEachEntry( vGlob, pEntry, i, k )                                            \
@@ -234,7 +234,7 @@ static inline void Vec_VecPush( Vec_Vec_t * p, int Level, void * Entry )
             p->pArray[i] = Vec_PtrAlloc( 0 );
         p->nSize = Level + 1;
     }
-    Vec_PtrPush( p->pArray[Level], Entry );
+    Vec_PtrPush( (Vec_Ptr_t*)p->pArray[Level], Entry );
 }
 
 /**Function*************************************************************
@@ -253,7 +253,7 @@ static inline void Vec_VecPushUnique( Vec_Vec_t * p, int Level, void * Entry )
     if ( p->nSize < Level + 1 )
         Vec_VecPush( p, Level, Entry );
     else
-        Vec_PtrPushUnique( p->pArray[Level], Entry );
+        Vec_PtrPushUnique( (Vec_Ptr_t*)p->pArray[Level], Entry );
 }
 
 ////////////////////////////////////////////////////////////////////////

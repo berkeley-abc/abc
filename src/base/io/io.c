@@ -876,9 +876,9 @@ int IoCommandWriteDot( Abc_Frame_t * pAbc, int argc, char **argv )
         return 0;
     }
 
-    if ( !Abc_NtkIsStrash(pAbc->pNtkCur) )
+    if ( !Abc_NtkHasAig(pAbc->pNtkCur) )
     {
-        fprintf( stdout, "IoCommandWriteDot(): Currently can only process logic networks with BDDs.\n" );
+        fprintf( stdout, "IoCommandWriteDot(): Currently can only process AIGs.\n" );
         return 0;
     }
 

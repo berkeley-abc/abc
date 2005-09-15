@@ -283,6 +283,7 @@ void Abc_NtkDupCioNamesTable( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
         Abc_NtkLogicStoreName( Abc_NtkPi(pNtkNew,i),    Abc_ObjName(pObj) );
     Abc_NtkForEachPo( pNtk, pObj, i ) 
         Abc_NtkLogicStoreName( Abc_NtkPo(pNtkNew,i),    Abc_ObjName(pObj) );
+    if ( !Abc_NtkIsSeq(pNtk) )
     Abc_NtkForEachLatch( pNtk, pObj, i )
         Abc_NtkLogicStoreName( Abc_NtkLatch(pNtkNew,i), Abc_ObjName(pObj) );
 }

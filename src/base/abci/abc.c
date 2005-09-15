@@ -86,6 +86,7 @@ static int Abc_CommandFpga         ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int Abc_CommandPga          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandSeq          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandUnseq        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRetime       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandCec          ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -163,6 +164,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "FPGA mapping", "pga",           Abc_CommandPga,              1 );
 
     Cmd_CommandAdd( pAbc, "Sequential",   "seq",           Abc_CommandSeq,              1 );
+    Cmd_CommandAdd( pAbc, "Sequential",   "unseq",         Abc_CommandUnseq,            1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "retime",        Abc_CommandRetime,           1 );
 
     Cmd_CommandAdd( pAbc, "Verification", "cec",           Abc_CommandCec,              0 );
@@ -949,9 +951,9 @@ int Abc_CommandShowAig( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( !Abc_NtkIsStrash(pNtk) )
+    if ( !Abc_NtkHasAig(pNtk) )
     {
-        fprintf( pErr, "Visualizing AIG can only be done for AIGs (run \"strash\").\n" );
+        fprintf( pErr, "Visualizing AIG can only be done for AIGs (run \"strash\" or \"seq\").\n" );
         return 1;
     }
     Abc_NtkShowAig( pNtk );
@@ -3906,7 +3908,6 @@ int Abc_CommandSeq( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
     int c;
-    extern Abc_Ntk_t * Abc_NtkSuperChoice( Abc_Ntk_t * pNtk );
 
     pNtk = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -3931,8 +3932,8 @@ int Abc_CommandSeq( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    printf( "This command is not yet implemented.\n" );
-    return 0;
+//    printf( "This command is not yet implemented.\n" );
+//    return 0;
 
     if ( !Abc_NtkIsStrash(pNtk) )
     {
@@ -3959,7 +3960,81 @@ int Abc_CommandSeq( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     fprintf( pErr, "usage: seq [-h]\n" );
-    fprintf( pErr, "\t        converts AIG into sequential AIG (while sweeping latches)\n" );
+    fprintf( pErr, "\t        converts AIG into sequential AIG\n" );
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandUnseq( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c;
+    int fShare;
+
+    pNtk = Abc_FrameReadNet(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fShare = 1;
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "sh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 's':
+            fShare ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkIsSeq(pNtk) )
+    {
+        fprintf( pErr, "Works only for sequential AIG (run \"seq\").\n" );
+        return 1;
+    }
+
+    // share the latches on the fanout edges
+    if ( fShare )
+        Abc_NtkSeqShareFanouts(pNtk);
+
+    // get the new network
+    pNtkRes = Abc_NtkSeqToLogicSop( pNtk );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Converting sequential AIG into an SOP logic network has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: unseq [-sh]\n" );
+    fprintf( pErr, "\t        converts sequential AIG into an SOP logic network\n" );
+    fprintf( pErr, "\t-s    : toggle sharing latches [default = %s]\n", fShare? "yes": "no" );
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -3991,7 +4066,7 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fForward  = 0;
+    fForward  = 1;
     fBackward = 0;
     fInitial  = 0;
     util_getopt_reset();
@@ -4020,10 +4095,6 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Empty network.\n" );
         return 1;
     }
-
-    printf( "This command is not yet implemented.\n" );
-    return 0;
-
 
     if ( !Abc_NtkIsSeq(pNtk) )
     {

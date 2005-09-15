@@ -317,11 +317,11 @@ static void clause_remove(solver* s, clause* c)
     vec_remove(solver_read_wlist(s,neg(lits[1])),(void*)(clause_size(c) > 2 ? c : clause_from_lit(lits[0])));
 
     if (clause_learnt(c)){
-        s->stats.learnts--;
-        s->stats.learnts_literals -= clause_size(c);
+        s->solver_stats.learnts--;
+        s->solver_stats.learnts_literals -= clause_size(c);
     }else{
-        s->stats.clauses--;
-        s->stats.clauses_literals -= clause_size(c);
+        s->solver_stats.clauses--;
+        s->solver_stats.clauses_literals -= clause_size(c);
     }
 
     free(c);
@@ -409,7 +409,7 @@ static inline bool enqueue(solver* s, lit l, clause* from)
         s->trail[s->qtail++] = l;
 
         order_assigned(s, v);
-        return true;
+        return 1;
     }
 }
 
@@ -465,8 +465,8 @@ static void solver_record(solver* s, vec* cls)
     if (c != 0) {
         vec_push(&s->learnts,(void*)c);
         act_clause_bump(s,c);
-        s->stats.learnts++;
-        s->stats.learnts_literals += vec_size(cls);
+        s->solver_stats.learnts++;
+        s->solver_stats.learnts_literals += vec_size(cls);
     }
 }
 
@@ -521,7 +521,7 @@ static bool solver_lit_removable(solver* s, lit l, int minl)
                     for (j = top; j < vec_size(&s->tagged); j++)
                         tags[tagged[j]] = l_Undef;
                     vec_resize(&s->tagged,top);
-                    return false;
+                    return 0;
                 }
             }
         }else{
@@ -541,14 +541,14 @@ static bool solver_lit_removable(solver* s, lit l, int minl)
                         for (j = top; j < vec_size(&s->tagged); j++)
                             tags[tagged[j]] = l_Undef;
                         vec_resize(&s->tagged,top);
-                        return false;
+                        return 0;
                     }
                 }
             }
         }
     }
 
-    return true;
+    return 1;
 }
 
 static void solver_analyze(solver* s, clause* c, vec* learnt)
@@ -627,9 +627,9 @@ static void solver_analyze(solver* s, clause* c, vec* learnt)
     }
 
     // update size of learnt + statistics
-    s->stats.max_literals += vec_size(learnt);
+    s->solver_stats.max_literals += vec_size(learnt);
     vec_resize(learnt,j);
-    s->stats.tot_literals += j;
+    s->solver_stats.tot_literals += j;
 
     // clear tags
     tagged = (int*)vec_begin(&s->tagged);
@@ -684,7 +684,7 @@ clause* solver_propagate(solver* s)
         clause **end   = begin + vec_size(ws);
         clause **i, **j;
 
-        s->stats.propagations++;
+        s->solver_stats.propagations++;
         s->simpdb_props--;
 
         //printf("checking lit %d: "L_LIT"\n", vec_size(ws), L_lit(p));
@@ -746,7 +746,7 @@ clause* solver_propagate(solver* s)
             i++;
         }
 
-        s->stats.inspects += j - (clause**)vec_begin(ws);
+        s->solver_stats.inspects += j - (clause**)vec_begin(ws);
         vec_resize(ws,j - (clause**)vec_begin(ws));
     }
 
@@ -796,7 +796,7 @@ static lbool solver_search(solver* s, int nof_conflicts, int nof_learnts)
 
     assert(s->root_level == solver_dlevel(s));
 
-    s->stats.starts++;
+    s->solver_stats.starts++;
     s->var_decay = (float)(1 / var_decay   );
     s->cla_decay = (float)(1 / clause_decay);
     vec_resize(&s->model,0);
@@ -811,7 +811,7 @@ static lbool solver_search(solver* s, int nof_conflicts, int nof_learnts)
 #ifdef VERBOSEDEBUG
             printf(L_IND"**CONFLICT**\n", L_ind);
 #endif
-            s->stats.conflicts++; conflictC++;
+            s->solver_stats.conflicts++; conflictC++;
             if (solver_dlevel(s) == s->root_level){
                 vec_delete(&learnt_clause);
                 return l_False;
@@ -845,7 +845,7 @@ static lbool solver_search(solver* s, int nof_conflicts, int nof_learnts)
                 solver_reducedb(s);
 
             // New variable decision:
-            s->stats.decisions++;
+            s->solver_stats.decisions++;
             next = order_select(s,(float)random_var_freq);
 
             if (next == var_Undef){
@@ -910,17 +910,17 @@ solver* solver_new(void)
     s->binary->size_learnt    = (2 << 1);
     s->verbosity              = 0;
 
-    s->stats.starts           = 0;
-    s->stats.decisions        = 0;
-    s->stats.propagations     = 0;
-    s->stats.inspects         = 0;
-    s->stats.conflicts        = 0;
-    s->stats.clauses          = 0;
-    s->stats.clauses_literals = 0;
-    s->stats.learnts          = 0;
-    s->stats.learnts_literals = 0;
-    s->stats.max_literals     = 0;
-    s->stats.tot_literals     = 0;
+    s->solver_stats.starts           = 0;
+    s->solver_stats.decisions        = 0;
+    s->solver_stats.propagations     = 0;
+    s->solver_stats.inspects         = 0;
+    s->solver_stats.conflicts        = 0;
+    s->solver_stats.clauses          = 0;
+    s->solver_stats.clauses_literals = 0;
+    s->solver_stats.learnts          = 0;
+    s->solver_stats.learnts_literals = 0;
+    s->solver_stats.max_literals     = 0;
+    s->solver_stats.tot_literals     = 0;
 
     return s;
 }
@@ -973,7 +973,7 @@ bool solver_addclause(solver* s, lit* begin, lit* end)
     lbool* values;
     lit last;
 
-    if (begin == end) return false;
+    if (begin == end) return 0;
 
     //printlits(begin,end); printf("\n");
     // insertion sort
@@ -996,7 +996,7 @@ bool solver_addclause(solver* s, lit* begin, lit* end)
         //printf("lit: "L_LIT", value = %d\n", L_lit(*i), (lit_sign(*i) ? -values[lit_var(*i)] : values[lit_var(*i)]));
         lbool sig = !lit_sign(*i); sig += sig - 1;
         if (*i == neg(last) || sig == values[lit_var(*i)])
-            return true;   // tautology
+            return 1;   // tautology
         else if (*i != last && values[lit_var(*i)] == l_Undef)
             last = *j++ = *i;
     }
@@ -1004,7 +1004,7 @@ bool solver_addclause(solver* s, lit* begin, lit* end)
     //printf("final: "); printlits(begin,j); printf("\n");
 
     if (j == begin)          // empty clause
-        return false;
+        return 0;
     else if (j - begin == 1) // unit clause
         return enqueue(s,*begin,(clause*)0);
 
@@ -1012,10 +1012,10 @@ bool solver_addclause(solver* s, lit* begin, lit* end)
     vec_push(&s->clauses,clause_new(s,begin,j,0));
 
 
-    s->stats.clauses++;
-    s->stats.clauses_literals += j - begin;
+    s->solver_stats.clauses++;
+    s->solver_stats.clauses_literals += j - begin;
 
-    return true;
+    return 1;
 }
 
 
@@ -1027,10 +1027,10 @@ bool   solver_simplify(solver* s)
     assert(solver_dlevel(s) == 0);
 
     if (solver_propagate(s) != 0)
-        return false;
+        return 0;
 
     if (s->qhead == s->simpdb_assigns || s->simpdb_props > 0)
-        return true;
+        return 1;
 
     reasons = s->reasons;
     for (type = 0; type < 2; type++){
@@ -1050,13 +1050,13 @@ bool   solver_simplify(solver* s)
 
     s->simpdb_assigns = s->qhead;
     // (shouldn't depend on 'stats' really, but it will do for now)
-    s->simpdb_props   = (int)(s->stats.clauses_literals + s->stats.learnts_literals);
+    s->simpdb_props   = (int)(s->solver_stats.clauses_literals + s->solver_stats.learnts_literals);
 
-    return true;
+    return 1;
 }
 
 
-int   solver_solve(solver* s, lit* begin, lit* end, int nSeconds)
+bool solver_solve(solver* s, lit* begin, lit* end, int nSeconds)
 {
     double  nof_conflicts = 100;
     double  nof_learnts   = solver_nclauses(s) / 3;
@@ -1068,7 +1068,7 @@ int   solver_solve(solver* s, lit* begin, lit* end, int nSeconds)
     for (i = begin; i < end; i++)
         if ((lit_sign(*i) ? -values[lit_var(*i)] : values[lit_var(*i)]) == l_False || (assume(s,*i), solver_propagate(s) != 0)){
             solver_canceluntil(s,0);
-            return false; }
+            return l_False; }
 
     s->root_level = solver_dlevel(s);
 
@@ -1080,17 +1080,17 @@ int   solver_solve(solver* s, lit* begin, lit* end, int nSeconds)
     }
 
     while (status == l_Undef){
-        double Ratio = (s->stats.learnts == 0)? 0.0 :
-            s->stats.learnts_literals / (double)s->stats.learnts;
+        double Ratio = (s->solver_stats.learnts == 0)? 0.0 :
+            s->solver_stats.learnts_literals / (double)s->solver_stats.learnts;
 
         if (s->verbosity >= 1){
             printf("| %9.0f | %7.0f %8.0f | %7.0f %7.0f %8.0f %7.1f | %6.3f %% |\n", 
-                (double)s->stats.conflicts,
-                (double)s->stats.clauses, 
-                (double)s->stats.clauses_literals,
+                (double)s->solver_stats.conflicts,
+                (double)s->solver_stats.clauses, 
+                (double)s->solver_stats.clauses_literals,
                 (double)nof_learnts, 
-                (double)s->stats.learnts, 
-                (double)s->stats.learnts_literals,
+                (double)s->solver_stats.learnts, 
+                (double)s->solver_stats.learnts_literals,
                 Ratio,
                 s->progress_estimate*100);
             fflush(stdout);

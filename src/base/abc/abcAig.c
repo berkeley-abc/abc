@@ -409,6 +409,7 @@ Abc_Obj_t * Abc_AigAndCreateFrom( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * 
     Key = Abc_HashKey2( p0, p1, pMan->nBins );
     pAnd->pNext      = pMan->pBins[Key];
     pMan->pBins[Key] = pAnd;
+    pMan->nEntries++;
     // create the cuts if defined
 //    if ( pAnd->pNtk->pManCut )
 //        Abc_NodeGetCuts( pAnd->pNtk->pManCut, pAnd );
@@ -541,6 +542,57 @@ clk = clock();
     pMan->pBins = pBinsNew;
     pMan->nBins = nBinsNew;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Resizes the hash table of AIG nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_AigRehash( Abc_Aig_t * pMan )
+{
+    Abc_Obj_t ** pBinsNew;
+    Abc_Obj_t * pEnt, * pEnt2;
+    Abc_Fan_t * pArray;
+    unsigned Key;
+    int Counter, Temp, i;
+
+    // allocate a new array
+    pBinsNew = ALLOC( Abc_Obj_t *, pMan->nBins );
+    memset( pBinsNew, 0, sizeof(Abc_Obj_t *) * pMan->nBins );
+    // rehash the entries from the old table
+    Counter = 0;
+    for ( i = 0; i < pMan->nBins; i++ )
+        Abc_AigBinForEachEntrySafe( pMan->pBins[i], pEnt, pEnt2 )
+        {
+            // swap the fanins if needed
+            pArray = pEnt->vFanins.pArray;
+            if ( pArray[0].iFan > pArray[1].iFan )
+            {
+                Temp = pArray[0].iFan;
+                pArray[0].iFan = pArray[1].iFan;
+                pArray[1].iFan = Temp;
+                Temp = pArray[0].fCompl;
+                pArray[0].fCompl = pArray[1].fCompl;
+                pArray[1].fCompl = Temp;
+            }
+            // rehash the node
+            Key = Abc_HashKey2( Abc_ObjChild0(pEnt), Abc_ObjChild1(pEnt), pMan->nBins );
+            pEnt->pNext   = pBinsNew[Key];
+            pBinsNew[Key] = pEnt;
+            Counter++;
+        }
+    assert( Counter == pMan->nEntries );
+    // replace the table and the parameters
+    free( pMan->pBins );
+    pMan->pBins = pBinsNew;
+}
+
 
 
 
@@ -1155,6 +1207,34 @@ bool Abc_AigNodeIsAcyclic( Abc_Obj_t * pNode, Abc_Obj_t * pRoot )
             return 0;
     }
     return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Resizes the hash table of AIG nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_AigCheckFaninOrder( Abc_Aig_t * pMan )
+{
+    Abc_Obj_t * pEnt;
+    int i;
+    for ( i = 0; i < pMan->nBins; i++ )
+        Abc_AigBinForEachEntry( pMan->pBins[i], pEnt )
+        {
+            if ( Abc_ObjRegular(Abc_ObjChild0(pEnt))->Id > Abc_ObjRegular(Abc_ObjChild1(pEnt))->Id )
+            {
+                int i0 = Abc_ObjRegular(Abc_ObjChild0(pEnt))->Id;
+                int i1 = Abc_ObjRegular(Abc_ObjChild1(pEnt))->Id;
+                int x = 0;
+                printf( "Node %d has incorrect ordering of fanins.\n", pEnt->Id );
+            }
+        }
 }
 
 ////////////////////////////////////////////////////////////////////////

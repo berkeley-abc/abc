@@ -36,16 +36,13 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #define bool int
 #endif
 
-static const bool  true      = 1;
-static const bool  false     = 0;
-
 typedef int                lit;
 typedef char               lbool;
 
 #ifdef _WIN32
-typedef signed __int64  sint64;   // compatible with MS VS 6.0
+typedef signed __int64     sint64;   // compatible with MS VS 6.0
 #else
-typedef long long       sint64;
+typedef long long          sint64;
 #endif
 
 static const int   var_Undef = -1;
@@ -132,7 +129,7 @@ struct solver_t
     double   progress_estimate;
     int      verbosity;     // Verbosity level. 0=silent, 1=some progress report, 2=everything
 
-    stats    stats;
+    stats    solver_stats;
 };
 
 #endif

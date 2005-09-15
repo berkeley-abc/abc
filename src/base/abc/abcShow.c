@@ -96,7 +96,7 @@ void Abc_NtkShowAig( Abc_Ntk_t * pNtk )
     char FileNameDot[200];
     int i;
 
-    assert( Abc_NtkIsStrash(pNtk) );
+    assert( Abc_NtkHasAig(pNtk) );
     // create the file name
     Abc_ShowGetFileName( pNtk->pName, FileNameDot );
     // check that the file can be opened

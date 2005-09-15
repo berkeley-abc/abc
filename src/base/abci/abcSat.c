@@ -52,7 +52,7 @@ int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, int nSeconds, int fVerbose )
     assert( Abc_NtkLatchNum(pNtk) == 0 );
 
     if ( Abc_NtkPoNum(pNtk) > 1 )
-        fprintf( stdout, "Warning: The miter has more than 1 output. SAT will try to prove all of them.\n" );
+        fprintf( stdout, "Warning: The miter has %d outputs. SAT will try to prove all of them.\n", Abc_NtkPoNum(pNtk) );
 
     // load clauses into the solver
     clk = clock();
@@ -65,11 +65,11 @@ int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, int nSeconds, int fVerbose )
     status = solver_simplify(pSat);
 //    printf( "Simplified the problem to %d variables and %d clauses. ", solver_nvars(pSat), solver_nclauses(pSat) );
 //    PRT( "Time", clock() - clk );
-    if ( status == l_False )
+    if ( status == 0 )
     {
         solver_delete( pSat );
-        printf( "The problem is UNSATISFIABLE after simplification.\n" );
-        return 0;
+//        printf( "The problem is UNSATISFIABLE after simplification.\n" );
+        return -1;
     }
 
     // solve the miter
@@ -146,8 +146,10 @@ solver * Abc_NtkMiterSatCreate( Abc_Ntk_t * pNtk )
         Abc_NodeAddClauses( pSat, pSop0, pSop1, pNode, vVars );
     }
     // add clauses for each PO
-    Abc_NtkForEachPo( pNtk, pNode, i )
-        Abc_NodeAddClausesTop( pSat, pNode, vVars );
+//    Abc_NtkForEachPo( pNtk, pNode, i )
+//        Abc_NodeAddClausesTop( pSat, pNode, vVars );
+
+    Abc_NodeAddClausesTop( pSat, Abc_NtkPo(pNtk, Abc_NtkPoNum(pNtk)-1), vVars );
 
     // delete
     Vec_StrFree( vCube );

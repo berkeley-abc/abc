@@ -123,26 +123,32 @@ void Fraig_ManProveMiter( Fraig_Man_t * p )
 int Fraig_ManCheckMiter( Fraig_Man_t * p )
 {
     Fraig_Node_t * pNode;
+    int i;
     FREE( p->pModel );
-    // get the output node (it can be complemented!)
-    pNode = p->vOutputs->pArray[0];
-    // if the miter is constant 0, the problem is UNSAT
-    if ( pNode == Fraig_Not(p->pConst1) )
-        return 1;
-    // consider the special case when the miter is constant 1
-    if ( pNode == p->pConst1 )
+    for ( i = 0; i < p->vOutputs->nSize; i++ )
     {
-        // in this case, any counter example will do to distinquish it from constant 0
-        // here we pick the counter example composed of all zeros
-        p->pModel = Fraig_ManAllocCounterExample( p );
-        return 0;
+        // get the output node (it can be complemented!)
+        pNode = p->vOutputs->pArray[i];
+        // if the miter is constant 0, the problem is UNSAT
+        if ( pNode == Fraig_Not(p->pConst1) )
+            continue;
+        // consider the special case when the miter is constant 1
+        if ( pNode == p->pConst1 )
+        {
+            // in this case, any counter example will do to distinquish it from constant 0
+            // here we pick the counter example composed of all zeros
+            p->pModel = Fraig_ManAllocCounterExample( p );
+            return 0;
+        }
+        // save the counter example
+        p->pModel = Fraig_ManSaveCounterExample( p, pNode );
+        // if the model is not found, return undecided
+        if ( p->pModel == NULL )
+            return -1;
+        else
+            return 0;
     }
-    // save the counter example
-    p->pModel = Fraig_ManSaveCounterExample( p, pNode );
-    // if the model is not found, return undecided
-    if ( p->pModel == NULL )
-        return -1;
-    return 0;
+    return 1;
 }
 
 

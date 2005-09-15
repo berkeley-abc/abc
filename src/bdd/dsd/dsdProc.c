@@ -1255,7 +1255,7 @@ EXIT:
     s_CacheEntries++;
 
 
-#if 0
+/*
     if ( dsdKernelVerifyDecomposition(dd, pThis) == 0 )
     {
         // write the function, for which verification does not work
@@ -1277,7 +1277,7 @@ EXIT:
         cuddWriteFunctionSop( stdout, dd, zNewFunc, -1, dd->size, "1", s_pVarMask );
         Cudd_RecursiveDerefZdd( dd, zNewFunc );
     }
-#endif
+*/
 
     }
 

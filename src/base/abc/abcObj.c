@@ -158,7 +158,7 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
                 pObjNew->pData = Cudd_bddTransfer(pObj->pNtk->pManFunc, pNtkNew->pManFunc, pObj->pData), Cudd_Ref(pObjNew->pData);
             else if ( Abc_NtkHasMapping(pNtkNew) )
                 pObjNew->pData = pObj->pData;
-            else if ( Abc_NtkHasAig(pNtkNew) )
+            else if ( Abc_NtkIsStrash(pNtkNew) )
                 assert( 0 );
         }
     }
@@ -191,6 +191,13 @@ Abc_Obj_t * Abc_NtkDupConst1( Abc_Ntk_t * pNtkAig, Abc_Ntk_t * pNtkNew )
     pConst1 = Abc_AigConst1(pNtkAig->pManFunc);
     if ( Abc_ObjFanoutNum(pConst1) > 0 )
         pConst1->pCopy = Abc_NodeCreateConst1( pNtkNew );
+    else
+    {
+        // skip the 0-th entry to allow one-to-one match of object IDs
+        if ( pConst1->Id == 0 && pNtkNew->nNodes == 0 )
+            Vec_PtrPush( pNtkNew->vObjs, NULL );
+    }
+
     return pConst1->pCopy; 
 } 
 

@@ -73,18 +73,21 @@ Abc_Ntk_t * Abc_NtkAigToSeq( Abc_Ntk_t * pNtk )
 {
     Abc_Ntk_t * pNtkNew;
     Vec_Ptr_t * vNodes;
-    Abc_Obj_t * pObj, * pFanin;
-    int i, Init, nLatches;
+    Abc_Obj_t * pObj, * pFaninNew;
+    unsigned Init;
+    int i, nLatches;
     // make sure it is an AIG without self-feeding latches
     assert( Abc_NtkIsStrash(pNtk) );
     assert( Abc_NtkCountSelfFeedLatches(pNtk) == 0 );
     // start the network
+    Abc_NtkCleanCopy( pNtk );
     pNtkNew = Abc_NtkAlloc( ABC_NTK_SEQ, ABC_FUNC_AIG );
     // duplicate the name and the spec
     pNtkNew->pName = util_strsav(pNtk->pName);
     pNtkNew->pSpec = util_strsav(pNtk->pSpec);
     // clone const/PIs/POs
     Abc_NtkDupObj(pNtkNew, Abc_AigConst1(pNtk->pManFunc) );
+    pNtkNew->nNodes -= 1;
     Abc_NtkForEachPi( pNtk, pObj, i )
         Abc_NtkDupObj(pNtkNew, pObj);
     Abc_NtkForEachPo( pNtk, pObj, i )
@@ -98,8 +101,11 @@ Abc_Ntk_t * Abc_NtkAigToSeq( Abc_Ntk_t * pNtk )
     vNodes = Abc_AigDfs( pNtk, 0, 0 );
     Vec_PtrForEachEntry( vNodes, pObj, i )
     {
+        if ( Abc_ObjFaninNum(pObj) != 2 )
+            continue;
         Abc_NtkDupObj(pNtkNew, pObj);
         pObj->pCopy->fPhase = pObj->fPhase; // needed for choices
+        pObj->pCopy->Level = pObj->Level; 
     }
     // relink the choice nodes
     Vec_PtrForEachEntry( vNodes, pObj, i )
@@ -114,20 +120,33 @@ Abc_Ntk_t * Abc_NtkAigToSeq( Abc_Ntk_t * pNtk )
         // skip the constant and the PIs
         if ( Abc_ObjFaninNum(pObj) == 0 )
             continue;
+        if ( Abc_ObjIsLatch(pObj) )
+            continue;
         // process the first fanin
-        pFanin = Abc_NodeAigToSeq( pObj, 0, &nLatches, &Init );
-        Abc_ObjAddFanin( pObj->pCopy, Abc_ObjGetCopy(pFanin) );
+        pFaninNew = Abc_NodeAigToSeq( pObj, 0, &nLatches, &Init );
+        if ( nLatches > ABC_MAX_EDGE_LATCH )
+        {
+            printf( "The number of latches on an edge (%d) exceeds the limit (%d).\n", nLatches, ABC_MAX_EDGE_LATCH );
+            nLatches = ABC_MAX_EDGE_LATCH;
+        }
+        Abc_ObjAddFanin( pObj->pCopy, pFaninNew );
         Abc_ObjAddFaninL0( pObj->pCopy, nLatches );
-        Vec_IntWriteEntry( pNtkNew->vInits, 2 * i + 0, Init );
+        Vec_IntWriteEntry( pNtkNew->vInits, 2 * pObj->pCopy->Id + 0, Init );
         if ( Abc_ObjFaninNum(pObj) == 1 )
             continue;
         // process the second fanin
-        pFanin = Abc_NodeAigToSeq( pObj, 1, &nLatches, &Init );
-        Abc_ObjAddFanin( pObj->pCopy, Abc_ObjGetCopy(pFanin) );
+        pFaninNew = Abc_NodeAigToSeq( pObj, 1, &nLatches, &Init );
+        if ( nLatches > ABC_MAX_EDGE_LATCH )
+        {
+            printf( "The number of latches on an edge (%d) exceeds the limit (%d).\n", nLatches, ABC_MAX_EDGE_LATCH );
+            nLatches = ABC_MAX_EDGE_LATCH;
+        }
+        Abc_ObjAddFanin( pObj->pCopy, pFaninNew );
         Abc_ObjAddFaninL1( pObj->pCopy, nLatches );
-        Vec_IntWriteEntry( pNtkNew->vInits, 2 * i + 1, Init );
+        Vec_IntWriteEntry( pNtkNew->vInits, 2 * pObj->pCopy->Id + 1, Init );
     }
     // set the cutset composed of latch drivers
+    Vec_PtrFree( pNtkNew->vLats );
     pNtkNew->vLats = Abc_NtkAigCutsetCopy( pNtk );
     // copy EXDC and check correctness
     if ( pNtkNew->pExdc )
@@ -179,21 +198,24 @@ Vec_Ptr_t * Abc_NtkAigCutsetCopy( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 Abc_Obj_t * Abc_NodeAigToSeq( Abc_Obj_t * pObj, int Num, int * pnLatches, unsigned * pnInit )
 {
-    Abc_Obj_t * pFanin;
+    Abc_Obj_t * pFanin, * pFaninNew;
     Abc_InitType_t Init;
     // get the given fanin of the node
     pFanin = Abc_ObjFanin( pObj, Num );
+    // if fanin is the internal node, return its copy in the corresponding polarity
     if ( !Abc_ObjIsLatch(pFanin) )
     {
         *pnLatches = 0;
         *pnInit = 0;
-        return Abc_ObjChild( pObj, Num );
+        return Abc_ObjNotCond( pFanin->pCopy, Abc_ObjFaninC(pObj, Num) );
     }
-    pFanin = Abc_NodeAigToSeq( pFanin, 0, pnLatches, pnInit );
-    // get the new initial state
-    Init = Abc_LatchInit(pObj);
+    // fanin is a latch
+    // get the new fanins
+    pFaninNew = Abc_NodeAigToSeq( pFanin, 0, pnLatches, pnInit );
+    // get the initial state
+    Init = Abc_LatchInit(pFanin);
     // complement the initial state if the inv is retimed over the latch
-    if ( Abc_ObjIsComplement(pFanin) ) 
+    if ( Abc_ObjIsComplement(pFaninNew) ) 
     {
         if ( Init == ABC_INIT_ZERO )
             Init = ABC_INIT_ONE;
@@ -205,7 +227,7 @@ Abc_Obj_t * Abc_NodeAigToSeq( Abc_Obj_t * pObj, int Num, int * pnLatches, unsign
     // update the latch number and initial state
     (*pnLatches)++;
     (*pnInit) = ((*pnInit) << 2) | Init;
-    return Abc_ObjNotCond( pFanin, Abc_ObjFaninC(pObj,Num) );
+    return Abc_ObjNotCond( pFaninNew, Abc_ObjFaninC(pObj, Num) );
 }
 
 
@@ -225,16 +247,24 @@ Abc_Obj_t * Abc_NodeAigToSeq( Abc_Obj_t * pObj, int Num, int * pnLatches, unsign
 Abc_Ntk_t * Abc_NtkSeqToLogicSop( Abc_Ntk_t * pNtk )
 {
     Abc_Ntk_t * pNtkNew; 
-    Abc_Obj_t * pObj, * pObjNew, * pFaninNew;
+    Abc_Obj_t * pObj, * pObjNew, * pFaninNew, * pConst1;
     int i, nCutNodes, nDigits;
     unsigned Init;
+    int nLatchMax = 0;
+
     assert( Abc_NtkIsSeq(pNtk) );
     // start the network without latches
     nCutNodes = pNtk->vLats->nSize; pNtk->vLats->nSize = 0;
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
     pNtk->vLats->nSize = nCutNodes;
     // create the constant node
-    Abc_NtkDupConst1( pNtk, pNtkNew );
+//    Abc_NtkDupConst1( pNtk, pNtkNew );
+    pConst1 = Abc_NtkObj(pNtk,0);
+    if ( !Abc_ObjIsNode(pConst1) )
+        pConst1 = NULL;
+    if ( pConst1 && Abc_ObjFanoutNum(pConst1) > 0 )
+        pConst1->pCopy = Abc_NodeCreateConst1( pNtkNew );
+
     // duplicate the nodes, create node functions
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
@@ -254,9 +284,12 @@ Abc_Ntk_t * Abc_NtkSeqToLogicSop( Abc_Ntk_t * pNtk )
     // connect the objects
     Abc_NtkForEachObj( pNtk, pObj, i )
     {
+        assert( (int)pObj->Id == i );
         // skip PIs and the constant
         if ( Abc_ObjFaninNum(pObj) == 0 )
             continue;
+        if ( nLatchMax < Abc_ObjFaninL0(pObj) )
+            nLatchMax = Abc_ObjFaninL0(pObj);
         // get the initial states of the latches on the fanin edge of this node
         Init = Vec_IntEntry( pNtk->vInits, 2 * pObj->Id );
         // create the edge
@@ -269,6 +302,8 @@ Abc_Ntk_t * Abc_NtkSeqToLogicSop( Abc_Ntk_t * pNtk )
                 Abc_ObjSetFaninC( pObj->pCopy, 0 );
             continue;
         }
+        if ( nLatchMax < Abc_ObjFaninL0(pObj) )
+            nLatchMax = Abc_ObjFaninL0(pObj);
         // get the initial states of the latches on the fanin edge of this node
         Init = Vec_IntEntry( pNtk->vInits, 2 * pObj->Id + 1 );
         // create the edge
@@ -276,6 +311,7 @@ Abc_Ntk_t * Abc_NtkSeqToLogicSop( Abc_Ntk_t * pNtk )
         Abc_ObjAddFanin( pObj->pCopy, pFaninNew );
         // the complemented edges are subsumed by the node function
     }
+    printf( "The max edge latch num = %d.\n", nLatchMax );
     // count the number of digits in the latch names
     nDigits = Extra_Base10Log( Abc_NtkLatchNum(pNtkNew) );
     // add the latches and their names
@@ -289,11 +325,8 @@ Abc_Ntk_t * Abc_NtkSeqToLogicSop( Abc_Ntk_t * pNtk )
     }
     // fix the problem with complemented and duplicated CO edges
     Abc_NtkLogicMakeSimpleCos( pNtkNew, 0 );
-    // duplicate the EXDC network
-    if ( pNtk->pExdc )
-        fprintf( stdout, "Warning: EXDC network is not copied.\n" );
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkSeqToLogic(): Network check has failed.\n" );
+        fprintf( stdout, "Abc_NtkSeqToLogicSop(): Network check has failed.\n" );
     return pNtkNew;
 }
 
@@ -313,7 +346,10 @@ Abc_Obj_t * Abc_NodeSeqToLogic( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pFanin, int nLa
 {
     Abc_Obj_t * pLatch;
     if ( nLatches == 0 )
+    {
+        assert( pFanin->pCopy );
         return pFanin->pCopy;
+    }
     pFanin = Abc_NodeSeqToLogic( pNtkNew, pFanin, nLatches - 1, Init >> 2 );
     pLatch = Abc_NtkCreateLatch( pNtkNew );
     pLatch->pData = (void *)(Init & 3);

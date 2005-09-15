@@ -164,11 +164,17 @@ static inline void Abc_ObjFaninLSetInit( Abc_Obj_t * pObj, int Edge, unsigned In
     Vec_IntWriteEntry( pObj->pNtk->vInits, 2 * pObj->Id + Edge, Init );
 }
 
+// getting the init value of the given latch on the edge
+static inline Abc_InitType_t Abc_ObjFaninLGetInitOne( Abc_Obj_t * pObj, int Edge, int iLatch )  
+{
+    return 0x3 & (Abc_ObjFaninLGetInit(pObj, Edge) >> (2*iLatch));
+}
+
 // setting the init value of the given latch on the edge
 static inline void Abc_ObjFaninLSetInitOne( Abc_Obj_t * pObj, int Edge, int iLatch, Abc_InitType_t Init )  
 {
     unsigned EntryCur = Abc_ObjFaninLGetInit(pObj, Edge);
-    unsigned EntryNew = (EntryCur & ~(0x3 << iLatch)) | (Init << iLatch);
+    unsigned EntryNew = (EntryCur & ~(0x3 << (2*iLatch))) | (Init << (2*iLatch));
     assert( iLatch < Abc_ObjFaninL(pObj, Edge) );
     Abc_ObjFaninLSetInit( pObj, Edge, EntryNew );
 }
@@ -305,7 +311,7 @@ extern void               Abc_NtkSeqShareFanouts( Abc_Ntk_t * pNtk );
 /*=== abcUtil.c ==============================================================*/
 extern int                Abc_NtkSeqLatchNum( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkSeqLatchNumShared( Abc_Ntk_t * pNtk );
-
+extern char *             Abc_ObjFaninGetInitPrintable( Abc_Obj_t * pObj, int Edge );
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

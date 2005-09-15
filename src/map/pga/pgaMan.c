@@ -75,6 +75,7 @@ Pga_Man_t * Pga_ManStart( Pga_Params_t * pParams )
     {
         printf( "The nodes of the network are not DFS ordered.\n" );
 //        Abc_NtkReassignIds( pNtk );
+//        Abc_AigRehash( pNtk->pManFunc );
         return NULL;
     }
     // make sure there are no dangling nodes (unless they are choices)

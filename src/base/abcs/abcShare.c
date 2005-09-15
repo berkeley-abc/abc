@@ -25,7 +25,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 static void Abc_NodeSeqShareFanouts( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes );
-static void Abc_NodeSeqShareOne( Abc_Obj_t * pNode, int Init, Vec_Ptr_t * vNodes );
+static void Abc_NodeSeqShareOne( Abc_Obj_t * pNode, Abc_InitType_t Init, Vec_Ptr_t * vNodes );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -124,6 +124,8 @@ void Abc_NodeSeqShareOne( Abc_Obj_t * pNode, Abc_InitType_t Init, Vec_Ptr_t * vN
     Vec_PtrClear( vNodes );
     Abc_ObjForEachFanout( pNode, pFanout, i )
     {
+        if ( Abc_ObjFanoutL(pNode, pFanout) == 0 )
+            continue;
         Type = Abc_ObjFaninLGetInitLast( pFanout, Abc_ObjEdgeNum(pNode, pFanout) );
         if ( Type == Init )
             InitNew = Init;

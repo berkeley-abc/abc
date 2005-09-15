@@ -418,6 +418,10 @@ SOURCE=.\src\base\io\ioWritePla.c
 # PROP Default_Filter ""
 # Begin Source File
 
+SOURCE=.\src\base\main\libSupport.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\main\main.c
 # End Source File
 # Begin Source File

@@ -76,6 +76,41 @@ int Abc_NtkSeqLatchNumShared( Abc_Ntk_t * pNtk )
     return Counter;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Generates the printable edge label with the initial state.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_ObjFaninGetInitPrintable( Abc_Obj_t * pObj, int Edge )
+{
+    static char Buffer[ABC_MAX_EDGE_LATCH + 1];
+    Abc_InitType_t Init;
+    int nLatches, i;
+
+    nLatches = Abc_ObjFaninL( pObj, Edge );
+    assert( nLatches <= ABC_MAX_EDGE_LATCH );
+    for ( i = 0; i < nLatches; i++ )
+    {
+        Init = Abc_ObjFaninLGetInitOne( pObj, Edge, i );
+        if ( Init == ABC_INIT_NONE )
+            Buffer[i] = '_';
+        else if ( Init == ABC_INIT_ZERO )
+            Buffer[i] = '0';
+        else if ( Init == ABC_INIT_ONE )
+            Buffer[i] = '1';
+        else if ( Init == ABC_INIT_DC )
+            Buffer[i] = 'x';
+        else assert( 0 );
+    }
+    Buffer[nLatches] = 0;
+    return Buffer;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

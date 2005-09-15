@@ -501,7 +501,7 @@ Abc_Ntk_t * Abc_NtkFrames( Abc_Ntk_t * pNtk, int nFrames, int fInitial )
                 pLatch->pCopy = Abc_ObjNotCond( Abc_AigConst1(pNtkFrames->pManFunc), Abc_LatchIsInit0(pLatch) );
         }
         if ( Counter )
-            printf( "Warning: %d uninitialized latches are replaced by free variables.\n", Counter );
+            printf( "Warning: %d uninitialized latches are replaced by free PI variables.\n", Counter );
     }
     
     // create the timeframes
@@ -521,12 +521,18 @@ Abc_Ntk_t * Abc_NtkFrames( Abc_Ntk_t * pNtk, int nFrames, int fInitial )
         Abc_NtkForEachLatch( pNtk, pLatch, i )
         {
             pLatchNew = Abc_NtkLatch(pNtkFrames, i);
-            Abc_ObjAddFanin( pLatchNew, Abc_ObjFanin0(pLatch)->pCopy );
+            Abc_ObjAddFanin( pLatchNew, pLatch->pCopy );
             Vec_PtrPush( pNtkFrames->vCis, pLatchNew );
             Vec_PtrPush( pNtkFrames->vCos, pLatchNew );
             Abc_NtkLogicStoreName( pLatchNew, Abc_ObjName(pLatch) );
         }
     }
+    Abc_NtkForEachLatch( pNtk, pLatch, i )
+        pLatch->pNext = NULL;
+
+    // remove dangling nodes
+    Abc_AigCleanup( pNtkFrames->pManFunc );
+
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtkFrames ) )
     {
@@ -586,7 +592,9 @@ void Abc_NtkAddFrame( Abc_Ntk_t * pNtkFrames, Abc_Ntk_t * pNtk, int iFrame, Vec_
     }
     // transfer the implementation of the latch drivers to the latches
     Abc_NtkForEachLatch( pNtk, pLatch, i )
-        pLatch->pCopy = Abc_ObjChild0Copy(pLatch);
+        pLatch->pNext = Abc_ObjChild0Copy(pLatch);
+    Abc_NtkForEachLatch( pNtk, pLatch, i )
+        pLatch->pCopy = pLatch->pNext;
 }
 
 

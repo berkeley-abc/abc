@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "io.h"
+#include "abcs.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -191,7 +192,7 @@ void Io_WriteDot( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesShow, 
         fprintf( pFile, "  rank = same;\n" );
         // the labeling node of this level
         fprintf( pFile, "  Level%d;\n",  LevelMax );
-        // generat the PO nodes
+        // generate the PO nodes
         Vec_PtrForEachEntry( vNodes, pNode, i )
         {
             if ( !Abc_ObjIsCo(pNode) )
@@ -242,7 +243,19 @@ void Io_WriteDot( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesShow, 
         Vec_PtrForEachEntry( vNodes, pNode, i )
         {
             if ( !Abc_ObjIsCi(pNode) )
+            {
+                // check if the costant node is present
+                if ( Abc_ObjFaninNum(pNode) == 0 && Abc_ObjFanoutNum(pNode) > 0 )
+                {
+                    fprintf( pFile, "  Node%d [label = \"Const1\"", pNode->Id );
+                    fprintf( pFile, ", shape = ellipse" );
+                    if ( pNode->fMarkB )
+                        fprintf( pFile, ", style = filled" );
+                    fprintf( pFile, ", color = coral, fillcolor = coral" );
+                    fprintf( pFile, "];\n" );
+                }
                 continue;
+            }
             fprintf( pFile, "  Node%d%s [label = \"%s%s\"", pNode->Id, 
                 (Abc_ObjIsLatch(pNode)? "_out":""), Abc_ObjName(pNode), (Abc_ObjIsLatch(pNode)? "_out":"") );
             fprintf( pFile, ", shape = %s", (Abc_ObjIsLatch(pNode)? "box":"triangle") );
@@ -277,7 +290,11 @@ void Io_WriteDot( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesShow, 
             fprintf( pFile, "Node%d%s",  pNode->Id, (Abc_ObjIsLatch(pNode)? "_in":"") );
             fprintf( pFile, " -> " );
             fprintf( pFile, "Node%d%s",  Abc_ObjFaninId0(pNode), (Abc_ObjIsLatch(Abc_ObjFanin0(pNode))? "_out":"") );
-            fprintf( pFile, " [style = %s]", Abc_ObjFaninC0(pNode)? "dotted" : "bold" );
+            fprintf( pFile, " [" );
+            fprintf( pFile, "style = %s", Abc_ObjFaninC0(pNode)? "dotted" : "bold" );
+            if ( Abc_ObjFaninL0(pNode) > 0 )
+            fprintf( pFile, ", label = \"%s\"", Abc_ObjFaninGetInitPrintable(pNode,0) );
+            fprintf( pFile, "]" );
             fprintf( pFile, ";\n" );
         }
         if ( Abc_ObjFaninNum(pNode) == 1 )
@@ -288,7 +305,11 @@ void Io_WriteDot( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesShow, 
             fprintf( pFile, "Node%d",  pNode->Id );
             fprintf( pFile, " -> " );
             fprintf( pFile, "Node%d%s",  Abc_ObjFaninId1(pNode), (Abc_ObjIsLatch(Abc_ObjFanin1(pNode))? "_out":"") );
-            fprintf( pFile, " [style = %s]", Abc_ObjFaninC1(pNode)? "dotted" : "bold" );
+            fprintf( pFile, " [" );
+            fprintf( pFile, "style = %s", Abc_ObjFaninC1(pNode)? "dotted" : "bold" );
+            if ( Abc_ObjFaninL1(pNode) > 0 )
+            fprintf( pFile, ", label = \"%s\"", Abc_ObjFaninGetInitPrintable(pNode,1) );
+            fprintf( pFile, "]" );
             fprintf( pFile, ";\n" );
         }
         // generate the edges between the equivalent nodes

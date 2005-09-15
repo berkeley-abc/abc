@@ -224,7 +224,7 @@ void Abc_ObjRetimeForward( Abc_Obj_t * pObj )
         Init = ABC_INIT_DC;
     // add the init values to the fanouts
     Abc_ObjForEachFanout( pObj, pFanout, i )
-        Abc_ObjFaninLInsertLast( pFanout, Abc_ObjEdgeNum(pFanout, pObj), Init );
+        Abc_ObjFaninLInsertLast( pFanout, Abc_ObjEdgeNum(pObj, pFanout), Init );
 }
 
 /**Function*************************************************************

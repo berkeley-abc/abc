@@ -72,7 +72,10 @@ Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func )
     else if ( Abc_NtkHasBdd(pNtk) )
         pNtk->pManFunc = Cudd_Init( 20, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
     else if ( Abc_NtkHasAig(pNtk) )
-        pNtk->pManFunc = Abc_AigAlloc( pNtk );
+    {
+        if ( Abc_NtkIsStrash(pNtk) )
+            pNtk->pManFunc = Abc_AigAlloc( pNtk );
+    }
     else if ( Abc_NtkHasMapping(pNtk) )
         pNtk->pManFunc = Abc_FrameReadLibGen();
     else
@@ -266,7 +269,7 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
     // start the network
     pNtkNew = Abc_NtkStartFrom( pNtk, pNtk->ntkType, pNtk->ntkFunc );
     // copy the internal nodes
-    if ( Abc_NtkHasAig(pNtk) )
+    if ( Abc_NtkIsStrash(pNtk) )
         Abc_AigDup( pNtk->pManFunc, pNtkNew->pManFunc );
     else
     {
@@ -278,6 +281,23 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
         Abc_NtkForEachObj( pNtk, pObj, i )
             Abc_ObjForEachFanin( pObj, pFanin, k )
                 Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
+        // if it is a sequential networ, transfer attributes on edges
+        if ( Abc_NtkIsSeq(pNtk) )
+        {
+            pNtkNew->vInits = Vec_IntStart( 2 * Abc_NtkObjNumMax(pNtkNew) );
+            Abc_NtkForEachObj( pNtk, pObj, i )
+            {
+                Abc_ObjForEachFanin( pObj, pFanin, k )
+                {
+                    if ( Abc_ObjFaninC(pObj, k) )
+                        Abc_ObjSetFaninC( pObj->pCopy, k );
+                    if ( Abc_ObjFaninL(pObj, k) > 0 )
+                        Abc_ObjSetFaninL( pObj->pCopy, k, Abc_ObjFaninL(pObj, k) );
+                }
+                Vec_IntWriteEntry( pNtkNew->vInits, 2*pObj->pCopy->Id+0, Vec_IntEntry(pNtk->vInits, 2*pObj->Id+0) );
+                Vec_IntWriteEntry( pNtkNew->vInits, 2*pObj->pCopy->Id+1, Vec_IntEntry(pNtk->vInits, 2*pObj->Id+1) );
+            }
+        }
     }
     // duplicate the EXDC Ntk
     if ( pNtk->pExdc )
@@ -504,7 +524,8 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     Vec_PtrFree( pNtk->vPtrTemp );
     Vec_IntFree( pNtk->vIntTemp );
     Vec_StrFree( pNtk->vStrTemp );
-    if ( pNtk->vInits )  Vec_IntFree( pNtk->vInits );
+    if ( pNtk->vInits ) Vec_IntFree( pNtk->vInits );
+    if ( pNtk->pModel ) free( pNtk->pModel );
     // free the hash table of Obj name into Obj ID
     stmm_free_table( pNtk->tName2Net );
     stmm_free_table( pNtk->tObj2Name );
@@ -526,7 +547,10 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     else if ( Abc_NtkHasBdd(pNtk) )
         Extra_StopManager( pNtk->pManFunc );
     else if ( Abc_NtkHasAig(pNtk) )
-        Abc_AigFree( pNtk->pManFunc );
+    {
+        if ( Abc_NtkIsStrash(pNtk) )
+            Abc_AigFree( pNtk->pManFunc );
+    }
     else if ( !Abc_NtkHasMapping(pNtk) )
         assert( 0 );
     free( pNtk );

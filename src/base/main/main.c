@@ -216,7 +216,7 @@ int main( int argc, char * argv[] )
     }
      
     // if the memory should be freed, quit packages
-    if ( fStatus == -2 ) 
+    if ( fStatus < 0 ) 
     {
         // perform uninitializations
         Abc_FrameEnd( pAbc );
