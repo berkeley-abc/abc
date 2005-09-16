@@ -78,6 +78,59 @@ int Abc_NtkSeqLatchNumShared( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
+  Synopsis    [Counts the number of latches in the sequential AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_ObjLatchGetInitNums( Abc_Obj_t * pObj, int Edge, int * pInits )
+{
+    Abc_InitType_t Init;
+    int nLatches, i;
+    nLatches = Abc_ObjFaninL( pObj, Edge );
+    assert( nLatches <= ABC_MAX_EDGE_LATCH );
+    for ( i = 0; i < nLatches; i++ )
+    {
+        Init = Abc_ObjFaninLGetInitOne( pObj, Edge, i );
+        pInits[Init]++;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of latches in the sequential AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkSeqLatchGetInitNums( Abc_Ntk_t * pNtk, int * pInits )
+{
+    Abc_Obj_t * pObj;
+    int i;
+    assert( Abc_NtkIsSeq( pNtk ) );
+    for ( i = 0; i < 4; i++ )    
+        pInits[i] = 0;
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        Abc_ObjLatchGetInitNums( pObj, 0, pInits );
+    Abc_NtkForEachNode( pNtk, pObj, i )
+    {
+        if ( Abc_ObjFaninNum(pObj) > 0 )
+            Abc_ObjLatchGetInitNums( pObj, 0, pInits );
+        if ( Abc_ObjFaninNum(pObj) > 1 )
+            Abc_ObjLatchGetInitNums( pObj, 1, pInits );
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Generates the printable edge label with the initial state.]
 
   Description []

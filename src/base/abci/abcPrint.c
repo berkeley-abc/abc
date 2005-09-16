@@ -145,7 +145,17 @@ void Abc_NtkPrintLatch( FILE * pFile, Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pLatch, * pFanin;
     int i, Counter0, Counter1, Counter2;
-    int Init0, Init1, Init2;
+    int InitNums[4], Init;
+
+    assert( !Abc_NtkIsNetlist(pNtk) );
+    if ( Abc_NtkIsSeq(pNtk) )
+    {
+        Abc_NtkSeqLatchGetInitNums( pNtk, InitNums );
+        fprintf( pFile, "%-15s:  ", pNtk->pName );
+        fprintf( pFile, "Latch = %6d. No = %4d. Zero = %4d. One = %4d. DC = %4d.\n", 
+            Abc_NtkLatchNum(pNtk), InitNums[0], InitNums[1], InitNums[2], InitNums[3] );
+        return;
+    }
 
     if ( Abc_NtkLatchNum(pNtk) == 0 )
     {
@@ -153,21 +163,14 @@ void Abc_NtkPrintLatch( FILE * pFile, Abc_Ntk_t * pNtk )
         return;
     }
 
-    assert( !Abc_NtkIsNetlist(pNtk) );
-
-    Init0 = Init1 = Init2 = 0;
+    for ( i = 0; i < 4; i++ )    
+        InitNums[i] = 0;
     Counter0 = Counter1 = Counter2 = 0;
-
     Abc_NtkForEachLatch( pNtk, pLatch, i )
     {
-        if ( Abc_LatchIsInit0(pLatch) )
-            Init0++;
-        else if ( Abc_LatchIsInit1(pLatch) )
-            Init1++;
-        else if ( Abc_LatchIsInitDc(pLatch) )
-            Init2++;
-        else
-            assert( 0 );
+        Init = Abc_LatchInit( pLatch );
+        assert( Init < 4 );
+        InitNums[Init]++;
 
         pFanin = Abc_ObjFanin0(pLatch);
         if ( !Abc_ObjIsNode(pFanin) || !Abc_NodeIsConst(pFanin) )
@@ -192,14 +195,11 @@ void Abc_NtkPrintLatch( FILE * pFile, Abc_Ntk_t * pNtk )
                 Counter2++;
         }
     }
-//    fprintf( pFile, "%-15s: ", pNtk->pName );
-//    fprintf( pFile, "L = %5d: 0 = %4d. 1 = %3d. DC = %4d. ", Abc_NtkLatchNum(pNtk), Init0, Init1, Init2 );
-//    fprintf( pFile, "Con = %3d. DC = %3d. Mat = %3d. ", Counter0, Counter1, Counter2 );
-//    fprintf( pFile, "SFeed = %2d.\n", Abc_NtkCountSelfFeedLatches(pNtk) );
     fprintf( pFile, "%-15s:  ", pNtk->pName );
-    fprintf( pFile, "Lat = %5d: 0 = %4d. 1 = %3d. DC = %4d. \n", Abc_NtkLatchNum(pNtk), Init0, Init1, Init2 );
-    fprintf( pFile, "Con = %3d. DC = %3d. Mat = %3d. ", Counter0, Counter1, Counter2 );
-    fprintf( pFile, "SFeed = %2d.\n", Abc_NtkCountSelfFeedLatches(pNtk) );
+    fprintf( pFile, "Latch = %6d. No = %4d. Zero = %4d. One = %4d. DC = %4d.\n", 
+        Abc_NtkLatchNum(pNtk), InitNums[0], InitNums[1], InitNums[2], InitNums[3] );
+    fprintf( pFile, "Const fanin = %3d. DC init = %3d. Matching init = %3d. ", Counter0, Counter1, Counter2 );
+    fprintf( pFile, "Self-feed latches = %2d.\n", Abc_NtkCountSelfFeedLatches(pNtk) );
 }
 
 /**Function*************************************************************

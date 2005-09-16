@@ -491,7 +491,7 @@ Abc_Ntk_t * Abc_NtkFrames( Abc_Ntk_t * pNtk, int nFrames, int fInitial )
         Counter = 0;
         Abc_NtkForEachLatch( pNtk, pLatch, i )
         {
-            if ( Abc_LatchIsInitDc(pLatch) ) // don't-care initial value - create a new PI
+            if ( Abc_LatchIsInitNone(pLatch) || Abc_LatchIsInitDc(pLatch) ) // don't-care initial value - create a new PI
             {
                 pLatch->pCopy = Abc_NtkCreatePi(pNtkFrames);
                 Abc_NtkLogicStoreName( pLatch->pCopy, Abc_ObjName(pLatch) );

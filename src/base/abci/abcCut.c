@@ -43,7 +43,7 @@
 Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
 {
     Cut_Man_t *  p;
-    Abc_Obj_t * pObj, * pDriver, * pNode;
+    Abc_Obj_t * pObj, * pNode;
     Vec_Ptr_t * vNodes;
     Vec_Int_t * vChoices;
     int i;
@@ -86,30 +86,26 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
             Cut_NodeUnionCuts( p, vChoices );
         }
     }
-    if ( !pParams->fSeq )
-    {
-        Vec_PtrFree( vNodes );
-        Vec_IntFree( vChoices );
+    Vec_PtrFree( vNodes );
+    Vec_IntFree( vChoices );
 PRT( "Total", clock() - clk );
-        return p;
-    }
-    assert( 0 );
-
-    // compute sequential cuts
-    Abc_NtkIncrementTravId( pNtk );
-    Abc_NtkForEachLatch( pNtk, pObj, i )
-    {
-        pDriver = Abc_ObjFanin0(pObj);
-        if ( !Abc_ObjIsNode(pDriver) )
-            continue;
-        if ( Abc_NodeIsTravIdCurrent(pDriver) )
-            continue;
-        Abc_NodeSetTravIdCurrent(pDriver);
-    }
-    // compute as long as new cuts appear
-
-
     return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the cuts for the network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Cut_Man_t * Abc_NtkSeqCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
+{
+    return NULL;
 }
 
 /**Function*************************************************************

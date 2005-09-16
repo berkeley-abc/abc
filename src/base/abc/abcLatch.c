@@ -93,6 +93,50 @@ int Abc_NtkCountSelfFeedLatches( Abc_Ntk_t * pNtk )
     return Counter;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Pipelines the network with latches.]
+
+  Description []
+               
+  SideEffects [Does not check the names of the added latches!!!]
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkLatchPipe( Abc_Ntk_t * pNtk, int nLatches )
+{
+    Vec_Ptr_t * vNodes;
+    Abc_Obj_t * pObj, * pLatch, * pFanin, * pFanout;
+    int i, k, nTotal, nDigits;
+    if ( nLatches < 1 )
+        return;
+    nTotal = nLatches * Abc_NtkPiNum(pNtk);
+    nDigits = Extra_Base10Log( nTotal );
+    vNodes = Vec_PtrAlloc( 100 );
+    Abc_NtkForEachPi( pNtk, pObj, i )
+    {
+        // remember current fanins of the PI
+        Abc_NodeCollectFanouts( pObj, vNodes );
+        // create the latches
+        for ( pFanin = pObj, k = 0; k < nLatches; k++, pFanin = pLatch )
+        {
+            pLatch = Abc_NtkCreateLatch( pNtk );
+            Abc_ObjAddFanin( pLatch, pFanin );
+            Abc_LatchSetInitDc( pLatch );
+            // add the latch to the CI/CO lists
+            Vec_PtrPush( pNtk->vCis, pLatch );
+            Vec_PtrPush( pNtk->vCos, pLatch );
+            // create the name of the new latch
+            Abc_NtkLogicStoreName( pLatch, Abc_ObjNameDummy("LL", i*nLatches + k, nDigits) );
+        }
+        // patch the PI fanouts
+        Vec_PtrForEachEntry( vNodes, pFanout, k )
+            Abc_ObjPatchFanin( pFanout, pObj, pFanin );
+    }
+    Vec_PtrFree( vNodes );
+    Abc_NtkLogicMakeSimpleCos( pNtk, 0 );
+}
 
 
 ////////////////////////////////////////////////////////////////////////

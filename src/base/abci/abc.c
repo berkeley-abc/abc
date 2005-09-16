@@ -85,6 +85,9 @@ static int Abc_CommandSuperChoice  ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int Abc_CommandFpga         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPga          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
+static int Abc_CommandScut         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandInit         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPipe         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSeq          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandUnseq        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRetime       ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -163,6 +166,9 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "FPGA mapping", "fpga",          Abc_CommandFpga,             1 );
     Cmd_CommandAdd( pAbc, "FPGA mapping", "pga",           Abc_CommandPga,              1 );
 
+    Cmd_CommandAdd( pAbc, "Sequential",   "scut",          Abc_CommandScut,             0 );
+    Cmd_CommandAdd( pAbc, "Sequential",   "init",          Abc_CommandInit,             1 );
+    Cmd_CommandAdd( pAbc, "Sequential",   "pipe",          Abc_CommandPipe,             1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "seq",           Abc_CommandSeq,              1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "unseq",         Abc_CommandUnseq,            1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "retime",        Abc_CommandRetime,           1 );
@@ -2725,15 +2731,15 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
+    memset( pParams, 0, sizeof(Cut_Params_t) );
     pParams->nVarsMax  = 5;     // the max cut size ("k" of the k-feasible cuts)
     pParams->nKeepMax  = 250;   // the max number of cuts kept at a node
     pParams->fTruth    = 0;     // compute truth tables
     pParams->fFilter   = 1;     // filter dominated cuts
-    pParams->fSeq      = 0;     // compute sequential cuts
     pParams->fDrop     = 0;     // drop cuts on the fly
     pParams->fVerbose  = 0;     // the verbosiness flag
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "KMtfsdvh" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "KMtfdvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -2765,9 +2771,6 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'f':
             pParams->fFilter ^= 1;
             break;
-        case 's':
-            pParams->fSeq ^= 1;
-            break;
         case 'd':
             pParams->fDrop ^= 1;
             break;
@@ -2797,14 +2800,111 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: cut [-K num] [-M num] [-tfsdvh]\n" );
+    fprintf( pErr, "usage: cut [-K num] [-M num] [-tfdvh]\n" );
     fprintf( pErr, "\t         computes k-feasible cuts for the AIG\n" );
     fprintf( pErr, "\t-K num : max number of leaves (4 <= num <= 6) [default = %d]\n",     pParams->nVarsMax );
     fprintf( pErr, "\t-M num : max number of cuts stored at a node [default = %d]\n",      pParams->nKeepMax );
     fprintf( pErr, "\t-t     : toggle truth table computation [default = %s]\n",           pParams->fTruth? "yes": "no" );
     fprintf( pErr, "\t-f     : toggle filtering of duplicated/dominated [default = %s]\n", pParams->fFilter? "yes": "no" );
-    fprintf( pErr, "\t-s     : toggle sequential cut computation [default = %s]\n",        pParams->fSeq? "yes": "no" );
     fprintf( pErr, "\t-d     : toggle dropping when fanouts are done [default = %s]\n",    pParams->fDrop? "yes": "no" );
+    fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n",      pParams->fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandScut( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Cut_Params_t Params, * pParams = &Params;
+    Cut_Man_t * pCutMan;
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+    extern Cut_Man_t * Abc_NtkSeqCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams );
+
+    pNtk = Abc_FrameReadNet(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    memset( pParams, 0, sizeof(Cut_Params_t) );
+    pParams->nVarsMax  = 5;     // the max cut size ("k" of the k-feasible cuts)
+    pParams->nKeepMax  = 250;   // the max number of cuts kept at a node
+    pParams->fTruth    = 0;     // compute truth tables
+    pParams->fFilter   = 0;     // filter dominated cuts
+    pParams->fSeq      = 1;     // compute sequential cuts
+    pParams->fVerbose  = 0;     // the verbosiness flag
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "KMtvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'K':
+            if ( util_optind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pParams->nVarsMax = atoi(argv[util_optind]);
+            util_optind++;
+            if ( pParams->nVarsMax < 0 ) 
+                goto usage;
+            break;
+        case 'M':
+            if ( util_optind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pParams->nKeepMax = atoi(argv[util_optind]);
+            util_optind++;
+            if ( pParams->nKeepMax < 0 ) 
+                goto usage;
+            break;
+        case 't':
+            pParams->fTruth ^= 1;
+            break;
+        case 'v':
+            pParams->fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsSeq(pNtk) )
+    {
+        fprintf( pErr, "Sequential cuts can be computed for sequential AIGs (run \"seq\").\n" );
+        return 1;
+    }
+    pCutMan = Abc_NtkSeqCuts( pNtk, pParams );
+    Cut_ManPrintStats( pCutMan );
+    Cut_ManStop( pCutMan );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: scut [-K num] [-M num] [-tvh]\n" );
+    fprintf( pErr, "\t         computes k-feasible cuts for the sequential AIG\n" );
+    fprintf( pErr, "\t-K num : max number of leaves (4 <= num <= 6) [default = %d]\n",     pParams->nVarsMax );
+    fprintf( pErr, "\t-M num : max number of cuts stored at a node [default = %d]\n",      pParams->nKeepMax );
+    fprintf( pErr, "\t-t     : toggle truth table computation [default = %s]\n",           pParams->fTruth? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n",      pParams->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -3903,6 +4003,195 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandInit( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    Abc_Obj_t * pObj;
+    int c, i;
+    int fZeros;
+    int fOnes;
+    int fRandom;
+    int fDontCare;
+
+    pNtk = Abc_FrameReadNet(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fZeros    = 0;
+    fOnes     = 0;
+    fRandom   = 0;
+    fDontCare = 0;
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "zordh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'z':
+            fZeros ^= 1;
+            break;
+        case 'o':
+            fOnes ^= 1;
+            break;
+        case 'r':
+            fRandom ^= 1;
+            break;
+        case 'd':
+            fDontCare ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( Abc_NtkIsSeq(pNtk) )
+    {
+        fprintf( pErr, "Does not work for a sequentail AIG (run \"unseq\").\n" );
+        return 1;
+    }
+
+    if ( Abc_NtkIsComb(pNtk) )
+    {
+        fprintf( pErr, "The current network is combinational.\n" );
+        return 1;
+    }
+
+    if ( fZeros )
+    {
+        Abc_NtkForEachLatch( pNtk, pObj, i )
+            Abc_LatchSetInit0( pObj );
+    }
+    else if ( fOnes )
+    {
+        Abc_NtkForEachLatch( pNtk, pObj, i )
+            Abc_LatchSetInit1( pObj );
+    }
+    else if ( fRandom )
+    {
+        Abc_NtkForEachLatch( pNtk, pObj, i )
+            if ( rand() & 1 )
+                Abc_LatchSetInit1( pObj );
+            else
+                Abc_LatchSetInit0( pObj );
+    }
+    else if ( fDontCare )
+    {
+        Abc_NtkForEachLatch( pNtk, pObj, i )
+            Abc_LatchSetInitDc( pObj );
+    }
+    else
+        printf( "The initial states remain unchanged.\n" );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: init [-zordh]\n" );
+    fprintf( pErr, "\t        resets initial states of all latches\n" );
+    fprintf( pErr, "\t-z    : set zeros initial states [default = %s]\n", fZeros? "yes": "no" );
+    fprintf( pErr, "\t-o    : set ones initial states [default = %s]\n", fOnes? "yes": "no" );
+    fprintf( pErr, "\t-d    : set don't-care initial states [default = %s]\n", fDontCare? "yes": "no" );
+    fprintf( pErr, "\t-r    : set random initial states [default = %s]\n", fRandom? "yes": "no" );
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandPipe( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+    int nLatches;
+    extern void Abc_NtkLatchPipe( Abc_Ntk_t * pNtk, int nLatches );
+
+    pNtk = Abc_FrameReadNet(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    nLatches = 5;
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "Lh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'L':
+            if ( util_optind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-L\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nLatches = atoi(argv[util_optind]);
+            util_optind++;
+            if ( nLatches < 0 ) 
+                goto usage;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( Abc_NtkIsSeq(pNtk) )
+    {
+        fprintf( pErr, "Does not work for a sequentail AIG (run \"unseq\").\n" );
+        return 1;
+    }
+
+    if ( Abc_NtkIsComb(pNtk) )
+    {
+        fprintf( pErr, "The current network is combinational.\n" );
+        return 1;
+    }
+
+    // update the network
+    Abc_NtkLatchPipe( pNtk, nLatches );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: pipe [-L num] [-h]\n" );
+    fprintf( pErr, "\t         inserts the given number of latches at the PIs\n" );
+    fprintf( pErr, "\t-L num : the number of latches to insert [default = %d]\n", nLatches );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandSeq( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
@@ -4066,7 +4355,7 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fForward  = 1;
+    fForward  = 0;
     fBackward = 0;
     fInitial  = 0;
     util_getopt_reset();
@@ -4098,7 +4387,7 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( !Abc_NtkIsSeq(pNtk) )
     {
-        fprintf( pErr, "Works only for sequential AIG.\n" );
+        fprintf( pErr, "Works only for sequential AIG (run \"seq\").\n" );
         return 1;
     }
 
@@ -4114,11 +4403,11 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: retime [-fbih]\n" );
+    fprintf( pErr, "usage: retime [-fbh]\n" );
     fprintf( pErr, "\t        retimes sequential AIG (default is Pan's delay-optimal retiming)\n" );
     fprintf( pErr, "\t-f    : toggle forward retiming [default = %s]\n", fForward? "yes": "no" );
     fprintf( pErr, "\t-b    : toggle backward retiming [default = %s]\n", fBackward? "yes": "no" );
-    fprintf( pErr, "\t-i    : toggle retiming for initial state [default = %s]\n", fInitial? "yes": "no" );
+//    fprintf( pErr, "\t-i    : toggle retiming for initial state [default = %s]\n", fInitial? "yes": "no" );
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }

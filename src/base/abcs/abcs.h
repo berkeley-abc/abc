@@ -104,6 +104,8 @@ static inline int Abc_ObjFanoutLMax( Abc_Obj_t * pObj )
 {
     Abc_Obj_t * pFanout;
     int i, nLatchCur, nLatchRes;
+    if ( Abc_ObjFanoutNum(pObj) == 0 )
+        return 0;
     nLatchRes = 0;
     Abc_ObjForEachFanout( pObj, pFanout, i )
     {
@@ -120,6 +122,8 @@ static inline int Abc_ObjFanoutLMin( Abc_Obj_t * pObj )
 {
     Abc_Obj_t * pFanout;
     int i, nLatchCur, nLatchRes;
+    if ( Abc_ObjFanoutNum(pObj) == 0 )
+        return 0;
     nLatchRes = ABC_INFINITY;
     Abc_ObjForEachFanout( pObj, pFanout, i )
     {
@@ -246,8 +250,8 @@ static inline void Abc_ObjRetimeForwardTry( Abc_Obj_t * pObj, int nLatches )
     // make sure it is an AND gate
     assert( Abc_ObjFaninNum(pObj) == 2 );
     // make sure it has enough latches
-    assert( Abc_ObjFaninL0(pObj) >= nLatches );
-    assert( Abc_ObjFaninL1(pObj) >= nLatches );
+//    assert( Abc_ObjFaninL0(pObj) >= nLatches );
+//    assert( Abc_ObjFaninL1(pObj) >= nLatches );
     // subtract these latches on the fanin side
     Abc_ObjAddFaninL0( pObj, -nLatches );
     Abc_ObjAddFaninL1( pObj, -nLatches );
@@ -266,7 +270,7 @@ static inline void Abc_ObjRetimeBackwardTry( Abc_Obj_t * pObj, int nLatches )
     // subtract these latches on the fanout side
     Abc_ObjForEachFanout( pObj, pFanout, i )
     {
-        assert( Abc_ObjFanoutL(pObj, pFanout) >= nLatches );
+//        assert( Abc_ObjFanoutL(pObj, pFanout) >= nLatches );
         Abc_ObjAddFanoutL( pObj, pFanout, -nLatches );
     }
     // add these latches on the fanin size
@@ -282,7 +286,7 @@ static inline void Abc_ObjRetimeBackwardTry( Abc_Obj_t * pObj, int nLatches )
 // iterating through the initial values of the edge
 #define Abc_ObjFaninLForEachValue( pObj, Edge, Init, i, Value ) \
     for ( i = 0, Init = Abc_ObjFaninLGetInit(pObj, Edge); \
-          i < Abc_ObjFaninL(pObj, Edge) && ((Value = ((Init >> i) & 3)), 1); i++ ) 
+          i < Abc_ObjFaninL(pObj, Edge) && ((Value = ((Init >> (2*i)) & 0x3)), 1); i++ ) 
 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
@@ -311,6 +315,7 @@ extern void               Abc_NtkSeqShareFanouts( Abc_Ntk_t * pNtk );
 /*=== abcUtil.c ==============================================================*/
 extern int                Abc_NtkSeqLatchNum( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkSeqLatchNumShared( Abc_Ntk_t * pNtk );
+extern void               Abc_NtkSeqLatchGetInitNums( Abc_Ntk_t * pNtk, int * pInits );
 extern char *             Abc_ObjFaninGetInitPrintable( Abc_Obj_t * pObj, int Edge );
 
 ////////////////////////////////////////////////////////////////////////

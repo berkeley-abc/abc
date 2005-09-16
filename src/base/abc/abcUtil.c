@@ -771,7 +771,7 @@ void Abc_NodeCollectFanins( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
 {
     Abc_Obj_t * pFanin;
     int i;
-    vNodes->nSize = 0;
+    Vec_PtrClear(vNodes);
     Abc_ObjForEachFanin( pNode, pFanin, i )
         Vec_PtrPush( vNodes, pFanin );
 }
@@ -791,7 +791,7 @@ void Abc_NodeCollectFanouts( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
 {
     Abc_Obj_t * pFanout;
     int i;
-    vNodes->nSize = 0;
+    Vec_PtrClear(vNodes);
     Abc_ObjForEachFanout( pNode, pFanout, i )
         Vec_PtrPush( vNodes, pFanout );
 }

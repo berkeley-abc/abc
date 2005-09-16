@@ -48,6 +48,10 @@ void Abc_NtkSeqShareFanouts( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pObj;
     int i;
     vNodes = Vec_PtrAlloc( 10 );
+    // share the PI latches
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        Abc_NodeSeqShareFanouts( pObj, vNodes );
+    // share the node latches
     Abc_NtkForEachNode( pNtk, pObj, i )
         Abc_NodeSeqShareFanouts( pObj, vNodes );
     Vec_PtrFree( vNodes );

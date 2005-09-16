@@ -127,12 +127,14 @@ Vec_Ptr_t * Abc_NtkUtilRetimingGetMoves( Abc_Ntk_t * pNtk, Vec_Int_t * vSteps, b
     Vec_Ptr_t * vMoves;
     Abc_Obj_t * pNode;
     int i, k, iNode, nLatches, Number;
+    int fChange;
     assert( Abc_NtkIsSeq( pNtk ) );
     // process the nodes
     vMoves = Vec_PtrAlloc( 100 );
     while ( Vec_IntSize(vSteps) > 0 )
     {
         iNode = 0;
+        fChange = 0;
         Vec_IntForEachEntry( vSteps, Number, i )
         {
             // get the retiming step
@@ -151,6 +153,7 @@ Vec_Ptr_t * Abc_NtkUtilRetimingGetMoves( Abc_Ntk_t * pNtk, Vec_Int_t * vSteps, b
                 continue;
             }
             assert( nLatches > 0 );
+            fChange = 1;
             // get the number of latches to be retimed over this node
             nLatches = ABC_MIN( nLatches, (int)RetStep.nLatches );
             // retime the latches forward
@@ -169,6 +172,11 @@ Vec_Ptr_t * Abc_NtkUtilRetimingGetMoves( Abc_Ntk_t * pNtk, Vec_Int_t * vSteps, b
         }
         // reduce the array
         Vec_IntShrink( vSteps, iNode );
+        if ( !fChange )
+        {
+            printf( "Warning: %d strange steps.\n", Vec_IntSize(vSteps) );
+            break;
+        }
     }
     // undo the tentative retiming
     if ( fForward )
@@ -204,6 +212,7 @@ Vec_Int_t * Abc_NtkUtilRetimingSplit( Vec_Str_t * vLags, int fForward )
     vNodes = Vec_IntAlloc( 100 );
     Vec_StrForEachEntry( vLags, Value, i )
     {
+//        assert( Value <= ABC_MAX_EDGE_LATCH );
         if ( Value < 0 && fForward )
         {
             RetStep.iNode = i;

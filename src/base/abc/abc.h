@@ -343,13 +343,15 @@ static inline bool        Abc_NodeIsTravIdCurrent( Abc_Obj_t * pNode )       { r
 static inline bool        Abc_NodeIsTravIdPrevious( Abc_Obj_t * pNode )      { return (bool)(pNode->TravId == pNode->pNtk->nTravIds - 1); }
 
 // checking initial state of the latches
-static inline void        Abc_LatchSetInit0( Abc_Obj_t * pLatch )   { assert(Abc_ObjIsLatch(pLatch)); pLatch->pData = (void *)ABC_INIT_ZERO;         }
-static inline void        Abc_LatchSetInit1( Abc_Obj_t * pLatch )   { assert(Abc_ObjIsLatch(pLatch)); pLatch->pData = (void *)ABC_INIT_ONE;          }
-static inline void        Abc_LatchSetInitDc( Abc_Obj_t * pLatch )  { assert(Abc_ObjIsLatch(pLatch)); pLatch->pData = (void *)ABC_INIT_DC;           }
-static inline bool        Abc_LatchIsInit0( Abc_Obj_t * pLatch )    { assert(Abc_ObjIsLatch(pLatch)); return pLatch->pData == (void *)ABC_INIT_ZERO; }
-static inline bool        Abc_LatchIsInit1( Abc_Obj_t * pLatch )    { assert(Abc_ObjIsLatch(pLatch)); return pLatch->pData == (void *)ABC_INIT_ONE;  }
-static inline bool        Abc_LatchIsInitDc( Abc_Obj_t * pLatch )   { assert(Abc_ObjIsLatch(pLatch)); return pLatch->pData == (void *)ABC_INIT_DC;   }
-static inline int         Abc_LatchInit( Abc_Obj_t * pLatch )       { assert(Abc_ObjIsLatch(pLatch)); return (int)pLatch->pData;          }
+static inline void        Abc_LatchSetInitNone( Abc_Obj_t * pLatch ) { assert(Abc_ObjIsLatch(pLatch)); pLatch->pData = (void *)ABC_INIT_NONE;         }
+static inline void        Abc_LatchSetInit0( Abc_Obj_t * pLatch )    { assert(Abc_ObjIsLatch(pLatch)); pLatch->pData = (void *)ABC_INIT_ZERO;         }
+static inline void        Abc_LatchSetInit1( Abc_Obj_t * pLatch )    { assert(Abc_ObjIsLatch(pLatch)); pLatch->pData = (void *)ABC_INIT_ONE;          }
+static inline void        Abc_LatchSetInitDc( Abc_Obj_t * pLatch )   { assert(Abc_ObjIsLatch(pLatch)); pLatch->pData = (void *)ABC_INIT_DC;           }
+static inline bool        Abc_LatchIsInitNone( Abc_Obj_t * pLatch )  { assert(Abc_ObjIsLatch(pLatch)); return pLatch->pData == (void *)ABC_INIT_NONE; }
+static inline bool        Abc_LatchIsInit0( Abc_Obj_t * pLatch )     { assert(Abc_ObjIsLatch(pLatch)); return pLatch->pData == (void *)ABC_INIT_ZERO; }
+static inline bool        Abc_LatchIsInit1( Abc_Obj_t * pLatch )     { assert(Abc_ObjIsLatch(pLatch)); return pLatch->pData == (void *)ABC_INIT_ONE;  }
+static inline bool        Abc_LatchIsInitDc( Abc_Obj_t * pLatch )    { assert(Abc_ObjIsLatch(pLatch)); return pLatch->pData == (void *)ABC_INIT_DC;   }
+static inline int         Abc_LatchInit( Abc_Obj_t * pLatch )        { assert(Abc_ObjIsLatch(pLatch)); return (int)pLatch->pData;          }
 
 // outputs the runtime in seconds
 #define PRT(a,t)  printf("%s = ", (a)); printf("%6.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC))
@@ -528,6 +530,9 @@ extern void               Abc_NodeFreeNames( Vec_Ptr_t * vNames );
 extern char **            Abc_NtkCollectCioNames( Abc_Ntk_t * pNtk, int fCollectCos );
 extern int                Abc_NodeCompareNames( Abc_Obj_t ** pp1, Abc_Obj_t ** pp2 );
 extern void               Abc_NtkOrderObjsByName( Abc_Ntk_t * pNtk, int fComb );
+extern void               Abc_NtkAddDummyPiNames( Abc_Ntk_t * pNtk );
+extern void               Abc_NtkAddDummyPoNames( Abc_Ntk_t * pNtk );
+extern void               Abc_NtkAddDummyLatchNames( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkShortNames( Abc_Ntk_t * pNtk );
 /*=== abcNetlist.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkNetlistToLogic( Abc_Ntk_t * pNtk );

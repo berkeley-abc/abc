@@ -469,7 +469,67 @@ void Abc_NtkOrderObjsByName( Abc_Ntk_t * pNtk, int fComb )
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Adds dummy names.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkAddDummyPiNames( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int nDigits, i;
+    nDigits = Extra_Base10Log( Abc_NtkPiNum(pNtk) );
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        Abc_NtkLogicStoreName( pObj, Abc_ObjNameDummy("pi", i, nDigits) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds dummy names.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkAddDummyPoNames( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int nDigits, i;
+    nDigits = Extra_Base10Log( Abc_NtkPoNum(pNtk) );
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        Abc_NtkLogicStoreName( pObj, Abc_ObjNameDummy("po", i, nDigits) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds dummy names.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkAddDummyLatchNames( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int nDigits, i;
+    nDigits = Extra_Base10Log( Abc_NtkLatchNum(pNtk) );
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+        Abc_NtkLogicStoreName( pObj, Abc_ObjNameDummy("L", i, nDigits) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Replaces names by short names.]
 
   Description []
                
@@ -480,39 +540,11 @@ void Abc_NtkOrderObjsByName( Abc_Ntk_t * pNtk, int fComb )
 ***********************************************************************/
 void Abc_NtkShortNames( Abc_Ntk_t * pNtk )
 {
-    stmm_table * tObj2NameNew;
-    Abc_Obj_t * pObj;
-    char Buffer[100];
-    char * pNameNew;
-    int Length, i;
-
-    tObj2NameNew = stmm_init_table(stmm_ptrcmp, stmm_ptrhash);
-    // create new names and add them to the table
-    Length = Extra_Base10Log( Abc_NtkPiNum(pNtk) );
-    Abc_NtkForEachPi( pNtk, pObj, i )
-    {
-        sprintf( Buffer, "pi%0*d", Length, i );
-        pNameNew = Abc_NtkRegisterName( pNtk, Buffer );
-        stmm_insert( tObj2NameNew, (char *)pObj, pNameNew );
-    }
-    // create new names and add them to the table
-    Length = Extra_Base10Log( Abc_NtkPoNum(pNtk) );
-    Abc_NtkForEachPo( pNtk, pObj, i )
-    {
-        sprintf( Buffer, "po%0*d", Length, i );
-        pNameNew = Abc_NtkRegisterName( pNtk, Buffer );
-        stmm_insert( tObj2NameNew, (char *)pObj, pNameNew );
-    }
-    // create new names and add them to the table
-    Length = Extra_Base10Log( Abc_NtkLatchNum(pNtk) );
-    Abc_NtkForEachLatch( pNtk, pObj, i )
-    {
-        sprintf( Buffer, "lat%0*d", Length, i );
-        pNameNew = Abc_NtkRegisterName( pNtk, Buffer );
-        stmm_insert( tObj2NameNew, (char *)pObj, pNameNew );
-    }
     stmm_free_table( pNtk->tObj2Name );
-    pNtk->tObj2Name = tObj2NameNew;
+    pNtk->tObj2Name = stmm_init_table(stmm_ptrcmp, stmm_ptrhash);
+    Abc_NtkAddDummyPiNames( pNtk );
+    Abc_NtkAddDummyPoNames( pNtk );
+    Abc_NtkAddDummyLatchNames( pNtk );
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -31,7 +31,7 @@
     - The edges of a sequential AIG are labeled with latch attributes
       in addition to the complementation attibutes. 
     - The attributes contain information about the number of latches 
-       and their initial states. 
+      and their initial states. 
     - The number of latches is stored directly on the edges. The initial 
       states are stored in a special array associated with the network.
 
@@ -92,6 +92,8 @@ Abc_Ntk_t * Abc_NtkAigToSeq( Abc_Ntk_t * pNtk )
         Abc_NtkDupObj(pNtkNew, pObj);
     Abc_NtkForEachPo( pNtk, pObj, i )
         Abc_NtkDupObj(pNtkNew, pObj);
+//    Abc_NtkForEachLatch( pNtk, pObj, i )
+//        Vec_PtrPush( pNtkNew->vObjs, NULL );
     // copy the PI/PO names
     Abc_NtkForEachPi( pNtk, pObj, i )
         Abc_NtkLogicStoreName( Abc_NtkPi(pNtkNew,i), Abc_ObjName(pObj) );
@@ -104,6 +106,7 @@ Abc_Ntk_t * Abc_NtkAigToSeq( Abc_Ntk_t * pNtk )
         if ( Abc_ObjFaninNum(pObj) != 2 )
             continue;
         Abc_NtkDupObj(pNtkNew, pObj);
+//        assert( pObj->Id == pObj->pCopy->Id );
         pObj->pCopy->fPhase = pObj->fPhase; // needed for choices
         pObj->pCopy->Level = pObj->Level; 
     }
@@ -248,7 +251,7 @@ Abc_Ntk_t * Abc_NtkSeqToLogicSop( Abc_Ntk_t * pNtk )
 {
     Abc_Ntk_t * pNtkNew; 
     Abc_Obj_t * pObj, * pObjNew, * pFaninNew, * pConst1;
-    int i, nCutNodes, nDigits;
+    int i, nCutNodes;
     unsigned Init;
     int nLatchMax = 0;
 
@@ -311,17 +314,13 @@ Abc_Ntk_t * Abc_NtkSeqToLogicSop( Abc_Ntk_t * pNtk )
         Abc_ObjAddFanin( pObj->pCopy, pFaninNew );
         // the complemented edges are subsumed by the node function
     }
-    printf( "The max edge latch num = %d.\n", nLatchMax );
-    // count the number of digits in the latch names
-    nDigits = Extra_Base10Log( Abc_NtkLatchNum(pNtkNew) );
+//    printf( "The max edge latch num = %d.\n", nLatchMax );
     // add the latches and their names
+    Abc_NtkAddDummyLatchNames( pNtkNew );
     Abc_NtkForEachLatch( pNtkNew, pObjNew, i )
     {
-        // add the latch to the CI/CO arrays
         Vec_PtrPush( pNtkNew->vCis, pObjNew );
         Vec_PtrPush( pNtkNew->vCos, pObjNew );
-        // create latch name
-        Abc_NtkLogicStoreName( pObjNew, Abc_ObjNameDummy("L", i, nDigits) );
     }
     // fix the problem with complemented and duplicated CO edges
     Abc_NtkLogicMakeSimpleCos( pNtkNew, 0 );
