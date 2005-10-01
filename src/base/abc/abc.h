@@ -439,7 +439,8 @@ extern bool               Abc_NtkCompareSignals( Abc_Ntk_t * pNtk1, Abc_Ntk_t * 
 extern Abc_Ntk_t *        Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fVerbose );
 /*=== abcCut.c ==========================================================*/
 extern void *             Abc_NodeGetCutsRecursive( void * p, Abc_Obj_t * pObj );
-extern void *             Abc_NodeGetCuts( void * p, Abc_Obj_t * pObj );
+extern void *             Abc_NodeGetCuts( void * p, Abc_Obj_t * pObj, int fMulti );
+extern void               Abc_NodeGetCutsSeq( void * p, Abc_Obj_t * pObj, int fFirst );
 extern void *             Abc_NodeReadCuts( void * p, Abc_Obj_t * pObj );
 extern void               Abc_NodeFreeCuts( void * p, Abc_Obj_t * pObj );
 /*=== abcDfs.c ==========================================================*/

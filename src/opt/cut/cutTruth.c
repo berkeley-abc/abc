@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "cutInt.h"
+#include "npn.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -80,6 +81,8 @@ int clk = clock();
         Cut_TruthCompute5( p, pCut, pCut0, pCut1 );
     else // if ( pCut->nVarsMax == 6 )
         Cut_TruthCompute6( p, pCut, pCut0, pCut1 );
+
+//    Npn_VarsTest( pCut->nVarsMax, Cut_CutReadTruth(pCut) );
 p->timeTruth += clock() - clk;
 }
 
@@ -313,6 +316,93 @@ void Cut_TruthComputeOld( Cut_Man_t * p, Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cu
         uTruth1 &= 0xFFFF; 
     Cut_CutWriteTruth( pCut, &uTruth1 );
 p->timeTruth += clock() - clk;
+}
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Expands the truth table according to the phase.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Extra_TruthExpand( int nVars, uint8 * puTruth, unsigned uPhase, uint8 * puTruthR )
+{
+    int i, k, m, m1;
+    assert( nVars <= 8 );
+    Extra_BitClean( nVars, puTruthR );
+    for ( m = (1 << nVars) - 1; m >= 0; m-- )
+    {
+        m1 = 0;
+        for ( i = k = 0; i < nVars; i++ )
+            if ( uPhase & (1 << i) )
+            {
+                if ( m & (1 << i) )
+                    m1 |= (1 << k);
+                k++;
+            }
+        if ( Extra_BitRead( puTruth, m1 ) )
+            Extra_BitSet( puTruthR, m );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs truth table computation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cut_TruthCompute1( Cut_Man_t * p, Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 )
+{
+    uint8 uTruth0[32], uTruth1[32];
+    unsigned * puTruthCut0, * puTruthCut1, * puTruthCut;
+    unsigned uPhase;
+int clk = clock();
+
+    assert( pCut->nLeaves >= 2 );
+    assert( pCut->nLeaves <= 8 );
+
+    if ( pCut->nVarsMax == 4 )
+    {
+        Cut_TruthCompute4( p, pCut, pCut0, pCut1 );
+        return;
+    }
+
+    puTruthCut0 = Cut_CutReadTruth(pCut0);
+    puTruthCut1 = Cut_CutReadTruth(pCut1);
+    puTruthCut  = Cut_CutReadTruth(pCut);
+
+    uPhase = Cut_TruthPhase( pCut, pCut0 );
+    Extra_TruthExpand( pCut->nVarsMax, (uint8*)puTruthCut0, uPhase, uTruth0 );
+    if ( p->fCompl0 )
+        Extra_BitNot( pCut->nVarsMax, uTruth0 );
+
+    uPhase = Cut_TruthPhase( pCut, pCut1 );
+    Extra_TruthExpand( pCut->nVarsMax, (uint8*)puTruthCut1, uPhase, uTruth1 );
+    if ( p->fCompl1 )
+        Extra_BitNot( pCut->nVarsMax, uTruth1 );
+
+    Extra_BitAnd( pCut->nVarsMax, (uint8*)uTruth0, (uint8*)uTruth1, (uint8*)puTruthCut );
+    if ( pCut->fCompl )
+        Extra_BitNot( pCut->nVarsMax, (uint8*)puTruthCut );
+
+p->timeTruth += clock() - clk;
+
+
+//Extra_PrintBinary( stdout, (unsigned*)uTruth0, 32 ); printf( "\n" );
+//Extra_PrintBinary( stdout, (unsigned*)uTruth1, 32 ); printf( "\n" );
+//Extra_PrintBinary( stdout, puTruthCut , 32 ); printf( "\n" );
+//uPhase = 0;
 }
 
 

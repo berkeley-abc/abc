@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "cutInt.h"
+#include "npn.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -69,12 +70,19 @@ Cut_Cut_t * Cut_CutAlloc( Cut_Man_t * p )
 Cut_Cut_t * Cut_CutCreateTriv( Cut_Man_t * p, int Node )
 {
     Cut_Cut_t * pCut;
+    if ( p->pParams->fSeq )
+        Node <<= 8;
     pCut = Cut_CutAlloc( p );
     pCut->nLeaves    = 1;
     pCut->pLeaves[0] = Node;
-    pCut->uSign      = (1 << (Node % 32));
+    pCut->uSign      = Cut_NodeSign( Node );
     if ( p->pParams->fTruth )
-        Cut_CutWriteTruth( pCut, p->uTruthVars[0] );
+    {
+        if ( pCut->nVarsMax == 4 )
+            Cut_CutWriteTruth( pCut, p->uTruthVars[0] );
+        else
+            Extra_BitCopy( pCut->nLeaves, p->uTruths[0], (uint8*)Cut_CutReadTruth(pCut) );
+    }
     p->nCutsTriv++;
     return pCut;
 } 
@@ -111,14 +119,43 @@ void Cut_CutRecycle( Cut_Man_t * p, Cut_Cut_t * pCut )
   SeeAlso     []
 
 ***********************************************************************/
-void Cut_CutPrint( Cut_Cut_t * pCut )
+void Cut_CutPrint( Cut_Cut_t * pCut, int fSeq )
 {
     int i;
     assert( pCut->nLeaves > 0 );
     printf( "%d : {", pCut->nLeaves );
     for ( i = 0; i < (int)pCut->nLeaves; i++ )
-        printf( " %d", pCut->pLeaves[i] );
+    {
+        if ( fSeq )
+        {
+            printf( " %d", pCut->pLeaves[i] >> 8 );
+            if ( pCut->pLeaves[i] & 0xFF )
+                printf( "(%d)", pCut->pLeaves[i] & 0xFF );
+        }
+        else
+            printf( " %d", pCut->pLeaves[i] );
+    }
     printf( " }" );
+//    printf( "\nSign = " );
+//    Extra_PrintBinary( stdout, &pCut->uSign, 32 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Print the cut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cut_CutPrintList( Cut_Cut_t * pList, int fSeq )
+{
+    Cut_Cut_t * pCut;
+    for ( pCut = pList; pCut; pCut = pCut->pNext )
+        Cut_CutPrint( pCut, fSeq ), printf( "\n" );
 }
 
 /**Function*************************************************************

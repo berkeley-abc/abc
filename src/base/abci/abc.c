@@ -932,20 +932,24 @@ int Abc_CommandShowAig( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
     int c;
+    int fMulti;
     extern void Abc_NtkShowAig( Abc_Ntk_t * pNtk );
+    extern void Abc_NtkShowMulti( Abc_Ntk_t * pNtk );
 
     pNtk = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
+    fMulti = 0;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "mh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'h':
-            goto usage;
+        case 'm':
+            fMulti ^= 1;
+            break;
         default:
             goto usage;
         }
@@ -962,7 +966,16 @@ int Abc_CommandShowAig( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Visualizing AIG can only be done for AIGs (run \"strash\" or \"seq\").\n" );
         return 1;
     }
-    Abc_NtkShowAig( pNtk );
+    if ( fMulti && !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "Visualizing multi-input ANDs cannot be done for sequential network (run \"unseq\").\n" );
+        return 1;
+    }
+
+    if ( !fMulti )
+        Abc_NtkShowAig( pNtk );
+    else
+        Abc_NtkShowMulti( pNtk );
     return 0;
 
 usage:
@@ -972,6 +985,7 @@ usage:
     fprintf( pErr, "       \"dot.exe\" and \"gsview32.exe\" should be set in the paths\n" );
     fprintf( pErr, "       (\"gsview32.exe\" may be in \"C:\\Program Files\\Ghostgum\\gsview\\\")\n" );
 #endif
+    fprintf( pErr, "\t-m    : toggles visualization of multi-input ANDs [default = %s].\n", fMulti? "yes": "no" );  
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -1300,8 +1314,8 @@ usage:
     fprintf( pErr, "\t-F num  : the maximum fanin size after renoding [default = %d]\n", nFaninMax );
     fprintf( pErr, "\t-T num  : the threshold for AIG node duplication [default = %d]\n", nThresh );
     fprintf( pErr, "\t          (an AIG node is the root of a new node after renoding\n" );
-    fprintf( pErr, "\t          if doing so prevents duplication of more than %d AIG nodes,\n", nThresh );
-    fprintf( pErr, "\t          that is, if [(numFanouts(Node)-1) * size(MFFC(Node))] > %d)\n", nThresh );
+    fprintf( pErr, "\t          if this leads to duplication of no more than %d AIG nodes,\n", nThresh );
+    fprintf( pErr, "\t          that is, if [(numFanouts(Node)-1) * size(MFFC(Node))] <= %d)\n", nThresh );
     fprintf( pErr, "\t-m      : creates multi-input AND graph [default = %s]\n", fMulti? "yes": "no" );
     fprintf( pErr, "\t-s      : creates a simple AIG (no renoding) [default = %s]\n", fSimple? "yes": "no" );
     fprintf( pErr, "\t-c      : performs renoding to derive the CNF [default = %s]\n", fCnf? "yes": "no" );
@@ -2733,13 +2747,14 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     memset( pParams, 0, sizeof(Cut_Params_t) );
     pParams->nVarsMax  = 5;     // the max cut size ("k" of the k-feasible cuts)
-    pParams->nKeepMax  = 250;   // the max number of cuts kept at a node
+    pParams->nKeepMax  = 1000;  // the max number of cuts kept at a node
     pParams->fTruth    = 0;     // compute truth tables
     pParams->fFilter   = 1;     // filter dominated cuts
     pParams->fDrop     = 0;     // drop cuts on the fly
+    pParams->fMulti    = 0;     // use multi-input AND-gates
     pParams->fVerbose  = 0;     // the verbosiness flag
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "KMtfdvh" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "KMtfdmvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -2774,6 +2789,9 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'd':
             pParams->fDrop ^= 1;
             break;
+        case 'm':
+            pParams->fMulti ^= 1;
+            break;
         case 'v':
             pParams->fVerbose ^= 1;
             break;
@@ -2800,13 +2818,14 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: cut [-K num] [-M num] [-tfdvh]\n" );
+    fprintf( pErr, "usage: cut [-K num] [-M num] [-tfdmvh]\n" );
     fprintf( pErr, "\t         computes k-feasible cuts for the AIG\n" );
     fprintf( pErr, "\t-K num : max number of leaves (4 <= num <= 6) [default = %d]\n",     pParams->nVarsMax );
     fprintf( pErr, "\t-M num : max number of cuts stored at a node [default = %d]\n",      pParams->nKeepMax );
     fprintf( pErr, "\t-t     : toggle truth table computation [default = %s]\n",           pParams->fTruth? "yes": "no" );
     fprintf( pErr, "\t-f     : toggle filtering of duplicated/dominated [default = %s]\n", pParams->fFilter? "yes": "no" );
     fprintf( pErr, "\t-d     : toggle dropping when fanouts are done [default = %s]\n",    pParams->fDrop? "yes": "no" );
+    fprintf( pErr, "\t-m     : toggle using multi-input AND-gates [default = %s]\n",       pParams->fMulti? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n",      pParams->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -2839,9 +2858,9 @@ int Abc_CommandScut( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     memset( pParams, 0, sizeof(Cut_Params_t) );
     pParams->nVarsMax  = 5;     // the max cut size ("k" of the k-feasible cuts)
-    pParams->nKeepMax  = 250;   // the max number of cuts kept at a node
+    pParams->nKeepMax  = 1000;  // the max number of cuts kept at a node
     pParams->fTruth    = 0;     // compute truth tables
-    pParams->fFilter   = 0;     // filter dominated cuts
+    pParams->fFilter   = 1;     // filter dominated cuts
     pParams->fSeq      = 1;     // compute sequential cuts
     pParams->fVerbose  = 0;     // the verbosiness flag
     util_getopt_reset();
@@ -4347,8 +4366,7 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fForward;
     int fBackward;
     int fInitial;
-
-    extern Abc_Ntk_t * Abc_NtkSuperChoice( Abc_Ntk_t * pNtk );
+    int fVerbose;
 
     pNtk = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -4358,8 +4376,9 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     fForward  = 0;
     fBackward = 0;
     fInitial  = 0;
+    fVerbose  = 0;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "fbih" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "fbivh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -4371,6 +4390,9 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'i':
             fInitial ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -4393,13 +4415,13 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // get the new network
     if ( fForward )
-        Abc_NtkSeqRetimeForward( pNtk );
+        Abc_NtkSeqRetimeForward( pNtk, fVerbose );
     else if ( fBackward )
-        Abc_NtkSeqRetimeBackward( pNtk );
+        Abc_NtkSeqRetimeBackward( pNtk, fVerbose );
     else if ( fInitial )
-        Abc_NtkSeqRetimeInitial( pNtk );
+        Abc_NtkSeqRetimeInitial( pNtk, fVerbose );
     else
-        Abc_NtkSeqRetimeDelay( pNtk );
+        Abc_NtkSeqRetimeDelay( pNtk, fVerbose );
     return 0;
 
 usage:

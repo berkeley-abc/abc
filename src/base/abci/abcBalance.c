@@ -242,6 +242,167 @@ int Abc_NodeBalanceCone_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vSuper, bool fFirst,
 }
 
 
+
+
+/**Function*************************************************************
+
+  Synopsis    [Collects the nodes in the implication supergate.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_NodeFindCone_rec( Abc_Obj_t * pNode )
+{
+    Vec_Ptr_t * vNodes;
+    Abc_Obj_t * pNodeC, * pNodeT, * pNodeE;
+    int RetValue, i;
+    assert( !Abc_ObjIsComplement(pNode) );
+    if ( Abc_ObjIsCi(pNode) )
+        return NULL;
+    // start the new array
+    vNodes = Vec_PtrAlloc( 4 );
+    // if the node is the MUX collect its fanins
+    if ( Abc_NodeIsMuxType(pNode) )
+    {
+        pNodeC = Abc_NodeRecognizeMux( pNode, &pNodeT, &pNodeE );
+        Vec_PtrPush( vNodes, Abc_ObjRegular(pNodeC) );
+        Vec_PtrPushUnique( vNodes, Abc_ObjRegular(pNodeT) );
+        Vec_PtrPushUnique( vNodes, Abc_ObjRegular(pNodeE) );
+    }
+    else
+    {
+        // collect the nodes in the implication supergate
+        RetValue = Abc_NodeBalanceCone_rec( pNode, vNodes, 1, 1 );
+        assert( vNodes->nSize > 1 );
+        // unmark the visited nodes
+        Vec_PtrForEachEntry( vNodes, pNode, i )
+            Abc_ObjRegular(pNode)->fMarkB = 0;
+        // if we found the node and its complement in the same implication supergate, 
+        // return empty set of nodes (meaning that we should use constant-0 node)
+        if ( RetValue == -1 )
+            vNodes->nSize = 0;
+    }
+    // call for the fanin
+    Vec_PtrForEachEntry( vNodes, pNode, i )
+    {
+        pNode = Abc_ObjRegular(pNode);
+        if ( pNode->pCopy )
+            continue;
+        pNode->pCopy = (Abc_Obj_t *)Abc_NodeFindCone_rec( pNode );
+    }
+    return vNodes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Attaches the implication supergates to internal nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkBalanceAttach( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNode;
+    int i;
+    Abc_NtkCleanCopy( pNtk );
+    Abc_NtkForEachCo( pNtk, pNode, i )
+    {
+        pNode = Abc_ObjFanin0(pNode);
+        if ( pNode->pCopy )
+            continue;
+        pNode->pCopy = (Abc_Obj_t *)Abc_NodeFindCone_rec( pNode );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Attaches the implication supergates to internal nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkBalanceDetach( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNode;
+    int i;
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        if ( pNode->pCopy )
+        {
+            Vec_PtrFree( (Vec_Ptr_t *)pNode->pCopy );
+            pNode->pCopy = NULL;
+        }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Compute levels of implication supergates.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkBalanceLevel_rec( Abc_Obj_t * pNode )
+{
+    Vec_Ptr_t * vSuper;
+    Abc_Obj_t * pFanin;
+    int i, LevelMax;
+    assert( !Abc_ObjIsComplement(pNode) );
+    if ( pNode->Level > 0 )
+        return pNode->Level;
+    if ( Abc_ObjIsCi(pNode) )
+        return 0;
+    vSuper = (Vec_Ptr_t *)pNode->pCopy;
+    assert( vSuper != NULL );
+    LevelMax = 0;
+    Vec_PtrForEachEntry( vSuper, pFanin, i )
+    {
+        pFanin = Abc_ObjRegular(pFanin);
+        Abc_NtkBalanceLevel_rec(pFanin);
+        if ( LevelMax < (int)pFanin->Level )
+            LevelMax = pFanin->Level;
+    }
+    pNode->Level = LevelMax + 1;
+    return pNode->Level;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Compute levels of implication supergates.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkBalanceLevel( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNode;
+    int i;
+    Abc_NtkForEachObj( pNtk, pNode, i )
+        pNode->Level = 0;
+    Abc_NtkForEachCo( pNtk, pNode, i )
+        Abc_NtkBalanceLevel_rec( Abc_ObjFanin0(pNode) );
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

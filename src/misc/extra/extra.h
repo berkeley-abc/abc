@@ -261,6 +261,8 @@ extern int         Extra_Power3( int Num );
 /* the number of combinations of k elements out of n */
 extern int         Extra_NumCombinations( int k, int n  );
 extern int *       Extra_DeriveRadixCode( int Number, int Radix, int nDigits );
+/* counts the number of 1s in the bitstring */
+extern int         Extra_CountOnes( unsigned char * pBytes, int nBytes );
 /* the factorial of number */
 extern int         Extra_Factorial( int n );
 /* the permutation of the given number of elements */

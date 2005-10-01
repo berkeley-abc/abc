@@ -39,11 +39,11 @@
   SeeAlso     []
 
 ***********************************************************************/
-Cut_Cut_t * Cut_NodeReadCuts( Cut_Man_t * p, int Node )
+Cut_Cut_t * Cut_NodeReadCutsNew( Cut_Man_t * p, int Node )
 {
-    if ( Node >= p->vCuts->nSize )
+    if ( Node >= p->vCutsNew->nSize )
         return NULL;
-    return Vec_PtrEntry( p->vCuts, Node );
+    return Vec_PtrEntry( p->vCutsNew, Node );
 }
 
 /**Function*************************************************************
@@ -57,9 +57,75 @@ Cut_Cut_t * Cut_NodeReadCuts( Cut_Man_t * p, int Node )
   SeeAlso     []
 
 ***********************************************************************/
-void Cut_NodeWriteCuts( Cut_Man_t * p, int Node, Cut_Cut_t * pList )
+Cut_Cut_t * Cut_NodeReadCutsOld( Cut_Man_t * p, int Node )
 {
-    Vec_PtrWriteEntry( p->vCuts, Node, pList );
+    assert( Node < p->vCutsOld->nSize );
+    return Vec_PtrEntry( p->vCutsOld, Node );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the pointer to the linked list of cuts.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Cut_Cut_t * Cut_NodeReadCutsTemp( Cut_Man_t * p, int Node )
+{
+    assert( Node < p->vCutsTemp->nSize );
+    return Vec_PtrEntry( p->vCutsTemp, Node );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the pointer to the linked list of cuts.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cut_NodeWriteCutsNew( Cut_Man_t * p, int Node, Cut_Cut_t * pList )
+{
+    Vec_PtrWriteEntry( p->vCutsNew, Node, pList );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the pointer to the linked list of cuts.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cut_NodeWriteCutsOld( Cut_Man_t * p, int Node, Cut_Cut_t * pList )
+{
+    Vec_PtrWriteEntry( p->vCutsOld, Node, pList );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the pointer to the linked list of cuts.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cut_NodeWriteCutsTemp( Cut_Man_t * p, int Node, Cut_Cut_t * pList )
+{
+    Vec_PtrWriteEntry( p->vCutsTemp, Node, pList );
 }
 
 /**Function*************************************************************
@@ -75,8 +141,8 @@ void Cut_NodeWriteCuts( Cut_Man_t * p, int Node, Cut_Cut_t * pList )
 ***********************************************************************/
 void Cut_NodeSetTriv( Cut_Man_t * p, int Node )
 {
-    assert( Cut_NodeReadCuts(p, Node) == NULL );
-    Cut_NodeWriteCuts( p, Node, Cut_CutCreateTriv(p, Node) );
+    assert( Cut_NodeReadCutsNew(p, Node) == NULL );
+    Cut_NodeWriteCutsNew( p, Node, Cut_CutCreateTriv(p, Node) );
 }
 
 /**Function*************************************************************
@@ -115,12 +181,12 @@ void Cut_NodeTryDroppingCuts( Cut_Man_t * p, int Node )
 void Cut_NodeFreeCuts( Cut_Man_t * p, int Node )
 {
     Cut_Cut_t * pList, * pCut, * pCut2;
-    pList = Cut_NodeReadCuts( p, Node );
+    pList = Cut_NodeReadCutsNew( p, Node );
     if ( pList == NULL )
         return;
     Cut_ListForEachCutSafe( pList, pCut, pCut2 )
         Cut_CutRecycle( p, pCut );
-    Cut_NodeWriteCuts( p, Node, NULL );
+    Cut_NodeWriteCutsNew( p, Node, NULL );
 }
 
 

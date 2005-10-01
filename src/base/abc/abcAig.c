@@ -1231,7 +1231,6 @@ void Abc_AigCheckFaninOrder( Abc_Aig_t * pMan )
             {
                 int i0 = Abc_ObjRegular(Abc_ObjChild0(pEnt))->Id;
                 int i1 = Abc_ObjRegular(Abc_ObjChild1(pEnt))->Id;
-                int x = 0;
                 printf( "Node %d has incorrect ordering of fanins.\n", pEnt->Id );
             }
         }

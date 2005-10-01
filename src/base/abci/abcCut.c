@@ -25,6 +25,9 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+static void Abc_NtkPrintCuts( void * p, Abc_Ntk_t * pNtk, int fSeq );
+static void Abc_NtkPrintCuts_( void * p, Abc_Ntk_t * pNtk, int fSeq );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
@@ -49,7 +52,12 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
     int i;
     int clk = clock();
 
+    extern void Abc_NtkBalanceAttach( Abc_Ntk_t * pNtk );
+    extern void Abc_NtkBalanceDetach( Abc_Ntk_t * pNtk );
+
     assert( Abc_NtkIsStrash(pNtk) );
+    if ( pParams->fMulti )
+        Abc_NtkBalanceAttach(pNtk);
 
     // start the manager
     pParams->nIdsMax = Abc_NtkObjNumMax( pNtk );
@@ -76,7 +84,13 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
         if ( Abc_NodeIsConst(pObj) )
             continue;
         // compute the cuts to the internal node
-        Abc_NodeGetCuts( p, pObj );  
+        Abc_NodeGetCuts( p, pObj, pParams->fMulti );  
+        // consider dropping the fanins cuts
+        if ( pParams->fDrop )
+        {
+            Cut_NodeTryDroppingCuts( p, Abc_ObjFaninId0(pObj) );
+            Cut_NodeTryDroppingCuts( p, Abc_ObjFaninId1(pObj) );
+        }
         // add cuts due to choices
         if ( Abc_NodeIsAigChoice(pObj) )
         {
@@ -88,7 +102,11 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
     }
     Vec_PtrFree( vNodes );
     Vec_IntFree( vChoices );
+    if ( pParams->fMulti )
+        Abc_NtkBalanceDetach(pNtk);
 PRT( "Total", clock() - clk );
+Abc_NtkPrintCuts_( p, pNtk, 0 );
+//    Cut_ManPrintStatsToFile( p, pNtk->pSpec, clock() - clk );
     return p;
 }
 
@@ -105,7 +123,68 @@ PRT( "Total", clock() - clk );
 ***********************************************************************/
 Cut_Man_t * Abc_NtkSeqCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
 {
-    return NULL;
+    Cut_Man_t *  p;
+    Abc_Obj_t * pObj;
+    int i, nIters, fStatus;
+    int clk = clock();
+
+    assert( Abc_NtkIsSeq(pNtk) );
+    assert( pParams->fSeq );
+
+    // start the manager
+    pParams->nIdsMax = Abc_NtkObjNumMax( pNtk );
+    pParams->nCutSet = pNtk->vLats->nSize;
+    p = Cut_ManStart( pParams );
+
+    // set cuts for PIs
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        Cut_NodeSetTriv( p, pObj->Id );
+    // label the cutset nodes and set their number in the array
+    // assign the elementary cuts to the cutset nodes
+    Abc_SeqForEachCutsetNode( pNtk, pObj, i )
+    {
+        assert( pObj->fMarkC == 0 );
+        pObj->fMarkC = 1;
+        pObj->pCopy = (Abc_Obj_t *)i;
+        Cut_NodeSetTriv( p, pObj->Id );
+    }
+
+    // process the nodes
+    for ( nIters = 0; nIters < 10; nIters++ )
+    {
+//printf( "ITERATION %d:\n", nIters );
+        // compute the cuts for the internal nodes
+        Abc_AigForEachAnd( pNtk, pObj, i )
+            Abc_NodeGetCutsSeq( p, pObj, nIters==0 );
+Abc_NtkPrintCuts( p, pNtk, 1 );
+        // merge the new cuts with the old cuts
+        Abc_NtkForEachPi( pNtk, pObj, i )
+            Cut_NodeNewMergeWithOld( p, pObj->Id );
+        Abc_AigForEachAnd( pNtk, pObj, i )
+            Cut_NodeNewMergeWithOld( p, pObj->Id );
+        // for the cutset, merge temp with new
+        fStatus = 0;
+        Abc_SeqForEachCutsetNode( pNtk, pObj, i )
+            fStatus |= Cut_NodeTempTransferToNew( p, pObj->Id, i );
+        if ( fStatus == 0 )
+            break;
+    }
+
+    // if the status is not finished, transfer new to old for the cutset
+    Abc_SeqForEachCutsetNode( pNtk, pObj, i )
+        Cut_NodeNewMergeWithOld( p, pObj->Id );
+
+    // transfer the old cuts to the new positions
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        Cut_NodeOldTransferToNew( p, pObj->Id );
+
+    // unlabel the cutset nodes
+    Abc_SeqForEachCutsetNode( pNtk, pObj, i )
+        pObj->fMarkC = 0;
+PRT( "Total", clock() - clk );
+printf( "Converged after %d iterations.\n", nIters );
+Abc_NtkPrintCuts( p, pNtk, 1 );
+    return p;
 }
 
 /**Function*************************************************************
@@ -126,7 +205,7 @@ void * Abc_NodeGetCutsRecursive( void * p, Abc_Obj_t * pObj )
         return pList;
     Abc_NodeGetCutsRecursive( p, Abc_ObjFanin0(pObj) );
     Abc_NodeGetCutsRecursive( p, Abc_ObjFanin1(pObj) );
-    return Abc_NodeGetCuts( p, pObj );
+    return Abc_NodeGetCuts( p, pObj, 0 );
 }
 
 /**Function*************************************************************
@@ -140,10 +219,35 @@ void * Abc_NodeGetCutsRecursive( void * p, Abc_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-void * Abc_NodeGetCuts( void * p, Abc_Obj_t * pObj )
+void * Abc_NodeGetCuts( void * p, Abc_Obj_t * pObj, int fMulti )
 {
+    int fTriv = (!fMulti) || (pObj->pCopy != NULL);
+    assert( Abc_NtkIsStrash(pObj->pNtk) );
+    assert( Abc_ObjFaninNum(pObj) == 2 );
     return Cut_NodeComputeCuts( p, pObj->Id, Abc_ObjFaninId0(pObj), Abc_ObjFaninId1(pObj),  
-        Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj) );  
+        Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj), 1, 1, fTriv );  
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the cuts for the network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NodeGetCutsSeq( void * p, Abc_Obj_t * pObj, int fTriv )
+{
+    int CutSetNum;
+    assert( Abc_NtkIsSeq(pObj->pNtk) );
+    assert( Abc_ObjFaninNum(pObj) == 2 );
+//    fTriv     = pObj->fMarkC ? 0 : fTriv;
+    CutSetNum = pObj->fMarkC ? (int)pObj->pCopy : -1;
+    Cut_NodeComputeCutsSeq( p, pObj->Id, Abc_ObjFaninId0(pObj), Abc_ObjFaninId1(pObj),  
+        Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj), Abc_ObjFaninL0(pObj), Abc_ObjFaninL1(pObj), fTriv, CutSetNum );  
 }
 
 /**Function*************************************************************
@@ -159,7 +263,7 @@ void * Abc_NodeGetCuts( void * p, Abc_Obj_t * pObj )
 ***********************************************************************/
 void * Abc_NodeReadCuts( void * p, Abc_Obj_t * pObj )
 {
-    return Cut_NodeReadCuts( p, pObj->Id );  
+    return Cut_NodeReadCutsNew( p, pObj->Id );  
 }
 
 /**Function*************************************************************
@@ -176,6 +280,54 @@ void * Abc_NodeReadCuts( void * p, Abc_Obj_t * pObj )
 void Abc_NodeFreeCuts( void * p, Abc_Obj_t * pObj )
 {
     Cut_NodeFreeCuts( p, pObj->Id );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the cuts for the network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkPrintCuts( void * p, Abc_Ntk_t * pNtk, int fSeq )
+{
+    Cut_Man_t * pMan = p;
+    Cut_Cut_t * pList;
+    Abc_Obj_t * pObj;
+    int i;
+    printf( "Cuts of the network:\n" );
+    Abc_NtkForEachObj( pNtk, pObj, i )
+    {
+        pList = Abc_NodeReadCuts( p, pObj );
+        printf( "Node %s:\n", Abc_ObjName(pObj) );
+        Cut_CutPrintList( pList, fSeq );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the cuts for the network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkPrintCuts_( void * p, Abc_Ntk_t * pNtk, int fSeq )
+{
+    Cut_Man_t * pMan = p;
+    Cut_Cut_t * pList;
+    Abc_Obj_t * pObj;
+    pObj = Abc_NtkObj( pNtk, 2 * Abc_NtkObjNum(pNtk) / 3 );
+    pList = Abc_NodeReadCuts( p, pObj );
+    printf( "Node %s:\n", Abc_ObjName(pObj) );
+    Cut_CutPrintList( pList, fSeq );
 }
 
 ////////////////////////////////////////////////////////////////////////

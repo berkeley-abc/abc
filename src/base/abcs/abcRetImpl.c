@@ -44,7 +44,7 @@ static void Abc_NtkRetimeSetInitialValues( Abc_Ntk_t * pNtk, stmm_table * tTable
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkImplementRetiming( Abc_Ntk_t * pNtk, Vec_Str_t * vLags )
+int Abc_NtkImplementRetiming( Abc_Ntk_t * pNtk, Vec_Str_t * vLags, int fVerbose )
 {
     Vec_Int_t * vSteps;
     Vec_Ptr_t * vMoves;
@@ -53,8 +53,10 @@ int Abc_NtkImplementRetiming( Abc_Ntk_t * pNtk, Vec_Str_t * vLags )
     // forward retiming
     vSteps = Abc_NtkUtilRetimingSplit( vLags, 1 );
     // translate each set of steps into moves
+    if ( fVerbose )
     printf( "The number of forward steps  = %6d.\n", Vec_IntSize(vSteps) );
     vMoves = Abc_NtkUtilRetimingGetMoves( pNtk, vSteps, 1 );
+    if ( fVerbose )
     printf( "The number of forward moves  = %6d.\n", Vec_PtrSize(vMoves) );
     // implement this retiming
     Abc_NtkImplementRetimingForward( pNtk, vMoves );
@@ -64,11 +66,13 @@ int Abc_NtkImplementRetiming( Abc_Ntk_t * pNtk, Vec_Str_t * vLags )
     // backward retiming
     vSteps = Abc_NtkUtilRetimingSplit( vLags, 0 );
     // translate each set of steps into moves
+    if ( fVerbose )
     printf( "The number of backward steps = %6d.\n", Vec_IntSize(vSteps) );
     vMoves = Abc_NtkUtilRetimingGetMoves( pNtk, vSteps, 0 );
+    if ( fVerbose )
     printf( "The number of backward moves = %6d.\n", Vec_PtrSize(vMoves) );
     // implement this retiming
-    RetValue = Abc_NtkImplementRetimingBackward( pNtk, vMoves );
+    RetValue = Abc_NtkImplementRetimingBackward( pNtk, vMoves, fVerbose );
     Vec_IntFree( vSteps );
     Vec_PtrFree( vMoves );
     return RetValue;
@@ -156,7 +160,7 @@ void Abc_ObjRetimeForward( Abc_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkImplementRetimingBackward( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMoves )
+int Abc_NtkImplementRetimingBackward( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMoves, int fVerbose )
 {
     Abc_RetEdge_t RetEdge;
     stmm_table * tTable;
@@ -216,6 +220,7 @@ int Abc_NtkImplementRetimingBackward( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMoves )
     Abc_NtkDelete( pNtkProb );
     Vec_IntFree( vValues );
 
+    if ( fVerbose )
     printf( "The number of ANDs in the AIG = %5d.\n", Abc_NtkNodeNum(pNtkMiter) );
 
     // transform the miter into a logic network for efficient CNF construction
@@ -225,6 +230,7 @@ int Abc_NtkImplementRetimingBackward( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMoves )
     // solve the miter
 clk = clock();
     RetValue = Abc_NtkMiterSat( pNtkCnf, 30, 0 );
+if ( fVerbose )
 if ( clock() - clk > 500 )
 {
 PRT( "SAT solving time", clock() - clk );
@@ -289,7 +295,7 @@ int Abc_ObjRetimeBackward( Abc_Obj_t * pObj, Abc_Ntk_t * pNtkNew, stmm_table * t
     // consider the case when all fanout latchs have don't-care values
     // the new values on the fanin edges will be don't-cares
     if ( !fMet0 && !fMet1 && !fMetN )
-   {
+    {
         // update the fanout edges
         Abc_ObjForEachFanout( pObj, pFanout, i )
             Abc_ObjFaninLDeleteLast( pFanout, Abc_ObjEdgeNum(pObj, pFanout) );

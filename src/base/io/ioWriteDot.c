@@ -31,7 +31,7 @@
 
 /**Function*************************************************************
 
-  Synopsis    [Writes the graph structure of AIG in DOT.]
+  Synopsis    [Writes the graph structure of AIG for DOT.]
 
   Description [Useful for graph visualization using tools such as GraphViz: 
   http://www.graphviz.org/]
@@ -41,7 +41,7 @@
   SeeAlso     []
 
 ***********************************************************************/
-void Io_WriteDot( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesShow, char * pFileName )
+void Io_WriteDot( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesShow, char * pFileName, int fMulti )
 {
     FILE * pFile;
     Abc_Obj_t * pNode, * pTemp, * pPrev;
@@ -177,7 +177,7 @@ void Io_WriteDot( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesShow, 
     fprintf( pFile, "          fontsize=18,\n" );
     fprintf( pFile, "          fontname = \"Times-Roman\",\n" );
     fprintf( pFile, "          label=\"" );
-    fprintf( pFile, "The set contains %d nodes and spans %d levels.", vNodes->nSize, LevelMax - LevelMin );
+    fprintf( pFile, "The set contains %d nodes and spans %d levels.", vNodes->nSize, LevelMax - LevelMin + 1 );
     fprintf( pFile, "\\n" );
     fprintf( pFile, "\"\n" );
     fprintf( pFile, "         ];\n" );
@@ -284,6 +284,29 @@ void Io_WriteDot( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesShow, 
     {
         if ( Abc_ObjFaninNum(pNode) == 0 )
             continue;
+        if ( fMulti && Abc_ObjIsNode(pNode) )
+        {
+            Vec_Ptr_t * vSuper;
+            Abc_Obj_t * pFanin;
+            int k, fCompl;
+            vSuper = (Vec_Ptr_t *)pNode->pCopy;
+            assert( vSuper != NULL );
+            Vec_PtrForEachEntry( vSuper, pFanin, k )
+            {
+                fCompl = Abc_ObjIsComplement(pFanin);
+                pFanin = Abc_ObjRegular(pFanin);
+                if ( !pFanin->fMarkC )
+                    continue;
+                fprintf( pFile, "Node%d",  pNode->Id );
+                fprintf( pFile, " -> " );
+                fprintf( pFile, "Node%d%s",  pFanin->Id, (Abc_ObjIsLatch(pFanin)? "_out":"") );
+                fprintf( pFile, " [" );
+                fprintf( pFile, "style = %s", fCompl? "dotted" : "bold" );
+                fprintf( pFile, "]" );
+                fprintf( pFile, ";\n" );
+            }
+            continue;
+        }
         // generate the edge from this node to the next
         if ( Abc_ObjFanin0(pNode)->fMarkC )
         {

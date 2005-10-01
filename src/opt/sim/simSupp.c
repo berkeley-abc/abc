@@ -586,10 +586,6 @@ int Sim_SolveSuppModelVerify( Abc_Ntk_t * pNtk, int * pModel, int Input, int Out
     }
     // perform the traversal
     RetValue = 3 & Sim_NtkSimTwoPats_rec( Abc_ObjFanin0( Abc_NtkCo(pNtk,Output) ) );
-    if ( RetValue == 0 || RetValue == 3 )
-    {
-        int x = 0;
-    }
 //    assert( RetValue == 1 || RetValue == 2 ); 
     return RetValue == 1 || RetValue == 2;
 }

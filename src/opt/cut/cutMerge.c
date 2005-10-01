@@ -39,7 +39,7 @@
   SeeAlso     []
 
 ***********************************************************************/
-Cut_Cut_t * Cut_CutMergeTwo( Cut_Man_t * p, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 )
+Cut_Cut_t * Cut_CutMergeTwo2( Cut_Man_t * p, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 )
 { 
     static int M[7][3] = {{0},{0},{0},{0},{0},{0},{0}};
     Cut_Cut_t * pRes;
@@ -164,7 +164,7 @@ Cut_Cut_t * Cut_CutMergeTwo( Cut_Man_t * p, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1
   SeeAlso     []
 
 ***********************************************************************/
-Cut_Cut_t * Cut_CutMergeTwo2( Cut_Man_t * p, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 )
+Cut_Cut_t * Cut_CutMergeTwo( Cut_Man_t * p, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 )
 { 
     Cut_Cut_t * pRes;
     int * pLeaves;

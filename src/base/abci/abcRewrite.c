@@ -192,7 +192,7 @@ void Abc_NodePrintCuts( Abc_Obj_t * pNode )
     {
         Extra_PrintBinary( stdout, (unsigned *)&pCut->uSign, 16 ); 
         printf( "   " );
-        Cut_CutPrint( pCut );   
+        Cut_CutPrint( pCut, 0 );   
         printf( "\n" );
     }
 }

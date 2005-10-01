@@ -159,13 +159,13 @@ void Rwr_ManPrintStats( Rwr_Man_t * p )
     PRT( "Update      ", p->timeUpdate );
     PRT( "TOTAL       ", p->timeTotal );
 
-/*
+
     printf( "The scores are:\n" );
     for ( i = 0; i < 222; i++ )
         if ( p->nScores[i] > 0 )
             printf( "%3d = %8d  canon = %5d\n", i, p->nScores[i], p->pMapInv[i] );
     printf( "\n" );
-*/
+
 }
 
 /**Function*************************************************************

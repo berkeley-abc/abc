@@ -46,7 +46,7 @@
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkSeqRetimeForward( Abc_Ntk_t * pNtk )
+void Abc_NtkSeqRetimeForward( Abc_Ntk_t * pNtk, int fVerbose )
 {
     Vec_Ptr_t * vMoves;
     Abc_Obj_t * pNode;
@@ -72,7 +72,7 @@ void Abc_NtkSeqRetimeForward( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkSeqRetimeBackward( Abc_Ntk_t * pNtk )
+void Abc_NtkSeqRetimeBackward( Abc_Ntk_t * pNtk, int fVerbose )
 {
     Vec_Ptr_t * vMoves;
     Abc_Obj_t * pNode;
@@ -83,7 +83,7 @@ void Abc_NtkSeqRetimeBackward( Abc_Ntk_t * pNtk )
     Vec_PtrForEachEntryReverse( vMoves, pNode, i )
         Abc_ObjRetimeForwardTry( pNode, 1 );
     // implement this backward retiming
-    RetValue = Abc_NtkImplementRetimingBackward( pNtk, vMoves );
+    RetValue = Abc_NtkImplementRetimingBackward( pNtk, vMoves, fVerbose );
     Vec_PtrFree( vMoves ); 
     if ( RetValue == 0 )
         printf( "Retiming completed but initial state computation has failed.\n" );
@@ -100,14 +100,14 @@ void Abc_NtkSeqRetimeBackward( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkSeqRetimeDelay( Abc_Ntk_t * pNtk )
+void Abc_NtkSeqRetimeDelay( Abc_Ntk_t * pNtk, int fVerbose )
 {
     Vec_Str_t * vLags;
     int RetValue;
     // get the retiming vector
-    vLags = Abc_NtkSeqRetimeDelayLags( pNtk );
+    vLags = Abc_NtkSeqRetimeDelayLags( pNtk, fVerbose );
     // implement this retiming
-    RetValue = Abc_NtkImplementRetiming( pNtk, vLags );
+    RetValue = Abc_NtkImplementRetiming( pNtk, vLags, fVerbose );
     Vec_StrFree( vLags ); 
     if ( RetValue == 0 )
         printf( "Retiming completed but initial state computation has failed.\n" );
@@ -124,14 +124,14 @@ void Abc_NtkSeqRetimeDelay( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkSeqRetimeInitial( Abc_Ntk_t * pNtk )
+void Abc_NtkSeqRetimeInitial( Abc_Ntk_t * pNtk, int fVerbose )
 {
     Vec_Str_t * vLags;
     int RetValue;
     // get the retiming vector
-    vLags = Abc_NtkSeqRetimeDelayLags( pNtk );
+    vLags = Abc_NtkSeqRetimeDelayLags( pNtk, fVerbose );
     // implement this retiming
-    RetValue = Abc_NtkImplementRetiming( pNtk, vLags );
+    RetValue = Abc_NtkImplementRetiming( pNtk, vLags, fVerbose );
     Vec_StrFree( vLags ); 
     if ( RetValue == 0 )
         printf( "Retiming completed but initial state computation has failed.\n" );

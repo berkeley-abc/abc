@@ -111,8 +111,68 @@ void Abc_NtkShowAig( Abc_Ntk_t * pNtk )
     Abc_NtkForEachObj( pNtk, pNode, i )
         Vec_PtrPush( vNodes, pNode );
     // write the DOT file
-    Io_WriteDot( pNtk, vNodes, NULL, FileNameDot );
+    Io_WriteDot( pNtk, vNodes, NULL, FileNameDot, 0 );
     Vec_PtrFree( vNodes );
+
+    // visualize the file 
+    Abc_ShowFile( FileNameDot );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Visualizes AIG with choices.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkShowMulti( Abc_Ntk_t * pNtk )
+{
+    FILE * pFile;
+    Abc_Obj_t * pNode;
+    Vec_Ptr_t * vNodes;
+    char FileNameDot[200];
+    int i;
+    extern void Abc_NtkBalanceAttach( Abc_Ntk_t * pNtk );
+    extern void Abc_NtkBalanceDetach( Abc_Ntk_t * pNtk );
+    extern void Abc_NtkBalanceLevel( Abc_Ntk_t * pNtk );
+
+    assert( Abc_NtkIsStrash(pNtk) );
+    // create the file name
+    Abc_ShowGetFileName( pNtk->pName, FileNameDot );
+    // check that the file can be opened
+    if ( (pFile = fopen( FileNameDot, "w" )) == NULL )
+    {
+        fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", FileNameDot );
+        return;
+    }
+
+    // get the implication supergates
+    Abc_NtkBalanceAttach( pNtk );
+    // set the levels based on the implication supergates
+    Abc_NtkBalanceLevel( pNtk );
+
+    // collect all nodes that are roots
+    vNodes = Vec_PtrAlloc( 100 );
+    Abc_NtkForEachCi( pNtk, pNode, i )
+        Vec_PtrPush( vNodes, pNode );
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        if ( pNode->pCopy || Abc_ObjFaninNum(pNode) == 0 )
+            Vec_PtrPush( vNodes, pNode );
+    Abc_NtkForEachPo( pNtk, pNode, i )
+        Vec_PtrPush( vNodes, pNode );
+
+    // write the DOT file
+    Io_WriteDot( pNtk, vNodes, NULL, FileNameDot, 1 );
+    Vec_PtrFree( vNodes );
+
+    // undo the supergates
+    Abc_NtkBalanceDetach( pNtk );
+    // set the normal levels
+    Abc_NtkGetLevelNum( pNtk );
 
     // visualize the file 
     Abc_ShowFile( FileNameDot );
@@ -170,7 +230,7 @@ void Abc_NodeShowCut( Abc_Obj_t * pNode, int nNodeSizeMax, int nConeSizeMax )
     // add the root node to the cone (for visualization)
     Vec_PtrPush( vCutSmall, pNode );
     // write the DOT file
-    Io_WriteDot( pNode->pNtk, vInside, vCutSmall, FileNameDot );
+    Io_WriteDot( pNode->pNtk, vInside, vCutSmall, FileNameDot, 0 );
     // stop the cut computation manager
     Abc_NtkManCutStop( p );
 

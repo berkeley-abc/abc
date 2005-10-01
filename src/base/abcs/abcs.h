@@ -214,6 +214,8 @@ static inline void Abc_ObjFaninLInsertLast( Abc_Obj_t * pObj, int Edge, Abc_Init
     unsigned EntryNew = EntryCur | (Init << (2 * Abc_ObjFaninL(pObj, Edge)));
     assert( Init >= 0 && Init < 4 );
     assert( Abc_ObjFaninL(pObj, Edge) < ABC_MAX_EDGE_LATCH );
+    if ( Abc_ObjFaninL(pObj, Edge) >= ABC_MAX_EDGE_LATCH )
+        printf( "The limit on latched on the edge (%d) is exceeded.\n", ABC_MAX_EDGE_LATCH );
     Abc_ObjFaninLSetInit( pObj, Edge, EntryNew );
     Abc_ObjAddFaninL( pObj, Edge, 1 );
 }
@@ -293,16 +295,16 @@ static inline void Abc_ObjRetimeBackwardTry( Abc_Obj_t * pObj, int nLatches )
 ////////////////////////////////////////////////////////////////////////
 
 /*=== abcRetCore.c ===========================================================*/
-extern void               Abc_NtkSeqRetimeForward( Abc_Ntk_t * pNtk );
-extern void               Abc_NtkSeqRetimeBackward( Abc_Ntk_t * pNtk );
-extern void               Abc_NtkSeqRetimeInitial( Abc_Ntk_t * pNtk );
-extern void               Abc_NtkSeqRetimeDelay( Abc_Ntk_t * pNtk );
+extern void               Abc_NtkSeqRetimeForward( Abc_Ntk_t * pNtk, int fVerbose );
+extern void               Abc_NtkSeqRetimeBackward( Abc_Ntk_t * pNtk, int fVerbose );
+extern void               Abc_NtkSeqRetimeInitial( Abc_Ntk_t * pNtk, int fVerbose );
+extern void               Abc_NtkSeqRetimeDelay( Abc_Ntk_t * pNtk, int fVerbose );
 /*=== abcRetDelay.c ==========================================================*/
-extern Vec_Str_t *        Abc_NtkSeqRetimeDelayLags( Abc_Ntk_t * pNtk );
+extern Vec_Str_t *        Abc_NtkSeqRetimeDelayLags( Abc_Ntk_t * pNtk, int fVerbose );
 /*=== abcRetImpl.c ===========================================================*/
-extern int                Abc_NtkImplementRetiming( Abc_Ntk_t * pNtk, Vec_Str_t * vLags );
+extern int                Abc_NtkImplementRetiming( Abc_Ntk_t * pNtk, Vec_Str_t * vLags, int fVerbose );
 extern void               Abc_NtkImplementRetimingForward( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMoves );
-extern int                Abc_NtkImplementRetimingBackward( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMoves );
+extern int                Abc_NtkImplementRetimingBackward( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMoves, int fVerbose );
 /*=== abcRetUtil.c ===========================================================*/
 extern Vec_Ptr_t *        Abc_NtkUtilRetimingTry( Abc_Ntk_t * pNtk, bool fForward );
 extern Vec_Ptr_t *        Abc_NtkUtilRetimingGetMoves( Abc_Ntk_t * pNtk, Vec_Int_t * vNodes, bool fForward );

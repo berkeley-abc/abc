@@ -31,8 +31,8 @@ static inline void Abc_NodeSetLValue( Abc_Obj_t * pNode, int Value )  { Vec_IntW
 static inline int  Abc_NodeGetLag( int LValue, int Fi )               { return (LValue + 256*Fi)/Fi - 256 - (int)(LValue % Fi == 0); }
 
 // the internal procedures
-static int Abc_NtkRetimeSearch_rec( Abc_Ntk_t * pNtk, int FiMin, int FiMax );
-static int Abc_NtkRetimeForPeriod( Abc_Ntk_t * pNtk, int Fi );
+static int Abc_NtkRetimeSearch_rec( Abc_Ntk_t * pNtk, int FiMin, int FiMax, int fVerbose );
+static int Abc_NtkRetimeForPeriod( Abc_Ntk_t * pNtk, int Fi, int fVerbose );
 static int Abc_NodeUpdateLValue( Abc_Obj_t * pObj, int Fi );
 
 // node status after updating its arrival time
@@ -55,15 +55,15 @@ static void Abc_RetimingExperiment( Abc_Ntk_t * pNtk, Vec_Str_t * vLags );
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Str_t * Abc_NtkSeqRetimeDelayLags( Abc_Ntk_t * pNtk )
+Vec_Str_t * Abc_NtkSeqRetimeDelayLags( Abc_Ntk_t * pNtk, int fVerbose )
 {
     Vec_Str_t * vLags;
     Abc_Obj_t * pNode;
-    int i, FiMax, FiBest;
+    int i, FiMax, FiBest, RetValue;
     assert( Abc_NtkIsSeq( pNtk ) );
 
     // start storage for sequential arrival times
-//    assert( pNtk->pData == NULL );
+    assert( pNtk->pData == NULL );
     pNtk->pData = Vec_IntAlloc( 0 );
 
     // get the upper bound on the clock period
@@ -75,11 +75,17 @@ Vec_Str_t * Abc_NtkSeqRetimeDelayLags( Abc_Ntk_t * pNtk )
     FiMax += 2;
 
     // make sure this clock period is feasible
-    assert( Abc_NtkRetimeForPeriod( pNtk, FiMax ) );
+    assert( Abc_NtkRetimeForPeriod( pNtk, FiMax, fVerbose ) );
 
     // search for the optimal clock period between 0 and nLevelMax
-    FiBest = Abc_NtkRetimeSearch_rec( pNtk, 0, FiMax );
+    FiBest = Abc_NtkRetimeSearch_rec( pNtk, 0, FiMax, fVerbose );
+
+    // recompute the best LValues
+    RetValue = Abc_NtkRetimeForPeriod( pNtk, FiBest, fVerbose );
+    assert( RetValue );
+
     // print the result
+    if ( fVerbose )
     printf( "The best clock period is %3d.\n", FiBest );
 
     // convert to lags
@@ -91,17 +97,12 @@ Vec_Str_t * Abc_NtkSeqRetimeDelayLags( Abc_Ntk_t * pNtk )
     Abc_AigForEachAnd( pNtk, pNode, i )
         printf( "%d=%d ", i, Abc_NodeReadLValue(pNode) );
     printf( "\n" );
-*/
-
-/*
     printf( "Lags : " );
     Abc_AigForEachAnd( pNtk, pNode, i )
         if ( Vec_StrEntry(vLags,i) != 0 )
             printf( "%d=%d(%d)(%d) ", i, Vec_StrEntry(vLags,i), Abc_NodeReadLValue(pNode), Abc_NodeReadLValue(pNode) - FiBest * Vec_StrEntry(vLags,i) );
     printf( "\n" );
 */
-
-//    Abc_RetimingExperiment( pNtk, vLags );
 
     // free storage
     Vec_IntFree( pNtk->pData );
@@ -120,17 +121,17 @@ Vec_Str_t * Abc_NtkSeqRetimeDelayLags( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRetimeSearch_rec( Abc_Ntk_t * pNtk, int FiMin, int FiMax )
+int Abc_NtkRetimeSearch_rec( Abc_Ntk_t * pNtk, int FiMin, int FiMax, int fVerbose )
 {
     int Median;
     assert( FiMin < FiMax );
     if ( FiMin + 1 == FiMax )
         return FiMax;
     Median = FiMin + (FiMax - FiMin)/2;
-    if ( Abc_NtkRetimeForPeriod( pNtk, Median ) )
-        return Abc_NtkRetimeSearch_rec( pNtk, FiMin, Median ); // Median is feasible
+    if ( Abc_NtkRetimeForPeriod( pNtk, Median, fVerbose ) )
+        return Abc_NtkRetimeSearch_rec( pNtk, FiMin, Median, fVerbose ); // Median is feasible
     else 
-        return Abc_NtkRetimeSearch_rec( pNtk, Median, FiMax ); // Median is infeasible
+        return Abc_NtkRetimeSearch_rec( pNtk, Median, FiMax, fVerbose ); // Median is infeasible
 }
 
 /**Function*************************************************************
@@ -213,7 +214,7 @@ int Abc_NtkRetimeForPeriod2( Abc_Ntk_t * pNtk, int Fi )
         printf( "Period = %3d.  Updated nodes = %6d.    Infeasible %s\n", Fi, vFrontier->nSize, pReason );
     else
         printf( "Period = %3d.  Updated nodes = %6d.    Feasible\n",   Fi, vFrontier->nSize );
-//    Vec_PtrFree( vFrontier );
+    Vec_PtrFree( vFrontier );
     return RetValue != ABC_UPDATE_FAIL;
 }
 
@@ -228,7 +229,7 @@ int Abc_NtkRetimeForPeriod2( Abc_Ntk_t * pNtk, int Fi )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRetimeForPeriod( Abc_Ntk_t * pNtk, int Fi )
+int Abc_NtkRetimeForPeriod( Abc_Ntk_t * pNtk, int Fi, int fVerbose )
 {
     Abc_Obj_t * pObj;
     int i, c, RetValue, fChange, Counter;
@@ -237,11 +238,13 @@ int Abc_NtkRetimeForPeriod( Abc_Ntk_t * pNtk, int Fi )
     // set l-values of all nodes to be minus infinity
     Vec_IntFill( pNtk->pData, Abc_NtkObjNumMax(pNtk), -ABC_INFINITY );
 
+    // set l-values for the constant and PIs
     pObj = Abc_NtkObj( pNtk, 0 );
     Abc_NodeSetLValue( pObj, 0 );
     Abc_NtkForEachPi( pNtk, pObj, i )
         Abc_NodeSetLValue( pObj, 0 );
 
+    // update all values iteratively
     Counter = 0;
     for ( c = 0; c < 20; c++ )
     {
@@ -272,10 +275,13 @@ int Abc_NtkRetimeForPeriod( Abc_Ntk_t * pNtk, int Fi )
     }
 
     // report the results
-    if ( RetValue == ABC_UPDATE_FAIL )
-        printf( "Period = %3d.  Iterations = %3d.  Updates = %6d.  Infeasible %s\n", Fi, c, Counter, pReason );
-    else
-        printf( "Period = %3d.  Iterations = %3d.  Updates = %6d.  Feasible\n",   Fi, c, Counter );
+    if ( fVerbose )
+    {
+        if ( RetValue == ABC_UPDATE_FAIL )
+            printf( "Period = %3d.  Iterations = %3d.  Updates = %6d.  Infeasible %s\n", Fi, c, Counter, pReason );
+        else
+            printf( "Period = %3d.  Iterations = %3d.  Updates = %6d.  Feasible\n",   Fi, c, Counter );
+    }
     return RetValue != ABC_UPDATE_FAIL;
 }
 

@@ -34,6 +34,9 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
+#define CUT_SIZE_MAX 8
+#include "cutList.h"
+
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -41,13 +44,14 @@
 typedef struct Cut_HashTableStruct_t_ Cut_HashTable_t;
 
 struct Cut_ManStruct_t_
-{
+{ 
     // user preferences
     Cut_Params_t *     pParams;          // computation parameters
     Vec_Int_t *        vFanCounts;       // the array of fanout counters
     // storage for cuts
-    Vec_Ptr_t *        vCuts;            // cuts by ID
-    Vec_Ptr_t *        vCutsNew;         // cuts by ID
+    Vec_Ptr_t *        vCutsNew;         // new cuts by node ID
+    Vec_Ptr_t *        vCutsOld;         // old cuts by node ID
+    Vec_Ptr_t *        vCutsTemp;        // temp cuts for cutset nodes by cutset node number
     // memory management
     Extra_MmFixed_t *  pMmCuts;
     int                EntrySize;
@@ -59,12 +63,14 @@ struct Cut_ManStruct_t_
     int                fSimul;
     int                nNodeCuts;
     // precomputations
+    uint8              uTruths[8][32];
     unsigned           uTruthVars[6][2];
     unsigned short **  pPerms43;
     unsigned **        pPerms53;
     unsigned **        pPerms54;
     // statistics
     int                nCutsCur;
+    int                nCutsMulti;
     int                nCutsAlloc;
     int                nCutsDealloc;
     int                nCutsPeak;
@@ -72,6 +78,7 @@ struct Cut_ManStruct_t_
     int                nCutsFilter;
     int                nCutsLimit;
     int                nNodes;
+    int                nNodesMulti;
     // runtime
     int                timeMerge;
     int                timeUnion;
@@ -100,6 +107,9 @@ struct Cut_ManStruct_t_
 ///                      MACRO DEFITIONS                             ///
 ////////////////////////////////////////////////////////////////////////
 
+// computes signature of the node
+static inline unsigned Cut_NodeSign( int Node )  { return (1 << (Node % 31)); }
+
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -108,7 +118,6 @@ struct Cut_ManStruct_t_
 extern Cut_Cut_t *         Cut_CutAlloc( Cut_Man_t * p );
 extern Cut_Cut_t *         Cut_CutCreateTriv( Cut_Man_t * p, int Node );
 extern void                Cut_CutRecycle( Cut_Man_t * p, Cut_Cut_t * pCut );
-extern void                Cut_CutPrint( Cut_Cut_t * pCut );
 extern void                Cut_CutPrintMerge( Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 );
 /*=== cutMerge.c ==========================================================*/
 extern Cut_Cut_t *         Cut_CutMergeTwo( Cut_Man_t * p, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 );
