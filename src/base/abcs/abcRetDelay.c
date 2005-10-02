@@ -24,12 +24,6 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-// storing arrival times in the nodes
-static inline int  Abc_NodeReadLValue( Abc_Obj_t * pNode )            { return Vec_IntEntry( (pNode)->pNtk->pData, (pNode)->Id );           }
-static inline void Abc_NodeSetLValue( Abc_Obj_t * pNode, int Value )  { Vec_IntWriteEntry( (pNode)->pNtk->pData, (pNode)->Id, (Value) );    }
-//static inline int  Abc_NodeGetLag( int LValue, int Fi )               { return LValue/Fi - (int)(LValue % Fi == 0); }
-static inline int  Abc_NodeGetLag( int LValue, int Fi )               { return (LValue + 256*Fi)/Fi - 256 - (int)(LValue % Fi == 0); }
-
 // the internal procedures
 static int Abc_NtkRetimeSearch_rec( Abc_Ntk_t * pNtk, int FiMin, int FiMax, int fVerbose );
 static int Abc_NtkRetimeForPeriod( Abc_Ntk_t * pNtk, int Fi, int fVerbose );

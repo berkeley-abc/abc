@@ -283,6 +283,7 @@ extern void        Extra_Truth4VarN( unsigned short ** puCanons, char *** puPhas
 extern unsigned short Extra_TruthPerm4One( unsigned uTruth, int Phase );
 extern unsigned    Extra_TruthPerm5One( unsigned uTruth, int Phase );
 extern void        Extra_TruthPerm6One( unsigned * uTruth, int Phase, unsigned * uTruthRes );
+extern void        Extra_TruthExpand( int nVars, int nWords, unsigned * puTruth, unsigned uPhase, unsigned * puTruthR );
 /* precomputing tables for permutation mapping */
 extern void **     Extra_ArrayAlloc( int nCols, int nRows, int Size );
 extern unsigned short ** Extra_TruthPerm43();

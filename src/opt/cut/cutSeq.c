@@ -24,12 +24,36 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static void Cut_NodeShiftLat( Cut_Man_t * p, int Node, int nLat );
-static int  Cut_ListCount( Cut_Cut_t * pList );
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Shifts all cut leaves of the node by the given number of latches.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Cut_NodeShiftCutLeaves( Cut_Cut_t * pList, int nLat )
+{
+    Cut_Cut_t * pTemp;
+    int i;
+    // shift the cuts by as many latches
+    Cut_ListForEachCut( pList, pTemp )
+    {
+        pTemp->uSign = 0;
+        for ( i = 0; i < (int)pTemp->nLeaves; i++ )
+        {
+            pTemp->pLeaves[i] += nLat;
+            pTemp->uSign      |= Cut_NodeSign( pTemp->pLeaves[i] );
+        }
+    }
+}
 
 /**Function*************************************************************
 
@@ -44,42 +68,70 @@ static int  Cut_ListCount( Cut_Cut_t * pList );
 ***********************************************************************/
 void Cut_NodeComputeCutsSeq( Cut_Man_t * p, int Node, int Node0, int Node1, int fCompl0, int fCompl1, int nLat0, int nLat1, int fTriv, int CutSetNum )
 {
-    Cut_List_t List1, List2, List3;
-    Cut_Cut_t * pList1, * pList2, * pList3, * pListNew;
-    int clk = clock();
-
-//    assert( Node != Node0 );
-//    assert( Node != Node1 );
-
+    Cut_List_t Super, * pSuper = &Super;
+    Cut_Cut_t * pListNew;
+    int clk;
+    
     // get the number of cuts at the node
-    p->nNodeCuts = Cut_ListCount( Cut_NodeReadCutsOld(p, Node) );
+    p->nNodeCuts = Cut_CutCountList( Cut_NodeReadCutsOld(p, Node) );
     if ( p->nNodeCuts >= p->pParams->nKeepMax )
         return;
+
     // count only the first visit
     if ( p->nNodeCuts == 0 )
         p->nNodes++;
 
-    // shift the cuts by as many latches
-    if ( nLat0 ) Cut_NodeShiftLat( p, Node0, nLat0 );
-    if ( nLat1 ) Cut_NodeShiftLat( p, Node1, nLat1 );
+    // store the fanin lists
+    p->pStore0[0] = Cut_NodeReadCutsOld( p, Node0 );
+    p->pStore0[1] = Cut_NodeReadCutsNew( p, Node0 );
+    p->pStore1[0] = Cut_NodeReadCutsOld( p, Node1 );
+    p->pStore1[1] = Cut_NodeReadCutsNew( p, Node1 );
 
-    // merge the old and new
-    pList1 = Cut_NodeDoComputeCuts( p, Node, Node0, Node1, fCompl0, fCompl1, 0, 1, 0 );
-    // merge the new and old
-    pList2 = Cut_NodeDoComputeCuts( p, Node, Node0, Node1, fCompl0, fCompl1, 1, 0, 0 );
-    // merge the new and new
-    pList3 = Cut_NodeDoComputeCuts( p, Node, Node0, Node1, fCompl0, fCompl1, 1, 1, fTriv );
+    // duplicate the cut lists if fanin nodes are non-standard
+    if ( Node == Node0 || Node == Node1 || Node0 == Node1 )
+    {
+        p->pStore0[0] = Cut_CutDupList( p, p->pStore0[0] );
+        p->pStore0[1] = Cut_CutDupList( p, p->pStore0[1] );
+        p->pStore1[0] = Cut_CutDupList( p, p->pStore1[0] );
+        p->pStore1[1] = Cut_CutDupList( p, p->pStore1[1] );
+    }
+
+    // shift the cuts by as many latches and recompute signatures
+    if ( nLat0 ) Cut_NodeShiftCutLeaves( p->pStore0[0], nLat0 );
+    if ( nLat0 ) Cut_NodeShiftCutLeaves( p->pStore0[1], nLat0 );
+    if ( nLat1 ) Cut_NodeShiftCutLeaves( p->pStore1[0], nLat1 );
+    if ( nLat1 ) Cut_NodeShiftCutLeaves( p->pStore1[1], nLat1 );
+
+    // store the original lists for comparison
+    p->pCompareOld = Cut_NodeReadCutsOld( p, Node );
+    p->pCompareNew = Cut_NodeReadCutsNew( p, Node );
+
+    // merge the old and the new
+clk = clock();
+    Cut_ListStart( pSuper );
+    Cut_NodeDoComputeCuts( p, pSuper, Node, fCompl0, fCompl1, p->pStore0[0], p->pStore1[1], 0 );
+    Cut_NodeDoComputeCuts( p, pSuper, Node, fCompl0, fCompl1, p->pStore0[1], p->pStore1[0], 0 );
+    Cut_NodeDoComputeCuts( p, pSuper, Node, fCompl0, fCompl1, p->pStore0[1], p->pStore1[1], fTriv );
+    pListNew = Cut_ListFinish( pSuper );
 p->timeMerge += clock() - clk;
 
-    // merge all lists
-    Cut_ListDerive( &List1, pList1 );
-    Cut_ListDerive( &List2, pList2 );
-    Cut_ListDerive( &List3, pList3 );
-    Cut_ListAddList( &List1, &List2 );
-    Cut_ListAddList( &List1, &List3 );
+    // shift the cuts by as many latches and recompute signatures
+    if ( Node == Node0 || Node == Node1 || Node0 == Node1 )
+    {
+        Cut_CutRecycleList( p, p->pStore0[0] );
+        Cut_CutRecycleList( p, p->pStore0[1] );
+        Cut_CutRecycleList( p, p->pStore1[0] );
+        Cut_CutRecycleList( p, p->pStore1[1] );
+    }
+    else
+    {
+        if ( nLat0 ) Cut_NodeShiftCutLeaves( p->pStore0[0], -nLat0 );
+        if ( nLat0 ) Cut_NodeShiftCutLeaves( p->pStore0[1], -nLat0 );
+        if ( nLat1 ) Cut_NodeShiftCutLeaves( p->pStore1[0], -nLat1 );
+        if ( nLat1 ) Cut_NodeShiftCutLeaves( p->pStore1[1], -nLat1 );
+    }
 
     // set the lists at the node
-    pListNew = Cut_ListFinish( &List1 );
     if ( CutSetNum >= 0 )
     {
         assert( Cut_NodeReadCutsTemp(p, CutSetNum) == NULL );
@@ -91,17 +143,14 @@ p->timeMerge += clock() - clk;
         Cut_NodeWriteCutsNew( p, Node, pListNew );
     }
 
-    // shift the cuts by as many latches back
-    if ( nLat0 ) Cut_NodeShiftLat( p, Node0, -nLat0 );
-    if ( nLat1 ) Cut_NodeShiftLat( p, Node1, -nLat1 );
-
+    // mark the node if we exceeded the number of cuts
     if ( p->nNodeCuts >= p->pParams->nKeepMax )
         p->nCutsLimit++;
 }
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Merges the new cuts with the old cuts.]
 
   Description []
                
@@ -112,8 +161,7 @@ p->timeMerge += clock() - clk;
 ***********************************************************************/
 void Cut_NodeNewMergeWithOld( Cut_Man_t * p, int Node )
 {
-    Cut_List_t Old, New;
-    Cut_Cut_t * pListOld, * pListNew;
+    Cut_Cut_t * pListOld, * pListNew, * pList;
     // get the new cuts
     pListNew = Cut_NodeReadCutsNew( p, Node );
     if ( pListNew == NULL )
@@ -127,19 +175,16 @@ void Cut_NodeNewMergeWithOld( Cut_Man_t * p, int Node )
         return;
     }
     // merge the lists
-    Cut_ListDerive( &Old, pListOld );
-    Cut_ListDerive( &New, pListNew );
-    Cut_ListAddList( &Old, &New );
-    pListOld = Cut_ListFinish( &Old );
-    Cut_NodeWriteCutsOld( p, Node, pListOld );
+    pList = Cut_CutMergeLists( pListOld, pListNew );
+    Cut_NodeWriteCutsOld( p, Node, pList );
 }
 
 
 /**Function*************************************************************
 
-  Synopsis    [Returns 1 if something was transferred.]
+  Synopsis    [Transfers the temporary cuts to be the new cuts.]
 
-  Description []
+  Description [Returns 1 if something was transferred.]
                
   SideEffects []
 
@@ -148,16 +193,16 @@ void Cut_NodeNewMergeWithOld( Cut_Man_t * p, int Node )
 ***********************************************************************/
 int Cut_NodeTempTransferToNew( Cut_Man_t * p, int Node, int CutSetNum )
 {
-    Cut_Cut_t * pCut;
-    pCut = Cut_NodeReadCutsTemp( p, CutSetNum );
+    Cut_Cut_t * pList;
+    pList = Cut_NodeReadCutsTemp( p, CutSetNum );
     Cut_NodeWriteCutsTemp( p, CutSetNum, NULL );
-    Cut_NodeWriteCutsNew( p, Node, pCut );
-    return pCut != NULL;
+    Cut_NodeWriteCutsNew( p, Node, pList );
+    return pList != NULL;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Returns 1 if something was transferred.]
+  Synopsis    [Transfers the old cuts to be the new cuts.]
 
   Description []
                
@@ -168,66 +213,11 @@ int Cut_NodeTempTransferToNew( Cut_Man_t * p, int Node, int CutSetNum )
 ***********************************************************************/
 void Cut_NodeOldTransferToNew( Cut_Man_t * p, int Node )
 {
-    Cut_Cut_t * pCut;
-    pCut = Cut_NodeReadCutsOld( p, Node );
+    Cut_Cut_t * pList;
+    pList = Cut_NodeReadCutsOld( p, Node );
     Cut_NodeWriteCutsOld( p, Node, NULL );
-    Cut_NodeWriteCutsNew( p, Node, pCut );
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Cut_NodeShiftLat( Cut_Man_t * p, int Node, int nLat )
-{
-    Cut_Cut_t * pTemp;
-    int i;
-    // shift the cuts by as many latches
-    Cut_ListForEachCut( Cut_NodeReadCutsOld(p, Node), pTemp )
-    {
-        pTemp->uSign = 0;
-        for ( i = 0; i < (int)pTemp->nLeaves; i++ )
-        {
-            pTemp->pLeaves[i] += nLat;
-            pTemp->uSign      |= Cut_NodeSign( pTemp->pLeaves[i] );
-        }
-    }
-    Cut_ListForEachCut( Cut_NodeReadCutsNew(p, Node), pTemp )
-    {
-        pTemp->uSign = 0;
-        for ( i = 0; i < (int)pTemp->nLeaves; i++ )
-        {
-            pTemp->pLeaves[i] += nLat;
-            pTemp->uSign      |= Cut_NodeSign( pTemp->pLeaves[i] );
-        }
-    }
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Cut_ListCount( Cut_Cut_t * pList )
-{
-    int Counter = 0;
-    Cut_ListForEachCut( pList, pList )
-        Counter++;
-    return Counter;
+    Cut_NodeWriteCutsNew( p, Node, pList );
+//    Cut_CutListVerify( pList );
 }
 
 ////////////////////////////////////////////////////////////////////////

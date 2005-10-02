@@ -19,15 +19,10 @@
 ***********************************************************************/
 
 #include "cutInt.h"
-#include "npn.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
-
-static void Cut_TruthCompute4( Cut_Man_t * p, Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 );
-static void Cut_TruthCompute5( Cut_Man_t * p, Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 );
-static void Cut_TruthCompute6( Cut_Man_t * p, Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -72,339 +67,45 @@ static inline unsigned Cut_TruthPhase( Cut_Cut_t * pCut, Cut_Cut_t * pCut1 )
   SeeAlso     []
 
 ***********************************************************************/
-void Cut_TruthCompute( Cut_Man_t * p, Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 )
+void Cut_TruthCompute( Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1, int fCompl0, int fCompl1 )
 {
-int clk = clock();
-    if ( pCut->nVarsMax == 4 )
-        Cut_TruthCompute4( p, pCut, pCut0, pCut1 );
-    else if ( pCut->nVarsMax == 5 )
-        Cut_TruthCompute5( p, pCut, pCut0, pCut1 );
-    else // if ( pCut->nVarsMax == 6 )
-        Cut_TruthCompute6( p, pCut, pCut0, pCut1 );
+    static unsigned uTruth0[8], uTruth1[8];
+    int nTruthWords = Cut_TruthWords( pCut->nVarsMax );
+    unsigned * pTruthRes;
+    int i, uPhase;
 
-//    Npn_VarsTest( pCut->nVarsMax, Cut_CutReadTruth(pCut) );
-p->timeTruth += clock() - clk;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Performs truth table computation.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Cut_TruthCompute4( Cut_Man_t * p, Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 )
-{
-    unsigned * puTruthCut0, * puTruthCut1;
-    unsigned uTruth0, uTruth1, uPhase;
-
-    puTruthCut0 = Cut_CutReadTruth(pCut0);
-    puTruthCut1 = Cut_CutReadTruth(pCut1);
-
-    uPhase  = Cut_TruthPhase( pCut, pCut0 );
-    uTruth0 = Extra_TruthPerm4One( *puTruthCut0, uPhase );
-    uTruth0 = p->fCompl0? ~uTruth0: uTruth0;
-
-    uPhase  = Cut_TruthPhase( pCut, pCut1 );
-    uTruth1 = Extra_TruthPerm4One( *puTruthCut1, uPhase );
-    uTruth1 = p->fCompl1? ~uTruth1: uTruth1;
-
-    uTruth1 = uTruth0 & uTruth1;
-    if ( pCut->fCompl )
-        uTruth1 = ~uTruth1;
-    if ( pCut->nVarsMax == 4 )
-        uTruth1 &= 0xFFFF; 
-    Cut_CutWriteTruth( pCut, &uTruth1 );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Performs truth table computation.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Cut_TruthCompute5( Cut_Man_t * p, Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 )
-{
-    unsigned * puTruthCut0, * puTruthCut1;
-    unsigned uTruth0, uTruth1, uPhase;
-
-    puTruthCut0 = Cut_CutReadTruth(pCut0);
-    puTruthCut1 = Cut_CutReadTruth(pCut1);
-
-    uPhase  = Cut_TruthPhase( pCut, pCut0 );
-    uTruth0 = Extra_TruthPerm5One( *puTruthCut0, uPhase );
-    uTruth0 = p->fCompl0? ~uTruth0: uTruth0;
-
-    uPhase  = Cut_TruthPhase( pCut, pCut1 );
-    uTruth1 = Extra_TruthPerm5One( *puTruthCut1, uPhase );
-    uTruth1 = p->fCompl1? ~uTruth1: uTruth1;
-
-    uTruth1 = uTruth0 & uTruth1;
-    if ( pCut->fCompl )
-        uTruth1 = ~uTruth1;
-    Cut_CutWriteTruth( pCut, &uTruth1 );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Performs truth table computation.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Cut_TruthCompute6( Cut_Man_t * p, Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 )
-{
-    unsigned * puTruthCut0, * puTruthCut1;
-    unsigned uTruth0[2], uTruth1[2], uPhase;
-
-    puTruthCut0 = Cut_CutReadTruth(pCut0);
-    puTruthCut1 = Cut_CutReadTruth(pCut1);
-
+    // permute the first table
     uPhase = Cut_TruthPhase( pCut, pCut0 );
-    Extra_TruthPerm6One( puTruthCut0, uPhase, uTruth0 );
-    uTruth0[0] = p->fCompl0? ~uTruth0[0]: uTruth0[0];
-    uTruth0[1] = p->fCompl0? ~uTruth0[1]: uTruth0[1];
+    Extra_TruthExpand( pCut->nVarsMax, nTruthWords, Cut_CutReadTruth(pCut0), uPhase, uTruth0 );
+    if ( fCompl0 ) 
+    {
+        for ( i = 0; i < nTruthWords; i++ )
+            uTruth0[i] = ~uTruth0[i];
+    }
 
+    // permute the second table
     uPhase = Cut_TruthPhase( pCut, pCut1 );
-    Extra_TruthPerm6One( puTruthCut1, uPhase, uTruth1 );
-    uTruth1[0] = p->fCompl1? ~uTruth1[0]: uTruth1[0];
-    uTruth1[1] = p->fCompl1? ~uTruth1[1]: uTruth1[1];
+    Extra_TruthExpand( pCut->nVarsMax, nTruthWords, Cut_CutReadTruth(pCut1), uPhase, uTruth1 );
+    if ( fCompl1 ) 
+    {
+        for ( i = 0; i < nTruthWords; i++ )
+            uTruth1[i] = ~uTruth1[i];
+    }
 
-    uTruth1[0] = uTruth0[0] & uTruth1[0];
-    uTruth1[1] = uTruth0[1] & uTruth1[1];
+    // write the resulting table
+    pTruthRes = Cut_CutReadTruth(pCut);
+
     if ( pCut->fCompl )
     {
-        uTruth1[0] = ~uTruth0[0];
-        uTruth1[1] = ~uTruth0[1];
+        for ( i = 0; i < nTruthWords; i++ )
+            pTruthRes[i] = ~(uTruth0[i] & uTruth1[i]);
     }
-    Cut_CutWriteTruth( pCut, uTruth1 );
-}
-
-
-
-
-
-
-/**Function*************************************************************
-
-  Synopsis    [Performs truth table computation.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Cut_TruthComputeOld( Cut_Man_t * p, Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 )
-{
-    unsigned uTruth0, uTruth1, uPhase;
-    int clk = clock();
-
-    assert( pCut->nVarsMax < 6 );
-
-    // assign the truth table
-    if ( pCut0->nLeaves == pCut->nLeaves )
-        uTruth0 = *Cut_CutReadTruth(pCut0);
     else
     {
-        assert( pCut0->nLeaves < pCut->nLeaves );
-        uPhase = Cut_TruthPhase( pCut, pCut0 );
-        if ( pCut->nVarsMax == 4 )
-        {
-            assert( pCut0->nLeaves < 4 );
-            assert( uPhase < 16 );
-            uTruth0 = p->pPerms43[pCut0->uTruth & 0xFF][uPhase];
-        }
-        else
-        {
-            assert( pCut->nVarsMax == 5 );
-            assert( pCut0->nLeaves < 5 );
-            assert( uPhase < 32 );
-            if ( pCut0->nLeaves == 4 )
-            {
-//                Count4++;
-/*
-                if ( uPhase == 31-16 ) // 01111
-                    uTruth0 = pCut0->uTruth;
-                else if ( uPhase == 31-8 ) // 10111
-                    uTruth0 = p->pPerms54[pCut0->uTruth & 0xFFFF][0];
-                else if ( uPhase == 31-4 ) // 11011
-                    uTruth0 = p->pPerms54[pCut0->uTruth & 0xFFFF][1];
-                else if ( uPhase == 31-2 ) // 11101
-                    uTruth0 = p->pPerms54[pCut0->uTruth & 0xFFFF][2];
-                else if ( uPhase == 31-1 ) // 11110
-                    uTruth0 = p->pPerms54[pCut0->uTruth & 0xFFFF][3];
-                else
-                    assert( 0 );
-*/
-                uTruth0 = Extra_TruthPerm5One( *Cut_CutReadTruth(pCut0), uPhase );
-            }
-            else
-            {
-//                Count5++;
-//                uTruth0 = p->pPerms53[pCut0->uTruth & 0xFF][uPhase];
-                uTruth0 = Extra_TruthPerm5One( *Cut_CutReadTruth(pCut0), uPhase );
-            }
-        }
-    }
-    uTruth0 = p->fCompl0? ~uTruth0: uTruth0;
-
-    // assign the truth table
-    if ( pCut1->nLeaves == pCut->nLeaves )
-        uTruth0 = *Cut_CutReadTruth(pCut1);
-    else
-    {
-        assert( pCut1->nLeaves < pCut->nLeaves );
-        uPhase = Cut_TruthPhase( pCut, pCut1 );
-        if ( pCut->nVarsMax == 4 )
-        {
-            assert( pCut1->nLeaves < 4 );
-            assert( uPhase < 16 );
-            uTruth1 = p->pPerms43[pCut1->uTruth & 0xFF][uPhase];
-        }
-        else
-        {
-            assert( pCut->nVarsMax == 5 );
-            assert( pCut1->nLeaves < 5 );
-            assert( uPhase < 32 );
-            if ( pCut1->nLeaves == 4 )
-            {
-//                Count4++;
-/*
-                if ( uPhase == 31-16 ) // 01111
-                    uTruth1 = pCut1->uTruth;
-                else if ( uPhase == 31-8 ) // 10111
-                    uTruth1 = p->pPerms54[pCut1->uTruth & 0xFFFF][0];
-                else if ( uPhase == 31-4 ) // 11011
-                    uTruth1 = p->pPerms54[pCut1->uTruth & 0xFFFF][1];
-                else if ( uPhase == 31-2 ) // 11101
-                    uTruth1 = p->pPerms54[pCut1->uTruth & 0xFFFF][2];
-                else if ( uPhase == 31-1 ) // 11110
-                    uTruth1 = p->pPerms54[pCut1->uTruth & 0xFFFF][3];
-                else
-                    assert( 0 );
-*/
-                uTruth1 = Extra_TruthPerm5One( *Cut_CutReadTruth(pCut1), uPhase );
-            }
-            else
-            {
-//                Count5++;
-//                uTruth1 = p->pPerms53[pCut1->uTruth & 0xFF][uPhase];
-                uTruth1 = Extra_TruthPerm5One( *Cut_CutReadTruth(pCut1), uPhase );
-            }
-        }
-    }
-    uTruth1 = p->fCompl1? ~uTruth1: uTruth1;
-    uTruth1 = uTruth0 & uTruth1;
-    if ( pCut->fCompl )
-        uTruth1 = ~uTruth1;
-    if ( pCut->nVarsMax == 4 )
-        uTruth1 &= 0xFFFF; 
-    Cut_CutWriteTruth( pCut, &uTruth1 );
-p->timeTruth += clock() - clk;
-}
-
-
-
-/**Function*************************************************************
-
-  Synopsis    [Expands the truth table according to the phase.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Extra_TruthExpand( int nVars, uint8 * puTruth, unsigned uPhase, uint8 * puTruthR )
-{
-    int i, k, m, m1;
-    assert( nVars <= 8 );
-    Extra_BitClean( nVars, puTruthR );
-    for ( m = (1 << nVars) - 1; m >= 0; m-- )
-    {
-        m1 = 0;
-        for ( i = k = 0; i < nVars; i++ )
-            if ( uPhase & (1 << i) )
-            {
-                if ( m & (1 << i) )
-                    m1 |= (1 << k);
-                k++;
-            }
-        if ( Extra_BitRead( puTruth, m1 ) )
-            Extra_BitSet( puTruthR, m );
+        for ( i = 0; i < nTruthWords; i++ )
+            pTruthRes[i] = uTruth0[i] & uTruth1[i];
     }
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Performs truth table computation.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Cut_TruthCompute1( Cut_Man_t * p, Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 )
-{
-    uint8 uTruth0[32], uTruth1[32];
-    unsigned * puTruthCut0, * puTruthCut1, * puTruthCut;
-    unsigned uPhase;
-int clk = clock();
-
-    assert( pCut->nLeaves >= 2 );
-    assert( pCut->nLeaves <= 8 );
-
-    if ( pCut->nVarsMax == 4 )
-    {
-        Cut_TruthCompute4( p, pCut, pCut0, pCut1 );
-        return;
-    }
-
-    puTruthCut0 = Cut_CutReadTruth(pCut0);
-    puTruthCut1 = Cut_CutReadTruth(pCut1);
-    puTruthCut  = Cut_CutReadTruth(pCut);
-
-    uPhase = Cut_TruthPhase( pCut, pCut0 );
-    Extra_TruthExpand( pCut->nVarsMax, (uint8*)puTruthCut0, uPhase, uTruth0 );
-    if ( p->fCompl0 )
-        Extra_BitNot( pCut->nVarsMax, uTruth0 );
-
-    uPhase = Cut_TruthPhase( pCut, pCut1 );
-    Extra_TruthExpand( pCut->nVarsMax, (uint8*)puTruthCut1, uPhase, uTruth1 );
-    if ( p->fCompl1 )
-        Extra_BitNot( pCut->nVarsMax, uTruth1 );
-
-    Extra_BitAnd( pCut->nVarsMax, (uint8*)uTruth0, (uint8*)uTruth1, (uint8*)puTruthCut );
-    if ( pCut->fCompl )
-        Extra_BitNot( pCut->nVarsMax, (uint8*)puTruthCut );
-
-p->timeTruth += clock() - clk;
-
-
-//Extra_PrintBinary( stdout, (unsigned*)uTruth0, 32 ); printf( "\n" );
-//Extra_PrintBinary( stdout, (unsigned*)uTruth1, 32 ); printf( "\n" );
-//Extra_PrintBinary( stdout, puTruthCut , 32 ); printf( "\n" );
-//uPhase = 0;
-}
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

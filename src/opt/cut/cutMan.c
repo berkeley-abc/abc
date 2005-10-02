@@ -45,7 +45,7 @@ Cut_Man_t * Cut_ManStart( Cut_Params_t * pParams )
 {
     Cut_Man_t * p;
     int clk = clock();
-    assert( pParams->nVarsMax >= 4 && pParams->nVarsMax <= CUT_SIZE_MAX );
+    assert( pParams->nVarsMax >= 3 && pParams->nVarsMax <= CUT_SIZE_MAX );
     p = ALLOC( Cut_Man_t, 1 );
     memset( p, 0, sizeof(Cut_Man_t) );
     // set and correct parameters
@@ -65,19 +65,28 @@ Cut_Man_t * Cut_ManStart( Cut_Params_t * pParams )
     assert( !pParams->fTruth || pParams->nVarsMax <= 5 );
     // entry size
     p->EntrySize = sizeof(Cut_Cut_t) + pParams->nVarsMax * sizeof(int);
-    if ( pParams->fTruth && pParams->nVarsMax >= 5 && pParams->nVarsMax <= 8 )
-        p->EntrySize += (1 << (pParams->nVarsMax - 5)) * sizeof(unsigned);
+    if ( pParams->fTruth )
+    {
+        if ( pParams->nVarsMax > 8 )
+        {
+            pParams->fTruth = 0;
+            printf( "Skipping computation of truth table for more than 8 inputs.\n" );
+        }
+        else
+        {
+            p->nTruthWords = Cut_TruthWords( pParams->nVarsMax );
+            p->EntrySize += p->nTruthWords * sizeof(unsigned);
+        }
+    }
+    // enable cut computation recording
+    if ( pParams->fRecord )
+    {
+        p->vNodeCuts   = Vec_IntStart( pParams->nIdsMax );
+        p->vNodeStarts = Vec_IntStart( pParams->nIdsMax );
+        p->vCutPairs   = Vec_IntAlloc( 0 );
+    }
     // memory for cuts
     p->pMmCuts = Extra_MmFixedStart( p->EntrySize );
-    // elementary truth tables
-    Npn_StartTruth8( p->uTruths );
-    p->uTruthVars[0][1] = p->uTruthVars[0][0] = 0xAAAAAAAA;    // 1010 1010 1010 1010 1010 1010 1010 1010
-    p->uTruthVars[1][1] = p->uTruthVars[1][0] = 0xCCCCCCCC;    // 1010 1010 1010 1010 1010 1010 1010 1010
-    p->uTruthVars[2][1] = p->uTruthVars[2][0] = 0xF0F0F0F0;    // 1111 0000 1111 0000 1111 0000 1111 0000
-    p->uTruthVars[3][1] = p->uTruthVars[3][0] = 0xFF00FF00;    // 1111 1111 0000 0000 1111 1111 0000 0000
-    p->uTruthVars[4][1] = p->uTruthVars[4][0] = 0xFFFF0000;    // 1111 1111 1111 1111 0000 0000 0000 0000
-    p->uTruthVars[5][0] = 0x00000000;
-    p->uTruthVars[5][1] = 0xFFFFFFFF;
     p->vTemp = Vec_PtrAlloc( 100 );
     return p;
 }
@@ -102,14 +111,16 @@ void Cut_ManStop( Cut_Man_t * p )
         {
             int k = 0;
         }
-    if ( p->vCutsNew )   Vec_PtrFree( p->vCutsNew );
-    if ( p->vCutsOld )   Vec_PtrFree( p->vCutsOld );
-    if ( p->vCutsTemp )  Vec_PtrFree( p->vCutsTemp );
-    if ( p->vFanCounts ) Vec_IntFree( p->vFanCounts );
-    if ( p->pPerms43 )   free( p->pPerms43 );
-    if ( p->pPerms53 )   free( p->pPerms53 );
-    if ( p->pPerms54 )   free( p->pPerms54 );
-    if ( p->vTemp )      Vec_PtrFree( p->vTemp );
+    if ( p->vCutsNew )    Vec_PtrFree( p->vCutsNew );
+    if ( p->vCutsOld )    Vec_PtrFree( p->vCutsOld );
+    if ( p->vCutsTemp )   Vec_PtrFree( p->vCutsTemp );
+    if ( p->vFanCounts )  Vec_IntFree( p->vFanCounts );
+    if ( p->vTemp )       Vec_PtrFree( p->vTemp );
+
+    if ( p->vNodeCuts )   Vec_IntFree( p->vNodeCuts );
+    if ( p->vNodeStarts ) Vec_IntFree( p->vNodeStarts );
+    if ( p->vCutPairs )   Vec_IntFree( p->vCutPairs );
+
     Extra_MmFixedStop( p->pMmCuts, 0 );
     free( p );
 }
@@ -146,8 +157,9 @@ void Cut_ManPrintStats( Cut_Man_t * p )
     PRT( "Union ", p->timeUnion );
     PRT( "Filter", p->timeFilter );
     PRT( "Truth ", p->timeTruth );
-    printf( "Nodes = %d. Multi = %d.  Cuts = %d. Multi = %d.\n", 
-        p->nNodes, p->nNodesMulti, p->nCutsCur-p->nCutsTriv, p->nCutsMulti );
+//    printf( "Nodes = %d. Multi = %d.  Cuts = %d. Multi = %d.\n", 
+//        p->nNodes, p->nNodesMulti, p->nCutsCur-p->nCutsTriv, p->nCutsMulti );
+//    printf( "Count0 = %d. Count1 = %d. Count2 = %d.\n\n", p->Count0, p->Count1, p->Count2 );
 }
 
     

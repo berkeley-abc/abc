@@ -270,6 +270,14 @@ SOURCE=.\src\base\abci\abcVerify.c
 # PROP Default_Filter ""
 # Begin Source File
 
+SOURCE=.\src\base\abcs\abcFpgaDelay.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abcs\abcFpgaSeq.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abcs\abcRetCore.c
 # End Source File
 # Begin Source File
@@ -1127,6 +1135,10 @@ SOURCE=.\src\opt\cut\cutMerge.c
 # Begin Source File
 
 SOURCE=.\src\opt\cut\cutNode.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\cut\cutOracle.c
 # End Source File
 # Begin Source File
 

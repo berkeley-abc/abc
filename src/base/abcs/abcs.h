@@ -26,6 +26,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include "abc.h"
+#include "cut.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -37,6 +38,25 @@
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
+
+typedef struct Seq_FpgaMan_t_ Seq_FpgaMan_t;
+struct Seq_FpgaMan_t_
+{
+    Abc_Ntk_t *    pNtk;        // the network to be mapped
+    Cut_Man_t *    pMan;        // the cut manager
+    Vec_Int_t *    vArrivals;   // the arrival times (L-Values of nodes)
+    Vec_Ptr_t *    vBestCuts;   // the best cuts for nodes
+    Vec_Ptr_t *    vMapping;    // the nodes used in the mapping
+    Vec_Ptr_t *    vMapCuts;    // the info about the cut of each mapped node
+    Vec_Str_t *    vLagsMap;    // the lags of the mapped nodes
+    int            fVerbose;    // the verbose flag
+    // runtime stats
+    int            timeCuts;    // runtime to compute the cuts
+    int            timeDelay;   // runtime to compute the L-values
+    int            timeRet;     // runtime to retime the resulting network
+    int            timeNtk;     // runtime to create the final network
+};
+
 
 // representation of latch on the edge
 typedef struct Abc_RetEdge_t_       Abc_RetEdge_t;   
@@ -60,6 +80,12 @@ static inline Abc_RetEdge_t  Abc_Int2RetEdge( int Num )            { return *((A
 
 static inline int            Abc_RetStep2Int( Abc_RetStep_t Str )  { return *((int *)&Str);           }
 static inline Abc_RetStep_t  Abc_Int2RetStep( int Num )            { return *((Abc_RetStep_t *)&Num); }
+
+// storing arrival times in the nodes
+static inline int  Abc_NodeReadLValue( Abc_Obj_t * pNode )            { return Vec_IntEntry( (pNode)->pNtk->pData, (pNode)->Id );           }
+static inline void Abc_NodeSetLValue( Abc_Obj_t * pNode, int Value )  { Vec_IntWriteEntry( (pNode)->pNtk->pData, (pNode)->Id, (Value) );    }
+//static inline int  Abc_NodeGetLag( int LValue, int Fi )               { return LValue/Fi - (int)(LValue % Fi == 0); }
+static inline int  Abc_NodeGetLag( int LValue, int Fi )               { return (LValue + 256*Fi)/Fi - 256 - (int)(LValue % Fi == 0); }
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFITIONS                             ///

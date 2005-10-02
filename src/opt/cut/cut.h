@@ -29,32 +29,40 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
+#define CUT_SIZE_MIN    3      // the min K of the K-feasible cut computation
+#define CUT_SIZE_MAX    8      // the max K of the K-feasible cut computation
+
+#define CUT_SHIFT       8      // the number of bits for storing latch number in the cut leaves
+#define CUT_MASK        0xFF   // the mask to get the stored latch number
+
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
 
 typedef struct Cut_ManStruct_t_         Cut_Man_t;
+typedef struct Cut_OracleStruct_t_      Cut_Oracle_t;
 typedef struct Cut_CutStruct_t_         Cut_Cut_t;
 typedef struct Cut_ParamsStruct_t_      Cut_Params_t;
 
 struct Cut_ParamsStruct_t_
 {
-    int  nVarsMax;      // the max cut size ("k" of the k-feasible cuts)
-    int  nKeepMax;      // the max number of cuts kept at a node
-    int  nIdsMax;       // the max number of IDs of cut objects
-    int  nCutSet;       // the number of nodes in the cut set
-    int  fTruth;        // compute truth tables
-    int  fFilter;       // filter dominated cuts
-    int  fSeq;          // compute sequential cuts
-    int  fDrop;         // drop cuts on the fly
-    int  fMulti;        // compute cuts in multi-input AND gate graph
-    int  fVerbose;      // the verbosiness flag
+    int                nVarsMax;          // the max cut size ("k" of the k-feasible cuts)
+    int                nKeepMax;          // the max number of cuts kept at a node
+    int                nIdsMax;           // the max number of IDs of cut objects
+    int                nCutSet;           // the number of nodes in the cut set
+    int                fTruth;            // compute truth tables
+    int                fFilter;           // filter dominated cuts
+    int                fSeq;              // compute sequential cuts
+    int                fDrop;             // drop cuts on the fly
+    int                fMulti;            // compute cuts in multi-input AND gate graph
+    int                fRecord;           // record the cut computation flow
+    int                fVerbose;          // the verbosiness flag
 };
 
 struct Cut_CutStruct_t_
 {
-    unsigned           uTruth     : 16;   // truth table for 4-input cuts
-    unsigned           uPhase     :  6;   // the phase when mapping into a canonical form
+    unsigned           Num0       : 11;   // temporary number
+    unsigned           Num1       : 11;   // temporary number
     unsigned           fSimul     :  1;   // the value of cut's output at 000.. pattern
     unsigned           fCompl     :  1;   // the cut is complemented
     unsigned           nVarsMax   :  4;   // the max number of vars [4-6]
@@ -64,15 +72,13 @@ struct Cut_CutStruct_t_
     int                pLeaves[0];        // the array of leaves
 };
 
-static inline unsigned * Cut_CutReadTruth( Cut_Cut_t * p )     {  if ( p->nVarsMax == 4 )  return (unsigned *)p;  return (unsigned *)(p->pLeaves + p->nVarsMax); }
-static inline unsigned   Cut_CutReadPhase( Cut_Cut_t * p )     {  return p->uPhase;    }
 static inline int        Cut_CutReadLeaveNum( Cut_Cut_t * p )  {  return p->nLeaves;   }
 static inline int *      Cut_CutReadLeaves( Cut_Cut_t * p )    {  return p->pLeaves;   }
-
+static inline unsigned * Cut_CutReadTruth( Cut_Cut_t * p )     {  return (unsigned *)(p->pLeaves + p->nVarsMax); }
 static inline void       Cut_CutWriteTruth( Cut_Cut_t * p, unsigned * puTruth )  { 
-    if ( p->nVarsMax == 4 )  { p->uTruth = *puTruth;  return; }
-    p->pLeaves[p->nVarsMax] = (int)puTruth[0];
-    if ( p->nVarsMax == 6 )  p->pLeaves[p->nVarsMax + 1] = (int)puTruth[1];
+    int i;
+    for ( i = (p->nVarsMax <= 5) ? 0 : ((1 << (p->nVarsMax - 5)) - 1); i >= 0; i-- )
+        p->pLeaves[p->nVarsMax + i] = (int)puTruth[i];
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -104,14 +110,21 @@ extern void             Cut_ManPrintStatsToFile( Cut_Man_t * p, char * pFileName
 extern void             Cut_ManSetFanoutCounts( Cut_Man_t * p, Vec_Int_t * vFanCounts );
 extern int              Cut_ManReadVarsMax( Cut_Man_t * p );
 /*=== cutNode.c ==========================================================*/
-extern Cut_Cut_t *      Cut_NodeComputeCuts( Cut_Man_t * p, int Node, int Node0, int Node1, int fCompl0, int fCompl1, int fNew0, int fNew1, int fTriv ); 
-extern Cut_Cut_t *      Cut_NodeDoComputeCuts( Cut_Man_t * p, int Node, int Node0, int Node1, int fCompl0, int fCompl1, int fNew0, int fNew1, int fTriv ); 
+extern Cut_Cut_t *      Cut_NodeComputeCuts( Cut_Man_t * p, int Node, int Node0, int Node1, int fCompl0, int fCompl1, int fTriv ); 
 extern Cut_Cut_t *      Cut_NodeUnionCuts( Cut_Man_t * p, Vec_Int_t * vNodes );
 /*=== cutSeq.c ==========================================================*/
 extern void             Cut_NodeComputeCutsSeq( Cut_Man_t * p, int Node, int Node0, int Node1, int fCompl0, int fCompl1, int nLat0, int nLat1, int fTriv, int CutSetNum );
 extern void             Cut_NodeNewMergeWithOld( Cut_Man_t * p, int Node );
 extern int              Cut_NodeTempTransferToNew( Cut_Man_t * p, int Node, int CutSetNum );
 extern void             Cut_NodeOldTransferToNew( Cut_Man_t * p, int Node );
+/*=== cutOracle.c ==========================================================*/
+extern Cut_Oracle_t *   Cut_OracleStart( Cut_Man_t * pMan );
+extern void             Cut_OracleStop( Cut_Oracle_t * p );
+extern void             Cut_OracleSetFanoutCounts( Cut_Oracle_t * p, Vec_Int_t * vFanCounts );
+extern int              Cut_OracleReadDrop( Cut_Oracle_t * p );
+extern void             Cut_OracleNodeSetTriv( Cut_Oracle_t * p, int Node );
+extern Cut_Cut_t *      Cut_OracleComputeCuts( Cut_Oracle_t * p, int Node, int Node0, int Node1, int fCompl0, int fCompl1 );
+extern void             Cut_OracleTryDroppingCuts( Cut_Oracle_t * p, int Node );
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

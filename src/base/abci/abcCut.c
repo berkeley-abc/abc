@@ -69,7 +69,7 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
         if ( Abc_ObjFanoutNum(pObj) > 0 )
             Cut_NodeSetTriv( p, pObj->Id );
     // compute cuts for internal nodes
-    vNodes = Abc_AigDfs( pNtk, 0, 1 );
+    vNodes = Abc_AigDfs( pNtk, 0, 1 ); // collects POs
     vChoices = Vec_IntAlloc( 100 );
     Vec_PtrForEachEntry( vNodes, pObj, i )
     {
@@ -105,10 +105,69 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
     if ( pParams->fMulti )
         Abc_NtkBalanceDetach(pNtk);
 PRT( "Total", clock() - clk );
-Abc_NtkPrintCuts_( p, pNtk, 0 );
+//Abc_NtkPrintCuts_( p, pNtk, 0 );
 //    Cut_ManPrintStatsToFile( p, pNtk->pSpec, clock() - clk );
     return p;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Cut computation using the oracle.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkCutsOracle( Abc_Ntk_t * pNtk, Cut_Oracle_t * p )
+{
+    Abc_Obj_t * pObj;
+    Vec_Ptr_t * vNodes;
+    int i, clk = clock();
+    int fDrop = Cut_OracleReadDrop(p);
+
+    assert( Abc_NtkIsStrash(pNtk) );
+
+    // prepare cut droppping
+    if ( fDrop )
+        Cut_OracleSetFanoutCounts( p, Abc_NtkFanoutCounts(pNtk) );
+
+    // set cuts for PIs
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        if ( Abc_ObjFanoutNum(pObj) > 0 )
+            Cut_OracleNodeSetTriv( p, pObj->Id );
+
+    // compute cuts for internal nodes
+    vNodes = Abc_AigDfs( pNtk, 0, 1 ); // collects POs
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+    {
+        // when we reached a CO, it is time to deallocate the cuts
+        if ( Abc_ObjIsCo(pObj) )
+        {
+            if ( fDrop )
+                Cut_OracleTryDroppingCuts( p, Abc_ObjFaninId0(pObj) );
+            continue;
+        }
+        // skip constant node, it has no cuts
+        if ( Abc_NodeIsConst(pObj) )
+            continue;
+        // compute the cuts to the internal node
+        Cut_OracleComputeCuts( p, pObj->Id, Abc_ObjFaninId0(pObj), Abc_ObjFaninId1(pObj),  
+                Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj) );
+        // consider dropping the fanins cuts
+        if ( fDrop )
+        {
+            Cut_OracleTryDroppingCuts( p, Abc_ObjFaninId0(pObj) );
+            Cut_OracleTryDroppingCuts( p, Abc_ObjFaninId1(pObj) );
+        }
+    }
+    Vec_PtrFree( vNodes );
+//PRT( "Total", clock() - clk );
+//Abc_NtkPrintCuts_( p, pNtk, 0 );
+}
+
 
 /**Function*************************************************************
 
@@ -156,7 +215,6 @@ Cut_Man_t * Abc_NtkSeqCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
         // compute the cuts for the internal nodes
         Abc_AigForEachAnd( pNtk, pObj, i )
             Abc_NodeGetCutsSeq( p, pObj, nIters==0 );
-Abc_NtkPrintCuts( p, pNtk, 1 );
         // merge the new cuts with the old cuts
         Abc_NtkForEachPi( pNtk, pObj, i )
             Cut_NodeNewMergeWithOld( p, pObj->Id );
@@ -183,7 +241,7 @@ Abc_NtkPrintCuts( p, pNtk, 1 );
         pObj->fMarkC = 0;
 PRT( "Total", clock() - clk );
 printf( "Converged after %d iterations.\n", nIters );
-Abc_NtkPrintCuts( p, pNtk, 1 );
+//Abc_NtkPrintCuts( p, pNtk, 1 );
     return p;
 }
 
@@ -225,7 +283,7 @@ void * Abc_NodeGetCuts( void * p, Abc_Obj_t * pObj, int fMulti )
     assert( Abc_NtkIsStrash(pObj->pNtk) );
     assert( Abc_ObjFaninNum(pObj) == 2 );
     return Cut_NodeComputeCuts( p, pObj->Id, Abc_ObjFaninId0(pObj), Abc_ObjFaninId1(pObj),  
-        Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj), 1, 1, fTriv );  
+        Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj), fTriv );  
 }
 
 /**Function*************************************************************
@@ -244,7 +302,7 @@ void Abc_NodeGetCutsSeq( void * p, Abc_Obj_t * pObj, int fTriv )
     int CutSetNum;
     assert( Abc_NtkIsSeq(pObj->pNtk) );
     assert( Abc_ObjFaninNum(pObj) == 2 );
-//    fTriv     = pObj->fMarkC ? 0 : fTriv;
+    fTriv     = pObj->fMarkC ? 0 : fTriv;
     CutSetNum = pObj->fMarkC ? (int)pObj->pCopy : -1;
     Cut_NodeComputeCutsSeq( p, pObj->Id, Abc_ObjFaninId0(pObj), Abc_ObjFaninId1(pObj),  
         Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj), Abc_ObjFaninL0(pObj), Abc_ObjFaninL1(pObj), fTriv, CutSetNum );  

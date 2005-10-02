@@ -55,7 +55,7 @@ int Rwr_NodeRewrite( Rwr_Man_t * p, Cut_Man_t * pManCut, Abc_Obj_t * pNode, int 
     Dec_Graph_t * pGraph;
     Cut_Cut_t * pCut;
     Abc_Obj_t * pFanin;
-    unsigned uPhase, uTruthBest;
+    unsigned uPhase, uTruthBest, uTruth;
     char * pPerm;
     int Required, nNodesSaved;
     int i, GainCur, GainBest = -1;
@@ -78,8 +78,9 @@ clk = clock();
         if ( pCut->nLeaves < 4 )
             continue;
         // get the fanin permutation
-        pPerm = p->pPerms4[ p->pPerms[pCut->uTruth] ];
-        uPhase = p->pPhases[pCut->uTruth];
+        uTruth = 0xFFFF & *Cut_CutReadTruth(pCut);
+        pPerm = p->pPerms4[ p->pPerms[uTruth] ];
+        uPhase = p->pPhases[uTruth];
         // collect fanins with the corresponding permutation/phase
         Vec_PtrClear( p->vFaninsCur );
         Vec_PtrFill( p->vFaninsCur, (int)pCut->nLeaves, 0 );
@@ -122,7 +123,7 @@ p->timeEval += clock() - clk2;
             GainBest  = GainCur;
             p->pGraph  = pGraph;
             p->fCompl = ((uPhase & (1<<4)) > 0);
-            uTruthBest = pCut->uTruth;
+            uTruthBest = 0xFFFF & *Cut_CutReadTruth(pCut);
             // collect fanins in the
             Vec_PtrClear( p->vFanins );
             Vec_PtrForEachEntry( p->vFaninsCur, pFanin, i )
@@ -171,8 +172,10 @@ Dec_Graph_t * Rwr_CutEvaluate( Rwr_Man_t * p, Abc_Obj_t * pRoot, Cut_Cut_t * pCu
     Dec_Graph_t * pGraphBest, * pGraphCur;
     Rwr_Node_t * pNode, * pFanin;
     int nNodesAdded, GainBest, i, k;
+    unsigned uTruth;
     // find the matching class of subgraphs
-    vSubgraphs = Vec_VecEntry( p->vClasses, p->pMap[pCut->uTruth] );
+    uTruth = 0xFFFF & *Cut_CutReadTruth(pCut);
+    vSubgraphs = Vec_VecEntry( p->vClasses, p->pMap[uTruth] );
     p->nSubgraphs += vSubgraphs->nSize;
     // determine the best subgraph
     GainBest = -1;

@@ -19,7 +19,6 @@
 ***********************************************************************/
 
 #include "cutInt.h"
-#include "npn.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -31,7 +30,7 @@
 
 /**Function*************************************************************
 
-  Synopsis    [Start the cut computation.]
+  Synopsis    [Allocates the cut.]
 
   Description []
                
@@ -58,38 +57,7 @@ Cut_Cut_t * Cut_CutAlloc( Cut_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Start the cut computation.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Cut_Cut_t * Cut_CutCreateTriv( Cut_Man_t * p, int Node )
-{
-    Cut_Cut_t * pCut;
-    if ( p->pParams->fSeq )
-        Node <<= 8;
-    pCut = Cut_CutAlloc( p );
-    pCut->nLeaves    = 1;
-    pCut->pLeaves[0] = Node;
-    pCut->uSign      = Cut_NodeSign( Node );
-    if ( p->pParams->fTruth )
-    {
-        if ( pCut->nVarsMax == 4 )
-            Cut_CutWriteTruth( pCut, p->uTruthVars[0] );
-        else
-            Extra_BitCopy( pCut->nLeaves, p->uTruths[0], (uint8*)Cut_CutReadTruth(pCut) );
-    }
-    p->nCutsTriv++;
-    return pCut;
-} 
-
-/**Function*************************************************************
-
-  Synopsis    [Start the cut computation.]
+  Synopsis    [Recybles the cut.]
 
   Description []
                
@@ -106,6 +74,189 @@ void Cut_CutRecycle( Cut_Man_t * p, Cut_Cut_t * pCut )
         p->nCutsTriv--;
     Extra_MmFixedEntryRecycle( p->pMmCuts, (char *)pCut );
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Compares two cuts.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cut_CutCompare( Cut_Cut_t * pCut1, Cut_Cut_t * pCut2 )
+{
+    int i;
+    if ( pCut1->nLeaves < pCut2->nLeaves )
+        return -1;
+    if ( pCut1->nLeaves > pCut2->nLeaves )
+        return 1;
+    for ( i = 0; i < (int)pCut1->nLeaves; i++ )
+    {
+        if ( pCut1->pLeaves[i] < pCut2->pLeaves[i] )
+            return -1;
+        if ( pCut1->pLeaves[i] > pCut2->pLeaves[i] )
+            return 1;
+    }
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the list.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Cut_Cut_t * Cut_CutDupList( Cut_Man_t * p, Cut_Cut_t * pList )
+{
+    Cut_Cut_t * pHead = NULL, ** ppTail = &pHead;
+    Cut_Cut_t * pTemp, * pCopy;
+    if ( pList == NULL )
+        return NULL;
+    Cut_ListForEachCut( pList, pTemp )
+    {
+        pCopy = (Cut_Cut_t *)Extra_MmFixedEntryFetch( p->pMmCuts );
+        memcpy( pCopy, pTemp, p->EntrySize );
+        *ppTail = pCopy;
+        ppTail = &pCopy->pNext;
+    }
+    *ppTail = NULL;
+    return pHead;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Recycles the list.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cut_CutRecycleList( Cut_Man_t * p, Cut_Cut_t * pList )
+{
+    Cut_Cut_t * pCut, * pCut2;
+    Cut_ListForEachCutSafe( pList, pCut, pCut2 )
+        Extra_MmFixedEntryRecycle( p->pMmCuts, (char *)pCut );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of cuts in the list.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cut_CutCountList( Cut_Cut_t * pList )
+{
+    int Counter = 0;
+    Cut_ListForEachCut( pList, pList )
+        Counter++;
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Merges two NULL-terminated linked lists.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Cut_Cut_t * Cut_CutMergeLists( Cut_Cut_t * pList1, Cut_Cut_t * pList2 )
+{
+    Cut_Cut_t * pList = NULL, ** ppTail = &pList;
+    Cut_Cut_t * pCut;
+    while ( pList1 && pList2 )
+    {
+        if ( Cut_CutCompare(pList1, pList2) < 0 )
+        {
+            pCut = pList1;
+            pList1 = pList1->pNext;
+        }
+        else
+        {
+            pCut = pList2;
+            pList2 = pList2->pNext;
+        }
+        *ppTail = pCut;
+        ppTail = &pCut->pNext;
+    }
+    *ppTail = pList1? pList1: pList2;
+    return pList;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sets the number of the cuts in the list.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cut_CutNumberList( Cut_Cut_t * pList )
+{
+    Cut_Cut_t * pCut;
+    int i = 0;
+    Cut_ListForEachCut( pList, pCut )
+        pCut->Num0 = i++;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates the trivial cut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Cut_Cut_t * Cut_CutCreateTriv( Cut_Man_t * p, int Node )
+{
+    Cut_Cut_t * pCut;
+    if ( p->pParams->fSeq )
+        Node <<= CUT_SHIFT;
+    pCut = Cut_CutAlloc( p );
+    pCut->nLeaves    = 1;
+    pCut->pLeaves[0] = Node;
+    pCut->uSign      = Cut_NodeSign( Node );
+    if ( p->pParams->fTruth )
+    {
+/*
+        if ( pCut->nVarsMax == 4 )
+            Cut_CutWriteTruth( pCut, p->uTruthVars[0] );
+        else
+            Extra_BitCopy( pCut->nLeaves, p->uTruths[0], (uint8*)Cut_CutReadTruth(pCut) );
+*/
+        unsigned * pTruth = Cut_CutReadTruth(pCut);
+        int i;
+        for ( i = 0; i < p->nTruthWords; i++ )
+            pTruth[i] = 0xAAAAAAAA;
+    }
+    p->nCutsTriv++;
+    return pCut;
+} 
 
 
 /**Function*************************************************************
@@ -128,9 +279,9 @@ void Cut_CutPrint( Cut_Cut_t * pCut, int fSeq )
     {
         if ( fSeq )
         {
-            printf( " %d", pCut->pLeaves[i] >> 8 );
-            if ( pCut->pLeaves[i] & 0xFF )
-                printf( "(%d)", pCut->pLeaves[i] & 0xFF );
+            printf( " %d", pCut->pLeaves[i] >> CUT_SHIFT );
+            if ( pCut->pLeaves[i] & CUT_MASK )
+                printf( "(%d)", pCut->pLeaves[i] & CUT_MASK );
         }
         else
             printf( " %d", pCut->pLeaves[i] );

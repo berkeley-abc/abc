@@ -89,7 +89,42 @@ static inline void Cut_ListAdd( Cut_List_t * p, Cut_Cut_t * pCut )
 
 /**Function*************************************************************
 
-  Synopsis    [Adds one cut to the cut list.]
+  Synopsis    [Adds one cut to the cut list while preserving order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Cut_ListAdd2( Cut_List_t * p, Cut_Cut_t * pCut )
+{
+    extern int Cut_CutCompare( Cut_Cut_t * pCut1, Cut_Cut_t * pCut2 );
+    Cut_Cut_t * pTemp, ** ppSpot;
+    assert( pCut->nLeaves > 0 && pCut->nLeaves <= CUT_SIZE_MAX );
+    if ( p->pHead[pCut->nLeaves] != NULL )
+    {
+        ppSpot = &p->pHead[pCut->nLeaves];
+        for ( pTemp = p->pHead[pCut->nLeaves]; pTemp; pTemp = pTemp->pNext )
+        {
+            if ( Cut_CutCompare(pCut, pTemp) < 0 )
+            {
+                *ppSpot = pCut;
+                pCut->pNext = pTemp;
+                return;
+            }
+            else
+                ppSpot = &pTemp->pNext;
+        }
+    }
+    *p->ppTail[pCut->nLeaves] = pCut;
+    p->ppTail[pCut->nLeaves] = &pCut->pNext;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derive the super list from the linked list of cuts.]
 
   Description []
                
@@ -153,7 +188,7 @@ static inline Cut_Cut_t * Cut_ListFinish( Cut_List_t * p )
 {
     Cut_Cut_t * pHead = NULL, ** ppTail = &pHead;
     int i;
-    for ( i = 1; i < CUT_SIZE_MAX; i++ )
+    for ( i = 1; i <= CUT_SIZE_MAX; i++ )
     {
         if ( p->pHead[i] == NULL )
             continue;

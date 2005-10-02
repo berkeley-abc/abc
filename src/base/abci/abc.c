@@ -91,6 +91,8 @@ static int Abc_CommandPipe         ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int Abc_CommandSeq          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandUnseq        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRetime       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSeqFpga      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSeqMap       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandCec          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSec          ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -172,6 +174,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Sequential",   "seq",           Abc_CommandSeq,              1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "unseq",         Abc_CommandUnseq,            1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "retime",        Abc_CommandRetime,           1 );
+    Cmd_CommandAdd( pAbc, "Sequential",   "sfpga",         Abc_CommandSeqFpga,          1 );
+    Cmd_CommandAdd( pAbc, "Sequential",   "smap",          Abc_CommandSeqMap,           1 );
 
     Cmd_CommandAdd( pAbc, "Verification", "cec",           Abc_CommandCec,              0 );
     Cmd_CommandAdd( pAbc, "Verification", "sec",           Abc_CommandSec,              0 );
@@ -2735,16 +2739,20 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Cut_Params_t Params, * pParams = &Params;
     Cut_Man_t * pCutMan;
+    Cut_Oracle_t * pCutOracle;
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
     int c;
+    int fOracle;
     extern Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams );
+    extern void Abc_NtkCutsOracle( Abc_Ntk_t * pNtk, Cut_Oracle_t * pCutOracle );
 
     pNtk = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
+    fOracle = 0;
     memset( pParams, 0, sizeof(Cut_Params_t) );
     pParams->nVarsMax  = 5;     // the max cut size ("k" of the k-feasible cuts)
     pParams->nKeepMax  = 1000;  // the max number of cuts kept at a node
@@ -2754,7 +2762,7 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
     pParams->fMulti    = 0;     // use multi-input AND-gates
     pParams->fVerbose  = 0;     // the verbosiness flag
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "KMtfdmvh" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "KMtfdmvoh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -2795,6 +2803,9 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'v':
             pParams->fVerbose ^= 1;
             break;
+        case 'o':
+            fOracle ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -2812,20 +2823,35 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Cut computation is available only for AIGs (run \"strash\").\n" );
         return 1;
     }
+    if ( pParams->nVarsMax < CUT_SIZE_MIN || pParams->nVarsMax > CUT_SIZE_MAX )
+    {
+        fprintf( pErr, "Can only compute the cuts for %d <= K <= %d.\n", CUT_SIZE_MIN, CUT_SIZE_MAX );
+        return 1;
+    }
+
+    if ( fOracle )
+        pParams->fRecord = 1;
     pCutMan = Abc_NtkCuts( pNtk, pParams );
     Cut_ManPrintStats( pCutMan );
+    if ( fOracle )
+        pCutOracle = Cut_OracleStart( pCutMan );
     Cut_ManStop( pCutMan );
+    if ( fOracle )
+    {
+        Abc_NtkCutsOracle( pNtk, pCutOracle );
+        Cut_OracleStop( pCutOracle );
+    }
     return 0;
 
 usage:
     fprintf( pErr, "usage: cut [-K num] [-M num] [-tfdmvh]\n" );
     fprintf( pErr, "\t         computes k-feasible cuts for the AIG\n" );
-    fprintf( pErr, "\t-K num : max number of leaves (4 <= num <= 6) [default = %d]\n",     pParams->nVarsMax );
+    fprintf( pErr, "\t-K num : max number of leaves (%d <= num <= %d) [default = %d]\n",   CUT_SIZE_MIN, CUT_SIZE_MAX, pParams->nVarsMax );
     fprintf( pErr, "\t-M num : max number of cuts stored at a node [default = %d]\n",      pParams->nKeepMax );
-    fprintf( pErr, "\t-t     : toggle truth table computation [default = %s]\n",           pParams->fTruth? "yes": "no" );
-    fprintf( pErr, "\t-f     : toggle filtering of duplicated/dominated [default = %s]\n", pParams->fFilter? "yes": "no" );
-    fprintf( pErr, "\t-d     : toggle dropping when fanouts are done [default = %s]\n",    pParams->fDrop? "yes": "no" );
-    fprintf( pErr, "\t-m     : toggle using multi-input AND-gates [default = %s]\n",       pParams->fMulti? "yes": "no" );
+    fprintf( pErr, "\t-t     : toggle truth table computation [default = %s]\n",           pParams->fTruth?   "yes": "no" );
+    fprintf( pErr, "\t-f     : toggle filtering of duplicated/dominated [default = %s]\n", pParams->fFilter?  "yes": "no" );
+    fprintf( pErr, "\t-d     : toggle dropping when fanouts are done [default = %s]\n",    pParams->fDrop?    "yes": "no" );
+    fprintf( pErr, "\t-m     : toggle using multi-input AND-gates [default = %s]\n",       pParams->fMulti?   "yes": "no" );
     fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n",      pParams->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -2913,6 +2939,12 @@ int Abc_CommandScut( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Sequential cuts can be computed for sequential AIGs (run \"seq\").\n" );
         return 1;
     }
+    if ( pParams->nVarsMax < CUT_SIZE_MIN || pParams->nVarsMax > CUT_SIZE_MAX )
+    {
+        fprintf( pErr, "Can only compute the cuts for %d <= K <= %d.\n", CUT_SIZE_MIN, CUT_SIZE_MAX );
+        return 1;
+    }
+
     pCutMan = Abc_NtkSeqCuts( pNtk, pParams );
     Cut_ManPrintStats( pCutMan );
     Cut_ManStop( pCutMan );
@@ -2921,9 +2953,9 @@ int Abc_CommandScut( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     fprintf( pErr, "usage: scut [-K num] [-M num] [-tvh]\n" );
     fprintf( pErr, "\t         computes k-feasible cuts for the sequential AIG\n" );
-    fprintf( pErr, "\t-K num : max number of leaves (4 <= num <= 6) [default = %d]\n",     pParams->nVarsMax );
+    fprintf( pErr, "\t-K num : max number of leaves (%d <= num <= %d) [default = %d]\n",   CUT_SIZE_MIN, CUT_SIZE_MAX, pParams->nVarsMax );
     fprintf( pErr, "\t-M num : max number of cuts stored at a node [default = %d]\n",      pParams->nKeepMax );
-    fprintf( pErr, "\t-t     : toggle truth table computation [default = %s]\n",           pParams->fTruth? "yes": "no" );
+    fprintf( pErr, "\t-t     : toggle truth table computation [default = %s]\n",           pParams->fTruth?   "yes": "no" );
     fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n",      pParams->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -4433,6 +4465,149 @@ usage:
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandSeqFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c;
+    int fVerbose;
+    extern Abc_Ntk_t * Abc_NtkFpgaSeq( Abc_Ntk_t * pNtk, int fVerbose );
+
+    pNtk = Abc_FrameReadNet(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fVerbose = 1;
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkIsSeq(pNtk) )
+    {
+        fprintf( pErr, "Works only for sequential AIG (run \"seq\").\n" );
+        return 1;
+    }
+
+    // get the new network
+    pNtkRes = Abc_NtkFpgaSeq( pNtk, fVerbose );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Sequential FPGA mapping has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: sfpga [-vh]\n" );
+    fprintf( pErr, "\t        performs integrated sequential FPGA mapping\n" );
+    fprintf( pErr, "\t-v    : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandSeqMap( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c;
+    int fVerbose;
+    extern Abc_Ntk_t * Abc_NtkMapSeq( Abc_Ntk_t * pNtk, int fVerbose );
+
+    pNtk = Abc_FrameReadNet(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fVerbose = 1;
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkIsSeq(pNtk) )
+    {
+        fprintf( pErr, "Works only for sequential AIG (run \"seq\").\n" );
+        return 1;
+    }
+
+    // get the new network
+    pNtkRes = Abc_NtkMapSeq( pNtk, fVerbose );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Sequential FPGA mapping has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: smap [-vh]\n" );
+    fprintf( pErr, "\t        performs integrated sequential standard-cell mapping" );
+    fprintf( pErr, "\t-v    : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
+
 
 
 /**Function*************************************************************

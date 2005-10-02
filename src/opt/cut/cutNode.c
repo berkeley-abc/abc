@@ -189,9 +189,6 @@ static inline int Cut_CutFilterOld( Cut_Man_t * p, Cut_Cut_t * pList, Cut_Cut_t 
 {
     Cut_Cut_t * pPrev, * pTemp, * pTemp2, ** ppTail;
 
-    if ( pList == NULL )
-        return 0;
-
     // check if this cut is filtered out by smaller cuts
     pPrev = NULL;
     Cut_ListForEachCut( pList, pTemp )
@@ -250,7 +247,7 @@ static inline int Cut_CutFilterOld( Cut_Man_t * p, Cut_Cut_t * pList, Cut_Cut_t 
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Cut_CutProcessTwo( Cut_Man_t * p, int Root, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1, Cut_List_t * pSuperList )
+static inline int Cut_CutProcessTwo( Cut_Man_t * p, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1, Cut_List_t * pSuperList )
 {
     Cut_Cut_t * pCut;
     // merge the cuts
@@ -260,13 +257,11 @@ static inline int Cut_CutProcessTwo( Cut_Man_t * p, int Root, Cut_Cut_t * pCut0,
         pCut = Cut_CutMergeTwo( p, pCut1, pCut0 );
     if ( pCut == NULL )
         return 0;
-//    if ( Root == 5 && (pCut->pLeaves[0] >> 8) == 1 && (pCut->pLeaves[1] >> 8) == 4 && (pCut->pLeaves[2] >> 8) == 6 )
-//    {
-//        int x = 0;
-//    }
     assert( p->pParams->fSeq || pCut->nLeaves > 1 );
     // set the signature
     pCut->uSign = pCut0->uSign | pCut1->uSign;
+    if ( p->pParams->fRecord )
+        pCut->Num0 = pCut0->Num0, pCut->Num1 = pCut1->Num0;
     // check containment
     if ( p->pParams->fFilter )
     {
@@ -274,15 +269,15 @@ static inline int Cut_CutProcessTwo( Cut_Man_t * p, int Root, Cut_Cut_t * pCut0,
             return 0;
         if ( p->pParams->fSeq )
         {
-            if ( Cut_CutFilterOld(p, Cut_NodeReadCutsOld(p, Root), pCut) )
+            if ( p->pCompareOld && Cut_CutFilterOld(p, p->pCompareOld, pCut) )
                 return 0;
-            if ( Cut_CutFilterOld(p, Cut_NodeReadCutsNew(p, Root), pCut) )
+            if ( p->pCompareNew && Cut_CutFilterOld(p, p->pCompareNew, pCut) )
                 return 0;
         }
     }
     // compute the truth table
     if ( p->pParams->fTruth )
-        Cut_TruthCompute( p, pCut, pCut0, pCut1 );
+        Cut_TruthCompute( pCut, pCut0, pCut1, p->fCompl0, p->fCompl1 );
     // add to the list
     Cut_ListAdd( pSuperList, pCut );
     // return status (0 if okay; 1 if exceeded the limit)
@@ -300,16 +295,36 @@ static inline int Cut_CutProcessTwo( Cut_Man_t * p, int Root, Cut_Cut_t * pCut0,
   SeeAlso     []
 
 ***********************************************************************/
-Cut_Cut_t * Cut_NodeComputeCuts( Cut_Man_t * p, int Node, int Node0, int Node1, int fCompl0, int fCompl1, int fNew0, int fNew1, int fTriv )
+Cut_Cut_t * Cut_NodeComputeCuts( Cut_Man_t * p, int Node, int Node0, int Node1, int fCompl0, int fCompl1, int fTriv )
 {
-    Cut_Cut_t * pList;
-    int clk = clock();
+    Cut_List_t Super, * pSuper = &Super;
+    Cut_Cut_t * pList, * pCut;
+    int clk;
     // start the number of cuts at the node
     p->nNodes++;
     p->nNodeCuts = 0;
+    // prepare information for recording
+    if ( p->pParams->fRecord )
+    {
+        Cut_CutNumberList( Cut_NodeReadCutsNew(p, Node0) );
+        Cut_CutNumberList( Cut_NodeReadCutsNew(p, Node1) );
+    }
     // compute the cuts
-    pList = Cut_NodeDoComputeCuts( p, Node, Node0, Node1, fCompl0, fCompl1, fNew0, fNew1, fTriv );
+clk = clock();
+    Cut_ListStart( pSuper );
+    Cut_NodeDoComputeCuts( p, pSuper, Node, fCompl0, fCompl1, Cut_NodeReadCutsNew(p, Node0), Cut_NodeReadCutsNew(p, Node1), fTriv );
+    pList = Cut_ListFinish( pSuper );
 p->timeMerge += clock() - clk;
+    // verify the result of cut computation
+//    Cut_CutListVerify( pList );
+    // performing the recording
+    if ( p->pParams->fRecord )
+    {
+        Vec_IntWriteEntry( p->vNodeStarts, Node, Vec_IntSize(p->vCutPairs) );
+        Cut_ListForEachCut( pList, pCut )
+            Vec_IntPush( p->vCutPairs, ((pCut->Num1 << 16) | pCut->Num0) );
+        Vec_IntWriteEntry( p->vNodeCuts, Node, Vec_IntSize(p->vCutPairs) - Vec_IntEntry(p->vNodeStarts, Node) );
+    }
     // check if the node is over the list
     if ( p->nNodeCuts == p->pParams->nKeepMax )
         p->nCutsLimit++;
@@ -336,20 +351,15 @@ p->timeMerge += clock() - clk;
   SeeAlso     []
 
 ***********************************************************************/
-Cut_Cut_t * Cut_NodeDoComputeCuts( Cut_Man_t * p, int Node, int Node0, int Node1, int fCompl0, int fCompl1, int fNew0, int fNew1, int fTriv )
+void Cut_NodeDoComputeCuts( Cut_Man_t * p, Cut_List_t * pSuper, int Node, int fCompl0, int fCompl1, Cut_Cut_t * pList0, Cut_Cut_t * pList1, int fTriv )
 {
-    Cut_List_t SuperList;
-    Cut_Cut_t * pList0, * pList1, * pStop0, * pStop1, * pTemp0, * pTemp1;
+    Cut_Cut_t * pStop0, * pStop1, * pTemp0, * pTemp1;
     int i, nCutsOld, Limit;
-
     // get the cut lists of children
-    pList0 = fNew0 ? Cut_NodeReadCutsNew(p, Node0) : Cut_NodeReadCutsOld(p, Node0);
-    pList1 = fNew1 ? Cut_NodeReadCutsNew(p, Node1) : Cut_NodeReadCutsOld(p, Node1);
     if ( pList0 == NULL || pList1 == NULL )
-        return NULL;
+        return;
     // start the new list
     nCutsOld = p->nCutsCur;
-    Cut_ListStart( &SuperList );
     Limit = p->pParams->nVarsMax;
     // get the simultation bit of the node
     p->fSimul = (fCompl0 ^ pList0->fSimul) & (fCompl1 ^ pList1->fSimul);
@@ -367,23 +377,23 @@ Cut_Cut_t * Cut_NodeDoComputeCuts( Cut_Man_t * p, int Node, int Node0, int Node1
     if ( fTriv ) 
     {
         pTemp0 = Cut_CutCreateTriv( p, Node );
-        Cut_ListAdd( &SuperList, pTemp0 );
+        Cut_ListAdd( pSuper, pTemp0 );
         p->nNodeCuts++;
         nCutsOld++;
     }
     // small by small
     Cut_ListForEachCutStop( pList0, pTemp0, pStop0 )
     Cut_ListForEachCutStop( pList1, pTemp1, pStop1 )
-        if ( Cut_CutProcessTwo( p, Node, pTemp0, pTemp1, &SuperList ) )
-            return Cut_ListFinish( &SuperList );
+        if ( Cut_CutProcessTwo( p, pTemp0, pTemp1, pSuper ) )
+            return;
     // small by large
     Cut_ListForEachCutStop( pList0, pTemp0, pStop0 )
     Cut_ListForEachCut( pStop1, pTemp1 )
     {
         if ( (pTemp0->uSign & pTemp1->uSign) != pTemp0->uSign )
             continue;
-        if ( Cut_CutProcessTwo( p, Node, pTemp0, pTemp1, &SuperList ) )
-            return Cut_ListFinish( &SuperList );
+        if ( Cut_CutProcessTwo( p, pTemp0, pTemp1, pSuper ) )
+            return;
     }
     // small by large
     Cut_ListForEachCutStop( pList1, pTemp1, pStop1 )
@@ -391,8 +401,8 @@ Cut_Cut_t * Cut_NodeDoComputeCuts( Cut_Man_t * p, int Node, int Node0, int Node1
     {
         if ( (pTemp0->uSign & pTemp1->uSign) != pTemp1->uSign )
             continue;
-        if ( Cut_CutProcessTwo( p, Node, pTemp0, pTemp1, &SuperList ) )
-            return Cut_ListFinish( &SuperList );
+        if ( Cut_CutProcessTwo( p, pTemp0, pTemp1, pSuper ) )
+            return;
     }
     // large by large
     Cut_ListForEachCut( pStop0, pTemp0 )
@@ -406,15 +416,14 @@ Cut_Cut_t * Cut_NodeDoComputeCuts( Cut_Man_t * p, int Node, int Node0, int Node1
                 break;
         if ( i < Limit )
             continue;
-        if ( Cut_CutProcessTwo( p, Node, pTemp0, pTemp1, &SuperList ) )
-            return Cut_ListFinish( &SuperList );
+        if ( Cut_CutProcessTwo( p, pTemp0, pTemp1, pSuper ) )
+            return;
     } 
     if ( fTriv ) 
     {
         p->nCutsMulti += p->nCutsCur - nCutsOld;         
         p->nNodesMulti++;
     }
-    return Cut_ListFinish( &SuperList );
 }
 
 /**Function*************************************************************
@@ -430,15 +439,13 @@ Cut_Cut_t * Cut_NodeDoComputeCuts( Cut_Man_t * p, int Node, int Node0, int Node1
 ***********************************************************************/
 Cut_Cut_t * Cut_NodeUnionCuts( Cut_Man_t * p, Vec_Int_t * vNodes )
 {
-    Cut_List_t SuperList;
+    Cut_List_t Super, * pSuper = &Super;
     Cut_Cut_t * pList, * pListStart, * pCut, * pCut2, * pTop;
     int i, k, Node, Root, Limit = p->pParams->nVarsMax;
     int clk = clock();
 
-    assert( p->pParams->nVarsMax <= 6 );
-
     // start the new list
-    Cut_ListStart( &SuperList );
+    Cut_ListStart( pSuper );
 
     // remember the root node to save the resulting cuts
     Root = Vec_IntEntry( vNodes, 0 );
@@ -457,7 +464,7 @@ Cut_Cut_t * Cut_NodeUnionCuts( Cut_Man_t * p, Vec_Int_t * vNodes )
         pList->pNext = NULL;
         // save or recycle the elementary cut
         if ( i == 0 )
-            Cut_ListAdd( &SuperList, pList ), pTop = pList;
+            Cut_ListAdd( pSuper, pList ), pTop = pList;
         else
             Cut_CutRecycle( p, pList );
         // save all the cuts that are smaller than the limit
@@ -469,14 +476,14 @@ Cut_Cut_t * Cut_NodeUnionCuts( Cut_Man_t * p, Vec_Int_t * vNodes )
                 break;
             }
             // check containment
-            if ( p->pParams->fFilter && Cut_CutFilterOne( p, &SuperList, pCut ) )
+            if ( p->pParams->fFilter && Cut_CutFilterOne( p, pSuper, pCut ) )
                 continue;
             // set the complemented bit by comparing the first cut with the current cut
             pCut->fCompl = pTop->fSimul ^ pCut->fSimul;
             pListStart = pCut->pNext;
             pCut->pNext = NULL;
             // add to the list
-            Cut_ListAdd( &SuperList, pCut );
+            Cut_ListAdd( pSuper, pCut );
             if ( ++p->nNodeCuts == p->pParams->nKeepMax )
             {
                 // recycle the rest of the cuts of this node
@@ -499,14 +506,14 @@ Cut_Cut_t * Cut_NodeUnionCuts( Cut_Man_t * p, Vec_Int_t * vNodes )
         Cut_ListForEachCutSafe( pList, pCut, pCut2 )
         {
             // check containment
-            if ( p->pParams->fFilter && Cut_CutFilterOne( p, &SuperList, pCut ) )
+            if ( p->pParams->fFilter && Cut_CutFilterOne( p, pSuper, pCut ) )
                 continue;
             // set the complemented bit
             pCut->fCompl = pTop->fSimul ^ pCut->fSimul;
             pListStart = pCut->pNext;
             pCut->pNext = NULL;
             // add to the list
-            Cut_ListAdd( &SuperList, pCut );
+            Cut_ListAdd( pSuper, pCut );
             if ( ++p->nNodeCuts == p->pParams->nKeepMax )
             {
                 // recycle the rest of the cuts
@@ -523,7 +530,7 @@ Cut_Cut_t * Cut_NodeUnionCuts( Cut_Man_t * p, Vec_Int_t * vNodes )
 finish :
     // set the cuts at the node
     assert( Cut_NodeReadCutsNew(p, Root) == NULL );
-    pList = Cut_ListFinish( &SuperList );
+    pList = Cut_ListFinish( pSuper );
     Cut_NodeWriteCutsNew( p, Root, pList );
 p->timeUnion += clock() - clk;
     // filter the cuts
@@ -535,6 +542,38 @@ p->timeUnion += clock() - clk;
     return pList;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Verifies that the list contains only non-dominated cuts.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cut_CutListVerify( Cut_Cut_t * pList )
+{ 
+    Cut_Cut_t * pCut, * pDom;
+    Cut_ListForEachCut( pList, pCut )
+    {
+        Cut_ListForEachCutStop( pList, pDom, pCut )
+        {
+            if ( Cut_CutCheckDominance( pDom, pCut ) )
+            {
+                int x = 0;
+                printf( "******************* These are contained cuts:\n" );
+                Cut_CutPrint( pDom, 1 );
+                Cut_CutPrint( pDom, 1 );
+                
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
