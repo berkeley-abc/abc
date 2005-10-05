@@ -113,6 +113,9 @@ clk = clock();
         return NULL;
     Map_ManFree( pMan );
 
+    if ( pNtk->pExdc )
+        pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );
+
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtkNew ) )
     {

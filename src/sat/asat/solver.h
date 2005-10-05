@@ -73,7 +73,9 @@ extern int     solver_nvars(solver* s);
 extern int     solver_nclauses(solver* s);
 
 // additional procedures
-extern void    Asat_SolverWriteDimacs( solver * pSat, char * pFileName );
+extern void    Asat_SolverWriteDimacs( solver * pSat, char * pFileName,
+                                       lit* assumptionsBegin, lit* assumptionsEnd,
+                                       int incrementVars);
 
 struct stats_t
 {

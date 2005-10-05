@@ -162,13 +162,16 @@ Abc_Ntk_t * Abc_NtkLogicSopToNetlist( Abc_Ntk_t * pNtk )
         pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_NETLIST, ABC_FUNC_SOP );
     else
         pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_NETLIST, ABC_FUNC_BDD );
+
     // create the CI nets and remember them in the new CI nodes
     Abc_NtkForEachCi( pNtk, pObj, i )
     {
         pNet = Abc_NtkFindOrCreateNet( pNtkNew, Abc_ObjName(pObj) );
         Abc_ObjAddFanin( pNet, pObj->pCopy );
         pObj->pCopy->pCopy = pNet;
+//printf( "%s ", Abc_ObjName(pObj) );
     }
+//printf( "\n" );
     // duplicate all nodes
     Abc_NtkForEachNode( pNtk, pObj, i )
         Abc_NtkDupObj(pNtkNew, pObj);

@@ -542,7 +542,7 @@ enum CSAT_StatusT CSAT_Solve( CSAT_Manager mng )
     else if ( mng->mode == 1 ) // resource-aware fraiging
     {
         // transform the target into a fraig
-        pMan = Abc_NtkToFraig( mng->pTarget, &mng->Params, 0 ); 
+        pMan = Abc_NtkToFraig( mng->pTarget, &mng->Params, 0, 0 ); 
         Fraig_ManProveMiter( pMan );
         RetValue = Fraig_ManCheckMiter( pMan );
 

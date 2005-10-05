@@ -262,6 +262,10 @@ SOURCE=.\src\base\abci\abcUnreach.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcVanEijk.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcVerify.c
 # End Source File
 # End Group
@@ -1471,6 +1475,10 @@ SOURCE=.\src\map\pga\pgaUtil.c
 # Begin Source File
 
 SOURCE=.\src\misc\extra\extra.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\extra\extraBddKmap.c
 # End Source File
 # Begin Source File
 

@@ -499,6 +499,33 @@ void Abc_NodePrintLevel( FILE * pFile, Abc_Obj_t * pNode )
     fprintf( pFile, "\n" );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Prints the factored form of one node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NodePrintKMap( Abc_Obj_t * pNode, int fUseRealNames )
+{
+    Vec_Ptr_t * vNamesIn;
+    if ( fUseRealNames )
+    {
+        vNamesIn = Abc_NodeGetFaninNames(pNode);
+        Extra_PrintKMap( stdout, pNode->pNtk->pManFunc, pNode->pData, Cudd_Not(pNode->pData), 
+            Abc_ObjFaninNum(pNode), NULL, 0, (char **)vNamesIn->pArray );
+        Abc_NodeFreeNames( vNamesIn );
+    }
+    else
+        Extra_PrintKMap( stdout, pNode->pNtk->pManFunc, pNode->pData, Cudd_Not(pNode->pData), 
+            Abc_ObjFaninNum(pNode), NULL, 0, NULL );
+
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

@@ -106,7 +106,7 @@ typedef unsigned long long uint64;
 /*     Various Utilities                                                     */
 /*===========================================================================*/
 
-/*=== extraUtilBdd.c ========================================================*/
+/*=== extraBddMisc.c ========================================================*/
 extern DdNode *     Extra_TransferPermute( DdManager * ddSource, DdManager * ddDestination, DdNode * f, int * Permute );
 extern DdNode *     Extra_TransferLevelByLevel( DdManager * ddSource, DdManager * ddDestination, DdNode * f );
 extern DdNode *     Extra_bddRemapUp( DdManager * dd, DdNode * bF );
@@ -125,6 +125,14 @@ extern int *        Extra_VectorSupportArray( DdManager * dd, DdNode ** F, int n
 extern DdNode *     Extra_bddFindOneCube( DdManager * dd, DdNode * bF );
 extern DdNode *     Extra_bddGetOneCube( DdManager * dd, DdNode * bFunc );
 extern DdNode *     Extra_bddComputeRangeCube( DdManager * dd, int iStart, int iStop );
+extern DdNode *     Extra_bddBitsToCube( DdManager * dd, int Code, int CodeWidth, DdNode ** pbVars, int fMsbFirst );
+
+/*=== extraBddKmap.c ================================================================*/
+
+/* displays the Karnaugh Map of a function */
+extern void        Extra_PrintKMap( FILE * pFile, DdManager * dd, DdNode * OnSet, DdNode * OffSet, int nVars, DdNode ** XVars, int fSuppType, char ** pVarNames );
+/* displays the Karnaugh Map of a relation */
+extern void        Extra_PrintKMapRelation( FILE * pFile, DdManager * dd, DdNode * OnSet, DdNode * OffSet, int nXVars, int nYVars, DdNode ** XVars, DdNode ** YVars );
 
 /*=== extraBddSymm.c =================================================================*/
 

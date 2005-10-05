@@ -52,6 +52,8 @@ Abc_Ntk_t * Abc_NtkBalance( Abc_Ntk_t * pNtk, bool fDuplicate )
     pNtkAig = Abc_NtkStartFrom( pNtk, ABC_NTK_STRASH, ABC_FUNC_AIG );
     Abc_NtkBalancePerform( pNtk, pNtkAig, fDuplicate );
     Abc_NtkFinalize( pNtk, pNtkAig );
+    if ( pNtk->pExdc )
+        pNtkAig->pExdc = Abc_NtkDup( pNtk->pExdc );
     // make sure everything is okay
     if ( !Abc_NtkCheck( pNtkAig ) )
     {

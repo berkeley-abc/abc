@@ -21,7 +21,7 @@ OPTFLAGS  := -DNDEBUG -O3
 CFLAGS   += -Wall -Wno-unused-function $(OPTFLAGS) $(patsubst %, -I%, $(MODULES)) 
 CXXFLAGS += $(CFLAGS) 
 
-LIBS := 
+LIBS := -ldl -rdynamic
 SRC  := 
 GARBAGE := core core.* *.stackdump ./tags $(PROG)
 

@@ -87,6 +87,8 @@ int Abc_NtkExtractSequentialDcs( Abc_Ntk_t * pNtk, bool fVerbose )
     // allocate ZDD variables
     Cudd_zddVarsFromBddVars( dd, 2 );
     // create the EXDC network representing the unreachable states
+    if ( pNtk->pExdc )
+        Abc_NtkDelete( pNtk->pExdc );
     pNtk->pExdc = Abc_NtkConstructExdc( dd, pNtk, bUnreach );
     Cudd_RecursiveDeref( dd, bUnreach );
     Extra_StopManager( dd );
@@ -283,9 +285,13 @@ Abc_Ntk_t * Abc_NtkConstructExdc( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bUn
 
     // start the new network
     pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_BDD );
+    pNtkNew->pName = util_strsav("exdc");
+    pNtkNew->pSpec = NULL;
+
     // create PIs corresponding to LOs
     Abc_NtkForEachLatch( pNtk, pNode, i )
-        pNode->pCopy = Abc_NtkCreatePi(pNtkNew);
+        Abc_NtkLogicStoreName( pNode->pCopy = Abc_NtkCreatePi(pNtkNew), Abc_ObjName(pNode) );
+    // cannot ADD POs here because pLatch->pCopy point to the PIs
 
     // create a new node
     pNodeNew = Abc_NtkCreateNode(pNtkNew);
@@ -304,21 +310,22 @@ Abc_Ntk_t * Abc_NtkConstructExdc( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bUn
     free( pPermute );
     Abc_NodeMinimumBase( pNodeNew );
 
-    // make the new node drive all the COs
-    Abc_NtkForEachCo( pNtk, pNode, i )
-        Abc_ObjAddFanin( Abc_NtkCreatePo(pNtkNew), pNodeNew );
-
-    // store the PI names of the EXDC network
-    Abc_NtkForEachLatch( pNtk, pNode, i )
-        Abc_NtkLogicStoreName( Abc_NtkPi(pNtkNew,i), Abc_ObjName(pNode) );
-    // store the PO names of the EXDC network
+    // for each CO, create PO (skip POs equal to CIs because of name conflict)
     Abc_NtkForEachPo( pNtk, pNode, i )
-        Abc_NtkLogicStoreName( Abc_NtkPo(pNtkNew,i), Abc_ObjName(pNode) );
+        if ( !Abc_ObjIsCi(Abc_ObjFanin0(pNode)) )
+            Abc_NtkLogicStoreName( pNode->pCopy = Abc_NtkCreatePo(pNtkNew), Abc_ObjName(pNode) );
     Abc_NtkForEachLatch( pNtk, pNode, i )
-        Abc_NtkLogicStoreName( Abc_NtkCo(pNtkNew,Abc_NtkPoNum(pNtk) + i), Abc_ObjNameSuffix(pNode, "_in") );
+        Abc_NtkLogicStoreName( pNode->pCopy = Abc_NtkCreatePo(pNtkNew), Abc_ObjNameSuffix(pNode, "_in") );
 
-    // make the network minimum base
-    Abc_NtkMinimumBase( pNtkNew );
+    // link to the POs of the network 
+    Abc_NtkForEachPo( pNtk, pNode, i )
+        if ( !Abc_ObjIsCi(Abc_ObjFanin0(pNode)) )
+            Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
+    Abc_NtkForEachLatch( pNtk, pNode, i )
+        Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
+
+    // remove the extra nodes
+    Abc_AigCleanup( pNtkNew->pManFunc );
 
     // fix the problem with complemented and duplicated CO edges
     Abc_NtkLogicMakeSimpleCos( pNtkNew, 0 );

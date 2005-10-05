@@ -470,7 +470,7 @@ void Sim_SolveTargetsUsingSat( Sim_Man_t * p, int Limit )
         Params.nSeconds = ABC_INFINITY;
         Params.fInternal = 1;
 clk = clock();
-        pMan = Abc_NtkToFraig( pMiter, &Params, 0 ); 
+        pMan = Abc_NtkToFraig( pMiter, &Params, 0, 0 ); 
 p->timeFraig += clock() - clk;
 clk = clock();
         Fraig_ManProveMiter( pMan );

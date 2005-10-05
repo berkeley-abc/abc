@@ -76,6 +76,9 @@ Abc_Ntk_t * Abc_NtkDsdGlobal( Abc_Ntk_t * pNtk, bool fVerbose, bool fPrint, bool
     Extra_StopManager( pNtk->pManGlob );
     pNtk->pManGlob = NULL;
 
+    if ( pNtk->pExdc )
+        pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );
+
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtkNew ) )
     {

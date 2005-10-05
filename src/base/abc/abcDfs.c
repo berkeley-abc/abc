@@ -229,6 +229,8 @@ bool Abc_NtkIsDfsOrdered( Abc_Ntk_t * pNtk )
     // go through the nodes
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
+        if ( Abc_ObjFaninNum(pNode) == 0 )
+            continue;
         if ( !Abc_NodeIsTravIdCurrent(Abc_ObjFanin0(pNode)) )
             return 0;
         if ( !Abc_NodeIsTravIdCurrent(Abc_ObjFanin1(pNode)) )

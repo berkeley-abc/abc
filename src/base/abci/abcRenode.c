@@ -91,6 +91,8 @@ Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax, int fCn
     }
 //printf( "Maximum fanin = %d.\n", Abc_NtkGetFaninMax(pNtkNew) );
 
+    if ( pNtk->pExdc )
+        pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );
     // make sure everything is okay
     if ( !Abc_NtkCheck( pNtkNew ) )
     {

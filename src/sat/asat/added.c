@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: added.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: added.c,v 1.4 2005/09/16 22:55:03 casem Exp $]
 
 ***********************************************************************/
 
@@ -57,7 +57,7 @@ static void Asat_ClauseWriteDimacs( FILE * pFile, clause * pC, bool fIncrement )
   SeeAlso     []
 
 ***********************************************************************/
-void Asat_SolverWriteDimacs( solver * p, char * pFileName )
+void Asat_SolverWriteDimacs( solver * p, char * pFileName, lit* assumptionsBegin, lit* assumptionsEnd, int incrementVars )
 {
     FILE * pFile;
     void ** pClauses;
@@ -78,18 +78,31 @@ void Asat_SolverWriteDimacs( solver * p, char * pFileName )
     nClauses = p->clauses.size;
     pClauses = p->clauses.ptr;
     for ( i = 0; i < nClauses; i++ )
-        Asat_ClauseWriteDimacs( pFile, pClauses[i], 1 );
+        Asat_ClauseWriteDimacs( pFile, pClauses[i], incrementVars );
 
     // write the learned clauses
     nClauses = p->learnts.size;
     pClauses = p->learnts.ptr;
     for ( i = 0; i < nClauses; i++ )
-        Asat_ClauseWriteDimacs( pFile, pClauses[i], 1 );
+        Asat_ClauseWriteDimacs( pFile, pClauses[i], incrementVars );
 
     // write zero-level assertions
     for ( i = 0; i < p->size; i++ )
         if ( p->levels[i] == 0 && p->assigns[i] != l_Undef )
-            fprintf( pFile, "%s%d 0\n", (p->assigns[i] == l_False)? "-": "", i + 1 );
+            fprintf( pFile, "%s%d%s\n",
+                     (p->assigns[i] == l_False)? "-": "",
+                     i + (int)(incrementVars>0),
+                     (incrementVars) ? " 0" : "");
+
+    // write the assumptions
+    if (assumptionsBegin) {
+        for (; assumptionsBegin != assumptionsEnd; assumptionsBegin++) {
+            fprintf( pFile, "%s%d%s\n",
+                     lit_sign(*assumptionsBegin)? "-": "",
+                     lit_var(*assumptionsBegin) + (int)(incrementVars>0),
+                     (incrementVars) ? " 0" : "");
+        }
+    }
 
     fprintf( pFile, "\n" );
     fclose( pFile );

@@ -60,12 +60,12 @@ void Abc_NtkCecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds )
     RetValue = Abc_NtkMiterIsConstant( pMiter );
     if ( RetValue == 0 )
     {
-        Abc_NtkDelete( pMiter );
         printf( "Networks are NOT EQUIVALENT after structural hashing.\n" );
         // report the error
         pMiter->pModel = Abc_NtkVerifyGetCleanModel( pMiter );
         Abc_NtkVerifyReportError( pNtk1, pNtk2, pMiter->pModel );
         FREE( pMiter->pModel );
+        Abc_NtkDelete( pMiter );
         return;
     }
     if ( RetValue == 1 )
@@ -127,18 +127,18 @@ void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fV
     RetValue = Abc_NtkMiterIsConstant( pMiter );
     if ( RetValue == 0 )
     {
-        Abc_NtkDelete( pMiter );
         printf( "Networks are NOT EQUIVALENT after structural hashing.\n" );
         // report the error
         pMiter->pModel = Abc_NtkVerifyGetCleanModel( pMiter );
         Abc_NtkVerifyReportError( pNtk1, pNtk2, pMiter->pModel );
         FREE( pMiter->pModel );
+        Abc_NtkDelete( pMiter );
         return;
     }
     if ( RetValue == 1 )
     {
-        Abc_NtkDelete( pMiter );
         printf( "Networks are equivalent after structural hashing.\n" );
+        Abc_NtkDelete( pMiter );
         return;
     }
 
@@ -146,7 +146,7 @@ void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fV
     Fraig_ParamsSetDefault( &Params );
     Params.fVerbose = fVerbose;
     Params.nSeconds = nSeconds;
-    pMan = Abc_NtkToFraig( pMiter, &Params, 0 ); 
+    pMan = Abc_NtkToFraig( pMiter, &Params, 0, 0 ); 
     Fraig_ManProveMiter( pMan );
 
     // analyze the result
@@ -315,7 +315,7 @@ void Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nF
     Fraig_ParamsSetDefault( &Params );
     Params.fVerbose = fVerbose;
     Params.nSeconds = nSeconds;
-    pMan = Abc_NtkToFraig( pFrames, &Params, 0 ); 
+    pMan = Abc_NtkToFraig( pFrames, &Params, 0, 0 ); 
     Fraig_ManProveMiter( pMan );
 
     // analyze the result

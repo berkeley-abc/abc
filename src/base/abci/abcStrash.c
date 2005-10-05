@@ -71,7 +71,7 @@ Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes, bool fCleanup )
         printf( "Cleanup has removed %d nodes.\n", nNodes );
     // duplicate EXDC 
     if ( pNtk->pExdc )
-        pNtkAig->pExdc = Abc_NtkStrash( pNtk->pExdc, 0, 1 );
+        pNtkAig->pExdc = Abc_NtkDup( pNtk->pExdc );
     // make sure everything is okay
     if ( !Abc_NtkCheck( pNtkAig ) )
     {

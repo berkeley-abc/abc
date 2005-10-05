@@ -25,10 +25,11 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static stmm_table *   Abc_NtkFraigEquiv( Fraig_Man_t * p, Abc_Ntk_t * pNtk, int fUseInv, bool fVerbose );
+static void           Abc_NtkFraigSweepUsingExdc( Fraig_Man_t * pMan, Abc_Ntk_t * pNtk );
+static stmm_table *   Abc_NtkFraigEquiv( Abc_Ntk_t * pNtk, int fUseInv, bool fVerbose );
 static void           Abc_NtkFraigTransform( Abc_Ntk_t * pNtk, stmm_table * tEquiv, int fUseInv, bool fVerbose );
-static void           Abc_NtkFraigMergeClassMapped( Abc_Ntk_t * pNtk, Abc_Obj_t * pChain, int fVerbose, int fUseInv );
-static void           Abc_NtkFraigMergeClass( Abc_Ntk_t * pNtk, Abc_Obj_t * pChain, int fVerbose, int fUseInv );
+static void           Abc_NtkFraigMergeClassMapped( Abc_Ntk_t * pNtk, Abc_Obj_t * pChain, int fUseInv, int fVerbose );
+static void           Abc_NtkFraigMergeClass( Abc_Ntk_t * pNtk, Abc_Obj_t * pChain, int fUseInv, int fVerbose );
 static int            Abc_NodeDroppingCost( Abc_Obj_t * pNode );
 
 static void           Abc_NodeSweep( Abc_Obj_t * pNode, int fVerbose );
@@ -52,7 +53,7 @@ static void           Abc_NodeComplementInput( Abc_Obj_t * pNode, Abc_Obj_t * pF
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fVerbose )
+bool Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fExdc, int fVerbose )
 {
     Fraig_Params_t Params;
     Abc_Ntk_t * pNtkAig;
@@ -63,11 +64,24 @@ bool Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fVerbose )
 
     // derive the AIG
     pNtkAig = Abc_NtkStrash( pNtk, 0, 1 );
+
     // perform fraiging of the AIG
     Fraig_ParamsSetDefault( &Params );
-    pMan = Abc_NtkToFraig( pNtkAig, &Params, 0 );    
+    pMan = Abc_NtkToFraig( pNtkAig, &Params, 0, 0 );   
+    // cannot use EXDC with FRAIG because it can create classes of equivalent FRAIG nodes
+    // with representative nodes that do not correspond to the nodes with the current network
+
+    // update FRAIG using EXDC
+    if ( fExdc )
+    {
+        if ( pNtk->pExdc == NULL )
+            printf( "Warning: Networks has no EXDC.\n" );
+        else
+            Abc_NtkFraigSweepUsingExdc( pMan, pNtk );
+    }
+
     // collect the classes of equivalent nets
-    tEquiv = Abc_NtkFraigEquiv( pMan, pNtk, fUseInv, fVerbose );
+    tEquiv = Abc_NtkFraigEquiv( pNtk, fUseInv, fVerbose );
 
     // transform the network into the equivalent one
     Abc_NtkFraigTransform( pNtk, tEquiv, fUseInv, fVerbose );
@@ -90,6 +104,47 @@ bool Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fVerbose )
 
 /**Function*************************************************************
 
+  Synopsis    [Sweep the network using EXDC.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkFraigSweepUsingExdc( Fraig_Man_t * pMan, Abc_Ntk_t * pNtk )
+{
+    Fraig_Node_t * gNodeExdc, * gNode, * gNodeRes;
+    Abc_Obj_t * pNode, * pNodeAig;
+    int i;
+    extern Fraig_Node_t * Abc_NtkToFraigExdc( Fraig_Man_t * pMan, Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkExdc );
+
+    assert( pNtk->pExdc );
+    // derive FRAIG node representing don't-cares in the EXDC network
+    gNodeExdc = Abc_NtkToFraigExdc( pMan, pNtk, pNtk->pExdc );
+    // update the node pointers
+    Abc_NtkForEachNode( pNtk, pNode, i )
+    {
+        // skip the constant input nodes
+        if ( Abc_ObjFaninNum(pNode) == 0 )
+            continue;
+        // get the strashed node
+        pNodeAig = pNode->pCopy;
+        // skip the dangling nodes
+        if ( pNodeAig == NULL )
+            continue;
+        // get the FRAIG node
+        gNode = Fraig_NotCond( Abc_ObjRegular(pNodeAig)->pCopy, Abc_ObjIsComplement(pNodeAig) );
+        // perform ANDing with EXDC
+        gNodeRes = Fraig_NodeAnd( pMan, gNode, Fraig_Not(gNodeExdc) );
+        // write the node back
+        Abc_ObjRegular(pNodeAig)->pCopy = (Abc_Obj_t *)Fraig_NotCond( gNodeRes, Abc_ObjIsComplement(pNodeAig) );
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Collects equivalence classses of node in the network.]
 
   Description []
@@ -99,7 +154,7 @@ bool Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-stmm_table * Abc_NtkFraigEquiv( Fraig_Man_t * p, Abc_Ntk_t * pNtk, int fUseInv, bool fVerbose )
+stmm_table * Abc_NtkFraigEquiv( Abc_Ntk_t * pNtk, int fUseInv, bool fVerbose )
 {
     Abc_Obj_t * pList, * pNode, * pNodeAig;
     Fraig_Node_t * gNode;
@@ -113,13 +168,13 @@ stmm_table * Abc_NtkFraigEquiv( Fraig_Man_t * p, Abc_Ntk_t * pNtk, int fUseInv, 
     tStrash2Net = stmm_init_table(stmm_ptrcmp,stmm_ptrhash);
     Abc_NtkForEachNode( pNtk, pNode, c )
     {
+        // skip the constant input nodes
+        if ( Abc_ObjFaninNum(pNode) == 0 )
+            continue;
         // get the strashed node
         pNodeAig = pNode->pCopy;
         // skip the dangling nodes
         if ( pNodeAig == NULL )
-            continue;
-        // skip the constant input nodes
-        if ( Abc_ObjFaninNum(pNode) == 0 )
             continue;
         // skip the nodes that fanout into POs
         if ( Abc_NodeHasUniqueCoFanout(pNode) )

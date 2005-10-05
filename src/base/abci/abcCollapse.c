@@ -69,6 +69,9 @@ Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fVerbose )
     // make the network minimum base
     Abc_NtkMinimumBase( pNtkNew );
 
+    if ( pNtk->pExdc )
+        pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );
+
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtkNew ) )
     {

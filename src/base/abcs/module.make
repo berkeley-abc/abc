@@ -1,4 +1,6 @@
-SRC +=    src/base/abcs/abcRetCore.c \
+SRC +=    src/base/abcs/abcFpgaDelay.c \
+    src/base/abcs/abcFpgaSeq.c \
+    src/base/abcs/abcRetCore.c \
     src/base/abcs/abcRetDelay.c \
     src/base/abcs/abcRetImpl.c \
     src/base/abcs/abcRetUtil.c \

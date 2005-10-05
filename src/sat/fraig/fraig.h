@@ -149,6 +149,7 @@ extern void                Fraig_NodeSetChoice( Fraig_Man_t * pMan, Fraig_Node_t
 
 /*=== fraigMan.c =============================================================*/
 extern void                Fraig_ParamsSetDefault( Fraig_Params_t * pParams );
+extern void                Fraig_ParamsSetDefaultFull( Fraig_Params_t * pParams );
 extern Fraig_Man_t *       Fraig_ManCreate( Fraig_Params_t * pParams );
 extern void                Fraig_ManFree( Fraig_Man_t * pMan );
 extern void                Fraig_ManPrintStats( Fraig_Man_t * p );

@@ -60,7 +60,7 @@ int Io_WriteCnf( Abc_Ntk_t * pNtk, char * pFileName )
     // create solver with clauses
     pSat = Abc_NtkMiterSatCreate( pNtk );
     // write the clauses
-    Asat_SolverWriteDimacs( pSat, pFileName );
+    Asat_SolverWriteDimacs( pSat, pFileName, 0, 0, 1 );
     // free the solver
     solver_delete( pSat );
     return 1;

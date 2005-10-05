@@ -26,12 +26,16 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static Abc_Ntk_t *   Abc_NtkFromFraig( Fraig_Man_t * pMan, Abc_Ntk_t * pNtk );
-static Abc_Obj_t *   Abc_NodeFromFraig_rec( Abc_Ntk_t * pNtkNew, Fraig_Node_t * pNodeFraig );
+static Abc_Ntk_t *    Abc_NtkFromFraig( Fraig_Man_t * pMan, Abc_Ntk_t * pNtk );
+static Abc_Ntk_t *    Abc_NtkFromFraig2( Fraig_Man_t * pMan, Abc_Ntk_t * pNtk );
+static Abc_Obj_t *    Abc_NodeFromFraig_rec( Abc_Ntk_t * pNtkNew, Fraig_Node_t * pNodeFraig );
+static void           Abc_NtkFromFraig2_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, Vec_Ptr_t * vNodeReprs );
+extern Fraig_Node_t * Abc_NtkToFraigExdc( Fraig_Man_t * pMan, Abc_Ntk_t * pNtkMain, Abc_Ntk_t * pNtkExdc );
+static void           Abc_NtkFraigRemapUsingExdc( Fraig_Man_t * pMan, Abc_Ntk_t * pNtk );
 
-static int           Abc_NtkFraigTrustCheck( Abc_Ntk_t * pNtk );
-static void          Abc_NtkFraigTrustOne( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
-static Abc_Obj_t *   Abc_NodeFraigTrust( Abc_Aig_t * pMan, Abc_Obj_t * pNode );
+static int            Abc_NtkFraigTrustCheck( Abc_Ntk_t * pNtk );
+static void           Abc_NtkFraigTrustOne( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
+static Abc_Obj_t *    Abc_NodeFraigTrust( Abc_Aig_t * pMan, Abc_Obj_t * pNode );
  
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -48,19 +52,27 @@ static Abc_Obj_t *   Abc_NodeFraigTrust( Abc_Aig_t * pMan, Abc_Obj_t * pNode );
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkFraig( Abc_Ntk_t * pNtk, void * pParams, int fAllNodes )
+Abc_Ntk_t * Abc_NtkFraig( Abc_Ntk_t * pNtk, void * pParams, int fAllNodes, int fExdc )
 {
     Fraig_Params_t * pPars = pParams;
     Abc_Ntk_t * pNtkNew;
     Fraig_Man_t * pMan;
+    // check if EXDC is present
+    if ( fExdc && pNtk->pExdc == NULL )
+        fExdc = 0, printf( "Warning: Networks has no EXDC.\n" );
     // perform fraiging
-    pMan = Abc_NtkToFraig( pNtk, pParams, fAllNodes ); 
+    pMan = Abc_NtkToFraig( pNtk, pParams, fAllNodes, fExdc ); 
     // prove the miter if asked to
     if ( pPars->fTryProve )
         Fraig_ManProveMiter( pMan );
     // reconstruct FRAIG in the new network
-    pNtkNew = Abc_NtkFromFraig( pMan, pNtk );
+    if ( fExdc ) 
+        pNtkNew = Abc_NtkFromFraig2( pMan, pNtk );
+    else
+        pNtkNew = Abc_NtkFromFraig( pMan, pNtk );
     Fraig_ManFree( pMan );
+    if ( pNtk->pExdc )
+        pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
@@ -82,14 +94,13 @@ Abc_Ntk_t * Abc_NtkFraig( Abc_Ntk_t * pNtk, void * pParams, int fAllNodes )
   SeeAlso     []
 
 ***********************************************************************/
-void * Abc_NtkToFraig( Abc_Ntk_t * pNtk, void * pParams, int fAllNodes )
+void * Abc_NtkToFraig( Abc_Ntk_t * pNtk, void * pParams, int fAllNodes, int fExdc )
 {
+    int fInternal = ((Fraig_Params_t *)pParams)->fInternal;
     Fraig_Man_t * pMan;
     ProgressBar * pProgress;
-    Fraig_Node_t * pNodeFraig;
     Vec_Ptr_t * vNodes;
-    Abc_Obj_t * pNode, * pConst1;
-    int fInternal = ((Fraig_Params_t *)pParams)->fInternal;
+    Abc_Obj_t * pNode;
     int i;
 
     assert( Abc_NtkIsStrash(pNtk) );
@@ -97,11 +108,12 @@ void * Abc_NtkToFraig( Abc_Ntk_t * pNtk, void * pParams, int fAllNodes )
     // create the FRAIG manager
     pMan = Fraig_ManCreate( pParams );
 
-    // create PIs and remember them in the old nodes
+    // map the constant node
     Abc_NtkCleanCopy( pNtk );
+    Abc_AigConst1(pNtk->pManFunc)->pCopy = (Abc_Obj_t *)Fraig_ManReadConst1(pMan);
+    // create PIs and remember them in the old nodes
     Abc_NtkForEachCi( pNtk, pNode, i )
         pNode->pCopy = (Abc_Obj_t *)Fraig_ManReadIthVar(pMan, i);
-    pConst1 = Abc_AigConst1( pNtk->pManFunc );
 
     // perform strashing
     vNodes = Abc_AigDfs( pNtk, fAllNodes, 0 );
@@ -109,20 +121,21 @@ void * Abc_NtkToFraig( Abc_Ntk_t * pNtk, void * pParams, int fAllNodes )
         pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
     Vec_PtrForEachEntry( vNodes, pNode, i )
     {
+        if ( Abc_ObjFaninNum(pNode) == 0 )
+            continue;
         if ( !fInternal )
             Extra_ProgressBarUpdate( pProgress, i, NULL );
-        if ( pNode == pConst1 )
-            pNodeFraig = Fraig_ManReadConst1(pMan);
-        else
-            pNodeFraig = Fraig_NodeAnd( pMan, 
+        pNode->pCopy = (Abc_Obj_t *)Fraig_NodeAnd( pMan, 
                 Fraig_NotCond( Abc_ObjFanin0(pNode)->pCopy, Abc_ObjFaninC0(pNode) ),
                 Fraig_NotCond( Abc_ObjFanin1(pNode)->pCopy, Abc_ObjFaninC1(pNode) ) );
-        assert( pNode->pCopy == NULL );
-        pNode->pCopy = (Abc_Obj_t *)pNodeFraig;
     }
     if ( !fInternal )
         Extra_ProgressBarStop( pProgress );
     Vec_PtrFree( vNodes );
+
+    // use EXDC to change the mapping of nodes into FRAIG nodes
+    if ( fExdc )
+        Abc_NtkFraigRemapUsingExdc( pMan, pNtk );
 
     // set the primary outputs
     Abc_NtkForEachCo( pNtk, pNode, i )
@@ -132,7 +145,123 @@ void * Abc_NtkToFraig( Abc_Ntk_t * pNtk, void * pParams, int fAllNodes )
 
 /**Function*************************************************************
 
-  Synopsis    [Transforms FRAIG into what looks like a strashed network.]
+  Synopsis    [Derives EXDC node for the given network.]
+
+  Description [Assumes that EXDCs of all POs are the same.
+  Returns the EXDC of the first PO.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Fraig_Node_t * Abc_NtkToFraigExdc( Fraig_Man_t * pMan, Abc_Ntk_t * pNtkMain, Abc_Ntk_t * pNtkExdc )
+{
+    Abc_Ntk_t * pNtkStrash;
+    Abc_Obj_t * pObj;
+    Fraig_Node_t * gResult;
+    char ** ppNames;
+    int i, k;
+    // strash the EXDC network
+    pNtkStrash = Abc_NtkStrash( pNtkExdc, 0, 0 );
+    Abc_NtkCleanCopy( pNtkStrash );
+    Abc_AigConst1(pNtkStrash->pManFunc)->pCopy = (Abc_Obj_t *)Fraig_ManReadConst1(pMan);
+    // set the mapping of the PI nodes
+    ppNames = Abc_NtkCollectCioNames( pNtkMain, 0 );
+    Abc_NtkForEachCi( pNtkStrash, pObj, i )
+    {
+        for ( k = 0; k < Abc_NtkCiNum(pNtkMain); k++ )
+            if ( strcmp( Abc_ObjName(pObj), ppNames[k] ) == 0 )
+            {
+                pObj->pCopy = (Abc_Obj_t *)Fraig_ManReadIthVar(pMan, k);
+                break;
+            }
+        assert( pObj->pCopy != NULL );
+    }
+    free( ppNames );
+    // build FRAIG for each node
+    Abc_AigForEachAnd( pNtkStrash, pObj, i )
+        pObj->pCopy = (Abc_Obj_t *)Fraig_NodeAnd( pMan, 
+                Fraig_NotCond( Abc_ObjFanin0(pObj)->pCopy, Abc_ObjFaninC0(pObj) ),
+                Fraig_NotCond( Abc_ObjFanin1(pObj)->pCopy, Abc_ObjFaninC1(pObj) ) );
+    // get the EXDC to be returned
+    pObj = Abc_NtkPo( pNtkStrash, 0 );
+    gResult = Fraig_NotCond( Abc_ObjFanin0(pObj)->pCopy, Abc_ObjFaninC0(pObj) );
+    Abc_NtkDelete( pNtkStrash );
+    return gResult;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Changes mapping of the old nodes into FRAIG nodes using EXDC.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkFraigRemapUsingExdc( Fraig_Man_t * pMan, Abc_Ntk_t * pNtk )
+{
+    Fraig_Node_t * gNodeNew, * gNodeExdc;
+    stmm_table * tTable;
+    stmm_generator * gen;
+    Abc_Obj_t * pNode, * pNodeBest;
+    Abc_Obj_t * pClass, ** ppSlot;
+    Vec_Ptr_t * vNexts;
+    int i;
+
+    // get the global don't-cares
+    assert( pNtk->pExdc );
+    gNodeExdc = Abc_NtkToFraigExdc( pMan, pNtk, pNtk->pExdc );
+
+    // save the next pointers
+    vNexts = Vec_PtrStart( Abc_NtkObjNumMax(pNtk) );
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        Vec_PtrWriteEntry( vNexts, pNode->Id, pNode->pNext );
+
+    // find the classes of AIG nodes which have FRAIG nodes assigned
+    Abc_NtkCleanNext( pNtk );
+    tTable = stmm_init_table(stmm_ptrcmp,stmm_ptrhash);
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        if ( pNode->pCopy )
+        {
+            gNodeNew = Fraig_NodeAnd( pMan, (Fraig_Node_t *)pNode->pCopy, Fraig_Not(gNodeExdc) );
+            if ( !stmm_find_or_add( tTable, (char *)Fraig_Regular(gNodeNew), (char ***)&ppSlot ) )
+                *ppSlot = NULL;
+            pNode->pNext = *ppSlot;
+            *ppSlot = pNode;
+        }
+
+    // for reach non-trival class, find the node with minimum level, and replace other nodes by it
+    Abc_AigSetNodePhases( pNtk );
+    stmm_foreach_item( tTable, gen, (char **)&gNodeNew, (char **)&pClass )
+    {
+        if ( pClass->pNext == NULL )
+            continue;
+        // find the node with minimum level
+        pNodeBest = pClass;
+        for ( pNode = pClass->pNext; pNode; pNode = pNode->pNext )
+            if ( pNodeBest->Level > pNode->Level )
+                 pNodeBest = pNode;
+        // remap the class nodes
+        for ( pNode = pClass; pNode; pNode = pNode->pNext )
+            pNode->pCopy = Abc_ObjNotCond( pNodeBest->pCopy, pNode->fPhase ^ pNodeBest->fPhase );
+    }
+    stmm_free_table( tTable );
+
+    // restore the next pointers
+    Abc_NtkCleanNext( pNtk );
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        pNode->pNext = Vec_PtrEntry( vNexts, pNode->Id );
+    Vec_PtrFree( vNexts );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Transforms FRAIG into strashed network with choices.]
 
   Description []
                
@@ -229,6 +358,110 @@ Abc_Obj_t * Abc_NodeFromFraig_rec( Abc_Ntk_t * pNtkNew, Fraig_Node_t * pNodeFrai
     return Abc_ObjNotCond( pRes, Fraig_IsComplement(pNodeFraig) );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Transforms FRAIG into strashed network without choices.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkFromFraig2( Fraig_Man_t * pMan, Abc_Ntk_t * pNtk )
+{
+    ProgressBar * pProgress;
+    stmm_table * tTable;
+    Vec_Ptr_t * vNodeReprs;
+    Abc_Ntk_t * pNtkNew;
+    Abc_Obj_t * pNode, * pRepr, ** ppSlot;
+    int i;
+
+    // map the nodes into their lowest level representives
+    tTable = stmm_init_table(stmm_ptrcmp,stmm_ptrhash);
+    pNode = Abc_AigConst1(pNtk->pManFunc);
+    if ( !stmm_find_or_add( tTable, (char *)Fraig_Regular(pNode->pCopy), (char ***)&ppSlot ) )
+        *ppSlot = pNode;
+    Abc_NtkForEachCi( pNtk, pNode, i )
+        if ( !stmm_find_or_add( tTable, (char *)Fraig_Regular(pNode->pCopy), (char ***)&ppSlot ) )
+            *ppSlot = pNode;
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        if ( pNode->pCopy )
+        {
+            if ( !stmm_find_or_add( tTable, (char *)Fraig_Regular(pNode->pCopy), (char ***)&ppSlot ) )
+                *ppSlot = pNode;
+            else if ( (*ppSlot)->Level > pNode->Level )
+                *ppSlot = pNode;
+        }
+    // save representatives for each node
+    vNodeReprs = Vec_PtrStart( Abc_NtkObjNumMax(pNtk) );
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        if ( pNode->pCopy )
+        {           
+            if ( !stmm_lookup( tTable, (char *)Fraig_Regular(pNode->pCopy), (char **)&pRepr ) )
+                assert( 0 );
+            if ( pNode != pRepr )
+                Vec_PtrWriteEntry( vNodeReprs, pNode->Id, pRepr );
+        }
+    stmm_free_table( tTable );
+
+    // create the new network
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_STRASH, ABC_FUNC_AIG );
+    Abc_AigConst1(pNtk->pManFunc)->pCopy = Abc_AigConst1(pNtkNew->pManFunc);
+
+    // perform strashing
+    Abc_AigSetNodePhases( pNtk );
+    Abc_NtkIncrementTravId( pNtk );
+    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );
+    Abc_NtkForEachCo( pNtk, pNode, i )
+    {
+        Extra_ProgressBarUpdate( pProgress, i, NULL );
+        Abc_NtkFromFraig2_rec( pNtkNew, Abc_ObjFanin0(pNode), vNodeReprs );
+    }
+    Extra_ProgressBarStop( pProgress );
+    Vec_PtrFree( vNodeReprs );
+
+    // finalize the network
+    Abc_NtkFinalize( pNtk, pNtkNew );
+    return pNtkNew;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Transforms into AIG one node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkFromFraig2_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, Vec_Ptr_t * vNodeReprs )
+{
+    Abc_Obj_t * pRepr;
+    // skip the PIs and constants
+    if ( Abc_ObjFaninNum(pNode) < 2 )
+        return;
+    // if this node is already visited, skip
+    if ( Abc_NodeIsTravIdCurrent( pNode ) )
+        return;
+    // mark the node as visited
+    Abc_NodeSetTravIdCurrent( pNode );
+    assert( Abc_ObjIsNode( pNode ) );
+    // get the node's representative
+    if ( pRepr = Vec_PtrEntry(vNodeReprs, pNode->Id) )
+    {
+        Abc_NtkFromFraig2_rec( pNtkNew, pRepr, vNodeReprs );
+        pNode->pCopy = Abc_ObjNotCond( pRepr->pCopy, pRepr->fPhase ^ pNode->fPhase );
+        return;
+    }
+    Abc_NtkFromFraig2_rec( pNtkNew, Abc_ObjFanin0(pNode), vNodeReprs );
+    Abc_NtkFromFraig2_rec( pNtkNew, Abc_ObjFanin1(pNode), vNodeReprs );
+    pNode->pCopy = Abc_AigAnd( pNtkNew->pManFunc, Abc_ObjChild0Copy(pNode), Abc_ObjChild1Copy(pNode) );
+}
 
 
 
@@ -507,7 +740,7 @@ Abc_Ntk_t * Abc_NtkFraigRestore()
 
 //    Fraig_ManReportChoices( p );
     // transform it into FRAIG
-    pFraig = Abc_NtkFraig( pStore, &Params, 1 );
+    pFraig = Abc_NtkFraig( pStore, &Params, 1, 0 );
     if ( pFraig == NULL )
         return NULL;
     Abc_NtkDelete( pStore );

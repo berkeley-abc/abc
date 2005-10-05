@@ -1236,6 +1236,35 @@ void Abc_AigCheckFaninOrder( Abc_Aig_t * pMan )
         }
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Sets the correct phase of the nodes.]
+
+  Description [The AIG nodes should be in the DFS order.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_AigSetNodePhases( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int i;
+    assert( Abc_NtkIsDfsOrdered(pNtk) );
+    Abc_AigConst1(pNtk->pManFunc)->fPhase = 1;
+//    Abc_NtkForEachCi( pNtk, pObj, i )
+//        pObj->fPhase = 0;
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        pObj->fPhase = 0;
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+        pObj->fPhase = Abc_LatchIsInit1(pObj);
+    Abc_AigForEachAnd( pNtk, pObj, i )
+        pObj->fPhase = (Abc_ObjFanin0(pObj)->fPhase ^ Abc_ObjFaninC0(pObj)) & (Abc_ObjFanin1(pObj)->fPhase ^ Abc_ObjFaninC1(pObj));
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        pObj->fPhase = (Abc_ObjFanin0(pObj)->fPhase ^ Abc_ObjFaninC0(pObj));
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

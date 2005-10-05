@@ -305,11 +305,28 @@ int Abc_NtkGetFaninMax( Abc_Ntk_t * pNtk )
 void Abc_NtkCleanCopy( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj;
-    int i;
-    i = 0;
-    // set the data filed to NULL
+    int i = 0;
     Abc_NtkForEachObj( pNtk, pObj, i )
         pObj->pCopy = NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Cleans the copy field of all objects.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkCleanNext( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int i = 0;
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        pObj->pNext = NULL;
 }
 
 /**Function*************************************************************

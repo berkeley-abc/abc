@@ -731,6 +731,132 @@ void Abc_SopAddCnfToSolver( solver * pSat, char * pClauses, Vec_Int_t * vVars, V
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Derives SOP from the truth table representation.]
+
+  Description [Truth table is expected to be in the hexadecimal notation.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_SopFromTruthBin( char * pTruth )
+{
+    char * pSopCover, * pCube;
+    int nTruthSize, nVars, Digit, Length, Mint, i, b;
+    Vec_Int_t * vMints;
+
+    // get the number of variables
+    nTruthSize = strlen(pTruth);
+    nVars = Extra_Base2Log( nTruthSize );
+    if ( nTruthSize != (1 << (nVars)) )
+    {
+        printf( "String %s does not look like a truth table of a %d-variable function.\n", pTruth, nVars );
+        return NULL;
+    }
+
+    // collect the on-set minterms
+    vMints = Vec_IntAlloc( 100 );
+    for ( i = 0; i < nTruthSize; i++ )
+    {
+        if ( pTruth[i] >= '0' && pTruth[i] <= '1' )
+            Digit = pTruth[i] - '0';
+        else
+        {
+            printf( "String %s does not look like a binary representation of the truth table.\n", pTruth );
+            return NULL;
+        }
+        if ( Digit == 1 )
+            Vec_IntPush( vMints, nTruthSize - 1 - i );
+    }
+
+    // create the SOP representation of the minterms
+    Length = Vec_IntSize(vMints) * (nVars + 3);
+    pSopCover = ALLOC( char, Length + 1 );
+    pSopCover[Length] = 0;
+    Vec_IntForEachEntry( vMints, Mint, i )
+    {
+        pCube = pSopCover + i * (nVars + 3);
+        for ( b = 0; b < nVars; b++ )
+            if ( Mint & (1 << b) )
+                pCube[b] = '1';
+            else
+                pCube[b] = '0';
+        pCube[nVars + 0] = ' ';
+        pCube[nVars + 1] = '1';
+        pCube[nVars + 2] = '\n';
+    }
+    Vec_IntFree( vMints );
+    return pSopCover;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives SOP from the truth table representation.]
+
+  Description [Truth table is expected to be in the hexadecimal notation.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_SopFromTruthHex( char * pTruth )
+{
+    char * pSopCover, * pCube;
+    int nTruthSize, nVars, Digit, Length, Mint, i, b;
+    Vec_Int_t * vMints;
+
+    // get the number of variables
+    nTruthSize = strlen(pTruth);
+    nVars = Extra_Base2Log( nTruthSize ) + 2;
+    if ( nTruthSize != (1 << (nVars-2)) )
+    {
+        printf( "String %s does not look like a truth table of a %d-variable function.\n", pTruth, nVars );
+        return NULL;
+    }
+
+    // collect the on-set minterms
+    vMints = Vec_IntAlloc( 100 );
+    for ( i = 0; i < nTruthSize; i++ )
+    {
+        if ( pTruth[i] >= '0' && pTruth[i] <= '9' )
+            Digit = pTruth[i] - '0';
+        else if ( pTruth[i] >= 'a' && pTruth[i] <= 'f' )
+            Digit = 10 + pTruth[i] - 'a';
+        else if ( pTruth[i] >= 'A' && pTruth[i] <= 'F' )
+            Digit = 10 + pTruth[i] - 'A';
+        else
+        {
+            printf( "String %s does not look like a hexadecimal representation of the truth table.\n", pTruth );
+            return NULL;
+        }
+        for ( b = 0; b < 4; b++ )
+            if ( Digit & (1 << b) )
+                Vec_IntPush( vMints, 4*(nTruthSize-1-i)+b );
+    }
+
+    // create the SOP representation of the minterms
+    Length = Vec_IntSize(vMints) * (nVars + 3);
+    pSopCover = ALLOC( char, Length + 1 );
+    pSopCover[Length] = 0;
+    Vec_IntForEachEntry( vMints, Mint, i )
+    {
+        pCube = pSopCover + i * (nVars + 3);
+        for ( b = 0; b < nVars; b++ )
+            if ( Mint & (1 << b) )
+                pCube[b] = '1';
+            else
+                pCube[b] = '0';
+        pCube[nVars + 0] = ' ';
+        pCube[nVars + 1] = '1';
+        pCube[nVars + 2] = '\n';
+    }
+    Vec_IntFree( vMints );
+    return pSopCover;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

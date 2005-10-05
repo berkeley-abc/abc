@@ -28,6 +28,7 @@ alias pf print_factor
 alias pfan print_fanio
 alias pl print_level
 alias pio print_io
+alias pk print_kmap
 alias ps print_stats 
 alias psu print_supp
 alias psy print_symm
@@ -49,6 +50,7 @@ alias sa set autoexec ps
 alias so source -x
 alias st strash
 alias sw sweep
+alias ssw seq_sweep
 alias u undo
 alias wb write_blif
 alias wl write_blif

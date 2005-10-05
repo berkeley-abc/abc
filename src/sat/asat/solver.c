@@ -1099,7 +1099,7 @@ bool solver_solve(solver* s, lit* begin, lit* end, int nSeconds)
         nof_conflicts *= 1.5;
         nof_learnts   *= 1.1;
         // if the runtime limit is exceeded, quit the restart loop
-        if ( clock() - timeStart >= nSeconds * CLOCKS_PER_SEC )
+        if ( (nSeconds >= 0) && (clock() - timeStart >= nSeconds * CLOCKS_PER_SEC) )
             break;
     }
     if (s->verbosity >= 1)

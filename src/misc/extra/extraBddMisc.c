@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: extraBddMisc.c,v 1.0 2003/09/01 00:00:00 alanmi Exp $]
+  Revision    [$Id: extraBddMisc.c,v 1.4 2005/10/04 00:19:54 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -683,6 +683,41 @@ DdNode * Extra_bddComputeRangeCube( DdManager * dd, int iStart, int iStop )
     Cudd_Deref( bProd );
     return bProd;
 }
+
+/**Function********************************************************************
+
+  Synopsis    [Computes the cube of BDD variables corresponding to bits it the bit-code]
+
+  Description [Returns a bdd composed of elementary bdds found in array BddVars[] such 
+  that the bdd vars encode the number Value of bit length CodeWidth (if fMsbFirst is 1, 
+  the most significant bit is encoded with the first bdd variable). If the variables 
+  BddVars are not specified, takes the first CodeWidth variables of the manager]
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+DdNode * Extra_bddBitsToCube( DdManager * dd, int Code, int CodeWidth, DdNode ** pbVars, int fMsbFirst )
+{
+    int z;
+    DdNode * bTemp, * bVar, * bVarBdd, * bResult;
+
+    bResult = b1;   Cudd_Ref( bResult );
+    for ( z = 0; z < CodeWidth; z++ )
+    {
+        bVarBdd = (pbVars)? pbVars[z]: dd->vars[z];
+        if ( fMsbFirst )
+            bVar = Cudd_NotCond( bVarBdd, (Code & (1 << (CodeWidth-1-z)))==0 );
+        else
+            bVar = Cudd_NotCond( bVarBdd, (Code & (1 << (z)))==0 );
+        bResult = Cudd_bddAnd( dd, bTemp = bResult, bVar );     Cudd_Ref( bResult );
+        Cudd_RecursiveDeref( dd, bTemp );
+    }
+    Cudd_Deref( bResult );
+
+    return bResult;
+}  /* end of Extra_bddBitsToCube */
 
 /*---------------------------------------------------------------------------*/
 /* Definition of internal functions                                          */

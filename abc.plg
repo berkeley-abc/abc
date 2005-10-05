@@ -6,13 +6,15 @@
 --------------------Configuration: abc - Win32 Release--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSPC8D.tmp" with contents
+Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1362.tmp" with contents
 [
 /nologo /ML /W3 /GX /O2 /I "src\base\abc" /I "src\base\abci" /I "src\base\abcs" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\ft" /I "src\sat\asat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\rwr" /I "src\map\fpga" /I "src\map\pga" /I "src\map\mapper" /I "src\map\mapp" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\mvc" /I "src\misc\util" /I "src\misc\npn" /I "src\misc\vec" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /D "HAVE_ASSERT_H" /FR"Release/" /Fp"Release/abc.pch" /YX /Fo"Release/" /Fd"Release/" /FD /c 
-"C:\_projects\abc\src\opt\cut\cutCut.c"
+"C:\_projects\abc\src\base\abci\abcFraig.c"
+"C:\_projects\abc\src\base\abci\abcVanEijk.c"
+"C:\_projects\abc\src\sat\fraig\fraigApi.c"
 ]
-Creating command line "cl.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSPC8D.tmp" 
-Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSPC8E.tmp" with contents
+Creating command line "cl.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1362.tmp" 
+Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1363.tmp" with contents
 [
 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /incremental:no /pdb:"Release/abc.pdb" /machine:I386 /out:"_TEST/abc.exe" 
 .\Release\abcAig.obj
@@ -54,7 +56,10 @@ kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32
 .\Release\abcSymm.obj
 .\Release\abcTiming.obj
 .\Release\abcUnreach.obj
+.\Release\abcVanEijk.obj
 .\Release\abcVerify.obj
+.\Release\abcFpgaDelay.obj
+.\Release\abcFpgaSeq.obj
 .\Release\abcRetCore.obj
 .\Release\abcRetDelay.obj
 .\Release\abcRetImpl.obj
@@ -221,6 +226,7 @@ kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32
 .\Release\cutMan.obj
 .\Release\cutMerge.obj
 .\Release\cutNode.obj
+.\Release\cutOracle.obj
 .\Release\cutSeq.obj
 .\Release\cutTruth.obj
 .\Release\decAbc.obj
@@ -281,6 +287,7 @@ kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32
 .\Release\pgaMan.obj
 .\Release\pgaMatch.obj
 .\Release\pgaUtil.obj
+.\Release\extraBddKmap.obj
 .\Release\extraBddMisc.obj
 .\Release\extraBddSymm.obj
 .\Release\extraUtilBitMatrix.obj
@@ -320,16 +327,15 @@ kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32
 .\Release\npnGenStr.obj
 .\Release\npnTruth.obj
 .\Release\npnUtil.obj
-.\Release\abcFpgaSeq.obj
-.\Release\abcFpgaDelay.obj
-.\Release\cutOracle.obj
 ]
-Creating command line "link.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSPC8E.tmp"
+Creating command line "link.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1363.tmp"
 <h3>Output Window</h3>
 Compiling...
-cutCut.c
+abcFraig.c
+abcVanEijk.c
+fraigApi.c
 Linking...
-Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSPC90.tmp" with contents
+Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1365.tmp" with contents
 [
 /nologo /o"Release/abc.bsc" 
 .\Release\abcAig.sbr
@@ -371,7 +377,10 @@ Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSPC90.tmp" with conte
 .\Release\abcSymm.sbr
 .\Release\abcTiming.sbr
 .\Release\abcUnreach.sbr
+.\Release\abcVanEijk.sbr
 .\Release\abcVerify.sbr
+.\Release\abcFpgaDelay.sbr
+.\Release\abcFpgaSeq.sbr
 .\Release\abcRetCore.sbr
 .\Release\abcRetDelay.sbr
 .\Release\abcRetImpl.sbr
@@ -538,6 +547,7 @@ Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSPC90.tmp" with conte
 .\Release\cutMan.sbr
 .\Release\cutMerge.sbr
 .\Release\cutNode.sbr
+.\Release\cutOracle.sbr
 .\Release\cutSeq.sbr
 .\Release\cutTruth.sbr
 .\Release\decAbc.sbr
@@ -598,6 +608,7 @@ Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSPC90.tmp" with conte
 .\Release\pgaMan.sbr
 .\Release\pgaMatch.sbr
 .\Release\pgaUtil.sbr
+.\Release\extraBddKmap.sbr
 .\Release\extraBddMisc.sbr
 .\Release\extraBddSymm.sbr
 .\Release\extraUtilBitMatrix.sbr
@@ -636,11 +647,8 @@ Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSPC90.tmp" with conte
 .\Release\npn.sbr
 .\Release\npnGenStr.sbr
 .\Release\npnTruth.sbr
-.\Release\npnUtil.sbr
-.\Release\abcFpgaSeq.sbr
-.\Release\abcFpgaDelay.sbr
-.\Release\cutOracle.sbr]
-Creating command line "bscmake.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSPC90.tmp"
+.\Release\npnUtil.sbr]
+Creating command line "bscmake.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1365.tmp"
 Creating browse info file...
 <h3>Output Window</h3>
 

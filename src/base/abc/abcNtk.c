@@ -318,7 +318,7 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkSplitOutput( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, int fUseAllCis )
+Abc_Ntk_t * Abc_NtkCreateOutput( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, int fUseAllCis )
 {
     Vec_Ptr_t * vNodes;
     Abc_Ntk_t * pNtkNew; 
@@ -373,13 +373,13 @@ Abc_Ntk_t * Abc_NtkSplitOutput( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, int fUseAll
     Abc_NtkLogicStoreName( pNode->pCopy, Abc_ObjName(pNode) );
 
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkSplitOutput(): Network check has failed.\n" );
+        fprintf( stdout, "Abc_NtkCreateOutput(): Network check has failed.\n" );
     return pNtkNew;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Creates the network composed of one output.]
+  Synopsis    [Creates the miter composed of one multi-output cone.]
 
   Description []
                
@@ -439,7 +439,7 @@ Abc_Ntk_t * Abc_NtkCreateCone( Abc_Ntk_t * pNtk, Vec_Ptr_t * vRoots, Vec_Int_t *
 
 /**Function*************************************************************
 
-  Synopsis    [Deletes the Ntk.]
+  Synopsis    [Creates the network composed of one node.]
 
   Description []
                
@@ -448,7 +448,7 @@ Abc_Ntk_t * Abc_NtkCreateCone( Abc_Ntk_t * pNtk, Vec_Ptr_t * vRoots, Vec_Int_t *
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkSplitNode( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode )
+Abc_Ntk_t * Abc_NtkCreateFromNode( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode )
 {    
     Abc_Ntk_t * pNtkNew; 
     Abc_Obj_t * pFanin, * pNodePo;
@@ -471,7 +471,48 @@ Abc_Ntk_t * Abc_NtkSplitNode( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode )
     Abc_ObjAddFanin( pNodePo, pNode->pCopy );
     Abc_NtkLogicStoreName( pNodePo, Abc_ObjName(pNode) );
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkSplitNode(): Network check has failed.\n" );
+        fprintf( stdout, "Abc_NtkCreateFromNode(): Network check has failed.\n" );
+    return pNtkNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates the network composed of one node with the given SOP.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkCreateWithNode( char * pSop )
+{    
+    Abc_Ntk_t * pNtkNew; 
+    Abc_Obj_t * pFanin, * pNode, * pNodePo;
+    Vec_Ptr_t * vNames;
+    int i, nVars;
+    // start the network
+    pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_SOP );
+    pNtkNew->pName = util_strsav("ex");
+    // create PIs
+    Vec_PtrPush( pNtkNew->vObjs, NULL );
+    nVars = Abc_SopGetVarNum( pSop );
+    vNames = Abc_NodeGetFakeNames( nVars );
+    for ( i = 0; i < nVars; i++ )
+        Abc_NtkLogicStoreName( Abc_NtkCreatePi(pNtkNew), Vec_PtrEntry(vNames, i) );
+    Abc_NodeFreeNames( vNames );
+    // create the node, add PIs as fanins, set the function
+    pNode = Abc_NtkCreateNode( pNtkNew );
+    Abc_NtkForEachPi( pNtkNew, pFanin, i )
+        Abc_ObjAddFanin( pNode, pFanin );
+    pNode->pData = Abc_SopRegister( pNtkNew->pManFunc, pSop );
+    // create the only PO
+    pNodePo = Abc_NtkCreatePo(pNtkNew);
+    Abc_ObjAddFanin( pNodePo, pNode );
+    Abc_NtkLogicStoreName( pNodePo, "F" );
+    if ( !Abc_NtkCheck( pNtkNew ) )
+        fprintf( stdout, "Abc_NtkCreateWithNode(): Network check has failed.\n" );
     return pNtkNew;
 }
 

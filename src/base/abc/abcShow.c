@@ -105,6 +105,7 @@ void Abc_NtkShowAig( Abc_Ntk_t * pNtk )
         fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", FileNameDot );
         return;
     }
+    fclose( pFile );
 
     // collect all nodes in the network
     vNodes = Vec_PtrAlloc( 100 );
@@ -149,6 +150,7 @@ void Abc_NtkShowMulti( Abc_Ntk_t * pNtk )
         fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", FileNameDot );
         return;
     }
+    fclose( pFile );
 
     // get the implication supergates
     Abc_NtkBalanceAttach( pNtk );

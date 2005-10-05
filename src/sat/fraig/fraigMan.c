@@ -60,6 +60,35 @@ void Fraig_ParamsSetDefault( Fraig_Params_t * pParams )
 
 /**Function*************************************************************
 
+  Synopsis    [Sets the default parameters of the package.]
+
+  Description [This set of parameters is tuned for complete FRAIGing.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fraig_ParamsSetDefaultFull( Fraig_Params_t * pParams )
+{
+    memset( pParams, 0, sizeof(Fraig_Params_t) );
+    pParams->nPatsRand  = FRAIG_PATTERNS_RANDOM;  // the number of words of random simulation info
+    pParams->nPatsDyna  = FRAIG_PATTERNS_DYNAMIC; // the number of words of dynamic simulation info
+    pParams->nBTLimit   = -1;                     // the max number of backtracks to perform
+    pParams->nSeconds   = 20;                     // the max number of seconds to solve the miter
+    pParams->fFuncRed   =  1;                     // performs only one level hashing
+    pParams->fFeedBack  =  1;                     // enables solver feedback
+    pParams->fDist1Pats =  1;                     // enables distance-1 patterns
+    pParams->fDoSparse  =  1;                     // performs equiv tests for sparse functions 
+    pParams->fChoicing  =  0;                     // enables recording structural choices
+    pParams->fTryProve  =  0;                     // tries to solve the final miter
+    pParams->fVerbose   =  0;                     // the verbosiness flag
+    pParams->fVerboseP  =  0;                     // the verbose flag for reporting the proof
+    pParams->fInternal  =  0;                     // the flag indicates the internal run 
+}
+
+/**Function*************************************************************
+
   Synopsis    [Creates the new FRAIG manager.]
 
   Description []

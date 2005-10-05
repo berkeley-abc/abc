@@ -31,6 +31,10 @@ static void        Abc_NtkMiterAddCone( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkMiter,
 static void        Abc_NtkMiterFinalize( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Abc_Ntk_t * pNtkMiter, int fComb );
 static void        Abc_NtkAddFrame( Abc_Ntk_t * pNetNew, Abc_Ntk_t * pNet, int iFrame, Vec_Ptr_t * vNodes );
 
+// to be exported 
+typedef void (*AddFrameMapping)( Abc_Obj_t*, Abc_Obj_t*, int, void*);
+extern Abc_Ntk_t * Abc_NtkFrames2( Abc_Ntk_t * pNtk, int nFrames, int fInitial, AddFrameMapping addFrameMapping, void* arg );
+static void        Abc_NtkAddFrame2( Abc_Ntk_t * pNtkFrames, Abc_Ntk_t * pNtk, int iFrame, Vec_Ptr_t * vNodes, AddFrameMapping addFrameMapping, void* arg );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///
@@ -597,6 +601,178 @@ void Abc_NtkAddFrame( Abc_Ntk_t * pNtkFrames, Abc_Ntk_t * pNtk, int iFrame, Vec_
         pLatch->pCopy = pLatch->pNext;
 }
 
+
+
+/**Function*************************************************************
+
+  Synopsis    [Derives the timeframes of the network.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkFrames2( Abc_Ntk_t * pNtk, int nFrames, int fInitial, AddFrameMapping addFrameMapping, void* arg )
+{
+    char Buffer[100];
+    ProgressBar * pProgress;
+    Abc_Ntk_t * pNtkFrames;
+    Vec_Ptr_t * vNodes;
+    Abc_Obj_t * pLatch, * pLatchNew;
+    int i, Counter;
+    assert( nFrames > 0 );
+    assert( Abc_NtkIsStrash(pNtk) );   
+    // start the new network
+    pNtkFrames = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG );
+    sprintf( Buffer, "%s_%d_frames", pNtk->pName, nFrames );
+    pNtkFrames->pName = util_strsav(Buffer);
+    // create new latches (or their initial values) and remember them in the new latches
+    if ( !fInitial )
+    {
+        Abc_NtkForEachLatch( pNtk, pLatch, i ) {
+            Abc_NtkDupObj( pNtkFrames, pLatch );
+            if (addFrameMapping) addFrameMapping(pLatch->pCopy, pLatch, 0, arg);
+        }
+    }
+    else
+    {
+        Counter = 0;
+        Abc_NtkForEachLatch( pNtk, pLatch, i )
+        {
+            if ( Abc_LatchIsInitDc(pLatch) ) // don't-care initial value - create a new PI
+            {
+                pLatch->pCopy = Abc_NtkCreatePi(pNtkFrames);
+                Abc_NtkLogicStoreName( pLatch->pCopy, Abc_ObjName(pLatch) );
+                Counter++;
+            }
+            else {
+                pLatch->pCopy = Abc_ObjNotCond( Abc_AigConst1(pNtkFrames->pManFunc), Abc_LatchIsInit0(pLatch) );
+            }
+ 
+            if (addFrameMapping) addFrameMapping(pLatch->pCopy, pLatch, 0, arg);
+        }
+        if ( Counter )
+            printf( "Warning: %d uninitialized latches are replaced by free PI variables.\n", Counter );
+    }
+    
+    // create the timeframes
+    vNodes = Abc_NtkDfs( pNtk, 0 );
+    pProgress = Extra_ProgressBarStart( stdout, nFrames );
+    for ( i = 0; i < nFrames; i++ )
+    {
+        Extra_ProgressBarUpdate( pProgress, i, NULL );
+        Abc_NtkAddFrame2( pNtkFrames, pNtk, i, vNodes, addFrameMapping, arg );
+    }
+    Extra_ProgressBarStop( pProgress );
+    Vec_PtrFree( vNodes );
+    
+    // connect the new latches to the outputs of the last frame
+    if ( !fInitial )
+    {
+        Abc_NtkForEachLatch( pNtk, pLatch, i )
+        {
+            pLatchNew = Abc_NtkLatch(pNtkFrames, i);
+            Abc_ObjAddFanin( pLatchNew, pLatch->pCopy );
+
+            Vec_PtrPush( pNtkFrames->vCis, pLatchNew );
+            Vec_PtrPush( pNtkFrames->vCos, pLatchNew );
+            Abc_NtkLogicStoreName( pLatchNew, Abc_ObjName(pLatch) );
+        }
+    }
+    Abc_NtkForEachLatch( pNtk, pLatch, i )
+        pLatch->pNext = NULL;
+
+    // remove dangling nodes
+    Abc_AigCleanup( pNtkFrames->pManFunc );
+    
+    // make sure that everything is okay
+    if ( !Abc_NtkCheck( pNtkFrames ) )
+    {
+        printf( "Abc_NtkFrames: The network check has failed.\n" );
+        Abc_NtkDelete( pNtkFrames );
+        return NULL;
+    }
+    return pNtkFrames;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds one time frame to the new network.]
+
+  Description [Assumes that the latches of the old network point
+  to the outputs of the previous frame of the new network (pLatch->pCopy). 
+  In the end, updates the latches of the old network to point to the 
+  outputs of the current frame of the new network.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkAddFrame2( Abc_Ntk_t * pNtkFrames, Abc_Ntk_t * pNtk, int iFrame, Vec_Ptr_t * vNodes, AddFrameMapping addFrameMapping, void* arg )
+{
+    char Buffer[10];
+    Abc_Obj_t * pNode, * pNodeNew, * pLatch;
+    Abc_Obj_t * pConst1, * pConst1New;
+    int i;
+    // get the constant nodes
+    pConst1    = Abc_AigConst1( pNtk->pManFunc );
+    pConst1New = Abc_AigConst1( pNtkFrames->pManFunc );
+    // create the prefix to be added to the node names
+    sprintf( Buffer, "_%02d", iFrame );
+    // add the new PI nodes
+    Abc_NtkForEachPi( pNtk, pNode, i )
+    {
+        pNodeNew = Abc_NtkDupObj( pNtkFrames, pNode );       
+        Abc_NtkLogicStoreNamePlus( pNodeNew, Abc_ObjName(pNode), Buffer );
+        if (addFrameMapping) addFrameMapping(pNodeNew, pNode, iFrame, arg);
+    }
+    // add the internal nodes
+    Vec_PtrForEachEntry( vNodes, pNode, i )
+    {
+        if ( pNode == pConst1 )
+            pNodeNew = pConst1New;
+        else
+            pNodeNew = Abc_AigAnd( pNtkFrames->pManFunc, Abc_ObjChild0Copy(pNode), Abc_ObjChild1Copy(pNode) );
+        pNode->pCopy = pNodeNew;
+        if (addFrameMapping) addFrameMapping(pNodeNew, pNode, iFrame, arg);
+    }
+    // add the new POs
+    Abc_NtkForEachPo( pNtk, pNode, i )
+    {
+        pNodeNew = Abc_NtkDupObj( pNtkFrames, pNode );       
+        Abc_ObjAddFanin( pNodeNew, Abc_ObjChild0Copy(pNode) );
+        Abc_NtkLogicStoreNamePlus( pNodeNew, Abc_ObjName(pNode), Buffer );
+        if (addFrameMapping) addFrameMapping(pNodeNew, pNode, iFrame, arg);
+    }
+    // transfer the implementation of the latch drivers to the latches
+
+    // it is important that these two steps are performed it two loops
+    // and not in the same loop
+    Abc_NtkForEachLatch( pNtk, pLatch, i ) 
+        pLatch->pNext = Abc_ObjChild0Copy(pLatch);
+    Abc_NtkForEachLatch( pNtk, pLatch, i ) 
+        pLatch->pCopy = pLatch->pNext;
+
+    Abc_NtkForEachLatch( pNtk, pLatch, i ) 
+    {
+        if (addFrameMapping) {
+            // don't give Mike complemented pointers because he doesn't like it
+            if (Abc_ObjIsComplement(pLatch->pCopy)) {            
+                pNodeNew = Abc_NtkCreateNode( pNtkFrames );
+                Abc_ObjAddFanin( pNodeNew, pLatch->pCopy );
+                assert(Abc_ObjFaninNum(pNodeNew) == 1);
+                pNodeNew->Level = 1 + Abc_ObjRegular(pLatch->pCopy)->Level;
+
+                pLatch->pNext = pNodeNew;
+                pLatch->pCopy = pNodeNew;
+            }
+            addFrameMapping(pLatch->pCopy, pLatch, iFrame+1, arg);
+        }
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

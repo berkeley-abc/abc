@@ -394,6 +394,159 @@ void Abc_NtkFreeGlobalBdds( Abc_Ntk_t * pNtk )
     pNtk->vFuncsGlob = NULL;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Computes the BDD of the logic cone of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+double Abc_NtkSpacePercentage( Abc_Obj_t * pNode )
+{
+    Vec_Ptr_t * vNodes;
+    Abc_Obj_t * pObj, * pNodeR;
+    DdManager * dd;
+    DdNode * bFunc;
+    double Result;
+    int i;
+    pNodeR = Abc_ObjRegular(pNode);
+    assert( Abc_NtkIsStrash(pNodeR->pNtk) );
+    Abc_NtkCleanCopy( pNodeR->pNtk );
+    // get the CIs in the support of the node
+    vNodes = Abc_NtkNodeSupport( pNodeR->pNtk, &pNodeR, 1 );
+    // start the manager
+    dd = Cudd_Init( Vec_PtrSize(vNodes), 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+    Cudd_AutodynEnable( dd, CUDD_REORDER_SYMM_SIFT );
+    // assign elementary BDDs for the CIs
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+        pObj->pCopy = (Abc_Obj_t *)dd->vars[i];
+    // build the BDD of the cone
+    bFunc = Abc_NodeGlobalBdds_rec( dd, pNodeR );  Cudd_Ref( bFunc );
+    bFunc = Cudd_NotCond( bFunc, pNode != pNodeR );
+    // count minterms
+    Result = Cudd_CountMinterm( dd, bFunc, dd->size );
+    // get the percentagle
+    Result *= 100.0;
+    for ( i = 0; i < dd->size; i++ )
+        Result /= 2;
+    // clean up
+    Cudd_Quit( dd );
+    Vec_PtrFree( vNodes );
+    return Result;
+}
+
+
+
+#include "reo.h"
+
+/**Function*************************************************************
+
+  Synopsis    [Reorders BDD of the local function of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NodeBddReorder( reo_man * p, Abc_Obj_t * pNode )
+{
+    Abc_Obj_t * pFanin;
+    DdNode * bFunc;
+    int * pOrder, i;
+    // create the temporary array for the variable order
+    pOrder = ALLOC( int, Abc_ObjFaninNum(pNode) );
+    for ( i = 0; i < Abc_ObjFaninNum(pNode); i++ )
+        pOrder[i] = -1;
+    // reorder the BDD
+    bFunc = Extra_Reorder( p, pNode->pNtk->pManFunc, pNode->pData, pOrder ); Cudd_Ref( bFunc );
+    Cudd_RecursiveDeref( pNode->pNtk->pManFunc, pNode->pData );
+    pNode->pData = bFunc;
+    // update the fanin order
+    Abc_ObjForEachFanin( pNode, pFanin, i )
+        pOrder[i] = pNode->vFanins.pArray[ pOrder[i] ].iFan;
+    Abc_ObjForEachFanin( pNode, pFanin, i )
+        pNode->vFanins.pArray[i].iFan = pOrder[i];
+    free( pOrder );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reorders BDDs of the local functions.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkBddReorder( Abc_Ntk_t * pNtk, int fVerbose )
+{
+    reo_man * p;
+    Abc_Obj_t * pNode;
+    int i;
+    p = Extra_ReorderInit( Abc_NtkGetFaninMax(pNtk), 100 );
+    Abc_NtkForEachNode( pNtk, pNode, i )
+    {
+        if ( Abc_ObjFaninNum(pNode) < 3 )
+            continue;
+        if ( fVerbose )
+            fprintf( stdout, "%10s: ", Abc_ObjName(pNode) );
+        if ( fVerbose )
+            fprintf( stdout, "Before = %5d  BDD nodes.  ", Cudd_DagSize(pNode->pData) );
+        Abc_NodeBddReorder( p, pNode );
+        if ( fVerbose )
+            fprintf( stdout, "After = %5d  BDD nodes.\n", Cudd_DagSize(pNode->pData) );
+    }
+    Extra_ReorderQuit( p );
+}
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Experiment with BDD-based representation of implications.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkBddImplicationTest()
+{
+    DdManager * dd;
+    DdNode * bImp, * bSum, * bTemp;
+    int nVars = 200;
+    int nImps = 200;
+    int i, clk;
+clk = clock();
+    dd = Cudd_Init( nVars, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+    Cudd_AutodynEnable( dd, CUDD_REORDER_SIFT );
+    bSum = b0;   Cudd_Ref( bSum );
+    for ( i = 0; i < nImps; i++ )
+    {
+        printf( "." );
+        bImp = Cudd_bddAnd( dd, dd->vars[rand()%nVars], dd->vars[rand()%nVars] );  Cudd_Ref( bImp );
+        bSum = Cudd_bddOr( dd, bTemp = bSum, bImp );     Cudd_Ref( bSum );
+        Cudd_RecursiveDeref( dd, bTemp );
+        Cudd_RecursiveDeref( dd, bImp );
+    }
+    printf( "The BDD before = %d.\n", Cudd_DagSize(bSum) );
+    Cudd_ReduceHeap( dd, CUDD_REORDER_SIFT, 1 );
+    printf( "The BDD after  = %d.\n", Cudd_DagSize(bSum) );
+PRT( "Time", clock() - clk );
+    Cudd_RecursiveDeref( dd, bSum );
+    Cudd_Quit( dd );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
