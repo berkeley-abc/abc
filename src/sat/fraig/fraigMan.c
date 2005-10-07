@@ -225,6 +225,31 @@ void Fraig_ManFree( Fraig_Man_t * p )
     FREE( p );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Prepares the SAT solver to run on the two nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fraig_ManCreateSolver( Fraig_Man_t * p )
+{
+    extern int timeSelect;
+    extern int timeAssign;
+    assert( p->pSat == NULL );
+    // allocate data for SAT solving
+    p->pSat       = Msat_SolverAlloc( 500, 1, 1, 1, 1, 0 );
+    p->vVarsInt   = Msat_SolverReadConeVars( p->pSat );   
+    p->vAdjacents = Msat_SolverReadAdjacents( p->pSat );
+    p->vVarsUsed  = Msat_SolverReadVarsUsed( p->pSat );
+    timeSelect = 0;
+    timeAssign = 0;
+}
+
  
 /**Function*************************************************************
 
@@ -264,6 +289,168 @@ void Fraig_ManPrintStats( Fraig_Man_t * p )
 //    PRT( "Assignment", timeAssign );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Allocates simulation information for all nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Fraig_NodeVec_t * Fraig_UtilInfoAlloc( int nSize, int nWords, bool fClean )
+{
+    Fraig_NodeVec_t * vInfo;
+    unsigned * pUnsigned;
+    int i;
+    assert( nSize > 0 && nWords > 0 );
+    vInfo = Fraig_NodeVecAlloc( nSize );
+    pUnsigned = ALLOC( unsigned, nSize * nWords );
+    vInfo->pArray[0] = (Fraig_Node_t *)pUnsigned;
+    if ( fClean )
+        memset( pUnsigned, 0, sizeof(unsigned) * nSize * nWords );
+    for ( i = 1; i < nSize; i++ )
+        vInfo->pArray[i] = (Fraig_Node_t *)(((unsigned *)vInfo->pArray[i-1]) + nWords);
+    vInfo->nSize = nSize;
+    return vInfo;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns simulation info of all nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Fraig_NodeVec_t * Fraig_ManGetSimInfo( Fraig_Man_t * p )
+{
+    Fraig_NodeVec_t * vInfo;
+    Fraig_Node_t * pNode;
+    unsigned * pUnsigned;
+    int nRandom, nDynamic;
+    int i, k, nWords;
+
+    nRandom  = Fraig_ManReadPatternNumRandom( p );
+    nDynamic = Fraig_ManReadPatternNumDynamic( p );
+    nWords = nRandom / 32 + nDynamic / 32;
+
+    vInfo = Fraig_UtilInfoAlloc( p->vNodes->nSize, nWords, 0 );
+    for ( i = 0; i < p->vNodes->nSize; i++ )
+    {
+        pNode = p->vNodes->pArray[i];
+        assert( i == pNode->Num );
+        pUnsigned = (unsigned *)vInfo->pArray[i];
+        for ( k = 0; k < nRandom / 32; k++ )
+            pUnsigned[k] = pNode->puSimR[k];
+        for ( k = 0; k < nDynamic / 32; k++ )
+            pUnsigned[nRandom / 32 + k] = pNode->puSimD[k];
+    }
+    return vInfo;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if A v B is always true based on the siminfo.]
+
+  Description [A v B is always true iff A' * B' is always false.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fraig_ManCheckClauseUsingSimInfo( Fraig_Man_t * p, Fraig_Node_t * pNode1, Fraig_Node_t * pNode2 )
+{
+    int fCompl1, fCompl2, i;
+
+    fCompl1 = 1 ^ Fraig_IsComplement(pNode1) ^ Fraig_Regular(pNode1)->fInv;
+    fCompl2 = 1 ^ Fraig_IsComplement(pNode2) ^ Fraig_Regular(pNode2)->fInv;
+
+    pNode1 = Fraig_Regular(pNode1);
+    pNode2 = Fraig_Regular(pNode2);
+    assert( pNode1 != pNode2 );
+    
+    // check the simulation info
+    if ( fCompl1 && fCompl2 )
+    {
+        for ( i = 0; i < p->nWordsRand; i++ )
+            if ( ~pNode1->puSimR[i] & ~pNode2->puSimR[i] )
+                return 0;
+        for ( i = 0; i < p->iWordStart; i++ )
+            if ( ~pNode1->puSimD[i] & ~pNode2->puSimD[i] )
+                return 0;
+        return 1;
+    }
+    if ( !fCompl1 && fCompl2 )
+    {
+        for ( i = 0; i < p->nWordsRand; i++ )
+            if ( pNode1->puSimR[i] & ~pNode2->puSimR[i] )
+                return 0;
+        for ( i = 0; i < p->iWordStart; i++ )
+            if ( pNode1->puSimD[i] & ~pNode2->puSimD[i] )
+                return 0;
+        return 1;
+    }
+    if ( fCompl1 && !fCompl2 )
+    {
+        for ( i = 0; i < p->nWordsRand; i++ )
+            if ( ~pNode1->puSimR[i] & pNode2->puSimR[i] )
+                return 0;
+        for ( i = 0; i < p->iWordStart; i++ )
+            if ( ~pNode1->puSimD[i] & pNode2->puSimD[i] )
+                return 0;
+        return 1;
+    }
+//    if ( fCompl1 && fCompl2 )
+    {
+        for ( i = 0; i < p->nWordsRand; i++ )
+            if ( pNode1->puSimR[i] & pNode2->puSimR[i] )
+                return 0;
+        for ( i = 0; i < p->iWordStart; i++ )
+            if ( pNode1->puSimD[i] & pNode2->puSimD[i] )
+                return 0;
+        return 1;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds clauses to the solver.]
+
+  Description [This procedure is used to add external clauses to the solver.
+  The clauses are given by sets of nodes. Each node stands for one literal.
+  If the node is complemented, the literal is negated.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fraig_ManAddClause( Fraig_Man_t * p, Fraig_Node_t ** ppNodes, int nNodes )
+{
+    Fraig_Node_t * pNode;
+    int i, fComp, RetValue;
+    if ( p->pSat == NULL )
+        Fraig_ManCreateSolver( p );
+    // create four clauses
+    Msat_IntVecClear( p->vProj );
+    for ( i = 0; i < nNodes; i++ )
+    {
+        pNode = Fraig_Regular(ppNodes[i]);
+        fComp = Fraig_IsComplement(ppNodes[i]);
+        Msat_IntVecPush( p->vProj, MSAT_VAR2LIT(pNode->Num, fComp) );
+//        printf( "%d(%d) ", pNode->Num, fComp );
+    }
+//    printf( "\n" );
+    RetValue = Msat_SolverAddClause( p->pSat, p->vProj );
+    assert( RetValue );
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

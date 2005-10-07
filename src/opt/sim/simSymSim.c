@@ -57,7 +57,7 @@ clk = clock();
     {
         if ( Abc_NodeIsConst(pNode) )
             continue;
-        Sim_UtilSimulateNodeOne( pNode, p->vSim, p->nSimWords );
+        Sim_UtilSimulateNodeOne( pNode, p->vSim, p->nSimWords, 0 );
     }
 p->timeSim += clock() - clk;
     // collect info into the CO matrices

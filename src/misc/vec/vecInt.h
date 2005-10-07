@@ -52,6 +52,10 @@ struct Vec_Int_t_
     for ( i = 0; (i < Vec_IntSize(vVec)) && (((Entry) = Vec_IntEntry(vVec, i)), 1); i++ )
 #define Vec_IntForEachEntryStart( vVec, Entry, i, Start )                                   \
     for ( i = Start; (i < Vec_IntSize(vVec)) && (((Entry) = Vec_IntEntry(vVec, i)), 1); i++ )
+#define Vec_IntForEachEntryStartStop( vVec, Entry, i, Start, Stop )                         \
+    for ( i = Start; (i < Stop) && (((Entry) = Vec_IntEntry(vVec, i)), 1); i++ )
+#define Vec_IntForEachEntryReverse( vVec, pEntry, i )                                       \
+    for ( i = Vec_IntSize(vVec) - 1; (i >= 0) && (((pEntry) = Vec_IntEntry(vVec, i)), 1); i-- )
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFITIONS                           ///

@@ -35,10 +35,12 @@ static int            Abc_NtkVanEijkClassesRefine( Abc_Ntk_t * pNtk, Vec_Ptr_t *
 static void           Abc_NtkVanEijkClassesOrder( Vec_Ptr_t * vClasses );
 static int            Abc_NtkVanEijkClassesCountPairs( Vec_Ptr_t * vClasses );
 static void           Abc_NtkVanEijkClassesTest( Abc_Ntk_t * pNtkSingle, Vec_Ptr_t * vClasses );
-static Abc_Ntk_t *    Abc_NtkVanEijkFrames( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCorresp, int nFrames, int fAddLast, int fShortNames );
-static void           Abc_NtkVanEijkAddFrame( Abc_Ntk_t * pNtkFrames, Abc_Ntk_t * pNtk, int iFrame, Vec_Ptr_t * vCorresp, Vec_Ptr_t * vOrder, int fShortNames );
-static Fraig_Man_t *  Abc_NtkVanEijkFraig( Abc_Ntk_t * pMulti, int fInit );
-static Abc_Ntk_t *    Abc_NtkVanEijkDeriveExdc( Abc_Ntk_t * pNtkInit, Abc_Ntk_t * pNtk, Vec_Ptr_t * vClasses );
+
+extern Abc_Ntk_t *    Abc_NtkVanEijkFrames( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCorresp, int nFrames, int fAddLast, int fShortNames );
+extern void           Abc_NtkVanEijkAddFrame( Abc_Ntk_t * pNtkFrames, Abc_Ntk_t * pNtk, int iFrame, Vec_Ptr_t * vCorresp, Vec_Ptr_t * vOrder, int fShortNames );
+extern Fraig_Man_t *  Abc_NtkVanEijkFraig( Abc_Ntk_t * pMulti, int fInit );
+
+static Abc_Ntk_t *    Abc_NtkVanEijkDeriveExdc( Abc_Ntk_t * pNtk, Vec_Ptr_t * vClasses );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     INLINED FUNCTIONS                            ///
@@ -99,6 +101,7 @@ Abc_Ntk_t * Abc_NtkVanEijk( Abc_Ntk_t * pNtk, int nFrames, int fExdc, int fVerbo
     Fraig_ParamsSetDefaultFull( &Params );
     pNtkSingle = Abc_NtkFraig( pNtk, &Params, 0, 0 );
     Abc_AigSetNodePhases( pNtkSingle );
+    Abc_NtkCleanNext(pNtkSingle);
 
     // get the equivalence classes
     vClasses = Abc_NtkVanEijkClasses( pNtkSingle, nFrames, fVerbose );
@@ -109,7 +112,7 @@ Abc_Ntk_t * Abc_NtkVanEijk( Abc_Ntk_t * pNtk, int nFrames, int fExdc, int fVerbo
 //        pNtkNew = Abc_NtkDup( pNtkSingle );  
         // derive the EXDC network if asked
         if ( fExdc )
-            pNtkNew->pExdc = Abc_NtkVanEijkDeriveExdc( pNtk, pNtkSingle, vClasses );
+            pNtkNew->pExdc = Abc_NtkVanEijkDeriveExdc( pNtkSingle, vClasses );
     }
     else
         pNtkNew = Abc_NtkDup( pNtkSingle );  
@@ -137,23 +140,23 @@ Vec_Ptr_t * Abc_NtkVanEijkClasses( Abc_Ntk_t * pNtkSingle, int nFrames, int fVer
     Abc_Ntk_t * pNtkMulti;
     Vec_Ptr_t * vCorresp, * vClasses;
     int nIter, RetValue;
+    int nAddFrames = 0;
 
     if ( fVerbose )
         printf( "The number of ANDs after FRAIGing = %d.\n", Abc_NtkNodeNum(pNtkSingle) );
 
     // get the AIG of the base case
     vCorresp = Vec_PtrAlloc( 100 );
-    Abc_NtkCleanNext(pNtkSingle);
-    pNtkMulti = Abc_NtkVanEijkFrames( pNtkSingle, vCorresp, nFrames, 0, 0 );
+    pNtkMulti = Abc_NtkVanEijkFrames( pNtkSingle, vCorresp, nFrames + nAddFrames, 0, 0 );
     if ( fVerbose )
-        printf( "The number of ANDs in %d timeframes = %d.\n", nFrames, Abc_NtkNodeNum(pNtkMulti) );
+        printf( "The number of ANDs in %d timeframes = %d.\n", nFrames + nAddFrames, Abc_NtkNodeNum(pNtkMulti) );
 
     // FRAIG the initialized frames (labels the nodes of pNtkMulti with FRAIG nodes to be used as hash keys)
     pFraig = Abc_NtkVanEijkFraig( pNtkMulti, 1 );
     Fraig_ManFree( pFraig );
 
     // find initial equivalence classes
-    vClasses = Abc_NtkVanEijkClassesDeriveBase( pNtkSingle, vCorresp, nFrames );
+    vClasses = Abc_NtkVanEijkClassesDeriveBase( pNtkSingle, vCorresp, nFrames + nAddFrames );
     if ( fVerbose )
         printf( "The number of classes in the base case    = %5d.  Pairs = %8d.\n", Vec_PtrSize(vClasses), Abc_NtkVanEijkClassesCountPairs(vClasses) );
     Abc_NtkDelete( pNtkMulti );
@@ -192,6 +195,12 @@ Vec_Ptr_t * Abc_NtkVanEijkClasses( Abc_Ntk_t * pNtkSingle, int nFrames, int fVer
             for ( pObj = pClass; pObj; pObj = pObj->pNext )
                 Counter++;
             printf( " %d", Counter );
+/*
+            printf( " = {" );
+            for ( pObj = pClass; pObj; pObj = pObj->pNext )
+                printf( " %d", pObj->Id );
+            printf( " } " );
+*/
         }
         printf( "\n" );
     }
@@ -541,7 +550,9 @@ Abc_Ntk_t * Abc_NtkVanEijkFrames( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCorresp, int nF
         pLatch->pNext = NULL;
     }
     // remove dangling nodes
-    Abc_AigCleanup( pNtkFrames->pManFunc );
+//    Abc_AigCleanup( pNtkFrames->pManFunc );
+    // otherwise some external nodes may have dandling pointers
+
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtkFrames ) )
         printf( "Abc_NtkVanEijkFrames: The network check has failed.\n" );
@@ -699,13 +710,15 @@ Fraig_Man_t * Abc_NtkVanEijkFraig( Abc_Ntk_t * pMulti, int fInit )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkVanEijkDeriveExdc( Abc_Ntk_t * pNtkInit, Abc_Ntk_t * pNtk, Vec_Ptr_t * vClasses )
+Abc_Ntk_t * Abc_NtkVanEijkDeriveExdc( Abc_Ntk_t * pNtk, Vec_Ptr_t * vClasses )
 {
     Abc_Ntk_t * pNtkNew; 
     Abc_Obj_t * pClass, * pNode, * pRepr, * pObj;
     Abc_Obj_t * pMiter, * pTotal;
     Vec_Ptr_t * vCone;
     int i, k;
+
+    assert( Abc_NtkIsStrash(pNtk) );
 
     // start the network
     pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc );
@@ -716,7 +729,7 @@ Abc_Ntk_t * Abc_NtkVanEijkDeriveExdc( Abc_Ntk_t * pNtkInit, Abc_Ntk_t * pNtk, Ve
     Abc_AigConst1(pNtk->pManFunc)->pCopy = Abc_AigConst1(pNtkNew->pManFunc);
     // for each CI, create PI
     Abc_NtkForEachCi( pNtk, pObj, i )
-        Abc_NtkLogicStoreName( pObj->pCopy = Abc_NtkCreatePi(pNtkNew), Abc_ObjName( Abc_NtkCi(pNtkInit,i) ) );
+        Abc_NtkLogicStoreName( pObj->pCopy = Abc_NtkCreatePi(pNtkNew), Abc_ObjName(pObj) );
     // cannot add latches here because pLatch->pCopy pointers are used
 
     // create the cones for each pair of nodes in an equivalence class
@@ -756,9 +769,9 @@ Abc_Ntk_t * Abc_NtkVanEijkDeriveExdc( Abc_Ntk_t * pNtkInit, Abc_Ntk_t * pNtk, Ve
     // for each CO, create PO (skip POs equal to CIs because of name conflict)
     Abc_NtkForEachPo( pNtk, pObj, i )
         if ( !Abc_ObjIsCi(Abc_ObjFanin0(pObj)) )
-            Abc_NtkLogicStoreName( pObj->pCopy = Abc_NtkCreatePo(pNtkNew), Abc_ObjName( Abc_NtkPo(pNtkInit,i) ) );
+            Abc_NtkLogicStoreName( pObj->pCopy = Abc_NtkCreatePo(pNtkNew), Abc_ObjName(pObj) );
     Abc_NtkForEachLatch( pNtk, pObj, i )
-        Abc_NtkLogicStoreName( pObj->pCopy = Abc_NtkCreatePo(pNtkNew), Abc_ObjNameSuffix( Abc_NtkLatch(pNtkInit,i), "_in") );
+        Abc_NtkLogicStoreName( pObj->pCopy = Abc_NtkCreatePo(pNtkNew), Abc_ObjNameSuffix( pObj, "_in") );
 
     // link to the POs of the network
     Abc_NtkForEachPo( pNtk, pObj, i )

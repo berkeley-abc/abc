@@ -285,7 +285,7 @@ Abc_Ntk_t * Abc_NtkConstructExdc( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bUn
 
     // start the new network
     pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_BDD );
-    pNtkNew->pName = util_strsav("exdc");
+    pNtkNew->pName = util_strsav( "exdc" );
     pNtkNew->pSpec = NULL;
 
     // create PIs corresponding to LOs

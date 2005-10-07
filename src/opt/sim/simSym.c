@@ -71,7 +71,7 @@ p->timeStruct = clock() - clk;
     for ( i = 1; i <= 1000; i++ )
     {
         // simulate this pattern
-        Sim_UtilGetRandom( p->uPatRand, p->nSimWords );
+        Sim_UtilSetRandom( p->uPatRand, p->nSimWords );
         Sim_SymmsSimulate( p, p->uPatRand, p->vMatrNonSymms );
         if ( i % 50 != 0 )
             continue;

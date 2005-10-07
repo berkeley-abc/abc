@@ -65,7 +65,7 @@ Vec_Int_t * Sim_NtkComputeSwitching( Abc_Ntk_t * pNtk, int nPatterns )
     Abc_NtkForEachCi( pNtk, pNode, i )
     {
         pSimInfo = Vec_PtrEntry(vSimInfo, pNode->Id);
-        Sim_UtilGetRandom( pSimInfo, nSimWords );
+        Sim_UtilSetRandom( pSimInfo, nSimWords );
         pSwitching[pNode->Id] = Sim_ComputeSwitching( pSimInfo, nSimWords );
     }
     // simulate the internal nodes
@@ -73,7 +73,7 @@ Vec_Int_t * Sim_NtkComputeSwitching( Abc_Ntk_t * pNtk, int nPatterns )
     Vec_PtrForEachEntry( vNodes, pNode, i )
     {
         pSimInfo = Vec_PtrEntry(vSimInfo, pNode->Id);
-        Sim_UtilSimulateNodeOne( pNode, vSimInfo, nSimWords );
+        Sim_UtilSimulateNodeOne( pNode, vSimInfo, nSimWords, 0 );
         pSwitching[pNode->Id] = Sim_ComputeSwitching( pSimInfo, nSimWords );
     }
     Vec_PtrFree( vNodes );

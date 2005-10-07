@@ -536,6 +536,7 @@ extern void               Abc_NtkAddDummyPiNames( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkAddDummyPoNames( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkAddDummyLatchNames( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkShortNames( Abc_Ntk_t * pNtk );
+extern stmm_table *       Abc_NtkNamesToTable( Vec_Ptr_t * vNodes );
 /*=== abcNetlist.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkNetlistToLogic( Abc_Ntk_t * pNtk );
 extern Abc_Ntk_t *        Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk );

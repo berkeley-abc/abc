@@ -24,6 +24,7 @@ alias f fraig
 alias fs fraig_sweep
 alias ft fraig_trust
 alias mu renode -m
+alias pex print_exdc -d
 alias pf print_factor
 alias pfan print_fanio
 alias pl print_level

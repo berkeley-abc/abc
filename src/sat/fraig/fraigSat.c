@@ -97,7 +97,7 @@ void Fraig_ManProveMiter( Fraig_Man_t * p )
             continue;
         if ( Fraig_NodeIsEquivalent( p, p->pConst1, pNode, -1, p->nSeconds ) )
         {
-            if ( Fraig_IsComplement(p->vOutputs->pArray[i]) )
+            if ( Fraig_IsComplement(p->vOutputs->pArray[i]) ^ Fraig_NodeComparePhase(p->pConst1, pNode) )
                 p->vOutputs->pArray[i] = Fraig_Not(p->pConst1);
             else
                 p->vOutputs->pArray[i] = p->pConst1;
@@ -180,17 +180,7 @@ int Fraig_NodeIsEquivalent( Fraig_Man_t * p, Fraig_Node_t * pOld, Fraig_Node_t *
 
     // make sure the solver is allocated and has enough variables
     if ( p->pSat == NULL )
-    {
-        extern int timeSelect;
-        extern int timeAssign;
-        // allocate data for SAT solving
-        p->pSat       = Msat_SolverAlloc( 500, 1, 1, 1, 1, 0 );
-        p->vVarsInt   = Msat_SolverReadConeVars( p->pSat );   
-        p->vAdjacents = Msat_SolverReadAdjacents( p->pSat );
-        p->vVarsUsed  = Msat_SolverReadVarsUsed( p->pSat );
-        timeSelect = 0;
-        timeAssign = 0;
-    }
+        Fraig_ManCreateSolver( p );
     // make sure the SAT solver has enough variables
     for ( i = Msat_SolverReadVarNum(p->pSat); i < p->vNodes->nSize; i++ )
         Msat_SolverAddVar( p->pSat );
@@ -365,32 +355,12 @@ int Fraig_NodeIsImplication( Fraig_Man_t * p, Fraig_Node_t * pOld, Fraig_Node_t 
 
     // make sure the solver is allocated and has enough variables
     if ( p->pSat == NULL )
-    {
-        extern int timeSelect;
-        extern int timeAssign;
-        // allocate data for SAT solving
-        p->pSat       = Msat_SolverAlloc( 500, 1, 1, 1, 1, 0 );
-        p->vVarsInt   = Msat_SolverReadConeVars( p->pSat );   
-        p->vAdjacents = Msat_SolverReadAdjacents( p->pSat );
-        p->vVarsUsed  = Msat_SolverReadVarsUsed( p->pSat );
-        timeSelect = 0;
-        timeAssign = 0;
-    }
+        Fraig_ManCreateSolver( p );
     // make sure the SAT solver has enough variables
     for ( i = Msat_SolverReadVarNum(p->pSat); i < p->vNodes->nSize; i++ )
         Msat_SolverAddVar( p->pSat );
 
-
-/*
-    {
-        Fraig_Node_t * ppNodes[2] = { pOld, pNew };
-        extern void Fraig_MappingShowNodes( Fraig_Man_t * pMan, Fraig_Node_t ** ppRoots, int nRoots, char * pFileName );
-        Fraig_MappingShowNodes( p, ppNodes, 2, "temp_aig" );
-    }
-*/
-
-
-    // get the logic cone
+   // get the logic cone
 clk = clock();
     Fraig_OrderVariables( p, pOld, pNew );
 //    Fraig_PrepareCones( p, pOld, pNew );
@@ -449,8 +419,8 @@ if ( fVerbose )
 PRT( "time", clock() - clk );
 }
         // record the counter example
-//        Fraig_FeedBack( p, Msat_SolverReadModelArray(p->pSat), p->vVarsInt, pOld, pNew );
-//        p->nSatCounterImp++;
+        Fraig_FeedBack( p, Msat_SolverReadModelArray(p->pSat), p->vVarsInt, pOld, pNew );
+        p->nSatCounterImp++;
         return 0;
     }
     else // if ( RetValue1 == MSAT_UNKNOWN )
@@ -461,6 +431,96 @@ p->time3 += clock() - clk;
     }
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Prepares the SAT solver to run on the two nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fraig_ManCheckClauseUsingSat( Fraig_Man_t * p, Fraig_Node_t * pNode1, Fraig_Node_t * pNode2, int nBTLimit )
+{
+    Fraig_Node_t * pNode1R, * pNode2R;
+    int RetValue, RetValue1, i, clk;
+    int fVerbose = 0;
+
+    pNode1R = Fraig_Regular(pNode1);
+    pNode2R = Fraig_Regular(pNode2);
+    assert( pNode1R != pNode2R );
+
+    // make sure the solver is allocated and has enough variables
+    if ( p->pSat == NULL )
+        Fraig_ManCreateSolver( p );
+    // make sure the SAT solver has enough variables
+    for ( i = Msat_SolverReadVarNum(p->pSat); i < p->vNodes->nSize; i++ )
+        Msat_SolverAddVar( p->pSat );
+
+   // get the logic cone
+clk = clock();
+    Fraig_OrderVariables( p, pNode1R, pNode2R );
+//    Fraig_PrepareCones( p, pNode1R, pNode2R );
+p->timeTrav += clock() - clk;
+
+    ////////////////////////////////////////////
+    // prepare the solver to run incrementally on these variables
+//clk = clock();
+    Msat_SolverPrepare( p->pSat, p->vVarsInt );
+//p->time3 += clock() - clk;
+
+    // solve under assumptions
+    // A = 1; B = 0     OR     A = 1; B = 1 
+    Msat_IntVecClear( p->vProj );
+    Msat_IntVecPush( p->vProj, MSAT_VAR2LIT(pNode1R->Num, !Fraig_IsComplement(pNode1)) );
+    Msat_IntVecPush( p->vProj, MSAT_VAR2LIT(pNode2R->Num, !Fraig_IsComplement(pNode2)) );
+    // run the solver
+clk = clock();
+    RetValue1 = Msat_SolverSolve( p->pSat, p->vProj, nBTLimit, 1000000 );
+p->timeSat += clock() - clk;
+
+    if ( RetValue1 == MSAT_FALSE )
+    {
+//p->time1 += clock() - clk;
+
+if ( fVerbose )
+{
+    printf( "unsat  %d  ", Msat_SolverReadBackTracks(p->pSat) );
+PRT( "time", clock() - clk );
+}
+
+        // add the clause
+        Msat_IntVecClear( p->vProj );
+        Msat_IntVecPush( p->vProj, MSAT_VAR2LIT(pNode1R->Num, Fraig_IsComplement(pNode1)) );
+        Msat_IntVecPush( p->vProj, MSAT_VAR2LIT(pNode2R->Num, Fraig_IsComplement(pNode2)) );
+        RetValue = Msat_SolverAddClause( p->pSat, p->vProj );
+        assert( RetValue );
+//        p->nSatProofImp++;
+        return 1;
+    }
+    else if ( RetValue1 == MSAT_TRUE )
+    {
+//p->time2 += clock() - clk;
+
+if ( fVerbose )
+{
+    printf( "sat  %d  ", Msat_SolverReadBackTracks(p->pSat) );
+PRT( "time", clock() - clk );
+}
+        // record the counter example
+//        Fraig_FeedBack( p, Msat_SolverReadModelArray(p->pSat), p->vVarsInt, pNode1R, pNode2R );
+        p->nSatCounterImp++;
+        return 0;
+    }
+    else // if ( RetValue1 == MSAT_UNKNOWN )
+    {
+p->time3 += clock() - clk;
+        p->nSatFailsImp++;
+        return 0;
+    }
+}
 
 
 /**Function*************************************************************

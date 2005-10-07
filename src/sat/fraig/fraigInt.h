@@ -280,9 +280,9 @@ struct Fraig_NodeStruct_t_
 // the vector of nodes
 struct Fraig_NodeVecStruct_t_
 {
-    Fraig_Node_t **       pArray;        // the array of nodes
-    int                   nSize;         // the number of entries in the array
     int                   nCap;          // the number of allocated entries
+    int                   nSize;         // the number of entries in the array
+    Fraig_Node_t **       pArray;        // the array of nodes
 };
 
 // the hash table 
@@ -381,6 +381,8 @@ extern void                Fraig_FeedBackTest( Fraig_Man_t * p );
 extern int                 Fraig_FeedBackCompress( Fraig_Man_t * p );
 extern int *               Fraig_ManAllocCounterExample( Fraig_Man_t * p );
 extern int *               Fraig_ManSaveCounterExample( Fraig_Man_t * p, Fraig_Node_t * pNode );
+/*=== fraigMan.c =============================================================*/
+extern void                Fraig_ManCreateSolver( Fraig_Man_t * p );
 /*=== fraigMem.c =============================================================*/
 extern Fraig_MemFixed_t *  Fraig_MemFixedStart( int nEntrySize );
 extern void                Fraig_MemFixedStop( Fraig_MemFixed_t * p, int fVerbose );

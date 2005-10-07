@@ -2293,7 +2293,7 @@ int Abc_CommandFrames( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFrames = atoi(argv[util_optind]);
             util_optind++;
-            if ( nFrames < 0 ) 
+            if ( nFrames <= 0 ) 
                 goto usage;
             break;
         case 'i':
@@ -5114,8 +5114,10 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int nFrames;
     int fExdc;
+    int fImp;
     int fVerbose;
     extern Abc_Ntk_t * Abc_NtkVanEijk( Abc_Ntk_t * pNtk, int nFrames, int fExdc, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkVanImp( Abc_Ntk_t * pNtk, int nFrames, int fExdc, int fVerbose );
 
     pNtk = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -5124,9 +5126,10 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     nFrames  = 1;
     fExdc    = 1;
+    fImp     = 0;
     fVerbose = 1;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "Fevh" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "Feivh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -5138,11 +5141,14 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFrames = atoi(argv[util_optind]);
             util_optind++;
-            if ( nFrames < 0 ) 
+            if ( nFrames <= 0 ) 
                 goto usage;
             break;
         case 'e':
             fExdc ^= 1;
+            break;
+        case 'i':
+            fImp ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -5179,7 +5185,10 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    pNtkRes = Abc_NtkVanEijk( pNtk, nFrames, fExdc, fVerbose );
+    if ( fImp )
+        pNtkRes = Abc_NtkVanImp( pNtk, nFrames, fExdc, fVerbose );
+    else
+        pNtkRes = Abc_NtkVanEijk( pNtk, nFrames, fExdc, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Sequential FPGA mapping has failed.\n" );
@@ -5190,10 +5199,11 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: seq_sweep [-F num] [-vh]\n" );
+    fprintf( pErr, "usage: seq_sweep [-F num] [-eivh]\n" );
     fprintf( pErr, "\t         performs sequential sweep using van Eijk's method\n" );
     fprintf( pErr, "\t-F num : number of time frames in the base case [default = %d]\n", nFrames );
     fprintf( pErr, "\t-e     : toggle writing EXDC network [default = %s]\n", fExdc? "yes": "no" );
+    fprintf( pErr, "\t-i     : toggle computing implications [default = %s]\n", fImp? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -5342,7 +5352,7 @@ int Abc_CommandSec( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nFrames = atoi(argv[util_optind]);
             util_optind++;
-            if ( nFrames < 0 ) 
+            if ( nFrames <= 0 ) 
                 goto usage;
             break;
         case 'T':

@@ -17,7 +17,7 @@
   Revision    [$Id: sim.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
- 
+
 #ifndef __SIM_H__
 #define __SIM_H__
 
@@ -162,6 +162,7 @@ struct Sim_Pat_t_
 #define Sim_SuppFunHasVar(vSupps,Output,v)    Sim_HasBit((unsigned*)(vSupps)->pArray[Output],(v))
 #define Sim_SimInfoSetVar(vSupps,pNode,v)     Sim_SetBit((unsigned*)(vSupps)->pArray[(pNode)->Id],(v))
 #define Sim_SimInfoHasVar(vSupps,pNode,v)     Sim_HasBit((unsigned*)(vSupps)->pArray[(pNode)->Id],(v))
+#define Sim_SimInfoGet(vInfo,pNode)           ((unsigned *)((vInfo)->pArray[(pNode)->Id]))
 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
@@ -176,6 +177,9 @@ extern void            Sim_ManStop( Sim_Man_t * p );
 extern void            Sim_ManPrintStats( Sim_Man_t * p );
 extern Sim_Pat_t *     Sim_ManPatAlloc( Sim_Man_t * p );
 extern void            Sim_ManPatFree( Sim_Man_t * p, Sim_Pat_t * pPat );
+/*=== simSeq.c ==========================================================*/
+extern Vec_Ptr_t *     Sim_SimulateSeqRandom( Abc_Ntk_t * pNtk, int nFrames, int nWords );
+extern Vec_Ptr_t *     Sim_SimulateSeqModel( Abc_Ntk_t * pNtk, int nFrames, int * pModel );
 /*=== simSupp.c ==========================================================*/
 extern Vec_Ptr_t *     Sim_ComputeStrSupp( Abc_Ntk_t * pNtk );
 extern Vec_Ptr_t *     Sim_ComputeFunSupp( Abc_Ntk_t * pNtk, int fVerbose );
@@ -197,10 +201,17 @@ extern void            Sim_UtilInfoFlip( Sim_Man_t * p, Abc_Obj_t * pNode );
 extern bool            Sim_UtilInfoCompare( Sim_Man_t * p, Abc_Obj_t * pNode );
 extern void            Sim_UtilSimulate( Sim_Man_t * p, bool fFirst );
 extern void            Sim_UtilSimulateNode( Sim_Man_t * p, Abc_Obj_t * pNode, bool fType, bool fType1, bool fType2 );
-extern void            Sim_UtilSimulateNodeOne( Abc_Obj_t * pNode, Vec_Ptr_t * vSimInfo, int nSimWords );
+extern void            Sim_UtilSimulateNodeOne( Abc_Obj_t * pNode, Vec_Ptr_t * vSimInfo, int nSimWords, int nOffset );
+extern void            Sim_UtilTransferNodeOne( Abc_Obj_t * pNode, Vec_Ptr_t * vSimInfo, int nSimWords, int nOffset, int fShift );
 extern int             Sim_UtilCountSuppSizes( Sim_Man_t * p, int fStruct );
 extern int             Sim_UtilCountOnes( unsigned * pSimInfo, int nSimWords );
-extern void            Sim_UtilGetRandom( unsigned * pPatRand, int nSimWords );
+extern Vec_Int_t *     Sim_UtilCountOnesArray( Vec_Ptr_t * vInfo, int nSimWords );
+extern void            Sim_UtilSetRandom( unsigned * pPatRand, int nSimWords );
+extern void            Sim_UtilSetCompl( unsigned * pPatRand, int nSimWords );
+extern void            Sim_UtilSetConst( unsigned * pPatRand, int nSimWords, int fConst1 );
+extern int             Sim_UtilInfoIsEqual( unsigned * pPats1, unsigned * pPats2, int nSimWords );
+extern int             Sim_UtilInfoIsImp( unsigned * pPats1, unsigned * pPats2, int nSimWords );
+extern int             Sim_UtilInfoIsClause( unsigned * pPats1, unsigned * pPats2, int nSimWords );
 extern int             Sim_UtilCountAllPairs( Vec_Ptr_t * vSuppFun, int nSimWords, Vec_Int_t * vCounters );
 extern void            Sim_UtilCountPairsAll( Sym_Man_t * p );
 extern int             Sim_UtilMatrsAreDisjoint( Sym_Man_t * p );

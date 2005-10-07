@@ -547,6 +547,28 @@ void Abc_NtkShortNames( Abc_Ntk_t * pNtk )
     Abc_NtkAddDummyLatchNames( pNtk );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns the hash table with these names.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+stmm_table * Abc_NtkNamesToTable( Vec_Ptr_t * vNodes )
+{
+    stmm_table * tTable;
+    Abc_Obj_t * pObj;
+    int i;
+    tTable = stmm_init_table(strcmp, stmm_strhash);
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+        stmm_insert( tTable, Abc_ObjName(pObj), (char *)pObj );
+    return tTable;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

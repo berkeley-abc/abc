@@ -153,6 +153,9 @@ extern void                Fraig_ParamsSetDefaultFull( Fraig_Params_t * pParams 
 extern Fraig_Man_t *       Fraig_ManCreate( Fraig_Params_t * pParams );
 extern void                Fraig_ManFree( Fraig_Man_t * pMan );
 extern void                Fraig_ManPrintStats( Fraig_Man_t * p );
+extern Fraig_NodeVec_t *   Fraig_ManGetSimInfo( Fraig_Man_t * p );
+extern int                 Fraig_ManCheckClauseUsingSimInfo( Fraig_Man_t * p, Fraig_Node_t * pNode1, Fraig_Node_t * pNode2 );
+extern void                Fraig_ManAddClause( Fraig_Man_t * p, Fraig_Node_t ** ppNodes, int nNodes );
 
 /*=== fraigDfs.c =============================================================*/
 extern Fraig_NodeVec_t *   Fraig_Dfs( Fraig_Man_t * pMan, int fEquiv );
@@ -168,6 +171,7 @@ extern int                 Fraig_NodesAreEqual( Fraig_Man_t * p, Fraig_Node_t * 
 extern int                 Fraig_NodeIsEquivalent( Fraig_Man_t * p, Fraig_Node_t * pOld, Fraig_Node_t * pNew, int nBTLimit, int nTimeLimit );
 extern void                Fraig_ManProveMiter( Fraig_Man_t * p );
 extern int                 Fraig_ManCheckMiter( Fraig_Man_t * p );
+extern int                 Fraig_ManCheckClauseUsingSat( Fraig_Man_t * p, Fraig_Node_t * pNode1, Fraig_Node_t * pNode2, int nBTLimit );
 
 /*=== fraigVec.c ===============================================================*/
 extern Fraig_NodeVec_t *   Fraig_NodeVecAlloc( int nCap );
