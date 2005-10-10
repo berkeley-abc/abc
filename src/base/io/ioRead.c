@@ -55,6 +55,8 @@ Abc_Ntk_t * Io_Read( char * pFileName, int fCheck )
         pNtk = Io_ReadPla( pFileName, fCheck );
     else if ( Extra_FileNameCheckExtension( pFileName, "eqn" ) )
         pNtk = Io_ReadEqn( pFileName, fCheck );
+    else if ( Extra_FileNameCheckExtension( pFileName, "baf" ) )
+        return Io_ReadBaf( pFileName, fCheck );
     else 
     {
         fprintf( stderr, "Unknown file format\n" );

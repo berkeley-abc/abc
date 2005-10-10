@@ -86,8 +86,8 @@ void Extra_ProgressBarUpdate_int( ProgressBar * p, int nItemsCur, char * pString
         return;
     if ( nItemsCur > p->nItemsTotal )
         nItemsCur = p->nItemsTotal;
-    p->posCur = (int)((float)nItemsCur * p->posTotal / p->nItemsTotal);
-    p->nItemsNext  = (int)((float)p->nItemsTotal/p->posTotal)*(p->posCur+10)+1;
+    p->posCur = (int)((double)nItemsCur * p->posTotal / p->nItemsTotal);
+    p->nItemsNext  = (int)((double)p->nItemsTotal/p->posTotal)*(p->posCur+10)+1;
     if ( p->posCur == 0 )
         p->posCur = 1;
     Extra_ProgressBarShow( p, pString );

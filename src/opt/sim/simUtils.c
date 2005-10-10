@@ -612,6 +612,51 @@ int Sim_UtilCountPairsOne( Extra_BitMat_t * pMat, Vec_Int_t * vSupport )
   SeeAlso     []
 
 ***********************************************************************/
+int Sim_UtilCountPairsOnePrint( Extra_BitMat_t * pMat, Vec_Int_t * vSupport )
+{
+    int i, k, Index1, Index2;
+    Vec_IntForEachEntry( vSupport, i, Index1 )
+    Vec_IntForEachEntryStart( vSupport, k, Index2, Index1+1 )
+        if ( Extra_BitMatrixLookup1( pMat, i, k ) )
+            printf( "(%d,%d) ", i, k );
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of entries in the array of matrices.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Sim_UtilCountPairsAllPrint( Sym_Man_t * p )
+{
+    int i, clk;
+clk = clock();
+    for ( i = 0; i < p->nOutputs; i++ )
+    {
+        printf( "Output %2d :", i );
+        Sim_UtilCountPairsOnePrint( Vec_PtrEntry(p->vMatrSymms, i), Vec_VecEntry(p->vSupports, i) );
+        printf( "\n" );
+    }
+p->timeCount += clock() - clk;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of entries in the array of matrices.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Sim_UtilCountPairsAll( Sym_Man_t * p )
 {
     int nPairsTotal, nPairsSym, nPairsNonSym, i, clk;

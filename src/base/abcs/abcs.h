@@ -34,6 +34,7 @@
 
 // the maximum number of latches on the edge
 #define ABC_MAX_EDGE_LATCH   16   
+#define ABC_FULL_MASK        0xFFFFFFFF   
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///

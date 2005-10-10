@@ -310,6 +310,10 @@ SOURCE=.\src\base\abcs\abcSeq.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abcs\abcSeqMan.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abcs\abcShare.c
 # End Source File
 # Begin Source File
@@ -374,6 +378,10 @@ SOURCE=.\src\base\io\ioRead.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\io\ioReadBaf.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\io\ioReadBench.c
 # End Source File
 # Begin Source File
@@ -399,6 +407,10 @@ SOURCE=.\src\base\io\ioReadVerilog.c
 # Begin Source File
 
 SOURCE=.\src\base\io\ioUtil.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\io\ioWriteBaf.c
 # End Source File
 # Begin Source File
 

@@ -26,6 +26,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 static int IoCommandRead        ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandReadBaf     ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadBlif    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadBench   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadEdif    ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -34,6 +35,7 @@ static int IoCommandReadVerilog ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadPla     ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadTruth   ( Abc_Frame_t * pAbc, int argc, char **argv );
 
+static int IoCommandWriteBaf    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteBlif   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteBench  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteCnf    ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -60,6 +62,7 @@ static int IoCommandWritePla    ( Abc_Frame_t * pAbc, int argc, char **argv );
 void Io_Init( Abc_Frame_t * pAbc )
 {
     Cmd_CommandAdd( pAbc, "I/O", "read",          IoCommandRead,         1 );
+    Cmd_CommandAdd( pAbc, "I/O", "read_baf",      IoCommandReadBaf,      1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_blif",     IoCommandReadBlif,     1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_bench",    IoCommandReadBench,    1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_edif",     IoCommandReadEdif,     1 );
@@ -68,6 +71,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "read_pla",      IoCommandReadPla,      1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_truth",    IoCommandReadTruth,    1 );
 
+    Cmd_CommandAdd( pAbc, "I/O", "write_baf",     IoCommandWriteBaf,     0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_blif",    IoCommandWriteBlif,    0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_bench",   IoCommandWriteBench,   0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_cnf",     IoCommandWriteCnf,     0 );
@@ -158,6 +162,79 @@ int IoCommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     fprintf( pAbc->Err, "usage: read [-ch] <file>\n" );
     fprintf( pAbc->Err, "\t         read the network from file in Verilog/BLIF/BENCH format\n" );
+    fprintf( pAbc->Err, "\t-c     : toggle network check after reading [default = %s]\n", fCheck? "yes":"no" );
+    fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IoCommandReadBaf( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk;
+    char * FileName;
+    FILE * pFile;
+    int fCheck;
+    int c;
+
+    fCheck = 1;
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "ch" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'c':
+                fCheck ^= 1;
+                break;
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+
+    if ( argc != util_optind + 1 )
+    {
+        goto usage;
+    }
+
+    // get the input file name
+    FileName = argv[util_optind];
+    if ( (pFile = fopen( FileName, "r" )) == NULL )
+    {
+        fprintf( pAbc->Err, "Cannot open input file \"%s\". ", FileName );
+        if ( FileName = Extra_FileGetSimilarName( FileName, ".mv", ".blif", ".pla", ".eqn", ".bench" ) )
+            fprintf( pAbc->Err, "Did you mean \"%s\"?", FileName );
+        fprintf( pAbc->Err, "\n" );
+        return 1;
+    }
+    fclose( pFile );
+ 
+    // set the new network
+    pNtk = Io_ReadBaf( FileName, fCheck );
+    if ( pNtk == NULL )
+    {
+        fprintf( pAbc->Err, "Reading network from BAF file has failed.\n" );
+        return 1;
+    }
+
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: read_baf [-ch] <file>\n" );
+    fprintf( pAbc->Err, "\t         read the network in Binary Aig Format (BAF)\n" );
     fprintf( pAbc->Err, "\t-c     : toggle network check after reading [default = %s]\n", fCheck? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
     fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
@@ -715,6 +792,65 @@ usage:
     return 1;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IoCommandWriteBaf( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    Abc_Ntk_t * pNtk;
+    char * FileName;
+    int c;
+
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "lh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+
+    pNtk = pAbc->pNtkCur;
+    if ( pNtk == NULL )
+    {
+        fprintf( pAbc->Out, "Empty network.\n" );
+        return 0;
+    }
+
+    if ( argc != util_optind + 1 )
+    {
+        goto usage;
+    }
+    FileName = argv[util_optind];
+
+    // check the network type
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pAbc->Out, "Currently can only write strashed combinational AIGs.\n" );
+        return 0;
+    }
+    Io_WriteBaf( pNtk, FileName );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: write_baf [-lh] <file>\n" );
+    fprintf( pAbc->Err, "\t         write the network into a BLIF file\n" );
+    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
+    return 1;
+}
 
 /**Function*************************************************************
 

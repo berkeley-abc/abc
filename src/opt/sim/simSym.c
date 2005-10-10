@@ -125,6 +125,7 @@ p->timeStruct = clock() - clk;
     if ( fVerbose )
         printf( "Total = %8d.  Sym = %8d.  NonSym = %8d.  Remaining = %8d.\n", 
             p->nPairsTotal, p->nPairsSymm, p->nPairsNonSymm, p->nPairsRem );
+//    Sim_UtilCountPairsAllPrint( p );
 
     Result = p->nPairsSymm;
     vResult = p->vMatrSymms;  
