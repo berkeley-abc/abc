@@ -30,7 +30,7 @@ static Vec_Ptr_t * Abc_NodeBalanceCone( Abc_Obj_t * pNode, Vec_Vec_t * vSuper, i
 static int         Abc_NodeBalanceCone_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vSuper, bool fFirst, bool fDuplicate );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

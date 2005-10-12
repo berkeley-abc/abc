@@ -45,7 +45,7 @@ static int IoCommandWriteGml    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWritePla    ( Abc_Frame_t * pAbc, int argc, char **argv );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

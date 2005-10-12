@@ -29,7 +29,7 @@
 static int Sim_SymmsSatProveOne( Sym_Man_t * p, int Out, int Var1, int Var2, unsigned * pPattern );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

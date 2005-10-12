@@ -29,7 +29,7 @@ static void Sim_SymmsCreateSquare( Sym_Man_t * p, unsigned * pPat );
 static void Sim_SymmsDeriveInfo( Sym_Man_t * p, unsigned * pPat, Abc_Obj_t * pNode, Vec_Ptr_t * vMatrsNonSym, int Output );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

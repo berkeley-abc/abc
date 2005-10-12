@@ -93,7 +93,7 @@ struct Pga_NodeStruct_t_
 };
 
 ////////////////////////////////////////////////////////////////////////
-///                      MACRO DEFITIONS                             ///
+///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 static inline Pga_Node_t * Pga_Node( Pga_Man_t * p, int Id )  { return p->vStructs->pArray[Id]; }

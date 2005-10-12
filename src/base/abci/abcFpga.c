@@ -30,7 +30,7 @@ static Abc_Ntk_t *  Abc_NtkFromFpga( Fpga_Man_t * pMan, Abc_Ntk_t * pNtk );
 static Abc_Obj_t *  Abc_NodeFromFpga_rec( Abc_Ntk_t * pNtkNew, Fpga_Node_t * pNodeFpga );
  
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

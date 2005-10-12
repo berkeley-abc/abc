@@ -42,7 +42,7 @@ extern void * Msat_ClauseVecReadEntry( void * p, int i );
 // leads to big degradation in quality.
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

@@ -28,7 +28,7 @@ static void Abc_NodeAddClauses( solver * pSat, char * pSop0, char * pSop1, Abc_O
 static void Abc_NodeAddClausesTop( solver * pSat, Abc_Obj_t * pNode, Vec_Int_t * vVars );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

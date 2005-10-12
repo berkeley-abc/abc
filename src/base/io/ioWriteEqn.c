@@ -30,7 +30,7 @@ static void Io_NtkWriteEqnPos( FILE * pFile, Abc_Ntk_t * pNtk );
 static void Io_NtkWriteEqnNode( FILE * pFile, Abc_Obj_t * pNode );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

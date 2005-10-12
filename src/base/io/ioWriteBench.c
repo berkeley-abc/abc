@@ -28,7 +28,7 @@ static int    Io_WriteBenchOne( FILE * pFile, Abc_Ntk_t * pNtk );
 static int    Io_WriteBenchOneNode( FILE * pFile, Abc_Obj_t * pNode );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

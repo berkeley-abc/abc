@@ -30,7 +30,7 @@ static void Abc_ObjRetimeBackwardUpdateEdge( Abc_Obj_t * pObj, int Edge, stmm_ta
 static void Abc_NtkRetimeSetInitialValues( Abc_Ntk_t * pNtk, stmm_table * tTable, int * pModel );
  
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

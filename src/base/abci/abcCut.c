@@ -29,7 +29,7 @@ static void Abc_NtkPrintCuts( void * p, Abc_Ntk_t * pNtk, int fSeq );
 static void Abc_NtkPrintCuts_( void * p, Abc_Ntk_t * pNtk, int fSeq );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

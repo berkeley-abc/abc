@@ -53,7 +53,7 @@ static Abc_Obj_t * Abc_NodeAigToSeq( Abc_Obj_t * pAnd, int Num, int * pnLatches,
 static Abc_Obj_t * Abc_NodeSeqToLogic( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pFanin, int nLatches, unsigned Init );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

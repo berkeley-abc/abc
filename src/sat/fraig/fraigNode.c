@@ -26,7 +26,7 @@
 #define Fraig_NodeIsSimComplement(p) (Fraig_IsComplement(p)? !(Fraig_Regular(p)->fInv) : (p)->fInv)
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

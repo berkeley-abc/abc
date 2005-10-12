@@ -36,7 +36,7 @@ static void        Abc_NtkRenodeSetBoundsSimple( Abc_Ntk_t * pNtk );
 static void        Abc_NtkRenodeCone( Abc_Obj_t * pNode, Vec_Ptr_t * vCone );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

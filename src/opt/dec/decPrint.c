@@ -29,7 +29,7 @@ static void   Dec_GraphPrintUpdatePos( FILE * pFile, int * pPos, int LitSizeMax 
 static int    Dec_GraphPrintOutputName( FILE * pFile, char * pNameOut, int fCompl );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

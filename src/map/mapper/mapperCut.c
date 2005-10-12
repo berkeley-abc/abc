@@ -80,7 +80,7 @@ static unsigned         Map_CutComputeTruth( Map_Man_t * p, Map_Cut_t * pCut, Ma
           pCut2 = pCut? pCut->pNext: NULL )
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

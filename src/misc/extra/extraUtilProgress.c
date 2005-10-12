@@ -38,7 +38,7 @@ static void Extra_ProgressBarShow( ProgressBar * p, char * pString );
 static void Extra_ProgressBarClean( ProgressBar * p );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

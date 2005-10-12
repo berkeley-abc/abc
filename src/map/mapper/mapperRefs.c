@@ -28,7 +28,7 @@ static float Map_CutRefDeref( Map_Cut_t * pCut, int fPhase, int fReference );
 static void  Map_MappingSetRefs_rec( Map_Man_t * pMan, Map_Node_t * pNode, Map_Node_t ** ppStore );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

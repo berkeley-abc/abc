@@ -89,7 +89,7 @@ static inline void Abc_NodeSetLValue( Abc_Obj_t * pNode, int Value )  { Vec_IntW
 static inline int  Abc_NodeGetLag( int LValue, int Fi )               { return (LValue + 256*Fi)/Fi - 256 - (int)(LValue % Fi == 0); }
 
 ////////////////////////////////////////////////////////////////////////
-///                      MACRO DEFITIONS                             ///
+///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////

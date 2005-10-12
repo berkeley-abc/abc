@@ -119,7 +119,7 @@ static void           Io_ReadVerPrintErrorMessage( Io_ReadVer_t * p );
 static void           Io_ReadVerFree( Io_ReadVer_t * p );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

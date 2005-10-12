@@ -34,7 +34,7 @@ static void Abc_ShowFile( char * FileNameDot );
 static void Abc_ShowGetFileName( char * pName, char * pBuffer );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

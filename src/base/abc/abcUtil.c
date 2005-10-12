@@ -31,7 +31,7 @@
 static int Abc_NodeRefDeref( Abc_Obj_t * pNode, bool fFanouts, bool fReference );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

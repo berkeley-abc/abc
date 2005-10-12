@@ -67,7 +67,7 @@ static void * Extra_FileReaderGetTokens_int( Extra_FileReader_t * p );
 static void Extra_FileReaderReload( Extra_FileReader_t * p );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

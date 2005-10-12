@@ -27,7 +27,7 @@ extern void Map_TruthsCutOne( Map_Man_t * p, Map_Cut_t * pCut, unsigned uTruth[]
 static void Map_CutsCollect_rec( Map_Cut_t * pCut, Map_NodeVec_t * vVisited );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

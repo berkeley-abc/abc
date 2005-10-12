@@ -30,7 +30,7 @@ static Fpga_Cut_t * Fpga_MappingAreaWithoutNode( Fpga_Man_t * p, Fpga_Node_t * p
 static int          Fpga_MappingMatchesAreaArray( Fpga_Man_t * p, Fpga_NodeVec_t * vNodes );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

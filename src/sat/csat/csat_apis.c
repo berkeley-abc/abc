@@ -53,7 +53,7 @@ static char * CSAT_GetNodeName( CSAT_Manager mng, Abc_Obj_t * pNode );
 extern int Io_WriteBench( Abc_Ntk_t * pNtk, char * FileName );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

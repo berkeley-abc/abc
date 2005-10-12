@@ -26,7 +26,7 @@ static unsigned Map_CanonComputePhase( unsigned uTruths[][2], int nVars, unsigne
 static void     Map_CanonComputePhase6( unsigned uTruths[][2], int nVars, unsigned uTruth[], unsigned uPhase, unsigned uTruthRes[] );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

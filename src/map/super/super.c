@@ -28,7 +28,7 @@ static int Super_CommandSupergates   ( Abc_Frame_t * pAbc, int argc, char **argv
 static int Super_CommandSupergatesAnd( Abc_Frame_t * pAbc, int argc, char **argv );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

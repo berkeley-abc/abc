@@ -34,7 +34,7 @@ static int              Dec_FactorVerify( char * pSop, Dec_Graph_t * pFForm );
 static Mvc_Cover_t *    Dec_ConvertSopToMvc( char * pSop );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

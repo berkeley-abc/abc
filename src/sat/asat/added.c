@@ -43,7 +43,7 @@ static void Asat_ClauseWriteDimacs( FILE * pFile, clause * pC, bool fIncrement )
 
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

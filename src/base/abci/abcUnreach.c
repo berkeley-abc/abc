@@ -30,7 +30,7 @@ static DdNode *    Abc_NtkComputeUnreachable( DdManager * dd, Abc_Ntk_t * pNtk, 
 static Abc_Ntk_t * Abc_NtkConstructExdc     ( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bUnreach );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

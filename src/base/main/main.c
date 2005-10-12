@@ -30,7 +30,7 @@
 static int TypeCheck( Abc_Frame_t * pAbc, char * s);
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 #ifndef _LIB

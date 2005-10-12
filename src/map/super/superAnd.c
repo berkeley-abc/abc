@@ -93,7 +93,7 @@ static int            Super2_LibWriteCompare( char * pStr1, char * pStr2 );
 static int            Super2_LibCompareGates( Super2_Gate_t ** ppG1, Super2_Gate_t ** ppG2 );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

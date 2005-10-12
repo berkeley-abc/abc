@@ -46,7 +46,7 @@ static inline Abc_Time_t * Abc_NodeArrival( Abc_Obj_t * pNode )  {  return pNode
 static inline Abc_Time_t * Abc_NodeRequired( Abc_Obj_t * pNode ) {  return pNode->pNtk->pManTime->vReqs->pArray[pNode->Id];  }
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

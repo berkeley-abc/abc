@@ -36,7 +36,7 @@ static void   Sim_SolveTargetsUsingSat( Sim_Man_t * p, int nCounters );
 static int    Sim_SolveSuppModelVerify( Abc_Ntk_t * pNtk, int * pModel, int Input, int Output );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

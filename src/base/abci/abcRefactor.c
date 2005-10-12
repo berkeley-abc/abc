@@ -61,7 +61,7 @@ static void           Abc_NtkManRefStop( Abc_ManRef_t * p );
 static Dec_Graph_t *  Abc_NodeRefactor( Abc_ManRef_t * p, Abc_Obj_t * pNode, Vec_Ptr_t * vFanins, bool fUpdateLevel, bool fUseZeros, bool fUseDcs, bool fVerbose );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

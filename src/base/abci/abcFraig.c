@@ -38,7 +38,7 @@ static void           Abc_NtkFraigTrustOne( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNe
 static Abc_Obj_t *    Abc_NodeFraigTrust( Abc_Aig_t * pMan, Abc_Obj_t * pNode );
  
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

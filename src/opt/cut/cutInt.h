@@ -105,7 +105,7 @@ struct Cut_ManStruct_t_
           pCut2 = pCut? pCut->pNext: NULL )
 
 ////////////////////////////////////////////////////////////////////////
-///                      MACRO DEFITIONS                             ///
+///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 // computes signature of the node

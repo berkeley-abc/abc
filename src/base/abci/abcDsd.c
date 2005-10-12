@@ -35,7 +35,7 @@ static bool            Abc_NodeIsForDsd( Abc_Obj_t * pNode );
 static int             Abc_NodeFindMuxVar( DdManager * dd, DdNode * bFunc, int nVars );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

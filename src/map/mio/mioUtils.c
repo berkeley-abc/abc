@@ -28,7 +28,7 @@ static int  Mio_DelayCompare( Mio_Gate_t ** ppG1, Mio_Gate_t ** ppG2 );
 static void Mio_DeriveTruthTable_rec( DdNode * bFunc, unsigned uTruthsIn[][2], unsigned uTruthRes[] );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

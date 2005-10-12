@@ -108,7 +108,7 @@ static inline Rwr_Node_t * Rwr_Not( Rwr_Node_t * p )             { return (Rwr_N
 static inline Rwr_Node_t * Rwr_NotCond( Rwr_Node_t * p, int c )  { return (Rwr_Node_t *)((unsigned)(p) ^ (c));  }
 
 ////////////////////////////////////////////////////////////////////////
-///                      MACRO DEFITIONS                             ///
+///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////

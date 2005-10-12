@@ -31,7 +31,7 @@ static void            Msat_SolverAnalyze( Msat_Solver_t * p, Msat_Clause_t * pC
 static void            Msat_SolverReduceDB( Msat_Solver_t * p );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

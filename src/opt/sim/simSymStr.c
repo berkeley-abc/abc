@@ -41,7 +41,7 @@ static void  Sim_SymmsTransferToMatrix( Extra_BitMat_t * pMatSymm, Vec_Int_t * v
 static int * Sim_SymmsCreateMap( Abc_Ntk_t * pNtk );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

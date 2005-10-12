@@ -2152,7 +2152,7 @@ void Extra_TruthExpandGeneratePermTable()
         else
             printf( "    -%d,", 1 );
         printf( " // " );
-        Extra_PrintBinary( stdout, &((unsigned)i), 8 );
+        Extra_PrintBinary( stdout, (unsigned*)&i, 8 );
         printf( "\n" );
     }
     printf( "};\n" );
@@ -2174,7 +2174,7 @@ void Extra_TruthExpandGeneratePermTable()
                 printf( "%s %d", (k==0? "":","), iZero++ );
         assert( iOne + iZero == 8 );
         printf( " }%s // ", (i==255? " ":",") );
-        Extra_PrintBinary( stdout, &((unsigned)i), 8 );
+        Extra_PrintBinary( stdout, (unsigned*)&i, 8 );
         printf( "\n" );
     }
     printf( "};\n" );

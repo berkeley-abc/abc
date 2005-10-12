@@ -35,7 +35,7 @@ static void Abc_NtkFpgaCollect( Seq_FpgaMan_t * p );
 enum { ABC_FPGA_UPDATE_FAIL, ABC_FPGA_UPDATE_NO, ABC_FPGA_UPDATE_YES };
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

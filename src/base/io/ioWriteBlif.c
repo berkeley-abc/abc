@@ -35,7 +35,7 @@ static void Io_NtkWriteNode( FILE * pFile, Abc_Obj_t * pNode );
 static void Io_NtkWriteLatch( FILE * pFile, Abc_Obj_t * pLatch );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

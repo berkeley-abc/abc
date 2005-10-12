@@ -29,7 +29,7 @@ static int Abc_NodeRefDerefStop( Abc_Obj_t * pNode, bool fReference );
 static int Abc_NodeDeref( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

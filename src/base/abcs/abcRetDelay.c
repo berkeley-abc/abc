@@ -35,7 +35,7 @@ enum { ABC_UPDATE_FAIL, ABC_UPDATE_NO, ABC_UPDATE_YES };
 static void Abc_RetimingExperiment( Abc_Ntk_t * pNtk, Vec_Str_t * vLags );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

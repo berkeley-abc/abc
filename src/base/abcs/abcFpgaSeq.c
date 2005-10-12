@@ -36,7 +36,7 @@ static Abc_Ntk_t *     Abc_NtkFpgaSeqConstruct( Seq_FpgaMan_t * p );
 static void            Abc_NtkFpgaSeqRetime( Seq_FpgaMan_t * p, Abc_Ntk_t * pNtkNew );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

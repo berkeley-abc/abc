@@ -37,7 +37,7 @@ static void Fxu_UpdateCleanOldSingles( Fxu_Matrix * p );
 static void Fxu_UpdateAddNewSingles( Fxu_Matrix * p, Fxu_Var * pVar );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

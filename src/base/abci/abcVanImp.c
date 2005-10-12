@@ -102,7 +102,7 @@ static inline void Abc_NodeVanPrintImp( unsigned Imp )
 }
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -225,6 +225,7 @@ p->timeMis += clock() - clk;
     {
         printf( "Pairs = %8d. Imps = %8d. Seq = %7d. MIS = %7d. Equ = %5d. Const = %5d.\n", 
             p->nPairsAll, p->nImpsAll, Vec_IntSize(p->vImps), Vec_IntSize(p->vImpsMis), p->nEquals, p->nZeros );
+        PRT( "Visiting all nodes pairs while preparing for the inductive case", p->timeAll );
         printf( "Start    :  Seq = %7d.  MIS = %7d.  Const = %5d.\n", Vec_IntSize(p->vImps), Vec_IntSize(p->vImpsMis), Vec_PtrSize(p->vZeros) );
     }
 

@@ -105,7 +105,7 @@ static int Abc_CommandCec          ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int Abc_CommandSec          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

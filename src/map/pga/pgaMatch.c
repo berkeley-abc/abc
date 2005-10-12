@@ -29,7 +29,7 @@ static char * s_Modes[4] = { "Delay", "Flow", "Area", "Switch" };
 static int Pga_MappingMatchNode( Pga_Man_t * p, int NodeId, Cut_Cut_t * pList, int Mode );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

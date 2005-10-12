@@ -33,7 +33,7 @@ static int      Abc_NtkGetLevelNum_rec( Abc_Obj_t * pNode );
 static bool     Abc_NtkIsAcyclic_rec( Abc_Obj_t * pNode );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

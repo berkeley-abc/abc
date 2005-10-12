@@ -112,7 +112,7 @@ struct MvcManagerStruct
 };
 
 ////////////////////////////////////////////////////////////////////////
-///                       MACRO DEFITIONS                            ///
+///                       MACRO DEFINITIONS                          ///
 ////////////////////////////////////////////////////////////////////////
 
 // reading data from the header of the cube
@@ -566,7 +566,7 @@ struct MvcManagerStruct
 #define MEM_FREE( Manager, Type, Size, Pointer )  if ( Pointer ) { free(Pointer); Pointer = NULL; }
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /*=== mvcApi.c ====================================================*/

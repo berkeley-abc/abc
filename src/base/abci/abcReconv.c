@@ -44,7 +44,7 @@ static int   Abc_NodeBuildCutLevelTwo_int( Vec_Ptr_t * vVisited, Vec_Ptr_t * vLe
 static void  Abc_NodeConeMarkCollect_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vVisited );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

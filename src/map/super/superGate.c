@@ -120,7 +120,7 @@ static void           Super_WriteLibraryTree( Super_Man_t * pMan );
 static void           Super_WriteLibraryTree_rec( FILE * pFile, Super_Man_t * pMan, Super_Gate_t * pSuper, int * pCounter );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

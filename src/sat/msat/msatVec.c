@@ -28,7 +28,7 @@ static int Msat_IntVecSortCompare1( int * pp1, int * pp2 );
 static int Msat_IntVecSortCompare2( int * pp1, int * pp2 );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

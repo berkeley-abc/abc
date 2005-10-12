@@ -60,10 +60,11 @@
     (2) Second part of the body contains binary information about the edges connecting 
         the COs (POs and latch inputs) with the internal AIG nodes.
         Each edge is represented by one 4-byte integer the same way as a node fanin.
+        The latch initial value (2 bits) is stored in this integer.
 */
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

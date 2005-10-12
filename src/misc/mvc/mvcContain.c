@@ -26,7 +26,7 @@ static void Mvc_CoverRemoveDuplicates( Mvc_Cover_t * pCover );
 static void Mvc_CoverRemoveContained( Mvc_Cover_t * pCover );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 

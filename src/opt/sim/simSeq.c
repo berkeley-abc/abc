@@ -28,7 +28,7 @@
 static void Sim_SimulateSeqFrame( Vec_Ptr_t * vInfo, Abc_Ntk_t * pNtk, int iFrames, int nWords, int fTransfer );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

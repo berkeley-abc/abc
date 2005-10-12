@@ -35,7 +35,7 @@ static int Mio_GateParseFormula( Mio_Gate_t * pGate );
 static int Mio_GateCollectNames( char * pFormula, char * pPinNames[] );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
