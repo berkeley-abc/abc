@@ -112,10 +112,6 @@ Abc_Ntk_t * Abc_NtkFromPga( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodeCuts )
     // create the new network
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_BDD );
     dd = pNtkNew->pManFunc;
-    // set the constant node
-    pNode = Abc_AigConst1(pNtk->pManFunc);
-    if ( Abc_ObjFanoutNum(pNode) > 0 )
-        pNode->pCopy = Abc_NodeCreateConst1(pNtkNew);
     // add new nodes in topologic order
     vLeaves  = Vec_PtrAlloc( 6 );
     vVisited = Vec_PtrAlloc( 100 );

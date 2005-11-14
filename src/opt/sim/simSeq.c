@@ -53,7 +53,7 @@ Vec_Ptr_t * Sim_SimulateSeqRandom( Abc_Ntk_t * pNtk, int nFrames, int nWords )
     assert( Abc_NtkIsStrash(pNtk) );
     vInfo = Sim_UtilInfoAlloc( Abc_NtkObjNumMax(pNtk), nWords * nFrames, 0 );
     // set the constant data
-    pNode = Abc_AigConst1(pNtk->pManFunc);
+    pNode = Abc_NtkConst1(pNtk);
     Sim_UtilSetConst( Sim_SimInfoGet(vInfo,pNode), nWords * nFrames, 1 );
     // set the random PI data
     Abc_NtkForEachPi( pNtk, pNode, i )
@@ -94,7 +94,7 @@ Vec_Ptr_t * Sim_SimulateSeqModel( Abc_Ntk_t * pNtk, int nFrames, int * pModel )
     int i, k;
     vInfo = Sim_UtilInfoAlloc( Abc_NtkObjNumMax(pNtk), nFrames, 0 );
     // set the constant data
-    pNode = Abc_AigConst1(pNtk->pManFunc);
+    pNode = Abc_NtkConst1(pNtk);
     Sim_UtilSetConst( Sim_SimInfoGet(vInfo,pNode), nFrames, 1 );
     // set the random PI data
     Abc_NtkForEachPi( pNtk, pNode, i )

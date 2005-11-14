@@ -168,7 +168,7 @@ void Abc_NtkDsdConstruct( Dsd_Manager_t * pManDsd, Abc_Ntk_t * pNtk, Abc_Ntk_t *
 {
     Dsd_Node_t ** ppNodesDsd;
     Dsd_Node_t * pNodeDsd;
-    Abc_Obj_t * pNode, * pNodeNew, * pDriver, * pConst1;
+    Abc_Obj_t * pNode, * pNodeNew, * pDriver;
     int i, nNodesDsd;
 
     // save the CI nodes in the DSD nodes
@@ -177,10 +177,6 @@ void Abc_NtkDsdConstruct( Dsd_Manager_t * pManDsd, Abc_Ntk_t * pNtk, Abc_Ntk_t *
         pNodeDsd = Dsd_ManagerReadInput( pManDsd, i );
         Dsd_NodeSetMark( pNodeDsd, (int)pNode->pCopy );
     }
-    // set the constant node
-    pConst1 = Abc_AigConst1(pNtk->pManFunc);
-    if ( Abc_ObjFanoutNum(pConst1) > 0 )
-        pConst1->pCopy = Abc_NodeCreateConst1(pNtkNew);
 
     // collect DSD nodes in DFS order (leaves and const1 are not collected)
     ppNodesDsd = Dsd_TreeCollectNodesDfs( pManDsd, &nNodesDsd );

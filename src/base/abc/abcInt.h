@@ -43,11 +43,6 @@
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/*=== abcObj.c ==========================================================*/
-extern Abc_Obj_t *        Abc_ObjAlloc( Abc_Ntk_t * pNtk, Abc_ObjType_t Type );
-extern void               Abc_ObjRecycle( Abc_Obj_t * pObj );
-extern void               Abc_ObjAdd( Abc_Obj_t * pObj );
-
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

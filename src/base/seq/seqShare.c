@@ -1,12 +1,12 @@
 /**CFile****************************************************************
 
-  FileName    [abcShare.c]
+  FileName    [seqShare.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Procedures for latch sharing on the fanout edges.]
+  PackageName [Construction and manipulation of sequential AIGs.]
 
-  Synopsis    [Utilities working sequential AIGs.]
+  Synopsis    []
 
   Author      [Alan Mishchenko]
   
@@ -14,11 +14,11 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: abcShare.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: seqShare.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "abcs.h"
+#include "seqInt.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -42,7 +42,7 @@ static void Abc_NodeSeqShareOne( Abc_Obj_t * pNode, Abc_InitType_t Init, Vec_Ptr
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkSeqShareFanouts( Abc_Ntk_t * pNtk )
+void Seq_NtkSeqShareFanouts( Abc_Ntk_t * pNtk )
 {
     Vec_Ptr_t * vNodes;
     Abc_Obj_t * pObj;
@@ -84,7 +84,7 @@ void Abc_NodeSeqShareFanouts( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
     {
         if ( Abc_ObjFanoutL(pNode, pFanout) == 0 )
             continue;
-        Type = Abc_ObjFaninLGetInitLast( pFanout, Abc_ObjEdgeNum(pNode, pFanout) );
+        Type = Seq_NodeGetInitLast( pFanout, Abc_ObjFanoutEdgeNum(pNode, pFanout) );
         nLatches[Type]++;
     }
     // decide what to do
@@ -119,7 +119,7 @@ void Abc_NodeSeqShareFanouts( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
 ***********************************************************************/
 void Abc_NodeSeqShareOne( Abc_Obj_t * pNode, Abc_InitType_t Init, Vec_Ptr_t * vNodes )
 {
-    Vec_Int_t * vInits = pNode->pNtk->vInits;
+    Vec_Ptr_t * vInits = Seq_NodeLats( pNode );
     Abc_Obj_t * pFanout, * pBuffer;
     Abc_InitType_t Type, InitNew;
     int i;
@@ -130,28 +130,29 @@ void Abc_NodeSeqShareOne( Abc_Obj_t * pNode, Abc_InitType_t Init, Vec_Ptr_t * vN
     {
         if ( Abc_ObjFanoutL(pNode, pFanout) == 0 )
             continue;
-        Type = Abc_ObjFaninLGetInitLast( pFanout, Abc_ObjEdgeNum(pNode, pFanout) );
+        Type = Seq_NodeGetInitLast( pFanout, Abc_ObjFanoutEdgeNum(pNode, pFanout) );
         if ( Type == Init )
             InitNew = Init;
         if ( Type == Init || Type == ABC_INIT_DC )
         {
             Vec_PtrPush( vNodes, pFanout );
-            Abc_ObjFaninLDeleteLast( pFanout, Abc_ObjEdgeNum(pNode, pFanout) );
+            Seq_NodeDeleteLast( pFanout, Abc_ObjFanoutEdgeNum(pNode, pFanout) );
         }
     }
     // create the new buffer
     pBuffer = Abc_NtkCreateNode( pNode->pNtk );
     Abc_ObjAddFanin( pBuffer, pNode );
-    Abc_ObjSetFaninL( pBuffer, 0, 1 );
-    // add the initial state
-    assert( Vec_IntSize(vInits) == 2 * (int)pBuffer->Id );
-    Vec_IntPush( vInits, InitNew );
-    Vec_IntPush( vInits, 0       );
+
+    // grow storage for initial states
+    Vec_PtrGrow( vInits, 2 * pBuffer->Id + 2 );
+    for ( i = Vec_PtrSize(vInits); i < 2 * (int)pBuffer->Id + 2; i++ )
+        Vec_PtrPush( vInits, NULL );
+    Seq_NodeInsertFirst( pBuffer, 0, InitNew );
+
     // redirect the fanouts
     Vec_PtrForEachEntry( vNodes, pFanout, i )
         Abc_ObjPatchFanin( pFanout, pNode, pBuffer );
 }
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -25,7 +25,7 @@
 #include "fpga.h"
 #include "pga.h"
 #include "cut.h"
-#include "abcs.h"
+#include "seq.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -4474,6 +4474,7 @@ int Abc_CommandPga( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
+
     if ( !Abc_NtkIsStrash(pNtk) )
     {
         // strash and balance the network
@@ -4599,7 +4600,7 @@ int Abc_CommandInit( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( Abc_NtkIsComb(pNtk) )
     {
         fprintf( pErr, "The current network is combinational.\n" );
-        return 1;
+        return 0;
     }
 
     if ( fZeros )
@@ -4712,7 +4713,7 @@ int Abc_CommandPipe( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     fprintf( pErr, "usage: pipe [-L num] [-h]\n" );
-    fprintf( pErr, "\t         inserts the given number of latches at the PIs\n" );
+    fprintf( pErr, "\t         inserts the given number of latches at each PI for pipelining\n" );
     fprintf( pErr, "\t-L num : the number of latches to insert [default = %d]\n", nLatches );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -4758,8 +4759,11 @@ int Abc_CommandSeq( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-//    printf( "This command is not yet implemented.\n" );
-//    return 0;
+    if ( Abc_NtkIsSeq(pNtk) )
+    {
+        fprintf( pErr, "The current network is already a sequential AIG.\n" );
+        return 1;
+    }
 
     if ( !Abc_NtkIsStrash(pNtk) )
     {
@@ -4769,7 +4773,7 @@ int Abc_CommandSeq( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( Abc_NtkCountSelfFeedLatches(pNtk) )
     {
-        fprintf( pErr, "Works AIG has self-feeding latches. Cannot continue.\n" );
+        fprintf( pErr, "Sequential AIG cannot be created for designs with self-feeding latches.\n" );
         return 1;
     }
 
@@ -4844,7 +4848,7 @@ int Abc_CommandUnseq( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // share the latches on the fanout edges
     if ( fShare )
-        Abc_NtkSeqShareFanouts(pNtk);
+        Seq_NtkSeqShareFanouts(pNtk);
 
     // get the new network
     pNtkRes = Abc_NtkSeqToLogicSop( pNtk );
@@ -4893,7 +4897,7 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     fForward  = 0;
     fBackward = 0;
-    fInitial  = 0;
+    fInitial  = 1;
     fVerbose  = 0;
     util_getopt_reset();
     while ( ( c = util_getopt( argc, argv, "fbivh" ) ) != EOF )
@@ -4933,21 +4937,19 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // get the new network
     if ( fForward )
-        Abc_NtkSeqRetimeForward( pNtk, fVerbose );
+        Seq_NtkSeqRetimeForward( pNtk, fInitial, fVerbose );
     else if ( fBackward )
-        Abc_NtkSeqRetimeBackward( pNtk, fVerbose );
-    else if ( fInitial )
-        Abc_NtkSeqRetimeInitial( pNtk, fVerbose );
+        Seq_NtkSeqRetimeBackward( pNtk, fInitial, fVerbose );
     else
-        Abc_NtkSeqRetimeDelay( pNtk, fVerbose );
+        Seq_NtkSeqRetimeDelay( pNtk, fInitial, fVerbose );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: retime [-fbh]\n" );
+    fprintf( pErr, "usage: retime [-fbih]\n" );
     fprintf( pErr, "\t        retimes sequential AIG (default is Pan's delay-optimal retiming)\n" );
     fprintf( pErr, "\t-f    : toggle forward retiming [default = %s]\n", fForward? "yes": "no" );
     fprintf( pErr, "\t-b    : toggle backward retiming [default = %s]\n", fBackward? "yes": "no" );
-//    fprintf( pErr, "\t-i    : toggle retiming for initial state [default = %s]\n", fInitial? "yes": "no" );
+    fprintf( pErr, "\t-i    : toggle computation of initial state [default = %s]\n", fInitial? "yes": "no" );
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -5003,7 +5005,10 @@ int Abc_CommandSeqFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Works only for sequential AIG (run \"seq\").\n" );
         return 1;
     }
-return 0;
+
+    printf( "This command is not yet implemented.\n" );
+    return 0;
+
 
     // get the new network
     pNtkRes = Abc_NtkFpgaSeq( pNtk, fVerbose );
@@ -5075,7 +5080,11 @@ int Abc_CommandSeqMap( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Works only for sequential AIG (run \"seq\").\n" );
         return 1;
     }
-return 0;
+
+    printf( "This command is not yet implemented.\n" );
+    return 0;
+
+
 
     // get the new network
     pNtkRes = Abc_NtkMapSeq( pNtk, fVerbose );

@@ -165,9 +165,9 @@ void Mio_WriteGate( FILE * pFile, Mio_Gate_t * pGate, int fPrintSops )
     Mio_Pin_t * pPin;
 
     fprintf( pFile, "GATE " );
-    fprintf( pFile, "%12s ",   pGate->pName );
+    fprintf( pFile, "%12s ",      pGate->pName );
     fprintf( pFile, "%10.2f   ",  pGate->dArea );
-    fprintf( pFile, "O=%s;\n",    pGate->pForm );
+    fprintf( pFile, "%s=%s;\n",   pGate->pOutName,    pGate->pForm );
     // print the pins
     if ( fPrintSops )
         fprintf( pFile, "%s",       pGate->pSop? pGate->pSop : "unspecified\n" );

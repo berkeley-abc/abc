@@ -418,12 +418,14 @@ char *chomp( char *s )
 void Mio_LibraryDetectSpecialGates( Mio_Library_t * pLib )
 {
     Mio_Gate_t * pGate;
-    DdNode * bFuncBuf, * bFuncInv, * bFuncNand2;
+    DdNode * bFuncBuf, * bFuncInv, * bFuncNand2, * bFuncAnd2;
 
     bFuncBuf   = pLib->dd->vars[0];                                              Cudd_Ref( bFuncBuf );
     bFuncInv   = Cudd_Not( pLib->dd->vars[0] );                                  Cudd_Ref( bFuncInv );
     bFuncNand2 = Cudd_bddNand( pLib->dd, pLib->dd->vars[0], pLib->dd->vars[1] ); Cudd_Ref( bFuncNand2 );
+    bFuncAnd2  = Cudd_bddAnd( pLib->dd, pLib->dd->vars[0], pLib->dd->vars[1] );  Cudd_Ref( bFuncAnd2 );
 
+    // get buffer
     Mio_LibraryForEachGate( pLib, pGate )
         if ( pLib->pGateBuf == NULL && pGate->bFunc == bFuncBuf )
         {
@@ -435,7 +437,8 @@ void Mio_LibraryDetectSpecialGates( Mio_Library_t * pLib )
         printf( "Warnings: GENLIB library reader cannot detect the buffer gate.\n" );
         printf( "Some parts of the supergate-based technology mapper may not work correctly.\n" );
     }
-
+ 
+    // get inverter
     Mio_LibraryForEachGate( pLib, pGate )
         if ( pLib->pGateInv == NULL && pGate->bFunc == bFuncInv )
         {
@@ -448,20 +451,28 @@ void Mio_LibraryDetectSpecialGates( Mio_Library_t * pLib )
         printf( "Some parts of the supergate-based technology mapper may not work correctly.\n" );
     }
 
+    // get the NAND2 and AND2 gates
     Mio_LibraryForEachGate( pLib, pGate )
         if ( pLib->pGateNand2 == NULL && pGate->bFunc == bFuncNand2 )
         {
             pLib->pGateNand2 = pGate;
             break;
         }
-    if ( pLib->pGateNand2 == NULL )
+    Mio_LibraryForEachGate( pLib, pGate )
+        if ( pLib->pGateAnd2 == NULL && pGate->bFunc == bFuncAnd2 )
+        {
+            pLib->pGateAnd2 = pGate;
+            break;
+        }
+    if ( pLib->pGateAnd2 == NULL && pLib->pGateNand2 == NULL )
     {
-        printf( "Warnings: GENLIB library reader cannot detect the NAND2 gate.\n" );
+        printf( "Warnings: GENLIB library reader cannot detect the AND2 or NAND2 gate.\n" );
         printf( "Some parts of the supergate-based technology mapper may not work correctly.\n" );
     }
 
     Cudd_RecursiveDeref( pLib->dd, bFuncInv );
     Cudd_RecursiveDeref( pLib->dd, bFuncNand2 );
+    Cudd_RecursiveDeref( pLib->dd, bFuncAnd2 );
 }
 
 /**Function*************************************************************

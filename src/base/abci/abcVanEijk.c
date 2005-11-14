@@ -526,7 +526,7 @@ Abc_Ntk_t * Abc_NtkVanEijkFrames( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCorresp, int nF
         pNtkFrames->pName = util_strsav(Buffer);
     }
     // map the constant nodes
-    Abc_AigConst1(pNtk->pManFunc)->pCopy = Abc_AigConst1(pNtkFrames->pManFunc);
+    Abc_NtkConst1(pNtk)->pCopy = Abc_NtkConst1(pNtkFrames);
     // create new latches and remember them in the new latches
     Abc_NtkForEachLatch( pNtk, pLatch, i )
         Abc_NtkDupObj( pNtkFrames, pLatch );
@@ -591,7 +591,7 @@ void Abc_NtkVanEijkAddFrame( Abc_Ntk_t * pNtkFrames, Abc_Ntk_t * pNtk, int iFram
     // remember the CI mapping 
     if ( vCorresp )
     {
-        pNode = Abc_AigConst1(pNtk->pManFunc);
+        pNode = Abc_NtkConst1(pNtk);
         Abc_NodeVanEijkWriteCorresp( pNode, vCorresp, iFrame, Abc_ObjRegular(pNode->pCopy) );
         Abc_NtkForEachCi( pNtk, pNode, i )
             Abc_NodeVanEijkWriteCorresp( pNode, vCorresp, iFrame, Abc_ObjRegular(pNode->pCopy) );
@@ -669,7 +669,7 @@ Fraig_Man_t * Abc_NtkVanEijkFraig( Abc_Ntk_t * pMulti, int fInit )
     // clean the copy fields in the old network
     Abc_NtkCleanCopy( pMulti );
     // map the constant nodes
-    Abc_AigConst1(pMulti->pManFunc)->pCopy = (Abc_Obj_t *)Fraig_ManReadConst1(pMan);
+    Abc_NtkConst1(pMulti)->pCopy = (Abc_Obj_t *)Fraig_ManReadConst1(pMan);
     if ( fInit )
     {
         // map the PI nodes
@@ -726,14 +726,14 @@ Abc_Ntk_t * Abc_NtkVanEijkDeriveExdc( Abc_Ntk_t * pNtk, Vec_Ptr_t * vClasses )
     pNtkNew->pSpec = NULL;
 
     // map the constant nodes
-    Abc_AigConst1(pNtk->pManFunc)->pCopy = Abc_AigConst1(pNtkNew->pManFunc);
+    Abc_NtkConst1(pNtk)->pCopy = Abc_NtkConst1(pNtkNew);
     // for each CI, create PI
     Abc_NtkForEachCi( pNtk, pObj, i )
         Abc_NtkLogicStoreName( pObj->pCopy = Abc_NtkCreatePi(pNtkNew), Abc_ObjName(pObj) );
     // cannot add latches here because pLatch->pCopy pointers are used
 
     // create the cones for each pair of nodes in an equivalence class
-    pTotal = Abc_ObjNot( Abc_AigConst1(pNtkNew->pManFunc) );
+    pTotal = Abc_ObjNot( Abc_NtkConst1(pNtkNew) );
     Vec_PtrForEachEntry( vClasses, pClass, i )
     {
         assert( pClass->pNext );

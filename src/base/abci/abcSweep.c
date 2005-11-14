@@ -459,7 +459,7 @@ int Abc_NtkCleanup( Abc_Ntk_t * pNtk, int fVerbose )
     Vec_PtrFree( vNodes );
     // if it is an AIG, also mark the constant 1 node
     if ( Abc_NtkIsStrash(pNtk) )
-        Abc_AigConst1(pNtk->pManFunc)->fMarkA = 1;
+        Abc_NtkConst1(pNtk)->fMarkA = 1;
     // remove the non-marked nodes
     Counter = 0;
     Abc_NtkForEachNode( pNtk, pNode, i )

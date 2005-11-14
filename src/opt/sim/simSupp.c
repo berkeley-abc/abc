@@ -106,7 +106,7 @@ Vec_Ptr_t * Sim_ComputeFunSupp( Abc_Ntk_t * pNtk, int fVerbose )
     srand( 0xABC );
 
     // start the simulation manager
-    p = Sim_ManStart( pNtk );
+    p = Sim_ManStart( pNtk, 0 );
 
     // compute functional support using one round of random simulation
     Sim_UtilAssignRandom( p );

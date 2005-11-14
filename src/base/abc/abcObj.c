@@ -158,7 +158,7 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
                 pObjNew->pData = Cudd_bddTransfer(pObj->pNtk->pManFunc, pNtkNew->pManFunc, pObj->pData), Cudd_Ref(pObjNew->pData);
             else if ( Abc_NtkHasMapping(pNtkNew) )
                 pObjNew->pData = pObj->pData;
-            else if ( Abc_NtkIsStrash(pNtkNew) )
+            else if ( !Abc_NtkHasAig(pNtkNew) )
                 assert( 0 );
         }
     }
@@ -172,34 +172,6 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
     return pObjNew;
 }
 
-/**Function*************************************************************
-
-  Synopsis    [Creates a new constant node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Obj_t * Abc_NtkDupConst1( Abc_Ntk_t * pNtkAig, Abc_Ntk_t * pNtkNew )  
-{ 
-    Abc_Obj_t * pConst1;
-    assert( Abc_NtkHasAig(pNtkAig) );
-    assert( Abc_NtkIsLogic(pNtkNew) );
-    pConst1 = Abc_AigConst1(pNtkAig->pManFunc);
-    if ( Abc_ObjFanoutNum(pConst1) > 0 )
-        pConst1->pCopy = Abc_NodeCreateConst1( pNtkNew );
-    else
-    {
-        // skip the 0-th entry to allow one-to-one match of object IDs
-        if ( pConst1->Id == 0 && pNtkNew->nNodes == 0 )
-            Vec_PtrPush( pNtkNew->vObjs, NULL );
-    }
-
-    return pConst1->pCopy; 
-} 
 
 /**Function*************************************************************
 
@@ -518,9 +490,9 @@ Abc_Obj_t * Abc_NodeCreateConst0( Abc_Ntk_t * pNtk )
 Abc_Obj_t * Abc_NodeCreateConst1( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
-    if ( Abc_NtkHasAig(pNtk) )
-        return Abc_AigConst1(pNtk->pManFunc);
     pNode = Abc_NtkCreateNode( pNtk );   
+    if ( Abc_NtkHasAig(pNtk) )
+        return pNode;
     if ( Abc_NtkHasSop(pNtk) )
         pNode->pData = Abc_SopRegister( pNtk->pManFunc, " 1\n" );
     else if ( Abc_NtkHasBdd(pNtk) )
@@ -759,7 +731,7 @@ bool Abc_NodeIsConst0( Abc_Obj_t * pNode )
     if ( Abc_NtkHasBdd(pNtk) )
         return Cudd_IsComplement(pNode->pData);
     if ( Abc_NtkHasAig(pNtk) )
-        return Abc_ObjNot(pNode) == Abc_AigConst1(pNode->pNtk->pManFunc);
+        return Abc_ObjNot(pNode) == Abc_NtkConst1(pNode->pNtk);
     if ( Abc_NtkHasMapping(pNtk) )
         return pNode->pData == Mio_LibraryReadConst0(Abc_FrameReadLibSuper());
     assert( 0 );
@@ -787,7 +759,7 @@ bool Abc_NodeIsConst1( Abc_Obj_t * pNode )
     if ( Abc_NtkHasBdd(pNtk) )
         return !Cudd_IsComplement(pNode->pData);
     if ( Abc_NtkHasAig(pNtk) )
-        return pNode == Abc_AigConst1(pNode->pNtk->pManFunc);
+        return pNode == Abc_NtkConst1(pNode->pNtk);
     if ( Abc_NtkHasMapping(pNtk) )
         return pNode->pData == Mio_LibraryReadConst1(Abc_FrameReadLibSuper());
     assert( 0 );

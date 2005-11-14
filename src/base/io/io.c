@@ -42,6 +42,7 @@ static int IoCommandWriteCnf    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteDot    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteEqn    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteGml    ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandWriteList   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWritePla    ( Abc_Frame_t * pAbc, int argc, char **argv );
 
 ////////////////////////////////////////////////////////////////////////
@@ -78,6 +79,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "write_dot",     IoCommandWriteDot,     0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_eqn",     IoCommandWriteEqn,     0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_gml",     IoCommandWriteGml,     0 );
+    Cmd_CommandAdd( pAbc, "I/O", "write_list",    IoCommandWriteList,    0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_pla",     IoCommandWritePla,     0 );
 }
 
@@ -1237,6 +1239,71 @@ int IoCommandWriteGml( Abc_Frame_t * pAbc, int argc, char **argv )
 usage:
     fprintf( pAbc->Err, "usage: write_gml [-h] <file>\n" );
     fprintf( pAbc->Err, "\t         write network using graph representation formal GML\n" );
+    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IoCommandWriteList( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    char * FileName;
+    int fUseHost;
+    int c;
+
+    fUseHost = 1;
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "nh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'n':
+                fUseHost ^= 1;
+                break;
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+
+    if ( pAbc->pNtkCur == NULL )
+    {
+        fprintf( pAbc->Out, "Empty network.\n" );
+        return 0;
+    }
+
+    if ( !Abc_NtkIsSeq(pAbc->pNtkCur) )
+    {
+        fprintf( stdout, "IoCommandWriteList(): Can write adjacency list for sequential AIGs only.\n" );
+        return 0;
+    }
+
+    if ( argc != util_optind + 1 )
+    {
+        goto usage;
+    }
+
+    // get the input file name
+    FileName = argv[util_optind];
+    // write the file
+    Io_WriteList( pAbc->pNtkCur, FileName, fUseHost );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: write_list [-nh] <file>\n" );
+    fprintf( pAbc->Err, "\t         write network using graph representation formal GML\n" );
+    fprintf( pAbc->Err, "\t-n     : toggle writing host node [default = %s]\n", fUseHost? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
     return 1;

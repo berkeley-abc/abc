@@ -25,7 +25,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 static void        Abc_NtkBddToMuxesPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
-static Abc_Obj_t * Abc_NodeBddToMuxes( Abc_Obj_t * pNodeOld, Abc_Ntk_t * pNtkNew, Abc_Obj_t * pConst1 );
+static Abc_Obj_t * Abc_NodeBddToMuxes( Abc_Obj_t * pNodeOld, Abc_Ntk_t * pNtkNew );
 static Abc_Obj_t * Abc_NodeBddToMuxes_rec( DdManager * dd, DdNode * bFunc, Abc_Ntk_t * pNtkNew, st_table * tBdd2Node );
 static DdNode *    Abc_NodeGlobalBdds_rec( DdManager * dd, Abc_Obj_t * pNode );
 
@@ -149,11 +149,9 @@ void Abc_NtkBddToMuxesPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
 {
     ProgressBar * pProgress;
     DdManager * dd = pNtk->pManFunc;
-    Abc_Obj_t * pNode, * pNodeNew, * pConst1;
+    Abc_Obj_t * pNode, * pNodeNew;
     Vec_Ptr_t * vNodes;
     int i;
-    // create the constant one node
-    pConst1 = Abc_NodeCreateConst1( pNtkNew );
     // perform conversion in the topological order
     vNodes = Abc_NtkDfs( pNtk, 0 );
     pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
@@ -162,7 +160,7 @@ void Abc_NtkBddToMuxesPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
         Extra_ProgressBarUpdate( pProgress, i, NULL );
         // convert one node
         assert( Abc_ObjIsNode(pNode) );
-        pNodeNew = Abc_NodeBddToMuxes( pNode, pNtkNew, pConst1 );
+        pNodeNew = Abc_NodeBddToMuxes( pNode, pNtkNew );
         // mark the old node with the new one
         assert( pNode->pCopy == NULL );
         pNode->pCopy = pNodeNew;
@@ -182,7 +180,7 @@ void Abc_NtkBddToMuxesPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_NodeBddToMuxes( Abc_Obj_t * pNodeOld, Abc_Ntk_t * pNtkNew, Abc_Obj_t * pConst1 )
+Abc_Obj_t * Abc_NodeBddToMuxes( Abc_Obj_t * pNodeOld, Abc_Ntk_t * pNtkNew )
 {
     DdManager * dd = pNodeOld->pNtk->pManFunc;
     DdNode * bFunc = pNodeOld->pData;
@@ -192,7 +190,7 @@ Abc_Obj_t * Abc_NodeBddToMuxes( Abc_Obj_t * pNodeOld, Abc_Ntk_t * pNtkNew, Abc_O
     // create the table mapping BDD nodes into the ABC nodes
     tBdd2Node = st_init_table( st_ptrcmp, st_ptrhash );
     // add the constant and the elementary vars
-    st_insert( tBdd2Node, (char *)b1, (char *)pConst1 );
+    st_insert( tBdd2Node, (char *)b1, (char *)Abc_NtkConst1(pNtkNew) );
     Abc_ObjForEachFanin( pNodeOld, pFaninOld, i )
         st_insert( tBdd2Node, (char *)Cudd_bddIthVar(dd, i), (char *)pFaninOld->pCopy );
     // create the new nodes recursively
@@ -266,7 +264,7 @@ DdManager * Abc_NtkGlobalBdds( Abc_Ntk_t * pNtk, int fLatchOnly )
     Abc_NtkForEachCi( pNtk, pNode, i )
         pNode->pCopy = (Abc_Obj_t *)dd->vars[i]; 
     // assign the constant node BDD
-    pNode = Abc_AigConst1( pNtk->pManFunc );
+    pNode = Abc_NtkConst1( pNtk );
     pNode->pCopy = (Abc_Obj_t *)dd->one;   Cudd_Ref( dd->one );
 
     // collect the global functions of the COs

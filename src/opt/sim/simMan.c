@@ -31,7 +31,7 @@
 
 /**Function*************************************************************
 
-  Synopsis    [Starts the simulatin manager.]
+  Synopsis    [Starts the simulation manager.]
 
   Description []
                
@@ -83,7 +83,7 @@ Sym_Man_t * Sym_ManStart( Abc_Ntk_t * pNtk, int fVerbose )
 
 /**Function*************************************************************
 
-  Synopsis    [Stops the simulatin manager.]
+  Synopsis    [Stops the simulation manager.]
 
   Description []
                
@@ -149,11 +149,9 @@ void Sym_ManPrintStats( Sym_Man_t * p )
 }
 
 
-
-
 /**Function*************************************************************
 
-  Synopsis    [Starts the simulatin manager.]
+  Synopsis    [Starts the simulation manager.]
 
   Description []
                
@@ -162,7 +160,7 @@ void Sym_ManPrintStats( Sym_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Sim_Man_t * Sim_ManStart( Abc_Ntk_t * pNtk )
+Sim_Man_t * Sim_ManStart( Abc_Ntk_t * pNtk, int fLightweight )
 {
     Sim_Man_t * p;
     // start the manager
@@ -175,24 +173,27 @@ Sim_Man_t * Sim_ManStart( Abc_Ntk_t * pNtk )
     p->nSimBits   = 2048;
     p->nSimWords  = SIM_NUM_WORDS(p->nSimBits);
     p->vSim0      = Sim_UtilInfoAlloc( Abc_NtkObjNumMax(pNtk), p->nSimWords, 0 );
-    p->vSim1      = Sim_UtilInfoAlloc( Abc_NtkObjNumMax(pNtk), p->nSimWords, 0 );
-    // support information
-    p->nSuppBits  = Abc_NtkCiNum(pNtk);
-    p->nSuppWords = SIM_NUM_WORDS(p->nSuppBits);
-    p->vSuppStr   = Sim_ComputeStrSupp( pNtk );
-    p->vSuppFun   = Sim_UtilInfoAlloc( Abc_NtkCoNum(p->pNtk),  p->nSuppWords, 1 );
-    // other data
-    p->pMmPat     = Extra_MmFixedStart( sizeof(Sim_Pat_t) + p->nSuppWords * sizeof(unsigned) ); 
-    p->vFifo      = Vec_PtrAlloc( 100 );
-    p->vDiffs     = Vec_IntAlloc( 100 );
-    // allocate support targets (array of unresolved outputs for each input)
-    p->vSuppTargs = Vec_VecStart( p->nInputs );
+    p->fLightweight = fLightweight;
+    if (!p->fLightweight) {
+        p->vSim1      = Sim_UtilInfoAlloc( Abc_NtkObjNumMax(pNtk), p->nSimWords, 0 );
+        // support information
+        p->nSuppBits  = Abc_NtkCiNum(pNtk);
+        p->nSuppWords = SIM_NUM_WORDS(p->nSuppBits);
+        p->vSuppStr   = Sim_ComputeStrSupp( pNtk );
+        p->vSuppFun   = Sim_UtilInfoAlloc( Abc_NtkCoNum(p->pNtk),  p->nSuppWords, 1 );
+        // other data
+        p->pMmPat     = Extra_MmFixedStart( sizeof(Sim_Pat_t) + p->nSuppWords * sizeof(unsigned) ); 
+        p->vFifo      = Vec_PtrAlloc( 100 );
+        p->vDiffs     = Vec_IntAlloc( 100 );
+        // allocate support targets (array of unresolved outputs for each input)
+        p->vSuppTargs = Vec_VecStart( p->nInputs );
+    }
     return p;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Stops the simulatin manager.]
+  Synopsis    [Stops the simulation manager.]
 
   Description []
                

@@ -179,7 +179,7 @@ int Map_SuperLibDeriveFromGenlib( Mio_Library_t * pLib )
         return 0;
 
     // write the current library into the file
-    strcpy( FileNameGenlib, Mio_LibraryReadName(pLib) );
+    sprintf( FileNameGenlib, "%s_temp", Mio_LibraryReadName(pLib) );
     pFile = fopen( FileNameGenlib, "w" );
     Mio_WriteLibrary( pFile, pLib, 0 );
     fclose( pFile );

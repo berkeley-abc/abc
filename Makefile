@@ -6,7 +6,7 @@ CP   := cp
 
 PROG := abc
 
-MODULES := src/base/abc src/base/abci src/base/abcs src/base/cmd src/base/io src/base/main \
+MODULES := src/base/abc src/base/abci src/base/seq src/base/cmd src/base/io src/base/main \
            src/bdd/cudd src/bdd/dsd src/bdd/epd src/bdd/mtr src/bdd/parse src/bdd/reo \
            src/map/fpga src/map/pga src/map/mapper src/map/mio src/map/super \
            src/misc/extra src/misc/mvc src/misc/st src/misc/util src/misc/vec \

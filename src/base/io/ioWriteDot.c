@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "io.h"
-#include "abcs.h"
+#include "seq.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -316,7 +316,7 @@ void Io_WriteDot( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesShow, 
             fprintf( pFile, " [" );
             fprintf( pFile, "style = %s", Abc_ObjFaninC0(pNode)? "dotted" : "bold" );
             if ( Abc_ObjFaninL0(pNode) > 0 )
-            fprintf( pFile, ", label = \"%s\"", Abc_ObjFaninGetInitPrintable(pNode,0) );
+            fprintf( pFile, ", label = \"%s\"", Seq_ObjFaninGetInitPrintable(pNode,0) );
             fprintf( pFile, "]" );
             fprintf( pFile, ";\n" );
         }
@@ -331,7 +331,7 @@ void Io_WriteDot( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesShow, 
             fprintf( pFile, " [" );
             fprintf( pFile, "style = %s", Abc_ObjFaninC1(pNode)? "dotted" : "bold" );
             if ( Abc_ObjFaninL1(pNode) > 0 )
-            fprintf( pFile, ", label = \"%s\"", Abc_ObjFaninGetInitPrintable(pNode,1) );
+            fprintf( pFile, ", label = \"%s\"", Seq_ObjFaninGetInitPrintable(pNode,1) );
             fprintf( pFile, "]" );
             fprintf( pFile, ";\n" );
         }

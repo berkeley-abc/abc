@@ -21,7 +21,7 @@
 #include "mainInt.h"
 
 // this line should be included in the library project
-//#define _LIB
+#define _LIB
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -261,7 +261,7 @@ void Abc_Start()
     pAbc = Abc_FrameGetGlobalFrame();
 
     // source the resource file
-    Abc_UtilsSource( pAbc );
+//    Abc_UtilsSource( pAbc );
 }
 
 /**Function*************************************************************

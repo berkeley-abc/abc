@@ -83,8 +83,6 @@ void Abc_NtkBalancePerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig, bool fDuplica
     Abc_Obj_t * pNode, * pDriver;
     int i;
 
-    // copy the constant node
-    Abc_AigConst1(pNtk->pManFunc)->pCopy = Abc_AigConst1(pNtkAig->pManFunc);
     // set the level of PIs of AIG according to the arrival times of the old network
     Abc_NtkSetNodeLevelsArrival( pNtk );
     // allocate temporary storage for supergates
@@ -128,7 +126,7 @@ Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, Vec_
     vSuper = Abc_NodeBalanceCone( pNodeOld, vStorage, Level, fDuplicate );
     if ( vSuper->nSize == 0 )
     { // it means that the supergate contains two nodes in the opposite polarity
-        pNodeOld->pCopy = Abc_ObjNot(Abc_AigConst1(pMan));
+        pNodeOld->pCopy = Abc_ObjNot(Abc_NtkConst1(pNtkNew));
         return pNodeOld->pCopy;
     }
     // for each old node, derive the new well-balanced node

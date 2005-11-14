@@ -79,7 +79,7 @@ Abc_Ntk_t * Io_ReadBaf( char * pFileName, int fCheck )
 
     // prepare the array of nodes
     vNodes = Vec_PtrAlloc( 1 + nInputs + nLatches + nAnds );
-    Vec_PtrPush( vNodes, Abc_AigConst1(pNtkNew->pManFunc) );
+    Vec_PtrPush( vNodes, Abc_NtkConst1(pNtkNew) );
 
     // create the PIs
     for ( i = 0; i < nInputs; i++ )

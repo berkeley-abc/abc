@@ -30,6 +30,8 @@
     - there are no dangling nodes (the nodes without fanout)
     - the level of each AND gate reflects the levels of this fanins
     - the EXOR-status of each node is up-to-date
+    - the AND nodes are in the topological order
+    - the constant 1 node has always number 0 in the object list
     The operations that are performed on AIGs:
     - building new nodes (Abc_AigAnd)
     - performing elementary Boolean operations (Abc_AigOr, Abc_AigXor, etc)
@@ -48,8 +50,6 @@
 struct Abc_Aig_t_
 {
     Abc_Ntk_t *       pNtkAig;           // the AIG network
-    Abc_Obj_t *       pConst1;           // the constant 1 node
-//    Abc_Obj_t *       pReset;            // the sequential reset node
     Abc_Obj_t **      pBins;             // the table bins
     int               nBins;             // the size of the table
     int               nEntries;          // the total number of entries in the table
@@ -123,70 +123,7 @@ Abc_Aig_t * Abc_AigAlloc( Abc_Ntk_t * pNtkAig )
     pMan->vLevelsR         = Vec_VecAlloc( 100 );
     // save the current network
     pMan->pNtkAig = pNtkAig;
-    // allocate constant nodes
-    pMan->pConst1 = Abc_NtkCreateNode( pNtkAig );    
-    // subtract these nodes from the total number
-    pNtkAig->nNodes -= 1;
     return pMan;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Duplicated the AIG manager.]
-
-  Description [Assumes that CI/CO nodes are already created.
-  Transfers the latch attributes on the edges.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Aig_t * Abc_AigDup( Abc_Aig_t * pMan, Abc_Aig_t * pManNew )
-{
-    Vec_Ptr_t * vNodes;
-    Abc_Obj_t * pObj;
-    int i;
-    assert( Abc_NtkCiNum(pMan->pNtkAig)    == Abc_NtkCiNum(pManNew->pNtkAig) );
-    assert( Abc_NtkCoNum(pMan->pNtkAig)    == Abc_NtkCoNum(pManNew->pNtkAig) );
-    assert( Abc_NtkLatchNum(pMan->pNtkAig) == Abc_NtkLatchNum(pManNew->pNtkAig) );
-    // set mapping of the constant nodes
-    Abc_AigConst1( pMan )->pCopy = Abc_AigConst1( pManNew );
-    // set the mapping of CIs/COs
-    Abc_NtkForEachPi( pMan->pNtkAig, pObj, i )
-        pObj->pCopy = Abc_NtkPi( pManNew->pNtkAig, i );
-    Abc_NtkForEachPo( pMan->pNtkAig, pObj, i )
-        pObj->pCopy = Abc_NtkPo( pManNew->pNtkAig, i );
-    Abc_NtkForEachLatch( pMan->pNtkAig, pObj, i )
-        pObj->pCopy = Abc_NtkLatch( pManNew->pNtkAig, i );
-    // copy internal nodes
-    vNodes = Abc_AigDfs( pMan->pNtkAig, 0, 0 );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
-    {
-        if ( !Abc_NodeIsAigAnd(pObj) )
-            continue;
-        pObj->pCopy = Abc_AigAnd( pManNew, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
-//        printf( "Old = %4d. New = %4d.\n", pObj->Id, pObj->pCopy->Id );
-        // transfer latch attributes
-        Abc_ObjSetFaninL0( pObj->pCopy, Abc_ObjFaninL0(pObj) );
-        Abc_ObjSetFaninL1( pObj->pCopy, Abc_ObjFaninL1(pObj) );
-    }
-    // relink the choice nodes
-    Vec_PtrForEachEntry( vNodes, pObj, i )
-        if ( pObj->pData )
-            pObj->pCopy->pData = ((Abc_Obj_t *)pObj->pData)->pCopy;
-    Vec_PtrFree( vNodes );
-    // relink the CO nodes
-    Abc_NtkForEachCo( pMan->pNtkAig, pObj, i )
-    {
-        Abc_ObjAddFanin( pObj->pCopy, Abc_ObjChild0Copy(pObj) );
-        Abc_ObjSetFaninL0( pObj->pCopy, Abc_ObjFaninL0(pObj) );
-    }
-    // get the number of nodes before and after
-    if ( Abc_NtkNodeNum(pMan->pNtkAig) != Abc_NtkNodeNum(pManNew->pNtkAig) )
-        printf( "Warning: Structural hashing during duplication reduced %d nodes (to fix later).\n",
-            Abc_NtkNodeNum(pMan->pNtkAig) - Abc_NtkNodeNum(pManNew->pNtkAig) );
-    return pManNew;
 }
 
 /**Function*************************************************************
@@ -263,7 +200,7 @@ bool Abc_AigCheck( Abc_Aig_t * pMan )
         nFanins = Abc_ObjFaninNum(pObj);
         if ( nFanins == 0 )
         {
-            if ( pObj != pMan->pConst1 )
+            if ( pObj != Abc_NtkConst1(pMan->pNtkAig) )
             {
                 printf( "Abc_AigCheck: The AIG has non-standard constant nodes.\n" );
                 return 0;
@@ -322,23 +259,6 @@ int Abc_AigGetLevelNum( Abc_Ntk_t * pNtk )
             LevelsMax = (int)Abc_ObjFanin0(pNode)->Level;
     return LevelsMax;
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Read the constant 1 node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Obj_t * Abc_AigConst1( Abc_Aig_t * pMan )  
-{ 
-    return pMan->pConst1; 
-} 
-
 
 
 /**Function*************************************************************
@@ -429,24 +349,25 @@ Abc_Obj_t * Abc_AigAndCreateFrom( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * 
 ***********************************************************************/
 Abc_Obj_t * Abc_AigAndLookup( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 )
 {
-    Abc_Obj_t * pAnd;
+    Abc_Obj_t * pAnd, * pConst1;
     unsigned Key;
     // check for trivial cases
+    pConst1 = Abc_NtkConst1(pMan->pNtkAig);
     if ( p0 == p1 )
         return p0;
     if ( p0 == Abc_ObjNot(p1) )
-        return Abc_ObjNot(pMan->pConst1);
-    if ( Abc_ObjRegular(p0) == pMan->pConst1 )
+        return Abc_ObjNot(pConst1);
+    if ( Abc_ObjRegular(p0) == pConst1 )
     {
-        if ( p0 == pMan->pConst1 )
+        if ( p0 == pConst1 )
             return p1;
-        return Abc_ObjNot(pMan->pConst1);
+        return Abc_ObjNot(pConst1);
     }
-    if ( Abc_ObjRegular(p1) == pMan->pConst1 )
+    if ( Abc_ObjRegular(p1) == pConst1 )
     {
-        if ( p1 == pMan->pConst1 )
+        if ( p1 == pConst1 )
             return p0;
-        return Abc_ObjNot(pMan->pConst1);
+        return Abc_ObjNot(pConst1);
     }
     // order the arguments
     if ( Abc_ObjRegular(p0)->Id > Abc_ObjRegular(p1)->Id )
@@ -667,7 +588,7 @@ Abc_Obj_t * Abc_AigMiter( Abc_Aig_t * pMan, Vec_Ptr_t * vPairs )
     int i;
     assert( vPairs->nSize % 2 == 0 );
     // go through the cubes of the node's SOP
-    pMiter = Abc_ObjNot(pMan->pConst1);
+    pMiter = Abc_ObjNot( Abc_NtkConst1(pMan->pNtkAig) );
     for ( i = 0; i < vPairs->nSize; i += 2 )
     {
         pXor   = Abc_AigXor( pMan, vPairs->pArray[i], vPairs->pArray[i+1] );
@@ -1252,7 +1173,7 @@ void Abc_AigSetNodePhases( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pObj;
     int i;
     assert( Abc_NtkIsDfsOrdered(pNtk) );
-    Abc_AigConst1(pNtk->pManFunc)->fPhase = 1;
+    Abc_NtkConst1(pNtk)->fPhase = 1;
 //    Abc_NtkForEachCi( pNtk, pObj, i )
 //        pObj->fPhase = 0;
     Abc_NtkForEachPi( pNtk, pObj, i )

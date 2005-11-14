@@ -39,14 +39,14 @@
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Dec_GraphToNetwork( Abc_Aig_t * pMan, Dec_Graph_t * pGraph )
+Abc_Obj_t * Dec_GraphToNetwork( Abc_Ntk_t * pNtk, Dec_Graph_t * pGraph )
 {
     Abc_Obj_t * pAnd0, * pAnd1;
     Dec_Node_t * pNode;
     int i;
     // check for constant function
     if ( Dec_GraphIsConst(pGraph) )
-        return Abc_ObjNotCond( Abc_AigConst1(pMan), Dec_GraphIsComplement(pGraph) );
+        return Abc_ObjNotCond( Abc_NtkConst1(pNtk), Dec_GraphIsComplement(pGraph) );
     // check for a literal
     if ( Dec_GraphIsVar(pGraph) )
         return Abc_ObjNotCond( Dec_GraphVar(pGraph)->pFunc, Dec_GraphIsComplement(pGraph) );
@@ -55,7 +55,7 @@ Abc_Obj_t * Dec_GraphToNetwork( Abc_Aig_t * pMan, Dec_Graph_t * pGraph )
     {
         pAnd0 = Abc_ObjNotCond( Dec_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc, pNode->eEdge0.fCompl ); 
         pAnd1 = Abc_ObjNotCond( Dec_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc, pNode->eEdge1.fCompl ); 
-        pNode->pFunc = Abc_AigAnd( pMan, pAnd0, pAnd1 );
+        pNode->pFunc = Abc_AigAnd( pNtk->pManFunc, pAnd0, pAnd1 );
     }
     // complement the result if necessary
     return Abc_ObjNotCond( pNode->pFunc, Dec_GraphIsComplement(pGraph) );
@@ -119,7 +119,7 @@ int Dec_GraphToNetworkCount( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int NodeMa
         LevelNew = 1 + ABC_MAX( pNode0->Level, pNode1->Level );
         if ( pAnd )
         {
-            if ( Abc_ObjRegular(pAnd) == Abc_AigConst1(pMan) )
+            if ( Abc_ObjRegular(pAnd) == Abc_NtkConst1(pRoot->pNtk) )
                 LevelNew = 0;
             else if ( Abc_ObjRegular(pAnd) == Abc_ObjRegular(pAnd0) )
                 LevelNew = (int)Abc_ObjRegular(pAnd0)->Level;
@@ -155,7 +155,7 @@ void Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, bool fUpda
     int nNodesNew, nNodesOld;
     nNodesOld = Abc_NtkNodeNum(pNtk);
     // create the new structure of nodes
-    pRootNew = Dec_GraphToNetwork( pNtk->pManFunc, pGraph );
+    pRootNew = Dec_GraphToNetwork( pNtk, pGraph );
     // remove the old nodes
     Abc_AigReplace( pNtk->pManFunc, pRoot, pRootNew, fUpdateLevel );
     // compare the gains

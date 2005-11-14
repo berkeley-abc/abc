@@ -150,7 +150,7 @@ Fpga_Man_t * Abc_NtkToFpga( Abc_Ntk_t * pNtk, int fRecovery, float * pSwitching,
         // consider the case of a constant
         if ( Abc_NodeIsConst(pNode) )
         {
-            Abc_AigConst1(pNtk->pManFunc)->pCopy = (Abc_Obj_t *)Fpga_ManReadConst1(pMan);
+            Abc_NtkConst1(pNtk)->pCopy = (Abc_Obj_t *)Fpga_ManReadConst1(pMan);
             continue;
         }
         // add the node to the mapper
@@ -204,8 +204,7 @@ Abc_Ntk_t * Abc_NtkFromFpga( Fpga_Man_t * pMan, Abc_Ntk_t * pNtk )
     Abc_NtkForEachCi( pNtk, pNode, i )
         Fpga_NodeSetData0( Fpga_ManReadInputs(pMan)[i], (char *)pNode->pCopy );
     // set the constant node
-    if ( Abc_ObjFanoutNum( Abc_AigConst1(pNtk->pManFunc) ) > 0 )
-        Fpga_NodeSetData0( Fpga_ManReadConst1(pMan), (char *)Abc_NodeCreateConst1(pNtkNew) );
+    Fpga_NodeSetData0( Fpga_ManReadConst1(pMan), (char *)Abc_NtkConst1(pNtkNew) );
     // process the nodes in topological order
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pNode, i )

@@ -40,7 +40,7 @@ void open_libs() {
     int curr_lib = 0;
 
 #ifdef WIN32
-    printf("Warning: open_libs WIN32 not implemented.\n");
+//    printf("Warning: open_libs WIN32 not implemented.\n");
 #else
     DIR* dirp;
     struct dirent* dp;

@@ -95,7 +95,7 @@ struct Dec_Man_t_
 ////////////////////////////////////////////////////////////////////////
 
 /*=== decAbc.c ========================================================*/
-extern Abc_Obj_t *    Dec_GraphToNetwork( Abc_Aig_t * pMan, Dec_Graph_t * pGraph );
+extern Abc_Obj_t *    Dec_GraphToNetwork( Abc_Ntk_t * pNtk, Dec_Graph_t * pGraph );
 extern int            Dec_GraphToNetworkCount( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int NodeMax, int LevelMax );
 extern void           Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, bool fUpdateLevel, int nGain );
 /*=== decFactor.c ========================================================*/

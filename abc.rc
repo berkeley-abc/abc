@@ -70,4 +70,5 @@ alias thin     "rwz; rfz; b; ps"
 alias reti     "st; seq; ret; unseq; st"
 alias retis    "st; seq; ret; unseq -s; st"
 alias choice   "fraig_store; resyn; fraig_store; resyn2; fraig_store; fraig_restore"
+alias stest    "st; ps; seq; ps; unseq; st; ps; sec"
 

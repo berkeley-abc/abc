@@ -22,7 +22,7 @@
 #include "main.h"
 #include "mio.h"
 #include "dec.h"
-#include "abcs.h"
+#include "seq.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -938,18 +938,15 @@ void Abc_NtkReassignIds( Abc_Ntk_t * pNtk )
 {
     Vec_Ptr_t * vNodes;
     Vec_Ptr_t * vObjsNew;
-    Abc_Obj_t * pNode, * pTemp;
-    Abc_Obj_t * pConst1 = NULL, * pReset = NULL;
+    Abc_Obj_t * pNode, * pTemp, * pConst1;
     int i, k;
+    assert( Abc_NtkIsStrash(pNtk) );
     // start the array of objects with new IDs
     vObjsNew = Vec_PtrAlloc( pNtk->nObjs );
-    // put constant nodes (if present) first
-    if ( Abc_NtkIsStrash(pNtk) )
-    {
-        pConst1 = Abc_AigConst1(pNtk->pManFunc);
-        pConst1->Id = Vec_PtrSize( vObjsNew );
-        Vec_PtrPush( vObjsNew, pConst1 );
-    }
+    // put constant node first
+    pConst1 = Abc_NtkConst1(pNtk);
+    assert( pConst1->Id == 0 );
+    Vec_PtrPush( vObjsNew, pConst1 );
     // put PI nodes next
     Abc_NtkForEachPi( pNtk, pNode, i )
     {
@@ -972,7 +969,7 @@ void Abc_NtkReassignIds( Abc_Ntk_t * pNtk )
     vNodes = Abc_NtkDfs( pNtk, 1 );
     Vec_PtrForEachEntry( vNodes, pNode, i )
     {
-        if ( pNode == pReset || pNode == pConst1 )
+        if ( pNode == pConst1 )
             continue;
         pNode->Id = Vec_PtrSize( vObjsNew );
         Vec_PtrPush( vObjsNew, pNode );
@@ -992,6 +989,9 @@ void Abc_NtkReassignIds( Abc_Ntk_t * pNtk )
     // replace the array of objs
     Vec_PtrFree( pNtk->vObjs );
     pNtk->vObjs = vObjsNew;
+
+    // rehash the AIG
+    Abc_AigRehash( pNtk->pManFunc );
 }
 
 ////////////////////////////////////////////////////////////////////////

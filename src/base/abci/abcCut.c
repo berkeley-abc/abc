@@ -56,6 +56,7 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
     extern void Abc_NtkBalanceDetach( Abc_Ntk_t * pNtk );
 
     assert( Abc_NtkIsStrash(pNtk) );
+
     if ( pParams->fMulti )
         Abc_NtkBalanceAttach(pNtk);
 

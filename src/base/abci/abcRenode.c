@@ -121,7 +121,7 @@ void Abc_NtkRenodeInt( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
     int i;
 
     // set the constant node
-    pConst1 = Abc_AigConst1(pNtk->pManFunc);
+    pConst1 = Abc_NtkConst1(pNtk);
     if ( Abc_ObjFanoutNum(pConst1) > 0 )
     {
         pNodeNew = Abc_NtkCreateNode( pNtkNew );  

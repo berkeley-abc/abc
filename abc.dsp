@@ -42,7 +42,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /I "src\base\abc" /I "src\base\abci" /I "src\base\abcs" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\ft" /I "src\sat\asat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\sim" /I "src\opt\rwr" /I "src\map\fpga" /I "src\map\pga" /I "src\map\mapper" /I "src\map\mapp" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\mvc" /I "src\misc\util" /I "src\misc\npn" /I "src\misc\vec" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /D "HAVE_ASSERT_H" /FR /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /I "src\base\abc" /I "src\base\abci" /I "src\base\abcs" /I "src\base\seq" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\ft" /I "src\sat\asat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\sim" /I "src\opt\rwr" /I "src\map\fpga" /I "src\map\pga" /I "src\map\mapper" /I "src\map\mapp" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\mvc" /I "src\misc\util" /I "src\misc\npn" /I "src\misc\vec" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /D "HAVE_ASSERT_H" /FR /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -66,7 +66,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /c
-# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "src\base\abc" /I "src\base\abci" /I "src\base\abcs" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\ft" /I "src\sat\asat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\sim" /I "src\opt\rwr" /I "src\map\fpga" /I "src\map\pga" /I "src\map\mapper" /I "src\map\mapp" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\mvc" /I "src\misc\util" /I "src\misc\npn" /I "src\misc\vec" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /D "HAVE_ASSERT_H" /FR /YX /FD /GZ /c
+# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "src\base\abc" /I "src\base\abci" /I "src\base\abcs" /I "src\base\seq" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\ft" /I "src\sat\asat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\sim" /I "src\opt\rwr" /I "src\map\fpga" /I "src\map\pga" /I "src\map\mapper" /I "src\map\mapp" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\mvc" /I "src\misc\util" /I "src\misc\npn" /I "src\misc\vec" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /D "HAVE_ASSERT_H" /FR /YX /FD /GZ /c
 # SUBTRACT CPP /X
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
@@ -273,54 +273,6 @@ SOURCE=.\src\base\abci\abcVanImp.c
 SOURCE=.\src\base\abci\abcVerify.c
 # End Source File
 # End Group
-# Begin Group "abcs"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\base\abcs\abcFpgaDelay.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abcs\abcFpgaSeq.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abcs\abcRetCore.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abcs\abcRetDelay.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abcs\abcRetImpl.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abcs\abcRetUtil.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abcs\abcs.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abcs\abcSeq.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abcs\abcSeqMan.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abcs\abcShare.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abcs\abcUtils.c
-# End Source File
-# End Group
 # Begin Group "cmd"
 
 # PROP Default_Filter ""
@@ -438,6 +390,10 @@ SOURCE=.\src\base\io\ioWriteGml.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\io\ioWriteList.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\io\ioWritePla.c
 # End Source File
 # End Group
@@ -471,6 +427,62 @@ SOURCE=.\src\base\main\mainInt.h
 # Begin Source File
 
 SOURCE=.\src\base\main\mainUtils.c
+# End Source File
+# End Group
+# Begin Group "seq"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\base\seq\seq.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\seq\seqCreate.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\seq\seqFpgaCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\seq\seqFpgaIter.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\seq\seqInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\seq\seqLatch.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\seq\seqMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\seq\seqMapCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\seq\seqMapIter.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\seq\seqRetCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\seq\seqRetIter.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\seq\seqShare.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\seq\seqUtil.c
 # End Source File
 # End Group
 # End Group

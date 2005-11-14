@@ -98,6 +98,7 @@ struct Sim_Man_t_
     Abc_Ntk_t *       pNtk;
     int               nInputs;
     int               nOutputs;
+    int               fLightweight;
     // internal simulation information
     int               nSimBits;      // the number of bits in simulation info
     int               nSimWords;     // the number of words in simulation info
@@ -172,7 +173,7 @@ struct Sim_Pat_t_
 extern Sym_Man_t *     Sym_ManStart( Abc_Ntk_t * pNtk, int fVerbose );
 extern void            Sym_ManStop( Sym_Man_t * p );
 extern void            Sym_ManPrintStats( Sym_Man_t * p );
-extern Sim_Man_t *     Sim_ManStart( Abc_Ntk_t * pNtk );
+extern Sim_Man_t *     Sim_ManStart( Abc_Ntk_t * pNtk, int fLightweight );
 extern void            Sim_ManStop( Sim_Man_t * p );
 extern void            Sim_ManPrintStats( Sim_Man_t * p );
 extern Sim_Pat_t *     Sim_ManPatAlloc( Sim_Man_t * p );

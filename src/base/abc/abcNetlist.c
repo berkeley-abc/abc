@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
-#include "abcs.h"
+#include "seq.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -158,10 +158,7 @@ Abc_Ntk_t * Abc_NtkLogicSopToNetlist( Abc_Ntk_t * pNtk )
         Abc_NtkBddToSop(pNtk);
 
     // start the netlist by creating PI/PO/Latch objects
-    if ( Abc_NtkIsSopLogic(pNtk) )
-        pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_NETLIST, ABC_FUNC_SOP );
-    else
-        pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_NETLIST, ABC_FUNC_BDD );
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_NETLIST, pNtk->ntkFunc );
 
     // create the CI nets and remember them in the new CI nodes
     Abc_NtkForEachCi( pNtk, pObj, i )
@@ -240,8 +237,6 @@ Abc_Ntk_t * Abc_NtkAigToLogicSop( Abc_Ntk_t * pNtk )
     assert( Abc_NtkIsStrash(pNtk) );
     // start the network
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
-    // create the constant node
-    Abc_NtkDupConst1( pNtk, pNtkNew );
     // duplicate the nodes and create node functions
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
@@ -317,8 +312,6 @@ Abc_Ntk_t * Abc_NtkAigToLogicSopBench( Abc_Ntk_t * pNtk )
         printf( "Warning: Choice nodes are skipped.\n" );
     // start the network
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
-    // create the constant node
-    Abc_NtkDupConst1( pNtk, pNtkNew );
     // collect the nodes to be used (marks all nodes with current TravId)
     vNodes = Abc_NtkDfs( pNtk, 0 );
     // create inverters for the CI and remember them

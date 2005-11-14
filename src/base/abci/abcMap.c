@@ -56,11 +56,11 @@ static Abc_Obj_t *  Abc_NodeFromMapSuperChoice_rec( Abc_Ntk_t * pNtkNew, Map_Sup
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, int fSwitching, int fVerbose )
 {
+    int fShowSwitching = 1;
     Abc_Ntk_t * pNtkNew;
     Map_Man_t * pMan;
     Vec_Int_t * vSwitching;
     float * pSwitching = NULL;
-    int fShowSwitching = 0;
     int clk;
 
     assert( Abc_NtkIsStrash(pNtk) );
@@ -176,7 +176,7 @@ Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, f
         // consider the case of a constant
         if ( Abc_NodeIsConst(pNode) )
         {
-            Abc_AigConst1(pNtk->pManFunc)->pCopy = (Abc_Obj_t *)Map_ManReadConst1(pMan);
+            Abc_NtkConst1(pNtk)->pCopy = (Abc_Obj_t *)Map_ManReadConst1(pMan);
             continue;
         }
         // add the node to the mapper
@@ -231,8 +231,7 @@ Abc_Ntk_t * Abc_NtkFromMap( Map_Man_t * pMan, Abc_Ntk_t * pNtk )
     Abc_NtkForEachCi( pNtk, pNode, i )
         Map_NodeSetData( Map_ManReadInputs(pMan)[i], 1, (char *)pNode->pCopy );
     // set the constant node
-    if ( Abc_ObjFanoutNum( Abc_AigConst1(pNtk->pManFunc) ) > 0 )
-        Map_NodeSetData( Map_ManReadConst1(pMan), 1, (char *)Abc_NodeCreateConst1(pNtkNew) );
+    Map_NodeSetData( Map_ManReadConst1(pMan), 1, (char *)Abc_NtkConst1(pNtkNew) );
 
     // assign the mapping of the required phase to the POs
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );

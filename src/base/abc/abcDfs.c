@@ -219,8 +219,8 @@ void Abc_NtkDfsReverse_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
 ***********************************************************************/
 bool Abc_NtkIsDfsOrdered( Abc_Ntk_t * pNtk )
 {
-    Abc_Obj_t * pNode;
-    int i;
+    Abc_Obj_t * pNode, * pFanin;
+    int i, k;
     // set the traversal ID
     Abc_NtkIncrementTravId( pNtk );
     // mark the CIs
@@ -229,12 +229,11 @@ bool Abc_NtkIsDfsOrdered( Abc_Ntk_t * pNtk )
     // go through the nodes
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
-        if ( Abc_ObjFaninNum(pNode) == 0 )
-            continue;
-        if ( !Abc_NodeIsTravIdCurrent(Abc_ObjFanin0(pNode)) )
-            return 0;
-        if ( !Abc_NodeIsTravIdCurrent(Abc_ObjFanin1(pNode)) )
-            return 0;
+        Abc_ObjForEachFanin( pNode, pFanin, k )
+        {
+            if ( !Abc_NodeIsTravIdCurrent(pFanin) )
+                return 0;
+        }
         Abc_NodeSetTravIdCurrent( pNode );
     }
     return 1;
@@ -672,7 +671,7 @@ int Abc_AigSetChoiceLevels( Abc_Ntk_t * pNtk )
         Abc_NodeSetTravIdCurrent( pObj );
         pObj->pCopy = NULL;
     }
-    pObj = Abc_AigConst1( pNtk->pManFunc );
+    pObj = Abc_NtkConst1( pNtk );
     Abc_NodeSetTravIdCurrent( pObj );
     pObj->pCopy = NULL;
     // set levels of all other nodes

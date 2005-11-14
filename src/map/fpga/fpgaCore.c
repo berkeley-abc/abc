@@ -64,13 +64,10 @@ int Fpga_Mapping( Fpga_Man_t * p )
     p->timeMatch = clock() - clk;
 
     // perform area recovery
-    if ( p->fAreaRecovery )
-    {
-        clk = clock();
-        if ( !Fpga_MappingPostProcess( p ) )
-            return 0;
-        p->timeRecover = clock() - clk;
-    }
+    clk = clock();
+    if ( !Fpga_MappingPostProcess( p ) )
+        return 0;
+    p->timeRecover = clock() - clk;
 //PRT( "Total mapping time", clock() - clkTotal );
 
     // print the AI-graph used for mapping
@@ -113,6 +110,9 @@ if ( fShowSwitching )
 printf( "Switch = %8.1f  ", Fpga_MappingGetSwitching(p,p->vMapping) );
 PRT( "Time", p->timeMatch );
 }
+
+    if ( !p->fAreaRecovery )
+        return 1;
 
     if ( fRecoverAreaFlow )
     {

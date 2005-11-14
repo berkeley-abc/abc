@@ -20,7 +20,7 @@
 
 #include "abc.h"
 #include "dec.h"
-#include "abcs.h"
+#include "seq.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -51,7 +51,7 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
     if ( !Abc_NtkIsSeq(pNtk) )
         fprintf( pFile, "  lat = %4d", Abc_NtkLatchNum(pNtk) );
     else
-        fprintf( pFile, "  lat = %4d(%d)", Abc_NtkSeqLatchNum(pNtk), Abc_NtkSeqLatchNumShared(pNtk) );
+        fprintf( pFile, "  lat = %4d(%d,%d)", Seq_NtkLatchNum(pNtk), Seq_NtkLatchNumShared(pNtk), Seq_NtkLatchNumMax(pNtk) );
 
     if ( Abc_NtkIsNetlist(pNtk) )
     {
@@ -150,7 +150,7 @@ void Abc_NtkPrintLatch( FILE * pFile, Abc_Ntk_t * pNtk )
     assert( !Abc_NtkIsNetlist(pNtk) );
     if ( Abc_NtkIsSeq(pNtk) )
     {
-        Abc_NtkSeqLatchGetInitNums( pNtk, InitNums );
+        Seq_NtkLatchGetInitNums( pNtk, InitNums );
         fprintf( pFile, "%-15s:  ", pNtk->pName );
         fprintf( pFile, "Latch = %6d. No = %4d. Zero = %4d. One = %4d. DC = %4d.\n", 
             Abc_NtkLatchNum(pNtk), InitNums[0], InitNums[1], InitNums[2], InitNums[3] );
