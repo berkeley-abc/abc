@@ -50,7 +50,7 @@
 
     The body:
     (1) First part of the body contains binary information about the internal AIG nodes.
-        Each internal AIG node is represented using two 4-byte integers. 
+        Each internal AIG node is represented using two edges (each edge is a 4-byte integer). 
         Each integer is the fanin ID followed by 1-bit representation of the complemented attribute.
         (For example, complemented edge to node 10 will be represented as 2*10 + 1 = 21.)
         The IDs of the nodes are created as follows: Constant 1 node has ID=0. 
@@ -58,8 +58,8 @@
         Each node in the array of the internal AIG nodes has the ID assigned in that order.
         The constant 1 node is not written into the file.
     (2) Second part of the body contains binary information about the edges connecting 
-        the COs (POs and latch inputs) with the internal AIG nodes.
-        Each edge is represented by one 4-byte integer the same way as a node fanin.
+        the COs (POs and latch inputs) to the internal AIG nodes.
+        Each edge is a 4-byte integer the same way as a node fanin.
         The latch initial value (2 bits) is stored in this integer.
 */
 

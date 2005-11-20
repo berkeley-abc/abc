@@ -185,6 +185,36 @@ void Seq_NodeDupLats( Abc_Obj_t * pObjNew, Abc_Obj_t * pObj, int Edge )
         Seq_NodeInsertLast( pObjNew, Edge, Seq_LatInit(pLat) );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Insert the last Lat on the edge.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Seq_NodeCompareLats( Abc_Obj_t * pObj1, int Edge1, Abc_Obj_t * pObj2, int Edge2 )  
+{ 
+    Seq_Lat_t * pRing1, * pRing2, * pLat1, * pLat2;
+    int i, nLatches1, nLatches2;
+
+    nLatches1 = Seq_NodeCountLats( pObj1, Edge1 );
+    nLatches2 = Seq_NodeCountLats( pObj2, Edge2 );
+    if ( nLatches1 != nLatches2 )
+        return 0;
+
+    pRing1 = Seq_NodeGetRing( pObj1, Edge1 );
+    pRing2 = Seq_NodeGetRing( pObj2, Edge2 );
+    for ( i = 0, pLat1 = pRing1, pLat2 = pRing2; i < nLatches1; i++, pLat1 = pLat1->pNext, pLat2 = pLat2->pNext )
+        if ( Seq_LatInit(pLat1) != Seq_LatInit(pLat2) )
+            return 0;
+
+    return 1;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

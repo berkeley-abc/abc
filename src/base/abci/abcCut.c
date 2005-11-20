@@ -193,7 +193,7 @@ Cut_Man_t * Abc_NtkSeqCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
 
     // start the manager
     pParams->nIdsMax = Abc_NtkObjNumMax( pNtk );
-    pParams->nCutSet = pNtk->vLats->nSize;
+    pParams->nCutSet = Abc_NtkCutSetNodeNum( pNtk );
     p = Cut_ManStart( pParams );
 
     // set cuts for PIs

@@ -6,7 +6,7 @@
 
   PackageName [Construction and manipulation of sequential AIGs.]
 
-  Synopsis    []
+  Synopsis    [The core of retiming procedures.]
 
   Author      [Alan Mishchenko]
   
@@ -72,7 +72,7 @@ void Seq_NtkSeqRetimeDelay( Abc_Ntk_t * pNtk, int fInitial, int fVerbose )
     if ( !fInitial )
         Seq_NtkLatchSetValues( pNtk, ABC_INIT_DC );
     // get the retiming lags
-    Seq_NtkSeqRetimeDelayLags( pNtk, fVerbose );
+    Seq_NtkRetimeDelayLags( pNtk, fVerbose );
     // implement this retiming
     RetValue = Seq_NtkImplementRetiming( pNtk, p->vLags, fVerbose );
     if ( RetValue == 0 )

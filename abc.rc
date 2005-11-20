@@ -1,5 +1,5 @@
 # global parameters
-#set check         # checks intermediate networks
+set check         # checks intermediate networks
 #set checkfio      # prints warnings when fanins/fanouts are duplicated
 set checkread     # checks new networks after reading from file
 set backup        # saves backup networks retrived by "undo" and "recall"
@@ -65,10 +65,13 @@ alias share    "b; ren; fx; b"
 alias sharem   "b; ren -m; fx; b"
 alias sharedsd "b; ren; dsd -g; sw; fx; b"
 alias resyn    "b; rw; rwz; b; rwz; b"
+alias resynl   "b; rw -l; rwz -l; b; rwz -l; b"
 alias resyn2   "b; rw; rf; b; rw; rwz; b; rfz; rwz; b"
+alias resyn2l  "b; rw -l; rf -l; b; rw -l; rwz -l; b; rfz -l; rwz -l; b"
 alias thin     "rwz; rfz; b; ps"
 alias reti     "st; seq; ret; unseq; st"
 alias retis    "st; seq; ret; unseq -s; st"
 alias choice   "fraig_store; resyn; fraig_store; resyn2; fraig_store; fraig_restore"
 alias stest    "st; ps; seq; ps; unseq; st; ps; sec"
+alias t        "r pan2.blif; st; seq; sfpga; sec"
 

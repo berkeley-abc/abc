@@ -6,7 +6,7 @@
 
   PackageName [Construction and manipulation of sequential AIGs.]
 
-  Synopsis    []
+  Synopsis    [The iterative L-Value computation for retiming procedures.]
 
   Author      [Alan Mishchenko]
   
@@ -27,10 +27,7 @@
 // the internal procedures
 static int Seq_RetimeSearch_rec( Abc_Ntk_t * pNtk, int FiMin, int FiMax, int fVerbose );
 static int Seq_RetimeForPeriod( Abc_Ntk_t * pNtk, int Fi, int fVerbose );
-static int Seq_NodeUpdateLValue( Abc_Obj_t * pObj, int Fi );
-
-// node status after updating its arrival time
-enum { SEQ_UPDATE_FAIL, SEQ_UPDATE_NO, SEQ_UPDATE_YES };
+static int Seq_RetimeNodeUpdateLValue( Abc_Obj_t * pObj, int Fi );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -47,11 +44,12 @@ enum { SEQ_UPDATE_FAIL, SEQ_UPDATE_NO, SEQ_UPDATE_YES };
   SeeAlso     []
 
 ***********************************************************************/
-void Seq_NtkSeqRetimeDelayLags( Abc_Ntk_t * pNtk, int fVerbose )
+void Seq_NtkRetimeDelayLags( Abc_Ntk_t * pNtk, int fVerbose )
 {
     Abc_Seq_t * p = pNtk->pManFunc;
     Abc_Obj_t * pNode;
     int i, FiMax, FiBest, RetValue;
+    char NodeLag;
 
     assert( Abc_NtkIsSeq( pNtk ) );
 
@@ -69,14 +67,17 @@ void Seq_NtkSeqRetimeDelayLags( Abc_Ntk_t * pNtk, int fVerbose )
     // search for the optimal clock period between 0 and nLevelMax
     FiBest = Seq_RetimeSearch_rec( pNtk, 0, FiMax, fVerbose );
 
-    // recompute the best LValues
+    // recompute the best l-values
     RetValue = Seq_RetimeForPeriod( pNtk, FiBest, fVerbose );
     assert( RetValue );
 
     // write the retiming lags
     Vec_StrFill( p->vLags, p->nSize, 0 );
     Abc_AigForEachAnd( pNtk, pNode, i )
-        Seq_NodeSetLag( pNode, (char)Seq_NodeComputeLag(Seq_NodeGetLValue(pNode), FiBest) );
+    {
+        NodeLag = Seq_NodeComputeLag( Seq_NodeGetLValue(pNode), FiBest );
+        Seq_NodeSetLag( pNode, NodeLag );
+    }
 
     // print the result
     if ( fVerbose )
@@ -140,7 +141,7 @@ int Seq_RetimeForPeriod( Abc_Ntk_t * pNtk, int Fi, int fVerbose )
     // set l-values of all nodes to be minus infinity
     Vec_IntFill( p->vLValues, p->nSize, -ABC_INFINITY );
 
-    // set l-values for the constant and PIs
+    // set l-values of constants and PIs
     pObj = Abc_NtkObj( pNtk, 0 );
     Seq_NodeSetLValue( pObj, 0 );
     Abc_NtkForEachPi( pNtk, pObj, i )
@@ -151,13 +152,27 @@ int Seq_RetimeForPeriod( Abc_Ntk_t * pNtk, int Fi, int fVerbose )
     for ( c = 0; c < 20; c++ )
     {
         fChange = 0;
-        Abc_NtkForEachObj( pNtk, pObj, i )
+        Abc_AigForEachAnd( pNtk, pObj, i )
         {
-            if ( Abc_ObjIsPi(pObj) )
+            if ( Seq_NodeCutMan(pObj) )
+                RetValue = Seq_FpgaNodeUpdateLValue( pObj, Fi );
+            else
+                RetValue = Seq_RetimeNodeUpdateLValue( pObj, Fi );
+//printf( "Node = %d. Value = %d. \n", pObj->Id, RetValue );
+            Counter++;
+            if ( RetValue == SEQ_UPDATE_FAIL )
+                break;
+            if ( RetValue == SEQ_UPDATE_NO ) 
                 continue;
-            if ( Abc_ObjFaninNum(pObj) == 0 )
-                continue;
-            RetValue = Seq_NodeUpdateLValue( pObj, Fi );
+            fChange = 1;
+        }
+        Abc_NtkForEachPo( pNtk, pObj, i )
+        {
+            if ( Seq_NodeCutMan(pObj) )
+                RetValue = Seq_FpgaNodeUpdateLValue( pObj, Fi );
+            else
+                RetValue = Seq_RetimeNodeUpdateLValue( pObj, Fi );
+//printf( "Node = %d. Value = %d. \n", pObj->Id, RetValue );
             Counter++;
             if ( RetValue == SEQ_UPDATE_FAIL )
                 break;
@@ -176,13 +191,17 @@ int Seq_RetimeForPeriod( Abc_Ntk_t * pNtk, int Fi, int fVerbose )
         pReason = "(timeout)";
     }
 
+//Abc_NtkForEachObj( pNtk, pObj, i )
+//printf( "%d ", Seq_NodeGetLValue(pObj) );
+//printf( "\n" );
+
     // report the results
     if ( fVerbose )
     {
         if ( RetValue == SEQ_UPDATE_FAIL )
-            printf( "Period = %3d.  Iterations = %3d.  Updates = %10d.  Infeasible %s\n", Fi, c, Counter, pReason );
+            printf( "Period = %3d.  Iterations = %3d.  Updates = %10d.    Infeasible %s\n", Fi, c, Counter, pReason );
         else
-            printf( "Period = %3d.  Iterations = %3d.  Updates = %10d.    Feasible\n",   Fi, c, Counter );
+            printf( "Period = %3d.  Iterations = %3d.  Updates = %10d.      Feasible\n",    Fi, c, Counter );
     }
     return RetValue != SEQ_UPDATE_FAIL;
 }
@@ -198,7 +217,7 @@ int Seq_RetimeForPeriod( Abc_Ntk_t * pNtk, int Fi, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-int Seq_NodeUpdateLValue( Abc_Obj_t * pObj, int Fi )
+int Seq_RetimeNodeUpdateLValue( Abc_Obj_t * pObj, int Fi )
 {
     int lValueNew, lValueOld, lValue0, lValue1;
     assert( !Abc_ObjIsPi(pObj) );

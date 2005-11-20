@@ -4474,6 +4474,8 @@ int Abc_CommandPga( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
+    printf( "This command is not yet implemented.\n" );
+    return 0;
 
     if ( !Abc_NtkIsStrash(pNtk) )
     {
@@ -4848,7 +4850,7 @@ int Abc_CommandUnseq( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // share the latches on the fanout edges
     if ( fShare )
-        Seq_NtkSeqShareFanouts(pNtk);
+        Seq_NtkShareFanouts(pNtk);
 
     // get the new network
     pNtkRes = Abc_NtkSeqToLogicSop( pNtk );
@@ -4971,7 +4973,6 @@ int Abc_CommandSeqFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk, * pNtkRes;
     int c;
     int fVerbose;
-    extern Abc_Ntk_t * Abc_NtkFpgaSeq( Abc_Ntk_t * pNtk, int fVerbose );
 
     pNtk = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -5006,12 +5007,12 @@ int Abc_CommandSeqFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    printf( "This command is not yet implemented.\n" );
-    return 0;
+//    printf( "This command is not yet implemented.\n" );
+//    return 0;
 
 
     // get the new network
-    pNtkRes = Abc_NtkFpgaSeq( pNtk, fVerbose );
+    pNtkRes = Seq_NtkFpgaMapRetime( pNtk, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Sequential FPGA mapping has failed.\n" );

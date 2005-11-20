@@ -43,8 +43,11 @@ typedef struct Abc_Seq_t_  Abc_Seq_t;
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+/*=== seqFpgaCore.c ===============================================================*/
+extern Abc_Ntk_t *     Seq_NtkFpgaMapRetime( Abc_Ntk_t * pNtk, int fVerbose );
 /*=== seqLatch.c ===============================================================*/
 extern void            Seq_NodeDupLats( Abc_Obj_t * pObjNew, Abc_Obj_t * pObj, int Edge );
+extern int             Seq_NodeCompareLats( Abc_Obj_t * pObj1, int Edge1, Abc_Obj_t * pObj2, int Edge2 );
 /*=== seqMan.c ===============================================================*/
 extern Abc_Seq_t *     Seq_Create( Abc_Ntk_t * pNtk );
 extern void            Seq_Resize( Abc_Seq_t * p, int nMaxId );
@@ -53,7 +56,7 @@ extern void            Seq_Delete( Abc_Seq_t * p );
 extern Abc_Ntk_t *     Abc_NtkAigToSeq( Abc_Ntk_t * pNtk );
 extern Abc_Ntk_t *     Abc_NtkSeqToLogicSop( Abc_Ntk_t * pNtk );
 /*=== seqShare.c =============================================================*/
-extern void                  Seq_NtkSeqShareFanouts( Abc_Ntk_t * pNtk );
+extern void            Seq_NtkShareFanouts( Abc_Ntk_t * pNtk );
 /*=== seqRetCore.c ===========================================================*/
 extern void            Seq_NtkSeqRetimeDelay( Abc_Ntk_t * pNtk, int fInitial, int fVerbose );
 extern void            Seq_NtkSeqRetimeForward( Abc_Ntk_t * pNtk, int fInitial, int fVerbose );

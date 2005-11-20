@@ -137,9 +137,6 @@ extern void            Fpga_CutsCleanSign( Fpga_Man_t * pMan );
 /*=== fpgaCutUtils.c =============================================================*/
 extern void            Fpga_CutCreateFromNode( Fpga_Man_t * p, int iRoot, int * pLeaves, int nLeaves );
 extern void            Fpga_MappingSetUsedCuts( Fpga_Man_t * p );
-/*=== fpgaFraig.c =============================================================*/
-extern Fpga_Man_t *    Fpga_ManDupFraig( Fraig_Man_t * pManFraig );
-extern Fpga_Man_t *    Fpga_ManBalanceFraig( Fraig_Man_t * pManFraig, int * pInputArrivals );
 /*=== fpgaLib.c =============================================================*/
 extern Fpga_LutLib_t * Fpga_LutLibDup( Fpga_LutLib_t * p );
 extern int             Fpga_LutLibReadVarMax( Fpga_LutLib_t * p );

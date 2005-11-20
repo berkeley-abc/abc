@@ -6,7 +6,7 @@
 
   PackageName [Construction and manipulation of sequential AIGs.]
 
-  Synopsis    []
+  Synopsis    [Iterative delay computation in SC mapping/retiming package.]
 
   Author      [Alan Mishchenko]
   

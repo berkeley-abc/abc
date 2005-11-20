@@ -273,6 +273,62 @@ SOURCE=.\src\base\abci\abcVanImp.c
 SOURCE=.\src\base\abci\abcVerify.c
 # End Source File
 # End Group
+# Begin Group "seq"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\base\seq\seq.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\seq\seqCreate.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\seq\seqFpgaCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\seq\seqFpgaIter.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\seq\seqInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\seq\seqLatch.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\seq\seqMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\seq\seqMapCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\seq\seqMapIter.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\seq\seqRetCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\seq\seqRetIter.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\seq\seqShare.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\seq\seqUtil.c
+# End Source File
+# End Group
 # Begin Group "cmd"
 
 # PROP Default_Filter ""
@@ -427,62 +483,6 @@ SOURCE=.\src\base\main\mainInt.h
 # Begin Source File
 
 SOURCE=.\src\base\main\mainUtils.c
-# End Source File
-# End Group
-# Begin Group "seq"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\base\seq\seq.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\seq\seqCreate.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\seq\seqFpgaCore.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\seq\seqFpgaIter.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\seq\seqInt.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\seq\seqLatch.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\seq\seqMan.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\seq\seqMapCore.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\seq\seqMapIter.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\seq\seqRetCore.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\seq\seqRetIter.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\seq\seqShare.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\seq\seqUtil.c
 # End Source File
 # End Group
 # End Group

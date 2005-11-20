@@ -6,7 +6,7 @@
 
   PackageName [Construction and manipulation of sequential AIGs.]
 
-  Synopsis    []
+  Synopsis    [Various utilities working with sequential AIGs.]
 
   Author      [Alan Mishchenko]
   

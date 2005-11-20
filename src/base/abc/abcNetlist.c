@@ -171,7 +171,11 @@ Abc_Ntk_t * Abc_NtkLogicSopToNetlist( Abc_Ntk_t * pNtk )
 //printf( "\n" );
     // duplicate all nodes
     Abc_NtkForEachNode( pNtk, pObj, i )
+    {
+        if ( Abc_ObjFaninNum(pObj) == 0 && Abc_ObjFanoutNum(pObj) == 0 )
+            continue;
         Abc_NtkDupObj(pNtkNew, pObj);
+    }
     // first add the nets to the CO drivers
     Abc_NtkForEachCo( pNtk, pObj, i )
     {
@@ -199,6 +203,8 @@ Abc_Ntk_t * Abc_NtkLogicSopToNetlist( Abc_Ntk_t * pNtk )
     // create the missing nets
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
+        if ( Abc_ObjFaninNum(pObj) == 0 && Abc_ObjFanoutNum(pObj) == 0 )
+            continue;
         if ( pObj->pCopy->pCopy ) // the net of the new object is already created
             continue;
         // create the new net

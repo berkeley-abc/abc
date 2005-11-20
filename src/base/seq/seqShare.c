@@ -6,7 +6,7 @@
 
   PackageName [Construction and manipulation of sequential AIGs.]
 
-  Synopsis    []
+  Synopsis    [Latch sharing at the fanout stems.]
 
   Author      [Alan Mishchenko]
   
@@ -24,8 +24,8 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static void Abc_NodeSeqShareFanouts( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes );
-static void Abc_NodeSeqShareOne( Abc_Obj_t * pNode, Abc_InitType_t Init, Vec_Ptr_t * vNodes );
+static void Seq_NodeShareFanouts( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes );
+static void Seq_NodeShareOne( Abc_Obj_t * pNode, Abc_InitType_t Init, Vec_Ptr_t * vNodes );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -42,7 +42,7 @@ static void Abc_NodeSeqShareOne( Abc_Obj_t * pNode, Abc_InitType_t Init, Vec_Ptr
   SeeAlso     []
 
 ***********************************************************************/
-void Seq_NtkSeqShareFanouts( Abc_Ntk_t * pNtk )
+void Seq_NtkShareFanouts( Abc_Ntk_t * pNtk )
 {
     Vec_Ptr_t * vNodes;
     Abc_Obj_t * pObj;
@@ -50,10 +50,10 @@ void Seq_NtkSeqShareFanouts( Abc_Ntk_t * pNtk )
     vNodes = Vec_PtrAlloc( 10 );
     // share the PI latches
     Abc_NtkForEachPi( pNtk, pObj, i )
-        Abc_NodeSeqShareFanouts( pObj, vNodes );
+        Seq_NodeShareFanouts( pObj, vNodes );
     // share the node latches
     Abc_NtkForEachNode( pNtk, pObj, i )
-        Abc_NodeSeqShareFanouts( pObj, vNodes );
+        Seq_NodeShareFanouts( pObj, vNodes );
     Vec_PtrFree( vNodes );
 }
 
@@ -68,7 +68,7 @@ void Seq_NtkSeqShareFanouts( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NodeSeqShareFanouts( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
+void Seq_NodeShareFanouts( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
 {
     Abc_Obj_t * pFanout;
     Abc_InitType_t Type;
@@ -90,19 +90,19 @@ void Abc_NodeSeqShareFanouts( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
     // decide what to do
     if ( nLatches[ABC_INIT_ZERO] > 1 && nLatches[ABC_INIT_ONE] > 1 ) // 0-group and 1-group
     {
-        Abc_NodeSeqShareOne( pNode, ABC_INIT_ZERO, vNodes );     // shares 0 and DC
-        Abc_NodeSeqShareOne( pNode, ABC_INIT_ONE,  vNodes );     // shares 1 and DC
+        Seq_NodeShareOne( pNode, ABC_INIT_ZERO, vNodes );     // shares 0 and DC
+        Seq_NodeShareOne( pNode, ABC_INIT_ONE,  vNodes );     // shares 1 and DC
     }
     else if ( nLatches[ABC_INIT_ZERO] > 1 ) // 0-group
-        Abc_NodeSeqShareOne( pNode, ABC_INIT_ZERO, vNodes );     // shares 0 and DC
+        Seq_NodeShareOne( pNode, ABC_INIT_ZERO, vNodes );     // shares 0 and DC
     else if ( nLatches[ABC_INIT_ONE] > 1 ) // 1-group
-        Abc_NodeSeqShareOne( pNode, ABC_INIT_ONE,  vNodes );     // shares 1 and DC
+        Seq_NodeShareOne( pNode, ABC_INIT_ONE,  vNodes );     // shares 1 and DC
     else if ( nLatches[ABC_INIT_DC] > 1 ) // DC-group
     {
         if ( nLatches[ABC_INIT_ZERO] > 0 )
-            Abc_NodeSeqShareOne( pNode, ABC_INIT_ZERO, vNodes ); // shares 0 and DC
+            Seq_NodeShareOne( pNode, ABC_INIT_ZERO, vNodes ); // shares 0 and DC
         else 
-            Abc_NodeSeqShareOne( pNode, ABC_INIT_ONE,  vNodes ); // shares 1 and DC
+            Seq_NodeShareOne( pNode, ABC_INIT_ONE,  vNodes ); // shares 1 and DC
     }
 }
 
@@ -117,7 +117,7 @@ void Abc_NodeSeqShareFanouts( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NodeSeqShareOne( Abc_Obj_t * pNode, Abc_InitType_t Init, Vec_Ptr_t * vNodes )
+void Seq_NodeShareOne( Abc_Obj_t * pNode, Abc_InitType_t Init, Vec_Ptr_t * vNodes )
 {
     Vec_Ptr_t * vInits = Seq_NodeLats( pNode );
     Abc_Obj_t * pFanout, * pBuffer;

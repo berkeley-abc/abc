@@ -49,6 +49,7 @@ struct Cut_ParamsStruct_t_
     int                nVarsMax;          // the max cut size ("k" of the k-feasible cuts)
     int                nKeepMax;          // the max number of cuts kept at a node
     int                nIdsMax;           // the max number of IDs of cut objects
+    int                nBitShift;         // the number of bits used for the latch counter of an edge
     int                nCutSet;           // the number of nodes in the cut set
     int                fTruth;            // compute truth tables
     int                fFilter;           // filter dominated cuts

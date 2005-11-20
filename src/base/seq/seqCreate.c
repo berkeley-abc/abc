@@ -6,7 +6,7 @@
 
   PackageName [Construction and manipulation of sequential AIGs.]
 
-  Synopsis    []
+  Synopsis    [Transformations to and from the sequential AIG.]
 
   Author      [Alan Mishchenko]
   
@@ -100,9 +100,9 @@ Abc_Ntk_t * Abc_NtkAigToSeq( Abc_Ntk_t * pNtk )
         if ( i == 0 || Abc_ObjIsLatch(pObj) )
             continue;
         pObj->pCopy = Abc_ObjAlloc( pNtkNew, pObj->Type );
-        pObj->pCopy->Id     = pObj->Id;
-        pObj->pCopy->fPhase = pObj->fPhase; 
-        pObj->pCopy->Level  = pObj->Level; 
+        pObj->pCopy->Id     = pObj->Id;      // the ID is the same for both
+        pObj->pCopy->fPhase = pObj->fPhase;  // used to work with choices
+        pObj->pCopy->Level  = pObj->Level;   // used for upper bound on clock cycle
         Vec_PtrWriteEntry( pNtkNew->vObjs, pObj->pCopy->Id, pObj->pCopy );
         pNtkNew->nObjs++;
     }

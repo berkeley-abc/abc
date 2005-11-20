@@ -6,7 +6,7 @@
 
   PackageName [Construction and manipulation of sequential AIGs.]
 
-  Synopsis    [External declarations.]
+  Synopsis    [Internal declarations.]
 
   Author      [Alan Mishchenko]
   
@@ -26,6 +26,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include "abc.h"
+#include "cut.h"
 #include "seq.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -34,6 +35,9 @@
 
 #define SEQ_FULL_MASK        0xFFFFFFFF   
 
+// node status after updating its arrival time
+enum { SEQ_UPDATE_FAIL, SEQ_UPDATE_NO, SEQ_UPDATE_YES };
+
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -41,20 +45,21 @@
 // manager of sequential AIG
 struct Abc_Seq_t_
 {
+    // sequential information
     Abc_Ntk_t *         pNtk;           // the network
     int                 nSize;          // the number of entries in all internal arrays
     Vec_Ptr_t *         vInits;         // the initial states for each edge in the AIG
     Extra_MmFixed_t *   pMmInits;       // memory manager for latch structures used to remember init states
     int                 fVerbose;       // the verbose flag
-    // the arrival times
+    // K-feasible cuts
+    int                 nVarsMax;       // the max cut size
+    Cut_Man_t *         pCutMan;        // cut manager
+    // sequential arrival time computation
     Vec_Int_t *         vLValues;       // the arrival times (L-Values of nodes)
-    Vec_Ptr_t *         vBestCuts;      // the best cuts for nodes
     Vec_Str_t *         vLags;          // the lags of the mapped nodes
     // representation of the mapping
     Vec_Ptr_t *         vMapAnds;       // nodes visible in the mapping 
     Vec_Vec_t *         vMapCuts;       // best cuts for each node 
-    Vec_Vec_t *         vMapBags;       // nodes subsumed by each cut
-    Vec_Vec_t *         vMapLags;       // the internal lags of each node in the bag
     // runtime stats
     int                 timeCuts;       // runtime to compute the cuts
     int                 timeDelay;      // runtime to compute the L-values
@@ -99,11 +104,17 @@ static inline Seq_RetEdge_t  Seq_Int2RetEdge( int Num )            { return *((S
 static inline int            Seq_RetStep2Int( Seq_RetStep_t Val )  { return *((int *)&Val);           }
 static inline Seq_RetStep_t  Seq_Int2RetStep( int Num )            { return *((Seq_RetStep_t *)&Num); }
 
-// storing arrival times in the nodes
-static inline Vec_Int_t *    Seq_NodeLValues( Abc_Obj_t * pNode )               { return ((Abc_Seq_t *)(pNode)->pNtk->pManFunc)->vLValues;            }
-static inline int            Seq_NodeGetLValue( Abc_Obj_t * pNode )             { return Vec_IntEntry( Seq_NodeLValues(pNode), (pNode)->Id );         }
-static inline void           Seq_NodeSetLValue( Abc_Obj_t * pNode, int Value )  { Vec_IntWriteEntry( Seq_NodeLValues(pNode), (pNode)->Id, (Value) );  }
-static inline int            Seq_NodeComputeLag( int LValue, int Fi )           { return (LValue + 1024*Fi)/Fi - 1024 - (int)(LValue % Fi == 0);      }
+// reading l-values and lags
+static inline Vec_Int_t *    Seq_NodeLValues( Abc_Obj_t * pNode )               { return ((Abc_Seq_t *)(pNode)->pNtk->pManFunc)->vLValues;           }
+static inline int            Seq_NodeGetLValue( Abc_Obj_t * pNode )             { return Vec_IntEntry( Seq_NodeLValues(pNode), (pNode)->Id );        }
+static inline void           Seq_NodeSetLValue( Abc_Obj_t * pNode, int Value )  { Vec_IntWriteEntry( Seq_NodeLValues(pNode), (pNode)->Id, Value );   }
+static inline int            Seq_NodeComputeLag( int LValue, int Fi )           { return (LValue + 1024*Fi)/Fi - 1024 - (int)(LValue % Fi == 0);     }
+
+// reading best cuts at each node
+static inline Cut_Man_t *    Seq_NodeCutMan( Abc_Obj_t * pNode )                { return ((Abc_Seq_t *)(pNode)->pNtk->pManFunc)->pCutMan;                 }
+//static inline Vec_Ptr_t *    Seq_NodeCutBests( Abc_Obj_t * pNode )              { return ((Abc_Seq_t *)(pNode)->pNtk->pManFunc)->vBestCuts;               }
+//static inline Cut_Cut_t *    Seq_NodeGetCutBest( Abc_Obj_t * pNode )            { return Vec_PtrEntry( Seq_NodeCutBests(pNode), (pNode)->Id );            }
+//static inline void           Seq_NodeSetCutBest( Abc_Obj_t * pNode, Cut_Cut_t * pCut ) { Vec_PtrWriteEntry( Seq_NodeCutBests(pNode), (pNode)->Id, pCut ); }
 
 // reading the contents of the lat
 static inline Abc_InitType_t Seq_LatInit( Seq_Lat_t * pLat )  { return ((unsigned)pLat->pPrev) & 3;                                 }
@@ -149,9 +160,10 @@ extern void                  Seq_NodeInsertLast( Abc_Obj_t * pObj, int Edge, Abc
 extern Abc_InitType_t        Seq_NodeDeleteFirst( Abc_Obj_t * pObj, int Edge );  
 extern Abc_InitType_t        Seq_NodeDeleteLast( Abc_Obj_t * pObj, int Edge );  
 /*=== seqFpgaIter.c ============================================================*/
-extern void                  Seq_NtkSeqFpgaMapping( Abc_Ntk_t * pNtk, int fVerbose );
+extern void                  Seq_FpgaMappingDelays( Abc_Ntk_t * pNtk, int fVerbose );
+extern int                   Seq_FpgaNodeUpdateLValue( Abc_Obj_t * pObj, int Fi );
 /*=== seqRetIter.c =============================================================*/
-extern void                  Seq_NtkSeqRetimeDelayLags( Abc_Ntk_t * pNtk, int fVerbose );
+extern void                  Seq_NtkRetimeDelayLags( Abc_Ntk_t * pNtk, int fVerbose );
 extern int                   Seq_NtkImplementRetiming( Abc_Ntk_t * pNtk, Vec_Str_t * vLags, int fVerbose );
 /*=== seqUtil.c ================================================================*/
 extern int                   Seq_ObjFanoutLMax( Abc_Obj_t * pObj );

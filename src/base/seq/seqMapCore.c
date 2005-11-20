@@ -6,7 +6,7 @@
 
   PackageName [Construction and manipulation of sequential AIGs.]
 
-  Synopsis    []
+  Synopsis    [The core of SC mapping/retiming package.]
 
   Author      [Alan Mishchenko]
   
