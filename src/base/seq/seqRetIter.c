@@ -78,6 +78,23 @@ void Seq_NtkRetimeDelayLags( Abc_Ntk_t * pNtk, int fVerbose )
         NodeLag = Seq_NodeComputeLag( Seq_NodeGetLValue(pNode), FiBest );
         Seq_NodeSetLag( pNode, NodeLag );
     }
+/*
+    {
+        Abc_Obj_t * pFanin, * pFanout;
+        pNode = Abc_NtkObj( pNtk, 823 );
+        printf( "Node  %d.  Lag = %d. LValue = %d. Latches = (%d,%d) (%d,%d).\n", pNode->Id, Seq_NodeGetLag(pNode), Seq_NodeGetLValue(pNode), 
+            Seq_ObjFaninL0(pNode), Seq_ObjFaninL1(pNode), Seq_ObjFanoutL(pNode, Abc_NtkObj(pNtk, 826)), Seq_ObjFanoutL(pNode, Abc_NtkObj(pNtk, 1210)) );
+        pFanin = Abc_ObjFanin0( pNode );
+        printf( "Fanin %d.  Lag = %d. LValue = %d. Latches = (%d,%d)\n", pFanin->Id, Seq_NodeGetLag(pFanin), Seq_NodeGetLValue(pFanin),
+            Seq_ObjFaninL0(pFanin), Seq_ObjFaninL1(pFanin) );
+        pFanin = Abc_ObjFanin1( pNode );
+        printf( "Fanin %d.  Lag = %d. LValue = %d.\n", pFanin->Id, Seq_NodeGetLag(pFanin), Seq_NodeGetLValue(pFanin) );
+        Abc_ObjForEachFanout( pNode, pFanout, i )
+            printf( "Fanout %d.  Lag = %d. LValue = %d.\n", pFanout->Id, Seq_NodeGetLag(pFanout), Seq_NodeGetLValue(pFanout) );
+        Abc_ObjForEachFanout( Abc_ObjFanin0(pNode), pFanout, i )
+            printf( "Fanout %d.  Lag = %d. LValue = %d.\n", pFanout->Id, Seq_NodeGetLag(pFanout), Seq_NodeGetLValue(pFanout) );
+    }
+*/
 
     // print the result
     if ( fVerbose )
@@ -135,6 +152,7 @@ int Seq_RetimeForPeriod( Abc_Ntk_t * pNtk, int Fi, int fVerbose )
 {
     Abc_Seq_t * p = pNtk->pManFunc;
     Abc_Obj_t * pObj;
+    int nMaxSteps = 10;
     int i, c, RetValue, fChange, Counter;
     char * pReason = "";
 
@@ -149,7 +167,7 @@ int Seq_RetimeForPeriod( Abc_Ntk_t * pNtk, int Fi, int fVerbose )
 
     // update all values iteratively
     Counter = 0;
-    for ( c = 0; c < 20; c++ )
+    for ( c = 0; c < nMaxSteps; c++ )
     {
         fChange = 0;
         Abc_AigForEachAnd( pNtk, pObj, i )
@@ -185,7 +203,7 @@ int Seq_RetimeForPeriod( Abc_Ntk_t * pNtk, int Fi, int fVerbose )
         if ( fChange == 0 )
             break;
     }
-    if ( c == 20 )
+    if ( c == nMaxSteps )
     {
         RetValue = SEQ_UPDATE_FAIL;
         pReason = "(timeout)";
@@ -222,11 +240,11 @@ int Seq_RetimeNodeUpdateLValue( Abc_Obj_t * pObj, int Fi )
     int lValueNew, lValueOld, lValue0, lValue1;
     assert( !Abc_ObjIsPi(pObj) );
     assert( Abc_ObjFaninNum(pObj) > 0 );
-    lValue0 = Seq_NodeGetLValue(Abc_ObjFanin0(pObj)) - Fi * Abc_ObjFaninL0(pObj);
+    lValue0 = Seq_NodeGetLValue(Abc_ObjFanin0(pObj)) - Fi * Seq_ObjFaninL0(pObj);
     if ( Abc_ObjIsPo(pObj) )
         return (lValue0 > Fi)? SEQ_UPDATE_FAIL : SEQ_UPDATE_NO;
     if ( Abc_ObjFaninNum(pObj) == 2 )
-        lValue1 = Seq_NodeGetLValue(Abc_ObjFanin1(pObj)) - Fi * Abc_ObjFaninL1(pObj);
+        lValue1 = Seq_NodeGetLValue(Abc_ObjFanin1(pObj)) - Fi * Seq_ObjFaninL1(pObj);
     else
         lValue1 = -ABC_INFINITY;
     lValueNew = 1 + ABC_MAX( lValue0, lValue1 );

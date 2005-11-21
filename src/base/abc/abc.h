@@ -312,11 +312,6 @@ static inline Abc_Obj_t * Abc_ObjFanout0Ntk( Abc_Obj_t * pObj )      { return (A
 static inline bool        Abc_ObjFaninC( Abc_Obj_t * pObj, int i )   { return pObj->vFanins.pArray[i].fCompl;                               }
 static inline bool        Abc_ObjFaninC0( Abc_Obj_t * pObj )         { return pObj->vFanins.pArray[0].fCompl;                               }
 static inline bool        Abc_ObjFaninC1( Abc_Obj_t * pObj )         { return pObj->vFanins.pArray[1].fCompl;                               }
-static inline int         Abc_ObjFaninL( Abc_Obj_t * pObj, int i )   { return pObj->vFanins.pArray[i].nLats;                                }
-static inline int         Abc_ObjFaninL0( Abc_Obj_t * pObj )         { return pObj->vFanins.pArray[0].nLats;                                }
-static inline int         Abc_ObjFaninL1( Abc_Obj_t * pObj )         { return pObj->vFanins.pArray[1].nLats;                                }
-static inline int         Abc_ObjFaninLMin( Abc_Obj_t * pObj )       {  assert( Abc_ObjIsNode(pObj) ); return ABC_MIN( Abc_ObjFaninL0(pObj), Abc_ObjFaninL1(pObj) ); }
-static inline int         Abc_ObjFaninLMax( Abc_Obj_t * pObj )       {  assert( Abc_ObjIsNode(pObj) ); return ABC_MAX( Abc_ObjFaninL0(pObj), Abc_ObjFaninL1(pObj) ); }
 static inline Abc_Obj_t * Abc_ObjChild( Abc_Obj_t * pObj, int i )    { return Abc_ObjNotCond( Abc_ObjFanin(pObj,i), Abc_ObjFaninC(pObj,i) );}
 static inline Abc_Obj_t * Abc_ObjChild0( Abc_Obj_t * pObj )          { return Abc_ObjNotCond( Abc_ObjFanin0(pObj), Abc_ObjFaninC0(pObj) );  }
 static inline Abc_Obj_t * Abc_ObjChild1( Abc_Obj_t * pObj )          { return Abc_ObjNotCond( Abc_ObjFanin1(pObj), Abc_ObjFaninC1(pObj) );  }
@@ -325,15 +320,6 @@ static inline Abc_Obj_t * Abc_ObjChild0Copy( Abc_Obj_t * pObj )      { return Ab
 static inline Abc_Obj_t * Abc_ObjChild1Copy( Abc_Obj_t * pObj )      { return Abc_ObjNotCond( Abc_ObjFanin1(pObj)->pCopy, Abc_ObjFaninC1(pObj) );  }
 static inline void        Abc_ObjSetFaninC( Abc_Obj_t * pObj, int i ){ pObj->vFanins.pArray[i].fCompl = 1;                               }
 static inline void        Abc_ObjXorFaninC( Abc_Obj_t * pObj, int i ){ pObj->vFanins.pArray[i].fCompl ^= 1;                              }
-static inline void        Abc_ObjSetFaninL( Abc_Obj_t * pObj, int i, int nLats )  { pObj->vFanins.pArray[i].nLats = nLats;               }
-static inline void        Abc_ObjSetFaninL0( Abc_Obj_t * pObj, int nLats )        { pObj->vFanins.pArray[0].nLats = nLats;               }
-static inline void        Abc_ObjSetFaninL1( Abc_Obj_t * pObj, int nLats )        { pObj->vFanins.pArray[1].nLats = nLats;               }
-static inline void        Abc_ObjAddFaninL( Abc_Obj_t * pObj, int i, int nLats )  { pObj->vFanins.pArray[i].nLats += nLats;              }
-static inline void        Abc_ObjAddFaninL0( Abc_Obj_t * pObj, int nLats )        { pObj->vFanins.pArray[0].nLats += nLats;              }
-static inline void        Abc_ObjAddFaninL1( Abc_Obj_t * pObj, int nLats )        { pObj->vFanins.pArray[1].nLats += nLats;              }
-static inline int         Abc_ObjFanoutL( Abc_Obj_t * pObj, Abc_Obj_t * pFanout )               {  return Abc_ObjFaninL( pFanout, Abc_ObjFanoutEdgeNum(pObj,pFanout) );     }
-static inline void        Abc_ObjSetFanoutL( Abc_Obj_t * pObj, Abc_Obj_t * pFanout, int nLats ) {  Abc_ObjSetFaninL( pFanout, Abc_ObjFanoutEdgeNum(pObj,pFanout), nLats );  }
-static inline void        Abc_ObjAddFanoutL( Abc_Obj_t * pObj, Abc_Obj_t * pFanout, int nLats ) {  Abc_ObjAddFaninL( pFanout, Abc_ObjFanoutEdgeNum(pObj,pFanout), nLats );  }
 
 // checking the node type
 static inline bool        Abc_NodeIsAigAnd( Abc_Obj_t * pNode )      { assert(Abc_NtkHasAig(pNode->pNtk));           return Abc_ObjFaninNum(pNode) == 2;                         }

@@ -39,8 +39,7 @@
 typedef struct Abc_Fan_t_       Abc_Fan_t;
 struct Abc_Fan_t_ // 1 word
 {
-    unsigned         iFan    : 24;  // the ID of the object
-    unsigned         nLats   :  7;  // the number of latches (up to 127)
+    unsigned         iFan    : 31;  // the ID of the object
     unsigned         fCompl  :  1;  // the complemented attribute
 };
 

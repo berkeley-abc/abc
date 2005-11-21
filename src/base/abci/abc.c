@@ -901,7 +901,7 @@ int Abc_CommandPrintKMap( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( !Abc_NtkIsBddLogic(pNtk) )
     {
-        fprintf( pErr, "Visualizing BDDs can only be done for logic BDD networks (run \"bdd\").\n" );
+        fprintf( pErr, "Visualizing Karnaugh map works for BDD logic networks (run \"bdd\").\n" );
         return 1;
     }
     if ( argc > util_optind + 1 )
@@ -1386,6 +1386,11 @@ int Abc_CommandBalance( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pNtk == NULL )
     {
         fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( Abc_NtkIsSeq(pNtk) )
+    {
+        fprintf( pErr, "Balancing cannot be applied to a sequential AIG.\n" );
         return 1;
     }
 
@@ -2731,7 +2736,7 @@ int Abc_CommandExtSeqDcs( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( !Abc_NtkIsStrash(pNtk) )
     {
-        fprintf( stdout, "This command works only for AIGs (run \"strash\").\n" );
+        fprintf( stdout, "Extracting sequential don't-cares works only for AIGs (run \"strash\").\n" );
         return 0;
     }
     if ( !Abc_NtkExtractSequentialDcs( pNtk, fVerbose ) )
@@ -4279,7 +4284,7 @@ int Abc_CommandSuperChoice( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( !Abc_NtkIsStrash(pNtk) )
     {
-        fprintf( pErr, "Works only for the AIG representation (run \"strash\").\n" );
+        fprintf( pErr, "Superchoicing works only for the AIG representation (run \"strash\").\n" );
         return 1;
     }
 
@@ -4736,7 +4741,7 @@ int Abc_CommandSeq( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
-    int c;
+    int c, nLoops;
 
     pNtk = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -4769,14 +4774,14 @@ int Abc_CommandSeq( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( !Abc_NtkIsStrash(pNtk) )
     {
-        fprintf( pErr, "Works only for AIG (run \"strash\").\n" );
+        fprintf( pErr, "Conversion to sequential AIG works only for combinational AIGs (run \"strash\").\n" );
         return 1;
     }
 
-    if ( Abc_NtkCountSelfFeedLatches(pNtk) )
+    if ( nLoops = Abc_NtkCountSelfFeedLatches(pNtk) )
     {
-        fprintf( pErr, "Sequential AIG cannot be created for designs with self-feeding latches.\n" );
-        return 1;
+        fprintf( pErr, "Cannot create sequential AIG because the network contains %d self-feeding latches.\n", nLoops );
+        return 0;
     }
 
     // get the new network
@@ -4844,7 +4849,7 @@ int Abc_CommandUnseq( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( !Abc_NtkIsSeq(pNtk) )
     {
-        fprintf( pErr, "Works only for sequential AIG (run \"seq\").\n" );
+        fprintf( pErr, "Conversion to combinational AIG works only for sequential AIG (run \"seq\").\n" );
         return 1;
     }
 
@@ -4891,6 +4896,7 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fBackward;
     int fInitial;
     int fVerbose;
+    int nLoops;
 
     pNtk = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -4933,8 +4939,14 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( !Abc_NtkIsSeq(pNtk) )
     {
-        fprintf( pErr, "Works only for sequential AIG (run \"seq\").\n" );
-        return 1;
+        fprintf( pErr, "Retiming works only for sequential AIG (run \"seq\").\n" );
+        return 0;
+    }
+
+    if ( nLoops = Abc_NtkCountSelfFeedLatches(pNtk) )
+    {
+        fprintf( pErr, "Cannot retime because the network contains %d self-feeding latches.\n", nLoops );
+        return 0;
     }
 
     // get the new network
@@ -4979,7 +4991,7 @@ int Abc_CommandSeqFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fVerbose = 1;
+    fVerbose = 0;
     util_getopt_reset();
     while ( ( c = util_getopt( argc, argv, "vh" ) ) != EOF )
     {
@@ -5003,20 +5015,16 @@ int Abc_CommandSeqFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( !Abc_NtkIsSeq(pNtk) )
     {
-        fprintf( pErr, "Works only for sequential AIG (run \"seq\").\n" );
-        return 1;
+        fprintf( pErr, "Sequential FPGA mapping works only for sequential AIG (run \"seq\").\n" );
+        return 0;
     }
-
-//    printf( "This command is not yet implemented.\n" );
-//    return 0;
-
 
     // get the new network
     pNtkRes = Seq_NtkFpgaMapRetime( pNtk, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Sequential FPGA mapping has failed.\n" );
-        return 1;
+        return 0;
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
@@ -5078,7 +5086,7 @@ int Abc_CommandSeqMap( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( !Abc_NtkIsSeq(pNtk) )
     {
-        fprintf( pErr, "Works only for sequential AIG (run \"seq\").\n" );
+        fprintf( pErr, "Sequential standard cell mapping works only for sequential AIG (run \"seq\").\n" );
         return 1;
     }
 
@@ -5178,7 +5186,7 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( Abc_NtkIsSeq(pNtk) )
     {
-        fprintf( pErr, "Works only for combinational networks (run \"unseq\").\n" );
+        fprintf( pErr, "Sequential sweep works only for combinational networks (run \"unseq\").\n" );
         return 1;
     }
 
@@ -5190,7 +5198,7 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( !Abc_NtkIsStrash(pNtk) )
     {
-        fprintf( pErr, "Works only for structurally hashed networks (run \"strash\").\n" );
+        fprintf( pErr, "Sequential sweep works only for structurally hashed networks (run \"strash\").\n" );
         return 1;
     }
 

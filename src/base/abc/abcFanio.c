@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "seqInt.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -146,14 +147,13 @@ void Abc_ObjPatchFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFaninOld, Abc_Obj_t * pFa
     }
     // remember the attributes of the old fanin
     fCompl = Abc_ObjFaninC(pObj, iFanin);
-    nLats  = Abc_ObjFaninL(pObj, iFanin);
     // replace the old fanin entry by the new fanin entry (removes attributes)
     Vec_FanWriteEntry( &pObj->vFanins, iFanin, Vec_Int2Fan(pFaninNewR->Id) );
     // set the attributes of the new fanin
     if ( fCompl ^ Abc_ObjIsComplement(pFaninNew) )
         Abc_ObjSetFaninC( pObj, iFanin );
-    if ( nLats )
-        Abc_ObjSetFaninL( pObj, iFanin, nLats );
+    if ( Abc_NtkIsSeq(pObj->pNtk) && (nLats = Seq_ObjFaninL(pObj, iFanin)) )
+        Seq_ObjSetFaninL( pObj, iFanin, nLats );
     // update the fanout of the fanin
     if ( !Vec_FanDeleteEntry( &pFaninOld->vFanouts, pObj->Id ) )
     {

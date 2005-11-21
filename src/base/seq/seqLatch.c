@@ -60,7 +60,7 @@ void Seq_NodeInsertFirst( Abc_Obj_t * pObj, int Edge, Abc_InitType_t Init )
         Seq_NodeSetRing( pObj, Edge, pLat );  // rotate the ring to make pLat the first
     }
     Seq_LatSetInit( pLat, Init );
-    Abc_ObjAddFaninL( pObj, Edge, 1 );
+    Seq_ObjAddFaninL( pObj, Edge, 1 );
 }
 
 /**Function*************************************************************
@@ -94,7 +94,7 @@ void Seq_NodeInsertLast( Abc_Obj_t * pObj, int Edge, Abc_InitType_t Init )
         Seq_LatSetNext( pLat, pRing );
     }
     Seq_LatSetInit( pLat, Init );
-    Abc_ObjAddFaninL( pObj, Edge, 1 );
+    Seq_ObjAddFaninL( pObj, Edge, 1 );
 }
 
 /**Function*************************************************************
@@ -126,7 +126,7 @@ Abc_InitType_t Seq_NodeDeleteFirst( Abc_Obj_t * pObj, int Edge )
     }
     Init = Seq_LatInit( pLat );
     Seq_NodeRecycleLat( pObj, pLat );
-    Abc_ObjAddFaninL( pObj, Edge, -1 );
+    Seq_ObjAddFaninL( pObj, Edge, -1 );
     return Init;
 }
 
@@ -158,7 +158,7 @@ Abc_InitType_t Seq_NodeDeleteLast( Abc_Obj_t * pObj, int Edge )
     }
     Init = Seq_LatInit( pLat );
     Seq_NodeRecycleLat( pObj, pLat ); 
-    Abc_ObjAddFaninL( pObj, Edge, -1 );
+    Seq_ObjAddFaninL( pObj, Edge, -1 );
     return Init;
 }
 

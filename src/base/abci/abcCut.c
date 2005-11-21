@@ -20,6 +20,7 @@
 
 #include "abc.h"
 #include "cut.h"
+#include "seqInt.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -196,7 +197,10 @@ Cut_Man_t * Abc_NtkSeqCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
     pParams->nCutSet = Abc_NtkCutSetNodeNum( pNtk );
     p = Cut_ManStart( pParams );
 
-    // set cuts for PIs
+    // set cuts for the constant node and the PIs
+    pObj = Abc_NtkConst1(pNtk);
+    if ( Abc_ObjFanoutNum(pObj) > 0 )
+        Cut_NodeSetTriv( p, pObj->Id );
     Abc_NtkForEachPi( pNtk, pObj, i )
         Cut_NodeSetTriv( p, pObj->Id );
     // label the cutset nodes and set their number in the array
@@ -240,8 +244,11 @@ Cut_Man_t * Abc_NtkSeqCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
     // unlabel the cutset nodes
     Abc_SeqForEachCutsetNode( pNtk, pObj, i )
         pObj->fMarkC = 0;
+if ( pParams->fVerbose )
+{
 PRT( "Total", clock() - clk );
 printf( "Converged after %d iterations.\n", nIters );
+}
 //Abc_NtkPrintCuts( p, pNtk, 1 );
     return p;
 }
@@ -306,7 +313,7 @@ void Abc_NodeGetCutsSeq( void * p, Abc_Obj_t * pObj, int fTriv )
     fTriv     = pObj->fMarkC ? 0 : fTriv;
     CutSetNum = pObj->fMarkC ? (int)pObj->pCopy : -1;
     Cut_NodeComputeCutsSeq( p, pObj->Id, Abc_ObjFaninId0(pObj), Abc_ObjFaninId1(pObj),  
-        Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj), Abc_ObjFaninL0(pObj), Abc_ObjFaninL1(pObj), fTriv, CutSetNum );  
+        Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj), Seq_ObjFaninL0(pObj), Seq_ObjFaninL1(pObj), fTriv, CutSetNum );  
 }
 
 /**Function*************************************************************

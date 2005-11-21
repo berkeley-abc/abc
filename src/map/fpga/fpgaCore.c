@@ -46,7 +46,7 @@ static int  Fpga_MappingPostProcess( Fpga_Man_t * p );
 int Fpga_Mapping( Fpga_Man_t * p )
 {
     int clk, clkTotal = clock();
-
+ 
     // collect the nodes reachable from POs in the DFS order (including the choices)
     p->vAnds = Fpga_MappingDfs( p, 1 );
     Fpga_ManReportChoices( p ); // recomputes levels

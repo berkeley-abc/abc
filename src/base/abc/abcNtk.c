@@ -22,7 +22,7 @@
 #include "abcInt.h"
 #include "main.h"
 #include "mio.h"
-#include "seq.h"
+#include "seqInt.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -322,7 +322,7 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
                 Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
                 if ( Abc_ObjFaninC(pObj, k) )
                     Abc_ObjSetFaninC( pObj->pCopy, k );
-                if ( Abc_ObjFaninL(pObj, k) > 0 )
+                if ( Seq_ObjFaninL(pObj, k) )
                     Seq_NodeDupLats( pObj->pCopy, pObj, k );
             }
         }

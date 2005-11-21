@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "io.h"
+#include "seqInt.h"
 
 /*
 -------- Original Message --------
@@ -156,7 +157,7 @@ void Io_WriteListEdge( FILE * pFile, Abc_Obj_t * pObj )
     fprintf( pFile, "%-10s >    ", Abc_ObjName(pObj) );
     Abc_ObjForEachFanout( pObj, pFanout, i )
     {
-        fprintf( pFile, " %s ([%s_to_%s] = %d)", Abc_ObjName(pFanout), Abc_ObjName(pObj), Abc_ObjName(pFanout), Abc_ObjFanoutL(pObj, pFanout) );
+        fprintf( pFile, " %s ([%s_to_%s] = %d)", Abc_ObjName(pFanout), Abc_ObjName(pObj), Abc_ObjName(pFanout), Seq_ObjFanoutL(pObj, pFanout) );
         if ( i == Abc_ObjFanoutNum(pObj) - 1 )
             fprintf( pFile, "." );
         else

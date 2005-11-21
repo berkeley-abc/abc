@@ -307,6 +307,23 @@ static inline void Vec_IntWriteEntry( Vec_Int_t * p, int i, int Entry )
   SeeAlso     []
 
 ***********************************************************************/
+static inline void Vec_IntAddToEntry( Vec_Int_t * p, int i, int Addition )
+{
+    assert( i >= 0 && i < p->nSize );
+    p->pArray[i] += Addition;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline int Vec_IntEntryLast( Vec_Int_t * p )
 {
     return p->pArray[p->nSize-1];

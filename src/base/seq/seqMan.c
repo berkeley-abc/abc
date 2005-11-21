@@ -51,6 +51,7 @@ Abc_Seq_t * Seq_Create( Abc_Ntk_t * pNtk )
     p->nSize = 1000;
     p->pMmInits = Extra_MmFixedStart( sizeof(Seq_Lat_t) );
     // create internal data structures
+    p->vNums    = Vec_IntStart( 2 * p->nSize ); 
     p->vInits   = Vec_PtrStart( 2 * p->nSize ); 
     p->vLValues = Vec_IntStart( p->nSize ); 
     p->vLags    = Vec_StrStart( p->nSize ); 
@@ -73,6 +74,7 @@ void Seq_Resize( Abc_Seq_t * p, int nMaxId )
     if ( p->nSize > nMaxId )
         return;
     p->nSize = nMaxId + 1;
+    Vec_IntFill( p->vNums,     2 * p->nSize, 0 ); 
     Vec_PtrFill( p->vInits,    2 * p->nSize, NULL ); 
     Vec_IntFill( p->vLValues,  p->nSize, 0 ); 
     Vec_StrFill( p->vLags,     p->nSize, 0 ); 
@@ -97,6 +99,7 @@ void Seq_Delete( Abc_Seq_t * p )
     if ( p->vLValues )  Vec_IntFree( p->vLValues );  // the arrival times (L-Values of nodes)
     if ( p->vLags )     Vec_StrFree( p->vLags );     // the lags of the mapped nodes
     if ( p->vInits )    Vec_PtrFree( p->vInits );    // the initial values of the latches
+    if ( p->vNums )     Vec_IntFree( p->vNums );     // the numbers of latches
     Extra_MmFixedStop( p->pMmInits, 0 );
     free( p );
 }

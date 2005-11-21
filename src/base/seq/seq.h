@@ -17,7 +17,7 @@
   Revision    [$Id: seq.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
- 
+
 #ifndef __SEQ_H__
 #define __SEQ_H__
 
@@ -68,6 +68,7 @@ extern int             Seq_NtkLatchNum( Abc_Ntk_t * pNtk );
 extern int             Seq_NtkLatchNumMax( Abc_Ntk_t * pNtk );
 extern int             Seq_NtkLatchNumShared( Abc_Ntk_t * pNtk );
 extern void            Seq_NtkLatchGetInitNums( Abc_Ntk_t * pNtk, int * pInits );
+extern int             Seq_NtkLatchGetEqualFaninNum( Abc_Ntk_t * pNtk );
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

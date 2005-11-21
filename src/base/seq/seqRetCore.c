@@ -220,8 +220,8 @@ void Abc_ObjRetimeForward( Abc_Obj_t * pObj )
     Abc_Obj_t * pFanout;
     int Init0, Init1, Init, i;
     assert( Abc_ObjFaninNum(pObj) == 2 );
-    assert( Abc_ObjFaninL0(pObj) >= 1 );
-    assert( Abc_ObjFaninL1(pObj) >= 1 );
+    assert( Seq_ObjFaninL0(pObj) >= 1 );
+    assert( Seq_ObjFaninL1(pObj) >= 1 );
     // remove the init values from the fanins
     Init0 = Seq_NodeDeleteFirst( pObj, 0 ); 
     Init1 = Seq_NodeDeleteFirst( pObj, 1 );
@@ -249,11 +249,29 @@ void Abc_ObjRetimeForward( Abc_Obj_t * pObj )
         Init = ABC_INIT_ONE;
     else
         Init = ABC_INIT_DC;
+
+    // make sure the label is clean
+    Abc_ObjForEachFanout( pObj, pFanout, i )
+        assert( pFanout->fMarkC == 0 );
     // add the init values to the fanouts
     Abc_ObjForEachFanout( pObj, pFanout, i )
-        Seq_NodeInsertLast( pFanout, Abc_ObjFanoutEdgeNum(pObj, pFanout), Init );
+    {
+        if ( pFanout->fMarkC )
+            continue;
+        pFanout->fMarkC = 1;
+        if ( Abc_ObjFaninId0(pFanout) != Abc_ObjFaninId1(pFanout) )
+            Seq_NodeInsertLast( pFanout, Abc_ObjFanoutEdgeNum(pObj, pFanout), Init );
+        else
+        {
+            assert( Abc_ObjFanin0(pFanout) == pObj );
+            Seq_NodeInsertLast( pFanout, 0, Init );
+            Seq_NodeInsertLast( pFanout, 1, Init );
+        }
+    }
+    // clean the label
+    Abc_ObjForEachFanout( pObj, pFanout, i )
+        pFanout->fMarkC = 0;
 }
-
 
 
 /**Function*************************************************************
@@ -390,22 +408,49 @@ int Abc_ObjRetimeBackward( Abc_Obj_t * pObj, Abc_Ntk_t * pNtkNew, stmm_table * t
     fMet0 = fMet1 = fMetN = 0;
     Abc_ObjForEachFanout( pObj, pFanout, i )
     {
-        Init = Seq_NodeGetInitLast( pFanout, Abc_ObjFanoutEdgeNum(pObj, pFanout) );
-        if ( Init == ABC_INIT_ZERO )
-            fMet0 = 1;
-        else if ( Init == ABC_INIT_ONE )
-            fMet1 = 1;
-        else if ( Init == ABC_INIT_NONE )
-            fMetN = 1;
+        if ( Abc_ObjFaninId0(pFanout) == (int)pObj->Id )
+        {
+            Init = Seq_NodeGetInitLast( pFanout, 0 );
+            if ( Init == ABC_INIT_ZERO )
+                fMet0 = 1;
+            else if ( Init == ABC_INIT_ONE )
+                fMet1 = 1;
+            else if ( Init == ABC_INIT_NONE )
+                fMetN = 1;
+        }
+        if ( Abc_ObjFaninId1(pFanout) == (int)pObj->Id )
+        {
+            Init = Seq_NodeGetInitLast( pFanout, 1 );
+            if ( Init == ABC_INIT_ZERO )
+                fMet0 = 1;
+            else if ( Init == ABC_INIT_ONE )
+                fMet1 = 1;
+            else if ( Init == ABC_INIT_NONE )
+                fMetN = 1;
+        }
     }
 
-    // consider the case when all fanout latchs have don't-care values
+    // consider the case when all fanout latches have don't-care values
     // the new values on the fanin edges will be don't-cares
     if ( !fMet0 && !fMet1 && !fMetN )
     {
+        // make sure the label is clean
+        Abc_ObjForEachFanout( pObj, pFanout, i )
+            assert( pFanout->fMarkC == 0 );
         // update the fanout edges
         Abc_ObjForEachFanout( pObj, pFanout, i )
-            Seq_NodeDeleteLast( pFanout, Abc_ObjFanoutEdgeNum(pObj, pFanout) );
+        {
+            if ( pFanout->fMarkC )
+                continue;
+            pFanout->fMarkC = 1;
+            if ( Abc_ObjFaninId0(pFanout) == (int)pObj->Id )
+                Seq_NodeDeleteLast( pFanout, 0 );
+            if ( Abc_ObjFaninId1(pFanout) == (int)pObj->Id )
+                Seq_NodeDeleteLast( pFanout, 1 );
+        }
+        // clean the label
+        Abc_ObjForEachFanout( pObj, pFanout, i )
+            pFanout->fMarkC = 0;
         // update the fanin edges
         Abc_ObjRetimeBackwardUpdateEdge( pObj, 0, tTable );
         Abc_ObjRetimeBackwardUpdateEdge( pObj, 1, tTable );
@@ -432,22 +477,49 @@ int Abc_ObjRetimeBackward( Abc_Obj_t * pObj, Abc_Ntk_t * pNtkNew, stmm_table * t
         Vec_IntPush( vValues, 1 );
     }
 
+    // make sure the label is clean
+    Abc_ObjForEachFanout( pObj, pFanout, i )
+        assert( pFanout->fMarkC == 0 );
     // perform the changes
     Abc_ObjForEachFanout( pObj, pFanout, i )
     {
-        Edge = Abc_ObjFanoutEdgeNum( pObj, pFanout );
-        Value = Seq_NodeDeleteLast( pFanout, Edge );
-        if ( Value != ABC_INIT_NONE )
+        if ( pFanout->fMarkC )
             continue;
-        // value is unknown, remove it from the table
-        RetEdge.iNode  = pFanout->Id;
-        RetEdge.iEdge  = Edge;
-        RetEdge.iLatch = Abc_ObjFaninL( pFanout, Edge ); // after edge is removed
-        if ( !stmm_delete( tTable, (char **)&RetEdge, (char **)&pFanoutNew ) )
-            assert( 0 );
-        // create the fanout of the AND gate
-        Abc_ObjAddFanin( pFanoutNew, pNodeNew );
+        pFanout->fMarkC = 1;
+        if ( Abc_ObjFaninId0(pFanout) == (int)pObj->Id )
+        {
+            Edge = 0;
+            Value = Seq_NodeDeleteLast( pFanout, Edge );
+            if ( Value != ABC_INIT_NONE )
+                continue;
+            // value is unknown, remove it from the table
+            RetEdge.iNode  = pFanout->Id;
+            RetEdge.iEdge  = Edge;
+            RetEdge.iLatch = Seq_ObjFaninL( pFanout, Edge ); // after edge is removed
+            if ( !stmm_delete( tTable, (char **)&RetEdge, (char **)&pFanoutNew ) )
+                assert( 0 );
+            // create the fanout of the AND gate
+            Abc_ObjAddFanin( pFanoutNew, pNodeNew );
+        }
+        if ( Abc_ObjFaninId1(pFanout) == (int)pObj->Id )
+        {
+            Edge = 1;
+            Value = Seq_NodeDeleteLast( pFanout, Edge );
+            if ( Value != ABC_INIT_NONE )
+                continue;
+            // value is unknown, remove it from the table
+            RetEdge.iNode  = pFanout->Id;
+            RetEdge.iEdge  = Edge;
+            RetEdge.iLatch = Seq_ObjFaninL( pFanout, Edge ); // after edge is removed
+            if ( !stmm_delete( tTable, (char **)&RetEdge, (char **)&pFanoutNew ) )
+                assert( 0 );
+            // create the fanout of the AND gate
+            Abc_ObjAddFanin( pFanoutNew, pNodeNew );
+        }
     }
+    // clean the label
+    Abc_ObjForEachFanout( pObj, pFanout, i )
+        pFanout->fMarkC = 0;
 
     // update the fanin edges
     Abc_ObjRetimeBackwardUpdateEdge( pObj, 0, tTable );
@@ -500,7 +572,7 @@ void Abc_ObjRetimeBackwardUpdateEdge( Abc_Obj_t * pObj, int Edge, stmm_table * t
     int nLatches, i;
 
     // get the number of latches on the edge
-    nLatches = Abc_ObjFaninL( pObj, Edge );
+    nLatches = Seq_ObjFaninL( pObj, Edge );
     for ( i = nLatches - 1; i >= 0; i-- )
     {
         // get the value of this latch
@@ -579,12 +651,12 @@ Vec_Ptr_t * Abc_NtkUtilRetimingTry( Abc_Ntk_t * pNtk, bool fForward )
     vMoves = Vec_PtrAlloc( 100 );
     Vec_PtrForEachEntry( vNodes, pNode, i )
     {
-//        printf( "(%d,%d) ", Abc_ObjFaninL0(pNode), Abc_ObjFaninL0(pNode) );
+//        printf( "(%d,%d) ", Seq_ObjFaninL0(pNode), Seq_ObjFaninL0(pNode) );
         // unmark the node as processed
         pNode->fMarkA = 0;
         // get the number of latches to retime
         if ( fForward )
-            nLatches = Abc_ObjFaninLMin(pNode);
+            nLatches = Seq_ObjFaninLMin(pNode);
         else
             nLatches = Seq_ObjFanoutLMin(pNode);
         if ( nLatches == 0 )
@@ -626,7 +698,7 @@ Vec_Ptr_t * Abc_NtkUtilRetimingTry( Abc_Ntk_t * pNtk, bool fForward )
     {
         assert( pNode->fMarkA == 0 );
         if ( fForward ) 
-            assert( Abc_ObjFaninLMin(pNode) == 0 );
+            assert( Seq_ObjFaninLMin(pNode) == 0 );
         else
             assert( Seq_ObjFanoutLMin(pNode) == 0 );
     }
@@ -652,6 +724,48 @@ Vec_Ptr_t * Abc_NtkUtilRetimingGetMoves( Abc_Ntk_t * pNtk, Vec_Int_t * vSteps, b
     int i, k, iNode, nLatches, Number;
     int fChange;
     assert( Abc_NtkIsSeq( pNtk ) );
+
+/*
+    // try implementing all the moves at once
+    Vec_IntForEachEntry( vSteps, Number, i )
+    {
+        // get the retiming step
+        RetStep = Seq_Int2RetStep( Number );
+        // get the node to be retimed
+        pNode = Abc_NtkObj( pNtk, RetStep.iNode );
+        assert( RetStep.nLatches > 0 );
+        nLatches = RetStep.nLatches;
+
+        if ( fForward )
+            Abc_ObjRetimeForwardTry( pNode, nLatches );
+        else
+            Abc_ObjRetimeBackwardTry( pNode, nLatches );
+    }
+    // now look if any node has wrong number of latches
+    Abc_AigForEachAnd( pNtk, pNode, i )
+    {
+        if ( Seq_ObjFaninL0(pNode) < 0 )
+            printf( "Wrong 0node %d.\n", pNode->Id );
+        if ( Seq_ObjFaninL1(pNode) < 0 )
+            printf( "Wrong 1node %d.\n", pNode->Id );
+    }
+    // try implementing all the moves at once
+    Vec_IntForEachEntry( vSteps, Number, i )
+    {
+        // get the retiming step
+        RetStep = Seq_Int2RetStep( Number );
+        // get the node to be retimed
+        pNode = Abc_NtkObj( pNtk, RetStep.iNode );
+        assert( RetStep.nLatches > 0 );
+        nLatches = RetStep.nLatches;
+
+        if ( !fForward )
+            Abc_ObjRetimeForwardTry( pNode, nLatches );
+        else
+            Abc_ObjRetimeBackwardTry( pNode, nLatches );
+    }
+*/
+
     // process the nodes
     vMoves = Vec_PtrAlloc( 100 );
     while ( Vec_IntSize(vSteps) > 0 )
@@ -667,7 +781,7 @@ Vec_Ptr_t * Abc_NtkUtilRetimingGetMoves( Abc_Ntk_t * pNtk, Vec_Int_t * vSteps, b
             assert( RetStep.nLatches > 0 );
             // get the number of latches that can be retimed
             if ( fForward )
-                nLatches = Abc_ObjFaninLMin(pNode);
+                nLatches = Seq_ObjFaninLMin(pNode);
             else
                 nLatches = Seq_ObjFanoutLMin(pNode);
             if ( nLatches == 0 )
@@ -698,14 +812,14 @@ Vec_Ptr_t * Abc_NtkUtilRetimingGetMoves( Abc_Ntk_t * pNtk, Vec_Int_t * vSteps, b
         if ( !fChange )
         {
             printf( "Warning: %d strange steps (a minor bug to be fixed later).\n", Vec_IntSize(vSteps) );
-            /*
+/*            
             Vec_IntForEachEntry( vSteps, Number, i )
             {
                 RetStep = Seq_Int2RetStep( Number );
                 printf( "%d(%d) ", RetStep.iNode, RetStep.nLatches );
             }
             printf( "\n" );
-            */
+*/            
             break;
         }
     }
@@ -777,14 +891,32 @@ void Abc_ObjRetimeForwardTry( Abc_Obj_t * pObj, int nLatches )
     // make sure it is an AND gate
     assert( Abc_ObjFaninNum(pObj) == 2 );
     // make sure it has enough latches
-//    assert( Abc_ObjFaninL0(pObj) >= nLatches );
-//    assert( Abc_ObjFaninL1(pObj) >= nLatches );
+//    assert( Seq_ObjFaninL0(pObj) >= nLatches );
+//    assert( Seq_ObjFaninL1(pObj) >= nLatches );
     // subtract these latches on the fanin side
-    Abc_ObjAddFaninL0( pObj, -nLatches );
-    Abc_ObjAddFaninL1( pObj, -nLatches );
-    // add these latches on the fanout size
+    Seq_ObjAddFaninL0( pObj, -nLatches );
+    Seq_ObjAddFaninL1( pObj, -nLatches );
+    // make sure the label is clean
     Abc_ObjForEachFanout( pObj, pFanout, i )
-        Abc_ObjAddFanoutL( pObj, pFanout, nLatches );
+        assert( pFanout->fMarkC == 0 );
+    // add these latches on the fanout side
+    Abc_ObjForEachFanout( pObj, pFanout, i )
+    {
+        if ( pFanout->fMarkC )
+            continue;
+        pFanout->fMarkC = 1;
+        if ( Abc_ObjFaninId0(pFanout) != Abc_ObjFaninId1(pFanout) )
+            Seq_ObjAddFanoutL( pObj, pFanout, nLatches );
+        else
+        {
+            assert( Abc_ObjFanin0(pFanout) == pObj );
+            Seq_ObjAddFaninL0( pFanout, nLatches );
+            Seq_ObjAddFaninL1( pFanout, nLatches );
+        }
+    }
+    // clean the label
+    Abc_ObjForEachFanout( pObj, pFanout, i )
+        pFanout->fMarkC = 0;
 }
 
 /**Function*************************************************************
@@ -804,15 +936,31 @@ void Abc_ObjRetimeBackwardTry( Abc_Obj_t * pObj, int nLatches )
     int i;
     // make sure it is an AND gate
     assert( Abc_ObjFaninNum(pObj) == 2 );
+    // make sure the label is clean
+    Abc_ObjForEachFanout( pObj, pFanout, i )
+        assert( pFanout->fMarkC == 0 );
     // subtract these latches on the fanout side
     Abc_ObjForEachFanout( pObj, pFanout, i )
     {
+        if ( pFanout->fMarkC )
+            continue;
+        pFanout->fMarkC = 1;
 //        assert( Abc_ObjFanoutL(pObj, pFanout) >= nLatches );
-        Abc_ObjAddFanoutL( pObj, pFanout, -nLatches );
+        if ( Abc_ObjFaninId0(pFanout) != Abc_ObjFaninId1(pFanout) )
+            Seq_ObjAddFanoutL( pObj, pFanout, -nLatches );
+        else
+        {
+            assert( Abc_ObjFanin0(pFanout) == pObj );
+            Seq_ObjAddFaninL0( pFanout, -nLatches );
+            Seq_ObjAddFaninL1( pFanout, -nLatches );
+        }
     }
-    // add these latches on the fanin size
-    Abc_ObjAddFaninL0( pObj, nLatches );
-    Abc_ObjAddFaninL1( pObj, nLatches );
+    // clean the label
+    Abc_ObjForEachFanout( pObj, pFanout, i )
+        pFanout->fMarkC = 0;
+    // add these latches on the fanin side
+    Seq_ObjAddFaninL0( pObj, nLatches );
+    Seq_ObjAddFaninL1( pObj, nLatches );
 }
 
 ////////////////////////////////////////////////////////////////////////

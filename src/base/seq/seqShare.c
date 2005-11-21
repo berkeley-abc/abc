@@ -82,7 +82,7 @@ void Seq_NodeShareFanouts( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
     // find the number of fanouts having latches of each type
     Abc_ObjForEachFanout( pNode, pFanout, i )  
     {
-        if ( Abc_ObjFanoutL(pNode, pFanout) == 0 )
+        if ( Seq_ObjFanoutL(pNode, pFanout) == 0 )
             continue;
         Type = Seq_NodeGetInitLast( pFanout, Abc_ObjFanoutEdgeNum(pNode, pFanout) );
         nLatches[Type]++;
@@ -119,6 +119,7 @@ void Seq_NodeShareFanouts( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
 ***********************************************************************/
 void Seq_NodeShareOne( Abc_Obj_t * pNode, Abc_InitType_t Init, Vec_Ptr_t * vNodes )
 {
+    Vec_Int_t * vNums  = Seq_ObjLNums( pNode );
     Vec_Ptr_t * vInits = Seq_NodeLats( pNode );
     Abc_Obj_t * pFanout, * pBuffer;
     Abc_InitType_t Type, InitNew;
@@ -128,7 +129,7 @@ void Seq_NodeShareOne( Abc_Obj_t * pNode, Abc_InitType_t Init, Vec_Ptr_t * vNode
     Vec_PtrClear( vNodes );
     Abc_ObjForEachFanout( pNode, pFanout, i )
     {
-        if ( Abc_ObjFanoutL(pNode, pFanout) == 0 )
+        if ( Seq_ObjFanoutL(pNode, pFanout) == 0 )
             continue;
         Type = Seq_NodeGetInitLast( pFanout, Abc_ObjFanoutEdgeNum(pNode, pFanout) );
         if ( Type == Init )
@@ -147,6 +148,11 @@ void Seq_NodeShareOne( Abc_Obj_t * pNode, Abc_InitType_t Init, Vec_Ptr_t * vNode
     Vec_PtrGrow( vInits, 2 * pBuffer->Id + 2 );
     for ( i = Vec_PtrSize(vInits); i < 2 * (int)pBuffer->Id + 2; i++ )
         Vec_PtrPush( vInits, NULL );
+    // grow storage for numbers of latches
+    Vec_IntGrow( vNums, 2 * pBuffer->Id + 2 );
+    for ( i = Vec_IntSize(vNums); i < 2 * (int)pBuffer->Id + 2; i++ )
+        Vec_IntPush( vNums, 0 );
+    // insert the new latch
     Seq_NodeInsertFirst( pBuffer, 0, InitNew );
 
     // redirect the fanouts

@@ -63,7 +63,7 @@ void Seq_FpgaMappingDelays( Abc_Ntk_t * pNtk, int fVerbose )
     pParams->fTruth    = 0;     // compute truth tables
     pParams->fFilter   = 1;     // filter dominated cuts
     pParams->fSeq      = 1;     // compute sequential cuts
-    pParams->fVerbose  = 0;     // the verbosiness flag
+    pParams->fVerbose  = fVerbose;     // the verbosiness flag
 
     // compute the cuts
 clk = clock();
@@ -84,7 +84,8 @@ p->timeDelay = clock() - clk;
     Abc_NtkForEachPo( pNtk, pObj, i )
         Seq_FpgaMappingCollectNode_rec( Abc_ObjFanin0(pObj), p->vMapAnds, p->vMapCuts );
 
-printf( "The number of LUTs = %d.\n", Vec_PtrSize(p->vMapAnds) );
+    if ( fVerbose )
+    printf( "The number of LUTs = %d.\n", Vec_PtrSize(p->vMapAnds) );
 
     // remove the cuts
     Cut_ManStop( p->pCutMan );
@@ -151,7 +152,7 @@ Cut_Cut_t * Seq_FpgaMappingSelectCut( Abc_Obj_t * pAnd )
     int ArrivalCut, ArrivalMin, i;
     // get the arrival time of the best non-trivial cut
     ArrivalMin = Seq_NodeGetLValue( pAnd );
-    // iterate through the cuts and with the one with the minimum cost
+    // iterate through the cuts and select the one with the minimum cost
     pList = Abc_NodeReadCuts( Seq_NodeCutMan(pAnd), pAnd );
     CostMin = ABC_INFINITY;
     pCutBest = NULL;
@@ -231,7 +232,7 @@ int Seq_FpgaNodeUpdateLValue( Abc_Obj_t * pObj, int Fi )
     assert( Abc_ObjFaninNum(pObj) > 0 );
     if ( Abc_ObjIsPo(pObj) )
     {
-        lValueNew = Seq_NodeGetLValue(Abc_ObjFanin0(pObj)) - Fi * Abc_ObjFaninL0(pObj);
+        lValueNew = Seq_NodeGetLValue(Abc_ObjFanin0(pObj)) - Fi * Seq_ObjFaninL0(pObj);
         return (lValueNew > Fi)? SEQ_UPDATE_FAIL : SEQ_UPDATE_NO;
     }
     // get the arrival time of the best non-trivial cut

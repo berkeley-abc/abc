@@ -158,6 +158,7 @@ Abc_Ntk_t * Abc_NtkAigToSeq( Abc_Ntk_t * pNtk )
 
     // set the cutset composed of latch drivers
     Abc_NtkAigCutsetCopy( pNtk );
+    Seq_NtkLatchGetEqualFaninNum( pNtkNew );
 
     // copy EXDC and check correctness
     if ( pNtkNew->pExdc )
@@ -280,7 +281,7 @@ Abc_Ntk_t * Abc_NtkSeqToLogicSop( Abc_Ntk_t * pNtk )
         if ( Abc_ObjFaninNum(pObj) == 0 )
             continue;
         // create the edge
-        pFaninNew = Abc_NodeSeqToLogic( pNtkNew, Abc_ObjFanin0(pObj), Seq_NodeGetRing(pObj,0), Abc_ObjFaninL0(pObj) );
+        pFaninNew = Abc_NodeSeqToLogic( pNtkNew, Abc_ObjFanin0(pObj), Seq_NodeGetRing(pObj,0), Seq_ObjFaninL0(pObj) );
         Abc_ObjAddFanin( pObj->pCopy, pFaninNew );
         if ( Abc_ObjFaninNum(pObj) == 1 )
         {
@@ -290,7 +291,7 @@ Abc_Ntk_t * Abc_NtkSeqToLogicSop( Abc_Ntk_t * pNtk )
             continue;
         }
         // create the edge
-        pFaninNew = Abc_NodeSeqToLogic( pNtkNew, Abc_ObjFanin1(pObj), Seq_NodeGetRing(pObj,1), Abc_ObjFaninL1(pObj) );
+        pFaninNew = Abc_NodeSeqToLogic( pNtkNew, Abc_ObjFanin1(pObj), Seq_NodeGetRing(pObj,1), Seq_ObjFaninL1(pObj) );
         Abc_ObjAddFanin( pObj->pCopy, pFaninNew );
         // the complemented edges are subsumed by the node function
     }

@@ -48,7 +48,7 @@ int Seq_ObjFanoutLMax( Abc_Obj_t * pObj )
     nLatchRes = 0;
     Abc_ObjForEachFanout( pObj, pFanout, i )
     {
-        nLatchCur = Abc_ObjFanoutL(pObj, pFanout);
+        nLatchCur = Seq_ObjFanoutL(pObj, pFanout);
         if ( nLatchRes < nLatchCur )
             nLatchRes = nLatchCur;
     }
@@ -76,7 +76,7 @@ int Seq_ObjFanoutLMin( Abc_Obj_t * pObj )
     nLatchRes = ABC_INFINITY;
     Abc_ObjForEachFanout( pObj, pFanout, i )
     {
-        nLatchCur = Abc_ObjFanoutL(pObj, pFanout);
+        nLatchCur = Seq_ObjFanoutL(pObj, pFanout);
         if ( nLatchRes > nLatchCur )
             nLatchRes = nLatchCur;
     }
@@ -100,7 +100,7 @@ int Seq_ObjFanoutLSum( Abc_Obj_t * pObj )
     Abc_Obj_t * pFanout;
     int i, nSum = 0;
     Abc_ObjForEachFanout( pObj, pFanout, i )
-        nSum += Abc_ObjFanoutL(pObj, pFanout);
+        nSum += Seq_ObjFanoutL(pObj, pFanout);
     return nSum;
 }
 
@@ -120,7 +120,7 @@ int Seq_ObjFaninLSum( Abc_Obj_t * pObj )
     Abc_Obj_t * pFanin;
     int i, nSum = 0;
     Abc_ObjForEachFanin( pObj, pFanin, i )
-        nSum += Abc_ObjFaninL(pObj, i);
+        nSum += Seq_ObjFaninL(pObj, i);
     return nSum;
 }
 
@@ -140,7 +140,7 @@ char * Seq_ObjFaninGetInitPrintable( Abc_Obj_t * pObj, int Edge )
     static char Buffer[1000];
     Abc_InitType_t Init;
     int nLatches, i;
-    nLatches = Abc_ObjFaninL( pObj, Edge );
+    nLatches = Seq_ObjFaninL( pObj, Edge );
     for ( i = 0; i < nLatches; i++ )
     {
         Init = Seq_LatInit( Seq_NodeGetLat(pObj, Edge, i) );
@@ -249,13 +249,13 @@ int Seq_NtkLatchNumMax( Abc_Ntk_t * pNtk )
     Max = 0;
     Abc_AigForEachAnd( pNtk, pObj, i )
     {
-        Cur = Abc_ObjFaninLMax( pObj );
+        Cur = Seq_ObjFaninLMax( pObj );
         if ( Max < Cur )
             Max = Cur;
     }
     Abc_NtkForEachPo( pNtk, pObj, i )
     {
-        Cur = Abc_ObjFaninL0( pObj );
+        Cur = Seq_ObjFaninL0( pObj );
         if ( Max < Cur )
             Max = Cur;
     }
@@ -301,7 +301,7 @@ void Seq_ObjLatchGetInitNums( Abc_Obj_t * pObj, int Edge, int * pInits )
 {
     Abc_InitType_t Init;
     int nLatches, i;
-    nLatches = Abc_ObjFaninL( pObj, Edge );
+    nLatches = Seq_ObjFaninL( pObj, Edge );
     for ( i = 0; i < nLatches; i++ )
     {
         Init = Seq_NodeGetInitOne( pObj, Edge, i );
@@ -336,6 +336,31 @@ void Seq_NtkLatchGetInitNums( Abc_Ntk_t * pNtk, int * pInits )
         if ( Abc_ObjFaninNum(pObj) > 1 )
             Seq_ObjLatchGetInitNums( pObj, 1, pInits );
     }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Report nodes with equal fanins.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Seq_NtkLatchGetEqualFaninNum( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int i, Counter;
+    assert( Abc_NtkIsSeq( pNtk ) );
+    Counter = 0;
+    Abc_AigForEachAnd( pNtk, pObj, i )
+        if ( Abc_ObjFaninId0(pObj) == Abc_ObjFaninId1(pObj) )
+            Counter++;
+    if ( Counter )
+        printf( "The number of nodes with equal fanins = %d.\n", Counter );
+    return Counter;
 }
 
 ////////////////////////////////////////////////////////////////////////
