@@ -394,13 +394,15 @@ Abc_Obj_t * Abc_AigAndLookup( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 )
 ***********************************************************************/
 void Abc_AigAndDelete( Abc_Aig_t * pMan, Abc_Obj_t * pThis )
 {
-    Abc_Obj_t * pAnd, ** ppPlace;
+    Abc_Obj_t * pAnd, * pAnd0, * pAnd1, ** ppPlace;
     unsigned Key;
     assert( !Abc_ObjIsComplement(pThis) );
     assert( Abc_ObjIsNode(pThis) );
     assert( Abc_ObjFaninNum(pThis) == 2 );
     assert( pMan->pNtkAig == pThis->pNtk );
     // get the hash key for these two nodes
+    pAnd0 = Abc_ObjRegular( Abc_ObjChild0(pThis) );
+    pAnd1 = Abc_ObjRegular( Abc_ObjChild1(pThis) );
     Key = Abc_HashKey2( Abc_ObjChild0(pThis), Abc_ObjChild1(pThis), pMan->nBins );
     // find the matching node in the table
     ppPlace = pMan->pBins + Key;
@@ -479,7 +481,7 @@ void Abc_AigRehash( Abc_Aig_t * pMan )
 {
     Abc_Obj_t ** pBinsNew;
     Abc_Obj_t * pEnt, * pEnt2;
-    Abc_Fan_t * pArray;
+    int * pArray;
     unsigned Key;
     int Counter, Temp, i;
 
@@ -493,14 +495,14 @@ void Abc_AigRehash( Abc_Aig_t * pMan )
         {
             // swap the fanins if needed
             pArray = pEnt->vFanins.pArray;
-            if ( pArray[0].iFan > pArray[1].iFan )
+            if ( pArray[0] > pArray[1] )
             {
-                Temp = pArray[0].iFan;
-                pArray[0].iFan = pArray[1].iFan;
-                pArray[1].iFan = Temp;
-                Temp = pArray[0].fCompl;
-                pArray[0].fCompl = pArray[1].fCompl;
-                pArray[1].fCompl = Temp;
+                Temp = pArray[0];
+                pArray[0] = pArray[1];
+                pArray[1] = Temp;
+                Temp = pEnt->fCompl0;
+                pEnt->fCompl0 = pEnt->fCompl1;
+                pEnt->fCompl1 = Temp;
             }
             // rehash the node
             Key = Abc_HashKey2( Abc_ObjChild0(pEnt), Abc_ObjChild1(pEnt), pMan->nBins );
@@ -660,7 +662,7 @@ void Abc_AigReplace_int( Abc_Aig_t * pMan, int fUpdateLevel )
             continue;
         }
         // find the old node as a fanin of this fanout
-        iFanin = Vec_FanFindEntry( &pFanout->vFanins, pOld->Id );
+        iFanin = Vec_IntFind( &pFanout->vFanins, pOld->Id );
         assert( iFanin == 0 || iFanin == 1 );
         // get the new fanin
         pFanin1 = Abc_ObjNotCond( pNew, Abc_ObjFaninC(pFanout, iFanin) );
@@ -1009,7 +1011,7 @@ bool Abc_AigNodeHasComplFanoutEdge( Abc_Obj_t * pNode )
     int i, iFanin;
     Abc_ObjForEachFanout( pNode, pFanout, i )
     {
-        iFanin = Vec_FanFindEntry( &pFanout->vFanins, pNode->Id );
+        iFanin = Vec_IntFind( &pFanout->vFanins, pNode->Id );
         assert( iFanin >= 0 );
         if ( Abc_ObjFaninC( pFanout, iFanin ) )
             return 1;
@@ -1038,7 +1040,7 @@ bool Abc_AigNodeHasComplFanoutEdgeTrav( Abc_Obj_t * pNode )
     {
         if ( !Abc_NodeIsTravIdCurrent(pFanout) )
             continue;
-        iFanin = Vec_FanFindEntry( &pFanout->vFanins, pNode->Id );
+        iFanin = Vec_IntFind( &pFanout->vFanins, pNode->Id );
         assert( iFanin >= 0 );
         if ( Abc_ObjFaninC( pFanout, iFanin ) )
             return 1;

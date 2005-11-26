@@ -108,7 +108,7 @@ bool Abc_NtkFxuCheck( Abc_Ntk_t * pNtk )
     {
         Abc_ObjForEachFanin( pNode, pFanin1, i )
         {
-            if ( Abc_ObjFaninC(pNode, i) )
+            if ( i < 2 && Abc_ObjFaninC(pNode, i) )
                 return 0;
             Abc_ObjForEachFanin( pNode, pFanin2, k )
             {

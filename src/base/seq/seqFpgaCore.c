@@ -29,9 +29,11 @@ static int          Seq_NtkFpgaInitCompatible( Abc_Ntk_t * pNtk, int fVerbose );
 static Abc_Ntk_t *  Seq_NtkSeqFpgaMapped( Abc_Ntk_t * pNtkNew );
 static int          Seq_FpgaMappingCount( Abc_Ntk_t * pNtk );
 static int          Seq_FpgaMappingCount_rec( Abc_Ntk_t * pNtk, unsigned SeqEdge, Vec_Ptr_t * vLeaves );
+static Abc_Obj_t *  Seq_FpgaMappingBuild_rec( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, unsigned SeqEdge, int fTop, int LagCut, Vec_Ptr_t * vLeaves );
 static DdNode *     Seq_FpgaMappingBdd_rec( DdManager * dd, Abc_Ntk_t * pNtk, unsigned SeqEdge, Vec_Ptr_t * vLeaves );
 static void         Seq_FpgaMappingEdges_rec( Abc_Ntk_t * pNtk, unsigned SeqEdge, Abc_Obj_t * pPrev, Vec_Ptr_t * vLeaves, Vec_Vec_t * vMapEdges );
-static Abc_Obj_t *  Seq_FpgaMappingBuild_rec( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, unsigned SeqEdge, int fTop, int LagCut, Vec_Ptr_t * vLeaves );
+static void         Seq_FpgaMappingConnect_rec( Abc_Ntk_t * pNtk, unsigned SeqEdge, Abc_Obj_t * pPrev, int Edge, Abc_Obj_t * pRoot, Vec_Ptr_t * vLeaves );
+static DdNode *     Seq_FpgaMappingConnectBdd_rec( Abc_Ntk_t * pNtk, unsigned SeqEdge, Abc_Obj_t * pPrev, int Edge, Abc_Obj_t * pRoot, Vec_Ptr_t * vLeaves );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -48,13 +50,25 @@ static Abc_Obj_t *  Seq_FpgaMappingBuild_rec( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * p
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Seq_NtkFpgaMapRetime( Abc_Ntk_t * pNtk, int fVerbose )
+Abc_Ntk_t * Seq_NtkFpgaMapRetime( Abc_Ntk_t * pNtk, int nMaxIters, int fVerbose )
 {
+    Abc_Seq_t * p = pNtk->pManFunc;
     Abc_Ntk_t * pNtkNew;
     Abc_Ntk_t * pNtkMap;
     int RetValue;
+
+    // get the LUT library
+    p->nVarsMax = Fpga_LutLibReadVarMax( Abc_FrameReadLibLut() );
+    p->nMaxIters = nMaxIters;
+
     // find the best mapping and retiming for all nodes (p->vLValues, p->vBestCuts, p->vLags)
     Seq_FpgaMappingDelays( pNtk, fVerbose );
+    if ( RetValue = Abc_NtkGetChoiceNum(pNtk) )
+    {
+        printf( "The network has %d choices. Deriving the resulting network is skipped.\n", RetValue );
+        return NULL;
+    }
+
     // duplicate the nodes contained in multiple cuts
     pNtkNew = Seq_NtkFpgaDup( pNtk );
 //    return pNtkNew;
@@ -67,14 +81,13 @@ Abc_Ntk_t * Seq_NtkFpgaMapRetime( Abc_Ntk_t * pNtk, int fVerbose )
 
     // check the compatibility of initial states computed
     if ( RetValue = Seq_NtkFpgaInitCompatible( pNtkNew, fVerbose ) )
-    {
         printf( "The number of LUTs with incompatible edges = %d.\n", RetValue );
-        Abc_NtkDelete( pNtkNew );
-        return NULL;
-    }
     // create the final mapped network
     pNtkMap = Seq_NtkSeqFpgaMapped( pNtkNew );
     Abc_NtkDelete( pNtkNew );
+    if ( RetValue )
+        printf( "The number of LUTs with more than %d inputs = %d.\n", 
+            p->nVarsMax, Seq_NtkCountNodesAboveLimit(pNtkMap, p->nVarsMax) );
     return pNtkMap;
 }
 
@@ -125,7 +138,6 @@ Abc_Ntk_t * Seq_NtkFpgaDup( Abc_Ntk_t * pNtk )
     // duplicate the latches on the PO edges
     Abc_NtkForEachPo( pNtk, pObj, i )
         Seq_NodeDupLats( pObj->pCopy, pObj, 0 );
-//Abc_NtkShowAig( pNtkNew );
 
     // transfer the mapping info to the new manager
     Vec_PtrForEachEntry( p->vMapAnds, pObj, i )
@@ -264,13 +276,11 @@ int Seq_NtkFpgaInitCompatible( Abc_Ntk_t * pNtk, int fVerbose )
 Abc_Ntk_t * Seq_NtkSeqFpgaMapped( Abc_Ntk_t * pNtk )
 {
     Abc_Seq_t * p = pNtk->pManFunc;
-    Seq_Lat_t * pLat, * pRing;
     Abc_Ntk_t * pNtkMap; 
-    Vec_Vec_t * vTotalEdges;
-    Vec_Ptr_t * vLeaves, * vMapEdges;
-    Abc_Obj_t * pObj, * pAnd, * pLeaf, * pFanout, * pFanin, * pLatch;
-    int i, k, m, Edge, nLatches, nLatchAfter;
-    unsigned SeqEdge;
+    Vec_Ptr_t * vLeaves;
+    Abc_Obj_t * pObj, * pLatch, * pFaninNew;
+    Seq_Lat_t * pRing;
+    int i;
 
     assert( Abc_NtkIsSeq(pNtk) );
 
@@ -278,87 +288,33 @@ Abc_Ntk_t * Seq_NtkSeqFpgaMapped( Abc_Ntk_t * pNtk )
     pNtkMap = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_BDD );
 
     // duplicate the nodes used in the mapping
-    Vec_PtrForEachEntry( p->vMapAnds, pAnd, i )
+    Vec_PtrForEachEntry( p->vMapAnds, pObj, i )
+        pObj->pCopy = Abc_NtkCreateNode( pNtkMap );
+    // create and share the latches
+    Seq_NtkShareLatchesFpga( pNtkMap, pNtk, p->vMapAnds );
+
+    // connect the nodes
+    Vec_PtrForEachEntry( p->vMapAnds, pObj, i )
     {
-        pAnd->pCopy = Abc_NtkCreateNode( pNtkMap );
         // get the leaves of this gate
         vLeaves = Vec_VecEntry( p->vMapCuts, i );
         // get the BDD of the node
-        pAnd->pCopy->pData = Seq_FpgaMappingBdd_rec( pNtkMap->pManFunc, pNtk, pAnd->Id << 8, vLeaves );
-        Cudd_Ref( pAnd->pCopy->pData );
-    }   
-
-    // construct nodes in the mapped network
-    vTotalEdges = Vec_VecStart( p->nVarsMax );
-    Vec_PtrForEachEntry( p->vMapAnds, pAnd, i )
-    {
-        // get the leaves of this gate
-        vLeaves = Vec_VecEntry( p->vMapCuts, i );
-        // get the edges pointing to the leaves
-        Vec_VecClear( vTotalEdges );
-        Seq_FpgaMappingEdges_rec( pNtk, pAnd->Id << 8, NULL, vLeaves, vTotalEdges );
-        // for each leaf, consider its edges
-        Vec_PtrForEachEntry( vLeaves, pLeaf, k )
-        {
-            SeqEdge = (unsigned)pLeaf;
-            pLeaf = Abc_NtkObj( pNtk, SeqEdge >> 8 );
-            nLatchAfter = SeqEdge & 255;
-            if ( nLatchAfter == 0 )
-            {
-                // add the fanin
-                Abc_ObjAddFanin( pAnd->pCopy, pLeaf->pCopy );
-                continue;
-            }
-
-            // get the first edge
-            vMapEdges = Vec_VecEntry( vTotalEdges, k );
-            pFanout = Vec_PtrEntry( vMapEdges, 0 );
-            Edge    = Abc_ObjIsComplement(pFanout);
-            pFanout = Abc_ObjRegular(pFanout);
-            // make sure this is the same fanin
-            if ( Edge )
-                assert( pLeaf == Abc_ObjFanin1(pFanout) );
-            else
-                assert( pLeaf == Abc_ObjFanin0(pFanout) );
-            nLatches = Seq_NodeCountLats(pFanout, Edge);
-            assert( nLatches == nLatchAfter );
-            assert( nLatches > 0 );
-
-            // for each implicit latch add the real latch
-            pFanin = pLeaf->pCopy;
-            pRing  = Seq_NodeGetRing(pFanout, Edge);
-            for ( m = 0, pLat = Seq_LatPrev(pRing); m < nLatches; m++, pLat = Seq_LatPrev(pLat) )
-            {
-                pLatch = Abc_NtkCreateLatch( pNtkMap );
-                pLatch->pData = (void *)Seq_LatInit(pLat);
-                Abc_ObjAddFanin( pLatch, pFanin );
-                pFanin = pLatch;
-            }
-            // finally connect to the latch
-            Abc_ObjAddFanin( pAnd->pCopy, pFanin );
-        }
+        pObj->pCopy->pData = Seq_FpgaMappingConnectBdd_rec( pNtk, pObj->Id << 8, NULL, -1, pObj, vLeaves );
+        Cudd_Ref( pObj->pCopy->pData );
+        // complement the BDD of the cut if it came from the opposite polarity choice cut
+//        if ( Vec_StrEntry(p->vPhase, i) )
+//            pObj->pCopy->pData = Cudd_Not( pObj->pCopy->pData );
     }
-    Vec_VecFree( vTotalEdges );
 
     // set the POs
     Abc_NtkForEachPo( pNtk, pObj, i )
     {
-        pFanin = Abc_ObjFanin0(pObj)->pCopy;
-        nLatches = Seq_NodeCountLats(pObj, 0);
-        assert( nLatches == Seq_ObjFaninL0(pObj) );
-        if ( nLatches > 0 )
-        {
-            pRing = Seq_NodeGetRing(pObj, 0);
-            for ( m = 0, pLat = Seq_LatPrev(pRing); m < nLatches; m++, pLat = Seq_LatPrev(pLat) )
-            {
-                pLatch = Abc_NtkCreateLatch( pNtkMap );
-                pLatch->pData = (void *)Seq_LatInit(pLat);
-                Abc_ObjAddFanin( pLatch, pFanin );
-                pFanin = pLatch;
-            }
-        }
-        pFanin = Abc_ObjNotCond(pFanin, Abc_ObjFaninC0(pObj));
-        Abc_ObjAddFanin( pObj->pCopy, pFanin );
+        if ( pRing = Seq_NodeGetRing(pObj,0) )
+            pFaninNew = pRing->pLatch;
+        else
+            pFaninNew = Abc_ObjFanin0(pObj)->pCopy;
+        pFaninNew = Abc_ObjNotCond( pFaninNew, Abc_ObjFaninC0(pObj) );
+        Abc_ObjAddFanin( pObj->pCopy, pFaninNew );
     }
 
     // add the latches and their names
@@ -368,10 +324,10 @@ Abc_Ntk_t * Seq_NtkSeqFpgaMapped( Abc_Ntk_t * pNtk )
         Vec_PtrPush( pNtkMap->vCis, pLatch );
         Vec_PtrPush( pNtkMap->vCos, pLatch );
     }
-
     // fix the problem with complemented and duplicated CO edges
     Abc_NtkLogicMakeSimpleCos( pNtkMap, 1 );
-
+    // make the network minimum base
+    Abc_NtkMinimumBase( pNtkMap );
     if ( !Abc_NtkCheck( pNtkMap ) )
         fprintf( stdout, "Seq_NtkSeqFpgaMapped(): Network check has failed.\n" );
     return pNtkMap;
@@ -440,6 +396,52 @@ int Seq_FpgaMappingCount_rec( Abc_Ntk_t * pNtk, unsigned SeqEdge, Vec_Ptr_t * vL
 
 /**Function*************************************************************
 
+  Synopsis    [Collects the edges pointing to the leaves of the cut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Seq_FpgaMappingBuild_rec( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, unsigned SeqEdge, int fTop, int LagCut, Vec_Ptr_t * vLeaves )
+{
+    Abc_Obj_t * pObj, * pObjNew, * pLeaf, * pFaninNew0, * pFaninNew1;
+    unsigned SeqEdge0, SeqEdge1;
+    int Lag, i;
+    // get the object and the lag
+    pObj = Abc_NtkObj( pNtk, SeqEdge >> 8 );
+    Lag  = SeqEdge & 255;
+    // if the node is the fanin of the cut, return
+    Vec_PtrForEachEntry( vLeaves, pLeaf, i )
+        if ( SeqEdge == (unsigned)pLeaf )
+            return pObj->pCopy;
+    // continue unfolding
+    assert( Abc_NodeIsAigAnd(pObj) );
+    // get new sequential edges
+    assert( Lag + Seq_ObjFaninL0(pObj) < 255 );
+    assert( Lag + Seq_ObjFaninL1(pObj) < 255 );
+    SeqEdge0 = (Abc_ObjFanin0(pObj)->Id << 8) + Lag + Seq_ObjFaninL0(pObj);
+    SeqEdge1 = (Abc_ObjFanin1(pObj)->Id << 8) + Lag + Seq_ObjFaninL1(pObj);
+    // call for the children    
+    pObjNew = fTop? pObj->pCopy : Abc_NtkCreateNode( pNtkNew );
+    // solve subproblems
+    pFaninNew0 = Seq_FpgaMappingBuild_rec( pNtkNew, pNtk, SeqEdge0, 0, LagCut, vLeaves );
+    pFaninNew1 = Seq_FpgaMappingBuild_rec( pNtkNew, pNtk, SeqEdge1, 0, LagCut, vLeaves );
+    // add the fanins to the node
+    Abc_ObjAddFanin( pObjNew, Abc_ObjNotCond( pFaninNew0, Abc_ObjFaninC0(pObj) ) );
+    Abc_ObjAddFanin( pObjNew, Abc_ObjNotCond( pFaninNew1, Abc_ObjFaninC1(pObj) ) );
+    Seq_NodeDupLats( pObjNew, pObj, 0 );
+    Seq_NodeDupLats( pObjNew, pObj, 1 );
+    // set the lag of the new node equal to the internal lag plus mapping/retiming lag
+    Seq_NodeSetLag( pObjNew, (char)(Lag + LagCut) );
+//    Seq_NodeSetLag( pObjNew, (char)(Lag) );
+    return pObjNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Derives the BDD of the selected cut.]
 
   Description []
@@ -478,8 +480,6 @@ DdNode * Seq_FpgaMappingBdd_rec( DdManager * dd, Abc_Ntk_t * pNtk, unsigned SeqE
     bFunc  = Cudd_bddAnd( dd, bFunc0, bFunc1 );  Cudd_Ref( bFunc );
     Cudd_RecursiveDeref( dd, bFunc0 );
     Cudd_RecursiveDeref( dd, bFunc1 );
-    // complement the function if the node is created from the complimented cut
-    // ...
     // return the BDD
     Cudd_Deref( bFunc );
     return bFunc;
@@ -537,18 +537,33 @@ void Seq_FpgaMappingEdges_rec( Abc_Ntk_t * pNtk, unsigned SeqEdge, Abc_Obj_t * p
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Seq_FpgaMappingBuild_rec( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, unsigned SeqEdge, int fTop, int LagCut, Vec_Ptr_t * vLeaves )
+void Seq_FpgaMappingConnect_rec( Abc_Ntk_t * pNtk, unsigned SeqEdge, Abc_Obj_t * pPrev, int Edge, Abc_Obj_t * pRoot, Vec_Ptr_t * vLeaves )
 {
-    Abc_Obj_t * pObj, * pObjNew, * pLeaf, * pFaninNew0, * pFaninNew1;
+    Seq_Lat_t * pRing;
+    Abc_Obj_t * pObj, * pLeaf, * pFanin, * pFaninNew;
     unsigned SeqEdge0, SeqEdge1;
-    int Lag, i;
+    int Lag, i, k;
     // get the object and the lag
     pObj = Abc_NtkObj( pNtk, SeqEdge >> 8 );
     Lag  = SeqEdge & 255;
-    // if the node is the fanin of the cut, return
+    // if the node is the fanin of the cut, add the connection and return
     Vec_PtrForEachEntry( vLeaves, pLeaf, i )
+    {
         if ( SeqEdge == (unsigned)pLeaf )
-            return pObj->pCopy;
+        {
+            assert( pPrev != NULL );
+            if ( pRing = Seq_NodeGetRing(pPrev,Edge) )
+                pFaninNew = pRing->pLatch;
+            else
+                pFaninNew = Abc_ObjFanin(pPrev,Edge)->pCopy;
+            // check if the root already has this fanin
+            Abc_ObjForEachFanin( pRoot, pFanin, k )
+                if ( pFanin == pFaninNew )
+                    return;
+            Abc_ObjAddFanin( pRoot->pCopy, pFaninNew );
+            return;
+        }
+    }
     // continue unfolding
     assert( Abc_NodeIsAigAnd(pObj) );
     // get new sequential edges
@@ -557,19 +572,69 @@ Abc_Obj_t * Seq_FpgaMappingBuild_rec( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, uns
     SeqEdge0 = (Abc_ObjFanin0(pObj)->Id << 8) + Lag + Seq_ObjFaninL0(pObj);
     SeqEdge1 = (Abc_ObjFanin1(pObj)->Id << 8) + Lag + Seq_ObjFaninL1(pObj);
     // call for the children    
-    pObjNew = fTop? pObj->pCopy : Abc_NtkCreateNode( pNtkNew );
-    // solve subproblems
-    pFaninNew0 = Seq_FpgaMappingBuild_rec( pNtkNew, pNtk, SeqEdge0, 0, LagCut, vLeaves );
-    pFaninNew1 = Seq_FpgaMappingBuild_rec( pNtkNew, pNtk, SeqEdge1, 0, LagCut, vLeaves );
-    // add the fanins to the node
-    Abc_ObjAddFanin( pObjNew, Abc_ObjNotCond( pFaninNew0, Abc_ObjFaninC0(pObj) ) );
-    Abc_ObjAddFanin( pObjNew, Abc_ObjNotCond( pFaninNew1, Abc_ObjFaninC1(pObj) ) );
-    Seq_NodeDupLats( pObjNew, pObj, 0 );
-    Seq_NodeDupLats( pObjNew, pObj, 1 );
-    // set the lag of the new node equal to the internal lag plus mapping/retiming lag
-    Seq_NodeSetLag( pObjNew, (char)(Lag + LagCut) );
-//    Seq_NodeSetLag( pObjNew, (char)(Lag) );
-    return pObjNew;
+    Seq_FpgaMappingConnect_rec( pNtk, SeqEdge0, pObj, 0, pRoot, vLeaves );
+    Seq_FpgaMappingConnect_rec( pNtk, SeqEdge1, pObj, 1, pRoot, vLeaves );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects the edges pointing to the leaves of the cut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+DdNode * Seq_FpgaMappingConnectBdd_rec( Abc_Ntk_t * pNtk, unsigned SeqEdge, Abc_Obj_t * pPrev, int Edge, Abc_Obj_t * pRoot, Vec_Ptr_t * vLeaves )
+{
+    Seq_Lat_t * pRing;
+    Abc_Obj_t * pObj, * pLeaf, * pFanin, * pFaninNew;
+    unsigned SeqEdge0, SeqEdge1;
+    DdManager * dd = pRoot->pCopy->pNtk->pManFunc;
+    DdNode * bFunc, * bFunc0, * bFunc1;
+    int Lag, i, k;
+    // get the object and the lag
+    pObj = Abc_NtkObj( pNtk, SeqEdge >> 8 );
+    Lag  = SeqEdge & 255;
+    // if the node is the fanin of the cut, add the connection and return
+    Vec_PtrForEachEntry( vLeaves, pLeaf, i )
+    {
+        if ( SeqEdge == (unsigned)pLeaf )
+        {
+            assert( pPrev != NULL );
+            if ( pRing = Seq_NodeGetRing(pPrev,Edge) )
+                pFaninNew = pRing->pLatch;
+            else
+                pFaninNew = Abc_ObjFanin(pPrev,Edge)->pCopy;
+            // check if the root already has this fanin
+            Abc_ObjForEachFanin( pRoot->pCopy, pFanin, k )
+                if ( pFanin == pFaninNew )
+                    return Cudd_bddIthVar( dd, k );
+            Abc_ObjAddFanin( pRoot->pCopy, pFaninNew );
+            return Cudd_bddIthVar( dd, k );
+        }
+    }
+    // continue unfolding
+    assert( Abc_NodeIsAigAnd(pObj) );
+    // get new sequential edges
+    assert( Lag + Seq_ObjFaninL0(pObj) < 255 );
+    assert( Lag + Seq_ObjFaninL1(pObj) < 255 );
+    SeqEdge0 = (Abc_ObjFanin0(pObj)->Id << 8) + Lag + Seq_ObjFaninL0(pObj);
+    SeqEdge1 = (Abc_ObjFanin1(pObj)->Id << 8) + Lag + Seq_ObjFaninL1(pObj);
+    // call for the children    
+    bFunc0 = Seq_FpgaMappingConnectBdd_rec( pNtk, SeqEdge0, pObj, 0, pRoot, vLeaves );    Cudd_Ref( bFunc0 );
+    bFunc1 = Seq_FpgaMappingConnectBdd_rec( pNtk, SeqEdge1, pObj, 1, pRoot, vLeaves );    Cudd_Ref( bFunc1 );
+    bFunc0 = Cudd_NotCond( bFunc0, Abc_ObjFaninC0(pObj) );
+    bFunc1 = Cudd_NotCond( bFunc1, Abc_ObjFaninC1(pObj) );
+    // get the BDD of the node
+    bFunc  = Cudd_bddAnd( dd, bFunc0, bFunc1 );  Cudd_Ref( bFunc );
+    Cudd_RecursiveDeref( dd, bFunc0 );
+    Cudd_RecursiveDeref( dd, bFunc1 );
+    // return the BDD
+    Cudd_Deref( bFunc );
+    return bFunc;
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -457,6 +457,41 @@ static inline void Vec_IntPush( Vec_Int_t * p, int Entry )
   SeeAlso     []
 
 ***********************************************************************/
+static inline void Vec_IntPushMem( Extra_MmStep_t * pMemMan, Vec_Int_t * p, int Entry )
+{
+    if ( p->nSize == p->nCap )
+    {
+        int * pArray;
+        int i;
+
+        if ( p->nSize == 0 )
+            p->nCap = 1;
+        pArray = (int *)Extra_MmStepEntryFetch( pMemMan, p->nCap * 8 );
+//        pArray = ALLOC( int, p->nCap * 2 );
+        if ( p->pArray )
+        {
+            for ( i = 0; i < p->nSize; i++ )
+                pArray[i] = p->pArray[i];
+            Extra_MmStepEntryRecycle( pMemMan, (char *)p->pArray, p->nCap * 4 );
+//            free( p->pArray );
+        }
+        p->nCap *= 2;
+        p->pArray = pArray;
+    }
+    p->pArray[p->nSize++] = Entry;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline void Vec_IntPushOrder( Vec_Int_t * p, int Entry )
 {
     int i;
@@ -516,6 +551,26 @@ static inline int Vec_IntPop( Vec_Int_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Find entry.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_IntFind( Vec_Int_t * p, int Entry )
+{
+    int i;
+    for ( i = 0; i < p->nSize; i++ )
+        if ( p->pArray[i] == Entry )
+            return i;
+    return -1;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -525,16 +580,19 @@ static inline int Vec_IntPop( Vec_Int_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_IntRemove( Vec_Int_t * p, int Entry )
+static inline int Vec_IntRemove( Vec_Int_t * p, int Entry )
 {
     int i;
     for ( i = 0; i < p->nSize; i++ )
         if ( p->pArray[i] == Entry )
             break;
+    if ( i == p->nSize )
+        return 0;
     assert( i < p->nSize );
     for ( i++; i < p->nSize; i++ )
         p->pArray[i-1] = p->pArray[i];
     p->nSize--;
+    return 1;
 }
 
 /**Function*************************************************************

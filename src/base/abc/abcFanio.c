@@ -25,8 +25,6 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define ABC_LARGE_ID   ((1<<24)-1)   // should correspond to value in "vecFan.h"
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -48,10 +46,8 @@ void Abc_ObjAddFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFanin )
     assert( !Abc_ObjIsComplement(pObj) );
     assert( pObj->pNtk == pFaninR->pNtk );
     assert( pObj->Id >= 0 && pFaninR->Id >= 0 );
-    assert( pObj->Id    < ABC_LARGE_ID );  // created but forgot to add it to the network?
-    assert( pFaninR->Id < ABC_LARGE_ID );  // created but forgot to add it to the network?
-    Vec_FanPush( pObj->pNtk->pMmStep, &pObj->vFanins,     Vec_Int2Fan(pFaninR->Id) );
-    Vec_FanPush( pObj->pNtk->pMmStep, &pFaninR->vFanouts, Vec_Int2Fan(pObj->Id)    );
+    Vec_IntPushMem( pObj->pNtk->pMmStep, &pObj->vFanins,     pFaninR->Id );
+    Vec_IntPushMem( pObj->pNtk->pMmStep, &pFaninR->vFanouts, pObj->Id    );
     if ( Abc_ObjIsComplement(pFanin) )
         Abc_ObjSetFaninC( pObj, Abc_ObjFaninNum(pObj)-1 );
 }
@@ -74,14 +70,12 @@ void Abc_ObjDeleteFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFanin )
     assert( !Abc_ObjIsComplement(pFanin) );
     assert( pObj->pNtk == pFanin->pNtk );
     assert( pObj->Id >= 0 && pFanin->Id >= 0 );
-    assert( pObj->Id   < ABC_LARGE_ID );  // created but forgot to add it to the network?
-    assert( pFanin->Id < ABC_LARGE_ID );  // created but forgot to add it to the network?
-    if ( !Vec_FanDeleteEntry( &pObj->vFanins, pFanin->Id ) )
+    if ( !Vec_IntRemove( &pObj->vFanins, pFanin->Id ) )
     {
         printf( "The obj %d is not found among the fanins of obj %d ...\n", pFanin->Id, pObj->Id );
         return;
     }
-    if ( !Vec_FanDeleteEntry( &pFanin->vFanouts, pObj->Id ) )
+    if ( !Vec_IntRemove( &pFanin->vFanouts, pObj->Id ) )
     {
         printf( "The obj %d is not found among the fanouts of obj %d ...\n", pObj->Id, pFanin->Id );
         return;
@@ -102,16 +96,19 @@ void Abc_ObjDeleteFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFanin )
 ***********************************************************************/
 void Abc_ObjRemoveFanins( Abc_Obj_t * pObj )
 {
-    Vec_Fan_t * vFaninsOld;
+    Vec_Int_t * vFaninsOld;
     Abc_Obj_t * pFanin;
     int k;
     // remove old fanins
     vFaninsOld = &pObj->vFanins;
     for ( k = vFaninsOld->nSize - 1; k >= 0; k-- )
     {
-        pFanin = Abc_NtkObj( pObj->pNtk, vFaninsOld->pArray[k].iFan );
+        pFanin = Abc_NtkObj( pObj->pNtk, vFaninsOld->pArray[k] );
         Abc_ObjDeleteFanin( pObj, pFanin );
     }
+    pObj->fCompl0 = 0;
+    pObj->fCompl1 = 0;
+    assert( vFaninsOld->nSize == 0 );
 }
 
 /**Function*************************************************************
@@ -131,7 +128,7 @@ void Abc_ObjRemoveFanins( Abc_Obj_t * pObj )
 void Abc_ObjPatchFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFaninOld, Abc_Obj_t * pFaninNew )
 {
     Abc_Obj_t * pFaninNewR = Abc_ObjRegular(pFaninNew);
-    int iFanin, fCompl, nLats;
+    int iFanin, nLats;//, fCompl;
     assert( !Abc_ObjIsComplement(pObj) );
     assert( !Abc_ObjIsComplement(pFaninOld) );
     assert( pFaninOld != pFaninNewR );
@@ -139,29 +136,33 @@ void Abc_ObjPatchFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFaninOld, Abc_Obj_t * pFa
 //    assert( pObj != pFaninNewR );
     assert( pObj->pNtk == pFaninOld->pNtk );
     assert( pObj->pNtk == pFaninNewR->pNtk );
-    if ( (iFanin = Vec_FanFindEntry( &pObj->vFanins, pFaninOld->Id )) == -1 )
+    if ( (iFanin = Vec_IntFind( &pObj->vFanins, pFaninOld->Id )) == -1 )
     {
         printf( "Node %s is not among", Abc_ObjName(pFaninOld) );
         printf( " the fanins of node %s...\n", Abc_ObjName(pObj) );
         return;
     }
+
     // remember the attributes of the old fanin
-    fCompl = Abc_ObjFaninC(pObj, iFanin);
+//    fCompl = Abc_ObjFaninC(pObj, iFanin);
     // replace the old fanin entry by the new fanin entry (removes attributes)
-    Vec_FanWriteEntry( &pObj->vFanins, iFanin, Vec_Int2Fan(pFaninNewR->Id) );
+    Vec_IntWriteEntry( &pObj->vFanins, iFanin, pFaninNewR->Id );
     // set the attributes of the new fanin
-    if ( fCompl ^ Abc_ObjIsComplement(pFaninNew) )
-        Abc_ObjSetFaninC( pObj, iFanin );
+//    if ( fCompl ^ Abc_ObjIsComplement(pFaninNew) )
+//        Abc_ObjSetFaninC( pObj, iFanin );
+    if ( Abc_ObjIsComplement(pFaninNew) )
+        Abc_ObjXorFaninC( pObj, iFanin );
+
     if ( Abc_NtkIsSeq(pObj->pNtk) && (nLats = Seq_ObjFaninL(pObj, iFanin)) )
         Seq_ObjSetFaninL( pObj, iFanin, nLats );
     // update the fanout of the fanin
-    if ( !Vec_FanDeleteEntry( &pFaninOld->vFanouts, pObj->Id ) )
+    if ( !Vec_IntRemove( &pFaninOld->vFanouts, pObj->Id ) )
     {
         printf( "Node %s is not among", Abc_ObjName(pObj) );
         printf( " the fanouts of its old fanin %s...\n", Abc_ObjName(pFaninOld) );
 //        return;
     }
-    Vec_FanPush( pObj->pNtk->pMmStep, &pFaninNewR->vFanouts, Vec_Int2Fan(pObj->Id) );
+    Vec_IntPushMem( pObj->pNtk->pMmStep, &pFaninNewR->vFanouts, pObj->Id );
 }
 
 /**Function*************************************************************

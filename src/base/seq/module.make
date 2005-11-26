@@ -1,4 +1,6 @@
-SRC +=  src/base/seq/seqCreate.c \
+SRC +=    src/base/seq/seqAigCore.c \
+    src/base/seq/seqAigIter.c \
+    src/base/seq/seqCreate.c \
     src/base/seq/seqFpgaCore.c \
     src/base/seq/seqFpgaIter.c \
     src/base/seq/seqLatch.c \

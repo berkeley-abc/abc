@@ -30,6 +30,7 @@ static void        Seq_FpgaMappingCollectNode_rec( Abc_Obj_t * pAnd, Vec_Ptr_t *
 static Cut_Cut_t * Seq_FpgaMappingSelectCut( Abc_Obj_t * pAnd );
 
 extern Cut_Man_t * Abc_NtkSeqCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams );
+extern Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -53,9 +54,6 @@ void Seq_FpgaMappingDelays( Abc_Ntk_t * pNtk, int fVerbose )
     Abc_Obj_t * pObj;
     int i, clk;
 
-    // get the LUT library
-    p->nVarsMax = Fpga_LutLibReadVarMax( Abc_FrameReadLibLut() );
-
     // set defaults for cut computation
     memset( pParams, 0, sizeof(Cut_Params_t) );
     pParams->nVarsMax  = p->nVarsMax;  // the max cut size ("k" of the k-feasible cuts)
@@ -68,13 +66,16 @@ void Seq_FpgaMappingDelays( Abc_Ntk_t * pNtk, int fVerbose )
     // compute the cuts
 clk = clock();
     p->pCutMan = Abc_NtkSeqCuts( pNtk, pParams );
+//    pParams->fSeq = 0;
+//    p->pCutMan = Abc_NtkCuts( pNtk, pParams );
 p->timeCuts = clock() - clk;
+
     if ( fVerbose )
     Cut_ManPrintStats( p->pCutMan );
 
     // compute the delays
 clk = clock();
-    Seq_NtkRetimeDelayLags( pNtk, fVerbose );
+    Seq_AigRetimeDelayLags( pNtk, fVerbose );
 p->timeDelay = clock() - clk;
 
     // collect the nodes and cuts used in the mapping
@@ -129,8 +130,6 @@ void Seq_FpgaMappingCollectNode_rec( Abc_Obj_t * pAnd, Vec_Ptr_t * vMapping, Vec
     Vec_PtrPush( vMapping, pAnd );
     for ( k = 0; k < (int)pCutBest->nLeaves; k++ )
         Vec_VecPush( vMapCuts, Vec_PtrSize(vMapping)-1, (void *)pCutBest->pLeaves[k] );
-
-//printf( "Adding %d.\n", pAnd->Id );
 }
 
 /**Function*************************************************************
@@ -237,6 +236,9 @@ int Seq_FpgaNodeUpdateLValue( Abc_Obj_t * pObj, int Fi )
     }
     // get the arrival time of the best non-trivial cut
     pList = Abc_NodeReadCuts( Seq_NodeCutMan(pObj), pObj );
+    // skip the choice nodes
+    if ( pList == NULL )
+        return SEQ_UPDATE_NO;
     lValueNew = ABC_INFINITY;
     for ( pCut = pList->pNext; pCut; pCut = pCut->pNext )
     {
@@ -249,8 +251,8 @@ int Seq_FpgaNodeUpdateLValue( Abc_Obj_t * pObj, int Fi )
 //    if ( lValueNew == lValueOld )
     if ( lValueNew <= lValueOld )
         return SEQ_UPDATE_NO;
-//printf( "%d ", lValueNew );
     Seq_NodeSetLValue( pObj, lValueNew );
+//printf( "%d -> %d   ", lValueOld, lValueNew );
     return SEQ_UPDATE_YES;
 }
 

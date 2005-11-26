@@ -63,6 +63,44 @@ Abc_Obj_t * Dec_GraphToNetwork( Abc_Ntk_t * pNtk, Dec_Graph_t * pGraph )
 
 /**Function*************************************************************
 
+  Synopsis    [Transforms the decomposition graph into the AIG.]
+
+  Description [AIG nodes for the fanins should be assigned to pNode->pFunc
+  of the leaves of the graph before calling this procedure.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Dec_GraphToNetworkNoStrash( Abc_Ntk_t * pNtk, Dec_Graph_t * pGraph )
+{
+    Abc_Obj_t * pAnd, * pAnd0, * pAnd1;
+    Dec_Node_t * pNode;
+    int i;
+    // check for constant function
+    if ( Dec_GraphIsConst(pGraph) )
+        return Abc_ObjNotCond( Abc_NtkConst1(pNtk), Dec_GraphIsComplement(pGraph) );
+    // check for a literal
+    if ( Dec_GraphIsVar(pGraph) )
+        return Abc_ObjNotCond( Dec_GraphVar(pGraph)->pFunc, Dec_GraphIsComplement(pGraph) );
+    // build the AIG nodes corresponding to the AND gates of the graph
+    Dec_GraphForEachNode( pGraph, pNode, i )
+    {
+        pAnd0 = Abc_ObjNotCond( Dec_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc, pNode->eEdge0.fCompl ); 
+        pAnd1 = Abc_ObjNotCond( Dec_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc, pNode->eEdge1.fCompl ); 
+//        pNode->pFunc = Abc_AigAnd( pNtk->pManFunc, pAnd0, pAnd1 );
+        pAnd = Abc_NtkCreateNode( pNtk );
+        Abc_ObjAddFanin( pAnd, pAnd0 );
+        Abc_ObjAddFanin( pAnd, pAnd1 );
+        pNode->pFunc = pAnd;
+    }
+    // complement the result if necessary
+    return Abc_ObjNotCond( pNode->pFunc, Dec_GraphIsComplement(pGraph) );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Counts the number of new nodes added when using this graph.]
 
   Description [AIG nodes for the fanins should be assigned to pNode->pFunc 

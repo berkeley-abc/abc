@@ -417,7 +417,7 @@ bool Abc_NtkCheckObj( Abc_Ntk_t * pNtk, Abc_Obj_t * pObj )
     // go through the fanins of the object and make sure fanins have this object as a fanout
     Abc_ObjForEachFanin( pObj, pFanin, i )
     {
-        if ( Vec_FanFindEntry( &pFanin->vFanouts, pObj->Id ) == -1 )
+        if ( Vec_IntFind( &pFanin->vFanouts, pObj->Id ) == -1 )
         {
             fprintf( stdout, "NodeCheck: Object \"%s\" has fanin ", Abc_ObjName(pObj) );
             fprintf( stdout, "\"%s\" but the fanin does not have it as a fanout.\n", Abc_ObjName(pFanin) );
@@ -427,7 +427,7 @@ bool Abc_NtkCheckObj( Abc_Ntk_t * pNtk, Abc_Obj_t * pObj )
     // go through the fanouts of the object and make sure fanouts have this object as a fanin
     Abc_ObjForEachFanout( pObj, pFanout, i )
     {
-        if ( Vec_FanFindEntry( &pFanout->vFanins, pObj->Id ) == -1 )
+        if ( Vec_IntFind( &pFanout->vFanins, pObj->Id ) == -1 )
         {
             fprintf( stdout, "NodeCheck: Object \"%s\" has fanout ", Abc_ObjName(pObj) );
             fprintf( stdout, "\"%s\" but the fanout does not have it as a fanin.\n", Abc_ObjName(pFanout) );
@@ -441,7 +441,7 @@ bool Abc_NtkCheckObj( Abc_Ntk_t * pNtk, Abc_Obj_t * pObj )
     // make sure fanins are not duplicated
     for ( i = 0; i < pObj->vFanins.nSize; i++ )
         for ( k = i + 1; k < pObj->vFanins.nSize; k++ )
-            if ( pObj->vFanins.pArray[k].iFan == pObj->vFanins.pArray[i].iFan )
+            if ( pObj->vFanins.pArray[k] == pObj->vFanins.pArray[i] )
             {
                 printf( "Warning: Node %s has", Abc_ObjName(pObj) );
                 printf( " duplicated fanin %s.\n", Abc_ObjName(Abc_ObjFanin(pObj,k)) );
@@ -454,7 +454,7 @@ bool Abc_NtkCheckObj( Abc_Ntk_t * pNtk, Abc_Obj_t * pObj )
     // make sure fanouts are not duplicated
     for ( i = 0; i < pObj->vFanouts.nSize; i++ )
         for ( k = i + 1; k < pObj->vFanouts.nSize; k++ )
-            if ( pObj->vFanouts.pArray[k].iFan == pObj->vFanouts.pArray[i].iFan )
+            if ( pObj->vFanouts.pArray[k] == pObj->vFanouts.pArray[i] )
             {
                 printf( "Warning: Node %s has", Abc_ObjName(pObj) );
                 printf( " duplicated fanout %s.\n", Abc_ObjName(Abc_ObjFanout(pObj,k)) );

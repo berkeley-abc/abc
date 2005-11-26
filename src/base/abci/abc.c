@@ -4741,7 +4741,7 @@ int Abc_CommandSeq( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
-    int c, nLoops;
+    int c;//, nLoops;
 
     pNtk = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -4778,11 +4778,11 @@ int Abc_CommandSeq( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( nLoops = Abc_NtkCountSelfFeedLatches(pNtk) )
-    {
-        fprintf( pErr, "Cannot create sequential AIG because the network contains %d self-feeding latches.\n", nLoops );
-        return 0;
-    }
+//    if ( nLoops = Abc_NtkCountSelfFeedLatches(pNtk) )
+//    {
+//        fprintf( pErr, "Cannot create sequential AIG because the network contains %d self-feeding latches.\n", nLoops );
+//        return 0;
+//    }
 
     // get the new network
     pNtkRes = Abc_NtkAigToSeq( pNtk );
@@ -4854,8 +4854,8 @@ int Abc_CommandUnseq( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // share the latches on the fanout edges
-    if ( fShare )
-        Seq_NtkShareFanouts(pNtk);
+//    if ( fShare )
+//        Seq_NtkShareFanouts(pNtk);
 
     // get the new network
     pNtkRes = Abc_NtkSeqToLogicSop( pNtk );
@@ -4983,7 +4983,7 @@ int Abc_CommandSeqFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
-    int c;
+    int c, nMaxIters;
     int fVerbose;
 
     pNtk = Abc_FrameReadNet(pAbc);
@@ -4991,12 +4991,24 @@ int Abc_CommandSeqFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fVerbose = 0;
+    nMaxIters = 15;
+    fVerbose  =  0;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "Ivh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'I':
+            if ( util_optind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-I\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nMaxIters = atoi(argv[util_optind]);
+            util_optind++;
+            if ( nMaxIters < 0 ) 
+                goto usage;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -5020,7 +5032,7 @@ int Abc_CommandSeqFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    pNtkRes = Seq_NtkFpgaMapRetime( pNtk, fVerbose );
+    pNtkRes = Seq_NtkFpgaMapRetime( pNtk, nMaxIters, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Sequential FPGA mapping has failed.\n" );
@@ -5031,10 +5043,11 @@ int Abc_CommandSeqFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: sfpga [-vh]\n" );
-    fprintf( pErr, "\t        performs integrated sequential FPGA mapping\n" );
-    fprintf( pErr, "\t-v    : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
-    fprintf( pErr, "\t-h    : print the command usage\n");
+    fprintf( pErr, "usage: sfpga [-I num] [-vh]\n" );
+    fprintf( pErr, "\t         performs integrated sequential FPGA mapping\n" );
+    fprintf( pErr, "\t-I num : max number of iterations of l-value computation [default = %d]\n", nMaxIters );
+    fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
 }
 
@@ -5053,21 +5066,32 @@ int Abc_CommandSeqMap( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
-    int c;
+    int c, nMaxIters;
     int fVerbose;
-    extern Abc_Ntk_t * Abc_NtkMapSeq( Abc_Ntk_t * pNtk, int fVerbose );
 
     pNtk = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fVerbose = 1;
+    nMaxIters = 15;
+    fVerbose  =  1;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "Ivh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'I':
+            if ( util_optind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-I\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nMaxIters = atoi(argv[util_optind]);
+            util_optind++;
+            if ( nMaxIters < 0 ) 
+                goto usage;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -5089,17 +5113,14 @@ int Abc_CommandSeqMap( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Sequential standard cell mapping works only for sequential AIG (run \"seq\").\n" );
         return 1;
     }
-
-    printf( "This command is not yet implemented.\n" );
-    return 0;
-
-
+//    printf( "This command is not yet implemented.\n" );
+//    return 0;
 
     // get the new network
-    pNtkRes = Abc_NtkMapSeq( pNtk, fVerbose );
+    pNtkRes = Seq_MapRetime( pNtk, nMaxIters, fVerbose );
     if ( pNtkRes == NULL )
     {
-        fprintf( pErr, "Sequential FPGA mapping has failed.\n" );
+        fprintf( pErr, "Sequential standard-cell mapping has failed.\n" );
         return 1;
     }
     // replace the current network
@@ -5107,10 +5128,11 @@ int Abc_CommandSeqMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: smap [-vh]\n" );
-    fprintf( pErr, "\t        performs integrated sequential standard-cell mapping" );
-    fprintf( pErr, "\t-v    : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
-    fprintf( pErr, "\t-h    : print the command usage\n");
+    fprintf( pErr, "usage: smap [-I num] [-vh]\n" );
+    fprintf( pErr, "\t         performs integrated sequential standard-cell mapping" );
+    fprintf( pErr, "\t-I num : max number of iterations of l-value computation [default = %d]\n", nMaxIters );
+    fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
 }
 

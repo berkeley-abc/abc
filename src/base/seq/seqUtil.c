@@ -39,6 +39,37 @@
   SeeAlso     []
 
 ***********************************************************************/
+int Seq_NtkLevelMax( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNode;
+    int i, Result;
+    assert( Abc_NtkIsSeq(pNtk) );
+    Result = 0;
+    Abc_NtkForEachPo( pNtk, pNode, i )
+    {
+        pNode = Abc_ObjFanin0(pNode);
+        if ( Result < (int)pNode->Level )
+            Result = pNode->Level;
+    }
+    Abc_SeqForEachCutsetNode( pNtk, pNode, i )
+    {
+        if ( Result < (int)pNode->Level )
+            Result = pNode->Level;
+    }
+    return Result;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the maximum latch number on any of the fanouts.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Seq_ObjFanoutLMax( Abc_Obj_t * pObj )
 {
     Abc_Obj_t * pFanout;
@@ -360,6 +391,29 @@ int Seq_NtkLatchGetEqualFaninNum( Abc_Ntk_t * pNtk )
             Counter++;
     if ( Counter )
         printf( "The number of nodes with equal fanins = %d.\n", Counter );
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the maximum latch number on any of the fanouts.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Seq_NtkCountNodesAboveLimit( Abc_Ntk_t * pNtk, int Limit )
+{
+    Abc_Obj_t * pNode;
+    int i, Counter;
+    assert( !Abc_NtkIsSeq(pNtk) );
+    Counter = 0;
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        if ( Abc_ObjFaninNum(pNode) > Limit )
+            Counter++;
     return Counter;
 }
 

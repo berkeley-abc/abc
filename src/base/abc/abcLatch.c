@@ -89,7 +89,38 @@ int Abc_NtkCountSelfFeedLatches( Abc_Ntk_t * pNtk )
     int i, Counter;
     Counter = 0;
     Abc_NtkForEachLatch( pNtk, pLatch, i )
+    {
+//        if ( Abc_NtkLatchIsSelfFeed(pLatch) && Abc_ObjFanoutNum(pLatch) > 1 )
+//            printf( "Fanouts = %d.\n", Abc_ObjFanoutNum(pLatch) );
         Counter += Abc_NtkLatchIsSelfFeed( pLatch );
+    }
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Replaces self-feeding latches by latches with constant inputs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkRemoveSelfFeedLatches( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pLatch;
+    int i, Counter;
+    Counter = 0;
+    Abc_NtkForEachLatch( pNtk, pLatch, i )
+    {
+        if ( Abc_NtkLatchIsSelfFeed( pLatch ) )
+        {
+            Abc_ObjPatchFanin( pLatch, Abc_ObjFanin0(pLatch), Abc_NtkConst1(pNtk) );
+            Counter++;
+        }
+    }
     return Counter;
 }
 

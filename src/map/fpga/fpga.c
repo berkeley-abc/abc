@@ -57,8 +57,8 @@ void Fpga_Init( Abc_Frame_t * pAbc )
 {
     // set the default library
     //Fpga_LutLib_t s_LutLib = { "lutlib", 6, {0,1,2,4,8,16,32}, {0,1,2,3,4,5,6} };
-    //Fpga_LutLib_t s_LutLib = { "lutlib", 5, {0,1,1,1,1,1}, {0,1,1,1,1,1} };
-    Fpga_LutLib_t s_LutLib = { "lutlib", 4, {0,1,1,1,1}, {0,1,1,1,1} };
+    Fpga_LutLib_t s_LutLib = { "lutlib", 5, {0,1,1,1,1,1}, {0,1,1,1,1,1} };
+    //Fpga_LutLib_t s_LutLib = { "lutlib", 4, {0,1,1,1,1}, {0,1,1,1,1} };
     //Fpga_LutLib_t s_LutLib = { "lutlib", 3, {0,1,1,1}, {0,1,1,1} };
 
     Abc_FrameSetLibLut( Fpga_LutLibDup(&s_LutLib) );

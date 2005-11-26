@@ -439,6 +439,9 @@ int Map_LibraryDeriveGateInfo( Map_SuperLib_t * pLib, st_table * tExcludeGate )
                 pGate->tDelayMax.Fall = pGate->tDelaysF[k].Rise;
             if ( pGate->tDelayMax.Fall < pGate->tDelaysF[k].Fall )
                 pGate->tDelayMax.Fall = pGate->tDelaysF[k].Fall;
+
+            pGate->tDelaysF[k].Worst = MAP_MAX( pGate->tDelaysF[k].Fall, pGate->tDelaysF[k].Rise );
+            pGate->tDelaysR[k].Worst = MAP_MAX( pGate->tDelaysR[k].Fall, pGate->tDelaysR[k].Rise );
         }
 
         // count gates and area of the supergate

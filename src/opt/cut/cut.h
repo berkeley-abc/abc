@@ -69,6 +69,8 @@ struct Cut_CutStruct_t_
     unsigned           nVarsMax   :  4;   // the max number of vars [4-6]
     unsigned           nLeaves    :  4;   // the number of leaves [4-6]
     unsigned           uSign;             // the signature
+    unsigned           uCanon0;           // the canonical form 
+    unsigned           uCanon1;           // the canonical form 
     Cut_Cut_t *        pNext;             // the next cut in the list
     int                pLeaves[0];        // the array of leaves
 };
@@ -113,6 +115,7 @@ extern int              Cut_ManReadVarsMax( Cut_Man_t * p );
 /*=== cutNode.c ==========================================================*/
 extern Cut_Cut_t *      Cut_NodeComputeCuts( Cut_Man_t * p, int Node, int Node0, int Node1, int fCompl0, int fCompl1, int fTriv ); 
 extern Cut_Cut_t *      Cut_NodeUnionCuts( Cut_Man_t * p, Vec_Int_t * vNodes );
+extern Cut_Cut_t *      Cut_NodeUnionCutsSeq( Cut_Man_t * p, Vec_Int_t * vNodes, int CutSetNum, int fFirst );
 /*=== cutSeq.c ==========================================================*/
 extern void             Cut_NodeComputeCutsSeq( Cut_Man_t * p, int Node, int Node0, int Node1, int fCompl0, int fCompl1, int nLat0, int nLat1, int fTriv, int CutSetNum );
 extern void             Cut_NodeNewMergeWithOld( Cut_Man_t * p, int Node );
@@ -126,6 +129,8 @@ extern int              Cut_OracleReadDrop( Cut_Oracle_t * p );
 extern void             Cut_OracleNodeSetTriv( Cut_Oracle_t * p, int Node );
 extern Cut_Cut_t *      Cut_OracleComputeCuts( Cut_Oracle_t * p, int Node, int Node0, int Node1, int fCompl0, int fCompl1 );
 extern void             Cut_OracleTryDroppingCuts( Cut_Oracle_t * p, int Node );
+/*=== cutTruth.c ==========================================================*/
+extern void             Cut_TruthCanonicize( Cut_Cut_t * pCut );
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -29,7 +29,6 @@
 #define inline __inline // compatible with MS VS 6.0
 #endif
 
-#include "vecFan.h"
 #include "vecInt.h"
 #include "vecStr.h"
 #include "vecPtr.h"

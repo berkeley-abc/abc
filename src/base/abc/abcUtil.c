@@ -49,7 +49,7 @@ void Abc_NtkIncrementTravId( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj;
     int i;
-    if ( pNtk->nTravIds == (1<<12)-1 )
+    if ( pNtk->nTravIds == (1<<10)-1 )
     {
         pNtk->nTravIds = 0;
         Abc_NtkForEachObj( pNtk, pObj, i )
@@ -260,7 +260,7 @@ int Abc_NtkGetChoiceNum( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
     int i, Counter;
-    if ( !Abc_NtkIsStrash(pNtk) )
+    if ( !Abc_NtkHasAig(pNtk) )
         return 0;
     Counter = 0;
     Abc_NtkForEachNode( pNtk, pNode, i )
@@ -966,7 +966,7 @@ void Abc_NtkReassignIds( Abc_Ntk_t * pNtk )
         Vec_PtrPush( vObjsNew, pNode );
     }
     // finally, internal nodes in the DFS order
-    vNodes = Abc_NtkDfs( pNtk, 1 );
+    vNodes = Abc_AigDfs( pNtk, 1, 0 );
     Vec_PtrForEachEntry( vNodes, pNode, i )
     {
         if ( pNode == pConst1 )
@@ -981,9 +981,9 @@ void Abc_NtkReassignIds( Abc_Ntk_t * pNtk )
     Abc_NtkForEachObj( pNtk, pNode, i )
     {
         Abc_ObjForEachFanin( pNode, pTemp, k )
-            pNode->vFanins.pArray[k].iFan = pTemp->Id;
+            pNode->vFanins.pArray[k] = pTemp->Id;
         Abc_ObjForEachFanout( pNode, pTemp, k )
-            pNode->vFanouts.pArray[k].iFan = pTemp->Id;
+            pNode->vFanouts.pArray[k] = pTemp->Id;
     }
 
     // replace the array of objs

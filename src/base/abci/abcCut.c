@@ -185,12 +185,14 @@ void Abc_NtkCutsOracle( Abc_Ntk_t * pNtk, Cut_Oracle_t * p )
 Cut_Man_t * Abc_NtkSeqCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
 {
     Cut_Man_t *  p;
-    Abc_Obj_t * pObj;
+    Abc_Obj_t * pObj, * pNode;
     int i, nIters, fStatus;
+    Vec_Int_t * vChoices;
     int clk = clock();
 
     assert( Abc_NtkIsSeq(pNtk) );
     assert( pParams->fSeq );
+//    assert( Abc_NtkIsDfsOrdered(pNtk) );
 
     // start the manager
     pParams->nIdsMax = Abc_NtkObjNumMax( pNtk );
@@ -202,7 +204,10 @@ Cut_Man_t * Abc_NtkSeqCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
     if ( Abc_ObjFanoutNum(pObj) > 0 )
         Cut_NodeSetTriv( p, pObj->Id );
     Abc_NtkForEachPi( pNtk, pObj, i )
+    {
+//printf( "Setting trivial cut %d.\n", pObj->Id );
         Cut_NodeSetTriv( p, pObj->Id );
+    }
     // label the cutset nodes and set their number in the array
     // assign the elementary cuts to the cutset nodes
     Abc_SeqForEachCutsetNode( pNtk, pObj, i )
@@ -211,27 +216,40 @@ Cut_Man_t * Abc_NtkSeqCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
         pObj->fMarkC = 1;
         pObj->pCopy = (Abc_Obj_t *)i;
         Cut_NodeSetTriv( p, pObj->Id );
+//printf( "Setting trivial cut %d.\n", pObj->Id );
     }
 
     // process the nodes
+    vChoices = Vec_IntAlloc( 100 );
     for ( nIters = 0; nIters < 10; nIters++ )
     {
 //printf( "ITERATION %d:\n", nIters );
         // compute the cuts for the internal nodes
         Abc_AigForEachAnd( pNtk, pObj, i )
+        {
             Abc_NodeGetCutsSeq( p, pObj, nIters==0 );
+            // add cuts due to choices
+            if ( Abc_NodeIsAigChoice(pObj) )
+            {
+                Vec_IntClear( vChoices );
+                for ( pNode = pObj; pNode; pNode = pNode->pData )
+                    Vec_IntPush( vChoices, pNode->Id );
+                Cut_NodeUnionCutsSeq( p, vChoices, (pObj->fMarkC ? (int)pObj->pCopy : -1), nIters==0 );
+            }
+        }
         // merge the new cuts with the old cuts
         Abc_NtkForEachPi( pNtk, pObj, i )
             Cut_NodeNewMergeWithOld( p, pObj->Id );
         Abc_AigForEachAnd( pNtk, pObj, i )
             Cut_NodeNewMergeWithOld( p, pObj->Id );
-        // for the cutset, merge temp with new
+        // for the cutset, transfer temp cuts to new cuts
         fStatus = 0;
         Abc_SeqForEachCutsetNode( pNtk, pObj, i )
             fStatus |= Cut_NodeTempTransferToNew( p, pObj->Id, i );
         if ( fStatus == 0 )
             break;
     }
+    Vec_IntFree( vChoices );
 
     // if the status is not finished, transfer new to old for the cutset
     Abc_SeqForEachCutsetNode( pNtk, pObj, i )

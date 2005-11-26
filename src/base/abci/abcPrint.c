@@ -58,7 +58,7 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
         fprintf( pFile, "  net = %5d", Abc_NtkNetNum(pNtk) );
         fprintf( pFile, "  nd = %5d", Abc_NtkNodeNum(pNtk) );
     }
-    else if ( Abc_NtkIsStrash(pNtk) )
+    else if ( Abc_NtkHasAig(pNtk) )
     {
         fprintf( pFile, "  and = %5d", Abc_NtkNodeNum(pNtk) );
         if ( Num = Abc_NtkGetChoiceNum(pNtk) )
@@ -66,8 +66,6 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
         if ( Num = Abc_NtkGetExorNum(pNtk) )
             fprintf( pFile, " (exor = %d)", Num );
     }
-    else if ( Abc_NtkIsSeq(pNtk) )
-        fprintf( pFile, "  and = %5d", Abc_NtkNodeNum(pNtk) );
     else 
         fprintf( pFile, "  nd = %5d", Abc_NtkNodeNum(pNtk) );
 

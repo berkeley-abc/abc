@@ -467,9 +467,9 @@ void Abc_NodeBddReorder( reo_man * p, Abc_Obj_t * pNode )
     pNode->pData = bFunc;
     // update the fanin order
     Abc_ObjForEachFanin( pNode, pFanin, i )
-        pOrder[i] = pNode->vFanins.pArray[ pOrder[i] ].iFan;
+        pOrder[i] = pNode->vFanins.pArray[ pOrder[i] ];
     Abc_ObjForEachFanin( pNode, pFanin, i )
-        pNode->vFanins.pArray[i].iFan = pOrder[i];
+        pNode->vFanins.pArray[i] = pOrder[i];
     free( pOrder );
 }
 

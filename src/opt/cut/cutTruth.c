@@ -107,6 +107,48 @@ void Cut_TruthCompute( Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1, i
     }
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Performs truth table computation.]
+
+  Description [This procedure cannot be used while recording oracle
+  because it will overwrite Num0 and Num1.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cut_TruthCanonicize( Cut_Cut_t * pCut )
+{
+    unsigned uTruth;
+    unsigned * uCanon2;
+    char * pPhases2;
+    assert( pCut->nVarsMax < 6 );
+
+    // get the direct truth table
+    uTruth = *Cut_CutReadTruth(pCut);
+
+    // compute the direct truth table
+    Extra_TruthCanonFastN( pCut->nVarsMax, pCut->nLeaves, &uTruth, &uCanon2, &pPhases2 );
+//    uCanon[0] = uCanon2[0];
+//    uCanon[1] = (p->nVarsMax == 6)? uCanon2[1] : uCanon2[0];
+//    uPhases[0] = pPhases2[0];
+    pCut->uCanon0 = uCanon2[0];
+    pCut->Num0    = pPhases2[0];
+
+    // get the complemented truth table
+    uTruth = ~*Cut_CutReadTruth(pCut);
+
+    // compute the direct truth table
+    Extra_TruthCanonFastN( pCut->nVarsMax, pCut->nLeaves, &uTruth, &uCanon2, &pPhases2 );
+//    uCanon[0] = uCanon2[0];
+//    uCanon[1] = (p->nVarsMax == 6)? uCanon2[1] : uCanon2[0];
+//    uPhases[0] = pPhases2[0];
+    pCut->uCanon1 = uCanon2[0];
+    pCut->Num1    = pPhases2[0];
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

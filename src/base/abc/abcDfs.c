@@ -221,6 +221,7 @@ bool Abc_NtkIsDfsOrdered( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode, * pFanin;
     int i, k;
+    assert( !Abc_NtkIsSeq(pNtk) );
     // set the traversal ID
     Abc_NtkIncrementTravId( pNtk );
     // mark the CIs
@@ -229,11 +230,16 @@ bool Abc_NtkIsDfsOrdered( Abc_Ntk_t * pNtk )
     // go through the nodes
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
+        // check the fanins of the node
         Abc_ObjForEachFanin( pNode, pFanin, k )
-        {
             if ( !Abc_NodeIsTravIdCurrent(pFanin) )
                 return 0;
-        }
+        // check the choices of the node
+        if ( Abc_NtkIsStrash(pNtk) && Abc_NodeIsAigChoice(pNode) )
+            for ( pFanin = pNode->pData; pFanin; pFanin = pFanin->pData )
+                if ( !Abc_NodeIsTravIdCurrent(pFanin) )
+                    return 0;
+        // mark the node as visited
         Abc_NodeSetTravIdCurrent( pNode );
     }
     return 1;

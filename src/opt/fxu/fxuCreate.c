@@ -24,11 +24,11 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static void        Fxu_CreateMatrixAddCube( Fxu_Matrix * p, Fxu_Cube * pCube, char * pSopCube, Vec_Fan_t * vFanins, int * pOrder );
+static void        Fxu_CreateMatrixAddCube( Fxu_Matrix * p, Fxu_Cube * pCube, char * pSopCube, Vec_Int_t * vFanins, int * pOrder );
 static int         Fxu_CreateMatrixLitCompare( int * ptrX, int * ptrY );
 static void        Fxu_CreateCoversNode( Fxu_Matrix * p, Fxu_Data_t * pData, int iNode, Fxu_Cube * pCubeFirst, Fxu_Cube * pCubeNext );
 static Fxu_Cube *  Fxu_CreateCoversFirstCube( Fxu_Matrix * p, Fxu_Data_t * pData, int iNode );
-static Abc_Fan_t * s_pLits;
+static int * s_pLits;
 
 extern int         Fxu_PreprocessCubePairs( Fxu_Matrix * p, Vec_Ptr_t * vCovers, int nPairsTotal, int nPairsMax );
 
@@ -53,7 +53,7 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
     Fxu_Var * pVar;
     Fxu_Cube * pCubeFirst, * pCubeNew;
     Fxu_Cube * pCube1, * pCube2;
-    Vec_Fan_t * vFanins;
+    Vec_Int_t * vFanins;
     char * pSopCover;
     char * pSopCube;
     int * pOrder, nBitsMax;
@@ -151,7 +151,7 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
             pOrder[v] = v;
         // reorder the fanins
         qsort( (void *)pOrder, nFanins, sizeof(int),(int (*)(const void *, const void *))Fxu_CreateMatrixLitCompare);
-        assert( s_pLits[ pOrder[0] ].iFan < s_pLits[ pOrder[nFanins-1] ].iFan );
+        assert( s_pLits[ pOrder[0] ] < s_pLits[ pOrder[nFanins-1] ] );
         // create the corresponding cubes in the matrix
         pCubeFirst = NULL;
         c = 0;
@@ -214,7 +214,7 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
   SeeAlso     []
 
 ***********************************************************************/
-void Fxu_CreateMatrixAddCube( Fxu_Matrix * p, Fxu_Cube * pCube, char * pSopCube, Vec_Fan_t * vFanins, int * pOrder )
+void Fxu_CreateMatrixAddCube( Fxu_Matrix * p, Fxu_Cube * pCube, char * pSopCube, Vec_Int_t * vFanins, int * pOrder )
 {
     Fxu_Var * pVar;
     int Value, i;
@@ -224,12 +224,12 @@ void Fxu_CreateMatrixAddCube( Fxu_Matrix * p, Fxu_Cube * pCube, char * pSopCube,
         Value = pSopCube[pOrder[i]];
         if ( Value == '0' )
         {
-            pVar = p->ppVars[ 2 * vFanins->pArray[pOrder[i]].iFan + 1 ];  // CST
+            pVar = p->ppVars[ 2 * vFanins->pArray[pOrder[i]] + 1 ];  // CST
             Fxu_MatrixAddLiteral( p, pCube, pVar );
         }
         else if ( Value == '1' )
         {
-            pVar = p->ppVars[ 2 * vFanins->pArray[pOrder[i]].iFan ];  // CST
+            pVar = p->ppVars[ 2 * vFanins->pArray[pOrder[i]] ];  // CST
             Fxu_MatrixAddLiteral( p, pCube, pVar );
         }
     }
@@ -409,7 +409,7 @@ Fxu_Cube * Fxu_CreateCoversFirstCube( Fxu_Matrix * p, Fxu_Data_t * pData, int iV
 ***********************************************************************/
 int Fxu_CreateMatrixLitCompare( int * ptrX, int * ptrY )
 {
-    return s_pLits[*ptrX].iFan - s_pLits[*ptrY].iFan;
+    return s_pLits[*ptrX] - s_pLits[*ptrY];
 } 
 
 ////////////////////////////////////////////////////////////////////////

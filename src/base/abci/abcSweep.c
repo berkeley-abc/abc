@@ -607,7 +607,7 @@ void Abc_NodeConstantInput( Abc_Obj_t * pNode, Abc_Obj_t * pFanin, bool fConst0 
     DdNode * bVar, * bTemp;
     int iFanin;
     assert( Abc_NtkIsBddLogic(pNode->pNtk) ); 
-    if ( (iFanin = Vec_FanFindEntry( &pNode->vFanins, pFanin->Id )) == -1 )
+    if ( (iFanin = Vec_IntFind( &pNode->vFanins, pFanin->Id )) == -1 )
     {
         printf( "Node %s should be among", Abc_ObjName(pFanin) );
         printf( " the fanins of node %s...\n", Abc_ObjName(pNode) );
@@ -635,7 +635,7 @@ void Abc_NodeComplementInput( Abc_Obj_t * pNode, Abc_Obj_t * pFanin )
     DdNode * bVar, * bCof0, * bCof1;
     int iFanin;
     assert( Abc_NtkIsBddLogic(pNode->pNtk) ); 
-    if ( (iFanin = Vec_FanFindEntry( &pNode->vFanins, pFanin->Id )) == -1 )
+    if ( (iFanin = Vec_IntFind( &pNode->vFanins, pFanin->Id )) == -1 )
     {
         printf( "Node %s should be among", Abc_ObjName(pFanin) );
         printf( " the fanins of node %s...\n", Abc_ObjName(pNode) );

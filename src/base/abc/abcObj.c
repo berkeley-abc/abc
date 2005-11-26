@@ -47,9 +47,9 @@ Abc_Obj_t * Abc_ObjAlloc( Abc_Ntk_t * pNtk, Abc_ObjType_t Type )
     Abc_Obj_t * pObj;
     pObj = (Abc_Obj_t *)Extra_MmFixedEntryFetch( pNtk->pMmObj );
     memset( pObj, 0, sizeof(Abc_Obj_t) );
-    pObj->Id   = -1;
     pObj->pNtk = pNtk;
     pObj->Type = Type;
+    pObj->Id   = -1;
     return pObj;
 }
 

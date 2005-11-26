@@ -326,6 +326,10 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
                     Seq_NodeDupLats( pObj->pCopy, pObj, k );
             }
         }
+        // relink the choice nodes
+        Abc_AigForEachAnd( pNtk, pObj, i )
+            if ( pObj->pData )
+                pObj->pCopy->pData = ((Abc_Obj_t *)pObj->pData)->pCopy;
     }
     else
     {

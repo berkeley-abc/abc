@@ -6,7 +6,7 @@
 
   PackageName [Construction and manipulation of sequential AIGs.]
 
-  Synopsis    [The iterative L-Value computation for retiming procedures.]
+  Synopsis    [Iterative delay computation in FPGA mapping/retiming package.]
 
   Author      [Alan Mishchenko]
   
@@ -19,15 +19,17 @@
 ***********************************************************************/
 
 #include "seqInt.h"
+#include "main.h"
+#include "fpga.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-// the internal procedures
-static int Seq_RetimeSearch_rec( Abc_Ntk_t * pNtk, int FiMin, int FiMax, int fVerbose );
-static int Seq_RetimeForPeriod( Abc_Ntk_t * pNtk, int Fi, int fVerbose );
-static int Seq_RetimeNodeUpdateLValue( Abc_Obj_t * pObj, int Fi );
+static float Seq_NtkMappingSearch_rec( Abc_Ntk_t * pNtk, float FiMin, float FiMax, float Delta, int fVerbose );
+static int   Seq_NtkMappingForPeriod( Abc_Ntk_t * pNtk, float Fi, int fVerbose );
+static int   Seq_NtkNodeUpdateLValue( Abc_Obj_t * pObj, float Fi, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vDelays );
+static void  Seq_NodeRetimeSetLag_rec( Abc_Obj_t * pNode, char Lag );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -35,7 +37,7 @@ static int Seq_RetimeNodeUpdateLValue( Abc_Obj_t * pObj, int Fi );
 
 /**Function*************************************************************
 
-  Synopsis    [Retimes AIG for optimal delay using Pan's algorithm.]
+  Synopsis    [Computes the retiming lags for arbitrary network.]
 
   Description []
                
@@ -44,73 +46,67 @@ static int Seq_RetimeNodeUpdateLValue( Abc_Obj_t * pObj, int Fi );
   SeeAlso     []
 
 ***********************************************************************/
-void Seq_NtkRetimeDelayLags( Abc_Ntk_t * pNtk, int fVerbose )
+void Seq_NtkRetimeDelayLags( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtk, int fVerbose )
 {
     Abc_Seq_t * p = pNtk->pManFunc;
     Abc_Obj_t * pNode;
-    int i, FiMax, FiBest, RetValue;
+    float FiMax, FiBest, Delta;
+    int i, RetValue;
     char NodeLag;
 
     assert( Abc_NtkIsSeq( pNtk ) );
 
-    // get the upper bound on the clock period
-//    FiMax = Abc_NtkNodeNum(pNtk);
-    FiMax = 0;
-    Abc_AigForEachAnd( pNtk, pNode, i )
-        if ( FiMax < (int)pNode->Level )
-            FiMax = pNode->Level;
-    FiMax += 2;
+    // the root AND gates and node delay should be assigned
+    assert( p->vMapAnds );
+    assert( p->vMapCuts );
+    assert( p->vMapDelays );
+
+    // guess the upper bound on the clock period
+    if ( Abc_NtkHasMapping(pNtkOld) )
+    {
+        // assign the accuracy for min-period computation
+        Delta = Mio_LibraryReadDelayNand2Max(Abc_FrameReadLibGen());
+        if ( Delta == 0.0 )
+        {
+            Delta = Mio_LibraryReadDelayAnd2Max(Abc_FrameReadLibGen());
+            if ( Delta == 0.0 )
+            {
+                printf( "Cannot retime/map if the library does not have NAND2 or AND2.\n" );
+                return;
+            }
+        }
+        // get the upper bound on the clock period
+        FiMax = Delta * (2 + Seq_NtkLevelMax(pNtk));
+        Delta /= 2;
+    }
+    else
+    {
+        FiMax = (float)2.0 + Abc_NtkGetLevelNum(pNtkOld);
+        Delta = 1;
+    }
 
     // make sure this clock period is feasible
-    assert( Seq_RetimeForPeriod( pNtk, FiMax, fVerbose ) );
+    assert( Seq_NtkMappingForPeriod( pNtk, FiMax, fVerbose ) );
 
     // search for the optimal clock period between 0 and nLevelMax
-    FiBest = Seq_RetimeSearch_rec( pNtk, 0, FiMax, fVerbose );
+    FiBest = Seq_NtkMappingSearch_rec( pNtk, 0.0, FiMax, Delta, fVerbose );
 
     // recompute the best l-values
-    RetValue = Seq_RetimeForPeriod( pNtk, FiBest, fVerbose );
+    RetValue = Seq_NtkMappingForPeriod( pNtk, FiBest, fVerbose );
     assert( RetValue );
 
-    // write the retiming lags
-    Vec_StrFill( p->vLags, p->nSize, 0 );
-    Abc_AigForEachAnd( pNtk, pNode, i )
+    // write the retiming lags for both phases of each node
+    Vec_StrFill( p->vLags,  p->nSize, 0 );
+    Vec_PtrForEachEntry( p->vMapAnds, pNode, i )
     {
-        NodeLag = Seq_NodeComputeLag( Seq_NodeGetLValue(pNode), FiBest );
-        Seq_NodeSetLag( pNode, NodeLag );
+        NodeLag = Seq_NodeComputeLagFloat( Seq_NodeGetLValueP(pNode), FiBest );
+//        Seq_NodeSetLag( pNode, NodeLag );
+        Seq_NodeRetimeSetLag_rec( pNode, NodeLag );
     }
-/*
-    {
-        Abc_Obj_t * pFanin, * pFanout;
-        pNode = Abc_NtkObj( pNtk, 823 );
-        printf( "Node  %d.  Lag = %d. LValue = %d. Latches = (%d,%d) (%d,%d).\n", pNode->Id, Seq_NodeGetLag(pNode), Seq_NodeGetLValue(pNode), 
-            Seq_ObjFaninL0(pNode), Seq_ObjFaninL1(pNode), Seq_ObjFanoutL(pNode, Abc_NtkObj(pNtk, 826)), Seq_ObjFanoutL(pNode, Abc_NtkObj(pNtk, 1210)) );
-        pFanin = Abc_ObjFanin0( pNode );
-        printf( "Fanin %d.  Lag = %d. LValue = %d. Latches = (%d,%d)\n", pFanin->Id, Seq_NodeGetLag(pFanin), Seq_NodeGetLValue(pFanin),
-            Seq_ObjFaninL0(pFanin), Seq_ObjFaninL1(pFanin) );
-        pFanin = Abc_ObjFanin1( pNode );
-        printf( "Fanin %d.  Lag = %d. LValue = %d.\n", pFanin->Id, Seq_NodeGetLag(pFanin), Seq_NodeGetLValue(pFanin) );
-        Abc_ObjForEachFanout( pNode, pFanout, i )
-            printf( "Fanout %d.  Lag = %d. LValue = %d.\n", pFanout->Id, Seq_NodeGetLag(pFanout), Seq_NodeGetLValue(pFanout) );
-        Abc_ObjForEachFanout( Abc_ObjFanin0(pNode), pFanout, i )
-            printf( "Fanout %d.  Lag = %d. LValue = %d.\n", pFanout->Id, Seq_NodeGetLag(pFanout), Seq_NodeGetLValue(pFanout) );
-    }
-*/
 
     // print the result
     if ( fVerbose )
-    printf( "The best clock period is %3d.\n", FiBest );
-
-/*
-    printf( "LValues : " );
-    Abc_AigForEachAnd( pNtk, pNode, i )
-        printf( "%d=%d ", i, Seq_NodeGetLValue(pNode) );
-    printf( "\n" );
-    printf( "Lags : " );
-    Abc_AigForEachAnd( pNtk, pNode, i )
-        if ( Vec_StrEntry(p->vLags,i) != 0 )
-            printf( "%d=%d(%d)(%d) ", i, Vec_StrEntry(p->vLags,i), Seq_NodeGetLValue(pNode), Seq_NodeGetLValue(pNode) - FiBest * Vec_StrEntry(p->vLags,i) );
-    printf( "\n" );
-*/
+        printf( "The best clock period is %6.2f.\n", FiBest );
 }
 
 /**Function*************************************************************
@@ -124,17 +120,17 @@ void Seq_NtkRetimeDelayLags( Abc_Ntk_t * pNtk, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-int Seq_RetimeSearch_rec( Abc_Ntk_t * pNtk, int FiMin, int FiMax, int fVerbose )
+float Seq_NtkMappingSearch_rec( Abc_Ntk_t * pNtk, float FiMin, float FiMax, float Delta, int fVerbose )
 {
-    int Median;
+    float Median;
     assert( FiMin < FiMax );
-    if ( FiMin + 1 == FiMax )
+    if ( FiMin + Delta >= FiMax )
         return FiMax;
     Median = FiMin + (FiMax - FiMin)/2;
-    if ( Seq_RetimeForPeriod( pNtk, Median, fVerbose ) )
-        return Seq_RetimeSearch_rec( pNtk, FiMin, Median, fVerbose ); // Median is feasible
+    if ( Seq_NtkMappingForPeriod( pNtk, Median, fVerbose ) )
+        return Seq_NtkMappingSearch_rec( pNtk, FiMin, Median, Delta, fVerbose ); // Median is feasible
     else 
-        return Seq_RetimeSearch_rec( pNtk, Median, FiMax, fVerbose ); // Median is infeasible
+        return Seq_NtkMappingSearch_rec( pNtk, Median, FiMax, Delta, fVerbose ); // Median is infeasible
 }
 
 /**Function*************************************************************
@@ -148,78 +144,63 @@ int Seq_RetimeSearch_rec( Abc_Ntk_t * pNtk, int FiMin, int FiMax, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-int Seq_RetimeForPeriod( Abc_Ntk_t * pNtk, int Fi, int fVerbose )
+int Seq_NtkMappingForPeriod( Abc_Ntk_t * pNtk, float Fi, int fVerbose )
 {
     Abc_Seq_t * p = pNtk->pManFunc;
+    Vec_Ptr_t * vLeaves, * vDelays;
     Abc_Obj_t * pObj;
-    int nMaxSteps = 10;
     int i, c, RetValue, fChange, Counter;
     char * pReason = "";
 
     // set l-values of all nodes to be minus infinity
-    Vec_IntFill( p->vLValues, p->nSize, -ABC_INFINITY );
+    Vec_IntFill( p->vLValues,  p->nSize, -ABC_INFINITY );
 
     // set l-values of constants and PIs
     pObj = Abc_NtkObj( pNtk, 0 );
-    Seq_NodeSetLValue( pObj, 0 );
+    Seq_NodeSetLValueP( pObj, 0.0 );
     Abc_NtkForEachPi( pNtk, pObj, i )
-        Seq_NodeSetLValue( pObj, 0 );
+        Seq_NodeSetLValueP( pObj, 0.0 );
 
     // update all values iteratively
     Counter = 0;
-    for ( c = 0; c < nMaxSteps; c++ )
+    for ( c = 0; c < p->nMaxIters; c++ )
     {
         fChange = 0;
-        Abc_AigForEachAnd( pNtk, pObj, i )
+        Vec_PtrForEachEntry( p->vMapAnds, pObj, i )
         {
-            if ( Seq_NodeCutMan(pObj) )
-                RetValue = Seq_FpgaNodeUpdateLValue( pObj, Fi );
-            else
-                RetValue = Seq_RetimeNodeUpdateLValue( pObj, Fi );
-//printf( "Node = %d. Value = %d. \n", pObj->Id, RetValue );
             Counter++;
-            if ( RetValue == SEQ_UPDATE_FAIL )
-                break;
-            if ( RetValue == SEQ_UPDATE_NO ) 
-                continue;
-            fChange = 1;
+            vLeaves = Vec_VecEntry( p->vMapCuts, i );
+            vDelays = Vec_VecEntry( p->vMapDelays, i );
+            RetValue = Seq_NtkNodeUpdateLValue( pObj, Fi, vLeaves, vDelays );
+            if ( RetValue == SEQ_UPDATE_YES ) 
+                fChange = 1;
         }
         Abc_NtkForEachPo( pNtk, pObj, i )
         {
-            if ( Seq_NodeCutMan(pObj) )
-                RetValue = Seq_FpgaNodeUpdateLValue( pObj, Fi );
-            else
-                RetValue = Seq_RetimeNodeUpdateLValue( pObj, Fi );
-//printf( "Node = %d. Value = %d. \n", pObj->Id, RetValue );
-            Counter++;
+            RetValue = Seq_NtkNodeUpdateLValue( pObj, Fi, NULL, NULL );
             if ( RetValue == SEQ_UPDATE_FAIL )
                 break;
-            if ( RetValue == SEQ_UPDATE_NO ) 
-                continue;
-            fChange = 1;
         }
         if ( RetValue == SEQ_UPDATE_FAIL )
             break;
         if ( fChange == 0 )
             break;
     }
-    if ( c == nMaxSteps )
+    if ( c == p->nMaxIters )
     {
         RetValue = SEQ_UPDATE_FAIL;
         pReason = "(timeout)";
     }
-
-//Abc_NtkForEachObj( pNtk, pObj, i )
-//printf( "%d ", Seq_NodeGetLValue(pObj) );
-//printf( "\n" );
+    else
+        c++;
 
     // report the results
     if ( fVerbose )
     {
         if ( RetValue == SEQ_UPDATE_FAIL )
-            printf( "Period = %3d.  Iterations = %3d.  Updates = %10d.    Infeasible %s\n", Fi, c, Counter, pReason );
+            printf( "Period = %6.2f.  Iterations = %3d.  Updates = %10d.    Infeasible %s\n", Fi, c, Counter, pReason );
         else
-            printf( "Period = %3d.  Iterations = %3d.  Updates = %10d.      Feasible\n",    Fi, c, Counter );
+            printf( "Period = %6.2f.  Iterations = %3d.  Updates = %10d.      Feasible\n",    Fi, c, Counter );
     }
     return RetValue != SEQ_UPDATE_FAIL;
 }
@@ -235,26 +216,65 @@ int Seq_RetimeForPeriod( Abc_Ntk_t * pNtk, int Fi, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-int Seq_RetimeNodeUpdateLValue( Abc_Obj_t * pObj, int Fi )
+int Seq_NtkNodeUpdateLValue( Abc_Obj_t * pObj, float Fi, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vDelays )
 {
-    int lValueNew, lValueOld, lValue0, lValue1;
+    Abc_Seq_t * p = pObj->pNtk->pManFunc;
+    float lValueOld, lValueNew, lValueCur, lValuePin;
+    unsigned SeqEdge;
+    Abc_Obj_t * pLeaf;
+    int i;
+
     assert( !Abc_ObjIsPi(pObj) );
     assert( Abc_ObjFaninNum(pObj) > 0 );
-    lValue0 = Seq_NodeGetLValue(Abc_ObjFanin0(pObj)) - Fi * Seq_ObjFaninL0(pObj);
+    // consider the case of the PO
     if ( Abc_ObjIsPo(pObj) )
-        return (lValue0 > Fi)? SEQ_UPDATE_FAIL : SEQ_UPDATE_NO;
-    if ( Abc_ObjFaninNum(pObj) == 2 )
-        lValue1 = Seq_NodeGetLValue(Abc_ObjFanin1(pObj)) - Fi * Seq_ObjFaninL1(pObj);
-    else
-        lValue1 = -ABC_INFINITY;
-    lValueNew = 1 + ABC_MAX( lValue0, lValue1 );
-    lValueOld = Seq_NodeGetLValue(pObj);
-//    if ( lValueNew == lValueOld )
-    if ( lValueNew <= lValueOld )
+    {
+        lValueCur = Seq_NodeGetLValueP(Abc_ObjFanin0(pObj)) - Fi * Seq_ObjFaninL0(pObj);
+        return (lValueCur > Fi + p->fEpsilon)? SEQ_UPDATE_FAIL : SEQ_UPDATE_NO;
+    }
+    // get the new arrival time of the cut output
+    lValueNew = -ABC_INFINITY;
+    Vec_PtrForEachEntry( vLeaves, pLeaf, i )
+    {
+        SeqEdge   = (unsigned)pLeaf;
+        pLeaf     = Abc_NtkObj( pObj->pNtk, SeqEdge >> 8 );
+        lValueCur = Seq_NodeGetLValueP(pLeaf) - Fi * (SeqEdge & 255);
+        lValuePin = Abc_Int2Float( (int)Vec_PtrEntry(vDelays, i) );
+        if ( lValueNew < lValuePin + lValueCur )
+            lValueNew = lValuePin + lValueCur;
+    }
+    // compare 
+    lValueOld = Seq_NodeGetLValueP( pObj );
+    if ( lValueNew <= lValueOld + p->fEpsilon )
         return SEQ_UPDATE_NO;
-    Seq_NodeSetLValue( pObj, lValueNew );
+    // update the values
+    if ( lValueNew > lValueOld + p->fEpsilon )
+        Seq_NodeSetLValueP( pObj, lValueNew );
     return SEQ_UPDATE_YES;
 }
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Add sequential edges.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Seq_NodeRetimeSetLag_rec( Abc_Obj_t * pNode, char Lag )
+{
+    if ( pNode->pCopy )
+        return;
+    Seq_NodeRetimeSetLag_rec( Abc_ObjFanin0(pNode), Lag );
+    Seq_NodeRetimeSetLag_rec( Abc_ObjFanin1(pNode), Lag );
+    Seq_NodeSetLag( pNode, Lag );
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

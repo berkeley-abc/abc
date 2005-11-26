@@ -27,6 +27,10 @@
 
 #include "abc.h"
 #include "cut.h"
+#include "main.h"
+#include "mio.h"
+#include "mapper.h"
+#include "fpga.h"
 #include "seq.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -52,15 +56,23 @@ struct Abc_Seq_t_
     Vec_Ptr_t *         vInits;         // the initial states for each edge in the AIG
     Extra_MmFixed_t *   pMmInits;       // memory manager for latch structures used to remember init states
     int                 fVerbose;       // the verbose flag
+    float               fEpsilon;       // the accuracy for delay computation
+    int                 fStandCells;    // the flag denoting standard cell mapping
+    int                 nMaxIters;      // the max number of iterations
     // K-feasible cuts
     int                 nVarsMax;       // the max cut size
     Cut_Man_t *         pCutMan;        // cut manager
+    Map_SuperLib_t *    pSuperLib;      // the current supergate library
     // sequential arrival time computation
     Vec_Int_t *         vLValues;       // the arrival times (L-Values of nodes)
+    Vec_Int_t *         vLValuesN;      // the arrival times (L-Values of nodes)
     Vec_Str_t *         vLags;          // the lags of the mapped nodes
+    Vec_Str_t *         vLagsN;         // the lags of the mapped nodes
+    Vec_Str_t *         vUses;          // the phase usage
     // representation of the mapping
     Vec_Ptr_t *         vMapAnds;       // nodes visible in the mapping 
     Vec_Vec_t *         vMapCuts;       // best cuts for each node 
+    Vec_Vec_t *         vMapDelays;     // the delay of each fanin
     // runtime stats
     int                 timeCuts;       // runtime to compute the cuts
     int                 timeDelay;      // runtime to compute the L-values
@@ -75,6 +87,7 @@ struct Seq_Lat_t_
 {
     Seq_Lat_t *         pNext;          // the next Lat in the ring
     Seq_Lat_t *         pPrev;          // the prev Lat in the ring 
+    Abc_Obj_t *         pLatch;         // the real latch corresponding to Lat
 };
 
 // representation of latch on the edge
@@ -92,6 +105,19 @@ struct Seq_RetStep_t_ // 1 word
 {
     unsigned            iNode    : 24;  // the ID of the node
     unsigned            nLatches :  8;  // the number of latches to retime
+};
+
+// representation of one mapping match
+typedef struct Seq_Match_t_       Seq_Match_t;   
+struct Seq_Match_t_ // 3 words
+{
+    Abc_Obj_t *         pAnd;           // the AND gate used in the mapping
+    Cut_Cut_t *         pCut;           // the cut used to map it
+    Map_Super_t *       pSuper;         // the supergate used to implement the cut
+    unsigned            fCompl  :  1;   // the polarity of the AND gate
+    unsigned            fCutInv :  1;   // the polarity of the cut
+    unsigned            PolUse  :  2;   // the polarity use of this node
+    unsigned            uPhase  : 28;   // the phase assignment at the boundary
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -124,9 +150,15 @@ static inline int            Seq_ObjFaninLMax( Abc_Obj_t * pObj )               
 
 // reading l-values and lags
 static inline Vec_Int_t *    Seq_NodeLValues( Abc_Obj_t * pNode )                    { return ((Abc_Seq_t *)(pNode)->pNtk->pManFunc)->vLValues;           }
+static inline Vec_Int_t *    Seq_NodeLValuesN( Abc_Obj_t * pNode )                   { return ((Abc_Seq_t *)(pNode)->pNtk->pManFunc)->vLValuesN;          }
 static inline int            Seq_NodeGetLValue( Abc_Obj_t * pNode )                  { return Vec_IntEntry( Seq_NodeLValues(pNode), (pNode)->Id );        }
 static inline void           Seq_NodeSetLValue( Abc_Obj_t * pNode, int Value )       { Vec_IntWriteEntry( Seq_NodeLValues(pNode), (pNode)->Id, Value );   }
+static inline float          Seq_NodeGetLValueP( Abc_Obj_t * pNode )                 { return Abc_Int2Float( Vec_IntEntry( Seq_NodeLValues(pNode), (pNode)->Id ) );        }
+static inline float          Seq_NodeGetLValueN( Abc_Obj_t * pNode )                 { return Abc_Int2Float( Vec_IntEntry( Seq_NodeLValuesN(pNode), (pNode)->Id ) );       }
+static inline void           Seq_NodeSetLValueP( Abc_Obj_t * pNode, float Value )    { Vec_IntWriteEntry( Seq_NodeLValues(pNode), (pNode)->Id, Abc_Float2Int(Value) );     }
+static inline void           Seq_NodeSetLValueN( Abc_Obj_t * pNode, float Value )    { Vec_IntWriteEntry( Seq_NodeLValuesN(pNode), (pNode)->Id, Abc_Float2Int(Value) );    }
 static inline int            Seq_NodeComputeLag( int LValue, int Fi )                { return (LValue + 1024*Fi)/Fi - 1024 - (int)(LValue % Fi == 0);     }
+static inline int            Seq_NodeComputeLagFloat( float LValue, float Fi )       { return ((int)ceil(LValue/Fi)) - 1;                                        }
 
 // reading the contents of the lat
 static inline Abc_InitType_t Seq_LatInit( Seq_Lat_t * pLat )  { return ((unsigned)pLat->pPrev) & 3;                                 }
@@ -141,14 +173,22 @@ static inline void           Seq_LatSetPrev( Seq_Lat_t * pLat, Seq_Lat_t * pPrev
 // accessing retiming lags
 static inline Cut_Man_t *    Seq_NodeCutMan( Abc_Obj_t * pNode )                      { return ((Abc_Seq_t *)(pNode)->pNtk->pManFunc)->pCutMan;                 }
 static inline Vec_Str_t *    Seq_NodeLags( Abc_Obj_t * pNode )                        { return ((Abc_Seq_t *)(pNode)->pNtk->pManFunc)->vLags;            }
+static inline Vec_Str_t *    Seq_NodeLagsN( Abc_Obj_t * pNode )                       { return ((Abc_Seq_t *)(pNode)->pNtk->pManFunc)->vLagsN;           }
 static inline char           Seq_NodeGetLag( Abc_Obj_t * pNode )                      { return Vec_StrEntry( Seq_NodeLags(pNode), (pNode)->Id );         }
+static inline char           Seq_NodeGetLagN( Abc_Obj_t * pNode )                     { return Vec_StrEntry( Seq_NodeLagsN(pNode), (pNode)->Id );        }
 static inline void           Seq_NodeSetLag( Abc_Obj_t * pNode, char Value )          { Vec_StrWriteEntry( Seq_NodeLags(pNode), (pNode)->Id, (Value) );  }
+static inline void           Seq_NodeSetLagN( Abc_Obj_t * pNode, char Value )         { Vec_StrWriteEntry( Seq_NodeLagsN(pNode), (pNode)->Id, (Value) ); }
+
+// phase usage
+static inline Vec_Str_t *    Seq_NodeUses( Abc_Obj_t * pNode )                        { return ((Abc_Seq_t *)(pNode)->pNtk->pManFunc)->vUses;            }
+static inline char           Seq_NodeGetUses( Abc_Obj_t * pNode )                     { return Vec_StrEntry( Seq_NodeUses(pNode), (pNode)->Id );         }
+static inline void           Seq_NodeSetUses( Abc_Obj_t * pNode, char Value )         { Vec_StrWriteEntry( Seq_NodeUses(pNode), (pNode)->Id, (Value) );  }
 
 // accessing initial states
 static inline Vec_Ptr_t *    Seq_NodeLats( Abc_Obj_t * pObj )                                { return ((Abc_Seq_t*)pObj->pNtk->pManFunc)->vInits;                                           }
 static inline Seq_Lat_t *    Seq_NodeGetRing( Abc_Obj_t * pObj, int Edge )                   { return Vec_PtrEntry( Seq_NodeLats(pObj), (pObj->Id<<1)+Edge );                               }
 static inline void           Seq_NodeSetRing( Abc_Obj_t * pObj, int Edge, Seq_Lat_t * pLat ) { Vec_PtrWriteEntry( Seq_NodeLats(pObj), (pObj->Id<<1)+Edge, pLat );                           }
-static inline Seq_Lat_t *    Seq_NodeCreateLat( Abc_Obj_t * pObj )                           { return (Seq_Lat_t *)Extra_MmFixedEntryFetch( ((Abc_Seq_t*)pObj->pNtk->pManFunc)->pMmInits ); }
+static inline Seq_Lat_t *    Seq_NodeCreateLat( Abc_Obj_t * pObj )                           { Seq_Lat_t * p = (Seq_Lat_t *)Extra_MmFixedEntryFetch( ((Abc_Seq_t*)pObj->pNtk->pManFunc)->pMmInits ); p->pNext = p->pPrev = NULL; p->pLatch = NULL; return p; }
 static inline void           Seq_NodeRecycleLat( Abc_Obj_t * pObj, Seq_Lat_t * pLat )        { Extra_MmFixedEntryRecycle( ((Abc_Seq_t*)pObj->pNtk->pManFunc)->pMmInits, (char *)pLat );     }
 
 // getting hold of the structure storing initial states of the latches
@@ -167,18 +207,23 @@ static inline void           Seq_NodeSetInitOne( Abc_Obj_t * pObj, int Edge, int
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+/*=== seqAigIter.c =============================================================*/
+extern void                  Seq_AigRetimeDelayLags( Abc_Ntk_t * pNtk, int fVerbose );
+extern int                   Seq_NtkImplementRetiming( Abc_Ntk_t * pNtk, Vec_Str_t * vLags, int fVerbose );
+/*=== seqFpgaIter.c ============================================================*/
+extern void                  Seq_FpgaMappingDelays( Abc_Ntk_t * pNtk, int fVerbose );
+extern int                   Seq_FpgaNodeUpdateLValue( Abc_Obj_t * pObj, int Fi );
+/*=== seqMapIter.c ============================================================*/
+extern void                  Seq_MapRetimeDelayLags( Abc_Ntk_t * pNtk, int fVerbose );
+/*=== seqRetIter.c =============================================================*/
+extern void                  Seq_NtkRetimeDelayLags( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtk, int fVerbose );
 /*=== seqLatch.c ===============================================================*/
 extern void                  Seq_NodeInsertFirst( Abc_Obj_t * pObj, int Edge, Abc_InitType_t Init );  
 extern void                  Seq_NodeInsertLast( Abc_Obj_t * pObj, int Edge, Abc_InitType_t Init );  
 extern Abc_InitType_t        Seq_NodeDeleteFirst( Abc_Obj_t * pObj, int Edge );  
 extern Abc_InitType_t        Seq_NodeDeleteLast( Abc_Obj_t * pObj, int Edge );  
-/*=== seqFpgaIter.c ============================================================*/
-extern void                  Seq_FpgaMappingDelays( Abc_Ntk_t * pNtk, int fVerbose );
-extern int                   Seq_FpgaNodeUpdateLValue( Abc_Obj_t * pObj, int Fi );
-/*=== seqRetIter.c =============================================================*/
-extern void                  Seq_NtkRetimeDelayLags( Abc_Ntk_t * pNtk, int fVerbose );
-extern int                   Seq_NtkImplementRetiming( Abc_Ntk_t * pNtk, Vec_Str_t * vLags, int fVerbose );
 /*=== seqUtil.c ================================================================*/
+extern int                   Seq_NtkLevelMax( Abc_Ntk_t * pNtk );
 extern int                   Seq_ObjFanoutLMax( Abc_Obj_t * pObj );
 extern int                   Seq_ObjFanoutLMin( Abc_Obj_t * pObj );
 extern int                   Seq_ObjFanoutLSum( Abc_Obj_t * pObj );

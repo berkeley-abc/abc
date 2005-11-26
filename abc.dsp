@@ -282,6 +282,14 @@ SOURCE=.\src\base\seq\seq.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\seq\seqAigCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\seq\seqAigIter.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\seq\seqCreate.c
 # End Source File
 # Begin Source File
@@ -1695,10 +1703,6 @@ SOURCE=.\src\misc\mvc\mvcUtils.c
 # Begin Source File
 
 SOURCE=.\src\misc\vec\vec.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\misc\vec\vecFan.h
 # End Source File
 # Begin Source File
 

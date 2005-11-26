@@ -22,6 +22,8 @@ alias clp collapse
 alias esd ext_seq_dcs
 alias f fraig
 alias fs fraig_sweep
+alias fsto fraig_store
+alias fres fraig_restore
 alias ft fraig_trust
 alias mu renode -m
 alias pex print_exdc -d

@@ -6,13 +6,13 @@
 --------------------Configuration: abc - Win32 Debug--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1416.tmp" with contents
+Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1A31.tmp" with contents
 [
 /nologo /MLd /W3 /Gm /GX /ZI /Od /I "src\base\abc" /I "src\base\abci" /I "src\base\abcs" /I "src\base\seq" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\ft" /I "src\sat\asat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\sim" /I "src\opt\rwr" /I "src\map\fpga" /I "src\map\pga" /I "src\map\mapper" /I "src\map\mapp" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\mvc" /I "src\misc\util" /I "src\misc\npn" /I "src\misc\vec" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /D "HAVE_ASSERT_H" /FR"Debug/" /Fp"Debug/abc.pch" /YX /Fo"Debug/" /Fd"Debug/" /FD /GZ /c 
-"C:\_projects\abc\src\base\seq\seqFpgaIter.c"
+"C:\_projects\abc\src\base\seq\seqRetCore.c"
 ]
-Creating command line "cl.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1416.tmp" 
-Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1417.tmp" with contents
+Creating command line "cl.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1A31.tmp" 
+Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1A32.tmp" with contents
 [
 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /incremental:yes /pdb:"Debug/abc.pdb" /debug /machine:I386 /out:"_TEST/abc.exe" /pdbtype:sept 
 .\Debug\abcAig.obj
@@ -64,8 +64,6 @@ kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32
 .\Debug\seqMan.obj
 .\Debug\seqMapCore.obj
 .\Debug\seqMapIter.obj
-.\Debug\seqRetCore.obj
-.\Debug\seqRetIter.obj
 .\Debug\seqShare.obj
 .\Debug\seqUtil.obj
 .\Debug\cmd.obj
@@ -328,13 +326,17 @@ kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32
 .\Debug\mvcPrint.obj
 .\Debug\mvcSort.obj
 .\Debug\mvcUtils.obj
+.\Debug\seqRetCore.obj
+.\Debug\seqRetIter.obj
+.\Debug\seqAigCore.obj
+.\Debug\seqAigIter.obj
 ]
-Creating command line "link.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1417.tmp"
+Creating command line "link.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1A32.tmp"
 <h3>Output Window</h3>
 Compiling...
-seqFpgaIter.c
+seqRetCore.c
 Linking...
-Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1418.tmp" with contents
+Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1A33.tmp" with contents
 [
 /nologo /o"Debug/abc.bsc" 
 .\Debug\abcAig.sbr
@@ -386,8 +388,6 @@ Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1418.tmp" with cont
 .\Debug\seqMan.sbr
 .\Debug\seqMapCore.sbr
 .\Debug\seqMapIter.sbr
-.\Debug\seqRetCore.sbr
-.\Debug\seqRetIter.sbr
 .\Debug\seqShare.sbr
 .\Debug\seqUtil.sbr
 .\Debug\cmd.sbr
@@ -649,8 +649,12 @@ Creating temporary file "C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1418.tmp" with cont
 .\Debug\mvcOpBool.sbr
 .\Debug\mvcPrint.sbr
 .\Debug\mvcSort.sbr
-.\Debug\mvcUtils.sbr]
-Creating command line "bscmake.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1418.tmp"
+.\Debug\mvcUtils.sbr
+.\Debug\seqRetCore.sbr
+.\Debug\seqRetIter.sbr
+.\Debug\seqAigCore.sbr
+.\Debug\seqAigIter.sbr]
+Creating command line "bscmake.exe @C:\DOCUME~1\alanmi\LOCALS~1\Temp\RSP1A33.tmp"
 Creating browse info file...
 <h3>Output Window</h3>
 

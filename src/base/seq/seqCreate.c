@@ -75,12 +75,15 @@ Abc_Ntk_t * Abc_NtkAigToSeq( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pObj, * pFaninNew;
     Vec_Int_t * vInitValues;
     Abc_InitType_t Init;
-    int i, k;
+    int i, k, RetValue;
 
     // make sure it is an AIG without self-feeding latches
     assert( Abc_NtkIsStrash(pNtk) );
-    assert( Abc_NtkCountSelfFeedLatches(pNtk) == 0 );
     assert( Abc_NtkIsDfsOrdered(pNtk) );
+
+    if ( RetValue = Abc_NtkRemoveSelfFeedLatches(pNtk) )
+        printf( "Modified %d self-feeding latches. The result will not verify.\n", RetValue );
+    assert( Abc_NtkCountSelfFeedLatches(pNtk) == 0 );
 
     // start the network
     pNtkNew = Abc_NtkAlloc( ABC_NTK_SEQ, ABC_FUNC_AIG );
@@ -235,7 +238,6 @@ void Abc_NtkAigCutsetCopy( Abc_Ntk_t * pNtk )
     }
 }
 
-
 /**Function*************************************************************
 
   Synopsis    [Converts a sequential AIG into a logic SOP network.]
@@ -248,6 +250,76 @@ void Abc_NtkAigCutsetCopy( Abc_Ntk_t * pNtk )
 
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkSeqToLogicSop( Abc_Ntk_t * pNtk )
+{
+    Abc_Ntk_t * pNtkNew; 
+    Abc_Obj_t * pObj, * pObjNew, * pFaninNew;
+    Seq_Lat_t * pRing;
+    int i;
+
+    assert( Abc_NtkIsSeq(pNtk) );
+    // start the network without latches
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
+    // duplicate the nodes
+    Abc_AigForEachAnd( pNtk, pObj, i )
+    {
+        Abc_NtkDupObj(pNtkNew, pObj);
+        pObj->pCopy->pData = Abc_SopCreateAnd2( pNtkNew->pManFunc, Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj) );
+    }
+    // share and create the latches
+    Seq_NtkShareLatches( pNtkNew, pNtk );
+    // connect the objects
+    Abc_AigForEachAnd( pNtk, pObj, i )
+    {
+        if ( pRing = Seq_NodeGetRing(pObj,0) )
+            pFaninNew = pRing->pLatch;
+        else
+            pFaninNew = Abc_ObjFanin0(pObj)->pCopy;
+        Abc_ObjAddFanin( pObj->pCopy, pFaninNew );
+
+        if ( pRing = Seq_NodeGetRing(pObj,1) )
+            pFaninNew = pRing->pLatch;
+        else
+            pFaninNew = Abc_ObjFanin1(pObj)->pCopy;
+        Abc_ObjAddFanin( pObj->pCopy, pFaninNew );
+    }
+    // connect the POs
+    Abc_NtkForEachPo( pNtk, pObj, i )
+    {
+        if ( pRing = Seq_NodeGetRing(pObj,0) )
+            pFaninNew = pRing->pLatch;
+        else
+            pFaninNew = Abc_ObjFanin0(pObj)->pCopy;
+        pFaninNew = Abc_ObjNotCond( pFaninNew, Abc_ObjFaninC0(pObj) );
+        Abc_ObjAddFanin( pObj->pCopy, pFaninNew );
+    }
+
+    // add the latches and their names
+    Abc_NtkAddDummyLatchNames( pNtkNew );
+    Abc_NtkForEachLatch( pNtkNew, pObjNew, i )
+    {
+        Vec_PtrPush( pNtkNew->vCis, pObjNew );
+        Vec_PtrPush( pNtkNew->vCos, pObjNew );
+    }
+    // fix the problem with complemented and duplicated CO edges
+    Abc_NtkLogicMakeSimpleCos( pNtkNew, 0 );
+    if ( !Abc_NtkCheck( pNtkNew ) )
+        fprintf( stdout, "Abc_NtkSeqToLogicSop(): Network check has failed.\n" );
+    return pNtkNew;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Converts a sequential AIG into a logic SOP network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkSeqToLogicSop_old( Abc_Ntk_t * pNtk )
 {
     Abc_Ntk_t * pNtkNew; 
     Abc_Obj_t * pObj, * pObjNew, * pFaninNew;

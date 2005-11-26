@@ -187,7 +187,7 @@ int Abc_NodeAttach( Abc_Obj_t * pNode, Mio_Gate_t ** ppGates, unsigned ** puTrut
     Abc_ObjForEachFanin( pNode, pFanin, i )
         pTempInts[i] = pFanin->Id;
     for ( i = 0; i < nFanins; i++ )
-        pNode->vFanins.pArray[Perm[i]].iFan = pTempInts[i];
+        pNode->vFanins.pArray[Perm[i]] = pTempInts[i];
     // set the gate
     pNode->pCopy = (Abc_Obj_t *)pGate;
     return 1;

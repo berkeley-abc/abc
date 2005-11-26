@@ -292,6 +292,7 @@ Abc_Ntk_t * Abc_NtkFromFraig( Fraig_Man_t * pMan, Abc_Ntk_t * pNtk )
         Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
     }
     Extra_ProgressBarStop( pProgress );
+    Abc_NtkReassignIds( pNtkNew );
     return pNtkNew;
 }
 
@@ -495,6 +496,7 @@ Abc_Ntk_t * Abc_NtkFraigTrust( Abc_Ntk_t * pNtk )
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_STRASH, ABC_FUNC_AIG );
     Abc_NtkFraigTrustOne( pNtk, pNtkNew );
     Abc_NtkFinalize( pNtk, pNtkNew );
+    Abc_NtkReassignIds( pNtkNew );
 
     // print a warning about choice nodes
     printf( "Warning: The resulting AIG contains %d choice nodes.\n", Abc_NtkGetChoiceNum( pNtkNew ) );
