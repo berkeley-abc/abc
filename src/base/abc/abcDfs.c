@@ -464,6 +464,9 @@ int Abc_NtkGetLevelNum( Abc_Ntk_t * pNtk )
     int i, LevelsMax;
     // set the traversal ID for this traversal
     Abc_NtkIncrementTravId( pNtk );
+    // set the CI levels to zero
+    Abc_NtkForEachCi( pNtk, pNode, i )
+        pNode->Level = 0;
     // perform the traversal
     LevelsMax = 0;
     Abc_NtkForEachNode( pNtk, pNode, i )
@@ -508,7 +511,8 @@ int Abc_NtkGetLevelNum_rec( Abc_Obj_t * pNode )
         if ( pNode->Level < (unsigned)Level )
             pNode->Level = Level;
     }
-    pNode->Level++;
+    if ( Abc_ObjFaninNum(pNode) > 0 )
+        pNode->Level++;
     return pNode->Level;
 }
 

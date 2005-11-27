@@ -164,7 +164,7 @@ Abc_Ntk_t * Abc_NtkAigToSeq( Abc_Ntk_t * pNtk )
     Seq_NtkLatchGetEqualFaninNum( pNtkNew );
 
     // copy EXDC and check correctness
-    if ( pNtkNew->pExdc )
+    if ( pNtk->pExdc )
         fprintf( stdout, "Warning: EXDC is not copied when converting to sequential AIG.\n" );
     if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkAigToSeq(): Network check has failed.\n" );
@@ -292,6 +292,8 @@ Abc_Ntk_t * Abc_NtkSeqToLogicSop( Abc_Ntk_t * pNtk )
         pFaninNew = Abc_ObjNotCond( pFaninNew, Abc_ObjFaninC0(pObj) );
         Abc_ObjAddFanin( pObj->pCopy, pFaninNew );
     }
+    // clean the latch pointers
+    Seq_NtkShareLatchesClean( pNtk );
 
     // add the latches and their names
     Abc_NtkAddDummyLatchNames( pNtkNew );
@@ -406,6 +408,73 @@ Abc_Obj_t * Abc_NodeSeqToLogic( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pFanin, Seq_Lat
     pLatch->pData = (void *)Seq_LatInit( pRing );
     Abc_ObjAddFanin( pLatch, pFanin );
     return pLatch;    
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Makes sure that every node in the table is in the network and vice versa.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+bool Abc_NtkSeqCheck( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int i, nFanins;
+    Abc_NtkForEachNode( pNtk, pObj, i )
+    {
+        nFanins = Abc_ObjFaninNum(pObj);
+        if ( nFanins == 0 )
+        {
+            if ( pObj != Abc_NtkConst1(pNtk) )
+            {
+                printf( "Abc_SeqCheck: The AIG has non-standard constant nodes.\n" );
+                return 0;
+            }
+            continue;
+        }
+        if ( nFanins == 1 )
+        {
+            printf( "Abc_SeqCheck: The AIG has single input nodes.\n" );
+            return 0;
+        }
+        if ( nFanins > 2 )
+        {
+            printf( "Abc_SeqCheck: The AIG has non-standard nodes.\n" );
+            return 0;
+        }
+    }
+    // check the correctness of the internal representation of the initial states
+    Abc_NtkForEachObj( pNtk, pObj, i )
+    {
+        nFanins = Abc_ObjFaninNum(pObj);
+        if ( nFanins == 0 )
+            continue;
+        if ( nFanins == 1 )
+        {
+            if ( Seq_NodeCountLats(pObj, 0) != Seq_ObjFaninL0(pObj) )
+            {
+                printf( "Abc_SeqCheck: Node %d has mismatch in the number of latches.\n", Abc_ObjName(pObj) );
+                return 0;
+            }
+        }
+        // look at both inputs
+        if ( Seq_NodeCountLats(pObj, 0) != Seq_ObjFaninL0(pObj) )
+        {
+            printf( "Abc_SeqCheck: The first fanin of node %d has mismatch in the number of latches.\n", Abc_ObjName(pObj) );
+            return 0;
+        }
+        if ( Seq_NodeCountLats(pObj, 1) != Seq_ObjFaninL1(pObj) )
+        {
+            printf( "Abc_SeqCheck: The second fanin of node %d has mismatch in the number of latches.\n", Abc_ObjName(pObj) );
+            return 0;
+        }
+    }
+    return 1;
 }
 
 ////////////////////////////////////////////////////////////////////////

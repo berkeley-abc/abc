@@ -65,13 +65,14 @@ static void        Abc_ObjRetimeBackwardTry( Abc_Obj_t * pObj, int nLatches );
   SeeAlso     []
 
 ***********************************************************************/
-void Seq_NtkSeqRetimeDelay( Abc_Ntk_t * pNtk, int fInitial, int fVerbose )
+void Seq_NtkSeqRetimeDelay( Abc_Ntk_t * pNtk, int nMaxIters, int fInitial, int fVerbose )
 {
     Abc_Seq_t * p = pNtk->pManFunc;
     int RetValue;
     if ( !fInitial )
         Seq_NtkLatchSetValues( pNtk, ABC_INIT_DC );
     // get the retiming lags
+    p->nMaxIters = nMaxIters;
     Seq_AigRetimeDelayLags( pNtk, fVerbose );
     // implement this retiming
     RetValue = Seq_NtkImplementRetiming( pNtk, p->vLags, fVerbose );
@@ -490,31 +491,33 @@ int Abc_ObjRetimeBackward( Abc_Obj_t * pObj, Abc_Ntk_t * pNtkNew, stmm_table * t
         {
             Edge = 0;
             Value = Seq_NodeDeleteLast( pFanout, Edge );
-            if ( Value != ABC_INIT_NONE )
-                continue;
-            // value is unknown, remove it from the table
-            RetEdge.iNode  = pFanout->Id;
-            RetEdge.iEdge  = Edge;
-            RetEdge.iLatch = Seq_ObjFaninL( pFanout, Edge ); // after edge is removed
-            if ( !stmm_delete( tTable, (char **)&RetEdge, (char **)&pFanoutNew ) )
-                assert( 0 );
-            // create the fanout of the AND gate
-            Abc_ObjAddFanin( pFanoutNew, pNodeNew );
+            if ( Value == ABC_INIT_NONE )
+            {
+                // value is unknown, remove it from the table
+                RetEdge.iNode  = pFanout->Id;
+                RetEdge.iEdge  = Edge;
+                RetEdge.iLatch = Seq_ObjFaninL( pFanout, Edge ); // after edge is removed
+                if ( !stmm_delete( tTable, (char **)&RetEdge, (char **)&pFanoutNew ) )
+                    assert( 0 );
+                // create the fanout of the AND gate
+                Abc_ObjAddFanin( pFanoutNew, pNodeNew );
+            }
         }
         if ( Abc_ObjFaninId1(pFanout) == pObj->Id )
         {
             Edge = 1;
             Value = Seq_NodeDeleteLast( pFanout, Edge );
-            if ( Value != ABC_INIT_NONE )
-                continue;
-            // value is unknown, remove it from the table
-            RetEdge.iNode  = pFanout->Id;
-            RetEdge.iEdge  = Edge;
-            RetEdge.iLatch = Seq_ObjFaninL( pFanout, Edge ); // after edge is removed
-            if ( !stmm_delete( tTable, (char **)&RetEdge, (char **)&pFanoutNew ) )
-                assert( 0 );
-            // create the fanout of the AND gate
-            Abc_ObjAddFanin( pFanoutNew, pNodeNew );
+            if ( Value == ABC_INIT_NONE )
+            {
+                // value is unknown, remove it from the table
+                RetEdge.iNode  = pFanout->Id;
+                RetEdge.iEdge  = Edge;
+                RetEdge.iLatch = Seq_ObjFaninL( pFanout, Edge ); // after edge is removed
+                if ( !stmm_delete( tTable, (char **)&RetEdge, (char **)&pFanoutNew ) )
+                    assert( 0 );
+                // create the fanout of the AND gate
+                Abc_ObjAddFanin( pFanoutNew, pNodeNew );
+            }
         }
     }
     // clean the label

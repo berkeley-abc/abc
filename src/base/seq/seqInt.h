@@ -195,7 +195,8 @@ static inline void           Seq_NodeRecycleLat( Abc_Obj_t * pObj, Seq_Lat_t * p
 static inline Seq_Lat_t *    Seq_NodeGetLatFirst( Abc_Obj_t * pObj, int Edge )               { return Seq_NodeGetRing(pObj, Edge);                      }
 static inline Seq_Lat_t *    Seq_NodeGetLatLast( Abc_Obj_t * pObj, int Edge )                { return Seq_LatPrev( Seq_NodeGetRing(pObj, Edge) );       }
 static inline Seq_Lat_t *    Seq_NodeGetLat( Abc_Obj_t * pObj, int Edge, int iLat )          { int c; Seq_Lat_t * pLat = Seq_NodeGetRing(pObj, Edge); for ( c = 0; c != iLat; c++ ) pLat = pLat->pNext; return pLat; }
-static inline int            Seq_NodeCountLats( Abc_Obj_t * pObj, int Edge )                 { int c; Seq_Lat_t * pLat, * pRing = Seq_NodeGetRing(pObj, Edge); if ( pRing == NULL ) return 0; for ( c = 0, pLat = pRing; !c || pLat != pRing; c++ )      pLat = pLat->pNext; return c; }
+static inline int            Seq_NodeCountLats( Abc_Obj_t * pObj, int Edge )                 { int c; Seq_Lat_t * pLat, * pRing = Seq_NodeGetRing(pObj, Edge); if ( pRing == NULL ) return 0; for ( c = 0, pLat = pRing; !c || pLat != pRing; c++ )  pLat = pLat->pNext; return c; }
+static inline void           Seq_NodeCleanLats( Abc_Obj_t * pObj, int Edge )                 { int c; Seq_Lat_t * pLat, * pRing = Seq_NodeGetRing(pObj, Edge); if ( pRing == NULL ) return  ; for ( c = 0, pLat = pRing; !c || pLat != pRing; c++ )  pLat->pLatch = NULL, pLat = pLat->pNext; return;  }
 
 // getting/setting initial states of the latches
 static inline Abc_InitType_t Seq_NodeGetInitOne( Abc_Obj_t * pObj, int Edge, int iLat )      { return Seq_LatInit( Seq_NodeGetLat(pObj, Edge, iLat) );  }

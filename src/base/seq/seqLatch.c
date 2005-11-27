@@ -61,6 +61,7 @@ void Seq_NodeInsertFirst( Abc_Obj_t * pObj, int Edge, Abc_InitType_t Init )
     }
     Seq_LatSetInit( pLat, Init );
     Seq_ObjAddFaninL( pObj, Edge, 1 );
+    assert( pLat->pLatch == NULL );
 }
 
 /**Function*************************************************************

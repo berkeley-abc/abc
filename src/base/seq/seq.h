@@ -44,7 +44,7 @@ typedef struct Abc_Seq_t_  Abc_Seq_t;
 ////////////////////////////////////////////////////////////////////////
 
 /*=== seqAigCore.c ===========================================================*/
-extern void            Seq_NtkSeqRetimeDelay( Abc_Ntk_t * pNtk, int fInitial, int fVerbose );
+extern void            Seq_NtkSeqRetimeDelay( Abc_Ntk_t * pNtk, int nMaxIters, int fInitial, int fVerbose );
 extern void            Seq_NtkSeqRetimeForward( Abc_Ntk_t * pNtk, int fInitial, int fVerbose );
 extern void            Seq_NtkSeqRetimeBackward( Abc_Ntk_t * pNtk, int fInitial, int fVerbose );
 /*=== seqFpgaCore.c ===============================================================*/
@@ -52,7 +52,7 @@ extern Abc_Ntk_t *     Seq_NtkFpgaMapRetime( Abc_Ntk_t * pNtk, int nMaxIters, in
 /*=== seqMapCore.c ===============================================================*/
 extern Abc_Ntk_t *     Seq_MapRetime( Abc_Ntk_t * pNtk, int nMaxIters, int fVerbose );
 /*=== seqRetCore.c ===========================================================*/
-extern Abc_Ntk_t *     Seq_NtkRetime( Abc_Ntk_t * pNtk, int nMaxIters, int fVerbose );
+extern Abc_Ntk_t *     Seq_NtkRetime( Abc_Ntk_t * pNtk, int nMaxIters, int fInitial, int fVerbose );
 /*=== seqLatch.c ===============================================================*/
 extern void            Seq_NodeDupLats( Abc_Obj_t * pObjNew, Abc_Obj_t * pObj, int Edge );
 extern int             Seq_NodeCompareLats( Abc_Obj_t * pObj1, int Edge1, Abc_Obj_t * pObj2, int Edge2 );
@@ -63,10 +63,12 @@ extern void            Seq_Delete( Abc_Seq_t * p );
 /*=== abcSeq.c ===============================================================*/
 extern Abc_Ntk_t *     Abc_NtkAigToSeq( Abc_Ntk_t * pNtk );
 extern Abc_Ntk_t *     Abc_NtkSeqToLogicSop( Abc_Ntk_t * pNtk );
+extern bool            Abc_NtkSeqCheck( Abc_Ntk_t * pNtk ); 
 /*=== seqShare.c =============================================================*/
 extern void            Seq_NtkShareFanouts( Abc_Ntk_t * pNtk );
 extern void            Seq_NtkShareLatches( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk );
 extern void            Seq_NtkShareLatchesFpga( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, Vec_Ptr_t * vMapAnds );
+extern void            Seq_NtkShareLatchesClean( Abc_Ntk_t * pNtk );
 /*=== seqUtil.c ==============================================================*/
 extern char *          Seq_ObjFaninGetInitPrintable( Abc_Obj_t * pObj, int Edge );
 extern void            Seq_NtkLatchSetValues( Abc_Ntk_t * pNtk, Abc_InitType_t Init );

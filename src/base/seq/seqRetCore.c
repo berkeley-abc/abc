@@ -25,11 +25,12 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static Abc_Ntk_t * Seq_NtkRetimeDerive( Abc_Ntk_t * pNtk );
+static Abc_Ntk_t * Seq_NtkRetimeDerive( Abc_Ntk_t * pNtk, int fVerbose );
 static Abc_Obj_t * Seq_NodeRetimeDerive( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, char * pSop );
 static void        Seq_NodeAddEdges_rec( Abc_Obj_t * pGoal, Abc_Obj_t * pNode, Abc_InitType_t Init );
-static Abc_Ntk_t * Seq_NtkRetimeReconstruct( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtk );
-
+static Abc_Ntk_t * Seq_NtkRetimeReconstruct( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkSeq );
+static Abc_Obj_t * Seq_EdgeReconstruct_rec( Abc_Obj_t * pGoal, Abc_Obj_t * pNode );
+static Abc_Obj_t * Seq_EdgeReconstructPO( Abc_Obj_t * pNode );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -46,25 +47,31 @@ static Abc_Ntk_t * Seq_NtkRetimeReconstruct( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pN
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Seq_NtkRetime( Abc_Ntk_t * pNtk, int nMaxIters, int fVerbose )
+Abc_Ntk_t * Seq_NtkRetime( Abc_Ntk_t * pNtk, int nMaxIters, int fInitial, int fVerbose )
 {
     Abc_Seq_t * p;
-    Abc_Ntk_t * pNtkAig, * pNtkNew;
+    Abc_Ntk_t * pNtkSeq, * pNtkNew;
     int RetValue;
     assert( !Abc_NtkHasAig(pNtk) );
     // derive the isomorphic seq AIG
-    pNtkAig = Seq_NtkRetimeDerive( pNtk );
-    p = pNtkAig->pManFunc;
+    pNtkSeq = Seq_NtkRetimeDerive( pNtk, fVerbose );
+    p = pNtkSeq->pManFunc;
     p->nMaxIters = nMaxIters;
+
+    if ( !fInitial )
+        Seq_NtkLatchSetValues( pNtkSeq, ABC_INIT_DC );
     // find the best mapping and retiming 
-    Seq_NtkRetimeDelayLags( pNtk, pNtkAig, fVerbose );
+    Seq_NtkRetimeDelayLags( pNtk, pNtkSeq, fVerbose );
     // implement the retiming
-    RetValue = Seq_NtkImplementRetiming( pNtkAig, p->vLags, fVerbose );
+    RetValue = Seq_NtkImplementRetiming( pNtkSeq, p->vLags, fVerbose );
     if ( RetValue == 0 )
         printf( "Retiming completed but initial state computation has failed.\n" );
+
+//return pNtkSeq;
+
     // create the final mapped network
-    pNtkNew = Seq_NtkRetimeReconstruct( pNtk, pNtkAig );
-    Abc_NtkDelete( pNtkAig );
+    pNtkNew = Seq_NtkRetimeReconstruct( pNtk, pNtkSeq );
+    Abc_NtkDelete( pNtkSeq );
     return pNtkNew;
 }
 
@@ -79,12 +86,12 @@ Abc_Ntk_t * Seq_NtkRetime( Abc_Ntk_t * pNtk, int nMaxIters, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Seq_NtkRetimeDerive( Abc_Ntk_t * pNtk )
+Abc_Ntk_t * Seq_NtkRetimeDerive( Abc_Ntk_t * pNtk, int fVerbose )
 {
     Abc_Seq_t * p;
     Abc_Ntk_t * pNtkNew;
     Abc_Obj_t * pObj, * pFanin, * pFanout;
-    int i, k, RetValue;
+    int i, k, RetValue, fHasBdds;
     char * pSop;
 
     // make sure it is an AIG without self-feeding latches
@@ -93,35 +100,52 @@ Abc_Ntk_t * Seq_NtkRetimeDerive( Abc_Ntk_t * pNtk )
         printf( "Modified %d self-feeding latches. The result will not verify.\n", RetValue );
     assert( Abc_NtkCountSelfFeedLatches(pNtk) == 0 );
 
-    if ( Abc_NtkIsBddLogic(pNtk) )
+    // remove the dangling nodes
+    Abc_NtkCleanup( pNtk, fVerbose );
+
+    // transform logic functions from BDD to SOP
+    if ( fHasBdds = Abc_NtkIsBddLogic(pNtk) )
         Abc_NtkBddToSop(pNtk);
 
     // start the network
     pNtkNew = Abc_NtkAlloc( ABC_NTK_SEQ, ABC_FUNC_AIG );
-
     // duplicate the name and the spec
     pNtkNew->pName = util_strsav(pNtk->pName);
     pNtkNew->pSpec = util_strsav(pNtk->pSpec);
+
     // map the constant nodes
     Abc_NtkCleanCopy( pNtk );
     // clone the PIs/POs/latches
     Abc_NtkForEachPi( pNtk, pObj, i )
-        Abc_NtkDupObj(pNtkNew, pObj);
+        Abc_NtkDupObj( pNtkNew, pObj );
     Abc_NtkForEachPo( pNtk, pObj, i )
-        Abc_NtkDupObj(pNtkNew, pObj);
+        Abc_NtkDupObj( pNtkNew, pObj );
+    // copy the names
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        Abc_NtkLogicStoreName( pObj->pCopy, Abc_ObjName(pObj) );
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        Abc_NtkLogicStoreName( pObj->pCopy, Abc_ObjName(pObj) );
 
     // create one AND for each logic node
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
+        if ( Abc_ObjFaninNum(pObj) == 0 && Abc_ObjFanoutNum(pObj) == 0 )
+            continue;
         pObj->pCopy = Abc_NtkCreateNode( pNtkNew );
         pObj->pCopy->pCopy = pObj;
     }
+    // make latches point to the latch fanins
     Abc_NtkForEachLatch( pNtk, pObj, i )
+    {
+        assert( !Abc_ObjIsLatch(Abc_ObjFanin0(pObj)) );
         pObj->pCopy = Abc_ObjFanin0(pObj)->pCopy;
+    }
 
     // create internal AND nodes w/o strashing for each logic node (including constants)
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
+        if ( Abc_ObjFaninNum(pObj) == 0 && Abc_ObjFanoutNum(pObj) == 0 )
+            continue;
         // get the SOP of the node
         if ( Abc_NtkHasMapping(pNtk) )
             pSop = Mio_GateReadSop(pObj->pData);
@@ -131,9 +155,9 @@ Abc_Ntk_t * Seq_NtkRetimeDerive( Abc_Ntk_t * pNtk )
         Abc_ObjAddFanin( pObj->pCopy, pFanin );
         Abc_ObjAddFanin( pObj->pCopy, pFanin );
     }
-
-    // connect the POs...
-
+    // connect the POs
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        Abc_ObjAddFanin( pObj->pCopy, Abc_ObjFanin0(pObj)->pCopy );
     
     // start the storage for initial states
     p = pNtkNew->pManFunc;
@@ -142,7 +166,15 @@ Abc_Ntk_t * Seq_NtkRetimeDerive( Abc_Ntk_t * pNtk )
     // add the sequential edges
     Abc_NtkForEachLatch( pNtk, pObj, i )
         Abc_ObjForEachFanout( pObj, pFanout, k )
-            Seq_NodeAddEdges_rec( Abc_ObjFanin0(pObj)->pCopy, pFanout->pCopy, Abc_LatchInit(pObj) );
+        {
+            if ( pObj->pCopy == Abc_ObjFanin0(pFanout->pCopy) )
+            {
+                Seq_NodeInsertFirst( pFanout->pCopy, 0, Abc_LatchInit(pObj) );
+                Seq_NodeInsertFirst( pFanout->pCopy, 1, Abc_LatchInit(pObj) );
+                continue;
+            }
+            Seq_NodeAddEdges_rec( pObj->pCopy, Abc_ObjFanin0(pFanout->pCopy), Abc_LatchInit(pObj) );
+        }
 
     // collect the nodes in the topological order
     p->vMapAnds   = Abc_NtkDfs( pNtk, 0 );
@@ -154,7 +186,7 @@ Abc_Ntk_t * Seq_NtkRetimeDerive( Abc_Ntk_t * pNtk )
         Vec_PtrWriteEntry( p->vMapAnds, i, pObj->pCopy );
         // collect the new fanins of this node
         Abc_ObjForEachFanin( pObj, pFanin, k )
-            Vec_VecPush( p->vMapCuts, i, pFanin->pCopy );
+            Vec_VecPush( p->vMapCuts, i, (void *)( (pFanin->pCopy->Id << 8) | Abc_ObjIsLatch(pFanin) ) );
         // collect the delay info
         if ( !Abc_NtkHasMapping(pNtk) )
         {
@@ -178,10 +210,14 @@ Abc_Ntk_t * Seq_NtkRetimeDerive( Abc_Ntk_t * pNtk )
 
     // set the cutset composed of latch drivers
 //    Abc_NtkAigCutsetCopy( pNtk );
-    Seq_NtkLatchGetEqualFaninNum( pNtkNew );
+//    Seq_NtkLatchGetEqualFaninNum( pNtkNew );
+
+    // convert the network back into BDDs if this is how it was
+    if ( fHasBdds )
+        Abc_NtkSopToBdd(pNtk);
 
     // copy EXDC and check correctness
-    if ( pNtkNew->pExdc )
+    if ( pNtk->pExdc )
         fprintf( stdout, "Warning: EXDC is not copied when converting to sequential AIG.\n" );
     if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Seq_NtkRetimeDerive(): Network check has failed.\n" );
@@ -202,6 +238,9 @@ Abc_Ntk_t * Seq_NtkRetimeDerive( Abc_Ntk_t * pNtk )
 void Seq_NodeAddEdges_rec( Abc_Obj_t * pGoal, Abc_Obj_t * pNode, Abc_InitType_t Init )
 {
     Abc_Obj_t * pFanin;
+    assert( !Abc_ObjIsLatch(pNode) );
+    if ( !Abc_NodeIsAigAnd(pNode) )
+        return;
     // consider the first fanin
     pFanin = Abc_ObjFanin0(pNode);
     if ( pFanin->pCopy == NULL ) // internal node
@@ -275,52 +314,54 @@ Abc_Obj_t * Seq_NodeRetimeDerive( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pRoot, char *
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Seq_NtkRetimeReconstruct( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtk )
+Abc_Ntk_t * Seq_NtkRetimeReconstruct( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkSeq )
 {
-    Abc_Seq_t * p = pNtk->pManFunc;
-    Seq_Lat_t * pRing;
+    Abc_Seq_t * p = pNtkSeq->pManFunc;
     Abc_Ntk_t * pNtkNew;
-    Abc_Obj_t * pObj, * pFaninNew, * pObjNew;
-    int i;
+    Abc_Obj_t * pObj, * pObjNew, * pFanin, * pFaninNew;
+    int i, k;
 
     assert( !Abc_NtkIsSeq(pNtkOld) );
-    assert( Abc_NtkIsSeq(pNtk) );
+    assert( Abc_NtkIsSeq(pNtkSeq) );
+
+    // transfer the pointers pNtkOld->pNtkSeq from pCopy to pNext
+    Abc_NtkForEachObj( pNtkOld, pObj, i )
+        pObj->pNext = pObj->pCopy;
 
     // start the final network
-    pNtkNew = Abc_NtkStartFrom( pNtk, pNtkOld->ntkType, pNtkOld->ntkFunc );
+    pNtkNew = Abc_NtkStartFrom( pNtkSeq, pNtkOld->ntkType, pNtkOld->ntkFunc );
 
-    // copy the internal nodes
-    Abc_NtkForEachNode( pNtk, pObj, i )
+    // copy the internal nodes of the old network into the new network
+    // transfer the pointers pNktOld->pNtkNew to pNtkSeq->pNtkNew
+    Abc_NtkForEachNode( pNtkOld, pObj, i )
+    {
+        if ( i == 0 ) continue;
         Abc_NtkDupObj( pNtkNew, pObj );
+        pObj->pNext->pCopy = pObj->pCopy;
+    }
 
     // share the latches
-    Seq_NtkShareLatches( pNtkNew, pNtk );
+    Seq_NtkShareLatches( pNtkNew, pNtkSeq );
 
     // connect the objects
-    Abc_AigForEachAnd( pNtk, pObj, i )
-    {
-        if ( pRing = Seq_NodeGetRing(pObj,0) )
-            pFaninNew = pRing->pLatch;
-        else
-            pFaninNew = Abc_ObjFanin0(pObj)->pCopy;
-        Abc_ObjAddFanin( pObj->pCopy, pFaninNew );
+    Abc_NtkForEachNode( pNtkOld, pObj, i )
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+        {
+            pFaninNew = Seq_EdgeReconstruct_rec( pFanin->pNext, pObj->pNext );
+            assert( pFaninNew != NULL );
+            Abc_ObjAddFanin( pObj->pCopy, pFaninNew );
+        }
 
-        if ( pRing = Seq_NodeGetRing(pObj,1) )
-            pFaninNew = pRing->pLatch;
-        else
-            pFaninNew = Abc_ObjFanin1(pObj)->pCopy;
-        Abc_ObjAddFanin( pObj->pCopy, pFaninNew );
-    }
     // connect the POs
-    Abc_NtkForEachPo( pNtk, pObj, i )
+    Abc_NtkForEachPo( pNtkOld, pObj, i )
     {
-        if ( pRing = Seq_NodeGetRing(pObj,0) )
-            pFaninNew = pRing->pLatch;
-        else
-            pFaninNew = Abc_ObjFanin0(pObj)->pCopy;
-        pFaninNew = Abc_ObjNotCond( pFaninNew, Abc_ObjFaninC0(pObj) );
-        Abc_ObjAddFanin( pObj->pCopy, pFaninNew );
+        pFaninNew = Seq_EdgeReconstructPO( pObj->pNext );
+        assert( pFaninNew != NULL );
+        Abc_ObjAddFanin( pObj->pNext->pCopy, pFaninNew );
     }
+
+    // clean the result of latch sharing
+    Seq_NtkShareLatchesClean( pNtkSeq );
 
     // add the latches and their names
     Abc_NtkAddDummyLatchNames( pNtkNew );
@@ -330,11 +371,79 @@ Abc_Ntk_t * Seq_NtkRetimeReconstruct( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtk )
         Vec_PtrPush( pNtkNew->vCos, pObjNew );
     }
     // fix the problem with complemented and duplicated CO edges
-    Abc_NtkLogicMakeSimpleCos( pNtkNew, 0 );
+    Abc_NtkLogicMakeSimpleCos( pNtkNew, 1 );
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkSeqToLogicSop(): Network check has failed.\n" );
+        fprintf( stdout, "Seq_NtkRetimeReconstruct(): Network check has failed.\n" );
     return pNtkNew;
 
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reconstructs the network after retiming.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Seq_EdgeReconstruct_rec( Abc_Obj_t * pGoal, Abc_Obj_t * pNode )
+{
+    Seq_Lat_t * pRing;
+    Abc_Obj_t * pFanin, * pRes = NULL;
+
+    if ( !Abc_NodeIsAigAnd(pNode) )
+        return NULL;
+
+    // consider the first fanin
+    pFanin = Abc_ObjFanin0(pNode);
+    if ( pFanin->pCopy == NULL ) // internal node
+        pRes = Seq_EdgeReconstruct_rec( pGoal, pFanin );
+    else if ( pFanin == pGoal )
+    {
+        if ( pRing = Seq_NodeGetRing( pNode, 0 ) )
+            pRes = pRing->pLatch;
+        else
+            pRes = pFanin->pCopy;
+    }
+    if ( pRes != NULL )
+        return pRes;
+
+    // consider the second fanin
+    pFanin = Abc_ObjFanin1(pNode);
+    if ( pFanin->pCopy == NULL ) // internal node
+        pRes = Seq_EdgeReconstruct_rec( pGoal, pFanin );
+    else if ( pFanin == pGoal )
+    {
+        if ( pRing = Seq_NodeGetRing( pNode, 1 ) )
+            pRes = pRing->pLatch;
+        else
+            pRes = pFanin->pCopy;
+    }
+    return pRes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reconstructs the network after retiming.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Seq_EdgeReconstructPO( Abc_Obj_t * pNode )
+{
+    Seq_Lat_t * pRing;
+    assert( Abc_ObjIsPo(pNode) );
+    if ( pRing = Seq_NodeGetRing( pNode, 0 ) )
+        return pRing->pLatch;
+    else
+        return Abc_ObjFanin0(pNode)->pCopy;
 }
 
 ////////////////////////////////////////////////////////////////////////

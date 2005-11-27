@@ -1101,7 +1101,7 @@ int IoCommandWriteDot( Abc_Frame_t * pAbc, int argc, char **argv )
     FileName = argv[util_optind];
     // write the file
     vNodes = Abc_NtkCollectObjects( pAbc->pNtkCur );
-    Io_WriteDot( pAbc->pNtkCur, vNodes, NULL, FileName, 0 );
+    Io_WriteDotAig( pAbc->pNtkCur, vNodes, NULL, FileName, 0 );
     Vec_PtrFree( vNodes );
     return 0;
 

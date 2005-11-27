@@ -76,7 +76,7 @@ void Seq_NtkRetimeDelayLags( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtk, int fVerbose
             }
         }
         // get the upper bound on the clock period
-        FiMax = Delta * (2 + Seq_NtkLevelMax(pNtk));
+        FiMax = Delta * 2 + Abc_NtkDelayTrace(pNtkOld);
         Delta /= 2;
     }
     else
@@ -95,14 +95,24 @@ void Seq_NtkRetimeDelayLags( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtk, int fVerbose
     RetValue = Seq_NtkMappingForPeriod( pNtk, FiBest, fVerbose );
     assert( RetValue );
 
-    // write the retiming lags for both phases of each node
+    // experiment by adding an epsilon to all LValues
+//    Vec_PtrForEachEntry( p->vMapAnds, pNode, i )
+//        Seq_NodeSetLValueP( pNode, Seq_NodeGetLValueP(pNode) - p->fEpsilon );
+
+    // save the retiming lags
+    // mark the nodes
+    Vec_PtrForEachEntry( p->vMapAnds, pNode, i )
+        pNode->fMarkA = 1;
+    // process the nodes
     Vec_StrFill( p->vLags,  p->nSize, 0 );
     Vec_PtrForEachEntry( p->vMapAnds, pNode, i )
     {
         NodeLag = Seq_NodeComputeLagFloat( Seq_NodeGetLValueP(pNode), FiBest );
-//        Seq_NodeSetLag( pNode, NodeLag );
         Seq_NodeRetimeSetLag_rec( pNode, NodeLag );
     }
+    // unmark the nodes
+    Vec_PtrForEachEntry( p->vMapAnds, pNode, i )
+        pNode->fMarkA = 0;
 
     // print the result
     if ( fVerbose )
@@ -153,7 +163,7 @@ int Seq_NtkMappingForPeriod( Abc_Ntk_t * pNtk, float Fi, int fVerbose )
     char * pReason = "";
 
     // set l-values of all nodes to be minus infinity
-    Vec_IntFill( p->vLValues,  p->nSize, -ABC_INFINITY );
+    Vec_IntFill( p->vLValues,  p->nSize, Abc_Float2Int( (float)-ABC_INFINITY ) );
 
     // set l-values of constants and PIs
     pObj = Abc_NtkObj( pNtk, 0 );
@@ -268,11 +278,18 @@ int Seq_NtkNodeUpdateLValue( Abc_Obj_t * pObj, float Fi, Vec_Ptr_t * vLeaves, Ve
 ***********************************************************************/
 void Seq_NodeRetimeSetLag_rec( Abc_Obj_t * pNode, char Lag )
 {
-    if ( pNode->pCopy )
+    Abc_Obj_t * pFanin;
+    if ( !Abc_NodeIsAigAnd(pNode) )
         return;
-    Seq_NodeRetimeSetLag_rec( Abc_ObjFanin0(pNode), Lag );
-    Seq_NodeRetimeSetLag_rec( Abc_ObjFanin1(pNode), Lag );
     Seq_NodeSetLag( pNode, Lag );
+    // consider the first fanin
+    pFanin = Abc_ObjFanin0(pNode);
+    if ( pFanin->fMarkA == 0 ) // internal node
+        Seq_NodeRetimeSetLag_rec( pFanin, Lag );
+    // consider the second fanin
+    pFanin = Abc_ObjFanin1(pNode);
+    if ( pFanin->fMarkA == 0 ) // internal node
+        Seq_NodeRetimeSetLag_rec( pFanin, Lag );
 }
 
 

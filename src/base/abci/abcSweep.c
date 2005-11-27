@@ -449,6 +449,7 @@ int Abc_NtkCleanup( Abc_Ntk_t * pNtk, int fVerbose )
     Vec_Ptr_t * vNodes;
     Abc_Obj_t * pNode;
     int i, Counter;
+    assert( !Abc_NtkHasAig(pNtk) );
     // mark the nodes reachable from the POs
     vNodes = Abc_NtkDfs( pNtk, 0 );
     for ( i = 0; i < vNodes->nSize; i++ )
@@ -458,7 +459,7 @@ int Abc_NtkCleanup( Abc_Ntk_t * pNtk, int fVerbose )
     }
     Vec_PtrFree( vNodes );
     // if it is an AIG, also mark the constant 1 node
-    if ( Abc_NtkIsStrash(pNtk) )
+    if ( Abc_NtkConst1(pNtk) )
         Abc_NtkConst1(pNtk)->fMarkA = 1;
     // remove the non-marked nodes
     Counter = 0;
@@ -514,7 +515,7 @@ int Abc_NtkSweep( Abc_Ntk_t * pNtk, int fVerbose )
     {
         // sweep constants and single-input nodes
         Abc_NtkForEachNode( pNtk, pNode, i )
-            if ( Abc_ObjFaninNum(pNode) < 2 )
+            if ( i && Abc_ObjFaninNum(pNode) < 2 )
                 Abc_NodeSweep( pNode, fVerbose );
         // make the network minimum base
         Abc_NtkRemoveDupFanins(pNtk);

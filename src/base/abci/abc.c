@@ -41,10 +41,12 @@ static int Abc_CommandPrintLevel   ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int Abc_CommandPrintSupport ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintSymms   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintKMap    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintGates   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandShowBdd      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandShowCut      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandShowAig      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandShowNtk      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandCollapse     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandStrash       ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -133,10 +135,12 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Printing",     "print_supp",    Abc_CommandPrintSupport,     0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_symm",    Abc_CommandPrintSymms,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_kmap",    Abc_CommandPrintKMap,        0 );
+    Cmd_CommandAdd( pAbc, "Printing",     "print_gates",   Abc_CommandPrintGates,       0 );
 
     Cmd_CommandAdd( pAbc, "Printing",     "show_bdd",      Abc_CommandShowBdd,          0 );
     Cmd_CommandAdd( pAbc, "Printing",     "show_cut",      Abc_CommandShowCut,          0 );
     Cmd_CommandAdd( pAbc, "Printing",     "show_aig",      Abc_CommandShowAig,          0 );
+    Cmd_CommandAdd( pAbc, "Printing",     "show_ntk",      Abc_CommandShowNtk,          0 );
 
     Cmd_CommandAdd( pAbc, "Synthesis",    "collapse",      Abc_CommandCollapse,         1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "strash",        Abc_CommandStrash,           1 );
@@ -950,6 +954,69 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandPrintGates( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+    int fUseLibrary;
+
+    extern void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary );
+
+    pNtk = Abc_FrameReadNet(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fUseLibrary = 1;
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "lh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'l':
+            fUseLibrary ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( Abc_NtkHasAig(pNtk) )
+    {
+        fprintf( pErr, "Printing gates does not work for AIGs and sequential AIGs.\n" );
+        return 1;
+    }
+
+    Abc_NtkPrintGates( pNtk, fUseLibrary );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: print_gates [-lh]\n" );
+    fprintf( pErr, "\t        prints statistics about gates used in the network\n" );
+    fprintf( pErr, "\t-l    : used library gate names (if mapped) [default = %s]\n", fUseLibrary? "yes": "no" );
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandShowBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
@@ -1174,9 +1241,10 @@ int Abc_CommandShowAig( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( !Abc_NtkHasAig(pNtk) )
     {
-        fprintf( pErr, "Visualizing AIG can only be done for AIGs (run \"strash\" or \"seq\").\n" );
+        fprintf( pErr, "Visualizing networks other than AIGs can be done using command \"show_ntk\".\n" );
         return 1;
     }
+
     if ( fMulti && !Abc_NtkIsStrash(pNtk) )
     {
         fprintf( pErr, "Visualizing multi-input ANDs cannot be done for sequential network (run \"unseq\").\n" );
@@ -1197,6 +1265,70 @@ usage:
     fprintf( pErr, "       (\"gsview32.exe\" may be in \"C:\\Program Files\\Ghostgum\\gsview\\\")\n" );
 #endif
     fprintf( pErr, "\t-m    : toggles visualization of multi-input ANDs [default = %s].\n", fMulti? "yes": "no" );  
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandShowNtk( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+    int fGateNames;
+    extern void Abc_NtkShow( Abc_Ntk_t * pNtk, int fGateNames );
+
+    pNtk = Abc_FrameReadNet(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fGateNames = 0;
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "gh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'n':
+            fGateNames ^= 1;
+            break;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( Abc_NtkHasAig(pNtk) )
+    {
+        fprintf( pErr, "Visualizing AIG can only be done using command \"show_aig\".\n" );
+        return 1;
+    }
+    Abc_NtkShow( pNtk, fGateNames );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: show_ntk [-gh]\n" );
+    fprintf( pErr, "       visualizes the network structure using DOT and GSVIEW\n" );
+#ifdef WIN32
+    fprintf( pErr, "       \"dot.exe\" and \"gsview32.exe\" should be set in the paths\n" );
+    fprintf( pErr, "       (\"gsview32.exe\" may be in \"C:\\Program Files\\Ghostgum\\gsview\\\")\n" );
+#endif
+    fprintf( pErr, "\t-g    : toggles printing gate names for mapped network [default = %s].\n", fGateNames? "yes": "no" );  
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -4056,6 +4188,12 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
+    if ( Abc_NtkIsSeq(pNtk) )
+    {
+        fprintf( pErr, "Cannot map a sequential AIG.\n" );
+        return 1;
+    }
+
     if ( !Abc_NtkIsStrash(pNtk) )
     {
         pNtk = Abc_NtkStrash( pNtk, 0, 0 );
@@ -4361,6 +4499,12 @@ int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pNtk == NULL )
     {
         fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( Abc_NtkIsSeq(pNtk) )
+    {
+        fprintf( pErr, "Cannot FPGA map a sequential AIG.\n" );
         return 1;
     }
 
@@ -4741,7 +4885,7 @@ int Abc_CommandSeq( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
-    int c;//, nLoops;
+    int c;
 
     pNtk = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -4772,17 +4916,17 @@ int Abc_CommandSeq( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
+    if ( Abc_NtkLatchNum(pNtk) == 0 )
+    {
+        fprintf( pErr, "The network has no latches.\n" );
+        return 0;
+    }
+
     if ( !Abc_NtkIsStrash(pNtk) )
     {
         fprintf( pErr, "Conversion to sequential AIG works only for combinational AIGs (run \"strash\").\n" );
         return 1;
     }
-
-//    if ( nLoops = Abc_NtkCountSelfFeedLatches(pNtk) )
-//    {
-//        fprintf( pErr, "Cannot create sequential AIG because the network contains %d self-feeding latches.\n", nLoops );
-//        return 0;
-//    }
 
     // get the new network
     pNtkRes = Abc_NtkAigToSeq( pNtk );
@@ -4890,13 +5034,12 @@ usage:
 int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
-    Abc_Ntk_t * pNtk;
-    int c;
+    Abc_Ntk_t * pNtk, * pNtkRes, * pNtkTemp;
+    int c, nMaxIters;
     int fForward;
     int fBackward;
     int fInitial;
     int fVerbose;
-    int nLoops;
 
     pNtk = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -4907,11 +5050,23 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     fBackward = 0;
     fInitial  = 1;
     fVerbose  = 0;
+    nMaxIters = 15;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "fbivh" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "Ifbivh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'I':
+            if ( util_optind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-I\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nMaxIters = atoi(argv[util_optind]);
+            util_optind++;
+            if ( nMaxIters < 0 ) 
+                goto usage;
+            break;
         case 'f':
             fForward ^= 1;
             break;
@@ -4937,34 +5092,59 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( !Abc_NtkIsSeq(pNtk) )
+    if ( !Abc_NtkIsSeq(pNtk) && Abc_NtkLatchNum(pNtk) == 0 )
     {
-        fprintf( pErr, "Retiming works only for sequential AIG (run \"seq\").\n" );
+        fprintf( pErr, "The network has no latches. Retiming is not performed.\n" );
         return 0;
     }
 
-    if ( nLoops = Abc_NtkCountSelfFeedLatches(pNtk) )
+    if ( Abc_NtkHasAig(pNtk) )
     {
-        fprintf( pErr, "Cannot retime because the network contains %d self-feeding latches.\n", nLoops );
-        return 0;
+        if ( Abc_NtkIsStrash(pNtk) )
+            pNtkRes = Abc_NtkAigToSeq(pNtk);
+        else
+        {
+            if ( Abc_NtkGetChoiceNum(pNtk) )
+            {
+                fprintf( pErr, "Currently cannot retime networks with choice nodes.\n" );
+                return 0;
+            }
+            pNtkRes = Abc_NtkDup(pNtk);
+        }
+        // retime the network
+        if ( fForward )
+            Seq_NtkSeqRetimeForward( pNtkRes, fInitial, fVerbose );
+        else if ( fBackward )
+            Seq_NtkSeqRetimeBackward( pNtkRes, fInitial, fVerbose );
+        else
+            Seq_NtkSeqRetimeDelay( pNtkRes, nMaxIters, fInitial, fVerbose );
+        // convert from the sequential AIG
+        if ( Abc_NtkIsStrash(pNtk) )
+        {
+            pNtkRes = Abc_NtkSeqToLogicSop( pNtkTemp = pNtkRes );
+            Abc_NtkDelete( pNtkTemp );
+        }
     }
-
-    // get the new network
-    if ( fForward )
-        Seq_NtkSeqRetimeForward( pNtk, fInitial, fVerbose );
-    else if ( fBackward )
-        Seq_NtkSeqRetimeBackward( pNtk, fInitial, fVerbose );
     else
-        Seq_NtkSeqRetimeDelay( pNtk, fInitial, fVerbose );
+        pNtkRes = Seq_NtkRetime( pNtk, nMaxIters, fInitial, fVerbose );
+    // replace the network
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Retiming has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: retime [-fbih]\n" );
-    fprintf( pErr, "\t        retimes sequential AIG (default is Pan's delay-optimal retiming)\n" );
-    fprintf( pErr, "\t-f    : toggle forward retiming [default = %s]\n", fForward? "yes": "no" );
-    fprintf( pErr, "\t-b    : toggle backward retiming [default = %s]\n", fBackward? "yes": "no" );
-    fprintf( pErr, "\t-i    : toggle computation of initial state [default = %s]\n", fInitial? "yes": "no" );
-    fprintf( pErr, "\t-h    : print the command usage\n");
+    fprintf( pErr, "usage: retime [-I num] [-fbih]\n" );
+    fprintf( pErr, "\t         retimes the current network using Pan's delay-optimal retiming\n" );
+    fprintf( pErr, "\t-I num : max number of iterations of l-value computation [default = %d]\n", nMaxIters );
+    fprintf( pErr, "\t-f     : toggle forward retiming (for AIGs) [default = %s]\n", fForward? "yes": "no" );
+    fprintf( pErr, "\t-b     : toggle backward retiming (for AIGs) [default = %s]\n", fBackward? "yes": "no" );
+    fprintf( pErr, "\t-i     : toggle computation of initial state [default = %s]\n", fInitial? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
 }
 

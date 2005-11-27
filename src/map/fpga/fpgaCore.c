@@ -85,7 +85,7 @@ int Fpga_Mapping( Fpga_Man_t * p )
   It iterates the loop, in which the required times are computed and
   the mapping is updated. It is conceptually similar to the paper: 
   V. Manohararajah, S. D. Brown, Z. G. Vranesic, Heuristics for area 
-  minimization in LUT-based FGPA technology mapping. Proc. IWLS '04.]
+  minimization in LUT-based FPGA technology mapping. Proc. IWLS '04.]
                
   SideEffects []
 

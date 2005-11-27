@@ -330,6 +330,9 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
         Abc_AigForEachAnd( pNtk, pObj, i )
             if ( pObj->pData )
                 pObj->pCopy->pData = ((Abc_Obj_t *)pObj->pData)->pCopy;
+        // copy the cutset
+        Abc_SeqForEachCutsetNode( pNtk, pObj, i )
+            Vec_PtrPush( pNtkNew->vCutSet, pObj->pCopy );
     }
     else
     {

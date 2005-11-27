@@ -112,7 +112,7 @@ void Abc_NtkShowAig( Abc_Ntk_t * pNtk )
     Abc_NtkForEachObj( pNtk, pNode, i )
         Vec_PtrPush( vNodes, pNode );
     // write the DOT file
-    Io_WriteDot( pNtk, vNodes, NULL, FileNameDot, 0 );
+    Io_WriteDotAig( pNtk, vNodes, NULL, FileNameDot, 0 );
     Vec_PtrFree( vNodes );
 
     // visualize the file 
@@ -168,7 +168,7 @@ void Abc_NtkShowMulti( Abc_Ntk_t * pNtk )
         Vec_PtrPush( vNodes, pNode );
 
     // write the DOT file
-    Io_WriteDot( pNtk, vNodes, NULL, FileNameDot, 1 );
+    Io_WriteDotAig( pNtk, vNodes, NULL, FileNameDot, 1 );
     Vec_PtrFree( vNodes );
 
     // undo the supergates
@@ -232,9 +232,51 @@ void Abc_NodeShowCut( Abc_Obj_t * pNode, int nNodeSizeMax, int nConeSizeMax )
     // add the root node to the cone (for visualization)
     Vec_PtrPush( vCutSmall, pNode );
     // write the DOT file
-    Io_WriteDot( pNode->pNtk, vInside, vCutSmall, FileNameDot, 0 );
+    Io_WriteDotAig( pNode->pNtk, vInside, vCutSmall, FileNameDot, 0 );
     // stop the cut computation manager
     Abc_NtkManCutStop( p );
+
+    // visualize the file 
+    Abc_ShowFile( FileNameDot );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Visualizes AIG with choices.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkShow( Abc_Ntk_t * pNtk, int fGateNames )
+{
+    FILE * pFile;
+    Abc_Obj_t * pNode;
+    Vec_Ptr_t * vNodes;
+    char FileNameDot[200];
+    int i;
+
+    assert( !Abc_NtkHasAig(pNtk) );
+    // create the file name
+    Abc_ShowGetFileName( pNtk->pName, FileNameDot );
+    // check that the file can be opened
+    if ( (pFile = fopen( FileNameDot, "w" )) == NULL )
+    {
+        fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", FileNameDot );
+        return;
+    }
+    fclose( pFile );
+
+    // collect all nodes in the network
+    vNodes = Vec_PtrAlloc( 100 );
+    Abc_NtkForEachObj( pNtk, pNode, i )
+        Vec_PtrPush( vNodes, pNode );
+    // write the DOT file
+    Io_WriteDotNtk( pNtk, vNodes, NULL, FileNameDot, fGateNames );
+    Vec_PtrFree( vNodes );
 
     // visualize the file 
     Abc_ShowFile( FileNameDot );

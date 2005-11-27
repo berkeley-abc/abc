@@ -20,6 +20,8 @@
 
 #include "abc.h"
 #include "dec.h"
+#include "main.h"
+#include "mio.h"
 #include "seq.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -522,6 +524,96 @@ void Abc_NodePrintKMap( Abc_Obj_t * pNode, int fUseRealNames )
         Extra_PrintKMap( stdout, pNode->pNtk->pManFunc, pNode->pData, Cudd_Not(pNode->pData), 
             Abc_ObjFaninNum(pNode), NULL, 0, NULL );
 
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints statistics about gates used in the network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary )
+{
+    Abc_Obj_t * pObj;
+    int fHasBdds, i;
+    int CountConst, CountBuf, CountInv, CountAnd, CountOr, CountOther, CounterTotal;
+    char * pSop;
+
+    if ( fUseLibrary && Abc_NtkHasMapping(pNtk) )
+    {
+        stmm_table * tTable;
+        stmm_generator * gen;
+        char * pName;
+        int * pCounter, Counter;
+        double Area, AreaTotal;
+
+        // count the gates by name
+        CounterTotal = 0;
+        tTable = stmm_init_table(strcmp, stmm_strhash);
+        Abc_NtkForEachNode( pNtk, pObj, i )
+        {
+            if ( i == 0 ) continue;
+            if ( !stmm_find_or_add( tTable, Mio_GateReadName(pObj->pData), (char ***)&pCounter ) )
+                *pCounter = 0;
+            (*pCounter)++;
+            CounterTotal++;
+        }
+        // print the gates
+        AreaTotal = Abc_NtkGetMappedArea(pNtk);
+        stmm_foreach_item( tTable, gen, (char **)&pName, (char **)&Counter )
+        {
+            Area = Counter * Mio_GateReadArea(Mio_LibraryReadGateByName(pNtk->pManFunc,pName));
+            printf( "%-12s = %8d   %10.2f    %6.2f %%\n", pName, Counter, Area, 100.0 * Area / AreaTotal );
+        }
+        printf( "%-12s = %8d   %10.2f    %6.2f %%\n", "TOTAL", CounterTotal, AreaTotal, 100.0 );
+        stmm_free_table( tTable );
+        return;
+    }
+
+    // transform logic functions from BDD to SOP
+    if ( fHasBdds = Abc_NtkIsBddLogic(pNtk) )
+        Abc_NtkBddToSop(pNtk);
+
+    // get hold of the SOP of the node
+    CountConst = CountBuf = CountInv = CountAnd = CountOr = CountOther = CounterTotal = 0;
+    Abc_NtkForEachNode( pNtk, pObj, i )
+    {
+        if ( i == 0 ) continue;
+        if ( Abc_NtkHasMapping(pNtk) )
+            pSop = Mio_GateReadSop(pObj->pData);
+        else
+            pSop = pObj->pData;
+        // collect the stats
+        if ( Abc_SopIsConst0(pSop) || Abc_SopIsConst1(pSop) )
+            CountConst++;
+        else if ( Abc_SopIsBuf(pSop) )
+            CountBuf++;
+        else if ( Abc_SopIsInv(pSop) )
+            CountInv++;
+        else if ( !Abc_SopIsComplement(pSop) && Abc_SopIsAndType(pSop) ||  Abc_SopIsComplement(pSop) && Abc_SopIsOrType(pSop) )
+            CountAnd++;
+        else if (  Abc_SopIsComplement(pSop) && Abc_SopIsAndType(pSop) || !Abc_SopIsComplement(pSop) && Abc_SopIsOrType(pSop) )
+            CountOr++;
+        else
+            CountOther++;
+        CounterTotal++;
+    }
+    printf( "Const        = %8d    %6.2f %%\n", CountConst  ,  100.0 * CountConst   / CounterTotal );
+    printf( "Buffer       = %8d    %6.2f %%\n", CountBuf    ,  100.0 * CountBuf     / CounterTotal );
+    printf( "Inverter     = %8d    %6.2f %%\n", CountInv    ,  100.0 * CountInv     / CounterTotal );
+    printf( "And          = %8d    %6.2f %%\n", CountAnd    ,  100.0 * CountAnd     / CounterTotal );
+    printf( "Or           = %8d    %6.2f %%\n", CountOr     ,  100.0 * CountOr      / CounterTotal );
+    printf( "Other        = %8d    %6.2f %%\n", CountOther  ,  100.0 * CountOther   / CounterTotal );
+    printf( "TOTAL        = %8d    %6.2f %%\n", CounterTotal,  100.0 * CounterTotal / CounterTotal );
+
+    // convert the network back into BDDs if this is how it was
+    if ( fHasBdds )
+        Abc_NtkSopToBdd(pNtk);
 }
 
 ////////////////////////////////////////////////////////////////////////

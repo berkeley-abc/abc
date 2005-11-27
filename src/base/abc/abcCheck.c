@@ -20,6 +20,7 @@
 
 #include "abc.h"
 #include "main.h"
+#include "seq.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -151,6 +152,8 @@ bool Abc_NtkDoCheck( Abc_Ntk_t * pNtk )
     {
         if ( Abc_NtkIsStrash(pNtk) ) 
             Abc_AigCheck( pNtk->pManFunc );
+        else
+            Abc_NtkSeqCheck( pNtk );
     }
     else
     {

@@ -207,8 +207,8 @@ int Seq_MapRetimeForPeriod( Abc_Ntk_t * pNtk, float Fi, int fVerbose )
     char * pReason = "";
 
     // set l-values of all nodes to be minus infinity
-    Vec_IntFill( p->vLValues,  p->nSize, -ABC_INFINITY );
-    Vec_IntFill( p->vLValuesN, p->nSize, -ABC_INFINITY );
+    Vec_IntFill( p->vLValues,  p->nSize, Abc_Float2Int( (float)-ABC_INFINITY ) );
+    Vec_IntFill( p->vLValuesN, p->nSize, Abc_Float2Int( (float)-ABC_INFINITY ) );
     Vec_StrFill( p->vUses,     p->nSize, 0             );
 
     // set l-values of constants and PIs

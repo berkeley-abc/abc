@@ -342,6 +342,31 @@ void Seq_NtkShareLatchesFpga( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, Vec_Ptr_t *
     Vec_PtrShrink( vMapAnds, nOldNodes );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Clean the latches after sharing them.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Seq_NtkShareLatchesClean( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int i;
+    assert( Abc_NtkIsSeq( pNtk ) );
+    Abc_AigForEachAnd( pNtk, pObj, i )
+    {
+        Seq_NodeCleanLats( pObj, 0 );
+        Seq_NodeCleanLats( pObj, 1 );
+    }
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        Seq_NodeCleanLats( pObj, 0 );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
