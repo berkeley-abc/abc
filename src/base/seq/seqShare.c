@@ -275,15 +275,17 @@ Abc_Obj_t * Seq_NtkShareLatches_rec( Abc_Ntk_t * pNtk, Abc_Obj_t * pObj, Seq_Lat
 ***********************************************************************/
 void Seq_NtkShareLatches( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk )
 { 
-    Abc_Obj_t * pObj;
+    Abc_Obj_t * pObj, * pFanin;
     stmm_table * tLatchMap;
     int i;
     assert( Abc_NtkIsSeq( pNtk ) );
     tLatchMap = stmm_init_table( stmm_ptrcmp, stmm_ptrhash );
     Abc_AigForEachAnd( pNtk, pObj, i )
     {
-        Seq_NtkShareLatches_rec( pNtkNew, Abc_ObjFanin0(pObj)->pCopy, Seq_NodeGetRing(pObj,0), Seq_NodeCountLats(pObj,0), tLatchMap );
-        Seq_NtkShareLatches_rec( pNtkNew, Abc_ObjFanin1(pObj)->pCopy, Seq_NodeGetRing(pObj,1), Seq_NodeCountLats(pObj,1), tLatchMap );
+        pFanin = Abc_ObjFanin0(pObj);
+        Seq_NtkShareLatches_rec( pNtkNew, pFanin->pCopy, Seq_NodeGetRing(pObj,0), Seq_NodeCountLats(pObj,0), tLatchMap );
+        pFanin = Abc_ObjFanin1(pObj);
+        Seq_NtkShareLatches_rec( pNtkNew, pFanin->pCopy, Seq_NodeGetRing(pObj,1), Seq_NodeCountLats(pObj,1), tLatchMap );
     }
     Abc_NtkForEachPo( pNtk, pObj, i )
         Seq_NtkShareLatches_rec( pNtkNew, Abc_ObjFanin0(pObj)->pCopy, Seq_NodeGetRing(pObj,0), Seq_NodeCountLats(pObj,0), tLatchMap );
@@ -303,22 +305,36 @@ void Seq_NtkShareLatches( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Seq_NtkShareLatchesFpga( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, Vec_Ptr_t * vMapAnds )
+void Seq_NtkShareLatchesMapping( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, Vec_Ptr_t * vMapAnds, int fFpga )
 { 
+    Seq_Match_t * pMatch;
     Abc_Obj_t * pObj, * pFanout;
     stmm_table * tLatchMap;
-    int i, k, nOldNodes;
+    Vec_Ptr_t * vNodes;
+    int i, k;
     assert( Abc_NtkIsSeq( pNtk ) );
+
     // start the table
     tLatchMap = stmm_init_table( stmm_ptrcmp, stmm_ptrhash );
-    // remember the old nodes
-    nOldNodes = Vec_PtrSize( vMapAnds );
-    // add constant and PIs
-    Vec_PtrPush( vMapAnds, Abc_NtkConst1(pNtk) );
+
+    // create the array of all nodes with sharable fanouts
+    vNodes = Vec_PtrAlloc( 100 );
+    Vec_PtrPush( vNodes, Abc_NtkConst1(pNtk) );
     Abc_NtkForEachPi( pNtk, pObj, i )
-        Vec_PtrPush( vMapAnds, pObj );
+        Vec_PtrPush( vNodes, pObj );
+    if ( fFpga )
+    {
+        Vec_PtrForEachEntry( vMapAnds, pObj, i )
+            Vec_PtrPush( vNodes, pObj );
+    }
+    else 
+    {
+        Vec_PtrForEachEntry( vMapAnds, pMatch, i )
+            Vec_PtrPush( vNodes, pMatch->pAnd );
+    }
+
     // process nodes used in the mapping
-    Vec_PtrForEachEntry( vMapAnds, pObj, i )
+    Vec_PtrForEachEntry( vNodes, pObj, i )
     {
         // make sure the label is clean
         Abc_ObjForEachFanout( pObj, pFanout, k )
@@ -339,7 +355,7 @@ void Seq_NtkShareLatchesFpga( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, Vec_Ptr_t *
     }
     stmm_free_table( tLatchMap );
     // return to the old array
-    Vec_PtrShrink( vMapAnds, nOldNodes );
+    Vec_PtrFree( vNodes );
 }
 
 /**Function*************************************************************

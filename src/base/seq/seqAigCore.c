@@ -815,14 +815,14 @@ Vec_Ptr_t * Abc_NtkUtilRetimingGetMoves( Abc_Ntk_t * pNtk, Vec_Int_t * vSteps, b
         if ( !fChange )
         {
             printf( "Warning: %d strange steps (a minor bug to be fixed later).\n", Vec_IntSize(vSteps) );
-/*            
+/*
             Vec_IntForEachEntry( vSteps, Number, i )
             {
                 RetStep = Seq_Int2RetStep( Number );
                 printf( "%d(%d) ", RetStep.iNode, RetStep.nLatches );
             }
             printf( "\n" );
-*/            
+*/
             break;
         }
     }

@@ -26,7 +26,8 @@
 ////////////////////////////////////////////////////////////////////////
 
 static Abc_Ntk_t * Seq_NtkRetimeDerive( Abc_Ntk_t * pNtk, int fVerbose );
-static Abc_Obj_t * Seq_NodeRetimeDerive( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, char * pSop, Vec_Ptr_t * vFanins );
+static Abc_Obj_t * Seq_NodeRetimeDerive( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, char * pSop );
+static void        Seq_NodeAddEdges_rec( Abc_Obj_t * pGoal, Abc_Obj_t * pNode, Abc_InitType_t Init );
 static Abc_Ntk_t * Seq_NtkRetimeReconstruct( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkSeq );
 static Abc_Obj_t * Seq_EdgeReconstruct_rec( Abc_Obj_t * pGoal, Abc_Obj_t * pNode );
 static Abc_Obj_t * Seq_EdgeReconstructPO( Abc_Obj_t * pNode );
@@ -65,6 +66,7 @@ Abc_Ntk_t * Seq_NtkRetime( Abc_Ntk_t * pNtk, int nMaxIters, int fInitial, int fV
     RetValue = Seq_NtkImplementRetiming( pNtkSeq, p->vLags, fVerbose );
     if ( RetValue == 0 )
         printf( "Retiming completed but initial state computation has failed.\n" );
+
 //return pNtkSeq;
 
     // create the final mapped network
@@ -88,9 +90,7 @@ Abc_Ntk_t * Seq_NtkRetimeDerive( Abc_Ntk_t * pNtk, int fVerbose )
 {
     Abc_Seq_t * p;
     Abc_Ntk_t * pNtkNew;
-    Abc_Obj_t * pObj, * pFanin, * pMirror;
-    Vec_Ptr_t * vMapAnds, * vMirrors;
-    Vec_Vec_t * vMapFanins;
+    Abc_Obj_t * pObj, * pFanin, * pFanout;
     int i, k, RetValue, fHasBdds;
     char * pSop;
 
@@ -126,22 +126,14 @@ Abc_Ntk_t * Seq_NtkRetimeDerive( Abc_Ntk_t * pNtk, int fVerbose )
     Abc_NtkForEachPo( pNtk, pObj, i )
         Abc_NtkLogicStoreName( pObj->pCopy, Abc_ObjName(pObj) );
 
-    // create one AND for each logic node in the topological order
-    vMapAnds = Abc_NtkDfs( pNtk, 0 );
-    Vec_PtrForEachEntry( vMapAnds, pObj, i )
+    // create one AND for each logic node
+    Abc_NtkForEachNode( pNtk, pObj, i )
     {
-        if ( pObj->Id == 0 )
-        {
-            pObj->pCopy = Abc_NtkConst1(pNtkNew);
+        if ( Abc_ObjFaninNum(pObj) == 0 && Abc_ObjFanoutNum(pObj) == 0 )
             continue;
-        }
         pObj->pCopy = Abc_NtkCreateNode( pNtkNew );
+        pObj->pCopy->pCopy = pObj;
     }
-
-    // make the new seq AIG point to the old network through pNext
-    Abc_NtkForEachObj( pNtk, pObj, i )
-        if ( pObj->pCopy ) pObj->pCopy->pNext = pObj;
-
     // make latches point to the latch fanins
     Abc_NtkForEachLatch( pNtk, pObj, i )
     {
@@ -150,15 +142,16 @@ Abc_Ntk_t * Seq_NtkRetimeDerive( Abc_Ntk_t * pNtk, int fVerbose )
     }
 
     // create internal AND nodes w/o strashing for each logic node (including constants)
-    vMapFanins = Vec_VecStart( Vec_PtrSize(vMapAnds) );
-    Vec_PtrForEachEntry( vMapAnds, pObj, i )
+    Abc_NtkForEachNode( pNtk, pObj, i )
     {
+        if ( Abc_ObjFaninNum(pObj) == 0 && Abc_ObjFanoutNum(pObj) == 0 )
+            continue;
         // get the SOP of the node
         if ( Abc_NtkHasMapping(pNtk) )
             pSop = Mio_GateReadSop(pObj->pData);
         else
             pSop = pObj->pData;
-        pFanin = Seq_NodeRetimeDerive( pNtkNew, pObj, pSop, Vec_VecEntry(vMapFanins, i) );
+        pFanin = Seq_NodeRetimeDerive( pNtkNew, pObj, pSop );
         Abc_ObjAddFanin( pObj->pCopy, pFanin );
         Abc_ObjAddFanin( pObj->pCopy, pFanin );
     }
@@ -171,31 +164,20 @@ Abc_Ntk_t * Seq_NtkRetimeDerive( Abc_Ntk_t * pNtk, int fVerbose )
     Seq_Resize( p, Abc_NtkObjNumMax(pNtkNew) );
 
     // add the sequential edges
-    Vec_PtrForEachEntry( vMapAnds, pObj, i )
-    {
-        vMirrors = Vec_VecEntry( vMapFanins, i );
-        Abc_ObjForEachFanin( pObj, pFanin, k )
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+        Abc_ObjForEachFanout( pObj, pFanout, k )
         {
-            pMirror = Vec_PtrEntry( vMirrors, k );
-            if ( Abc_ObjIsLatch(pFanin) )
+            if ( pObj->pCopy == Abc_ObjFanin0(pFanout->pCopy) )
             {
-                Seq_NodeInsertFirst( pMirror, 0, Abc_LatchInit(pFanin) );
-                Seq_NodeInsertFirst( pMirror, 1, Abc_LatchInit(pFanin) );
+                Seq_NodeInsertFirst( pFanout->pCopy, 0, Abc_LatchInit(pObj) );
+                Seq_NodeInsertFirst( pFanout->pCopy, 1, Abc_LatchInit(pObj) );
+                continue;
             }
+            Seq_NodeAddEdges_rec( pObj->pCopy, Abc_ObjFanin0(pFanout->pCopy), Abc_LatchInit(pObj) );
         }
-    }
-    // add the sequential edges to the POs
-    Abc_NtkForEachPo( pNtk, pObj, i )
-    {
-        pFanin = Abc_ObjFanin0(pObj);
-        if ( Abc_ObjIsLatch(pFanin) )
-            Seq_NodeInsertFirst( pObj->pCopy, 0, Abc_LatchInit(pFanin) );
-    }
 
-
-    // save the fanin/delay info
-    p->vMapAnds   = vMapAnds;
-    p->vMapFanins = vMapFanins;
+    // collect the nodes in the topological order
+    p->vMapAnds   = Abc_NtkDfs( pNtk, 0 );
     p->vMapCuts   = Vec_VecStart( Vec_PtrSize(p->vMapAnds) );
     p->vMapDelays = Vec_VecStart( Vec_PtrSize(p->vMapAnds) );
     Vec_PtrForEachEntry( p->vMapAnds, pObj, i )
@@ -242,6 +224,37 @@ Abc_Ntk_t * Seq_NtkRetimeDerive( Abc_Ntk_t * pNtk, int fVerbose )
     return pNtkNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Add sequential edges.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Seq_NodeAddEdges_rec( Abc_Obj_t * pGoal, Abc_Obj_t * pNode, Abc_InitType_t Init )
+{
+    Abc_Obj_t * pFanin;
+    assert( !Abc_ObjIsLatch(pNode) );
+    if ( !Abc_NodeIsAigAnd(pNode) )
+        return;
+    // consider the first fanin
+    pFanin = Abc_ObjFanin0(pNode);
+    if ( pFanin->pCopy == NULL ) // internal node
+        Seq_NodeAddEdges_rec( pGoal, pFanin, Init );
+    else if ( pFanin == pGoal )
+        Seq_NodeInsertFirst( pNode, 0, Init );
+    // consider the second fanin
+    pFanin = Abc_ObjFanin1(pNode);
+    if ( pFanin->pCopy == NULL ) // internal node
+        Seq_NodeAddEdges_rec( pGoal, pFanin, Init );
+    else if ( pFanin == pGoal )
+        Seq_NodeInsertFirst( pNode, 1, Init );
+}
+
 
 /**Function*************************************************************
 
@@ -254,11 +267,11 @@ Abc_Ntk_t * Seq_NtkRetimeDerive( Abc_Ntk_t * pNtk, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Seq_NodeRetimeDerive( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pRoot, char * pSop, Vec_Ptr_t * vFanins )
+Abc_Obj_t * Seq_NodeRetimeDerive( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pRoot, char * pSop )
 {
     Dec_Graph_t * pFForm;
     Dec_Node_t * pNode;
-    Abc_Obj_t * pResult, * pFanin, * pMirror;
+    Abc_Obj_t * pAnd;
     int i, nFanins;
 
     // get the number of node's fanins
@@ -267,39 +280,26 @@ Abc_Obj_t * Seq_NodeRetimeDerive( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pRoot, char *
     if ( nFanins < 2 )
     {
         if ( Abc_SopIsConst1(pSop) )
-            pFanin = Abc_NtkConst1(pNtkNew);
+            return Abc_NtkConst1(pNtkNew);
         else if ( Abc_SopIsConst0(pSop) )
-            pFanin = Abc_ObjNot( Abc_NtkConst1(pNtkNew) );
+            return Abc_ObjNot( Abc_NtkConst1(pNtkNew) );
         else if ( Abc_SopIsBuf(pSop) )
-            pFanin = Abc_ObjFanin0(pRoot)->pCopy;
+            return Abc_ObjFanin0(pRoot)->pCopy;
         else if ( Abc_SopIsInv(pSop) )
-            pFanin = Abc_ObjNot( Abc_ObjFanin0(pRoot)->pCopy );
-        else
-            assert( 0 );
-        // create the node with these fanins
-        pMirror = Abc_NtkCreateNode( pNtkNew );
-        Abc_ObjAddFanin( pMirror, pFanin );
-        Abc_ObjAddFanin( pMirror, pFanin );
-        Vec_PtrPush( vFanins, pMirror );
-        return pMirror;
+            return Abc_ObjNot( Abc_ObjFanin0(pRoot)->pCopy );
+        assert( 0 );
+        return NULL;
     }
 
     // perform factoring
     pFForm = Dec_Factor( pSop );
     // collect the fanins
     Dec_GraphForEachLeaf( pFForm, pNode, i )
-    {
-        pFanin = Abc_ObjFanin(pRoot,i)->pCopy;
-        pMirror = Abc_NtkCreateNode( pNtkNew );
-        Abc_ObjAddFanin( pMirror, pFanin );
-        Abc_ObjAddFanin( pMirror, pFanin );
-        Vec_PtrPush( vFanins, pMirror );
-        pNode->pFunc = pMirror;
-    }
+        pNode->pFunc = Abc_ObjFanin(pRoot,i)->pCopy;
     // perform strashing
-    pResult = Dec_GraphToNetworkNoStrash( pNtkNew, pFForm );
+    pAnd = Dec_GraphToNetworkNoStrash( pNtkNew, pFForm );
     Dec_GraphFree( pFForm );
-    return pResult;
+    return pAnd;
 }
 
 
@@ -317,10 +317,8 @@ Abc_Obj_t * Seq_NodeRetimeDerive( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pRoot, char *
 Abc_Ntk_t * Seq_NtkRetimeReconstruct( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkSeq )
 {
     Abc_Seq_t * p = pNtkSeq->pManFunc;
-    Seq_Lat_t * pRing0, * pRing1;
     Abc_Ntk_t * pNtkNew;
-    Abc_Obj_t * pObj, * pObjNew, * pFanin, * pFaninNew, * pMirror;
-    Vec_Ptr_t * vMirrors;
+    Abc_Obj_t * pObj, * pObjNew, * pFanin, * pFaninNew;
     int i, k;
 
     assert( !Abc_NtkIsSeq(pNtkOld) );
@@ -333,14 +331,6 @@ Abc_Ntk_t * Seq_NtkRetimeReconstruct( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkSeq )
     // start the final network
     pNtkNew = Abc_NtkStartFrom( pNtkSeq, pNtkOld->ntkType, pNtkOld->ntkFunc );
 
-    // transfer the pointers to the old network
-    if ( Abc_NtkConst1(pNtkOld) ) 
-        Abc_NtkConst1(pNtkOld)->pCopy = Abc_NtkConst1(pNtkNew);
-    Abc_NtkForEachPi( pNtkOld, pObj, i )
-        pObj->pCopy = pObj->pNext->pCopy;
-    Abc_NtkForEachPo( pNtkOld, pObj, i )
-        pObj->pCopy = pObj->pNext->pCopy;
-
     // copy the internal nodes of the old network into the new network
     // transfer the pointers pNktOld->pNtkNew to pNtkSeq->pNtkNew
     Abc_NtkForEachNode( pNtkOld, pObj, i )
@@ -349,50 +339,25 @@ Abc_Ntk_t * Seq_NtkRetimeReconstruct( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkSeq )
         Abc_NtkDupObj( pNtkNew, pObj );
         pObj->pNext->pCopy = pObj->pCopy;
     }
-    Abc_NtkForEachLatch( pNtkOld, pObj, i )
-        pObj->pCopy = Abc_ObjFanin0(pObj)->pCopy;
 
     // share the latches
     Seq_NtkShareLatches( pNtkNew, pNtkSeq );
 
     // connect the objects
-//    Abc_NtkForEachNode( pNtkOld, pObj, i )
-    Vec_PtrForEachEntry( p->vMapAnds, pObj, i )
-    {
-        // pObj is from pNtkSeq - transform to pNtkOld
-        pObj = pObj->pNext;
-        // iterate through the fanins of this node in the old network
-        vMirrors = Vec_VecEntry( p->vMapFanins, i );
+    Abc_NtkForEachNode( pNtkOld, pObj, i )
         Abc_ObjForEachFanin( pObj, pFanin, k )
         {
-            pMirror = Vec_PtrEntry( vMirrors, k );
-            assert( Seq_ObjFaninL0(pMirror) == Seq_ObjFaninL1(pMirror) );
-            pRing0 = Seq_NodeGetRing( pMirror, 0 );
-            pRing1 = Seq_NodeGetRing( pMirror, 1 );
-            if ( pRing0 == NULL )
-            {
-                Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
-                continue;
-            }
-//            assert( pRing0->pLatch == pRing1->pLatch );
-            if ( pRing0->pLatch->pData > pRing1->pLatch->pData )
-                Abc_ObjAddFanin( pObj->pCopy, pRing0->pLatch );
-            else
-                Abc_ObjAddFanin( pObj->pCopy, pRing1->pLatch );
+            pFaninNew = Seq_EdgeReconstruct_rec( pFanin->pNext, pObj->pNext );
+            assert( pFaninNew != NULL );
+            Abc_ObjAddFanin( pObj->pCopy, pFaninNew );
         }
-    }
 
     // connect the POs
     Abc_NtkForEachPo( pNtkOld, pObj, i )
     {
-        pFanin = Abc_ObjFanin0(pObj);
-        pRing0 = Seq_NodeGetRing( Abc_NtkPo(pNtkSeq, i), 0 );
-        if ( pRing0 )
-            pFaninNew = pRing0->pLatch;
-        else 
-            pFaninNew = pFanin->pCopy;
+        pFaninNew = Seq_EdgeReconstructPO( pObj->pNext );
         assert( pFaninNew != NULL );
-        Abc_ObjAddFanin( pObj->pCopy, pFaninNew );
+        Abc_ObjAddFanin( pObj->pNext->pCopy, pFaninNew );
     }
 
     // clean the result of latch sharing

@@ -82,6 +82,7 @@ Abc_Ntk_t * Seq_NtkFpgaMapRetime( Abc_Ntk_t * pNtk, int nMaxIters, int fVerbose 
     // check the compatibility of initial states computed
     if ( RetValue = Seq_NtkFpgaInitCompatible( pNtkNew, fVerbose ) )
         printf( "The number of LUTs with incompatible edges = %d.\n", RetValue );
+
     // create the final mapped network
     pNtkMap = Seq_NtkSeqFpgaMapped( pNtkNew );
     Abc_NtkDelete( pNtkNew );
@@ -142,8 +143,6 @@ Abc_Ntk_t * Seq_NtkFpgaDup( Abc_Ntk_t * pNtk )
     // transfer the mapping info to the new manager
     Vec_PtrForEachEntry( p->vMapAnds, pObj, i )
     {
-        // convert the root node
-        Vec_PtrWriteEntry( p->vMapAnds, i, pObj->pCopy );
         // get the leaves of the cut
         vLeaves = Vec_VecEntry( p->vMapCuts, i );
         // convert the leaf nodes
@@ -151,13 +150,14 @@ Abc_Ntk_t * Seq_NtkFpgaDup( Abc_Ntk_t * pNtk )
         {
             SeqEdge = (unsigned)pLeaf;
             pLeaf = Abc_NtkObj( pNtk, SeqEdge >> 8 );
-//            Lag = (SeqEdge & 255);// + Seq_NodeGetLag(pObj) - Seq_NodeGetLag(pLeaf);
             Lag = (SeqEdge & 255) + Seq_NodeGetLag(pObj) - Seq_NodeGetLag(pLeaf);
             assert( Lag >= 0 );
             // translate the old leaf into the leaf in the new network
             Vec_PtrWriteEntry( vLeaves, k, (void *)((pLeaf->pCopy->Id << 8) | Lag) );
 //            printf( "%d -> %d\n", pLeaf->Id, pLeaf->pCopy->Id );
         }
+        // convert the root node
+        Vec_PtrWriteEntry( p->vMapAnds, i, pObj->pCopy );
     }
     pNew = pNtkNew->pManFunc;
     pNew->nVarsMax  = p->nVarsMax;
@@ -290,8 +290,9 @@ Abc_Ntk_t * Seq_NtkSeqFpgaMapped( Abc_Ntk_t * pNtk )
     // duplicate the nodes used in the mapping
     Vec_PtrForEachEntry( p->vMapAnds, pObj, i )
         pObj->pCopy = Abc_NtkCreateNode( pNtkMap );
+
     // create and share the latches
-    Seq_NtkShareLatchesFpga( pNtkMap, pNtk, p->vMapAnds );
+    Seq_NtkShareLatchesMapping( pNtkMap, pNtk, p->vMapAnds, 1 );
 
     // connect the nodes
     Vec_PtrForEachEntry( p->vMapAnds, pObj, i )

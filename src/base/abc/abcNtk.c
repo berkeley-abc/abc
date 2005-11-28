@@ -235,8 +235,8 @@ Abc_Ntk_t * Abc_NtkStartRead( char * pName )
     // allocate the empty network
     pNtkNew = Abc_NtkAlloc( ABC_NTK_NETLIST, ABC_FUNC_SOP );
     // set the specs
-    pNtkNew->pName = util_strsav( pName );
-    pNtkNew->pSpec = util_strsav( pName );
+    pNtkNew->pName = util_strsav( Extra_FileNameGeneric(pName) );
+    pNtkNew->pSpec = util_strsav( Extra_FileNameGeneric(pName) );
     return pNtkNew;
 }
 
@@ -313,7 +313,11 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
         // copy the nodes
         Abc_NtkForEachObj( pNtk, pObj, i )
             if ( pObj->pCopy == NULL )
+            {
                 Abc_NtkDupObj(pNtkNew, pObj);
+                pObj->pCopy->Level = pObj->Level;
+                pObj->pCopy->fPhase = pObj->fPhase;
+            }
         // connect the nodes
         Abc_NtkForEachObj( pNtk, pObj, i )
         {

@@ -67,7 +67,7 @@ extern bool            Abc_NtkSeqCheck( Abc_Ntk_t * pNtk );
 /*=== seqShare.c =============================================================*/
 extern void            Seq_NtkShareFanouts( Abc_Ntk_t * pNtk );
 extern void            Seq_NtkShareLatches( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk );
-extern void            Seq_NtkShareLatchesFpga( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, Vec_Ptr_t * vMapAnds );
+extern void            Seq_NtkShareLatchesMapping( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, Vec_Ptr_t * vMapAnds, int fFpga );
 extern void            Seq_NtkShareLatchesClean( Abc_Ntk_t * pNtk );
 /*=== seqUtil.c ==============================================================*/
 extern char *          Seq_ObjFaninGetInitPrintable( Abc_Obj_t * pObj, int Edge );
@@ -78,6 +78,7 @@ extern int             Seq_NtkLatchNumShared( Abc_Ntk_t * pNtk );
 extern void            Seq_NtkLatchGetInitNums( Abc_Ntk_t * pNtk, int * pInits );
 extern int             Seq_NtkLatchGetEqualFaninNum( Abc_Ntk_t * pNtk );
 extern int             Seq_NtkCountNodesAboveLimit( Abc_Ntk_t * pNtk, int Limit );
+extern int             Seq_MapComputeAreaFlows( Abc_Ntk_t * pNtk, int fVerbose );
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

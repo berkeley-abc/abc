@@ -5100,17 +5100,16 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( Abc_NtkHasAig(pNtk) )
     {
+        // quit if there are choice nodes
+        if ( Abc_NtkGetChoiceNum(pNtk) )
+        {
+            fprintf( pErr, "Currently cannot retime networks with choice nodes.\n" );
+            return 0;
+        }
         if ( Abc_NtkIsStrash(pNtk) )
             pNtkRes = Abc_NtkAigToSeq(pNtk);
         else
-        {
-            if ( Abc_NtkGetChoiceNum(pNtk) )
-            {
-                fprintf( pErr, "Currently cannot retime networks with choice nodes.\n" );
-                return 0;
-            }
             pNtkRes = Abc_NtkDup(pNtk);
-        }
         // retime the network
         if ( fForward )
             Seq_NtkSeqRetimeForward( pNtkRes, fInitial, fVerbose );
@@ -5118,10 +5117,12 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
             Seq_NtkSeqRetimeBackward( pNtkRes, fInitial, fVerbose );
         else
             Seq_NtkSeqRetimeDelay( pNtkRes, nMaxIters, fInitial, fVerbose );
-        // convert from the sequential AIG
+        // if the network is an AIG, convert the result into an AIG
         if ( Abc_NtkIsStrash(pNtk) )
         {
             pNtkRes = Abc_NtkSeqToLogicSop( pNtkTemp = pNtkRes );
+            Abc_NtkDelete( pNtkTemp );
+            pNtkRes = Abc_NtkStrash( pNtkTemp = pNtkRes, 0, 0 );
             Abc_NtkDelete( pNtkTemp );
         }
     }
@@ -5162,7 +5163,7 @@ usage:
 int Abc_CommandSeqFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
-    Abc_Ntk_t * pNtk, * pNtkRes;
+    Abc_Ntk_t * pNtk, * pNtkNew, * pNtkRes;
     int c, nMaxIters;
     int fVerbose;
 
@@ -5205,26 +5206,65 @@ int Abc_CommandSeqFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( !Abc_NtkIsSeq(pNtk) )
+    if ( Abc_NtkHasAig(pNtk) )
     {
-        fprintf( pErr, "Sequential FPGA mapping works only for sequential AIG (run \"seq\").\n" );
-        return 0;
+        // quit if there are choice nodes
+        if ( Abc_NtkGetChoiceNum(pNtk) )
+        {
+            fprintf( pErr, "Currently cannot map/retime networks with choice nodes.\n" );
+            return 0;
+        }
+        if ( Abc_NtkIsStrash(pNtk) )
+            pNtkNew = Abc_NtkAigToSeq(pNtk);
+        else
+            pNtkNew = Abc_NtkDup(pNtk);
+    }
+    else
+    {
+        // strash and balance the network
+        pNtkNew = Abc_NtkStrash( pNtk, 0, 0 );
+        if ( pNtkNew == NULL )
+        {
+            fprintf( pErr, "Strashing before FPGA mapping/retiming has failed.\n" );
+            return 1;
+        }
+
+        pNtkNew = Abc_NtkBalance( pNtkRes = pNtkNew, 0 );
+        Abc_NtkDelete( pNtkRes );
+        if ( pNtkNew == NULL )
+        {
+            fprintf( pErr, "Balancing before FPGA mapping has failed.\n" );
+            return 1;
+        }
+
+        // convert into a sequential AIG
+        pNtkNew = Abc_NtkAigToSeq( pNtkRes = pNtkNew );
+        Abc_NtkDelete( pNtkRes );
+        if ( pNtkNew == NULL )
+        {
+            fprintf( pErr, "Converting into a seq AIG before FPGA mapping/retiming has failed.\n" );
+            return 1;
+        }
+
+        fprintf( pOut, "The network was strashed and balanced before FPGA mapping/retiming.\n" );
     }
 
     // get the new network
-    pNtkRes = Seq_NtkFpgaMapRetime( pNtk, nMaxIters, fVerbose );
+    pNtkRes = Seq_NtkFpgaMapRetime( pNtkNew, nMaxIters, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Sequential FPGA mapping has failed.\n" );
+        Abc_NtkDelete( pNtkNew );
         return 0;
     }
+    Abc_NtkDelete( pNtkNew );
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
 
 usage:
     fprintf( pErr, "usage: sfpga [-I num] [-vh]\n" );
-    fprintf( pErr, "\t         performs integrated sequential FPGA mapping\n" );
+    fprintf( pErr, "\t         performs integrated sequential FPGA mapping/retiming\n" );
     fprintf( pErr, "\t-I num : max number of iterations of l-value computation [default = %d]\n", nMaxIters );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
@@ -5245,7 +5285,7 @@ usage:
 int Abc_CommandSeqMap( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
-    Abc_Ntk_t * pNtk, * pNtkRes;
+    Abc_Ntk_t * pNtk, * pNtkNew, * pNtkRes;
     int c, nMaxIters;
     int fVerbose;
 
@@ -5255,7 +5295,7 @@ int Abc_CommandSeqMap( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     nMaxIters = 15;
-    fVerbose  =  1;
+    fVerbose  =  0;
     util_getopt_reset();
     while ( ( c = util_getopt( argc, argv, "Ivh" ) ) != EOF )
     {
@@ -5288,28 +5328,66 @@ int Abc_CommandSeqMap( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( !Abc_NtkIsSeq(pNtk) )
+    if ( Abc_NtkHasAig(pNtk) )
     {
-        fprintf( pErr, "Sequential standard cell mapping works only for sequential AIG (run \"seq\").\n" );
-        return 1;
+        // quit if there are choice nodes
+        if ( Abc_NtkGetChoiceNum(pNtk) )
+        {
+            fprintf( pErr, "Currently cannot map/retime networks with choice nodes.\n" );
+            return 0;
+        }
+        if ( Abc_NtkIsStrash(pNtk) )
+            pNtkNew = Abc_NtkAigToSeq(pNtk);
+        else
+            pNtkNew = Abc_NtkDup(pNtk);
     }
-//    printf( "This command is not yet implemented.\n" );
-//    return 0;
+    else
+    {
+        // strash and balance the network
+        pNtkNew = Abc_NtkStrash( pNtk, 0, 0 );
+        if ( pNtkNew == NULL )
+        {
+            fprintf( pErr, "Strashing before SC mapping/retiming has failed.\n" );
+            return 1;
+        }
+
+        pNtkNew = Abc_NtkBalance( pNtkRes = pNtkNew, 0 );
+        Abc_NtkDelete( pNtkRes );
+        if ( pNtkNew == NULL )
+        {
+            fprintf( pErr, "Balancing before SC mapping/retiming has failed.\n" );
+            return 1;
+        }
+
+        // convert into a sequential AIG
+        pNtkNew = Abc_NtkAigToSeq( pNtkRes = pNtkNew );
+        Abc_NtkDelete( pNtkRes );
+        if ( pNtkNew == NULL )
+        {
+            fprintf( pErr, "Converting into a seq AIG before SC mapping/retiming has failed.\n" );
+            return 1;
+        }
+
+        fprintf( pOut, "The network was strashed and balanced before SC mapping/retiming.\n" );
+    }
 
     // get the new network
-    pNtkRes = Seq_MapRetime( pNtk, nMaxIters, fVerbose );
+    pNtkRes = Seq_MapRetime( pNtkNew, nMaxIters, fVerbose );
     if ( pNtkRes == NULL )
     {
-        fprintf( pErr, "Sequential standard-cell mapping has failed.\n" );
+        fprintf( pErr, "Sequential FPGA mapping has failed.\n" );
+        Abc_NtkDelete( pNtkNew );
         return 1;
     }
+    Abc_NtkDelete( pNtkNew );
+
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
 
 usage:
     fprintf( pErr, "usage: smap [-I num] [-vh]\n" );
-    fprintf( pErr, "\t         performs integrated sequential standard-cell mapping" );
+    fprintf( pErr, "\t         performs integrated sequential standard-cell mapping/retiming\n" );
     fprintf( pErr, "\t-I num : max number of iterations of l-value computation [default = %d]\n", nMaxIters );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");

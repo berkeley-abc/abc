@@ -31,6 +31,9 @@ static int   Seq_NtkMappingForPeriod( Abc_Ntk_t * pNtk, float Fi, int fVerbose )
 static int   Seq_NtkNodeUpdateLValue( Abc_Obj_t * pObj, float Fi, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vDelays );
 static void  Seq_NodeRetimeSetLag_rec( Abc_Obj_t * pNode, char Lag );
 
+static void  Seq_NodePrintInfo( Abc_Obj_t * pNode );
+static void  Seq_NodePrintInfoPlus( Abc_Obj_t * pNode );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -60,6 +63,7 @@ void Seq_NtkRetimeDelayLags( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtk, int fVerbose
     assert( p->vMapAnds );
     assert( p->vMapCuts );
     assert( p->vMapDelays );
+    assert( p->vMapFanins );
 
     // guess the upper bound on the clock period
     if ( Abc_NtkHasMapping(pNtkOld) )
@@ -107,6 +111,11 @@ void Seq_NtkRetimeDelayLags( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtk, int fVerbose
     Vec_StrFill( p->vLags,  p->nSize, 0 );
     Vec_PtrForEachEntry( p->vMapAnds, pNode, i )
     {
+        if ( Vec_PtrSize( Vec_VecEntry(p->vMapCuts, i) ) == 0 )
+        {
+            Seq_NodeSetLag( pNode, 0 );
+            continue;
+        }
         NodeLag = Seq_NodeComputeLagFloat( Seq_NodeGetLValueP(pNode), FiBest );
         Seq_NodeRetimeSetLag_rec( pNode, NodeLag );
     }
@@ -117,6 +126,8 @@ void Seq_NtkRetimeDelayLags( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtk, int fVerbose
     // print the result
     if ( fVerbose )
         printf( "The best clock period is %6.2f.\n", FiBest );
+
+//    Seq_NodePrintInfo( Abc_NtkObj(pNtk, 847) );
 }
 
 /**Function*************************************************************
@@ -181,6 +192,11 @@ int Seq_NtkMappingForPeriod( Abc_Ntk_t * pNtk, float Fi, int fVerbose )
             Counter++;
             vLeaves = Vec_VecEntry( p->vMapCuts, i );
             vDelays = Vec_VecEntry( p->vMapDelays, i );
+            if ( Vec_PtrSize(vLeaves) == 0 )
+            {
+                Seq_NodeSetLValueP( pObj, 0.0 );
+                continue;
+            }
             RetValue = Seq_NtkNodeUpdateLValue( pObj, Fi, vLeaves, vDelays );
             if ( RetValue == SEQ_UPDATE_YES ) 
                 fChange = 1;
@@ -292,6 +308,72 @@ void Seq_NodeRetimeSetLag_rec( Abc_Obj_t * pNode, char Lag )
         Seq_NodeRetimeSetLag_rec( pFanin, Lag );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Add sequential edges.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Seq_NodePrintInfo( Abc_Obj_t * pNode )
+{
+    Abc_Seq_t * p = pNode->pNtk->pManFunc;
+    Abc_Obj_t * pFanin, * pObj, * pLeaf;
+    Vec_Ptr_t * vLeaves;
+    unsigned SeqEdge;
+    int i, Number;
+
+    // print the node
+    printf( "    Node      = %6d.  LValue = %7.2f.  Lag = %2d.\n", 
+        pNode->Id, Seq_NodeGetLValueP(pNode), Seq_NodeGetLag(pNode) );
+
+    // find the number
+    Vec_PtrForEachEntry( p->vMapAnds, pObj, Number )
+        if ( pObj == pNode )
+            break;
+
+    // get the leaves
+    vLeaves = Vec_VecEntry( p->vMapCuts, Number );
+
+    // print the leaves
+    Vec_PtrForEachEntry( vLeaves, pLeaf, i )
+    {
+        SeqEdge   = (unsigned)pLeaf;
+        pFanin    = Abc_NtkObj( pNode->pNtk, SeqEdge >> 8 );
+        // print the leaf
+        printf( "    Fanin%d(%d) = %6d.  LValue = %7.2f.  Lag = %2d.\n", i, SeqEdge & 255,
+            pFanin->Id, Seq_NodeGetLValueP(pFanin), Seq_NodeGetLag(pFanin) );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Add sequential edges.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Seq_NodePrintInfoPlus( Abc_Obj_t * pNode )
+{
+    Abc_Obj_t * pFanout;
+    int i;
+    printf( "CENTRAL NODE:\n" );
+    Seq_NodePrintInfo( pNode );
+    Abc_ObjForEachFanout( pNode, pFanout, i )
+    {
+        printf( "FANOUT%d:\n", i );
+        Seq_NodePrintInfo( pFanout );
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

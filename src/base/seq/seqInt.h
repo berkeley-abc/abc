@@ -64,6 +64,7 @@ struct Abc_Seq_t_
     Cut_Man_t *         pCutMan;        // cut manager
     Map_SuperLib_t *    pSuperLib;      // the current supergate library
     // sequential arrival time computation
+    Vec_Int_t *         vAFlows;        // the area flow of each cut
     Vec_Int_t *         vLValues;       // the arrival times (L-Values of nodes)
     Vec_Int_t *         vLValuesN;      // the arrival times (L-Values of nodes)
     Vec_Str_t *         vLags;          // the lags of the mapped nodes
@@ -73,6 +74,7 @@ struct Abc_Seq_t_
     Vec_Ptr_t *         vMapAnds;       // nodes visible in the mapping 
     Vec_Vec_t *         vMapCuts;       // best cuts for each node 
     Vec_Vec_t *         vMapDelays;     // the delay of each fanin
+    Vec_Vec_t *         vMapFanins;     // the delay of each fanin
     // runtime stats
     int                 timeCuts;       // runtime to compute the cuts
     int                 timeDelay;      // runtime to compute the L-values
@@ -117,7 +119,8 @@ struct Seq_Match_t_ // 3 words
     unsigned            fCompl  :  1;   // the polarity of the AND gate
     unsigned            fCutInv :  1;   // the polarity of the cut
     unsigned            PolUse  :  2;   // the polarity use of this node
-    unsigned            uPhase  : 28;   // the phase assignment at the boundary
+    unsigned            uPhase  : 14;   // the phase assignment at the boundary
+    unsigned            uPhaseR : 14;   // the real phase assignment at the boundary
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -157,8 +160,11 @@ static inline float          Seq_NodeGetLValueP( Abc_Obj_t * pNode )            
 static inline float          Seq_NodeGetLValueN( Abc_Obj_t * pNode )                 { return Abc_Int2Float( Vec_IntEntry( Seq_NodeLValuesN(pNode), (pNode)->Id ) );       }
 static inline void           Seq_NodeSetLValueP( Abc_Obj_t * pNode, float Value )    { Vec_IntWriteEntry( Seq_NodeLValues(pNode), (pNode)->Id, Abc_Float2Int(Value) );     }
 static inline void           Seq_NodeSetLValueN( Abc_Obj_t * pNode, float Value )    { Vec_IntWriteEntry( Seq_NodeLValuesN(pNode), (pNode)->Id, Abc_Float2Int(Value) );    }
-static inline int            Seq_NodeComputeLag( int LValue, int Fi )                { return (LValue + 1024*Fi)/Fi - 1024 - (int)(LValue % Fi == 0);     }
-static inline int            Seq_NodeComputeLagFloat( float LValue, float Fi )       { return ((int)ceil(LValue/Fi)) - 1;                                        }
+
+// reading area flows
+static inline Vec_Int_t *    Seq_NodeFlow( Abc_Obj_t * pNode )                       { return ((Abc_Seq_t *)(pNode)->pNtk->pManFunc)->vAFlows;                        }
+static inline float          Seq_NodeGetFlow( Abc_Obj_t * pNode )                    { return Abc_Int2Float( Vec_IntEntry( Seq_NodeFlow(pNode), (pNode)->Id ) );      }
+static inline void           Seq_NodeSetFlow( Abc_Obj_t * pNode, float Value )       { Vec_IntWriteEntry( Seq_NodeFlow(pNode), (pNode)->Id, Abc_Float2Int(Value) );   }
 
 // reading the contents of the lat
 static inline Abc_InitType_t Seq_LatInit( Seq_Lat_t * pLat )  { return ((unsigned)pLat->pPrev) & 3;                                 }
@@ -178,6 +184,8 @@ static inline char           Seq_NodeGetLag( Abc_Obj_t * pNode )                
 static inline char           Seq_NodeGetLagN( Abc_Obj_t * pNode )                     { return Vec_StrEntry( Seq_NodeLagsN(pNode), (pNode)->Id );        }
 static inline void           Seq_NodeSetLag( Abc_Obj_t * pNode, char Value )          { Vec_StrWriteEntry( Seq_NodeLags(pNode), (pNode)->Id, (Value) );  }
 static inline void           Seq_NodeSetLagN( Abc_Obj_t * pNode, char Value )         { Vec_StrWriteEntry( Seq_NodeLagsN(pNode), (pNode)->Id, (Value) ); }
+static inline int            Seq_NodeComputeLag( int LValue, int Fi )                 { return (LValue + 1024*Fi)/Fi - 1024 - (int)(LValue % Fi == 0);     }
+static inline int            Seq_NodeComputeLagFloat( float LValue, float Fi )        { return ((int)ceil(LValue/Fi)) - 1;                                        }
 
 // phase usage
 static inline Vec_Str_t *    Seq_NodeUses( Abc_Obj_t * pNode )                        { return ((Abc_Seq_t *)(pNode)->pNtk->pManFunc)->vUses;            }

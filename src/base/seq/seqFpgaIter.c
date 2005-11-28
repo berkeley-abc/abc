@@ -73,6 +73,9 @@ p->timeCuts = clock() - clk;
     if ( fVerbose )
     Cut_ManPrintStats( p->pCutMan );
 
+    // compute area flows
+//    Seq_MapComputeAreaFlows( pNtk, fVerbose );
+
     // compute the delays
 clk = clock();
     Seq_AigRetimeDelayLags( pNtk, fVerbose );
@@ -170,6 +173,7 @@ Cut_Cut_t * Seq_FpgaMappingSelectCut( Abc_Obj_t * pAnd )
             if ( Abc_NodeIsTravIdCurrent(pFanin) )
                 continue;
             CostCur += (float)(1.0 / Abc_ObjFanoutNum(pFanin));
+//            CostCur += Seq_NodeGetFlow( pFanin );
         }
         if ( CostMin > CostCur )
         {

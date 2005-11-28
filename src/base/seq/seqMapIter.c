@@ -75,10 +75,17 @@ p->timeCuts = clock() - clk;
     // compute canonical forms of the truth tables of the cuts
     Seq_MapCanonicizeTruthTables( pNtk );
 
+    // compute area flows
+//    Seq_MapComputeAreaFlows( pNtk, fVerbose );
+
     // compute the delays
 clk = clock();
     FiBest = Seq_MapRetimeDelayLagsInternal( pNtk, fVerbose );
 p->timeDelay = clock() - clk;
+
+    // clean the marks
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        assert( !pObj->fMarkA && !pObj->fMarkB );
 
     // collect the nodes and cuts used in the mapping
     p->vMapAnds = Vec_PtrAlloc( 1000 );
@@ -133,7 +140,7 @@ float Seq_MapRetimeDelayLagsInternal( Abc_Ntk_t * pNtk, int fVerbose )
     }
 
     // get the upper bound on the clock period
-    FiMax = Delta * (2 + Seq_NtkLevelMax(pNtk));
+    FiMax = Delta * (5 + Seq_NtkLevelMax(pNtk));
     Delta /= 2;
 
     // make sure this clock period is feasible
@@ -155,11 +162,17 @@ float Seq_MapRetimeDelayLagsInternal( Abc_Ntk_t * pNtk, int fVerbose )
         Seq_NodeSetLag( pNode, NodeLag );
         NodeLag = Seq_NodeComputeLagFloat( Seq_NodeGetLValueN(pNode), FiBest );
         Seq_NodeSetLagN( pNode, NodeLag );
+//printf( "%6d=(%d,%d) ", pNode->Id, Seq_NodeGetLag(pNode), Seq_NodeGetLagN(pNode) );
+//        if ( Seq_NodeGetLag(pNode) != Seq_NodeGetLagN(pNode) )
+//        {
+//printf( "%6d=(%d,%d) ", pNode->Id, Seq_NodeGetLag(pNode), Seq_NodeGetLagN(pNode) );
+//        }
     }
+//printf( "\n\n" );
 
     // print the result
-    if ( fVerbose )
-    printf( "The best clock period is %6.2f.\n", FiBest );
+//    if ( fVerbose )
+    printf( "The best clock period after mapping/retiming is %6.2f.\n", FiBest );
     return FiBest;
 }
 
@@ -209,7 +222,7 @@ int Seq_MapRetimeForPeriod( Abc_Ntk_t * pNtk, float Fi, int fVerbose )
     // set l-values of all nodes to be minus infinity
     Vec_IntFill( p->vLValues,  p->nSize, Abc_Float2Int( (float)-ABC_INFINITY ) );
     Vec_IntFill( p->vLValuesN, p->nSize, Abc_Float2Int( (float)-ABC_INFINITY ) );
-    Vec_StrFill( p->vUses,     p->nSize, 0             );
+    Vec_StrFill( p->vUses,     p->nSize, 0 );
 
     // set l-values of constants and PIs
     pObj = Abc_NtkObj( pNtk, 0 );
@@ -243,6 +256,7 @@ int Seq_MapRetimeForPeriod( Abc_Ntk_t * pNtk, float Fi, int fVerbose )
             break;
         if ( fChange == 0 )
             break;
+//printf( "\n\n" );
     }
     if ( c == p->nMaxIters )
     {
@@ -262,7 +276,6 @@ int Seq_MapRetimeForPeriod( Abc_Ntk_t * pNtk, float Fi, int fVerbose )
     }
     return RetValue != SEQ_UPDATE_FAIL;
 }
-
 
 
 
@@ -325,6 +338,15 @@ float Seq_MapNodeComputeCut(  Abc_Obj_t * pObj, Cut_Cut_t * pCut, int fCompl, fl
     assert( pCut->nLeaves < 6 );
     // get the canonical truth table of this cut
     uCanon[0] = uCanon[1] = (fCompl? pCut->uCanon0 : pCut->uCanon1);
+    if ( uCanon[0] == 0 || ~uCanon[0] == 0 )
+    {
+        if ( pMatchBest )
+        {
+            memset( pMatchBest, 0, sizeof(Seq_Match_t) );
+            pMatchBest->pCut = pCut;
+        }
+        return (float)0.0;
+    }
     // match the given phase of the cut
     pSuperList = Map_SuperTableLookupC( p->pSuperLib, uCanon );
     // compute the arrival times of each supergate
@@ -340,7 +362,7 @@ float Seq_MapNodeComputeCut(  Abc_Obj_t * pObj, Cut_Cut_t * pCut, int fCompl, fl
             pMatchCur->uPhase = (fCompl? pCut->Num0 : pCut->Num1) ^ pSuper->uPhases[i];
             // find the arrival time of this match
             lValueCur = Seq_MapSuperGetArrival( pObj, Fi, pMatchCur, lValueBest );
-            if ( lValueBest > lValueCur )
+            if ( lValueBest > lValueCur )//&& lValueCur > -ABC_INFINITY/2 )
             {
                 lValueBest = lValueCur;
                 if ( pMatchBest )
@@ -348,6 +370,7 @@ float Seq_MapNodeComputeCut(  Abc_Obj_t * pObj, Cut_Cut_t * pCut, int fCompl, fl
             }
         }
     }
+//    assert( lValueBest < ABC_INFINITY/2 );
     return lValueBest;
 }
 
@@ -366,22 +389,23 @@ float Seq_MapNodeComputePhase( Abc_Obj_t * pObj, int fCompl, float Fi, Seq_Match
 {
     Seq_Match_t Match, * pMatchCur = &Match;
     Cut_Cut_t * pList, * pCut;
-    float lValueNew, lValueCut;
+    float lValueBest, lValueCut;
     // get the list of cuts
     pList = Abc_NodeReadCuts( Seq_NodeCutMan(pObj), pObj );
     // get the arrival time of the best non-trivial cut
-    lValueNew = ABC_INFINITY;
+    lValueBest = ABC_INFINITY;
     for ( pCut = pList->pNext; pCut; pCut = pCut->pNext )
     {
         lValueCut = Seq_MapNodeComputeCut( pObj, pCut, fCompl, Fi, pMatchBest? pMatchCur : NULL );
-        if ( lValueNew > lValueCut )
+        if ( lValueBest > lValueCut )
         {
-            lValueNew = lValueCut;
+            lValueBest = lValueCut;
             if ( pMatchBest )
                 *pMatchBest = *pMatchCur;
         }
     }
-    return lValueNew;
+//    assert( lValueBest < ABC_INFINITY/2 );
+    return lValueBest;
 }
 
 /**Function*************************************************************
@@ -434,11 +458,14 @@ int Seq_MapNodeUpdateLValue( Abc_Obj_t * pObj, float Fi, float DelayInv )
     // compare 
     if ( lValue0 <= lValueOld0 + p->fEpsilon && lValue1 <= lValueOld1 + p->fEpsilon )
         return SEQ_UPDATE_NO;
+    assert( lValue0 < ABC_INFINITY/2 );
+    assert( lValue1 < ABC_INFINITY/2 );
     // update the values
     if ( lValue0 > lValueOld0 + p->fEpsilon )
         Seq_NodeSetLValueN( pObj, lValue0 );
     if ( lValue1 > lValueOld1 + p->fEpsilon )
         Seq_NodeSetLValueP( pObj, lValue1 );
+//printf( "%6d=(%4.2f,%4.2f) ", pObj->Id, Seq_NodeGetLValueP(pObj), Seq_NodeGetLValueN(pObj) );
     return SEQ_UPDATE_YES;
 }
 
@@ -460,6 +487,7 @@ float Seq_MapCollectNode_rec( Abc_Obj_t * pAnd, float FiBest, Vec_Ptr_t * vMappi
     Seq_Match_t * pMatch;
     Abc_Obj_t * pFanin;
     int k, fCompl, Use;
+    float AreaInv = Mio_LibraryReadAreaInv(Abc_FrameReadLibGen());
     float Area;
 
     // get the polarity of the node
@@ -467,42 +495,44 @@ float Seq_MapCollectNode_rec( Abc_Obj_t * pAnd, float FiBest, Vec_Ptr_t * vMappi
     pAnd   = Abc_ObjRegular(pAnd);
 
     // skip visited nodes
-    if ( fCompl )
-    {
-        if ( pAnd->fMarkB )
-            return 0.0;
-        pAnd->fMarkB = 1;
-    }
-    else
-    {
+    if ( !fCompl )
+    {  // need the positive polarity
         if ( pAnd->fMarkA )
             return 0.0;
         pAnd->fMarkA = 1;
     }
+    else
+    {   // need the negative polarity
+        if ( pAnd->fMarkB )
+            return 0.0;
+        pAnd->fMarkB = 1;
+    }
 
-    // skip if this is a non-PI node
+    // skip if this is a PI or a constant
     if ( !Abc_NodeIsAigAnd(pAnd) )
     {
         if ( Abc_ObjIsPi(pAnd) && fCompl )
-            return Mio_LibraryReadAreaInv(Abc_FrameReadLibGen());   
+            return AreaInv;   
         return 0.0;
     }
 
     // check the uses of this node
     Use = Seq_NodeGetUses( pAnd );
-    if ( fCompl && Use == 2 )  // the neg phase is required; the pos phase is used
-    {
-        Area = Seq_MapCollectNode_rec( pAnd, FiBest, vMapping, vMapCuts );
-        return Area + Mio_LibraryReadAreaInv(Abc_FrameReadLibGen()); 
-    }
-    if ( !fCompl && Use == 1 )  // the pos phase is required; the neg phase is used
+    if ( !fCompl && Use == 1 )  // the pos phase is required; only the neg phase is used
     {
         Area = Seq_MapCollectNode_rec( Abc_ObjNot(pAnd), FiBest, vMapping, vMapCuts );
-        return Area + Mio_LibraryReadAreaInv(Abc_FrameReadLibGen()); 
+        return Area + AreaInv; 
     }
+    if ( fCompl && Use == 2 )  // the neg phase is required; only the pos phase is used
+    {
+        Area = Seq_MapCollectNode_rec( pAnd, FiBest, vMapping, vMapCuts );
+        return Area + AreaInv; 
+    }
+    // both phases are used; the needed one can be selected
 
     // get the best match
     pMatch = ALLOC( Seq_Match_t, 1 );
+    memset( pMatch, 1, sizeof(Seq_Match_t) );
     Seq_MapNodeComputePhase( pAnd, fCompl, FiBest, pMatch );
     pMatch->pAnd    = pAnd;
     pMatch->fCompl  = fCompl;
@@ -510,7 +540,7 @@ float Seq_MapCollectNode_rec( Abc_Obj_t * pAnd, float FiBest, Vec_Ptr_t * vMappi
     pMatch->PolUse  = Use;
 
     // call for the fanin cuts
-    Area = pMatch->pSuper->Area;
+    Area = pMatch->pSuper? pMatch->pSuper->Area : (float)0.0;
     for ( k = 0; k < (int)pMatch->pCut->nLeaves; k++ )
     {
         pFanin = Abc_NtkObj( pAnd->pNtk, pMatch->pCut->pLeaves[k] >> 8 );
@@ -523,6 +553,9 @@ float Seq_MapCollectNode_rec( Abc_Obj_t * pAnd, float FiBest, Vec_Ptr_t * vMappi
     Vec_PtrPush( vMapping, pMatch );
     for ( k = 0; k < (int)pMatch->pCut->nLeaves; k++ )
         Vec_VecPush( vMapCuts, Vec_PtrSize(vMapping)-1, (void *)pMatch->pCut->pLeaves[k] );
+
+    // the cut will become unavailable when the cuts are deallocated
+    pMatch->pCut = NULL;
 
     return Area;
 }
@@ -550,6 +583,7 @@ void Seq_MapCanonicizeTruthTables( Abc_Ntk_t * pNtk )
             Cut_TruthCanonicize( pCut );
     }
 }
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

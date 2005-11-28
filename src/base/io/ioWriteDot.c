@@ -26,6 +26,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 static char * Abc_NtkPrintSop( char * pSop );
+static int    Abc_NtkCountLogicNodes( Vec_Ptr_t * vNodes );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -181,7 +182,7 @@ void Io_WriteDotAig( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
     fprintf( pFile, "          fontsize=18,\n" );
     fprintf( pFile, "          fontname = \"Times-Roman\",\n" );
     fprintf( pFile, "          label=\"" );
-    fprintf( pFile, "The set contains %d nodes and spans %d levels.", vNodes->nSize, LevelMax - LevelMin + 1 );
+    fprintf( pFile, "The set contains %d logic nodes and spans %d levels.", Abc_NtkCountLogicNodes(vNodes), LevelMax - LevelMin + 1 );
     fprintf( pFile, "\\n" );
     fprintf( pFile, "\"\n" );
     fprintf( pFile, "         ];\n" );
@@ -526,7 +527,7 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
     fprintf( pFile, "          fontsize=18,\n" );
     fprintf( pFile, "          fontname = \"Times-Roman\",\n" );
     fprintf( pFile, "          label=\"" );
-    fprintf( pFile, "The set contains %d nodes and spans %d levels.", vNodes->nSize, LevelMax - LevelMin + 1 );
+    fprintf( pFile, "The set contains %d logic nodes and spans %d levels.", Abc_NtkCountLogicNodes(vNodes), LevelMax - LevelMin + 1 );
     fprintf( pFile, "\\n" );
     fprintf( pFile, "\"\n" );
     fprintf( pFile, "         ];\n" );
@@ -699,6 +700,32 @@ char * Abc_NtkPrintSop( char * pSop )
     }
     *(pSet-2) = 0;
     return Buffer;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the printable SOP form.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkCountLogicNodes( Vec_Ptr_t * vNodes )
+{
+    Abc_Obj_t * pObj;
+    int i, Counter = 0;
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+    {
+        if ( !Abc_ObjIsNode(pObj) )
+            continue;
+        if ( Abc_ObjFaninNum(pObj) == 0 && Abc_ObjFanoutNum(pObj) == 0 )
+            continue;
+        Counter ++;
+    }
+    return Counter;
 }
 
 ////////////////////////////////////////////////////////////////////////

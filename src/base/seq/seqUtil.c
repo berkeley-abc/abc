@@ -417,6 +417,50 @@ int Seq_NtkCountNodesAboveLimit( Abc_Ntk_t * pNtk, int Limit )
     return Counter;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Computes area flows.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Seq_MapComputeAreaFlows( Abc_Ntk_t * pNtk, int fVerbose )
+{
+    Abc_Seq_t * p = pNtk->pManFunc;
+    Abc_Obj_t * pObj;
+    float AFlow;
+    int i, c;
+
+    assert( Abc_NtkIsSeq(pNtk) );
+
+    Vec_IntFill( p->vAFlows, p->nSize, Abc_Float2Int( (float)0.0 ) );
+
+    // update all values iteratively
+    for ( c = 0; c < 7; c++ )
+    {
+        Abc_AigForEachAnd( pNtk, pObj, i )
+        {
+            AFlow = (float)1.0 + Seq_NodeGetFlow( Abc_ObjFanin0(pObj) ) + Seq_NodeGetFlow( Abc_ObjFanin1(pObj) );
+            AFlow /= Abc_ObjFanoutNum(pObj);
+            pObj->pNext = (void *)Abc_Float2Int( AFlow );
+        }
+        Abc_AigForEachAnd( pNtk, pObj, i )
+        {
+            AFlow = Abc_Int2Float( (int)pObj->pNext );
+            pObj->pNext = NULL;
+            Seq_NodeSetFlow( pObj, AFlow );
+
+//            printf( "%5d : %6.1f\n", pObj->Id, Seq_NodeGetFlow(pObj) );
+        }
+//        printf( "\n" );
+    }
+    return 1;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
