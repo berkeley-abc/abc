@@ -461,6 +461,134 @@ int Seq_MapComputeAreaFlows( Abc_Ntk_t * pNtk, int fVerbose )
     return 1;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Collects all the internal nodes reachable from POs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Seq_NtkReachNodesFromPos_rec( Abc_Obj_t * pAnd, Vec_Ptr_t * vNodes )
+{
+    // skip if this is a non-PI node
+    if ( !Abc_NodeIsAigAnd(pAnd) )
+        return;
+    // skip a visited node
+    if ( Abc_NodeIsTravIdCurrent(pAnd) )
+        return;
+    Abc_NodeSetTravIdCurrent(pAnd);
+    // visit the fanin nodes
+    Seq_NtkReachNodesFromPos_rec( Abc_ObjFanin0(pAnd), vNodes );
+    Seq_NtkReachNodesFromPos_rec( Abc_ObjFanin1(pAnd), vNodes );
+    // add this node
+    Vec_PtrPush( vNodes, pAnd );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects all the internal nodes reachable from POs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Seq_NtkReachNodesFromPis_rec( Abc_Obj_t * pAnd, Vec_Ptr_t * vNodes )
+{
+    Abc_Obj_t * pFanout;
+    int k;
+    // skip if this is a non-PI node
+    if ( !Abc_NodeIsAigAnd(pAnd) )
+        return;
+    // skip a visited node
+    if ( Abc_NodeIsTravIdCurrent(pAnd) )
+        return;
+    Abc_NodeSetTravIdCurrent(pAnd);
+    // visit the fanin nodes
+    Abc_ObjForEachFanout( pAnd, pFanout, k )
+        Seq_NtkReachNodesFromPis_rec( pFanout, vNodes );
+    // add this node
+    Vec_PtrPush( vNodes, pAnd );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects all the internal nodes reachable from POs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Seq_NtkReachNodes( Abc_Ntk_t * pNtk, int fFromPos )
+{
+    Vec_Ptr_t * vNodes;
+    Abc_Obj_t * pObj, * pFanout;
+    int i, k;
+    assert( Abc_NtkIsSeq(pNtk) );
+    vNodes = Vec_PtrAlloc( 1000 );
+    Abc_NtkIncrementTravId( pNtk );
+    if ( fFromPos )
+    {
+        // traverse the cone of each PO
+        Abc_NtkForEachPo( pNtk, pObj, i )
+            Seq_NtkReachNodesFromPos_rec( Abc_ObjFanin0(pObj), vNodes );
+    }
+    else
+    {
+        // tranvers the reverse cone of the constant node
+        pObj = Abc_NtkConst1( pNtk );
+        Abc_ObjForEachFanout( pObj, pFanout, k )
+            Seq_NtkReachNodesFromPis_rec( pFanout, vNodes );
+        // tranvers the reverse cone of the PIs
+        Abc_NtkForEachPi( pNtk, pObj, i )
+            Abc_ObjForEachFanout( pObj, pFanout, k )
+                Seq_NtkReachNodesFromPis_rec( pFanout, vNodes );
+    }
+    return vNodes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Perform sequential cleanup.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Seq_NtkCleanup( Abc_Ntk_t * pNtk, int fVerbose )
+{
+    Vec_Ptr_t * vNodesPo, * vNodesPi;
+    int Counter = 0;
+    assert( Abc_NtkIsSeq(pNtk) );
+    // collect the nodes reachable from POs and PIs
+    vNodesPo = Seq_NtkReachNodes( pNtk, 1 );
+    vNodesPi = Seq_NtkReachNodes( pNtk, 0 );
+    printf( "Total nodes = %6d. Reachable from POs = %6d. Reachable from PIs = %6d.\n", 
+        Abc_NtkNodeNum(pNtk), Vec_PtrSize(vNodesPo), Vec_PtrSize(vNodesPi) );
+    if ( Abc_NtkNodeNum(pNtk) > Vec_PtrSize(vNodesPo) )
+    {
+        Counter = Abc_NtkReduceNodes( pNtk, vNodesPo );
+        if ( fVerbose )
+            printf( "Cleanup removed %d nodes that are not reachable from the POs.\n", Counter );
+    }
+    Vec_PtrFree( vNodesPo );
+    Vec_PtrFree( vNodesPi );
+    return Counter;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

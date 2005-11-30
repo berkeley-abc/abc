@@ -25,6 +25,8 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
  
+static void Abc_NtkAddPoBuffers( Abc_Ntk_t * pNtk );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -280,7 +282,17 @@ Abc_Ntk_t * Abc_NtkAigToLogicSop( Abc_Ntk_t * pNtk )
             else
                 Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
     // connect the COs
-    Abc_NtkFinalize( pNtk, pNtkNew );
+//    Abc_NtkFinalize( pNtk, pNtkNew );
+    Abc_NtkForEachCo( pNtk, pObj, i )
+    {
+        pFanin = Abc_ObjFanin0(pObj);
+        if ( pFanin->pCopy->pCopy )
+            pNodeNew = Abc_ObjNotCond(pFanin->pCopy->pCopy, Abc_ObjFaninC0(pObj));
+        else
+            pNodeNew = Abc_ObjNotCond(pFanin->pCopy, Abc_ObjFaninC0(pObj));
+        Abc_ObjAddFanin( pObj->pCopy, pNodeNew );
+    }
+
     // fix the problem with complemented and duplicated CO edges
     Abc_NtkLogicMakeSimpleCos( pNtkNew, 0 );
     // duplicate the EXDC Ntk
@@ -362,6 +374,31 @@ Abc_Ntk_t * Abc_NtkAigToLogicSopBench( Abc_Ntk_t * pNtk )
     if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkAigToLogicSopBench(): Network check has failed.\n" );
     return pNtkNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds buffers for each PO.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkAddPoBuffers( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj, * pFanin, * pFaninNew;
+    int i;
+    assert( Abc_NtkIsStrash(pNtk) );
+    Abc_NtkForEachPo( pNtk, pObj, i )
+    {
+        pFanin = Abc_ObjChild0(pObj);
+        pFaninNew = Abc_NtkCreateNode(pNtk);
+        Abc_ObjAddFanin( pFaninNew, pFanin );
+        Abc_ObjPatchFanin( pObj, pFanin, pFaninNew );
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////

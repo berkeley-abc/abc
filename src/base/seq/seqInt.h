@@ -217,15 +217,15 @@ static inline void           Seq_NodeSetInitOne( Abc_Obj_t * pObj, int Edge, int
 ////////////////////////////////////////////////////////////////////////
 
 /*=== seqAigIter.c =============================================================*/
-extern void                  Seq_AigRetimeDelayLags( Abc_Ntk_t * pNtk, int fVerbose );
+extern int                   Seq_AigRetimeDelayLags( Abc_Ntk_t * pNtk, int fVerbose );
 extern int                   Seq_NtkImplementRetiming( Abc_Ntk_t * pNtk, Vec_Str_t * vLags, int fVerbose );
 /*=== seqFpgaIter.c ============================================================*/
-extern void                  Seq_FpgaMappingDelays( Abc_Ntk_t * pNtk, int fVerbose );
+extern int                   Seq_FpgaMappingDelays( Abc_Ntk_t * pNtk, int fVerbose );
 extern int                   Seq_FpgaNodeUpdateLValue( Abc_Obj_t * pObj, int Fi );
 /*=== seqMapIter.c ============================================================*/
-extern void                  Seq_MapRetimeDelayLags( Abc_Ntk_t * pNtk, int fVerbose );
+extern int                   Seq_MapRetimeDelayLags( Abc_Ntk_t * pNtk, int fVerbose );
 /*=== seqRetIter.c =============================================================*/
-extern void                  Seq_NtkRetimeDelayLags( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtk, int fVerbose );
+extern int                   Seq_NtkRetimeDelayLags( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtk, int fVerbose );
 /*=== seqLatch.c ===============================================================*/
 extern void                  Seq_NodeInsertFirst( Abc_Obj_t * pObj, int Edge, Abc_InitType_t Init );  
 extern void                  Seq_NodeInsertLast( Abc_Obj_t * pObj, int Edge, Abc_InitType_t Init );  

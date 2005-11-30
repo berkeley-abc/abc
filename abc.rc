@@ -53,7 +53,8 @@ alias sa set autoexec ps
 alias so source -x
 alias st strash
 alias sw sweep
-alias ssw seq_sweep
+alias ssw ssweep
+alias scl scleanup
 alias u undo
 alias wb write_blif
 alias wl write_blif
@@ -71,6 +72,6 @@ alias resynl   "b; rw -l; rwz -l; b; rwz -l; b"
 alias resyn2   "b; rw; rf; b; rw; rwz; b; rfz; rwz; b"
 alias resyn2l  "b; rw -l; rf -l; b; rw -l; rwz -l; b; rfz -l; rwz -l; b"
 alias thin     "rwz; rfz; b; ps"
-alias choice   "fsto; resynl; fsto; resyn2l; fsto; fres"
-alias t        "r iscas2/s3330_edf.blif; st; seq; smap"
+alias choice   "fraig_store; resynl; fraig_store; resyn2l; fraig_store; fraig_restore"
+alias t        "r step_opt.blif; b; seq; show_aig; sfpga -v"
 

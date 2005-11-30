@@ -79,6 +79,8 @@ extern void            Seq_NtkLatchGetInitNums( Abc_Ntk_t * pNtk, int * pInits )
 extern int             Seq_NtkLatchGetEqualFaninNum( Abc_Ntk_t * pNtk );
 extern int             Seq_NtkCountNodesAboveLimit( Abc_Ntk_t * pNtk, int Limit );
 extern int             Seq_MapComputeAreaFlows( Abc_Ntk_t * pNtk, int fVerbose );
+extern Vec_Ptr_t *     Seq_NtkReachNodes( Abc_Ntk_t * pNtk, int fFromPos );
+extern int             Seq_NtkCleanup( Abc_Ntk_t * pNtk, int fVerbose );
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

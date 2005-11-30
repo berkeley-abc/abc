@@ -48,7 +48,7 @@ extern Cut_Man_t * Abc_NtkSeqCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams );
   SeeAlso     []
 
 ***********************************************************************/
-void Seq_MapRetimeDelayLags( Abc_Ntk_t * pNtk, int fVerbose )
+int Seq_MapRetimeDelayLags( Abc_Ntk_t * pNtk, int fVerbose )
 {
     Abc_Seq_t * p = pNtk->pManFunc;
     Cut_Params_t Params, * pParams = &Params;
@@ -81,8 +81,21 @@ p->timeCuts = clock() - clk;
     // compute the delays
 clk = clock();
     FiBest = Seq_MapRetimeDelayLagsInternal( pNtk, fVerbose );
+    if ( FiBest == 0.0 )
+        return 0;
 p->timeDelay = clock() - clk;
-
+/*
+    {
+        FILE * pTable;
+        pTable = fopen( "stats.txt", "a+" );
+        fprintf( pTable, "%s ",  pNtk->pName );
+        fprintf( pTable, "%.2f ", FiBest );
+        fprintf( pTable, "%.2f ", (float)(p->timeCuts)/(float)(CLOCKS_PER_SEC) );
+        fprintf( pTable, "%.2f ", (float)(p->timeDelay)/(float)(CLOCKS_PER_SEC) );
+        fprintf( pTable, "\n" );
+        fclose( pTable );
+    }
+*/
     // clean the marks
     Abc_NtkForEachObj( pNtk, pObj, i )
         assert( !pObj->fMarkA && !pObj->fMarkB );
@@ -104,6 +117,7 @@ p->timeDelay = clock() - clk;
     // remove the cuts
     Cut_ManStop( p->pCutMan );
     p->pCutMan = NULL;
+    return 1;
 }
 
 /**Function*************************************************************
@@ -144,7 +158,15 @@ float Seq_MapRetimeDelayLagsInternal( Abc_Ntk_t * pNtk, int fVerbose )
     Delta /= 2;
 
     // make sure this clock period is feasible
-    assert( Seq_MapRetimeForPeriod( pNtk, FiMax, fVerbose ) );
+    if ( !Seq_MapRetimeForPeriod( pNtk, FiMax, fVerbose ) )
+    {
+        Vec_StrFill( p->vLags, p->nSize, 0 );
+        Vec_StrFill( p->vLagsN, p->nSize, 0 );
+        printf( "Error: The upper bound on the clock period cannot be computed.\n" );
+        printf( "The reason for this error may be the presence in the circuit of logic\n" );
+        printf( "that is not reachable from the PIs. Mapping/retiming is not performed.\n" );
+        return 0;
+    }
 
     // search for the optimal clock period between 0 and nLevelMax
     FiBest = Seq_MapRetimeSearch_rec( pNtk, 0.0, FiMax, Delta, fVerbose );
@@ -152,6 +174,15 @@ float Seq_MapRetimeDelayLagsInternal( Abc_Ntk_t * pNtk, int fVerbose )
     // recompute the best l-values
     RetValue = Seq_MapRetimeForPeriod( pNtk, FiBest, fVerbose );
     assert( RetValue );
+
+    // fix the problem with non-converged delays
+    Abc_AigForEachAnd( pNtk, pNode, i )
+    {
+        if ( Seq_NodeGetLValueP(pNode) < -ABC_INFINITY/2 )
+            Seq_NodeSetLValueP( pNode, 0 );
+        if ( Seq_NodeGetLValueN(pNode) < -ABC_INFINITY/2 )
+            Seq_NodeSetLValueN( pNode, 0 );
+    }
 
     // write the retiming lags for both phases of each node
     Vec_StrFill( p->vLags,  p->nSize, 0 );
@@ -579,6 +610,8 @@ void Seq_MapCanonicizeTruthTables( Abc_Ntk_t * pNtk )
     Abc_AigForEachAnd( pNtk, pObj, i )
     {
         pList = Abc_NodeReadCuts( Seq_NodeCutMan(pObj), pObj );
+        if ( pList == NULL )
+            continue;
         for ( pCut = pList->pNext; pCut; pCut = pCut->pNext )
             Cut_TruthCanonicize( pCut );
     }

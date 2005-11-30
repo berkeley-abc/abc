@@ -47,7 +47,7 @@ extern Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams );
   SeeAlso     []
 
 ***********************************************************************/
-void Seq_FpgaMappingDelays( Abc_Ntk_t * pNtk, int fVerbose )
+int Seq_FpgaMappingDelays( Abc_Ntk_t * pNtk, int fVerbose )
 {
     Abc_Seq_t * p = pNtk->pManFunc;
     Cut_Params_t Params, * pParams = &Params;
@@ -78,8 +78,9 @@ p->timeCuts = clock() - clk;
 
     // compute the delays
 clk = clock();
-    Seq_AigRetimeDelayLags( pNtk, fVerbose );
-p->timeDelay = clock() - clk;
+    if ( !Seq_AigRetimeDelayLags( pNtk, fVerbose ) )
+        return 0;
+    p->timeDelay = clock() - clk;
 
     // collect the nodes and cuts used in the mapping
     p->vMapAnds = Vec_PtrAlloc( 1000 );
@@ -94,6 +95,7 @@ p->timeDelay = clock() - clk;
     // remove the cuts
     Cut_ManStop( p->pCutMan );
     p->pCutMan = NULL;
+    return 1;
 }
 
 /**Function*************************************************************
@@ -161,7 +163,7 @@ Cut_Cut_t * Seq_FpgaMappingSelectCut( Abc_Obj_t * pAnd )
     for ( pCut = pList->pNext; pCut; pCut = pCut->pNext )
     {
         ArrivalCut = *((int *)&pCut->uSign);
-        assert( ArrivalCut >= ArrivalMin );
+//        assert( ArrivalCut >= ArrivalMin );
         if ( ArrivalCut > ArrivalMin )
             continue;
         CostCur = 0.0;

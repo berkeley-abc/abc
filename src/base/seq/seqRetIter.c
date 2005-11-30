@@ -49,7 +49,7 @@ static void  Seq_NodePrintInfoPlus( Abc_Obj_t * pNode );
   SeeAlso     []
 
 ***********************************************************************/
-void Seq_NtkRetimeDelayLags( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtk, int fVerbose )
+int Seq_NtkRetimeDelayLags( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtk, int fVerbose )
 {
     Abc_Seq_t * p = pNtk->pManFunc;
     Abc_Obj_t * pNode;
@@ -76,7 +76,7 @@ void Seq_NtkRetimeDelayLags( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtk, int fVerbose
             if ( Delta == 0.0 )
             {
                 printf( "Cannot retime/map if the library does not have NAND2 or AND2.\n" );
-                return;
+                return 0;
             }
         }
         // get the upper bound on the clock period
@@ -90,14 +90,25 @@ void Seq_NtkRetimeDelayLags( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtk, int fVerbose
     }
 
     // make sure this clock period is feasible
-    assert( Seq_NtkMappingForPeriod( pNtk, FiMax, fVerbose ) );
-
+    if ( !Seq_NtkMappingForPeriod( pNtk, FiMax, fVerbose ) )
+    {
+        printf( "Error: The upper bound on the clock period cannot be computed.\n" );
+        printf( "The reason for this error may be the presence in the circuit of logic\n" );
+        printf( "that is not reachable from the PIs. Mapping/retiming is not performed.\n" );
+        return 0;
+    }
+ 
     // search for the optimal clock period between 0 and nLevelMax
     FiBest = Seq_NtkMappingSearch_rec( pNtk, 0.0, FiMax, Delta, fVerbose );
 
     // recompute the best l-values
     RetValue = Seq_NtkMappingForPeriod( pNtk, FiBest, fVerbose );
     assert( RetValue );
+
+    // fix the problem with non-converged delays
+    Vec_PtrForEachEntry( p->vMapAnds, pNode, i )
+        if ( Seq_NodeGetLValueP(pNode) < -ABC_INFINITY/2 )
+            Seq_NodeSetLValueP( pNode, 0 );
 
     // experiment by adding an epsilon to all LValues
 //    Vec_PtrForEachEntry( p->vMapAnds, pNode, i )
@@ -126,8 +137,18 @@ void Seq_NtkRetimeDelayLags( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtk, int fVerbose
     // print the result
     if ( fVerbose )
         printf( "The best clock period is %6.2f.\n", FiBest );
-
+/*
+    {
+        FILE * pTable;
+        pTable = fopen( "stats.txt", "a+" );
+        fprintf( pTable, "%s ",  pNtk->pName );
+        fprintf( pTable, "%.2f ", FiBest );
+        fprintf( pTable, "\n" );
+        fclose( pTable );
+    }
+*/
 //    Seq_NodePrintInfo( Abc_NtkObj(pNtk, 847) );
+    return 1;
 }
 
 /**Function*************************************************************

@@ -44,11 +44,11 @@ static int Seq_RetimeNodeUpdateLValue( Abc_Obj_t * pObj, int Fi );
   SeeAlso     []
 
 ***********************************************************************/
-void Seq_AigRetimeDelayLags( Abc_Ntk_t * pNtk, int fVerbose )
+int Seq_AigRetimeDelayLags( Abc_Ntk_t * pNtk, int fVerbose )
 {
     Abc_Seq_t * p = pNtk->pManFunc;
     Abc_Obj_t * pNode;
-    int i, FiMax, FiBest, RetValue;
+    int i, FiMax, FiBest, RetValue, clk, clkIter;
     char NodeLag;
 
     assert( Abc_NtkIsSeq( pNtk ) );
@@ -57,14 +57,28 @@ void Seq_AigRetimeDelayLags( Abc_Ntk_t * pNtk, int fVerbose )
     FiMax = 2 + Seq_NtkLevelMax(pNtk);
 
     // make sure this clock period is feasible
-    assert( Seq_RetimeForPeriod( pNtk, FiMax, fVerbose ) );
+    if ( !Seq_RetimeForPeriod( pNtk, FiMax, fVerbose ) )
+    {
+        Vec_StrFill( p->vLags, p->nSize, 0 );
+        printf( "Error: The upper bound on the clock period cannot be computed.\n" );
+        printf( "The reason for this error may be the presence in the circuit of logic\n" );
+        printf( "that is not reachable from the PIs. Mapping/retiming is not performed.\n" );
+        return 0;
+    }
 
     // search for the optimal clock period between 0 and nLevelMax
+clk = clock();
     FiBest = Seq_RetimeSearch_rec( pNtk, 0, FiMax, fVerbose );
+clkIter = clock() - clk;
 
     // recompute the best l-values
     RetValue = Seq_RetimeForPeriod( pNtk, FiBest, fVerbose );
     assert( RetValue );
+
+    // fix the problem with non-converged delays
+    Abc_AigForEachAnd( pNtk, pNode, i )
+        if ( Seq_NodeGetLValue(pNode) < -ABC_INFINITY/2 )
+            Seq_NodeSetLValue( pNode, 0 );
 
     // write the retiming lags
     Vec_StrFill( p->vLags, p->nSize, 0 );
@@ -73,39 +87,39 @@ void Seq_AigRetimeDelayLags( Abc_Ntk_t * pNtk, int fVerbose )
         NodeLag = Seq_NodeComputeLag( Seq_NodeGetLValue(pNode), FiBest );
         Seq_NodeSetLag( pNode, NodeLag );
     }
-/*
-    {
-        Abc_Obj_t * pFanin, * pFanout;
-        pNode = Abc_NtkObj( pNtk, 823 );
-        printf( "Node  %d.  Lag = %d. LValue = %d. Latches = (%d,%d) (%d,%d).\n", pNode->Id, Seq_NodeGetLag(pNode), Seq_NodeGetLValue(pNode), 
-            Seq_ObjFaninL0(pNode), Seq_ObjFaninL1(pNode), Seq_ObjFanoutL(pNode, Abc_NtkObj(pNtk, 826)), Seq_ObjFanoutL(pNode, Abc_NtkObj(pNtk, 1210)) );
-        pFanin = Abc_ObjFanin0( pNode );
-        printf( "Fanin %d.  Lag = %d. LValue = %d. Latches = (%d,%d)\n", pFanin->Id, Seq_NodeGetLag(pFanin), Seq_NodeGetLValue(pFanin),
-            Seq_ObjFaninL0(pFanin), Seq_ObjFaninL1(pFanin) );
-        pFanin = Abc_ObjFanin1( pNode );
-        printf( "Fanin %d.  Lag = %d. LValue = %d.\n", pFanin->Id, Seq_NodeGetLag(pFanin), Seq_NodeGetLValue(pFanin) );
-        Abc_ObjForEachFanout( pNode, pFanout, i )
-            printf( "Fanout %d.  Lag = %d. LValue = %d.\n", pFanout->Id, Seq_NodeGetLag(pFanout), Seq_NodeGetLValue(pFanout) );
-        Abc_ObjForEachFanout( Abc_ObjFanin0(pNode), pFanout, i )
-            printf( "Fanout %d.  Lag = %d. LValue = %d.\n", pFanout->Id, Seq_NodeGetLag(pFanout), Seq_NodeGetLValue(pFanout) );
-    }
-*/
 
     // print the result
     if ( fVerbose )
     printf( "The best clock period is %3d.\n", FiBest );
-
 /*
-    printf( "LValues : " );
+    printf( "lvalues and lags : " );
     Abc_AigForEachAnd( pNtk, pNode, i )
-        printf( "%d=%d ", i, Seq_NodeGetLValue(pNode) );
-    printf( "\n" );
-    printf( "Lags : " );
-    Abc_AigForEachAnd( pNtk, pNode, i )
-        if ( Vec_StrEntry(p->vLags,i) != 0 )
-            printf( "%d=%d(%d)(%d) ", i, Vec_StrEntry(p->vLags,i), Seq_NodeGetLValue(pNode), Seq_NodeGetLValue(pNode) - FiBest * Vec_StrEntry(p->vLags,i) );
+        printf( "%d=%d(%d) ", pNode->Id, Seq_NodeGetLValue(pNode), Seq_NodeGetLag(pNode) );
     printf( "\n" );
 */
+/*
+    {
+        FILE * pTable;
+        pTable = fopen( "stats.txt", "a+" );
+        fprintf( pTable, "%s ",  pNtk->pName );
+        fprintf( pTable, "%d ", FiBest );
+        fprintf( pTable, "\n" );
+        fclose( pTable );
+    }
+*/
+/*
+    {
+        FILE * pTable;
+        pTable = fopen( "stats.txt", "a+" );
+        fprintf( pTable, "%s ",  pNtk->pName );
+        fprintf( pTable, "%.2f ", (float)(p->timeCuts)/(float)(CLOCKS_PER_SEC) );
+        fprintf( pTable, "%.2f ", (float)(clkIter)/(float)(CLOCKS_PER_SEC) );
+        fprintf( pTable, "\n" );
+        fclose( pTable );
+    }
+*/
+    return 1;
+
 }
 
 /**Function*************************************************************
@@ -203,6 +217,14 @@ int Seq_RetimeForPeriod( Abc_Ntk_t * pNtk, int Fi, int fVerbose )
         else
             printf( "Period = %3d.  Iterations = %3d.  Updates = %10d.      Feasible\n",    Fi, c, Counter );
     }
+/*
+    // check if any AND gates have infinite delay
+    Counter = 0;
+    Abc_AigForEachAnd( pNtk, pObj, i )
+        Counter += (Seq_NodeGetLValue(pObj) < -ABC_INFINITY/2);
+    if ( Counter > 0 )
+        printf( "Warning: %d internal nodes have wrong l-values!\n", Counter );
+*/
     return RetValue != SEQ_UPDATE_FAIL;
 }
 

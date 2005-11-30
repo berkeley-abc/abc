@@ -447,17 +447,40 @@ int Abc_NodeDroppingCost( Abc_Obj_t * pNode )
 int Abc_NtkCleanup( Abc_Ntk_t * pNtk, int fVerbose )
 {
     Vec_Ptr_t * vNodes;
-    Abc_Obj_t * pNode;
-    int i, Counter;
+    int Counter;
     assert( !Abc_NtkHasAig(pNtk) );
     // mark the nodes reachable from the POs
     vNodes = Abc_NtkDfs( pNtk, 0 );
+    Counter = Abc_NtkReduceNodes( pNtk, vNodes );
+    if ( fVerbose )
+        printf( "Cleanup removed %d dangling nodes.\n", Counter );
+    Vec_PtrFree( vNodes );
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Preserves the nodes collected in the array.]
+
+  Description [Returns the number of nodes removed.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkReduceNodes( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes )
+{
+    Abc_Obj_t * pNode;
+    int i, Counter;
+    assert( !Abc_NtkIsStrash(pNtk) );
+    // mark the nodes reachable from the POs
     for ( i = 0; i < vNodes->nSize; i++ )
     {
         pNode = vNodes->pArray[i];
+        assert( Abc_ObjIsNode(pNode) );
         pNode->fMarkA = 1;
     }
-    Vec_PtrFree( vNodes );
     // if it is an AIG, also mark the constant 1 node
     if ( Abc_NtkConst1(pNtk) )
         Abc_NtkConst1(pNtk)->fMarkA = 1;
@@ -472,14 +495,9 @@ int Abc_NtkCleanup( Abc_Ntk_t * pNtk, int fVerbose )
     // unmark the remaining nodes
     Abc_NtkForEachNode( pNtk, pNode, i )
         pNode->fMarkA = 0;
-    if ( fVerbose )
-        printf( "Cleanup removed %d dangling nodes.\n", Counter );
     // check
     if ( !Abc_NtkCheck( pNtk ) )
-    {
         printf( "Abc_NtkCleanup: The network check has failed.\n" );
-        return -1;
-    }
     return Counter;
 }
 

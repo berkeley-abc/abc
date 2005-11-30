@@ -102,6 +102,7 @@ static int Abc_CommandRetime       ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int Abc_CommandSeqFpga      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSeqMap       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSeqSweep     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSeqCleanup   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandCec          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSec          ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -195,7 +196,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Sequential",   "retime",        Abc_CommandRetime,           1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "sfpga",         Abc_CommandSeqFpga,          1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "smap",          Abc_CommandSeqMap,           1 );
-    Cmd_CommandAdd( pAbc, "Sequential",   "seq_sweep",     Abc_CommandSeqSweep,         1 );
+    Cmd_CommandAdd( pAbc, "Sequential",   "ssweep",        Abc_CommandSeqSweep,         1 );
+    Cmd_CommandAdd( pAbc, "Sequential",   "scleanup",      Abc_CommandSeqCleanup,       1 );
 
     Cmd_CommandAdd( pAbc, "Verification", "cec",           Abc_CommandCec,              0 );
     Cmd_CommandAdd( pAbc, "Verification", "sec",           Abc_CommandSec,              0 );
@@ -1299,7 +1301,7 @@ int Abc_CommandShowNtk( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         switch ( c )
         {
-        case 'n':
+        case 'g':
             fGateNames ^= 1;
             break;
         default:
@@ -1716,7 +1718,7 @@ int Abc_CommandCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     // modify the current network
-    Abc_NtkCleanup( pNtk, 0 );
+    Abc_NtkCleanup( pNtk, 1 );
     return 0;
 
 usage:
@@ -5132,7 +5134,7 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Retiming has failed.\n" );
-        return 1;
+        return 0;
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
@@ -5208,12 +5210,14 @@ int Abc_CommandSeqFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( Abc_NtkHasAig(pNtk) )
     {
+/*
         // quit if there are choice nodes
         if ( Abc_NtkGetChoiceNum(pNtk) )
         {
             fprintf( pErr, "Currently cannot map/retime networks with choice nodes.\n" );
             return 0;
         }
+*/
         if ( Abc_NtkIsStrash(pNtk) )
             pNtkNew = Abc_NtkAigToSeq(pNtk);
         else
@@ -5330,12 +5334,14 @@ int Abc_CommandSeqMap( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( Abc_NtkHasAig(pNtk) )
     {
+/*
         // quit if there are choice nodes
         if ( Abc_NtkGetChoiceNum(pNtk) )
         {
             fprintf( pErr, "Currently cannot map/retime networks with choice nodes.\n" );
             return 0;
         }
+*/
         if ( Abc_NtkIsStrash(pNtk) )
             pNtkNew = Abc_NtkAigToSeq(pNtk);
         else
@@ -5377,7 +5383,7 @@ int Abc_CommandSeqMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         fprintf( pErr, "Sequential FPGA mapping has failed.\n" );
         Abc_NtkDelete( pNtkNew );
-        return 1;
+        return 0;
     }
     Abc_NtkDelete( pNtkNew );
 
@@ -5497,12 +5503,66 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: seq_sweep [-F num] [-eivh]\n" );
+    fprintf( pErr, "usage: ssweep [-F num] [-eivh]\n" );
     fprintf( pErr, "\t         performs sequential sweep using van Eijk's method\n" );
     fprintf( pErr, "\t-F num : number of time frames in the base case [default = %d]\n", nFrames );
     fprintf( pErr, "\t-e     : toggle writing EXDC network [default = %s]\n", fExdc? "yes": "no" );
     fprintf( pErr, "\t-i     : toggle computing implications [default = %s]\n", fImp? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandSeqCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+
+    pNtk = Abc_FrameReadNet(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsSeq(pNtk) )
+    {
+        fprintf( pErr, "Only works for sequential AIGs.\n" );
+        return 1;
+    }
+    // modify the current network
+    Seq_NtkCleanup( pNtk, 1 );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: scleanup [-h]\n" );
+    fprintf( pErr, "\t         performs sequential cleanup\n" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
 }

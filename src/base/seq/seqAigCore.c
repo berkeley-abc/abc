@@ -73,7 +73,8 @@ void Seq_NtkSeqRetimeDelay( Abc_Ntk_t * pNtk, int nMaxIters, int fInitial, int f
         Seq_NtkLatchSetValues( pNtk, ABC_INIT_DC );
     // get the retiming lags
     p->nMaxIters = nMaxIters;
-    Seq_AigRetimeDelayLags( pNtk, fVerbose );
+    if ( !Seq_AigRetimeDelayLags( pNtk, fVerbose ) )
+        return;
     // implement this retiming
     RetValue = Seq_NtkImplementRetiming( pNtk, p->vLags, fVerbose );
     if ( RetValue == 0 )

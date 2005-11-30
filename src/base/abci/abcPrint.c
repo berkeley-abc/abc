@@ -96,6 +96,57 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
         fprintf( pFile, "  lev = %3d", Abc_NtkGetLevelNum(pNtk) );
 
     fprintf( pFile, "\n" );
+    // print the statistic into a file
+/*
+    {
+        FILE * pTable;
+        pTable = fopen( "stats.txt", "a+" );
+        fprintf( pTable, "%s  ",  pNtk->pName );
+        fprintf( pTable, "%4d ", Abc_NtkPiNum(pNtk) );
+        fprintf( pTable, "%4d ", Abc_NtkPoNum(pNtk) );
+//        fprintf( pTable, "%4d ", Abc_NtkLatchNum(pNtk) );
+        fprintf( pTable, "%6d ", Abc_NtkNodeNum(pNtk) );
+        fprintf( pTable, "%6d ", Abc_AigGetLevelNum(pNtk) );
+        fprintf( pTable, "\n" );
+        fclose( pTable );
+    }
+*/
+/*
+    // print the statistic into a file
+    {
+        FILE * pTable;
+        pTable = fopen( "stats.txt", "a+" );
+        fprintf( pTable, "%s ",  pNtk->pSpec );
+        fprintf( pTable, "%.0f ", Abc_NtkGetMappedArea(pNtk) );
+        fprintf( pTable, "%.2f ", Abc_NtkDelayTrace(pNtk) );
+        fprintf( pTable, "\n" );
+        fclose( pTable );
+    }
+*/
+
+/*
+    // print the statistic into a file
+    {
+        FILE * pTable;
+        pTable = fopen( "stats.txt", "a+" );
+        fprintf( pTable, "%s ",  pNtk->pName );
+        fprintf( pTable, "%d ", Abc_NtkNodeNum(pNtk) );
+        fprintf( pTable, "%d ", Abc_AigGetLevelNum(pNtk) );
+        fprintf( pTable, "\n" );
+        fclose( pTable );
+    }
+*/
+/*
+    // print the statistic into a file
+    {
+        FILE * pTable;
+        pTable = fopen( "stats.txt", "a+" );
+        fprintf( pTable, "%s ",  pNtk->pName );
+        fprintf( pTable, "%d ", Abc_NtkLatchNum(pNtk) );
+        fprintf( pTable, "\n" );
+        fclose( pTable );
+    }
+*/
 }
 
 /**Function*************************************************************

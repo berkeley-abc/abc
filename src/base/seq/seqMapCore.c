@@ -74,12 +74,14 @@ Abc_Ntk_t * Seq_MapRetime( Abc_Ntk_t * pNtk, int nMaxIters, int fVerbose )
     p->fStandCells = 1;
 
     // find the best mapping and retiming for all nodes (p->vLValues, p->vBestCuts, p->vLags)
-    Seq_MapRetimeDelayLags( pNtk, fVerbose );
+    if ( !Seq_MapRetimeDelayLags( pNtk, fVerbose ) )
+        return NULL;
     if ( RetValue = Abc_NtkGetChoiceNum(pNtk) )
     {
         printf( "The network has %d choices. Deriving the resulting network is skipped.\n", RetValue );
         return NULL;
     }
+    return NULL;
 
     // duplicate the nodes contained in multiple cuts
     pNtkNew = Seq_NtkMapDup( pNtk );

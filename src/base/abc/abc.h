@@ -632,8 +632,9 @@ extern Abc_Ntk_t *        Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes, bool 
 extern Abc_Obj_t *        Abc_NodeStrash( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode );
 extern int                Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 );
 /*=== abcSweep.c ==========================================================*/
-extern int                Abc_NtkCleanup( Abc_Ntk_t * pNtk, int fVerbose );
 extern int                Abc_NtkSweep( Abc_Ntk_t * pNtk, int fVerbose );
+extern int                Abc_NtkCleanup( Abc_Ntk_t * pNtk, int fVerbose );
+extern int                Abc_NtkReduceNodes( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes );
 /*=== abcTiming.c ==========================================================*/
 extern Abc_Time_t *       Abc_NodeReadArrival( Abc_Obj_t * pNode );
 extern Abc_Time_t *       Abc_NodeReadRequired( Abc_Obj_t * pNode );

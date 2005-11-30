@@ -62,7 +62,8 @@ Abc_Ntk_t * Seq_NtkFpgaMapRetime( Abc_Ntk_t * pNtk, int nMaxIters, int fVerbose 
     p->nMaxIters = nMaxIters;
 
     // find the best mapping and retiming for all nodes (p->vLValues, p->vBestCuts, p->vLags)
-    Seq_FpgaMappingDelays( pNtk, fVerbose );
+    if ( !Seq_FpgaMappingDelays( pNtk, fVerbose ) )
+        return NULL;
     if ( RetValue = Abc_NtkGetChoiceNum(pNtk) )
     {
         printf( "The network has %d choices. Deriving the resulting network is skipped.\n", RetValue );
