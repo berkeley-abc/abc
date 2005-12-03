@@ -66,7 +66,8 @@ Abc_Ntk_t * Seq_NtkFpgaMapRetime( Abc_Ntk_t * pNtk, int nMaxIters, int fVerbose 
         return NULL;
     if ( RetValue = Abc_NtkGetChoiceNum(pNtk) )
     {
-        printf( "The network has %d choices. Deriving the resulting network is skipped.\n", RetValue );
+        printf( "The network has %d choices. The resulting network is not derived (this is temporary).\n", RetValue );
+        printf( "The mininum clock period computed is %d.\n", p->FiBestInt );
         return NULL;
     }
 

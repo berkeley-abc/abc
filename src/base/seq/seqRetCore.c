@@ -62,8 +62,6 @@ Abc_Ntk_t * Seq_NtkRetime( Abc_Ntk_t * pNtk, int nMaxIters, int fInitial, int fV
     // find the best mapping and retiming 
     if ( !Seq_NtkRetimeDelayLags( pNtk, pNtkSeq, fVerbose ) )
         return NULL;
-    return NULL;
-
 
     // implement the retiming
     RetValue = Seq_NtkImplementRetiming( pNtkSeq, p->vLags, fVerbose );

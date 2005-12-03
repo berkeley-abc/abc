@@ -343,7 +343,7 @@ DdNode * Abc_NodeGlobalBdds_rec( DdManager * dd, Abc_Obj_t * pNode )
 {
     DdNode * bFunc, * bFunc0, * bFunc1;
     assert( !Abc_ObjIsComplement(pNode) );
-    if ( Cudd_ReadKeys(dd) > 500000 )
+    if ( Cudd_ReadKeys(dd) > 5000000 )
         return NULL;
     // if the result is available return
     if ( pNode->pCopy )

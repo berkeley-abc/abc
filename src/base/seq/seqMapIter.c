@@ -53,7 +53,7 @@ int Seq_MapRetimeDelayLags( Abc_Ntk_t * pNtk, int fVerbose )
     Abc_Seq_t * p = pNtk->pManFunc;
     Cut_Params_t Params, * pParams = &Params;
     Abc_Obj_t * pObj;
-    float TotalArea, FiBest;
+    float TotalArea;
     int i, clk;
 
     // set defaults for cut computation
@@ -80,8 +80,8 @@ p->timeCuts = clock() - clk;
 
     // compute the delays
 clk = clock();
-    FiBest = Seq_MapRetimeDelayLagsInternal( pNtk, fVerbose );
-    if ( FiBest == 0.0 )
+    p->FiBestFloat = Seq_MapRetimeDelayLagsInternal( pNtk, fVerbose );
+    if ( p->FiBestFloat == 0.0 )
         return 0;
 p->timeDelay = clock() - clk;
 /*
@@ -89,7 +89,7 @@ p->timeDelay = clock() - clk;
         FILE * pTable;
         pTable = fopen( "stats.txt", "a+" );
         fprintf( pTable, "%s ",  pNtk->pName );
-        fprintf( pTable, "%.2f ", FiBest );
+        fprintf( pTable, "%.2f ", p->FiBestFloat );
         fprintf( pTable, "%.2f ", (float)(p->timeCuts)/(float)(CLOCKS_PER_SEC) );
         fprintf( pTable, "%.2f ", (float)(p->timeDelay)/(float)(CLOCKS_PER_SEC) );
         fprintf( pTable, "\n" );
@@ -105,7 +105,7 @@ p->timeDelay = clock() - clk;
     p->vMapCuts = Vec_VecAlloc( 1000 );
     TotalArea = 0.0;
     Abc_NtkForEachPo( pNtk, pObj, i )
-        TotalArea += Seq_MapCollectNode_rec( Abc_ObjChild0(pObj), FiBest, p->vMapAnds, p->vMapCuts );
+        TotalArea += Seq_MapCollectNode_rec( Abc_ObjChild0(pObj), p->FiBestFloat, p->vMapAnds, p->vMapCuts );
 
     // clean the marks
     Abc_NtkForEachObj( pNtk, pObj, i )
@@ -202,7 +202,7 @@ float Seq_MapRetimeDelayLagsInternal( Abc_Ntk_t * pNtk, int fVerbose )
 //printf( "\n\n" );
 
     // print the result
-//    if ( fVerbose )
+    if ( fVerbose )
     printf( "The best clock period after mapping/retiming is %6.2f.\n", FiBest );
     return FiBest;
 }

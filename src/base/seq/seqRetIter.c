@@ -53,7 +53,7 @@ int Seq_NtkRetimeDelayLags( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtk, int fVerbose 
 {
     Abc_Seq_t * p = pNtk->pManFunc;
     Abc_Obj_t * pNode;
-    float FiMax, FiBest, Delta;
+    float FiMax, Delta;
     int i, RetValue;
     char NodeLag;
 
@@ -99,10 +99,10 @@ int Seq_NtkRetimeDelayLags( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtk, int fVerbose 
     }
  
     // search for the optimal clock period between 0 and nLevelMax
-    FiBest = Seq_NtkMappingSearch_rec( pNtk, 0.0, FiMax, Delta, fVerbose );
+    p->FiBestFloat = Seq_NtkMappingSearch_rec( pNtk, 0.0, FiMax, Delta, fVerbose );
 
     // recompute the best l-values
-    RetValue = Seq_NtkMappingForPeriod( pNtk, FiBest, fVerbose );
+    RetValue = Seq_NtkMappingForPeriod( pNtk, p->FiBestFloat, fVerbose );
     assert( RetValue );
 
     // fix the problem with non-converged delays
@@ -127,7 +127,7 @@ int Seq_NtkRetimeDelayLags( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtk, int fVerbose 
             Seq_NodeSetLag( pNode, 0 );
             continue;
         }
-        NodeLag = Seq_NodeComputeLagFloat( Seq_NodeGetLValueP(pNode), FiBest );
+        NodeLag = Seq_NodeComputeLagFloat( Seq_NodeGetLValueP(pNode), p->FiBestFloat );
         Seq_NodeRetimeSetLag_rec( pNode, NodeLag );
     }
     // unmark the nodes
@@ -136,7 +136,7 @@ int Seq_NtkRetimeDelayLags( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtk, int fVerbose 
 
     // print the result
     if ( fVerbose )
-        printf( "The best clock period is %6.2f.\n", FiBest );
+        printf( "The best clock period is %6.2f.\n", p->FiBestFloat );
 /*
     {
         FILE * pTable;

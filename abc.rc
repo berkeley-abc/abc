@@ -1,5 +1,5 @@
 # global parameters
-set check         # checks intermediate networks
+#set check         # checks intermediate networks
 #set checkfio      # prints warnings when fanins/fanouts are duplicated
 set checkread     # checks new networks after reading from file
 set backup        # saves backup networks retrived by "undo" and "recall"
@@ -61,17 +61,15 @@ alias wl write_blif
 alias wp write_pla
 
 # standard scripts
-alias cnf      "st; ren -c; write_cnf"
-alias prove    "st; ren -c; sat"
-alias opt      "b; ren; b"
-alias share    "b; ren; fx; b"
-alias sharem   "b; ren -m; fx; b"
-alias sharedsd "b; ren; dsd -g; sw; fx; b"
-alias resyn    "b; rw; rwz; b; rwz; b"
-alias resynl   "b; rw -l; rwz -l; b; rwz -l; b"
-alias resyn2   "b; rw; rf; b; rw; rwz; b; rfz; rwz; b"
-alias resyn2l  "b; rw -l; rf -l; b; rw -l; rwz -l; b; rfz -l; rwz -l; b"
-alias thin     "rwz; rfz; b; ps"
-alias choice   "fraig_store; resynl; fraig_store; resyn2l; fraig_store; fraig_restore"
-alias t        "r step_opt.blif; b; seq; show_aig; sfpga -v"
+alias cnf       "st; ren -c; write_cnf"
+alias prove     "st; ren -c; sat"
+alias opt       "b; ren; b"
+alias share     "b; ren; fx; b"
+alias sharem    "b; ren -m; fx; b"
+alias sharedsd  "b; ren; dsd -g; sw; fx; b"
+alias resyn     "b; rw; rwz; b; rwz; b"
+alias resyn2    "b; rw; rf; b; rw; rwz; b; rfz; rwz; b"
+alias compress  "b; rw -l; rwz -l; b; rwz -l; b"
+alias compress2 "b; rw -l; rf -l; b; rw -l; rwz -l; b; rfz -l; rwz -l; b"
+alias choice    "fraig_store; resyn; fraig_store; resyn2; fraig_store; fraig_restore"
 

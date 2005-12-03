@@ -2062,7 +2062,7 @@ int Abc_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fUpdateLevel = 0;
+    fUpdateLevel = 1;
     fPrecompute  = 0;
     fUseZeros    = 0;
     fVerbose     = 0;
@@ -5257,7 +5257,7 @@ int Abc_CommandSeqFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
     pNtkRes = Seq_NtkFpgaMapRetime( pNtkNew, nMaxIters, fVerbose );
     if ( pNtkRes == NULL )
     {
-        fprintf( pErr, "Sequential FPGA mapping has failed.\n" );
+//        fprintf( pErr, "Sequential FPGA mapping has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return 0;
     }
@@ -5381,7 +5381,7 @@ int Abc_CommandSeqMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     pNtkRes = Seq_MapRetime( pNtkNew, nMaxIters, fVerbose );
     if ( pNtkRes == NULL )
     {
-        fprintf( pErr, "Sequential FPGA mapping has failed.\n" );
+//        fprintf( pErr, "Sequential FPGA mapping has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return 0;
     }

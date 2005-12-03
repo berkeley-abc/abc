@@ -59,6 +59,8 @@ struct Abc_Seq_t_
     float               fEpsilon;       // the accuracy for delay computation
     int                 fStandCells;    // the flag denoting standard cell mapping
     int                 nMaxIters;      // the max number of iterations
+    int                 FiBestInt;      // the best clock period
+    float               FiBestFloat;    // the best clock period
     // K-feasible cuts
     int                 nVarsMax;       // the max cut size
     Cut_Man_t *         pCutMan;        // cut manager

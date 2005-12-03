@@ -48,7 +48,7 @@ int Seq_AigRetimeDelayLags( Abc_Ntk_t * pNtk, int fVerbose )
 {
     Abc_Seq_t * p = pNtk->pManFunc;
     Abc_Obj_t * pNode;
-    int i, FiMax, FiBest, RetValue, clk, clkIter;
+    int i, FiMax, RetValue, clk, clkIter;
     char NodeLag;
 
     assert( Abc_NtkIsSeq( pNtk ) );
@@ -68,11 +68,11 @@ int Seq_AigRetimeDelayLags( Abc_Ntk_t * pNtk, int fVerbose )
 
     // search for the optimal clock period between 0 and nLevelMax
 clk = clock();
-    FiBest = Seq_RetimeSearch_rec( pNtk, 0, FiMax, fVerbose );
+    p->FiBestInt = Seq_RetimeSearch_rec( pNtk, 0, FiMax, fVerbose );
 clkIter = clock() - clk;
 
     // recompute the best l-values
-    RetValue = Seq_RetimeForPeriod( pNtk, FiBest, fVerbose );
+    RetValue = Seq_RetimeForPeriod( pNtk, p->FiBestInt, fVerbose );
     assert( RetValue );
 
     // fix the problem with non-converged delays
@@ -84,13 +84,14 @@ clkIter = clock() - clk;
     Vec_StrFill( p->vLags, p->nSize, 0 );
     Abc_AigForEachAnd( pNtk, pNode, i )
     {
-        NodeLag = Seq_NodeComputeLag( Seq_NodeGetLValue(pNode), FiBest );
+        NodeLag = Seq_NodeComputeLag( Seq_NodeGetLValue(pNode), p->FiBestInt );
         Seq_NodeSetLag( pNode, NodeLag );
     }
 
     // print the result
     if ( fVerbose )
-    printf( "The best clock period is %3d.\n", FiBest );
+    printf( "The best clock period is %3d.\n", p->FiBestInt );
+
 /*
     printf( "lvalues and lags : " );
     Abc_AigForEachAnd( pNtk, pNode, i )

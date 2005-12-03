@@ -54,7 +54,7 @@ static bool Abc_NtkCompareLatches( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fCo
 
 ***********************************************************************/
 bool Abc_NtkCheck( Abc_Ntk_t * pNtk )
-{
+{ 
    return !Abc_FrameIsFlagEnabled( "check" ) || Abc_NtkDoCheck( pNtk );
 }
 
