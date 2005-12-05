@@ -66,6 +66,7 @@ void            Fpga_ManSetChoiceNodeNum( Fpga_Man_t * p, int nChoiceNodes ) { p
 void            Fpga_ManSetChoiceNum( Fpga_Man_t * p, int nChoices )         { p->nChoices = nChoices;          }   
 void            Fpga_ManSetVerbose( Fpga_Man_t * p, int fVerbose )           { p->fVerbose = fVerbose;          }   
 void            Fpga_ManSetSwitching( Fpga_Man_t * p, int fSwitching )       { p->fSwitching = fSwitching;      }   
+void            Fpga_ManSetDelayTarget( Fpga_Man_t * p, float DelayTarget )  { p->DelayTarget = DelayTarget;    }   
 void            Fpga_ManSetLatchNum( Fpga_Man_t * p, int nLatches )          { p->nLatches = nLatches;          }   
 void            Fpga_ManSetName( Fpga_Man_t * p, char * pFileName )          { p->pFileName = pFileName;        }   
 

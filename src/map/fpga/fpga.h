@@ -92,6 +92,7 @@ extern void            Fpga_ManSetChoiceNodeNum( Fpga_Man_t * p, int nChoiceNode
 extern void            Fpga_ManSetChoiceNum( Fpga_Man_t * p, int nChoices );
 extern void            Fpga_ManSetVerbose( Fpga_Man_t * p, int fVerbose );
 extern void            Fpga_ManSetSwitching( Fpga_Man_t * p, int fSwitching );
+extern void            Fpga_ManSetDelayTarget( Fpga_Man_t * p, float DelayTarget );
 extern void            Fpga_ManSetLatchNum( Fpga_Man_t * p, int nLatches );
 extern void            Fpga_ManSetName( Fpga_Man_t * p, char * pFileName );
 

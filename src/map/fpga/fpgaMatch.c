@@ -501,7 +501,7 @@ void Fpga_Experiment( Fpga_Man_t * p )
         AreaBefore = pNode->pCutBest->aFlow;
         pNode->pCutBest->aFlow = FPGA_FLOAT_LARGE;
 
-        Fpga_TimeComputeRequiredGlobal( p );
+        Fpga_TimeComputeRequiredGlobal( p, 0 );
 
         vNodesTfo = Fpga_CollectNodeTfo( p, pNode );
         if ( Fpga_MappingMatchesAreaArray( p, vNodesTfo ) == 0 )

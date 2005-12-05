@@ -1,4 +1,4 @@
-.model iscas\s444.bench
+.model s444
 .inputs G0 G1 G2
 .outputs G118 G167 G107 G119 G168 G108
 

@@ -68,8 +68,8 @@ Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes, bool fCleanup )
     Abc_NtkStrashPerform( pNtk, pNtkAig, fAllNodes );
     Abc_NtkFinalize( pNtk, pNtkAig );
     // print warning about self-feed latches
-    if ( Abc_NtkCountSelfFeedLatches(pNtkAig) )
-        printf( "Warning: The network has %d self-feeding latches.\n", Abc_NtkCountSelfFeedLatches(pNtkAig) );
+//    if ( Abc_NtkCountSelfFeedLatches(pNtkAig) )
+//        printf( "Warning: The network has %d self-feeding latches.\n", Abc_NtkCountSelfFeedLatches(pNtkAig) );
     if ( fCleanup && (nNodes = Abc_AigCleanup(pNtkAig->pManFunc)) )
         printf( "Warning: AIG cleanup removed %d nodes (this is not a bug).\n", nNodes );
     // duplicate EXDC 

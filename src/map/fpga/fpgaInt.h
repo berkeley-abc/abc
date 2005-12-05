@@ -123,7 +123,8 @@ struct Fpga_ManStruct_t_
     int                 fAreaRecovery; // the flag to use area flow as the first parameter
     int                 fVerbose;      // the verbosiness flag
     int                 fSwitching;    // minimize the switching activity (instead of area)
-    int                 nTravIds;
+    int                 nTravIds;      // the counter of traversal IDs
+    float               DelayTarget;   // the target required times
 
     // support of choice nodes
     int                 nChoiceNodes;  // the number of choice nodes
@@ -331,7 +332,7 @@ extern float             Fpga_MappingGetSwitching( Fpga_Man_t * pMan, Fpga_NodeV
 extern float             Fpga_TimeCutComputeArrival( Fpga_Man_t * pMan, Fpga_Cut_t * pCut );
 extern float             Fpga_TimeCutComputeArrival_rec( Fpga_Man_t * pMan, Fpga_Cut_t * pCut );
 extern float             Fpga_TimeComputeArrivalMax( Fpga_Man_t * p );
-extern void              Fpga_TimeComputeRequiredGlobal( Fpga_Man_t * p );
+extern void              Fpga_TimeComputeRequiredGlobal( Fpga_Man_t * p, int fFirstTime );
 extern void              Fpga_TimeComputeRequired( Fpga_Man_t * p, float fRequired );
 extern void              Fpga_TimePropagateRequired( Fpga_Man_t * p, Fpga_NodeVec_t * vNodes );
 extern void              Fpga_TimePropagateArrival( Fpga_Man_t * p );

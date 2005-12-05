@@ -118,7 +118,7 @@ PRT( "Time", p->timeMatch );
     {
 clk = clock();
         // compute the required times and the fanouts
-        Fpga_TimeComputeRequiredGlobal( p );
+        Fpga_TimeComputeRequiredGlobal( p, 1 );
         // remap topologically
         Fpga_MappingMatches( p, 0 );
         // get the resulting area
@@ -143,7 +143,7 @@ PRT( "Time", clock() - clk );
     {
 clk = clock();
         // compute the required times and the fanouts
-        Fpga_TimeComputeRequiredGlobal( p );
+        Fpga_TimeComputeRequiredGlobal( p, 0 );
         // remap topologically
         if ( p->fSwitching )
             Fpga_MappingMatchesSwitch( p );

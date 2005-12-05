@@ -42,6 +42,7 @@ static int Abc_CommandPrintSupport ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int Abc_CommandPrintSymms   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintKMap    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintGates   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintSharing ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandShowBdd      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandShowCut      ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -137,6 +138,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Printing",     "print_symm",    Abc_CommandPrintSymms,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_kmap",    Abc_CommandPrintKMap,        0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_gates",   Abc_CommandPrintGates,       0 );
+    Cmd_CommandAdd( pAbc, "Printing",     "print_sharing", Abc_CommandPrintSharing,     0 );
 
     Cmd_CommandAdd( pAbc, "Printing",     "show_bdd",      Abc_CommandShowBdd,          0 );
     Cmd_CommandAdd( pAbc, "Printing",     "show_cut",      Abc_CommandShowCut,          0 );
@@ -1004,6 +1006,69 @@ usage:
     fprintf( pErr, "usage: print_gates [-lh]\n" );
     fprintf( pErr, "\t        prints statistics about gates used in the network\n" );
     fprintf( pErr, "\t-l    : used library gate names (if mapped) [default = %s]\n", fUseLibrary? "yes": "no" );
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandPrintSharing( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+    int fUseLibrary;
+
+    extern void Abc_NtkPrintSharing( Abc_Ntk_t * pNtk );
+
+    pNtk = Abc_FrameReadNet(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fUseLibrary = 1;
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "lh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'l':
+            fUseLibrary ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( Abc_NtkIsSeq(pNtk) )
+    {
+        fprintf( pErr, "Printing logic sharing does not work for sequential AIGs.\n" );
+        return 1;
+    }
+
+    Abc_NtkPrintSharing( pNtk );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: print_sharing [-h]\n" );
+    fprintf( pErr, "\t        prints the number of shared nodes in the TFO cones of the COs\n" );
+//    fprintf( pErr, "\t-l    : used library gate names (if mapped) [default = %s]\n", fUseLibrary? "yes": "no" );
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -4245,14 +4310,14 @@ usage:
         sprintf( Buffer, "not used" );
     else
         sprintf( Buffer, "%.3f", DelayTarget );
-    fprintf( pErr, "usage: map [-D num] [-aspvh]\n" );
-    fprintf( pErr, "\t         performs standard cell mapping of the current network\n" );
-    fprintf( pErr, "\t-D num : sets the global required times [default = %s]\n", Buffer );  
-    fprintf( pErr, "\t-a     : toggles area recovery [default = %s]\n", fRecovery? "yes": "no" );
-    fprintf( pErr, "\t-s     : toggles sweep after mapping [default = %s]\n", fSweep? "yes": "no" );
-    fprintf( pErr, "\t-p     : optimizes power by minimizing switching activity [default = %s]\n", fSwitching? "yes": "no" );
-    fprintf( pErr, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
-    fprintf( pErr, "\t-h     : print the command usage\n");
+    fprintf( pErr, "usage: map [-D float] [-aspvh]\n" );
+    fprintf( pErr, "\t           performs standard cell mapping of the current network\n" );
+    fprintf( pErr, "\t-D float : sets the global required times [default = %s]\n", Buffer );  
+    fprintf( pErr, "\t-a       : toggles area recovery [default = %s]\n", fRecovery? "yes": "no" );
+    fprintf( pErr, "\t-s       : toggles sweep after mapping [default = %s]\n", fSweep? "yes": "no" );
+    fprintf( pErr, "\t-p       : optimizes power by minimizing switching [default = %s]\n", fSwitching? "yes": "no" );
+    fprintf( pErr, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h       : print the command usage\n");
     return 1;
 }
 
@@ -4461,24 +4526,28 @@ usage:
 ***********************************************************************/
 int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    char Buffer[100];
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
     int c;
     int fRecovery;
     int fSwitching;
     int fVerbose;
-    extern Abc_Ntk_t * Abc_NtkFpga( Abc_Ntk_t * pNtk, int fRecovery, int fSwitching, int fVerbose );
+    float DelayTarget;
+
+    extern Abc_Ntk_t * Abc_NtkFpga( Abc_Ntk_t * pNtk, float DelayTarget, int fRecovery, int fSwitching, int fVerbose );
 
     pNtk = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fRecovery  = 1;
-    fSwitching = 0;
-    fVerbose   = 0;
+    fRecovery   = 1;
+    fSwitching  = 0;
+    fVerbose    = 0;
+    DelayTarget =-1;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "apvh" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "apvhD" ) ) != EOF )
     {
         switch ( c )
         {
@@ -4493,6 +4562,17 @@ int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'h':
             goto usage;
+        case 'D':
+            if ( util_optind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-D\" should be followed by a floating point number.\n" );
+                goto usage;
+            }
+            DelayTarget = (float)atof(argv[util_optind]);
+            util_optind++;
+            if ( DelayTarget <= 0.0 ) 
+                goto usage;
+            break;
         default:
             goto usage;
         }
@@ -4528,7 +4608,7 @@ int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         fprintf( pOut, "The network was strashed and balanced before FPGA mapping.\n" );
         // get the new network
-        pNtkRes = Abc_NtkFpga( pNtk, fRecovery, fSwitching, fVerbose );
+        pNtkRes = Abc_NtkFpga( pNtk, DelayTarget, fRecovery, fSwitching, fVerbose );
         if ( pNtkRes == NULL )
         {
             Abc_NtkDelete( pNtk );
@@ -4540,7 +4620,7 @@ int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
     else
     {
         // get the new network
-        pNtkRes = Abc_NtkFpga( pNtk, fRecovery, fSwitching, fVerbose );
+        pNtkRes = Abc_NtkFpga( pNtk, DelayTarget, fRecovery, fSwitching, fVerbose );
         if ( pNtkRes == NULL )
         {
             fprintf( pErr, "FPGA mapping has failed.\n" );
@@ -4552,10 +4632,15 @@ int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: fpga [-apvh]\n" );
+    if ( DelayTarget == -1 ) 
+        sprintf( Buffer, "not used" );
+    else
+        sprintf( Buffer, "%.2f", DelayTarget );
+    fprintf( pErr, "usage: fpga [-D float] [-apvh]\n" );
     fprintf( pErr, "\t        performs FPGA mapping of the current network\n" );
     fprintf( pErr, "\t-a    : toggles area recovery [default = %s]\n", fRecovery? "yes": "no" );
     fprintf( pErr, "\t-p    : optimizes power by minimizing switching activity [default = %s]\n", fSwitching? "yes": "no" );
+    fprintf( pErr, "\t-D    : sets the required time for the mapping [default = %s]\n", Buffer );  
     fprintf( pErr, "\t-v    : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h    : prints the command usage\n");
     return 1;

@@ -667,6 +667,55 @@ void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary )
         Abc_NtkSopToBdd(pNtk);
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Prints statistics about gates used in the network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkPrintSharing( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vNodes1, * vNodes2;
+    Abc_Obj_t * pObj1, * pObj2, * pNode1, * pNode2;
+    int i, k, m, n, Counter;
+
+    // print the template
+    printf( "Statistics about sharing of logic nodes among the CO pairs.\n" );
+    printf( "(CO1,CO2)=NumShared : " );
+    // go though the CO pairs
+    Abc_NtkForEachCo( pNtk, pObj1, i )
+    {
+        vNodes1 = Abc_NtkDfsNodes( pNtk, &pObj1, 1 );
+        // mark the nodes
+        Vec_PtrForEachEntry( vNodes1, pNode1, m )
+            pNode1->fMarkA = 1;
+        // go through the second COs
+        Abc_NtkForEachCo( pNtk, pObj2, k )
+        {
+            if ( i >= k )
+                continue;
+            vNodes2 = Abc_NtkDfsNodes( pNtk, &pObj2, 1 );
+            // count the number of marked
+            Counter = 0;
+            Vec_PtrForEachEntry( vNodes2, pNode2, n )
+                Counter += pNode2->fMarkA;
+            // print
+            printf( "(%d,%d)=%d ", i, k, Counter );
+            Vec_PtrFree( vNodes2 );
+        }
+        // unmark the nodes
+        Vec_PtrForEachEntry( vNodes1, pNode1, m )
+            pNode1->fMarkA = 0;
+        Vec_PtrFree( vNodes1 );
+    }
+    printf( "\n" );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

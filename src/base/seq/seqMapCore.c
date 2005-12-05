@@ -82,6 +82,7 @@ Abc_Ntk_t * Seq_MapRetime( Abc_Ntk_t * pNtk, int nMaxIters, int fVerbose )
         printf( "The mininum clock period computed is %5.2f.\n", p->FiBestFloat );
         return NULL;
     }
+    printf( "The mininum clock period computed is %5.2f.\n", p->FiBestFloat );
     printf( "The resulting network is derived as BDD logic network (this is temporary).\n" );
 
     // duplicate the nodes contained in multiple cuts

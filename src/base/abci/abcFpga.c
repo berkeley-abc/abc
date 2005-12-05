@@ -44,7 +44,7 @@ static Abc_Obj_t *  Abc_NodeFromFpga_rec( Abc_Ntk_t * pNtkNew, Fpga_Node_t * pNo
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkFpga( Abc_Ntk_t * pNtk, int fRecovery, int fSwitching, int fVerbose )
+Abc_Ntk_t * Abc_NtkFpga( Abc_Ntk_t * pNtk, float DelayTarget, int fRecovery, int fSwitching, int fVerbose )
 {
     int fShowSwitching = 1;
     Abc_Ntk_t * pNtkNew;
@@ -73,6 +73,7 @@ Abc_Ntk_t * Abc_NtkFpga( Abc_Ntk_t * pNtk, int fRecovery, int fSwitching, int fV
     if ( pMan == NULL )
         return NULL;
     Fpga_ManSetSwitching( pMan, fSwitching );
+    Fpga_ManSetDelayTarget( pMan, DelayTarget );
     if ( !Fpga_Mapping( pMan ) )
     {
         Fpga_ManFree( pMan );

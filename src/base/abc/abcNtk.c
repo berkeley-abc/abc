@@ -236,7 +236,7 @@ Abc_Ntk_t * Abc_NtkStartRead( char * pName )
     pNtkNew = Abc_NtkAlloc( ABC_NTK_NETLIST, ABC_FUNC_SOP );
     // set the specs
     pNtkNew->pName = util_strsav( Extra_FileNameGeneric(pName) );
-    pNtkNew->pSpec = util_strsav( Extra_FileNameGeneric(pName) );
+    pNtkNew->pSpec = util_strsav( pName );
     return pNtkNew;
 }
 
