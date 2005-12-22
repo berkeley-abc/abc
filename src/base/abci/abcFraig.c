@@ -56,7 +56,7 @@ Abc_Ntk_t * Abc_NtkFraig( Abc_Ntk_t * pNtk, void * pParams, int fAllNodes, int f
 {
     Fraig_Params_t * pPars = pParams;
     Abc_Ntk_t * pNtkNew;
-    Fraig_Man_t * pMan;
+    Fraig_Man_t * pMan; 
     // check if EXDC is present
     if ( fExdc && pNtk->pExdc == NULL )
         fExdc = 0, printf( "Warning: Networks has no EXDC.\n" );

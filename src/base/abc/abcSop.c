@@ -156,13 +156,14 @@ char * Abc_SopCreateAnd2( Extra_MmFlex_t * pMan, int fCompl0, int fCompl1 )
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_SopCreateAnd( Extra_MmFlex_t * pMan, int nVars )
+char * Abc_SopCreateAnd( Extra_MmFlex_t * pMan, int nVars, int * pfCompl )
 {
     char * pSop;
     int i;
     pSop = Abc_SopStart( pMan, 1, nVars );
     for ( i = 0; i < nVars; i++ )
-        pSop[i] = '1';
+        pSop[i] = '1' - (pfCompl? pfCompl[i] : 0);
+    pSop[nVars + 1] = '1';
     return pSop;
 }
 
@@ -271,6 +272,26 @@ char * Abc_SopCreateXor( Extra_MmFlex_t * pMan, int nVars )
 {
     assert( nVars == 2 );
     return Abc_SopRegister(pMan, "01 1\n10 1\n");
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Starts the multi-input XOR cover (special case).]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_SopCreateXorSpecial( Extra_MmFlex_t * pMan, int nVars )
+{
+    char * pSop;
+    pSop = Abc_SopCreateAnd( pMan, nVars, NULL );
+    pSop[nVars+1] = 'x';
+    assert( pSop[nVars+2] == '\n' );
+    return pSop;
 }
 
 /**Function*************************************************************
@@ -402,9 +423,9 @@ int Abc_SopGetVarNum( char * pSop )
 int Abc_SopGetPhase( char * pSop )
 {
     int nVars = Abc_SopGetVarNum( pSop );
-    if ( pSop[nVars+1] == '0' )
+    if ( pSop[nVars+1] == '0' || pSop[nVars+1] == 'n' )
         return 0;
-    if ( pSop[nVars+1] == '1' )
+    if ( pSop[nVars+1] == '1' || pSop[nVars+1] == 'x' )
         return 1;
     assert( 0 );
     return -1;
@@ -453,6 +474,10 @@ void Abc_SopComplement( char * pSop )
                 *(pCur - 1) = '1';
             else if ( *(pCur - 1) == '1' )
                 *(pCur - 1) = '0';
+            else if ( *(pCur - 1) == 'x' )
+                *(pCur - 1) = 'n';
+            else if ( *(pCur - 1) == 'n' )
+                *(pCur - 1) = 'x';
             else
                 assert( 0 );
         }
@@ -474,7 +499,7 @@ bool Abc_SopIsComplement( char * pSop )
     char * pCur;
     for ( pCur = pSop; *pCur; pCur++ )
         if ( *pCur == '\n' )
-            return (int)(*(pCur - 1) == '0');
+            return (int)(*(pCur - 1) == '0' || *(pCur - 1) == 'n');
     assert( 0 );
     return 0;
 }
@@ -616,6 +641,27 @@ bool Abc_SopIsOrType( char * pSop )
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_SopIsExorType( char * pSop )
+{
+    char * pCur;
+    for ( pCur = pSop; *pCur; pCur++ )
+        if ( *pCur == '\n' )
+            return (int)(*(pCur - 1) == 'x' || *(pCur - 1) == 'n');
+    assert( 0 );
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 bool Abc_SopCheck( char * pSop, int nFanins )
 {
     char * pCubes, * pCubesOld;
@@ -638,7 +684,7 @@ bool Abc_SopCheck( char * pSop, int nFanins )
             fFound0 = 1;
         else if ( *pCubes == '1' )
             fFound1 = 1;
-        else
+        else if ( *pCubes != 'x' && *pCubes != 'n' )
         {
             fprintf( stdout, "Abc_SopCheck: SOP has a strange character in the output part of its cube.\n" );
             return 0;

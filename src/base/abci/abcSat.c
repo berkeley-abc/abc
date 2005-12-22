@@ -24,8 +24,8 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static void Abc_NodeAddClauses( solver * pSat, char * pSop0, char * pSop1, Abc_Obj_t * pNode, Vec_Int_t * vVars );
-static void Abc_NodeAddClausesTop( solver * pSat, Abc_Obj_t * pNode, Vec_Int_t * vVars );
+static int  Abc_NodeAddClauses( solver * pSat, char * pSop0, char * pSop1, Abc_Obj_t * pNode, Vec_Int_t * vVars );
+static int  Abc_NodeAddClausesTop( solver * pSat, Abc_Obj_t * pNode, Vec_Int_t * vVars );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -57,6 +57,8 @@ int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, int nSeconds, int fVerbose )
     // load clauses into the solver
     clk = clock();
     pSat = Abc_NtkMiterSatCreate( pNtk );
+    if ( pSat == NULL )
+        return 1;
 //    printf( "Created SAT problem with %d variable and %d clauses. ", solver_nvars(pSat), solver_nclauses(pSat) );
 //    PRT( "Time", clock() - clk );
 
@@ -69,7 +71,7 @@ int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, int nSeconds, int fVerbose )
     {
         solver_delete( pSat );
 //        printf( "The problem is UNSATISFIABLE after simplification.\n" );
-        return -1;
+        return 1;
     }
 
     // solve the miter
@@ -143,13 +145,19 @@ solver * Abc_NtkMiterSatCreate( Abc_Ntk_t * pNtk )
         // derive SOPs for both phases of the node
         Abc_NodeBddToCnf( pNode, pMmFlex, vCube, &pSop0, &pSop1 );
         // add the clauses to the solver
-        Abc_NodeAddClauses( pSat, pSop0, pSop1, pNode, vVars );
+        if ( !Abc_NodeAddClauses( pSat, pSop0, pSop1, pNode, vVars ) )
+        {
+            solver_delete( pSat );
+            return NULL;
+        }
     }
-    // add clauses for each PO
-//    Abc_NtkForEachPo( pNtk, pNode, i )
-//        Abc_NodeAddClausesTop( pSat, pNode, vVars );
-
-    Abc_NodeAddClausesTop( pSat, Abc_NtkPo(pNtk, Abc_NtkPoNum(pNtk)-1), vVars );
+    // add clauses for the POs
+    if ( !Abc_NodeAddClausesTop( pSat, Abc_NtkPo(pNtk, Abc_NtkPoNum(pNtk)-1), vVars ) )
+    {
+        solver_delete( pSat );
+        return NULL;
+    }
+//    Asat_SolverWriteDimacs( pSat, "test.cnf", NULL, NULL, 0 );
 
     // delete
     Vec_StrFree( vCube );
@@ -169,7 +177,7 @@ solver * Abc_NtkMiterSatCreate( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NodeAddClauses( solver * pSat, char * pSop0, char * pSop1, Abc_Obj_t * pNode, Vec_Int_t * vVars )
+int Abc_NodeAddClauses( solver * pSat, char * pSop0, char * pSop1, Abc_Obj_t * pNode, Vec_Int_t * vVars )
 {
     Abc_Obj_t * pFanin;
     int i, c, nFanins;
@@ -177,6 +185,16 @@ void Abc_NodeAddClauses( solver * pSat, char * pSop0, char * pSop1, Abc_Obj_t * 
 
     nFanins = Abc_ObjFaninNum( pNode );
     assert( nFanins == Abc_SopGetVarNum( pSop0 ) );
+
+    if ( nFanins == 0 )
+    {
+        vVars->nSize = 0;
+        if ( Abc_SopIsConst1(pSop1) )
+            Vec_IntPush( vVars, toLit(pNode->Id) );
+        else
+            Vec_IntPush( vVars, neg(toLit(pNode->Id)) );
+        return solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize );
+    }
  
     // add clauses for the negative phase
     for ( c = 0; ; c++ )
@@ -195,7 +213,8 @@ void Abc_NodeAddClauses( solver * pSat, char * pSop0, char * pSop1, Abc_Obj_t * 
                 Vec_IntPush( vVars, neg(toLit(pFanin->Id)) );
         }
         Vec_IntPush( vVars, neg(toLit(pNode->Id)) );
-        solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize );
+        if ( !solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize ) )
+            return 0;
     }
 
     // add clauses for the positive phase
@@ -215,8 +234,10 @@ void Abc_NodeAddClauses( solver * pSat, char * pSop0, char * pSop1, Abc_Obj_t * 
                 Vec_IntPush( vVars, neg(toLit(pFanin->Id)) );
         }
         Vec_IntPush( vVars, toLit(pNode->Id) );
-        solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize );
+        if ( !solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize ) )
+            return 0;
     }
+    return 1;
 }
 
 /**Function*************************************************************
@@ -230,7 +251,7 @@ void Abc_NodeAddClauses( solver * pSat, char * pSop0, char * pSop1, Abc_Obj_t * 
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NodeAddClausesTop( solver * pSat, Abc_Obj_t * pNode, Vec_Int_t * vVars )
+int Abc_NodeAddClausesTop( solver * pSat, Abc_Obj_t * pNode, Vec_Int_t * vVars )
 {
     Abc_Obj_t * pFanin;
 
@@ -240,29 +261,33 @@ void Abc_NodeAddClausesTop( solver * pSat, Abc_Obj_t * pNode, Vec_Int_t * vVars 
         vVars->nSize = 0;
         Vec_IntPush( vVars, toLit(pFanin->Id) );
         Vec_IntPush( vVars, toLit(pNode->Id) );
-        solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize );
+        if ( !solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize ) )
+            return 0;
 
         vVars->nSize = 0;
         Vec_IntPush( vVars, neg(toLit(pFanin->Id)) );
         Vec_IntPush( vVars, neg(toLit(pNode->Id)) );
-        solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize );
+        if ( !solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize ) )
+            return 0;
     }
     else
     {
         vVars->nSize = 0;
         Vec_IntPush( vVars, neg(toLit(pFanin->Id)) );
         Vec_IntPush( vVars, toLit(pNode->Id) );
-        solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize );
+        if ( !solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize ) )
+            return 0;
 
         vVars->nSize = 0;
         Vec_IntPush( vVars, toLit(pFanin->Id) );
         Vec_IntPush( vVars, neg(toLit(pNode->Id)) );
-        solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize );
+        if ( !solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize ) )
+            return 0;
     }
 
     vVars->nSize = 0;
     Vec_IntPush( vVars, toLit(pNode->Id) );
-    solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize );
+    return solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize );
 }
 
 

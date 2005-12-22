@@ -504,7 +504,7 @@ int Io_ReadBlifNetworkNames( Io_ReadBlif_t * p, Vec_Ptr_t ** pvTokens )
             Vec_StrAppend( p->vCubes, vTokens->pArray[0] );
             // check the char 
             Char = ((char *)vTokens->pArray[1])[0];
-            if ( Char != '0' && Char != '1' )
+            if ( Char != '0' && Char != '1' && Char != 'x' && Char != 'n' )
             {
                 p->LineCur = Extra_FileReaderGetLineNumber(p->pReader, 0);
                 sprintf( p->sError, "The output character in the constant cube is wrong." );

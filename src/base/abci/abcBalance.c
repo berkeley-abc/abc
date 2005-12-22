@@ -102,6 +102,42 @@ void Abc_NtkBalancePerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig, bool fDuplica
 
 /**Function*************************************************************
 
+  Synopsis    [Randomizes the node positions.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NodeBalanceRandomize( Vec_Ptr_t * vSuper )
+{
+    Abc_Obj_t * pNode1, * pNode2;
+    int i, Signature;
+    if ( Vec_PtrSize(vSuper) < 3 )
+        return;
+    pNode1 = Vec_PtrEntry( vSuper, Vec_PtrSize(vSuper)-2 );
+    pNode2 = Vec_PtrEntry( vSuper, Vec_PtrSize(vSuper)-3 );
+    if ( Abc_ObjRegular(pNode1)->Level != Abc_ObjRegular(pNode2)->Level )
+        return;
+    // some reordering will be performed
+    Signature = rand();
+    for ( i = Vec_PtrSize(vSuper)-2; i > 0; i-- )
+    {
+        pNode1 = Vec_PtrEntry( vSuper, i );
+        pNode2 = Vec_PtrEntry( vSuper, i-1 );
+        if ( Abc_ObjRegular(pNode1)->Level != Abc_ObjRegular(pNode2)->Level )
+            return;
+        if ( Signature & (1 << (i % 10)) )
+            continue;
+        Vec_PtrWriteEntry( vSuper, i,   pNode2 );
+        Vec_PtrWriteEntry( vSuper, i-1, pNode1 );
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Rebalances the multi-input node rooted at pNodeOld.]
 
   Description []
@@ -143,6 +179,9 @@ Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, Vec_
     assert( vSuper->nSize > 1 );
     while ( vSuper->nSize > 1 )
     {
+        // randomize the node positions
+//        Abc_NodeBalanceRandomize( vSuper );
+        // pull out the last two nodes
         pNode1 = Vec_PtrPop(vSuper);
         pNode2 = Vec_PtrPop(vSuper);
         Abc_VecObjPushUniqueOrderByLevel( vSuper, Abc_AigAnd(pMan, pNode1, pNode2) );

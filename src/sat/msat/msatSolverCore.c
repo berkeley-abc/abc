@@ -176,7 +176,7 @@ bool Msat_SolverSolve( Msat_Solver_t * p, Msat_IntVec_t * vAssumps, int nBackTra
         if ( nBackTrackLimit > 0 )
             break;
         // if the runtime limit is exceeded, quit the restart loop
-        if ( clock() - timeStart >= nTimeLimit * CLOCKS_PER_SEC )
+        if ( nTimeLimit > 0 && clock() - timeStart >= nTimeLimit * CLOCKS_PER_SEC )
             break;
     }
     Msat_SolverCancelUntil( p, 0 );

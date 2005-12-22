@@ -109,6 +109,7 @@ Rwr_ManAddTimeTotal( pManRwr, clock() - clkStart );
     // print stats
     if ( fVerbose )
         Rwr_ManPrintStats( pManRwr );
+//        Rwr_ManPrintStatsFile( pManRwr );
     // delete the managers
     Rwr_ManStop( pManRwr );
     Cut_ManStop( pManCut );

@@ -188,7 +188,7 @@ int CSAT_AddGate( CSAT_Manager mng, enum GateType type, char * name, int nofi, c
             case CSAT_BAND:
                 if ( nofi < 1 )
                     { printf( "CSAT_AddGate: The AND gate \"%s\" no fanins.\n", name ); return 0; }
-                pSop = Abc_SopCreateAnd( mng->pNtk->pManFunc, nofi );
+                pSop = Abc_SopCreateAnd( mng->pNtk->pManFunc, nofi, NULL );
                 break;
             case CSAT_BNAND:
                 if ( nofi < 1 )

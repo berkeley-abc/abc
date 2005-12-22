@@ -179,6 +179,29 @@ void Rwr_ManPrintStats( Rwr_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+void Rwr_ManPrintStatsFile( Rwr_Man_t * p )
+{
+    FILE * pTable;
+    pTable = fopen( "stats.txt", "a+" );
+    fprintf( pTable, "%d ", p->nCutsGood );
+    fprintf( pTable, "%d ", p->nSubgraphs );
+    fprintf( pTable, "%d ", p->nNodesRewritten );
+    fprintf( pTable, "%d", p->nNodesGained );
+    fprintf( pTable, "\n" );
+    fclose( pTable );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Stops the resynthesis manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void * Rwr_ManReadDecs( Rwr_Man_t * p )
 {
     return p->pGraph;

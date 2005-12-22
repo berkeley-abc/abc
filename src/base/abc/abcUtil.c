@@ -76,6 +76,8 @@ int Abc_NtkGetCubeNum( Abc_Ntk_t * pNtk )
     assert( Abc_NtkHasSop(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
+        if ( Abc_NodeIsConst(pNode) )
+            continue;
         assert( pNode->pData );
         nCubes += Abc_SopGetCubeNum( pNode->pData );
     }
@@ -153,6 +155,8 @@ int Abc_NtkGetBddNodeNum( Abc_Ntk_t * pNtk )
     assert( Abc_NtkIsBddLogic(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
+        if ( Abc_NodeIsConst(pNode) )
+            continue;
         assert( pNode->pData );
         nNodes += pNode->pData? Cudd_DagSize( pNode->pData ) : 0;
     }

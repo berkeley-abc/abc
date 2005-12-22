@@ -10,7 +10,7 @@ MODULES := src/base/abc src/base/abci src/base/seq src/base/cmd src/base/io src/
            src/bdd/cudd src/bdd/dsd src/bdd/epd src/bdd/mtr src/bdd/parse src/bdd/reo \
            src/map/fpga src/map/pga src/map/mapper src/map/mio src/map/super \
            src/misc/extra src/misc/mvc src/misc/st src/misc/util src/misc/vec \
-	   src/opt/cut src/opt/dec src/opt/fxu src/opt/rwr src/opt/sim \
+	   src/opt/cut src/opt/dec src/opt/fxu src/opt/rwr src/opt/sim src/opt/xyz \
            src/sat/asat src/sat/csat src/sat/msat src/sat/fraig
 
 default: $(PROG)

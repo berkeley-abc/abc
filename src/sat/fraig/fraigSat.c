@@ -1049,6 +1049,26 @@ void Fraig_SupergateAddClausesMux( Fraig_Man_t * p, Fraig_Node_t * pNode )
     Msat_IntVecPush( p->vProj, MSAT_VAR2LIT(VarF,  1) );
     RetValue = Msat_SolverAddClause( p->pSat, p->vProj );
     assert( RetValue );
+
+    // two additional clauses
+    // t' & e' -> f'
+    // t  & e  -> f 
+
+    // t  + e   + f'
+    // t' + e'  + f 
+
+    Msat_IntVecClear( p->vProj );
+    Msat_IntVecPush( p->vProj, MSAT_VAR2LIT(VarT,  0^fCompT) );
+    Msat_IntVecPush( p->vProj, MSAT_VAR2LIT(VarE,  0^fCompE) );
+    Msat_IntVecPush( p->vProj, MSAT_VAR2LIT(VarF,  1) );
+    RetValue = Msat_SolverAddClause( p->pSat, p->vProj );
+    assert( RetValue );
+    Msat_IntVecClear( p->vProj );
+    Msat_IntVecPush( p->vProj, MSAT_VAR2LIT(VarT,  1^fCompT) );
+    Msat_IntVecPush( p->vProj, MSAT_VAR2LIT(VarE,  1^fCompE) );
+    Msat_IntVecPush( p->vProj, MSAT_VAR2LIT(VarF,  0) );
+    RetValue = Msat_SolverAddClause( p->pSat, p->vProj );
+    assert( RetValue );
 }
 
 

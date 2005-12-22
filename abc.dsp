@@ -460,6 +460,10 @@ SOURCE=.\src\base\io\ioWriteList.c
 
 SOURCE=.\src\base\io\ioWritePla.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\src\base\io\ioWriteVerilog.c
+# End Source File
 # End Group
 # Begin Group "main"
 
@@ -934,7 +938,7 @@ SOURCE=.\src\sat\msat\msatMem.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\sat\msat\msatOrderH.c
+SOURCE=.\src\sat\msat\msatOrderJ.c
 # End Source File
 # Begin Source File
 
@@ -1263,6 +1267,50 @@ SOURCE=.\src\opt\sim\simSymStr.c
 # Begin Source File
 
 SOURCE=.\src\opt\sim\simUtils.c
+# End Source File
+# End Group
+# Begin Group "xyz"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\opt\xyz\xyz.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\xyz\xyzBuild.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\xyz\xyzCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\xyz\xyzInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\xyz\xyzMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\xyz\xyzMinEsop.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\xyz\xyzMinMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\xyz\xyzMinSop.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\xyz\xyzMinUtil.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\xyz\xyzTest.c
 # End Source File
 # End Group
 # End Group

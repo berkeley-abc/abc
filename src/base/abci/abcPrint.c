@@ -79,7 +79,7 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
             fprintf( pFile, "  lit(fac) = %5d",  Abc_NtkGetLitFactNum(pNtk) );
     }
     else if ( Abc_NtkHasBdd(pNtk) )
-        fprintf( pFile, "  bdd = %5d",  Abc_NtkGetBddNodeNum(pNtk) );
+        fprintf( pFile, "  bdd  = %5d",  Abc_NtkGetBddNodeNum(pNtk) );
     else if ( Abc_NtkHasMapping(pNtk) )
     {
         fprintf( pFile, "  area = %5.2f", Abc_NtkGetMappedArea(pNtk) );
@@ -423,10 +423,26 @@ void Abc_NodePrintFactor( FILE * pFile, Abc_Obj_t * pNode, int fUseRealNames )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkPrintLevel( FILE * pFile, Abc_Ntk_t * pNtk, int fProfile )
+void Abc_NtkPrintLevel( FILE * pFile, Abc_Ntk_t * pNtk, int fProfile, int fListNodes )
 {
     Abc_Obj_t * pNode;
-    int i, Length;
+    int i, k, Length;
+
+    if ( fListNodes )
+    {
+        int nLevels;
+        nLevels = Abc_NtkGetLevelNum(pNtk);
+        printf( "Nodes by level:\n" );
+        for ( i = 0; i <= nLevels; i++ )
+        {
+            printf( "%2d : ", i );
+            Abc_NtkForEachNode( pNtk, pNode, k )
+                if ( (int)pNode->Level == i )
+                    printf( " %s", Abc_ObjName(pNode) );
+            printf( "\n" );
+        }
+        return;
+    }
 
     // print the delay profile
     if ( fProfile && Abc_NtkHasMapping(pNtk) )
@@ -714,6 +730,34 @@ void Abc_NtkPrintSharing( Abc_Ntk_t * pNtk )
         Vec_PtrFree( vNodes1 );
     }
     printf( "\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints info for each output cone.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkPrintStrSupports( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vSupp, * vNodes;
+    Abc_Obj_t * pObj;
+    int i;
+    printf( "Structural support info:\n" );
+    Abc_NtkForEachCo( pNtk, pObj, i )
+    {
+        vSupp  = Abc_NtkNodeSupport( pNtk, &pObj, 1 );
+        vNodes = Abc_NtkDfsNodes( pNtk, &pObj, 1 );
+        printf( "%20s :  Cone = %5d.  Supp = %5d.\n", 
+            Abc_ObjName(pObj), vNodes->nSize, vSupp->nSize );
+        Vec_PtrFree( vNodes );
+        Vec_PtrFree( vSupp );
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -245,7 +245,7 @@ int CmdApplyAlias( Abc_Frame_t * pAbc, int *argcp, char ***argvp, int *loop )
     argc = *argcp;
     argv = *argvp;
     stopit = 0;
-    for ( ; *loop < 20; ( *loop )++ )
+    for ( ; *loop < 200; ( *loop )++ )
     {
         if ( argc == 0 )
             return 0;

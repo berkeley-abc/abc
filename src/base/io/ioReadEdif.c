@@ -191,7 +191,7 @@ Abc_Ntk_t * Io_ReadEdifNetwork( Extra_FileReader_t * p )
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
         if ( strncmp( pObj->pData, "And", 3 ) == 0 )
-            Abc_ObjSetData( pObj, Abc_SopCreateAnd(pNtk->pManFunc, Abc_ObjFaninNum(pObj)) );
+            Abc_ObjSetData( pObj, Abc_SopCreateAnd(pNtk->pManFunc, Abc_ObjFaninNum(pObj), NULL) );
         else if ( strncmp( pObj->pData, "Or", 2 ) == 0 )
             Abc_ObjSetData( pObj, Abc_SopCreateOr(pNtk->pManFunc, Abc_ObjFaninNum(pObj), NULL) );
         else if ( strncmp( pObj->pData, "Nand", 4 ) == 0 )

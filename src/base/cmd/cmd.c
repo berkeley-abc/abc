@@ -1245,6 +1245,12 @@ int CmdCommandSis( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     fclose( pFile );
 
+    if ( Abc_NtkIsMappedLogic(pNtk) )
+    {
+        Abc_NtkUnmap(pNtk);
+        printf( "The current network is unmapped before calling SIS.\n" );
+    }
+
     // write out the current network
     pNetlist = Abc_NtkLogicToNetlist(pNtk);
     Io_WriteBlif( pNetlist, "_sis_in.blif", 1 );
@@ -1375,6 +1381,11 @@ int CmdCommandMvsis( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     fclose( pFile );
 
+    if ( Abc_NtkIsMappedLogic(pNtk) )
+    {
+        Abc_NtkUnmap(pNtk);
+        printf( "The current network is unmapped before calling MVSIS.\n" );
+    }
 
     // write out the current network
     pNetlist = Abc_NtkLogicToNetlist(pNtk);

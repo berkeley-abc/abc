@@ -209,8 +209,9 @@ struct Abc_Ntk_t_
 #define ABC_INFINITY      (10000000)
 
 // transforming floats into ints and back
-static inline int         Abc_Float2Int( float Val )                 { return *((int *)&Val);           }
-static inline float       Abc_Int2Float( int Num )                   { return *((float *)&Num);         }
+static inline int         Abc_Float2Int( float Val )                 { return *((int *)&Val);               }
+static inline float       Abc_Int2Float( int Num )                   { return *((float *)&Num);             }
+static inline int         Abc_BitWordNum( int nBits )                { return nBits/32 + ((nBits%32) > 0);  }
 
 // checking the network type
 static inline bool        Abc_NtkIsNetlist( Abc_Ntk_t * pNtk )       { return pNtk->ntkType == ABC_NTK_NETLIST; }
@@ -570,7 +571,7 @@ extern void               Abc_NtkPrintFanio( FILE * pFile, Abc_Ntk_t * pNtk );
 extern void               Abc_NodePrintFanio( FILE * pFile, Abc_Obj_t * pNode );
 extern void               Abc_NtkPrintFactor( FILE * pFile, Abc_Ntk_t * pNtk, int fUseRealNames );
 extern void               Abc_NodePrintFactor( FILE * pFile, Abc_Obj_t * pNode, int fUseRealNames );
-extern void               Abc_NtkPrintLevel( FILE * pFile, Abc_Ntk_t * pNtk, int fProfile );
+extern void               Abc_NtkPrintLevel( FILE * pFile, Abc_Ntk_t * pNtk, int fProfile, int fListNodes );
 extern void               Abc_NodePrintLevel( FILE * pFile, Abc_Obj_t * pNode );
 /*=== abcReconv.c ==========================================================*/
 extern Abc_ManCut_t *     Abc_NtkManCutStart( int nNodeSizeMax, int nConeSizeMax, int nNodeFanStop, int nConeFanStop );
@@ -600,12 +601,13 @@ extern char *             Abc_SopStart( Extra_MmFlex_t * pMan, int nCubes, int n
 extern char *             Abc_SopCreateConst0( Extra_MmFlex_t * pMan );
 extern char *             Abc_SopCreateConst1( Extra_MmFlex_t * pMan );
 extern char *             Abc_SopCreateAnd2( Extra_MmFlex_t * pMan, int fCompl0, int fCompl1 );
-extern char *             Abc_SopCreateAnd( Extra_MmFlex_t * pMan, int nVars );
+extern char *             Abc_SopCreateAnd( Extra_MmFlex_t * pMan, int nVars, int * pfCompl );
 extern char *             Abc_SopCreateNand( Extra_MmFlex_t * pMan, int nVars );
 extern char *             Abc_SopCreateOr( Extra_MmFlex_t * pMan, int nVars, int * pfCompl );
 extern char *             Abc_SopCreateOrMultiCube( Extra_MmFlex_t * pMan, int nVars, int * pfCompl );
 extern char *             Abc_SopCreateNor( Extra_MmFlex_t * pMan, int nVars );
 extern char *             Abc_SopCreateXor( Extra_MmFlex_t * pMan, int nVars );
+extern char *             Abc_SopCreateXorSpecial( Extra_MmFlex_t * pMan, int nVars );
 extern char *             Abc_SopCreateNxor( Extra_MmFlex_t * pMan, int nVars );
 extern char *             Abc_SopCreateInv( Extra_MmFlex_t * pMan );
 extern char *             Abc_SopCreateBuf( Extra_MmFlex_t * pMan );

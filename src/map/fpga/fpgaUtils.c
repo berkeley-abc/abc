@@ -51,11 +51,11 @@ static Fpga_Man_t * s_pMan = NULL;
 ***********************************************************************/
 Fpga_NodeVec_t * Fpga_MappingDfs( Fpga_Man_t * pMan, int fCollectEquiv )
 {
-    Fpga_NodeVec_t * vNodes, * vNodesCo;
+    Fpga_NodeVec_t * vNodes;//, * vNodesCo;
     Fpga_Node_t * pNode;
     int i;
     // collect the CO nodes by level
-    vNodesCo = Fpga_MappingOrderCosByLevel( pMan );
+//    vNodesCo = Fpga_MappingOrderCosByLevel( pMan );
     // start the array
     vNodes = Fpga_NodeVecAlloc( 100 );
     // collect the PIs
@@ -66,17 +66,17 @@ Fpga_NodeVec_t * Fpga_MappingDfs( Fpga_Man_t * pMan, int fCollectEquiv )
         pNode->fMark0 = 1;
     }
     // perform the traversal
-//    for ( i = 0; i < pMan->nOutputs; i++ )
-//        Fpga_MappingDfs_rec( Fpga_Regular(pMan->pOutputs[i]), vNodes, fCollectEquiv );
-    for ( i = 0; i < vNodesCo->nSize; i++ )
-        for ( pNode = vNodesCo->pArray[i]; pNode; pNode = (Fpga_Node_t *)pNode->pData0 )
-            Fpga_MappingDfs_rec( pNode, vNodes, fCollectEquiv );
+    for ( i = 0; i < pMan->nOutputs; i++ )
+        Fpga_MappingDfs_rec( Fpga_Regular(pMan->pOutputs[i]), vNodes, fCollectEquiv );
+//    for ( i = vNodesCo->nSize - 1; i >= 0 ; i-- )
+//        for ( pNode = vNodesCo->pArray[i]; pNode; pNode = (Fpga_Node_t *)pNode->pData0 )
+//            Fpga_MappingDfs_rec( pNode, vNodes, fCollectEquiv );
     // clean the node marks
     for ( i = 0; i < vNodes->nSize; i++ )
         vNodes->pArray[i]->fMark0 = 0;
 //    for ( i = 0; i < pMan->nOutputs; i++ )
 //        Fpga_MappingUnmark_rec( Fpga_Regular(pMan->pOutputs[i]) );
-    Fpga_NodeVecFree( vNodesCo );
+//    Fpga_NodeVecFree( vNodesCo );
     return vNodes;
 }
 
@@ -954,7 +954,7 @@ Fpga_NodeVec_t * Fpga_MappingOrderCosByLevel( Fpga_Man_t * pMan )
     Fpga_Node_t * pNode;
     Fpga_NodeVec_t * vNodes;
     int i, nLevels;
-    // get the largest node
+    // get the largest level of a CO
     nLevels = Fpga_MappingMaxLevel( pMan );
     // allocate the array of nodes
     vNodes = Fpga_NodeVecAlloc( nLevels + 1 );

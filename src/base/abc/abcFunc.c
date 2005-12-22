@@ -93,27 +93,41 @@ DdNode * Abc_ConvertSopToBdd( DdManager * dd, char * pSop )
     DdNode * bSum, * bCube, * bTemp, * bVar;
     char * pCube;
     int nVars, Value, v;
+    extern int Abc_SopIsExorType( char * pSop );
+
     // start the cover
     nVars = Abc_SopGetVarNum(pSop);
-    // check the logic function of the node
     bSum = Cudd_ReadLogicZero(dd);   Cudd_Ref( bSum );
-    Abc_SopForEachCube( pSop, nVars, pCube )
+    if ( Abc_SopIsExorType(pSop) )
     {
-        bCube = Cudd_ReadOne(dd);   Cudd_Ref( bCube );
-        Abc_CubeForEachVar( pCube, Value, v )
+        for ( v = 0; v < nVars; v++ )
         {
-            if ( Value == '0' )
-                bVar = Cudd_Not( Cudd_bddIthVar( dd, v ) );
-            else if ( Value == '1' )
-                bVar = Cudd_bddIthVar( dd, v );
-            else
-                continue;
-            bCube  = Cudd_bddAnd( dd, bTemp = bCube, bVar );   Cudd_Ref( bCube );
+            bSum  = Cudd_bddXor( dd, bTemp = bSum, Cudd_bddIthVar(dd, v) );   Cudd_Ref( bSum );
             Cudd_RecursiveDeref( dd, bTemp );
         }
-        bSum = Cudd_bddOr( dd, bTemp = bSum, bCube );   Cudd_Ref( bSum );
-        Cudd_RecursiveDeref( dd, bTemp );
-        Cudd_RecursiveDeref( dd, bCube );
+    }
+    else
+    {
+        // check the logic function of the node
+        Abc_SopForEachCube( pSop, nVars, pCube )
+        {
+            bCube = Cudd_ReadOne(dd);   Cudd_Ref( bCube );
+            Abc_CubeForEachVar( pCube, Value, v )
+            {
+                if ( Value == '0' )
+                    bVar = Cudd_Not( Cudd_bddIthVar( dd, v ) );
+                else if ( Value == '1' )
+                    bVar = Cudd_bddIthVar( dd, v );
+                else
+                    continue;
+                bCube  = Cudd_bddAnd( dd, bTemp = bCube, bVar );   Cudd_Ref( bCube );
+                Cudd_RecursiveDeref( dd, bTemp );
+            }
+            bSum = Cudd_bddOr( dd, bTemp = bSum, bCube );   
+            Cudd_Ref( bSum );
+            Cudd_RecursiveDeref( dd, bTemp );
+            Cudd_RecursiveDeref( dd, bCube );
+        }
     }
     // complement the result if necessary
     bSum = Cudd_NotCond( bSum, !Abc_SopGetPhase(pSop) );
@@ -246,16 +260,18 @@ char * Abc_ConvertBddToSop( Extra_MmFlex_t * pMan, DdManager * dd, DdNode * bFun
     assert( bFuncOn == bFuncOnDc || Cudd_bddLeq( dd, bFuncOn, bFuncOnDc ) );
     if ( Cudd_IsConstant(bFuncOn) || Cudd_IsConstant(bFuncOnDc) )
     {
+        if ( fMode == -1 ) // if the phase is not known, write constant 1
+            fMode = 1;
         Vec_StrFill( vCube, nFanins, '-' );
         Vec_StrPush( vCube, '\0' );
         if ( pMan )
             pSop = Extra_MmFlexEntryFetch( pMan, nFanins + 4 );
         else
             pSop = ALLOC( char, nFanins + 4 );
-        if ( bFuncOn == Cudd_ReadLogicZero(dd) )
-            sprintf( pSop, "%s 0\n", vCube->pArray );
+        if ( bFuncOn == Cudd_ReadOne(dd) )
+            sprintf( pSop, "%s %d\n", vCube->pArray, fMode );
         else
-            sprintf( pSop, "%s 1\n", vCube->pArray );
+            sprintf( pSop, "%s %d\n", vCube->pArray, !fMode );
         return pSop;
     }
 

@@ -127,7 +127,7 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
                 pNode = Io_ReadCreateNode( pNtk, vTokens->pArray[0], ppNames, nNames );
                 // assign the cover
                 if ( strcmp(pType, "AND") == 0 )
-                    Abc_ObjSetData( pNode, Abc_SopCreateAnd(pNtk->pManFunc, nNames) );
+                    Abc_ObjSetData( pNode, Abc_SopCreateAnd(pNtk->pManFunc, nNames, NULL) );
                 else if ( strcmp(pType, "OR") == 0 )
                     Abc_ObjSetData( pNode, Abc_SopCreateOr(pNtk->pManFunc, nNames, NULL) );
                 else if ( strcmp(pType, "NAND") == 0 )

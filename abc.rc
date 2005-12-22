@@ -59,6 +59,7 @@ alias u undo
 alias wb write_blif
 alias wl write_blif
 alias wp write_pla
+alias wv write_verilog
 
 # standard scripts
 alias cnf       "st; ren -c; write_cnf"
@@ -72,4 +73,5 @@ alias resyn2    "b; rw; rf; b; rw; rwz; b; rfz; rwz; b"
 alias compress  "b; rw -l; rwz -l; b; rwz -l; b"
 alias compress2 "b; rw -l; rf -l; b; rw -l; rwz -l; b; rfz -l; rwz -l; b"
 alias choice    "fraig_store; resyn; fraig_store; resyn2; fraig_store; fraig_restore"
+alias choice2   "fraig_store; balance; fraig_store; resyn; fraig_store; resyn2; fraig_store; resyn2; fraig_store; fraig_restore"
 

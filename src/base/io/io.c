@@ -44,6 +44,7 @@ static int IoCommandWriteEqn    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteGml    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteList   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWritePla    ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandWriteVerilog( Abc_Frame_t * pAbc, int argc, char **argv );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -81,6 +82,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "write_gml",     IoCommandWriteGml,     0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_list",    IoCommandWriteList,    0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_pla",     IoCommandWritePla,     0 );
+    Cmd_CommandAdd( pAbc, "I/O", "write_verilog", IoCommandWriteVerilog, 0 );
 }
 
 /**Function*************************************************************
@@ -1382,6 +1384,69 @@ usage:
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IoCommandWriteVerilog( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    Abc_Ntk_t * pNtk, * pNtkTemp;
+    char * FileName;
+    int c;
+
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+
+    pNtk = pAbc->pNtkCur;
+    if ( pNtk == NULL )
+    {
+        fprintf( pAbc->Out, "Empty network.\n" );
+        return 0;
+    }
+
+    if ( argc != util_optind + 1 )
+    {
+        goto usage;
+    }
+    // get the input file name
+    FileName = argv[util_optind];
+
+    // derive the netlist
+    pNtkTemp = Abc_NtkLogicToNetlist(pNtk);
+    if ( pNtkTemp == NULL )
+    {
+        fprintf( pAbc->Out, "Writing PLA has failed.\n" );
+        return 0;
+    }
+    Io_WriteVerilog( pNtkTemp, FileName );
+    Abc_NtkDelete( pNtkTemp );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: write_verilog [-h] <file>\n" );
+    fprintf( pAbc->Err, "\t         write a very special subset of Verilog\n" );
+    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
+    return 1;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

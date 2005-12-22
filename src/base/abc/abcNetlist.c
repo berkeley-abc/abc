@@ -342,7 +342,7 @@ Abc_Ntk_t * Abc_NtkAigToLogicSopBench( Abc_Ntk_t * pNtk )
         if ( !Abc_NodeIsConst(pObj) )
         {
             Abc_NtkDupObj( pNtkNew, pObj );
-            pObj->pCopy->pData = Abc_SopCreateAnd( pNtkNew->pManFunc, 2 );
+            pObj->pCopy->pData = Abc_SopCreateAnd( pNtkNew->pManFunc, 2, NULL );
         }
         if ( Abc_AigNodeHasComplFanoutEdgeTrav(pObj) )
             pObj->pCopy->pCopy = Abc_NodeCreateInv( pNtkNew, pObj->pCopy );

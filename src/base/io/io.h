@@ -90,6 +90,8 @@ extern void               Io_WriteGml( Abc_Ntk_t * pNtk, char * pFileName );
 extern void               Io_WriteList( Abc_Ntk_t * pNtk, char * pFileName, int fUseHost );
 /*=== abcWritePla.c ==========================================================*/
 extern int                Io_WritePla( Abc_Ntk_t * pNtk, char * FileName );
+/*=== abcWriteVerilog.c ==========================================================*/
+extern void               Io_WriteVerilog( Abc_Ntk_t * pNtk, char * FileName );
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

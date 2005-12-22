@@ -29,6 +29,7 @@
 // static functions
 static void        Abc_NtkStrashPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig, bool fAllNodes );
 static Abc_Obj_t * Abc_NodeStrashSop( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, char * pSop );
+static Abc_Obj_t * Abc_NodeStrashExor( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, char * pSop );
 static Abc_Obj_t * Abc_NodeStrashFactor( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, char * pSop );
 
 extern char *      Mio_GateReadSop( void * pGate );
@@ -182,6 +183,7 @@ Abc_Obj_t * Abc_NodeStrash( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode )
 {
     int fUseFactor = 1;
     char * pSop;
+    extern int Abc_SopIsExorType( char * pSop );
 
     assert( Abc_ObjIsNode(pNode) );
 
@@ -202,6 +204,10 @@ Abc_Obj_t * Abc_NodeStrash( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode )
     // consider the constant node
     if ( Abc_NodeIsConst(pNode) )
         return Abc_ObjNotCond( Abc_NtkConst1(pNtkNew), Abc_SopIsConst0(pSop) );
+
+    // consider the special case of EXOR function
+    if ( Abc_SopIsExorType(pSop) )
+        return Abc_NodeStrashExor( pNtkNew, pNode, pSop );
 
     // decide when to use factoring
     if ( fUseFactor && Abc_ObjFaninNum(pNode) > 2 && Abc_SopGetCubeNum(pSop) > 1 )
@@ -247,6 +253,37 @@ Abc_Obj_t * Abc_NodeStrashSop( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, char * pS
         pSum = Abc_AigOr( pMan, pSum, pAnd );
     }
     // decide whether to complement the result
+    if ( Abc_SopIsComplement(pSop) )
+        pSum = Abc_ObjNot(pSum);
+    return pSum;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Strashed n-input XOR function.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Abc_NodeStrashExor( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, char * pSop )
+{
+    Abc_Aig_t * pMan = pNtkNew->pManFunc;
+    Abc_Obj_t * pFanin, * pSum;
+    int i, nFanins;
+    // get the number of node's fanins
+    nFanins = Abc_ObjFaninNum( pNode );
+    assert( nFanins == Abc_SopGetVarNum(pSop) );
+    // go through the cubes of the node's SOP
+    pSum = Abc_ObjNot( Abc_NtkConst1(pNtkNew) );
+    for ( i = 0; i < nFanins; i++ )
+    {
+        pFanin = Abc_ObjFanin( pNode, i );
+        pSum = Abc_AigXor( pMan, pSum, pFanin->pCopy );
+    }
     if ( Abc_SopIsComplement(pSop) )
         pSum = Abc_ObjNot(pSum);
     return pSum;

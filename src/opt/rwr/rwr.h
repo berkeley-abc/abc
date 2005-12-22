@@ -129,6 +129,7 @@ extern void              Rwr_ManIncTravId( Rwr_Man_t * p );
 extern Rwr_Man_t *       Rwr_ManStart( bool fPrecompute );
 extern void              Rwr_ManStop( Rwr_Man_t * p );
 extern void              Rwr_ManPrintStats( Rwr_Man_t * p );
+extern void              Rwr_ManPrintStatsFile( Rwr_Man_t * p );
 extern void *            Rwr_ManReadDecs( Rwr_Man_t * p );
 extern int               Rwr_ManReadCompl( Rwr_Man_t * p );
 extern void              Rwr_ManAddTimeCuts( Rwr_Man_t * p, int Time );
