@@ -1,0 +1,67 @@
+# The genlib library "mcnc_temp.genlib".
+GATE         inv1       1.00   O=!a;
+    PIN         a        INV      1    999   0.90   0.00   0.90   0.00
+GATE         inv2       2.00   O=!a;
+    PIN         a        INV      2    999   1.00   0.00   1.00   0.00
+GATE         inv3       3.00   O=!a;
+    PIN         a        INV      3    999   1.10   0.00   1.10   0.00
+GATE         inv4       4.00   O=!a;
+    PIN         a        INV      4    999   1.20   0.00   1.20   0.00
+GATE        nand2       2.00   O=!(a*b);
+    PIN         a        INV      1    999   1.00   0.00   1.00   0.00
+    PIN         b        INV      1    999   1.00   0.00   1.00   0.00
+GATE        nand3       3.00   O=!(a*b*c);
+    PIN         a        INV      1    999   1.10   0.00   1.10   0.00
+    PIN         b        INV      1    999   1.10   0.00   1.10   0.00
+    PIN         c        INV      1    999   1.10   0.00   1.10   0.00
+GATE        nand4       4.00   O=!(a*b*c*d);
+    PIN         a        INV      1    999   1.40   0.00   1.40   0.00
+    PIN         b        INV      1    999   1.40   0.00   1.40   0.00
+    PIN         c        INV      1    999   1.40   0.00   1.40   0.00
+    PIN         d        INV      1    999   1.40   0.00   1.40   0.00
+GATE         nor2       2.00   O=!(a+b);
+    PIN         a        INV      1    999   1.40   0.00   1.40   0.00
+    PIN         b        INV      1    999   1.40   0.00   1.40   0.00
+GATE         nor3       3.00   O=!(a+b+c);
+    PIN         a        INV      1    999   2.40   0.00   2.40   0.00
+    PIN         b        INV      1    999   2.40   0.00   2.40   0.00
+    PIN         c        INV      1    999   2.40   0.00   2.40   0.00
+GATE         nor4       4.00   O=!(a+b+c+d);
+    PIN         a        INV      1    999   3.80   0.00   3.80   0.00
+    PIN         b        INV      1    999   3.80   0.00   3.80   0.00
+    PIN         c        INV      1    999   3.80   0.00   3.80   0.00
+    PIN         d        INV      1    999   3.80   0.00   3.80   0.00
+GATE         xora       5.00   O=a*!b+!a*b;
+    PIN         a    UNKNOWN      2    999   1.90   0.00   1.90   0.00
+    PIN         b    UNKNOWN      2    999   1.90   0.00   1.90   0.00
+GATE         xorb       5.00   O=!(a*b+!a*!b);
+    PIN         a    UNKNOWN      2    999   1.90   0.00   1.90   0.00
+    PIN         b    UNKNOWN      2    999   1.90   0.00   1.90   0.00
+GATE        xnora       5.00   O=a*b+!a*!b;
+    PIN         a    UNKNOWN      2    999   2.10   0.00   2.10   0.00
+    PIN         b    UNKNOWN      2    999   2.10   0.00   2.10   0.00
+GATE        xnorb       5.00   O=!(!a*b+a*!b);
+    PIN         a    UNKNOWN      2    999   2.10   0.00   2.10   0.00
+    PIN         b    UNKNOWN      2    999   2.10   0.00   2.10   0.00
+GATE        aoi21       3.00   O=!(a*b+c);
+    PIN         a        INV      1    999   1.60   0.00   1.60   0.00
+    PIN         b        INV      1    999   1.60   0.00   1.60   0.00
+    PIN         c        INV      1    999   1.60   0.00   1.60   0.00
+GATE        aoi22       4.00   O=!(a*b+c*d);
+    PIN         a        INV      1    999   2.00   0.00   2.00   0.00
+    PIN         b        INV      1    999   2.00   0.00   2.00   0.00
+    PIN         c        INV      1    999   2.00   0.00   2.00   0.00
+    PIN         d        INV      1    999   2.00   0.00   2.00   0.00
+GATE        oai21       3.00   O=!((a+b)*c);
+    PIN         a        INV      1    999   1.60   0.00   1.60   0.00
+    PIN         b        INV      1    999   1.60   0.00   1.60   0.00
+    PIN         c        INV      1    999   1.60   0.00   1.60   0.00
+GATE        oai22       4.00   O=!((a+b)*(c+d));
+    PIN         a        INV      1    999   2.00   0.00   2.00   0.00
+    PIN         b        INV      1    999   2.00   0.00   2.00   0.00
+    PIN         c        INV      1    999   2.00   0.00   2.00   0.00
+    PIN         d        INV      1    999   2.00   0.00   2.00   0.00
+GATE          buf       1.00   O=a;
+    PIN         a     NONINV      1    999   1.00   0.00   1.00   0.00
+GATE         zero       0.00   O=CONST0;
+GATE          one       0.00   O=CONST1;

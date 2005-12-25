@@ -68,7 +68,7 @@ Fraig_Node_t * Fraig_NodeAndCanon( Fraig_Man_t * pMan, Fraig_Node_t * p1, Fraig_
             return p1;
         return Fraig_Not(pMan->pConst1);
     }
-
+/*
     // check for less trivial cases
     if ( Fraig_IsComplement(p1) )
     {
@@ -125,7 +125,7 @@ Fraig_Node_t * Fraig_NodeAndCanon( Fraig_Man_t * pMan, Fraig_Node_t * p1, Fraig_
             return Fraig_Not(pMan->pConst1);
         }
     }
-
+*/
     // perform level-one structural hashing
     if ( Fraig_HashTableLookupS( pMan, p1, p2, &pNodeNew ) ) // the node with these children is found
     {

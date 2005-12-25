@@ -41,6 +41,8 @@ extern void * Msat_ClauseVecReadEntry( void * p, int i );
 // The best way seems to be fanins followed by fanouts. Slight changes to this order
 // leads to big degradation in quality.
 
+static int nMuxes;
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -105,7 +107,7 @@ void Fraig_ManProveMiter( Fraig_Man_t * p )
     }
     if ( p->fVerboseP ) 
     {
-        PRT( "Final miter proof time", clock() - clk );
+//        PRT( "Final miter proof time", clock() - clk );
     }
 }
 
@@ -195,12 +197,17 @@ int Fraig_NodeIsEquivalent( Fraig_Man_t * p, Fraig_Node_t * pOld, Fraig_Node_t *
     }
 */
 
+    nMuxes = 0;
+
 
     // get the logic cone
 clk = clock();
     Fraig_OrderVariables( p, pOld, pNew );
 //    Fraig_PrepareCones( p, pOld, pNew );
 p->timeTrav += clock() - clk;
+
+//    printf( "The number of MUXes detected = %d (%5.2f %% of logic).  ", nMuxes, 300.0*nMuxes/(p->vNodes->nSize - p->vInputs->nSize) );
+//    PRT( "Time", clock() - clk );
 
 if ( fVerbose )
     printf( "%d(%d) - ", Fraig_CountPis(p,p->vVarsInt), Msat_IntVecReadSize(p->vVarsInt) );
@@ -225,6 +232,8 @@ if ( fVerbose )
 clk = clock();
     RetValue1 = Msat_SolverSolve( p->pSat, p->vProj, nBTLimit, nTimeLimit );
 p->timeSat += clock() - clk;
+
+Msat_SolverWriteDimacs( p->pSat, "temp_fraig.cnf" );
 
     if ( RetValue1 == MSAT_FALSE )
     {
@@ -284,6 +293,7 @@ p->time3 += clock() - clk;
 clk = clock();
     RetValue1 = Msat_SolverSolve( p->pSat, p->vProj, nBTLimit, nTimeLimit );
 p->timeSat += clock() - clk;
+
     if ( RetValue1 == MSAT_FALSE )
     {
 //p->time1 += clock() - clk;
@@ -552,6 +562,7 @@ void Fraig_PrepareCones( Fraig_Man_t * pMan, Fraig_Node_t * pOld, Fraig_Node_t *
     Fraig_PrepareCones_rec( pMan, pNew );
     Fraig_PrepareCones_rec( pMan, pOld );
 
+
 /*
     nVars = Msat_IntVecReadSize( pMan->vVarsInt );
     pVars = Msat_IntVecReadArray( pMan->vVarsInt );
@@ -715,6 +726,8 @@ void Fraig_OrderVariables( Fraig_Man_t * pMan, Fraig_Node_t * pOld, Fraig_Node_t
                 Fraig_NodeVecPushUnique( pNode->vFanins, Fraig_Regular(Fraig_Regular(pNode->p2)->p2) );
                 Fraig_SupergateAddClausesMux( pMan, pNode );
 //                Fraig_DetectFanoutFreeConeMux( pMan, pNode );
+
+                nMuxes++;
             }
             else
             {
@@ -1057,6 +1070,12 @@ void Fraig_SupergateAddClausesMux( Fraig_Man_t * p, Fraig_Node_t * pNode )
     // t  + e   + f'
     // t' + e'  + f 
 
+    if ( VarT == VarE )
+    {
+//        assert( fCompT == !fCompE );
+        return;
+    }
+
     Msat_IntVecClear( p->vProj );
     Msat_IntVecPush( p->vProj, MSAT_VAR2LIT(VarT,  0^fCompT) );
     Msat_IntVecPush( p->vProj, MSAT_VAR2LIT(VarE,  0^fCompE) );
@@ -1069,6 +1088,7 @@ void Fraig_SupergateAddClausesMux( Fraig_Man_t * p, Fraig_Node_t * pNode )
     Msat_IntVecPush( p->vProj, MSAT_VAR2LIT(VarF,  0) );
     RetValue = Msat_SolverAddClause( p->pSat, p->vProj );
     assert( RetValue );
+
 }
 
 

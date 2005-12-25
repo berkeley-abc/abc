@@ -42,6 +42,7 @@ static void Msat_SolverSetupTruthTables( unsigned uTruths[][2] );
 
 ***********************************************************************/
 int                Msat_SolverReadVarNum( Msat_Solver_t * p )                  { return p->nVars;     }
+int                Msat_SolverReadClauseNum( Msat_Solver_t * p )               { return p->nClauses;     }
 int                Msat_SolverReadVarAllocNum( Msat_Solver_t * p )             { return p->nVarsAlloc;}
 int                Msat_SolverReadDecisionLevel( Msat_Solver_t * p )           { return Msat_IntVecReadSize(p->vTrailLim); }
 int *              Msat_SolverReadDecisionLevelArray( Msat_Solver_t * p )      { return p->pLevel;    }

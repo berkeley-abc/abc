@@ -46,6 +46,8 @@ struct Xyz_Man_t_
     Vec_Ptr_t *       vObjStrs;     // object structures
     void *            pMemory;      // memory for the internal data strctures
     Min_Man_t *       pManMin;      // the cub manager
+    int               fUseEsop;     // enables ESOPs
+    int               fUseSop;      // enables SOPs
     // arrays to map local variables
     Vec_Int_t *       vComTo0;      // mapping of common variables into first fanin
     Vec_Int_t *       vComTo1;      // mapping of common variables into second fanin

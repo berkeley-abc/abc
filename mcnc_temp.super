@@ -1,0 +1,42 @@
+#
+# Supergate library derived for "mcnc_temp.genlib_temp" on Sun Dec 25 06:29:48 2005.
+#
+# Command line: "super  -i 5  -l 1  -d 10000000.00  -a 10000000.00  -t 100    mcnc_temp.genlib_temp".
+#
+# The number of inputs      =          5.
+# The number of levels      =          1.
+# The maximum delay         = 10000000.00.
+# The maximum area          = 10000000.00.
+# The maximum runtime (sec) =        100.
+#
+# The number of attempts    =        860.
+# The number of supergates  =         20.
+# The number of functions   =          0.
+# The total functions       = 4294967296 (2^32).
+#
+# Generation time (sec)     =       0.01.
+#
+mcnc_temp.genlib_temp
+5
+20
+25       
+* xorb 1 0
+* nor4 2 1 0 3
+* nor3 2 1 0
+* oai22 2 1 0 3
+* oai22 2 0 1 3
+* aoi21 1 0 2
+* aoi22 2 3 1 0
+* nor2 1 0
+* oai22 2 3 1 0
+* aoi21 2 0 1
+* aoi22 2 0 1 3
+* aoi21 2 1 0
+* aoi22 2 1 0 3
+* oai21 1 0 2
+* oai21 2 0 1
+* oai21 2 1 0
+* nand2 1 0
+* nand3 2 1 0
+* nand4 2 1 0 3
+* xnora 1 0

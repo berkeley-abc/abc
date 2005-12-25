@@ -52,8 +52,9 @@ static const lbool l_Undef   =  0;
 static const lbool l_True    =  1;
 static const lbool l_False   = -1;
 
-static inline lit neg   (lit l) { return l ^ 1; }
-static inline lit toLit (int v) { return v + v; }
+static inline lit neg       (lit l)        { return l ^ 1; }
+static inline lit toLit     (int v)        { return v + v; }
+static inline lit toLitCond (int v, int c) { return v + v + (int)(c != 0); }
 
 //=================================================================================================
 // Public interface:

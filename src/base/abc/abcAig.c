@@ -572,7 +572,28 @@ Abc_Obj_t * Abc_AigXor( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 )
     return Abc_AigOr( pMan, Abc_AigAnd(pMan, p0, Abc_ObjNot(p1)), 
                             Abc_AigAnd(pMan, p1, Abc_ObjNot(p0)) );
 }
+ 
+/**Function*************************************************************
 
+  Synopsis    [Implements the miter.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Abc_AigMiter_rec( Abc_Aig_t * pMan, Abc_Obj_t ** ppObjs, int nObjs )
+{
+    Abc_Obj_t * pObj1, * pObj2;
+    if ( nObjs == 1 )
+        return ppObjs[0];
+    pObj1 = Abc_AigMiter_rec( pMan, ppObjs,           nObjs/2 );
+    pObj2 = Abc_AigMiter_rec( pMan, ppObjs + nObjs/2, nObjs - nObjs/2 );
+    return Abc_AigOr( pMan, pObj1, pObj2 );
+}
+ 
 /**Function*************************************************************
 
   Synopsis    [Implements the miter.]
@@ -585,6 +606,30 @@ Abc_Obj_t * Abc_AigXor( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 )
 
 ***********************************************************************/
 Abc_Obj_t * Abc_AigMiter( Abc_Aig_t * pMan, Vec_Ptr_t * vPairs )
+{
+    int i;
+    if ( vPairs->nSize == 0 )
+        return Abc_ObjNot( Abc_NtkConst1(pMan->pNtkAig) );
+    assert( vPairs->nSize % 2 == 0 );
+    // go through the cubes of the node's SOP
+    for ( i = 0; i < vPairs->nSize; i += 2 )
+        vPairs->pArray[i/2] = Abc_AigXor( pMan, vPairs->pArray[i], vPairs->pArray[i+1] );
+    vPairs->nSize = vPairs->nSize/2;
+    return Abc_AigMiter_rec( pMan, (Abc_Obj_t **)vPairs->pArray, vPairs->nSize );
+}
+ 
+/**Function*************************************************************
+
+  Synopsis    [Implements the miter.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Abc_AigMiter2( Abc_Aig_t * pMan, Vec_Ptr_t * vPairs )
 {
     Abc_Obj_t * pMiter, * pXor;
     int i;

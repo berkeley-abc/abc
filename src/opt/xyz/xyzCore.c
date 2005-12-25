@@ -27,13 +27,19 @@
 static void        Abc_NtkXyzCovers( Xyz_Man_t * p, Abc_Ntk_t * pNtk, bool fVerbose );
 static int         Abc_NtkXyzCoversOne( Xyz_Man_t * p, Abc_Ntk_t * pNtk, bool fVerbose );
 static void        Abc_NtkXyzCovers_rec( Xyz_Man_t * p, Abc_Obj_t * pObj, Vec_Ptr_t * vBoundary );
-
+/*
 static int         Abc_NodeXyzPropagateEsop( Xyz_Man_t * p, Abc_Obj_t * pObj, Abc_Obj_t * pObj0, Abc_Obj_t * pObj1 );
 static int         Abc_NodeXyzPropagateSop( Xyz_Man_t * p, Abc_Obj_t * pObj, Abc_Obj_t * pObj0, Abc_Obj_t * pObj1 );
 static int         Abc_NodeXyzUnionEsop( Xyz_Man_t * p, Min_Cube_t * pCover0, Min_Cube_t * pCover1, int nSupp );
 static int         Abc_NodeXyzUnionSop( Xyz_Man_t * p, Min_Cube_t * pCover0, Min_Cube_t * pCover1, int nSupp );
 static int         Abc_NodeXyzProductEsop( Xyz_Man_t * p, Min_Cube_t * pCover0, Min_Cube_t * pCover1, int nSupp );
 static int         Abc_NodeXyzProductSop( Xyz_Man_t * p, Min_Cube_t * pCover0, Min_Cube_t * pCover1, int nSupp );
+*/
+
+static int Abc_NodeXyzPropagate( Xyz_Man_t * p, Abc_Obj_t * pObj );
+static Min_Cube_t * Abc_NodeXyzProduct( Xyz_Man_t * p, Min_Cube_t * pCover0, Min_Cube_t * pCover1, int fEsop, int nSupp );
+static Min_Cube_t * Abc_NodeXyzSum( Xyz_Man_t * p, Min_Cube_t * pCover0, Min_Cube_t * pCover1, int fEsop, int nSupp );
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -59,6 +65,8 @@ Abc_Ntk_t * Abc_NtkXyz( Abc_Ntk_t * pNtk, int nFaninMax, bool fUseEsop, bool fUs
 
     // create the manager
     p = Xyz_ManAlloc( pNtk, nFaninMax );
+    p->fUseEsop = fUseEsop;
+    p->fUseSop  = 1;//fUseSop;
     pNtk->pManCut = p;
 
     // perform mapping
@@ -69,6 +77,8 @@ Abc_Ntk_t * Abc_NtkXyz( Abc_Ntk_t * pNtk, int nFaninMax, bool fUseEsop, bool fUs
         pNtkNew = Abc_NtkXyzDeriveClean( p, pNtk );
     else
         pNtkNew = Abc_NtkXyzDerive( p, pNtk );
+//    pNtkNew = NULL;
+
 
     Xyz_ManFree( p );
     pNtk->pManCut = NULL;
@@ -164,7 +174,10 @@ int Abc_NtkXyzCoversOne( Xyz_Man_t * p, Abc_Ntk_t * pNtk, bool fVerbose )
         } 
 
         // traverse the cone starting from this node
-        Abc_NtkXyzCovers_rec( p, pObj, vBoundary );
+        if ( Abc_ObjGetSupp(pObj) == NULL )
+            Abc_NtkXyzCovers_rec( p, pObj, vBoundary );
+
+        // count the number of solved cones
         if ( Abc_ObjGetSupp(pObj) == NULL )
             fStop = 0;
         else
@@ -225,7 +238,7 @@ void Abc_NtkXyzCovers_rec( Xyz_Man_t * p, Abc_Obj_t * pObj, Vec_Ptr_t * vBoundar
 {
     Abc_Obj_t * pObj0, * pObj1;
     // return if the support is already computed
-    if ( pObj->fMarkB || pObj->fMarkA || Abc_ObjGetSupp(pObj) )
+    if ( pObj->fMarkB || pObj->fMarkA )//|| Abc_ObjGetSupp(pObj) ) // why do we need Supp check here???
         return;
     // mark as visited
     pObj->fMarkB = 1;
@@ -236,9 +249,9 @@ void Abc_NtkXyzCovers_rec( Xyz_Man_t * p, Abc_Obj_t * pObj, Vec_Ptr_t * vBoundar
     Abc_NtkXyzCovers_rec( p, pObj0, vBoundary );
     Abc_NtkXyzCovers_rec( p, pObj1, vBoundary );
     // skip the node that spaced out
-    if ( !pObj0->fMarkA && !Abc_ObjGetSupp(pObj0) ||     // fanin is not ready
-         !pObj1->fMarkA && !Abc_ObjGetSupp(pObj1) ||     // fanin is not ready
-         !Abc_NodeXyzPropagateEsop(p, pObj, pObj0, pObj1) )  // node's support or covers cannot be computed
+    if ( !pObj0->fMarkA && !Abc_ObjGetSupp(pObj0) ||  // fanin is not ready
+         !pObj1->fMarkA && !Abc_ObjGetSupp(pObj1) ||  // fanin is not ready
+         !Abc_NodeXyzPropagate( p, pObj ) )           // node's support or covers cannot be computed
     {
         // save the nodes of the future boundary
         if ( !pObj0->fMarkA && Abc_ObjGetSupp(pObj0) )
@@ -328,6 +341,321 @@ Vec_Int_t * Abc_NodeXyzSupport( Xyz_Man_t * p, Vec_Int_t * vSupp0, Vec_Int_t * v
 */
     return vSupp;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Propagates all types of covers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NodeXyzPropagate( Xyz_Man_t * p, Abc_Obj_t * pObj )
+{
+    Min_Cube_t * pCoverP = NULL, * pCoverN = NULL, * pCoverX = NULL;
+    Min_Cube_t * pCov0, * pCov1, * pCover0, * pCover1;
+    Vec_Int_t * vSupp, * vSupp0, * vSupp1;
+    Abc_Obj_t * pObj0, * pObj1;
+    int fCompl0, fCompl1;
+
+    pObj0 = Abc_ObjFanin0( pObj );
+    pObj1 = Abc_ObjFanin1( pObj );
+
+    if ( pObj0->fMarkA )  Vec_IntWriteEntry( p->vTriv0, 0, pObj0->Id );
+    if ( pObj1->fMarkA )  Vec_IntWriteEntry( p->vTriv1, 0, pObj1->Id );
+
+    // get the resulting support
+    vSupp0 = pObj0->fMarkA? p->vTriv0 : Abc_ObjGetSupp(pObj0);
+    vSupp1 = pObj1->fMarkA? p->vTriv1 : Abc_ObjGetSupp(pObj1);
+    vSupp  = Abc_NodeXyzSupport( p, vSupp0, vSupp1 );
+
+    // quit if support if too large
+    if ( vSupp->nSize > p->nFaninMax )
+    {
+        Vec_IntFree( vSupp );
+        return 0;
+    }
+
+    // get the complemented attributes
+    fCompl0 = Abc_ObjFaninC0( pObj );
+    fCompl1 = Abc_ObjFaninC1( pObj );
+
+    // propagate ESOP
+    if ( p->fUseEsop )
+    {
+        // get the covers
+        pCov0 = pObj0->fMarkA? p->pManMin->pTriv0[0] : Abc_ObjGetCover2(pObj0);
+        pCov1 = pObj1->fMarkA? p->pManMin->pTriv1[0] : Abc_ObjGetCover2(pObj1);
+        if ( pCov0 && pCov1 )
+        {
+            // complement the first if needed
+            if ( !fCompl0 )
+                pCover0 = pCov0;
+            else if ( pCov0 && pCov0->nLits == 0 ) // topmost one is the tautology cube
+                pCover0 = pCov0->pNext;
+            else
+                pCover0 = p->pManMin->pOne0, p->pManMin->pOne0->pNext = pCov0;
+
+            // complement the second if needed
+            if ( !fCompl1 )
+                pCover1 = pCov1;
+            else if ( pCov1 && pCov1->nLits == 0 ) // topmost one is the tautology cube
+                pCover1 = pCov1->pNext;
+            else
+                pCover1 = p->pManMin->pOne1, p->pManMin->pOne1->pNext = pCov1;
+
+            // derive the new cover
+            pCoverX = Abc_NodeXyzProduct( p, pCover0, pCover1, 1, vSupp->nSize );
+        }
+    }
+    // propagate SOPs
+    if ( p->fUseSop )
+    {
+        // get the covers for the direct polarity
+        pCover0 = pObj0->fMarkA? p->pManMin->pTriv0[fCompl0] : Abc_ObjGetCover(pObj0, fCompl0);
+        pCover1 = pObj1->fMarkA? p->pManMin->pTriv1[fCompl1] : Abc_ObjGetCover(pObj1, fCompl1);
+        // derive the new cover
+        if ( pCover0 && pCover1 )
+            pCoverP = Abc_NodeXyzProduct( p, pCover0, pCover1, 0, vSupp->nSize );
+
+        // get the covers for the inverse polarity
+        pCover0 = pObj0->fMarkA? p->pManMin->pTriv0[!fCompl0] : Abc_ObjGetCover(pObj0, !fCompl0);
+        pCover1 = pObj1->fMarkA? p->pManMin->pTriv1[!fCompl1] : Abc_ObjGetCover(pObj1, !fCompl1);
+        // derive the new cover
+        if ( pCover0 && pCover1 )
+            pCoverN = Abc_NodeXyzSum( p, pCover0, pCover1, 0, vSupp->nSize );
+    }
+
+    // if none of the covers can be computed quit
+    if ( !pCoverX && !pCoverP && !pCoverN )
+    {
+        Vec_IntFree( vSupp );
+        return 0;
+    }
+
+    // set the covers
+    assert( Abc_ObjGetSupp(pObj) == NULL );
+    Abc_ObjSetSupp( pObj, vSupp );
+    Abc_ObjSetCover( pObj, pCoverP, 0 );
+    Abc_ObjSetCover( pObj, pCoverN, 1 );
+    Abc_ObjSetCover2( pObj, pCoverX );
+//printf( "%3d : %4d  %4d  %4d\n", pObj->Id, Min_CoverCountCubes(pCoverP), Min_CoverCountCubes(pCoverN), Min_CoverCountCubes(pCoverX) );
+
+    // count statistics
+    p->nSupps++;
+    p->nSuppsMax = ABC_MAX( p->nSuppsMax, p->nSupps );
+    return 1;
+}
+
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Min_Cube_t * Abc_NodeXyzProduct( Xyz_Man_t * p, Min_Cube_t * pCover0, Min_Cube_t * pCover1, int fEsop, int nSupp )
+{
+    Min_Cube_t * pCube, * pCube0, * pCube1;
+    Min_Cube_t * pCover;
+    int i, Val0, Val1;
+    assert( pCover0 && pCover1 );
+
+    // clean storage
+    Min_ManClean( p->pManMin, nSupp );
+    // go through the cube pairs
+    Min_CoverForEachCube( pCover0, pCube0 )
+    Min_CoverForEachCube( pCover1, pCube1 )
+    {
+        // go through the support variables of the cubes
+        for ( i = 0; i < p->vPairs0->nSize; i++ )
+        {
+            Val0 = Min_CubeGetVar( pCube0, p->vPairs0->pArray[i] );
+            Val1 = Min_CubeGetVar( pCube1, p->vPairs1->pArray[i] );
+            if ( (Val0 & Val1) == 0 )
+                break;
+        }
+        // check disjointness
+        if ( i < p->vPairs0->nSize )
+            continue;
+
+        if ( p->pManMin->nCubes > p->nCubesMax )
+        {
+            pCover = Min_CoverCollect( p->pManMin, nSupp );
+//Min_CoverWriteFile( pCover, "large", 1 );
+            Min_CoverRecycle( p->pManMin, pCover );
+            return NULL;
+        }
+
+        // create the product cube
+        pCube = Min_CubeAlloc( p->pManMin );
+
+        // add the literals
+        pCube->nLits = 0;
+        for ( i = 0; i < nSupp; i++ )
+        {
+            if ( p->vComTo0->pArray[i] == -1 )
+                Val0 = 3;
+            else
+                Val0 = Min_CubeGetVar( pCube0, p->vComTo0->pArray[i] );
+
+            if ( p->vComTo1->pArray[i] == -1 )
+                Val1 = 3;
+            else
+                Val1 = Min_CubeGetVar( pCube1, p->vComTo1->pArray[i] );
+
+            if ( (Val0 & Val1) == 3 )
+                continue;
+
+            Min_CubeXorVar( pCube, i, (Val0 & Val1) ^ 3 );
+            pCube->nLits++;
+        }
+        // add the cube to storage
+        if ( fEsop ) 
+            Min_EsopAddCube( p->pManMin, pCube );
+        else
+            Min_SopAddCube( p->pManMin, pCube );
+    }
+
+    // minimize the cover
+    if ( fEsop ) 
+        Min_EsopMinimize( p->pManMin );
+    else
+        Min_SopMinimize( p->pManMin );
+    pCover = Min_CoverCollect( p->pManMin, nSupp );
+
+    // quit if the cover is too large
+    if ( Min_CoverCountCubes(pCover) > p->nFaninMax )
+    {
+/*        
+Min_CoverWriteFile( pCover, "large", 1 );
+        Min_CoverExpand( p->pManMin, pCover );
+        Min_EsopMinimize( p->pManMin );
+        Min_EsopMinimize( p->pManMin );
+        Min_EsopMinimize( p->pManMin );
+        Min_EsopMinimize( p->pManMin );
+        Min_EsopMinimize( p->pManMin );
+        Min_EsopMinimize( p->pManMin );
+        Min_EsopMinimize( p->pManMin );
+        Min_EsopMinimize( p->pManMin );
+        Min_EsopMinimize( p->pManMin );
+        pCover = Min_CoverCollect( p->pManMin, nSupp );
+*/
+        Min_CoverRecycle( p->pManMin, pCover );
+        return NULL;
+    }
+    return pCover;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Min_Cube_t * Abc_NodeXyzSum( Xyz_Man_t * p, Min_Cube_t * pCover0, Min_Cube_t * pCover1, int fEsop, int nSupp )
+{
+    Min_Cube_t * pCube, * pCube0, * pCube1;
+    Min_Cube_t * pCover;
+    int i, Val0, Val1;
+    assert( pCover0 && pCover1 );
+
+    // clean storage
+    Min_ManClean( p->pManMin, nSupp );
+    Min_CoverForEachCube( pCover0, pCube0 )
+    {
+        // create the cube
+        pCube = Min_CubeAlloc( p->pManMin );
+        pCube->nLits = 0;
+        for ( i = 0; i < p->vComTo0->nSize; i++ )
+        {
+            if ( p->vComTo0->pArray[i] == -1 )
+                continue;
+            Val0 = Min_CubeGetVar( pCube0, p->vComTo0->pArray[i] );
+            if ( Val0 == 3 )
+                continue;
+            Min_CubeXorVar( pCube, i, Val0 ^ 3 );
+            pCube->nLits++;
+        }
+        if ( p->pManMin->nCubes > p->nCubesMax )
+        {
+            pCover = Min_CoverCollect( p->pManMin, nSupp );
+            Min_CoverRecycle( p->pManMin, pCover );
+            return NULL;
+        }
+        // add the cube to storage
+        if ( fEsop )
+            Min_EsopAddCube( p->pManMin, pCube );
+        else
+            Min_SopAddCube( p->pManMin, pCube );
+    }
+    Min_CoverForEachCube( pCover1, pCube1 )
+    {
+        // create the cube
+        pCube = Min_CubeAlloc( p->pManMin );
+        pCube->nLits = 0;
+        for ( i = 0; i < p->vComTo1->nSize; i++ )
+        {
+            if ( p->vComTo1->pArray[i] == -1 )
+                continue;
+            Val1 = Min_CubeGetVar( pCube1, p->vComTo1->pArray[i] );
+            if ( Val1 == 3 )
+                continue;
+            Min_CubeXorVar( pCube, i, Val1 ^ 3 );
+            pCube->nLits++;
+        }
+        if ( p->pManMin->nCubes > p->nCubesMax )
+        {
+            pCover = Min_CoverCollect( p->pManMin, nSupp );
+            Min_CoverRecycle( p->pManMin, pCover );
+            return NULL;
+        }
+        // add the cube to storage
+        if ( fEsop )
+            Min_EsopAddCube( p->pManMin, pCube );
+        else
+            Min_SopAddCube( p->pManMin, pCube );
+    }
+
+    // minimize the cover
+    if ( fEsop ) 
+        Min_EsopMinimize( p->pManMin );
+    else
+        Min_SopMinimize( p->pManMin );
+    pCover = Min_CoverCollect( p->pManMin, nSupp );
+
+    // quit if the cover is too large
+    if ( Min_CoverCountCubes(pCover) > p->nFaninMax )
+    {
+        Min_CoverRecycle( p->pManMin, pCover );
+        return NULL;
+    }
+    return pCover;
+}
+
+
+
+
+
+
+
+#if 0
+
+
 
 /**Function*************************************************************
 
@@ -581,7 +909,7 @@ int Abc_NodeXyzProductEsop( Xyz_Man_t * p, Min_Cube_t * pCover0, Min_Cube_t * pC
             pCube->nLits++;
         }
         // add the cube to storage
-        while ( Min_EsopAddCube( p->pManMin, pCube ) );
+        Min_EsopAddCube( p->pManMin, pCube );
     }
     return 1;
 }
@@ -642,7 +970,7 @@ int Abc_NodeXyzUnionEsop( Xyz_Man_t * p, Min_Cube_t * pCover0, Min_Cube_t * pCov
             if ( p->pManMin->nCubes >= p->nCubesMax )
                 return 0;
             // add the cube to storage
-            while ( Min_EsopAddCube( p->pManMin, pCube ) );
+            Min_EsopAddCube( p->pManMin, pCube );
         }
     }
     if ( pCover1 )
@@ -665,7 +993,7 @@ int Abc_NodeXyzUnionEsop( Xyz_Man_t * p, Min_Cube_t * pCover0, Min_Cube_t * pCov
             if ( p->pManMin->nCubes >= p->nCubesMax )
                 return 0;
             // add the cube to storage
-            while ( Min_EsopAddCube( p->pManMin, pCube ) );
+            Min_EsopAddCube( p->pManMin, pCube );
         }
     }
     return 1;
@@ -688,7 +1016,7 @@ int Abc_NodeXyzUnionSop( Xyz_Man_t * p, Min_Cube_t * pCover0, Min_Cube_t * pCove
 }
 
 
-
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

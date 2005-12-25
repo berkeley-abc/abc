@@ -92,13 +92,44 @@ void Min_CoverWrite( FILE * pFile, Min_Cube_t * pCover )
   SeeAlso     []
 
 ***********************************************************************/
+void Min_CoverWriteStore( FILE * pFile, Min_Man_t * p )
+{
+    Min_Cube_t * pCube;
+    int i;
+    for ( i = 0; i <= p->nVars; i++ )
+    {
+        Min_CoverForEachCube( p->ppStore[i], pCube )
+        {
+            printf( "%2d : ", i );
+            if ( pCube == p->pBubble )
+            {
+                printf( "Bubble\n" );
+                continue;
+            }
+            Min_CubeWrite( pFile, pCube );
+        }
+    }
+    printf( "\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Min_CoverWriteFile( Min_Cube_t * pCover, char * pName, int fEsop )
 {
     char Buffer[1000];
     Min_Cube_t * pCube;
     FILE * pFile;
     int i;
-    sprintf( Buffer, "%s.esop", pName );
+    sprintf( Buffer, "%s.%s", pName, fEsop? "esop" : "pla" );
     for ( i = strlen(Buffer) - 1; i >= 0; i-- )
         if ( Buffer[i] == '<' || Buffer[i] == '>' )
             Buffer[i] = '_';
@@ -116,7 +147,7 @@ void Min_CoverWriteFile( Min_Cube_t * pCover, char * pName, int fEsop )
 
 /**Function*************************************************************
 
-  Synopsis    [Performs one round of rewriting using distance 2 cubes.]
+  Synopsis    []
 
   Description []
                
@@ -134,6 +165,26 @@ void Min_CoverCheck( Min_Man_t * p )
             assert( i == (int)pCube->nLits );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Min_CubeCheck( Min_Cube_t * pCube )
+{
+    int i;
+    for ( i = 0; i < (int)pCube->nVars; i++ )
+        if ( Min_CubeGetVar( pCube, i ) == 0 )
+            return 0;
+    return 1;
+}
 
 /**Function*************************************************************
 
@@ -158,6 +209,7 @@ Min_Cube_t * Min_CoverCollect( Min_Man_t * p, int nSuppSize )
             assert( i == (int)pCube->nLits );
             *ppTail = pCube; 
             ppTail = &pCube->pNext;
+            assert( pCube->uData[0] ); // not a bubble
         }
     }
     *ppTail = NULL;

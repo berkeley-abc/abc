@@ -81,10 +81,10 @@ static inline void Min_CubeXorVar( Min_Cube_t * p, int Var, int Value ) { p->uDa
 
 /*=== xyzMinEsop.c ==========================================================*/
 extern void         Min_EsopMinimize( Min_Man_t * p );
-extern int          Min_EsopAddCube( Min_Man_t * p, Min_Cube_t * pCube );
+extern void         Min_EsopAddCube( Min_Man_t * p, Min_Cube_t * pCube );
 /*=== xyzMinSop.c ==========================================================*/
 extern void         Min_SopMinimize( Min_Man_t * p );
-extern int          Min_SopAddCube( Min_Man_t * p, Min_Cube_t * pCube );
+extern void         Min_SopAddCube( Min_Man_t * p, Min_Cube_t * pCube );
 /*=== xyzMinMan.c ==========================================================*/
 extern Min_Man_t *  Min_ManAlloc( int nVars );
 extern void         Min_ManClean( Min_Man_t * p, int nSupp );
@@ -92,8 +92,10 @@ extern void         Min_ManFree( Min_Man_t * p );
 /*=== xyzMinUtil.c ==========================================================*/
 extern void         Min_CubeWrite( FILE * pFile, Min_Cube_t * pCube );
 extern void         Min_CoverWrite( FILE * pFile, Min_Cube_t * pCover );
+extern void         Min_CoverWriteStore( FILE * pFile, Min_Man_t * p );
 extern void         Min_CoverWriteFile( Min_Cube_t * pCover, char * pName, int fEsop );
 extern void         Min_CoverCheck( Min_Man_t * p );
+extern int          Min_CubeCheck( Min_Cube_t * pCube );
 extern Min_Cube_t * Min_CoverCollect( Min_Man_t * p, int nSuppSize );
 extern void         Min_CoverExpand( Min_Man_t * p, Min_Cube_t * pCover );
 extern int          Min_CoverSuppVarNum( Min_Man_t * p, Min_Cube_t * pCover );
@@ -161,6 +163,7 @@ static inline Min_Cube_t * Min_CubeDup( Min_Man_t * p, Min_Cube_t * pCopy )
     Min_Cube_t * pCube;
     pCube = Min_CubeAlloc( p );
     memcpy( pCube->uData, pCopy->uData, sizeof(unsigned) * p->nWords );
+    pCube->nLits = pCopy->nLits;
     return pCube;
 }
 
@@ -538,6 +541,24 @@ static inline void Min_CubesTransform( Min_Cube_t * pCube, Min_Cube_t * pDist, M
     }
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Transforms the cube into the result of distance-1 merging.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Min_CubesTransformOr( Min_Cube_t * pCube, Min_Cube_t * pDist )
+{
+    int w;
+    for ( w = 0; w < (int)pCube->nWords; w++ )
+        pCube->uData[w] |= pDist->uData[w];
+}
+
 
 
 /**Function*************************************************************
@@ -579,7 +600,7 @@ static inline void Min_CoverExpandRemoveEqual( Min_Man_t * p, Min_Cube_t * pCove
 
 /**Function*************************************************************
 
-  Synopsis    [Check if the cube is equal or dist1 or contained.]
+  Synopsis    [Returns 1 if the given cube is contained in one of the cubes of the cover.]
 
   Description []
                
@@ -588,40 +609,30 @@ static inline void Min_CoverExpandRemoveEqual( Min_Man_t * p, Min_Cube_t * pCove
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Min_CubeIsEqualOrSubsumed( Min_Man_t * p, Min_Cube_t * pNew )
+static inline int Min_CoverContainsCube( Min_Man_t * p, Min_Cube_t * pCube )
 {
-    Min_Cube_t * pCube;
+    Min_Cube_t * pThis;
     int i;
-    // check identity
-    Min_CoverForEachCube( p->ppStore[pNew->nLits], pCube )
-        if ( Min_CubesAreEqual( pCube, pNew ) )
+/*
+    // this cube cannot be equal to any cube
+    Min_CoverForEachCube( p->ppStore[pCube->nLits], pThis )
+    {
+        if ( Min_CubesAreEqual( pCube, pThis ) )
+        {
+            Min_CubeWrite( stdout, pCube );
+            assert( 0 );
+        }
+    }
+*/
+    // try to find a containing cube
+    for ( i = 0; i <= (int)pCube->nLits; i++ )
+    Min_CoverForEachCube( p->ppStore[i], pThis )
+    {
+        // skip the bubble
+        if ( pThis != p->pBubble && Min_CubeIsContained( pThis, pCube ) )
             return 1;
-    // check containment
-    for ( i = 0; i < (int)pNew->nLits; i++ )
-        Min_CoverForEachCube( p->ppStore[i], pCube )
-            if ( Min_CubeIsContained( pCube, pNew ) )
-                return 1;
+    }
     return 0;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Check if the cube is equal or dist1 or contained.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline Min_Cube_t * Min_CubeHasDistanceOne( Min_Man_t * p, Min_Cube_t * pNew )
-{
-    Min_Cube_t * pCube;
-    Min_CoverForEachCube( p->ppStore[pNew->nLits], pCube )
-        if ( Min_CubesDistOne( pCube, pNew, NULL ) )
-            return pCube;
-    return NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////

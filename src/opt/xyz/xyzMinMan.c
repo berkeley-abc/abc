@@ -62,6 +62,7 @@ Min_Man_t * Min_ManAlloc( int nVars )
     pMan->pTriv0[1] = Min_CubeAllocVar( pMan, 0, 1 );   
     pMan->pTriv1[0] = Min_CubeAllocVar( pMan, 0, 0 );
     pMan->pTriv1[1] = Min_CubeAllocVar( pMan, 0, 1 );   
+    Min_ManClean( pMan, nVars );
     return pMan;
 }
 

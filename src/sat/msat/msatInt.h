@@ -151,6 +151,7 @@ struct Msat_Solver_t_
     int                 nSeenId;     // the id of current seeing
     Msat_IntVec_t *     vReason;     // the temporary array of literals
     Msat_IntVec_t *     vTemp;       // the temporary array of literals
+    int *               pFreq;       // the number of times each var participated in conflicts
 
     // the memory manager
     Msat_MmStep_t *     pMem;

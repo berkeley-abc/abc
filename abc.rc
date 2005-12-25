@@ -74,4 +74,5 @@ alias compress  "b; rw -l; rwz -l; b; rwz -l; b"
 alias compress2 "b; rw -l; rf -l; b; rw -l; rwz -l; b; rfz -l; rwz -l; b"
 alias choice    "fraig_store; resyn; fraig_store; resyn2; fraig_store; fraig_restore"
 alias choice2   "fraig_store; balance; fraig_store; resyn; fraig_store; resyn2; fraig_store; resyn2; fraig_store; fraig_restore"
+alias try       "st; fpga; miter; fraig -rp"
 

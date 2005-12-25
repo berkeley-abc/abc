@@ -62,7 +62,11 @@ void Min_EsopMinimize( Min_Man_t * p )
 
   Synopsis    [Performs one round of rewriting using distance 2 cubes.]
 
-  Description []
+  Description [The weakness of this procedure is that it tries each cube
+  with only one distance-2 cube. If this pair does not lead to improvement
+  the cube is inserted into the cover anyhow, and we try another pair.
+  A possible improvement would be to try this cube with all distance-2
+  cubes, until an improvement is found, or until all such cubes are tried.]
                
   SideEffects []
 
@@ -162,8 +166,8 @@ void Min_EsopRewrite( Min_Man_t * p )
 
         // add the cubes
         nCubesOld = p->nCubes;
-        while ( Min_EsopAddCube( p, pCube ) );
-        while ( Min_EsopAddCube( p, pThis ) );
+        Min_EsopAddCube( p, pCube );
+        Min_EsopAddCube( p, pThis );
         // check if the cubes were absorbed
         if ( p->nCubes < nCubesOld + 2 )
             continue;
@@ -191,8 +195,8 @@ void Min_EsopRewrite( Min_Man_t * p )
         pThis->nLits += (v11 != 3);
 
         // add them anyhow
-        while ( Min_EsopAddCube( p, pCube ) );
-        while ( Min_EsopAddCube( p, pThis ) );
+        Min_EsopAddCube( p, pCube );
+        Min_EsopAddCube( p, pThis );
     }
 //    printf( "Pairs = %d  ", nPairs );
 }
@@ -201,8 +205,8 @@ void Min_EsopRewrite( Min_Man_t * p )
 
   Synopsis    [Adds the cube to storage.]
 
-  Description [If the distance one cube is found, returns the transformed
-  cube. If there is no distance one, adds the given cube to storage.
+  Description [Returns 0 if the cube is added or removed. Returns 1
+  if the cube is glued with some other cube and has to be added again.
   Do not forget to clean the storage!]
                
   SideEffects []
@@ -210,7 +214,7 @@ void Min_EsopRewrite( Min_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Min_EsopAddCube( Min_Man_t * p, Min_Cube_t * pCube )
+int Min_EsopAddCubeInt( Min_Man_t * p, Min_Cube_t * pCube )
 {
     Min_Cube_t * pThis, ** ppPrev;
     // try to find the identical cube
@@ -268,6 +272,24 @@ int Min_EsopAddCube( Min_Man_t * p, Min_Cube_t * pCube )
     p->ppStore[pCube->nLits] = pCube;
     p->nCubes++;
     return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds the cube to storage.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Min_EsopAddCube( Min_Man_t * p, Min_Cube_t * pCube )
+{
+    assert( pCube != p->pBubble );
+    assert( (int)pCube->nLits == Min_CubeCountLits(pCube) );
+    while ( Min_EsopAddCubeInt( p, pCube ) );
 }
 
 ////////////////////////////////////////////////////////////////////////

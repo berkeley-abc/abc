@@ -2868,6 +2868,13 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( stdout, "Currently can only solve the miter for combinational circuits.\n" );
         return 0;
     } 
+    if ( Abc_NtkIsSeq(pNtk) )
+    {
+        fprintf( stdout, "This command cannot be applied to the sequential AIG.\n" );
+        return 0;
+    }
+
+/*
     if ( !Abc_NtkIsLogic(pNtk) )
     {
         fprintf( stdout, "This command can only be applied to logic network (run \"renode -c\").\n" );
@@ -2877,19 +2884,35 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_NtkUnmap(pNtk);
     if ( Abc_NtkIsSopLogic(pNtk) )
         Abc_NtkSopToBdd(pNtk);
-
-    RetValue = Abc_NtkMiterSat( pNtk, nSeconds, fVerbose );
-    if ( RetValue == -1 )
-        printf( "The miter is UNDECIDED (SAT solver timed out).\n" );
-    else if ( RetValue == 0 )
-        printf( "The miter is SATISFIABLE.\n" );
+*/
+    if ( Abc_NtkIsStrash(pNtk) )
+    {
+        RetValue = Abc_NtkMiterSat2( pNtk, nSeconds, fVerbose );
+        if ( RetValue == -1 )
+            printf( "The miter is UNDECIDED (SAT solver timed out).\n" );
+        else if ( RetValue == 0 )
+            printf( "The miter is SATISFIABLE.\n" );
+        else
+            printf( "The miter is UNSATISFIABLE.\n" );
+    }
     else
-        printf( "The miter is UNSATISFIABLE.\n" );
+    {
+        Abc_Ntk_t * pTemp;
+        pTemp = Abc_NtkStrash( pNtk, 0, 0 );
+        RetValue = Abc_NtkMiterSat2( pTemp, nSeconds, fVerbose );
+        if ( RetValue == -1 )
+            printf( "The miter is UNDECIDED (SAT solver timed out).\n" );
+        else if ( RetValue == 0 )
+            printf( "The miter is SATISFIABLE.\n" );
+        else
+            printf( "The miter is UNSATISFIABLE.\n" );
+        Abc_NtkDelete( pTemp );
+    }
     return 0;
 
 usage:
     fprintf( pErr, "usage: sat [-T num] [-vh]\n" );
-    fprintf( pErr, "\t         solves the miter\n" );
+    fprintf( pErr, "\t         solves the combinational miter\n" );
     fprintf( pErr, "\t-T num : approximate runtime limit in seconds [default = %d]\n", nSeconds );
     fprintf( pErr, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
     fprintf( pErr, "\t-h     : print the command usage\n");
@@ -3722,11 +3745,11 @@ int Abc_CommandXyz( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // run the command
-    pNtkRes = Abc_NtkXyz( pNtk, nFaninMax, 0, 0, fUseInvs, fVerbose );
+    pNtkRes = Abc_NtkXyz( pNtk, nFaninMax, 1, 0, fUseInvs, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
-        return 1;
+        return 0;
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
@@ -3788,9 +3811,9 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-//    Abc_NtkDeriveEsops( pNtk );
-//    Abc_NtkXyz( pNtk, 128, 0, 0, 0 );
-    printf( "This command is currently not used.\n" );
+    Abc_NtkTestEsop( pNtk );
+//    Abc_NtkTestSop( pNtk );
+//    printf( "This command is currently not used.\n" );
 
 /*
     // run the command

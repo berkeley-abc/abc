@@ -87,6 +87,7 @@ extern void             Msat_SolverPrintClauses( Msat_Solver_t * p );
 extern void             Msat_SolverWriteDimacs( Msat_Solver_t * p, char * pFileName );
 // access to the solver internal data
 extern int              Msat_SolverReadVarNum( Msat_Solver_t * p );
+extern int              Msat_SolverReadClauseNum( Msat_Solver_t * p );
 extern int              Msat_SolverReadVarAllocNum( Msat_Solver_t * p );
 extern int *            Msat_SolverReadAssignsArray( Msat_Solver_t * p );
 extern int *            Msat_SolverReadModelArray( Msat_Solver_t * p );

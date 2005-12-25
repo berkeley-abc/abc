@@ -140,6 +140,9 @@ bool Msat_SolverSolve( Msat_Solver_t * p, Msat_IntVec_t * vAssumps, int nBackTra
     int64 nConflictsOld = p->Stats.nConflicts;
     int64 nDecisionsOld = p->Stats.nDecisions;
 
+    p->pFreq = ALLOC( int, p->nVarsAlloc );
+    memset( p->pFreq, 0, sizeof(int) * p->nVarsAlloc );
+ 
     if ( vAssumps )
     {
         int * pAssumps, nAssumps, i;
@@ -181,6 +184,23 @@ bool Msat_SolverSolve( Msat_Solver_t * p, Msat_IntVec_t * vAssumps, int nBackTra
     }
     Msat_SolverCancelUntil( p, 0 );
     p->nBackTracks = (int)p->Stats.nConflicts - p->nBackTracks;
+/*
+    PRT( "True solver runtime", clock() - timeStart );
+    // print the statistics
+    {
+        int i, Counter = 0;
+        for ( i = 0; i < p->nVars; i++ )
+            if ( p->pFreq[i] > 0 )
+            {
+                printf( "%d ", p->pFreq[i] );
+                Counter++;
+            }
+        if ( Counter )
+            printf( "\n" );
+        printf( "Total = %d. Used = %d.  Decisions = %d. Imps = %d. Conflicts = %d. ", p->nVars, Counter, (int)p->Stats.nDecisions, (int)p->Stats.nPropagations, (int)p->Stats.nConflicts );
+        PRT( "Time", clock() - timeStart );
+    }
+*/
     return Status;
 }
 
