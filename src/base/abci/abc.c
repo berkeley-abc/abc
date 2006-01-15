@@ -3745,7 +3745,9 @@ int Abc_CommandXyz( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // run the command
-    pNtkRes = Abc_NtkXyz( pNtk, nFaninMax, 1, 0, fUseInvs, fVerbose );
+//    pNtkRes = Abc_NtkXyz( pNtk, nFaninMax, 1, 0, fUseInvs, fVerbose );
+    pNtkRes = NULL;
+
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
@@ -3811,7 +3813,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    Abc_NtkTestEsop( pNtk );
+//    Abc_NtkTestEsop( pNtk );
 //    Abc_NtkTestSop( pNtk );
 //    printf( "This command is currently not used.\n" );
 

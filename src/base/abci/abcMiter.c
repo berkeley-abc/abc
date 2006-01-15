@@ -350,6 +350,94 @@ Abc_Ntk_t * Abc_NtkMiterForCofactors( Abc_Ntk_t * pNtk, int Out, int In1, int In
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Derives the miter of two cofactors of one output.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkMiterQuantify( Abc_Ntk_t * pNtk, int In, int fExist )
+{
+    Abc_Ntk_t * pNtkMiter;
+    Abc_Obj_t * pRoot, * pOutput1, * pOutput2, * pMiter;
+
+    assert( Abc_NtkIsStrash(pNtk) );
+    assert( 1 == Abc_NtkCoNum(pNtk) );
+    assert( In < Abc_NtkCiNum(pNtk) );
+
+    // start the new network
+    pNtkMiter = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG );
+    pNtkMiter->pName = util_strsav( Abc_ObjName(Abc_NtkCo(pNtk, 0)) );
+
+    // get the root output
+    pRoot = Abc_NtkCo( pNtk, 0 );
+
+    // perform strashing
+    Abc_NtkMiterPrepare( pNtk, pNtk, pNtkMiter, 1 );
+    // set the first cofactor
+    Abc_NtkCi(pNtk, In)->pCopy = Abc_ObjNot( Abc_NtkConst1(pNtkMiter) );
+    // add the first cofactor
+    Abc_NtkMiterAddCone( pNtk, pNtkMiter, pRoot );
+    // save the output
+    pOutput1 = Abc_ObjFanin0(pRoot)->pCopy;
+
+    // set the second cofactor
+    Abc_NtkCi(pNtk, In)->pCopy = Abc_NtkConst1( pNtkMiter );
+    // add the second cofactor
+    Abc_NtkMiterAddCone( pNtk, pNtkMiter, pRoot );
+    // save the output
+    pOutput2 = Abc_ObjFanin0(pRoot)->pCopy;
+
+    // create the miter of the two outputs
+    if ( fExist ) 
+        pMiter = Abc_AigOr( pNtkMiter->pManFunc, pOutput1, pOutput2 );
+    else
+        pMiter = Abc_AigAnd( pNtkMiter->pManFunc, pOutput1, pOutput2 );
+    Abc_ObjAddFanin( Abc_NtkPo(pNtkMiter,0), pMiter );
+
+    // make sure that everything is okay
+    if ( !Abc_NtkCheck( pNtkMiter ) )
+    {
+        printf( "Abc_NtkMiter: The network check has failed.\n" );
+        Abc_NtkDelete( pNtkMiter );
+        return NULL;
+    }
+    return pNtkMiter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives the miter of two cofactors of one output.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkMiterQuantifyPis( Abc_Ntk_t * pNtk )
+{
+    Abc_Ntk_t * pNtkTemp;
+    Abc_Obj_t * pObj;
+    int i;
+
+    Abc_NtkForEachPi( pNtk, pObj, i )
+    {
+        if ( Abc_ObjFanoutNum(pObj) == 0 )
+            continue;
+        pNtk = Abc_NtkMiterQuantify( pNtkTemp = pNtk, i, 1 );
+        Abc_NtkDelete( pNtkTemp );
+    }
+
+    return pNtk;
+}
+
 
 
 

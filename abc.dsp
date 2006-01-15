@@ -1045,6 +1045,70 @@ SOURCE=.\src\sat\csat\csat_apis.c
 SOURCE=.\src\sat\csat\csat_apis.h
 # End Source File
 # End Group
+# Begin Group "aig"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\sat\aig\aig.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\aig\aigBalance.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\aig\aigCheck.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\aig\aigFanout.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\aig\aigMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\aig\aigMem.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\aig\aigNode.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\aig\aigOper.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\aig\aigReplace.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\aig\aigTable.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\aig\aigUtil.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\aig\fraigClass.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\aig\fraigCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\aig\fraigProve.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\aig\fraigSim.c
+# End Source File
+# End Group
 # End Group
 # Begin Group "opt"
 

@@ -211,7 +211,7 @@ struct Abc_Ntk_t_
 // transforming floats into ints and back
 static inline int         Abc_Float2Int( float Val )                 { return *((int *)&Val);               }
 static inline float       Abc_Int2Float( int Num )                   { return *((float *)&Num);             }
-static inline int         Abc_BitWordNum( int nBits )                { return nBits/32 + ((nBits%32) > 0);  }
+static inline int         Abc_BitWordNum( int nBits )                { return nBits/(8*sizeof(unsigned)) + ((nBits%(8*sizeof(unsigned))) > 0);  }
 
 // checking the network type
 static inline bool        Abc_NtkIsNetlist( Abc_Ntk_t * pNtk )       { return pNtk->ntkType == ABC_NTK_NETLIST; }
@@ -487,6 +487,8 @@ extern int                Abc_NodeRemoveDupFanins( Abc_Obj_t * pNode );
 /*=== abcMiter.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkMiter( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb );
 extern Abc_Ntk_t *        Abc_NtkMiterForCofactors( Abc_Ntk_t * pNtk, int Out, int In1, int In2 );
+extern Abc_Ntk_t *        Abc_NtkMiterQuantify( Abc_Ntk_t * pNtk, int In, int fExist );
+extern Abc_Ntk_t *        Abc_NtkMiterQuantifyPis( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkMiterIsConstant( Abc_Ntk_t * pMiter );
 extern void               Abc_NtkMiterReport( Abc_Ntk_t * pMiter );
 extern int                Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 );

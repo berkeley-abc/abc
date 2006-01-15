@@ -291,6 +291,8 @@ int CSAT_Check_Integrity( CSAT_Manager mng )
     // check that there is no dangling nodes
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
+        if ( i == 0 ) 
+            continue;
         if ( Abc_ObjFanoutNum(pObj) == 0 )
         {
             printf( "CSAT_Check_Integrity: The network has dangling nodes.\n" );

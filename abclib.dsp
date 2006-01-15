@@ -457,6 +457,10 @@ SOURCE=.\src\base\io\ioWriteList.c
 
 SOURCE=.\src\base\io\ioWritePla.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\src\base\io\ioWriteVerilog.c
+# End Source File
 # End Group
 # Begin Group "main"
 

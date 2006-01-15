@@ -233,7 +233,7 @@ clk = clock();
     RetValue1 = Msat_SolverSolve( p->pSat, p->vProj, nBTLimit, nTimeLimit );
 p->timeSat += clock() - clk;
 
-Msat_SolverWriteDimacs( p->pSat, "temp_fraig.cnf" );
+//Msat_SolverWriteDimacs( p->pSat, "temp_fraig.cnf" );
 
     if ( RetValue1 == MSAT_FALSE )
     {
