@@ -82,7 +82,7 @@ void Dsd_CheckCacheAllocate( int nEntries )
 
 /**Function********************************************************************
 
-  Synopsis    [Delocates the local cache.]
+  Synopsis    [Deallocates the local cache.]
 
   Description []
 

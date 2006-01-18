@@ -36,7 +36,7 @@ struct Aig_Table_t_
 #define Aig_TableBinForEachEntry( pBin, pEnt )                 \
     for ( pEnt = pBin;                                         \
           pEnt;                                                \
-          pEnt = pEnt->NextH? Aig_ManNode(pEnt->pMan, pEnt->NextH) : NULL )
+          pEnt = Aig_NodeNextH(pEnt) )
 #define Aig_TableBinForEachEntrySafe( pBin, pEnt, pEnt2 )      \
     for ( pEnt = pBin,                                         \
           pEnt2 = pEnt? Aig_NodeNextH(pEnt) : NULL;            \
@@ -127,9 +127,8 @@ Aig_Node_t * Aig_TableLookupNode( Aig_Man_t * pMan, Aig_Node_t * p0, Aig_Node_t 
     Aig_Node_t * pAnd;
     unsigned Key;
     assert( Aig_Regular(p0)->Id < Aig_Regular(p1)->Id );
-    assert( p0->pMan == p1->pMan );
     // get the hash key for these two nodes
-    Key = Abc_HashKey2( p0, p1, pMan->pTable->nBins );
+    Key = Abc_HashKey2( p0, p1, pMan->pTable->nBins ); 
     // find the matching node in the table
     Aig_TableBinForEachEntry( pMan->pTable->pBins[Key], pAnd )
         if ( p0 == Aig_NodeChild0(pAnd) && p1 == Aig_NodeChild1(pAnd) )
@@ -157,8 +156,8 @@ Aig_Node_t * Aig_TableInsertNode( Aig_Man_t * pMan, Aig_Node_t * p0, Aig_Node_t 
         Aig_TableResize( pMan );
     // add the node to the corresponding linked list in the table
     Key = Abc_HashKey2( p0, p1, pMan->pTable->nBins );
-    pAnd->NextH = pMan->pTable->pBins[Key]->Id;
-    pMan->pTable->pBins[Key]->NextH = pAnd->Id;
+    pAnd->NextH = pMan->pTable->pBins[Key]? pMan->pTable->pBins[Key]->Id : 0;
+    pMan->pTable->pBins[Key] = pAnd;
     pMan->pTable->nEntries++;
     return pAnd;
 }
@@ -195,7 +194,7 @@ void Aig_TableDeleteNode( Aig_Man_t * pMan, Aig_Node_t * pThis )
         if ( pPlace == NULL )
             pMan->pTable->pBins[Key] = Aig_NodeNextH(pThis);
         else
-            pPlace->NextH = pThis->Id;
+            pPlace->NextH = pThis->NextH;
         break;
     }
     assert( pThis == pAnd );
@@ -232,8 +231,8 @@ clk = clock();
         Aig_TableBinForEachEntrySafe( pMan->pTable->pBins[i], pEnt, pEnt2 )
         {
             Key = Abc_HashKey2( Aig_NodeChild0(pEnt), Aig_NodeChild1(pEnt), nBinsNew );
-            pEnt->NextH = pBinsNew[Key]->Id;
-            pBinsNew[Key]->NextH = pEnt->Id;
+            pEnt->NextH = pBinsNew[Key]? pBinsNew[Key]->Id : 0;
+            pBinsNew[Key] = pEnt;
             Counter++;
         }
     assert( Counter == pMan->pTable->nEntries );
@@ -282,8 +281,8 @@ void Aig_TableRehash( Aig_Man_t * pMan )
            }
             // rehash the node
             Key = Abc_HashKey2( Aig_NodeChild0(pEnt), Aig_NodeChild1(pEnt), pMan->pTable->nBins );
-            pEnt->NextH = pBinsNew[Key]->Id;
-            pBinsNew[Key]->NextH = pEnt->Id;
+            pEnt->NextH = pBinsNew[Key]? pBinsNew[Key]->Id : 0;
+            pBinsNew[Key] = pEnt;
             Counter++;
         }
     assert( Counter == pMan->pTable->nEntries );

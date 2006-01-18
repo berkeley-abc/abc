@@ -46,6 +46,7 @@ static inline Aig_Node_t * Aig_NodeCreate( Aig_Man_t * p )
     pNode = (Aig_Node_t *)Aig_MemFixedEntryFetch( p->mmNodes );
     memset( pNode, 0, sizeof(Aig_Node_t) );
     // assign the number and add to the array of nodes
+    pNode->pMan = p;
     pNode->Id = p->vNodes->nSize;
     Vec_PtrPush( p->vNodes, pNode );
     return pNode;
@@ -66,6 +67,7 @@ Aig_Node_t * Aig_NodeCreateConst( Aig_Man_t * p )
 {
     Aig_Node_t * pNode;
     pNode = Aig_NodeCreate( p );
+    pNode->Type   = AIG_NONE;
     pNode->fPhase = 1; // sim value for 000... pattern
     return pNode;
 }
@@ -86,7 +88,8 @@ Aig_Node_t * Aig_NodeCreatePi( Aig_Man_t * p )
     Aig_Node_t * pNode;
     pNode = Aig_NodeCreate( p );
     Vec_PtrPush( p->vPis, pNode );
-    pNode->fPhase  =  0;  // sim value for 000... pattern
+    pNode->Type   = AIG_PI;
+    pNode->fPhase =  0;  // sim value for 000... pattern
     return pNode;
 }
 
@@ -105,6 +108,7 @@ Aig_Node_t * Aig_NodeCreatePo( Aig_Man_t * p, Aig_Node_t * pFanin )
 {
     Aig_Node_t * pNode;
     pNode = Aig_NodeCreate( p );
+    pNode->Type = AIG_PO;
     Vec_PtrPush( p->vPos, pNode );
     // connect to the fanin
     pNode->Fans[0].fComp = Aig_IsComplement(pFanin);
@@ -134,6 +138,7 @@ Aig_Node_t * Aig_NodeCreateAnd( Aig_Man_t * p, Aig_Node_t * pFanin0, Aig_Node_t 
 {
     Aig_Node_t * pNode;
     pNode = Aig_NodeCreate( p );
+    pNode->Type = AIG_AND;
     Aig_NodeConnectAnd( pFanin0, pFanin1, pNode );
     return pNode;
 }

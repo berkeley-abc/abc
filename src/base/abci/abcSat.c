@@ -534,10 +534,10 @@ int Abc_NtkClauseMux( solver * pSat, Abc_Obj_t * pNode, Abc_Obj_t * pNodeC, Abc_
     Vec_IntPush( vVars, toLitCond(VarF,  1) );
     if ( !solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize ) )
         return 0;
-
+ 
     if ( VarT == VarE )
     {
-        assert( fCompT == !fCompE );
+//        assert( fCompT == !fCompE );
         return 1;
     }
 
@@ -774,7 +774,7 @@ solver * Abc_NtkMiterSatCreate2( Abc_Ntk_t * pNtk )
     RetValue = Abc_NtkMiterSatCreate2Int( pSat, pNtk );
     Abc_NtkForEachObj( pNtk, pNode, i )
         pNode->fMarkA = 0;
-    Asat_SolverWriteDimacs( pSat, "temp_sat.cnf", NULL, NULL, 1 );
+//    Asat_SolverWriteDimacs( pSat, "temp_sat.cnf", NULL, NULL, 1 );
     if ( RetValue == 0 )
     {
         solver_delete(pSat);

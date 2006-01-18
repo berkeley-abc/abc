@@ -48,6 +48,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
+#include "solver.h"
 #include "vec.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -70,6 +71,7 @@ typedef struct Aig_Edge_t_      Aig_Edge_t;
 typedef struct Aig_MemFixed_t_  Aig_MemFixed_t;
 typedef struct Aig_SimInfo_t_   Aig_SimInfo_t;
 typedef struct Aig_Table_t_     Aig_Table_t;
+typedef struct Aig_Pattern_t_   Aig_Pattern_t;
 
 // network types
 typedef enum { 
@@ -79,12 +81,25 @@ typedef enum {
     AIG_AND        // 3: internal node
 } Aig_NodeType_t;
 
+// proof outcomes
+typedef enum { 
+    AIG_PROOF_NONE = 0,  // 0: unknown
+    AIG_PROOF_SAT,       // 1: primary input
+    AIG_PROOF_UNSAT,     // 2: primary output
+    AIG_PROOF_TIMEOUT,   // 3: primary output
+    AIG_PROOF_FAIL       // 4: internal node
+} Aig_ProofType_t;
+
+
+
 // the AIG parameters
 struct Aig_Param_t_
 {
     int              nPatsRand;     // the number of random patterns
     int              nBTLimit;      // backtrack limit at the intermediate nodes
     int              nSeconds;      // the runtime limit at the final miter
+    int              fVerbose;      // verbosity
+    int              fSatVerbose;   // verbosity of SAT
 };
 
 // the AIG edge 
@@ -127,6 +142,13 @@ struct Aig_Man_t_
     Vec_Ptr_t *      vPos;          // all POs
     Aig_Table_t *    pTable;        // structural hash table
     int              nLevelMax;     // the maximum level
+    // SAT solver and related structures
+    solver *         pSat;
+    Vec_Int_t *      vVar2Sat;      // mapping of nodes into their SAT var numbers (for each node num)
+    Vec_Int_t *      vSat2Var;      // mapping of the SAT var numbers into nodes (for each SAT var)
+    Vec_Int_t *      vPiSatNums;    // the SAT variable numbers (for each PI)
+    int *            pModel;        // the satisfying assignment (for each PI)
+    int              nMuxes;        // the number of MUXes
     // fanout representation
     Vec_Ptr_t *      vFanPivots;    // fanout pivots
     Vec_Ptr_t *      vFanFans0;     // the next fanout of the first fanin
@@ -136,6 +158,7 @@ struct Aig_Man_t_
     int              nTravIds;      // the traversal ID
     // simulation info
     Aig_SimInfo_t *  pInfo;         // random and systematic sim info for PIs
+    Aig_SimInfo_t *  pInfoPi;       // temporary sim info for the PI nodes
     Aig_SimInfo_t *  pInfoTemp;     // temporary sim info for all nodes
     // simulation patterns
     int              nPiWords;      // the number of words in the PI info
@@ -146,6 +169,14 @@ struct Aig_Man_t_
     // temporary data
     Vec_Ptr_t *      vFanouts;      // temporary storage for fanouts of a node
     Vec_Ptr_t *      vToReplace;    // the nodes to replace
+};
+
+// the simulation patter
+struct Aig_Pattern_t_  
+{
+    int              nBits;
+    int              nWords;
+    unsigned *       pData;
 };
 
 // the AIG simulation info
@@ -166,9 +197,9 @@ struct Aig_SimInfo_t_
     for ( i = 0; (i < Aig_ManPiNum(pMan)) && (((pNode) = Aig_ManPi(pMan, i)), 1); i++ )
 #define Aig_ManForEachPo( pMan, pNode, i )                                                    \
     for ( i = 0; (i < Aig_ManPoNum(pMan)) && (((pNode) = Aig_ManPo(pMan, i)), 1); i++ )
-#define Aig_ManForEachAnd( pNtk, pNode, i )                                                   \
+#define Aig_ManForEachAnd( pMan, pNode, i )                                                   \
     for ( i = 0; (i < Aig_ManNodeNum(pMan)) && (((pNode) = Aig_ManNode(pMan, i)), 1); i++ )   \
-        if ( Aig_NodeIsAnd(pNode) ) {} else
+        if ( !Aig_NodeIsAnd(pNode) ) {} else
 
 // maximum/minimum operators
 #define AIG_MIN(a,b)  (((a) < (b))? (a) : (b))
@@ -178,8 +209,12 @@ struct Aig_SimInfo_t_
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline int          Aig_BitWordNum( int nBits )            { return nBits/32 + ((nBits%32) > 0);    }
+static inline int          Aig_BitWordNum( int nBits )            { return nBits/32 + ((nBits%32) > 0);       }
+static inline int          Aig_InfoHasBit( unsigned * p, int i )  { return (p[(i)>>5] & (1<<((i) & 31))) > 0; }
+static inline void         Aig_InfoSetBit( unsigned * p, int i )  { p[(i)>>5] |= (1<<((i) & 31));             }
+static inline void         Aig_InfoXorBit( unsigned * p, int i )  { p[(i)>>5] ^= (1<<((i) & 31));             }
 
+static inline Aig_Node_t * Aig_ManConst1( Aig_Man_t * pMan )      { return pMan->pConst1;                  }
 static inline Aig_Node_t * Aig_ManNode( Aig_Man_t * pMan, int i ) { return Vec_PtrEntry(pMan->vNodes, i);  }
 static inline Aig_Node_t * Aig_ManPi( Aig_Man_t * pMan, int i )   { return Vec_PtrEntry(pMan->vPis, i);    }
 static inline Aig_Node_t * Aig_ManPo( Aig_Man_t * pMan, int i )   { return Vec_PtrEntry(pMan->vPos, i);    }
@@ -216,7 +251,8 @@ static inline Aig_Node_t * Aig_NodeChild0( Aig_Node_t * pNode )   { return Aig_N
 static inline Aig_Node_t * Aig_NodeChild1( Aig_Node_t * pNode )   { return Aig_NotCond( Aig_NodeFanin1(pNode), Aig_NodeFaninC1(pNode) ); }
 static inline Aig_Node_t * Aig_NodeNextH( Aig_Node_t * pNode )    { return pNode->NextH? Aig_ManNode(pNode->pMan, pNode->NextH) : NULL;  }
 static inline int          Aig_NodeWhatFanin( Aig_Node_t * pNode, Aig_Node_t * pFanin )    { if ( Aig_NodeFaninId0(pNode) == pFanin->Id ) return 0; if ( Aig_NodeFaninId1(pNode) == pFanin->Id ) return 1; assert(0); return -1; }
-static inline int          Aig_NodeGetLevelNew( Aig_Node_t * pNode ) { return 1 + AIG_MAX(Aig_NodeFanin0(pNode)->Level, Aig_NodeFanin1(pNode)->Level); }
+static inline int          Aig_NodeGetLevelNew( Aig_Node_t * pNode )   { return 1 + AIG_MAX(Aig_NodeFanin0(pNode)->Level, Aig_NodeFanin1(pNode)->Level); }
+static inline int          Aig_NodeRequiredLevel( Aig_Node_t * pNode ) { return pNode->pMan->nLevelMax + 1 - pNode->LevelR; }
 
 static inline unsigned *   Aig_SimInfoForNode( Aig_SimInfo_t * p, Aig_Node_t * pNode )  { assert(  p->Type ); return p->pData + p->nWords * pNode->Id; }
 static inline unsigned *   Aig_SimInfoForPi( Aig_SimInfo_t * p, int Num )               { assert( !p->Type ); return p->pData + p->nWords * Num;       }
@@ -268,6 +304,7 @@ extern void                Aig_NodeDisconnectAnd( Aig_Node_t * pNode );
 extern void                Aig_NodeDeleteAnd_rec( Aig_Man_t * pMan, Aig_Node_t * pRoot );
 extern void                Aig_NodePrint( Aig_Node_t * pNode );
 extern char *              Aig_NodeName( Aig_Node_t * pNode );
+extern void                Aig_PrintNode( Aig_Node_t * pNode );
 /*=== aigOper.c ==========================================================*/
 extern Aig_Node_t *        Aig_And( Aig_Man_t * pMan, Aig_Node_t * p0, Aig_Node_t * p1 );
 extern Aig_Node_t *        Aig_Or( Aig_Man_t * pMan, Aig_Node_t * p0, Aig_Node_t * p1 );
@@ -287,18 +324,33 @@ extern void                Aig_TableResize( Aig_Man_t * pMan );
 extern void                Aig_TableRehash( Aig_Man_t * pMan );
 /*=== aigUtil.c ==========================================================*/
 extern void                Aig_ManIncrementTravId( Aig_Man_t * pMan );
-extern void                Aig_PrintNode( Aig_Node_t * pNode );
+extern bool                Aig_NodeIsMuxType( Aig_Node_t * pNode );
+extern Aig_Node_t *        Aig_NodeRecognizeMux( Aig_Node_t * pNode, Aig_Node_t ** ppNodeT, Aig_Node_t ** ppNodeE );
 
 
+/*=== fraigCore.c ==========================================================*/
+extern Aig_ProofType_t     Aig_FraigProve( Aig_Man_t * pMan );
 /*=== fraigClasses.c ==========================================================*/
 extern Vec_Vec_t *         Aig_ManDeriveClassesFirst( Aig_Man_t * p, Aig_SimInfo_t * pInfoAll );
+extern void                Aig_ManUpdateClasses( Aig_Man_t * p, Aig_SimInfo_t * pInfo, Vec_Vec_t * vClasses );
+/*=== fraigCnf.c ==========================================================*/
+extern Aig_ProofType_t     Aig_ClauseSolverStart( Aig_Man_t * pMan );
+/*=== fraigEngine.c ==========================================================*/
+extern void                Aig_EngineSimulateFirst( Aig_Man_t * p );
+extern int                 Aig_EngineSimulate( Aig_Man_t * p );
+extern void                Aig_EngineSimulateRandomFirst( Aig_Man_t * p );
 /*=== fraigSim.c ==========================================================*/
 extern Aig_SimInfo_t *     Aig_SimInfoAlloc( int nNodes, int nWords, int Type );
 extern void                Aig_SimInfoClean( Aig_SimInfo_t * p );
 extern void                Aig_SimInfoRandom( Aig_SimInfo_t * p );
+extern void                Aig_SimInfoFromPattern( Aig_SimInfo_t * p, Aig_Pattern_t * pPat );
 extern void                Aig_SimInfoResize( Aig_SimInfo_t * p );
 extern void                Aig_SimInfoFree( Aig_SimInfo_t * p );
-extern Aig_SimInfo_t *     Aig_ManSimulateInfo( Aig_Man_t * p, Aig_SimInfo_t * pInfoPi );
+extern void                Aig_ManSimulateInfo( Aig_Man_t * p, Aig_SimInfo_t * pInfoPi, Aig_SimInfo_t * pInfoAll );
+extern Aig_Pattern_t *     Aig_PatternAlloc( int nBits );
+extern void                Aig_PatternClean( Aig_Pattern_t * pPat );
+extern void                Aig_PatternRandom( Aig_Pattern_t * pPat );
+extern void                Aig_PatternFree( Aig_Pattern_t * pPat );
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

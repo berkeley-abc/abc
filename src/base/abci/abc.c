@@ -3782,8 +3782,9 @@ usage:
 int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
-    Abc_Ntk_t * pNtk;//, * pNtkRes;
+    Abc_Ntk_t * pNtk, * pNtkRes;
     int c;
+    extern Abc_Ntk_t * Abc_NtkNewAig( Abc_Ntk_t * pNtk );
 
     pNtk = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -3807,19 +3808,18 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( !Abc_NtkIsStrash(pNtk) )
+    if ( Abc_NtkIsSeq(pNtk) )
     {
-        fprintf( pErr, "Only works for strashed networks.\n" );
+        fprintf( pErr, "Only works for non-sequential networks.\n" );
         return 1;
     }
 
 //    Abc_NtkTestEsop( pNtk );
 //    Abc_NtkTestSop( pNtk );
 //    printf( "This command is currently not used.\n" );
-
-/*
     // run the command
-    pNtkRes = Abc_NtkMiterForCofactors( pNtk, 0, 0, -1 );
+//    pNtkRes = Abc_NtkMiterForCofactors( pNtk, 0, 0, -1 );
+    pNtkRes = Abc_NtkNewAig( pNtk );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
@@ -3827,7 +3827,6 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-*/
     return 0;
 
 usage:

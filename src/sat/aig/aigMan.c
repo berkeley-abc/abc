@@ -66,10 +66,11 @@ Aig_Man_t * Aig_ManStart( Aig_Param_t * pParam )
     // start the manager
     p = ALLOC( Aig_Man_t, 1 );
     memset( p, 0, sizeof(Aig_Man_t) );
-    p->pParam = &p->Param;
-    p->nTravIds = 1;
+    p->pParam     = &p->Param;
+    p->nTravIds   = 1;
+    p->nPatsMax   = 20;
     // set the defaults
-    *p->pParam = *pParam;
+    *p->pParam    = *pParam;
     // start memory managers
     p->mmNodes    = Aig_MemFixedStart( sizeof(Aig_Node_t) );
     // allocate node arrays
@@ -121,14 +122,22 @@ int Aig_ManCleanup( Aig_Man_t * pMan )
 ***********************************************************************/
 void Aig_ManStop( Aig_Man_t * p )
 {
+    // SAT solver
+    if ( p->pSat )       solver_delete( p->pSat );
+    if ( p->vVar2Sat )   Vec_IntFree( p->vVar2Sat );
+    if ( p->vSat2Var )   Vec_IntFree( p->vSat2Var );
+    if ( p->vPiSatNums ) Vec_IntFree( p->vPiSatNums );
+    // fanouts
     if ( p->vFanPivots ) Vec_PtrFree( p->vFanPivots );
     if ( p->vFanFans0 )  Vec_PtrFree( p->vFanFans0 );
     if ( p->vFanFans1 )  Vec_PtrFree( p->vFanFans1 );
     if ( p->vClasses  )  Vec_VecFree( p->vClasses );
+    // nodes
     Aig_MemFixedStop( p->mmNodes, 0 );
     Vec_PtrFree( p->vNodes );
     Vec_PtrFree( p->vPis );
     Vec_PtrFree( p->vPos );
+    // temporary
     Vec_PtrFree( p->vFanouts );
     Vec_PtrFree( p->vToReplace );
     Aig_TableFree( p->pTable );

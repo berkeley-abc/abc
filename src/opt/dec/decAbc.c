@@ -18,6 +18,7 @@
 
 #include "abc.h"
 #include "dec.h"
+#include "aig.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -199,6 +200,40 @@ void Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, bool fUpda
     // compare the gains
     nNodesNew = Abc_NtkNodeNum(pNtk);
     assert( nGain <= nNodesOld - nNodesNew );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Transforms the decomposition graph into the AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Node_t * Dec_GraphToNetworkAig( Aig_Man_t * pMan, Dec_Graph_t * pGraph )
+{
+    Dec_Node_t * pNode;
+    Aig_Node_t * pAnd0, * pAnd1;
+    int i;
+    // check for constant function
+    if ( Dec_GraphIsConst(pGraph) )
+        return Aig_NotCond( Aig_ManConst1(pMan), Dec_GraphIsComplement(pGraph) );
+    // check for a literal
+    if ( Dec_GraphIsVar(pGraph) )
+        return Aig_NotCond( Dec_GraphVar(pGraph)->pFunc, Dec_GraphIsComplement(pGraph) );
+    // build the AIG nodes corresponding to the AND gates of the graph
+    Dec_GraphForEachNode( pGraph, pNode, i )
+    {
+        pAnd0 = Aig_NotCond( Dec_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc, pNode->eEdge0.fCompl ); 
+        pAnd1 = Aig_NotCond( Dec_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc, pNode->eEdge1.fCompl ); 
+        pNode->pFunc = Aig_And( pMan, pAnd0, pAnd1 );
+    }
+    // complement the result if necessary
+    return Aig_NotCond( pNode->pFunc, Dec_GraphIsComplement(pGraph) );
 }
 
 ////////////////////////////////////////////////////////////////////////
