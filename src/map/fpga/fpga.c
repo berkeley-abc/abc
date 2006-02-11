@@ -105,7 +105,7 @@ int Fpga_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     int fVerbose;
     int c;
 
-    pNet = Abc_FrameReadNet(pAbc);
+    pNet = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -195,7 +195,7 @@ int Fpga_CommandPrintLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     int fVerbose;
     int c;
 
-    pNet = Abc_FrameReadNet(pAbc);
+    pNet = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 

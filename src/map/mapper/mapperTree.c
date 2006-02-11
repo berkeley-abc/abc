@@ -60,8 +60,8 @@ int Map_LibraryReadTree( Map_SuperLib_t * pLib, char * pFileName, char * pExclud
 
     // read the beginning of the file
     assert( pLib->pGenlib == NULL );
-//    pFile = Io_FileOpen( pFileName, "open_path", "r" );
-    pFile = fopen( pFileName, "r" ); 
+    pFile = Io_FileOpen( pFileName, "open_path", "r", 1 );
+//    pFile = fopen( pFileName, "r" ); 
     if ( pFile == NULL )
     {
         printf( "Cannot open input file \"%s\".\n", pFileName );
@@ -149,8 +149,8 @@ int Map_LibraryReadFileTree( Map_SuperLib_t * pLib, FILE * pFile, char *pFileNam
     }
 #endif
     
-//    pFileGen = Io_FileOpen( pLibFile, "open_path", "r" );
-    pFileGen = fopen( pLibFile, "r" ); 
+    pFileGen = Io_FileOpen( pLibFile, "open_path", "r", 1 );
+//    pFileGen = fopen( pLibFile, "r" ); 
     if ( pFileGen == NULL )
     {
         printf( "Cannot open the GENLIB file \"%s\".\n", pLibFile );

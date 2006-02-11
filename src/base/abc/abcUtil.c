@@ -335,6 +335,25 @@ void Abc_NtkCleanNext( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
+  Synopsis    [Cleans the copy field of all objects.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkCleanMarkA( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int i = 0;
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        pObj->fMarkA = 0;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Checks if the internal node has a unique CO.]
 
   Description [Checks if the internal node can borrow a name from a CO

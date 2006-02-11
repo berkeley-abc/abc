@@ -114,8 +114,8 @@ Mio_Library_t * Mio_LibraryReadOne( Abc_Frame_t * pAbc, char * FileName, bool fE
         int nFileSize;
 
         // open the BLIF file for binary reading
-//        pFile = Io_FileOpen( FileName, "open_path", "rb" );
-        pFile = fopen( FileName, "rb" );
+        pFile = Io_FileOpen( FileName, "open_path", "rb", 1 );
+//        pFile = fopen( FileName, "rb" );
         // if we got this far, file should be okay otherwise would
         // have been detected by caller
         assert ( pFile != NULL );

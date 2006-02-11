@@ -174,6 +174,10 @@ SOURCE=.\src\base\abci\abcAttach.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcAuto.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcBalance.c
 # End Source File
 # Begin Source File
@@ -207,10 +211,6 @@ SOURCE=.\src\base\abci\abcMap.c
 # Begin Source File
 
 SOURCE=.\src\base\abci\abcMiter.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abci\abcNewAig.c
 # End Source File
 # Begin Source File
 
@@ -259,6 +259,10 @@ SOURCE=.\src\base\abci\abcSymm.c
 # Begin Source File
 
 SOURCE=.\src\base\abci\abcTiming.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcUnate.c
 # End Source File
 # Begin Source File
 
@@ -1128,6 +1132,10 @@ SOURCE=.\src\sat\aig\fraigSolver.c
 
 SOURCE=.\src\sat\aig\fraigTrav.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\aig\rwrTruth.c
+# End Source File
 # End Group
 # End Group
 # Begin Group "opt"
@@ -1650,6 +1658,10 @@ SOURCE=.\src\misc\extra\extra.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\misc\extra\extraBddAuto.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\misc\extra\extraBddKmap.c
 # End Source File
 # Begin Source File
@@ -1659,6 +1671,10 @@ SOURCE=.\src\misc\extra\extraBddMisc.c
 # Begin Source File
 
 SOURCE=.\src\misc\extra\extraBddSymm.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\extra\extraBddUnate.c
 # End Source File
 # Begin Source File
 

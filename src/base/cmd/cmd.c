@@ -1204,7 +1204,7 @@ int CmdCommandSis( Abc_Frame_t * pAbc, int argc, char **argv )
     char * pSisName;
     int i;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -1340,7 +1340,7 @@ int CmdCommandMvsis( Abc_Frame_t * pAbc, int argc, char **argv )
     char * pMvsisName;
     int i;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 

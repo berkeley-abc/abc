@@ -99,7 +99,8 @@ int Extra_TruthCanonFastN( int nVarsMax, int nVarsReal, unsigned * pt, unsigned 
 
   Description []
                
-  SideEffects []
+  SideEffects [This procedure has a bug, which shows on Solaris.
+  Most likely has something to do with the casts, i.g *((unsigned *)pt0)]
 
   SeeAlso     []
 
@@ -129,21 +130,22 @@ int Extra_TruthCanonN_rec( int nVars, unsigned char * pt, unsigned ** pptRes, ch
     pt0 = pt;
     pt1 = pt + (1 << nVarsN) / 8;
     // 5-var truth tables for this call
-    uInit0 = *((unsigned *)pt0);
-    uInit1 = *((unsigned *)pt1);
+//    uInit0 = *((unsigned *)pt0);
+//    uInit1 = *((unsigned *)pt1);
     if ( nVarsN == 3 )
     {
-        uInit0 &= 0xFF;
-        uInit1 &= 0xFF;
-        uInit0 = (uInit0 << 24) | (uInit0 << 16) | (uInit0 << 8) | uInit0;
-        uInit1 = (uInit1 << 24) | (uInit1 << 16) | (uInit1 << 8) | uInit1;
+        uInit0 = (pt0[0] << 24) | (pt0[0] << 16) | (pt0[0] << 8) | pt0[0];
+        uInit1 = (pt1[0] << 24) | (pt1[0] << 16) | (pt1[0] << 8) | pt1[0];
     }
     else if ( nVarsN == 4 )
     {
-        uInit0 &= 0xFFFF;
-        uInit1 &= 0xFFFF;
-        uInit0 = (uInit0 << 16) | uInit0;
-        uInit1 = (uInit1 << 16) | uInit1;
+        uInit0 = (pt0[1] << 24) | (pt0[0] << 16) | (pt0[1] << 8) | pt0[0];
+        uInit1 = (pt1[1] << 24) | (pt1[0] << 16) | (pt1[1] << 8) | pt1[0];
+    }
+    else
+    {
+        uInit0 = (pt0[3] << 24) | (pt0[2] << 16) | (pt0[1] << 8) | pt0[0];
+        uInit1 = (pt1[3] << 24) | (pt1[2] << 16) | (pt1[1] << 8) | pt1[0];
     }
 
     // storage for truth tables and phases

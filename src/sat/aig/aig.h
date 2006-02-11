@@ -160,6 +160,7 @@ struct Aig_Man_t_
     Aig_SimInfo_t *  pInfo;         // random and systematic sim info for PIs
     Aig_SimInfo_t *  pInfoPi;       // temporary sim info for the PI nodes
     Aig_SimInfo_t *  pInfoTemp;     // temporary sim info for all nodes
+    Aig_Pattern_t *  pPatMask;      // the mask which shows what patterns are used
     // simulation patterns
     int              nPiWords;      // the number of words in the PI info
     int              nPatsMax;      // the max number of patterns 
@@ -169,6 +170,7 @@ struct Aig_Man_t_
     // temporary data
     Vec_Ptr_t *      vFanouts;      // temporary storage for fanouts of a node
     Vec_Ptr_t *      vToReplace;    // the nodes to replace
+    Vec_Int_t *      vClassTemp;    // temporary class representatives
 };
 
 // the simulation patter
@@ -254,6 +256,7 @@ static inline int          Aig_NodeWhatFanin( Aig_Node_t * pNode, Aig_Node_t * p
 static inline int          Aig_NodeGetLevelNew( Aig_Node_t * pNode )   { return 1 + AIG_MAX(Aig_NodeFanin0(pNode)->Level, Aig_NodeFanin1(pNode)->Level); }
 static inline int          Aig_NodeRequiredLevel( Aig_Node_t * pNode ) { return pNode->pMan->nLevelMax + 1 - pNode->LevelR; }
 
+static inline unsigned *   Aig_SimInfoForNodeId( Aig_SimInfo_t * p, int NodeId )        { assert(  p->Type ); return p->pData + p->nWords * NodeId;    }
 static inline unsigned *   Aig_SimInfoForNode( Aig_SimInfo_t * p, Aig_Node_t * pNode )  { assert(  p->Type ); return p->pData + p->nWords * pNode->Id; }
 static inline unsigned *   Aig_SimInfoForPi( Aig_SimInfo_t * p, int Num )               { assert( !p->Type ); return p->pData + p->nWords * Num;       }
 
@@ -332,15 +335,16 @@ extern Aig_Node_t *        Aig_NodeRecognizeMux( Aig_Node_t * pNode, Aig_Node_t 
 extern Aig_ProofType_t     Aig_FraigProve( Aig_Man_t * pMan );
 /*=== fraigClasses.c ==========================================================*/
 extern Vec_Vec_t *         Aig_ManDeriveClassesFirst( Aig_Man_t * p, Aig_SimInfo_t * pInfoAll );
-extern void                Aig_ManUpdateClasses( Aig_Man_t * p, Aig_SimInfo_t * pInfo, Vec_Vec_t * vClasses );
+extern int                 Aig_ManUpdateClasses( Aig_Man_t * p, Aig_SimInfo_t * pInfo, Vec_Vec_t * vClasses, Aig_Pattern_t * pPatMask );
+extern void                Aig_ManCollectPatterns( Aig_Man_t * p, Aig_SimInfo_t * pInfo, Aig_Pattern_t * pMask, Vec_Ptr_t * vPats );
 /*=== fraigCnf.c ==========================================================*/
 extern Aig_ProofType_t     Aig_ClauseSolverStart( Aig_Man_t * pMan );
 /*=== fraigEngine.c ==========================================================*/
+extern void                Aig_EngineSimulateRandomFirst( Aig_Man_t * p );
 extern void                Aig_EngineSimulateFirst( Aig_Man_t * p );
 extern int                 Aig_EngineSimulate( Aig_Man_t * p );
-extern void                Aig_EngineSimulateRandomFirst( Aig_Man_t * p );
 /*=== fraigSim.c ==========================================================*/
-extern Aig_SimInfo_t *     Aig_SimInfoAlloc( int nNodes, int nWords, int Type );
+extern Aig_SimInfo_t *     Aig_SimInfoAlloc( int nNodes, int nBits, int Type );
 extern void                Aig_SimInfoClean( Aig_SimInfo_t * p );
 extern void                Aig_SimInfoRandom( Aig_SimInfo_t * p );
 extern void                Aig_SimInfoFromPattern( Aig_SimInfo_t * p, Aig_Pattern_t * pPat );
@@ -349,6 +353,8 @@ extern void                Aig_SimInfoFree( Aig_SimInfo_t * p );
 extern void                Aig_ManSimulateInfo( Aig_Man_t * p, Aig_SimInfo_t * pInfoPi, Aig_SimInfo_t * pInfoAll );
 extern Aig_Pattern_t *     Aig_PatternAlloc( int nBits );
 extern void                Aig_PatternClean( Aig_Pattern_t * pPat );
+extern void                Aig_PatternFill( Aig_Pattern_t * pPat );
+extern int                 Aig_PatternCount( Aig_Pattern_t * pPat );
 extern void                Aig_PatternRandom( Aig_Pattern_t * pPat );
 extern void                Aig_PatternFree( Aig_Pattern_t * pPat );
 

@@ -42,6 +42,7 @@ struct Dsd_Manager_t_
     int            nRootsAlloc;// the number of primary outputs
     Dsd_Node_t **  pInputs;    // the primary input nodes
     Dsd_Node_t **  pRoots;     // the primary output nodes
+    Dsd_Node_t *   pConst1;    // the constant node
     int            fVerbose;   // the verbosity level 
 };
 

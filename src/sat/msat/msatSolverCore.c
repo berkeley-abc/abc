@@ -140,8 +140,8 @@ bool Msat_SolverSolve( Msat_Solver_t * p, Msat_IntVec_t * vAssumps, int nBackTra
     int64 nConflictsOld = p->Stats.nConflicts;
     int64 nDecisionsOld = p->Stats.nDecisions;
 
-    p->pFreq = ALLOC( int, p->nVarsAlloc );
-    memset( p->pFreq, 0, sizeof(int) * p->nVarsAlloc );
+//    p->pFreq = ALLOC( int, p->nVarsAlloc );
+//    memset( p->pFreq, 0, sizeof(int) * p->nVarsAlloc );
  
     if ( vAssumps )
     {

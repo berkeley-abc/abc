@@ -425,7 +425,7 @@ extern void               Abc_AigSetNodePhases( Abc_Ntk_t * pNtk );
 /*=== abcAttach.c ==========================================================*/
 extern int                Abc_NtkAttach( Abc_Ntk_t * pNtk );
 /*=== abcBalance.c ==========================================================*/
-extern Abc_Ntk_t *        Abc_NtkBalance( Abc_Ntk_t * pNtk, bool fDuplicate );
+extern Abc_Ntk_t *        Abc_NtkBalance( Abc_Ntk_t * pNtk, bool fDuplicate, bool fSelective );
 /*=== abcCheck.c ==========================================================*/
 extern bool               Abc_NtkCheck( Abc_Ntk_t * pNtk );
 extern bool               Abc_NtkCheckRead( Abc_Ntk_t * pNtk );
@@ -587,6 +587,7 @@ extern DdNode *           Abc_NodeConeDcs( DdManager * dd, DdNode ** pbVarsX, Dd
 extern Vec_Ptr_t *        Abc_NodeCollectTfoCands( Abc_ManCut_t * p, Abc_Obj_t * pRoot, Vec_Ptr_t * vFanins, int LevelMax );
 /*=== abcRefs.c ==========================================================*/
 extern int                Abc_NodeMffcSize( Abc_Obj_t * pNode );
+extern int                Abc_NodeMffcSizeSupp( Abc_Obj_t * pNode );
 extern int                Abc_NodeMffcSizeStop( Abc_Obj_t * pNode );
 extern int                Abc_NodeMffcLabel( Abc_Obj_t * pNode );
 extern int                Abc_NodeMffcLabelFast( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes );
@@ -673,6 +674,7 @@ extern int                Abc_NtkGetChoiceNum( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkGetFaninMax( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkCleanCopy( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkCleanNext( Abc_Ntk_t * pNtk );
+extern void               Abc_NtkCleanMarkA( Abc_Ntk_t * pNtk );
 extern Abc_Obj_t *        Abc_NodeHasUniqueCoFanout( Abc_Obj_t * pNode );
 extern bool               Abc_NtkLogicHasSimpleCos( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkLogicMakeSimpleCos( Abc_Ntk_t * pNtk, bool fDuplicate );

@@ -80,7 +80,7 @@ void Aig_ManSimulateInfo( Aig_Man_t * p, Aig_SimInfo_t * pInfoPi, Aig_SimInfo_t 
                 pDataAnd[k] =  pData0[k] &  pData1[k];
     }
     // derive the PO siminfo
-    Aig_ManForEachPi( p, pNode, i )
+    Aig_ManForEachPo( p, pNode, i )
     {
         pDataPo  = Aig_SimInfoForNode( pInfoAll, pNode );
         pDataAnd = Aig_SimInfoForNode( pInfoAll, Aig_NodeFanin0(pNode) );
@@ -106,16 +106,17 @@ void Aig_ManSimulateInfo( Aig_Man_t * p, Aig_SimInfo_t * pInfoPi, Aig_SimInfo_t 
   SeeAlso     []
 
 ***********************************************************************/
-Aig_SimInfo_t * Aig_SimInfoAlloc( int nNodes, int nWords, int Type )
+Aig_SimInfo_t * Aig_SimInfoAlloc( int nNodes, int nBits, int Type )
 {
     Aig_SimInfo_t * p;
     p = ALLOC( Aig_SimInfo_t, 1 );
     memset( p, 0, sizeof(Aig_SimInfo_t) );
     p->Type     = Type;
     p->nNodes   = nNodes;
-    p->nWords   = nWords;
-    p->nPatsMax = nWords * sizeof(unsigned) * 8;
-    p->pData    = ALLOC( unsigned, nNodes * nWords );
+    p->nWords   = Aig_BitWordNum(nBits);
+    p->nPatsCur = nBits;
+    p->nPatsMax = p->nWords * sizeof(unsigned) * 8;
+    p->pData    = ALLOC( unsigned, nNodes * p->nWords );
     return p;
 }
 
@@ -161,7 +162,6 @@ void Aig_SimInfoRandom( Aig_SimInfo_t * p )
         pData = p->pData + p->nWords * i;
         *pData <<= 1;
     }
-    p->nPatsCur = p->nPatsMax;
 }
 
 /**Function*************************************************************
@@ -180,8 +180,8 @@ void Aig_SimInfoFromPattern( Aig_SimInfo_t * p, Aig_Pattern_t * pPat )
     unsigned * pData;
     int i, k;
     assert( p->Type == 0 );
-    assert( p->nNodes == pPat->nBits );
-    for ( i = 0; i < p->nNodes; i++ )
+    assert( p->nPatsCur == pPat->nBits+1 );
+    for ( i = 0; i < p->nPatsCur; i++ )
     {
         // get the pointer to the bitdata for node i
         pData = p->pData + p->nWords * i;
@@ -192,8 +192,8 @@ void Aig_SimInfoFromPattern( Aig_SimInfo_t * p, Aig_Pattern_t * pPat )
         else
             for ( k = 0; k < p->nWords; k++ )
                 pData[k] = 0;
-        // flip one bit
-        Aig_InfoXorBit( pData, i );
+        // flip one bit, starting from the first pattern
+        if ( i ) Aig_InfoXorBit( pData, i-1 );
     }
 }
 
@@ -285,6 +285,22 @@ void Aig_PatternClean( Aig_Pattern_t * pPat )
 
 /**Function*************************************************************
 
+  Synopsis    [Cleans the pattern.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_PatternFill( Aig_Pattern_t * pPat )
+{
+    memset( pPat->pData, 0xff, sizeof(unsigned) * pPat->nWords );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Sets the random pattern.]
 
   Description []
@@ -299,6 +315,25 @@ void Aig_PatternRandom( Aig_Pattern_t * pPat )
     int i;
     for ( i = 0; i < pPat->nWords; i++ )
         pPat->pData[i] = ((((unsigned)rand()) << 24) ^ (((unsigned)rand()) << 12) ^ ((unsigned)rand()));
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of 1s in the pattern.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Aig_PatternCount( Aig_Pattern_t * pPat )
+{
+    int i, Counter = 0;
+    for ( i = 0; i < pPat->nBits; i++ )
+        Counter += Aig_InfoHasBit( pPat->pData, i );
+    return Counter;
 }
 
 /**Function*************************************************************

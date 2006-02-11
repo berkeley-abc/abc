@@ -1,16 +1,16 @@
-UC Berkeley, ABC 1.01 (compiled Dec  3 2005 16:58:37)
+UC Berkeley, ABC 1.01 (compiled Feb  3 2006 10:48:34)
 abc 01> so regtest.script
 abc - > r examples/apex4.pla;    resyn; sharem; fpga; cec; ps;  clp; share; resyn; map; cec; ps
 Networks are equivalent after fraiging.
-examples/apex4: i/o =    9/  19  lat =    0  nd =  1182  cube =  2193  lev =   7
+examples/apex4: i/o =    9/  19  lat =    0  nd =  1185  cube =  2200  lev =   7
 The shared BDD size is 900 nodes.
 A simple supergate library is derived from gate library "mcnc_temp.genlib".
-Loaded 20 unique 5-input supergates from "mcnc_temp.super".  Time =   0.02 sec
+Loaded 20 unique 5-input supergates from "mcnc_temp.super".  Time =   0.03 sec
 Networks are equivalent after fraiging.
-examples/apex4: i/o =    9/  19  lat =    0  nd =  1849  area = 4581.00  delay = 11.60  lev =  11
+examples/apex4: i/o =    9/  19  lat =    0  nd =  1837  area = 4560.00  delay = 11.70  lev =  11
 abc - > r examples/C2670.blif;   resyn; fpga; cec; ps;          u; map; cec; ps
 Networks are equivalent after fraiging.
-C2670.iscas  : i/o =  233/ 140  lat =    0  nd =   219  cube =   446  lev =   7
+C2670.iscas  : i/o =  233/ 140  lat =    0  nd =   218  cube =   444  lev =   7
 Networks are equivalent after fraiging.
 C2670.iscas  : i/o =  233/ 140  lat =    0  nd =   466  area = 1160.00  delay = 15.50  lev =  14
 abc - > r examples/frg2.blif;    dsd; muxes; cec; clp; share; resyn; map; cec; ps
@@ -20,17 +20,17 @@ Networks are equivalent after fraiging.
 frg2         : i/o =  143/ 139  lat =    0  nd =   547  area = 1381.00  delay =  9.70  lev =   9
 abc - > r examples/pj1.blif;     resyn; fpga; cec; ps;          u; map; cec; ps
 Networks are equivalent after fraiging.
-exCombCkt    : i/o = 1769/1063  lat =    0  nd =  5611  cube = 10398  lev =  15
+exCombCkt    : i/o = 1769/1063  lat =    0  nd =  5609  cube = 10395  lev =  15
 Networks are equivalent after fraiging.
 exCombCkt    : i/o = 1769/1063  lat =    0  nd = 10317  area = 24980.00  delay = 29.80  lev =  27
 abc - > r examples/s38584.bench; resyn; fpga; cec; ps;          u; map; cec; ps
 Networks are equivalent after fraiging.
-examples/s38584: i/o =   12/ 278  lat = 1452  nd =  4411  cube =  7544  lev =   9
+examples/s38584: i/o =   12/ 278  lat = 1452  nd =  4405  cube =  7515  lev =   9
 Networks are equivalent after fraiging.
-examples/s38584: i/o =   12/ 278  lat = 1452  nd =  8510  area = 19315.00  delay = 20.60  lev =  17
+examples/s38584: i/o =   12/ 278  lat = 1452  nd =  8509  area = 19316.00  delay = 20.60  lev =  17
 abc - > r examples/ac.v;         resyn; fpga; cec; ps;          u; map; cec; ps
 Networks are equivalent after fraiging.
-ac97_ctrl    : i/o =   84/  48  lat = 2199  nd =  4086  cube =  7790  lev =   4
+ac97_ctrl    : i/o =   84/  48  lat = 2199  nd =  4085  cube =  7780  lev =   4
 Networks are equivalent after fraiging.
 ac97_ctrl    : i/o =   84/  48  lat = 2199  nd =  8278  area = 19714.00  delay =  8.10  lev =   8
 abc - > r examples/s444.blif;    b; esd -v; dsd; cec; ps
@@ -42,14 +42,14 @@ The number of minterms in the reachable state set = 8865.
 BDD nodes in the unreachable states before reordering 124.
 BDD nodes in the unreachable states after reordering 113.
 Networks are equivalent after fraiging.
-s444         : i/o =    3/   6  lat =   21  nd =    81  cube =   120  lev =   7
+s444         : i/o =    3/   6  lat =   21  nd =    81  cube =   119  lev =   7
 abc - > r examples/i10.blif;     fpga; cec; ps;                 u; map; cec; ps
 The network was strashed and balanced before FPGA mapping.
 Networks are equivalent after fraiging.
-i10          : i/o =  257/ 224  lat =    0  nd =   898  cube =  1603  lev =  13
+i10          : i/o =  257/ 224  lat =    0  nd =   899  cube =  1604  lev =  13
 The network was strashed and balanced before mapping.
 Networks are equivalent after fraiging.
-i10          : i/o =  257/ 224  lat =    0  nd =  1708  area = 4275.00  delay = 30.80  lev =  28
+i10          : i/o =  257/ 224  lat =    0  nd =  1676  area = 4219.00  delay = 30.80  lev =  29
 abc - > r examples/i10.blif;     choice; fpga; cec; ps;         u; map; cec; ps
 The number of AIG nodes added to storage =  2675.
 The number of AIG nodes added to storage =  1744.
@@ -57,21 +57,25 @@ The number of AIG nodes added to storage =  1431.
 Currently stored 3 networks with 5850 nodes will be fraiged.
 Performing FPGA mapping with choices.
 Networks are equivalent after fraiging.
-i10          : i/o =  257/ 224  lat =    0  nd =   793  cube =  1454  lev =  12
+i10          : i/o =  257/ 224  lat =    0  nd =   792  cube =  1459  lev =  12
 Performing mapping with choices.
 Networks are equivalent after fraiging.
-i10          : i/o =  257/ 224  lat =    0  nd =  1485  area = 3521.00  delay = 25.60  lev =  23
+i10          : i/o =  257/ 224  lat =    0  nd =  1484  area = 3518.00  delay = 25.60  lev =  23
 abc - > r examples/s6669.blif;   fpga; ps; sec; u;   sfpga; ps; sec; u;   fpga; ret; ps; sec
 The network was strashed and balanced before FPGA mapping.
-s6669        : i/o =   83/  55  lat =  239  nd =   678  bdd =  3036  lev =  20
+s6669        : i/o =   83/  55  lat =  239  nd =   679  bdd  =  3046  lev =  20
 Networks are equivalent after fraiging.
 The network was strashed and balanced before FPGA mapping/retiming.
-The number of LUTs with incompatible edges = 99.
-The number of LUTs with more than 4 inputs = 61.
-s6669        : i/o =   83/  55  lat =  451  nd =   865  bdd =  4221  lev =   6
+The number of MUXes detected = 120 (34.25 % of logic).  Creating solver =   0.00 sec
+SAT solver time =   0.00 sec
+The number of LUTs with incompatible edges = 24.
+The number of LUTs with more than 4 inputs = 18.
+s6669        : i/o =   83/  55  lat =  404  nd =   818  bdd  =  3829  lev =   6
 Networks are equivalent after fraiging.
 The network was strashed and balanced before FPGA mapping.
-s6669        : i/o =   83/  55  lat =  393  nd =   787  bdd =  3300  lev =   8
+The number of MUXes detected = 69 (37.03 % of logic).  Creating solver =   0.00 sec
+SAT solver time =   0.00 sec
+s6669        : i/o =   83/  55  lat =  346  nd =   772  bdd  =  3254  lev =   9
 Networks are equivalent after fraiging.
 abc - > r examples/s5378.blif;   map -s; ps; sec; u; smap; ps; sec; u;    map; ret; ps; sec
 The network was strashed and balanced before mapping.
@@ -81,10 +85,13 @@ The number of nodes with equal fanins = 5.
 The network was strashed and balanced before SC mapping/retiming.
 The mininum clock period computed is 10.00.
 The resulting network is derived as BDD logic network (this is temporary).
-s5378        : i/o =   35/  49  lat =  396  nd =  1252  bdd =  4619  lev =   7
+The number of MUXes detected = 0 ( 0.00 % of logic).  Creating solver =   0.00 sec
+SAT solver time =   0.00 sec
+s5378        : i/o =   35/  49  lat =  396  nd =  1252  bdd  =  4612  lev =   7
 Networks are equivalent after fraiging.
 The network was strashed and balanced before mapping.
-s5378        : i/o =   35/  49  lat =  364  nd =  1084  area = 2453.00  delay = 11.70  lev =  11
+s5378        : i/o =   35/  49  lat =  360  nd =  1087  area = 2454.00  delay = 12.10  lev =  11
 Networks are equivalent after fraiging.
 abc - > time
-elapse: 42.05 seconds, total: 42.05 seconds
+elapse: 39.54 seconds, total: 39.54 seconds
+abc 122>

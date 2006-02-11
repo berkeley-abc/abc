@@ -68,6 +68,8 @@ Aig_ProofType_t Aig_FraigProve( Aig_Man_t * pMan )
 
     // create equivalence classes
     Aig_EngineSimulateRandomFirst( pMan );
+    // reduce equivalence classes using simulation
+    Aig_EngineSimulateFirst( pMan );
     return RetValue;
 }
 

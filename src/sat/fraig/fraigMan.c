@@ -185,7 +185,7 @@ void Fraig_ManFree( Fraig_Man_t * p )
 //        Fraig_TablePrintStatsF( p );
 //        Fraig_TablePrintStatsF0( p );
     }
-
+ 
     for ( i = 0; i < p->vNodes->nSize; i++ )
         if ( p->vNodes->pArray[i]->vFanins )
         {

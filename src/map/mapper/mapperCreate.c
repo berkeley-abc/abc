@@ -314,7 +314,7 @@ void Map_ManPrintTimeStats( Map_Man_t * p )
 void Map_ManPrintStatsToFile( char * pName, float Area, float Delay, int Time )
 {
     FILE * pTable;
-    pTable = fopen( "stats.txt", "a+" );
+    pTable = fopen( "map_stats.txt", "a+" );
     fprintf( pTable, "%s ", pName );
     fprintf( pTable, "%4.2f ", Area );
     fprintf( pTable, "%4.2f ", Delay );

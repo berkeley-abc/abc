@@ -29,6 +29,8 @@ static int  Abc_NodeAddClausesTop( solver * pSat, Abc_Obj_t * pNode, Vec_Int_t *
 
 static solver * Abc_NtkMiterSatCreate2( Abc_Ntk_t * pNtk );
 
+static Vec_Int_t * Abc_NtkGetCiSatVarNums( Abc_Ntk_t * pNtk );
+
 static nMuxes;
 
 ////////////////////////////////////////////////////////////////////////
@@ -46,7 +48,7 @@ static nMuxes;
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, int nSeconds, int fVerbose )
+int Abc_NtkMiterSat_OldAndRusty( Abc_Ntk_t * pNtk, int nSeconds, int fVerbose )
 {
     solver * pSat;
     lbool   status;
@@ -317,7 +319,7 @@ int Abc_NodeAddClausesTop( solver * pSat, Abc_Obj_t * pNode, Vec_Int_t * vVars )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkMiterSat2( Abc_Ntk_t * pNtk, int nSeconds, int fVerbose )
+int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, int nSeconds, int fVerbose )
 {
     solver * pSat;
     lbool   status;
@@ -376,13 +378,36 @@ int Abc_NtkMiterSat2( Abc_Ntk_t * pNtk, int nSeconds, int fVerbose )
     // if the problem is SAT, get the counterexample
     if ( status == l_True )
     {
-        Vec_Int_t * vCiIds = Abc_NtkGetCiIds( pNtk );
+//        Vec_Int_t * vCiIds = Abc_NtkGetCiIds( pNtk );
+        Vec_Int_t * vCiIds = Abc_NtkGetCiSatVarNums( pNtk );
         pNtk->pModel = solver_get_model( pSat, vCiIds->pArray, vCiIds->nSize );
         Vec_IntFree( vCiIds );
     }
     // free the solver
     solver_delete( pSat );
     return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the array of CI IDs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Abc_NtkGetCiSatVarNums( Abc_Ntk_t * pNtk )
+{
+    Vec_Int_t * vCiIds;
+    Abc_Obj_t * pObj;
+    int i;
+    vCiIds = Vec_IntAlloc( Abc_NtkCiNum(pNtk) );
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        Vec_IntPush( vCiIds, (int)pObj->pCopy );
+    return vCiIds;
 }
 
 

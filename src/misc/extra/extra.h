@@ -106,7 +106,35 @@ typedef unsigned long long uint64;
 /*     Various Utilities                                                     */
 /*===========================================================================*/
 
+/*=== extraBddAuto.c ========================================================*/
+
+extern DdNode *     Extra_bddSpaceFromFunctionFast( DdManager * dd, DdNode * bFunc );
+extern DdNode *     Extra_bddSpaceFromFunction( DdManager * dd, DdNode * bF, DdNode * bG );
+extern DdNode *      extraBddSpaceFromFunction( DdManager * dd, DdNode * bF, DdNode * bG );
+extern DdNode *     Extra_bddSpaceFromFunctionPos( DdManager * dd, DdNode * bFunc );
+extern DdNode *      extraBddSpaceFromFunctionPos( DdManager * dd, DdNode * bFunc );
+extern DdNode *     Extra_bddSpaceFromFunctionNeg( DdManager * dd, DdNode * bFunc );
+extern DdNode *      extraBddSpaceFromFunctionNeg( DdManager * dd, DdNode * bFunc );
+
+extern DdNode *     Extra_bddSpaceCanonVars( DdManager * dd, DdNode * bSpace );
+extern DdNode *      extraBddSpaceCanonVars( DdManager * dd, DdNode * bSpace );
+
+extern DdNode *     Extra_bddSpaceEquations( DdManager * dd, DdNode * bSpace );
+extern DdNode *     Extra_bddSpaceEquationsNeg( DdManager * dd, DdNode * bSpace );
+extern DdNode *      extraBddSpaceEquationsNeg( DdManager * dd, DdNode * bSpace );
+extern DdNode *     Extra_bddSpaceEquationsPos( DdManager * dd, DdNode * bSpace );
+extern DdNode *      extraBddSpaceEquationsPos( DdManager * dd, DdNode * bSpace );
+
+extern DdNode *     Extra_bddSpaceFromMatrixPos( DdManager * dd, DdNode * zA );
+extern DdNode *      extraBddSpaceFromMatrixPos( DdManager * dd, DdNode * zA );
+extern DdNode *     Extra_bddSpaceFromMatrixNeg( DdManager * dd, DdNode * zA );
+extern DdNode *      extraBddSpaceFromMatrixNeg( DdManager * dd, DdNode * zA );
+
+extern DdNode *     Extra_bddSpaceReduce( DdManager * dd, DdNode * bFunc, DdNode * bCanonVars );
+extern DdNode **    Extra_bddSpaceExorGates( DdManager * dd, DdNode * bFuncRed, DdNode * zEquations );
+
 /*=== extraBddMisc.c ========================================================*/
+
 extern DdNode *     Extra_TransferPermute( DdManager * ddSource, DdManager * ddDestination, DdNode * f, int * Permute );
 extern DdNode *     Extra_TransferLevelByLevel( DdManager * ddSource, DdManager * ddDestination, DdNode * f );
 extern DdNode *     Extra_bddRemapUp( DdManager * dd, DdNode * bF );
@@ -126,6 +154,7 @@ extern DdNode *     Extra_bddFindOneCube( DdManager * dd, DdNode * bF );
 extern DdNode *     Extra_bddGetOneCube( DdManager * dd, DdNode * bFunc );
 extern DdNode *     Extra_bddComputeRangeCube( DdManager * dd, int iStart, int iStop );
 extern DdNode *     Extra_bddBitsToCube( DdManager * dd, int Code, int CodeWidth, DdNode ** pbVars, int fMsbFirst );
+extern DdNode *     Extra_bddSupportNegativeCube( DdManager * dd, DdNode * f );
 
 /*=== extraBddKmap.c ================================================================*/
 
@@ -184,6 +213,46 @@ extern DdNode *     extraZddTuplesFromBdd( DdManager * dd, DdNode * bVarsK, DdNo
 /* selects one subset from a ZDD representing the set of subsets */
 extern DdNode *    Extra_zddSelectOneSubset( DdManager * dd, DdNode * zS );
 extern DdNode *     extraZddSelectOneSubset( DdManager * dd, DdNode * zS );
+
+/*=== extraBddUnate.c =================================================================*/
+
+typedef struct Extra_UnateVar_t_  Extra_UnateVar_t;
+struct Extra_UnateVar_t_ {
+    unsigned    iVar : 30;  // index of the variable
+    unsigned    Pos  :  1;  // 1 if positive unate
+    unsigned    Neg  :  1;  // 1 if negative unate
+};
+
+typedef struct Extra_UnateInfo_t_  Extra_UnateInfo_t;
+struct Extra_UnateInfo_t_ {
+    int nVars;      // the number of variables in the support
+    int nVarsMax;   // the number of variables in the DD manager
+    int nUnate;     // the number of unate variables
+    Extra_UnateVar_t * pVars;    // the array of variables present in the support
+};
+
+/* allocates the data structure */
+extern Extra_UnateInfo_t *  Extra_UnateInfoAllocate( int nVars );
+/* deallocates the data structure */
+extern void        Extra_UnateInfoDissolve( Extra_UnateInfo_t * );
+/* print the contents the data structure */
+extern void        Extra_UnateInfoPrint( Extra_UnateInfo_t * );
+/* converts the ZDD into the Extra_SymmInfo_t structure */
+extern Extra_UnateInfo_t *  Extra_UnateInfoCreateFromZdd( DdManager * dd, DdNode * zUnate, DdNode * bVars );
+/* naive check of unateness of one variable */
+extern int         Extra_bddCheckUnateNaive( DdManager * dd, DdNode * bF, int iVar );
+
+/* computes the unateness information for the function */
+extern Extra_UnateInfo_t *  Extra_UnateComputeFast( DdManager * dd, DdNode * bFunc );
+extern Extra_UnateInfo_t *  Extra_UnateComputeSlow( DdManager * dd, DdNode * bFunc );
+
+/* computes the classical symmetry information as a ZDD */
+extern DdNode *    Extra_zddUnateInfoCompute( DdManager * dd, DdNode * bF, DdNode * bVars );
+extern DdNode *     extraZddUnateInfoCompute( DdManager * dd, DdNode * bF, DdNode * bVars );
+
+/* converts a set of variables into a set of singleton subsets */
+extern DdNode *    Extra_zddGetSingletonsBoth( DdManager * dd, DdNode * bVars );
+extern DdNode *     extraZddGetSingletonsBoth( DdManager * dd, DdNode * bVars );
 
 /*=== extraUtilBitMatrix.c ================================================================*/
 

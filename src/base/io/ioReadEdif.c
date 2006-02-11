@@ -47,7 +47,7 @@ Abc_Ntk_t * Io_ReadEdif( char * pFileName, int fCheck )
     Abc_Ntk_t * pNtk;
 
     // start the file
-    p = Extra_FileReaderAlloc( pFileName, "#", "\n", " \t\r()" );
+    p = Extra_FileReaderAlloc( pFileName, "#", "\n\r", " \t()" );
     if ( p == NULL )
         return NULL;
 

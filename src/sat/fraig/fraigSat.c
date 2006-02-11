@@ -156,6 +156,132 @@ int Fraig_ManCheckMiter( Fraig_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns 1 if pOld is in the TFI of pNew.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fraig_MarkTfi_rec( Fraig_Man_t * pMan, Fraig_Node_t * pNode )
+{
+    // skip the visited node
+    if ( pNode->TravId == pMan->nTravIds )
+        return 0;
+    pNode->TravId = pMan->nTravIds;
+    // skip the PI node
+    if ( pNode->NumPi >= 0 )
+        return 1;
+    // check the children
+    return Fraig_MarkTfi_rec( pMan, Fraig_Regular(pNode->p1) ) +
+           Fraig_MarkTfi_rec( pMan, Fraig_Regular(pNode->p2) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if pOld is in the TFI of pNew.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fraig_MarkTfi2_rec( Fraig_Man_t * pMan, Fraig_Node_t * pNode )
+{
+    // skip the visited node
+    if ( pNode->TravId == pMan->nTravIds )
+        return 0;
+    // skip the boundary node
+    if ( pNode->TravId == pMan->nTravIds-1 )
+    {
+        pNode->TravId = pMan->nTravIds;
+        return 1;
+    }
+    pNode->TravId = pMan->nTravIds;
+    // skip the PI node
+    if ( pNode->NumPi >= 0 )
+        return 1;
+    // check the children
+    return Fraig_MarkTfi2_rec( pMan, Fraig_Regular(pNode->p1) ) +
+           Fraig_MarkTfi2_rec( pMan, Fraig_Regular(pNode->p2) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if pOld is in the TFI of pNew.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fraig_MarkTfi3_rec( Fraig_Man_t * pMan, Fraig_Node_t * pNode )
+{
+    // skip the visited node
+    if ( pNode->TravId == pMan->nTravIds )
+        return 1;
+    // skip the boundary node
+    if ( pNode->TravId == pMan->nTravIds-1 )
+    {
+        pNode->TravId = pMan->nTravIds;
+        return 1;
+    }
+    pNode->TravId = pMan->nTravIds;
+    // skip the PI node
+    if ( pNode->NumPi >= 0 )
+        return 0;
+    // check the children
+    return Fraig_MarkTfi3_rec( pMan, Fraig_Regular(pNode->p1) ) *
+           Fraig_MarkTfi3_rec( pMan, Fraig_Regular(pNode->p2) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fraig_VarsStudy( Fraig_Man_t * p, Fraig_Node_t * pOld, Fraig_Node_t * pNew )
+{
+    int NumPis, NumCut, fContain;
+
+    // mark the TFI of pNew
+    p->nTravIds++;
+    NumPis = Fraig_MarkTfi_rec( p, pNew );
+    printf( "(%d)(%d,%d):", NumPis, pOld->Level, pNew->Level );
+
+    // check if the old is in the TFI
+    if ( pOld->TravId == p->nTravIds )
+    {
+        printf( "* " );
+        return;
+    }
+
+    // count the boundary of nodes in pOld
+    p->nTravIds++;
+    NumCut = Fraig_MarkTfi2_rec( p, pOld );
+    printf( "%d", NumCut );
+
+    // check if the new is contained in the old's support
+    p->nTravIds++;
+    fContain = Fraig_MarkTfi3_rec( p, pNew );
+    printf( "%c ", fContain? '+':'-' );
+}
+
+
+/**Function*************************************************************
+
   Synopsis    [Checks whether two nodes are functinally equivalent.]
 
   Description [The flag (fComp) tells whether the nodes to be checked
@@ -202,6 +328,7 @@ int Fraig_NodeIsEquivalent( Fraig_Man_t * p, Fraig_Node_t * pOld, Fraig_Node_t *
 
     // get the logic cone
 clk = clock();
+//    Fraig_VarsStudy( p, pOld, pNew );
     Fraig_OrderVariables( p, pOld, pNew );
 //    Fraig_PrepareCones( p, pOld, pNew );
 p->timeTrav += clock() - clk;
@@ -223,17 +350,19 @@ if ( fVerbose )
     Msat_SolverPrepare( p->pSat, p->vVarsInt );
 //p->time3 += clock() - clk;
 
+
     // solve under assumptions
     // A = 1; B = 0     OR     A = 1; B = 1 
     Msat_IntVecClear( p->vProj );
     Msat_IntVecPush( p->vProj, MSAT_VAR2LIT(pOld->Num, 0) );
     Msat_IntVecPush( p->vProj, MSAT_VAR2LIT(pNew->Num, !fComp) );
+
+//Msat_SolverWriteDimacs( p->pSat, "temp_fraig.cnf" );
+
     // run the solver
 clk = clock();
     RetValue1 = Msat_SolverSolve( p->pSat, p->vProj, nBTLimit, nTimeLimit );
 p->timeSat += clock() - clk;
-
-//Msat_SolverWriteDimacs( p->pSat, "temp_fraig.cnf" );
 
     if ( RetValue1 == MSAT_FALSE )
     {

@@ -42,7 +42,7 @@
 void Aig_ManSetDefaultParams( Aig_Param_t * pParam )
 {
     memset( pParam, 0, sizeof(Aig_Param_t) );
-    pParam->nPatsRand = 1024;  // the number of random patterns
+    pParam->nPatsRand = 4096;  // the number of random patterns
     pParam->nBTLimit  =   99;  // backtrack limit at the intermediate nodes
     pParam->nSeconds  =    1;  // the timeout for the final miter in seconds
 }
@@ -67,8 +67,8 @@ Aig_Man_t * Aig_ManStart( Aig_Param_t * pParam )
     p = ALLOC( Aig_Man_t, 1 );
     memset( p, 0, sizeof(Aig_Man_t) );
     p->pParam     = &p->Param;
-    p->nTravIds   = 1;
-    p->nPatsMax   = 20;
+    p->nTravIds   =  1;
+    p->nPatsMax   = 25;
     // set the defaults
     *p->pParam    = *pParam;
     // start memory managers
@@ -84,6 +84,8 @@ Aig_Man_t * Aig_ManStart( Aig_Param_t * pParam )
     // initialize other variables
     p->vFanouts   = Vec_PtrAlloc( 10 ); 
     p->vToReplace = Vec_PtrAlloc( 10 ); 
+    p->vClassTemp = Vec_IntAlloc( 10 );
+    p->vPats      = Vec_PtrAlloc( p->nPatsMax );
     return p;
 }
 
@@ -132,6 +134,9 @@ void Aig_ManStop( Aig_Man_t * p )
     if ( p->vFanFans0 )  Vec_PtrFree( p->vFanFans0 );
     if ( p->vFanFans1 )  Vec_PtrFree( p->vFanFans1 );
     if ( p->vClasses  )  Vec_VecFree( p->vClasses );
+    // patterns
+    if ( p->vPats )      Vec_PtrFree( p->vPats );
+    if ( p->pPatMask )   Aig_PatternFree( p->pPatMask );
     // nodes
     Aig_MemFixedStop( p->mmNodes, 0 );
     Vec_PtrFree( p->vNodes );
@@ -140,6 +145,7 @@ void Aig_ManStop( Aig_Man_t * p )
     // temporary
     Vec_PtrFree( p->vFanouts );
     Vec_PtrFree( p->vToReplace );
+    Vec_IntFree( p->vClassTemp );
     Aig_TableFree( p->pTable );
     free( p );
 }

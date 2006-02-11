@@ -133,7 +133,7 @@ int Mio_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     int fVerbose;
     int c;
 
-    pNet = Abc_FrameReadNet(pAbc);
+    pNet = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -163,7 +163,7 @@ int Mio_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
 
     // get the input file name
     FileName = argv[util_optind];
-    if ( (pFile = fopen( FileName, "r" )) == NULL )
+    if ( (pFile = Io_FileOpen( FileName, "open_path", "r", 0 )) == NULL )
     {
         fprintf( pErr, "Cannot open input file \"%s\". ", FileName );
         if ( (FileName = Extra_FileGetSimilarName( FileName, ".genlib", ".lib", ".gen", ".g", NULL )) )
@@ -223,7 +223,7 @@ int Mio_CommandPrintLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     int fVerbose;
     int c;
 
-    pNet = Abc_FrameReadNet(pAbc);
+    pNet = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 

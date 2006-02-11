@@ -34,6 +34,7 @@ struct ABC_ManagerStruct_t
     Abc_Ntk_t *           pNtk;          // the starting ABC network
     Abc_Ntk_t *           pTarget;       // the AIG representing the target
     char *                pDumpFileName; // the name of the file to dump the target network
+    Extra_MmFlex_t *      pMmNames;      // memory manager for signal names
     // solving parameters
     int                   mode;          // 0 = brute-force SAT;  1 = resource-aware FRAIG
     int                   nSeconds;      // time limit for pure SAT solving
@@ -76,6 +77,7 @@ ABC_Manager ABC_InitManager()
     mng->pNtk->pName = util_strsav("csat_network");
     mng->tName2Node = stmm_init_table(strcmp, stmm_strhash);
     mng->tNode2Name = stmm_init_table(stmm_ptrcmp, stmm_ptrhash);
+    mng->pMmNames   = Extra_MmFlexStart();
     mng->vNodes     = Vec_PtrAlloc( 100 );
     mng->vValues    = Vec_IntAlloc( 100 );
     mng->nSeconds   = ABC_DEFAULT_TIMEOUT;
@@ -97,6 +99,7 @@ void ABC_QuitManager( ABC_Manager mng )
 {
     if ( mng->tNode2Name ) stmm_free_table( mng->tNode2Name );
     if ( mng->tName2Node ) stmm_free_table( mng->tName2Node );
+    if ( mng->pMmNames )   Extra_MmFlexStop( mng->pMmNames, 0 );
     if ( mng->pNtk )       Abc_NtkDelete( mng->pNtk );
     if ( mng->pTarget )    Abc_NtkDelete( mng->pTarget );
     if ( mng->vNodes )     Vec_PtrFree( mng->vNodes );
@@ -146,9 +149,15 @@ void ABC_SetSolveOption( ABC_Manager mng, enum ABC_OptionT option )
 int ABC_AddGate( ABC_Manager mng, enum GateType type, char * name, int nofi, char ** fanins, int dc_attr )
 {
     Abc_Obj_t * pObj, * pFanin;
-    char * pSop;
+    char * pSop, * pNewName;
     int i;
 
+    // save the name in the local memory manager
+    pNewName = Extra_MmFlexEntryFetch( mng->pMmNames, strlen(name) + 1 );
+    strcpy( pNewName, name );
+    name = pNewName;
+
+    // consider different cases, create the node, and map the node into the name
     switch( type )
     {
     case ABC_BPI:
@@ -250,6 +259,8 @@ int ABC_AddGate( ABC_Manager mng, enum GateType type, char * name, int nofi, cha
         printf( "ABC_AddGate: Unknown gate type.\n" );
         break;
     }
+
+    // map the name into the node
     if ( stmm_insert( mng->tName2Node, name, (char *)pObj ) )
         { printf( "ABC_AddGate: The same gate \"%s\" is added twice.\n", name ); return 0; }
     return 1;
@@ -689,6 +700,101 @@ char * ABC_GetNodeName( ABC_Manager mng, Abc_Obj_t * pNode )
     }
     return pName;
 }
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [This procedure applies a rewriting script to the network.]
+
+  Description [Rewriting is performed without regard for the number of 
+  logic levels. This corresponds to "circuit compression for formal 
+  verification" (Per Bjesse et al, ICCAD 2004) but implemented in a more 
+  exhaustive way than in the above paper.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void ABC_PerformRewriting( ABC_Manager mng )
+{
+    void * pAbc;
+    char Command[1000];
+    int clkBalan, clkResyn, clk;
+    int fPrintStats = 1;
+    int fUseResyn   = 1;
+
+    // procedures to get the ABC framework and execute commands in it
+    extern void * Abc_FrameGetGlobalFrame();
+    extern void Abc_FrameReplaceCurrentNetwork( void * p, Abc_Ntk_t * pNtk );
+    extern int  Cmd_CommandExecute( void * p, char * sCommand );
+    extern Abc_Ntk_t * Abc_FrameReadNtk( void * p );
+
+
+    // get the pointer to the ABC framework
+    pAbc = Abc_FrameGetGlobalFrame();
+    assert( pAbc != NULL );
+
+    // replace the current network by the target network
+    Abc_FrameReplaceCurrentNetwork( pAbc, mng->pTarget );
+
+clk = clock();
+    //////////////////////////////////////////////////////////////////////////
+    // balance
+    sprintf( Command, "balance" );
+    if ( Cmd_CommandExecute( pAbc, Command ) )
+    {
+        fprintf( stdout, "Cannot execute command \"%s\".\n", Command );
+        return;
+    }
+clkBalan = clock() - clk;
+
+    //////////////////////////////////////////////////////////////////////////
+    // print stats
+    if ( fPrintStats )
+    {
+        sprintf( Command, "print_stats" );
+        if ( Cmd_CommandExecute( pAbc, Command ) )
+        {
+            fprintf( stdout, "Cannot execute command \"%s\".\n", Command );
+            return;
+        }
+    }
+
+clk = clock();
+    //////////////////////////////////////////////////////////////////////////
+    // synthesize
+    if ( fUseResyn )
+    {
+        sprintf( Command, "balance; rewrite -l; rewrite -lz; balance; rewrite -lz; balance" );
+        if ( Cmd_CommandExecute( pAbc, Command ) )
+        {
+            fprintf( stdout, "Cannot execute command \"%s\".\n", Command );
+            return;
+        }
+    }
+clkResyn = clock() - clk;
+
+    //////////////////////////////////////////////////////////////////////////
+    // print stats
+    if ( fPrintStats )
+    {
+        sprintf( Command, "print_stats" );
+        if ( Cmd_CommandExecute( pAbc, Command ) )
+        {
+            fprintf( stdout, "Cannot execute command \"%s\".\n", Command );
+            return;
+        }
+    }
+    printf( "Balancing = %6.2f sec   ",   (float)(clkBalan)/(float)(CLOCKS_PER_SEC) );
+    printf( "Rewriting = %6.2f sec   ",   (float)(clkResyn)/(float)(CLOCKS_PER_SEC) );
+    printf( "\n" );
+
+    // read the target network from the current network
+    mng->pTarget = Abc_NtkDup( Abc_FrameReadNtk(pAbc) );
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

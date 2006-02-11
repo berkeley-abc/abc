@@ -24,10 +24,11 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
  
-static void        Abc_NtkBalancePerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig, bool fDuplicate );
-static Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, Vec_Vec_t * vStorage, int Level, bool fDuplicate );
-static Vec_Ptr_t * Abc_NodeBalanceCone( Abc_Obj_t * pNode, Vec_Vec_t * vSuper, int Level, int fDuplicate );
-static int         Abc_NodeBalanceCone_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vSuper, bool fFirst, bool fDuplicate );
+static void        Abc_NtkBalancePerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig, bool fDuplicate, bool fSelective );
+static Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, Vec_Vec_t * vStorage, int Level, bool fDuplicate, bool fSelective );
+static Vec_Ptr_t * Abc_NodeBalanceCone( Abc_Obj_t * pNode, Vec_Vec_t * vSuper, int Level, int fDuplicate, bool fSelective );
+static int         Abc_NodeBalanceCone_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vSuper, bool fFirst, bool fDuplicate, bool fSelective );
+static void        Abc_NtkMarkCriticalNodes( Abc_Ntk_t * pNtk );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -44,14 +45,26 @@ static int         Abc_NodeBalanceCone_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vSupe
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkBalance( Abc_Ntk_t * pNtk, bool fDuplicate )
+Abc_Ntk_t * Abc_NtkBalance( Abc_Ntk_t * pNtk, bool fDuplicate, bool fSelective )
 {
     Abc_Ntk_t * pNtkAig;
     assert( Abc_NtkIsStrash(pNtk) );
+    // compute the required times
+    if ( fSelective )
+    {
+        Abc_NtkStartReverseLevels( pNtk );
+        Abc_NtkMarkCriticalNodes( pNtk );
+    }
     // perform balancing
     pNtkAig = Abc_NtkStartFrom( pNtk, ABC_NTK_STRASH, ABC_FUNC_AIG );
-    Abc_NtkBalancePerform( pNtk, pNtkAig, fDuplicate );
+    Abc_NtkBalancePerform( pNtk, pNtkAig, fDuplicate, fSelective );
     Abc_NtkFinalize( pNtk, pNtkAig );
+    // undo the required times
+    if ( fSelective )
+    {
+        Abc_NtkStopReverseLevels( pNtk );
+        Abc_NtkCleanMarkA( pNtk );
+    }
     if ( pNtk->pExdc )
         pNtkAig->pExdc = Abc_NtkDup( pNtk->pExdc );
     // make sure everything is okay
@@ -75,7 +88,7 @@ Abc_Ntk_t * Abc_NtkBalance( Abc_Ntk_t * pNtk, bool fDuplicate )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkBalancePerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig, bool fDuplicate )
+void Abc_NtkBalancePerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig, bool fDuplicate, bool fSelective )
 {
     int fCheck = 1;
     ProgressBar * pProgress;
@@ -94,7 +107,7 @@ void Abc_NtkBalancePerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig, bool fDuplica
         Extra_ProgressBarUpdate( pProgress, i, NULL );
         // strash the driver node
         pDriver = Abc_ObjFanin0(pNode);
-        Abc_NodeBalance_rec( pNtkAig, pDriver, vStorage, 0, fDuplicate );
+        Abc_NodeBalance_rec( pNtkAig, pDriver, vStorage, 0, fDuplicate, fSelective );
     }
     Extra_ProgressBarStop( pProgress );
     Vec_VecFree( vStorage );
@@ -147,7 +160,7 @@ void Abc_NodeBalanceRandomize( Vec_Ptr_t * vSuper )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, Vec_Vec_t * vStorage, int Level, bool fDuplicate )
+Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, Vec_Vec_t * vStorage, int Level, bool fDuplicate, bool fSelective )
 {
     Abc_Aig_t * pMan = pNtkNew->pManFunc;
     Abc_Obj_t * pNodeNew, * pNode1, * pNode2;
@@ -159,7 +172,7 @@ Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, Vec_
         return pNodeOld->pCopy;
     assert( Abc_ObjIsNode(pNodeOld) );
     // get the implication supergate
-    vSuper = Abc_NodeBalanceCone( pNodeOld, vStorage, Level, fDuplicate );
+    vSuper = Abc_NodeBalanceCone( pNodeOld, vStorage, Level, fDuplicate, fSelective );
     if ( vSuper->nSize == 0 )
     { // it means that the supergate contains two nodes in the opposite polarity
         pNodeOld->pCopy = Abc_ObjNot(Abc_NtkConst1(pNtkNew));
@@ -168,7 +181,7 @@ Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, Vec_
     // for each old node, derive the new well-balanced node
     for ( i = 0; i < vSuper->nSize; i++ )
     {
-        pNodeNew = Abc_NodeBalance_rec( pNtkNew, Abc_ObjRegular(vSuper->pArray[i]), vStorage, Level + 1, fDuplicate );
+        pNodeNew = Abc_NodeBalance_rec( pNtkNew, Abc_ObjRegular(vSuper->pArray[i]), vStorage, Level + 1, fDuplicate, fSelective );
         vSuper->pArray[i] = Abc_ObjNotCond( pNodeNew, Abc_ObjIsComplement(vSuper->pArray[i]) );
     }
     if ( vSuper->nSize < 2 )
@@ -207,7 +220,7 @@ Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, Vec_
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Abc_NodeBalanceCone( Abc_Obj_t * pNode, Vec_Vec_t * vStorage, int Level, int fDuplicate )
+Vec_Ptr_t * Abc_NodeBalanceCone( Abc_Obj_t * pNode, Vec_Vec_t * vStorage, int Level, int fDuplicate, bool fSelective )
 {
     Vec_Ptr_t * vNodes;
     int RetValue, i;
@@ -219,7 +232,7 @@ Vec_Ptr_t * Abc_NodeBalanceCone( Abc_Obj_t * pNode, Vec_Vec_t * vStorage, int Le
     vNodes = Vec_VecEntry( vStorage, Level );
     Vec_PtrClear( vNodes );
     // collect the nodes in the implication supergate
-    RetValue = Abc_NodeBalanceCone_rec( pNode, vNodes, 1, fDuplicate );
+    RetValue = Abc_NodeBalanceCone_rec( pNode, vNodes, 1, fDuplicate, fSelective );
     assert( vNodes->nSize > 1 );
     // unmark the visited nodes
     for ( i = 0; i < vNodes->nSize; i++ )
@@ -245,7 +258,7 @@ Vec_Ptr_t * Abc_NodeBalanceCone( Abc_Obj_t * pNode, Vec_Vec_t * vStorage, int Le
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NodeBalanceCone_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vSuper, bool fFirst, bool fDuplicate )
+int Abc_NodeBalanceCone_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vSuper, bool fFirst, bool fDuplicate, bool fSelective )
 {
     int RetValue1, RetValue2, i;
     // check if the node is visited
@@ -263,7 +276,7 @@ int Abc_NodeBalanceCone_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vSuper, bool fFirst,
         return 0;
     }
     // if the new node is complemented or a PI, another gate begins
-    if ( !fFirst && (Abc_ObjIsComplement(pNode) || !Abc_ObjIsNode(pNode) || !fDuplicate && (Abc_ObjFanoutNum(pNode) > 1)) )
+    if ( !fFirst && (Abc_ObjIsComplement(pNode) || !Abc_ObjIsNode(pNode) || !fDuplicate && !fSelective && (Abc_ObjFanoutNum(pNode) > 1)) )
     {
         Vec_PtrPush( vSuper, pNode );
         Abc_ObjRegular(pNode)->fMarkB = 1;
@@ -272,8 +285,8 @@ int Abc_NodeBalanceCone_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vSuper, bool fFirst,
     assert( !Abc_ObjIsComplement(pNode) );
     assert( Abc_ObjIsNode(pNode) );
     // go through the branches
-    RetValue1 = Abc_NodeBalanceCone_rec( Abc_ObjChild0(pNode), vSuper, 0, fDuplicate );
-    RetValue2 = Abc_NodeBalanceCone_rec( Abc_ObjChild1(pNode), vSuper, 0, fDuplicate );
+    RetValue1 = Abc_NodeBalanceCone_rec( Abc_ObjChild0(pNode), vSuper, 0, fDuplicate, fSelective );
+    RetValue2 = Abc_NodeBalanceCone_rec( Abc_ObjChild1(pNode), vSuper, 0, fDuplicate, fSelective );
     if ( RetValue1 == -1 || RetValue2 == -1 )
         return -1;
     // return 1 if at least one branch has a duplicate
@@ -315,7 +328,7 @@ Vec_Ptr_t * Abc_NodeFindCone_rec( Abc_Obj_t * pNode )
     else
     {
         // collect the nodes in the implication supergate
-        RetValue = Abc_NodeBalanceCone_rec( pNode, vNodes, 1, 1 );
+        RetValue = Abc_NodeBalanceCone_rec( pNode, vNodes, 1, 1, 0 );
         assert( vNodes->nSize > 1 );
         // unmark the visited nodes
         Vec_PtrForEachEntry( vNodes, pNode, i )
@@ -439,6 +452,28 @@ void Abc_NtkBalanceLevel( Abc_Ntk_t * pNtk )
         pNode->Level = 0;
     Abc_NtkForEachCo( pNtk, pNode, i )
         Abc_NtkBalanceLevel_rec( Abc_ObjFanin0(pNode) );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Marks the nodes on the critical and near critical paths.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkMarkCriticalNodes( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNode;
+    int i, Counter = 0;
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        if ( Abc_NodeReadRequiredLevel(pNode) - pNode->Level <= 1 )
+            pNode->fMarkA = 1, Counter++;
+    printf( "The number of nodes on the critical paths = %6d  (%5.2f %%)\n", Counter, 100.0 * Counter / Abc_NtkNodeNum(pNtk) );
 }
 
 

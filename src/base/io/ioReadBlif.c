@@ -135,7 +135,8 @@ Io_ReadBlif_t * Io_ReadBlifFile( char * pFileName )
     Io_ReadBlif_t * p;
 
     // start the reader
-    pReader = Extra_FileReaderAlloc( pFileName, "#", "\n", " \t\r" );
+    pReader = Extra_FileReaderAlloc( pFileName, "#", "\n\r", " \t" );
+
     if ( pReader == NULL )
         return NULL;
 

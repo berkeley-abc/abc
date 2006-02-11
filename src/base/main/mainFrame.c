@@ -164,7 +164,7 @@ void Abc_FrameRestart( Abc_Frame_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_FrameReadNet( Abc_Frame_t * p )
+Abc_Ntk_t * Abc_FrameReadNtk( Abc_Frame_t * p )
 {
     return p->pNtkCur;
 }

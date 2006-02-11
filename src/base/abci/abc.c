@@ -40,6 +40,8 @@ static int Abc_CommandPrintFactor  ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int Abc_CommandPrintLevel   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintSupport ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintSymms   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintUnate   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintAuto    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintKMap    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintGates   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintSharing ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -137,6 +139,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Printing",     "print_level",   Abc_CommandPrintLevel,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_supp",    Abc_CommandPrintSupport,     0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_symm",    Abc_CommandPrintSymms,       0 );
+    Cmd_CommandAdd( pAbc, "Printing",     "print_unate",   Abc_CommandPrintUnate,       0 );
+    Cmd_CommandAdd( pAbc, "Printing",     "print_auto",    Abc_CommandPrintAuto,        0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_kmap",    Abc_CommandPrintKMap,        0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_gates",   Abc_CommandPrintGates,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_sharing", Abc_CommandPrintSharing,     0 );
@@ -247,7 +251,7 @@ int Abc_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int fFactor;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -310,7 +314,7 @@ int Abc_CommandPrintExdc( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     extern double Abc_NtkSpacePercentage( Abc_Obj_t * pNode );
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -398,7 +402,7 @@ int Abc_CommandPrintIo( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Obj_t * pNode;
     int c;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -467,7 +471,7 @@ int Abc_CommandPrintLatch( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk;
     int c;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -517,7 +521,7 @@ int Abc_CommandPrintFanio( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk;
     int c;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -570,7 +574,7 @@ int Abc_CommandPrintFactor( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int fUseRealNames;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -653,7 +657,7 @@ int Abc_CommandPrintLevel( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fListNodes;
     int fProfile;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -742,7 +746,7 @@ int Abc_CommandPrintSupport( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Vec_Ptr_t * Sim_ComputeFunSupp( Abc_Ntk_t * pNtk, int fVerbose );
     extern void Abc_NtkPrintStrSupports( Abc_Ntk_t * pNtk );
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -817,7 +821,7 @@ int Abc_CommandPrintSymms( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fVerbose;
     extern void Abc_NtkSymmetries( Abc_Ntk_t * pNtk, int fUseBdds, int fNaive, int fVerbose );
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -884,6 +888,160 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandPrintUnate( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+    int fUseBdds;
+    int fUseNaive;
+    int fVerbose;
+    extern void Abc_NtkPrintUnate( Abc_Ntk_t * pNtk, int fUseBdds, int fUseNaive, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fUseBdds  = 1;
+    fUseNaive = 0;
+    fVerbose  = 0;
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "bnvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'b':
+            fUseBdds ^= 1;
+            break;
+        case 'n':
+            fUseNaive ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "This command works only for AIGs (run \"strash\").\n" );
+        return 1;
+    }
+    Abc_NtkPrintUnate( pNtk, fUseBdds, fUseNaive, fVerbose );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: print_unate [-bnvh]\n" );
+    fprintf( pErr, "\t         computes unate variables of the PO functions\n" );
+    fprintf( pErr, "\t-b     : toggle BDD-based or SAT-based computations [default = %s].\n", fUseBdds? "BDD": "SAT" );  
+    fprintf( pErr, "\t-n     : toggle naive BDD-based computation [default = %s].\n", fUseNaive? "yes": "no" );  
+    fprintf( pErr, "\t-v     : enable verbose output [default = %s].\n", fVerbose? "yes": "no" );  
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandPrintAuto( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+    int Output;
+    int fNaive;
+    int fVerbose;
+    extern void Abc_NtkAutoPrint( Abc_Ntk_t * pNtk, int Output, int fNaive, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    Output   = -1;
+    fNaive   = 0;
+    fVerbose = 0;
+    util_getopt_reset();
+    while ( ( c = util_getopt( argc, argv, "Onvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'O':
+            if ( util_optind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-O\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Output = atoi(argv[util_optind]);
+            util_optind++;
+            if ( Output < 0 ) 
+                goto usage;
+            break;
+        case 'n':
+            fNaive ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "This command works only for AIGs (run \"strash\").\n" );
+        return 1;
+    }
+
+
+    Abc_NtkAutoPrint( pNtk, Output, fNaive, fVerbose );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: print_auto [-O num] [-nvh]\n" );
+    fprintf( pErr, "\t         computes autosymmetries of the PO functions\n" );
+    fprintf( pErr, "\t-O num : (optional) the 0-based number of the output [default = all]\n");
+    fprintf( pErr, "\t-n     : enable naive BDD-based computation [default = %s].\n", fNaive? "yes": "no" );  
+    fprintf( pErr, "\t-v     : enable verbose output [default = %s].\n", fVerbose? "yes": "no" );  
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandPrintKMap( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
@@ -894,7 +1052,7 @@ int Abc_CommandPrintKMap( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     extern void Abc_NodePrintKMap( Abc_Obj_t * pNode, int fUseRealNames );
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -981,7 +1139,7 @@ int Abc_CommandPrintGates( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     extern void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary );
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -1044,7 +1202,7 @@ int Abc_CommandPrintSharing( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     extern void Abc_NtkPrintSharing( Abc_Ntk_t * pNtk );
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -1106,7 +1264,7 @@ int Abc_CommandShowBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     extern void Abc_NodeShowBdd( Abc_Obj_t * pNode );
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -1194,7 +1352,7 @@ int Abc_CommandShowCut( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nConeSizeMax;
     extern void Abc_NodeShowCut( Abc_Obj_t * pNode, int nNodeSizeMax, int nConeSizeMax );
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -1295,7 +1453,7 @@ int Abc_CommandShowAig( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Abc_NtkShowAig( Abc_Ntk_t * pNtk );
     extern void Abc_NtkShowMulti( Abc_Ntk_t * pNtk );
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -1369,7 +1527,7 @@ int Abc_CommandShowNtk( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fGateNames;
     extern void Abc_NtkShow( Abc_Ntk_t * pNtk, int fGateNames );
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -1432,7 +1590,7 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk, * pNtkRes;
     int c;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -1506,7 +1664,7 @@ int Abc_CommandStrash( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fAllNodes;
     int fCleanup;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -1573,21 +1731,26 @@ int Abc_CommandBalance( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes, * pNtkTemp;
     int c;
-    int fDuplicate;
+    bool fDuplicate;
+    bool fSelective;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
     fDuplicate = 0;
+    fSelective = 0;
     util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "dh" ) ) != EOF )
+    while ( ( c = util_getopt( argc, argv, "dsh" ) ) != EOF )
     {
         switch ( c )
         {
         case 'd':
             fDuplicate ^= 1;
+            break;
+        case 's':
+            fSelective ^= 1;
             break;
         case 'h':
             goto usage;
@@ -1610,7 +1773,7 @@ int Abc_CommandBalance( Abc_Frame_t * pAbc, int argc, char ** argv )
     // get the new network
     if ( Abc_NtkIsStrash(pNtk) )
     {
-        pNtkRes = Abc_NtkBalance( pNtk, fDuplicate );
+        pNtkRes = Abc_NtkBalance( pNtk, fDuplicate, fSelective );
     }
     else
     {
@@ -1620,7 +1783,7 @@ int Abc_CommandBalance( Abc_Frame_t * pAbc, int argc, char ** argv )
             fprintf( pErr, "Strashing before balancing has failed.\n" );
             return 1;
         }
-        pNtkRes = Abc_NtkBalance( pNtkTemp, fDuplicate );
+        pNtkRes = Abc_NtkBalance( pNtkTemp, fDuplicate, fSelective );
         Abc_NtkDelete( pNtkTemp );
     }
 
@@ -1635,9 +1798,10 @@ int Abc_CommandBalance( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: balance [-dh]\n" );
+    fprintf( pErr, "usage: balance [-dsh]\n" );
     fprintf( pErr, "\t        transforms the current network into a well-balanced AIG\n" );
     fprintf( pErr, "\t-d    : toggle duplication of logic [default = %s]\n", fDuplicate? "yes": "no" );
+    fprintf( pErr, "\t-s    : toggle duplication on the critical paths [default = %s]\n", fSelective? "yes": "no" );
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -1662,7 +1826,7 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fMulti;
     int fSimple;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -1769,7 +1933,7 @@ int Abc_CommandCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk;
     int c;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -1824,7 +1988,7 @@ int Abc_CommandSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk;
     int c;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -1883,7 +2047,7 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern bool Abc_NtkFastExtract( Abc_Ntk_t * pNtk, Fxu_Data_t * p );
     extern void Abc_NtkFxuFreeInfo( Fxu_Data_t * p );
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -2010,7 +2174,7 @@ int Abc_CommandDisjoint( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Abc_Ntk_t * Abc_NtkDsdGlobal( Abc_Ntk_t * pNtk, bool fVerbose, bool fPrint, bool fShort );
     extern int         Abc_NtkDsdLocal( Abc_Ntk_t * pNtk, bool fVerbose, bool fRecursive );
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -2136,7 +2300,7 @@ int Abc_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Rwr_Precompute();
     extern int  Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeros, int fVerbose );
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -2233,7 +2397,7 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
     bool fVerbose;
     extern int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, bool fUpdateLevel, bool fUseZeros, bool fUseDcs, bool fVerbose );
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -2351,7 +2515,7 @@ int Abc_CommandLogic( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk, * pNtkRes;
     int c;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -2420,7 +2584,7 @@ int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fCheck;
     int fComb;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -2491,7 +2655,7 @@ int Abc_CommandFrames( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nFrames;
     int c;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -2575,7 +2739,7 @@ int Abc_CommandSop( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk;
     int c;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -2635,7 +2799,7 @@ int Abc_CommandBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk;
     int c;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -2696,7 +2860,7 @@ int Abc_CommandReorder( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fVerbose;
     extern void Abc_NtkBddReorder( Abc_Ntk_t * pNtk, int fVerbose );
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -2757,7 +2921,7 @@ int Abc_CommandMuxes( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk, * pNtkRes;
     int c;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -2825,7 +2989,7 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fVerbose;
     int nSeconds;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -2887,7 +3051,7 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
 */
     if ( Abc_NtkIsStrash(pNtk) )
     {
-        RetValue = Abc_NtkMiterSat2( pNtk, nSeconds, fVerbose );
+        RetValue = Abc_NtkMiterSat( pNtk, nSeconds, fVerbose );
         if ( RetValue == -1 )
             printf( "The miter is UNDECIDED (SAT solver timed out).\n" );
         else if ( RetValue == 0 )
@@ -2899,7 +3063,7 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Ntk_t * pTemp;
         pTemp = Abc_NtkStrash( pNtk, 0, 0 );
-        RetValue = Abc_NtkMiterSat2( pTemp, nSeconds, fVerbose );
+        RetValue = Abc_NtkMiterSat( pTemp, nSeconds, fVerbose );
         if ( RetValue == -1 )
             printf( "The miter is UNDECIDED (SAT solver timed out).\n" );
         else if ( RetValue == 0 )
@@ -2939,7 +3103,7 @@ int Abc_CommandExtSeqDcs( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fVerbose;
     extern int Abc_NtkExtractSequentialDcs( Abc_Ntk_t * pNet, bool fVerbose );
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -3010,7 +3174,7 @@ int Abc_CommandOneOutput( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fUseAllCis;
     int Output;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -3122,7 +3286,7 @@ int Abc_CommandOneNode( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Obj_t * pNode;
     int c;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -3202,7 +3366,7 @@ int Abc_CommandShortNames( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk;
     int c;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -3251,7 +3415,7 @@ int Abc_CommandExdcFree( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk, * pNtkRes;
     int c;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -3311,7 +3475,7 @@ int Abc_CommandExdcGet( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk, * pNtkRes;
     int c;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -3369,7 +3533,7 @@ int Abc_CommandExdcSet( Abc_Frame_t * pAbc, int argc, char ** argv )
     char * FileName;
     int c;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -3461,7 +3625,7 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams );
     extern void Abc_NtkCutsOracle( Abc_Ntk_t * pNtk, Cut_Oracle_t * pCutOracle );
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -3591,7 +3755,7 @@ int Abc_CommandScut( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     extern Cut_Man_t * Abc_NtkSeqCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams );
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -3696,7 +3860,7 @@ int Abc_CommandXyz( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nFaninMax;
     extern Abc_Ntk_t * Abc_NtkXyz( Abc_Ntk_t * pNtk, int nFaninMax, bool fUseEsop, bool fUseSop, bool fUseInvs, bool fVerbose );
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -3784,9 +3948,9 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
     int c;
-    extern Abc_Ntk_t * Abc_NtkNewAig( Abc_Ntk_t * pNtk );
+//    extern Abc_Ntk_t * Abc_NtkNewAig( Abc_Ntk_t * pNtk );
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -3819,7 +3983,9 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    printf( "This command is currently not used.\n" );
     // run the command
 //    pNtkRes = Abc_NtkMiterForCofactors( pNtk, 0, 0, -1 );
-    pNtkRes = Abc_NtkNewAig( pNtk );
+
+//    pNtkRes = Abc_NtkNewAig( pNtk );
+    pNtkRes = NULL;
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
@@ -3859,7 +4025,7 @@ int Abc_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fExdc;
     int c;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -4017,7 +4183,7 @@ int Abc_CommandFraigTrust( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int fDuplicate;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -4081,7 +4247,7 @@ int Abc_CommandFraigStore( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int fDuplicate;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -4142,7 +4308,7 @@ int Abc_CommandFraigRestore( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int fDuplicate;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -4206,7 +4372,7 @@ int Abc_CommandFraigClean( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int fDuplicate;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -4258,7 +4424,7 @@ int Abc_CommandFraigSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fVerbose;
     extern bool Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fExdc, int fVerbose );
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -4345,7 +4511,7 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, int fSwitching, int fVerbose );
     extern bool Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fExdc, int fVerbose );
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -4410,7 +4576,7 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
             fprintf( pErr, "Strashing before mapping has failed.\n" );
             return 1;
         }
-        pNtk = Abc_NtkBalance( pNtkRes = pNtk, 0 );
+        pNtk = Abc_NtkBalance( pNtkRes = pNtk, 0, 0 );
         Abc_NtkDelete( pNtkRes );
         if ( pNtk == NULL )
         {
@@ -4481,7 +4647,7 @@ int Abc_CommandUnmap( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     extern int Abc_NtkUnmap( Abc_Ntk_t * pNtk );
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -4542,7 +4708,7 @@ int Abc_CommandAttach( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     extern int Abc_NtkUnmap( Abc_Ntk_t * pNtk );
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -4605,7 +4771,7 @@ int Abc_CommandSuperChoice( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     extern Abc_Ntk_t * Abc_NtkSuperChoice( Abc_Ntk_t * pNtk );
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -4678,7 +4844,7 @@ int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     extern Abc_Ntk_t * Abc_NtkFpga( Abc_Ntk_t * pNtk, float DelayTarget, int fRecovery, int fSwitching, int fVerbose );
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -4740,7 +4906,7 @@ int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
             fprintf( pErr, "Strashing before FPGA mapping has failed.\n" );
             return 1;
         }
-        pNtk = Abc_NtkBalance( pNtkRes = pNtk, 0 );
+        pNtk = Abc_NtkBalance( pNtkRes = pNtk, 0, 0 );
         Abc_NtkDelete( pNtkRes );
         if ( pNtk == NULL )
         {
@@ -4806,7 +4972,7 @@ int Abc_CommandPga( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     extern Abc_Ntk_t * Abc_NtkPga( Pga_Params_t * pParams );
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -4863,7 +5029,7 @@ int Abc_CommandPga( Abc_Frame_t * pAbc, int argc, char ** argv )
             fprintf( pErr, "Strashing before FPGA mapping has failed.\n" );
             return 1;
         }
-        pNtk = Abc_NtkBalance( pNtkRes = pNtk, 0 );
+        pNtk = Abc_NtkBalance( pNtkRes = pNtk, 0, 0 );
         Abc_NtkDelete( pNtkRes );
         if ( pNtk == NULL )
         {
@@ -4931,7 +5097,7 @@ int Abc_CommandInit( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fRandom;
     int fDontCare;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -5039,7 +5205,7 @@ int Abc_CommandPipe( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nLatches;
     extern void Abc_NtkLatchPipe( Abc_Ntk_t * pNtk, int nLatches );
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -5115,7 +5281,7 @@ int Abc_CommandSeq( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk, * pNtkRes;
     int c;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -5192,7 +5358,7 @@ int Abc_CommandUnseq( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int fShare;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -5269,7 +5435,7 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fInitial;
     int fVerbose;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -5395,7 +5561,7 @@ int Abc_CommandSeqFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c, nMaxIters;
     int fVerbose;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -5459,7 +5625,7 @@ int Abc_CommandSeqFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
 
-        pNtkNew = Abc_NtkBalance( pNtkRes = pNtkNew, 0 );
+        pNtkNew = Abc_NtkBalance( pNtkRes = pNtkNew, 0, 0 );
         Abc_NtkDelete( pNtkRes );
         if ( pNtkNew == NULL )
         {
@@ -5519,7 +5685,7 @@ int Abc_CommandSeqMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c, nMaxIters;
     int fVerbose;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -5583,7 +5749,7 @@ int Abc_CommandSeqMap( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
 
-        pNtkNew = Abc_NtkBalance( pNtkRes = pNtkNew, 0 );
+        pNtkNew = Abc_NtkBalance( pNtkRes = pNtkNew, 0, 0 );
         Abc_NtkDelete( pNtkRes );
         if ( pNtkNew == NULL )
         {
@@ -5649,7 +5815,7 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Abc_Ntk_t * Abc_NtkVanEijk( Abc_Ntk_t * pNtk, int nFrames, int fExdc, int fVerbose );
     extern Abc_Ntk_t * Abc_NtkVanImp( Abc_Ntk_t * pNtk, int nFrames, int fExdc, int fVerbose );
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -5756,7 +5922,7 @@ int Abc_CommandSeqCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk;
     int c;
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -5822,7 +5988,7 @@ int Abc_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fVerbose );
 
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -5914,7 +6080,7 @@ int Abc_CommandSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nFrames, int fVerbose );
 
 
-    pNtk = Abc_FrameReadNet(pAbc);
+    pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 

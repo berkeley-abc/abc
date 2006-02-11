@@ -1,0 +1,47 @@
+Minor things:
+
+- add required time support
+
+- clean end-of-line markers (CR is more preferable than CR-LF)
+
+- mysterious Mac problem (fixed?)
+- mysterious Solaris problem (fixed)
+
+- QR's compilation problems
+
+- add storage for internal memory for node names in the ABC_ package
+
+- prevent node name clash between PO and internal names (i.e. [484])
+- add the output of ABC version/platform in the output files
+
+- fix gcc compiler warnings
+
+- update CVS regularly
+
+
+Major things:
+
+- substantially improving performance of FRAIGing 
+(used in equivalence checking and lossless synthesis)
+
+- developing a new (much more efficient and faster) AIG rewriting package
+
+- implementing additional rewriting options for delay optimization
+
+- making technology mapping applicable to very large designs by adding 
+on-demand cut computation currenlty available as a stand-alone command "cut"
+
+- experimenting with yield-aware standard-cell mapping
+
+- developing a hybrid mapper for arbitrary programmable macrocell 
+architecture specified using a configuration file (this mapper should work 
+for both cell-evalution and mainstream FPGA mapping)
+
+- developing incremental retiming and incremental integrated sequential 
+synthesis
+
+- developing sequential verification combined with integrated sequential 
+synthesis 
+
+- add hierarchical BLIF interface (for designs with black boxes)
+

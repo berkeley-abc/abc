@@ -345,6 +345,7 @@ static inline void Vec_IntGrow( Vec_Int_t * p, int nCapMin )
     if ( p->nCap >= nCapMin )
         return;
     p->pArray = REALLOC( int, p->pArray, nCapMin ); 
+    assert( p->pArray );
     p->nCap   = nCapMin;
 }
 

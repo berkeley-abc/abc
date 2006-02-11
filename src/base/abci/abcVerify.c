@@ -148,9 +148,9 @@ void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fV
     Fraig_ParamsSetDefault( &Params );
     Params.fVerbose = fVerbose;
     Params.nSeconds = nSeconds;
-    Params.fFuncRed = 0;
-    Params.nPatsRand = 0;
-    Params.nPatsDyna = 0;
+//    Params.fFuncRed = 0;
+//    Params.nPatsRand = 0;
+//    Params.nPatsDyna = 0;
     pMan = Abc_NtkToFraig( pMiter, &Params, 0, 0 ); 
     Fraig_ManProveMiter( pMan );
 
@@ -328,9 +328,9 @@ void Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nF
     Fraig_ParamsSetDefault( &Params );
     Params.fVerbose = fVerbose;
     Params.nSeconds = nSeconds;
-    Params.fFuncRed = 0;
-    Params.nPatsRand = 0;
-    Params.nPatsDyna = 0;
+//    Params.fFuncRed = 0;
+//    Params.nPatsRand = 0;
+//    Params.nPatsDyna = 0;
     pMan = Abc_NtkToFraig( pFrames, &Params, 0, 0 ); 
     Fraig_ManProveMiter( pMan );
 

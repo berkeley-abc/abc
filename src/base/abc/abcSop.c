@@ -308,7 +308,7 @@ char * Abc_SopCreateXorSpecial( Extra_MmFlex_t * pMan, int nVars )
 char * Abc_SopCreateNxor( Extra_MmFlex_t * pMan, int nVars )
 {
     assert( nVars == 2 );
-    return Abc_SopRegister(pMan, "11 1\n11 1\n");
+    return Abc_SopRegister(pMan, "11 1\n00 1\n");
 }
 
 /**Function*************************************************************

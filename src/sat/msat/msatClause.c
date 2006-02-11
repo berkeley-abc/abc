@@ -194,7 +194,7 @@ bool Msat_ClauseCreate( Msat_Solver_t * p, Msat_IntVec_t * vLits, bool fLearned,
         {
             Msat_SolverVarBumpActivity( p, pLits[i] );
 //            Msat_SolverVarBumpActivity( p, pLits[i] );
-            p->pFreq[ MSAT_LIT2VAR(pLits[i]) ]++;
+//            p->pFreq[ MSAT_LIT2VAR(pLits[i]) ]++;
         }
     }
 

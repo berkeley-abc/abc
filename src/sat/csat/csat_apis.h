@@ -171,6 +171,8 @@ extern void                  ABC_Dump_Bench_File(ABC_Manager mng);
 extern void                  ABC_QuitManager( ABC_Manager mng );
 extern void                  ABC_TargetResFree( ABC_Target_ResultT * p );
 
+extern void                  ABC_PerformRewriting( ABC_Manager mng );
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

@@ -194,6 +194,61 @@ Abc_Obj_t * Io_ReadCreateBuf( Abc_Ntk_t * pNtk, char * pNameIn, char * pNameOut 
     return pNet;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Provide an fopen replacement with path lookup]
+
+  Description [Provide an fopen replacement where the path stored
+               in pathvar MVSIS variable is used to look up the path
+               for name. Returns NULL if file cannot be opened.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+FILE * Io_FileOpen( const char * FileName, const char * PathVar, const char * Mode, int fVerbose )
+{
+    char * t = 0, * c = 0, * i;
+    extern char * Abc_FrameReadFlag( char * pFlag ); 
+
+    if ( PathVar == 0 )
+    {
+        return fopen( FileName, Mode );
+    }
+    else
+    {
+        if ( c = Abc_FrameReadFlag( (char*)PathVar ) )
+        {
+            char ActualFileName[4096];
+            FILE * fp = 0;
+            t = util_strsav( c );
+            for (i = strtok( t, ":" ); i != 0; i = strtok( 0, ":") )
+            {
+#ifdef WIN32
+                _snprintf ( ActualFileName, 4096, "%s/%s", i, FileName );
+#else
+                snprintf ( ActualFileName, 4096, "%s/%s", i, FileName );
+#endif
+                if ( ( fp = fopen ( ActualFileName, Mode ) ) )
+                {
+                    if ( fVerbose )
+                    fprintf ( stdout, "Using file %s\n", ActualFileName );
+                    free( t );
+                    return fp;
+                }
+            }
+            free( t );
+            return 0;
+        }
+        else
+        {
+            return fopen( FileName, Mode );
+        }
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

@@ -91,6 +91,7 @@ extern void            Dsd_NodeSetMark( Dsd_Node_t * p, int Mark );
 extern DdManager *     Dsd_ManagerReadDd( Dsd_Manager_t * pMan );
 extern Dsd_Node_t *    Dsd_ManagerReadRoot( Dsd_Manager_t * pMan, int i );
 extern Dsd_Node_t *    Dsd_ManagerReadInput( Dsd_Manager_t * pMan, int i );
+extern Dsd_Node_t *    Dsd_ManagerReadConst1( Dsd_Manager_t * pMan );
 /*=== dsdMan.c =======================================================*/
 extern Dsd_Manager_t * Dsd_ManagerStart( DdManager * dd, int nSuppMax, int fVerbose );
 extern void            Dsd_ManagerStop( Dsd_Manager_t * dMan );

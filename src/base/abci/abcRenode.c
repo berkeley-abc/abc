@@ -173,6 +173,8 @@ Abc_Obj_t * Abc_NtkRenode_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld )
     assert( !Abc_NodeIsConst(pNodeOld) );
     assert( pNodeOld->fMarkA );
 
+//printf( "%d ", Abc_NodeMffcSizeSupp(pNodeOld) );
+
     // collect the renoding cone
     vCone = Vec_PtrAlloc( 10 );
     Abc_NtkRenodeCone( pNodeOld, vCone );
