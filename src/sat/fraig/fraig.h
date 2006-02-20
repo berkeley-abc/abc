@@ -44,6 +44,8 @@ struct Fraig_ParamsStruct_t_
     int  nPatsDyna;     // the number of words of dynamic simulation info
     int  nBTLimit;      // the max number of backtracks to perform
     int  nSeconds;      // the timeout for the final proof
+    int  nConfLimit;
+    int  nImpLimit;
     int  fFuncRed;      // performs only one level hashing
     int  fFeedBack;     // enables solver feedback
     int  fDist1Pats;    // enables distance-1 patterns

@@ -153,6 +153,15 @@ void Cut_ManPrintStats( Cut_Man_t * p )
     printf( "Cuts per node     = %8.1f\n", ((float)(p->nCutsCur-p->nCutsTriv))/p->nNodes );
     printf( "The cut size      = %8d bytes.\n", p->EntrySize );
     printf( "Peak memory       = %8.2f Mb.\n", (float)p->nCutsPeak * p->EntrySize / (1<<20) );
+    if ( p->pParams->fMulti )
+    {
+    printf( "Factor-cut computation statistics:\n" );
+    printf( "Total nodes       = %8d.\n", p->nNodes );
+    printf( "Factor nodes      = %8d.\n", p->nNodesMulti );
+    printf( "Factor nodes 0    = %8d.\n", p->nNodesMulti0 );
+    printf( "Factor cuts       = %8d.\n", p->nCutsMulti );
+    printf( "Cuts per node     = %8.1f\n", ((float)(p->nCutsMulti))/(p->nNodesMulti-p->nNodesMulti0) );
+    }
     PRT( "Merge ", p->timeMerge );
     PRT( "Union ", p->timeUnion );
     PRT( "Filter", p->timeFilter );

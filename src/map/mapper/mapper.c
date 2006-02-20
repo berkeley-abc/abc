@@ -95,16 +95,16 @@ int Map_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     fVerbose = 1;
     fAlgorithm = 1;
     ExcludeFile = 0;
-    util_getopt_reset();
-    while ( (c = util_getopt(argc, argv, "eovh")) != EOF ) 
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "eovh")) != EOF ) 
     {
         switch (c) 
         {
             case 'e':
-                ExcludeFile = argv[util_optind];
+                ExcludeFile = argv[globalUtilOptind];
                 if ( ExcludeFile == 0 )
                     goto usage;
-                util_optind++;
+                globalUtilOptind++;
                 break;
             case 'o':
                 fAlgorithm ^= 1;
@@ -121,13 +121,13 @@ int Map_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
 
-    if ( argc != util_optind + 1 )
+    if ( argc != globalUtilOptind + 1 )
     {
         goto usage;
     }
 
     // get the input file name
-    FileName = argv[util_optind];
+    FileName = argv[globalUtilOptind];
     if ( (pFile = Io_FileOpen( FileName, "open_path", "r", 0 )) == NULL )
 //    if ( (pFile = fopen( FileName, "r" )) == NULL )
     {

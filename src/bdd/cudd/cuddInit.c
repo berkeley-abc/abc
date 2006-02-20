@@ -29,7 +29,7 @@
 
 ******************************************************************************/
 
-#include    "util.h"
+#include    "util_hack.h"
 #define CUDD_MAIN
 #include    "cuddInt.h"
 #undef CUDD_MAIN

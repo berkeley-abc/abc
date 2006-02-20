@@ -446,7 +446,7 @@ void Abc_NodeDecompDsdAndMux( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes, Dsd_Manager
 
 /**Function*************************************************************
 
-  Synopsis    [Performs decomposition of one node.]
+  Synopsis    [Checks if the node should be decomposed by DSD.]
 
   Description []
                

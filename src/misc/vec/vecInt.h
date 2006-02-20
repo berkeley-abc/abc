@@ -25,7 +25,6 @@
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include <stdio.h>
 #include "extra.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -484,7 +483,7 @@ static inline void Vec_IntPushMem( Extra_MmStep_t * pMemMan, Vec_Int_t * p, int 
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Inserts the entry while preserving the increasing order.]
 
   Description []
                

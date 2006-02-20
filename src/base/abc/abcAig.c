@@ -54,7 +54,6 @@ struct Abc_Aig_t_
     int               nBins;             // the size of the table
     int               nEntries;          // the total number of entries in the table
     Vec_Ptr_t *       vNodes;            // the temporary array of nodes
-    Vec_Ptr_t *       vStackDelete;      // the nodes to be deleted
     Vec_Ptr_t *       vStackReplaceOld;  // the nodes to be replaced
     Vec_Ptr_t *       vStackReplaceNew;  // the nodes to be used for replacement
     Vec_Vec_t *       vLevels;           // the nodes to be updated
@@ -83,8 +82,7 @@ static Abc_Obj_t * Abc_AigAndCreateFrom( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_O
 static void        Abc_AigAndDelete( Abc_Aig_t * pMan, Abc_Obj_t * pThis );
 static void        Abc_AigResize( Abc_Aig_t * pMan );
 // incremental AIG procedures
-static void        Abc_AigReplace_int( Abc_Aig_t * pMan, int fUpdateLevel );
-static void        Abc_AigDelete_int( Abc_Aig_t * pMan );
+static void        Abc_AigReplace_int( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew, int fUpdateLevel );
 static void        Abc_AigUpdateLevel_int( Abc_Aig_t * pMan );
 static void        Abc_AigUpdateLevelR_int( Abc_Aig_t * pMan );
 static void        Abc_AigRemoveFromLevelStructure( Vec_Vec_t * vStruct, Abc_Obj_t * pNode );
@@ -116,7 +114,6 @@ Abc_Aig_t * Abc_AigAlloc( Abc_Ntk_t * pNtkAig )
     pMan->pBins    = ALLOC( Abc_Obj_t *, pMan->nBins );
     memset( pMan->pBins, 0, sizeof(Abc_Obj_t *) * pMan->nBins );
     pMan->vNodes   = Vec_PtrAlloc( 100 );
-    pMan->vStackDelete     = Vec_PtrAlloc( 100 );
     pMan->vStackReplaceOld = Vec_PtrAlloc( 100 );
     pMan->vStackReplaceNew = Vec_PtrAlloc( 100 );
     pMan->vLevels          = Vec_VecAlloc( 100 );
@@ -139,13 +136,11 @@ Abc_Aig_t * Abc_AigAlloc( Abc_Ntk_t * pNtkAig )
 ***********************************************************************/
 void Abc_AigFree( Abc_Aig_t * pMan )
 {
-    assert( Vec_PtrSize( pMan->vStackDelete )     == 0 );
     assert( Vec_PtrSize( pMan->vStackReplaceOld ) == 0 );
     assert( Vec_PtrSize( pMan->vStackReplaceNew ) == 0 );
     // free the table
     Vec_VecFree( pMan->vLevels );
     Vec_VecFree( pMan->vLevelsR );
-    Vec_PtrFree( pMan->vStackDelete );
     Vec_PtrFree( pMan->vStackReplaceOld );
     Vec_PtrFree( pMan->vStackReplaceNew );
     Vec_PtrFree( pMan->vNodes );
@@ -166,18 +161,21 @@ void Abc_AigFree( Abc_Aig_t * pMan )
 ***********************************************************************/
 int Abc_AigCleanup( Abc_Aig_t * pMan )
 {
+    Vec_Ptr_t * vDangles;
     Abc_Obj_t * pAnd;
-    int i, Counter;
+    int i, nNodesOld;
+    nNodesOld = pMan->nEntries;
     // collect the AND nodes that do not fanout
-    assert( Vec_PtrSize( pMan->vStackDelete ) == 0 );
+    vDangles = Vec_PtrAlloc( 100 );
     for ( i = 0; i < pMan->nBins; i++ )
         Abc_AigBinForEachEntry( pMan->pBins[i], pAnd )
             if ( Abc_ObjFanoutNum(pAnd) == 0 )
-                Vec_PtrPush( pMan->vStackDelete, pAnd );
+                Vec_PtrPush( vDangles, pAnd );
     // process the dangling nodes and their MFFCs
-    for ( Counter = 0; Vec_PtrSize(pMan->vStackDelete) > 0; Counter++ )
-        Abc_AigDelete_int( pMan );
-    return Counter;
+    Vec_PtrForEachEntry( vDangles, pAnd, i )
+        Abc_AigDeleteNode( pMan, pAnd );
+    Vec_PtrFree( vDangles );
+    return nNodesOld - pMan->nEntries;
 }
 
 /**Function*************************************************************
@@ -378,6 +376,74 @@ Abc_Obj_t * Abc_AigAndLookup( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 )
     Abc_AigBinForEachEntry( pMan->pBins[Key], pAnd )
         if ( p0 == Abc_ObjChild0(pAnd) && p1 == Abc_ObjChild1(pAnd) )
              return pAnd;
+    return NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the gate implementing EXOR of the two arguments if it exists.]
+
+  Description [The argument nodes can be complemented.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Abc_AigXorLookup( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1, int * pType )
+{
+    Abc_Obj_t * pNode1, * pNode2, * pNode;
+    // set the flag to zero
+    if ( pType ) *pType = 0;
+    // check the case of XOR(a,b) = OR(ab, a'b')'
+    if ( (pNode1 = Abc_AigAndLookup(pMan, Abc_ObjNot(p0), Abc_ObjNot(p1))) &&
+         (pNode2 = Abc_AigAndLookup(pMan, p0, p1)) ) 
+    {
+        pNode = Abc_AigAndLookup( pMan, Abc_ObjNot(pNode1), Abc_ObjNot(pNode2) );
+        if ( pNode && pType ) *pType = 1;
+        return pNode;
+    }
+    // check the case of XOR(a,b) = OR(a'b, ab')
+    if ( (pNode1 = Abc_AigAndLookup(pMan, p0, Abc_ObjNot(p1))) &&
+         (pNode2 = Abc_AigAndLookup(pMan, Abc_ObjNot(p0), p1)) ) 
+    {
+        pNode = Abc_AigAndLookup( pMan, Abc_ObjNot(pNode1), Abc_ObjNot(pNode2) );
+        return pNode? Abc_ObjNot(pNode) : NULL;
+    }
+    return NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the gate implementing EXOR of the two arguments if it exists.]
+
+  Description [The argument nodes can be complemented.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Abc_AigMuxLookup( Abc_Aig_t * pMan, Abc_Obj_t * pC, Abc_Obj_t * pT, Abc_Obj_t * pE, int * pType )
+{
+    Abc_Obj_t * pNode1, * pNode2, * pNode;
+    // set the flag to zero
+    if ( pType ) *pType = 0;
+    // check the case of MUX(c,t,e) = OR(ct', c'e')'
+    if ( (pNode1 = Abc_AigAndLookup(pMan, pC, Abc_ObjNot(pT))) &&
+         (pNode2 = Abc_AigAndLookup(pMan, Abc_ObjNot(pC), Abc_ObjNot(pE))) ) 
+    {
+        pNode = Abc_AigAndLookup( pMan, Abc_ObjNot(pNode1), Abc_ObjNot(pNode2) );
+        if ( pNode && pType ) *pType = 1;
+        return pNode;
+    }
+    // check the case of MUX(c,t,e) = OR(ct, c'e)
+    if ( (pNode1 = Abc_AigAndLookup(pMan, pC, pT)) &&
+         (pNode2 = Abc_AigAndLookup(pMan, Abc_ObjNot(pC), pE)) ) 
+    {
+        pNode = Abc_AigAndLookup( pMan, Abc_ObjNot(pNode1), Abc_ObjNot(pNode2) );
+        return pNode? Abc_ObjNot(pNode) : NULL;
+    }
     return NULL;
 }
 
@@ -662,11 +728,16 @@ void Abc_AigReplace( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew, bool 
 {
     assert( Vec_PtrSize(pMan->vStackReplaceOld) == 0 );
     assert( Vec_PtrSize(pMan->vStackReplaceNew) == 0 );
-    assert( Vec_PtrSize(pMan->vStackDelete)     == 0 );
     Vec_PtrPush( pMan->vStackReplaceOld, pOld );
     Vec_PtrPush( pMan->vStackReplaceNew, pNew );
+    assert( !Abc_ObjIsComplement(pOld) );
+    // process the replacements
     while ( Vec_PtrSize(pMan->vStackReplaceOld) )
-        Abc_AigReplace_int( pMan, fUpdateLevel );
+    {
+        pOld = Vec_PtrPop( pMan->vStackReplaceOld );
+        pNew = Vec_PtrPop( pMan->vStackReplaceNew );
+        Abc_AigReplace_int( pMan, pOld, pNew, fUpdateLevel );
+    }
     if ( fUpdateLevel )
     {
         Abc_AigUpdateLevel_int( pMan );
@@ -685,14 +756,10 @@ void Abc_AigReplace( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew, bool 
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_AigReplace_int( Abc_Aig_t * pMan, int fUpdateLevel )
+void Abc_AigReplace_int( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew, int fUpdateLevel )
 {
-    Abc_Obj_t * pOld, * pNew, * pFanin1, * pFanin2, * pFanout, * pFanoutNew, * pFanoutFanout;
-    int k, v, iFanin;
-    // get the pair of nodes to replace
-    assert( Vec_PtrSize(pMan->vStackReplaceOld) > 0 );
-    pOld = Vec_PtrPop( pMan->vStackReplaceOld );
-    pNew = Vec_PtrPop( pMan->vStackReplaceNew );
+    Abc_Obj_t * pFanin1, * pFanin2, * pFanout, * pFanoutNew, * pFanoutFanout;
+    int k, v, iFanin; 
     // make sure the old node is regular and has fanouts
     // (the new node can be complemented and can have fanouts)
     assert( !Abc_ObjIsComplement(pOld) );
@@ -775,87 +842,57 @@ void Abc_AigReplace_int( Abc_Aig_t * pMan, int fUpdateLevel )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_AigDeleteNode( Abc_Aig_t * pMan, Abc_Obj_t * pOld )
+void Abc_AigDeleteNode( Abc_Aig_t * pMan, Abc_Obj_t * pNode )
 {
-    assert( Vec_PtrSize(pMan->vStackDelete) == 0 );
-    Vec_PtrPush( pMan->vStackDelete, pOld );
-    while ( Vec_PtrSize(pMan->vStackDelete) )
-        Abc_AigDelete_int( pMan );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Performs internal deletion step.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_AigDelete_int( Abc_Aig_t * pMan )
-{
-    Vec_Ptr_t * vNodes;
-    Abc_Obj_t * pRoot, * pObj;
-    int k;
-    // get the node to delete
-    assert( Vec_PtrSize(pMan->vStackDelete) > 0 );
-    pRoot = Vec_PtrPop( pMan->vStackDelete );
+    Abc_Obj_t * pNode0, * pNode1, * pTemp;
+    int i, k;
 
     // make sure the node is regular and dangling
-    assert( !Abc_ObjIsComplement(pRoot) );
-    assert( Abc_ObjIsNode(pRoot) );
-    assert( Abc_ObjFaninNum(pRoot) == 2 );
-    assert( Abc_ObjFanoutNum(pRoot) == 0 );
+    assert( !Abc_ObjIsComplement(pNode) );
+    assert( Abc_ObjIsNode(pNode) );
+    assert( Abc_ObjFaninNum(pNode) == 2 );
+    assert( Abc_ObjFanoutNum(pNode) == 0 );
 
-    // collect the MFFC
-    vNodes = Abc_NodeMffcCollect( pRoot );
-
-    // if reverse levels are specified, schedule fanins of MFFC for updating
-    // currently, we do not do it because we do not know the correct level of the fanins
-    // also, it is unlikely that this will make a difference since we are
-    // processing the network forward while at this point fanins are left behind...
-/*
-    if ( pObj->pNtk->vLevelsR )
-        Vec_PtrForEachEntry( vNodes, pObj, k )
+    // when deleting an old node that is scheduled for replacement, remove it from the replacement queue
+    Vec_PtrForEachEntry( pMan->vStackReplaceOld, pTemp, i )
+        if ( pNode == pTemp )
         {
-            Abc_Obj_t * pFanin;
-            if ( Abc_ObjIsCi(pObj) )
-                continue;
-            pFanin = Abc_ObjFanin0(pObj);
-            if ( pFanin->fMarkB == 0 )
+            // remove the entry from the replacement array
+            for ( k = i; k < pMan->vStackReplaceOld->nSize - 1; k++ )
             {
-                pFanin->fMarkB = 1;
-                Vec_VecPush( pMan->vLevelsR, Abc_NodeReadReverseLevel(pFanin), pFanin );
+                pMan->vStackReplaceOld->pArray[k] = pMan->vStackReplaceOld->pArray[k+1];
+                pMan->vStackReplaceNew->pArray[k] = pMan->vStackReplaceNew->pArray[k+1];
             }
-            pFanin = Abc_ObjFanin1(pObj);
-            if ( pFanin->fMarkB == 0 )
-            {
-                pFanin->fMarkB = 1;
-                Vec_VecPush( pMan->vLevelsR, Abc_NodeReadReverseLevel(pFanin), pFanin );
-            }
+            pMan->vStackReplaceOld->nSize--;
+            pMan->vStackReplaceNew->nSize--;
         }
-*/
 
-    // delete the nodes in MFFC
-    Vec_PtrForEachEntry( vNodes, pObj, k )
-    {
-        if ( Abc_ObjIsCi(pObj) )
-            continue;
-        assert( Abc_ObjFanoutNum(pObj) == 0 );
-        // remove the node from the table
-        Abc_AigAndDelete( pMan, pObj );
-        // if the node is in the level structure, remove it
-        if ( pObj->fMarkA )
-            Abc_AigRemoveFromLevelStructure( pMan->vLevels, pObj );
-        if ( pObj->fMarkB )
-            Abc_AigRemoveFromLevelStructureR( pMan->vLevelsR, pObj );
-        // remove the node from the network
-        Abc_NtkDeleteObj( pObj );
-    }
-    Vec_PtrFree( vNodes );
+    // when deleting a new node that should replace another node, do not delete
+    Vec_PtrForEachEntry( pMan->vStackReplaceNew, pTemp, i )
+        if ( pNode == Abc_ObjRegular(pTemp) )
+            return;
+
+    // remember the node's fanins
+    pNode0 = Abc_ObjFanin0( pNode );
+    pNode1 = Abc_ObjFanin1( pNode );
+
+    // remove the node from the table
+    Abc_AigAndDelete( pMan, pNode );
+    // if the node is in the level structure, remove it
+    if ( pNode->fMarkA )
+        Abc_AigRemoveFromLevelStructure( pMan->vLevels, pNode );
+    if ( pNode->fMarkB )
+        Abc_AigRemoveFromLevelStructureR( pMan->vLevelsR, pNode );
+    // remove the node from the network
+    Abc_NtkDeleteObj( pNode );
+
+    // call recursively for the fanins
+    if ( Abc_ObjIsNode(pNode0) && pNode0->vFanouts.nSize == 0 )
+        Abc_AigDeleteNode( pMan, pNode0 );
+    if ( Abc_ObjIsNode(pNode1) && pNode1->vFanouts.nSize == 0 )
+        Abc_AigDeleteNode( pMan, pNode1 );
 }
+
 
 /**Function*************************************************************
 

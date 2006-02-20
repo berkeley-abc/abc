@@ -120,7 +120,7 @@ Mio_Pin_t * Mio_PinDup( Mio_Pin_t * pPin )
 
     pPinNew = ALLOC( Mio_Pin_t, 1 );
     *pPinNew = *pPin;
-    pPinNew->pName = (pPinNew->pName ? util_strsav(pPinNew->pName) : NULL);
+    pPinNew->pName = (pPinNew->pName ? Extra_UtilStrsav(pPinNew->pName) : NULL);
     pPinNew->pNext = NULL;
 
     return pPinNew;

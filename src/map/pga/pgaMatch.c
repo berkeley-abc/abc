@@ -73,7 +73,7 @@ void Pga_MappingMatches( Pga_Man_t * p, int Mode )
             continue;
         // get the cuts
 clk = clock();
-        pList = Abc_NodeGetCutsRecursive( p->pManCut, pObj );
+        pList = Abc_NodeGetCutsRecursive( p->pManCut, pObj, 0 );
 p->timeCuts += clock() - clk;
         // match the node
         Pga_MappingMatchNode( p, pObj->Id, pList, Mode );

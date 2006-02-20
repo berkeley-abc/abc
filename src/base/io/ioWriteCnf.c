@@ -42,19 +42,19 @@
 int Io_WriteCnf( Abc_Ntk_t * pNtk, char * pFileName )
 {
     solver * pSat;
-    if ( !Abc_NtkIsBddLogic(pNtk) )
+    if ( !Abc_NtkIsStrash(pNtk) )
     {
-        fprintf( stdout, "Io_WriteCnf(): Currently can only process logic networks with BDDs.\n" );
+        fprintf( stdout, "Io_WriteCnf(): Currently can only process AIGs.\n" );
         return 0;
     }
     if ( Abc_NtkPoNum(pNtk) != 1 )
     {
-        fprintf( stdout, "Io_WriteCnf(): Currently can only solve the miter (the network with one PO).\n" );
+        fprintf( stdout, "Io_WriteCnf(): Currently can only process the miter (the network with one PO).\n" );
         return 0;
     }
     if ( Abc_NtkLatchNum(pNtk) != 0 )
     {
-        fprintf( stdout, "Io_WriteCnf(): Currently can only solve the miter for combinational circuits.\n" );
+        fprintf( stdout, "Io_WriteCnf(): Currently can only process the miter for combinational circuits.\n" );
         return 0;
     }
     // create solver with clauses

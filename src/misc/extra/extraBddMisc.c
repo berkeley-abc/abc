@@ -52,8 +52,8 @@ static DdNode * extraTransferPermuteRecur( DdManager * ddS, DdManager * ddD, DdN
 static DdNode * extraTransferPermute( DdManager * ddS, DdManager * ddD, DdNode * f, int * Permute );
 
 // file "cuddUtils.c"
-static void ddSupportStep ARGS((DdNode *f, int *support));
-static void ddClearFlag ARGS((DdNode *f));
+static void ddSupportStep(DdNode *f, int *support);
+static void ddClearFlag(DdNode *f);
 
 /**AutomaticEnd***************************************************************/
 
@@ -795,6 +795,25 @@ DdNode * Extra_bddSupportNegativeCube( DdManager * dd, DdNode * f )
     return ( res );
 
 }                                /* end of Extra_SupportNeg */
+
+/**Function********************************************************************
+
+  Synopsis    [Returns 1 if the BDD is the BDD of elementary variable.]
+
+  Description []
+
+  SideEffects [None]
+
+  SeeAlso     [Cudd_VectorSupport Cudd_Support]
+
+******************************************************************************/
+int Extra_bddIsVar( DdNode * bFunc )
+{
+    bFunc = Cudd_Regular( bFunc );
+    if ( cuddIsConstant(bFunc) )
+        return 0;
+    return cuddIsConstant( cuddT(bFunc) ) && cuddIsConstant( Cudd_Regular(cuddE(bFunc)) );
+}
 
 /*---------------------------------------------------------------------------*/
 /* Definition of internal functions                                          */

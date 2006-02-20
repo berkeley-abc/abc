@@ -40,17 +40,10 @@ typedef struct Abc_Frame_t_      Abc_Frame_t;
 // it is used to catch memory leaks on Windows
 #include "leaks.h"       
 
-// standard includes
-#include <stdio.h>
-#include <string.h>
-
-// includes from GLU
-#include "util.h"
-#include "st.h"
-
 // data structure packages
 #include "extra.h"
 #include "vec.h"
+#include "st.h"
 
 // core packages
 #include "abc.h"

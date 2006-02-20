@@ -80,6 +80,7 @@ struct Cut_ManStruct_t_
     int                nCutsLimit;
     int                nNodes;
     int                nNodesMulti;
+    int                nNodesMulti0;
     // runtime
     int                timeMerge;
     int                timeUnion;
@@ -122,7 +123,6 @@ extern void                Cut_CutRecycle( Cut_Man_t * p, Cut_Cut_t * pCut );
 extern int                 Cut_CutCompare( Cut_Cut_t * pCut1, Cut_Cut_t * pCut2 );
 extern Cut_Cut_t *         Cut_CutDupList( Cut_Man_t * p, Cut_Cut_t * pList );
 extern void                Cut_CutRecycleList( Cut_Man_t * p, Cut_Cut_t * pList );
-extern int                 Cut_CutCountList( Cut_Cut_t * pList );
 extern Cut_Cut_t *         Cut_CutMergeLists( Cut_Cut_t * pList1, Cut_Cut_t * pList2 ); 
 extern void                Cut_CutNumberList( Cut_Cut_t * pList );
 extern Cut_Cut_t *         Cut_CutCreateTriv( Cut_Man_t * p, int Node );

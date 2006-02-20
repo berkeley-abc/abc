@@ -24,10 +24,8 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static int Abc_NodeRefDeref( Abc_Obj_t * pNode, bool fReference, bool fLabel, Vec_Ptr_t * vNodes );
-static int Abc_NodeMffcCountSupp( Vec_Ptr_t * vNodes );
+static int Abc_NodeRefDeref( Abc_Obj_t * pNode, bool fReference, bool fLabel );
 static int Abc_NodeRefDerefStop( Abc_Obj_t * pNode, bool fReference );
-static int Abc_NodeDeref( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -52,41 +50,11 @@ int Abc_NodeMffcSize( Abc_Obj_t * pNode )
     assert( Abc_ObjIsNode( pNode ) );
     if ( Abc_ObjFaninNum(pNode) == 0 )
         return 0;
-    nConeSize1 = Abc_NodeRefDeref( pNode, 0, 0, NULL ); // dereference
-    nConeSize2 = Abc_NodeRefDeref( pNode, 1, 0, NULL ); // reference
+    nConeSize1 = Abc_NodeRefDeref( pNode, 0, 0 ); // dereference
+    nConeSize2 = Abc_NodeRefDeref( pNode, 1, 0 ); // reference
     assert( nConeSize1 == nConeSize2 );
     assert( nConeSize1 > 0 );
     return nConeSize1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Returns the MFFC size.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_NodeMffcSizeSupp( Abc_Obj_t * pNode )
-{
-    Vec_Ptr_t * vNodes;
-    int nSuppSize, nConeSize1, nConeSize2;
-    assert( Abc_NtkIsStrash(pNode->pNtk) );
-    assert( !Abc_ObjIsComplement( pNode ) );
-    assert( Abc_ObjIsNode( pNode ) );
-    if ( Abc_ObjFaninNum(pNode) == 0 )
-        return 0;
-    vNodes = Vec_PtrAlloc( 10 );
-    nConeSize1 = Abc_NodeRefDeref( pNode, 0, 0, vNodes ); // dereference
-    nSuppSize = Abc_NodeMffcCountSupp(vNodes);
-    nConeSize2 = Abc_NodeRefDeref( pNode, 1, 0, NULL ); // reference
-    assert( nConeSize1 == nConeSize2 );
-    assert( nConeSize1 > 0 );
-    Vec_PtrFree(vNodes);
-    return nSuppSize;
 }
 
 /**Function*************************************************************
@@ -129,78 +97,16 @@ int Abc_NodeMffcSizeStop( Abc_Obj_t * pNode )
 int Abc_NodeMffcLabel( Abc_Obj_t * pNode )
 {
     int nConeSize1, nConeSize2;
+    assert( Abc_NtkIsStrash(pNode->pNtk) );
     assert( !Abc_ObjIsComplement( pNode ) );
     assert( Abc_ObjIsNode( pNode ) );
     if ( Abc_ObjFaninNum(pNode) == 0 )
         return 0;
-    nConeSize1 = Abc_NodeRefDeref( pNode, 0, 1, NULL ); // dereference
-    nConeSize2 = Abc_NodeRefDeref( pNode, 1, 0, NULL ); // reference
+    nConeSize1 = Abc_NodeRefDeref( pNode, 0, 1 ); // dereference
+    nConeSize2 = Abc_NodeRefDeref( pNode, 1, 0 ); // reference
     assert( nConeSize1 == nConeSize2 );
     assert( nConeSize1 > 0 );
     return nConeSize1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Returns the MFFC size.]
-
-  Description [Profiling shows that this procedure runs the same as 
-  the above one, not faster.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_NodeMffcLabelFast( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
-{
-    Abc_Obj_t * pTemp;
-    int nConeSize, i;
-
-    assert( !Abc_ObjIsComplement( pNode ) );
-    assert( Abc_ObjIsNode( pNode ) );
-    if ( Abc_ObjFaninNum(pNode) == 0 )
-        return 0;
-
-    Vec_PtrClear( vNodes );
-    nConeSize = Abc_NodeDeref( pNode, vNodes );
-    // label the nodes with the current ID and ref their children
-    Vec_PtrForEachEntry( vNodes, pTemp, i )
-    {
-        Abc_NodeSetTravIdCurrent( pTemp );
-        if ( Abc_ObjIsCi(pTemp) )
-            continue;
-        Abc_ObjFanin0(pTemp)->vFanouts.nSize++;
-        Abc_ObjFanin1(pTemp)->vFanouts.nSize++;
-    }
-    return nConeSize;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Collects the nodes in MFFC in the topological order.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Ptr_t * Abc_NodeMffcCollect( Abc_Obj_t * pNode )
-{
-    Vec_Ptr_t * vNodes;
-    int nConeSize1, nConeSize2;
-    assert( !Abc_ObjIsComplement( pNode ) );
-    assert( Abc_ObjIsNode( pNode ) );
-    vNodes = Vec_PtrAlloc( 8 );
-    if ( Abc_ObjFaninNum(pNode) == 0 )
-        return vNodes;
-    nConeSize1 = Abc_NodeRefDeref( pNode, 0, 0, vNodes ); // dereference
-    nConeSize2 = Abc_NodeRefDeref( pNode, 1, 0, NULL );   // reference
-    assert( nConeSize1 == nConeSize2 );
-    assert( nConeSize1 > 0 );
-    return vNodes;
 }
 
 /**Function*************************************************************
@@ -214,16 +120,13 @@ Vec_Ptr_t * Abc_NodeMffcCollect( Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NodeRefDeref( Abc_Obj_t * pNode, bool fReference, bool fLabel, Vec_Ptr_t * vNodes )
+int Abc_NodeRefDeref( Abc_Obj_t * pNode, bool fReference, bool fLabel )
 {
     Abc_Obj_t * pNode0, * pNode1;
     int Counter;
     // label visited nodes
     if ( fLabel )
         Abc_NodeSetTravIdCurrent( pNode );
-    // collect visited nodes
-    if ( vNodes )
-        Vec_PtrPush( vNodes, pNode );
     // skip the CI
     if ( Abc_ObjIsCi(pNode) )
         return 0;
@@ -234,109 +137,22 @@ int Abc_NodeRefDeref( Abc_Obj_t * pNode, bool fReference, bool fLabel, Vec_Ptr_t
     if ( fReference )
     {
         if ( pNode0->vFanouts.nSize++ == 0 )
-            Counter += Abc_NodeRefDeref( pNode0, fReference, fLabel, vNodes );
+            Counter += Abc_NodeRefDeref( pNode0, fReference, fLabel );
         if ( pNode1->vFanouts.nSize++ == 0 )
-            Counter += Abc_NodeRefDeref( pNode1, fReference, fLabel, vNodes );
+            Counter += Abc_NodeRefDeref( pNode1, fReference, fLabel );
     }
     else
     {
         assert( pNode0->vFanouts.nSize > 0 );
         assert( pNode1->vFanouts.nSize > 0 );
         if ( --pNode0->vFanouts.nSize == 0 )
-            Counter += Abc_NodeRefDeref( pNode0, fReference, fLabel, vNodes );
+            Counter += Abc_NodeRefDeref( pNode0, fReference, fLabel );
         if ( --pNode1->vFanouts.nSize == 0 )
-            Counter += Abc_NodeRefDeref( pNode1, fReference, fLabel, vNodes );
+            Counter += Abc_NodeRefDeref( pNode1, fReference, fLabel );
     }
     return Counter;
 }
 
-/**Function*************************************************************
-
-  Synopsis    [References/references the node and returns MFFC supp size.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_NodeMffcCountSupp( Vec_Ptr_t * vNodes )
-{
-    Abc_Obj_t * pNode, * pNode0, * pNode1;
-    int i, Counter = 0;
-    Vec_PtrForEachEntry( vNodes, pNode, i )
-    {
-        if ( Abc_ObjIsCi(pNode) )
-        {
-            if ( pNode->fMarkB == 0 )
-            {
-                pNode->fMarkB = 1;
-                Counter++;
-            }
-            continue;
-        }
-        pNode0 = Abc_ObjFanin0(pNode);
-        if ( pNode0->vFanouts.nSize > 0 && pNode0->fMarkB == 0 )
-        {
-            pNode0->fMarkB = 1;
-            Counter++;
-        }
-        pNode1 = Abc_ObjFanin1(pNode);
-        if ( pNode1->vFanouts.nSize > 0 && pNode1->fMarkB == 0 )
-        {
-            pNode1->fMarkB = 1;
-            Counter++;
-        }
-    }
-    Vec_PtrForEachEntry( vNodes, pNode, i )
-    {
-        if ( Abc_ObjIsCi(pNode) )
-        {
-            pNode->fMarkB = 0;
-            continue;
-        }
-        pNode0 = Abc_ObjFanin0(pNode);
-        pNode0->fMarkB = 0;
-        pNode1 = Abc_ObjFanin1(pNode);
-        pNode1->fMarkB = 0;
-    }
-    return Counter;
-
-}
-
-/**Function*************************************************************
-
-  Synopsis    [References/references the node and returns MFFC size.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_NodeDeref( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
-{
-    Abc_Obj_t * pNode0, * pNode1;
-    int Counter;
-    // collect visited nodes
-    Vec_PtrPush( vNodes, pNode );
-    // skip the CI
-    if ( Abc_ObjIsCi(pNode) )
-        return 0;
-    // process the internal node
-    pNode0 = Abc_ObjFanin0(pNode);
-    pNode1 = Abc_ObjFanin1(pNode);
-    assert( pNode0->vFanouts.nSize > 0 );
-    assert( pNode1->vFanouts.nSize > 0 );
-    Counter = 1;
-    if ( --pNode0->vFanouts.nSize == 0 )
-        Counter += Abc_NodeDeref( pNode0, vNodes );
-    if ( --pNode1->vFanouts.nSize == 0 )
-        Counter += Abc_NodeDeref( pNode1, vNodes );
-    return Counter;
-}
 
 /**Function*************************************************************
 
@@ -378,6 +194,138 @@ int Abc_NodeRefDerefStop( Abc_Obj_t * pNode, bool fReference )
     }
     return Counter;
 }
+
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Dereferences the node's MFFC.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NodeDeref_rec( Abc_Obj_t * pNode )
+{
+    Abc_Obj_t * pFanin;
+    int i, Counter = 1;
+    if ( Abc_ObjIsCi(pNode) )
+        return 0;
+    Abc_ObjForEachFanin( pNode, pFanin, i )
+    {
+        assert( pFanin->vFanouts.nSize > 0 );
+        if ( --pFanin->vFanouts.nSize == 0 )
+            Counter += Abc_NodeDeref_rec( pFanin );
+    }
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [References the node's MFFC.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NodeRef_rec( Abc_Obj_t * pNode )
+{
+    Abc_Obj_t * pFanin;
+    int i, Counter = 1;
+    if ( Abc_ObjIsCi(pNode) )
+        return 0;
+    Abc_ObjForEachFanin( pNode, pFanin, i )
+    {
+        if ( pFanin->vFanouts.nSize++ == 0 )
+            Counter += Abc_NodeRef_rec( pFanin );
+    }
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects the internal and boundary nodes in the derefed MFFC.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NodeMffsConeSupp_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vCone, Vec_Ptr_t * vSupp, int fTopmost )
+{
+    Abc_Obj_t * pFanin;
+    int i;
+    // skip visited nodes
+    if ( Abc_NodeIsTravIdCurrent(pNode) )
+        return;
+    Abc_NodeSetTravIdCurrent(pNode);
+    // add to the new support nodes
+    if ( !fTopmost && (Abc_ObjIsCi(pNode) || pNode->vFanouts.nSize > 0) )
+    {
+        Vec_PtrPush( vSupp, pNode );
+        return;
+    }
+    // recur on the children
+    Abc_ObjForEachFanin( pNode, pFanin, i )
+        Abc_NodeMffsConeSupp_rec( pFanin, vCone, vSupp, 0 );
+    // collect the internal node
+    Vec_PtrPush( vCone, pNode );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects the support of the derefed MFFC.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NodeMffsConeSupp( Abc_Obj_t * pNode, Vec_Ptr_t * vCone, Vec_Ptr_t * vSupp )
+{
+    assert( Abc_ObjIsNode(pNode) );
+    assert( !Abc_ObjIsComplement(pNode) );
+    Vec_PtrClear( vCone );
+    Vec_PtrClear( vSupp );
+    Abc_NtkIncrementTravId( pNode->pNtk );
+    Abc_NodeMffsConeSupp_rec( pNode, vCone, vSupp, 1 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects the support of the derefed MFFC.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NodeMffsConeSuppPrint( Abc_Obj_t * pNode )
+{
+    Vec_Ptr_t * vCone, * vSupp;
+    vCone = Vec_PtrAlloc( 100 );
+    vSupp = Vec_PtrAlloc( 100 );
+    Abc_NodeDeref_rec( pNode );
+    Abc_NodeMffsConeSupp( pNode, vCone, vSupp );
+    Abc_NodeRef_rec( pNode );
+    printf( "Cone = %6d. Supp = %6d. \n", Vec_PtrSize(vCone), Vec_PtrSize(vSupp) );
+    Vec_PtrFree( vCone );
+    Vec_PtrFree( vSupp );
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

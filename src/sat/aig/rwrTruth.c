@@ -444,6 +444,8 @@ Aig_Node_t * Aig_TruthDecompose( Aig_Truth_t * p )
         assert( 0 );
     }
 
+
+    return NULL;
 }
 
 

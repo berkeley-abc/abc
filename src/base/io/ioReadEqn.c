@@ -145,7 +145,7 @@ Abc_Ntk_t * Io_ReadEqnNetwork( Extra_FileReader_t * p )
                 continue;
             }
             // determine unique variables
-            pCubesCopy = util_strsav( pCubesCopy );
+            pCubesCopy = Extra_UtilStrsav( pCubesCopy );
             // find the names of the fanins of this node
             Io_ReadEqnStrCutAt( pCubesCopy, "!*+", 1, vVars );
             // create the node

@@ -74,8 +74,8 @@ Abc_Ntk_t * Io_ReadBaf( char * pFileName, int fCheck )
 
     // allocate the empty AIG
     pNtkNew = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG );
-    pNtkNew->pName = util_strsav( pName );
-    pNtkNew->pSpec = util_strsav( pFileName );
+    pNtkNew->pName = Extra_UtilStrsav( pName );
+    pNtkNew->pSpec = Extra_UtilStrsav( pFileName );
 
     // prepare the array of nodes
     vNodes = Vec_PtrAlloc( 1 + nInputs + nLatches + nAnds );

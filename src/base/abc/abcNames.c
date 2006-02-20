@@ -306,7 +306,7 @@ Vec_Ptr_t * Abc_NodeGetFaninNames( Abc_Obj_t * pNode )
     int i;
     vNodes = Vec_PtrAlloc( 100 );
     Abc_ObjForEachFanin( pNode, pFanin, i )
-        Vec_PtrPush( vNodes, util_strsav(Abc_ObjName(pFanin)) );
+        Vec_PtrPush( vNodes, Extra_UtilStrsav(Abc_ObjName(pFanin)) );
     return vNodes;
 }
 
@@ -341,7 +341,7 @@ Vec_Ptr_t * Abc_NodeGetFakeNames( int nNames )
             Buffer[1] = '0' + i/26;
             Buffer[2] = 0;
         }
-        Vec_PtrPush( vNames, util_strsav(Buffer) );
+        Vec_PtrPush( vNames, Extra_UtilStrsav(Buffer) );
     }
     return vNames;
 }

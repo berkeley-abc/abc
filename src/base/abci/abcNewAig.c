@@ -56,9 +56,11 @@ Abc_Ntk_t * Abc_NtkNewAig( Abc_Ntk_t * pNtk )
 {
     Aig_Man_t * pMan;
     Abc_Ntk_t * pNtkAig;
-    Aig_ProofType_t RetValue;
+//    Aig_ProofType_t RetValue;
     int fCleanup = 1;
     int nNodes;
+    extern void Aig_MffcTest( Aig_Man_t * pMan );
+
 
     assert( !Abc_NtkIsNetlist(pNtk) );
     assert( !Abc_NtkIsSeq(pNtk) );
@@ -70,6 +72,10 @@ Abc_Ntk_t * Abc_NtkNewAig( Abc_Ntk_t * pNtk )
 
     // convert to the AIG manager
     pMan = Abc_NtkToAig( pNtk );
+
+    Aig_MffcTest( pMan );
+
+/*
     // execute a command in the AIG manager
     RetValue = Aig_FraigProve( pMan );
     if ( RetValue == AIG_PROOF_SAT )
@@ -80,6 +86,7 @@ Abc_Ntk_t * Abc_NtkNewAig( Abc_Ntk_t * pNtk )
         printf( "Undecided.\n" );
     else
         assert( 0 );
+*/
 
     // convert from the AIG manager
     pNtkAig = Abc_NtkFromAig( pNtk, pMan );
@@ -173,6 +180,8 @@ Aig_Man_t * Abc_NtkToAig( Abc_Ntk_t * pNtkOld )
     Abc_NtkConst1(pNtkOld)->pCopy = (Abc_Obj_t *)Aig_ManConst1(pMan);
     Abc_NtkForEachCi( pNtkOld, pObj, i )
         pObj->pCopy = (Abc_Obj_t *)Aig_NodeCreatePi(pMan);
+    Abc_NtkForEachCo( pNtkOld, pObj, i )
+        pObj->pCopy = (Abc_Obj_t *)Aig_NodeCreatePo(pMan);
     // perform the conversion of the internal nodes
     Abc_NtkStrashPerformAig( pNtkOld, pMan );
     // create the POs
@@ -180,7 +189,7 @@ Aig_Man_t * Abc_NtkToAig( Abc_Ntk_t * pNtkOld )
     {
         pFanin = (Aig_Node_t *)Abc_ObjFanin0(pObj)->pCopy;
         pFanin = Aig_NotCond( pFanin, Abc_ObjFaninC0(pObj) );
-        pObj->pCopy = (Abc_Obj_t *)Aig_NodeCreatePo( pMan, pFanin );
+        Aig_NodeConnectPo( pMan, (Aig_Node_t *)pObj->pCopy, pFanin );
     }
     return pMan;
 }

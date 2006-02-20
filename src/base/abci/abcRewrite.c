@@ -96,6 +96,14 @@ Rwr_ManAddTimeCuts( pManRwr, clock() - clk );
         {
             Dec_Graph_t * pGraph = Rwr_ManReadDecs(pManRwr);
             int fCompl           = Rwr_ManReadCompl(pManRwr);
+/*
+            if ( nGain > 0 )
+            { // print stats on the MFFC
+                extern void Abc_NodeMffsConeSuppPrint( Abc_Obj_t * pNode );
+                printf( "Node %6d : Gain = %4d  ", pNode->Id, nGain );
+                Abc_NodeMffsConeSuppPrint( pNode );
+            }
+*/
             // complement the FF if needed
             if ( fCompl ) Dec_GraphComplement( pGraph );
 clk = clock();

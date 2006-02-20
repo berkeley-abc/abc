@@ -37,9 +37,11 @@
 /* Nested includes                                                           */
 /*---------------------------------------------------------------------------*/
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include <time.h>
-#include "util.h"
 #include "st.h"
 #include "cuddInt.h"
 
@@ -155,6 +157,7 @@ extern DdNode *     Extra_bddGetOneCube( DdManager * dd, DdNode * bFunc );
 extern DdNode *     Extra_bddComputeRangeCube( DdManager * dd, int iStart, int iStop );
 extern DdNode *     Extra_bddBitsToCube( DdManager * dd, int Code, int CodeWidth, DdNode ** pbVars, int fMsbFirst );
 extern DdNode *     Extra_bddSupportNegativeCube( DdManager * dd, DdNode * f );
+extern int          Extra_bddIsVar( DdNode * bFunc );
 
 /*=== extraBddKmap.c ================================================================*/
 
@@ -407,6 +410,27 @@ extern void        Extra_IntVecClear( Extra_IntVec_t * p );
 extern void        Extra_IntVecPush( Extra_IntVec_t * p, int Entry );
 extern int         Extra_IntVecPop( Extra_IntVec_t * p );
 extern void        Extra_IntVecSort( Extra_IntVec_t * p );
+
+/*=== extraUtilUtil.c ================================================================*/
+
+#define ALLOC(type, num)     ((type *) malloc(sizeof(type) * (num)))
+#define FREE(obj)             ((obj) ? (free((char *) (obj)), (obj) = 0) : 0)
+#define REALLOC(type, obj, num)    \
+        (obj) ? ((type *) realloc((char *) obj, sizeof(type) * (num))) : \
+        ((type *) malloc(sizeof(type) * (num)))
+
+extern long        Extra_CpuTime();
+extern int         Extra_GetSoftDataLimit();
+extern void        Extra_UtilGetoptReset();
+extern int         Extra_UtilGetopt( int argc, char *argv[], char *optstring );
+extern char *      Extra_UtilPrintTime( long t );
+extern char *      Extra_UtilStrsav( char *s );
+extern char *      Extra_UtilTildeExpand( char *fname );
+extern char *      Extra_UtilFileSearch( char *file, char *path, char *mode );
+extern void        (*Extra_UtilMMoutOfMemory)();
+
+extern char *      globalUtilOptarg;
+extern int         globalUtilOptind;
 
 /**AutomaticEnd***************************************************************/
 

@@ -28,8 +28,6 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static int Abc_NodeRefDeref( Abc_Obj_t * pNode, bool fFanouts, bool fReference );
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -601,6 +599,35 @@ bool Abc_NodeIsMuxType( Abc_Obj_t * pNode )
            (Abc_ObjFaninId0(pNode0) == Abc_ObjFaninId1(pNode1) && (Abc_ObjFaninC0(pNode0) ^ Abc_ObjFaninC1(pNode1))) ||
            (Abc_ObjFaninId1(pNode0) == Abc_ObjFaninId0(pNode1) && (Abc_ObjFaninC1(pNode0) ^ Abc_ObjFaninC0(pNode1))) ||
            (Abc_ObjFaninId1(pNode0) == Abc_ObjFaninId1(pNode1) && (Abc_ObjFaninC1(pNode0) ^ Abc_ObjFaninC1(pNode1)));
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if the node is the control type of the MUX.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+bool Abc_NodeIsMuxControlType( Abc_Obj_t * pNode )
+{
+    Abc_Obj_t * pNode0, * pNode1;
+    // check that the node is regular
+    assert( !Abc_ObjIsComplement(pNode) );
+    // skip the node that do not have two fanouts
+    if ( Abc_ObjFanoutNum(pNode) != 2 )
+        return 0;
+    // get the fanouts
+    pNode0 = Abc_ObjFanout( pNode, 0 );
+    pNode1 = Abc_ObjFanout( pNode, 1 );
+    // if they have more than one fanout, we are not interested
+    if ( Abc_ObjFanoutNum(pNode0) != 1 ||  Abc_ObjFanoutNum(pNode1) != 1 )
+        return 0;
+    // if the fanouts have the same fanout, this is MUX or EXOR (or a redundant gate (CA)(CB))
+    return Abc_ObjFanout0(pNode0) == Abc_ObjFanout0(pNode1);
 }
 
 /**Function*************************************************************

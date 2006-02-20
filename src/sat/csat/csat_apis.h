@@ -12,12 +12,16 @@
 
   Date        [Ver. 1.0. Started - August 28, 2005]
 
-  Revision    [$Id: csat_apis.h,v 1.00 2005/08/28 00:00:00 alanmi Exp $]
+  Revision    [$Id: csat_apis.h,v 1.5 2005/12/30 10:54:40 rmukherj Exp $]
 
 ***********************************************************************/
 
 #ifndef __ABC_APIS_H__
 #define __ABC_APIS_H__
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
@@ -42,27 +46,35 @@ typedef struct ABC_ManagerStruct_t *   ABC_Manager;
 #define _ABC_GATE_TYPE_
 enum GateType
 {
-    ABC_CONST = 0,  // constant gate
-    ABC_BPI,        // boolean PI
-    ABC_BPPI,       // bit level PSEUDO PRIMARY INPUT
-    ABC_BAND,       // bit level AND
-    ABC_BNAND,      // bit level NAND
-    ABC_BOR,        // bit level OR
-    ABC_BNOR,       // bit level NOR
-    ABC_BXOR,       // bit level XOR
-    ABC_BXNOR,      // bit level XNOR
-    ABC_BINV,       // bit level INVERTER
-    ABC_BBUF,       // bit level BUFFER
-    ABC_BPPO,       // bit level PSEUDO PRIMARY OUTPUT
-    ABC_BPO         // boolean PO
+    CSAT_CONST = 0,  // constant gate
+    CSAT_BPI,    // boolean PI
+    CSAT_BPPI,   // bit level PSEUDO PRIMARY INPUT
+    CSAT_BAND,   // bit level AND
+    CSAT_BNAND,  // bit level NAND
+    CSAT_BOR,    // bit level OR
+    CSAT_BNOR,   // bit level NOR
+    CSAT_BXOR,   // bit level XOR
+    CSAT_BXNOR,  // bit level XNOR
+    CSAT_BINV,   // bit level INVERTER
+    CSAT_BBUF,   // bit level BUFFER
+    CSAT_BMUX,   // bit level MUX --not supported 
+    CSAT_BDFF,   // bit level D-type FF
+    CSAT_BSDFF,  // bit level scan FF --not supported 
+    CSAT_BTRIH,  // bit level TRISTATE gate with active high control --not supported 
+    CSAT_BTRIL,  // bit level TRISTATE gate with active low control --not supported 
+    CSAT_BBUS,   // bit level BUS --not supported 
+    CSAT_BPPO,   // bit level PSEUDO PRIMARY OUTPUT
+    CSAT_BPO,    // boolean PO
+    CSAT_BCNF,   // boolean constraint
+    CSAT_BDC,    // boolean don't care gate (2 input)
 };
 #endif
 
 
-//ABC_StatusT defines the return value by ABC_Solve();
+//CSAT_StatusT defines the return value by ABC_Solve();
 #ifndef _ABC_STATUS_
 #define _ABC_STATUS_
-enum ABC_StatusT 
+enum CSAT_StatusT 
 {
     UNDETERMINED = 0,
     UNSATISFIABLE,
@@ -76,11 +88,23 @@ enum ABC_StatusT
 #endif
 
 
-// ABC_OptionT defines the solver option about learning
+// to identify who called the CSAT solver
+#ifndef _ABC_CALLER_
+#define _ABC_CALLER_
+enum CSAT_CallerT
+{
+    BLS = 0,
+    SATORI,
+    NONE
+};
+#endif
+
+
+// CSAT_OptionT defines the solver option about learning
 // which is used by ABC_SetSolveOption();
 #ifndef _ABC_OPTION_
 #define _ABC_OPTION_
-enum ABC_OptionT
+enum CSAT_OptionT
 {
     BASE_LINE = 0,
     IMPLICT_LEARNING, //default
@@ -91,10 +115,10 @@ enum ABC_OptionT
 
 #ifndef _ABC_Target_Result
 #define _ABC_Target_Result
-typedef struct _ABC_Target_ResultT ABC_Target_ResultT;
-struct _ABC_Target_ResultT
+typedef struct _CSAT_Target_ResultT CSAT_Target_ResultT;
+struct _CSAT_Target_ResultT
 {
-    enum ABC_StatusT status; // solve status of the target
+    enum CSAT_StatusT status; // solve status of the target
     int num_dec;              // num of decisions to solve the target
     int num_imp;              // num of implications to solve the target
     int num_cftg;             // num of conflict gates learned 
@@ -118,10 +142,13 @@ struct _ABC_Target_ResultT
 ////////////////////////////////////////////////////////////////////////
 
 // create a new manager
-extern ABC_Manager           ABC_InitManager(void);
+extern ABC_Manager          ABC_InitManager(void);
+
+// release a manager
+extern void ABC_ReleaseManager(ABC_Manager mng);
 
 // set solver options for learning
-extern void                  ABC_SetSolveOption(ABC_Manager mng, enum ABC_OptionT option);
+extern void                  ABC_SetSolveOption(ABC_Manager mng, enum CSAT_OptionT option);
 
 // add a gate to the circuit
 // the meaning of the parameters are:
@@ -130,15 +157,18 @@ extern void                  ABC_SetSolveOption(ABC_Manager mng, enum ABC_Option
 // nofi: number of fanins of the gate to be added;
 // fanins: the name array of fanins of the gate to be added
 extern int                   ABC_AddGate(ABC_Manager mng,
-                                      enum GateType type,
-                                      char* name,
-                                      int nofi,
-                                      char** fanins,
-                                      int dc_attr);
+                     enum GateType type,
+                     char* name,
+                     int nofi,
+                     char** fanins,
+                     int dc_attr);
 
 // check if there are gates that are not used by any primary ouput.
 // if no such gates exist, return 1 else return 0;
 extern int                   ABC_Check_Integrity(ABC_Manager mng);
+
+// THIS PROCEDURE SHOULD BE CALLED AFTER THE NETWORK IS CONSTRUCTED!!!
+extern void                  ABC_Network_Finalize( ABC_Manager mng );
 
 // set time limit for solving a target.
 // runtime: time limit (in second).
@@ -160,21 +190,24 @@ extern void                  ABC_SolveInit(ABC_Manager mng);
 extern void                  ABC_AnalyzeTargets(ABC_Manager mng);
 
 // solve the targets added by ABC_AddTarget()
-extern enum ABC_StatusT      ABC_Solve(ABC_Manager mng);
+extern enum CSAT_StatusT     ABC_Solve(ABC_Manager mng);
 
 // get the solve status of a target
 // TargetID: the target id returned by  ABC_AddTarget().
-extern ABC_Target_ResultT *  ABC_Get_Target_Result(ABC_Manager mng, int TargetID);
+extern CSAT_Target_ResultT * ABC_Get_Target_Result(ABC_Manager mng, int TargetID);
 extern void                  ABC_Dump_Bench_File(ABC_Manager mng);
 
 // ADDED PROCEDURES:
-extern void                  ABC_QuitManager( ABC_Manager mng );
-extern void                  ABC_TargetResFree( ABC_Target_ResultT * p );
+extern void                  ABC_TargetResFree( CSAT_Target_ResultT * p );
 
-extern void                  ABC_PerformRewriting( ABC_Manager mng );
+extern void CSAT_SetCaller(ABC_Manager mng, enum CSAT_CallerT caller);
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

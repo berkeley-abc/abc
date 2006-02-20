@@ -48,8 +48,8 @@ int         Abc_FrameReadNtkStoreSize()              { return s_GlobalFrame->nSt
 void *      Abc_FrameReadLibLut()                    { return s_GlobalFrame->pLibLut;      } 
 void *      Abc_FrameReadLibGen()                    { return s_GlobalFrame->pLibGen;      } 
 void *      Abc_FrameReadLibSuper()                  { return s_GlobalFrame->pLibSuper;    } 
-void *      Abc_FrameReadManDd()                     { return s_GlobalFrame->dd;           } 
-void *      Abc_FrameReadManDec()                    { return s_GlobalFrame->pManDec;      } 
+void *      Abc_FrameReadManDd()                     { if ( s_GlobalFrame->dd == NULL )      s_GlobalFrame->dd = Cudd_Init( 0, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );  return s_GlobalFrame->dd;      } 
+void *      Abc_FrameReadManDec()                    { if ( s_GlobalFrame->pManDec == NULL ) s_GlobalFrame->pManDec = Dec_ManStart();                                        return s_GlobalFrame->pManDec; } 
 char *      Abc_FrameReadFlag( char * pFlag )        { return Cmd_FlagReadByName( s_GlobalFrame, pFlag );  } 
 
 void        Abc_FrameSetNtkStore( Abc_Ntk_t * pNtk ) { s_GlobalFrame->pStored  = pNtk;     } 
@@ -97,7 +97,8 @@ bool Abc_FrameIsFlagEnabled( char * pFlag )
 Abc_Frame_t * Abc_FrameAllocate()
 {
     Abc_Frame_t * p;
-
+    extern void define_cube_size( int n );
+    extern void set_espresso_flags();
     // allocate and clean
     p = ALLOC( Abc_Frame_t, 1 );
     memset( p, 0, sizeof(Abc_Frame_t) );
@@ -111,8 +112,8 @@ Abc_Frame_t * Abc_FrameAllocate()
     p->nSteps = 1;
     p->fBatchMode = 0;
     // initialize decomposition manager
-    p->pManDec = Dec_ManStart();
-    p->dd = Cudd_Init( 0, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+    define_cube_size(20);
+    set_espresso_flags();
     return p;
 }
 
@@ -130,11 +131,13 @@ Abc_Frame_t * Abc_FrameAllocate()
 ***********************************************************************/
 void Abc_FrameDeallocate( Abc_Frame_t * p )
 {
-    Dec_ManStop( p->pManDec );
-    Extra_StopManager( p->dd );
+    extern void undefine_cube_size();
+    undefine_cube_size();
+    if ( p->pManDec ) Dec_ManStop( p->pManDec );
+    if ( p->dd )      Extra_StopManager( p->dd );
     Abc_FrameDeleteAllNetworks( p );
     free( p );
-    p = NULL;
+    s_GlobalFrame = NULL;
 }
 
 /**Function*************************************************************

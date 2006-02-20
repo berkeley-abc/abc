@@ -172,7 +172,7 @@ char * Extra_FileNameGeneric( char * FileName )
     char * pRes;
     
     // find the generic name of the file
-    pRes = util_strsav( FileName );
+    pRes = Extra_UtilStrsav( FileName );
     // find the pointer to the "." symbol in the file name
 //  pUnd = strstr( FileName, "_" );
     pUnd = NULL;
@@ -391,7 +391,7 @@ char * Extra_StringAppend( char * pStrGiven, char * pStrAdd )
         free( pStrGiven );
     }
     else
-        pTemp = util_strsav( pStrAdd );
+        pTemp = Extra_UtilStrsav( pStrAdd );
     return pTemp;
 }
 

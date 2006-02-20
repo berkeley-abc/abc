@@ -70,7 +70,7 @@ Fpga_LutLib_t * Fpga_LutLibCreate( char * FileName, int fVerbose )
 
     p = ALLOC( Fpga_LutLib_t, 1 );
     memset( p, 0, sizeof(Fpga_LutLib_t) );
-    p->pName = util_strsav( FileName );
+    p->pName = Extra_UtilStrsav( FileName );
 
     i = 1;
     while ( fgets( pBuffer, 1000, pFile ) != NULL )
@@ -125,7 +125,7 @@ Fpga_LutLib_t * Fpga_LutLibDup( Fpga_LutLib_t * p )
     Fpga_LutLib_t * pNew;
     pNew = ALLOC( Fpga_LutLib_t, 1 );
     *pNew = *p;
-    pNew->pName = util_strsav( pNew->pName );
+    pNew->pName = Extra_UtilStrsav( pNew->pName );
     return pNew;
 }
 

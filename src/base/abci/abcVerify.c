@@ -46,7 +46,7 @@ static void  Abc_NtkVerifyReportErrorSeq( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, 
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkCecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds )
+void Abc_NtkCecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nImpLimit )
 {
     Abc_Ntk_t * pMiter;
     Abc_Ntk_t * pCnf;
@@ -87,7 +87,7 @@ void Abc_NtkCecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds )
     }
 
     // solve the CNF using the SAT solver
-    RetValue = Abc_NtkMiterSat( pCnf, nSeconds, 0 );
+    RetValue = Abc_NtkMiterSat( pCnf, nConfLimit, nImpLimit, 0 );
     if ( RetValue == -1 )
         printf( "Networks are undecided (SAT solver timed out).\n" );
     else if ( RetValue == 0 )
@@ -184,7 +184,7 @@ void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fV
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkSecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nFrames )
+void Abc_NtkSecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nImpLimit, int nFrames )
 {
     Abc_Ntk_t * pMiter;
     Abc_Ntk_t * pFrames;
@@ -244,7 +244,7 @@ void Abc_NtkSecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nFra
     }
 
     // solve the CNF using the SAT solver
-    RetValue = Abc_NtkMiterSat( pCnf, nSeconds, 0 );
+    RetValue = Abc_NtkMiterSat( pCnf, nConfLimit, nImpLimit, 0 );
     if ( RetValue == -1 )
         printf( "Networks are undecided (SAT solver timed out).\n" );
     else if ( RetValue == 0 )

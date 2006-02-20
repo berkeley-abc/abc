@@ -1,0 +1,84 @@
+# global parameters
+#set check         # checks intermediate networks
+#set checkfio      # prints warnings when fanins/fanouts are duplicated
+set checkread     # checks new networks after reading from file
+set backup        # saves backup networks retrived by "undo" and "recall"
+set savesteps 1   # sets the maximum number of backup networks to save
+
+# program names for internal calls
+set dotwin dot.exe
+set dotunix dot
+set gsviewwin gsview32.exe
+set gsviewunix gv
+set siswin sis.exe
+set sisunix sis
+set mvsiswin mvsis.exe
+set mvsisunix mvsis
+
+# standard aliases
+alias b balance
+alias cl cleanup
+alias clp collapse
+alias esd ext_seq_dcs
+alias f fraig
+alias fs fraig_sweep
+alias fsto fraig_store
+alias fres fraig_restore
+alias ft fraig_trust
+alias mu renode -m
+alias pex print_exdc -d
+alias pf print_factor
+alias pfan print_fanio
+alias pl print_level
+alias pio print_io
+alias pk print_kmap
+alias ps print_stats 
+alias psu print_supp
+alias psy print_symm
+alias pun print_unate
+alias q quit
+alias r read
+alias ren renode
+alias rl read_blif
+alias rb read_bench
+alias ret retime
+alias rp read_pla
+alias rv read_verilog
+alias rsup read_super mcnc5_old.super
+alias rlib read_library
+alias rw rewrite
+alias rwz rewrite -z
+alias rf refactor
+alias rfz refactor -z
+alias rs restructure
+alias rsz restructure -z
+alias sa set autoexec ps
+alias so source -x
+alias st strash
+alias sw sweep
+alias ssw ssweep
+alias scl scleanup
+alias u undo
+alias wb write_blif
+alias wl write_blif
+alias wp write_pla
+alias wv write_verilog
+
+# standard scripts
+alias opt       "b; ren; b"
+alias share     "b; ren; fx; b"
+alias sharem    "b; ren -m; fx; b"
+alias sharedsd  "b; ren; dsd -g; sw; fx; b"
+alias resyn     "b; rw; rwz; b; rwz; b"
+alias resyn2    "b; rw; rf; b; rw; rwz; b; rfz; rwz; b"
+alias resyn3    "b; rs; rs -K 6; b; rsz; rsz -K 6; b; rsz -K 5; b"
+alias compress  "b; rw -l; rwz -l; b; rwz -l; b"
+alias compress2 "b; rw -l; rf -l; b; rw -l; rwz -l; b; rfz -l; rwz -l; b"
+alias choice    "fraig_store; resyn; fraig_store; resyn2; fraig_store; fraig_restore"
+alias choice2   "fraig_store; balance; fraig_store; resyn; fraig_store; resyn2; fraig_store; resyn2; fraig_store; fraig_restore"
+alias rwsat     "st; rw -l; rf -l; b -l; rw -l; rf -l"
+alias t         "r c/4/csat_101_opt.blif; st; ps; test"
+alias t2        "r c/5/csat_026.bench; st; ps; test"
+alias r1        "r c/4/csat_101_opt.blif; st; ps"
+
+

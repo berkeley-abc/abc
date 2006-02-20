@@ -49,7 +49,7 @@
 Fraig_Node_t * Fraig_NodeAndCanon( Fraig_Man_t * pMan, Fraig_Node_t * p1, Fraig_Node_t * p2 )
 {
     Fraig_Node_t * pNodeNew, * pNodeOld, * pNodeRepr;
-    int RetValue;
+//    int RetValue;
 
     // check for trivial cases
     if ( p1 == p2 )

@@ -223,7 +223,7 @@ FILE * Io_FileOpen( const char * FileName, const char * PathVar, const char * Mo
         {
             char ActualFileName[4096];
             FILE * fp = 0;
-            t = util_strsav( c );
+            t = Extra_UtilStrsav( c );
             for (i = strtok( t, ":" ); i != 0; i = strtok( 0, ":") )
             {
 #ifdef WIN32

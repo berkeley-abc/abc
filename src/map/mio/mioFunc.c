@@ -253,7 +253,7 @@ int Mio_GateCollectNames( char * pFormula, char * pPinNames[] )
                 break;
         if ( i == nPins )
         { // cannot find this name; save it
-            pPinNames[nPins++] = util_strsav(pTemp);
+            pPinNames[nPins++] = Extra_UtilStrsav(pTemp);
         }
         // get the next name
         pTemp = strtok( NULL, " " );

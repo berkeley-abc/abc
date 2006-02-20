@@ -111,8 +111,8 @@ int Fpga_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
 
     // set the defaults
     fVerbose = 1;
-    util_getopt_reset();
-    while ( (c = util_getopt(argc, argv, "vh")) != EOF ) 
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "vh")) != EOF ) 
     {
         switch (c) 
         {
@@ -128,13 +128,13 @@ int Fpga_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
 
-    if ( argc != util_optind + 1 )
+    if ( argc != globalUtilOptind + 1 )
     {
         goto usage;
     }
 
     // get the input file name
-    FileName = argv[util_optind];
+    FileName = argv[globalUtilOptind];
     if ( (pFile = fopen( FileName, "r" )) == NULL )
     {
         fprintf( pErr, "Cannot open input file \"%s\". ", FileName );
@@ -201,8 +201,8 @@ int Fpga_CommandPrintLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
 
     // set the defaults
     fVerbose = 1;
-    util_getopt_reset();
-    while ( (c = util_getopt(argc, argv, "vh")) != EOF ) 
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "vh")) != EOF ) 
     {
         switch (c) 
         {
@@ -218,7 +218,7 @@ int Fpga_CommandPrintLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
 
-    if ( argc != util_optind )
+    if ( argc != globalUtilOptind )
     {
         goto usage;
     }

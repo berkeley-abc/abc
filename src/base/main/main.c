@@ -75,21 +75,21 @@ int main( int argc, char * argv[] )
     sprintf( sReadCmd,  "read"  );
     sprintf( sWriteCmd, "write" );
     
-    util_getopt_reset();
-    while ((c = util_getopt(argc, argv, "c:hf:F:o:st:T:x")) != EOF) {
+    Extra_UtilGetoptReset();
+    while ((c = Extra_UtilGetopt(argc, argv, "c:hf:F:o:st:T:x")) != EOF) {
         switch(c) {
             case 'c':
-                strcpy( sCommandUsr, util_optarg );
+                strcpy( sCommandUsr, globalUtilOptarg );
                 fBatch = 1;
                 break;
                 
             case 'f':
-                sprintf(sCommandUsr, "source %s", util_optarg);
+                sprintf(sCommandUsr, "source %s", globalUtilOptarg);
                 fBatch = 1;
                 break;
 
             case 'F':
-                sprintf(sCommandUsr, "source -x %s", util_optarg);
+                sprintf(sCommandUsr, "source -x %s", globalUtilOptarg);
                 fBatch = 1;
                 break;
                 
@@ -98,7 +98,7 @@ int main( int argc, char * argv[] )
                 break;
                 
             case 'o':
-                sOutFile = util_optarg;
+                sOutFile = globalUtilOptarg;
                 fFinalWrite = 1;
                 break;
                 
@@ -107,12 +107,12 @@ int main( int argc, char * argv[] )
                 break;
                 
             case 't':
-                if ( TypeCheck( pAbc, util_optarg ) )
+                if ( TypeCheck( pAbc, globalUtilOptarg ) )
                 {
-                    if ( !strcmp(util_optarg, "none") == 0 )
+                    if ( !strcmp(globalUtilOptarg, "none") == 0 )
                     {
                         fInitRead = 1;
-                        sprintf( sReadCmd, "read_%s", util_optarg );
+                        sprintf( sReadCmd, "read_%s", globalUtilOptarg );
                     }
                 }
                 else {
@@ -122,12 +122,12 @@ int main( int argc, char * argv[] )
                 break;
                 
             case 'T':
-                if ( TypeCheck( pAbc, util_optarg ) )
+                if ( TypeCheck( pAbc, globalUtilOptarg ) )
                 {
-                    if (!strcmp(util_optarg, "none") == 0)
+                    if (!strcmp(globalUtilOptarg, "none") == 0)
                     {
                         fFinalWrite = 1;
-                        sprintf( sWriteCmd, "write_%s", util_optarg);
+                        sprintf( sWriteCmd, "write_%s", globalUtilOptarg);
                     }
                 }
                 else {
@@ -151,14 +151,14 @@ int main( int argc, char * argv[] )
     {
         pAbc->fBatchMode = 1;
 
-        if (argc - util_optind == 0)
+        if (argc - globalUtilOptind == 0)
         {
             sInFile = NULL;
         }
-        else if (argc - util_optind == 1)
+        else if (argc - globalUtilOptind == 1)
         {
             fInitRead = 1;
-            sInFile = argv[util_optind];
+            sInFile = argv[globalUtilOptind];
         }
         else
         {
@@ -221,10 +221,7 @@ int main( int argc, char * argv[] )
     // if the memory should be freed, quit packages
     if ( fStatus < 0 ) 
     {
-        // perform uninitializations
-        Abc_FrameEnd( pAbc );
-        // stop the framework
-        Abc_FrameDeallocate( pAbc );
+        Abc_Stop();
     }
     return 0;
 
@@ -250,16 +247,12 @@ usage:
 void Abc_Start()
 {
     Abc_Frame_t * pAbc;
-    
     // added to detect memory leaks:
 #ifdef _DEBUG
     _CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 #endif
-
-    // get global frame (singleton pattern)
-    // will be initialized on first call
+    // start the glocal frame
     pAbc = Abc_FrameGetGlobalFrame();
-
     // source the resource file
 //    Abc_UtilsSource( pAbc );
 }
@@ -278,17 +271,11 @@ void Abc_Start()
 void Abc_Stop()
 {
     Abc_Frame_t * pAbc;
-    int fStatus = 0;
-
-    // if the memory should be freed, quit packages
-    if ( fStatus == -2 ) 
-    {
-        pAbc = Abc_FrameGetGlobalFrame();
-        // perform uninitializations
-        Abc_FrameEnd( pAbc );
-        // stop the framework
-        Abc_FrameDeallocate( pAbc );
-    }
+    pAbc = Abc_FrameGetGlobalFrame();
+    // perform uninitializations
+    Abc_FrameEnd( pAbc );
+    // stop the framework
+    Abc_FrameDeallocate( pAbc );
 }
 
 /**Function********************************************************************

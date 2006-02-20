@@ -272,8 +272,8 @@ Abc_Ntk_t * Io_ReadVerNetwork( Io_ReadVer_t * p )
 
     // allocate the empty network
     pNtk = Abc_NtkAlloc( ABC_NTK_NETLIST, ABC_FUNC_SOP );
-    pNtk->pName = util_strsav( pModelName );
-    pNtk->pSpec = util_strsav( p->pFileName );
+    pNtk->pName = Extra_UtilStrsav( pModelName );
+    pNtk->pSpec = Extra_UtilStrsav( p->pFileName );
 
     // create constant nodes and nets
     Abc_NtkFindOrCreateNet( pNtk, "1'b0" );
@@ -334,7 +334,7 @@ Abc_Ntk_t * Io_ReadVerNetwork( Io_ReadVer_t * p )
         }
         // add the tri-state element to the skipped ones
         sprintf( Buffer, "%s %s", vTokens->pArray[0], vTokens->pArray[1] );
-        Vec_PtrPush( p->vSkipped, util_strsav(Buffer) );
+        Vec_PtrPush( p->vSkipped, Extra_UtilStrsav(Buffer) );
     }
     Extra_ProgressBarStop( pProgress );
 

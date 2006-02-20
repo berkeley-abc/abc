@@ -1,0 +1,10 @@
+Often the code comes directly from a Windows computer.
+The following steps may be needed to compile it on UNIX:
+
+>> dos2unix Makefile Makefile
+>> dos2unix depends.sh depends.sh
+>> chmod 755 depends.sh
+>> make 
+
+If compiling as a static library, it is necessary to uncomment
+#define _LIB in "src/abc/main/main.c"

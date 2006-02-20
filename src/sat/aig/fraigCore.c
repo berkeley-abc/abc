@@ -92,7 +92,7 @@ Aig_ProofType_t Aig_FraigProveOutput( Aig_Man_t * pMan )
     // solve the miter
     clk = clock();
     pMan->pSat->verbosity = pMan->pParam->fSatVerbose;
-    status = solver_solve( pMan->pSat, NULL, NULL, pMan->pParam->nSeconds );
+    status = solver_solve( pMan->pSat, NULL, NULL, 0, 0 );//pMan->pParam->nConfLimit, pMan->pParam->nImpLimit );
     if ( status == l_Undef )
     {
 //        printf( "The problem timed out.\n" );

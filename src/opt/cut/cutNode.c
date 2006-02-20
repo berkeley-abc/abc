@@ -355,10 +355,19 @@ void Cut_NodeDoComputeCuts( Cut_Man_t * p, Cut_List_t * pSuper, int Node, int fC
 {
     Cut_Cut_t * pStop0, * pStop1, * pTemp0, * pTemp1;
     int i, nCutsOld, Limit;
+    // start with the elementary cut
+    if ( fTriv ) 
+    {
+//        printf( "Creating trivial cut %d.\n", Node );
+        pTemp0 = Cut_CutCreateTriv( p, Node );
+        Cut_ListAdd( pSuper, pTemp0 );
+        p->nNodeCuts++;
+    }
     // get the cut lists of children
     if ( pList0 == NULL || pList1 == NULL )
         return;
-    // start the new list
+
+    // remember the old number of cuts
     nCutsOld = p->nCutsCur;
     Limit = p->pParams->nVarsMax;
     // get the simultation bit of the node
@@ -373,15 +382,7 @@ void Cut_NodeDoComputeCuts( Cut_Man_t * p, Cut_List_t * pSuper, int Node, int fC
     Cut_ListForEachCut( pList1, pStop1 )
         if ( pStop1->nLeaves == (unsigned)Limit )
             break;
-    // start with the elementary cut
-    if ( fTriv ) 
-    {
-//        printf( "Creating trivial cut %d.\n", Node );
-        pTemp0 = Cut_CutCreateTriv( p, Node );
-        Cut_ListAdd( pSuper, pTemp0 );
-        p->nNodeCuts++;
-        nCutsOld++;
-    }
+
     // small by small
     Cut_ListForEachCutStop( pList0, pTemp0, pStop0 )
     Cut_ListForEachCutStop( pList1, pTemp1, pStop1 )
@@ -424,6 +425,8 @@ void Cut_NodeDoComputeCuts( Cut_Man_t * p, Cut_List_t * pSuper, int Node, int fC
     {
         p->nCutsMulti += p->nCutsCur - nCutsOld;         
         p->nNodesMulti++;
+        if ( p->nCutsCur == nCutsOld )
+            p->nNodesMulti0++;
     }
 }
 

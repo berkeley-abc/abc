@@ -104,12 +104,30 @@ Aig_Node_t * Aig_NodeCreatePi( Aig_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Node_t * Aig_NodeCreatePo( Aig_Man_t * p, Aig_Node_t * pFanin )
+Aig_Node_t * Aig_NodeCreatePo( Aig_Man_t * p )
 {
     Aig_Node_t * pNode;
     pNode = Aig_NodeCreate( p );
     pNode->Type = AIG_PO;
     Vec_PtrPush( p->vPos, pNode );
+    return pNode;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates a primary output node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Node_t * Aig_NodeConnectPo( Aig_Man_t * p, Aig_Node_t * pNode, Aig_Node_t * pFanin )
+{
+    assert( Aig_NodeIsPo(pNode) );
+    assert( !Aig_IsComplement(pNode) );
     // connect to the fanin
     pNode->Fans[0].fComp = Aig_IsComplement(pFanin);
     pNode->Fans[0].iNode = Aig_Regular(pFanin)->Id;
@@ -224,13 +242,14 @@ void Aig_NodeDeleteAnd_rec( Aig_Man_t * pMan, Aig_Node_t * pRoot )
     assert( !Aig_IsComplement(pRoot) );
     assert( pRoot->nRefs == 0 );
     assert( Aig_NodeIsAnd(pRoot) );
-    // save the children
+    // remember the children
     pNode0 = Aig_NodeFanin0(pRoot);
     pNode1 = Aig_NodeFanin1(pRoot);
     // disconnect the node
     Aig_NodeDisconnectAnd( pRoot );
     // recycle the node
     Vec_PtrWriteEntry( pMan->vNodes, pRoot->Id, NULL );
+    memset( pRoot, 0, sizeof(Aig_Node_t) ); // this is a temporary hack to skip dead children below!!!
     Aig_MemFixedEntryRecycle( pMan->mmNodes, (char *)pRoot );
     // call recursively
     if ( Aig_NodeIsAnd(pNode0) && pNode0->nRefs == 0 )

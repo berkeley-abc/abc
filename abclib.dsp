@@ -41,7 +41,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "abclib\ReleaseLib"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /I "src\base\abc" /I "src\base\abci" /I "src\base\abcs" /I "src\base\seq" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\ft" /I "src\sat\asat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\sim" /I "src\opt\rwr" /I "src\map\fpga" /I "src\map\pga" /I "src\map\mapper" /I "src\map\mapp" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\mvc" /I "src\misc\util" /I "src\misc\npn" /I "src\misc\vec" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "__STDC__" /D "HAVE_ASSERT_H" /FR /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /I "src\base\abc" /I "src\base\abci" /I "src\base\abcs" /I "src\base\seq" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\ft" /I "src\sat\aig" /I "src\sat\asat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\sim" /I "src\opt\rwr" /I "src\map\fpga" /I "src\map\pga" /I "src\map\mapper" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\mvc" /I "src\misc\util" /I "src\misc\npn" /I "src\misc\vec" /I "src\misc\espresso" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "__STDC__" /D "HAVE_ASSERT_H" /FR /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -64,7 +64,7 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "abclib\DebugLib"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "src\base\abc" /I "src\base\abci" /I "src\base\abcs" /I "src\base\seq" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\ft" /I "src\sat\asat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\sim" /I "src\opt\rwr" /I "src\map\fpga" /I "src\map\pga" /I "src\map\mapper" /I "src\map\mapp" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\mvc" /I "src\misc\util" /I "src\misc\npn" /I "src\misc\vec" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "__STDC__" /D "HAVE_ASSERT_H" /FR /YX /FD /GZ /c
+# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "src\base\abc" /I "src\base\abci" /I "src\base\abcs" /I "src\base\seq" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\ft" /I "src\sat\aig" /I "src\sat\asat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\sim" /I "src\opt\rwr" /I "src\map\fpga" /I "src\map\pga" /I "src\map\mapper" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\mvc" /I "src\misc\util" /I "src\misc\npn" /I "src\misc\vec" /I "src\misc\espresso" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "__STDC__" /D "HAVE_ASSERT_H" /FR /YX /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -171,6 +171,10 @@ SOURCE=.\src\base\abci\abcAttach.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcAuto.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcBalance.c
 # End Source File
 # Begin Source File
@@ -184,6 +188,10 @@ SOURCE=.\src\base\abci\abcCut.c
 # Begin Source File
 
 SOURCE=.\src\base\abci\abcDsd.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcEspresso.c
 # End Source File
 # Begin Source File
 
@@ -207,6 +215,10 @@ SOURCE=.\src\base\abci\abcMiter.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcNewAig.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcNtbdd.c
 # End Source File
 # Begin Source File
@@ -216,6 +228,10 @@ SOURCE=.\src\base\abci\abcPga.c
 # Begin Source File
 
 SOURCE=.\src\base\abci\abcPrint.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcProve.c
 # End Source File
 # Begin Source File
 
@@ -252,6 +268,10 @@ SOURCE=.\src\base\abci\abcSymm.c
 # Begin Source File
 
 SOURCE=.\src\base\abci\abcTiming.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcUnate.c
 # End Source File
 # Begin Source File
 
@@ -895,6 +915,14 @@ SOURCE=.\src\sat\asat\added.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\asat\asatmem.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\asat\asatmem.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\asat\solver.c
 # End Source File
 # Begin Source File
@@ -1519,6 +1547,10 @@ SOURCE=.\src\misc\extra\extra.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\misc\extra\extraBddAuto.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\misc\extra\extraBddKmap.c
 # End Source File
 # Begin Source File
@@ -1528,6 +1560,10 @@ SOURCE=.\src\misc\extra\extraBddMisc.c
 # Begin Source File
 
 SOURCE=.\src\misc\extra\extraBddSymm.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\extra\extraBddUnate.c
 # End Source File
 # Begin Source File
 
@@ -1556,6 +1592,10 @@ SOURCE=.\src\misc\extra\extraUtilProgress.c
 # Begin Source File
 
 SOURCE=.\src\misc\extra\extraUtilReader.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\extra\extraUtilUtil.c
 # End Source File
 # End Group
 # Begin Group "st"
@@ -1604,6 +1644,10 @@ SOURCE=.\src\misc\util\leaks.h
 # Begin Source File
 
 SOURCE=.\src\misc\util\pathsearch.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\util\prtime.c
 # End Source File
 # Begin Source File
 
@@ -1724,6 +1768,190 @@ SOURCE=.\src\misc\vec\vecStr.h
 # Begin Source File
 
 SOURCE=.\src\misc\vec\vecVec.h
+# End Source File
+# End Group
+# Begin Group "espresso"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\cofactor.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\cols.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\compl.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\contain.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\cubehack.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\cubestr.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\cvrin.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\cvrm.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\cvrmisc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\cvrout.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\dominate.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\equiv.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\espresso.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\espresso.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\essen.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\exact.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\expand.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\gasp.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\gimpel.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\globals.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\hack.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\indep.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\irred.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\map.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\matrix.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\mincov.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\mincov.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\mincov_int.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\opo.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\pair.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\part.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\primes.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\reduce.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\rows.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\set.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\setc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\sharp.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\sminterf.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\solution.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\sparse.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\sparse.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\sparse_int.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\unate.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\util_old.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\espresso\verify.c
 # End Source File
 # End Group
 # End Group

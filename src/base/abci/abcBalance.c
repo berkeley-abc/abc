@@ -24,8 +24,8 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
  
-static void        Abc_NtkBalancePerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig, bool fDuplicate, bool fSelective );
-static Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, Vec_Vec_t * vStorage, int Level, bool fDuplicate, bool fSelective );
+static void        Abc_NtkBalancePerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig, bool fDuplicate, bool fSelective, bool fUpdateLevel );
+static Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, Vec_Vec_t * vStorage, int Level, bool fDuplicate, bool fSelective, bool fUpdateLevel );
 static Vec_Ptr_t * Abc_NodeBalanceCone( Abc_Obj_t * pNode, Vec_Vec_t * vSuper, int Level, int fDuplicate, bool fSelective );
 static int         Abc_NodeBalanceCone_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vSuper, bool fFirst, bool fDuplicate, bool fSelective );
 static void        Abc_NtkMarkCriticalNodes( Abc_Ntk_t * pNtk );
@@ -45,7 +45,7 @@ static void        Abc_NtkMarkCriticalNodes( Abc_Ntk_t * pNtk );
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkBalance( Abc_Ntk_t * pNtk, bool fDuplicate, bool fSelective )
+Abc_Ntk_t * Abc_NtkBalance( Abc_Ntk_t * pNtk, bool fDuplicate, bool fSelective, bool fUpdateLevel )
 {
     Abc_Ntk_t * pNtkAig;
     assert( Abc_NtkIsStrash(pNtk) );
@@ -57,7 +57,7 @@ Abc_Ntk_t * Abc_NtkBalance( Abc_Ntk_t * pNtk, bool fDuplicate, bool fSelective )
     }
     // perform balancing
     pNtkAig = Abc_NtkStartFrom( pNtk, ABC_NTK_STRASH, ABC_FUNC_AIG );
-    Abc_NtkBalancePerform( pNtk, pNtkAig, fDuplicate, fSelective );
+    Abc_NtkBalancePerform( pNtk, pNtkAig, fDuplicate, fSelective, fUpdateLevel );
     Abc_NtkFinalize( pNtk, pNtkAig );
     // undo the required times
     if ( fSelective )
@@ -88,7 +88,7 @@ Abc_Ntk_t * Abc_NtkBalance( Abc_Ntk_t * pNtk, bool fDuplicate, bool fSelective )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkBalancePerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig, bool fDuplicate, bool fSelective )
+void Abc_NtkBalancePerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig, bool fDuplicate, bool fSelective, bool fUpdateLevel )
 {
     int fCheck = 1;
     ProgressBar * pProgress;
@@ -107,7 +107,7 @@ void Abc_NtkBalancePerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig, bool fDuplica
         Extra_ProgressBarUpdate( pProgress, i, NULL );
         // strash the driver node
         pDriver = Abc_ObjFanin0(pNode);
-        Abc_NodeBalance_rec( pNtkAig, pDriver, vStorage, 0, fDuplicate, fSelective );
+        Abc_NodeBalance_rec( pNtkAig, pDriver, vStorage, 0, fDuplicate, fSelective, fUpdateLevel );
     }
     Extra_ProgressBarStop( pProgress );
     Vec_VecFree( vStorage );
@@ -115,38 +115,93 @@ void Abc_NtkBalancePerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig, bool fDuplica
 
 /**Function*************************************************************
 
-  Synopsis    [Randomizes the node positions.]
+  Synopsis    [Finds the left bound on the next candidate to be paired.]
 
-  Description []
+  Description [The nodes in the array are in the decreasing order of levels. 
+  The last node in the array has the smallest level. By default it would be paired 
+  with the next node on the left. However, it may be possible to pair it with some
+  other node on the left, in such a way that the new node is shared. This procedure
+  finds the index of the left-most node, which can be paired with the last node.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NodeBalanceRandomize( Vec_Ptr_t * vSuper )
+int Abc_NodeBalanceFindLeft( Vec_Ptr_t * vSuper )
 {
-    Abc_Obj_t * pNode1, * pNode2;
-    int i, Signature;
+    Abc_Obj_t * pNodeRight, * pNodeLeft;
+    int Current;
+    // if two or less nodes, pair with the first
     if ( Vec_PtrSize(vSuper) < 3 )
-        return;
-    pNode1 = Vec_PtrEntry( vSuper, Vec_PtrSize(vSuper)-2 );
-    pNode2 = Vec_PtrEntry( vSuper, Vec_PtrSize(vSuper)-3 );
-    if ( Abc_ObjRegular(pNode1)->Level != Abc_ObjRegular(pNode2)->Level )
-        return;
-    // some reordering will be performed
-    Signature = rand();
-    for ( i = Vec_PtrSize(vSuper)-2; i > 0; i-- )
+        return 0;
+    // set the pointer to the one before the last
+    Current = Vec_PtrSize(vSuper) - 2;
+    pNodeRight = Vec_PtrEntry( vSuper, Current );
+    // go through the nodes to the left of this one
+    for ( Current--; Current >= 0; Current-- )
     {
-        pNode1 = Vec_PtrEntry( vSuper, i );
-        pNode2 = Vec_PtrEntry( vSuper, i-1 );
-        if ( Abc_ObjRegular(pNode1)->Level != Abc_ObjRegular(pNode2)->Level )
-            return;
-        if ( Signature & (1 << (i % 10)) )
-            continue;
-        Vec_PtrWriteEntry( vSuper, i,   pNode2 );
-        Vec_PtrWriteEntry( vSuper, i-1, pNode1 );
+        // get the next node on the left
+        pNodeLeft = Vec_PtrEntry( vSuper, Current );
+        // if the level of this node is different, quit the loop
+        if ( Abc_ObjRegular(pNodeLeft)->Level != Abc_ObjRegular(pNodeRight)->Level )
+            break;
     }
+    Current++;    
+    // get the node, for which the equality holds
+    pNodeLeft = Vec_PtrEntry( vSuper, Current );
+    assert( Abc_ObjRegular(pNodeLeft)->Level == Abc_ObjRegular(pNodeRight)->Level );
+    return Current;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Moves closer to the end the node that is best for sharing.]
+
+  Description [If there is no node with sharing, randomly chooses one of 
+  the legal nodes.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NodeBalancePermute( Abc_Ntk_t * pNtkNew, Vec_Ptr_t * vSuper, int LeftBound )
+{
+    Abc_Obj_t * pNode1, * pNode2, * pNode3;
+    int RightBound, i;
+    // get the right bound
+    RightBound = Vec_PtrSize(vSuper) - 2;
+    assert( LeftBound <= RightBound );
+    if ( LeftBound == RightBound )
+        return;
+    // get the two last nodes
+    pNode1 = Vec_PtrEntry( vSuper, RightBound + 1 );
+    pNode2 = Vec_PtrEntry( vSuper, RightBound     );
+    // find the first node that can be shared
+    for ( i = RightBound; i >= LeftBound; i-- )
+    {
+        pNode3 = Vec_PtrEntry( vSuper, i );
+        if ( Abc_AigAndLookup( pNtkNew->pManFunc, pNode1, pNode3 ) )
+        {
+            if ( pNode3 == pNode2 )
+                return;
+            Vec_PtrWriteEntry( vSuper, i,          pNode2 );
+            Vec_PtrWriteEntry( vSuper, RightBound, pNode3 );
+            return;
+        }
+    }
+/*
+    // we did not find the node to share, randomize choice
+    {
+        int Choice = rand() % (RightBound - LeftBound + 1);
+        pNode3 = Vec_PtrEntry( vSuper, LeftBound + Choice );
+        if ( pNode3 == pNode2 )
+            return;
+        Vec_PtrWriteEntry( vSuper, LeftBound + Choice, pNode2 );
+        Vec_PtrWriteEntry( vSuper, RightBound,         pNode3 );
+    }
+*/
 }
 
 /**Function*************************************************************
@@ -160,12 +215,12 @@ void Abc_NodeBalanceRandomize( Vec_Ptr_t * vSuper )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, Vec_Vec_t * vStorage, int Level, bool fDuplicate, bool fSelective )
+Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, Vec_Vec_t * vStorage, int Level, bool fDuplicate, bool fSelective, bool fUpdateLevel )
 {
     Abc_Aig_t * pMan = pNtkNew->pManFunc;
     Abc_Obj_t * pNodeNew, * pNode1, * pNode2;
     Vec_Ptr_t * vSuper;
-    int i;
+    int i, LeftBound;
     assert( !Abc_ObjIsComplement(pNodeOld) );
     // return if the result if known
     if ( pNodeOld->pCopy )
@@ -181,7 +236,7 @@ Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, Vec_
     // for each old node, derive the new well-balanced node
     for ( i = 0; i < vSuper->nSize; i++ )
     {
-        pNodeNew = Abc_NodeBalance_rec( pNtkNew, Abc_ObjRegular(vSuper->pArray[i]), vStorage, Level + 1, fDuplicate, fSelective );
+        pNodeNew = Abc_NodeBalance_rec( pNtkNew, Abc_ObjRegular(vSuper->pArray[i]), vStorage, Level + 1, fDuplicate, fSelective, fUpdateLevel );
         vSuper->pArray[i] = Abc_ObjNotCond( pNodeNew, Abc_ObjIsComplement(vSuper->pArray[i]) );
     }
     if ( vSuper->nSize < 2 )
@@ -192,8 +247,10 @@ Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, Vec_
     assert( vSuper->nSize > 1 );
     while ( vSuper->nSize > 1 )
     {
-        // randomize the node positions
-//        Abc_NodeBalanceRandomize( vSuper );
+        // find the left bound on the node to be paired
+        LeftBound = (!fUpdateLevel)? 0 : Abc_NodeBalanceFindLeft( vSuper );
+        // find the node that can be shared (if no such node, randomize choice)
+        Abc_NodeBalancePermute( pNtkNew, vSuper, LeftBound );
         // pull out the last two nodes
         pNode1 = Vec_PtrPop(vSuper);
         pNode2 = Vec_PtrPop(vSuper);

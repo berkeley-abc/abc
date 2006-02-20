@@ -300,8 +300,9 @@ extern void                Aig_ManStop( Aig_Man_t * p );
 /*=== aigNode.c =============================================================*/
 extern Aig_Node_t *        Aig_NodeCreateConst( Aig_Man_t * p );
 extern Aig_Node_t *        Aig_NodeCreatePi( Aig_Man_t * p );
-extern Aig_Node_t *        Aig_NodeCreatePo( Aig_Man_t * p, Aig_Node_t * pFanin );
+extern Aig_Node_t *        Aig_NodeCreatePo( Aig_Man_t * p );
 extern Aig_Node_t *        Aig_NodeCreateAnd( Aig_Man_t * p, Aig_Node_t * pFanin0, Aig_Node_t * pFanin1 );
+extern Aig_Node_t *        Aig_NodeConnectPo( Aig_Man_t * p, Aig_Node_t * pNode, Aig_Node_t * pFanin );
 extern void                Aig_NodeConnectAnd( Aig_Node_t * pFanin0, Aig_Node_t * pFanin1, Aig_Node_t * pNode );
 extern void                Aig_NodeDisconnectAnd( Aig_Node_t * pNode );
 extern void                Aig_NodeDeleteAnd_rec( Aig_Man_t * pMan, Aig_Node_t * pRoot );

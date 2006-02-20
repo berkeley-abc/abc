@@ -343,7 +343,7 @@ int Seq_NtkImplementRetimingBackward( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMoves, int 
     }
 
     // get the miter cone
-    pNtkMiter = Abc_NtkCreateCone( pNtkProb, pNtkProb->vCos, vValues );
+    pNtkMiter = Abc_NtkCreateTarget( pNtkProb, pNtkProb->vCos, vValues );
     Abc_NtkDelete( pNtkProb );
     Vec_IntFree( vValues );
 
@@ -358,7 +358,7 @@ int Seq_NtkImplementRetimingBackward( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMoves, int 
     // solve the miter
 clk = clock();
 //    RetValue = Abc_NtkMiterSat_OldAndRusty( pNtkCnf, 30, 0 );
-    RetValue = Abc_NtkMiterSat( pNtkCnf, 30, 0 );
+    RetValue = Abc_NtkMiterSat( pNtkCnf, 500000, 50000000, 0 );
 if ( fVerbose )
 if ( clock() - clk > 100 )
 {

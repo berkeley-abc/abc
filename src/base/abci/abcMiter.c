@@ -90,7 +90,7 @@ Abc_Ntk_t * Abc_NtkMiterInt( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb )
     // start the new network
     pNtkMiter = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG );
     sprintf( Buffer, "%s_%s_miter", pNtk1->pName, pNtk2->pName );
-    pNtkMiter->pName = util_strsav(Buffer);
+    pNtkMiter->pName = Extra_UtilStrsav(Buffer);
 
     // perform strashing
     Abc_NtkMiterPrepare( pNtk1, pNtk2, pNtkMiter, fComb );
@@ -308,7 +308,7 @@ Abc_Ntk_t * Abc_NtkMiterForCofactors( Abc_Ntk_t * pNtk, int Out, int In1, int In
     // start the new network
     pNtkMiter = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG );
     sprintf( Buffer, "%s_miter", Abc_ObjName(Abc_NtkCo(pNtk, Out)) );
-    pNtkMiter->pName = util_strsav(Buffer);
+    pNtkMiter->pName = Extra_UtilStrsav(Buffer);
 
     // get the root output
     pRoot = Abc_NtkCo( pNtk, Out );
@@ -372,7 +372,7 @@ Abc_Ntk_t * Abc_NtkMiterQuantify( Abc_Ntk_t * pNtk, int In, int fExist )
 
     // start the new network
     pNtkMiter = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG );
-    pNtkMiter->pName = util_strsav( Abc_ObjName(Abc_NtkCo(pNtk, 0)) );
+    pNtkMiter->pName = Extra_UtilStrsav( Abc_ObjName(Abc_NtkCo(pNtk, 0)) );
 
     // get the root output
     pRoot = Abc_NtkCo( pNtk, 0 );
@@ -384,14 +384,16 @@ Abc_Ntk_t * Abc_NtkMiterQuantify( Abc_Ntk_t * pNtk, int In, int fExist )
     // add the first cofactor
     Abc_NtkMiterAddCone( pNtk, pNtkMiter, pRoot );
     // save the output
-    pOutput1 = Abc_ObjFanin0(pRoot)->pCopy;
+//    pOutput1 = Abc_ObjFanin0(pRoot)->pCopy;
+    pOutput1 = Abc_ObjNotCond( Abc_ObjFanin0(pRoot)->pCopy, Abc_ObjFaninC0(pRoot) );
 
     // set the second cofactor
     Abc_NtkCi(pNtk, In)->pCopy = Abc_NtkConst1( pNtkMiter );
     // add the second cofactor
     Abc_NtkMiterAddCone( pNtk, pNtkMiter, pRoot );
     // save the output
-    pOutput2 = Abc_ObjFanin0(pRoot)->pCopy;
+//    pOutput2 = Abc_ObjFanin0(pRoot)->pCopy;
+    pOutput2 = Abc_ObjNotCond( Abc_ObjFanin0(pRoot)->pCopy, Abc_ObjFaninC0(pRoot) );
 
     // create the miter of the two outputs
     if ( fExist ) 
@@ -461,7 +463,7 @@ int Abc_NtkMiterIsConstant( Abc_Ntk_t * pMiter )
     assert( Abc_NtkIsStrash(pMiter) );
     Abc_NtkForEachPo( pMiter, pNodePo, i )
     {
-        pChild = Abc_ObjChild0( Abc_NtkPo(pMiter,i) );
+        pChild = Abc_ObjChild0( pNodePo );
         if ( Abc_ObjIsNode(Abc_ObjRegular(pChild)) && Abc_NodeIsConst(pChild) )
         {
             assert( Abc_ObjRegular(pChild) == Abc_NtkConst1(pMiter) );
@@ -552,7 +554,7 @@ Abc_Ntk_t * Abc_NtkFrames( Abc_Ntk_t * pNtk, int nFrames, int fInitial )
     // start the new network
     pNtkFrames = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG );
     sprintf( Buffer, "%s_%d_frames", pNtk->pName, nFrames );
-    pNtkFrames->pName = util_strsav(Buffer);
+    pNtkFrames->pName = Extra_UtilStrsav(Buffer);
     // create new latches (or their initial values) and remember them in the new latches
     if ( !fInitial )
     {
@@ -682,7 +684,7 @@ Abc_Ntk_t * Abc_NtkFrames2( Abc_Ntk_t * pNtk, int nFrames, int fInitial, AddFram
     // start the new network
     pNtkFrames = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG );
     sprintf( Buffer, "%s_%d_frames", pNtk->pName, nFrames );
-    pNtkFrames->pName = util_strsav(Buffer);
+    pNtkFrames->pName = Extra_UtilStrsav(Buffer);
     // create new latches (or their initial values) and remember them in the new latches
     if ( !fInitial )
     {

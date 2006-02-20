@@ -27,6 +27,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #endif
 
 #include "solver_vec.h"
+#include "asatmem.h"
 
 //=================================================================================================
 // Simple types:
@@ -67,7 +68,7 @@ extern void    solver_delete(solver* s);
 
 extern bool    solver_addclause(solver* s, lit* begin, lit* end);
 extern bool    solver_simplify(solver* s);
-extern int     solver_solve(solver* s, lit* begin, lit* end, int nSeconds);
+extern int     solver_solve(solver* s, lit* begin, lit* end, int nConfLimit, int nImpLimit );
 extern int *   solver_get_model( solver * p, int * pVars, int nVars );
 
 extern int     solver_nvars(solver* s);
@@ -131,6 +132,12 @@ struct solver_t
     double   random_seed;
     double   progress_estimate;
     int      verbosity;     // Verbosity level. 0=silent, 1=some progress report, 2=everything
+
+    int      nConfLimit;    // external limit on the number of conflicts
+    int      nImpLimit;     // external limit on the number of implications
+
+    // the memory manager
+    Asat_MmStep_t *     pMem;
 
     stats    solver_stats;
 };

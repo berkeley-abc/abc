@@ -135,7 +135,7 @@ Dec_Edge_t Rwr_TravCollect_rec( Rwr_Man_t * p, Rwr_Node_t * pNode, Dec_Graph_t *
         eNode1.fCompl = !eNode1.fCompl;
     // create the decomposition node(s)
     if ( pNode->fExor )
-        eNode = Dec_GraphAddNodeXor( pGraph, eNode0, eNode1 );
+        eNode = Dec_GraphAddNodeXor( pGraph, eNode0, eNode1, 0 );
     else
         eNode = Dec_GraphAddNodeAnd( pGraph, eNode0, eNode1 );
     // save the result

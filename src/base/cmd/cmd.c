@@ -142,8 +142,8 @@ int CmdCommandTime( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     int c;
 
-    util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "h" ) ) != EOF )
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
     {
         switch ( c )
         {
@@ -154,7 +154,7 @@ int CmdCommandTime( Abc_Frame_t * pAbc, int argc, char **argv )
         }
     }
 
-    if ( argc != util_optind )
+    if ( argc != globalUtilOptind )
     {
         goto usage;
     }
@@ -188,8 +188,8 @@ int CmdCommandEcho( Abc_Frame_t * pAbc, int argc, char **argv )
     int c;
     int n = 1;
 
-    util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "hn" ) ) != EOF )
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "hn" ) ) != EOF )
     {
         switch ( c )
         {
@@ -204,7 +204,7 @@ int CmdCommandEcho( Abc_Frame_t * pAbc, int argc, char **argv )
         }
     }
 
-    for ( i = util_optind; i < argc; i++ )
+    for ( i = globalUtilOptind; i < argc; i++ )
         fprintf( pAbc->Out, "%s ", argv[i] );
     if ( n )
         fprintf( pAbc->Out, "\n" );
@@ -234,8 +234,8 @@ int CmdCommandQuit( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     int c;
 
-    util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "hs" ) ) != EOF )
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "hs" ) ) != EOF )
     {
         switch ( c )
         {
@@ -250,7 +250,7 @@ int CmdCommandQuit( Abc_Frame_t * pAbc, int argc, char **argv )
         }
     }
 
-    if ( argc != util_optind )
+    if ( argc != globalUtilOptind )
         goto usage;
     return -1;
 
@@ -294,8 +294,8 @@ int CmdCommandHistory( Abc_Frame_t * pAbc, int argc, char **argv )
     int i, c, num, size;
 
     num = 20;
-    util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "h" ) ) != EOF )
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
     {
         switch ( c )
         {
@@ -309,8 +309,8 @@ int CmdCommandHistory( Abc_Frame_t * pAbc, int argc, char **argv )
         goto usage;
 
     // get the number of commands to print
-    if ( argc == util_optind + 1 )
-        num = atoi(argv[util_optind]);
+    if ( argc == globalUtilOptind + 1 )
+        num = atoi(argv[globalUtilOptind]);
     // print the commands
     size = pAbc->aHistory->nSize;
     num = ( num < size ) ? num : size;
@@ -342,8 +342,8 @@ int CmdCommandAlias( Abc_Frame_t * pAbc, int argc, char **argv )
     char *key, *value;
     int c;
 
-    util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "h" ) ) != EOF )
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
     {
         switch ( c )
         {
@@ -399,8 +399,8 @@ int CmdCommandUnalias( Abc_Frame_t * pAbc, int argc, char **argv )
     char *key, *value;
     int c;
 
-    util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "h" ) ) != EOF )
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
     {
         switch ( c )
         {
@@ -450,8 +450,8 @@ int CmdCommandHelp( Abc_Frame_t * pAbc, int argc, char **argv )
     int c;
 
     fPrintAll = 0;
-    util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "ah" ) ) != EOF )
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ah" ) ) != EOF )
     {
         switch ( c )
         {
@@ -468,7 +468,7 @@ int CmdCommandHelp( Abc_Frame_t * pAbc, int argc, char **argv )
         }
     }
 
-    if ( argc != util_optind )
+    if ( argc != globalUtilOptind )
         goto usage;
 
     CmdCommandPrint( pAbc, fPrintAll );
@@ -503,8 +503,8 @@ int CmdCommandSource( Abc_Frame_t * pAbc, int argc, char **argv )
 
     interactive = silent = prompt = echo = 0;
 
-    util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "hipsx" ) ) != EOF )
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "hipsx" ) ) != EOF )
     {
         switch ( c )
         {
@@ -529,12 +529,12 @@ int CmdCommandSource( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
     /* added to avoid core-dumping when no script file is specified */
-    if ( argc == util_optind )
+    if ( argc == globalUtilOptind )
     {
         goto usage;
     }
 
-    lp_file_index = util_optind;
+    lp_file_index = globalUtilOptind;
     lp_count = 0;
 
     /*
@@ -568,7 +568,7 @@ int CmdCommandSource( Abc_Frame_t * pAbc, int argc, char **argv )
             }
             else
             {
-                prompt_string = NIL( char );
+                prompt_string = NULL;
             }
 
             /* clear errors -- e.g., EOF reached from stdin */
@@ -602,7 +602,7 @@ int CmdCommandSource( Abc_Frame_t * pAbc, int argc, char **argv )
                 fprintf( pAbc->Out, "abc - > %s", line );
             }
             command = CmdHistorySubstitution( pAbc, line, &did_subst );
-            if ( command == NIL( char ) )
+            if ( command == NULL )
             {
                 status = 1;
                 break;
@@ -620,8 +620,8 @@ int CmdCommandSource( Abc_Frame_t * pAbc, int argc, char **argv )
             }
             if ( interactive && *line != '\0' )
             {
-                Cmd_HistoryAddCommand( pAbc, util_strsav(line) );
-                if ( pAbc->Hst != NIL( FILE ) )
+                Cmd_HistoryAddCommand( pAbc, Extra_UtilStrsav(line) );
+                if ( pAbc->Hst != NULL )
                 {
                     fprintf( pAbc->Hst, "%s\n", line );
                     ( void ) fflush( pAbc->Hst );
@@ -674,8 +674,8 @@ int CmdCommandSetVariable( Abc_Frame_t * pAbc, int argc, char **argv )
     char *flag_value, *key, *value;
     int c;
 
-    util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "h" ) ) != EOF )
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
     {
         switch ( c )
         {
@@ -703,9 +703,9 @@ int CmdCommandSetVariable( Abc_Frame_t * pAbc, int argc, char **argv )
             FREE( value );
         }
 
-        flag_value = argc == 2 ? util_strsav( "" ) : util_strsav( argv[2] );
-//        flag_value = argc == 2 ? NULL : util_strsav(argv[2]);
-        st_insert( pAbc->tFlags, util_strsav(argv[1]), flag_value );
+        flag_value = argc == 2 ? Extra_UtilStrsav( "" ) : Extra_UtilStrsav( argv[2] );
+//        flag_value = argc == 2 ? NULL : Extra_UtilStrsav(argv[2]);
+        st_insert( pAbc->tFlags, Extra_UtilStrsav(argv[1]), flag_value );
 
         if ( strcmp( argv[1], "abcout" ) == 0 )
         {
@@ -713,7 +713,7 @@ int CmdCommandSetVariable( Abc_Frame_t * pAbc, int argc, char **argv )
                 fclose( pAbc->Out );
             if ( strcmp( flag_value, "" ) == 0 )
                 flag_value = "-";
-            pAbc->Out = CmdFileOpen( pAbc, flag_value, "w", NIL( char * ), 0 );
+            pAbc->Out = CmdFileOpen( pAbc, flag_value, "w", NULL, 0 );
             if ( pAbc->Out == NULL )
                 pAbc->Out = stdout;
 #if HAVE_SETVBUF
@@ -726,7 +726,7 @@ int CmdCommandSetVariable( Abc_Frame_t * pAbc, int argc, char **argv )
                 fclose( pAbc->Err );
             if ( strcmp( flag_value, "" ) == 0 )
                 flag_value = "-";
-            pAbc->Err = CmdFileOpen( pAbc, flag_value, "w", NIL( char * ), 0 );
+            pAbc->Err = CmdFileOpen( pAbc, flag_value, "w", NULL, 0 );
             if ( pAbc->Err == NULL )
                 pAbc->Err = stderr;
 #if HAVE_SETVBUF
@@ -735,15 +735,15 @@ int CmdCommandSetVariable( Abc_Frame_t * pAbc, int argc, char **argv )
         }
         if ( strcmp( argv[1], "history" ) == 0 )
         {
-            if ( pAbc->Hst != NIL( FILE ) )
+            if ( pAbc->Hst != NULL )
                 fclose( pAbc->Hst );
             if ( strcmp( flag_value, "" ) == 0 )
-                pAbc->Hst = NIL( FILE );
+                pAbc->Hst = NULL;
             else
             {
-                pAbc->Hst = CmdFileOpen( pAbc, flag_value, "w", NIL( char * ), 0 );
+                pAbc->Hst = CmdFileOpen( pAbc, flag_value, "w", NULL, 0 );
                 if ( pAbc->Hst == NULL )
-                    pAbc->Hst = NIL( FILE );
+                    pAbc->Hst = NULL;
             }
         }
         return 0;
@@ -774,8 +774,8 @@ int CmdCommandUnsetVariable( Abc_Frame_t * pAbc, int argc, char **argv )
     char *key, *value;
     int c;
 
-    util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "h" ) ) != EOF )
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
     {
         switch ( c )
         {
@@ -867,8 +867,8 @@ int CmdCommandRecall( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
     
-    util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "h" ) ) != EOF )
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
     {
         switch ( c )
         {
@@ -979,8 +979,8 @@ int CmdCommandEmpty( Abc_Frame_t * pAbc, int argc, char **argv )
         return 0;
     }
 
-    util_getopt_reset();
-    while ( ( c = util_getopt( argc, argv, "h" ) ) != EOF )
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
     {
         switch ( c )
         {
@@ -1021,7 +1021,7 @@ int CmdCommandUndo( Abc_Frame_t * pAbc, int argc, char **argv )
     Abc_Ntk_t * pNtkTemp;
     int id, c;
 
-    while ( ( c = util_getopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
     {
         switch ( c )
         {
@@ -1032,12 +1032,12 @@ int CmdCommandUndo( Abc_Frame_t * pAbc, int argc, char **argv )
             goto usage;
         }
     }
-    if (util_optind <= argc) {
+    if (globalUtilOptind <= argc) {
     pNtkTemp = pAbc->pNtk;
     pAbc->pNtk = pAbc->pNtkSaved;
     pAbc->pNtkSaved = pNtkTemp;
     }
-    id = atoi(argv[util_optind]);
+    id = atoi(argv[globalUtilOptind]);
     pNtkTemp = Cmd_HistoryGetSnapshot(pAbc, id);
     if (!pNtkTemp) 
     fprintf( pAbc->Err, "Snapshot %d does not exist\n", id);
@@ -1095,8 +1095,8 @@ int CmdCommandLs( Abc_Frame_t * pAbc, int argc, char **argv )
     int    fPrintedNewLine;
     char   c;
 
-    util_getopt_reset();
-    while ( (c = util_getopt(argc, argv, "lb") ) != EOF )
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "lb") ) != EOF )
     {
         switch (c)
         {
@@ -1294,7 +1294,7 @@ int CmdCommandSis( Abc_Frame_t * pAbc, int argc, char **argv )
     if ( pNtk->pSpec )
     {
         FREE( pNtkNew->pSpec );
-        pNtkNew->pSpec = util_strsav( pNtk->pSpec );
+        pNtkNew->pSpec = Extra_UtilStrsav( pNtk->pSpec );
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkNew );
@@ -1430,7 +1430,7 @@ int CmdCommandMvsis( Abc_Frame_t * pAbc, int argc, char **argv )
     if ( pNtk->pSpec )
     {
         FREE( pNtkNew->pSpec );
-        pNtkNew->pSpec = util_strsav( pNtk->pSpec );
+        pNtkNew->pSpec = Extra_UtilStrsav( pNtk->pSpec );
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkNew );

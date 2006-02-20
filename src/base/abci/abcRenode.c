@@ -407,7 +407,7 @@ void Abc_NtkRenodeSetBounds( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax )
             continue;
         if ( pNode->fMarkA == 0 )
             continue;
-        // continue cutting branches ntil it meets the fanin limit
+        // continue cutting branches until it meets the fanin limit
         while ( Abc_NtkRenodeLimit(pNode, vCone, nFaninMax) );
         assert( vCone->nSize <= nFaninMax );  
     }

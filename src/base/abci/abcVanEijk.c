@@ -517,13 +517,13 @@ Abc_Ntk_t * Abc_NtkVanEijkFrames( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCorresp, int nF
     pNtkFrames = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG );
     if ( fShortNames )
     {
-        pNtkFrames->pName = util_strsav(pNtk->pName);
-        pNtkFrames->pSpec = util_strsav(pNtk->pSpec);
+        pNtkFrames->pName = Extra_UtilStrsav(pNtk->pName);
+        pNtkFrames->pSpec = Extra_UtilStrsav(pNtk->pSpec);
     }
     else
     {
         sprintf( Buffer, "%s_%d_frames", pNtk->pName, nFrames + fAddLast );
-        pNtkFrames->pName = util_strsav(Buffer);
+        pNtkFrames->pName = Extra_UtilStrsav(Buffer);
     }
     // map the constant nodes
     Abc_NtkConst1(pNtk)->pCopy = Abc_NtkConst1(pNtkFrames);
@@ -722,7 +722,7 @@ Abc_Ntk_t * Abc_NtkVanEijkDeriveExdc( Abc_Ntk_t * pNtk, Vec_Ptr_t * vClasses )
 
     // start the network
     pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc );
-    pNtkNew->pName = util_strsav("exdc");
+    pNtkNew->pName = Extra_UtilStrsav("exdc");
     pNtkNew->pSpec = NULL;
 
     // map the constant nodes

@@ -9,8 +9,6 @@ Minor things:
 
 - QR's compilation problems
 
-- add storage for internal memory for node names in the ABC_ package
-
 - prevent node name clash between PO and internal names (i.e. [484])
 - add the output of ABC version/platform in the output files
 

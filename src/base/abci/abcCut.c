@@ -57,10 +57,41 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
     extern void Abc_NtkBalanceDetach( Abc_Ntk_t * pNtk );
 
     assert( Abc_NtkIsStrash(pNtk) );
-
+/*
     if ( pParams->fMulti )
-        Abc_NtkBalanceAttach(pNtk);
+    {
+        Abc_Obj_t * pNode, * pNodeA, * pNodeB, * pNodeC;
+        int nFactors;
+        // lebel the nodes, which will be the roots of factor-cuts
+        // mark the multiple-fanout nodes
+        Abc_AigForEachAnd( pNtk, pNode, i )
+            if ( pNode->vFanouts.nSize > 1 )
+                pNode->fMarkB = 1;
+        // unmark the control inputs of MUXes and inputs of EXOR gates
+        Abc_AigForEachAnd( pNtk, pNode, i )
+        {
+            if ( !Abc_NodeIsMuxType(pNode) )
+                continue;
 
+            pNodeC = Abc_NodeRecognizeMux( pNode, &pNodeA, &pNodeB );
+            // if real children are used, skip
+            if ( Abc_ObjFanin0(pNode)->vFanouts.nSize > 1 || Abc_ObjFanin1(pNode)->vFanouts.nSize > 1 )
+                continue;
+
+            if ( pNodeC->vFanouts.nSize == 2 )
+                pNodeC->fMarkB = 0;
+            if ( Abc_ObjRegular(pNodeA) == Abc_ObjRegular(pNodeB) && Abc_ObjRegular(pNodeA)->vFanouts.nSize == 2 )
+                Abc_ObjRegular(pNodeA)->fMarkB = 0;
+       }
+        // mark the PO drivers
+//        Abc_NtkForEachCo( pNtk, pNode, i )
+//            Abc_ObjFanin0(pNode)->fMarkB = 1;
+        nFactors = 0;
+        Abc_AigForEachAnd( pNtk, pNode, i )
+            nFactors += pNode->fMarkB;
+        printf( "Total nodes = %6d.  Total factors = %6d.\n", Abc_NtkNodeNum(pNtk), nFactors );
+    }
+*/
     // start the manager
     pParams->nIdsMax = Abc_NtkObjNumMax( pNtk );
     p = Cut_ManStart( pParams );
@@ -104,8 +135,13 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
     }
     Vec_PtrFree( vNodes );
     Vec_IntFree( vChoices );
+/*
     if ( pParams->fMulti )
-        Abc_NtkBalanceDetach(pNtk);
+    {
+        Abc_NtkForEachObj( pNtk, pNode, i )
+            pNode->fMarkB = 0;
+    }
+*/
 PRT( "Total", clock() - clk );
 //Abc_NtkPrintCuts_( p, pNtk, 0 );
 //    Cut_ManPrintStatsToFile( p, pNtk->pSpec, clock() - clk );
@@ -282,14 +318,14 @@ printf( "Converged after %d iterations.\n", nIters );
   SeeAlso     []
 
 ***********************************************************************/
-void * Abc_NodeGetCutsRecursive( void * p, Abc_Obj_t * pObj )
+void * Abc_NodeGetCutsRecursive( void * p, Abc_Obj_t * pObj, int fMulti )
 {
     void * pList;
     if ( pList = Abc_NodeReadCuts( p, pObj ) )
         return pList;
-    Abc_NodeGetCutsRecursive( p, Abc_ObjFanin0(pObj) );
-    Abc_NodeGetCutsRecursive( p, Abc_ObjFanin1(pObj) );
-    return Abc_NodeGetCuts( p, pObj, 0 );
+    Abc_NodeGetCutsRecursive( p, Abc_ObjFanin0(pObj), fMulti );
+    Abc_NodeGetCutsRecursive( p, Abc_ObjFanin1(pObj), fMulti );
+    return Abc_NodeGetCuts( p, pObj, fMulti );
 }
 
 /**Function*************************************************************
@@ -305,7 +341,8 @@ void * Abc_NodeGetCutsRecursive( void * p, Abc_Obj_t * pObj )
 ***********************************************************************/
 void * Abc_NodeGetCuts( void * p, Abc_Obj_t * pObj, int fMulti )
 {
-    int fTriv = (!fMulti) || (pObj->pCopy != NULL);
+//    int fTriv = (!fMulti) || pObj->fMarkB;
+    int fTriv = (!fMulti) || (pObj->vFanouts.nSize > 1 && !Abc_NodeIsMuxControlType(pObj));
     assert( Abc_NtkIsStrash(pObj->pNtk) );
     assert( Abc_ObjFaninNum(pObj) == 2 );
     return Cut_NodeComputeCuts( p, pObj->Id, Abc_ObjFaninId0(pObj), Abc_ObjFaninId1(pObj),  

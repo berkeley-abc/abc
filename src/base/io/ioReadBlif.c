@@ -230,7 +230,7 @@ Vec_Ptr_t * Io_ReadBlifGetTokens( Io_ReadBlif_t * p )
         vTokens->nSize--;
     // load them into the new array
     for ( i = 0; i < vTokens->nSize; i++ )
-        Vec_PtrPush( p->vNewTokens, util_strsav(vTokens->pArray[i]) );
+        Vec_PtrPush( p->vNewTokens, Extra_UtilStrsav(vTokens->pArray[i]) );
 
     // load as long as there is the line break
     while ( 1 )
@@ -249,12 +249,12 @@ Vec_Ptr_t * Io_ReadBlifGetTokens( Io_ReadBlif_t * p )
                 vTokens->nSize--;
             // load them into the new array
             for ( i = 0; i < vTokens->nSize; i++ )
-                Vec_PtrPush( p->vNewTokens, util_strsav(vTokens->pArray[i]) );
+                Vec_PtrPush( p->vNewTokens, Extra_UtilStrsav(vTokens->pArray[i]) );
             continue;
         }
         // otherwise, load them and break
         for ( i = 0; i < vTokens->nSize; i++ )
-            Vec_PtrPush( p->vNewTokens, util_strsav(vTokens->pArray[i]) );
+            Vec_PtrPush( p->vNewTokens, Extra_UtilStrsav(vTokens->pArray[i]) );
         break;
     }
     return p->vNewTokens;
@@ -294,8 +294,8 @@ Abc_Ntk_t * Io_ReadBlifNetwork( Io_ReadBlif_t * p )
         pModelName = vTokens->pArray[1];
         // allocate the empty network
         p->pNtk = Abc_NtkAlloc( ABC_NTK_NETLIST, ABC_FUNC_SOP );
-        p->pNtk->pName = util_strsav( pModelName );
-        p->pNtk->pSpec = util_strsav( p->pFileName );
+        p->pNtk->pName = Extra_UtilStrsav( pModelName );
+        p->pNtk->pSpec = Extra_UtilStrsav( p->pFileName );
     }
     else
         p->pNtk = Abc_NtkAlloc( ABC_NTK_NETLIST, ABC_FUNC_SOP );
@@ -681,7 +681,7 @@ int Io_ReadBlifNetworkInputArrival( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
         return 1;
     }
     // set the arrival time
-    Abc_NtkTimeSetArrival( p->pNtk, pNet->Id, (float)TimeRise, (float)TimeFall );
+    Abc_NtkTimeSetArrival( p->pNtk, Abc_ObjFanin0(pNet)->Id, (float)TimeRise, (float)TimeFall );
     return 0;
 }
 

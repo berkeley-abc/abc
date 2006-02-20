@@ -26,6 +26,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include "solver.h"
 
+//#define ASAT_USE_SYSTEM_MEMORY_MANAGEMENT
+
 //=================================================================================================
 // Simple (var/literal) helpers:
 
@@ -275,7 +277,14 @@ static clause* clause_new(solver* s, lit* begin, lit* end, int learnt)
     assert(end - begin > 1);
     assert(learnt >= 0 && learnt < 2);
     size           = end - begin;
-    c              = (clause*)malloc(sizeof(clause) + sizeof(lit) * size + learnt * sizeof(float));
+
+//    c              = (clause*)malloc(sizeof(clause) + sizeof(lit) * size + learnt * sizeof(float));
+#ifdef ASAT_USE_SYSTEM_MEMORY_MANAGEMENT
+    c = (clause*)malloc(sizeof(clause) + sizeof(lit) * size + learnt * sizeof(float));
+#else
+    c = (clause*)Asat_MmStepEntryFetch( s->pMem, sizeof(clause) + sizeof(lit) * size + learnt * sizeof(float) );
+#endif
+
     c->size_learnt = (size << 1) | learnt;
     assert(((unsigned int)c & 1) == 0);
 
@@ -324,7 +333,12 @@ static void clause_remove(solver* s, clause* c)
         s->solver_stats.clauses_literals -= clause_size(c);
     }
 
+#ifdef ASAT_USE_SYSTEM_MEMORY_MANAGEMENT
     free(c);
+#else
+    Asat_MmStepEntryRecycle( s->pMem, (char *)c, sizeof(clause) + sizeof(lit) * clause_size(c) + clause_learnt(c) * sizeof(float) );
+#endif
+
 }
 
 
@@ -829,12 +843,24 @@ static lbool solver_search(solver* s, int nof_conflicts, int nof_learnts)
             // NO CONFLICT
             int next;
 
-            if (nof_conflicts >= 0 && conflictC >= nof_conflicts){
+            if (nof_conflicts >= 0 && conflictC >= nof_conflicts)
+            {
                 // Reached bound on number of conflicts:
                 s->progress_estimate = solver_progress(s);
                 solver_canceluntil(s,s->root_level);
                 vec_delete(&learnt_clause);
-                return l_Undef; }
+                return l_Undef; 
+            }
+
+            if ( s->nConfLimit && s->solver_stats.conflicts    > s->nConfLimit ||
+                 s->nImpLimit  && s->solver_stats.propagations > s->nImpLimit )
+            {
+                // Reached bound on number of conflicts:
+                s->progress_estimate = solver_progress(s);
+                solver_canceluntil(s,s->root_level);
+                vec_delete(&learnt_clause);
+                return l_Undef; 
+            }
 
             if (solver_dlevel(s) == 0)
                 // Simplify the set of problem clauses:
@@ -922,18 +948,28 @@ solver* solver_new(void)
     s->solver_stats.max_literals     = 0;
     s->solver_stats.tot_literals     = 0;
 
+#ifdef ASAT_USE_SYSTEM_MEMORY_MANAGEMENT
+    s->pMem = NULL;
+#else
+    s->pMem = Asat_MmStepStart( 10 );
+#endif
+
     return s;
 }
 
 
 void solver_delete(solver* s)
 {
+
+#ifdef ASAT_USE_SYSTEM_MEMORY_MANAGEMENT
     int i;
     for (i = 0; i < vec_size(&s->clauses); i++)
         free(vec_begin(&s->clauses)[i]);
-
     for (i = 0; i < vec_size(&s->learnts); i++)
         free(vec_begin(&s->learnts)[i]);
+#else
+    Asat_MmStepStop( s->pMem, 0 );
+#endif
 
     // delete vectors
     vec_delete(&s->clauses);
@@ -1056,14 +1092,18 @@ bool   solver_simplify(solver* s)
 }
 
 
-bool solver_solve(solver* s, lit* begin, lit* end, int nSeconds)
+bool solver_solve(solver* s, lit* begin, lit* end, int nConfLimit, int nImpLimit )
 {
     double  nof_conflicts = 100;
     double  nof_learnts   = solver_nclauses(s) / 3;
     lbool   status        = l_Undef;
     lbool*  values        = s->assigns;
     lit*    i;
-    int     timeStart     = clock();
+
+    // set the external limits
+    s->nConfLimit = nConfLimit;    // external limit on the number of conflicts
+    s->nImpLimit  = nImpLimit;     // external limit on the number of implications
+  
 
     for (i = begin; i < end; i++)
         if ((lit_sign(*i) ? -values[lit_var(*i)] : values[lit_var(*i)]) == l_False || (assume(s,*i), solver_propagate(s) != 0)){
@@ -1098,9 +1138,18 @@ bool solver_solve(solver* s, lit* begin, lit* end, int nSeconds)
         status = solver_search(s,(int)nof_conflicts, (int)nof_learnts);
         nof_conflicts *= 1.5;
         nof_learnts   *= 1.1;
-        // if the runtime limit is exceeded, quit the restart loop
-        if ( (nSeconds >= 0) && (clock() - timeStart >= nSeconds * CLOCKS_PER_SEC) )
+
+        // quit the loop if reached an external limit
+        if ( s->nConfLimit && s->solver_stats.conflicts > s->nConfLimit )
+        {
+//            printf( "Reached the limit on the number of conflicts (%d).\n", s->nConfLimit );
             break;
+        }
+        if ( s->nImpLimit  && s->solver_stats.propagations > s->nImpLimit )
+        {
+//            printf( "Reached the limit on the number of implications (%d).\n", s->nImpLimit );
+            break;
+        }
     }
     if (s->verbosity >= 1)
         printf("==============================================================================\n");

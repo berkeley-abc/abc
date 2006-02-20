@@ -99,7 +99,7 @@ Mio_Library_t * Mio_LibraryReadOne( Abc_Frame_t * pAbc, char * FileName, bool fE
     // allocate the genlib structure
     pLib = ALLOC( Mio_Library_t, 1 );
     memset( pLib, 0, sizeof(Mio_Library_t) );
-    pLib->pName = util_strsav( FileName );
+    pLib->pName = Extra_UtilStrsav( FileName );
     pLib->tName2Gate = st_init_table(strcmp, st_strhash);
     pLib->pMmFlex = Extra_MmFlexStart();
     pLib->vCube = Vec_StrAlloc( 100 );
@@ -251,7 +251,7 @@ Mio_Gate_t * Mio_LibraryReadGate( char ** ppToken, bool fExtendedFormat )
 
     // read the name
     pToken = strtok( NULL, " \t\r\n" );
-    pGate->pName = util_strsav( pToken );
+    pGate->pName = Extra_UtilStrsav( pToken );
 
     // read the area
     pToken = strtok( NULL, " \t\r\n" );
@@ -265,7 +265,7 @@ Mio_Gate_t * Mio_LibraryReadGate( char ** ppToken, bool fExtendedFormat )
 
     // then rest of the expression 
     pToken = strtok( NULL, ";" );
-    pGate->pForm = util_strsav( pToken );
+    pGate->pForm = Extra_UtilStrsav( pToken );
 
     // read the pin info
     // start the linked list of pins
@@ -319,7 +319,7 @@ Mio_Pin_t * Mio_LibraryReadPin( char ** ppToken, bool fExtendedFormat )
 
     // read the name
     pToken = strtok( NULL, " \t\r\n" );
-    pPin->pName = util_strsav( pToken );
+    pPin->pName = Extra_UtilStrsav( pToken );
 
     // read the pin phase
     pToken = strtok( NULL, " \t\r\n" );
@@ -507,7 +507,7 @@ int Mio_LibraryReadExclude( Abc_Frame_t * pAbc, char * ExcludeFile, st_table * t
         while (1 == fscanf( pEx, "%127s", buffer ))
         {
             //printf ("Read: '%s'\n", buffer );
-            st_insert( tExcludeGate, util_strsav( buffer ), (char *)0 );
+            st_insert( tExcludeGate, Extra_UtilStrsav( buffer ), (char *)0 );
             nDel++;
         }
 

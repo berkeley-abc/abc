@@ -79,7 +79,7 @@ Abc_Ntk_t * Abc_NtkDeriveFromBdd( DdManager * dd, DdNode * bFunc, char * pNamePo
 
     // start the network
     pNtk = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_BDD );
-    pNtk->pName = util_strsav(pNamePo);
+    pNtk->pName = Extra_UtilStrsav(pNamePo);
     // make sure the new manager has enough inputs
     Cudd_bddIthVar( pNtk->pManFunc, Vec_PtrSize(vNamesPi) );
     // add the PIs corresponding to the names

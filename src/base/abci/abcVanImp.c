@@ -878,7 +878,7 @@ Abc_Ntk_t * Abc_NtkVanImpDeriveExdc( Abc_Ntk_t * pNtk, Vec_Ptr_t * vZeros, Vec_I
 
     // start the network
     pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc );
-    pNtkNew->pName = util_strsav( "exdc" );
+    pNtkNew->pName = Extra_UtilStrsav( "exdc" );
     pNtkNew->pSpec = NULL;
 
     // map the constant nodes

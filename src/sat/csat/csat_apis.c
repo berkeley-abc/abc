@@ -17,14 +17,15 @@
 ***********************************************************************/
 
 #include "abc.h"
-#include "fraig.h"
 #include "csat_apis.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define ABC_DEFAULT_TIMEOUT     60   // 60 seconds
+#define ABC_DEFAULT_CONF_LIMIT     0   // limit on conflicts
+#define ABC_DEFAULT_IMP_LIMIT      0   // limit on implications
+
 
 struct ABC_ManagerStruct_t
 {
@@ -37,18 +38,23 @@ struct ABC_ManagerStruct_t
     Extra_MmFlex_t *      pMmNames;      // memory manager for signal names
     // solving parameters
     int                   mode;          // 0 = brute-force SAT;  1 = resource-aware FRAIG
-    int                   nSeconds;      // time limit for pure SAT solving
-    Fraig_Params_t        Params;        // the set of parameters to call FRAIG package
+    int                   nConfLimit;    // time limit for pure SAT solving
+    int                   nImpLimit;     // time limit for pure SAT solving
+//    Fraig_Params_t        Params;        // the set of parameters to call FRAIG package
     // information about the target 
     int                   nog;           // the numbers of gates in the target
     Vec_Ptr_t *           vNodes;        // the gates in the target
     Vec_Int_t *           vValues;       // the values of gate's outputs in the target
     // solution
-    ABC_Target_ResultT *  pResult;       // the result of solving the target
+    CSAT_Target_ResultT *  pResult;       // the result of solving the target
 };
 
-static ABC_Target_ResultT * ABC_TargetResAlloc( int nVars );
+static CSAT_Target_ResultT * ABC_TargetResAlloc( int nVars );
 static char * ABC_GetNodeName( ABC_Manager mng, Abc_Obj_t * pNode );
+
+// procedures to start and stop the ABC framework
+extern void  Abc_Start();
+extern void  Abc_Stop();
 
 // some external procedures
 extern int Io_WriteBench( Abc_Ntk_t * pNtk, char * FileName );
@@ -71,16 +77,18 @@ extern int Io_WriteBench( Abc_Ntk_t * pNtk, char * FileName );
 ABC_Manager ABC_InitManager()
 {
     ABC_Manager_t * mng;
+    Abc_Start();
     mng = ALLOC( ABC_Manager_t, 1 );
     memset( mng, 0, sizeof(ABC_Manager_t) );
     mng->pNtk = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_SOP );
-    mng->pNtk->pName = util_strsav("csat_network");
+    mng->pNtk->pName = Extra_UtilStrsav("csat_network");
     mng->tName2Node = stmm_init_table(strcmp, stmm_strhash);
     mng->tNode2Name = stmm_init_table(stmm_ptrcmp, stmm_ptrhash);
     mng->pMmNames   = Extra_MmFlexStart();
     mng->vNodes     = Vec_PtrAlloc( 100 );
     mng->vValues    = Vec_IntAlloc( 100 );
-    mng->nSeconds   = ABC_DEFAULT_TIMEOUT;
+    mng->nConfLimit = ABC_DEFAULT_CONF_LIMIT;
+    mng->nImpLimit  = ABC_DEFAULT_IMP_LIMIT;
     return mng;
 }
 
@@ -95,7 +103,7 @@ ABC_Manager ABC_InitManager()
   SeeAlso     []
 
 ***********************************************************************/
-void ABC_QuitManager( ABC_Manager mng )
+void ABC_ReleaseManager( ABC_Manager mng )
 {
     if ( mng->tNode2Name ) stmm_free_table( mng->tNode2Name );
     if ( mng->tName2Node ) stmm_free_table( mng->tName2Node );
@@ -106,6 +114,7 @@ void ABC_QuitManager( ABC_Manager mng )
     if ( mng->vValues )    Vec_IntFree( mng->vValues );
     FREE( mng->pDumpFileName );
     free( mng );
+    Abc_Stop();
 }
 
 /**Function*************************************************************
@@ -119,7 +128,7 @@ void ABC_QuitManager( ABC_Manager mng )
   SeeAlso     []
 
 ***********************************************************************/
-void ABC_SetSolveOption( ABC_Manager mng, enum ABC_OptionT option )
+void ABC_SetSolveOption( ABC_Manager mng, enum CSAT_OptionT option )
 {
     mng->mode = option;
     if ( option == 0 )
@@ -160,23 +169,23 @@ int ABC_AddGate( ABC_Manager mng, enum GateType type, char * name, int nofi, cha
     // consider different cases, create the node, and map the node into the name
     switch( type )
     {
-    case ABC_BPI:
-    case ABC_BPPI:
+    case CSAT_BPI:
+    case CSAT_BPPI:
         if ( nofi != 0 )
             { printf( "ABC_AddGate: The PI/PPI gate \"%s\" has fanins.\n", name ); return 0; }
         // create the PI
         pObj = Abc_NtkCreatePi( mng->pNtk );
         stmm_insert( mng->tNode2Name, (char *)pObj, name );
         break;
-    case ABC_CONST:
-    case ABC_BAND:
-    case ABC_BNAND:
-    case ABC_BOR:
-    case ABC_BNOR:
-    case ABC_BXOR:
-    case ABC_BXNOR:
-    case ABC_BINV:
-    case ABC_BBUF:
+    case CSAT_CONST:
+    case CSAT_BAND:
+    case CSAT_BNAND:
+    case CSAT_BOR:
+    case CSAT_BNOR:
+    case CSAT_BXOR:
+    case CSAT_BXNOR:
+    case CSAT_BINV:
+    case CSAT_BBUF:
         // create the node
         pObj = Abc_NtkCreateNode( mng->pNtk );
         // create the fanins
@@ -189,51 +198,51 @@ int ABC_AddGate( ABC_Manager mng, enum GateType type, char * name, int nofi, cha
         // create the node function
         switch( type )
         {
-            case ABC_CONST:
+            case CSAT_CONST:
                 if ( nofi != 0 )
                     { printf( "ABC_AddGate: The constant gate \"%s\" has fanins.\n", name ); return 0; }
                 pSop = Abc_SopCreateConst1( mng->pNtk->pManFunc );
                 break;
-            case ABC_BAND:
+            case CSAT_BAND:
                 if ( nofi < 1 )
                     { printf( "ABC_AddGate: The AND gate \"%s\" no fanins.\n", name ); return 0; }
                 pSop = Abc_SopCreateAnd( mng->pNtk->pManFunc, nofi, NULL );
                 break;
-            case ABC_BNAND:
+            case CSAT_BNAND:
                 if ( nofi < 1 )
                     { printf( "ABC_AddGate: The NAND gate \"%s\" no fanins.\n", name ); return 0; }
                 pSop = Abc_SopCreateNand( mng->pNtk->pManFunc, nofi );
                 break;
-            case ABC_BOR:
+            case CSAT_BOR:
                 if ( nofi < 1 )
                     { printf( "ABC_AddGate: The OR gate \"%s\" no fanins.\n", name ); return 0; }
                 pSop = Abc_SopCreateOr( mng->pNtk->pManFunc, nofi, NULL );
                 break;
-            case ABC_BNOR:
+            case CSAT_BNOR:
                 if ( nofi < 1 )
                     { printf( "ABC_AddGate: The NOR gate \"%s\" no fanins.\n", name ); return 0; }
                 pSop = Abc_SopCreateNor( mng->pNtk->pManFunc, nofi );
                 break;
-            case ABC_BXOR:
+            case CSAT_BXOR:
                 if ( nofi < 1 )
                     { printf( "ABC_AddGate: The XOR gate \"%s\" no fanins.\n", name ); return 0; }
                 if ( nofi > 2 )
                     { printf( "ABC_AddGate: The XOR gate \"%s\" has more than two fanins.\n", name ); return 0; }
                 pSop = Abc_SopCreateXor( mng->pNtk->pManFunc, nofi );
                 break;
-            case ABC_BXNOR:
+            case CSAT_BXNOR:
                 if ( nofi < 1 )
                     { printf( "ABC_AddGate: The XNOR gate \"%s\" no fanins.\n", name ); return 0; }
                 if ( nofi > 2 )
                     { printf( "ABC_AddGate: The XNOR gate \"%s\" has more than two fanins.\n", name ); return 0; }
                 pSop = Abc_SopCreateNxor( mng->pNtk->pManFunc, nofi );
                 break;
-            case ABC_BINV:
+            case CSAT_BINV:
                 if ( nofi != 1 )
                     { printf( "ABC_AddGate: The inverter gate \"%s\" does not have exactly one fanin.\n", name ); return 0; }
                 pSop = Abc_SopCreateInv( mng->pNtk->pManFunc );
                 break;
-            case ABC_BBUF:
+            case CSAT_BBUF:
                 if ( nofi != 1 )
                     { printf( "ABC_AddGate: The buffer gate \"%s\" does not have exactly one fanin.\n", name ); return 0; }
                 pSop = Abc_SopCreateBuf( mng->pNtk->pManFunc );
@@ -243,8 +252,8 @@ int ABC_AddGate( ABC_Manager mng, enum GateType type, char * name, int nofi, cha
         }
         Abc_ObjSetData( pObj, pSop );
         break;
-    case ABC_BPPO:
-    case ABC_BPO:
+    case CSAT_BPPO:
+    case CSAT_BPO:
         if ( nofi != 1 )
             { printf( "ABC_AddGate: The PO/PPO gate \"%s\" does not have exactly one fanin.\n", name ); return 0; }
         // create the PO
@@ -268,6 +277,29 @@ int ABC_AddGate( ABC_Manager mng, enum GateType type, char * name, int nofi, cha
 
 /**Function*************************************************************
 
+  Synopsis    [This procedure also finalizes construction of the ABC network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void ABC_Network_Finalize( ABC_Manager mng )
+{
+    Abc_Ntk_t * pNtk = mng->pNtk;
+    Abc_Obj_t * pObj;
+    int i;
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        Abc_NtkLogicStoreName( pObj, ABC_GetNodeName(mng, pObj) );
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        Abc_NtkLogicStoreName( pObj, ABC_GetNodeName(mng, pObj) );
+    assert( Abc_NtkLatchNum(pNtk) == 0 );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Checks integraty of the manager.]
 
   Description [Checks if there are gates that are not used by any primary output.
@@ -284,22 +316,7 @@ int ABC_Check_Integrity( ABC_Manager mng )
     Abc_Obj_t * pObj;
     int i;
 
-    // this procedure also finalizes construction of the ABC network
-    Abc_NtkFixNonDrivenNets( pNtk );
-    Abc_NtkForEachPi( pNtk, pObj, i )
-        Abc_NtkLogicStoreName( pObj, ABC_GetNodeName(mng, pObj) );
-    Abc_NtkForEachPo( pNtk, pObj, i )
-        Abc_NtkLogicStoreName( pObj, ABC_GetNodeName(mng, pObj) );
-    assert( Abc_NtkLatchNum(pNtk) == 0 );
-
-    // make sure everything is okay with the network structure
-    if ( !Abc_NtkDoCheck( pNtk ) )
-    {
-        printf( "ABC_Check_Integrity: The internal network check has failed.\n" );
-        return 0;
-    }
-
-    // check that there is no dangling nodes
+    // check that there are no dangling nodes
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
         if ( i == 0 ) 
@@ -309,6 +326,13 @@ int ABC_Check_Integrity( ABC_Manager mng )
             printf( "ABC_Check_Integrity: The network has dangling nodes.\n" );
             return 0;
         }
+    }
+
+    // make sure everything is okay with the network structure
+    if ( !Abc_NtkDoCheck( pNtk ) )
+    {
+        printf( "ABC_Check_Integrity: The internal network check has failed.\n" );
+        return 0;
     }
     return 1;
 }
@@ -326,7 +350,7 @@ int ABC_Check_Integrity( ABC_Manager mng )
 ***********************************************************************/
 void ABC_SetTimeLimit( ABC_Manager mng, int runtime )
 {
-    mng->nSeconds = runtime;
+    printf( "ABC_SetTimeLimit: The resource limit is not implemented (warning).\n" );
 }
 
 /**Function*************************************************************
@@ -356,9 +380,9 @@ void ABC_SetLearnLimit( ABC_Manager mng, int num )
   SeeAlso     []
 
 ***********************************************************************/
-void ABC_SetSolveBacktrackLimit( ABC_Manager mng, int num )
+void ABC_SetLearnBacktrackLimit( ABC_Manager mng, int num )
 {
-    printf( "ABC_SetSolveBacktrackLimit: The resource limit is not implemented (warning).\n" );
+    printf( "ABC_SetLearnBacktrackLimit: The resource limit is not implemented (warning).\n" );
 }
 
 /**Function*************************************************************
@@ -372,9 +396,25 @@ void ABC_SetSolveBacktrackLimit( ABC_Manager mng, int num )
   SeeAlso     []
 
 ***********************************************************************/
-void ABC_SetLearnBacktrackLimit( ABC_Manager mng, int num )
+void ABC_SetSolveBacktrackLimit( ABC_Manager mng, int num )
 {
-    printf( "ABC_SetLearnBacktrackLimit: The resource limit is not implemented (warning).\n" );
+    mng->nConfLimit = num;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void ABC_SetSolveImplicationLimit( ABC_Manager mng, int num )
+{
+    mng->nImpLimit = num;
 }
 
 /**Function*************************************************************
@@ -391,7 +431,7 @@ void ABC_SetLearnBacktrackLimit( ABC_Manager mng, int num )
 void ABC_EnableDump( ABC_Manager mng, char * dump_file )
 {
     FREE( mng->pDumpFileName );
-    mng->pDumpFileName = util_strsav( dump_file );
+    mng->pDumpFileName = Extra_UtilStrsav( dump_file );
 }
 
 /**Function*************************************************************
@@ -447,9 +487,6 @@ int ABC_AddTarget( ABC_Manager mng, int nog, char ** names, int * values )
 ***********************************************************************/
 void ABC_SolveInit( ABC_Manager mng )
 {
-    Fraig_Params_t * pParams = &mng->Params;
-    int nWords1, nWords2, nWordsMin;
-
     // check if the target is available
     assert( mng->nog == Vec_PtrSize(mng->vNodes) );
     if ( mng->nog == 0 )
@@ -459,30 +496,8 @@ void ABC_SolveInit( ABC_Manager mng )
     if ( mng->pTarget ) Abc_NtkDelete( mng->pTarget );
 
     // set the new target network
-    mng->pTarget = Abc_NtkCreateCone( mng->pNtk, mng->vNodes, mng->vValues );
+    mng->pTarget = Abc_NtkCreateTarget( mng->pNtk, mng->vNodes, mng->vValues );
 
-    // to determine the number of simulation patterns
-    // use the following strategy
-    // at least 64 words (32 words random and 32 words dynamic)
-    // no more than 256M for one circuit (128M + 128M)
-    nWords1 = 32;
-    nWords2 = (1<<27) / (Abc_NtkNodeNum(mng->pTarget) + Abc_NtkCiNum(mng->pTarget));
-    nWordsMin = ABC_MIN( nWords1, nWords2 );
-
-    // set parameters for fraiging
-    memset( pParams, 0, sizeof(Fraig_Params_t) );
-    pParams->nPatsRand  = nWordsMin * 32; // the number of words of random simulation info
-    pParams->nPatsDyna  = nWordsMin * 32; // the number of words of dynamic simulation info
-    pParams->nBTLimit   = 10;             // the max number of backtracks to perform at a node
-    pParams->nSeconds   = mng->nSeconds;  // the time out for the final proof
-    pParams->fFuncRed   = mng->mode;      // performs only one level hashing
-    pParams->fFeedBack  = 1;              // enables solver feedback
-    pParams->fDist1Pats = 1;              // enables distance-1 patterns
-    pParams->fDoSparse  = 0;              // performs equiv tests for sparse functions 
-    pParams->fChoicing  = 0;              // enables recording structural choices
-    pParams->fTryProve  = 1;              // tries to solve the final miter
-    pParams->fVerbose   = 0;              // the verbosiness flag
-    pParams->fVerboseP  = 0;              // the verbosiness flag for proof reporting
 }
 
 /**Function*************************************************************
@@ -511,78 +526,35 @@ void ABC_AnalyzeTargets( ABC_Manager mng )
   SeeAlso     []
 
 ***********************************************************************/
-enum ABC_StatusT ABC_Solve( ABC_Manager mng )
+enum CSAT_StatusT ABC_Solve( ABC_Manager mng )
 {
-    Fraig_Man_t * pMan;
-    Abc_Ntk_t * pCnf;
-    int * pModel;
     int RetValue, i;
 
     // check if the target network is available
     if ( mng->pTarget == NULL )
         { printf( "ABC_Solve: Target network is not derived by ABC_SolveInit().\n" ); return UNDETERMINED; }
 
-    // optimizations of the target go here
-    // for example, to enable one pass of rewriting, uncomment this line
-//    Abc_NtkRewrite( mng->pTarget, 0, 1, 0 );
+    // try to prove the miter using a number of techniques
+    RetValue = Abc_NtkMiterProve( &mng->pTarget, mng->nConfLimit, mng->nImpLimit, 1, 1, 0 );
 
-    if ( mng->mode == 0 ) // brute-force SAT
+    // analyze the result
+    mng->pResult = ABC_TargetResAlloc( Abc_NtkCiNum(mng->pTarget) );
+    if ( RetValue == -1 )
+        mng->pResult->status = UNDETERMINED;
+    else if ( RetValue == 1 )
+        mng->pResult->status = UNSATISFIABLE;
+    else if ( RetValue == 0 )
     {
-        // transform the AIG into a logic network for efficient CNF construction
-        pCnf = Abc_NtkRenode( mng->pTarget, 0, 100, 1, 0, 0 );
-        RetValue = Abc_NtkMiterSat( pCnf, mng->nSeconds, 0 );
-
-        // analyze the result
-        mng->pResult = ABC_TargetResAlloc( Abc_NtkCiNum(mng->pTarget) );
-        if ( RetValue == -1 )
-            mng->pResult->status = UNDETERMINED;
-        else if ( RetValue == 1 )
-            mng->pResult->status = UNSATISFIABLE;
-        else if ( RetValue == 0 )
+        mng->pResult->status = SATISFIABLE;
+        // create the array of PI names and values
+        for ( i = 0; i < mng->pResult->no_sig; i++ )
         {
-            mng->pResult->status = SATISFIABLE;
-            // create the array of PI names and values
-            for ( i = 0; i < mng->pResult->no_sig; i++ )
-            {
-                mng->pResult->names[i] = ABC_GetNodeName(mng, Abc_NtkCi(mng->pNtk, i)); // returns the same string that was given
-                mng->pResult->values[i] = pCnf->pModel[i];
-            }
-            FREE( mng->pTarget->pModel );
+            mng->pResult->names[i]  = Extra_UtilStrsav( ABC_GetNodeName(mng, Abc_NtkCi(mng->pNtk, i)) ); 
+            mng->pResult->values[i] = mng->pTarget->pModel[i];
         }
-        else assert( 0 );
-        Abc_NtkDelete( pCnf );
+        FREE( mng->pTarget->pModel );
     }
-    else if ( mng->mode == 1 ) // resource-aware fraiging
-    {
-        // transform the target into a fraig
-        pMan = Abc_NtkToFraig( mng->pTarget, &mng->Params, 0, 0 ); 
-        Fraig_ManProveMiter( pMan );
-        RetValue = Fraig_ManCheckMiter( pMan );
-
-        // analyze the result
-        mng->pResult = ABC_TargetResAlloc( Abc_NtkCiNum(mng->pTarget) );
-        if ( RetValue == -1 )
-            mng->pResult->status = UNDETERMINED;
-        else if ( RetValue == 1 )
-            mng->pResult->status = UNSATISFIABLE;
-        else if ( RetValue == 0 )
-        {
-            mng->pResult->status = SATISFIABLE;
-            pModel = Fraig_ManReadModel( pMan );
-            assert( pModel != NULL );
-            // create the array of PI names and values
-            for ( i = 0; i < mng->pResult->no_sig; i++ )
-            {
-                mng->pResult->names[i] = ABC_GetNodeName(mng, Abc_NtkCi(mng->pNtk, i)); // returns the same string that was given
-                mng->pResult->values[i] = pModel[i];
-            }
-        }
-        else assert( 0 );
-        // delete the fraig manager
-        Fraig_ManFree( pMan );
-    }
-    else
-        assert( 0 );
+    else assert( 0 );
 
     // delete the target
     Abc_NtkDelete( mng->pTarget );
@@ -602,7 +574,7 @@ enum ABC_StatusT ABC_Solve( ABC_Manager mng )
   SeeAlso     []
 
 ***********************************************************************/
-ABC_Target_ResultT * ABC_Get_Target_Result( ABC_Manager mng, int TargetID )
+CSAT_Target_ResultT * ABC_Get_Target_Result( ABC_Manager mng, int TargetID )
 {
     return mng->pResult;
 }
@@ -615,7 +587,7 @@ ABC_Target_ResultT * ABC_Get_Target_Result( ABC_Manager mng, int TargetID )
                
   SideEffects []
 
-  SeeAlso     []
+  SeeAlso     [] 
 
 ***********************************************************************/
 void ABC_Dump_Bench_File( ABC_Manager mng )
@@ -647,11 +619,11 @@ void ABC_Dump_Bench_File( ABC_Manager mng )
   SeeAlso     []
 
 ***********************************************************************/
-ABC_Target_ResultT * ABC_TargetResAlloc( int nVars )
+CSAT_Target_ResultT * ABC_TargetResAlloc( int nVars )
 {
-    ABC_Target_ResultT * p;
-    p = ALLOC( ABC_Target_ResultT, 1 );
-    memset( p, 0, sizeof(ABC_Target_ResultT) );
+    CSAT_Target_ResultT * p;
+    p = ALLOC( CSAT_Target_ResultT, 1 );
+    memset( p, 0, sizeof(CSAT_Target_ResultT) );
     p->no_sig = nVars;
     p->names = ALLOC( char *, nVars );
     p->values = ALLOC( int, nVars );
@@ -671,7 +643,7 @@ ABC_Target_ResultT * ABC_TargetResAlloc( int nVars )
   SeeAlso     []
 
 ***********************************************************************/
-void ABC_TargetResFree( ABC_Target_ResultT * p )
+void ABC_TargetResFree( CSAT_Target_ResultT * p )
 {
     if ( p == NULL )
         return;
@@ -699,100 +671,6 @@ char * ABC_GetNodeName( ABC_Manager mng, Abc_Obj_t * pNode )
         assert( 0 );
     }
     return pName;
-}
-
-
-
-/**Function*************************************************************
-
-  Synopsis    [This procedure applies a rewriting script to the network.]
-
-  Description [Rewriting is performed without regard for the number of 
-  logic levels. This corresponds to "circuit compression for formal 
-  verification" (Per Bjesse et al, ICCAD 2004) but implemented in a more 
-  exhaustive way than in the above paper.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void ABC_PerformRewriting( ABC_Manager mng )
-{
-    void * pAbc;
-    char Command[1000];
-    int clkBalan, clkResyn, clk;
-    int fPrintStats = 1;
-    int fUseResyn   = 1;
-
-    // procedures to get the ABC framework and execute commands in it
-    extern void * Abc_FrameGetGlobalFrame();
-    extern void Abc_FrameReplaceCurrentNetwork( void * p, Abc_Ntk_t * pNtk );
-    extern int  Cmd_CommandExecute( void * p, char * sCommand );
-    extern Abc_Ntk_t * Abc_FrameReadNtk( void * p );
-
-
-    // get the pointer to the ABC framework
-    pAbc = Abc_FrameGetGlobalFrame();
-    assert( pAbc != NULL );
-
-    // replace the current network by the target network
-    Abc_FrameReplaceCurrentNetwork( pAbc, mng->pTarget );
-
-clk = clock();
-    //////////////////////////////////////////////////////////////////////////
-    // balance
-    sprintf( Command, "balance" );
-    if ( Cmd_CommandExecute( pAbc, Command ) )
-    {
-        fprintf( stdout, "Cannot execute command \"%s\".\n", Command );
-        return;
-    }
-clkBalan = clock() - clk;
-
-    //////////////////////////////////////////////////////////////////////////
-    // print stats
-    if ( fPrintStats )
-    {
-        sprintf( Command, "print_stats" );
-        if ( Cmd_CommandExecute( pAbc, Command ) )
-        {
-            fprintf( stdout, "Cannot execute command \"%s\".\n", Command );
-            return;
-        }
-    }
-
-clk = clock();
-    //////////////////////////////////////////////////////////////////////////
-    // synthesize
-    if ( fUseResyn )
-    {
-        sprintf( Command, "balance; rewrite -l; rewrite -lz; balance; rewrite -lz; balance" );
-        if ( Cmd_CommandExecute( pAbc, Command ) )
-        {
-            fprintf( stdout, "Cannot execute command \"%s\".\n", Command );
-            return;
-        }
-    }
-clkResyn = clock() - clk;
-
-    //////////////////////////////////////////////////////////////////////////
-    // print stats
-    if ( fPrintStats )
-    {
-        sprintf( Command, "print_stats" );
-        if ( Cmd_CommandExecute( pAbc, Command ) )
-        {
-            fprintf( stdout, "Cannot execute command \"%s\".\n", Command );
-            return;
-        }
-    }
-    printf( "Balancing = %6.2f sec   ",   (float)(clkBalan)/(float)(CLOCKS_PER_SEC) );
-    printf( "Rewriting = %6.2f sec   ",   (float)(clkResyn)/(float)(CLOCKS_PER_SEC) );
-    printf( "\n" );
-
-    // read the target network from the current network
-    mng->pTarget = Abc_NtkDup( Abc_FrameReadNtk(pAbc) );
 }
 
 

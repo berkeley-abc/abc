@@ -30,7 +30,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 #define CUT_SIZE_MIN    3      // the min K of the K-feasible cut computation
-#define CUT_SIZE_MAX    8      // the max K of the K-feasible cut computation
+#define CUT_SIZE_MAX   12      // the max K of the K-feasible cut computation
 
 #define CUT_SHIFT       8      // the number of bits for storing latch number in the cut leaves
 #define CUT_MASK        0xFF   // the mask to get the stored latch number
@@ -55,7 +55,7 @@ struct Cut_ParamsStruct_t_
     int                fFilter;           // filter dominated cuts
     int                fSeq;              // compute sequential cuts
     int                fDrop;             // drop cuts on the fly
-    int                fMulti;            // compute cuts in multi-input AND gate graph
+    int                fMulti;            // compute factor-cuts
     int                fRecord;           // record the cut computation flow
     int                fVerbose;          // the verbosiness flag
 };
@@ -105,6 +105,7 @@ extern void             Cut_NodeFreeCuts( Cut_Man_t * p, int Node );
 /*=== cutCut.c ==========================================================*/
 extern void             Cut_CutPrint( Cut_Cut_t * pCut, int fSeq );
 extern void             Cut_CutPrintList( Cut_Cut_t * pList, int fSeq );
+extern int              Cut_CutCountList( Cut_Cut_t * pList );
 /*=== cutMan.c ==========================================================*/
 extern Cut_Man_t *      Cut_ManStart( Cut_Params_t * pParams );
 extern void             Cut_ManStop( Cut_Man_t * p );

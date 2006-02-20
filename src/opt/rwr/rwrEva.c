@@ -66,7 +66,7 @@ int Rwr_NodeRewrite( Rwr_Man_t * p, Cut_Man_t * pManCut, Abc_Obj_t * pNode, int 
     Required = fUpdateLevel? Abc_NodeReadRequiredLevel(pNode) : ABC_INFINITY;
     // get the node's cuts
 clk = clock();
-    pCut = (Cut_Cut_t *)Abc_NodeGetCutsRecursive( pManCut, pNode );
+    pCut = (Cut_Cut_t *)Abc_NodeGetCutsRecursive( pManCut, pNode, 0 );
     assert( pCut != NULL );
 p->timeCut += clock() - clk;
 
@@ -140,8 +140,9 @@ p->timeRes += clock() - clk;
         Dec_GraphNode(p->pGraph, i)->pFunc = pFanin;
 
     p->nScores[p->pMap[uTruthBest]]++;
-    p->nNodesRewritten++;
     p->nNodesGained += GainBest;
+    if ( fUseZeros || GainBest > 0 )
+        p->nNodesRewritten++;
 
     // report the progress
     if ( fVeryVerbose )
