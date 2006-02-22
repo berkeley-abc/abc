@@ -57,7 +57,7 @@ int Rwr_NodeRewrite( Rwr_Man_t * p, Cut_Man_t * pManCut, Abc_Obj_t * pNode, int 
     Abc_Obj_t * pFanin;
     unsigned uPhase, uTruthBest, uTruth;
     char * pPerm;
-    int Required, nNodesSaved;
+    int Required, nNodesSaved, nNodesSaveCur;
     int i, GainCur, GainBest = -1;
     int clk, clk2;
 
@@ -120,6 +120,7 @@ p->timeEval += clock() - clk2;
         if ( pGraph != NULL && GainBest < GainCur )
         {
             // save this form
+            nNodesSaveCur = nNodesSaved;
             GainBest  = GainCur;
             p->pGraph  = pGraph;
             p->fCompl = ((uPhase & (1<<4)) > 0);
@@ -145,12 +146,15 @@ p->timeRes += clock() - clk;
         p->nNodesRewritten++;
 
     // report the progress
-    if ( fVeryVerbose )
+    if ( fVeryVerbose && GainBest > 0 )
     {
         printf( "Node %6s :   ", Abc_ObjName(pNode) );
         printf( "Fanins = %d. ", p->vFanins->nSize );
-        printf( "Cone = %2d.  ", Dec_GraphNodeNum(p->pGraph) );
-        printf( "GAIN = %2d.  ", GainBest );
+        printf( "Save = %d.  ", nNodesSaveCur );
+        printf( "Add = %d.  ",  nNodesSaveCur-GainBest );
+        printf( "GAIN = %d.  ", GainBest );
+        printf( "Cone = %d.  ", p->pGraph? Dec_GraphNodeNum(p->pGraph) : 0 );
+        printf( "Class = %d.  ", p->pMap[uTruthBest] );
         printf( "\n" );
     }
     return GainBest;
@@ -197,6 +201,9 @@ Dec_Graph_t * Rwr_CutEvaluate( Rwr_Man_t * p, Abc_Obj_t * pRoot, Cut_Cut_t * pCu
         {
             GainBest   = nNodesSaved - nNodesAdded;
             pGraphBest = pGraphCur;
+
+//            if ( GainBest > 0 )
+//            printf( "%d %d  ", nNodesSaved, nNodesAdded );
         }
     }
     if ( GainBest == -1 )

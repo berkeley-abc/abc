@@ -767,7 +767,10 @@ int Fpga_CutCountAll( Fpga_Man_t * pMan )
         for ( pNode = pMan->pBins[i]; pNode; pNode = pNode->pNext )
             for ( pCut = pNode->pCuts; pCut; pCut = pCut->pNext )
                 if ( pCut->nLeaves > 1 ) // skip the elementary cuts
+                {
+//                    Fpga_CutVolume( pCut );
                     nCuts++;
+                }
     return nCuts;
 }
 

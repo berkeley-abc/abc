@@ -150,6 +150,10 @@ extern void ABC_ReleaseManager(ABC_Manager mng);
 // set solver options for learning
 extern void                  ABC_SetSolveOption(ABC_Manager mng, enum CSAT_OptionT option);
 
+// enable checking by brute-force SAT solver (MiniSat-1.14)
+extern void                  ABC_UseOnlyCoreSatSolver(ABC_Manager mng);
+
+
 // add a gate to the circuit
 // the meaning of the parameters are:
 // type: the type of the gate to be added

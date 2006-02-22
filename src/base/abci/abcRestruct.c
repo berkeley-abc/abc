@@ -27,6 +27,8 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
   
+#define RST_RANDOM_UNSIGNED   ((((unsigned)rand()) << 24) ^ (((unsigned)rand()) << 12) ^ ((unsigned)rand()))
+
 typedef struct Abc_ManRst_t_   Abc_ManRst_t;
 struct Abc_ManRst_t_
 {
@@ -43,6 +45,12 @@ struct Abc_ManRst_t_
     Vec_Ptr_t *      vVisited;          // temporary
     Vec_Ptr_t *      vLeaves;           // temporary
     Vec_Ptr_t *      vDecs;             // temporary
+    Vec_Ptr_t *      vTemp;             // temporary
+    Vec_Int_t *      vSims;             // temporary
+    Vec_Int_t *      vRands;            // temporary
+    Vec_Int_t *      vOnes;             // temporary
+    Vec_Int_t *      vBinate;           // temporary
+    Vec_Int_t *      vTwos;             // temporary
     // node statistics
     int              nLastGain;
     int              nCutsConsidered;
@@ -59,6 +67,8 @@ struct Abc_ManRst_t_
     int              timeNtk;
     int              timeTotal;
 };
+
+static Dec_Graph_t * Abc_NodeResubstitute( Abc_ManRst_t * p, Abc_Obj_t * pNode, Cut_Cut_t * pCutList );
 
 static Dec_Graph_t * Abc_NodeRestructure( Abc_ManRst_t * p, Abc_Obj_t * pNode, Cut_Cut_t * pCutList );
 static Dec_Graph_t * Abc_NodeRestructureCut( Abc_ManRst_t * p, Abc_Obj_t * pNode, Cut_Cut_t * pCut );
@@ -94,6 +104,7 @@ int Abc_NtkRestructure( Abc_Ntk_t * pNtk, int nCutMax, bool fUpdateLevel, bool f
     Abc_Obj_t * pNode;
     int clk, clkStart = clock();
     int fMulti = 1;
+    int fResub = 0;
     int i, nNodes;
 
     assert( Abc_NtkIsStrash(pNtk) );
@@ -136,12 +147,17 @@ pManRst->timeCut += clock() - clk;
 clk = clock();
         pCutList = Abc_NodeGetCutsRecursive( pManCut, pNode, fMulti ); 
 pManRst->timeCut += clock() - clk;
-        // evaluate these cuts
+
+        // perform restructuring
 clk = clock();
-        pGraph = Abc_NodeRestructure( pManRst, pNode, pCutList );
+        if ( fResub )
+            pGraph = Abc_NodeResubstitute( pManRst, pNode, pCutList );
+        else
+            pGraph = Abc_NodeRestructure( pManRst, pNode, pCutList );
 pManRst->timeRes += clock() - clk;
         if ( pGraph == NULL )
             continue;
+
         // acceptable replacement found, update the graph
 clk = clock();
         Dec_GraphUpdateNetwork( pNode, pGraph, fUpdateLevel, pManRst->nLastGain );
@@ -185,7 +201,7 @@ pManRst->timeTotal = clock() - clkStart;
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_RestructNodeDivisors( Abc_ManRst_t * p, Abc_Obj_t * pRoot )
+void Abc_RestructNodeDivisors( Abc_ManRst_t * p, Abc_Obj_t * pRoot, int nNodesSaved )
 {
     Abc_Obj_t * pNode, * pFanin, * pFanout;
     int i, k;
@@ -215,6 +231,7 @@ void Abc_RestructNodeDivisors( Abc_ManRst_t * p, Abc_Obj_t * pRoot )
     // unmark the nodes
     Vec_PtrForEachEntry( p->vDecs, pNode, i )
         pNode->fMarkC = 0;
+/*
     // print the nodes
     Vec_PtrForEachEntryStart( p->vDecs, pNode, i, Vec_PtrSize(p->vLeaves) )
     {
@@ -239,6 +256,8 @@ void Abc_RestructNodeDivisors( Abc_ManRst_t * p, Abc_Obj_t * pRoot )
         printf( "%s ", Abc_ObjFaninC1(pNode)? "\'" : "" );
         printf( "\n" );
     }
+*/
+    printf( "%d\n", Vec_PtrSize(p->vDecs)-nNodesSaved-Vec_PtrSize(p->vLeaves) );
 }
 
 
@@ -259,14 +278,14 @@ Dec_Graph_t * Abc_NodeRestructure( Abc_ManRst_t * p, Abc_Obj_t * pNode, Cut_Cut_
     Cut_Cut_t * pCut;
     int nCuts;
     p->nNodesConsidered++;
-
+/*
     // count the number of cuts with four inputs or more
     nCuts = 0;
     for ( pCut = pCutList; pCut; pCut = pCut->pNext )
         nCuts += (int)(pCut->nLeaves > 3);
     printf( "-----------------------------------\n" );
     printf( "Node %6d : Factor-cuts = %5d.\n", pNode->Id, nCuts );
-
+*/
     // go through the interesting cuts
     for ( pCut = pCutList; pCut; pCut = pCut->pNext )
     {
@@ -337,7 +356,6 @@ clk = clock();
     pNodeDsd = Dsd_DecomposeOne( p->pManDsd, bFunc );
 p->timeDsd += clock() - clk;
 
-
     // skip nodes with non-decomposable blocks
     Dsd_TreeNodeGetInfoOne( pNodeDsd, NULL, &nMaxSize );
     if ( nMaxSize > 3 )
@@ -345,6 +363,8 @@ p->timeDsd += clock() - clk;
         Cudd_RecursiveDeref( p->dd, bFunc );
         return NULL;
     }
+
+
 /*
     // skip nodes that cannot be improved
     if ( Vec_PtrSize(p->vVisited) <= Dsd_TreeGetAigCost(pNodeDsd) )
@@ -366,8 +386,15 @@ p->timeDsd += clock() - clk;
     // unmark the fanin boundary and set the fanins as leaves in the form
     Vec_PtrForEachEntry( p->vLeaves, pLeaf, i )
         pLeaf->vFanouts.nSize--;
+/*
+    if ( nNodesSaved < 3 )
+    {
+        Cudd_RecursiveDeref( p->dd, bFunc );
+        return NULL;
+    }
+*/
 
-
+/* 
     printf( "%5d : Cut-size = %d.  Old AIG = %2d.  New AIG = %2d.  Old MFFC = %2d.\n",
         pRoot->Id, pCut->nLeaves, Vec_PtrSize(p->vVisited), Dsd_TreeGetAigCost(pNodeDsd), 
         nNodesSaved );
@@ -379,29 +406,35 @@ p->timeDsd += clock() - clk;
     {
         int x = 0;
     }
+*/
+//    Abc_RestructNodeDivisors( p, pRoot, nNodesSaved );
+
 
     // detect how many new nodes will be added (while taking into account reused nodes)
 clk = clock();
-    pGraph = Abc_NodeEvaluateDsd( p, pNodeDsd, pRoot, Required, nNodesSaved, &nNodesAdded );
+    if ( nMaxSize > 3 )
+        pGraph = NULL;
+    else
+        pGraph = Abc_NodeEvaluateDsd( p, pNodeDsd, pRoot, Required, nNodesSaved, &nNodesAdded );
 //    pGraph = NULL;
 p->timeEval += clock() - clk;
 
     // quit if there is no improvement
-    if ( nNodesAdded == -1 || nNodesAdded == nNodesSaved && !p->fUseZeros )
+    if ( pGraph == NULL || nNodesAdded == -1 || nNodesAdded == nNodesSaved && !p->fUseZeros )
     {
         Cudd_RecursiveDeref( p->dd, bFunc );
         if ( pGraph ) Dec_GraphFree( pGraph );
         return NULL;
     }
 
-
+/*
     // print stats
     printf( "%5d : Cut-size = %d.  Old AIG = %2d.  New AIG = %2d.  Old MFFC = %2d.  New MFFC = %2d. Gain = %d.\n",
         pRoot->Id, pCut->nLeaves, Vec_PtrSize(p->vVisited), Dsd_TreeGetAigCost(pNodeDsd), 
         nNodesSaved, nNodesAdded, (nNodesAdded == -1)? 0 : nNodesSaved-nNodesAdded );
 //    Dsd_NodePrint( stdout, pNodeDsd );
 //    Dec_GraphPrint( stdout, pGraph, NULL, NULL );
-
+*/
 
     // compute the total gain in the number of nodes
     p->nLastGain = nNodesSaved - nNodesAdded;
@@ -892,7 +925,7 @@ Dec_Graph_t * Abc_NodeEvaluateDsd( Abc_ManRst_t * pManRst, Dsd_Node_t * pNodeDsd
         Dec_GraphFree( pGraph );
         return NULL;
     }
-    
+
     Dec_GraphSetRoot( pGraph, gEdge );
     return pGraph;
 }
@@ -967,6 +1000,18 @@ Abc_ManRst_t * Abc_NtkManRstStart( int nCutMax, bool fUpdateLevel, bool fUseZero
     p->vVisited     = Vec_PtrAlloc( 100 );
     p->vLeaves      = Vec_PtrAlloc( 100 );
     p->vDecs        = Vec_PtrAlloc( 100 );
+    p->vTemp        = Vec_PtrAlloc( 100 );
+    p->vSims        = Vec_IntAlloc( 100 );
+    p->vOnes        = Vec_IntAlloc( 100 );
+    p->vBinate      = Vec_IntAlloc( 100 );
+    p->vTwos        = Vec_IntAlloc( 100 );
+    p->vRands       = Vec_IntAlloc( 20 );
+    
+    {
+        int i;
+        for ( i = 0; i < 20; i++ )
+            Vec_IntPush( p->vRands, (int)RST_RANDOM_UNSIGNED );
+    }
     return p;
 }
 
@@ -988,6 +1033,12 @@ void Abc_NtkManRstStop( Abc_ManRst_t * p )
     Vec_PtrFree( p->vDecs );
     Vec_PtrFree( p->vLeaves );
     Vec_PtrFree( p->vVisited );
+    Vec_PtrFree( p->vTemp );
+    Vec_IntFree( p->vSims );
+    Vec_IntFree( p->vOnes );
+    Vec_IntFree( p->vBinate );
+    Vec_IntFree( p->vTwos );
+    Vec_IntFree( p->vRands );
     free( p );
 }
 
@@ -1017,6 +1068,415 @@ void Abc_NtkManRstPrintStats( Abc_ManRst_t * p )
     PRT( "    Eval   ", p->timeEval );
     PRT( "AIG update ", p->timeNtk );
     PRT( "TOTAL      ", p->timeTotal );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_Abc_NodeResubCollectDivs( Abc_ManRst_t * p, Abc_Obj_t * pRoot, Cut_Cut_t * pCut )
+{
+    Abc_Obj_t * pNode, * pFanout;
+    int i, k;
+    // collect the leaves of the cut
+    Vec_PtrClear( p->vDecs );
+    Abc_NtkIncrementTravId( pRoot->pNtk );
+    for ( i = 0; i < (int)pCut->nLeaves; i++ )
+    {
+        pNode = Abc_NtkObj(pRoot->pNtk, pCut->pLeaves[i]);
+        if ( pNode == NULL )  // the so-called "bad cut phenomenon" is due to removed nodes
+            return 0;
+        Vec_PtrPush( p->vDecs, pNode );
+        Abc_NodeSetTravIdCurrent( pNode );        
+    }
+    // explore the fanouts
+    Vec_PtrForEachEntry( p->vDecs, pNode, i )
+    {
+        // if the fanout has both fanins in the set, add it
+        Abc_ObjForEachFanout( pNode, pFanout, k )
+        {
+            if ( Abc_NodeIsTravIdCurrent(pFanout) || Abc_ObjIsPo(pFanout) )
+                continue;
+            if ( Abc_NodeIsTravIdCurrent(Abc_ObjFanin0(pFanout)) && Abc_NodeIsTravIdCurrent(Abc_ObjFanin1(pFanout)) )
+            {
+                Vec_PtrPush( p->vDecs, pFanout );
+                Abc_NodeSetTravIdCurrent( pFanout );     
+            }
+        }
+    }
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NodeResubMffc_rec( Abc_Obj_t * pNode )
+{
+    if ( Abc_NodeIsTravIdCurrent(pNode) )
+        return 0;
+    Abc_NodeSetTravIdCurrent( pNode ); 
+    return 1 + Abc_NodeResubMffc_rec( Abc_ObjFanin0(pNode) ) +
+        Abc_NodeResubMffc_rec( Abc_ObjFanin1(pNode) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NodeResubMffc( Abc_ManRst_t * p, Vec_Ptr_t * vDecs, int nLeaves, Abc_Obj_t * pRoot )
+{
+    Abc_Obj_t * pObj;
+    int Counter, i, k;
+    // increment the traversal ID for the leaves
+    Abc_NtkIncrementTravId( pRoot->pNtk );
+    // label the leaves
+    Vec_PtrForEachEntryStop( vDecs, pObj, i, nLeaves )
+        Abc_NodeSetTravIdCurrent( pObj ); 
+    // make sure the node is in the cone and is no one of the leaves
+    assert( Abc_NodeIsTravIdPrevious(pRoot) );
+    Counter = Abc_NodeResubMffc_rec( pRoot );
+    // move the labeled nodes to the end 
+    Vec_PtrClear( p->vTemp );
+    k = 0;
+    Vec_PtrForEachEntryStart( vDecs, pObj, i, nLeaves )
+        if ( Abc_NodeIsTravIdCurrent(pObj) )
+            Vec_PtrPush( p->vTemp, pObj );
+        else
+            Vec_PtrWriteEntry( vDecs, k++, pObj );
+    // add the labeled nodes
+    Vec_PtrForEachEntry( p->vTemp, pObj, i )
+        Vec_PtrWriteEntry( vDecs, k++, pObj );
+    assert( k == Vec_PtrSize(p->vDecs) );
+    assert( pRoot == Vec_PtrEntryLast(p->vDecs) );
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs simulation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NodeMffcSimulate( Vec_Ptr_t * vDecs, int nLeaves, Vec_Int_t * vRands, Vec_Int_t * vSims )
+{
+    Abc_Obj_t * pObj;
+    unsigned uData0, uData1, uData;
+    int i;
+    // initialize random simulation data
+    Vec_IntClear( vSims );
+    Vec_PtrForEachEntryStop( vDecs, pObj, i, nLeaves )
+    {
+        uData = (unsigned)Vec_IntEntry( vRands, i );
+        pObj->pData = (void *)uData;
+        Vec_IntPush( vSims, uData );
+    }
+    // simulate
+    Vec_PtrForEachEntryStart( vDecs, pObj, i, nLeaves )
+    {
+        uData0 = (unsigned)Abc_ObjFanin0(pObj)->pData;
+        uData1 = (unsigned)Abc_ObjFanin1(pObj)->pData;
+        uData = (Abc_ObjFaninC0(pObj)? ~uData0 : uData0) & (Abc_ObjFaninC1(pObj)? ~uData1 : uData1);
+        pObj->pData = (void *)uData;
+        Vec_IntPush( vSims, uData );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Full equality check.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NodeCheckFull( Abc_ManRst_t * p, Dec_Graph_t * pGraph )
+{
+    return 1;
+}
+/**Function*************************************************************
+
+  Synopsis    [Detect contants.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Dec_Graph_t * Abc_NodeMffcConstants( Abc_ManRst_t * p, Vec_Int_t * vSims )
+{
+    Dec_Graph_t * pGraph;
+    unsigned uRoot;
+    // get the root node
+    uRoot = (unsigned)Vec_IntEntryLast( vSims );
+    // get the graph if the node looks constant
+    if ( uRoot == 0 )
+        pGraph = Dec_GraphCreateConst0();
+    else if ( uRoot == ~(unsigned)0 )
+        pGraph = Dec_GraphCreateConst1();
+    // check the graph
+    if ( Abc_NodeCheckFull( p, pGraph ) )
+        return pGraph;
+    Dec_GraphFree( pGraph );
+    return NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Detect single non-overlaps.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Dec_Graph_t * Abc_NodeMffcSingleVar( Abc_ManRst_t * p, Vec_Int_t * vSims, int nNodes, Vec_Int_t * vOnes )
+{
+    Dec_Graph_t * pGraph;
+    unsigned uRoot, uNode;
+    int i;
+
+    Vec_IntClear( vOnes );
+    Vec_IntClear( p->vBinate );
+    uRoot = (unsigned)Vec_IntEntryLast( vSims );
+    for ( i = 0; i < nNodes; i++ )
+    {
+        uNode = (unsigned)Vec_IntEntry( vSims, i );
+        if ( uRoot == uNode || uRoot == ~uNode )
+        {
+            pGraph = Dec_GraphCreate( 1 );
+            Dec_GraphNode( pGraph, 0 )->pFunc = Vec_PtrEntry( p->vDecs, i );
+            Dec_GraphSetRoot( pGraph, Dec_IntToEdge( (int)(uRoot == ~uNode) ) );
+            // check the graph
+            if ( Abc_NodeCheckFull( p, pGraph ) )
+                return pGraph;
+            Dec_GraphFree( pGraph );
+        }
+        if ( (uRoot & uNode) == 0 )
+            Vec_IntPush( vOnes, i << 1 );
+        else if ( (uRoot & ~uNode) == 0 )
+            Vec_IntPush( vOnes, (i << 1) + 1 );
+        else
+            Vec_IntPush( p->vBinate, i );
+    }    
+    return NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Detect single non-overlaps.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Dec_Graph_t * Abc_NodeMffcSingleNode( Abc_ManRst_t * p, Vec_Int_t * vSims, int nNodes, Vec_Int_t * vOnes )
+{
+    Dec_Graph_t * pGraph;
+    Dec_Edge_t eNode0, eNode1, eRoot;
+    unsigned uRoot;
+    int i, k;
+    uRoot = (unsigned)Vec_IntEntryLast( vSims );
+    for ( i = 0; i < vOnes->nSize; i++ )
+        for ( k = i+1; k < vOnes->nSize; k++ )
+            if ( ~uRoot == ((unsigned)vOnes->pArray[i] | (unsigned)vOnes->pArray[k]) )
+            {
+                eNode0 = Dec_IntToEdge( vOnes->pArray[i] ^ 1 );
+                eNode1 = Dec_IntToEdge( vOnes->pArray[k] ^ 1 );
+                pGraph = Dec_GraphCreate( 2 );
+                Dec_GraphNode( pGraph, 0 )->pFunc = Vec_PtrEntry( p->vDecs, eNode0.Node );
+                Dec_GraphNode( pGraph, 1 )->pFunc = Vec_PtrEntry( p->vDecs, eNode1.Node );
+                eRoot = Dec_GraphAddNodeAnd( pGraph, eNode0, eNode1 );
+                Dec_GraphSetRoot( pGraph, eRoot );
+                if ( Abc_NodeCheckFull( p, pGraph ) )
+                    return pGraph;
+                Dec_GraphFree( pGraph );
+            }
+    return NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Detect single non-overlaps.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Dec_Graph_t * Abc_NodeMffcDoubleNode( Abc_ManRst_t * p, Vec_Int_t * vSims, int nNodes, Vec_Int_t * vOnes )
+{
+    Dec_Graph_t * pGraph;
+    unsigned uRoot, uNode;
+    int i;
+
+
+    return NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Evaluates resubstution of one cut.]
+
+  Description [Returns the graph to add if any.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Dec_Graph_t * Abc_NodeResubEval( Abc_ManRst_t * p, Abc_Obj_t * pRoot, Cut_Cut_t * pCut )
+{
+    Dec_Graph_t * pGraph;
+    int nNodesSaved;
+
+    // collect the nodes in the cut
+    if ( !Abc_Abc_NodeResubCollectDivs( p, pRoot, pCut ) )
+        return NULL;
+
+    // label MFFC and count its size
+    nNodesSaved = Abc_NodeResubMffc( p, p->vDecs, pCut->nLeaves, pRoot );
+    assert( nNodesSaved > 0 );
+
+    // simulate MFFC
+    Abc_NodeMffcSimulate( p->vDecs, pCut->nLeaves, p->vRands, p->vSims );
+
+    // check for constant output
+    pGraph = Abc_NodeMffcConstants( p, p->vSims );
+    if ( pGraph )
+    {
+        p->nNodesGained += nNodesSaved;
+        p->nNodesRestructured++;
+        return pGraph;
+    }
+
+    // check for one literal (fill up the ones array)
+    pGraph = Abc_NodeMffcSingleVar( p, p->vSims, Vec_IntSize(p->vSims) - nNodesSaved, p->vOnes );
+    if ( pGraph )
+    {
+        p->nNodesGained += nNodesSaved;
+        p->nNodesRestructured++;
+        return pGraph;
+    }
+    if ( nNodesSaved == 1 )
+        return NULL;
+
+    // look for one node
+    pGraph = Abc_NodeMffcSingleNode( p, p->vSims, Vec_IntSize(p->vSims) - nNodesSaved, p->vOnes );
+    if ( pGraph )
+    {
+        p->nNodesGained += nNodesSaved - 1;
+        p->nNodesRestructured++;
+        return pGraph;
+    }
+    if ( nNodesSaved == 2 )
+        return NULL;
+
+    // look for two nodes
+    pGraph = Abc_NodeMffcDoubleNode( p, p->vSims, Vec_IntSize(p->vSims) - nNodesSaved, p->vOnes );
+    if ( pGraph )
+    {
+        p->nNodesGained += nNodesSaved - 2;
+        p->nNodesRestructured++;
+        return pGraph;
+    }
+    if ( nNodesSaved == 3 )
+        return NULL;
+/*
+    // look for MUX/EXOR
+    pGraph = Abc_NodeMffcMuxNode( p, p->vSims, Vec_IntSize(p->vSims) - nNodesSaved );
+    if ( pGraph )
+    {
+        p->nNodesGained += nNodesSaved - 1;
+        p->nNodesRestructured++;
+        return pGraph;
+    }
+*/
+    return NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs resubstution.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Dec_Graph_t * Abc_NodeResubstitute( Abc_ManRst_t * p, Abc_Obj_t * pNode, Cut_Cut_t * pCutList )
+{
+    Dec_Graph_t * pGraph, * pGraphBest = NULL;
+    Cut_Cut_t * pCut;
+    int nCuts;
+    p->nNodesConsidered++;
+
+    // count the number of cuts with four inputs or more
+    nCuts = 0;
+    for ( pCut = pCutList; pCut; pCut = pCut->pNext )
+        nCuts += (int)(pCut->nLeaves > 3);
+    printf( "-----------------------------------\n" );
+    printf( "Node %6d : Factor-cuts = %5d.\n", pNode->Id, nCuts );
+
+    // go through the interesting cuts
+    for ( pCut = pCutList; pCut; pCut = pCut->pNext )
+    {
+        if ( pCut->nLeaves < 4 )
+            continue;
+        pGraph = Abc_NodeResubEval( p, pNode, pCut );
+        if ( pGraph == NULL )
+            continue;
+        if ( !pGraphBest || Dec_GraphNodeNum(pGraph) < Dec_GraphNodeNum(pGraphBest) )
+        {
+            if ( pGraphBest ) 
+                Dec_GraphFree(pGraphBest);
+            pGraphBest = pGraph;
+        }
+        else
+            Dec_GraphFree(pGraph);
+    }
+    return pGraphBest;
 }
 
 ////////////////////////////////////////////////////////////////////////

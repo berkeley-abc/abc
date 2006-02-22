@@ -37,16 +37,15 @@ struct ABC_ManagerStruct_t
     char *                pDumpFileName; // the name of the file to dump the target network
     Extra_MmFlex_t *      pMmNames;      // memory manager for signal names
     // solving parameters
-    int                   mode;          // 0 = brute-force SAT;  1 = resource-aware FRAIG
+    int                   mode;          // 0 = resource-aware integration; 1 = brute-force SAT
     int                   nConfLimit;    // time limit for pure SAT solving
     int                   nImpLimit;     // time limit for pure SAT solving
-//    Fraig_Params_t        Params;        // the set of parameters to call FRAIG package
     // information about the target 
     int                   nog;           // the numbers of gates in the target
     Vec_Ptr_t *           vNodes;        // the gates in the target
     Vec_Int_t *           vValues;       // the values of gate's outputs in the target
     // solution
-    CSAT_Target_ResultT *  pResult;       // the result of solving the target
+    CSAT_Target_ResultT * pResult;       // the result of solving the target
 };
 
 static CSAT_Target_ResultT * ABC_TargetResAlloc( int nVars );
@@ -89,6 +88,7 @@ ABC_Manager ABC_InitManager()
     mng->vValues    = Vec_IntAlloc( 100 );
     mng->nConfLimit = ABC_DEFAULT_CONF_LIMIT;
     mng->nImpLimit  = ABC_DEFAULT_IMP_LIMIT;
+    mng->mode       = 0; // set "resource-aware integration" as the default mode
     return mng;
 }
 
@@ -121,7 +121,7 @@ void ABC_ReleaseManager( ABC_Manager mng )
 
   Synopsis    [Sets solver options for learning.]
 
-  Description [0 = brute-force SAT;  1 = resource-aware FRAIG.]
+  Description []
                
   SideEffects []
 
@@ -130,15 +130,23 @@ void ABC_ReleaseManager( ABC_Manager mng )
 ***********************************************************************/
 void ABC_SetSolveOption( ABC_Manager mng, enum CSAT_OptionT option )
 {
-    mng->mode = option;
-    if ( option == 0 )
-        printf( "ABC_SetSolveOption: Setting brute-force SAT mode.\n" );
-    else if ( option == 1 )
-        printf( "ABC_SetSolveOption: Setting resource-aware FRAIG mode.\n" );
-    else
-        printf( "ABC_SetSolveOption: Unknown solving mode.\n" );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Sets solving mode by brute-force SAT.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void ABC_UseOnlyCoreSatSolver( ABC_Manager mng )
+{
+    mng->mode = 1;  // switch to "brute-force SAT" as the solving option
+}
 
 /**Function*************************************************************
 
@@ -535,7 +543,10 @@ enum CSAT_StatusT ABC_Solve( ABC_Manager mng )
         { printf( "ABC_Solve: Target network is not derived by ABC_SolveInit().\n" ); return UNDETERMINED; }
 
     // try to prove the miter using a number of techniques
-    RetValue = Abc_NtkMiterProve( &mng->pTarget, mng->nConfLimit, mng->nImpLimit, 1, 1, 0 );
+    if ( mng->mode )
+        RetValue = Abc_NtkMiterSat( mng->pTarget, mng->nConfLimit, mng->nImpLimit, 0 );
+    else
+        RetValue = Abc_NtkMiterProve( &mng->pTarget, mng->nConfLimit, mng->nImpLimit, 1, 1, 0 );
 
     // analyze the result
     mng->pResult = ABC_TargetResAlloc( Abc_NtkCiNum(mng->pTarget) );

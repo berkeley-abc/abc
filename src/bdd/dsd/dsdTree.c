@@ -904,6 +904,15 @@ void Dsd_NodePrint_rec( FILE * pFile, Dsd_Node_t * pNode, int fComp, char * pOut
                 fprintf( pFile, "\'" );
         }
         fprintf( pFile, " )\n" );
+/*
+        fprintf( pFile, " )  " );  
+        {
+            DdNode * bLocal;
+            bLocal = Dsd_TreeGetPrimeFunction( dd, pNodeDsd );  Cudd_Ref( bLocal );
+            Extra_bddPrint( dd, bLocal );
+            Cudd_RecursiveDeref( dd, bLocal );
+        }
+*/
         // call recursively for the following blocks
         for ( i = 0; i < pNode->nDecs; i++ )
             if ( pInputNums[i] )

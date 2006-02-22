@@ -126,8 +126,8 @@ void Abc_NtkAutoPrintAll( DdManager * dd, int nInputs, DdNode * pbOutputs[], int
     SigCounter = 0;
     for ( o = 0; o < nOutputs; o++ )
     {
-        bSpace1  = Extra_bddSpaceFromFunctionFast( dd, pbOutputs[o] );           Cudd_Ref( bSpace1 );
-//        bSpace1  = Extra_bddSpaceFromFunction( dd, pbOutputs[o], pbOutputs[o] ); Cudd_Ref( bSpace1 );
+//        bSpace1  = Extra_bddSpaceFromFunctionFast( dd, pbOutputs[o] );           Cudd_Ref( bSpace1 );
+        bSpace1  = Extra_bddSpaceFromFunction( dd, pbOutputs[o], pbOutputs[o] ); Cudd_Ref( bSpace1 );
         bCanVars = Extra_bddSpaceCanonVars( dd, bSpace1 );                       Cudd_Ref( bCanVars );
         bReduced = Extra_bddSpaceReduce( dd, pbOutputs[o], bCanVars );           Cudd_Ref( bReduced );
         zEquations = Extra_bddSpaceEquations( dd, bSpace1 );                     Cudd_Ref( zEquations );

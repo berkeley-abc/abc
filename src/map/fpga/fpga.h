@@ -147,6 +147,7 @@ extern float           Fpga_LutLibReadLutArea( Fpga_LutLib_t * p, int Size );
 extern float           Fpga_LutLibReadLutDelay( Fpga_LutLib_t * p, int Size );
 /*=== fpgaTruth.c =============================================================*/
 extern void *          Fpga_TruthsCutBdd( void * dd, Fpga_Cut_t * pCut );
+extern int             Fpga_CutVolume( Fpga_Cut_t * pCut );
 /*=== fpgaUtil.c =============================================================*/
 extern int             Fpga_ManCheckConsistency( Fpga_Man_t * p );
 extern void            Fpga_ManCleanData0( Fpga_Man_t * pMan );
