@@ -53,7 +53,7 @@ void Io_WriteBlifLogic( Abc_Ntk_t * pNtk, char * FileName, int fWriteLatches )
 {
     Abc_Ntk_t * pNtkTemp;
     // derive the netlist
-    pNtkTemp = Abc_NtkLogicToNetlist(pNtk);
+    pNtkTemp = Abc_NtkLogicToNetlist(pNtk,0);
     if ( pNtkTemp == NULL )
     {
         fprintf( stdout, "Writing BLIF has failed.\n" );

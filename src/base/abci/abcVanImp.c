@@ -870,7 +870,7 @@ Abc_Ntk_t * Abc_NtkVanImpDeriveExdc( Abc_Ntk_t * pNtk, Vec_Ptr_t * vZeros, Vec_I
 {
     Abc_Ntk_t * pNtkNew; 
     Vec_Ptr_t * vCone;
-    Abc_Obj_t * pObj, * pMiter, * pTotal, * pNode, * pNode1, * pNode2;
+    Abc_Obj_t * pObj, * pMiter, * pTotal, * pNode, * pNode1, * pNode2, * pObjNew;
     unsigned Imp;
     int i, k;
 
@@ -942,6 +942,29 @@ Abc_Ntk_t * Abc_NtkVanImpDeriveExdc( Abc_Ntk_t * pNtk, Vec_Ptr_t * vZeros, Vec_I
         pMiter = Abc_AigAnd( pNtkNew->pManFunc, pNode1->pCopy, Abc_ObjNot(pNode2->pCopy) );
         pTotal = Abc_AigOr( pNtkNew->pManFunc, pTotal, pMiter );
     }
+/*
+    // create the only PO
+    pObjNew = Abc_NtkCreatePo( pNtkNew );
+    // add the PO name
+    Abc_NtkLogicStoreName( pObjNew, "DC" );
+    // add the PO
+    Abc_ObjAddFanin( pObjNew, pTotal );
+
+    // quontify the PIs existentially
+    pNtkNew = Abc_NtkMiterQuantifyPis( pNtkNew );
+
+    // get the new PO
+    pObjNew = Abc_NtkPo( pNtkNew, 0 );
+    // remember the miter output
+    pTotal = Abc_ObjChild0( pObjNew );
+    // remove the PO
+    Abc_NtkDeleteObj( pObjNew );
+
+    // make the old network point to the new things
+    Abc_NtkConst1(pNtk)->pCopy = Abc_NtkConst1(pNtkNew);
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        pObj->pCopy = Abc_NtkPi( pNtkNew, i );
+*/
 
     // for each CO, create PO (skip POs equal to CIs because of name conflict)
     Abc_NtkForEachPo( pNtk, pObj, i )

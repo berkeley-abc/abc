@@ -54,7 +54,7 @@ void Abc_NtkEspresso( Abc_Ntk_t * pNtk, int fVerbose )
     if ( Abc_NtkHasMapping(pNtk) )
         Abc_NtkUnmap(pNtk);
     else if ( Abc_NtkHasBdd(pNtk) )
-        Abc_NtkBddToSop(pNtk);
+        Abc_NtkBddToSop(pNtk, 0);
     // minimize SOPs of all nodes
     Abc_NtkForEachNode( pNtk, pNode, i )
         if ( i ) Abc_NodeEspresso( pNode );

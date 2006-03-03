@@ -19,6 +19,10 @@
 #ifndef __REO_H__
 #define __REO_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "extra.h"
@@ -215,8 +219,12 @@ extern DdNode *   Extra_ReorderCudd( DdManager * dd, DdNode * aFunc, int pPermut
 extern int        Extra_bddReorderTest( DdManager * dd, DdNode * bF ); 
 extern int        Extra_addReorderTest( DdManager * dd, DdNode * aF ); 
 
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                         END OF FILE                              ///
 ////////////////////////////////////////////////////////////////////////
-
-#endif

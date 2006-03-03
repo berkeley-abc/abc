@@ -47,7 +47,8 @@
 extern DdNode * Parse_FormulaParser( FILE * pOutput, char * pFormula, int nVars, int nRanks, 
       char * ppVarNames[], DdManager * dd, DdNode * pbVars[] );
 
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-#endif

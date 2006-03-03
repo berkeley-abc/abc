@@ -21,6 +21,10 @@
 #ifndef __PGA_H__
 #define __PGA_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -64,9 +68,13 @@ extern Vec_Ptr_t *   Pga_DoMapping( Pga_Man_t * p );
 extern Pga_Man_t *   Pga_ManStart( Pga_Params_t * pParams );
 extern void          Pga_ManStop( Pga_Man_t * p );
 
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
-#endif
 

@@ -21,6 +21,10 @@
 #ifndef __SIM_H__
 #define __SIM_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
     The ideas realized in this package are described in the paper:
     "Detecting Symmetries in Boolean Functions using Circuit Representation, 
@@ -217,9 +221,13 @@ extern int             Sim_UtilCountAllPairs( Vec_Ptr_t * vSuppFun, int nSimWord
 extern void            Sim_UtilCountPairsAll( Sym_Man_t * p );
 extern int             Sim_UtilMatrsAreDisjoint( Sym_Man_t * p );
 
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
-#endif
 

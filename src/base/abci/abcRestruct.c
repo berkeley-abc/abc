@@ -332,9 +332,15 @@ Dec_Graph_t * Abc_NodeRestructureCut( Abc_ManRst_t * p, Abc_Obj_t * pRoot, Cut_C
             return NULL;
         Vec_PtrPush( p->vLeaves, pLeaf );
     }
+
+    if ( pRoot->Id == 29 )
+    {
+        int x = 0;
+    }
+
 clk = clock();
     // collect the internal nodes of the cut
-    Abc_NodeConeCollect( &pRoot, 1, p->vLeaves, p->vVisited, 0 );
+//    Abc_NodeConeCollect( &pRoot, 1, p->vLeaves, p->vVisited, 0 );
     // derive the BDD of the cut
     bFunc = Abc_NodeConeBdd( p->dd, p->dd->vars, pRoot, p->vLeaves, p->vVisited );  Cudd_Ref( bFunc );
 p->timeBdd += clock() - clk;

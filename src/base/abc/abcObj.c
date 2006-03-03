@@ -227,7 +227,18 @@ void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
     {
         pNtk->nLatches--;
     }
-    else 
+    else if ( Abc_ObjIsPo(pObj) )
+    {
+        assert( Abc_NtkPoNum(pObj->pNtk) == 1 );
+        Vec_PtrRemove( pObj->pNtk->vCos, pObj );
+        pObj->pNtk->nPos--;
+        // add the name to the table
+        if ( !stmm_delete( pObj->pNtk->tObj2Name, (char **)&pObj, NULL ) )
+        {
+            assert( 0 ); // the PO is not in the table
+        }
+    }
+    else
         assert( 0 );
     // recycle the net itself
     Abc_ObjRecycle( pObj );

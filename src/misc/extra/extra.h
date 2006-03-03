@@ -29,6 +29,10 @@
 #ifndef __EXTRA_H__
 #define __EXTRA_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef _WIN32
 #define inline __inline // compatible with MS VS 6.0
 #endif
@@ -433,5 +437,9 @@ extern char *      globalUtilOptarg;
 extern int         globalUtilOptind;
 
 /**AutomaticEnd***************************************************************/
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __EXTRA_H__ */

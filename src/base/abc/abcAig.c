@@ -295,6 +295,7 @@ Abc_Obj_t * Abc_AigAndCreate( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 )
     // create the cuts if defined
 //    if ( pAnd->pNtk->pManCut )
 //        Abc_NodeGetCuts( pAnd->pNtk->pManCut, pAnd );
+    pAnd->pCopy = NULL;
     return pAnd;
 }
 
@@ -331,6 +332,7 @@ Abc_Obj_t * Abc_AigAndCreateFrom( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * 
     // create the cuts if defined
 //    if ( pAnd->pNtk->pManCut )
 //        Abc_NodeGetCuts( pAnd->pNtk->pManCut, pAnd );
+    pAnd->pCopy = NULL;
     return pAnd;
 }
 

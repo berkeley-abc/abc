@@ -51,7 +51,7 @@ void Abc_NtkAutoPrint( Abc_Ntk_t * pNtk, int Output, int fNaive, int fVerbose )
     int nOutputs, nInputs, i;
 
     // compute the global BDDs
-    if ( Abc_NtkGlobalBdds(pNtk, 0) == NULL )
+    if ( Abc_NtkGlobalBdds(pNtk, 10000000, 0) == NULL )
         return;
 
     // get information about the network

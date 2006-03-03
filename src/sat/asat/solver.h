@@ -22,6 +22,10 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #ifndef solver_h
 #define solver_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef _WIN32
 #define inline __inline // compatible with MS VS 6.0
 #endif
@@ -141,5 +145,9 @@ struct solver_t
 
     stats    solver_stats;
 };
+ 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -83,9 +83,9 @@ extern void         Dsd_TreeNodeDelete( DdManager * dd, Dsd_Node_t * pNode );
 extern void         Dsd_TreeUnmark( Dsd_Manager_t * dMan );
 extern DdNode *     Dsd_TreeGetPrimeFunctionOld( DdManager * dd, Dsd_Node_t * pNode, int fRemap );
 
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                           END OF FILE                            ///
 ////////////////////////////////////////////////////////////////////////
 
-
-#endif

@@ -489,18 +489,20 @@ void Abc_NodeConeMarkCollect_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vVisited )
   SeeAlso     []
 
 ***********************************************************************/
-DdNode * Abc_NodeConeBdd( DdManager * dd, DdNode ** pbVars, Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vVisited )
+DdNode * Abc_NodeConeBdd( DdManager * dd, DdNode ** pbVars, Abc_Obj_t * pRoot, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vVisited )
 {
+    Abc_Obj_t * pNode;
     DdNode * bFunc0, * bFunc1, * bFunc;
     int i;
     // get the nodes in the cut without fanins in the DFS order
-    Abc_NodeConeCollect( &pNode, 1, vLeaves, vVisited, 0 );
+    Abc_NodeConeCollect( &pRoot, 1, vLeaves, vVisited, 0 );
     // set the elementary BDDs
     Vec_PtrForEachEntry( vLeaves, pNode, i )
         pNode->pCopy = (Abc_Obj_t *)pbVars[i];
     // compute the BDDs for the collected nodes
     Vec_PtrForEachEntry( vVisited, pNode, i )
     {
+        assert( !Abc_ObjIsPi(pNode) );
         bFunc0 = Cudd_NotCond( Abc_ObjFanin0(pNode)->pCopy, Abc_ObjFaninC0(pNode) );
         bFunc1 = Cudd_NotCond( Abc_ObjFanin1(pNode)->pCopy, Abc_ObjFaninC1(pNode) );
         bFunc  = Cudd_bddAnd( dd, bFunc0, bFunc1 );    Cudd_Ref( bFunc );

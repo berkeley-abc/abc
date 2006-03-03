@@ -21,6 +21,10 @@
 #ifndef __ABC_H__
 #define __ABC_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -435,7 +439,7 @@ extern bool               Abc_NtkDoCheck( Abc_Ntk_t * pNtk );
 extern bool               Abc_NtkCheckObj( Abc_Ntk_t * pNtk, Abc_Obj_t * pObj );
 extern bool               Abc_NtkCompareSignals( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb );
 /*=== abcCollapse.c ==========================================================*/
-extern Abc_Ntk_t *        Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fVerbose );
+extern Abc_Ntk_t *        Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, int fVerbose );
 /*=== abcCut.c ==========================================================*/
 extern void *             Abc_NodeGetCutsRecursive( void * p, Abc_Obj_t * pObj, int fMulti );
 extern void *             Abc_NodeGetCuts( void * p, Abc_Obj_t * pObj, int fMulti );
@@ -471,7 +475,7 @@ extern void               Abc_NtkFraigStoreClean();
 extern int                Abc_NtkSopToBdd( Abc_Ntk_t * pNtk );
 extern DdNode *           Abc_ConvertSopToBdd( DdManager * dd, char * pSop );
 extern char *             Abc_ConvertBddToSop( Extra_MmFlex_t * pMan, DdManager * dd, DdNode * bFuncOn, DdNode * bFuncOnDc, int nFanins, Vec_Str_t * vCube, int fMode );
-extern int                Abc_NtkBddToSop( Abc_Ntk_t * pNtk );
+extern int                Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect );
 extern void               Abc_NodeBddToCnf( Abc_Obj_t * pNode, Extra_MmFlex_t * pMmMan, Vec_Str_t * vCube, char ** ppSop0, char ** ppSop1 );
 extern int                Abc_CountZddCubes( DdManager * dd, DdNode * zCover );
 extern void               Abc_NtkLogicMakeDirectSops( Abc_Ntk_t * pNtk );
@@ -528,6 +532,7 @@ extern char *             Abc_NtkLogicStoreName( Abc_Obj_t * pNodeNew, char * pN
 extern char *             Abc_NtkLogicStoreNamePlus( Abc_Obj_t * pNodeNew, char * pNameOld, char * pSuffix );
 extern void               Abc_NtkCreateCioNamesTable( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkDupCioNamesTable( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
+extern void               Abc_NtkDupCioNamesTableDual( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
 extern Vec_Ptr_t *        Abc_NodeGetFaninNames( Abc_Obj_t * pNode );
 extern Vec_Ptr_t *        Abc_NodeGetFakeNames( int nNames );
 extern void               Abc_NodeFreeNames( Vec_Ptr_t * vNames );
@@ -541,7 +546,7 @@ extern void               Abc_NtkShortNames( Abc_Ntk_t * pNtk );
 extern stmm_table *       Abc_NtkNamesToTable( Vec_Ptr_t * vNodes );
 /*=== abcNetlist.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkNetlistToLogic( Abc_Ntk_t * pNtk );
-extern Abc_Ntk_t *        Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk );
+extern Abc_Ntk_t *        Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk, int fDirect );
 extern Abc_Ntk_t *        Abc_NtkLogicToNetlistBench( Abc_Ntk_t * pNtk );
 extern Abc_Ntk_t *        Abc_NtkLogicSopToNetlist( Abc_Ntk_t * pNtk );
 extern Abc_Ntk_t *        Abc_NtkAigToLogicSop( Abc_Ntk_t * pNtk );
@@ -549,12 +554,12 @@ extern Abc_Ntk_t *        Abc_NtkAigToLogicSopBench( Abc_Ntk_t * pNtk );
 /*=== abcNtbdd.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkDeriveFromBdd( DdManager * dd, DdNode * bFunc, char * pNamePo, Vec_Ptr_t * vNamesPi );
 extern Abc_Ntk_t *        Abc_NtkBddToMuxes( Abc_Ntk_t * pNtk );
-extern DdManager *        Abc_NtkGlobalBdds( Abc_Ntk_t * pNtk, int fLatchOnly );
+extern DdManager *        Abc_NtkGlobalBdds( Abc_Ntk_t * pNtk, int fBddSizeMax, int fLatchOnly );
 extern void               Abc_NtkFreeGlobalBdds( Abc_Ntk_t * pNtk );
 /*=== abcNtk.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func );
 extern Abc_Ntk_t *        Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_t Func );
-extern Abc_Ntk_t *        Abc_NtkStartFromSeq( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_t Func );
+extern Abc_Ntk_t *        Abc_NtkStartFromDual( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_t Func );
 extern void               Abc_NtkFinalize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
 extern void               Abc_NtkFinalizeRegular( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
 extern void               Abc_NtkFinalizeLatches( Abc_Ntk_t * pNtk );
@@ -599,7 +604,7 @@ extern void               Abc_NodeMffsConeSupp( Abc_Obj_t * pNode, Vec_Ptr_t * v
 extern int                Abc_NodeDeref_rec( Abc_Obj_t * pNode );
 extern int                Abc_NodeRef_rec( Abc_Obj_t * pNode );
 /*=== abcRenode.c ==========================================================*/
-extern Abc_Ntk_t *        Abc_NtkRenode( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax, int fCnf, int fMulti, int fSimple );
+extern Abc_Ntk_t *        Abc_NtkRenode( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax, int fCnf, int fMulti, int fSimple, int fFactor );
 extern DdNode *           Abc_NtkRenodeDeriveBdd( DdManager * dd, Abc_Obj_t * pNodeOld, Vec_Ptr_t * vFaninsOld );
 /*=== abcSat.c ==========================================================*/
 extern int                Abc_NtkMiterSat( Abc_Ntk_t * pNtk, int nConfLimit, int nImpLimit, int fVerbose );
@@ -698,10 +703,16 @@ extern Vec_Int_t *        Abc_NtkFanoutCounts( Abc_Ntk_t * pNtk );
 extern Vec_Ptr_t *        Abc_NtkCollectObjects( Abc_Ntk_t * pNtk );
 extern Vec_Int_t *        Abc_NtkGetCiIds( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkReassignIds( Abc_Ntk_t * pNtk );
+/*=== abcVerify.c ==========================================================*/
+extern int *              Abc_NtkVerifyGetCleanModel( Abc_Ntk_t * pNtk, int nFrames );
+extern int *              Abc_NtkVerifySimulatePattern( Abc_Ntk_t * pNtk, int * pModel );
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
-#endif
-

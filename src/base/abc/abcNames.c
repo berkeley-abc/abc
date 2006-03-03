@@ -290,6 +290,39 @@ void Abc_NtkDupCioNamesTable( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicates the name arrays.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkDupCioNamesTableDual( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
+{
+    Abc_Obj_t * pObj;
+    int i;
+    assert( Abc_NtkPiNum(pNtk) == Abc_NtkPiNum(pNtkNew) );
+    assert( Abc_NtkPoNum(pNtk) * 2 == Abc_NtkPoNum(pNtkNew) );
+    assert( Abc_NtkLatchNum(pNtk) == Abc_NtkLatchNum(pNtkNew) );
+    assert( st_count(pNtk->tObj2Name) > 0 );
+    assert( st_count(pNtkNew->tObj2Name) == 0 );
+    // copy the CI/CO names if given
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        Abc_NtkLogicStoreName( Abc_NtkPi(pNtkNew,i),    Abc_ObjName(pObj) );
+    Abc_NtkForEachPo( pNtk, pObj, i ) 
+    {
+        Abc_NtkLogicStoreNamePlus( Abc_NtkPo(pNtkNew,2*i+0),    Abc_ObjName(pObj), "_pos" );
+        Abc_NtkLogicStoreNamePlus( Abc_NtkPo(pNtkNew,2*i+1),    Abc_ObjName(pObj), "_neg" );
+    }
+    if ( !Abc_NtkIsSeq(pNtk) )
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+        Abc_NtkLogicStoreName( Abc_NtkLatch(pNtkNew,i), Abc_ObjName(pObj) );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Gets fanin node names.]
 
   Description []

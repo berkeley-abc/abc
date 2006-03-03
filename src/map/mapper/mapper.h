@@ -19,6 +19,10 @@
 #ifndef __MAPPER_H__
 #define __MAPPER_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -180,7 +184,12 @@ extern void            Map_ManCleanData( Map_Man_t * p );
 extern void            Map_MappingSetupTruthTables( unsigned uTruths[][2] );
 extern void            Map_MappingSetupTruthTablesLarge( unsigned uTruths[][32] );
 
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-#endif

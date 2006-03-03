@@ -644,7 +644,7 @@ void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary )
 
     // transform logic functions from BDD to SOP
     if ( fHasBdds = Abc_NtkIsBddLogic(pNtk) )
-        Abc_NtkBddToSop(pNtk);
+        Abc_NtkBddToSop(pNtk, 0);
 
     // get hold of the SOP of the node
     CountConst = CountBuf = CountInv = CountAnd = CountOr = CountOther = CounterTotal = 0;

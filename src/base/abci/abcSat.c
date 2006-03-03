@@ -400,6 +400,10 @@ int Abc_NtkMiterSatCreateInt( solver * pSat, Abc_Ntk_t * pNtk )
 
     assert( Abc_NtkIsStrash(pNtk) );
 
+    // clean the CI node pointers
+    Abc_NtkForEachCi( pNtk, pNode, i )
+        pNode->pCopy = NULL;
+
     // start the data structures
     vNodes = Vec_PtrAlloc( 1000 );   // the nodes corresponding to vars in the solver
     vSuper = Vec_PtrAlloc( 100 );    // the nodes belonging to the given implication supergate

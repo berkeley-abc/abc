@@ -8,3 +8,8 @@ The following steps may be needed to compile it on UNIX:
 
 If compiling as a static library, it is necessary to uncomment
 #define _LIB in "src/abc/main/main.c"
+
+
+Several things to try if it does not compile on your platform:
+- Try running all code through dos2unix (Solaris)
+- Try removing flags from the libs line (LIBS :=) in Makefile (Mac)

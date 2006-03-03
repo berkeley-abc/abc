@@ -14,6 +14,10 @@
 #ifndef STMM_INCLUDED
 #define STMM_INCLUDED
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "extra.h"
 
 typedef struct stmm_table_entry stmm_table_entry;
@@ -115,5 +119,9 @@ EXTERN void stmm_clean ARGS ((stmm_table *));
 #define st_free_table  stmm_free_table
 
 */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* STMM_INCLUDED */

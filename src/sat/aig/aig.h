@@ -21,6 +21,10 @@
 #ifndef __AIG_H__
 #define __AIG_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
     AIG is an And-Inv Graph with structural hashing.
     It is always structurally hashed. It means that at any time:
@@ -358,10 +362,14 @@ extern void                Aig_PatternFill( Aig_Pattern_t * pPat );
 extern int                 Aig_PatternCount( Aig_Pattern_t * pPat );
 extern void                Aig_PatternRandom( Aig_Pattern_t * pPat );
 extern void                Aig_PatternFree( Aig_Pattern_t * pPat );
+ 
+#ifdef __cplusplus
+}
+#endif
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
-#endif
 

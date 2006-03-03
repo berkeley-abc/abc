@@ -57,41 +57,6 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
     extern void Abc_NtkBalanceDetach( Abc_Ntk_t * pNtk );
 
     assert( Abc_NtkIsStrash(pNtk) );
-/*
-    if ( pParams->fMulti )
-    {
-        Abc_Obj_t * pNode, * pNodeA, * pNodeB, * pNodeC;
-        int nFactors;
-        // lebel the nodes, which will be the roots of factor-cuts
-        // mark the multiple-fanout nodes
-        Abc_AigForEachAnd( pNtk, pNode, i )
-            if ( pNode->vFanouts.nSize > 1 )
-                pNode->fMarkB = 1;
-        // unmark the control inputs of MUXes and inputs of EXOR gates
-        Abc_AigForEachAnd( pNtk, pNode, i )
-        {
-            if ( !Abc_NodeIsMuxType(pNode) )
-                continue;
-
-            pNodeC = Abc_NodeRecognizeMux( pNode, &pNodeA, &pNodeB );
-            // if real children are used, skip
-            if ( Abc_ObjFanin0(pNode)->vFanouts.nSize > 1 || Abc_ObjFanin1(pNode)->vFanouts.nSize > 1 )
-                continue;
-
-            if ( pNodeC->vFanouts.nSize == 2 )
-                pNodeC->fMarkB = 0;
-            if ( Abc_ObjRegular(pNodeA) == Abc_ObjRegular(pNodeB) && Abc_ObjRegular(pNodeA)->vFanouts.nSize == 2 )
-                Abc_ObjRegular(pNodeA)->fMarkB = 0;
-       }
-        // mark the PO drivers
-//        Abc_NtkForEachCo( pNtk, pNode, i )
-//            Abc_ObjFanin0(pNode)->fMarkB = 1;
-        nFactors = 0;
-        Abc_AigForEachAnd( pNtk, pNode, i )
-            nFactors += pNode->fMarkB;
-        printf( "Total nodes = %6d.  Total factors = %6d.\n", Abc_NtkNodeNum(pNtk), nFactors );
-    }
-*/
     // start the manager
     pParams->nIdsMax = Abc_NtkObjNumMax( pNtk );
     p = Cut_ManStart( pParams );
@@ -135,13 +100,6 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
     }
     Vec_PtrFree( vNodes );
     Vec_IntFree( vChoices );
-/*
-    if ( pParams->fMulti )
-    {
-        Abc_NtkForEachObj( pNtk, pNode, i )
-            pNode->fMarkB = 0;
-    }
-*/
 PRT( "Total", clock() - clk );
 //Abc_NtkPrintCuts_( p, pNtk, 0 );
 //    Cut_ManPrintStatsToFile( p, pNtk->pSpec, clock() - clk );

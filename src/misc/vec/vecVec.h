@@ -256,9 +256,9 @@ static inline void Vec_VecPushUnique( Vec_Vec_t * p, int Level, void * Entry )
         Vec_PtrPushUnique( (Vec_Ptr_t*)p->pArray[Level], Entry );
 }
 
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
-#endif
 

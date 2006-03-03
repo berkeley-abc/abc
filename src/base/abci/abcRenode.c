@@ -33,6 +33,7 @@ static void        Abc_NtkRenodeSetBounds( Abc_Ntk_t * pNtk, int nThresh, int nF
 static void        Abc_NtkRenodeSetBoundsCnf( Abc_Ntk_t * pNtk );
 static void        Abc_NtkRenodeSetBoundsMulti( Abc_Ntk_t * pNtk, int nThresh );
 static void        Abc_NtkRenodeSetBoundsSimple( Abc_Ntk_t * pNtk );
+static void        Abc_NtkRenodeSetBoundsFactor( Abc_Ntk_t * pNtk );
 static void        Abc_NtkRenodeCone( Abc_Obj_t * pNode, Vec_Ptr_t * vCone );
 
 ////////////////////////////////////////////////////////////////////////
@@ -50,7 +51,7 @@ static void        Abc_NtkRenodeCone( Abc_Obj_t * pNode, Vec_Ptr_t * vCone );
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax, int fCnf, int fMulti, int fSimple )
+Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax, int fCnf, int fMulti, int fSimple, int fFactor )
 {
     Abc_Ntk_t * pNtkNew;
 
@@ -69,6 +70,8 @@ Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax, int fCn
         Abc_NtkRenodeSetBoundsMulti( pNtk, nThresh );
     else if ( fSimple )
         Abc_NtkRenodeSetBoundsSimple( pNtk );
+    else if ( fFactor )
+        Abc_NtkRenodeSetBoundsFactor( pNtk );
     else
         Abc_NtkRenodeSetBounds( pNtk, nThresh, nFaninMax );
 
@@ -560,6 +563,32 @@ void Abc_NtkRenodeSetBoundsSimple( Abc_Ntk_t * pNtk )
     // mark the nodes where expansion stops using pNode->fMarkA
     Abc_NtkForEachNode( pNtk, pNode, i )
         pNode->fMarkA = 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sets a factor-cut boundary.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkRenodeSetBoundsFactor( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNode;
+    int i;
+    // make sure the mark is not set
+    Abc_NtkForEachObj( pNtk, pNode, i )
+        assert( pNode->fMarkA == 0 );
+    // mark the nodes where expansion stops using pNode->fMarkA
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        pNode->fMarkA = (pNode->vFanouts.nSize > 1 && !Abc_NodeIsMuxControlType(pNode));
+    // mark the PO drivers
+    Abc_NtkForEachCo( pNtk, pNode, i )
+        Abc_ObjFanin0(pNode)->fMarkA = 1;
 }
 
 /**Function*************************************************************

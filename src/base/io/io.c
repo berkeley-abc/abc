@@ -45,6 +45,7 @@ static int IoCommandWriteGml    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteList   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWritePla    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteVerilog( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -83,6 +84,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "write_list",    IoCommandWriteList,    0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_pla",     IoCommandWritePla,     0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_verilog", IoCommandWriteVerilog, 0 );
+    Cmd_CommandAdd( pAbc, "I/O", "write_counter", IoCommandWriteCounter, 0 );
 }
 
 /**Function*************************************************************
@@ -1174,7 +1176,7 @@ int IoCommandWriteEqn( Abc_Frame_t * pAbc, int argc, char **argv )
     if ( Abc_NtkIsSopLogic(pNtk) )
         Abc_NtkLogicMakeDirectSops(pNtk);
     // derive the netlist
-    pNtkTemp = Abc_NtkLogicToNetlist(pNtk);
+    pNtkTemp = Abc_NtkLogicToNetlist(pNtk,1);
     if ( pNtkTemp == NULL )
     {
         fprintf( pAbc->Out, "Writing BENCH has failed.\n" );
@@ -1358,6 +1360,12 @@ int IoCommandWritePla( Abc_Frame_t * pAbc, int argc, char **argv )
         return 0;
     }
 
+    if ( Abc_NtkGetLevelNum(pNtk) > 1 )
+    {
+        fprintf( pAbc->Out, "PLA writing is available for collapsed networks.\n" );
+        return 0;
+    }
+
     if ( Abc_NtkLatchNum(pNtk) > 0 )
     {
         fprintf( pAbc->Out, "Latches are writed at PI/PO pairs in the PLA file.\n" );
@@ -1368,11 +1376,12 @@ int IoCommandWritePla( Abc_Frame_t * pAbc, int argc, char **argv )
     {
         goto usage;
     }
+
     // get the input file name
     FileName = argv[globalUtilOptind];
 
     // derive the netlist
-    pNtkTemp = Abc_NtkLogicToNetlist(pNtk);
+    pNtkTemp = Abc_NtkLogicToNetlist(pNtk,1);
     if ( pNtkTemp == NULL )
     {
         fprintf( pAbc->Out, "Writing PLA has failed.\n" );
@@ -1434,7 +1443,7 @@ int IoCommandWriteVerilog( Abc_Frame_t * pAbc, int argc, char **argv )
     FileName = argv[globalUtilOptind];
 
     // derive the netlist
-    pNtkTemp = Abc_NtkLogicToNetlist(pNtk);
+    pNtkTemp = Abc_NtkLogicToNetlist(pNtk,0);
     if ( pNtkTemp == NULL )
     {
         fprintf( pAbc->Out, "Writing PLA has failed.\n" );
@@ -1447,6 +1456,96 @@ int IoCommandWriteVerilog( Abc_Frame_t * pAbc, int argc, char **argv )
 usage:
     fprintf( pAbc->Err, "usage: write_verilog [-h] <file>\n" );
     fprintf( pAbc->Err, "\t         write a very special subset of Verilog\n" );
+    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    Abc_Ntk_t * pNtk;
+    char * FileName;
+    int c;
+    int fNames;
+
+    fNames = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "nh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'n':
+                fNames ^= 1;
+                break;
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+
+    pNtk = pAbc->pNtkCur;
+    if ( pNtk == NULL )
+    {
+        fprintf( pAbc->Out, "Empty network.\n" );
+        return 0;
+    }
+
+    if ( argc != globalUtilOptind + 1 )
+    {
+        goto usage;
+    }
+    // get the input file name
+    FileName = argv[globalUtilOptind];
+
+    if ( pNtk->pModel == NULL )
+    {
+        fprintf( pAbc->Out, "Counter-example is not available.\n" );
+        return 0;
+    }
+
+    // write the counter-example into the file
+    {
+        Abc_Obj_t * pObj;
+        FILE * pFile = fopen( FileName, "w" );
+        int i;
+        if ( pFile == NULL )
+        {
+            fprintf( stdout, "Io_WriteVerilog(): Cannot open the output file \"%s\".\n", FileName );
+            return 1;
+        }
+        if ( fNames )
+        {
+            Abc_NtkForEachPi( pNtk, pObj, i )
+                fprintf( pFile, "%s=%c ", Abc_ObjName(pObj), '0'+(pNtk->pModel[i]==1) );
+        }
+        else
+        {
+            Abc_NtkForEachPi( pNtk, pObj, i )
+                fprintf( pFile, "%c", '0'+(pNtk->pModel[i]==1) );
+        }
+        fprintf( pFile, "\n" );
+        fclose( pFile );
+    }
+
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: write_counter [-nh] <file>\n" );
+    fprintf( pAbc->Err, "\t         writes the counter-example derived by \"prove\" or \"sat\"\n" );
+    fprintf( pAbc->Err, "\t         the file contains values for each PI in the natural order\n" );
+    fprintf( pAbc->Err, "\t-n     : write input names into the file [default = %s]\n", fNames? "yes": "no" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
     return 1;

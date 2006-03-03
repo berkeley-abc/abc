@@ -94,8 +94,7 @@ void * Fpga_TruthsCutBdd( void * dd, Fpga_Cut_t * pCut )
         Cudd_RecursiveDeref( dd, (DdNode*)pCut->uSign );
         pCut->uSign = 0;
     }
-    printf( "%d ", vVisited->nSize );
-
+//    printf( "%d ", vVisited->nSize );
     Fpga_NodeVecFree( vVisited );
     Cudd_Deref( bFunc );
     return bFunc;

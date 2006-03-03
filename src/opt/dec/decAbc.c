@@ -18,7 +18,7 @@
 
 #include "abc.h"
 #include "dec.h"
-#include "aig.h"
+//#include "aig.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -214,6 +214,7 @@ void Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, bool fUpda
   SeeAlso     []
 
 ***********************************************************************/
+/*
 Aig_Node_t * Dec_GraphToNetworkAig( Aig_Man_t * pMan, Dec_Graph_t * pGraph )
 {
     Dec_Node_t * pNode;
@@ -235,7 +236,7 @@ Aig_Node_t * Dec_GraphToNetworkAig( Aig_Man_t * pMan, Dec_Graph_t * pGraph )
     // complement the result if necessary
     return Aig_NotCond( pNode->pFunc, Dec_GraphIsComplement(pGraph) );
 }
-
+*/
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

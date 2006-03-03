@@ -58,7 +58,7 @@ int Abc_NtkExtractSequentialDcs( Abc_Ntk_t * pNtk, bool fVerbose )
     }
 
     // compute the global BDDs of the latches
-    dd = Abc_NtkGlobalBdds( pNtk, 1 );    
+    dd = Abc_NtkGlobalBdds( pNtk, 10000000, 1 );    
     if ( dd == NULL )
         return 0;
     if ( fVerbose )
@@ -331,7 +331,7 @@ Abc_Ntk_t * Abc_NtkConstructExdc( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bUn
     Abc_NtkLogicMakeSimpleCos( pNtkNew, 0 );
 
     // transform the network to the SOP representation
-    Abc_NtkBddToSop( pNtkNew );
+    Abc_NtkBddToSop( pNtkNew, 0 );
     return pNtkNew;
 }
 

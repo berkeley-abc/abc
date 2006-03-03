@@ -26,8 +26,6 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
  
-static int * Abc_NtkVerifyGetCleanModel( Abc_Ntk_t * pNtk, int nFrames );
-static int * Abc_NtkVerifySimulatePattern( Abc_Ntk_t * pNtk, int * pModel );
 static void  Abc_NtkVerifyReportError( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int * pModel );
 static void  Abc_NtkVerifyReportErrorSeq( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int * pModel, int nFrames );
 
@@ -78,7 +76,7 @@ void Abc_NtkCecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nI
     }
 
     // convert the miter into a CNF
-    pCnf = Abc_NtkRenode( pMiter, 0, 100, 1, 0, 0 );
+    pCnf = Abc_NtkRenode( pMiter, 0, 100, 1, 0, 0, 0 );
     Abc_NtkDelete( pMiter );
     if ( pCnf == NULL )
     {
@@ -235,7 +233,7 @@ void Abc_NtkSecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nI
     }
 
     // convert the miter into a CNF
-    pCnf = Abc_NtkRenode( pFrames, 0, 100, 1, 0, 0 );
+    pCnf = Abc_NtkRenode( pFrames, 0, 100, 1, 0, 0, 0 );
     Abc_NtkDelete( pFrames );
     if ( pCnf == NULL )
     {

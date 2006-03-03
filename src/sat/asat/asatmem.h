@@ -70,7 +70,9 @@ extern char *              Asat_MmStepEntryFetch( Asat_MmStep_t * p, int nBytes 
 extern void                Asat_MmStepEntryRecycle( Asat_MmStep_t * p, char * pEntry, int nBytes );
 extern int                 Asat_MmStepReadMemUsage( Asat_MmStep_t * p );
 
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-#endif
+

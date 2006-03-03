@@ -441,8 +441,8 @@ extern int                 Fraig_NodeIsTravIdPrevious( Fraig_Man_t * pMan, Fraig
 /*=== fraigVec.c ===============================================================*/
 extern void                Fraig_NodeVecSortByRefCount( Fraig_NodeVec_t * p );
 
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
-#endif

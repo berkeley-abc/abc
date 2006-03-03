@@ -470,8 +470,8 @@ extern void              Map_NodeVecWriteEntry( Map_NodeVec_t * p, int i, Map_No
 extern Map_Node_t *      Map_NodeVecReadEntry( Map_NodeVec_t * p, int i );
 extern void              Map_NodeVecSortByLevel( Map_NodeVec_t * p );
 
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
-#endif

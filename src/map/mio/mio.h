@@ -19,6 +19,10 @@
 #ifndef __MIO_H__
 #define __MIO_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -133,7 +137,13 @@ extern void              Mio_DeriveGateDelays( Mio_Gate_t * pGate,
                             float * ptDelaysRes, float * ptPinDelayMax );
 extern Mio_Gate_t *      Mio_GateCreatePseudo( int nInputs );
 
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-#endif
+

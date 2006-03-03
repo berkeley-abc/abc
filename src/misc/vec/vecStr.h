@@ -501,9 +501,9 @@ static inline void Vec_StrSort( Vec_Str_t * p, int fReverse )
                 (int (*)(const void *, const void *)) Vec_StrSortCompare1 );
 }
 
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
-#endif
 

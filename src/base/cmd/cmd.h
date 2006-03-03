@@ -21,6 +21,10 @@
 #ifndef __CMD_H__
 #define __CMD_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -57,9 +61,13 @@ extern void        Cmd_FlagUpdateValue( Abc_Frame_t * pAbc, char * key, char * v
 /*=== cmdHist.c ========================================================*/
 extern void          Cmd_HistoryAddCommand( Abc_Frame_t * pAbc, char * command );
 
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
-#endif
 

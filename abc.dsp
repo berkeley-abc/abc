@@ -222,10 +222,6 @@ SOURCE=.\src\base\abci\abcMiter.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\abci\abcNewAig.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\base\abci\abcNtbdd.c
 # End Source File
 # Begin Source File
@@ -255,6 +251,10 @@ SOURCE=.\src\base\abci\abcRenode.c
 # Begin Source File
 
 SOURCE=.\src\base\abci\abcRestruct.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcResub.c
 # End Source File
 # Begin Source File
 

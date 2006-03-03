@@ -545,7 +545,7 @@ int Abc_NtkSweep( Abc_Ntk_t * pNtk, int fVerbose )
     while ( nSweptNew );
     // conver back to BDD
     if ( fConvert )
-        Abc_NtkBddToSop(pNtk);
+        Abc_NtkBddToSop(pNtk, 0);
     // report
     if ( fVerbose )
         printf( "Sweep removed %d nodes.\n", nSwept );

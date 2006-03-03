@@ -28,6 +28,10 @@
 #ifndef __DSD_H__
 #define __DSD_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                      TYPEDEF DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -114,8 +118,12 @@ extern void            Dsd_NodePrint( FILE * pFile, Dsd_Node_t * pNode );
 /*=== dsdLocal.c =======================================================*/
 extern DdNode *        Dsd_TreeGetPrimeFunction( DdManager * dd, Dsd_Node_t * pNode );
 
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                           END OF FILE                            ///
 ////////////////////////////////////////////////////////////////////////
-
-#endif

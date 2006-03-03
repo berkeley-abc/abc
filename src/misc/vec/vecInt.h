@@ -696,9 +696,9 @@ static inline void Vec_IntSortUnsigned( Vec_Int_t * p )
             (int (*)(const void *, const void *)) Vec_IntSortCompareUnsigned );
 }
 
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
-#endif
 

@@ -27,7 +27,7 @@
 static void        Abc_NtkBddToMuxesPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
 static Abc_Obj_t * Abc_NodeBddToMuxes( Abc_Obj_t * pNodeOld, Abc_Ntk_t * pNtkNew );
 static Abc_Obj_t * Abc_NodeBddToMuxes_rec( DdManager * dd, DdNode * bFunc, Abc_Ntk_t * pNtkNew, st_table * tBdd2Node );
-static DdNode *    Abc_NodeGlobalBdds_rec( DdManager * dd, Abc_Obj_t * pNode );
+static DdNode *    Abc_NodeGlobalBdds_rec( DdManager * dd, Abc_Obj_t * pNode, int nBddSizeMax );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -243,7 +243,7 @@ Abc_Obj_t * Abc_NodeBddToMuxes_rec( DdManager * dd, DdNode * bFunc, Abc_Ntk_t * 
   SeeAlso     []
 
 ***********************************************************************/
-DdManager * Abc_NtkGlobalBdds( Abc_Ntk_t * pNtk, int fLatchOnly )
+DdManager * Abc_NtkGlobalBdds( Abc_Ntk_t * pNtk, int nBddSizeMax, int fLatchOnly )
 {
     int fReorder = 1;
     ProgressBar * pProgress;
@@ -276,10 +276,10 @@ DdManager * Abc_NtkGlobalBdds( Abc_Ntk_t * pNtk, int fLatchOnly )
         Abc_NtkForEachLatch( pNtk, pNode, i )
         {
             Extra_ProgressBarUpdate( pProgress, i, NULL );
-            bFunc = Abc_NodeGlobalBdds_rec( dd, Abc_ObjFanin0(pNode) );
+            bFunc = Abc_NodeGlobalBdds_rec( dd, Abc_ObjFanin0(pNode), nBddSizeMax );
             if ( bFunc == NULL )
             {
-                printf( "Constructing global BDDs timed out.\n" );
+                printf( "Constructing global BDDs is aborted.\n" );
                 Extra_ProgressBarStop( pProgress );
                 Cudd_Quit( dd );
                 return NULL;
@@ -296,10 +296,10 @@ DdManager * Abc_NtkGlobalBdds( Abc_Ntk_t * pNtk, int fLatchOnly )
         Abc_NtkForEachCo( pNtk, pNode, i )
         {
             Extra_ProgressBarUpdate( pProgress, i, NULL );
-            bFunc = Abc_NodeGlobalBdds_rec( dd, Abc_ObjFanin0(pNode) );
+            bFunc = Abc_NodeGlobalBdds_rec( dd, Abc_ObjFanin0(pNode), nBddSizeMax );
             if ( bFunc == NULL )
             {
-                printf( "Constructing global BDDs timed out.\n" );
+                printf( "Constructing global BDDs is aborted.\n" );
                 Extra_ProgressBarStop( pProgress );
                 Cudd_Quit( dd );
                 return NULL;
@@ -339,21 +339,25 @@ DdManager * Abc_NtkGlobalBdds( Abc_Ntk_t * pNtk, int fLatchOnly )
   SeeAlso     []
 
 ***********************************************************************/
-DdNode * Abc_NodeGlobalBdds_rec( DdManager * dd, Abc_Obj_t * pNode )
+DdNode * Abc_NodeGlobalBdds_rec( DdManager * dd, Abc_Obj_t * pNode, int nBddSizeMax )
 {
     DdNode * bFunc, * bFunc0, * bFunc1;
     assert( !Abc_ObjIsComplement(pNode) );
-    if ( Cudd_ReadKeys(dd) > 5000000 )
+    if ( Cudd_ReadKeys(dd)-Cudd_ReadDead(dd) > (unsigned)nBddSizeMax )
+    {
+        printf( "The number of live nodes reached %d.\n", nBddSizeMax );
+        fflush( stdout );
         return NULL;
+    }
     // if the result is available return
     if ( pNode->pCopy )
         return (DdNode *)pNode->pCopy;
     // compute the result for both branches
-    bFunc0 = Abc_NodeGlobalBdds_rec( dd, Abc_ObjFanin(pNode,0) ); 
+    bFunc0 = Abc_NodeGlobalBdds_rec( dd, Abc_ObjFanin(pNode,0), nBddSizeMax ); 
     if ( bFunc0 == NULL )
         return NULL;
     Cudd_Ref( bFunc0 );
-    bFunc1 = Abc_NodeGlobalBdds_rec( dd, Abc_ObjFanin(pNode,1) ); 
+    bFunc1 = Abc_NodeGlobalBdds_rec( dd, Abc_ObjFanin(pNode,1), nBddSizeMax ); 
     if ( bFunc1 == NULL )
         return NULL;
     Cudd_Ref( bFunc1 );
@@ -423,7 +427,7 @@ double Abc_NtkSpacePercentage( Abc_Obj_t * pNode )
     Vec_PtrForEachEntry( vNodes, pObj, i )
         pObj->pCopy = (Abc_Obj_t *)dd->vars[i];
     // build the BDD of the cone
-    bFunc = Abc_NodeGlobalBdds_rec( dd, pNodeR );  Cudd_Ref( bFunc );
+    bFunc = Abc_NodeGlobalBdds_rec( dd, pNodeR, 10000000 );  Cudd_Ref( bFunc );
     bFunc = Cudd_NotCond( bFunc, pNode != pNodeR );
     // count minterms
     Result = Cudd_CountMinterm( dd, bFunc, dd->size );

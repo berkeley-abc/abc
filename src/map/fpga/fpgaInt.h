@@ -376,8 +376,8 @@ extern void              Fpga_MappingSetChoiceLevels( Fpga_Man_t * pMan );
 /*=== CUDD package.c ===============================================================*/
 extern unsigned int      Cudd_Prime( unsigned int p );
 
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
-#endif

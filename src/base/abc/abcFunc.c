@@ -195,20 +195,25 @@ void Abc_NtkLogicMakeDirectSops( Abc_Ntk_t * pNtk )
 
   Synopsis    [Converts the network from BDD to SOP representation.]
 
-  Description []
+  Description [If the flag is set to 1, forces the direct phase of all covers.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkBddToSop( Abc_Ntk_t * pNtk )
+int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect )
 {
     Abc_Obj_t * pNode;
     DdManager * dd = pNtk->pManFunc;
     DdNode * bFunc;
     Vec_Str_t * vCube;
-    int i;
+    int i, fMode;
+
+    if ( fDirect )
+        fMode = 1;
+    else
+        fMode = -1;
 
     assert( Abc_NtkIsBddLogic(pNtk) ); 
     Cudd_zddVarsFromBddVars( dd, 2 );
@@ -223,7 +228,7 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk )
     {
         assert( pNode->pData );
         bFunc = pNode->pData;
-        pNode->pData = Abc_ConvertBddToSop( pNtk->pManFunc, dd, bFunc, bFunc, Abc_ObjFaninNum(pNode), vCube, -1 );
+        pNode->pData = Abc_ConvertBddToSop( pNtk->pManFunc, dd, bFunc, bFunc, Abc_ObjFaninNum(pNode), vCube, fMode );
         if ( pNode->pData == NULL )
         {
             Vec_StrFree( vCube );

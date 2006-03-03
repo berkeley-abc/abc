@@ -65,7 +65,7 @@ Abc_Ntk_t * Abc_NtkNewAig( Abc_Ntk_t * pNtk )
     assert( !Abc_NtkIsNetlist(pNtk) );
     assert( !Abc_NtkIsSeq(pNtk) );
     if ( Abc_NtkIsBddLogic(pNtk) )
-        Abc_NtkBddToSop(pNtk);
+        Abc_NtkBddToSop(pNtk, 0);
     // print warning about choice nodes
     if ( Abc_NtkGetChoiceNum( pNtk ) )
         printf( "Warning: The choice nodes in the initial AIG are removed by strashing.\n" );

@@ -124,9 +124,9 @@ extern float       Pga_MappingSetRefsAndArea( Pga_Man_t * p );
 extern float       Pga_MappingGetSwitching( Pga_Man_t * p );
 extern void        Pga_MappingPrintOutputArrivals( Pga_Man_t * p );
 
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
-#endif
 

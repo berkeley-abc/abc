@@ -599,7 +599,7 @@ Msat_Type_t Msat_SolverSearch( Msat_Solver_t * p, int nConfLimit, int nLearnedLi
                 Msat_SolverCancelUntil( p, p->nLevelRoot );
                 return MSAT_UNKNOWN; 
             }
-            else if ( nBackTrackLimit > 0 && nConfs > nBackTrackLimit ) {
+            else if ( nBackTrackLimit > 0 && (int)p->Stats.nConflicts - p->nBackTracks > nBackTrackLimit ) {
                 // Reached bound on number of conflicts:
                 Msat_QueueClear( p->pQueue );
                 Msat_SolverCancelUntil( p, p->nLevelRoot );

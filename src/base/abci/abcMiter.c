@@ -414,7 +414,7 @@ Abc_Ntk_t * Abc_NtkMiterQuantify( Abc_Ntk_t * pNtk, int In, int fExist )
 
 /**Function*************************************************************
 
-  Synopsis    [Derives the miter of two cofactors of one output.]
+  Synopsis    [Quantifies all the PIs existentially from the only PO of the network.]
 
   Description []
                
@@ -470,7 +470,7 @@ int Abc_NtkMiterIsConstant( Abc_Ntk_t * pMiter )
             if ( !Abc_ObjIsComplement(pChild) )
             {
                 // if the miter is constant 1, return immediately
-                printf( "MITER IS CONSTANT 1!\n" );
+//                printf( "MITER IS CONSTANT 1!\n" );
                 return 0;
             }
         }

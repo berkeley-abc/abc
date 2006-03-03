@@ -57,7 +57,7 @@ bool Abc_NtkFastExtract( Abc_Ntk_t * pNtk, Fxu_Data_t * p )
     if ( Abc_NtkIsMappedLogic(pNtk) )
         Abc_NtkUnmap(pNtk);
     else if ( Abc_NtkIsBddLogic(pNtk) )
-        Abc_NtkBddToSop(pNtk);
+        Abc_NtkBddToSop(pNtk, 0);
     else
     { // to make sure the SOPs are SCC-free
 //        Abc_NtkSopToBdd(pNtk);

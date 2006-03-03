@@ -21,6 +21,10 @@
 #ifndef __IO_H__
 #define __IO_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -94,9 +98,13 @@ extern int                Io_WritePla( Abc_Ntk_t * pNtk, char * FileName );
 /*=== abcWriteVerilog.c ==========================================================*/
 extern void               Io_WriteVerilog( Abc_Ntk_t * pNtk, char * FileName );
 
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
-#endif
 

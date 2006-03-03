@@ -148,6 +148,64 @@ Abc_Ntk_t * Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_
 
 /**Function*************************************************************
 
+  Synopsis    [Starts a new network using existing network as a model.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkStartFromDual( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_t Func )
+{
+    Abc_Ntk_t * pNtkNew; 
+    Abc_Obj_t * pObj, * pObjNew;
+    int i;
+    if ( pNtk == NULL )
+        return NULL;
+    // start the network
+    pNtkNew = Abc_NtkAlloc( Type, Func );
+    // duplicate the name and the spec
+    pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
+    pNtkNew->pSpec = NULL;
+    // clean the node copy fields
+    Abc_NtkForEachNode( pNtk, pObj, i )
+        pObj->pCopy = NULL;
+    // map the constant nodes
+    if ( Abc_NtkConst1(pNtk) )
+        Abc_NtkConst1(pNtk)->pCopy = Abc_NtkConst1(pNtkNew);
+    // clone the PIs/POs/latches
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        Abc_NtkDupObj(pNtkNew, pObj);
+    Abc_NtkForEachPo( pNtk, pObj, i )
+    {
+        Abc_NtkDupObj(pNtkNew, pObj);
+        pObjNew = pObj->pCopy;
+        Abc_NtkDupObj(pNtkNew, pObj);
+        // connect second to the first
+        pObjNew->pCopy = pObj->pCopy;
+        // collect first to old
+        pObj->pCopy = pObjNew;
+    }
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+    {
+        pObjNew = Abc_NtkDupObj(pNtkNew, pObj);
+        Vec_PtrPush( pNtkNew->vCis, pObjNew );
+        Vec_PtrPush( pNtkNew->vCos, pObjNew );
+    }
+    // transfer the names
+    Abc_NtkDupCioNamesTableDual( pNtk, pNtkNew );
+//    Abc_ManTimeDup( pNtk, pNtkNew );
+    // check that the CI/CO/latches are copied correctly
+    assert( Abc_NtkCiNum(pNtk)    == Abc_NtkCiNum(pNtkNew) );
+    assert( Abc_NtkCoNum(pNtk)* 2 == Abc_NtkCoNum(pNtkNew) );
+    assert( Abc_NtkLatchNum(pNtk) == Abc_NtkLatchNum(pNtkNew) );
+    return pNtkNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Finalizes the network using the existing network as a model.]
 
   Description []

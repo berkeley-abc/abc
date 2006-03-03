@@ -21,6 +21,10 @@
 #ifndef __RWR_H__
 #define __RWR_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -145,9 +149,13 @@ extern void              Rwr_ManLoadFromFile( Rwr_Man_t * p, char * pFileName );
 extern void              Rwr_ListAddToTail( Rwr_Node_t ** ppList, Rwr_Node_t * pNode );
 extern char *            Rwr_ManGetPractical( Rwr_Man_t * p );
 
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
-#endif
 

@@ -176,7 +176,7 @@ bool Msat_SolverSolve( Msat_Solver_t * p, Msat_IntVec_t * vAssumps, int nBackTra
         nConflictsLimit *= 1.5;
         nLearnedLimit   *= 1.1;
         // if the limit on the number of backtracks is given, quit the restart loop
-        if ( nBackTrackLimit > 0 )
+        if ( nBackTrackLimit > 0 && (int)p->Stats.nConflicts - p->nBackTracks > nBackTrackLimit )
             break;
         // if the runtime limit is exceeded, quit the restart loop
         if ( nTimeLimit > 0 && clock() - timeStart >= nTimeLimit * CLOCKS_PER_SEC )

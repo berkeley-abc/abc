@@ -1252,7 +1252,7 @@ int CmdCommandSis( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
     // write out the current network
-    pNetlist = Abc_NtkLogicToNetlist(pNtk);
+    pNetlist = Abc_NtkLogicToNetlist(pNtk,0);
     Io_WriteBlif( pNetlist, "_sis_in.blif", 1 );
     Abc_NtkDelete( pNetlist );
 
@@ -1388,7 +1388,7 @@ int CmdCommandMvsis( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
     // write out the current network
-    pNetlist = Abc_NtkLogicToNetlist(pNtk);
+    pNetlist = Abc_NtkLogicToNetlist(pNtk,0);
     Io_WriteBlif( pNetlist, "_mvsis_in.blif", 1 );
     Abc_NtkDelete( pNetlist );
 

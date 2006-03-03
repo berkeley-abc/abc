@@ -18,6 +18,13 @@
 
 ***********************************************************************/
 
+#ifndef __XYZ_H__
+#define __XYZ_H__
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "abc.h"
 #include "xyzInt.h"
 
@@ -89,8 +96,15 @@ extern void        Abc_NodeXyzDropData( Xyz_Man_t * p, Abc_Obj_t * pObj );
 /*=== xyzTest.c ===========================================================*/
 extern Abc_Ntk_t * Abc_NtkXyzTestSop( Abc_Ntk_t * pNtk );
 
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+
 
 

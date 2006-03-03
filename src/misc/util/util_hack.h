@@ -21,6 +21,10 @@
 #ifndef __UTIL_HACK_H__
 #define __UTIL_HACK_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -83,5 +87,9 @@ extern char *      Extra_UtilFileSearch( char *file, char *path, char *mode );
 
 extern char *      globalUtilOptarg;
 extern int         globalUtilOptind;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -724,9 +724,9 @@ extern Mvc_Manager_t *  Mvc_ManagerAllocCube( int nWords );
 extern Mvc_Manager_t *  Mvc_ManagerFreeCover( Mvc_Cover_t * pCover );
 extern Mvc_Manager_t *  Mvc_ManagerFreeCube( Mvc_Cover_t * pCube, int nWords );
 
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
-#endif
 

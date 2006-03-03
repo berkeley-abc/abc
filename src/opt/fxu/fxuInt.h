@@ -529,8 +529,9 @@ extern int          Fxu_HeapSingleReadMaxWeight( Fxu_HeapSingle * p );
 extern Fxu_Single * Fxu_HeapSingleReadMax( Fxu_HeapSingle * p );
 extern Fxu_Single * Fxu_HeapSingleGetMax( Fxu_HeapSingle * p );  
 
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                         END OF FILE                              ///
 ////////////////////////////////////////////////////////////////////////
-#endif
 

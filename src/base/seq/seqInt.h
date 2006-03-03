@@ -21,6 +21,10 @@
 #ifndef __SEQ_INT_H__
 #define __SEQ_INT_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -240,9 +244,13 @@ extern int                   Seq_ObjFanoutLMin( Abc_Obj_t * pObj );
 extern int                   Seq_ObjFanoutLSum( Abc_Obj_t * pObj );
 extern int                   Seq_ObjFaninLSum( Abc_Obj_t * pObj );
 
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
-#endif
 

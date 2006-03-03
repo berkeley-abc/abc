@@ -107,7 +107,7 @@ Abc_Ntk_t * Seq_NtkRetimeDerive( Abc_Ntk_t * pNtk, int fVerbose )
 
     // transform logic functions from BDD to SOP
     if ( fHasBdds = Abc_NtkIsBddLogic(pNtk) )
-        Abc_NtkBddToSop(pNtk);
+        Abc_NtkBddToSop(pNtk, 0);
 
     // start the network
     pNtkNew = Abc_NtkAlloc( ABC_NTK_SEQ, ABC_FUNC_AIG );

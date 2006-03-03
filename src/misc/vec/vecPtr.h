@@ -529,10 +529,10 @@ static inline void Vec_PtrSort( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)() )
             (int (*)(const void *, const void *)) Vec_PtrSortCompare );
 }
 
+#endif
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
-#endif
 

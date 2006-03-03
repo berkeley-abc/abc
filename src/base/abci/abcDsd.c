@@ -60,7 +60,7 @@ Abc_Ntk_t * Abc_NtkDsdGlobal( Abc_Ntk_t * pNtk, bool fVerbose, bool fPrint, bool
     assert( Abc_NtkIsStrash(pNtk) );
 
     // perform FPGA mapping
-    if ( Abc_NtkGlobalBdds(pNtk, 0) == NULL )
+    if ( Abc_NtkGlobalBdds(pNtk, 10000000, 0) == NULL )
         return NULL;
     if ( fVerbose )
         printf( "The shared BDD size is %d nodes.\n", Cudd_ReadKeys(pNtk->pManGlob) - Cudd_ReadDead(pNtk->pManGlob) );

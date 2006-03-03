@@ -18,7 +18,11 @@
 
 #ifndef __FRAIG_H__
 #define __FRAIG_H__
- 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -106,6 +110,7 @@ extern int *               Fraig_ManReadModel( Fraig_Man_t * p );
 extern int                 Fraig_ManReadPatternNumRandom( Fraig_Man_t * p );
 extern int                 Fraig_ManReadPatternNumDynamic( Fraig_Man_t * p );
 extern int                 Fraig_ManReadPatternNumDynamicFiltered( Fraig_Man_t * p );
+extern int                 Fraig_ManReadSatFails( Fraig_Man_t * p );      
 
 extern void                Fraig_ManSetFuncRed( Fraig_Man_t * p, int fFuncRed );        
 extern void                Fraig_ManSetFeedBack( Fraig_Man_t * p, int fFeedBack );      
@@ -208,4 +213,9 @@ extern Fraig_NodeVec_t *   Fraig_CollectSupergate( Fraig_Node_t * pNode, int fSt
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+ 
+#ifdef __cplusplus
+}
+#endif
+
 #endif

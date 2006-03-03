@@ -88,7 +88,7 @@ void Abc_NtkSymmetriesUsingBdds( Abc_Ntk_t * pNtk, int fNaive, int fVerbose )
 
     // compute the global functions
 clk = clock();
-    dd = Abc_NtkGlobalBdds( pNtk, 0 );
+    dd = Abc_NtkGlobalBdds( pNtk, 10000000, 0 );
     Cudd_AutodynDisable( dd );
     Cudd_zddVarsFromBddVars( dd, 2 );
 clkBdd = clock() - clk;

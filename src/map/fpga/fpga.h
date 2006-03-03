@@ -19,6 +19,10 @@
 #ifndef __FPGA_H__
 #define __FPGA_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -153,8 +157,12 @@ extern int             Fpga_ManCheckConsistency( Fpga_Man_t * p );
 extern void            Fpga_ManCleanData0( Fpga_Man_t * pMan );
 extern Fpga_NodeVec_t * Fpga_CollectNodeTfo( Fpga_Man_t * pMan, Fpga_Node_t * pNode );
 
+#ifdef __cplusplus
+}
+#endif
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-#endif

@@ -76,9 +76,8 @@ alias compress  "b -l; rw -l; rwz -l; b -l; rwz -l; b -l"
 alias compress2 "b -l; rw -l; rf -l; b -l; rw -l; rwz -l; b -l; rfz -l; rwz -l; b -l"
 alias choice    "fraig_store; resyn; fraig_store; resyn2; fraig_store; fraig_restore"
 alias choice2   "fraig_store; balance; fraig_store; resyn; fraig_store; resyn2; fraig_store; resyn2; fraig_store; fraig_restore"
-alias rwsat     "st; rw -l; rf -l; b -l; rw -l; rf -l"
-alias t         "r c/4/csat_101_opt.blif; st; ps; test"
-alias t2        "r c/5/csat_026.bench; st; ps; test"
-alias r1        "r c/4/csat_101_opt.blif; st; ps"
+alias rwsat     "st; rw -l; b -l; rw -l; rf -l"
+alias rwsat2    "st; rw -l; b -l; rw -l; rf -l; fraig; rw -l; b -l; rw -l; rf -l"
+alias shake     "st; ps; sat -C 5000; rw -l; ps; sat -C 5000; b -l; rf -l; ps; sat -C 5000; rfz -l; ps; sat -C 5000; rwz -l; ps; sat -C 5000; rfz -l; ps; sat -C 5000"
 
 

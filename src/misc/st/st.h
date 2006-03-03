@@ -14,6 +14,10 @@
 #ifndef ST_INCLUDED
 #define ST_INCLUDED
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct st_table_entry st_table_entry;
 struct st_table_entry {
     char *key;
@@ -84,5 +88,9 @@ extern void st_free_gen (st_generator *);
     for(gen=st_init_gen(table); st_gen_int(gen,key,value) || (st_free_gen(gen),0);)
 
 #define ST_OUT_OF_MEM -10000
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* ST_INCLUDED */

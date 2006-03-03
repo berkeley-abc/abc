@@ -21,6 +21,10 @@
 #ifndef __SEQ_H__
 #define __SEQ_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -82,9 +86,13 @@ extern int             Seq_MapComputeAreaFlows( Abc_Ntk_t * pNtk, int fVerbose )
 extern Vec_Ptr_t *     Seq_NtkReachNodes( Abc_Ntk_t * pNtk, int fFromPos );
 extern int             Seq_NtkCleanup( Abc_Ntk_t * pNtk, int fVerbose );
 
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
-#endif
 

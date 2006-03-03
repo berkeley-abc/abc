@@ -29,7 +29,7 @@ extern int  Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeros, i
 extern int  Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, bool fUpdateLevel, bool fUseZeros, bool fUseDcs, bool fVerbose );
 extern Abc_Ntk_t * Abc_NtkFromFraig( Fraig_Man_t * pMan, Abc_Ntk_t * pNtk );
 
-static Abc_Ntk_t * Abc_NtkMiterFraig( Abc_Ntk_t * pNtk, int nBTLimit, int * pRetValue );
+static Abc_Ntk_t * Abc_NtkMiterFraig( Abc_Ntk_t * pNtk, int nBTLimit, int * pRetValue, int * pNumFails );
 static void Abc_NtkMiterPrint( Abc_Ntk_t * pNtk, char * pString, int clk, int fVerbose );
 
 ////////////////////////////////////////////////////////////////////////
@@ -53,8 +53,8 @@ static void Abc_NtkMiterPrint( Abc_Ntk_t * pNtk, char * pString, int clk, int fV
 int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, int nConfLimit, int nImpLimit, int fUseRewrite, int fUseFraig, int fVerbose )
 {
     Abc_Ntk_t * pNtk, * pNtkTemp;
-    int nConfsStart = 1000, nImpsStart = 0, nBTLimitStart = 2;
-    int nConfs, nImps, nBTLimit, RetValue;
+    int nConfsStart = 1000, nImpsStart = 0, nBTLimitStart = 2;  // was 5000
+    int nConfs, nImps, nBTLimit, RetValue, nSatFails;
     int nIter = 0, clk, timeStart = clock();
 
     // get the starting network
@@ -85,7 +85,10 @@ int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, int nConfLimit, int nImpLimit, int fU
         nIter++;
 
         if ( fVerbose )
+        {
             printf( "ITERATION %2d : Confs = %6d. FraigBTL = %3d. \n", nIter, nConfs, nBTLimit );
+            fflush( stdout );
+        }
 
         // try brute-force SAT
         clk = clock();
@@ -116,25 +119,30 @@ int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, int nConfLimit, int nImpLimit, int fU
         {
             // try FRAIGing
             clk = clock();
-            pNtk = Abc_NtkMiterFraig( pNtkTemp = pNtk, nBTLimit, &RetValue );  Abc_NtkDelete( pNtkTemp );
+            pNtk = Abc_NtkMiterFraig( pNtkTemp = pNtk, nBTLimit, &RetValue, &nSatFails );  Abc_NtkDelete( pNtkTemp );
             Abc_NtkMiterPrint( pNtk, "FRAIGing   ", clk, fVerbose );
+//            printf( "NumFails = %d\n", nSatFails );
             if ( RetValue >= 0 )
                 break;
         }
+        else
+            nSatFails = 1000;
 
         // increase resource limits
-        nConfs   = ABC_MIN( nConfs * 3 / 2, 1000000000 );
+//        nConfs   = ABC_MIN( nConfs * 3 / 2, 1000000000 );   // was 4/2
+        nConfs   = nSatFails * nBTLimit / 2;   
         nImps    = ABC_MIN( nImps  * 3 / 2, 1000000000 );
         nBTLimit = ABC_MIN( nBTLimit * 8,   1000000000 );
 
         // timeout at 5 minutes
-        if ( clock() - timeStart >= 300 * CLOCKS_PER_SEC )
-            break;
-        if ( nIter == 4 )
+//        if ( clock() - timeStart >= 1200 * CLOCKS_PER_SEC )
+//            break;
+        if ( nIter == 7 )
             break;
     }    
-    while ( (nConfLimit == 0 || nConfs <= nConfLimit) && 
-            (nImpLimit  == 0 || nImps  <= nImpLimit ) );
+//    while ( (nConfLimit == 0 || nConfs <= nConfLimit) && 
+//            (nImpLimit  == 0 || nImps  <= nImpLimit ) );
+    while ( 1 );
 
     // try to prove it using brute force SAT
     if ( RetValue < 0 )
@@ -144,6 +152,12 @@ int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, int nConfLimit, int nImpLimit, int fU
         Abc_NtkMiterPrint( pNtk, "SAT solving", clk, fVerbose );
     }
 
+    // assign the model if it was proved by rewriting (const 1 miter)
+    if ( RetValue == 0 && pNtk->pModel == NULL )
+    {
+        pNtk->pModel = ALLOC( int, Abc_NtkCiNum(pNtk) );
+        memset( pNtk->pModel, 0, sizeof(int) * Abc_NtkCiNum(pNtk) );
+    }
     *ppNtk = pNtk;
     return RetValue;
 }
@@ -159,7 +173,7 @@ int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, int nConfLimit, int nImpLimit, int fU
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkMiterFraig( Abc_Ntk_t * pNtk, int nBTLimit, int * pRetValue )
+Abc_Ntk_t * Abc_NtkMiterFraig( Abc_Ntk_t * pNtk, int nBTLimit, int * pRetValue, int * pNumFails )
 {
     Abc_Ntk_t * pNtkNew;
     Fraig_Params_t Params, * pParams = &Params;
@@ -190,19 +204,24 @@ Abc_Ntk_t * Abc_NtkMiterFraig( Abc_Ntk_t * pNtk, int nBTLimit, int * pRetValue )
     Fraig_ManProveMiter( pMan );
     RetValue = Fraig_ManCheckMiter( pMan );
 
+    // create the network 
+    pNtkNew = Abc_NtkFromFraig( pMan, pNtk );
+
     // save model
     if ( RetValue == 0 )
     {
         pModel = Fraig_ManReadModel( pMan );
-        FREE( pNtk->pModel );
-        pNtk->pModel = ALLOC( int, Abc_NtkCiNum(pNtk) );
-        memcpy( pNtk->pModel, pModel, sizeof(int) * Abc_NtkCiNum(pNtk) );
+        FREE( pNtkNew->pModel );
+        pNtkNew->pModel = ALLOC( int, Abc_NtkCiNum(pNtkNew) );
+        memcpy( pNtkNew->pModel, pModel, sizeof(int) * Abc_NtkCiNum(pNtkNew) );
     }
-    // create the network 
-    pNtkNew = Abc_NtkFromFraig( pMan, pNtk );
+
+    // save the return values
+    *pRetValue = RetValue;
+    *pNumFails = Fraig_ManReadSatFails( pMan );
+
     // delete the fraig manager
     Fraig_ManFree( pMan );
-    *pRetValue = RetValue;
     return pNtkNew;
 }
 

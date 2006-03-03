@@ -102,8 +102,8 @@ extern void            Abc_UtilsPrintHello( Abc_Frame_t * pAbc );
 extern void            Abc_UtilsPrintUsage( Abc_Frame_t * pAbc, char * ProgName );
 extern void            Abc_UtilsSource( Abc_Frame_t * pAbc );
 
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
-#endif

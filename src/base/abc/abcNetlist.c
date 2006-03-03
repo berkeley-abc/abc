@@ -83,7 +83,7 @@ Abc_Ntk_t * Abc_NtkNetlistToLogic( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk )
+Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk, int fDirect )
 {
     Abc_Ntk_t * pNtkNew, * pNtkTemp; 
     assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsStrash(pNtk) || Abc_NtkIsSeq(pNtk) );
@@ -101,7 +101,7 @@ Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk )
     }
     else if ( Abc_NtkIsBddLogic(pNtk) )
     {
-        Abc_NtkBddToSop(pNtk);
+        Abc_NtkBddToSop(pNtk, fDirect);
         pNtkNew = Abc_NtkLogicSopToNetlist( pNtk );
         Abc_NtkSopToBdd(pNtk);
     }
@@ -157,7 +157,7 @@ Abc_Ntk_t * Abc_NtkLogicSopToNetlist( Abc_Ntk_t * pNtk )
     assert( Abc_NtkLogicHasSimpleCos(pNtk) );
 
     if ( Abc_NtkIsBddLogic(pNtk) )
-        Abc_NtkBddToSop(pNtk);
+        Abc_NtkBddToSop(pNtk,0);
 
     // start the netlist by creating PI/PO/Latch objects
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_NETLIST, pNtk->ntkFunc );
@@ -220,7 +220,7 @@ Abc_Ntk_t * Abc_NtkLogicSopToNetlist( Abc_Ntk_t * pNtk )
             Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy->pCopy );
     // duplicate EXDC 
     if ( pNtk->pExdc )
-        pNtkNew->pExdc = Abc_NtkLogicToNetlist( pNtk->pExdc );
+        pNtkNew->pExdc = Abc_NtkLogicToNetlist( pNtk->pExdc, 0 );
     if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkLogicSopToNetlist(): Network check has failed.\n" );
     return pNtkNew;

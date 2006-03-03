@@ -21,6 +21,10 @@
 #ifndef __MSAT_H__
 #define __MSAT_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -154,8 +158,13 @@ extern double           Msat_VarHeapReadMaxWeight( Msat_VarHeap_t * p );
 extern int              Msat_VarHeapCountNodes( Msat_VarHeap_t * p, double WeightLimit );  
 extern int              Msat_VarHeapReadMax( Msat_VarHeap_t * p );  
 extern int              Msat_VarHeapGetMax( Msat_VarHeap_t * p );  
+ 
+#ifdef __cplusplus
+}
+#endif
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-#endif

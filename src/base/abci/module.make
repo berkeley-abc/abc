@@ -19,6 +19,8 @@ SRC +=    src/base/abci/abc.c \
     src/base/abci/abcReconv.c \
     src/base/abci/abcRefactor.c \
     src/base/abci/abcRenode.c \
+    src/base/abci/abcRestruct.c \
+    src/base/abci/abcResub.c \
     src/base/abci/abcRewrite.c \
     src/base/abci/abcSat.c \
     src/base/abci/abcStrash.c \

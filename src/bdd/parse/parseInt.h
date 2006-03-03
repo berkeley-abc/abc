@@ -67,7 +67,8 @@ extern void               Parse_StackOpPush   ( Parse_StackOp_t * p, int Oper );
 extern int                Parse_StackOpPop    ( Parse_StackOp_t * p );
 extern void               Parse_StackOpFree   ( Parse_StackOp_t * p );
 
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-#endif
