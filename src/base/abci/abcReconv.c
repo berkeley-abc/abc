@@ -587,7 +587,7 @@ Abc_ManCut_t * Abc_NtkManCutStart( int nNodeSizeMax, int nConeSizeMax, int nNode
     p->vConeLeaves  = Vec_PtrAlloc( 100 );
     p->vVisited     = Vec_PtrAlloc( 100 );
     p->vLevels      = Vec_VecAlloc( 100 );
-    p->vNodesTfo     = Vec_PtrAlloc( 100 );
+    p->vNodesTfo    = Vec_PtrAlloc( 100 );
     p->nNodeSizeMax = nNodeSizeMax;
     p->nConeSizeMax = nConeSizeMax;
     p->nNodeFanStop = nNodeFanStop;

@@ -271,14 +271,14 @@ void Abc_NodeMffsConeSupp_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vCone, Vec_Ptr_t *
     // add to the new support nodes
     if ( !fTopmost && (Abc_ObjIsCi(pNode) || pNode->vFanouts.nSize > 0) )
     {
-        Vec_PtrPush( vSupp, pNode );
+        if ( vSupp ) Vec_PtrPush( vSupp, pNode );
         return;
     }
     // recur on the children
     Abc_ObjForEachFanin( pNode, pFanin, i )
         Abc_NodeMffsConeSupp_rec( pFanin, vCone, vSupp, 0 );
     // collect the internal node
-    Vec_PtrPush( vCone, pNode );
+    if ( vCone ) Vec_PtrPush( vCone, pNode );
 }
 
 /**Function*************************************************************
@@ -296,8 +296,8 @@ void Abc_NodeMffsConeSupp( Abc_Obj_t * pNode, Vec_Ptr_t * vCone, Vec_Ptr_t * vSu
 {
     assert( Abc_ObjIsNode(pNode) );
     assert( !Abc_ObjIsComplement(pNode) );
-    Vec_PtrClear( vCone );
-    Vec_PtrClear( vSupp );
+    if ( vCone ) Vec_PtrClear( vCone );
+    if ( vSupp ) Vec_PtrClear( vSupp );
     Abc_NtkIncrementTravId( pNode->pNtk );
     Abc_NodeMffsConeSupp_rec( pNode, vCone, vSupp, 1 );
 }
@@ -326,6 +326,36 @@ void Abc_NodeMffsConeSuppPrint( Abc_Obj_t * pNode )
     Vec_PtrFree( vSupp );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Collects the internal nodes of the MFFC limited by cut.]
+
+  Description []
+               
+  SideEffects [Increments the trav ID and marks visited nodes.]
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NodeMffsInside( Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vInside )
+{
+    Abc_Obj_t * pObj;
+    int i, Count1, Count2;
+    // increment the fanout counters for the leaves
+    Vec_PtrForEachEntry( vLeaves, pObj, i )
+        pObj->vFanouts.nSize++;
+    // dereference the node
+    Count1 = Abc_NodeDeref_rec( pNode );
+    // collect the nodes inside the MFFC
+    Abc_NodeMffsConeSupp( pNode, vInside, NULL );
+    // reference it back
+    Count2 = Abc_NodeRef_rec( pNode );
+    assert( Count1 == Count2 );
+    // remove the extra counters
+    Vec_PtrForEachEntry( vLeaves, pObj, i )
+        pObj->vFanouts.nSize--;
+    return Count1;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

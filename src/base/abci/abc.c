@@ -63,6 +63,7 @@ static int Abc_CommandDisjoint     ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int Abc_CommandRewrite      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRefactor     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRestructure  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandResubstitute ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandLogic        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMiter        ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -165,6 +166,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "rewrite",       Abc_CommandRewrite,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "refactor",      Abc_CommandRefactor,         1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "restructure",   Abc_CommandRestructure,      1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "resub",         Abc_CommandResubstitute,     1 );
 
 //    Cmd_CommandAdd( pAbc, "Various",      "logic",         Abc_CommandLogic,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "miter",         Abc_CommandMiter,            1 );
@@ -2574,7 +2576,7 @@ int Abc_CommandRestructure( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'K':
             if ( globalUtilOptind >= argc )
             {
-                fprintf( pErr, "Command line switch \"-N\" should be followed by an integer.\n" );
+                fprintf( pErr, "Command line switch \"-K\" should be followed by an integer.\n" );
                 goto usage;
             }
             nCutMax = atoi(argv[globalUtilOptind]);
@@ -2631,6 +2633,125 @@ usage:
     fprintf( pErr, "usage: restructure [-K num] [-lzvh]\n" );
     fprintf( pErr, "\t         performs technology-independent restructuring of the AIG\n" );
     fprintf( pErr, "\t-K num : the max cut size (%d <= num <= %d) [default = %d]\n",   CUT_SIZE_MIN, CUT_SIZE_MAX, nCutMax );  
+    fprintf( pErr, "\t-l     : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
+    fprintf( pErr, "\t-z     : toggle using zero-cost replacements [default = %s]\n", fUseZeros? "yes": "no" );
+    fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int RS_CUT_MIN =  4;
+    int RS_CUT_MAX = 16;
+    int c;
+    int nCutMax;
+    int nNodesMax;
+    bool fUpdateLevel;
+    bool fUseZeros;
+    bool fVerbose;
+    extern int Abc_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutMax, int nNodesMax, bool fUpdateLevel, bool fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    nCutMax      =  8;
+    nNodesMax    =  1;
+    fUpdateLevel =  1;
+    fUseZeros    =  0;
+    fVerbose     =  0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KNlzvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nCutMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nCutMax < 0 ) 
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nNodesMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nNodesMax < 0 ) 
+                goto usage;
+            break;
+        case 'l':
+            fUpdateLevel ^= 1;
+            break;
+        case 'z':
+            fUseZeros ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( nCutMax < RS_CUT_MIN || nCutMax > RS_CUT_MAX )
+    {
+        fprintf( pErr, "Can only compute the cuts for %d <= K <= %d.\n", RS_CUT_MIN, RS_CUT_MAX );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "This command can only be applied to an AIG (run \"strash\").\n" );
+        return 1;
+    }
+    if ( Abc_NtkGetChoiceNum(pNtk) )
+    {
+        fprintf( pErr, "AIG resynthesis cannot be applied to AIGs with choice nodes.\n" );
+        return 1;
+    }
+
+    // modify the current network
+    if ( !Abc_NtkResubstitute( pNtk, nCutMax, nNodesMax, fUpdateLevel, fVerbose ) )
+    {
+        fprintf( pErr, "Refactoring has failed.\n" );
+        return 1;
+    }
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: resub [-K num] [-N num] [-lzvh]\n" );
+    fprintf( pErr, "\t         performs technology-independent restructuring of the AIG\n" );
+    fprintf( pErr, "\t-K num : the max cut size (%d <= num <= %d) [default = %d]\n", RS_CUT_MIN, RS_CUT_MAX, nCutMax );  
+    fprintf( pErr, "\t-N num : the max number of nodes to add [default = %d]\n", nNodesMax );  
     fprintf( pErr, "\t-l     : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
     fprintf( pErr, "\t-z     : toggle using zero-cost replacements [default = %s]\n", fUseZeros? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );

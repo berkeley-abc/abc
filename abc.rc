@@ -50,8 +50,10 @@ alias rw rewrite
 alias rwz rewrite -z
 alias rf refactor
 alias rfz refactor -z
-alias rs restructure
-alias rsz restructure -z
+alias re restructure
+alias rez restructure -z
+alias rs resub
+alias rsz resub -z
 alias sa set autoexec ps
 alias so source -x
 alias st strash
@@ -65,19 +67,27 @@ alias wp write_pla
 alias wv write_verilog
 
 # standard scripts
-alias opt       "b; ren; b"
-alias share     "b; ren; fx; b"
-alias sharem    "b; ren -m; fx; b"
-alias sharedsd  "b; ren; dsd -g; sw; fx; b"
-alias resyn     "b; rw; rwz; b; rwz; b"
-alias resyn2    "b; rw; rf; b; rw; rwz; b; rfz; rwz; b"
-alias resyn3    "b; rs; rs -K 6; b; rsz; rsz -K 6; b; rsz -K 5; b"
-alias compress  "b -l; rw -l; rwz -l; b -l; rwz -l; b -l"
-alias compress2 "b -l; rw -l; rf -l; b -l; rw -l; rwz -l; b -l; rfz -l; rwz -l; b -l"
-alias choice    "fraig_store; resyn; fraig_store; resyn2; fraig_store; fraig_restore"
-alias choice2   "fraig_store; balance; fraig_store; resyn; fraig_store; resyn2; fraig_store; resyn2; fraig_store; fraig_restore"
-alias rwsat     "st; rw -l; b -l; rw -l; rf -l"
-alias rwsat2    "st; rw -l; b -l; rw -l; rf -l; fraig; rw -l; b -l; rw -l; rf -l"
-alias shake     "st; ps; sat -C 5000; rw -l; ps; sat -C 5000; b -l; rf -l; ps; sat -C 5000; rfz -l; ps; sat -C 5000; rwz -l; ps; sat -C 5000; rfz -l; ps; sat -C 5000"
+alias opt         "b; ren; b"
+alias share       "b; ren; fx; b"
+alias sharem      "b; ren -m; fx; b"
+alias sharedsd    "b; ren; dsd -g; sw; fx; b"
+alias resyn       "b; rw; rwz; b; rwz; b"
+alias resyn2      "b; rw; rf; b; rw; rwz; b; rfz; rwz; b"
+alias resyn3      "b; rs; rs -K 6; b; rsz; rsz -K 6; b; rsz -K 5; b"
+alias compress    "b -l; rw -l; rwz -l; b -l; rwz -l; b -l"
+alias compress2   "b -l; rw -l; rf -l; b -l; rw -l; rwz -l; b -l; rfz -l; rwz -l; b -l"
+alias choice      "fraig_store; resyn; fraig_store; resyn2; fraig_store; fraig_restore"
+alias choice2     "fraig_store; balance; fraig_store; resyn; fraig_store; resyn2; fraig_store; resyn2; fraig_store; fraig_restore"
+alias rwsat       "st; rw -l; b -l; rw -l; rf -l"
+alias rwsat2      "st; rw -l; b -l; rw -l; rf -l; fraig; rw -l; b -l; rw -l; rf -l"
+alias shake       "st; ps; sat -C 5000; rw -l; ps; sat -C 5000; b -l; rf -l; ps; sat -C 5000; rfz -l; ps; sat -C 5000; rwz -l; ps; sat -C 5000; rfz -l; ps; sat -C 5000"
+
+# resubstitution scripts for the IWLS paper
+alias src_rw      "st; rw -l; rwz -l; rwz -l" 
+alias src_rs1     "st; rs -K 6 -l; rs -K 9 -l; rs -K 12 -l" 
+alias src_rs2     "st; rs -K 6 -N 2 -l; rs -K 9 -N 2 -l; rs -K 12 -N 2 -l" 
+alias src_rws1    "st; rw -l; rs -K 6 -l; rwz -l; rs -K 9 -l; rwz -l; rs -K 12 -l" 
+alias src_rws2    "st; rw -l; rs -K 6 -N 2 -l; rwz -l; rs -K 9 -N 2 -l; rwz -l; rs -K 12 -N 2 -l" 
+alias compress2rs "b -l; rs -K 6 -l; rw -l; rs -K 6 -N 2 -l; rf -l; rs -K 8 -l; b -l; rs -K 8 -N 2 -l; rw -l; rs -K 10 -l; rwz -l; rs -K 10 -N 2 -l; b -l; rs -K 12 -l; rfz -l; rs -K 12 -N 2 -l; rwz -l; b -l"
 
 

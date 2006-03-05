@@ -112,8 +112,8 @@ void Abc_NtkCecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nI
 ***********************************************************************/
 void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fVerbose )
 {
-    Fraig_Params_t Params;
-    Fraig_Man_t * pMan;
+//    Fraig_Params_t Params;
+//    Fraig_Man_t * pMan;
     Abc_Ntk_t * pMiter;
     int RetValue;
 
@@ -141,7 +141,7 @@ void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fV
         Abc_NtkDelete( pMiter );
         return;
     }
-
+/*
     // convert the miter into a FRAIG
     Fraig_ParamsSetDefault( &Params );
     Params.fVerbose = fVerbose;
@@ -168,6 +168,18 @@ void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fV
     // delete the fraig manager
     Fraig_ManFree( pMan );
     // delete the miter
+    Abc_NtkDelete( pMiter );
+*/
+    // solve the CNF using the SAT solver
+    RetValue = Abc_NtkMiterProve( &pMiter, 0, 0, 1, 1, 0 );
+    if ( RetValue == -1 )
+        printf( "Networks are undecided (resource limits is reached).\n" );
+    else if ( RetValue == 0 )
+        printf( "Networks are NOT EQUIVALENT.\n" );
+    else
+        printf( "Networks are equivalent.\n" );
+    if ( pMiter->pModel )
+        Abc_NtkVerifyReportError( pNtk1, pNtk2, pMiter->pModel );
     Abc_NtkDelete( pMiter );
 }
 
