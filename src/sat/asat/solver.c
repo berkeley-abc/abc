@@ -121,6 +121,7 @@ static inline void    vec_remove(vec* v, void* e)
 
 static inline void order_update(solver* s, int v) // updateorder
 {
+//    int clk = clock();
     int*    orderpos = s->orderpos;
     double* activity = s->activity;
     int*    heap     = (int*)vec_begin(&s->order);
@@ -138,6 +139,7 @@ static inline void order_update(solver* s, int v) // updateorder
     }
     heap[i]     = x;
     orderpos[x] = i;
+//    s->timeUpdate += clock() - clk;
 }
 
 static inline void order_assigned(solver* s, int v) 
@@ -146,16 +148,19 @@ static inline void order_assigned(solver* s, int v)
 
 static inline void order_unassigned(solver* s, int v) // undoorder
 {
+//    int clk = clock();
     int* orderpos = s->orderpos;
     if (orderpos[v] == -1){
         orderpos[v] = vec_size(&s->order);
         vec_push(&s->order,(void*)v);
         order_update(s,v);
     }
+//    s->timeUpdate += clock() - clk;
 }
 
 static int  order_select(solver* s, float random_var_freq) // selectvar
 {
+//    int clk = clock();
     int*    heap;
     double* activity;
     int*    orderpos;
@@ -215,8 +220,14 @@ static int  order_select(solver* s, float random_var_freq) // selectvar
             return next;
     }
 
+//    s->timeSelect += clock() - clk;
     return var_Undef;
 }
+
+// J-frontier
+extern void Asat_JManAssign( Asat_JMan_t * p, int Var );
+extern void Asat_JManUnassign( Asat_JMan_t * p, int Var );
+extern int Asat_JManSelect( Asat_JMan_t * p );
 
 //=================================================================================================
 // Activity functions:
@@ -236,7 +247,7 @@ static inline void act_var_bump(solver* s, int v) {
 
     //printf("bump %d %f\n", v-1, activity[v]);
 
-    if (s->orderpos[v] != -1)
+    if ( s->pJMan == NULL && s->orderpos[v] != -1 )
         order_update(s,v);
 
 }
@@ -422,7 +433,10 @@ static inline bool enqueue(solver* s, lit l, clause* from)
         reasons[v] = from;
         s->trail[s->qtail++] = l;
 
-        order_assigned(s, v);
+        if ( s->pJMan )
+            Asat_JManAssign( s->pJMan, v );
+        else
+            order_assigned(s, v);
         return 1;
     }
 }
@@ -460,8 +474,12 @@ static inline void solver_canceluntil(solver* s, int level) {
         reasons[x] = (clause*)0;
     }
 
-    for (c = s->qhead-1; c >= bound; c--)
-        order_unassigned(s,lit_var(trail[c]));
+    if ( s->pJMan )
+        for (c = s->qtail-1; c >= bound; c--)
+            Asat_JManUnassign( s->pJMan, lit_var(trail[c]) );
+    else
+        for (c = s->qhead-1; c >= bound; c--)
+            order_unassigned( s, lit_var(trail[c]) );
 
     s->qhead = s->qtail = bound;
     vec_resize(&s->trail_lim,level);
@@ -803,7 +821,7 @@ static lbool solver_search(solver* s, int nof_conflicts, int nof_learnts)
     int*    levels          = s->levels;
     double  var_decay       = 0.95;
     double  clause_decay    = 0.999;
-    double  random_var_freq = 0.02;
+    double  random_var_freq = 0.0;//0.02;
 
     int     conflictC       = 0;
     vec     learnt_clause;
@@ -872,7 +890,10 @@ static lbool solver_search(solver* s, int nof_conflicts, int nof_learnts)
 
             // New variable decision:
             s->solver_stats.decisions++;
-            next = order_select(s,(float)random_var_freq);
+            if ( s->pJMan )
+                next = Asat_JManSelect( s->pJMan );
+            else
+                next = order_select(s,(float)random_var_freq);
 
             if (next == var_Undef){
                 // Model found:
@@ -953,7 +974,10 @@ solver* solver_new(void)
 #else
     s->pMem = Asat_MmStepStart( 10 );
 #endif
-
+    s->pJMan = NULL;
+    s->timeTotal = clock();
+    s->timeSelect = 0;
+    s->timeUpdate = 0;
     return s;
 }
 
@@ -998,6 +1022,7 @@ void solver_delete(solver* s)
         free(s->tags     );
     }
 
+    if ( s->pJMan ) Asat_JManStop( s );
     free(s);
 }
 
@@ -1155,6 +1180,7 @@ bool solver_solve(solver* s, lit* begin, lit* end, int nConfLimit, int nImpLimit
         printf("==============================================================================\n");
 
     solver_canceluntil(s,0);
+    s->timeTotal = clock() - s->timeTotal;
     return status;
 }
 

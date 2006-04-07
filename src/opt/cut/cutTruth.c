@@ -20,9 +20,19 @@
 
 #include "cutInt.h"
 
+/* 
+    Truth tables computed in this package are represented as bit-strings
+    stored in the cut data structure. Cuts of any number of inputs have 
+    the truth table with 2^k bits, where k is the max number of cut inputs.
+*/
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
+
+extern int nTotal = 0;
+extern int nGood  = 0;
+extern int nEqual = 0;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -30,7 +40,7 @@
 
 /**Function*************************************************************
 
-  Synopsis    [Performs truth table computation.]
+  Synopsis    [Computes the stretching phase of the cut w.r.t. the merged cut.]
 
   Description []
                
@@ -60,6 +70,48 @@ static inline unsigned Cut_TruthPhase( Cut_Cut_t * pCut, Cut_Cut_t * pCut1 )
 
   Synopsis    [Performs truth table computation.]
 
+  Description [This procedure cannot be used while recording oracle
+  because it will overwrite Num0 and Num1.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cut_TruthNCanonicize( Cut_Cut_t * pCut )
+{
+    unsigned uTruth;
+    unsigned * uCanon2;
+    char * pPhases2;
+    assert( pCut->nVarsMax < 6 );
+
+    // get the direct truth table
+    uTruth = *Cut_CutReadTruth(pCut);
+
+    // compute the direct truth table
+    Extra_TruthCanonFastN( pCut->nVarsMax, pCut->nLeaves, &uTruth, &uCanon2, &pPhases2 );
+//    uCanon[0] = uCanon2[0];
+//    uCanon[1] = (p->nVarsMax == 6)? uCanon2[1] : uCanon2[0];
+//    uPhases[0] = pPhases2[0];
+    pCut->uCanon0 = uCanon2[0];
+    pCut->Num0    = pPhases2[0];
+
+    // get the complemented truth table
+    uTruth = ~*Cut_CutReadTruth(pCut);
+
+    // compute the direct truth table
+    Extra_TruthCanonFastN( pCut->nVarsMax, pCut->nLeaves, &uTruth, &uCanon2, &pPhases2 );
+//    uCanon[0] = uCanon2[0];
+//    uCanon[1] = (p->nVarsMax == 6)? uCanon2[1] : uCanon2[0];
+//    uPhases[0] = pPhases2[0];
+    pCut->uCanon1 = uCanon2[0];
+    pCut->Num1    = pPhases2[0];
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs truth table computation.]
+
   Description []
                
   SideEffects []
@@ -67,7 +119,7 @@ static inline unsigned Cut_TruthPhase( Cut_Cut_t * pCut, Cut_Cut_t * pCut1 )
   SeeAlso     []
 
 ***********************************************************************/
-void Cut_TruthCompute( Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1, int fCompl0, int fCompl1 )
+void Cut_TruthComputeOld( Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1, int fCompl0, int fCompl1 )
 {
     static unsigned uTruth0[8], uTruth1[8];
     int nTruthWords = Cut_TruthWords( pCut->nVarsMax );
@@ -111,43 +163,55 @@ void Cut_TruthCompute( Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1, i
 
   Synopsis    [Performs truth table computation.]
 
-  Description [This procedure cannot be used while recording oracle
-  because it will overwrite Num0 and Num1.]
+  Description []
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-void Cut_TruthCanonicize( Cut_Cut_t * pCut )
+void Cut_TruthCompute( Cut_Man_t * p, Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1, int fCompl0, int fCompl1 )
 {
-    unsigned uTruth;
-    unsigned * uCanon2;
-    char * pPhases2;
-    assert( pCut->nVarsMax < 6 );
+    // permute the first table
+    if ( fCompl0 ) 
+        Extra_TruthNot( p->puTemp[0], Cut_CutReadTruth(pCut0), pCut->nVarsMax );
+    else
+        Extra_TruthCopy( p->puTemp[0], Cut_CutReadTruth(pCut0), pCut->nVarsMax );
+    Extra_TruthStretch( p->puTemp[2], p->puTemp[0], pCut0->nLeaves, pCut->nVarsMax, Cut_TruthPhase(pCut, pCut0) );
+    // permute the second table
+    if ( fCompl1 ) 
+        Extra_TruthNot( p->puTemp[1], Cut_CutReadTruth(pCut1), pCut->nVarsMax );
+    else
+        Extra_TruthCopy( p->puTemp[1], Cut_CutReadTruth(pCut1), pCut->nVarsMax );
+    Extra_TruthStretch( p->puTemp[3], p->puTemp[1], pCut1->nLeaves, pCut->nVarsMax, Cut_TruthPhase(pCut, pCut1) );
+    // produce the resulting table
+    if ( pCut->fCompl )
+        Extra_TruthNand( Cut_CutReadTruth(pCut), p->puTemp[2], p->puTemp[3], pCut->nVarsMax );
+    else
+        Extra_TruthAnd( Cut_CutReadTruth(pCut), p->puTemp[2], p->puTemp[3], pCut->nVarsMax );
+    // quit if no fancy computation is needed
+    if ( !p->pParams->fFancy )
+        return;
 
-    // get the direct truth table
-    uTruth = *Cut_CutReadTruth(pCut);
+    // count the total number of truth tables computed
+    nTotal++;
 
-    // compute the direct truth table
-    Extra_TruthCanonFastN( pCut->nVarsMax, pCut->nLeaves, &uTruth, &uCanon2, &pPhases2 );
-//    uCanon[0] = uCanon2[0];
-//    uCanon[1] = (p->nVarsMax == 6)? uCanon2[1] : uCanon2[0];
-//    uPhases[0] = pPhases2[0];
-    pCut->uCanon0 = uCanon2[0];
-    pCut->Num0    = pPhases2[0];
+    // MAPPING INTO ALTERA 6-2 LOGIC BLOCKS
+    // call this procedure to find the minimum number of common variables in the cofactors
+    // if this number is less or equal than 3, the cut can be implemented using the 6-2 logic block
+//    if ( Extra_TruthMinCofSuppOverlap( Cut_CutReadTruth(pCut), pCut->nVarsMax, NULL ) <= 3 )
+//        nGood++;
 
-    // get the complemented truth table
-    uTruth = ~*Cut_CutReadTruth(pCut);
-
-    // compute the direct truth table
-    Extra_TruthCanonFastN( pCut->nVarsMax, pCut->nLeaves, &uTruth, &uCanon2, &pPhases2 );
-//    uCanon[0] = uCanon2[0];
-//    uCanon[1] = (p->nVarsMax == 6)? uCanon2[1] : uCanon2[0];
-//    uPhases[0] = pPhases2[0];
-    pCut->uCanon1 = uCanon2[0];
-    pCut->Num1    = pPhases2[0];
+    // MAPPING INTO ACTEL 2x2 CELLS
+    // call this procedure to see if a semi-canonical form can be found in the lookup table 
+    // (if it exists, then a two-level 3-input LUT implementation of the cut exists)
+    // Before this procedure is called, cell manager should be defined by calling
+    // Cut_CellLoad (make sure file "cells22_daomap_iwls.txt" is available in the working dir)
+    if ( Cut_CellIsRunning() && pCut->nVarsMax <= 9 )
+        nGood += Cut_CellTruthLookup( Cut_CutReadTruth(pCut), pCut->nVarsMax );
 }
+
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

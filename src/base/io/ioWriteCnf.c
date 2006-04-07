@@ -23,6 +23,8 @@
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
+ 
+static Abc_Ntk_t * s_pNtk = NULL;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -57,15 +59,51 @@ int Io_WriteCnf( Abc_Ntk_t * pNtk, char * pFileName )
         fprintf( stdout, "Io_WriteCnf(): Currently can only process the miter for combinational circuits.\n" );
         return 0;
     }
+    if ( Abc_NtkNodeNum(pNtk) == 0 )
+    {
+        fprintf( stdout, "The network has no logic nodes. No CNF file is generaled.\n" );
+        return 0;
+    }
     // create solver with clauses
-    pSat = Abc_NtkMiterSatCreate( pNtk );
+    pSat = Abc_NtkMiterSatCreate( pNtk, 0 );
+    if ( pSat == NULL )
+    {
+        fprintf( stdout, "The problem is trivially UNSAT. No CNF file is generated.\n" );
+        return 1;
+    }        
     // write the clauses
+    s_pNtk = pNtk;
     Asat_SolverWriteDimacs( pSat, pFileName, 0, 0, 1 );
+    s_pNtk = NULL;
     // free the solver
     solver_delete( pSat );
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Output the mapping of PIs into variable numbers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Io_WriteCnfOutputPiMapping( FILE * pFile, int incrementVars )
+{
+    extern Vec_Int_t * Abc_NtkGetCiSatVarNums( Abc_Ntk_t * pNtk );
+    Abc_Ntk_t * pNtk = s_pNtk;
+    Vec_Int_t * vCiIds;
+    Abc_Obj_t * pObj;
+    int i;
+    vCiIds = Abc_NtkGetCiSatVarNums( pNtk );
+    fprintf( pFile, "c PI variable numbers: <PI_name> <SAT_var_number>\n" );
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        fprintf( pFile, "c %s %d\n", Abc_ObjName(pObj), Vec_IntEntry(vCiIds, i) + (int)(incrementVars > 0) );
+    Vec_IntFree( vCiIds );
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

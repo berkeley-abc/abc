@@ -293,6 +293,8 @@ extern char *       Extra_TimeStamp();
 extern char *       Extra_StringAppend( char * pStrGiven, char * pStrAdd );
 extern unsigned     Extra_ReadBinary( char * Buffer );
 extern void         Extra_PrintBinary( FILE * pFile, unsigned Sign[], int nBits );
+extern int          Extra_ReadHexadecimal( unsigned Sign[], char * pString, int nVars );
+extern void         Extra_PrintHexadecimal( FILE * pFile, unsigned Sign[], int nVars );
 extern void         Extra_PrintHex( FILE * pFile, unsigned uTruth, int nVars );
 extern void         Extra_PrintSymbols( FILE * pFile, char Char, int nTimes, int fPrintNewLine );
 
@@ -390,30 +392,68 @@ extern void        Extra_ProgressBarStop( ProgressBar * p );
 extern void        Extra_ProgressBarUpdate_int( ProgressBar * p, int nItemsCur, char * pString );
 
 static inline void Extra_ProgressBarUpdate( ProgressBar * p, int nItemsCur, char * pString ) 
-{  if ( nItemsCur < *((int*)p) ) return; Extra_ProgressBarUpdate_int(p, nItemsCur, pString); }
+{  if ( p && nItemsCur < *((int*)p) ) return; Extra_ProgressBarUpdate_int(p, nItemsCur, pString); }
 
-/*=== extraUtilIntVec.c ================================================================*/
+/*=== extraUtilTruth.c ================================================================*/
 
-typedef struct Extra_IntVec_t_    Extra_IntVec_t;
-extern Extra_IntVec_t * Extra_IntVecAlloc( int nCap );
-extern Extra_IntVec_t * Extra_IntVecAllocArray( int * pArray, int nSize );
-extern Extra_IntVec_t * Extra_IntVecAllocArrayCopy( int * pArray, int nSize );
-extern Extra_IntVec_t * Extra_IntVecDup( Extra_IntVec_t * pVec );
-extern Extra_IntVec_t * Extra_IntVecDupArray( Extra_IntVec_t * pVec );
-extern void        Extra_IntVecFree( Extra_IntVec_t * p );
-extern void        Extra_IntVecFill( Extra_IntVec_t * p, int nSize, int Entry );
-extern int *       Extra_IntVecReleaseArray( Extra_IntVec_t * p );
-extern int *       Extra_IntVecReadArray( Extra_IntVec_t * p );
-extern int         Extra_IntVecReadSize( Extra_IntVec_t * p );
-extern int         Extra_IntVecReadEntry( Extra_IntVec_t * p, int i );
-extern int         Extra_IntVecReadEntryLast( Extra_IntVec_t * p );
-extern void        Extra_IntVecWriteEntry( Extra_IntVec_t * p, int i, int Entry );
-extern void        Extra_IntVecGrow( Extra_IntVec_t * p, int nCapMin );
-extern void        Extra_IntVecShrink( Extra_IntVec_t * p, int nSizeNew );
-extern void        Extra_IntVecClear( Extra_IntVec_t * p );
-extern void        Extra_IntVecPush( Extra_IntVec_t * p, int Entry );
-extern int         Extra_IntVecPop( Extra_IntVec_t * p );
-extern void        Extra_IntVecSort( Extra_IntVec_t * p );
+static inline int Extra_TruthWordNum( int nVars )  { return nVars <= 5 ? 1 : (1 << (nVars - 5)); }
+static inline int Extra_WordCountOnes( unsigned uWord )
+{
+    uWord = (uWord & 0x55555555) + ((uWord>>1) & 0x55555555);
+    uWord = (uWord & 0x33333333) + ((uWord>>2) & 0x33333333);
+    uWord = (uWord & 0x0F0F0F0F) + ((uWord>>4) & 0x0F0F0F0F);
+    uWord = (uWord & 0x00FF00FF) + ((uWord>>8) & 0x00FF00FF);
+    return  (uWord & 0x0000FFFF) + (uWord>>16);
+}
+static inline int Extra_TruthIsEqual( unsigned * pIn0, unsigned * pIn1, int nVars )
+{
+    int w;
+    for ( w = Extra_TruthWordNum(nVars)-1; w >= 0; w-- )
+        if ( pIn0[w] != pIn1[w] )
+            return 0;
+    return 1;
+}
+static inline void Extra_TruthCopy( unsigned * pOut, unsigned * pIn, int nVars )
+{
+    int w;
+    for ( w = Extra_TruthWordNum(nVars)-1; w >= 0; w-- )
+        pOut[w] = pIn[w];
+}
+static inline void Extra_TruthNot( unsigned * pOut, unsigned * pIn, int nVars )
+{
+    int w;
+    for ( w = Extra_TruthWordNum(nVars)-1; w >= 0; w-- )
+        pOut[w] = ~pIn[w];
+}
+static inline void Extra_TruthAnd( unsigned * pOut, unsigned * pIn0, unsigned * pIn1, int nVars )
+{
+    int w;
+    for ( w = Extra_TruthWordNum(nVars)-1; w >= 0; w-- )
+        pOut[w] = pIn0[w] & pIn1[w];
+}
+static inline void Extra_TruthNand( unsigned * pOut, unsigned * pIn0, unsigned * pIn1, int nVars )
+{
+    int w;
+    for ( w = Extra_TruthWordNum(nVars)-1; w >= 0; w-- )
+        pOut[w] = ~(pIn0[w] & pIn1[w]);
+}
+
+extern void     Extra_TruthSwapAdjacentVars( unsigned * pOut, unsigned * pIn, int nVars, int Start );
+extern void     Extra_TruthStretch( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll, unsigned Phase );
+extern void     Extra_TruthShrink( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll, unsigned Phase );
+extern DdNode * Extra_TruthToBdd( DdManager * dd, unsigned * pTruth, int nVars );
+extern int      Extra_TruthVarInSupport( unsigned * pTruth, int nVars, int iVar );
+extern int      Extra_TruthSupportSize( unsigned * pTruth, int nVars );
+extern int      Extra_TruthSupport( unsigned * pTruth, int nVars );
+extern void     Extra_TruthCofactor0( unsigned * pTruth, int nVars, int iVar );
+extern void     Extra_TruthCofactor1( unsigned * pTruth, int nVars, int iVar );
+extern void     Extra_TruthCombine( unsigned * pOut, unsigned * pCof0, unsigned * pCof1, int nVars, int iVar );
+extern void     Extra_TruthChangePhase( unsigned * pTruth, int nVars, int iVar );
+extern int      Extra_TruthMinCofSuppOverlap( unsigned * pTruth, int nVars, int * pVarMin );
+extern int      Extra_TruthCountOnes( unsigned * pTruth, int nVars );
+extern void     Extra_TruthCountOnesInCofs( unsigned * pTruth, int nVars, short * pStore );
+extern unsigned Extra_TruthHash( unsigned * pIn, int nWords );
+extern unsigned Extra_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars, char * pCanonPerm, short * pStore );
 
 /*=== extraUtilUtil.c ================================================================*/
 

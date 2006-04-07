@@ -320,6 +320,65 @@ void Extra_PrintBinary( FILE * pFile, unsigned Sign[], int nBits )
 
 /**Function*************************************************************
 
+  Synopsis    [Reads the hex unsigned into the bit-string.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Extra_ReadHexadecimal( unsigned Sign[], char * pString, int nVars )
+{
+    int nDigits, Digit, k, c;
+    Sign[0] = 0;
+    // write the number into the file
+    nDigits = (1 << nVars) / 4;
+    for ( k = 0; k < nDigits; k++ )
+    {
+        c = nDigits-1-k;
+        if ( pString[c] >= '0' && pString[c] <= '9' )
+            Digit = pString[c] - '0';
+        else if ( pString[c] >= 'A' && pString[c] <= 'F' )
+            Digit = pString[c] - 'A' + 10;
+        else if ( pString[c] >= 'a' && pString[c] <= 'f' )
+            Digit = pString[c] - 'a' + 10;
+        else { assert( 0 ); return 0; }
+        Sign[k/8] |= ( (Digit & 15) << ((k%8) * 4) );
+    }
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints the hex unsigned into a file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Extra_PrintHexadecimal( FILE * pFile, unsigned Sign[], int nVars )
+{
+    int nDigits, Digit, k;
+    // write the number into the file
+    nDigits = (1 << nVars) / 4;
+    for ( k = nDigits - 1; k >= 0; k-- )
+    {
+        Digit = ((Sign[k/8] >> ((k%8) * 4)) & 15);
+        if ( Digit < 10 )
+            fprintf( pFile, "%d", Digit );
+        else
+            fprintf( pFile, "%c", 'a' + Digit-10 );
+    }
+//    fprintf( pFile, "\n" );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Prints the hex unsigned into a file.]
 
   Description []

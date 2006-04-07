@@ -64,6 +64,8 @@ static inline lit toLitCond (int v, int c) { return v + v + (int)(c != 0); }
 //=================================================================================================
 // Public interface:
 
+typedef struct Asat_JMan_t_  Asat_JMan_t;
+
 struct solver_t;
 typedef struct solver_t solver;
 
@@ -82,6 +84,12 @@ extern int     solver_nclauses(solver* s);
 extern void    Asat_SolverWriteDimacs( solver * pSat, char * pFileName,
                                        lit* assumptionsBegin, lit* assumptionsEnd,
                                        int incrementVars);
+extern void    Asat_SatPrintStats( FILE * pFile, solver * p );
+
+// J-frontier support
+extern Asat_JMan_t * Asat_JManStart( solver * pSat, void * vCircuit );
+extern void          Asat_JManStop(  solver * pSat );
+
 
 struct stats_t
 {
@@ -143,7 +151,13 @@ struct solver_t
     // the memory manager
     Asat_MmStep_t *     pMem;
 
+    // J-frontier
+    Asat_JMan_t *       pJMan;
+
     stats    solver_stats;
+    int      timeTotal;
+    int      timeSelect;
+    int      timeUpdate;
 };
  
 #ifdef __cplusplus

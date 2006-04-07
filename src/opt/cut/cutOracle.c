@@ -366,7 +366,7 @@ Cut_Cut_t * Cut_OracleComputeCuts( Cut_Oracle_t * p, int Node, int Node0, int No
         ppTail = &pCut->pNext;
         // compute the truth table
         if ( p->pParams->fTruth )
-            Cut_TruthCompute( pCut, pCut0, pCut1, fCompl0, fCompl1 );
+            Cut_TruthComputeOld( pCut, pCut0, pCut1, fCompl0, fCompl1 );
     }
     *ppTail = NULL;
 

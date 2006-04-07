@@ -111,9 +111,12 @@ Abc_Frame_t * Abc_FrameAllocate()
     // set the starting step
     p->nSteps = 1;
     p->fBatchMode = 0;
+    p->fProgress = 1;
     // initialize decomposition manager
     define_cube_size(20);
     set_espresso_flags();
+    // initialize the trace manager
+//    Abc_HManStart();
     return p;
 }
 
@@ -132,6 +135,7 @@ Abc_Frame_t * Abc_FrameAllocate()
 void Abc_FrameDeallocate( Abc_Frame_t * p )
 {
     extern void undefine_cube_size();
+//    Abc_HManStop();
     undefine_cube_size();
     if ( p->pManDec ) Dec_ManStop( p->pManDec );
     if ( p->dd )      Extra_StopManager( p->dd );
@@ -153,6 +157,22 @@ void Abc_FrameDeallocate( Abc_Frame_t * p )
 ***********************************************************************/
 void Abc_FrameRestart( Abc_Frame_t * p )
 {
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+bool Abc_FrameShowProgress( Abc_Frame_t * p )
+{
+    return p->fProgress;
 }
 
 

@@ -412,7 +412,13 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
 
     // transform logic functions from BDD to SOP
     if ( fHasBdds = Abc_NtkIsBddLogic(pNtk) )
-        Abc_NtkBddToSop(pNtk, 0);
+    {
+        if ( !Abc_NtkBddToSop(pNtk, 0) )
+        {
+            printf( "Converting to SOPs has failed.\n" );
+            return;
+        }
+    }
 
     // mark the nodes from the set
     Vec_PtrForEachEntry( vNodes, pNode, i )

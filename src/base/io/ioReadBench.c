@@ -136,7 +136,7 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
                     Abc_ObjSetData( pNode, Abc_SopCreateNor(pNtk->pManFunc, nNames) );
                 else if ( strcmp(pType, "XOR") == 0 )
                     Abc_ObjSetData( pNode, Abc_SopCreateXor(pNtk->pManFunc, nNames) );
-                else if ( strcmp(pType, "NXOR") == 0 )
+                else if ( strcmp(pType, "NXOR") == 0 || strcmp(pType, "XNOR") == 0 )
                     Abc_ObjSetData( pNode, Abc_SopCreateNxor(pNtk->pManFunc, nNames) );
                 else if ( strncmp(pType, "BUF", 3) == 0 )
                     Abc_ObjSetData( pNode, Abc_SopCreateBuf(pNtk->pManFunc) );

@@ -85,7 +85,7 @@ void Abc_NtkCecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nI
     }
 
     // solve the CNF using the SAT solver
-    RetValue = Abc_NtkMiterSat( pCnf, nConfLimit, nImpLimit, 0 );
+    RetValue = Abc_NtkMiterSat( pCnf, nConfLimit, nImpLimit, 0, 0 );
     if ( RetValue == -1 )
         printf( "Networks are undecided (SAT solver timed out).\n" );
     else if ( RetValue == 0 )
@@ -112,6 +112,7 @@ void Abc_NtkCecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nI
 ***********************************************************************/
 void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fVerbose )
 {
+    Prove_Params_t Params, * pParams = &Params;
 //    Fraig_Params_t Params;
 //    Fraig_Man_t * pMan;
     Abc_Ntk_t * pMiter;
@@ -171,7 +172,9 @@ void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fV
     Abc_NtkDelete( pMiter );
 */
     // solve the CNF using the SAT solver
-    RetValue = Abc_NtkMiterProve( &pMiter, 0, 0, 1, 1, 0 );
+    Prove_ParamsSetDefault( pParams );
+    pParams->nItersMax = 5;
+    RetValue = Abc_NtkMiterProve( &pMiter, pParams );
     if ( RetValue == -1 )
         printf( "Networks are undecided (resource limits is reached).\n" );
     else if ( RetValue == 0 )
@@ -254,7 +257,7 @@ void Abc_NtkSecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nI
     }
 
     // solve the CNF using the SAT solver
-    RetValue = Abc_NtkMiterSat( pCnf, nConfLimit, nImpLimit, 0 );
+    RetValue = Abc_NtkMiterSat( pCnf, nConfLimit, nImpLimit, 0, 0 );
     if ( RetValue == -1 )
         printf( "Networks are undecided (SAT solver timed out).\n" );
     else if ( RetValue == 0 )

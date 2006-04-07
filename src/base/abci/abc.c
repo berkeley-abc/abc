@@ -64,6 +64,7 @@ static int Abc_CommandRewrite      ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int Abc_CommandRefactor     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRestructure  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandResubstitute ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRr           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandLogic        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMiter        ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -82,6 +83,7 @@ static int Abc_CommandExdcSet      ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int Abc_CommandCut          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandXyz          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandEspresso     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandGen          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTest         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandFraig        ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -114,6 +116,9 @@ static int Abc_CommandCec          ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int Abc_CommandSec          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSat          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandProve        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+
+static int Abc_CommandTraceStart   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandTraceCheck   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -167,6 +172,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "refactor",      Abc_CommandRefactor,         1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "restructure",   Abc_CommandRestructure,      1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "resub",         Abc_CommandResubstitute,     1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "rr",            Abc_CommandRr,               1 );
 
 //    Cmd_CommandAdd( pAbc, "Various",      "logic",         Abc_CommandLogic,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "miter",         Abc_CommandMiter,            1 );
@@ -185,6 +191,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "cut",           Abc_CommandCut,              0 );
     Cmd_CommandAdd( pAbc, "Various",      "xyz",           Abc_CommandXyz,              1 );
     Cmd_CommandAdd( pAbc, "Various",      "espresso",      Abc_CommandEspresso,         1 );
+    Cmd_CommandAdd( pAbc, "Various",      "gen",           Abc_CommandGen,              0 );
     Cmd_CommandAdd( pAbc, "Various",      "test",          Abc_CommandTest,             0 );
 
     Cmd_CommandAdd( pAbc, "Fraiging",     "fraig",         Abc_CommandFraig,            1 );
@@ -218,9 +225,13 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "sat",           Abc_CommandSat,              0 );
     Cmd_CommandAdd( pAbc, "Verification", "prove",         Abc_CommandProve,            1 );
 
+    Cmd_CommandAdd( pAbc, "Verification", "trace_start",   Abc_CommandTraceStart,       0 );
+    Cmd_CommandAdd( pAbc, "Verification", "trace_check",   Abc_CommandTraceCheck,       0 );
+
 //    Rwt_Man4ExploreStart();
 //    Map_Var3Print();
 //    Map_Var4Test();
+
 }
 
 /**Function*************************************************************
@@ -1598,6 +1609,7 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk, * pNtkRes;
     int fBddSizeMax;
     int fDualRail;
+    int fReorder;
     int c;
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -1605,10 +1617,11 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
+    fReorder = 1;
     fDualRail = 0;
     fBddSizeMax = 1000000;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Bdh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Brdh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -1625,6 +1638,9 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'd':
             fDualRail ^= 1;
+            break;
+        case 'r':
+            fReorder ^= 1;
             break;
         case 'h':
             goto usage;
@@ -1647,11 +1663,11 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // get the new network
     if ( Abc_NtkIsStrash(pNtk) )
-        pNtkRes = Abc_NtkCollapse( pNtk, fBddSizeMax, fDualRail, 1 );
+        pNtkRes = Abc_NtkCollapse( pNtk, fBddSizeMax, fDualRail, fReorder, 1 );
     else
     {
         pNtk = Abc_NtkStrash( pNtk, 0, 0 );
-        pNtkRes = Abc_NtkCollapse( pNtk, fBddSizeMax, fDualRail, 1 );
+        pNtkRes = Abc_NtkCollapse( pNtk, fBddSizeMax, fDualRail, fReorder, 1 );
         Abc_NtkDelete( pNtk );
     }
     if ( pNtkRes == NULL )
@@ -1664,9 +1680,10 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: collapse [-B num] [-dh]\n" );
+    fprintf( pErr, "usage: collapse [-B num] [-rdh]\n" );
     fprintf( pErr, "\t          collapses the network by constructing global BDDs\n" );
     fprintf( pErr, "\t-B num  : limit on live BDD nodes during collapsing [default = %d]\n", fBddSizeMax );
+    fprintf( pErr, "\t-r      : toggles dynamic variable reordering [default = %s]\n", fReorder? "yes": "no" );
     fprintf( pErr, "\t-d      : toggles dual-rail collapsing mode [default = %s]\n", fDualRail? "yes": "no" );
     fprintf( pErr, "\t-h      : print the command usage\n");
     return 1;
@@ -2759,6 +2776,102 @@ usage:
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandRr( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c, Window;
+    int nFaninLevels;
+    int nFanoutLevels;
+    int fUseFanouts;
+    int fVerbose;
+    extern int Abc_NtkRR( Abc_Ntk_t * pNtk, int nFaninLevels, int nFanoutLevels, int fUseFanouts, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    nFaninLevels  = 3;
+    nFanoutLevels = 3;
+    fUseFanouts   = 0;
+    fVerbose      = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Wfvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'W':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-W\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Window = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Window < 0 ) 
+                goto usage;
+            nFaninLevels  = Window / 10;
+            nFanoutLevels = Window % 10;
+            break;
+        case 'f':
+            fUseFanouts ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "This command can only be applied to an AIG (run \"strash\").\n" );
+        return 1;
+    }
+    if ( Abc_NtkGetChoiceNum(pNtk) )
+    {
+        fprintf( pErr, "AIG resynthesis cannot be applied to AIGs with choice nodes.\n" );
+        return 1;
+    }
+
+    // modify the current network
+    if ( !Abc_NtkRR( pNtk, nFaninLevels, nFanoutLevels, fUseFanouts, fVerbose ) )
+    {
+        fprintf( pErr, "Redundancy removal has failed.\n" );
+        return 1;
+    }
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: rr [-W NM] [-fvh]\n" );
+    fprintf( pErr, "\t         performs redundancy removal in the current network\n" );
+    fprintf( pErr, "\t-W NM  : window size as the number of TFI (N) and TFO (M) logic levels [default = %d%d]\n", nFaninLevels, nFanoutLevels );
+    fprintf( pErr, "\t-f     : toggle RR w.r.t. fanouts [default = %s]\n", fUseFanouts? "yes": "no" );
+    fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
 
 /**Function*************************************************************
 
@@ -3806,10 +3919,12 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
     pParams->fTruth    = 0;     // compute truth tables
     pParams->fFilter   = 1;     // filter dominated cuts
     pParams->fDrop     = 0;     // drop cuts on the fly
-    pParams->fMulti    = 0;     // use multi-input AND-gates
+    pParams->fDag      = 0;     // compute DAG cuts
+    pParams->fTree     = 0;     // compute tree cuts
+    pParams->fFancy    = 0;     // compute something fancy
     pParams->fVerbose  = 0;     // the verbosiness flag
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KMtfdmvoh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KMtfdxyzvoh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -3844,8 +3959,14 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'd':
             pParams->fDrop ^= 1;
             break;
-        case 'm':
-            pParams->fMulti ^= 1;
+        case 'x':
+            pParams->fDag ^= 1;
+            break;
+        case 'y':
+            pParams->fTree ^= 1;
+            break;
+        case 'z':
+            pParams->fFancy ^= 1;
             break;
         case 'v':
             pParams->fVerbose ^= 1;
@@ -3875,6 +3996,11 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Can only compute the cuts for %d <= K <= %d.\n", CUT_SIZE_MIN, CUT_SIZE_MAX );
         return 1;
     }
+    if ( pParams->fDag && pParams->fTree )
+    {
+        fprintf( pErr, "Cannot compute both DAG cuts and tree cuts at the same time.\n" );
+        return 1;
+    }
 
     if ( fOracle )
         pParams->fRecord = 1;
@@ -3891,14 +4017,16 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: cut [-K num] [-M num] [-tfdmvh]\n" );
+    fprintf( pErr, "usage: cut [-K num] [-M num] [-tfdxyzvh]\n" );
     fprintf( pErr, "\t         computes k-feasible cuts for the AIG\n" );
     fprintf( pErr, "\t-K num : max number of leaves (%d <= num <= %d) [default = %d]\n",   CUT_SIZE_MIN, CUT_SIZE_MAX, pParams->nVarsMax );
     fprintf( pErr, "\t-M num : max number of cuts stored at a node [default = %d]\n",      pParams->nKeepMax );
     fprintf( pErr, "\t-t     : toggle truth table computation [default = %s]\n",           pParams->fTruth?   "yes": "no" );
     fprintf( pErr, "\t-f     : toggle filtering of duplicated/dominated [default = %s]\n", pParams->fFilter?  "yes": "no" );
     fprintf( pErr, "\t-d     : toggle dropping when fanouts are done [default = %s]\n",    pParams->fDrop?    "yes": "no" );
-    fprintf( pErr, "\t-m     : toggle computing only factor-cuts [default = %s]\n",        pParams->fMulti?   "yes": "no" );
+    fprintf( pErr, "\t-x     : toggle computing only DAG cuts [default = %s]\n",           pParams->fDag?     "yes": "no" );
+    fprintf( pErr, "\t-y     : toggle computing only tree cuts [default = %s]\n",          pParams->fTree?    "yes": "no" );
+    fprintf( pErr, "\t-z     : toggle fancy computations [default = %s]\n",                pParams->fFancy?   "yes": "no" );
     fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n",      pParams->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -4160,6 +4288,99 @@ usage:
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+    int nVars;
+    int fAdder;
+    int fSorter;
+    int fVerbose;
+    char * FileName;
+    extern void Abc_GenAdder( char * pFileName, int nVars );
+    extern void Abc_GenSorter( char * pFileName, int nVars );
+
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    nVars = 8;
+    fAdder = 0;
+    fSorter = 0;
+    fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nasvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nVars = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nVars < 0 ) 
+                goto usage;
+            break;
+        case 'a':
+            fAdder ^= 1;
+            break;
+        case 's':
+            fSorter ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( argc != globalUtilOptind + 1 )
+    {
+        goto usage;
+    }
+
+    // get the input file name
+    FileName = argv[globalUtilOptind];
+    if ( fAdder )
+        Abc_GenAdder( FileName, nVars );
+    else if ( fSorter )
+        Abc_GenSorter( FileName, nVars );
+    else
+        printf( "Type of circuit is not specified.\n" );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: gen [-N] [-asvh] <file>\n" );
+    fprintf( pErr, "\t         generates simple circuits\n" );
+    fprintf( pErr, "\t-N num : the number of variables [default = %d]\n", nVars );  
+    fprintf( pErr, "\t-a     : toggle ripple-carry adder [default = %s]\n", fAdder? "yes": "no" );  
+    fprintf( pErr, "\t-s     : toggle simple sorter [default = %s]\n", fSorter? "yes": "no" );  
+    fprintf( pErr, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    fprintf( pErr, "\t<file> : output file name\n");
+    return 1;
+}
+
 
 /**Function*************************************************************
 
@@ -4175,7 +4396,7 @@ usage:
 int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
-    Abc_Ntk_t * pNtk, * pNtkRes;
+    Abc_Ntk_t * pNtk;//, * pNtkRes;
     int c;
 //    extern Abc_Ntk_t * Abc_NtkNewAig( Abc_Ntk_t * pNtk );
 
@@ -4195,25 +4416,27 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+/*
     if ( pNtk == NULL )
     {
         fprintf( pErr, "Empty network.\n" );
         return 1;
     }
-
     if ( Abc_NtkIsSeq(pNtk) )
     {
         fprintf( pErr, "Only works for non-sequential networks.\n" );
         return 1;
     }
+*/
 
 //    Abc_NtkTestEsop( pNtk );
 //    Abc_NtkTestSop( pNtk );
 //    printf( "This command is currently not used.\n" );
     // run the command
 //    pNtkRes = Abc_NtkMiterForCofactors( pNtk, 0, 0, -1 );
-
 //    pNtkRes = Abc_NtkNewAig( pNtk );
+
+/*
     pNtkRes = NULL;
     if ( pNtkRes == NULL )
     {
@@ -4222,6 +4445,14 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+*/
+
+//    if ( Cut_CellIsRunning() )
+//        Cut_CellDumpToFile();
+//    else
+//        Cut_CellPrecompute();
+        Cut_CellLoad();
+
     return 0;
 
 usage:
@@ -6459,6 +6690,7 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk;
     int c;
     int RetValue;
+    int fJFront;
     int fVerbose;
     int nConfLimit;
     int nImpLimit;
@@ -6469,11 +6701,12 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
+    fJFront = 0;
     fVerbose   = 0;
     nConfLimit = 100000;   
     nImpLimit  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CIvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CIvjh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -6498,6 +6731,9 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( nImpLimit < 0 ) 
                 goto usage;
+            break;
+        case 'j':
+            fJFront ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -6528,13 +6764,13 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     clk = clock();
     if ( Abc_NtkIsStrash(pNtk) )
     {
-        RetValue = Abc_NtkMiterSat( pNtk, nConfLimit, nImpLimit, fVerbose );
+        RetValue = Abc_NtkMiterSat( pNtk, nConfLimit, nImpLimit, fJFront, fVerbose );
     }
     else
     {
         Abc_Ntk_t * pTemp;
         pTemp = Abc_NtkStrash( pNtk, 0, 0 );
-        RetValue = Abc_NtkMiterSat( pTemp, nConfLimit, nImpLimit, fVerbose );
+        RetValue = Abc_NtkMiterSat( pTemp, nConfLimit, nImpLimit, fJFront, fVerbose );
         pNtk->pModel = pTemp->pModel;  pTemp->pModel = NULL;
         Abc_NtkDelete( pTemp );
     }
@@ -6544,7 +6780,7 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         int * pSimInfo = Abc_NtkVerifySimulatePattern( pNtk, pNtk->pModel );
         if ( pSimInfo[0] != 1 )
-            printf( "ERROR in Abc_NtkMiterProve(): Generated counter example is invalid.\n" );
+            printf( "ERROR in Abc_NtkMiterSat(): Generated counter example is invalid.\n" );
         free( pSimInfo );
     }
 
@@ -6559,11 +6795,12 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: sat [-C num] [-I num] [-vh]\n" );
+    fprintf( pErr, "usage: sat [-C num] [-I num] [-jvh]\n" );
     fprintf( pErr, "\t         solves the combinational miter using SAT solver MiniSat-1.14\n" );
     fprintf( pErr, "\t         derives CNF from the current network and leave it unchanged\n" );
     fprintf( pErr, "\t-C num : limit on the number of conflicts [default = %d]\n",    nConfLimit );
     fprintf( pErr, "\t-I num : limit on the number of implications [default = %d]\n", nImpLimit );
+    fprintf( pErr, "\t-j     : toggle the use of J-frontier [default = %s]\n", fJFront? "yes": "no" );  
     fprintf( pErr, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -6584,60 +6821,72 @@ int Abc_CommandProve( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkTemp;
-    int c;
-    int RetValue;
-    int fVerbose; 
-    int fRewrite;
-    int fFraig;
-    int nConfLimit;
-    int nImpLimit;
-    int clk;
+    Prove_Params_t Params, * pParams = &Params;
+    int c, clk, RetValue;
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fVerbose   = 0;
-    fRewrite   = 1;
-    fFraig     = 1;
-    nConfLimit = 300000;   
-    nImpLimit  = 0;
+    Prove_ParamsSetDefault( pParams );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CIrfvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NCFLrfvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pParams->nItersMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pParams->nItersMax < 0 ) 
+                goto usage;
+            break;
         case 'C':
             if ( globalUtilOptind >= argc )
             {
                 fprintf( pErr, "Command line switch \"-C\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nConfLimit = atoi(argv[globalUtilOptind]);
+            pParams->nMiteringLimitStart = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nConfLimit < 0 ) 
+            if ( pParams->nMiteringLimitStart < 0 ) 
                 goto usage;
             break;
-        case 'I':
+        case 'F':
             if ( globalUtilOptind >= argc )
             {
-                fprintf( pErr, "Command line switch \"-I\" should be followed by an integer.\n" );
+                fprintf( pErr, "Command line switch \"-F\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nImpLimit = atoi(argv[globalUtilOptind]);
+            pParams->nFraigingLimitStart = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nImpLimit < 0 ) 
+            if ( pParams->nFraigingLimitStart < 0 ) 
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pParams->nMiteringLimitLast = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pParams->nMiteringLimitLast < 0 ) 
                 goto usage;
             break;
         case 'r':
-            fRewrite ^= 1;
+            pParams->fUseRewriting ^= 1;
             break;
         case 'f':
-            fFraig ^= 1;
+            pParams->fUseFraiging ^= 1;
             break;
         case 'v':
-            fVerbose ^= 1;
+            pParams->fVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -6674,7 +6923,7 @@ int Abc_CommandProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     else
         pNtkTemp = Abc_NtkStrash( pNtk, 0, 0 );
 
-    RetValue = Abc_NtkMiterProve( &pNtkTemp, nConfLimit, nImpLimit, fRewrite, fFraig, fVerbose );
+    RetValue = Abc_NtkMiterProve( &pNtkTemp, pParams );
 
     // verify that the pattern is correct
     if ( RetValue == 0 )
@@ -6699,19 +6948,143 @@ int Abc_CommandProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: prove [-C num] [-I num] [-rfvh]\n" );
+    fprintf( pErr, "usage: prove [-N num] [-C num] [-F num] [-L num] [-rfvh]\n" );
     fprintf( pErr, "\t         solves combinational miter by rewriting, FRAIGing, and SAT\n" );
     fprintf( pErr, "\t         replaces the current network by the cone modified by rewriting\n" );
-    fprintf( pErr, "\t-C num : limit on the number of conflicts [default = %d]\n",    nConfLimit );
-    fprintf( pErr, "\t-I num : limit on the number of implications [default = %d]\n", nImpLimit );
-    fprintf( pErr, "\t-r     : toggle the use of rewriting [default = %s]\n", fRewrite? "yes": "no" );  
-    fprintf( pErr, "\t-f     : toggle the use of FRAIGing [default = %s]\n", fFraig? "yes": "no" );  
-    fprintf( pErr, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
+    fprintf( pErr, "\t-N num : max number of iterations [default = %d]\n", pParams->nItersMax );
+    fprintf( pErr, "\t-C num : max starting number of conflicts in mitering [default = %d]\n", pParams->nMiteringLimitStart );
+    fprintf( pErr, "\t-F num : max starting number of conflicts in fraiging [default = %d]\n", pParams->nFraigingLimitStart );
+    fprintf( pErr, "\t-L num : max last-gasp number of conflicts in mitering [default = %d]\n", pParams->nMiteringLimitLast );
+    fprintf( pErr, "\t-r     : toggle the use of rewriting [default = %s]\n", pParams->fUseRewriting? "yes": "no" );  
+    fprintf( pErr, "\t-f     : toggle the use of FRAIGing [default = %s]\n", pParams->fUseFraiging? "yes": "no" );  
+    fprintf( pErr, "\t-v     : prints verbose information [default = %s]\n", pParams->fVerbose? "yes": "no" );  
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandTraceStart( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "This command is applicable to AIGs.\n" );
+        return 1;
+    }
+
+    Abc_HManStart();
+    if ( !Abc_HManPopulate( pNtk ) )
+    {
+        fprintf( pErr, "Failed to start the tracing database.\n" );
+        return 1;
+    }
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: trace_start [-h]\n" );
+    fprintf( pErr, "\t        starts verification tracing\n" );
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandTraceCheck( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "This command is applicable to AIGs.\n" );
+        return 1;
+    }
+
+    if ( !Abc_HManIsRunning(pNtk) )
+    {
+        fprintf( pErr, "The tracing database is not available.\n" );
+        return 1;
+    }
+
+    if ( !Abc_HManVerify( 1, pNtk->Id ) )
+        fprintf( pErr, "Verification failed.\n" );
+    Abc_HManStop();
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: trace_check [-h]\n" );
+    fprintf( pErr, "\t        checks the current network using verification trace\n" );
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

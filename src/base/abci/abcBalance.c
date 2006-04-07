@@ -29,6 +29,8 @@ static Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, 
 static Vec_Ptr_t * Abc_NodeBalanceCone( Abc_Obj_t * pNode, Vec_Vec_t * vSuper, int Level, int fDuplicate, bool fSelective );
 static int         Abc_NodeBalanceCone_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vSuper, bool fFirst, bool fDuplicate, bool fSelective );
 static void        Abc_NtkMarkCriticalNodes( Abc_Ntk_t * pNtk );
+static Vec_Ptr_t * Abc_NodeBalanceConeExor( Abc_Obj_t * pNode );
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -227,6 +229,7 @@ Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, Vec_
         return pNodeOld->pCopy;
     assert( Abc_ObjIsNode(pNodeOld) );
     // get the implication supergate
+//    Abc_NodeBalanceConeExor( pNodeOld );
     vSuper = Abc_NodeBalanceCone( pNodeOld, vStorage, Level, fDuplicate, fSelective );
     if ( vSuper->nSize == 0 )
     { // it means that the supergate contains two nodes in the opposite polarity
@@ -260,6 +263,7 @@ Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, Vec_
     assert( pNodeOld->pCopy == NULL );
     // mark the old node with the new node
     pNodeOld->pCopy = vSuper->pArray[0];
+    Abc_HManAddProto( pNodeOld->pCopy, pNodeOld );
     vSuper->nSize = 0;
     return pNodeOld->pCopy;
 }
@@ -350,6 +354,65 @@ int Abc_NodeBalanceCone_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vSuper, bool fFirst,
     return RetValue1 || RetValue2;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NodeBalanceConeExor_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vSuper, bool fFirst )
+{
+    int RetValue1, RetValue2, i;
+    // check if the node occurs in the same polarity
+    for ( i = 0; i < vSuper->nSize; i++ )
+        if ( vSuper->pArray[i] == pNode )
+            return 1;
+    // if the new node is complemented or a PI, another gate begins
+    if ( !fFirst && (!pNode->fExor || !Abc_ObjIsNode(pNode)) )
+    {
+        Vec_PtrPush( vSuper, pNode );
+        return 0;
+    }
+    assert( !Abc_ObjIsComplement(pNode) );
+    assert( Abc_ObjIsNode(pNode) );
+    assert( pNode->fExor );
+    // go through the branches
+    RetValue1 = Abc_NodeBalanceConeExor_rec( Abc_ObjFanin0(Abc_ObjFanin0(pNode)), vSuper, 0 );
+    RetValue2 = Abc_NodeBalanceConeExor_rec( Abc_ObjFanin1(Abc_ObjFanin0(pNode)), vSuper, 0 );
+    if ( RetValue1 == -1 || RetValue2 == -1 )
+        return -1;
+    // return 1 if at least one branch has a duplicate
+    return RetValue1 || RetValue2;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_NodeBalanceConeExor( Abc_Obj_t * pNode )
+{
+    Vec_Ptr_t * vSuper;
+    if ( !pNode->fExor )
+        return NULL;
+    vSuper = Vec_PtrAlloc( 10 );
+    Abc_NodeBalanceConeExor_rec( pNode, vSuper, 1 );
+    printf( "%d ", Vec_PtrSize(vSuper) );
+    Vec_PtrFree( vSuper );
+    return NULL;
+}
 
 
 

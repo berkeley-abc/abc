@@ -17,6 +17,7 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "fraig.h"
 #include "csat_apis.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -105,6 +106,8 @@ ABC_Manager ABC_InitManager()
 ***********************************************************************/
 void ABC_ReleaseManager( ABC_Manager mng )
 {
+    CSAT_Target_ResultT * p_res = ABC_Get_Target_Result( mng,0 );
+    ABC_TargetResFree(p_res);
     if ( mng->tNode2Name ) stmm_free_table( mng->tNode2Name );
     if ( mng->tName2Node ) stmm_free_table( mng->tName2Node );
     if ( mng->pMmNames )   Extra_MmFlexStop( mng->pMmNames, 0 );
@@ -536,6 +539,7 @@ void ABC_AnalyzeTargets( ABC_Manager mng )
 ***********************************************************************/
 enum CSAT_StatusT ABC_Solve( ABC_Manager mng )
 {
+    Prove_Params_t Params, * pParams = &Params;
     int RetValue, i;
 
     // check if the target network is available
@@ -544,9 +548,16 @@ enum CSAT_StatusT ABC_Solve( ABC_Manager mng )
 
     // try to prove the miter using a number of techniques
     if ( mng->mode )
-        RetValue = Abc_NtkMiterSat( mng->pTarget, mng->nConfLimit, mng->nImpLimit, 0 );
+        RetValue = Abc_NtkMiterSat( mng->pTarget, mng->nConfLimit, mng->nImpLimit, 0, 0 );
     else
-        RetValue = Abc_NtkMiterProve( &mng->pTarget, mng->nConfLimit, mng->nImpLimit, 1, 1, 0 );
+    {
+        // set default parameters for CEC
+        Prove_ParamsSetDefault( pParams );
+        // set infinite resource limit for the final mitering
+        pParams->nMiteringLimitLast = ABC_INFINITY;
+        // call the checker
+        RetValue = Abc_NtkMiterProve( &mng->pTarget, pParams );
+    }
 
     // analyze the result
     mng->pResult = ABC_TargetResAlloc( Abc_NtkCiNum(mng->pTarget) );
@@ -658,6 +669,14 @@ void ABC_TargetResFree( CSAT_Target_ResultT * p )
 {
     if ( p == NULL )
         return;
+    if( p->names )
+    {
+        int i = 0;
+        for ( i = 0; i < p->no_sig; i++ )
+        {
+            FREE(p->names[i]);
+        }
+    }
     FREE( p->names );
     FREE( p->values );
     free( p );

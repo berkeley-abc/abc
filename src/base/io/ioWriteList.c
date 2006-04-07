@@ -120,8 +120,8 @@ void Io_WriteList( Abc_Ntk_t * pNtk, char * pFileName, int fUseHost )
     if ( Abc_ObjFanoutNum( Abc_NtkConst1(pNtk) ) > 0 )
         Io_WriteListEdge( pFile, Abc_NtkConst1(pNtk) );
 
-    // write the PO edges
-    Abc_NtkForEachCi( pNtk, pObj, i )
+    // write the PI edges
+    Abc_NtkForEachPi( pNtk, pObj, i )
         Io_WriteListEdge( pFile, pObj );
 
     // write the internal nodes
@@ -132,7 +132,7 @@ void Io_WriteList( Abc_Ntk_t * pNtk, char * pFileName, int fUseHost )
     if ( fUseHost )
         Io_WriteListHost( pFile, pNtk );
     else
-        Abc_NtkForEachCo( pNtk, pObj, i )
+        Abc_NtkForEachPo( pNtk, pObj, i )
             Io_WriteListEdge( pFile, pObj );
 
     fprintf( pFile, "\n" );
@@ -157,12 +157,13 @@ void Io_WriteListEdge( FILE * pFile, Abc_Obj_t * pObj )
     fprintf( pFile, "%-10s >    ", Abc_ObjName(pObj) );
     Abc_ObjForEachFanout( pObj, pFanout, i )
     {
-        fprintf( pFile, " %s ([%s_to_%s] = %d)", Abc_ObjName(pFanout), Abc_ObjName(pObj), Abc_ObjName(pFanout), Seq_ObjFanoutL(pObj, pFanout) );
-        if ( i == Abc_ObjFanoutNum(pObj) - 1 )
-            fprintf( pFile, "." );
-        else
+        fprintf( pFile, " %s", Abc_ObjName(pFanout) );
+        fprintf( pFile, " ([%s_to_", Abc_ObjName(pObj) );
+        fprintf( pFile, "%s] = %d)", Abc_ObjName(pFanout), Seq_ObjFanoutL(pObj, pFanout) );
+        if ( i != Abc_ObjFanoutNum(pObj) - 1 )
             fprintf( pFile, "," );
     }
+    fprintf( pFile, "." );
     fprintf( pFile, "\n" );
 }
 
@@ -186,22 +187,19 @@ void Io_WriteListHost( FILE * pFile, Abc_Ntk_t * pNtk )
     {
         fprintf( pFile, "%-10s >    ", Abc_ObjName(pObj) );
         fprintf( pFile, " %s ([%s_to_%s] = %d)", "HOST", Abc_ObjName(pObj), "HOST", 0 );
-        if ( i == Abc_NtkPoNum(pNtk) - 1 )
-            fprintf( pFile, "." );
-        else
-            fprintf( pFile, "," );
+        fprintf( pFile, "." );
+        fprintf( pFile, "\n" );
     }
-    fprintf( pFile, "\n" );
 
     fprintf( pFile, "%-10s >    ", "HOST" );
     Abc_NtkForEachPi( pNtk, pObj, i )
     {
-        fprintf( pFile, " %s ([%s_to_%s] = %d)", Abc_ObjName(pObj), "HOST", Abc_ObjName(pObj), 0 );
-        if ( i == Abc_NtkPiNum(pNtk) - 1 )
-            fprintf( pFile, "." );
-        else
+        fprintf( pFile, " %s", Abc_ObjName(pObj) );
+        fprintf( pFile, " ([%s_to_%s] = %d)", "HOST", Abc_ObjName(pObj), 0 );
+        if ( i != Abc_NtkPiNum(pNtk) - 1 )
             fprintf( pFile, "," );
     }
+    fprintf( pFile, "." );
     fprintf( pFile, "\n" );
 }
 

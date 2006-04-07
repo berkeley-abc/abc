@@ -24,7 +24,7 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static Vec_Int_t * Abc_NtkGetCiSatVarNums( Abc_Ntk_t * pNtk );
+extern Vec_Int_t * Abc_NtkGetCiSatVarNums( Abc_Ntk_t * pNtk );
 static nMuxes;
 
 ////////////////////////////////////////////////////////////////////////
@@ -42,7 +42,7 @@ static nMuxes;
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, int nConfLimit, int nImpLimit, int fVerbose )
+int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, int nConfLimit, int nImpLimit, int fJFront, int fVerbose )
 {
     solver * pSat;
     lbool   status;
@@ -56,7 +56,7 @@ int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, int nConfLimit, int nImpLimit, int fVerbo
 
     // load clauses into the solver
     clk = clock();
-    pSat = Abc_NtkMiterSatCreate( pNtk );
+    pSat = Abc_NtkMiterSatCreate( pNtk, fJFront );
     if ( pSat == NULL )
         return 1;
 //    printf( "Created SAT problem with %d variable and %d clauses. ", solver_nvars(pSat), solver_nclauses(pSat) );
@@ -107,6 +107,8 @@ int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, int nConfLimit, int nImpLimit, int fVerbo
         Vec_IntFree( vCiIds );
     }
     // free the solver
+    if ( fVerbose )
+        Asat_SatPrintStats( stdout, pSat );
     solver_delete( pSat );
     return RetValue;
 }
@@ -391,12 +393,14 @@ void Abc_NtkCollectSupergate( Abc_Obj_t * pNode, int fStopAtMux, Vec_Ptr_t * vNo
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkMiterSatCreateInt( solver * pSat, Abc_Ntk_t * pNtk )
+int Abc_NtkMiterSatCreateInt( solver * pSat, Abc_Ntk_t * pNtk, int fJFront )
 {
     Abc_Obj_t * pNode, * pFanin, * pNodeC, * pNodeT, * pNodeE;
     Vec_Ptr_t * vNodes, * vSuper;
-    Vec_Int_t * vVars;
+    Vec_Int_t * vVars, * vFanio;
+    Vec_Vec_t * vCircuit;
     int i, k, fUseMuxes = 1;
+    int clk1 = clock(), clk;
 
     assert( Abc_NtkIsStrash(pNtk) );
 
@@ -408,6 +412,9 @@ int Abc_NtkMiterSatCreateInt( solver * pSat, Abc_Ntk_t * pNtk )
     vNodes = Vec_PtrAlloc( 1000 );   // the nodes corresponding to vars in the solver
     vSuper = Vec_PtrAlloc( 100 );    // the nodes belonging to the given implication supergate
     vVars  = Vec_IntAlloc( 100 );    // the temporary array for variables in the clause
+    if ( fJFront )
+        vCircuit = Vec_VecAlloc( 1000 );
+//        vCircuit = Vec_VecStart( 184 );
 
     // add the clause for the constant node
     pNode = Abc_NtkConst1(pNtk);
@@ -485,6 +492,7 @@ int Abc_NtkMiterSatCreateInt( solver * pSat, Abc_Ntk_t * pNtk )
             if ( vSuper->nSize == 0 )
             {
                 if ( !Abc_NtkClauseTriv( pSat, Abc_ObjNot(pNode), vVars ) )
+//                if ( !Abc_NtkClauseTriv( pSat, pNode, vVars ) )
                     return 0;
             }
             else
@@ -493,6 +501,32 @@ int Abc_NtkMiterSatCreateInt( solver * pSat, Abc_Ntk_t * pNtk )
                     return 0;
             }
         }
+        // add the variables to the J-frontier
+        if ( !fJFront )
+            continue;
+        // make sure that the fanin entries go first
+        assert( pNode->pCopy );
+        Vec_VecExpand( vCircuit, (int)pNode->pCopy );
+        vFanio = Vec_VecEntry( vCircuit, (int)pNode->pCopy );
+        Vec_PtrForEachEntryReverse( vSuper, pFanin, k )
+//        Vec_PtrForEachEntry( vSuper, pFanin, k )
+        {
+            pFanin = Abc_ObjRegular( pFanin );
+            assert( pFanin->pCopy && pFanin->pCopy != pNode->pCopy );
+            Vec_IntPushFirst( vFanio, (int)pFanin->pCopy );
+            Vec_VecPush( vCircuit, (int)pFanin->pCopy, pNode->pCopy );
+        }
+    }
+
+    // create the variable order
+    if ( fJFront )
+    {
+    clk = clock();
+        Asat_JManStart( pSat, vCircuit );
+        Vec_VecFree( vCircuit );
+    PRT( "Setup", clock() - clk );
+//        Asat_JManStop( pSat );
+//    PRT( "Total", clock() - clk1 );
     }
 
     // delete
@@ -513,7 +547,7 @@ int Abc_NtkMiterSatCreateInt( solver * pSat, Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-solver * Abc_NtkMiterSatCreate( Abc_Ntk_t * pNtk )
+solver * Abc_NtkMiterSatCreate( Abc_Ntk_t * pNtk, int fJFront )
 {
     solver * pSat;
     Abc_Obj_t * pNode;
@@ -522,7 +556,7 @@ solver * Abc_NtkMiterSatCreate( Abc_Ntk_t * pNtk )
     nMuxes = 0;
 
     pSat = solver_new();
-    RetValue = Abc_NtkMiterSatCreateInt( pSat, pNtk );
+    RetValue = Abc_NtkMiterSatCreateInt( pSat, pNtk, fJFront );
     Abc_NtkForEachObj( pNtk, pNode, i )
         pNode->fMarkA = 0;
 //    Asat_SolverWriteDimacs( pSat, "temp_sat.cnf", NULL, NULL, 1 );

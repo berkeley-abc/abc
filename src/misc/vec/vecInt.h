@@ -457,6 +457,33 @@ static inline void Vec_IntPush( Vec_Int_t * p, int Entry )
   SeeAlso     []
 
 ***********************************************************************/
+static inline void Vec_IntPushFirst( Vec_Int_t * p, int Entry )
+{
+    int i;
+    if ( p->nSize == p->nCap )
+    {
+        if ( p->nCap < 16 )
+            Vec_IntGrow( p, 16 );
+        else
+            Vec_IntGrow( p, 2 * p->nCap );
+    }
+    p->nSize++;
+    for ( i = p->nSize - 1; i >= 1; i-- )
+        p->pArray[i] = p->pArray[i-1];
+    p->pArray[0] = Entry;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline void Vec_IntPushMem( Extra_MmStep_t * pMemMan, Vec_Int_t * p, int Entry )
 {
     if ( p->nSize == p->nCap )

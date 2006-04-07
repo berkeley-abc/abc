@@ -123,6 +123,28 @@ static inline Vec_Vec_t * Vec_VecStart( int nSize )
 
 /**Function*************************************************************
 
+  Synopsis    [Allocates a vector with the given capacity.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_VecExpand( Vec_Vec_t * p, int Level )
+{
+    int i;
+    if ( p->nSize >= Level + 1 )
+        return;
+    Vec_PtrGrow( (Vec_Ptr_t *)p, Level + 1 );
+    for ( i = p->nSize; i <= Level; i++ )
+        p->pArray[i] = Vec_PtrAlloc( 0 );
+    p->nSize = Level + 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []

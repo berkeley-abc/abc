@@ -43,14 +43,14 @@ static Abc_Obj_t * Abc_NodeFromGlobalBdds( Abc_Ntk_t * pNtkNew, DdManager * dd, 
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, int fVerbose )
+Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, int fReorder, int fVerbose )
 {
     Abc_Ntk_t * pNtkNew;
 
     assert( Abc_NtkIsStrash(pNtk) );
 
     // compute the global BDDs
-    if ( Abc_NtkGlobalBdds(pNtk, fBddSizeMax, 0) == NULL )
+    if ( Abc_NtkGlobalBdds(pNtk, fBddSizeMax, 0, fReorder, fVerbose) == NULL )
         return NULL;
     if ( fVerbose )
         printf( "The shared BDD size is %d nodes.\n", Cudd_ReadKeys(pNtk->pManGlob) - Cudd_ReadDead(pNtk->pManGlob) );

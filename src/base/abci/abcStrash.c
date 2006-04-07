@@ -58,7 +58,13 @@ Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes, bool fCleanup )
     assert( !Abc_NtkIsNetlist(pNtk) );
     assert( !Abc_NtkIsSeq(pNtk) );
     if ( Abc_NtkIsBddLogic(pNtk) )
-        Abc_NtkBddToSop(pNtk, 0);
+    {
+        if ( !Abc_NtkBddToSop(pNtk, 0) )
+        {
+            printf( "Converting to SOPs has failed.\n" );
+            return NULL;
+        }
+    }
     // print warning about choice nodes
     if ( Abc_NtkGetChoiceNum( pNtk ) )
         printf( "Warning: The choice nodes in the initial AIG are removed by strashing.\n" );
@@ -72,7 +78,9 @@ Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes, bool fCleanup )
 //    if ( Abc_NtkCountSelfFeedLatches(pNtkAig) )
 //        printf( "Warning: The network has %d self-feeding latches.\n", Abc_NtkCountSelfFeedLatches(pNtkAig) );
     if ( fCleanup && (nNodes = Abc_AigCleanup(pNtkAig->pManFunc)) )
-        printf( "Warning: AIG cleanup removed %d nodes (this is not a bug).\n", nNodes );
+    {
+//        printf( "Warning: AIG cleanup removed %d nodes (this is not a bug).\n", nNodes );
+    }
     // duplicate EXDC 
     if ( pNtk->pExdc )
         pNtkAig->pExdc = Abc_NtkDup( pNtk->pExdc );
@@ -108,7 +116,13 @@ int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
     assert( Abc_NtkIsStrash(pNtk1) );
     assert( Abc_NtkIsLogic(pNtk2) || Abc_NtkIsStrash(pNtk2) ); 
     if ( Abc_NtkIsBddLogic(pNtk2) )
-        Abc_NtkBddToSop(pNtk2, 0);
+    {
+        if ( !Abc_NtkBddToSop(pNtk2, 0) )
+        {
+            printf( "Converting to SOPs has failed.\n" );
+            return 0;
+        }
+    }
     // check that the networks have the same PIs
     // reorder PIs of pNtk2 according to pNtk1
     if ( !Abc_NtkCompareSignals( pNtk1, pNtk2, 1 ) )
@@ -163,6 +177,7 @@ void Abc_NtkStrashPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, bool fAllNodes
         assert( pObj->pCopy == NULL );
         // mark the old object with the new AIG node
         pObj->pCopy = pNodeNew;
+        Abc_HManAddProto( pObj->pCopy, pObj );
     }
     Vec_PtrFree( vNodes );
     Extra_ProgressBarStop( pProgress );

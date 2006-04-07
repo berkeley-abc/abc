@@ -27,7 +27,7 @@
 static void        Abc_NtkBddToMuxesPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
 static Abc_Obj_t * Abc_NodeBddToMuxes( Abc_Obj_t * pNodeOld, Abc_Ntk_t * pNtkNew );
 static Abc_Obj_t * Abc_NodeBddToMuxes_rec( DdManager * dd, DdNode * bFunc, Abc_Ntk_t * pNtkNew, st_table * tBdd2Node );
-static DdNode *    Abc_NodeGlobalBdds_rec( DdManager * dd, Abc_Obj_t * pNode, int nBddSizeMax );
+static DdNode *    Abc_NodeGlobalBdds_rec( DdManager * dd, Abc_Obj_t * pNode, int nBddSizeMax, ProgressBar * pProgress, int * pCounter, int fVerbose );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -243,15 +243,14 @@ Abc_Obj_t * Abc_NodeBddToMuxes_rec( DdManager * dd, DdNode * bFunc, Abc_Ntk_t * 
   SeeAlso     []
 
 ***********************************************************************/
-DdManager * Abc_NtkGlobalBdds( Abc_Ntk_t * pNtk, int nBddSizeMax, int fLatchOnly )
+DdManager * Abc_NtkGlobalBdds( Abc_Ntk_t * pNtk, int nBddSizeMax, int fLatchOnly, int fReorder, int fVerbose )
 {
-    int fReorder = 1;
     ProgressBar * pProgress;
     Vec_Ptr_t * vFuncsGlob;
     Abc_Obj_t * pNode;
     DdNode * bFunc;
     DdManager * dd;
-    int i;
+    int i, Counter;
 
     // start the manager
     assert( pNtk->pManGlob == NULL );
@@ -269,18 +268,20 @@ DdManager * Abc_NtkGlobalBdds( Abc_Ntk_t * pNtk, int nBddSizeMax, int fLatchOnly
 
     // collect the global functions of the COs
     vFuncsGlob = Vec_PtrAlloc( 100 );
+    Counter = 0;
     if ( fLatchOnly )
     {
         // construct the BDDs
-        pProgress = Extra_ProgressBarStart( stdout, Abc_NtkLatchNum(pNtk) );
+        pProgress = Extra_ProgressBarStart( stdout, Abc_NtkNodeNum(pNtk) );
         Abc_NtkForEachLatch( pNtk, pNode, i )
         {
-            Extra_ProgressBarUpdate( pProgress, i, NULL );
-            bFunc = Abc_NodeGlobalBdds_rec( dd, Abc_ObjFanin0(pNode), nBddSizeMax );
+//            Extra_ProgressBarUpdate( pProgress, i, NULL );
+            bFunc = Abc_NodeGlobalBdds_rec( dd, Abc_ObjFanin0(pNode), nBddSizeMax, pProgress, &Counter, fVerbose );
             if ( bFunc == NULL )
             {
+                if ( fVerbose )
                 printf( "Constructing global BDDs is aborted.\n" );
-                Extra_ProgressBarStop( pProgress );
+                Vec_PtrFree( vFuncsGlob );
                 Cudd_Quit( dd );
                 return NULL;
             }
@@ -292,15 +293,16 @@ DdManager * Abc_NtkGlobalBdds( Abc_Ntk_t * pNtk, int nBddSizeMax, int fLatchOnly
     else
     {
         // construct the BDDs
-        pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );
+        pProgress = Extra_ProgressBarStart( stdout, Abc_NtkNodeNum(pNtk) );
         Abc_NtkForEachCo( pNtk, pNode, i )
         {
-            Extra_ProgressBarUpdate( pProgress, i, NULL );
-            bFunc = Abc_NodeGlobalBdds_rec( dd, Abc_ObjFanin0(pNode), nBddSizeMax );
+//            Extra_ProgressBarUpdate( pProgress, i, NULL );
+            bFunc = Abc_NodeGlobalBdds_rec( dd, Abc_ObjFanin0(pNode), nBddSizeMax, pProgress, &Counter, fVerbose );
             if ( bFunc == NULL )
             {
+                if ( fVerbose )
                 printf( "Constructing global BDDs is aborted.\n" );
-                Extra_ProgressBarStop( pProgress );
+                Vec_PtrFree( vFuncsGlob );
                 Cudd_Quit( dd );
                 return NULL;
             }
@@ -339,12 +341,14 @@ DdManager * Abc_NtkGlobalBdds( Abc_Ntk_t * pNtk, int nBddSizeMax, int fLatchOnly
   SeeAlso     []
 
 ***********************************************************************/
-DdNode * Abc_NodeGlobalBdds_rec( DdManager * dd, Abc_Obj_t * pNode, int nBddSizeMax )
+DdNode * Abc_NodeGlobalBdds_rec( DdManager * dd, Abc_Obj_t * pNode, int nBddSizeMax, ProgressBar * pProgress, int * pCounter, int fVerbose )
 {
     DdNode * bFunc, * bFunc0, * bFunc1;
     assert( !Abc_ObjIsComplement(pNode) );
     if ( Cudd_ReadKeys(dd)-Cudd_ReadDead(dd) > (unsigned)nBddSizeMax )
     {
+        Extra_ProgressBarStop( pProgress );
+        if ( fVerbose )
         printf( "The number of live nodes reached %d.\n", nBddSizeMax );
         fflush( stdout );
         return NULL;
@@ -353,11 +357,11 @@ DdNode * Abc_NodeGlobalBdds_rec( DdManager * dd, Abc_Obj_t * pNode, int nBddSize
     if ( pNode->pCopy )
         return (DdNode *)pNode->pCopy;
     // compute the result for both branches
-    bFunc0 = Abc_NodeGlobalBdds_rec( dd, Abc_ObjFanin(pNode,0), nBddSizeMax ); 
+    bFunc0 = Abc_NodeGlobalBdds_rec( dd, Abc_ObjFanin(pNode,0), nBddSizeMax, pProgress, pCounter, fVerbose ); 
     if ( bFunc0 == NULL )
         return NULL;
     Cudd_Ref( bFunc0 );
-    bFunc1 = Abc_NodeGlobalBdds_rec( dd, Abc_ObjFanin(pNode,1), nBddSizeMax ); 
+    bFunc1 = Abc_NodeGlobalBdds_rec( dd, Abc_ObjFanin(pNode,1), nBddSizeMax, pProgress, pCounter, fVerbose ); 
     if ( bFunc1 == NULL )
         return NULL;
     Cudd_Ref( bFunc1 );
@@ -370,6 +374,9 @@ DdNode * Abc_NodeGlobalBdds_rec( DdManager * dd, Abc_Obj_t * pNode, int nBddSize
     // set the result
     assert( pNode->pCopy == NULL );
     pNode->pCopy = (Abc_Obj_t *)bFunc;
+    // increment the progress bar
+    if ( pProgress )
+        Extra_ProgressBarUpdate( pProgress, (*pCounter)++, NULL );
     return bFunc;
 }
 
@@ -427,7 +434,7 @@ double Abc_NtkSpacePercentage( Abc_Obj_t * pNode )
     Vec_PtrForEachEntry( vNodes, pObj, i )
         pObj->pCopy = (Abc_Obj_t *)dd->vars[i];
     // build the BDD of the cone
-    bFunc = Abc_NodeGlobalBdds_rec( dd, pNodeR, 10000000 );  Cudd_Ref( bFunc );
+    bFunc = Abc_NodeGlobalBdds_rec( dd, pNodeR, 10000000, NULL, NULL, 1 );  Cudd_Ref( bFunc );
     bFunc = Cudd_NotCond( bFunc, pNode != pNodeR );
     // count minterms
     Result = Cudd_CountMinterm( dd, bFunc, dd->size );

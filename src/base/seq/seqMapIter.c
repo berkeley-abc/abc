@@ -613,7 +613,7 @@ void Seq_MapCanonicizeTruthTables( Abc_Ntk_t * pNtk )
         if ( pList == NULL )
             continue;
         for ( pCut = pList->pNext; pCut; pCut = pCut->pNext )
-            Cut_TruthCanonicize( pCut );
+            Cut_TruthNCanonicize( pCut );
     }
 }
 

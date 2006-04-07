@@ -282,7 +282,129 @@ void Abc_NtkMiterFinalize( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Abc_Ntk_t * pNt
 
 
 
+/**Function*************************************************************
 
+  Synopsis    [Derives the AND of two miters.]
+
+  Description [The network should have the same names of PIs.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkMiterAnd( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
+{
+    char Buffer[100];
+    Abc_Ntk_t * pNtkMiter;
+    Abc_Obj_t * pOutput1, * pOutput2;
+    Abc_Obj_t * pRoot1, * pRoot2, * pMiter;
+
+    assert( Abc_NtkIsStrash(pNtk1) );
+    assert( Abc_NtkIsStrash(pNtk2) );
+    assert( 1 == Abc_NtkCoNum(pNtk1) );
+    assert( 1 == Abc_NtkCoNum(pNtk2) );
+    assert( 0 == Abc_NtkLatchNum(pNtk1) );
+    assert( 0 == Abc_NtkLatchNum(pNtk2) );
+    assert( Abc_NtkCiNum(pNtk1) == Abc_NtkCiNum(pNtk2) );
+
+    // start the new network
+    pNtkMiter = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG );
+    sprintf( Buffer, "%s_%s_miter", pNtk1->pName, pNtk2->pName );
+    pNtkMiter->pName = Extra_UtilStrsav(Buffer);
+
+    // perform strashing
+    Abc_NtkMiterPrepare( pNtk1, pNtk2, pNtkMiter, 1 );
+    Abc_NtkMiterAddOne( pNtk1, pNtkMiter );
+    Abc_NtkMiterAddOne( pNtk2, pNtkMiter );
+//    Abc_NtkMiterFinalize( pNtk1, pNtk2, pNtkMiter, 1 );
+    pRoot1 = Abc_NtkPo(pNtk1,0);
+    pRoot2 = Abc_NtkPo(pNtk2,0);
+    pOutput1 = Abc_ObjNotCond( Abc_ObjFanin0(pRoot1)->pCopy, Abc_ObjFaninC0(pRoot1) );
+    pOutput2 = Abc_ObjNotCond( Abc_ObjFanin0(pRoot2)->pCopy, Abc_ObjFaninC0(pRoot2) );
+
+    // create the miter of the two outputs
+    pMiter = Abc_AigAnd( pNtkMiter->pManFunc, pOutput1, pOutput2 );
+    Abc_ObjAddFanin( Abc_NtkPo(pNtkMiter,0), pMiter );
+
+    // make sure that everything is okay
+    if ( !Abc_NtkCheck( pNtkMiter ) )
+    {
+        printf( "Abc_NtkMiterAnd: The network check has failed.\n" );
+        Abc_NtkDelete( pNtkMiter );
+        return NULL;
+    }
+    return pNtkMiter;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Derives the cofactor of the miter w.r.t. the set of vars.]
+
+  Description [The array of variable values contains -1/0/1 for each PI.
+  -1 means this PI remains, 0/1 means this PI is set to 0/1.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkMiterCofactor( Abc_Ntk_t * pNtk, Vec_Int_t * vPiValues )
+{
+    char Buffer[100];
+    Abc_Ntk_t * pNtkMiter;
+    Abc_Obj_t * pRoot, * pOutput1;
+    int Value, i;
+
+    assert( Abc_NtkIsStrash(pNtk) );
+    assert( 1 == Abc_NtkCoNum(pNtk) );
+
+    // start the new network
+    pNtkMiter = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG );
+    sprintf( Buffer, "%s_miter", pNtk->pName );
+    pNtkMiter->pName = Extra_UtilStrsav(Buffer);
+
+    // get the root output
+    pRoot = Abc_NtkCo( pNtk, 0 );
+
+    // perform strashing
+    Abc_NtkMiterPrepare( pNtk, pNtk, pNtkMiter, 1 );
+    // set the first cofactor
+    Vec_IntForEachEntry( vPiValues, Value, i )
+    {
+        if ( Value == -1 )
+            continue;
+        if ( Value == 0 )
+        {
+            Abc_NtkCi(pNtk, i)->pCopy = Abc_ObjNot( Abc_NtkConst1(pNtkMiter) );
+            continue;
+        }
+        if ( Value == 1 )
+        {
+            Abc_NtkCi(pNtk, i)->pCopy = Abc_NtkConst1(pNtkMiter);
+            continue;
+        }
+        assert( 0 );
+    }
+    // add the first cofactor
+    Abc_NtkMiterAddCone( pNtk, pNtkMiter, pRoot );
+
+    // save the output
+    pOutput1 = Abc_ObjNotCond( Abc_ObjFanin0(pRoot)->pCopy, Abc_ObjFaninC0(pRoot) );
+
+    // create the miter of the two outputs
+    Abc_ObjAddFanin( Abc_NtkPo(pNtkMiter,0), pOutput1 );
+
+    // make sure that everything is okay
+    if ( !Abc_NtkCheck( pNtkMiter ) )
+    {
+        printf( "Abc_NtkMiterCofactor: The network check has failed.\n" );
+        Abc_NtkDelete( pNtkMiter );
+        return NULL;
+    }
+    return pNtkMiter;
+}
 /**Function*************************************************************
 
   Synopsis    [Derives the miter of two cofactors of one output.]

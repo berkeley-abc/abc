@@ -25,6 +25,9 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+#define ABC_RS_DIV1_MAX    150   // the max number of divisors to consider
+#define ABC_RS_DIV2_MAX    500   // the max number of pair-wise divisors to consider
+
 typedef struct Abc_ManRes_t_ Abc_ManRes_t;
 struct Abc_ManRes_t_
 {
@@ -79,6 +82,7 @@ struct Abc_ManRes_t_
     int                nUsedNodeTotal;
     int                nTotalDivs;
     int                nTotalLeaves;
+    int                nTotalGain;
 };
 
 // external procedures
@@ -90,8 +94,8 @@ static void          Abc_ManResubPrint( Abc_ManRes_t * p );
 
 // other procedures
 static int           Abc_ManResubCollectDivs( Abc_ManRes_t * p, Abc_Obj_t * pRoot, Vec_Ptr_t * vLeaves, int Required );
-static int           Abc_ManResubMffc( Abc_ManRes_t * p, Vec_Ptr_t * vDivs, Abc_Obj_t * pRoot, int nLeaves );
 static void          Abc_ManResubSimulate( Vec_Ptr_t * vDivs, int nLeaves, Vec_Ptr_t * vSims, int nLeavesMax, int nWords );
+static void          Abc_ManResubPrintDivs( Abc_ManRes_t * p, Abc_Obj_t * pRoot, Vec_Ptr_t * vLeaves );
 
 static void          Abc_ManResubDivsS( Abc_ManRes_t * p, int Required );
 static void          Abc_ManResubDivsD( Abc_ManRes_t * p, int Required );
@@ -136,12 +140,16 @@ int Abc_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutMax, int nStepsMax, bool fUpd
     // cleanup the AIG
     Abc_AigCleanup(pNtk->pManFunc);
     // start the managers
-    pManCut = Abc_NtkManCutStart( nCutMax, 10000, 100000, 100000 );
-    pManRes = Abc_ManResubStart( nCutMax, 200 );
+    pManCut = Abc_NtkManCutStart( nCutMax, 100000, 100000, 100000 );
+    pManRes = Abc_ManResubStart( nCutMax, ABC_RS_DIV1_MAX );
 
     // compute the reverse levels if level update is requested
     if ( fUpdateLevel )
         Abc_NtkStartReverseLevels( pNtk );
+
+    if ( Abc_NtkLatchNum(pNtk) )
+        Abc_NtkForEachLatch(pNtk, pNode, i)
+            pNode->pNext = pNode->pData;
 
     // resynthesize each node once
     nNodes = Abc_NtkObjNumMax(pNtk);
@@ -179,13 +187,16 @@ clk = clock();
 pManRes->timeRes += clock() - clk;
         if ( pFForm == NULL )
             continue;
+        pManRes->nTotalGain += pManRes->nLastGain;
 /*
-        if ( pNode->Id % 25 == 0 )
+        if ( pManRes->nLeaves == 4 && pManRes->nMffc == 2 && pManRes->nLastGain == 1 )
+        {
             printf( "%6d :  L = %2d. V = %2d. Mffc = %2d. Divs = %3d.   Up = %3d. Un = %3d. B = %3d.\n", 
                    pNode->Id, pManRes->nLeaves, Abc_CutVolumeCheck(pNode, vLeaves), pManRes->nMffc, pManRes->nDivs, 
                    pManRes->vDivs1UP->nSize, pManRes->vDivs1UN->nSize, pManRes->vDivs1B->nSize );
+            Abc_ManResubPrintDivs( pManRes, pNode, vLeaves );
+        }
 */
-
         // acceptable replacement found, update the graph
 clk = clock();
         Dec_GraphUpdateNetwork( pNode, pFForm, fUpdateLevel, pManRes->nLastGain );
@@ -206,6 +217,10 @@ pManRes->timeTotal = clock() - clkStart;
     // clean the data field
     Abc_NtkForEachObj( pNtk, pNode, i )
         pNode->pData = NULL;
+
+    if ( Abc_NtkLatchNum(pNtk) )
+        Abc_NtkForEachLatch(pNtk, pNode, i)
+            pNode->pData = pNode->pNext, pNode->pNext = NULL;
 
     // put the nodes into the DFS order and reassign their IDs
     Abc_NtkReassignIds( pNtk );
@@ -340,6 +355,7 @@ void Abc_ManResubPrint( Abc_ManRes_t * p )
                                                    );                          PRT( "TOTAL ", p->timeTotal );
     printf( "Total leaves   = %8d.\n", p->nTotalLeaves );
     printf( "Total divisors = %8d.\n", p->nTotalDivs );
+    printf( "Total gain     = %8d.\n", p->nTotalGain );
     
 }
 
@@ -382,7 +398,7 @@ void Abc_ManResubCollectDivs_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vInternal )
 ***********************************************************************/
 int Abc_ManResubCollectDivs( Abc_ManRes_t * p, Abc_Obj_t * pRoot, Vec_Ptr_t * vLeaves, int Required )
 {
-    Abc_Obj_t * pNode, * pFanout;//, * pFanin;
+    Abc_Obj_t * pNode, * pFanout;
     int i, k, Limit, Counter;
 
     Vec_PtrClear( p->vDivs1UP );
@@ -451,10 +467,24 @@ Quits :
     assert( pRoot == Vec_PtrEntryLast(p->vDivs) );
 
     assert( Vec_PtrSize(p->vDivs) - Vec_PtrSize(vLeaves) <= Vec_PtrSize(p->vSims) - p->nLeavesMax );
+    return 1;
+}
 
-/*
-if (pRoot->Id == 15281 )
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_ManResubPrintDivs( Abc_ManRes_t * p, Abc_Obj_t * pRoot, Vec_Ptr_t * vLeaves )
 {
+    Abc_Obj_t * pFanin, * pNode;
+    int i, k;
     // print the nodes
     Vec_PtrForEachEntry( p->vDivs, pNode, i )
     {
@@ -488,59 +518,7 @@ if (pRoot->Id == 15281 )
     }
     printf( "\n" );
 }
-*/
 
-    return 1;
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_ManResubMffc( Abc_ManRes_t * p, Vec_Ptr_t * vDivs, Abc_Obj_t * pRoot, int nLeaves )
-{
-    Abc_Obj_t * pObj;
-    int Counter, i, k;
-    // increment the traversal ID for the leaves
-    // increment the fanout counters of the leaves
-    Abc_NtkIncrementTravId( pRoot->pNtk );
-    Vec_PtrForEachEntryStop( vDivs, pObj, i, nLeaves )
-    {
-        pObj->vFanouts.nSize++;
-        Abc_NodeSetTravIdCurrent( pObj ); 
-    }
-    // make sure the node is in the cone and is no one of the leaves
-    assert( Abc_NodeIsTravIdPrevious(pRoot) );
-    Counter = Abc_NodeMffcLabel( pRoot );
-    // remove the extra counters
-    Vec_PtrForEachEntryStop( vDivs, pObj, i, nLeaves )
-        pObj->vFanouts.nSize--;
-
-    // sort the nodes by level!!!
-    
-    // move the labeled nodes to the end 
-    Vec_PtrClear( p->vTemp );
-    k = nLeaves;
-    Vec_PtrForEachEntryStart( vDivs, pObj, i, nLeaves )
-        if ( Abc_NodeIsTravIdCurrent(pObj) )
-            Vec_PtrPush( p->vTemp, pObj );
-        else
-            Vec_PtrWriteEntry( vDivs, k++, pObj );
-    // add the labeled nodes
-    Vec_PtrForEachEntry( p->vTemp, pObj, i )
-        Vec_PtrWriteEntry( vDivs, k++, pObj );
-    assert( k == Vec_PtrSize(p->vDivs) );
-    assert( pRoot == Vec_PtrEntryLast(p->vDivs) );
-    return Counter;
-}
 
 /**Function*************************************************************
 
@@ -928,7 +906,7 @@ void Abc_ManResubDivsD( Abc_ManRes_t * p, int Required )
 
             puData1 = pObj1->pData;
 
-            if ( Vec_PtrSize(p->vDivs2UP0) < 500 )
+            if ( Vec_PtrSize(p->vDivs2UP0) < ABC_RS_DIV2_MAX )
             {
                 // get positive unate divisors
                 for ( w = 0; w < p->nWords; w++ )
@@ -965,7 +943,7 @@ void Abc_ManResubDivsD( Abc_ManRes_t * p, int Required )
                 }
             }
 
-            if ( Vec_PtrSize(p->vDivs2UN0) < 500 )
+            if ( Vec_PtrSize(p->vDivs2UN0) < ABC_RS_DIV2_MAX )
             {
                 // get negative unate divisors
                 for ( w = 0; w < p->nWords; w++ )

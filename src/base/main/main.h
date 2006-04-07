@@ -81,6 +81,7 @@ extern FILE *          Abc_FrameReadErr( Abc_Frame_t * p );
 extern bool            Abc_FrameReadMode( Abc_Frame_t * p );
 extern bool            Abc_FrameSetMode( Abc_Frame_t * p, bool fNameMode );
 extern void            Abc_FrameRestart( Abc_Frame_t * p );
+extern bool            Abc_FrameShowProgress( Abc_Frame_t * p );
 
 extern void            Abc_FrameSetCurrentNetwork( Abc_Frame_t * p, Abc_Ntk_t * pNet );
 extern void            Abc_FrameSwapCurrentAndBackup( Abc_Frame_t * p );

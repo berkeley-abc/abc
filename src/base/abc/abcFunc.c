@@ -24,6 +24,8 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+#define ABC_MUX_CUBES   100000
+
 static int         Abc_ConvertZddToSop( DdManager * dd, DdNode * zCover, char * pSop, int nFanins, Vec_Str_t * vCube, int fPhase );
 
 ////////////////////////////////////////////////////////////////////////
@@ -205,6 +207,7 @@ void Abc_NtkLogicMakeDirectSops( Abc_Ntk_t * pNtk )
 int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect )
 {
     Abc_Obj_t * pNode;
+    Extra_MmFlex_t * pManNew;
     DdManager * dd = pNtk->pManFunc;
     DdNode * bFunc;
     Vec_Str_t * vCube;
@@ -217,10 +220,8 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect )
 
     assert( Abc_NtkIsBddLogic(pNtk) ); 
     Cudd_zddVarsFromBddVars( dd, 2 );
-    // allocate the new manager
-    pNtk->pManFunc = Extra_MmFlexStart();
-    // update the network type
-    pNtk->ntkFunc = ABC_FUNC_SOP;
+    // create the new manager
+    pManNew = Extra_MmFlexStart();
 
     // go through the objects
     vCube = Vec_StrAlloc( 100 );
@@ -228,16 +229,29 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect )
     {
         assert( pNode->pData );
         bFunc = pNode->pData;
-        pNode->pData = Abc_ConvertBddToSop( pNtk->pManFunc, dd, bFunc, bFunc, Abc_ObjFaninNum(pNode), vCube, fMode );
-        if ( pNode->pData == NULL )
+        pNode->pNext = (Abc_Obj_t *)Abc_ConvertBddToSop( pManNew, dd, bFunc, bFunc, Abc_ObjFaninNum(pNode), vCube, fMode );
+        if ( pNode->pNext == NULL )
         {
+            Extra_MmFlexStop( pManNew, 0 );
+            Abc_NtkCleanNext( pNtk );
+//            printf( "Converting from BDDs to SOPs has failed.\n" );
             Vec_StrFree( vCube );
-            Cudd_Quit( dd );
             return 0;
         }
-        Cudd_RecursiveDeref( dd, bFunc );
     }
     Vec_StrFree( vCube );
+
+    // update the network type
+    pNtk->ntkFunc = ABC_FUNC_SOP;
+    // set the new manager
+    pNtk->pManFunc = pManNew;
+    // transfer from next to data
+    Abc_NtkForEachNode( pNtk, pNode, i )
+    {
+        Cudd_RecursiveDeref( dd, pNode->pData );
+        pNode->pData = pNode->pNext;
+        pNode->pNext = NULL;
+    }
 
     // check for remaining references in the package
     Extra_StopManager( dd );
@@ -337,6 +351,13 @@ char * Abc_ConvertBddToSop( Extra_MmFlex_t * pMan, DdManager * dd, DdNode * bFun
     else
     {
         assert( 0 );
+    }
+
+    if ( nCubes > ABC_MUX_CUBES )
+    {
+        Cudd_RecursiveDerefZdd( dd, zCover );
+        printf( "The number of cubes exceeded the predefined limit (%d).\n", ABC_MUX_CUBES );
+        return NULL;
     }
 
     // allocate memory for the cover
@@ -468,6 +489,8 @@ void Abc_CountZddCubes_rec( DdManager * dd, DdNode * zCover, int * pnCubes )
         (*pnCubes)++;
         return;
     }
+    if ( (*pnCubes) > ABC_MUX_CUBES )
+        return;
     extraDecomposeCover( dd, zCover, &zC0, &zC1, &zC2 );
     Abc_CountZddCubes_rec( dd, zC0, pnCubes );
     Abc_CountZddCubes_rec( dd, zC1, pnCubes );

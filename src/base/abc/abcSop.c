@@ -61,7 +61,7 @@ char * Abc_SopRegister( Extra_MmFlex_t * pMan, char * pName )
 
 /**Function*************************************************************
 
-  Synopsis    [Starts the constant 1 cover with the given number of variables and cubes.]
+  Synopsis    [Creates the constant 1 cover with the given number of variables and cubes.]
 
   Description []
                
@@ -92,7 +92,7 @@ char * Abc_SopStart( Extra_MmFlex_t * pMan, int nCubes, int nVars )
 
 /**Function*************************************************************
 
-  Synopsis    [Starts the constant 1 cover with 0 variables.]
+  Synopsis    [Creates the constant 1 cover with 0 variables.]
 
   Description []
                
@@ -108,7 +108,7 @@ char * Abc_SopCreateConst1( Extra_MmFlex_t * pMan )
 
 /**Function*************************************************************
 
-  Synopsis    [Starts the constant 1 cover with 0 variables.]
+  Synopsis    [Creates the constant 1 cover with 0 variables.]
 
   Description []
                
@@ -124,7 +124,7 @@ char * Abc_SopCreateConst0( Extra_MmFlex_t * pMan )
 
 /**Function*************************************************************
 
-  Synopsis    [Starts the AND2 cover.]
+  Synopsis    [Creates the AND2 cover.]
 
   Description []
                
@@ -147,7 +147,7 @@ char * Abc_SopCreateAnd2( Extra_MmFlex_t * pMan, int fCompl0, int fCompl1 )
 
 /**Function*************************************************************
 
-  Synopsis    [Starts the multi-input AND cover.]
+  Synopsis    [Creates the multi-input AND cover.]
 
   Description []
                
@@ -169,7 +169,7 @@ char * Abc_SopCreateAnd( Extra_MmFlex_t * pMan, int nVars, int * pfCompl )
 
 /**Function*************************************************************
 
-  Synopsis    [Starts the multi-input NAND cover.]
+  Synopsis    [Creates the multi-input NAND cover.]
 
   Description []
                
@@ -191,7 +191,7 @@ char * Abc_SopCreateNand( Extra_MmFlex_t * pMan, int nVars )
 
 /**Function*************************************************************
 
-  Synopsis    [Starts the multi-input OR cover.]
+  Synopsis    [Creates the multi-input OR cover.]
 
   Description []
                
@@ -213,7 +213,7 @@ char * Abc_SopCreateOr( Extra_MmFlex_t * pMan, int nVars, int * pfCompl )
 
 /**Function*************************************************************
 
-  Synopsis    [Starts the multi-input OR cover.]
+  Synopsis    [Creates the multi-input OR cover.]
 
   Description []
                
@@ -238,7 +238,7 @@ char * Abc_SopCreateOrMultiCube( Extra_MmFlex_t * pMan, int nVars, int * pfCompl
 
 /**Function*************************************************************
 
-  Synopsis    [Starts the multi-input NOR cover.]
+  Synopsis    [Creates the multi-input NOR cover.]
 
   Description []
                
@@ -259,7 +259,7 @@ char * Abc_SopCreateNor( Extra_MmFlex_t * pMan, int nVars )
 
 /**Function*************************************************************
 
-  Synopsis    [Starts the multi-input XOR cover.]
+  Synopsis    [Creates the multi-input XOR cover.]
 
   Description []
                
@@ -276,7 +276,7 @@ char * Abc_SopCreateXor( Extra_MmFlex_t * pMan, int nVars )
 
 /**Function*************************************************************
 
-  Synopsis    [Starts the multi-input XOR cover (special case).]
+  Synopsis    [Creates the multi-input XOR cover (special case).]
 
   Description []
                
@@ -296,7 +296,7 @@ char * Abc_SopCreateXorSpecial( Extra_MmFlex_t * pMan, int nVars )
 
 /**Function*************************************************************
 
-  Synopsis    [Starts the multi-input XNOR cover.]
+  Synopsis    [Creates the multi-input XNOR cover.]
 
   Description []
                
@@ -313,7 +313,24 @@ char * Abc_SopCreateNxor( Extra_MmFlex_t * pMan, int nVars )
 
 /**Function*************************************************************
 
-  Synopsis    [Starts the inv cover.]
+  Synopsis    [Creates the MUX cover.]
+
+  Description [The first input of MUX is the control. The second input
+  is DATA1. The third input is DATA0.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_SopCreateMux( Extra_MmFlex_t * pMan )
+{
+    return Abc_SopRegister(pMan, "11- 1\n0-1 1\n");
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates the inv cover.]
 
   Description []
                
@@ -329,7 +346,7 @@ char * Abc_SopCreateInv( Extra_MmFlex_t * pMan )
 
 /**Function*************************************************************
 
-  Synopsis    [Starts the buf cover.]
+  Synopsis    [Creates the buf cover.]
 
   Description []
                

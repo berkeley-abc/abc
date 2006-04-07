@@ -62,7 +62,7 @@ Abc_Ntk_t * Abc_NtkNetlistToLogic( Abc_Ntk_t * pNtk )
             Abc_ObjAddFanin( pObj->pCopy, Abc_ObjFanin0(pFanin)->pCopy );
     // collect the CO nodes
     Abc_NtkFinalize( pNtk, pNtkNew );
-    // fix the problem with CO pointing directing to CIs
+    // fix the problem with CO pointing directly to CIs
     Abc_NtkLogicMakeSimpleCos( pNtkNew, 0 );
     // duplicate EXDC 
     if ( pNtk->pExdc )
@@ -101,7 +101,8 @@ Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk, int fDirect )
     }
     else if ( Abc_NtkIsBddLogic(pNtk) )
     {
-        Abc_NtkBddToSop(pNtk, fDirect);
+        if ( !Abc_NtkBddToSop(pNtk, fDirect) )
+            return NULL;
         pNtkNew = Abc_NtkLogicSopToNetlist( pNtk );
         Abc_NtkSopToBdd(pNtk);
     }
@@ -157,7 +158,10 @@ Abc_Ntk_t * Abc_NtkLogicSopToNetlist( Abc_Ntk_t * pNtk )
     assert( Abc_NtkLogicHasSimpleCos(pNtk) );
 
     if ( Abc_NtkIsBddLogic(pNtk) )
-        Abc_NtkBddToSop(pNtk,0);
+    {
+        if ( !Abc_NtkBddToSop(pNtk,0) )
+            return NULL;
+    }
 
     // start the netlist by creating PI/PO/Latch objects
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_NETLIST, pNtk->ntkFunc );

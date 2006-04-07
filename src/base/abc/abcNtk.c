@@ -50,6 +50,7 @@ Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func )
     memset( pNtk, 0, sizeof(Abc_Ntk_t) );
     pNtk->ntkType     = Type;
     pNtk->ntkFunc     = Func;
+    pNtk->Id          = !Abc_HManIsRunning()? 0 : Abc_HManGetNewNtkId();
     // start the object storage
     pNtk->vObjs       = Vec_PtrAlloc( 100 );
     pNtk->vLats       = Vec_PtrAlloc( 100 );
@@ -135,6 +136,14 @@ Abc_Ntk_t * Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_
         pObjNew = Abc_NtkDupObj(pNtkNew, pObj);
         Vec_PtrPush( pNtkNew->vCis, pObjNew );
         Vec_PtrPush( pNtkNew->vCos, pObjNew );
+    }
+    if ( Abc_NtkIsStrash(pNtk) && Abc_HManIsRunning() )
+    {
+        Abc_HManAddProto( Abc_NtkConst1(pNtk)->pCopy, Abc_NtkConst1(pNtk) );
+        Abc_NtkForEachCi( pNtk, pObj, i )
+            Abc_HManAddProto( pObj->pCopy, pObj );
+        Abc_NtkForEachCo( pNtk, pObj, i )
+            Abc_HManAddProto( pObj->pCopy, pObj );
     }
     // transfer the names
     Abc_NtkDupCioNamesTable( pNtk, pNtkNew );
@@ -406,6 +415,11 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
         Abc_NtkForEachObj( pNtk, pObj, i )
             Abc_ObjForEachFanin( pObj, pFanin, k )
                 Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
+    }
+    if ( Abc_NtkIsStrash(pNtk) && Abc_HManIsRunning() )
+    {
+        Abc_AigForEachAnd( pNtk, pObj, i )
+            Abc_HManAddProto( pObj->pCopy, pObj );
     }
     // duplicate the EXDC Ntk
     if ( pNtk->pExdc )

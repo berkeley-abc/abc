@@ -17,6 +17,7 @@
 ***********************************************************************/
 
 #include "fraigInt.h"
+#include "math.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -304,6 +305,20 @@ int Fraig_NodeIsEquivalent( Fraig_Man_t * p, Fraig_Node_t * pOld, Fraig_Node_t *
     assert( !Fraig_IsComplement(pOld) );
     assert( pNew != pOld );
 
+    // if at least one of the nodes is a failed node, perform adjustments:
+    // if the backtrack limit is small, simply skip this node
+    // if the backtrack limit is > 10, take the quare root of the limit
+    if ( nBTLimit > 0 && (pOld->fFailTfo || pNew->fFailTfo) )
+    {
+        p->nSatFails++;
+//            return 0;
+//        if ( nBTLimit > 10 )
+//            nBTLimit /= 10;
+        if ( nBTLimit <= 10 )
+            return 0;
+        nBTLimit = (int)sqrt(nBTLimit);
+    }
+
     p->nSatCalls++;
 
     // make sure the solver is allocated and has enough variables
@@ -394,13 +409,27 @@ PRT( "time", clock() - clk );
 
         // record the counter example
         Fraig_FeedBack( p, Msat_SolverReadModelArray(p->pSat), p->vVarsInt, pOld, pNew );
+
+//        if ( pOld->fFailTfo || pNew->fFailTfo )
+//            printf( "*" );
+//        printf( "s(%d)", pNew->Level );
         p->nSatCounter++;
         return 0;
     }
     else // if ( RetValue1 == MSAT_UNKNOWN )
     {
 p->time3 += clock() - clk;
-        p->nSatFails++;
+
+//        if ( pOld->fFailTfo || pNew->fFailTfo )
+//            printf( "*" );
+//        printf( "T(%d)", pNew->Level );
+
+        // mark the node as the failed node
+        if ( pOld != p->pConst1 ) 
+            pOld->fFailTfo = 1;
+        pNew->fFailTfo = 1;
+//        p->nSatFails++;
+        p->nSatFailsReal++;
         return 0;
     }
 
@@ -454,17 +483,34 @@ PRT( "time", clock() - clk );
         // record the counter example
         Fraig_FeedBack( p, Msat_SolverReadModelArray(p->pSat), p->vVarsInt, pOld, pNew );
         p->nSatCounter++;
+
+//        if ( pOld->fFailTfo || pNew->fFailTfo )
+//            printf( "*" );
+//        printf( "s(%d)", pNew->Level );
         return 0;
     }
     else // if ( RetValue1 == MSAT_UNKNOWN )
     {
 p->time3 += clock() - clk;
-        p->nSatFails++;
+
+//        if ( pOld->fFailTfo || pNew->fFailTfo )
+//            printf( "*" );
+//        printf( "T(%d)", pNew->Level );
+
+        // mark the node as the failed node
+        pOld->fFailTfo = 1;
+        pNew->fFailTfo = 1;
+//        p->nSatFails++;
+        p->nSatFailsReal++;
         return 0;
     }
 
     // return SAT proof
     p->nSatProof++;
+
+//    if ( pOld->fFailTfo || pNew->fFailTfo )
+//        printf( "*" );
+//    printf( "u(%d)", pNew->Level );
     return 1;
 }
 

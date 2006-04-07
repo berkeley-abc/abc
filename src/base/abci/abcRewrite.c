@@ -110,6 +110,10 @@ clk = clock();
             Dec_GraphUpdateNetwork( pNode, pGraph, fUpdateLevel, nGain );
 Rwr_ManAddTimeUpdate( pManRwr, clock() - clk );
             if ( fCompl ) Dec_GraphComplement( pGraph );
+//    {
+//        extern int s_TotalChanges;
+//        s_TotalChanges++;
+//    }
         }
     }
     Extra_ProgressBarStop( pProgress );

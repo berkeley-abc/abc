@@ -73,7 +73,7 @@ void Abc_NtkPrintUnateBdd( Abc_Ntk_t * pNtk, int fUseNaive, int fVerbose )
     int clkBdd, clkUnate;
 
     // compute the global BDDs
-    if ( Abc_NtkGlobalBdds(pNtk, 10000000, 0) == NULL )
+    if ( Abc_NtkGlobalBdds(pNtk, 10000000, 0, 1, fVerbose) == NULL )
         return;
 clkBdd = clock() - clk;
 

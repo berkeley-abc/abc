@@ -807,6 +807,7 @@ void Abc_AigReplace_int( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew, i
         Abc_AigAndDelete( pMan, pFanout );
         // remove the fanins of the old fanout
         Abc_ObjRemoveFanins( pFanout );
+        Abc_HManRemoveFanins( pFanout );
         // recreate the old fanout with new fanins and add it to the table
         Abc_AigAndCreateFrom( pMan, pFanin1, pFanin2, pFanout );
         assert( Abc_AigNodeIsAcyclic(pFanout, pFanout) );

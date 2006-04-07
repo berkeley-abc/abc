@@ -95,7 +95,7 @@ static inline int Aig_WordCountOnes( unsigned val )
     val = (val & 0x33333333) + ((val>>2) & 0x33333333);
     val = (val & 0x0F0F0F0F) + ((val>>4) & 0x0F0F0F0F);
     val = (val & 0x00FF00FF) + ((val>>8) & 0x00FF00FF);
-    return (val & 0x0000FFFF) + (val>>8);
+    return (val & 0x0000FFFF) + (val>>16);
 }
 
 /**Function*************************************************************

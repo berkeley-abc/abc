@@ -18,6 +18,10 @@
 
 ***********************************************************************/
  
+#ifdef WIN32
+#include <process.h> 
+#endif
+
 #include "mainInt.h"
 #include "cmdInt.h"
 #include "abc.h"
@@ -45,6 +49,7 @@ static int CmdCommandLs            ( Abc_Frame_t * pAbc, int argc, char ** argv 
 #endif
 static int CmdCommandSis           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandMvsis         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int CmdCommandCapo          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -85,6 +90,7 @@ void Cmd_Init( Abc_Frame_t * pAbc )
 
     Cmd_CommandAdd( pAbc, "Various", "sis",     CmdCommandSis,            1); 
     Cmd_CommandAdd( pAbc, "Various", "mvsis",   CmdCommandMvsis,          1); 
+    Cmd_CommandAdd( pAbc, "Various", "capo",    CmdCommandCapo,           0); 
 }
 
 /**Function********************************************************************
@@ -1253,6 +1259,11 @@ int CmdCommandSis( Abc_Frame_t * pAbc, int argc, char **argv )
 
     // write out the current network
     pNetlist = Abc_NtkLogicToNetlist(pNtk,0);
+    if ( pNetlist == NULL )
+    {
+        fprintf( pErr, "Cannot produce the intermediate network.\n" );
+        goto usage;
+    }
     Io_WriteBlif( pNetlist, "_sis_in.blif", 1 );
     Abc_NtkDelete( pNetlist );
 
@@ -1389,6 +1400,11 @@ int CmdCommandMvsis( Abc_Frame_t * pAbc, int argc, char **argv )
 
     // write out the current network
     pNetlist = Abc_NtkLogicToNetlist(pNtk,0);
+    if ( pNetlist == NULL )
+    {
+        fprintf( pErr, "Cannot produce the intermediate network.\n" );
+        goto usage;
+    }
     Io_WriteBlif( pNetlist, "_mvsis_in.blif", 1 );
     Abc_NtkDelete( pNetlist );
 
@@ -1452,6 +1468,190 @@ usage:
     fprintf( pErr, "         Example 3: mvsis source mvsis.rugged\n" );
     return 1;                    // error exit 
 }
+
+
+/**Function********************************************************************
+
+  Synopsis    [Calls Capo internally.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+int CmdCommandCapo( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    FILE * pFile;
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNetlist;
+    char Command[1000], Buffer[100];
+    char * pProgNameCapoWin     = "capo.exe";
+    char * pProgNameCapoUnix    = "capo";
+    char * pProgNameGnuplotWin  = "wgnuplot.exe";
+    char * pProgNameGnuplotUnix = "gnuplot";
+    char * pProgNameCapo;
+    char * pProgNameGnuplot;
+    char * pPlotFileName;
+    int i;
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        goto usage;
+    }
+
+    if ( strcmp( argv[0], "capo" ) != 0 )
+    {
+        fprintf( pErr, "Wrong command: \"%s\".\n", argv[0] );
+        goto usage;
+    }
+
+    if ( argc > 1 )
+    {
+        if ( strcmp( argv[1], "-h" ) == 0 )
+            goto usage;
+        if ( strcmp( argv[1], "-?" ) == 0 )
+            goto usage;
+    }
+
+    // get the names from the resource file
+    if ( Cmd_FlagReadByName(pAbc, "capowin") )
+        pProgNameCapoWin = Cmd_FlagReadByName(pAbc, "capowin");
+    if ( Cmd_FlagReadByName(pAbc, "capounix") )
+        pProgNameCapoUnix = Cmd_FlagReadByName(pAbc, "capounix");
+
+    // check if capo is available
+    if ( (pFile = fopen( pProgNameCapoWin, "r" )) )
+        pProgNameCapo = pProgNameCapoWin;
+    else if ( (pFile = fopen( pProgNameCapoUnix, "r" )) )
+        pProgNameCapo = pProgNameCapoUnix;
+    else if ( pFile == NULL )
+    {
+        fprintf( pErr, "Cannot find \"%s\" or \"%s\" in the current directory.\n", pProgNameCapoWin, pProgNameCapoUnix );
+        goto usage;
+    }
+    fclose( pFile );
+
+    if ( Abc_NtkIsMappedLogic(pNtk) )
+    {
+        Abc_NtkUnmap(pNtk);
+        printf( "The current network is unmapped before calling Capo.\n" );
+    }
+
+    // write out the current network
+    pNetlist = Abc_NtkLogicToNetlist(pNtk,0);
+    if ( pNetlist == NULL )
+    {
+        fprintf( pErr, "Cannot produce the intermediate network.\n" );
+        goto usage;
+    }
+    Io_WriteBlif( pNetlist, "_capo_in.blif", 1 );
+    Abc_NtkDelete( pNetlist );
+
+    // create the file for Capo
+    sprintf( Command, "%s -f _capo_in.blif -log out.txt ", pProgNameCapo );
+    pPlotFileName = NULL;
+    for ( i = 1; i < argc; i++ )
+    {
+        sprintf( Buffer, " %s", argv[i] );
+        strcat( Command, Buffer );
+        if ( !strcmp( argv[i], "-plot" ) )
+            pPlotFileName = argv[i+1];
+    }
+
+    // call Capo
+    if ( system( Command ) )
+    {
+        fprintf( pErr, "The following command has returned non-zero exit status:\n" );
+        fprintf( pErr, "\"%s\"\n", Command );
+        unlink( "_capo_in.blif" );
+        goto usage;
+    }
+    // remove temporary networks
+    unlink( "_capo_in.blif" );
+    if ( pPlotFileName == NULL )
+        return 0;
+
+    // get the file name
+    sprintf( Buffer, "%s.plt", pPlotFileName );
+    pPlotFileName = Buffer;
+
+    // read in the Capo plotting output
+    if ( (pFile = fopen( pPlotFileName, "r" )) == NULL )
+    {
+        fprintf( pErr, "Cannot open the plot file \"%s\".\n\n", pPlotFileName );
+        goto usage;
+    }
+    fclose( pFile );
+
+    // get the names from the plotting software
+    if ( Cmd_FlagReadByName(pAbc, "gnuplotwin") )
+        pProgNameGnuplotWin = Cmd_FlagReadByName(pAbc, "gnuplotwin");
+    if ( Cmd_FlagReadByName(pAbc, "gnuplotunix") )
+        pProgNameGnuplotUnix = Cmd_FlagReadByName(pAbc, "gnuplotunix");
+
+    // check if Gnuplot is available
+    if ( (pFile = fopen( pProgNameGnuplotWin, "r" )) )
+        pProgNameGnuplot = pProgNameGnuplotWin;
+    else if ( (pFile = fopen( pProgNameGnuplotUnix, "r" )) )
+        pProgNameGnuplot = pProgNameGnuplotUnix;
+    else if ( pFile == NULL )
+    {
+        fprintf( pErr, "Cannot find \"%s\" or \"%s\" in the current directory.\n", pProgNameGnuplotWin, pProgNameGnuplotUnix );
+        goto usage;
+    }
+    fclose( pFile );
+
+    // spawn the viewer
+#ifdef WIN32
+    if ( _spawnl( _P_NOWAIT, pProgNameGnuplot, pProgNameGnuplot, pPlotFileName, NULL ) == -1 )
+    {
+        fprintf( stdout, "Cannot find \"%s\".\n", pProgNameGnuplot );
+        goto usage;
+    }
+#else
+    {
+        sprintf( Command, "%s %s ", pProgNameGnuplot, pPlotFileName );
+        if ( system( Command ) == -1 )
+        {
+            fprintf( stdout, "Cannot execute \"%s\".\n", Command );
+            goto usage;
+        }
+    }
+#endif
+
+    // remove temporary networks
+//    unlink( pPlotFileName );
+    return 0;
+
+usage:
+    fprintf( pErr, "\n" );
+    fprintf( pErr, "Usage: capo [-h] <com>\n");
+    fprintf( pErr, "         peforms placement of the current network using Capo\n" );
+    fprintf( pErr, "         a Capo binary should be present in the same directory\n" );
+    fprintf( pErr, "         (if plotting, the Gnuplot binary should also be present)\n" );
+    fprintf( pErr, "   -h  : print the command usage\n" );
+    fprintf( pErr, " <com> : a Capo command\n" );
+    fprintf( pErr, "         Example 1: capo\n" );
+    fprintf( pErr, "                    (performs placement with default options)\n" );
+    fprintf( pErr, "         Example 2: capo -AR <aspec_ratio> -WS <whitespace_percentage> -save\n" );
+    fprintf( pErr, "                    (specifies the aspect ratio [default = 1.0] and\n" );
+    fprintf( pErr, "                    the whitespace percentage [0%%; 100%%) [default = 15%%])\n" );
+    fprintf( pErr, "         Example 3: capo -plot <base_fileName>\n" );
+    fprintf( pErr, "                    (produces <base_fileName.plt> and visualize it using Gnuplot)\n" );
+    fprintf( pErr, "         Example 4: capo -help\n" );
+    fprintf( pErr, "                    (prints the default usage message of the Capo binary)\n" );
+    fprintf( pErr, "         Please refer to the Capo webpage for additional information:\n" );
+    fprintf( pErr, "         http://vlsicad.eecs.umich.edu/BK/PDtools/\n" );
+    return 1;                    // error exit 
+}
+
 
 
 ////////////////////////////////////////////////////////////////////////

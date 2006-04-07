@@ -50,6 +50,8 @@ Abc_Obj_t * Abc_ObjAlloc( Abc_Ntk_t * pNtk, Abc_ObjType_t Type )
     pObj->pNtk = pNtk;
     pObj->Type = Type;
     pObj->Id   = -1;
+    if ( pNtk->ntkType != ABC_NTK_NETLIST )
+        Abc_HManAddObj( pObj );
     return pObj;
 }
 

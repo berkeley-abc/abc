@@ -132,6 +132,10 @@ clk = clock();
         Dec_GraphUpdateNetwork( pNode, pFForm, fUpdateLevel, pManRef->nLastGain );
 pManRef->timeNtk += clock() - clk;
         Dec_GraphFree( pFForm );
+//    {
+//        extern int s_TotalChanges;
+//        s_TotalChanges++;
+//    }
     }
     Extra_ProgressBarStop( pProgress );
 pManRef->timeTotal = clock() - clkStart;

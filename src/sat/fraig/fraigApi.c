@@ -65,7 +65,7 @@ int               Fraig_ManReadPatternNumDynamic( Fraig_Man_t * p )           { 
 // returns the number of dynamic patterns proved useful to distinquish some FRAIG nodes (this number is more than 0 after the first garbage collection of patterns)
 int               Fraig_ManReadPatternNumDynamicFiltered( Fraig_Man_t * p )   { return p->iPatsPerm;        }
 // returns the number of times FRAIG package timed out
-int               Fraig_ManReadSatFails( Fraig_Man_t * p )                    { return p->nSatFails;        }      
+int               Fraig_ManReadSatFails( Fraig_Man_t * p )                    { return p->nSatFailsReal;    }      
 
 /**Function*************************************************************
 

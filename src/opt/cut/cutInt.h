@@ -65,13 +65,13 @@ struct Cut_ManStruct_t_
     Cut_Cut_t *        pStore1[2];
     Cut_Cut_t *        pCompareOld;
     Cut_Cut_t *        pCompareNew;
+    unsigned *         puTemp[4];
     // record of the cut computation
     Vec_Int_t *        vNodeCuts;        // the number of cuts for each node
     Vec_Int_t *        vNodeStarts;      // the number of the starting cut of each node
     Vec_Int_t *        vCutPairs;        // the pairs of parent cuts for each cut
     // statistics
     int                nCutsCur;
-    int                nCutsMulti;
     int                nCutsAlloc;
     int                nCutsDealloc;
     int                nCutsPeak;
@@ -79,8 +79,8 @@ struct Cut_ManStruct_t_
     int                nCutsFilter;
     int                nCutsLimit;
     int                nNodes;
-    int                nNodesMulti;
-    int                nNodesMulti0;
+    int                nNodesDag;
+    int                nNodesNoCuts;
     // runtime
     int                timeMerge;
     int                timeUnion;
@@ -130,7 +130,7 @@ extern void                Cut_CutPrintMerge( Cut_Cut_t * pCut, Cut_Cut_t * pCut
 /*=== cutMerge.c ==========================================================*/
 extern Cut_Cut_t *         Cut_CutMergeTwo( Cut_Man_t * p, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 );
 /*=== cutNode.c ==========================================================*/
-extern void                Cut_NodeDoComputeCuts( Cut_Man_t * p, Cut_List_t * pSuper, int Node, int fCompl0, int fCompl1, Cut_Cut_t * pList0, Cut_Cut_t * pList1, int fTriv ); 
+extern void                Cut_NodeDoComputeCuts( Cut_Man_t * p, Cut_List_t * pSuper, int Node, int fCompl0, int fCompl1, Cut_Cut_t * pList0, Cut_Cut_t * pList1, int fTriv, int TreeCode ); 
 extern int                 Cut_CutListVerify( Cut_Cut_t * pList );
 /*=== cutTable.c ==========================================================*/
 extern Cut_HashTable_t *   Cut_TableStart( int Size );
@@ -139,7 +139,8 @@ extern int                 Cut_TableLookup( Cut_HashTable_t * pTable, Cut_Cut_t 
 extern void                Cut_TableClear( Cut_HashTable_t * pTable );
 extern int                 Cut_TableReadTime( Cut_HashTable_t * pTable );
 /*=== cutTruth.c ==========================================================*/
-extern void                Cut_TruthCompute( Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1, int fCompl0, int fCompl1 );
+extern void                Cut_TruthComputeOld( Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1, int fCompl0, int fCompl1 );
+extern void                Cut_TruthCompute( Cut_Man_t * p, Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1, int fCompl0, int fCompl1 );
 
 #endif
 

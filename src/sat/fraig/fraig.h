@@ -41,6 +41,7 @@ typedef struct Fraig_NodeVecStruct_t_     Fraig_NodeVec_t;
 typedef struct Fraig_HashTableStruct_t_   Fraig_HashTable_t;
 typedef struct Fraig_ParamsStruct_t_      Fraig_Params_t;
 typedef struct Fraig_PatternsStruct_t_    Fraig_Patterns_t;
+typedef struct Prove_ParamsStruct_t_      Prove_Params_t;
 
 struct Fraig_ParamsStruct_t_
 {
@@ -59,6 +60,31 @@ struct Fraig_ParamsStruct_t_
     int  fVerbose;      // the verbosiness flag
     int  fVerboseP;     // the verbosiness flag (for proof reporting)
     int  fInternal;     // is set to 1 for internal fraig calls
+};
+
+struct Prove_ParamsStruct_t_
+{
+    // general parameters
+    int   fUseFraiging;          // enables fraiging
+    int   fUseRewriting;         // enables rewriting
+    int   fUseBdds;              // enables BDD construction when other methods fail
+    int   fVerbose;              // prints verbose stats
+    // iterations
+    int   nItersMax;             // the number of iterations
+    // mitering 
+    int   nMiteringLimitStart;   // starting mitering limit
+    float nMiteringLimitMulti;   // multiplicative coefficient to increase the limit in each iteration
+    // rewriting 
+    int   nRewritingLimitStart;  // the number of rewriting iterations
+    float nRewritingLimitMulti;  // multiplicative coefficient to increase the limit in each iteration
+    // fraiging 
+    int   nFraigingLimitStart;   // starting backtrack(conflict) limit
+    float nFraigingLimitMulti;   // multiplicative coefficient to increase the limit in each iteration
+    // last-gasp BDD construction
+    int   nBddSizeLimit;         // the number of BDD nodes when construction is aborted
+    int   fBddReorder;           // enables dynamic BDD variable reordering
+    // last-gasp mitering
+    int   nMiteringLimitLast;    // final mitering limit
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -155,6 +181,7 @@ extern Fraig_Node_t *      Fraig_NodeMux( Fraig_Man_t * p, Fraig_Node_t * pNode,
 extern void                Fraig_NodeSetChoice( Fraig_Man_t * pMan, Fraig_Node_t * pNodeOld, Fraig_Node_t * pNodeNew );
 
 /*=== fraigMan.c =============================================================*/
+extern void                Prove_ParamsSetDefault( Prove_Params_t * pParams );
 extern void                Fraig_ParamsSetDefault( Fraig_Params_t * pParams );
 extern void                Fraig_ParamsSetDefaultFull( Fraig_Params_t * pParams );
 extern Fraig_Man_t *       Fraig_ManCreate( Fraig_Params_t * pParams );

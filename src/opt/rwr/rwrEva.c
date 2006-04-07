@@ -66,7 +66,7 @@ int Rwr_NodeRewrite( Rwr_Man_t * p, Cut_Man_t * pManCut, Abc_Obj_t * pNode, int 
     Required = fUpdateLevel? Abc_NodeReadRequiredLevel(pNode) : ABC_INFINITY;
     // get the node's cuts
 clk = clock();
-    pCut = (Cut_Cut_t *)Abc_NodeGetCutsRecursive( pManCut, pNode, 0 );
+    pCut = (Cut_Cut_t *)Abc_NodeGetCutsRecursive( pManCut, pNode, 0, 0 );
     assert( pCut != NULL );
 p->timeCut += clock() - clk;
 

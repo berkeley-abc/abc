@@ -29,6 +29,9 @@
 static void Abc_NtkPrintCuts( void * p, Abc_Ntk_t * pNtk, int fSeq );
 static void Abc_NtkPrintCuts_( void * p, Abc_Ntk_t * pNtk, int fSeq );
 
+
+extern int nTotal, nGood, nEqual;
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -46,6 +49,7 @@ static void Abc_NtkPrintCuts_( void * p, Abc_Ntk_t * pNtk, int fSeq );
 ***********************************************************************/
 Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
 {
+    ProgressBar * pProgress;
     Cut_Man_t *  p;
     Abc_Obj_t * pObj, * pNode;
     Vec_Ptr_t * vNodes;
@@ -55,6 +59,8 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
 
     extern void Abc_NtkBalanceAttach( Abc_Ntk_t * pNtk );
     extern void Abc_NtkBalanceDetach( Abc_Ntk_t * pNtk );
+
+    nTotal = nGood = nEqual = 0;
 
     assert( Abc_NtkIsStrash(pNtk) );
     // start the manager
@@ -69,6 +75,7 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
     // compute cuts for internal nodes
     vNodes = Abc_AigDfs( pNtk, 0, 1 ); // collects POs
     vChoices = Vec_IntAlloc( 100 );
+    pProgress = Extra_ProgressBarStart( stdout, Vec_PtrSize(vNodes) );
     Vec_PtrForEachEntry( vNodes, pObj, i )
     {
         // when we reached a CO, it is time to deallocate the cuts
@@ -81,8 +88,9 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
         // skip constant node, it has no cuts
         if ( Abc_NodeIsConst(pObj) )
             continue;
+        Extra_ProgressBarUpdate( pProgress, i, NULL );
         // compute the cuts to the internal node
-        Abc_NodeGetCuts( p, pObj, pParams->fMulti );  
+        Abc_NodeGetCuts( p, pObj, pParams->fDag, pParams->fTree );  
         // consider dropping the fanins cuts
         if ( pParams->fDrop )
         {
@@ -98,11 +106,16 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
             Cut_NodeUnionCuts( p, vChoices );
         }
     }
+    Extra_ProgressBarStop( pProgress );
     Vec_PtrFree( vNodes );
     Vec_IntFree( vChoices );
 PRT( "Total", clock() - clk );
 //Abc_NtkPrintCuts_( p, pNtk, 0 );
 //    Cut_ManPrintStatsToFile( p, pNtk->pSpec, clock() - clk );
+
+    // temporary printout of stats
+    if ( nTotal )
+    printf( "Total cuts = %d. Good cuts = %d.  Ratio = %5.2f\n", nTotal, nGood, ((double)nGood)/nTotal );
     return p;
 }
 
@@ -276,14 +289,14 @@ printf( "Converged after %d iterations.\n", nIters );
   SeeAlso     []
 
 ***********************************************************************/
-void * Abc_NodeGetCutsRecursive( void * p, Abc_Obj_t * pObj, int fMulti )
+void * Abc_NodeGetCutsRecursive( void * p, Abc_Obj_t * pObj, int fDag, int fTree )
 {
     void * pList;
     if ( pList = Abc_NodeReadCuts( p, pObj ) )
         return pList;
-    Abc_NodeGetCutsRecursive( p, Abc_ObjFanin0(pObj), fMulti );
-    Abc_NodeGetCutsRecursive( p, Abc_ObjFanin1(pObj), fMulti );
-    return Abc_NodeGetCuts( p, pObj, fMulti );
+    Abc_NodeGetCutsRecursive( p, Abc_ObjFanin0(pObj), fDag, fTree );
+    Abc_NodeGetCutsRecursive( p, Abc_ObjFanin1(pObj), fDag, fTree );
+    return Abc_NodeGetCuts( p, pObj, fDag, fTree );
 }
 
 /**Function*************************************************************
@@ -297,14 +310,28 @@ void * Abc_NodeGetCutsRecursive( void * p, Abc_Obj_t * pObj, int fMulti )
   SeeAlso     []
 
 ***********************************************************************/
-void * Abc_NodeGetCuts( void * p, Abc_Obj_t * pObj, int fMulti )
+void * Abc_NodeGetCuts( void * p, Abc_Obj_t * pObj, int fDag, int fTree )
 {
-//    int fTriv = (!fMulti) || pObj->fMarkB;
-    int fTriv = (!fMulti) || (pObj->vFanouts.nSize > 1 && !Abc_NodeIsMuxControlType(pObj));
+    Abc_Obj_t * pFanin;
+    int fDagNode, fTriv, TreeCode = 0;
     assert( Abc_NtkIsStrash(pObj->pNtk) );
     assert( Abc_ObjFaninNum(pObj) == 2 );
+    // check if the node is a DAG node
+    fDagNode = (Abc_ObjFanoutNum(pObj) > 1 && !Abc_NodeIsMuxControlType(pObj));
+    // increment the counter of DAG nodes
+    if ( fDagNode ) Cut_ManIncrementDagNodes( p );
+    // add the trivial cut if the node is a DAG node, or if we compute all cuts
+    fTriv = fDagNode || !fDag;
+    // check if fanins are DAG nodes
+    if ( fTree )
+    {
+        pFanin = Abc_ObjFanin0(pObj);
+        TreeCode |=  (Abc_ObjFanoutNum(pFanin) > 1 && !Abc_NodeIsMuxControlType(pFanin));
+        pFanin = Abc_ObjFanin1(pObj);
+        TreeCode |= ((Abc_ObjFanoutNum(pFanin) > 1 && !Abc_NodeIsMuxControlType(pFanin)) << 1);
+    }
     return Cut_NodeComputeCuts( p, pObj->Id, Abc_ObjFaninId0(pObj), Abc_ObjFaninId1(pObj),  
-        Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj), fTriv );  
+        Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj), fTriv, TreeCode );  
 }
 
 /**Function*************************************************************

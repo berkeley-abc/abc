@@ -522,7 +522,11 @@ Abc_Ntk_t * Abc_NtkFromMapSuperChoice( Map_Man_t * pMan, Abc_Ntk_t * pNtk )
     // duplicate the network
     pNtkNew2 = Abc_NtkDup( pNtk );
     pNtkNew  = Abc_NtkRenode( pNtkNew2, 0, 20, 0, 0, 1, 0 );
-    Abc_NtkBddToSop( pNtkNew, 0 );
+    if ( !Abc_NtkBddToSop( pNtkNew, 0 ) )
+    {
+        printf( "Converting to SOPs has failed.\n" );
+        return NULL;
+    }
 
     // set the old network to point to the new network
     Abc_NtkForEachCi( pNtk, pNode, i )

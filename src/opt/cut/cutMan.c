@@ -61,22 +61,30 @@ Cut_Man_t * Cut_ManStart( Cut_Params_t * pParams )
         Vec_PtrFill( p->vCutsOld, pParams->nIdsMax, NULL );
         p->vCutsTemp = Vec_PtrAlloc( pParams->nCutSet );
         Vec_PtrFill( p->vCutsTemp, pParams->nCutSet, NULL );
+        if ( pParams->fTruth && pParams->nVarsMax > 5 )
+        {
+            pParams->fTruth = 0;
+            printf( "Skipping computation of truth tables for sequential cuts with more than 5 inputs.\n" );
+        }
     }
-    assert( !pParams->fTruth || pParams->nVarsMax <= 5 );
     // entry size
     p->EntrySize = sizeof(Cut_Cut_t) + pParams->nVarsMax * sizeof(int);
     if ( pParams->fTruth )
     {
-        if ( pParams->nVarsMax > 8 )
+        if ( pParams->nVarsMax > 14 )
         {
             pParams->fTruth = 0;
-            printf( "Skipping computation of truth table for more than 8 inputs.\n" );
+            printf( "Skipping computation of truth table for more than %d inputs.\n", 14 );
         }
         else
         {
             p->nTruthWords = Cut_TruthWords( pParams->nVarsMax );
             p->EntrySize += p->nTruthWords * sizeof(unsigned);
         }
+        p->puTemp[0] = ALLOC( unsigned, 4 * p->nTruthWords );
+        p->puTemp[1] = p->puTemp[0] + p->nTruthWords;
+        p->puTemp[2] = p->puTemp[1] + p->nTruthWords;
+        p->puTemp[3] = p->puTemp[2] + p->nTruthWords;
     }
     // enable cut computation recording
     if ( pParams->fRecord )
@@ -120,6 +128,7 @@ void Cut_ManStop( Cut_Man_t * p )
     if ( p->vNodeCuts )   Vec_IntFree( p->vNodeCuts );
     if ( p->vNodeStarts ) Vec_IntFree( p->vNodeStarts );
     if ( p->vCutPairs )   Vec_IntFree( p->vCutPairs );
+    if ( p->puTemp[0] )   free( p->puTemp[0] );
 
     Extra_MmFixedStop( p->pMmCuts, 0 );
     free( p );
@@ -153,15 +162,10 @@ void Cut_ManPrintStats( Cut_Man_t * p )
     printf( "Cuts per node     = %8.1f\n", ((float)(p->nCutsCur-p->nCutsTriv))/p->nNodes );
     printf( "The cut size      = %8d bytes.\n", p->EntrySize );
     printf( "Peak memory       = %8.2f Mb.\n", (float)p->nCutsPeak * p->EntrySize / (1<<20) );
-    if ( p->pParams->fMulti )
-    {
-    printf( "Factor-cut computation statistics:\n" );
     printf( "Total nodes       = %8d.\n", p->nNodes );
-    printf( "Factor nodes      = %8d.\n", p->nNodesMulti );
-    printf( "Factor nodes 0    = %8d.\n", p->nNodesMulti0 );
-    printf( "Factor cuts       = %8d.\n", p->nCutsMulti );
-    printf( "Cuts per node     = %8.1f\n", ((float)(p->nCutsMulti))/(p->nNodesMulti-p->nNodesMulti0) );
-    }
+    printf( "DAG nodes         = %8d.\n", p->nNodesDag );
+    printf( "Tree nodes        = %8d.\n", p->nNodes - p->nNodesDag );
+    printf( "Nodes w/o cuts    = %8d.\n", p->nNodesNoCuts );
     PRT( "Merge ", p->timeMerge );
     PRT( "Union ", p->timeUnion );
     PRT( "Filter", p->timeFilter );
@@ -227,6 +231,22 @@ void Cut_ManSetFanoutCounts( Cut_Man_t * p, Vec_Int_t * vFanCounts )
 int Cut_ManReadVarsMax( Cut_Man_t * p )
 {
     return p->pParams->nVarsMax;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cut_ManIncrementDagNodes( Cut_Man_t * p )
+{
+    p->nNodesDag++;
 }
 
 ////////////////////////////////////////////////////////////////////////

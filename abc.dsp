@@ -214,6 +214,10 @@ SOURCE=.\src\base\abci\abcFxu.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcGen.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcMap.c
 # End Source File
 # Begin Source File
@@ -262,6 +266,10 @@ SOURCE=.\src\base\abci\abcRewrite.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcRr.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcSat.c
 # End Source File
 # Begin Source File
@@ -279,6 +287,10 @@ SOURCE=.\src\base\abci\abcSymm.c
 # Begin Source File
 
 SOURCE=.\src\base\abci\abcTiming.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcTrace.c
 # End Source File
 # Begin Source File
 
@@ -934,6 +946,10 @@ SOURCE=.\src\sat\asat\asatmem.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\asat\jfront.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\asat\solver.c
 # End Source File
 # Begin Source File
@@ -1307,6 +1323,10 @@ SOURCE=.\src\opt\cut\cutNode.c
 # Begin Source File
 
 SOURCE=.\src\opt\cut\cutOracle.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\cut\cutPre22.c
 # End Source File
 # Begin Source File
 
@@ -1735,6 +1755,10 @@ SOURCE=.\src\misc\extra\extraUtilProgress.c
 # Begin Source File
 
 SOURCE=.\src\misc\extra\extraUtilReader.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\extra\extraUtilTruth.c
 # End Source File
 # Begin Source File
 

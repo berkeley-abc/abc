@@ -870,7 +870,7 @@ Abc_Ntk_t * Abc_NtkVanImpDeriveExdc( Abc_Ntk_t * pNtk, Vec_Ptr_t * vZeros, Vec_I
 {
     Abc_Ntk_t * pNtkNew; 
     Vec_Ptr_t * vCone;
-    Abc_Obj_t * pObj, * pMiter, * pTotal, * pNode, * pNode1, * pNode2, * pObjNew;
+    Abc_Obj_t * pObj, * pMiter, * pTotal, * pNode, * pNode1, * pNode2;//, * pObjNew;
     unsigned Imp;
     int i, k;
 

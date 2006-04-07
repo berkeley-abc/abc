@@ -109,9 +109,9 @@ void Cut_NodeComputeCutsSeq( Cut_Man_t * p, int Node, int Node0, int Node1, int 
     // merge the old and the new
 clk = clock();
     Cut_ListStart( pSuper );
-    Cut_NodeDoComputeCuts( p, pSuper, Node, fCompl0, fCompl1, p->pStore0[0], p->pStore1[1], 0 );
-    Cut_NodeDoComputeCuts( p, pSuper, Node, fCompl0, fCompl1, p->pStore0[1], p->pStore1[0], 0 );
-    Cut_NodeDoComputeCuts( p, pSuper, Node, fCompl0, fCompl1, p->pStore0[1], p->pStore1[1], fTriv );
+    Cut_NodeDoComputeCuts( p, pSuper, Node, fCompl0, fCompl1, p->pStore0[0], p->pStore1[1], 0, 0 );
+    Cut_NodeDoComputeCuts( p, pSuper, Node, fCompl0, fCompl1, p->pStore0[1], p->pStore1[0], 0, 0 );
+    Cut_NodeDoComputeCuts( p, pSuper, Node, fCompl0, fCompl1, p->pStore0[1], p->pStore1[1], fTriv, 0 );
     pListNew = Cut_ListFinish( pSuper );
 p->timeMerge += clock() - clk;
 

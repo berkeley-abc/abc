@@ -713,7 +713,7 @@ Fraig_Man_t * Abc_NtkVanEijkFraig( Abc_Ntk_t * pMulti, int fInit )
 Abc_Ntk_t * Abc_NtkVanEijkDeriveExdc( Abc_Ntk_t * pNtk, Vec_Ptr_t * vClasses )
 {
     Abc_Ntk_t * pNtkNew; 
-    Abc_Obj_t * pClass, * pNode, * pRepr, * pObj, *pObjNew;
+    Abc_Obj_t * pClass, * pNode, * pRepr, * pObj;//, *pObjNew;
     Abc_Obj_t * pMiter, * pTotal;
     Vec_Ptr_t * vCone;
     int i, k;

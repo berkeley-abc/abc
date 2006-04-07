@@ -277,7 +277,7 @@ static inline int Cut_CutProcessTwo( Cut_Man_t * p, Cut_Cut_t * pCut0, Cut_Cut_t
     }
     // compute the truth table
     if ( p->pParams->fTruth )
-        Cut_TruthCompute( pCut, pCut0, pCut1, p->fCompl0, p->fCompl1 );
+        Cut_TruthCompute( p, pCut, pCut0, pCut1, p->fCompl0, p->fCompl1 );
     // add to the list
     Cut_ListAdd( pSuperList, pCut );
     // return status (0 if okay; 1 if exceeded the limit)
@@ -295,7 +295,7 @@ static inline int Cut_CutProcessTwo( Cut_Man_t * p, Cut_Cut_t * pCut0, Cut_Cut_t
   SeeAlso     []
 
 ***********************************************************************/
-Cut_Cut_t * Cut_NodeComputeCuts( Cut_Man_t * p, int Node, int Node0, int Node1, int fCompl0, int fCompl1, int fTriv )
+Cut_Cut_t * Cut_NodeComputeCuts( Cut_Man_t * p, int Node, int Node0, int Node1, int fCompl0, int fCompl1, int fTriv, int TreeCode )
 {
     Cut_List_t Super, * pSuper = &Super;
     Cut_Cut_t * pList, * pCut;
@@ -312,7 +312,7 @@ Cut_Cut_t * Cut_NodeComputeCuts( Cut_Man_t * p, int Node, int Node0, int Node1, 
     // compute the cuts
 clk = clock();
     Cut_ListStart( pSuper );
-    Cut_NodeDoComputeCuts( p, pSuper, Node, fCompl0, fCompl1, Cut_NodeReadCutsNew(p, Node0), Cut_NodeReadCutsNew(p, Node1), fTriv );
+    Cut_NodeDoComputeCuts( p, pSuper, Node, fCompl0, fCompl1, Cut_NodeReadCutsNew(p, Node0), Cut_NodeReadCutsNew(p, Node1), fTriv, TreeCode );
     pList = Cut_ListFinish( pSuper );
 p->timeMerge += clock() - clk;
     // verify the result of cut computation
@@ -351,9 +351,9 @@ p->timeMerge += clock() - clk;
   SeeAlso     []
 
 ***********************************************************************/
-void Cut_NodeDoComputeCuts( Cut_Man_t * p, Cut_List_t * pSuper, int Node, int fCompl0, int fCompl1, Cut_Cut_t * pList0, Cut_Cut_t * pList1, int fTriv )
+void Cut_NodeDoComputeCuts( Cut_Man_t * p, Cut_List_t * pSuper, int Node, int fCompl0, int fCompl1, Cut_Cut_t * pList0, Cut_Cut_t * pList1, int fTriv, int TreeCode )
 {
-    Cut_Cut_t * pStop0, * pStop1, * pTemp0, * pTemp1;
+    Cut_Cut_t * pStop0, * pStop1, * pTemp0, * pTemp1, * pStore0, * pStore1;
     int i, nCutsOld, Limit;
     // start with the elementary cut
     if ( fTriv ) 
@@ -375,6 +375,19 @@ void Cut_NodeDoComputeCuts( Cut_Man_t * p, Cut_List_t * pSuper, int Node, int fC
     // set temporary variables
     p->fCompl0 = fCompl0;
     p->fCompl1 = fCompl1;
+    // if tree cuts are computed, make sure only the unit cuts propagate over the DAG nodes
+    if ( TreeCode & 1 )
+    {
+        assert( pList0->nLeaves == 1 );
+        pStore0 = pList0->pNext;
+        pList0->pNext = NULL;
+    }
+    if ( TreeCode & 2 )
+    {
+        assert( pList1->nLeaves == 1 );
+        pStore1 = pList1->pNext;
+        pList1->pNext = NULL;
+    }
     // find the point in the list where the max-var cuts begin
     Cut_ListForEachCut( pList0, pStop0 )
         if ( pStop0->nLeaves == (unsigned)Limit )
@@ -386,8 +399,10 @@ void Cut_NodeDoComputeCuts( Cut_Man_t * p, Cut_List_t * pSuper, int Node, int fC
     // small by small
     Cut_ListForEachCutStop( pList0, pTemp0, pStop0 )
     Cut_ListForEachCutStop( pList1, pTemp1, pStop1 )
+    {
         if ( Cut_CutProcessTwo( p, pTemp0, pTemp1, pSuper ) )
-            return;
+            goto Quits;
+    }
     // small by large
     Cut_ListForEachCutStop( pList0, pTemp0, pStop0 )
     Cut_ListForEachCut( pStop1, pTemp1 )
@@ -395,7 +410,7 @@ void Cut_NodeDoComputeCuts( Cut_Man_t * p, Cut_List_t * pSuper, int Node, int fC
         if ( (pTemp0->uSign & pTemp1->uSign) != pTemp0->uSign )
             continue;
         if ( Cut_CutProcessTwo( p, pTemp0, pTemp1, pSuper ) )
-            return;
+            goto Quits;
     }
     // small by large
     Cut_ListForEachCutStop( pList1, pTemp1, pStop1 )
@@ -404,7 +419,7 @@ void Cut_NodeDoComputeCuts( Cut_Man_t * p, Cut_List_t * pSuper, int Node, int fC
         if ( (pTemp0->uSign & pTemp1->uSign) != pTemp1->uSign )
             continue;
         if ( Cut_CutProcessTwo( p, pTemp0, pTemp1, pSuper ) )
-            return;
+            goto Quits;
     }
     // large by large
     Cut_ListForEachCut( pStop0, pTemp0 )
@@ -419,15 +434,15 @@ void Cut_NodeDoComputeCuts( Cut_Man_t * p, Cut_List_t * pSuper, int Node, int fC
         if ( i < Limit )
             continue;
         if ( Cut_CutProcessTwo( p, pTemp0, pTemp1, pSuper ) )
-            return;
+            goto Quits;
     } 
-    if ( fTriv ) 
-    {
-        p->nCutsMulti += p->nCutsCur - nCutsOld;         
-        p->nNodesMulti++;
-        if ( p->nCutsCur == nCutsOld )
-            p->nNodesMulti0++;
-    }
+    if ( p->nNodeCuts == 0 )
+        p->nNodesNoCuts++;
+Quits:
+    if ( TreeCode & 1 )
+        pList0->pNext = pStore0;
+    if ( TreeCode & 2 )
+        pList1->pNext = pStore1;
 }
 
 /**Function*************************************************************

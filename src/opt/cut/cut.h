@@ -59,8 +59,10 @@ struct Cut_ParamsStruct_t_
     int                fFilter;           // filter dominated cuts
     int                fSeq;              // compute sequential cuts
     int                fDrop;             // drop cuts on the fly
-    int                fMulti;            // compute factor-cuts
+    int                fDag;              // compute only DAG cuts
+    int                fTree;             // compute only tree cuts
     int                fRecord;           // record the cut computation flow
+    int                fFancy;            // perform fancy computations
     int                fVerbose;          // the verbosiness flag
 };
 
@@ -117,8 +119,9 @@ extern void             Cut_ManPrintStats( Cut_Man_t * p );
 extern void             Cut_ManPrintStatsToFile( Cut_Man_t * p, char * pFileName, int TimeTotal );
 extern void             Cut_ManSetFanoutCounts( Cut_Man_t * p, Vec_Int_t * vFanCounts );
 extern int              Cut_ManReadVarsMax( Cut_Man_t * p );
+extern void             Cut_ManIncrementDagNodes( Cut_Man_t * p );
 /*=== cutNode.c ==========================================================*/
-extern Cut_Cut_t *      Cut_NodeComputeCuts( Cut_Man_t * p, int Node, int Node0, int Node1, int fCompl0, int fCompl1, int fTriv ); 
+extern Cut_Cut_t *      Cut_NodeComputeCuts( Cut_Man_t * p, int Node, int Node0, int Node1, int fCompl0, int fCompl1, int fTriv, int TreeCode ); 
 extern Cut_Cut_t *      Cut_NodeUnionCuts( Cut_Man_t * p, Vec_Int_t * vNodes );
 extern Cut_Cut_t *      Cut_NodeUnionCutsSeq( Cut_Man_t * p, Vec_Int_t * vNodes, int CutSetNum, int fFirst );
 /*=== cutSeq.c ==========================================================*/
@@ -135,7 +138,13 @@ extern void             Cut_OracleNodeSetTriv( Cut_Oracle_t * p, int Node );
 extern Cut_Cut_t *      Cut_OracleComputeCuts( Cut_Oracle_t * p, int Node, int Node0, int Node1, int fCompl0, int fCompl1 );
 extern void             Cut_OracleTryDroppingCuts( Cut_Oracle_t * p, int Node );
 /*=== cutTruth.c ==========================================================*/
-extern void             Cut_TruthCanonicize( Cut_Cut_t * pCut );
+extern void             Cut_TruthNCanonicize( Cut_Cut_t * pCut );
+/*=== cutPre22.c ==========================================================*/
+extern void             Cut_CellPrecompute();
+extern void             Cut_CellLoad();
+extern int              Cut_CellIsRunning();
+extern void             Cut_CellDumpToFile();
+extern int              Cut_CellTruthLookup( unsigned * pTruth, int nVars );
 
 #ifdef __cplusplus
 }

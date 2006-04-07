@@ -42,6 +42,9 @@
 Abc_Ntk_t * Io_Read( char * pFileName, int fCheck )
 {
     Abc_Ntk_t * pNtk, * pTemp;
+//    extern int s_TotalNodes;
+//    extern int s_TotalChanges;
+//    s_TotalNodes = s_TotalChanges = 0;
     // set the new network
     if ( Extra_FileNameCheckExtension( pFileName, "blif" ) )
         pNtk = Io_ReadBlif( pFileName, fCheck );

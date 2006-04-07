@@ -74,7 +74,7 @@ static Dec_Graph_t * Abc_NodeRestructure( Abc_ManRst_t * p, Abc_Obj_t * pNode, C
 static Dec_Graph_t * Abc_NodeRestructureCut( Abc_ManRst_t * p, Abc_Obj_t * pNode, Cut_Cut_t * pCut );
 static Dec_Graph_t * Abc_NodeEvaluateDsd( Abc_ManRst_t * pManRst, Dsd_Node_t * pNodeDsd, Abc_Obj_t * pRoot, int Required, int nNodesSaved, int * pnNodesAdded );
 
-static Cut_Man_t * Abc_NtkStartCutManForRestruct( Abc_Ntk_t * pNtk, int nCutMax, int fMulti );
+static Cut_Man_t * Abc_NtkStartCutManForRestruct( Abc_Ntk_t * pNtk, int nCutMax, int fDag );
 static Abc_ManRst_t * Abc_NtkManRstStart( int nCutMax, bool fUpdateLevel, bool fUseZeros, bool fVerbose );
 static void Abc_NtkManRstStop( Abc_ManRst_t * p );
 static void Abc_NtkManRstPrintStats( Abc_ManRst_t * p );
@@ -145,7 +145,7 @@ pManRst->timeCut += clock() - clk;
             break;
         // get the cuts for the given node
 clk = clock();
-        pCutList = Abc_NodeGetCutsRecursive( pManCut, pNode, fMulti ); 
+        pCutList = Abc_NodeGetCutsRecursive( pManCut, pNode, fMulti, 0 ); 
 pManRst->timeCut += clock() - clk;
 
         // perform restructuring
@@ -203,7 +203,7 @@ pManRst->timeTotal = clock() - clkStart;
 ***********************************************************************/
 void Abc_RestructNodeDivisors( Abc_ManRst_t * p, Abc_Obj_t * pRoot, int nNodesSaved )
 {
-    Abc_Obj_t * pNode, * pFanin, * pFanout;
+    Abc_Obj_t * pNode, * pFanout;//, * pFanin;
     int i, k;
     // start with the leaves
     Vec_PtrClear( p->vDecs );
@@ -276,7 +276,7 @@ Dec_Graph_t * Abc_NodeRestructure( Abc_ManRst_t * p, Abc_Obj_t * pNode, Cut_Cut_
 {
     Dec_Graph_t * pGraph;
     Cut_Cut_t * pCut;
-    int nCuts;
+//    int nCuts;
     p->nNodesConsidered++;
 /*
     // count the number of cuts with four inputs or more
@@ -949,7 +949,7 @@ Dec_Graph_t * Abc_NodeEvaluateDsd( Abc_ManRst_t * pManRst, Dsd_Node_t * pNodeDsd
   SeeAlso     []
 
 ***********************************************************************/
-Cut_Man_t * Abc_NtkStartCutManForRestruct( Abc_Ntk_t * pNtk, int nCutMax, int fMulti )
+Cut_Man_t * Abc_NtkStartCutManForRestruct( Abc_Ntk_t * pNtk, int nCutMax, int fDag )
 {
     static Cut_Params_t Params, * pParams = &Params;
     Cut_Man_t * pManCut;
@@ -963,7 +963,8 @@ Cut_Man_t * Abc_NtkStartCutManForRestruct( Abc_Ntk_t * pNtk, int nCutMax, int fM
     pParams->fFilter   = 1;       // filter dominated cuts
     pParams->fSeq      = 0;       // compute sequential cuts
     pParams->fDrop     = 0;       // drop cuts on the fly
-    pParams->fMulti    = fMulti;  // compute factor-cuts
+    pParams->fDag      = fDag;    // compute DAG cuts
+    pParams->fTree     = 0;       // compute tree cuts
     pParams->fVerbose  = 0;       // the verbosiness flag
     pParams->nIdsMax   = Abc_NtkObjNumMax( pNtk );
     pManCut = Cut_ManStart( pParams );
@@ -1351,9 +1352,9 @@ Dec_Graph_t * Abc_NodeMffcSingleNode( Abc_ManRst_t * p, Vec_Int_t * vSims, int n
 ***********************************************************************/
 Dec_Graph_t * Abc_NodeMffcDoubleNode( Abc_ManRst_t * p, Vec_Int_t * vSims, int nNodes, Vec_Int_t * vOnes )
 {
-    Dec_Graph_t * pGraph;
-    unsigned uRoot, uNode;
-    int i;
+//    Dec_Graph_t * pGraph;
+//    unsigned uRoot, uNode;
+//    int i;
 
 
     return NULL;

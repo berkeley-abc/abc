@@ -684,7 +684,7 @@ int Abc_NtkFraigStore( Abc_Ntk_t * pNtk )
         // set the number of networks stored
         Abc_FrameSetNtkStoreSize( Abc_FrameReadNtkStoreSize() + 1 );
     }
-    printf( "The number of AIG nodes added to storage = %5d.\n", Abc_NtkNodeNum(pStore) - nAndsOld );
+//    printf( "The number of AIG nodes added to storage = %5d.\n", Abc_NtkNodeNum(pStore) - nAndsOld );
     return 1;
 }
 

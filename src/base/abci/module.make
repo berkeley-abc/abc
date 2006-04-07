@@ -10,6 +10,7 @@ SRC +=    src/base/abci/abc.c \
     src/base/abci/abcFpga.c \
     src/base/abci/abcFraig.c \
         src/base/abci/abcFxu.c \
+        src/base/abci/abcGen.c \
     src/base/abci/abcMap.c \
     src/base/abci/abcMiter.c \
     src/base/abci/abcNtbdd.c \
@@ -22,11 +23,13 @@ SRC +=    src/base/abci/abc.c \
     src/base/abci/abcRestruct.c \
     src/base/abci/abcResub.c \
     src/base/abci/abcRewrite.c \
+    src/base/abci/abcRr.c \
     src/base/abci/abcSat.c \
     src/base/abci/abcStrash.c \
     src/base/abci/abcSweep.c \
     src/base/abci/abcSymm.c \
     src/base/abci/abcTiming.c \
+    src/base/abci/abcTrace.c \
     src/base/abci/abcUnate.c \
     src/base/abci/abcUnreach.c \
     src/base/abci/abcVanEijk.c \
