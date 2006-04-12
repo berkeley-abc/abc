@@ -128,6 +128,10 @@ void Abc_ObjAdd( Abc_Obj_t * pObj )
         Vec_PtrPush( pNtk->vCos, pObj );
         pNtk->nPos++;
     }
+    else if ( Abc_ObjIsBox(pObj) )
+    {
+        pNtk->nBoxes++;
+    }
     else
     {
         assert( 0 );
@@ -400,6 +404,25 @@ Abc_Obj_t * Abc_NtkCreateNode( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj;
     pObj = Abc_ObjAlloc( pNtk, ABC_OBJ_NODE );     
+    Abc_ObjAdd( pObj );
+    return pObj;
+}
+    
+/**Function*************************************************************
+
+  Synopsis    [Create the new node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Abc_NtkCreateBox( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    pObj = Abc_ObjAlloc( pNtk, ABC_OBJ_BOX );     
     Abc_ObjAdd( pObj );
     return pObj;
 }

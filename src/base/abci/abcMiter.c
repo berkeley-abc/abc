@@ -953,6 +953,61 @@ void Abc_NtkAddFrame2( Abc_Ntk_t * pNtkFrames, Abc_Ntk_t * pNtk, int iFrame, Vec
     }
 }
 
+
+
+/**Function*************************************************************
+
+  Synopsis    [Derives the timeframes of the network.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkDemiter( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNodeC, * pNodeA, * pNodeB, * pNode;
+    Abc_Obj_t * pPoNew;
+    Vec_Ptr_t * vNodes1, * vNodes2;
+    int nCommon, i;
+
+    assert( Abc_NtkIsStrash(pNtk) );
+    assert( Abc_NtkPoNum(pNtk) == 1 );
+    assert( Abc_ObjFanin0(Abc_NtkPo(pNtk,0))->fExor );
+    pNodeC = Abc_NodeRecognizeMux( Abc_ObjFanin0(Abc_NtkPo(pNtk,0)), &pNodeA, &pNodeB );
+    assert( Abc_ObjRegular(pNodeA) == Abc_ObjRegular(pNodeB) );
+
+    pPoNew = Abc_NtkCreatePo( pNtk );
+    Abc_ObjAddFanin( pPoNew, pNodeC );
+    Abc_NtkLogicStoreName( pPoNew, "addOut1" );
+
+    pPoNew = Abc_NtkCreatePo( pNtk );
+    Abc_ObjAddFanin( pPoNew, Abc_ObjRegular(pNodeA) );
+    Abc_NtkLogicStoreName( pPoNew, "addOut2" );
+
+    // mark the nodes in the first cone
+    pNodeA = Abc_ObjRegular(pNodeA);
+    vNodes1 = Abc_NtkDfsNodes( pNtk, &pNodeC, 1 );
+    vNodes2 = Abc_NtkDfsNodes( pNtk, &pNodeA, 1 );
+
+    Vec_PtrForEachEntry( vNodes1, pNode, i )
+        pNode->fMarkA = 1;
+    nCommon = 0;
+    Vec_PtrForEachEntry( vNodes2, pNode, i )
+        nCommon += pNode->fMarkA;
+    Vec_PtrForEachEntry( vNodes1, pNode, i )
+        pNode->fMarkA = 0;
+
+    printf( "First cone = %6d.  Second cone = %6d.  Common = %6d.\n", vNodes1->nSize, vNodes2->nSize, nCommon );
+    Vec_PtrFree( vNodes1 );
+    Vec_PtrFree( vNodes2 );
+
+
+    return pNtk;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

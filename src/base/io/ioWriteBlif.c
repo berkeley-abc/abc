@@ -26,6 +26,7 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+static void Io_NtkWrite( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches );
 static void Io_NtkWriteOne( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches );
 static void Io_NtkWritePis( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches );
 static void Io_NtkWritePos( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches );
@@ -59,7 +60,7 @@ void Io_WriteBlifLogic( Abc_Ntk_t * pNtk, char * FileName, int fWriteLatches )
         fprintf( stdout, "Writing BLIF has failed.\n" );
         return;
     }
-    Io_WriteBlif( pNtkTemp, FileName, fWriteLatches );
+    Io_WriteBlifNetlist( pNtkTemp, FileName, fWriteLatches );
     Abc_NtkDelete( pNtkTemp );
 }
 
@@ -74,19 +75,48 @@ void Io_WriteBlifLogic( Abc_Ntk_t * pNtk, char * FileName, int fWriteLatches )
   SeeAlso     []
 
 ***********************************************************************/
-void Io_WriteBlif( Abc_Ntk_t * pNtk, char * FileName, int fWriteLatches )
+void Io_WriteBlifNetlist( Abc_Ntk_t * pNtk, char * FileName, int fWriteLatches )
 {
-    Abc_Ntk_t * pExdc;
+    stmm_generator * gen;
+    Abc_Ntk_t * pNtkTemp;
     FILE * pFile;
     assert( Abc_NtkIsNetlist(pNtk) );
+    // start writing the file
     pFile = fopen( FileName, "w" );
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Io_WriteBlif(): Cannot open the output file.\n" );
+        fprintf( stdout, "Io_WriteBlifNetlist(): Cannot open the output file.\n" );
         return;
     }
-    // write the model name
     fprintf( pFile, "# Benchmark \"%s\" written by ABC on %s\n", pNtk->pName, Extra_TimeStamp() );
+    // write the master network
+    Io_NtkWrite( pFile, pNtk, fWriteLatches );
+    // write the hierarchy if present
+    if ( pNtk->tName2Model )
+    {
+        fprintf( pFile, "\n\n" );
+        stmm_foreach_item( pNtk->tName2Model, gen, NULL, (char **)&pNtkTemp )
+            Io_NtkWrite( pFile, pNtkTemp, fWriteLatches );
+    }
+    fclose( pFile );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Write the network into a BLIF file with the given name.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Io_NtkWrite( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches )
+{
+    Abc_Ntk_t * pExdc;
+    assert( Abc_NtkIsNetlist(pNtk) || Abc_NtkIsBlackbox(pNtk) );
+    // write the model name
     fprintf( pFile, ".model %s\n", Abc_NtkName(pNtk) );
     // write the network
     Io_NtkWriteOne( pFile, pNtk, fWriteLatches );
@@ -100,7 +130,6 @@ void Io_WriteBlif( Abc_Ntk_t * pNtk, char * FileName, int fWriteLatches )
     }
     // finalize the file
     fprintf( pFile, ".end\n" );
-    fclose( pFile );
 }
 
 /**Function*************************************************************
@@ -129,6 +158,13 @@ void Io_NtkWriteOne( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches )
     fprintf( pFile, ".outputs" );
     Io_NtkWritePos( pFile, pNtk, fWriteLatches );
     fprintf( pFile, "\n" );
+
+    // write the blackbox
+    if ( Abc_NtkIsBlackbox( pNtk ) )
+    {
+        fprintf( pFile, ".blackbox\n" );
+        return;
+    }
 
     // write the timing info
     Io_WriteTimingInfo( pFile, pNtk );

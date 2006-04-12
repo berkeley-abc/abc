@@ -332,6 +332,74 @@ Abc_Obj_t * Abc_NodeStrashFactor( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pRoot, char *
     return pAnd;
 }
 
+
+
+/**Function*************************************************************
+
+  Synopsis    [Copies the topmost levels of the network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Abc_NtkTopmost_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, int LevelCut )
+{
+    assert( Abc_ObjIsComplement(pNode) );
+    if ( pNode->pCopy )
+        return pNode->pCopy;
+    if ( pNode->Level <= (unsigned)LevelCut )
+        return pNode->pCopy = Abc_NtkCreatePi( pNtkNew );
+    Abc_NtkTopmost_rec( pNtkNew, Abc_ObjFanin0(pNode), LevelCut );
+    Abc_NtkTopmost_rec( pNtkNew, Abc_ObjFanin1(pNode), LevelCut );
+    return pNode->pCopy = Abc_AigAnd( pNtkNew->pManFunc, Abc_ObjChild0Copy(pNode), Abc_ObjChild1Copy(pNode) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Copies the topmost levels of the network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkTopmost( Abc_Ntk_t * pNtk, int nLevels )
+{
+    Abc_Ntk_t * pNtkNew;
+    Abc_Obj_t * pObjNew, * pPoNew;
+    int LevelCut;
+    assert( Abc_NtkIsStrash(pNtk) );
+    assert( Abc_NtkCoNum(pNtk) == 1 );
+    // get the cutoff level
+    LevelCut = ABC_MAX( 0, Abc_AigGetLevelNum(pNtk) - nLevels );
+    // start the network
+    pNtkNew = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG );
+    pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
+    Abc_NtkConst1(pNtk)->pCopy = Abc_NtkConst1(pNtkNew);
+    // create PIs below the cut and nodes above the cut
+    Abc_NtkCleanCopy( pNtk );
+    pObjNew = Abc_NtkTopmost_rec( pNtkNew, Abc_ObjFanin0(Abc_NtkPo(pNtk, 0)), LevelCut );
+    // add the PO node and name
+    pPoNew = Abc_NtkCreatePo(pNtkNew);
+    Abc_ObjAddFanin( pPoNew, pObjNew );
+    Abc_NtkAddDummyPiNames( pNtkNew );
+    Abc_NtkLogicStoreName( pPoNew, Abc_ObjName(Abc_NtkPo(pNtk, 0)) );
+    // make sure everything is okay
+    if ( !Abc_NtkCheck( pNtkNew ) )
+    {
+        printf( "Abc_NtkTopmost: The network check has failed.\n" );
+        Abc_NtkDelete( pNtkNew );
+        return NULL;
+    }
+    return pNtkNew;
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

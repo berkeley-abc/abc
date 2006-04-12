@@ -48,7 +48,7 @@
 ***********************************************************************/
 void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
 {
-    int Num;
+    int Num, Num2;
 
     fprintf( pFile, "%-13s:",       pNtk->pName );
     fprintf( pFile, " i/o = %4d/%4d", Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk) );
@@ -64,18 +64,23 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
         fprintf( pFile, "  nd = %5d", Abc_NtkNodeNum(pNtk) );
     }
     else if ( Abc_NtkHasAig(pNtk) )
-    {
+    {        
         fprintf( pFile, "  and = %5d", Abc_NtkNodeNum(pNtk) );
         if ( Num = Abc_NtkGetChoiceNum(pNtk) )
             fprintf( pFile, " (choice = %d)", Num );
         if ( Num = Abc_NtkGetExorNum(pNtk) )
             fprintf( pFile, " (exor = %d)", Num );
+        if ( Num2 = Abc_NtkGetMuxNum(pNtk) )
+            fprintf( pFile, " (mux = %d)", Num2-Num );
+        if ( Num2 )
+            fprintf( pFile, " (other = %d)", Abc_NtkNodeNum(pNtk)-3*Num2 );
     }
     else 
         fprintf( pFile, "  nd = %5d", Abc_NtkNodeNum(pNtk) );
 
     if ( Abc_NtkHasSop(pNtk) )   
     {
+
         fprintf( pFile, "  cube = %5d",  Abc_NtkGetCubeNum(pNtk) );
 //        fprintf( pFile, "  lit(sop) = %5d",  Abc_NtkGetLitNum(pNtk) );
         if ( fFactored )

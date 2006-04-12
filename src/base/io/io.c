@@ -912,7 +912,7 @@ int IoCommandWriteBlif( Abc_Frame_t * pAbc, int argc, char **argv )
         return 0;
     }
     Io_WriteBlifLogic( pNtk, FileName, fWriteLatches );
-//    Io_WriteBlif( pNtk, FileName, fWriteLatches );
+//    Io_WriteBlifNetlist( pNtk, FileName, fWriteLatches );
     return 0;
 
 usage:

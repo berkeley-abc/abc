@@ -77,8 +77,8 @@ extern FILE *             Io_FileOpen( const char * FileName, const char * PathV
 /*=== abcWriteBaf.c ==========================================================*/
 extern void               Io_WriteBaf( Abc_Ntk_t * pNtk, char * pFileName );
 /*=== abcWriteBlif.c ==========================================================*/
-extern void               Io_WriteBlif( Abc_Ntk_t * pNtk, char * pFileName, int fWriteLatches );
 extern void               Io_WriteBlifLogic( Abc_Ntk_t * pNtk, char * pFileName, int fWriteLatches );
+extern void               Io_WriteBlifNetlist( Abc_Ntk_t * pNtk, char * pFileName, int fWriteLatches );
 extern void               Io_WriteTimingInfo( FILE * pFile, Abc_Ntk_t * pNtk );
 /*=== abcWriteBench.c ==========================================================*/
 extern int                Io_WriteBench( Abc_Ntk_t * pNtk, char * FileName );

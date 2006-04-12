@@ -249,6 +249,26 @@ int Abc_NtkGetExorNum( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
+  Synopsis    [Counts the number of exors.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkGetMuxNum( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNode;
+    int i, Counter = 0;
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        Counter += Abc_NodeIsMuxType(pNode);
+    return Counter;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns 1 if it is an AIG with choice nodes.]
 
   Description []

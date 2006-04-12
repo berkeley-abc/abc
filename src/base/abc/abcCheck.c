@@ -38,6 +38,8 @@ static bool Abc_NtkComparePis( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb )
 static bool Abc_NtkComparePos( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb );
 static bool Abc_NtkCompareLatches( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb );
 
+static int  Abc_NtkIsAcyclicHierarchy( Abc_Ntk_t * pNtk );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -90,12 +92,12 @@ bool Abc_NtkDoCheck( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pObj, * pNet, * pNode;
     int i;
 
-    if ( !Abc_NtkIsNetlist(pNtk) && !Abc_NtkIsLogic(pNtk) && !Abc_NtkIsStrash(pNtk) && !Abc_NtkIsSeq(pNtk) )
+    if ( !Abc_NtkIsNetlist(pNtk) && !Abc_NtkIsLogic(pNtk) && !Abc_NtkIsStrash(pNtk) && !Abc_NtkIsSeq(pNtk) && !Abc_NtkIsBlackbox(pNtk) )
     {
         fprintf( stdout, "NetworkCheck: Unknown network type.\n" );
         return 0;
     }
-    if ( !Abc_NtkHasSop(pNtk) && !Abc_NtkHasBdd(pNtk) && !Abc_NtkHasAig(pNtk) && !Abc_NtkHasMapping(pNtk) )
+    if ( !Abc_NtkHasSop(pNtk) && !Abc_NtkHasBdd(pNtk) && !Abc_NtkHasAig(pNtk) && !Abc_NtkHasMapping(pNtk) && !Abc_NtkHasBlackbox(pNtk) )
     {
         fprintf( stdout, "NetworkCheck: Unknown functionality type.\n" );
         return 0;
@@ -186,6 +188,27 @@ bool Abc_NtkDoCheck( Abc_Ntk_t * pNtk )
 //            return 0;
 //        }
         return Abc_NtkCheck( pNtk->pExdc );
+    }
+
+    // check the hierarchy
+    if ( Abc_NtkIsNetlist(pNtk) && pNtk->tName2Model )
+    {
+        stmm_generator * gen;
+        Abc_Ntk_t * pNtkTemp;
+        char * pName;
+        // check other networks
+        stmm_foreach_item( pNtk->tName2Model, gen, &pName, (char **)&pNtkTemp )
+        {
+            pNtkTemp->fHiePath = pNtkTemp->fHieVisited = 0;
+            if ( !Abc_NtkCheck( pNtkTemp ) )
+                return 0;
+        }
+        // check acyclic dependency of the models
+        if ( !Abc_NtkIsAcyclicHierarchy( pNtk ) )
+        {
+            fprintf( stdout, "NetworkCheck: Network hierarchical dependences contains a cycle.\n" );
+            return 0;
+        }
     }
     return 1;
 }
@@ -709,6 +732,64 @@ bool Abc_NtkCompareSignals( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb )
     if ( !Abc_NtkComparePos( pNtk1, pNtk2, fComb ) )
         return 0;
     return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 0 if the network hierachy contains a cycle.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkIsAcyclicHierarchy_rec( Abc_Ntk_t * pNtk )
+{
+    Abc_Ntk_t * pNtkNext;
+    Abc_Obj_t * pObj;
+    int i;
+    // return if visited
+    if ( pNtk->fHieVisited )
+        return 1;
+    pNtk->fHieVisited = 1;
+    // return if black box
+    if ( Abc_NtkIsBlackbox(pNtk) )
+        return 1;
+    assert( Abc_NtkIsNetlist(pNtk) );
+    // go through all the children networks
+    Abc_NtkForEachBox( pNtk, pObj, i )
+    {
+        pNtkNext = pObj->pData;
+        assert( pNtkNext != NULL );
+        if ( pNtkNext->fHiePath )
+            return 0;
+        pNtk->fHiePath = 1;
+        if ( !Abc_NtkIsAcyclicHierarchy_rec( pNtkNext ) )
+            return 0;
+        pNtk->fHiePath = 0;
+    }
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 0 if the network hierachy contains a cycle.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkIsAcyclicHierarchy( Abc_Ntk_t * pNtk )
+{
+    assert( Abc_NtkIsNetlist(pNtk) && pNtk->tName2Model );
+    pNtk->fHiePath = 1;
+    return Abc_NtkIsAcyclicHierarchy_rec( pNtk );
 }
 
 ////////////////////////////////////////////////////////////////////////

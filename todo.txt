@@ -33,3 +33,20 @@ synthesis
 
 - add hierarchical BLIF interface (for designs with black boxes)
 
+
+Other great projects:
+
+- Verilog to hierarchical BLIF (Icarus?)
+- hierarchical BLIF input in ABC
+- high-effort logic synthesis for hard miters (cofactoring, Boolean division)
+- incremental retiming and sequential integration
+- 5-6 input AIG rewriting using new ideas
+- placement-aware mapping
+- mapping into MV cells
+- better ways of constructing BDDs
+- SAT solver with linear constraints
+- specialized synthesis for EXORs and large MUXes
+- sequential AIG rewriting
+
+
+

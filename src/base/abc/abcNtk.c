@@ -320,8 +320,17 @@ Abc_Ntk_t * Abc_NtkStartRead( char * pName )
 ***********************************************************************/
 void Abc_NtkFinalizeRead( Abc_Ntk_t * pNtk )
 {
-    Abc_Obj_t * pLatch;
+    Abc_Obj_t * pLatch, * pBox, * pObj;
     int i;
+    if ( pNtk->ntkType == ABC_NTK_BLACKBOX )
+    {
+        pBox = Abc_NtkCreateBox(pNtk);
+        Abc_NtkForEachPi( pNtk, pObj, i )
+            Abc_ObjAddFanin( pBox, Abc_ObjFanout0(pObj) );
+        Abc_NtkForEachPo( pNtk, pObj, i )
+            Abc_ObjAddFanin( Abc_ObjFanin0(pObj), pBox );
+        return;
+    }
     assert( Abc_NtkIsNetlist(pNtk) );
     // fix the net drivers
     Abc_NtkFixNonDrivenNets( pNtk );
@@ -788,6 +797,18 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     }
     else if ( !Abc_NtkHasMapping(pNtk) )
         assert( 0 );
+    // free the hierarchy
+    if ( Abc_NtkIsNetlist(pNtk) && pNtk->tName2Model )
+    {
+        stmm_generator * gen;
+        Abc_Ntk_t * pNtkTemp;
+        char * pName;
+        stmm_foreach_item( pNtk->tName2Model, gen, &pName, (char **)&pNtkTemp )
+            Abc_NtkDelete( pNtkTemp );
+        stmm_free_table( pNtk->tName2Model );
+        if ( pNtk->pBlackBoxes ) 
+            Vec_IntFree( pNtk->pBlackBoxes );
+    }
     free( pNtk );
 }
 

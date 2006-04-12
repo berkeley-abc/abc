@@ -13,3 +13,6 @@ If compiling as a static library, it is necessary to uncomment
 Several things to try if it does not compile on your platform:
 - Try running all code through dos2unix (Solaris)
 - Try removing flags from the libs line (LIBS :=) in Makefile (Mac)
+
+Finally, run regression test:
+abc>>> so regtest.script

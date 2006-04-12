@@ -129,7 +129,7 @@ void Abc_NtkDfs_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
     // skip the CI
     if ( Abc_ObjIsCi(pNode) )
         return;
-    assert( Abc_ObjIsNode( pNode ) );
+    assert( Abc_ObjIsNode( pNode ) || Abc_ObjIsBox( pNode ) );
     // visit the transitive fanin of the node
     Abc_ObjForEachFanin( pNode, pFanin, i )
         Abc_NtkDfs_rec( Abc_ObjFanin0Ntk(pFanin), vNodes );
@@ -581,15 +581,15 @@ bool Abc_NtkIsAcyclic_rec( Abc_Obj_t * pNode )
     assert( !Abc_ObjIsNet(pNode) );
     if ( Abc_ObjIsCi(pNode) )
         return 1;
-    assert( Abc_ObjIsNode( pNode ) );
+    assert( Abc_ObjIsNode( pNode ) || Abc_ObjIsBox( pNode ) );
     // make sure the node is not visited
     assert( !Abc_NodeIsTravIdPrevious(pNode) );
     // check if the node is part of the combinational loop
     if ( Abc_NodeIsTravIdCurrent(pNode) )
     {
-        fprintf( stdout, "Network \"%s\" contains combinational loop!\n", pNtk->pName );
+        fprintf( stdout, "Network \"%s\" contains combinational loop!\n", Abc_NtkName(pNtk) );
         fprintf( stdout, "Node \"%s\" is encountered twice on the following path:\n", Abc_ObjName(pNode) );
-        fprintf( stdout, " %s", Abc_ObjName(pNode) );
+        fprintf( stdout, " %s", Abc_ObjIsNode(pNode)? Abc_ObjName(pNode) : Abc_NtkName(pNode->pData) );
         return 0;
     }
     // mark this node as a node on the current path

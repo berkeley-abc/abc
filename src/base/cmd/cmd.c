@@ -1264,7 +1264,7 @@ int CmdCommandSis( Abc_Frame_t * pAbc, int argc, char **argv )
         fprintf( pErr, "Cannot produce the intermediate network.\n" );
         goto usage;
     }
-    Io_WriteBlif( pNetlist, "_sis_in.blif", 1 );
+    Io_WriteBlifNetlist( pNetlist, "_sis_in.blif", 1 );
     Abc_NtkDelete( pNetlist );
 
     // create the file for sis
@@ -1405,7 +1405,7 @@ int CmdCommandMvsis( Abc_Frame_t * pAbc, int argc, char **argv )
         fprintf( pErr, "Cannot produce the intermediate network.\n" );
         goto usage;
     }
-    Io_WriteBlif( pNetlist, "_mvsis_in.blif", 1 );
+    Io_WriteBlifNetlist( pNetlist, "_mvsis_in.blif", 1 );
     Abc_NtkDelete( pNetlist );
 
     // create the file for MVSIS
@@ -1551,7 +1551,7 @@ int CmdCommandCapo( Abc_Frame_t * pAbc, int argc, char **argv )
         fprintf( pErr, "Cannot produce the intermediate network.\n" );
         goto usage;
     }
-    Io_WriteBlif( pNetlist, "_capo_in.blif", 1 );
+    Io_WriteBlifNetlist( pNetlist, "_capo_in.blif", 1 );
     Abc_NtkDelete( pNetlist );
 
     // create the file for Capo
