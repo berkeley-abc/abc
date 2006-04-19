@@ -235,7 +235,7 @@ void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
     }
     else if ( Abc_ObjIsPo(pObj) )
     {
-        assert( Abc_NtkPoNum(pObj->pNtk) == 1 );
+        assert( Abc_NtkPoNum(pObj->pNtk) > 0 );
         Vec_PtrRemove( pObj->pNtk->vCos, pObj );
         pObj->pNtk->nPos--;
         // add the name to the table

@@ -69,6 +69,7 @@ static int Abc_CommandRr           ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int Abc_CommandLogic        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMiter        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDemiter      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandOrPos        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFrames       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSop          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBdd          ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -178,6 +179,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 //    Cmd_CommandAdd( pAbc, "Various",      "logic",         Abc_CommandLogic,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "miter",         Abc_CommandMiter,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "demiter",       Abc_CommandDemiter,          1 );
+    Cmd_CommandAdd( pAbc, "Various",      "orpos",         Abc_CommandOrPos,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "frames",        Abc_CommandFrames,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "sop",           Abc_CommandSop,              0 );
     Cmd_CommandAdd( pAbc, "Various",      "bdd",           Abc_CommandBdd,              0 );
@@ -2866,8 +2868,8 @@ int Abc_CommandRr( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     fprintf( pErr, "usage: rr [-W NM] [-fvh]\n" );
-    fprintf( pErr, "\t         performs redundancy removal in the current network\n" );
-    fprintf( pErr, "\t-W NM  : window size as the number of TFI (N) and TFO (M) logic levels [default = %d%d]\n", nFaninLevels, nFanoutLevels );
+    fprintf( pErr, "\t         removes combinational redundancies in the current network\n" );
+    fprintf( pErr, "\t-W NM  : window size: TFI (N) and TFO (M) logic levels [default = %d%d]\n", nFaninLevels, nFanoutLevels );
     fprintf( pErr, "\t-f     : toggle RR w.r.t. fanouts [default = %s]\n", fUseFanouts? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
@@ -3027,10 +3029,10 @@ usage:
 int Abc_CommandDemiter( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
-    Abc_Ntk_t * pNtk, * pNtkRes;
+    Abc_Ntk_t * pNtk;//, * pNtkRes;
     int fComb;
     int c;
-    extern Abc_Ntk_t * Abc_NtkDemiter( Abc_Ntk_t * pNtk );
+    extern int Abc_NtkDemiter( Abc_Ntk_t * pNtk );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -3062,17 +3064,16 @@ int Abc_CommandDemiter( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( !Abc_ObjFanin0(Abc_NtkPo(pNtk,0))->fExor )
+    if ( !Abc_NodeIsExorType(Abc_ObjFanin0(Abc_NtkPo(pNtk,0))) )
     {
         fprintf( pErr, "The miter's PO is not an EXOR.\n" );
         return 1;
     }
 
     // get the new network
-    pNtkRes = Abc_NtkDemiter( pNtk );
-    if ( pNtkRes == NULL )
+    if ( !Abc_NtkDemiter( pNtk ) )
     {
-        fprintf( pErr, "Miter computation has failed.\n" );
+        fprintf( pErr, "Demitering has failed.\n" );
         return 1;
     }
     // replace the current network
@@ -3082,6 +3083,79 @@ int Abc_CommandDemiter( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     fprintf( pErr, "usage: demiter [-h]\n" );
     fprintf( pErr, "\t        removes topmost EXOR from the miter to create two POs\n" );
+//    fprintf( pErr, "\t-c    : computes combinational miter (latches as POs) [default = %s]\n", fComb? "yes": "no" );
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandOrPos( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;//, * pNtkRes;
+    int fComb;
+    int c;
+    extern int Abc_NtkOrPos( Abc_Ntk_t * pNtk );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ch" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'c':
+            fComb ^= 1;
+            break;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "The network is not strashed.\n" );
+        return 1;
+    }
+
+    if ( Abc_NtkPoNum(pNtk) == 1 )
+    {
+        fprintf( pErr, "The network already has one PO.\n" );
+        return 1;
+    }
+
+    if ( Abc_NtkLatchNum(pNtk) )
+    {
+        fprintf( pErr, "The miter has latches. ORing is not performed.\n" );
+        return 1;
+    }
+
+    // get the new network
+    if ( !Abc_NtkOrPos( pNtk ) )
+    {
+        fprintf( pErr, "ORing the POs has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+//    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: orpos [-h]\n" );
+    fprintf( pErr, "\t        creates single-output miter by ORing the POs of the current network\n" );
 //    fprintf( pErr, "\t-c    : computes combinational miter (latches as POs) [default = %s]\n", fComb? "yes": "no" );
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
@@ -4540,15 +4614,15 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //        Cut_CellDumpToFile();
 //    else
 //        Cut_CellPrecompute();
-//        Cut_CellLoad();
-
+        Cut_CellLoad();
+/*
         {
             Abc_Ntk_t * pNtkRes;
             extern Abc_Ntk_t * Abc_NtkTopmost( Abc_Ntk_t * pNtk, int nLevels );
             pNtkRes = Abc_NtkTopmost( pNtk, nLevels );
             Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
         }
-
+*/
     return 0;
 
 usage:

@@ -502,7 +502,11 @@ SOURCE=.\src\base\io\ioWritePla.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\io\ioWriteVerilog.c
+SOURCE=.\src\base\io\ioWriteVer.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\io\ioWriteVerAux.c
 # End Source File
 # End Group
 # Begin Group "main"
@@ -1299,6 +1303,10 @@ SOURCE=.\src\opt\cut\cutApi.c
 # Begin Source File
 
 SOURCE=.\src\opt\cut\cutCut.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\cut\cutExpand.c
 # End Source File
 # Begin Source File
 

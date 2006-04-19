@@ -743,7 +743,8 @@ void Abc_AigReplace( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew, bool 
     if ( fUpdateLevel )
     {
         Abc_AigUpdateLevel_int( pMan );
-        Abc_AigUpdateLevelR_int( pMan );
+        if ( pMan->pNtkAig->vLevelsR ) 
+            Abc_AigUpdateLevelR_int( pMan );
     }
 }
 
@@ -819,9 +820,12 @@ void Abc_AigReplace_int( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew, i
             pFanout->fMarkA = 1;
             Vec_VecPush( pMan->vLevels, pFanout->Level, pFanout );
             // schedule the updated fanout for updating reverse level
-            assert( pFanout->fMarkB == 0 );
-            pFanout->fMarkB = 1;
-            Vec_VecPush( pMan->vLevelsR, Abc_NodeReadReverseLevel(pFanout), pFanout );
+            if ( pMan->pNtkAig->vLevelsR ) 
+            {
+                assert( pFanout->fMarkB == 0 );
+                pFanout->fMarkB = 1;
+                Vec_VecPush( pMan->vLevelsR, Abc_NodeReadReverseLevel(pFanout), pFanout );
+            }
         }
 
         // the fanout has changed, update EXOR status of its fanouts

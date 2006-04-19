@@ -70,10 +70,10 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
             fprintf( pFile, " (choice = %d)", Num );
         if ( Num = Abc_NtkGetExorNum(pNtk) )
             fprintf( pFile, " (exor = %d)", Num );
-        if ( Num2 = Abc_NtkGetMuxNum(pNtk) )
-            fprintf( pFile, " (mux = %d)", Num2-Num );
-        if ( Num2 )
-            fprintf( pFile, " (other = %d)", Abc_NtkNodeNum(pNtk)-3*Num2 );
+//        if ( Num2 = Abc_NtkGetMuxNum(pNtk) )
+//            fprintf( pFile, " (mux = %d)", Num2-Num );
+//        if ( Num2 )
+//            fprintf( pFile, " (other = %d)", Abc_NtkNodeNum(pNtk)-3*Num2 );
     }
     else 
         fprintf( pFile, "  nd = %5d", Abc_NtkNodeNum(pNtk) );
@@ -109,12 +109,10 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
     {
         FILE * pTable;
         pTable = fopen( "stats.txt", "a+" );
-        fprintf( pTable, "%s  ",  pNtk->pName );
-        fprintf( pTable, "%4d ", Abc_NtkPiNum(pNtk) );
-        fprintf( pTable, "%4d ", Abc_NtkPoNum(pNtk) );
-//        fprintf( pTable, "%4d ", Abc_NtkLatchNum(pNtk) );
-        fprintf( pTable, "%6d ", Abc_NtkNodeNum(pNtk) );
-        fprintf( pTable, "%6d ", Abc_AigGetLevelNum(pNtk) );
+        fprintf( pTable, "%s ",  pNtk->pName );
+        fprintf( pTable, "%d ", Abc_NtkPiNum(pNtk) );
+        fprintf( pTable, "%d ", Abc_NtkNodeNum(pNtk) );
+        fprintf( pTable, "%d ", Abc_AigGetLevelNum(pNtk) );
         fprintf( pTable, "\n" );
         fclose( pTable );
     }

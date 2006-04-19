@@ -212,6 +212,12 @@ Abc_Ntk_t * Io_ReadBlifNetworkOne( Io_ReadBlif_t * p )
     // read the model name
     if ( strcmp( p->vTokens->pArray[0], ".model" ) == 0 )
         pNtk->pName = Extra_UtilStrsav( p->vTokens->pArray[1] );
+    else if ( strcmp( p->vTokens->pArray[0], ".exdc" ) != 0 ) 
+    {
+        printf( "%s: File parsing skipped after line %d (\"%s\").\n", p->pFileName, 
+            Extra_FileReaderGetLineNumber(p->pReader, 0), p->vTokens->pArray[0] );
+        return NULL;
+    }
 
     // read the inputs/outputs
     pProgress = Extra_ProgressBarStart( stdout, Extra_FileReaderGetFileSize(p->pReader) );

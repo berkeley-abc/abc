@@ -957,7 +957,7 @@ void Abc_NtkAddFrame2( Abc_Ntk_t * pNtkFrames, Abc_Ntk_t * pNtk, int iFrame, Vec
 
 /**Function*************************************************************
 
-  Synopsis    [Derives the timeframes of the network.]
+  Synopsis    [Splits the miter into two logic cones combined by an EXOR]
 
   Description []
 
@@ -966,7 +966,7 @@ void Abc_NtkAddFrame2( Abc_Ntk_t * pNtkFrames, Abc_Ntk_t * pNtk, int iFrame, Vec
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkDemiter( Abc_Ntk_t * pNtk )
+int Abc_NtkDemiter( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNodeC, * pNodeA, * pNodeB, * pNode;
     Abc_Obj_t * pPoNew;
@@ -975,22 +975,33 @@ Abc_Ntk_t * Abc_NtkDemiter( Abc_Ntk_t * pNtk )
 
     assert( Abc_NtkIsStrash(pNtk) );
     assert( Abc_NtkPoNum(pNtk) == 1 );
-    assert( Abc_ObjFanin0(Abc_NtkPo(pNtk,0))->fExor );
+    if ( !Abc_NodeIsExorType(Abc_ObjFanin0(Abc_NtkPo(pNtk,0))) )
+    {
+        printf( "The root of the miter is not an EXOR gate.\n" );
+        return 0;
+    }
     pNodeC = Abc_NodeRecognizeMux( Abc_ObjFanin0(Abc_NtkPo(pNtk,0)), &pNodeA, &pNodeB );
     assert( Abc_ObjRegular(pNodeA) == Abc_ObjRegular(pNodeB) );
+    if ( Abc_ObjFaninC0(Abc_NtkPo(pNtk,0)) )
+    {
+        pNodeA = Abc_ObjNot(pNodeA);
+        pNodeB = Abc_ObjNot(pNodeB);
+    }
 
+    // add the PO corresponding to control input
     pPoNew = Abc_NtkCreatePo( pNtk );
     Abc_ObjAddFanin( pPoNew, pNodeC );
     Abc_NtkLogicStoreName( pPoNew, "addOut1" );
 
+    // add the PO corresponding to other input
     pPoNew = Abc_NtkCreatePo( pNtk );
-    Abc_ObjAddFanin( pPoNew, Abc_ObjRegular(pNodeA) );
+    Abc_ObjAddFanin( pPoNew, pNodeB );
     Abc_NtkLogicStoreName( pPoNew, "addOut2" );
 
     // mark the nodes in the first cone
-    pNodeA = Abc_ObjRegular(pNodeA);
+    pNodeB = Abc_ObjRegular(pNodeB);
     vNodes1 = Abc_NtkDfsNodes( pNtk, &pNodeC, 1 );
-    vNodes2 = Abc_NtkDfsNodes( pNtk, &pNodeA, 1 );
+    vNodes2 = Abc_NtkDfsNodes( pNtk, &pNodeB, 1 );
 
     Vec_PtrForEachEntry( vNodes1, pNode, i )
         pNode->fMarkA = 1;
@@ -1003,9 +1014,45 @@ Abc_Ntk_t * Abc_NtkDemiter( Abc_Ntk_t * pNtk )
     printf( "First cone = %6d.  Second cone = %6d.  Common = %6d.\n", vNodes1->nSize, vNodes2->nSize, nCommon );
     Vec_PtrFree( vNodes1 );
     Vec_PtrFree( vNodes2 );
+    return 1;
+}
 
+/**Function*************************************************************
 
-    return pNtk;
+  Synopsis    [ORs the outputs.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkOrPos( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNode, * pMiter;
+    int i;
+    assert( Abc_NtkIsStrash(pNtk) );
+    assert( Abc_NtkLatchNum(pNtk) == 0 );
+    // OR the POs
+    pMiter = Abc_ObjNot( Abc_NtkConst1(pNtk) );
+    Abc_NtkForEachPo( pNtk, pNode, i )
+        pMiter = Abc_AigOr( pNtk->pManFunc, pMiter, Abc_ObjChild0(pNode) );
+    // remove the POs and their names
+    for ( i = Abc_NtkPoNum(pNtk) - 1; i >= 0; i-- )
+        Abc_NtkDeleteObj( Abc_NtkPo(pNtk, i) );
+    assert( Abc_NtkPoNum(pNtk) == 0 );
+    // create the new PO
+    pNode = Abc_NtkCreatePo( pNtk );
+    Abc_ObjAddFanin( pNode, pMiter );
+    Abc_NtkLogicStoreName( pNode, "miter" );
+    // make sure that everything is okay
+    if ( !Abc_NtkCheck( pNtk ) )
+    {
+        printf( "Abc_NtkOrPos: The network check has failed.\n" );
+        return 0;
+    }
+    return 1;
 }
 
 ////////////////////////////////////////////////////////////////////////

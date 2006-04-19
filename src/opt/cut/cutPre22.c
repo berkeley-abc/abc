@@ -203,6 +203,11 @@ void Cut_CellLoad()
 */
         // add to the table
         p->nTotal++;
+
+//        Extra_PrintHexadecimal( stdout, pCell->uTruth, pCell->nVars ); printf( "\n" );
+//        if ( p->nTotal == 500 )
+//            break;
+
         if ( !Cut_CellTableLookup( p, pCell ) ) // new cell
             p->nGood++;
     }
