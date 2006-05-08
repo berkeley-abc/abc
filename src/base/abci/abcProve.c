@@ -140,8 +140,9 @@ int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pPars )
             if ( RetValue >= 0 )
                 break;
         }
-    }    
 
+    }    
+/*
     // try to prove it using brute force SAT
     if ( RetValue < 0 && pParams->fUseBdds )
     {
@@ -161,6 +162,7 @@ int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pPars )
             pNtk = pNtkTemp;
         Abc_NtkMiterPrint( pNtk, "BDD building", clk, pParams->fVerbose );
     }
+*/
 
     if ( RetValue < 0 )
     {

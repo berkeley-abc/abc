@@ -50,6 +50,8 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
 {
     int Num, Num2;
 
+//    Abc_NtkDetectMatching( pNtk );
+//    return;
     fprintf( pFile, "%-13s:",       pNtk->pName );
     fprintf( pFile, " i/o = %4d/%4d", Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk) );
 

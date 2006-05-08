@@ -101,12 +101,14 @@ void Abc_ObjAdd( Abc_Obj_t * pObj )
     // perform specialized operations depending on the object type
     if ( Abc_ObjIsNet(pObj) )
     {
+/*
         // add the name to the table
         if ( pObj->pData && stmm_insert( pNtk->tName2Net, pObj->pData, (char *)pObj ) )
         {
             printf( "Error: The net is already in the table...\n" );
             assert( 0 );
         }
+*/
         pNtk->nNets++;
     }
     else if ( Abc_ObjIsNode(pObj) )
@@ -169,12 +171,19 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
         }
     }
     else if ( Abc_ObjIsNet(pObj) ) // copy the name
-        pObjNew->pData = Abc_NtkRegisterName( pNtkNew, pObj->pData );
+    {
+//        pObjNew->pData = Abc_NtkRegisterName( pNtkNew, pObj->pData );
+    }
     else if ( Abc_ObjIsLatch(pObj) ) // copy the reset value
         pObjNew->pData = pObj->pData;
     pObj->pCopy = pObjNew;
     // add the object to the network
     Abc_ObjAdd( pObjNew );
+
+
+    if ( Abc_ObjIsNet(pObj) )
+        pObjNew->pData = Nm_ManStoreIdName( pNtkNew->pManName, pObjNew->Id, pObj->pData, NULL );
+        
     return pObjNew;
 }
 
@@ -214,12 +223,15 @@ void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
     // perform specialized operations depending on the object type
     if ( Abc_ObjIsNet(pObj) )
     {
+        assert( 0 );
+/*
         // remove the net from the hash table of nets
         if ( pObj->pData && !stmm_delete( pNtk->tName2Net, (char **)&pObj->pData, (char **)&pObj ) )
         {
             printf( "Error: The net is not in the table...\n" );
             assert( 0 );
         }
+*/
         pObj->pData = NULL;
         pNtk->nNets--;
     }
@@ -238,11 +250,15 @@ void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
         assert( Abc_NtkPoNum(pObj->pNtk) > 0 );
         Vec_PtrRemove( pObj->pNtk->vCos, pObj );
         pObj->pNtk->nPos--;
+
+        assert( 0 );
+/*
         // add the name to the table
         if ( !stmm_delete( pObj->pNtk->tObj2Name, (char **)&pObj, NULL ) )
         {
             assert( 0 ); // the PO is not in the table
         }
+*/
     }
     else
         assert( 0 );
@@ -359,10 +375,16 @@ Abc_Obj_t * Abc_NtkFindCo( Abc_Ntk_t * pNtk, char * pName )
 Abc_Obj_t * Abc_NtkFindNet( Abc_Ntk_t * pNtk, char * pName )
 {
     Abc_Obj_t * pNet;
+    int ObjId;
     assert( Abc_NtkIsNetlist(pNtk) );
-    if ( stmm_lookup( pNtk->tName2Net, pName, (char**)&pNet ) )
-        return pNet;
-    return NULL;
+//    if ( stmm_lookup( pNtk->tName2Net, pName, (char**)&pNet ) )
+//        return pNet;
+//    return NULL;
+    ObjId = Nm_ManFindIdByName( pNtk->pManName, pName, NULL );
+    if ( ObjId == -1 )
+        return NULL;
+    pNet = Abc_NtkObj( pNtk, ObjId );
+    return pNet;
 }
 
 /**Function*************************************************************
@@ -384,8 +406,9 @@ Abc_Obj_t * Abc_NtkFindOrCreateNet( Abc_Ntk_t * pNtk, char * pName )
         return pNet;
     // create a new net
     pNet = Abc_ObjAlloc( pNtk, ABC_OBJ_NET );
-    pNet->pData = Abc_NtkRegisterName( pNtk, pName );
+//    pNet->pData = Abc_NtkRegisterName( pNtk, pName );
     Abc_ObjAdd( pNet );
+    pNet->pData = Nm_ManStoreIdName( pNtk->pManName, pNet->Id, pName, NULL );
     return pNet;
 }
     

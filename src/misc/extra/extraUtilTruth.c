@@ -706,23 +706,27 @@ int Extra_TruthMinCofSuppOverlap( unsigned * pTruth, int nVars, int * pVarMin )
     static unsigned uCofactor[16];
     int i, ValueCur, ValueMin, VarMin;
     unsigned uSupp0, uSupp1;
+    int nVars0, nVars1;
     assert( nVars <= 9 );
     ValueMin = 32;
+    VarMin   = -1;
     for ( i = 0; i < nVars; i++ )
     {
         // get negative cofactor
         Extra_TruthCopy( uCofactor, pTruth, nVars );
         Extra_TruthCofactor0( uCofactor, nVars, i );
         uSupp0 = Extra_TruthSupport( uCofactor, nVars );
+        nVars0 = Extra_WordCountOnes( uSupp0 );
 //Extra_PrintBinary( stdout, &uSupp0, 8 ); printf( "\n" );
         // get positive cofactor
         Extra_TruthCopy( uCofactor, pTruth, nVars );
         Extra_TruthCofactor1( uCofactor, nVars, i );
         uSupp1 = Extra_TruthSupport( uCofactor, nVars );
+        nVars1 = Extra_WordCountOnes( uSupp1 );
 //Extra_PrintBinary( stdout, &uSupp1, 8 ); printf( "\n" );
         // get the number of common vars
         ValueCur = Extra_WordCountOnes( uSupp0 & uSupp1 );
-        if ( ValueMin > ValueCur )
+        if ( ValueMin > ValueCur && nVars0 <= 5 && nVars1 <= 5 )
         {
             ValueMin = ValueCur;
             VarMin = i;

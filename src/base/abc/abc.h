@@ -40,6 +40,7 @@ extern "C" {
 #include "solver.h"
 #include "vec.h"
 #include "stmm.h"
+#include "nm.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -158,12 +159,13 @@ struct Abc_Ntk_t_
     char *           pSpec;         // the name of the spec file if present
     int              Id;            // network ID
     // name representation 
-    stmm_table *     tName2Net;     // the table hashing net names into net pointer
-    stmm_table *     tObj2Name;     // the table hashing PI/PO/latch pointers into names
+//    stmm_table *     tName2Net;     // the table hashing net names into net pointer
+//    stmm_table *     tObj2Name;     // the table hashing PI/PO/latch pointers into names
     // components of the network
     Vec_Ptr_t *      vObjs;         // the array of all objects (net, nodes, latches)
     Vec_Ptr_t *      vCis;          // the array of combinational inputs  (PIs followed by latches)
     Vec_Ptr_t *      vCos;          // the array of combinational outputs (POs followed by latches)
+    Vec_Ptr_t *      vAsserts;      // the array of assertions
     Vec_Ptr_t *      vLats;         // the array of latches (or the cutset in the sequential network)
     Vec_Ptr_t *      vCutSet;       // the array of cutset nodes (used in the sequential AIG)
     // the stats about the number of living objects
@@ -174,6 +176,7 @@ struct Abc_Ntk_t_
     int              nLatches;      // the number of live latches
     int              nPis;          // the number of primary inputs
     int              nPos;          // the number of primary outputs
+    int              nAsserts;      // the number of assertion primary outputs
     // the functionality manager 
     void *           pManFunc;      // AIG manager, BDD manager, or memory manager for SOPs
     // the global functions (BDDs)
@@ -198,6 +201,8 @@ struct Abc_Ntk_t_
     Vec_Int_t *      vIntTemp;      // the temporary array
     Vec_Str_t *      vStrTemp;      // the temporary array
     void *           pData;         // the temporary pointer
+    // name manager
+    Nm_Man_t *       pManName;
     // the backup network and the step number
     Abc_Ntk_t *      pNetBackup;    // the pointer to the previous backup network
     int              iStep;         // the generation number for the given network
@@ -207,7 +212,7 @@ struct Abc_Ntk_t_
     short            fHieVisited;   // flag to mark the visited network
     short            fHiePath;      // flag to mark the network on the path
     // memory management
-    Extra_MmFlex_t * pMmNames;      // memory manager for net names
+//    Extra_MmFlex_t * pMmNames;      // memory manager for net names
     Extra_MmFixed_t* pMmObj;        // memory manager for objects
     Extra_MmStep_t * pMmStep;       // memory manager for arrays
 };
@@ -540,15 +545,13 @@ extern Abc_Obj_t *        Abc_ObjAlloc( Abc_Ntk_t * pNtk, Abc_ObjType_t Type );
 extern void               Abc_ObjRecycle( Abc_Obj_t * pObj );
 extern void               Abc_ObjAdd( Abc_Obj_t * pObj );
 /*=== abcNames.c ====================================================*/
-extern char *             Abc_NtkRegisterName( Abc_Ntk_t * pNtk, char * pName );
-extern char *             Abc_NtkRegisterNamePlus( Abc_Ntk_t * pNtk, char * pName, char * pSuffix );
+//extern char *             Abc_NtkRegisterName( Abc_Ntk_t * pNtk, char * pName );
+//extern char *             Abc_NtkRegisterNamePlus( Abc_Ntk_t * pNtk, char * pName, char * pSuffix );
 extern char *             Abc_ObjName( Abc_Obj_t * pNode );
 extern char *             Abc_ObjNameSuffix( Abc_Obj_t * pObj, char * pSuffix );
-extern char *             Abc_ObjNameUnique( Abc_Ntk_t * pNtk, char * pName );
 extern char *             Abc_ObjNameDummy( char * pPrefix, int Num, int nDigits );
 extern char *             Abc_NtkLogicStoreName( Abc_Obj_t * pNodeNew, char * pNameOld );
 extern char *             Abc_NtkLogicStoreNamePlus( Abc_Obj_t * pNodeNew, char * pNameOld, char * pSuffix );
-extern void               Abc_NtkCreateCioNamesTable( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkDupCioNamesTable( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
 extern void               Abc_NtkDupCioNamesTableDual( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
 extern Vec_Ptr_t *        Abc_NodeGetFaninNames( Abc_Obj_t * pNode );
@@ -561,7 +564,6 @@ extern void               Abc_NtkAddDummyPiNames( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkAddDummyPoNames( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkAddDummyLatchNames( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkShortNames( Abc_Ntk_t * pNtk );
-extern stmm_table *       Abc_NtkNamesToTable( Vec_Ptr_t * vNodes );
 /*=== abcNetlist.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkNetlistToLogic( Abc_Ntk_t * pNtk );
 extern Abc_Ntk_t *        Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk, int fDirect );

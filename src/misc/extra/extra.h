@@ -41,6 +41,10 @@ extern "C" {
 /* Nested includes                                                           */
 /*---------------------------------------------------------------------------*/
 
+// this include should be the first one in the list
+// it is used to catch memory leaks on Windows
+#include "leaks.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -462,6 +466,7 @@ extern unsigned Extra_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, i
 #define REALLOC(type, obj, num)    \
         (obj) ? ((type *) realloc((char *) obj, sizeof(type) * (num))) : \
         ((type *) malloc(sizeof(type) * (num)))
+
 
 extern long        Extra_CpuTime();
 extern int         Extra_GetSoftDataLimit();

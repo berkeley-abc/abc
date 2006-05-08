@@ -233,6 +233,7 @@ bool Abc_NtkCheckNames( Abc_Ntk_t * pNtk )
 
     if ( Abc_NtkIsNetlist(pNtk) )
     {
+/*
         // check that the nets in the table are also in the network
         stmm_foreach_item( pNtk->tName2Net, gen, &pName, (char**)&pNet )
         {
@@ -251,8 +252,9 @@ bool Abc_NtkCheckNames( Abc_Ntk_t * pNtk )
                 return 0;
             }
         }
+*/
     }
-
+/*
     // check PI/PO/latch names
     Abc_NtkForEachPi( pNtk, pObj, i )
     {
@@ -293,6 +295,7 @@ bool Abc_NtkCheckNames( Abc_Ntk_t * pNtk )
             return 0;
         }
     }
+*/
     return 1;
 }
 

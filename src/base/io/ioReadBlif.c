@@ -216,6 +216,8 @@ Abc_Ntk_t * Io_ReadBlifNetworkOne( Io_ReadBlif_t * p )
     {
         printf( "%s: File parsing skipped after line %d (\"%s\").\n", p->pFileName, 
             Extra_FileReaderGetLineNumber(p->pReader, 0), p->vTokens->pArray[0] );
+        Abc_NtkDelete(pNtk);
+        p->pNtkCur = NULL;
         return NULL;
     }
 
@@ -573,7 +575,8 @@ int Io_ReadBlifNetworkSubcircuit( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
     // store the names of formal/actual inputs/outputs of the box
     vNames = Vec_PtrAlloc( 10 );
     Vec_PtrForEachEntryStart( vTokens, pName, i, 1 )
-        Vec_PtrPush( vNames, Abc_NtkRegisterName(p->pNtkCur, pName) );
+//        Vec_PtrPush( vNames, Abc_NtkRegisterName(p->pNtkCur, pName) );
+        Vec_PtrPush( vNames, Extra_UtilStrsav(pName) );  // memory leak!!!
 
     // create a new box and add it to the network
     pBox = Abc_NtkCreateBox( p->pNtkCur );

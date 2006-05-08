@@ -121,7 +121,8 @@ Abc_Ntk_t * Io_ReadEdifNetwork( Extra_FileReader_t * p )
             else
             {
                 pObj = Abc_NtkCreateNode( pNtk );
-                pObj->pData = Abc_NtkRegisterName( pNtk, pGateName );
+//                pObj->pData = Abc_NtkRegisterName( pNtk, pGateName );
+                pObj->pData = Extra_UtilStrsav( pGateName ); // memory leak!!!
             }
             Abc_ObjAddFanin( pNet, pObj );
         }

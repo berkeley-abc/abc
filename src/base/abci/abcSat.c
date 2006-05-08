@@ -422,7 +422,15 @@ int Abc_NtkMiterSatCreateInt( solver * pSat, Abc_Ntk_t * pNtk, int fJFront )
     pNode->pCopy = (Abc_Obj_t *)vNodes->nSize;
     Vec_PtrPush( vNodes, pNode );
     Abc_NtkClauseTriv( pSat, pNode, vVars );
-
+/*
+    // add the PI variables first
+    Abc_NtkForEachCi( pNtk, pNode, i )
+    {
+        pNode->fMarkA = 1;
+        pNode->pCopy = (Abc_Obj_t *)vNodes->nSize;
+        Vec_PtrPush( vNodes, pNode );
+    }
+*/
     // collect the nodes that need clauses and top-level assignments
     Abc_NtkForEachCo( pNtk, pNode, i )
     {

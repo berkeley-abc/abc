@@ -1064,6 +1064,57 @@ void Abc_NtkReassignIds( Abc_Ntk_t * pNtk )
     Abc_AigRehash( pNtk->pManFunc );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Detect cases when non-trivial FF matching is possible.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkDetectMatching( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pLatch, * pFanin;
+    int i, nTFFs, nJKFFs;
+    nTFFs = nJKFFs = 0;
+    Abc_NtkForEachLatch( pNtk, pLatch, i )
+    {
+        pFanin = Abc_ObjFanin0(pLatch);
+        if ( Abc_ObjFaninNum(pFanin) != 2 )
+            continue;
+        if ( Abc_NodeIsExorType(pLatch) )
+        {
+            if ( Abc_ObjFanin0(Abc_ObjFanin0(pFanin)) == pLatch ||
+                 Abc_ObjFanin1(Abc_ObjFanin0(pFanin)) == pLatch )
+                 nTFFs++;
+        }
+        if ( Abc_ObjFaninNum( Abc_ObjFanin0(pFanin) ) != 2 || 
+             Abc_ObjFaninNum( Abc_ObjFanin1(pFanin) ) != 2 )
+            continue;
+
+/*
+        if ( !Abc_ObjFaninC0(pLatch) || 
+             !Abc_ObjFaninC0( Abc_ObjFanin0(pFanin) ) ||
+             !Abc_ObjFaninC1( Abc_ObjFanin0(pFanin) ) )
+             continue;
+*/
+
+        if ( (Abc_ObjFanin0(Abc_ObjFanin0(pFanin)) == pLatch ||
+              Abc_ObjFanin1(Abc_ObjFanin0(pFanin)) == pLatch) && 
+             (Abc_ObjFanin0(Abc_ObjFanin1(pFanin)) == pLatch ||
+              Abc_ObjFanin1(Abc_ObjFanin1(pFanin)) == pLatch) )
+        {
+            nJKFFs++;
+        }
+    }
+    printf( "D = %6d.   T = %6d.   JK = %6d.  (%6.2f %%)\n", 
+        Abc_NtkLatchNum(pNtk), nTFFs, nJKFFs, 100.0 * nJKFFs / Abc_NtkLatchNum(pNtk) );
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

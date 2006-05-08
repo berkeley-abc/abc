@@ -57,14 +57,15 @@ Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func )
     pNtk->vCutSet     = Vec_PtrAlloc( 100 );
     pNtk->vCis        = Vec_PtrAlloc( 100 );
     pNtk->vCos        = Vec_PtrAlloc( 100 );
+    pNtk->vAsserts    = Vec_PtrAlloc( 100 );
     pNtk->vPtrTemp    = Vec_PtrAlloc( 100 );
     pNtk->vIntTemp    = Vec_IntAlloc( 100 );
     pNtk->vStrTemp    = Vec_StrAlloc( 100 );
     // start the hash table
-    pNtk->tName2Net   = stmm_init_table(strcmp, stmm_strhash);
-    pNtk->tObj2Name   = stmm_init_table(stmm_ptrcmp, stmm_ptrhash);
+//    pNtk->tName2Net   = stmm_init_table(strcmp, stmm_strhash);
+//    pNtk->tObj2Name   = stmm_init_table(stmm_ptrcmp, stmm_ptrhash);
     // start the memory managers
-    pNtk->pMmNames    = Extra_MmFlexStart();
+//    pNtk->pMmNames    = Extra_MmFlexStart();
     pNtk->pMmObj      = Extra_MmFixedStart( sizeof(Abc_Obj_t) );
     pNtk->pMmStep     = Extra_MmStepStart( ABC_NUM_STEPS );
     // get ready to assign the first Obj ID
@@ -94,6 +95,9 @@ Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func )
     }
     else
         Vec_PtrPush( pNtk->vObjs, NULL );
+    // name manager
+    pNtk->pManName = Nm_ManCreate( 1000 );
+//printf( "Allocated newtork %p\n", pNtk );
     return pNtk;
 }
 
@@ -146,7 +150,8 @@ Abc_Ntk_t * Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_
             Abc_HManAddProto( pObj->pCopy, pObj );
     }
     // transfer the names
-    Abc_NtkDupCioNamesTable( pNtk, pNtkNew );
+    if ( Type != ABC_NTK_NETLIST )
+        Abc_NtkDupCioNamesTable( pNtk, pNtkNew );
     Abc_ManTimeDup( pNtk, pNtkNew );
     // check that the CI/CO/latches are copied correctly
     assert( Abc_NtkCiNum(pNtk)    == Abc_NtkCiNum(pNtkNew) );
@@ -335,7 +340,7 @@ void Abc_NtkFinalizeRead( Abc_Ntk_t * pNtk )
     // fix the net drivers
     Abc_NtkFixNonDrivenNets( pNtk );
     // create the names table
-    Abc_NtkCreateCioNamesTable( pNtk );
+//    Abc_NtkCreateCioNamesTable( pNtk );
     // add latches to the CI/CO arrays
     Abc_NtkForEachLatch( pNtk, pLatch, i )
     {
@@ -735,6 +740,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     int LargePiece = (4 << ABC_NUM_STEPS);
     if ( pNtk == NULL )
         return;
+//printf( "Deleted newtork %p\n", pNtk );
     // make sure all the marks are clean
     Abc_NtkForEachObj( pNtk, pObj, i )
     {
@@ -761,6 +767,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     // free the arrays
     Vec_PtrFree( pNtk->vCis );
     Vec_PtrFree( pNtk->vCos );
+    Vec_PtrFree( pNtk->vAsserts );
     Vec_PtrFree( pNtk->vObjs );
     Vec_PtrFree( pNtk->vLats );
     Vec_PtrFree( pNtk->vCutSet );
@@ -769,15 +776,15 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     Vec_StrFree( pNtk->vStrTemp );
     if ( pNtk->pModel ) free( pNtk->pModel );
     // free the hash table of Obj name into Obj ID
-    stmm_free_table( pNtk->tName2Net );
-    stmm_free_table( pNtk->tObj2Name );
+//    stmm_free_table( pNtk->tName2Net );
+//    stmm_free_table( pNtk->tObj2Name );
     TotalMemory  = 0;
-    TotalMemory += Extra_MmFlexReadMemUsage(pNtk->pMmNames);
+//    TotalMemory += Extra_MmFlexReadMemUsage(pNtk->pMmNames);
     TotalMemory += Extra_MmFixedReadMemUsage(pNtk->pMmObj);
     TotalMemory += Extra_MmStepReadMemUsage(pNtk->pMmStep);
 //    fprintf( stdout, "The total memory allocated internally by the network = %0.2f Mb.\n", ((double)TotalMemory)/(1<<20) );
     // free the storage 
-    Extra_MmFlexStop ( pNtk->pMmNames, 0 );
+//    Extra_MmFlexStop ( pNtk->pMmNames, 0 );
     Extra_MmFixedStop( pNtk->pMmObj,   0 );
     Extra_MmStepStop ( pNtk->pMmStep,  0 );
     // free the timing manager
@@ -797,6 +804,8 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     }
     else if ( !Abc_NtkHasMapping(pNtk) )
         assert( 0 );
+    // name manager
+    Nm_ManFree( pNtk->pManName );
     // free the hierarchy
     if ( Abc_NtkIsNetlist(pNtk) && pNtk->tName2Model )
     {

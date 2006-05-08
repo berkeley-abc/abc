@@ -58,6 +58,11 @@ struct Abc_Aig_t_
     Vec_Ptr_t *       vStackReplaceNew;  // the nodes to be used for replacement
     Vec_Vec_t *       vLevels;           // the nodes to be updated
     Vec_Vec_t *       vLevelsR;          // the nodes to be updated
+
+    int               nStrash0;
+    int               nStrash1;
+    int               nStrash5;
+    int               nStrash2;
 };
 
 // iterators through the entries in the linked lists of nodes
@@ -164,6 +169,8 @@ int Abc_AigCleanup( Abc_Aig_t * pMan )
     Vec_Ptr_t * vDangles;
     Abc_Obj_t * pAnd;
     int i, nNodesOld;
+//    printf( "Strash0 = %d.  Strash1 = %d.  Strash100 = %d.  StrashM = %d.\n", 
+//        pMan->nStrash0, pMan->nStrash1, pMan->nStrash5, pMan->nStrash2 );
     nNodesOld = pMan->nEntries;
     // collect the AND nodes that do not fanout
     vDangles = Vec_PtrAlloc( 100 );
@@ -369,6 +376,27 @@ Abc_Obj_t * Abc_AigAndLookup( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 )
             return p0;
         return Abc_ObjNot(pConst1);
     }
+/*
+    {
+        int nFans0 = Abc_ObjFanoutNum( Abc_ObjRegular(p0) );
+        int nFans1 = Abc_ObjFanoutNum( Abc_ObjRegular(p1) );
+        if ( nFans0 == 0 || nFans1 == 0 )
+            pMan->nStrash0++;
+        else if ( nFans0 == 1 || nFans1 == 1 )
+            pMan->nStrash1++;
+        else if ( nFans0 <= 100 && nFans1 <= 100 )
+            pMan->nStrash5++;
+        else
+            pMan->nStrash2++;
+    }
+*/
+    {
+        int nFans0 = Abc_ObjFanoutNum( Abc_ObjRegular(p0) );
+        int nFans1 = Abc_ObjFanoutNum( Abc_ObjRegular(p1) );
+        if ( nFans0 == 0 || nFans1 == 0 )
+            return NULL;
+    }
+
     // order the arguments
     if ( Abc_ObjRegular(p0)->Id > Abc_ObjRegular(p1)->Id )
         pAnd = p0, p0 = p1, p1 = pAnd;
@@ -377,7 +405,10 @@ Abc_Obj_t * Abc_AigAndLookup( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 )
     // find the matching node in the table
     Abc_AigBinForEachEntry( pMan->pBins[Key], pAnd )
         if ( p0 == Abc_ObjChild0(pAnd) && p1 == Abc_ObjChild1(pAnd) )
+        {
+//            assert( Abc_ObjFanoutNum(Abc_ObjRegular(p0)) && Abc_ObjFanoutNum(p1) );
              return pAnd;
+        }
     return NULL;
 }
 

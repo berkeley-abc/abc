@@ -48,5 +48,6 @@ Other great projects:
 - specialized synthesis for EXORs and large MUXes
 - sequential AIG rewriting
 
-
+- add asserts
+- add untouchables
 
