@@ -163,7 +163,11 @@ void Rwr_ManPrintStats( Rwr_Man_t * p )
     printf( "The scores are:\n" );
     for ( i = 0; i < 222; i++ )
         if ( p->nScores[i] > 0 )
-            printf( "%3d = %8d  canon = %5d\n", i, p->nScores[i], p->pMapInv[i] );
+        {
+            extern void Ivy_TruthDsdComputePrint( unsigned uTruth );
+            printf( "%3d = %8d  canon = %5d  ", i, p->nScores[i], p->pMapInv[i] );
+            Ivy_TruthDsdComputePrint( (unsigned)p->pMapInv[i] | ((unsigned)p->pMapInv[i] << 16) );
+        }
     printf( "\n" );
 
 }
@@ -205,6 +209,22 @@ void Rwr_ManPrintStatsFile( Rwr_Man_t * p )
 void * Rwr_ManReadDecs( Rwr_Man_t * p )
 {
     return p->pGraph;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Stops the resynthesis manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Rwr_ManReadLeaves( Rwr_Man_t * p )
+{
+    return p->vFanins;
 }
 
 /**Function*************************************************************

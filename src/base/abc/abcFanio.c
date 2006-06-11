@@ -50,7 +50,7 @@ void Abc_ObjAddFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFanin )
     Vec_IntPushMem( pObj->pNtk->pMmStep, &pFaninR->vFanouts, pObj->Id    );
     if ( Abc_ObjIsComplement(pFanin) )
         Abc_ObjSetFaninC( pObj, Abc_ObjFaninNum(pObj)-1 );
-    Abc_HManAddFanin( pObj, pFanin );
+//    Abc_HManAddFanin( pObj, pFanin );
 }
 
 
@@ -179,7 +179,7 @@ void Abc_ObjPatchFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFaninOld, Abc_Obj_t * pFa
 ***********************************************************************/
 void Abc_ObjTransferFanout( Abc_Obj_t * pNodeFrom, Abc_Obj_t * pNodeTo )
 {
-    Vec_Ptr_t * vFanouts = pNodeFrom->pNtk->vPtrTemp;
+    Vec_Ptr_t * vFanouts;
     int nFanoutsOld, i;
     assert( !Abc_ObjIsComplement(pNodeFrom) );
     assert( !Abc_ObjIsComplement(pNodeTo) );
@@ -190,12 +190,14 @@ void Abc_ObjTransferFanout( Abc_Obj_t * pNodeFrom, Abc_Obj_t * pNodeTo )
     assert( Abc_ObjFanoutNum(pNodeFrom) > 0 );
     // get the fanouts of the old node
     nFanoutsOld = Abc_ObjFanoutNum(pNodeTo);
+    vFanouts = Vec_PtrAlloc( nFanoutsOld );
     Abc_NodeCollectFanouts( pNodeFrom, vFanouts );
     // patch the fanin of each of them
     for ( i = 0; i < vFanouts->nSize; i++ )
         Abc_ObjPatchFanin( vFanouts->pArray[i], pNodeFrom, pNodeTo );
     assert( Abc_ObjFanoutNum(pNodeFrom) == 0 );
     assert( Abc_ObjFanoutNum(pNodeTo) == nFanoutsOld + vFanouts->nSize );
+    Vec_PtrFree( vFanouts );
 }
 
 /**Function*************************************************************

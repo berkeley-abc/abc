@@ -27,6 +27,8 @@ extern "C" {
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
+#include "solver.h"
+
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
@@ -49,8 +51,6 @@ struct Fraig_ParamsStruct_t_
     int  nPatsDyna;     // the number of words of dynamic simulation info
     int  nBTLimit;      // the max number of backtracks to perform
     int  nSeconds;      // the timeout for the final proof
-    int  nConfLimit;
-    int  nImpLimit;
     int  fFuncRed;      // performs only one level hashing
     int  fFeedBack;     // enables solver feedback
     int  fDist1Pats;    // enables distance-1 patterns
@@ -60,31 +60,39 @@ struct Fraig_ParamsStruct_t_
     int  fVerbose;      // the verbosiness flag
     int  fVerboseP;     // the verbosiness flag (for proof reporting)
     int  fInternal;     // is set to 1 for internal fraig calls
+    int  nConfLimit;    // the limit on the number of conflicts
+    sint64 nInspLimit;  // the limit on the number of inspections
 };
 
 struct Prove_ParamsStruct_t_
 {
     // general parameters
-    int   fUseFraiging;          // enables fraiging
-    int   fUseRewriting;         // enables rewriting
-    int   fUseBdds;              // enables BDD construction when other methods fail
-    int   fVerbose;              // prints verbose stats
+    int     fUseFraiging;          // enables fraiging
+    int     fUseRewriting;         // enables rewriting
+    int     fUseBdds;              // enables BDD construction when other methods fail
+    int     fVerbose;              // prints verbose stats
     // iterations
-    int   nItersMax;             // the number of iterations
+    int     nItersMax;             // the number of iterations
     // mitering 
-    int   nMiteringLimitStart;   // starting mitering limit
-    float nMiteringLimitMulti;   // multiplicative coefficient to increase the limit in each iteration
+    int     nMiteringLimitStart;   // starting mitering limit
+    float   nMiteringLimitMulti;   // multiplicative coefficient to increase the limit in each iteration
     // rewriting 
-    int   nRewritingLimitStart;  // the number of rewriting iterations
-    float nRewritingLimitMulti;  // multiplicative coefficient to increase the limit in each iteration
+    int     nRewritingLimitStart;  // the number of rewriting iterations
+    float   nRewritingLimitMulti;  // multiplicative coefficient to increase the limit in each iteration
     // fraiging 
-    int   nFraigingLimitStart;   // starting backtrack(conflict) limit
-    float nFraigingLimitMulti;   // multiplicative coefficient to increase the limit in each iteration
+    int     nFraigingLimitStart;   // starting backtrack(conflict) limit
+    float   nFraigingLimitMulti;   // multiplicative coefficient to increase the limit in each iteration
     // last-gasp BDD construction
-    int   nBddSizeLimit;         // the number of BDD nodes when construction is aborted
-    int   fBddReorder;           // enables dynamic BDD variable reordering
+    int     nBddSizeLimit;         // the number of BDD nodes when construction is aborted
+    int     fBddReorder;           // enables dynamic BDD variable reordering
     // last-gasp mitering
-    int   nMiteringLimitLast;    // final mitering limit
+    int     nMiteringLimitLast;    // final mitering limit
+    // global SAT solver limits
+    sint64  nTotalBacktrackLimit;  // global limit on the number of backtracks
+    sint64  nTotalInspectLimit;    // global limit on the number of clause inspects
+    // global resources applied
+    sint64  nTotalBacktracksMade;  // the total number of backtracks made
+    sint64  nTotalInspectsMade;    // the total number of inspects made
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -137,6 +145,8 @@ extern int                 Fraig_ManReadPatternNumRandom( Fraig_Man_t * p );
 extern int                 Fraig_ManReadPatternNumDynamic( Fraig_Man_t * p );
 extern int                 Fraig_ManReadPatternNumDynamicFiltered( Fraig_Man_t * p );
 extern int                 Fraig_ManReadSatFails( Fraig_Man_t * p );      
+extern int                 Fraig_ManReadConflicts( Fraig_Man_t * p );      
+extern int                 Fraig_ManReadInspects( Fraig_Man_t * p );      
 
 extern void                Fraig_ManSetFuncRed( Fraig_Man_t * p, int fFuncRed );        
 extern void                Fraig_ManSetFeedBack( Fraig_Man_t * p, int fFeedBack );      

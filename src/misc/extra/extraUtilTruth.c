@@ -264,15 +264,15 @@ DdNode * Extra_TruthToBdd_rec( DdManager * dd, unsigned * pTruth, int iBit, int 
     DdNode * bF0, * bF1, * bF;
     if ( nVars == 0 )
     {
-        if ( pTruth[iBit/32] & (1 << iBit%32) )
+        if ( pTruth[iBit>>5] & (1 << iBit&31) )
             return b1;
         return b0;
     }
     if ( nVars == 5 )
     {
-        if ( pTruth[iBit/32] == 0xFFFFFFFF )
+        if ( pTruth[iBit>>5] == 0xFFFFFFFF )
             return b1;
-        if ( pTruth[iBit/32] == 0 )
+        if ( pTruth[iBit>>5] == 0 )
             return b0;
     }
     // other special cases can be added

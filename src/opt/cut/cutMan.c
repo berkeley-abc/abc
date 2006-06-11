@@ -45,6 +45,8 @@ Cut_Man_t * Cut_ManStart( Cut_Params_t * pParams )
 {
     Cut_Man_t * p;
     int clk = clock();
+//    extern int nTruthDsd;
+//    nTruthDsd = 0;
     assert( pParams->nVarsMax >= 3 && pParams->nVarsMax <= CUT_SIZE_MAX );
     p = ALLOC( Cut_Man_t, 1 );
     memset( p, 0, sizeof(Cut_Man_t) );
@@ -114,6 +116,9 @@ void Cut_ManStop( Cut_Man_t * p )
 {
     Cut_Cut_t * pCut;
     int i;
+//    extern int nTruthDsd;
+//    printf( "Decomposable cuts = %d.\n", nTruthDsd );
+
     Vec_PtrForEachEntry( p->vCutsNew, pCut, i )
         if ( pCut != NULL )
         {

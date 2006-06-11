@@ -182,6 +182,11 @@ extern void                  ABC_SetSolveBacktrackLimit(ABC_Manager mng, int num
 extern void                  ABC_SetLearnBacktrackLimit(ABC_Manager mng, int num);
 extern void                  ABC_EnableDump(ABC_Manager mng, char* dump_file);
 
+extern void                  ABC_SetTotalBacktrackLimit( ABC_Manager mng, uint64 num );
+extern void                  ABC_SetTotalInspectLimit( ABC_Manager mng, uint64 num );
+extern uint64                ABC_GetTotalBacktracksMade( ABC_Manager mng );
+extern uint64                ABC_GetTotalInspectsMade( ABC_Manager mng );
+
 // the meaning of the parameters are:
 // nog: number of gates that are in the targets
 // names: name array of gates

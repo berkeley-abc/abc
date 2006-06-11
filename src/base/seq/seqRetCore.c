@@ -327,7 +327,7 @@ Abc_Ntk_t * Seq_NtkRetimeReconstruct( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkSeq )
     Abc_Seq_t * p = pNtkSeq->pManFunc;
     Seq_Lat_t * pRing0, * pRing1;
     Abc_Ntk_t * pNtkNew;
-    Abc_Obj_t * pObj, * pObjNew, * pFanin, * pFaninNew, * pMirror;
+    Abc_Obj_t * pObj, * pFanin, * pFaninNew, * pMirror;
     Vec_Ptr_t * vMirrors;
     int i, k;
 
@@ -408,11 +408,7 @@ Abc_Ntk_t * Seq_NtkRetimeReconstruct( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkSeq )
 
     // add the latches and their names
     Abc_NtkAddDummyLatchNames( pNtkNew );
-    Abc_NtkForEachLatch( pNtkNew, pObjNew, i )
-    {
-        Vec_PtrPush( pNtkNew->vCis, pObjNew );
-        Vec_PtrPush( pNtkNew->vCos, pObjNew );
-    }
+    Abc_NtkOrderCisCos( pNtkNew );
     // fix the problem with complemented and duplicated CO edges
     Abc_NtkLogicMakeSimpleCos( pNtkNew, 1 );
     if ( !Abc_NtkCheck( pNtkNew ) )

@@ -30,55 +30,6 @@
 
 /**Function*************************************************************
 
-  Synopsis    [Registers the name with the string memory manager.]
-
-  Description [This function should be used to register all names
-  permanentsly stored with the network. The pointer returned by
-  this procedure contains the copy of the name, which should be used
-  in all network manipulation procedures.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-char * Abc_NtkRegisterName( Abc_Ntk_t * pNtk, char * pName )
-{
-/*
-    char * pRegName;
-    if ( pName == NULL ) return NULL;
-    pRegName = Extra_MmFlexEntryFetch( pNtk->pMmNames, strlen(pName) + 1 );
-    strcpy( pRegName, pName );
-    return pRegName;
-*/
-    return NULL;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Registers the name with the string memory manager.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-char * Abc_NtkRegisterNamePlus( Abc_Ntk_t * pNtk, char * pName, char * pSuffix )
-{
-/*
-    char * pRegName;
-    assert( pName && pSuffix );
-    pRegName = Extra_MmFlexEntryFetch( pNtk->pMmNames, strlen(pName) + strlen(pSuffix) + 1 );
-    sprintf( pRegName, "%s%s", pName, pSuffix );
-    return pRegName;
-*/
-    return NULL;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Gets the long name of the object.]
 
   Description [The temporary name is stored in a static buffer inside this
@@ -176,20 +127,7 @@ char * Abc_ObjNameDummy( char * pPrefix, int Num, int nDigits )
 ***********************************************************************/
 char * Abc_NtkLogicStoreName( Abc_Obj_t * pObjNew, char * pNameOld )
 {
-/*
-    char * pNewName;
-    assert( Abc_ObjIsCio(pObjNew) );
-    // get the new name
-    pNewName = Abc_NtkRegisterName( pObjNew->pNtk, pNameOld );
-    // add the name to the table
-    if ( stmm_insert( pObjNew->pNtk->tObj2Name, (char *)pObjNew, pNewName ) )
-    {
-        assert( 0 ); // the object is added for the second time
-    }
-    return pNewName;
-*/
-    Nm_ManStoreIdName( pObjNew->pNtk->pManName, pObjNew->Id, pNameOld, NULL );
-    return NULL;
+    return Nm_ManStoreIdName( pObjNew->pNtk->pManName, pObjNew->Id, pNameOld, NULL );
 }
 
 /**Function*************************************************************
@@ -205,21 +143,7 @@ char * Abc_NtkLogicStoreName( Abc_Obj_t * pObjNew, char * pNameOld )
 ***********************************************************************/
 char * Abc_NtkLogicStoreNamePlus( Abc_Obj_t * pObjNew, char * pNameOld, char * pSuffix )
 {
-/*
-    char * pNewName;
-    assert( pSuffix );
-    assert( Abc_ObjIsCio(pObjNew) );
-    // get the new name
-    pNewName = Abc_NtkRegisterNamePlus( pObjNew->pNtk, pNameOld, pSuffix );
-    // add the name to the table
-    if ( stmm_insert( pObjNew->pNtk->tObj2Name, (char *)pObjNew, pNewName ) )
-    {
-        assert( 0 ); // the object is added for the second time
-    }
-    return pNewName;
-*/
-    Nm_ManStoreIdName( pObjNew->pNtk->pManName, pObjNew->Id, pNameOld, pSuffix );
-    return NULL;
+    return Nm_ManStoreIdName( pObjNew->pNtk->pManName, pObjNew->Id, pNameOld, pSuffix );
 }
 
 /**Function*************************************************************
@@ -239,17 +163,20 @@ void Abc_NtkDupCioNamesTable( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
     int i;
     assert( Abc_NtkPiNum(pNtk) == Abc_NtkPiNum(pNtkNew) );
     assert( Abc_NtkPoNum(pNtk) == Abc_NtkPoNum(pNtkNew) );
+    assert( Abc_NtkAssertNum(pNtk) == Abc_NtkAssertNum(pNtkNew) );
     assert( Abc_NtkLatchNum(pNtk) == Abc_NtkLatchNum(pNtkNew) );
-//    assert( st_count(pNtk->tObj2Name) > 0 );
-//    assert( st_count(pNtkNew->tObj2Name) == 0 );
+    assert( Nm_ManNumEntries(pNtk->pManName) > 0 );
+    assert( Nm_ManNumEntries(pNtkNew->pManName) == 0 );
     // copy the CI/CO names if given
     Abc_NtkForEachPi( pNtk, pObj, i )
-        Abc_NtkLogicStoreName( Abc_NtkPi(pNtkNew,i),    Abc_ObjName(Abc_ObjFanout0Ntk(pObj)) );
+        Abc_NtkLogicStoreName( Abc_NtkPi(pNtkNew,i),      Abc_ObjName(Abc_ObjFanout0Ntk(pObj)) );
     Abc_NtkForEachPo( pNtk, pObj, i ) 
-        Abc_NtkLogicStoreName( Abc_NtkPo(pNtkNew,i),    Abc_ObjName(Abc_ObjFanin0Ntk(pObj)) );
+        Abc_NtkLogicStoreName( Abc_NtkPo(pNtkNew,i),      Abc_ObjName(Abc_ObjFanin0Ntk(pObj)) );
+    Abc_NtkForEachAssert( pNtk, pObj, i ) 
+        Abc_NtkLogicStoreName( Abc_NtkAssert(pNtkNew,i),  Abc_ObjName(Abc_ObjFanin0Ntk(pObj)) );
     if ( !Abc_NtkIsSeq(pNtk) )
     Abc_NtkForEachLatch( pNtk, pObj, i )
-        Abc_NtkLogicStoreName( Abc_NtkLatch(pNtkNew,i), Abc_ObjName(Abc_ObjFanout0Ntk(pObj)) );
+        Abc_NtkLogicStoreName( Abc_NtkLatch(pNtkNew,i),   Abc_ObjName(Abc_ObjFanout0Ntk(pObj)) );
 }
 
 /**Function*************************************************************
@@ -270,8 +197,8 @@ void Abc_NtkDupCioNamesTableDual( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
     assert( Abc_NtkPiNum(pNtk) == Abc_NtkPiNum(pNtkNew) );
     assert( Abc_NtkPoNum(pNtk) * 2 == Abc_NtkPoNum(pNtkNew) );
     assert( Abc_NtkLatchNum(pNtk) == Abc_NtkLatchNum(pNtkNew) );
-//    assert( st_count(pNtk->tObj2Name) > 0 );
-//    assert( st_count(pNtkNew->tObj2Name) == 0 );
+    assert( Nm_ManNumEntries(pNtk->pManName) > 0 );
+    assert( Nm_ManNumEntries(pNtkNew->pManName) == 0 );
     // copy the CI/CO names if given
     Abc_NtkForEachPi( pNtk, pObj, i )
         Abc_NtkLogicStoreName( Abc_NtkPi(pNtkNew,i),    Abc_ObjName(pObj) );
@@ -280,6 +207,8 @@ void Abc_NtkDupCioNamesTableDual( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
         Abc_NtkLogicStoreNamePlus( Abc_NtkPo(pNtkNew,2*i+0),    Abc_ObjName(pObj), "_pos" );
         Abc_NtkLogicStoreNamePlus( Abc_NtkPo(pNtkNew,2*i+1),    Abc_ObjName(pObj), "_neg" );
     }
+    Abc_NtkForEachAssert( pNtk, pObj, i ) 
+        Abc_NtkLogicStoreName( Abc_NtkAssert(pNtkNew,i),  Abc_ObjName(pObj) );
     if ( !Abc_NtkIsSeq(pNtk) )
     Abc_NtkForEachLatch( pNtk, pObj, i )
         Abc_NtkLogicStoreName( Abc_NtkLatch(pNtkNew,i), Abc_ObjName(pObj) );
@@ -439,22 +368,16 @@ void Abc_NtkOrderObjsByName( Abc_Ntk_t * pNtk, int fComb )
     Abc_NtkForEachLatch( pNtk, pObj, i )
         pObj->pCopy = (Abc_Obj_t *)Abc_ObjName(pObj);
     // order objects alphabetically
-    qsort( pNtk->vCis->pArray, pNtk->nPis, sizeof(Abc_Obj_t *), 
+    qsort( (void *)Vec_PtrArray(pNtk->vPis), Vec_PtrSize(pNtk->vPis), sizeof(Abc_Obj_t *), 
         (int (*)(const void *, const void *)) Abc_NodeCompareNames );
-    qsort( pNtk->vCos->pArray, pNtk->nPos, sizeof(Abc_Obj_t *), 
+    qsort( (void *)Vec_PtrArray(pNtk->vPos), Vec_PtrSize(pNtk->vPos), sizeof(Abc_Obj_t *), 
         (int (*)(const void *, const void *)) Abc_NodeCompareNames );
     // if the comparison if combinational (latches as PIs/POs), order them too
     if ( fComb )
-    {
-        qsort( pNtk->vLats->pArray, pNtk->nLatches, sizeof(Abc_Obj_t *), 
+        qsort( (void *)Vec_PtrArray(pNtk->vLatches), Vec_PtrSize(pNtk->vLatches), sizeof(Abc_Obj_t *), 
             (int (*)(const void *, const void *)) Abc_NodeCompareNames );
-        // add latches to make COs
-        Abc_NtkForEachLatch( pNtk, pObj, i )
-        {
-            Vec_PtrWriteEntry( pNtk->vCis, pNtk->nPis + i, pObj );
-            Vec_PtrWriteEntry( pNtk->vCos, pNtk->nPos + i, pObj );
-        }
-    }
+    // order CIs/COs first PIs/POs(Asserts) then latches
+    Abc_NtkOrderCisCos( pNtk );
     // clean the copy fields
     Abc_NtkForEachPi( pNtk, pObj, i )
         pObj->pCopy = NULL;
@@ -515,6 +438,26 @@ void Abc_NtkAddDummyPoNames( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
+void Abc_NtkAddDummyAssertNames( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int nDigits, i;
+    nDigits = Extra_Base10Log( Abc_NtkAssertNum(pNtk) );
+    Abc_NtkForEachAssert( pNtk, pObj, i )
+        Abc_NtkLogicStoreName( pObj, Abc_ObjNameDummy("a", i, nDigits) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds dummy names.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Abc_NtkAddDummyLatchNames( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj;
@@ -537,13 +480,11 @@ void Abc_NtkAddDummyLatchNames( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 void Abc_NtkShortNames( Abc_Ntk_t * pNtk )
 {
-//    stmm_free_table( pNtk->tObj2Name );
-//    pNtk->tObj2Name = stmm_init_table(stmm_ptrcmp, stmm_ptrhash);
     Nm_ManFree( pNtk->pManName );
-    pNtk->pManName = Nm_ManCreate( Abc_NtkPiNum(pNtk) + Abc_NtkPoNum(pNtk) + Abc_NtkLatchNum(pNtk) + 10 );
-
+    pNtk->pManName = Nm_ManCreate( Abc_NtkCiNum(pNtk) + Abc_NtkCoNum(pNtk) - Abc_NtkLatchNum(pNtk) + 10 );
     Abc_NtkAddDummyPiNames( pNtk );
     Abc_NtkAddDummyPoNames( pNtk );
+    Abc_NtkAddDummyAssertNames( pNtk );
     Abc_NtkAddDummyLatchNames( pNtk );
 }
 

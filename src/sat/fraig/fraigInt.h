@@ -66,7 +66,7 @@
 // the bit masks
 #define FRAIG_MASK(n)             ((~((unsigned)0)) >> (32-(n)))
 #define FRAIG_FULL                 (~((unsigned)0))
-#define FRAIG_NUM_WORDS(n)         ((n)/32 + (((n)%32) > 0))
+#define FRAIG_NUM_WORDS(n)         (((n)>>5) + (((n)&31) > 0))
 
 // maximum/minimum operators
 #define FRAIG_MIN(a,b)             (((a) < (b))? (a) : (b))
@@ -152,6 +152,7 @@ struct Fraig_ManStruct_t_
     int                   fTryProve;     // tries to solve the final miter
     int                   fVerbose;      // the verbosiness flag
     int                   fVerboseP;     // the verbosiness flag
+    sint64                nInspLimit;    // the inspection limit
 
     int                   nTravIds;      // the traversal counter
     int                   nTravIds2;     // the traversal counter

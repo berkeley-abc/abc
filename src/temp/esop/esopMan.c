@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [xyzMinMan.c]
+  FileName    [esopMan.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,11 +14,11 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: xyzMinMan.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: esopMan.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "xyzInt.h"
+#include "esop.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -39,30 +39,31 @@
   SeeAlso     []
 
 ***********************************************************************/
-Min_Man_t * Min_ManAlloc( int nVars )
+Esop_Man_t * Esop_ManAlloc( int nVars )
 {
-    Min_Man_t * pMan;
+    Esop_Man_t * pMan;
     // start the manager
-    pMan = ALLOC( Min_Man_t, 1 );
-    memset( pMan, 0, sizeof(Min_Man_t) );
-    pMan->nVars   = nVars;
-    pMan->nWords  = Abc_BitWordNum( nVars * 2 );
-    pMan->pMemMan = Extra_MmFixedStart( sizeof(Min_Cube_t) + sizeof(unsigned) * (pMan->nWords - 1) );
+    pMan = ALLOC( Esop_Man_t, 1 );
+    memset( pMan, 0, sizeof(Esop_Man_t) );
+    pMan->nVars    = nVars;
+    pMan->nWords   = Esop_BitWordNum( nVars * 2 );
+    pMan->pMemMan1 = Esop_MmFixedStart( sizeof(Esop_Cube_t) + sizeof(unsigned) * (1 - 1) );
+    pMan->pMemMan2 = Esop_MmFixedStart( sizeof(Esop_Cube_t) + sizeof(unsigned) * (2 - 1) );
+    pMan->pMemMan4 = Esop_MmFixedStart( sizeof(Esop_Cube_t) + sizeof(unsigned) * (4 - 1) );
+    pMan->pMemMan8 = Esop_MmFixedStart( sizeof(Esop_Cube_t) + sizeof(unsigned) * (8 - 1) );
     // allocate storage for the temporary cover
-    pMan->ppStore = ALLOC( Min_Cube_t *, pMan->nVars + 1 );
+    pMan->ppStore = ALLOC( Esop_Cube_t *, pMan->nVars + 1 );
     // create tautology cubes
-    Min_ManClean( pMan, nVars );
-    pMan->pOne0  = Min_CubeAlloc( pMan );
-    pMan->pOne1  = Min_CubeAlloc( pMan );
-    pMan->pTemp  = Min_CubeAlloc( pMan );
-    pMan->pBubble = Min_CubeAlloc( pMan );  pMan->pBubble->uData[0] = 0;
+    Esop_ManClean( pMan, nVars );
+    pMan->pOne0  = Esop_CubeAlloc( pMan );
+    pMan->pOne1  = Esop_CubeAlloc( pMan );
+    pMan->pTemp  = Esop_CubeAlloc( pMan );
+    pMan->pBubble = Esop_CubeAlloc( pMan );  pMan->pBubble->uData[0] = 0;
     // create trivial cubes
-    Min_ManClean( pMan, 1 );
-    pMan->pTriv0[0] = Min_CubeAllocVar( pMan, 0, 0 );
-    pMan->pTriv0[1] = Min_CubeAllocVar( pMan, 0, 1 );   
-    pMan->pTriv1[0] = Min_CubeAllocVar( pMan, 0, 0 );
-    pMan->pTriv1[1] = Min_CubeAllocVar( pMan, 0, 1 );   
-    Min_ManClean( pMan, nVars );
+    Esop_ManClean( pMan, 1 );
+    pMan->pTriv0 = Esop_CubeAllocVar( pMan, 0, 0 );
+    pMan->pTriv1 = Esop_CubeAllocVar( pMan, 0, 0 );
+    Esop_ManClean( pMan, nVars );
     return pMan;
 }
 
@@ -77,13 +78,13 @@ Min_Man_t * Min_ManAlloc( int nVars )
   SeeAlso     []
 
 ***********************************************************************/
-void Min_ManClean( Min_Man_t * p, int nSupp )
+void Esop_ManClean( Esop_Man_t * p, int nSupp )
 {
     // set the size of the cube manager
     p->nVars  = nSupp;
-    p->nWords = Abc_BitWordNum(2*nSupp);
+    p->nWords = Esop_BitWordNum(2*nSupp);
     // clean the storage
-    memset( p->ppStore, 0, sizeof(Min_Cube_t *) * (nSupp + 1) );
+    memset( p->ppStore, 0, sizeof(Esop_Cube_t *) * (nSupp + 1) );
     p->nCubes = 0;
 }
 
@@ -98,9 +99,12 @@ void Min_ManClean( Min_Man_t * p, int nSupp )
   SeeAlso     []
 
 ***********************************************************************/
-void Min_ManFree( Min_Man_t * p )
+void Esop_ManFree( Esop_Man_t * p )
 {
-    Extra_MmFixedStop ( p->pMemMan, 0 );
+    Esop_MmFixedStop ( p->pMemMan1, 0 );
+    Esop_MmFixedStop ( p->pMemMan2, 0 );
+    Esop_MmFixedStop ( p->pMemMan4, 0 );
+    Esop_MmFixedStop ( p->pMemMan8, 0 );
     free( p->ppStore );
     free( p );
 }

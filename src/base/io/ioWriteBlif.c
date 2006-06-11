@@ -30,6 +30,7 @@ static void Io_NtkWrite( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches );
 static void Io_NtkWriteOne( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches );
 static void Io_NtkWritePis( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches );
 static void Io_NtkWritePos( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches );
+static void Io_NtkWriteAsserts( FILE * pFile, Abc_Ntk_t * pNtk );
 static void Io_NtkWriteNodeGate( FILE * pFile, Abc_Obj_t * pNode );
 static void Io_NtkWriteNodeFanins( FILE * pFile, Abc_Obj_t * pNode );
 static void Io_NtkWriteNode( FILE * pFile, Abc_Obj_t * pNode );
@@ -115,7 +116,7 @@ void Io_WriteBlifNetlist( Abc_Ntk_t * pNtk, char * FileName, int fWriteLatches )
 void Io_NtkWrite( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches )
 {
     Abc_Ntk_t * pExdc;
-    assert( Abc_NtkIsNetlist(pNtk) || Abc_NtkIsBlackbox(pNtk) );
+    assert( Abc_NtkIsNetlist(pNtk) );
     // write the model name
     fprintf( pFile, ".model %s\n", Abc_NtkName(pNtk) );
     // write the network
@@ -159,8 +160,16 @@ void Io_NtkWriteOne( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches )
     Io_NtkWritePos( pFile, pNtk, fWriteLatches );
     fprintf( pFile, "\n" );
 
+    // write the assertions
+    if ( Abc_NtkAssertNum(pNtk) )
+    {
+        fprintf( pFile, ".asserts" );
+        Io_NtkWriteAsserts( pFile, pNtk );
+        fprintf( pFile, "\n" );
+    }
+
     // write the blackbox
-    if ( Abc_NtkIsBlackbox( pNtk ) )
+    if ( Abc_NtkHasBlackbox( pNtk ) )
     {
         fprintf( pFile, ".blackbox\n" );
         return;
@@ -296,6 +305,8 @@ void Io_NtkWritePos( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches )
     {
         Abc_NtkForEachCo( pNtk, pTerm, i )
         {
+            if ( Abc_ObjIsAssert(pTerm) )
+                continue;
             pNet = Abc_ObjFanin0(pTerm);
             // get the line length after this name is written
             AddedLength = strlen(Abc_ObjName(pNet)) + 1;
@@ -313,6 +324,45 @@ void Io_NtkWritePos( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches )
     }
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Writes the assertion list.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Io_NtkWriteAsserts( FILE * pFile, Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pTerm, * pNet;
+    int LineLength;
+    int AddedLength;
+    int NameCounter;
+    int i;
+
+    LineLength  = 8;
+    NameCounter = 0;
+
+    Abc_NtkForEachAssert( pNtk, pTerm, i )
+    {
+        pNet = Abc_ObjFanin0(pTerm);
+        // get the line length after this name is written
+        AddedLength = strlen(Abc_ObjName(pNet)) + 1;
+        if ( NameCounter && LineLength + AddedLength + 3 > IO_WRITE_LINE_LENGTH )
+        { // write the line extender
+            fprintf( pFile, " \\\n" );
+            // reset the line length
+            LineLength  = 0;
+            NameCounter = 0;
+        }
+        fprintf( pFile, " %s", Abc_ObjName(pNet) );
+        LineLength += AddedLength;
+        NameCounter++;
+    }
+}
 
 /**Function*************************************************************
 

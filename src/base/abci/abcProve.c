@@ -30,7 +30,7 @@ extern int  Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeros, i
 extern int  Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, bool fUpdateLevel, bool fUseZeros, bool fUseDcs, bool fVerbose );
 extern Abc_Ntk_t * Abc_NtkFromFraig( Fraig_Man_t * pMan, Abc_Ntk_t * pNtk );
 
-static Abc_Ntk_t * Abc_NtkMiterFraig( Abc_Ntk_t * pNtk, int nBTLimit, int * pRetValue, int * pNumFails );
+static Abc_Ntk_t * Abc_NtkMiterFraig( Abc_Ntk_t * pNtk, int nBTLimit, sint64 nInspLimit, int * pRetValue, int * pNumFails, sint64 * pNumConfs, sint64 * pNumInspects );
 static void Abc_NtkMiterPrint( Abc_Ntk_t * pNtk, char * pString, int clk, int fVerbose );
 
 
@@ -56,13 +56,14 @@ int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pPars )
 {
     Prove_Params_t * pParams = pPars;
     Abc_Ntk_t * pNtk, * pNtkTemp;
-    int RetValue, nIter, Counter, clk, timeStart = clock();
+    int RetValue, nIter, nSatFails, Counter, clk, timeStart = clock();
+    sint64 nSatConfs, nSatInspects, nInspectLimit;
 
     // get the starting network
     pNtk = *ppNtk;
     assert( Abc_NtkIsStrash(pNtk) );
     assert( Abc_NtkPoNum(pNtk) == 1 );
-
+ 
     if ( pParams->fVerbose )
     {
         printf( "RESOURCE LIMITS: Iterations = %d. Rewriting = %s. Fraiging = %s.\n",
@@ -79,7 +80,7 @@ int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pPars )
     if ( !pParams->fUseRewriting && !pParams->fUseFraiging )
     {
         clk = clock();
-        RetValue = Abc_NtkMiterSat( pNtk, pParams->nMiteringLimitLast, 0, 0, 0 );
+        RetValue = Abc_NtkMiterSat( pNtk, (sint64)pParams->nMiteringLimitLast, (sint64)0, 0, 0, NULL, NULL );
         Abc_NtkMiterPrint( pNtk, "SAT solving", clk, pParams->fVerbose );
         *ppNtk = pNtk;
         return RetValue;
@@ -98,10 +99,23 @@ int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pPars )
 
         // try brute-force SAT
         clk = clock();
-        RetValue = Abc_NtkMiterSat( pNtk, (int)(pParams->nMiteringLimitStart * pow(pParams->nMiteringLimitMulti,nIter)), 0, 0, 0 );
+        nInspectLimit = pParams->nTotalInspectLimit? pParams->nTotalInspectLimit - pParams->nTotalInspectsMade : 0;
+        RetValue = Abc_NtkMiterSat( pNtk, (sint64)(pParams->nMiteringLimitStart * pow(pParams->nMiteringLimitMulti,nIter)), (sint64)nInspectLimit, 0, 0, &nSatConfs, &nSatInspects );
         Abc_NtkMiterPrint( pNtk, "SAT solving", clk, pParams->fVerbose );
         if ( RetValue >= 0 )
             break;
+
+        // add to the number of backtracks and inspects
+        pParams->nTotalBacktracksMade += nSatConfs;
+        pParams->nTotalInspectsMade   += nSatInspects;
+        // check if global resource limit is reached
+        if ( (pParams->nTotalBacktrackLimit && pParams->nTotalBacktracksMade >= pParams->nTotalBacktrackLimit) ||
+             (pParams->nTotalInspectLimit   && pParams->nTotalInspectsMade   >= pParams->nTotalInspectLimit) )
+        {
+            printf( "Reached global limit on conflicts/inspects. Quitting.\n" );
+            *ppNtk = pNtk;
+            return -1;
+        }
 
         // try rewriting
         if ( pParams->fUseRewriting )
@@ -131,18 +145,30 @@ int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pPars )
  
         if ( pParams->fUseFraiging )
         {
-            int nSatFails;
             // try FRAIGing
             clk = clock();
-            pNtk = Abc_NtkMiterFraig( pNtkTemp = pNtk, (int)(pParams->nFraigingLimitStart * pow(pParams->nFraigingLimitMulti,nIter)), &RetValue, &nSatFails );  Abc_NtkDelete( pNtkTemp );
+            nInspectLimit = pParams->nTotalInspectLimit? pParams->nTotalInspectLimit - pParams->nTotalInspectsMade : 0;
+            pNtk = Abc_NtkMiterFraig( pNtkTemp = pNtk, (int)(pParams->nFraigingLimitStart * pow(pParams->nFraigingLimitMulti,nIter)), nInspectLimit, &RetValue, &nSatFails, &nSatConfs, &nSatInspects );  Abc_NtkDelete( pNtkTemp );
             Abc_NtkMiterPrint( pNtk, "FRAIGing   ", clk, pParams->fVerbose );
 //            printf( "NumFails = %d\n", nSatFails );
             if ( RetValue >= 0 )
                 break;
+
+            // add to the number of backtracks and inspects
+            pParams->nTotalBacktracksMade += nSatConfs;
+            pParams->nTotalInspectsMade += nSatInspects;
+            // check if global resource limit is reached
+            if ( (pParams->nTotalBacktrackLimit && pParams->nTotalBacktracksMade >= pParams->nTotalBacktrackLimit) ||
+                 (pParams->nTotalInspectLimit   && pParams->nTotalInspectsMade   >= pParams->nTotalInspectLimit) )
+            {
+                printf( "Reached global limit on conflicts/inspects. Quitting.\n" );
+                *ppNtk = pNtk;
+                return -1;
+            }
         }
 
     }    
-/*
+
     // try to prove it using brute force SAT
     if ( RetValue < 0 && pParams->fUseBdds )
     {
@@ -162,7 +188,6 @@ int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pPars )
             pNtk = pNtkTemp;
         Abc_NtkMiterPrint( pNtk, "BDD building", clk, pParams->fVerbose );
     }
-*/
 
     if ( RetValue < 0 )
     {
@@ -172,7 +197,8 @@ int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pPars )
             fflush( stdout );
         }
         clk = clock();
-        RetValue = Abc_NtkMiterSat( pNtk, pParams->nMiteringLimitLast, 0, 0, 0 );
+        nInspectLimit = pParams->nTotalInspectLimit? pParams->nTotalInspectLimit - pParams->nTotalInspectsMade : 0;
+        RetValue = Abc_NtkMiterSat( pNtk, (sint64)pParams->nMiteringLimitLast, (sint64)nInspectLimit, 0, 0, NULL, NULL );
         Abc_NtkMiterPrint( pNtk, "SAT solving", clk, pParams->fVerbose );
     }
 
@@ -197,7 +223,7 @@ int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pPars )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkMiterFraig( Abc_Ntk_t * pNtk, int nBTLimit, int * pRetValue, int * pNumFails )
+Abc_Ntk_t * Abc_NtkMiterFraig( Abc_Ntk_t * pNtk, int nBTLimit, sint64 nInspLimit, int * pRetValue, int * pNumFails, sint64 * pNumConfs, sint64 * pNumInspects )
 {
     Abc_Ntk_t * pNtkNew;
     Fraig_Params_t Params, * pParams = &Params;
@@ -222,6 +248,7 @@ Abc_Ntk_t * Abc_NtkMiterFraig( Abc_Ntk_t * pNtk, int nBTLimit, int * pRetValue, 
     pParams->fTryProve  = 0;              // do not try to prove the final miter
     pParams->fDoSparse  = 1;              // try proving sparse functions
     pParams->fVerbose   = 0;
+    pParams->nInspLimit = nInspLimit;
 
     // transform the target into a fraig
     pMan = Abc_NtkToFraig( pNtk, pParams, 0, 0 ); 
@@ -243,6 +270,8 @@ Abc_Ntk_t * Abc_NtkMiterFraig( Abc_Ntk_t * pNtk, int nBTLimit, int * pRetValue, 
     // save the return values
     *pRetValue = RetValue;
     *pNumFails = Fraig_ManReadSatFails( pMan );
+    *pNumConfs = Fraig_ManReadConflicts( pMan );
+    *pNumInspects = Fraig_ManReadInspects( pMan );
 
     // delete the fraig manager
     Fraig_ManFree( pMan );

@@ -24,6 +24,35 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include <stdlib.h>
 
+// vector of 32-bit intergers (added for 64-bit portability)
+struct veci_t {
+    int    size;
+    int    cap;
+    int*   ptr;
+};
+typedef struct veci_t veci;
+
+static inline void veci_new (veci* v) {
+    v->size = 0;
+    v->cap  = 4;
+    v->ptr  = (int*)malloc(sizeof(int)*v->cap);
+}
+
+static inline void   veci_delete (veci* v)          { free(v->ptr);   }
+static inline int*   veci_begin  (veci* v)          { return v->ptr;  }
+static inline int    veci_size   (veci* v)          { return v->size; }
+static inline void   veci_resize (veci* v, int k)   { v->size = k;    } // only safe to shrink !!
+static inline void   veci_push   (veci* v, int e)
+{
+    if (v->size == v->cap) {
+        int newsize = v->cap * 2+1;
+        v->ptr = (int*)realloc(v->ptr,sizeof(int)*newsize);
+        v->cap = newsize; }
+    v->ptr[v->size++] = e;
+}
+
+
+// vector of 32- or 64-bit pointers
 struct vec_t {
     int    size;
     int    cap;
@@ -49,5 +78,6 @@ static inline void   vec_push   (vec* v, void* e)
         v->cap = newsize; }
     v->ptr[v->size++] = e;
 }
+
 
 #endif

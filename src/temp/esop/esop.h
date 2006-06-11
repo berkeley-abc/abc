@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [xyzInt.h]
+  FileName    [esop.h]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,96 +14,119 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: xyzInt.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: esop.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "abc.h"
+#ifndef __ESOP_H__
+#define __ESOP_H__
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include "stdio.h"
+#include "vec.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-typedef struct Min_Man_t_  Min_Man_t;
-typedef struct Min_Cube_t_ Min_Cube_t;
+typedef struct Esop_Man_t_      Esop_Man_t;
+typedef struct Esop_Cube_t_     Esop_Cube_t;
+typedef struct Esop_MmFixed_t_  Esop_MmFixed_t;    
 
-struct Min_Man_t_
+struct Esop_Man_t_
 {
     int               nVars;          // the number of vars
     int               nWords;         // the number of words
-    Extra_MmFixed_t * pMemMan;        // memory manager for cubes
+    Esop_MmFixed_t * pMemMan1;       // memory manager for cubes
+    Esop_MmFixed_t * pMemMan2;       // memory manager for cubes
+    Esop_MmFixed_t * pMemMan4;       // memory manager for cubes
+    Esop_MmFixed_t * pMemMan8;       // memory manager for cubes
     // temporary cubes
-    Min_Cube_t *      pOne0;          // tautology cube
-    Min_Cube_t *      pOne1;          // tautology cube
-    Min_Cube_t *      pTriv0[2];      // trivial cube
-    Min_Cube_t *      pTriv1[2];      // trivial cube
-    Min_Cube_t *      pTemp;          // cube for computing the distance
-    Min_Cube_t *      pBubble;        // cube used as a separator
+    Esop_Cube_t *     pOne0;          // tautology cube
+    Esop_Cube_t *     pOne1;          // tautology cube
+    Esop_Cube_t *     pTriv0;         // trivial cube
+    Esop_Cube_t *     pTriv1;         // trivial cube
+    Esop_Cube_t *     pTemp;          // cube for computing the distance
+    Esop_Cube_t *     pBubble;        // cube used as a separator
     // temporary storage for the new cover
     int               nCubes;         // the number of cubes
-    Min_Cube_t **     ppStore;        // storage for cubes by number of literals
+    Esop_Cube_t **    ppStore;        // storage for cubes by number of literals
 };
 
-struct Min_Cube_t_
+struct Esop_Cube_t_
 {
-    Min_Cube_t *      pNext;          // the pointer to the next cube in the cover
+    Esop_Cube_t *     pNext;          // the pointer to the next cube in the cover
     unsigned          nVars    : 10;  // the number of variables
     unsigned          nWords   : 12;  // the number of machine words
     unsigned          nLits    : 10;  // the number of literals in the cube
     unsigned          uData[1];       // the bit-data for the cube
 };
 
+#define ALLOC(type, num)     ((type *) malloc(sizeof(type) * (num)))
+#define FREE(obj)             ((obj) ? (free((char *) (obj)), (obj) = 0) : 0)
+#define REALLOC(type, obj, num)    \
+        ((obj) ? ((type *) realloc((char *)(obj), sizeof(type) * (num))) : \
+         ((type *) malloc(sizeof(type) * (num))))
 
 // iterators through the entries in the linked lists of cubes
-#define Min_CoverForEachCube( pCover, pCube )                   \
+#define Esop_CoverForEachCube( pCover, pCube )                  \
     for ( pCube = pCover;                                       \
           pCube;                                                \
           pCube = pCube->pNext )
-#define Min_CoverForEachCubeSafe( pCover, pCube, pCube2 )       \
+#define Esop_CoverForEachCubeSafe( pCover, pCube, pCube2 )      \
     for ( pCube = pCover,                                       \
           pCube2 = pCube? pCube->pNext: NULL;                   \
           pCube;                                                \
           pCube = pCube2,                                       \
           pCube2 = pCube? pCube->pNext: NULL )
-#define Min_CoverForEachCubePrev( pCover, pCube, ppPrev )       \
+#define Esop_CoverForEachCubePrev( pCover, pCube, ppPrev )      \
     for ( pCube = pCover,                                       \
           ppPrev = &(pCover);                                   \
           pCube;                                                \
           ppPrev = &pCube->pNext,                               \
           pCube = pCube->pNext )
 
-// macros to get hold of bits and values in the cubes
-static inline int  Min_CubeHasBit( Min_Cube_t * p, int i )              { return (p->uData[(i)>>5] & (1<<((i) & 31))) > 0;     }
-static inline void Min_CubeSetBit( Min_Cube_t * p, int i )              { p->uData[(i)>>5] |= (1<<((i) & 31));                 }
-static inline void Min_CubeXorBit( Min_Cube_t * p, int i )              { p->uData[(i)>>5] ^= (1<<((i) & 31));                 }
-static inline int  Min_CubeGetVar( Min_Cube_t * p, int Var )            { return 3 & (p->uData[(2*Var)>>5] >> ((2*Var) & 31)); }
-static inline void Min_CubeXorVar( Min_Cube_t * p, int Var, int Value ) { p->uData[(2*Var)>>5] ^= (Value<<((2*Var) & 31));     }
 
-/*=== xyzMinEsop.c ==========================================================*/
-extern void         Min_EsopMinimize( Min_Man_t * p );
-extern void         Min_EsopAddCube( Min_Man_t * p, Min_Cube_t * pCube );
-/*=== xyzMinSop.c ==========================================================*/
-extern void         Min_SopMinimize( Min_Man_t * p );
-extern void         Min_SopAddCube( Min_Man_t * p, Min_Cube_t * pCube );
-/*=== xyzMinMan.c ==========================================================*/
-extern Min_Man_t *  Min_ManAlloc( int nVars );
-extern void         Min_ManClean( Min_Man_t * p, int nSupp );
-extern void         Min_ManFree( Min_Man_t * p );
-/*=== xyzMinUtil.c ==========================================================*/
-extern void         Min_CubeWrite( FILE * pFile, Min_Cube_t * pCube );
-extern void         Min_CoverWrite( FILE * pFile, Min_Cube_t * pCover );
-extern void         Min_CoverWriteStore( FILE * pFile, Min_Man_t * p );
-extern void         Min_CoverWriteFile( Min_Cube_t * pCover, char * pName, int fEsop );
-extern void         Min_CoverCheck( Min_Man_t * p );
-extern int          Min_CubeCheck( Min_Cube_t * pCube );
-extern Min_Cube_t * Min_CoverCollect( Min_Man_t * p, int nSuppSize );
-extern void         Min_CoverExpand( Min_Man_t * p, Min_Cube_t * pCover );
-extern int          Min_CoverSuppVarNum( Min_Man_t * p, Min_Cube_t * pCover );
+// macros to get hold of bits and values in the cubes
+static inline int    Esop_CubeHasBit( Esop_Cube_t * p, int i )              { return (p->uData[i >> 5] & (1<<(i & 31))) > 0;         }
+static inline void   Esop_CubeSetBit( Esop_Cube_t * p, int i )              { p->uData[i >> 5] |= (1<<(i & 31));                     }
+static inline void   Esop_CubeXorBit( Esop_Cube_t * p, int i )              { p->uData[i >> 5] ^= (1<<(i & 31));                     }
+static inline int    Esop_CubeGetVar( Esop_Cube_t * p, int Var )            { return 3 & (p->uData[(Var<<1)>>5] >> ((Var<<1) & 31)); }
+static inline void   Esop_CubeXorVar( Esop_Cube_t * p, int Var, int Value ) { p->uData[(Var<<1)>>5] ^= (Value<<((Var<<1) & 31));     }
+static inline int    Esop_BitWordNum( int nBits )                           { return (nBits>>5) + ((nBits&31) > 0);                  }
+
+/*=== esopMem.c ===========================================================*/
+extern Esop_MmFixed_t * Esop_MmFixedStart( int nEntrySize );
+extern void          Esop_MmFixedStop( Esop_MmFixed_t * p, int fVerbose );
+extern char *        Esop_MmFixedEntryFetch( Esop_MmFixed_t * p );
+extern void          Esop_MmFixedEntryRecycle( Esop_MmFixed_t * p, char * pEntry );
+extern void          Esop_MmFixedRestart( Esop_MmFixed_t * p );
+extern int           Esop_MmFixedReadMemUsage( Esop_MmFixed_t * p );
+/*=== esopMin.c ===========================================================*/
+extern void          Esop_EsopMinimize( Esop_Man_t * p );
+extern void          Esop_EsopAddCube( Esop_Man_t * p, Esop_Cube_t * pCube );
+/*=== esopMan.c ===========================================================*/
+extern Esop_Man_t *  Esop_ManAlloc( int nVars );
+extern void          Esop_ManClean( Esop_Man_t * p, int nSupp );
+extern void          Esop_ManFree( Esop_Man_t * p );
+/*=== esopUtil.c ===========================================================*/
+extern void          Esop_CubeWrite( FILE * pFile, Esop_Cube_t * pCube );
+extern void          Esop_CoverWrite( FILE * pFile, Esop_Cube_t * pCover );
+extern void          Esop_CoverWriteStore( FILE * pFile, Esop_Man_t * p );
+extern void          Esop_CoverWriteFile( Esop_Cube_t * pCover, char * pName, int fEsop );
+extern void          Esop_CoverCheck( Esop_Man_t * p );
+extern int           Esop_CubeCheck( Esop_Cube_t * pCube );
+extern Esop_Cube_t * Esop_CoverCollect( Esop_Man_t * p, int nSuppSize );
+extern void          Esop_CoverExpand( Esop_Man_t * p, Esop_Cube_t * pCover );
+extern int           Esop_CoverSuppVarNum( Esop_Man_t * p, Esop_Cube_t * pCover );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
-
+ 
 /**Function*************************************************************
 
   Synopsis    [Creates the cube.]
@@ -115,10 +138,17 @@ extern int          Min_CoverSuppVarNum( Min_Man_t * p, Min_Cube_t * pCover );
   SeeAlso     []
 
 ***********************************************************************/
-static inline Min_Cube_t * Min_CubeAlloc( Min_Man_t * p )
+static inline Esop_Cube_t * Esop_CubeAlloc( Esop_Man_t * p )
 {
-    Min_Cube_t * pCube;
-    pCube = (Min_Cube_t *)Extra_MmFixedEntryFetch( p->pMemMan );
+    Esop_Cube_t * pCube;
+    if ( p->nWords <= 1 )
+        pCube = (Esop_Cube_t *)Esop_MmFixedEntryFetch( p->pMemMan1 );
+    else if ( p->nWords <= 2 )
+        pCube = (Esop_Cube_t *)Esop_MmFixedEntryFetch( p->pMemMan2 );
+    else if ( p->nWords <= 4 )
+        pCube = (Esop_Cube_t *)Esop_MmFixedEntryFetch( p->pMemMan4 );
+    else if ( p->nWords <= 8 )
+        pCube = (Esop_Cube_t *)Esop_MmFixedEntryFetch( p->pMemMan8 );
     pCube->pNext  = NULL;
     pCube->nVars  = p->nVars;
     pCube->nWords = p->nWords;
@@ -138,11 +168,11 @@ static inline Min_Cube_t * Min_CubeAlloc( Min_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline Min_Cube_t * Min_CubeAllocVar( Min_Man_t * p, int iVar, int fCompl )
+static inline Esop_Cube_t * Esop_CubeAllocVar( Esop_Man_t * p, int iVar, int fCompl )
 {
-    Min_Cube_t * pCube;
-    pCube = Min_CubeAlloc( p );
-    Min_CubeXorBit( pCube, iVar*2+fCompl );
+    Esop_Cube_t * pCube;
+    pCube = Esop_CubeAlloc( p );
+    Esop_CubeXorBit( pCube, iVar*2+fCompl );
     pCube->nLits = 1;
     return pCube;
 }
@@ -158,10 +188,10 @@ static inline Min_Cube_t * Min_CubeAllocVar( Min_Man_t * p, int iVar, int fCompl
   SeeAlso     []
 
 ***********************************************************************/
-static inline Min_Cube_t * Min_CubeDup( Min_Man_t * p, Min_Cube_t * pCopy )
+static inline Esop_Cube_t * Esop_CubeDup( Esop_Man_t * p, Esop_Cube_t * pCopy )
 {
-    Min_Cube_t * pCube;
-    pCube = Min_CubeAlloc( p );
+    Esop_Cube_t * pCube;
+    pCube = Esop_CubeAlloc( p );
     memcpy( pCube->uData, pCopy->uData, sizeof(unsigned) * p->nWords );
     pCube->nLits = pCopy->nLits;
     return pCube;
@@ -178,9 +208,16 @@ static inline Min_Cube_t * Min_CubeDup( Min_Man_t * p, Min_Cube_t * pCopy )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Min_CubeRecycle( Min_Man_t * p, Min_Cube_t * pCube )
+static inline void Esop_CubeRecycle( Esop_Man_t * p, Esop_Cube_t * pCube )
 {
-    Extra_MmFixedEntryRecycle( p->pMemMan, (char *)pCube );
+    if ( pCube->nWords <= 1 )
+        Esop_MmFixedEntryRecycle( p->pMemMan1, (char *)pCube );
+    else if ( pCube->nWords <= 2 )
+        Esop_MmFixedEntryRecycle( p->pMemMan2, (char *)pCube );
+    else if ( pCube->nWords <= 4 )
+        Esop_MmFixedEntryRecycle( p->pMemMan4, (char *)pCube );
+    else if ( pCube->nWords <= 8 )
+        Esop_MmFixedEntryRecycle( p->pMemMan8, (char *)pCube );
 }
 
 /**Function*************************************************************
@@ -194,11 +231,48 @@ static inline void Min_CubeRecycle( Min_Man_t * p, Min_Cube_t * pCube )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Min_CoverRecycle( Min_Man_t * p, Min_Cube_t * pCover )
+static inline void Esop_CoverRecycle( Esop_Man_t * p, Esop_Cube_t * pCover )
 {
-    Min_Cube_t * pCube, * pCube2;
-    Min_CoverForEachCubeSafe( pCover, pCube, pCube2 )
-        Extra_MmFixedEntryRecycle( p->pMemMan, (char *)pCube );
+    Esop_Cube_t * pCube, * pCube2;
+    if ( pCover == NULL )
+        return;
+    if ( pCover->nWords <= 1 )
+        Esop_CoverForEachCubeSafe( pCover, pCube, pCube2 )
+            Esop_MmFixedEntryRecycle( p->pMemMan1, (char *)pCube );
+    else if ( pCover->nWords <= 2 )
+        Esop_CoverForEachCubeSafe( pCover, pCube, pCube2 )
+            Esop_MmFixedEntryRecycle( p->pMemMan2, (char *)pCube );
+    else if ( pCover->nWords <= 4 )
+        Esop_CoverForEachCubeSafe( pCover, pCube, pCube2 )
+            Esop_MmFixedEntryRecycle( p->pMemMan4, (char *)pCube );
+    else if ( pCover->nWords <= 8 )
+        Esop_CoverForEachCubeSafe( pCover, pCube, pCube2 )
+            Esop_MmFixedEntryRecycle( p->pMemMan8, (char *)pCube );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Recycles the cube cover.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Esop_Cube_t * Esop_CoverDup( Esop_Man_t * p, Esop_Cube_t * pCover )
+{
+    Esop_Cube_t * pCube, * pCubeNew;
+    Esop_Cube_t * pCoverNew = NULL, ** ppTail = &pCoverNew;
+    Esop_CoverForEachCube( pCover, pCube )
+    {
+        pCubeNew = Esop_CubeDup( p, pCube );
+        *ppTail = pCubeNew;
+        ppTail = &pCubeNew->pNext;
+    }
+    *ppTail = NULL;
+    return pCoverNew;
 }
 
 
@@ -213,7 +287,7 @@ static inline void Min_CoverRecycle( Min_Man_t * p, Min_Cube_t * pCover )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Min_CubeCountLits( Min_Cube_t * pCube )
+static inline int Esop_CubeCountLits( Esop_Cube_t * pCube )
 {
     unsigned uData;
     int Count = 0, i, w;
@@ -238,7 +312,7 @@ static inline int Min_CubeCountLits( Min_Cube_t * pCube )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Min_CubeGetLits( Min_Cube_t * pCube, Vec_Int_t * vLits )
+static inline void Esop_CubeGetLits( Esop_Cube_t * pCube, Vec_Int_t * vLits )
 {
     unsigned uData;
     int i, w;
@@ -263,11 +337,11 @@ static inline void Min_CubeGetLits( Min_Cube_t * pCube, Vec_Int_t * vLits )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Min_CoverCountCubes( Min_Cube_t * pCover )
+static inline int Esop_CoverCountCubes( Esop_Cube_t * pCover )
 {
-    Min_Cube_t * pCube;
+    Esop_Cube_t * pCube;
     int Count = 0;
-    Min_CoverForEachCube( pCover, pCube )
+    Esop_CoverForEachCube( pCover, pCube )
         Count++;
     return Count;
 }
@@ -284,7 +358,7 @@ static inline int Min_CoverCountCubes( Min_Cube_t * pCover )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Min_CubesDisjoint( Min_Cube_t * pCube0, Min_Cube_t * pCube1 )
+static inline int Esop_CubesDisjoint( Esop_Cube_t * pCube0, Esop_Cube_t * pCube1 )
 {
     unsigned uData;
     int i;
@@ -310,7 +384,7 @@ static inline int Min_CubesDisjoint( Min_Cube_t * pCube0, Min_Cube_t * pCube1 )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Min_CoverGetDisjVars( Min_Cube_t * pThis, Min_Cube_t * pCube, Vec_Int_t * vVars )
+static inline void Esop_CoverGetDisjVars( Esop_Cube_t * pThis, Esop_Cube_t * pCube, Vec_Int_t * vVars )
 {
     unsigned uData;
     int i, w;
@@ -338,7 +412,7 @@ static inline void Min_CoverGetDisjVars( Min_Cube_t * pThis, Min_Cube_t * pCube,
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Min_CubesDistOne( Min_Cube_t * pCube0, Min_Cube_t * pCube1, Min_Cube_t * pTemp )
+static inline int Esop_CubesDistOne( Esop_Cube_t * pCube0, Esop_Cube_t * pCube1, Esop_Cube_t * pTemp )
 {
     unsigned uData;
     int i, fFound = 0;
@@ -361,9 +435,9 @@ static inline int Min_CubesDistOne( Min_Cube_t * pCube0, Min_Cube_t * pCube1, Mi
     if ( fFound == 0 )
     {
         printf( "\n" );
-        Min_CubeWrite( stdout, pCube0 );
-        Min_CubeWrite( stdout, pCube1 );
-        printf( "Error: Min_CubesDistOne() looks at two equal cubes!\n" );
+        Esop_CubeWrite( stdout, pCube0 );
+        Esop_CubeWrite( stdout, pCube1 );
+        printf( "Error: Esop_CubesDistOne() looks at two equal cubes!\n" );
     }
     return 1;
 }
@@ -379,7 +453,7 @@ static inline int Min_CubesDistOne( Min_Cube_t * pCube0, Min_Cube_t * pCube1, Mi
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Min_CubesDistTwo( Min_Cube_t * pCube0, Min_Cube_t * pCube1, int * pVar0, int * pVar1 )
+static inline int Esop_CubesDistTwo( Esop_Cube_t * pCube0, Esop_Cube_t * pCube1, int * pVar0, int * pVar1 )
 {
     unsigned uData;//, uData2;
     int i, k, Var0 = -1, Var1 = -1;
@@ -427,9 +501,9 @@ static inline int Min_CubesDistTwo( Min_Cube_t * pCube0, Min_Cube_t * pCube1, in
     if ( Var0 == -1 || Var1 == -1 )
     {
         printf( "\n" );
-        Min_CubeWrite( stdout, pCube0 );
-        Min_CubeWrite( stdout, pCube1 );
-        printf( "Error: Min_CubesDistTwo() looks at two equal cubes or dist1 cubes!\n" );
+        Esop_CubeWrite( stdout, pCube0 );
+        Esop_CubeWrite( stdout, pCube1 );
+        printf( "Error: Esop_CubesDistTwo() looks at two equal cubes or dist1 cubes!\n" );
     }
     return 0;
 }
@@ -445,15 +519,15 @@ static inline int Min_CubesDistTwo( Min_Cube_t * pCube0, Min_Cube_t * pCube1, in
   SeeAlso     []
 
 ***********************************************************************/
-static inline Min_Cube_t * Min_CubesProduct( Min_Man_t * p, Min_Cube_t * pCube0, Min_Cube_t * pCube1 )
+static inline Esop_Cube_t * Esop_CubesProduct( Esop_Man_t * p, Esop_Cube_t * pCube0, Esop_Cube_t * pCube1 )
 {
-    Min_Cube_t * pCube;
+    Esop_Cube_t * pCube;
     int i;
     assert( pCube0->nVars == pCube1->nVars );
-    pCube = Min_CubeAlloc( p );
+    pCube = Esop_CubeAlloc( p );
     for ( i = 0; i < p->nWords; i++ )
         pCube->uData[i] = pCube0->uData[i] & pCube1->uData[i];
-    pCube->nLits = Min_CubeCountLits( pCube );
+    pCube->nLits = Esop_CubeCountLits( pCube );
     return pCube;
 }
 
@@ -468,15 +542,15 @@ static inline Min_Cube_t * Min_CubesProduct( Min_Man_t * p, Min_Cube_t * pCube0,
   SeeAlso     []
 
 ***********************************************************************/
-static inline Min_Cube_t * Min_CubesXor( Min_Man_t * p, Min_Cube_t * pCube0, Min_Cube_t * pCube1 )
+static inline Esop_Cube_t * Esop_CubesXor( Esop_Man_t * p, Esop_Cube_t * pCube0, Esop_Cube_t * pCube1 )
 {
-    Min_Cube_t * pCube;
+    Esop_Cube_t * pCube;
     int i;
     assert( pCube0->nVars == pCube1->nVars );
-    pCube = Min_CubeAlloc( p );
+    pCube = Esop_CubeAlloc( p );
     for ( i = 0; i < p->nWords; i++ )
         pCube->uData[i] = pCube0->uData[i] ^ pCube1->uData[i];
-    pCube->nLits = Min_CubeCountLits( pCube );
+    pCube->nLits = Esop_CubeCountLits( pCube );
     return pCube;
 }
 
@@ -491,7 +565,7 @@ static inline Min_Cube_t * Min_CubesXor( Min_Man_t * p, Min_Cube_t * pCube0, Min
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Min_CubesAreEqual( Min_Cube_t * pCube0, Min_Cube_t * pCube1 )
+static inline int Esop_CubesAreEqual( Esop_Cube_t * pCube0, Esop_Cube_t * pCube1 )
 {
     int i;
     for ( i = 0; i < (int)pCube0->nWords; i++ )
@@ -511,7 +585,7 @@ static inline int Min_CubesAreEqual( Min_Cube_t * pCube0, Min_Cube_t * pCube1 )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Min_CubeIsContained( Min_Cube_t * pCube0, Min_Cube_t * pCube1 )
+static inline int Esop_CubeIsContained( Esop_Cube_t * pCube0, Esop_Cube_t * pCube1 )
 {
     int i;
     for ( i = 0; i < (int)pCube0->nWords; i++ )
@@ -531,7 +605,7 @@ static inline int Min_CubeIsContained( Min_Cube_t * pCube0, Min_Cube_t * pCube1 
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Min_CubesTransform( Min_Cube_t * pCube, Min_Cube_t * pDist, Min_Cube_t * pMask )
+static inline void Esop_CubesTransform( Esop_Cube_t * pCube, Esop_Cube_t * pDist, Esop_Cube_t * pMask )
 {
     int w;
     for ( w = 0; w < (int)pCube->nWords; w++ )
@@ -552,7 +626,7 @@ static inline void Min_CubesTransform( Min_Cube_t * pCube, Min_Cube_t * pDist, M
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Min_CubesTransformOr( Min_Cube_t * pCube, Min_Cube_t * pDist )
+static inline void Esop_CubesTransformOr( Esop_Cube_t * pCube, Esop_Cube_t * pDist )
 {
     int w;
     for ( w = 0; w < (int)pCube->nWords; w++ )
@@ -572,22 +646,22 @@ static inline void Min_CubesTransformOr( Min_Cube_t * pCube, Min_Cube_t * pDist 
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Min_CoverExpandRemoveEqual( Min_Man_t * p, Min_Cube_t * pCover )
+static inline void Esop_CoverExpandRemoveEqual( Esop_Man_t * p, Esop_Cube_t * pCover )
 {
-    Min_Cube_t * pCube, * pCube2, * pThis;
+    Esop_Cube_t * pCube, * pCube2, * pThis;
     if ( pCover == NULL )
     {
-        Min_ManClean( p, p->nVars );
+        Esop_ManClean( p, p->nVars );
         return;
     }
-    Min_ManClean( p, pCover->nVars );
-    Min_CoverForEachCubeSafe( pCover, pCube, pCube2 )
+    Esop_ManClean( p, pCover->nVars );
+    Esop_CoverForEachCubeSafe( pCover, pCube, pCube2 )
     {
         // go through the linked list
-        Min_CoverForEachCube( p->ppStore[pCube->nLits], pThis )
-            if ( Min_CubesAreEqual( pCube, pThis ) )
+        Esop_CoverForEachCube( p->ppStore[pCube->nLits], pThis )
+            if ( Esop_CubesAreEqual( pCube, pThis ) )
             {
-                Min_CubeRecycle( p, pCube );
+                Esop_CubeRecycle( p, pCube );
                 break;
             }
         if ( pThis != NULL )
@@ -609,31 +683,37 @@ static inline void Min_CoverExpandRemoveEqual( Min_Man_t * p, Min_Cube_t * pCove
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Min_CoverContainsCube( Min_Man_t * p, Min_Cube_t * pCube )
+static inline int Esop_CoverContainsCube( Esop_Man_t * p, Esop_Cube_t * pCube )
 {
-    Min_Cube_t * pThis;
+    Esop_Cube_t * pThis;
     int i;
 /*
     // this cube cannot be equal to any cube
-    Min_CoverForEachCube( p->ppStore[pCube->nLits], pThis )
+    Esop_CoverForEachCube( p->ppStore[pCube->nLits], pThis )
     {
-        if ( Min_CubesAreEqual( pCube, pThis ) )
+        if ( Esop_CubesAreEqual( pCube, pThis ) )
         {
-            Min_CubeWrite( stdout, pCube );
+            Esop_CubeWrite( stdout, pCube );
             assert( 0 );
         }
     }
 */
     // try to find a containing cube
     for ( i = 0; i <= (int)pCube->nLits; i++ )
-    Min_CoverForEachCube( p->ppStore[i], pThis )
+    Esop_CoverForEachCube( p->ppStore[i], pThis )
     {
         // skip the bubble
-        if ( pThis != p->pBubble && Min_CubeIsContained( pThis, pCube ) )
+        if ( pThis != p->pBubble && Esop_CubeIsContained( pThis, pCube ) )
             return 1;
     }
     return 0;
 }
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -319,6 +319,7 @@ int Seq_NtkImplementRetimingBackward( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMoves, int 
     // add the PI/PO names
     Abc_NtkAddDummyPiNames( pNtkProb );
     Abc_NtkAddDummyPoNames( pNtkProb );
+    Abc_NtkAddDummyAssertNames( pNtkProb );
 
     // make sure everything is okay with the network structure
     if ( !Abc_NtkDoCheck( pNtkProb ) )
@@ -358,7 +359,7 @@ int Seq_NtkImplementRetimingBackward( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMoves, int 
     // solve the miter
 clk = clock();
 //    RetValue = Abc_NtkMiterSat_OldAndRusty( pNtkCnf, 30, 0 );
-    RetValue = Abc_NtkMiterSat( pNtkCnf, 500000, 50000000, 0, 0 );
+    RetValue = Abc_NtkMiterSat( pNtkCnf, (sint64)500000, (sint64)50000000, 0, 0, NULL, NULL );
 if ( fVerbose )
 if ( clock() - clk > 100 )
 {

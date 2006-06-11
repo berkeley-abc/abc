@@ -155,9 +155,6 @@ void Abc_NtkLatchPipe( Abc_Ntk_t * pNtk, int nLatches )
             pLatch = Abc_NtkCreateLatch( pNtk );
             Abc_ObjAddFanin( pLatch, pFanin );
             Abc_LatchSetInitDc( pLatch );
-            // add the latch to the CI/CO lists
-            Vec_PtrPush( pNtk->vCis, pLatch );
-            Vec_PtrPush( pNtk->vCos, pLatch );
             // create the name of the new latch
             Abc_NtkLogicStoreName( pLatch, Abc_ObjNameDummy("LL", i*nLatches + k, nDigits) );
         }

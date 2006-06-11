@@ -26,7 +26,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include "solver.h"
 
-//#define ASAT_USE_SYSTEM_MEMORY_MANAGEMENT
+#define ASAT_USE_SYSTEM_MEMORY_MANAGEMENT
 
 //=================================================================================================
 // Simple (var/literal) helpers:
@@ -96,14 +96,14 @@ static inline void  clause_setactivity(clause* c, float a) { *((float*)&c->lits[
 //=================================================================================================
 // Encode literals in clause pointers:
 
-clause* clause_from_lit (lit l)     { return (clause*)(l + l + 1);        }
-bool    clause_is_lit   (clause* c) { return ((unsigned int)c & 1);       }
-lit     clause_read_lit (clause* c) { return (lit)((unsigned int)c >> 1); }
+clause* clause_from_lit (lit l)     { return (clause*)(((unsigned long)l) + ((unsigned long)l) + 1);        }
+bool    clause_is_lit   (clause* c) { return ((unsigned long)c & 1);       }
+lit     clause_read_lit (clause* c) { return (lit)((unsigned long)c >> 1); }
 
 //=================================================================================================
 // Simple helpers:
 
-static inline int     solver_dlevel(solver* s)    { return vec_size(&s->trail_lim); }
+static inline int     solver_dlevel(solver* s)    { return veci_size(&s->trail_lim); }
 static inline vec*    solver_read_wlist     (solver* s, lit l){ return &s->wlists[l]; }
 static inline void    vec_remove(vec* v, void* e)
 {
@@ -124,7 +124,7 @@ static inline void order_update(solver* s, int v) // updateorder
 //    int clk = clock();
     int*    orderpos = s->orderpos;
     double* activity = s->activity;
-    int*    heap     = (int*)vec_begin(&s->order);
+    int*    heap     = veci_begin(&s->order);
     int     i        = orderpos[v];
     int     x        = heap[i];
     int     parent   = (i - 1) / 2;
@@ -151,8 +151,8 @@ static inline void order_unassigned(solver* s, int v) // undoorder
 //    int clk = clock();
     int* orderpos = s->orderpos;
     if (orderpos[v] == -1){
-        orderpos[v] = vec_size(&s->order);
-        vec_push(&s->order,(void*)v);
+        orderpos[v] = veci_size(&s->order);
+        veci_push(&s->order,v);
         order_update(s,v);
     }
 //    s->timeUpdate += clock() - clk;
@@ -161,11 +161,22 @@ static inline void order_unassigned(solver* s, int v) // undoorder
 static int  order_select(solver* s, float random_var_freq) // selectvar
 {
 //    int clk = clock();
+    static int Counter = 0;
     int*    heap;
     double* activity;
     int*    orderpos;
 
     lbool* values = s->assigns;
+
+    // The first decisions
+    if ( s->pPrefVars && s->nPrefDecNum < s->nPrefVars )
+    {
+        int i;
+        s->nPrefDecNum++;
+        for ( i = 0; i < s->nPrefVars; i++ )
+            if ( values[s->pPrefVars[i]] == l_Undef )
+                return s->pPrefVars[i];
+    }
 
     // Random decision:
     if (drand(&s->random_seed) < random_var_freq){
@@ -177,17 +188,17 @@ static int  order_select(solver* s, float random_var_freq) // selectvar
 
     // Activity based decision:
 
-    heap     = (int*)vec_begin(&s->order);
+    heap     = veci_begin(&s->order);
     activity = s->activity;
     orderpos = s->orderpos;
 
 
-    while (vec_size(&s->order) > 0){
+    while (veci_size(&s->order) > 0){
         int    next  = heap[0];
-        int    size  = vec_size(&s->order)-1;
+        int    size  = veci_size(&s->order)-1;
         int    x     = heap[size];
 
-        vec_resize(&s->order,size);
+        veci_resize(&s->order,size);
 
         orderpos[next] = -1;
 
@@ -300,7 +311,10 @@ static clause* clause_new(solver* s, lit* begin, lit* end, int learnt)
     assert(((unsigned int)c & 1) == 0);
 
     for (i = 0; i < size; i++)
+    {
+        assert(begin[i] >= 0);
         c->lits[i] = begin[i];
+    }
 
     if (learnt)
         *((float*)&c->lits[size]) = 0.0;
@@ -328,11 +342,11 @@ static void clause_remove(solver* s, clause* c)
     lit* lits = clause_begin(c);
     assert(neg(lits[0]) < s->size*2);
     assert(neg(lits[1]) < s->size*2);
+    assert(lits[0] < s->size*2);
 
     //vec_remove(solver_read_wlist(s,neg(lits[0])),(void*)c);
     //vec_remove(solver_read_wlist(s,neg(lits[1])),(void*)c);
 
-    assert(lits[0] < s->size*2);
     vec_remove(solver_read_wlist(s,neg(lits[0])),(void*)(clause_size(c) > 2 ? c : clause_from_lit(lits[1])));
     vec_remove(solver_read_wlist(s,neg(lits[1])),(void*)(clause_size(c) > 2 ? c : clause_from_lit(lits[0])));
 
@@ -399,8 +413,8 @@ static void solver_setnvars(solver* s,int n)
         s->levels   [var] = 0;
         s->tags     [var] = l_Undef;
 
-        assert(vec_size(&s->order) == var);
-        vec_push(&s->order,(void*)var);
+        assert(veci_size(&s->order) == var);
+        veci_push(&s->order,var);
         order_update(s,var);
     }
 
@@ -413,20 +427,19 @@ static inline bool enqueue(solver* s, lit l, clause* from)
     lbool* values = s->assigns;
     int    v      = lit_var(l);
     lbool  val    = values[v];
+    lbool sig = !lit_sign(l); sig += sig - 1;
 #ifdef VERBOSEDEBUG
     printf(L_IND"enqueue("L_LIT")\n", L_ind, L_lit(l));
 #endif
-
-    lbool sig = !lit_sign(l); sig += sig - 1;
     if (val != l_Undef){
         return val == sig;
     }else{
         // New fact -- store it.
+        int*     levels  = s->levels;
+        clause** reasons = s->reasons;
 #ifdef VERBOSEDEBUG
         printf(L_IND"bind("L_LIT")\n", L_ind, L_lit(l));
 #endif
-        int*     levels  = s->levels;
-        clause** reasons = s->reasons;
 
         values [v] = sig;
         levels [v] = solver_dlevel(s);
@@ -448,7 +461,7 @@ static inline void assume(solver* s, lit l){
 #ifdef VERBOSEDEBUG
     printf(L_IND"assume("L_LIT")\n", L_ind, L_lit(l));
 #endif
-    vec_push(&s->trail_lim,(void*)s->qtail);
+    veci_push(&s->trail_lim,s->qtail);
     enqueue(s,l,(clause*)0);
 }
 
@@ -466,7 +479,7 @@ static inline void solver_canceluntil(solver* s, int level) {
     trail   = s->trail;
     values  = s->assigns;
     reasons = s->reasons;
-    bound   = ((int*)vec_begin(&s->trail_lim))[level];
+    bound   = veci_begin(&s->trail_lim)[level];
 
     for (c = s->qtail-1; c >= bound; c--) {
         int     x  = lit_var(trail[c]);
@@ -482,23 +495,23 @@ static inline void solver_canceluntil(solver* s, int level) {
             order_unassigned( s, lit_var(trail[c]) );
 
     s->qhead = s->qtail = bound;
-    vec_resize(&s->trail_lim,level);
+    veci_resize(&s->trail_lim,level);
 }
 
-static void solver_record(solver* s, vec* cls)
+static void solver_record(solver* s, veci* cls)
 {
-    lit*    begin = (lit*)vec_begin(cls);
-    lit*    end   = begin + vec_size(cls);
-    clause* c     = (vec_size(cls) > 1) ? clause_new(s,begin,end,1) : (clause*)0;
+    lit*    begin = veci_begin(cls);
+    lit*    end   = begin + veci_size(cls);
+    clause* c     = (veci_size(cls) > 1) ? clause_new(s,begin,end,1) : (clause*)0;
     enqueue(s,*begin,c);
 
-    assert(vec_size(cls) > 0);
+    assert(veci_size(cls) > 0);
 
     if (c != 0) {
         vec_push(&s->learnts,(void*)c);
         act_clause_bump(s,c);
         s->solver_stats.learnts++;
-        s->solver_stats.learnts_literals += vec_size(cls);
+        s->solver_stats.learnts_literals += veci_size(cls);
     }
 }
 
@@ -525,18 +538,18 @@ static bool solver_lit_removable(solver* s, lit l, int minl)
     lbool*   tags    = s->tags;
     clause** reasons = s->reasons;
     int*     levels  = s->levels;
-    int      top     = vec_size(&s->tagged);
+    int      top     = veci_size(&s->tagged);
 
     assert(lit_var(l) >= 0 && lit_var(l) < s->size);
     assert(reasons[lit_var(l)] != 0);
-    vec_resize(&s->stack,0);
-    vec_push(&s->stack,(void*)lit_var(l));
+    veci_resize(&s->stack,0);
+    veci_push(&s->stack,lit_var(l));
 
-    while (vec_size(&s->stack) > 0){
+    while (veci_size(&s->stack) > 0){
         clause* c;
-        int v = (int)vec_begin(&s->stack)[vec_size(&s->stack)-1];
+        int v = veci_begin(&s->stack)[veci_size(&s->stack)-1];
         assert(v >= 0 && v < s->size);
-        vec_resize(&s->stack,vec_size(&s->stack)-1);
+        veci_resize(&s->stack,veci_size(&s->stack)-1);
         assert(reasons[v] != 0);
         c    = reasons[v];
 
@@ -544,15 +557,15 @@ static bool solver_lit_removable(solver* s, lit l, int minl)
             int v = lit_var(clause_read_lit(c));
             if (tags[v] == l_Undef && levels[v] != 0){
                 if (reasons[v] != 0 && ((1 << (levels[v] & 31)) & minl)){
-                    vec_push(&s->stack,(void*)v);
+                    veci_push(&s->stack,v);
                     tags[v] = l_True;
-                    vec_push(&s->tagged,(void*)v);
+                    veci_push(&s->tagged,v);
                 }else{
-                    int* tagged = (int*)vec_begin(&s->tagged);
+                    int* tagged = veci_begin(&s->tagged);
                     int j;
-                    for (j = top; j < vec_size(&s->tagged); j++)
+                    for (j = top; j < veci_size(&s->tagged); j++)
                         tags[tagged[j]] = l_Undef;
-                    vec_resize(&s->tagged,top);
+                    veci_resize(&s->tagged,top);
                     return 0;
                 }
             }
@@ -565,14 +578,14 @@ static bool solver_lit_removable(solver* s, lit l, int minl)
                 if (tags[v] == l_Undef && levels[v] != 0){
                     if (reasons[v] != 0 && ((1 << (levels[v] & 31)) & minl)){
 
-                        vec_push(&s->stack,(void*)lit_var(lits[i]));
+                        veci_push(&s->stack,lit_var(lits[i]));
                         tags[v] = l_True;
-                        vec_push(&s->tagged,(void*)v);
+                        veci_push(&s->tagged,v);
                     }else{
-                        int* tagged = (int*)vec_begin(&s->tagged);
-                        for (j = top; j < vec_size(&s->tagged); j++)
+                        int* tagged = veci_begin(&s->tagged);
+                        for (j = top; j < veci_size(&s->tagged); j++)
                             tags[tagged[j]] = l_Undef;
-                        vec_resize(&s->tagged,top);
+                        veci_resize(&s->tagged,top);
                         return 0;
                     }
                 }
@@ -583,7 +596,7 @@ static bool solver_lit_removable(solver* s, lit l, int minl)
     return 1;
 }
 
-static void solver_analyze(solver* s, clause* c, vec* learnt)
+static void solver_analyze(solver* s, clause* c, veci* learnt)
 {
     lit*     trail   = s->trail;
     lbool*   tags    = s->tags;
@@ -596,7 +609,7 @@ static void solver_analyze(solver* s, clause* c, vec* learnt)
     int      i, j, minl;
     int*     tagged;
 
-    vec_push(learnt,(void*)lit_Undef);
+    veci_push(learnt,lit_Undef);
 
     do{
         assert(c != 0);
@@ -606,12 +619,12 @@ static void solver_analyze(solver* s, clause* c, vec* learnt)
             assert(lit_var(q) >= 0 && lit_var(q) < s->size);
             if (tags[lit_var(q)] == l_Undef && levels[lit_var(q)] > 0){
                 tags[lit_var(q)] = l_True;
-                vec_push(&s->tagged,(void*)lit_var(q));
+                veci_push(&s->tagged,lit_var(q));
                 act_var_bump(s,lit_var(q));
                 if (levels[lit_var(q)] == solver_dlevel(s))
                     cnt++;
                 else
-                    vec_push(learnt,(void*)q);
+                    veci_push(learnt,q);
             }
         }else{
 
@@ -625,12 +638,12 @@ static void solver_analyze(solver* s, clause* c, vec* learnt)
                 assert(lit_var(q) >= 0 && lit_var(q) < s->size);
                 if (tags[lit_var(q)] == l_Undef && levels[lit_var(q)] > 0){
                     tags[lit_var(q)] = l_True;
-                    vec_push(&s->tagged,(void*)lit_var(q));
+                    veci_push(&s->tagged,lit_var(q));
                     act_var_bump(s,lit_var(q));
                     if (levels[lit_var(q)] == solver_dlevel(s))
                         cnt++;
                     else
-                        vec_push(learnt,(void*)q);
+                        veci_push(learnt,q);
                 }
             }
         }
@@ -643,31 +656,34 @@ static void solver_analyze(solver* s, clause* c, vec* learnt)
 
     }while (cnt > 0);
 
-    *(lit*)vec_begin(learnt) = neg(p);
+//    *veci_begin(learnt) = neg(p);
 
-    lits = (lit*)vec_begin(learnt);
+    lits = veci_begin(learnt);
+    lits[0] = neg(p);
+
     minl = 0;
-    for (i = 1; i < vec_size(learnt); i++){
+    for (i = 1; i < veci_size(learnt); i++){
         int lev = levels[lit_var(lits[i])];
         minl    |= 1 << (lev & 31);
     }
 
     // simplify (full)
-    for (i = j = 1; i < vec_size(learnt); i++){
+    for (i = j = 1; i < veci_size(learnt); i++){
         if (reasons[lit_var(lits[i])] == 0 || !solver_lit_removable(s,lits[i],minl))
             lits[j++] = lits[i];
     }
+//    j = veci_size(learnt);
 
     // update size of learnt + statistics
-    s->solver_stats.max_literals += vec_size(learnt);
-    vec_resize(learnt,j);
+    s->solver_stats.max_literals += veci_size(learnt);
+    veci_resize(learnt,j);
     s->solver_stats.tot_literals += j;
 
     // clear tags
-    tagged = (int*)vec_begin(&s->tagged);
-    for (i = 0; i < vec_size(&s->tagged); i++)
+    tagged = veci_begin(&s->tagged);
+    for (i = 0; i < veci_size(&s->tagged); i++)
         tags[tagged[i]] = l_Undef;
-    vec_resize(&s->tagged,0);
+    veci_resize(&s->tagged,0);
 
 #ifdef DEBUG
     for (i = 0; i < s->size; i++)
@@ -676,14 +692,14 @@ static void solver_analyze(solver* s, clause* c, vec* learnt)
 
 #ifdef VERBOSEDEBUG
     printf(L_IND"Learnt {", L_ind);
-    for (i = 0; i < vec_size(learnt); i++) printf(" "L_LIT, L_lit(lits[i]));
+    for (i = 0; i < veci_size(learnt); i++) printf(" "L_LIT, L_lit(lits[i]));
 #endif
-    if (vec_size(learnt) > 1){
+    if (veci_size(learnt) > 1){
         int max_i = 1;
         int max   = levels[lit_var(lits[1])];
         lit tmp;
 
-        for (i = 2; i < vec_size(learnt); i++)
+        for (i = 2; i < veci_size(learnt); i++)
             if (levels[lit_var(lits[i])] > max){
                 max   = levels[lit_var(lits[i])];
                 max_i = i;
@@ -695,7 +711,7 @@ static void solver_analyze(solver* s, clause* c, vec* learnt)
     }
 #ifdef VERBOSEDEBUG
     {
-        int lev = vec_size(learnt) > 1 ? levels[lit_var(lits[1])] : 0;
+        int lev = veci_size(learnt) > 1 ? levels[lit_var(lits[1])] : 0;
         printf(" } at level %d\n", lev);
     }
 #endif
@@ -824,15 +840,15 @@ static lbool solver_search(solver* s, int nof_conflicts, int nof_learnts)
     double  random_var_freq = 0.0;//0.02;
 
     int     conflictC       = 0;
-    vec     learnt_clause;
+    veci    learnt_clause;
 
     assert(s->root_level == solver_dlevel(s));
 
     s->solver_stats.starts++;
     s->var_decay = (float)(1 / var_decay   );
     s->cla_decay = (float)(1 / clause_decay);
-    vec_resize(&s->model,0);
-    vec_new(&learnt_clause);
+    veci_resize(&s->model,0);
+    veci_new(&learnt_clause);
 
     for (;;){
         clause* confl = solver_propagate(s);
@@ -845,13 +861,13 @@ static lbool solver_search(solver* s, int nof_conflicts, int nof_learnts)
 #endif
             s->solver_stats.conflicts++; conflictC++;
             if (solver_dlevel(s) == s->root_level){
-                vec_delete(&learnt_clause);
+                veci_delete(&learnt_clause);
                 return l_False;
             }
 
-            vec_resize(&learnt_clause,0);
+            veci_resize(&learnt_clause,0);
             solver_analyze(s, confl, &learnt_clause);
-            blevel = vec_size(&learnt_clause) > 1 ? levels[lit_var(((lit*)vec_begin(&learnt_clause))[1])] : s->root_level;
+            blevel = veci_size(&learnt_clause) > 1 ? levels[lit_var(veci_begin(&learnt_clause)[1])] : s->root_level;
             solver_canceluntil(s,blevel);
             solver_record(s,&learnt_clause);
             act_var_decay(s);
@@ -866,17 +882,17 @@ static lbool solver_search(solver* s, int nof_conflicts, int nof_learnts)
                 // Reached bound on number of conflicts:
                 s->progress_estimate = solver_progress(s);
                 solver_canceluntil(s,s->root_level);
-                vec_delete(&learnt_clause);
+                veci_delete(&learnt_clause);
                 return l_Undef; 
             }
 
-            if ( s->nConfLimit && s->solver_stats.conflicts    > s->nConfLimit ||
-                 s->nImpLimit  && s->solver_stats.propagations > s->nImpLimit )
+            if ( s->nConfLimit && s->solver_stats.conflicts > s->nConfLimit ||
+                 s->nInsLimit  && s->solver_stats.inspects  > s->nInsLimit )
             {
                 // Reached bound on number of conflicts:
                 s->progress_estimate = solver_progress(s);
                 solver_canceluntil(s,s->root_level);
-                vec_delete(&learnt_clause);
+                veci_delete(&learnt_clause);
                 return l_Undef; 
             }
 
@@ -899,9 +915,9 @@ static lbool solver_search(solver* s, int nof_conflicts, int nof_learnts)
                 // Model found:
                 lbool* values = s->assigns;
                 int i;
-                for (i = 0; i < s->size; i++) vec_push(&s->model,(void*)((int)values[i]));
+                for (i = 0; i < s->size; i++) veci_push(&s->model,(int)values[i]);
                 solver_canceluntil(s,s->root_level);
-                vec_delete(&learnt_clause);
+                veci_delete(&learnt_clause);
                 return l_True;
             }
 
@@ -922,11 +938,11 @@ solver* solver_new(void)
     // initialize vectors
     vec_new(&s->clauses);
     vec_new(&s->learnts);
-    vec_new(&s->order);
-    vec_new(&s->trail_lim);
-    vec_new(&s->tagged);
-    vec_new(&s->stack);
-    vec_new(&s->model);
+    veci_new(&s->order);
+    veci_new(&s->trail_lim);
+    veci_new(&s->tagged);
+    veci_new(&s->stack);
+    veci_new(&s->model);
 
     // initialize arrays
     s->wlists    = 0;
@@ -975,6 +991,8 @@ solver* solver_new(void)
     s->pMem = Asat_MmStepStart( 10 );
 #endif
     s->pJMan = NULL;
+    s->pPrefVars = NULL;
+    s->nPrefVars = 0;
     s->timeTotal = clock();
     s->timeSelect = 0;
     s->timeUpdate = 0;
@@ -998,11 +1016,11 @@ void solver_delete(solver* s)
     // delete vectors
     vec_delete(&s->clauses);
     vec_delete(&s->learnts);
-    vec_delete(&s->order);
-    vec_delete(&s->trail_lim);
-    vec_delete(&s->tagged);
-    vec_delete(&s->stack);
-    vec_delete(&s->model);
+    veci_delete(&s->order);
+    veci_delete(&s->trail_lim);
+    veci_delete(&s->tagged);
+    veci_delete(&s->stack);
+    veci_delete(&s->model);
     free(s->binary);
 
     // delete arrays
@@ -1022,7 +1040,8 @@ void solver_delete(solver* s)
         free(s->tags     );
     }
 
-    if ( s->pJMan ) Asat_JManStop( s );
+    if ( s->pJMan )     Asat_JManStop( s );
+    if ( s->pPrefVars ) free( s->pPrefVars );
     free(s);
 }
 
@@ -1117,9 +1136,10 @@ bool   solver_simplify(solver* s)
 }
 
 
-bool solver_solve(solver* s, lit* begin, lit* end, int nConfLimit, int nImpLimit )
+bool solver_solve(solver* s, lit* begin, lit* end, sint64 nConfLimit, sint64 nInsLimit )
 {
     double  nof_conflicts = 100;
+//    double  nof_conflicts = 1000000;
     double  nof_learnts   = solver_nclauses(s) / 3;
     lbool   status        = l_Undef;
     lbool*  values        = s->assigns;
@@ -1127,7 +1147,7 @@ bool solver_solve(solver* s, lit* begin, lit* end, int nConfLimit, int nImpLimit
 
     // set the external limits
     s->nConfLimit = nConfLimit;    // external limit on the number of conflicts
-    s->nImpLimit  = nImpLimit;     // external limit on the number of implications
+    s->nInsLimit  = nInsLimit;     // external limit on the number of implications
   
 
     for (i = begin; i < end; i++)
@@ -1160,6 +1180,7 @@ bool solver_solve(solver* s, lit* begin, lit* end, int nConfLimit, int nImpLimit
                 s->progress_estimate*100);
             fflush(stdout);
         }
+        s->nPrefDecNum = 0;
         status = solver_search(s,(int)nof_conflicts, (int)nof_learnts);
         nof_conflicts *= 1.5;
         nof_learnts   *= 1.1;
@@ -1170,9 +1191,9 @@ bool solver_solve(solver* s, lit* begin, lit* end, int nConfLimit, int nImpLimit
 //            printf( "Reached the limit on the number of conflicts (%d).\n", s->nConfLimit );
             break;
         }
-        if ( s->nImpLimit  && s->solver_stats.propagations > s->nImpLimit )
+        if ( s->nInsLimit  && s->solver_stats.inspects > s->nInsLimit )
         {
-//            printf( "Reached the limit on the number of implications (%d).\n", s->nImpLimit );
+//            printf( "Reached the limit on the number of implications (%d).\n", s->nInsLimit );
             break;
         }
     }

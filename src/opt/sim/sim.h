@@ -143,8 +143,8 @@ struct Sim_Pat_t_
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
-#define SIM_NUM_WORDS(n)      ((n)/32 + (((n)%32) > 0))
-#define SIM_LAST_BITS(n)      ((((n)%32) > 0)? (n)%32 : 32)
+#define SIM_NUM_WORDS(n)      (((n)>>5) + (((n)&31) > 0))
+#define SIM_LAST_BITS(n)      ((((n)&31) > 0)? (n)&31 : 32)
 
 #define SIM_MASK_FULL         (0xFFFFFFFF)
 #define SIM_MASK_BEG(n)       (SIM_MASK_FULL >> (32-n))

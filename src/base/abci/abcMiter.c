@@ -81,7 +81,7 @@ Abc_Ntk_t * Abc_NtkMiter( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb )
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkMiterInt( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb )
 {
-    char Buffer[100];
+    char Buffer[1000];
     Abc_Ntk_t * pNtkMiter;
 
     assert( Abc_NtkIsStrash(pNtk1) );
@@ -168,16 +168,12 @@ void Abc_NtkMiterPrepare( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Abc_Ntk_t * pNtk
         Abc_NtkForEachLatch( pNtk1, pObj, i )
         {
             pObjNew = Abc_NtkDupObj( pNtkMiter, pObj );
-            Vec_PtrPush( pNtkMiter->vCis, pObjNew );
-            Vec_PtrPush( pNtkMiter->vCos, pObjNew );
             // add name
             Abc_NtkLogicStoreNamePlus( pObjNew, Abc_ObjName(pObj), "_1" );
         }
         Abc_NtkForEachLatch( pNtk2, pObj, i )
         {
             pObjNew = Abc_NtkDupObj( pNtkMiter, pObj );
-            Vec_PtrPush( pNtkMiter->vCis, pObjNew );
-            Vec_PtrPush( pNtkMiter->vCos, pObjNew );
             // add name
             Abc_NtkLogicStoreNamePlus( pObjNew, Abc_ObjName(pObj), "_2" );
         }
@@ -295,7 +291,7 @@ void Abc_NtkMiterFinalize( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Abc_Ntk_t * pNt
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkMiterAnd( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
 {
-    char Buffer[100];
+    char Buffer[1000];
     Abc_Ntk_t * pNtkMiter;
     Abc_Obj_t * pOutput1, * pOutput2;
     Abc_Obj_t * pRoot1, * pRoot2, * pMiter;
@@ -352,7 +348,7 @@ Abc_Ntk_t * Abc_NtkMiterAnd( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkMiterCofactor( Abc_Ntk_t * pNtk, Vec_Int_t * vPiValues )
 {
-    char Buffer[100];
+    char Buffer[1000];
     Abc_Ntk_t * pNtkMiter;
     Abc_Obj_t * pRoot, * pOutput1;
     int Value, i;
@@ -418,7 +414,7 @@ Abc_Ntk_t * Abc_NtkMiterCofactor( Abc_Ntk_t * pNtk, Vec_Int_t * vPiValues )
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkMiterForCofactors( Abc_Ntk_t * pNtk, int Out, int In1, int In2 )
 {
-    char Buffer[100];
+    char Buffer[1000];
     Abc_Ntk_t * pNtkMiter;
     Abc_Obj_t * pRoot, * pOutput1, * pOutput2, * pMiter;
 
@@ -665,7 +661,7 @@ void Abc_NtkMiterReport( Abc_Ntk_t * pMiter )
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkFrames( Abc_Ntk_t * pNtk, int nFrames, int fInitial )
 {
-    char Buffer[100];
+    char Buffer[1000];
     ProgressBar * pProgress;
     Abc_Ntk_t * pNtkFrames;
     Abc_Obj_t * pLatch, * pLatchNew;
@@ -717,8 +713,6 @@ Abc_Ntk_t * Abc_NtkFrames( Abc_Ntk_t * pNtk, int nFrames, int fInitial )
         {
             pLatchNew = Abc_NtkLatch(pNtkFrames, i);
             Abc_ObjAddFanin( pLatchNew, pLatch->pCopy );
-            Vec_PtrPush( pNtkFrames->vCis, pLatchNew );
-            Vec_PtrPush( pNtkFrames->vCos, pLatchNew );
             Abc_NtkLogicStoreName( pLatchNew, Abc_ObjName(pLatch) );
         }
     }
@@ -727,6 +721,9 @@ Abc_Ntk_t * Abc_NtkFrames( Abc_Ntk_t * pNtk, int nFrames, int fInitial )
 
     // remove dangling nodes
     Abc_AigCleanup( pNtkFrames->pManFunc );
+
+    // reorder the latches
+    Abc_NtkOrderCisCos( pNtkFrames );
 
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtkFrames ) )
@@ -773,6 +770,12 @@ void Abc_NtkAddFrame( Abc_Ntk_t * pNtkFrames, Abc_Ntk_t * pNtk, int iFrame )
         Abc_NtkLogicStoreNamePlus( Abc_NtkDupObj(pNtkFrames, pNode), Abc_ObjName(pNode), Buffer );
         Abc_ObjAddFanin( pNode->pCopy, Abc_ObjChild0Copy(pNode) );
     }
+    // add the new asserts
+    Abc_NtkForEachAssert( pNtk, pNode, i )
+    {
+        Abc_NtkLogicStoreNamePlus( Abc_NtkDupObj(pNtkFrames, pNode), Abc_ObjName(pNode), Buffer );
+        Abc_ObjAddFanin( pNode->pCopy, Abc_ObjChild0Copy(pNode) );
+    }
     // transfer the implementation of the latch drivers to the latches
     Abc_NtkForEachLatch( pNtk, pLatch, i )
         pLatch->pNext = Abc_ObjChild0Copy(pLatch);
@@ -795,7 +798,7 @@ void Abc_NtkAddFrame( Abc_Ntk_t * pNtkFrames, Abc_Ntk_t * pNtk, int iFrame )
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkFrames2( Abc_Ntk_t * pNtk, int nFrames, int fInitial, AddFrameMapping addFrameMapping, void* arg )
 {
-    char Buffer[100];
+    char Buffer[1000];
     ProgressBar * pProgress;
     Abc_Ntk_t * pNtkFrames;
     Vec_Ptr_t * vNodes;
@@ -854,9 +857,6 @@ Abc_Ntk_t * Abc_NtkFrames2( Abc_Ntk_t * pNtk, int nFrames, int fInitial, AddFram
         {
             pLatchNew = Abc_NtkLatch(pNtkFrames, i);
             Abc_ObjAddFanin( pLatchNew, pLatch->pCopy );
-
-            Vec_PtrPush( pNtkFrames->vCis, pLatchNew );
-            Vec_PtrPush( pNtkFrames->vCos, pLatchNew );
             Abc_NtkLogicStoreName( pLatchNew, Abc_ObjName(pLatch) );
         }
     }
@@ -865,6 +865,9 @@ Abc_Ntk_t * Abc_NtkFrames2( Abc_Ntk_t * pNtk, int nFrames, int fInitial, AddFram
 
     // remove dangling nodes
     Abc_AigCleanup( pNtkFrames->pManFunc );
+
+    // reorder the latches
+    Abc_NtkOrderCisCos( pNtkFrames );
     
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtkFrames ) )

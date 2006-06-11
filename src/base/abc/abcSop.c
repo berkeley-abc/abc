@@ -360,6 +360,44 @@ char * Abc_SopCreateBuf( Extra_MmFlex_t * pMan )
     return Abc_SopRegister(pMan, "1 1\n");
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Creates the arbitrary cover from the truth table.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_SopCreateFromTruth( Extra_MmFlex_t * pMan, int nVars, unsigned * pTruth )
+{
+    char * pSop, * pCube;
+    int nMints, Counter, i, k;
+    // count the number of true minterms
+    Counter = 0;
+    nMints = (1 << nVars);
+    for ( i = 0; i < nMints; i++ )
+        Counter += ((pTruth[i>>5] & (1 << (i&31))) > 0);
+    // SOP is not well-defined if the truth table is constant 0
+    assert( Counter > 0 );
+    if ( Counter == 0 )
+        return NULL;
+    // start the cover
+    pSop = Abc_SopStart( pMan, Counter, nVars );
+    // create true minterms
+    Counter = 0;
+    for ( i = 0; i < nMints; i++ )
+        if ( (pTruth[i>>5] & (1 << (i&31))) > 0 )
+        {
+            pCube = pSop + Counter * (nVars + 3);
+            for ( k = 0; k < nVars; k++ )
+                pCube[k] = '0' + ((i & (1 << k)) > 0);
+            Counter++;
+        }
+    return pSop;
+}
 
 /**Function*************************************************************
 

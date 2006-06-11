@@ -110,17 +110,23 @@ Abc_Ntk_t * Abc_NtkAigToSeq( Abc_Ntk_t * pNtk )
         pNtkNew->nObjs++;
     }
     pNtkNew->nNodes = pNtk->nNodes;
-    pNtkNew->nPis   = pNtk->nPis;
-    pNtkNew->nPos   = pNtk->nPos;
 
     // create PI/PO and their names
     Abc_NtkForEachPi( pNtk, pObj, i )
     {
+        Vec_PtrPush( pNtkNew->vPis, pObj->pCopy );
         Vec_PtrPush( pNtkNew->vCis, pObj->pCopy );
         Abc_NtkLogicStoreName( pObj->pCopy, Abc_ObjName(pObj) );
     }
     Abc_NtkForEachPo( pNtk, pObj, i ) 
     {
+        Vec_PtrPush( pNtkNew->vPos, pObj->pCopy );
+        Vec_PtrPush( pNtkNew->vCos, pObj->pCopy );
+        Abc_NtkLogicStoreName( pObj->pCopy, Abc_ObjName(pObj) );
+    }
+    Abc_NtkForEachAssert( pNtk, pObj, i ) 
+    {
+        Vec_PtrPush( pNtkNew->vAsserts, pObj->pCopy );
         Vec_PtrPush( pNtkNew->vCos, pObj->pCopy );
         Abc_NtkLogicStoreName( pObj->pCopy, Abc_ObjName(pObj) );
     }
@@ -252,7 +258,7 @@ void Abc_NtkAigCutsetCopy( Abc_Ntk_t * pNtk )
 Abc_Ntk_t * Abc_NtkSeqToLogicSop( Abc_Ntk_t * pNtk )
 {
     Abc_Ntk_t * pNtkNew; 
-    Abc_Obj_t * pObj, * pObjNew, * pFaninNew;
+    Abc_Obj_t * pObj, * pFaninNew;
     Seq_Lat_t * pRing;
     int i;
 
@@ -297,11 +303,7 @@ Abc_Ntk_t * Abc_NtkSeqToLogicSop( Abc_Ntk_t * pNtk )
 
     // add the latches and their names
     Abc_NtkAddDummyLatchNames( pNtkNew );
-    Abc_NtkForEachLatch( pNtkNew, pObjNew, i )
-    {
-        Vec_PtrPush( pNtkNew->vCis, pObjNew );
-        Vec_PtrPush( pNtkNew->vCos, pObjNew );
-    }
+    Abc_NtkOrderCisCos( pNtkNew );
     // fix the problem with complemented and duplicated CO edges
     Abc_NtkLogicMakeSimpleCos( pNtkNew, 0 );
     if ( !Abc_NtkCheck( pNtkNew ) )
@@ -324,7 +326,7 @@ Abc_Ntk_t * Abc_NtkSeqToLogicSop( Abc_Ntk_t * pNtk )
 Abc_Ntk_t * Abc_NtkSeqToLogicSop_old( Abc_Ntk_t * pNtk )
 {
     Abc_Ntk_t * pNtkNew; 
-    Abc_Obj_t * pObj, * pObjNew, * pFaninNew;
+    Abc_Obj_t * pObj, * pFaninNew;
     int i;
 
     assert( Abc_NtkIsSeq(pNtk) );
@@ -371,11 +373,7 @@ Abc_Ntk_t * Abc_NtkSeqToLogicSop_old( Abc_Ntk_t * pNtk )
     }
     // add the latches and their names
     Abc_NtkAddDummyLatchNames( pNtkNew );
-    Abc_NtkForEachLatch( pNtkNew, pObjNew, i )
-    {
-        Vec_PtrPush( pNtkNew->vCis, pObjNew );
-        Vec_PtrPush( pNtkNew->vCos, pObjNew );
-    }
+    Abc_NtkOrderCisCos( pNtkNew );
     // fix the problem with complemented and duplicated CO edges
     Abc_NtkLogicMakeSimpleCos( pNtkNew, 0 );
     if ( !Abc_NtkCheck( pNtkNew ) )

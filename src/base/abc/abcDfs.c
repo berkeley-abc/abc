@@ -579,7 +579,7 @@ bool Abc_NtkIsAcyclic_rec( Abc_Obj_t * pNode )
     Abc_Obj_t * pFanin;
     int fAcyclic, i;
     assert( !Abc_ObjIsNet(pNode) );
-    if ( Abc_ObjIsCi(pNode) )
+    if ( Abc_ObjIsCi(pNode) || Abc_ObjIsBox(pNode) )
         return 1;
     assert( Abc_ObjIsNode( pNode ) || Abc_ObjIsBox( pNode ) );
     // make sure the node is not visited
@@ -607,7 +607,7 @@ bool Abc_NtkIsAcyclic_rec( Abc_Obj_t * pNode )
         if ( fAcyclic = Abc_NtkIsAcyclic_rec(pFanin) )
             continue;
         // return as soon as the loop is detected
-        fprintf( stdout, " <-- %s", Abc_ObjName(pNode) );
+        fprintf( stdout, " <-- %s", Abc_ObjName(Abc_ObjFanout0(pFanin)) );
         return 0;
     }
     // mark this node as a visited node

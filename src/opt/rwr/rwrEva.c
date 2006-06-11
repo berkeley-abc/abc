@@ -100,9 +100,16 @@ clk = clock();
         p->nCutsGood++;
 
 clk2 = clock();
+/*
+        printf( "Considering: (" );
+        Vec_PtrForEachEntry( p->vFaninsCur, pFanin, i )
+            printf( "%d ", Abc_ObjFanoutNum(Abc_ObjRegular(pFanin)) );
+        printf( ")\n" );
+*/
         // mark the fanin boundary 
         Vec_PtrForEachEntry( p->vFaninsCur, pFanin, i )
             Abc_ObjRegular(pFanin)->vFanouts.nSize++;
+
         // label MFFC with current ID
         Abc_NtkIncrementTravId( pNode->pNtk );
         nNodesSaved = Abc_NodeMffcLabel( pNode );
@@ -135,6 +142,8 @@ p->timeRes += clock() - clk;
 
     if ( GainBest == -1 )
         return -1;
+
+//    printf( "%d", nNodesSaveCur - GainBest );
 
     // copy the leaves
     Vec_PtrForEachEntry( p->vFanins, pFanin, i )

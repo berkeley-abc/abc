@@ -44,7 +44,7 @@ static void  Abc_NtkVerifyReportErrorSeq( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, 
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkCecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nImpLimit )
+void Abc_NtkCecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nInsLimit )
 {
     Abc_Ntk_t * pMiter;
     Abc_Ntk_t * pCnf;
@@ -85,7 +85,7 @@ void Abc_NtkCecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nI
     }
 
     // solve the CNF using the SAT solver
-    RetValue = Abc_NtkMiterSat( pCnf, nConfLimit, nImpLimit, 0, 0 );
+    RetValue = Abc_NtkMiterSat( pCnf, (sint64)nConfLimit, (sint64)nInsLimit, 0, 0, NULL, NULL );
     if ( RetValue == -1 )
         printf( "Networks are undecided (SAT solver timed out).\n" );
     else if ( RetValue == 0 )
@@ -178,7 +178,14 @@ void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fV
     if ( RetValue == -1 )
         printf( "Networks are undecided (resource limits is reached).\n" );
     else if ( RetValue == 0 )
-        printf( "Networks are NOT EQUIVALENT.\n" );
+    {
+        int * pSimInfo = Abc_NtkVerifySimulatePattern( pMiter, pMiter->pModel );
+        if ( pSimInfo[0] != 1 )
+            printf( "ERROR in Abc_NtkMiterProve(): Generated counter-example is invalid.\n" );
+        else
+            printf( "Networks are NOT EQUIVALENT.\n" );
+        free( pSimInfo );
+    }
     else
         printf( "Networks are equivalent.\n" );
     if ( pMiter->pModel )
@@ -197,7 +204,7 @@ void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fV
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkSecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nImpLimit, int nFrames )
+void Abc_NtkSecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nInsLimit, int nFrames )
 {
     Abc_Ntk_t * pMiter;
     Abc_Ntk_t * pFrames;
@@ -257,7 +264,7 @@ void Abc_NtkSecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nI
     }
 
     // solve the CNF using the SAT solver
-    RetValue = Abc_NtkMiterSat( pCnf, nConfLimit, nImpLimit, 0, 0 );
+    RetValue = Abc_NtkMiterSat( pCnf, (sint64)nConfLimit, (sint64)nInsLimit, 0, 0, NULL, NULL );
     if ( RetValue == -1 )
         printf( "Networks are undecided (SAT solver timed out).\n" );
     else if ( RetValue == 0 )
@@ -707,6 +714,52 @@ void Abc_NtkVerifyReportErrorSeq( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int * pM
     Sim_UtilInfoFree( vInfo2 );
     if ( fRemove1 ) Abc_NtkDelete( pNtk1 );
     if ( fRemove2 ) Abc_NtkDelete( pNtk2 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Simulates buggy miter emailed by Mike.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkSimulteBuggyMiter( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int i;
+    int * pModel1, * pModel2, * pResult1, * pResult2;
+    char * vPiValues1 = "01001011100000000011010110101000000";
+    char * vPiValues2 = "11001101011101011111110100100010001";
+
+    assert( strlen(vPiValues1) == (unsigned)Abc_NtkPiNum(pNtk) );
+    assert( 1 == Abc_NtkPoNum(pNtk) );
+
+    pModel1 = ALLOC( int, Abc_NtkCiNum(pNtk) );
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        pModel1[i] = vPiValues1[i] - '0';
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+        pModel1[Abc_NtkPiNum(pNtk)+i] = ((int)pObj->pData) - 1;
+
+    pResult1 = Abc_NtkVerifySimulatePattern( pNtk, pModel1 );
+    printf( "Value = %d\n", pResult1[0] );
+
+    pModel2 = ALLOC( int, Abc_NtkCiNum(pNtk) );
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        pModel2[i] = vPiValues2[i] - '0';
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+        pModel2[Abc_NtkPiNum(pNtk)+i] = pResult1[Abc_NtkPoNum(pNtk)+i];
+
+    pResult2 = Abc_NtkVerifySimulatePattern( pNtk, pModel2 );
+    printf( "Value = %d\n", pResult2[0] );
+
+    free( pModel1 );
+    free( pModel2 );
+    free( pResult1 );
+    free( pResult2 );
 }
 
 

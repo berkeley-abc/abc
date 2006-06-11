@@ -97,6 +97,7 @@ extern int *            Msat_SolverReadAssignsArray( Msat_Solver_t * p );
 extern int *            Msat_SolverReadModelArray( Msat_Solver_t * p );
 extern unsigned         Msat_SolverReadTruth( Msat_Solver_t * p );
 extern int              Msat_SolverReadBackTracks( Msat_Solver_t * p );
+extern int              Msat_SolverReadInspects( Msat_Solver_t * p );
 extern void             Msat_SolverSetVerbosity( Msat_Solver_t * p, int fVerbose );
 extern void             Msat_SolverSetProofWriting( Msat_Solver_t * p, int fProof );
 extern void             Msat_SolverSetVarTypeA( Msat_Solver_t * p, int Var );

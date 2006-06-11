@@ -134,6 +134,9 @@ pManRst->timeCut += clock() - clk;
         // skip the constant node
         if ( Abc_NodeIsConst(pNode) )
             continue;
+        // skip persistant nodes
+        if ( Abc_NodeIsPersistant(pNode) )
+            continue;
         // skip the node if it is inside the tree
 //        if ( Abc_ObjFanoutNum(pNode) < 2 )
 //            continue;

@@ -66,6 +66,10 @@ int               Fraig_ManReadPatternNumDynamic( Fraig_Man_t * p )           { 
 int               Fraig_ManReadPatternNumDynamicFiltered( Fraig_Man_t * p )   { return p->iPatsPerm;        }
 // returns the number of times FRAIG package timed out
 int               Fraig_ManReadSatFails( Fraig_Man_t * p )                    { return p->nSatFailsReal;    }      
+// returns the number of conflicts in the SAT solver
+int               Fraig_ManReadConflicts( Fraig_Man_t * p )                   { return p->pSat? Msat_SolverReadBackTracks(p->pSat) : 0; }      
+// returns the number of inspections in the SAT solver
+int               Fraig_ManReadInspects( Fraig_Man_t * p )                    { return p->pSat? Msat_SolverReadInspects(p->pSat) : 0;   }            
 
 /**Function*************************************************************
 

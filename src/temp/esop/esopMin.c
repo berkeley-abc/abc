@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [xyzMinEsop.c]
+  FileName    [esopMin.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,17 +14,17 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: xyzMinEsop.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: esopMin.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "xyzInt.h"
+#include "esop.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static void Min_EsopRewrite( Min_Man_t * p );
+static void Esop_EsopRewrite( Esop_Man_t * p );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -32,7 +32,7 @@ static void Min_EsopRewrite( Min_Man_t * p );
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [ESOP minimization procedure.]
 
   Description []
                
@@ -41,7 +41,7 @@ static void Min_EsopRewrite( Min_Man_t * p );
   SeeAlso     []
 
 ***********************************************************************/
-void Min_EsopMinimize( Min_Man_t * p )
+void Esop_EsopMinimize( Esop_Man_t * p )
 {
     int nCubesInit, nCubesOld, nIter;
     if ( p->nCubes < 3 )
@@ -50,7 +50,7 @@ void Min_EsopMinimize( Min_Man_t * p )
     nCubesInit = p->nCubes;
     do {
         nCubesOld = p->nCubes;
-        Min_EsopRewrite( p );
+        Esop_EsopRewrite( p );
         nIter++;
     }
     while ( 100.0*(nCubesOld - p->nCubes)/nCubesOld > 3.0 );
@@ -73,10 +73,10 @@ void Min_EsopMinimize( Min_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Min_EsopRewrite( Min_Man_t * p )
+void Esop_EsopRewrite( Esop_Man_t * p )
 {
-    Min_Cube_t * pCube, ** ppPrev;
-    Min_Cube_t * pThis, ** ppPrevT;
+    Esop_Cube_t * pCube, ** ppPrev;
+    Esop_Cube_t * pThis, ** ppPrevT;
     int v00, v01, v10, v11, Var0, Var1, Index, nCubesOld;
     int nPairs = 0;
 
@@ -92,7 +92,7 @@ void Min_EsopRewrite( Min_Man_t * p )
         Index = p->pBubble->nLits;
 
         // find the bubble
-        Min_CoverForEachCubePrev( p->ppStore[Index], pCube, ppPrev )
+        Esop_CoverForEachCubePrev( p->ppStore[Index], pCube, ppPrev )
             if ( pCube == p->pBubble )
                 break;
         assert( pCube == p->pBubble );
@@ -113,16 +113,16 @@ void Min_EsopRewrite( Min_Man_t * p )
             break;
 
         // find the first dist2 cube
-        Min_CoverForEachCubePrev( pCube->pNext, pThis, ppPrevT )
-            if ( Min_CubesDistTwo( pCube, pThis, &Var0, &Var1 ) )
+        Esop_CoverForEachCubePrev( pCube->pNext, pThis, ppPrevT )
+            if ( Esop_CubesDistTwo( pCube, pThis, &Var0, &Var1 ) )
                 break;
         if ( pThis == NULL && Index < p->nVars )
-        Min_CoverForEachCubePrev( p->ppStore[Index+1], pThis, ppPrevT )
-            if ( Min_CubesDistTwo( pCube, pThis, &Var0, &Var1 ) )
+        Esop_CoverForEachCubePrev( p->ppStore[Index+1], pThis, ppPrevT )
+            if ( Esop_CubesDistTwo( pCube, pThis, &Var0, &Var1 ) )
                 break;
         if ( pThis == NULL && Index < p->nVars - 1 )
-        Min_CoverForEachCubePrev( p->ppStore[Index+2], pThis, ppPrevT )
-            if ( Min_CubesDistTwo( pCube, pThis, &Var0, &Var1 ) )
+        Esop_CoverForEachCubePrev( p->ppStore[Index+2], pThis, ppPrevT )
+            if ( Esop_CubesDistTwo( pCube, pThis, &Var0, &Var1 ) )
                 break;
         // continue if there is no dist2 cube
         if ( pThis == NULL )
@@ -148,26 +148,26 @@ void Min_EsopRewrite( Min_Man_t * p )
         // A{v00}     B{v01+v11}  +  A{v00+v10} B{v11}
 
         // save the dist2 parameters
-        v00 = Min_CubeGetVar( pCube, Var0 );
-        v01 = Min_CubeGetVar( pCube, Var1 );
-        v10 = Min_CubeGetVar( pThis, Var0 );
-        v11 = Min_CubeGetVar( pThis, Var1 );
+        v00 = Esop_CubeGetVar( pCube, Var0 );
+        v01 = Esop_CubeGetVar( pCube, Var1 );
+        v10 = Esop_CubeGetVar( pThis, Var0 );
+        v11 = Esop_CubeGetVar( pThis, Var1 );
 //printf( "\n" );
-//Min_CubeWrite( stdout, pCube );
-//Min_CubeWrite( stdout, pThis );
+//Esop_CubeWrite( stdout, pCube );
+//Esop_CubeWrite( stdout, pThis );
 
         // derive the first pair of resulting cubes
-        Min_CubeXorVar( pCube, Var0, v10 );
+        Esop_CubeXorVar( pCube, Var0, v10 );
         pCube->nLits -= (v00 != 3);
         pCube->nLits += ((v00 ^ v10) != 3);
-        Min_CubeXorVar( pThis, Var1, v01 );
+        Esop_CubeXorVar( pThis, Var1, v01 );
         pThis->nLits -= (v11 != 3);
         pThis->nLits += ((v01 ^ v11) != 3);
 
         // add the cubes
         nCubesOld = p->nCubes;
-        Min_EsopAddCube( p, pCube );
-        Min_EsopAddCube( p, pThis );
+        Esop_EsopAddCube( p, pCube );
+        Esop_EsopAddCube( p, pThis );
         // check if the cubes were absorbed
         if ( p->nCubes < nCubesOld + 2 )
             continue;
@@ -180,23 +180,23 @@ void Min_EsopRewrite( Min_Man_t * p )
         p->nCubes -= 2;
 
         // derive the second pair of resulting cubes
-        Min_CubeXorVar( pCube, Var0, v10 );
+        Esop_CubeXorVar( pCube, Var0, v10 );
         pCube->nLits -= ((v00 ^ v10) != 3);
         pCube->nLits += (v00 != 3);
-        Min_CubeXorVar( pCube, Var1, v11 );
+        Esop_CubeXorVar( pCube, Var1, v11 );
         pCube->nLits -= (v01 != 3);
         pCube->nLits += ((v01 ^ v11) != 3);
 
-        Min_CubeXorVar( pThis, Var0, v00 );
+        Esop_CubeXorVar( pThis, Var0, v00 );
         pThis->nLits -= (v10 != 3);
         pThis->nLits += ((v00 ^ v10) != 3);
-        Min_CubeXorVar( pThis, Var1, v01 );
+        Esop_CubeXorVar( pThis, Var1, v01 );
         pThis->nLits -= ((v01 ^ v11) != 3);
         pThis->nLits += (v11 != 3);
 
         // add them anyhow
-        Min_EsopAddCube( p, pCube );
-        Min_EsopAddCube( p, pThis );
+        Esop_EsopAddCube( p, pCube );
+        Esop_EsopAddCube( p, pThis );
     }
 //    printf( "Pairs = %d  ", nPairs );
 }
@@ -214,55 +214,55 @@ void Min_EsopRewrite( Min_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Min_EsopAddCubeInt( Min_Man_t * p, Min_Cube_t * pCube )
+int Esop_EsopAddCubeInt( Esop_Man_t * p, Esop_Cube_t * pCube )
 {
-    Min_Cube_t * pThis, ** ppPrev;
+    Esop_Cube_t * pThis, ** ppPrev;
     // try to find the identical cube
-    Min_CoverForEachCubePrev( p->ppStore[pCube->nLits], pThis, ppPrev )
+    Esop_CoverForEachCubePrev( p->ppStore[pCube->nLits], pThis, ppPrev )
     {
-        if ( Min_CubesAreEqual( pCube, pThis ) )
+        if ( Esop_CubesAreEqual( pCube, pThis ) )
         {
             *ppPrev = pThis->pNext;
-            Min_CubeRecycle( p, pCube );
-            Min_CubeRecycle( p, pThis );
+            Esop_CubeRecycle( p, pCube );
+            Esop_CubeRecycle( p, pThis );
             p->nCubes--;
             return 0;
         }
     }
     // find a distance-1 cube if it exists
     if ( pCube->nLits < pCube->nVars )
-    Min_CoverForEachCubePrev( p->ppStore[pCube->nLits+1], pThis, ppPrev )
+    Esop_CoverForEachCubePrev( p->ppStore[pCube->nLits+1], pThis, ppPrev )
     {
-        if ( Min_CubesDistOne( pCube, pThis, p->pTemp ) )
+        if ( Esop_CubesDistOne( pCube, pThis, p->pTemp ) )
         {
             *ppPrev = pThis->pNext;
-            Min_CubesTransform( pCube, pThis, p->pTemp );
+            Esop_CubesTransform( pCube, pThis, p->pTemp );
             pCube->nLits++;
-            Min_CubeRecycle( p, pThis );
+            Esop_CubeRecycle( p, pThis );
             p->nCubes--;
             return 1;
         }
     }
-    Min_CoverForEachCubePrev( p->ppStore[pCube->nLits], pThis, ppPrev )
+    Esop_CoverForEachCubePrev( p->ppStore[pCube->nLits], pThis, ppPrev )
     {
-        if ( Min_CubesDistOne( pCube, pThis, p->pTemp ) )
+        if ( Esop_CubesDistOne( pCube, pThis, p->pTemp ) )
         {
             *ppPrev = pThis->pNext;
-            Min_CubesTransform( pCube, pThis, p->pTemp );
+            Esop_CubesTransform( pCube, pThis, p->pTemp );
             pCube->nLits--;
-            Min_CubeRecycle( p, pThis );
+            Esop_CubeRecycle( p, pThis );
             p->nCubes--;
             return 1;
         }
     }
     if ( pCube->nLits > 0 )
-    Min_CoverForEachCubePrev( p->ppStore[pCube->nLits-1], pThis, ppPrev )
+    Esop_CoverForEachCubePrev( p->ppStore[pCube->nLits-1], pThis, ppPrev )
     {
-        if ( Min_CubesDistOne( pCube, pThis, p->pTemp ) )
+        if ( Esop_CubesDistOne( pCube, pThis, p->pTemp ) )
         {
             *ppPrev = pThis->pNext;
-            Min_CubesTransform( pCube, pThis, p->pTemp );
-            Min_CubeRecycle( p, pThis );
+            Esop_CubesTransform( pCube, pThis, p->pTemp );
+            Esop_CubeRecycle( p, pThis );
             p->nCubes--;
             return 1;
         }
@@ -285,11 +285,11 @@ int Min_EsopAddCubeInt( Min_Man_t * p, Min_Cube_t * pCube )
   SeeAlso     []
 
 ***********************************************************************/
-void Min_EsopAddCube( Min_Man_t * p, Min_Cube_t * pCube )
+void Esop_EsopAddCube( Esop_Man_t * p, Esop_Cube_t * pCube )
 {
     assert( pCube != p->pBubble );
-    assert( (int)pCube->nLits == Min_CubeCountLits(pCube) );
-    while ( Min_EsopAddCubeInt( p, pCube ) );
+    assert( (int)pCube->nLits == Esop_CubeCountLits(pCube) );
+    while ( Esop_EsopAddCubeInt( p, pCube ) );
 }
 
 ////////////////////////////////////////////////////////////////////////

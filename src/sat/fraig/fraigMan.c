@@ -42,10 +42,12 @@ int timeAssign;
 ***********************************************************************/
 void Prove_ParamsSetDefault( Prove_Params_t * pParams )
 {
+    // clean the parameter structure
+    memset( pParams, 0, sizeof(Prove_Params_t) );
     // general parameters
     pParams->fUseFraiging         = 1;       // enables fraiging
     pParams->fUseRewriting        = 1;       // enables rewriting
-    pParams->fUseBdds             = 1;       // enables BDD construction when other methods fail
+    pParams->fUseBdds             = 0;       // enables BDD construction when other methods fail
     pParams->fVerbose             = 0;       // prints verbose stats
     // iterations
     pParams->nItersMax            = 6;       // the number of iterations
@@ -63,6 +65,9 @@ void Prove_ParamsSetDefault( Prove_Params_t * pParams )
     pParams->fBddReorder          = 1;       // enables dynamic BDD variable reordering
     // last-gasp mitering
     pParams->nMiteringLimitLast   = 1000000; // final mitering limit
+    // global SAT solver limits
+    pParams->nTotalBacktrackLimit = 0;       // global limit on the number of backtracks
+    pParams->nTotalInspectLimit   = 0;       // global limit on the number of clause inspects
 }
 
 /**Function*************************************************************
@@ -92,6 +97,8 @@ void Fraig_ParamsSetDefault( Fraig_Params_t * pParams )
     pParams->fVerbose   =  0;                     // the verbosiness flag
     pParams->fVerboseP  =  0;                     // the verbose flag for reporting the proof
     pParams->fInternal  =  0;                     // the flag indicates the internal run 
+    pParams->nConfLimit =  0;                     // the limit on the number of conflicts
+    pParams->nInspLimit =  0;                     // the limit on the number of inspections
 }
 
 /**Function*************************************************************
@@ -121,6 +128,8 @@ void Fraig_ParamsSetDefaultFull( Fraig_Params_t * pParams )
     pParams->fVerbose   =  0;                     // the verbosiness flag
     pParams->fVerboseP  =  0;                     // the verbose flag for reporting the proof
     pParams->fInternal  =  0;                     // the flag indicates the internal run 
+    pParams->nConfLimit =  0;                     // the limit on the number of conflicts
+    pParams->nInspLimit =  0;                     // the limit on the number of inspections
 }
 
 /**Function*************************************************************
@@ -176,6 +185,7 @@ Fraig_Man_t * Fraig_ManCreate( Fraig_Params_t * pParams )
     p->fTryProve  = pParams->fTryProve;   // disable accumulation of structural choices (keeps only the first choice)
     p->fVerbose   = pParams->fVerbose;    // disable verbose output
     p->fVerboseP  = pParams->fVerboseP;   // disable verbose output
+    p->nInspLimit = pParams->nInspLimit;  // the limit on the number of inspections
 
     // start memory managers
     p->mmNodes    = Fraig_MemFixedStart( sizeof(Fraig_Node_t) );

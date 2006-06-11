@@ -68,6 +68,7 @@ extern Abc_Ntk_t *        Io_ReadPla( char * pFileName, int fCheck );
 /*=== abcUtil.c ==========================================================*/
 extern Abc_Obj_t *        Io_ReadCreatePi( Abc_Ntk_t * pNtk, char * pName );
 extern Abc_Obj_t *        Io_ReadCreatePo( Abc_Ntk_t * pNtk, char * pName );
+extern Abc_Obj_t *        Io_ReadCreateAssert( Abc_Ntk_t * pNtk, char * pName );
 extern Abc_Obj_t *        Io_ReadCreateLatch( Abc_Ntk_t * pNtk, char * pNetLI, char * pNetLO );
 extern Abc_Obj_t *        Io_ReadCreateNode( Abc_Ntk_t * pNtk, char * pNameOut, char * pNamesIn[], int nInputs );
 extern Abc_Obj_t *        Io_ReadCreateConst( Abc_Ntk_t * pNtk, char * pName, bool fConst1 );

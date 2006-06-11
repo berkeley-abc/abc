@@ -100,8 +100,6 @@ Abc_Ntk_t * Io_ReadBaf( char * pFileName, int fCheck )
         pObj = Abc_NtkCreateLatch(pNtkNew);
         Abc_NtkLogicStoreName( pObj, pCur );  while ( *pCur++ ); 
         Vec_PtrPush( vNodes, pObj );
-        Vec_PtrPush( pNtkNew->vCis, pObj );
-        Vec_PtrPush( pNtkNew->vCos, pObj );
     }
 
     // get the pointer to the beginning of the node array

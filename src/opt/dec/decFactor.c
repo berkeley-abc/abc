@@ -258,16 +258,15 @@ Dec_Edge_t Dec_FactorTrivial( Dec_Graph_t * pFForm, Mvc_Cover_t * pCover )
 ***********************************************************************/
 Dec_Edge_t Dec_FactorTrivialCube( Dec_Graph_t * pFForm, Mvc_Cover_t * pCover, Mvc_Cube_t * pCube, Vec_Int_t * vEdgeLits )
 {
-//    Dec_Edge_t eNode;
+    Dec_Edge_t eNode;
     int iBit, Value;
     // create the factored form for each literal
     Vec_IntClear( vEdgeLits );
     Mvc_CubeForEachBit( pCover, pCube, iBit, Value )
         if ( Value )
         {
-//            eNode = Dec_EdgeCreate( iBit/2, iBit%2 ); // CST
-//            Vec_IntPush( vEdgeLits, Dec_EdgeToInt_(eNode) );
-            Vec_IntPush( vEdgeLits, iBit );
+            eNode = Dec_EdgeCreate( iBit/2, iBit%2 ); // CST
+            Vec_IntPush( vEdgeLits, Dec_EdgeToInt_(eNode) );
         }
     // balance the factored forms
     return Dec_FactorTrivialTree_rec( pFForm, (Dec_Edge_t *)vEdgeLits->pArray, vEdgeLits->nSize, 0 );

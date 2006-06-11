@@ -160,6 +160,9 @@ int Abc_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutMax, int nStepsMax, bool fUpd
         // skip the constant node
         if ( Abc_NodeIsConst(pNode) )
             continue;
+        // skip persistant nodes
+        if ( Abc_NodeIsPersistant(pNode) )
+            continue;
         // skip the nodes with many fanouts
         if ( Abc_ObjFanoutNum(pNode) > 1000 )
             continue;
@@ -278,7 +281,7 @@ Abc_ManRes_t * Abc_ManResubStart( int nLeavesMax, int nDivsMax )
         pData = p->vSims->pArray[k];
         for ( i = 0; i < p->nBits; i++ )
             if ( i & (1 << k) )
-                pData[i/32] |= (1 << (i%32));
+                pData[i>>5] |= (1 << (i&31));
     }
     // create the remaining divisors
     p->vDivs1UP  = Vec_PtrAlloc( p->nDivsMax );

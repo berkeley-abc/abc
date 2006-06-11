@@ -105,6 +105,9 @@ int Abc_NtkRR( Abc_Ntk_t * pNtk, int nFaninLevels, int nFanoutLevels, int fUseFa
     p->nFanoutLevels = nFanoutLevels;
     p->nNodesOld     = Abc_NtkNodeNum(pNtk);
     p->nLevelsOld    = Abc_AigGetLevelNum(pNtk);
+    // remember latch values
+    Abc_NtkForEachLatch( pNtk, pNode, i )
+        pNode->pNext = pNode->pData;
     // go through the nodes
     Abc_NtkCleanCopy(pNtk);
     nNodes = Abc_NtkObjNumMax(pNtk);
@@ -118,6 +121,9 @@ int Abc_NtkRR( Abc_Ntk_t * pNtk, int nFaninLevels, int nFanoutLevels, int fUseFa
             break;
         // skip the constant node
         if ( Abc_NodeIsConst(pNode) )
+            continue;
+        // skip persistant nodes
+        if ( Abc_NodeIsPersistant(pNode) )
             continue;
         // skip the nodes with many fanouts
         if ( Abc_ObjFanoutNum(pNode) > 1000 )
@@ -209,6 +215,9 @@ int Abc_NtkRR( Abc_Ntk_t * pNtk, int nFaninLevels, int nFanoutLevels, int fUseFa
     if ( fVerbose )
         Abc_RRManPrintStats( p );
     Abc_RRManStop( p );
+    // restore latch values
+    Abc_NtkForEachLatch( pNtk, pNode, i )
+        pNode->pData = pNode->pNext, pNode->pNext = NULL;
     // put the nodes into the DFS order and reassign their IDs
     Abc_NtkReassignIds( pNtk );
     Abc_NtkGetLevelNum( pNtk );
@@ -692,6 +701,7 @@ Abc_Ntk_t * Abc_NtkWindow( Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vC
     // add the PI/PO names
     Abc_NtkAddDummyPiNames( pNtkNew );
     Abc_NtkAddDummyPoNames( pNtkNew );
+    Abc_NtkAddDummyAssertNames( pNtkNew );
     // check
     if ( fCheck && !Abc_NtkCheck( pNtkNew ) )
     {

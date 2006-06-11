@@ -73,8 +73,8 @@ extern "C" {
 #define ALLOC(type, num)       ((type *) malloc(sizeof(type) * (num)))
 #define FREE(obj)              ((obj) ? (free((char *) (obj)), (obj) = 0) : 0)
 #define REALLOC(type, obj, num) \
-        (obj) ? ((type *) realloc((char *) obj, sizeof(type) * (num))) : \
-        ((type *) malloc(sizeof(type) * (num)))
+        ((obj) ? ((type *) realloc((char *)(obj), sizeof(type) * (num))) : \
+        ((type *) malloc(sizeof(type) * (num))))
 
 extern long        Extra_CpuTime();
 extern int         Extra_GetSoftDataLimit();

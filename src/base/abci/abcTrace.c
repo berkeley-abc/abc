@@ -148,7 +148,7 @@ void Abc_HManStart()
         pData = p->vSims->pArray[k];
         for ( i = 0; i < p->nBits; i++ )
             if ( i & (1 << k) )
-                pData[i/32] |= (1 << (i%32));
+                pData[i>>5] |= (1 << (i&31));
     }
     // allocate storage for the nodes
     p->pMmObj = Extra_MmFixedStart( sizeof(Abc_HObj_t) );

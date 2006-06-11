@@ -135,6 +135,31 @@ char * Nm_ManStoreIdName( Nm_Man_t * p, int ObjId, char * pName, char * pSuffix 
     return pEntry->Name;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Creates a new entry in the name manager.]
+
+  Description [Returns 1 if the entry with the given object ID
+  already exists in the name manager.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Nm_ManDeleteIdName( Nm_Man_t * p, int ObjId )
+{
+    Nm_Entry_t * pEntry;
+    pEntry = Nm_ManTableLookupId(p, ObjId);
+    if ( pEntry == NULL )
+    {
+        printf( "Nm_ManDeleteIdName(): This entry is not in the table.\n" );
+        return;
+    }
+    // remove entry from the table
+    Nm_ManTableDelete( p, pEntry );
+}
+
 
 /**Function*************************************************************
 
@@ -253,6 +278,28 @@ void Nm_ManPrintTables( Nm_Man_t * p )
         }
     }
     printf( "\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Return the IDs of objects with names.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Nm_ManReturnNameIds( Nm_Man_t * p )
+{
+    Vec_Int_t * vNameIds;
+    int i;
+    vNameIds = Vec_IntAlloc( p->nEntries );
+    for ( i = 0; i < p->nBins; i++ )
+        if ( p->pBinsI2N[i] )
+            Vec_IntPush( vNameIds, p->pBinsI2N[i]->ObjId );
+    return vNameIds;
 }
 
 ////////////////////////////////////////////////////////////////////////

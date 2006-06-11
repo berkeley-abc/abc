@@ -544,8 +544,6 @@ Abc_Ntk_t * Abc_NtkVanEijkFrames( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCorresp, int nF
     {
         pLatchNew = Abc_NtkLatch(pNtkFrames, i);
         Abc_ObjAddFanin( pLatchNew, pLatch->pCopy );
-        Vec_PtrPush( pNtkFrames->vCis, pLatchNew );
-        Vec_PtrPush( pNtkFrames->vCos, pLatchNew );
         Abc_NtkLogicStoreName( pLatchNew, Abc_ObjName(pLatch) );
         pLatch->pNext = NULL;
     }

@@ -53,19 +53,14 @@ Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func )
     pNtk->Id          = !Abc_HManIsRunning()? 0 : Abc_HManGetNewNtkId();
     // start the object storage
     pNtk->vObjs       = Vec_PtrAlloc( 100 );
-    pNtk->vLats       = Vec_PtrAlloc( 100 );
-    pNtk->vCutSet     = Vec_PtrAlloc( 100 );
+    pNtk->vLatches    = Vec_PtrAlloc( 100 );
+    pNtk->vAsserts    = Vec_PtrAlloc( 100 );
+    pNtk->vPis        = Vec_PtrAlloc( 100 );
+    pNtk->vPos        = Vec_PtrAlloc( 100 );
     pNtk->vCis        = Vec_PtrAlloc( 100 );
     pNtk->vCos        = Vec_PtrAlloc( 100 );
-    pNtk->vAsserts    = Vec_PtrAlloc( 100 );
-    pNtk->vPtrTemp    = Vec_PtrAlloc( 100 );
-    pNtk->vIntTemp    = Vec_IntAlloc( 100 );
-    pNtk->vStrTemp    = Vec_StrAlloc( 100 );
-    // start the hash table
-//    pNtk->tName2Net   = stmm_init_table(strcmp, stmm_strhash);
-//    pNtk->tObj2Name   = stmm_init_table(stmm_ptrcmp, stmm_ptrhash);
+    pNtk->vCutSet     = Vec_PtrAlloc( 100 );
     // start the memory managers
-//    pNtk->pMmNames    = Extra_MmFlexStart();
     pNtk->pMmObj      = Extra_MmFixedStart( sizeof(Abc_Obj_t) );
     pNtk->pMmStep     = Extra_MmStepStart( ABC_NUM_STEPS );
     // get ready to assign the first Obj ID
@@ -115,7 +110,7 @@ Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func )
 Abc_Ntk_t * Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_t Func )
 {
     Abc_Ntk_t * pNtkNew; 
-    Abc_Obj_t * pObj, * pObjNew;
+    Abc_Obj_t * pObj;
     int i;
     if ( pNtk == NULL )
         return NULL;
@@ -135,12 +130,10 @@ Abc_Ntk_t * Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_
         Abc_NtkDupObj(pNtkNew, pObj);
     Abc_NtkForEachPo( pNtk, pObj, i )
         Abc_NtkDupObj(pNtkNew, pObj);
+    Abc_NtkForEachAssert( pNtk, pObj, i )
+        Abc_NtkDupObj(pNtkNew, pObj);
     Abc_NtkForEachLatch( pNtk, pObj, i )
-    {
-        pObjNew = Abc_NtkDupObj(pNtkNew, pObj);
-        Vec_PtrPush( pNtkNew->vCis, pObjNew );
-        Vec_PtrPush( pNtkNew->vCos, pObjNew );
-    }
+        Abc_NtkDupObj(pNtkNew, pObj);
     if ( Abc_NtkIsStrash(pNtk) && Abc_HManIsRunning() )
     {
         Abc_HManAddProto( Abc_NtkConst1(pNtk)->pCopy, Abc_NtkConst1(pNtk) );
@@ -202,15 +195,12 @@ Abc_Ntk_t * Abc_NtkStartFromDual( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkF
         // collect first to old
         pObj->pCopy = pObjNew;
     }
+    Abc_NtkForEachAssert( pNtk, pObj, i )
+        Abc_NtkDupObj(pNtkNew, pObj);
     Abc_NtkForEachLatch( pNtk, pObj, i )
-    {
-        pObjNew = Abc_NtkDupObj(pNtkNew, pObj);
-        Vec_PtrPush( pNtkNew->vCis, pObjNew );
-        Vec_PtrPush( pNtkNew->vCos, pObjNew );
-    }
+        Abc_NtkDupObj(pNtkNew, pObj);
     // transfer the names
     Abc_NtkDupCioNamesTableDual( pNtk, pNtkNew );
-//    Abc_ManTimeDup( pNtk, pNtkNew );
     // check that the CI/CO/latches are copied correctly
     assert( Abc_NtkCiNum(pNtk)    == Abc_NtkCiNum(pNtkNew) );
     assert( Abc_NtkCoNum(pNtk)* 2 == Abc_NtkCoNum(pNtkNew) );
@@ -239,54 +229,6 @@ void Abc_NtkFinalize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
         pDriver    = Abc_ObjFanin0Ntk( Abc_ObjFanin0(pObj) );
         pDriverNew = Abc_ObjNotCond(pDriver->pCopy, Abc_ObjFaninC0(pObj));
         Abc_ObjAddFanin( pObj->pCopy, pDriverNew );
-    }
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Finalizes the network using the existing network as a model.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkFinalizeRegular( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
-{
-    Abc_Obj_t * pObj, * pDriver, * pDriverNew;
-    int i;
-    // set the COs of the strashed network
-    Abc_NtkForEachCo( pNtk, pObj, i )
-    {
-        pDriver    = Abc_ObjFanin0Ntk( Abc_ObjFanin0(pObj) );
-        pDriverNew = pDriver->pCopy;
-        Abc_ObjAddFanin( pObj->pCopy, pDriverNew );
-    }
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Finalizes the network adding latches to CI/CO lists and creates their names.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkFinalizeLatches( Abc_Ntk_t * pNtk )
-{
-    Abc_Obj_t * pLatch;
-    int i;
-    // set the COs of the strashed network
-    Abc_NtkForEachLatch( pNtk, pLatch, i )
-    {
-        Vec_PtrPush( pNtk->vCis, pLatch );
-        Vec_PtrPush( pNtk->vCos, pLatch );
-        Abc_NtkLogicStoreName( pLatch, Abc_ObjNameSuffix(pLatch, "L") );
     }
 }
 
@@ -325,9 +267,9 @@ Abc_Ntk_t * Abc_NtkStartRead( char * pName )
 ***********************************************************************/
 void Abc_NtkFinalizeRead( Abc_Ntk_t * pNtk )
 {
-    Abc_Obj_t * pLatch, * pBox, * pObj;
+    Abc_Obj_t * pBox, * pObj;
     int i;
-    if ( pNtk->ntkType == ABC_NTK_BLACKBOX )
+    if ( Abc_NtkHasBlackbox(pNtk) )
     {
         pBox = Abc_NtkCreateBox(pNtk);
         Abc_NtkForEachPi( pNtk, pObj, i )
@@ -339,14 +281,8 @@ void Abc_NtkFinalizeRead( Abc_Ntk_t * pNtk )
     assert( Abc_NtkIsNetlist(pNtk) );
     // fix the net drivers
     Abc_NtkFixNonDrivenNets( pNtk );
-    // create the names table
-//    Abc_NtkCreateCioNamesTable( pNtk );
-    // add latches to the CI/CO arrays
-    Abc_NtkForEachLatch( pNtk, pLatch, i )
-    {
-        Vec_PtrPush( pNtk->vCis, pLatch );
-        Vec_PtrPush( pNtk->vCos, pLatch );
-    }
+    // reorder the CI/COs to PI/POs first
+    Abc_NtkOrderCisCos( pNtk );
 }
 
 /**Function*************************************************************
@@ -740,7 +676,6 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     int LargePiece = (4 << ABC_NUM_STEPS);
     if ( pNtk == NULL )
         return;
-//printf( "Deleted newtork %p\n", pNtk );
     // make sure all the marks are clean
     Abc_NtkForEachObj( pNtk, pObj, i )
     {
@@ -765,26 +700,20 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     if ( pNtk->pExdc )
         Abc_NtkDelete( pNtk->pExdc );
     // free the arrays
+    Vec_PtrFree( pNtk->vPis );
+    Vec_PtrFree( pNtk->vPos );
     Vec_PtrFree( pNtk->vCis );
     Vec_PtrFree( pNtk->vCos );
     Vec_PtrFree( pNtk->vAsserts );
+    Vec_PtrFree( pNtk->vLatches );
     Vec_PtrFree( pNtk->vObjs );
-    Vec_PtrFree( pNtk->vLats );
     Vec_PtrFree( pNtk->vCutSet );
-    Vec_PtrFree( pNtk->vPtrTemp );
-    Vec_IntFree( pNtk->vIntTemp );
-    Vec_StrFree( pNtk->vStrTemp );
     if ( pNtk->pModel ) free( pNtk->pModel );
-    // free the hash table of Obj name into Obj ID
-//    stmm_free_table( pNtk->tName2Net );
-//    stmm_free_table( pNtk->tObj2Name );
     TotalMemory  = 0;
-//    TotalMemory += Extra_MmFlexReadMemUsage(pNtk->pMmNames);
     TotalMemory += Extra_MmFixedReadMemUsage(pNtk->pMmObj);
     TotalMemory += Extra_MmStepReadMemUsage(pNtk->pMmStep);
 //    fprintf( stdout, "The total memory allocated internally by the network = %0.2f Mb.\n", ((double)TotalMemory)/(1<<20) );
     // free the storage 
-//    Extra_MmFlexStop ( pNtk->pMmNames, 0 );
     Extra_MmFixedStop( pNtk->pMmObj,   0 );
     Extra_MmStepStop ( pNtk->pMmStep,  0 );
     // free the timing manager
@@ -802,7 +731,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
         else
             Seq_Delete( pNtk->pManFunc );
     }
-    else if ( !Abc_NtkHasMapping(pNtk) )
+    else if ( !Abc_NtkHasMapping(pNtk) && !Abc_NtkHasBlackbox(pNtk) )
         assert( 0 );
     // name manager
     Nm_ManFree( pNtk->pManName );
@@ -815,9 +744,9 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
         stmm_foreach_item( pNtk->tName2Model, gen, &pName, (char **)&pNtkTemp )
             Abc_NtkDelete( pNtkTemp );
         stmm_free_table( pNtk->tName2Model );
-        if ( pNtk->pBlackBoxes ) 
-            Vec_IntFree( pNtk->pBlackBoxes );
     }
+    if ( pNtk->pBlackBoxes ) 
+        Vec_IntFree( pNtk->pBlackBoxes );
     free( pNtk );
 }
 

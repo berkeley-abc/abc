@@ -33,7 +33,6 @@ static void Io_WriteVerilogWires( FILE * pFile, Abc_Ntk_t * pNtk, int Start );
 static void Io_WriteVerilogRegs( FILE * pFile, Abc_Ntk_t * pNtk, int Start );
 static void Io_WriteVerilogGates( FILE * pFile, Abc_Ntk_t * pNtk );
 static void Io_WriteVerilogNodes( FILE * pFile, Abc_Ntk_t * pNtk );
-static void Io_WriteVerilogArgs( FILE * pFile, Abc_Obj_t * pObj, int nInMax, int fPadZeros );
 static void Io_WriteVerilogLatches( FILE * pFile, Abc_Ntk_t * pNtk );
 static int Io_WriteVerilogCheckNtk( Abc_Ntk_t * pNtk );
 static char * Io_WriteVerilogGetName( Abc_Obj_t * pObj );
@@ -225,7 +224,7 @@ void Io_WriteVerilogWires( FILE * pFile, Abc_Ntk_t * pNtk, int Start )
     int i, Counter, nNodes;
 
     // count the number of wires
-    nNodes = 0;
+    nNodes = Abc_NtkLatchNum(pNtk);
     Abc_NtkForEachNode( pNtk, pTerm, i )
     {
         if ( i == 0 ) 
@@ -261,6 +260,24 @@ void Io_WriteVerilogWires( FILE * pFile, Abc_Ntk_t * pNtk, int Start )
         LineLength += AddedLength;
         NameCounter++;
     }
+    Abc_NtkForEachLatch( pNtk, pTerm, i )
+    {
+        pNet = Abc_ObjFanin0(pTerm);
+        Counter++;
+        // get the line length after this name is written
+        AddedLength = strlen(Abc_ObjName(pNet)) + 2;
+        if ( NameCounter && LineLength + AddedLength + 3 > IO_WRITE_LINE_LENGTH )
+        { // write the line extender
+            fprintf( pFile, "\n   " );
+            // reset the line length
+            LineLength  = 3;
+            NameCounter = 0;
+        }
+        fprintf( pFile, " %s%s", Io_WriteVerilogGetName(pNet), (Counter==nNodes)? "" : "," );
+        LineLength += AddedLength;
+        NameCounter++;
+    }
+    assert( Counter == nNodes );
 }
 
 /**Function*************************************************************
@@ -325,12 +342,15 @@ void Io_WriteVerilogLatches( FILE * pFile, Abc_Ntk_t * pNtk )
     int i;
     Abc_NtkForEachLatch( pNtk, pLatch, i )
     {
-        if ( Abc_LatchInit(pLatch) == ABC_INIT_ZERO )
-            fprintf( pFile, "  initial begin %s = 1\'b0; end\n", Abc_ObjName(Abc_ObjFanout0(pLatch)) );
-        else if ( Abc_LatchInit(pLatch) == ABC_INIT_ONE )
-            fprintf( pFile, "  initial begin %s = 1\'b1; end\n", Abc_ObjName(Abc_ObjFanout0(pLatch)) );
-        fprintf( pFile, "  always@(posedge  gclk) begin %s",     Abc_ObjName(Abc_ObjFanout0(pLatch)) );
+//        fprintf( pFile, "  always@(posedge  gclk) begin %s",     Abc_ObjName(Abc_ObjFanout0(pLatch)) );
+        fprintf( pFile, "  always begin %s",     Abc_ObjName(Abc_ObjFanout0(pLatch)) );
         fprintf( pFile, " = %s; end\n", Abc_ObjName(Abc_ObjFanin0(pLatch)) );
+        if ( Abc_LatchInit(pLatch) == ABC_INIT_ZERO )
+//            fprintf( pFile, "  initial begin %s = 1\'b0; end\n", Abc_ObjName(Abc_ObjFanout0(pLatch)) );
+            fprintf( pFile, "  initial begin %s = 0; end\n", Abc_ObjName(Abc_ObjFanout0(pLatch)) );
+        else if ( Abc_LatchInit(pLatch) == ABC_INIT_ONE )
+//            fprintf( pFile, "  initial begin %s = 1\'b1; end\n", Abc_ObjName(Abc_ObjFanout0(pLatch)) );
+            fprintf( pFile, "  initial begin %s = 1; end\n", Abc_ObjName(Abc_ObjFanout0(pLatch)) );
     }
 }
 
@@ -378,7 +398,7 @@ void Io_WriteVerilogGates( FILE * pFile, Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Io_WriteVerilogNodes( FILE * pFile, Abc_Ntk_t * pNtk )
+void Io_WriteVerilogNodes2( FILE * pFile, Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj, * pFanin;
     int i, k, nFanins;
@@ -390,7 +410,8 @@ void Io_WriteVerilogNodes( FILE * pFile, Abc_Ntk_t * pNtk )
         nFanins = Abc_ObjFaninNum(pObj);
         if ( nFanins == 0 )
         {
-            fprintf( pFile, "  assign %s = 1'b%d;\n", Io_WriteVerilogGetName(Abc_ObjFanout0(pObj)), !Abc_SopIsComplement(pObj->pData) );
+//            fprintf( pFile, "  assign %s = 1'b%d;\n", Io_WriteVerilogGetName(Abc_ObjFanout0(pObj)), !Abc_SopIsComplement(pObj->pData) );
+            fprintf( pFile, "  assign %s = %d;\n", Io_WriteVerilogGetName(Abc_ObjFanout0(pObj)), !Abc_SopIsComplement(pObj->pData) );
             continue;
         }
         if ( nFanins == 1 )
@@ -410,7 +431,7 @@ void Io_WriteVerilogNodes( FILE * pFile, Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
-  Synopsis    [Writes the inputs.]
+  Synopsis    [Writes the nodes.]
 
   Description []
                
@@ -419,24 +440,32 @@ void Io_WriteVerilogNodes( FILE * pFile, Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Io_WriteVerilogArgs( FILE * pFile, Abc_Obj_t * pObj, int nInMax, int fPadZeros )
+void Io_WriteVerilogNodes( FILE * pFile, Abc_Ntk_t * pNtk )
 {
-    Abc_Obj_t * pFanin;
-    int i, Counter = 2;
-    fprintf( pFile, "(.z (%s)", Io_WriteVerilogGetName(Abc_ObjFanout0(pObj)) );
-    Abc_ObjForEachFanin( pObj, pFanin, i )
+    Abc_Obj_t * pObj, * pFanin;
+    int i, k, nFanins;
+    char pOper[] = " ? ", Symb;
+    Abc_NtkForEachNode( pNtk, pObj, i )
     {
-        if ( Counter++ % 4 == 0 )
-            fprintf( pFile, "\n   " );
-        fprintf( pFile, " .i%d (%s)", i+1, Io_WriteVerilogGetName(Abc_ObjFanin(pObj,i)) );
+        assert( Abc_SopGetCubeNum(pObj->pData) == 1 );
+        nFanins = Abc_ObjFaninNum(pObj);
+        if ( nFanins == 0 )
+        {
+            fprintf( pFile, "  assign %s = 1'b%d;\n", Io_WriteVerilogGetName(Abc_ObjFanout0(pObj)), !Abc_SopIsComplement(pObj->pData) );
+            continue;
+        }
+        fprintf( pFile, "  assign %s = ", Io_WriteVerilogGetName(Abc_ObjFanout0(pObj)) );
+        pOper[1] = Abc_SopIsComplement(pObj->pData) ? '|' : '&';
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+        {
+            Symb = ((char*)pObj->pData)[k];
+            assert( Symb == '0' || Symb == '1' );
+            if ( Symb == '0' )
+                fprintf( pFile, "~" );
+            fprintf( pFile, "%s%s", Io_WriteVerilogGetName(pFanin), (k==nFanins-1? "" : pOper) );
+        }
+        fprintf( pFile, ";\n" );
     }
-    for ( ; i < nInMax; i++ )
-    {
-        if ( Counter++ % 4 == 0 )
-            fprintf( pFile, "\n   " );
-        fprintf( pFile, " .i%d (%s)", i+1, fPadZeros? "1\'b0" : "1\'b1" );
-    }
-    fprintf( pFile, ");\n" );
 }
 
 /**Function*************************************************************

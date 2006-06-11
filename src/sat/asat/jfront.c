@@ -95,7 +95,7 @@ static void Asat_JRingRemove( Asat_JMan_t * p, Asat_JVar_t * pVar );
 
 // iterator through the adjacent variables
 #define Asat_JVarForEachFanio( p, pVar, pFan, i )               \
-    for ( i = 0; (i < pVar->nFans) && (((pFan) = Asat_JManVar(p, pVar->Fans[i])), 1); i++ )
+    for ( i = 0; (i < (int)pVar->nFans) && (((pFan) = Asat_JManVar(p, pVar->Fans[i])), 1); i++ )
 
 extern void Asat_JManAssign( Asat_JMan_t * p, int Var );
 
@@ -223,7 +223,7 @@ int Asat_JManCheck( Asat_JMan_t * p )
 //        assert( i != pVar->nFans );
 //        if ( i == pVar->nFans )
 //            return 0;
-        if ( i == pVar->nFans )
+        if ( i == (int)pVar->nFans )
             Counter++;
     }
     if ( Counter > 0 )

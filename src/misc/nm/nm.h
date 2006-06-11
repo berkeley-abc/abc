@@ -52,10 +52,12 @@ extern Nm_Man_t *   Nm_ManCreate( int nSize );
 extern void         Nm_ManFree( Nm_Man_t * p );
 extern int          Nm_ManNumEntries( Nm_Man_t * p );
 extern char *       Nm_ManStoreIdName( Nm_Man_t * p, int ObjId, char * pName, char * pSuffix );
+extern void         Nm_ManDeleteIdName( Nm_Man_t * p, int ObjId );
 extern char *       Nm_ManCreateUniqueName( Nm_Man_t * p, int ObjId );
 extern char *       Nm_ManFindNameById( Nm_Man_t * p, int ObjId );
 extern int          Nm_ManFindIdByName( Nm_Man_t * p, char * pName, int * pSecond );
 extern void         Nm_ManPrintTables( Nm_Man_t * p );
+extern Vec_Int_t *  Nm_ManReturnNameIds( Nm_Man_t * p );
 
 #ifdef __cplusplus
 }

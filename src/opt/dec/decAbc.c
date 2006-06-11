@@ -19,6 +19,7 @@
 #include "abc.h"
 #include "dec.h"
 //#include "aig.h"
+#include "ivy.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -237,6 +238,41 @@ Aig_Node_t * Dec_GraphToNetworkAig( Aig_Man_t * pMan, Dec_Graph_t * pGraph )
     return Aig_NotCond( pNode->pFunc, Dec_GraphIsComplement(pGraph) );
 }
 */
+
+/**Function*************************************************************
+
+  Synopsis    [Transforms the decomposition graph into the AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+Ivy_Obj_t * Dec_GraphToNetworkIvy( Ivy_Man_t * pMan, Dec_Graph_t * pGraph )
+{
+    Dec_Node_t * pNode;
+    Ivy_Obj_t * pAnd0, * pAnd1;
+    int i;
+    // check for constant function
+    if ( Dec_GraphIsConst(pGraph) )
+        return Ivy_NotCond( Ivy_ManConst1(pMan), Dec_GraphIsComplement(pGraph) );
+    // check for a literal
+    if ( Dec_GraphIsVar(pGraph) )
+        return Ivy_NotCond( Dec_GraphVar(pGraph)->pFunc, Dec_GraphIsComplement(pGraph) );
+    // build the AIG nodes corresponding to the AND gates of the graph
+    Dec_GraphForEachNode( pGraph, pNode, i )
+    {
+        pAnd0 = Ivy_NotCond( Dec_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc, pNode->eEdge0.fCompl ); 
+        pAnd1 = Ivy_NotCond( Dec_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc, pNode->eEdge1.fCompl ); 
+        pNode->pFunc = Ivy_And( pAnd0, pAnd1 );
+    }
+    // complement the result if necessary
+    return Ivy_NotCond( pNode->pFunc, Dec_GraphIsComplement(pGraph) );
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

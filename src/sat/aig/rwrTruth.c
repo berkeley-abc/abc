@@ -167,7 +167,7 @@ void Aig_TruthCount( Aig_Truth_t * p )
 ***********************************************************************/
 static inline unsigned Aig_WordGetPart( unsigned * p, int Start, int Size )
 {
-    return (p[Start/5] >> (Start%32)) & (~0u >> (32-Size));
+    return (p[Start/5] >> (Start&31)) & (~0u >> (32-Size));
 }
 
 /**Function*************************************************************
@@ -183,7 +183,7 @@ static inline unsigned Aig_WordGetPart( unsigned * p, int Start, int Size )
 ***********************************************************************/
 static inline void Aig_WordSetPart( unsigned * p, int Start, unsigned Part )
 {
-    p[Start/5] |= (Part << (Start%32));
+    p[Start/5] |= (Part << (Start&31));
 }
 
 /**Function*************************************************************
@@ -254,7 +254,7 @@ DdNode * Aig_TruthToBdd_rec( DdManager * dd, unsigned * pTruth, int Shift, int n
     }
     if ( nVars == 5 )
     {
-        unsigned * pWord = pTruth + Shift/32;
+        unsigned * pWord = pTruth + (Shift>>5);
         assert( Shift % 32 == 0 );
         if ( *pWord == 0 )
             return Cudd_ReadLogicZero(dd);

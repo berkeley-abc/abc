@@ -540,6 +540,27 @@ static inline void Vec_IntPushOrder( Vec_Int_t * p, int Entry )
 
 /**Function*************************************************************
 
+  Synopsis    [Inserts the entry while preserving the increasing order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_IntPushUniqueOrder( Vec_Int_t * p, int Entry )
+{
+    int i;
+    for ( i = 0; i < p->nSize; i++ )
+        if ( p->pArray[i] == Entry )
+            return 1;
+    Vec_IntPushOrder( p, Entry );
+    return 0;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []

@@ -101,34 +101,32 @@ void Abc_ObjAdd( Abc_Obj_t * pObj )
     // perform specialized operations depending on the object type
     if ( Abc_ObjIsNet(pObj) )
     {
-/*
-        // add the name to the table
-        if ( pObj->pData && stmm_insert( pNtk->tName2Net, pObj->pData, (char *)pObj ) )
-        {
-            printf( "Error: The net is already in the table...\n" );
-            assert( 0 );
-        }
-*/
         pNtk->nNets++;
     }
     else if ( Abc_ObjIsNode(pObj) )
     {
         pNtk->nNodes++;
     }
-    else if ( Abc_ObjIsLatch(pObj) )
-    {
-        Vec_PtrPush( pNtk->vLats, pObj );
-        pNtk->nLatches++;
-    }
     else if ( Abc_ObjIsPi(pObj) )
     {
+        Vec_PtrPush( pNtk->vPis, pObj );
         Vec_PtrPush( pNtk->vCis, pObj );
-        pNtk->nPis++;
     }
     else if ( Abc_ObjIsPo(pObj) )
     {
+        Vec_PtrPush( pNtk->vPos, pObj );
         Vec_PtrPush( pNtk->vCos, pObj );
-        pNtk->nPos++;
+    }
+    else if ( Abc_ObjIsLatch(pObj) )
+    {
+        Vec_PtrPush( pNtk->vLatches, pObj );
+        Vec_PtrPush( pNtk->vCis, pObj );
+        Vec_PtrPush( pNtk->vCos, pObj );
+    }
+    else if ( Abc_ObjIsAssert(pObj) )
+    {
+        Vec_PtrPush( pNtk->vAsserts, pObj );
+        Vec_PtrPush( pNtk->vCos, pObj );
     }
     else if ( Abc_ObjIsBox(pObj) )
     {
@@ -138,7 +136,6 @@ void Abc_ObjAdd( Abc_Obj_t * pObj )
     {
         assert( 0 );
     }
-    assert( pObj->Id >= 0 );
 }
 
 /**Function*************************************************************
@@ -155,7 +152,11 @@ void Abc_ObjAdd( Abc_Obj_t * pObj )
 Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
 {
     Abc_Obj_t * pObjNew;
+    // create the new object
     pObjNew = Abc_ObjAlloc( pNtkNew, pObj->Type );
+    // add the object to the network
+    Abc_ObjAdd( pObjNew );
+    // copy functionality/names
     if ( Abc_ObjIsNode(pObj) ) // copy the function if functionality is compatible
     {
         if ( pNtkNew->ntkFunc == pObj->pNtk->ntkFunc ) 
@@ -172,18 +173,11 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
     }
     else if ( Abc_ObjIsNet(pObj) ) // copy the name
     {
-//        pObjNew->pData = Abc_NtkRegisterName( pNtkNew, pObj->pData );
+        pObjNew->pData = Nm_ManStoreIdName( pNtkNew->pManName, pObjNew->Id, pObj->pData, NULL );
     }
     else if ( Abc_ObjIsLatch(pObj) ) // copy the reset value
         pObjNew->pData = pObj->pData;
     pObj->pCopy = pObjNew;
-    // add the object to the network
-    Abc_ObjAdd( pObjNew );
-
-
-    if ( Abc_ObjIsNet(pObj) )
-        pObjNew->pData = Nm_ManStoreIdName( pNtkNew->pManName, pObjNew->Id, pObj->pData, NULL );
-        
     return pObjNew;
 }
 
@@ -201,37 +195,34 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
 ***********************************************************************/
 void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
 {
-    Vec_Ptr_t * vNodes = pObj->pNtk->vPtrTemp;
     Abc_Ntk_t * pNtk = pObj->pNtk;
+    Vec_Ptr_t * vNodes;
     int i;
 
     assert( !Abc_ObjIsComplement(pObj) );
 
     // delete fanins and fanouts
+    vNodes = Vec_PtrAlloc( 100 );
     Abc_NodeCollectFanouts( pObj, vNodes );
     for ( i = 0; i < vNodes->nSize; i++ )
         Abc_ObjDeleteFanin( vNodes->pArray[i], pObj );
     Abc_NodeCollectFanins( pObj, vNodes );
     for ( i = 0; i < vNodes->nSize; i++ )
         Abc_ObjDeleteFanin( pObj, vNodes->pArray[i] );
+    Vec_PtrFree( vNodes );
 
     // remove from the list of objects
     Vec_PtrWriteEntry( pNtk->vObjs, pObj->Id, NULL );
     pObj->Id = (1<<26)-1;
     pNtk->nObjs--;
 
+    // remove from the table of names
+    if ( Nm_ManFindNameById(pObj->pNtk->pManName, pObj->Id) )
+        Nm_ManDeleteIdName(pObj->pNtk->pManName, pObj->Id);
+
     // perform specialized operations depending on the object type
     if ( Abc_ObjIsNet(pObj) )
     {
-        assert( 0 );
-/*
-        // remove the net from the hash table of nets
-        if ( pObj->pData && !stmm_delete( pNtk->tName2Net, (char **)&pObj->pData, (char **)&pObj ) )
-        {
-            printf( "Error: The net is not in the table...\n" );
-            assert( 0 );
-        }
-*/
         pObj->pData = NULL;
         pNtk->nNets--;
     }
@@ -239,26 +230,33 @@ void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
     {
         if ( Abc_NtkHasBdd(pNtk) )
             Cudd_RecursiveDeref( pNtk->pManFunc, pObj->pData );
+        pObj->pData = NULL;
         pNtk->nNodes--;
     }
     else if ( Abc_ObjIsLatch(pObj) )
     {
-        pNtk->nLatches--;
+        Vec_PtrRemove( pNtk->vLatches, pObj );
+        Vec_PtrRemove( pNtk->vCis, pObj );
+        Vec_PtrRemove( pNtk->vCos, pObj );
+    }
+    else if ( Abc_ObjIsPi(pObj) )
+    {
+        Vec_PtrRemove( pObj->pNtk->vPis, pObj );
+        Vec_PtrRemove( pObj->pNtk->vCis, pObj );
     }
     else if ( Abc_ObjIsPo(pObj) )
     {
-        assert( Abc_NtkPoNum(pObj->pNtk) > 0 );
+        Vec_PtrRemove( pObj->pNtk->vPos, pObj );
         Vec_PtrRemove( pObj->pNtk->vCos, pObj );
-        pObj->pNtk->nPos--;
-
-        assert( 0 );
-/*
-        // add the name to the table
-        if ( !stmm_delete( pObj->pNtk->tObj2Name, (char **)&pObj, NULL ) )
-        {
-            assert( 0 ); // the PO is not in the table
-        }
-*/
+    }
+    else if ( Abc_ObjIsAssert(pObj) )
+    {
+        Vec_PtrRemove( pObj->pNtk->vAsserts, pObj );
+        Vec_PtrRemove( pObj->pNtk->vCos, pObj );
+    }
+    else if ( Abc_ObjIsBox(pObj) )
+    {
+        pNtk->nBoxes--;
     }
     else
         assert( 0 );
@@ -377,9 +375,6 @@ Abc_Obj_t * Abc_NtkFindNet( Abc_Ntk_t * pNtk, char * pName )
     Abc_Obj_t * pNet;
     int ObjId;
     assert( Abc_NtkIsNetlist(pNtk) );
-//    if ( stmm_lookup( pNtk->tName2Net, pName, (char**)&pNet ) )
-//        return pNet;
-//    return NULL;
     ObjId = Nm_ManFindIdByName( pNtk->pManName, pName, NULL );
     if ( ObjId == -1 )
         return NULL;
@@ -406,7 +401,6 @@ Abc_Obj_t * Abc_NtkFindOrCreateNet( Abc_Ntk_t * pNtk, char * pName )
         return pNet;
     // create a new net
     pNet = Abc_ObjAlloc( pNtk, ABC_OBJ_NET );
-//    pNet->pData = Abc_NtkRegisterName( pNtk, pName );
     Abc_ObjAdd( pNet );
     pNet->pData = Nm_ManStoreIdName( pNtk->pManName, pNet->Id, pName, NULL );
     return pNet;
@@ -504,6 +498,25 @@ Abc_Obj_t * Abc_NtkCreateLatch( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pObj;
     pObj = Abc_ObjAlloc( pNtk, ABC_OBJ_LATCH );     
     pObj->pData = (void *)ABC_INIT_NONE;
+    Abc_ObjAdd( pObj );
+    return pObj;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Create the new node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Abc_NtkCreateAssert( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    pObj = Abc_ObjAlloc( pNtk, ABC_OBJ_ASSERT );     
     Abc_ObjAdd( pObj );
     return pObj;
 }

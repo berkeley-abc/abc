@@ -41,26 +41,27 @@ static void Msat_SolverSetupTruthTables( unsigned uTruths[][2] );
   SeeAlso     []
 
 ***********************************************************************/
-int                Msat_SolverReadVarNum( Msat_Solver_t * p )                  { return p->nVars;     }
-int                Msat_SolverReadClauseNum( Msat_Solver_t * p )               { return p->nClauses;     }
-int                Msat_SolverReadVarAllocNum( Msat_Solver_t * p )             { return p->nVarsAlloc;}
+int                Msat_SolverReadVarNum( Msat_Solver_t * p )                  { return p->nVars;      }
+int                Msat_SolverReadClauseNum( Msat_Solver_t * p )               { return p->nClauses;   }
+int                Msat_SolverReadVarAllocNum( Msat_Solver_t * p )             { return p->nVarsAlloc; }
 int                Msat_SolverReadDecisionLevel( Msat_Solver_t * p )           { return Msat_IntVecReadSize(p->vTrailLim); }
-int *              Msat_SolverReadDecisionLevelArray( Msat_Solver_t * p )      { return p->pLevel;    }
-Msat_Clause_t **    Msat_SolverReadReasonArray( Msat_Solver_t * p )             { return p->pReasons;  }
+int *              Msat_SolverReadDecisionLevelArray( Msat_Solver_t * p )      { return p->pLevel;     }
+Msat_Clause_t **    Msat_SolverReadReasonArray( Msat_Solver_t * p )            { return p->pReasons;   }
 Msat_Lit_t          Msat_SolverReadVarValue( Msat_Solver_t * p, Msat_Var_t Var ) { return p->pAssigns[Var]; }
-Msat_ClauseVec_t *  Msat_SolverReadLearned( Msat_Solver_t * p )                 { return p->vLearned;  }
-Msat_ClauseVec_t ** Msat_SolverReadWatchedArray( Msat_Solver_t * p )            { return p->pvWatched; }
-int *              Msat_SolverReadAssignsArray( Msat_Solver_t * p )            { return p->pAssigns;  }
-int *              Msat_SolverReadModelArray( Msat_Solver_t * p )              { return p->pModel;  }
-int                Msat_SolverReadBackTracks( Msat_Solver_t * p )              { return p->nBackTracks; }
-Msat_MmStep_t *     Msat_SolverReadMem( Msat_Solver_t * p )                     { return p->pMem;      }
-int *              Msat_SolverReadSeenArray( Msat_Solver_t * p )               { return p->pSeen;     }
-int                Msat_SolverIncrementSeenId( Msat_Solver_t * p )             { return ++p->nSeenId; }
+Msat_ClauseVec_t *  Msat_SolverReadLearned( Msat_Solver_t * p )                { return p->vLearned;   }
+Msat_ClauseVec_t ** Msat_SolverReadWatchedArray( Msat_Solver_t * p )           { return p->pvWatched;  }
+int *              Msat_SolverReadAssignsArray( Msat_Solver_t * p )            { return p->pAssigns;   }
+int *              Msat_SolverReadModelArray( Msat_Solver_t * p )              { return p->pModel;     }
+int                Msat_SolverReadBackTracks( Msat_Solver_t * p )              { return (int)p->Stats.nConflicts; }
+int                Msat_SolverReadInspects( Msat_Solver_t * p )                { return (int)p->Stats.nInspects;  }
+Msat_MmStep_t *     Msat_SolverReadMem( Msat_Solver_t * p )                    { return p->pMem;       }
+int *              Msat_SolverReadSeenArray( Msat_Solver_t * p )               { return p->pSeen;      }
+int                Msat_SolverIncrementSeenId( Msat_Solver_t * p )             { return ++p->nSeenId;  }
 void               Msat_SolverSetVerbosity( Msat_Solver_t * p, int fVerbose )  { p->fVerbose = fVerbose; }
-void               Msat_SolverClausesIncrement( Msat_Solver_t * p )            { p->nClausesAlloc++;  }
-void               Msat_SolverClausesDecrement( Msat_Solver_t * p )            { p->nClausesAlloc--;  }
-void               Msat_SolverClausesIncrementL( Msat_Solver_t * p )           { p->nClausesAllocL++; }
-void               Msat_SolverClausesDecrementL( Msat_Solver_t * p )           { p->nClausesAllocL--; }
+void               Msat_SolverClausesIncrement( Msat_Solver_t * p )            { p->nClausesAlloc++;   }
+void               Msat_SolverClausesDecrement( Msat_Solver_t * p )            { p->nClausesAlloc--;   }
+void               Msat_SolverClausesIncrementL( Msat_Solver_t * p )           { p->nClausesAllocL++;  }
+void               Msat_SolverClausesDecrementL( Msat_Solver_t * p )           { p->nClausesAllocL--;  }
 void               Msat_SolverMarkLastClauseTypeA( Msat_Solver_t * p )         { Msat_ClauseSetTypeA( Msat_ClauseVecReadEntry( p->vClauses, Msat_ClauseVecReadSize(p->vClauses)-1 ), 1 ); }
 void               Msat_SolverMarkClausesStart( Msat_Solver_t * p )            { p->nClausesStart = Msat_ClauseVecReadSize(p->vClauses); }
 

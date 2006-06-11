@@ -47,13 +47,43 @@ void Abc_NtkIncrementTravId( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj;
     int i;
-    if ( pNtk->nTravIds == (1<<10)-1 )
+    if ( pNtk->nTravIds == (1<<9)-1 )
     {
         pNtk->nTravIds = 0;
         Abc_NtkForEachObj( pNtk, pObj, i )
             pObj->TravId = 0;
     }
     pNtk->nTravIds++;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Order CI/COs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkOrderCisCos( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int i;
+    Vec_PtrClear( pNtk->vCis );
+    Vec_PtrClear( pNtk->vCos );
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        Vec_PtrPush( pNtk->vCis, pObj );
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        Vec_PtrPush( pNtk->vCos, pObj );
+    Abc_NtkForEachAssert( pNtk, pObj, i )
+        Vec_PtrPush( pNtk->vCos, pObj );
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+    {
+        Vec_PtrPush( pNtk->vCis, pObj );
+        Vec_PtrPush( pNtk->vCos, pObj );
+    }
 }
 
 /**Function*************************************************************
@@ -84,7 +114,7 @@ int Abc_NtkGetCubeNum( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
-  Synopsis    [Reads the number of cubes of the node.]
+  Synopsis    [Reads the number of literals in the SOPs of the nodes.]
 
   Description []
                
@@ -1025,6 +1055,12 @@ void Abc_NtkReassignIds( Abc_Ntk_t * pNtk )
     }
     // put PO nodes next
     Abc_NtkForEachPo( pNtk, pNode, i )
+    {
+        pNode->Id = Vec_PtrSize( vObjsNew );
+        Vec_PtrPush( vObjsNew, pNode );
+    }
+    // put assert nodes next
+    Abc_NtkForEachAssert( pNtk, pNode, i )
     {
         pNode->Id = Vec_PtrSize( vObjsNew );
         Vec_PtrPush( vObjsNew, pNode );

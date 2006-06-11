@@ -370,7 +370,7 @@ Abc_Ntk_t * Seq_NtkSeqMapMapped( Abc_Ntk_t * pNtk )
     Seq_Match_t * pMatch;
     Abc_Ntk_t * pNtkMap; 
     Vec_Ptr_t * vLeaves;
-    Abc_Obj_t * pObj, * pLatch, * pFaninNew;
+    Abc_Obj_t * pObj, * pFaninNew;
     Seq_Lat_t * pRing;
     int i;
 
@@ -413,11 +413,7 @@ Abc_Ntk_t * Seq_NtkSeqMapMapped( Abc_Ntk_t * pNtk )
 
     // add the latches and their names
     Abc_NtkAddDummyLatchNames( pNtkMap );
-    Abc_NtkForEachLatch( pNtkMap, pLatch, i )
-    {
-        Vec_PtrPush( pNtkMap->vCis, pLatch );
-        Vec_PtrPush( pNtkMap->vCos, pLatch );
-    }
+    Abc_NtkOrderCisCos( pNtkMap );
     // fix the problem with complemented and duplicated CO edges
     Abc_NtkLogicMakeSimpleCos( pNtkMap, 1 );
     // make the network minimum base

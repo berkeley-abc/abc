@@ -571,12 +571,13 @@ int Abc_NtkSweep( Abc_Ntk_t * pNtk, int fVerbose )
 ***********************************************************************/
 void Abc_NodeSweep( Abc_Obj_t * pNode, int fVerbose )
 {
-    Vec_Ptr_t * vFanout = pNode->pNtk->vPtrTemp;
     Abc_Obj_t * pFanout, * pDriver;
+    Vec_Ptr_t * vFanout;
     int i;
     assert( Abc_ObjFaninNum(pNode) < 2 );
     assert( Abc_ObjFanoutNum(pNode) > 0 );
     // iterate through the fanouts
+    vFanout = Vec_PtrAlloc( Abc_ObjFanoutNum(pNode) );
     Abc_NodeCollectFanouts( pNode, vFanout );
     Vec_PtrForEachEntry( vFanout, pFanout, i )
     {
@@ -607,6 +608,7 @@ void Abc_NodeSweep( Abc_Obj_t * pNode, int fVerbose )
             Abc_ObjPatchFanin( pFanout, pNode, pDriver );
         }
     }
+    Vec_PtrFree( vFanout );
 }
 
 /**Function*************************************************************

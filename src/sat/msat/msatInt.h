@@ -56,10 +56,10 @@ typedef long long   int64;
 #define ALLOC(type, num)    \
     ((type *) malloc(sizeof(type) * (num)))
 #define REALLOC(type, obj, num)    \
-    (obj) ? ((type *) realloc((char *) obj, sizeof(type) * (num))) : \
-        ((type *) malloc(sizeof(type) * (num)))
+    ((obj) ? ((type *) realloc((char *)(obj), sizeof(type) * (num))) : \
+        ((type *) malloc(sizeof(type) * (num))))
 #define FREE(obj)        \
-    ((obj) ? (free((char *) (obj)), (obj) = 0) : 0)
+    ((obj) ? (free((char *)(obj)), (obj) = 0) : 0)
 
 // By default, custom memory management is used
 // which guarantees constant time allocation/deallocation 

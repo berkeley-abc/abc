@@ -49,7 +49,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 // cube/list/cover/data
-typedef unsigned long              Mvc_CubeWord_t;
+typedef unsigned int               Mvc_CubeWord_t;
 typedef struct MvcCubeStruct       Mvc_Cube_t;
 typedef struct MvcListStruct       Mvc_List_t;
 typedef struct MvcCoverStruct      Mvc_Cover_t;

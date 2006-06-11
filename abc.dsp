@@ -42,7 +42,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /I "src\base\abc" /I "src\base\abci" /I "src\base\abcs" /I "src\base\seq" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\ft" /I "src\sat\aig" /I "src\sat\asat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\sim" /I "src\opt\rwr" /I "src\map\fpga" /I "src\map\pga" /I "src\map\mapper" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\mvc" /I "src\misc\util" /I "src\misc\npn" /I "src\misc\vec" /I "src\misc\espresso" /I "src\misc\nm" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /FR /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /I "src\base\abc" /I "src\base\abci" /I "src\base\abcs" /I "src\base\seq" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\ft" /I "src\sat\aig" /I "src\sat\asat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\sim" /I "src\opt\rwr" /I "src\map\fpga" /I "src\map\pga" /I "src\map\mapper" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\mvc" /I "src\misc\util" /I "src\misc\npn" /I "src\misc\vec" /I "src\misc\espresso" /I "src\misc\nm" /I "src\temp\ivy" /I "src\temp\esop" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /FR /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -66,7 +66,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /c
-# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "src\base\abc" /I "src\base\abci" /I "src\base\abcs" /I "src\base\seq" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\ft" /I "src\sat\aig" /I "src\sat\asat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\sim" /I "src\opt\rwr" /I "src\map\fpga" /I "src\map\pga" /I "src\map\mapper" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\mvc" /I "src\misc\util" /I "src\misc\npn" /I "src\misc\vec" /I "src\misc\espresso" /I "src\misc\nm" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /FR /YX /FD /GZ /c
+# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "src\base\abc" /I "src\base\abci" /I "src\base\abcs" /I "src\base\seq" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\ft" /I "src\sat\aig" /I "src\sat\asat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\sim" /I "src\opt\rwr" /I "src\map\fpga" /I "src\map\pga" /I "src\map\mapper" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\mvc" /I "src\misc\util" /I "src\misc\npn" /I "src\misc\vec" /I "src\misc\espresso" /I "src\misc\nm" /I "src\temp\ivy" /I "src\temp\esop" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /FR /YX /FD /GZ /c
 # SUBTRACT CPP /X
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
@@ -218,11 +218,19 @@ SOURCE=.\src\base\abci\abcGen.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcIvy.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcMap.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\src\base\abci\abcMiter.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcMv.c
 # End Source File
 # Begin Source File
 
@@ -1286,6 +1294,10 @@ SOURCE=.\src\opt\rwr\rwrPrint.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\opt\rwr\rwrTemp.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\opt\rwr\rwrUtil.c
 # End Source File
 # End Group
@@ -1419,50 +1431,6 @@ SOURCE=.\src\opt\sim\simSymStr.c
 # Begin Source File
 
 SOURCE=.\src\opt\sim\simUtils.c
-# End Source File
-# End Group
-# Begin Group "xyz"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\opt\xyz\xyz.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\opt\xyz\xyzBuild.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\opt\xyz\xyzCore.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\opt\xyz\xyzInt.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\opt\xyz\xyzMan.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\opt\xyz\xyzMinEsop.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\opt\xyz\xyzMinMan.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\opt\xyz\xyzMinSop.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\opt\xyz\xyzMinUtil.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\opt\xyz\xyzTest.c
 # End Source File
 # End Group
 # End Group
@@ -2095,6 +2063,174 @@ SOURCE=.\src\misc\nm\nmInt.h
 # Begin Source File
 
 SOURCE=.\src\misc\nm\nmTable.c
+# End Source File
+# End Group
+# End Group
+# Begin Group "temp"
+
+# PROP Default_Filter ""
+# Begin Group "ivy"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\temp\ivy\ivy.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\ivy\ivyBalance.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\ivy\ivyCanon.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\ivy\ivyCheck.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\ivy\ivyCut.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\ivy\ivyDfs.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\ivy\ivyDsd.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\ivy\ivyMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\ivy\ivyMulti.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\ivy\ivyObj.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\ivy\ivyOper.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\ivy\ivyRewrite.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\ivy\ivySeq.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\ivy\ivyTable.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\ivy\ivyUndo.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\ivy\ivyUtil.c
+# End Source File
+# End Group
+# Begin Group "player"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\temp\player\player.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\player\playerAbc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\player\playerBuild.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\player\playerCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\player\playerMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\player\playerUtil.c
+# End Source File
+# End Group
+# Begin Group "esop"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\temp\esop\esop.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\esop\esopMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\esop\esopMem.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\esop\esopMin.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\esop\esopUtil.c
+# End Source File
+# End Group
+# Begin Group "xyz"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\temp\xyz\xyz.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\xyz\xyzBuild.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\xyz\xyzCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\xyz\xyzInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\xyz\xyzMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\xyz\xyzMinEsop.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\xyz\xyzMinMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\xyz\xyzMinSop.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\xyz\xyzMinUtil.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\xyz\xyzTest.c
 # End Source File
 # End Group
 # End Group

@@ -37,8 +37,10 @@ extern "C" {
 // Simple types:
 
 //typedef int  bool;
+#ifndef __cplusplus
 #ifndef bool
 #define bool int
+#endif
 #endif
 
 typedef int                lit;
@@ -74,17 +76,19 @@ extern void    solver_delete(solver* s);
 
 extern bool    solver_addclause(solver* s, lit* begin, lit* end);
 extern bool    solver_simplify(solver* s);
-extern int     solver_solve(solver* s, lit* begin, lit* end, int nConfLimit, int nImpLimit );
+extern int     solver_solve(solver* s, lit* begin, lit* end, sint64 nConfLimit, sint64 nInsLimit );
 extern int *   solver_get_model( solver * p, int * pVars, int nVars );
 
 extern int     solver_nvars(solver* s);
 extern int     solver_nclauses(solver* s);
+
 
 // additional procedures
 extern void    Asat_SolverWriteDimacs( solver * pSat, char * pFileName,
                                        lit* assumptionsBegin, lit* assumptionsEnd,
                                        int incrementVars);
 extern void    Asat_SatPrintStats( FILE * pFile, solver * p );
+extern void    Asat_SolverSetPrefVars( solver * s, int * pPrefVars, int nPrefVars );
 
 // J-frontier support
 extern Asat_JMan_t * Asat_JManStart( solver * pSat, void * vCircuit );
@@ -131,12 +135,12 @@ struct solver_t
 
     clause*  binary;        // A temporary binary clause
     lbool*   tags;          //
-    vec      tagged;        // (contains: var)
-    vec      stack;         // (contains: var)
+    veci     tagged;        // (contains: var)
+    veci     stack;         // (contains: var)
 
-    vec      order;         // Variable order. (heap) (contains: var)
-    vec      trail_lim;     // Separator indices for different decision levels in 'trail'. (contains: int)
-    vec      model;         // If problem is solved, this vector contains the model (contains: lbool).
+    veci     order;         // Variable order. (heap) (contains: var)
+    veci     trail_lim;     // Separator indices for different decision levels in 'trail'. (contains: int)
+    veci     model;         // If problem is solved, this vector contains the model (contains: lbool).
 
     int      root_level;    // Level of first proper decision.
     int      simpdb_assigns;// Number of top-level assignments at last 'simplifyDB()'.
@@ -145,8 +149,8 @@ struct solver_t
     double   progress_estimate;
     int      verbosity;     // Verbosity level. 0=silent, 1=some progress report, 2=everything
 
-    int      nConfLimit;    // external limit on the number of conflicts
-    int      nImpLimit;     // external limit on the number of implications
+    sint64   nConfLimit;    // external limit on the number of conflicts
+    sint64   nInsLimit;     // external limit on the number of implications
 
     // the memory manager
     Asat_MmStep_t *     pMem;
@@ -154,6 +158,12 @@ struct solver_t
     // J-frontier
     Asat_JMan_t *       pJMan;
 
+    // for making decisions on some variables first
+    int      nPrefDecNum;
+    int *    pPrefVars;
+    int      nPrefVars;
+
+    // solver statistics
     stats    solver_stats;
     int      timeTotal;
     int      timeSelect;

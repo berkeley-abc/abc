@@ -377,7 +377,7 @@ int Abc_NtkRenodeLimit( Abc_Obj_t * pNode, Vec_Ptr_t * vCone, int nFaninMax )
 ***********************************************************************/
 void Abc_NtkRenodeSetBounds( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax )
 {
-    Vec_Ptr_t * vCone = pNtk->vPtrTemp;
+    Vec_Ptr_t * vCone = Vec_PtrAlloc(10);
     Abc_Obj_t * pNode;
     int i, nFanouts, nConeSize;
 
@@ -414,6 +414,7 @@ void Abc_NtkRenodeSetBounds( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax )
         while ( Abc_NtkRenodeLimit(pNode, vCone, nFaninMax) );
         assert( vCone->nSize <= nFaninMax );  
     }
+    Vec_PtrFree(vCone);
 /*
     // make sure the fanin limit is met
     Abc_NtkForEachNode( pNtk, pNode, i )

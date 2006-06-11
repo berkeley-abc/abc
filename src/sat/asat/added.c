@@ -158,7 +158,7 @@ int * solver_get_model( solver * p, int * pVars, int nVars )
     for ( i = 0; i < nVars; i++ )
     {
         assert( pVars[i] >= 0 && pVars[i] < p->size );
-        pModel[i] = (int)(p->model.ptr[pVars[i]] == (void *)l_True);
+        pModel[i] = (int)(p->model.ptr[pVars[i]] == l_True);
     }
     return pModel;    
 }
@@ -187,6 +187,28 @@ void Asat_SatPrintStats( FILE * pFile, solver * p )
         (float)(p->timeSelect)/(float)(CLOCKS_PER_SEC),
         (float)(p->timeUpdate)/(float)(CLOCKS_PER_SEC) );
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Sets the preferred variables.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Asat_SolverSetPrefVars(solver * s, int * pPrefVars, int nPrefVars)
+{
+    int i;
+    assert( s->pPrefVars == NULL );
+    for ( i = 0; i < nPrefVars; i++ )
+        assert( pPrefVars[i] < s->size );
+    s->pPrefVars = pPrefVars;
+    s->nPrefVars = nPrefVars;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -64,8 +64,10 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 
 //typedef int                   bool;
+#ifndef __cplusplus
 #ifndef bool
 #define bool int
+#endif
 #endif
 
 typedef struct Aig_Param_t_     Aig_Param_t;
@@ -215,7 +217,7 @@ struct Aig_SimInfo_t_
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline int          Aig_BitWordNum( int nBits )            { return nBits/32 + ((nBits%32) > 0);       }
+static inline int          Aig_BitWordNum( int nBits )            { return (nBits>>5) + ((nBits&31) > 0);     }
 static inline int          Aig_InfoHasBit( unsigned * p, int i )  { return (p[(i)>>5] & (1<<((i) & 31))) > 0; }
 static inline void         Aig_InfoSetBit( unsigned * p, int i )  { p[(i)>>5] |= (1<<((i) & 31));             }
 static inline void         Aig_InfoXorBit( unsigned * p, int i )  { p[(i)>>5] ^= (1<<((i) & 31));             }

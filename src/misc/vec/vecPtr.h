@@ -472,6 +472,26 @@ static inline void * Vec_PtrPop( Vec_Ptr_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Find entry.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_PtrFind( Vec_Ptr_t * p, void * Entry )
+{
+    int i;
+    for ( i = 0; i < p->nSize; i++ )
+        if ( p->pArray[i] == Entry )
+            return i;
+    return -1;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []

@@ -446,7 +446,7 @@ void Abc_FrameDeleteAllNetworks( Abc_Frame_t * p )
         Abc_NtkDelete( pNtk );
     // set the current network empty
     p->pNtkCur = NULL;
-    fprintf( p->Out, "All networks have been deleted.\n" );
+//    fprintf( p->Out, "All networks have been deleted.\n" );
 }
 
 /**Function*************************************************************

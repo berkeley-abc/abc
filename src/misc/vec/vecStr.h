@@ -494,10 +494,10 @@ static inline int Vec_StrSortCompare2( char * pp1, char * pp2 )
 static inline void Vec_StrSort( Vec_Str_t * p, int fReverse )
 {
     if ( fReverse ) 
-        qsort( (void *)p->pArray, p->nSize, sizeof(int), 
+        qsort( (void *)p->pArray, p->nSize, sizeof(char), 
                 (int (*)(const void *, const void *)) Vec_StrSortCompare2 );
     else
-        qsort( (void *)p->pArray, p->nSize, sizeof(int), 
+        qsort( (void *)p->pArray, p->nSize, sizeof(char), 
                 (int (*)(const void *, const void *)) Vec_StrSortCompare1 );
 }
 

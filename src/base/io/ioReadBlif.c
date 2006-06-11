@@ -33,6 +33,7 @@ struct Io_ReadBlif_t_
     char *               pFileName;    // the name of the file
     Extra_FileReader_t * pReader;      // the input file reader
     // current processing info
+    Abc_Ntk_t *          pNtkMaster;   // the primary network
     Abc_Ntk_t *          pNtkCur;      // the primary network
     int                  LineCur;      // the line currently parsed
     // temporary storage for tokens
@@ -54,6 +55,7 @@ static Abc_Ntk_t * Io_ReadBlifNetwork( Io_ReadBlif_t * p );
 static Abc_Ntk_t * Io_ReadBlifNetworkOne( Io_ReadBlif_t * p );
 static int Io_ReadBlifNetworkInputs( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens );
 static int Io_ReadBlifNetworkOutputs( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens );
+static int Io_ReadBlifNetworkAsserts( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens );
 static int Io_ReadBlifNetworkLatch( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens );
 static int Io_ReadBlifNetworkNames( Io_ReadBlif_t * p, Vec_Ptr_t ** pvTokens );
 static int Io_ReadBlifNetworkGate( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens );
@@ -151,7 +153,7 @@ Abc_Ntk_t * Io_ReadBlifNetwork( Io_ReadBlif_t * p )
         // add this network as part of the hierarchy
         if ( pNtkMaster == NULL ) // no master network so far
         {
-            pNtkMaster = pNtk;
+            p->pNtkMaster = pNtkMaster = pNtk;
             continue;
         }
         // make sure hierarchy does not have the network with this name
@@ -222,11 +224,12 @@ Abc_Ntk_t * Io_ReadBlifNetworkOne( Io_ReadBlif_t * p )
     }
 
     // read the inputs/outputs
+    if ( p->pNtkMaster == NULL )
     pProgress = Extra_ProgressBarStart( stdout, Extra_FileReaderGetFileSize(p->pReader) );
     fTokensReady = fStatus = 0;
     for ( iLine = 0; fTokensReady || (p->vTokens = Io_ReadBlifGetTokens(p)); iLine++ )
     {
-        if ( iLine % 1000 == 0 )
+        if ( p->pNtkMaster == NULL && iLine % 1000 == 0 )
         Extra_ProgressBarUpdate( pProgress, Extra_FileReaderGetCurPosition(p->pReader), NULL );
 
         // consider different line types
@@ -242,6 +245,8 @@ Abc_Ntk_t * Io_ReadBlifNetworkOne( Io_ReadBlif_t * p )
             fStatus = Io_ReadBlifNetworkInputs( p, p->vTokens );
         else if ( !strcmp( pDirective, ".outputs" ) )
             fStatus = Io_ReadBlifNetworkOutputs( p, p->vTokens );
+        else if ( !strcmp( pDirective, ".asserts" ) )
+            fStatus = Io_ReadBlifNetworkAsserts( p, p->vTokens );
         else if ( !strcmp( pDirective, ".input_arrival" ) )
             fStatus = Io_ReadBlifNetworkInputArrival( p, p->vTokens );
         else if ( !strcmp( pDirective, ".default_input_arrival" ) )
@@ -257,8 +262,10 @@ Abc_Ntk_t * Io_ReadBlifNetworkOne( Io_ReadBlif_t * p )
         }
         else if ( !strcmp( pDirective, ".blackbox" ) )
         {
-            pNtk->ntkType = ABC_NTK_BLACKBOX;
+            pNtk->ntkType = ABC_NTK_NETLIST;
             pNtk->ntkFunc = ABC_FUNC_BLACKBOX;
+            Extra_MmFlexStop( pNtk->pManFunc, 0 );
+            pNtk->pManFunc = NULL;
         }
         else
             printf( "%s (line %d): Skipping directive \"%s\".\n", p->pFileName, 
@@ -268,6 +275,7 @@ Abc_Ntk_t * Io_ReadBlifNetworkOne( Io_ReadBlif_t * p )
         if ( fStatus == 1 )
             return NULL;
     }
+    if ( p->pNtkMaster == NULL )
     Extra_ProgressBarStop( pProgress );
     return pNtk;
 }
@@ -321,6 +329,25 @@ int Io_ReadBlifNetworkOutputs( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
   SeeAlso     []
 
 ***********************************************************************/
+int Io_ReadBlifNetworkAsserts( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
+{
+    int i;
+    for ( i = 1; i < vTokens->nSize; i++ )
+        Io_ReadCreateAssert( p->pNtkCur, vTokens->pArray[i] );
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Io_ReadBlifNetworkLatch( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
 {
     Abc_Ntk_t * pNtk = p->pNtkCur;
@@ -340,7 +367,7 @@ int Io_ReadBlifNetworkLatch( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
         Abc_LatchSetInitDc( pLatch );
     else
     {
-        ResetValue = atoi(vTokens->pArray[3]);
+        ResetValue = atoi(vTokens->pArray[vTokens->nSize-1]);
         if ( ResetValue != 0 && ResetValue != 1 && ResetValue != 2 )
         {
             p->LineCur = Extra_FileReaderGetLineNumber(p->pReader, 0);
@@ -870,50 +897,55 @@ int Io_ReadBlifNetworkConnectBoxesOneBox( Io_ReadBlif_t * p, Abc_Obj_t * pBox, s
     // create the fanins of the box
     Abc_NtkForEachPi( pNtkModel, pObj, i )
         pObj->pCopy = NULL;
-    Vec_PtrForEachEntryStart( pNames, pName, i, 1 )
+    if ( Abc_NtkPiNum(pNtkModel) == 0 )
+        Start = 1;
+    else
     {
-        pActual = Io_ReadBlifCleanName(pName);
-        if ( pActual == NULL )
+        Vec_PtrForEachEntryStart( pNames, pName, i, 1 )
         {
-            p->LineCur = (int)pBox->pCopy;
-            sprintf( p->sError, "Cannot parse formal/actual name pair \"%s\".", pName );
-            Io_ReadBlifPrintErrorMessage( p );
-            return 1;
-        }
-        Length = pActual - pName - 1;
-        pName[Length] = 0;
-        // find the PI net with this name
-        pObj = Abc_NtkFindNet( pNtkModel, pName );
-        if ( pObj == NULL )
-        {
-            p->LineCur = (int)pBox->pCopy;
-            sprintf( p->sError, "Cannot find formal input \"%s\" as an PI of model \"%s\".", pName, Vec_PtrEntry(pNames, 0) );
-            Io_ReadBlifPrintErrorMessage( p );
-            return 1;
-        }
-        // get the PI
-        pObj = Abc_ObjFanin0(pObj);
-        // quit if this is not a PI net
-        if ( !Abc_ObjIsPi(pObj) )
-        {
-            pName[Length] = '=';
-            Start = i;
-            break;
-        }
-        // remember the actual name in the net
-        if ( pObj->pCopy != NULL )
-        {
-            p->LineCur = (int)pBox->pCopy;
-            sprintf( p->sError, "Formal input \"%s\" is used more than once.", pName );
-            Io_ReadBlifPrintErrorMessage( p );
-            return 1;
-        }
-        pObj->pCopy = (void *)pActual;
-        // quit if we processed all PIs
-        if ( i == Abc_NtkPiNum(pNtkModel) )
-        {
-            Start = i+1;
-            break;
+            pActual = Io_ReadBlifCleanName(pName);
+            if ( pActual == NULL )
+            {
+                p->LineCur = (int)pBox->pCopy;
+                sprintf( p->sError, "Cannot parse formal/actual name pair \"%s\".", pName );
+                Io_ReadBlifPrintErrorMessage( p );
+                return 1;
+            }
+            Length = pActual - pName - 1;
+            pName[Length] = 0;
+            // find the PI net with this name
+            pObj = Abc_NtkFindNet( pNtkModel, pName );
+            if ( pObj == NULL )
+            {
+                p->LineCur = (int)pBox->pCopy;
+                sprintf( p->sError, "Cannot find formal input \"%s\" as an PI of model \"%s\".", pName, Vec_PtrEntry(pNames, 0) );
+                Io_ReadBlifPrintErrorMessage( p );
+                return 1;
+            }
+            // get the PI
+            pObj = Abc_ObjFanin0(pObj);
+            // quit if this is not a PI net
+            if ( !Abc_ObjIsPi(pObj) )
+            {
+                pName[Length] = '=';
+                Start = i;
+                break;
+            }
+            // remember the actual name in the net
+            if ( pObj->pCopy != NULL )
+            {
+                p->LineCur = (int)pBox->pCopy;
+                sprintf( p->sError, "Formal input \"%s\" is used more than once.", pName );
+                Io_ReadBlifPrintErrorMessage( p );
+                return 1;
+            }
+            pObj->pCopy = (void *)pActual;
+            // quit if we processed all PIs
+            if ( i == Abc_NtkPiNum(pNtkModel) )
+            {
+                Start = i+1;
+                break;
+            }
         }
     }
     // create the fanins of the box
@@ -986,6 +1018,8 @@ int Io_ReadBlifNetworkConnectBoxesOneBox( Io_ReadBlif_t * p, Abc_Obj_t * pBox, s
         pObj->pCopy = NULL;
 
     // remove the array of names, assign the pointer to the model
+    Vec_PtrForEachEntry( pBox->pData, pName, i )
+        free( pName );
     Vec_PtrFree( pBox->pData );
     pBox->pData = pNtkModel;
     return 0;

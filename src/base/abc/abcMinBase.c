@@ -65,8 +65,8 @@ int Abc_NtkMinimumBase( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 int Abc_NodeMinimumBase( Abc_Obj_t * pNode )
 {
-    Vec_Str_t * vSupport = pNode->pNtk->vStrTemp;
-    Vec_Ptr_t * vFanins = pNode->pNtk->vPtrTemp;
+    Vec_Str_t * vSupport;
+    Vec_Ptr_t * vFanins;
     DdNode * bTemp;
     int i, nVars;
 
@@ -74,11 +74,16 @@ int Abc_NodeMinimumBase( Abc_Obj_t * pNode )
     assert( Abc_ObjIsNode(pNode) );
 
     // compute support
+    vSupport = Vec_StrAlloc( 10 );
     nVars = Abc_NodeSupport( Cudd_Regular(pNode->pData), vSupport, Abc_ObjFaninNum(pNode) );
     if ( nVars == Abc_ObjFaninNum(pNode) )
+    {
+        Vec_StrFree( vSupport );
         return 0;
+    }
 
     // remove unused fanins
+    vFanins = Vec_PtrAlloc( Abc_ObjFaninNum(pNode) );
     Abc_NodeCollectFanins( pNode, vFanins );
     for ( i = 0; i < vFanins->nSize; i++ )
         if ( vSupport->pArray[i] == 0 )
@@ -88,6 +93,8 @@ int Abc_NodeMinimumBase( Abc_Obj_t * pNode )
     // update the function of the node
     pNode->pData = Extra_bddRemapUp( pNode->pNtk->pManFunc, bTemp = pNode->pData );   Cudd_Ref( pNode->pData );
     Cudd_RecursiveDeref( pNode->pNtk->pManFunc, bTemp );
+    Vec_PtrFree( vFanins );
+    Vec_StrFree( vSupport );
     return 1;
 }
 

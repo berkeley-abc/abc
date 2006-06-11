@@ -48,12 +48,15 @@
 ***********************************************************************/
 void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
 {
-    int Num, Num2;
+    int Num;//, Num2;
 
 //    Abc_NtkDetectMatching( pNtk );
 //    return;
     fprintf( pFile, "%-13s:",       pNtk->pName );
-    fprintf( pFile, " i/o = %4d/%4d", Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk) );
+    if ( Abc_NtkAssertNum(pNtk) )
+        fprintf( pFile, " i/o/a = %4d/%4d/%4d", Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk), Abc_NtkAssertNum(pNtk) );
+    else
+        fprintf( pFile, " i/o = %4d/%4d", Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk) );
 
     if ( !Abc_NtkIsSeq(pNtk) )
         fprintf( pFile, "  lat = %4d", Abc_NtkLatchNum(pNtk) );

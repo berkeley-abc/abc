@@ -189,6 +189,9 @@ void Cut_TruthCompute( Cut_Man_t * p, Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_C
         Extra_TruthNand( Cut_CutReadTruth(pCut), p->puTemp[2], p->puTemp[3], pCut->nVarsMax );
     else
         Extra_TruthAnd( Cut_CutReadTruth(pCut), p->puTemp[2], p->puTemp[3], pCut->nVarsMax );
+
+//    Ivy_TruthTestOne( *Cut_CutReadTruth(pCut) );
+
     // quit if no fancy computation is needed
     if ( !p->pParams->fFancy )
         return;

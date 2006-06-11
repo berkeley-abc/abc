@@ -39,8 +39,7 @@ struct ABC_ManagerStruct_t
     Extra_MmFlex_t *      pMmNames;      // memory manager for signal names
     // solving parameters
     int                   mode;          // 0 = resource-aware integration; 1 = brute-force SAT
-    int                   nConfLimit;    // time limit for pure SAT solving
-    int                   nImpLimit;     // time limit for pure SAT solving
+    Prove_Params_t        Params;        // integrated CEC parameters
     // information about the target 
     int                   nog;           // the numbers of gates in the target
     Vec_Ptr_t *           vNodes;        // the gates in the target
@@ -87,9 +86,11 @@ ABC_Manager ABC_InitManager()
     mng->pMmNames   = Extra_MmFlexStart();
     mng->vNodes     = Vec_PtrAlloc( 100 );
     mng->vValues    = Vec_IntAlloc( 100 );
-    mng->nConfLimit = ABC_DEFAULT_CONF_LIMIT;
-    mng->nImpLimit  = ABC_DEFAULT_IMP_LIMIT;
     mng->mode       = 0; // set "resource-aware integration" as the default mode
+    // set default parameters for CEC
+    Prove_ParamsSetDefault( &mng->Params );
+    // set infinite resource limit for the final mitering
+    mng->Params.nMiteringLimitLast = ABC_INFINITY;
     return mng;
 }
 
@@ -334,7 +335,7 @@ int ABC_Check_Integrity( ABC_Manager mng )
             continue;
         if ( Abc_ObjFanoutNum(pObj) == 0 )
         {
-            printf( "ABC_Check_Integrity: The network has dangling nodes.\n" );
+//            printf( "ABC_Check_Integrity: The network has dangling nodes.\n" );
             return 0;
         }
     }
@@ -361,7 +362,7 @@ int ABC_Check_Integrity( ABC_Manager mng )
 ***********************************************************************/
 void ABC_SetTimeLimit( ABC_Manager mng, int runtime )
 {
-    printf( "ABC_SetTimeLimit: The resource limit is not implemented (warning).\n" );
+//    printf( "ABC_SetTimeLimit: The resource limit is not implemented (warning).\n" );
 }
 
 /**Function*************************************************************
@@ -377,7 +378,7 @@ void ABC_SetTimeLimit( ABC_Manager mng, int runtime )
 ***********************************************************************/
 void ABC_SetLearnLimit( ABC_Manager mng, int num )
 {
-    printf( "ABC_SetLearnLimit: The resource limit is not implemented (warning).\n" );
+//    printf( "ABC_SetLearnLimit: The resource limit is not implemented (warning).\n" );
 }
 
 /**Function*************************************************************
@@ -393,7 +394,7 @@ void ABC_SetLearnLimit( ABC_Manager mng, int num )
 ***********************************************************************/
 void ABC_SetLearnBacktrackLimit( ABC_Manager mng, int num )
 {
-    printf( "ABC_SetLearnBacktrackLimit: The resource limit is not implemented (warning).\n" );
+//    printf( "ABC_SetLearnBacktrackLimit: The resource limit is not implemented (warning).\n" );
 }
 
 /**Function*************************************************************
@@ -409,7 +410,7 @@ void ABC_SetLearnBacktrackLimit( ABC_Manager mng, int num )
 ***********************************************************************/
 void ABC_SetSolveBacktrackLimit( ABC_Manager mng, int num )
 {
-    mng->nConfLimit = num;
+    mng->Params.nMiteringLimitLast = num;
 }
 
 /**Function*************************************************************
@@ -425,7 +426,70 @@ void ABC_SetSolveBacktrackLimit( ABC_Manager mng, int num )
 ***********************************************************************/
 void ABC_SetSolveImplicationLimit( ABC_Manager mng, int num )
 {
-    mng->nImpLimit = num;
+//    printf( "ABC_SetSolveImplicationLimit: The resource limit is not implemented (warning).\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void ABC_SetTotalBacktrackLimit( ABC_Manager mng, uint64 num )
+{
+    mng->Params.nTotalBacktrackLimit = num;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void ABC_SetTotalInspectLimit( ABC_Manager mng, uint64 num )
+{
+    mng->Params.nTotalInspectLimit = num;
+}
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+uint64 ABC_GetTotalBacktracksMade( ABC_Manager mng )
+{
+    return mng->Params.nTotalBacktracksMade;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+uint64 ABC_GetTotalInspectsMade( ABC_Manager mng )
+{
+    return mng->Params.nTotalInspectsMade;
 }
 
 /**Function*************************************************************
@@ -539,7 +603,7 @@ void ABC_AnalyzeTargets( ABC_Manager mng )
 ***********************************************************************/
 enum CSAT_StatusT ABC_Solve( ABC_Manager mng )
 {
-    Prove_Params_t Params, * pParams = &Params;
+    Prove_Params_t * pParams = &mng->Params;
     int RetValue, i;
 
     // check if the target network is available
@@ -548,16 +612,9 @@ enum CSAT_StatusT ABC_Solve( ABC_Manager mng )
 
     // try to prove the miter using a number of techniques
     if ( mng->mode )
-        RetValue = Abc_NtkMiterSat( mng->pTarget, mng->nConfLimit, mng->nImpLimit, 0, 0 );
+        RetValue = Abc_NtkMiterSat( mng->pTarget, (sint64)pParams->nMiteringLimitLast, (sint64)0, 0, 0, NULL, NULL );
     else
-    {
-        // set default parameters for CEC
-        Prove_ParamsSetDefault( pParams );
-        // set infinite resource limit for the final mitering
-        pParams->nMiteringLimitLast = ABC_INFINITY;
-        // call the checker
         RetValue = Abc_NtkMiterProve( &mng->pTarget, pParams );
-    }
 
     // analyze the result
     mng->pResult = ABC_TargetResAlloc( Abc_NtkCiNum(mng->pTarget) );

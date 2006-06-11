@@ -42,11 +42,16 @@ static nMuxes;
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, int nConfLimit, int nImpLimit, int fJFront, int fVerbose )
+int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fJFront, int fVerbose, sint64 * pNumConfs, sint64 * pNumInspects )
 {
     solver * pSat;
     lbool   status;
     int RetValue, clk;
+
+    if ( pNumConfs )
+        *pNumConfs = 0;
+    if ( pNumInspects )
+        *pNumInspects = 0;
 
     assert( Abc_NtkIsStrash(pNtk) );
     assert( Abc_NtkLatchNum(pNtk) == 0 );
@@ -78,7 +83,7 @@ int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, int nConfLimit, int nImpLimit, int fJFron
     clk = clock();
     if ( fVerbose )
         pSat->verbosity = 1;
-    status = solver_solve( pSat, NULL, NULL, nConfLimit, nImpLimit );
+    status = solver_solve( pSat, NULL, NULL, (sint64)nConfLimit, (sint64)nInsLimit );
     if ( status == l_Undef )
     {
 //        printf( "The problem timed out.\n" );
@@ -97,6 +102,7 @@ int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, int nConfLimit, int nImpLimit, int fJFron
     else
         assert( 0 );
 //    PRT( "SAT solver time", clock() - clk );
+//    printf( "The number of conflicts = %d.\n", (int)pSat->solver_stats.conflicts );
 
     // if the problem is SAT, get the counterexample
     if ( status == l_True )
@@ -109,6 +115,12 @@ int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, int nConfLimit, int nImpLimit, int fJFron
     // free the solver
     if ( fVerbose )
         Asat_SatPrintStats( stdout, pSat );
+
+    if ( pNumConfs )
+        *pNumConfs = (int)pSat->solver_stats.conflicts;
+    if ( pNumInspects )
+        *pNumInspects = (int)pSat->solver_stats.inspects;
+
     solver_delete( pSat );
     return RetValue;
 }
@@ -401,6 +413,7 @@ int Abc_NtkMiterSatCreateInt( solver * pSat, Abc_Ntk_t * pNtk, int fJFront )
     Vec_Vec_t * vCircuit;
     int i, k, fUseMuxes = 1;
     int clk1 = clock(), clk;
+    int fOrderCiVarsFirst = 0;
 
     assert( Abc_NtkIsStrash(pNtk) );
 
@@ -431,6 +444,7 @@ int Abc_NtkMiterSatCreateInt( solver * pSat, Abc_Ntk_t * pNtk, int fJFront )
         Vec_PtrPush( vNodes, pNode );
     }
 */
+
     // collect the nodes that need clauses and top-level assignments
     Abc_NtkForEachCo( pNtk, pNode, i )
     {
@@ -524,6 +538,21 @@ int Abc_NtkMiterSatCreateInt( solver * pSat, Abc_Ntk_t * pNtk, int fJFront )
             Vec_IntPushFirst( vFanio, (int)pFanin->pCopy );
             Vec_VecPush( vCircuit, (int)pFanin->pCopy, pNode->pCopy );
         }
+    }
+
+    // set preferred variables
+    if ( fOrderCiVarsFirst )
+    {
+        int * pPrefVars = ALLOC( int, Abc_NtkCiNum(pNtk) );
+        int nVars = 0;
+        Abc_NtkForEachCi( pNtk, pNode, i )
+        {
+            if ( pNode->fMarkA == 0 )
+                continue;
+            pPrefVars[nVars++] = (int)pNode->pCopy;
+        }
+        nVars = ABC_MIN( nVars, 10 );
+        Asat_SolverSetPrefVars( pSat, pPrefVars, nVars );
     }
 
     // create the variable order

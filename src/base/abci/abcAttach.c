@@ -387,13 +387,13 @@ void Abc_TruthPermute( char * pPerm, int nVars, unsigned * uTruthNode, unsigned 
     nMints = (1 << nVars);
     for ( iMint = 0; iMint < nMints; iMint++ )
     {
-        if ( (uTruthNode[iMint/32] & (1 << (iMint%32))) == 0 )
+        if ( (uTruthNode[iMint>>5] & (1 << (iMint&31))) == 0 )
             continue;
         iMintPerm = 0;
         for ( v = 0; v < nVars; v++ )
             if ( iMint & (1 << v) )
                 iMintPerm |= (1 << pPerm[v]);
-        uTruthPerm[iMintPerm/32] |= (1 << (iMintPerm%32));     
+        uTruthPerm[iMintPerm>>5] |= (1 << (iMintPerm&31));     
     }
 }
 

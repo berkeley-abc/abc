@@ -34,6 +34,7 @@
 
 static Cut_Man_t * Abc_NtkStartCutManForRewrite( Abc_Ntk_t * pNtk );
 static void        Abc_NodePrintCuts( Abc_Obj_t * pNode );
+static void        Abc_ManShowCutCone( Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -87,15 +88,39 @@ Rwr_ManAddTimeCuts( pManRwr, clock() - clk );
         // skip the constant node
         if ( Abc_NodeIsConst(pNode) )
             continue;
+        // skip persistant nodes
+        if ( Abc_NodeIsPersistant(pNode) )
+            continue;
         // skip the nodes with many fanouts
         if ( Abc_ObjFanoutNum(pNode) > 1000 )
             continue;
+//printf( "*******Node %d: \n", pNode->Id );
+
         // for each cut, try to resynthesize it
         nGain = Rwr_NodeRewrite( pManRwr, pManCut, pNode, fUpdateLevel, fUseZeros );
         if ( nGain > 0 || nGain == 0 && fUseZeros )
         {
+//            extern void Abc_RwrExpWithCut( Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves );
+
             Dec_Graph_t * pGraph = Rwr_ManReadDecs(pManRwr);
             int fCompl           = Rwr_ManReadCompl(pManRwr);
+
+//            Abc_RwrExpWithCut( pNode, Rwr_ManReadLeaves(pManRwr) );
+
+/*
+            {
+                Abc_Obj_t * pObj;
+                int i;
+                printf( "USING: (" );
+                Vec_PtrForEachEntry( Rwr_ManReadLeaves(pManRwr), pObj, i )
+                    printf( "%d ", Abc_ObjFanoutNum(Abc_ObjRegular(pObj)) );
+                printf( ")   Gain = %d.\n", nGain );
+            }
+*/
+            
+//            if ( nGain > 0 )
+//                Abc_ManShowCutCone( pNode, Rwr_ManReadLeaves(pManRwr) );
+
 /*
             if ( nGain > 0 )
             { // print stats on the MFFC
@@ -208,6 +233,163 @@ void Abc_NodePrintCuts( Abc_Obj_t * pNode )
         printf( "\n" );
     }
 }
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_ManRewritePrintDivs( Vec_Ptr_t * vDivs, int nLeaves )
+{
+    Abc_Obj_t * pFanin, * pNode, * pRoot;
+    int i, k;
+    pRoot = Vec_PtrEntryLast(vDivs);
+    // print the nodes
+    Vec_PtrForEachEntry( vDivs, pNode, i )
+    {
+        if ( i < nLeaves )
+        {
+            printf( "%6d : %c\n", pNode->Id, 'a'+i );
+            continue;
+        }
+        printf( "%6d : %2d = ", pNode->Id, i );
+        // find the first fanin
+        Vec_PtrForEachEntry( vDivs, pFanin, k )
+            if ( Abc_ObjFanin0(pNode) == pFanin )
+                break;
+        if ( k < nLeaves )
+            printf( "%c", 'a' + k );
+        else
+            printf( "%d", k );
+        printf( "%s ", Abc_ObjFaninC0(pNode)? "\'" : "" );
+        // find the second fanin
+        Vec_PtrForEachEntry( vDivs, pFanin, k )
+            if ( Abc_ObjFanin1(pNode) == pFanin )
+                break;
+        if ( k < nLeaves )
+            printf( "%c", 'a' + k );
+        else
+            printf( "%d", k );
+        printf( "%s ", Abc_ObjFaninC1(pNode)? "\'" : "" );
+        if ( pNode == pRoot )
+            printf( " root" );
+        printf( "\n" );
+    }
+    printf( "\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_ManShowCutCone_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vDivs )
+{
+    if ( Abc_NodeIsTravIdCurrent(pNode) )
+        return;
+    Abc_NodeSetTravIdCurrent(pNode);
+    Abc_ManShowCutCone_rec( Abc_ObjFanin0(pNode), vDivs );
+    Abc_ManShowCutCone_rec( Abc_ObjFanin1(pNode), vDivs );
+    Vec_PtrPush( vDivs, pNode );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_ManShowCutCone( Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves )
+{
+    Abc_Ntk_t * pNtk = pNode->pNtk;
+    Abc_Obj_t * pObj;
+    Vec_Ptr_t * vDivs;
+    int i;
+    vDivs = Vec_PtrAlloc( 100 );
+    Abc_NtkIncrementTravId( pNtk );
+    Vec_PtrForEachEntry( vLeaves, pObj, i )
+    {
+        Abc_NodeSetTravIdCurrent( Abc_ObjRegular(pObj) );
+        Vec_PtrPush( vDivs, Abc_ObjRegular(pObj) );
+    }
+    Abc_ManShowCutCone_rec( pNode, vDivs );
+    Abc_ManRewritePrintDivs( vDivs, Vec_PtrSize(vLeaves) );
+    Vec_PtrFree( vDivs );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_RwrExpWithCut_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves, int fUseA )
+{
+    if ( Vec_PtrFind(vLeaves, pNode) >= 0 || Vec_PtrFind(vLeaves, Abc_ObjNot(pNode)) >= 0 )
+    {
+        if ( fUseA )
+            Abc_ObjRegular(pNode)->fMarkA = 1;
+        else
+            Abc_ObjRegular(pNode)->fMarkB = 1;
+        return;
+    }
+    assert( Abc_ObjIsNode(pNode) );
+    Abc_RwrExpWithCut_rec( Abc_ObjFanin0(pNode), vLeaves, fUseA );
+    Abc_RwrExpWithCut_rec( Abc_ObjFanin1(pNode), vLeaves, fUseA );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_RwrExpWithCut( Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves )
+{
+    Abc_Obj_t * pObj;
+    int i, CountA, CountB;
+    Abc_RwrExpWithCut_rec( Abc_ObjFanin0(pNode), vLeaves, 1 );
+    Abc_RwrExpWithCut_rec( Abc_ObjFanin1(pNode), vLeaves, 0 );
+    CountA = CountB = 0;
+    Vec_PtrForEachEntry( vLeaves, pObj, i )
+    {
+        CountA += Abc_ObjRegular(pObj)->fMarkA;
+        CountB += Abc_ObjRegular(pObj)->fMarkB;
+        Abc_ObjRegular(pObj)->fMarkA = 0;
+        Abc_ObjRegular(pObj)->fMarkB = 0;
+    }
+    printf( "(%d,%d:%d) ", CountA, CountB, CountA+CountB-Vec_PtrSize(vLeaves) );
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

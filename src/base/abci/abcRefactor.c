@@ -111,6 +111,9 @@ int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, bool 
         // skip the constant node
         if ( Abc_NodeIsConst(pNode) )
             continue;
+        // skip persistant nodes
+        if ( Abc_NodeIsPersistant(pNode) )
+            continue;
         // skip the nodes with many fanouts
         if ( Abc_ObjFanoutNum(pNode) > 1000 )
             continue;

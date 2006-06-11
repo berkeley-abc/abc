@@ -37,8 +37,10 @@ extern "C" {
 ///                    STRUCTURE DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+#ifndef __cplusplus
 #ifndef bool
 #define bool int
+#endif
 #endif
 
 typedef struct FxuDataStruct   Fxu_Data_t;
