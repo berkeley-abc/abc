@@ -314,7 +314,7 @@ void * Abc_NodeGetCuts( void * p, Abc_Obj_t * pObj, int fDag, int fTree )
 {
     Abc_Obj_t * pFanin;
     int fDagNode, fTriv, TreeCode = 0;
-    assert( Abc_NtkIsStrash(pObj->pNtk) );
+//    assert( Abc_NtkIsStrash(pObj->pNtk) );
     assert( Abc_ObjFaninNum(pObj) == 2 );
     // check if the node is a DAG node
     fDagNode = (Abc_ObjFanoutNum(pObj) > 1 && !Abc_NodeIsMuxControlType(pObj));

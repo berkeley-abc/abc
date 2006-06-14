@@ -222,6 +222,10 @@ SOURCE=.\src\base\abci\abcIvy.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcLut.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcMap.c
 # End Source File
 # Begin Source File

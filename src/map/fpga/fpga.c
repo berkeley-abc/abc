@@ -235,6 +235,39 @@ usage:
     return 1;       /* error exit */
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Sets simple LUT library.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fpga_SetSimpleLutLib( int nLutSize )
+{
+    Fpga_LutLib_t s_LutLib6 = { "lutlib", 6, {0,1,1,1,1,1,1}, {0,1,1,1,1,1,1} };
+    Fpga_LutLib_t s_LutLib5 = { "lutlib", 5, {0,1,1,1,1,1}, {0,1,1,1,1,1} };
+    Fpga_LutLib_t s_LutLib4 = { "lutlib", 4, {0,1,1,1,1}, {0,1,1,1,1} };
+    Fpga_LutLib_t s_LutLib3 = { "lutlib", 3, {0,1,1,1}, {0,1,1,1} };
+    Fpga_LutLib_t * pLutLib;
+    assert( nLutSize >= 3 && nLutSize <= 6 );
+    switch ( nLutSize )
+    {
+        case 3: pLutLib = &s_LutLib3; break;
+        case 4: pLutLib = &s_LutLib4; break;
+        case 5: pLutLib = &s_LutLib5; break;
+        case 6: pLutLib = &s_LutLib6; break;
+        default: pLutLib = NULL; break;
+    }
+    if ( pLutLib == NULL )
+        return;
+    Fpga_LutLibFree( Abc_FrameReadLibLut() );
+    Abc_FrameSetLibLut( Fpga_LutLibDup(pLutLib) );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

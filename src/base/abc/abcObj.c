@@ -264,8 +264,33 @@ void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
     Abc_ObjRecycle( pObj );
 }
 
+/**Function*************************************************************
 
+  Synopsis    [Deletes the node and MFFC of the node.]
 
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkDeleteObj_rec( Abc_Obj_t * pObj )
+{
+    Abc_Ntk_t * pNtk = pObj->pNtk;
+    Vec_Ptr_t * vNodes;
+    int i;
+    assert( !Abc_ObjIsComplement(pObj) );
+    assert( Abc_ObjFanoutNum(pObj) == 0 );
+    // delete fanins and fanouts
+    vNodes = Vec_PtrAlloc( 100 );
+    Abc_NodeCollectFanins( pObj, vNodes );
+    Abc_NtkDeleteObj( pObj );
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+        if ( Abc_ObjIsNode(pObj) && Abc_ObjFanoutNum(pObj) == 0 )
+            Abc_NtkDeleteObj_rec( pObj );
+    Vec_PtrFree( vNodes );
+}
 
 
 /**Function*************************************************************

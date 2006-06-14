@@ -915,7 +915,7 @@ void Abc_NodeCollectFanouts( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
 
 /**Function*************************************************************
 
-  Synopsis    [Procedure used for sorting the nodes in decreasing order of levels.]
+  Synopsis    [Procedure used for sorting the nodes in increasing order of levels.]
 
   Description []
                

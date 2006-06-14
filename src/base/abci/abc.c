@@ -31,96 +31,97 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static int Abc_CommandPrintStats   ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintExdc    ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintIo      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintLatch   ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintFanio   ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintFactor  ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintLevel   ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintSupport ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintSymms   ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintUnate   ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintAuto    ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintKMap    ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintGates   ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintSharing ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintStats     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintExdc      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintIo        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintLatch     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintFanio     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintFactor    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintLevel     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintSupport   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintSymms     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintUnate     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintAuto      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintKMap      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintGates     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintSharing   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Abc_CommandShowBdd      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandShowCut      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandShowAig      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandShowNtk      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandShowBdd        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandShowCut        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandShowAig        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandShowNtk        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Abc_CommandCollapse     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandStrash       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandBalance      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandRenode       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandCleanup      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSweep        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandFastExtract  ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandDisjoint     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandCollapse       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandStrash         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandBalance        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRenode         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandCleanup        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSweep          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFastExtract    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDisjoint       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Abc_CommandRewrite      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandRefactor     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandRestructure  ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandResubstitute ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandRr           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRewrite        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRefactor       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRestructure    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandResubstitute   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRr             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Abc_CommandLogic        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandMiter        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandDemiter      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandOrPos        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandFrames       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSop          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandBdd          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandReorder      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandMuxes        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandExtSeqDcs    ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandOneOutput    ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandOneNode      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandShortNames   ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandExdcFree     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandExdcGet      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandExdcSet      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandCut          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandEspresso     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandGen          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandXyz          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandTest         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandLogic          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandMiter          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDemiter        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandOrPos          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFrames         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSop            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandBdd            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandReorder        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandMuxes          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandExtSeqDcs      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandOneOutput      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandOneNode        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandShortNames     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandExdcFree       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandExdcGet        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandExdcSet        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandCut            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandEspresso       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandGen            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandXyz            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandTest           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Abc_CommandFraig        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandFraigTrust   ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandFraigStore   ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandFraigRestore ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandFraigClean   ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandFraigSweep   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFraig          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFraigTrust     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFraigStore     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFraigRestore   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFraigClean     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFraigSweep     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Abc_CommandMap          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandUnmap        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAttach       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSuperChoice  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandMap            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandUnmap          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAttach         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSuperChoice    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSuperChoiceLut ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Abc_CommandFpga         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPga          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFpga           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPga            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Abc_CommandScut         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandInit         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPipe         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSeq          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandUnseq        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandRetime       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSeqFpga      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSeqMap       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSeqSweep     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSeqCleanup   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandScut           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandInit           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPipe           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSeq            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandUnseq          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRetime         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSeqFpga        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSeqMap         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSeqSweep       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSeqCleanup     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Abc_CommandCec          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSec          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSat          ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandProve        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandCec            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSec            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSat            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandProve          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
-static int Abc_CommandTraceStart   ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandTraceCheck   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandTraceStart     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandTraceCheck     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -209,6 +210,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "SC mapping",   "unmap",         Abc_CommandUnmap,            1 );
     Cmd_CommandAdd( pAbc, "SC mapping",   "attach",        Abc_CommandAttach,           1 );
     Cmd_CommandAdd( pAbc, "SC mapping",   "sc",            Abc_CommandSuperChoice,      1 );
+    Cmd_CommandAdd( pAbc, "SC mapping",   "scl",           Abc_CommandSuperChoiceLut,   1 );
 
     Cmd_CommandAdd( pAbc, "FPGA mapping", "fpga",          Abc_CommandFpga,             1 );
     Cmd_CommandAdd( pAbc, "FPGA mapping", "pga",           Abc_CommandPga,              1 );
@@ -5494,15 +5496,121 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandSuperChoiceLut( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c;
+    int nLutSize;
+    int nCutSizeMax;
+    int fVerbose;
+    extern int Abc_NtkSuperChoiceLut( Abc_Ntk_t * pNtk, int nLutSize, int nCutSizeMax, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fVerbose = 1;
+    nLutSize = 4;
+    nCutSizeMax = 10;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KNh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-K\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nLutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLutSize < 0 ) 
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-N\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nCutSizeMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nCutSizeMax < 0 ) 
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "Superchoicing works only for the AIG representation (run \"strash\").\n" );
+        return 1;
+    }
+
+    // convert the network into the SOP network
+    pNtkRes = Abc_NtkAigToLogicSop( pNtk );
+
+    // get the new network
+    if ( !Abc_NtkSuperChoiceLut( pNtkRes, nLutSize, nCutSizeMax, fVerbose ) )
+    {
+        Abc_NtkDelete( pNtkRes );
+        fprintf( pErr, "Superchoicing has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: scl [-K num] [-N num] [-vh]\n" );
+    fprintf( pErr, "\t        performs superchoicing for K-LUTs\n" );
+    fprintf( pErr, "\t        (accumulate: \"r file.blif; b; scl; f -ac; wb file_sc.blif\")\n" );
+    fprintf( pErr, "\t        (FPGA map: \"r file_sc.blif; ft; read_lut lutlibK; fpga\")\n" );
+    fprintf( pErr, "\t-K num : the number of LUT inputs [default = %d]\n", nLutSize );
+    fprintf( pErr, "\t-N num : the max size of the cut [default = %d]\n", nCutSizeMax );
+    fprintf( pErr, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     char Buffer[100];
+    char LutSize[100];
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
     int c;
     int fRecovery;
     int fSwitching;
     int fVerbose;
+    int nLutSize;
     float DelayTarget;
 
     extern Abc_Ntk_t * Abc_NtkFpga( Abc_Ntk_t * pNtk, float DelayTarget, int fRecovery, int fSwitching, int fVerbose );
@@ -5516,8 +5624,9 @@ int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
     fSwitching  = 0;
     fVerbose    = 0;
     DelayTarget =-1;
+    nLutSize    =-1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "apvhD" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "apvhDK" ) ) != EOF )
     {
         switch ( c )
         {
@@ -5543,6 +5652,17 @@ int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( DelayTarget <= 0.0 ) 
                 goto usage;
             break;
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-K\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nLutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLutSize < 0 ) 
+                goto usage;
+            break;
         default:
             goto usage;
         }
@@ -5559,6 +5679,10 @@ int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Cannot FPGA map a sequential AIG.\n" );
         return 1;
     }
+
+    // create the new LUT library
+    if ( nLutSize >= 3 && nLutSize <= 6 )
+        Fpga_SetSimpleLutLib( nLutSize );
 
     if ( !Abc_NtkIsStrash(pNtk) )
     {
@@ -5606,13 +5730,18 @@ usage:
         sprintf( Buffer, "not used" );
     else
         sprintf( Buffer, "%.2f", DelayTarget );
-    fprintf( pErr, "usage: fpga [-D float] [-apvh]\n" );
-    fprintf( pErr, "\t        performs FPGA mapping of the current network\n" );
-    fprintf( pErr, "\t-a    : toggles area recovery [default = %s]\n", fRecovery? "yes": "no" );
-    fprintf( pErr, "\t-p    : optimizes power by minimizing switching activity [default = %s]\n", fSwitching? "yes": "no" );
-    fprintf( pErr, "\t-D    : sets the required time for the mapping [default = %s]\n", Buffer );  
-    fprintf( pErr, "\t-v    : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
-    fprintf( pErr, "\t-h    : prints the command usage\n");
+    if ( nLutSize == -1 ) 
+        sprintf( LutSize, "library" );
+    else
+        sprintf( LutSize, "%d", nLutSize );
+    fprintf( pErr, "usage: fpga [-D float] [-K num] [-apvh]\n" );
+    fprintf( pErr, "\t           performs FPGA mapping of the current network\n" );
+    fprintf( pErr, "\t-a       : toggles area recovery [default = %s]\n", fRecovery? "yes": "no" );
+    fprintf( pErr, "\t-p       : optimizes power by minimizing switching activity [default = %s]\n", fSwitching? "yes": "no" );
+    fprintf( pErr, "\t-D float : sets the required time for the mapping [default = %s]\n", Buffer );  
+    fprintf( pErr, "\t-K num   : the number of LUT inputs [default = %s]%s\n", LutSize, (nLutSize == -1 ? " (type \"print_lut\")" : "") );
+    fprintf( pErr, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h       : prints the command usage\n");
     return 1;
 }
 

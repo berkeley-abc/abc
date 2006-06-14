@@ -85,7 +85,9 @@ Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk )
 
 //    Ivy_MffcTest( pMan );
     Ivy_ManPrintStats( pMan );
-    Ivy_ManSeqRewrite( pMan, 0, 0 );
+//    Ivy_ManSeqRewrite( pMan, 0, 0 );
+//    Ivy_ManTestCutsAlg( pMan );
+    Ivy_ManTestCutsBool( pMan );
     Ivy_ManPrintStats( pMan );
 
     // convert from the AIG manager

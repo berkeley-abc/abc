@@ -515,6 +515,7 @@ extern Abc_Ntk_t *        Abc_NtkFrames( Abc_Ntk_t * pNtk, int nFrames, int fIni
 /*=== abcObj.c ==========================================================*/
 extern Abc_Obj_t *        Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj );
 extern void               Abc_NtkDeleteObj( Abc_Obj_t * pObj );
+extern void               Abc_NtkDeleteObj_rec( Abc_Obj_t * pObj );
 extern Abc_Obj_t *        Abc_NtkFindNode( Abc_Ntk_t * pNtk, char * pName );
 extern Abc_Obj_t *        Abc_NtkFindCo( Abc_Ntk_t * pNtk, char * pName );
 extern Abc_Obj_t *        Abc_NtkFindNet( Abc_Ntk_t * pNtk, char * pName );
@@ -598,6 +599,7 @@ extern int                Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pParams 
 extern Abc_ManCut_t *     Abc_NtkManCutStart( int nNodeSizeMax, int nConeSizeMax, int nNodeFanStop, int nConeFanStop );
 extern void               Abc_NtkManCutStop( Abc_ManCut_t * p );
 extern Vec_Ptr_t *        Abc_NtkManCutReadCutLarge( Abc_ManCut_t * p );
+extern Vec_Ptr_t *        Abc_NtkManCutReadCutSmall( Abc_ManCut_t * p );
 extern Vec_Ptr_t *        Abc_NtkManCutReadVisited( Abc_ManCut_t * p );
 extern Vec_Ptr_t *        Abc_NodeFindCut( Abc_ManCut_t * p, Abc_Obj_t * pRoot, bool fContain );
 extern void               Abc_NodeConeCollect( Abc_Obj_t ** ppRoots, int nRoots, Vec_Ptr_t * vFanins, Vec_Ptr_t * vVisited, int fIncludeFanins );

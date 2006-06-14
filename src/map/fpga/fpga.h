@@ -156,6 +156,8 @@ extern int             Fpga_CutVolume( Fpga_Cut_t * pCut );
 extern int             Fpga_ManCheckConsistency( Fpga_Man_t * p );
 extern void            Fpga_ManCleanData0( Fpga_Man_t * pMan );
 extern Fpga_NodeVec_t * Fpga_CollectNodeTfo( Fpga_Man_t * pMan, Fpga_Node_t * pNode );
+/*=== fpga.c =============================================================*/
+extern void            Fpga_SetSimpleLutLib( int nLutSize );
 
 #ifdef __cplusplus
 }

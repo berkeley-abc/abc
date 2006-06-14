@@ -417,11 +417,39 @@ static inline int Extra_TruthIsEqual( unsigned * pIn0, unsigned * pIn1, int nVar
             return 0;
     return 1;
 }
+static inline int Extra_TruthIsConst0( unsigned * pIn, int nVars )
+{
+    int w;
+    for ( w = Extra_TruthWordNum(nVars)-1; w >= 0; w-- )
+        if ( pIn[w] )
+            return 0;
+    return 1;
+}
+static inline int Extra_TruthIsConst1( unsigned * pIn, int nVars )
+{
+    int w;
+    for ( w = Extra_TruthWordNum(nVars)-1; w >= 0; w-- )
+        if ( pIn[w] != ~(unsigned)0 )
+            return 0;
+    return 1;
+}
 static inline void Extra_TruthCopy( unsigned * pOut, unsigned * pIn, int nVars )
 {
     int w;
     for ( w = Extra_TruthWordNum(nVars)-1; w >= 0; w-- )
         pOut[w] = pIn[w];
+}
+static inline void Extra_TruthClear( unsigned * pOut, int nVars )
+{
+    int w;
+    for ( w = Extra_TruthWordNum(nVars)-1; w >= 0; w-- )
+        pOut[w] = 0;
+}
+static inline void Extra_TruthFill( unsigned * pOut, int nVars )
+{
+    int w;
+    for ( w = Extra_TruthWordNum(nVars)-1; w >= 0; w-- )
+        pOut[w] = ~(unsigned)0;
 }
 static inline void Extra_TruthNot( unsigned * pOut, unsigned * pIn, int nVars )
 {
@@ -434,6 +462,18 @@ static inline void Extra_TruthAnd( unsigned * pOut, unsigned * pIn0, unsigned * 
     int w;
     for ( w = Extra_TruthWordNum(nVars)-1; w >= 0; w-- )
         pOut[w] = pIn0[w] & pIn1[w];
+}
+static inline void Extra_TruthOr( unsigned * pOut, unsigned * pIn0, unsigned * pIn1, int nVars )
+{
+    int w;
+    for ( w = Extra_TruthWordNum(nVars)-1; w >= 0; w-- )
+        pOut[w] = pIn0[w] | pIn1[w];
+}
+static inline void Extra_TruthSharp( unsigned * pOut, unsigned * pIn0, unsigned * pIn1, int nVars )
+{
+    int w;
+    for ( w = Extra_TruthWordNum(nVars)-1; w >= 0; w-- )
+        pOut[w] = pIn0[w] & ~pIn1[w];
 }
 static inline void Extra_TruthNand( unsigned * pOut, unsigned * pIn0, unsigned * pIn1, int nVars )
 {

@@ -135,18 +135,18 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
     }
 */
 
-/*
+
     // print the statistic into a file
     {
         FILE * pTable;
-        pTable = fopen( "stats.txt", "a+" );
+        pTable = fopen( "fpga_stats.txt", "a+" );
         fprintf( pTable, "%s ",  pNtk->pName );
         fprintf( pTable, "%d ", Abc_NtkNodeNum(pNtk) );
         fprintf( pTable, "%d ", Abc_AigGetLevelNum(pNtk) );
         fprintf( pTable, "\n" );
         fclose( pTable );
     }
-*/
+
 /*
     // print the statistic into a file
     {

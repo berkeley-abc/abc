@@ -5,6 +5,7 @@ SRC +=    src/temp/ivy/ivyBalance.c \
     src/temp/ivy/ivyDfs.c \
     src/temp/ivy/ivyDsd.c \
     src/temp/ivy/ivyMan.c \
+    src/temp/ivy/ivyMulti.c \
     src/temp/ivy/ivyObj.c \
     src/temp/ivy/ivyOper.c \
     src/temp/ivy/ivyRewrite.c \

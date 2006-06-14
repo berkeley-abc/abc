@@ -184,8 +184,8 @@ void Extra_TruthSwapAdjacentVars2( unsigned * pIn, unsigned * pOut, int nVars, i
   Synopsis    [Expands the truth table according to the phase.]
 
   Description [The input and output truth tables are in pIn/pOut. The current number
-  of variables is nVars. The total number of variables in nVarsAll. The last variable
-  (Phase) contains shows how the variables should be moved.]
+  of variables is nVars. The total number of variables in nVarsAll. The last argument
+  (Phase) contains shows where the variables should go.]
                
   SideEffects []
 
@@ -218,8 +218,8 @@ void Extra_TruthStretch( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAl
   Synopsis    [Shrinks the truth table according to the phase.]
 
   Description [The input and output truth tables are in pIn/pOut. The current number
-  of variables is nVars. The total number of variables in nVarsAll. The last variable
-  (Phase) contains shows how the variables should be moved.]
+  of variables is nVars. The total number of variables in nVarsAll. The last argument
+  (Phase) contains shows what variables should remain.]
                
   SideEffects []
 

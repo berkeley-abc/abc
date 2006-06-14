@@ -321,7 +321,8 @@ int Abc_NodeBuildCutLevelOne_int( Vec_Ptr_t * vVisited, Vec_Ptr_t * vLeaves, int
     {
         CostCur = Abc_NodeGetLeafCostOne( pNode, nFaninLimit );
 //printf( "    Fanin %s has cost %d.\n", Abc_ObjName(pNode), CostCur );
-        if ( CostBest > CostCur )
+        if ( CostBest > CostCur ||
+             (CostBest == CostCur && pNode->Level > pFaninBest->Level) )
         {
             CostBest   = CostCur;
             pFaninBest = pNode;
@@ -630,6 +631,22 @@ void Abc_NtkManCutStop( Abc_ManCut_t * p )
 Vec_Ptr_t * Abc_NtkManCutReadCutLarge( Abc_ManCut_t * p )
 {
     return p->vConeLeaves;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the leaves of the cone.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_NtkManCutReadCutSmall( Abc_ManCut_t * p )
+{
+    return p->vNodeLeaves;
 }
 
 /**Function*************************************************************
