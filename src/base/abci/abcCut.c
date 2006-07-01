@@ -110,7 +110,7 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
     Vec_PtrFree( vNodes );
     Vec_IntFree( vChoices );
 PRT( "Total", clock() - clk );
-//Abc_NtkPrintCuts_( p, pNtk, 0 );
+//Abc_NtkPrintCuts( p, pNtk, 0 );
 //    Cut_ManPrintStatsToFile( p, pNtk->pSpec, clock() - clk );
 
     // temporary printout of stats

@@ -309,7 +309,7 @@ void Pla_ManComputeStats( Ivy_Man_t * p, Vec_Int_t * vNodes )
         vFanins = Ivy_ObjGetFanins( pObj );
         Vec_IntForEachEntry( vFanins, Fanin, k )
         {
-            pFanin = Ivy_ManObj(p, Ivy_FanId(Fanin));
+            pFanin = Ivy_ManObj(p, Ivy_EdgeId(Fanin));
             pObj->Level = IVY_MAX( pObj->Level, pFanin->Level );
         }
         pObj->Level += 1;
@@ -335,7 +335,7 @@ void Pla_ManComputeStats( Ivy_Man_t * p, Vec_Int_t * vNodes )
     Ivy_ManForEachPo( p, pObj, i )
     {
         Fanin = Ivy_ObjReadFanin(pObj, 0);
-        pFanin = Ivy_ManObj( p, Ivy_FanId(Fanin) );
+        pFanin = Ivy_ManObj( p, Ivy_EdgeId(Fanin) );
         pObj->Level = pFanin->Level;
         Delay = IVY_MAX( Delay, (int)pObj->Level );
     }

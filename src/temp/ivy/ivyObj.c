@@ -51,6 +51,7 @@ Ivy_Obj_t * Ivy_ObjCreate( Ivy_Obj_t * pGhost )
     // realloc the node array
     if ( p->ObjIdNext == p->nObjsAlloc )
     {
+        printf( "AIG manager is being resized. In the current release, it is not allowed!\n" );
         Ivy_ManGrow( p );
         pGhost = Ivy_ManGhost( p );
     }

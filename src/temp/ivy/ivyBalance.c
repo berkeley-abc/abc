@@ -17,32 +17,18 @@
   Revision    [$Id: ivyBalance.c,v 1.00 2006/05/11 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
-
+ 
 #include "ivy.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static void Ivy_NodeBalance( Ivy_Obj_t * pNode, int fUpdateLevel, Vec_Ptr_t * vFront, Vec_Ptr_t * vSpots );
-
-// this procedure returns 1 if the node cannot be expanded
-static inline int Ivy_NodeStopFanin( Ivy_Obj_t * pNode, int iFanin )
-{
-    if ( iFanin == 0 )
-        return Ivy_ObjFanin0(pNode)->Type != pNode->Type || Ivy_ObjRefs(Ivy_ObjFanin0(pNode)) > 1 || Ivy_ObjFaninC0(pNode);
-    else
-        return Ivy_ObjFanin1(pNode)->Type != pNode->Type || Ivy_ObjRefs(Ivy_ObjFanin1(pNode)) > 1 || Ivy_ObjFaninC1(pNode);
-}
-
-// this procedure returns 1 if the node cannot be recursively dereferenced
-static inline int Ivy_NodeBalanceDerefFanin( Ivy_Obj_t * pNode, int iFanin )
-{
-    if ( iFanin == 0 )
-        return Ivy_ObjFanin0(pNode)->Type == pNode->Type && Ivy_ObjRefs(Ivy_ObjFanin0(pNode)) == 0 && !Ivy_ObjFaninC0(pNode);
-    else
-        return Ivy_ObjFanin1(pNode)->Type == pNode->Type && Ivy_ObjRefs(Ivy_ObjFanin1(pNode)) == 0 && !Ivy_ObjFaninC1(pNode);
-}
+static int         Ivy_NodeBalance_rec( Ivy_Man_t * pNew, Ivy_Obj_t * pObj, Vec_Vec_t * vStore, int Level, int fUpdateLevel );
+static Vec_Ptr_t * Ivy_NodeBalanceCone( Ivy_Obj_t * pObj, Vec_Vec_t * vStore, int Level );
+static int         Ivy_NodeBalanceFindLeft( Vec_Ptr_t * vSuper );
+static void        Ivy_NodeBalancePermute( Vec_Ptr_t * vSuper, int LeftBound, int fExor );
+static void        Ivy_NodeBalancePushUniqueOrderByLevel( Vec_Ptr_t * vStore, Ivy_Obj_t * pObj );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -59,44 +45,41 @@ static inline int Ivy_NodeBalanceDerefFanin( Ivy_Obj_t * pNode, int iFanin )
   SeeAlso     []
 
 ***********************************************************************/
-int Ivy_ManBalance( Ivy_Man_t * p, int fUpdateLevel )
+Ivy_Man_t * Ivy_ManBalance( Ivy_Man_t * p, int fUpdateLevel )
 {
-    Vec_Int_t * vNodes;
-    Vec_Ptr_t * vFront, * vSpots;
-    Ivy_Obj_t * pNode;
-    int i;
-    vSpots = Vec_PtrAlloc( 50 );
-    vFront = Vec_PtrAlloc( 50 );
-    vNodes = Ivy_ManDfs( p );
-    Ivy_ManForEachNodeVec( p, vNodes, pNode, i )
+    Ivy_Man_t * pNew;
+    Ivy_Obj_t * pObj, * pDriver;
+    Vec_Vec_t * vStore;
+    int i, NewNodeId;
+    // clean the old manager
+    Ivy_ManCleanTravId( p );
+    // create the new manager 
+    pNew = Ivy_ManStart( Ivy_ManPiNum(p), Ivy_ManPoNum(p), Ivy_ManNodeNum(p) + 20000 );
+    // map the nodes
+    Ivy_ManConst1(p)->TravId = Ivy_EdgeFromNode( Ivy_ManConst1(pNew) );
+    Ivy_ManForEachPi( p, pObj, i )
+        pObj->TravId = Ivy_EdgeFromNode( Ivy_ManPi(pNew, i) );
+    // balance the AIG
+    vStore = Vec_VecAlloc( 50 );
+    Ivy_ManForEachPo( p, pObj, i )
     {
-        if ( Ivy_ObjIsBuf(pNode) )
-            continue;
-        // fix the fanin buffer problem
-        Ivy_NodeFixBufferFanins( pNode );
-        // skip node if it became a buffer
-        if ( Ivy_ObjIsBuf(pNode) )
-            continue;
-        // skip nodes with one fanout if type of the node is the same as type of the fanout
-        // such nodes will be processed when the fanouts are processed
-        if ( Ivy_ObjRefs(pNode) == 1 && Ivy_ObjIsExor(pNode) == Ivy_ObjExorFanout(pNode) )
-            continue;
-        assert( Ivy_ObjRefs(pNode) > 0 );
-        // do not balance the node if both if its fanins have more than one fanout
-        if ( Ivy_NodeStopFanin(pNode, 0) && Ivy_NodeStopFanin(pNode, 1) )
-             continue;
-        // try balancing this node
-        Ivy_NodeBalance( pNode, fUpdateLevel, vFront, vSpots );
+        pDriver   = Ivy_ObjReal( Ivy_ObjChild0(pObj) );
+        NewNodeId = Ivy_NodeBalance_rec( pNew, Ivy_Regular(pDriver), vStore, 0, fUpdateLevel );
+        NewNodeId = Ivy_EdgeNotCond( NewNodeId, Ivy_IsComplement(pDriver) );
+        Ivy_ObjConnect( Ivy_ManPo(pNew, i), Ivy_EdgeToNode(pNew, NewNodeId) );
     }
-    Vec_IntFree( vNodes );
-    Vec_PtrFree( vSpots );
-    Vec_PtrFree( vFront );
-    return 1;
+    Vec_VecFree( vStore );
+    if ( i = Ivy_ManCleanup( pNew ) )
+        printf( "Cleanup after balancing removed %d dangling nodes.\n", i );
+    // check the resulting AIG
+    if ( !Ivy_ManCheck(pNew) )
+        printf( "Ivy_ManBalance(): The check has failed.\n" );
+    return pNew;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Dereferences MFFC of the node.]
+  Synopsis    [Procedure used for sorting the nodes in decreasing order of levels.]
 
   Description []
                
@@ -105,152 +88,177 @@ int Ivy_ManBalance( Ivy_Man_t * p, int fUpdateLevel )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_NodeBalanceDeref_rec( Ivy_Obj_t * pNode )
+int Ivy_NodeCompareLevelsDecrease( Ivy_Obj_t ** pp1, Ivy_Obj_t ** pp2 )
 {
-    Ivy_Obj_t * pFan;
-    // deref the first fanin
-    pFan = Ivy_ObjFanin0(pNode);
-    Ivy_ObjRefsDec( pFan );
-    if ( Ivy_NodeBalanceDerefFanin(pNode, 0) )
-        Ivy_NodeBalanceDeref_rec( pFan );
-    // deref the second fanin
-    pFan = Ivy_ObjFanin1(pNode);
-    Ivy_ObjRefsDec( pFan );
-    if ( Ivy_NodeBalanceDerefFanin(pNode, 1) )
-        Ivy_NodeBalanceDeref_rec( pFan );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Removes nodes inside supergate and determines frontier.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ivy_NodeBalanceCollect_rec( Ivy_Obj_t * pNode, Vec_Ptr_t * vSpots, Vec_Ptr_t * vFront )
-{
-    Ivy_Obj_t * pFanin;
-    // skip visited nodes
-    if ( Vec_PtrFind(vSpots, pNode) >= 0 )
-        return;
-    // collect node
-    Vec_PtrPush( vSpots, pNode );
-    // first fanin
-    pFanin = Ivy_ObjFanin0(pNode);
-    if ( Ivy_ObjRefs(pFanin) == 0 )
-        Ivy_NodeBalanceCollect_rec( pFanin, vSpots, vFront );
-    else if ( Ivy_ObjIsExor(pNode) && Vec_PtrFind(vFront, Ivy_ObjChild0(pNode)) >= 0 )
-        Vec_PtrRemove( vFront, Ivy_ObjChild0(pNode) );
-    else
-        Vec_PtrPushUnique( vFront, Ivy_ObjChild0(pNode) );
-    // second fanin
-    pFanin = Ivy_ObjFanin1(pNode);
-    if ( Ivy_ObjRefs(pFanin) == 0 )
-        Ivy_NodeBalanceCollect_rec( pFanin, vSpots, vFront );
-    else if ( Ivy_ObjIsExor(pNode) && Vec_PtrFind(vFront, Ivy_ObjChild1(pNode)) >= 0 )
-        Vec_PtrRemove( vFront, Ivy_ObjChild1(pNode) );
-    else
-        Vec_PtrPushUnique( vFront, Ivy_ObjChild1(pNode) );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Comparison procedure for two nodes by level.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ivy_BalanceCompareByLevel( Ivy_Obj_t ** pp1, Ivy_Obj_t ** pp2 )
-{
-    int Level1 = Ivy_ObjLevel( *pp1 );
-    int Level2 = Ivy_ObjLevel( *pp2 );
-    if ( Level1 > Level2 )
+    int Diff = Ivy_Regular(*pp1)->Level - Ivy_Regular(*pp2)->Level;
+    if ( Diff > 0 )
         return -1;
-    if ( Level1 < Level2 )
+    if ( Diff < 0 ) 
         return 1;
-    return 0;
+    return 0; 
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Removes nodes inside supergate and determines frontier.]
+  Synopsis    [Returns the ID of new node constructed.]
 
-  Description [Return 1 if the output needs to be complemented.]
+  Description []
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-int Ivy_NodeBalancePrepare( Ivy_Obj_t * pNode, Vec_Ptr_t * vFront, Vec_Ptr_t * vSpots )
+int Ivy_NodeBalance_rec( Ivy_Man_t * pNew, Ivy_Obj_t * pObjOld, Vec_Vec_t * vStore, int Level, int fUpdateLevel )
 {
-    Ivy_Man_t * pMan = Ivy_ObjMan( pNode );
-    Ivy_Obj_t * pObj, * pNext;
-    int i, k, Counter = 0;
-    // dereference the cone
-    Ivy_NodeBalanceDeref_rec( pNode );
-    // collect the frontier and the internal nodes
-    Vec_PtrClear( vFront );
-    Vec_PtrClear( vSpots );
-    Ivy_NodeBalanceCollect_rec( pNode, vSpots, vFront );
-    // remove all the nodes
-    Vec_PtrForEachEntry( vSpots, pObj, i )
-    {
-        // skip the first entry (the node itself)
-        if ( i == 0 ) continue;
-        // collect the free entries
-        Vec_IntPush( pMan->vFree, pObj->Id );
-        Ivy_ObjDelete( pObj, 1 );
+    Ivy_Obj_t * pObjNew;
+    Vec_Ptr_t * vSuper;
+    int i, NewNodeId;
+    assert( !Ivy_IsComplement(pObjOld) );
+    assert( !Ivy_ObjIsBuf(pObjOld) );
+    // return if the result is known
+    if ( Ivy_ObjIsConst1(pObjOld) )
+        return pObjOld->TravId;
+    if ( pObjOld->TravId )
+        return pObjOld->TravId;
+    assert( Ivy_ObjIsNode(pObjOld) );
+    // get the implication supergate
+    vSuper = Ivy_NodeBalanceCone( pObjOld, vStore, Level );
+    if ( vSuper->nSize == 0 )
+    { // it means that the supergate contains two nodes in the opposite polarity
+        pObjOld->TravId = Ivy_EdgeFromNode( Ivy_ManConst0(pNew) );
+        return pObjOld->TravId;
     }
-    // sort nodes by level in decreasing order
-    qsort( (void *)Vec_PtrArray(vFront), Vec_PtrSize(vFront), sizeof(Ivy_Obj_t *), 
-            (int (*)(const void *, const void *))Ivy_BalanceCompareByLevel );
-    // check if there are nodes and their complements
-    Counter = 0;
-    Vec_PtrForEachEntry( vFront, pObj, i )
+    if ( vSuper->nSize < 2 )
+        printf( "BUG!\n" );
+    // for each old node, derive the new well-balanced node
+    for ( i = 0; i < vSuper->nSize; i++ )
     {
-        if ( i == Vec_PtrSize(vFront) - 1 )
-            break;
-        pNext = Vec_PtrEntry( vFront, i+1 );
-        if ( Ivy_Regular(pObj) == Ivy_Regular(pNext) )
-        {
-            assert( pObj == Ivy_Not(pNext) );
-            Vec_PtrWriteEntry( vFront, i, NULL );
-            Vec_PtrWriteEntry( vFront, i+1, NULL );
-            i++;
-            Counter++;
-        }
+        NewNodeId = Ivy_NodeBalance_rec( pNew, Ivy_Regular(vSuper->pArray[i]), vStore, Level + 1, fUpdateLevel );
+        NewNodeId = Ivy_EdgeNotCond( NewNodeId, Ivy_IsComplement(vSuper->pArray[i]) );
+        vSuper->pArray[i] = Ivy_EdgeToNode( pNew, NewNodeId );
     }
-    // if there are no complemented pairs, go ahead and balance
-    if ( Counter == 0 )
+    // build the supergate
+    pObjNew = Ivy_NodeBalanceBuildSuper( vSuper, Ivy_ObjType(pObjOld), fUpdateLevel );
+    vSuper->nSize = 0;
+    // make sure the balanced node is not assigned
+    assert( pObjOld->TravId == 0 );
+    pObjOld->TravId = Ivy_EdgeFromNode( pObjNew );
+    return pObjOld->TravId;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Builds implication supergate.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ivy_Obj_t * Ivy_NodeBalanceBuildSuper( Vec_Ptr_t * vSuper, Ivy_Type_t Type, int fUpdateLevel )
+{
+    Ivy_Obj_t * pObj1, * pObj2;
+    int LeftBound;
+    assert( vSuper->nSize > 1 );
+    // sort the new nodes by level in the decreasing order
+    Vec_PtrSort( vSuper, Ivy_NodeCompareLevelsDecrease );
+    // balance the nodes
+    while ( vSuper->nSize > 1 )
+    {
+        // find the left bound on the node to be paired
+        LeftBound = (!fUpdateLevel)? 0 : Ivy_NodeBalanceFindLeft( vSuper );
+        // find the node that can be shared (if no such node, randomize choice)
+        Ivy_NodeBalancePermute( vSuper, LeftBound, Type == IVY_EXOR );
+        // pull out the last two nodes
+        pObj1 = Vec_PtrPop(vSuper);
+        pObj2 = Vec_PtrPop(vSuper);
+        Ivy_NodeBalancePushUniqueOrderByLevel( vSuper, Ivy_Oper(pObj1, pObj2, Type) );
+    }
+    return Vec_PtrEntry(vSuper, 0);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects the nodes of the supergate.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_NodeBalanceCone_rec( Ivy_Obj_t * pRoot, Ivy_Obj_t * pObj, Vec_Ptr_t * vSuper )
+{
+    int RetValue1, RetValue2, i;
+    // check if the node is visited
+    if ( Ivy_Regular(pObj)->fMarkB )
+    {
+        // check if the node occurs in the same polarity
+        for ( i = 0; i < vSuper->nSize; i++ )
+            if ( vSuper->pArray[i] == pObj )
+                return 1;
+        // check if the node is present in the opposite polarity
+        for ( i = 0; i < vSuper->nSize; i++ )
+            if ( vSuper->pArray[i] == Ivy_Not(pObj) )
+                return -1;
+        assert( 0 );
         return 0;
-    // if there are complemented pairs and this is AND, create const 0
-    if ( Counter > 0 && Ivy_ObjIsAnd(pNode) )
+    }
+    // if the new node is complemented or a PI, another gate begins
+    if ( pObj != pRoot && (Ivy_IsComplement(pObj) || Ivy_ObjType(pObj) != Ivy_ObjType(pRoot) || Ivy_ObjRefs(pObj) > 1) )
     {
-        Vec_PtrClear( vFront );
-        Vec_PtrPush( vFront, Ivy_ManConst0(pMan) );
+        Vec_PtrPush( vSuper, pObj );
+        Ivy_Regular(pObj)->fMarkB = 1;
         return 0;
     }
-    assert( Counter > 0 && Ivy_ObjIsExor(pNode) );
-    // remove the pairs
-    k = 0;
-    Vec_PtrForEachEntry( vFront, pObj, i )
-        if ( pObj ) 
-            Vec_PtrWriteEntry( vFront, k++, pObj );
-    Vec_PtrShrink( vFront, k );
-    // add constant zero node if nothing is left
-    if ( Vec_PtrSize(vFront) == 0 )
-        Vec_PtrPush( vFront, Ivy_ManConst0(pMan) );
-    // return 1 if the number of pairs is odd (need to complement the output)
-    return Counter & 1;
+    assert( !Ivy_IsComplement(pObj) );
+    assert( Ivy_ObjIsNode(pObj) );
+    // go through the branches
+    RetValue1 = Ivy_NodeBalanceCone_rec( pRoot, Ivy_ObjReal( Ivy_ObjChild0(pObj) ), vSuper );
+    RetValue2 = Ivy_NodeBalanceCone_rec( pRoot, Ivy_ObjReal( Ivy_ObjChild1(pObj) ), vSuper );
+    if ( RetValue1 == -1 || RetValue2 == -1 )
+        return -1;
+    // return 1 if at least one branch has a duplicate
+    return RetValue1 || RetValue2;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects the nodes of the supergate.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Ivy_NodeBalanceCone( Ivy_Obj_t * pObj, Vec_Vec_t * vStore, int Level )
+{
+    Vec_Ptr_t * vNodes;
+    int RetValue, i;
+    assert( !Ivy_IsComplement(pObj) );
+    // extend the storage
+    if ( Vec_VecSize( vStore ) <= Level )
+        Vec_VecPush( vStore, Level, 0 );
+    // get the temporary array of nodes
+    vNodes = Vec_VecEntry( vStore, Level );
+    Vec_PtrClear( vNodes );
+    // collect the nodes in the implication supergate
+    RetValue = Ivy_NodeBalanceCone_rec( pObj, pObj, vNodes );
+    assert( vNodes->nSize > 1 );
+    // unmark the visited nodes
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+        Ivy_Regular(pObj)->fMarkB = 0;
+    // if we found the node and its complement in the same implication supergate, 
+    // return empty set of nodes (meaning that we should use constant-0 node)
+    if ( RetValue == -1 )
+        vNodes->nSize = 0;
+    return vNodes;
 }
 
 /**Function*************************************************************
@@ -270,27 +278,27 @@ int Ivy_NodeBalancePrepare( Ivy_Obj_t * pNode, Vec_Ptr_t * vFront, Vec_Ptr_t * v
 ***********************************************************************/
 int Ivy_NodeBalanceFindLeft( Vec_Ptr_t * vSuper )
 {
-    Ivy_Obj_t * pNodeRight, * pNodeLeft;
+    Ivy_Obj_t * pObjRight, * pObjLeft;
     int Current;
     // if two or less nodes, pair with the first
     if ( Vec_PtrSize(vSuper) < 3 )
         return 0;
     // set the pointer to the one before the last
     Current = Vec_PtrSize(vSuper) - 2;
-    pNodeRight = Vec_PtrEntry( vSuper, Current );
+    pObjRight = Vec_PtrEntry( vSuper, Current );
     // go through the nodes to the left of this one
     for ( Current--; Current >= 0; Current-- )
     {
         // get the next node on the left
-        pNodeLeft = Vec_PtrEntry( vSuper, Current );
+        pObjLeft = Vec_PtrEntry( vSuper, Current );
         // if the level of this node is different, quit the loop
-        if ( Ivy_Regular(pNodeLeft)->Level != Ivy_Regular(pNodeRight)->Level )
+        if ( Ivy_Regular(pObjLeft)->Level != Ivy_Regular(pObjRight)->Level )
             break;
     }
     Current++;    
     // get the node, for which the equality holds
-    pNodeLeft = Vec_PtrEntry( vSuper, Current );
-    assert( Ivy_Regular(pNodeLeft)->Level == Ivy_Regular(pNodeRight)->Level );
+    pObjLeft = Vec_PtrEntry( vSuper, Current );
+    assert( Ivy_Regular(pObjLeft)->Level == Ivy_Regular(pObjRight)->Level );
     return Current;
 }
 
@@ -306,9 +314,9 @@ int Ivy_NodeBalanceFindLeft( Vec_Ptr_t * vSuper )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_NodeBalancePermute( Ivy_Man_t * pMan, Vec_Ptr_t * vSuper, int LeftBound, int fExor )
+void Ivy_NodeBalancePermute( Vec_Ptr_t * vSuper, int LeftBound, int fExor )
 {
-    Ivy_Obj_t * pNode1, * pNode2, * pNode3, * pGhost;
+    Ivy_Obj_t * pObj1, * pObj2, * pObj3, * pGhost;
     int RightBound, i;
     // get the right bound
     RightBound = Vec_PtrSize(vSuper) - 2;
@@ -316,19 +324,19 @@ void Ivy_NodeBalancePermute( Ivy_Man_t * pMan, Vec_Ptr_t * vSuper, int LeftBound
     if ( LeftBound == RightBound )
         return;
     // get the two last nodes
-    pNode1 = Vec_PtrEntry( vSuper, RightBound + 1 );
-    pNode2 = Vec_PtrEntry( vSuper, RightBound     );
+    pObj1 = Vec_PtrEntry( vSuper, RightBound + 1 );
+    pObj2 = Vec_PtrEntry( vSuper, RightBound     );
     // find the first node that can be shared
     for ( i = RightBound; i >= LeftBound; i-- )
     {
-        pNode3 = Vec_PtrEntry( vSuper, i );
-        pGhost = Ivy_ObjCreateGhost( pNode1, pNode3, fExor? IVY_EXOR : IVY_AND, IVY_INIT_NONE );
+        pObj3 = Vec_PtrEntry( vSuper, i );
+        pGhost = Ivy_ObjCreateGhost( pObj1, pObj3, fExor? IVY_EXOR : IVY_AND, IVY_INIT_NONE );
         if ( Ivy_TableLookup( pGhost ) )
         {
-            if ( pNode3 == pNode2 )
+            if ( pObj3 == pObj2 )
                 return;
-            Vec_PtrWriteEntry( vSuper, i,          pNode2 );
-            Vec_PtrWriteEntry( vSuper, RightBound, pNode3 );
+            Vec_PtrWriteEntry( vSuper, i,          pObj2 );
+            Vec_PtrWriteEntry( vSuper, RightBound, pObj3 );
             return;
         }
     }
@@ -336,11 +344,11 @@ void Ivy_NodeBalancePermute( Ivy_Man_t * pMan, Vec_Ptr_t * vSuper, int LeftBound
     // we did not find the node to share, randomize choice
     {
         int Choice = rand() % (RightBound - LeftBound + 1);
-        pNode3 = Vec_PtrEntry( vSuper, LeftBound + Choice );
-        if ( pNode3 == pNode2 )
+        pObj3 = Vec_PtrEntry( vSuper, LeftBound + Choice );
+        if ( pObj3 == pObj2 )
             return;
-        Vec_PtrWriteEntry( vSuper, LeftBound + Choice, pNode2 );
-        Vec_PtrWriteEntry( vSuper, RightBound,         pNode3 );
+        Vec_PtrWriteEntry( vSuper, LeftBound + Choice, pObj2 );
+        Vec_PtrWriteEntry( vSuper, RightBound,         pObj3 );
     }
 */
 }
@@ -356,61 +364,22 @@ void Ivy_NodeBalancePermute( Ivy_Man_t * pMan, Vec_Ptr_t * vSuper, int LeftBound
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_NodeBalancePushUniqueOrderByLevel( Vec_Ptr_t * vFront, Ivy_Obj_t * pNode )
+void Ivy_NodeBalancePushUniqueOrderByLevel( Vec_Ptr_t * vStore, Ivy_Obj_t * pObj )
 {
-    Ivy_Obj_t * pNode1, * pNode2;
+    Ivy_Obj_t * pObj1, * pObj2;
     int i;
-    if ( Vec_PtrPushUnique(vFront, pNode) )
+    if ( Vec_PtrPushUnique(vStore, pObj) )
         return;
     // find the p of the node
-    for ( i = vFront->nSize-1; i > 0; i-- )
+    for ( i = vStore->nSize-1; i > 0; i-- )
     {
-        pNode1 = vFront->pArray[i  ];
-        pNode2 = vFront->pArray[i-1];
-        if ( Ivy_Regular(pNode1)->Level <= Ivy_Regular(pNode2)->Level )
+        pObj1 = vStore->pArray[i  ];
+        pObj2 = vStore->pArray[i-1];
+        if ( Ivy_Regular(pObj1)->Level <= Ivy_Regular(pObj2)->Level )
             break;
-        vFront->pArray[i  ] = pNode2;
-        vFront->pArray[i-1] = pNode1;
+        vStore->pArray[i  ] = pObj2;
+        vStore->pArray[i-1] = pObj1;
     }
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Balances one node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ivy_NodeBalance( Ivy_Obj_t * pNode, int fUpdateLevel, Vec_Ptr_t * vFront, Vec_Ptr_t * vSpots )
-{
-    Ivy_Man_t * pMan = Ivy_ObjMan( pNode );
-    Ivy_Obj_t * pFan0, * pFan1, * pNodeNew;
-    int fCompl, LeftBound;
-    // remove internal nodes and derive the frontier
-    fCompl = Ivy_NodeBalancePrepare( pNode, vFront, vSpots );
-    assert( Vec_PtrSize(vFront) > 0 );
-    // balance the nodes
-    while ( Vec_PtrSize(vFront) > 1 )
-    {
-        // find the left bound on the node to be paired
-        LeftBound = (!fUpdateLevel)? 0 : Ivy_NodeBalanceFindLeft( vFront );
-        // find the node that can be shared (if no such node, randomize choice)
-        Ivy_NodeBalancePermute( pMan, vFront, LeftBound, Ivy_ObjIsExor(pNode) );
-        // pull out the last two nodes
-        pFan0 = Vec_PtrPop(vFront);  assert( !Ivy_ObjIsConst1(Ivy_Regular(pFan0)) );
-        pFan1 = Vec_PtrPop(vFront);  assert( !Ivy_ObjIsConst1(Ivy_Regular(pFan1)) );
-        // create the new node
-        pNodeNew = Ivy_ObjCreate( Ivy_ObjCreateGhost(pFan0, pFan1, Ivy_ObjType(pNode), IVY_INIT_NONE) );
-        // add the new node to the frontier
-        Ivy_NodeBalancePushUniqueOrderByLevel( vFront, pNodeNew );
-    }
-    assert( Vec_PtrSize(vFront) == 1 );
-    // perform the replacement
-    Ivy_ObjReplace( pNode, Ivy_NotCond(Vec_PtrPop(vFront), fCompl), 1, 1 ); 
 }
 
 

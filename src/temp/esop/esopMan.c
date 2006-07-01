@@ -47,10 +47,10 @@ Esop_Man_t * Esop_ManAlloc( int nVars )
     memset( pMan, 0, sizeof(Esop_Man_t) );
     pMan->nVars    = nVars;
     pMan->nWords   = Esop_BitWordNum( nVars * 2 );
-    pMan->pMemMan1 = Esop_MmFixedStart( sizeof(Esop_Cube_t) + sizeof(unsigned) * (1 - 1) );
-    pMan->pMemMan2 = Esop_MmFixedStart( sizeof(Esop_Cube_t) + sizeof(unsigned) * (2 - 1) );
-    pMan->pMemMan4 = Esop_MmFixedStart( sizeof(Esop_Cube_t) + sizeof(unsigned) * (4 - 1) );
-    pMan->pMemMan8 = Esop_MmFixedStart( sizeof(Esop_Cube_t) + sizeof(unsigned) * (8 - 1) );
+    pMan->pMemMan1 = Mem_FixedStart( sizeof(Esop_Cube_t) + sizeof(unsigned) * (1 - 1) );
+    pMan->pMemMan2 = Mem_FixedStart( sizeof(Esop_Cube_t) + sizeof(unsigned) * (2 - 1) );
+    pMan->pMemMan4 = Mem_FixedStart( sizeof(Esop_Cube_t) + sizeof(unsigned) * (4 - 1) );
+    pMan->pMemMan8 = Mem_FixedStart( sizeof(Esop_Cube_t) + sizeof(unsigned) * (8 - 1) );
     // allocate storage for the temporary cover
     pMan->ppStore = ALLOC( Esop_Cube_t *, pMan->nVars + 1 );
     // create tautology cubes
@@ -101,10 +101,10 @@ void Esop_ManClean( Esop_Man_t * p, int nSupp )
 ***********************************************************************/
 void Esop_ManFree( Esop_Man_t * p )
 {
-    Esop_MmFixedStop ( p->pMemMan1, 0 );
-    Esop_MmFixedStop ( p->pMemMan2, 0 );
-    Esop_MmFixedStop ( p->pMemMan4, 0 );
-    Esop_MmFixedStop ( p->pMemMan8, 0 );
+    Mem_FixedStop ( p->pMemMan1, 0 );
+    Mem_FixedStop ( p->pMemMan2, 0 );
+    Mem_FixedStop ( p->pMemMan4, 0 );
+    Mem_FixedStop ( p->pMemMan8, 0 );
     free( p->ppStore );
     free( p );
 }

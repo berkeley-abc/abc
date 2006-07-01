@@ -42,6 +42,11 @@ extern "C" {
 
 typedef struct Ivy_Man_t_            Ivy_Man_t;
 typedef struct Ivy_Obj_t_            Ivy_Obj_t;
+typedef int                          Ivy_Edge_t;
+
+// constant edges
+#define IVY_CONST0                   1
+#define IVY_CONST1                   0
 
 // object types
 typedef enum { 
@@ -102,10 +107,12 @@ struct Ivy_Man_t_
     int *            pTable;         // structural hash table
     int              nTableSize;     // structural hash table size
     // various data members
+    int              fCatchExor;     // set to 1 to detect EXORs
     int              fExtended;      // set to 1 in extended mode
     int              nTravIds;       // the traversal ID
     int              nLevelMax;      // the maximum level
     void *           pData;          // the temporary data
+    Vec_Int_t *      vRequired;      // required times
     // truth table of the 8-LUTs
     unsigned *       pMemory;        // memory for truth tables
     Vec_Int_t *      vTruths;        // offset for truth table of each node
@@ -117,6 +124,26 @@ struct Ivy_Man_t_
     int              fRecording;     // shows that recording goes on
 };
 
+
+#define IVY_CUT_LIMIT     256
+#define IVY_CUT_INPUT       6
+
+typedef struct Ivy_Cut_t_ Ivy_Cut_t;
+struct Ivy_Cut_t_
+{
+    short       nSize;
+    short       nSizeMax;
+    int         pArray[IVY_CUT_INPUT];
+    unsigned    uHash;
+};
+
+typedef struct Ivy_Store_t_ Ivy_Store_t;
+struct Ivy_Store_t_
+{
+    int         nCuts;
+    int         nCutsMax;
+    Ivy_Cut_t   pCuts[IVY_CUT_LIMIT]; // storage for cuts
+};
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
@@ -133,14 +160,6 @@ static inline int          Ivy_InfoHasBit( unsigned * p, int i )  { return (p[(i
 static inline void         Ivy_InfoSetBit( unsigned * p, int i )  { p[(i)>>5] |= (1<<((i) & 31));               }
 static inline void         Ivy_InfoXorBit( unsigned * p, int i )  { p[(i)>>5] ^= (1<<((i) & 31));               }
 
-static inline int          Ivy_FanCreate( int Id, int fCompl )    { return (Id << 1) | fCompl;                  }
-static inline int          Ivy_FanId( int Fan )                   { return Fan >> 1;                            }
-static inline int          Ivy_FanCompl( int Fan )                { return Fan & 1;                             }
-
-static inline int          Ivy_LeafCreate( int Id, int Lat )      { return (Id << 4) | Lat;                     }
-static inline int          Ivy_LeafId( int Leaf )                 { return Leaf >> 4;                           }
-static inline int          Ivy_LeafLat( int Leaf )                { return Leaf & 15;                           }
-
 static inline Ivy_Obj_t *  Ivy_Regular( Ivy_Obj_t * p )           { return (Ivy_Obj_t *)((unsigned)(p) & ~01);  }
 static inline Ivy_Obj_t *  Ivy_Not( Ivy_Obj_t * p )               { return (Ivy_Obj_t *)((unsigned)(p) ^  01);  }
 static inline Ivy_Obj_t *  Ivy_NotCond( Ivy_Obj_t * p, int c )    { return (Ivy_Obj_t *)((unsigned)(p) ^ (c));  }
@@ -152,6 +171,19 @@ static inline Ivy_Obj_t *  Ivy_ManGhost( Ivy_Man_t * p )          { return p->pO
 static inline Ivy_Obj_t *  Ivy_ManPi( Ivy_Man_t * p, int i )      { return p->pObjs + Vec_IntEntry(p->vPis,i);  }
 static inline Ivy_Obj_t *  Ivy_ManPo( Ivy_Man_t * p, int i )      { return p->pObjs + Vec_IntEntry(p->vPos,i);  }
 static inline Ivy_Obj_t *  Ivy_ManObj( Ivy_Man_t * p, int i )     { return p->pObjs + i;                        }
+
+static inline Ivy_Edge_t   Ivy_EdgeCreate( int Id, int fCompl )            { return (Id << 1) | fCompl;                  }
+static inline int          Ivy_EdgeId( Ivy_Edge_t Edge )                   { return Edge >> 1;                           }
+static inline int          Ivy_EdgeIsComplement( Ivy_Edge_t Edge )         { return Edge & 1;                            }
+static inline Ivy_Edge_t   Ivy_EdgeRegular( Ivy_Edge_t Edge )              { return (Edge >> 1) << 1;                    }
+static inline Ivy_Edge_t   Ivy_EdgeNot( Ivy_Edge_t Edge )                  { return Edge ^ 1;                            }
+static inline Ivy_Edge_t   Ivy_EdgeNotCond( Ivy_Edge_t Edge, int fCond )   { return Edge ^ fCond;                        }
+static inline Ivy_Edge_t   Ivy_EdgeFromNode( Ivy_Obj_t * pNode )           { return Ivy_EdgeCreate( Ivy_Regular(pNode)->Id, Ivy_IsComplement(pNode) );          }
+static inline Ivy_Obj_t *  Ivy_EdgeToNode( Ivy_Man_t * p, Ivy_Edge_t Edge ){ return Ivy_NotCond( Ivy_ManObj(p, Ivy_EdgeId(Edge)), Ivy_EdgeIsComplement(Edge) ); }
+
+static inline int          Ivy_LeafCreate( int Id, int Lat )      { return (Id << 4) | Lat;                     }
+static inline int          Ivy_LeafId( int Leaf )                 { return Leaf >> 4;                           }
+static inline int          Ivy_LeafLat( int Leaf )                { return Leaf & 15;                           }
 
 static inline int          Ivy_ManPiNum( Ivy_Man_t * p )          { return p->nObjs[IVY_PI];                    }
 static inline int          Ivy_ManPoNum( Ivy_Man_t * p )          { return p->nObjs[IVY_PO];                    }
@@ -185,9 +217,9 @@ static inline int          Ivy_ObjIsAnd( Ivy_Obj_t * pObj )       { assert( !Ivy
 static inline int          Ivy_ObjIsExor( Ivy_Obj_t * pObj )      { assert( !Ivy_IsComplement(pObj) ); return pObj->Type == IVY_EXOR;   }
 static inline int          Ivy_ObjIsBuf( Ivy_Obj_t * pObj )       { assert( !Ivy_IsComplement(pObj) ); return pObj->Type == IVY_BUF;    }
 static inline int          Ivy_ObjIsNode( Ivy_Obj_t * pObj )      { assert( !Ivy_IsComplement(pObj) ); return pObj->Type == IVY_AND || pObj->Type == IVY_EXOR; }
-static inline int          Ivy_ObjIsTerm( Ivy_Obj_t * pObj )      { assert( !Ivy_IsComplement(pObj) ); return pObj->Type == IVY_PI || pObj->Type == IVY_PO || pObj->Type == IVY_ASSERT; }
+static inline int          Ivy_ObjIsTerm( Ivy_Obj_t * pObj )      { assert( !Ivy_IsComplement(pObj) ); return pObj->Type == IVY_PI  || pObj->Type == IVY_PO || pObj->Type == IVY_ASSERT; }
 static inline int          Ivy_ObjIsHash( Ivy_Obj_t * pObj )      { assert( !Ivy_IsComplement(pObj) ); return pObj->Type == IVY_AND || pObj->Type == IVY_EXOR || pObj->Type == IVY_LATCH; }
-static inline int          Ivy_ObjIsOneFanin( Ivy_Obj_t * pObj )  { assert( !Ivy_IsComplement(pObj) ); return pObj->Type == IVY_PO || pObj->Type == IVY_ASSERT || pObj->Type == IVY_BUF || pObj->Type == IVY_LATCH; }
+static inline int          Ivy_ObjIsOneFanin( Ivy_Obj_t * pObj )  { assert( !Ivy_IsComplement(pObj) ); return pObj->Type == IVY_PO  || pObj->Type == IVY_ASSERT || pObj->Type == IVY_BUF || pObj->Type == IVY_LATCH; }
 
 static inline int          Ivy_ObjIsAndMulti( Ivy_Obj_t * pObj )  { assert( !Ivy_IsComplement(pObj) ); return pObj->Type == IVY_ANDM;   }
 static inline int          Ivy_ObjIsExorMulti( Ivy_Obj_t * pObj ) { assert( !Ivy_IsComplement(pObj) ); return pObj->Type == IVY_EXORM;  }
@@ -227,13 +259,9 @@ static inline Ivy_Obj_t *  Ivy_ObjChild0( Ivy_Obj_t * pObj )      { assert( !Ivy
 static inline Ivy_Obj_t *  Ivy_ObjChild1( Ivy_Obj_t * pObj )      { assert( !Ivy_IsComplement(pObj) ); return Ivy_NotCond( Ivy_ObjFanin1(pObj), Ivy_ObjFaninC1(pObj) );   }
 static inline int          Ivy_ObjLevelR( Ivy_Obj_t * pObj )      { assert( !Ivy_IsComplement(pObj) ); return pObj->LevelR;                           }
 static inline int          Ivy_ObjLevel( Ivy_Obj_t * pObj )       { assert( !Ivy_IsComplement(pObj) ); return pObj->Level;                            }
-static inline int          Ivy_ObjLevelNew( Ivy_Obj_t * pObj )    { assert( !Ivy_IsComplement(pObj) ); return 1 + IVY_MAX(Ivy_ObjFanin0(pObj)->Level, Ivy_ObjFanin1(pObj)->Level);       }
+static inline int          Ivy_ObjLevelNew( Ivy_Obj_t * pObj )    { assert( !Ivy_IsComplement(pObj) ); return 1 + Ivy_ObjIsExor(pObj) + IVY_MAX(Ivy_ObjFanin0(pObj)->Level, Ivy_ObjFanin1(pObj)->Level);       }
 static inline void         Ivy_ObjClean( Ivy_Obj_t * pObj )       { 
     int IdSaved = pObj->Id; 
-    if ( IdSaved == 54 )
-    {
-        int x = 0;
-    }
     memset( pObj, 0, sizeof(Ivy_Obj_t) ); 
     pObj->Id = IdSaved; 
 }
@@ -339,6 +367,8 @@ static inline int          Ivy_ObjFaninNum( Ivy_Obj_t * pObj )                  
 // iterator over all objects, including those currently not used
 #define Ivy_ManForEachObj( p, pObj, i )                                                  \
     for ( i = 0, pObj = p->pObjs; i < p->ObjIdNext; i++, pObj++ )
+#define Ivy_ManForEachObjReverse( p, pObj, i )                                           \
+    for ( i = p->ObjIdNext - 1, pObj = p->pObjs + i; i >= 0; i--, pObj-- )
 // iterator over the primary inputs
 #define Ivy_ManForEachPi( p, pObj, i )                                                   \
     for ( i = 0; i < Vec_IntSize(p->vPis) && ((pObj) = Ivy_ManPi(p, i)); i++ )
@@ -369,6 +399,9 @@ static inline int          Ivy_ObjFaninNum( Ivy_Obj_t * pObj )                  
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+/*=== ivyBalance.c ========================================================*/
+extern Ivy_Man_t *     Ivy_ManBalance( Ivy_Man_t * p, int fUpdateLevel );
+extern Ivy_Obj_t *     Ivy_NodeBalanceBuildSuper( Vec_Ptr_t * vSuper, Ivy_Type_t Type, int fUpdateLevel );
 /*=== ivyCanon.c ========================================================*/
 extern Ivy_Obj_t *     Ivy_CanonAnd( Ivy_Obj_t * p0, Ivy_Obj_t * p1 );
 extern Ivy_Obj_t *     Ivy_CanonExor( Ivy_Obj_t * p0, Ivy_Obj_t * p1 );
@@ -377,11 +410,13 @@ extern Ivy_Obj_t *     Ivy_CanonLatch( Ivy_Obj_t * pObj, Ivy_Init_t Init );
 extern int             Ivy_ManCheck( Ivy_Man_t * p );
 /*=== ivyCut.c ==========================================================*/
 extern void            Ivy_ManSeqFindCut( Ivy_Obj_t * pNode, Vec_Int_t * vFront, Vec_Int_t * vInside, int nSize );
-/*=== ivyBalance.c ======================================================*/
-extern int             Ivy_ManBalance( Ivy_Man_t * p, int fUpdateLevel );
+extern Ivy_Store_t *   Ivy_NodeFindCutsAll( Ivy_Obj_t * pObj, int nLeaves );
 /*=== ivyDfs.c ==========================================================*/
 extern Vec_Int_t *     Ivy_ManDfs( Ivy_Man_t * p );
 extern Vec_Int_t *     Ivy_ManDfsExt( Ivy_Man_t * p );
+extern void            Ivy_ManCollectCone( Ivy_Obj_t * pObj, Vec_Ptr_t * vFront, Vec_Ptr_t * vCone );
+extern Vec_Vec_t *     Ivy_ManLevelize( Ivy_Man_t * p );
+extern Vec_Int_t *     Ivy_ManRequiredLevels( Ivy_Man_t * p );
 /*=== ivyDsd.c ==========================================================*/
 extern int             Ivy_TruthDsd( unsigned uTruth, Vec_Int_t * vTree );
 extern void            Ivy_TruthDsdPrint( FILE * pFile, Vec_Int_t * vTree );
@@ -399,6 +434,7 @@ extern Ivy_Obj_t *     Ivy_Multi( Ivy_Obj_t ** pArgs, int nArgs, Ivy_Type_t Type
 extern Ivy_Obj_t *     Ivy_Multi1( Ivy_Obj_t ** pArgs, int nArgs, Ivy_Type_t Type );
 extern Ivy_Obj_t *     Ivy_Multi_rec( Ivy_Obj_t ** ppObjs, int nObjs, Ivy_Type_t Type );
 extern Ivy_Obj_t *     Ivy_MultiBalance_rec( Ivy_Obj_t ** pArgs, int nArgs, Ivy_Type_t Type );
+extern int             Ivy_MultiPlus( Vec_Ptr_t * vLeaves, Vec_Ptr_t * vCone, Ivy_Type_t Type, int nLimit, Vec_Ptr_t * vSol );
 /*=== ivyObj.c ==========================================================*/
 extern Ivy_Obj_t *     Ivy_ObjCreate( Ivy_Obj_t * pGhost );
 extern Ivy_Obj_t *     Ivy_ObjCreateExt( Ivy_Man_t * p, Ivy_Type_t Type );
@@ -415,8 +451,12 @@ extern Ivy_Obj_t *     Ivy_Exor( Ivy_Obj_t * p0, Ivy_Obj_t * p1 );
 extern Ivy_Obj_t *     Ivy_Mux( Ivy_Obj_t * pC, Ivy_Obj_t * p1, Ivy_Obj_t * p0 );
 extern Ivy_Obj_t *     Ivy_Maj( Ivy_Obj_t * pA, Ivy_Obj_t * pB, Ivy_Obj_t * pC );
 extern Ivy_Obj_t *     Ivy_Miter( Vec_Ptr_t * vPairs );
+/*=== ivyResyn.c =========================================================*/
+extern Ivy_Man_t *     Ivy_ManResyn( Ivy_Man_t * p, int fUpdateLevel );
 /*=== ivyRewrite.c =========================================================*/
 extern int             Ivy_ManSeqRewrite( Ivy_Man_t * p, int fUpdateLevel, int fUseZeroCost );
+extern int             Ivy_ManRewriteAlg( Ivy_Man_t * p, int fUpdateLevel, int fUseZeroCost );
+extern int             Ivy_ManRewritePre( Ivy_Man_t * p, int fUpdateLevel, int fUseZeroCost, int fVerbose );
 /*=== ivyTable.c ========================================================*/
 extern Ivy_Obj_t *     Ivy_TableLookup( Ivy_Obj_t * pObj );
 extern void            Ivy_TableInsert( Ivy_Obj_t * pObj );
@@ -437,6 +477,8 @@ extern Ivy_Obj_t *     Ivy_ObjRecognizeMux( Ivy_Obj_t * pObj, Ivy_Obj_t ** ppObj
 extern unsigned *      Ivy_ManCutTruth( Ivy_Obj_t * pRoot, Vec_Int_t * vLeaves, Vec_Int_t * vNodes, Vec_Int_t * vTruth );
 extern Ivy_Obj_t *     Ivy_NodeRealFanin_rec( Ivy_Obj_t * pNode, int iFanin );
 extern Vec_Int_t *     Ivy_ManLatches( Ivy_Man_t * p );
+extern int             Ivy_ManReadLevels( Ivy_Man_t * p );
+extern Ivy_Obj_t *     Ivy_ObjReal( Ivy_Obj_t * pObj );
 
 #ifdef __cplusplus
 }

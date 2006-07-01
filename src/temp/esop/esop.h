@@ -25,8 +25,9 @@
 extern "C" {
 #endif
 
-#include "stdio.h"
+#include <stdio.h>
 #include "vec.h"
+#include "mem.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -34,16 +35,16 @@ extern "C" {
 
 typedef struct Esop_Man_t_      Esop_Man_t;
 typedef struct Esop_Cube_t_     Esop_Cube_t;
-typedef struct Esop_MmFixed_t_  Esop_MmFixed_t;    
+typedef struct Mem_Fixed_t_  Mem_Fixed_t;    
 
 struct Esop_Man_t_
 {
     int               nVars;          // the number of vars
     int               nWords;         // the number of words
-    Esop_MmFixed_t * pMemMan1;       // memory manager for cubes
-    Esop_MmFixed_t * pMemMan2;       // memory manager for cubes
-    Esop_MmFixed_t * pMemMan4;       // memory manager for cubes
-    Esop_MmFixed_t * pMemMan8;       // memory manager for cubes
+    Mem_Fixed_t *     pMemMan1;       // memory manager for cubes
+    Mem_Fixed_t *     pMemMan2;       // memory manager for cubes
+    Mem_Fixed_t *     pMemMan4;       // memory manager for cubes
+    Mem_Fixed_t *     pMemMan8;       // memory manager for cubes
     // temporary cubes
     Esop_Cube_t *     pOne0;          // tautology cube
     Esop_Cube_t *     pOne1;          // tautology cube
@@ -99,12 +100,12 @@ static inline void   Esop_CubeXorVar( Esop_Cube_t * p, int Var, int Value ) { p-
 static inline int    Esop_BitWordNum( int nBits )                           { return (nBits>>5) + ((nBits&31) > 0);                  }
 
 /*=== esopMem.c ===========================================================*/
-extern Esop_MmFixed_t * Esop_MmFixedStart( int nEntrySize );
-extern void          Esop_MmFixedStop( Esop_MmFixed_t * p, int fVerbose );
-extern char *        Esop_MmFixedEntryFetch( Esop_MmFixed_t * p );
-extern void          Esop_MmFixedEntryRecycle( Esop_MmFixed_t * p, char * pEntry );
-extern void          Esop_MmFixedRestart( Esop_MmFixed_t * p );
-extern int           Esop_MmFixedReadMemUsage( Esop_MmFixed_t * p );
+extern Mem_Fixed_t * Mem_FixedStart( int nEntrySize );
+extern void          Mem_FixedStop( Mem_Fixed_t * p, int fVerbose );
+extern char *        Mem_FixedEntryFetch( Mem_Fixed_t * p );
+extern void          Mem_FixedEntryRecycle( Mem_Fixed_t * p, char * pEntry );
+extern void          Mem_FixedRestart( Mem_Fixed_t * p );
+extern int           Mem_FixedReadMemUsage( Mem_Fixed_t * p );
 /*=== esopMin.c ===========================================================*/
 extern void          Esop_EsopMinimize( Esop_Man_t * p );
 extern void          Esop_EsopAddCube( Esop_Man_t * p, Esop_Cube_t * pCube );
@@ -142,13 +143,13 @@ static inline Esop_Cube_t * Esop_CubeAlloc( Esop_Man_t * p )
 {
     Esop_Cube_t * pCube;
     if ( p->nWords <= 1 )
-        pCube = (Esop_Cube_t *)Esop_MmFixedEntryFetch( p->pMemMan1 );
+        pCube = (Esop_Cube_t *)Mem_FixedEntryFetch( p->pMemMan1 );
     else if ( p->nWords <= 2 )
-        pCube = (Esop_Cube_t *)Esop_MmFixedEntryFetch( p->pMemMan2 );
+        pCube = (Esop_Cube_t *)Mem_FixedEntryFetch( p->pMemMan2 );
     else if ( p->nWords <= 4 )
-        pCube = (Esop_Cube_t *)Esop_MmFixedEntryFetch( p->pMemMan4 );
+        pCube = (Esop_Cube_t *)Mem_FixedEntryFetch( p->pMemMan4 );
     else if ( p->nWords <= 8 )
-        pCube = (Esop_Cube_t *)Esop_MmFixedEntryFetch( p->pMemMan8 );
+        pCube = (Esop_Cube_t *)Mem_FixedEntryFetch( p->pMemMan8 );
     pCube->pNext  = NULL;
     pCube->nVars  = p->nVars;
     pCube->nWords = p->nWords;
@@ -211,13 +212,13 @@ static inline Esop_Cube_t * Esop_CubeDup( Esop_Man_t * p, Esop_Cube_t * pCopy )
 static inline void Esop_CubeRecycle( Esop_Man_t * p, Esop_Cube_t * pCube )
 {
     if ( pCube->nWords <= 1 )
-        Esop_MmFixedEntryRecycle( p->pMemMan1, (char *)pCube );
+        Mem_FixedEntryRecycle( p->pMemMan1, (char *)pCube );
     else if ( pCube->nWords <= 2 )
-        Esop_MmFixedEntryRecycle( p->pMemMan2, (char *)pCube );
+        Mem_FixedEntryRecycle( p->pMemMan2, (char *)pCube );
     else if ( pCube->nWords <= 4 )
-        Esop_MmFixedEntryRecycle( p->pMemMan4, (char *)pCube );
+        Mem_FixedEntryRecycle( p->pMemMan4, (char *)pCube );
     else if ( pCube->nWords <= 8 )
-        Esop_MmFixedEntryRecycle( p->pMemMan8, (char *)pCube );
+        Mem_FixedEntryRecycle( p->pMemMan8, (char *)pCube );
 }
 
 /**Function*************************************************************
@@ -238,16 +239,16 @@ static inline void Esop_CoverRecycle( Esop_Man_t * p, Esop_Cube_t * pCover )
         return;
     if ( pCover->nWords <= 1 )
         Esop_CoverForEachCubeSafe( pCover, pCube, pCube2 )
-            Esop_MmFixedEntryRecycle( p->pMemMan1, (char *)pCube );
+            Mem_FixedEntryRecycle( p->pMemMan1, (char *)pCube );
     else if ( pCover->nWords <= 2 )
         Esop_CoverForEachCubeSafe( pCover, pCube, pCube2 )
-            Esop_MmFixedEntryRecycle( p->pMemMan2, (char *)pCube );
+            Mem_FixedEntryRecycle( p->pMemMan2, (char *)pCube );
     else if ( pCover->nWords <= 4 )
         Esop_CoverForEachCubeSafe( pCover, pCube, pCube2 )
-            Esop_MmFixedEntryRecycle( p->pMemMan4, (char *)pCube );
+            Mem_FixedEntryRecycle( p->pMemMan4, (char *)pCube );
     else if ( pCover->nWords <= 8 )
         Esop_CoverForEachCubeSafe( pCover, pCube, pCube2 )
-            Esop_MmFixedEntryRecycle( p->pMemMan8, (char *)pCube );
+            Mem_FixedEntryRecycle( p->pMemMan8, (char *)pCube );
 }
 
 /**Function*************************************************************

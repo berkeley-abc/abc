@@ -8,7 +8,8 @@ SRC +=    src/temp/ivy/ivyBalance.c \
     src/temp/ivy/ivyMulti.c \
     src/temp/ivy/ivyObj.c \
     src/temp/ivy/ivyOper.c \
-    src/temp/ivy/ivyRewrite.c \
+    src/temp/ivy/ivyResyn.c \
+    src/temp/ivy/ivyRwrPre.c \
     src/temp/ivy/ivySeq.c \
     src/temp/ivy/ivyTable.c \
     src/temp/ivy/ivyUndo.c \

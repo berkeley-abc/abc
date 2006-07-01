@@ -40,8 +40,8 @@ typedef struct Pla_Obj_t_  Pla_Obj_t;
 struct Pla_Obj_t_
 {
     unsigned          fFixed :  1;  // fixed node
-    unsigned          Depth  :  7;  // the depth in terms of LUTs/PLAs
-    unsigned          nRefs  : 24;  // the number of references
+    unsigned          Depth  : 31;  // the depth in terms of LUTs/PLAs
+    int               nRefs;        // the number of references
     Vec_Int_t         vSupp[2];     // supports in two frames
     Esop_Cube_t *     pCover[2];    // esops in two frames
 };

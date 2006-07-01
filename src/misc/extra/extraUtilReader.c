@@ -18,7 +18,7 @@
 
 ***********************************************************************/
 
-#include "stdio.h"
+#include <stdio.h>
 #include "extra.h"
 #include "vec.h"
 

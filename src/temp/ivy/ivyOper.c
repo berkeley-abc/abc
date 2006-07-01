@@ -81,7 +81,7 @@ Ivy_Obj_t * Ivy_Oper( Ivy_Obj_t * p0, Ivy_Obj_t * p1, Ivy_Type_t Type )
 Ivy_Obj_t * Ivy_And( Ivy_Obj_t * p0, Ivy_Obj_t * p1 )
 {
     Ivy_Obj_t * pConst1 = Ivy_ObjConst1(Ivy_Regular(p0));
-    Ivy_Obj_t * pFan0, * pFan1;
+//    Ivy_Obj_t * pFan0, * pFan1;
     // check trivial cases
     if ( p0 == p1 )
         return p0;
@@ -92,8 +92,8 @@ Ivy_Obj_t * Ivy_And( Ivy_Obj_t * p0, Ivy_Obj_t * p1 )
     if ( Ivy_Regular(p1) == pConst1 )
         return p1 == pConst1 ? p0 : Ivy_Not(pConst1);
     // check if it can be an EXOR gate
-    if ( Ivy_ObjIsExorType( p0, p1, &pFan0, &pFan1 ) )
-        return Ivy_CanonExor( pFan0, pFan1 );
+//    if ( Ivy_ObjIsExorType( p0, p1, &pFan0, &pFan1 ) )
+//        return Ivy_CanonExor( pFan0, pFan1 );
     return Ivy_CanonAnd( p0, p1 );
 }
 

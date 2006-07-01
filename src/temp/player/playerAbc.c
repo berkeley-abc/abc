@@ -45,8 +45,10 @@ static Abc_Ntk_t * Ivy_ManToAbc( Abc_Ntk_t * pNtkOld, Ivy_Man_t * p );
 ***********************************************************************/
 void * Abc_NtkPlayer( void * pNtk, int nLutMax, int nPlaMax, int fVerbose )
 {
+    int fUseRewriting = 1;
     Ivy_Man_t * pMan, * pManExt;
     Abc_Ntk_t * pNtkAig;
+
     if ( !Abc_NtkIsStrash(pNtk) )
         return NULL;
     // convert to the new AIG manager
@@ -60,6 +62,14 @@ void * Abc_NtkPlayer( void * pNtk, int nLutMax, int nPlaMax, int fVerbose )
     }
     if ( fVerbose )
         Ivy_ManPrintStats( pMan );
+    if ( fUseRewriting )
+    {
+        // simplify
+        pMan = Ivy_ManResyn( pManExt = pMan, 1 );
+        Ivy_ManStop( pManExt );
+        if ( fVerbose )
+            Ivy_ManPrintStats( pMan );
+    }
     // perform decomposition/mapping into PLAs/LUTs
     pManExt = Pla_ManDecompose( pMan, nLutMax, nPlaMax, fVerbose );
     Ivy_ManStop( pMan );
@@ -150,10 +160,10 @@ Abc_Ntk_t * Ivy_ManToAbc( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan )
         pObjNew = Abc_NtkCreateNode( pNtkNew );
         Vec_IntForEachEntry( vIvyFanins, Fanin, k )
         {
-            pIvyFanin = Ivy_ObjObj( pIvyNode, Ivy_FanId(Fanin) );
+            pIvyFanin = Ivy_ObjObj( pIvyNode, Ivy_EdgeId(Fanin) );
             pFaninNew = Abc_NtkObj( pNtkNew, pIvyFanin->TravId );
             Abc_ObjAddFanin( pObjNew, pFaninNew );
-            pCompls[k] = Ivy_FanCompl(Fanin);
+            pCompls[k] = Ivy_EdgeIsComplement(Fanin);
             assert( Ivy_ObjIsAndMulti(pIvyNode) || nFanins == 1 || pCompls[k] == 0 ); // EXOR/LUT cannot have complemented fanins
         }
         assert( k <= PLAYER_FANIN_LIMIT );
@@ -176,10 +186,10 @@ Abc_Ntk_t * Ivy_ManToAbc( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan )
         // get the old fanin of the PO node
         vIvyFanins = Ivy_ObjGetFanins( Ivy_ManPo(pMan, i) );
         Fanin     = Vec_IntEntry( vIvyFanins, 0 );
-        pIvyFanin = Ivy_ManObj( pMan, Ivy_FanId(Fanin) );
+        pIvyFanin = Ivy_ManObj( pMan, Ivy_EdgeId(Fanin) );
         // get the new ABC node corresponding to the old fanin
         pFaninNew = Abc_NtkObj( pNtkNew, pIvyFanin->TravId );
-        if ( Ivy_FanCompl(Fanin) ) // complement
+        if ( Ivy_EdgeIsComplement(Fanin) ) // complement
         {
 //            pFaninNew = Abc_NodeCreateInv(pNtkNew, pFaninNew);
             if ( Abc_ObjIsCi(pFaninNew) )

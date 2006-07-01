@@ -26,6 +26,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 static Dec_Graph_t * Rwr_CutEvaluate( Rwr_Man_t * p, Abc_Obj_t * pRoot, Cut_Cut_t * pCut, Vec_Ptr_t * vFaninsCur, int nNodesSaved, int LevelMax, int * pGainBest );
+static int Rwr_CutIsBoolean( Abc_Obj_t * pObj, Vec_Ptr_t * vLeaves );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -64,6 +65,7 @@ int Rwr_NodeRewrite( Rwr_Man_t * p, Cut_Man_t * pManCut, Abc_Obj_t * pNode, int 
     p->nNodesConsidered++;
     // get the required times
     Required = fUpdateLevel? Abc_NodeReadRequiredLevel(pNode) : ABC_INFINITY;
+
     // get the node's cuts
 clk = clock();
     pCut = (Cut_Cut_t *)Abc_NodeGetCutsRecursive( pManCut, pNode, 0, 0 );
@@ -77,6 +79,9 @@ clk = clock();
         // consider only 4-input cuts
         if ( pCut->nLeaves < 4 )
             continue;
+//        if ( pNode->Id == 82 )
+//            Cut_CutPrint( pCut, 0 ), printf( "\n" );
+
         // get the fanin permutation
         uTruth = 0xFFFF & *Cut_CutReadTruth(pCut);
         pPerm = p->pPerms4[ p->pPerms[uTruth] ];
@@ -144,6 +149,27 @@ p->timeRes += clock() - clk;
         return -1;
 
 //    printf( "%d", nNodesSaveCur - GainBest );
+/*
+    if ( GainBest > 0 )
+    {
+        if ( Rwr_CutIsBoolean( pNode, p->vFanins ) )
+            printf( "b" );
+        else
+        {
+            printf( "Node %d : ", pNode->Id );
+            Vec_PtrForEachEntry( p->vFanins, pFanin, i )
+                printf( "%d ", Abc_ObjRegular(pFanin)->Id );
+            printf( "a" );
+        }
+    }
+*/
+/*
+    if ( GainBest > 0 )
+        if ( p->fCompl )
+            printf( "c" );
+        else
+            printf( "." );
+*/
 
     // copy the leaves
     Vec_PtrForEachEntry( p->vFanins, pFanin, i )
@@ -219,6 +245,65 @@ Dec_Graph_t * Rwr_CutEvaluate( Rwr_Man_t * p, Abc_Obj_t * pRoot, Cut_Cut_t * pCu
         return NULL;
     *pGainBest = GainBest;
     return pGraphBest;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Checks the type of the cut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Rwr_CutIsBoolean_rec( Abc_Obj_t * pObj, Vec_Ptr_t * vLeaves, int fMarkA )
+{
+    if ( Vec_PtrFind(vLeaves, pObj) >= 0 || Vec_PtrFind(vLeaves, Abc_ObjNot(pObj)) >= 0 )
+    {
+        if ( fMarkA )
+            pObj->fMarkA = 1;
+        else
+            pObj->fMarkB = 1;
+        return;
+    }
+    assert( !Abc_ObjIsCi(pObj) );
+    Rwr_CutIsBoolean_rec( Abc_ObjFanin0(pObj), vLeaves, fMarkA );
+    Rwr_CutIsBoolean_rec( Abc_ObjFanin1(pObj), vLeaves, fMarkA );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks the type of the cut.]
+
+  Description [Returns 1(0) if the cut is Boolean (algebraic).]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Rwr_CutIsBoolean( Abc_Obj_t * pObj, Vec_Ptr_t * vLeaves )
+{
+    Abc_Obj_t * pTemp;
+    int i, RetValue;
+    Vec_PtrForEachEntry( vLeaves, pTemp, i )
+    {
+        pTemp = Abc_ObjRegular(pTemp);
+        assert( !pTemp->fMarkA && !pTemp->fMarkB );
+    }
+    Rwr_CutIsBoolean_rec( Abc_ObjFanin0(pObj), vLeaves, 1 );
+    Rwr_CutIsBoolean_rec( Abc_ObjFanin1(pObj), vLeaves, 0 );
+    RetValue = 0;
+    Vec_PtrForEachEntry( vLeaves, pTemp, i )
+    {
+        pTemp = Abc_ObjRegular(pTemp);
+        RetValue |= pTemp->fMarkA && pTemp->fMarkB;
+        pTemp->fMarkA = pTemp->fMarkB = 0;
+    }
+    return RetValue;
 }
 
 ////////////////////////////////////////////////////////////////////////

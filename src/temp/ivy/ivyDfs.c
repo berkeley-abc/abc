@@ -69,6 +69,9 @@ Vec_Int_t * Ivy_ManDfs( Ivy_Man_t * p )
     Vec_Int_t * vNodes;
     Ivy_Obj_t * pObj;
     int i;
+    // make sure the nodes are not marked
+    Ivy_ManForEachObj( p, pObj, i )
+        assert( !pObj->fMarkA && !pObj->fMarkB );
     // collect the nodes
     vNodes = Vec_IntAlloc( Ivy_ManNodeNum(p) );
     if ( Ivy_ManLatchNum(p) > 0 )
@@ -107,7 +110,7 @@ void Ivy_ManDfsExt_rec( Ivy_Obj_t * pObj, Vec_Int_t * vNodes )
     // traverse the fanins
     vFanins = Ivy_ObjGetFanins( pObj );
     Vec_IntForEachEntry( vFanins, Fanin, i )
-        Ivy_ManDfsExt_rec( Ivy_ObjObj(pObj, Ivy_FanId(Fanin)), vNodes );
+        Ivy_ManDfsExt_rec( Ivy_ObjObj(pObj, Ivy_EdgeId(Fanin)), vNodes );
     // add the node
     Vec_IntPush( vNodes, pObj->Id );
 } 
@@ -134,7 +137,7 @@ Vec_Int_t * Ivy_ManDfsExt( Ivy_Man_t * p )
     vNodes = Vec_IntAlloc( 10 );
     Ivy_ManForEachPo( p, pObj, i )
     {
-        pFanin = Ivy_ManObj( p, Ivy_FanId( Ivy_ObjReadFanin(pObj,0) ) );
+        pFanin = Ivy_ManObj( p, Ivy_EdgeId( Ivy_ObjReadFanin(pObj,0) ) );
         Ivy_ManDfsExt_rec( pFanin, vNodes );
     }
     Ivy_ManForEachNodeVec( p, vNodes, pObj, i )
@@ -143,6 +146,132 @@ Vec_Int_t * Ivy_ManDfsExt( Ivy_Man_t * p )
     // the network may have dangling nodes if some fanins of ESOPs do not appear in cubes
 //    assert( p->nNodes == Vec_PtrSize(vNodes) );
     return vNodes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects nodes in the cone.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_ManCollectCone_rec( Ivy_Obj_t * pObj, Vec_Ptr_t * vCone )
+{
+    if ( pObj->fMarkA )
+        return;
+    if ( Ivy_ObjIsBuf(pObj) )
+    {
+        Ivy_ManCollectCone_rec( Ivy_ObjFanin0(pObj), vCone );
+        Vec_PtrPush( vCone, pObj );
+        return;
+    }
+    assert( Ivy_ObjIsNode(pObj) );
+    Ivy_ManCollectCone_rec( Ivy_ObjFanin0(pObj), vCone );
+    Ivy_ManCollectCone_rec( Ivy_ObjFanin1(pObj), vCone );
+    Vec_PtrPushUnique( vCone, pObj );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects nodes in the cone.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_ManCollectCone( Ivy_Obj_t * pObj, Vec_Ptr_t * vFront, Vec_Ptr_t * vCone )
+{
+    Ivy_Obj_t * pTemp;
+    int i;
+    assert( !Ivy_IsComplement(pObj) );
+    assert( Ivy_ObjIsNode(pObj) );
+    // mark the nodes
+    Vec_PtrForEachEntry( vFront, pTemp, i )
+        Ivy_Regular(pTemp)->fMarkA = 1;
+    assert( pObj->fMarkA == 0 );
+    // collect the cone
+    Vec_PtrClear( vCone );
+    Ivy_ManCollectCone_rec( pObj, vCone );
+    // unmark the nodes
+    Vec_PtrForEachEntry( vFront, pTemp, i )
+        Ivy_Regular(pTemp)->fMarkA = 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the nodes by level.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Vec_t * Ivy_ManLevelize( Ivy_Man_t * p )
+{
+    Vec_Vec_t * vNodes;
+    Ivy_Obj_t * pObj;
+    int i;
+    vNodes = Vec_VecAlloc( 100 );
+    Ivy_ManForEachObj( p, pObj, i )
+    {
+        assert( !Ivy_ObjIsBuf(pObj) );
+        if ( Ivy_ObjIsNode(pObj) )
+            Vec_VecPush( vNodes, pObj->Level, pObj );
+    }
+    return vNodes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes required levels for each node.]
+
+  Description [Assumes topological ordering of the nodes.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Ivy_ManRequiredLevels( Ivy_Man_t * p )
+{
+    Ivy_Obj_t * pObj;
+    Vec_Int_t * vLevelsR;
+    Vec_Vec_t * vNodes;
+    int i, k, Level, LevelMax;
+    assert( p->vRequired == NULL );
+    // start the required times
+    vLevelsR = Vec_IntStart( Ivy_ManObjIdNext(p) );
+    // iterate through the nodes in the reverse order
+    vNodes = Ivy_ManLevelize( p );
+    Vec_VecForEachEntryReverseReverse( vNodes, pObj, i, k )
+    {
+        Level = Vec_IntEntry( vLevelsR, pObj->Id ) + 1 + Ivy_ObjIsExor(pObj);
+        if ( Vec_IntEntry( vLevelsR, Ivy_ObjFaninId0(pObj) ) < Level )
+            Vec_IntWriteEntry( vLevelsR, Ivy_ObjFaninId0(pObj), Level );
+        if ( Vec_IntEntry( vLevelsR, Ivy_ObjFaninId1(pObj) ) < Level )
+            Vec_IntWriteEntry( vLevelsR, Ivy_ObjFaninId1(pObj), Level );
+    }
+    Vec_VecFree( vNodes );
+    // convert it into the required times
+    LevelMax = Ivy_ManReadLevels( p );
+//printf( "max %5d\n",LevelMax );
+    Ivy_ManForEachObj( p, pObj, i )
+    {
+        Level = Vec_IntEntry( vLevelsR, pObj->Id );
+        Vec_IntWriteEntry( vLevelsR, pObj->Id, LevelMax - Level );
+//printf( "%5d : %5d %5d\n", pObj->Id, Level, LevelMax - Level );
+    }
+    p->vRequired = vLevelsR;
+    return vLevelsR;
 }
 
 ////////////////////////////////////////////////////////////////////////

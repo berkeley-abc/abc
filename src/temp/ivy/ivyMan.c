@@ -48,6 +48,7 @@ Ivy_Man_t * Ivy_ManStart( int nPis, int nPos, int nNodesMax )
     p = ALLOC( Ivy_Man_t, 1 );
     memset( p, 0, sizeof(Ivy_Man_t) );
     p->nTravIds = 1;
+    p->fCatchExor = 1;
     // AIG nodes
     p->nObjsAlloc = 1 + nPis + nPos + nNodesMax;
 //    p->nObjsAlloc += (p->nObjsAlloc & 1); // make it even
@@ -191,12 +192,13 @@ void Ivy_ManPrintStats( Ivy_Man_t * p )
     {
     printf( "A = %d. ",     Ivy_ManAndNum(p) );
     printf( "X = %d. ",     Ivy_ManExorNum(p) );
-    printf( "B = %d. ",     Ivy_ManBufNum(p) );
+    printf( "B = %4d. ",     Ivy_ManBufNum(p) );
     }
-    printf( "MaxID = %d. ", p->ObjIdNext-1 );
-    printf( "All = %d. ",   p->nObjsAlloc );
+//    printf( "MaxID = %d. ", p->ObjIdNext-1 );
+//    printf( "All = %d. ",   p->nObjsAlloc );
     printf( "Cre = %d. ",   p->nCreated );
     printf( "Del = %d. ",   p->nDeleted );
+    printf( "Lev = %d. ",   Ivy_ManReadLevels(p) );
     printf( "\n" );
 }
 

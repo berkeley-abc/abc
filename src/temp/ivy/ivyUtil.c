@@ -362,6 +362,222 @@ Vec_Int_t * Ivy_ManLatches( Ivy_Man_t * p )
     return vLatches;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Collect the latches.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_ManReadLevels( Ivy_Man_t * p )
+{
+    Ivy_Obj_t * pObj;
+    int i, LevelMax = 0;
+    Ivy_ManForEachPo( p, pObj, i )
+    {
+        pObj = Ivy_ObjFanin0(pObj);
+        LevelMax = IVY_MAX( LevelMax, (int)pObj->Level );
+    }
+    return LevelMax;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the real fanin.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ivy_Obj_t * Ivy_ObjReal( Ivy_Obj_t * pObj )
+{
+    Ivy_Obj_t * pFanin;
+    if ( !Ivy_ObjIsBuf( Ivy_Regular(pObj) ) )
+        return pObj;
+    pFanin = Ivy_ObjReal( Ivy_ObjChild0(Ivy_Regular(pObj)) );
+    return Ivy_NotCond( pFanin, Ivy_IsComplement(pObj) );
+}
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Checks if the cube has exactly one 1.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Ivy_TruthHasOneOne( unsigned uCube )
+{
+    return (uCube & (uCube - 1)) == 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks if two cubes are distance-1.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Ivy_TruthCubesDist1( unsigned uCube1, unsigned uCube2 )
+{
+    unsigned uTemp = uCube1 | uCube2;
+    return Ivy_TruthHasOneOne( (uTemp >> 1) & uTemp & 0x55555555 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks if two cubes differ in only one literal.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Ivy_TruthCubesDiff1( unsigned uCube1, unsigned uCube2 )
+{
+    unsigned uTemp = uCube1 ^ uCube2;
+    return Ivy_TruthHasOneOne( ((uTemp >> 1) | uTemp) & 0x55555555 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Combines two distance 1 cubes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline unsigned Ivy_TruthCubesMerge( unsigned uCube1, unsigned uCube2 )
+{
+    unsigned uTemp;
+    uTemp = uCube1 | uCube2;
+    uTemp &= (uTemp >> 1) & 0x55555555;
+    assert( Ivy_TruthHasOneOne(uTemp) );
+    uTemp |= (uTemp << 1);
+    return (uCube1 | uCube2) ^ uTemp;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Estimates the number of AIG nodes in the truth table.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_TruthEstimateNodes( unsigned * pTruth, int nVars )
+{
+    static unsigned short uResult[256];
+    static unsigned short uCover[81*81];
+    static char pVarCount[81*81];
+    int nMints, uCube, uCubeNew, i, k, c, nCubes, nRes, Counter;
+    assert( nVars <= 8 );
+    // create the cover
+    nCubes = 0;
+    nMints = (1 << nVars);
+    for ( i = 0; i < nMints; i++ )
+        if ( pTruth[i/32] & (1 << (i & 31)) )
+        {
+            uCube = 0;
+            for ( k = 0; k < nVars; k++ )
+                if ( i & (1 << k) )
+                    uCube |= (1 << ((k<<1)+1));
+                else
+                    uCube |= (1 << ((k<<1)+0));
+            uCover[nCubes] = uCube;
+            pVarCount[nCubes] = nVars;
+            nCubes++;
+//            Extra_PrintBinary( stdout, &uCube, 8 ); printf( "\n" );
+        }
+    assert( nCubes <= 256 );
+    // reduce the cover by building larger cubes
+    for ( i = 1; i < nCubes; i++ )
+        for ( k = 0; k < i; k++ )
+            if ( pVarCount[i] && pVarCount[i] == pVarCount[k] && Ivy_TruthCubesDist1(uCover[i], uCover[k]) )
+            {
+                uCubeNew = Ivy_TruthCubesMerge(uCover[i], uCover[k]);
+                for ( c = i; c < nCubes; c++ )
+                    if ( uCubeNew == uCover[c] )
+                        break;
+                if ( c != nCubes )
+                    continue;
+                uCover[nCubes] = uCubeNew;
+                pVarCount[nCubes] = pVarCount[i] - 1;
+                nCubes++;
+                assert( nCubes < 81*81 );
+//                Extra_PrintBinary( stdout, &uCubeNew, 8 ); printf( "\n" );
+//                c = c;
+            }
+    // compact the cover
+    nRes = 0;
+    for ( i = nCubes -1; i >= 0; i-- )
+    {
+        for ( k = 0; k < nRes; k++ )
+            if ( (uCover[i] & uResult[k]) == uResult[k] )
+                break;
+        if ( k != nRes )
+            continue;
+        uResult[nRes++] = uCover[i];
+    }
+    // count the number of literals
+    Counter = 0;
+    for ( i = 0; i < nRes; i++ )
+    {
+        for ( k = 0; k < nVars; k++ )
+            if ( uResult[i] & (3 << (k<<1)) )
+                Counter++;
+    }
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Tests the cover procedure.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_TruthEstimateNodesTest()
+{
+    unsigned uTruth[8];
+    int i;
+    for ( i = 0; i < 8; i++ )
+        uTruth[i] = ~(unsigned)0;
+    uTruth[3] ^= (1 << 13);
+//    uTruth[4] = 0xFFFFF;
+//    uTruth[0] = 0xFF;
+//    uTruth[0] ^= (1 << 3);
+    printf( "Number = %d.\n", Ivy_TruthEstimateNodes(uTruth, 8) );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

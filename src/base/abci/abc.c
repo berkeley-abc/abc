@@ -4647,9 +4647,11 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Ivy_TruthTest();
 
 
-    pNtkRes = Abc_NtkIvy( pNtk );
+    Ivy_TruthEstimateNodesTest();
+
+//    pNtkRes = Abc_NtkIvy( pNtk );
 //    pNtkRes = Abc_NtkPlayer( pNtk, nLevels, 0 );
-//    pNtkRes = NULL;
+    pNtkRes = NULL;
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );

@@ -1,8 +1,8 @@
-SRC +=    src/opt/xyz/xyzBuild.c \
-    src/opt/xyz/xyzCore.c \
-    src/opt/xyz/xyzMan.c \
-    src/opt/xyz/xyzMinEsop.c \
-    src/opt/xyz/xyzMinMan.c \
-    src/opt/xyz/xyzMinSop.c \
-    src/opt/xyz/xyzMinUtil.c \
-    src/opt/xyz/xyzTest.c 
+SRC +=    src/temp/xyz/xyzBuild.c \
+    src/temp/xyz/xyzCore.c \
+    src/temp/xyz/xyzMan.c \
+    src/temp/xyz/xyzMinEsop.c \
+    src/temp/xyz/xyzMinMan.c \
+    src/temp/xyz/xyzMinSop.c \
+    src/temp/xyz/xyzMinUtil.c \
+    src/temp/xyz/xyzTest.c 

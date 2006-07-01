@@ -62,7 +62,7 @@ Ivy_Man_t * Pla_ManToAig( Ivy_Man_t * pOld )
     {
         pObjNew = Pla_ManToAig_rec( pNew, Ivy_ObjFanin0(pObjOld) );
         Ivy_ObjStartFanins( Ivy_ManPo(pNew, i), 1 );
-        Ivy_ObjAddFanin( Ivy_ManPo(pNew, i), Ivy_FanCreate(pObjNew->Id, Ivy_ObjFaninC0(pObjOld)) );
+        Ivy_ObjAddFanin( Ivy_ManPo(pNew, i), Ivy_EdgeCreate(pObjNew->Id, Ivy_ObjFaninC0(pObjOld)) );
     }
     // compute the LUT functions
     Pla_ManToAigLutFuncs( pNew, pOld ); 
@@ -118,7 +118,7 @@ Ivy_Obj_t * Pla_ManToAig_rec( Ivy_Man_t * pNew, Ivy_Obj_t * pObjOld )
         Vec_IntForEachEntry( vSupp, Entry, i )
         {
             pFaninOld = Ivy_ObjObj( pObjOld, Entry );
-            Ivy_ObjAddFanin( Ivy_ManObj(pNew, ObjNewId), Ivy_FanCreate(pFaninOld->TravId, 0) );
+            Ivy_ObjAddFanin( Ivy_ManObj(pNew, ObjNewId), Ivy_EdgeCreate(pFaninOld->TravId, 0) );
         }
         // get the new object
         pObjNew = Ivy_ManObj(pNew, ObjNewId);
@@ -140,7 +140,7 @@ Ivy_Obj_t * Pla_ManToAig_rec( Ivy_Man_t * pNew, Ivy_Obj_t * pObjOld )
             Esop_CoverForEachCube( pCover, pCube )
             {
                 pFaninNew = Ivy_ManToAigCube( pNew, pObjOld, pCube, vSupp );
-                Ivy_ObjAddFanin( Ivy_ManObj(pNew, ObjNewId), Ivy_FanCreate(pFaninNew->Id, 0) );
+                Ivy_ObjAddFanin( Ivy_ManObj(pNew, ObjNewId), Ivy_EdgeCreate(pFaninNew->Id, 0) );
             }
             // get the new object
             pObjNew = Ivy_ManObj(pNew, ObjNewId);
@@ -168,7 +168,7 @@ Ivy_Obj_t * Ivy_ManToAigConst( Ivy_Man_t * pNew, int fConst1 )
     Ivy_Obj_t * pObjNew;
     pObjNew = Ivy_ObjCreateExt( pNew, IVY_ANDM );
     Ivy_ObjStartFanins( pObjNew, 1 );
-    Ivy_ObjAddFanin( pObjNew, Ivy_FanCreate(0, !fConst1) );
+    Ivy_ObjAddFanin( pObjNew, Ivy_EdgeCreate(0, !fConst1) );
     return pObjNew;
 }
 
@@ -201,7 +201,7 @@ Ivy_Obj_t * Ivy_ManToAigCube( Ivy_Man_t * pNew, Ivy_Obj_t * pObjOld, Esop_Cube_t
         if ( Value == 3 )
             continue;
         pFaninOld = Ivy_ObjObj( pObjOld, Vec_IntEntry(vSupp, i) );
-        Ivy_ObjAddFanin( pObjNew, Ivy_FanCreate( pFaninOld->TravId, Value==1 ) );
+        Ivy_ObjAddFanin( pObjNew, Ivy_EdgeCreate( pFaninOld->TravId, Value==1 ) );
     }
     assert( Ivy_ObjFaninNum(pObjNew) == (int)pCube->nLits );
     return pObjNew;
@@ -262,7 +262,7 @@ int Pla_ManToAigLutFuncs( Ivy_Man_t * pNew, Ivy_Man_t * pOld )
             // point it to the constant 1 node
             vFanins = Ivy_ObjGetFanins( pObjNew );
             Vec_IntClear( vFanins );
-            Vec_IntPush( vFanins, Ivy_FanCreate(0, 1) );
+            Vec_IntPush( vFanins, Ivy_EdgeCreate(0, 1) );
         }
         memcpy( pTruth, pComputed, sizeof(unsigned) * 8 );
 //        Extra_PrintBinary( stdout, pTruth, 16 ); printf( "\n" );

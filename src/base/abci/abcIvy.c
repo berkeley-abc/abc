@@ -53,7 +53,7 @@ extern char *       Mio_GateReadSop( void * pGate );
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk )
 {
-    Ivy_Man_t * pMan;
+    Ivy_Man_t * pMan, * pTemp = NULL;
     Abc_Ntk_t * pNtkAig;
     int fCleanup = 1;
     int nNodes;
@@ -74,7 +74,6 @@ Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk )
 
     // convert to the AIG manager
     pMan = Abc_NtkToAig( pNtk );
-
     if ( !Ivy_ManCheck( pMan ) )
     {
         printf( "AIG check has failed.\n" );
@@ -82,13 +81,29 @@ Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk )
         return NULL;
     }
 
-
 //    Ivy_MffcTest( pMan );
-    Ivy_ManPrintStats( pMan );
+//    Ivy_ManPrintStats( pMan );
+
+//    pMan = Ivy_ManBalance( pTemp = pMan, 1 );
+//    Ivy_ManStop( pTemp );
+
 //    Ivy_ManSeqRewrite( pMan, 0, 0 );
 //    Ivy_ManTestCutsAlg( pMan );
-    Ivy_ManTestCutsBool( pMan );
-    Ivy_ManPrintStats( pMan );
+//    Ivy_ManTestCutsBool( pMan );
+//    Ivy_ManRewriteAlg( pMan, 1, 1 );
+
+//    pMan = Ivy_ManResyn( pTemp = pMan, 1 );
+//    Ivy_ManStop( pTemp );
+
+//    Ivy_ManTestCutsAll( pMan );
+
+//    Ivy_ManPrintStats( pMan );
+
+//    Ivy_ManPrintStats( pMan );
+//    Ivy_ManRewritePre( pMan, 1, 0, 0 );
+//    Ivy_ManPrintStats( pMan );
+
+//    Ivy_ManRequiredLevels( pMan );
 
     // convert from the AIG manager
     pNtkAig = Abc_NtkFromAig( pNtk, pMan );
@@ -191,9 +206,9 @@ Ivy_Man_t * Abc_NtkToAig( Abc_Ntk_t * pNtkOld )
     // create the manager
     assert( Abc_NtkHasSop(pNtkOld) || Abc_NtkHasAig(pNtkOld) );
     if ( Abc_NtkHasSop(pNtkOld) )
-        pMan = Ivy_ManStart( Abc_NtkCiNum(pNtkOld), Abc_NtkCoNum(pNtkOld), 3 * Abc_NtkGetLitNum(pNtkOld) + 10 );
+        pMan = Ivy_ManStart( Abc_NtkCiNum(pNtkOld), Abc_NtkCoNum(pNtkOld), Abc_NtkGetLitNum(pNtkOld) + 1000 );
     else
-        pMan = Ivy_ManStart( Abc_NtkCiNum(pNtkOld), Abc_NtkCoNum(pNtkOld), 3 * Abc_NtkNodeNum(pNtkOld) + 10 );
+        pMan = Ivy_ManStart( Abc_NtkCiNum(pNtkOld), Abc_NtkCoNum(pNtkOld), Abc_NtkNodeNum(pNtkOld) + 1000 );
     // create the PIs
     Abc_NtkConst1(pNtkOld)->pCopy = (Abc_Obj_t *)Ivy_ManConst1(pMan);
     Abc_NtkForEachCi( pNtkOld, pObj, i )

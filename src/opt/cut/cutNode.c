@@ -104,6 +104,36 @@ static inline void Cut_CutFilter( Cut_Man_t * p, Cut_Cut_t * pList )
 
 /**Function*************************************************************
 
+  Synopsis    [Checks equality of one cut.]
+
+  Description [Returns 1 if the cut is removed.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Cut_CutFilterOneEqual( Cut_Man_t * p, Cut_List_t * pSuperList, Cut_Cut_t * pCut )
+{
+    Cut_Cut_t * pTemp;
+    Cut_ListForEachCut( pSuperList->pHead[pCut->nLeaves], pTemp )
+    {
+        // skip the non-contained cuts
+        if ( pCut->uSign != pTemp->uSign )
+            continue;
+        // check containment seriously
+        if ( Cut_CutCheckDominance( pTemp, pCut ) )
+        {
+            p->nCutsFilter++;
+            Cut_CutRecycle( p, pCut );
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Checks containment for one cut.]
 
   Description [Returns 1 if the cut is removed.]
@@ -266,6 +296,7 @@ static inline int Cut_CutProcessTwo( Cut_Man_t * p, Cut_Cut_t * pCut0, Cut_Cut_t
     if ( p->pParams->fFilter )
     {
         if ( Cut_CutFilterOne(p, pSuperList, pCut) )
+//        if ( Cut_CutFilterOneEqual(p, pSuperList, pCut) )
             return 0;
         if ( p->pParams->fSeq )
         {

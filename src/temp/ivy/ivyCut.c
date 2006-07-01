@@ -200,180 +200,6 @@ void Ivy_ManSeqFindCut( Ivy_Obj_t * pRoot, Vec_Int_t * vFront, Vec_Int_t * vInsi
 
 
 
-/**Function*************************************************************
-
-  Synopsis    [Comparison for node pointers.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ivy_ManFindAlgCutCompare( Ivy_Obj_t ** pp1, Ivy_Obj_t ** pp2 )
-{
-    if ( *pp1 < *pp2 )
-        return -1;
-    if ( *pp1 > *pp2 )
-        return 1;
-    return 0;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Computing one algebraic cut.]
-
-  Description [Returns 1 if the tree-leaves of this node where traversed 
-  and found to have no external references (and have not been collected). 
-  Returns 0 if the tree-leaves have external references and are collected.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ivy_ManFindAlgCut_rec( Ivy_Obj_t * pRoot, Ivy_Type_t Type, Vec_Ptr_t * vFront )
-{
-    int RetValue0, RetValue1;
-    Ivy_Obj_t * pRootR = Ivy_Regular(pRoot);
-    assert( Type != IVY_EXOR || !Ivy_IsComplement(pRoot) );
-    // if the node is a buffer skip through it
-    if ( Ivy_ObjIsBuf(pRootR) )
-        return Ivy_ManFindAlgCut_rec( Ivy_NotCond(Ivy_ObjChild0(pRootR), Ivy_IsComplement(pRoot)), Type, vFront );
-    // if the node is the end of the tree, return
-    if ( Ivy_IsComplement(pRoot) || Ivy_ObjIsCi(pRoot) || Ivy_ObjType(pRoot) != Type )
-    {
-        if ( Ivy_ObjRefs(pRootR) == 1 )
-            return 1;
-        assert( Ivy_ObjRefs(pRootR) > 1 );
-        Vec_PtrPush( vFront, pRoot );
-        return 0;
-    }
-    // branch on the node
-    assert( Ivy_ObjIsNode(pRoot) );
-    RetValue0 = Ivy_ManFindAlgCut_rec( Ivy_ObjChild0(pRoot), Type, vFront );
-    RetValue1 = Ivy_ManFindAlgCut_rec( Ivy_ObjChild1(pRoot), Type, vFront );
-    // the case when both have no external referenced
-    if ( RetValue0 && RetValue1 )
-    {
-        if ( Ivy_ObjRefs(pRoot) == 1 )
-            return 1;
-        assert( Ivy_ObjRefs(pRoot) > 1 );
-        Vec_PtrPush( vFront, pRoot );
-        return 0;
-    }
-    // the case when one of them has external references
-    if ( RetValue0 )
-        Vec_PtrPush( vFront, Ivy_ObjChild0(pRoot) );
-    if ( RetValue1 )
-        Vec_PtrPush( vFront, Ivy_ObjChild1(pRoot) );
-    return 0;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Computing one algebraic cut.]
-
-  Description [Algebraic cut stops when we hit (a) CI, (b) complemented edge,
-  (c) boundary of different gates. Returns 1 if this is a pure tree.
-  Returns -1 if the contant 0 is detected. Return 0 if the array can be used.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ivy_ManFindAlgCut( Ivy_Obj_t * pRoot, Vec_Ptr_t * vFront )
-{
-    Ivy_Obj_t * pObj, * pPrev;
-    int RetValue, i, k;
-    assert( !Ivy_IsComplement(pRoot) );
-    // clear the frontier and collect the nodes
-    Vec_PtrClear( vFront );
-    RetValue = Ivy_ManFindAlgCut_rec( pRoot, Ivy_ObjType(pRoot), vFront );
-    // return if the node is the root of a tree
-    if ( RetValue == 1 )
-        return 1;
-    // sort the entries to in increasing order
-    Vec_PtrSort( vFront, Ivy_ManFindAlgCutCompare );
-    // remove duplicated
-    k = 1;
-    Vec_PtrForEachEntryStart( vFront, pObj, i, 1 )
-    {
-        pPrev = (k == 0 ? NULL : Vec_PtrEntry(vFront, k-1));
-        if ( pObj == pPrev )
-        {
-            if ( Ivy_ObjIsExor(pRoot) )
-                k--;
-            continue;
-        }
-        if ( pObj == Ivy_Not(pPrev) )
-            return -1;
-        Vec_PtrWriteEntry( vFront, k++, pObj );
-    }
-    if ( k == 0 )
-        return -1;
-    Vec_PtrShrink( vFront, k );
-    return 0;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ivy_ManTestCutsAlg( Ivy_Man_t * p )
-{
-    Vec_Ptr_t * vFront;
-    Ivy_Obj_t * pObj, * pTemp;
-    int i, k, RetValue;
-    vFront = Vec_PtrAlloc( 100 );
-    Ivy_ManForEachObj( p, pObj, i )
-    {
-        if ( !Ivy_ObjIsNode(pObj) )
-            continue;
-        if ( Ivy_ObjIsMuxType(pObj) )
-        {
-            printf( "m " );
-            continue;
-        }
-        if ( pObj->Id == 509 )
-        {
-            int y = 0;
-        }
-
-        RetValue = Ivy_ManFindAlgCut( pObj, vFront );
-        if ( Ivy_ObjIsExor(pObj) )
-            printf( "x" );
-        if ( RetValue == -1 )
-            printf( "Const0 " );
-        else if ( RetValue == 1 || Vec_PtrSize(vFront) <= 2 )
-            printf( ". " );
-        else
-            printf( "%d ", Vec_PtrSize(vFront) );
-        
-        printf( "( " );
-        Vec_PtrForEachEntry( vFront, pTemp, k )
-            printf( "%d ", Ivy_ObjRefs(Ivy_Regular(pTemp)) );
-        printf( ")\n" );
-
-        if ( Vec_PtrSize(vFront) == 5 )
-        {
-            int x = 0;
-        }
-    }
-    printf( "\n" );
-    Vec_PtrFree( vFront );
-}
-
-
 
 
 /**Function*************************************************************
@@ -639,8 +465,8 @@ int Ivy_ManFindBoolCut( Ivy_Obj_t * pRoot, Vec_Ptr_t * vFront, Vec_Ptr_t * vVolu
 void Ivy_ManTestCutsBool( Ivy_Man_t * p )
 {
     Vec_Ptr_t * vFront, * vVolume, * vLeaves;
-    Ivy_Obj_t * pObj, * pTemp;
-    int i, k, RetValue;
+    Ivy_Obj_t * pObj;//, * pTemp;
+    int i, RetValue;//, k;
     vFront = Vec_PtrAlloc( 100 );
     vVolume = Vec_PtrAlloc( 100 );
     vLeaves = Vec_PtrAlloc( 100 );
@@ -671,6 +497,376 @@ void Ivy_ManTestCutsBool( Ivy_Man_t * p )
     Vec_PtrFree( vFront );
     Vec_PtrFree( vVolume );
     Vec_PtrFree( vLeaves );
+}
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Find the hash value of the cut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline unsigned Ivy_NodeCutHash( Ivy_Cut_t * pCut )
+{
+    int i;
+//    for ( i = 1; i < pCut->nSize; i++ )
+//        assert( pCut->pArray[i-1] < pCut->pArray[i] );
+    pCut->uHash = 0;
+    for ( i = 0; i < pCut->nSize; i++ )
+        pCut->uHash |= (1 << (pCut->pArray[i] % 31));
+    return pCut->uHash;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Removes one node to the cut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Ivy_NodeCutShrink( Ivy_Cut_t * pCut, int iOld )
+{
+    int i, k;
+    for ( i = k = 0; i < pCut->nSize; i++ )
+        if ( pCut->pArray[i] != iOld )
+            pCut->pArray[k++] = pCut->pArray[i];
+    assert( k == pCut->nSize - 1 );
+    pCut->nSize--;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds one node to the cut.]
+
+  Description [Returns 1 if the cuts is still okay.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Ivy_NodeCutExtend( Ivy_Cut_t * pCut, int iNew )
+{
+    int i;
+    for ( i = 0; i < pCut->nSize; i++ )
+        if ( pCut->pArray[i] == iNew )
+            return 1;
+    // check if there is room
+    if ( pCut->nSize == pCut->nSizeMax )
+        return 0;
+    // add the new one
+    for ( i = pCut->nSize - 1; i >= 0; i-- )
+        if ( pCut->pArray[i] > iNew )
+            pCut->pArray[i+1] = pCut->pArray[i];
+        else
+        {
+            assert( pCut->pArray[i] < iNew );
+            break;
+        }
+    pCut->pArray[i+1] = iNew;
+    pCut->nSize++;
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Check if the cut exists.]
+
+  Description [Returns 1 if the cut exists.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_NodeCutFindOrAdd( Ivy_Store_t * pCutStore, Ivy_Cut_t * pCutNew )
+{
+    Ivy_Cut_t * pCut;
+    int i, k;
+    assert( pCutNew->uHash );
+    // try to find the cut
+    for ( i = 0; i < pCutStore->nCuts; i++ )
+    {
+        pCut = pCutStore->pCuts + i;
+        if ( pCut->uHash == pCutNew->uHash && pCut->nSize == pCutNew->nSize )
+        {
+            for ( k = 0; k < pCutNew->nSize; k++ )
+                if ( pCut->pArray[k] != pCutNew->pArray[k] )
+                    break;
+            if ( k == pCutNew->nSize )
+                return 1;
+        }
+    }
+    assert( pCutStore->nCuts < pCutStore->nCutsMax );
+    // add the cut
+    pCut = pCutStore->pCuts + pCutStore->nCuts++;
+    *pCut = *pCutNew;
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if pDom is contained in pCut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Ivy_CutCheckDominance( Ivy_Cut_t * pDom, Ivy_Cut_t * pCut )
+{
+    int i, k;
+    for ( i = 0; i < pDom->nSize; i++ )
+    {
+        for ( k = 0; k < pCut->nSize; k++ )
+            if ( pDom->pArray[i] == pCut->pArray[k] )
+                break;
+        if ( k == pCut->nSize ) // node i in pDom is not contained in pCut
+            return 0;
+    }
+    // every node in pDom is contained in pCut
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Check if the cut exists.]
+
+  Description [Returns 1 if the cut exists.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_NodeCutFindOrAddFilter( Ivy_Store_t * pCutStore, Ivy_Cut_t * pCutNew )
+{
+    Ivy_Cut_t * pCut;
+    int i, k;
+    assert( pCutNew->uHash );
+    // try to find the cut
+    for ( i = 0; i < pCutStore->nCuts; i++ )
+    {
+        pCut = pCutStore->pCuts + i;
+        if ( pCut->nSize == 0 )
+            continue;
+        if ( pCut->nSize == pCutNew->nSize )
+        {
+            if ( pCut->uHash == pCutNew->uHash )
+            {
+                for ( k = 0; k < pCutNew->nSize; k++ )
+                    if ( pCut->pArray[k] != pCutNew->pArray[k] )
+                        break;
+                if ( k == pCutNew->nSize )
+                    return 1;
+            }
+            continue;
+        }
+        if ( pCut->nSize < pCutNew->nSize )
+        {
+            // skip the non-contained cuts
+            if ( (pCut->uHash & pCutNew->uHash) != pCut->uHash )
+                continue;
+            // check containment seriously
+            if ( Ivy_CutCheckDominance( pCut, pCutNew ) )
+                return 1;
+            continue;
+        }
+        // check potential containment of other cut
+
+        // skip the non-contained cuts
+        if ( (pCut->uHash & pCutNew->uHash) != pCutNew->uHash )
+            continue;
+        // check containment seriously
+        if ( Ivy_CutCheckDominance( pCutNew, pCut ) )
+        {
+            // remove the current cut
+//            --pCutStore->nCuts;
+//            for ( k = i; k < pCutStore->nCuts; k++ )
+//                pCutStore->pCuts[k] = pCutStore->pCuts[k+1];
+//            i--;
+            pCut->nSize = 0;
+        }
+    }
+    assert( pCutStore->nCuts < pCutStore->nCutsMax );
+    // add the cut
+    pCut = pCutStore->pCuts + pCutStore->nCuts++;
+    *pCut = *pCutNew;
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Print the cut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_NodeCompactCuts( Ivy_Store_t * pCutStore )
+{
+    Ivy_Cut_t * pCut;
+    int i, k;
+    for ( i = k = 0; i < pCutStore->nCuts; i++ )
+    {
+        pCut = pCutStore->pCuts + i;
+        if ( pCut->nSize == 0 )
+            continue;
+        pCutStore->pCuts[k++] = *pCut;
+    }
+    pCutStore->nCuts = k;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Print the cut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_NodePrintCut( Ivy_Cut_t * pCut )
+{
+    int i;
+    assert( pCut->nSize > 0 );
+    printf( "%d : {", pCut->nSize );
+    for ( i = 0; i < pCut->nSize; i++ )
+        printf( " %d", pCut->pArray[i] );
+    printf( " }\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_NodePrintCuts( Ivy_Store_t * pCutStore )
+{
+    int i;
+    printf( "Node %d\n", pCutStore->pCuts[0].pArray[0] );
+    for ( i = 0; i < pCutStore->nCuts; i++ )
+        Ivy_NodePrintCut( pCutStore->pCuts + i );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ivy_Store_t * Ivy_NodeFindCutsAll( Ivy_Obj_t * pObj, int nLeaves )
+{
+    static Ivy_Store_t CutStore, * pCutStore = &CutStore;
+    Ivy_Cut_t CutNew, * pCutNew = &CutNew, * pCut;
+    Ivy_Man_t * pMan = Ivy_ObjMan(pObj);
+    Ivy_Obj_t * pLeaf;
+    int i, k;
+
+    assert( nLeaves <= IVY_CUT_INPUT );
+
+    // start the structure
+    pCutStore->nCuts = 0;
+    pCutStore->nCutsMax = IVY_CUT_LIMIT;
+    // start the trivial cut
+    pCutNew->uHash = 0;
+    pCutNew->nSize = 1;
+    pCutNew->nSizeMax = nLeaves;
+    pCutNew->pArray[0] = pObj->Id;
+    Ivy_NodeCutHash( pCutNew );
+    // add the trivial cut
+    Ivy_NodeCutFindOrAdd( pCutStore, pCutNew );
+    assert( pCutStore->nCuts == 1 );
+
+    // explore the cuts
+    for ( i = 0; i < pCutStore->nCuts; i++ )
+    {
+        // expand this cut
+        pCut = pCutStore->pCuts + i;
+        if ( pCut->nSize == 0 )
+            continue;
+        for ( k = 0; k < pCut->nSize; k++ )
+        {
+            pLeaf = Ivy_ObjObj( pObj, pCut->pArray[k] );
+            if ( Ivy_ObjIsCi(pLeaf) )
+                continue;
+            *pCutNew = *pCut;
+            Ivy_NodeCutShrink( pCutNew, pLeaf->Id );
+            if ( !Ivy_NodeCutExtend( pCutNew, Ivy_ObjFaninId0(pLeaf) ) )
+                continue;
+            if ( Ivy_ObjIsNode(pLeaf) && !Ivy_NodeCutExtend( pCutNew, Ivy_ObjFaninId1(pLeaf) ) )
+                continue;
+            Ivy_NodeCutHash( pCutNew );
+            Ivy_NodeCutFindOrAddFilter( pCutStore, pCutNew );
+            if ( pCutStore->nCuts == IVY_CUT_LIMIT )
+                break;
+        }
+        if ( pCutStore->nCuts == IVY_CUT_LIMIT )
+            break;
+    }
+    Ivy_NodeCompactCuts( pCutStore );
+//    Ivy_NodePrintCuts( pCutStore );
+    return pCutStore;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_ManTestCutsAll( Ivy_Man_t * p )
+{
+    Ivy_Obj_t * pObj;
+    int i, nCutsCut, nCutsTotal, nNodeTotal, nNodeOver;
+    int clk = clock();
+    nNodeTotal = nNodeOver = 0;
+    nCutsTotal = -Ivy_ManNodeNum(p);
+    Ivy_ManForEachObj( p, pObj, i )
+    {
+        if ( !Ivy_ObjIsNode(pObj) )
+            continue;
+        nCutsCut    = Ivy_NodeFindCutsAll( pObj, 4 )->nCuts;
+        nCutsTotal += nCutsCut;
+        nNodeOver  += (nCutsCut == IVY_CUT_LIMIT);
+        nNodeTotal++;
+    }
+    printf( "Total cuts = %6d. Trivial = %6d.   Nodes = %6d. Satur = %6d.  ", 
+        nCutsTotal, Ivy_ManPiNum(p) + Ivy_ManNodeNum(p), nNodeTotal, nNodeOver );
+    PRT( "Time", clock() - clk );
 }
 
 ////////////////////////////////////////////////////////////////////////

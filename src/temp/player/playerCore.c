@@ -221,6 +221,7 @@ int Pla_ManDecomposeNode( Pla_Man_t * p, Ivy_Obj_t * pObj )
         if ( pStr1->fFixed == 0 )  Pla_ManCountDecNodes( p, pStr1 );
         pStr1->fFixed = 1;
     }
+    assert( pStr->Depth );
 
     // free some of the covers to save memory
     assert( pStr0->nRefs > 0 );
