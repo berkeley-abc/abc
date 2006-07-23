@@ -164,6 +164,52 @@ Abc_Ntk_t * Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_
   SeeAlso     []
 
 ***********************************************************************/
+Abc_Ntk_t * Abc_NtkStartFromNoLatches( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_t Func )
+{
+    Abc_Ntk_t * pNtkNew; 
+    Abc_Obj_t * pObj;
+    int i;
+    if ( pNtk == NULL )
+        return NULL;
+    // start the network
+    pNtkNew = Abc_NtkAlloc( Type, Func );
+    // duplicate the name and the spec
+    pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
+    pNtkNew->pSpec = Extra_UtilStrsav(pNtk->pSpec);
+    // clean the node copy fields
+    Abc_NtkForEachNode( pNtk, pObj, i )
+        pObj->pCopy = NULL;
+    // map the constant nodes
+    if ( Abc_NtkConst1(pNtk) )
+        Abc_NtkConst1(pNtk)->pCopy = Abc_NtkConst1(pNtkNew);
+    // clone the PIs/POs/latches
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        Abc_NtkDupObj(pNtkNew, pObj);
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        Abc_NtkDupObj(pNtkNew, pObj);
+    Abc_NtkForEachAssert( pNtk, pObj, i )
+        Abc_NtkDupObj(pNtkNew, pObj);
+    // transfer the names
+    if ( Type != ABC_NTK_NETLIST )
+        Abc_NtkDupCioNamesTableNoLatches( pNtk, pNtkNew );
+    Abc_ManTimeDup( pNtk, pNtkNew );
+    // check that the CI/CO/latches are copied correctly
+    assert( Abc_NtkPiNum(pNtk) == Abc_NtkPiNum(pNtkNew) );
+    assert( Abc_NtkPoNum(pNtk) == Abc_NtkPoNum(pNtkNew) );
+    return pNtkNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Starts a new network using existing network as a model.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Abc_Ntk_t * Abc_NtkStartFromDual( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_t Func )
 {
     Abc_Ntk_t * pNtkNew; 

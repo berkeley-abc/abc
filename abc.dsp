@@ -1058,6 +1058,10 @@ SOURCE=.\src\sat\fraig\fraigCanon.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\fraig\fraigChoice.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\fraig\fraigFanout.c
 # End Source File
 # Begin Source File
@@ -2106,15 +2110,19 @@ SOURCE=.\src\temp\ivy\ivyDsd.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\temp\ivy\ivyFanout.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\temp\ivy\ivyMan.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\temp\ivy\ivyMulti.c
+SOURCE=.\src\temp\ivy\ivyMem.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\temp\ivy\ivyMulti8.c
+SOURCE=.\src\temp\ivy\ivyMulti.c
 # End Source File
 # Begin Source File
 
@@ -2130,14 +2138,6 @@ SOURCE=.\src\temp\ivy\ivyResyn.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\temp\ivy\ivyRewrite.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\ivy\ivyRwrAlg.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\temp\ivy\ivyRwrPre.c
 # End Source File
 # Begin Source File
@@ -2147,10 +2147,6 @@ SOURCE=.\src\temp\ivy\ivySeq.c
 # Begin Source File
 
 SOURCE=.\src\temp\ivy\ivyTable.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\ivy\ivyUndo.c
 # End Source File
 # Begin Source File
 
@@ -2166,19 +2162,15 @@ SOURCE=.\src\temp\player\player.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\temp\player\playerAbc.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\player\playerBuild.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\temp\player\playerCore.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\src\temp\player\playerMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\player\playerToAbc.c
 # End Source File
 # Begin Source File
 

@@ -267,7 +267,7 @@ Ivy_Obj_t * Dec_GraphToNetworkIvy( Ivy_Man_t * pMan, Dec_Graph_t * pGraph )
     {
         pAnd0 = Ivy_NotCond( Dec_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc, pNode->eEdge0.fCompl ); 
         pAnd1 = Ivy_NotCond( Dec_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc, pNode->eEdge1.fCompl ); 
-        pNode->pFunc = Ivy_And( pAnd0, pAnd1 );
+        pNode->pFunc = Ivy_And( pMan, pAnd0, pAnd1 );
     }
     // complement the result if necessary
     return Ivy_NotCond( pNode->pFunc, Dec_GraphIsComplement(pGraph) );

@@ -544,6 +544,7 @@ extern char *             Abc_ObjNameDummy( char * pPrefix, int Num, int nDigits
 extern char *             Abc_NtkLogicStoreName( Abc_Obj_t * pNodeNew, char * pNameOld );
 extern char *             Abc_NtkLogicStoreNamePlus( Abc_Obj_t * pNodeNew, char * pNameOld, char * pSuffix );
 extern void               Abc_NtkDupCioNamesTable( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
+extern void               Abc_NtkDupCioNamesTableNoLatches( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
 extern void               Abc_NtkDupCioNamesTableDual( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
 extern Vec_Ptr_t *        Abc_NodeGetFaninNames( Abc_Obj_t * pNode );
 extern Vec_Ptr_t *        Abc_NodeGetFakeNames( int nNames );
@@ -571,6 +572,7 @@ extern void               Abc_NtkFreeGlobalBdds( Abc_Ntk_t * pNtk );
 /*=== abcNtk.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func );
 extern Abc_Ntk_t *        Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_t Func );
+extern Abc_Ntk_t *        Abc_NtkStartFromNoLatches( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_t Func );
 extern Abc_Ntk_t *        Abc_NtkStartFromDual( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_t Func );
 extern void               Abc_NtkFinalize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
 extern Abc_Ntk_t *        Abc_NtkStartRead( char * pName );

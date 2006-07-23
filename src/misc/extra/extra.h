@@ -433,6 +433,14 @@ static inline int Extra_TruthIsConst1( unsigned * pIn, int nVars )
             return 0;
     return 1;
 }
+static inline int Extra_TruthIsImply( unsigned * pIn1, unsigned * pIn2, int nVars )
+{
+    int w;
+    for ( w = Extra_TruthWordNum(nVars)-1; w >= 0; w-- )
+        if ( pIn1[w] & ~pIn2[w] )
+            return 0;
+    return 1;
+}
 static inline void Extra_TruthCopy( unsigned * pOut, unsigned * pIn, int nVars )
 {
     int w;
@@ -491,7 +499,9 @@ extern int      Extra_TruthSupportSize( unsigned * pTruth, int nVars );
 extern int      Extra_TruthSupport( unsigned * pTruth, int nVars );
 extern void     Extra_TruthCofactor0( unsigned * pTruth, int nVars, int iVar );
 extern void     Extra_TruthCofactor1( unsigned * pTruth, int nVars, int iVar );
-extern void     Extra_TruthCombine( unsigned * pOut, unsigned * pCof0, unsigned * pCof1, int nVars, int iVar );
+extern void     Extra_TruthExist( unsigned * pTruth, int nVars, int iVar );
+extern void     Extra_TruthForall( unsigned * pTruth, int nVars, int iVar );
+extern void     Extra_TruthMux( unsigned * pOut, unsigned * pCof0, unsigned * pCof1, int nVars, int iVar );
 extern void     Extra_TruthChangePhase( unsigned * pTruth, int nVars, int iVar );
 extern int      Extra_TruthMinCofSuppOverlap( unsigned * pTruth, int nVars, int * pVarMin );
 extern int      Extra_TruthCountOnes( unsigned * pTruth, int nVars );

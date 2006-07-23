@@ -46,6 +46,7 @@ struct Cut_ManStruct_t_
     // user preferences
     Cut_Params_t *     pParams;          // computation parameters
     Vec_Int_t *        vFanCounts;       // the array of fanout counters
+    Vec_Int_t *        vNodeAttrs;       // node attributes (1 = global; 0 = local)
     // storage for cuts
     Vec_Ptr_t *        vCutsNew;         // new cuts by node ID
     Vec_Ptr_t *        vCutsOld;         // old cuts by node ID

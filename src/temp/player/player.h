@@ -78,27 +78,17 @@ struct Pla_Man_t_
 
 #define PLA_EMPTY           ((Esop_Cube_t *)1)
 
-static inline Pla_Man_t *   Ivy_ObjPlaMan( Ivy_Obj_t * pObj )   { return (Pla_Man_t *)Ivy_ObjMan(pObj)->pData;       }
-static inline Pla_Obj_t *   Ivy_ObjPlaStr( Ivy_Obj_t * pObj )   { return Ivy_ObjPlaMan(pObj)->pPlaStrs + pObj->Id;   }
-
-static inline unsigned *    Ivy_ObjGetTruth( Ivy_Obj_t * pObj )  
-{ 
-    Ivy_Man_t * p = Ivy_ObjMan(pObj);
-    int Offset = Vec_IntEntry( p->vTruths, pObj->Id );
-    return Offset < 0 ? NULL : p->pMemory + Offset;
-    
-}
+static inline Pla_Man_t *   Ivy_ObjPlaMan( Ivy_Man_t * p, Ivy_Obj_t * pObj )  { return (Pla_Man_t *)p->pData;                        }
+static inline Pla_Obj_t *   Ivy_ObjPlaStr( Ivy_Man_t * p, Ivy_Obj_t * pObj )  { return ((Pla_Man_t *)p->pData)->pPlaStrs + pObj->Id; }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/*=== playerAbc.c ==============================================================*/
+/*=== playerToAbc.c ==============================================================*/
 extern void *        Abc_NtkPlayer( void * pNtk, int nLutMax, int nFaninMax, int fVerbose );
-/*=== playerBuild.c ============================================================*/
-extern Ivy_Man_t *   Pla_ManToAig( Ivy_Man_t * p );
 /*=== playerCore.c =============================================================*/
-extern Ivy_Man_t *   Pla_ManDecompose( Ivy_Man_t * p, int nLutMax, int nPlaMax, int fVerbose );
+extern Pla_Man_t *   Pla_ManDecompose( Ivy_Man_t * p, int nLutMax, int nPlaMax, int fVerbose );
 /*=== playerMan.c ==============================================================*/
 extern Pla_Man_t *   Pla_ManAlloc( Ivy_Man_t * p, int nLutMax, int nPlaMax );
 extern void          Pla_ManFree( Pla_Man_t * p );

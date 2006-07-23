@@ -206,6 +206,32 @@ static inline int Cut_CutFilterOne( Cut_Man_t * p, Cut_List_t * pSuperList, Cut_
 
 /**Function*************************************************************
 
+  Synopsis    [Checks if the cut is local and can be removed.]
+
+  Description [Returns 1 if the cut is removed.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Cut_CutFilterGlobal( Cut_Man_t * p, Cut_Cut_t * pCut )
+{
+    int a;
+    if ( pCut->nLeaves == 1 )
+        return 0;
+    for ( a = 0; a < (int)pCut->nLeaves; a++ )
+        if ( Vec_IntEntry( p->vNodeAttrs, pCut->pLeaves[a] ) ) // global
+            return 0;
+    // there is no global nodes, the cut should be removed
+    p->nCutsFilter++;
+    Cut_CutRecycle( p, pCut );
+    return 1;
+}
+
+
+/**Function*************************************************************
+
   Synopsis    [Checks containment for one cut.]
 
   Description [Returns 1 if the cut is removed.]
@@ -306,6 +332,14 @@ static inline int Cut_CutProcessTwo( Cut_Man_t * p, Cut_Cut_t * pCut0, Cut_Cut_t
                 return 0;
         }
     }
+
+    if ( p->pParams->fGlobal )
+    {
+        assert( p->vNodeAttrs != NULL );
+        if ( Cut_CutFilterGlobal( p, pCut ) )
+            return 0;
+    }
+
     // compute the truth table
     if ( p->pParams->fTruth )
         Cut_TruthCompute( p, pCut, pCut0, pCut1, p->fCompl0, p->fCompl1 );
@@ -395,7 +429,7 @@ void Cut_NodeDoComputeCuts( Cut_Man_t * p, Cut_List_t * pSuper, int Node, int fC
         p->nNodeCuts++;
     }
     // get the cut lists of children
-    if ( pList0 == NULL || pList1 == NULL )
+    if ( pList0 == NULL || pList1 == NULL || (p->pParams->fLocal && TreeCode)  )
         return;
 
     // remember the old number of cuts

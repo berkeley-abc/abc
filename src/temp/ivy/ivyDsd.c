@@ -608,7 +608,7 @@ Ivy_Obj_t * Ivy_ManDsdConstruct_rec( Ivy_Man_t * p, Vec_Int_t * vFront, int iNod
 
 //        Ivy_MultiEval( pNodes, Node.nFans, Node.Type == IVY_DEC_AND ? IVY_AND : IVY_EXOR );
 
-        pResult = Ivy_Multi( pNodes, Node.nFans, Node.Type == IVY_DEC_AND ? IVY_AND : IVY_EXOR );
+        pResult = Ivy_Multi( p, pNodes, Node.nFans, Node.Type == IVY_DEC_AND ? IVY_AND : IVY_EXOR );
         return Ivy_NotCond( pResult, Node.fCompl );
     }
     assert( Node.fCompl == 0 );
@@ -626,9 +626,9 @@ Ivy_Obj_t * Ivy_ManDsdConstruct_rec( Ivy_Man_t * p, Vec_Int_t * vFront, int iNod
         pNodes[1] = Ivy_NotCond( pNodes[1], (Var1 & 1) );
         pNodes[2] = Ivy_NotCond( pNodes[2], (Var0 & 1) );
         if ( Node.Type == IVY_DEC_MUX )
-            return Ivy_Mux( pNodes[0], pNodes[1], pNodes[2] );
+            return Ivy_Mux( p, pNodes[0], pNodes[1], pNodes[2] );
         else
-            return Ivy_Maj( pNodes[0], pNodes[1], pNodes[2] );
+            return Ivy_Maj( p, pNodes[0], pNodes[1], pNodes[2] );
     }
     assert( 0 );
     return 0;

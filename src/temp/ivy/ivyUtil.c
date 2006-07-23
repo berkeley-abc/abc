@@ -68,6 +68,333 @@ void Ivy_ManCleanTravId( Ivy_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Computes truth table of the cut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_ManCollectCut_rec( Ivy_Man_t * p, Ivy_Obj_t * pNode, Vec_Int_t * vNodes )
+{
+    if ( pNode->fMarkA )
+        return;
+    pNode->fMarkA = 1;
+    assert( Ivy_ObjIsAnd(pNode) || Ivy_ObjIsExor(pNode) );
+    Ivy_ManCollectCut_rec( p, Ivy_ObjFanin0(pNode), vNodes );
+    Ivy_ManCollectCut_rec( p, Ivy_ObjFanin1(pNode), vNodes );
+    Vec_IntPush( vNodes, pNode->Id );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes truth table of the cut.]
+
+  Description [Does not modify the array of leaves. Uses array vTruth to store 
+  temporary truth tables. The returned pointer should be used immediately.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_ManCollectCut( Ivy_Man_t * p, Ivy_Obj_t * pRoot, Vec_Int_t * vLeaves, Vec_Int_t * vNodes )
+{
+    int i, Leaf;
+    // collect and mark the leaves
+    Vec_IntClear( vNodes );
+    Vec_IntForEachEntry( vLeaves, Leaf, i )
+    {
+        Vec_IntPush( vNodes, Leaf );
+        Ivy_ManObj(p, Leaf)->fMarkA = 1;
+    }
+    // collect and mark the nodes
+    Ivy_ManCollectCut_rec( p, pRoot, vNodes );
+    // clean the nodes
+    Vec_IntForEachEntry( vNodes, Leaf, i )
+        Ivy_ManObj(p, Leaf)->fMarkA = 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the pointer to the truth table.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned * Ivy_ObjGetTruthStore( int ObjNum, Vec_Int_t * vTruth )
+{
+   return ((unsigned *)Vec_IntArray(vTruth)) + 8 * ObjNum;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes truth table of the cut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_ManCutTruthOne( Ivy_Man_t * p, Ivy_Obj_t * pNode, Vec_Int_t * vTruth, int nWords )
+{
+    unsigned * pTruth, * pTruth0, * pTruth1;
+    int i;
+    pTruth  = Ivy_ObjGetTruthStore( pNode->TravId, vTruth );
+    pTruth0 = Ivy_ObjGetTruthStore( Ivy_ObjFanin0(pNode)->TravId, vTruth );
+    pTruth1 = Ivy_ObjGetTruthStore( Ivy_ObjFanin1(pNode)->TravId, vTruth );
+    if ( Ivy_ObjIsExor(pNode) )
+        for ( i = 0; i < nWords; i++ )
+            pTruth[i] = pTruth0[i] ^ pTruth1[i];
+    else if ( !Ivy_ObjFaninC0(pNode) && !Ivy_ObjFaninC1(pNode) )
+        for ( i = 0; i < nWords; i++ )
+            pTruth[i] = pTruth0[i] & pTruth1[i];
+    else if ( !Ivy_ObjFaninC0(pNode) && Ivy_ObjFaninC1(pNode) )
+        for ( i = 0; i < nWords; i++ )
+            pTruth[i] = pTruth0[i] & ~pTruth1[i];
+    else if ( Ivy_ObjFaninC0(pNode) && !Ivy_ObjFaninC1(pNode) )
+        for ( i = 0; i < nWords; i++ )
+            pTruth[i] = ~pTruth0[i] & pTruth1[i];
+    else // if ( Ivy_ObjFaninC0(pNode) && Ivy_ObjFaninC1(pNode) )
+        for ( i = 0; i < nWords; i++ )
+            pTruth[i] = ~pTruth0[i] & ~pTruth1[i];
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes truth table of the cut.]
+
+  Description [Does not modify the array of leaves. Uses array vTruth to store 
+  temporary truth tables. The returned pointer should be used immediately.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned * Ivy_ManCutTruth( Ivy_Man_t * p, Ivy_Obj_t * pRoot, Vec_Int_t * vLeaves, Vec_Int_t * vNodes, Vec_Int_t * vTruth )
+{
+    static unsigned uTruths[8][8] = { // elementary truth tables
+        { 0xAAAAAAAA,0xAAAAAAAA,0xAAAAAAAA,0xAAAAAAAA,0xAAAAAAAA,0xAAAAAAAA,0xAAAAAAAA,0xAAAAAAAA },
+        { 0xCCCCCCCC,0xCCCCCCCC,0xCCCCCCCC,0xCCCCCCCC,0xCCCCCCCC,0xCCCCCCCC,0xCCCCCCCC,0xCCCCCCCC },
+        { 0xF0F0F0F0,0xF0F0F0F0,0xF0F0F0F0,0xF0F0F0F0,0xF0F0F0F0,0xF0F0F0F0,0xF0F0F0F0,0xF0F0F0F0 },
+        { 0xFF00FF00,0xFF00FF00,0xFF00FF00,0xFF00FF00,0xFF00FF00,0xFF00FF00,0xFF00FF00,0xFF00FF00 },
+        { 0xFFFF0000,0xFFFF0000,0xFFFF0000,0xFFFF0000,0xFFFF0000,0xFFFF0000,0xFFFF0000,0xFFFF0000 }, 
+        { 0x00000000,0xFFFFFFFF,0x00000000,0xFFFFFFFF,0x00000000,0xFFFFFFFF,0x00000000,0xFFFFFFFF }, 
+        { 0x00000000,0x00000000,0xFFFFFFFF,0xFFFFFFFF,0x00000000,0x00000000,0xFFFFFFFF,0xFFFFFFFF }, 
+        { 0x00000000,0x00000000,0x00000000,0x00000000,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF } 
+    };
+    int i, Leaf;
+    // collect the cut
+    Ivy_ManCollectCut( p, pRoot, vLeaves, vNodes );
+    // set the node numbers
+    Vec_IntForEachEntry( vNodes, Leaf, i )
+        Ivy_ManObj(p, Leaf)->TravId = i;
+    // alloc enough memory
+    Vec_IntClear( vTruth );
+    Vec_IntGrow( vTruth, 8 * Vec_IntSize(vNodes) );
+    // set the elementary truth tables
+    Vec_IntForEachEntry( vLeaves, Leaf, i )
+        memcpy( Ivy_ObjGetTruthStore(i, vTruth), uTruths[i], 8 * sizeof(unsigned) );
+    // compute truths for other nodes
+    Vec_IntForEachEntryStart( vNodes, Leaf, i, Vec_IntSize(vLeaves) )
+        Ivy_ManCutTruthOne( p, Ivy_ManObj(p, Leaf), vTruth, 8 );
+    return Ivy_ObjGetTruthStore( pRoot->TravId, vTruth );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collect the latches.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Ivy_ManLatches( Ivy_Man_t * p )
+{
+    Vec_Int_t * vLatches;
+    Ivy_Obj_t * pObj;
+    int i;
+    vLatches = Vec_IntAlloc( Ivy_ManLatchNum(p) );
+    Ivy_ManForEachLatch( p, pObj, i )
+        Vec_IntPush( vLatches, pObj->Id );
+    return vLatches;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collect the latches.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_ManLevels( Ivy_Man_t * p )
+{
+    Ivy_Obj_t * pObj;
+    int i, LevelMax = 0;
+    Ivy_ManForEachPo( p, pObj, i )
+        LevelMax = IVY_MAX( LevelMax, (int)Ivy_ObjFanin0(pObj)->Level );
+    return LevelMax;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collect the latches.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_ManResetLevels_rec( Ivy_Obj_t * pObj )
+{
+    if ( pObj->Level || Ivy_ObjIsCi(pObj) )
+        return pObj->Level;
+    if ( Ivy_ObjIsBuf(pObj) )
+        return pObj->Level = Ivy_ManResetLevels_rec( Ivy_ObjFanin0(pObj) );
+    assert( Ivy_ObjIsNode(pObj) );
+    Ivy_ManResetLevels_rec( Ivy_ObjFanin0(pObj) );
+    Ivy_ManResetLevels_rec( Ivy_ObjFanin1(pObj) );
+    return pObj->Level = Ivy_ObjLevelNew( pObj );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collect the latches.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_ManResetLevels( Ivy_Man_t * p )
+{
+    Ivy_Obj_t * pObj;
+    int i;
+    Ivy_ManForEachObj( p, pObj, i )
+        pObj->Level = 0;
+    Ivy_ManForEachPo( p, pObj, i )
+        Ivy_ManResetLevels_rec( Ivy_ObjFanin0(pObj) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Recursively updates fanout levels.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_ObjUpdateLevel_rec( Ivy_Man_t * p, Ivy_Obj_t * pObj )
+{
+    Ivy_Obj_t * pFanout;
+    Vec_Ptr_t * vFanouts;
+    int i, LevelNew;
+    assert( p->vFanouts );
+    assert( Ivy_ObjIsNode(pObj) );
+    vFanouts = Vec_PtrAlloc( 10 );
+    Ivy_ObjForEachFanout( p, pObj, vFanouts, pFanout, i )
+    {
+        if ( Ivy_ObjIsCo(pFanout) )
+        {
+//            assert( (int)Ivy_ObjFanin0(pFanout)->Level <= p->nLevelMax );
+            continue;
+        }
+        LevelNew = Ivy_ObjLevelNew( pFanout );
+        if ( (int)pFanout->Level == LevelNew )
+            continue;
+        pFanout->Level = LevelNew;
+        Ivy_ObjUpdateLevel_rec( p, pFanout );
+    }
+    Vec_PtrFree( vFanouts );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Compute the new required level.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_ObjLevelRNew( Ivy_Man_t * p, Ivy_Obj_t * pObj )
+{
+    Ivy_Obj_t * pFanout;
+    Vec_Ptr_t * vFanouts;
+    int i, Required, LevelNew = 1000000;
+    assert( p->vFanouts && p->vRequired );
+    vFanouts = Vec_PtrAlloc( 10 );
+    Ivy_ObjForEachFanout( p, pObj, vFanouts, pFanout, i )
+    {
+        Required = Vec_IntEntry(p->vRequired, pFanout->Id);
+        LevelNew = IVY_MIN( LevelNew, Required );
+    }
+    Vec_PtrFree( vFanouts );
+    return LevelNew - 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Recursively updates fanout levels.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_ObjUpdateLevelR_rec( Ivy_Man_t * p, Ivy_Obj_t * pObj, int ReqNew )
+{
+    Ivy_Obj_t * pFanin;
+    if ( Ivy_ObjIsConst1(pObj) || Ivy_ObjIsCi(pObj) )
+        return;
+    assert( Ivy_ObjIsNode(pObj) || Ivy_ObjIsBuf(pObj) );
+    // process the first fanin
+    pFanin = Ivy_ObjFanin0(pObj);
+    if ( Vec_IntEntry(p->vRequired, pFanin->Id) > ReqNew - 1 )
+    {
+        Vec_IntWriteEntry( p->vRequired, pFanin->Id, ReqNew - 1 );
+        Ivy_ObjUpdateLevelR_rec( p, pFanin, ReqNew - 1 );
+    }
+    if ( Ivy_ObjIsBuf(pObj) )
+        return;
+    // process the second fanin
+    pFanin = Ivy_ObjFanin1(pObj);
+    if ( Vec_IntEntry(p->vRequired, pFanin->Id) > ReqNew - 1 )
+    {
+        Vec_IntWriteEntry( p->vRequired, pFanin->Id, ReqNew - 1 );
+        Ivy_ObjUpdateLevelR_rec( p, pFanin, ReqNew - 1 );
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns 1 if the node is the root of MUX or EXOR/NEXOR.]
 
   Description []
@@ -198,195 +525,6 @@ Ivy_Obj_t * Ivy_ObjRecognizeMux( Ivy_Obj_t * pNode, Ivy_Obj_t ** ppNodeT, Ivy_Ob
 
 /**Function*************************************************************
 
-  Synopsis    [Computes truth table of the cut.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ivy_ManCollectCut_rec( Ivy_Obj_t * pNode, Vec_Int_t * vNodes )
-{
-    if ( pNode->fMarkA )
-        return;
-    pNode->fMarkA = 1;
-    assert( Ivy_ObjIsAnd(pNode) || Ivy_ObjIsExor(pNode) );
-    Ivy_ManCollectCut_rec( Ivy_ObjFanin0(pNode), vNodes );
-    Ivy_ManCollectCut_rec( Ivy_ObjFanin1(pNode), vNodes );
-    Vec_IntPush( vNodes, pNode->Id );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Computes truth table of the cut.]
-
-  Description [Does not modify the array of leaves. Uses array vTruth to store 
-  temporary truth tables. The returned pointer should be used immediately.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ivy_ManCollectCut( Ivy_Obj_t * pRoot, Vec_Int_t * vLeaves, Vec_Int_t * vNodes )
-{
-    int i, Leaf;
-    // collect and mark the leaves
-    Vec_IntClear( vNodes );
-    Vec_IntForEachEntry( vLeaves, Leaf, i )
-    {
-        Vec_IntPush( vNodes, Leaf );
-        Ivy_ObjObj(pRoot, Leaf)->fMarkA = 1;
-    }
-    // collect and mark the nodes
-    Ivy_ManCollectCut_rec( pRoot, vNodes );
-    // clean the nodes
-    Vec_IntForEachEntry( vNodes, Leaf, i )
-        Ivy_ObjObj(pRoot, Leaf)->fMarkA = 0;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Returns the pointer to the truth table.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-unsigned * Ivy_ObjGetTruthStore( int ObjNum, Vec_Int_t * vTruth )
-{
-   return ((unsigned *)Vec_IntArray(vTruth)) + 8 * ObjNum;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Computes truth table of the cut.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ivy_ManCutTruthOne( Ivy_Obj_t * pNode, Vec_Int_t * vTruth, int nWords )
-{
-    unsigned * pTruth, * pTruth0, * pTruth1;
-    int i;
-    pTruth  = Ivy_ObjGetTruthStore( pNode->TravId, vTruth );
-    pTruth0 = Ivy_ObjGetTruthStore( Ivy_ObjFanin0(pNode)->TravId, vTruth );
-    pTruth1 = Ivy_ObjGetTruthStore( Ivy_ObjFanin1(pNode)->TravId, vTruth );
-    if ( Ivy_ObjIsExor(pNode) )
-        for ( i = 0; i < nWords; i++ )
-            pTruth[i] = pTruth0[i] ^ pTruth1[i];
-    else if ( !Ivy_ObjFaninC0(pNode) && !Ivy_ObjFaninC1(pNode) )
-        for ( i = 0; i < nWords; i++ )
-            pTruth[i] = pTruth0[i] & pTruth1[i];
-    else if ( !Ivy_ObjFaninC0(pNode) && Ivy_ObjFaninC1(pNode) )
-        for ( i = 0; i < nWords; i++ )
-            pTruth[i] = pTruth0[i] & ~pTruth1[i];
-    else if ( Ivy_ObjFaninC0(pNode) && !Ivy_ObjFaninC1(pNode) )
-        for ( i = 0; i < nWords; i++ )
-            pTruth[i] = ~pTruth0[i] & pTruth1[i];
-    else // if ( Ivy_ObjFaninC0(pNode) && Ivy_ObjFaninC1(pNode) )
-        for ( i = 0; i < nWords; i++ )
-            pTruth[i] = ~pTruth0[i] & ~pTruth1[i];
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Computes truth table of the cut.]
-
-  Description [Does not modify the array of leaves. Uses array vTruth to store 
-  temporary truth tables. The returned pointer should be used immediately.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-unsigned * Ivy_ManCutTruth( Ivy_Obj_t * pRoot, Vec_Int_t * vLeaves, Vec_Int_t * vNodes, Vec_Int_t * vTruth )
-{
-    static unsigned uTruths[8][8] = { // elementary truth tables
-        { 0xAAAAAAAA,0xAAAAAAAA,0xAAAAAAAA,0xAAAAAAAA,0xAAAAAAAA,0xAAAAAAAA,0xAAAAAAAA,0xAAAAAAAA },
-        { 0xCCCCCCCC,0xCCCCCCCC,0xCCCCCCCC,0xCCCCCCCC,0xCCCCCCCC,0xCCCCCCCC,0xCCCCCCCC,0xCCCCCCCC },
-        { 0xF0F0F0F0,0xF0F0F0F0,0xF0F0F0F0,0xF0F0F0F0,0xF0F0F0F0,0xF0F0F0F0,0xF0F0F0F0,0xF0F0F0F0 },
-        { 0xFF00FF00,0xFF00FF00,0xFF00FF00,0xFF00FF00,0xFF00FF00,0xFF00FF00,0xFF00FF00,0xFF00FF00 },
-        { 0xFFFF0000,0xFFFF0000,0xFFFF0000,0xFFFF0000,0xFFFF0000,0xFFFF0000,0xFFFF0000,0xFFFF0000 }, 
-        { 0x00000000,0xFFFFFFFF,0x00000000,0xFFFFFFFF,0x00000000,0xFFFFFFFF,0x00000000,0xFFFFFFFF }, 
-        { 0x00000000,0x00000000,0xFFFFFFFF,0xFFFFFFFF,0x00000000,0x00000000,0xFFFFFFFF,0xFFFFFFFF }, 
-        { 0x00000000,0x00000000,0x00000000,0x00000000,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF } 
-    };
-    int i, Leaf;
-    // collect the cut
-    Ivy_ManCollectCut( pRoot, vLeaves, vNodes );
-    // set the node numbers
-    Vec_IntForEachEntry( vNodes, Leaf, i )
-        Ivy_ObjObj(pRoot, Leaf)->TravId = i;
-    // alloc enough memory
-    Vec_IntClear( vTruth );
-    Vec_IntGrow( vTruth, 8 * Vec_IntSize(vNodes) );
-    // set the elementary truth tables
-    Vec_IntForEachEntry( vLeaves, Leaf, i )
-        memcpy( Ivy_ObjGetTruthStore(i, vTruth), uTruths[i], 8 * sizeof(unsigned) );
-    // compute truths for other nodes
-    Vec_IntForEachEntryStart( vNodes, Leaf, i, Vec_IntSize(vLeaves) )
-        Ivy_ManCutTruthOne( Ivy_ObjObj(pRoot, Leaf), vTruth, 8 );
-    return Ivy_ObjGetTruthStore( pRoot->TravId, vTruth );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Collect the latches.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Int_t * Ivy_ManLatches( Ivy_Man_t * p )
-{
-    Vec_Int_t * vLatches;
-    Ivy_Obj_t * pObj;
-    int i;
-    vLatches = Vec_IntAlloc( Ivy_ManLatchNum(p) );
-    Ivy_ManForEachLatch( p, pObj, i )
-        Vec_IntPush( vLatches, pObj->Id );
-    return vLatches;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Collect the latches.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ivy_ManReadLevels( Ivy_Man_t * p )
-{
-    Ivy_Obj_t * pObj;
-    int i, LevelMax = 0;
-    Ivy_ManForEachPo( p, pObj, i )
-    {
-        pObj = Ivy_ObjFanin0(pObj);
-        LevelMax = IVY_MAX( LevelMax, (int)pObj->Level );
-    }
-    return LevelMax;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Returns the real fanin.]
 
   Description []
@@ -399,183 +537,10 @@ int Ivy_ManReadLevels( Ivy_Man_t * p )
 Ivy_Obj_t * Ivy_ObjReal( Ivy_Obj_t * pObj )
 {
     Ivy_Obj_t * pFanin;
-    if ( !Ivy_ObjIsBuf( Ivy_Regular(pObj) ) )
+    if ( pObj == NULL || !Ivy_ObjIsBuf( Ivy_Regular(pObj) ) )
         return pObj;
     pFanin = Ivy_ObjReal( Ivy_ObjChild0(Ivy_Regular(pObj)) );
     return Ivy_NotCond( pFanin, Ivy_IsComplement(pObj) );
-}
-
-
-
-/**Function*************************************************************
-
-  Synopsis    [Checks if the cube has exactly one 1.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline int Ivy_TruthHasOneOne( unsigned uCube )
-{
-    return (uCube & (uCube - 1)) == 0;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Checks if two cubes are distance-1.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline int Ivy_TruthCubesDist1( unsigned uCube1, unsigned uCube2 )
-{
-    unsigned uTemp = uCube1 | uCube2;
-    return Ivy_TruthHasOneOne( (uTemp >> 1) & uTemp & 0x55555555 );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Checks if two cubes differ in only one literal.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline int Ivy_TruthCubesDiff1( unsigned uCube1, unsigned uCube2 )
-{
-    unsigned uTemp = uCube1 ^ uCube2;
-    return Ivy_TruthHasOneOne( ((uTemp >> 1) | uTemp) & 0x55555555 );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Combines two distance 1 cubes.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline unsigned Ivy_TruthCubesMerge( unsigned uCube1, unsigned uCube2 )
-{
-    unsigned uTemp;
-    uTemp = uCube1 | uCube2;
-    uTemp &= (uTemp >> 1) & 0x55555555;
-    assert( Ivy_TruthHasOneOne(uTemp) );
-    uTemp |= (uTemp << 1);
-    return (uCube1 | uCube2) ^ uTemp;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Estimates the number of AIG nodes in the truth table.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ivy_TruthEstimateNodes( unsigned * pTruth, int nVars )
-{
-    static unsigned short uResult[256];
-    static unsigned short uCover[81*81];
-    static char pVarCount[81*81];
-    int nMints, uCube, uCubeNew, i, k, c, nCubes, nRes, Counter;
-    assert( nVars <= 8 );
-    // create the cover
-    nCubes = 0;
-    nMints = (1 << nVars);
-    for ( i = 0; i < nMints; i++ )
-        if ( pTruth[i/32] & (1 << (i & 31)) )
-        {
-            uCube = 0;
-            for ( k = 0; k < nVars; k++ )
-                if ( i & (1 << k) )
-                    uCube |= (1 << ((k<<1)+1));
-                else
-                    uCube |= (1 << ((k<<1)+0));
-            uCover[nCubes] = uCube;
-            pVarCount[nCubes] = nVars;
-            nCubes++;
-//            Extra_PrintBinary( stdout, &uCube, 8 ); printf( "\n" );
-        }
-    assert( nCubes <= 256 );
-    // reduce the cover by building larger cubes
-    for ( i = 1; i < nCubes; i++ )
-        for ( k = 0; k < i; k++ )
-            if ( pVarCount[i] && pVarCount[i] == pVarCount[k] && Ivy_TruthCubesDist1(uCover[i], uCover[k]) )
-            {
-                uCubeNew = Ivy_TruthCubesMerge(uCover[i], uCover[k]);
-                for ( c = i; c < nCubes; c++ )
-                    if ( uCubeNew == uCover[c] )
-                        break;
-                if ( c != nCubes )
-                    continue;
-                uCover[nCubes] = uCubeNew;
-                pVarCount[nCubes] = pVarCount[i] - 1;
-                nCubes++;
-                assert( nCubes < 81*81 );
-//                Extra_PrintBinary( stdout, &uCubeNew, 8 ); printf( "\n" );
-//                c = c;
-            }
-    // compact the cover
-    nRes = 0;
-    for ( i = nCubes -1; i >= 0; i-- )
-    {
-        for ( k = 0; k < nRes; k++ )
-            if ( (uCover[i] & uResult[k]) == uResult[k] )
-                break;
-        if ( k != nRes )
-            continue;
-        uResult[nRes++] = uCover[i];
-    }
-    // count the number of literals
-    Counter = 0;
-    for ( i = 0; i < nRes; i++ )
-    {
-        for ( k = 0; k < nVars; k++ )
-            if ( uResult[i] & (3 << (k<<1)) )
-                Counter++;
-    }
-    return Counter;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Tests the cover procedure.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ivy_TruthEstimateNodesTest()
-{
-    unsigned uTruth[8];
-    int i;
-    for ( i = 0; i < 8; i++ )
-        uTruth[i] = ~(unsigned)0;
-    uTruth[3] ^= (1 << 13);
-//    uTruth[4] = 0xFFFFF;
-//    uTruth[0] = 0xFF;
-//    uTruth[0] ^= (1 << 3);
-    printf( "Number = %d.\n", Ivy_TruthEstimateNodes(uTruth, 8) );
 }
 
 ////////////////////////////////////////////////////////////////////////

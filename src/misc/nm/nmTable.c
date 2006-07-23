@@ -44,7 +44,7 @@ static unsigned Nm_HashString( char * pName, int TableSize )
     };
     unsigned i, Key = 0;
     for ( i = 0; pName[i] != '\0'; i++ )
-        Key ^= s_Primes[i%10]*pName[i];
+        Key ^= s_Primes[i%10]*pName[i]*pName[i];
     return Key % TableSize;
 }
 
@@ -142,7 +142,7 @@ Nm_Entry_t * Nm_ManTableLookupId( Nm_Man_t * p, int ObjId )
 Nm_Entry_t * Nm_ManTableLookupName( Nm_Man_t * p, char * pName, Nm_Entry_t ** ppSecond )
 {
     Nm_Entry_t * pFirst, * pSecond;
-    int i;
+    int i, Counter = 0;
     pFirst = pSecond = NULL;
     for ( i = Nm_HashString(pName, p->nBins); p->pBinsN2I[i]; i = (i+1) % p->nBins )
         if ( strcmp(p->pBinsN2I[i]->Name, pName) == 0 )
@@ -154,6 +154,10 @@ Nm_Entry_t * Nm_ManTableLookupName( Nm_Man_t * p, char * pName, Nm_Entry_t ** pp
             else
                 assert( 0 ); // name appears more than 2 times
         }
+        else
+            Counter++;
+    if ( Counter > 100 )
+    printf( "%d ", Counter );
     // save the names
     if ( ppSecond )
         *ppSecond = pSecond;

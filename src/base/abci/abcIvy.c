@@ -27,6 +27,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 static Abc_Ntk_t *  Abc_NtkFromAig( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan );
+static Abc_Ntk_t *  Abc_NtkFromAigSeq( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan );
 static Ivy_Man_t *  Abc_NtkToAig( Abc_Ntk_t * pNtkOld );
 
 static void         Abc_NtkStrashPerformAig( Abc_Ntk_t * pNtk, Ivy_Man_t * pMan );
@@ -36,13 +37,28 @@ static Ivy_Obj_t *  Abc_NodeStrashAigExorAig( Ivy_Man_t * pMan, Abc_Obj_t * pNod
 static Ivy_Obj_t *  Abc_NodeStrashAigFactorAig( Ivy_Man_t * pMan, Abc_Obj_t * pNode, char * pSop );
 extern char *       Mio_GateReadSop( void * pGate );
 
+typedef int   Abc_Edge_t;
+static inline Abc_Edge_t   Abc_EdgeCreate( int Id, int fCompl )                { return (Id << 1) | fCompl;             }
+static inline int          Abc_EdgeId( Abc_Edge_t Edge )                       { return Edge >> 1;                      }
+static inline int          Abc_EdgeIsComplement( Abc_Edge_t Edge )             { return Edge & 1;                       }
+static inline Abc_Edge_t   Abc_EdgeRegular( Abc_Edge_t Edge )                  { return (Edge >> 1) << 1;               }
+static inline Abc_Edge_t   Abc_EdgeNot( Abc_Edge_t Edge )                      { return Edge ^ 1;                       }
+static inline Abc_Edge_t   Abc_EdgeNotCond( Abc_Edge_t Edge, int fCond )       { return Edge ^ fCond;                   }
+static inline Abc_Edge_t   Abc_EdgeFromNode( Abc_Obj_t * pNode )               { return Abc_EdgeCreate( Abc_ObjRegular(pNode)->Id, Abc_ObjIsComplement(pNode) );       }
+static inline Abc_Obj_t *  Abc_EdgeToNode( Abc_Ntk_t * p, Abc_Edge_t Edge )    { return Abc_ObjNotCond( Abc_NtkObj(p, Abc_EdgeId(Edge)), Abc_EdgeIsComplement(Edge) ); }
+
+static inline Abc_Obj_t *  Abc_ObjFanin0Ivy( Abc_Ntk_t * p, Ivy_Obj_t * pObj ) { return Abc_ObjNotCond( Abc_EdgeToNode(p, Ivy_ObjFanin0(pObj)->TravId), Ivy_ObjFaninC0(pObj) ); }
+static inline Abc_Obj_t *  Abc_ObjFanin1Ivy( Abc_Ntk_t * p, Ivy_Obj_t * pObj ) { return Abc_ObjNotCond( Abc_EdgeToNode(p, Ivy_ObjFanin1(pObj)->TravId), Ivy_ObjFaninC1(pObj) ); }
+
+static int * Abc_NtkCollectLatchValues( Abc_Ntk_t * pNtk );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
 
-  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+  Synopsis    [Prepares the IVY package.]
 
   Description []
                
@@ -51,13 +67,10 @@ extern char *       Mio_GateReadSop( void * pGate );
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk )
+Ivy_Man_t * Abc_NtkIvyBefore( Abc_Ntk_t * pNtk, int fSeq )
 {
-    Ivy_Man_t * pMan, * pTemp = NULL;
-    Abc_Ntk_t * pNtkAig;
+    Ivy_Man_t * pMan;
     int fCleanup = 1;
-    int nNodes;
-
     assert( !Abc_NtkIsNetlist(pNtk) );
     assert( !Abc_NtkIsSeq(pNtk) );
     if ( Abc_NtkIsBddLogic(pNtk) )
@@ -68,10 +81,14 @@ Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk )
             return NULL;
         }
     }
+    if ( Abc_NtkCountSelfFeedLatches(pNtk) )
+    {
+        printf( "Warning: The network has %d self-feeding latches. Quitting.\n", Abc_NtkCountSelfFeedLatches(pNtk) );
+        return NULL;
+    }
     // print warning about choice nodes
     if ( Abc_NtkGetChoiceNum( pNtk ) )
         printf( "Warning: The choice nodes in the initial AIG are removed by strashing.\n" );
-
     // convert to the AIG manager
     pMan = Abc_NtkToAig( pNtk );
     if ( !Ivy_ManCheck( pMan ) )
@@ -80,35 +97,38 @@ Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk )
         Ivy_ManStop( pMan );
         return NULL;
     }
-
-//    Ivy_MffcTest( pMan );
 //    Ivy_ManPrintStats( pMan );
+    if ( fSeq )
+    {
+        int nLatches = Abc_NtkLatchNum(pNtk);
+        int * pInit = Abc_NtkCollectLatchValues( pNtk );
+        Ivy_ManMakeSeq( pMan, nLatches, pInit );
+        FREE( pInit );
+//        Ivy_ManPrintStats( pMan );
+    }
+    return pMan;
+}
 
-//    pMan = Ivy_ManBalance( pTemp = pMan, 1 );
-//    Ivy_ManStop( pTemp );
+/**Function*************************************************************
 
-//    Ivy_ManSeqRewrite( pMan, 0, 0 );
-//    Ivy_ManTestCutsAlg( pMan );
-//    Ivy_ManTestCutsBool( pMan );
-//    Ivy_ManRewriteAlg( pMan, 1, 1 );
+  Synopsis    [Prepares the IVY package.]
 
-//    pMan = Ivy_ManResyn( pTemp = pMan, 1 );
-//    Ivy_ManStop( pTemp );
+  Description []
+               
+  SideEffects []
 
-//    Ivy_ManTestCutsAll( pMan );
+  SeeAlso     []
 
-//    Ivy_ManPrintStats( pMan );
-
-//    Ivy_ManPrintStats( pMan );
-//    Ivy_ManRewritePre( pMan, 1, 0, 0 );
-//    Ivy_ManPrintStats( pMan );
-
-//    Ivy_ManRequiredLevels( pMan );
-
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkIvyAfter( Abc_Ntk_t * pNtk, Ivy_Man_t * pMan, int fSeq )
+{
+    Abc_Ntk_t * pNtkAig;
+    int nNodes, fCleanup = 1;
     // convert from the AIG manager
-    pNtkAig = Abc_NtkFromAig( pNtk, pMan );
-    Ivy_ManStop( pMan );
-
+    if ( fSeq )
+        pNtkAig = Abc_NtkFromAigSeq( pNtk, pMan );
+    else
+        pNtkAig = Abc_NtkFromAig( pNtk, pMan );
     // report the cleanup results
     if ( fCleanup && (nNodes = Abc_AigCleanup(pNtkAig->pManFunc)) )
         printf( "Warning: AIG cleanup removed %d nodes (this is not a bug).\n", nNodes );
@@ -127,6 +147,206 @@ Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkIvyStrash( Abc_Ntk_t * pNtk )
+{
+    Abc_Ntk_t * pNtkAig;
+    Ivy_Man_t * pMan;
+    pMan = Abc_NtkIvyBefore( pNtk, 1 );
+    if ( pMan == NULL )
+        return NULL;
+    pNtkAig = Abc_NtkIvyAfter( pNtk, pMan, 1 );
+    Ivy_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkIvyCuts( Abc_Ntk_t * pNtk, int nInputs )
+{
+    extern void Ivy_CutComputeAll( Ivy_Man_t * p, int nInputs );
+    Ivy_Man_t * pMan;
+    pMan = Abc_NtkIvyBefore( pNtk, 1 );
+    if ( pMan == NULL )
+        return;
+    Ivy_CutComputeAll( pMan, nInputs );
+    Ivy_ManStop( pMan );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkIvyRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeroCost, int fVerbose )
+{
+    Abc_Ntk_t * pNtkAig;
+    Ivy_Man_t * pMan;
+    pMan = Abc_NtkIvyBefore( pNtk, 0 );
+    if ( pMan == NULL )
+        return NULL;
+    Ivy_ManRewritePre( pMan, fUpdateLevel, fUseZeroCost, fVerbose );
+    pNtkAig = Abc_NtkIvyAfter( pNtk, pMan, 0 );
+    Ivy_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkIvyResyn( Abc_Ntk_t * pNtk, int fUpdateLevel, int fVerbose )
+{
+    Abc_Ntk_t * pNtkAig;
+    Ivy_Man_t * pMan, * pTemp;
+    pMan = Abc_NtkIvyBefore( pNtk, 0 );
+    if ( pMan == NULL )
+        return NULL;
+    pMan = Ivy_ManResyn( pTemp = pMan, fUpdateLevel, fVerbose );
+    Ivy_ManStop( pTemp );
+    pNtkAig = Abc_NtkIvyAfter( pNtk, pMan, 0 );
+    Ivy_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk )
+{
+    Abc_Ntk_t * pNtkAig;
+    Ivy_Man_t * pMan, * pTemp;
+    int fCleanup = 1;
+    int nNodes;
+    int nLatches = Abc_NtkLatchNum(pNtk);
+    int * pInit = Abc_NtkCollectLatchValues( pNtk );
+
+    assert( !Abc_NtkIsNetlist(pNtk) );
+    assert( !Abc_NtkIsSeq(pNtk) );
+    if ( Abc_NtkIsBddLogic(pNtk) )
+    {
+        if ( !Abc_NtkBddToSop(pNtk, 0) )
+        {
+            FREE( pInit );
+            printf( "Converting to SOPs has failed.\n" );
+            return NULL;
+        }
+    }
+    if ( Abc_NtkCountSelfFeedLatches(pNtk) )
+    {
+        printf( "Warning: The network has %d self-feeding latches. Quitting.\n", Abc_NtkCountSelfFeedLatches(pNtk) );
+        return NULL;
+    }
+
+    // print warning about choice nodes
+    if ( Abc_NtkGetChoiceNum( pNtk ) )
+        printf( "Warning: The choice nodes in the initial AIG are removed by strashing.\n" );
+
+    // convert to the AIG manager
+    pMan = Abc_NtkToAig( pNtk );
+    if ( !Ivy_ManCheck( pMan ) )
+    {
+        FREE( pInit );
+        printf( "AIG check has failed.\n" );
+        Ivy_ManStop( pMan );
+        return NULL;
+    }
+
+//    Ivy_MffcTest( pMan );
+//    Ivy_ManPrintStats( pMan );
+
+//    pMan = Ivy_ManBalance( pTemp = pMan, 1 );
+//    Ivy_ManStop( pTemp );
+
+//    Ivy_ManSeqRewrite( pMan, 0, 0 );
+//    Ivy_ManTestCutsAlg( pMan );
+//    Ivy_ManTestCutsBool( pMan );
+//    Ivy_ManRewriteAlg( pMan, 1, 1 );
+
+//    pMan = Ivy_ManResyn( pTemp = pMan, 1, 0 );
+//    Ivy_ManStop( pTemp );
+
+    Ivy_ManTestCutsAll( pMan );
+
+//    Ivy_ManPrintStats( pMan );
+
+//    Ivy_ManPrintStats( pMan );
+//    Ivy_ManRewritePre( pMan, 1, 0, 0 );
+//    Ivy_ManPrintStats( pMan );
+//    printf( "\n" );
+
+//    Ivy_ManPrintStats( pMan );
+//    Ivy_ManMakeSeq( pMan, nLatches, pInit );
+//    Ivy_ManPrintStats( pMan );
+
+//    Ivy_ManRequiredLevels( pMan );
+
+    // convert from the AIG manager
+    pNtkAig = Abc_NtkFromAig( pNtk, pMan );
+//    pNtkAig = Abc_NtkFromAigSeq( pNtk, pMan );
+    Ivy_ManStop( pMan );
+
+    // report the cleanup results
+    if ( fCleanup && (nNodes = Abc_AigCleanup(pNtkAig->pManFunc)) )
+        printf( "Warning: AIG cleanup removed %d nodes (this is not a bug).\n", nNodes );
+    // duplicate EXDC 
+    if ( pNtk->pExdc )
+        pNtkAig->pExdc = Abc_NtkDup( pNtk->pExdc );
+    // make sure everything is okay
+    if ( !Abc_NtkCheck( pNtkAig ) )
+    {
+        FREE( pInit );
+        printf( "Abc_NtkStrash: The network check has failed.\n" );
+        Abc_NtkDelete( pNtkAig );
+        return NULL;
+    }
+
+    FREE( pInit );
+    return pNtkAig;
+}
+
+
+
+/**Function*************************************************************
+
   Synopsis    [Converts the network from the AIG manager into ABC.]
 
   Description []
@@ -142,47 +362,119 @@ Abc_Ntk_t * Abc_NtkFromAig( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan )
     Abc_Ntk_t * pNtk;
     Abc_Obj_t * pObj, * pObjNew, * pFaninNew, * pFaninNew0, * pFaninNew1;
     Ivy_Obj_t * pNode;
-    int i, Fanin;
+    int i;
     // perform strashing
     pNtk = Abc_NtkStartFrom( pNtkOld, ABC_NTK_STRASH, ABC_FUNC_AIG );
     // transfer the pointers to the basic nodes
-    Ivy_ManConst1(pMan)->TravId = (Abc_NtkConst1(pNtk)->Id << 1);
+    Ivy_ManConst1(pMan)->TravId = Abc_EdgeFromNode( Abc_NtkConst1(pNtk) );
     Abc_NtkForEachCi( pNtkOld, pObj, i )
-        Ivy_ManPi(pMan, i)->TravId = (pObj->pCopy->Id << 1);
+        Ivy_ManPi(pMan, i)->TravId = Abc_EdgeFromNode( pObj->pCopy );
     // rebuild the AIG
     vNodes = Ivy_ManDfs( pMan );
     Ivy_ManForEachNodeVec( pMan, vNodes, pNode, i )
     {
         // add the first fanins
-        Fanin = Ivy_ObjFanin0(pNode)->TravId;
-        pFaninNew0 = Abc_NtkObj( pNtk, Fanin >> 1 );
-        pFaninNew0 = Abc_ObjNotCond( pFaninNew0, Ivy_ObjFaninC0(pNode) ^ (Fanin&1) );
+        pFaninNew0 = Abc_ObjFanin0Ivy( pNtk, pNode );
         if ( Ivy_ObjIsBuf(pNode) )
         {
-            pNode->TravId = (Abc_ObjRegular(pFaninNew0)->Id << 1) | Abc_ObjIsComplement(pFaninNew0);
+            pNode->TravId = Abc_EdgeFromNode( pFaninNew0 );
             continue;
         }
         // add the first second
-        Fanin = Ivy_ObjFanin1(pNode)->TravId;
-        pFaninNew1 = Abc_NtkObj( pNtk, Fanin >> 1 );
-        pFaninNew1 = Abc_ObjNotCond( pFaninNew1, Ivy_ObjFaninC1(pNode) ^ (Fanin&1) );
+        pFaninNew1 = Abc_ObjFanin1Ivy( pNtk, pNode );
         // create the new node
         if ( Ivy_ObjIsExor(pNode) )
             pObjNew = Abc_AigXor( pNtk->pManFunc, pFaninNew0, pFaninNew1 );
         else
             pObjNew = Abc_AigAnd( pNtk->pManFunc, pFaninNew0, pFaninNew1 );
-        pNode->TravId = (Abc_ObjRegular(pObjNew)->Id << 1) | Abc_ObjIsComplement(pObjNew);
+        pNode->TravId = Abc_EdgeFromNode( pObjNew );
     }
-    Vec_IntFree( vNodes );
     // connect the PO nodes
     Abc_NtkForEachCo( pNtkOld, pObj, i )
     {
-        pNode = Ivy_ManPo(pMan, i);
-        Fanin = Ivy_ObjFanin0(pNode)->TravId;
-        pFaninNew = Abc_NtkObj( pNtk, Fanin >> 1 );
-        pFaninNew = Abc_ObjNotCond( pFaninNew, Ivy_ObjFaninC0(pNode) ^ (Fanin&1) );
+        pFaninNew = Abc_ObjFanin0Ivy( pNtk, Ivy_ManPo(pMan, i) );
         Abc_ObjAddFanin( pObj->pCopy, pFaninNew );
     }
+    Vec_IntFree( vNodes );
+    if ( !Abc_NtkCheck( pNtk ) )
+        fprintf( stdout, "Abc_NtkFromAig(): Network check has failed.\n" );
+    return pNtk;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converts the network from the AIG manager into ABC.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkFromAigSeq( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan )
+{
+    Vec_Int_t * vNodes, * vLatches;
+    Abc_Ntk_t * pNtk;
+    Abc_Obj_t * pObj, * pObjNew, * pFaninNew, * pFaninNew0, * pFaninNew1;
+    Ivy_Obj_t * pNode;
+    int i;
+    assert( Ivy_ManLatchNum(pMan) > 0 );
+    // perform strashing
+    pNtk = Abc_NtkStartFromNoLatches( pNtkOld, ABC_NTK_STRASH, ABC_FUNC_AIG );
+    // transfer the pointers to the basic nodes
+    Ivy_ManConst1(pMan)->TravId = Abc_EdgeFromNode( Abc_NtkConst1(pNtk) );
+    Abc_NtkForEachPi( pNtkOld, pObj, i )
+        Ivy_ManPi(pMan, i)->TravId = Abc_EdgeFromNode( pObj->pCopy );
+    // create latches of the new network
+    vNodes = Ivy_ManDfsSeq( pMan, &vLatches );
+    Ivy_ManForEachNodeVec( pMan, vLatches, pNode, i )
+    {
+        pObjNew = Abc_NtkCreateLatch( pNtk );
+        if ( Ivy_ObjInit(pNode) == IVY_INIT_DC )
+            Abc_LatchSetInitDc( pObjNew );
+        else if ( Ivy_ObjInit(pNode) == IVY_INIT_1 )
+            Abc_LatchSetInit1( pObjNew );
+        else if ( Ivy_ObjInit(pNode) == IVY_INIT_0 )
+            Abc_LatchSetInit0( pObjNew );
+        else assert( 0 );
+        pNode->TravId = Abc_EdgeFromNode( pObjNew );
+    }
+    // rebuild the AIG
+    Ivy_ManForEachNodeVec( pMan, vNodes, pNode, i )
+    {
+        // add the first fanins
+        pFaninNew0 = Abc_ObjFanin0Ivy( pNtk, pNode );
+        if ( Ivy_ObjIsBuf(pNode) )
+        {
+            pNode->TravId = Abc_EdgeFromNode( pFaninNew0 );
+            continue;
+        }
+        // add the first second
+        pFaninNew1 = Abc_ObjFanin1Ivy( pNtk, pNode );
+        // create the new node
+        if ( Ivy_ObjIsExor(pNode) )
+            pObjNew = Abc_AigXor( pNtk->pManFunc, pFaninNew0, pFaninNew1 );
+        else
+            pObjNew = Abc_AigAnd( pNtk->pManFunc, pFaninNew0, pFaninNew1 );
+        pNode->TravId = Abc_EdgeFromNode( pObjNew );
+    }
+    // connect the PO nodes
+    Abc_NtkForEachPo( pNtkOld, pObj, i )
+    {
+        pFaninNew = Abc_ObjFanin0Ivy( pNtk, Ivy_ManPo(pMan, i) );
+        Abc_ObjAddFanin( pObj->pCopy, pFaninNew );
+    }
+    // connect the latches
+    Ivy_ManForEachNodeVec( pMan, vLatches, pNode, i )
+    {
+        pFaninNew = Abc_ObjFanin0Ivy( pNtk, pNode );
+        Abc_ObjAddFanin( Abc_NtkLatch(pNtk, i), pFaninNew );
+    }
+    Vec_IntFree( vLatches );
+    Vec_IntFree( vNodes );
+    if ( !Abc_NtkCheck( pNtk ) )
+        fprintf( stdout, "Abc_NtkFromAigSeq(): Network check has failed.\n" );
     return pNtk;
 }
 
@@ -205,14 +497,11 @@ Ivy_Man_t * Abc_NtkToAig( Abc_Ntk_t * pNtkOld )
     int i;
     // create the manager
     assert( Abc_NtkHasSop(pNtkOld) || Abc_NtkHasAig(pNtkOld) );
-    if ( Abc_NtkHasSop(pNtkOld) )
-        pMan = Ivy_ManStart( Abc_NtkCiNum(pNtkOld), Abc_NtkCoNum(pNtkOld), Abc_NtkGetLitNum(pNtkOld) + 1000 );
-    else
-        pMan = Ivy_ManStart( Abc_NtkCiNum(pNtkOld), Abc_NtkCoNum(pNtkOld), Abc_NtkNodeNum(pNtkOld) + 1000 );
+    pMan = Ivy_ManStart();
     // create the PIs
     Abc_NtkConst1(pNtkOld)->pCopy = (Abc_Obj_t *)Ivy_ManConst1(pMan);
     Abc_NtkForEachCi( pNtkOld, pObj, i )
-        pObj->pCopy = (Abc_Obj_t *)Ivy_ManPi(pMan, i);
+        pObj->pCopy = (Abc_Obj_t *)Ivy_ObjCreatePi(pMan);
     // perform the conversion of the internal nodes
     Abc_NtkStrashPerformAig( pNtkOld, pMan );
     // create the POs
@@ -220,7 +509,7 @@ Ivy_Man_t * Abc_NtkToAig( Abc_Ntk_t * pNtkOld )
     {
         pFanin = (Ivy_Obj_t *)Abc_ObjFanin0(pObj)->pCopy;
         pFanin = Ivy_NotCond( pFanin, Abc_ObjFaninC0(pObj) );
-        Ivy_ObjConnect( Ivy_ManPo(pMan, i), pFanin );
+        Ivy_ObjCreatePo( pMan, pFanin );
     }
     Ivy_ManCleanup( pMan );
     return pMan;
@@ -283,7 +572,7 @@ Ivy_Obj_t * Abc_NodeStrashAig( Ivy_Man_t * pMan, Abc_Obj_t * pNode )
         pFanin0 = Ivy_NotCond( pFanin0, Abc_ObjFaninC0(pNode) );
         pFanin1 = (Ivy_Obj_t *)Abc_ObjFanin1(pNode)->pCopy;
         pFanin1 = Ivy_NotCond( pFanin1, Abc_ObjFaninC1(pNode) );
-        return Ivy_And( pFanin0, pFanin1 );
+        return Ivy_And( pMan, pFanin0, pFanin1 );
     }
 
     // get the SOP of the node
@@ -336,12 +625,12 @@ Ivy_Obj_t * Abc_NodeStrashAigSopAig( Ivy_Man_t * pMan, Abc_Obj_t * pNode, char *
         Abc_ObjForEachFanin( pNode, pFanin, i ) // pFanin can be a net
         {
             if ( pCube[i] == '1' )
-                pAnd = Ivy_And( pAnd, (Ivy_Obj_t *)pFanin->pCopy );
+                pAnd = Ivy_And( pMan, pAnd, (Ivy_Obj_t *)pFanin->pCopy );
             else if ( pCube[i] == '0' )
-                pAnd = Ivy_And( pAnd, Ivy_Not((Ivy_Obj_t *)pFanin->pCopy) );
+                pAnd = Ivy_And( pMan, pAnd, Ivy_Not((Ivy_Obj_t *)pFanin->pCopy) );
         }
         // add to the sum of cubes
-        pSum = Ivy_Or( pSum, pAnd );
+        pSum = Ivy_Or( pMan, pSum, pAnd );
     }
     // decide whether to complement the result
     if ( Abc_SopIsComplement(pSop) )
@@ -373,7 +662,7 @@ Ivy_Obj_t * Abc_NodeStrashAigExorAig( Ivy_Man_t * pMan, Abc_Obj_t * pNode, char 
     for ( i = 0; i < nFanins; i++ )
     {
         pFanin = Abc_ObjFanin( pNode, i );
-        pSum = Ivy_Exor( pSum, (Ivy_Obj_t *)pFanin->pCopy );
+        pSum = Ivy_Exor( pMan, pSum, (Ivy_Obj_t *)pFanin->pCopy );
     }
     if ( Abc_SopIsComplement(pSop) )
         pSum = Ivy_Not(pSum);
@@ -415,6 +704,35 @@ Ivy_Obj_t * Abc_NodeStrashAigFactorAig( Ivy_Man_t * pMan, Abc_Obj_t * pRoot, cha
 
     Dec_GraphFree( pFForm );
     return pAnd;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Strashes one logic node using its SOP.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int * Abc_NtkCollectLatchValues( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pLatch;
+    int * pArray, i;
+    pArray = ALLOC( int, Abc_NtkLatchNum(pNtk) );
+    Abc_NtkForEachLatch( pNtk, pLatch, i )
+    {
+        if ( Abc_LatchIsInitDc(pLatch) )
+            pArray[i] = IVY_INIT_DC;
+        else if ( Abc_LatchIsInit1(pLatch) )
+            pArray[i] = IVY_INIT_1;
+        else if ( Abc_LatchIsInit0(pLatch) )
+            pArray[i] = IVY_INIT_0;
+        else assert( 0 );
+    }
+    return pArray;
 }
 
 ////////////////////////////////////////////////////////////////////////

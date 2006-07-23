@@ -44,10 +44,9 @@ static void Pla_NodeGetSuppsAndCovers( Pla_Man_t * p, Ivy_Obj_t * pObj, int Leve
   SeeAlso     []
 
 ***********************************************************************/
-Ivy_Man_t * Pla_ManDecompose( Ivy_Man_t * pAig, int nLutMax, int nPlaMax, int fVerbose )
+Pla_Man_t * Pla_ManDecompose( Ivy_Man_t * pAig, int nLutMax, int nPlaMax, int fVerbose )
 {
     Pla_Man_t * p;
-    Ivy_Man_t * pAigNew;
     p = Pla_ManAlloc( pAig, nLutMax, nPlaMax );
     if ( !Pla_ManDecomposeInt( p ) )
     {
@@ -55,12 +54,7 @@ Ivy_Man_t * Pla_ManDecompose( Ivy_Man_t * pAig, int nLutMax, int nPlaMax, int fV
         Pla_ManFree( p );
         return NULL;
     }
-    pAigNew = Pla_ManToAig( pAig );
-//    if ( fVerbose )
-//    printf( "PLA stats: Both = %6d. Pla = %6d. Lut = %6d. Total = %6d. Deref = %6d.\n", 
-//        p->nNodesBoth, p->nNodesPla, p->nNodesLut, p->nNodes, p->nNodesDeref );
-    Pla_ManFree( p );
-    return pAigNew;
+    return p;
 }
 
 /**Function*************************************************************
@@ -84,7 +78,7 @@ int Pla_ManDecomposeInt( Pla_Man_t * p )
     // prepare the PI structures
     Ivy_ManForEachPi( pAig, pObj, i )
     {
-        pStr = Ivy_ObjPlaStr( pObj );
+        pStr = Ivy_ObjPlaStr( pAig, pObj );
         pStr->fFixed = 1;
         pStr->Depth  = 0;
         pStr->nRefs  = (unsigned)pObj->nRefs;
@@ -142,9 +136,9 @@ int Pla_ManDecomposeNode( Pla_Man_t * p, Ivy_Obj_t * pObj )
     p->nNodes++;
 
     // get the structures
-    pStr   = Ivy_ObjPlaStr( pObj );    
-    pStr0  = Ivy_ObjPlaStr( Ivy_ObjFanin0( pObj ) );
-    pStr1  = Ivy_ObjPlaStr( Ivy_ObjFanin1( pObj ) );
+    pStr   = Ivy_ObjPlaStr( p->pManAig, pObj );    
+    pStr0  = Ivy_ObjPlaStr( p->pManAig, Ivy_ObjFanin0( pObj ) );
+    pStr1  = Ivy_ObjPlaStr( p->pManAig, Ivy_ObjFanin1( pObj ) );
     vSupp0 = &pStr->vSupp[0];
     vSupp1 = &pStr->vSupp[1];
     pStr->pCover[0] = PLA_EMPTY;
@@ -263,9 +257,9 @@ void Pla_NodeGetSuppsAndCovers( Pla_Man_t * p, Ivy_Obj_t * pObj, int Level,
     pFan0 = Ivy_ObjFanin0( pObj );
     pFan1 = Ivy_ObjFanin1( pObj );
     // get the structures
-    pStr  = Ivy_ObjPlaStr( pObj );    
-    pStr0 = Ivy_ObjPlaStr( pFan0 );
-    pStr1 = Ivy_ObjPlaStr( pFan1 );
+    pStr  = Ivy_ObjPlaStr( p->pManAig, pObj );    
+    pStr0 = Ivy_ObjPlaStr( p->pManAig, pFan0 );
+    pStr1 = Ivy_ObjPlaStr( p->pManAig, pFan1 );
     // make sure the fanins are processed
     assert( Ivy_ObjIsPi(pFan0) || pStr0->Depth > 0 );
     assert( Ivy_ObjIsPi(pFan1) || pStr1->Depth > 0 );

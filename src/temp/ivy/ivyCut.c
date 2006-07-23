@@ -175,7 +175,7 @@ printf( "%d", Counter );
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_ManSeqFindCut( Ivy_Obj_t * pRoot, Vec_Int_t * vFront, Vec_Int_t * vInside, int nSize )
+void Ivy_ManSeqFindCut( Ivy_Man_t * p, Ivy_Obj_t * pRoot, Vec_Int_t * vFront, Vec_Int_t * vInside, int nSize )
 {
     assert( !Ivy_IsComplement(pRoot) );
     assert( Ivy_ObjIsNode(pRoot) );
@@ -194,7 +194,7 @@ void Ivy_ManSeqFindCut( Ivy_Obj_t * pRoot, Vec_Int_t * vFront, Vec_Int_t * vInsi
     Vec_IntPush( vInside, Ivy_LeafCreate(Ivy_ObjFaninId1(pRoot), 0) );
 
     // compute the cut
-    while ( Ivy_ManSeqFindCut_int( Ivy_ObjMan(pRoot), vFront, vInside, nSize ) );
+    while ( Ivy_ManSeqFindCut_int( p, vFront, vInside, nSize ) );
     assert( Vec_IntSize(vFront) <= nSize );
 }
 
@@ -213,7 +213,7 @@ void Ivy_ManSeqFindCut( Ivy_Obj_t * pRoot, Vec_Int_t * vFront, Vec_Int_t * vInsi
   SeeAlso     []
 
 ***********************************************************************/
-int Ivy_ManFindBoolCut_rec( Ivy_Obj_t * pObj, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vVolume, Ivy_Obj_t * pPivot )
+int Ivy_ManFindBoolCut_rec( Ivy_Man_t * p, Ivy_Obj_t * pObj, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vVolume, Ivy_Obj_t * pPivot )
 {
     int RetValue0, RetValue1;
     if ( pObj == pPivot )
@@ -231,15 +231,15 @@ int Ivy_ManFindBoolCut_rec( Ivy_Obj_t * pObj, Vec_Ptr_t * vLeaves, Vec_Ptr_t * v
 
     if ( Ivy_ObjIsBuf(pObj) )
     {
-        RetValue0 = Ivy_ManFindBoolCut_rec( Ivy_ObjFanin0(pObj), vLeaves, vVolume, pPivot );
+        RetValue0 = Ivy_ManFindBoolCut_rec( p, Ivy_ObjFanin0(pObj), vLeaves, vVolume, pPivot );
         if ( !RetValue0 )
             return 0;
         Vec_PtrPushUnique( vVolume, pObj );
         return 1;
     }
     assert( Ivy_ObjIsNode(pObj) );
-    RetValue0 = Ivy_ManFindBoolCut_rec( Ivy_ObjFanin0(pObj), vLeaves, vVolume, pPivot );
-    RetValue1 = Ivy_ManFindBoolCut_rec( Ivy_ObjFanin1(pObj), vLeaves, vVolume, pPivot );
+    RetValue0 = Ivy_ManFindBoolCut_rec( p, Ivy_ObjFanin0(pObj), vLeaves, vVolume, pPivot );
+    RetValue1 = Ivy_ManFindBoolCut_rec( p, Ivy_ObjFanin1(pObj), vLeaves, vVolume, pPivot );
     if ( !RetValue0 && !RetValue1 )
         return 0;
     // add new leaves
@@ -296,7 +296,7 @@ int Ivy_ManFindBoolCutCost( Ivy_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-int Ivy_ManFindBoolCut( Ivy_Obj_t * pRoot, Vec_Ptr_t * vFront, Vec_Ptr_t * vVolume, Vec_Ptr_t * vLeaves )
+int Ivy_ManFindBoolCut( Ivy_Man_t * p, Ivy_Obj_t * pRoot, Vec_Ptr_t * vFront, Vec_Ptr_t * vVolume, Vec_Ptr_t * vLeaves )
 {
     Ivy_Obj_t * pObj, * pFaninC, * pFanin0, * pFanin1, * pPivot;
     int RetValue, LevelLimit, Lev, k;
@@ -405,7 +405,7 @@ int Ivy_ManFindBoolCut( Ivy_Obj_t * pRoot, Vec_Ptr_t * vFront, Vec_Ptr_t * vVolu
     // cut exists, collect all the nodes on the shortest path to the pivot
     Vec_PtrClear( vLeaves );
     Vec_PtrClear( vVolume );
-    RetValue = Ivy_ManFindBoolCut_rec( pRoot, vLeaves, vVolume, pPivot );
+    RetValue = Ivy_ManFindBoolCut_rec( p, pRoot, vLeaves, vVolume, pPivot );
     assert( RetValue == 1 );
     // unmark the nodes on the frontier (including the pivot)
     Vec_PtrForEachEntry( vFront, pObj, k )
@@ -481,7 +481,7 @@ void Ivy_ManTestCutsBool( Ivy_Man_t * p )
         }
         if ( Ivy_ObjIsExor(pObj) )
             printf( "x" );
-        RetValue = Ivy_ManFindBoolCut( pObj, vFront, vVolume, vLeaves );
+        RetValue = Ivy_ManFindBoolCut( p, pObj, vFront, vVolume, vLeaves );
         if ( RetValue == 0 )
             printf( "- " );
         else
@@ -783,11 +783,11 @@ void Ivy_NodePrintCuts( Ivy_Store_t * pCutStore )
   SeeAlso     []
 
 ***********************************************************************/
-Ivy_Store_t * Ivy_NodeFindCutsAll( Ivy_Obj_t * pObj, int nLeaves )
+Ivy_Store_t * Ivy_NodeFindCutsAll( Ivy_Man_t * p, Ivy_Obj_t * pObj, int nLeaves )
 {
     static Ivy_Store_t CutStore, * pCutStore = &CutStore;
     Ivy_Cut_t CutNew, * pCutNew = &CutNew, * pCut;
-    Ivy_Man_t * pMan = Ivy_ObjMan(pObj);
+    Ivy_Man_t * pMan = p;
     Ivy_Obj_t * pLeaf;
     int i, k;
 
@@ -815,7 +815,7 @@ Ivy_Store_t * Ivy_NodeFindCutsAll( Ivy_Obj_t * pObj, int nLeaves )
             continue;
         for ( k = 0; k < pCut->nSize; k++ )
         {
-            pLeaf = Ivy_ObjObj( pObj, pCut->pArray[k] );
+            pLeaf = Ivy_ManObj( p, pCut->pArray[k] );
             if ( Ivy_ObjIsCi(pLeaf) )
                 continue;
             *pCutNew = *pCut;
@@ -859,7 +859,7 @@ void Ivy_ManTestCutsAll( Ivy_Man_t * p )
     {
         if ( !Ivy_ObjIsNode(pObj) )
             continue;
-        nCutsCut    = Ivy_NodeFindCutsAll( pObj, 4 )->nCuts;
+        nCutsCut    = Ivy_NodeFindCutsAll( p, pObj, 5 )->nCuts;
         nCutsTotal += nCutsCut;
         nNodeOver  += (nCutsCut == IVY_CUT_LIMIT);
         nNodeTotal++;

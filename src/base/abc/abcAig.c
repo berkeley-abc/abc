@@ -78,8 +78,19 @@ struct Abc_Aig_t_
           pEnt2 = pEnt? pEnt->pNext: NULL )
 
 // hash key for the structural hash table
-static inline unsigned Abc_HashKey2( Abc_Obj_t * p0, Abc_Obj_t * p1, int TableSize ) { return ((unsigned)(p0) + (unsigned)(p1) * 12582917) % TableSize; }
+//static inline unsigned Abc_HashKey2( Abc_Obj_t * p0, Abc_Obj_t * p1, int TableSize ) { return ((unsigned)(p0) + (unsigned)(p1) * 12582917) % TableSize; }
 //static inline unsigned Abc_HashKey2( Abc_Obj_t * p0, Abc_Obj_t * p1, int TableSize ) { return ((unsigned)((a)->Id + (b)->Id) * ((a)->Id + (b)->Id + 1) / 2) % TableSize; }
+
+// hashing the node
+static unsigned Abc_HashKey2( Abc_Obj_t * p0, Abc_Obj_t * p1, int TableSize ) 
+{
+    unsigned Key = 0;
+    Key ^= Abc_ObjRegular(p0)->Id * 7937;
+    Key ^= Abc_ObjRegular(p1)->Id * 2971;
+    Key ^= Abc_ObjIsComplement(p0) * 911;
+    Key ^= Abc_ObjIsComplement(p1) * 353;
+    return Key % TableSize;
+}
 
 // structural hash table procedures
 static Abc_Obj_t * Abc_AigAndCreate( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 );

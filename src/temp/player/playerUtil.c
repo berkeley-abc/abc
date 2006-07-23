@@ -281,6 +281,8 @@ Esop_Cube_t * Pla_ManExorTwoCovers( Pla_Man_t * p, Esop_Cube_t * pCover0, Esop_C
     return pCover;
 }
 
+#if 0
+
 /**Function*************************************************************
 
   Synopsis    [Computes area/delay of the mapping.]
@@ -341,6 +343,8 @@ void Pla_ManComputeStats( Ivy_Man_t * p, Vec_Int_t * vNodes )
     }
     printf( "Area = %d. Delay = %d.\n", Area, Delay );
 }
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

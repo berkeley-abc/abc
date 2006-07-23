@@ -64,10 +64,10 @@ void Rwt_ManGlobalStart()
 ***********************************************************************/
 void Rwt_ManGlobalStop()
 { 
-    if ( s_puCanons == NULL )  free( s_puCanons );
-    if ( s_pPhases == NULL )   free( s_pPhases );
-    if ( s_pPerms == NULL )    free( s_pPerms );
-    if ( s_pMap == NULL )      free( s_pMap );
+    FREE( s_puCanons );
+    FREE( s_pPhases );
+    FREE( s_pPerms );
+    FREE( s_pMap );
 } 
 
 /**Function*************************************************************

@@ -265,6 +265,9 @@ Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, Vec_
     pNodeOld->pCopy = vSuper->pArray[0];
     Abc_HManAddProto( pNodeOld->pCopy, pNodeOld );
     vSuper->nSize = 0;
+//    if ( Abc_ObjRegular(pNodeOld->pCopy) == Abc_NtkConst1(pNtkNew) )
+//        printf( "Constant node\n" );
+//    assert( pNodeOld->Level >= Abc_ObjRegular(pNodeOld->pCopy)->Level );
     return pNodeOld->pCopy;
 }
 

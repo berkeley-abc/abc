@@ -39,50 +39,59 @@
   SeeAlso     []
 
 ***********************************************************************/
-Ivy_Man_t * Ivy_ManResyn( Ivy_Man_t * pMan, int fUpdateLevel )
+Ivy_Man_t * Ivy_ManResyn( Ivy_Man_t * pMan, int fUpdateLevel, int fVerbose )
 {
-    int clk, fVerbose = 0;
+    int clk;
     Ivy_Man_t * pTemp;
 
+if ( fVerbose ) { printf( "Original:\n" ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
+
 clk = clock();
     pMan = Ivy_ManBalance( pMan, fUpdateLevel );
+if ( fVerbose ) { printf( "\n" ); }
 if ( fVerbose ) { PRT( "Balance", clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
 
 //    Ivy_ManRewriteAlg( pMan, fUpdateLevel, 0 );
 clk = clock();
     Ivy_ManRewritePre( pMan, fUpdateLevel, 0, 0 );
+if ( fVerbose ) { printf( "\n" ); }
 if ( fVerbose ) { PRT( "Rewrite", clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
 
 clk = clock();
     pMan = Ivy_ManBalance( pTemp = pMan, fUpdateLevel );
     Ivy_ManStop( pTemp );
-if ( fVerbose ) { PRT( "Balance", clock() - clk ); }
-if ( fVerbose ) Ivy_ManPrintStats( pMan );
-
-//    Ivy_ManRewriteAlg( pMan, fUpdateLevel, 1 );
-clk = clock();
-if ( fVerbose ) Ivy_ManRewritePre( pMan, fUpdateLevel, 1, 0 );
-if ( fVerbose ) { PRT( "Rewrite", clock() - clk ); }
-if ( fVerbose ) Ivy_ManPrintStats( pMan );
-
-clk = clock();
-    pMan = Ivy_ManBalance( pTemp = pMan, fUpdateLevel );
-    Ivy_ManStop( pTemp );
+if ( fVerbose ) { printf( "\n" ); }
 if ( fVerbose ) { PRT( "Balance", clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
 
 //    Ivy_ManRewriteAlg( pMan, fUpdateLevel, 1 );
 clk = clock();
     Ivy_ManRewritePre( pMan, fUpdateLevel, 1, 0 );
+if ( fVerbose ) { printf( "\n" ); }
 if ( fVerbose ) { PRT( "Rewrite", clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
 
 clk = clock();
     pMan = Ivy_ManBalance( pTemp = pMan, fUpdateLevel );
     Ivy_ManStop( pTemp );
+if ( fVerbose ) { printf( "\n" ); }
+if ( fVerbose ) { PRT( "Balance", clock() - clk ); }
+if ( fVerbose ) Ivy_ManPrintStats( pMan );
+
+//    Ivy_ManRewriteAlg( pMan, fUpdateLevel, 1 );
+clk = clock();
+    Ivy_ManRewritePre( pMan, fUpdateLevel, 1, 0 );
+if ( fVerbose ) { printf( "\n" ); }
+if ( fVerbose ) { PRT( "Rewrite", clock() - clk ); }
+if ( fVerbose ) Ivy_ManPrintStats( pMan );
+
+clk = clock();
+    pMan = Ivy_ManBalance( pTemp = pMan, fUpdateLevel );
+    Ivy_ManStop( pTemp );
+if ( fVerbose ) { printf( "\n" ); }
 if ( fVerbose ) { PRT( "Balance", clock() - clk ); }
 if ( fVerbose ) Ivy_ManPrintStats( pMan );
     return pMan;

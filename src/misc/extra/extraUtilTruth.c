@@ -506,6 +506,116 @@ void Extra_TruthCofactor0( unsigned * pTruth, int nVars, int iVar )
     }
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Existentially quantifies the variable.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Extra_TruthExist( unsigned * pTruth, int nVars, int iVar )
+{
+    int nWords = Extra_TruthWordNum( nVars );
+    int i, k, Step;
+
+    assert( iVar < nVars );
+    switch ( iVar )
+    {
+    case 0:
+        for ( i = 0; i < nWords; i++ )
+            pTruth[i] |=  ((pTruth[i] & 0xAAAAAAAA) >> 1) | ((pTruth[i] & 0x55555555) << 1);
+        return;
+    case 1:
+        for ( i = 0; i < nWords; i++ )
+            pTruth[i] |=  ((pTruth[i] & 0xCCCCCCCC) >> 2) | ((pTruth[i] & 0x33333333) << 2);
+        return;
+    case 2:
+        for ( i = 0; i < nWords; i++ )
+            pTruth[i] |=  ((pTruth[i] & 0xF0F0F0F0) >> 4) | ((pTruth[i] & 0x0F0F0F0F) << 4);
+        return;
+    case 3:
+        for ( i = 0; i < nWords; i++ )
+            pTruth[i] |=  ((pTruth[i] & 0xFF00FF00) >> 8) | ((pTruth[i] & 0x00FF00FF) << 8);
+        return;
+    case 4:
+        for ( i = 0; i < nWords; i++ )
+            pTruth[i] |=  ((pTruth[i] & 0xFFFF0000) >> 16) | ((pTruth[i] & 0x0000FFFF) << 16);
+        return;
+    default:
+        Step = (1 << (iVar - 5));
+        for ( k = 0; k < nWords; k += 2*Step )
+        {
+            for ( i = 0; i < Step; i++ )
+            {
+                pTruth[i]     |= pTruth[Step+i];
+                pTruth[Step+i] = pTruth[i];
+            }
+            pTruth += 2*Step;
+        }
+        return;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Existentially quantifies the variable.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Extra_TruthForall( unsigned * pTruth, int nVars, int iVar )
+{
+    int nWords = Extra_TruthWordNum( nVars );
+    int i, k, Step;
+
+    assert( iVar < nVars );
+    switch ( iVar )
+    {
+    case 0:
+        for ( i = 0; i < nWords; i++ )
+            pTruth[i] &=  ((pTruth[i] & 0xAAAAAAAA) >> 1) | ((pTruth[i] & 0x55555555) << 1);
+        return;
+    case 1:
+        for ( i = 0; i < nWords; i++ )
+            pTruth[i] &=  ((pTruth[i] & 0xCCCCCCCC) >> 2) | ((pTruth[i] & 0x33333333) << 2);
+        return;
+    case 2:
+        for ( i = 0; i < nWords; i++ )
+            pTruth[i] &=  ((pTruth[i] & 0xF0F0F0F0) >> 4) | ((pTruth[i] & 0x0F0F0F0F) << 4);
+        return;
+    case 3:
+        for ( i = 0; i < nWords; i++ )
+            pTruth[i] &=  ((pTruth[i] & 0xFF00FF00) >> 8) | ((pTruth[i] & 0x00FF00FF) << 8);
+        return;
+    case 4:
+        for ( i = 0; i < nWords; i++ )
+            pTruth[i] &=  ((pTruth[i] & 0xFFFF0000) >> 16) | ((pTruth[i] & 0x0000FFFF) << 16);
+        return;
+    default:
+        Step = (1 << (iVar - 5));
+        for ( k = 0; k < nWords; k += 2*Step )
+        {
+            for ( i = 0; i < Step; i++ )
+            {
+                pTruth[i]     &= pTruth[Step+i];
+                pTruth[Step+i] = pTruth[i];
+            }
+            pTruth += 2*Step;
+        }
+        return;
+    }
+}
+
+
 /**Function*************************************************************
 
   Synopsis    [Computes negative cofactor of the function.]
@@ -517,7 +627,7 @@ void Extra_TruthCofactor0( unsigned * pTruth, int nVars, int iVar )
   SeeAlso     []
 
 ***********************************************************************/
-void Extra_TruthCombine( unsigned * pOut, unsigned * pCof0, unsigned * pCof1, int nVars, int iVar )
+void Extra_TruthMux( unsigned * pOut, unsigned * pCof0, unsigned * pCof1, int nVars, int iVar )
 {
     int nWords = Extra_TruthWordNum( nVars );
     int i, k, Step;

@@ -233,9 +233,57 @@ void Cut_ManSetFanoutCounts( Cut_Man_t * p, Vec_Int_t * vFanCounts )
   SeeAlso     []
 
 ***********************************************************************/
+void Cut_ManSetNodeAttrs( Cut_Man_t * p, Vec_Int_t * vNodeAttrs )
+{
+    p->vNodeAttrs = vNodeAttrs;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Cut_ManReadVarsMax( Cut_Man_t * p )
 {
     return p->pParams->nVarsMax;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Cut_Params_t * Cut_ManReadParams( Cut_Man_t * p )
+{
+    return p->pParams;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Cut_ManReadNodeAttrs( Cut_Man_t * p )
+{
+    return p->vNodeAttrs;
 }
 
 /**Function*************************************************************

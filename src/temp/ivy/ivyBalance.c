@@ -27,7 +27,7 @@
 static int         Ivy_NodeBalance_rec( Ivy_Man_t * pNew, Ivy_Obj_t * pObj, Vec_Vec_t * vStore, int Level, int fUpdateLevel );
 static Vec_Ptr_t * Ivy_NodeBalanceCone( Ivy_Obj_t * pObj, Vec_Vec_t * vStore, int Level );
 static int         Ivy_NodeBalanceFindLeft( Vec_Ptr_t * vSuper );
-static void        Ivy_NodeBalancePermute( Vec_Ptr_t * vSuper, int LeftBound, int fExor );
+static void        Ivy_NodeBalancePermute( Ivy_Man_t * p, Vec_Ptr_t * vSuper, int LeftBound, int fExor );
 static void        Ivy_NodeBalancePushUniqueOrderByLevel( Vec_Ptr_t * vStore, Ivy_Obj_t * pObj );
 
 ////////////////////////////////////////////////////////////////////////
@@ -54,11 +54,11 @@ Ivy_Man_t * Ivy_ManBalance( Ivy_Man_t * p, int fUpdateLevel )
     // clean the old manager
     Ivy_ManCleanTravId( p );
     // create the new manager 
-    pNew = Ivy_ManStart( Ivy_ManPiNum(p), Ivy_ManPoNum(p), Ivy_ManNodeNum(p) + 20000 );
+    pNew = Ivy_ManStart();
     // map the nodes
     Ivy_ManConst1(p)->TravId = Ivy_EdgeFromNode( Ivy_ManConst1(pNew) );
     Ivy_ManForEachPi( p, pObj, i )
-        pObj->TravId = Ivy_EdgeFromNode( Ivy_ManPi(pNew, i) );
+        pObj->TravId = Ivy_EdgeFromNode( Ivy_ObjCreatePi(pNew) );
     // balance the AIG
     vStore = Vec_VecAlloc( 50 );
     Ivy_ManForEachPo( p, pObj, i )
@@ -66,7 +66,7 @@ Ivy_Man_t * Ivy_ManBalance( Ivy_Man_t * p, int fUpdateLevel )
         pDriver   = Ivy_ObjReal( Ivy_ObjChild0(pObj) );
         NewNodeId = Ivy_NodeBalance_rec( pNew, Ivy_Regular(pDriver), vStore, 0, fUpdateLevel );
         NewNodeId = Ivy_EdgeNotCond( NewNodeId, Ivy_IsComplement(pDriver) );
-        Ivy_ObjConnect( Ivy_ManPo(pNew, i), Ivy_EdgeToNode(pNew, NewNodeId) );
+        Ivy_ObjCreatePo( pNew, Ivy_EdgeToNode(pNew, NewNodeId) );
     }
     Vec_VecFree( vStore );
     if ( i = Ivy_ManCleanup( pNew ) )
@@ -139,11 +139,12 @@ int Ivy_NodeBalance_rec( Ivy_Man_t * pNew, Ivy_Obj_t * pObjOld, Vec_Vec_t * vSto
         vSuper->pArray[i] = Ivy_EdgeToNode( pNew, NewNodeId );
     }
     // build the supergate
-    pObjNew = Ivy_NodeBalanceBuildSuper( vSuper, Ivy_ObjType(pObjOld), fUpdateLevel );
+    pObjNew = Ivy_NodeBalanceBuildSuper( pNew, vSuper, Ivy_ObjType(pObjOld), fUpdateLevel );
     vSuper->nSize = 0;
     // make sure the balanced node is not assigned
     assert( pObjOld->TravId == 0 );
     pObjOld->TravId = Ivy_EdgeFromNode( pObjNew );
+//    assert( pObjOld->Level >= Ivy_Regular(pObjNew)->Level );
     return pObjOld->TravId;
 }
 
@@ -158,7 +159,7 @@ int Ivy_NodeBalance_rec( Ivy_Man_t * pNew, Ivy_Obj_t * pObjOld, Vec_Vec_t * vSto
   SeeAlso     []
 
 ***********************************************************************/
-Ivy_Obj_t * Ivy_NodeBalanceBuildSuper( Vec_Ptr_t * vSuper, Ivy_Type_t Type, int fUpdateLevel )
+Ivy_Obj_t * Ivy_NodeBalanceBuildSuper( Ivy_Man_t * p, Vec_Ptr_t * vSuper, Ivy_Type_t Type, int fUpdateLevel )
 {
     Ivy_Obj_t * pObj1, * pObj2;
     int LeftBound;
@@ -171,11 +172,11 @@ Ivy_Obj_t * Ivy_NodeBalanceBuildSuper( Vec_Ptr_t * vSuper, Ivy_Type_t Type, int 
         // find the left bound on the node to be paired
         LeftBound = (!fUpdateLevel)? 0 : Ivy_NodeBalanceFindLeft( vSuper );
         // find the node that can be shared (if no such node, randomize choice)
-        Ivy_NodeBalancePermute( vSuper, LeftBound, Type == IVY_EXOR );
+        Ivy_NodeBalancePermute( p, vSuper, LeftBound, Type == IVY_EXOR );
         // pull out the last two nodes
         pObj1 = Vec_PtrPop(vSuper);
         pObj2 = Vec_PtrPop(vSuper);
-        Ivy_NodeBalancePushUniqueOrderByLevel( vSuper, Ivy_Oper(pObj1, pObj2, Type) );
+        Ivy_NodeBalancePushUniqueOrderByLevel( vSuper, Ivy_Oper(p, pObj1, pObj2, Type) );
     }
     return Vec_PtrEntry(vSuper, 0);
 }
@@ -314,7 +315,7 @@ int Ivy_NodeBalanceFindLeft( Vec_Ptr_t * vSuper )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_NodeBalancePermute( Vec_Ptr_t * vSuper, int LeftBound, int fExor )
+void Ivy_NodeBalancePermute( Ivy_Man_t * p, Vec_Ptr_t * vSuper, int LeftBound, int fExor )
 {
     Ivy_Obj_t * pObj1, * pObj2, * pObj3, * pGhost;
     int RightBound, i;
@@ -330,8 +331,8 @@ void Ivy_NodeBalancePermute( Vec_Ptr_t * vSuper, int LeftBound, int fExor )
     for ( i = RightBound; i >= LeftBound; i-- )
     {
         pObj3 = Vec_PtrEntry( vSuper, i );
-        pGhost = Ivy_ObjCreateGhost( pObj1, pObj3, fExor? IVY_EXOR : IVY_AND, IVY_INIT_NONE );
-        if ( Ivy_TableLookup( pGhost ) )
+        pGhost = Ivy_ObjCreateGhost( p, pObj1, pObj3, fExor? IVY_EXOR : IVY_AND, IVY_INIT_NONE );
+        if ( Ivy_TableLookup( p, pGhost ) )
         {
             if ( pObj3 == pObj2 )
                 return;

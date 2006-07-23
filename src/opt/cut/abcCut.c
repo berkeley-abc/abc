@@ -29,9 +29,28 @@
 static void Abc_NtkPrintCuts( void * p, Abc_Ntk_t * pNtk, int fSeq );
 static void Abc_NtkPrintCuts_( void * p, Abc_Ntk_t * pNtk, int fSeq );
 
+
 extern int nTotal, nGood, nEqual;
 
-static Vec_Int_t * Abc_NtkGetNodeAttributes( Abc_Ntk_t * pNtk );
+// temporary
+//Vec_Int_t * Abc_NtkGetNodeAttributes( Abc_Ntk_t * pNtk ) { return NULL; }
+Vec_Int_t * Abc_NtkGetNodeAttributes( Abc_Ntk_t * pNtk ) 
+{
+    Vec_Int_t * vAttrs = Vec_IntStart( Abc_NtkObjNumMax(pNtk) + 1 );
+    int i;
+    Abc_Obj_t * pObj;
+
+//    Abc_NtkForEachCi( pNtk, pObj, i )
+//        Vec_IntWriteEntry( vAttrs, pObj->Id, 1 );
+
+    Abc_NtkForEachObj( pNtk, pObj, i )
+    {
+//        if ( Abc_ObjIsNode(pObj) && (rand() % 4 == 0) )
+        if ( Abc_ObjIsNode(pObj) && Abc_ObjFanoutNum(pObj) > 1 && !Abc_NodeIsMuxControlType(pObj) && (rand() % 3 == 0) )
+            Vec_IntWriteEntry( vAttrs, pObj->Id, 1 );
+    }
+    return vAttrs; 
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -463,95 +482,6 @@ void Abc_NtkPrintCuts_( void * p, Abc_Ntk_t * pNtk, int fSeq )
     pList = Abc_NodeReadCuts( p, pObj );
     printf( "Node %s:\n", Abc_ObjName(pObj) );
     Cut_CutPrintList( pList, fSeq );
-}
-
-
-
-
-/**Function*************************************************************
-
-  Synopsis    [Assigns global attributes randomly.]
-
-  Description [Old code.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Int_t * Abc_NtkGetNodeAttributes2( Abc_Ntk_t * pNtk ) 
-{
-    Vec_Int_t * vAttrs;
-    Abc_Obj_t * pObj;
-    int i;
-
-    vAttrs = Vec_IntStart( Abc_NtkObjNumMax(pNtk) + 1 );
-//    Abc_NtkForEachCi( pNtk, pObj, i )
-//        Vec_IntWriteEntry( vAttrs, pObj->Id, 1 );
-    Abc_NtkForEachObj( pNtk, pObj, i )
-    {
-//        if ( Abc_ObjIsNode(pObj) && (rand() % 4 == 0) )
-        if ( Abc_ObjIsNode(pObj) && Abc_ObjFanoutNum(pObj) > 1 && !Abc_NodeIsMuxControlType(pObj) && (rand() % 3 == 0) )
-            Vec_IntWriteEntry( vAttrs, pObj->Id, 1 );
-    }
-    return vAttrs; 
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Assigns global attributes randomly.]
-
-  Description [Old code.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_NtkSubDagSize_rec( Abc_Obj_t * pObj, Vec_Int_t * vAttrs ) 
-{
-    if ( Abc_NodeIsTravIdCurrent(pObj) )
-        return 0;
-    Abc_NodeSetTravIdCurrent(pObj);
-    if ( Vec_IntEntry( vAttrs, pObj->Id ) )
-        return 0;
-    if ( Abc_ObjIsCi(pObj) )
-        return 1;
-    assert( Abc_ObjFaninNum(pObj) == 2 );
-    return 1 + Abc_NtkSubDagSize_rec(Abc_ObjFanin0(pObj), vAttrs) +
-        Abc_NtkSubDagSize_rec(Abc_ObjFanin1(pObj), vAttrs);
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Assigns global attributes randomly.]
-
-  Description [Old code.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Int_t * Abc_NtkGetNodeAttributes( Abc_Ntk_t * pNtk ) 
-{
-    Vec_Int_t * vAttrs;
-    Abc_Obj_t * pObj;
-    int i, nSize;
-    assert( Abc_NtkIsDfsOrdered(pNtk) );
-    vAttrs = Vec_IntStart( Abc_NtkObjNumMax(pNtk) + 1 );
-    Abc_NtkForEachObj( pNtk, pObj, i )
-    {
-        // skip no-nodes and nodes without fanouts
-        if ( pObj->Id == 0 || !(Abc_ObjIsNode(pObj) && Abc_ObjFanoutNum(pObj) > 1 && !Abc_NodeIsMuxControlType(pObj)) )
-            continue;
-        // the node has more than one fanout - count its sub-DAG size
-        Abc_NtkIncrementTravId( pNtk );
-        nSize = Abc_NtkSubDagSize_rec( pObj, vAttrs );
-        if ( nSize > 15 )
-            Vec_IntWriteEntry( vAttrs, pObj->Id, 1 );
-    }
-    return vAttrs; 
 }
 
 ////////////////////////////////////////////////////////////////////////

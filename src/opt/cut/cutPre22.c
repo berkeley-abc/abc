@@ -617,7 +617,7 @@ void Cut_CellCrossBar( Cut_Cell_t * pCell )
         Extra_TruthCofactor0( uTemp1, pCell->nVars, pCell->CrossBar1 );
     }
     else assert( 0 );
-    Extra_TruthCombine( pCell->uTruth, uTemp0, uTemp1, pCell->nVars, pCell->CrossBar0 );
+    Extra_TruthMux( pCell->uTruth, uTemp0, uTemp1, pCell->nVars, pCell->CrossBar0 );
 }
 
 /**Function*************************************************************

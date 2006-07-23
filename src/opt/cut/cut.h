@@ -61,6 +61,8 @@ struct Cut_ParamsStruct_t_
     int                fDrop;             // drop cuts on the fly
     int                fDag;              // compute only DAG cuts
     int                fTree;             // compute only tree cuts
+    int                fGlobal;           // compute only global cuts
+    int                fLocal;            // compute only local cuts
     int                fRecord;           // record the cut computation flow
     int                fFancy;            // perform fancy computations
     int                fVerbose;          // the verbosiness flag
@@ -118,7 +120,10 @@ extern void             Cut_ManStop( Cut_Man_t * p );
 extern void             Cut_ManPrintStats( Cut_Man_t * p );
 extern void             Cut_ManPrintStatsToFile( Cut_Man_t * p, char * pFileName, int TimeTotal );
 extern void             Cut_ManSetFanoutCounts( Cut_Man_t * p, Vec_Int_t * vFanCounts );
+extern void             Cut_ManSetNodeAttrs( Cut_Man_t * p, Vec_Int_t * vFanCounts );
 extern int              Cut_ManReadVarsMax( Cut_Man_t * p );
+extern Cut_Params_t *   Cut_ManReadParams( Cut_Man_t * p );
+extern Vec_Int_t *      Cut_ManReadNodeAttrs( Cut_Man_t * p );
 extern void             Cut_ManIncrementDagNodes( Cut_Man_t * p );
 /*=== cutNode.c ==========================================================*/
 extern Cut_Cut_t *      Cut_NodeComputeCuts( Cut_Man_t * p, int Node, int Node0, int Node1, int fCompl0, int fCompl1, int fTriv, int TreeCode ); 

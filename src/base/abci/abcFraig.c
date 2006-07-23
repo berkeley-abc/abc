@@ -62,6 +62,9 @@ Abc_Ntk_t * Abc_NtkFraig( Abc_Ntk_t * pNtk, void * pParams, int fAllNodes, int f
         fExdc = 0, printf( "Warning: Networks has no EXDC.\n" );
     // perform fraiging
     pMan = Abc_NtkToFraig( pNtk, pParams, fAllNodes, fExdc ); 
+    // add algebraic choices
+    if ( pPars->fChoicing )
+        Fraig_ManAddChoices( pMan, 0, 6 );
     // prove the miter if asked to
     if ( pPars->fTryProve )
         Fraig_ManProveMiter( pMan );

@@ -12,7 +12,7 @@
   
   Affiliation [UC Berkeley]
 
-  Date        [Ver. 1.0. Started - May 11, 2006.]
+  Date        [Ver. 1.0. Started - May 11, 2006. ]
 
   Revision    [$Id: ivyTable.c,v 1.00 2006/05/11 00:00:00 alanmi Exp $]
 
@@ -37,22 +37,23 @@ static unsigned Ivy_Hash( Ivy_Obj_t * pObj, int TableSize )
 }
 
 // returns the place where this node is stored (or should be stored)
-static int * Ivy_TableFind( Ivy_Obj_t * pObj )
+static int * Ivy_TableFind( Ivy_Man_t * p, Ivy_Obj_t * pObj )
 {
-    Ivy_Man_t * p;
     int i;
     assert( Ivy_ObjIsHash(pObj) );
-    p = Ivy_ObjMan(pObj);
     for ( i = Ivy_Hash(pObj, p->nTableSize); p->pTable[i]; i = (i+1) % p->nTableSize )
         if ( p->pTable[i] == pObj->Id )
             break;
     return p->pTable + i;
 }
 
+static void         Ivy_TableResize( Ivy_Man_t * p );
+static unsigned int Cudd_PrimeAig( unsigned int  p );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
-
+ 
 /**Function*************************************************************
 
   Synopsis    [Checks if node with the given attributes is in the hash table.]
@@ -64,27 +65,25 @@ static int * Ivy_TableFind( Ivy_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-Ivy_Obj_t * Ivy_TableLookup( Ivy_Obj_t * pObj )
+Ivy_Obj_t * Ivy_TableLookup( Ivy_Man_t * p, Ivy_Obj_t * pObj )
 {
-    Ivy_Man_t * p;
     Ivy_Obj_t * pEntry;
     int i;
     assert( !Ivy_IsComplement(pObj) );
     if ( !Ivy_ObjIsHash(pObj) )
         return NULL;
     assert( Ivy_ObjIsLatch(pObj) || Ivy_ObjFaninId0(pObj) > 0 );
-    assert( Ivy_ObjFaninId0(pObj) == 0 || Ivy_ObjFaninId0(pObj) > Ivy_ObjFaninId1(pObj) );
-    p = Ivy_ObjMan(pObj);
+    assert( Ivy_ObjFaninId1(pObj) == 0 || Ivy_ObjFaninId0(pObj) < Ivy_ObjFaninId1(pObj) );
+//    if ( Ivy_ObjFanin0(pObj)->nRefs == 0 || (!Ivy_ObjIsLatch(pObj) && Ivy_ObjFanin1(pObj)->nRefs == 0) )
+//        return NULL;
     for ( i = Ivy_Hash(pObj, p->nTableSize); p->pTable[i]; i = (i+1) % p->nTableSize )
     {
-        pEntry = Ivy_ObjObj( pObj, p->pTable[i] );
-        if ( Ivy_ObjFaninId0(pEntry) == Ivy_ObjFaninId0(pObj) && 
-             Ivy_ObjFaninId1(pEntry) == Ivy_ObjFaninId1(pObj) && 
-             Ivy_ObjFaninC0(pEntry) == Ivy_ObjFaninC0(pObj) && 
-             Ivy_ObjFaninC1(pEntry) == Ivy_ObjFaninC1(pObj) && 
+        pEntry = Ivy_ManObj( p, p->pTable[i] );
+        if ( Ivy_ObjChild0(pEntry) == Ivy_ObjChild0(pObj) && 
+             Ivy_ObjChild1(pEntry) == Ivy_ObjChild1(pObj) && 
              Ivy_ObjInit(pEntry) == Ivy_ObjInit(pObj) && 
              Ivy_ObjType(pEntry) == Ivy_ObjType(pObj) )
-            return Ivy_ObjObj( pObj, p->pTable[i] );
+            return pEntry;
     }
     return NULL;
 }
@@ -100,13 +99,18 @@ Ivy_Obj_t * Ivy_TableLookup( Ivy_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_TableInsert( Ivy_Obj_t * pObj )
+void Ivy_TableInsert( Ivy_Man_t * p, Ivy_Obj_t * pObj )
 {
     int * pPlace;
     assert( !Ivy_IsComplement(pObj) );
     if ( !Ivy_ObjIsHash(pObj) )
         return;
-    pPlace = Ivy_TableFind( pObj );
+    if ( (pObj->Id & 63) == 0 )
+    {
+        if ( p->nTableSize < 2 * Ivy_ManHashObjNum(p) )
+            Ivy_TableResize( p );
+    }
+    pPlace = Ivy_TableFind( p, pObj );
     assert( *pPlace == 0 );
     *pPlace = pObj->Id;
 }
@@ -122,25 +126,23 @@ void Ivy_TableInsert( Ivy_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_TableDelete( Ivy_Obj_t * pObj )
+void Ivy_TableDelete( Ivy_Man_t * p, Ivy_Obj_t * pObj )
 {
-    Ivy_Man_t * p;
     Ivy_Obj_t * pEntry;
     int i, * pPlace;
     assert( !Ivy_IsComplement(pObj) );
     if ( !Ivy_ObjIsHash(pObj) )
         return;
-    pPlace = Ivy_TableFind( pObj );
+    pPlace = Ivy_TableFind( p, pObj );
     assert( *pPlace == pObj->Id ); // node should be in the table
     *pPlace = 0;
     // rehash the adjacent entries
-    p = Ivy_ObjMan(pObj);
     i = pPlace - p->pTable;
     for ( i = (i+1) % p->nTableSize; p->pTable[i]; i = (i+1) % p->nTableSize )
     {
-        pEntry = Ivy_ObjObj( pObj, p->pTable[i] );
+        pEntry = Ivy_ManObj( p, p->pTable[i] );
         p->pTable[i] = 0;
-        Ivy_TableInsert( pEntry );
+        Ivy_TableInsert( p, pEntry );
     }
 }
 
@@ -157,13 +159,13 @@ void Ivy_TableDelete( Ivy_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_TableUpdate( Ivy_Obj_t * pObj, int ObjIdNew )
+void Ivy_TableUpdate( Ivy_Man_t * p, Ivy_Obj_t * pObj, int ObjIdNew )
 {
     int * pPlace;
     assert( !Ivy_IsComplement(pObj) );
     if ( !Ivy_ObjIsHash(pObj) )
         return;
-    pPlace = Ivy_TableFind( pObj );
+    pPlace = Ivy_TableFind( p, pObj );
     assert( *pPlace == pObj->Id ); // node should be in the table
     *pPlace = ObjIdNew;
 }
@@ -202,13 +204,12 @@ void Ivy_TableResize( Ivy_Man_t * p )
 {
     int * pTableOld, * pPlace;
     int nTableSizeOld, Counter, e, clk;
-    assert( 0 );
 clk = clock();
     // save the old table
     pTableOld = p->pTable;
     nTableSizeOld = p->nTableSize;
     // get the new table
-    p->nTableSize = p->nObjsAlloc*5/2+13; 
+    p->nTableSize = Cudd_PrimeAig( 5 * Ivy_ManHashObjNum(p) ); 
     p->pTable = ALLOC( int, p->nTableSize );
     memset( p->pTable, 0, sizeof(int) * p->nTableSize );
     // rehash the entries from the old table
@@ -219,16 +220,78 @@ clk = clock();
             continue;
         Counter++;
         // get the place where this entry goes in the table table
-        pPlace = Ivy_TableFind( Ivy_ManObj(p, pTableOld[e]) );
+        pPlace = Ivy_TableFind( p, Ivy_ManObj(p, pTableOld[e]) );
         assert( *pPlace == 0 ); // should not be in the table
         *pPlace = pTableOld[e];
     }
     assert( Counter == Ivy_ManHashObjNum(p) );
-//    printf( "Increasing the structural table size from %6d to %6d. ", p->nTableSize, nTableSizeNew );
+//    printf( "Increasing the structural table size from %6d to %6d. ", nTableSizeOld, p->nTableSize );
 //    PRT( "Time", clock() - clk );
     // replace the table and the parameters
-    free( p->pTable );
+    free( pTableOld );
 }
+
+/**Function********************************************************************
+
+  Synopsis    [Profiles the hash table.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+void Ivy_TableProfile( Ivy_Man_t * p )
+{
+    int i, Counter = 0;
+    for ( i = 0; i < p->nTableSize; i++ )
+    {
+        if ( p->pTable[i] )
+            Counter++;
+        else if ( Counter )
+        {
+            printf( "%d ", Counter );
+            Counter = 0;
+        }
+    }
+}
+
+/**Function********************************************************************
+
+  Synopsis    [Returns the next prime &gt;= p.]
+
+  Description [Copied from CUDD, for stand-aloneness.]
+
+  SideEffects [None]
+
+  SeeAlso     []
+
+******************************************************************************/
+unsigned int Cudd_PrimeAig( unsigned int  p)
+{
+    int i,pn;
+
+    p--;
+    do {
+        p++;
+        if (p&1) {
+        pn = 1;
+        i = 3;
+        while ((unsigned) (i * i) <= p) {
+        if (p % i == 0) {
+            pn = 0;
+            break;
+        }
+        i += 2;
+        }
+    } else {
+        pn = 0;
+    }
+    } while (!pn);
+    return(p);
+
+} /* end of Cudd_Prime */
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

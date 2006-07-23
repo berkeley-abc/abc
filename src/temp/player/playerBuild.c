@@ -33,6 +33,8 @@ static int         Pla_ManToAigLutFuncs( Ivy_Man_t * pNew, Ivy_Man_t * pOld );
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+#if 0
+
 /**Function*************************************************************
 
   Synopsis    [Constructs the AIG manager (IVY) for the network after mapping.]
@@ -93,7 +95,7 @@ Ivy_Obj_t * Pla_ManToAig_rec( Ivy_Man_t * pNew, Ivy_Obj_t * pObjOld )
         return Ivy_ManObj( pNew, pObjOld->TravId );
     assert( Ivy_ObjIsAnd(pObjOld) || Ivy_ObjIsExor(pObjOld) );
     // get the support and the cover
-    pStr = Ivy_ObjPlaStr( pObjOld );
+    pStr = Ivy_ObjPlaStr( pNew, pObjOld );
     if ( Vec_IntSize( &pStr->vSupp[0] ) <= p->nLutMax )
     {
         vSupp = &pStr->vSupp[0]; 
@@ -246,10 +248,10 @@ int Pla_ManToAigLutFuncs( Ivy_Man_t * pNew, Ivy_Man_t * pOld )
         if ( !Ivy_ObjIsLut(pObjNew) )
             continue;
         pObjOld = Ivy_ManObj( pOld, pObjNew->TravId );
-        vSupp = Ivy_ObjPlaStr(pObjOld)->vSupp; 
+        vSupp = Ivy_ObjPlaStr(pNew, pObjOld)->vSupp; 
         assert( Vec_IntSize(vSupp) <= 8 );
         pTruth = Ivy_ObjGetTruth( pObjNew );
-        pComputed = Ivy_ManCutTruth( pObjOld, vSupp, vNodes, vTemp );
+        pComputed = Ivy_ManCutTruth( pNew, pObjOld, vSupp, vNodes, vTemp );
         // check if the truth table is constant 0
         for ( k = 0; k < 8; k++ )
             if ( pComputed[k] )
@@ -271,6 +273,8 @@ int Pla_ManToAigLutFuncs( Ivy_Man_t * pNew, Ivy_Man_t * pOld )
     Vec_IntFree( vNodes );
     return Counter;
 }
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -39,36 +39,54 @@
   SeeAlso     []
 
 ***********************************************************************/
-Ivy_Obj_t * Ivy_ObjCreate( Ivy_Obj_t * pGhost )
+Ivy_Obj_t * Ivy_ObjCreatePi( Ivy_Man_t * p )
 {
-    Ivy_Man_t * p = Ivy_ObjMan(pGhost);
+    return Ivy_ObjCreate( p, Ivy_ObjCreateGhost(p, NULL, NULL, IVY_PI, IVY_INIT_NONE) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Create the new node assuming it does not exist.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ivy_Obj_t * Ivy_ObjCreatePo( Ivy_Man_t * p, Ivy_Obj_t * pDriver )
+{
+    return Ivy_ObjCreate( p, Ivy_ObjCreateGhost(p, pDriver, NULL, IVY_PO, IVY_INIT_NONE) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Create the new node assuming it does not exist.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ivy_Obj_t * Ivy_ObjCreate( Ivy_Man_t * p, Ivy_Obj_t * pGhost )
+{
     Ivy_Obj_t * pObj;
     assert( !Ivy_IsComplement(pGhost) );
     assert( Ivy_ObjIsGhost(pGhost) );
-
-    assert( Ivy_TableLookup(pGhost) == NULL );
-
-    // realloc the node array
-    if ( p->ObjIdNext == p->nObjsAlloc )
-    {
-        printf( "AIG manager is being resized. In the current release, it is not allowed!\n" );
-        Ivy_ManGrow( p );
-        pGhost = Ivy_ManGhost( p );
-    }
+    assert( Ivy_TableLookup(p, pGhost) == NULL );
     // get memory for the new object
-    if ( Vec_IntSize(p->vFree) > 0 )
-        pObj = p->pObjs + Vec_IntPop(p->vFree);
-    else
-        pObj = p->pObjs + p->ObjIdNext++;
-    assert( pObj->Id == pObj - p->pObjs );
+    pObj = Ivy_ManFetchMemory( p );
     assert( Ivy_ObjIsNone(pObj) );
+    pObj->Id = Vec_PtrSize(p->vObjs);
+    Vec_PtrPush( p->vObjs, pObj );
     // add basic info (fanins, compls, type, init)
-    Ivy_ObjOverwrite( pObj, pGhost );
-    // increment references of the fanins
-    Ivy_ObjRefsInc( Ivy_ObjFanin0(pObj) );
-    Ivy_ObjRefsInc( Ivy_ObjFanin1(pObj) );
-    // add the node to the structural hash table
-    Ivy_TableInsert( pObj );
+    pObj->Type = pGhost->Type;
+    pObj->Init = pGhost->Init;
+    // add connections
+    Ivy_ObjConnect( p, pObj, pGhost->pFanin0, pGhost->pFanin1 );
     // compute level
     if ( Ivy_ObjIsNode(pObj) )
         pObj->Level = Ivy_ObjLevelNew(pObj);
@@ -86,40 +104,15 @@ Ivy_Obj_t * Ivy_ObjCreate( Ivy_Obj_t * pGhost )
     }
     // add PIs/POs to the arrays
     if ( Ivy_ObjIsPi(pObj) )
-        Vec_IntPush( p->vPis, pObj->Id );
+        Vec_PtrPush( p->vPis, pObj );
     else if ( Ivy_ObjIsPo(pObj) )
-        Vec_IntPush( p->vPos, pObj->Id );
+        Vec_PtrPush( p->vPos, pObj );
+//    else if ( Ivy_ObjIsBuf(pObj) )
+//        Vec_PtrPush( p->vBufs, pObj );
+    if ( p->vRequired && Vec_IntSize(p->vRequired) <= pObj->Id )
+        Vec_IntFillExtra( p->vRequired, 2 * Vec_IntSize(p->vRequired), 1000000 );
     // update node counters of the manager
     p->nObjs[Ivy_ObjType(pObj)]++;
-    p->nCreated++;
-    return pObj;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Create the new node assuming it does not exist.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Ivy_Obj_t * Ivy_ObjCreateExt( Ivy_Man_t * p, Ivy_Type_t Type )
-{
-    Ivy_Obj_t * pObj;
-    assert( Type == IVY_ANDM || Type == IVY_EXORM || Type == IVY_LUT ); 
-    // realloc the node array
-    if ( p->ObjIdNext == p->nObjsAlloc )
-        Ivy_ManGrow( p );
-    // create the new node
-    pObj = p->pObjs + p->ObjIdNext;
-    assert( pObj->Id == p->ObjIdNext );
-    p->ObjIdNext++;
-    pObj->Type = Type;
-    // update node counters of the manager
-    p->nObjs[Type]++;
     p->nCreated++;
     return pObj;
 }
@@ -135,18 +128,94 @@ Ivy_Obj_t * Ivy_ObjCreateExt( Ivy_Man_t * p, Ivy_Type_t Type )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_ObjConnect( Ivy_Obj_t * pObj, Ivy_Obj_t * pFanin )
+void Ivy_ObjConnect( Ivy_Man_t * p, Ivy_Obj_t * pObj, Ivy_Obj_t * pFan0, Ivy_Obj_t * pFan1 )
 {
     assert( !Ivy_IsComplement(pObj) );
-    assert( Ivy_ObjIsOneFanin(pObj) );
-    assert( Ivy_ObjFaninId0(pObj) == 0 );
+    assert( Ivy_ObjIsPi(pObj) || Ivy_ObjIsOneFanin(pObj) || pFan1 != NULL );
     // add the first fanin
-    pObj->fComp0 = Ivy_IsComplement(pFanin);
-    pObj->Fanin0 = Ivy_Regular(pFanin)->Id;
-    // increment references of the fanins
-    Ivy_ObjRefsInc( Ivy_ObjFanin0(pObj) );
+    pObj->pFanin0 = pFan0;
+    pObj->pFanin1 = pFan1;
+    // increment references of the fanins and add their fanouts
+    if ( Ivy_ObjFanin0(pObj) != NULL )
+    {
+        Ivy_ObjRefsInc( Ivy_ObjFanin0(pObj) );
+        if ( p->vFanouts )
+            Ivy_ObjAddFanout( p, Ivy_ObjFanin0(pObj), pObj );
+    }
+    if ( Ivy_ObjFanin1(pObj) != NULL )
+    {
+        Ivy_ObjRefsInc( Ivy_ObjFanin1(pObj) );
+        if ( p->vFanouts )
+            Ivy_ObjAddFanout( p, Ivy_ObjFanin1(pObj), pObj );
+    }
     // add the node to the structural hash table
-    Ivy_TableInsert( pObj );
+    Ivy_TableInsert( p, pObj );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Connect the object to the fanin.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_ObjDisconnect( Ivy_Man_t * p, Ivy_Obj_t * pObj )
+{
+    assert( !Ivy_IsComplement(pObj) );
+    assert( Ivy_ObjIsPi(pObj) || Ivy_ObjIsOneFanin(pObj) || Ivy_ObjFanin1(pObj) != NULL );
+    // remove connections
+    if ( Ivy_ObjFanin0(pObj) != NULL )
+    {
+        Ivy_ObjRefsDec(Ivy_ObjFanin0(pObj));
+        if ( p->vFanouts )
+            Ivy_ObjDeleteFanout( p, Ivy_ObjFanin0(pObj), pObj );
+    }
+    if ( Ivy_ObjFanin1(pObj) != NULL )
+    {
+        Ivy_ObjRefsDec(Ivy_ObjFanin1(pObj));
+        if ( p->vFanouts )
+            Ivy_ObjDeleteFanout( p, Ivy_ObjFanin1(pObj), pObj );
+    }
+    // remove the node from the structural hash table
+    Ivy_TableDelete( p, pObj );
+    // add the first fanin
+    pObj->pFanin0 = NULL;
+    pObj->pFanin1 = NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Replaces the first fanin of the node by the new fanin.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_ObjPatchFanin0( Ivy_Man_t * p, Ivy_Obj_t * pObj, Ivy_Obj_t * pFaninNew )
+{
+    Ivy_Obj_t * pFaninOld;
+    assert( !Ivy_IsComplement(pObj) );
+    pFaninOld = Ivy_ObjFanin0(pObj);
+    // decrement ref and remove fanout
+    Ivy_ObjRefsDec( pFaninOld );
+    if ( p->vFanouts )
+        Ivy_ObjDeleteFanout( p, pFaninOld, pObj );
+    // increment ref and add fanout
+    Ivy_ObjRefsInc( Ivy_Regular(pFaninNew) );
+    if ( p->vFanouts )
+        Ivy_ObjAddFanout( p, Ivy_Regular(pFaninNew), pObj );
+    // update the fanin
+    pObj->pFanin0 = pFaninNew;
+    // get rid of old fanin
+    if ( !Ivy_ObjIsPi(pFaninOld) && Ivy_ObjRefs(pFaninOld) == 0 )
+        Ivy_ObjDelete_rec( p, pFaninOld, 1 );
 }
 
 /**Function*************************************************************
@@ -160,33 +229,35 @@ void Ivy_ObjConnect( Ivy_Obj_t * pObj, Ivy_Obj_t * pFanin )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_ObjDelete( Ivy_Obj_t * pObj, int fFreeTop )
+void Ivy_ObjDelete( Ivy_Man_t * p, Ivy_Obj_t * pObj, int fFreeTop )
 {
-    Ivy_Man_t * p;
     assert( !Ivy_IsComplement(pObj) );
-    assert( Ivy_ObjRefs(pObj) == 0 );
-    // remove connections
-    Ivy_ObjRefsDec(Ivy_ObjFanin0(pObj));
-    Ivy_ObjRefsDec(Ivy_ObjFanin1(pObj));
-    // remove the node from the structural hash table
-    Ivy_TableDelete( pObj );
+    assert( Ivy_ObjRefs(pObj) == 0 || !fFreeTop );
     // update node counters of the manager
-    p = Ivy_ObjMan(pObj);
     p->nObjs[pObj->Type]--;
     p->nDeleted++;
+    // remove connections
+    Ivy_ObjDisconnect( p, pObj );
     // remove PIs/POs from the arrays
     if ( Ivy_ObjIsPi(pObj) )
-        Vec_IntRemove( p->vPis, pObj->Id );
+        Vec_PtrRemove( p->vPis, pObj );
     else if ( Ivy_ObjIsPo(pObj) )
-        Vec_IntRemove( p->vPos, pObj->Id );
-    // recorde the deleted node
-    if ( p->fRecording )
-        Ivy_ManUndoRecord( p, pObj );
-    // clean the node's memory
-    Ivy_ObjClean( pObj );
-    // remember the entry
+        Vec_PtrRemove( p->vPos, pObj );
+    else if ( p->vFanouts && Ivy_ObjIsBuf(pObj) )
+        Vec_PtrRemove( p->vBufs, pObj );
+    // clean and recycle the entry
     if ( fFreeTop )
-        Vec_IntPush( p->vFree, pObj->Id );
+    {
+        // free the node
+        Vec_PtrWriteEntry( p->vObjs, pObj->Id, NULL );
+        Ivy_ManRecycleMemory( p, pObj );
+    }
+    else
+    {
+        int nRefsOld = pObj->nRefs;
+        Ivy_ObjClean( pObj );
+        pObj->nRefs = nRefsOld;
+    }
 }
 
 /**Function*************************************************************
@@ -200,20 +271,20 @@ void Ivy_ObjDelete( Ivy_Obj_t * pObj, int fFreeTop )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_ObjDelete_rec( Ivy_Obj_t * pObj, int fFreeTop )
+void Ivy_ObjDelete_rec( Ivy_Man_t * p, Ivy_Obj_t * pObj, int fFreeTop )
 {
     Ivy_Obj_t * pFanin0, * pFanin1;
     assert( !Ivy_IsComplement(pObj) );
-    assert( !Ivy_ObjIsPo(pObj) && !Ivy_ObjIsNone(pObj) );
+    assert( !Ivy_ObjIsNone(pObj) );
     if ( Ivy_ObjIsConst1(pObj) || Ivy_ObjIsPi(pObj) )
         return;
     pFanin0 = Ivy_ObjFanin0(pObj);
     pFanin1 = Ivy_ObjFanin1(pObj);
-    Ivy_ObjDelete( pObj, fFreeTop );
-    if ( !Ivy_ObjIsNone(pFanin0) && Ivy_ObjRefs(pFanin0) == 0 )
-        Ivy_ObjDelete_rec( pFanin0, 1 );
-    if ( !Ivy_ObjIsNone(pFanin1) && Ivy_ObjRefs(pFanin1) == 0 )
-        Ivy_ObjDelete_rec( pFanin1, 1 );
+    Ivy_ObjDelete( p, pObj, fFreeTop );
+    if ( pFanin0 && !Ivy_ObjIsNone(pFanin0) && Ivy_ObjRefs(pFanin0) == 0 )
+        Ivy_ObjDelete_rec( p, pFanin0, 1 );
+    if ( pFanin1 && !Ivy_ObjIsNone(pFanin1) && Ivy_ObjRefs(pFanin1) == 0 )
+        Ivy_ObjDelete_rec( p, pFanin1, 1 );
 }
 
 /**Function*************************************************************
@@ -229,66 +300,61 @@ void Ivy_ObjDelete_rec( Ivy_Obj_t * pObj, int fFreeTop )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_ObjReplace( Ivy_Obj_t * pObjOld, Ivy_Obj_t * pObjNew, int fDeleteOld, int fFreeTop )
+void Ivy_ObjReplace( Ivy_Man_t * p, Ivy_Obj_t * pObjOld, Ivy_Obj_t * pObjNew, int fDeleteOld, int fFreeTop )
 {
     int nRefsOld;
     // the object to be replaced cannot be complemented
     assert( !Ivy_IsComplement(pObjOld) );
     // the object to be replaced cannot be a terminal
-    assert( Ivy_ObjIsNone(pObjOld) || !Ivy_ObjIsTerm(pObjOld) );
+    assert( Ivy_ObjIsNone(pObjOld) || !Ivy_ObjIsPi(pObjOld) );
     // the object to be used cannot be a PO or assert
-    assert( !Ivy_ObjIsPo(Ivy_Regular(pObjNew)) );
+    assert( !Ivy_ObjIsBuf(Ivy_Regular(pObjNew)) );
     // the object cannot be the same
     assert( pObjOld != Ivy_Regular(pObjNew) );
     // if the new object is complemented or already used, add the buffer
-    if ( Ivy_IsComplement(pObjNew) || Ivy_ObjRefs(pObjNew) > 0 || Ivy_ObjIsPi(pObjNew) || Ivy_ObjIsConst1(pObjNew) )
-        pObjNew = Ivy_ObjCreate( Ivy_ObjCreateGhost(pObjNew, Ivy_ObjConst1(pObjOld), IVY_BUF, IVY_INIT_NONE) );
+    if ( Ivy_IsComplement(pObjNew) || Ivy_ObjIsLatch(pObjNew) || Ivy_ObjRefs(pObjNew) > 0 || Ivy_ObjIsPi(pObjNew) || Ivy_ObjIsConst1(pObjNew) )
+        pObjNew = Ivy_ObjCreate( p, Ivy_ObjCreateGhost(p, pObjNew, NULL, IVY_BUF, IVY_INIT_NONE) );
     assert( !Ivy_IsComplement(pObjNew) );
-    // remember the reference counter
-    nRefsOld = pObjOld->nRefs;  
-    pObjOld->nRefs = 0;
+    // if the new node's arrival time is different, recursively update arrival time of the fanouts
+    if ( p->vFanouts && !Ivy_ObjIsBuf(pObjNew) && pObjOld->Level != pObjNew->Level )
+    {
+        assert( Ivy_ObjIsNode(pObjOld) );
+        pObjOld->Level = pObjNew->Level;
+        Ivy_ObjUpdateLevel_rec( p, pObjOld );
+    }
+    // if the new node's required time has changed, recursively update required time of the fanins
+    if ( p->vRequired )
+    {
+        int ReqNew = Vec_IntEntry(p->vRequired, pObjOld->Id);
+        if ( ReqNew < Vec_IntEntry(p->vRequired, pObjNew->Id) )
+        {
+            Vec_IntWriteEntry( p->vRequired, pObjNew->Id, ReqNew );
+            Ivy_ObjUpdateLevelR_rec( p, pObjNew, ReqNew );
+        }
+    }
     // delete the old object
     if ( fDeleteOld )
-        Ivy_ObjDelete_rec( pObjOld, fFreeTop );
+        Ivy_ObjDelete_rec( p, pObjOld, fFreeTop );
     // transfer the old object
     assert( Ivy_ObjRefs(pObjNew) == 0 );
+    nRefsOld = pObjOld->nRefs;  
     Ivy_ObjOverwrite( pObjOld, pObjNew );
     pObjOld->nRefs = nRefsOld;
+    // patch the fanout of the fanins 
+    if ( p->vFanouts )
+    {
+        Ivy_ObjPatchFanout( p, Ivy_ObjFanin0(pObjOld), pObjNew, pObjOld );
+        if ( Ivy_ObjFanin1(pObjOld) )
+        Ivy_ObjPatchFanout( p, Ivy_ObjFanin1(pObjOld), pObjNew, pObjOld );
+    }
     // update the hash table
-    Ivy_TableUpdate( pObjNew, pObjOld->Id );
-    // create the object that was taken over by pObjOld
-    Ivy_ObjClean( pObjNew );
-    // remember the entry
-    Vec_IntPush( Ivy_ObjMan(pObjOld)->vFree, pObjNew->Id );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Returns the first real fanins (not a buffer/inverter).]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Ivy_Obj_t * Ivy_NodeRealFanin_rec( Ivy_Obj_t * pNode, int iFanin )
-{
-    if ( iFanin == 0 )
-    {
-        if ( Ivy_ObjIsBuf(Ivy_ObjFanin0(pNode)) )
-            return Ivy_NotCond( Ivy_NodeRealFanin_rec(Ivy_ObjFanin0(pNode), 0), Ivy_ObjFaninC0(pNode) );
-        else
-            return Ivy_ObjChild0(pNode);
-    }
-    else
-    {
-        if ( Ivy_ObjIsBuf(Ivy_ObjFanin1(pNode)) )
-            return Ivy_NotCond( Ivy_NodeRealFanin_rec(Ivy_ObjFanin1(pNode), 0), Ivy_ObjFaninC1(pNode) );
-        else
-            return Ivy_ObjChild1(pNode);
-    }
+    Ivy_TableUpdate( p, pObjNew, pObjOld->Id );
+    // recycle the object that was taken over by pObjOld
+    Vec_PtrWriteEntry( p->vObjs, pObjNew->Id, NULL );
+    Ivy_ManRecycleMemory( p, pObjNew );
+    // if the new node is the buffer propagate it
+    if ( p->vFanouts && Ivy_ObjIsBuf(pObjOld) )
+        Vec_PtrPush( p->vBufs, pObjOld );
 }
 
 /**Function*************************************************************
@@ -304,19 +370,31 @@ Ivy_Obj_t * Ivy_NodeRealFanin_rec( Ivy_Obj_t * pNode, int iFanin )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_NodeFixBufferFanins( Ivy_Obj_t * pNode )
+void Ivy_NodeFixBufferFanins( Ivy_Man_t * p, Ivy_Obj_t * pNode )
 {
     Ivy_Obj_t * pFanReal0, * pFanReal1, * pResult;
-    assert( Ivy_ObjIsNode(pNode) );
+    if ( Ivy_ObjIsPo(pNode) )
+    {
+        if ( !Ivy_ObjIsBuf(Ivy_ObjFanin0(pNode)) )
+            return;
+        pFanReal0 = Ivy_ObjReal( Ivy_ObjChild0(pNode) );
+        Ivy_ObjPatchFanin0( p, pNode, pFanReal0 );
+        return;
+    }
     if ( !Ivy_ObjIsBuf(Ivy_ObjFanin0(pNode)) && !Ivy_ObjIsBuf(Ivy_ObjFanin1(pNode)) )
         return;
     // get the real fanins
-    pFanReal0 = Ivy_NodeRealFanin_rec( pNode, 0 );
-    pFanReal1 = Ivy_NodeRealFanin_rec( pNode, 1 );
+    pFanReal0 = Ivy_ObjReal( Ivy_ObjChild0(pNode) );
+    pFanReal1 = Ivy_ObjReal( Ivy_ObjChild1(pNode) );
     // get the new node
-    pResult = Ivy_Oper( pFanReal0, pFanReal1, Ivy_ObjType(pNode) );
+    if ( Ivy_ObjIsNode(pNode) )
+        pResult = Ivy_Oper( p, pFanReal0, pFanReal1, Ivy_ObjType(pNode) );
+    else if ( Ivy_ObjIsLatch(pNode) )
+        pResult = Ivy_Latch( p, pFanReal0, Ivy_ObjInit(pNode) );
+    else 
+        assert( 0 );
     // perform the replacement
-    Ivy_ObjReplace( pNode, pResult, 1, 0 ); 
+    Ivy_ObjReplace( p, pNode, pResult, 1, 0 ); 
 }
 
 ////////////////////////////////////////////////////////////////////////

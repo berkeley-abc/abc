@@ -39,53 +39,32 @@
   SeeAlso     []
 
 ***********************************************************************/
-Ivy_Man_t * Ivy_ManStart( int nPis, int nPos, int nNodesMax )
+Ivy_Man_t * Ivy_ManStart()
 {
     Ivy_Man_t * p;
-    Ivy_Obj_t * pObj;
-    int i, nTotalSize;
     // start the manager
     p = ALLOC( Ivy_Man_t, 1 );
     memset( p, 0, sizeof(Ivy_Man_t) );
+    // perform initializations
+    p->Ghost.Id = -1;
     p->nTravIds = 1;
     p->fCatchExor = 1;
-    // AIG nodes
-    p->nObjsAlloc = 1 + nPis + nPos + nNodesMax;
-//    p->nObjsAlloc += (p->nObjsAlloc & 1); // make it even
-    nTotalSize = p->nObjsAlloc + IVY_SANDBOX_SIZE + 1;
-    p->pObjs = ALLOC( Ivy_Obj_t, nTotalSize );
-    memset( p->pObjs, 0, sizeof(Ivy_Obj_t) * nTotalSize );
-    // temporary storage for deleted entries
-    p->vFree  = Vec_IntAlloc( 100 );
-    // set the node IDs
-    for ( i = 0, pObj = p->pObjs; i < nTotalSize; i++, pObj++ )
-        pObj->Id = i - IVY_SANDBOX_SIZE - 1;
-    // remember the manager in the first entry
-    *((Ivy_Man_t **)p->pObjs) = p; 
-    p->pObjs += IVY_SANDBOX_SIZE + 1;
+    // allocate arrays for nodes
+    p->vPis = Vec_PtrAlloc( 100 );
+    p->vPos = Vec_PtrAlloc( 100 );
+    p->vBufs = Vec_PtrAlloc( 100 );
+    p->vObjs = Vec_PtrAlloc( 100 );
+    // prepare the internal memory manager
+    Ivy_ManStartMemory( p );
     // create the constant node
+    p->pConst1 = Ivy_ManFetchMemory( p );
+    p->pConst1->fPhase = 1;
+    Vec_PtrPush( p->vObjs, p->pConst1 );
     p->nCreated = 1;
-    p->ObjIdNext = 1;
-    Ivy_ManConst1(p)->fPhase = 1;
-    // create PIs
-    pObj = Ivy_ManGhost(p);
-    pObj->Type = IVY_PI;
-    p->vPis = Vec_IntAlloc( 100 );
-    for ( i = 0; i < nPis; i++ )
-        Ivy_ObjCreate( pObj );
-    // create POs
-    pObj->Type = IVY_PO;
-    p->vPos = Vec_IntAlloc( 100 );
-    for ( i = 0; i < nPos; i++ )
-        Ivy_ObjCreate( pObj );
     // start the table
-    p->nTableSize = p->nObjsAlloc*5/2+13;
+    p->nTableSize = 10007;
     p->pTable = ALLOC( int, p->nTableSize );
     memset( p->pTable, 0, sizeof(int) * p->nTableSize );
-    // allocate undo storage
-    p->nUndosAlloc = 100;
-    p->pUndos = ALLOC( Ivy_Obj_t, p->nUndosAlloc );
-    memset( p->pUndos, 0, sizeof(Ivy_Obj_t) * p->nUndosAlloc );
     return p;
 }
 
@@ -102,48 +81,16 @@ Ivy_Man_t * Ivy_ManStart( int nPis, int nPos, int nNodesMax )
 ***********************************************************************/
 void Ivy_ManStop( Ivy_Man_t * p )
 {
-    if ( p->fExtended )
-    {
-        Ivy_Obj_t * pObj;
-        int i;
-        Ivy_ManForEachObj( p, pObj, i )
-            if ( Ivy_ObjGetFanins(pObj) )
-                Vec_IntFree( Ivy_ObjGetFanins(pObj) );
-    }
-    if ( p->vFree )   Vec_IntFree( p->vFree );
-    if ( p->vTruths ) Vec_IntFree( p->vTruths );
-    if ( p->vPis )    Vec_IntFree( p->vPis );
-    if ( p->vPos )    Vec_IntFree( p->vPos );
-    FREE( p->pMemory );
-    free( p->pObjs - IVY_SANDBOX_SIZE - 1 );
+//    Ivy_TableProfile( p );
+    if ( p->vFanouts )  Ivy_ManStopFanout( p );
+    if ( p->vChunks )   Ivy_ManStopMemory( p );
+    if ( p->vRequired ) Vec_IntFree( p->vRequired );
+    if ( p->vPis )      Vec_PtrFree( p->vPis );
+    if ( p->vPos )      Vec_PtrFree( p->vPos );
+    if ( p->vBufs )     Vec_PtrFree( p->vBufs );
+    if ( p->vObjs )     Vec_PtrFree( p->vObjs );
     free( p->pTable );
-    free( p->pUndos );
     free( p );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Returns the number of dangling nodes removed.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ivy_ManGrow( Ivy_Man_t * p )
-{
-    int i;
-    assert( p->ObjIdNext == p->nObjsAlloc );
-    if ( p->ObjIdNext != p->nObjsAlloc )
-        return;
-//    printf( "Ivy_ObjCreate(): Reallocing the node array.\n" );
-    p->nObjsAlloc = 2 * p->nObjsAlloc;
-    p->pObjs = REALLOC( Ivy_Obj_t, p->pObjs - IVY_SANDBOX_SIZE - 1, p->nObjsAlloc + IVY_SANDBOX_SIZE + 1 ) + IVY_SANDBOX_SIZE + 1;
-    memset( p->pObjs + p->ObjIdNext, 0, sizeof(Ivy_Obj_t) * p->nObjsAlloc / 2 );
-    for ( i = p->nObjsAlloc / 2; i < p->nObjsAlloc; i++ )
-        Ivy_ManObj( p, i )->Id = i;
 }
 
 /**Function*************************************************************
@@ -164,8 +111,34 @@ int Ivy_ManCleanup( Ivy_Man_t * p )
     nNodesOld = Ivy_ManNodeNum(p);
     Ivy_ManForEachNode( p, pNode, i )
         if ( Ivy_ObjRefs(pNode) == 0 )
-            Ivy_ObjDelete_rec( pNode, 1 );
+            Ivy_ObjDelete_rec( p, pNode, 1 );
     return nNodesOld - Ivy_ManNodeNum(p);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the number of dangling nodes removed.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_ManPropagateBuffers( Ivy_Man_t * p )
+{
+    Ivy_Obj_t * pNode;
+    int nSteps;
+    for ( nSteps = 0; Vec_PtrSize(p->vBufs) > 0; nSteps++ )
+    {
+        pNode = Vec_PtrEntryLast(p->vBufs);
+        while ( Ivy_ObjIsBuf(pNode) )
+            pNode = Ivy_ObjReadFirstFanout( p, pNode );
+        Ivy_NodeFixBufferFanins( p, pNode );
+    }
+//    printf( "Number of steps = %d\n", nSteps );
+    return nSteps;
 }
 
 /**Function*************************************************************
@@ -182,24 +155,71 @@ int Ivy_ManCleanup( Ivy_Man_t * p )
 void Ivy_ManPrintStats( Ivy_Man_t * p )
 {
     printf( "PI/PO = %d/%d ", Ivy_ManPiNum(p), Ivy_ManPoNum(p) );
-    if ( p->fExtended )
-    {
-    printf( "Am = %d. ",    Ivy_ManAndMultiNum(p) );
-    printf( "Xm = %d. ",    Ivy_ManExorMultiNum(p) );
-    printf( "Lut = %d. ",   Ivy_ManLutNum(p) );
-    }
-    else
-    {
-    printf( "A = %d. ",     Ivy_ManAndNum(p) );
-    printf( "X = %d. ",     Ivy_ManExorNum(p) );
-    printf( "B = %4d. ",     Ivy_ManBufNum(p) );
-    }
-//    printf( "MaxID = %d. ", p->ObjIdNext-1 );
-//    printf( "All = %d. ",   p->nObjsAlloc );
-    printf( "Cre = %d. ",   p->nCreated );
-    printf( "Del = %d. ",   p->nDeleted );
-    printf( "Lev = %d. ",   Ivy_ManReadLevels(p) );
+    printf( "A = %d. ",       Ivy_ManAndNum(p) );
+    printf( "L = %d. ",       Ivy_ManLatchNum(p) );
+//    printf( "X = %d. ",       Ivy_ManExorNum(p) );
+    printf( "B = %d. ",       Ivy_ManBufNum(p) );
+    printf( "MaxID = %d. ",   Ivy_ManObjIdMax(p) );
+//    printf( "Cre = %d. ",     p->nCreated );
+//    printf( "Del = %d. ",     p->nDeleted );
+    printf( "Lev = %d. ",     Ivy_ManLatchNum(p)? -1 : Ivy_ManLevels(p) );
     printf( "\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converts a combinational AIG manager into a sequential one.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_ManMakeSeq( Ivy_Man_t * p, int nLatches, int * pInits )
+{
+    Ivy_Obj_t * pObj, * pLatch;
+    Ivy_Init_t Init;
+    int i;
+    if ( nLatches == 0 )
+        return;
+    assert( nLatches < Ivy_ManPiNum(p) && nLatches < Ivy_ManPoNum(p) );
+    assert( Ivy_ManPiNum(p) == Vec_PtrSize(p->vPis) );
+    assert( Ivy_ManPoNum(p) == Vec_PtrSize(p->vPos) );
+    assert( Vec_PtrSize( p->vBufs ) == 0 );
+    // create fanouts
+    if ( p->vFanouts == NULL )
+        Ivy_ManStartFanout( p );
+    // collect the POs to be converted into latches
+    for ( i = 0; i < nLatches; i++ )
+    {
+        // get the latch value
+        Init = pInits? pInits[i] : IVY_INIT_0;
+        // create latch
+        pObj = Ivy_ManPo( p, Ivy_ManPoNum(p) - nLatches + i );
+        pLatch = Ivy_Latch( p, Ivy_ObjChild0(pObj), Init );
+        Ivy_ObjDisconnect( p, pObj );
+        // convert the corresponding PI to a buffer and connect it to the latch
+        pObj = Ivy_ManPi( p, Ivy_ManPiNum(p) - nLatches + i );
+        pObj->Type = IVY_BUF;
+        Ivy_ObjConnect( p, pObj, pLatch, NULL );
+        // save the buffer
+        Vec_PtrPush( p->vBufs, pObj );
+    }
+    // shrink the arrays
+    Vec_PtrShrink( p->vPis, Ivy_ManPiNum(p) - nLatches );
+    Vec_PtrShrink( p->vPos, Ivy_ManPoNum(p) - nLatches );
+    // update the counters of different objects
+    p->nObjs[IVY_PI] -= nLatches;
+    p->nObjs[IVY_PO] -= nLatches;
+    p->nObjs[IVY_BUF] += nLatches;
+    p->nDeleted -= 2 * nLatches;
+    // perform hashing by propagating the buffers
+    Ivy_ManPropagateBuffers( p );
+    // check the resulting network
+    if ( !Ivy_ManCheck(p) )
+        printf( "Ivy_ManMakeSeq(): The check has failed.\n" );
 }
 
 ////////////////////////////////////////////////////////////////////////

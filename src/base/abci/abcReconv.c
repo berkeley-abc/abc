@@ -321,6 +321,7 @@ int Abc_NodeBuildCutLevelOne_int( Vec_Ptr_t * vVisited, Vec_Ptr_t * vLeaves, int
     {
         CostCur = Abc_NodeGetLeafCostOne( pNode, nFaninLimit );
 //printf( "    Fanin %s has cost %d.\n", Abc_ObjName(pNode), CostCur );
+//        if ( CostBest > CostCur ) // performance improvement: expand the variable with the smallest level
         if ( CostBest > CostCur ||
              (CostBest == CostCur && pNode->Level > pFaninBest->Level) )
         {

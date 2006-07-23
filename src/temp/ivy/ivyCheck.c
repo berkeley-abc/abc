@@ -39,15 +39,18 @@
   SeeAlso     []
 
 ***********************************************************************/
-int Ivy_ManCheck( Ivy_Man_t * pMan )
+int Ivy_ManCheck( Ivy_Man_t * p )
 {
     Ivy_Obj_t * pObj, * pObj2;
     int i;
-    Ivy_ManForEachObj( pMan, pObj, i )
+    Ivy_ManForEachObj( p, pObj, i )
     {
         // skip deleted nodes
-        if ( Ivy_ObjIsNone(pObj) )
-            continue;
+        if ( Ivy_ObjId(pObj) != i )
+        {
+            printf( "Ivy_ManCheck: Node with ID %d is listed as number %d in the array of objects.\n", pObj->Id, i );
+            return 0;
+        }
         // consider the constant node and PIs
         if ( i == 0 || Ivy_ObjIsPi(pObj) )
         {
@@ -69,44 +72,54 @@ int Ivy_ManCheck( Ivy_Man_t * pMan )
         }
         if ( Ivy_ObjIsBuf(pObj) )
         {
+            if ( Ivy_ObjFanin1(pObj) )
+            {
+                printf( "Ivy_ManCheck: The buffer with ID \"%d\" contains second fanin.\n", pObj->Id );
+                return 0;
+            }
             continue;
         }
         if ( Ivy_ObjIsLatch(pObj) )
         {
-            if ( Ivy_ObjFaninId1(pObj) != 0 )
+            if ( Ivy_ObjFanin1(pObj) )
             {
                 printf( "Ivy_ManCheck: The latch with ID \"%d\" contains second fanin.\n", pObj->Id );
                 return 0;
             }
-            if ( Ivy_ObjInit(pObj) == 0 )
+            if ( Ivy_ObjInit(pObj) == IVY_INIT_NONE )
             {
                 printf( "Ivy_ManCheck: The latch with ID \"%d\" does not have initial state.\n", pObj->Id );
                 return 0;
             }
-            pObj2 = Ivy_TableLookup( pObj );
+            pObj2 = Ivy_TableLookup( p, pObj );
             if ( pObj2 != pObj )
                 printf( "Ivy_ManCheck: Latch with ID \"%d\" is not in the structural hashing table.\n", pObj->Id );
                 continue;
         }
         // consider the AND node
-        if ( !Ivy_ObjFaninId0(pObj) || !Ivy_ObjFaninId1(pObj) )
+        if ( !Ivy_ObjFanin0(pObj) || !Ivy_ObjFanin1(pObj) )
         {
-            printf( "Ivy_ManCheck: The AIG has internal node \"%d\" with a constant fanin.\n", pObj->Id );
+            printf( "Ivy_ManCheck: The AIG has internal node \"%d\" with a NULL fanin.\n", pObj->Id );
             return 0;
         }
-        if ( Ivy_ObjFaninId0(pObj) <= Ivy_ObjFaninId1(pObj) )
+        if ( Ivy_ObjFaninId0(pObj) >= Ivy_ObjFaninId1(pObj) )
         {
             printf( "Ivy_ManCheck: The AIG has node \"%d\" with a wrong ordering of fanins.\n", pObj->Id );
             return 0;
         }
 //        if ( Ivy_ObjLevel(pObj) != Ivy_ObjLevelNew(pObj) )
-//            printf( "Ivy_ManCheck: Node with ID \"%d\" has level that does not agree with the fanin levels.\n", pObj->Id );
-        pObj2 = Ivy_TableLookup( pObj );
+//            printf( "Ivy_ManCheck: Node with ID \"%d\" has level %d but should have level %d.\n", pObj->Id, Ivy_ObjLevel(pObj), Ivy_ObjLevelNew(pObj) );
+        pObj2 = Ivy_TableLookup( p, pObj );
         if ( pObj2 != pObj )
             printf( "Ivy_ManCheck: Node with ID \"%d\" is not in the structural hashing table.\n", pObj->Id );
+        if ( Ivy_ObjRefs(pObj) == 0 )
+            printf( "Ivy_ManCheck: Node with ID \"%d\" has no fanouts.\n", pObj->Id );
+        // check fanouts
+        if ( p->vFanouts && Ivy_ObjRefs(pObj) != Ivy_ObjFanoutNum(p, pObj) )
+            printf( "Ivy_ManCheck: Node with ID \"%d\" has mismatch between the number of fanouts and refs.\n", pObj->Id );
     }
     // count the number of nodes in the table
-    if ( Ivy_TableCountEntries(pMan) != Ivy_ManAndNum(pMan) + Ivy_ManExorNum(pMan) + Ivy_ManLatchNum(pMan) )
+    if ( Ivy_TableCountEntries(p) != Ivy_ManAndNum(p) + Ivy_ManExorNum(p) + Ivy_ManLatchNum(p) )
     {
         printf( "Ivy_ManCheck: The number of nodes in the structural hashing table is wrong.\n" );
         return 0;

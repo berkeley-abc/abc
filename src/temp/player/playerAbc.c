@@ -32,6 +32,8 @@ static Abc_Ntk_t * Ivy_ManToAbc( Abc_Ntk_t * pNtkOld, Ivy_Man_t * p );
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+#if 0
+
 /**Function*************************************************************
 
   Synopsis    [Gives the current ABC network to PLAyer for processing.]
@@ -65,7 +67,7 @@ void * Abc_NtkPlayer( void * pNtk, int nLutMax, int nPlaMax, int fVerbose )
     if ( fUseRewriting )
     {
         // simplify
-        pMan = Ivy_ManResyn( pManExt = pMan, 1 );
+        pMan = Ivy_ManResyn( pManExt = pMan, 1, 0 );
         Ivy_ManStop( pManExt );
         if ( fVerbose )
             Ivy_ManPrintStats( pMan );
@@ -217,6 +219,7 @@ Abc_Ntk_t * Ivy_ManToAbc( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan )
     return pNtkNew;
 }
 
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

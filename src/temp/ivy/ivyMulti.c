@@ -34,8 +34,8 @@ struct Ivy_Eva_t_
     int         Weight;   // the number of covered nodes
 };
 
-static void Ivy_MultiPrint( Ivy_Eva_t * pEvals, int nLeaves, int nEvals );
-static int Ivy_MultiCover( Ivy_Eva_t * pEvals, int nLeaves, int nEvals, int nLimit, Vec_Ptr_t * vSols );
+static void Ivy_MultiPrint( Ivy_Man_t * p, Ivy_Eva_t * pEvals, int nLeaves, int nEvals );
+static int Ivy_MultiCover( Ivy_Man_t * p, Ivy_Eva_t * pEvals, int nLeaves, int nEvals, int nLimit, Vec_Ptr_t * vSols );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -52,7 +52,7 @@ static int Ivy_MultiCover( Ivy_Eva_t * pEvals, int nLeaves, int nEvals, int nLim
   SeeAlso     []
 
 ***********************************************************************/
-int Ivy_MultiPlus( Vec_Ptr_t * vLeaves, Vec_Ptr_t * vCone, Ivy_Type_t Type, int nLimit, Vec_Ptr_t * vSols )
+int Ivy_MultiPlus( Ivy_Man_t * p, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vCone, Ivy_Type_t Type, int nLimit, Vec_Ptr_t * vSols )
 {
     static Ivy_Eva_t pEvals[IVY_EVAL_LIMIT];
     Ivy_Eva_t * pEval, * pFan0, * pFan1;
@@ -122,7 +122,7 @@ int Ivy_MultiPlus( Vec_Ptr_t * vLeaves, Vec_Ptr_t * vCone, Ivy_Type_t Type, int 
     {
         pFan0 = pEvals + i;
         pFan1 = pEvals + k;
-        pTemp = Ivy_TableLookup(Ivy_ObjCreateGhost(pFan0->pArg, pFan1->pArg, Type, IVY_INIT_NONE));
+        pTemp = Ivy_TableLookup(p, Ivy_ObjCreateGhost(p, pFan0->pArg, pFan1->pArg, Type, IVY_INIT_NONE));
         // skip nodes in the cone
         if ( pTemp == NULL || pTemp->fMarkB )
             continue;
@@ -149,7 +149,7 @@ int Ivy_MultiPlus( Vec_Ptr_t * vLeaves, Vec_Ptr_t * vCone, Ivy_Type_t Type, int 
 Outside:
 
 //    Ivy_MultiPrint( pEvals, nLeaves, nEvals );
-    if ( !Ivy_MultiCover( pEvals, nLeaves, nEvals, nLimit, vSols ) )
+    if ( !Ivy_MultiCover( p, pEvals, nLeaves, nEvals, nLimit, vSols ) )
         return 0;
     assert( Vec_PtrSize( vSols ) > 0 );
     return 1;
@@ -166,7 +166,7 @@ Outside:
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_MultiPrint( Ivy_Eva_t * pEvals, int nLeaves, int nEvals )
+void Ivy_MultiPrint( Ivy_Man_t * p, Ivy_Eva_t * pEvals, int nLeaves, int nEvals )
 {
     Ivy_Eva_t * pEval;
     int i, k;
@@ -215,7 +215,7 @@ static inline int Ivy_MultiWeight( unsigned uMask, int nMaskOnes, unsigned uFoun
   SeeAlso     []
 
 ***********************************************************************/
-int Ivy_MultiCover( Ivy_Eva_t * pEvals, int nLeaves, int nEvals, int nLimit, Vec_Ptr_t * vSols )
+int Ivy_MultiCover( Ivy_Man_t * p, Ivy_Eva_t * pEvals, int nLeaves, int nEvals, int nLimit, Vec_Ptr_t * vSols )
 {
     int fVerbose = 0;
     Ivy_Eva_t * pEval, * pEvalBest;
@@ -292,6 +292,45 @@ int Ivy_MultiCover( Ivy_Eva_t * pEvals, int nLeaves, int nEvals, int nLimit, Vec
             printf( "  Not found \n\n" );
         return 0;
     }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Constructs the well-balanced tree of gates.]
+
+  Description [Disregards levels and possible logic sharing.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ivy_Obj_t * Ivy_Multi_rec( Ivy_Man_t * p, Ivy_Obj_t ** ppObjs, int nObjs, Ivy_Type_t Type )
+{
+    Ivy_Obj_t * pObj1, * pObj2;
+    if ( nObjs == 1 )
+        return ppObjs[0];
+    pObj1 = Ivy_Multi_rec( p, ppObjs,           nObjs/2,         Type );
+    pObj2 = Ivy_Multi_rec( p, ppObjs + nObjs/2, nObjs - nObjs/2, Type );
+    return Ivy_Oper( p, pObj1, pObj2, Type );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Old code.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ivy_Obj_t * Ivy_Multi( Ivy_Man_t * p, Ivy_Obj_t ** pArgs, int nArgs, Ivy_Type_t Type )
+{
+    assert( Type == IVY_AND || Type == IVY_EXOR );
+    assert( nArgs > 0 );
+    return Ivy_Multi_rec( p, pArgs, nArgs, Type );
 }
 
 ////////////////////////////////////////////////////////////////////////

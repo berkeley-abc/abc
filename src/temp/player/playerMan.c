@@ -58,8 +58,8 @@ Pla_Man_t * Pla_ManAlloc( Ivy_Man_t * pAig, int nLutMax, int nPlaMax )
     pMan->vTriv0  = Vec_IntAlloc( 1 );  Vec_IntPush( pMan->vTriv0, -1 ); 
     pMan->vTriv1  = Vec_IntAlloc( 1 );  Vec_IntPush( pMan->vTriv1, -1 ); 
     // allocate memory for object structures
-    pMan->pPlaStrs = ALLOC( Pla_Obj_t, sizeof(Pla_Obj_t) * Ivy_ManObjIdNext(pAig) );
-    memset( pMan->pPlaStrs, 0, sizeof(Pla_Obj_t) * Ivy_ManObjIdNext(pAig) );
+    pMan->pPlaStrs = ALLOC( Pla_Obj_t, sizeof(Pla_Obj_t) * (Ivy_ManObjIdMax(pAig)+1) );
+    memset( pMan->pPlaStrs, 0, sizeof(Pla_Obj_t) * (Ivy_ManObjIdMax(pAig)+1) );
     // create the cube manager
     pMan->pManMin = Esop_ManAlloc( nPlaMax );
     // save the resulting manager
@@ -90,7 +90,7 @@ void Pla_ManFree( Pla_Man_t * p )
     Vec_IntFree( p->vComTo1 );
     Vec_IntFree( p->vPairs0 );
     Vec_IntFree( p->vPairs1 );
-    for ( i = 0, pStr = p->pPlaStrs; i < Ivy_ManObjIdNext(p->pManAig); i++, pStr++ )
+    for ( i = 0, pStr = p->pPlaStrs; i <= Ivy_ManObjIdMax(p->pManAig); i++, pStr++ )
         FREE( pStr->vSupp[0].pArray ), FREE( pStr->vSupp[1].pArray );
     free( p->pPlaStrs );
     free( p );

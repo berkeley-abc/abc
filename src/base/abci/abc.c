@@ -88,6 +88,11 @@ static int Abc_CommandGen            ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandXyz            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTest           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
+static int Abc_CommandIStrash        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandICut           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandIRewrite       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandIResyn         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+
 static int Abc_CommandFraig          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFraigTrust     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFraigStore     ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -198,6 +203,11 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "gen",           Abc_CommandGen,              0 );
     Cmd_CommandAdd( pAbc, "Various",      "xyz",           Abc_CommandXyz,              1 );
     Cmd_CommandAdd( pAbc, "Various",      "test",          Abc_CommandTest,             0 );
+
+    Cmd_CommandAdd( pAbc, "New AIG",      "istrash",       Abc_CommandIStrash,          1 );
+    Cmd_CommandAdd( pAbc, "New AIG",      "icut",          Abc_CommandICut,             0 );
+    Cmd_CommandAdd( pAbc, "New AIG",      "irw",           Abc_CommandIRewrite,         1 );
+    Cmd_CommandAdd( pAbc, "New AIG",      "iresyn",        Abc_CommandIResyn,           1 );
 
     Cmd_CommandAdd( pAbc, "Fraiging",     "fraig",         Abc_CommandFraig,            1 );
     Cmd_CommandAdd( pAbc, "Fraiging",     "fraig_trust",   Abc_CommandFraigTrust,       1 );
@@ -4073,10 +4083,12 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
     pParams->fDrop     = 0;     // drop cuts on the fly
     pParams->fDag      = 0;     // compute DAG cuts
     pParams->fTree     = 0;     // compute tree cuts
+    pParams->fGlobal   = 0;     // compute global cuts
+    pParams->fLocal    = 0;     // compute local cuts
     pParams->fFancy    = 0;     // compute something fancy
     pParams->fVerbose  = 0;     // the verbosiness flag
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KMtfdxyzvoh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KMtfdxyglzvoh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -4116,6 +4128,12 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'y':
             pParams->fTree ^= 1;
+            break;
+        case 'g':
+            pParams->fGlobal ^= 1;
+            break;
+        case 'l':
+            pParams->fLocal ^= 1;
             break;
         case 'z':
             pParams->fFancy ^= 1;
@@ -4178,6 +4196,8 @@ usage:
     fprintf( pErr, "\t-d     : toggle dropping when fanouts are done [default = %s]\n",    pParams->fDrop?    "yes": "no" );
     fprintf( pErr, "\t-x     : toggle computing only DAG cuts [default = %s]\n",           pParams->fDag?     "yes": "no" );
     fprintf( pErr, "\t-y     : toggle computing only tree cuts [default = %s]\n",          pParams->fTree?    "yes": "no" );
+    fprintf( pErr, "\t-g     : toggle computing only global cuts [default = %s]\n",        pParams->fGlobal?  "yes": "no" );
+    fprintf( pErr, "\t-l     : toggle computing only local cuts [default = %s]\n",         pParams->fLocal?   "yes": "no" );
     fprintf( pErr, "\t-z     : toggle fancy computations [default = %s]\n",                pParams->fFancy?   "yes": "no" );
     fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n",      pParams->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
@@ -4462,7 +4482,7 @@ int Abc_CommandXyz( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nPlaMax;
     int fVerbose;
 //    extern Abc_Ntk_t * Abc_NtkXyz( Abc_Ntk_t * pNtk, int nPlaMax, bool fUseEsop, bool fUseSop, bool fUseInvs, bool fVerbose );
-    extern void *      Abc_NtkPlayer( void * pNtk, int nLutMax, int nPlaMax, int fVerbose );
+    extern void * Abc_NtkPlayer( void * pNtk, int nLutMax, int nPlaMax, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -4647,11 +4667,11 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Ivy_TruthTest();
 
 
-    Ivy_TruthEstimateNodesTest();
+//    Ivy_TruthEstimateNodesTest();
 
-//    pNtkRes = Abc_NtkIvy( pNtk );
+    pNtkRes = Abc_NtkIvy( pNtk );
 //    pNtkRes = Abc_NtkPlayer( pNtk, nLevels, 0 );
-    pNtkRes = NULL;
+//    pNtkRes = NULL;
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
@@ -4669,6 +4689,290 @@ usage:
     return 1;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandIStrash( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c;
+    extern Abc_Ntk_t * Abc_NtkIvyStrash( Abc_Ntk_t * pNtk );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( Abc_NtkIsSeq(pNtk) )
+    {
+        fprintf( pErr, "Only works for non-sequential networks.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "Only works for combinatinally strashed AIG networks.\n" );
+        return 1;
+    }
+
+    pNtkRes = Abc_NtkIvyStrash( pNtk );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Command has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: istrash [-h]\n" );
+    fprintf( pErr, "\t         perform sequential structural hashing\n" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandICut( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c, nInputs;
+    extern void Abc_NtkIvyCuts( Abc_Ntk_t * pNtk, int nInputs );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    nInputs = 5;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Kh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nInputs = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nInputs < 0 ) 
+                goto usage;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( Abc_NtkIsSeq(pNtk) )
+    {
+        fprintf( pErr, "Only works for non-sequential networks.\n" );
+        return 1;
+    }
+
+    Abc_NtkIvyCuts( pNtk, nInputs );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: icut [-K num] [-h]\n" );
+    fprintf( pErr, "\t         computes sequential cuts of the given size\n" );
+    fprintf( pErr, "\t-K num : the number of cut inputs (2 <= num <= 6) [default = %d]\n", nInputs );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandIRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c, fUpdateLevel, fUseZeroCost, fVerbose;
+    extern Abc_Ntk_t * Abc_NtkIvyRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeroCost, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fUpdateLevel = 1;
+    fUseZeroCost = 0;
+    fVerbose     = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "lzvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'l':
+            fUpdateLevel ^= 1;
+            break;
+        case 'z':
+            fUseZeroCost ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( Abc_NtkIsSeq(pNtk) )
+    {
+        fprintf( pErr, "Only works for non-sequential networks.\n" );
+        return 1;
+    }
+
+    pNtkRes = Abc_NtkIvyRewrite( pNtk, fUpdateLevel, fUseZeroCost, fVerbose );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Command has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: irw [-lzvh]\n" );
+    fprintf( pErr, "\t         perform combinational AIG rewriting\n" );
+    fprintf( pErr, "\t-l     : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
+    fprintf( pErr, "\t-z     : toggle using zero-cost replacements [default = %s]\n", fUseZeroCost? "yes": "no" );
+    fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandIResyn( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c, fUpdateLevel, fVerbose;
+    extern Abc_Ntk_t * Abc_NtkIvyResyn( Abc_Ntk_t * pNtk, int fUpdateLevel, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fUpdateLevel = 1;
+    fVerbose     = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "lzvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'l':
+            fUpdateLevel ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( Abc_NtkIsSeq(pNtk) )
+    {
+        fprintf( pErr, "Only works for non-sequential networks.\n" );
+        return 1;
+    }
+
+    pNtkRes = Abc_NtkIvyResyn( pNtk, fUpdateLevel, fVerbose );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Command has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: iresyn [-lvh]\n" );
+    fprintf( pErr, "\t         performs combinational resynthesis\n" );
+    fprintf( pErr, "\t-l     : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
+    fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
 
 
 /**Function*************************************************************

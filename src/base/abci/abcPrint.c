@@ -185,6 +185,7 @@ void Abc_NtkPrintIo( FILE * pFile, Abc_Ntk_t * pNtk )
     fprintf( pFile, "Primary inputs (%d): ", Abc_NtkPiNum(pNtk) );    
     Abc_NtkForEachPi( pNtk, pObj, i )
         fprintf( pFile, " %s", Abc_ObjName(pObj) );
+//        fprintf( pFile, " %s(%d)", Abc_ObjName(pObj), Abc_ObjFanoutNum(pObj) );
     fprintf( pFile, "\n" );   
 
     fprintf( pFile, "Primary outputs (%d):", Abc_NtkPoNum(pNtk) );    

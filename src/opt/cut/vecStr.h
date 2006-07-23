@@ -1,12 +1,12 @@
 /**CFile****************************************************************
 
-  FileName    [vecPtr.h]
+  FileName    [vecStr.h]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
   PackageName [Resizable arrays.]
 
-  Synopsis    [Resizable arrays of generic pointers.]
+  Synopsis    [Resizable arrays of characters.]
 
   Author      [Alan Mishchenko]
   
@@ -14,12 +14,12 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: vecPtr.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: vecStr.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
  
-#ifndef __VEC_PTR_H__
-#define __VEC_PTR_H__
+#ifndef __VEC_STR_H__
+#define __VEC_STR_H__
 
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
@@ -36,29 +36,20 @@
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
 
-typedef struct Vec_Ptr_t_       Vec_Ptr_t;
-struct Vec_Ptr_t_ 
+typedef struct Vec_Str_t_       Vec_Str_t;
+struct Vec_Str_t_ 
 {
     int              nCap;
     int              nSize;
-    void **          pArray;
+    char *           pArray;
 };
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
-// iterators through entries
-#define Vec_PtrForEachEntry( vVec, pEntry, i )                                               \
-    for ( i = 0; (i < Vec_PtrSize(vVec)) && (((pEntry) = Vec_PtrEntry(vVec, i)), 1); i++ )
-#define Vec_PtrForEachEntryStart( vVec, pEntry, i, Start )                                   \
-    for ( i = Start; (i < Vec_PtrSize(vVec)) && (((pEntry) = Vec_PtrEntry(vVec, i)), 1); i++ )
-#define Vec_PtrForEachEntryStop( vVec, pEntry, i, Stop )                                     \
-    for ( i = 0; (i < Stop) && (((pEntry) = Vec_PtrEntry(vVec, i)), 1); i++ )
-#define Vec_PtrForEachEntryStartStop( vVec, pEntry, i, Start, Stop )                         \
-    for ( i = Start; (i < Stop) && (((pEntry) = Vec_PtrEntry(vVec, i)), 1); i++ )
-#define Vec_PtrForEachEntryReverse( vVec, pEntry, i )                                        \
-    for ( i = Vec_PtrSize(vVec) - 1; (i >= 0) && (((pEntry) = Vec_PtrEntry(vVec, i)), 1); i-- )
+#define Vec_StrForEachEntry( vVec, Entry, i )                                               \
+    for ( i = 0; (i < Vec_StrSize(vVec)) && (((Entry) = Vec_StrEntry(vVec, i)), 1); i++ )   
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -75,15 +66,15 @@ struct Vec_Ptr_t_
   SeeAlso     []
 
 ***********************************************************************/
-static inline Vec_Ptr_t * Vec_PtrAlloc( int nCap )
+static inline Vec_Str_t * Vec_StrAlloc( int nCap )
 {
-    Vec_Ptr_t * p;
-    p = ALLOC( Vec_Ptr_t, 1 );
-    if ( nCap > 0 && nCap < 8 )
-        nCap = 8;
+    Vec_Str_t * p;
+    p = ALLOC( Vec_Str_t, 1 );
+    if ( nCap > 0 && nCap < 16 )
+        nCap = 16;
     p->nSize  = 0;
     p->nCap   = nCap;
-    p->pArray = p->nCap? ALLOC( void *, p->nCap ) : NULL;
+    p->pArray = p->nCap? ALLOC( char, p->nCap ) : NULL;
     return p;
 }
 
@@ -98,12 +89,12 @@ static inline Vec_Ptr_t * Vec_PtrAlloc( int nCap )
   SeeAlso     []
 
 ***********************************************************************/
-static inline Vec_Ptr_t * Vec_PtrStart( int nSize )
+static inline Vec_Str_t * Vec_StrStart( int nSize )
 {
-    Vec_Ptr_t * p;
-    p = Vec_PtrAlloc( nSize );
+    Vec_Str_t * p;
+    p = Vec_StrAlloc( nSize );
     p->nSize = nSize;
-    memset( p->pArray, 0, sizeof(void *) * nSize );
+    memset( p->pArray, 0, sizeof(char) * nSize );
     return p;
 }
 
@@ -118,10 +109,10 @@ static inline Vec_Ptr_t * Vec_PtrStart( int nSize )
   SeeAlso     []
 
 ***********************************************************************/
-static inline Vec_Ptr_t * Vec_PtrAllocArray( void ** pArray, int nSize )
+static inline Vec_Str_t * Vec_StrAllocArray( char * pArray, int nSize )
 {
-    Vec_Ptr_t * p;
-    p = ALLOC( Vec_Ptr_t, 1 );
+    Vec_Str_t * p;
+    p = ALLOC( Vec_Str_t, 1 );
     p->nSize  = nSize;
     p->nCap   = nSize;
     p->pArray = pArray;
@@ -139,14 +130,14 @@ static inline Vec_Ptr_t * Vec_PtrAllocArray( void ** pArray, int nSize )
   SeeAlso     []
 
 ***********************************************************************/
-static inline Vec_Ptr_t * Vec_PtrAllocArrayCopy( void ** pArray, int nSize )
+static inline Vec_Str_t * Vec_StrAllocArrayCopy( char * pArray, int nSize )
 {
-    Vec_Ptr_t * p;
-    p = ALLOC( Vec_Ptr_t, 1 );
+    Vec_Str_t * p;
+    p = ALLOC( Vec_Str_t, 1 );
     p->nSize  = nSize;
     p->nCap   = nSize;
-    p->pArray = ALLOC( void *, nSize );
-    memcpy( p->pArray, pArray, sizeof(void *) * nSize );
+    p->pArray = ALLOC( char, nSize );
+    memcpy( p->pArray, pArray, sizeof(char) * nSize );
     return p;
 }
 
@@ -161,14 +152,14 @@ static inline Vec_Ptr_t * Vec_PtrAllocArrayCopy( void ** pArray, int nSize )
   SeeAlso     []
 
 ***********************************************************************/
-static inline Vec_Ptr_t * Vec_PtrDup( Vec_Ptr_t * pVec )
+static inline Vec_Str_t * Vec_StrDup( Vec_Str_t * pVec )
 {
-    Vec_Ptr_t * p;
-    p = ALLOC( Vec_Ptr_t, 1 );
+    Vec_Str_t * p;
+    p = ALLOC( Vec_Str_t, 1 );
     p->nSize  = pVec->nSize;
     p->nCap   = pVec->nCap;
-    p->pArray = p->nCap? ALLOC( void *, p->nCap ) : NULL;
-    memcpy( p->pArray, pVec->pArray, sizeof(void *) * pVec->nSize );
+    p->pArray = p->nCap? ALLOC( char, p->nCap ) : NULL;
+    memcpy( p->pArray, pVec->pArray, sizeof(char) * pVec->nSize );
     return p;
 }
 
@@ -183,10 +174,10 @@ static inline Vec_Ptr_t * Vec_PtrDup( Vec_Ptr_t * pVec )
   SeeAlso     []
 
 ***********************************************************************/
-static inline Vec_Ptr_t * Vec_PtrDupArray( Vec_Ptr_t * pVec )
+static inline Vec_Str_t * Vec_StrDupArray( Vec_Str_t * pVec )
 {
-    Vec_Ptr_t * p;
-    p = ALLOC( Vec_Ptr_t, 1 );
+    Vec_Str_t * p;
+    p = ALLOC( Vec_Str_t, 1 );
     p->nSize  = pVec->nSize;
     p->nCap   = pVec->nCap;
     p->pArray = pVec->pArray;
@@ -198,7 +189,7 @@ static inline Vec_Ptr_t * Vec_PtrDupArray( Vec_Ptr_t * pVec )
 
 /**Function*************************************************************
 
-  Synopsis    [Frees the vector.]
+  Synopsis    []
 
   Description []
                
@@ -207,7 +198,7 @@ static inline Vec_Ptr_t * Vec_PtrDupArray( Vec_Ptr_t * pVec )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_PtrFree( Vec_Ptr_t * p )
+static inline void Vec_StrFree( Vec_Str_t * p )
 {
     FREE( p->pArray );
     FREE( p );
@@ -224,9 +215,9 @@ static inline void Vec_PtrFree( Vec_Ptr_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void ** Vec_PtrReleaseArray( Vec_Ptr_t * p )
+static inline char * Vec_StrReleaseArray( Vec_Str_t * p )
 {
-    void ** pArray = p->pArray;
+    char * pArray = p->pArray;
     p->nCap = 0;
     p->nSize = 0;
     p->pArray = NULL;
@@ -244,7 +235,7 @@ static inline void ** Vec_PtrReleaseArray( Vec_Ptr_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void ** Vec_PtrArray( Vec_Ptr_t * p )
+static inline char * Vec_StrArray( Vec_Str_t * p )
 {
     return p->pArray;
 }
@@ -260,7 +251,7 @@ static inline void ** Vec_PtrArray( Vec_Ptr_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Vec_PtrSize( Vec_Ptr_t * p )
+static inline int Vec_StrSize( Vec_Str_t * p )
 {
     return p->nSize;
 }
@@ -276,7 +267,7 @@ static inline int Vec_PtrSize( Vec_Ptr_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void * Vec_PtrEntry( Vec_Ptr_t * p, int i )
+static inline char Vec_StrEntry( Vec_Str_t * p, int i )
 {
     assert( i >= 0 && i < p->nSize );
     return p->pArray[i];
@@ -293,24 +284,7 @@ static inline void * Vec_PtrEntry( Vec_Ptr_t * p, int i )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void ** Vec_PtrEntryP( Vec_Ptr_t * p, int i )
-{
-    assert( i >= 0 && i < p->nSize );
-    return p->pArray + i;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline void Vec_PtrWriteEntry( Vec_Ptr_t * p, int i, void * Entry )
+static inline void Vec_StrWriteEntry( Vec_Str_t * p, int i, char Entry )
 {
     assert( i >= 0 && i < p->nSize );
     p->pArray[i] = Entry;
@@ -327,7 +301,7 @@ static inline void Vec_PtrWriteEntry( Vec_Ptr_t * p, int i, void * Entry )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void * Vec_PtrEntryLast( Vec_Ptr_t * p )
+static inline char Vec_StrEntryLast( Vec_Str_t * p )
 {
     assert( p->nSize > 0 );
     return p->pArray[p->nSize-1];
@@ -344,12 +318,12 @@ static inline void * Vec_PtrEntryLast( Vec_Ptr_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_PtrGrow( Vec_Ptr_t * p, int nCapMin )
+static inline void Vec_StrGrow( Vec_Str_t * p, int nCapMin )
 {
     if ( p->nCap >= nCapMin )
         return;
-    p->pArray = REALLOC( void *, p->pArray, nCapMin ); 
-    p->nCap   = nCapMin;
+    p->pArray = REALLOC( char, p->pArray, 2 * nCapMin ); 
+    p->nCap   = 2 * nCapMin;
 }
 
 /**Function*************************************************************
@@ -363,38 +337,13 @@ static inline void Vec_PtrGrow( Vec_Ptr_t * p, int nCapMin )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_PtrFill( Vec_Ptr_t * p, int nSize, void * Entry )
+static inline void Vec_StrFill( Vec_Str_t * p, int nSize, char Entry )
 {
     int i;
-    Vec_PtrGrow( p, nSize );
-    for ( i = 0; i < nSize; i++ )
-        p->pArray[i] = Entry;
+    Vec_StrGrow( p, nSize );
     p->nSize = nSize;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Fills the vector with given number of entries.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline void Vec_PtrFillExtra( Vec_Ptr_t * p, int nSize, void * Entry )
-{
-    int i;
-    if ( p->nSize >= nSize )
-        return;
-    if ( p->nSize < 2 * nSize )
-        Vec_PtrGrow( p, 2 * nSize );
-    else
-        Vec_PtrGrow( p, p->nSize );
-    for ( i = p->nSize; i < nSize; i++ )
+    for ( i = 0; i < p->nSize; i++ )
         p->pArray[i] = Entry;
-    p->nSize = nSize;
 }
 
 /**Function*************************************************************
@@ -408,7 +357,7 @@ static inline void Vec_PtrFillExtra( Vec_Ptr_t * p, int nSize, void * Entry )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_PtrShrink( Vec_Ptr_t * p, int nSizeNew )
+static inline void Vec_StrShrink( Vec_Str_t * p, int nSizeNew )
 {
     assert( p->nSize >= nSizeNew );
     p->nSize = nSizeNew;
@@ -425,7 +374,7 @@ static inline void Vec_PtrShrink( Vec_Ptr_t * p, int nSizeNew )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_PtrClear( Vec_Ptr_t * p )
+static inline void Vec_StrClear( Vec_Str_t * p )
 {
     p->nSize = 0;
 }
@@ -441,21 +390,21 @@ static inline void Vec_PtrClear( Vec_Ptr_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_PtrPush( Vec_Ptr_t * p, void * Entry )
+static inline void Vec_StrPush( Vec_Str_t * p, char Entry )
 {
     if ( p->nSize == p->nCap )
     {
         if ( p->nCap < 16 )
-            Vec_PtrGrow( p, 16 );
+            Vec_StrGrow( p, 16 );
         else
-            Vec_PtrGrow( p, 2 * p->nCap );
+            Vec_StrGrow( p, 2 * p->nCap );
     }
     p->pArray[p->nSize++] = Entry;
 }
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Appends the string to the char vector.]
 
   Description []
                
@@ -464,14 +413,13 @@ static inline void Vec_PtrPush( Vec_Ptr_t * p, void * Entry )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Vec_PtrPushUnique( Vec_Ptr_t * p, void * Entry )
+static inline void Vec_StrAppend( Vec_Str_t * p, char * pString )
 {
-    int i;
-    for ( i = 0; i < p->nSize; i++ )
-        if ( p->pArray[i] == Entry )
-            return 1;
-    Vec_PtrPush( p, Entry );
-    return 0;
+    int i, nLength = strlen(pString);
+    Vec_StrGrow( p, p->nSize + nLength );
+    for ( i = 0; i < nLength; i++ )
+        p->pArray[p->nSize + i] = pString[i];
+    p->nSize += nLength;
 }
 
 /**Function*************************************************************
@@ -485,7 +433,7 @@ static inline int Vec_PtrPushUnique( Vec_Ptr_t * p, void * Entry )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void * Vec_PtrPop( Vec_Ptr_t * p )
+static inline char Vec_StrPop( Vec_Str_t * p )
 {
     assert( p->nSize > 0 );
     return p->pArray[--p->nSize];
@@ -493,7 +441,7 @@ static inline void * Vec_PtrPop( Vec_Ptr_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Find entry.]
+  Synopsis    [Comparison procedure for two clauses.]
 
   Description []
                
@@ -502,18 +450,19 @@ static inline void * Vec_PtrPop( Vec_Ptr_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Vec_PtrFind( Vec_Ptr_t * p, void * Entry )
+static inline int Vec_StrSortCompare1( char * pp1, char * pp2 )
 {
-    int i;
-    for ( i = 0; i < p->nSize; i++ )
-        if ( p->pArray[i] == Entry )
-            return i;
-    return -1;
+    // for some reason commenting out lines (as shown) led to crashing of the release version
+    if ( *pp1 < *pp2 )
+        return -1;
+    if ( *pp1 > *pp2 ) //
+        return 1;
+    return 0; //
 }
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Comparison procedure for two clauses.]
 
   Description []
                
@@ -522,35 +471,14 @@ static inline int Vec_PtrFind( Vec_Ptr_t * p, void * Entry )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_PtrRemove( Vec_Ptr_t * p, void * Entry )
+static inline int Vec_StrSortCompare2( char * pp1, char * pp2 )
 {
-    int i;
-    for ( i = 0; i < p->nSize; i++ )
-        if ( p->pArray[i] == Entry )
-            break;
-    assert( i < p->nSize );
-    for ( i++; i < p->nSize; i++ )
-        p->pArray[i-1] = p->pArray[i];
-    p->nSize--;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Moves the first nItems to the end.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline void Vec_PtrReorder( Vec_Ptr_t * p, int nItems )
-{
-    assert( nItems < p->nSize );
-    Vec_PtrGrow( p, nItems + p->nSize );
-    memmove( (char **)p->pArray + p->nSize, p->pArray, nItems * sizeof(void*) );
-    memmove( p->pArray, (char **)p->pArray + nItems, p->nSize * sizeof(void*) );
+    // for some reason commenting out lines (as shown) led to crashing of the release version
+    if ( *pp1 > *pp2 )
+        return -1;
+    if ( *pp1 < *pp2 ) //
+        return 1;
+    return 0; //
 }
 
 /**Function*************************************************************
@@ -564,14 +492,17 @@ static inline void Vec_PtrReorder( Vec_Ptr_t * p, int nItems )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_PtrSort( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)() )
+static inline void Vec_StrSort( Vec_Str_t * p, int fReverse )
 {
-    qsort( (void *)p->pArray, p->nSize, sizeof(void *), 
-            (int (*)(const void *, const void *)) Vec_PtrSortCompare );
+    if ( fReverse ) 
+        qsort( (void *)p->pArray, p->nSize, sizeof(char), 
+                (int (*)(const void *, const void *)) Vec_StrSortCompare2 );
+    else
+        qsort( (void *)p->pArray, p->nSize, sizeof(char), 
+                (int (*)(const void *, const void *)) Vec_StrSortCompare1 );
 }
 
 #endif
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -114,16 +114,15 @@ void Io_WriteVerilogInt( FILE * pFile, Abc_Ntk_t * pNtk )
     fprintf( pFile, "  wire" );
     Io_WriteVerilogWires( pFile, pNtk, 4 );
     fprintf( pFile, ";\n" );
-    // write registers
-    Io_WriteVerilogLatches( pFile, pNtk );
     // write the nodes
     if ( Abc_NtkHasMapping(pNtk) )
         Io_WriteVerilogGates( pFile, pNtk );
     else
         Io_WriteVerilogNodes( pFile, pNtk );
+    // write registers
+    Io_WriteVerilogLatches( pFile, pNtk );
     // finalize the file
     fprintf( pFile, "endmodule\n\n" );
-    fclose( pFile );
 } 
 
 /**Function*************************************************************
@@ -354,6 +353,23 @@ void Io_WriteVerilogLatches( FILE * pFile, Abc_Ntk_t * pNtk )
     }
 }
 
+/* // fix by Zhihong
+void Io_WriteVerilogLatches( FILE * pFile, Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pLatch;
+    int i;
+    Abc_NtkForEachLatch( pNtk, pLatch, i )
+    {
+        if ( Abc_LatchInit(pLatch) == ABC_INIT_ZERO )
+            fprintf( pFile, "  initial begin %s <= 1\'b0; end\n", Abc_ObjName(Abc_ObjFanout0(pLatch)) );
+        else if ( Abc_LatchInit(pLatch) == ABC_INIT_ONE )
+            fprintf( pFile, "  initial begin %s <= 1\'b1; end\n", Abc_ObjName(Abc_ObjFanout0(pLatch)) );
+        fprintf( pFile, "  always@(posedge  gclk) begin %s",     Abc_ObjName(Abc_ObjFanout0(pLatch)) );
+        fprintf( pFile, " <= %s; end\n", Abc_ObjName(Abc_ObjFanin0(pLatch)) );
+    }
+}
+*/
+
 /**Function*************************************************************
 
   Synopsis    [Writes the gates.]
@@ -423,8 +439,14 @@ void Io_WriteVerilogNodes2( FILE * pFile, Abc_Ntk_t * pNtk )
         }
         pName = Abc_SopIsComplement(pObj->pData)? "or" : "and";
         fprintf( pFile, "  %s(%s, ", pName, Io_WriteVerilogGetName(Abc_ObjFanout0(pObj)) );
-        Abc_ObjForEachFanin( pObj, pFanin, k )
-            fprintf( pFile, "%s%s", Io_WriteVerilogGetName(pFanin), (k==nFanins-1? "" : ", ") );
+//        Abc_ObjForEachFanin( pObj, pFanin, k )
+//            fprintf( pFile, "%s%s", Io_WriteVerilogGetName(pFanin), (k==nFanins-1? "" : ", ") );
+        Abc_ObjForEachFanin( pObj, pFanin, k ) 
+        {
+            char *cube = pObj->pData;
+            fprintf( pFile, "%s", cube[k] == '0' ? "~" : "");
+                fprintf( pFile, "%s%s", Io_WriteVerilogGetName(pFanin), (k==nFanins-1? "" : ", ") );
+        }
         fprintf( pFile, ");\n" );
     }
 }
