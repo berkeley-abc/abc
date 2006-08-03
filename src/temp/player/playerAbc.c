@@ -45,7 +45,7 @@ static Abc_Ntk_t * Ivy_ManToAbc( Abc_Ntk_t * pNtkOld, Ivy_Man_t * p );
   SeeAlso     []
 
 ***********************************************************************/
-void * Abc_NtkPlayer( void * pNtk, int nLutMax, int nPlaMax, int fVerbose )
+void * Abc_NtkPlayer( void * pNtk, int nLutMax, int nPlaMax, int RankCost, int fFastMode, int fVerbose )
 {
     int fUseRewriting = 1;
     Ivy_Man_t * pMan, * pManExt;

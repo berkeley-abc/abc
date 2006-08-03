@@ -89,6 +89,7 @@ extern void    Asat_SolverWriteDimacs( solver * pSat, char * pFileName,
                                        int incrementVars);
 extern void    Asat_SatPrintStats( FILE * pFile, solver * p );
 extern void    Asat_SolverSetPrefVars( solver * s, int * pPrefVars, int nPrefVars );
+extern void    Asat_SolverSetFactors( solver * s, int * pFactors );
 
 // J-frontier support
 extern Asat_JMan_t * Asat_JManStart( solver * pSat, void * vCircuit );
@@ -127,6 +128,7 @@ struct solver_t
 
     vec*     wlists;        // 
     double*  activity;      // A heuristic measurement of the activity of a variable.
+    int *    factors;       // the factor of variable activity
     lbool*   assigns;       // Current values of variables.
     int*     orderpos;      // Index in variable order.
     clause** reasons;       //

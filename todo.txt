@@ -47,3 +47,10 @@ Other great projects:
 Other:
 
 - completely silent mode
+
+High-priority changes:
+
+- add a new mode to "fpga" to differentiate latch-to-latch and pad-to-latch paths
+- support asynchronous set/reset in retiming and retiming/mapping
+- port "mfs" into ABC
+- reduce the latch count in the new version of "retime" and "spfga"

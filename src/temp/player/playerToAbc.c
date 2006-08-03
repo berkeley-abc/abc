@@ -26,9 +26,11 @@
 ////////////////////////////////////////////////////////////////////////
 
 static Ivy_Man_t * Ivy_ManFromAbc( Abc_Ntk_t * p );
-static Abc_Ntk_t * Ivy_ManToAbc( Abc_Ntk_t * pNtk, Ivy_Man_t * pMan, Pla_Man_t * p );
+static Abc_Ntk_t * Ivy_ManToAbc( Abc_Ntk_t * pNtk, Ivy_Man_t * pMan, Pla_Man_t * p, int fFastMode );
 static Abc_Obj_t * Ivy_ManToAbc_rec( Abc_Ntk_t * pNtkNew, Ivy_Man_t * pMan, Pla_Man_t * p, Ivy_Obj_t * pObjIvy, Vec_Int_t * vNodes, Vec_Int_t * vTemp );
+static Abc_Obj_t * Ivy_ManToAbcFast_rec( Abc_Ntk_t * pNtkNew, Ivy_Man_t * pMan, Ivy_Obj_t * pObjIvy, Vec_Int_t * vNodes, Vec_Int_t * vTemp );
 static Abc_Obj_t * Ivy_ManToAigCube( Abc_Ntk_t * pNtkNew, Ivy_Man_t * pMan, Ivy_Obj_t * pObjIvy, Esop_Cube_t * pCube, Vec_Int_t * vSupp );
+static int Abc_NtkPlayerCost( Abc_Ntk_t * pNtk, int RankCost, int fVerbose );
 
 static inline void        Abc_ObjSetIvy2Abc( Ivy_Man_t * p, int IvyId, Abc_Obj_t * pObjAbc ) {  assert(Vec_PtrEntry(p->pCopy, IvyId) == NULL); assert(!Abc_ObjIsComplement(pObjAbc)); Vec_PtrWriteEntry( p->pCopy, IvyId, pObjAbc );  }
 static inline Abc_Obj_t * Abc_ObjGetIvy2Abc( Ivy_Man_t * p, int IvyId )                      {  return Vec_PtrEntry( p->pCopy, IvyId );         }
@@ -39,7 +41,7 @@ static inline Abc_Obj_t * Abc_ObjGetIvy2Abc( Ivy_Man_t * p, int IvyId )         
 
 /**Function*************************************************************
 
-  Synopsis    [Gives the current ABC network to PLAyer for processing.]
+  Synopsis    [Applies PLA/LUT mapping to the ABC network.]
 
   Description []
                
@@ -48,12 +50,12 @@ static inline Abc_Obj_t * Abc_ObjGetIvy2Abc( Ivy_Man_t * p, int IvyId )         
   SeeAlso     []
 
 ***********************************************************************/
-void * Abc_NtkPlayer( void * pNtk, int nLutMax, int nPlaMax, int fVerbose )
+void * Abc_NtkPlayer( void * pNtk, int nLutMax, int nPlaMax, int RankCost, int fFastMode, int fVerbose )
 {
-    int fUseRewriting = 1;
+    int fUseRewriting = 0;
     Pla_Man_t * p;
     Ivy_Man_t * pMan, * pManExt;
-    Abc_Ntk_t * pNtkAig;
+    Abc_Ntk_t * pNtkNew;
     if ( !Abc_NtkIsStrash(pNtk) )
         return NULL;
     // convert to the new AIG manager
@@ -75,20 +77,33 @@ void * Abc_NtkPlayer( void * pNtk, int nLutMax, int nPlaMax, int fVerbose )
         if ( fVerbose )
             Ivy_ManPrintStats( pMan );
     }
-    // perform decomposition/mapping into PLAs/LUTs
-    p = Pla_ManDecompose( pMan, nLutMax, nPlaMax, fVerbose );
-    // convert from the extended AIG manager into an SOP network
-    pNtkAig = Ivy_ManToAbc( pNtk, pMan, p );
-    Pla_ManFree( p );
+    // perform decomposition
+    if ( fFastMode )
+    {
+        // perform mapping into LUTs
+        Pla_ManFastLutMap( pMan, nLutMax );
+        // convert from the extended AIG manager into an SOP network
+        pNtkNew = Ivy_ManToAbc( pNtk, pMan, NULL, fFastMode );
+        Pla_ManFastLutMapStop( pMan );
+    }
+    else
+    {
+        // perform decomposition/mapping into PLAs/LUTs
+        p = Pla_ManDecompose( pMan, nLutMax, nPlaMax, fVerbose );
+        // convert from the extended AIG manager into an SOP network
+        pNtkNew = Ivy_ManToAbc( pNtk, pMan, p, fFastMode );
+        Pla_ManFree( p );
+    }
     Ivy_ManStop( pMan );
     // chech the resulting network
-    if ( !Abc_NtkCheck( pNtkAig ) )
+    if ( !Abc_NtkCheck( pNtkNew ) )
     {
         printf( "Abc_NtkPlayer: The network check has failed.\n" );
-        Abc_NtkDelete( pNtkAig );
+        Abc_NtkDelete( pNtkNew );
         return NULL;
     }
-    return pNtkAig;
+    Abc_NtkPlayerCost( pNtkNew, RankCost, fVerbose );
+    return pNtkNew;
 }
 
 /**Function*************************************************************
@@ -134,7 +149,7 @@ Ivy_Man_t * Ivy_ManFromAbc( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Ivy_ManToAbc( Abc_Ntk_t * pNtk, Ivy_Man_t * pMan, Pla_Man_t * p )
+Abc_Ntk_t * Ivy_ManToAbc( Abc_Ntk_t * pNtk, Ivy_Man_t * pMan, Pla_Man_t * p, int fFastMode )
 {
     Abc_Ntk_t * pNtkNew;
     Abc_Obj_t * pObjAbc, * pObj;
@@ -155,7 +170,11 @@ Abc_Ntk_t * Ivy_ManToAbc( Abc_Ntk_t * pNtk, Ivy_Man_t * pMan, Pla_Man_t * p )
     Ivy_ManForEachPo( pMan, pObjIvy, i )
     {
         // get the new ABC node corresponding to the old fanin of the PO in IVY
-        pObjAbc = Ivy_ManToAbc_rec( pNtkNew, pMan, p, Ivy_ObjFanin0(pObjIvy), vNodes, vTemp );
+        if ( fFastMode )
+            pObjAbc = Ivy_ManToAbcFast_rec( pNtkNew, pMan, Ivy_ObjFanin0(pObjIvy), vNodes, vTemp );
+        else
+            pObjAbc = Ivy_ManToAbc_rec( pNtkNew, pMan, p, Ivy_ObjFanin0(pObjIvy), vNodes, vTemp );
+        // consider the case of complemented fanin of the PO
         if ( Ivy_ObjFaninC0(pObjIvy) ) // complement
         {
             if ( Abc_ObjIsCi(pObjAbc) )
@@ -236,17 +255,20 @@ Abc_Obj_t * Ivy_ManToAbc_rec( Abc_Ntk_t * pNtkNew, Ivy_Man_t * pMan, Pla_Man_t *
             Abc_ObjAddFanin( pObjAbc, Abc_ObjGetIvy2Abc(pMan, Entry) );
         // check if the truth table is constant 0
         puTruth = Ivy_ManCutTruth( pMan, pObjIvy, vSupp, vNodes, vTemp );
-        for ( i = 0; i < 8; i++ )
-            if ( puTruth[i] )
-                break;
-        // create constant 0 node
-        if ( i == 8 )
+        // if the function is constant 0, create constant 0 node
+        if ( Extra_TruthIsConst0(puTruth, 8) )
         {
             pObjAbc->pData = Abc_SopCreateAnd( pNtkNew->pManFunc, Vec_IntSize(vSupp), NULL );
             pObjAbc = Abc_NodeCreateConst0( pNtkNew );  
         }
         else
-            pObjAbc->pData = Abc_SopCreateFromTruth( pNtkNew->pManFunc, Vec_IntSize(vSupp), puTruth );
+        {
+            int fCompl = Ivy_TruthIsop( puTruth, Vec_IntSize(vSupp), vNodes );
+            pObjAbc->pData = Abc_SopCreateFromIsop( pNtkNew->pManFunc, Vec_IntSize(vSupp), vNodes );
+            if ( fCompl ) Abc_SopComplement(pObjAbc->pData); 
+//            printf( "Cover contains %d cubes.\n", Vec_IntSize(vNodes) );
+//            pObjAbc->pData = Abc_SopCreateFromTruth( pNtkNew->pManFunc, Vec_IntSize(vSupp), puTruth );
+        }
     }
     else
     {
@@ -306,6 +328,149 @@ Abc_Obj_t * Ivy_ManToAigCube( Abc_Ntk_t * pNtkNew, Ivy_Man_t * pMan, Ivy_Obj_t *
     pObjAbc->pData = Abc_SopCreateAnd( pNtkNew->pManFunc, Abc_ObjFaninNum(pObjAbc), pCompls );
     assert( Abc_ObjFaninNum(pObjAbc) == (int)pCube->nLits );
     return pObjAbc;
+}
+
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Recursively construct the new node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Ivy_ManToAbcFast_rec( Abc_Ntk_t * pNtkNew, Ivy_Man_t * pMan, Ivy_Obj_t * pObjIvy, Vec_Int_t * vNodes, Vec_Int_t * vTemp )
+{
+    Vec_Int_t Supp, * vSupp = &Supp;
+    Abc_Obj_t * pObjAbc, * pFaninAbc;
+    int i, Entry;
+    unsigned * puTruth;
+    // skip the node if it is a constant or already processed
+    pObjAbc = Abc_ObjGetIvy2Abc( pMan, pObjIvy->Id );
+    if ( pObjAbc )
+        return pObjAbc;
+    assert( Ivy_ObjIsAnd(pObjIvy) || Ivy_ObjIsExor(pObjIvy) );
+    // get the support of K-LUT
+    Pla_ManFastLutMapReadSupp( pMan, pObjIvy, vSupp );
+    // create new ABC node and its fanins
+    pObjAbc = Abc_NtkCreateNode( pNtkNew );
+    Vec_IntForEachEntry( vSupp, Entry, i )
+    {
+        pFaninAbc = Ivy_ManToAbcFast_rec( pNtkNew, pMan, Ivy_ManObj(pMan, Entry), vNodes, vTemp );
+        Abc_ObjAddFanin( pObjAbc, pFaninAbc );
+    }
+    // check if the truth table is constant 0
+    puTruth = Ivy_ManCutTruth( pMan, pObjIvy, vSupp, vNodes, vTemp );
+    // if the function is constant 0, create constant 0 node
+    if ( Extra_TruthIsConst0(puTruth, 8) )
+    {
+        pObjAbc->pData = Abc_SopCreateAnd( pNtkNew->pManFunc, Vec_IntSize(vSupp), NULL );
+        pObjAbc = Abc_NodeCreateConst0( pNtkNew );  
+    }
+    else
+    {
+        int fCompl = Ivy_TruthIsop( puTruth, Vec_IntSize(vSupp), vNodes );
+        pObjAbc->pData = Abc_SopCreateFromIsop( pNtkNew->pManFunc, Vec_IntSize(vSupp), vNodes );
+        if ( fCompl ) Abc_SopComplement(pObjAbc->pData); 
+    }
+    Abc_ObjSetIvy2Abc( pMan, pObjIvy->Id, pObjAbc ); 
+    return pObjAbc;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Computes cost of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Abc_NodePlayerCost( int nFanins )
+{
+    if ( nFanins <= 4 )
+        return 1;
+    if ( nFanins <= 6 )
+        return 2;
+    if ( nFanins <= 8 )
+        return 4;
+    if ( nFanins <= 16 )
+        return 8;
+    if ( nFanins <= 32 )
+        return 16;
+    if ( nFanins <= 64 )
+        return 32;
+    if ( nFanins <= 128 )
+        return 64;
+    assert( 0 );
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the number of ranks needed for one level.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Abc_NtkPlayerCostOne( int nCost, int RankCost )
+{
+    return (nCost / RankCost) + ((nCost % RankCost) > 0);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the cost function for the network (number of ranks).]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkPlayerCost( Abc_Ntk_t * pNtk, int RankCost, int fVerbose )
+{
+    Abc_Obj_t * pObj;
+    int nFanins, nLevels, * pLevelCosts, CostTotal, nRanksTotal, i; 
+    // compute the costs for each level
+    nLevels = Abc_NtkGetLevelNum( pNtk );
+    pLevelCosts = ALLOC( int, nLevels + 1 );
+    memset( pLevelCosts, 0, sizeof(int) * (nLevels + 1) );
+    Abc_NtkForEachNode( pNtk, pObj, i )
+    {
+        nFanins = Abc_ObjFaninNum(pObj);
+        if ( nFanins == 0 )
+            continue;
+        pLevelCosts[ pObj->Level ] += Abc_NodePlayerCost( nFanins );
+    }
+    // compute the total cost
+    CostTotal = nRanksTotal = 0;
+    for ( i = 1; i <= nLevels; i++ )
+    {
+        CostTotal   += pLevelCosts[i];
+        nRanksTotal += Abc_NtkPlayerCostOne( pLevelCosts[i], RankCost );
+    }
+    // print out statistics
+    if ( fVerbose )
+    {
+        for ( i = 1; i <= nLevels; i++ )
+            printf( "Level %2d : Cost = %6d. Ranks = %6.3f.\n", i, pLevelCosts[i], ((double)pLevelCosts[i])/RankCost );
+        printf( "TOTAL    : Cost = %6d. Ranks = %3d.\n", CostTotal, nRanksTotal );
+    }
+    return nRanksTotal;
 }
 
 

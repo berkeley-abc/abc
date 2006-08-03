@@ -200,7 +200,7 @@ void Rwt_ManPrintStats( Rwt_Man_t * p )
     PRT( "Update      ", p->timeUpdate );
     PRT( "TOTAL       ", p->timeTotal );
 
-
+/*
     printf( "The scores are:\n" );
     for ( i = 0; i < 222; i++ )
         if ( p->nScores[i] > 0 )
@@ -210,7 +210,7 @@ void Rwt_ManPrintStats( Rwt_Man_t * p )
             Ivy_TruthDsdComputePrint( (unsigned)p->pMapInv[i] | ((unsigned)p->pMapInv[i] << 16) );
         }
     printf( "\n" );
-
+*/
 }
 
 /**Function*************************************************************

@@ -326,7 +326,7 @@ int Fraig_NodeIsEquivalent( Fraig_Man_t * p, Fraig_Node_t * pOld, Fraig_Node_t *
         Fraig_ManCreateSolver( p );
     // make sure the SAT solver has enough variables
     for ( i = Msat_SolverReadVarNum(p->pSat); i < p->vNodes->nSize; i++ )
-        Msat_SolverAddVar( p->pSat );
+        Msat_SolverAddVar( p->pSat, p->vNodes->pArray[i]->Level );
 
 
  
@@ -543,7 +543,7 @@ int Fraig_NodeIsImplication( Fraig_Man_t * p, Fraig_Node_t * pOld, Fraig_Node_t 
         Fraig_ManCreateSolver( p );
     // make sure the SAT solver has enough variables
     for ( i = Msat_SolverReadVarNum(p->pSat); i < p->vNodes->nSize; i++ )
-        Msat_SolverAddVar( p->pSat );
+        Msat_SolverAddVar( p->pSat, p->vNodes->pArray[i]->Level );
 
    // get the logic cone
 clk = clock();
@@ -642,7 +642,7 @@ int Fraig_ManCheckClauseUsingSat( Fraig_Man_t * p, Fraig_Node_t * pNode1, Fraig_
         Fraig_ManCreateSolver( p );
     // make sure the SAT solver has enough variables
     for ( i = Msat_SolverReadVarNum(p->pSat); i < p->vNodes->nSize; i++ )
-        Msat_SolverAddVar( p->pSat );
+        Msat_SolverAddVar( p->pSat, p->vNodes->pArray[i]->Level );
 
    // get the logic cone
 clk = clock();

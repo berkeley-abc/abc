@@ -39,10 +39,11 @@
   SeeAlso     []
 
 ***********************************************************************/
-bool Msat_SolverAddVar( Msat_Solver_t * p )
+bool Msat_SolverAddVar( Msat_Solver_t * p, int Level )
 {
     if ( p->nVars == p->nVarsAlloc )
         Msat_SolverResize( p, 2 * p->nVarsAlloc );
+    p->pLevel[p->nVars] = Level;
     p->nVars++;
     return 1;
 }

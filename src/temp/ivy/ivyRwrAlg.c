@@ -80,7 +80,7 @@ int Ivy_ManRewriteAlg( Ivy_Man_t * p, int fUpdateLevel, int fUseZeroCost )
         // the case of constant 0 cone
         if ( RetValue == -1 )
         {
-            Ivy_ObjReplace( pObj, Ivy_ManConst0(p), 1, 0 ); 
+            Ivy_ObjReplace( pObj, Ivy_ManConst0(p), 1, 0, 1 ); 
             continue;
         }
         assert( Vec_PtrSize(vLeaves) > 2 );
@@ -94,7 +94,7 @@ int Ivy_ManRewriteAlg( Ivy_Man_t * p, int fUpdateLevel, int fUseZeroCost )
         if ( Ivy_ObjLevel(Ivy_Regular(pResult)) > LevelR && Ivy_ObjRefs(Ivy_Regular(pResult)) == 0 )
             Ivy_ObjDelete_rec(Ivy_Regular(pResult), 1), CountUndo++;
         else
-            Ivy_ObjReplace( pObj, pResult, 1, 0 ), CountUsed++; 
+            Ivy_ObjReplace( pObj, pResult, 1, 0, 1 ), CountUsed++; 
     }
     printf( "Used = %d. Undo = %d.\n", CountUsed, CountUndo );
     Vec_PtrFree( vFront );

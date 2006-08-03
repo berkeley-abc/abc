@@ -51,11 +51,15 @@ struct Dec_Node_t_
     Dec_Edge_t        eEdge1;          // the right child of the node
     // other info
     void *            pFunc;           // the function of the node (BDD or AIG)
-    unsigned          Level    : 16;   // the level of this node in the global AIG
+    unsigned          Level    : 14;   // the level of this node in the global AIG
     // printing info 
     unsigned          fNodeOr  :  1;   // marks the original OR node
     unsigned          fCompl0  :  1;   // marks the original complemented edge
     unsigned          fCompl1  :  1;   // marks the original complemented edge
+    // latch info
+    unsigned          nLat0    :  5;   // the number of latches on the first edge
+    unsigned          nLat1    :  5;   // the number of latches on the second edge
+    unsigned          nLat2    :  5;   // the number of latches on the output edge
 };
 
 typedef struct Dec_Graph_t_ Dec_Graph_t;

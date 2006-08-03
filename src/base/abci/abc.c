@@ -91,6 +91,7 @@ static int Abc_CommandTest           ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandIStrash        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandICut           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIRewrite       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandIRewriteSeq    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIResyn         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandFraig          ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -207,6 +208,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "New AIG",      "istrash",       Abc_CommandIStrash,          1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "icut",          Abc_CommandICut,             0 );
     Cmd_CommandAdd( pAbc, "New AIG",      "irw",           Abc_CommandIRewrite,         1 );
+    Cmd_CommandAdd( pAbc, "New AIG",      "irws",          Abc_CommandIRewriteSeq,      1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "iresyn",        Abc_CommandIResyn,           1 );
 
     Cmd_CommandAdd( pAbc, "Fraiging",     "fraig",         Abc_CommandFraig,            1 );
@@ -4086,9 +4088,10 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
     pParams->fGlobal   = 0;     // compute global cuts
     pParams->fLocal    = 0;     // compute local cuts
     pParams->fFancy    = 0;     // compute something fancy
+    pParams->fMap      = 0;     // compute mapping delay
     pParams->fVerbose  = 0;     // the verbosiness flag
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KMtfdxyglzvoh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KMtfdxyglzmvoh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -4138,6 +4141,9 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'z':
             pParams->fFancy ^= 1;
             break;
+        case 'm':
+            pParams->fMap ^= 1;
+            break;
         case 'v':
             pParams->fVerbose ^= 1;
             break;
@@ -4175,7 +4181,6 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fOracle )
         pParams->fRecord = 1;
     pCutMan = Abc_NtkCuts( pNtk, pParams );
-    Cut_ManPrintStats( pCutMan );
     if ( fOracle )
         pCutOracle = Cut_OracleStart( pCutMan );
     Cut_ManStop( pCutMan );
@@ -4187,7 +4192,7 @@ int Abc_CommandCut( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: cut [-K num] [-M num] [-tfdxyzvh]\n" );
+    fprintf( pErr, "usage: cut [-K num] [-M num] [-tfdxyzmvh]\n" );
     fprintf( pErr, "\t         computes k-feasible cuts for the AIG\n" );
     fprintf( pErr, "\t-K num : max number of leaves (%d <= num <= %d) [default = %d]\n",   CUT_SIZE_MIN, CUT_SIZE_MAX, pParams->nVarsMax );
     fprintf( pErr, "\t-M num : max number of cuts stored at a node [default = %d]\n",      pParams->nKeepMax );
@@ -4199,6 +4204,7 @@ usage:
     fprintf( pErr, "\t-g     : toggle computing only global cuts [default = %s]\n",        pParams->fGlobal?  "yes": "no" );
     fprintf( pErr, "\t-l     : toggle computing only local cuts [default = %s]\n",         pParams->fLocal?   "yes": "no" );
     fprintf( pErr, "\t-z     : toggle fancy computations [default = %s]\n",                pParams->fFancy?   "yes": "no" );
+    fprintf( pErr, "\t-m     : toggle delay-oriented FPGA mapping [default = %s]\n",       pParams->fMap?     "yes": "no" );
     fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n",      pParams->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -4293,7 +4299,6 @@ int Abc_CommandScut( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     pCutMan = Abc_NtkSeqCuts( pNtk, pParams );
-    Cut_ManPrintStats( pCutMan );
     Cut_ManStop( pCutMan );
     return 0;
 
@@ -4480,27 +4485,31 @@ int Abc_CommandXyz( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int nLutMax;
     int nPlaMax;
+    int RankCost;
+    int fFastMode;
     int fVerbose;
 //    extern Abc_Ntk_t * Abc_NtkXyz( Abc_Ntk_t * pNtk, int nPlaMax, bool fUseEsop, bool fUseSop, bool fUseInvs, bool fVerbose );
-    extern void * Abc_NtkPlayer( void * pNtk, int nLutMax, int nPlaMax, int fVerbose );
+    extern void * Abc_NtkPlayer( void * pNtk, int nLutMax, int nPlaMax, int RankCost, int fFastMode, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nLutMax = 8;
-    nPlaMax = 128;
-    fVerbose = 0;
+    nLutMax   = 8;
+    nPlaMax   = 128;
+    RankCost  = 96000;
+    fFastMode = 0;
+    fVerbose  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "LPvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "LPRfvh" ) ) != EOF )
     {
         switch ( c )
         {
         case 'L':
             if ( globalUtilOptind >= argc )
             {
-                fprintf( pErr, "Command line switch \"-N\" should be followed by an integer.\n" );
+                fprintf( pErr, "Command line switch \"-L\" should be followed by an integer.\n" );
                 goto usage;
             }
             nLutMax = atoi(argv[globalUtilOptind]);
@@ -4511,13 +4520,27 @@ int Abc_CommandXyz( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'P':
             if ( globalUtilOptind >= argc )
             {
-                fprintf( pErr, "Command line switch \"-N\" should be followed by an integer.\n" );
+                fprintf( pErr, "Command line switch \"-P\" should be followed by an integer.\n" );
                 goto usage;
             }
             nPlaMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( nPlaMax < 0 ) 
                 goto usage;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            RankCost = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( RankCost < 0 ) 
+                goto usage;
+            break;
+        case 'f':
+            fFastMode ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -4548,7 +4571,7 @@ int Abc_CommandXyz( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // run the command
 //    pNtkRes = Abc_NtkXyz( pNtk, nPlaMax, 1, 0, fUseInvs, fVerbose );
-    pNtkRes = Abc_NtkPlayer( pNtk, nLutMax, nPlaMax, fVerbose );
+    pNtkRes = Abc_NtkPlayer( pNtk, nLutMax, nPlaMax, RankCost, fFastMode, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
@@ -4559,10 +4582,12 @@ int Abc_CommandXyz( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: xyz [-L num] [-P num] [-vh]\n" );
+    fprintf( pErr, "usage: xyz [-L num] [-P num] [-R num] [-fvh]\n" );
     fprintf( pErr, "\t         specilized LUT/PLA decomposition\n" );
     fprintf( pErr, "\t-L num : maximum number of LUT inputs (2<=num<=8) [default = %d]\n", nLutMax );
     fprintf( pErr, "\t-P num : maximum number of PLA inputs/cubes (8<=num<=128) [default = %d]\n", nPlaMax );
+    fprintf( pErr, "\t-R num : maximum are of one decomposition rank [default = %d]\n", RankCost );
+    fprintf( pErr, "\t-f     : toggle using fast LUT mapping mode [default = %s]\n", fFastMode? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -4744,7 +4769,7 @@ int Abc_CommandIStrash( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
-        return 1;
+        return 0;
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
@@ -4886,7 +4911,7 @@ int Abc_CommandIRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
-        return 1;
+        return 0;
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
@@ -4896,6 +4921,83 @@ usage:
     fprintf( pErr, "usage: irw [-lzvh]\n" );
     fprintf( pErr, "\t         perform combinational AIG rewriting\n" );
     fprintf( pErr, "\t-l     : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
+    fprintf( pErr, "\t-z     : toggle using zero-cost replacements [default = %s]\n", fUseZeroCost? "yes": "no" );
+    fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandIRewriteSeq( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c, fUpdateLevel, fUseZeroCost, fVerbose;
+    extern Abc_Ntk_t * Abc_NtkIvyRewriteSeq( Abc_Ntk_t * pNtk, int fUseZeroCost, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fUpdateLevel = 1;
+    fUseZeroCost = 0;
+    fVerbose     = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "lzvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'l':
+            fUpdateLevel ^= 1;
+            break;
+        case 'z':
+            fUseZeroCost ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( Abc_NtkIsSeq(pNtk) )
+    {
+        fprintf( pErr, "Only works for non-sequential networks.\n" );
+        return 1;
+    }
+
+    pNtkRes = Abc_NtkIvyRewriteSeq( pNtk, fUseZeroCost, fVerbose );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Command has failed.\n" );
+        return 0;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: irws [-zvh]\n" );
+    fprintf( pErr, "\t         perform sequential AIG rewriting\n" );
+//    fprintf( pErr, "\t-l     : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
     fprintf( pErr, "\t-z     : toggle using zero-cost replacements [default = %s]\n", fUseZeroCost? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
@@ -4959,7 +5061,7 @@ int Abc_CommandIResyn( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
-        return 1;
+        return 0;
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
@@ -5915,11 +6017,12 @@ int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int fRecovery;
     int fSwitching;
+    int fLatchPaths;
     int fVerbose;
     int nLutSize;
     float DelayTarget;
 
-    extern Abc_Ntk_t * Abc_NtkFpga( Abc_Ntk_t * pNtk, float DelayTarget, int fRecovery, int fSwitching, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkFpga( Abc_Ntk_t * pNtk, float DelayTarget, int fRecovery, int fSwitching, int fLatchPaths, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -5928,11 +6031,12 @@ int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     fRecovery   = 1;
     fSwitching  = 0;
+    fLatchPaths = 0;
     fVerbose    = 0;
     DelayTarget =-1;
     nLutSize    =-1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "apvhDK" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "aplvhDK" ) ) != EOF )
     {
         switch ( c )
         {
@@ -5941,6 +6045,9 @@ int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'p':
             fSwitching ^= 1;
+            break;
+        case 'l':
+            fLatchPaths ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -5989,7 +6096,13 @@ int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
     // create the new LUT library
     if ( nLutSize >= 3 && nLutSize <= 6 )
         Fpga_SetSimpleLutLib( nLutSize );
-
+/*
+    else
+    {
+        fprintf( pErr, "Cannot perform FPGA mapping with LUT size %d.\n", nLutSize );
+        return 1;
+    }
+*/
     if ( !Abc_NtkIsStrash(pNtk) )
     {
         // strash and balance the network
@@ -6008,7 +6121,7 @@ int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         fprintf( pOut, "The network was strashed and balanced before FPGA mapping.\n" );
         // get the new network
-        pNtkRes = Abc_NtkFpga( pNtk, DelayTarget, fRecovery, fSwitching, fVerbose );
+        pNtkRes = Abc_NtkFpga( pNtk, DelayTarget, fRecovery, fSwitching, fLatchPaths, fVerbose );
         if ( pNtkRes == NULL )
         {
             Abc_NtkDelete( pNtk );
@@ -6020,7 +6133,7 @@ int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
     else
     {
         // get the new network
-        pNtkRes = Abc_NtkFpga( pNtk, DelayTarget, fRecovery, fSwitching, fVerbose );
+        pNtkRes = Abc_NtkFpga( pNtk, DelayTarget, fRecovery, fSwitching, fLatchPaths, fVerbose );
         if ( pNtkRes == NULL )
         {
             fprintf( pErr, "FPGA mapping has failed.\n" );
@@ -6040,10 +6153,11 @@ usage:
         sprintf( LutSize, "library" );
     else
         sprintf( LutSize, "%d", nLutSize );
-    fprintf( pErr, "usage: fpga [-D float] [-K num] [-apvh]\n" );
+    fprintf( pErr, "usage: fpga [-D float] [-K num] [-aplvh]\n" );
     fprintf( pErr, "\t           performs FPGA mapping of the current network\n" );
     fprintf( pErr, "\t-a       : toggles area recovery [default = %s]\n", fRecovery? "yes": "no" );
     fprintf( pErr, "\t-p       : optimizes power by minimizing switching activity [default = %s]\n", fSwitching? "yes": "no" );
+    fprintf( pErr, "\t-l       : optimizes latch paths for delay, other paths for area [default = %s]\n", fLatchPaths? "yes": "no" );
     fprintf( pErr, "\t-D float : sets the required time for the mapping [default = %s]\n", Buffer );  
     fprintf( pErr, "\t-K num   : the number of LUT inputs [default = %s]%s\n", LutSize, (nLutSize == -1 ? " (type \"print_lut\")" : "") );
     fprintf( pErr, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );

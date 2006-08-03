@@ -35,9 +35,9 @@ struct Fpga_CutTableStrutct_t
 };
 
 // the largest number of cuts considered
-#define  FPGA_CUTS_MAX_COMPUTE   5000
+#define  FPGA_CUTS_MAX_COMPUTE   500
 // the largest number of cuts used
-#define  FPGA_CUTS_MAX_USE       2000
+#define  FPGA_CUTS_MAX_USE       200
 
 // primes used to compute the hash key
 static int s_HashPrimes[10] = { 109, 499, 557, 619, 631, 709, 797, 881, 907, 991 };

@@ -46,8 +46,8 @@ Nm_Man_t * Nm_ManCreate( int nSize )
     p = ALLOC( Nm_Man_t, 1 );
     memset( p, 0, sizeof(Nm_Man_t) );
     // set the parameters
-    p->nSizeFactor   = 3; // determined how much larger the table should be compared to data in it
-    p->nGrowthFactor = 3; // determined how much the table grows after resizing
+    p->nSizeFactor   = 4; // determined how much larger the table should be compared to data in it
+    p->nGrowthFactor = 4; // determined how much the table grows after resizing
     // allocate and clean the bins
     p->nBins = Cudd_PrimeNm(p->nSizeFactor*nSize);
     p->pBinsI2N = ALLOC( Nm_Entry_t *, p->nBins );

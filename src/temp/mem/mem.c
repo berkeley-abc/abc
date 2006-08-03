@@ -302,7 +302,7 @@ Mem_Flex_t * Mem_FlexStart()
     p->pCurrent      = NULL;
     p->pEnd          = NULL;
 
-    p->nChunkSize    = (1 << 12);
+    p->nChunkSize    = (1 << 14);
     p->nChunksAlloc  = 64;
     p->nChunks       = 0;
     p->pChunks       = ALLOC( char *, p->nChunksAlloc );
@@ -390,6 +390,34 @@ char * Mem_FlexEntryFetch( Mem_Flex_t * p, int nBytes )
 
   Synopsis    []
 
+  Description [Relocates all the memory except the first chunk.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Mem_FlexRestart( Mem_Flex_t * p )
+{
+    int i;
+    if ( p->nChunks == 0 )
+        return;
+    // deallocate all chunks except the first one
+    for ( i = 1; i < p->nChunks; i++ )
+        free( p->pChunks[i] );
+    p->nChunks  = 1;
+    p->nMemoryAlloc = p->nChunkSize;
+    // transform these entries into a linked list
+    p->pCurrent = p->pChunks[0];
+    p->pEnd     = p->pCurrent + p->nChunkSize;
+    p->nEntriesUsed = 0;
+    p->nMemoryUsed = 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
   Description []
                
   SideEffects []
@@ -399,7 +427,7 @@ char * Mem_FlexEntryFetch( Mem_Flex_t * p, int nBytes )
 ***********************************************************************/
 int Mem_FlexReadMemUsage( Mem_Flex_t * p )
 {
-    return p->nMemoryAlloc;
+    return p->nMemoryUsed;
 }
 
 

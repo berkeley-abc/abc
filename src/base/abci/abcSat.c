@@ -396,6 +396,26 @@ void Abc_NtkCollectSupergate( Abc_Obj_t * pNode, int fStopAtMux, Vec_Ptr_t * vNo
 
 /**Function*************************************************************
 
+  Synopsis    [Computes the factor of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkNodeFactor( Abc_Obj_t * pObj, int nLevelMax )
+{
+//  nLevelMax = ((nLevelMax)/2)*3;
+    assert( pObj->Level <= nLevelMax );
+//    return (int)(100000000.0 * pow(0.999, nLevelMax - pObj->Level));
+    return (int)(100000000.0 * (1 + 0.01 * pObj->Level));
+//    return (int)(100000000.0 / ((nLevelMax)/2)*3 - pObj->Level);
+}
+
+/**Function*************************************************************
+
   Synopsis    [Sets up the SAT solver.]
 
   Description []
@@ -409,11 +429,13 @@ int Abc_NtkMiterSatCreateInt( solver * pSat, Abc_Ntk_t * pNtk, int fJFront )
 {
     Abc_Obj_t * pNode, * pFanin, * pNodeC, * pNodeT, * pNodeE;
     Vec_Ptr_t * vNodes, * vSuper;
+//    Vec_Int_t * vLevels;
     Vec_Int_t * vVars, * vFanio;
     Vec_Vec_t * vCircuit;
     int i, k, fUseMuxes = 1;
     int clk1 = clock(), clk;
     int fOrderCiVarsFirst = 0;
+    int nLevelsMax = Abc_AigGetLevelNum(pNtk);
 
     assert( Abc_NtkIsStrash(pNtk) );
 
@@ -422,9 +444,9 @@ int Abc_NtkMiterSatCreateInt( solver * pSat, Abc_Ntk_t * pNtk, int fJFront )
         pNode->pCopy = NULL;
 
     // start the data structures
-    vNodes = Vec_PtrAlloc( 1000 );   // the nodes corresponding to vars in the solver
-    vSuper = Vec_PtrAlloc( 100 );    // the nodes belonging to the given implication supergate
-    vVars  = Vec_IntAlloc( 100 );    // the temporary array for variables in the clause
+    vNodes  = Vec_PtrAlloc( 1000 );   // the nodes corresponding to vars in the solver
+    vSuper  = Vec_PtrAlloc( 100 );    // the nodes belonging to the given implication supergate
+    vVars   = Vec_IntAlloc( 100 );    // the temporary array for variables in the clause
     if ( fJFront )
         vCircuit = Vec_VecAlloc( 1000 );
 //        vCircuit = Vec_VecStart( 184 );
@@ -565,7 +587,16 @@ int Abc_NtkMiterSatCreateInt( solver * pSat, Abc_Ntk_t * pNtk, int fJFront )
 //        Asat_JManStop( pSat );
 //    PRT( "Total", clock() - clk1 );
     }
-
+/*
+    // create factors
+    vLevels = Vec_IntStart( Vec_PtrSize(vNodes) );   // the reverse levels of the nodes
+    Abc_NtkForEachObj( pNtk, pNode, i )
+        if ( pNode->fMarkA )
+            Vec_IntWriteEntry( vLevels, (int)pNode->pCopy, Abc_NtkNodeFactor(pNode, nLevelsMax) );
+    assert( Vec_PtrSize(vNodes) == Vec_IntSize(vLevels) );
+    Asat_SolverSetFactors( pSat, Vec_IntReleaseArray(vLevels) );
+    Vec_IntFree( vLevels );
+*/
     // delete
     Vec_IntFree( vVars );
     Vec_PtrFree( vNodes );

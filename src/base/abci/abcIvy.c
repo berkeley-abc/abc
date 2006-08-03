@@ -50,7 +50,7 @@ static inline Abc_Obj_t *  Abc_EdgeToNode( Abc_Ntk_t * p, Abc_Edge_t Edge )    {
 static inline Abc_Obj_t *  Abc_ObjFanin0Ivy( Abc_Ntk_t * p, Ivy_Obj_t * pObj ) { return Abc_ObjNotCond( Abc_EdgeToNode(p, Ivy_ObjFanin0(pObj)->TravId), Ivy_ObjFaninC0(pObj) ); }
 static inline Abc_Obj_t *  Abc_ObjFanin1Ivy( Abc_Ntk_t * p, Ivy_Obj_t * pObj ) { return Abc_ObjNotCond( Abc_EdgeToNode(p, Ivy_ObjFanin1(pObj)->TravId), Ivy_ObjFaninC1(pObj) ); }
 
-static int * Abc_NtkCollectLatchValues( Abc_Ntk_t * pNtk );
+static int * Abc_NtkCollectLatchValues( Abc_Ntk_t * pNtk, int fUseDcs );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -67,7 +67,7 @@ static int * Abc_NtkCollectLatchValues( Abc_Ntk_t * pNtk );
   SeeAlso     []
 
 ***********************************************************************/
-Ivy_Man_t * Abc_NtkIvyBefore( Abc_Ntk_t * pNtk, int fSeq )
+Ivy_Man_t * Abc_NtkIvyBefore( Abc_Ntk_t * pNtk, int fSeq, int fUseDc )
 {
     Ivy_Man_t * pMan;
     int fCleanup = 1;
@@ -101,7 +101,7 @@ Ivy_Man_t * Abc_NtkIvyBefore( Abc_Ntk_t * pNtk, int fSeq )
     if ( fSeq )
     {
         int nLatches = Abc_NtkLatchNum(pNtk);
-        int * pInit = Abc_NtkCollectLatchValues( pNtk );
+        int * pInit = Abc_NtkCollectLatchValues( pNtk, fUseDc );
         Ivy_ManMakeSeq( pMan, nLatches, pInit );
         FREE( pInit );
 //        Ivy_ManPrintStats( pMan );
@@ -160,7 +160,7 @@ Abc_Ntk_t * Abc_NtkIvyStrash( Abc_Ntk_t * pNtk )
 {
     Abc_Ntk_t * pNtkAig;
     Ivy_Man_t * pMan;
-    pMan = Abc_NtkIvyBefore( pNtk, 1 );
+    pMan = Abc_NtkIvyBefore( pNtk, 1, 0 );
     if ( pMan == NULL )
         return NULL;
     pNtkAig = Abc_NtkIvyAfter( pNtk, pMan, 1 );
@@ -183,7 +183,7 @@ void Abc_NtkIvyCuts( Abc_Ntk_t * pNtk, int nInputs )
 {
     extern void Ivy_CutComputeAll( Ivy_Man_t * p, int nInputs );
     Ivy_Man_t * pMan;
-    pMan = Abc_NtkIvyBefore( pNtk, 1 );
+    pMan = Abc_NtkIvyBefore( pNtk, 1, 0 );
     if ( pMan == NULL )
         return;
     Ivy_CutComputeAll( pMan, nInputs );
@@ -205,7 +205,7 @@ Abc_Ntk_t * Abc_NtkIvyRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeroC
 {
     Abc_Ntk_t * pNtkAig;
     Ivy_Man_t * pMan;
-    pMan = Abc_NtkIvyBefore( pNtk, 0 );
+    pMan = Abc_NtkIvyBefore( pNtk, 0, 0 );
     if ( pMan == NULL )
         return NULL;
     Ivy_ManRewritePre( pMan, fUpdateLevel, fUseZeroCost, fVerbose );
@@ -225,11 +225,35 @@ Abc_Ntk_t * Abc_NtkIvyRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeroC
   SeeAlso     []
 
 ***********************************************************************/
+Abc_Ntk_t * Abc_NtkIvyRewriteSeq( Abc_Ntk_t * pNtk, int fUseZeroCost, int fVerbose )
+{
+    Abc_Ntk_t * pNtkAig;
+    Ivy_Man_t * pMan;
+    pMan = Abc_NtkIvyBefore( pNtk, 1, 1 );
+    if ( pMan == NULL )
+        return NULL;
+    Ivy_ManRewriteSeq( pMan, fUseZeroCost, fVerbose );
+    pNtkAig = Abc_NtkIvyAfter( pNtk, pMan, 1 );
+    Ivy_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Abc_Ntk_t * Abc_NtkIvyResyn( Abc_Ntk_t * pNtk, int fUpdateLevel, int fVerbose )
 {
     Abc_Ntk_t * pNtkAig;
     Ivy_Man_t * pMan, * pTemp;
-    pMan = Abc_NtkIvyBefore( pNtk, 0 );
+    pMan = Abc_NtkIvyBefore( pNtk, 0, 0 );
     if ( pMan == NULL )
         return NULL;
     pMan = Ivy_ManResyn( pTemp = pMan, fUpdateLevel, fVerbose );
@@ -253,11 +277,11 @@ Abc_Ntk_t * Abc_NtkIvyResyn( Abc_Ntk_t * pNtk, int fUpdateLevel, int fVerbose )
 Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk )
 {
     Abc_Ntk_t * pNtkAig;
-    Ivy_Man_t * pMan, * pTemp;
+    Ivy_Man_t * pMan;//, * pTemp;
     int fCleanup = 1;
     int nNodes;
     int nLatches = Abc_NtkLatchNum(pNtk);
-    int * pInit = Abc_NtkCollectLatchValues( pNtk );
+    int * pInit = Abc_NtkCollectLatchValues( pNtk, 0 );
 
     assert( !Abc_NtkIsNetlist(pNtk) );
     assert( !Abc_NtkIsSeq(pNtk) );
@@ -304,7 +328,7 @@ Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk )
 //    pMan = Ivy_ManResyn( pTemp = pMan, 1, 0 );
 //    Ivy_ManStop( pTemp );
 
-    Ivy_ManTestCutsAll( pMan );
+//    Ivy_ManTestCutsAll( pMan );
 
 //    Ivy_ManPrintStats( pMan );
 
@@ -319,6 +343,10 @@ Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk )
 
 //    Ivy_ManRequiredLevels( pMan );
 
+    Pla_ManFastLutMap( pMan, 8 );
+    Ivy_ManStop( pMan );
+    return NULL;
+/*
     // convert from the AIG manager
     pNtkAig = Abc_NtkFromAig( pNtk, pMan );
 //    pNtkAig = Abc_NtkFromAigSeq( pNtk, pMan );
@@ -341,6 +369,7 @@ Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk )
 
     FREE( pInit );
     return pNtkAig;
+*/
 }
 
 
@@ -717,14 +746,14 @@ Ivy_Obj_t * Abc_NodeStrashAigFactorAig( Ivy_Man_t * pMan, Abc_Obj_t * pRoot, cha
   SeeAlso     []
 
 ***********************************************************************/
-int * Abc_NtkCollectLatchValues( Abc_Ntk_t * pNtk )
+int * Abc_NtkCollectLatchValues( Abc_Ntk_t * pNtk, int fUseDcs )
 {
     Abc_Obj_t * pLatch;
     int * pArray, i;
     pArray = ALLOC( int, Abc_NtkLatchNum(pNtk) );
     Abc_NtkForEachLatch( pNtk, pLatch, i )
     {
-        if ( Abc_LatchIsInitDc(pLatch) )
+        if ( fUseDcs || Abc_LatchIsInitDc(pLatch) )
             pArray[i] = IVY_INIT_DC;
         else if ( Abc_LatchIsInit1(pLatch) )
             pArray[i] = IVY_INIT_1;

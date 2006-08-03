@@ -265,7 +265,7 @@ int Ivy_ManLevels( Ivy_Man_t * p )
 ***********************************************************************/
 int Ivy_ManResetLevels_rec( Ivy_Obj_t * pObj )
 {
-    if ( pObj->Level || Ivy_ObjIsCi(pObj) )
+    if ( pObj->Level || Ivy_ObjIsCi(pObj) || Ivy_ObjIsConst1(pObj) )
         return pObj->Level;
     if ( Ivy_ObjIsBuf(pObj) )
         return pObj->Level = Ivy_ManResetLevels_rec( Ivy_ObjFanin0(pObj) );
@@ -292,8 +292,77 @@ void Ivy_ManResetLevels( Ivy_Man_t * p )
     int i;
     Ivy_ManForEachObj( p, pObj, i )
         pObj->Level = 0;
-    Ivy_ManForEachPo( p, pObj, i )
+    Ivy_ManForEachCo( p, pObj, i )
         Ivy_ManResetLevels_rec( Ivy_ObjFanin0(pObj) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [References/references the node and returns MFFC size.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_ObjRefDeref( Ivy_Man_t * p, Ivy_Obj_t * pNode, int fReference, int fLabel )
+{
+    Ivy_Obj_t * pNode0, * pNode1;
+    int Counter;
+    // label visited nodes
+    if ( fLabel )
+        Ivy_ObjSetTravIdCurrent( p, pNode );
+    // skip the CI
+    if ( Ivy_ObjIsPi(pNode) )
+        return 0;
+    assert( Ivy_ObjIsNode(pNode) || Ivy_ObjIsBuf(pNode) || Ivy_ObjIsLatch(pNode) );
+    // process the internal node
+    pNode0 = Ivy_ObjFanin0(pNode);
+    pNode1 = Ivy_ObjFanin1(pNode);
+    Counter = Ivy_ObjIsNode(pNode);
+    if ( fReference )
+    {
+        if ( pNode0->nRefs++ == 0 )
+            Counter += Ivy_ObjRefDeref( p, pNode0, fReference, fLabel );
+        if ( pNode1 && pNode1->nRefs++ == 0 )
+            Counter += Ivy_ObjRefDeref( p, pNode1, fReference, fLabel );
+    }
+    else
+    {
+        assert( pNode0->nRefs > 0 );
+        assert( pNode1 == NULL || pNode1->nRefs > 0 );
+        if ( --pNode0->nRefs == 0 )
+            Counter += Ivy_ObjRefDeref( p, pNode0, fReference, fLabel );
+        if ( pNode1 && --pNode1->nRefs == 0 )
+            Counter += Ivy_ObjRefDeref( p, pNode1, fReference, fLabel );
+    }
+    return Counter;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Labels MFFC with the current label.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_ObjMffcLabel( Ivy_Man_t * p, Ivy_Obj_t * pNode )
+{
+    int nConeSize1, nConeSize2;
+    assert( !Ivy_IsComplement( pNode ) );
+    assert( Ivy_ObjIsNode( pNode ) );
+    nConeSize1 = Ivy_ObjRefDeref( p, pNode, 0, 1 ); // dereference
+    nConeSize2 = Ivy_ObjRefDeref( p, pNode, 1, 0 ); // reference
+    assert( nConeSize1 == nConeSize2 );
+    assert( nConeSize1 > 0 );
+    return nConeSize1;
 }
 
 /**Function*************************************************************

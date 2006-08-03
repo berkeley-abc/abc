@@ -70,7 +70,9 @@ struct Rwt_Man_t_
     int                nClasses;         // the number of NN classes
     // the result of resynthesis
     int                fCompl;           // indicates if the output of FF should be complemented
+    void *             pCut;             // the decomposition tree (temporary)
     void *             pGraph;           // the decomposition tree (temporary)
+    char *             pPerm;            // permutation used for the best cut
     Vec_Ptr_t *        vFanins;          // the fanins array (temporary)
     Vec_Ptr_t *        vFaninsCur;       // the fanins array (temporary)
     Vec_Int_t *        vLevNums;         // the array of levels (temporary)

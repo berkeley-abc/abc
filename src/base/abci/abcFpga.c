@@ -25,7 +25,7 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static Fpga_Man_t * Abc_NtkToFpga( Abc_Ntk_t * pNtk, int fRecovery, float * pSwitching, int fVerbose );
+static Fpga_Man_t * Abc_NtkToFpga( Abc_Ntk_t * pNtk, int fRecovery, float * pSwitching, int fLatchPaths, int fVerbose );
 static Abc_Ntk_t *  Abc_NtkFromFpga( Fpga_Man_t * pMan, Abc_Ntk_t * pNtk );
 static Abc_Obj_t *  Abc_NodeFromFpga_rec( Abc_Ntk_t * pNtkNew, Fpga_Node_t * pNodeFpga );
  
@@ -44,7 +44,7 @@ static Abc_Obj_t *  Abc_NodeFromFpga_rec( Abc_Ntk_t * pNtkNew, Fpga_Node_t * pNo
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkFpga( Abc_Ntk_t * pNtk, float DelayTarget, int fRecovery, int fSwitching, int fVerbose )
+Abc_Ntk_t * Abc_NtkFpga( Abc_Ntk_t * pNtk, float DelayTarget, int fRecovery, int fSwitching, int fLatchPaths, int fVerbose )
 {
     int fShowSwitching = 1;
     Abc_Ntk_t * pNtkNew;
@@ -68,11 +68,13 @@ Abc_Ntk_t * Abc_NtkFpga( Abc_Ntk_t * pNtk, float DelayTarget, int fRecovery, int
     }
 
     // perform FPGA mapping
-    pMan = Abc_NtkToFpga( pNtk, fRecovery, pSwitching, fVerbose );    
+    pMan = Abc_NtkToFpga( pNtk, fRecovery, pSwitching, fLatchPaths, fVerbose );    
     if ( pSwitching ) Vec_IntFree( vSwitching );
     if ( pMan == NULL )
         return NULL;
     Fpga_ManSetSwitching( pMan, fSwitching );
+    Fpga_ManSetLatchPaths( pMan, fLatchPaths );
+    Fpga_ManSetLatchNum( pMan, Abc_NtkLatchNum(pNtk) );
     Fpga_ManSetDelayTarget( pMan, DelayTarget );
     if ( !Fpga_Mapping( pMan ) )
     {
@@ -113,13 +115,14 @@ Abc_Ntk_t * Abc_NtkFpga( Abc_Ntk_t * pNtk, float DelayTarget, int fRecovery, int
   SeeAlso     []
 
 ***********************************************************************/
-Fpga_Man_t * Abc_NtkToFpga( Abc_Ntk_t * pNtk, int fRecovery, float * pSwitching, int fVerbose )
+Fpga_Man_t * Abc_NtkToFpga( Abc_Ntk_t * pNtk, int fRecovery, float * pSwitching, int fLatchPaths, int fVerbose )
 {
     Fpga_Man_t * pMan;
     ProgressBar * pProgress;
     Fpga_Node_t * pNodeFpga;
     Vec_Ptr_t * vNodes;
     Abc_Obj_t * pNode, * pFanin, * pPrev;
+    float * pfArrivals;
     int i;
 
     assert( Abc_NtkIsStrash(pNtk) );
@@ -130,7 +133,13 @@ Fpga_Man_t * Abc_NtkToFpga( Abc_Ntk_t * pNtk, int fRecovery, float * pSwitching,
         return NULL;
     Fpga_ManSetAreaRecovery( pMan, fRecovery );
     Fpga_ManSetOutputNames( pMan, Abc_NtkCollectCioNames(pNtk, 1) );
-    Fpga_ManSetInputArrivals( pMan, Abc_NtkGetCiArrivalFloats(pNtk) );
+    pfArrivals = Abc_NtkGetCiArrivalFloats(pNtk);
+    if ( fLatchPaths )
+    {
+        for ( i = 0; i < Abc_NtkPiNum(pNtk); i++ )
+            pfArrivals[i] = -FPGA_FLOAT_LARGE;
+    }
+    Fpga_ManSetInputArrivals( pMan, pfArrivals );
 
     // create PIs and remember them in the old nodes
     Abc_NtkCleanCopy( pNtk );

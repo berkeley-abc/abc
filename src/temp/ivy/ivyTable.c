@@ -74,8 +74,8 @@ Ivy_Obj_t * Ivy_TableLookup( Ivy_Man_t * p, Ivy_Obj_t * pObj )
         return NULL;
     assert( Ivy_ObjIsLatch(pObj) || Ivy_ObjFaninId0(pObj) > 0 );
     assert( Ivy_ObjFaninId1(pObj) == 0 || Ivy_ObjFaninId0(pObj) < Ivy_ObjFaninId1(pObj) );
-//    if ( Ivy_ObjFanin0(pObj)->nRefs == 0 || (!Ivy_ObjIsLatch(pObj) && Ivy_ObjFanin1(pObj)->nRefs == 0) )
-//        return NULL;
+    if ( Ivy_ObjFanin0(pObj)->nRefs == 0 || (Ivy_ObjChild1(pObj) && Ivy_ObjFanin1(pObj)->nRefs == 0) )
+        return NULL;
     for ( i = Ivy_Hash(pObj, p->nTableSize); p->pTable[i]; i = (i+1) % p->nTableSize )
     {
         pEntry = Ivy_ManObj( p, p->pTable[i] );

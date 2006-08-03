@@ -122,6 +122,7 @@ struct Fpga_ManStruct_t_
     int                 fAreaRecovery; // the flag to use area flow as the first parameter
     int                 fVerbose;      // the verbosiness flag
     int                 fSwitching;    // minimize the switching activity (instead of area)
+    int                 fLatchPaths;   // optimize latch paths for delay, other paths for area
     int                 nTravIds;      // the counter of traversal IDs
     float               DelayTarget;   // the target required times
 

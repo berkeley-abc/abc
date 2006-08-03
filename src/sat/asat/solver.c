@@ -254,6 +254,7 @@ static inline void act_var_rescale(solver* s) {
 static inline void act_var_bump(solver* s, int v) {
     double* activity = s->activity;
     if ((activity[v] += s->var_inc) > 1e100)
+//    if ((activity[v] += s->var_inc*s->factors[v]/100000000) > 1e100)
         act_var_rescale(s);
 
     //printf("bump %d %f\n", v-1, activity[v]);
@@ -947,6 +948,7 @@ solver* solver_new(void)
     // initialize arrays
     s->wlists    = 0;
     s->activity  = 0;
+    s->factors   = 0;
     s->assigns   = 0;
     s->orderpos  = 0;
     s->reasons   = 0;
@@ -1039,9 +1041,9 @@ void solver_delete(solver* s)
         free(s->trail    );
         free(s->tags     );
     }
-
     if ( s->pJMan )     Asat_JManStop( s );
     if ( s->pPrefVars ) free( s->pPrefVars );
+    if ( s->factors )   free( s->factors );
     free(s);
 }
 

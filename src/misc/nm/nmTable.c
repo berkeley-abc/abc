@@ -44,7 +44,7 @@ static unsigned Nm_HashString( char * pName, int TableSize )
     };
     unsigned i, Key = 0;
     for ( i = 0; pName[i] != '\0'; i++ )
-        Key ^= s_Primes[i%10]*pName[i]*pName[i];
+        Key ^= s_Primes[i%10]*pName[i]*pName[i]*pName[i];
     return Key % TableSize;
 }
 

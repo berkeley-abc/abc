@@ -100,6 +100,9 @@ int Fpga_MappingPostProcess( Fpga_Man_t * p )
     float aAreaTotalCur, aAreaTotalCur2;
     int Iter, clk;
 
+if ( p->fVerbose )
+    printf( "Best clock period = %5.2f\n", Fpga_TimeComputeArrivalMax(p) );
+
     // compute area, set references, and collect nodes used in the mapping
     Iter = 1;
     aAreaTotalCur = Fpga_MappingSetRefsAndArea( p );

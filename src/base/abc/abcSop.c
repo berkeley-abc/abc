@@ -401,6 +401,44 @@ char * Abc_SopCreateFromTruth( Extra_MmFlex_t * pMan, int nVars, unsigned * pTru
 
 /**Function*************************************************************
 
+  Synopsis    [Creates the cover from the ISOP computed from TT.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_SopCreateFromIsop( Extra_MmFlex_t * pMan, int nVars, Vec_Int_t * vCover )
+{
+    char * pSop, * pCube;
+    int i, k, Entry, Literal;
+    assert( Vec_IntSize(vCover) > 0 );
+    if ( Vec_IntSize(vCover) == 0 )
+        return NULL;
+    // start the cover
+    pSop = Abc_SopStart( pMan, Vec_IntSize(vCover), nVars );
+    // create cubes
+    Vec_IntForEachEntry( vCover, Entry, i )
+    {
+        pCube = pSop + i * (nVars + 3);
+        for ( k = 0; k < nVars; k++ )
+        {
+            Literal = 3 & (Entry >> (k << 1));
+            if ( Literal == 1 )
+                pCube[k] = '1';
+            else if ( Literal == 2 )
+                pCube[k] = '0';
+            else if ( Literal != 0 )
+                assert( 0 );
+        }
+    }
+    return pSop;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Reads the number of cubes in the cover.]
 
   Description []

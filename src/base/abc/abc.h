@@ -640,6 +640,7 @@ extern char *             Abc_SopCreateMux( Extra_MmFlex_t * pMan );
 extern char *             Abc_SopCreateInv( Extra_MmFlex_t * pMan );
 extern char *             Abc_SopCreateBuf( Extra_MmFlex_t * pMan );
 extern char *             Abc_SopCreateFromTruth( Extra_MmFlex_t * pMan, int nVars, unsigned * pTruth );
+extern char *             Abc_SopCreateFromIsop( Extra_MmFlex_t * pMan, int nVars, Vec_Int_t * vCover );
 extern int                Abc_SopGetCubeNum( char * pSop );
 extern int                Abc_SopGetLitNum( char * pSop );
 extern int                Abc_SopGetVarNum( char * pSop );

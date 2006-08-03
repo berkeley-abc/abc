@@ -109,9 +109,10 @@ int Ivy_ManCleanup( Ivy_Man_t * p )
     Ivy_Obj_t * pNode;
     int i, nNodesOld;
     nNodesOld = Ivy_ManNodeNum(p);
-    Ivy_ManForEachNode( p, pNode, i )
-        if ( Ivy_ObjRefs(pNode) == 0 )
-            Ivy_ObjDelete_rec( p, pNode, 1 );
+    Ivy_ManForEachObj( p, pNode, i )
+        if ( Ivy_ObjIsNode(pNode) || Ivy_ObjIsLatch(pNode) || Ivy_ObjIsBuf(pNode) )
+            if ( Ivy_ObjRefs(pNode) == 0 )
+                Ivy_ObjDelete_rec( p, pNode, 1 );
     return nNodesOld - Ivy_ManNodeNum(p);
 }
 
@@ -126,7 +127,7 @@ int Ivy_ManCleanup( Ivy_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Ivy_ManPropagateBuffers( Ivy_Man_t * p )
+int Ivy_ManPropagateBuffers( Ivy_Man_t * p, int fUpdateLevel )
 {
     Ivy_Obj_t * pNode;
     int nSteps;
@@ -135,7 +136,7 @@ int Ivy_ManPropagateBuffers( Ivy_Man_t * p )
         pNode = Vec_PtrEntryLast(p->vBufs);
         while ( Ivy_ObjIsBuf(pNode) )
             pNode = Ivy_ObjReadFirstFanout( p, pNode );
-        Ivy_NodeFixBufferFanins( p, pNode );
+        Ivy_NodeFixBufferFanins( p, pNode, fUpdateLevel );
     }
 //    printf( "Number of steps = %d\n", nSteps );
     return nSteps;
@@ -200,6 +201,9 @@ void Ivy_ManMakeSeq( Ivy_Man_t * p, int nLatches, int * pInits )
         pObj = Ivy_ManPo( p, Ivy_ManPoNum(p) - nLatches + i );
         pLatch = Ivy_Latch( p, Ivy_ObjChild0(pObj), Init );
         Ivy_ObjDisconnect( p, pObj );
+        // recycle the old PO object
+        Vec_PtrWriteEntry( p->vObjs, pObj->Id, NULL );
+        Ivy_ManRecycleMemory( p, pObj );
         // convert the corresponding PI to a buffer and connect it to the latch
         pObj = Ivy_ManPi( p, Ivy_ManPiNum(p) - nLatches + i );
         pObj->Type = IVY_BUF;
@@ -215,8 +219,21 @@ void Ivy_ManMakeSeq( Ivy_Man_t * p, int nLatches, int * pInits )
     p->nObjs[IVY_PO] -= nLatches;
     p->nObjs[IVY_BUF] += nLatches;
     p->nDeleted -= 2 * nLatches;
+    // remove dangling nodes
+    Ivy_ManCleanup(p);
+/* 
+    // check for dangling nodes
+    Ivy_ManForEachObj( p, pObj, i )
+        if ( !Ivy_ObjIsPi(pObj) && !Ivy_ObjIsPo(pObj) && !Ivy_ObjIsConst1(pObj) )
+        {
+            assert( Ivy_ObjRefs(pObj) > 0 );
+            assert( Ivy_ObjRefs(pObj) == Ivy_ObjFanoutNum(p, pObj) );
+        }
+*/
     // perform hashing by propagating the buffers
-    Ivy_ManPropagateBuffers( p );
+    Ivy_ManPropagateBuffers( p, 0 );
+    // fix the levels
+    Ivy_ManResetLevels( p );
     // check the resulting network
     if ( !Ivy_ManCheck(p) )
         printf( "Ivy_ManMakeSeq(): The check has failed.\n" );

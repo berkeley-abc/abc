@@ -662,7 +662,7 @@ void Extra_TruthMux( unsigned * pOut, unsigned * pCof0, unsigned * pCof1, int nV
             for ( i = 0; i < Step; i++ )
             {
                 pOut[i]      = pCof0[i];
-                pOut[Step+i] = pCof1[i];
+                pOut[Step+i] = pCof1[Step+i];
             }
             pOut += 2*Step;
         }

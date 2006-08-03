@@ -357,6 +357,32 @@ int Abc_NodeMffsInside( Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vIns
     return Count1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Collects the internal nodes of the MFFC limited by cut.]
+
+  Description []
+               
+  SideEffects [Increments the trav ID and marks visited nodes.]
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_NodeMffsInsideCollect( Abc_Obj_t * pNode )
+{
+    Vec_Ptr_t * vInside;
+    int Count1, Count2;
+    // dereference the node
+    Count1 = Abc_NodeDeref_rec( pNode );
+    // collect the nodes inside the MFFC
+    vInside = Vec_PtrAlloc( 10 );
+    Abc_NodeMffsConeSupp( pNode, vInside, NULL );
+    // reference it back
+    Count2 = Abc_NodeRef_rec( pNode );
+    assert( Count1 == Count2 );
+    return vInside;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

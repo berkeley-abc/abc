@@ -86,9 +86,13 @@ static inline Pla_Obj_t *   Ivy_ObjPlaStr( Ivy_Man_t * p, Ivy_Obj_t * pObj )  { 
 ////////////////////////////////////////////////////////////////////////
 
 /*=== playerToAbc.c ==============================================================*/
-extern void *        Abc_NtkPlayer( void * pNtk, int nLutMax, int nFaninMax, int fVerbose );
+extern void *        Abc_NtkPlayer( void * pNtk, int nLutMax, int nPlaMax, int RankCost, int fFastMode, int fVerbose );
 /*=== playerCore.c =============================================================*/
 extern Pla_Man_t *   Pla_ManDecompose( Ivy_Man_t * p, int nLutMax, int nPlaMax, int fVerbose );
+/*=== playerFast.c =============================================================*/
+extern void          Pla_ManFastLutMap( Ivy_Man_t * pAig, int nLimit );
+extern void          Pla_ManFastLutMapStop( Ivy_Man_t * pAig );
+extern void          Pla_ManFastLutMapReadSupp( Ivy_Man_t * pAig, Ivy_Obj_t * pObj, Vec_Int_t * vLeaves );
 /*=== playerMan.c ==============================================================*/
 extern Pla_Man_t *   Pla_ManAlloc( Ivy_Man_t * p, int nLutMax, int nPlaMax );
 extern void          Pla_ManFree( Pla_Man_t * p );

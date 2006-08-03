@@ -80,7 +80,7 @@ typedef enum { MSAT_FALSE = -1, MSAT_UNKNOWN = 0, MSAT_TRUE = 1 } Msat_Type_t;
 extern bool             Msat_SolverParseDimacs( FILE * pFile, Msat_Solver_t ** p, int fVerbose );
 /*=== satSolver.c ===========================================================*/
 // adding vars, clauses, simplifying the database, and solving
-extern bool             Msat_SolverAddVar( Msat_Solver_t * p );
+extern bool             Msat_SolverAddVar( Msat_Solver_t * p, int Level );
 extern bool             Msat_SolverAddClause( Msat_Solver_t * p, Msat_IntVec_t * pLits );
 extern bool             Msat_SolverSimplifyDB( Msat_Solver_t * p );
 extern bool             Msat_SolverSolve( Msat_Solver_t * p, Msat_IntVec_t * pVecAssumps, int nBackTrackLimit, int nTimeLimit );

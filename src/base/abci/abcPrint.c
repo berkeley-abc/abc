@@ -300,6 +300,7 @@ void Abc_NtkPrintFanio( FILE * pFile, Abc_Ntk_t * pNtk )
             nFanouts = Abc_ObjFanoutNum( Abc_ObjFanout0(pNode) );
         else
             nFanouts = Abc_ObjFanoutNum(pNode);
+//            nFanouts = Abc_NodeMffcSize(pNode);
         if ( nFanins > vFanins->nSize || nFanouts > vFanouts->nSize )
         {
             nOldSize = vFanins->nSize;

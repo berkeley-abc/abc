@@ -2114,6 +2114,10 @@ SOURCE=.\src\temp\ivy\ivyFanout.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\temp\ivy\ivyIsop.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\temp\ivy\ivyMan.c
 # End Source File
 # Begin Source File
@@ -2163,6 +2167,10 @@ SOURCE=.\src\temp\player\player.h
 # Begin Source File
 
 SOURCE=.\src\temp\player\playerCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\player\playerFast.c
 # End Source File
 # Begin Source File
 

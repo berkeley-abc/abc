@@ -153,6 +153,7 @@ void Ivy_ObjDeleteFanout( Ivy_Man_t * p, Ivy_Obj_t * pObj, Ivy_Obj_t * pFanout )
         assert( *ppSpot == pFanout );
         *ppSpot = NULL;
     }
+//    printf( " %d", Ivy_ObjFanoutNum(p, pObj) );
 }
 
 /**Function*************************************************************

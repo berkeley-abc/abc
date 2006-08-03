@@ -209,6 +209,23 @@ void Asat_SolverSetPrefVars(solver * s, int * pPrefVars, int nPrefVars)
     s->nPrefVars = nPrefVars;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Sets the preferred variables.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Asat_SolverSetFactors(solver * s, int * pFactors)
+{
+    assert( s->factors == NULL );
+    s->factors = pFactors;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

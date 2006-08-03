@@ -525,10 +525,18 @@ static inline int Vec_PtrFind( Vec_Ptr_t * p, void * Entry )
 static inline void Vec_PtrRemove( Vec_Ptr_t * p, void * Entry )
 {
     int i;
+    // delete assuming that it is closer to the end
+    for ( i = p->nSize - 1; i >= 0; i-- )
+        if ( p->pArray[i] == Entry )
+            break;
+    assert( i >= 0 );
+/*
+    // delete assuming that it is closer to the beginning
     for ( i = 0; i < p->nSize; i++ )
         if ( p->pArray[i] == Entry )
             break;
     assert( i < p->nSize );
+*/
     for ( i++; i < p->nSize; i++ )
         p->pArray[i-1] = p->pArray[i];
     p->nSize--;

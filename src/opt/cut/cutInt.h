@@ -71,6 +71,11 @@ struct Cut_ManStruct_t_
     Vec_Int_t *        vNodeCuts;        // the number of cuts for each node
     Vec_Int_t *        vNodeStarts;      // the number of the starting cut of each node
     Vec_Int_t *        vCutPairs;        // the pairs of parent cuts for each cut
+    // minimum delay mapping with the given cuts
+    Vec_Ptr_t *        vCutsMax;
+    Vec_Int_t *        vDelays;
+    Vec_Int_t *        vDelays2;
+    int                nDelayMin;
     // statistics
     int                nCutsCur;
     int                nCutsAlloc;
@@ -88,6 +93,7 @@ struct Cut_ManStruct_t_
     int                timeTruth;
     int                timeFilter;
     int                timeHash;
+    int                timeMap;
 };
 
 // iterator through all the cuts of the list

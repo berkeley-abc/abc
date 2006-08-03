@@ -95,6 +95,13 @@ Cut_Man_t * Cut_ManStart( Cut_Params_t * pParams )
         p->vNodeStarts = Vec_IntStart( pParams->nIdsMax );
         p->vCutPairs   = Vec_IntAlloc( 0 );
     }
+    // allocate storage for delays
+    if ( pParams->fMap && !p->pParams->fSeq )
+    {
+        p->vDelays = Vec_IntStart( pParams->nIdsMax );
+        p->vDelays2 = Vec_IntStart( pParams->nIdsMax );
+        p->vCutsMax = Vec_PtrStart( pParams->nIdsMax );
+    }
     // memory for cuts
     p->pMmCuts = Extra_MmFixedStart( p->EntrySize );
     p->vTemp = Vec_PtrAlloc( 100 );
@@ -130,6 +137,9 @@ void Cut_ManStop( Cut_Man_t * p )
     if ( p->vFanCounts )  Vec_IntFree( p->vFanCounts );
     if ( p->vTemp )       Vec_PtrFree( p->vTemp );
 
+    if ( p->vCutsMax )    Vec_PtrFree( p->vCutsMax );
+    if ( p->vDelays )     Vec_IntFree( p->vDelays );
+    if ( p->vDelays2 )    Vec_IntFree( p->vDelays2 );
     if ( p->vNodeCuts )   Vec_IntFree( p->vNodeCuts );
     if ( p->vNodeStarts ) Vec_IntFree( p->vNodeStarts );
     if ( p->vCutPairs )   Vec_IntFree( p->vCutPairs );
@@ -168,13 +178,20 @@ void Cut_ManPrintStats( Cut_Man_t * p )
     printf( "The cut size      = %8d bytes.\n", p->EntrySize );
     printf( "Peak memory       = %8.2f Mb.\n", (float)p->nCutsPeak * p->EntrySize / (1<<20) );
     printf( "Total nodes       = %8d.\n", p->nNodes );
+    if ( p->pParams->fDag || p->pParams->fTree )
+    {
     printf( "DAG nodes         = %8d.\n", p->nNodesDag );
     printf( "Tree nodes        = %8d.\n", p->nNodes - p->nNodesDag );
+    }
     printf( "Nodes w/o cuts    = %8d.\n", p->nNodesNoCuts );
+    if ( p->pParams->fMap && !p->pParams->fSeq )
+    printf( "Mapping delay     = %8d.\n", p->nDelayMin );
+
     PRT( "Merge ", p->timeMerge );
     PRT( "Union ", p->timeUnion );
     PRT( "Filter", p->timeFilter );
     PRT( "Truth ", p->timeTruth );
+    PRT( "Map   ", p->timeMap );
 //    printf( "Nodes = %d. Multi = %d.  Cuts = %d. Multi = %d.\n", 
 //        p->nNodes, p->nNodesMulti, p->nCutsCur-p->nCutsTriv, p->nCutsMulti );
 //    printf( "Count0 = %d. Count1 = %d. Count2 = %d.\n\n", p->Count0, p->Count1, p->Count2 );

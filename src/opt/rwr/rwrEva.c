@@ -27,6 +27,7 @@
 
 static Dec_Graph_t * Rwr_CutEvaluate( Rwr_Man_t * p, Abc_Obj_t * pRoot, Cut_Cut_t * pCut, Vec_Ptr_t * vFaninsCur, int nNodesSaved, int LevelMax, int * pGainBest );
 static int Rwr_CutIsBoolean( Abc_Obj_t * pObj, Vec_Ptr_t * vLeaves );
+static int Rwr_CutCountNumNodes( Abc_Obj_t * pObj, Cut_Cut_t * pCut );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -72,6 +73,8 @@ clk = clock();
     assert( pCut != NULL );
 p->timeCut += clock() - clk;
 
+//printf( " %d", Rwr_CutCountNumNodes(pNode, pCut) );
+
     // go through the cuts
 clk = clock();
     for ( pCut = pCut->pNext; pCut; pCut = pCut->pNext )
@@ -103,6 +106,15 @@ clk = clock();
             continue;
         }
         p->nCutsGood++;
+
+        {
+            int Counter = 0;
+            Vec_PtrForEachEntry( p->vFaninsCur, pFanin, i )
+                if ( Abc_ObjFanoutNum(Abc_ObjRegular(pFanin)) == 1 )
+                    Counter++;
+            if ( Counter > 2 )
+                continue;
+        }
 
 clk2 = clock();
 /*
@@ -304,6 +316,72 @@ int Rwr_CutIsBoolean( Abc_Obj_t * pObj, Vec_Ptr_t * vLeaves )
         pTemp->fMarkA = pTemp->fMarkB = 0;
     }
     return RetValue;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Count the nodes in the cut space of a node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Rwr_CutCountNumNodes_rec( Abc_Obj_t * pObj, Cut_Cut_t * pCut, Vec_Ptr_t * vNodes )
+{
+    int i;
+    for ( i = 0; i < (int)pCut->nLeaves; i++ )
+        if ( pCut->pLeaves[i] == pObj->Id )
+        {
+            // check if the node is collected
+            if ( pObj->fMarkC == 0 )
+            {
+                pObj->fMarkC = 1;
+                Vec_PtrPush( vNodes, pObj );
+            }
+            return;
+        }
+    assert( Abc_ObjIsNode(pObj) );
+    // check if the node is collected
+    if ( pObj->fMarkC == 0 )
+    {
+        pObj->fMarkC = 1;
+        Vec_PtrPush( vNodes, pObj );
+    }
+    // traverse the fanins
+    Rwr_CutCountNumNodes_rec( Abc_ObjFanin0(pObj), pCut, vNodes );
+    Rwr_CutCountNumNodes_rec( Abc_ObjFanin1(pObj), pCut, vNodes );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Count the nodes in the cut space of a node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Rwr_CutCountNumNodes( Abc_Obj_t * pObj, Cut_Cut_t * pCut )
+{
+    Vec_Ptr_t * vNodes;
+    int i, Counter;
+    // collect all nodes
+    vNodes = Vec_PtrAlloc( 100 );
+    for ( pCut = pCut->pNext; pCut; pCut = pCut->pNext )
+        Rwr_CutCountNumNodes_rec( pObj, pCut, vNodes );
+    // clean all nodes
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+        pObj->fMarkC = 0;
+    // delete and return
+    Counter = Vec_PtrSize(vNodes);
+    Vec_PtrFree( vNodes );
+    return Counter;
 }
 
 ////////////////////////////////////////////////////////////////////////

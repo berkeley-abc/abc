@@ -24,6 +24,8 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+static inline int Ivy_NodeCutHashValue( int NodeId )  { return 1 << (NodeId % 31); }
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -580,6 +582,88 @@ static inline int Ivy_NodeCutExtend( Ivy_Cut_t * pCut, int iNew )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns 1 if the cut can be constructed; 0 otherwise.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Ivy_NodeCutPrescreen( Ivy_Cut_t * pCut, int Id0, int Id1 )
+{
+    int i;
+    if ( pCut->nSize < pCut->nSizeMax )
+        return 1;
+    for ( i = 0; i < pCut->nSize; i++ )
+        if ( pCut->pArray[i] == Id0 || pCut->pArray[i] == Id1 )
+            return 1;
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives new cut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Ivy_NodeCutDeriveNew( Ivy_Cut_t * pCut, Ivy_Cut_t * pCutNew, int IdOld, int IdNew0, int IdNew1 )
+{
+    unsigned uHash = 0;
+    int i, k; 
+    assert( pCut->nSize > 0 );
+    assert( IdNew0 < IdNew1 );
+    for ( i = k = 0; i < pCut->nSize; i++ )
+    {
+        if ( pCut->pArray[i] == IdOld )
+            continue;
+        if ( IdNew0 <= pCut->pArray[i] )
+        {
+            if ( IdNew0 < pCut->pArray[i] )
+            {
+                pCutNew->pArray[ k++ ] = IdNew0;
+                uHash |= Ivy_NodeCutHashValue( IdNew0 );
+            }
+            IdNew0 = 0x7FFFFFFF;
+        }
+        if ( IdNew1 <= pCut->pArray[i] )
+        {
+            if ( IdNew1 < pCut->pArray[i] )
+            {
+                pCutNew->pArray[ k++ ] = IdNew1;
+                uHash |= Ivy_NodeCutHashValue( IdNew1 );
+            }
+            IdNew1 = 0x7FFFFFFF;
+        }
+        pCutNew->pArray[ k++ ] = pCut->pArray[i];
+        uHash |= Ivy_NodeCutHashValue( pCut->pArray[i] );
+    }
+    if ( IdNew0 < 0x7FFFFFFF )
+    {
+        pCutNew->pArray[ k++ ] = IdNew0;
+        uHash |= Ivy_NodeCutHashValue( IdNew0 );
+    }
+    if ( IdNew1 < 0x7FFFFFFF )
+    {
+        pCutNew->pArray[ k++ ] = IdNew1;
+        uHash |= Ivy_NodeCutHashValue( IdNew1 );
+    }
+    pCutNew->nSize = k;
+    pCutNew->uHash = uHash;
+    assert( pCutNew->nSize <= pCut->nSizeMax );
+//    for ( i = 1; i < pCutNew->nSize; i++ )
+//        assert( pCutNew->pArray[i-1] < pCutNew->pArray[i] );
+    return 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Check if the cut exists.]
 
   Description [Returns 1 if the cut exists.]
@@ -789,7 +873,7 @@ Ivy_Store_t * Ivy_NodeFindCutsAll( Ivy_Man_t * p, Ivy_Obj_t * pObj, int nLeaves 
     Ivy_Cut_t CutNew, * pCutNew = &CutNew, * pCut;
     Ivy_Man_t * pMan = p;
     Ivy_Obj_t * pLeaf;
-    int i, k;
+    int i, k, iLeaf0, iLeaf1;
 
     assert( nLeaves <= IVY_CUT_INPUT );
 
@@ -818,6 +902,7 @@ Ivy_Store_t * Ivy_NodeFindCutsAll( Ivy_Man_t * p, Ivy_Obj_t * pObj, int nLeaves 
             pLeaf = Ivy_ManObj( p, pCut->pArray[k] );
             if ( Ivy_ObjIsCi(pLeaf) )
                 continue;
+/*
             *pCutNew = *pCut;
             Ivy_NodeCutShrink( pCutNew, pLeaf->Id );
             if ( !Ivy_NodeCutExtend( pCutNew, Ivy_ObjFaninId0(pLeaf) ) )
@@ -825,6 +910,12 @@ Ivy_Store_t * Ivy_NodeFindCutsAll( Ivy_Man_t * p, Ivy_Obj_t * pObj, int nLeaves 
             if ( Ivy_ObjIsNode(pLeaf) && !Ivy_NodeCutExtend( pCutNew, Ivy_ObjFaninId1(pLeaf) ) )
                 continue;
             Ivy_NodeCutHash( pCutNew );
+*/
+            iLeaf0 = Ivy_ObjFaninId0(pLeaf);
+            iLeaf1 = Ivy_ObjFaninId1(pLeaf);
+            if ( !Ivy_NodeCutPrescreen( pCut, iLeaf0, iLeaf1 ) )
+                continue;
+            Ivy_NodeCutDeriveNew( pCut, pCutNew, pCut->pArray[k], iLeaf0, iLeaf1 );
             Ivy_NodeCutFindOrAddFilter( pCutStore, pCutNew );
             if ( pCutStore->nCuts == IVY_CUT_LIMIT )
                 break;

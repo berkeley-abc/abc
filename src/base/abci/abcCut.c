@@ -32,6 +32,7 @@ static void Abc_NtkPrintCuts_( void * p, Abc_Ntk_t * pNtk, int fSeq );
 extern int nTotal, nGood, nEqual;
 
 static Vec_Int_t * Abc_NtkGetNodeAttributes( Abc_Ntk_t * pNtk );
+static int Abc_NtkComputeArea( Abc_Ntk_t * pNtk, Cut_Man_t * p );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -117,7 +118,9 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
     Extra_ProgressBarStop( pProgress );
     Vec_PtrFree( vNodes );
     Vec_IntFree( vChoices );
-PRT( "Total", clock() - clk );
+    Cut_ManPrintStats( p );
+PRT( "TOTAL ", clock() - clk );
+    printf( "Area = %d.\n", Abc_NtkComputeArea( pNtk, p ) );
 //Abc_NtkPrintCuts( p, pNtk, 0 );
 //    Cut_ManPrintStatsToFile( p, pNtk->pSpec, clock() - clk );
 
@@ -279,11 +282,33 @@ Cut_Man_t * Abc_NtkSeqCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
         pObj->fMarkC = 0;
 if ( pParams->fVerbose )
 {
-PRT( "Total", clock() - clk );
+    Cut_ManPrintStats( p );
+PRT( "TOTAL ", clock() - clk );
 printf( "Converged after %d iterations.\n", nIters );
 }
 //Abc_NtkPrintCuts( p, pNtk, 1 );
     return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes area.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkComputeArea( Abc_Ntk_t * pNtk, Cut_Man_t * p )
+{
+    Abc_Obj_t * pObj;
+    int Counter, i;
+    Counter = 0;
+    Abc_NtkForEachCo( pNtk, pObj, i )
+        Counter += Cut_ManMappingArea_rec( p, Abc_ObjFaninId0(pObj) );
+    return Counter;
 }
 
 /**Function*************************************************************
@@ -479,21 +504,51 @@ void Abc_NtkPrintCuts_( void * p, Abc_Ntk_t * pNtk, int fSeq )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Abc_NtkGetNodeAttributes2( Abc_Ntk_t * pNtk ) 
+Vec_Int_t * Abc_NtkGetNodeAttributes( Abc_Ntk_t * pNtk ) 
 {
     Vec_Int_t * vAttrs;
-    Abc_Obj_t * pObj;
-    int i;
+//    Vec_Ptr_t * vNodes;
+    Abc_Obj_t * pObj;//, * pTemp;
+    int i;//, k;
+    int nNodesTotal = 0, nMffcsTotal = 0;
+    extern Vec_Ptr_t * Abc_NodeMffsInsideCollect( Abc_Obj_t * pNode );
 
     vAttrs = Vec_IntStart( Abc_NtkObjNumMax(pNtk) + 1 );
 //    Abc_NtkForEachCi( pNtk, pObj, i )
 //        Vec_IntWriteEntry( vAttrs, pObj->Id, 1 );
+
     Abc_NtkForEachObj( pNtk, pObj, i )
     {
+        if ( Abc_ObjIsNode(pObj) )
+            nNodesTotal++;
+        if ( Abc_ObjIsCo(pObj) && Abc_ObjIsNode(Abc_ObjFanin0(pObj)) )
+            nMffcsTotal += Abc_NodeMffcSize( Abc_ObjFanin0(pObj) );
 //        if ( Abc_ObjIsNode(pObj) && (rand() % 4 == 0) )
-        if ( Abc_ObjIsNode(pObj) && Abc_ObjFanoutNum(pObj) > 1 && !Abc_NodeIsMuxControlType(pObj) && (rand() % 3 == 0) )
-            Vec_IntWriteEntry( vAttrs, pObj->Id, 1 );
+//        if ( Abc_ObjIsNode(pObj) && Abc_ObjFanoutNum(pObj) > 1 && !Abc_NodeIsMuxControlType(pObj) && (rand() % 3 == 0) )
+        if ( Abc_ObjIsNode(pObj) && Abc_ObjFanoutNum(pObj) > 1 && !Abc_NodeIsMuxControlType(pObj) )
+        {
+            int nMffc = Abc_NodeMffcSize(pObj);
+            nMffcsTotal += Abc_NodeMffcSize(pObj);
+//            printf( "%d ", nMffc );
+
+            if ( nMffc > 2 || Abc_ObjFanoutNum(pObj) > 8 )
+                Vec_IntWriteEntry( vAttrs, pObj->Id, 1 );
+        }
     }
+/*
+    Abc_NtkForEachObj( pNtk, pObj, i )
+    {
+        if ( Vec_IntEntry( vAttrs, pObj->Id ) )
+        {
+            vNodes = Abc_NodeMffsInsideCollect( pObj );
+            Vec_PtrForEachEntry( vNodes, pTemp, k )
+                if ( pTemp != pObj )
+                    Vec_IntWriteEntry( vAttrs, pTemp->Id, 0 );
+            Vec_PtrFree( vNodes );
+        }
+    }
+*/
+    printf( "Total nodes = %d. Total MFFC nodes = %d.\n", nNodesTotal, nMffcsTotal );
     return vAttrs; 
 }
 
@@ -533,7 +588,7 @@ int Abc_NtkSubDagSize_rec( Abc_Obj_t * pObj, Vec_Int_t * vAttrs )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Abc_NtkGetNodeAttributes( Abc_Ntk_t * pNtk ) 
+Vec_Int_t * Abc_NtkGetNodeAttributes2( Abc_Ntk_t * pNtk ) 
 {
     Vec_Int_t * vAttrs;
     Abc_Obj_t * pObj;

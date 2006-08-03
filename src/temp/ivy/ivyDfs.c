@@ -250,6 +250,105 @@ Vec_Int_t * Ivy_ManRequiredLevels( Ivy_Man_t * p )
     return vLevelsR;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Recursively detects combinational loops.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_ManIsAcyclic_rec( Ivy_Man_t * p, Ivy_Obj_t * pNode )
+{
+    if ( Ivy_ObjIsCi(pNode) || Ivy_ObjIsConst1(pNode) )
+        return 1;
+    assert( Ivy_ObjIsNode( pNode ) );
+    // make sure the node is not visited
+    assert( !Ivy_ObjIsTravIdPrevious(p, pNode) );
+    // check if the node is part of the combinational loop
+    if ( Ivy_ObjIsTravIdCurrent(p, pNode) )
+    {
+        fprintf( stdout, "Manager contains combinational loop!\n" );
+        fprintf( stdout, "Node \"%d\" is encountered twice on the following path:\n",  Ivy_ObjId(pNode) );
+        fprintf( stdout, " %d",  Ivy_ObjId(pNode) );
+        return 0;
+    }
+    // mark this node as a node on the current path
+    Ivy_ObjSetTravIdCurrent( p, pNode );
+    // check if the fanin is visited
+    if ( !Ivy_ObjIsTravIdPrevious(p, Ivy_ObjFanin0(pNode)) ) 
+    {
+        // traverse the fanin's cone searching for the loop
+        if ( !Ivy_ManIsAcyclic_rec(p, Ivy_ObjFanin0(pNode)) )
+        {
+            // return as soon as the loop is detected
+            fprintf( stdout, " <-- %d", Ivy_ObjId(Ivy_ObjFanin0(pNode)) );
+            return 0;
+        }
+    }
+    // check if the fanin is visited
+    if ( !Ivy_ObjIsTravIdPrevious(p, Ivy_ObjFanin1(pNode)) ) 
+    {
+        // traverse the fanin's cone searching for the loop
+        if ( !Ivy_ManIsAcyclic_rec(p, Ivy_ObjFanin1(pNode)) )
+        {
+            // return as soon as the loop is detected
+            fprintf( stdout, " <-- %d", Ivy_ObjId(Ivy_ObjFanin1(pNode)) );
+            return 0;
+        }
+    }
+    // mark this node as a visited node
+    Ivy_ObjSetTravIdPrevious( p, pNode );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Detects combinational loops.]
+
+  Description [This procedure is based on the idea suggested by Donald Chai. 
+  As we traverse the network and visit the nodes, we need to distinquish 
+  three types of nodes: (1) those that are visited for the first time, 
+  (2) those that have been visited in this traversal but are currently not 
+  on the traversal path, (3) those that have been visited and are currently 
+  on the travesal path. When the node of type (3) is encountered, it means 
+  that there is a combinational loop. To mark the three types of nodes, 
+  two new values of the traversal IDs are used.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_ManIsAcyclic( Ivy_Man_t * p )
+{
+    Ivy_Obj_t * pNode;
+    int fAcyclic, i;
+    // set the traversal ID for this DFS ordering
+    Ivy_ManIncrementTravId( p );   
+    Ivy_ManIncrementTravId( p );   
+    // pNode->TravId == pNet->nTravIds      means "pNode is on the path"
+    // pNode->TravId == pNet->nTravIds - 1  means "pNode is visited but is not on the path"
+    // pNode->TravId <  pNet->nTravIds - 1  means "pNode is not visited"
+    // traverse the network to detect cycles
+    fAcyclic = 1;
+    Ivy_ManForEachCo( p, pNode, i )
+    {
+        if ( Ivy_ObjIsTravIdPrevious(p, Ivy_ObjFanin0(pNode)) )
+            continue;
+        // traverse the output logic cone
+        if ( fAcyclic = Ivy_ManIsAcyclic_rec(p, Ivy_ObjFanin0(pNode)) )
+            continue;
+        // stop as soon as the first loop is detected
+        fprintf( stdout, " (cone of CO \"%d\")\n", Ivy_ObjFaninId0(pNode) );
+        break;
+    }
+    return fAcyclic;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

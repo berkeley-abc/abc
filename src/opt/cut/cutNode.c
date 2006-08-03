@@ -24,6 +24,9 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+static int Cut_NodeMapping( Cut_Man_t * p, Cut_Cut_t * pCuts, int Node, int Node0, int Node1 );
+static int Cut_NodeMapping2( Cut_Man_t * p, Cut_Cut_t * pCuts, int Node, int Node0, int Node1 );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -396,15 +399,157 @@ p->timeMerge += clock() - clk;
     // set the list at the node
     Vec_PtrFillExtra( p->vCutsNew, Node + 1, NULL );
     assert( Cut_NodeReadCutsNew(p, Node) == NULL );
+
+    /////
+    pList->pNext = NULL;
+    /////
+
     Cut_NodeWriteCutsNew( p, Node, pList );
     // filter the cuts
 //clk = clock();
 //    if ( p->pParams->fFilter )
 //        Cut_CutFilter( p, pList0 );
 //p->timeFilter += clock() - clk;
+    // perform mapping of this node with these cuts
+clk = clock();
+    if ( p->pParams->fMap && !p->pParams->fSeq )
+    {
+//        int Delay1, Delay2;
+//        Delay1 = Cut_NodeMapping( p, pList, Node, Node0, Node1 );    
+//        Delay2 = Cut_NodeMapping2( p, pList, Node, Node0, Node1 );   
+//        assert( Delay1 >= Delay2 );
+        Cut_NodeMapping( p, pList, Node, Node0, Node1 );
+    }
+p->timeMap += clock() - clk;
     return pList;
 }
- 
+
+/**Function*************************************************************
+
+  Synopsis    [Returns optimum delay mapping.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cut_NodeMapping2( Cut_Man_t * p, Cut_Cut_t * pCuts, int Node, int Node0, int Node1 )
+{
+    Cut_Cut_t * pCut;
+    int DelayMin, DelayCur, i;
+    if ( pCuts == NULL )
+        p->nDelayMin = -1;
+    if ( p->nDelayMin == -1 )
+        return -1;
+    DelayMin = 1000000;
+    Cut_ListForEachCut( pCuts, pCut )
+    {
+        if ( pCut->nLeaves == 1 )
+            continue;
+        DelayCur = 0;
+        for ( i = 0; i < (int)pCut->nLeaves; i++ )
+            if ( DelayCur < Vec_IntEntry(p->vDelays, pCut->pLeaves[i]) )
+                DelayCur = Vec_IntEntry(p->vDelays, pCut->pLeaves[i]);
+        if ( DelayMin > DelayCur )
+            DelayMin = DelayCur;
+    }
+    if ( DelayMin == 1000000 )
+    {
+         p->nDelayMin = -1;
+         return -1;
+    }
+    DelayMin++;
+    Vec_IntWriteEntry( p->vDelays, Node, DelayMin );
+    if ( p->nDelayMin < DelayMin )
+        p->nDelayMin = DelayMin;
+    return DelayMin;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns optimum delay mapping using the largest cut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cut_NodeMapping( Cut_Man_t * p, Cut_Cut_t * pCuts, int Node, int Node0, int Node1 )
+{
+    Cut_Cut_t * pCut0, * pCut1, * pCut;
+    int Delay0, Delay1, Delay;
+    // get the fanin cuts
+    Delay0 = Vec_IntEntry( p->vDelays2, Node0 );
+    Delay1 = Vec_IntEntry( p->vDelays2, Node1 );
+    pCut0 = (Delay0 == 0) ? Vec_PtrEntry( p->vCutsNew, Node0 ) : Vec_PtrEntry( p->vCutsMax, Node0 );
+    pCut1 = (Delay1 == 0) ? Vec_PtrEntry( p->vCutsNew, Node1 ) : Vec_PtrEntry( p->vCutsMax, Node1 );
+    if ( Delay0 == Delay1 )
+        Delay = (Delay0 == 0) ? Delay0 + 1: Delay0;
+    else if ( Delay0 > Delay1 )
+    {
+        Delay = Delay0;
+        pCut1 = Vec_PtrEntry( p->vCutsNew, Node1 );
+        assert( pCut1->nLeaves == 1 );
+    }
+    else // if ( Delay0 < Delay1 )
+    {
+        Delay = Delay1;
+        pCut0 = Vec_PtrEntry( p->vCutsNew, Node0 );
+        assert( pCut0->nLeaves == 1 );
+    }
+    // merge the cuts
+    if ( pCut0->nLeaves < pCut1->nLeaves )
+        pCut  = Cut_CutMergeTwo( p, pCut1, pCut0 );
+    else
+        pCut  = Cut_CutMergeTwo( p, pCut0, pCut1 );
+    if ( pCut == NULL )
+    {
+        Delay++;
+        pCut = Cut_CutAlloc( p );
+        pCut->nLeaves = 2;
+        pCut->pLeaves[0] = Node0 < Node1 ? Node0 : Node1;
+        pCut->pLeaves[1] = Node0 < Node1 ? Node1 : Node0;
+    }
+    assert( Delay > 0 );
+    Vec_IntWriteEntry( p->vDelays2, Node, Delay );
+    Vec_PtrWriteEntry( p->vCutsMax, Node, pCut );
+    if ( p->nDelayMin < Delay )
+        p->nDelayMin = Delay;
+    return Delay;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes area after mapping.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cut_ManMappingArea_rec( Cut_Man_t * p, int Node )
+{
+    Cut_Cut_t * pCut;
+    int i, Counter;
+    if ( p->vCutsMax == NULL )
+        return 0;
+    pCut = Vec_PtrEntry( p->vCutsMax, Node );
+    if ( pCut == NULL || pCut->nLeaves == 1 )
+        return 0;
+    Counter = 0;
+    for ( i = 0; i < (int)pCut->nLeaves; i++ )
+        Counter += Cut_ManMappingArea_rec( p, pCut->pLeaves[i] );
+    Vec_PtrWriteEntry( p->vCutsMax, Node, NULL );
+    return 1 + Counter;
+}
+
+
 /**Function*************************************************************
 
   Synopsis    [Computes the cuts by merging cuts at two nodes.]

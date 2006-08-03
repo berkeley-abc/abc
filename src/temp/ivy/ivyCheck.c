@@ -107,8 +107,8 @@ int Ivy_ManCheck( Ivy_Man_t * p )
             printf( "Ivy_ManCheck: The AIG has node \"%d\" with a wrong ordering of fanins.\n", pObj->Id );
             return 0;
         }
-//        if ( Ivy_ObjLevel(pObj) != Ivy_ObjLevelNew(pObj) )
-//            printf( "Ivy_ManCheck: Node with ID \"%d\" has level %d but should have level %d.\n", pObj->Id, Ivy_ObjLevel(pObj), Ivy_ObjLevelNew(pObj) );
+        if ( Ivy_ObjLevel(pObj) != Ivy_ObjLevelNew(pObj) )
+            printf( "Ivy_ManCheck: Node with ID \"%d\" has level %d but should have level %d.\n", pObj->Id, Ivy_ObjLevel(pObj), Ivy_ObjLevelNew(pObj) );
         pObj2 = Ivy_TableLookup( p, pObj );
         if ( pObj2 != pObj )
             printf( "Ivy_ManCheck: Node with ID \"%d\" is not in the structural hashing table.\n", pObj->Id );
@@ -124,6 +124,8 @@ int Ivy_ManCheck( Ivy_Man_t * p )
         printf( "Ivy_ManCheck: The number of nodes in the structural hashing table is wrong.\n" );
         return 0;
     }
+    if ( !Ivy_ManIsAcyclic(p) )
+        return 0;
     return 1;
 }
 

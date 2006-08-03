@@ -300,7 +300,7 @@ void Ivy_ObjDelete_rec( Ivy_Man_t * p, Ivy_Obj_t * pObj, int fFreeTop )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_ObjReplace( Ivy_Man_t * p, Ivy_Obj_t * pObjOld, Ivy_Obj_t * pObjNew, int fDeleteOld, int fFreeTop )
+void Ivy_ObjReplace( Ivy_Man_t * p, Ivy_Obj_t * pObjOld, Ivy_Obj_t * pObjNew, int fDeleteOld, int fFreeTop, int fUpdateLevel )
 {
     int nRefsOld;
     // the object to be replaced cannot be complemented
@@ -315,26 +315,32 @@ void Ivy_ObjReplace( Ivy_Man_t * p, Ivy_Obj_t * pObjOld, Ivy_Obj_t * pObjNew, in
     if ( Ivy_IsComplement(pObjNew) || Ivy_ObjIsLatch(pObjNew) || Ivy_ObjRefs(pObjNew) > 0 || Ivy_ObjIsPi(pObjNew) || Ivy_ObjIsConst1(pObjNew) )
         pObjNew = Ivy_ObjCreate( p, Ivy_ObjCreateGhost(p, pObjNew, NULL, IVY_BUF, IVY_INIT_NONE) );
     assert( !Ivy_IsComplement(pObjNew) );
-    // if the new node's arrival time is different, recursively update arrival time of the fanouts
-    if ( p->vFanouts && !Ivy_ObjIsBuf(pObjNew) && pObjOld->Level != pObjNew->Level )
+    if ( fUpdateLevel )
     {
-        assert( Ivy_ObjIsNode(pObjOld) );
-        pObjOld->Level = pObjNew->Level;
-        Ivy_ObjUpdateLevel_rec( p, pObjOld );
-    }
-    // if the new node's required time has changed, recursively update required time of the fanins
-    if ( p->vRequired )
-    {
-        int ReqNew = Vec_IntEntry(p->vRequired, pObjOld->Id);
-        if ( ReqNew < Vec_IntEntry(p->vRequired, pObjNew->Id) )
+        // if the new node's arrival time is different, recursively update arrival time of the fanouts
+        if ( p->vFanouts && !Ivy_ObjIsBuf(pObjNew) && pObjOld->Level != pObjNew->Level )
         {
-            Vec_IntWriteEntry( p->vRequired, pObjNew->Id, ReqNew );
-            Ivy_ObjUpdateLevelR_rec( p, pObjNew, ReqNew );
+            assert( Ivy_ObjIsNode(pObjOld) );
+            pObjOld->Level = pObjNew->Level;
+            Ivy_ObjUpdateLevel_rec( p, pObjOld );
+        }
+        // if the new node's required time has changed, recursively update required time of the fanins
+        if ( p->vRequired )
+        {
+            int ReqNew = Vec_IntEntry(p->vRequired, pObjOld->Id);
+            if ( ReqNew < Vec_IntEntry(p->vRequired, pObjNew->Id) )
+            {
+                Vec_IntWriteEntry( p->vRequired, pObjNew->Id, ReqNew );
+                Ivy_ObjUpdateLevelR_rec( p, pObjNew, ReqNew );
+            }
         }
     }
     // delete the old object
     if ( fDeleteOld )
         Ivy_ObjDelete_rec( p, pObjOld, fFreeTop );
+    // make sure object is pointing to itself
+    assert( Ivy_ObjFanin0(pObjNew) == NULL || pObjOld != Ivy_ObjFanin0(pObjNew) );
+    assert( Ivy_ObjFanin1(pObjNew) == NULL || pObjOld != Ivy_ObjFanin1(pObjNew) );
     // transfer the old object
     assert( Ivy_ObjRefs(pObjNew) == 0 );
     nRefsOld = pObjOld->nRefs;  
@@ -370,7 +376,7 @@ void Ivy_ObjReplace( Ivy_Man_t * p, Ivy_Obj_t * pObjOld, Ivy_Obj_t * pObjNew, in
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_NodeFixBufferFanins( Ivy_Man_t * p, Ivy_Obj_t * pNode )
+void Ivy_NodeFixBufferFanins( Ivy_Man_t * p, Ivy_Obj_t * pNode, int fUpdateLevel )
 {
     Ivy_Obj_t * pFanReal0, * pFanReal1, * pResult;
     if ( Ivy_ObjIsPo(pNode) )
@@ -394,7 +400,7 @@ void Ivy_NodeFixBufferFanins( Ivy_Man_t * p, Ivy_Obj_t * pNode )
     else 
         assert( 0 );
     // perform the replacement
-    Ivy_ObjReplace( p, pNode, pResult, 1, 0 ); 
+    Ivy_ObjReplace( p, pNode, pResult, 1, 0, fUpdateLevel ); 
 }
 
 ////////////////////////////////////////////////////////////////////////

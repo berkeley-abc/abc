@@ -49,6 +49,7 @@ extern int           Mem_FixedReadMemUsage( Mem_Fixed_t * p );
 extern Mem_Flex_t *  Mem_FlexStart();
 extern void          Mem_FlexStop( Mem_Flex_t * p, int fVerbose );
 extern char *        Mem_FlexEntryFetch( Mem_Flex_t * p, int nBytes );
+extern void          Mem_FlexRestart( Mem_Flex_t * p );
 extern int           Mem_FlexReadMemUsage( Mem_Flex_t * p );
 // hierarchical memory manager
 extern Mem_Step_t *  Mem_StepStart( int nSteps );

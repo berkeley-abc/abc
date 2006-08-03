@@ -65,6 +65,7 @@ struct Cut_ParamsStruct_t_
     int                fLocal;            // compute only local cuts
     int                fRecord;           // record the cut computation flow
     int                fFancy;            // perform fancy computations
+    int                fMap;              // computes delay of FPGA mapping with cuts
     int                fVerbose;          // the verbosiness flag
 };
 
@@ -129,6 +130,7 @@ extern void             Cut_ManIncrementDagNodes( Cut_Man_t * p );
 extern Cut_Cut_t *      Cut_NodeComputeCuts( Cut_Man_t * p, int Node, int Node0, int Node1, int fCompl0, int fCompl1, int fTriv, int TreeCode ); 
 extern Cut_Cut_t *      Cut_NodeUnionCuts( Cut_Man_t * p, Vec_Int_t * vNodes );
 extern Cut_Cut_t *      Cut_NodeUnionCutsSeq( Cut_Man_t * p, Vec_Int_t * vNodes, int CutSetNum, int fFirst );
+extern int              Cut_ManMappingArea_rec( Cut_Man_t * p, int Node );
 /*=== cutSeq.c ==========================================================*/
 extern void             Cut_NodeComputeCutsSeq( Cut_Man_t * p, int Node, int Node0, int Node1, int fCompl0, int fCompl1, int nLat0, int nLat1, int fTriv, int CutSetNum );
 extern void             Cut_NodeNewMergeWithOld( Cut_Man_t * p, int Node );
