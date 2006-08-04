@@ -82,7 +82,7 @@ Ivy_Man_t * Ivy_ManStart()
 void Ivy_ManStop( Ivy_Man_t * p )
 {
 //    Ivy_TableProfile( p );
-    if ( p->vFanouts )  Ivy_ManStopFanout( p );
+//    if ( p->vFanouts )  Ivy_ManStopFanout( p );
     if ( p->vChunks )   Ivy_ManStopMemory( p );
     if ( p->vRequired ) Vec_IntFree( p->vRequired );
     if ( p->vPis )      Vec_PtrFree( p->vPis );
@@ -156,14 +156,14 @@ int Ivy_ManPropagateBuffers( Ivy_Man_t * p, int fUpdateLevel )
 void Ivy_ManPrintStats( Ivy_Man_t * p )
 {
     printf( "PI/PO = %d/%d ", Ivy_ManPiNum(p), Ivy_ManPoNum(p) );
-    printf( "A = %d. ",       Ivy_ManAndNum(p) );
-    printf( "L = %d. ",       Ivy_ManLatchNum(p) );
+    printf( "A = %7d. ",       Ivy_ManAndNum(p) );
+    printf( "L = %5d. ",       Ivy_ManLatchNum(p) );
 //    printf( "X = %d. ",       Ivy_ManExorNum(p) );
-    printf( "B = %d. ",       Ivy_ManBufNum(p) );
-    printf( "MaxID = %d. ",   Ivy_ManObjIdMax(p) );
+//    printf( "B = %3d. ",       Ivy_ManBufNum(p) );
+    printf( "MaxID = %7d. ",   Ivy_ManObjIdMax(p) );
 //    printf( "Cre = %d. ",     p->nCreated );
 //    printf( "Del = %d. ",     p->nDeleted );
-    printf( "Lev = %d. ",     Ivy_ManLatchNum(p)? -1 : Ivy_ManLevels(p) );
+    printf( "Lev = %3d. ",     Ivy_ManLatchNum(p)? -1 : Ivy_ManLevels(p) );
     printf( "\n" );
 }
 
@@ -190,7 +190,7 @@ void Ivy_ManMakeSeq( Ivy_Man_t * p, int nLatches, int * pInits )
     assert( Ivy_ManPoNum(p) == Vec_PtrSize(p->vPos) );
     assert( Vec_PtrSize( p->vBufs ) == 0 );
     // create fanouts
-    if ( p->vFanouts == NULL )
+    if ( p->fFanout == 0 )
         Ivy_ManStartFanout( p );
     // collect the POs to be converted into latches
     for ( i = 0; i < nLatches; i++ )

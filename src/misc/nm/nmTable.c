@@ -44,7 +44,7 @@ static unsigned Nm_HashString( char * pName, int TableSize )
     };
     unsigned i, Key = 0;
     for ( i = 0; pName[i] != '\0'; i++ )
-        Key ^= s_Primes[i%10]*pName[i]*pName[i]*pName[i];
+        Key ^= s_Primes[i%10]*pName[i]*pName[i];
     return Key % TableSize;
 }
 
@@ -67,13 +67,16 @@ static void Nm_ManResize( Nm_Man_t * p );
 ***********************************************************************/
 int Nm_ManTableAdd( Nm_Man_t * p, Nm_Entry_t * pEntry )
 {
-    int i;
+    Nm_Entry_t ** ppSpot;
+//    int i;
     // resize the tables if needed
-    if ( p->nEntries * p->nSizeFactor > p->nBins )
+//    if ( p->nEntries * p->nSizeFactor > p->nBins )
+    if ( p->nEntries > p->nBins * p->nSizeFactor )
     {
 //        Nm_ManPrintTables( p );
         Nm_ManResize( p );
     }
+/*
     // hash it by ID
     for ( i = Nm_HashNumber(pEntry->ObjId, p->nBins); p->pBinsI2N[i]; i = (i+1) % p->nBins )
         if ( p->pBinsI2N[i] == pEntry )
@@ -86,6 +89,15 @@ int Nm_ManTableAdd( Nm_Man_t * p, Nm_Entry_t * pEntry )
             return 0;
     assert( p->pBinsN2I[i] == NULL );
     p->pBinsN2I[i] = pEntry;
+*/
+    ppSpot = p->pBinsI2N + Nm_HashNumber(pEntry->ObjId, p->nBins);
+    pEntry->pNextI2N = *ppSpot;
+    *ppSpot = pEntry;
+
+    ppSpot = p->pBinsN2I + Nm_HashString(pEntry->Name, p->nBins);
+    pEntry->pNextN2I = *ppSpot;
+    *ppSpot = pEntry;
+
     // report successfully added entry
     p->nEntries++;
     return 1;
@@ -121,10 +133,16 @@ int Nm_ManTableDelete( Nm_Man_t * p, Nm_Entry_t * pEntry )
 ***********************************************************************/
 Nm_Entry_t * Nm_ManTableLookupId( Nm_Man_t * p, int ObjId )
 {
-    int i;
+    Nm_Entry_t * pEntry;
+//    int i;
+/*
     for ( i = Nm_HashNumber(ObjId, p->nBins); p->pBinsI2N[i]; i = (i+1) % p->nBins )
         if ( p->pBinsI2N[i]->ObjId == ObjId )
             return p->pBinsI2N[i];
+*/
+    for ( pEntry = p->pBinsI2N[ Nm_HashNumber(ObjId, p->nBins) ]; pEntry; pEntry = pEntry->pNextI2N )
+        if ( pEntry->ObjId == ObjId )
+            return pEntry;
     return NULL;
 }
 
@@ -141,9 +159,10 @@ Nm_Entry_t * Nm_ManTableLookupId( Nm_Man_t * p, int ObjId )
 ***********************************************************************/
 Nm_Entry_t * Nm_ManTableLookupName( Nm_Man_t * p, char * pName, Nm_Entry_t ** ppSecond )
 {
-    Nm_Entry_t * pFirst, * pSecond;
-    int i, Counter = 0;
+    Nm_Entry_t * pFirst, * pSecond, * pEntry;
+    int Counter = 0;
     pFirst = pSecond = NULL;
+/*
     for ( i = Nm_HashString(pName, p->nBins); p->pBinsN2I[i]; i = (i+1) % p->nBins )
         if ( strcmp(p->pBinsN2I[i]->Name, pName) == 0 )
         {
@@ -158,11 +177,59 @@ Nm_Entry_t * Nm_ManTableLookupName( Nm_Man_t * p, char * pName, Nm_Entry_t ** pp
             Counter++;
     if ( Counter > 100 )
     printf( "%d ", Counter );
+*/
+    for ( pEntry = p->pBinsN2I[ Nm_HashString(pName, p->nBins) ]; pEntry; pEntry = pEntry->pNextN2I )
+        if ( strcmp(pEntry->Name, pName) == 0 )
+        {
+            if ( pFirst == NULL )
+                pFirst = pEntry;
+            else if ( pSecond == NULL )
+                pSecond = pEntry;
+            else
+                assert( 0 ); // name appears more than 2 times
+        }
+
     // save the names
     if ( ppSecond )
         *ppSecond = pSecond;
     return pFirst;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Profiles hash tables.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Nm_ManProfile( Nm_Man_t * p )
+{
+    Nm_Entry_t * pEntry;
+    int Counter, e;
+    printf( "I2N table: " );
+    for ( e = 0; e < p->nBins; e++ )
+    {
+        Counter = 0;
+        for ( pEntry = p->pBinsI2N[e]; pEntry; pEntry = pEntry->pNextI2N )
+            Counter++;
+        printf( "%d ", Counter );
+    }
+    printf( "\n" );
+    printf( "N2I table: " );
+    for ( e = 0; e < p->nBins; e++ )
+    {
+        Counter = 0;
+        for ( pEntry = p->pBinsN2I[e]; pEntry; pEntry = pEntry->pNextN2I )
+            Counter++;
+        printf( "%d ", Counter );
+    }
+    printf( "\n" );
+}
+
 
 
 /**Function*************************************************************
@@ -178,8 +245,8 @@ Nm_Entry_t * Nm_ManTableLookupName( Nm_Man_t * p, char * pName, Nm_Entry_t ** pp
 ***********************************************************************/
 void Nm_ManResize( Nm_Man_t * p )
 {
-    Nm_Entry_t ** pBinsNewI2N, ** pBinsNewN2I, * pEntry;
-    int nBinsNew, Counter, e, i, clk;
+    Nm_Entry_t ** pBinsNewI2N, ** pBinsNewN2I, * pEntry, * pEntry2, ** ppSpot;
+    int nBinsNew, Counter, e, clk;
 
 clk = clock();
     // get the new table size
@@ -192,12 +259,13 @@ clk = clock();
     // rehash the entries from the old table
     Counter = 0;
     for ( e = 0; e < p->nBins; e++ )
+    for ( pEntry = p->pBinsI2N[e], pEntry2 = pEntry? pEntry->pNextI2N : NULL; 
+          pEntry; pEntry = pEntry2, pEntry2 = pEntry? pEntry->pNextI2N : NULL )
     {
-        pEntry = p->pBinsI2N[e];
-        if ( pEntry == NULL )
-            continue;
-        Counter++;
-
+//        pEntry = p->pBinsI2N[e];
+//        if ( pEntry == NULL )
+//            continue;
+/*
         // hash it by ID
         for ( i = Nm_HashNumber(pEntry->ObjId, nBinsNew); pBinsNewI2N[i]; i = (i+1) % nBinsNew )
             if ( pBinsNewI2N[i] == pEntry )
@@ -210,6 +278,16 @@ clk = clock();
                 assert( 0 );
         assert( pBinsNewN2I[i] == NULL );
         pBinsNewN2I[i] = pEntry;
+*/
+        ppSpot = pBinsNewI2N + Nm_HashNumber(pEntry->ObjId, nBinsNew);
+        pEntry->pNextI2N = *ppSpot;
+        *ppSpot = pEntry;
+
+        ppSpot = pBinsNewN2I + Nm_HashString(pEntry->Name, nBinsNew);
+        pEntry->pNextN2I = *ppSpot;
+        *ppSpot = pEntry;
+
+        Counter++;
     }
     assert( Counter == p->nEntries );
 //    printf( "Increasing the structural table size from %6d to %6d. ", p->nBins, nBinsNew );
@@ -220,8 +298,8 @@ clk = clock();
     p->pBinsI2N = pBinsNewI2N;
     p->pBinsN2I = pBinsNewN2I;
     p->nBins = nBinsNew;
+//    Nm_ManProfile( p );
 }
-
 
 
 /**Function*************************************************************

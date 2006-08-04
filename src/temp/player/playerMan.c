@@ -40,7 +40,7 @@
 
 ***********************************************************************/
 Pla_Man_t * Pla_ManAlloc( Ivy_Man_t * pAig, int nLutMax, int nPlaMax )
-{
+{ 
     Pla_Man_t * pMan;
     assert( !(nLutMax < 2 || nLutMax > 8 || nPlaMax < 8 || nPlaMax > 128)  );
     // start the manager

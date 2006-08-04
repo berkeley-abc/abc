@@ -4487,22 +4487,26 @@ int Abc_CommandXyz( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nPlaMax;
     int RankCost;
     int fFastMode;
+    int fRewriting;
+    int fSynthesis;
     int fVerbose;
-//    extern Abc_Ntk_t * Abc_NtkXyz( Abc_Ntk_t * pNtk, int nPlaMax, bool fUseEsop, bool fUseSop, bool fUseInvs, bool fVerbose );
-    extern void * Abc_NtkPlayer( void * pNtk, int nLutMax, int nPlaMax, int RankCost, int fFastMode, int fVerbose );
+//    extern Abc_Ntk_t * Abc_NtkXyz( Abc_Ntk_t * pNtk, int nPlaMax, bool fEsop, bool fSop, bool fInvs, bool fVerbose );
+    extern void * Abc_NtkPlayer( void * pNtk, int nLutMax, int nPlaMax, int RankCost, int fFastMode, int fRewriting, int fSynthesis, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nLutMax   = 8;
-    nPlaMax   = 128;
-    RankCost  = 96000;
-    fFastMode = 0;
-    fVerbose  = 0;
+    nLutMax    = 8;
+    nPlaMax    = 128;
+    RankCost   = 96000;
+    fFastMode  = 1;
+    fRewriting = 1;
+    fSynthesis = 0;
+    fVerbose   = 1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "LPRfvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "LPRfrsvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -4542,6 +4546,12 @@ int Abc_CommandXyz( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'f':
             fFastMode ^= 1;
             break;
+        case 'r':
+            fRewriting ^= 1;
+            break;
+        case 's':
+            fSynthesis ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -4570,8 +4580,8 @@ int Abc_CommandXyz( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // run the command
-//    pNtkRes = Abc_NtkXyz( pNtk, nPlaMax, 1, 0, fUseInvs, fVerbose );
-    pNtkRes = Abc_NtkPlayer( pNtk, nLutMax, nPlaMax, RankCost, fFastMode, fVerbose );
+//    pNtkRes = Abc_NtkXyz( pNtk, nPlaMax, 1, 0, fInvs, fVerbose );
+    pNtkRes = Abc_NtkPlayer( pNtk, nLutMax, nPlaMax, RankCost, fFastMode, fRewriting, fSynthesis, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
@@ -4582,12 +4592,14 @@ int Abc_CommandXyz( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: xyz [-L num] [-P num] [-R num] [-fvh]\n" );
+    fprintf( pErr, "usage: xyz [-L num] [-P num] [-R num] [-frsvh]\n" );
     fprintf( pErr, "\t         specilized LUT/PLA decomposition\n" );
     fprintf( pErr, "\t-L num : maximum number of LUT inputs (2<=num<=8) [default = %d]\n", nLutMax );
     fprintf( pErr, "\t-P num : maximum number of PLA inputs/cubes (8<=num<=128) [default = %d]\n", nPlaMax );
     fprintf( pErr, "\t-R num : maximum are of one decomposition rank [default = %d]\n", RankCost );
     fprintf( pErr, "\t-f     : toggle using fast LUT mapping mode [default = %s]\n", fFastMode? "yes": "no" );
+    fprintf( pErr, "\t-r     : toggle using one pass of AIG rewriting [default = %s]\n", fRewriting? "yes": "no" );
+    fprintf( pErr, "\t-s     : toggle using synthesis by AIG rewriting [default = %s]\n", fSynthesis? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;

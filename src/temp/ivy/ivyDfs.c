@@ -265,7 +265,7 @@ int Ivy_ManIsAcyclic_rec( Ivy_Man_t * p, Ivy_Obj_t * pNode )
 {
     if ( Ivy_ObjIsCi(pNode) || Ivy_ObjIsConst1(pNode) )
         return 1;
-    assert( Ivy_ObjIsNode( pNode ) );
+    assert( Ivy_ObjIsNode(pNode) || Ivy_ObjIsBuf(pNode) );
     // make sure the node is not visited
     assert( !Ivy_ObjIsTravIdPrevious(p, pNode) );
     // check if the node is part of the combinational loop
@@ -290,7 +290,7 @@ int Ivy_ManIsAcyclic_rec( Ivy_Man_t * p, Ivy_Obj_t * pNode )
         }
     }
     // check if the fanin is visited
-    if ( !Ivy_ObjIsTravIdPrevious(p, Ivy_ObjFanin1(pNode)) ) 
+    if ( Ivy_ObjIsNode(pNode) && !Ivy_ObjIsTravIdPrevious(p, Ivy_ObjFanin1(pNode)) ) 
     {
         // traverse the fanin's cone searching for the loop
         if ( !Ivy_ManIsAcyclic_rec(p, Ivy_ObjFanin1(pNode)) )

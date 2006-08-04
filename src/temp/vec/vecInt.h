@@ -289,23 +289,6 @@ static inline int Vec_IntEntry( Vec_Int_t * p, int i )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int * Vec_IntEntryP( Vec_Int_t * p, int i )
-{
-    assert( i >= 0 && i < p->nSize );
-    return p->pArray + i;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 static inline void Vec_IntWriteEntry( Vec_Int_t * p, int i, int Entry )
 {
     assert( i >= 0 && i < p->nSize );
@@ -402,10 +385,7 @@ static inline void Vec_IntFillExtra( Vec_Int_t * p, int nSize, int Entry )
     int i;
     if ( p->nSize >= nSize )
         return;
-    if ( p->nSize < 2 * nSize )
-        Vec_IntGrow( p, 2 * nSize );
-    else
-        Vec_IntGrow( p, p->nSize );
+    Vec_IntGrow( p, nSize );
     for ( i = p->nSize; i < nSize; i++ )
         p->pArray[i] = Entry;
     p->nSize = nSize;
@@ -599,6 +579,28 @@ static inline int Vec_IntPushUnique( Vec_Int_t * p, int Entry )
             return 1;
     Vec_IntPush( p, Entry );
     return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the pointer to the next nWords entries in the vector.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline unsigned * Vec_IntFetch( Vec_Int_t * p, int nWords )
+{
+    p->nSize += nWords;
+    if ( p->nSize > p->nCap )
+    {
+//         Vec_IntGrow( p, 2 * p->nSize );
+        return NULL;
+    }
+    return ((unsigned *)p->pArray) + p->nSize - nWords;
 }
 
 /**Function*************************************************************

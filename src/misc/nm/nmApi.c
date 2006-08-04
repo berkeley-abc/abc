@@ -46,10 +46,10 @@ Nm_Man_t * Nm_ManCreate( int nSize )
     p = ALLOC( Nm_Man_t, 1 );
     memset( p, 0, sizeof(Nm_Man_t) );
     // set the parameters
-    p->nSizeFactor   = 4; // determined how much larger the table should be compared to data in it
-    p->nGrowthFactor = 4; // determined how much the table grows after resizing
+    p->nSizeFactor   = 2; // determined how much larger the table should be compared to data in it
+    p->nGrowthFactor = 3; // determined how much the table grows after resizing
     // allocate and clean the bins
-    p->nBins = Cudd_PrimeNm(p->nSizeFactor*nSize);
+    p->nBins = Cudd_PrimeNm(nSize);
     p->pBinsI2N = ALLOC( Nm_Entry_t *, p->nBins );
     p->pBinsN2I = ALLOC( Nm_Entry_t *, p->nBins );
     memset( p->pBinsI2N, 0, sizeof(Nm_Entry_t *) * p->nBins );
@@ -127,6 +127,7 @@ char * Nm_ManStoreIdName( Nm_Man_t * p, int ObjId, char * pName, char * pSuffix 
     nEntrySize = sizeof(Nm_Entry_t) + strlen(pName) + (pSuffix?strlen(pSuffix):0) + 1;
     nEntrySize = (nEntrySize / 4 + ((nEntrySize % 4) > 0)) * 4;
     pEntry = (Nm_Entry_t *)Extra_MmFlexEntryFetch( p->pMem, nEntrySize );
+    pEntry->pNextI2N = pEntry->pNextN2I = NULL;
     pEntry->ObjId = ObjId;
     sprintf( pEntry->Name, "%s%s", pName, pSuffix? pSuffix : "" );
     // add the entry to the hash table

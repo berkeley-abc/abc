@@ -115,7 +115,7 @@ int Ivy_ManCheck( Ivy_Man_t * p )
         if ( Ivy_ObjRefs(pObj) == 0 )
             printf( "Ivy_ManCheck: Node with ID \"%d\" has no fanouts.\n", pObj->Id );
         // check fanouts
-        if ( p->vFanouts && Ivy_ObjRefs(pObj) != Ivy_ObjFanoutNum(p, pObj) )
+        if ( p->fFanout && Ivy_ObjRefs(pObj) != Ivy_ObjFanoutNum(p, pObj) )
             printf( "Ivy_ManCheck: Node with ID \"%d\" has mismatch between the number of fanouts and refs.\n", pObj->Id );
     }
     // count the number of nodes in the table
@@ -124,9 +124,95 @@ int Ivy_ManCheck( Ivy_Man_t * p )
         printf( "Ivy_ManCheck: The number of nodes in the structural hashing table is wrong.\n" );
         return 0;
     }
+//    if ( !Ivy_ManCheckFanouts(p) )
+//        return 0;
     if ( !Ivy_ManIsAcyclic(p) )
         return 0;
-    return 1;
+    return 1; 
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Verifies the fanouts.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_ManCheckFanouts( Ivy_Man_t * p )
+{
+    Vec_Ptr_t * vFanouts;
+    Ivy_Obj_t * pObj, * pFanout, * pFanin;
+    int i, k, RetValue = 1;
+    if ( !p->fFanout )
+        return 1;
+    vFanouts = Vec_PtrAlloc( 100 );
+    // make sure every fanin is a fanout
+    Ivy_ManForEachObj( p, pObj, i )
+    {
+        pFanin = Ivy_ObjFanin0(pObj);
+        if ( pFanin == NULL )
+            continue;
+        Ivy_ObjForEachFanout( p, pFanin, vFanouts, pFanout, k )
+            if ( pFanout == pObj )
+                break;
+        if ( k == Vec_PtrSize(vFanouts) )
+        {
+            printf( "Node %d is a fanin of node %d but the fanout is not there.\n", pFanin->Id, pObj->Id );
+            RetValue = 0;
+        }
+
+        pFanin = Ivy_ObjFanin1(pObj);
+        if ( pFanin == NULL )
+            continue;
+        Ivy_ObjForEachFanout( p, pFanin, vFanouts, pFanout, k )
+            if ( pFanout == pObj )
+                break;
+        if ( k == Vec_PtrSize(vFanouts) )
+        {
+            printf( "Node %d is a fanin of node %d but the fanout is not there.\n", pFanin->Id, pObj->Id );
+            RetValue = 0;
+        }
+        // check that the previous fanout has the same fanin
+        if ( pObj->pPrevFan0 )
+        {
+            if ( Ivy_ObjFanin0(pObj->pPrevFan0) != Ivy_ObjFanin0(pObj) && 
+                 Ivy_ObjFanin0(pObj->pPrevFan0) != Ivy_ObjFanin1(pObj) && 
+                 Ivy_ObjFanin1(pObj->pPrevFan0) != Ivy_ObjFanin0(pObj) && 
+                 Ivy_ObjFanin1(pObj->pPrevFan0) != Ivy_ObjFanin1(pObj) )
+            {
+                printf( "Node %d has prev %d without common fanin.\n", pObj->Id, pObj->pPrevFan0->Id );
+                RetValue = 0;
+            }
+        }
+        // check that the previous fanout has the same fanin
+        if ( pObj->pPrevFan1 )
+        {
+            if ( Ivy_ObjFanin0(pObj->pPrevFan1) != Ivy_ObjFanin0(pObj) && 
+                 Ivy_ObjFanin0(pObj->pPrevFan1) != Ivy_ObjFanin1(pObj) && 
+                 Ivy_ObjFanin1(pObj->pPrevFan1) != Ivy_ObjFanin0(pObj) && 
+                 Ivy_ObjFanin1(pObj->pPrevFan1) != Ivy_ObjFanin1(pObj) )
+            {
+                printf( "Node %d has prev %d without common fanin.\n", pObj->Id, pObj->pPrevFan1->Id );
+                RetValue = 0;
+            }
+        }
+    }
+    // make sure every fanout is a fanin
+    Ivy_ManForEachObj( p, pObj, i )
+    {
+        Ivy_ObjForEachFanout( p, pObj, vFanouts, pFanout, k )
+            if ( Ivy_ObjFanin0(pFanout) != pObj && Ivy_ObjFanin1(pFanout) != pObj )
+            {
+                printf( "Node %d is a fanout of node %d but the fanin is not there.\n", pFanout->Id, pObj->Id );
+                RetValue = 0;
+            }
+    }
+    Vec_PtrFree( vFanouts );
+    return RetValue;
 }
 
 ////////////////////////////////////////////////////////////////////////

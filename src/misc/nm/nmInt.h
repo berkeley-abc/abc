@@ -45,6 +45,8 @@ typedef struct Nm_Entry_t_ Nm_Entry_t;
 struct Nm_Entry_t_
 {
     int              ObjId;         // object ID
+    Nm_Entry_t *     pNextI2N;      // the next entry in the ID hash table
+    Nm_Entry_t *     pNextN2I;      // the next entry in the name hash table
     char             Name[0];       // name of the object
 };
 

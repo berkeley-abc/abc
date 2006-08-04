@@ -399,11 +399,9 @@ p->timeMerge += clock() - clk;
     // set the list at the node
     Vec_PtrFillExtra( p->vCutsNew, Node + 1, NULL );
     assert( Cut_NodeReadCutsNew(p, Node) == NULL );
-
     /////
-    pList->pNext = NULL;
+//    pList->pNext = NULL;
     /////
-
     Cut_NodeWriteCutsNew( p, Node, pList );
     // filter the cuts
 //clk = clock();

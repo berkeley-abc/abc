@@ -583,6 +583,28 @@ static inline int Vec_IntPushUnique( Vec_Int_t * p, int Entry )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the pointer to the next nWords entries in the vector.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline unsigned * Vec_IntFetch( Vec_Int_t * p, int nWords )
+{
+    p->nSize += nWords;
+    if ( p->nSize > p->nCap )
+    {
+//         Vec_IntGrow( p, 2 * p->nSize );
+        return NULL;
+    }
+    return ((unsigned *)p->pArray) + p->nSize - nWords;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns the last entry and removes it from the list.]
 
   Description []

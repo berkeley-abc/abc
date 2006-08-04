@@ -50,9 +50,8 @@ static inline Abc_Obj_t * Abc_ObjGetIvy2Abc( Ivy_Man_t * p, int IvyId )         
   SeeAlso     []
 
 ***********************************************************************/
-void * Abc_NtkPlayer( void * pNtk, int nLutMax, int nPlaMax, int RankCost, int fFastMode, int fVerbose )
+void * Abc_NtkPlayer( void * pNtk, int nLutMax, int nPlaMax, int RankCost, int fFastMode, int fRewriting, int fSynthesis, int fVerbose )
 {
-    int fUseRewriting = 0;
     Pla_Man_t * p;
     Ivy_Man_t * pMan, * pManExt;
     Abc_Ntk_t * pNtkNew;
@@ -69,7 +68,15 @@ void * Abc_NtkPlayer( void * pNtk, int nLutMax, int nPlaMax, int RankCost, int f
     }
     if ( fVerbose )
         Ivy_ManPrintStats( pMan );
-    if ( fUseRewriting )
+    if ( fRewriting )
+    {
+        // simplify
+        pMan = Ivy_ManResyn0( pManExt = pMan, 1, 0 );
+        Ivy_ManStop( pManExt );
+        if ( fVerbose )
+            Ivy_ManPrintStats( pMan );
+    }
+    if ( fSynthesis )
     {
         // simplify
         pMan = Ivy_ManResyn( pManExt = pMan, 1, 0 );
@@ -261,9 +268,16 @@ Abc_Obj_t * Ivy_ManToAbc_rec( Abc_Ntk_t * pNtkNew, Ivy_Man_t * pMan, Pla_Man_t *
             pObjAbc->pData = Abc_SopCreateAnd( pNtkNew->pManFunc, Vec_IntSize(vSupp), NULL );
             pObjAbc = Abc_NodeCreateConst0( pNtkNew );  
         }
+        else if ( Extra_TruthIsConst1(puTruth, 8) )
+        {
+            pObjAbc->pData = Abc_SopCreateAnd( pNtkNew->pManFunc, Vec_IntSize(vSupp), NULL );
+            pObjAbc = Abc_NodeCreateConst1( pNtkNew );  
+        }
         else
         {
-            int fCompl = Ivy_TruthIsop( puTruth, Vec_IntSize(vSupp), vNodes );
+            int fCompl = Ivy_TruthIsop( puTruth, Vec_IntSize(vSupp), vNodes, 1 );
+            if ( vNodes->nSize == -1 )
+                printf( "Ivy_ManToAbc_rec(): Internal error.\n" );
             pObjAbc->pData = Abc_SopCreateFromIsop( pNtkNew->pManFunc, Vec_IntSize(vSupp), vNodes );
             if ( fCompl ) Abc_SopComplement(pObjAbc->pData); 
 //            printf( "Cover contains %d cubes.\n", Vec_IntSize(vNodes) );
@@ -372,9 +386,16 @@ Abc_Obj_t * Ivy_ManToAbcFast_rec( Abc_Ntk_t * pNtkNew, Ivy_Man_t * pMan, Ivy_Obj
         pObjAbc->pData = Abc_SopCreateAnd( pNtkNew->pManFunc, Vec_IntSize(vSupp), NULL );
         pObjAbc = Abc_NodeCreateConst0( pNtkNew );  
     }
+    else if ( Extra_TruthIsConst1(puTruth, 8) )
+    {
+        pObjAbc->pData = Abc_SopCreateAnd( pNtkNew->pManFunc, Vec_IntSize(vSupp), NULL );
+        pObjAbc = Abc_NodeCreateConst1( pNtkNew );  
+    }
     else
     {
-        int fCompl = Ivy_TruthIsop( puTruth, Vec_IntSize(vSupp), vNodes );
+        int fCompl = Ivy_TruthIsop( puTruth, Vec_IntSize(vSupp), vNodes, 1 );
+        if ( vNodes->nSize == -1 )
+            printf( "Ivy_ManToAbcFast_rec(): Internal error.\n" );
         pObjAbc->pData = Abc_SopCreateFromIsop( pNtkNew->pManFunc, Vec_IntSize(vSupp), vNodes );
         if ( fCompl ) Abc_SopComplement(pObjAbc->pData); 
     }
@@ -444,32 +465,48 @@ static inline int Abc_NtkPlayerCostOne( int nCost, int RankCost )
 int Abc_NtkPlayerCost( Abc_Ntk_t * pNtk, int RankCost, int fVerbose )
 {
     Abc_Obj_t * pObj;
-    int nFanins, nLevels, * pLevelCosts, CostTotal, nRanksTotal, i; 
+    int * pLevelCosts, * pLevelCostsR;
+    int nFanins, nLevels, LevelR, Cost, CostTotal, CostTotalR, nRanksTotal, nRanksTotalR, i; 
+    // compute the reverse levels
+    Abc_NtkStartReverseLevels( pNtk );
     // compute the costs for each level
     nLevels = Abc_NtkGetLevelNum( pNtk );
-    pLevelCosts = ALLOC( int, nLevels + 1 );
-    memset( pLevelCosts, 0, sizeof(int) * (nLevels + 1) );
+    pLevelCosts  = ALLOC( int, nLevels + 1 );
+    pLevelCostsR = ALLOC( int, nLevels + 1 );
+    memset( pLevelCosts,  0, sizeof(int) * (nLevels + 1) );
+    memset( pLevelCostsR, 0, sizeof(int) * (nLevels + 1) );
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
         nFanins = Abc_ObjFaninNum(pObj);
         if ( nFanins == 0 )
             continue;
-        pLevelCosts[ pObj->Level ] += Abc_NodePlayerCost( nFanins );
+        Cost = Abc_NodePlayerCost( nFanins );
+        LevelR = Vec_IntEntry( pNtk->vLevelsR, pObj->Id );
+        pLevelCosts[ pObj->Level ] += Cost;
+        pLevelCostsR[ LevelR ] += Cost;
     }
     // compute the total cost
-    CostTotal = nRanksTotal = 0;
-    for ( i = 1; i <= nLevels; i++ )
+    CostTotal = CostTotalR = nRanksTotal = nRanksTotalR = 0;
+    for ( i = 0; i <= nLevels; i++ )
     {
-        CostTotal   += pLevelCosts[i];
-        nRanksTotal += Abc_NtkPlayerCostOne( pLevelCosts[i], RankCost );
+        CostTotal    += pLevelCosts[i];
+        CostTotalR   += pLevelCostsR[i];
+        nRanksTotal  += Abc_NtkPlayerCostOne( pLevelCosts[i], RankCost );
+        nRanksTotalR += Abc_NtkPlayerCostOne( pLevelCostsR[i], RankCost );
     }
+    assert( CostTotal == CostTotalR );
     // print out statistics
     if ( fVerbose )
     {
         for ( i = 1; i <= nLevels; i++ )
-            printf( "Level %2d : Cost = %6d. Ranks = %6.3f.\n", i, pLevelCosts[i], ((double)pLevelCosts[i])/RankCost );
-        printf( "TOTAL    : Cost = %6d. Ranks = %3d.\n", CostTotal, nRanksTotal );
+            printf( "Level %2d : Cost = %7d. Ranks = %6.3f. Cost = %7d. Ranks = %6.3f.\n", i, 
+            pLevelCosts[i], ((double)pLevelCosts[i])/RankCost, 
+            pLevelCostsR[nLevels+1-i], ((double)pLevelCostsR[nLevels+1-i])/RankCost );
+        printf( "TOTAL    : Cost = %7d. Ranks = %6d. RanksR = %5d. RanksBest = %5d.\n", 
+            CostTotal, nRanksTotal, nRanksTotalR, nLevels );
     }
+    free( pLevelCosts );
+    free( pLevelCostsR );
     return nRanksTotal;
 }
 

@@ -867,6 +867,24 @@ void Ivy_NodePrintCuts( Ivy_Store_t * pCutStore )
   SeeAlso     []
 
 ***********************************************************************/
+static inline Ivy_Obj_t * Ivy_ObjRealFanin( Ivy_Obj_t * pObj )
+{
+    if ( !Ivy_ObjIsBuf(pObj) )
+        return pObj;
+    return Ivy_ObjRealFanin( Ivy_ObjFanin0(pObj) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Ivy_Store_t * Ivy_NodeFindCutsAll( Ivy_Man_t * p, Ivy_Obj_t * pObj, int nLeaves )
 {
     static Ivy_Store_t CutStore, * pCutStore = &CutStore;
@@ -911,11 +929,14 @@ Ivy_Store_t * Ivy_NodeFindCutsAll( Ivy_Man_t * p, Ivy_Obj_t * pObj, int nLeaves 
                 continue;
             Ivy_NodeCutHash( pCutNew );
 */
-            iLeaf0 = Ivy_ObjFaninId0(pLeaf);
-            iLeaf1 = Ivy_ObjFaninId1(pLeaf);
+            iLeaf0 = Ivy_ObjId( Ivy_ObjRealFanin(Ivy_ObjFanin0(pLeaf)) );
+            iLeaf1 = Ivy_ObjId( Ivy_ObjRealFanin(Ivy_ObjFanin1(pLeaf)) );
             if ( !Ivy_NodeCutPrescreen( pCut, iLeaf0, iLeaf1 ) )
                 continue;
-            Ivy_NodeCutDeriveNew( pCut, pCutNew, pCut->pArray[k], iLeaf0, iLeaf1 );
+            if ( iLeaf0 > iLeaf1 )
+                Ivy_NodeCutDeriveNew( pCut, pCutNew, pCut->pArray[k], iLeaf1, iLeaf0 );
+            else
+                Ivy_NodeCutDeriveNew( pCut, pCutNew, pCut->pArray[k], iLeaf0, iLeaf1 );
             Ivy_NodeCutFindOrAddFilter( pCutStore, pCutNew );
             if ( pCutStore->nCuts == IVY_CUT_LIMIT )
                 break;

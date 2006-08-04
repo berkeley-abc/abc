@@ -25,6 +25,10 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+// ISOP computation fails if intermediate memory usage exceed this limit
+#define IVY_ISOP_MEM_LIMIT  4096
+
+// intermediate ISOP representation
 typedef struct Ivy_Sop_t_ Ivy_Sop_t;
 struct Ivy_Sop_t_
 {
@@ -32,10 +36,9 @@ struct Ivy_Sop_t_
     int        nCubes;
 };
 
-static Mem_Flex_t * s_Man = NULL;
-
-static unsigned * Ivy_TruthIsop_rec( unsigned * puOn, unsigned * puOnDc, int nVars, Ivy_Sop_t * pcRes );
-static unsigned   Ivy_TruthIsop5_rec( unsigned uOn, unsigned uOnDc, int nVars, Ivy_Sop_t * pcRes );
+// static procedures to compute ISOP
+static unsigned * Ivy_TruthIsop_rec( unsigned * puOn, unsigned * puOnDc, int nVars, Ivy_Sop_t * pcRes, Vec_Int_t * vStore );
+static unsigned   Ivy_TruthIsop5_rec( unsigned uOn, unsigned uOnDc, int nVars, Ivy_Sop_t * pcRes, Vec_Int_t * vStore );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -43,111 +46,60 @@ static unsigned   Ivy_TruthIsop5_rec( unsigned uOn, unsigned uOnDc, int nVars, I
 
 /**Function*************************************************************
 
-  Synopsis    [Deallocates memory used for computing ISOPs from TTs.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ivy_TruthManStop()
-{
-    Mem_FlexStop( s_Man, 0 );
-    s_Man = NULL;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Computes ISOP from TT.]
 
-  Description []
+  Description [Returns the cover in vCover. Uses the rest of array in vCover
+  as an intermediate memory storage. Returns the cover with -1 cubes, if the
+  the computation exceeded the memory limit (IVY_ISOP_MEM_LIMIT words of
+  intermediate data).]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-int Ivy_TruthIsopOne( unsigned * puTruth, int nVars, Vec_Int_t * vCover )
+int Ivy_TruthIsop( unsigned * puTruth, int nVars, Vec_Int_t * vCover, int fTryBoth )
 {
     Ivy_Sop_t cRes, * pcRes = &cRes;
+    Ivy_Sop_t cRes2, * pcRes2 = &cRes2;
     unsigned * pResult;
-    int i;
+    int RetValue = 0;
     assert( nVars >= 0 && nVars < 16 );
     // if nVars < 5, make sure it does not depend on those vars
-    for ( i = nVars; i < 5; i++ )
-        assert( !Extra_TruthVarInSupport(puTruth, 5, i) );
+//    for ( i = nVars; i < 5; i++ )
+//        assert( !Extra_TruthVarInSupport(puTruth, 5, i) );
     // prepare memory manager
-    if ( s_Man == NULL )
-        s_Man = Mem_FlexStart();
-    else
-        Mem_FlexRestart( s_Man );
-    // compute ISOP
-    pResult = Ivy_TruthIsop_rec( puTruth, puTruth, nVars, pcRes );
-//    Extra_PrintBinary( stdout, puTruth, 1 << nVars ); printf( "\n" );
-//    Extra_PrintBinary( stdout, pResult, 1 << nVars ); printf( "\n" );
-    assert( Extra_TruthIsEqual( puTruth, pResult, nVars ) );
-//printf( "%d ", Mem_FlexReadMemUsage(s_Man) );
-//printf( "%d ", pcRes->nCubes );
-    // copy the truth table
     Vec_IntClear( vCover );
-    for ( i = 0; i < pcRes->nCubes; i++ )
-        Vec_IntPush( vCover, pcRes->pCubes[i] );
-    return 0;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Computes ISOP from TT.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ivy_TruthIsop( unsigned * puTruth, int nVars, Vec_Int_t * vCover )
-{
-    Ivy_Sop_t cRes, * pcRes = &cRes;
-    unsigned * pResult;
-    int i;
-    assert( nVars >= 0 && nVars < 16 );
-    // if nVars < 5, make sure it does not depend on those vars
-    for ( i = nVars; i < 5; i++ )
-        assert( !Extra_TruthVarInSupport(puTruth, 5, i) );
-    // prepare memory manager
-    if ( s_Man == NULL )
-        s_Man = Mem_FlexStart();
-    else
-        Mem_FlexRestart( s_Man );
-    // compute ISOP
-    pResult = Ivy_TruthIsop_rec( puTruth, puTruth, nVars, pcRes );
-//    Extra_PrintBinary( stdout, puTruth, 1 << nVars ); printf( "\n" );
-//    Extra_PrintBinary( stdout, pResult, 1 << nVars ); printf( "\n" );
-    assert( Extra_TruthIsEqual( puTruth, pResult, nVars ) );
-//printf( "%d ", Mem_FlexReadMemUsage(s_Man) );
-//printf( "%d ", pcRes->nCubes );
-    // copy the truth table
-    Vec_IntClear( vCover );
-    for ( i = 0; i < pcRes->nCubes; i++ )
-        Vec_IntPush( vCover, pcRes->pCubes[i] );
-
-    // try other polarity
-    Mem_FlexRestart( s_Man );
-    Extra_TruthNot( puTruth, puTruth, nVars );
-    pResult = Ivy_TruthIsop_rec( puTruth, puTruth, nVars, pcRes );
-    assert( Extra_TruthIsEqual( puTruth, pResult, nVars ) );
-    Extra_TruthNot( puTruth, puTruth, nVars );
-    if ( Vec_IntSize(vCover) < pcRes->nCubes )
+    Vec_IntGrow( vCover, IVY_ISOP_MEM_LIMIT );
+    // compute ISOP for the direct polarity
+    pResult = Ivy_TruthIsop_rec( puTruth, puTruth, nVars, pcRes, vCover );
+    if ( pcRes->nCubes == -1 )
+    {
+        vCover->nSize = -1;
         return 0;
-
-    // copy the truth table
-    Vec_IntClear( vCover );
-    for ( i = 0; i < pcRes->nCubes; i++ )
-        Vec_IntPush( vCover, pcRes->pCubes[i] );
-    return 1;
+    }
+    assert( Extra_TruthIsEqual( puTruth, pResult, nVars ) );
+    if ( fTryBoth )
+    {
+        // compute ISOP for the complemented polarity
+        Extra_TruthNot( puTruth, puTruth, nVars );
+        pResult = Ivy_TruthIsop_rec( puTruth, puTruth, nVars, pcRes2, vCover );
+        if ( pcRes2->nCubes >= 0 )
+        {
+            assert( Extra_TruthIsEqual( puTruth, pResult, nVars ) );
+            if ( pcRes->nCubes > pcRes2->nCubes )
+            {
+                RetValue = 1;
+                pcRes = pcRes2;
+            }
+        }
+        Extra_TruthNot( puTruth, puTruth, nVars );
+    }
+//    printf( "%d ", vCover->nSize );
+    // move the cover representation to the beginning of the memory buffer
+    memmove( vCover->pArray, pcRes->pCubes, pcRes->nCubes * sizeof(unsigned) );
+    Vec_IntShrink( vCover, pcRes->nCubes );
+    return RetValue;
 }
 
 /**Function*************************************************************
@@ -161,17 +113,22 @@ int Ivy_TruthIsop( unsigned * puTruth, int nVars, Vec_Int_t * vCover )
   SeeAlso     []
 
 ***********************************************************************/
-unsigned * Ivy_TruthIsop_rec( unsigned * puOn, unsigned * puOnDc, int nVars, Ivy_Sop_t * pcRes )
+unsigned * Ivy_TruthIsop_rec( unsigned * puOn, unsigned * puOnDc, int nVars, Ivy_Sop_t * pcRes, Vec_Int_t * vStore )
 {
     Ivy_Sop_t cRes0, cRes1, cRes2;
     Ivy_Sop_t * pcRes0 = &cRes0, * pcRes1 = &cRes1, * pcRes2 = &cRes2;
     unsigned * puRes0, * puRes1, * puRes2;
     unsigned * puOn0, * puOn1, * puOnDc0, * puOnDc1, * pTemp, * pTemp0, * pTemp1;
     int i, k, Var, nWords, nWordsAll;
-    assert( Extra_TruthIsImply( puOn, puOnDc, nVars ) );
+//    assert( Extra_TruthIsImply( puOn, puOnDc, nVars ) );
     // allocate room for the resulting truth table
     nWordsAll = Extra_TruthWordNum( nVars );
-    pTemp = (unsigned *)Mem_FlexEntryFetch( s_Man, 4 * nWordsAll );
+    pTemp = Vec_IntFetch( vStore, nWordsAll );
+    if ( pTemp == NULL )
+    {
+        pcRes->nCubes = -1;
+        return NULL;
+    }
     // check for constants
     if ( Extra_TruthIsConst0( puOn, nVars ) )
     {
@@ -183,7 +140,12 @@ unsigned * Ivy_TruthIsop_rec( unsigned * puOn, unsigned * puOnDc, int nVars, Ivy
     if ( Extra_TruthIsConst1( puOnDc, nVars ) )
     {
         pcRes->nCubes = 1;
-        pcRes->pCubes = (unsigned *)Mem_FlexEntryFetch( s_Man, 4 );
+        pcRes->pCubes = Vec_IntFetch( vStore, 1 );
+        if ( pcRes->pCubes == NULL )
+        {
+            pcRes->nCubes = -1;
+            return NULL;
+        }
         pcRes->pCubes[0] = 0;
         Extra_TruthFill( pTemp, nVars );
         return pTemp;
@@ -198,7 +160,7 @@ unsigned * Ivy_TruthIsop_rec( unsigned * puOn, unsigned * puOnDc, int nVars, Ivy
     // consider a simple case when one-word computation can be used
     if ( Var < 5 )
     {
-        unsigned uRes = Ivy_TruthIsop5_rec( puOn[0], puOnDc[0], Var+1, pcRes );
+        unsigned uRes = Ivy_TruthIsop5_rec( puOn[0], puOnDc[0], Var+1, pcRes, vStore );
         for ( i = 0; i < nWordsAll; i++ )
             pTemp[i] = uRes;
         return pTemp;
@@ -211,17 +173,37 @@ unsigned * Ivy_TruthIsop_rec( unsigned * puOn, unsigned * puOnDc, int nVars, Ivy
     pTemp0  = pTemp;   pTemp1  = pTemp + nWords;
     // solve for cofactors
     Extra_TruthSharp( pTemp0, puOn0, puOnDc1, Var );
-    puRes0 = Ivy_TruthIsop_rec( pTemp0, puOnDc0, Var, pcRes0 );
+    puRes0 = Ivy_TruthIsop_rec( pTemp0, puOnDc0, Var, pcRes0, vStore );
+    if ( pcRes0->nCubes == -1 )
+    {
+        pcRes->nCubes = -1;
+        return NULL;
+    }
     Extra_TruthSharp( pTemp1, puOn1, puOnDc0, Var );
-    puRes1 = Ivy_TruthIsop_rec( pTemp1, puOnDc1, Var, pcRes1 );
+    puRes1 = Ivy_TruthIsop_rec( pTemp1, puOnDc1, Var, pcRes1, vStore );
+    if ( pcRes1->nCubes == -1 )
+    {
+        pcRes->nCubes = -1;
+        return NULL;
+    }
     Extra_TruthSharp( pTemp0, puOn0, puRes0, Var );
     Extra_TruthSharp( pTemp1, puOn1, puRes1, Var );
     Extra_TruthOr( pTemp0, pTemp0, pTemp1, Var );
     Extra_TruthAnd( pTemp1, puOnDc0, puOnDc1, Var );
-    puRes2 = Ivy_TruthIsop_rec( pTemp0, pTemp1, Var, pcRes2 );
+    puRes2 = Ivy_TruthIsop_rec( pTemp0, pTemp1, Var, pcRes2, vStore );
+    if ( pcRes2->nCubes == -1 )
+    {
+        pcRes->nCubes = -1;
+        return NULL;
+    }
     // create the resulting cover
     pcRes->nCubes = pcRes0->nCubes + pcRes1->nCubes + pcRes2->nCubes;
-    pcRes->pCubes = (unsigned *)Mem_FlexEntryFetch( s_Man, 4 * pcRes->nCubes );
+    pcRes->pCubes = Vec_IntFetch( vStore, pcRes->nCubes );
+    if ( pcRes->pCubes == NULL )
+    {
+        pcRes->nCubes = -1;
+        return NULL;
+    }
     k = 0;
     for ( i = 0; i < pcRes0->nCubes; i++ )
         pcRes->pCubes[k++] = pcRes0->pCubes[i] | (1 << ((Var<<1)+1));
@@ -255,7 +237,7 @@ unsigned * Ivy_TruthIsop_rec( unsigned * puOn, unsigned * puOnDc, int nVars, Ivy
   SeeAlso     []
 
 ***********************************************************************/
-unsigned Ivy_TruthIsop5_rec( unsigned uOn, unsigned uOnDc, int nVars, Ivy_Sop_t * pcRes )
+unsigned Ivy_TruthIsop5_rec( unsigned uOn, unsigned uOnDc, int nVars, Ivy_Sop_t * pcRes, Vec_Int_t * vStore )
 {
     unsigned uMasks[5] = { 0xAAAAAAAA, 0xCCCCCCCC, 0xF0F0F0F0, 0xFF00FF00, 0xFFFF0000 };
     Ivy_Sop_t cRes0, cRes1, cRes2;
@@ -273,7 +255,12 @@ unsigned Ivy_TruthIsop5_rec( unsigned uOn, unsigned uOnDc, int nVars, Ivy_Sop_t 
     if ( uOnDc == 0xFFFFFFFF )
     {
         pcRes->nCubes = 1;
-        pcRes->pCubes = (unsigned *)Mem_FlexEntryFetch( s_Man, 4 );
+        pcRes->pCubes = Vec_IntFetch( vStore, 1 );
+        if ( pcRes->pCubes == NULL )
+        {
+            pcRes->nCubes = -1;
+            return 0;
+        }
         pcRes->pCubes[0] = 0;
         return 0xFFFFFFFF;
     }
@@ -292,12 +279,32 @@ unsigned Ivy_TruthIsop5_rec( unsigned uOn, unsigned uOnDc, int nVars, Ivy_Sop_t 
     Extra_TruthCofactor0( &uOnDc0, Var + 1, Var );
     Extra_TruthCofactor1( &uOnDc1, Var + 1, Var );
     // solve for cofactors
-    uRes0 = Ivy_TruthIsop5_rec( uOn0 & ~uOnDc1, uOnDc0, Var, pcRes0 );
-    uRes1 = Ivy_TruthIsop5_rec( uOn1 & ~uOnDc0, uOnDc1, Var, pcRes1 );
-    uRes2 = Ivy_TruthIsop5_rec( (uOn0 & ~uRes0) | (uOn1 & ~uRes1), uOnDc0 & uOnDc1, Var, pcRes2 );
+    uRes0 = Ivy_TruthIsop5_rec( uOn0 & ~uOnDc1, uOnDc0, Var, pcRes0, vStore );
+    if ( pcRes0->nCubes == -1 )
+    {
+        pcRes->nCubes = -1;
+        return 0;
+    }
+    uRes1 = Ivy_TruthIsop5_rec( uOn1 & ~uOnDc0, uOnDc1, Var, pcRes1, vStore );
+    if ( pcRes1->nCubes == -1 )
+    {
+        pcRes->nCubes = -1;
+        return 0;
+    }
+    uRes2 = Ivy_TruthIsop5_rec( (uOn0 & ~uRes0) | (uOn1 & ~uRes1), uOnDc0 & uOnDc1, Var, pcRes2, vStore );
+    if ( pcRes2->nCubes == -1 )
+    {
+        pcRes->nCubes = -1;
+        return 0;
+    }
     // create the resulting cover
     pcRes->nCubes = pcRes0->nCubes + pcRes1->nCubes + pcRes2->nCubes;
-    pcRes->pCubes = (unsigned *)Mem_FlexEntryFetch( s_Man, 4 * pcRes->nCubes );
+    pcRes->pCubes = Vec_IntFetch( vStore, pcRes->nCubes );
+    if ( pcRes->pCubes == NULL )
+    {
+        pcRes->nCubes = -1;
+        return 0;
+    }
     k = 0;
     for ( i = 0; i < pcRes0->nCubes; i++ )
         pcRes->pCubes[k++] = pcRes0->pCubes[i] | (1 << ((Var<<1)+1));

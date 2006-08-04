@@ -381,7 +381,7 @@ void Ivy_ObjUpdateLevel_rec( Ivy_Man_t * p, Ivy_Obj_t * pObj )
     Ivy_Obj_t * pFanout;
     Vec_Ptr_t * vFanouts;
     int i, LevelNew;
-    assert( p->vFanouts );
+    assert( p->fFanout );
     assert( Ivy_ObjIsNode(pObj) );
     vFanouts = Vec_PtrAlloc( 10 );
     Ivy_ObjForEachFanout( p, pObj, vFanouts, pFanout, i )
@@ -416,7 +416,7 @@ int Ivy_ObjLevelRNew( Ivy_Man_t * p, Ivy_Obj_t * pObj )
     Ivy_Obj_t * pFanout;
     Vec_Ptr_t * vFanouts;
     int i, Required, LevelNew = 1000000;
-    assert( p->vFanouts && p->vRequired );
+    assert( p->fFanout && p->vRequired );
     vFanouts = Vec_PtrAlloc( 10 );
     Ivy_ObjForEachFanout( p, pObj, vFanouts, pFanout, i )
     {

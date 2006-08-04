@@ -408,7 +408,7 @@ void Abc_NtkCollectSupergate( Abc_Obj_t * pNode, int fStopAtMux, Vec_Ptr_t * vNo
 int Abc_NtkNodeFactor( Abc_Obj_t * pObj, int nLevelMax )
 {
 //  nLevelMax = ((nLevelMax)/2)*3;
-    assert( pObj->Level <= nLevelMax );
+    assert( (int)pObj->Level <= nLevelMax );
 //    return (int)(100000000.0 * pow(0.999, nLevelMax - pObj->Level));
     return (int)(100000000.0 * (1 + 0.01 * pObj->Level));
 //    return (int)(100000000.0 / ((nLevelMax)/2)*3 - pObj->Level);

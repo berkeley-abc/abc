@@ -64,7 +64,7 @@ int Ivy_ManRewriteSeq( Ivy_Man_t * p, int fUseZeroCost, int fVerbose )
     if ( pManRwt == NULL )
         return 0; 
     // create fanouts
-    if ( p->vFanouts == NULL )
+    if ( p->fFanout == 0 )
         Ivy_ManStartFanout( p );
     // resynthesize each node once
     nNodes = Ivy_ManObjIdMax(p);

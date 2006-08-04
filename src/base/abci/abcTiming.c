@@ -647,9 +647,10 @@ void Abc_NtkStartReverseLevels( Abc_Ntk_t * pNtk )
     Vec_Ptr_t * vNodes;
     Abc_Obj_t * pObj, * pFanout;
     int i, k, nLevelsCur;
-    assert( Abc_NtkIsStrash(pNtk) );
+//    assert( Abc_NtkIsStrash(pNtk) );
     // remember the maximum number of direct levels
-    pNtk->LevelMax = Abc_AigGetLevelNum(pNtk);
+//    pNtk->LevelMax = Abc_AigGetLevelNum(pNtk);
+    pNtk->LevelMax = Abc_NtkGetLevelNum(pNtk);
     // start the reverse levels
     pNtk->vLevelsR = Vec_IntAlloc( 0 );
     Vec_IntFill( pNtk->vLevelsR, Abc_NtkObjNumMax(pNtk), 0 );

@@ -66,7 +66,7 @@ typedef enum {
 } Ivy_Init_t;
 
 // the AIG node
-struct Ivy_Obj_t_  // 24 bytes (32-bit) or 32 bytes (64-bit)
+struct Ivy_Obj_t_  // 24 bytes (32-bit) or 32 bytes (64-bit)   // 10 words - 16 words
 {
     int              Id;             // integer ID
     int              TravId;         // traversal ID
@@ -81,6 +81,10 @@ struct Ivy_Obj_t_  // 24 bytes (32-bit) or 32 bytes (64-bit)
     Ivy_Obj_t *      pFanin0;        // fanin
     Ivy_Obj_t *      pFanin1;        // fanin
     Ivy_Obj_t *      pFanout;        // fanout
+    Ivy_Obj_t *      pNextFan0;      // next fanout of the first fanin
+    Ivy_Obj_t *      pNextFan1;      // next fanout of the second fanin
+    Ivy_Obj_t *      pPrevFan0;      // prev fanout of the first fanin
+    Ivy_Obj_t *      pPrevFan1;      // prev fanout of the second fanin
     Ivy_Obj_t *      pEquiv;         // equivalent node
 };
 
@@ -106,7 +110,8 @@ struct Ivy_Man_t_
     int              nTravIds;       // the traversal ID
     int              nLevelMax;      // the maximum level
     Vec_Int_t *      vRequired;      // required times
-    Vec_Ptr_t *      vFanouts;       // representation of the fanouts
+//    Vec_Ptr_t *      vFanouts;       // representation of the fanouts
+    int              fFanout;        // fanout is allocated
     void *           pData;          // the temporary data
     void *           pCopy;          // the temporary data
     // memory management
@@ -384,6 +389,7 @@ extern Ivy_Obj_t *     Ivy_CanonExor( Ivy_Man_t * p, Ivy_Obj_t * p0, Ivy_Obj_t *
 extern Ivy_Obj_t *     Ivy_CanonLatch( Ivy_Man_t * p, Ivy_Obj_t * pObj, Ivy_Init_t Init );
 /*=== ivyCheck.c ========================================================*/
 extern int             Ivy_ManCheck( Ivy_Man_t * p );
+extern int             Ivy_ManCheckFanouts( Ivy_Man_t * p );
 /*=== ivyCut.c ==========================================================*/
 extern void            Ivy_ManSeqFindCut( Ivy_Man_t * p, Ivy_Obj_t * pNode, Vec_Int_t * vFront, Vec_Int_t * vInside, int nSize );
 extern Ivy_Store_t *   Ivy_NodeFindCutsAll( Ivy_Man_t * p, Ivy_Obj_t * pObj, int nLeaves );
@@ -407,12 +413,10 @@ extern void            Ivy_ObjAddFanout( Ivy_Man_t * p, Ivy_Obj_t * pObj, Ivy_Ob
 extern void            Ivy_ObjDeleteFanout( Ivy_Man_t * p, Ivy_Obj_t * pObj, Ivy_Obj_t * pFanout );
 extern void            Ivy_ObjPatchFanout( Ivy_Man_t * p, Ivy_Obj_t * pObj, Ivy_Obj_t * pFanoutOld, Ivy_Obj_t * pFanoutNew );
 extern void            Ivy_ObjCollectFanouts( Ivy_Man_t * p, Ivy_Obj_t * pObj, Vec_Ptr_t * vArray );
-extern Ivy_Obj_t *     Ivy_ObjReadOneFanout( Ivy_Man_t * p, Ivy_Obj_t * pObj );
 extern Ivy_Obj_t *     Ivy_ObjReadFirstFanout( Ivy_Man_t * p, Ivy_Obj_t * pObj );
 extern int             Ivy_ObjFanoutNum( Ivy_Man_t * p, Ivy_Obj_t * pObj );
 /*=== ivyIsop.c ==========================================================*/
-extern int             Ivy_TruthIsop( unsigned * puTruth, int nVars, Vec_Int_t * vCover );
-extern void            Ivy_TruthManStop();
+extern int             Ivy_TruthIsop( unsigned * puTruth, int nVars, Vec_Int_t * vCover, int fTryBoth );
 /*=== ivyMan.c ==========================================================*/
 extern Ivy_Man_t *     Ivy_ManStart();
 extern void            Ivy_ManStop( Ivy_Man_t * p );
@@ -450,6 +454,7 @@ extern Ivy_Obj_t *     Ivy_Maj( Ivy_Man_t * p, Ivy_Obj_t * pA, Ivy_Obj_t * pB, I
 extern Ivy_Obj_t *     Ivy_Miter( Ivy_Man_t * p, Vec_Ptr_t * vPairs );
 extern Ivy_Obj_t *     Ivy_Latch( Ivy_Man_t * p, Ivy_Obj_t * pObj, Ivy_Init_t Init );
 /*=== ivyResyn.c =========================================================*/
+extern Ivy_Man_t *     Ivy_ManResyn0( Ivy_Man_t * p, int fUpdateLevel, int fVerbose );
 extern Ivy_Man_t *     Ivy_ManResyn( Ivy_Man_t * p, int fUpdateLevel, int fVerbose );
 /*=== ivyRewrite.c =========================================================*/
 extern int             Ivy_ManSeqRewrite( Ivy_Man_t * p, int fUpdateLevel, int fUseZeroCost );

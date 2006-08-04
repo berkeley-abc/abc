@@ -24,9 +24,96 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline int          Ivy_FanoutIsArray( void * p )    { return (int )(((unsigned)p) & 01);          }
-static inline Vec_Ptr_t *  Ivy_FanoutGetArray( void * p )   { assert( Ivy_FanoutIsArray(p) );  return (Vec_Ptr_t *)((unsigned)(p) & ~01);  }
-static inline Vec_Ptr_t *  Ivy_FanoutSetArray( void * p )   { assert( !Ivy_FanoutIsArray(p) ); return (Vec_Ptr_t *)((unsigned)(p) ^  01);  }
+// getting hold of the next fanout of the node
+static inline Ivy_Obj_t * Ivy_ObjNextFanout( Ivy_Obj_t * pObj, Ivy_Obj_t * pFanout )
+{
+    assert( !Ivy_IsComplement(pObj) );
+    assert( !Ivy_IsComplement(pFanout) );
+    if ( pFanout == NULL )
+        return NULL;
+    if ( Ivy_ObjFanin0(pFanout) == pObj )
+        return pFanout->pNextFan0;
+    assert( Ivy_ObjFanin1(pFanout) == pObj );
+    return pFanout->pNextFan1;
+}
+
+// getting hold of the previous fanout of the node
+static inline Ivy_Obj_t * Ivy_ObjPrevFanout( Ivy_Obj_t * pObj, Ivy_Obj_t * pFanout )
+{
+    assert( !Ivy_IsComplement(pObj) );
+    assert( !Ivy_IsComplement(pFanout) );
+    if ( pFanout == NULL )
+        return NULL;
+    if ( Ivy_ObjFanin0(pFanout) == pObj )
+        return pFanout->pPrevFan0;
+    assert( Ivy_ObjFanin1(pFanout) == pObj );
+    return pFanout->pPrevFan1;
+}
+
+// getting hold of the place where the next fanout will be attached
+static inline Ivy_Obj_t ** Ivy_ObjNextFanoutPlace( Ivy_Obj_t * pObj, Ivy_Obj_t * pFanout )
+{
+    assert( !Ivy_IsComplement(pObj) );
+    assert( !Ivy_IsComplement(pFanout) );
+    if ( Ivy_ObjFanin0(pFanout) == pObj )
+        return &pFanout->pNextFan0;
+    assert( Ivy_ObjFanin1(pFanout) == pObj );
+    return &pFanout->pNextFan1;
+}
+
+// getting hold of the place where the next fanout will be attached
+static inline Ivy_Obj_t ** Ivy_ObjPrevFanoutPlace( Ivy_Obj_t * pObj, Ivy_Obj_t * pFanout )
+{
+    assert( !Ivy_IsComplement(pObj) );
+    assert( !Ivy_IsComplement(pFanout) );
+    if ( Ivy_ObjFanin0(pFanout) == pObj )
+        return &pFanout->pPrevFan0;
+    assert( Ivy_ObjFanin1(pFanout) == pObj );
+    return &pFanout->pPrevFan1;
+}
+
+// getting hold of the place where the next fanout will be attached
+static inline Ivy_Obj_t ** Ivy_ObjPrevNextFanoutPlace( Ivy_Obj_t * pObj, Ivy_Obj_t * pFanout )
+{
+    Ivy_Obj_t * pTemp;
+    assert( !Ivy_IsComplement(pObj) );
+    assert( !Ivy_IsComplement(pFanout) );
+    pTemp = Ivy_ObjPrevFanout(pObj, pFanout);
+    if ( pTemp == NULL )
+        return &pObj->pFanout;
+    if ( Ivy_ObjFanin0(pTemp) == pObj )
+        return &pTemp->pNextFan0;
+    assert( Ivy_ObjFanin1(pTemp) == pObj );
+    return &pTemp->pNextFan1;
+}
+
+// getting hold of the place where the next fanout will be attached
+static inline Ivy_Obj_t ** Ivy_ObjNextPrevFanoutPlace( Ivy_Obj_t * pObj, Ivy_Obj_t * pFanout )
+{
+    Ivy_Obj_t * pTemp;
+    assert( !Ivy_IsComplement(pObj) );
+    assert( !Ivy_IsComplement(pFanout) );
+    pTemp = Ivy_ObjNextFanout(pObj, pFanout);
+    if ( pTemp == NULL )
+        return NULL;
+    if ( Ivy_ObjFanin0(pTemp) == pObj )
+        return &pTemp->pPrevFan0;
+    assert( Ivy_ObjFanin1(pTemp) == pObj );
+    return &pTemp->pPrevFan1;
+}
+
+// iterator through the fanouts of the node
+#define Ivy_ObjForEachFanoutInt( pObj, pFanout )                 \
+    for ( pFanout = (pObj)->pFanout; pFanout;                    \
+          pFanout = Ivy_ObjNextFanout(pObj, pFanout) )
+
+// safe iterator through the fanouts of the node
+#define Ivy_ObjForEachFanoutIntSafe( pObj, pFanout, pFanout2 )   \
+    for ( pFanout  = (pObj)->pFanout,                            \
+          pFanout2 = Ivy_ObjNextFanout(pObj, pFanout);           \
+          pFanout;                                               \
+          pFanout  = pFanout2,                                   \
+          pFanout2 = Ivy_ObjNextFanout(pObj, pFanout) )
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -47,8 +134,8 @@ void Ivy_ManStartFanout( Ivy_Man_t * p )
 {
     Ivy_Obj_t * pObj;
     int i;
-    assert( p->vFanouts == NULL );
-    p->vFanouts = Vec_PtrStart( Ivy_ManObjIdMax(p) + 1000 );
+    assert( !p->fFanout );
+    p->fFanout = 1;
     Ivy_ManForEachObj( p, pObj, i )
     {
         if ( Ivy_ObjFanin0(pObj) )
@@ -71,14 +158,12 @@ void Ivy_ManStartFanout( Ivy_Man_t * p )
 ***********************************************************************/
 void Ivy_ManStopFanout( Ivy_Man_t * p )
 {
-    void * pTemp;
+    Ivy_Obj_t * pObj;
     int i;
-    assert( p->vFanouts != NULL );
-    Vec_PtrForEachEntry( p->vFanouts, pTemp, i )
-        if ( Ivy_FanoutIsArray(pTemp) )
-            Vec_PtrFree( Ivy_FanoutGetArray(pTemp) );
-    Vec_PtrFree( p->vFanouts );
-    p->vFanouts = NULL;
+    assert( p->fFanout );
+    p->fFanout = 0;
+    Ivy_ManForEachObj( p, pObj, i )
+        pObj->pFanout = pObj->pNextFan0 = pObj->pNextFan1 = pObj->pPrevFan0 = pObj->pPrevFan1 = NULL;
 }
 
 /**Function*************************************************************
@@ -92,31 +177,15 @@ void Ivy_ManStopFanout( Ivy_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_ObjAddFanout( Ivy_Man_t * p, Ivy_Obj_t * pObj, Ivy_Obj_t * pFanout )
+void Ivy_ObjAddFanout( Ivy_Man_t * p, Ivy_Obj_t * pFanin, Ivy_Obj_t * pFanout )
 {
-    Vec_Ptr_t * vNodes;
-    void ** ppSpot;
-    assert( p->vFanouts != NULL );
-    assert( !Ivy_IsComplement(pObj) );
-    // extend the fanout array if needed
-    Vec_PtrFillExtra( p->vFanouts, pObj->Id + 1, NULL );
-    // get the pointer to the place where fanouts are stored
-    ppSpot = Vec_PtrEntryP( p->vFanouts, pObj->Id );
-    // consider several cases
-    if ( *ppSpot == NULL ) // no fanout - add one fanout
-        *ppSpot = pFanout;
-    else if ( Ivy_FanoutIsArray(*ppSpot) ) // array of fanouts - add one fanout
+    assert( p->fFanout );
+    if ( pFanin->pFanout )
     {
-        vNodes = Ivy_FanoutGetArray(*ppSpot);
-        Vec_PtrPush( vNodes, pFanout );
+        *Ivy_ObjNextFanoutPlace(pFanin, pFanout) = pFanin->pFanout;
+        *Ivy_ObjPrevFanoutPlace(pFanin, pFanin->pFanout) = pFanout;
     }
-    else // only one fanout - create array and put both fanouts into the array
-    {
-        vNodes = Vec_PtrAlloc( 4 );
-        Vec_PtrPush( vNodes, *ppSpot );
-        Vec_PtrPush( vNodes, pFanout );
-        *ppSpot = Ivy_FanoutSetArray( vNodes );
-    }
+    pFanin->pFanout = pFanout;
 }
 
 /**Function*************************************************************
@@ -130,30 +199,25 @@ void Ivy_ObjAddFanout( Ivy_Man_t * p, Ivy_Obj_t * pObj, Ivy_Obj_t * pFanout )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_ObjDeleteFanout( Ivy_Man_t * p, Ivy_Obj_t * pObj, Ivy_Obj_t * pFanout )
+void Ivy_ObjDeleteFanout( Ivy_Man_t * p, Ivy_Obj_t * pFanin, Ivy_Obj_t * pFanout )
 {
-    Vec_Ptr_t * vNodes;
-    void ** ppSpot;
-    assert( p->vFanouts != NULL );
-    assert( !Ivy_IsComplement(pObj) );
-    // extend the fanout array if needed
-    Vec_PtrFillExtra( p->vFanouts, pObj->Id + 1, NULL );
-    ppSpot = Vec_PtrEntryP( p->vFanouts, pObj->Id );
-    if ( *ppSpot == NULL ) // no fanout - should not happen
-    {
-        assert( 0 );
-    }
-    else if ( Ivy_FanoutIsArray(*ppSpot) ) // the array of fanouts - delete the fanout
-    {
-        vNodes = Ivy_FanoutGetArray(*ppSpot);
-        Vec_PtrRemove( vNodes, pFanout );
-    }
-    else // only one fanout - delete the fanout
-    {
-        assert( *ppSpot == pFanout );
-        *ppSpot = NULL;
-    }
-//    printf( " %d", Ivy_ObjFanoutNum(p, pObj) );
+    Ivy_Obj_t ** ppPlace1, ** ppPlace2, ** ppPlaceN;
+    assert( pFanin->pFanout != NULL );
+
+    ppPlace1 = Ivy_ObjNextFanoutPlace(pFanin, pFanout);
+    ppPlaceN = Ivy_ObjPrevNextFanoutPlace(pFanin, pFanout);
+    assert( *ppPlaceN == pFanout );
+    if ( ppPlaceN )
+        *ppPlaceN = *ppPlace1;
+
+    ppPlace2 = Ivy_ObjPrevFanoutPlace(pFanin, pFanout);
+    ppPlaceN = Ivy_ObjNextPrevFanoutPlace(pFanin, pFanout);
+    assert( ppPlaceN == NULL || *ppPlaceN == pFanout );
+    if ( ppPlaceN )
+        *ppPlaceN = *ppPlace2;
+
+    *ppPlace1 = NULL;
+    *ppPlace2 = NULL;
 }
 
 /**Function*************************************************************
@@ -167,32 +231,18 @@ void Ivy_ObjDeleteFanout( Ivy_Man_t * p, Ivy_Obj_t * pObj, Ivy_Obj_t * pFanout )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_ObjPatchFanout( Ivy_Man_t * p, Ivy_Obj_t * pObj, Ivy_Obj_t * pFanoutOld, Ivy_Obj_t * pFanoutNew )
+void Ivy_ObjPatchFanout( Ivy_Man_t * p, Ivy_Obj_t * pFanin, Ivy_Obj_t * pFanoutOld, Ivy_Obj_t * pFanoutNew )
 {
-    Vec_Ptr_t * vNodes;
-    void ** ppSpot;
-    int Index;
-    assert( p->vFanouts != NULL );
-    assert( !Ivy_IsComplement(pObj) );
-    // extend the fanout array if needed
-    Vec_PtrFillExtra( p->vFanouts, pObj->Id + 1, NULL );
-    ppSpot = Vec_PtrEntryP( p->vFanouts, pObj->Id );
-    if ( *ppSpot == NULL ) // no fanout - should not happen
-    {
-        assert( 0 );
-    }
-    else if ( Ivy_FanoutIsArray(*ppSpot) ) // the array of fanouts - find and replace the fanout
-    {
-        vNodes = Ivy_FanoutGetArray(*ppSpot);
-        Index = Vec_PtrFind( vNodes, pFanoutOld );
-        assert( Index >= 0 );
-        Vec_PtrWriteEntry( vNodes, Index, pFanoutNew );
-    }
-    else // only one fanout - delete the fanout
-    {
-        assert( *ppSpot == pFanoutOld );
-        *ppSpot = pFanoutNew;
-    }
+    Ivy_Obj_t ** ppPlace;
+    ppPlace = Ivy_ObjPrevNextFanoutPlace(pFanin, pFanoutOld);
+    assert( *ppPlace == pFanoutOld );
+    if ( ppPlace )
+        *ppPlace = pFanoutNew;
+    ppPlace = Ivy_ObjNextPrevFanoutPlace(pFanin, pFanoutOld);
+    assert( ppPlace == NULL || *ppPlace == pFanoutOld );
+    if ( ppPlace )
+        *ppPlace = pFanoutNew;
+    // assuming that pFanoutNew already points to the next fanout
 }
 
 /**Function*************************************************************
@@ -208,52 +258,12 @@ void Ivy_ObjPatchFanout( Ivy_Man_t * p, Ivy_Obj_t * pObj, Ivy_Obj_t * pFanoutOld
 ***********************************************************************/
 void Ivy_ObjCollectFanouts( Ivy_Man_t * p, Ivy_Obj_t * pObj, Vec_Ptr_t * vArray )
 {
-    Vec_Ptr_t * vNodes;
-    Ivy_Obj_t * pTemp;
-    int i;
-    assert( p->vFanouts != NULL );
+    Ivy_Obj_t * pFanout;
+    assert( p->fFanout );
     assert( !Ivy_IsComplement(pObj) );
-    // extend the fanout array if needed
-    Vec_PtrFillExtra( p->vFanouts, pObj->Id + 1, NULL );
-    vNodes = Vec_PtrEntry( p->vFanouts, pObj->Id );
-    // clean the resulting array
     Vec_PtrClear( vArray );
-    if ( vNodes == NULL ) // no fanout - nothing to do
-    {
-    }
-    else if ( Ivy_FanoutIsArray(vNodes) ) // the array of fanouts - copy fanouts
-    {
-        vNodes = Ivy_FanoutGetArray(vNodes);
-        Vec_PtrForEachEntry( vNodes, pTemp, i )
-            Vec_PtrPush( vArray, pTemp );
-    }
-    else // only one fanout - add the fanout
-        Vec_PtrPush( vArray, vNodes );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Reads one fanout.]
-
-  Description [Returns fanout if there is only one fanout.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Ivy_Obj_t * Ivy_ObjReadOneFanout( Ivy_Man_t * p, Ivy_Obj_t * pObj )
-{
-    Vec_Ptr_t * vNodes;
-    assert( p->vFanouts != NULL );
-    assert( !Ivy_IsComplement(pObj) );
-    // extend the fanout array if needed
-    Vec_PtrFillExtra( p->vFanouts, pObj->Id + 1, NULL );
-    vNodes = Vec_PtrEntry( p->vFanouts, pObj->Id );
-    // clean the resulting array
-    if ( vNodes && !Ivy_FanoutIsArray(vNodes) ) // only one fanout - return
-        return (Ivy_Obj_t *)vNodes;
-    return NULL;
+    Ivy_ObjForEachFanoutInt( pObj, pFanout )
+        Vec_PtrPush( vArray, pFanout );
 }
 
 /**Function*************************************************************
@@ -269,18 +279,7 @@ Ivy_Obj_t * Ivy_ObjReadOneFanout( Ivy_Man_t * p, Ivy_Obj_t * pObj )
 ***********************************************************************/
 Ivy_Obj_t * Ivy_ObjReadFirstFanout( Ivy_Man_t * p, Ivy_Obj_t * pObj )
 {
-    Vec_Ptr_t * vNodes;
-    assert( p->vFanouts != NULL );
-    assert( !Ivy_IsComplement(pObj) );
-    // extend the fanout array if needed
-    Vec_PtrFillExtra( p->vFanouts, pObj->Id + 1, NULL );
-    vNodes = Vec_PtrEntry( p->vFanouts, pObj->Id );
-    // clean the resulting array
-    if ( vNodes == NULL )
-        return NULL;
-    if ( !Ivy_FanoutIsArray(vNodes) ) // only one fanout - return
-        return (Ivy_Obj_t *)vNodes;
-    return Vec_PtrEntry( Ivy_FanoutGetArray(vNodes), 0 );
+    return pObj->pFanout;
 }
 
 /**Function*************************************************************
@@ -296,20 +295,12 @@ Ivy_Obj_t * Ivy_ObjReadFirstFanout( Ivy_Man_t * p, Ivy_Obj_t * pObj )
 ***********************************************************************/
 int Ivy_ObjFanoutNum( Ivy_Man_t * p, Ivy_Obj_t * pObj )
 {
-    Vec_Ptr_t * vNodes;
-    assert( p->vFanouts != NULL );
-    assert( !Ivy_IsComplement(pObj) );
-    // extend the fanout array if needed
-    Vec_PtrFillExtra( p->vFanouts, pObj->Id + 1, NULL );
-    vNodes = Vec_PtrEntry( p->vFanouts, pObj->Id );
-    // clean the resulting array
-    if ( vNodes == NULL )
-        return 0;
-    if ( !Ivy_FanoutIsArray(vNodes) ) // only one fanout - return
-        return 1;
-    return Vec_PtrSize( Ivy_FanoutGetArray(vNodes) );
+    Ivy_Obj_t * pFanout;
+    int Counter = 0;
+    Ivy_ObjForEachFanoutInt( pObj, pFanout )
+        Counter++;
+    return Counter;
 }
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

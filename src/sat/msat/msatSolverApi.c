@@ -174,11 +174,11 @@ Msat_Solver_t * Msat_SolverAlloc( int nVarsAlloc,
     p->dVarDecay = dVarDecay;
 
     p->pdActivity = ALLOC( double, p->nVarsAlloc );
-    p->pLevels    = ALLOC( int, p->nVarsAlloc );
+    p->pActLevels = ALLOC( int, p->nVarsAlloc );
     for ( i = 0; i < p->nVarsAlloc; i++ )
     {
         p->pdActivity[i] = 0;
-        p->pLevels = 0;
+        p->pActLevels[i] = 0;
     }
 
     p->pAssigns  = ALLOC( int, p->nVarsAlloc ); 
@@ -243,7 +243,7 @@ void Msat_SolverResize( Msat_Solver_t * p, int nVarsAlloc )
     p->nVarsAlloc = nVarsAlloc;
 
     p->pdActivity = REALLOC( double, p->pdActivity, p->nVarsAlloc );
-    p->pLevels    = REALLOC( int, p->pLevels, p->nVarsAlloc );
+    p->pActLevels = REALLOC( int, p->pActLevels, p->nVarsAlloc );
     for ( i = nVarsAllocOld; i < p->nVarsAlloc; i++ )
         p->pdActivity[i] = 0;
 
@@ -399,7 +399,7 @@ void Msat_SolverFree( Msat_Solver_t * p )
     Msat_ClauseVecFree( p->vLearned );
 
     FREE( p->pdActivity );
-    FREE( p->pLevels );
+    FREE( p->pActLevels );
     Msat_OrderFree( p->pOrder );
 
     for ( i = 0; i < 2 * p->nVarsAlloc; i++ )

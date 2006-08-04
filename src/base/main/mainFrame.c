@@ -136,11 +136,11 @@ void Abc_FrameDeallocate( Abc_Frame_t * p )
 {
     extern void Rwt_ManGlobalStop();
     extern void undefine_cube_size();
-    extern void Ivy_TruthManStop();
+//    extern void Ivy_TruthManStop();
 //    Abc_HManStop();
     undefine_cube_size();
     Rwt_ManGlobalStop();
-    Ivy_TruthManStop();
+//    Ivy_TruthManStop();
     if ( p->pManDec ) Dec_ManStop( p->pManDec );
     if ( p->dd )      Extra_StopManager( p->dd );
     Abc_FrameDeleteAllNetworks( p );

@@ -61,7 +61,7 @@ int Ivy_ManRewritePre( Ivy_Man_t * p, int fUpdateLevel, int fUseZeroCost, int fV
     if ( pManRwt == NULL )
         return 0; 
     // create fanouts
-    if ( fUpdateLevel && p->vFanouts == NULL )
+    if ( fUpdateLevel && p->fFanout == 0 )
         Ivy_ManStartFanout( p );
     // compute the reverse levels if level update is requested
     if ( fUpdateLevel )

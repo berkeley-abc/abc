@@ -46,7 +46,7 @@ void Msat_SolverVarBumpActivity( Msat_Solver_t * p, Msat_Lit_t Lit )
         return;
     Var = MSAT_LIT2VAR(Lit);
     if ( (p->pdActivity[Var] += p->dVarInc) > 1e100 )
-//    if ( (p->pdActivity[Var] += p->dVarInc * (1.0 + 0.005*p->pLevel[Var])) > 1e100 )
+//    if ( (p->pdActivity[Var] += p->dVarInc * (1.0 + 0.005*p->pActLevels[Var])) > 1e100 )
         Msat_SolverVarRescaleActivity( p );
     Msat_OrderUpdate( p->pOrder, Var );
 }
