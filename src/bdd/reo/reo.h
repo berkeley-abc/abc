@@ -27,6 +27,8 @@ extern "C" {
 #include <stdlib.h>
 #include "extra.h"
 
+//#pragma warning( disable : 4514 )
+
 ////////////////////////////////////////////////////////////////////////
 ///                     MACRO DEFINITIONS                            ///
 ////////////////////////////////////////////////////////////////////////
@@ -91,9 +93,9 @@ struct _reo_plane
 struct _reo_hash
 {
     int         Sign;            // signature of the current cache operation
-    unsigned    Arg1;            // the first argument
-    unsigned    Arg2;            // the second argument
-    unsigned    Arg3;            // the second argument
+    reo_unit *  Arg1;            // the first argument
+    reo_unit *  Arg2;            // the second argument
+    reo_unit *  Arg3;            // the third argument
 };
 
 struct _reo_man

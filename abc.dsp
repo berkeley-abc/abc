@@ -2102,6 +2102,10 @@ SOURCE=.\src\temp\ivy\ivyCut.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\temp\ivy\ivyCutTrav.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\temp\ivy\ivyDfs.c
 # End Source File
 # Begin Source File
@@ -2111,6 +2115,10 @@ SOURCE=.\src\temp\ivy\ivyDsd.c
 # Begin Source File
 
 SOURCE=.\src\temp\ivy\ivyFanout.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\ivy\ivyHaig.c
 # End Source File
 # Begin Source File
 
@@ -2203,50 +2211,6 @@ SOURCE=.\src\temp\esop\esopMin.c
 # Begin Source File
 
 SOURCE=.\src\temp\esop\esopUtil.c
-# End Source File
-# End Group
-# Begin Group "xyz"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\temp\xyz\xyz.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\xyz\xyzBuild.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\xyz\xyzCore.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\xyz\xyzInt.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\xyz\xyzMan.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\xyz\xyzMinEsop.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\xyz\xyzMinMan.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\xyz\xyzMinSop.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\xyz\xyzMinUtil.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\xyz\xyzTest.c
 # End Source File
 # End Group
 # Begin Group "rwt"

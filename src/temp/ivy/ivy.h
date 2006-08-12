@@ -110,14 +110,17 @@ struct Ivy_Man_t_
     int              nTravIds;       // the traversal ID
     int              nLevelMax;      // the maximum level
     Vec_Int_t *      vRequired;      // required times
-//    Vec_Ptr_t *      vFanouts;       // representation of the fanouts
     int              fFanout;        // fanout is allocated
     void *           pData;          // the temporary data
     void *           pCopy;          // the temporary data
+    Ivy_Man_t *      pHaig;          // history AIG if present
     // memory management
     Vec_Ptr_t *      vChunks;        // allocated memory pieces
     Vec_Ptr_t *      vPages;         // memory pages used by nodes
     Ivy_Obj_t *      pListFree;      // the list of free nodes 
+    // timing statistics
+    int              time1;
+    int              time2;
 };
 
 
@@ -197,51 +200,54 @@ static inline int          Ivy_ManNodeNum( Ivy_Man_t * p )        { return p->nO
 static inline int          Ivy_ManHashObjNum( Ivy_Man_t * p )     { return p->nObjs[IVY_AND]+p->nObjs[IVY_EXOR]+p->nObjs[IVY_LATCH];     }
 static inline int          Ivy_ManGetCost( Ivy_Man_t * p )        { return p->nObjs[IVY_AND]+3*p->nObjs[IVY_EXOR]+8*p->nObjs[IVY_LATCH]; }
 
-static inline Ivy_Type_t   Ivy_ObjType( Ivy_Obj_t * pObj )        { assert( !Ivy_IsComplement(pObj) ); return pObj->Type;               }
-static inline Ivy_Init_t   Ivy_ObjInit( Ivy_Obj_t * pObj )        { assert( !Ivy_IsComplement(pObj) ); return pObj->Init;               }
-static inline int          Ivy_ObjIsConst1( Ivy_Obj_t * pObj )    { assert( !Ivy_IsComplement(pObj) ); return pObj->Id == 0;            }
-static inline int          Ivy_ObjIsGhost( Ivy_Obj_t * pObj )     { assert( !Ivy_IsComplement(pObj) ); return pObj->Id < 0;             }
-static inline int          Ivy_ObjIsNone( Ivy_Obj_t * pObj )      { assert( !Ivy_IsComplement(pObj) ); return pObj->Type == IVY_NONE;   }
-static inline int          Ivy_ObjIsPi( Ivy_Obj_t * pObj )        { assert( !Ivy_IsComplement(pObj) ); return pObj->Type == IVY_PI;     }
-static inline int          Ivy_ObjIsPo( Ivy_Obj_t * pObj )        { assert( !Ivy_IsComplement(pObj) ); return pObj->Type == IVY_PO;     }
-static inline int          Ivy_ObjIsCi( Ivy_Obj_t * pObj )        { assert( !Ivy_IsComplement(pObj) ); return pObj->Type == IVY_PI || pObj->Type == IVY_LATCH; }
-static inline int          Ivy_ObjIsCo( Ivy_Obj_t * pObj )        { assert( !Ivy_IsComplement(pObj) ); return pObj->Type == IVY_PO || pObj->Type == IVY_LATCH; }
-static inline int          Ivy_ObjIsAssert( Ivy_Obj_t * pObj )    { assert( !Ivy_IsComplement(pObj) ); return pObj->Type == IVY_ASSERT; }
-static inline int          Ivy_ObjIsLatch( Ivy_Obj_t * pObj )     { assert( !Ivy_IsComplement(pObj) ); return pObj->Type == IVY_LATCH;  }
-static inline int          Ivy_ObjIsAnd( Ivy_Obj_t * pObj )       { assert( !Ivy_IsComplement(pObj) ); return pObj->Type == IVY_AND;    }
-static inline int          Ivy_ObjIsExor( Ivy_Obj_t * pObj )      { assert( !Ivy_IsComplement(pObj) ); return pObj->Type == IVY_EXOR;   }
-static inline int          Ivy_ObjIsBuf( Ivy_Obj_t * pObj )       { assert( !Ivy_IsComplement(pObj) ); return pObj->Type == IVY_BUF;    }
-static inline int          Ivy_ObjIsNode( Ivy_Obj_t * pObj )      { assert( !Ivy_IsComplement(pObj) ); return pObj->Type == IVY_AND || pObj->Type == IVY_EXOR; }
-static inline int          Ivy_ObjIsTerm( Ivy_Obj_t * pObj )      { assert( !Ivy_IsComplement(pObj) ); return pObj->Type == IVY_PI  || pObj->Type == IVY_PO || pObj->Type == IVY_ASSERT; }
-static inline int          Ivy_ObjIsHash( Ivy_Obj_t * pObj )      { assert( !Ivy_IsComplement(pObj) ); return pObj->Type == IVY_AND || pObj->Type == IVY_EXOR || pObj->Type == IVY_LATCH; }
-static inline int          Ivy_ObjIsOneFanin( Ivy_Obj_t * pObj )  { assert( !Ivy_IsComplement(pObj) ); return pObj->Type == IVY_PO  || pObj->Type == IVY_ASSERT || pObj->Type == IVY_BUF || pObj->Type == IVY_LATCH; }
+static inline Ivy_Type_t   Ivy_ObjType( Ivy_Obj_t * pObj )        { return pObj->Type;               }
+static inline Ivy_Init_t   Ivy_ObjInit( Ivy_Obj_t * pObj )        { return pObj->Init;               }
+static inline int          Ivy_ObjIsConst1( Ivy_Obj_t * pObj )    { return pObj->Id == 0;            }
+static inline int          Ivy_ObjIsGhost( Ivy_Obj_t * pObj )     { return pObj->Id < 0;             }
+static inline int          Ivy_ObjIsNone( Ivy_Obj_t * pObj )      { return pObj->Type == IVY_NONE;   }
+static inline int          Ivy_ObjIsPi( Ivy_Obj_t * pObj )        { return pObj->Type == IVY_PI;     }
+static inline int          Ivy_ObjIsPo( Ivy_Obj_t * pObj )        { return pObj->Type == IVY_PO;     }
+static inline int          Ivy_ObjIsCi( Ivy_Obj_t * pObj )        { return pObj->Type == IVY_PI || pObj->Type == IVY_LATCH; }
+static inline int          Ivy_ObjIsCo( Ivy_Obj_t * pObj )        { return pObj->Type == IVY_PO || pObj->Type == IVY_LATCH; }
+static inline int          Ivy_ObjIsAssert( Ivy_Obj_t * pObj )    { return pObj->Type == IVY_ASSERT; }
+static inline int          Ivy_ObjIsLatch( Ivy_Obj_t * pObj )     { return pObj->Type == IVY_LATCH;  }
+static inline int          Ivy_ObjIsAnd( Ivy_Obj_t * pObj )       { return pObj->Type == IVY_AND;    }
+static inline int          Ivy_ObjIsExor( Ivy_Obj_t * pObj )      { return pObj->Type == IVY_EXOR;   }
+static inline int          Ivy_ObjIsBuf( Ivy_Obj_t * pObj )       { return pObj->Type == IVY_BUF;    }
+static inline int          Ivy_ObjIsNode( Ivy_Obj_t * pObj )      { return pObj->Type == IVY_AND || pObj->Type == IVY_EXOR; }
+static inline int          Ivy_ObjIsTerm( Ivy_Obj_t * pObj )      { return pObj->Type == IVY_PI  || pObj->Type == IVY_PO || pObj->Type == IVY_ASSERT; }
+static inline int          Ivy_ObjIsHash( Ivy_Obj_t * pObj )      { return pObj->Type == IVY_AND || pObj->Type == IVY_EXOR || pObj->Type == IVY_LATCH; }
+static inline int          Ivy_ObjIsOneFanin( Ivy_Obj_t * pObj )  { return pObj->Type == IVY_PO  || pObj->Type == IVY_ASSERT || pObj->Type == IVY_BUF || pObj->Type == IVY_LATCH; }
 
-static inline int          Ivy_ObjIsMarkA( Ivy_Obj_t * pObj )     { assert( !Ivy_IsComplement(pObj) ); return pObj->fMarkA;  }
-static inline void         Ivy_ObjSetMarkA( Ivy_Obj_t * pObj )    { assert( !Ivy_IsComplement(pObj) ); pObj->fMarkA = 1;     }
-static inline void         Ivy_ObjClearMarkA( Ivy_Obj_t * pObj )  { assert( !Ivy_IsComplement(pObj) ); pObj->fMarkA = 0;     }
+static inline int          Ivy_ObjIsMarkA( Ivy_Obj_t * pObj )     { return pObj->fMarkA;  }
+static inline void         Ivy_ObjSetMarkA( Ivy_Obj_t * pObj )    { pObj->fMarkA = 1;     }
+static inline void         Ivy_ObjClearMarkA( Ivy_Obj_t * pObj )  { pObj->fMarkA = 0;     }
  
-static inline void         Ivy_ObjSetTravId( Ivy_Obj_t * pObj, int TravId ) { assert( !Ivy_IsComplement(pObj) ); pObj->TravId = TravId;                                              }
-static inline void         Ivy_ObjSetTravIdCurrent( Ivy_Man_t * p, Ivy_Obj_t * pObj )      { assert( !Ivy_IsComplement(pObj) ); pObj->TravId = p->nTravIds;                          }
-static inline void         Ivy_ObjSetTravIdPrevious( Ivy_Man_t * p, Ivy_Obj_t * pObj )     { assert( !Ivy_IsComplement(pObj) ); pObj->TravId = p->nTravIds - 1;                      }
-static inline int          Ivy_ObjIsTravIdCurrent( Ivy_Man_t * p, Ivy_Obj_t * pObj )       { assert( !Ivy_IsComplement(pObj) ); return (int )((int)pObj->TravId == p->nTravIds);     }
-static inline int          Ivy_ObjIsTravIdPrevious( Ivy_Man_t * p, Ivy_Obj_t * pObj )      { assert( !Ivy_IsComplement(pObj) ); return (int )((int)pObj->TravId == p->nTravIds - 1); }
+static inline void         Ivy_ObjSetTravId( Ivy_Obj_t * pObj, int TravId )                { pObj->TravId = TravId;                               }
+static inline void         Ivy_ObjSetTravIdCurrent( Ivy_Man_t * p, Ivy_Obj_t * pObj )      { pObj->TravId = p->nTravIds;                          }
+static inline void         Ivy_ObjSetTravIdPrevious( Ivy_Man_t * p, Ivy_Obj_t * pObj )     { pObj->TravId = p->nTravIds - 1;                      }
+static inline int          Ivy_ObjIsTravIdCurrent( Ivy_Man_t * p, Ivy_Obj_t * pObj )       { return (int )((int)pObj->TravId == p->nTravIds);     }
+static inline int          Ivy_ObjIsTravIdPrevious( Ivy_Man_t * p, Ivy_Obj_t * pObj )      { return (int )((int)pObj->TravId == p->nTravIds - 1); }
 
-static inline int          Ivy_ObjId( Ivy_Obj_t * pObj )          { assert( !Ivy_IsComplement(pObj) ); return pObj->Id;                               }
-static inline int          Ivy_ObjPhase( Ivy_Obj_t * pObj )       { assert( !Ivy_IsComplement(pObj) ); return pObj->fPhase;                           }
-static inline int          Ivy_ObjExorFanout( Ivy_Obj_t * pObj )  { assert( !Ivy_IsComplement(pObj) ); return pObj->fExFan;                           }
-static inline int          Ivy_ObjRefs( Ivy_Obj_t * pObj )        { assert( !Ivy_IsComplement(pObj) ); return pObj->nRefs;                            }
-static inline void         Ivy_ObjRefsInc( Ivy_Obj_t * pObj )     { assert( !Ivy_IsComplement(pObj) ); pObj->nRefs++;                                 }
-static inline void         Ivy_ObjRefsDec( Ivy_Obj_t * pObj )     { assert( !Ivy_IsComplement(pObj) ); assert( pObj->nRefs > 0 ); pObj->nRefs--;      }
-static inline int          Ivy_ObjFaninId0( Ivy_Obj_t * pObj )    { assert( !Ivy_IsComplement(pObj) ); return pObj->pFanin0? Ivy_ObjId(Ivy_Regular(pObj->pFanin0)) : 0; }
-static inline int          Ivy_ObjFaninId1( Ivy_Obj_t * pObj )    { assert( !Ivy_IsComplement(pObj) ); return pObj->pFanin1? Ivy_ObjId(Ivy_Regular(pObj->pFanin1)) : 0; }
-static inline int          Ivy_ObjFaninC0( Ivy_Obj_t * pObj )     { assert( !Ivy_IsComplement(pObj) ); return Ivy_IsComplement(pObj->pFanin0);        }
-static inline int          Ivy_ObjFaninC1( Ivy_Obj_t * pObj )     { assert( !Ivy_IsComplement(pObj) ); return Ivy_IsComplement(pObj->pFanin1);        }
-static inline Ivy_Obj_t *  Ivy_ObjFanin0( Ivy_Obj_t * pObj )      { assert( !Ivy_IsComplement(pObj) ); return Ivy_Regular(pObj->pFanin0);             }
-static inline Ivy_Obj_t *  Ivy_ObjFanin1( Ivy_Obj_t * pObj )      { assert( !Ivy_IsComplement(pObj) ); return Ivy_Regular(pObj->pFanin1);             }
-static inline Ivy_Obj_t *  Ivy_ObjChild0( Ivy_Obj_t * pObj )      { assert( !Ivy_IsComplement(pObj) ); return pObj->pFanin0;                          }
-static inline Ivy_Obj_t *  Ivy_ObjChild1( Ivy_Obj_t * pObj )      { assert( !Ivy_IsComplement(pObj) ); return pObj->pFanin1;                          }
-static inline int          Ivy_ObjLevel( Ivy_Obj_t * pObj )       { assert( !Ivy_IsComplement(pObj) ); return pObj->Level;                            }
-static inline int          Ivy_ObjLevelNew( Ivy_Obj_t * pObj )    { assert( !Ivy_IsComplement(pObj) ); return 1 + Ivy_ObjIsExor(pObj) + IVY_MAX(Ivy_ObjFanin0(pObj)->Level, Ivy_ObjFanin1(pObj)->Level);       }
+static inline int          Ivy_ObjId( Ivy_Obj_t * pObj )          { return pObj->Id;                               }
+static inline int          Ivy_ObjTravId( Ivy_Obj_t * pObj )      { return pObj->TravId;                           }
+static inline int          Ivy_ObjPhase( Ivy_Obj_t * pObj )       { return pObj->fPhase;                           }
+static inline int          Ivy_ObjExorFanout( Ivy_Obj_t * pObj )  { return pObj->fExFan;                           }
+static inline int          Ivy_ObjRefs( Ivy_Obj_t * pObj )        { return pObj->nRefs;                            }
+static inline void         Ivy_ObjRefsInc( Ivy_Obj_t * pObj )     { pObj->nRefs++;                                 }
+static inline void         Ivy_ObjRefsDec( Ivy_Obj_t * pObj )     { assert( pObj->nRefs > 0 ); pObj->nRefs--;      }
+static inline int          Ivy_ObjFaninId0( Ivy_Obj_t * pObj )    { return pObj->pFanin0? Ivy_ObjId(Ivy_Regular(pObj->pFanin0)) : 0; }
+static inline int          Ivy_ObjFaninId1( Ivy_Obj_t * pObj )    { return pObj->pFanin1? Ivy_ObjId(Ivy_Regular(pObj->pFanin1)) : 0; }
+static inline int          Ivy_ObjFaninC0( Ivy_Obj_t * pObj )     { return Ivy_IsComplement(pObj->pFanin0);        }
+static inline int          Ivy_ObjFaninC1( Ivy_Obj_t * pObj )     { return Ivy_IsComplement(pObj->pFanin1);        }
+static inline Ivy_Obj_t *  Ivy_ObjFanin0( Ivy_Obj_t * pObj )      { return Ivy_Regular(pObj->pFanin0);             }
+static inline Ivy_Obj_t *  Ivy_ObjFanin1( Ivy_Obj_t * pObj )      { return Ivy_Regular(pObj->pFanin1);             }
+static inline Ivy_Obj_t *  Ivy_ObjChild0( Ivy_Obj_t * pObj )      { return pObj->pFanin0;                          }
+static inline Ivy_Obj_t *  Ivy_ObjChild1( Ivy_Obj_t * pObj )      { return pObj->pFanin1;                          }
+static inline Ivy_Obj_t *  Ivy_ObjChild0Equiv( Ivy_Obj_t * pObj ) { assert( !Ivy_IsComplement(pObj) ); return Ivy_ObjFanin0(pObj)? Ivy_NotCond(Ivy_ObjFanin0(pObj)->pEquiv, Ivy_ObjFaninC0(pObj)) : NULL;  }
+static inline Ivy_Obj_t *  Ivy_ObjChild1Equiv( Ivy_Obj_t * pObj ) { assert( !Ivy_IsComplement(pObj) ); return Ivy_ObjFanin1(pObj)? Ivy_NotCond(Ivy_ObjFanin1(pObj)->pEquiv, Ivy_ObjFaninC1(pObj)) : NULL;  }
+static inline int          Ivy_ObjLevel( Ivy_Obj_t * pObj )       { return pObj->Level;                            }
+static inline int          Ivy_ObjLevelNew( Ivy_Obj_t * pObj )    { return 1 + Ivy_ObjIsExor(pObj) + IVY_MAX(Ivy_ObjFanin0(pObj)->Level, Ivy_ObjFanin1(pObj)->Level);       }
 static inline void         Ivy_ObjClean( Ivy_Obj_t * pObj )       
 { 
     int IdSaved = pObj->Id; 
@@ -415,10 +421,19 @@ extern void            Ivy_ObjPatchFanout( Ivy_Man_t * p, Ivy_Obj_t * pObj, Ivy_
 extern void            Ivy_ObjCollectFanouts( Ivy_Man_t * p, Ivy_Obj_t * pObj, Vec_Ptr_t * vArray );
 extern Ivy_Obj_t *     Ivy_ObjReadFirstFanout( Ivy_Man_t * p, Ivy_Obj_t * pObj );
 extern int             Ivy_ObjFanoutNum( Ivy_Man_t * p, Ivy_Obj_t * pObj );
+/*=== ivyHaig.c ==========================================================*/
+extern void            Ivy_ManHaigStart( Ivy_Man_t * p );
+extern void            Ivy_ManHaigTrasfer( Ivy_Man_t * p, Ivy_Man_t * pNew );
+extern void            Ivy_ManHaigStop( Ivy_Man_t * p );
+extern void            Ivy_ManHaigPrintStats( Ivy_Man_t * p );
+extern void            Ivy_ManHaigCreateObj( Ivy_Man_t * p, Ivy_Obj_t * pObj );
+extern void            Ivy_ManHaigCreateChoice( Ivy_Man_t * p, Ivy_Obj_t * pObjOld, Ivy_Obj_t * pObjNew );
+extern void            Ivy_ManHaigSimulate( Ivy_Man_t * p );
 /*=== ivyIsop.c ==========================================================*/
 extern int             Ivy_TruthIsop( unsigned * puTruth, int nVars, Vec_Int_t * vCover, int fTryBoth );
 /*=== ivyMan.c ==========================================================*/
 extern Ivy_Man_t *     Ivy_ManStart();
+extern Ivy_Man_t *     Ivy_ManDup( Ivy_Man_t * p );
 extern void            Ivy_ManStop( Ivy_Man_t * p );
 extern int             Ivy_ManCleanup( Ivy_Man_t * p );
 extern int             Ivy_ManPropagateBuffers( Ivy_Man_t * p, int fUpdateLevel );

@@ -79,7 +79,6 @@ Ivy_Obj_t * Ivy_ObjCreate( Ivy_Man_t * p, Ivy_Obj_t * pGhost )
     assert( Ivy_TableLookup(p, pGhost) == NULL );
     // get memory for the new object
     pObj = Ivy_ManFetchMemory( p );
-//printf( "Reusing %p.\n", pObj );
     assert( Ivy_ObjIsNone(pObj) );
     pObj->Id = Vec_PtrSize(p->vObjs);
     Vec_PtrPush( p->vObjs, pObj );
@@ -115,6 +114,9 @@ Ivy_Obj_t * Ivy_ObjCreate( Ivy_Man_t * p, Ivy_Obj_t * pGhost )
     // update node counters of the manager
     p->nObjs[Ivy_ObjType(pObj)]++;
     p->nCreated++;
+    // if HAIG is defined, create a corresponding node
+    if ( p->pHaig )
+        Ivy_ManHaigCreateObj( p, pObj );
     return pObj;
 }
 
@@ -258,7 +260,6 @@ void Ivy_ObjDelete( Ivy_Man_t * p, Ivy_Obj_t * pObj, int fFreeTop )
         // free the node
         Vec_PtrWriteEntry( p->vObjs, pObj->Id, NULL );
         Ivy_ManRecycleMemory( p, pObj );
-//printf( "Recycling after delete %p.\n", pObj );
     }
     else
     {
@@ -312,7 +313,7 @@ void Ivy_ObjDelete_rec( Ivy_Man_t * p, Ivy_Obj_t * pObj, int fFreeTop )
 ***********************************************************************/
 void Ivy_ObjReplace( Ivy_Man_t * p, Ivy_Obj_t * pObjOld, Ivy_Obj_t * pObjNew, int fDeleteOld, int fFreeTop, int fUpdateLevel )
 {
-    int nRefsOld;
+    int nRefsOld;//, clk;
     // the object to be replaced cannot be complemented
     assert( !Ivy_IsComplement(pObjOld) );
     // the object to be replaced cannot be a terminal
@@ -321,12 +322,16 @@ void Ivy_ObjReplace( Ivy_Man_t * p, Ivy_Obj_t * pObjOld, Ivy_Obj_t * pObjNew, in
     assert( !Ivy_ObjIsBuf(Ivy_Regular(pObjNew)) );
     // the object cannot be the same
     assert( pObjOld != Ivy_Regular(pObjNew) );
+    // if HAIG is defined, create the choice node
+    if ( p->pHaig )
+        Ivy_ManHaigCreateChoice( p, pObjOld, pObjNew );
     // if the new object is complemented or already used, add the buffer
     if ( Ivy_IsComplement(pObjNew) || Ivy_ObjIsLatch(pObjNew) || Ivy_ObjRefs(pObjNew) > 0 || Ivy_ObjIsPi(pObjNew) || Ivy_ObjIsConst1(pObjNew) )
         pObjNew = Ivy_ObjCreate( p, Ivy_ObjCreateGhost(p, pObjNew, NULL, IVY_BUF, IVY_INIT_NONE) );
     assert( !Ivy_IsComplement(pObjNew) );
     if ( fUpdateLevel )
     {
+//clk = clock();
         // if the new node's arrival time is different, recursively update arrival time of the fanouts
         if ( p->fFanout && !Ivy_ObjIsBuf(pObjNew) && pObjOld->Level != pObjNew->Level )
         {
@@ -334,7 +339,9 @@ void Ivy_ObjReplace( Ivy_Man_t * p, Ivy_Obj_t * pObjOld, Ivy_Obj_t * pObjNew, in
             pObjOld->Level = pObjNew->Level;
             Ivy_ObjUpdateLevel_rec( p, pObjOld );
         }
+//p->time1 += clock() - clk;
         // if the new node's required time has changed, recursively update required time of the fanins
+//clk = clock();
         if ( p->vRequired )
         {
             int ReqNew = Vec_IntEntry(p->vRequired, pObjOld->Id);
@@ -344,6 +351,7 @@ void Ivy_ObjReplace( Ivy_Man_t * p, Ivy_Obj_t * pObjOld, Ivy_Obj_t * pObjNew, in
                 Ivy_ObjUpdateLevelR_rec( p, pObjNew, ReqNew );
             }
         }
+//p->time2 += clock() - clk;
     }
     // delete the old object
     if ( fDeleteOld )
@@ -375,7 +383,6 @@ void Ivy_ObjReplace( Ivy_Man_t * p, Ivy_Obj_t * pObjOld, Ivy_Obj_t * pObjNew, in
     // recycle the object that was taken over by pObjOld
     Vec_PtrWriteEntry( p->vObjs, pObjNew->Id, NULL );
     Ivy_ManRecycleMemory( p, pObjNew );
-//printf( "Recycling after patch %p.\n", pObjNew );
     // if the new node is the buffer propagate it
     if ( p->fFanout && Ivy_ObjIsBuf(pObjOld) )
         Vec_PtrPush( p->vBufs, pObjOld );

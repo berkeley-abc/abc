@@ -111,7 +111,6 @@ Abc_Frame_t * Abc_FrameAllocate()
     // set the starting step
     p->nSteps = 1;
     p->fBatchMode = 0;
-    p->fProgress = 1;
     // initialize decomposition manager
     define_cube_size(20);
     set_espresso_flags();
@@ -176,7 +175,7 @@ void Abc_FrameRestart( Abc_Frame_t * p )
 ***********************************************************************/
 bool Abc_FrameShowProgress( Abc_Frame_t * p )
 {
-    return p->fProgress;
+    return Abc_FrameIsFlagEnabled( "progressbar" );
 }
 
 

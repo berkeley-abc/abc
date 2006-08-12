@@ -341,7 +341,7 @@ extern int         Extra_MmStepReadMemUsage( Extra_MmStep_t * p );
 
 /*=== extraUtilMisc.c ========================================================*/
 
-/* finds the smallest integer larger of equal than the logarithm. */
+/* finds the smallest integer larger or equal than the logarithm */
 extern int         Extra_Base2Log( unsigned Num );
 extern int         Extra_Base2LogDouble( double Num );
 extern int         Extra_Base10Log( unsigned Num );
@@ -400,7 +400,15 @@ static inline void Extra_ProgressBarUpdate( ProgressBar * p, int nItemsCur, char
 
 /*=== extraUtilTruth.c ================================================================*/
 
-static inline int Extra_TruthWordNum( int nVars )  { return nVars <= 5 ? 1 : (1 << (nVars - 5)); }
+static inline int   Extra_Float2Int( float Val )     { return *((int *)&Val);               }
+static inline float Extra_Int2Float( int Num )       { return *((float *)&Num);             }
+static inline int   Extra_BitWordNum( int nBits )    { return nBits/(8*sizeof(unsigned)) + ((nBits%(8*sizeof(unsigned))) > 0);  }
+static inline int   Extra_TruthWordNum( int nVars )  { return nVars <= 5 ? 1 : (1 << (nVars - 5)); }
+
+static inline void  Extra_TruthSetBit( unsigned * p, int Bit )   { p[Bit>>5] |= (1<<(Bit & 31));               }
+static inline void  Extra_TruthXorBit( unsigned * p, int Bit )   { p[Bit>>5] ^= (1<<(Bit & 31));               }
+static inline int   Extra_TruthHasBit( unsigned * p, int Bit )   { return (p[Bit>>5] & (1<<(Bit & 31))) > 0;   }
+
 static inline int Extra_WordCountOnes( unsigned uWord )
 {
     uWord = (uWord & 0x55555555) + ((uWord>>1) & 0x55555555);
@@ -408,6 +416,13 @@ static inline int Extra_WordCountOnes( unsigned uWord )
     uWord = (uWord & 0x0F0F0F0F) + ((uWord>>4) & 0x0F0F0F0F);
     uWord = (uWord & 0x00FF00FF) + ((uWord>>8) & 0x00FF00FF);
     return  (uWord & 0x0000FFFF) + (uWord>>16);
+}
+static inline int Extra_TruthCountOnes( unsigned * pIn, int nVars )
+{
+    int w, Counter = 0;
+    for ( w = Extra_TruthWordNum(nVars)-1; w >= 0; w-- )
+        Counter += Extra_WordCountOnes(pIn[w]);
+    return Counter;
 }
 static inline int Extra_TruthIsEqual( unsigned * pIn0, unsigned * pIn1, int nVars )
 {
@@ -504,18 +519,26 @@ extern void     Extra_TruthForall( unsigned * pTruth, int nVars, int iVar );
 extern void     Extra_TruthMux( unsigned * pOut, unsigned * pCof0, unsigned * pCof1, int nVars, int iVar );
 extern void     Extra_TruthChangePhase( unsigned * pTruth, int nVars, int iVar );
 extern int      Extra_TruthMinCofSuppOverlap( unsigned * pTruth, int nVars, int * pVarMin );
-extern int      Extra_TruthCountOnes( unsigned * pTruth, int nVars );
 extern void     Extra_TruthCountOnesInCofs( unsigned * pTruth, int nVars, short * pStore );
 extern unsigned Extra_TruthHash( unsigned * pIn, int nWords );
 extern unsigned Extra_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars, char * pCanonPerm, short * pStore );
 
 /*=== extraUtilUtil.c ================================================================*/
 
+#ifndef ALLOC
 #define ALLOC(type, num)     ((type *) malloc(sizeof(type) * (num)))
+#endif
+
+#ifndef FREE
 #define FREE(obj)             ((obj) ? (free((char *) (obj)), (obj) = 0) : 0)
+#endif
+
+#ifndef REALLOC
 #define REALLOC(type, obj, num)    \
         ((obj) ? ((type *) realloc((char *)(obj), sizeof(type) * (num))) : \
          ((type *) malloc(sizeof(type) * (num))))
+#endif
+
 
 extern long        Extra_CpuTime();
 extern int         Extra_GetSoftDataLimit();

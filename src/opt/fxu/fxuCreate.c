@@ -88,13 +88,13 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
         printf( "The current network does not have SOPs to perform extraction.\n" );
         return NULL;
     }
-
+/*
     if ( nPairsStore > 10000000 )
     {
         printf( "The problem is too large to be solved by \"fxu\" (%d cubes and %d cube pairs)\n", nCubesTotal, nPairsStore );
         return NULL;
     }
-
+*/
     // start the matrix
     p = Fxu_MatrixAllocate();
     // create the column labels 

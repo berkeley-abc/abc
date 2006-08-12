@@ -80,10 +80,6 @@ int Ivy_ManRewriteSeq( Ivy_Man_t * p, int fUseZeroCost, int fVerbose )
         // stop if all nodes have been tried once
         if ( i > nNodes )
             break;
-        if ( i == 8648 )
-        {
-            int x = 0;
-        }
         // for each cut, try to resynthesize it
         nGain = Ivy_NodeRewriteSeq( p, pManRwt, pNode, fUseZeroCost );
         if ( nGain > 0 || nGain == 0 && fUseZeroCost )

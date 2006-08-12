@@ -148,7 +148,6 @@ Abc_Ntk_t * Abc_NtkBddToMuxes( Abc_Ntk_t * pNtk )
 void Abc_NtkBddToMuxesPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
 {
     ProgressBar * pProgress;
-    DdManager * dd = pNtk->pManFunc;
     Abc_Obj_t * pNode, * pNodeNew;
     Vec_Ptr_t * vNodes;
     int i;

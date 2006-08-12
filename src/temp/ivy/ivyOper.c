@@ -210,6 +210,45 @@ Ivy_Obj_t * Ivy_Maj( Ivy_Man_t * p, Ivy_Obj_t * pA, Ivy_Obj_t * pB, Ivy_Obj_t * 
 
 /**Function*************************************************************
 
+  Synopsis    [Constructs the well-balanced tree of gates.]
+
+  Description [Disregards levels and possible logic sharing.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ivy_Obj_t * Ivy_Multi_rec( Ivy_Man_t * p, Ivy_Obj_t ** ppObjs, int nObjs, Ivy_Type_t Type )
+{
+    Ivy_Obj_t * pObj1, * pObj2;
+    if ( nObjs == 1 )
+        return ppObjs[0];
+    pObj1 = Ivy_Multi_rec( p, ppObjs,           nObjs/2,         Type );
+    pObj2 = Ivy_Multi_rec( p, ppObjs + nObjs/2, nObjs - nObjs/2, Type );
+    return Ivy_Oper( p, pObj1, pObj2, Type );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Old code.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ivy_Obj_t * Ivy_Multi( Ivy_Man_t * p, Ivy_Obj_t ** pArgs, int nArgs, Ivy_Type_t Type )
+{
+    assert( Type == IVY_AND || Type == IVY_EXOR );
+    assert( nArgs > 0 );
+    return Ivy_Multi_rec( p, pArgs, nArgs, Type );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Implements the miter.]
 
   Description []

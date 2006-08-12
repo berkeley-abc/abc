@@ -89,7 +89,7 @@ void Ivy_ManAddMemory( Ivy_Man_t * p )
     int i, nBytes;
     assert( sizeof(Ivy_Obj_t) <= 64 );
     assert( p->pListFree == NULL );
-    assert( (Ivy_ManObjNum(p) & IVY_PAGE_MASK) == 0 );
+//    assert( (Ivy_ManObjNum(p) & IVY_PAGE_MASK) == 0 );
     // allocate new memory page
     nBytes = sizeof(Ivy_Obj_t) * (1<<IVY_PAGE_SIZE) + 64;
     pMemory = ALLOC( char, nBytes );

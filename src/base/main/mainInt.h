@@ -55,7 +55,6 @@ struct Abc_Frame_t_
     int             nSteps;      // the counter of different network processed
     int             fAutoexac;   // marks the autoexec mode
     int                fBatchMode;     // are we invoked in batch mode?
-    int             fProgress;   // shows progress bars
     // output streams
     FILE *          Out;
     FILE *          Err;

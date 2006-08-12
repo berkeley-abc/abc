@@ -330,7 +330,7 @@ void reoProfileWidthPrint( reo_man * p )
              WidthMax = p->pPlanes[i].statsWidth;
         TotalWidth += p->pPlanes[i].statsWidth;
     }
-    assert( p->nWidthCur = TotalWidth );
+    assert( p->nWidthCur == TotalWidth );
     printf( "WIDTH:  " );
     printf( "Maximum = %5d.  ", WidthMax );
     printf( "Total = %7d.  ", p->nWidthCur );

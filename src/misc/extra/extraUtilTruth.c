@@ -782,26 +782,6 @@ void Extra_TruthChangePhase( unsigned * pTruth, int nVars, int iVar )
 
 /**Function*************************************************************
 
-  Synopsis    [Changes phase of the function w.r.t. one variable.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Extra_TruthCountOnes( unsigned * pTruth, int nVars )
-{
-    int nWords = Extra_TruthWordNum( nVars );
-    int i, Counter = 0;
-    for ( i = 0; i < nWords; i++ )
-        Counter += Extra_WordCountOnes( pTruth[i] );
-    return Counter;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Computes minimum overlap in supports of cofactors.]
 
   Description []

@@ -271,9 +271,9 @@ double reoReorderSwapAdjacentVars( reo_man * p, int lev0, int fMovingUp )
                    HKey = (HKey+1) % p->nTableSize );
             assert( p->HTable[HKey].Sign != p->Signature );
             p->HTable[HKey].Sign = p->Signature;
-            p->HTable[HKey].Arg1 = (unsigned)pUnitE;
-            p->HTable[HKey].Arg2 = (unsigned)pUnitT;
-            p->HTable[HKey].Arg3 = (unsigned)pUnit;
+            p->HTable[HKey].Arg1 = pUnitE;
+            p->HTable[HKey].Arg2 = pUnitT;
+            p->HTable[HKey].Arg3 = pUnit;
 
             nNodesUpMovedDown++;
 
@@ -512,10 +512,10 @@ double reoReorderSwapAdjacentVars( reo_man * p, int lev0, int fMovingUp )
             for (  HKey = hashKey3(p->Signature, pNew1E, pNew1T, p->nTableSize);
                    p->HTable[HKey].Sign == p->Signature;
                    HKey = (HKey+1) % p->nTableSize )
-            if ( p->HTable[HKey].Arg1 == (unsigned)pNew1E && p->HTable[HKey].Arg2 == (unsigned)pNew1T )
+            if ( p->HTable[HKey].Arg1 == pNew1E && p->HTable[HKey].Arg2 == pNew1T )
             { // the entry is present 
                 // assign this entry
-                pNewPlane20 = (reo_unit *)p->HTable[HKey].Arg3;
+                pNewPlane20 = p->HTable[HKey].Arg3;
                 assert( pNewPlane20->lev == lev1 );
                 fFound = 1;
                 p->HashSuccess++;
@@ -549,9 +549,9 @@ double reoReorderSwapAdjacentVars( reo_man * p, int lev0, int fMovingUp )
                 // add this entry to cache
                 assert( p->HTable[HKey].Sign != p->Signature );
                 p->HTable[HKey].Sign = p->Signature;
-                p->HTable[HKey].Arg1 = (unsigned)pNew1E;
-                p->HTable[HKey].Arg2 = (unsigned)pNew1T;
-                p->HTable[HKey].Arg3 = (unsigned)pNewPlane20;
+                p->HTable[HKey].Arg1 = pNew1E;
+                p->HTable[HKey].Arg2 = pNew1T;
+                p->HTable[HKey].Arg3 = pNewPlane20;
 
                 nNodesUnrefAdded++;
                         
@@ -637,10 +637,10 @@ double reoReorderSwapAdjacentVars( reo_man * p, int lev0, int fMovingUp )
             for (  HKey = hashKey3(p->Signature, pNew2E, pNew2T, p->nTableSize);
                    p->HTable[HKey].Sign == p->Signature;
                    HKey = (HKey+1) % p->nTableSize )
-            if ( p->HTable[HKey].Arg1 == (unsigned)pNew2E && p->HTable[HKey].Arg2 == (unsigned)pNew2T )
+            if ( p->HTable[HKey].Arg1 == pNew2E && p->HTable[HKey].Arg2 == pNew2T )
             { // the entry is present 
                 // assign this entry
-                pNewPlane21 = (reo_unit *)p->HTable[HKey].Arg3;
+                pNewPlane21 = p->HTable[HKey].Arg3;
                 assert( pNewPlane21->lev == lev1 );
                 fFound = 1;
                 p->HashSuccess++;
@@ -675,9 +675,9 @@ double reoReorderSwapAdjacentVars( reo_man * p, int lev0, int fMovingUp )
                 // add this entry to cache
                 assert( p->HTable[HKey].Sign != p->Signature );
                 p->HTable[HKey].Sign = p->Signature;
-                p->HTable[HKey].Arg1 = (unsigned)pNew2E;
-                p->HTable[HKey].Arg2 = (unsigned)pNew2T;
-                p->HTable[HKey].Arg3 = (unsigned)pNewPlane21;
+                p->HTable[HKey].Arg1 = pNew2E;
+                p->HTable[HKey].Arg2 = pNew2T;
+                p->HTable[HKey].Arg3 = pNewPlane21;
 
                 nNodesUnrefAdded++;
 

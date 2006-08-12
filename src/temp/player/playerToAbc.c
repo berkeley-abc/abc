@@ -446,7 +446,7 @@ static inline int Abc_NodePlayerCost( int nFanins )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Abc_NtkPlayerCostOne( int nCost, int RankCost )
+static inline int Abc_NtkPlayerCostOneLevel( int nCost, int RankCost )
 {
     return (nCost / RankCost) + ((nCost % RankCost) > 0);
 }
@@ -466,7 +466,8 @@ int Abc_NtkPlayerCost( Abc_Ntk_t * pNtk, int RankCost, int fVerbose )
 {
     Abc_Obj_t * pObj;
     int * pLevelCosts, * pLevelCostsR;
-    int nFanins, nLevels, LevelR, Cost, CostTotal, CostTotalR, nRanksTotal, nRanksTotalR, i; 
+    int Cost, CostTotal, CostTotalR, nRanksTotal, nRanksTotalR;
+    int nFanins, nLevels, LevelR, i; 
     // compute the reverse levels
     Abc_NtkStartReverseLevels( pNtk );
     // compute the costs for each level
@@ -491,17 +492,19 @@ int Abc_NtkPlayerCost( Abc_Ntk_t * pNtk, int RankCost, int fVerbose )
     {
         CostTotal    += pLevelCosts[i];
         CostTotalR   += pLevelCostsR[i];
-        nRanksTotal  += Abc_NtkPlayerCostOne( pLevelCosts[i], RankCost );
-        nRanksTotalR += Abc_NtkPlayerCostOne( pLevelCostsR[i], RankCost );
+        nRanksTotal  += Abc_NtkPlayerCostOneLevel( pLevelCosts[i], RankCost );
+        nRanksTotalR += Abc_NtkPlayerCostOneLevel( pLevelCostsR[i], RankCost );
     }
     assert( CostTotal == CostTotalR );
     // print out statistics
     if ( fVerbose )
     {
         for ( i = 1; i <= nLevels; i++ )
+        {
             printf( "Level %2d : Cost = %7d. Ranks = %6.3f. Cost = %7d. Ranks = %6.3f.\n", i, 
             pLevelCosts[i], ((double)pLevelCosts[i])/RankCost, 
             pLevelCostsR[nLevels+1-i], ((double)pLevelCostsR[nLevels+1-i])/RankCost );
+        }
         printf( "TOTAL    : Cost = %7d. Ranks = %6d. RanksR = %5d. RanksBest = %5d.\n", 
             CostTotal, nRanksTotal, nRanksTotalR, nLevels );
     }

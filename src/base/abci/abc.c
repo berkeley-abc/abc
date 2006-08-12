@@ -93,6 +93,7 @@ static int Abc_CommandICut           ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandIRewrite       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIRewriteSeq    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIResyn         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandHaig           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandFraig          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFraigTrust     ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -210,6 +211,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "New AIG",      "irw",           Abc_CommandIRewrite,         1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "irws",          Abc_CommandIRewriteSeq,      1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "iresyn",        Abc_CommandIResyn,           1 );
+    Cmd_CommandAdd( pAbc, "New AIG",      "haig",          Abc_CommandHaig,             1 );
 
     Cmd_CommandAdd( pAbc, "Fraiging",     "fraig",         Abc_CommandFraig,            1 );
     Cmd_CommandAdd( pAbc, "Fraiging",     "fraig_trust",   Abc_CommandFraigTrust,       1 );
@@ -5083,6 +5085,75 @@ usage:
     fprintf( pErr, "usage: iresyn [-lvh]\n" );
     fprintf( pErr, "\t         performs combinational resynthesis\n" );
     fprintf( pErr, "\t-l     : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
+    fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandHaig( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c, fUpdateLevel, fVerbose;
+    extern Abc_Ntk_t * Abc_NtkIvyHaig( Abc_Ntk_t * pNtk, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fUpdateLevel = 1;
+    fVerbose     = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "zvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( Abc_NtkIsSeq(pNtk) )
+    {
+        fprintf( pErr, "Only works for non-sequential networks.\n" );
+        return 1;
+    }
+
+    pNtkRes = Abc_NtkIvyHaig( pNtk, fVerbose );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Command has failed.\n" );
+        return 0;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: haig [-vh]\n" );
+    fprintf( pErr, "\t         prints HAIG stats after one round of sequential rewriting\n" );
+//    fprintf( pErr, "\t-l     : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;

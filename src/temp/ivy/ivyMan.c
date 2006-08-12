@@ -70,6 +70,62 @@ Ivy_Man_t * Ivy_ManStart()
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicates the AIG manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ivy_Man_t * Ivy_ManDup( Ivy_Man_t * p )
+{
+    Vec_Int_t * vNodes, * vLatches;
+    Ivy_Man_t * pNew;
+    Ivy_Obj_t * pObj;
+    int i;
+    // collect latches and nodes in the DFS order
+    vNodes = Ivy_ManDfsSeq( p, &vLatches );
+    // create the new manager
+    pNew = Ivy_ManStart();
+    // create the PIs
+    Ivy_ManConst1(p)->pEquiv = Ivy_ManConst1(pNew);
+    Ivy_ManForEachPi( p, pObj, i )
+        pObj->pEquiv = Ivy_ObjCreatePi(pNew);
+    // create the fake PIs for latches
+    Ivy_ManForEachNodeVec( p, vLatches, pObj, i )
+        pObj->pEquiv = Ivy_ObjCreatePi(pNew);
+    // duplicate internal nodes
+    Ivy_ManForEachNodeVec( p, vNodes, pObj, i )
+        pObj->pEquiv = Ivy_And( pNew, Ivy_ObjChild0Equiv(pObj), Ivy_ObjChild1Equiv(pObj) );
+    // add the POs
+    Ivy_ManForEachPo( p, pObj, i )
+        Ivy_ObjCreatePo( pNew, Ivy_ObjChild0Equiv(pObj) );
+    // transform additional PI nodes into latches and connect them
+    Ivy_ManForEachNodeVec( p, vLatches, pObj, i )
+    {
+        assert( !Ivy_ObjFaninC0(pObj) );
+        pObj->pEquiv->Type = IVY_LATCH;
+        pObj->pEquiv->Init = pObj->Init;
+        Ivy_ObjConnect( pNew, pObj->pEquiv, Ivy_ObjChild0Equiv(pObj), NULL );
+    }
+    // shrink the arrays
+    Vec_PtrShrink( pNew->vPis, Ivy_ManPiNum(p) );
+    // update the counters of different objects
+    pNew->nObjs[IVY_PI] -= Ivy_ManLatchNum(p);
+    pNew->nObjs[IVY_LATCH] += Ivy_ManLatchNum(p);
+    // free arrays
+    Vec_IntFree( vNodes );
+    Vec_IntFree( vLatches );
+    // check the resulting network
+    if ( !Ivy_ManCheck(pNew) )
+        printf( "Ivy_ManMakeSeq(): The check has failed.\n" );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Stops the AIG manager.]
 
   Description []
@@ -81,6 +137,8 @@ Ivy_Man_t * Ivy_ManStart()
 ***********************************************************************/
 void Ivy_ManStop( Ivy_Man_t * p )
 {
+    if ( p->time1 ) { PRT( "Update lev  ", p->time1 ); }
+    if ( p->time2 ) { PRT( "Update levR ", p->time2 ); }
 //    Ivy_TableProfile( p );
 //    if ( p->vFanouts )  Ivy_ManStopFanout( p );
     if ( p->vChunks )   Ivy_ManStopMemory( p );

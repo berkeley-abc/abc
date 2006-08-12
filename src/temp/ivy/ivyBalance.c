@@ -59,6 +59,9 @@ Ivy_Man_t * Ivy_ManBalance( Ivy_Man_t * p, int fUpdateLevel )
     Ivy_ManConst1(p)->TravId = Ivy_EdgeFromNode( Ivy_ManConst1(pNew) );
     Ivy_ManForEachPi( p, pObj, i )
         pObj->TravId = Ivy_EdgeFromNode( Ivy_ObjCreatePi(pNew) );
+    // if HAIG is defined, trasfer the pointers to the PIs/latches
+//    if ( p->pHaig )
+//        Ivy_ManHaigTrasfer( p, pNew );
     // balance the AIG
     vStore = Vec_VecAlloc( 50 );
     Ivy_ManForEachPo( p, pObj, i )
@@ -327,10 +330,18 @@ void Ivy_NodeBalancePermute( Ivy_Man_t * p, Vec_Ptr_t * vSuper, int LeftBound, i
     // get the two last nodes
     pObj1 = Vec_PtrEntry( vSuper, RightBound + 1 );
     pObj2 = Vec_PtrEntry( vSuper, RightBound     );
+    if ( Ivy_Regular(pObj1) == p->pConst1 || Ivy_Regular(pObj2) == p->pConst1 )
+        return;
     // find the first node that can be shared
     for ( i = RightBound; i >= LeftBound; i-- )
     {
         pObj3 = Vec_PtrEntry( vSuper, i );
+        if ( Ivy_Regular(pObj3) == p->pConst1 )
+        {
+            Vec_PtrWriteEntry( vSuper, i,          pObj2 );
+            Vec_PtrWriteEntry( vSuper, RightBound, pObj3 );
+            return;
+        }
         pGhost = Ivy_ObjCreateGhost( p, pObj1, pObj3, fExor? IVY_EXOR : IVY_AND, IVY_INIT_NONE );
         if ( Ivy_TableLookup( p, pGhost ) )
         {

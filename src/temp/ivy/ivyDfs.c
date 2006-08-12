@@ -119,7 +119,7 @@ Vec_Int_t * Ivy_ManDfsSeq( Ivy_Man_t * p, Vec_Int_t ** pvLatches )
     Ivy_ManForEachNodeVec( p, vNodes, pObj, i )
         Ivy_ObjClearMarkA(pObj);
     // make sure network does not have dangling nodes
-    assert( Vec_IntSize(vNodes) == Ivy_ManNodeNum(p) + Ivy_ManBufNum(p) );
+//    assert( Vec_IntSize(vNodes) == Ivy_ManNodeNum(p) + Ivy_ManBufNum(p) );
     *pvLatches = vLatches;
     return vNodes;
 }

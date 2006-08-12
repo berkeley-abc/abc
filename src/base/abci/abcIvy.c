@@ -179,6 +179,36 @@ Abc_Ntk_t * Abc_NtkIvyStrash( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
+Abc_Ntk_t * Abc_NtkIvyHaig( Abc_Ntk_t * pNtk, int fVerbose )
+{
+    Abc_Ntk_t * pNtkAig;
+    Ivy_Man_t * pMan;
+    pMan = Abc_NtkIvyBefore( pNtk, 1, 1 );
+    if ( pMan == NULL )
+        return NULL;
+
+    Ivy_ManHaigStart( pMan );
+    Ivy_ManRewriteSeq( pMan, 0, fVerbose );
+    Ivy_ManHaigPrintStats( pMan );
+    Ivy_ManHaigStop( pMan );
+
+//    pNtkAig = Abc_NtkIvyAfterHaig( pNtk, pMan, 1 );
+    pNtkAig = Abc_NtkIvyAfter( pNtk, pMan, 1 );
+    Ivy_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Abc_NtkIvyCuts( Abc_Ntk_t * pNtk, int nInputs )
 {
     extern void Ivy_CutComputeAll( Ivy_Man_t * p, int nInputs );
@@ -276,10 +306,10 @@ Abc_Ntk_t * Abc_NtkIvyResyn( Abc_Ntk_t * pNtk, int fUpdateLevel, int fVerbose )
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk )
 {
-    Abc_Ntk_t * pNtkAig;
+//    Abc_Ntk_t * pNtkAig;
     Ivy_Man_t * pMan;//, * pTemp;
     int fCleanup = 1;
-    int nNodes;
+//    int nNodes;
     int nLatches = Abc_NtkLatchNum(pNtk);
     int * pInit = Abc_NtkCollectLatchValues( pNtk, 0 );
 
@@ -329,6 +359,7 @@ Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk )
 //    Ivy_ManStop( pTemp );
 
 //    Ivy_ManTestCutsAll( pMan );
+//    Ivy_ManTestCutsTravAll( pMan );
 
 //    Ivy_ManPrintStats( pMan );
 
@@ -344,7 +375,7 @@ Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk )
 //    Ivy_ManRequiredLevels( pMan );
 
 //    Pla_ManFastLutMap( pMan, 8 );
-//    Ivy_ManStop( pMan );
+    Ivy_ManStop( pMan );
     return NULL;
 
 
