@@ -142,6 +142,29 @@ int Ivy_ManCheck( Ivy_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+int Ivy_ManCheckFanoutNums( Ivy_Man_t * p )
+{
+    Ivy_Obj_t * pObj;
+    int i, Counter = 0;
+    Ivy_ManForEachObj( p, pObj, i )
+        if ( Ivy_ObjIsNode(pObj) )
+            Counter += (Ivy_ObjRefs(pObj) == 0);
+    if ( Counter )
+        printf( "Sequential AIG has %d dangling nodes.\n", Counter );
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Verifies the fanouts.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Ivy_ManCheckFanouts( Ivy_Man_t * p )
 {
     Vec_Ptr_t * vFanouts;
@@ -213,6 +236,34 @@ int Ivy_ManCheckFanouts( Ivy_Man_t * p )
     }
     Vec_PtrFree( vFanouts );
     return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks that each choice node has exactly one node with fanouts.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_ManCheckChoices( Ivy_Man_t * p )
+{
+    Ivy_Obj_t * pObj, * pTemp;
+    int i;
+    Ivy_ManForEachObj( p->pHaig, pObj, i )
+    {
+        if ( Ivy_ObjRefs(pObj) == 0 )
+            continue;
+        // count the number of nodes in the loop
+        assert( !Ivy_IsComplement(pObj->pEquiv) );
+        for ( pTemp = pObj->pEquiv; pTemp && pTemp != pObj; pTemp = Ivy_Regular(pTemp->pEquiv) )
+            if ( Ivy_ObjRefs(pTemp) > 1 )
+                printf( "Node %d has member %d in its equiv class with %d fanouts.\n", pObj->Id, pTemp->Id, Ivy_ObjRefs(pTemp) );
+    }
+    return 1;
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -48,6 +48,7 @@ int         Abc_FrameReadNtkStoreSize()              { return s_GlobalFrame->nSt
 void *      Abc_FrameReadLibLut()                    { return s_GlobalFrame->pLibLut;      } 
 void *      Abc_FrameReadLibGen()                    { return s_GlobalFrame->pLibGen;      } 
 void *      Abc_FrameReadLibSuper()                  { return s_GlobalFrame->pLibSuper;    } 
+void *      Abc_FrameReadLibVer()                    { return s_GlobalFrame->pLibVer;      } 
 void *      Abc_FrameReadManDd()                     { if ( s_GlobalFrame->dd == NULL )      s_GlobalFrame->dd = Cudd_Init( 0, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );  return s_GlobalFrame->dd;      } 
 void *      Abc_FrameReadManDec()                    { if ( s_GlobalFrame->pManDec == NULL ) s_GlobalFrame->pManDec = Dec_ManStart();                                        return s_GlobalFrame->pManDec; } 
 char *      Abc_FrameReadFlag( char * pFlag )        { return Cmd_FlagReadByName( s_GlobalFrame, pFlag );  } 
@@ -57,6 +58,7 @@ void        Abc_FrameSetNtkStoreSize( int nStored )  { s_GlobalFrame->nStored  =
 void        Abc_FrameSetLibLut( void * pLib )        { s_GlobalFrame->pLibLut   = pLib;    } 
 void        Abc_FrameSetLibGen( void * pLib )        { s_GlobalFrame->pLibGen   = pLib;    } 
 void        Abc_FrameSetLibSuper( void * pLib )      { s_GlobalFrame->pLibSuper = pLib;    } 
+void        Abc_FrameSetLibVer( void * pLib )        { s_GlobalFrame->pLibVer   = pLib;    } 
 void        Abc_FrameSetFlag( char * pFlag, char * pValue )  { Cmd_FlagUpdateValue( s_GlobalFrame, pFlag, pValue );  } 
 
 /**Function*************************************************************
@@ -135,11 +137,13 @@ void Abc_FrameDeallocate( Abc_Frame_t * p )
 {
     extern void Rwt_ManGlobalStop();
     extern void undefine_cube_size();
+    extern void Ver_ParseFreeLibrary( st_table * pLibVer );
 //    extern void Ivy_TruthManStop();
 //    Abc_HManStop();
     undefine_cube_size();
     Rwt_ManGlobalStop();
 //    Ivy_TruthManStop();
+    if ( p->pLibVer ) Ver_ParseFreeLibrary( p->pLibVer );
     if ( p->pManDec ) Dec_ManStop( p->pManDec );
     if ( p->dd )      Extra_StopManager( p->dd );
     Abc_FrameDeleteAllNetworks( p );

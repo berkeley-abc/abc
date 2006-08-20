@@ -46,14 +46,17 @@ static Abc_Obj_t * Abc_NodeFromGlobalBdds( Abc_Ntk_t * pNtkNew, DdManager * dd, 
 Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, int fReorder, int fVerbose )
 {
     Abc_Ntk_t * pNtkNew;
+    int clk = clock();
 
     assert( Abc_NtkIsStrash(pNtk) );
-
     // compute the global BDDs
     if ( Abc_NtkGlobalBdds(pNtk, fBddSizeMax, 0, fReorder, fVerbose) == NULL )
         return NULL;
     if ( fVerbose )
-        printf( "The shared BDD size is %d nodes.\n", Cudd_ReadKeys(pNtk->pManGlob) - Cudd_ReadDead(pNtk->pManGlob) );
+    {
+        printf( "The shared BDD size is %d nodes.  ", Cudd_ReadKeys(pNtk->pManGlob) - Cudd_ReadDead(pNtk->pManGlob) );
+        PRT( "BDD construction time", clock() - clk );
+    }
 
     // create the new network
     if ( fDualRail )

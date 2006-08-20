@@ -12,7 +12,7 @@ SRC +=    src/temp/ivy/ivyBalance.c \
     src/temp/ivy/ivyObj.c \
     src/temp/ivy/ivyOper.c \
     src/temp/ivy/ivyResyn.c \
-    src/temp/ivy/ivyRwrPre.c \
+    src/temp/ivy/ivyRwr.c \
     src/temp/ivy/ivySeq.c \
     src/temp/ivy/ivyTable.c \
     src/temp/ivy/ivyUtil.c

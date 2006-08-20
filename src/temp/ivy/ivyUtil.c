@@ -612,6 +612,98 @@ Ivy_Obj_t * Ivy_ObjReal( Ivy_Obj_t * pObj )
     return Ivy_NotCond( pFanin, Ivy_IsComplement(pObj) );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Prints node in HAIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_ObjPrintVerbose( Ivy_Obj_t * pObj, int fHaig )
+{
+    Ivy_Obj_t * pTemp;
+    assert( !Ivy_IsComplement(pObj) );
+    printf( "Node %5d : ", Ivy_ObjId(pObj) );
+    if ( Ivy_ObjIsConst1(pObj) )
+        printf( "constant 1" );
+    else if ( Ivy_ObjIsPi(pObj) )
+        printf( "PI" );
+    else if ( Ivy_ObjIsPo(pObj) )
+        printf( "PO" );
+    else if ( Ivy_ObjIsLatch(pObj) )
+        printf( "latch %d%s", Ivy_ObjFanin0(pObj)->Id, (Ivy_ObjFaninC0(pObj)? "\'" : " ") );
+    else if ( Ivy_ObjIsBuf(pObj) )
+        printf( "buffer %d%s", Ivy_ObjFanin0(pObj)->Id, (Ivy_ObjFaninC0(pObj)? "\'" : " ") );
+    else
+        printf( "AND( %5d%s, %5d%s )", 
+            Ivy_ObjFanin0(pObj)->Id, (Ivy_ObjFaninC0(pObj)? "\'" : " "), 
+            Ivy_ObjFanin1(pObj)->Id, (Ivy_ObjFaninC1(pObj)? "\'" : " ") );
+    printf( " (refs = %3d)", Ivy_ObjRefs(pObj) );
+    if ( !fHaig )
+    {
+        if ( pObj->pEquiv == NULL )
+            printf( " HAIG node not given" );
+        else
+            printf( " HAIG node = %d%s", Ivy_Regular(pObj->pEquiv)->Id, (Ivy_IsComplement(pObj->pEquiv)? "\'" : " ") );
+        return;
+    }
+    if ( pObj->pEquiv == NULL )
+        return;
+    // there are choices
+    if ( Ivy_ObjRefs(pObj) > 0 )
+    {
+        // print equivalence class
+        printf( "  { %5d ", pObj->Id );
+        assert( !Ivy_IsComplement(pObj->pEquiv) );
+        for ( pTemp = pObj->pEquiv; pTemp != pObj; pTemp = Ivy_Regular(pTemp->pEquiv) )
+            printf( " %5d%s", pTemp->Id, (Ivy_IsComplement(pTemp->pEquiv)? "\'" : " ") );
+        printf( " }" );
+        return;
+    }
+    // this is a secondary node
+    for ( pTemp = Ivy_Regular(pObj->pEquiv); Ivy_ObjRefs(pTemp) == 0; pTemp = Ivy_Regular(pTemp->pEquiv) );
+    assert( Ivy_ObjRefs(pTemp) > 0 );
+    printf( "  class of %d", pTemp->Id );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints node in HAIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_ManPrintVerbose( Ivy_Man_t * p, int fHaig )
+{
+    Vec_Int_t * vNodes;
+    Ivy_Obj_t * pObj;
+    int i;
+    printf( "PIs: " );
+    Ivy_ManForEachPi( p, pObj, i )
+        printf( " %d", pObj->Id );
+    printf( "\n" );
+    printf( "POs: " );
+    Ivy_ManForEachPo( p, pObj, i )
+        printf( " %d", pObj->Id );
+    printf( "\n" );
+    printf( "Latches: " );
+    Ivy_ManForEachLatch( p, pObj, i )
+        printf( " %d=%d%s", pObj->Id, Ivy_ObjFanin0(pObj)->Id, (Ivy_ObjFaninC0(pObj)? "\'" : " ") );
+    printf( "\n" );
+    vNodes = Ivy_ManDfsSeq( p, NULL );
+    Ivy_ManForEachNodeVec( p, vNodes, pObj, i )
+        Ivy_ObjPrintVerbose( pObj, fHaig ), printf( "\n" );
+    printf( "\n" );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

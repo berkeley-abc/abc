@@ -74,6 +74,7 @@ static int Abc_CommandFrames         ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandSop            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBdd            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandReorder        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandOrder          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMuxes          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandExtSeqDcs      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandOneOutput      ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -192,6 +193,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "sop",           Abc_CommandSop,              0 );
     Cmd_CommandAdd( pAbc, "Various",      "bdd",           Abc_CommandBdd,              0 );
     Cmd_CommandAdd( pAbc, "Various",      "reorder",       Abc_CommandReorder,          0 );
+    Cmd_CommandAdd( pAbc, "Various",      "order",         Abc_CommandOrder,            0 );
     Cmd_CommandAdd( pAbc, "Various",      "muxes",         Abc_CommandMuxes,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "ext_seq_dcs",   Abc_CommandExtSeqDcs,        0 );
     Cmd_CommandAdd( pAbc, "Various",      "cone",          Abc_CommandOneOutput,        1 );
@@ -1627,6 +1629,7 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
+    int fVerbose;
     int fBddSizeMax;
     int fDualRail;
     int fReorder;
@@ -1637,11 +1640,12 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
+    fVerbose = 1;
     fReorder = 1;
     fDualRail = 0;
-    fBddSizeMax = 1000000;
+    fBddSizeMax = 50000000;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Brdh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Brdvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -1658,6 +1662,9 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'd':
             fDualRail ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
             break;
         case 'r':
             fReorder ^= 1;
@@ -1683,11 +1690,11 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // get the new network
     if ( Abc_NtkIsStrash(pNtk) )
-        pNtkRes = Abc_NtkCollapse( pNtk, fBddSizeMax, fDualRail, fReorder, 1 );
+        pNtkRes = Abc_NtkCollapse( pNtk, fBddSizeMax, fDualRail, fReorder, fVerbose );
     else
     {
         pNtk = Abc_NtkStrash( pNtk, 0, 0 );
-        pNtkRes = Abc_NtkCollapse( pNtk, fBddSizeMax, fDualRail, fReorder, 1 );
+        pNtkRes = Abc_NtkCollapse( pNtk, fBddSizeMax, fDualRail, fReorder, fVerbose );
         Abc_NtkDelete( pNtk );
     }
     if ( pNtkRes == NULL )
@@ -1700,11 +1707,12 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: collapse [-B num] [-rdh]\n" );
+    fprintf( pErr, "usage: collapse [-B num] [-rdvh]\n" );
     fprintf( pErr, "\t          collapses the network by constructing global BDDs\n" );
     fprintf( pErr, "\t-B num  : limit on live BDD nodes during collapsing [default = %d]\n", fBddSizeMax );
     fprintf( pErr, "\t-r      : toggles dynamic variable reordering [default = %s]\n", fReorder? "yes": "no" );
     fprintf( pErr, "\t-d      : toggles dual-rail collapsing mode [default = %s]\n", fDualRail? "yes": "no" );
+    fprintf( pErr, "\t-v      : print verbose information [default = %s]\n", fVerbose? "yes": "no" ); 
     fprintf( pErr, "\t-h      : print the command usage\n");
     return 1;
 }
@@ -3462,6 +3470,93 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandOrder( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr, * pFile;
+    Abc_Ntk_t * pNtk;
+    char * pFileName;
+    int c;
+    int fReverse;
+    int fVerbose;
+    extern void Abc_NtkImplementCiOrder( Abc_Ntk_t * pNtk, char * pFileName, int fReverse, int fVerbose );
+    extern void Abc_NtkFindCiOrder( Abc_Ntk_t * pNtk, int fReverse, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fReverse = 0;
+    fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "rvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'r':
+            fReverse ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+//    if ( Abc_NtkLatchNum(pNtk) > 0 )
+//    {
+//        printf( "Currently this procedure does not work for sequential networks.\n" );
+//        return 1;
+//    }
+
+    // if the var order file is given, implement this order
+    pFileName = NULL;
+    if ( argc == globalUtilOptind + 1 )
+    {
+        pFileName = argv[globalUtilOptind];
+        pFile = fopen( pFileName, "r" );
+        if ( pFile == NULL )
+        {
+            fprintf( pErr, "Cannot open file \"%s\" with the BDD variable order.\n", pFileName );
+            return 1;
+        }
+        fclose( pFile );
+    }
+    if ( pFileName )
+        Abc_NtkImplementCiOrder( pNtk, pFileName, fReverse, fVerbose );
+    else
+        Abc_NtkFindCiOrder( pNtk, fReverse, fVerbose );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: order [-rvh] <file>\n" );
+    fprintf( pErr, "\t         computes a good static CI variable order\n" );
+    fprintf( pErr, "\t-r     : toggle reverse ordering [default = %s]\n", fReverse? "yes": "no" );  
+    fprintf( pErr, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    fprintf( pErr, "\t<file> : (optional) file with the given variable order\n" );  
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandMuxes( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
@@ -4583,7 +4678,8 @@ int Abc_CommandXyz( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // run the command
 //    pNtkRes = Abc_NtkXyz( pNtk, nPlaMax, 1, 0, fInvs, fVerbose );
-    pNtkRes = Abc_NtkPlayer( pNtk, nLutMax, nPlaMax, RankCost, fFastMode, fRewriting, fSynthesis, fVerbose );
+//    pNtkRes = Abc_NtkPlayer( pNtk, nLutMax, nPlaMax, RankCost, fFastMode, fRewriting, fSynthesis, fVerbose );
+    pNtkRes = NULL;
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
@@ -5105,21 +5201,36 @@ int Abc_CommandHaig( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
-    int c, fUpdateLevel, fVerbose;
-    extern Abc_Ntk_t * Abc_NtkIvyHaig( Abc_Ntk_t * pNtk, int fVerbose );
+    int c, fUseZeroCost, fVerbose, nIters;
+    extern Abc_Ntk_t * Abc_NtkIvyHaig( Abc_Ntk_t * pNtk, int nIters, int fUseZeroCost, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fUpdateLevel = 1;
+    nIters       = 3;
+    fUseZeroCost = 1;
     fVerbose     = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "zvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Izvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-I\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nIters = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nIters < 0 ) 
+                goto usage;
+            break;
+        case 'z':
+            fUseZeroCost ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -5140,7 +5251,7 @@ int Abc_CommandHaig( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    pNtkRes = Abc_NtkIvyHaig( pNtk, fVerbose );
+    pNtkRes = Abc_NtkIvyHaig( pNtk, nIters, fUseZeroCost, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
@@ -5151,9 +5262,10 @@ int Abc_CommandHaig( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: haig [-vh]\n" );
-    fprintf( pErr, "\t         prints HAIG stats after one round of sequential rewriting\n" );
-//    fprintf( pErr, "\t-l     : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
+    fprintf( pErr, "usage: haig [-Izvh]\n" );
+    fprintf( pErr, "\t         prints HAIG stats after sequential rewriting\n" );
+    fprintf( pErr, "\t-I num : the number of rewriting iterations [default = %d]\n", nIters );
+    fprintf( pErr, "\t-z     : toggle zero-cost replacements [default = %s]\n", fUseZeroCost? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;

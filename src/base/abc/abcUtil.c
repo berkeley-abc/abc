@@ -251,7 +251,12 @@ double Abc_NtkGetMappedArea( Abc_Ntk_t * pNtk )
     TotalArea = 0.0;
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
-        assert( pNode->pData );
+//        assert( pNode->pData );
+        if ( pNode->pData == NULL )
+        {
+            printf( "Node without mapping is encountered.\n" );
+            continue;
+        }
         TotalArea += Mio_GateReadArea( pNode->pData );
     }
     return TotalArea;

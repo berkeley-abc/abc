@@ -58,6 +58,9 @@ int Ivy_ManRewriteSeq( Ivy_Man_t * p, int fUseZeroCost, int fVerbose )
     Ivy_Obj_t * pNode;
     int i, nNodes, nGain;
     int clk, clkStart = clock();
+    // set the DC latch values
+    Ivy_ManForEachLatch( p, pNode, i )
+        pNode->Init = IVY_INIT_DC;
     // start the rewriting manager
     pManRwt = Rwt_ManStart( 0 );
     p->pData = pManRwt;
@@ -92,12 +95,6 @@ clk = clock();
             Ivy_GraphUpdateNetworkSeq( p, pNode, pGraph, nGain );
             if ( fCompl ) Dec_GraphComplement( pGraph );
 Rwt_ManAddTimeUpdate( pManRwt, clock() - clk );
-/*
-            if ( !Ivy_ManIsAcyclic(p) )
-            {
-                int x = 0;
-            }
-*/
         }
     }
 Rwt_ManAddTimeTotal( pManRwt, clock() - clkStart );
@@ -109,6 +106,8 @@ Rwt_ManAddTimeTotal( pManRwt, clock() - clkStart );
     p->pData = NULL;
     // fix the levels
     Ivy_ManResetLevels( p );
+//    if ( Ivy_ManCheckFanoutNums(p) )
+//        printf( "Ivy_ManRewritePre(): The check has failed.\n" );
     // check
     if ( !Ivy_ManCheck(p) )
         printf( "Ivy_ManRewritePre(): The check has failed.\n" );
@@ -139,7 +138,8 @@ int Ivy_NodeRewriteSeq( Ivy_Man_t * pMan, Rwt_Man_t * p, Ivy_Obj_t * pNode, int 
     Dec_Graph_t * pGraph;
     Ivy_Store_t * pStore;
     Ivy_Cut_t * pCut;
-    Ivy_Obj_t * pFanin;
+    Ivy_Obj_t * pFanin;//, * pFanout;
+    Vec_Ptr_t * vFanout;
     unsigned uPhase, uTruthBest, uTruth;
     char * pPerm;
     int nNodesSaved, nNodesSaveCur;
@@ -154,6 +154,7 @@ p->timeCut += clock() - clk;
 
     // go through the cuts
 clk = clock();
+    vFanout = Vec_PtrAlloc( 100 );
     for ( c = 1; c < pStore->nCuts; c++ )
     {
         pCut = pStore->pCuts + c;
@@ -193,6 +194,9 @@ clk2 = clock();
         // label MFFC with current ID
         Ivy_ManIncrementTravId( pMan );
         nNodesSaved = Ivy_ObjMffcLabel( pMan, pNode );
+        // label fanouts with the current ID
+//        Ivy_ObjForEachFanout( pMan, pNode, vFanout, pFanout, i )
+//            Ivy_ObjSetTravIdCurrent( pMan, pFanout );
         // unmark the fanin boundary
         Vec_PtrForEachEntry( p->vFaninsCur, pFanin, i )
             Ivy_ObjRefsDec( Ivy_Regular(pFanin) );
@@ -233,10 +237,18 @@ p->timeEval += clock() - clk2;
                 Vec_PtrPush( p->vFanins, pFanin );
         }
     }
+    Vec_PtrFree( vFanout );
 p->timeRes += clock() - clk;
 
     if ( GainBest == -1 )
         return -1;
+
+/*
+    printf( "Node %5d. Using cut : {", Ivy_ObjId(pNode) );
+    for ( i = 0; i < pCut->nSize; i++ )
+        printf( " %d(%d)", Ivy_LeafId(pCut->pArray[i]), Ivy_LeafLat(pCut->pArray[i]) );
+    printf( " }\n" );
+*/
 
     // copy the leaves
     Ivy_GraphPrepare( p->pGraph, p->pCut, p->vFanins, p->pPerm );
@@ -250,10 +262,9 @@ p->timeRes += clock() - clk;
     if ( GainBest > 0 )
     {
         Ivy_Cut_t * pCut = p->pCut;
-        printf( "Useful cut : {" );
+        printf( "Node %5d. Using cut : {", Ivy_ObjId(pNode) );
         for ( i = 0; i < pCut->nSize; i++ )
-            printf( "   %5d[%2d](%2d)", Ivy_LeafId(pCut->pArray[i]), Ivy_LeafLat(pCut->pArray[i]), 
-                Ivy_ObjRefs( Ivy_ManObj(pMan, Ivy_LeafId(pCut->pArray[i])) ) );
+            printf( " %5d(%2d)", Ivy_LeafId(pCut->pArray[i]), Ivy_LeafLat(pCut->pArray[i]) );
         printf( " }\n" );
     }
 */
@@ -974,18 +985,19 @@ void Ivy_CutPrintForNodes( Ivy_Store_t * pCutStore )
                
   SideEffects []
 
-  SeeAlso     []
+  SeeAlso     [] 
 
 ***********************************************************************/
 static inline int Ivy_CutReadLeaf( Ivy_Obj_t * pFanin )
 {
-    int iLeaf;
+    int nLats, iLeaf;
     assert( !Ivy_IsComplement(pFanin) );
     if ( !Ivy_ObjIsLatch(pFanin) )
         return Ivy_LeafCreate( pFanin->Id, 0 );
-    iLeaf = Ivy_CutReadLeaf( Ivy_ObjFanin0(pFanin) );
-    assert( Ivy_LeafLat(iLeaf) < IVY_LEAF_MASK );
-    return 1 + Ivy_CutReadLeaf( Ivy_ObjFanin0(pFanin) );
+    iLeaf = Ivy_CutReadLeaf(Ivy_ObjFanin0(pFanin));
+    nLats = Ivy_LeafLat(iLeaf);
+    assert( nLats < IVY_LEAF_MASK );
+    return 1 + iLeaf;
 }
 
 /**Function*************************************************************

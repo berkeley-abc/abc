@@ -30,7 +30,7 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static void Abc_ShowFile( char * FileNameDot );
+extern void Abc_ShowFile( char * FileNameDot );
 static void Abc_ShowGetFileName( char * pName, char * pBuffer );
 
 ////////////////////////////////////////////////////////////////////////

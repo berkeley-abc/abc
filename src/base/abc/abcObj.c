@@ -409,6 +409,29 @@ Abc_Obj_t * Abc_NtkFindNet( Abc_Ntk_t * pNtk, char * pName )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the net with the given name.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Abc_NtkFindTerm( Abc_Ntk_t * pNtk, char * pName )
+{
+    Abc_Obj_t * pNet;
+    int ObjId;
+    assert( !Abc_NtkIsNetlist(pNtk) );
+    ObjId = Nm_ManFindIdByName( pNtk->pManName, pName, NULL );
+    if ( ObjId == -1 )
+        return NULL;
+    pNet = Abc_NtkObj( pNtk, ObjId );
+    return pNet;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Finds or creates the net.]
 
   Description []
@@ -568,7 +591,7 @@ Abc_Obj_t * Abc_NodeCreateConst0( Abc_Ntk_t * pNtk )
         pNode->pData = Cudd_ReadLogicZero(pNtk->pManFunc), Cudd_Ref( pNode->pData );
     else if ( Abc_NtkHasMapping(pNtk) )
         pNode->pData = Mio_LibraryReadConst0(Abc_FrameReadLibGen());
-    else
+    else if ( !Abc_NtkHasBlackbox(pNtk) )
         assert( 0 );
     return pNode;
 }
@@ -596,7 +619,7 @@ Abc_Obj_t * Abc_NodeCreateConst1( Abc_Ntk_t * pNtk )
         pNode->pData = Cudd_ReadOne(pNtk->pManFunc), Cudd_Ref( pNode->pData );
     else if ( Abc_NtkHasMapping(pNtk) )
         pNode->pData = Mio_LibraryReadConst1(Abc_FrameReadLibGen());
-    else
+    else if ( !Abc_NtkHasBlackbox(pNtk) )
         assert( 0 );
     return pNode;
 }

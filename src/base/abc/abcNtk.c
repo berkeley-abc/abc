@@ -79,7 +79,7 @@ Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func )
     }
     else if ( Abc_NtkHasMapping(pNtk) )
         pNtk->pManFunc = Abc_FrameReadLibGen();
-    else
+    else if ( !Abc_NtkHasBlackbox(pNtk) )
         assert( 0 );
     // allocate constant node
     if ( !Abc_NtkIsNetlist(pNtk) )

@@ -39,18 +39,35 @@
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_ManDfs_rec( Ivy_Obj_t * pObj, Vec_Int_t * vNodes )
+void Ivy_ManDfs_rec( Ivy_Man_t * p, Ivy_Obj_t * pObj, Vec_Int_t * vNodes )
 {
-    if ( Ivy_ObjIsConst1(pObj) || Ivy_ObjIsCi(pObj) )
-        return;
     if ( Ivy_ObjIsMarkA(pObj) )
         return;
     Ivy_ObjSetMarkA(pObj);
+    if ( Ivy_ObjIsConst1(pObj) || Ivy_ObjIsCi(pObj) )
+    {
+        if ( p->pHaig == NULL && pObj->pEquiv )
+            Ivy_ManDfs_rec( p, Ivy_Regular(pObj->pEquiv), vNodes );
+        return;
+    }
+//printf( "visiting node %d\n", pObj->Id );
+/*
+    if ( pObj->Id == 87 || pObj->Id == 90 )
+    {
+        int y = 0;
+    }
+*/
     assert( Ivy_ObjIsBuf(pObj) || Ivy_ObjIsAnd(pObj) || Ivy_ObjIsExor(pObj) );
-    Ivy_ManDfs_rec( Ivy_ObjFanin0(pObj), vNodes );
+    Ivy_ManDfs_rec( p, Ivy_ObjFanin0(pObj), vNodes );
     if ( !Ivy_ObjIsBuf(pObj) )
-        Ivy_ManDfs_rec( Ivy_ObjFanin1(pObj), vNodes );
+        Ivy_ManDfs_rec( p, Ivy_ObjFanin1(pObj), vNodes );
+    if ( p->pHaig == NULL && pObj->pEquiv )
+        Ivy_ManDfs_rec( p, Ivy_Regular(pObj->pEquiv), vNodes );
     Vec_IntPush( vNodes, pObj->Id );
+
+//printf( "adding node %d with fanins %d and %d and equiv %d (refs = %d)\n", 
+//       pObj->Id, Ivy_ObjFanin0(pObj)->Id, Ivy_ObjFanin1(pObj)->Id, 
+//       pObj->pEquiv? Ivy_Regular(pObj->pEquiv)->Id: -1, Ivy_ObjRefs(pObj) );
 }
 
 /**Function*************************************************************
@@ -76,9 +93,11 @@ Vec_Int_t * Ivy_ManDfs( Ivy_Man_t * p )
     // collect the nodes
     vNodes = Vec_IntAlloc( Ivy_ManNodeNum(p) );
     Ivy_ManForEachPo( p, pObj, i )
-        Ivy_ManDfs_rec( Ivy_ObjFanin0(pObj), vNodes );
+        Ivy_ManDfs_rec( p, Ivy_ObjFanin0(pObj), vNodes );
     // unmark the collected nodes
-    Ivy_ManForEachNodeVec( p, vNodes, pObj, i )
+//    Ivy_ManForEachNodeVec( p, vNodes, pObj, i )
+//        Ivy_ObjClearMarkA(pObj);
+    Ivy_ManForEachObj( p, pObj, i )
         Ivy_ObjClearMarkA(pObj);
     // make sure network does not have dangling nodes
     assert( Vec_IntSize(vNodes) == Ivy_ManNodeNum(p) + Ivy_ManBufNum(p) );
@@ -101,7 +120,7 @@ Vec_Int_t * Ivy_ManDfsSeq( Ivy_Man_t * p, Vec_Int_t ** pvLatches )
     Vec_Int_t * vNodes, * vLatches;
     Ivy_Obj_t * pObj;
     int i;
-    assert( Ivy_ManLatchNum(p) > 0 );
+//    assert( Ivy_ManLatchNum(p) > 0 );
     // make sure the nodes are not marked
     Ivy_ManForEachObj( p, pObj, i )
         assert( !pObj->fMarkA && !pObj->fMarkB );
@@ -112,15 +131,23 @@ Vec_Int_t * Ivy_ManDfsSeq( Ivy_Man_t * p, Vec_Int_t ** pvLatches )
     // collect the nodes
     vNodes = Vec_IntAlloc( Ivy_ManNodeNum(p) );
     Ivy_ManForEachPo( p, pObj, i )
-        Ivy_ManDfs_rec( Ivy_ObjFanin0(pObj), vNodes );
+        Ivy_ManDfs_rec( p, Ivy_ObjFanin0(pObj), vNodes );
     Ivy_ManForEachNodeVec( p, vLatches, pObj, i )
-        Ivy_ManDfs_rec( Ivy_ObjFanin0(pObj), vNodes );
+        Ivy_ManDfs_rec( p, Ivy_ObjFanin0(pObj), vNodes );
     // unmark the collected nodes
-    Ivy_ManForEachNodeVec( p, vNodes, pObj, i )
+//    Ivy_ManForEachNodeVec( p, vNodes, pObj, i )
+//        Ivy_ObjClearMarkA(pObj);
+    Ivy_ManForEachObj( p, pObj, i )
         Ivy_ObjClearMarkA(pObj);
     // make sure network does not have dangling nodes
 //    assert( Vec_IntSize(vNodes) == Ivy_ManNodeNum(p) + Ivy_ManBufNum(p) );
-    *pvLatches = vLatches;
+
+// temporary!!!
+
+    if ( pvLatches == NULL )
+        Vec_IntFree( vLatches );
+    else
+        *pvLatches = vLatches;
     return vNodes;
 }
 
@@ -261,47 +288,64 @@ Vec_Int_t * Ivy_ManRequiredLevels( Ivy_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Ivy_ManIsAcyclic_rec( Ivy_Man_t * p, Ivy_Obj_t * pNode )
+int Ivy_ManIsAcyclic_rec( Ivy_Man_t * p, Ivy_Obj_t * pObj )
 {
-    if ( Ivy_ObjIsCi(pNode) || Ivy_ObjIsConst1(pNode) )
+    // skip the node if it is already visited
+    if ( Ivy_ObjIsTravIdPrevious(p, pObj) )
         return 1;
-    assert( Ivy_ObjIsNode(pNode) || Ivy_ObjIsBuf(pNode) );
-    // make sure the node is not visited
-    assert( !Ivy_ObjIsTravIdPrevious(p, pNode) );
     // check if the node is part of the combinational loop
-    if ( Ivy_ObjIsTravIdCurrent(p, pNode) )
+    if ( Ivy_ObjIsTravIdCurrent(p, pObj) )
     {
         fprintf( stdout, "Manager contains combinational loop!\n" );
-        fprintf( stdout, "Node \"%d\" is encountered twice on the following path:\n",  Ivy_ObjId(pNode) );
-        fprintf( stdout, " %d",  Ivy_ObjId(pNode) );
+        fprintf( stdout, "Node \"%d\" is encountered twice on the following path:\n",  Ivy_ObjId(pObj) );
+        fprintf( stdout, " %d",  Ivy_ObjId(pObj) );
         return 0;
     }
     // mark this node as a node on the current path
-    Ivy_ObjSetTravIdCurrent( p, pNode );
-    // check if the fanin is visited
-    if ( !Ivy_ObjIsTravIdPrevious(p, Ivy_ObjFanin0(pNode)) ) 
+    Ivy_ObjSetTravIdCurrent( p, pObj );
+    // explore equivalent nodes if pObj is the main node
+    if ( p->pHaig == NULL && pObj->pEquiv && Ivy_ObjRefs(pObj) > 0 )
     {
-        // traverse the fanin's cone searching for the loop
-        if ( !Ivy_ManIsAcyclic_rec(p, Ivy_ObjFanin0(pNode)) )
+        Ivy_Obj_t * pTemp;
+        assert( !Ivy_IsComplement(pObj->pEquiv) );
+        for ( pTemp = pObj->pEquiv; pTemp != pObj; pTemp = Ivy_Regular(pTemp->pEquiv) )
         {
-            // return as soon as the loop is detected
-            fprintf( stdout, " <-- %d", Ivy_ObjId(Ivy_ObjFanin0(pNode)) );
-            return 0;
+            // traverse the fanin's cone searching for the loop
+            if ( !Ivy_ManIsAcyclic_rec(p, pTemp) )
+            {
+                // return as soon as the loop is detected
+                fprintf( stdout, " -> (%d", Ivy_ObjId(pObj) );
+                for ( pTemp = pObj->pEquiv; pTemp != pObj; pTemp = Ivy_Regular(pTemp->pEquiv) )
+                    fprintf( stdout, " %d", Ivy_ObjId(pTemp) );
+                fprintf( stdout, ")" );
+                return 0; 
+            }
         }
     }
-    // check if the fanin is visited
-    if ( Ivy_ObjIsNode(pNode) && !Ivy_ObjIsTravIdPrevious(p, Ivy_ObjFanin1(pNode)) ) 
+    // quite if it is a CI node
+    if ( Ivy_ObjIsCi(pObj) || Ivy_ObjIsConst1(pObj) )
     {
-        // traverse the fanin's cone searching for the loop
-        if ( !Ivy_ManIsAcyclic_rec(p, Ivy_ObjFanin1(pNode)) )
-        {
-            // return as soon as the loop is detected
-            fprintf( stdout, " <-- %d", Ivy_ObjId(Ivy_ObjFanin1(pNode)) );
-            return 0;
-        }
+        // mark this node as a visited node
+        Ivy_ObjSetTravIdPrevious( p, pObj );
+        return 1;
+    }
+    assert( Ivy_ObjIsNode(pObj) || Ivy_ObjIsBuf(pObj) );
+    // traverse the fanin's cone searching for the loop
+    if ( !Ivy_ManIsAcyclic_rec(p, Ivy_ObjFanin0(pObj)) )
+    {
+        // return as soon as the loop is detected
+        fprintf( stdout, " -> %d", Ivy_ObjId(pObj) );
+        return 0;
+    }
+    // traverse the fanin's cone searching for the loop
+    if ( Ivy_ObjIsNode(pObj) && !Ivy_ManIsAcyclic_rec(p, Ivy_ObjFanin1(pObj)) )
+    {
+        // return as soon as the loop is detected
+        fprintf( stdout, " -> %d", Ivy_ObjId(pObj) );
+        return 0;
     }
     // mark this node as a visited node
-    Ivy_ObjSetTravIdPrevious( p, pNode );
+    Ivy_ObjSetTravIdPrevious( p, pObj );
     return 1;
 }
 
@@ -325,29 +369,122 @@ int Ivy_ManIsAcyclic_rec( Ivy_Man_t * p, Ivy_Obj_t * pNode )
 ***********************************************************************/
 int Ivy_ManIsAcyclic( Ivy_Man_t * p )
 {
-    Ivy_Obj_t * pNode;
+    Ivy_Obj_t * pObj;
     int fAcyclic, i;
     // set the traversal ID for this DFS ordering
     Ivy_ManIncrementTravId( p );   
     Ivy_ManIncrementTravId( p );   
-    // pNode->TravId == pNet->nTravIds      means "pNode is on the path"
-    // pNode->TravId == pNet->nTravIds - 1  means "pNode is visited but is not on the path"
-    // pNode->TravId <  pNet->nTravIds - 1  means "pNode is not visited"
+    // pObj->TravId == pNet->nTravIds      means "pObj is on the path"
+    // pObj->TravId == pNet->nTravIds - 1  means "pObj is visited but is not on the path"
+    // pObj->TravId <  pNet->nTravIds - 1  means "pObj is not visited"
     // traverse the network to detect cycles
     fAcyclic = 1;
-    Ivy_ManForEachCo( p, pNode, i )
+    Ivy_ManForEachCo( p, pObj, i )
     {
-        if ( Ivy_ObjIsTravIdPrevious(p, Ivy_ObjFanin0(pNode)) )
-            continue;
         // traverse the output logic cone
-        if ( fAcyclic = Ivy_ManIsAcyclic_rec(p, Ivy_ObjFanin0(pNode)) )
+        if ( fAcyclic = Ivy_ManIsAcyclic_rec(p, Ivy_ObjFanin0(pObj)) )
             continue;
         // stop as soon as the first loop is detected
-        fprintf( stdout, " (cone of CO \"%d\")\n", Ivy_ObjFaninId0(pNode) );
+        fprintf( stdout, " (cone of %s \"%d\")\n", Ivy_ObjIsLatch(pObj)? "latch" : "PO", Ivy_ObjId(pObj) );
         break;
     }
     return fAcyclic;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Sets the levels of the nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_ManSetLevels_rec( Ivy_Obj_t * pObj, int fHaig )
+{
+    // quit if the node is visited
+    if ( Ivy_ObjIsMarkA(pObj) )
+        return pObj->Level;
+    Ivy_ObjSetMarkA(pObj);
+    // quit if this is a CI
+    if ( Ivy_ObjIsConst1(pObj) || Ivy_ObjIsCi(pObj) )
+        return 0;
+    assert( Ivy_ObjIsBuf(pObj) || Ivy_ObjIsAnd(pObj) || Ivy_ObjIsExor(pObj) );
+    // get levels of the fanins
+    Ivy_ManSetLevels_rec( Ivy_ObjFanin0(pObj), fHaig );
+    if ( !Ivy_ObjIsBuf(pObj) )
+        Ivy_ManSetLevels_rec( Ivy_ObjFanin1(pObj), fHaig );
+    // get level of the node
+    if ( Ivy_ObjIsBuf(pObj) )
+        pObj->Level = 1 + Ivy_ObjFanin0(pObj)->Level;
+    else if ( Ivy_ObjIsNode(pObj) )
+        pObj->Level = Ivy_ObjLevelNew( pObj );
+    else assert( 0 );
+    // get level of other choices
+    if ( fHaig && pObj->pEquiv && Ivy_ObjRefs(pObj) > 0 )
+    {
+        Ivy_Obj_t * pTemp;
+        unsigned LevelMax = pObj->Level;
+        for ( pTemp = pObj->pEquiv; pTemp != pObj; pTemp = Ivy_Regular(pTemp->pEquiv) )
+        {
+            Ivy_ManSetLevels_rec( pTemp, fHaig );
+            LevelMax = IVY_MAX( LevelMax, pTemp->Level );
+        }
+        // get this level
+        pObj->Level = LevelMax;
+        for ( pTemp = pObj->pEquiv; pTemp != pObj; pTemp = Ivy_Regular(pTemp->pEquiv) )
+            pTemp->Level = LevelMax;
+    }
+    return pObj->Level;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sets the levels of the nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_ManSetLevels( Ivy_Man_t * p, int fHaig )
+{
+    Ivy_Obj_t * pObj;
+    int i, LevelMax;
+    // check if CIs have choices
+    if ( fHaig )
+    {
+        Ivy_ManForEachCi( p, pObj, i )
+            if ( pObj->pEquiv )
+                printf( "CI %d has a choice, which will not be visualized.\n", pObj->Id );
+    }
+    // clean the levels
+    Ivy_ManForEachObj( p, pObj, i )
+        pObj->Level = 0;
+    // compute the levels
+    LevelMax = 0;
+    Ivy_ManForEachCo( p, pObj, i )
+    {
+        Ivy_ManSetLevels_rec( Ivy_ObjFanin0(pObj), fHaig );
+        LevelMax = IVY_MAX( LevelMax, (int)Ivy_ObjFanin0(pObj)->Level );
+    }
+    // compute levels of nodes without fanout
+    Ivy_ManForEachObj( p, pObj, i )
+        if ( (Ivy_ObjIsNode(pObj) || Ivy_ObjIsBuf(pObj)) && Ivy_ObjRefs(pObj) == 0 )
+        {
+            Ivy_ManSetLevels_rec( pObj, fHaig );
+            LevelMax = IVY_MAX( LevelMax, (int)pObj->Level );
+        }
+    // clean the marks
+    Ivy_ManForEachObj( p, pObj, i )
+        Ivy_ObjClearMarkA(pObj);
+    return LevelMax;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

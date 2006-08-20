@@ -36,6 +36,7 @@ static void Io_WriteVerilogNodes( FILE * pFile, Abc_Ntk_t * pNtk );
 static void Io_WriteVerilogLatches( FILE * pFile, Abc_Ntk_t * pNtk );
 static int Io_WriteVerilogCheckNtk( Abc_Ntk_t * pNtk );
 static char * Io_WriteVerilogGetName( Abc_Obj_t * pObj );
+static int Io_WriteVerilogWiresCount( Abc_Ntk_t * pNtk );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -73,8 +74,52 @@ void Io_WriteVerilog( Abc_Ntk_t * pNtk, char * pFileName )
     }
 
     // write the equations for the network
+    fprintf( pFile, "// Benchmark \"%s\" written by ABC on %s\n", pNtk->pName, Extra_TimeStamp() );
     Io_WriteVerilogInt( pFile, pNtk );
     fprintf( pFile, "\n" );
+    fclose( pFile );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Write verilog.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Io_WriteVerilogLibrary( st_table * tLibrary, char * pFileName )
+{
+    FILE * pFile;
+    st_generator * gen;
+    Abc_Ntk_t * pNtk, * pNetlist;
+    char * pName;
+
+    // start the output stream
+    pFile = fopen( pFileName, "w" );
+    if ( pFile == NULL )
+    {
+        fprintf( stdout, "Io_WriteVerilogLibrary(): Cannot open the output file \"%s\".\n", pFileName );
+        return;
+    }
+
+    fprintf( pFile, "// Verilog library \"%s\" written by ABC on %s\n", pFileName, Extra_TimeStamp() );
+    fprintf( pFile, "\n" );
+    // write modules
+    st_foreach_item( tLibrary, gen, (char**)&pName, (char**)&pNtk )
+    {
+        // create netlist
+        pNetlist = Abc_NtkLogicToNetlist( pNtk, 0 );
+        // write the equations for the network
+        Io_WriteVerilogInt( pFile, pNetlist );
+        fprintf( pFile, "\n" );
+        // delete the netlist
+        Abc_NtkDelete( pNetlist );
+    }
+
     fclose( pFile );
 }
 
@@ -92,7 +137,6 @@ void Io_WriteVerilog( Abc_Ntk_t * pNtk, char * pFileName )
 void Io_WriteVerilogInt( FILE * pFile, Abc_Ntk_t * pNtk )
 {
     // write inputs and outputs
-    fprintf( pFile, "// Benchmark \"%s\" written by ABC on %s\n", pNtk->pName, Extra_TimeStamp() );
     fprintf( pFile, "module %s ( gclk,\n   ", Abc_NtkName(pNtk) );
     Io_WriteVerilogPis( pFile, pNtk, 3 );
     fprintf( pFile, ",\n   " );
@@ -111,9 +155,12 @@ void Io_WriteVerilogInt( FILE * pFile, Abc_Ntk_t * pNtk )
     Io_WriteVerilogRegs( pFile, pNtk, 4 );
     fprintf( pFile, ";\n" );
     }
+    if ( Io_WriteVerilogWiresCount(pNtk) > 0 )
+    {
     fprintf( pFile, "  wire" );
     Io_WriteVerilogWires( pFile, pNtk, 4 );
     fprintf( pFile, ";\n" );
+    }
     // write the nodes
     if ( Abc_NtkHasMapping(pNtk) )
         Io_WriteVerilogGates( pFile, pNtk );
@@ -205,6 +252,34 @@ void Io_WriteVerilogPos( FILE * pFile, Abc_Ntk_t * pNtk, int Start )
 
 /**Function*************************************************************
 
+  Synopsis    [Counts the number of wires.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Io_WriteVerilogWiresCount( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pTerm, * pNet;
+    int i, nNodes;
+    nNodes = Abc_NtkLatchNum(pNtk);
+    Abc_NtkForEachNode( pNtk, pTerm, i )
+    {
+        if ( i == 0 ) 
+            continue;
+        pNet = Abc_ObjFanout0(pTerm);
+        if ( Abc_ObjIsCo(Abc_ObjFanout0(pNet)) )
+            continue;
+        nNodes++;
+    }
+    return nNodes;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Writes the wires.]
 
   Description []
@@ -223,16 +298,7 @@ void Io_WriteVerilogWires( FILE * pFile, Abc_Ntk_t * pNtk, int Start )
     int i, Counter, nNodes;
 
     // count the number of wires
-    nNodes = Abc_NtkLatchNum(pNtk);
-    Abc_NtkForEachNode( pNtk, pTerm, i )
-    {
-        if ( i == 0 ) 
-            continue;
-        pNet = Abc_ObjFanout0(pTerm);
-        if ( Abc_ObjIsCo(Abc_ObjFanout0(pNet)) )
-            continue;
-        nNodes++;
-    }
+    nNodes = Io_WriteVerilogWiresCount( pNtk );
 
     // write the wires
     Counter = 0;

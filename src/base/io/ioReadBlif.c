@@ -43,6 +43,7 @@ struct Io_ReadBlif_t_
     // the error message
     FILE *               Output;       // the output stream
     char                 sError[1000]; // the error string generated during parsing
+    int                  fError;       // set to 1 when error occurs
 };
 
 static Io_ReadBlif_t * Io_ReadBlifFile( char * pFileName );
@@ -182,7 +183,7 @@ Abc_Ntk_t * Io_ReadBlifNetwork( Io_ReadBlif_t * p )
             return NULL;
         }
     }
-    else
+    else if ( !p->fError )
         Abc_NtkFinalizeRead( pNtkMaster );
     // return the master network
     return pNtkMaster;
@@ -273,7 +274,11 @@ Abc_Ntk_t * Io_ReadBlifNetworkOne( Io_ReadBlif_t * p )
         if ( p->vTokens == NULL ) // some files do not have ".end" in the end
             break;
         if ( fStatus == 1 )
+        {
+            Extra_ProgressBarStop( pProgress );
+            Abc_NtkDelete( pNtk );
             return NULL;
+        }
     }
     if ( p->pNtkMaster == NULL )
     Extra_ProgressBarStop( pProgress );
@@ -486,6 +491,16 @@ int Io_ReadBlifNetworkNames( Io_ReadBlif_t * p, Vec_Ptr_t ** pvTokens )
 
     // set the pointer to the functionality of the node
     Abc_ObjSetData( pNode, Abc_SopRegister(pNtk->pManFunc, p->vCubes->pArray) );
+
+    // check the size
+    if ( Abc_ObjFaninNum(pNode) != Abc_SopGetVarNum(Abc_ObjData(pNode)) )
+    {
+        p->LineCur = Extra_FileReaderGetLineNumber(p->pReader, 0);
+        sprintf( p->sError, "The number of fanins (%d) of node %s is different from SOP size (%d).", 
+            Abc_ObjFaninNum(pNode), Abc_ObjName(Abc_ObjFanout(pNode,0)), Abc_SopGetVarNum(Abc_ObjData(pNode)) );
+        Io_ReadBlifPrintErrorMessage( p );
+        return 1;
+    }
 
     // return the last array of tokens
     *pvTokens = vTokens;
@@ -735,6 +750,7 @@ int Io_ReadBlifNetworkDefaultInputArrival( Io_ReadBlif_t * p, Vec_Ptr_t * vToken
 ***********************************************************************/
 void Io_ReadBlifPrintErrorMessage( Io_ReadBlif_t * p )
 {
+    p->fError = 1;
     if ( p->LineCur == 0 ) // the line number is not given
         fprintf( p->Output, "%s: %s\n", p->pFileName, p->sError );
     else // print the error message with the line number

@@ -44,42 +44,71 @@ void open_libs() {
 #else
     DIR* dirp;
     struct dirent* dp;
+    char *env, *init_p, *p;
+    int done;
 
-    dirp = opendir(".");
-    while ((dp = readdir(dirp)) != NULL) {
+    env = getenv ("ABC_LIB_PATH");
+    if (env == NULL) {
+      printf("Warning: ABC_LIB_PATH not defined. Looking into the current directory.\n");
+      init_p = malloc (2*sizeof(char));
+      init_p[0]='.'; init_p[1] = 0;
+    } else {
+      init_p = malloc ((strlen(env)+1)*sizeof(char));
+      strcpy (init_p, env);
+    }
+
+    // Extract directories and read libraries
+    done = 0;
+    p = init_p;
+    while (!done) {
+      char *endp = strchr (p,':');
+      if (endp == NULL) done = 1; // last directory in the list
+      else *endp = 0; // end of string
+
+      dirp = opendir(p);
+      if (dirp == NULL) {
+        printf("Warning: directory in ABC_LIB_PATH does not exist (%s).\n", p);
+        continue;
+      }
+
+      while ((dp = readdir(dirp)) != NULL) {
         if ((strncmp("libabc_", dp->d_name, 7) == 0) &&
             (strcmp(".so", dp->d_name + strlen(dp->d_name) - 3) == 0)) {
 
-            // make sure we don't overflow the handle array
-            if (curr_lib >= MAX_LIBS) {
-                printf("Warning: maximum number of ABC libraries (%d) exceeded.  Not loading %s.\n",
-                       MAX_LIBS,
-                       dp->d_name);
+          // make sure we don't overflow the handle array
+          if (curr_lib >= MAX_LIBS) {
+            printf("Warning: maximum number of ABC libraries (%d) exceeded.  Not loading %s.\n",
+                   MAX_LIBS,
+                   dp->d_name);
+          }
+          
+          // attempt to load it
+          else {
+            char* szPrefixed = malloc((strlen(dp->d_name) + strlen(p) + 2) * 
+                                      sizeof(char));
+            sprintf(szPrefixed, "%s/", p);
+            strcat(szPrefixed, dp->d_name);
+            libHandles[curr_lib] = dlopen(szPrefixed, RTLD_NOW | RTLD_LOCAL);
+            
+            // did the load succeed?
+            if (libHandles[curr_lib] != 0) {
+              printf("Loaded ABC library: %s (Abc library extension #%d)\n", szPrefixed, curr_lib);
+              curr_lib++;
+            } else {
+              printf("Warning: failed to load ABC library %s:\n\t%s\n", szPrefixed, dlerror());
             }
-
-            // attempt to load it
-            else {
-                char* szPrefixed = malloc((strlen(dp->d_name) + 3) * sizeof(char));
-                strcpy(szPrefixed, "./");
-                strcat(szPrefixed, dp->d_name);
-
-                libHandles[curr_lib] = dlopen(szPrefixed, RTLD_NOW | RTLD_LOCAL);
-
-                // did the load succeed?
-                if (libHandles[curr_lib] != 0) {
-                    printf("Loaded ABC library: %s (Abc library extension #%d)\n", szPrefixed, curr_lib);
-                    curr_lib++;
-                } else {
-                    printf("Warning: failed to load ABC library %s:\n\t%s\n", szPrefixed, dlerror());
-                }
-
-                free(szPrefixed);
-            }
+            
+            free(szPrefixed);
+          }
         }
+      }
+      closedir(dirp);
+      p = endp+1;
     }
-    closedir(dirp);
-#endif
 
+    free(init_p);
+#endif
+    
     // null terminate the list of handles
     libHandles[curr_lib] = 0;    
 }

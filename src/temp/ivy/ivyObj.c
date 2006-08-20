@@ -114,6 +114,11 @@ Ivy_Obj_t * Ivy_ObjCreate( Ivy_Man_t * p, Ivy_Obj_t * pGhost )
     // update node counters of the manager
     p->nObjs[Ivy_ObjType(pObj)]++;
     p->nCreated++;
+
+//    printf( "Adding %sAIG node: ", p->pHaig==NULL? "H":" " );
+//    Ivy_ObjPrintVerbose( pObj, p->pHaig==NULL );
+//    printf( "\n" );
+
     // if HAIG is defined, create a corresponding node
     if ( p->pHaig )
         Ivy_ManHaigCreateObj( p, pObj );
@@ -192,8 +197,6 @@ void Ivy_ObjDisconnect( Ivy_Man_t * p, Ivy_Obj_t * pObj )
     // add the first fanin
     pObj->pFanin0 = NULL;
     pObj->pFanin1 = NULL;
-
-//    Ivy_ManCheckFanouts( p );
 }
 
 /**Function*************************************************************
@@ -324,7 +327,14 @@ void Ivy_ObjReplace( Ivy_Man_t * p, Ivy_Obj_t * pObjOld, Ivy_Obj_t * pObjNew, in
     assert( pObjOld != Ivy_Regular(pObjNew) );
     // if HAIG is defined, create the choice node
     if ( p->pHaig )
+    {
+//        if ( pObjOld->Id == 31 )
+//        {
+//            Ivy_ManShow( p, 0 );
+//            Ivy_ManShow( p->pHaig, 1 );
+//        }
         Ivy_ManHaigCreateChoice( p, pObjOld, pObjNew );
+    }
     // if the new object is complemented or already used, add the buffer
     if ( Ivy_IsComplement(pObjNew) || Ivy_ObjIsLatch(pObjNew) || Ivy_ObjRefs(pObjNew) > 0 || Ivy_ObjIsPi(pObjNew) || Ivy_ObjIsConst1(pObjNew) )
         pObjNew = Ivy_ObjCreate( p, Ivy_ObjCreateGhost(p, pObjNew, NULL, IVY_BUF, IVY_INIT_NONE) );
@@ -388,6 +398,19 @@ void Ivy_ObjReplace( Ivy_Man_t * p, Ivy_Obj_t * pObjOld, Ivy_Obj_t * pObjNew, in
         Vec_PtrPush( p->vBufs, pObjOld );
 //    Ivy_ManCheckFanouts( p );
 //    printf( "\n" );
+/*
+    if ( p->pHaig )
+    {
+        int x;
+        Ivy_ManShow( p, 0 );
+        Ivy_ManShow( p->pHaig, 1 );
+        x = 0;
+    }
+*/
+//    if ( Ivy_ManCheckFanoutNums(p) )
+//    {
+//        int x = 0;
+//    }
 }
 
 /**Function*************************************************************

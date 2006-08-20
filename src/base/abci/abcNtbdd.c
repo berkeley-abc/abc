@@ -246,35 +246,47 @@ DdManager * Abc_NtkGlobalBdds( Abc_Ntk_t * pNtk, int nBddSizeMax, int fLatchOnly
 {
     ProgressBar * pProgress;
     Vec_Ptr_t * vFuncsGlob;
-    Abc_Obj_t * pNode;
+    Abc_Obj_t * pNode, * pFanin;
     DdNode * bFunc;
     DdManager * dd;
-    int i, Counter;
+    int i, k, Counter;
+
+    // remove dangling nodes
+    Abc_AigCleanup( pNtk->pManFunc );
 
     // start the manager
     assert( pNtk->pManGlob == NULL );
     dd = Cudd_Init( Abc_NtkCiNum(pNtk), 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+    // set reordering
     if ( fReorder )
         Cudd_AutodynEnable( dd, CUDD_REORDER_SYMM_SIFT );
 
-    // set the elementary variables
+    // clean storage for local BDDs
     Abc_NtkCleanCopy( pNtk );
+    // set the elementary variables
     Abc_NtkForEachCi( pNtk, pNode, i )
-        pNode->pCopy = (Abc_Obj_t *)dd->vars[i]; 
+        if ( Abc_ObjFanoutNum(pNode) > 0 )
+        {
+            pNode->pCopy = (Abc_Obj_t *)dd->vars[i]; 
+            Cudd_Ref( dd->vars[i] );
+        }
     // assign the constant node BDD
     pNode = Abc_NtkConst1( pNtk );
-    pNode->pCopy = (Abc_Obj_t *)dd->one;   Cudd_Ref( dd->one );
+    if ( Abc_ObjFanoutNum(pNode) > 0 )
+    {
+        pNode->pCopy = (Abc_Obj_t *)dd->one;   
+        Cudd_Ref( dd->one );
+    }
 
     // collect the global functions of the COs
-    vFuncsGlob = Vec_PtrAlloc( 100 );
     Counter = 0;
+    vFuncsGlob = Vec_PtrAlloc( 100 );
     if ( fLatchOnly )
     {
         // construct the BDDs
         pProgress = Extra_ProgressBarStart( stdout, Abc_NtkNodeNum(pNtk) );
         Abc_NtkForEachLatch( pNtk, pNode, i )
         {
-//            Extra_ProgressBarUpdate( pProgress, i, NULL );
             bFunc = Abc_NodeGlobalBdds_rec( dd, Abc_ObjFanin0(pNode), nBddSizeMax, pProgress, &Counter, fVerbose );
             if ( bFunc == NULL )
             {
@@ -295,7 +307,6 @@ DdManager * Abc_NtkGlobalBdds( Abc_Ntk_t * pNtk, int nBddSizeMax, int fLatchOnly
         pProgress = Extra_ProgressBarStart( stdout, Abc_NtkNodeNum(pNtk) );
         Abc_NtkForEachCo( pNtk, pNode, i )
         {
-//            Extra_ProgressBarUpdate( pProgress, i, NULL );
             bFunc = Abc_NodeGlobalBdds_rec( dd, Abc_ObjFanin0(pNode), nBddSizeMax, pProgress, &Counter, fVerbose );
             if ( bFunc == NULL )
             {
@@ -305,12 +316,12 @@ DdManager * Abc_NtkGlobalBdds( Abc_Ntk_t * pNtk, int nBddSizeMax, int fLatchOnly
                 Cudd_Quit( dd );
                 return NULL;
             }
-            bFunc = Cudd_NotCond( bFunc, Abc_ObjFaninC0(pNode) );   Cudd_Ref( bFunc );
+            bFunc = Cudd_NotCond( bFunc, Abc_ObjFaninC0(pNode) );  Cudd_Ref( bFunc ); 
             Vec_PtrPush( vFuncsGlob, bFunc );
         }
         Extra_ProgressBarStop( pProgress );
     }
-
+/*
     // derefence the intermediate BDDs
     Abc_NtkForEachNode( pNtk, pNode, i )
         if ( pNode->pCopy ) 
@@ -318,6 +329,22 @@ DdManager * Abc_NtkGlobalBdds( Abc_Ntk_t * pNtk, int nBddSizeMax, int fLatchOnly
             Cudd_RecursiveDeref( dd, (DdNode *)pNode->pCopy );
             pNode->pCopy = NULL;
         }
+*/
+/*
+    // make sure all nodes are derefed
+    Abc_NtkForEachObj( pNtk, pNode, i )
+    {
+        if ( pNode->pCopy != NULL )
+            printf( "Abc_NtkGlobalBdds() error: Node %d has BDD assigned\n", pNode->Id );
+        if ( pNode->vFanouts.nSize > 0 )
+            printf( "Abc_NtkGlobalBdds() error: Node %d has refs assigned\n", pNode->Id );
+    }
+*/
+    // reset references
+    Abc_NtkForEachObj( pNtk, pNode, i )
+        Abc_ObjForEachFanin( pNode, pFanin, k )
+            pFanin->vFanouts.nSize++;
+
     // reorder one more time
     if ( fReorder )
     {
@@ -326,6 +353,7 @@ DdManager * Abc_NtkGlobalBdds( Abc_Ntk_t * pNtk, int nBddSizeMax, int fLatchOnly
     }
     pNtk->pManGlob = dd;
     pNtk->vFuncsGlob = vFuncsGlob;
+//    Cudd_PrintInfo( dd, stdout );
     return dd;
 }
 
@@ -342,7 +370,7 @@ DdManager * Abc_NtkGlobalBdds( Abc_Ntk_t * pNtk, int nBddSizeMax, int fLatchOnly
 ***********************************************************************/
 DdNode * Abc_NodeGlobalBdds_rec( DdManager * dd, Abc_Obj_t * pNode, int nBddSizeMax, ProgressBar * pProgress, int * pCounter, int fVerbose )
 {
-    DdNode * bFunc, * bFunc0, * bFunc1;
+    DdNode * bFunc, * bFunc0, * bFunc1, * bFuncC;
     assert( !Abc_ObjIsComplement(pNode) );
     if ( Cudd_ReadKeys(dd)-Cudd_ReadDead(dd) > (unsigned)nBddSizeMax )
     {
@@ -353,29 +381,87 @@ DdNode * Abc_NodeGlobalBdds_rec( DdManager * dd, Abc_Obj_t * pNode, int nBddSize
         return NULL;
     }
     // if the result is available return
-    if ( pNode->pCopy )
-        return (DdNode *)pNode->pCopy;
-    // compute the result for both branches
-    bFunc0 = Abc_NodeGlobalBdds_rec( dd, Abc_ObjFanin(pNode,0), nBddSizeMax, pProgress, pCounter, fVerbose ); 
-    if ( bFunc0 == NULL )
-        return NULL;
-    Cudd_Ref( bFunc0 );
-    bFunc1 = Abc_NodeGlobalBdds_rec( dd, Abc_ObjFanin(pNode,1), nBddSizeMax, pProgress, pCounter, fVerbose ); 
-    if ( bFunc1 == NULL )
-        return NULL;
-    Cudd_Ref( bFunc1 );
-    bFunc0 = Cudd_NotCond( bFunc0, Abc_ObjFaninC0(pNode) );
-    bFunc1 = Cudd_NotCond( bFunc1, Abc_ObjFaninC1(pNode) );
-    // get the final result
-    bFunc = Cudd_bddAnd( dd, bFunc0, bFunc1 );   Cudd_Ref( bFunc );
-    Cudd_RecursiveDeref( dd, bFunc0 );
-    Cudd_RecursiveDeref( dd, bFunc1 );
-    // set the result
-    assert( pNode->pCopy == NULL );
-    pNode->pCopy = (Abc_Obj_t *)bFunc;
-    // increment the progress bar
-    if ( pProgress )
-        Extra_ProgressBarUpdate( pProgress, (*pCounter)++, NULL );
+    if ( pNode->pCopy == NULL )
+    {
+        Abc_Obj_t * pNodeC, * pNode0, * pNode1;
+        pNode0 = Abc_ObjFanin0(pNode);
+        pNode1 = Abc_ObjFanin1(pNode);
+        // check for the special case when it is MUX/EXOR
+//        if ( 0 )
+        if ( pNode0->pCopy == NULL && pNode1->pCopy == NULL &&
+             Abc_ObjIsNode(pNode0) && Abc_ObjFanoutNum(pNode0) == 1 && 
+             Abc_ObjIsNode(pNode1) && Abc_ObjFanoutNum(pNode1) == 1 && 
+             Abc_NodeIsMuxType(pNode) )
+        {
+            // deref the fanins
+            pNode0->vFanouts.nSize--;
+            pNode1->vFanouts.nSize--;
+            // recognize the MUX
+            pNodeC = Abc_NodeRecognizeMux( pNode, &pNode1, &pNode0 );
+            assert( Abc_ObjFanoutNum(pNodeC) > 1 );
+            // dereference the control once (the second time it will be derefed when BDDs are computed)
+            pNodeC->vFanouts.nSize--;
+
+            // compute the result for all branches
+            bFuncC = Abc_NodeGlobalBdds_rec( dd, pNodeC, nBddSizeMax, pProgress, pCounter, fVerbose ); 
+            if ( bFuncC == NULL )
+                return NULL;
+            Cudd_Ref( bFuncC );
+            bFunc0 = Abc_NodeGlobalBdds_rec( dd, Abc_ObjRegular(pNode0), nBddSizeMax, pProgress, pCounter, fVerbose ); 
+            if ( bFunc0 == NULL )
+                return NULL;
+            Cudd_Ref( bFunc0 );
+            bFunc1 = Abc_NodeGlobalBdds_rec( dd, Abc_ObjRegular(pNode1), nBddSizeMax, pProgress, pCounter, fVerbose ); 
+            if ( bFunc1 == NULL )
+                return NULL;
+            Cudd_Ref( bFunc1 );
+
+            // complement the branch BDDs
+            bFunc0 = Cudd_NotCond( bFunc0, Abc_ObjIsComplement(pNode0) );
+            bFunc1 = Cudd_NotCond( bFunc1, Abc_ObjIsComplement(pNode1) );
+            // get the final result
+            bFunc = Cudd_bddIte( dd, bFuncC, bFunc1, bFunc0 );   Cudd_Ref( bFunc );
+            Cudd_RecursiveDeref( dd, bFunc0 );
+            Cudd_RecursiveDeref( dd, bFunc1 );
+            Cudd_RecursiveDeref( dd, bFuncC );
+            // add the number of used nodes
+            (*pCounter) += 3;
+        }
+        else
+        {
+            // compute the result for both branches
+            bFunc0 = Abc_NodeGlobalBdds_rec( dd, Abc_ObjFanin(pNode,0), nBddSizeMax, pProgress, pCounter, fVerbose ); 
+            if ( bFunc0 == NULL )
+                return NULL;
+            Cudd_Ref( bFunc0 );
+            bFunc1 = Abc_NodeGlobalBdds_rec( dd, Abc_ObjFanin(pNode,1), nBddSizeMax, pProgress, pCounter, fVerbose ); 
+            if ( bFunc1 == NULL )
+                return NULL;
+            Cudd_Ref( bFunc1 );
+            bFunc0 = Cudd_NotCond( bFunc0, Abc_ObjFaninC0(pNode) );
+            bFunc1 = Cudd_NotCond( bFunc1, Abc_ObjFaninC1(pNode) );
+            // get the final result
+            bFunc = Cudd_bddAnd( dd, bFunc0, bFunc1 );   Cudd_Ref( bFunc );
+            Cudd_RecursiveDeref( dd, bFunc0 );
+            Cudd_RecursiveDeref( dd, bFunc1 );
+            // add the number of used nodes
+            (*pCounter)++;
+        }
+        // set the result
+        assert( pNode->pCopy == NULL );
+        pNode->pCopy = (Abc_Obj_t *)bFunc;
+        // increment the progress bar
+        if ( pProgress )
+            Extra_ProgressBarUpdate( pProgress, *pCounter, NULL );
+    }
+    // prepare the return value
+    bFunc = (DdNode *)pNode->pCopy;
+    // dereference BDD at the node
+    if ( --pNode->vFanouts.nSize == 0 )
+    {
+        Cudd_Deref( bFunc );
+        pNode->pCopy = NULL;
+    }
     return bFunc;
 }
 

@@ -256,6 +256,37 @@ bool Abc_NtkIsDfsOrdered( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
+Vec_Ptr_t * Abc_NtkSupport( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vNodes;
+    Abc_Obj_t * pNode;
+    int i;
+    // set the traversal ID
+    Abc_NtkIncrementTravId( pNtk );
+    // start the array of nodes
+    vNodes = Vec_PtrAlloc( 100 );
+    // go through the PO nodes and call for each of them
+    Abc_NtkForEachCo( pNtk, pNode, i )
+        Abc_NtkNodeSupport_rec( Abc_ObjFanin0(pNode), vNodes );
+    // add unused CIs
+    Abc_NtkForEachCi( pNtk, pNode, i )
+        if ( !Abc_NodeIsTravIdCurrent( pNode ) )
+            Vec_PtrPush( vNodes, pNode );
+    assert( Vec_PtrSize(vNodes) == Abc_NtkCiNum(pNtk) );
+    return vNodes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the set of CI nodes in the support of the given nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Vec_Ptr_t * Abc_NtkNodeSupport( Abc_Ntk_t * pNtk, Abc_Obj_t ** ppNodes, int nNodes )
 {
     Vec_Ptr_t * vNodes;

@@ -54,10 +54,10 @@ Abc_Ntk_t * Abc_NtkNetlistToLogic( Abc_Ntk_t * pNtk )
     if ( pNtk->tName2Model )
         return Abc_NtkNetlistToLogicHie( pNtk );
     // start the network
-    if ( !Abc_NtkHasMapping(pNtk) )
-        pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
-    else
+    if ( Abc_NtkHasMapping(pNtk) )
         pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_MAP );
+    else
+        pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, pNtk->ntkFunc );
     // duplicate the nodes 
     Abc_NtkForEachNode( pNtk, pObj, i )
         Abc_NtkDupObj(pNtkNew, pObj);

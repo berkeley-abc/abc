@@ -114,6 +114,7 @@ struct Ivy_Man_t_
     void *           pData;          // the temporary data
     void *           pCopy;          // the temporary data
     Ivy_Man_t *      pHaig;          // history AIG if present
+    int              nClassesSkip;   // the number of skipped classes
     // memory management
     Vec_Ptr_t *      vChunks;        // allocated memory pieces
     Vec_Ptr_t *      vPages;         // memory pages used by nodes
@@ -395,7 +396,9 @@ extern Ivy_Obj_t *     Ivy_CanonExor( Ivy_Man_t * p, Ivy_Obj_t * p0, Ivy_Obj_t *
 extern Ivy_Obj_t *     Ivy_CanonLatch( Ivy_Man_t * p, Ivy_Obj_t * pObj, Ivy_Init_t Init );
 /*=== ivyCheck.c ========================================================*/
 extern int             Ivy_ManCheck( Ivy_Man_t * p );
+extern int             Ivy_ManCheckFanoutNums( Ivy_Man_t * p );
 extern int             Ivy_ManCheckFanouts( Ivy_Man_t * p );
+extern int             Ivy_ManCheckChoices( Ivy_Man_t * p );
 /*=== ivyCut.c ==========================================================*/
 extern void            Ivy_ManSeqFindCut( Ivy_Man_t * p, Ivy_Obj_t * pNode, Vec_Int_t * vFront, Vec_Int_t * vInside, int nSize );
 extern Ivy_Store_t *   Ivy_NodeFindCutsAll( Ivy_Man_t * p, Ivy_Obj_t * pObj, int nLeaves );
@@ -406,6 +409,7 @@ extern void            Ivy_ManCollectCone( Ivy_Obj_t * pObj, Vec_Ptr_t * vFront,
 extern Vec_Vec_t *     Ivy_ManLevelize( Ivy_Man_t * p );
 extern Vec_Int_t *     Ivy_ManRequiredLevels( Ivy_Man_t * p );
 extern int             Ivy_ManIsAcyclic( Ivy_Man_t * p );
+extern int             Ivy_ManSetLevels( Ivy_Man_t * p, int fHaig );
 /*=== ivyDsd.c ==========================================================*/
 extern int             Ivy_TruthDsd( unsigned uTruth, Vec_Int_t * vTree );
 extern void            Ivy_TruthDsdPrint( FILE * pFile, Vec_Int_t * vTree );
@@ -422,10 +426,10 @@ extern void            Ivy_ObjCollectFanouts( Ivy_Man_t * p, Ivy_Obj_t * pObj, V
 extern Ivy_Obj_t *     Ivy_ObjReadFirstFanout( Ivy_Man_t * p, Ivy_Obj_t * pObj );
 extern int             Ivy_ObjFanoutNum( Ivy_Man_t * p, Ivy_Obj_t * pObj );
 /*=== ivyHaig.c ==========================================================*/
-extern void            Ivy_ManHaigStart( Ivy_Man_t * p );
+extern void            Ivy_ManHaigStart( Ivy_Man_t * p, int fVerbose );
 extern void            Ivy_ManHaigTrasfer( Ivy_Man_t * p, Ivy_Man_t * pNew );
 extern void            Ivy_ManHaigStop( Ivy_Man_t * p );
-extern void            Ivy_ManHaigPrintStats( Ivy_Man_t * p );
+extern void            Ivy_ManHaigPostprocess( Ivy_Man_t * p, int fVerbose );
 extern void            Ivy_ManHaigCreateObj( Ivy_Man_t * p, Ivy_Obj_t * pObj );
 extern void            Ivy_ManHaigCreateChoice( Ivy_Man_t * p, Ivy_Obj_t * pObjOld, Ivy_Obj_t * pObjNew );
 extern void            Ivy_ManHaigSimulate( Ivy_Man_t * p );
@@ -477,6 +481,8 @@ extern int             Ivy_ManRewriteAlg( Ivy_Man_t * p, int fUpdateLevel, int f
 extern int             Ivy_ManRewritePre( Ivy_Man_t * p, int fUpdateLevel, int fUseZeroCost, int fVerbose );
 /*=== ivySeq.c =========================================================*/
 extern int             Ivy_ManRewriteSeq( Ivy_Man_t * p, int fUseZeroCost, int fVerbose );
+/*=== ivyShow.c =========================================================*/
+extern void            Ivy_ManShow( Ivy_Man_t * pMan, int fHaig );
 /*=== ivyTable.c ========================================================*/
 extern Ivy_Obj_t *     Ivy_TableLookup( Ivy_Man_t * p, Ivy_Obj_t * pObj );
 extern void            Ivy_TableInsert( Ivy_Man_t * p, Ivy_Obj_t * pObj );
@@ -497,6 +503,8 @@ extern void            Ivy_ObjUpdateLevelR_rec( Ivy_Man_t * p, Ivy_Obj_t * pObj,
 extern int             Ivy_ObjIsMuxType( Ivy_Obj_t * pObj );
 extern Ivy_Obj_t *     Ivy_ObjRecognizeMux( Ivy_Obj_t * pObj, Ivy_Obj_t ** ppObjT, Ivy_Obj_t ** ppObjE );
 extern Ivy_Obj_t *     Ivy_ObjReal( Ivy_Obj_t * pObj );
+extern void            Ivy_ObjPrintVerbose( Ivy_Obj_t * pObj, int fHaig );
+extern void            Ivy_ManPrintVerbose( Ivy_Man_t * p, int fHaig );
 
 #ifdef __cplusplus
 }

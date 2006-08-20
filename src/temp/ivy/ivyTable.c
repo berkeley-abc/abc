@@ -167,7 +167,7 @@ void Ivy_TableUpdate( Ivy_Man_t * p, Ivy_Obj_t * pObj, int ObjIdNew )
         return;
     pPlace = Ivy_TableFind( p, pObj );
     assert( *pPlace == pObj->Id ); // node should be in the table
-    *pPlace = ObjIdNew;
+    *pPlace = ObjIdNew; 
 }
 
 /**Function*************************************************************
@@ -203,7 +203,7 @@ int Ivy_TableCountEntries( Ivy_Man_t * p )
 void Ivy_TableResize( Ivy_Man_t * p )
 {
     int * pTableOld, * pPlace;
-    int nTableSizeOld, Counter, e, clk;
+    int nTableSizeOld, Counter, nEntries, e, clk;
 clk = clock();
     // save the old table
     pTableOld = p->pTable;
@@ -224,7 +224,8 @@ clk = clock();
         assert( *pPlace == 0 ); // should not be in the table
         *pPlace = pTableOld[e];
     }
-    assert( Counter == Ivy_ManHashObjNum(p) );
+    nEntries = Ivy_ManHashObjNum(p);
+//    assert( Counter == nEntries );
 //    printf( "Increasing the structural table size from %6d to %6d. ", nTableSizeOld, p->nTableSize );
 //    PRT( "Time", clock() - clk );
     // replace the table and the parameters

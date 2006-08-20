@@ -97,6 +97,7 @@ extern int             Abc_FrameReadNtkStoreSize();
 extern void *          Abc_FrameReadLibLut();                    
 extern void *          Abc_FrameReadLibGen();                    
 extern void *          Abc_FrameReadLibSuper();                  
+extern void *          Abc_FrameReadLibVer();                  
 extern void *          Abc_FrameReadManDd();                     
 extern void *          Abc_FrameReadManDec();                    
 extern char *          Abc_FrameReadFlag( char * pFlag ); 
@@ -107,6 +108,7 @@ extern void            Abc_FrameSetNtkStoreSize( int nStored );
 extern void            Abc_FrameSetLibLut( void * pLib );        
 extern void            Abc_FrameSetLibGen( void * pLib );        
 extern void            Abc_FrameSetLibSuper( void * pLib );      
+extern void            Abc_FrameSetLibVer( void * pLib );      
 extern void            Abc_FrameSetFlag( char * pFlag, char * pValue );
 
 #ifdef __cplusplus

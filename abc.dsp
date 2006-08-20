@@ -242,6 +242,10 @@ SOURCE=.\src\base\abci\abcNtbdd.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcOrder.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcPga.c
 # End Source File
 # Begin Source File
@@ -2150,11 +2154,15 @@ SOURCE=.\src\temp\ivy\ivyResyn.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\temp\ivy\ivyRwrPre.c
+SOURCE=.\src\temp\ivy\ivyRwr.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\src\temp\ivy\ivySeq.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\ivy\ivyShow.c
 # End Source File
 # Begin Source File
 
@@ -2251,6 +2259,30 @@ SOURCE=.\src\temp\mem\mem.c
 # Begin Source File
 
 SOURCE=.\src\temp\mem\mem.h
+# End Source File
+# End Group
+# Begin Group "ver"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\temp\ver\ver.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\ver\verCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\ver\verFormula.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\ver\verParse.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\ver\verStream.c
 # End Source File
 # End Group
 # End Group

@@ -72,6 +72,7 @@ struct Abc_Frame_t_
     void *          pLibLut;     // the current LUT library
     void *          pLibGen;     // the current genlib
     void *          pLibSuper;   // the current supergate library
+    void *          pLibVer;     // the current Verilog library
 };
 
 ////////////////////////////////////////////////////////////////////////

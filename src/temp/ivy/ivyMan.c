@@ -58,7 +58,7 @@ Ivy_Man_t * Ivy_ManStart()
     Ivy_ManStartMemory( p );
     // create the constant node
     p->pConst1 = Ivy_ManFetchMemory( p );
-    p->pConst1->fPhase = 1;
+//    p->pConst1->fPhase = 1;
     Vec_PtrPush( p->vObjs, p->pConst1 );
     p->nCreated = 1;
     // start the table
@@ -118,6 +118,9 @@ Ivy_Man_t * Ivy_ManDup( Ivy_Man_t * p )
     // free arrays
     Vec_IntFree( vNodes );
     Vec_IntFree( vLatches );
+    // make sure structural hashing did not change anything
+    assert( Ivy_ManNodeNum(p)  == Ivy_ManNodeNum(pNew) );
+    assert( Ivy_ManLatchNum(p) == Ivy_ManLatchNum(pNew) );
     // check the resulting network
     if ( !Ivy_ManCheck(pNew) )
         printf( "Ivy_ManMakeSeq(): The check has failed.\n" );
@@ -182,7 +185,7 @@ int Ivy_ManCleanup( Ivy_Man_t * p )
                
   SideEffects []
 
-  SeeAlso     []
+  SeeAlso     [] 
 
 ***********************************************************************/
 int Ivy_ManPropagateBuffers( Ivy_Man_t * p, int fUpdateLevel )
