@@ -448,7 +448,7 @@ int Abc_NtkCleanup( Abc_Ntk_t * pNtk, int fVerbose )
 {
     Vec_Ptr_t * vNodes;
     int Counter;
-    assert( !Abc_NtkHasAig(pNtk) );
+    assert( Abc_NtkIsLogic(pNtk) );
     // mark the nodes reachable from the POs
     vNodes = Abc_NtkDfs( pNtk, 0 );
     Counter = Abc_NtkReduceNodes( pNtk, vNodes );
@@ -473,7 +473,7 @@ int Abc_NtkReduceNodes( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes )
 {
     Abc_Obj_t * pNode;
     int i, Counter;
-    assert( !Abc_NtkIsStrash(pNtk) );
+    assert( Abc_NtkIsLogic(pNtk) );
     // mark the nodes reachable from the POs
     for ( i = 0; i < vNodes->nSize; i++ )
     {
@@ -481,9 +481,6 @@ int Abc_NtkReduceNodes( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes )
         assert( Abc_ObjIsNode(pNode) );
         pNode->fMarkA = 1;
     }
-    // if it is an AIG, also mark the constant 1 node
-    if ( Abc_NtkConst1(pNtk) )
-        Abc_NtkConst1(pNtk)->fMarkA = 1;
     // remove the non-marked nodes
     Counter = 0;
     Abc_NtkForEachNode( pNtk, pNode, i )

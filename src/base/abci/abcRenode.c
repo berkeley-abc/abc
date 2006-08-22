@@ -124,7 +124,7 @@ void Abc_NtkRenodeInt( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
     int i;
 
     // set the constant node
-    pConst1 = Abc_NtkConst1(pNtk);
+    pConst1 = Abc_AigConst1(pNtk);
     if ( Abc_ObjFanoutNum(pConst1) > 0 )
     {
         pNodeNew = Abc_NtkCreateNode( pNtkNew );  
@@ -173,7 +173,7 @@ Abc_Obj_t * Abc_NtkRenode_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld )
     if ( pNodeOld->pCopy )
         return pNodeOld->pCopy;
     assert( Abc_ObjIsNode(pNodeOld) );
-    assert( !Abc_NodeIsConst(pNodeOld) );
+    assert( !Abc_AigNodeIsConst(pNodeOld) );
     assert( pNodeOld->fMarkA );
 
 //printf( "%d ", Abc_NodeMffcSizeSupp(pNodeOld) );
@@ -214,7 +214,7 @@ DdNode * Abc_NtkRenodeDeriveBdd( DdManager * dd, Abc_Obj_t * pNodeOld, Vec_Ptr_t
     Abc_Obj_t * pFaninOld;
     DdNode * bFunc;
     int i;
-    assert( !Abc_NodeIsConst(pNodeOld) );
+    assert( !Abc_AigNodeIsConst(pNodeOld) );
     assert( Abc_ObjIsNode(pNodeOld) );
     // set the elementary BDD variables for the input nodes
     for ( i = 0; i < vFaninsOld->nSize; i++ )
@@ -389,8 +389,8 @@ void Abc_NtkRenodeSetBounds( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax )
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         // skip PI/PO nodes
-        if ( Abc_NodeIsConst(pNode) )
-            continue;
+//        if ( Abc_NodeIsConst(pNode) )
+//            continue;
         // mark the nodes with multiple fanouts
         nFanouts = Abc_ObjFanoutNum(pNode);
         nConeSize = Abc_NodeMffcSize(pNode);
@@ -406,8 +406,8 @@ void Abc_NtkRenodeSetBounds( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax )
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         // skip PI/PO nodes
-        if ( Abc_NodeIsConst(pNode) )
-            continue;
+//        if ( Abc_NodeIsConst(pNode) )
+//            continue;
         if ( pNode->fMarkA == 0 )
             continue;
         // continue cutting branches until it meets the fanin limit
@@ -420,8 +420,8 @@ void Abc_NtkRenodeSetBounds( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax )
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         // skip PI/PO nodes
-        if ( Abc_NodeIsConst(pNode) )
-            continue;
+//        if ( Abc_NodeIsConst(pNode) )
+//            continue;
         if ( pNode->fMarkA == 0 )
             continue;
         Abc_NtkRenodeCone( pNode, vCone );
@@ -455,8 +455,8 @@ void Abc_NtkRenodeSetBoundsCnf( Abc_Ntk_t * pNtk )
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         // skip PI/PO nodes
-        if ( Abc_NodeIsConst(pNode) )
-            continue;
+//        if ( Abc_NodeIsConst(pNode) )
+//            continue;
         // mark the nodes with multiple fanouts
         if ( Abc_ObjFanoutNum(pNode) > 1 )
             pNode->fMarkA = 1;
@@ -487,8 +487,8 @@ void Abc_NtkRenodeSetBoundsCnf( Abc_Ntk_t * pNtk )
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         // skip PI/PO nodes
-        if ( Abc_NodeIsConst(pNode) )
-            continue;
+//        if ( Abc_NodeIsConst(pNode) )
+//            continue;
         if ( Abc_NodeIsMuxType(pNode) && 
             Abc_ObjFanin0(pNode)->fMarkA == 0 &&
             Abc_ObjFanin1(pNode)->fMarkA == 0 )
@@ -521,8 +521,8 @@ void Abc_NtkRenodeSetBoundsMulti( Abc_Ntk_t * pNtk, int nThresh )
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         // skip PI/PO nodes
-        if ( Abc_NodeIsConst(pNode) )
-            continue;
+//        if ( Abc_NodeIsConst(pNode) )
+//            continue;
         // mark the nodes with multiple fanouts
 //        if ( Abc_ObjFanoutNum(pNode) > 1 )
 //            pNode->fMarkA = 1;

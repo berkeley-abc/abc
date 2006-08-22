@@ -50,8 +50,6 @@ Abc_Obj_t * Abc_ObjAlloc( Abc_Ntk_t * pNtk, Abc_ObjType_t Type )
     pObj->pNtk = pNtk;
     pObj->Type = Type;
     pObj->Id   = -1;
-    if ( pNtk->ntkType != ABC_NTK_NETLIST )
-        Abc_HManAddObj( pObj );
     return pObj;
 }
 
@@ -99,13 +97,13 @@ void Abc_ObjAdd( Abc_Obj_t * pObj )
     Vec_PtrPush( pNtk->vObjs, pObj );
     pNtk->nObjs++;
     // perform specialized operations depending on the object type
-    if ( Abc_ObjIsNet(pObj) )
-    {
-        pNtk->nNets++;
-    }
-    else if ( Abc_ObjIsNode(pObj) )
+    if ( Abc_ObjIsNode(pObj) )
     {
         pNtk->nNodes++;
+    }
+    else if ( Abc_ObjIsNet(pObj) )
+    {
+        pNtk->nNets++;
     }
     else if ( Abc_ObjIsPi(pObj) )
     {
@@ -128,14 +126,20 @@ void Abc_ObjAdd( Abc_Obj_t * pObj )
         Vec_PtrPush( pNtk->vAsserts, pObj );
         Vec_PtrPush( pNtk->vCos, pObj );
     }
+    else if ( Abc_ObjIsBi(pObj) )
+    {
+        Vec_PtrPush( pNtk->vCis, pObj );
+    }
+    else if ( Abc_ObjIsBo(pObj) )
+    {
+        Vec_PtrPush( pNtk->vCos, pObj );
+    }
     else if ( Abc_ObjIsBox(pObj) )
     {
         pNtk->nBoxes++;
+        Vec_PtrPush( pNtk->vBoxes, pObj );
     }
-    else
-    {
-        assert( 0 );
-    }
+    else assert( 0 );
 }
 
 /**Function*************************************************************
@@ -161,14 +165,17 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
     {
         if ( pNtkNew->ntkFunc == pObj->pNtk->ntkFunc ) 
         {
-            if ( Abc_NtkHasSop(pNtkNew) )
+            if ( Abc_NtkIsStrash(pNtkNew) || Abc_NtkIsSeq(pNtkNew) ) 
+            {}
+            else if ( Abc_NtkHasSop(pNtkNew) )
                 pObjNew->pData = Abc_SopRegister( pNtkNew->pManFunc, pObj->pData );
             else if ( Abc_NtkHasBdd(pNtkNew) )
                 pObjNew->pData = Cudd_bddTransfer(pObj->pNtk->pManFunc, pNtkNew->pManFunc, pObj->pData), Cudd_Ref(pObjNew->pData);
+            else if ( Abc_NtkHasAig(pNtkNew) )
+                pObjNew->pData = Aig_Transfer(pObj->pNtk->pManFunc, pNtkNew->pManFunc, pObj->pData, Abc_ObjFaninNum(pObj));
             else if ( Abc_NtkHasMapping(pNtkNew) )
                 pObjNew->pData = pObj->pData;
-            else if ( !Abc_NtkHasAig(pNtkNew) )
-                assert( 0 );
+            else assert( 0 );
         }
     }
     else if ( Abc_ObjIsNet(pObj) ) // copy the name
@@ -181,6 +188,27 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
     return pObjNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Clones the objects in the same network but does not assign its function.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Abc_NtkCloneObj( Abc_Obj_t * pObj )
+{
+    Abc_Obj_t * pClone, * pFanin;
+    int i;
+    pClone = Abc_ObjAlloc( pObj->pNtk, pObj->Type );   
+    Abc_ObjAdd( pClone );
+    Abc_ObjForEachFanin( pObj, pFanin, i )
+        Abc_ObjAddFanin( pClone, pFanin );
+    return pClone;
+}
 
 /**Function*************************************************************
 
@@ -249,6 +277,14 @@ void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
         Vec_PtrRemove( pObj->pNtk->vPos, pObj );
         Vec_PtrRemove( pObj->pNtk->vCos, pObj );
     }
+    else if ( Abc_ObjIsBi(pObj) )
+    {
+        Vec_PtrRemove( pObj->pNtk->vCis, pObj );
+    }
+    else if ( Abc_ObjIsBo(pObj) )
+    {
+        Vec_PtrRemove( pObj->pNtk->vCos, pObj );
+    }
     else if ( Abc_ObjIsAssert(pObj) )
     {
         Vec_PtrRemove( pObj->pNtk->vAsserts, pObj );
@@ -257,6 +293,7 @@ void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
     else if ( Abc_ObjIsBox(pObj) )
     {
         pNtk->nBoxes--;
+        Vec_PtrRemove( pObj->pNtk->vBoxes, pObj );
     }
     else
         assert( 0 );
@@ -371,30 +408,6 @@ Abc_Obj_t * Abc_NtkFindNode( Abc_Ntk_t * pNtk, char * pName )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_NtkFindCo( Abc_Ntk_t * pNtk, char * pName )
-{
-    Abc_Obj_t * pNode;
-    int i;
-    // search the node among COs
-    Abc_NtkForEachCo( pNtk, pNode, i )
-    {
-        if ( strcmp( Abc_ObjName(pNode), pName ) == 0 )
-            return pNode;
-    }
-    return NULL;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Returns the net with the given name.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 Abc_Obj_t * Abc_NtkFindNet( Abc_Ntk_t * pNtk, char * pName )
 {
     Abc_Obj_t * pNet;
@@ -409,7 +422,7 @@ Abc_Obj_t * Abc_NtkFindNet( Abc_Ntk_t * pNtk, char * pName )
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the net with the given name.]
+  Synopsis    [Returns the CI/CO terminal with the given name.]
 
   Description []
                
@@ -456,7 +469,7 @@ Abc_Obj_t * Abc_NtkFindOrCreateNet( Abc_Ntk_t * pNtk, char * pName )
     
 /**Function*************************************************************
 
-  Synopsis    [Create the new node.]
+  Synopsis    [Create node.]
 
   Description []
                
@@ -472,10 +485,10 @@ Abc_Obj_t * Abc_NtkCreateNode( Abc_Ntk_t * pNtk )
     Abc_ObjAdd( pObj );
     return pObj;
 }
-    
+
 /**Function*************************************************************
 
-  Synopsis    [Create the new node.]
+  Synopsis    [Create multi-input/multi-output box.]
 
   Description []
                
@@ -494,7 +507,7 @@ Abc_Obj_t * Abc_NtkCreateBox( Abc_Ntk_t * pNtk )
     
 /**Function*************************************************************
 
-  Synopsis    [Create the new node.]
+  Synopsis    [Create primary input.]
 
   Description []
                
@@ -513,7 +526,7 @@ Abc_Obj_t * Abc_NtkCreatePi( Abc_Ntk_t * pNtk )
     
 /**Function*************************************************************
 
-  Synopsis    [Create the new node.]
+  Synopsis    [Create primary output.]
 
   Description []
                
@@ -532,7 +545,7 @@ Abc_Obj_t * Abc_NtkCreatePo( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
-  Synopsis    [Create the new node.]
+  Synopsis    [Creates latch.]
 
   Description []
                
@@ -552,7 +565,7 @@ Abc_Obj_t * Abc_NtkCreateLatch( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
-  Synopsis    [Create the new node.]
+  Synopsis    [Creates assert.]
 
   Description []
                
@@ -571,7 +584,7 @@ Abc_Obj_t * Abc_NtkCreateAssert( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
-  Synopsis    [Creates inverter.]
+  Synopsis    [Creates constant 0 node.]
 
   Description []
                
@@ -583,12 +596,14 @@ Abc_Obj_t * Abc_NtkCreateAssert( Abc_Ntk_t * pNtk )
 Abc_Obj_t * Abc_NodeCreateConst0( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
-    assert( !Abc_NtkHasAig(pNtk) );
+    assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsNetlist(pNtk) );
     pNode = Abc_NtkCreateNode( pNtk );   
     if ( Abc_NtkHasSop(pNtk) )
         pNode->pData = Abc_SopRegister( pNtk->pManFunc, " 0\n" );
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_ReadLogicZero(pNtk->pManFunc), Cudd_Ref( pNode->pData );
+    else if ( Abc_NtkHasAig(pNtk) )
+        pNode->pData = Aig_ManConst0(pNtk->pManFunc);
     else if ( Abc_NtkHasMapping(pNtk) )
         pNode->pData = Mio_LibraryReadConst0(Abc_FrameReadLibGen());
     else if ( !Abc_NtkHasBlackbox(pNtk) )
@@ -598,7 +613,7 @@ Abc_Obj_t * Abc_NodeCreateConst0( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
-  Synopsis    [Creates inverter.]
+  Synopsis    [Creates constant 1 node.]
 
   Description []
                
@@ -610,13 +625,14 @@ Abc_Obj_t * Abc_NodeCreateConst0( Abc_Ntk_t * pNtk )
 Abc_Obj_t * Abc_NodeCreateConst1( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
+    assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsNetlist(pNtk) );
     pNode = Abc_NtkCreateNode( pNtk );   
-    if ( Abc_NtkHasAig(pNtk) )
-        return pNode;
     if ( Abc_NtkHasSop(pNtk) )
         pNode->pData = Abc_SopRegister( pNtk->pManFunc, " 1\n" );
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_ReadOne(pNtk->pManFunc), Cudd_Ref( pNode->pData );
+    else if ( Abc_NtkHasAig(pNtk) )
+        pNode->pData = Aig_ManConst1(pNtk->pManFunc);
     else if ( Abc_NtkHasMapping(pNtk) )
         pNode->pData = Mio_LibraryReadConst1(Abc_FrameReadLibGen());
     else if ( !Abc_NtkHasBlackbox(pNtk) )
@@ -645,6 +661,8 @@ Abc_Obj_t * Abc_NodeCreateInv( Abc_Ntk_t * pNtk, Abc_Obj_t * pFanin )
         pNode->pData = Abc_SopRegister( pNtk->pManFunc, "0 1\n" );
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_Not(Cudd_bddIthVar(pNtk->pManFunc,0)), Cudd_Ref( pNode->pData );
+    else if ( Abc_NtkHasAig(pNtk) )
+        pNode->pData = Aig_Not(Aig_IthVar(pNtk->pManFunc,0));
     else if ( Abc_NtkHasMapping(pNtk) )
         pNode->pData = Mio_LibraryReadInv(Abc_FrameReadLibGen());
     else
@@ -673,6 +691,8 @@ Abc_Obj_t * Abc_NodeCreateBuf( Abc_Ntk_t * pNtk, Abc_Obj_t * pFanin )
         pNode->pData = Abc_SopRegister( pNtk->pManFunc, "1 1\n" );
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_bddIthVar(pNtk->pManFunc,0), Cudd_Ref( pNode->pData );
+    else if ( Abc_NtkHasAig(pNtk) )
+        pNode->pData = Aig_IthVar(pNtk->pManFunc,0);
     else if ( Abc_NtkHasMapping(pNtk) )
         pNode->pData = Mio_LibraryReadBuf(Abc_FrameReadLibGen());
     else
@@ -682,7 +702,7 @@ Abc_Obj_t * Abc_NodeCreateBuf( Abc_Ntk_t * pNtk, Abc_Obj_t * pFanin )
 
 /**Function*************************************************************
 
-  Synopsis    [Creates inverter.]
+  Synopsis    [Creates AND.]
 
   Description []
                
@@ -695,35 +715,16 @@ Abc_Obj_t * Abc_NodeCreateAnd( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins )
 {
     Abc_Obj_t * pNode;
     int i;
-    assert( Abc_NtkIsLogic(pNtk) );
+    assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsNetlist(pNtk) );
     pNode = Abc_NtkCreateNode( pNtk );   
     for ( i = 0; i < vFanins->nSize; i++ )
         Abc_ObjAddFanin( pNode, vFanins->pArray[i] );
     if ( Abc_NtkHasSop(pNtk) )
-    {
-        char * pSop;
-        pSop = Extra_MmFlexEntryFetch( pNtk->pManFunc, vFanins->nSize + 4 );
-        for ( i = 0; i < vFanins->nSize; i++ )
-            pSop[i] = '1';
-        pSop[i++] = ' ';
-        pSop[i++] = '1';
-        pSop[i++] = '\n';
-        pSop[i++] = 0;
-        assert( i == vFanins->nSize + 4 );
-        pNode->pData = pSop;
-    }
+        pNode->pData = Abc_SopCreateAnd( pNtk->pManFunc, Vec_PtrSize(vFanins), NULL );
     else if ( Abc_NtkHasBdd(pNtk) )
-    {
-        DdManager * dd = pNtk->pManFunc;
-        DdNode * bFunc, * bTemp;
-        bFunc = Cudd_ReadOne(dd); Cudd_Ref( bFunc );
-        for ( i = 0; i < vFanins->nSize; i++ )
-        {
-            bFunc = Cudd_bddAnd( dd, bTemp = bFunc, Cudd_bddIthVar(pNtk->pManFunc,i) );  Cudd_Ref( bFunc );
-            Cudd_RecursiveDeref( dd, bTemp );
-        }
-        pNode->pData = bFunc;
-    }
+        pNode->pData = Extra_bddCreateAnd( pNtk->pManFunc, Vec_PtrSize(vFanins) ), Cudd_Ref(pNode->pData); 
+    else if ( Abc_NtkHasAig(pNtk) )
+        pNode->pData = Aig_CreateAnd( pNtk->pManFunc, Vec_PtrSize(vFanins) ); 
     else
         assert( 0 );
     return pNode;
@@ -731,7 +732,7 @@ Abc_Obj_t * Abc_NodeCreateAnd( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins )
 
 /**Function*************************************************************
 
-  Synopsis    [Creates inverter.]
+  Synopsis    [Creates OR.]
 
   Description []
                
@@ -744,35 +745,16 @@ Abc_Obj_t * Abc_NodeCreateOr( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins )
 {
     Abc_Obj_t * pNode;
     int i;
-    assert( Abc_NtkIsLogic(pNtk) );
+    assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsNetlist(pNtk) );
     pNode = Abc_NtkCreateNode( pNtk );   
     for ( i = 0; i < vFanins->nSize; i++ )
         Abc_ObjAddFanin( pNode, vFanins->pArray[i] );
     if ( Abc_NtkHasSop(pNtk) )
-    {
-        char * pSop;
-        pSop = Extra_MmFlexEntryFetch( pNtk->pManFunc, vFanins->nSize + 4 );
-        for ( i = 0; i < vFanins->nSize; i++ )
-            pSop[i] = '0';
-        pSop[i++] = ' ';
-        pSop[i++] = '0';
-        pSop[i++] = '\n';
-        pSop[i++] = 0;
-        assert( i == vFanins->nSize + 4 );
-        pNode->pData = pSop;
-    }
+        pNode->pData = Abc_SopCreateOr( pNtk->pManFunc, Vec_PtrSize(vFanins), NULL );
     else if ( Abc_NtkHasBdd(pNtk) )
-    {
-        DdManager * dd = pNtk->pManFunc;
-        DdNode * bFunc, * bTemp;
-        bFunc = Cudd_ReadLogicZero(dd); Cudd_Ref( bFunc );
-        for ( i = 0; i < vFanins->nSize; i++ )
-        {
-            bFunc = Cudd_bddOr( dd, bTemp = bFunc, Cudd_bddIthVar(pNtk->pManFunc,i) );  Cudd_Ref( bFunc );
-            Cudd_RecursiveDeref( dd, bTemp );
-        }
-        pNode->pData = bFunc;
-    }
+        pNode->pData = Extra_bddCreateOr( pNtk->pManFunc, Vec_PtrSize(vFanins) ), Cudd_Ref(pNode->pData); 
+    else if ( Abc_NtkHasAig(pNtk) )
+        pNode->pData = Aig_CreateOr( pNtk->pManFunc, Vec_PtrSize(vFanins) ); 
     else
         assert( 0 );
     return pNode;
@@ -780,7 +762,37 @@ Abc_Obj_t * Abc_NodeCreateOr( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins )
 
 /**Function*************************************************************
 
-  Synopsis    [Creates inverter.]
+  Synopsis    [Creates EXOR.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Abc_NodeCreateExor( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins )
+{
+    Abc_Obj_t * pNode;
+    int i;
+    assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsNetlist(pNtk) );
+    pNode = Abc_NtkCreateNode( pNtk );   
+    for ( i = 0; i < vFanins->nSize; i++ )
+        Abc_ObjAddFanin( pNode, vFanins->pArray[i] );
+    if ( Abc_NtkHasSop(pNtk) )
+        pNode->pData = Abc_SopCreateXorSpecial( pNtk->pManFunc, Vec_PtrSize(vFanins) );
+    else if ( Abc_NtkHasBdd(pNtk) )
+        pNode->pData = Extra_bddCreateExor( pNtk->pManFunc, Vec_PtrSize(vFanins) ), Cudd_Ref(pNode->pData); 
+    else if ( Abc_NtkHasAig(pNtk) )
+        pNode->pData = Aig_CreateExor( pNtk->pManFunc, Vec_PtrSize(vFanins) ); 
+    else
+        assert( 0 );
+    return pNode;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates MUX.]
 
   Description []
                
@@ -801,14 +813,17 @@ Abc_Obj_t * Abc_NodeCreateMux( Abc_Ntk_t * pNtk, Abc_Obj_t * pNodeC, Abc_Obj_t *
         pNode->pData = Abc_SopRegister( pNtk->pManFunc, "11- 1\n0-1 1\n" );
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_bddIte(pNtk->pManFunc,Cudd_bddIthVar(pNtk->pManFunc,0),Cudd_bddIthVar(pNtk->pManFunc,1),Cudd_bddIthVar(pNtk->pManFunc,2)), Cudd_Ref( pNode->pData );
+    else if ( Abc_NtkHasAig(pNtk) )
+        pNode->pData = Aig_Mux(pNtk->pManFunc,Aig_IthVar(pNtk->pManFunc,0),Aig_IthVar(pNtk->pManFunc,1),Aig_IthVar(pNtk->pManFunc,2));
     else
         assert( 0 );
     return pNode;
 }
 
+
 /**Function*************************************************************
 
-  Synopsis    [Clones the given node but does not assign the function.]
+  Synopsis    [Returns 1 if the node is a constant 0 node.]
 
   Description []
                
@@ -817,22 +832,16 @@ Abc_Obj_t * Abc_NodeCreateMux( Abc_Ntk_t * pNtk, Abc_Obj_t * pNodeC, Abc_Obj_t *
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_NodeClone( Abc_Obj_t * pNode )
-{
-    Abc_Obj_t * pClone, * pFanin;
-    int i;
-    assert( Abc_ObjIsNode(pNode) );
-    pClone = Abc_NtkCreateNode( pNode->pNtk );   
-    Abc_ObjForEachFanin( pNode, pFanin, i )
-        Abc_ObjAddFanin( pClone, pFanin );
-    return pClone;
+bool Abc_NodeIsConst( Abc_Obj_t * pNode )    
+{ 
+    assert( Abc_NtkIsLogic(pNode->pNtk) || Abc_NtkIsNetlist(pNode->pNtk) );
+    assert( Abc_ObjIsNode(pNode) );      
+    return Abc_ObjFaninNum(pNode) == 0;
 }
-
-
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Returns 1 if the node is a constant 0 node.]
 
   Description []
                
@@ -844,23 +853,25 @@ Abc_Obj_t * Abc_NodeClone( Abc_Obj_t * pNode )
 bool Abc_NodeIsConst0( Abc_Obj_t * pNode )    
 { 
     Abc_Ntk_t * pNtk = pNode->pNtk;
-    assert(Abc_ObjIsNode(pNode));      
-    assert(Abc_NodeIsConst(pNode));
+    assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsNetlist(pNtk) );
+    assert( Abc_ObjIsNode(pNode) );      
+    if ( !Abc_NodeIsConst(pNode) )
+        return 0;
     if ( Abc_NtkHasSop(pNtk) )
         return Abc_SopIsConst0(pNode->pData);
     if ( Abc_NtkHasBdd(pNtk) )
         return Cudd_IsComplement(pNode->pData);
     if ( Abc_NtkHasAig(pNtk) )
-        return Abc_ObjNot(pNode) == Abc_NtkConst1(pNode->pNtk);
+        return Aig_IsComplement(pNode->pData);
     if ( Abc_NtkHasMapping(pNtk) )
-        return pNode->pData == Mio_LibraryReadConst0(Abc_FrameReadLibSuper());
+        return pNode->pData == Mio_LibraryReadConst0(Abc_FrameReadLibGen());
     assert( 0 );
     return 0;
 }
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Returns 1 if the node is a constant 1 node.]
 
   Description []
                
@@ -872,23 +883,25 @@ bool Abc_NodeIsConst0( Abc_Obj_t * pNode )
 bool Abc_NodeIsConst1( Abc_Obj_t * pNode )    
 { 
     Abc_Ntk_t * pNtk = pNode->pNtk;
-    assert(Abc_ObjIsNode(pNode));      
-    assert(Abc_NodeIsConst(pNode));
+    assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsNetlist(pNtk) );
+    assert( Abc_ObjIsNode(pNode) );      
+    if ( !Abc_NodeIsConst(pNode) )
+        return 0;
     if ( Abc_NtkHasSop(pNtk) )
         return Abc_SopIsConst1(pNode->pData);
     if ( Abc_NtkHasBdd(pNtk) )
         return !Cudd_IsComplement(pNode->pData);
     if ( Abc_NtkHasAig(pNtk) )
-        return pNode == Abc_NtkConst1(pNode->pNtk);
+        return !Aig_IsComplement(pNode->pData);
     if ( Abc_NtkHasMapping(pNtk) )
-        return pNode->pData == Mio_LibraryReadConst1(Abc_FrameReadLibSuper());
+        return pNode->pData == Mio_LibraryReadConst1(Abc_FrameReadLibGen());
     assert( 0 );
     return 0;
 }
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Returns 1 if the node is a buffer.]
 
   Description []
                
@@ -900,7 +913,8 @@ bool Abc_NodeIsConst1( Abc_Obj_t * pNode )
 bool Abc_NodeIsBuf( Abc_Obj_t * pNode )    
 { 
     Abc_Ntk_t * pNtk = pNode->pNtk;
-    assert(Abc_ObjIsNode(pNode)); 
+    assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsNetlist(pNtk) );
+    assert( Abc_ObjIsNode(pNode) ); 
     if ( Abc_ObjFaninNum(pNode) != 1 )
         return 0;
     if ( Abc_NtkHasSop(pNtk) )
@@ -908,16 +922,16 @@ bool Abc_NodeIsBuf( Abc_Obj_t * pNode )
     if ( Abc_NtkHasBdd(pNtk) )
         return !Cudd_IsComplement(pNode->pData);
     if ( Abc_NtkHasAig(pNtk) )
-        return 0;
+        return !Aig_IsComplement(pNode->pData);
     if ( Abc_NtkHasMapping(pNtk) )
-        return pNode->pData == Mio_LibraryReadBuf(Abc_FrameReadLibSuper());
+        return pNode->pData == Mio_LibraryReadBuf(Abc_FrameReadLibGen());
     assert( 0 );
     return 0;
 }
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Returns 1 if the node is an inverter.]
 
   Description []
                
@@ -929,7 +943,8 @@ bool Abc_NodeIsBuf( Abc_Obj_t * pNode )
 bool Abc_NodeIsInv( Abc_Obj_t * pNode )    
 { 
     Abc_Ntk_t * pNtk = pNode->pNtk;
-    assert(Abc_ObjIsNode(pNode)); 
+    assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsNetlist(pNtk) );
+    assert( Abc_ObjIsNode(pNode) ); 
     if ( Abc_ObjFaninNum(pNode) != 1 )
         return 0;
     if ( Abc_NtkHasSop(pNtk) )
@@ -937,11 +952,36 @@ bool Abc_NodeIsInv( Abc_Obj_t * pNode )
     if ( Abc_NtkHasBdd(pNtk) )
         return Cudd_IsComplement(pNode->pData);
     if ( Abc_NtkHasAig(pNtk) )
-        return 0;
+        return Aig_IsComplement(pNode->pData);
     if ( Abc_NtkHasMapping(pNtk) )
-        return pNode->pData == Mio_LibraryReadInv(Abc_FrameReadLibSuper());
+        return pNode->pData == Mio_LibraryReadInv(Abc_FrameReadLibGen());
     assert( 0 );
     return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Complements the local functions of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NodeComplement( Abc_Obj_t * pNode )
+{
+    assert( Abc_NtkIsLogic(pNode->pNtk) || Abc_NtkIsNetlist(pNode->pNtk) );
+    assert( Abc_ObjIsNode(pNode) ); 
+    if ( Abc_NtkHasSop(pNode->pNtk) )
+        Abc_SopComplement( pNode->pData );
+    else if ( Abc_NtkHasBdd(pNode->pNtk) )
+        pNode->pData = Cudd_Not( pNode->pData );
+    else if ( Abc_NtkHasAig(pNode->pNtk) )
+        pNode->pData = Aig_Not( pNode->pData );
+    else
+        assert( 0 );
 }
 
 ////////////////////////////////////////////////////////////////////////

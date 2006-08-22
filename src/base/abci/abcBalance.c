@@ -233,7 +233,7 @@ Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, Vec_
     vSuper = Abc_NodeBalanceCone( pNodeOld, vStorage, Level, fDuplicate, fSelective );
     if ( vSuper->nSize == 0 )
     { // it means that the supergate contains two nodes in the opposite polarity
-        pNodeOld->pCopy = Abc_ObjNot(Abc_NtkConst1(pNtkNew));
+        pNodeOld->pCopy = Abc_ObjNot(Abc_AigConst1(pNtkNew));
         return pNodeOld->pCopy;
     }
     // for each old node, derive the new well-balanced node
@@ -263,9 +263,8 @@ Abc_Obj_t * Abc_NodeBalance_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, Vec_
     assert( pNodeOld->pCopy == NULL );
     // mark the old node with the new node
     pNodeOld->pCopy = vSuper->pArray[0];
-    Abc_HManAddProto( pNodeOld->pCopy, pNodeOld );
     vSuper->nSize = 0;
-//    if ( Abc_ObjRegular(pNodeOld->pCopy) == Abc_NtkConst1(pNtkNew) )
+//    if ( Abc_ObjRegular(pNodeOld->pCopy) == Abc_AigConst1(pNtkNew) )
 //        printf( "Constant node\n" );
 //    assert( pNodeOld->Level >= Abc_ObjRegular(pNodeOld->pCopy)->Level );
     return pNodeOld->pCopy;

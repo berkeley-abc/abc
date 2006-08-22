@@ -113,7 +113,7 @@ void * Abc_NtkToFraig( Abc_Ntk_t * pNtk, void * pParams, int fAllNodes, int fExd
 
     // map the constant node
     Abc_NtkCleanCopy( pNtk );
-    Abc_NtkConst1(pNtk)->pCopy = (Abc_Obj_t *)Fraig_ManReadConst1(pMan);
+    Abc_AigConst1(pNtk)->pCopy = (Abc_Obj_t *)Fraig_ManReadConst1(pMan);
     // create PIs and remember them in the old nodes
     Abc_NtkForEachCi( pNtk, pNode, i )
         pNode->pCopy = (Abc_Obj_t *)Fraig_ManReadIthVar(pMan, i);
@@ -168,7 +168,7 @@ Fraig_Node_t * Abc_NtkToFraigExdc( Fraig_Man_t * pMan, Abc_Ntk_t * pNtkMain, Abc
     // strash the EXDC network
     pNtkStrash = Abc_NtkStrash( pNtkExdc, 0, 0 );
     Abc_NtkCleanCopy( pNtkStrash );
-    Abc_NtkConst1(pNtkStrash)->pCopy = (Abc_Obj_t *)Fraig_ManReadConst1(pMan);
+    Abc_AigConst1(pNtkStrash)->pCopy = (Abc_Obj_t *)Fraig_ManReadConst1(pMan);
     // set the mapping of the PI nodes
     ppNames = Abc_NtkCollectCioNames( pNtkMain, 0 );
     Abc_NtkForEachCi( pNtkStrash, pObj, i )
@@ -285,7 +285,7 @@ Abc_Ntk_t * Abc_NtkFromFraig( Fraig_Man_t * pMan, Abc_Ntk_t * pNtk )
     Abc_NtkForEachCi( pNtk, pNode, i )
         Fraig_NodeSetData1( Fraig_ManReadIthVar(pMan, i), (Fraig_Node_t *)pNode->pCopy );
     // set the constant node
-    Fraig_NodeSetData1( Fraig_ManReadConst1(pMan), (Fraig_Node_t *)Abc_NtkConst1(pNtkNew) );
+    Fraig_NodeSetData1( Fraig_ManReadConst1(pMan), (Fraig_Node_t *)Abc_AigConst1(pNtkNew) );
     // process the nodes in topological order
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pNode, i )
@@ -384,7 +384,7 @@ Abc_Ntk_t * Abc_NtkFromFraig2( Fraig_Man_t * pMan, Abc_Ntk_t * pNtk )
 
     // map the nodes into their lowest level representives
     tTable = stmm_init_table(stmm_ptrcmp,stmm_ptrhash);
-    pNode = Abc_NtkConst1(pNtk);
+    pNode = Abc_AigConst1(pNtk);
     if ( !stmm_find_or_add( tTable, (char *)Fraig_Regular(pNode->pCopy), (char ***)&ppSlot ) )
         *ppSlot = pNode;
     Abc_NtkForEachCi( pNtk, pNode, i )
@@ -607,7 +607,7 @@ Abc_Obj_t * Abc_NodeFraigTrust( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode )
     assert( nFanins == Abc_SopGetVarNum(pNode->pData) );
     // check if it is a constant
     if ( nFanins == 0 )
-        return Abc_ObjNotCond( Abc_NtkConst1(pNtkNew), Abc_SopIsConst0(pNode->pData) );
+        return Abc_ObjNotCond( Abc_AigConst1(pNtkNew), Abc_SopIsConst0(pNode->pData) );
     if ( nFanins == 1 )
         return Abc_ObjNotCond( Abc_ObjFanin0(pNode)->pCopy, Abc_SopIsInv(pNode->pData) );
     if ( nFanins == 2 && Abc_SopIsAndType(pNode->pData) )

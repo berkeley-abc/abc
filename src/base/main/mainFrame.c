@@ -137,13 +137,12 @@ void Abc_FrameDeallocate( Abc_Frame_t * p )
 {
     extern void Rwt_ManGlobalStop();
     extern void undefine_cube_size();
-    extern void Ver_ParseFreeLibrary( st_table * pLibVer );
 //    extern void Ivy_TruthManStop();
 //    Abc_HManStop();
     undefine_cube_size();
     Rwt_ManGlobalStop();
 //    Ivy_TruthManStop();
-    if ( p->pLibVer ) Ver_ParseFreeLibrary( p->pLibVer );
+    if ( p->pLibVer ) Abc_LibFree( p->pLibVer );
     if ( p->pManDec ) Dec_ManStop( p->pManDec );
     if ( p->dd )      Extra_StopManager( p->dd );
     Abc_FrameDeleteAllNetworks( p );
@@ -427,7 +426,7 @@ void Abc_FrameUnmapAllNetworks( Abc_Frame_t * p )
     Abc_Ntk_t * pNtk;
     for ( pNtk = p->pNtkCur; pNtk; pNtk = Abc_NtkBackup(pNtk) )
         if ( Abc_NtkHasMapping(pNtk) )
-            Abc_NtkUnmap( pNtk );
+            Abc_NtkMapToSop( pNtk );
 }
 
 /**Function*************************************************************

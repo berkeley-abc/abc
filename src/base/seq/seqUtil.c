@@ -476,7 +476,7 @@ int Seq_MapComputeAreaFlows( Abc_Ntk_t * pNtk, int fVerbose )
 void Seq_NtkReachNodesFromPos_rec( Abc_Obj_t * pAnd, Vec_Ptr_t * vNodes )
 {
     // skip if this is a non-PI node
-    if ( !Abc_NodeIsAigAnd(pAnd) )
+    if ( !Abc_AigNodeIsAnd(pAnd) )
         return;
     // skip a visited node
     if ( Abc_NodeIsTravIdCurrent(pAnd) )
@@ -505,7 +505,7 @@ void Seq_NtkReachNodesFromPis_rec( Abc_Obj_t * pAnd, Vec_Ptr_t * vNodes )
     Abc_Obj_t * pFanout;
     int k;
     // skip if this is a non-PI node
-    if ( !Abc_NodeIsAigAnd(pAnd) )
+    if ( !Abc_AigNodeIsAnd(pAnd) )
         return;
     // skip a visited node
     if ( Abc_NodeIsTravIdCurrent(pAnd) )
@@ -546,7 +546,7 @@ Vec_Ptr_t * Seq_NtkReachNodes( Abc_Ntk_t * pNtk, int fFromPos )
     else
     {
         // tranvers the reverse cone of the constant node
-        pObj = Abc_NtkConst1( pNtk );
+        pObj = Abc_AigConst1( pNtk );
         Abc_ObjForEachFanout( pObj, pFanout, k )
             Seq_NtkReachNodesFromPis_rec( pFanout, vNodes );
         // tranvers the reverse cone of the PIs

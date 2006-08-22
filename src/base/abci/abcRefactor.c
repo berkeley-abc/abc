@@ -109,8 +109,8 @@ int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, bool 
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
         // skip the constant node
-        if ( Abc_NodeIsConst(pNode) )
-            continue;
+//        if ( Abc_NodeIsConst(pNode) )
+//            continue;
         // skip persistant nodes
         if ( Abc_NodeIsPersistant(pNode) )
             continue;

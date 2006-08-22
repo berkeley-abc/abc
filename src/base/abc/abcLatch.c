@@ -110,14 +110,18 @@ int Abc_NtkCountSelfFeedLatches( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 int Abc_NtkRemoveSelfFeedLatches( Abc_Ntk_t * pNtk )
 {
-    Abc_Obj_t * pLatch;
+    Abc_Obj_t * pLatch, * pConst1;
     int i, Counter;
     Counter = 0;
     Abc_NtkForEachLatch( pNtk, pLatch, i )
     {
         if ( Abc_NtkLatchIsSelfFeed( pLatch ) )
         {
-            Abc_ObjPatchFanin( pLatch, Abc_ObjFanin0(pLatch), Abc_NtkConst1(pNtk) );
+            if ( Abc_NtkIsStrash(pNtk) || Abc_NtkIsSeq(pNtk) )
+                pConst1 = Abc_AigConst1(pNtk);
+            else
+                pConst1 = Abc_NodeCreateConst1(pNtk);
+            Abc_ObjPatchFanin( pLatch, Abc_ObjFanin0(pLatch), pConst1 );
             Counter++;
         }
     }

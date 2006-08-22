@@ -120,8 +120,8 @@ int Abc_NtkRR( Abc_Ntk_t * pNtk, int nFaninLevels, int nFanoutLevels, int fUseFa
         if ( i >= nNodes )
             break;
         // skip the constant node
-        if ( Abc_NodeIsConst(pNode) )
-            continue;
+//        if ( Abc_NodeIsConst(pNode) )
+//            continue;
         // skip persistant nodes
         if ( Abc_NodeIsPersistant(pNode) )
             continue;
@@ -680,8 +680,7 @@ Abc_Ntk_t * Abc_NtkWindow( Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vC
     // duplicate the name and the spec
     pNtkNew->pName = Extra_UtilStrsav( "temp" );
     // map the constant nodes
-    if ( Abc_NtkConst1(pNtk) )
-        Abc_NtkConst1(pNtk)->pCopy = Abc_NtkConst1(pNtkNew);
+    Abc_AigConst1(pNtk)->pCopy = Abc_AigConst1(pNtkNew);
     // create and map the PIs
     Vec_PtrForEachEntry( vLeaves, pObj, i )
         pObj->pCopy = Abc_NtkCreatePi(pNtkNew);
@@ -728,7 +727,7 @@ void Abc_NtkRRSimulateStart( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pObj;
     unsigned uData, uData0, uData1;
     int i;
-    Abc_NtkConst1(pNtk)->pData = (void *)~((unsigned)0);
+    Abc_AigConst1(pNtk)->pData = (void *)~((unsigned)0);
     Abc_NtkForEachCi( pNtk, pObj, i )
         pObj->pData = (void *)SIM_RANDOM_UNSIGNED;
     Abc_NtkForEachNode( pNtk, pObj, i )
@@ -801,7 +800,7 @@ Vec_Str_t * Abc_NtkRRSimulate( Abc_Ntk_t * pNtk )
     }
 
     // simulate patters and store them in copy
-    Abc_NtkConst1(pNtk)->pCopy = (Abc_Obj_t *)~((unsigned)0);
+    Abc_AigConst1(pNtk)->pCopy = (Abc_Obj_t *)~((unsigned)0);
     Abc_NtkForEachCi( pNtk, pObj, i )
         pObj->pCopy = (Abc_Obj_t *)SIM_RANDOM_UNSIGNED;
     Abc_NtkForEachNode( pNtk, pObj, i )

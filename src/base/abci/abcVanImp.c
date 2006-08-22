@@ -487,7 +487,7 @@ printf( "PO = %d\n", pNode1->Id );
 
     // go through the pairs of signals in the frames
     pProgress = Extra_ProgressBarStart( stdout, p->nIdMax );
-    pConst1 = Abc_NtkConst1( p->pNtkSingle );
+    pConst1 = Abc_AigConst1(p->pNtkSingle);
     p->vImps = Vec_IntAlloc( 100 );
     p->vZeros = Vec_PtrAlloc( 100 );
     Abc_NtkForEachObj( p->pNtkSingle, pNode1, i )
@@ -882,14 +882,14 @@ Abc_Ntk_t * Abc_NtkVanImpDeriveExdc( Abc_Ntk_t * pNtk, Vec_Ptr_t * vZeros, Vec_I
     pNtkNew->pSpec = NULL;
 
     // map the constant nodes
-    Abc_NtkConst1(pNtk)->pCopy = Abc_NtkConst1(pNtkNew);
+    Abc_AigConst1(pNtk)->pCopy = Abc_AigConst1(pNtkNew);
     // for each CI, create PI
     Abc_NtkForEachCi( pNtk, pObj, i )
         Abc_NtkLogicStoreName( pObj->pCopy = Abc_NtkCreatePi(pNtkNew), Abc_ObjName(pObj) );
     // cannot add latches here because pLatch->pCopy pointers are used
 
     // build logic cone for zero nodes
-    pTotal = Abc_ObjNot( Abc_NtkConst1(pNtkNew) );
+    pTotal = Abc_ObjNot( Abc_AigConst1(pNtkNew) );
     Vec_PtrForEachEntry( vZeros, pNode, i )
     {
         // build the logic cone for the node
@@ -961,7 +961,7 @@ Abc_Ntk_t * Abc_NtkVanImpDeriveExdc( Abc_Ntk_t * pNtk, Vec_Ptr_t * vZeros, Vec_I
     Abc_NtkDeleteObj( pObjNew );
 
     // make the old network point to the new things
-    Abc_NtkConst1(pNtk)->pCopy = Abc_NtkConst1(pNtkNew);
+    Abc_AigConst1(pNtk)->pCopy = Abc_AigConst1(pNtkNew);
     Abc_NtkForEachCi( pNtk, pObj, i )
         pObj->pCopy = Abc_NtkPi( pNtkNew, i );
 */

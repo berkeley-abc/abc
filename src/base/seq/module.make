@@ -7,6 +7,7 @@ SRC +=    src/base/seq/seqAigCore.c \
     src/base/seq/seqMan.c \
     src/base/seq/seqMapCore.c \
     src/base/seq/seqMapIter.c \
+    src/base/seq/seqMaxMeanCycle.c \
     src/base/seq/seqRetCore.c \
     src/base/seq/seqRetIter.c \
     src/base/seq/seqShare.c \

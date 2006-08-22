@@ -47,7 +47,7 @@ void Abc_NtkIncrementTravId( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj;
     int i;
-    if ( pNtk->nTravIds == (1<<9)-1 )
+    if ( pNtk->nTravIds == (1<<8)-1 )
     {
         pNtk->nTravIds = 0;
         Abc_NtkForEachObj( pNtk, pObj, i )
@@ -183,10 +183,36 @@ int Abc_NtkGetBddNodeNum( Abc_Ntk_t * pNtk )
     assert( Abc_NtkIsBddLogic(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
+        assert( pNode->pData );
         if ( Abc_NodeIsConst(pNode) )
             continue;
-        assert( pNode->pData );
         nNodes += pNode->pData? Cudd_DagSize( pNode->pData ) : 0;
+    }
+    return nNodes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reads the number of BDD nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkGetAigNodeNum( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNode;
+    int i, nNodes = 0;
+    assert( Abc_NtkIsAigLogic(pNtk) );
+    Abc_NtkForEachNode( pNtk, pNode, i )
+    {
+        assert( pNode->pData );
+        if ( Abc_NodeIsConst(pNode) )
+            continue;
+        nNodes += pNode->pData? Aig_DagSize( pNode->pData ) : 0;
     }
     return nNodes;
 }
@@ -321,7 +347,7 @@ int Abc_NtkGetChoiceNum( Abc_Ntk_t * pNtk )
         return 0;
     Counter = 0;
     Abc_NtkForEachNode( pNtk, pNode, i )
-        Counter += Abc_NodeIsAigChoice( pNode );
+        Counter += Abc_AigNodeIsChoice( pNode );
     return Counter;
 }
 
@@ -525,13 +551,8 @@ int Abc_NtkLogicMakeSimpleCos( Abc_Ntk_t * pNtk, bool fDuplicate )
             if ( Abc_ObjFaninC0(pNode) )
             {
                 // change polarity of the duplicated driver
-                if ( Abc_NtkHasSop(pNtk) )
-                    Abc_SopComplement( pDriverNew->pData );
-                else if ( Abc_NtkHasBdd(pNtk) )
-                    pDriverNew->pData = Cudd_Not( pDriverNew->pData );
-                else
-                    assert( 0 );
-                Abc_ObjXorFaninC(pNode, 0);
+                Abc_NodeComplement( pDriverNew );
+                Abc_ObjXorFaninC( pNode, 0 );
             }
         }
         else
@@ -605,7 +626,7 @@ bool Abc_NodeIsExorType( Abc_Obj_t * pNode )
     // check that the node is regular
     assert( !Abc_ObjIsComplement(pNode) );
     // if the node is not AND, this is not EXOR
-    if ( !Abc_NodeIsAigAnd(pNode) )
+    if ( !Abc_AigNodeIsAnd(pNode) )
         return 0;
     // if the children are not complemented, this is not EXOR
     if ( !Abc_ObjFaninC0(pNode) || !Abc_ObjFaninC1(pNode) )
@@ -638,7 +659,7 @@ bool Abc_NodeIsMuxType( Abc_Obj_t * pNode )
     // check that the node is regular
     assert( !Abc_ObjIsComplement(pNode) );
     // if the node is not AND, this is not MUX
-    if ( !Abc_NodeIsAigAnd(pNode) )
+    if ( !Abc_AigNodeIsAnd(pNode) )
         return 0;
     // if the children are not complemented, this is not MUX
     if ( !Abc_ObjFaninC0(pNode) || !Abc_ObjFaninC1(pNode) )
@@ -1049,7 +1070,7 @@ void Abc_NtkReassignIds( Abc_Ntk_t * pNtk )
     // start the array of objects with new IDs
     vObjsNew = Vec_PtrAlloc( pNtk->nObjs );
     // put constant node first
-    pConst1 = Abc_NtkConst1(pNtk);
+    pConst1 = Abc_AigConst1(pNtk);
     assert( pConst1->Id == 0 );
     Vec_PtrPush( vObjsNew, pConst1 );
     // put PI nodes next

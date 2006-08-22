@@ -68,7 +68,7 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
         fprintf( pFile, "  net = %5d", Abc_NtkNetNum(pNtk) );
         fprintf( pFile, "  nd = %5d", Abc_NtkNodeNum(pNtk) );
     }
-    else if ( Abc_NtkHasAig(pNtk) )
+    else if ( Abc_NtkIsStrash(pNtk) || Abc_NtkIsSeq(pNtk) )
     {        
         fprintf( pFile, "  and = %5d", Abc_NtkNodeNum(pNtk) );
         if ( Num = Abc_NtkGetChoiceNum(pNtk) )
@@ -83,7 +83,10 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
     else 
         fprintf( pFile, "  nd = %5d", Abc_NtkNodeNum(pNtk) );
 
-    if ( Abc_NtkHasSop(pNtk) )   
+    if ( Abc_NtkIsStrash(pNtk) || Abc_NtkIsSeq(pNtk) )
+    {
+    }
+    else if ( Abc_NtkHasSop(pNtk) )   
     {
 
         fprintf( pFile, "  cube = %5d",  Abc_NtkGetCubeNum(pNtk) );
@@ -91,6 +94,8 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
         if ( fFactored )
             fprintf( pFile, "  lit(fac) = %5d",  Abc_NtkGetLitFactNum(pNtk) );
     }
+    else if ( Abc_NtkHasAig(pNtk) )
+        fprintf( pFile, "  aig  = %5d",  Abc_NtkGetAigNodeNum(pNtk) );
     else if ( Abc_NtkHasBdd(pNtk) )
         fprintf( pFile, "  bdd  = %5d",  Abc_NtkGetBddNodeNum(pNtk) );
     else if ( Abc_NtkHasMapping(pNtk) )
@@ -98,7 +103,7 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
         fprintf( pFile, "  area = %5.2f", Abc_NtkGetMappedArea(pNtk) );
         fprintf( pFile, "  delay = %5.2f", Abc_NtkDelayTrace(pNtk) );
     }
-    else if ( !Abc_NtkHasAig(pNtk) )
+    else if ( !Abc_NtkHasBlackbox(pNtk) )
     {
         assert( 0 );
     }
@@ -661,12 +666,15 @@ void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary )
         return;
     }
 
+    if ( Abc_NtkIsAigLogic(pNtk) )
+        return;
+
     // transform logic functions from BDD to SOP
     if ( fHasBdds = Abc_NtkIsBddLogic(pNtk) )
     {
         if ( !Abc_NtkBddToSop(pNtk, 0) )
         {
-            printf( "Converting to SOPs has failed.\n" );
+            printf( "Abc_NtkPrintGates(): Converting to SOPs has failed.\n" );
             return;
         }
     }
@@ -785,6 +793,40 @@ void Abc_NtkPrintStrSupports( Abc_Ntk_t * pNtk )
     }
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Prints information about the clock skew schedule.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkPrintSkews( FILE * pFile, Abc_Ntk_t * pNtk, int fPrintAll ) {
+
+  Abc_Obj_t * pObj;
+  int         i;
+  int         nNonZero = 0;
+  float       skew, sum = 0.0, avg;
+
+  if (fPrintAll) fprintf( pFile, "Full Clock Skew Schedule:\n\tGlobal Skew = %.2f\n", pNtk->globalSkew );
+
+  Abc_NtkForEachLatch( pNtk, pObj, i ) {
+    skew = Abc_NtkGetLatSkew( pNtk, i );
+    if ( skew != 0.0 ) {
+      nNonZero++;
+      sum += ABS( skew );
+    }
+    if (fPrintAll) fprintf( pFile, "\tLatch %d (Id = %d) \t Endpoint Skew = %.2f\n", i, pObj->Id, skew);
+  }
+
+  avg = sum / Abc_NtkLatchNum( pNtk );
+ 
+  fprintf( pFile, "Endpoint Skews : Total |Skew| = %.2f\t Avg |Skew| = %.2f\t Non-Zero Skews = %d\n", 
+           sum, avg, nNonZero );
+}
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

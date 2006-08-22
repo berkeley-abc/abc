@@ -110,7 +110,7 @@ Ivy_Man_t * Ivy_ManFromAbc( Abc_Ntk_t * pNtk )
     // create the manager
     pMan = Ivy_ManStart( Abc_NtkCiNum(pNtk), Abc_NtkCoNum(pNtk), Abc_NtkNodeNum(pNtk) + 10 );
     // create the PIs
-    Abc_NtkConst1(pNtk)->pCopy = (Abc_Obj_t *)Ivy_ManConst1(pMan);
+    Abc_AigConst1(pNtk)->pCopy = (Abc_Obj_t *)Ivy_ManConst1(pMan);
     Abc_NtkForEachCi( pNtk, pObj, i )
         pObj->pCopy = (Abc_Obj_t *)Ivy_ManPi(pMan, i);
     // perform the conversion of the internal nodes
@@ -148,7 +148,7 @@ Abc_Ntk_t * Ivy_ManToAbc( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan )
     pNtkNew = Abc_NtkStartFrom( pNtkOld, ABC_NTK_LOGIC, ABC_FUNC_SOP );
     // transfer the pointers to the basic nodes
     Ivy_ManCleanTravId(pMan);
-    Ivy_ManConst1(pMan)->TravId = Abc_NtkConst1(pNtkNew)->Id;
+    Ivy_ManConst1(pMan)->TravId = Abc_AigConst1(pNtkNew)->Id;
     Abc_NtkForEachCi( pNtkNew, pObjNew, i )
         Ivy_ManPi(pMan, i)->TravId = pObjNew->Id;
     // construct the logic network isomorphic to logic network in the AIG manager
@@ -199,7 +199,7 @@ Abc_Ntk_t * Ivy_ManToAbc( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan )
             else
             {
                 // clone the node
-                pObjNew = Abc_NodeClone( pFaninNew );
+                pObjNew = Abc_NtkCloneObj( pFaninNew );
                 // set complemented functions
                 pObjNew->pData = Abc_SopRegister( pNtkNew->pManFunc, pFaninNew->pData );
                 Abc_SopComplement(pObjNew->pData); 

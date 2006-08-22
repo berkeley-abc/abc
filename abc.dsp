@@ -42,7 +42,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /I "src\base\abc" /I "src\base\abci" /I "src\base\abcs" /I "src\base\seq" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\ft" /I "src\sat\aig" /I "src\sat\asat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\sim" /I "src\opt\rwr" /I "src\map\fpga" /I "src\map\pga" /I "src\map\mapper" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\mvc" /I "src\misc\util" /I "src\misc\npn" /I "src\misc\vec" /I "src\misc\espresso" /I "src\misc\nm" /I "src\temp\ivy" /I "src\temp\esop" /I "src\temp\rwt" /I "src\temp\deco" /I "src\temp\mem" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /FR /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /I "src\base\abc" /I "src\base\abci" /I "src\base\abcs" /I "src\base\seq" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\ft" /I "src\sat\asat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\sim" /I "src\opt\rwr" /I "src\map\fpga" /I "src\map\pga" /I "src\map\mapper" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\mvc" /I "src\misc\util" /I "src\misc\npn" /I "src\misc\vec" /I "src\misc\espresso" /I "src\misc\nm" /I "src\misc\hash" /I "src\temp\ivy" /I "src\temp\esop" /I "src\temp\rwt" /I "src\temp\deco" /I "src\temp\mem" /I "src\temp\aig" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /FR /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -66,7 +66,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /c
-# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "src\base\abc" /I "src\base\abci" /I "src\base\abcs" /I "src\base\seq" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\ft" /I "src\sat\aig" /I "src\sat\asat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\sim" /I "src\opt\rwr" /I "src\map\fpga" /I "src\map\pga" /I "src\map\mapper" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\mvc" /I "src\misc\util" /I "src\misc\npn" /I "src\misc\vec" /I "src\misc\espresso" /I "src\misc\nm" /I "src\temp\ivy" /I "src\temp\esop" /I "src\temp\rwt" /I "src\temp\deco" /I "src\temp\mem" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /FR /YX /FD /GZ /c
+# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "src\base\abc" /I "src\base\abci" /I "src\base\abcs" /I "src\base\seq" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\ft" /I "src\sat\asat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\sim" /I "src\opt\rwr" /I "src\map\fpga" /I "src\map\pga" /I "src\map\mapper" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\mvc" /I "src\misc\util" /I "src\misc\npn" /I "src\misc\vec" /I "src\misc\espresso" /I "src\misc\nm" /I "src\misc\hash" /I "src\temp\ivy" /I "src\temp\esop" /I "src\temp\rwt" /I "src\temp\deco" /I "src\temp\mem" /I "src\temp\aig" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /FR /YX /FD /GZ /c
 # SUBTRACT CPP /X
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
@@ -123,6 +123,10 @@ SOURCE=.\src\base\abc\abcInt.h
 # Begin Source File
 
 SOURCE=.\src\base\abc\abcLatch.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abc\abcLib.c
 # End Source File
 # Begin Source File
 
@@ -230,6 +234,10 @@ SOURCE=.\src\base\abci\abcMap.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcMini.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcMiter.c
 # End Source File
 # Begin Source File
@@ -306,10 +314,6 @@ SOURCE=.\src\base\abci\abcTiming.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\abci\abcTrace.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\base\abci\abcUnate.c
 # End Source File
 # Begin Source File
@@ -375,6 +379,10 @@ SOURCE=.\src\base\seq\seqMapCore.c
 # Begin Source File
 
 SOURCE=.\src\base\seq\seqMapIter.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\seq\seqMaxMeanCycle.c
 # End Source File
 # Begin Source File
 
@@ -1119,94 +1127,6 @@ SOURCE=.\src\sat\csat\csat_apis.c
 # Begin Source File
 
 SOURCE=.\src\sat\csat\csat_apis.h
-# End Source File
-# End Group
-# Begin Group "aig"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\sat\aig\aig.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\aig\aigBalance.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\aig\aigCheck.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\aig\aigFanout.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\aig\aigMan.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\aig\aigMem.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\aig\aigNode.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\aig\aigOper.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\aig\aigReplace.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\aig\aigTable.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\aig\aigUtil.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\aig\fraigClass.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\aig\fraigCnf.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\aig\fraigCore.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\aig\fraigEngine.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\aig\fraigProve.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\aig\fraigSim.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\aig\fraigSolver.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\aig\fraigTrav.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\aig\rwrMffc.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\aig\rwrTruth.c
 # End Source File
 # End Group
 # End Group
@@ -2077,6 +1997,26 @@ SOURCE=.\src\misc\nm\nmInt.h
 SOURCE=.\src\misc\nm\nmTable.c
 # End Source File
 # End Group
+# Begin Group "hash"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\misc\hash\hash.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\hash\hashFlt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\hash\hashInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\hash\hashPtr.h
+# End Source File
+# End Group
 # End Group
 # Begin Group "temp"
 
@@ -2283,6 +2223,50 @@ SOURCE=.\src\temp\ver\verParse.c
 # Begin Source File
 
 SOURCE=.\src\temp\ver\verStream.c
+# End Source File
+# End Group
+# Begin Group "aig"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\temp\aig\aig.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\aig\aigBalance.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\aig\aigCheck.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\aig\aigDfs.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\aig\aigMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\aig\aigMem.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\aig\aigObj.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\aig\aigOper.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\aig\aigTable.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\aig\aigUtil.c
 # End Source File
 # End Group
 # End Group

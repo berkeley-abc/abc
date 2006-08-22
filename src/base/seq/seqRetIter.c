@@ -316,7 +316,7 @@ int Seq_NtkNodeUpdateLValue( Abc_Obj_t * pObj, float Fi, Vec_Ptr_t * vLeaves, Ve
 void Seq_NodeRetimeSetLag_rec( Abc_Obj_t * pNode, char Lag )
 {
     Abc_Obj_t * pFanin;
-    if ( !Abc_NodeIsAigAnd(pNode) )
+    if ( !Abc_AigNodeIsAnd(pNode) )
         return;
     Seq_NodeSetLag( pNode, Lag );
     // consider the first fanin

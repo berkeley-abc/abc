@@ -66,8 +66,8 @@ Vec_Ptr_t * Sim_ComputeStrSupp( Abc_Ntk_t * pNtk )
     // derive the structural supports of the internal nodes
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
-        if ( Abc_NodeIsConst(pNode) )
-            continue;
+//        if ( Abc_NodeIsConst(pNode) )
+//            continue;
         pSimmNode  = vSuppStr->pArray[ pNode->Id ];
         pSimmNode1 = vSuppStr->pArray[ Abc_ObjFaninId0(pNode) ];
         pSimmNode2 = vSuppStr->pArray[ Abc_ObjFaninId1(pNode) ];

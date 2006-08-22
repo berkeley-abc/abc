@@ -45,6 +45,7 @@ static int Abc_CommandPrintAuto      ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandPrintKMap      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintGates     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintSharing   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintSkews     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandShowBdd        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandShowCut        ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -73,6 +74,7 @@ static int Abc_CommandOrPos          ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandFrames         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSop            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBdd            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAig            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandReorder        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandOrder          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMuxes          ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -95,6 +97,7 @@ static int Abc_CommandIRewrite       ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandIRewriteSeq    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIResyn         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandHaig           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandMini           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandFraig          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFraigTrust     ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -131,6 +134,9 @@ static int Abc_CommandProve          ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandTraceStart     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTraceCheck     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
+static int Abc_CommandHoward       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSkewForward  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -164,6 +170,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Printing",     "print_kmap",    Abc_CommandPrintKMap,        0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_gates",   Abc_CommandPrintGates,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_sharing", Abc_CommandPrintSharing,     0 );
+    Cmd_CommandAdd( pAbc, "Printing",     "print_skews",   Abc_CommandPrintSkews,       0 );
 
     Cmd_CommandAdd( pAbc, "Printing",     "show_bdd",      Abc_CommandShowBdd,          0 );
     Cmd_CommandAdd( pAbc, "Printing",     "show_cut",      Abc_CommandShowCut,          0 );
@@ -192,6 +199,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "frames",        Abc_CommandFrames,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "sop",           Abc_CommandSop,              0 );
     Cmd_CommandAdd( pAbc, "Various",      "bdd",           Abc_CommandBdd,              0 );
+    Cmd_CommandAdd( pAbc, "Various",      "aig",           Abc_CommandAig,              0 );
     Cmd_CommandAdd( pAbc, "Various",      "reorder",       Abc_CommandReorder,          0 );
     Cmd_CommandAdd( pAbc, "Various",      "order",         Abc_CommandOrder,            0 );
     Cmd_CommandAdd( pAbc, "Various",      "muxes",         Abc_CommandMuxes,            1 );
@@ -214,6 +222,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "New AIG",      "irws",          Abc_CommandIRewriteSeq,      1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "iresyn",        Abc_CommandIResyn,           1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "haig",          Abc_CommandHaig,             1 );
+    Cmd_CommandAdd( pAbc, "New AIG",      "mini",          Abc_CommandMini,             1 );
 
     Cmd_CommandAdd( pAbc, "Fraiging",     "fraig",         Abc_CommandFraig,            1 );
     Cmd_CommandAdd( pAbc, "Fraiging",     "fraig_trust",   Abc_CommandFraigTrust,       1 );
@@ -247,8 +256,11 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "sat",           Abc_CommandSat,              0 );
     Cmd_CommandAdd( pAbc, "Verification", "prove",         Abc_CommandProve,            1 );
 
-    Cmd_CommandAdd( pAbc, "Verification", "trace_start",   Abc_CommandTraceStart,       0 );
-    Cmd_CommandAdd( pAbc, "Verification", "trace_check",   Abc_CommandTraceCheck,       0 );
+//    Cmd_CommandAdd( pAbc, "Verification", "trace_start",   Abc_CommandTraceStart,       0 );
+//    Cmd_CommandAdd( pAbc, "Verification", "trace_check",   Abc_CommandTraceCheck,       0 );
+
+    Cmd_CommandAdd( pAbc, "Sequential",   "howard",        Abc_CommandHoward,           0 );
+    Cmd_CommandAdd( pAbc, "Sequential",   "skew_fwd",      Abc_CommandSkewForward,      0 );
 
 //    Rwt_Man4ExploreStart();
 //    Map_Var3Print();
@@ -1282,6 +1294,74 @@ usage:
     fprintf( pErr, "usage: print_sharing [-h]\n" );
     fprintf( pErr, "\t        prints the number of shared nodes in the TFO cones of the COs\n" );
 //    fprintf( pErr, "\t-l    : used library gate names (if mapped) [default = %s]\n", fUseLibrary? "yes": "no" );
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandPrintSkews( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+    int fPrintAll;
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fPrintAll = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ah" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'a':
+            fPrintAll = 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkIsSeq(pNtk) && Abc_NtkLatchNum(pNtk) == 0 )
+    {
+        fprintf( pErr, "The network has no latches.\n" );
+        return 0;
+    }
+
+    if ( pNtk->vSkews == NULL || pNtk->vSkews->nSize == 0 )
+    {
+        fprintf( pErr, "The network has no clock skew schedule.\n" );
+        return 0;
+    }
+
+    Abc_NtkPrintSkews( pOut, pNtk, fPrintAll );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: print_skews [-h] [-a]\n" );
+    fprintf( pErr, "\t        prints information about a clock skew schedule\n" );
+    fprintf( pErr, "\t-a    : dumps the skew of every latch [default = no]\n");
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -3309,29 +3389,26 @@ int Abc_CommandSop( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-
     if ( pNtk == NULL )
     {
         fprintf( pErr, "Empty network.\n" );
         return 1;
     }
-
-    // get the new network
-    if ( !Abc_NtkIsBddLogic(pNtk) )
+    if ( !Abc_NtkIsLogic(pNtk) )
     {
-        fprintf( pErr, "Converting to SOP is possible when node functions are BDDs.\n" );
+        fprintf( pErr, "Converting to SOP is possible only for logic networks.\n" );
         return 1;
     }
-    if ( !Abc_NtkBddToSop( pNtk, fDirect ) )
+    if ( !Abc_NtkLogicToSop(pNtk, fDirect) )
     {
-        fprintf( pErr, "Converting to SOP has failed.\n" );
+        fprintf( pErr, "Converting to BDD has failed.\n" );
         return 1;
     }
     return 0;
 
 usage:
     fprintf( pErr, "usage: sop [-dh]\n" );
-    fprintf( pErr, "\t         converts node functions from BDD to SOP\n" );
+    fprintf( pErr, "\t         converts node functions to SOP\n" );
     fprintf( pErr, "\t-d     : toggles using both phases or only positive [default = %s]\n", fDirect? "direct": "both" );  
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -3370,19 +3447,22 @@ int Abc_CommandBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-
     if ( pNtk == NULL )
     {
         fprintf( pErr, "Empty network.\n" );
         return 1;
     }
-
-    if ( !Abc_NtkIsSopLogic(pNtk) )
+    if ( !Abc_NtkIsLogic(pNtk) )
     {
-        fprintf( pErr, "Converting to BDD is possible when node functions are SOPs.\n" );
+        fprintf( pErr, "Converting to BDD is possible only for logic networks.\n" );
         return 1;
     }
-    if ( !Abc_NtkSopToBdd( pNtk ) )
+    if ( Abc_NtkIsBddLogic(pNtk) )
+    {
+        fprintf( pOut, "The logic network is already in the BDD form.\n" );
+        return 0;
+    }
+    if ( !Abc_NtkLogicToBdd(pNtk) )
     {
         fprintf( pErr, "Converting to BDD has failed.\n" );
         return 1;
@@ -3391,7 +3471,69 @@ int Abc_CommandBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     fprintf( pErr, "usage: bdd [-h]\n" );
-    fprintf( pErr, "\t         converts node functions from SOP to BDD\n" );
+    fprintf( pErr, "\t         converts node functions to BDD\n" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAig( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsLogic(pNtk) )
+    {
+        fprintf( pErr, "Converting to AIG is possible only for logic networks.\n" );
+        return 1;
+    }
+    if ( Abc_NtkIsAigLogic(pNtk) )
+    {
+        fprintf( pOut, "The logic network is already in the AIG form.\n" );
+        return 0;
+    }
+    if ( !Abc_NtkLogicToAig(pNtk) )
+    {
+        fprintf( pErr, "Converting to AIG has failed.\n" );
+        return 1;
+    }
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: aig [-h]\n" );
+    fprintf( pErr, "\t         converts node functions to AIG\n" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -3759,7 +3901,7 @@ int Abc_CommandOneOutput( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( argc == globalUtilOptind + 1 )
     {
-        pNodeCo = Abc_NtkFindCo( pNtk, argv[globalUtilOptind] );
+        pNodeCo = Abc_NtkFindTerm( pNtk, argv[globalUtilOptind] );
         pNode   = Abc_NtkFindNode( pNtk, argv[globalUtilOptind] );
         if ( pNode == NULL )
         {
@@ -5271,6 +5413,73 @@ usage:
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandMini( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c;
+    extern Abc_Ntk_t * Abc_NtkMiniBalance( Abc_Ntk_t * pNtk );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( Abc_NtkIsSeq(pNtk) )
+    {
+        fprintf( pErr, "Only works for non-sequential networks.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "Only works for combinatinally strashed AIG networks.\n" );
+        return 1;
+    }
+
+    pNtkRes = Abc_NtkMiniBalance( pNtk );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Command has failed.\n" );
+        return 0;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: mini [-h]\n" );
+    fprintf( pErr, "\t         perform balancing using new package\n" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
 
 /**Function*************************************************************
 
@@ -5913,7 +6122,6 @@ int Abc_CommandUnmap( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
     int c;
-    extern int Abc_NtkUnmap( Abc_Ntk_t * pNtk );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -5944,7 +6152,7 @@ int Abc_CommandUnmap( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    if ( !Abc_NtkUnmap( pNtk ) )
+    if ( !Abc_NtkMapToSop( pNtk ) )
     {
         fprintf( pErr, "Unmapping has failed.\n" );
         return 1;
@@ -5974,7 +6182,6 @@ int Abc_CommandAttach( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
     int c;
-    extern int Abc_NtkUnmap( Abc_Ntk_t * pNtk );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -7982,13 +8189,14 @@ int Abc_CommandTraceStart( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "This command is applicable to AIGs.\n" );
         return 1;
     }
-
+/*
     Abc_HManStart();
     if ( !Abc_HManPopulate( pNtk ) )
     {
         fprintf( pErr, "Failed to start the tracing database.\n" );
         return 1;
     }
+*/
     return 0;
 
 usage:
@@ -8042,7 +8250,7 @@ int Abc_CommandTraceCheck( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "This command is applicable to AIGs.\n" );
         return 1;
     }
-
+/*
     if ( !Abc_HManIsRunning(pNtk) )
     {
         fprintf( pErr, "The tracing database is not available.\n" );
@@ -8052,6 +8260,7 @@ int Abc_CommandTraceCheck( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( !Abc_HManVerify( 1, pNtk->Id ) )
         fprintf( pErr, "Verification failed.\n" );
     Abc_HManStop();
+*/
     return 0;
 
 usage:
@@ -8060,6 +8269,168 @@ usage:
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandHoward( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+    int fVerbose;
+    double result;
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fVerbose =  0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkIsSeq(pNtk) && Abc_NtkLatchNum(pNtk) == 0 )
+    {
+        fprintf( pErr, "The network has no latches. Analysis is not performed.\n" );
+        return 0;
+    }
+
+    if ( Abc_NtkHasAig(pNtk) )
+    {
+        // quit if there are choice nodes
+        if ( Abc_NtkGetChoiceNum(pNtk) )
+        {
+            fprintf( pErr, "Currently cannot analyze networks with choice nodes.\n" );
+            return 0;
+        }
+
+        /*
+        if ( Abc_NtkIsStrash(pNtk) )
+            pNtkRes = Abc_NtkAigToSeq(pNtk);
+        else
+            pNtkRes = Abc_NtkDup(pNtk);
+
+        */
+
+        fprintf( pErr, "Currently cannot analyze unmapped networks.\n" );
+        return 0;
+    }
+
+    result = Seq_NtkHoward( pNtk, fVerbose );
+
+    if (result < 0) {
+      fprintf( pErr, "Analysis failed.\n" );
+      return 0;
+    }
+
+    printf("Maximum mean cycle time = %.2f\n", result);
+
+    return 1;
+
+usage:
+    fprintf( pErr, "usage: howard [-h]\n" );
+    fprintf( pErr, "\t         computes the maximum mean cycle time using Howard's algorithm\n" );
+    fprintf( pErr, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandSkewForward( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+    int fMinimize;
+    float target;
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    target = pNtk->maxMeanCycle;
+    fMinimize =  0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "mh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'm':
+            fMinimize ^= 1;
+            break;
+        default:
+            goto usage;
+        }
+    }
+
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkIsSeq(pNtk) && Abc_NtkLatchNum(pNtk) == 0 )
+    {
+        fprintf( pErr, "The network has no latches.\n" );
+        return 0;
+    }
+
+    if ( pNtk->vSkews == NULL || pNtk->vSkews->nSize == 0 )
+    {
+        fprintf( pErr, "The network has no clock skew schedule.\n" );
+        return 0;
+    }
+
+    Seq_NtkSkewForward( pNtk, target, fMinimize );
+
+    return 1;
+
+usage:
+    fprintf( pErr, "usage: skew_fwd [-h] [-m] [-t float]\n" );
+    fprintf( pErr, "\t         converts a skew schedule into a set of forward skews 0<skew<T\n" );
+    fprintf( pErr, "\t-m     : minimizes sum of skews [default = %s]\n", fMinimize? "yes": "no" );
+    fprintf( pErr, "\t-t     : clock period, T [default = maxMeanCycle] (unimplemented)\n");
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

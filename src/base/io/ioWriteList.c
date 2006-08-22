@@ -117,8 +117,8 @@ void Io_WriteList( Abc_Ntk_t * pNtk, char * pFileName, int fUseHost )
     fprintf( pFile, "# written by ABC on %s\n", Extra_TimeStamp() );
 
     // write the constant node
-    if ( Abc_ObjFanoutNum( Abc_NtkConst1(pNtk) ) > 0 )
-        Io_WriteListEdge( pFile, Abc_NtkConst1(pNtk) );
+    if ( Abc_ObjFanoutNum( Abc_AigConst1(pNtk) ) > 0 )
+        Io_WriteListEdge( pFile, Abc_AigConst1(pNtk) );
 
     // write the PI edges
     Abc_NtkForEachPi( pNtk, pObj, i )

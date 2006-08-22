@@ -19,6 +19,8 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "main.h"
+#include "mio.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -26,7 +28,9 @@
 
 #define ABC_MUX_CUBES   100000
 
-static int         Abc_ConvertZddToSop( DdManager * dd, DdNode * zCover, char * pSop, int nFanins, Vec_Str_t * vCube, int fPhase );
+static int Abc_ConvertZddToSop( DdManager * dd, DdNode * zCover, char * pSop, int nFanins, Vec_Str_t * vCube, int fPhase );
+static DdNode * Abc_ConvertAigToBdd( DdManager * dd, Aig_Obj_t * pRoot);
+static Aig_Obj_t * Abc_ConvertSopToAig( Aig_Man_t * pMan, char * pSop );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -95,7 +99,6 @@ DdNode * Abc_ConvertSopToBdd( DdManager * dd, char * pSop )
     DdNode * bSum, * bCube, * bTemp, * bVar;
     char * pCube;
     int nVars, Value, v;
-    extern int Abc_SopIsExorType( char * pSop );
 
     // start the cover
     nVars = Abc_SopGetVarNum(pSop);
@@ -513,6 +516,374 @@ int Abc_CountZddCubes( DdManager * dd, DdNode * zCover )
     int nCubes = 0;
     Abc_CountZddCubes_rec( dd, zCover, &nCubes );
     return nCubes;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Converts the network from SOP to AIG representation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkSopToAig( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNode;
+    Aig_Man_t * pMan;
+    int i;
+
+    assert( Abc_NtkIsSopLogic(pNtk) ); 
+
+    // start the functionality manager
+    pMan = Aig_ManStart();
+
+    // convert each node from SOP to BDD
+    Abc_NtkForEachNode( pNtk, pNode, i )
+    {
+        assert( pNode->pData );
+        pNode->pData = Abc_ConvertSopToAig( pMan, pNode->pData );
+        if ( pNode->pData == NULL )
+        {
+            printf( "Abc_NtkSopToAig: Error while converting SOP into AIG.\n" );
+            return 0;
+        }
+    }
+    Extra_MmFlexStop( pNtk->pManFunc, 0 );
+    pNtk->pManFunc = pMan;
+
+    // update the network type
+    pNtk->ntkFunc = ABC_FUNC_AIG;
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Strashes one logic node using its SOP.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Obj_t * Abc_ConvertSopToAigInternal( Aig_Man_t * pMan, char * pSop )
+{
+    Aig_Obj_t * pAnd, * pSum;
+    int i, Value, nFanins;
+    char * pCube;
+    // get the number of variables
+    nFanins = Abc_SopGetVarNum(pSop);
+    // go through the cubes of the node's SOP
+    pSum = Aig_ManConst0(pMan);
+    Abc_SopForEachCube( pSop, nFanins, pCube )
+    {
+        // create the AND of literals
+        pAnd = Aig_ManConst1(pMan);
+        Abc_CubeForEachVar( pCube, Value, i )
+        {
+            if ( Value == '1' )
+                pAnd = Aig_And( pMan, pAnd, Aig_IthVar(pMan,i) );
+            else if ( Value == '0' )
+                pAnd = Aig_And( pMan, pAnd, Aig_Not(Aig_IthVar(pMan,i)) );
+        }
+        // add to the sum of cubes
+        pSum = Aig_Or( pMan, pSum, pAnd );
+    }
+    // decide whether to complement the result
+    if ( Abc_SopIsComplement(pSop) )
+        pSum = Aig_Not(pSum);
+    return pSum;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converts the network from AIG to BDD representation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Obj_t * Abc_ConvertSopToAig( Aig_Man_t * pMan, char * pSop )
+{
+    extern Aig_Obj_t * Dec_GraphFactorSop( Aig_Man_t * pMan, char * pSop );
+    int fUseFactor = 1;
+    // consider the constant node
+    if ( Abc_SopGetVarNum(pSop) == 0 )
+        return Aig_NotCond( Aig_ManConst1(pMan), Abc_SopIsConst0(pSop) );
+    // consider the special case of EXOR function
+    if ( Abc_SopIsExorType(pSop) )
+        return Aig_NotCond( Aig_CreateExor(pMan, Abc_SopGetVarNum(pSop)), Abc_SopIsComplement(pSop) );
+    // decide when to use factoring
+    if ( fUseFactor && Abc_SopGetVarNum(pSop) > 2 && Abc_SopGetCubeNum(pSop) > 1 )
+        return Dec_GraphFactorSop( pMan, pSop );
+    return Abc_ConvertSopToAigInternal( pMan, pSop );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converts the network from AIG to BDD representation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkAigToBdd( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNode;
+    Aig_Man_t * pMan;
+    DdManager * dd;
+    int nFaninsMax, i;
+
+    assert( Abc_NtkIsAigLogic(pNtk) ); 
+
+    // start the functionality manager
+    nFaninsMax = Abc_NtkGetFaninMax( pNtk );
+    if ( nFaninsMax == 0 )
+        printf( "Warning: The network has only constant nodes.\n" );
+
+    dd = Cudd_Init( nFaninsMax, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+
+    // set the mapping of AIG nodes into the BDD nodes
+    pMan = pNtk->pManFunc;
+    assert( Aig_ManPiNum(pMan) >= nFaninsMax ); 
+    for ( i = 0; i < nFaninsMax; i++ )
+        Aig_ManPi(pMan, i)->pData = Cudd_bddIthVar(dd, i);
+
+    // convert each node from SOP to BDD
+    Abc_NtkForEachNode( pNtk, pNode, i )
+    {
+        assert( pNode->pData );
+        pNode->pData = Abc_ConvertAigToBdd( dd, pNode->pData );
+        if ( pNode->pData == NULL )
+        {
+            printf( "Abc_NtkSopToBdd: Error while converting SOP into BDD.\n" );
+            return 0;
+        }
+        Cudd_Ref( pNode->pData );
+    }
+
+    Aig_ManStop( pNtk->pManFunc );
+    pNtk->pManFunc = dd;
+
+    // update the network type
+    pNtk->ntkFunc = ABC_FUNC_BDD;
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Construct BDDs and mark AIG nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_ConvertAigToBdd_rec1( DdManager * dd, Aig_Obj_t * pObj )
+{
+    assert( !Aig_IsComplement(pObj) );
+    if ( !Aig_ObjIsNode(pObj) || Aig_ObjIsMarkA(pObj) )
+        return;
+    Abc_ConvertAigToBdd_rec1( dd, Aig_ObjFanin0(pObj) ); 
+    Abc_ConvertAigToBdd_rec1( dd, Aig_ObjFanin1(pObj) );
+    pObj->pData = Cudd_bddAnd( dd, (DdNode *)Aig_ObjChild0Copy(pObj), (DdNode *)Aig_ObjChild1Copy(pObj) ); 
+    Cudd_Ref( pObj->pData );
+    assert( !Aig_ObjIsMarkA(pObj) ); // loop detection
+    Aig_ObjSetMarkA( pObj );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Dereference BDDs and unmark AIG nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_ConvertAigToBdd_rec2( DdManager * dd, Aig_Obj_t * pObj )
+{
+    assert( !Aig_IsComplement(pObj) );
+    if ( !Aig_ObjIsNode(pObj) || !Aig_ObjIsMarkA(pObj) )
+        return;
+    Abc_ConvertAigToBdd_rec2( dd, Aig_ObjFanin0(pObj) ); 
+    Abc_ConvertAigToBdd_rec2( dd, Aig_ObjFanin1(pObj) );
+    Cudd_RecursiveDeref( dd, pObj->pData );
+    pObj->pData = NULL;
+    assert( Aig_ObjIsMarkA(pObj) ); // loop detection
+    Aig_ObjClearMarkA( pObj );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converts the network from AIG to BDD representation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+DdNode * Abc_ConvertAigToBdd( DdManager * dd, Aig_Obj_t * pRoot )
+{
+    DdNode * bFunc;
+    // construct BDD
+    Abc_ConvertAigToBdd_rec1( dd, Aig_Regular(pRoot) );
+    // hold on to the result
+    bFunc = Cudd_NotCond( Aig_Regular(pRoot)->pData, Aig_IsComplement(pRoot) );  Cudd_Ref( bFunc );
+    // dereference BDD
+    Abc_ConvertAigToBdd_rec2( dd, Aig_Regular(pRoot) );
+    // return the result
+    Cudd_Deref( bFunc );
+    return bFunc;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Unmaps the network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkMapToSop( Abc_Ntk_t * pNtk )
+{
+    extern void * Abc_FrameReadLibGen();                    
+    Abc_Obj_t * pNode;
+    char * pSop;
+    int i;
+
+    assert( Abc_NtkIsMappedLogic(pNtk) );
+    // update the functionality manager
+    assert( pNtk->pManFunc == Abc_FrameReadLibGen() );
+    pNtk->pManFunc = Extra_MmFlexStart();
+    pNtk->ntkFunc  = ABC_FUNC_SOP;
+    // update the nodes
+    Abc_NtkForEachNode( pNtk, pNode, i )
+    {
+        pSop = Mio_GateReadSop(pNode->pData);
+        assert( Abc_SopGetVarNum(pSop) == Abc_ObjFaninNum(pNode) );
+        pNode->pData = Abc_SopRegister( pNtk->pManFunc, pSop );
+    }
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Convers logic network to the SOP form.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkLogicToSop( Abc_Ntk_t * pNtk, int fDirect )
+{
+    assert( Abc_NtkIsLogic(pNtk) );
+    if ( Abc_NtkIsSopLogic(pNtk) )
+    {
+        if ( !fDirect )
+            return 1;
+        if ( !Abc_NtkSopToBdd(pNtk) )
+            return 0;
+        return Abc_NtkBddToSop(pNtk, fDirect);
+    }
+    if ( Abc_NtkIsMappedLogic(pNtk) )
+        return Abc_NtkMapToSop(pNtk);
+    if ( Abc_NtkIsBddLogic(pNtk) )
+        return Abc_NtkBddToSop(pNtk, fDirect);
+    if ( Abc_NtkIsAigLogic(pNtk) )
+    {
+        if ( !Abc_NtkAigToBdd(pNtk) )
+            return 0;
+        return Abc_NtkBddToSop(pNtk, fDirect);
+    }
+    assert( 0 );
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Convers logic network to the SOP form.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkLogicToBdd( Abc_Ntk_t * pNtk )
+{
+    assert( Abc_NtkIsLogic(pNtk) );
+    if ( Abc_NtkIsBddLogic(pNtk) )
+        return 1;
+    if ( Abc_NtkIsMappedLogic(pNtk) )
+    {
+        Abc_NtkMapToSop(pNtk);
+        return Abc_NtkSopToBdd(pNtk);
+    }
+    if ( Abc_NtkIsSopLogic(pNtk) )
+        return Abc_NtkSopToBdd(pNtk);
+    if ( Abc_NtkIsAigLogic(pNtk) )
+        return Abc_NtkAigToBdd(pNtk);
+    assert( 0 );
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Convers logic network to the SOP form.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkLogicToAig( Abc_Ntk_t * pNtk )
+{
+    assert( Abc_NtkIsLogic(pNtk) );
+    if ( Abc_NtkIsAigLogic(pNtk) )
+        return 1;
+    if ( Abc_NtkIsMappedLogic(pNtk) )
+    {
+        Abc_NtkMapToSop(pNtk);
+        return Abc_NtkSopToAig(pNtk);
+    }
+    if ( Abc_NtkIsBddLogic(pNtk) )
+    {
+        if ( !Abc_NtkBddToSop(pNtk,0) )
+            return 0;
+        return Abc_NtkSopToAig(pNtk);
+    }
+    if ( Abc_NtkIsSopLogic(pNtk) )
+        return Abc_NtkSopToAig(pNtk);
+    assert( 0 );
+    return 0;
 }
 
 

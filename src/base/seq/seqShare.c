@@ -319,7 +319,7 @@ void Seq_NtkShareLatchesMapping( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, Vec_Ptr_
 
     // create the array of all nodes with sharable fanouts
     vNodes = Vec_PtrAlloc( 100 );
-    Vec_PtrPush( vNodes, Abc_NtkConst1(pNtk) );
+    Vec_PtrPush( vNodes, Abc_AigConst1(pNtk) );
     Abc_NtkForEachPi( pNtk, pObj, i )
         Vec_PtrPush( vNodes, pObj );
     if ( fFpga )

@@ -26,13 +26,7 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-// static functions
-static void        Abc_NtkStrashPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig, bool fAllNodes );
-static Abc_Obj_t * Abc_NodeStrashSop( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, char * pSop );
-static Abc_Obj_t * Abc_NodeStrashExor( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, char * pSop );
-static Abc_Obj_t * Abc_NodeStrashFactor( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, char * pSop );
-
-extern char *      Mio_GateReadSop( void * pGate );
+static void Abc_NtkStrashPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, bool fAllNodes );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -40,10 +34,57 @@ extern char *      Mio_GateReadSop( void * pGate );
 
 /**Function*************************************************************
 
-  Synopsis    [Creates the strashed AIG network.]
+  Synopsis    [Reapplies structural hashing to the AIG.]
 
-  Description [Converts the logic network or the AIG into a 
-  structurally hashed AIG.]
+  Description [Because of the structural hashing, this procedure should not 
+  change the number of nodes. It is useful to detect the bugs in the original AIG.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkRestrash( Abc_Ntk_t * pNtk, bool fCleanup )
+{
+    Abc_Ntk_t * pNtkAig;
+    Abc_Obj_t * pObj;
+    int i, nNodes;
+    assert( Abc_NtkIsStrash(pNtk) );
+    // print warning about choice nodes
+    if ( Abc_NtkGetChoiceNum( pNtk ) )
+        printf( "Warning: The choice nodes in the original AIG are removed by strashing.\n" );
+    // start the new network (constants and CIs are already mappined after this step
+    pNtkAig = Abc_NtkStartFrom( pNtk, ABC_NTK_STRASH, ABC_FUNC_AIG );
+    // restrash the nodes (assuming a topological order of the old network)
+    Abc_NtkForEachNode( pNtk, pObj, i )
+        pObj->pCopy = Abc_AigAnd( pNtkAig->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
+    // finalize the network
+    Abc_NtkFinalize( pNtk, pNtkAig );
+    // print warning about self-feed latches
+//    if ( Abc_NtkCountSelfFeedLatches(pNtkAig) )
+//        printf( "Warning: The network has %d self-feeding latches.\n", Abc_NtkCountSelfFeedLatches(pNtkAig) );
+    // perform cleanup if requested
+    if ( fCleanup && (nNodes = Abc_AigCleanup(pNtkAig->pManFunc)) ) 
+        printf( "Abc_NtkRestrash(): AIG cleanup removed %d nodes (this is a bug).\n", nNodes );
+    // duplicate EXDC 
+    if ( pNtk->pExdc )
+        pNtkAig->pExdc = Abc_NtkDup( pNtk->pExdc );
+    // make sure everything is okay
+    if ( !Abc_NtkCheck( pNtkAig ) )
+    {
+        printf( "Abc_NtkStrash: The network check has failed.\n" );
+        Abc_NtkDelete( pNtkAig );
+        return NULL;
+    }
+    return pNtkAig;
+
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Transforms logic network into structurally hashed AIG.]
+
+  Description []
                
   SideEffects []
 
@@ -54,33 +95,28 @@ Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes, bool fCleanup )
 {
     Abc_Ntk_t * pNtkAig;
     int nNodes;
-
-    assert( !Abc_NtkIsNetlist(pNtk) );
-    assert( !Abc_NtkIsSeq(pNtk) );
-    if ( Abc_NtkIsBddLogic(pNtk) )
+    assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsStrash(pNtk) );
+    // consider the special case when the network is already structurally hashed
+    if ( Abc_NtkIsStrash(pNtk) )
+        return Abc_NtkRestrash( pNtk, fCleanup );
+    // convert the node representation in the logic network to the AIG form
+    if ( !Abc_NtkLogicToAig(pNtk) )
     {
-        if ( !Abc_NtkBddToSop(pNtk, 0) )
-        {
-            printf( "Converting to SOPs has failed.\n" );
-            return NULL;
-        }
+        printf( "Converting to AIGs has failed.\n" );
+        return NULL;
     }
-    // print warning about choice nodes
-    if ( Abc_NtkGetChoiceNum( pNtk ) )
-        printf( "Warning: The choice nodes in the initial AIG are removed by strashing.\n" );
     // perform strashing
+    Abc_NtkCleanCopy( pNtk );
     pNtkAig = Abc_NtkStartFrom( pNtk, ABC_NTK_STRASH, ABC_FUNC_AIG );
-    if ( Abc_NtkConst1(pNtk) )
-        Abc_NtkConst1(pNtk)->pCopy = NULL;
     Abc_NtkStrashPerform( pNtk, pNtkAig, fAllNodes );
     Abc_NtkFinalize( pNtk, pNtkAig );
     // print warning about self-feed latches
 //    if ( Abc_NtkCountSelfFeedLatches(pNtkAig) )
 //        printf( "Warning: The network has %d self-feeding latches.\n", Abc_NtkCountSelfFeedLatches(pNtkAig) );
-    if ( fCleanup && (nNodes = Abc_AigCleanup(pNtkAig->pManFunc)) )
-    {
+    // perform cleanup if requested
+    nNodes = fCleanup? Abc_AigCleanup(pNtkAig->pManFunc) : 0;
+//    if ( nNodes )
 //        printf( "Warning: AIG cleanup removed %d nodes (this is not a bug).\n", nNodes );
-    }
     // duplicate EXDC 
     if ( pNtk->pExdc )
         pNtkAig->pExdc = Abc_NtkDup( pNtk->pExdc );
@@ -115,13 +151,10 @@ int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
     // the first network should be an AIG
     assert( Abc_NtkIsStrash(pNtk1) );
     assert( Abc_NtkIsLogic(pNtk2) || Abc_NtkIsStrash(pNtk2) ); 
-    if ( Abc_NtkIsBddLogic(pNtk2) )
+    if ( Abc_NtkIsLogic(pNtk2) && !Abc_NtkLogicToAig(pNtk2) )
     {
-        if ( !Abc_NtkBddToSop(pNtk2, 0) )
-        {
-            printf( "Converting to SOPs has failed.\n" );
-            return 0;
-        }
+        printf( "Converting to AIGs has failed.\n" );
+        return 0;
     }
     // check that the networks have the same PIs
     // reorder PIs of pNtk2 according to pNtk1
@@ -132,7 +165,11 @@ int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
     Abc_NtkForEachCi( pNtk2, pObj, i )
         pObj->pCopy = Abc_NtkCi(pNtk1, i); 
     // add pNtk2 to pNtk1 while strashing
-    Abc_NtkStrashPerform( pNtk2, pNtk1, 1 );
+    if ( Abc_NtkIsLogic(pNtk2) )
+        Abc_NtkStrashPerform( pNtk2, pNtk1, 1 );
+    else
+        Abc_NtkForEachNode( pNtk2, pObj, i )
+            pObj->pCopy = Abc_AigAnd( pNtk1->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtk1 ) )
     {
@@ -141,7 +178,6 @@ int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
     }
     return 1;
 }
-
 
 /**Function*************************************************************
 
@@ -154,183 +190,86 @@ int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkStrashPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, bool fAllNodes )
+void Abc_NtkStrashPerform( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew, bool fAllNodes )
 {
     ProgressBar * pProgress;
     Vec_Ptr_t * vNodes;
-    Abc_Obj_t * pNode, * pNodeNew, * pObj;
+    Abc_Obj_t * pNodeOld;
     int i;
-
-    // perform strashing
-    vNodes = Abc_NtkDfs( pNtk, fAllNodes );
+    assert( Abc_NtkIsLogic(pNtkOld) );
+    assert( Abc_NtkIsStrash(pNtkNew) );
+    vNodes = Abc_NtkDfs( pNtkOld, fAllNodes );
     pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
-    Vec_PtrForEachEntry( vNodes, pNode, i )
+    Vec_PtrForEachEntry( vNodes, pNodeOld, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
-        // get the node
-        assert( Abc_ObjIsNode(pNode) );
-         // strash the node
-        pNodeNew = Abc_NodeStrash( pNtkNew, pNode );
-        // get the old object
-        pObj = Abc_ObjFanout0Ntk( pNode );
-        // make sure the node is not yet strashed
-        assert( pObj->pCopy == NULL );
-        // mark the old object with the new AIG node
-        pObj->pCopy = pNodeNew;
-        Abc_HManAddProto( pObj->pCopy, pObj );
+        pNodeOld->pCopy = Abc_NodeStrash( pNtkNew, pNodeOld );
     }
-    Vec_PtrFree( vNodes );
     Extra_ProgressBarStop( pProgress );
+    Vec_PtrFree( vNodes );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Transfers the AIG from one manager into another.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NodeStrash_rec( Abc_Aig_t * pMan, Aig_Obj_t * pObj )
+{
+    assert( !Aig_IsComplement(pObj) );
+    if ( !Aig_ObjIsNode(pObj) || Aig_ObjIsMarkA(pObj) )
+        return;
+    Abc_NodeStrash_rec( pMan, Aig_ObjFanin0(pObj) ); 
+    Abc_NodeStrash_rec( pMan, Aig_ObjFanin1(pObj) );
+    pObj->pData = Abc_AigAnd( pMan, (Abc_Obj_t *)Aig_ObjChild0Copy(pObj), (Abc_Obj_t *)Aig_ObjChild1Copy(pObj) );
+    assert( !Aig_ObjIsMarkA(pObj) ); // loop detection
+    Aig_ObjSetMarkA( pObj );
 }
 
 /**Function*************************************************************
 
   Synopsis    [Strashes one logic node.]
 
-  Description []
+  Description [Assume the network is in the AIG form]
                
   SideEffects []
-
+ 
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_NodeStrash( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode )
+Abc_Obj_t * Abc_NodeStrash( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld )
 {
-    int fUseFactor = 1;
-    char * pSop;
-    extern int Abc_SopIsExorType( char * pSop );
-
-    assert( Abc_ObjIsNode(pNode) );
-
-    // consider the case when the graph is an AIG
-    if ( Abc_NtkIsStrash(pNode->pNtk) )
-    {
-        if ( Abc_NodeIsConst(pNode) )
-            return Abc_NtkConst1(pNtkNew);
-        return Abc_AigAnd( pNtkNew->pManFunc, Abc_ObjChild0Copy(pNode), Abc_ObjChild1Copy(pNode) );
-    }
-
-    // get the SOP of the node
-    if ( Abc_NtkHasMapping(pNode->pNtk) )
-        pSop = Mio_GateReadSop(pNode->pData);
-    else
-        pSop = pNode->pData;
-
-    // consider the constant node
-    if ( Abc_NodeIsConst(pNode) )
-        return Abc_ObjNotCond( Abc_NtkConst1(pNtkNew), Abc_SopIsConst0(pSop) );
-
-    // consider the special case of EXOR function
-    if ( Abc_SopIsExorType(pSop) )
-        return Abc_NodeStrashExor( pNtkNew, pNode, pSop );
-
-    // decide when to use factoring
-    if ( fUseFactor && Abc_ObjFaninNum(pNode) > 2 && Abc_SopGetCubeNum(pSop) > 1 )
-        return Abc_NodeStrashFactor( pNtkNew, pNode, pSop );
-    return Abc_NodeStrashSop( pNtkNew, pNode, pSop );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Strashes one logic node using its SOP.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Obj_t * Abc_NodeStrashSop( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, char * pSop )
-{
-    Abc_Aig_t * pMan = pNtkNew->pManFunc;
-    Abc_Obj_t * pFanin, * pAnd, * pSum;
-    char * pCube;
-    int i, nFanins;
-
-    // get the number of node's fanins
-    nFanins = Abc_ObjFaninNum( pNode );
-    assert( nFanins == Abc_SopGetVarNum(pSop) );
-    // go through the cubes of the node's SOP
-    pSum = Abc_ObjNot( Abc_NtkConst1(pNtkNew) );
-    Abc_SopForEachCube( pSop, nFanins, pCube )
-    {
-        // create the AND of literals
-        pAnd = Abc_NtkConst1(pNtkNew);
-        Abc_ObjForEachFanin( pNode, pFanin, i ) // pFanin can be a net
-        {
-            if ( pCube[i] == '1' )
-                pAnd = Abc_AigAnd( pMan, pAnd, pFanin->pCopy );
-            else if ( pCube[i] == '0' )
-                pAnd = Abc_AigAnd( pMan, pAnd, Abc_ObjNot(pFanin->pCopy) );
-        }
-        // add to the sum of cubes
-        pSum = Abc_AigOr( pMan, pSum, pAnd );
-    }
-    // decide whether to complement the result
-    if ( Abc_SopIsComplement(pSop) )
-        pSum = Abc_ObjNot(pSum);
-    return pSum;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Strashed n-input XOR function.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Obj_t * Abc_NodeStrashExor( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, char * pSop )
-{
-    Abc_Aig_t * pMan = pNtkNew->pManFunc;
-    Abc_Obj_t * pFanin, * pSum;
-    int i, nFanins;
-    // get the number of node's fanins
-    nFanins = Abc_ObjFaninNum( pNode );
-    assert( nFanins == Abc_SopGetVarNum(pSop) );
-    // go through the cubes of the node's SOP
-    pSum = Abc_ObjNot( Abc_NtkConst1(pNtkNew) );
-    for ( i = 0; i < nFanins; i++ )
-    {
-        pFanin = Abc_ObjFanin( pNode, i );
-        pSum = Abc_AigXor( pMan, pSum, pFanin->pCopy );
-    }
-    if ( Abc_SopIsComplement(pSop) )
-        pSum = Abc_ObjNot(pSum);
-    return pSum;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Strashes one logic node using its SOP.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Obj_t * Abc_NodeStrashFactor( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pRoot, char * pSop )
-{
-    Dec_Graph_t * pFForm;
-    Dec_Node_t * pNode;
-    Abc_Obj_t * pAnd;
+    Aig_Man_t * pMan;
+    Aig_Obj_t * pRoot;
+    Abc_Obj_t * pFanin;
     int i;
-    // perform factoring
-    pFForm = Dec_Factor( pSop );
-    // collect the fanins
-    Dec_GraphForEachLeaf( pFForm, pNode, i )
-        pNode->pFunc = Abc_ObjFanin(pRoot,i)->pCopy;
-    // perform strashing
-    pAnd = Dec_GraphToNetwork( pNtkNew, pFForm );
-    Dec_GraphFree( pFForm );
-    return pAnd;
+    assert( Abc_ObjIsNode(pNodeOld) );
+    assert( Abc_NtkIsAigLogic(pNodeOld->pNtk) );
+    // get the local AIG manager and the local root node
+    pMan = pNodeOld->pNtk->pManFunc;
+    pRoot = pNodeOld->pData;
+    // check the constant case
+    if ( Abc_NodeIsConst(pNodeOld) )
+        return Abc_ObjNotCond( Abc_AigConst1(pNtkNew), Aig_IsComplement(pRoot) );
+    // set elementary variables
+    Abc_ObjForEachFanin( pNodeOld, pFanin, i )
+        Aig_IthVar(pMan, i)->pData = pFanin->pCopy;
+    // strash the AIG of this node
+    Abc_NodeStrash_rec( pNtkNew->pManFunc, Aig_Regular(pRoot) );
+    Aig_ConeUnmark_rec( Aig_Regular(pRoot) );
+    // return the final node
+    return Abc_ObjNotCond( Aig_Regular(pRoot)->pData, Aig_IsComplement(pRoot) );
 }
+
+
+
+
 
 
 
@@ -380,7 +319,7 @@ Abc_Ntk_t * Abc_NtkTopmost( Abc_Ntk_t * pNtk, int nLevels )
     // start the network
     pNtkNew = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG );
     pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
-    Abc_NtkConst1(pNtk)->pCopy = Abc_NtkConst1(pNtkNew);
+    Abc_AigConst1(pNtk)->pCopy = Abc_AigConst1(pNtkNew);
     // create PIs below the cut and nodes above the cut
     Abc_NtkCleanCopy( pNtk );
     pObjNew = Abc_NtkTopmost_rec( pNtkNew, Abc_ObjFanin0(Abc_NtkPo(pNtk, 0)), LevelCut );

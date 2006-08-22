@@ -540,7 +540,7 @@ float Seq_MapCollectNode_rec( Abc_Obj_t * pAnd, float FiBest, Vec_Ptr_t * vMappi
     }
 
     // skip if this is a PI or a constant
-    if ( !Abc_NodeIsAigAnd(pAnd) )
+    if ( !Abc_AigNodeIsAnd(pAnd) )
     {
         if ( Abc_ObjIsPi(pAnd) && fCompl )
             return AreaInv;   

@@ -166,6 +166,9 @@ extern DdNode *     Extra_bddComputeRangeCube( DdManager * dd, int iStart, int i
 extern DdNode *     Extra_bddBitsToCube( DdManager * dd, int Code, int CodeWidth, DdNode ** pbVars, int fMsbFirst );
 extern DdNode *     Extra_bddSupportNegativeCube( DdManager * dd, DdNode * f );
 extern int          Extra_bddIsVar( DdNode * bFunc );
+extern DdNode *     Extra_bddCreateAnd( DdManager * dd, int nVars );
+extern DdNode *     Extra_bddCreateOr( DdManager * dd, int nVars );
+extern DdNode *     Extra_bddCreateExor( DdManager * dd, int nVars );
 
 /*=== extraBddKmap.c ================================================================*/
 
@@ -524,6 +527,18 @@ extern unsigned Extra_TruthHash( unsigned * pIn, int nWords );
 extern unsigned Extra_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars, char * pCanonPerm, short * pStore );
 
 /*=== extraUtilUtil.c ================================================================*/
+
+#ifndef ABS
+#define ABS(a)            ((a) < 0 ? -(a) : (a))
+#endif
+
+#ifndef MAX
+#define MAX(a,b)        ((a) > (b) ? (a) : (b))
+#endif
+
+#ifndef MIN
+#define MIN(a,b)        ((a) < (b) ? (a) : (b))
+#endif
 
 #ifndef ALLOC
 #define ALLOC(type, num)     ((type *) malloc(sizeof(type) * (num)))

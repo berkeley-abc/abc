@@ -116,7 +116,7 @@ void Seq_FpgaMappingCollectNode_rec( Abc_Obj_t * pAnd, Vec_Ptr_t * vMapping, Vec
     int k;
 
     // skip if this is a non-PI node
-    if ( !Abc_NodeIsAigAnd(pAnd) )
+    if ( !Abc_AigNodeIsAnd(pAnd) )
         return;
     // skip a visited node
     if ( Abc_NodeIsTravIdCurrent(pAnd) )
@@ -203,7 +203,7 @@ static inline int Seq_FpgaCutUpdateLValue( Cut_Cut_t * pCut, Abc_Obj_t * pObj, i
 {
     Abc_Obj_t * pFanin;
     int i, lValueMax, lValueCur;
-    assert( Abc_NodeIsAigAnd(pObj) );
+    assert( Abc_AigNodeIsAnd(pObj) );
     lValueMax = -ABC_INFINITY;
     for ( i = 0; i < (int)pCut->nLeaves; i++ )
     {

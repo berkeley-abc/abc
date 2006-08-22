@@ -264,8 +264,18 @@ Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk, int fDirect )
         pNtkNew = Abc_NtkLogicSopToNetlist( pNtk );
         Abc_NtkSopToBdd(pNtk);
     }
-    else 
+    else if ( Abc_NtkIsAigLogic(pNtk) )
+    {
+        if ( !Abc_NtkAigToBdd(pNtk) )
+            return NULL;
+        if ( !Abc_NtkBddToSop(pNtk, fDirect) )
+            return NULL;
         pNtkNew = Abc_NtkLogicSopToNetlist( pNtk );
+        Abc_NtkSopToAig(pNtk);
+    }
+    else if ( Abc_NtkIsSopLogic(pNtk) || Abc_NtkIsMappedLogic(pNtk) )
+        pNtkNew = Abc_NtkLogicSopToNetlist( pNtk );
+    else assert( 0 );
     return pNtkNew;
 }
 
@@ -408,20 +418,20 @@ Abc_Ntk_t * Abc_NtkAigToLogicSop( Abc_Ntk_t * pNtk )
     assert( Abc_NtkIsStrash(pNtk) );
     // start the network
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
+    // if the constant node is used, duplicate it
+    pObj = Abc_AigConst1(pNtk);
+    if ( Abc_ObjFanoutNum(pObj) > 0 )
+        pObj->pCopy = Abc_NodeCreateConst1(pNtkNew);
     // duplicate the nodes and create node functions
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
-        if ( Abc_NodeIsConst(pObj) )
-            continue;
         Abc_NtkDupObj(pNtkNew, pObj);
         pObj->pCopy->pData = Abc_SopCreateAnd2( pNtkNew->pManFunc, Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj) );
     }
     // create the choice nodes
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
-        if ( Abc_NodeIsConst(pObj) )
-            continue;
-        if ( !Abc_NodeIsAigChoice(pObj) )
+        if ( !Abc_AigNodeIsChoice(pObj) )
             continue;
         // create an OR gate
         pNodeNew = Abc_NtkCreateNode(pNtkNew);
@@ -497,17 +507,20 @@ Abc_Ntk_t * Abc_NtkAigToLogicSopBench( Abc_Ntk_t * pNtk )
     // collect the nodes to be used (marks all nodes with current TravId)
     vNodes = Abc_NtkDfs( pNtk, 0 );
     // create inverters for the CI and remember them
+    pObj = Abc_AigConst1(pNtk);
+    if ( Abc_AigNodeHasComplFanoutEdgeTrav(pObj) )
+    {
+        pObj->pCopy = Abc_NodeCreateConst1(pNtkNew);
+        pObj->pCopy->pCopy = Abc_NodeCreateInv( pNtkNew, pObj->pCopy );
+    }
     Abc_NtkForEachCi( pNtk, pObj, i )
         if ( Abc_AigNodeHasComplFanoutEdgeTrav(pObj) )
             pObj->pCopy->pCopy = Abc_NodeCreateInv( pNtkNew, pObj->pCopy );
     // duplicate the nodes, create node functions, and inverters
     Vec_PtrForEachEntry( vNodes, pObj, i )
     {
-        if ( !Abc_NodeIsConst(pObj) )
-        {
-            Abc_NtkDupObj( pNtkNew, pObj );
-            pObj->pCopy->pData = Abc_SopCreateAnd( pNtkNew->pManFunc, 2, NULL );
-        }
+        Abc_NtkDupObj( pNtkNew, pObj );
+        pObj->pCopy->pData = Abc_SopCreateAnd( pNtkNew->pManFunc, 2, NULL );
         if ( Abc_AigNodeHasComplFanoutEdgeTrav(pObj) )
             pObj->pCopy->pCopy = Abc_NodeCreateInv( pNtkNew, pObj->pCopy );
     }

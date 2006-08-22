@@ -143,6 +143,7 @@ Fpga_Man_t * Abc_NtkToFpga( Abc_Ntk_t * pNtk, int fRecovery, float * pSwitching,
 
     // create PIs and remember them in the old nodes
     Abc_NtkCleanCopy( pNtk );
+    Abc_AigConst1(pNtk)->pCopy = (Abc_Obj_t *)Fpga_ManReadConst1(pMan);
     Abc_NtkForEachCi( pNtk, pNode, i )
     {
         pNodeFpga = Fpga_ManReadInputs(pMan)[i];
@@ -157,12 +158,6 @@ Fpga_Man_t * Abc_NtkToFpga( Abc_Ntk_t * pNtk, int fRecovery, float * pSwitching,
     Vec_PtrForEachEntry( vNodes, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
-        // consider the case of a constant
-        if ( Abc_NodeIsConst(pNode) )
-        {
-            Abc_NtkConst1(pNtk)->pCopy = (Abc_Obj_t *)Fpga_ManReadConst1(pMan);
-            continue;
-        }
         // add the node to the mapper
         pNodeFpga = Fpga_NodeAnd( pMan, 
             Fpga_NotCond( Abc_ObjFanin0(pNode)->pCopy, Abc_ObjFaninC0(pNode) ),
@@ -173,7 +168,7 @@ Fpga_Man_t * Abc_NtkToFpga( Abc_Ntk_t * pNtk, int fRecovery, float * pSwitching,
         if ( pSwitching )
             Fpga_NodeSetSwitching( pNodeFpga, pSwitching[pNode->Id] );
         // set up the choice node
-        if ( Abc_NodeIsAigChoice( pNode ) )
+        if ( Abc_AigNodeIsChoice( pNode ) )
             for ( pPrev = pNode, pFanin = pNode->pData; pFanin; pPrev = pFanin, pFanin = pFanin->pData )
             {
                 Fpga_NodeSetNextE( (Fpga_Node_t *)pPrev->pCopy, (Fpga_Node_t *)pFanin->pCopy );
@@ -214,7 +209,7 @@ Abc_Ntk_t * Abc_NtkFromFpga( Fpga_Man_t * pMan, Abc_Ntk_t * pNtk )
     Abc_NtkForEachCi( pNtk, pNode, i )
         Fpga_NodeSetData0( Fpga_ManReadInputs(pMan)[i], (char *)pNode->pCopy );
     // set the constant node
-    Fpga_NodeSetData0( Fpga_ManReadConst1(pMan), (char *)Abc_NtkConst1(pNtkNew) );
+    Fpga_NodeSetData0( Fpga_ManReadConst1(pMan), (char *)Abc_NodeCreateConst1(pNtkNew) );
     // process the nodes in topological order
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pNode, i )

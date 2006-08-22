@@ -333,7 +333,7 @@ Abc_Ntk_t * Abc_NtkConstructExdc( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bUn
     // transform the network to the SOP representation
     if ( !Abc_NtkBddToSop( pNtkNew, 0 ) )
     {
-        printf( "Converting to SOPs has failed.\n" );
+        printf( "Abc_NtkConstructExdc(): Converting to SOPs has failed.\n" );
         return NULL;
     }
     return pNtkNew;

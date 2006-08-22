@@ -415,7 +415,7 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
     {
         if ( !Abc_NtkBddToSop(pNtk, 0) )
         {
-            printf( "Converting to SOPs has failed.\n" );
+            printf( "Io_WriteDotNtk(): Converting to SOPs has failed.\n" );
             return;
         }
     }

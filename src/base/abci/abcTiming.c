@@ -37,9 +37,9 @@ struct Abc_ManTime_t_
 // static functions
 static Abc_ManTime_t *     Abc_ManTimeStart();
 static void                Abc_ManTimeExpand( Abc_ManTime_t * p, int nSize, int fProgressive );
-static void                Abc_NtkTimePrepare( Abc_Ntk_t * pNtk );
+void                       Abc_NtkTimePrepare( Abc_Ntk_t * pNtk );
 
-static void                Abc_NodeDelayTraceArrival( Abc_Obj_t * pNode );
+void                       Abc_NodeDelayTraceArrival( Abc_Obj_t * pNode );
 
 // accessing the arrival and required times of a node
 static inline Abc_Time_t * Abc_NodeArrival( Abc_Obj_t * pNode )  {  return pNode->pNtk->pManTime->vArrs->pArray[pNode->Id];  }
@@ -595,13 +595,12 @@ void Abc_NodeDelayTraceArrival( Abc_Obj_t * pNode )
 
     // start the arrival time of the node
     pTimeOut = Abc_NodeArrival(pNode);
-    pTimeOut->Rise = pTimeOut->Fall = 0; 
+    pTimeOut->Rise = pTimeOut->Fall = -ABC_INFINITY; 
     // go through the pins of the gate
     pPin = Mio_GateReadPins(pNode->pData);
     Abc_ObjForEachFanin( pNode, pFanin, i )
     {
         pTimeIn = Abc_NodeArrival(pFanin);
-        assert( pTimeIn->Worst != -ABC_INFINITY );
         // get the interesting parameters of this pin
         PinPhase = Mio_PinReadPhase(pPin);
         tDelayBlockRise = (float)Mio_PinReadDelayBlockRise( pPin );  
@@ -647,7 +646,7 @@ void Abc_NtkStartReverseLevels( Abc_Ntk_t * pNtk )
     Vec_Ptr_t * vNodes;
     Abc_Obj_t * pObj, * pFanout;
     int i, k, nLevelsCur;
-//    assert( Abc_NtkIsStrash(pNtk) );
+    assert( Abc_NtkIsStrash(pNtk) );
     // remember the maximum number of direct levels
 //    pNtk->LevelMax = Abc_AigGetLevelNum(pNtk);
     pNtk->LevelMax = Abc_NtkGetLevelNum(pNtk);

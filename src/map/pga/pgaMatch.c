@@ -69,8 +69,8 @@ void Pga_MappingMatches( Pga_Man_t * p, int Mode )
             continue;
         }
         // skip constant node, it has no cuts
-        if ( Abc_NodeIsConst(pObj) )
-            continue;
+//        if ( Abc_NodeIsConst(pObj) )
+//            continue;
         // get the cuts
 clk = clock();
         pList = Abc_NodeGetCutsRecursive( p->pManCut, pObj, 0, 0 );

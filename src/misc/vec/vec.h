@@ -34,6 +34,7 @@ extern "C" {
 #endif
 
 #include "vecInt.h"
+#include "vecFlt.h"
 #include "vecStr.h"
 #include "vecPtr.h"
 #include "vecVec.h"

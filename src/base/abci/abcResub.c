@@ -158,8 +158,8 @@ int Abc_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutMax, int nStepsMax, bool fUpd
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
         // skip the constant node
-        if ( Abc_NodeIsConst(pNode) )
-            continue;
+//        if ( Abc_NodeIsConst(pNode) )
+//            continue;
         // skip persistant nodes
         if ( Abc_NodeIsPersistant(pNode) )
             continue;

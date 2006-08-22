@@ -110,7 +110,7 @@ Abc_Ntk_t * Seq_NtkRetimeDerive( Abc_Ntk_t * pNtk, int fVerbose )
     {
         if ( !Abc_NtkBddToSop(pNtk, 0) )
         {
-            printf( "Converting to SOPs has failed.\n" );
+            printf( "Seq_NtkRetimeDerive(): Converting to SOPs has failed.\n" );
             return NULL;
         }
     }
@@ -140,7 +140,7 @@ Abc_Ntk_t * Seq_NtkRetimeDerive( Abc_Ntk_t * pNtk, int fVerbose )
     {
         if ( pObj->Id == 0 )
         {
-            pObj->pCopy = Abc_NtkConst1(pNtkNew);
+            pObj->pCopy = Abc_AigConst1(pNtkNew);
             continue;
         }
         pObj->pCopy = Abc_NtkCreateNode( pNtkNew );
@@ -275,9 +275,9 @@ Abc_Obj_t * Seq_NodeRetimeDerive( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pRoot, char *
     if ( nFanins < 2 )
     {
         if ( Abc_SopIsConst1(pSop) )
-            pFanin = Abc_NtkConst1(pNtkNew);
+            pFanin = Abc_AigConst1(pNtkNew);
         else if ( Abc_SopIsConst0(pSop) )
-            pFanin = Abc_ObjNot( Abc_NtkConst1(pNtkNew) );
+            pFanin = Abc_ObjNot( Abc_AigConst1(pNtkNew) );
         else if ( Abc_SopIsBuf(pSop) )
             pFanin = Abc_ObjFanin0(pRoot)->pCopy;
         else if ( Abc_SopIsInv(pSop) )
@@ -342,8 +342,8 @@ Abc_Ntk_t * Seq_NtkRetimeReconstruct( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkSeq )
     pNtkNew = Abc_NtkStartFrom( pNtkSeq, pNtkOld->ntkType, pNtkOld->ntkFunc );
 
     // transfer the pointers to the old network
-    if ( Abc_NtkConst1(pNtkOld) ) 
-        Abc_NtkConst1(pNtkOld)->pCopy = Abc_NtkConst1(pNtkNew);
+    if ( Abc_AigConst1(pNtkOld) ) 
+        Abc_AigConst1(pNtkOld)->pCopy = Abc_AigConst1(pNtkNew);
     Abc_NtkForEachPi( pNtkOld, pObj, i )
         pObj->pCopy = pObj->pNext->pCopy;
     Abc_NtkForEachPo( pNtkOld, pObj, i )
@@ -433,7 +433,7 @@ Abc_Obj_t * Seq_EdgeReconstruct_rec( Abc_Obj_t * pGoal, Abc_Obj_t * pNode )
     Seq_Lat_t * pRing;
     Abc_Obj_t * pFanin, * pRes = NULL;
 
-    if ( !Abc_NodeIsAigAnd(pNode) )
+    if ( !Abc_AigNodeIsAnd(pNode) )
         return NULL;
 
     // consider the first fanin

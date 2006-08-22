@@ -232,9 +232,6 @@ void Sim_UtilSimulateNode( Sim_Man_t * p, Abc_Obj_t * pNode, bool fType, bool fT
     // simulate the internal nodes
     if ( Abc_ObjIsNode(pNode) )
     {
-        if ( Abc_NodeIsConst(pNode) )
-            return;
-
         if ( fType )
             pSimmNode  = p->vSim1->pArray[ pNode->Id ];
         else
@@ -305,8 +302,6 @@ void Sim_UtilSimulateNodeOne( Abc_Obj_t * pNode, Vec_Ptr_t * vSimInfo, int nSimW
     int k, fComp1, fComp2;
     // simulate the internal nodes
     assert( Abc_ObjIsNode(pNode) );
-    if ( Abc_NodeIsConst(pNode) )
-        return;
     pSimmNode  = Vec_PtrEntry(vSimInfo, pNode->Id);
     pSimmNode1 = Vec_PtrEntry(vSimInfo, Abc_ObjFaninId0(pNode));
     pSimmNode2 = Vec_PtrEntry(vSimInfo, Abc_ObjFaninId1(pNode));

@@ -45,6 +45,7 @@ char * Abc_ObjName( Abc_Obj_t * pObj )
 {
     static char Buffer[500];
     char * pName;
+    int Counter;
 
     // check if the object is in the lookup table
 //    if ( stmm_lookup( pObj->pNtk->tObj2Name, (char *)pObj, &pName ) )
@@ -63,7 +64,11 @@ char * Abc_ObjName( Abc_Obj_t * pObj )
         if ( pObj->pData )
             sprintf( Buffer, "%s", pObj->pData );
         else
+        {
             sprintf( Buffer, "[%d]", pObj->Id ); // make sure this name is unique!!!
+            for ( Counter = 1; Nm_ManFindIdByName(pObj->pNtk->pManName, Buffer, NULL) >= 0; Counter++ )
+                sprintf( Buffer, "[%d]_%d", pObj->Id, Counter );
+        }
     }
     else
     {
@@ -71,6 +76,8 @@ char * Abc_ObjName( Abc_Obj_t * pObj )
         // internal nodes have made up names
         assert( Abc_ObjIsNode(pObj) || Abc_ObjIsLatch(pObj) );
         sprintf( Buffer, "[%d]", pObj->Id );
+        for ( Counter = 1; Nm_ManFindIdByName(pObj->pNtk->pManName, Buffer, NULL) >= 0; Counter++ )
+            sprintf( Buffer, "[%d]_%d", pObj->Id, Counter );
     }
     return Buffer;
 }

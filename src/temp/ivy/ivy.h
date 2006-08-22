@@ -46,7 +46,7 @@ typedef int                          Ivy_Edge_t;
 
 // object types
 typedef enum { 
-    IVY_NONE,                        // 0: non-existant object
+    IVY_NONE,                        // 0: non-existent object
     IVY_PI,                          // 1: primary input (and constant 1 node)
     IVY_PO,                          // 2: primary output
     IVY_ASSERT,                      // 3: assertion

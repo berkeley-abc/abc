@@ -667,13 +667,13 @@ usage:
 ***********************************************************************/
 int IoCommandReadVer( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Abc_Ntk_t * pNtk, * pTemp;
-    st_table * tDesign;
+    Abc_Ntk_t * pNtk;
+    Abc_Lib_t * pDesign;
     char * FileName;
     FILE * pFile;
     int fCheck;
     int c;
-    extern st_table * Ver_ParseFile( char * pFileName, st_table * pGateLib, int fCheck );
+    extern Abc_Lib_t * Ver_ParseFile( char * pFileName, Abc_Lib_t * pGateLib, int fCheck );
 
     fCheck = 1;
     Extra_UtilGetoptReset();
@@ -709,41 +709,21 @@ int IoCommandReadVer( Abc_Frame_t * pAbc, int argc, char ** argv )
     fclose( pFile );
 
     // set the new network
-    tDesign = Ver_ParseFile( FileName, Abc_FrameReadLibVer(), fCheck );
-    if ( tDesign == NULL )
+    pDesign = Ver_ParseFile( FileName, Abc_FrameReadLibVer(), fCheck );
+    if ( pDesign == NULL )
     {
         fprintf( pAbc->Err, "Reading network from the verilog file has failed.\n" );
         return 1;
     }
-
-    if ( st_count(tDesign) == 1 )
+    // derive root design
+    pNtk = Abc_LibDeriveRoot( pDesign );
+    if ( pNtk == NULL )
     {
-        st_generator * gen;
-        char * pName;
-        // find the network
-        st_foreach_item( tDesign, gen, (char**)&pName, (char**)&pNtk )
-        {
-            st_free_gen(gen);
-            break;
-        }
-        st_free_table( tDesign );
-
-        // convert it into a logic network
-        pNtk = Abc_NtkNetlistToLogic( pTemp = pNtk );
-        Abc_NtkDelete( pTemp );
-        if ( pNtk == NULL )
-        {
-            fprintf( pAbc->Err, "Converting to logic network after reading has failed.\n" );
-            return 1;
-        }
-        // replace the current network
-        Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
+        fprintf( pAbc->Err, "Deriving root module has failed.\n" );
+        return 1;
     }
-    else
-    {
-        printf( "The design includes more than one module and is currently not used.\n" );
-    }
-
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
     return 0;
 
 usage:
@@ -768,14 +748,12 @@ usage:
 ***********************************************************************/
 int IoCommandReadVerLib( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Abc_Ntk_t * pNtk, * pTemp;
-    st_table * tDesign;
+    Abc_Lib_t * pLibrary;
     char * FileName;
     FILE * pFile;
     int fCheck;
     int c;
-    extern st_table * Ver_ParseFile( char * pFileName, st_table * pGateLib, int fCheck );
-    extern void Ver_ParseFreeLibrary( st_table * pLibVer );
+    extern Abc_Lib_t * Ver_ParseFile( char * pFileName, Abc_Lib_t * pGateLib, int fCheck );
 
     fCheck = 1;
     Extra_UtilGetoptReset();
@@ -811,41 +789,18 @@ int IoCommandReadVerLib( Abc_Frame_t * pAbc, int argc, char ** argv )
     fclose( pFile );
 
     // set the new network
-    tDesign = Ver_ParseFile( FileName, NULL, fCheck );
-    if ( tDesign == NULL )
+    pLibrary = Ver_ParseFile( FileName, NULL, fCheck );
+    if ( pLibrary == NULL )
     {
         fprintf( pAbc->Err, "Reading library from the verilog file has failed.\n" );
         return 1;
     }
-    printf( "The library contains %d gates.\n", st_count(tDesign) );
-
-    // convert gates into AIGs
-    {
-        st_table * tLibrary;
-        st_generator * gen;
-        char * pName;
-        // transform the gates into the library AIGs
-        tLibrary  = st_init_table( strcmp, st_strhash );
-        st_foreach_item( tDesign, gen, (char**)&pName, (char**)&pNtk )
-        {
-            // convert the netlist into SOP logic network
-            pNtk = Abc_NtkNetlistToLogic( pTemp = pNtk );
-            Abc_NtkDelete( pTemp );
-            // perform structural hashing
-            pNtk = Abc_NtkStrash( pTemp = pNtk, 0, 1 );
-            Abc_NtkDelete( pTemp );
-            // insert the new network into the new library
-            st_insert( tLibrary, pNtk->pName, (char *)pNtk );
-        }
-        st_free_table( tDesign );
-
-        // free old library
-        if ( Abc_FrameReadLibVer() )
-            Ver_ParseFreeLibrary( Abc_FrameReadLibVer() );
-        // read new library
-        Abc_FrameSetLibVer( tLibrary );
-    }
-
+    printf( "The library contains %d gates.\n", st_count(pLibrary->tModules) );
+    // free old library
+    if ( Abc_FrameReadLibVer() )
+        Abc_LibFree( Abc_FrameReadLibVer() );
+    // read new library
+    Abc_FrameSetLibVer( pLibrary );
     return 0;
 
 usage:

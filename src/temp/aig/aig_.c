@@ -1,10 +1,10 @@
 /**CFile****************************************************************
 
-  FileName    [fraigSolver.c]
+  FileName    [ivy_.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [And-Inverter Graph package.]
+  PackageName [Minimalistic And-Inverter Graph package.]
 
   Synopsis    []
 
@@ -12,13 +12,13 @@
   
   Affiliation [UC Berkeley]
 
-  Date        [Ver. 1.0. Started - June 20, 2005.]
+  Date        [Ver. 1.0. Started - May 11, 2006.]
 
-  Revision    [$Id: fraigSolver.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: ivy_.c,v 1.00 2006/05/11 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "aig.h"
+#include "ivy.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -39,6 +39,7 @@
   SeeAlso     []
 
 ***********************************************************************/
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

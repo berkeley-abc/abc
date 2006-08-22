@@ -93,11 +93,11 @@ Abc_Ntk_t * Abc_NtkAigToSeq( Abc_Ntk_t * pNtk )
 
     // map the constant nodes
     Abc_NtkCleanCopy( pNtk );
-    Abc_NtkConst1(pNtk)->pCopy = Abc_NtkConst1(pNtkNew);
+    Abc_AigConst1(pNtk)->pCopy = Abc_AigConst1(pNtkNew);
 
     // copy all objects, except the latches and constant
     Vec_PtrFill( pNtkNew->vObjs, Abc_NtkObjNumMax(pNtk), NULL );
-    Vec_PtrWriteEntry( pNtkNew->vObjs, 0, Abc_NtkConst1(pNtk)->pCopy );
+    Vec_PtrWriteEntry( pNtkNew->vObjs, 0, Abc_AigConst1(pNtk)->pCopy );
     Abc_NtkForEachObj( pNtk, pObj, i )
     {
         if ( i == 0 || Abc_ObjIsLatch(pObj) )
@@ -236,7 +236,7 @@ void Abc_NtkAigCutsetCopy( Abc_Ntk_t * pNtk )
     Abc_NtkForEachLatch( pNtk, pLatch, i )
     {
         pDriver = Abc_ObjFanin0(pLatch);
-        if ( Abc_NodeIsTravIdCurrent(pDriver) || !Abc_NodeIsAigAnd(pDriver) )
+        if ( Abc_NodeIsTravIdCurrent(pDriver) || !Abc_AigNodeIsAnd(pDriver) )
             continue;
         Abc_NodeSetTravIdCurrent(pDriver);
         pDriverNew = pDriver->pCopy;
@@ -428,7 +428,7 @@ bool Abc_NtkSeqCheck( Abc_Ntk_t * pNtk )
         nFanins = Abc_ObjFaninNum(pObj);
         if ( nFanins == 0 )
         {
-            if ( pObj != Abc_NtkConst1(pNtk) )
+            if ( pObj != Abc_AigConst1(pNtk) )
             {
                 printf( "Abc_SeqCheck: The AIG has non-standard constant nodes.\n" );
                 return 0;

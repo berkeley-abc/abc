@@ -422,9 +422,9 @@ int * Abc_NtkVerifySimulatePattern( Abc_Ntk_t * pNtk, int * pModel )
     vNodes = Abc_NtkDfs( pNtk, 1 );
     Vec_PtrForEachEntry( vNodes, pNode, i )
     {
-        if ( Abc_NodeIsConst(pNode) )
-            pNode->pCopy = NULL;
-        else
+//        if ( Abc_NodeIsConst(pNode) )
+//            pNode->pCopy = NULL;
+//        else
         {
             Value0 = ((int)Abc_ObjFanin0(pNode)->pCopy) ^ Abc_ObjFaninC0(pNode);
             Value1 = ((int)Abc_ObjFanin1(pNode)->pCopy) ^ Abc_ObjFaninC1(pNode);

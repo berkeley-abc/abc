@@ -189,7 +189,7 @@ Abc_Obj_t * Abc_NodeBddToMuxes( Abc_Obj_t * pNodeOld, Abc_Ntk_t * pNtkNew )
     // create the table mapping BDD nodes into the ABC nodes
     tBdd2Node = st_init_table( st_ptrcmp, st_ptrhash );
     // add the constant and the elementary vars
-    st_insert( tBdd2Node, (char *)b1, (char *)Abc_NtkConst1(pNtkNew) );
+    st_insert( tBdd2Node, (char *)b1, (char *)Abc_AigConst1(pNtkNew) );
     Abc_ObjForEachFanin( pNodeOld, pFaninOld, i )
         st_insert( tBdd2Node, (char *)Cudd_bddIthVar(dd, i), (char *)pFaninOld->pCopy );
     // create the new nodes recursively
@@ -271,7 +271,7 @@ DdManager * Abc_NtkGlobalBdds( Abc_Ntk_t * pNtk, int nBddSizeMax, int fLatchOnly
             Cudd_Ref( dd->vars[i] );
         }
     // assign the constant node BDD
-    pNode = Abc_NtkConst1( pNtk );
+    pNode = Abc_AigConst1(pNtk);
     if ( Abc_ObjFanoutNum(pNode) > 0 )
     {
         pNode->pCopy = (Abc_Obj_t *)dd->one;   

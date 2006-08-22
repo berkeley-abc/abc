@@ -265,7 +265,6 @@ void Io_WriteVerilogAuxNodes( FILE * pFile, Abc_Ntk_t * pNtk )
     Abc_Obj_t * pObj;
     int i, nCubes, nFanins, Counter, nDigits, fPadZeros;
     char * pName;
-    extern int Abc_SopIsExorType( char * pSop );
 
     nDigits = Extra_Base10Log( Abc_NtkNodeNum(pNtk) );
     Counter = 1;

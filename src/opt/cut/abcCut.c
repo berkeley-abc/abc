@@ -113,8 +113,8 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
             continue;
         }
         // skip constant node, it has no cuts
-        if ( Abc_NodeIsConst(pObj) )
-            continue;
+//        if ( Abc_NodeIsConst(pObj) )
+//            continue;
         Extra_ProgressBarUpdate( pProgress, i, NULL );
         // compute the cuts to the internal node
         Abc_NodeGetCuts( p, pObj, pParams->fDag, pParams->fTree );  
@@ -125,7 +125,7 @@ Cut_Man_t * Abc_NtkCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
             Cut_NodeTryDroppingCuts( p, Abc_ObjFaninId1(pObj) );
         }
         // add cuts due to choices
-        if ( Abc_NodeIsAigChoice(pObj) )
+        if ( Abc_AigNodeIsChoice(pObj) )
         {
             Vec_IntClear( vChoices );
             for ( pNode = pObj; pNode; pNode = pNode->pData )
@@ -187,8 +187,8 @@ void Abc_NtkCutsOracle( Abc_Ntk_t * pNtk, Cut_Oracle_t * p )
             continue;
         }
         // skip constant node, it has no cuts
-        if ( Abc_NodeIsConst(pObj) )
-            continue;
+//        if ( Abc_NodeIsConst(pObj) )
+//            continue;
         // compute the cuts to the internal node
         Cut_OracleComputeCuts( p, pObj->Id, Abc_ObjFaninId0(pObj), Abc_ObjFaninId1(pObj),  
                 Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj) );
@@ -234,7 +234,7 @@ Cut_Man_t * Abc_NtkSeqCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
     p = Cut_ManStart( pParams );
 
     // set cuts for the constant node and the PIs
-    pObj = Abc_NtkConst1(pNtk);
+    pObj = Abc_AigConst1(pNtk);
     if ( Abc_ObjFanoutNum(pObj) > 0 )
         Cut_NodeSetTriv( p, pObj->Id );
     Abc_NtkForEachPi( pNtk, pObj, i )
@@ -263,7 +263,7 @@ Cut_Man_t * Abc_NtkSeqCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
         {
             Abc_NodeGetCutsSeq( p, pObj, nIters==0 );
             // add cuts due to choices
-            if ( Abc_NodeIsAigChoice(pObj) )
+            if ( Abc_AigNodeIsChoice(pObj) )
             {
                 Vec_IntClear( vChoices );
                 for ( pNode = pObj; pNode; pNode = pNode->pData )

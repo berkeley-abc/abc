@@ -1261,7 +1261,7 @@ int CmdCommandSis( Abc_Frame_t * pAbc, int argc, char **argv )
 
     if ( Abc_NtkIsMappedLogic(pNtk) )
     {
-        Abc_NtkUnmap(pNtk);
+        Abc_NtkMapToSop(pNtk);
         printf( "The current network is unmapped before calling SIS.\n" );
     }
 
@@ -1402,7 +1402,7 @@ int CmdCommandMvsis( Abc_Frame_t * pAbc, int argc, char **argv )
 
     if ( Abc_NtkIsMappedLogic(pNtk) )
     {
-        Abc_NtkUnmap(pNtk);
+        Abc_NtkMapToSop(pNtk);
         printf( "The current network is unmapped before calling MVSIS.\n" );
     }
 
@@ -1548,7 +1548,7 @@ int CmdCommandCapo( Abc_Frame_t * pAbc, int argc, char **argv )
 
     if ( Abc_NtkIsMappedLogic(pNtk) )
     {
-        Abc_NtkUnmap(pNtk);
+        Abc_NtkMapToSop(pNtk);
         printf( "The current network is unmapped before calling Capo.\n" );
     }
 

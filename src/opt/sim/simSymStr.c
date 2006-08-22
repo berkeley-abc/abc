@@ -74,8 +74,8 @@ void Sim_SymmsStructCompute( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMatrs, Vec_Ptr_t * v
     vNodes = Abc_NtkDfs( pNtk, 0 );
     Vec_PtrForEachEntry( vNodes, pTemp, i )
     {
-        if ( Abc_NodeIsConst(pTemp) )
-            continue;
+//        if ( Abc_NodeIsConst(pTemp) )
+//            continue;
         Sim_SymmsStructComputeOne( pNtk, pTemp, pMap );
     }
     // collect the results for the COs;
@@ -83,7 +83,7 @@ void Sim_SymmsStructCompute( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMatrs, Vec_Ptr_t * v
     {
 //printf( "Output %d:\n", i );
         pTemp = Abc_ObjFanin0(pTemp);
-        if ( Abc_ObjIsCi(pTemp) || Abc_NodeIsConst(pTemp) )
+        if ( Abc_ObjIsCi(pTemp) || Abc_AigNodeIsConst(pTemp) )
             continue;
         Sim_SymmsTransferToMatrix( Vec_PtrEntry(vMatrs, i), SIM_READ_SYMMS(pTemp), Vec_PtrEntry(vSuppFun, i) );
     }
@@ -93,7 +93,7 @@ void Sim_SymmsStructCompute( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMatrs, Vec_Ptr_t * v
     Abc_NtkForEachCi( pNtk, pTemp, i )
         Vec_IntFree( SIM_READ_SYMMS(pTemp) );
     Vec_PtrForEachEntry( vNodes, pTemp, i )
-        if ( !Abc_NodeIsConst(pTemp) )
+//        if ( !Abc_NodeIsConst(pTemp) )
             Vec_IntFree( SIM_READ_SYMMS(pTemp) );
     Vec_PtrFree( vNodes );
     free( pMap );

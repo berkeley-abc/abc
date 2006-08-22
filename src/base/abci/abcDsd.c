@@ -172,7 +172,7 @@ void Abc_NtkDsdConstruct( Dsd_Manager_t * pManDsd, Abc_Ntk_t * pNtk, Abc_Ntk_t *
     int i, nNodesDsd;
 
     // save the CI nodes in the DSD nodes
-    Dsd_NodeSetMark( Dsd_ManagerReadConst1(pManDsd), (int)Abc_NtkConst1(pNtk)->pCopy );
+    Dsd_NodeSetMark( Dsd_ManagerReadConst1(pManDsd), (int)Abc_AigConst1(pNtkNew) );
     Abc_NtkForEachCi( pNtk, pNode, i )
     {
         pNodeDsd = Dsd_ManagerReadInput( pManDsd, i );
@@ -191,7 +191,7 @@ void Abc_NtkDsdConstruct( Dsd_Manager_t * pManDsd, Abc_Ntk_t * pNtk, Abc_Ntk_t *
         pDriver = Abc_ObjFanin0( pNode );
         if ( !Abc_ObjIsNode(pDriver) )
             continue;
-        if ( !Abc_NodeIsAigAnd(pDriver) )
+        if ( !Abc_AigNodeIsAnd(pDriver) )
             continue;
         pNodeDsd = Dsd_ManagerReadRoot( pManDsd, i );
         pNodeNew = (Abc_Obj_t *)Dsd_NodeReadMark( Dsd_Regular(pNodeDsd) );
@@ -419,14 +419,14 @@ void Abc_NodeDecompDsdAndMux( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes, Dsd_Manager
         pNodeC = Abc_ObjFanin( pNode, iVar );
 
         // get the negative cofactor
-        pNode1 = Abc_NodeClone( pNode );
+        pNode1 = Abc_NtkCloneObj( pNode );
         pNode1->pData = Cudd_Cofactor( dd, pNode->pData, Cudd_Not(dd->vars[iVar]) );  Cudd_Ref( pNode1->pData );
         Abc_NodeMinimumBase( pNode1 );
         if ( Abc_NodeIsForDsd(pNode1) )
             Vec_PtrPush( vNodes, pNode1 );
 
         // get the positive cofactor
-        pNode2 = Abc_NodeClone( pNode );
+        pNode2 = Abc_NtkCloneObj( pNode );
         pNode2->pData = Cudd_Cofactor( dd, pNode->pData, dd->vars[iVar] );            Cudd_Ref( pNode2->pData );
         Abc_NodeMinimumBase( pNode2 );
         if ( Abc_NodeIsForDsd(pNode2) )

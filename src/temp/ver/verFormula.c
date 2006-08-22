@@ -38,23 +38,22 @@
 #define VER_PARSE_SYM_MUX2    ':'   // second symbol of MUX
 
 // the list of opcodes (also specifying operation precedence)
-#define VER_PARSE_OPER_NEG    10    // negation
-#define VER_PARSE_OPER_AND     9    // logic AND
-#define VER_PARSE_OPER_XOR     8    // logic EXOR   (a'b | ab')   
-#define VER_PARSE_OPER_OR      7    // logic OR
-#define VER_PARSE_OPER_EQU     6    // equvalence   (a'b'| ab )
-#define VER_PARSE_OPER_MUX     5    // MUX          (a'b | ac )
+#define VER_PARSE_OPER_NEG     7    // negation (highest precedence)
+#define VER_PARSE_OPER_AND     6    // logic AND
+#define VER_PARSE_OPER_XOR     5    // logic EXOR   (a'b | ab')   
+#define VER_PARSE_OPER_OR      4    // logic OR
+#define VER_PARSE_OPER_EQU     3    // equvalence   (a'b'| ab )
+#define VER_PARSE_OPER_MUX     2    // MUX(a,b,c)   (ab | a'c )
 #define VER_PARSE_OPER_MARK    1    // OpStack token standing for an opening paranthesis
 
 // these are values of the internal Flag
 #define VER_PARSE_FLAG_START   1    // after the opening parenthesis 
 #define VER_PARSE_FLAG_VAR     2    // after operation is received
 #define VER_PARSE_FLAG_OPER    3    // after operation symbol is received
-#define VER_PARSE_FLAG_OPERMUX 4    // after operation symbol is received
-#define VER_PARSE_FLAG_ERROR   5    // when error is detected
+#define VER_PARSE_FLAG_ERROR   4    // when error is detected
 
-static DdNode * Ver_FormulaParserTopOper( DdManager * dd, Vec_Ptr_t * vStackFn, int Oper );
-static int      Ver_FormulaParserFindVar( char * pString, Vec_Ptr_t * vNames );
+static Aig_Obj_t * Ver_FormulaParserTopOper( Aig_Man_t * pMan, Vec_Ptr_t * vStackFn, int Oper );
+static int         Ver_FormulaParserFindVar( char * pString, Vec_Ptr_t * vNames );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -71,9 +70,9 @@ static int      Ver_FormulaParserFindVar( char * pString, Vec_Ptr_t * vNames );
   SeeAlso     []
 
 ***********************************************************************/
-DdNode * Ver_FormulaParser( char * pFormula, DdManager * dd, Vec_Ptr_t * vNames, Vec_Ptr_t * vStackFn, Vec_Int_t * vStackOp, char * pErrorMessage )
+void * Ver_FormulaParser( char * pFormula, void * pMan, Vec_Ptr_t * vNames, Vec_Ptr_t * vStackFn, Vec_Int_t * vStackOp, char * pErrorMessage )
 {
-    DdNode * bFunc, * bTemp;
+    Aig_Obj_t * bFunc, * bTemp;
     char * pTemp;
     int nParans, Flag;
     int Oper, Oper1, Oper2;
@@ -120,7 +119,7 @@ DdNode * Ver_FormulaParser( char * pFormula, DdManager * dd, Vec_Ptr_t * vNames,
 
         // treat Constant 0 as a variable
         case VER_PARSE_SYM_CONST0:
-            Vec_PtrPush( vStackFn, b0 );   Cudd_Ref( b0 );
+            Vec_PtrPush( vStackFn, Aig_ManConst0(pMan) );  // Cudd_Ref( Aig_ManConst0(pMan) );
             if ( Flag == VER_PARSE_FLAG_VAR )
             {
                 sprintf( pErrorMessage, "Parse_FormulaParser(): No operation symbol before constant 0." );
@@ -132,7 +131,7 @@ DdNode * Ver_FormulaParser( char * pFormula, DdManager * dd, Vec_Ptr_t * vNames,
 
         // the same for Constant 1
         case VER_PARSE_SYM_CONST1:
-            Vec_PtrPush( vStackFn, b1 );    Cudd_Ref( b1 );
+            Vec_PtrPush( vStackFn, Aig_ManConst1(pMan) );  //  Cudd_Ref( Aig_ManConst1(pMan) );
             if ( Flag == VER_PARSE_FLAG_VAR )
             {
                 sprintf( pErrorMessage, "Parse_FormulaParser(): No operation symbol before constant 1." );
@@ -211,7 +210,7 @@ DdNode * Ver_FormulaParser( char * pFormula, DdManager * dd, Vec_Ptr_t * vNames,
 //                    }
 
                     // perform the given operation
-                    if ( Ver_FormulaParserTopOper( dd, vStackFn, Oper ) == NULL )
+                    if ( Ver_FormulaParserTopOper( pMan, vStackFn, Oper ) == NULL )
                     {
                         sprintf( pErrorMessage, "Parse_FormulaParser(): Unknown operation\n" );
                         return NULL;
@@ -240,8 +239,8 @@ DdNode * Ver_FormulaParser( char * pFormula, DdManager * dd, Vec_Ptr_t * vNames,
                 sprintf( pErrorMessage, "Parse_FormulaParser(): Incorrect state." );
                 return NULL;
             }
-            bTemp = Cudd_bddIthVar(dd, v);
-            Vec_PtrPush( vStackFn, bTemp );  Cudd_Ref( bTemp );
+            bTemp = Aig_IthVar( pMan, v );
+            Vec_PtrPush( vStackFn, bTemp ); //  Cudd_Ref( bTemp );
             Flag = VER_PARSE_FLAG_VAR; 
             break;
         }
@@ -263,7 +262,8 @@ DdNode * Ver_FormulaParser( char * pFormula, DdManager * dd, Vec_Ptr_t * vNames,
                 }
                 else
                 {
-                      Vec_PtrPush( vStackFn, Cudd_Not(Vec_PtrPop(vStackFn)) );
+//                      Vec_PtrPush( vStackFn, Cudd_Not(Vec_PtrPop(vStackFn)) );
+                      Vec_PtrPush( vStackFn, Aig_Not(Vec_PtrPop(vStackFn)) );
                 }
             }
         else // if ( Flag == VER_PARSE_FLAG_OPER )
@@ -279,7 +279,7 @@ DdNode * Ver_FormulaParser( char * pFormula, DdManager * dd, Vec_Ptr_t * vNames,
                 Oper2 = Vec_IntPop( vStackOp ); // the operation before the last one
                 if ( Oper2 >= Oper1 )  
                 {  // if Oper2 precedence is higher or equal, execute it
-                    if ( Ver_FormulaParserTopOper( dd, vStackFn, Oper2 ) == NULL )
+                    if ( Ver_FormulaParserTopOper( pMan, vStackFn, Oper2 ) == NULL )
                     {
                         sprintf( pErrorMessage, "Parse_FormulaParser(): Unknown operation\n" );
                         return NULL;
@@ -303,7 +303,7 @@ DdNode * Ver_FormulaParser( char * pFormula, DdManager * dd, Vec_Ptr_t * vNames,
             if ( !Vec_PtrSize(vStackFn) )
                 if ( !Vec_IntSize(vStackOp) )
                 {
-                    Cudd_Deref( bFunc );
+//                    Cudd_Deref( bFunc );
                     return bFunc;
                 }
                 else
@@ -314,8 +314,8 @@ DdNode * Ver_FormulaParser( char * pFormula, DdManager * dd, Vec_Ptr_t * vNames,
         else
             sprintf( pErrorMessage, "Parse_FormulaParser(): The input string is empty\n" );
     }
-    Cudd_Ref( bFunc );
-    Cudd_RecursiveDeref( dd, bFunc );
+//    Cudd_Ref( bFunc );
+//    Cudd_RecursiveDeref( dd, bFunc );
     return NULL;
 }
 
@@ -330,32 +330,33 @@ DdNode * Ver_FormulaParser( char * pFormula, DdManager * dd, Vec_Ptr_t * vNames,
   SeeAlso     []
 
 ***********************************************************************/
-DdNode * Ver_FormulaParserTopOper( DdManager * dd, Vec_Ptr_t * vStackFn, int Oper )
+Aig_Obj_t * Ver_FormulaParserTopOper( Aig_Man_t * pMan, Vec_Ptr_t * vStackFn, int Oper )
 {
-    DdNode * bArg0, * bArg1, * bArg2, * bFunc;
+    Aig_Obj_t * bArg0, * bArg1, * bArg2, * bFunc;
     // perform the given operation
     bArg2 = Vec_PtrPop( vStackFn );
     bArg1 = Vec_PtrPop( vStackFn );
     if ( Oper == VER_PARSE_OPER_AND )
-        bFunc = Cudd_bddAnd( dd, bArg1, bArg2 );
+        bFunc = Aig_And( pMan, bArg1, bArg2 );
     else if ( Oper == VER_PARSE_OPER_XOR )
-        bFunc = Cudd_bddXor( dd, bArg1, bArg2 );
+        bFunc = Aig_Exor( pMan, bArg1, bArg2 );
     else if ( Oper == VER_PARSE_OPER_OR )
-        bFunc = Cudd_bddOr( dd, bArg1, bArg2 );
+        bFunc = Aig_Or( pMan, bArg1, bArg2 );
     else if ( Oper == VER_PARSE_OPER_EQU )
-        bFunc = Cudd_bddXnor( dd, bArg1, bArg2 );
+        bFunc = Aig_Not( Aig_Exor( pMan, bArg1, bArg2 ) );
     else if ( Oper == VER_PARSE_OPER_MUX )
     {
         bArg0 = Vec_PtrPop( vStackFn );
-        bFunc = Cudd_bddIte( dd, bArg0, bArg1, bArg2 );  Cudd_Ref( bFunc );
-        Cudd_RecursiveDeref( dd, bArg0 );
-        Cudd_Deref( bFunc );
+//        bFunc = Cudd_bddIte( dd, bArg0, bArg1, bArg2 );  Cudd_Ref( bFunc );
+        bFunc = Aig_Mux( pMan, bArg0, bArg1, bArg2 ); 
+//        Cudd_RecursiveDeref( dd, bArg0 );
+//        Cudd_Deref( bFunc );
     }
     else
         return NULL;
-    Cudd_Ref( bFunc );
-    Cudd_RecursiveDeref( dd, bArg1 );
-    Cudd_RecursiveDeref( dd, bArg2 );
+//    Cudd_Ref( bFunc );
+//    Cudd_RecursiveDeref( dd, bArg1 );
+//    Cudd_RecursiveDeref( dd, bArg2 );
     Vec_PtrPush( vStackFn,  bFunc );
     return bFunc;
 }

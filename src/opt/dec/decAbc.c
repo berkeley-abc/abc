@@ -18,7 +18,6 @@
 
 #include "abc.h"
 #include "dec.h"
-//#include "aig.h"
 #include "ivy.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -48,7 +47,7 @@ Abc_Obj_t * Dec_GraphToNetwork( Abc_Ntk_t * pNtk, Dec_Graph_t * pGraph )
     int i;
     // check for constant function
     if ( Dec_GraphIsConst(pGraph) )
-        return Abc_ObjNotCond( Abc_NtkConst1(pNtk), Dec_GraphIsComplement(pGraph) );
+        return Abc_ObjNotCond( Abc_AigConst1(pNtk), Dec_GraphIsComplement(pGraph) );
     // check for a literal
     if ( Dec_GraphIsVar(pGraph) )
         return Abc_ObjNotCond( Dec_GraphVar(pGraph)->pFunc, Dec_GraphIsComplement(pGraph) );
@@ -82,7 +81,7 @@ Abc_Obj_t * Dec_GraphToNetworkNoStrash( Abc_Ntk_t * pNtk, Dec_Graph_t * pGraph )
     int i;
     // check for constant function
     if ( Dec_GraphIsConst(pGraph) )
-        return Abc_ObjNotCond( Abc_NtkConst1(pNtk), Dec_GraphIsComplement(pGraph) );
+        return Abc_ObjNotCond( Abc_AigConst1(pNtk), Dec_GraphIsComplement(pGraph) );
     // check for a literal
     if ( Dec_GraphIsVar(pGraph) )
         return Abc_ObjNotCond( Dec_GraphVar(pGraph)->pFunc, Dec_GraphIsComplement(pGraph) );
@@ -159,7 +158,7 @@ int Dec_GraphToNetworkCount( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int NodeMa
         LevelNew = 1 + ABC_MAX( pNode0->Level, pNode1->Level );
         if ( pAnd )
         {
-            if ( Abc_ObjRegular(pAnd) == Abc_NtkConst1(pRoot->pNtk) )
+            if ( Abc_ObjRegular(pAnd) == Abc_AigConst1(pRoot->pNtk) )
                 LevelNew = 0;
             else if ( Abc_ObjRegular(pAnd) == Abc_ObjRegular(pAnd0) )
                 LevelNew = (int)Abc_ObjRegular(pAnd0)->Level;
@@ -215,11 +214,10 @@ void Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, bool fUpda
   SeeAlso     []
 
 ***********************************************************************/
-/*
-Aig_Node_t * Dec_GraphToNetworkAig( Aig_Man_t * pMan, Dec_Graph_t * pGraph )
+Aig_Obj_t * Dec_GraphToNetworkAig( Aig_Man_t * pMan, Dec_Graph_t * pGraph )
 {
     Dec_Node_t * pNode;
-    Aig_Node_t * pAnd0, * pAnd1;
+    Aig_Obj_t * pAnd0, * pAnd1;
     int i;
     // check for constant function
     if ( Dec_GraphIsConst(pGraph) )
@@ -237,7 +235,34 @@ Aig_Node_t * Dec_GraphToNetworkAig( Aig_Man_t * pMan, Dec_Graph_t * pGraph )
     // complement the result if necessary
     return Aig_NotCond( pNode->pFunc, Dec_GraphIsComplement(pGraph) );
 }
-*/
+
+/**Function*************************************************************
+
+  Synopsis    [Strashes one logic node using its SOP.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Obj_t * Dec_GraphFactorSop( Aig_Man_t * pMan, char * pSop )
+{
+    Aig_Obj_t * pFunc;
+    Dec_Graph_t * pFForm;
+    Dec_Node_t * pNode;
+    int i;
+    // perform factoring
+    pFForm = Dec_Factor( pSop );
+    // collect the fanins
+    Dec_GraphForEachLeaf( pFForm, pNode, i )
+        pNode->pFunc = Aig_IthVar( pMan, i );
+    // perform strashing
+    pFunc = Dec_GraphToNetworkAig( pMan, pFForm );
+    Dec_GraphFree( pFForm );
+    return pFunc;
+}
 
 /**Function*************************************************************
 
@@ -250,7 +275,6 @@ Aig_Node_t * Dec_GraphToNetworkAig( Aig_Man_t * pMan, Dec_Graph_t * pGraph )
   SeeAlso     []
 
 ***********************************************************************/
-
 Ivy_Obj_t * Dec_GraphToNetworkIvy( Ivy_Man_t * pMan, Dec_Graph_t * pGraph )
 {
     Dec_Node_t * pNode;

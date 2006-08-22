@@ -50,6 +50,7 @@
 struct Abc_Aig_t_
 {
     Abc_Ntk_t *       pNtkAig;           // the AIG network
+    Abc_Obj_t *       pConst1;           // the constant 1 object (not a node!)
     Abc_Obj_t **      pBins;             // the table bins
     int               nBins;             // the size of the table
     int               nEntries;          // the total number of entries in the table
@@ -130,10 +131,17 @@ Abc_Aig_t * Abc_AigAlloc( Abc_Ntk_t * pNtkAig )
     pMan->pBins    = ALLOC( Abc_Obj_t *, pMan->nBins );
     memset( pMan->pBins, 0, sizeof(Abc_Obj_t *) * pMan->nBins );
     pMan->vNodes   = Vec_PtrAlloc( 100 );
+    pMan->vLevels  = Vec_VecAlloc( 100 );
+    pMan->vLevelsR = Vec_VecAlloc( 100 );
     pMan->vStackReplaceOld = Vec_PtrAlloc( 100 );
     pMan->vStackReplaceNew = Vec_PtrAlloc( 100 );
-    pMan->vLevels          = Vec_VecAlloc( 100 );
-    pMan->vLevelsR         = Vec_VecAlloc( 100 );
+    // create the constant node
+    pMan->pConst1  = Abc_ObjAlloc( pNtkAig, ABC_OBJ_CONST1 );
+    // add to the array of objects, count it as object but not as node
+    assert( pNtkAig->vObjs->nSize == 0 );
+    pMan->pConst1->Id = pNtkAig->vObjs->nSize;
+    Vec_PtrPush( pNtkAig->vObjs, pMan->pConst1 );
+    pNtkAig->nObjs++;
     // save the current network
     pMan->pNtkAig = pNtkAig;
     return pMan;
@@ -216,7 +224,7 @@ bool Abc_AigCheck( Abc_Aig_t * pMan )
         nFanins = Abc_ObjFaninNum(pObj);
         if ( nFanins == 0 )
         {
-            if ( pObj != Abc_NtkConst1(pMan->pNtkAig) )
+            if ( !Abc_AigNodeIsConst(pObj) )
             {
                 printf( "Abc_AigCheck: The AIG has non-standard constant nodes.\n" );
                 return 0;
@@ -370,7 +378,7 @@ Abc_Obj_t * Abc_AigAndLookup( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 )
     Abc_Obj_t * pAnd, * pConst1;
     unsigned Key;
     // check for trivial cases
-    pConst1 = Abc_NtkConst1(pMan->pNtkAig);
+    pConst1 = Abc_AigConst1(pMan->pNtkAig);
     if ( p0 == p1 )
         return p0;
     if ( p0 == Abc_ObjNot(p1) )
@@ -642,6 +650,23 @@ void Abc_AigRehash( Abc_Aig_t * pMan )
   SeeAlso     []
 
 ***********************************************************************/
+Abc_Obj_t * Abc_AigConst1( Abc_Ntk_t * pNtk )
+{
+    assert( Abc_NtkIsStrash(pNtk) || Abc_NtkIsSeq(pNtk) );
+    return ((Abc_Aig_t *)pNtk->pManFunc)->pConst1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs canonicization step.]
+
+  Description [The argument nodes can be complemented.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Abc_Obj_t * Abc_AigAnd( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 )
 {
     Abc_Obj_t * pAnd;
@@ -719,7 +744,7 @@ Abc_Obj_t * Abc_AigMiter( Abc_Aig_t * pMan, Vec_Ptr_t * vPairs )
 {
     int i;
     if ( vPairs->nSize == 0 )
-        return Abc_ObjNot( Abc_NtkConst1(pMan->pNtkAig) );
+        return Abc_ObjNot( Abc_AigConst1(pMan->pNtkAig) );
     assert( vPairs->nSize % 2 == 0 );
     // go through the cubes of the node's SOP
     for ( i = 0; i < vPairs->nSize; i += 2 )
@@ -745,7 +770,7 @@ Abc_Obj_t * Abc_AigMiter2( Abc_Aig_t * pMan, Vec_Ptr_t * vPairs )
     int i;
     assert( vPairs->nSize % 2 == 0 );
     // go through the cubes of the node's SOP
-    pMiter = Abc_ObjNot( Abc_NtkConst1(pMan->pNtkAig) );
+    pMiter = Abc_ObjNot( Abc_AigConst1(pMan->pNtkAig) );
     for ( i = 0; i < vPairs->nSize; i += 2 )
     {
         pXor   = Abc_AigXor( pMan, vPairs->pArray[i], vPairs->pArray[i+1] );
@@ -850,7 +875,6 @@ void Abc_AigReplace_int( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew, i
         Abc_AigAndDelete( pMan, pFanout );
         // remove the fanins of the old fanout
         Abc_ObjRemoveFanins( pFanout );
-        Abc_HManRemoveFanins( pFanout );
         // recreate the old fanout with new fanins and add it to the table
         Abc_AigAndCreateFrom( pMan, pFanin1, pFanin2, pFanout );
         assert( Abc_AigNodeIsAcyclic(pFanout, pFanout) );
@@ -872,7 +896,7 @@ void Abc_AigReplace_int( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew, i
 
         // the fanout has changed, update EXOR status of its fanouts
         Abc_ObjForEachFanout( pFanout, pFanoutFanout, v )
-            if ( Abc_NodeIsAigAnd(pFanoutFanout) )
+            if ( Abc_AigNodeIsAnd(pFanoutFanout) )
                 pFanoutFanout->fExor = Abc_NodeIsExorType(pFanoutFanout);
     }
     // if the node has no fanouts left, remove its MFFC
@@ -1199,7 +1223,7 @@ void Abc_AigPrintNode( Abc_Obj_t * pNode )
         printf( "CI %4s%s.\n", Abc_ObjName(pNodeR), Abc_ObjIsComplement(pNode)? "\'" : "" );
         return;
     }
-    if ( Abc_NodeIsConst(pNodeR) )
+    if ( Abc_AigNodeIsConst(pNodeR) )
     {
         printf( "Constant 1 %s.\n", Abc_ObjIsComplement(pNode)? "(complemented)" : ""  );
         return;
@@ -1230,7 +1254,7 @@ bool Abc_AigNodeIsAcyclic( Abc_Obj_t * pNode, Abc_Obj_t * pRoot )
     Abc_Obj_t * pFanin0, * pFanin1;
     Abc_Obj_t * pChild00, * pChild01;
     Abc_Obj_t * pChild10, * pChild11;
-    if ( !Abc_NodeIsAigAnd(pNode) )
+    if ( !Abc_AigNodeIsAnd(pNode) )
         return 1;
     pFanin0 = Abc_ObjFanin0(pNode);
     pFanin1 = Abc_ObjFanin1(pNode);
@@ -1306,7 +1330,7 @@ void Abc_AigSetNodePhases( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pObj;
     int i;
     assert( Abc_NtkIsDfsOrdered(pNtk) );
-    Abc_NtkConst1(pNtk)->fPhase = 1;
+    Abc_AigConst1(pNtk)->fPhase = 1;
 //    Abc_NtkForEachCi( pNtk, pObj, i )
 //        pObj->fPhase = 0;
     Abc_NtkForEachPi( pNtk, pObj, i )

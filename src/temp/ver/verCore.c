@@ -34,6 +34,8 @@ typedef enum {
     VER_SIG_WIRE
 } Ver_SignalType_t;
 
+static Ver_Man_t * Ver_ParseStart( char * pFileName, Abc_Lib_t * pGateLib );
+static void Ver_ParseStop( Ver_Man_t * p );
 static void Ver_ParseFreeData( Ver_Man_t * p );
 static void Ver_ParseInternal( Ver_Man_t * p, int fCheck );
 static int  Ver_ParseModule( Ver_Man_t * p );
@@ -45,7 +47,6 @@ static int  Ver_ParseGate( Ver_Man_t * p, Abc_Ntk_t * pNtkGate );
 
 static Abc_Obj_t * Ver_ParseCreatePi( Abc_Ntk_t * pNtk, char * pName );
 static Abc_Obj_t * Ver_ParseCreatePo( Abc_Ntk_t * pNtk, char * pName );
-static Abc_Obj_t * Ver_ParseCreateConst( Abc_Ntk_t * pNtk, char * pName, bool fConst1 );
 static Abc_Obj_t * Ver_ParseCreateLatch( Abc_Ntk_t * pNtk, char * pNetLI, char * pNetLO );
 
 ////////////////////////////////////////////////////////////////////////
@@ -63,80 +64,70 @@ static Abc_Obj_t * Ver_ParseCreateLatch( Abc_Ntk_t * pNtk, char * pNetLI, char *
   SeeAlso     []
 
 ***********************************************************************/
-st_table * Ver_ParseFile( char * pFileName, st_table * pGateLib, int fCheck )
+Abc_Lib_t * Ver_ParseFile( char * pFileName, Abc_Lib_t * pGateLib, int fCheck )
 {
     Ver_Man_t * p;
-    st_table * pLibrary;
-    // start the file reader    
+    Abc_Lib_t * pDesign;
+    // start the parser
+    p = Ver_ParseStart( pFileName, pGateLib );
+    // parse the file
+    Ver_ParseInternal( p, fCheck );
+    // save the result
+    pDesign = p->pDesign;
+    p->pDesign = NULL;
+    // stop the parser
+    Ver_ParseStop( p );
+    return pDesign;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Start parser.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ver_Man_t * Ver_ParseStart( char * pFileName, Abc_Lib_t * pGateLib )
+{
+    Ver_Man_t * p;
     p = ALLOC( Ver_Man_t, 1 );
     memset( p, 0, sizeof(Ver_Man_t) );
     p->pFileName = pFileName;
     p->pReader   = Ver_StreamAlloc( pFileName );
-    p->pLibrary  = st_init_table( st_ptrcmp, st_ptrhash );
+    p->pDesign   = Abc_LibCreate( pFileName );
     p->pGateLib  = pGateLib;
     p->Output    = stdout;
     p->pProgress = Extra_ProgressBarStart( stdout, Ver_StreamGetFileSize(p->pReader) );
     p->vNames    = Vec_PtrAlloc( 100 );
     p->vStackFn  = Vec_PtrAlloc( 100 );
     p->vStackOp  = Vec_IntAlloc( 100 );
-    // parse the file
-    Ver_ParseInternal( p, fCheck );
-    // stop the parser
+    return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Stop parser.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ver_ParseStop( Ver_Man_t * p )
+{
     assert( p->pNtkCur == NULL );
-    pLibrary = p->pLibrary;
     Ver_StreamFree( p->pReader );
     Extra_ProgressBarStop( p->pProgress );
     Vec_PtrFree( p->vNames   );
     Vec_PtrFree( p->vStackFn );
     Vec_IntFree( p->vStackOp );
     free( p );
-    return pLibrary;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [File parser.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ver_ParseFreeLibrary( st_table * pLibVer )
-{
-    st_generator * gen;
-    Abc_Ntk_t * pNtk;
-    char * pName;
-    st_foreach_item( pLibVer, gen, (char**)&pName, (char**)&pNtk )
-        Abc_NtkDelete( pNtk );
-    st_free_table( pLibVer );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [File parser.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ver_ParseFreeData( Ver_Man_t * p )
-{
-    if ( p->pNtkCur )
-    {
-        Abc_NtkDelete( p->pNtkCur );
-        p->pNtkCur = NULL;
-    }
-    if ( p->pLibrary )
-    {
-        Ver_ParseFreeLibrary( p->pLibrary );
-        p->pLibrary = NULL;
-    }
 }
 
 /**Function*************************************************************
@@ -165,9 +156,11 @@ void Ver_ParseInternal( Ver_Man_t * pMan, int fCheck )
             Ver_ParsePrintErrorMessage( pMan );
             return;
         }
+
         // parse the module
         if ( !Ver_ParseModule( pMan ) )
             return;
+
         // check the network for correctness
         if ( fCheck && !Abc_NtkCheckRead( pMan->pNtkCur ) )
         {
@@ -177,15 +170,40 @@ void Ver_ParseInternal( Ver_Man_t * pMan, int fCheck )
             return;
         }
         // add the module to the hash table
-        if ( st_is_member( pMan->pLibrary, pMan->pNtkCur->pName ) )
+        if ( st_is_member( pMan->pDesign->tModules, pMan->pNtkCur->pName ) )
         {
             pMan->fTopLevel = 1;
             sprintf( pMan->sError, "Module \"%s\" is defined more than once.", pMan->pNtkCur->pName );
             Ver_ParsePrintErrorMessage( pMan );
             return;
         }
-        st_insert( pMan->pLibrary, pMan->pNtkCur->pName, (char *)pMan->pNtkCur );
+        st_insert( pMan->pDesign->tModules, pMan->pNtkCur->pName, (char *)pMan->pNtkCur );
         pMan->pNtkCur = NULL;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [File parser.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ver_ParseFreeData( Ver_Man_t * p )
+{
+    if ( p->pNtkCur )
+    {
+        Abc_NtkDelete( p->pNtkCur );
+        p->pNtkCur = NULL;
+    }
+    if ( p->pDesign )
+    {
+        Abc_LibFree( p->pDesign );
+        p->pDesign = NULL;
     }
 }
 
@@ -229,26 +247,29 @@ int Ver_ParseModule( Ver_Man_t * pMan )
 {
     Ver_Stream_t * p = pMan->pReader;
     Abc_Ntk_t * pNtk, * pNtkTemp;
-    char * pWord;
+    Abc_Obj_t * pNet;
+    char * pWord, Symbol;
     int RetValue;
-    char Symbol;
 
     // start the current network
     assert( pMan->pNtkCur == NULL );
     pNtk = pMan->pNtkCur = Abc_NtkAlloc( ABC_NTK_NETLIST, ABC_FUNC_BLACKBOX );
-//    pNtk = pMan->pNtkCur = Abc_NtkAlloc( ABC_NTK_NETLIST, ABC_FUNC_BDD );
+
+    pNtk->ntkFunc = ABC_FUNC_AIG;
+    assert( pNtk->pManFunc == NULL );
+    pNtk->pManFunc = pMan->pDesign->pManFunc;
 
     // get the network name
     pWord = Ver_ParseGetName( pMan );
     pNtk->pName = Extra_UtilStrsav( pWord );
-    pNtk->pSpec = Extra_UtilStrsav( pMan->pFileName );
-
+    pNtk->pSpec = NULL;
+/*
     // create constant nodes and nets
-    Abc_NtkFindOrCreateNet( pNtk, "1'b0" );
-    Abc_NtkFindOrCreateNet( pNtk, "1'b1" );
-    Ver_ParseCreateConst( pNtk, "1'b0", 0 );
-    Ver_ParseCreateConst( pNtk, "1'b1", 1 );
-
+    pNet = Abc_NtkFindOrCreateNet( pNtk, "1'b0" );
+    Abc_ObjAddFanin( pNet, xxxx AigAbc_AigConst1(pNtk) );
+    pNet = Abc_NtkFindOrCreateNet( pNtk, "1'b1" );
+    Abc_ObjAddFanin( pNet, Abc_AigConst1(pNtk) );
+*/
     // make sure we stopped at the opening paranthesis
     if ( Ver_StreamScanChar(p) != '(' )
     {
@@ -313,9 +334,9 @@ int Ver_ParseModule( Ver_Man_t * pMan )
             Abc_NtkFinalizeRead( pNtk );
             break;
         }
-        else if ( pMan->pGateLib && st_lookup(pMan->pGateLib, pWord, (char**)&pNtkTemp) ) // gate library
+        else if ( pMan->pGateLib && st_lookup(pMan->pGateLib->tModules, pWord, (char**)&pNtkTemp) ) // gate library
             RetValue = Ver_ParseGate( pMan, pNtkTemp );
-        else if ( pMan->pLibrary && st_lookup(pMan->pLibrary, pWord, (char**)&pNtkTemp) ) // current design
+        else if ( pMan->pDesign && st_lookup(pMan->pDesign->tModules, pWord, (char**)&pNtkTemp) ) // current design
             RetValue = Ver_ParseGate( pMan, pNtkTemp );
         else
         {
@@ -333,17 +354,6 @@ int Ver_ParseModule( Ver_Man_t * pMan )
         pWord = Ver_ParseGetName( pMan );
         if ( pWord == NULL )
             return 0;
-    }
-
-    if ( pNtk->ntkFunc == ABC_FUNC_BDD )
-    {
-        Abc_Obj_t * pObj;
-        pObj = Abc_ObjFanin0( Abc_NtkFindNet( pNtk, "1'b0" ) );
-        pObj->pData = Cudd_ReadLogicZero( pNtk->pManFunc );
-        pObj = Abc_ObjFanin0( Abc_NtkFindNet( pNtk, "1'b1" ) );
-        pObj->pData = Cudd_ReadOne( pNtk->pManFunc );
-        Cudd_Ref( Cudd_ReadOne( pNtk->pManFunc ) );
-        Cudd_Ref( Cudd_ReadOne( pNtk->pManFunc ) );
     }
     return 1;
 }
@@ -877,26 +887,6 @@ Abc_Obj_t * Ver_ParseCreatePo( Abc_Ntk_t * pNtk, char * pName )
     // add the PO node
     pTerm = Abc_NtkCreatePo( pNtk );
     Abc_ObjAddFanin( pTerm, pNet );
-    return pTerm;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Create a constant 0 node driving the net with this name.]
-
-  Description [Assumes that the net already exists.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Obj_t * Ver_ParseCreateConst( Abc_Ntk_t * pNtk, char * pName, bool fConst1 )
-{
-    Abc_Obj_t * pNet, * pTerm;
-    pTerm = fConst1? Abc_NodeCreateConst1(pNtk) : Abc_NodeCreateConst0(pNtk);
-    pNet  = Abc_NtkFindNet(pNtk, pName);    assert( pNet );
-    Abc_ObjAddFanin( pNet, pTerm );
     return pTerm;
 }
 

@@ -52,12 +52,12 @@ void Abc_NtkEspresso( Abc_Ntk_t * pNtk, int fVerbose )
     assert( Abc_NtkIsLogic(pNtk) );
     // convert the network to have SOPs
     if ( Abc_NtkHasMapping(pNtk) )
-        Abc_NtkUnmap(pNtk);
+        Abc_NtkMapToSop(pNtk);
     else if ( Abc_NtkHasBdd(pNtk) )
     {
         if ( !Abc_NtkBddToSop(pNtk, 0) )
         {
-            printf( "Converting to SOPs has failed.\n" );
+            printf( "Abc_NtkEspresso(): Converting to SOPs has failed.\n" );
             return;
         }
     }

@@ -55,8 +55,8 @@ void Sim_SymmsSimulate( Sym_Man_t * p, unsigned * pPat, Vec_Ptr_t * vMatrsNonSym
 clk = clock();
     Vec_PtrForEachEntry( p->vNodes, pNode, i )
     {
-        if ( Abc_NodeIsConst(pNode) )
-            continue;
+//        if ( Abc_NodeIsConst(pNode) )
+//            continue;
         Sim_UtilSimulateNodeOne( pNode, p->vSim, p->nSimWords, 0 );
     }
 p->timeSim += clock() - clk;
@@ -65,7 +65,7 @@ clk = clock();
     Abc_NtkForEachCo( p->pNtk, pNode, i )
     {
         pNode = Abc_ObjFanin0(pNode);
-        if ( Abc_ObjIsCi(pNode) || Abc_NodeIsConst(pNode) )
+        if ( Abc_ObjIsCi(pNode) || Abc_AigNodeIsConst(pNode) )
             continue;
         nPairsTotal  = Vec_IntEntry(p->vPairsTotal, i);
         nPairsSym    = Vec_IntEntry(p->vPairsSym,   i);

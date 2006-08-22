@@ -802,9 +802,9 @@ DdNode * Extra_bddSupportNegativeCube( DdManager * dd, DdNode * f )
 
   Description []
 
-  SideEffects [None]
+  SideEffects []
 
-  SeeAlso     [Cudd_VectorSupport Cudd_Support]
+  SeeAlso     []
 
 ******************************************************************************/
 int Extra_bddIsVar( DdNode * bFunc )
@@ -814,6 +814,82 @@ int Extra_bddIsVar( DdNode * bFunc )
         return 0;
     return cuddIsConstant( cuddT(bFunc) ) && cuddIsConstant( Cudd_Regular(cuddE(bFunc)) );
 }
+
+/**Function********************************************************************
+
+  Synopsis    [Creates AND composed of the first nVars of the manager.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+DdNode * Extra_bddCreateAnd( DdManager * dd, int nVars )
+{
+    DdNode * bFunc, * bTemp;
+    int i;
+    bFunc = Cudd_ReadOne(dd); Cudd_Ref( bFunc );
+    for ( i = 0; i < nVars; i++ )
+    {
+        bFunc = Cudd_bddAnd( dd, bTemp = bFunc, Cudd_bddIthVar(dd,i) );  Cudd_Ref( bFunc );
+        Cudd_RecursiveDeref( dd, bTemp );
+    }
+    Cudd_Deref( bFunc );
+    return bFunc;
+}
+
+/**Function********************************************************************
+
+  Synopsis    [Creates OR composed of the first nVars of the manager.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+DdNode * Extra_bddCreateOr( DdManager * dd, int nVars )
+{
+    DdNode * bFunc, * bTemp;
+    int i;
+    bFunc = Cudd_ReadLogicZero(dd); Cudd_Ref( bFunc );
+    for ( i = 0; i < nVars; i++ )
+    {
+        bFunc = Cudd_bddOr( dd, bTemp = bFunc, Cudd_bddIthVar(dd,i) );  Cudd_Ref( bFunc );
+        Cudd_RecursiveDeref( dd, bTemp );
+    }
+    Cudd_Deref( bFunc );
+    return bFunc;
+}
+
+/**Function********************************************************************
+
+  Synopsis    [Creates EXOR composed of the first nVars of the manager.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+DdNode * Extra_bddCreateExor( DdManager * dd, int nVars )
+{
+    DdNode * bFunc, * bTemp;
+    int i;
+    bFunc = Cudd_ReadLogicZero(dd); Cudd_Ref( bFunc );
+    for ( i = 0; i < nVars; i++ )
+    {
+        bFunc = Cudd_bddXor( dd, bTemp = bFunc, Cudd_bddIthVar(dd,i) );  Cudd_Ref( bFunc );
+        Cudd_RecursiveDeref( dd, bTemp );
+    }
+    Cudd_Deref( bFunc );
+    return bFunc;
+}
+
 
 /*---------------------------------------------------------------------------*/
 /* Definition of internal functions                                          */

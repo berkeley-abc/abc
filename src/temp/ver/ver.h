@@ -51,8 +51,8 @@ struct Ver_Man_t_
     ProgressBar *   pProgress;
     // current network and library
     Abc_Ntk_t *     pNtkCur;       // the network under construction
-    st_table *      pLibrary;      // the current design library
-    st_table *      pGateLib;      // the current technology library
+    Abc_Lib_t *     pDesign;       // the current design 
+    Abc_Lib_t *     pGateLib;      // the current technology library
     // error recovery
     FILE *          Output;
     int             fTopLevel;
@@ -77,10 +77,10 @@ struct Ver_Man_t_
 ////////////////////////////////////////////////////////////////////////
 
 /*=== verCore.c ========================================================*/
-extern st_table *     Ver_ParseFile( char * pFileName, st_table * pGateLib, int fCheck );
+extern Abc_Lib_t *    Ver_ParseFile( char * pFileName, Abc_Lib_t * pGateLib, int fCheck );
 extern void           Ver_ParsePrintErrorMessage( Ver_Man_t * p );
 /*=== verFormula.c ========================================================*/
-extern DdNode *       Ver_FormulaParser( char * pFormula, DdManager * dd, Vec_Ptr_t * vNames, Vec_Ptr_t * vStackFn, Vec_Int_t * vStackOp, char * pErrorMessage );
+extern void *         Ver_FormulaParser( char * pFormula, void * pMan, Vec_Ptr_t * vNames, Vec_Ptr_t * vStackFn, Vec_Int_t * vStackOp, char * pErrorMessage );
 /*=== verParse.c ========================================================*/
 extern int            Ver_ParseSkipComments( Ver_Man_t * p );
 extern char *         Ver_ParseGetName( Ver_Man_t * p );

@@ -77,7 +77,7 @@ Ivy_Man_t * Abc_NtkIvyBefore( Abc_Ntk_t * pNtk, int fSeq, int fUseDc )
     {
         if ( !Abc_NtkBddToSop(pNtk, 0) )
         {
-            printf( "Converting to SOPs has failed.\n" );
+            printf( "Abc_NtkIvyBefore(): Converting to SOPs has failed.\n" );
             return NULL;
         }
     }
@@ -329,7 +329,7 @@ Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk )
         if ( !Abc_NtkBddToSop(pNtk, 0) )
         {
             FREE( pInit );
-            printf( "Converting to SOPs has failed.\n" );
+            printf( "Abc_NtkIvy(): Converting to SOPs has failed.\n" );
             return NULL;
         }
     }
@@ -437,7 +437,7 @@ Abc_Ntk_t * Abc_NtkFromAig( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan )
     // perform strashing
     pNtk = Abc_NtkStartFrom( pNtkOld, ABC_NTK_STRASH, ABC_FUNC_AIG );
     // transfer the pointers to the basic nodes
-    Ivy_ManConst1(pMan)->TravId = Abc_EdgeFromNode( Abc_NtkConst1(pNtk) );
+    Ivy_ManConst1(pMan)->TravId = Abc_EdgeFromNode( Abc_AigConst1(pNtk) );
     Abc_NtkForEachCi( pNtkOld, pObj, i )
         Ivy_ManPi(pMan, i)->TravId = Abc_EdgeFromNode( pObj->pCopy );
     // rebuild the AIG
@@ -494,7 +494,7 @@ Abc_Ntk_t * Abc_NtkFromAigSeq( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan, int fHaig 
     // perform strashing
     pNtk = Abc_NtkStartFromNoLatches( pNtkOld, ABC_NTK_STRASH, ABC_FUNC_AIG );
     // transfer the pointers to the basic nodes
-    Ivy_ManConst1(pMan)->TravId = Abc_EdgeFromNode( Abc_NtkConst1(pNtk) );
+    Ivy_ManConst1(pMan)->TravId = Abc_EdgeFromNode( Abc_AigConst1(pNtk) );
     Abc_NtkForEachPi( pNtkOld, pObj, i )
         Ivy_ManPi(pMan, i)->TravId = Abc_EdgeFromNode( pObj->pCopy );
     // create latches of the new network
@@ -583,10 +583,11 @@ Ivy_Man_t * Abc_NtkToAig( Abc_Ntk_t * pNtkOld )
     Ivy_Obj_t * pFanin;
     int i;
     // create the manager
-    assert( Abc_NtkHasSop(pNtkOld) || Abc_NtkHasAig(pNtkOld) );
+    assert( Abc_NtkHasSop(pNtkOld) || Abc_NtkIsStrash(pNtkOld) );
     pMan = Ivy_ManStart();
     // create the PIs
-    Abc_NtkConst1(pNtkOld)->pCopy = (Abc_Obj_t *)Ivy_ManConst1(pMan);
+    if ( Abc_NtkIsStrash(pNtkOld) )
+        Abc_AigConst1(pNtkOld)->pCopy = (Abc_Obj_t *)Ivy_ManConst1(pMan);
     Abc_NtkForEachCi( pNtkOld, pObj, i )
         pObj->pCopy = (Abc_Obj_t *)Ivy_ObjCreatePi(pMan);
     // perform the conversion of the internal nodes
@@ -646,14 +647,13 @@ Ivy_Obj_t * Abc_NodeStrashAig( Ivy_Man_t * pMan, Abc_Obj_t * pNode )
     int fUseFactor = 1;
     char * pSop;
     Ivy_Obj_t * pFanin0, * pFanin1;
-    extern int Abc_SopIsExorType( char * pSop );
 
     assert( Abc_ObjIsNode(pNode) );
 
     // consider the case when the graph is an AIG
     if ( Abc_NtkIsStrash(pNode->pNtk) )
     {
-        if ( Abc_NodeIsConst(pNode) )
+        if ( Abc_AigNodeIsConst(pNode) )
             return Ivy_ManConst1(pMan);
         pFanin0 = (Ivy_Obj_t *)Abc_ObjFanin0(pNode)->pCopy;
         pFanin0 = Ivy_NotCond( pFanin0, Abc_ObjFaninC0(pNode) );

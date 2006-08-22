@@ -127,7 +127,7 @@ void Abc_NtkDfs_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
     // mark the node as visited
     Abc_NodeSetTravIdCurrent( pNode );
     // skip the CI
-    if ( Abc_ObjIsCi(pNode) )
+    if ( Abc_ObjIsCi(pNode) || (Abc_NtkIsStrash(pNode->pNtk) && Abc_AigNodeIsConst(pNode)) )
         return;
     assert( Abc_ObjIsNode( pNode ) || Abc_ObjIsBox( pNode ) );
     // visit the transitive fanin of the node
@@ -167,9 +167,10 @@ Vec_Ptr_t * Abc_NtkDfsReverse( Abc_Ntk_t * pNtk )
             Abc_NtkDfsReverse_rec( pFanout, vNodes );
     }
     // add constant nodes in the end
-    Abc_NtkForEachNode( pNtk, pObj, i )
-        if ( Abc_NodeIsConst(pObj) )
-            Vec_PtrPush( vNodes, pObj );
+    if ( !Abc_NtkIsStrash(pNtk) )
+        Abc_NtkForEachNode( pNtk, pObj, i )
+            if ( Abc_NodeIsConst(pObj) )
+                Vec_PtrPush( vNodes, pObj );
     return vNodes;
 }
 
@@ -235,7 +236,7 @@ bool Abc_NtkIsDfsOrdered( Abc_Ntk_t * pNtk )
             if ( !Abc_NodeIsTravIdCurrent(pFanin) )
                 return 0;
         // check the choices of the node
-        if ( Abc_NtkIsStrash(pNtk) && Abc_NodeIsAigChoice(pNode) )
+        if ( Abc_NtkIsStrash(pNtk) && Abc_AigNodeIsChoice(pNode) )
             for ( pFanin = pNode->pData; pFanin; pFanin = pFanin->pData )
                 if ( !Abc_NodeIsTravIdCurrent(pFanin) )
                     return 0;
@@ -399,14 +400,14 @@ void Abc_AigDfs_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
     // mark the node as visited
     Abc_NodeSetTravIdCurrent( pNode );
     // skip the PI
-    if ( Abc_ObjIsCi(pNode) )
+    if ( Abc_ObjIsCi(pNode) || Abc_AigNodeIsConst(pNode) )
         return;
     assert( Abc_ObjIsNode( pNode ) );
     // visit the transitive fanin of the node
     Abc_ObjForEachFanin( pNode, pFanin, i )
         Abc_AigDfs_rec( pFanin, vNodes );
     // visit the equivalent nodes
-    if ( Abc_NodeIsAigChoice( pNode ) )
+    if ( Abc_AigNodeIsChoice( pNode ) )
         for ( pFanin = pNode->pData; pFanin; pFanin = pFanin->pData )
             Abc_AigDfs_rec( pFanin, vNodes );
     // add the node after the fanins have been added
@@ -712,7 +713,7 @@ int Abc_AigSetChoiceLevels( Abc_Ntk_t * pNtk )
         Abc_NodeSetTravIdCurrent( pObj );
         pObj->pCopy = NULL;
     }
-    pObj = Abc_NtkConst1( pNtk );
+    pObj = Abc_AigConst1( pNtk );
     Abc_NodeSetTravIdCurrent( pObj );
     pObj->pCopy = NULL;
     // set levels of all other nodes

@@ -452,7 +452,7 @@ int Abc_NtkMiterSatCreateInt( solver * pSat, Abc_Ntk_t * pNtk, int fJFront )
 //        vCircuit = Vec_VecStart( 184 );
 
     // add the clause for the constant node
-    pNode = Abc_NtkConst1(pNtk);
+    pNode = Abc_AigConst1(pNtk);
     pNode->fMarkA = 1;
     pNode->pCopy = (Abc_Obj_t *)vNodes->nSize;
     Vec_PtrPush( vNodes, pNode );
@@ -488,7 +488,7 @@ int Abc_NtkMiterSatCreateInt( solver * pSat, Abc_Ntk_t * pNtk, int fJFront )
     Vec_PtrForEachEntry( vNodes, pNode, i )
     {
         assert( !Abc_ObjIsComplement(pNode) );
-        if ( !Abc_NodeIsAigAnd(pNode) )
+        if ( !Abc_AigNodeIsAnd(pNode) )
             continue;
 //printf( "%d ", pNode->Id );
 

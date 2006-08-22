@@ -159,6 +159,7 @@ Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, f
 
     // create PIs and remember them in the old nodes
     Abc_NtkCleanCopy( pNtk );
+    Abc_AigConst1(pNtk)->pCopy = (Abc_Obj_t *)Map_ManReadConst1(pMan);
     Abc_NtkForEachCi( pNtk, pNode, i )
     {
         pNodeMap = Map_ManReadInputs(pMan)[i];
@@ -173,12 +174,6 @@ Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, f
     Vec_PtrForEachEntry( vNodes, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
-        // consider the case of a constant
-        if ( Abc_NodeIsConst(pNode) )
-        {
-            Abc_NtkConst1(pNtk)->pCopy = (Abc_Obj_t *)Map_ManReadConst1(pMan);
-            continue;
-        }
         // add the node to the mapper
         pNodeMap = Map_NodeAnd( pMan, 
             Map_NotCond( Abc_ObjFanin0(pNode)->pCopy, Abc_ObjFaninC0(pNode) ),
@@ -189,7 +184,7 @@ Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, f
         if ( pSwitching )
             Map_NodeSetSwitching( pNodeMap, pSwitching[pNode->Id] );
         // set up the choice node
-        if ( Abc_NodeIsAigChoice( pNode ) )
+        if ( Abc_AigNodeIsChoice( pNode ) )
             for ( pPrev = pNode, pFanin = pNode->pData; pFanin; pPrev = pFanin, pFanin = pFanin->pData )
             {
                 Map_NodeSetNextE( (Map_Node_t *)pPrev->pCopy, (Map_Node_t *)pFanin->pCopy );
@@ -223,16 +218,12 @@ Abc_Ntk_t * Abc_NtkFromMap( Map_Man_t * pMan, Abc_Ntk_t * pNtk )
     Map_Node_t * pNodeMap;
     Abc_Obj_t * pNode, * pNodeNew;
     int i, nDupGates;
-
     // create the new network
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_MAP );
     // make the mapper point to the new network
     Map_ManCleanData( pMan );
     Abc_NtkForEachCi( pNtk, pNode, i )
         Map_NodeSetData( Map_ManReadInputs(pMan)[i], 1, (char *)pNode->pCopy );
-    // set the constant node
-    Map_NodeSetData( Map_ManReadConst1(pMan), 1, (char *)Abc_NtkConst1(pNtkNew) );
-
     // assign the mapping of the required phase to the POs
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pNode, i )
@@ -265,6 +256,10 @@ Abc_Ntk_t * Abc_NtkFromMap( Map_Man_t * pMan, Abc_Ntk_t * pNtk )
 Abc_Obj_t * Abc_NodeFromMap_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap, int fPhase )
 {
     Abc_Obj_t * pNodeNew, * pNodeInv;
+
+    // check the case of constant node
+    if ( Map_NodeIsConst(pNodeMap) )
+        return fPhase? Abc_NodeCreateConst1(pNtkNew) : Abc_NodeCreateConst0(pNtkNew);
 
     // check if the phase is already implemented
     pNodeNew = (Abc_Obj_t *)Map_NodeReadData( pNodeMap, fPhase );
@@ -393,38 +388,6 @@ Abc_Obj_t * Abc_NodeFromMapSuper_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap
 }
 
 
-/**Function*************************************************************
-
-  Synopsis    [Unmaps the network.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_NtkUnmap( Abc_Ntk_t * pNtk )
-{
-    Abc_Obj_t * pNode;
-    char * pSop;
-    int i;
-
-    assert( Abc_NtkIsMappedLogic(pNtk) );
-    // update the functionality manager
-    assert( pNtk->pManFunc == Abc_FrameReadLibGen() );
-    pNtk->pManFunc = Extra_MmFlexStart();
-    pNtk->ntkFunc  = ABC_FUNC_SOP;
-    // update the nodes
-    Abc_NtkForEachNode( pNtk, pNode, i )
-    {
-        pSop = Mio_GateReadSop(pNode->pData);
-        assert( Abc_SopGetVarNum(pSop) == Abc_ObjFaninNum(pNode) );
-        pNode->pData = Abc_SopRegister( pNtk->pManFunc, pSop );
-    }
-    return 1;
-}
-
 
 
 
@@ -524,7 +487,7 @@ Abc_Ntk_t * Abc_NtkFromMapSuperChoice( Map_Man_t * pMan, Abc_Ntk_t * pNtk )
     pNtkNew  = Abc_NtkRenode( pNtkNew2, 0, 20, 0, 0, 1, 0 );
     if ( !Abc_NtkBddToSop( pNtkNew, 0 ) )
     {
-        printf( "Converting to SOPs has failed.\n" );
+        printf( "Abc_NtkFromMapSuperChoice(): Converting to SOPs has failed.\n" );
         return NULL;
     }
 
@@ -545,8 +508,8 @@ Abc_Ntk_t * Abc_NtkFromMapSuperChoice( Map_Man_t * pMan, Abc_Ntk_t * pNtk )
     }
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
-        if ( Abc_NodeIsConst(pNode) )
-            continue;
+//        if ( Abc_NodeIsConst(pNode) )
+//            continue;
         Map_NodeSetData( (Map_Node_t *)pNode->pNext, 0, (char *)Abc_NodeCreateInv(pNtkNew,pNode->pCopy) );
         Map_NodeSetData( (Map_Node_t *)pNode->pNext, 1, (char *)pNode->pCopy );
     }
@@ -556,8 +519,8 @@ Abc_Ntk_t * Abc_NtkFromMapSuperChoice( Map_Man_t * pMan, Abc_Ntk_t * pNtk )
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
-        if ( Abc_NodeIsConst(pNode) )
-            continue;
+//        if ( Abc_NodeIsConst(pNode) )
+//            continue;
         Abc_NodeSuperChoice( pNtkNew, pNode );
     }
     Extra_ProgressBarStop( pProgress );

@@ -132,7 +132,7 @@ Ivy_Man_t * Ivy_ManFromAbc( Abc_Ntk_t * pNtk )
     // create the manager
     pMan = Ivy_ManStart();
     // create the PIs
-    Abc_NtkConst1(pNtk)->pCopy = (Abc_Obj_t *)Ivy_ManConst1(pMan);
+    Abc_AigConst1(pNtk)->pCopy = (Abc_Obj_t *)Ivy_ManConst1(pMan);
     Abc_NtkForEachCi( pNtk, pObj, i )
         pObj->pCopy = (Abc_Obj_t *)Ivy_ObjCreatePi(pMan);
     // perform the conversion of the internal nodes
@@ -168,7 +168,7 @@ Abc_Ntk_t * Ivy_ManToAbc( Abc_Ntk_t * pNtk, Ivy_Man_t * pMan, Pla_Man_t * p, int
     // start the new ABC network
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
     // transfer the pointers to the basic nodes
-    Abc_ObjSetIvy2Abc( pMan, Ivy_ManConst1(pMan)->Id, Abc_NtkConst1(pNtkNew) );
+    Abc_ObjSetIvy2Abc( pMan, Ivy_ManConst1(pMan)->Id, Abc_AigConst1(pNtkNew) );
     Abc_NtkForEachCi( pNtkNew, pObjAbc, i )
         Abc_ObjSetIvy2Abc( pMan, Ivy_ManPi(pMan, i)->Id, pObjAbc ); 
     // recursively construct the network
@@ -189,7 +189,7 @@ Abc_Ntk_t * Ivy_ManToAbc( Abc_Ntk_t * pNtk, Ivy_Man_t * pMan, Pla_Man_t * p, int
             else
             {
                 // clone the node
-                pObj = Abc_NodeClone( pObjAbc );
+                pObj = Abc_NtkCloneObj( pObjAbc );
                 // set complemented functions
                 pObj->pData = Abc_SopRegister( pNtkNew->pManFunc, pObjAbc->pData );
                 Abc_SopComplement(pObj->pData); 
