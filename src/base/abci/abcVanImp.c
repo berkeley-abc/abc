@@ -877,7 +877,7 @@ Abc_Ntk_t * Abc_NtkVanImpDeriveExdc( Abc_Ntk_t * pNtk, Vec_Ptr_t * vZeros, Vec_I
     assert( Abc_NtkIsStrash(pNtk) );
 
     // start the network
-    pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc );
+    pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc, 1 );
     pNtkNew->pName = Extra_UtilStrsav( "exdc" );
     pNtkNew->pSpec = NULL;
 

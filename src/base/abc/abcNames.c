@@ -166,8 +166,8 @@ char * Abc_NtkLogicStoreNamePlus( Abc_Obj_t * pObjNew, char * pNameOld, char * p
 ***********************************************************************/
 void Abc_NtkDupCioNamesTable( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
 {
-    Abc_Obj_t * pObj;
-    int i;
+    Abc_Obj_t * pObj, * pTerm;
+    int i, k;
     assert( Abc_NtkPiNum(pNtk) == Abc_NtkPiNum(pNtkNew) );
     assert( Abc_NtkPoNum(pNtk) == Abc_NtkPoNum(pNtkNew) );
     assert( Abc_NtkAssertNum(pNtk) == Abc_NtkAssertNum(pNtkNew) );
@@ -181,6 +181,13 @@ void Abc_NtkDupCioNamesTable( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
         Abc_NtkLogicStoreName( Abc_NtkPo(pNtkNew,i),      Abc_ObjName(Abc_ObjFanin0Ntk(pObj)) );
     Abc_NtkForEachAssert( pNtk, pObj, i ) 
         Abc_NtkLogicStoreName( Abc_NtkAssert(pNtkNew,i),  Abc_ObjName(Abc_ObjFanin0Ntk(pObj)) );
+    Abc_NtkForEachBox( pNtk, pObj, i )
+    {
+        Abc_ObjForEachFanin( pObj, pTerm, k )
+            Abc_NtkLogicStoreName( pTerm->pCopy,          Abc_ObjName(Abc_ObjFanin0Ntk(pTerm)) );
+        Abc_ObjForEachFanout( pObj, pTerm, k )
+            Abc_NtkLogicStoreName( pTerm->pCopy,          Abc_ObjName(Abc_ObjFanout0Ntk(pTerm)) );
+    }
     if ( !Abc_NtkIsSeq(pNtk) )
     Abc_NtkForEachLatch( pNtk, pObj, i )
         Abc_NtkLogicStoreName( Abc_NtkLatch(pNtkNew,i),   Abc_ObjName(Abc_ObjFanout0Ntk(pObj)) );

@@ -514,7 +514,7 @@ Abc_Ntk_t * Abc_NtkVanEijkFrames( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCorresp, int nF
     if ( vCorresp )
         Vec_PtrFill( vCorresp, (nFrames + fAddLast)*Abc_NtkObjNumMax(pNtk), NULL );
     // start the new network
-    pNtkFrames = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG );
+    pNtkFrames = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG, 1 );
     if ( fShortNames )
     {
         pNtkFrames->pName = Extra_UtilStrsav(pNtk->pName);
@@ -719,7 +719,7 @@ Abc_Ntk_t * Abc_NtkVanEijkDeriveExdc( Abc_Ntk_t * pNtk, Vec_Ptr_t * vClasses )
     assert( Abc_NtkIsStrash(pNtk) );
 
     // start the network
-    pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc );
+    pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc, 1 );
     pNtkNew->pName = Extra_UtilStrsav("exdc");
     pNtkNew->pSpec = NULL;
 

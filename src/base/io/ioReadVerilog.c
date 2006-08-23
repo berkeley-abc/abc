@@ -271,7 +271,7 @@ Abc_Ntk_t * Io_ReadVerNetwork( Io_ReadVer_t * p )
     pModelName = vTokens->pArray[1];
 
     // allocate the empty network
-    pNtk = Abc_NtkAlloc( ABC_NTK_NETLIST, ABC_FUNC_SOP );
+    pNtk = Abc_NtkAlloc( ABC_NTK_NETLIST, ABC_FUNC_SOP, 1 );
     pNtk->pName = Extra_UtilStrsav( pModelName );
     pNtk->pSpec = Extra_UtilStrsav( p->pFileName );
 

@@ -95,11 +95,11 @@ Abc_Ntk_t * Abc_NtkNetlistToLogicHie( Abc_Ntk_t * pNtk )
     int i, Counter = 0;
     assert( Abc_NtkIsNetlist(pNtk) );
     // start the network
-//    pNtkNew = Abc_NtkAlloc( Type, Func );
+//    pNtkNew = Abc_NtkAlloc( Type, Func, 1 );
     if ( !Abc_NtkHasMapping(pNtk) )
-        pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_SOP );
+        pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_SOP, 1 );
     else
-        pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_MAP );
+        pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_MAP, 1 );
     // duplicate the name and the spec
     pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
     pNtkNew->pSpec = Extra_UtilStrsav(pNtk->pSpec);

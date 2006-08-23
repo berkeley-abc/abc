@@ -43,7 +43,7 @@
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func )
+Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func, int fUseMemMan )
 {
     Abc_Ntk_t * pNtk;
     pNtk = ALLOC( Abc_Ntk_t, 1 );
@@ -63,8 +63,8 @@ Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func )
     pNtk->vBoxes      = Vec_PtrAlloc( 100 );
     pNtk->vSkews      = Vec_FltAlloc( 100 );
     // start the memory managers
-    pNtk->pMmObj      = Extra_MmFixedStart( sizeof(Abc_Obj_t) );
-    pNtk->pMmStep     = Extra_MmStepStart( ABC_NUM_STEPS );
+    pNtk->pMmObj      = fUseMemMan? Extra_MmFixedStart( sizeof(Abc_Obj_t) ) : NULL;
+    pNtk->pMmStep     = fUseMemMan? Extra_MmStepStart( ABC_NUM_STEPS ) : NULL;
     // get ready to assign the first Obj ID
     pNtk->nTravIds    = 1;
     // start the functionality manager
@@ -101,12 +101,12 @@ Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func )
 Abc_Ntk_t * Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_t Func )
 {
     Abc_Ntk_t * pNtkNew; 
-    Abc_Obj_t * pObj;
-    int i;
+    Abc_Obj_t * pObj, * pTerm;
+    int i, k;
     if ( pNtk == NULL )
         return NULL;
     // start the network
-    pNtkNew = Abc_NtkAlloc( Type, Func );
+    pNtkNew = Abc_NtkAlloc( Type, Func, 1 );
     // duplicate the name and the spec
     pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
     pNtkNew->pSpec = Extra_UtilStrsav(pNtk->pSpec);
@@ -125,6 +125,16 @@ Abc_Ntk_t * Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_
         Abc_NtkDupObj(pNtkNew, pObj);
     Abc_NtkForEachLatch( pNtk, pObj, i )
         Abc_NtkDupObj(pNtkNew, pObj);
+    Abc_NtkForEachBox( pNtk, pObj, i )
+    {
+        Abc_NtkDupObj(pNtkNew, pObj);
+        if ( Abc_NtkIsNetlist(pNtk) )
+            continue;
+        Abc_ObjForEachFanin( pObj, pTerm, k )
+            Abc_NtkDupObj(pNtkNew, pTerm);
+        Abc_ObjForEachFanout( pObj, pTerm, k )
+            Abc_NtkDupObj(pNtkNew, pTerm);
+    }
     // transfer the names
     if ( Type != ABC_NTK_NETLIST )
         Abc_NtkDupCioNamesTable( pNtk, pNtkNew );
@@ -155,7 +165,7 @@ Abc_Ntk_t * Abc_NtkStartFromNoLatches( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc
     if ( pNtk == NULL )
         return NULL;
     // start the network
-    pNtkNew = Abc_NtkAlloc( Type, Func );
+    pNtkNew = Abc_NtkAlloc( Type, Func, 1 );
     // duplicate the name and the spec
     pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
     pNtkNew->pSpec = Extra_UtilStrsav(pNtk->pSpec);
@@ -171,6 +181,8 @@ Abc_Ntk_t * Abc_NtkStartFromNoLatches( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc
     Abc_NtkForEachPo( pNtk, pObj, i )
         Abc_NtkDupObj(pNtkNew, pObj);
     Abc_NtkForEachAssert( pNtk, pObj, i )
+        Abc_NtkDupObj(pNtkNew, pObj);
+    Abc_NtkForEachBox( pNtk, pObj, i )
         Abc_NtkDupObj(pNtkNew, pObj);
     // transfer the names
     if ( Type != ABC_NTK_NETLIST )
@@ -201,7 +213,7 @@ Abc_Ntk_t * Abc_NtkStartFromDual( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkF
     if ( pNtk == NULL )
         return NULL;
     // start the network
-    pNtkNew = Abc_NtkAlloc( Type, Func );
+    pNtkNew = Abc_NtkAlloc( Type, Func, 1 );
     // duplicate the name and the spec
     pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
     pNtkNew->pSpec = NULL;
@@ -227,6 +239,8 @@ Abc_Ntk_t * Abc_NtkStartFromDual( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkF
     Abc_NtkForEachAssert( pNtk, pObj, i )
         Abc_NtkDupObj(pNtkNew, pObj);
     Abc_NtkForEachLatch( pNtk, pObj, i )
+        Abc_NtkDupObj(pNtkNew, pObj);
+    Abc_NtkForEachBox( pNtk, pObj, i )
         Abc_NtkDupObj(pNtkNew, pObj);
     // transfer the names
     Abc_NtkDupCioNamesTableDual( pNtk, pNtkNew );
@@ -276,7 +290,7 @@ Abc_Ntk_t * Abc_NtkStartRead( char * pName )
 {
     Abc_Ntk_t * pNtkNew; 
     // allocate the empty network
-    pNtkNew = Abc_NtkAlloc( ABC_NTK_NETLIST, ABC_FUNC_SOP );
+    pNtkNew = Abc_NtkAlloc( ABC_NTK_NETLIST, ABC_FUNC_SOP, 1 );
     // set the specs
     pNtkNew->pName = Extra_FileNameGeneric(pName);
     pNtkNew->pSpec = Extra_UtilStrsav(pName);
@@ -426,7 +440,7 @@ Abc_Ntk_t * Abc_NtkCreateCone( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, char * pNode
     assert( Abc_ObjIsNode(pNode) ); 
     
     // start the network
-    pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc );
+    pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc, 1 );
     // set the name
     sprintf( Buffer, "%s_%s", pNtk->pName, pNodeName );
     pNtkNew->pName = Extra_UtilStrsav(Buffer);
@@ -496,7 +510,7 @@ Abc_Ntk_t * Abc_NtkCreateMffc( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, char * pNode
     assert( Abc_ObjIsNode(pNode) ); 
     
     // start the network
-    pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc );
+    pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc, 1 );
     // set the name
     sprintf( Buffer, "%s_%s", pNtk->pName, pNodeName );
     pNtkNew->pName = Extra_UtilStrsav(Buffer);
@@ -571,7 +585,7 @@ Abc_Ntk_t * Abc_NtkCreateTarget( Abc_Ntk_t * pNtk, Vec_Ptr_t * vRoots, Vec_Int_t
     
     // start the network
     Abc_NtkCleanCopy( pNtk );
-    pNtkNew = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG );
+    pNtkNew = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG, 1 );
     pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
 
     // collect the nodes in the TFI of the output
@@ -626,7 +640,7 @@ Abc_Ntk_t * Abc_NtkCreateFromNode( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode )
     Abc_Obj_t * pFanin, * pNodePo;
     int i;
     // start the network
-    pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc );
+    pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc, 1 );
     pNtkNew->pName = Extra_UtilStrsav(Abc_ObjName(pNode));
     // add the PIs corresponding to the fanins of the node
     Abc_ObjForEachFanin( pNode, pFanin, i )
@@ -665,7 +679,7 @@ Abc_Ntk_t * Abc_NtkCreateWithNode( char * pSop )
     Vec_Ptr_t * vNames;
     int i, nVars;
     // start the network
-    pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_SOP );
+    pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_SOP, 1 );
     pNtkNew->pName = Extra_UtilStrsav("ex");
     // create PIs
     Vec_PtrPush( pNtkNew->vObjs, NULL );
@@ -706,11 +720,20 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     int LargePiece = (4 << ABC_NUM_STEPS);
     if ( pNtk == NULL )
         return;
+    // free EXDC Ntk
+    if ( pNtk->pExdc )
+        Abc_NtkDelete( pNtk->pExdc );
+    // dereference the BDDs
+    if ( Abc_NtkHasBdd(pNtk) )
+    {
+        Abc_NtkForEachNode( pNtk, pObj, i )
+            Cudd_RecursiveDeref( pNtk->pManFunc, pObj->pData );
+    }
     // make sure all the marks are clean
     Abc_NtkForEachObj( pNtk, pObj, i )
     {
         // free large fanout arrays
-        if ( pObj->vFanouts.nCap * 4 > LargePiece )
+        if ( pNtk->pMmObj && pObj->vFanouts.nCap * 4 > LargePiece )
             FREE( pObj->vFanouts.pArray );
         // these flags should be always zero
         // if this is not true, something is wrong somewhere
@@ -718,17 +741,23 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
         assert( pObj->fMarkB == 0 );
         assert( pObj->fMarkC == 0 );
     }
-
-    // dereference the BDDs
-    if ( Abc_NtkHasBdd(pNtk) )
-        Abc_NtkForEachNode( pNtk, pObj, i )
-            Cudd_RecursiveDeref( pNtk->pManFunc, pObj->pData );
+    // free the nodes
+    if ( pNtk->pMmStep == NULL )
+    {
+        Abc_NtkForEachObj( pNtk, pObj, i )
+        {
+            FREE( pObj->vFanouts.pArray );
+            FREE( pObj->vFanins.pArray );
+        }
+    }
+    if ( pNtk->pMmObj == NULL )
+    {
+        Abc_NtkForEachObj( pNtk, pObj, i )
+            free( pObj );
+    }
         
     FREE( pNtk->pName );
     FREE( pNtk->pSpec );
-    // copy the EXDC Ntk
-    if ( pNtk->pExdc )
-        Abc_NtkDelete( pNtk->pExdc );
     // free the arrays
     Vec_PtrFree( pNtk->vPios );
     Vec_PtrFree( pNtk->vPis );
@@ -743,12 +772,14 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     Vec_FltFree( pNtk->vSkews );
     if ( pNtk->pModel ) free( pNtk->pModel );
     TotalMemory  = 0;
-    TotalMemory += Extra_MmFixedReadMemUsage(pNtk->pMmObj);
-    TotalMemory += Extra_MmStepReadMemUsage(pNtk->pMmStep);
+    TotalMemory += pNtk->pMmObj? Extra_MmFixedReadMemUsage(pNtk->pMmObj)  : 0;
+    TotalMemory += pNtk->pMmStep? Extra_MmStepReadMemUsage(pNtk->pMmStep) : 0;
 //    fprintf( stdout, "The total memory allocated internally by the network = %0.2f Mb.\n", ((double)TotalMemory)/(1<<20) );
     // free the storage 
-    Extra_MmFixedStop( pNtk->pMmObj,   0 );
-    Extra_MmStepStop ( pNtk->pMmStep,  0 );
+    if ( pNtk->pMmObj )
+        Extra_MmFixedStop( pNtk->pMmObj,   0 );
+    if ( pNtk->pMmStep )
+        Extra_MmStepStop ( pNtk->pMmStep,  0 );
     // name manager
     Nm_ManFree( pNtk->pManName );
     // free the timing manager
@@ -764,7 +795,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     else if ( Abc_NtkHasBdd(pNtk) )
         Extra_StopManager( pNtk->pManFunc );
     else if ( Abc_NtkHasAig(pNtk) )
-        Aig_ManStop( pNtk->pManFunc );
+        { if ( pNtk->pManFunc ) Aig_ManStop( pNtk->pManFunc ); }
     else if ( Abc_NtkHasMapping(pNtk) )
         pNtk->pManFunc = NULL;
     else if ( !Abc_NtkHasBlackbox(pNtk) )

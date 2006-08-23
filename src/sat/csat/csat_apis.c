@@ -79,7 +79,7 @@ ABC_Manager ABC_InitManager()
     Abc_Start();
     mng = ALLOC( ABC_Manager_t, 1 );
     memset( mng, 0, sizeof(ABC_Manager_t) );
-    mng->pNtk = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_SOP );
+    mng->pNtk = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_SOP, 1 );
     mng->pNtk->pName = Extra_UtilStrsav("csat_network");
     mng->tName2Node = stmm_init_table(strcmp, stmm_strhash);
     mng->tNode2Name = stmm_init_table(stmm_ptrcmp, stmm_ptrhash);

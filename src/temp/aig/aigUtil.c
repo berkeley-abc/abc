@@ -73,6 +73,46 @@ void Aig_ManCleanData( Aig_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Detects multi-input gate rooted at this node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ObjCollectMulti_rec( Aig_Obj_t * pRoot, Aig_Obj_t * pObj, Vec_Ptr_t * vSuper )
+{
+    if ( pRoot != pObj && (Aig_IsComplement(pObj) || Aig_ObjIsPi(pObj) || Aig_ObjType(pRoot) != Aig_ObjType(pObj)) )
+    {
+        Vec_PtrPushUnique(vSuper, pObj);
+        return;
+    }
+    Aig_ObjCollectMulti_rec( pRoot, Aig_ObjChild0(pObj), vSuper );
+    Aig_ObjCollectMulti_rec( pRoot, Aig_ObjChild1(pObj), vSuper );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Detects multi-input gate rooted at this node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ObjCollectMulti( Aig_Obj_t * pRoot, Vec_Ptr_t * vSuper )
+{
+    assert( !Aig_IsComplement(pRoot) );
+    Vec_PtrClear( vSuper );
+    Aig_ObjCollectMulti_rec( pRoot, pRoot, vSuper );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns 1 if the node is the root of MUX or EXOR/NEXOR.]
 
   Description []
@@ -104,6 +144,48 @@ int Aig_ObjIsMuxType( Aig_Obj_t * pNode )
            (Aig_ObjFanin0(pNode0) == Aig_ObjFanin1(pNode1) && (Aig_ObjFaninC0(pNode0) ^ Aig_ObjFaninC1(pNode1))) ||
            (Aig_ObjFanin1(pNode0) == Aig_ObjFanin0(pNode1) && (Aig_ObjFaninC1(pNode0) ^ Aig_ObjFaninC0(pNode1))) ||
            (Aig_ObjFanin1(pNode0) == Aig_ObjFanin1(pNode1) && (Aig_ObjFaninC1(pNode0) ^ Aig_ObjFaninC1(pNode1)));
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Recognizes what nodes are inputs of the EXOR.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Aig_ObjRecognizeExor( Aig_Obj_t * pObj, Aig_Obj_t ** ppFan0, Aig_Obj_t ** ppFan1 )
+{
+    Aig_Obj_t * p0, * p1;
+    assert( !Aig_IsComplement(pObj) );
+    if ( !Aig_ObjIsNode(pObj) )
+        return 0;
+    if ( Aig_ObjIsExor(pObj) )
+    {
+        *ppFan0 = Aig_ObjChild0(pObj);
+        *ppFan1 = Aig_ObjChild1(pObj);
+        return 1;
+    }
+    assert( Aig_ObjIsAnd(pObj) );
+    p0 = Aig_ObjChild0(pObj);
+    p1 = Aig_ObjChild1(pObj);
+    if ( !Aig_IsComplement(p0) || !Aig_IsComplement(p1) )
+        return 0;
+    p0 = Aig_Regular(p0);
+    p1 = Aig_Regular(p1);
+    if ( !Aig_ObjIsAnd(p0) || !Aig_ObjIsAnd(p1) )
+        return 0;
+    if ( Aig_ObjFanin0(p0) != Aig_ObjFanin0(p1) || Aig_ObjFanin1(p0) != Aig_ObjFanin1(p1) )
+        return 0;
+    if ( Aig_ObjFaninC0(p0) == Aig_ObjFaninC0(p1) || Aig_ObjFaninC1(p0) == Aig_ObjFaninC1(p1) )
+        return 0;
+    *ppFan0 = Aig_ObjChild0(p0);
+    *ppFan1 = Aig_ObjChild1(p0);
+    return 1;
 }
 
 /**Function*************************************************************
@@ -198,6 +280,95 @@ Aig_Obj_t * Aig_ObjRecognizeMux( Aig_Obj_t * pNode, Aig_Obj_t ** ppNodeT, Aig_Ob
     return NULL;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Prints Verilog formula for the AIG rooted at this node.]
+
+  Description [The formula is in terms of PIs, which should have
+  their names assigned in pObj->pData fields.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ObjPrintVerilog( FILE * pFile, Aig_Obj_t * pObj, Vec_Vec_t * vLevels, int Level )
+{
+    Vec_Ptr_t * vSuper;
+    Aig_Obj_t * pFanin, * pFanin0, * pFanin1, * pFaninC;
+    int fCompl, i;
+    // store the complemented attribute
+    fCompl = Aig_IsComplement(pObj);
+    pObj = Aig_Regular(pObj);
+    // constant case
+    if ( Aig_ObjIsConst1(pObj) )
+    {
+        fprintf( pFile, "%d", !fCompl );
+        return;
+    }
+    // PI case
+    if ( Aig_ObjIsPi(pObj) )
+    {
+        fprintf( pFile, "%s%s", fCompl? "~" : "", pObj->pData );
+        return;
+    }
+    // EXOR case
+    if ( Aig_ObjIsExor(pObj) )
+    {
+        Vec_VecExpand( vLevels, Level );
+        vSuper = Vec_VecEntry( vLevels, Level );
+        Aig_ObjCollectMulti( pObj, vSuper );
+        fprintf( pFile, "%s", (Level==0? "" : "(") );
+        Vec_PtrForEachEntry( vSuper, pFanin, i )
+        {
+            Aig_ObjPrintVerilog( pFile, Aig_NotCond(pFanin, (fCompl && i==0)), vLevels, Level+1 );
+            if ( i < Vec_PtrSize(vSuper) - 1 )
+                fprintf( pFile, " ^ " );
+        }
+        fprintf( pFile, "%s", (Level==0? "" : ")") );
+        return;
+    }
+    // MUX case
+    if ( Aig_ObjIsMuxType(pObj) )
+    {
+        if ( Aig_ObjRecognizeExor( pObj, &pFanin0, &pFanin1 ) )
+        {
+            fprintf( pFile, "%s", (Level==0? "" : "(") );
+            Aig_ObjPrintVerilog( pFile, Aig_NotCond(pFanin0, fCompl), vLevels, Level+1 );
+            fprintf( pFile, " ^ " );
+            Aig_ObjPrintVerilog( pFile, pFanin1, vLevels, Level+1 );
+            fprintf( pFile, "%s", (Level==0? "" : ")") );
+        }
+        else 
+        {
+            pFaninC = Aig_ObjRecognizeMux( pObj, &pFanin1, &pFanin0 );
+            fprintf( pFile, "%s", (Level==0? "" : "(") );
+            Aig_ObjPrintVerilog( pFile, pFaninC, vLevels, Level+1 );
+            fprintf( pFile, " ? " );
+            Aig_ObjPrintVerilog( pFile, Aig_NotCond(pFanin1, fCompl), vLevels, Level+1 );
+            fprintf( pFile, " : " );
+            Aig_ObjPrintVerilog( pFile, Aig_NotCond(pFanin0, fCompl), vLevels, Level+1 );
+            fprintf( pFile, "%s", (Level==0? "" : ")") );
+        }
+        return;
+    }
+    // AND case
+    Vec_VecExpand( vLevels, Level );
+    vSuper = Vec_VecEntry(vLevels, Level);
+    Aig_ObjCollectMulti( pObj, vSuper );
+    fprintf( pFile, "%s", (Level==0? "" : "(") );
+    Vec_PtrForEachEntry( vSuper, pFanin, i )
+    {
+        Aig_ObjPrintVerilog( pFile, Aig_NotCond(pFanin, fCompl), vLevels, Level+1 );
+        if ( i < Vec_PtrSize(vSuper) - 1 )
+            fprintf( pFile, " %s ", fCompl? "|" : "&" );
+    }
+    fprintf( pFile, "%s", (Level==0? "" : ")") );
+    return;
+}
+
+
 /**Function*************************************************************
 
   Synopsis    [Prints node in HAIG.]
@@ -249,6 +420,8 @@ void Aig_ManPrintVerbose( Aig_Man_t * p, int fHaig )
         Aig_ObjPrintVerbose( pObj, fHaig ), printf( "\n" );
     printf( "\n" );
 }
+
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

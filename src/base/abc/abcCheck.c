@@ -117,14 +117,14 @@ bool Abc_NtkDoCheck( Abc_Ntk_t * pNtk )
     {
         fprintf( stdout, "NetworkCheck: Number of CIs does not match number of PIs and latches.\n" );
         fprintf( stdout, "One possible reason is that latches are added twice:\n" );
-        fprintf( stdout, "in procedure Abc_ObjAdd() and in the user's code.\n" );
+        fprintf( stdout, "in procedure Abc_NtkObjAdd() and in the user's code.\n" );
         return 0;
     }
     if ( Abc_NtkPoNum(pNtk) + Abc_NtkAssertNum(pNtk) + Abc_NtkLatchNum(pNtk) != Abc_NtkCoNum(pNtk) )
     {
         fprintf( stdout, "NetworkCheck: Number of COs does not match number of POs, asserts, and latches.\n" );
         fprintf( stdout, "One possible reason is that latches are added twice:\n" );
-        fprintf( stdout, "in procedure Abc_ObjAdd() and in the user's code.\n" );
+        fprintf( stdout, "in procedure Abc_NtkObjAdd() and in the user's code.\n" );
         return 0;
     }
 

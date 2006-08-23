@@ -167,6 +167,47 @@ void Abc_ObjPatchFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFaninOld, Abc_Obj_t * pFa
 
 /**Function*************************************************************
 
+  Synopsis    [Inserts one-input node of the type specified between the nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Abc_ObjInsertBetween( Abc_Obj_t * pNodeIn, Abc_Obj_t * pNodeOut, Abc_ObjType_t Type )
+{
+    Abc_Obj_t * pNodeNew;
+    int iFanoutIndex, iFaninIndex;
+    // find pNodeOut among the fanouts of pNodeIn
+    if ( (iFanoutIndex = Vec_IntFind( &pNodeIn->vFanouts, pNodeOut->Id )) == -1 )
+    {
+        printf( "Node %s is not among", Abc_ObjName(pNodeOut) );
+        printf( " the fanouts of node %s...\n", Abc_ObjName(pNodeIn) );
+        return NULL;
+    }
+    // find pNodeIn among the fanins of pNodeOut
+    if ( (iFaninIndex = Vec_IntFind( &pNodeOut->vFanins, pNodeIn->Id )) == -1 )
+    {
+        printf( "Node %s is not among", Abc_ObjName(pNodeIn) );
+        printf( " the fanins of node %s...\n", Abc_ObjName(pNodeOut) );
+        return NULL;
+    }
+    // create the new node
+    pNodeNew = Abc_NtkCreateObj( pNodeIn->pNtk, Type );
+    // add pNodeIn as fanin and pNodeOut as fanout
+    Vec_IntPushMem( pNodeNew->pNtk->pMmStep, &pNodeNew->vFanins,  pNodeIn->Id  );
+    Vec_IntPushMem( pNodeNew->pNtk->pMmStep, &pNodeNew->vFanouts, pNodeOut->Id );
+    // update the fanout of pNodeIn
+    Vec_IntWriteEntry( &pNodeIn->vFanouts, iFanoutIndex, pNodeNew->Id );
+    // update the fanin of pNodeOut
+    Vec_IntWriteEntry( &pNodeOut->vFanins, iFaninIndex, pNodeNew->Id );
+    return pNodeNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Transfers fanout from the old node to the new node.]
 
   Description []

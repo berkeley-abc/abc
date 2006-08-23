@@ -37,7 +37,7 @@ typedef enum {
 static Ver_Man_t * Ver_ParseStart( char * pFileName, Abc_Lib_t * pGateLib );
 static void Ver_ParseStop( Ver_Man_t * p );
 static void Ver_ParseFreeData( Ver_Man_t * p );
-static void Ver_ParseInternal( Ver_Man_t * p, int fCheck );
+static void Ver_ParseInternal( Ver_Man_t * p );
 static int  Ver_ParseModule( Ver_Man_t * p );
 static int  Ver_ParseSignal( Ver_Man_t * p, Ver_SignalType_t SigType );
 static int  Ver_ParseAssign( Ver_Man_t * p );
@@ -64,14 +64,16 @@ static Abc_Obj_t * Ver_ParseCreateLatch( Abc_Ntk_t * pNtk, char * pNetLI, char *
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Lib_t * Ver_ParseFile( char * pFileName, Abc_Lib_t * pGateLib, int fCheck )
+Abc_Lib_t * Ver_ParseFile( char * pFileName, Abc_Lib_t * pGateLib, int fCheck, int fUseMemMan )
 {
     Ver_Man_t * p;
     Abc_Lib_t * pDesign;
     // start the parser
     p = Ver_ParseStart( pFileName, pGateLib );
+    p->fCheck     = fCheck;
+    p->fUseMemMan = fUseMemMan;
     // parse the file
-    Ver_ParseInternal( p, fCheck );
+    Ver_ParseInternal( p );
     // save the result
     pDesign = p->pDesign;
     p->pDesign = NULL;
@@ -98,13 +100,14 @@ Ver_Man_t * Ver_ParseStart( char * pFileName, Abc_Lib_t * pGateLib )
     memset( p, 0, sizeof(Ver_Man_t) );
     p->pFileName = pFileName;
     p->pReader   = Ver_StreamAlloc( pFileName );
-    p->pDesign   = Abc_LibCreate( pFileName );
-    p->pGateLib  = pGateLib;
     p->Output    = stdout;
     p->pProgress = Extra_ProgressBarStart( stdout, Ver_StreamGetFileSize(p->pReader) );
     p->vNames    = Vec_PtrAlloc( 100 );
     p->vStackFn  = Vec_PtrAlloc( 100 );
     p->vStackOp  = Vec_IntAlloc( 100 );
+    // create the design library and assign the technology library
+    p->pDesign   = Abc_LibCreate( pFileName );
+    p->pDesign->pLibrary = pGateLib;
     return p;
 }
 
@@ -141,7 +144,7 @@ void Ver_ParseStop( Ver_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Ver_ParseInternal( Ver_Man_t * pMan, int fCheck )
+void Ver_ParseInternal( Ver_Man_t * pMan )
 {
     char * pToken;
     while ( 1 )
@@ -162,7 +165,7 @@ void Ver_ParseInternal( Ver_Man_t * pMan, int fCheck )
             return;
 
         // check the network for correctness
-        if ( fCheck && !Abc_NtkCheckRead( pMan->pNtkCur ) )
+        if ( pMan->fCheck && !Abc_NtkCheckRead( pMan->pNtkCur ) )
         {
             pMan->fTopLevel = 1;
             sprintf( pMan->sError, "The network check has failed.", pMan->pNtkCur->pName );
@@ -177,6 +180,7 @@ void Ver_ParseInternal( Ver_Man_t * pMan, int fCheck )
             Ver_ParsePrintErrorMessage( pMan );
             return;
         }
+        Vec_PtrPush( pMan->pDesign->vModules, pMan->pNtkCur );
         st_insert( pMan->pDesign->tModules, pMan->pNtkCur->pName, (char *)pMan->pNtkCur );
         pMan->pNtkCur = NULL;
     }
@@ -253,23 +257,19 @@ int Ver_ParseModule( Ver_Man_t * pMan )
 
     // start the current network
     assert( pMan->pNtkCur == NULL );
-    pNtk = pMan->pNtkCur = Abc_NtkAlloc( ABC_NTK_NETLIST, ABC_FUNC_BLACKBOX );
-
-    pNtk->ntkFunc = ABC_FUNC_AIG;
-    assert( pNtk->pManFunc == NULL );
+    pNtk = pMan->pNtkCur = Abc_NtkAlloc( ABC_NTK_NETLIST, ABC_FUNC_BLACKBOX, pMan->fUseMemMan );
+    pNtk->ntkFunc  = ABC_FUNC_AIG;
     pNtk->pManFunc = pMan->pDesign->pManFunc;
 
     // get the network name
     pWord = Ver_ParseGetName( pMan );
     pNtk->pName = Extra_UtilStrsav( pWord );
     pNtk->pSpec = NULL;
-/*
-    // create constant nodes and nets
-    pNet = Abc_NtkFindOrCreateNet( pNtk, "1'b0" );
-    Abc_ObjAddFanin( pNet, xxxx AigAbc_AigConst1(pNtk) );
-    pNet = Abc_NtkFindOrCreateNet( pNtk, "1'b1" );
-    Abc_ObjAddFanin( pNet, Abc_AigConst1(pNtk) );
-*/
+
+    // create constant nets
+    Abc_NtkFindOrCreateNet( pNtk, "1'b0" );
+    Abc_NtkFindOrCreateNet( pNtk, "1'b1" );
+
     // make sure we stopped at the opening paranthesis
     if ( Ver_StreamScanChar(p) != '(' )
     {
@@ -281,6 +281,7 @@ int Ver_ParseModule( Ver_Man_t * pMan )
     // skip to the end of parantheses
     while ( 1 )
     {
+        Extra_ProgressBarUpdate( pMan->pProgress, Ver_StreamGetCurPosition(p), NULL );
         Ver_StreamSkipToChars( p, ",/)" );
         while ( Ver_StreamScanChar(p) == '/' )
         {
@@ -299,6 +300,7 @@ int Ver_ParseModule( Ver_Man_t * pMan )
     // parse the inputs/outputs/registers/wires/inouts
     while ( 1 )
     {
+        Extra_ProgressBarUpdate( pMan->pProgress, Ver_StreamGetCurPosition(p), NULL );
         pWord = Ver_ParseGetName( pMan );
         if ( pWord == NULL )
             return 0;
@@ -329,12 +331,8 @@ int Ver_ParseModule( Ver_Man_t * pMan )
         else if ( !strcmp( pWord, "initial" ) )
             RetValue = Ver_ParseInitial( pMan );
         else if ( !strcmp( pWord, "endmodule" ) )
-        {
-            // if nothing is known, set the functionality to be black box
-            Abc_NtkFinalizeRead( pNtk );
             break;
-        }
-        else if ( pMan->pGateLib && st_lookup(pMan->pGateLib->tModules, pWord, (char**)&pNtkTemp) ) // gate library
+        else if ( pMan->pDesign->pLibrary && st_lookup(pMan->pDesign->pLibrary->tModules, pWord, (char**)&pNtkTemp) ) // gate library
             RetValue = Ver_ParseGate( pMan, pNtkTemp );
         else if ( pMan->pDesign && st_lookup(pMan->pDesign->tModules, pWord, (char**)&pNtkTemp) ) // current design
             RetValue = Ver_ParseGate( pMan, pNtkTemp );
@@ -355,6 +353,22 @@ int Ver_ParseModule( Ver_Man_t * pMan )
         if ( pWord == NULL )
             return 0;
     }
+
+    // check if constant 0 net is used
+    pNet = Abc_NtkFindOrCreateNet( pNtk, "1'b0" );
+    if ( Abc_ObjFanoutNum(pNet) == 0 )
+        Abc_NtkDeleteObj(pNet);
+    else
+        Abc_ObjAddFanin( pNet, Abc_NodeCreateConst0(pNtk) );
+    // check if constant 1 net is used
+    pNet = Abc_NtkFindOrCreateNet( pNtk, "1'b1" );
+    if ( Abc_ObjFanoutNum(pNet) == 0 )
+        Abc_NtkDeleteObj(pNet);
+    else
+        Abc_ObjAddFanin( pNet, Abc_NodeCreateConst1(pNtk) );
+
+    // fix the dangling nets
+    Abc_NtkFinalizeRead( pNtk );
     return 1;
 }
 
@@ -415,22 +429,24 @@ int Ver_ParseAssign( Ver_Man_t * pMan )
     Abc_Ntk_t * pNtk = pMan->pNtkCur;
     Abc_Obj_t * pNode, * pNet;
     char * pWord, * pName, * pEquation;
-    DdNode * bFunc;
+    Aig_Obj_t * pFunc;
     char Symbol;
-    int i, Length;
+    int i, Length, fReduction;
 
     // convert from the mapped netlist into the BDD netlist
     if ( pNtk->ntkFunc == ABC_FUNC_BLACKBOX )
     {
-        pNtk->ntkFunc = ABC_FUNC_BDD;
-        pNtk->pManFunc = Cudd_Init( 20, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+        pNtk->ntkFunc = ABC_FUNC_AIG;
+        assert( pNtk->pManFunc == NULL );
+        pNtk->pManFunc = pMan->pDesign->pManFunc;
     }
-    else if ( pNtk->ntkFunc != ABC_FUNC_BDD )
+    else if ( pNtk->ntkFunc != ABC_FUNC_AIG )
     {
         sprintf( pMan->sError, "The network %s appears to mapped gates and assign statements. Currently such network are not allowed. One way to fix this problem is to replace assigns by buffers from the library.", pMan->pNtkCur );
         Ver_ParsePrintErrorMessage( pMan );
         return 0;
     }
+
 
     while ( 1 )
     {
@@ -438,6 +454,21 @@ int Ver_ParseAssign( Ver_Man_t * pMan )
         pWord = Ver_ParseGetName( pMan );
         if ( pWord == NULL )
             return 0;
+        // consider the case of reduction operations
+        fReduction = (pWord[0] == '{');
+        if ( fReduction )
+        {
+            pWord++;
+            pWord[strlen(pWord)-1] = 0;
+        }
+        // get the fanout net
+        pNet = Abc_NtkFindNet( pNtk, pWord );
+        if ( pNet == NULL )
+        {
+            sprintf( pMan->sError, "Cannot read the assign statement for %s (output wire is not defined).", pWord );
+            Ver_ParsePrintErrorMessage( pMan );
+            return 0;
+        }
         // get the fanout net
         pNet = Abc_NtkFindNet( pNtk, pWord );
         if ( pNet == NULL )
@@ -457,21 +488,27 @@ int Ver_ParseAssign( Ver_Man_t * pMan )
         if ( !Ver_ParseSkipComments( pMan ) )
             return 0;
         // get the second name
-        pEquation = Ver_StreamGetWord( p, ",;" );
+        if ( fReduction )
+            pEquation = Ver_StreamGetWord( p, ";" );
+        else
+            pEquation = Ver_StreamGetWord( p, ",;" );
         if ( pEquation == NULL )
             return 0;
 
         // parse the formula
-        bFunc = Ver_FormulaParser( pEquation, pNtk->pManFunc, pMan->vNames, pMan->vStackFn, pMan->vStackOp, pMan->sError );  
-        if ( bFunc == NULL )
+        if ( fReduction )
+            pFunc = Ver_FormulaReduction( pEquation, pNtk->pManFunc, pMan->vNames, pMan->sError );  
+        else
+            pFunc = Ver_FormulaParser( pEquation, pNtk->pManFunc, pMan->vNames, pMan->vStackFn, pMan->vStackOp, pMan->sError );  
+        if ( pFunc == NULL )
         {
             Ver_ParsePrintErrorMessage( pMan );
             return 0;
         }
-        Cudd_Ref( bFunc );
+
         // create the node with the given inputs
         pNode = Abc_NtkCreateNode( pMan->pNtkCur );
-        pNode->pData = bFunc;
+        pNode->pData = pFunc;
         Abc_ObjAddFanin( pNet, pNode );
         // connect to fanin nets
         for ( i = 0; i < Vec_PtrSize(pMan->vNames)/2; i++ )
@@ -677,20 +714,8 @@ int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtkGate )
     Abc_Obj_t * pNetFormal, * pNetActual;
     Abc_Obj_t * pObj, * pNode;
     char * pWord, Symbol;
-    int i, fCompl;
-
-    // convert from the mapped netlist into the BDD netlist
-    if ( pNtk->ntkFunc == ABC_FUNC_BLACKBOX )
-    {
-        pNtk->ntkFunc = ABC_FUNC_MAP;
-        pNtk->pManFunc = pMan->pGateLib;
-    }
-    else if ( pNtk->ntkFunc != ABC_FUNC_MAP )
-    {
-        sprintf( pMan->sError, "The network %s appears to contain both mapped gates and assign statements. Currently such network are not allowed. One way to fix this problem is to replace assigns by buffers from the library.", pMan->pNtkCur );
-        Ver_ParsePrintErrorMessage( pMan );
-        return 0;
-    }
+    int i, fCompl, fComplUsed = 0;
+    unsigned * pPolarity;
 
     // clean the PI/PO pointers
     Abc_NtkForEachPi( pNtkGate, pObj, i )
@@ -750,7 +775,12 @@ int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtkGate )
         // check if the name is complemented
         fCompl = (pWord[0] == '~');
         if ( fCompl )
+        {
+            fComplUsed = 1;
             pWord++;
+            if ( pMan->pNtkCur->pData == NULL )
+                pMan->pNtkCur->pData = Extra_MmFlexStart();
+        }
         // get the actual net
         pNetActual = Abc_NtkFindNet( pMan->pNtkCur, pWord );
         if ( pNetActual == NULL )
@@ -769,8 +799,8 @@ int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtkGate )
         }
 
         // process the pair
-        if ( Abc_ObjIsPi(Abc_ObjFanin0Ntk(pNetFormal)) )  // PI net
-            Abc_ObjFanin0Ntk(pNetFormal)->pCopy = pNetActual; // Abc_ObjNotCond( pNetActual, fCompl );
+        if ( Abc_ObjIsPi(Abc_ObjFanin0Ntk(pNetFormal)) )  // PI net (with polarity!)
+            Abc_ObjFanin0Ntk(pNetFormal)->pCopy = Abc_ObjNotCond( pNetActual, fCompl );
         else if ( Abc_ObjIsPo(Abc_ObjFanout0Ntk(pNetFormal)) )  // P0 net
         {
             assert( fCompl == 0 );
@@ -825,17 +855,38 @@ int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtkGate )
             return 0;
         }
 */
-    // create a new node 
-    pNode = Abc_NtkCreateNode( pMan->pNtkCur );
+
+    // allocate memory to remember the phase
+    pPolarity = NULL;
+    if ( fComplUsed )
+    {
+        int nBytes = 4 * Abc_BitWordNum( Abc_NtkPiNum(pNtkGate) );
+        pPolarity = (unsigned *)Extra_MmFlexEntryFetch( pMan->pNtkCur->pData, nBytes );
+        memset( pPolarity, 0, nBytes );
+    }
+    // create box to represent this gate
+    pNode = Abc_NtkCreateBox( pMan->pNtkCur );
+    pNode->pNext = (Abc_Obj_t *)pPolarity;
+    pNode->pData = pNtkGate;
     // connect to fanin nets
     Abc_NtkForEachPi( pNtkGate, pObj, i )
+    {
+        if ( pPolarity && Abc_ObjIsComplement(pObj->pCopy) )
+        {
+            Abc_InfoSetBit( pPolarity, i );
+            pObj->pCopy = Abc_ObjRegular( pObj->pCopy );
+        }
+        assert( !Abc_ObjIsComplement(pObj->pCopy) );
         Abc_ObjAddFanin( pNode, pObj->pCopy );
+    }
     // connect to fanout nets
     Abc_NtkForEachPo( pNtkGate, pObj, i )
+    {
         if ( pObj->pCopy )
             Abc_ObjAddFanin( pObj->pCopy, pNode );
-    // set the functionality
-    pNode->pData = pNtkGate;
+        else
+            Abc_ObjAddFanin( Abc_NtkFindOrCreateNet(pNtk, NULL), pNode );
+    }
     return 1;
 }
 

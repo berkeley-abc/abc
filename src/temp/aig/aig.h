@@ -290,9 +290,11 @@ extern void            Aig_TableProfile( Aig_Man_t * p );
 /*=== aigUtil.c =========================================================*/
 extern void            Aig_ManIncrementTravId( Aig_Man_t * p );
 extern void            Aig_ManCleanData( Aig_Man_t * p );
-extern int             Aig_ObjMffcLabel( Aig_Man_t * p, Aig_Obj_t * pNode );
+extern void            Aig_ObjCollectMulti( Aig_Obj_t * pFunc, Vec_Ptr_t * vSuper );
 extern int             Aig_ObjIsMuxType( Aig_Obj_t * pObj );
+extern int             Aig_ObjRecognizeExor( Aig_Obj_t * pObj, Aig_Obj_t ** ppFan0, Aig_Obj_t ** ppFan1 );
 extern Aig_Obj_t *     Aig_ObjRecognizeMux( Aig_Obj_t * pObj, Aig_Obj_t ** ppObjT, Aig_Obj_t ** ppObjE );
+extern void            Aig_ObjPrintVerilog( FILE * pFile, Aig_Obj_t * pObj, Vec_Vec_t * vLevels, int Level );
 extern void            Aig_ObjPrintVerbose( Aig_Obj_t * pObj, int fHaig );
 extern void            Aig_ManPrintVerbose( Aig_Man_t * p, int fHaig );
 

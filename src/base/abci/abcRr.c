@@ -676,7 +676,7 @@ Abc_Ntk_t * Abc_NtkWindow( Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vC
     int i;
     assert( Abc_NtkIsStrash(pNtk) );
     // start the network
-    pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc );
+    pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc, 1 );
     // duplicate the name and the spec
     pNtkNew->pName = Extra_UtilStrsav( "temp" );
     // map the constant nodes

@@ -66,7 +66,8 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
     if ( Abc_NtkIsNetlist(pNtk) )
     {
         fprintf( pFile, "  net = %5d", Abc_NtkNetNum(pNtk) );
-        fprintf( pFile, "  nd = %5d", Abc_NtkNodeNum(pNtk) );
+        fprintf( pFile, "  nd = %5d",  Abc_NtkNodeNum(pNtk) );
+        fprintf( pFile, "  box = %5d", Abc_NtkBoxNum(pNtk) );
     }
     else if ( Abc_NtkIsStrash(pNtk) || Abc_NtkIsSeq(pNtk) )
     {        
@@ -83,7 +84,7 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
     else 
         fprintf( pFile, "  nd = %5d", Abc_NtkNodeNum(pNtk) );
 
-    if ( Abc_NtkIsStrash(pNtk) || Abc_NtkIsSeq(pNtk) )
+    if ( Abc_NtkIsStrash(pNtk) || Abc_NtkIsSeq(pNtk) || Abc_NtkIsNetlist(pNtk) )
     {
     }
     else if ( Abc_NtkHasSop(pNtk) )   

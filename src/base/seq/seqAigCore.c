@@ -303,7 +303,7 @@ int Seq_NtkImplementRetimingBackward( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMoves, int 
 
     // create the network for the initial state computation
     // start the table and the array of PO values
-    pNtkProb = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_SOP );
+    pNtkProb = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_SOP, 1 );
     tTable   = stmm_init_table( stmm_numcmp, stmm_numhash );
     vValues  = Vec_IntAlloc( 100 );
 

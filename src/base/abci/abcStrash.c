@@ -250,7 +250,7 @@ Abc_Obj_t * Abc_NodeStrash( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld )
     Abc_Obj_t * pFanin;
     int i;
     assert( Abc_ObjIsNode(pNodeOld) );
-    assert( Abc_NtkIsAigLogic(pNodeOld->pNtk) );
+    assert( Abc_NtkHasAig(pNodeOld->pNtk) && !Abc_NtkIsStrash(pNodeOld->pNtk) );
     // get the local AIG manager and the local root node
     pMan = pNodeOld->pNtk->pManFunc;
     pRoot = pNodeOld->pData;
@@ -317,7 +317,7 @@ Abc_Ntk_t * Abc_NtkTopmost( Abc_Ntk_t * pNtk, int nLevels )
     // get the cutoff level
     LevelCut = ABC_MAX( 0, Abc_AigGetLevelNum(pNtk) - nLevels );
     // start the network
-    pNtkNew = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG );
+    pNtkNew = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG, 1 );
     pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
     Abc_AigConst1(pNtk)->pCopy = Abc_AigConst1(pNtkNew);
     // create PIs below the cut and nodes above the cut

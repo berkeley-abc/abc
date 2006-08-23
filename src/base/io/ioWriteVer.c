@@ -26,7 +26,7 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static void Io_WriteVerilogInt( FILE * pFile, Abc_Ntk_t * pNtk );
+static void Io_WriteVerilogInt( FILE * pFile, Abc_Ntk_t * pNtk, int fVerLibStyle );
 static void Io_WriteVerilogPis( FILE * pFile, Abc_Ntk_t * pNtk, int Start );
 static void Io_WriteVerilogPos( FILE * pFile, Abc_Ntk_t * pNtk, int Start );
 static void Io_WriteVerilogWires( FILE * pFile, Abc_Ntk_t * pNtk, int Start );
@@ -34,6 +34,7 @@ static void Io_WriteVerilogRegs( FILE * pFile, Abc_Ntk_t * pNtk, int Start );
 static void Io_WriteVerilogGates( FILE * pFile, Abc_Ntk_t * pNtk );
 static void Io_WriteVerilogNodes( FILE * pFile, Abc_Ntk_t * pNtk );
 static void Io_WriteVerilogLatches( FILE * pFile, Abc_Ntk_t * pNtk );
+static void Io_WriteVerilogVerLibStyle( FILE * pFile, Abc_Ntk_t * pNtk );
 static int Io_WriteVerilogCheckNtk( Abc_Ntk_t * pNtk );
 static char * Io_WriteVerilogGetName( Abc_Obj_t * pObj );
 static int Io_WriteVerilogWiresCount( Abc_Ntk_t * pNtk );
@@ -53,7 +54,7 @@ static int Io_WriteVerilogWiresCount( Abc_Ntk_t * pNtk );
   SeeAlso     []
 
 ***********************************************************************/
-void Io_WriteVerilog( Abc_Ntk_t * pNtk, char * pFileName )
+void Io_WriteVerilog( Abc_Ntk_t * pNtk, char * pFileName, int fVerLibStyle )
 {
     FILE * pFile;
 
@@ -75,7 +76,7 @@ void Io_WriteVerilog( Abc_Ntk_t * pNtk, char * pFileName )
 
     // write the equations for the network
     fprintf( pFile, "// Benchmark \"%s\" written by ABC on %s\n", pNtk->pName, Extra_TimeStamp() );
-    Io_WriteVerilogInt( pFile, pNtk );
+    Io_WriteVerilogInt( pFile, pNtk, fVerLibStyle );
     fprintf( pFile, "\n" );
     fclose( pFile );
 }
@@ -91,12 +92,11 @@ void Io_WriteVerilog( Abc_Ntk_t * pNtk, char * pFileName )
   SeeAlso     []
 
 ***********************************************************************/
-void Io_WriteVerilogLibrary( st_table * tLibrary, char * pFileName )
+void Io_WriteVerilogLibrary( Abc_Lib_t * pLibrary, char * pFileName )
 {
     FILE * pFile;
-    st_generator * gen;
     Abc_Ntk_t * pNtk, * pNetlist;
-    char * pName;
+    int i;
 
     // start the output stream
     pFile = fopen( pFileName, "w" );
@@ -109,15 +109,17 @@ void Io_WriteVerilogLibrary( st_table * tLibrary, char * pFileName )
     fprintf( pFile, "// Verilog library \"%s\" written by ABC on %s\n", pFileName, Extra_TimeStamp() );
     fprintf( pFile, "\n" );
     // write modules
-    st_foreach_item( tLibrary, gen, (char**)&pName, (char**)&pNtk )
+    Vec_PtrForEachEntry( pLibrary->vModules, pNtk, i )
     {
         // create netlist
-        pNetlist = Abc_NtkLogicToNetlist( pNtk, 0 );
+//        pNetlist = Abc_NtkLogicToNetlist( pNtk, 0 );
+        assert( Abc_NtkIsNetlist(pNtk) );
+        pNetlist = pNtk;
         // write the equations for the network
-        Io_WriteVerilogInt( pFile, pNetlist );
+        Io_WriteVerilogInt( pFile, pNetlist, 1 );
         fprintf( pFile, "\n" );
         // delete the netlist
-        Abc_NtkDelete( pNetlist );
+//        Abc_NtkDelete( pNetlist );
     }
 
     fclose( pFile );
@@ -134,7 +136,7 @@ void Io_WriteVerilogLibrary( st_table * tLibrary, char * pFileName )
   SeeAlso     []
 
 ***********************************************************************/
-void Io_WriteVerilogInt( FILE * pFile, Abc_Ntk_t * pNtk )
+void Io_WriteVerilogInt( FILE * pFile, Abc_Ntk_t * pNtk, int fVerLibStyle )
 {
     // write inputs and outputs
     fprintf( pFile, "module %s ( gclk,\n   ", Abc_NtkName(pNtk) );
@@ -161,8 +163,10 @@ void Io_WriteVerilogInt( FILE * pFile, Abc_Ntk_t * pNtk )
     Io_WriteVerilogWires( pFile, pNtk, 4 );
     fprintf( pFile, ";\n" );
     }
-    // write the nodes
-    if ( Abc_NtkHasMapping(pNtk) )
+    // write nodes
+    if ( fVerLibStyle )
+        Io_WriteVerilogVerLibStyle( pFile, pNtk );        
+    else if ( Abc_NtkHasMapping(pNtk) )
         Io_WriteVerilogGates( pFile, pNtk );
     else
         Io_WriteVerilogNodes( pFile, pNtk );
@@ -435,6 +439,65 @@ void Io_WriteVerilogLatches( FILE * pFile, Abc_Ntk_t * pNtk )
     }
 }
 */
+
+/**Function*************************************************************
+
+  Synopsis    [Writes the nodes and boxes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Io_WriteVerilogVerLibStyle( FILE * pFile, Abc_Ntk_t * pNtk )
+{
+    Vec_Vec_t * vLevels;
+    Abc_Ntk_t * pNtkGate;
+    Abc_Obj_t * pObj, * pTerm, * pFanin;
+    Aig_Obj_t * pFunc;
+    int i, k, Counter, nDigits;
+
+    Counter = 1;
+    nDigits = Extra_Base10Log( Abc_NtkNodeNum(pNtk) );
+
+    // write boxes
+    Abc_NtkForEachBox( pNtk, pObj, i )
+    {
+        pNtkGate = pObj->pData;
+        fprintf( pFile, "  %s g%0*d", pNtkGate->pName, nDigits, Counter++ );
+        fprintf( pFile, "(" );
+        Abc_NtkForEachPi( pNtkGate, pTerm, k )
+        {
+            fprintf( pFile, ".%s ",   Io_WriteVerilogGetName(Abc_ObjFanout0(pTerm)) );
+            fprintf( pFile, "(%s), ", Io_WriteVerilogGetName(Abc_ObjFanin(pObj,k)) );
+        }
+        Abc_NtkForEachPo( pNtkGate, pTerm, k )
+        {
+            fprintf( pFile, ".%s ",   Io_WriteVerilogGetName(Abc_ObjFanin0(pTerm)) );
+            fprintf( pFile, "(%s)%s", Io_WriteVerilogGetName(Abc_ObjFanout(pObj,k)), k==Abc_NtkPoNum(pNtkGate)-1? "":", " );
+        }
+        fprintf( pFile, ");\n" );
+    }
+    // write nodes
+    vLevels = Vec_VecAlloc( 10 );
+    Abc_NtkForEachNode( pNtk, pObj, i )
+    {
+        pFunc = pObj->pData;
+        fprintf( pFile, "  assign %s = ", Io_WriteVerilogGetName(Abc_ObjFanout0(pObj)) );
+        // set the input names
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+            Aig_IthVar(pNtk->pManFunc, k)->pData = Extra_UtilStrsav(Io_WriteVerilogGetName(pFanin));
+        // write the formula
+        Aig_ObjPrintVerilog( pFile, pFunc, vLevels, 0 );
+        fprintf( pFile, ";\n" );
+        // clear the input names
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+            free( Aig_IthVar(pNtk->pManFunc, k)->pData );
+    }
+    Vec_VecFree( vLevels );
+}
 
 /**Function*************************************************************
 

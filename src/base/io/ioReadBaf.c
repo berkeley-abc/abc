@@ -73,7 +73,7 @@ Abc_Ntk_t * Io_ReadBaf( char * pFileName, int fCheck )
     nAnds = atoi( pCur );     while ( *pCur++ );
 
     // allocate the empty AIG
-    pNtkNew = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG );
+    pNtkNew = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG, 1 );
     pNtkNew->pName = Extra_UtilStrsav( pName );
     pNtkNew->pSpec = Extra_UtilStrsav( pFileName );
 

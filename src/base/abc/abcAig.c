@@ -136,12 +136,10 @@ Abc_Aig_t * Abc_AigAlloc( Abc_Ntk_t * pNtkAig )
     pMan->vStackReplaceOld = Vec_PtrAlloc( 100 );
     pMan->vStackReplaceNew = Vec_PtrAlloc( 100 );
     // create the constant node
-    pMan->pConst1  = Abc_ObjAlloc( pNtkAig, ABC_OBJ_CONST1 );
-    // add to the array of objects, count it as object but not as node
     assert( pNtkAig->vObjs->nSize == 0 );
-    pMan->pConst1->Id = pNtkAig->vObjs->nSize;
-    Vec_PtrPush( pNtkAig->vObjs, pMan->pConst1 );
-    pNtkAig->nObjs++;
+    pMan->pConst1 = Abc_NtkObjAdd( pNtkAig, ABC_OBJ_NODE );
+    pMan->pConst1->Type = ABC_OBJ_CONST1;
+    pNtkAig->nObjCounts[ABC_OBJ_NODE]--;
     // save the current network
     pMan->pNtkAig = pNtkAig;
     return pMan;

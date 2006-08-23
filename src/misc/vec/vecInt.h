@@ -494,14 +494,18 @@ static inline void Vec_IntPushMem( Extra_MmStep_t * pMemMan, Vec_Int_t * p, int 
 
         if ( p->nSize == 0 )
             p->nCap = 1;
-        pArray = (int *)Extra_MmStepEntryFetch( pMemMan, p->nCap * 8 );
-//        pArray = ALLOC( int, p->nCap * 2 );
+        if ( pMemMan )
+            pArray = (int *)Extra_MmStepEntryFetch( pMemMan, p->nCap * 8 );
+        else
+            pArray = ALLOC( int, p->nCap * 2 );
         if ( p->pArray )
         {
             for ( i = 0; i < p->nSize; i++ )
                 pArray[i] = p->pArray[i];
-            Extra_MmStepEntryRecycle( pMemMan, (char *)p->pArray, p->nCap * 4 );
-//            free( p->pArray );
+            if ( pMemMan )
+                Extra_MmStepEntryRecycle( pMemMan, (char *)p->pArray, p->nCap * 4 );
+            else
+                free( p->pArray );
         }
         p->nCap *= 2;
         p->pArray = pArray;

@@ -211,7 +211,7 @@ Abc_Ntk_t * Io_ReadBlifNetworkOne( Io_ReadBlif_t * p )
     assert( p->vTokens != NULL );
 
     // create the new network
-    p->pNtkCur = pNtk = Abc_NtkAlloc( ABC_NTK_NETLIST, ABC_FUNC_SOP );
+    p->pNtkCur = pNtk = Abc_NtkAlloc( ABC_NTK_NETLIST, ABC_FUNC_SOP, 1 );
     // read the model name
     if ( strcmp( p->vTokens->pArray[0], ".model" ) == 0 )
         pNtk->pName = Extra_UtilStrsav( p->vTokens->pArray[1] );

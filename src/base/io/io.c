@@ -50,6 +50,8 @@ static int IoCommandWriteVerilog( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteVerLib ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv );
 
+extern Abc_Lib_t * Ver_ParseFile( char * pFileName, Abc_Lib_t * pGateLib, int fCheck, int fUseMemMan );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -667,13 +669,13 @@ usage:
 ***********************************************************************/
 int IoCommandReadVer( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Abc_Ntk_t * pNtk;
+    Abc_Ntk_t * pNtk, * pNtkNew;
     Abc_Lib_t * pDesign;
     char * FileName;
     FILE * pFile;
     int fCheck;
     int c;
-    extern Abc_Lib_t * Ver_ParseFile( char * pFileName, Abc_Lib_t * pGateLib, int fCheck );
+    extern Abc_Ntk_t * Abc_LibDeriveAig( Abc_Ntk_t * pNtk, Abc_Lib_t * pLib );
 
     fCheck = 1;
     Extra_UtilGetoptReset();
@@ -709,21 +711,32 @@ int IoCommandReadVer( Abc_Frame_t * pAbc, int argc, char ** argv )
     fclose( pFile );
 
     // set the new network
-    pDesign = Ver_ParseFile( FileName, Abc_FrameReadLibVer(), fCheck );
+    pDesign = Ver_ParseFile( FileName, Abc_FrameReadLibVer(), fCheck, 1 );
     if ( pDesign == NULL )
     {
         fprintf( pAbc->Err, "Reading network from the verilog file has failed.\n" );
         return 1;
     }
+
     // derive root design
     pNtk = Abc_LibDeriveRoot( pDesign );
+    Abc_LibFree( pDesign );
     if ( pNtk == NULL )
     {
         fprintf( pAbc->Err, "Deriving root module has failed.\n" );
         return 1;
     }
+
+    // derive the AIG network from this design
+    pNtkNew = Abc_LibDeriveAig( pNtk, Abc_FrameReadLibVer() );
+    Abc_NtkDelete( pNtk );
+    if ( pNtkNew == NULL )
+    {
+        fprintf( pAbc->Err, "Converting root module to AIG has failed.\n" );
+        return 1;
+    }
     // replace the current network
-    Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkNew );
     return 0;
 
 usage:
@@ -753,7 +766,6 @@ int IoCommandReadVerLib( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pFile;
     int fCheck;
     int c;
-    extern Abc_Lib_t * Ver_ParseFile( char * pFileName, Abc_Lib_t * pGateLib, int fCheck );
 
     fCheck = 1;
     Extra_UtilGetoptReset();
@@ -789,7 +801,7 @@ int IoCommandReadVerLib( Abc_Frame_t * pAbc, int argc, char ** argv )
     fclose( pFile );
 
     // set the new network
-    pLibrary = Ver_ParseFile( FileName, NULL, fCheck );
+    pLibrary = Ver_ParseFile( FileName, NULL, fCheck, 0 );
     if ( pLibrary == NULL )
     {
         fprintf( pAbc->Err, "Reading library from the verilog file has failed.\n" );
@@ -1613,7 +1625,7 @@ int IoCommandWriteVerilog( Abc_Frame_t * pAbc, int argc, char **argv )
         fprintf( pAbc->Out, "Writing PLA has failed.\n" );
         return 0;
     }
-    Io_WriteVerilog( pNtkTemp, FileName );
+    Io_WriteVerilog( pNtkTemp, FileName, 0 );
     Abc_NtkDelete( pNtkTemp );
     return 0;
 
@@ -1638,10 +1650,10 @@ usage:
 ***********************************************************************/
 int IoCommandWriteVerLib( Abc_Frame_t * pAbc, int argc, char **argv )
 {
-    st_table * tLibrary;
+    Abc_Lib_t * pLibrary;
     char * FileName;
     int c;
-    extern void Io_WriteVerilogLibrary( st_table * tLibrary, char * pFileName );
+    extern void Io_WriteVerilogLibrary( Abc_Lib_t * pLibrary, char * pFileName );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
@@ -1663,13 +1675,13 @@ int IoCommandWriteVerLib( Abc_Frame_t * pAbc, int argc, char **argv )
     FileName = argv[globalUtilOptind];
 
     // derive the netlist
-    tLibrary = Abc_FrameReadLibVer();
-    if ( tLibrary == NULL )
+    pLibrary = Abc_FrameReadLibVer();
+    if ( pLibrary == NULL )
     {
         fprintf( pAbc->Out, "Verilog library is not specified.\n" );
         return 0;
     }
-    Io_WriteVerilogLibrary( tLibrary, FileName );
+    Io_WriteVerilogLibrary( pLibrary, FileName );
     return 0;
 
 usage:
@@ -1741,7 +1753,7 @@ int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv )
         int i;
         if ( pFile == NULL )
         {
-            fprintf( stdout, "Io_WriteVerilog(): Cannot open the output file \"%s\".\n", FileName );
+            fprintf( stdout, "IoCommandWriteCounter(): Cannot open the output file \"%s\".\n", FileName );
             return 1;
         }
         if ( fNames )

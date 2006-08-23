@@ -33,7 +33,7 @@
 
 /**Function*************************************************************
 
-  Synopsis    [Creates a new Obj.]
+  Synopsis    [Creates a new object.]
 
   Description []
                
@@ -45,7 +45,10 @@
 Abc_Obj_t * Abc_ObjAlloc( Abc_Ntk_t * pNtk, Abc_ObjType_t Type )
 {
     Abc_Obj_t * pObj;
-    pObj = (Abc_Obj_t *)Extra_MmFixedEntryFetch( pNtk->pMmObj );
+    if ( pNtk->pMmObj )
+        pObj = (Abc_Obj_t *)Extra_MmFixedEntryFetch( pNtk->pMmObj );
+    else
+        pObj = (Abc_Obj_t *)ALLOC( Abc_Obj_t, 1 );
     memset( pObj, 0, sizeof(Abc_Obj_t) );
     pObj->pNtk = pNtk;
     pObj->Type = Type;
@@ -55,7 +58,7 @@ Abc_Obj_t * Abc_ObjAlloc( Abc_Ntk_t * pNtk, Abc_ObjType_t Type )
 
 /**Function*************************************************************
 
-  Synopsis    [Recycles the Obj.]
+  Synopsis    [Recycles the object.]
 
   Description []
                
@@ -69,12 +72,20 @@ void Abc_ObjRecycle( Abc_Obj_t * pObj )
     Abc_Ntk_t * pNtk = pObj->pNtk;
     int LargePiece = (4 << ABC_NUM_STEPS);
     // free large fanout arrays
-    if ( pObj->vFanouts.nCap * 4 > LargePiece )
+    if ( pNtk->pMmStep && pObj->vFanouts.nCap * 4 > LargePiece )
         FREE( pObj->vFanouts.pArray );
+    if ( pNtk->pMmStep == NULL )
+    {
+        FREE( pObj->vFanouts.pArray );
+        FREE( pObj->vFanins.pArray );
+    }
     // clean the memory to make deleted object distinct from the live one
     memset( pObj, 0, sizeof(Abc_Obj_t) );
     // recycle the object
-    Extra_MmFixedEntryRecycle( pNtk->pMmObj, (char *)pObj );
+    if ( pNtk->pMmObj )
+        Extra_MmFixedEntryRecycle( pNtk->pMmObj, (char *)pObj );
+    else
+        free( pObj );
 }
 
 /**Function*************************************************************
@@ -88,58 +99,177 @@ void Abc_ObjRecycle( Abc_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_ObjAdd( Abc_Obj_t * pObj )
+Abc_Obj_t * Abc_NtkObjAdd( Abc_Ntk_t * pNtk, Abc_ObjType_t Type )
 {
-    Abc_Ntk_t * pNtk = pObj->pNtk;
-    assert( !Abc_ObjIsComplement(pObj) );
-    // add to the array of objects
+    Abc_Obj_t * pObj;
+    // create new object, assign ID, and add to the array
+    pObj = Abc_ObjAlloc( pNtk, Type );
     pObj->Id = pNtk->vObjs->nSize;
     Vec_PtrPush( pNtk->vObjs, pObj );
+    pNtk->nObjCounts[Type]++;
     pNtk->nObjs++;
     // perform specialized operations depending on the object type
-    if ( Abc_ObjIsNode(pObj) )
+    switch (Type)
     {
-        pNtk->nNodes++;
+        case ABC_OBJ_NONE:   
+            assert(0); 
+            break;
+        case ABC_OBJ_CONST1: 
+            assert(0); 
+            break;
+        case ABC_OBJ_PIO:    
+            assert(0); 
+            break;
+        case ABC_OBJ_PI:     
+            Vec_PtrPush( pNtk->vPis, pObj );
+            Vec_PtrPush( pNtk->vCis, pObj );
+            break;
+        case ABC_OBJ_PO:     
+            Vec_PtrPush( pNtk->vPos, pObj );
+            Vec_PtrPush( pNtk->vCos, pObj );
+            break;
+        case ABC_OBJ_BI:     
+            Vec_PtrPush( pNtk->vCis, pObj );
+            break;
+        case ABC_OBJ_BO:     
+            Vec_PtrPush( pNtk->vCos, pObj );
+            break;
+        case ABC_OBJ_ASSERT:     
+            Vec_PtrPush( pNtk->vAsserts, pObj );
+            Vec_PtrPush( pNtk->vCos, pObj );
+            break;
+        case ABC_OBJ_NET:  
+            break;
+        case ABC_OBJ_NODE: 
+            break;
+        case ABC_OBJ_LATCH:     
+            pObj->pData = (void *)ABC_INIT_NONE;
+            Vec_PtrPush( pNtk->vLatches, pObj );
+            Vec_PtrPush( pNtk->vCis, pObj );
+            Vec_PtrPush( pNtk->vCos, pObj );
+            break;
+        case ABC_OBJ_BOX:     
+            break;
+        default:
+            assert(0); 
+            break;
     }
-    else if ( Abc_ObjIsNet(pObj) )
+    return pObj;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Deletes the object from the network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
+{
+    Abc_Ntk_t * pNtk = pObj->pNtk;
+    Vec_Ptr_t * vNodes;
+    int i;
+    // delete fanins and fanouts
+    assert( !Abc_ObjIsComplement(pObj) );
+    vNodes = Vec_PtrAlloc( 100 );
+    Abc_NodeCollectFanouts( pObj, vNodes );
+    for ( i = 0; i < vNodes->nSize; i++ )
+        Abc_ObjDeleteFanin( vNodes->pArray[i], pObj );
+    Abc_NodeCollectFanins( pObj, vNodes );
+    for ( i = 0; i < vNodes->nSize; i++ )
+        Abc_ObjDeleteFanin( pObj, vNodes->pArray[i] );
+    Vec_PtrFree( vNodes );
+    // remove from the list of objects
+    Vec_PtrWriteEntry( pNtk->vObjs, pObj->Id, NULL );
+    pObj->Id = (1<<26)-1;
+    pNtk->nObjCounts[pObj->Type]--;
+    pNtk->nObjs--;
+    // remove from the table of names
+//    if ( Nm_ManFindNameById(pObj->pNtk->pManName, pObj->Id) )
+//        Nm_ManDeleteIdName(pObj->pNtk->pManName, pObj->Id);
+    // perform specialized operations depending on the object type
+    switch (pObj->Type)
     {
-        pNtk->nNets++;
+        case ABC_OBJ_NONE:   
+            assert(0); 
+            break;
+        case ABC_OBJ_CONST1: 
+            assert(0); 
+            break;
+        case ABC_OBJ_PIO:    
+            assert(0); 
+            break;
+        case ABC_OBJ_PI:     
+            Vec_PtrRemove( pNtk->vPis, pObj );
+            Vec_PtrRemove( pNtk->vCis, pObj );
+            break;
+        case ABC_OBJ_PO:     
+            Vec_PtrRemove( pNtk->vPos, pObj );
+            Vec_PtrRemove( pNtk->vCos, pObj );
+            break;
+        case ABC_OBJ_BI:     
+            Vec_PtrRemove( pNtk->vCis, pObj );
+            break;
+        case ABC_OBJ_BO:     
+            Vec_PtrRemove( pNtk->vCos, pObj );
+            break;
+        case ABC_OBJ_ASSERT:     
+            Vec_PtrRemove( pNtk->vAsserts, pObj );
+            Vec_PtrRemove( pNtk->vCos, pObj );
+            break;
+        case ABC_OBJ_NET:  
+            pObj->pData = NULL;
+            break;
+        case ABC_OBJ_NODE: 
+            if ( Abc_NtkHasBdd(pNtk) )
+                Cudd_RecursiveDeref( pNtk->pManFunc, pObj->pData );
+            pObj->pData = NULL;
+            break;
+        case ABC_OBJ_LATCH:     
+            Vec_PtrRemove( pNtk->vLatches, pObj );
+            Vec_PtrRemove( pNtk->vCis, pObj );
+            Vec_PtrRemove( pNtk->vCos, pObj );
+            break;
+        case ABC_OBJ_BOX:     
+            break;
+        default:
+            assert(0); 
+            break;
     }
-    else if ( Abc_ObjIsPi(pObj) )
-    {
-        Vec_PtrPush( pNtk->vPis, pObj );
-        Vec_PtrPush( pNtk->vCis, pObj );
-    }
-    else if ( Abc_ObjIsPo(pObj) )
-    {
-        Vec_PtrPush( pNtk->vPos, pObj );
-        Vec_PtrPush( pNtk->vCos, pObj );
-    }
-    else if ( Abc_ObjIsLatch(pObj) )
-    {
-        Vec_PtrPush( pNtk->vLatches, pObj );
-        Vec_PtrPush( pNtk->vCis, pObj );
-        Vec_PtrPush( pNtk->vCos, pObj );
-    }
-    else if ( Abc_ObjIsAssert(pObj) )
-    {
-        Vec_PtrPush( pNtk->vAsserts, pObj );
-        Vec_PtrPush( pNtk->vCos, pObj );
-    }
-    else if ( Abc_ObjIsBi(pObj) )
-    {
-        Vec_PtrPush( pNtk->vCis, pObj );
-    }
-    else if ( Abc_ObjIsBo(pObj) )
-    {
-        Vec_PtrPush( pNtk->vCos, pObj );
-    }
-    else if ( Abc_ObjIsBox(pObj) )
-    {
-        pNtk->nBoxes++;
-        Vec_PtrPush( pNtk->vBoxes, pObj );
-    }
-    else assert( 0 );
+    // recycle the object memory
+    Abc_ObjRecycle( pObj );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Deletes the node and MFFC of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkDeleteObj_rec( Abc_Obj_t * pObj )
+{
+    Abc_Ntk_t * pNtk = pObj->pNtk;
+    Vec_Ptr_t * vNodes;
+    int i;
+    assert( !Abc_ObjIsComplement(pObj) );
+    assert( Abc_ObjFanoutNum(pObj) == 0 );
+    // delete fanins and fanouts
+    vNodes = Vec_PtrAlloc( 100 );
+    Abc_NodeCollectFanins( pObj, vNodes );
+    Abc_NtkDeleteObj( pObj );
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+        if ( Abc_ObjIsNode(pObj) && Abc_ObjFanoutNum(pObj) == 0 )
+            Abc_NtkDeleteObj_rec( pObj );
+    Vec_PtrFree( vNodes );
 }
 
 /**Function*************************************************************
@@ -157,9 +287,7 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
 {
     Abc_Obj_t * pObjNew;
     // create the new object
-    pObjNew = Abc_ObjAlloc( pNtkNew, pObj->Type );
-    // add the object to the network
-    Abc_ObjAdd( pObjNew );
+    pObjNew = Abc_NtkObjAdd( pNtkNew, pObj->Type );
     // copy functionality/names
     if ( Abc_ObjIsNode(pObj) ) // copy the function if functionality is compatible
     {
@@ -203,130 +331,10 @@ Abc_Obj_t * Abc_NtkCloneObj( Abc_Obj_t * pObj )
 {
     Abc_Obj_t * pClone, * pFanin;
     int i;
-    pClone = Abc_ObjAlloc( pObj->pNtk, pObj->Type );   
-    Abc_ObjAdd( pClone );
+    pClone = Abc_NtkObjAdd( pObj->pNtk, pObj->Type );   
     Abc_ObjForEachFanin( pObj, pFanin, i )
         Abc_ObjAddFanin( pClone, pFanin );
     return pClone;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Deletes the object from the network.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
-{
-    Abc_Ntk_t * pNtk = pObj->pNtk;
-    Vec_Ptr_t * vNodes;
-    int i;
-
-    assert( !Abc_ObjIsComplement(pObj) );
-
-    // delete fanins and fanouts
-    vNodes = Vec_PtrAlloc( 100 );
-    Abc_NodeCollectFanouts( pObj, vNodes );
-    for ( i = 0; i < vNodes->nSize; i++ )
-        Abc_ObjDeleteFanin( vNodes->pArray[i], pObj );
-    Abc_NodeCollectFanins( pObj, vNodes );
-    for ( i = 0; i < vNodes->nSize; i++ )
-        Abc_ObjDeleteFanin( pObj, vNodes->pArray[i] );
-    Vec_PtrFree( vNodes );
-
-    // remove from the list of objects
-    Vec_PtrWriteEntry( pNtk->vObjs, pObj->Id, NULL );
-    pObj->Id = (1<<26)-1;
-    pNtk->nObjs--;
-
-    // remove from the table of names
-    if ( Nm_ManFindNameById(pObj->pNtk->pManName, pObj->Id) )
-        Nm_ManDeleteIdName(pObj->pNtk->pManName, pObj->Id);
-
-    // perform specialized operations depending on the object type
-    if ( Abc_ObjIsNet(pObj) )
-    {
-        pObj->pData = NULL;
-        pNtk->nNets--;
-    }
-    else if ( Abc_ObjIsNode(pObj) )
-    {
-        if ( Abc_NtkHasBdd(pNtk) )
-            Cudd_RecursiveDeref( pNtk->pManFunc, pObj->pData );
-        pObj->pData = NULL;
-        pNtk->nNodes--;
-    }
-    else if ( Abc_ObjIsLatch(pObj) )
-    {
-        Vec_PtrRemove( pNtk->vLatches, pObj );
-        Vec_PtrRemove( pNtk->vCis, pObj );
-        Vec_PtrRemove( pNtk->vCos, pObj );
-    }
-    else if ( Abc_ObjIsPi(pObj) )
-    {
-        Vec_PtrRemove( pObj->pNtk->vPis, pObj );
-        Vec_PtrRemove( pObj->pNtk->vCis, pObj );
-    }
-    else if ( Abc_ObjIsPo(pObj) )
-    {
-        Vec_PtrRemove( pObj->pNtk->vPos, pObj );
-        Vec_PtrRemove( pObj->pNtk->vCos, pObj );
-    }
-    else if ( Abc_ObjIsBi(pObj) )
-    {
-        Vec_PtrRemove( pObj->pNtk->vCis, pObj );
-    }
-    else if ( Abc_ObjIsBo(pObj) )
-    {
-        Vec_PtrRemove( pObj->pNtk->vCos, pObj );
-    }
-    else if ( Abc_ObjIsAssert(pObj) )
-    {
-        Vec_PtrRemove( pObj->pNtk->vAsserts, pObj );
-        Vec_PtrRemove( pObj->pNtk->vCos, pObj );
-    }
-    else if ( Abc_ObjIsBox(pObj) )
-    {
-        pNtk->nBoxes--;
-        Vec_PtrRemove( pObj->pNtk->vBoxes, pObj );
-    }
-    else
-        assert( 0 );
-    // recycle the net itself
-    Abc_ObjRecycle( pObj );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Deletes the node and MFFC of the node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkDeleteObj_rec( Abc_Obj_t * pObj )
-{
-    Abc_Ntk_t * pNtk = pObj->pNtk;
-    Vec_Ptr_t * vNodes;
-    int i;
-    assert( !Abc_ObjIsComplement(pObj) );
-    assert( Abc_ObjFanoutNum(pObj) == 0 );
-    // delete fanins and fanouts
-    vNodes = Vec_PtrAlloc( 100 );
-    Abc_NodeCollectFanins( pObj, vNodes );
-    Abc_NtkDeleteObj( pObj );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
-        if ( Abc_ObjIsNode(pObj) && Abc_ObjFanoutNum(pObj) == 0 )
-            Abc_NtkDeleteObj_rec( pObj );
-    Vec_PtrFree( vNodes );
 }
 
 
@@ -458,128 +466,12 @@ Abc_Obj_t * Abc_NtkFindOrCreateNet( Abc_Ntk_t * pNtk, char * pName )
 {
     Abc_Obj_t * pNet;
     assert( Abc_NtkIsNetlist(pNtk) );
-    if ( pNet = Abc_NtkFindNet( pNtk, pName ) )
+    if ( pName && (pNet = Abc_NtkFindNet( pNtk, pName )) )
         return pNet;
     // create a new net
-    pNet = Abc_ObjAlloc( pNtk, ABC_OBJ_NET );
-    Abc_ObjAdd( pNet );
-    pNet->pData = Nm_ManStoreIdName( pNtk->pManName, pNet->Id, pName, NULL );
+    pNet = Abc_NtkObjAdd( pNtk, ABC_OBJ_NET );
+    pNet->pData = pName? Nm_ManStoreIdName( pNtk->pManName, pNet->Id, pName, NULL ) : NULL;
     return pNet;
-}
-    
-/**Function*************************************************************
-
-  Synopsis    [Create node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Obj_t * Abc_NtkCreateNode( Abc_Ntk_t * pNtk )
-{
-    Abc_Obj_t * pObj;
-    pObj = Abc_ObjAlloc( pNtk, ABC_OBJ_NODE );     
-    Abc_ObjAdd( pObj );
-    return pObj;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Create multi-input/multi-output box.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Obj_t * Abc_NtkCreateBox( Abc_Ntk_t * pNtk )
-{
-    Abc_Obj_t * pObj;
-    pObj = Abc_ObjAlloc( pNtk, ABC_OBJ_BOX );     
-    Abc_ObjAdd( pObj );
-    return pObj;
-}
-    
-/**Function*************************************************************
-
-  Synopsis    [Create primary input.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Obj_t * Abc_NtkCreatePi( Abc_Ntk_t * pNtk )
-{
-    Abc_Obj_t * pObj;
-    pObj = Abc_ObjAlloc( pNtk, ABC_OBJ_PI );     
-    Abc_ObjAdd( pObj );
-    return pObj;
-}
-    
-/**Function*************************************************************
-
-  Synopsis    [Create primary output.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Obj_t * Abc_NtkCreatePo( Abc_Ntk_t * pNtk )
-{
-    Abc_Obj_t * pObj;
-    pObj = Abc_ObjAlloc( pNtk, ABC_OBJ_PO );     
-    Abc_ObjAdd( pObj );
-    return pObj;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Creates latch.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Obj_t * Abc_NtkCreateLatch( Abc_Ntk_t * pNtk )
-{
-    Abc_Obj_t * pObj;
-    pObj = Abc_ObjAlloc( pNtk, ABC_OBJ_LATCH );     
-    pObj->pData = (void *)ABC_INIT_NONE;
-    Abc_ObjAdd( pObj );
-    return pObj;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Creates assert.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Obj_t * Abc_NtkCreateAssert( Abc_Ntk_t * pNtk )
-{
-    Abc_Obj_t * pObj;
-    pObj = Abc_ObjAlloc( pNtk, ABC_OBJ_ASSERT );     
-    Abc_ObjAdd( pObj );
-    return pObj;
 }
 
 /**Function*************************************************************

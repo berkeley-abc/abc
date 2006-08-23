@@ -436,6 +436,7 @@ int Abc_NtkMiterSatCreateInt( solver * pSat, Abc_Ntk_t * pNtk, int fJFront )
     int clk1 = clock(), clk;
     int fOrderCiVarsFirst = 0;
     int nLevelsMax = Abc_AigGetLevelNum(pNtk);
+    int RetValue = 0;
 
     assert( Abc_NtkIsStrash(pNtk) );
 
@@ -481,7 +482,7 @@ int Abc_NtkMiterSatCreateInt( solver * pSat, Abc_Ntk_t * pNtk, int fJFront )
         }
         // add the trivial clause
         if ( !Abc_NtkClauseTriv( pSat, Abc_ObjChild0(pNode), vVars ) )
-            return 0;
+            goto Quits;
     }
 
     // add the clauses
@@ -515,7 +516,7 @@ int Abc_NtkMiterSatCreateInt( solver * pSat, Abc_Ntk_t * pNtk, int fJFront )
             }
             // add the clauses
             if ( !Abc_NtkClauseMux( pSat, pNode, pNodeC, pNodeT, pNodeE, vVars ) )
-                return 0;
+                goto Quits;
         }
         else
         {
@@ -537,12 +538,12 @@ int Abc_NtkMiterSatCreateInt( solver * pSat, Abc_Ntk_t * pNtk, int fJFront )
             {
                 if ( !Abc_NtkClauseTriv( pSat, Abc_ObjNot(pNode), vVars ) )
 //                if ( !Abc_NtkClauseTriv( pSat, pNode, vVars ) )
-                    return 0;
+                    goto Quits;
             }
             else
             {
                 if ( !Abc_NtkClauseAnd( pSat, pNode, vSuper, vVars ) )
-                    return 0;
+                    goto Quits;
             }
         }
         // add the variables to the J-frontier
@@ -597,11 +598,13 @@ int Abc_NtkMiterSatCreateInt( solver * pSat, Abc_Ntk_t * pNtk, int fJFront )
     Asat_SolverSetFactors( pSat, Vec_IntReleaseArray(vLevels) );
     Vec_IntFree( vLevels );
 */
+    RetValue = 1;
+Quits :
     // delete
     Vec_IntFree( vVars );
     Vec_PtrFree( vNodes );
     Vec_PtrFree( vSuper );
-    return 1;
+    return RetValue;
 }
 
 /**Function*************************************************************

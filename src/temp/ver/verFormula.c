@@ -277,7 +277,7 @@ void * Ver_FormulaParser( char * pFormula, void * pMan, Vec_Ptr_t * vNames, Vec_
                     break;
                 }
                 Oper2 = Vec_IntPop( vStackOp ); // the operation before the last one
-                if ( Oper2 >= Oper1 )  
+                if ( Oper2 >= Oper1 && !(Oper1 == Oper2 && Oper1 == VER_PARSE_OPER_MUX) )  
                 {  // if Oper2 precedence is higher or equal, execute it
                     if ( Ver_FormulaParserTopOper( pMan, vStackFn, Oper2 ) == NULL )
                     {
@@ -378,7 +378,7 @@ int Ver_FormulaParserFindVar( char * pString, Vec_Ptr_t * vNames )
     int nLength, nLength2, i;
     // find the end of the string delimited by other characters
     pTemp = pString;
-    while ( *pTemp && *pTemp != ' ' && *pTemp != '\t' && *pTemp != '\r' && *pTemp != '\n' && 
+    while ( *pTemp && *pTemp != ' ' && *pTemp != '\t' && *pTemp != '\r' && *pTemp != '\n' && *pTemp != ',' && *pTemp != '}' && 
             *pTemp != VER_PARSE_SYM_OPEN && *pTemp != VER_PARSE_SYM_CLOSE && 
             *pTemp != VER_PARSE_SYM_NEGBEF1 && *pTemp != VER_PARSE_SYM_NEGBEF2 && 
             *pTemp != VER_PARSE_SYM_AND && *pTemp != VER_PARSE_SYM_OR && *pTemp != VER_PARSE_SYM_XOR && 
@@ -400,6 +400,55 @@ int Ver_FormulaParserFindVar( char * pString, Vec_Ptr_t * vNames )
     Vec_PtrPush( vNames, (void *)nLength );
     Vec_PtrPush( vNames, pString );
     return i;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the AIG representation of the reduction formula.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void * Ver_FormulaReduction( char * pFormula, void * pMan, Vec_Ptr_t * vNames, char * pErrorMessage )
+{
+    Aig_Obj_t * pRes;
+    int v, fCompl;
+    char Symbol;
+
+    // get the operation
+    Symbol = *pFormula++;
+    fCompl = ( Symbol == '~' );
+    if ( fCompl )
+        Symbol = *pFormula++;
+    // check the operation
+    if ( Symbol != '&' && Symbol != '|' && Symbol != '^' )
+    {
+        sprintf( pErrorMessage, "Ver_FormulaReduction(): Unknown operation (%c)\n", Symbol );
+        return NULL;
+    }
+    // skip the brace
+    while ( *pFormula++ != '{' );
+    // parse the names
+    Vec_PtrClear( vNames );
+    while ( *pFormula != '}' )
+    {
+        v = Ver_FormulaParserFindVar( pFormula, vNames );
+        pFormula += (int)Vec_PtrEntry( vNames, 2*v );
+        while ( *pFormula == ' ' || *pFormula == ',' )
+            pFormula++;
+    }
+    // compute the function
+    if ( Symbol == '&' )
+        pRes = Aig_CreateAnd( pMan, Vec_PtrSize(vNames)/2 );
+    else if ( Symbol == '|' )
+        pRes = Aig_CreateOr( pMan, Vec_PtrSize(vNames)/2 );
+    else if ( Symbol == '^' )
+        pRes = Aig_CreateExor( pMan, Vec_PtrSize(vNames)/2 );
+    return Aig_NotCond( pRes, fCompl );
 }
 
 ////////////////////////////////////////////////////////////////////////

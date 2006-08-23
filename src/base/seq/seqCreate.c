@@ -86,7 +86,7 @@ Abc_Ntk_t * Abc_NtkAigToSeq( Abc_Ntk_t * pNtk )
     assert( Abc_NtkCountSelfFeedLatches(pNtk) == 0 );
 
     // start the network
-    pNtkNew = Abc_NtkAlloc( ABC_NTK_SEQ, ABC_FUNC_AIG );
+    pNtkNew = Abc_NtkAlloc( ABC_NTK_SEQ, ABC_FUNC_AIG, 1 );
     // duplicate the name and the spec
     pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);
     pNtkNew->pSpec = Extra_UtilStrsav(pNtk->pSpec);
@@ -109,7 +109,7 @@ Abc_Ntk_t * Abc_NtkAigToSeq( Abc_Ntk_t * pNtk )
         Vec_PtrWriteEntry( pNtkNew->vObjs, pObj->pCopy->Id, pObj->pCopy );
         pNtkNew->nObjs++;
     }
-    pNtkNew->nNodes = pNtk->nNodes;
+    pNtkNew->nObjCounts[ABC_OBJ_NODE] = pNtk->nObjCounts[ABC_OBJ_NODE];
 
     // create PI/PO and their names
     Abc_NtkForEachPi( pNtk, pObj, i )
