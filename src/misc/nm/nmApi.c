@@ -46,7 +46,7 @@ Nm_Man_t * Nm_ManCreate( int nSize )
     p = ALLOC( Nm_Man_t, 1 );
     memset( p, 0, sizeof(Nm_Man_t) );
     // set the parameters
-    p->nSizeFactor   = 2; // determined how much larger the table should be compared to data in it
+    p->nSizeFactor   = 2; // determined the limit on the grow of data before the table resizes
     p->nGrowthFactor = 3; // determined how much the table grows after resizing
     // allocate and clean the bins
     p->nBins = Cudd_PrimeNm(nSize);
@@ -106,29 +106,23 @@ int Nm_ManNumEntries( Nm_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-char * Nm_ManStoreIdName( Nm_Man_t * p, int ObjId, char * pName, char * pSuffix )
+char * Nm_ManStoreIdName( Nm_Man_t * p, int ObjId, int Type, char * pName, char * pSuffix )
 {
-    Nm_Entry_t * pEntry, * pEntry2;
+    Nm_Entry_t * pEntry;
     int RetValue, nEntrySize;
+    // check if the object with this ID is already stored
     if ( pEntry = Nm_ManTableLookupId(p, ObjId) )
     {
-        if ( strcmp(pEntry->Name, pName) == 0 )
-            printf( "Nm_ManStoreIdName(): Entry with the same ID and name already exists.\n" );
-        else
-            printf( "Nm_ManStoreIdName(): Entry with the same ID and different name already exists.\n" );
+        printf( "Nm_ManStoreIdName(): Entry with the same ID already exists.\n" );
         return NULL;
     }
-    if ( pSuffix == NULL && (pEntry = Nm_ManTableLookupName(p, pName, &pEntry2)) && pEntry2 )
-    {
-        printf( "Nm_ManStoreIdName(): Two entries with the same name already exist.\n" );
-        return NULL;
-    }
-    // create the entry
+    // create a new entry
     nEntrySize = sizeof(Nm_Entry_t) + strlen(pName) + (pSuffix?strlen(pSuffix):0) + 1;
     nEntrySize = (nEntrySize / 4 + ((nEntrySize % 4) > 0)) * 4;
     pEntry = (Nm_Entry_t *)Extra_MmFlexEntryFetch( p->pMem, nEntrySize );
     pEntry->pNextI2N = pEntry->pNextN2I = NULL;
     pEntry->ObjId = ObjId;
+    pEntry->Type = Type;
     sprintf( pEntry->Name, "%s%s", pName, pSuffix? pSuffix : "" );
     // add the entry to the hash table
     RetValue = Nm_ManTableAdd( p, pEntry );
@@ -158,7 +152,7 @@ void Nm_ManDeleteIdName( Nm_Man_t * p, int ObjId )
         return;
     }
     // remove entry from the table
-    Nm_ManTableDelete( p, pEntry );
+    Nm_ManTableDelete( p, ObjId );
 }
 
 
@@ -167,7 +161,7 @@ void Nm_ManDeleteIdName( Nm_Man_t * p, int ObjId )
   Synopsis    [Finds a unique name for the node.]
 
   Description [If the name exists, tries appending numbers to it until 
-  it becomes unique.]
+  it becomes unique. The name is not added to the table.]
                
   SideEffects []
 
@@ -182,9 +176,9 @@ char * Nm_ManCreateUniqueName( Nm_Man_t * p, int ObjId )
     if ( pEntry = Nm_ManTableLookupId(p, ObjId) )
         return pEntry->Name;
     sprintf( NameStr, "[%d]", ObjId );
-    for ( i = 1; Nm_ManTableLookupName(p, NameStr, NULL); i++ )
+    for ( i = 1; Nm_ManTableLookupName(p, NameStr, -1); i++ )
         sprintf( NameStr, "[%d]_%d", ObjId, i );
-    return Nm_ManStoreIdName( p, ObjId, NameStr, NULL );
+    return NameStr;
 }
 
 /**Function*************************************************************
@@ -218,67 +212,12 @@ char * Nm_ManFindNameById( Nm_Man_t * p, int ObjId )
   SeeAlso     []
 
 ***********************************************************************/
-int Nm_ManFindIdByName( Nm_Man_t * p, char * pName, int * pSecond )
+int Nm_ManFindIdByName( Nm_Man_t * p, char * pName, int Type )
 {
-    Nm_Entry_t * pEntry, * pEntry2;
-    if ( pEntry = Nm_ManTableLookupName(p, pName, &pEntry2) )
-    {
-        if ( pSecond )
-            *pSecond = pEntry2? pEntry2->ObjId : -1;
+    Nm_Entry_t * pEntry;
+    if ( pEntry = Nm_ManTableLookupName(p, pName, Type) )
         return pEntry->ObjId;
-    }
     return -1;
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    [Prints distribution of entries in the bins.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Nm_ManPrintTables( Nm_Man_t * p )
-{
-    int i, Counter;
-
-    // rehash the entries from the old table
-    Counter = 0;
-    printf( "Int2Name: " );
-    for ( i = 0; i < p->nBins; i++ )
-    {
-        if ( Counter == 0 && p->pBinsI2N[i] == NULL )
-            continue;
-        if ( p->pBinsI2N[i] )
-            Counter++;
-        else
-        {
-            printf( "%d ", Counter );
-            Counter = 0;
-        }
-    }
-    printf( "\n" );
-
-    // rehash the entries from the old table
-    Counter = 0;
-    printf( "Name2Int: " );
-    for ( i = 0; i < p->nBins; i++ )
-    {
-        if ( Counter == 0 && p->pBinsN2I[i] == NULL )
-            continue;
-        if ( p->pBinsN2I[i] )
-            Counter++;
-        else
-        {
-            printf( "%d ", Counter );
-            Counter = 0;
-        }
-    }
-    printf( "\n" );
 }
 
 /**Function*************************************************************

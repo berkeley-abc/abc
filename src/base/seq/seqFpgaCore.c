@@ -126,7 +126,7 @@ Abc_Ntk_t * Seq_NtkFpgaDup( Abc_Ntk_t * pNtk )
 
     // duplicate the nodes in the mapping
     Vec_PtrForEachEntry( p->vMapAnds, pObj, i )
-        Abc_NtkDupObj( pNtkNew, pObj );
+        Abc_NtkDupObj( pNtkNew, pObj, 0 );
 
     // recursively construct the internals of each node
     Vec_PtrForEachEntry( p->vMapAnds, pObj, i )
@@ -321,7 +321,7 @@ Abc_Ntk_t * Seq_NtkSeqFpgaMapped( Abc_Ntk_t * pNtk )
     }
 
     // add the latches and their names
-    Abc_NtkAddDummyLatchNames( pNtkMap );
+    Abc_NtkAddDummyBoxNames( pNtkMap );
     Abc_NtkOrderCisCos( pNtkMap );
     // fix the problem with complemented and duplicated CO edges
     Abc_NtkLogicMakeSimpleCos( pNtkMap, 1 );

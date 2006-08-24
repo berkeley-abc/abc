@@ -147,9 +147,9 @@ int Abc_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutMax, int nStepsMax, bool fUpd
     if ( fUpdateLevel )
         Abc_NtkStartReverseLevels( pNtk );
 
-    if ( Abc_NtkLatchNum(pNtk) )
-        Abc_NtkForEachLatch(pNtk, pNode, i)
-            pNode->pNext = pNode->pData;
+//    if ( Abc_NtkLatchNum(pNtk) )
+//        Abc_NtkForEachLatch(pNtk, pNode, i)
+//            pNode->pNext = pNode->pData;
 
     // resynthesize each node once
     nNodes = Abc_NtkObjNumMax(pNtk);
@@ -221,9 +221,9 @@ pManRes->timeTotal = clock() - clkStart;
     Abc_NtkForEachObj( pNtk, pNode, i )
         pNode->pData = NULL;
 
-    if ( Abc_NtkLatchNum(pNtk) )
-        Abc_NtkForEachLatch(pNtk, pNode, i)
-            pNode->pData = pNode->pNext, pNode->pNext = NULL;
+//    if ( Abc_NtkLatchNum(pNtk) )
+//        Abc_NtkForEachLatch(pNtk, pNode, i)
+//            pNode->pData = pNode->pNext, pNode->pNext = NULL;
 
     // put the nodes into the DFS order and reassign their IDs
     Abc_NtkReassignIds( pNtk );

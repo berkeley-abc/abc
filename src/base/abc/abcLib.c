@@ -125,6 +125,7 @@ Abc_Ntk_t * Abc_LibDeriveRoot( Abc_Lib_t * pLib )
 ***********************************************************************/
 int Abc_LibDeriveBlackBoxes( Abc_Ntk_t * pNtk, Abc_Lib_t * pLib )
 {
+/*
     Abc_Obj_t * pObj, * pFanin, * pFanout;
     int i, k;
     assert( Abc_NtkIsNetlist(pNtk) );
@@ -161,6 +162,8 @@ int Abc_LibDeriveBlackBoxes( Abc_Ntk_t * pNtk, Abc_Lib_t * pLib )
         }
     }
     return Vec_PtrSize(pNtk->vBoxes);
+*/
+    return 1;
 }
 
 /**Function*************************************************************

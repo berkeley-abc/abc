@@ -621,7 +621,7 @@ int Io_ReadBlifNetworkSubcircuit( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
         Vec_PtrPush( vNames, Extra_UtilStrsav(pName) );  // memory leak!!!
 
     // create a new box and add it to the network
-    pBox = Abc_NtkCreateBox( p->pNtkCur );
+    pBox = Abc_NtkCreateBlackbox( p->pNtkCur );
     // set the pointer to the node names
     Abc_ObjSetData( pBox, vNames );
     // remember the line of the file

@@ -99,7 +99,7 @@ void Abc_ObjRecycle( Abc_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_NtkObjAdd( Abc_Ntk_t * pNtk, Abc_ObjType_t Type )
+Abc_Obj_t * Abc_NtkCreateObj( Abc_Ntk_t * pNtk, Abc_ObjType_t Type )
 {
     Abc_Obj_t * pObj;
     // create new object, assign ID, and add to the array
@@ -139,16 +139,14 @@ Abc_Obj_t * Abc_NtkObjAdd( Abc_Ntk_t * pNtk, Abc_ObjType_t Type )
             Vec_PtrPush( pNtk->vCos, pObj );
             break;
         case ABC_OBJ_NET:  
-            break;
         case ABC_OBJ_NODE: 
+        case ABC_OBJ_GATE: 
             break;
         case ABC_OBJ_LATCH:     
             pObj->pData = (void *)ABC_INIT_NONE;
-            Vec_PtrPush( pNtk->vLatches, pObj );
-            Vec_PtrPush( pNtk->vCis, pObj );
-            Vec_PtrPush( pNtk->vCos, pObj );
-            break;
-        case ABC_OBJ_BOX:     
+        case ABC_OBJ_TRI:     
+        case ABC_OBJ_BLACKBOX:     
+            Vec_PtrPush( pNtk->vBoxes, pObj );
             break;
         default:
             assert(0); 
@@ -189,8 +187,8 @@ void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
     pNtk->nObjCounts[pObj->Type]--;
     pNtk->nObjs--;
     // remove from the table of names
-//    if ( Nm_ManFindNameById(pObj->pNtk->pManName, pObj->Id) )
-//        Nm_ManDeleteIdName(pObj->pNtk->pManName, pObj->Id);
+    if ( Nm_ManFindNameById(pObj->pNtk->pManName, pObj->Id) )
+        Nm_ManDeleteIdName(pObj->pNtk->pManName, pObj->Id);
     // perform specialized operations depending on the object type
     switch (pObj->Type)
     {
@@ -222,7 +220,7 @@ void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
             Vec_PtrRemove( pNtk->vCos, pObj );
             break;
         case ABC_OBJ_NET:  
-            pObj->pData = NULL;
+        case ABC_OBJ_GATE:  
             break;
         case ABC_OBJ_NODE: 
             if ( Abc_NtkHasBdd(pNtk) )
@@ -230,11 +228,9 @@ void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
             pObj->pData = NULL;
             break;
         case ABC_OBJ_LATCH:     
-            Vec_PtrRemove( pNtk->vLatches, pObj );
-            Vec_PtrRemove( pNtk->vCis, pObj );
-            Vec_PtrRemove( pNtk->vCos, pObj );
-            break;
-        case ABC_OBJ_BOX:     
+        case ABC_OBJ_TRI:     
+        case ABC_OBJ_BLACKBOX:     
+            Vec_PtrRemove( pNtk->vBoxes, pObj );
             break;
         default:
             assert(0); 
@@ -283,11 +279,21 @@ void Abc_NtkDeleteObj_rec( Abc_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
+Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, int fCopyName )
 {
     Abc_Obj_t * pObjNew;
     // create the new object
-    pObjNew = Abc_NtkObjAdd( pNtkNew, pObj->Type );
+    pObjNew = Abc_NtkCreateObj( pNtkNew, pObj->Type );
+    // transfer names of the terminal objects
+    if ( fCopyName )
+    {
+        if ( Abc_ObjIsCi(pObj) )
+            Abc_ObjAssignName( pObjNew, Abc_ObjName(Abc_ObjFanout0Ntk(pObj)), NULL );
+        else if ( Abc_ObjIsCo(pObj) )
+            Abc_ObjAssignName( pObjNew, Abc_ObjName(Abc_ObjFanin0Ntk(pObj)), NULL );
+        else if ( Abc_ObjIsBox(pObj) )
+            Abc_ObjAssignName( pObjNew, Abc_ObjName(pObj), NULL );
+    }
     // copy functionality/names
     if ( Abc_ObjIsNode(pObj) ) // copy the function if functionality is compatible
     {
@@ -308,12 +314,40 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj )
     }
     else if ( Abc_ObjIsNet(pObj) ) // copy the name
     {
-        pObjNew->pData = Nm_ManStoreIdName( pNtkNew->pManName, pObjNew->Id, pObj->pData, NULL );
+        assert( 0 );
+//        pObjNew->pData = Nm_ManStoreIdName( pNtkNew->pManName, pObjNew->Id, pObj->pData, NULL );
     }
     else if ( Abc_ObjIsLatch(pObj) ) // copy the reset value
         pObjNew->pData = pObj->pData;
     pObj->pCopy = pObjNew;
     return pObjNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the latch with its input/output terminals.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Abc_NtkDupBox( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pBox, int fCopyName )
+{
+    Abc_Obj_t * pTerm, * pBoxNew;
+    int i;
+    assert( Abc_ObjIsBox(pBox) );
+    // duplicate the box 
+    pBoxNew = Abc_NtkDupObj( pNtkNew, pBox, fCopyName );
+    // duplicate the fanins and connect them
+    Abc_ObjForEachFanin( pBox, pTerm, i )
+        Abc_ObjAddFanin( pBoxNew, Abc_NtkDupObj(pNtkNew, pTerm, fCopyName) );
+    // duplicate the fanouts and connect them
+    Abc_ObjForEachFanout( pBox, pTerm, i )
+        Abc_ObjAddFanin( Abc_NtkDupObj(pNtkNew, pTerm, fCopyName), pBoxNew );
+    return pBoxNew;
 }
 
 /**Function*************************************************************
@@ -331,7 +365,7 @@ Abc_Obj_t * Abc_NtkCloneObj( Abc_Obj_t * pObj )
 {
     Abc_Obj_t * pClone, * pFanin;
     int i;
-    pClone = Abc_NtkObjAdd( pObj->pNtk, pObj->Type );   
+    pClone = Abc_NtkCreateObj( pObj->pNtk, pObj->Type );   
     Abc_ObjForEachFanin( pObj, pFanin, i )
         Abc_ObjAddFanin( pClone, pFanin );
     return pClone;
@@ -351,34 +385,18 @@ Abc_Obj_t * Abc_NtkCloneObj( Abc_Obj_t * pObj )
 ***********************************************************************/
 Abc_Obj_t * Abc_NtkFindNode( Abc_Ntk_t * pNtk, char * pName )
 {
-    Abc_Obj_t * pObj, * pDriver;
-    int i, Num;
-    // check if the node is among CIs
-    Abc_NtkForEachCi( pNtk, pObj, i )
-    {
-        if ( strcmp( Abc_ObjName(pObj), pName ) == 0 )
-        {
-            if ( i < Abc_NtkPiNum(pNtk) )
-                printf( "Node \"%s\" is a primary input.\n", pName );
-            else
-                printf( "Node \"%s\" is a latch output.\n", pName );
-            return NULL;
-        }
-    }
-    // search the node among COs
-    Abc_NtkForEachCo( pNtk, pObj, i )
-    {
-        if ( strcmp( Abc_ObjName(pObj), pName ) == 0 )
-        {
-            pDriver = Abc_ObjFanin0(pObj);
-            if ( !Abc_ObjIsNode(pDriver) )
-            {
-                printf( "Node \"%s\" does not have logic associated with it.\n", pName );
-                return NULL;
-            }
-            return pDriver;
-        }
-    }
+    Abc_Obj_t * pObj;
+    int Num;
+    // try to find the terminal
+    Num = Nm_ManFindIdByName( pNtk->pManName, pName, ABC_OBJ_PO );
+    if ( Num >= 0 )
+        return Abc_NtkObj( pNtk, Num );
+    Num = Nm_ManFindIdByName( pNtk->pManName, pName, ABC_OBJ_BO );
+    if ( Num >= 0 )
+        return Abc_NtkObj( pNtk, Num );
+    Num = Nm_ManFindIdByName( pNtk->pManName, pName, ABC_OBJ_NODE );
+    if ( Num >= 0 )
+        return Abc_NtkObj( pNtk, Num );
     // find the internal node
     if ( pName[0] != '[' || pName[strlen(pName)-1] != ']' )
     {
@@ -421,7 +439,7 @@ Abc_Obj_t * Abc_NtkFindNet( Abc_Ntk_t * pNtk, char * pName )
     Abc_Obj_t * pNet;
     int ObjId;
     assert( Abc_NtkIsNetlist(pNtk) );
-    ObjId = Nm_ManFindIdByName( pNtk->pManName, pName, NULL );
+    ObjId = Nm_ManFindIdByName( pNtk->pManName, pName, ABC_OBJ_NET );
     if ( ObjId == -1 )
         return NULL;
     pNet = Abc_NtkObj( pNtk, ObjId );
@@ -430,26 +448,52 @@ Abc_Obj_t * Abc_NtkFindNet( Abc_Ntk_t * pNtk, char * pName )
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the CI/CO terminal with the given name.]
+ Synopsis    [Returns CI with the given name.]
 
-  Description []
-               
-  SideEffects []
+ Description []
+              
+ SideEffects []
 
-  SeeAlso     []
+ SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_NtkFindTerm( Abc_Ntk_t * pNtk, char * pName )
+Abc_Obj_t * Abc_NtkFindCi( Abc_Ntk_t * pNtk, char * pName )
 {
-    Abc_Obj_t * pNet;
-    int ObjId;
+    int Num;
     assert( !Abc_NtkIsNetlist(pNtk) );
-    ObjId = Nm_ManFindIdByName( pNtk->pManName, pName, NULL );
-    if ( ObjId == -1 )
-        return NULL;
-    pNet = Abc_NtkObj( pNtk, ObjId );
-    return pNet;
+    Num = Nm_ManFindIdByName( pNtk->pManName, pName, ABC_OBJ_PI );
+    if ( Num >= 0 )
+        return Abc_NtkObj( pNtk, Num );
+    Num = Nm_ManFindIdByName( pNtk->pManName, pName, ABC_OBJ_BI );
+    if ( Num >= 0 )
+        return Abc_NtkObj( pNtk, Num );
+    return NULL;
 }
+
+/**Function*************************************************************
+
+ Synopsis    [Returns CO with the given name.]
+
+ Description []
+              
+ SideEffects []
+
+ SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Abc_NtkFindCo( Abc_Ntk_t * pNtk, char * pName )
+{
+    int Num;
+    assert( !Abc_NtkIsNetlist(pNtk) );
+    Num = Nm_ManFindIdByName( pNtk->pManName, pName, ABC_OBJ_PO );
+    if ( Num >= 0 )
+        return Abc_NtkObj( pNtk, Num );
+    Num = Nm_ManFindIdByName( pNtk->pManName, pName, ABC_OBJ_BO );
+    if ( Num >= 0 )
+        return Abc_NtkObj( pNtk, Num );
+    return NULL;
+}
+
 
 /**Function*************************************************************
 
@@ -469,8 +513,9 @@ Abc_Obj_t * Abc_NtkFindOrCreateNet( Abc_Ntk_t * pNtk, char * pName )
     if ( pName && (pNet = Abc_NtkFindNet( pNtk, pName )) )
         return pNet;
     // create a new net
-    pNet = Abc_NtkObjAdd( pNtk, ABC_OBJ_NET );
-    pNet->pData = pName? Nm_ManStoreIdName( pNtk->pManName, pNet->Id, pName, NULL ) : NULL;
+    pNet = Abc_NtkCreateObj( pNtk, ABC_OBJ_NET );
+    if ( pName )
+        Nm_ManStoreIdName( pNtk->pManName, pNet->Id, pNet->Type, pName, NULL );
     return pNet;
 }
 

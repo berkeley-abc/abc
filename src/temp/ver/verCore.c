@@ -752,7 +752,7 @@ int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtkGate )
         if ( Abc_NtkIsNetlist(pNtkGate) )
             pNetFormal = Abc_NtkFindNet( pNtkGate, pWord );
         else // if ( Abc_NtkIsStrash(pNtkGate) )
-            pNetFormal = Abc_NtkFindTerm( pNtkGate, pWord );
+            assert( 0 );
         if ( pNetFormal == NULL )
         {
             sprintf( pMan->sError, "Formal net is missing in gate %s.", pWord );
@@ -865,7 +865,7 @@ int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtkGate )
         memset( pPolarity, 0, nBytes );
     }
     // create box to represent this gate
-    pNode = Abc_NtkCreateBox( pMan->pNtkCur );
+    pNode = Abc_NtkCreateBlackbox( pMan->pNtkCur );
     pNode->pNext = (Abc_Obj_t *)pPolarity;
     pNode->pData = pNtkGate;
     // connect to fanin nets

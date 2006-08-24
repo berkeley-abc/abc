@@ -502,6 +502,10 @@ Abc_Ntk_t * Abc_NtkFromAigSeq( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan, int fHaig 
     Ivy_ManForEachNodeVec( pMan, vLatches, pNode, i )
     {
         pObjNew = Abc_NtkCreateLatch( pNtk );
+        pFaninNew0 = Abc_NtkCreateBo( pNtk );
+        pFaninNew1 = Abc_NtkCreateBi( pNtk );
+        Abc_ObjAddFanin( pObjNew, pFaninNew0 );
+        Abc_ObjAddFanin( pFaninNew1, pObjNew );
         if ( fHaig || Ivy_ObjInit(pNode) == IVY_INIT_DC )
             Abc_LatchSetInitDc( pObjNew );
         else if ( Ivy_ObjInit(pNode) == IVY_INIT_1 )
@@ -509,8 +513,9 @@ Abc_Ntk_t * Abc_NtkFromAigSeq( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan, int fHaig 
         else if ( Ivy_ObjInit(pNode) == IVY_INIT_0 )
             Abc_LatchSetInit0( pObjNew );
         else assert( 0 );
-        pNode->TravId = Abc_EdgeFromNode( pObjNew );
+        pNode->TravId = Abc_EdgeFromNode( pFaninNew1 );
     }
+    Abc_NtkAddDummyBoxNames( pNtk );
     // rebuild the AIG
     Ivy_ManForEachNodeVec( pMan, vNodes, pNode, i )
     {
@@ -556,7 +561,7 @@ Abc_Ntk_t * Abc_NtkFromAigSeq( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan, int fHaig 
     Ivy_ManForEachNodeVec( pMan, vLatches, pNode, i )
     {
         pFaninNew = Abc_ObjFanin0Ivy( pNtk, pNode );
-        Abc_ObjAddFanin( Abc_NtkLatch(pNtk, i), pFaninNew );
+        Abc_ObjAddFanin( Abc_ObjFanin0(Abc_NtkBox(pNtk, i)), pFaninNew );
     }
     Vec_IntFree( vLatches );
     Vec_IntFree( vNodes );

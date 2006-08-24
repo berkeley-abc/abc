@@ -106,8 +106,8 @@ int Abc_NtkRR( Abc_Ntk_t * pNtk, int nFaninLevels, int nFanoutLevels, int fUseFa
     p->nNodesOld     = Abc_NtkNodeNum(pNtk);
     p->nLevelsOld    = Abc_AigGetLevelNum(pNtk);
     // remember latch values
-    Abc_NtkForEachLatch( pNtk, pNode, i )
-        pNode->pNext = pNode->pData;
+//    Abc_NtkForEachLatch( pNtk, pNode, i )
+//        pNode->pNext = pNode->pData;
     // go through the nodes
     Abc_NtkCleanCopy(pNtk);
     nNodes = Abc_NtkObjNumMax(pNtk);
@@ -216,8 +216,8 @@ int Abc_NtkRR( Abc_Ntk_t * pNtk, int nFaninLevels, int nFanoutLevels, int fUseFa
         Abc_RRManPrintStats( p );
     Abc_RRManStop( p );
     // restore latch values
-    Abc_NtkForEachLatch( pNtk, pNode, i )
-        pNode->pData = pNode->pNext, pNode->pNext = NULL;
+//    Abc_NtkForEachLatch( pNtk, pNode, i )
+//        pNode->pData = pNode->pNext, pNode->pNext = NULL;
     // put the nodes into the DFS order and reassign their IDs
     Abc_NtkReassignIds( pNtk );
     Abc_NtkGetLevelNum( pNtk );

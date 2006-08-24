@@ -30,11 +30,12 @@
 
 /**Function*************************************************************
 
-  Synopsis    [Gets the long name of the object.]
+  Synopsis    [Returns the unique name for the object.]
 
-  Description [The temporary name is stored in a static buffer inside this
-  procedure. It is important that the name is used before the function is 
-  called again!]
+  Description [If the name previously did not exist, creates a new unique
+  name but does not assign this name to the object. The temporary unique
+  name is stored in a static buffer inside this procedure. It is important 
+  that the name is used before the function is called again!]
                
   SideEffects []
 
@@ -43,43 +44,28 @@
 ***********************************************************************/
 char * Abc_ObjName( Abc_Obj_t * pObj )
 {
-    static char Buffer[500];
-    char * pName;
-    int Counter;
+    return Nm_ManCreateUniqueName( pObj->pNtk->pManName, pObj->Id );
+}
 
-    // check if the object is in the lookup table
-//    if ( stmm_lookup( pObj->pNtk->tObj2Name, (char *)pObj, &pName ) )
-//        return pName;
-    if ( pName = Nm_ManFindNameById(pObj->pNtk->pManName, pObj->Id) )
-        return pName;
+/**Function*************************************************************
 
-    // consider network types
-    if ( Abc_NtkIsNetlist(pObj->pNtk) )
-    {
-        // in a netlist, nets have names, nodes have no names
-        if ( Abc_ObjIsNode(pObj) )
-            pObj = Abc_ObjFanout0(pObj);
-        assert( Abc_ObjIsNet(pObj) );
-        // if the name is not given, invent it
-        if ( pObj->pData )
-            sprintf( Buffer, "%s", pObj->pData );
-        else
-        {
-            sprintf( Buffer, "[%d]", pObj->Id ); // make sure this name is unique!!!
-            for ( Counter = 1; Nm_ManFindIdByName(pObj->pNtk->pManName, Buffer, NULL) >= 0; Counter++ )
-                sprintf( Buffer, "[%d]_%d", pObj->Id, Counter );
-        }
-    }
-    else
-    {
-        // in a logic network, PI/PO/latch names are stored in the hash table
-        // internal nodes have made up names
-        assert( Abc_ObjIsNode(pObj) || Abc_ObjIsLatch(pObj) );
-        sprintf( Buffer, "[%d]", pObj->Id );
-        for ( Counter = 1; Nm_ManFindIdByName(pObj->pNtk->pManName, Buffer, NULL) >= 0; Counter++ )
-            sprintf( Buffer, "[%d]_%d", pObj->Id, Counter );
-    }
-    return Buffer;
+  Synopsis    [Assigns the given name to the object.]
+
+  Description [The object should not have a name assigned. The same
+  name may be used for several objects, which they share the same net
+  in the original netlist. (For example, latch output and primary output 
+  may have the same name.) This procedure returns the pointer to the 
+  internally stored representation of the given name.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_ObjAssignName( Abc_Obj_t * pObj, char * pName, char * pSuffix )
+{
+    assert( pName != NULL );
+    return Nm_ManStoreIdName( pObj->pNtk->pManName, pObj->Id, pObj->Type, pName, pSuffix );
 }
 
 /**Function*************************************************************
@@ -100,7 +86,6 @@ char * Abc_ObjNameSuffix( Abc_Obj_t * pObj, char * pSuffix )
     return Buffer;
 }
 
-
 /**Function*************************************************************
 
   Synopsis    [Returns the dummy PI name.]
@@ -119,92 +104,48 @@ char * Abc_ObjNameDummy( char * pPrefix, int Num, int nDigits )
     return Buffer;
 }
 
-
 /**Function*************************************************************
 
-  Synopsis    [Adds new name to the network.]
+  Synopsis    [Tranfers names to the old network.]
 
-  Description [The new object (pObjNew) is a PI, PO or latch. The name
-  is registered and added to the hash table.]
+  Description [Assumes that the new nodes are attached using pObj->pCopy.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_NtkLogicStoreName( Abc_Obj_t * pObjNew, char * pNameOld )
+void Abc_NtkTrasferNames( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
 {
-    return Nm_ManStoreIdName( pObjNew->pNtk->pManName, pObjNew->Id, pNameOld, NULL );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Adds new name to the network.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-char * Abc_NtkLogicStoreNamePlus( Abc_Obj_t * pObjNew, char * pNameOld, char * pSuffix )
-{
-    return Nm_ManStoreIdName( pObjNew->pNtk->pManName, pObjNew->Id, pNameOld, pSuffix );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Duplicates the name arrays.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkDupCioNamesTable( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
-{
-    Abc_Obj_t * pObj, * pTerm;
-    int i, k;
+    Abc_Obj_t * pObj;
+    int i;
     assert( Abc_NtkPiNum(pNtk) == Abc_NtkPiNum(pNtkNew) );
     assert( Abc_NtkPoNum(pNtk) == Abc_NtkPoNum(pNtkNew) );
+    assert( Abc_NtkBoxNum(pNtk) == Abc_NtkBoxNum(pNtkNew) );
     assert( Abc_NtkAssertNum(pNtk) == Abc_NtkAssertNum(pNtkNew) );
-    assert( Abc_NtkLatchNum(pNtk) == Abc_NtkLatchNum(pNtkNew) );
     assert( Nm_ManNumEntries(pNtk->pManName) > 0 );
     assert( Nm_ManNumEntries(pNtkNew->pManName) == 0 );
-    // copy the CI/CO names if given
-    Abc_NtkForEachPi( pNtk, pObj, i )
-        Abc_NtkLogicStoreName( Abc_NtkPi(pNtkNew,i),      Abc_ObjName(Abc_ObjFanout0Ntk(pObj)) );
-    Abc_NtkForEachPo( pNtk, pObj, i ) 
-        Abc_NtkLogicStoreName( Abc_NtkPo(pNtkNew,i),      Abc_ObjName(Abc_ObjFanin0Ntk(pObj)) );
-    Abc_NtkForEachAssert( pNtk, pObj, i ) 
-        Abc_NtkLogicStoreName( Abc_NtkAssert(pNtkNew,i),  Abc_ObjName(Abc_ObjFanin0Ntk(pObj)) );
-    Abc_NtkForEachBox( pNtk, pObj, i )
-    {
-        Abc_ObjForEachFanin( pObj, pTerm, k )
-            Abc_NtkLogicStoreName( pTerm->pCopy,          Abc_ObjName(Abc_ObjFanin0Ntk(pTerm)) );
-        Abc_ObjForEachFanout( pObj, pTerm, k )
-            Abc_NtkLogicStoreName( pTerm->pCopy,          Abc_ObjName(Abc_ObjFanout0Ntk(pTerm)) );
-    }
-    if ( !Abc_NtkIsSeq(pNtk) )
-    Abc_NtkForEachLatch( pNtk, pObj, i )
-        Abc_NtkLogicStoreName( Abc_NtkLatch(pNtkNew,i),   Abc_ObjName(Abc_ObjFanout0Ntk(pObj)) );
+    // copy the CI/CO/box names
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        Abc_ObjAssignName( pObj->pCopy, Abc_ObjName(Abc_ObjFanout0Ntk(pObj)), NULL );
+    Abc_NtkForEachCo( pNtk, pObj, i ) 
+        Abc_ObjAssignName( pObj->pCopy, Abc_ObjName(Abc_ObjFanin0Ntk(pObj)), NULL );
+    Abc_NtkForEachBox( pNtk, pObj, i ) 
+        Abc_ObjAssignName( pObj->pCopy, Abc_ObjName(pObj), NULL );
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Duplicates the name arrays.]
+  Synopsis    [Tranfers names to the old network.]
 
-  Description []
+  Description [Assumes that the new nodes are attached using pObj->pCopy.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkDupCioNamesTableNoLatches( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
+void Abc_NtkTrasferNamesNoLatches( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
 {
     Abc_Obj_t * pObj;
     int i;
@@ -213,48 +154,16 @@ void Abc_NtkDupCioNamesTableNoLatches( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
     assert( Abc_NtkAssertNum(pNtk) == Abc_NtkAssertNum(pNtkNew) );
     assert( Nm_ManNumEntries(pNtk->pManName) > 0 );
     assert( Nm_ManNumEntries(pNtkNew->pManName) == 0 );
-    // copy the CI/CO names if given
-    Abc_NtkForEachPi( pNtk, pObj, i )
-        Abc_NtkLogicStoreName( Abc_NtkPi(pNtkNew,i),      Abc_ObjName(Abc_ObjFanout0Ntk(pObj)) );
-    Abc_NtkForEachPo( pNtk, pObj, i ) 
-        Abc_NtkLogicStoreName( Abc_NtkPo(pNtkNew,i),      Abc_ObjName(Abc_ObjFanin0Ntk(pObj)) );
-    Abc_NtkForEachAssert( pNtk, pObj, i ) 
-        Abc_NtkLogicStoreName( Abc_NtkAssert(pNtkNew,i),  Abc_ObjName(Abc_ObjFanin0Ntk(pObj)) );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Duplicates the name arrays.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkDupCioNamesTableDual( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
-{
-    Abc_Obj_t * pObj;
-    int i;
-    assert( Abc_NtkPiNum(pNtk) == Abc_NtkPiNum(pNtkNew) );
-    assert( Abc_NtkPoNum(pNtk) * 2 == Abc_NtkPoNum(pNtkNew) );
-    assert( Abc_NtkLatchNum(pNtk) == Abc_NtkLatchNum(pNtkNew) );
-    assert( Nm_ManNumEntries(pNtk->pManName) > 0 );
-    assert( Nm_ManNumEntries(pNtkNew->pManName) == 0 );
-    // copy the CI/CO names if given
-    Abc_NtkForEachPi( pNtk, pObj, i )
-        Abc_NtkLogicStoreName( Abc_NtkPi(pNtkNew,i),    Abc_ObjName(pObj) );
-    Abc_NtkForEachPo( pNtk, pObj, i ) 
-    {
-        Abc_NtkLogicStoreNamePlus( Abc_NtkPo(pNtkNew,2*i+0),    Abc_ObjName(pObj), "_pos" );
-        Abc_NtkLogicStoreNamePlus( Abc_NtkPo(pNtkNew,2*i+1),    Abc_ObjName(pObj), "_neg" );
-    }
-    Abc_NtkForEachAssert( pNtk, pObj, i ) 
-        Abc_NtkLogicStoreName( Abc_NtkAssert(pNtkNew,i),  Abc_ObjName(pObj) );
-    if ( !Abc_NtkIsSeq(pNtk) )
-    Abc_NtkForEachLatch( pNtk, pObj, i )
-        Abc_NtkLogicStoreName( Abc_NtkLatch(pNtkNew,i), Abc_ObjName(pObj) );
+    // copy the CI/CO/box name and skip latches and theirs inputs/outputs
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        if ( Abc_ObjFaninNum(pObj) == 0 || !Abc_ObjIsLatch(Abc_ObjFanin0(pObj)) )
+            Abc_ObjAssignName( pObj->pCopy, Abc_ObjName(Abc_ObjFanout0Ntk(pObj)), NULL );
+    Abc_NtkForEachCo( pNtk, pObj, i ) 
+        if ( Abc_ObjFanoutNum(pObj) == 0 || !Abc_ObjIsLatch(Abc_ObjFanout0(pObj)) )
+            Abc_ObjAssignName( pObj->pCopy, Abc_ObjName(Abc_ObjFanin0Ntk(pObj)), NULL );
+    Abc_NtkForEachBox( pNtk, pObj, i ) 
+        if ( !Abc_ObjIsLatch(pObj) )
+            Abc_ObjAssignName( pObj->pCopy, Abc_ObjName(pObj), NULL );
 }
 
 /**Function*************************************************************
@@ -403,12 +312,14 @@ void Abc_NtkOrderObjsByName( Abc_Ntk_t * pNtk, int fComb )
 {
     Abc_Obj_t * pObj;
     int i;
+    assert( Abc_NtkAssertNum(pNtk) == 0 );
+    assert( Abc_NtkHasOnlyLatchBoxes(pNtk) );
     // temporarily store the names in the copy field
     Abc_NtkForEachPi( pNtk, pObj, i )
         pObj->pCopy = (Abc_Obj_t *)Abc_ObjName(pObj);
     Abc_NtkForEachPo( pNtk, pObj, i )
         pObj->pCopy = (Abc_Obj_t *)Abc_ObjName(pObj);
-    Abc_NtkForEachLatch( pNtk, pObj, i )
+    Abc_NtkForEachBox( pNtk, pObj, i )
         pObj->pCopy = (Abc_Obj_t *)Abc_ObjName(pObj);
     // order objects alphabetically
     qsort( (void *)Vec_PtrArray(pNtk->vPis), Vec_PtrSize(pNtk->vPis), sizeof(Abc_Obj_t *), 
@@ -417,7 +328,7 @@ void Abc_NtkOrderObjsByName( Abc_Ntk_t * pNtk, int fComb )
         (int (*)(const void *, const void *)) Abc_NodeCompareNames );
     // if the comparison if combinational (latches as PIs/POs), order them too
     if ( fComb )
-        qsort( (void *)Vec_PtrArray(pNtk->vLatches), Vec_PtrSize(pNtk->vLatches), sizeof(Abc_Obj_t *), 
+        qsort( (void *)Vec_PtrArray(pNtk->vBoxes), Vec_PtrSize(pNtk->vBoxes), sizeof(Abc_Obj_t *), 
             (int (*)(const void *, const void *)) Abc_NodeCompareNames );
     // order CIs/COs first PIs/POs(Asserts) then latches
     Abc_NtkOrderCisCos( pNtk );
@@ -426,7 +337,7 @@ void Abc_NtkOrderObjsByName( Abc_Ntk_t * pNtk, int fComb )
         pObj->pCopy = NULL;
     Abc_NtkForEachPo( pNtk, pObj, i )
         pObj->pCopy = NULL;
-    Abc_NtkForEachLatch( pNtk, pObj, i )
+    Abc_NtkForEachBox( pNtk, pObj, i )
         pObj->pCopy = NULL;
 }
 
@@ -447,7 +358,7 @@ void Abc_NtkAddDummyPiNames( Abc_Ntk_t * pNtk )
     int nDigits, i;
     nDigits = Extra_Base10Log( Abc_NtkPiNum(pNtk) );
     Abc_NtkForEachPi( pNtk, pObj, i )
-        Abc_NtkLogicStoreName( pObj, Abc_ObjNameDummy("pi", i, nDigits) );
+        Abc_ObjAssignName( pObj, Abc_ObjNameDummy("pi", i, nDigits), NULL );
 }
 
 /**Function*************************************************************
@@ -467,7 +378,7 @@ void Abc_NtkAddDummyPoNames( Abc_Ntk_t * pNtk )
     int nDigits, i;
     nDigits = Extra_Base10Log( Abc_NtkPoNum(pNtk) );
     Abc_NtkForEachPo( pNtk, pObj, i )
-        Abc_NtkLogicStoreName( pObj, Abc_ObjNameDummy("po", i, nDigits) );
+        Abc_ObjAssignName( pObj, Abc_ObjNameDummy("po", i, nDigits), NULL );
 }
 
 /**Function*************************************************************
@@ -487,7 +398,7 @@ void Abc_NtkAddDummyAssertNames( Abc_Ntk_t * pNtk )
     int nDigits, i;
     nDigits = Extra_Base10Log( Abc_NtkAssertNum(pNtk) );
     Abc_NtkForEachAssert( pNtk, pObj, i )
-        Abc_NtkLogicStoreName( pObj, Abc_ObjNameDummy("a", i, nDigits) );
+        Abc_ObjAssignName( pObj, Abc_ObjNameDummy("a", i, nDigits), NULL );
 }
 
 /**Function*************************************************************
@@ -501,13 +412,37 @@ void Abc_NtkAddDummyAssertNames( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkAddDummyLatchNames( Abc_Ntk_t * pNtk )
+void Abc_NtkAddDummyBoxNames( Abc_Ntk_t * pNtk )
 {
-    Abc_Obj_t * pObj;
-    int nDigits, i;
+    Abc_Obj_t * pObj, * pTerm;
+    int nDigits, nDigitsF, i, k;
+    char * pName;
     nDigits = Extra_Base10Log( Abc_NtkLatchNum(pNtk) );
     Abc_NtkForEachLatch( pNtk, pObj, i )
-        Abc_NtkLogicStoreName( pObj, Abc_ObjNameDummy("L", i, nDigits) );
+    {
+        Abc_ObjAssignName( pObj, Abc_ObjNameDummy("L", i, nDigits), NULL );
+        Abc_ObjAssignName( Abc_ObjFanin0(pObj),  Abc_ObjNameDummy("Li", i, nDigits), NULL );
+        Abc_ObjAssignName( Abc_ObjFanout0(pObj), Abc_ObjNameDummy("Lo", i, nDigits), NULL );
+    }
+    nDigits = Extra_Base10Log( Abc_NtkTriNum(pNtk) );
+    Abc_NtkForEachTri( pNtk, pObj, i )
+    {
+        Abc_ObjAssignName( pObj, Abc_ObjNameDummy("T", i, nDigits), NULL );
+        Abc_ObjAssignName( Abc_ObjFanin0(pObj),  Abc_ObjNameDummy("Ti0", i, nDigits), NULL );
+        Abc_ObjAssignName( Abc_ObjFanin1(pObj),  Abc_ObjNameDummy("Ti1", i, nDigits), NULL );
+        Abc_ObjAssignName( Abc_ObjFanout0(pObj), Abc_ObjNameDummy("To", i, nDigits), NULL );
+    }
+    nDigits = Extra_Base10Log( Abc_NtkBlackboxNum(pNtk) );
+    Abc_NtkForEachBlackbox( pNtk, pObj, i )
+    {
+        pName = Abc_ObjAssignName( pObj, Abc_ObjNameDummy("B", i, nDigits), NULL );
+        nDigitsF = Extra_Base10Log( Abc_ObjFaninNum(pObj) );
+        Abc_ObjForEachFanin( pObj, pTerm, k )
+            Abc_ObjAssignName( Abc_ObjFanin0(pObj), pName, Abc_ObjNameDummy("i", k, nDigitsF) );
+        nDigitsF = Extra_Base10Log( Abc_ObjFanoutNum(pObj) );
+        Abc_ObjForEachFanout( pObj, pTerm, k )
+            Abc_ObjAssignName( Abc_ObjFanin0(pObj), pName, Abc_ObjNameDummy("o", k, nDigitsF) );
+    }
 }
 
 /**Function*************************************************************
@@ -524,11 +459,11 @@ void Abc_NtkAddDummyLatchNames( Abc_Ntk_t * pNtk )
 void Abc_NtkShortNames( Abc_Ntk_t * pNtk )
 {
     Nm_ManFree( pNtk->pManName );
-    pNtk->pManName = Nm_ManCreate( Abc_NtkCiNum(pNtk) + Abc_NtkCoNum(pNtk) - Abc_NtkLatchNum(pNtk) + 10 );
+    pNtk->pManName = Nm_ManCreate( Abc_NtkCiNum(pNtk) + Abc_NtkCoNum(pNtk) + Abc_NtkBoxNum(pNtk) );
     Abc_NtkAddDummyPiNames( pNtk );
     Abc_NtkAddDummyPoNames( pNtk );
     Abc_NtkAddDummyAssertNames( pNtk );
-    Abc_NtkAddDummyLatchNames( pNtk );
+    Abc_NtkAddDummyBoxNames( pNtk );
 }
 
 ////////////////////////////////////////////////////////////////////////

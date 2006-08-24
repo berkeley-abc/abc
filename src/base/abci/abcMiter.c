@@ -54,6 +54,8 @@ Abc_Ntk_t * Abc_NtkMiter( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb )
 {
     Abc_Ntk_t * pTemp = NULL;
     int fRemove1, fRemove2;
+    assert( Abc_NtkHasOnlyLatchBoxes(pNtk1) );
+    assert( Abc_NtkHasOnlyLatchBoxes(pNtk2) );
     // check that the networks have the same PIs/POs/latches
     if ( !Abc_NtkCompareSignals( pNtk1, pNtk2, fComb ) )
         return NULL;
@@ -139,12 +141,12 @@ void Abc_NtkMiterPrepare( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Abc_Ntk_t * pNtk
             pObj = Abc_NtkCi(pNtk2, i);  
             pObj->pCopy = pObjNew;
             // add name
-            Abc_NtkLogicStoreName( pObjNew, Abc_ObjName(pObj) );
+            Abc_ObjAssignName( pObjNew, Abc_ObjName(pObj), NULL );
         }
         // create the only PO
         pObjNew = Abc_NtkCreatePo( pNtkMiter );
         // add the PO name
-        Abc_NtkLogicStoreName( pObjNew, "miter" );
+        Abc_ObjAssignName( pObjNew, "miter", NULL );
     }
     else
     {
@@ -157,24 +159,28 @@ void Abc_NtkMiterPrepare( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Abc_Ntk_t * pNtk
             pObj = Abc_NtkPi(pNtk2, i);  
             pObj->pCopy = pObjNew;
             // add name
-            Abc_NtkLogicStoreName( pObjNew, Abc_ObjName(pObj) );
+            Abc_ObjAssignName( pObjNew, Abc_ObjName(pObj), NULL );
         }
         // create the only PO
         pObjNew = Abc_NtkCreatePo( pNtkMiter );
         // add the PO name
-        Abc_NtkLogicStoreName( pObjNew, "miter" );
+        Abc_ObjAssignName( pObjNew, "miter", NULL );
         // create the latches
         Abc_NtkForEachLatch( pNtk1, pObj, i )
         {
-            pObjNew = Abc_NtkDupObj( pNtkMiter, pObj );
-            // add name
-            Abc_NtkLogicStoreNamePlus( pObjNew, Abc_ObjName(pObj), "_1" );
+            pObjNew = Abc_NtkDupBox( pNtkMiter, pObj, 0 );
+            // add names
+            Abc_ObjAssignName( pObjNew, Abc_ObjName(pObj), "_1" );
+            Abc_ObjAssignName( Abc_ObjFanin0(pObjNew),  Abc_ObjName(Abc_ObjFanin0(pObj)), "_1" );
+            Abc_ObjAssignName( Abc_ObjFanout0(pObjNew), Abc_ObjName(Abc_ObjFanout0(pObj)), "_1" );
         }
         Abc_NtkForEachLatch( pNtk2, pObj, i )
         {
-            pObjNew = Abc_NtkDupObj( pNtkMiter, pObj );
+            pObjNew = Abc_NtkDupBox( pNtkMiter, pObj, 0 );
             // add name
-            Abc_NtkLogicStoreNamePlus( pObjNew, Abc_ObjName(pObj), "_2" );
+            Abc_ObjAssignName( pObjNew, Abc_ObjName(pObj), "_2" );
+            Abc_ObjAssignName( Abc_ObjFanin0(pObjNew),  Abc_ObjName(Abc_ObjFanin0(pObj)), "_2" );
+            Abc_ObjAssignName( Abc_ObjFanout0(pObjNew), Abc_ObjName(Abc_ObjFanout0(pObj)), "_2" );
         }
     }
 }
@@ -265,9 +271,9 @@ void Abc_NtkMiterFinalize( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Abc_Ntk_t * pNt
         }
         // connect new latches
         Abc_NtkForEachLatch( pNtk1, pNode, i )
-            Abc_ObjAddFanin( pNode->pCopy, Abc_ObjChild0Copy(pNode) );
+            Abc_ObjAddFanin( Abc_ObjFanin0(pNode)->pCopy, Abc_ObjChild0Copy(Abc_ObjFanin0(pNode)) );
         Abc_NtkForEachLatch( pNtk2, pNode, i )
-            Abc_ObjAddFanin( pNode->pCopy, Abc_ObjChild0Copy(pNode) );
+            Abc_ObjAddFanin( Abc_ObjFanin0(pNode)->pCopy, Abc_ObjChild0Copy(Abc_ObjFanin0(pNode)) );
     }
     // add the miter
     pMiter = Abc_AigMiter( pNtkMiter->pManFunc, vPairs );
@@ -302,6 +308,8 @@ Abc_Ntk_t * Abc_NtkMiterAnd( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
     assert( 0 == Abc_NtkLatchNum(pNtk1) );
     assert( 0 == Abc_NtkLatchNum(pNtk2) );
     assert( Abc_NtkCiNum(pNtk1) == Abc_NtkCiNum(pNtk2) );
+    assert( Abc_NtkHasOnlyLatchBoxes(pNtk1) );
+    assert( Abc_NtkHasOnlyLatchBoxes(pNtk2) );
 
     // start the new network
     pNtkMiter = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG, 1 );
@@ -354,6 +362,7 @@ Abc_Ntk_t * Abc_NtkMiterCofactor( Abc_Ntk_t * pNtk, Vec_Int_t * vPiValues )
 
     assert( Abc_NtkIsStrash(pNtk) );
     assert( 1 == Abc_NtkCoNum(pNtk) );
+    assert( Abc_NtkHasOnlyLatchBoxes(pNtk) );
 
     // start the new network
     pNtkMiter = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG, 1 );
@@ -421,6 +430,7 @@ Abc_Ntk_t * Abc_NtkMiterForCofactors( Abc_Ntk_t * pNtk, int Out, int In1, int In
     assert( Out < Abc_NtkCoNum(pNtk) );
     assert( In1 < Abc_NtkCiNum(pNtk) );
     assert( In2 < Abc_NtkCiNum(pNtk) );
+    assert( Abc_NtkHasOnlyLatchBoxes(pNtk) );
 
     // start the new network
     pNtkMiter = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG, 1 );
@@ -486,6 +496,7 @@ Abc_Ntk_t * Abc_NtkMiterQuantify( Abc_Ntk_t * pNtk, int In, int fExist )
     assert( Abc_NtkIsStrash(pNtk) );
     assert( 1 == Abc_NtkCoNum(pNtk) );
     assert( In < Abc_NtkCiNum(pNtk) );
+    assert( Abc_NtkHasOnlyLatchBoxes(pNtk) );
 
     // start the new network
     pNtkMiter = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG, 1 );
@@ -545,6 +556,7 @@ Abc_Ntk_t * Abc_NtkMiterQuantifyPis( Abc_Ntk_t * pNtk )
     Abc_Ntk_t * pNtkTemp;
     Abc_Obj_t * pObj;
     int i;
+    assert( Abc_NtkHasOnlyLatchBoxes(pNtk) );
 
     Abc_NtkForEachPi( pNtk, pObj, i )
     {
@@ -663,34 +675,38 @@ Abc_Ntk_t * Abc_NtkFrames( Abc_Ntk_t * pNtk, int nFrames, int fInitial )
     char Buffer[1000];
     ProgressBar * pProgress;
     Abc_Ntk_t * pNtkFrames;
-    Abc_Obj_t * pLatch, * pLatchNew;
+    Abc_Obj_t * pLatch, * pLatchOut;
     int i, Counter;
     assert( nFrames > 0 );
     assert( Abc_NtkIsStrash(pNtk) );
     assert( Abc_NtkIsDfsOrdered(pNtk) );
+    assert( Abc_NtkHasOnlyLatchBoxes(pNtk) );
     // start the new network
     pNtkFrames = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG, 1 );
     sprintf( Buffer, "%s_%d_frames", pNtk->pName, nFrames );
     pNtkFrames->pName = Extra_UtilStrsav(Buffer);
+    // map the constant nodes
+    Abc_AigConst1(pNtk)->pCopy = Abc_AigConst1(pNtkFrames);
     // create new latches (or their initial values) and remember them in the new latches
     if ( !fInitial )
     {
         Abc_NtkForEachLatch( pNtk, pLatch, i )
-            Abc_NtkDupObj( pNtkFrames, pLatch );
+            Abc_NtkDupBox( pNtkFrames, pLatch, 1 );
     }
     else
     {
         Counter = 0;
         Abc_NtkForEachLatch( pNtk, pLatch, i )
         {
+            pLatchOut = Abc_ObjFanout0(pLatch);
             if ( Abc_LatchIsInitNone(pLatch) || Abc_LatchIsInitDc(pLatch) ) // don't-care initial value - create a new PI
             {
-                pLatch->pCopy = Abc_NtkCreatePi(pNtkFrames);
-                Abc_NtkLogicStoreName( pLatch->pCopy, Abc_ObjName(pLatch) );
+                pLatchOut->pCopy = Abc_NtkCreatePi(pNtkFrames);
+                Abc_ObjAssignName( pLatchOut->pCopy, Abc_ObjName(pLatchOut), NULL );
                 Counter++;
             }
             else
-                pLatch->pCopy = Abc_ObjNotCond( Abc_AigConst1(pNtkFrames), Abc_LatchIsInit0(pLatch) );
+                pLatchOut->pCopy = Abc_ObjNotCond( Abc_AigConst1(pNtkFrames), Abc_LatchIsInit0(pLatch) );
         }
         if ( Counter )
             printf( "Warning: %d uninitialized latches are replaced by free PI variables.\n", Counter );
@@ -708,22 +724,15 @@ Abc_Ntk_t * Abc_NtkFrames( Abc_Ntk_t * pNtk, int nFrames, int fInitial )
     // connect the new latches to the outputs of the last frame
     if ( !fInitial )
     {
+        // we cannot use pLatch->pCopy here because pLatch->pCopy is used for temporary storage of strashed values
         Abc_NtkForEachLatch( pNtk, pLatch, i )
-        {
-            pLatchNew = Abc_NtkLatch(pNtkFrames, i);
-            Abc_ObjAddFanin( pLatchNew, pLatch->pCopy );
-            Abc_NtkLogicStoreName( pLatchNew, Abc_ObjName(pLatch) );
-        }
+            Abc_ObjAddFanin( Abc_ObjFanin0(pLatch)->pCopy, Abc_ObjFanout0(pLatch)->pCopy );
     }
-    Abc_NtkForEachLatch( pNtk, pLatch, i )
-        pLatch->pNext = NULL;
 
     // remove dangling nodes
     Abc_AigCleanup( pNtkFrames->pManFunc );
-
     // reorder the latches
     Abc_NtkOrderCisCos( pNtkFrames );
-
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtkFrames ) )
     {
@@ -755,31 +764,29 @@ void Abc_NtkAddFrame( Abc_Ntk_t * pNtkFrames, Abc_Ntk_t * pNtk, int iFrame )
     int i;
     // create the prefix to be added to the node names
     sprintf( Buffer, "_%02d", iFrame );
-    // map the constant nodes
-    Abc_AigConst1(pNtk)->pCopy = Abc_AigConst1(pNtkFrames);
     // add the new PI nodes
     Abc_NtkForEachPi( pNtk, pNode, i )
-        Abc_NtkLogicStoreNamePlus( Abc_NtkDupObj(pNtkFrames, pNode), Abc_ObjName(pNode), Buffer );
+        Abc_ObjAssignName( Abc_NtkDupObj(pNtkFrames, pNode, 0), Abc_ObjName(pNode), Buffer );
     // add the internal nodes
     Abc_AigForEachAnd( pNtk, pNode, i )
         pNode->pCopy = Abc_AigAnd( pNtkFrames->pManFunc, Abc_ObjChild0Copy(pNode), Abc_ObjChild1Copy(pNode) );
     // add the new POs
     Abc_NtkForEachPo( pNtk, pNode, i )
     {
-        Abc_NtkLogicStoreNamePlus( Abc_NtkDupObj(pNtkFrames, pNode), Abc_ObjName(pNode), Buffer );
+        Abc_ObjAssignName( Abc_NtkDupObj(pNtkFrames, pNode, 0), Abc_ObjName(pNode), Buffer );
         Abc_ObjAddFanin( pNode->pCopy, Abc_ObjChild0Copy(pNode) );
     }
     // add the new asserts
     Abc_NtkForEachAssert( pNtk, pNode, i )
     {
-        Abc_NtkLogicStoreNamePlus( Abc_NtkDupObj(pNtkFrames, pNode), Abc_ObjName(pNode), Buffer );
+        Abc_ObjAssignName( Abc_NtkDupObj(pNtkFrames, pNode, 0), Abc_ObjName(pNode), Buffer );
         Abc_ObjAddFanin( pNode->pCopy, Abc_ObjChild0Copy(pNode) );
     }
-    // transfer the implementation of the latch drivers to the latches
+    // transfer the implementation of the latch inputs to the latch outputs
     Abc_NtkForEachLatch( pNtk, pLatch, i )
-        pLatch->pNext = Abc_ObjChild0Copy(pLatch);
+        pLatch->pCopy = Abc_ObjChild0Copy(Abc_ObjFanin0(pLatch));
     Abc_NtkForEachLatch( pNtk, pLatch, i )
-        pLatch->pCopy = pLatch->pNext;
+        Abc_ObjFanout0(pLatch)->pCopy = pLatch->pCopy;
 }
 
 
@@ -797,6 +804,7 @@ void Abc_NtkAddFrame( Abc_Ntk_t * pNtkFrames, Abc_Ntk_t * pNtk, int iFrame )
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkFrames2( Abc_Ntk_t * pNtk, int nFrames, int fInitial, AddFrameMapping addFrameMapping, void* arg )
 {
+/*
     char Buffer[1000];
     ProgressBar * pProgress;
     Abc_Ntk_t * pNtkFrames;
@@ -825,7 +833,7 @@ Abc_Ntk_t * Abc_NtkFrames2( Abc_Ntk_t * pNtk, int nFrames, int fInitial, AddFram
             if ( Abc_LatchIsInitDc(pLatch) ) // don't-care initial value - create a new PI
             {
                 pLatch->pCopy = Abc_NtkCreatePi(pNtkFrames);
-                Abc_NtkLogicStoreName( pLatch->pCopy, Abc_ObjName(pLatch) );
+                Abc_ObjAssignName( pLatch->pCopy, Abc_ObjName(pLatch), NULL );
                 Counter++;
             }
             else {
@@ -854,9 +862,9 @@ Abc_Ntk_t * Abc_NtkFrames2( Abc_Ntk_t * pNtk, int nFrames, int fInitial, AddFram
     {
         Abc_NtkForEachLatch( pNtk, pLatch, i )
         {
-            pLatchNew = Abc_NtkLatch(pNtkFrames, i);
+            pLatchNew = Abc_NtkBox(pNtkFrames, i);
             Abc_ObjAddFanin( pLatchNew, pLatch->pCopy );
-            Abc_NtkLogicStoreName( pLatchNew, Abc_ObjName(pLatch) );
+            Abc_ObjAssignName( pLatchNew, Abc_ObjName(pLatch), NULL );
         }
     }
     Abc_NtkForEachLatch( pNtk, pLatch, i )
@@ -876,6 +884,8 @@ Abc_Ntk_t * Abc_NtkFrames2( Abc_Ntk_t * pNtk, int nFrames, int fInitial, AddFram
         return NULL;
     }
     return pNtkFrames;
+*/
+    return NULL;
 }
 
 /**Function*************************************************************
@@ -894,6 +904,7 @@ Abc_Ntk_t * Abc_NtkFrames2( Abc_Ntk_t * pNtk, int nFrames, int fInitial, AddFram
 ***********************************************************************/
 void Abc_NtkAddFrame2( Abc_Ntk_t * pNtkFrames, Abc_Ntk_t * pNtk, int iFrame, Vec_Ptr_t * vNodes, AddFrameMapping addFrameMapping, void* arg )
 {
+/*
     char Buffer[10];
     Abc_Obj_t * pNode, * pNodeNew, * pLatch;
     Abc_Obj_t * pConst1, * pConst1New;
@@ -907,7 +918,7 @@ void Abc_NtkAddFrame2( Abc_Ntk_t * pNtkFrames, Abc_Ntk_t * pNtk, int iFrame, Vec
     Abc_NtkForEachPi( pNtk, pNode, i )
     {
         pNodeNew = Abc_NtkDupObj( pNtkFrames, pNode );       
-        Abc_NtkLogicStoreNamePlus( pNodeNew, Abc_ObjName(pNode), Buffer );
+        Abc_ObjAssignName( pNodeNew, Abc_ObjName(pNode), Buffer );
         if (addFrameMapping) addFrameMapping(pNodeNew, pNode, iFrame, arg);
     }
     // add the internal nodes
@@ -925,7 +936,7 @@ void Abc_NtkAddFrame2( Abc_Ntk_t * pNtkFrames, Abc_Ntk_t * pNtk, int iFrame, Vec
     {
         pNodeNew = Abc_NtkDupObj( pNtkFrames, pNode );       
         Abc_ObjAddFanin( pNodeNew, Abc_ObjChild0Copy(pNode) );
-        Abc_NtkLogicStoreNamePlus( pNodeNew, Abc_ObjName(pNode), Buffer );
+        Abc_ObjAssignName( pNodeNew, Abc_ObjName(pNode), Buffer );
         if (addFrameMapping) addFrameMapping(pNodeNew, pNode, iFrame, arg);
     }
     // transfer the implementation of the latch drivers to the latches
@@ -953,6 +964,7 @@ void Abc_NtkAddFrame2( Abc_Ntk_t * pNtkFrames, Abc_Ntk_t * pNtk, int iFrame, Vec
             addFrameMapping(pLatch->pCopy, pLatch, iFrame+1, arg);
         }
     }
+*/
 }
 
 
@@ -993,12 +1005,12 @@ int Abc_NtkDemiter( Abc_Ntk_t * pNtk )
     // add the PO corresponding to control input
     pPoNew = Abc_NtkCreatePo( pNtk );
     Abc_ObjAddFanin( pPoNew, pNodeC );
-    Abc_NtkLogicStoreName( pPoNew, "addOut1" );
+    Abc_ObjAssignName( pPoNew, "addOut1", NULL );
 
     // add the PO corresponding to other input
     pPoNew = Abc_NtkCreatePo( pNtk );
     Abc_ObjAddFanin( pPoNew, pNodeB );
-    Abc_NtkLogicStoreName( pPoNew, "addOut2" );
+    Abc_ObjAssignName( pPoNew, "addOut2", NULL );
 
     // mark the nodes in the first cone
     pNodeB = Abc_ObjRegular(pNodeB);
@@ -1047,7 +1059,7 @@ int Abc_NtkOrPos( Abc_Ntk_t * pNtk )
     // create the new PO
     pNode = Abc_NtkCreatePo( pNtk );
     Abc_ObjAddFanin( pNode, pMiter );
-    Abc_NtkLogicStoreName( pNode, "miter" );
+    Abc_ObjAssignName( pNode, "miter", NULL );
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtk ) )
     {

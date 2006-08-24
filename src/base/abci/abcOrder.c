@@ -70,7 +70,7 @@ void Abc_NtkImplementCiOrder( Abc_Ntk_t * pNtk, char * pFileName, int fReverse, 
     vSupp = Vec_PtrAlloc( Abc_NtkCiNum(pNtk) );
     while ( fscanf( pFile, "%s", Buffer ) == 1 )
     {
-        pObj = Abc_NtkFindTerm( pNtk, Buffer );
+        pObj = Abc_NtkFindCi( pNtk, Buffer );
         if ( pObj == NULL || !Abc_ObjIsCi(pObj) )
         {
             printf( "Name \"%s\" is not a PI name. Cannot use this order.\n", Buffer );

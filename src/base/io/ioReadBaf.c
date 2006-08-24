@@ -85,21 +85,30 @@ Abc_Ntk_t * Io_ReadBaf( char * pFileName, int fCheck )
     for ( i = 0; i < nInputs; i++ )
     {
         pObj = Abc_NtkCreatePi(pNtkNew);    
-        Abc_NtkLogicStoreName( pObj, pCur );  while ( *pCur++ );
+        Abc_ObjAssignName( pObj, pCur, NULL );  while ( *pCur++ );
         Vec_PtrPush( vNodes, pObj );
     }
     // create the POs
     for ( i = 0; i < nOutputs; i++ )
     {
         pObj = Abc_NtkCreatePo(pNtkNew);   
-        Abc_NtkLogicStoreName( pObj, pCur );  while ( *pCur++ ); 
+        Abc_ObjAssignName( pObj, pCur, NULL );  while ( *pCur++ ); 
     }
     // create the latches
     for ( i = 0; i < nLatches; i++ )
     {
         pObj = Abc_NtkCreateLatch(pNtkNew);
-        Abc_NtkLogicStoreName( pObj, pCur );  while ( *pCur++ ); 
-        Vec_PtrPush( vNodes, pObj );
+        Abc_ObjAssignName( pObj, pCur, NULL );  while ( *pCur++ ); 
+
+        pNode0 = Abc_NtkCreateBo(pNtkNew);
+        Abc_ObjAssignName( pNode0, pCur, NULL );  while ( *pCur++ ); 
+
+        pNode1 = Abc_NtkCreateBi(pNtkNew);
+        Abc_ObjAssignName( pNode1, pCur, NULL );  while ( *pCur++ ); 
+        Vec_PtrPush( vNodes, pNode1 );
+
+        Abc_ObjAddFanin( pObj, pNode0 );
+        Abc_ObjAddFanin( pNode1, pObj );
     }
 
     // get the pointer to the beginning of the node array
@@ -129,9 +138,9 @@ Abc_Ntk_t * Io_ReadBaf( char * pFileName, int fCheck )
     Abc_NtkForEachCo( pNtkNew, pObj, i )
     {
         Num = pBufferNode[2*nAnds+i];
-        if ( Abc_ObjIsLatch(pObj) )
+        if ( Abc_ObjFanoutNum(pObj) > 0 && Abc_ObjIsLatch(Abc_ObjFanout0(pObj)) )
         {
-            Abc_ObjSetData( pObj, (void *)(Num & 3) );
+            Abc_ObjSetData( Abc_ObjFanout0(pObj), (void *)(Num & 3) );
             Num >>= 2;
         }
         pNode0 = Abc_ObjNotCond( Vec_PtrEntry(vNodes, Num >> 1), Num & 1 );

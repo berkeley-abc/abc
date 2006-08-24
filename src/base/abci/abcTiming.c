@@ -254,9 +254,9 @@ void Abc_NtkTimeInitialize( Abc_Ntk_t * pNtk )
             continue;
         *pTime = pNtk->pManTime->tReqDef;
     }
-    // set the 0 arrival times for latches and constant nodes
+    // set the 0 arrival times for latch outputs and constant nodes
     ppTimes = (Abc_Time_t **)pNtk->pManTime->vArrs->pArray;
-    Abc_NtkForEachLatch( pNtk, pObj, i )
+    Abc_NtkForEachLatchOutput( pNtk, pObj, i )
     {
         pTime = ppTimes[pObj->Id];
         pTime->Fall = pTime->Rise = pTime->Worst = 0.0;

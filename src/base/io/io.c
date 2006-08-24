@@ -595,6 +595,9 @@ int IoCommandReadVerilog( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fCheck;
     int c;
 
+    printf( "Stand-alone structural Verilog reader is now available as command \"read_ver\".\n" );
+    return 0;
+
     fCheck = 1;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "ch" ) ) != EOF )
@@ -629,7 +632,8 @@ int IoCommandReadVerilog( Abc_Frame_t * pAbc, int argc, char ** argv )
     fclose( pFile );
 
     // set the new network
-    pNtk = Io_ReadVerilog( FileName, fCheck );
+//    pNtk = Io_ReadVerilog( FileName, fCheck );
+    pNtk = NULL;
     if ( pNtk == NULL )
     {
         fprintf( pAbc->Err, "Reading network from the verilog file has failed.\n" );

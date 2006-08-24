@@ -412,7 +412,7 @@ Abc_Ntk_t * Seq_NtkSeqMapMapped( Abc_Ntk_t * pNtk )
     }
 
     // add the latches and their names
-    Abc_NtkAddDummyLatchNames( pNtkMap );
+    Abc_NtkAddDummyBoxNames( pNtkMap );
     Abc_NtkOrderCisCos( pNtkMap );
     // fix the problem with complemented and duplicated CO edges
     Abc_NtkLogicMakeSimpleCos( pNtkMap, 1 );

@@ -247,7 +247,7 @@ void Abc_NtkPrintLatch( FILE * pFile, Abc_Ntk_t * pNtk )
         assert( Init < 4 );
         InitNums[Init]++;
 
-        pFanin = Abc_ObjFanin0(pLatch);
+        pFanin = Abc_ObjFanin0(Abc_ObjFanin0(pLatch));
         if ( !Abc_ObjIsNode(pFanin) || !Abc_NodeIsConst(pFanin) )
             continue;
 

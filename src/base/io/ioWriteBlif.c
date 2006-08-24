@@ -379,8 +379,8 @@ void Io_NtkWriteLatch( FILE * pFile, Abc_Obj_t * pLatch )
 {
     Abc_Obj_t * pNetLi, * pNetLo;
     int Reset;
-    pNetLi = Abc_ObjFanin0( pLatch );
-    pNetLo = Abc_ObjFanout0( pLatch );
+    pNetLi = Abc_ObjFanin0( Abc_ObjFanin0(pLatch) );
+    pNetLo = Abc_ObjFanout0( Abc_ObjFanout0(pLatch) );
     Reset  = (int)Abc_ObjData( pLatch );
     // write the latch line
     fprintf( pFile, ".latch" );

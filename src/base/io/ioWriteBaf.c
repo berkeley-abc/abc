@@ -116,7 +116,11 @@ void Io_WriteBaf( Abc_Ntk_t * pNtk, char * pFileName )
         fprintf( pFile, "%s%c", Abc_ObjName(pObj), 0 );
     // write latches
     Abc_NtkForEachLatch( pNtk, pObj, i )
+    {
         fprintf( pFile, "%s%c", Abc_ObjName(pObj), 0 );
+        fprintf( pFile, "%s%c", Abc_ObjName(Abc_ObjFanin0(pObj)), 0 );
+        fprintf( pFile, "%s%c", Abc_ObjName(Abc_ObjFanout0(pObj)), 0 );
+    }
 
     // set the node numbers to be used in the output file
     Abc_NtkCleanCopy( pNtk );
@@ -143,8 +147,8 @@ void Io_WriteBaf( Abc_Ntk_t * pNtk, char * pFileName )
     {
         Extra_ProgressBarUpdate( pProgress, nAnds, NULL );
         pBufferNode[nAnds] = (((int)Abc_ObjFanin0(pObj)->pCopy) << 1) | Abc_ObjFaninC0(pObj);
-        if ( Abc_ObjIsLatch(pObj) )
-            pBufferNode[nAnds] = (pBufferNode[nAnds] << 2) | ((unsigned)Abc_ObjData(pObj) & 3);
+        if ( Abc_ObjFanoutNum(pObj) > 0 && Abc_ObjIsLatch(Abc_ObjFanout0(pObj)) )
+            pBufferNode[nAnds] = (pBufferNode[nAnds] << 2) | ((unsigned)Abc_ObjData(Abc_ObjFanout0(pObj)) & 3);
         nAnds++;
     }
     Extra_ProgressBarStop( pProgress );

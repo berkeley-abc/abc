@@ -544,7 +544,7 @@ void Abc_NtkGetSeqPoSupp( Abc_Ntk_t * pNtk, int iFrame, int iNumPo )
     Abc_NtkForEachCi( pNtk, pObj, i )
         pObj->pCopy = NULL;
     Abc_NtkForEachLatch( pNtk, pObj, i )
-        if ( Abc_NtkLatch(pFrames, i)->pCopy )
+        if ( Abc_NtkBox(pFrames, i)->pCopy )
             pObj->pCopy = (void *)1;
     Abc_NtkForEachPi( pNtk, pObj, i )
         for ( k = 0; k <= iFrame; k++ )

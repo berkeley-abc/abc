@@ -322,14 +322,6 @@ SOURCE=.\src\base\abci\abcUnreach.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\abci\abcVanEijk.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abci\abcVanImp.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\base\abci\abcVerify.c
 # End Source File
 # End Group
@@ -479,10 +471,6 @@ SOURCE=.\src\base\io\ioReadEqn.c
 # Begin Source File
 
 SOURCE=.\src\base\io\ioReadPla.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\io\ioReadVerilog.c
 # End Source File
 # Begin Source File
 

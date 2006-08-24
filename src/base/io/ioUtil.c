@@ -116,15 +116,23 @@ Abc_Obj_t * Io_ReadCreateAssert( Abc_Ntk_t * pNtk, char * pName )
 ***********************************************************************/
 Abc_Obj_t * Io_ReadCreateLatch( Abc_Ntk_t * pNtk, char * pNetLI, char * pNetLO )
 {
-    Abc_Obj_t * pLatch, * pNet;
-    // create a new latch and add it to the network
-    pLatch = Abc_NtkCreateLatch( pNtk );
+    Abc_Obj_t * pLatch, * pTerm, * pNet;
     // get the LI net
     pNet = Abc_NtkFindOrCreateNet( pNtk, pNetLI );
-    Abc_ObjAddFanin( pLatch, pNet );
+    // add the BO terminal
+    pTerm = Abc_NtkCreateBo( pNtk );
+    Abc_ObjAddFanin( pTerm, pNet );
+    // add the latch box
+    pLatch = Abc_NtkCreateLatch( pNtk );
+    Abc_ObjAddFanin( pLatch, pTerm  );
+    // add the BI terminal
+    pTerm = Abc_NtkCreateBi( pNtk );
+    Abc_ObjAddFanin( pTerm, pLatch );
     // get the LO net
     pNet = Abc_NtkFindOrCreateNet( pNtk, pNetLO );
-    Abc_ObjAddFanin( pNet, pLatch );
+    Abc_ObjAddFanin( pNet, pTerm );
+    // set latch name
+    Abc_ObjAssignName( pLatch, pNetLO, "_latch" );
     return pLatch;
 }
 

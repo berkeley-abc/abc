@@ -47,7 +47,7 @@ void Abc_NtkIncrementTravId( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj;
     int i;
-    if ( pNtk->nTravIds == (1<<8)-1 )
+    if ( pNtk->nTravIds == (1<<30)-1 )
     {
         pNtk->nTravIds = 0;
         Abc_NtkForEachObj( pNtk, pObj, i )
@@ -69,8 +69,8 @@ void Abc_NtkIncrementTravId( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 void Abc_NtkOrderCisCos( Abc_Ntk_t * pNtk )
 {
-    Abc_Obj_t * pObj;
-    int i;
+    Abc_Obj_t * pObj, * pTerm;
+    int i, k;
     Vec_PtrClear( pNtk->vCis );
     Vec_PtrClear( pNtk->vCos );
     Abc_NtkForEachPi( pNtk, pObj, i )
@@ -79,10 +79,12 @@ void Abc_NtkOrderCisCos( Abc_Ntk_t * pNtk )
         Vec_PtrPush( pNtk->vCos, pObj );
     Abc_NtkForEachAssert( pNtk, pObj, i )
         Vec_PtrPush( pNtk->vCos, pObj );
-    Abc_NtkForEachLatch( pNtk, pObj, i )
+    Abc_NtkForEachBox( pNtk, pObj, i )
     {
-        Vec_PtrPush( pNtk->vCis, pObj );
-        Vec_PtrPush( pNtk->vCos, pObj );
+        Abc_ObjForEachFanin( pObj, pTerm, k )
+            Vec_PtrPush( pNtk->vCos, pTerm );
+        Abc_ObjForEachFanout( pObj, pTerm, k )
+            Vec_PtrPush( pNtk->vCis, pTerm );
     }
 }
 
@@ -433,11 +435,34 @@ void Abc_NtkCleanMarkA( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
-  Synopsis    [Checks if the internal node has a unique CO.]
+  Synopsis    [Checks if the internal node has CO fanout.]
 
-  Description [Checks if the internal node can borrow a name from a CO
-  fanout. This is possible if there is only one CO with non-complemented
-  fanin edge pointing to this node.]
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Abc_NodeHasCoFanout( Abc_Obj_t * pNode )
+{
+    Abc_Obj_t * pFanout;
+    int i;
+    if ( !Abc_ObjIsNode(pNode) )
+        return NULL;
+    Abc_ObjForEachFanout( pNode, pFanout, i )
+        if ( Abc_ObjIsCo(pFanout) )
+            return pFanout;
+    return NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks if the internal node has CO drivers with the same name.]
+
+  Description [Checks if the internal node can borrow a name from CO fanouts. 
+  This is possible if all COs with non-complemented fanin edge pointing to this 
+  node have the same name.]
                
   SideEffects []
 
@@ -447,23 +472,27 @@ void Abc_NtkCleanMarkA( Abc_Ntk_t * pNtk )
 Abc_Obj_t * Abc_NodeHasUniqueCoFanout( Abc_Obj_t * pNode )
 {
     Abc_Obj_t * pFanout, * pFanoutCo;
-    int i, Counter;
+    int i;
     if ( !Abc_ObjIsNode(pNode) )
         return NULL;
-    Counter = 0;
+    pFanoutCo = NULL;
     Abc_ObjForEachFanout( pNode, pFanout, i )
     {
-        if ( Abc_ObjIsCo(pFanout) && !Abc_ObjFaninC0(pFanout) )
+        if ( !Abc_ObjIsCo(pFanout) )
+            continue;
+        if ( Abc_ObjFaninC0(pFanout) )
+            continue;
+        if ( pFanoutCo == NULL )
         {
             assert( Abc_ObjFaninNum(pFanout) == 1 );
             assert( Abc_ObjFanin0(pFanout) == pNode );
             pFanoutCo = pFanout;
-            Counter++;
+            continue;
         }
+        if ( strcmp( Abc_ObjName(pFanoutCo), Abc_ObjName(pFanout) ) ) // they have diff names
+            return NULL;
     }
-    if ( Counter == 1 )
-        return pFanoutCo;
-    return NULL;
+    return pFanoutCo;
 }
 
 /**Function*************************************************************
@@ -508,7 +537,7 @@ bool Abc_NtkLogicHasSimpleCos( Abc_Ntk_t * pNtk )
 
   Description [The COs of a logic network are simple under three conditions:
   (1) The edge from the CO to its driver is not complemented.
-  (2) No two COs share the same driver. 
+  (2) No two COs share the same driver (unless they have the same name!). 
   (3) The driver is not a CI unless the CI and the CO have the same name 
   (and so the inv/buf should not be written into a file).
   In some cases, such as FPGA mapping, we prevent the increase in delay
@@ -537,15 +566,15 @@ int Abc_NtkLogicMakeSimpleCos( Abc_Ntk_t * pNtk, bool fDuplicate )
                 continue;
             }
         }
-        else
+        else if ( !Abc_ObjFaninC0(pNode) )
         {
-            // skip the case when the driver's unique CO fanout is this CO
-            if ( Abc_NodeHasUniqueCoFanout(pDriver) == pNode )
+            // skip the case when all CO fanouts of the driver have the same name
+            if ( Abc_NodeHasUniqueCoFanout(pDriver) )
                 continue;
         }
         if ( fDuplicate && !Abc_ObjIsCi(pDriver) )
         {
-            pDriverNew = Abc_NtkDupObj( pNtk, pDriver ); 
+            pDriverNew = Abc_NtkDupObj( pNtk, pDriver, 0 ); 
             Abc_ObjForEachFanin( pDriver, pFanin, k )
                 Abc_ObjAddFanin( pDriverNew, pFanin );
             if ( Abc_ObjFaninC0(pNode) )
@@ -1091,11 +1120,21 @@ void Abc_NtkReassignIds( Abc_Ntk_t * pNtk )
         pNode->Id = Vec_PtrSize( vObjsNew );
         Vec_PtrPush( vObjsNew, pNode );
     }
-    // put latches next
-    Abc_NtkForEachLatch( pNtk, pNode, i )
+    // put latches and their inputs/outputs next
+    Abc_NtkForEachBox( pNtk, pNode, i )
     {
         pNode->Id = Vec_PtrSize( vObjsNew );
         Vec_PtrPush( vObjsNew, pNode );
+        Abc_ObjForEachFanin( pNode, pTemp, k )
+        {
+            pTemp->Id = Vec_PtrSize( vObjsNew );
+            Vec_PtrPush( vObjsNew, pTemp );
+        }
+        Abc_ObjForEachFanout( pNode, pTemp, k )
+        {
+            pTemp->Id = Vec_PtrSize( vObjsNew );
+            Vec_PtrPush( vObjsNew, pTemp );
+        }
     }
     // finally, internal nodes in the DFS order
     vNodes = Abc_AigDfs( pNtk, 1, 0 );
@@ -1139,6 +1178,7 @@ void Abc_NtkReassignIds( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 void Abc_NtkDetectMatching( Abc_Ntk_t * pNtk )
 {
+/*
     Abc_Obj_t * pLatch, * pFanin;
     int i, nTFFs, nJKFFs;
     nTFFs = nJKFFs = 0;
@@ -1157,13 +1197,6 @@ void Abc_NtkDetectMatching( Abc_Ntk_t * pNtk )
              Abc_ObjFaninNum( Abc_ObjFanin1(pFanin) ) != 2 )
             continue;
 
-/*
-        if ( !Abc_ObjFaninC0(pLatch) || 
-             !Abc_ObjFaninC0( Abc_ObjFanin0(pFanin) ) ||
-             !Abc_ObjFaninC1( Abc_ObjFanin0(pFanin) ) )
-             continue;
-*/
-
         if ( (Abc_ObjFanin0(Abc_ObjFanin0(pFanin)) == pLatch ||
               Abc_ObjFanin1(Abc_ObjFanin0(pFanin)) == pLatch) && 
              (Abc_ObjFanin0(Abc_ObjFanin1(pFanin)) == pLatch ||
@@ -1174,6 +1207,7 @@ void Abc_NtkDetectMatching( Abc_Ntk_t * pNtk )
     }
     printf( "D = %6d.   T = %6d.   JK = %6d.  (%6.2f %%)\n", 
         Abc_NtkLatchNum(pNtk), nTFFs, nJKFFs, 100.0 * nJKFFs / Abc_NtkLatchNum(pNtk) );
+*/
 }
 
 

@@ -278,6 +278,7 @@ DdNode * Abc_NtkComputeUnreachable( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * b
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkConstructExdc( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bUnreach )
 {
+/*
     Abc_Ntk_t * pNtkNew;
     Abc_Obj_t * pNode, * pNodeNew;
     int * pPermute;
@@ -290,7 +291,7 @@ Abc_Ntk_t * Abc_NtkConstructExdc( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bUn
 
     // create PIs corresponding to LOs
     Abc_NtkForEachLatch( pNtk, pNode, i )
-        Abc_NtkLogicStoreName( pNode->pCopy = Abc_NtkCreatePi(pNtkNew), Abc_ObjName(pNode) );
+        Abc_ObjAssignName( pNode->pCopy = Abc_NtkCreatePi(pNtkNew), Abc_ObjName(pNode), NULL );
     // cannot ADD POs here because pLatch->pCopy point to the PIs
 
     // create a new node
@@ -313,9 +314,9 @@ Abc_Ntk_t * Abc_NtkConstructExdc( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bUn
     // for each CO, create PO (skip POs equal to CIs because of name conflict)
     Abc_NtkForEachPo( pNtk, pNode, i )
         if ( !Abc_ObjIsCi(Abc_ObjFanin0(pNode)) )
-            Abc_NtkLogicStoreName( pNode->pCopy = Abc_NtkCreatePo(pNtkNew), Abc_ObjName(pNode) );
+            Abc_ObjAssignName( pNode->pCopy = Abc_NtkCreatePo(pNtkNew), Abc_ObjName(pNode), NULL );
     Abc_NtkForEachLatch( pNtk, pNode, i )
-        Abc_NtkLogicStoreName( pNode->pCopy = Abc_NtkCreatePo(pNtkNew), Abc_ObjNameSuffix(pNode, "_in") );
+        Abc_ObjAssignName( pNode->pCopy = Abc_NtkCreatePo(pNtkNew), Abc_ObjNameSuffix(pNode, "_in"), NULL );
 
     // link to the POs of the network 
     Abc_NtkForEachPo( pNtk, pNode, i )
@@ -337,6 +338,8 @@ Abc_Ntk_t * Abc_NtkConstructExdc( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bUn
         return NULL;
     }
     return pNtkNew;
+*/
+    return NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////

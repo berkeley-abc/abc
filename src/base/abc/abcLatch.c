@@ -45,10 +45,10 @@ bool Abc_NtkLatchIsSelfFeed_rec( Abc_Obj_t * pLatch, Abc_Obj_t * pLatchRoot )
     assert( Abc_ObjIsLatch(pLatch) );
     if ( pLatch == pLatchRoot )
         return 1;
-    pFanin = Abc_ObjFanin0(pLatch);
-    if ( !Abc_ObjIsLatch(pFanin) )
+    pFanin = Abc_ObjFanin0(Abc_ObjFanin0(pLatch));
+    if ( !Abc_ObjIsBi(pFanin) || !Abc_ObjIsLatch(Abc_ObjFanin0(pFanin)) )
         return 0;
-    return Abc_NtkLatchIsSelfFeed_rec( pFanin, pLatch );
+    return Abc_NtkLatchIsSelfFeed_rec( Abc_ObjFanin0(pFanin), pLatch );
 }
 
 /**Function*************************************************************
@@ -66,10 +66,10 @@ bool Abc_NtkLatchIsSelfFeed( Abc_Obj_t * pLatch )
 {
     Abc_Obj_t * pFanin;
     assert( Abc_ObjIsLatch(pLatch) );
-    pFanin = Abc_ObjFanin0(pLatch);
-    if ( !Abc_ObjIsLatch(pFanin) )
+    pFanin = Abc_ObjFanin0(Abc_ObjFanin0(pLatch));
+    if ( !Abc_ObjIsBi(pFanin) || !Abc_ObjIsLatch(Abc_ObjFanin0(pFanin)) )
         return 0;
-    return Abc_NtkLatchIsSelfFeed_rec( pFanin, pLatch );
+    return Abc_NtkLatchIsSelfFeed_rec( Abc_ObjFanin0(pFanin), pLatch );
 }
 
 /**Function*************************************************************
@@ -121,7 +121,7 @@ int Abc_NtkRemoveSelfFeedLatches( Abc_Ntk_t * pNtk )
                 pConst1 = Abc_AigConst1(pNtk);
             else
                 pConst1 = Abc_NodeCreateConst1(pNtk);
-            Abc_ObjPatchFanin( pLatch, Abc_ObjFanin0(pLatch), pConst1 );
+            Abc_ObjPatchFanin( pLatch, Abc_ObjFanin0(Abc_ObjFanin0(pLatch)), pConst1 );
             Counter++;
         }
     }
@@ -160,7 +160,7 @@ void Abc_NtkLatchPipe( Abc_Ntk_t * pNtk, int nLatches )
             Abc_ObjAddFanin( pLatch, pFanin );
             Abc_LatchSetInitDc( pLatch );
             // create the name of the new latch
-            Abc_NtkLogicStoreName( pLatch, Abc_ObjNameDummy("LL", i*nLatches + k, nDigits) );
+            Abc_ObjAssignName( pLatch, Abc_ObjNameDummy("LL", i*nLatches + k, nDigits), NULL );
         }
         // patch the PI fanouts
         Vec_PtrForEachEntry( vNodes, pFanout, k )

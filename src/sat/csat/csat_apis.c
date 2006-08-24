@@ -304,9 +304,9 @@ void ABC_Network_Finalize( ABC_Manager mng )
     Abc_Obj_t * pObj;
     int i;
     Abc_NtkForEachPi( pNtk, pObj, i )
-        Abc_NtkLogicStoreName( pObj, ABC_GetNodeName(mng, pObj) );
+        Abc_ObjAssignName( pObj, ABC_GetNodeName(mng, pObj), NULL );
     Abc_NtkForEachPo( pNtk, pObj, i )
-        Abc_NtkLogicStoreName( pObj, ABC_GetNodeName(mng, pObj) );
+        Abc_ObjAssignName( pObj, ABC_GetNodeName(mng, pObj), NULL );
     assert( Abc_NtkLatchNum(pNtk) == 0 );
 }
 

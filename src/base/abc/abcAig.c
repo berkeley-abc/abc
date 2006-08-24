@@ -137,7 +137,7 @@ Abc_Aig_t * Abc_AigAlloc( Abc_Ntk_t * pNtkAig )
     pMan->vStackReplaceNew = Vec_PtrAlloc( 100 );
     // create the constant node
     assert( pNtkAig->vObjs->nSize == 0 );
-    pMan->pConst1 = Abc_NtkObjAdd( pNtkAig, ABC_OBJ_NODE );
+    pMan->pConst1 = Abc_NtkCreateObj( pNtkAig, ABC_OBJ_NODE );
     pMan->pConst1->Type = ABC_OBJ_CONST1;
     pNtkAig->nObjCounts[ABC_OBJ_NODE]--;
     // save the current network
@@ -1329,15 +1329,15 @@ void Abc_AigSetNodePhases( Abc_Ntk_t * pNtk )
     int i;
     assert( Abc_NtkIsDfsOrdered(pNtk) );
     Abc_AigConst1(pNtk)->fPhase = 1;
-//    Abc_NtkForEachCi( pNtk, pObj, i )
-//        pObj->fPhase = 0;
     Abc_NtkForEachPi( pNtk, pObj, i )
         pObj->fPhase = 0;
-    Abc_NtkForEachLatch( pNtk, pObj, i )
+    Abc_NtkForEachLatchOutput( pNtk, pObj, i )
         pObj->fPhase = Abc_LatchIsInit1(pObj);
     Abc_AigForEachAnd( pNtk, pObj, i )
         pObj->fPhase = (Abc_ObjFanin0(pObj)->fPhase ^ Abc_ObjFaninC0(pObj)) & (Abc_ObjFanin1(pObj)->fPhase ^ Abc_ObjFaninC1(pObj));
     Abc_NtkForEachPo( pNtk, pObj, i )
+        pObj->fPhase = (Abc_ObjFanin0(pObj)->fPhase ^ Abc_ObjFaninC0(pObj));
+    Abc_NtkForEachLatchInput( pNtk, pObj, i )
         pObj->fPhase = (Abc_ObjFanin0(pObj)->fPhase ^ Abc_ObjFaninC0(pObj));
 }
 

@@ -59,11 +59,31 @@ bool Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fExdc, int fVerbose )
     Abc_Ntk_t * pNtkAig;
     Fraig_Man_t * pMan;
     stmm_table * tEquiv;
+    Abc_Obj_t * pObj;
+    int i, fUseTrick;
 
     assert( !Abc_NtkIsStrash(pNtk) );
 
+    // save gate assignments
+    fUseTrick = 0;
+    if ( Abc_NtkIsMappedLogic(pNtk) )
+    {
+        fUseTrick = 1;
+        Abc_NtkForEachNode( pNtk, pObj, i )
+            pObj->pNext = pObj->pData;
+    }
     // derive the AIG
     pNtkAig = Abc_NtkStrash( pNtk, 0, 1 );
+    // reconstruct gate assignments
+    if ( fUseTrick )
+    {
+        extern void * Abc_FrameReadLibGen(); 
+        Aig_ManStop( pNtk->pManFunc );
+        pNtk->pManFunc = Abc_FrameReadLibGen();
+        pNtk->ntkFunc = ABC_FUNC_MAP;
+        Abc_NtkForEachNode( pNtk, pObj, i )
+            pObj->pData = pObj->pNext, pObj->pNext = NULL;
+    }
 
     // perform fraiging of the AIG
     Fraig_ParamsSetDefault( &Params );
@@ -176,8 +196,8 @@ stmm_table * Abc_NtkFraigEquiv( Abc_Ntk_t * pNtk, int fUseInv, bool fVerbose )
         // skip the dangling nodes
         if ( pNodeAig == NULL )
             continue;
-        // skip the nodes that fanout into POs
-        if ( Abc_NodeHasUniqueCoFanout(pNode) )
+        // skip the nodes that fanout into COs
+        if ( Abc_NodeHasCoFanout(pNode) )
             continue;
         // get the FRAIG node
         gNode = Fraig_NotCond( Abc_ObjRegular(pNodeAig)->pCopy, Abc_ObjIsComplement(pNodeAig) );

@@ -90,12 +90,14 @@ typedef enum {
     ABC_OBJ_PO,         //  4:  primary output terminal
     ABC_OBJ_BI,         //  5:  box input terminal
     ABC_OBJ_BO,         //  6:  box output terminal
-    ABC_OBJ_ASSERT,     //  7:  assertion output
+    ABC_OBJ_ASSERT,     //  7:  assertion terminal
     ABC_OBJ_NET,        //  8:  net
     ABC_OBJ_NODE,       //  9:  node
-    ABC_OBJ_LATCH,      // 10:  latch
-    ABC_OBJ_BOX,        // 11:  box
-    ABC_OBJ_NUMBER      // 12:  unused
+    ABC_OBJ_GATE,       // 10:  mapped node
+    ABC_OBJ_LATCH,      // 11:  latch
+    ABC_OBJ_TRI,        // 12:  tristate element
+    ABC_OBJ_BLACKBOX,   // 13:  box with unknown contents
+    ABC_OBJ_NUMBER      // 14:  unused
 } Abc_ObjType_t;
 
 // latch initial values
@@ -138,6 +140,7 @@ struct Abc_Obj_t_ // 12 words
     // high-level information
     Abc_Ntk_t *       pNtk;          // the host network
     int               Id;            // the object ID
+    int               TravId;        // the traversal ID (if changed, update Abc_NtkIncrementTravId)
     // internal information
     unsigned          Type    :  4;  // the object type
     unsigned          fMarkA  :  1;  // the multipurpose mark
@@ -148,8 +151,7 @@ struct Abc_Obj_t_ // 12 words
     unsigned          fPersist:  1;  // marks the persistant AIG node
     unsigned          fCompl0 :  1;  // complemented attribute of the first fanin in the AIG
     unsigned          fCompl1 :  1;  // complemented attribute of the second fanin in the AIG 
-    unsigned          TravId  :  8;  // the traversal ID (if changed, update Abc_NtkIncrementTravId)
-    unsigned          Level   : 12;  // the level of the node
+    unsigned          Level   : 20;  // the level of the node
     // connectivity
     Vec_Int_t         vFanins;       // the array of fanins
     Vec_Int_t         vFanouts;      // the array of fanouts
@@ -169,12 +171,11 @@ struct Abc_Ntk_t_
     Nm_Man_t *        pManName;      // name manager (stores names of objects)
     // components of the network
     Vec_Ptr_t *       vObjs;         // the array of all objects (net, nodes, latches, etc)
+    Vec_Ptr_t *       vPis;          // the array of primary inputs
+    Vec_Ptr_t *       vPos;          // the array of primary outputs
     Vec_Ptr_t *       vCis;          // the array of combinational inputs  (PIs, latches)
     Vec_Ptr_t *       vCos;          // the array of combinational outputs (POs, asserts, latches)
-    Vec_Ptr_t *       vPis;          // the array of PIs
-    Vec_Ptr_t *       vPos;          // the array of POs
     Vec_Ptr_t *       vPios;         // the array of PIOs
-    Vec_Ptr_t *       vLatches;      // the array of latches (or the cutset in the sequential network)
     Vec_Ptr_t *       vAsserts;      // the array of assertions
     Vec_Ptr_t *       vBoxes;        // the array of boxes
     Vec_Ptr_t *       vCutSet;       // the array of cutset nodes (used in the sequential AIG)
@@ -190,7 +191,7 @@ struct Abc_Ntk_t_
     short             fHieVisited;   // flag to mark the visited network
     short             fHiePath;      // flag to mark the network on the path
     // miscellaneous data members
-    unsigned          nTravIds;      // the unique traversal IDs of nodes
+    int               nTravIds;      // the unique traversal IDs of nodes
     Extra_MmFixed_t * pMmObj;        // memory manager for objects
     Extra_MmStep_t *  pMmStep;       // memory manager for arrays
     void *            pManFunc;      // functionality manager (AIG manager, BDD manager, or memory manager for SOPs)
@@ -257,7 +258,6 @@ static inline bool        Abc_NtkIsSopLogic( Abc_Ntk_t * pNtk )      { return pN
 static inline bool        Abc_NtkIsBddLogic( Abc_Ntk_t * pNtk )      { return pNtk->ntkFunc == ABC_FUNC_BDD && pNtk->ntkType == ABC_NTK_LOGIC  ;  }
 static inline bool        Abc_NtkIsAigLogic( Abc_Ntk_t * pNtk )      { return pNtk->ntkFunc == ABC_FUNC_AIG && pNtk->ntkType == ABC_NTK_LOGIC  ;  }
 static inline bool        Abc_NtkIsMappedLogic( Abc_Ntk_t * pNtk )   { return pNtk->ntkFunc == ABC_FUNC_MAP && pNtk->ntkType == ABC_NTK_LOGIC  ;  }
-static inline bool        Abc_NtkIsComb( Abc_Ntk_t * pNtk )          { return Vec_PtrSize(pNtk->vLatches) == 0;     }
 
 // reading data members of the network
 static inline char *      Abc_NtkName( Abc_Ntk_t * pNtk )            { return pNtk->pName;            }
@@ -274,29 +274,48 @@ static inline void        Abc_NtkSetBackup( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNetBa
 static inline void        Abc_NtkSetStep  ( Abc_Ntk_t * pNtk, int iStep )              { pNtk->iStep      = iStep;      }
 
 // getting the number of objects 
-static inline int         Abc_NtkObjNumMax( Abc_Ntk_t * pNtk )       { return Vec_PtrSize(pNtk->vObjs);         }
-static inline int         Abc_NtkObjNum( Abc_Ntk_t * pNtk )          { return pNtk->nObjs;                      }
-static inline int         Abc_NtkNetNum( Abc_Ntk_t * pNtk )          { return pNtk->nObjCounts[ABC_OBJ_NET];    }
-static inline int         Abc_NtkNodeNum( Abc_Ntk_t * pNtk )         { return pNtk->nObjCounts[ABC_OBJ_NODE];   }
-static inline int         Abc_NtkBoxNum( Abc_Ntk_t * pNtk )          { return pNtk->nObjCounts[ABC_OBJ_BOX];    }
-static inline int         Abc_NtkPiNum( Abc_Ntk_t * pNtk )           { return Vec_PtrSize(pNtk->vPis);          }
-static inline int         Abc_NtkPoNum( Abc_Ntk_t * pNtk )           { return Vec_PtrSize(pNtk->vPos);          }
-static inline int         Abc_NtkCiNum( Abc_Ntk_t * pNtk )           { return Vec_PtrSize(pNtk->vCis);          }
-static inline int         Abc_NtkCoNum( Abc_Ntk_t * pNtk )           { return Vec_PtrSize(pNtk->vCos);          }
-static inline int         Abc_NtkLatchNum( Abc_Ntk_t * pNtk )        { return Vec_PtrSize(pNtk->vLatches);      }
-static inline int         Abc_NtkAssertNum( Abc_Ntk_t * pNtk )       { return Vec_PtrSize(pNtk->vAsserts);      }
-static inline int         Abc_NtkCutSetNodeNum( Abc_Ntk_t * pNtk )   { return Vec_PtrSize(pNtk->vCutSet);       }
+static inline int         Abc_NtkObjNum( Abc_Ntk_t * pNtk )          { return pNtk->nObjs;                        }
+static inline int         Abc_NtkObjNumMax( Abc_Ntk_t * pNtk )       { return Vec_PtrSize(pNtk->vObjs);           }
+static inline int         Abc_NtkPiNum( Abc_Ntk_t * pNtk )           { return Vec_PtrSize(pNtk->vPis);            }
+static inline int         Abc_NtkPoNum( Abc_Ntk_t * pNtk )           { return Vec_PtrSize(pNtk->vPos);            }
+static inline int         Abc_NtkCiNum( Abc_Ntk_t * pNtk )           { return Vec_PtrSize(pNtk->vCis);            }
+static inline int         Abc_NtkCoNum( Abc_Ntk_t * pNtk )           { return Vec_PtrSize(pNtk->vCos);            }
+static inline int         Abc_NtkAssertNum( Abc_Ntk_t * pNtk )       { return Vec_PtrSize(pNtk->vAsserts);        }
+static inline int         Abc_NtkBoxNum( Abc_Ntk_t * pNtk )          { return Vec_PtrSize(pNtk->vBoxes);          }
+static inline int         Abc_NtkCutSetNodeNum( Abc_Ntk_t * pNtk )   { return Vec_PtrSize(pNtk->vCutSet);         }
+static inline int         Abc_NtkBiNum( Abc_Ntk_t * pNtk )           { return pNtk->nObjCounts[ABC_OBJ_BI];       }
+static inline int         Abc_NtkBoNum( Abc_Ntk_t * pNtk )           { return pNtk->nObjCounts[ABC_OBJ_BO];       }
+static inline int         Abc_NtkNetNum( Abc_Ntk_t * pNtk )          { return pNtk->nObjCounts[ABC_OBJ_NET];      }
+static inline int         Abc_NtkNodeNum( Abc_Ntk_t * pNtk )         { return pNtk->nObjCounts[ABC_OBJ_NODE];     }
+static inline int         Abc_NtkGateNum( Abc_Ntk_t * pNtk )         { return pNtk->nObjCounts[ABC_OBJ_GATE];     }
+static inline int         Abc_NtkLatchNum( Abc_Ntk_t * pNtk )        { return pNtk->nObjCounts[ABC_OBJ_LATCH];    }
+static inline int         Abc_NtkTriNum( Abc_Ntk_t * pNtk )          { return pNtk->nObjCounts[ABC_OBJ_TRI];      }
+static inline int         Abc_NtkBlackboxNum( Abc_Ntk_t * pNtk )     { return pNtk->nObjCounts[ABC_OBJ_BLACKBOX]; }
+static inline bool        Abc_NtkIsComb( Abc_Ntk_t * pNtk )          { return Abc_NtkLatchNum(pNtk) == 0;                   }
+static inline bool        Abc_NtkHasOnlyLatchBoxes(Abc_Ntk_t * pNtk ){ return Abc_NtkLatchNum(pNtk) == Abc_NtkBoxNum(pNtk); }
+
+// creating simple objects
+extern inline Abc_Obj_t * Abc_NtkCreateObj( Abc_Ntk_t * pNtk, Abc_ObjType_t Type );
+static inline Abc_Obj_t * Abc_NtkCreatePi( Abc_Ntk_t * pNtk )        { return Abc_NtkCreateObj( pNtk, ABC_OBJ_PI );         }
+static inline Abc_Obj_t * Abc_NtkCreatePo( Abc_Ntk_t * pNtk )        { return Abc_NtkCreateObj( pNtk, ABC_OBJ_PO );         }
+static inline Abc_Obj_t * Abc_NtkCreateBi( Abc_Ntk_t * pNtk )        { return Abc_NtkCreateObj( pNtk, ABC_OBJ_BI );         }
+static inline Abc_Obj_t * Abc_NtkCreateBo( Abc_Ntk_t * pNtk )        { return Abc_NtkCreateObj( pNtk, ABC_OBJ_BO );         }
+static Abc_Obj_t *        Abc_NtkCreateAssert( Abc_Ntk_t * pNtk )    { return Abc_NtkCreateObj( pNtk, ABC_OBJ_ASSERT );     }
+static inline Abc_Obj_t * Abc_NtkCreateNode( Abc_Ntk_t * pNtk )      { return Abc_NtkCreateObj( pNtk, ABC_OBJ_NODE );       }
+static inline Abc_Obj_t * Abc_NtkCreateLatch( Abc_Ntk_t * pNtk )     { return Abc_NtkCreateObj( pNtk, ABC_OBJ_LATCH );      }
+static inline Abc_Obj_t * Abc_NtkCreateGate( Abc_Ntk_t * pNtk )      { return Abc_NtkCreateObj( pNtk, ABC_OBJ_GATE );       }
+static inline Abc_Obj_t * Abc_NtkCreateTri( Abc_Ntk_t * pNtk )       { return Abc_NtkCreateObj( pNtk, ABC_OBJ_TRI );        }
+static inline Abc_Obj_t * Abc_NtkCreateBlackbox( Abc_Ntk_t * pNtk )  { return Abc_NtkCreateObj( pNtk, ABC_OBJ_BLACKBOX );   }
 
 // reading objects
 static inline Abc_Obj_t * Abc_NtkObj( Abc_Ntk_t * pNtk, int i )      { return (Abc_Obj_t *)Vec_PtrEntry( pNtk->vObjs, i );   }
-static inline Abc_Obj_t * Abc_NtkBox( Abc_Ntk_t * pNtk, int i )      { return (Abc_Obj_t *)Vec_PtrEntry( pNtk->vBoxes, i );  }
-static inline Abc_Obj_t * Abc_NtkLatch( Abc_Ntk_t * pNtk, int i )    { return (Abc_Obj_t *)Vec_PtrEntry( pNtk->vLatches, i );}
-static inline Abc_Obj_t * Abc_NtkAssert( Abc_Ntk_t * pNtk, int i )   { return (Abc_Obj_t *)Vec_PtrEntry( pNtk->vAsserts, i );}
-static inline Abc_Obj_t * Abc_NtkCutSetNode( Abc_Ntk_t * pNtk, int i){ return (Abc_Obj_t *)Vec_PtrEntry( pNtk->vCutSet, i ); }
-static inline Abc_Obj_t * Abc_NtkCi( Abc_Ntk_t * pNtk, int i )       { return (Abc_Obj_t *)Vec_PtrEntry( pNtk->vCis, i );    }
-static inline Abc_Obj_t * Abc_NtkCo( Abc_Ntk_t * pNtk, int i )       { return (Abc_Obj_t *)Vec_PtrEntry( pNtk->vCos, i );    }
 static inline Abc_Obj_t * Abc_NtkPi( Abc_Ntk_t * pNtk, int i )       { return (Abc_Obj_t *)Vec_PtrEntry( pNtk->vPis, i );    }
 static inline Abc_Obj_t * Abc_NtkPo( Abc_Ntk_t * pNtk, int i )       { return (Abc_Obj_t *)Vec_PtrEntry( pNtk->vPos, i );    }
+static inline Abc_Obj_t * Abc_NtkCi( Abc_Ntk_t * pNtk, int i )       { return (Abc_Obj_t *)Vec_PtrEntry( pNtk->vCis, i );    }
+static inline Abc_Obj_t * Abc_NtkCo( Abc_Ntk_t * pNtk, int i )       { return (Abc_Obj_t *)Vec_PtrEntry( pNtk->vCos, i );    }
+static inline Abc_Obj_t * Abc_NtkAssert( Abc_Ntk_t * pNtk, int i )   { return (Abc_Obj_t *)Vec_PtrEntry( pNtk->vAsserts, i );}
+static inline Abc_Obj_t * Abc_NtkBox( Abc_Ntk_t * pNtk, int i )      { return (Abc_Obj_t *)Vec_PtrEntry( pNtk->vBoxes, i );  }
+static inline Abc_Obj_t * Abc_NtkCutSetNode( Abc_Ntk_t * pNtk, int i){ return (Abc_Obj_t *)Vec_PtrEntry( pNtk->vCutSet, i ); }
 
 // reading data members of the object
 static inline unsigned    Abc_ObjType( Abc_Obj_t * pObj )            { return pObj->Type;               }
@@ -319,19 +338,22 @@ static inline Abc_Obj_t * Abc_ObjNot( Abc_Obj_t * p )                { return (A
 static inline Abc_Obj_t * Abc_ObjNotCond( Abc_Obj_t * p, int c )     { return (Abc_Obj_t *)((unsigned long)p ^  (unsigned long)(c!=0)); }
 
 // checking the object type
-static inline bool        Abc_ObjIsPi( Abc_Obj_t * pObj )            { return pObj->Type == ABC_OBJ_PI;     }
-static inline bool        Abc_ObjIsPo( Abc_Obj_t * pObj )            { return pObj->Type == ABC_OBJ_PO;     }
-static inline bool        Abc_ObjIsBi( Abc_Obj_t * pObj )            { return pObj->Type == ABC_OBJ_BI;     }
-static inline bool        Abc_ObjIsBo( Abc_Obj_t * pObj )            { return pObj->Type == ABC_OBJ_BO;     }
-static inline bool        Abc_ObjIsPio( Abc_Obj_t * pObj )           { return pObj->Type == ABC_OBJ_PI || pObj->Type == ABC_OBJ_PO;    }
-static inline bool        Abc_ObjIsCi( Abc_Obj_t * pObj )            { return pObj->Type == ABC_OBJ_PI || pObj->Type == ABC_OBJ_BI || pObj->Type == ABC_OBJ_LATCH; }
-static inline bool        Abc_ObjIsCo( Abc_Obj_t * pObj )            { return pObj->Type == ABC_OBJ_PO || pObj->Type == ABC_OBJ_BO || pObj->Type == ABC_OBJ_LATCH || pObj->Type == ABC_OBJ_ASSERT; }
-static inline bool        Abc_ObjIsCio( Abc_Obj_t * pObj )           { return pObj->Type == ABC_OBJ_PI || pObj->Type == ABC_OBJ_PO || pObj->Type == ABC_OBJ_LATCH || pObj->Type == ABC_OBJ_ASSERT; }
-static inline bool        Abc_ObjIsAssert( Abc_Obj_t * pObj )        { return pObj->Type == ABC_OBJ_ASSERT; }
-static inline bool        Abc_ObjIsNet( Abc_Obj_t * pObj )           { return pObj->Type == ABC_OBJ_NET;    }
-static inline bool        Abc_ObjIsNode( Abc_Obj_t * pObj )          { return pObj->Type == ABC_OBJ_NODE;   }
-static inline bool        Abc_ObjIsLatch( Abc_Obj_t * pObj )         { return pObj->Type == ABC_OBJ_LATCH;  }
-static inline bool        Abc_ObjIsBox( Abc_Obj_t * pObj )           { return pObj->Type == ABC_OBJ_BOX;    }
+static inline bool        Abc_ObjIsPio( Abc_Obj_t * pObj )           { return pObj->Type == ABC_OBJ_PIO;     }
+static inline bool        Abc_ObjIsPi( Abc_Obj_t * pObj )            { return pObj->Type == ABC_OBJ_PI;      }
+static inline bool        Abc_ObjIsPo( Abc_Obj_t * pObj )            { return pObj->Type == ABC_OBJ_PO;      }
+static inline bool        Abc_ObjIsBi( Abc_Obj_t * pObj )            { return pObj->Type == ABC_OBJ_BI;      }
+static inline bool        Abc_ObjIsBo( Abc_Obj_t * pObj )            { return pObj->Type == ABC_OBJ_BO;      }
+static inline bool        Abc_ObjIsAssert( Abc_Obj_t * pObj )        { return pObj->Type == ABC_OBJ_ASSERT;  }
+static inline bool        Abc_ObjIsCi( Abc_Obj_t * pObj )            { return pObj->Type == ABC_OBJ_PI || pObj->Type == ABC_OBJ_BI; }
+static inline bool        Abc_ObjIsCo( Abc_Obj_t * pObj )            { return pObj->Type == ABC_OBJ_PO || pObj->Type == ABC_OBJ_BO || pObj->Type == ABC_OBJ_ASSERT; }
+static inline bool        Abc_ObjIsTerm( Abc_Obj_t * pObj )          { return Abc_ObjIsCi(pObj) || Abc_ObjIsCo(pObj); }
+static inline bool        Abc_ObjIsNet( Abc_Obj_t * pObj )           { return pObj->Type == ABC_OBJ_NET;     }
+static inline bool        Abc_ObjIsNode( Abc_Obj_t * pObj )          { return pObj->Type == ABC_OBJ_NODE;    }
+static inline bool        Abc_ObjIsGate( Abc_Obj_t * pObj )          { return pObj->Type == ABC_OBJ_GATE;    }
+static inline bool        Abc_ObjIsLatch( Abc_Obj_t * pObj )         { return pObj->Type == ABC_OBJ_LATCH;   }
+static inline bool        Abc_ObjIsTri( Abc_Obj_t * pObj )           { return pObj->Type == ABC_OBJ_TRI;     }
+static inline bool        Abc_ObjIsBlackbox( Abc_Obj_t * pObj )      { return pObj->Type == ABC_OBJ_BLACKBOX;}
+static inline bool        Abc_ObjIsBox( Abc_Obj_t * pObj )           { return pObj->Type == ABC_OBJ_LATCH || pObj->Type == ABC_OBJ_TRI || pObj->Type == ABC_OBJ_BLACKBOX; }
 
 // working with fanin/fanout edges
 static inline int         Abc_ObjFaninNum( Abc_Obj_t * pObj )        { return pObj->vFanins.nSize;     }
@@ -358,18 +380,6 @@ static inline Abc_Obj_t * Abc_ObjChild1( Abc_Obj_t * pObj )          { return Ab
 static inline Abc_Obj_t * Abc_ObjChildCopy( Abc_Obj_t * pObj, int i ){ return Abc_ObjNotCond( Abc_ObjFanin(pObj,i)->pCopy, Abc_ObjFaninC(pObj,i) );  }
 static inline Abc_Obj_t * Abc_ObjChild0Copy( Abc_Obj_t * pObj )      { return Abc_ObjNotCond( Abc_ObjFanin0(pObj)->pCopy, Abc_ObjFaninC0(pObj) );    }
 static inline Abc_Obj_t * Abc_ObjChild1Copy( Abc_Obj_t * pObj )      { return Abc_ObjNotCond( Abc_ObjFanin1(pObj)->pCopy, Abc_ObjFaninC1(pObj) );    }
-
-// creating simple objects
-extern inline Abc_Obj_t * Abc_NtkObjAdd( Abc_Ntk_t * pNtk, Abc_ObjType_t Type );
-static inline Abc_Obj_t * Abc_NtkCreateObj( Abc_Ntk_t * pNtk, Abc_ObjType_t Type ) { return Abc_NtkObjAdd( pNtk, Type ); }
-static inline Abc_Obj_t * Abc_NtkCreateNode( Abc_Ntk_t * pNtk )      { return Abc_NtkObjAdd( pNtk, ABC_OBJ_NODE );       }
-static inline Abc_Obj_t * Abc_NtkCreateBox( Abc_Ntk_t * pNtk )       { return Abc_NtkObjAdd( pNtk, ABC_OBJ_BOX );        }
-static inline Abc_Obj_t * Abc_NtkCreatePi( Abc_Ntk_t * pNtk )        { return Abc_NtkObjAdd( pNtk, ABC_OBJ_PI );         }
-static inline Abc_Obj_t * Abc_NtkCreatePo( Abc_Ntk_t * pNtk )        { return Abc_NtkObjAdd( pNtk, ABC_OBJ_PO );         }
-static inline Abc_Obj_t * Abc_NtkCreateBi( Abc_Ntk_t * pNtk )        { return Abc_NtkObjAdd( pNtk, ABC_OBJ_BI );         }
-static inline Abc_Obj_t * Abc_NtkCreateBo( Abc_Ntk_t * pNtk )        { return Abc_NtkObjAdd( pNtk, ABC_OBJ_BO );         }
-static inline Abc_Obj_t * Abc_NtkCreateLatch( Abc_Ntk_t * pNtk )     { return Abc_NtkObjAdd( pNtk, ABC_OBJ_LATCH );      }
-static Abc_Obj_t *        Abc_NtkCreateAssert( Abc_Ntk_t * pNtk )    { return Abc_NtkObjAdd( pNtk, ABC_OBJ_ASSERT );     }
 
 // checking the AIG node types
 static inline bool        Abc_AigNodeIsConst( Abc_Obj_t * pNode )    { assert(Abc_NtkIsStrash(Abc_ObjRegular(pNode)->pNtk)||Abc_NtkIsSeq(Abc_ObjRegular(pNode)->pNtk));  return Abc_ObjRegular(pNode)->Type == ABC_OBJ_CONST1;       }
@@ -420,15 +430,33 @@ static inline float       Abc_NtkGetLatSkew ( Abc_Ntk_t * pNtk, int lat )       
 #define Abc_NtkForEachNode( pNtk, pNode, i )                                                       \
     for ( i = 0; (i < Vec_PtrSize((pNtk)->vObjs)) && (((pNode) = Abc_NtkObj(pNtk, i)), 1); i++ )   \
         if ( (pNode) == NULL || !Abc_ObjIsNode(pNode) ) {} else
+#define Abc_NtkForEachGate( pNtk, pNode, i )                                                       \
+    for ( i = 0; (i < Vec_PtrSize((pNtk)->vObjs)) && (((pNode) = Abc_NtkObj(pNtk, i)), 1); i++ )   \
+        if ( (pNode) == NULL || !Abc_ObjIsGate(pNode) ) {} else
 #define Abc_AigForEachAnd( pNtk, pNode, i )                                                        \
     for ( i = 0; (i < Vec_PtrSize((pNtk)->vObjs)) && (((pNode) = Abc_NtkObj(pNtk, i)), 1); i++ )   \
         if ( (pNode) == NULL || !Abc_AigNodeIsAnd(pNode) ) {} else
-#define Abc_NtkForEachBox( pNtk, pNode, i )                                                        \
-    for ( i = 0; (i < Vec_PtrSize((pNtk)->vBoxes)) && (((pNode) = Abc_NtkBox(pNtk, i)), 1); i++ )  \
-        if ( (pNode) == NULL ) {} else
 #define Abc_SeqForEachCutsetNode( pNtk, pNode, i )                                                 \
     for ( i = 0; (i < Abc_NtkCutSetNodeNum(pNtk)) && (((pNode) = Abc_NtkCutSetNode(pNtk, i)), 1); i++ )\
         if ( (pNode) == NULL ) {} else
+// various boxes
+#define Abc_NtkForEachBox( pNtk, pObj, i )                                                         \
+    for ( i = 0; (i < Vec_PtrSize((pNtk)->vBoxes)) && (((pObj) = Abc_NtkBox(pNtk, i)), 1); i++ )
+#define Abc_NtkForEachLatch( pNtk, pObj, i )                                                       \
+    for ( i = 0; (i < Vec_PtrSize((pNtk)->vBoxes)) && (((pObj) = Abc_NtkBox(pNtk, i)), 1); i++ )   \
+        if ( !Abc_ObjIsLatch(pObj) ) {} else
+#define Abc_NtkForEachLatchInput( pNtk, pObj, i )                                                  \
+    for ( i = 0; (i < Vec_PtrSize((pNtk)->vBoxes)) && (((pObj) = Abc_ObjFanin0(Abc_NtkBox(pNtk, i))), 1); i++ )   \
+        if ( !Abc_ObjIsLatch(Abc_NtkBox(pNtk, i)) ) {} else
+#define Abc_NtkForEachLatchOutput( pNtk, pObj, i )                                                  \
+    for ( i = 0; (i < Vec_PtrSize((pNtk)->vBoxes)) && (((pObj) = Abc_ObjFanout0(Abc_NtkBox(pNtk, i))), 1); i++ )   \
+        if ( !Abc_ObjIsLatch(Abc_NtkBox(pNtk, i)) ) {} else
+#define Abc_NtkForEachTri( pNtk, pObj, i )                                                         \
+    for ( i = 0; (i < Vec_PtrSize((pNtk)->vBoxes)) && (((pObj) = Abc_NtkBox(pNtk, i)), 1); i++ )   \
+        if ( !Abc_ObjIsTri(pObj) ) {} else
+#define Abc_NtkForEachBlackbox( pNtk, pObj, i )                                                    \
+    for ( i = 0; (i < Vec_PtrSize((pNtk)->vBoxes)) && (((pObj) = Abc_NtkBox(pNtk, i)), 1); i++ )   \
+        if ( !Abc_ObjIsBlackbox(pObj) ) {} else
 // inputs and outputs
 #define Abc_NtkForEachPi( pNtk, pPi, i )                                                           \
     for ( i = 0; (i < Abc_NtkPiNum(pNtk)) && (((pPi) = Abc_NtkPi(pNtk, i)), 1); i++ )
@@ -436,12 +464,10 @@ static inline float       Abc_NtkGetLatSkew ( Abc_Ntk_t * pNtk, int lat )       
     for ( i = 0; (i < Abc_NtkCiNum(pNtk)) && (((pCi) = Abc_NtkCi(pNtk, i)), 1); i++ )
 #define Abc_NtkForEachPo( pNtk, pPo, i )                                                           \
     for ( i = 0; (i < Abc_NtkPoNum(pNtk)) && (((pPo) = Abc_NtkPo(pNtk, i)), 1); i++ )
-#define Abc_NtkForEachAssert( pNtk, pAssert, i )                                                   \
-    for ( i = 0; (i < Vec_PtrSize((pNtk)->vAsserts)) && (((pAssert) = Abc_NtkAssert(pNtk, i)), 1); i++ )
-#define Abc_NtkForEachLatch( pNtk, pLatch, i )                                                     \
-    for ( i = 0; (i < Vec_PtrSize((pNtk)->vLatches)) && (((pLatch) = Abc_NtkLatch(pNtk, i)), 1); i++ )
 #define Abc_NtkForEachCo( pNtk, pCo, i )                                                           \
     for ( i = 0; (i < Abc_NtkCoNum(pNtk)) && (((pCo) = Abc_NtkCo(pNtk, i)), 1); i++ )
+#define Abc_NtkForEachAssert( pNtk, pObj, i )                                                      \
+    for ( i = 0; (i < Vec_PtrSize((pNtk)->vAsserts)) && (((pObj) = Abc_NtkAssert(pNtk, i)), 1); i++ )
 // fanin and fanouts
 #define Abc_ObjForEachFanin( pObj, pFanin, i )                                                     \
     for ( i = 0; (i < Abc_ObjFaninNum(pObj)) && (((pFanin) = Abc_ObjFanin(pObj, i)), 1); i++ )
@@ -568,14 +594,16 @@ extern Abc_Ntk_t *        Abc_NtkFrames( Abc_Ntk_t * pNtk, int nFrames, int fIni
 /*=== abcObj.c ==========================================================*/
 extern Abc_Obj_t *        Abc_ObjAlloc( Abc_Ntk_t * pNtk, Abc_ObjType_t Type );
 extern void               Abc_ObjRecycle( Abc_Obj_t * pObj );
-extern Abc_Obj_t *        Abc_NtkObjAdd( Abc_Ntk_t * pNtk, Abc_ObjType_t Type );
+extern Abc_Obj_t *        Abc_NtkCreateObj( Abc_Ntk_t * pNtk, Abc_ObjType_t Type );
 extern void               Abc_NtkDeleteObj( Abc_Obj_t * pObj );
 extern void               Abc_NtkDeleteObj_rec( Abc_Obj_t * pObj );
-extern Abc_Obj_t *        Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj );
+extern Abc_Obj_t *        Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, int fCopyName );
+extern Abc_Obj_t *        Abc_NtkDupBox( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pBox, int fCopyName );
 extern Abc_Obj_t *        Abc_NtkCloneObj( Abc_Obj_t * pNode );
 extern Abc_Obj_t *        Abc_NtkFindNode( Abc_Ntk_t * pNtk, char * pName );
 extern Abc_Obj_t *        Abc_NtkFindNet( Abc_Ntk_t * pNtk, char * pName );
 extern Abc_Obj_t *        Abc_NtkFindTerm( Abc_Ntk_t * pNtk, char * pName );
+extern Abc_Obj_t *        Abc_NtkFindCi( Abc_Ntk_t * pNtk, char * pName );
 extern Abc_Obj_t *        Abc_NtkFindOrCreateNet( Abc_Ntk_t * pNtk, char * pName );
 extern Abc_Obj_t *        Abc_NodeCreateConst0( Abc_Ntk_t * pNtk );
 extern Abc_Obj_t *        Abc_NodeCreateConst1( Abc_Ntk_t * pNtk );
@@ -593,13 +621,11 @@ extern bool               Abc_NodeIsInv( Abc_Obj_t * pNode );
 extern void               Abc_NodeComplement( Abc_Obj_t * pNode );
 /*=== abcNames.c ====================================================*/
 extern char *             Abc_ObjName( Abc_Obj_t * pNode );
+extern char *             Abc_ObjAssignName( Abc_Obj_t * pObj, char * pName, char * pSuffix );
 extern char *             Abc_ObjNameSuffix( Abc_Obj_t * pObj, char * pSuffix );
 extern char *             Abc_ObjNameDummy( char * pPrefix, int Num, int nDigits );
-extern char *             Abc_NtkLogicStoreName( Abc_Obj_t * pNodeNew, char * pNameOld );
-extern char *             Abc_NtkLogicStoreNamePlus( Abc_Obj_t * pNodeNew, char * pNameOld, char * pSuffix );
-extern void               Abc_NtkDupCioNamesTable( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
-extern void               Abc_NtkDupCioNamesTableNoLatches( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
-extern void               Abc_NtkDupCioNamesTableDual( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
+extern void               Abc_NtkTrasferNames( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
+extern void               Abc_NtkTrasferNamesNoLatches( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
 extern Vec_Ptr_t *        Abc_NodeGetFaninNames( Abc_Obj_t * pNode );
 extern Vec_Ptr_t *        Abc_NodeGetFakeNames( int nNames );
 extern void               Abc_NodeFreeNames( Vec_Ptr_t * vNames );
@@ -609,7 +635,7 @@ extern void               Abc_NtkOrderObjsByName( Abc_Ntk_t * pNtk, int fComb );
 extern void               Abc_NtkAddDummyPiNames( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkAddDummyPoNames( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkAddDummyAssertNames( Abc_Ntk_t * pNtk );
-extern void               Abc_NtkAddDummyLatchNames( Abc_Ntk_t * pNtk );
+extern void               Abc_NtkAddDummyBoxNames( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkShortNames( Abc_Ntk_t * pNtk );
 /*=== abcNetlist.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkNetlistToLogic( Abc_Ntk_t * pNtk );
@@ -627,7 +653,6 @@ extern void               Abc_NtkFreeGlobalBdds( Abc_Ntk_t * pNtk );
 extern Abc_Ntk_t *        Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func, int fUseMemMan );
 extern Abc_Ntk_t *        Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_t Func );
 extern Abc_Ntk_t *        Abc_NtkStartFromNoLatches( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_t Func );
-extern Abc_Ntk_t *        Abc_NtkStartFromDual( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_t Func );
 extern void               Abc_NtkFinalize( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
 extern Abc_Ntk_t *        Abc_NtkStartRead( char * pName );
 extern void               Abc_NtkFinalizeRead( Abc_Ntk_t * pNtk );
@@ -762,6 +787,7 @@ extern int                Abc_NtkGetFaninMax( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkCleanCopy( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkCleanNext( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkCleanMarkA( Abc_Ntk_t * pNtk );
+extern Abc_Obj_t *        Abc_NodeHasCoFanout( Abc_Obj_t * pNode );
 extern Abc_Obj_t *        Abc_NodeHasUniqueCoFanout( Abc_Obj_t * pNode );
 extern bool               Abc_NtkLogicHasSimpleCos( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkLogicMakeSimpleCos( Abc_Ntk_t * pNtk, bool fDuplicate );

@@ -327,7 +327,7 @@ Abc_Ntk_t * Abc_NtkTopmost( Abc_Ntk_t * pNtk, int nLevels )
     pPoNew = Abc_NtkCreatePo(pNtkNew);
     Abc_ObjAddFanin( pPoNew, pObjNew );
     Abc_NtkAddDummyPiNames( pNtkNew );
-    Abc_NtkLogicStoreName( pPoNew, Abc_ObjName(Abc_NtkPo(pNtk, 0)) );
+    Abc_ObjAssignName( pPoNew, Abc_ObjName(Abc_NtkPo(pNtk, 0)), NULL );
     // make sure everything is okay
     if ( !Abc_NtkCheck( pNtkNew ) )
     {

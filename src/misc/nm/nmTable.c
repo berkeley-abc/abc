@@ -67,37 +67,29 @@ static void Nm_ManResize( Nm_Man_t * p );
 ***********************************************************************/
 int Nm_ManTableAdd( Nm_Man_t * p, Nm_Entry_t * pEntry )
 {
-    Nm_Entry_t ** ppSpot;
-//    int i;
+    Nm_Entry_t ** ppSpot, * pOther;
     // resize the tables if needed
-//    if ( p->nEntries * p->nSizeFactor > p->nBins )
     if ( p->nEntries > p->nBins * p->nSizeFactor )
-    {
-//        Nm_ManPrintTables( p );
         Nm_ManResize( p );
-    }
-/*
-    // hash it by ID
-    for ( i = Nm_HashNumber(pEntry->ObjId, p->nBins); p->pBinsI2N[i]; i = (i+1) % p->nBins )
-        if ( p->pBinsI2N[i] == pEntry )
-            return 0;
-    assert( p->pBinsI2N[i] == NULL );
-    p->pBinsI2N[i] = pEntry;
-    // hash it by Name
-    for ( i = Nm_HashString(pEntry->Name, p->nBins); p->pBinsN2I[i]; i = (i+1) % p->nBins )
-        if ( p->pBinsN2I[i] == pEntry )
-            return 0;
-    assert( p->pBinsN2I[i] == NULL );
-    p->pBinsN2I[i] = pEntry;
-*/
+    // add the entry to the table Id->Name
+    assert( Nm_ManTableLookupId(p, pEntry->ObjId) == NULL );
     ppSpot = p->pBinsI2N + Nm_HashNumber(pEntry->ObjId, p->nBins);
     pEntry->pNextI2N = *ppSpot;
     *ppSpot = pEntry;
-
-    ppSpot = p->pBinsN2I + Nm_HashString(pEntry->Name, p->nBins);
-    pEntry->pNextN2I = *ppSpot;
-    *ppSpot = pEntry;
-
+    // check if an entry with the same name already exists
+    if ( pOther = Nm_ManTableLookupName(p, pEntry->Name, -1) )
+    {
+        // entry with the same name already exists - add it to the ring
+        pEntry->pNameSake = pOther->pNameSake? pOther->pNameSake : pOther;
+        pOther->pNameSake = pEntry;
+    }
+    else
+    {
+        // entry with the same name does not exist - add it to the table
+        ppSpot = p->pBinsN2I + Nm_HashString(pEntry->Name, p->nBins);
+        pEntry->pNextN2I = *ppSpot;
+        *ppSpot = pEntry;
+    }
     // report successfully added entry
     p->nEntries++;
     return 1;
@@ -114,10 +106,51 @@ int Nm_ManTableAdd( Nm_Man_t * p, Nm_Entry_t * pEntry )
   SeeAlso     []
 
 ***********************************************************************/
-int Nm_ManTableDelete( Nm_Man_t * p, Nm_Entry_t * pEntry )
+int Nm_ManTableDelete( Nm_Man_t * p, int ObjId )
 {
-    assert( 0 );
-    return 0;
+    Nm_Entry_t ** ppSpot, * pEntry, * pPrev;
+    int fRemoved;
+    // remove the entry from the table Id->Name
+    assert( Nm_ManTableLookupId(p, ObjId) != NULL );
+    ppSpot = p->pBinsI2N + Nm_HashNumber(ObjId, p->nBins);
+    while ( (*ppSpot)->ObjId != (unsigned)ObjId )
+        ppSpot = &(*ppSpot)->pNextI2N;
+    pEntry = *ppSpot; 
+    *ppSpot = (*ppSpot)->pNextI2N;
+    // remove the entry from the table Name->Id
+    ppSpot = p->pBinsN2I + Nm_HashString(pEntry->Name, p->nBins);
+    while ( *ppSpot && *ppSpot != pEntry )
+        ppSpot = &(*ppSpot)->pNextN2I;
+    // remember if we found this one in the list
+    fRemoved = (*ppSpot != NULL);
+    if ( *ppSpot )
+    {
+        assert( *ppSpot == pEntry );
+        *ppSpot = (*ppSpot)->pNextN2I;
+    }
+    // quit if this entry has no namesakes
+    if ( pEntry->pNameSake == NULL )
+    {
+        assert( fRemoved );
+        return 1;
+    }
+    // remove entry from the ring of namesakes
+    assert( pEntry->pNameSake != pEntry );
+    for ( pPrev = pEntry; pPrev->pNameSake != pEntry; pPrev = pPrev->pNameSake );
+    assert( !strcmp(pPrev->Name, pEntry->Name) );
+    assert( pPrev->pNameSake == pEntry );
+    if ( pEntry->pNameSake == pPrev ) // two entries in the ring
+        pPrev->pNameSake = NULL;
+    else
+        pPrev->pNameSake = pEntry->pNameSake;
+    // reinsert the ring back if we removed its connection with the list in the table
+    if ( fRemoved )
+    {
+        assert( pPrev->pNextN2I == NULL );
+        pPrev->pNextN2I = *ppSpot;
+        *ppSpot = pPrev;
+    }
+    return 1;
 }
 
 /**Function*************************************************************
@@ -134,21 +167,15 @@ int Nm_ManTableDelete( Nm_Man_t * p, Nm_Entry_t * pEntry )
 Nm_Entry_t * Nm_ManTableLookupId( Nm_Man_t * p, int ObjId )
 {
     Nm_Entry_t * pEntry;
-//    int i;
-/*
-    for ( i = Nm_HashNumber(ObjId, p->nBins); p->pBinsI2N[i]; i = (i+1) % p->nBins )
-        if ( p->pBinsI2N[i]->ObjId == ObjId )
-            return p->pBinsI2N[i];
-*/
     for ( pEntry = p->pBinsI2N[ Nm_HashNumber(ObjId, p->nBins) ]; pEntry; pEntry = pEntry->pNextI2N )
-        if ( pEntry->ObjId == ObjId )
+        if ( pEntry->ObjId == (unsigned)ObjId )
             return pEntry;
     return NULL;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Looks up the entry by name. May return two entries.]
+  Synopsis    [Looks up the entry by name and type.]
 
   Description []
                
@@ -157,42 +184,14 @@ Nm_Entry_t * Nm_ManTableLookupId( Nm_Man_t * p, int ObjId )
   SeeAlso     []
 
 ***********************************************************************/
-Nm_Entry_t * Nm_ManTableLookupName( Nm_Man_t * p, char * pName, Nm_Entry_t ** ppSecond )
+Nm_Entry_t * Nm_ManTableLookupName( Nm_Man_t * p, char * pName, int Type )
 {
-    Nm_Entry_t * pFirst, * pSecond, * pEntry;
+    Nm_Entry_t * pEntry;
     int Counter = 0;
-    pFirst = pSecond = NULL;
-/*
-    for ( i = Nm_HashString(pName, p->nBins); p->pBinsN2I[i]; i = (i+1) % p->nBins )
-        if ( strcmp(p->pBinsN2I[i]->Name, pName) == 0 )
-        {
-            if ( pFirst == NULL )
-                pFirst = p->pBinsN2I[i];
-            else if ( pSecond == NULL )
-                pSecond = p->pBinsN2I[i];
-            else
-                assert( 0 ); // name appears more than 2 times
-        }
-        else
-            Counter++;
-    if ( Counter > 100 )
-    printf( "%d ", Counter );
-*/
     for ( pEntry = p->pBinsN2I[ Nm_HashString(pName, p->nBins) ]; pEntry; pEntry = pEntry->pNextN2I )
-        if ( strcmp(pEntry->Name, pName) == 0 )
-        {
-            if ( pFirst == NULL )
-                pFirst = pEntry;
-            else if ( pSecond == NULL )
-                pSecond = pEntry;
-            else
-                assert( 0 ); // name appears more than 2 times
-        }
-
-    // save the names
-    if ( ppSecond )
-        *ppSecond = pSecond;
-    return pFirst;
+        if ( !strcmp(pEntry->Name, pName) && (Type == -1 || pEntry->Type == (unsigned)Type) )
+            return pEntry;
+    return pEntry;
 }
 
 /**Function*************************************************************
@@ -230,8 +229,6 @@ void Nm_ManProfile( Nm_Man_t * p )
     printf( "\n" );
 }
 
-
-
 /**Function*************************************************************
 
   Synopsis    [Resizes the table.]
@@ -256,39 +253,26 @@ clk = clock();
     pBinsNewN2I = ALLOC( Nm_Entry_t *, nBinsNew );
     memset( pBinsNewI2N, 0, sizeof(Nm_Entry_t *) * nBinsNew );
     memset( pBinsNewN2I, 0, sizeof(Nm_Entry_t *) * nBinsNew );
-    // rehash the entries from the old table
+    // rehash entries in Id->Name table
     Counter = 0;
     for ( e = 0; e < p->nBins; e++ )
-    for ( pEntry = p->pBinsI2N[e], pEntry2 = pEntry? pEntry->pNextI2N : NULL; 
-          pEntry; pEntry = pEntry2, pEntry2 = pEntry? pEntry->pNextI2N : NULL )
-    {
-//        pEntry = p->pBinsI2N[e];
-//        if ( pEntry == NULL )
-//            continue;
-/*
-        // hash it by ID
-        for ( i = Nm_HashNumber(pEntry->ObjId, nBinsNew); pBinsNewI2N[i]; i = (i+1) % nBinsNew )
-            if ( pBinsNewI2N[i] == pEntry )
-                assert( 0 );
-        assert( pBinsNewI2N[i] == NULL );
-        pBinsNewI2N[i] = pEntry;
-        // hash it by Name
-        for ( i = Nm_HashString(pEntry->Name, nBinsNew); pBinsNewN2I[i]; i = (i+1) % nBinsNew )
-            if ( pBinsNewN2I[i] == pEntry )
-                assert( 0 );
-        assert( pBinsNewN2I[i] == NULL );
-        pBinsNewN2I[i] = pEntry;
-*/
-        ppSpot = pBinsNewI2N + Nm_HashNumber(pEntry->ObjId, nBinsNew);
-        pEntry->pNextI2N = *ppSpot;
-        *ppSpot = pEntry;
-
-        ppSpot = pBinsNewN2I + Nm_HashString(pEntry->Name, nBinsNew);
-        pEntry->pNextN2I = *ppSpot;
-        *ppSpot = pEntry;
-
-        Counter++;
-    }
+        for ( pEntry = p->pBinsI2N[e], pEntry2 = pEntry? pEntry->pNextI2N : NULL; 
+              pEntry; pEntry = pEntry2, pEntry2 = pEntry? pEntry->pNextI2N : NULL )
+            {
+                ppSpot = pBinsNewI2N + Nm_HashNumber(pEntry->ObjId, nBinsNew);
+                pEntry->pNextI2N = *ppSpot;
+                *ppSpot = pEntry;
+                Counter++;
+            }
+    // rehash entries in Name->Id table
+    for ( e = 0; e < p->nBins; e++ )
+        for ( pEntry = p->pBinsN2I[e], pEntry2 = pEntry? pEntry->pNextN2I : NULL; 
+              pEntry; pEntry = pEntry2, pEntry2 = pEntry? pEntry->pNextN2I : NULL )
+            {
+                ppSpot = pBinsNewN2I + Nm_HashString(pEntry->Name, nBinsNew);
+                pEntry->pNextN2I = *ppSpot;
+                *ppSpot = pEntry;
+            }
     assert( Counter == p->nEntries );
 //    printf( "Increasing the structural table size from %6d to %6d. ", p->nBins, nBinsNew );
 //    PRT( "Time", clock() - clk );

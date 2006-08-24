@@ -331,7 +331,7 @@ void Io_WriteVerilogWires( FILE * pFile, Abc_Ntk_t * pNtk, int Start )
     }
     Abc_NtkForEachLatch( pNtk, pTerm, i )
     {
-        pNet = Abc_ObjFanin0(pTerm);
+        pNet = Abc_ObjFanin0(Abc_ObjFanin0(pTerm));
         Counter++;
         // get the line length after this name is written
         AddedLength = strlen(Abc_ObjName(pNet)) + 2;
@@ -377,7 +377,7 @@ void Io_WriteVerilogRegs( FILE * pFile, Abc_Ntk_t * pNtk, int Start )
     NameCounter = 0;
     Abc_NtkForEachLatch( pNtk, pLatch, i )
     {
-        pNet = Abc_ObjFanout0(pLatch);
+        pNet = Abc_ObjFanout0(Abc_ObjFanout0(pLatch));
         Counter++;
         // get the line length after this name is written
         AddedLength = strlen(Abc_ObjName(pNet)) + 2;
@@ -412,14 +412,14 @@ void Io_WriteVerilogLatches( FILE * pFile, Abc_Ntk_t * pNtk )
     Abc_NtkForEachLatch( pNtk, pLatch, i )
     {
 //        fprintf( pFile, "  always@(posedge  gclk) begin %s",     Abc_ObjName(Abc_ObjFanout0(pLatch)) );
-        fprintf( pFile, "  always begin %s",     Abc_ObjName(Abc_ObjFanout0(pLatch)) );
-        fprintf( pFile, " = %s; end\n", Abc_ObjName(Abc_ObjFanin0(pLatch)) );
+        fprintf( pFile, "  always begin %s",     Abc_ObjName(Abc_ObjFanout0(Abc_ObjFanout0(pLatch))) );
+        fprintf( pFile, " = %s; end\n", Abc_ObjName(Abc_ObjFanin0(Abc_ObjFanin0(pLatch))) );
         if ( Abc_LatchInit(pLatch) == ABC_INIT_ZERO )
 //            fprintf( pFile, "  initial begin %s = 1\'b0; end\n", Abc_ObjName(Abc_ObjFanout0(pLatch)) );
-            fprintf( pFile, "  initial begin %s = 0; end\n", Abc_ObjName(Abc_ObjFanout0(pLatch)) );
+            fprintf( pFile, "  initial begin %s = 0; end\n", Abc_ObjName(Abc_ObjFanout0(Abc_ObjFanout0(pLatch))) );
         else if ( Abc_LatchInit(pLatch) == ABC_INIT_ONE )
 //            fprintf( pFile, "  initial begin %s = 1\'b1; end\n", Abc_ObjName(Abc_ObjFanout0(pLatch)) );
-            fprintf( pFile, "  initial begin %s = 1; end\n", Abc_ObjName(Abc_ObjFanout0(pLatch)) );
+            fprintf( pFile, "  initial begin %s = 1; end\n", Abc_ObjName(Abc_ObjFanout0(Abc_ObjFanout0(pLatch))) );
     }
 }
 
@@ -431,11 +431,11 @@ void Io_WriteVerilogLatches( FILE * pFile, Abc_Ntk_t * pNtk )
     Abc_NtkForEachLatch( pNtk, pLatch, i )
     {
         if ( Abc_LatchInit(pLatch) == ABC_INIT_ZERO )
-            fprintf( pFile, "  initial begin %s <= 1\'b0; end\n", Abc_ObjName(Abc_ObjFanout0(pLatch)) );
+            fprintf( pFile, "  initial begin %s <= 1\'b0; end\n", Abc_ObjName(Abc_ObjFanout0(Abc_ObjFanout0(pLatch))) );
         else if ( Abc_LatchInit(pLatch) == ABC_INIT_ONE )
-            fprintf( pFile, "  initial begin %s <= 1\'b1; end\n", Abc_ObjName(Abc_ObjFanout0(pLatch)) );
-        fprintf( pFile, "  always@(posedge  gclk) begin %s",     Abc_ObjName(Abc_ObjFanout0(pLatch)) );
-        fprintf( pFile, " <= %s; end\n", Abc_ObjName(Abc_ObjFanin0(pLatch)) );
+            fprintf( pFile, "  initial begin %s <= 1\'b1; end\n", Abc_ObjName(Abc_ObjFanout0(Abc_ObjFanout0(pLatch))) );
+        fprintf( pFile, "  always@(posedge  gclk) begin %s",     Abc_ObjName(Abc_ObjFanout0(Abc_ObjFanout0(pLatch))) );
+        fprintf( pFile, " <= %s; end\n", Abc_ObjName(Abc_ObjFanin0(Abc_ObjFanin0(pLatch))) );
     }
 }
 */

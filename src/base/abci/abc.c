@@ -3901,8 +3901,7 @@ int Abc_CommandOneOutput( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( argc == globalUtilOptind + 1 )
     {
-        pNodeCo = Abc_NtkFindTerm( pNtk, argv[globalUtilOptind] );
-        pNode   = Abc_NtkFindNode( pNtk, argv[globalUtilOptind] );
+        pNode = Abc_NtkFindNode( pNtk, argv[globalUtilOptind] );
         if ( pNode == NULL )
         {
             fprintf( pErr, "Cannot find node \"%s\".\n", argv[globalUtilOptind] );
@@ -7433,6 +7432,8 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
+    printf( "This command is not implemented\n" );
+
     // set defaults
     nFrames  = 1;
     fExdc    = 1;
@@ -7495,10 +7496,11 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    if ( fImp )
-        pNtkRes = Abc_NtkVanImp( pNtk, nFrames, fExdc, fVerbose );
-    else
-        pNtkRes = Abc_NtkVanEijk( pNtk, nFrames, fExdc, fVerbose );
+//    if ( fImp )
+//        pNtkRes = Abc_NtkVanImp( pNtk, nFrames, fExdc, fVerbose );
+//    else
+//        pNtkRes = Abc_NtkVanEijk( pNtk, nFrames, fExdc, fVerbose );
+    pNtkRes = NULL;
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Sequential FPGA mapping has failed.\n" );

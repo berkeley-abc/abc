@@ -125,14 +125,14 @@ Abc_Ntk_t * Seq_NtkRetimeDerive( Abc_Ntk_t * pNtk, int fVerbose )
     Abc_NtkCleanCopy( pNtk );
     // clone the PIs/POs/latches
     Abc_NtkForEachPi( pNtk, pObj, i )
-        Abc_NtkDupObj( pNtkNew, pObj );
+        Abc_NtkDupObj( pNtkNew, pObj, 0 );
     Abc_NtkForEachPo( pNtk, pObj, i )
-        Abc_NtkDupObj( pNtkNew, pObj );
+        Abc_NtkDupObj( pNtkNew, pObj, 0 );
     // copy the names
     Abc_NtkForEachPi( pNtk, pObj, i )
-        Abc_NtkLogicStoreName( pObj->pCopy, Abc_ObjName(pObj) );
+        Abc_ObjAssignName( pObj->pCopy, Abc_ObjName(pObj), NULL );
     Abc_NtkForEachPo( pNtk, pObj, i )
-        Abc_NtkLogicStoreName( pObj->pCopy, Abc_ObjName(pObj) );
+        Abc_ObjAssignName( pObj->pCopy, Abc_ObjName(pObj), NULL );
 
     // create one AND for each logic node in the topological order
     vMapAnds = Abc_NtkDfs( pNtk, 0 );
@@ -354,7 +354,7 @@ Abc_Ntk_t * Seq_NtkRetimeReconstruct( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkSeq )
     Abc_NtkForEachNode( pNtkOld, pObj, i )
     {
         if ( i == 0 ) continue;
-        Abc_NtkDupObj( pNtkNew, pObj );
+        Abc_NtkDupObj( pNtkNew, pObj, 0 );
         pObj->pNext->pCopy = pObj->pCopy;
     }
     Abc_NtkForEachLatch( pNtkOld, pObj, i )
@@ -407,7 +407,7 @@ Abc_Ntk_t * Seq_NtkRetimeReconstruct( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkSeq )
     Seq_NtkShareLatchesClean( pNtkSeq );
 
     // add the latches and their names
-    Abc_NtkAddDummyLatchNames( pNtkNew );
+    Abc_NtkAddDummyBoxNames( pNtkNew );
     Abc_NtkOrderCisCos( pNtkNew );
     // fix the problem with complemented and duplicated CO edges
     Abc_NtkLogicMakeSimpleCos( pNtkNew, 1 );

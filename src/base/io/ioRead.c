@@ -49,7 +49,7 @@ Abc_Ntk_t * Io_Read( char * pFileName, int fCheck )
     if ( Extra_FileNameCheckExtension( pFileName, "blif" ) )
         pNtk = Io_ReadBlif( pFileName, fCheck );
     else if ( Extra_FileNameCheckExtension( pFileName, "v" ) )
-        pNtk = Io_ReadVerilog( pFileName, fCheck );
+        pNtk = NULL; //Io_ReadVerilog( pFileName, fCheck );
     else if ( Extra_FileNameCheckExtension( pFileName, "bench" ) )
         pNtk = Io_ReadBench( pFileName, fCheck );
     else if ( Extra_FileNameCheckExtension( pFileName, "edf" ) )

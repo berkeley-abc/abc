@@ -46,6 +46,9 @@ Abc_Ntk_t * Io_ReadEdif( char * pFileName, int fCheck )
     Extra_FileReader_t * p;
     Abc_Ntk_t * pNtk;
 
+    printf( "Currently this parser does not work!\n" );
+    return NULL;
+
     // start the file
     p = Extra_FileReaderAlloc( pFileName, "#", "\n\r", " \t()" );
     if ( p == NULL )

@@ -33,6 +33,4 @@ SRC +=    src/base/abci/abc.c \
     src/base/abci/abcTiming.c \
     src/base/abci/abcUnate.c \
     src/base/abci/abcUnreach.c \
-    src/base/abci/abcVanEijk.c \
-    src/base/abci/abcVanImp.c \
     src/base/abci/abcVerify.c 
