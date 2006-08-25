@@ -34,6 +34,18 @@ typedef enum {
     VER_SIG_WIRE
 } Ver_SignalType_t;
 
+// types of verilog gates
+typedef enum { 
+    VER_GATE_AND = 0,
+    VER_GATE_OR,
+    VER_GATE_XOR,
+    VER_GATE_BUF,
+    VER_GATE_NAND,
+    VER_GATE_NOR,
+    VER_GATE_XNOR,
+    VER_GATE_NOT
+} Ver_GateType_t;
+
 static Ver_Man_t * Ver_ParseStart( char * pFileName, Abc_Lib_t * pGateLib );
 static void Ver_ParseStop( Ver_Man_t * p );
 static void Ver_ParseFreeData( Ver_Man_t * p );
@@ -44,6 +56,7 @@ static int  Ver_ParseAssign( Ver_Man_t * p );
 static int  Ver_ParseAlways( Ver_Man_t * p );
 static int  Ver_ParseInitial( Ver_Man_t * p );
 static int  Ver_ParseGate( Ver_Man_t * p, Abc_Ntk_t * pNtkGate );
+static int  Ver_ParseGateStandard( Ver_Man_t * pMan, Ver_GateType_t GateType );
 
 static Abc_Obj_t * Ver_ParseCreatePi( Abc_Ntk_t * pNtk, char * pName );
 static Abc_Obj_t * Ver_ParseCreatePo( Abc_Ntk_t * pNtk, char * pName );
@@ -201,6 +214,7 @@ void Ver_ParseFreeData( Ver_Man_t * p )
 {
     if ( p->pNtkCur )
     {
+        p->pNtkCur->pManFunc = NULL;
         Abc_NtkDelete( p->pNtkCur );
         p->pNtkCur = NULL;
     }
@@ -324,7 +338,25 @@ int Ver_ParseModule( Ver_Man_t * pMan )
     while ( 1 )
     {
         Extra_ProgressBarUpdate( pMan->pProgress, Ver_StreamGetCurPosition(p), NULL );
-        if ( !strcmp( pWord, "assign" ) )
+
+        if ( !strcmp( pWord, "and" ) )
+            RetValue = Ver_ParseGateStandard( pMan, VER_GATE_AND );
+        else if ( !strcmp( pWord, "or" ) )
+            RetValue = Ver_ParseGateStandard( pMan, VER_GATE_OR );
+        else if ( !strcmp( pWord, "xor" ) )
+            RetValue = Ver_ParseGateStandard( pMan, VER_GATE_XOR );
+        else if ( !strcmp( pWord, "buf" ) )
+            RetValue = Ver_ParseGateStandard( pMan, VER_GATE_BUF );
+        else if ( !strcmp( pWord, "nand" ) )
+            RetValue = Ver_ParseGateStandard( pMan, VER_GATE_NAND );
+        else if ( !strcmp( pWord, "nor" ) )
+            RetValue = Ver_ParseGateStandard( pMan, VER_GATE_NOR );
+        else if ( !strcmp( pWord, "xnor" ) )
+            RetValue = Ver_ParseGateStandard( pMan, VER_GATE_XNOR );
+        else if ( !strcmp( pWord, "not" ) )
+            RetValue = Ver_ParseGateStandard( pMan, VER_GATE_NOT );
+
+        else if ( !strcmp( pWord, "assign" ) )
             RetValue = Ver_ParseAssign( pMan );
         else if ( !strcmp( pWord, "always" ) )
             RetValue = Ver_ParseAlways( pMan );
@@ -347,6 +379,9 @@ int Ver_ParseModule( Ver_Man_t * pMan )
 //            return 0;
         }
         if ( RetValue == 0 )
+            return 0;
+        // skip the comments
+        if ( !Ver_ParseSkipComments( pMan ) )
             return 0;
         // get new word
         pWord = Ver_ParseGetName( pMan );
@@ -460,14 +495,6 @@ int Ver_ParseAssign( Ver_Man_t * pMan )
         {
             pWord++;
             pWord[strlen(pWord)-1] = 0;
-        }
-        // get the fanout net
-        pNet = Abc_NtkFindNet( pNtk, pWord );
-        if ( pNet == NULL )
-        {
-            sprintf( pMan->sError, "Cannot read the assign statement for %s (output wire is not defined).", pWord );
-            Ver_ParsePrintErrorMessage( pMan );
-            return 0;
         }
         // get the fanout net
         pNet = Abc_NtkFindNet( pNtk, pWord );
@@ -887,6 +914,97 @@ int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtkGate )
         else
             Abc_ObjAddFanin( Abc_NtkFindOrCreateNet(pNtk, NULL), pNode );
     }
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Parses one directive.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ver_ParseGateStandard( Ver_Man_t * pMan, Ver_GateType_t GateType )
+{
+    Ver_Stream_t * p = pMan->pReader;
+    Aig_Man_t * pAig = pMan->pNtkCur->pManFunc;
+    Abc_Obj_t * pNet, * pNode;
+    char * pWord, Symbol;
+    // this is gate name - throw it away
+    if ( Ver_StreamPopChar(p) != '(' )
+    {
+        sprintf( pMan->sError, "Cannot parse a standard gate (expected opening paranthesis)." );
+        Ver_ParsePrintErrorMessage( pMan );
+        return 0;
+    }
+    Ver_ParseSkipComments( pMan );
+    // create the node
+    pNode = Abc_NtkCreateNode( pMan->pNtkCur );
+    // parse pairs of formal/actural inputs
+    while ( 1 )
+    {
+        // parse the output name
+        pWord = Ver_ParseGetName( pMan );
+        if ( pWord == NULL )
+            return 0;
+        // get the net corresponding to this output
+        pNet = Abc_NtkFindNet( pMan->pNtkCur, pWord );
+        if ( pNet == NULL )
+        {
+            sprintf( pMan->sError, "Net is missing in gate %s.", pWord );
+            Ver_ParsePrintErrorMessage( pMan );
+            return 0;
+        }
+        // if this is the first net, add it as an output
+        if ( Abc_ObjFanoutNum(pNode) == 0 )
+            Abc_ObjAddFanin( pNet, pNode );
+        else
+            Abc_ObjAddFanin( pNode, pNet );
+        // check if it is the end of gate
+        Ver_ParseSkipComments( pMan );
+        Symbol = Ver_StreamPopChar(p);
+        if ( Symbol == ')' )
+            break;
+        // skip comma
+        if ( Symbol != ',' )
+        {
+            sprintf( pMan->sError, "Cannot parse a standard gate %s (expected closing paranthesis).", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+            Ver_ParsePrintErrorMessage( pMan );
+            return 0;
+        }
+        Ver_ParseSkipComments( pMan );
+    }
+    if ( (GateType == VER_GATE_BUF || GateType == VER_GATE_NOT) && Abc_ObjFaninNum(pNode) != 1 )
+    {
+        sprintf( pMan->sError, "Buffer or interver with multiple fanouts %s (currently not supported).", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+        Ver_ParsePrintErrorMessage( pMan );
+        return 0;
+    }
+
+    // check if it is the end of gate
+    Ver_ParseSkipComments( pMan );
+    if ( Ver_StreamPopChar(p) != ';' )
+    {
+        sprintf( pMan->sError, "Cannot read standard gate %s (expected closing semicolumn).", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+        Ver_ParsePrintErrorMessage( pMan );
+        return 0;
+    }
+    // add logic function
+    if ( GateType == VER_GATE_AND || GateType == VER_GATE_NAND )
+        pNode->pData = Aig_CreateAnd( pAig, Abc_ObjFaninNum(pNode) );
+    else if ( GateType == VER_GATE_OR || GateType == VER_GATE_NOR )
+        pNode->pData = Aig_CreateOr( pAig, Abc_ObjFaninNum(pNode) );
+    else if ( GateType == VER_GATE_XOR || GateType == VER_GATE_XNOR )
+        pNode->pData = Aig_CreateExor( pAig, Abc_ObjFaninNum(pNode) );
+    else if ( GateType == VER_GATE_BUF || GateType == VER_GATE_NOT )
+        pNode->pData = Aig_CreateAnd( pAig, Abc_ObjFaninNum(pNode) );
+    if ( GateType == VER_GATE_NAND || GateType == VER_GATE_NOR || GateType == VER_GATE_XNOR || GateType == VER_GATE_NOT )
+        pNode->pData = Aig_Not( pNode->pData );
     return 1;
 }
 

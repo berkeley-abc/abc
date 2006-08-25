@@ -56,6 +56,7 @@ Aig_Man_t * Aig_ManStart()
     Aig_ManStartMemory( p );
     // create the constant node
     p->pConst1 = Aig_ManFetchMemory( p );
+    p->pConst1->Type = AIG_CONST1;
     p->pConst1->fPhase = 1;
     p->nCreated = 1;
     // start the table

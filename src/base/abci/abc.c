@@ -2175,9 +2175,9 @@ int Abc_CommandSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Empty network.\n" );
         return 1;
     }
-    if ( !Abc_NtkIsSopLogic(pNtk) && !Abc_NtkIsBddLogic(pNtk) )
+    if ( !Abc_NtkIsLogic(pNtk) )
     {
-        fprintf( pErr, "Sweep cannot be performed on an AIG or a mapped network (run \"unmap\").\n" );
+        fprintf( pErr, "The classical (SIS-like) sweep can only be performed on a logic network.\n" );
         return 1;
     }
     // modify the current network
@@ -3401,7 +3401,7 @@ int Abc_CommandSop( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( !Abc_NtkLogicToSop(pNtk, fDirect) )
     {
-        fprintf( pErr, "Converting to BDD has failed.\n" );
+        fprintf( pErr, "Converting to SOP has failed.\n" );
         return 1;
     }
     return 0;

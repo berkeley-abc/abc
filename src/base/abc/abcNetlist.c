@@ -321,6 +321,9 @@ Abc_Ntk_t * Abc_NtkLogicSopToNetlist( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pObj, * pNet, * pDriver, * pFanin;
     int i, k;
 
+    // remove dangling nodes
+    Abc_NtkCleanup( pNtk, 0 );
+
     assert( Abc_NtkIsLogic(pNtk) );
     assert( Abc_NtkLogicHasSimpleCos(pNtk) );
     if ( Abc_NtkIsBddLogic(pNtk) )
@@ -340,11 +343,7 @@ Abc_Ntk_t * Abc_NtkLogicSopToNetlist( Abc_Ntk_t * pNtk )
     }
     // duplicate all nodes
     Abc_NtkForEachNode( pNtk, pObj, i )
-    {
-        if ( Abc_ObjFaninNum(pObj) == 0 && Abc_ObjFanoutNum(pObj) == 0 )
-            continue;
         Abc_NtkDupObj(pNtkNew, pObj, 0);
-    }
     // first add the nets to the CO drivers
     Abc_NtkForEachCo( pNtk, pObj, i )
     {
@@ -367,13 +366,14 @@ Abc_Ntk_t * Abc_NtkLogicSopToNetlist( Abc_Ntk_t * pNtk )
             pDriver->pCopy->pCopy = pNet;
         }
         else
+        {
             assert( !strcmp( Abc_ObjName(pDriver->pCopy->pCopy), Abc_ObjName(pObj) ) );
+            Abc_ObjAddFanin( pObj->pCopy, pDriver->pCopy->pCopy );
+        }
     }
     // create the missing nets
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
-        if ( Abc_ObjFaninNum(pObj) == 0 && Abc_ObjFanoutNum(pObj) == 0 )
-            continue;
         if ( pObj->pCopy->pCopy ) // the net of the new object is already created
             continue;
         // create the new net

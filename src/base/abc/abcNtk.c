@@ -767,6 +767,12 @@ void Abc_NtkFixNonDrivenNets( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pNet, * pNode;
     int i;
 
+    if ( Abc_NtkNodeNum(pNtk) == 0 )
+    {
+        pNtk->ntkFunc = ABC_FUNC_BLACKBOX;
+        return;
+    }
+
     // check for non-driven nets
     vNets = Vec_PtrAlloc( 100 );
     Abc_NtkForEachNet( pNtk, pNet, i )
@@ -784,7 +790,7 @@ void Abc_NtkFixNonDrivenNets( Abc_Ntk_t * pNtk )
     // print the warning
     if ( vNets->nSize > 0 )
     {
-        printf( "Constant-zero drivers were added to %d non-driven nets:\n", vNets->nSize );
+        printf( "Constant-zero drivers were added to %d non-driven nets in network %s:\n", vNets->nSize, pNtk->pName );
         for ( i = 0; i < vNets->nSize; i++ )
         {
             if ( i == 0 )

@@ -325,9 +325,12 @@ Aig_Obj_t * Aig_Transfer( Aig_Man_t * pSour, Aig_Man_t * pDest, Aig_Obj_t * pRoo
     if ( Aig_ObjIsConst1( Aig_Regular(pRoot) ) )
         return Aig_NotCond( Aig_ManConst1(pDest), Aig_IsComplement(pRoot) );
     // set the PI mapping
-    Aig_ManForEachPi( pDest, pObj, i )
-        if ( i < nVars )
-            Aig_IthVar(pSour, i)->pData = Aig_IthVar(pDest, i);
+    Aig_ManForEachPi( pSour, pObj, i )
+    {
+        if ( i == nVars )
+           break;
+        pObj->pData = Aig_IthVar(pDest, i);
+    }
     // transfer and set markings
     Aig_Transfer_rec( pDest, Aig_Regular(pRoot) );
     // clear the markings

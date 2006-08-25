@@ -1057,7 +1057,7 @@ int Io_ReadBlifNetworkConnectBoxesOne( Io_ReadBlif_t * p, Abc_Ntk_t * pNtk, stmm
     Abc_Obj_t * pBox;
     int i;
     // go through the boxes
-    Abc_NtkForEachBox( pNtk, pBox, i )
+    Abc_NtkForEachBlackbox( pNtk, pBox, i )
         if ( Io_ReadBlifNetworkConnectBoxesOneBox( p, pBox, tName2Model ) )
             return 1;
     Abc_NtkFinalizeRead( pNtk );

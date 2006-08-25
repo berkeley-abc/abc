@@ -112,12 +112,11 @@ int Abc_NodeMinimumBase( Abc_Obj_t * pNode )
 int Abc_NtkRemoveDupFanins( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
-    int i, Counter, fChanged;
+    int i, Counter;
     assert( Abc_NtkIsBddLogic(pNtk) );
     Counter = 0;
     Abc_NtkForEachNode( pNtk, pNode, i )
-        while ( fChanged = Abc_NodeRemoveDupFanins(pNode) )
-            Counter += fChanged;
+        Counter += Abc_NodeRemoveDupFanins( pNode );
     return Counter;
 }
 
@@ -132,7 +131,7 @@ int Abc_NtkRemoveDupFanins( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NodeRemoveDupFanins( Abc_Obj_t * pNode )
+int Abc_NodeRemoveDupFanins_int( Abc_Obj_t * pNode )
 {
     Abc_Obj_t * pFanin1, * pFanin2;
     int i, k;
@@ -163,6 +162,24 @@ int Abc_NodeRemoveDupFanins( Abc_Obj_t * pNode )
     return 0;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Removes duplicated fanins if present.]
+
+  Description [Returns the number of fanins removed.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NodeRemoveDupFanins( Abc_Obj_t * pNode )
+{
+    int Counter = 0;
+    while ( Abc_NodeRemoveDupFanins_int(pNode) )
+        Counter++;
+    return Counter;
+}
 /**Function*************************************************************
 
   Synopsis    [Computes support of the node.]

@@ -197,7 +197,7 @@ stmm_table * Abc_NtkFraigEquiv( Abc_Ntk_t * pNtk, int fUseInv, bool fVerbose )
         if ( pNodeAig == NULL )
             continue;
         // skip the nodes that fanout into COs
-        if ( Abc_NodeHasCoFanout(pNode) )
+        if ( Abc_NodeFindCoFanout(pNode) )
             continue;
         // get the FRAIG node
         gNode = Fraig_NotCond( Abc_ObjRegular(pNodeAig)->pCopy, Abc_ObjIsComplement(pNodeAig) );
@@ -495,12 +495,8 @@ int Abc_NtkReduceNodes( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes )
     int i, Counter;
     assert( Abc_NtkIsLogic(pNtk) );
     // mark the nodes reachable from the POs
-    for ( i = 0; i < vNodes->nSize; i++ )
-    {
-        pNode = vNodes->pArray[i];
-        assert( Abc_ObjIsNode(pNode) );
+    Vec_PtrForEachEntry( vNodes, pNode, i )
         pNode->fMarkA = 1;
-    }
     // remove the non-marked nodes
     Counter = 0;
     Abc_NtkForEachNode( pNtk, pNode, i )
@@ -510,7 +506,7 @@ int Abc_NtkReduceNodes( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes )
             Counter++;
         }
     // unmark the remaining nodes
-    Abc_NtkForEachNode( pNtk, pNode, i )
+    Vec_PtrForEachEntry( vNodes, pNode, i )
         pNode->fMarkA = 0;
     // check
     if ( !Abc_NtkCheck( pNtk ) )
@@ -534,86 +530,40 @@ int Abc_NtkReduceNodes( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes )
 ***********************************************************************/
 int Abc_NtkSweep( Abc_Ntk_t * pNtk, int fVerbose )
 {
-    Abc_Obj_t * pNode;
-    int i, fConvert, nSwept, nSweptNew;
-    assert( Abc_NtkIsSopLogic(pNtk) || Abc_NtkIsBddLogic(pNtk) ); 
-    // convert to the BDD representation
-    fConvert = 0;
-    if ( Abc_NtkIsSopLogic(pNtk) )
-        Abc_NtkSopToBdd(pNtk), fConvert = 1;
-    // perform cleanup to get rid of dangling nodes
-    nSwept = Abc_NtkCleanup( pNtk, 0 );
-    // make the network minimum base
+    Vec_Ptr_t * vNodes;
+    Abc_Obj_t * pNode, * pFanout, * pDriver;
+    int i, nNodesOld;
+    assert( Abc_NtkIsLogic(pNtk) ); 
+    // convert network to BDD representation
+    if ( !Abc_NtkLogicToBdd(pNtk) )
+    {
+        fprintf( stdout, "Converting to BDD has failed.\n" );
+        return 1;
+    }
+    // perform cleanup
+    nNodesOld = Abc_NtkNodeNum(pNtk);
+    Abc_NtkCleanup( pNtk, 0 );
+    // prepare nodes for sweeping
     Abc_NtkRemoveDupFanins(pNtk);
     Abc_NtkMinimumBase(pNtk);
-    do
+    // collect sweepable nodes
+    vNodes = Vec_PtrAlloc( 100 );
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        if ( Abc_ObjFaninNum(pNode) < 2 )
+            Vec_PtrPush( vNodes, pNode );
+    // sweep the nodes
+    while ( Vec_PtrSize(vNodes) > 0 )
     {
-        // sweep constants and single-input nodes
-        Abc_NtkForEachNode( pNtk, pNode, i )
-            if ( i && Abc_ObjFaninNum(pNode) < 2 )
-                Abc_NodeSweep( pNode, fVerbose );
-        // make the network minimum base
-        Abc_NtkRemoveDupFanins(pNtk);
-        Abc_NtkMinimumBase(pNtk);
-        // perform final clean up (in case new danglies are created)
-        nSweptNew = Abc_NtkCleanup( pNtk, 0 );
-        nSwept += nSweptNew;
-    }
-    while ( nSweptNew );
-    // conver back to BDD
-    if ( fConvert )
-        Abc_NtkBddToSop(pNtk, 0);
-    // report
-    if ( fVerbose )
-        printf( "Sweep removed %d nodes.\n", nSwept );
-    // check
-    if ( !Abc_NtkCheck( pNtk ) )
-    {
-        printf( "Abc_NtkSweep: The network check has failed.\n" );
-        return -1;
-    }
-    return nSwept;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Tranditional sweep of the network.]
-
-  Description [Propagates constant and single-input node, removes dangling nodes.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NodeSweep( Abc_Obj_t * pNode, int fVerbose )
-{
-    Abc_Obj_t * pFanout, * pDriver;
-    Vec_Ptr_t * vFanout;
-    int i;
-    assert( Abc_ObjFaninNum(pNode) < 2 );
-    assert( Abc_ObjFanoutNum(pNode) > 0 );
-    // iterate through the fanouts
-    vFanout = Vec_PtrAlloc( Abc_ObjFanoutNum(pNode) );
-    Abc_NodeCollectFanouts( pNode, vFanout );
-    Vec_PtrForEachEntry( vFanout, pFanout, i )
-    {
-        if ( Abc_ObjIsCo(pFanout) )
-        {
-            if ( Abc_ObjFaninNum(pNode) == 1 )
-            {
-                pDriver = Abc_ObjFanin0(pNode);
-                if ( Abc_ObjIsCi(pDriver) || Abc_ObjFanoutNum(pDriver) > 1 || Abc_ObjFanoutNum(pNode) > 1 )
-                    continue;
-                // the driver is a node and its only fanout is this node
-                if ( Abc_NodeIsInv(pNode) )
-                    pDriver->pData = Cudd_Not(pDriver->pData);
-                // replace the fanin of the fanout
-                Abc_ObjPatchFanin( pFanout, pNode, pDriver );
-            }
+        // get any sweepable node
+        pNode = Vec_PtrPop(vNodes);
+        if ( !Abc_ObjIsNode(pNode) )
             continue;
-        }
-        // the fanout is a regular node
+        // get any non-CO fanout of this node
+        pFanout = Abc_NodeFindNonCoFanout(pNode);
+        if ( pFanout == NULL )
+            continue;
+        assert( Abc_ObjIsNode(pFanout) );
+        // transform the function of the fanout
         if ( Abc_ObjFaninNum(pNode) == 0 )
             Abc_NodeConstantInput( pFanout, pNode, Abc_NodeIsConst0(pNode) );
         else 
@@ -624,9 +574,43 @@ void Abc_NodeSweep( Abc_Obj_t * pNode, int fVerbose )
                 Abc_NodeComplementInput( pFanout, pNode );
             Abc_ObjPatchFanin( pFanout, pNode, pDriver );
         }
+        Abc_NodeRemoveDupFanins( pFanout );
+        Abc_NodeMinimumBase( pFanout );
+        // check if the fanout should be added
+        if ( Abc_ObjFaninNum(pFanout) < 2 )
+            Vec_PtrPush( vNodes, pFanout );
+        // check if the node has other fanouts
+        if ( Abc_ObjFanoutNum(pNode) > 0 )
+            Vec_PtrPush( vNodes, pNode );
+        else
+            Abc_NtkDeleteObj_rec( pNode );
     }
-    Vec_PtrFree( vFanout );
+    Vec_PtrFree( vNodes );
+    // sweep a node into its CO fanout if all of this is true:
+    // (a) this node is a single-input node
+    // (b) the driver of the node has only one fanout (this node)
+    // (c) the driver is a node
+    Abc_NtkForEachCo( pNtk, pFanout, i )
+    {
+        pNode = Abc_ObjFanin0(pFanout);
+        if ( Abc_ObjFaninNum(pNode) != 1 )
+            continue;
+        pDriver = Abc_ObjFanin0(pNode);
+        if ( !(Abc_ObjFanoutNum(pDriver) == 1 && Abc_ObjIsNode(pDriver)) )
+            continue;
+        // trasform this CO
+        if ( Abc_NodeIsInv(pNode) )
+            pDriver->pData = Cudd_Not(pDriver->pData);
+        Abc_ObjPatchFanin( pFanout, pNode, pDriver );
+    }
+    // perform cleanup
+    Abc_NtkCleanup( pNtk, 0 );
+    // report
+    if ( fVerbose )
+        printf( "Sweep removed %d nodes.\n", nNodesOld - Abc_NtkNodeNum(pNtk) );
+    return nNodesOld - Abc_NtkNodeNum(pNtk);
 }
+
 
 /**Function*************************************************************
 

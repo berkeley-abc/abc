@@ -392,7 +392,7 @@ int Ver_FormulaParserFindVar( char * pString, Vec_Ptr_t * vNames )
         if ( nLength2 != nLength )
             continue;
         pTemp2   = Vec_PtrEntry( vNames, 2*i + 1 );
-        if ( strncmp( pTemp, pTemp2, nLength ) )
+        if ( strncmp( pString, pTemp2, nLength ) )
             continue;
         return i;
     }

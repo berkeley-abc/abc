@@ -593,7 +593,7 @@ int Abc_NtkMiterIsConstant( Abc_Ntk_t * pMiter )
     Abc_NtkForEachPo( pMiter, pNodePo, i )
     {
         pChild = Abc_ObjChild0( pNodePo );
-        if ( Abc_ObjIsNode(Abc_ObjRegular(pChild)) && Abc_AigNodeIsConst(pChild) )
+        if ( Abc_AigNodeIsConst(pChild) )
         {
             assert( Abc_ObjRegular(pChild) == Abc_AigConst1(pMiter) );
             if ( !Abc_ObjIsComplement(pChild) )
@@ -629,7 +629,7 @@ void Abc_NtkMiterReport( Abc_Ntk_t * pMiter )
     if ( Abc_NtkPoNum(pMiter) == 1 )
     {
         pChild = Abc_ObjChild0( Abc_NtkPo(pMiter,0) );
-        if ( Abc_ObjIsNode(Abc_ObjRegular(pChild)) && Abc_AigNodeIsConst(pChild) )
+        if ( Abc_AigNodeIsConst(pChild) )
         {
             if ( Abc_ObjIsComplement(pChild) )
                 printf( "Unsatisfiable.\n" );
@@ -645,7 +645,7 @@ void Abc_NtkMiterReport( Abc_Ntk_t * pMiter )
         {
             pChild = Abc_ObjChild0( Abc_NtkPo(pMiter,i) );
             printf( "Output #%2d : ", i );
-            if ( Abc_ObjIsNode(Abc_ObjRegular(pChild)) && Abc_AigNodeIsConst(pChild) )
+            if ( Abc_AigNodeIsConst(pChild) )
             {
                 if ( Abc_ObjIsComplement(pChild) )
                     printf( "Unsatisfiable.\n" );

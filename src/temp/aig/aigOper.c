@@ -183,6 +183,7 @@ Aig_Obj_t * Aig_Or( Aig_Man_t * p, Aig_Obj_t * p0, Aig_Obj_t * p1 )
 ***********************************************************************/
 Aig_Obj_t * Aig_Mux( Aig_Man_t * p, Aig_Obj_t * pC, Aig_Obj_t * p1, Aig_Obj_t * p0 )
 {
+/*    
     Aig_Obj_t * pTempA1, * pTempA2, * pTempB1, * pTempB2, * pTemp;
     int Count0, Count1;
     // consider trivial cases
@@ -190,6 +191,9 @@ Aig_Obj_t * Aig_Mux( Aig_Man_t * p, Aig_Obj_t * pC, Aig_Obj_t * p1, Aig_Obj_t * 
         return Aig_Exor( p, pC, p0 );
     // other cases can be added
     // implement the first MUX (F = C * x1 + C' * x0)
+
+    // check for constants here!!!
+
     pTempA1 = Aig_TableLookup( p, Aig_ObjCreateGhost(p, pC,          p1, AIG_AND) );
     pTempA2 = Aig_TableLookup( p, Aig_ObjCreateGhost(p, Aig_Not(pC), p0, AIG_AND) );
     if ( pTempA1 && pTempA2 )
@@ -217,8 +221,8 @@ Aig_Obj_t * Aig_Mux( Aig_Man_t * p, Aig_Obj_t * pC, Aig_Obj_t * p1, Aig_Obj_t * 
     pTempB1 = pTempB1? pTempB1 : Aig_And(p, pC,          Aig_Not(p1));
     pTempB2 = pTempB2? pTempB2 : Aig_And(p, Aig_Not(pC), Aig_Not(p0));
     return Aig_Not( Aig_Or( p, pTempB1, pTempB2 ) );
-
-//    return Aig_Or( Aig_And(pC, p1), Aig_And(Aig_Not(pC), p0) );
+*/
+    return Aig_Or( p, Aig_And(p, pC, p1), Aig_And(p, Aig_Not(pC), p0) );
 }
 
 /**Function*************************************************************

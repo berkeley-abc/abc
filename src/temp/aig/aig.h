@@ -137,7 +137,7 @@ static inline int          Aig_ManObjNum( Aig_Man_t * p )         { return p->nC
 
 static inline Aig_Type_t   Aig_ObjType( Aig_Obj_t * pObj )        { return pObj->Type;               }
 static inline int          Aig_ObjIsNone( Aig_Obj_t * pObj )      { return pObj->Type == AIG_NONE;   }
-static inline int          Aig_ObjIsConst1( Aig_Obj_t * pObj )    { return pObj->Type == AIG_CONST1; }
+static inline int          Aig_ObjIsConst1( Aig_Obj_t * pObj )    { assert(!Aig_IsComplement(pObj)); return pObj->Type == AIG_CONST1; }
 static inline int          Aig_ObjIsPi( Aig_Obj_t * pObj )        { return pObj->Type == AIG_PI;     }
 static inline int          Aig_ObjIsPo( Aig_Obj_t * pObj )        { return pObj->Type == AIG_PO;     }
 static inline int          Aig_ObjIsAnd( Aig_Obj_t * pObj )       { return pObj->Type == AIG_AND;    }

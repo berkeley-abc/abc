@@ -744,6 +744,9 @@ void Abc_ConvertAigToBdd_rec2( DdManager * dd, Aig_Obj_t * pObj )
 DdNode * Abc_ConvertAigToBdd( DdManager * dd, Aig_Obj_t * pRoot )
 {
     DdNode * bFunc;
+    // check the case of a constant
+    if ( Aig_ObjIsConst1( Aig_Regular(pRoot) ) )
+        return Cudd_NotCond( Cudd_ReadOne(dd), Aig_IsComplement(pRoot) );
     // construct BDD
     Abc_ConvertAigToBdd_rec1( dd, Aig_Regular(pRoot) );
     // hold on to the result
