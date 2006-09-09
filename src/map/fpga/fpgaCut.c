@@ -35,9 +35,11 @@ struct Fpga_CutTableStrutct_t
 };
 
 // the largest number of cuts considered
-#define  FPGA_CUTS_MAX_COMPUTE   500
+//#define  FPGA_CUTS_MAX_COMPUTE   500
+#define  FPGA_CUTS_MAX_COMPUTE   2000
 // the largest number of cuts used
-#define  FPGA_CUTS_MAX_USE       200
+//#define  FPGA_CUTS_MAX_USE       200
+#define  FPGA_CUTS_MAX_USE       1000
 
 // primes used to compute the hash key
 static int s_HashPrimes[10] = { 109, 499, 557, 619, 631, 709, 797, 881, 907, 991 };
@@ -130,7 +132,7 @@ void Fpga_MappingCuts( Fpga_Man_t * p )
     int nCuts, nNodes, i;
 
     // set the elementary cuts for the PI variables
-    assert( p->nVarsMax > 1 && p->nVarsMax < 7 );
+    assert( p->nVarsMax > 1 && p->nVarsMax < 11 );
     Fpga_MappingCreatePiCuts( p );
 
     // compute the cuts for the internal nodes
@@ -347,8 +349,8 @@ void Fpga_CutFilter( Fpga_Man_t * p, Fpga_Node_t * pNode )
 Fpga_Cut_t * Fpga_CutMergeLists( Fpga_Man_t * p, Fpga_CutTable_t * pTable, 
     Fpga_Cut_t * pList1, Fpga_Cut_t * pList2, int fComp1, int fComp2, int fPivot1, int fPivot2 )
 {
-    Fpga_Node_t * ppNodes[6];
-    Fpga_Cut_t * pListNew, ** ppListNew, * pLists[7] = { NULL };
+    Fpga_Node_t * ppNodes[FPGA_MAX_LEAVES];
+    Fpga_Cut_t * pListNew, ** ppListNew, * pLists[FPGA_MAX_LEAVES+1] = { NULL };
     Fpga_Cut_t * pCut, * pPrev, * pTemp1, * pTemp2;
     int nNodes, Counter, i;
     Fpga_Cut_t ** ppArray1, ** ppArray2, ** ppArray3;
@@ -532,8 +534,8 @@ QUITS :
 Fpga_Cut_t * Fpga_CutMergeLists2( Fpga_Man_t * p, Fpga_CutTable_t * pTable, 
     Fpga_Cut_t * pList1, Fpga_Cut_t * pList2, int fComp1, int fComp2, int fPivot1, int fPivot2 )
 {
-    Fpga_Node_t * ppNodes[6];
-    Fpga_Cut_t * pListNew, ** ppListNew, * pLists[7] = { NULL };
+    Fpga_Node_t * ppNodes[FPGA_MAX_LEAVES];
+    Fpga_Cut_t * pListNew, ** ppListNew, * pLists[FPGA_MAX_LEAVES+1] = { NULL };
     Fpga_Cut_t * pCut, * pPrev, * pTemp1, * pTemp2;
     int nNodes, Counter, i;
 

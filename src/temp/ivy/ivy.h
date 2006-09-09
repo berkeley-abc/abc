@@ -425,6 +425,11 @@ extern void            Ivy_ObjPatchFanout( Ivy_Man_t * p, Ivy_Obj_t * pObj, Ivy_
 extern void            Ivy_ObjCollectFanouts( Ivy_Man_t * p, Ivy_Obj_t * pObj, Vec_Ptr_t * vArray );
 extern Ivy_Obj_t *     Ivy_ObjReadFirstFanout( Ivy_Man_t * p, Ivy_Obj_t * pObj );
 extern int             Ivy_ObjFanoutNum( Ivy_Man_t * p, Ivy_Obj_t * pObj );
+/*=== ivyFastMap.c =============================================================*/
+extern void            Ivy_FastMapPerform( Ivy_Man_t * pAig, int nLimit );
+extern void            Ivy_FastMapStop( Ivy_Man_t * pAig );
+extern void            Ivy_FastMapReadSupp( Ivy_Man_t * pAig, Ivy_Obj_t * pObj, Vec_Int_t * vLeaves );
+extern void            Ivy_FastMapReverseLevel( Ivy_Man_t * pAig );
 /*=== ivyHaig.c ==========================================================*/
 extern void            Ivy_ManHaigStart( Ivy_Man_t * p, int fVerbose );
 extern void            Ivy_ManHaigTrasfer( Ivy_Man_t * p, Ivy_Man_t * pNew );

@@ -248,18 +248,26 @@ usage:
 ***********************************************************************/
 void Fpga_SetSimpleLutLib( int nLutSize )
 {
+    Fpga_LutLib_t s_LutLib10= { "lutlib",10, {0,1,1,1,1,1,1,1,1,1,1}, {0,1,1,1,1,1,1,1,1,1,1} };
+    Fpga_LutLib_t s_LutLib9 = { "lutlib", 9, {0,1,1,1,1,1,1,1,1,1}, {0,1,1,1,1,1,1,1,1,1} };
+    Fpga_LutLib_t s_LutLib8 = { "lutlib", 8, {0,1,1,1,1,1,1,1,1}, {0,1,1,1,1,1,1,1,1} };
+    Fpga_LutLib_t s_LutLib7 = { "lutlib", 7, {0,1,1,1,1,1,1,1}, {0,1,1,1,1,1,1,1} };
     Fpga_LutLib_t s_LutLib6 = { "lutlib", 6, {0,1,1,1,1,1,1}, {0,1,1,1,1,1,1} };
     Fpga_LutLib_t s_LutLib5 = { "lutlib", 5, {0,1,1,1,1,1}, {0,1,1,1,1,1} };
     Fpga_LutLib_t s_LutLib4 = { "lutlib", 4, {0,1,1,1,1}, {0,1,1,1,1} };
     Fpga_LutLib_t s_LutLib3 = { "lutlib", 3, {0,1,1,1}, {0,1,1,1} };
     Fpga_LutLib_t * pLutLib;
-    assert( nLutSize >= 3 && nLutSize <= 6 );
+    assert( nLutSize >= 3 && nLutSize <= 10 );
     switch ( nLutSize )
     {
-        case 3: pLutLib = &s_LutLib3; break;
-        case 4: pLutLib = &s_LutLib4; break;
-        case 5: pLutLib = &s_LutLib5; break;
-        case 6: pLutLib = &s_LutLib6; break;
+        case 3:  pLutLib = &s_LutLib3; break;
+        case 4:  pLutLib = &s_LutLib4; break;
+        case 5:  pLutLib = &s_LutLib5; break;
+        case 6:  pLutLib = &s_LutLib6; break;
+        case 7:  pLutLib = &s_LutLib7; break;
+        case 8:  pLutLib = &s_LutLib8; break;
+        case 9:  pLutLib = &s_LutLib9; break;
+        case 10: pLutLib = &s_LutLib10; break;
         default: pLutLib = NULL; break;
     }
     if ( pLutLib == NULL )

@@ -383,7 +383,7 @@ Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk )
 
 //    Ivy_ManRequiredLevels( pMan );
 
-//    Pla_ManFastLutMap( pMan, 8 );
+//    Ivy_FastMapPerform( pMan, 8 );
     Ivy_ManStop( pMan );
     return NULL;
 

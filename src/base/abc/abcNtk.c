@@ -705,6 +705,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     Vec_PtrFree( pNtk->vCutSet );
     Vec_PtrFree( pNtk->vBoxes );
     Vec_FltFree( pNtk->vSkews );
+    if ( pNtk->vLevelsR ) Vec_IntFree( pNtk->vLevelsR );
     if ( pNtk->pModel ) free( pNtk->pModel );
     TotalMemory  = 0;
     TotalMemory += pNtk->pMmObj? Extra_MmFixedReadMemUsage(pNtk->pMmObj)  : 0;

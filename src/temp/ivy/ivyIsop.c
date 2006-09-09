@@ -26,7 +26,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 // ISOP computation fails if intermediate memory usage exceed this limit
-#define IVY_ISOP_MEM_LIMIT  4096
+#define IVY_ISOP_MEM_LIMIT  16*4096
 
 // intermediate ISOP representation
 typedef struct Ivy_Sop_t_ Ivy_Sop_t;

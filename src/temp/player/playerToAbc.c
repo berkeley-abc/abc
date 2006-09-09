@@ -88,13 +88,14 @@ void * Abc_NtkPlayer( void * pNtk, int nLutMax, int nPlaMax, int RankCost, int f
     if ( fFastMode )
     {
         // perform mapping into LUTs
-        Pla_ManFastLutMap( pMan, nLutMax );
+        Ivy_FastMapPerform( pMan, nLutMax );
         // convert from the extended AIG manager into an SOP network
         pNtkNew = Ivy_ManToAbc( pNtk, pMan, NULL, fFastMode );
-        Pla_ManFastLutMapStop( pMan );
+        Ivy_FastMapStop( pMan );
     }
     else
     {
+        assert( nLutMax >= 2 && nLutMax <= 8 );
         // perform decomposition/mapping into PLAs/LUTs
         p = Pla_ManDecompose( pMan, nLutMax, nPlaMax, fVerbose );
         // convert from the extended AIG manager into an SOP network
@@ -109,7 +110,7 @@ void * Abc_NtkPlayer( void * pNtk, int nLutMax, int nPlaMax, int RankCost, int f
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }
-    Abc_NtkPlayerCost( pNtkNew, RankCost, fVerbose );
+//    Abc_NtkPlayerCost( pNtkNew, RankCost, fVerbose );
     return pNtkNew;
 }
 
@@ -168,7 +169,7 @@ Abc_Ntk_t * Ivy_ManToAbc( Abc_Ntk_t * pNtk, Ivy_Man_t * pMan, Pla_Man_t * p, int
     // start the new ABC network
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
     // transfer the pointers to the basic nodes
-    Abc_ObjSetIvy2Abc( pMan, Ivy_ManConst1(pMan)->Id, Abc_AigConst1(pNtkNew) );
+    Abc_ObjSetIvy2Abc( pMan, Ivy_ManConst1(pMan)->Id, Abc_NodeCreateConst1(pNtkNew) );
     Abc_NtkForEachCi( pNtkNew, pObjAbc, i )
         Abc_ObjSetIvy2Abc( pMan, Ivy_ManPi(pMan, i)->Id, pObjAbc ); 
     // recursively construct the network
@@ -370,7 +371,7 @@ Abc_Obj_t * Ivy_ManToAbcFast_rec( Abc_Ntk_t * pNtkNew, Ivy_Man_t * pMan, Ivy_Obj
         return pObjAbc;
     assert( Ivy_ObjIsAnd(pObjIvy) || Ivy_ObjIsExor(pObjIvy) );
     // get the support of K-LUT
-    Pla_ManFastLutMapReadSupp( pMan, pObjIvy, vSupp );
+    Ivy_FastMapReadSupp( pMan, pObjIvy, vSupp );
     // create new ABC node and its fanins
     pObjAbc = Abc_NtkCreateNode( pNtkNew );
     Vec_IntForEachEntry( vSupp, Entry, i )

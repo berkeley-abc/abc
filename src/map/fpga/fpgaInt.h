@@ -46,7 +46,7 @@
 #endif
 
 // the maximum number of cut leaves (currently does not work for 7)
-#define FPGA_MAX_LEAVES           6   
+#define FPGA_MAX_LEAVES           10   
 
 // the bit masks
 #define FPGA_MASK(n)             ((~((unsigned)0)) >> (32-(n)))

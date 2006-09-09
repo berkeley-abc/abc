@@ -2050,6 +2050,10 @@ SOURCE=.\src\temp\ivy\ivyFanout.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\temp\ivy\ivyFastMap.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\temp\ivy\ivyHaig.c
 # End Source File
 # Begin Source File
@@ -2111,10 +2115,6 @@ SOURCE=.\src\temp\player\player.h
 # Begin Source File
 
 SOURCE=.\src\temp\player\playerCore.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\player\playerFast.c
 # End Source File
 # Begin Source File
 

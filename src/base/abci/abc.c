@@ -4736,11 +4736,11 @@ int Abc_CommandXyz( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nLutMax    = 8;
+    nLutMax    = 6;
     nPlaMax    = 128;
     RankCost   = 96000;
     fFastMode  = 1;
-    fRewriting = 1;
+    fRewriting = 0;
     fSynthesis = 0;
     fVerbose   = 1;
     Extra_UtilGetoptReset();
@@ -4811,7 +4811,7 @@ int Abc_CommandXyz( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( nLutMax < 2 || nLutMax > 8 || nPlaMax < 8 || nPlaMax > 128  )
+    if ( nLutMax < 2 || nLutMax > 12 || nPlaMax < 8 || nPlaMax > 128  )
     {
         fprintf( pErr, "Incorrect LUT/PLA parameters.\n" );
         return 1;
@@ -4819,8 +4819,8 @@ int Abc_CommandXyz( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // run the command
 //    pNtkRes = Abc_NtkXyz( pNtk, nPlaMax, 1, 0, fInvs, fVerbose );
-//    pNtkRes = Abc_NtkPlayer( pNtk, nLutMax, nPlaMax, RankCost, fFastMode, fRewriting, fSynthesis, fVerbose );
-    pNtkRes = NULL;
+    pNtkRes = Abc_NtkPlayer( pNtk, nLutMax, nPlaMax, RankCost, fFastMode, fRewriting, fSynthesis, fVerbose );
+//    pNtkRes = NULL;
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
@@ -6495,7 +6495,7 @@ int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // create the new LUT library
-    if ( nLutSize >= 3 && nLutSize <= 6 )
+    if ( nLutSize >= 3 && nLutSize <= 10 )
         Fpga_SetSimpleLutLib( nLutSize );
 /*
     else
@@ -6560,7 +6560,7 @@ usage:
     fprintf( pErr, "\t-p       : optimizes power by minimizing switching activity [default = %s]\n", fSwitching? "yes": "no" );
     fprintf( pErr, "\t-l       : optimizes latch paths for delay, other paths for area [default = %s]\n", fLatchPaths? "yes": "no" );
     fprintf( pErr, "\t-D float : sets the required time for the mapping [default = %s]\n", Buffer );  
-    fprintf( pErr, "\t-K num   : the number of LUT inputs [default = %s]%s\n", LutSize, (nLutSize == -1 ? " (type \"print_lut\")" : "") );
+    fprintf( pErr, "\t-K num   : the number of LUT inputs (2 < num < 11) [default = %s]%s\n", LutSize, (nLutSize == -1 ? " (type \"print_lut\")" : "") );
     fprintf( pErr, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h       : prints the command usage\n");
     return 1;
