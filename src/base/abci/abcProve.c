@@ -122,8 +122,24 @@ int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pPars )
         {
             clk = clock();
             Counter = (int)(pParams->nRewritingLimitStart * pow(pParams->nRewritingLimitMulti,nIter));
+//            Counter = 1;
             while ( 1 )
             {
+/*
+                extern Abc_Ntk_t * Abc_NtkIvyResyn( Abc_Ntk_t * pNtk, int fUpdateLevel, int fVerbose );
+                pNtk = Abc_NtkIvyResyn( pNtkTemp = pNtk, 0, 0 );  Abc_NtkDelete( pNtkTemp );
+                if ( (RetValue = Abc_NtkMiterIsConstant(pNtk)) >= 0 )
+                    break;
+                if ( --Counter == 0 )
+                    break;
+*/
+/*
+                Abc_NtkRewrite( pNtk, 0, 0, 0 );
+                if ( (RetValue = Abc_NtkMiterIsConstant(pNtk)) >= 0 )
+                    break;
+                if ( --Counter == 0 )
+                    break;
+*/
                 Abc_NtkRewrite( pNtk, 0, 0, 0 );
                 if ( (RetValue = Abc_NtkMiterIsConstant(pNtk)) >= 0 )
                     break;

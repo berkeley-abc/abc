@@ -71,6 +71,7 @@ static int Abc_CommandLogic          ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandMiter          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDemiter        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandOrPos          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAppend         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFrames         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSop            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBdd            ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -96,6 +97,7 @@ static int Abc_CommandICut           ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandIRewrite       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIRewriteSeq    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIResyn         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandIFraig         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandHaig           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMini           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -196,6 +198,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "miter",         Abc_CommandMiter,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "demiter",       Abc_CommandDemiter,          1 );
     Cmd_CommandAdd( pAbc, "Various",      "orpos",         Abc_CommandOrPos,            1 );
+    Cmd_CommandAdd( pAbc, "Various",      "append",        Abc_CommandAppend,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "frames",        Abc_CommandFrames,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "sop",           Abc_CommandSop,              0 );
     Cmd_CommandAdd( pAbc, "Various",      "bdd",           Abc_CommandBdd,              0 );
@@ -221,6 +224,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "New AIG",      "irw",           Abc_CommandIRewrite,         1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "irws",          Abc_CommandIRewriteSeq,      1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "iresyn",        Abc_CommandIResyn,           1 );
+    Cmd_CommandAdd( pAbc, "New AIG",      "ifraig",        Abc_CommandIFraig,           1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "haig",          Abc_CommandHaig,             1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "mini",          Abc_CommandMini,             1 );
 
@@ -3276,6 +3280,105 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandAppend( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr, * pFile;
+    Abc_Ntk_t * pNtk, * pNtk2;
+    char * FileName;
+    int fComb;
+    int c;
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ch" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'c':
+            fComb ^= 1;
+            break;
+        default:
+            goto usage;
+        }
+    }
+
+    // get the second network
+    if ( argc != globalUtilOptind + 1 )
+    {
+        fprintf( pErr, "The network to append is not given.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "The base network should be strashed for the appending to work.\n" );
+        return 1;
+    }
+
+    // get the input file name
+    FileName = argv[globalUtilOptind];
+    if ( (pFile = fopen( FileName, "r" )) == NULL )
+    {
+        fprintf( pAbc->Err, "Cannot open input file \"%s\". ", FileName );
+        if ( FileName = Extra_FileGetSimilarName( FileName, ".mv", ".blif", ".pla", ".eqn", ".bench" ) )
+            fprintf( pAbc->Err, "Did you mean \"%s\"?", FileName );
+        fprintf( pAbc->Err, "\n" );
+        return 1;
+    }
+    fclose( pFile );
+ 
+    // read the second network
+    pNtk2 = Io_Read( FileName, 1 );
+    if ( pNtk2 == NULL )
+    {
+        fprintf( pAbc->Err, "Reading network from file has failed.\n" );
+        return 1;
+    }
+
+    // check if the second network is combinational
+    if ( Abc_NtkLatchNum(pNtk2) )
+    {
+        fprintf( pErr, "The second network has latches. Appending does not work for such networks.\n" );
+        return 1;
+    }
+
+    // get the new network
+    if ( !Abc_NtkAppend( pNtk, pNtk2, 1 ) )
+    {
+        Abc_NtkDelete( pNtk2 );
+        fprintf( pErr, "Appending the networks failed.\n" );
+        return 1;
+    }
+    Abc_NtkDelete( pNtk2 );
+
+    // replace the current network
+//    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: append [-h] <file>\n" );
+    fprintf( pErr, "\t         appends a combinational network on top of the current network\n" );
+//    fprintf( pErr, "\t-c     : computes combinational miter (latches as POs) [default = %s]\n", fComb? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    fprintf( pErr, "\t<file> : file name with the second network\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandFrames( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
@@ -4810,13 +4913,13 @@ int Abc_CommandXyz( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Only works for strashed networks.\n" );
         return 1;
     }
-
+/*
     if ( nLutMax < 2 || nLutMax > 12 || nPlaMax < 8 || nPlaMax > 128  )
     {
         fprintf( pErr, "Incorrect LUT/PLA parameters.\n" );
         return 1;
     }
-
+*/
     // run the command
 //    pNtkRes = Abc_NtkXyz( pNtk, nPlaMax, 1, 0, fInvs, fVerbose );
     pNtkRes = Abc_NtkPlayer( pNtk, nLutMax, nPlaMax, RankCost, fFastMode, fRewriting, fSynthesis, fVerbose );
@@ -5323,6 +5426,79 @@ usage:
     fprintf( pErr, "\t         performs combinational resynthesis\n" );
     fprintf( pErr, "\t-l     : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandIFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c, fUpdateLevel, fVerbose;
+
+    extern Abc_Ntk_t * Abc_NtkIvyFraig( Abc_Ntk_t * pNtk );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fUpdateLevel = 1;
+    fVerbose     = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "lzvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'l':
+            fUpdateLevel ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( Abc_NtkIsSeq(pNtk) )
+    {
+        fprintf( pErr, "Only works for non-sequential networks.\n" );
+        return 1;
+    }
+
+    pNtkRes = Abc_NtkIvyFraig( pNtk );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Command has failed.\n" );
+        return 0;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: ifraig [-h]\n" );
+    fprintf( pErr, "\t         performs fraiging using a new method\n" );
+//    fprintf( pErr, "\t-l     : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
+//    fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
 }

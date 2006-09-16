@@ -679,7 +679,7 @@ int Abc_NtkFraigStore( Abc_Ntk_t * pNtk )
     {
         // add the new network to storage
         nAndsOld = Abc_NtkNodeNum( pStore );
-        if ( !Abc_NtkAppend( pStore, pNtk ) )
+        if ( !Abc_NtkAppend( pStore, pNtk, 0 ) )
         {
             printf( "The current network cannot be appended to the stored network.\n" );
             return 0;

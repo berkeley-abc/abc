@@ -43,6 +43,7 @@ extern "C" {
 typedef struct Ivy_Man_t_            Ivy_Man_t;
 typedef struct Ivy_Obj_t_            Ivy_Obj_t;
 typedef int                          Ivy_Edge_t;
+typedef struct Ivy_FraigParams_t_    Ivy_FraigParams_t;
 
 // object types
 typedef enum { 
@@ -70,13 +71,14 @@ struct Ivy_Obj_t_  // 24 bytes (32-bit) or 32 bytes (64-bit)   // 10 words - 16 
 {
     int              Id;             // integer ID
     int              TravId;         // traversal ID
-    unsigned         Type    :  4;   // object type
-    unsigned         fPhase  :  1;   // value under 000...0 pattern
-    unsigned         fMarkA  :  1;   // multipurpose mask
-    unsigned         fMarkB  :  1;   // multipurpose mask
-    unsigned         fExFan  :  1;   // set to 1 if last fanout added is EXOR
-    unsigned         Init    :  2;   // latch initial value
-    unsigned         Level   : 22;   // logic level
+    unsigned         Type     :  4;  // object type
+    unsigned         fMarkA   :  1;  // multipurpose mask
+    unsigned         fMarkB   :  1;  // multipurpose mask
+    unsigned         fExFan   :  1;  // set to 1 if last fanout added is EXOR
+    unsigned         fPhase   :  1;  // value under 000...0 pattern
+    unsigned         fFailTfo :  1;  // the TFO of the failed node
+    unsigned         Init     :  2;  // latch initial value
+    unsigned         Level    : 21;  // logic level
     int              nRefs;          // reference counter
     Ivy_Obj_t *      pFanin0;        // fanin
     Ivy_Obj_t *      pFanin1;        // fanin
@@ -122,6 +124,12 @@ struct Ivy_Man_t_
     // timing statistics
     int              time1;
     int              time2;
+};
+
+struct Ivy_FraigParams_t_
+{
+    int              nSimWords;      // the number of words in the simulation info
+    double           SimSatur;       // the ratio of refined classes when saturation is reached
 };
 
 
@@ -249,6 +257,8 @@ static inline Ivy_Obj_t *  Ivy_ObjChild0Equiv( Ivy_Obj_t * pObj ) { assert( !Ivy
 static inline Ivy_Obj_t *  Ivy_ObjChild1Equiv( Ivy_Obj_t * pObj ) { assert( !Ivy_IsComplement(pObj) ); return Ivy_ObjFanin1(pObj)? Ivy_NotCond(Ivy_ObjFanin1(pObj)->pEquiv, Ivy_ObjFaninC1(pObj)) : NULL;  }
 static inline int          Ivy_ObjLevel( Ivy_Obj_t * pObj )       { return pObj->Level;                            }
 static inline int          Ivy_ObjLevelNew( Ivy_Obj_t * pObj )    { return 1 + Ivy_ObjIsExor(pObj) + IVY_MAX(Ivy_ObjFanin0(pObj)->Level, Ivy_ObjFanin1(pObj)->Level);       }
+static inline int          Ivy_ObjFaninPhase( Ivy_Obj_t * pObj )  { return Ivy_IsComplement(pObj)? !Ivy_Regular(pObj)->fPhase : pObj->fPhase; }
+
 static inline void         Ivy_ObjClean( Ivy_Obj_t * pObj )       
 { 
     int IdSaved = pObj->Id; 
@@ -430,6 +440,9 @@ extern void            Ivy_FastMapPerform( Ivy_Man_t * pAig, int nLimit );
 extern void            Ivy_FastMapStop( Ivy_Man_t * pAig );
 extern void            Ivy_FastMapReadSupp( Ivy_Man_t * pAig, Ivy_Obj_t * pObj, Vec_Int_t * vLeaves );
 extern void            Ivy_FastMapReverseLevel( Ivy_Man_t * pAig );
+/*=== ivyFraig.c ==========================================================*/
+extern Ivy_Man_t *     Ivy_FraigPerform( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParams );
+extern void            Ivy_FraigParamsDefault( Ivy_FraigParams_t * pParams );
 /*=== ivyHaig.c ==========================================================*/
 extern void            Ivy_ManHaigStart( Ivy_Man_t * p, int fVerbose );
 extern void            Ivy_ManHaigTrasfer( Ivy_Man_t * p, Ivy_Man_t * pNew );
@@ -442,6 +455,7 @@ extern void            Ivy_ManHaigSimulate( Ivy_Man_t * p );
 extern int             Ivy_TruthIsop( unsigned * puTruth, int nVars, Vec_Int_t * vCover, int fTryBoth );
 /*=== ivyMan.c ==========================================================*/
 extern Ivy_Man_t *     Ivy_ManStart();
+extern Ivy_Man_t *     Ivy_ManStartFrom( Ivy_Man_t * p );
 extern Ivy_Man_t *     Ivy_ManDup( Ivy_Man_t * p );
 extern void            Ivy_ManStop( Ivy_Man_t * p );
 extern int             Ivy_ManCleanup( Ivy_Man_t * p );
@@ -487,7 +501,7 @@ extern int             Ivy_ManRewritePre( Ivy_Man_t * p, int fUpdateLevel, int f
 /*=== ivySeq.c =========================================================*/
 extern int             Ivy_ManRewriteSeq( Ivy_Man_t * p, int fUseZeroCost, int fVerbose );
 /*=== ivyShow.c =========================================================*/
-extern void            Ivy_ManShow( Ivy_Man_t * pMan, int fHaig );
+extern void            Ivy_ManShow( Ivy_Man_t * pMan, int fHaig, Vec_Ptr_t * vBold );
 /*=== ivyTable.c ========================================================*/
 extern Ivy_Obj_t *     Ivy_TableLookup( Ivy_Man_t * p, Ivy_Obj_t * pObj );
 extern void            Ivy_TableInsert( Ivy_Man_t * p, Ivy_Obj_t * pObj );

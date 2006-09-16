@@ -429,7 +429,7 @@ int Abc_NtkMiterSatCreateInt( solver * pSat, Abc_Ntk_t * pNtk, int fJFront )
 {
     Abc_Obj_t * pNode, * pFanin, * pNodeC, * pNodeT, * pNodeE;
     Vec_Ptr_t * vNodes, * vSuper;
-//    Vec_Int_t * vLevels;
+    Vec_Flt_t * vFactors;
     Vec_Int_t * vVars, * vFanio;
     Vec_Vec_t * vCircuit;
     int i, k, fUseMuxes = 1;
@@ -588,6 +588,23 @@ int Abc_NtkMiterSatCreateInt( solver * pSat, Abc_Ntk_t * pNtk, int fJFront )
 //        Asat_JManStop( pSat );
 //    PRT( "Total", clock() - clk1 );
     }
+
+    Abc_NtkStartReverseLevels( pNtk );
+    vFactors = Vec_FltStart( solver_nvars(pSat) );
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        if ( pNode->fMarkA )
+            Vec_FltWriteEntry( vFactors, (int)pNode->pCopy, (float)pow(0.97, Abc_NodeReadReverseLevel(pNode)) );
+    Abc_NtkForEachCi( pNtk, pNode, i )
+        if ( pNode->fMarkA )
+            Vec_FltWriteEntry( vFactors, (int)pNode->pCopy, (float)pow(0.97, nLevelsMax+1) );
+    // set the PI levels
+//    Abc_NtkForEachObj( pNtk, pNode, i )
+//        if ( pNode->fMarkA )
+//            printf( "(%d) %.3f   ", Abc_NodeReadReverseLevel(pNode), Vec_FltEntry(vFactors, (int)pNode->pCopy) );
+//    printf( "\n" );
+    Asat_SolverSetFactors( pSat, Vec_FltReleaseArray(vFactors) );
+    Vec_FltFree( vFactors );
+
 /*
     // create factors
     vLevels = Vec_IntStart( Vec_PtrSize(vNodes) );   // the reverse levels of the nodes

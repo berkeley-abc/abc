@@ -58,7 +58,7 @@ Ivy_Man_t * Ivy_ManStart()
     Ivy_ManStartMemory( p );
     // create the constant node
     p->pConst1 = Ivy_ManFetchMemory( p );
-//    p->pConst1->fPhase = 1;
+    p->pConst1->fPhase = 1;
     Vec_PtrPush( p->vObjs, p->pConst1 );
     p->nCreated = 1;
     // start the table
@@ -66,6 +66,31 @@ Ivy_Man_t * Ivy_ManStart()
     p->pTable = ALLOC( int, p->nTableSize );
     memset( p->pTable, 0, sizeof(int) * p->nTableSize );
     return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the AIG manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ivy_Man_t * Ivy_ManStartFrom( Ivy_Man_t * p )
+{
+    Ivy_Man_t * pNew;
+    Ivy_Obj_t * pObj;
+    int i;
+    // create the new manager
+    pNew = Ivy_ManStart();
+    // create the PIs
+    Ivy_ManConst1(p)->pEquiv = Ivy_ManConst1(pNew);
+    Ivy_ManForEachPi( p, pObj, i )
+        pObj->pEquiv = Ivy_ObjCreatePi(pNew);
+    return pNew;
 }
 
 /**Function*************************************************************

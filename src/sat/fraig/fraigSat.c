@@ -34,6 +34,7 @@ static void Fraig_SupergateAddClausesExor( Fraig_Man_t * pMan, Fraig_Node_t * pN
 static void Fraig_SupergateAddClausesMux( Fraig_Man_t * pMan, Fraig_Node_t * pNode );
 //static void Fraig_DetectFanoutFreeCone( Fraig_Man_t * pMan, Fraig_Node_t * pNode );
 static void Fraig_DetectFanoutFreeConeMux( Fraig_Man_t * pMan, Fraig_Node_t * pNode );
+static void Fraig_SetActivity( Fraig_Man_t * pMan, Fraig_Node_t * pOld, Fraig_Node_t * pNew );
 
 extern void * Msat_ClauseVecReadEntry( void * p, int i );
 
@@ -354,6 +355,9 @@ p->timeTrav += clock() - clk;
 if ( fVerbose )
     printf( "%d(%d) - ", Fraig_CountPis(p,p->vVarsInt), Msat_IntVecReadSize(p->vVarsInt) );
 
+
+    // prepare variable activity
+    Fraig_SetActivity( p, pOld, pNew );
 
     // get the complemented attribute
     fComp = Fraig_NodeComparePhase( pOld, pNew );
@@ -1395,6 +1399,40 @@ printf( "%d(%d)", vFanins->nSize, nCubes );
     Fraig_NodeVecFree( vInside );
 }
 
+
+
+/**Function*************************************************************
+
+  Synopsis    [Collect variables using their proximity from the nodes.]
+
+  Description [This procedure creates a variable order based on collecting
+  first the nodes that are the closest to the given two target nodes.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fraig_SetActivity( Fraig_Man_t * pMan, Fraig_Node_t * pOld, Fraig_Node_t * pNew )
+{
+    Fraig_Node_t * pNode;
+    int i, Number, MaxLevel;
+    float * pFactors = Msat_SolverReadFactors(pMan->pSat);
+    if ( pFactors == NULL )
+        return;
+    MaxLevel = FRAIG_MAX( pOld->Level, pNew->Level );
+    // create the variable order
+    for ( i = 0; i < Msat_IntVecReadSize(pMan->vVarsInt); i++ )
+    {
+        // get the new node on the frontier
+        Number = Msat_IntVecReadEntry(pMan->vVarsInt, i);
+        pNode = pMan->vNodes->pArray[Number];
+        pFactors[pNode->Num] = (float)pow( 0.97, MaxLevel - pNode->Level );
+//        if ( pNode->Num % 50 == 0 )
+//        printf( "(%d) %.2f  ", MaxLevel - pNode->Level, pFactors[pNode->Num] );
+    }
+//    printf( "\n" );
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

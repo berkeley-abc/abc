@@ -288,6 +288,31 @@ Abc_Ntk_t * Abc_NtkIvyRewriteSeq( Abc_Ntk_t * pNtk, int fUseZeroCost, int fVerbo
   SeeAlso     []
 
 ***********************************************************************/
+Abc_Ntk_t * Abc_NtkIvyResyn0( Abc_Ntk_t * pNtk, int fUpdateLevel, int fVerbose )
+{
+    Abc_Ntk_t * pNtkAig;
+    Ivy_Man_t * pMan, * pTemp;
+    pMan = Abc_NtkIvyBefore( pNtk, 0, 0 );
+    if ( pMan == NULL )
+        return NULL;
+    pMan = Ivy_ManResyn0( pTemp = pMan, fUpdateLevel, fVerbose );
+    Ivy_ManStop( pTemp );
+    pNtkAig = Abc_NtkIvyAfter( pNtk, pMan, 0, 0 );
+    Ivy_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Abc_Ntk_t * Abc_NtkIvyResyn( Abc_Ntk_t * pNtk, int fUpdateLevel, int fVerbose )
 {
     Abc_Ntk_t * pNtkAig;
@@ -296,6 +321,33 @@ Abc_Ntk_t * Abc_NtkIvyResyn( Abc_Ntk_t * pNtk, int fUpdateLevel, int fVerbose )
     if ( pMan == NULL )
         return NULL;
     pMan = Ivy_ManResyn( pTemp = pMan, fUpdateLevel, fVerbose );
+    Ivy_ManStop( pTemp );
+    pNtkAig = Abc_NtkIvyAfter( pNtk, pMan, 0, 0 );
+    Ivy_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkIvyFraig( Abc_Ntk_t * pNtk )
+{
+    Ivy_FraigParams_t Params, * pParams = &Params; 
+    Abc_Ntk_t * pNtkAig;
+    Ivy_Man_t * pMan, * pTemp;
+    pMan = Abc_NtkIvyBefore( pNtk, 0, 0 );
+    if ( pMan == NULL )
+        return NULL;
+    Ivy_FraigParamsDefault( pParams );
+    pMan = Ivy_FraigPerform( pTemp = pMan, pParams );
     Ivy_ManStop( pTemp );
     pNtkAig = Abc_NtkIvyAfter( pNtk, pMan, 0, 0 );
     Ivy_ManStop( pMan );
@@ -538,12 +590,12 @@ Abc_Ntk_t * Abc_NtkFromAigSeq( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan, int fHaig 
         if ( fHaig && pNode->pEquiv && Ivy_ObjRefs(pNode) > 0 )
         {
             pFaninNew = Abc_EdgeToNode( pNtk, pNode->TravId );
-            pFaninNew->fPhase = 0;
+//            pFaninNew->fPhase = 0;
             assert( !Ivy_IsComplement(pNode->pEquiv) );
             for ( pTemp = pNode->pEquiv; pTemp != pNode; pTemp = Ivy_Regular(pTemp->pEquiv) )
             {
                 pFaninNew1 = Abc_EdgeToNode( pNtk, pTemp->TravId );
-                pFaninNew1->fPhase = Ivy_IsComplement( pTemp->pEquiv );
+//                pFaninNew1->fPhase = Ivy_IsComplement( pTemp->pEquiv );
                 pFaninNew->pData = pFaninNew1;
                 pFaninNew = pFaninNew1;
             }

@@ -104,6 +104,7 @@ extern void             Msat_SolverSetVarTypeA( Msat_Solver_t * p, int Var );
 extern void             Msat_SolverSetVarMap( Msat_Solver_t * p, Msat_IntVec_t * vVarMap );
 extern void             Msat_SolverMarkLastClauseTypeA( Msat_Solver_t * p );
 extern void             Msat_SolverMarkClausesStart( Msat_Solver_t * p );
+extern float *          Msat_SolverReadFactors( Msat_Solver_t * p );
 // returns the solution after incremental solving
 extern int              Msat_SolverReadSolutions( Msat_Solver_t * p );
 extern int *            Msat_SolverReadSolutionsArray( Msat_Solver_t * p );

@@ -144,7 +144,7 @@ Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes, bool fCleanup )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
+int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fAddPos )
 {
     Abc_Obj_t * pObj;
     int i;
@@ -158,7 +158,7 @@ int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
     }
     // check that the networks have the same PIs
     // reorder PIs of pNtk2 according to pNtk1
-    if ( !Abc_NtkCompareSignals( pNtk1, pNtk2, 1 ) )
+    if ( !Abc_NtkCompareSignals( pNtk1, pNtk2, 1, 1 ) )
         return 0;
     // perform strashing
     Abc_NtkCleanCopy( pNtk2 );
@@ -170,6 +170,16 @@ int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
     else
         Abc_NtkForEachNode( pNtk2, pObj, i )
             pObj->pCopy = Abc_AigAnd( pNtk1->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
+    // add the COs of the second network
+    if ( fAddPos )
+    {
+        Abc_NtkForEachPo( pNtk2, pObj, i )
+        {
+            Abc_NtkDupObj( pNtk1, pObj, 0 );
+            Abc_ObjAddFanin( pObj->pCopy, Abc_ObjChild0Copy(pObj) );
+            Abc_ObjAssignName( pObj->pCopy, Abc_ObjName(pObj->pCopy), NULL );
+        }
+    }
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtk1 ) )
     {

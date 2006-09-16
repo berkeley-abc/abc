@@ -1006,7 +1006,7 @@ SOURCE=.\src\sat\msat\msatMem.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\sat\msat\msatOrderJ.c
+SOURCE=.\src\sat\msat\msatOrderH.c
 # End Source File
 # Begin Source File
 
@@ -1762,6 +1762,10 @@ SOURCE=.\src\misc\vec\vec.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\misc\vec\vecFlt.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\misc\vec\vecInt.h
 # End Source File
 # Begin Source File
@@ -2054,6 +2058,10 @@ SOURCE=.\src\temp\ivy\ivyFastMap.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\temp\ivy\ivyFraig.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\temp\ivy\ivyHaig.c
 # End Source File
 # Begin Source File
@@ -2103,6 +2111,22 @@ SOURCE=.\src\temp\ivy\ivyTable.c
 # Begin Source File
 
 SOURCE=.\src\temp\ivy\ivyUtil.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\ivy\satSolver.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\ivy\satSolver.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\ivy\satUtil.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\ivy\satVec.h
 # End Source File
 # End Group
 # Begin Group "player"

@@ -119,7 +119,7 @@ struct Msat_Solver_t_
     double              dClaDecay;   // INVERSE decay factor for clause activity: stores 1/decay.
 
     double *            pdActivity;  // A heuristic measurement of the activity of a variable.
-    int *               pActLevels;  // the levels of the variables
+    float *             pFactors;    // the multiplicative factors of variable activity
     double              dVarInc;     // Amount to bump next variable with.
     double              dVarDecay;   // INVERSE decay factor for variable activity: stores 1/decay. Use negative value for static variable order.
     Msat_Order_t *      pOrder;      // Keeps track of the decision variable order.

@@ -17,7 +17,7 @@
   Revision    [$Id: ivyBalance.c,v 1.00 2006/05/11 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
- 
+
 #include "ivy.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -73,7 +73,9 @@ Ivy_Man_t * Ivy_ManBalance( Ivy_Man_t * p, int fUpdateLevel )
     }
     Vec_VecFree( vStore );
     if ( i = Ivy_ManCleanup( pNew ) )
-        printf( "Cleanup after balancing removed %d dangling nodes.\n", i );
+    {
+//        printf( "Cleanup after balancing removed %d dangling nodes.\n", i );
+    }
     // check the resulting AIG
     if ( !Ivy_ManCheck(pNew) )
         printf( "Ivy_ManBalance(): The check has failed.\n" );

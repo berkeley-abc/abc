@@ -97,6 +97,7 @@ int             Fpga_LibReadLutMax( Fpga_LutLib_t * pLib )  { return pLib->LutMa
 ***********************************************************************/
 char *          Fpga_NodeReadData0( Fpga_Node_t * p )                   { return p->pData0;    }
 Fpga_Node_t *   Fpga_NodeReadData1( Fpga_Node_t * p )                   { return p->pLevel;    }
+int             Fpga_NodeReadRefs( Fpga_Node_t * p )                    { return p->nRefs;     }
 int             Fpga_NodeReadNum( Fpga_Node_t * p )                     { return p->Num;       }
 int             Fpga_NodeReadLevel( Fpga_Node_t * p )                   { return Fpga_Regular(p)->Level;  }
 Fpga_Cut_t *    Fpga_NodeReadCuts( Fpga_Node_t * p )                    { return p->pCuts;     }

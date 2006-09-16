@@ -105,6 +105,7 @@ extern int             Fpga_LibReadLutMax( Fpga_LutLib_t * pLib );
 
 extern char *          Fpga_NodeReadData0( Fpga_Node_t * p );
 extern Fpga_Node_t *   Fpga_NodeReadData1( Fpga_Node_t * p );
+extern int             Fpga_NodeReadRefs( Fpga_Node_t * p );
 extern int             Fpga_NodeReadNum( Fpga_Node_t * p );
 extern int             Fpga_NodeReadLevel( Fpga_Node_t * p );
 extern Fpga_Cut_t *    Fpga_NodeReadCuts( Fpga_Node_t * p );

@@ -463,6 +463,10 @@ Fraig_NodeVec_t * Fraig_FeedBackCoveringStart( Fraig_Man_t * p )
             Fraig_NodeVecPush( p->vCones, pEntD );
         if ( p->vCones->nSize == 1 )
             continue;
+        //////////////////////////////// bug fix by alanmi, September 14, 2006
+        if ( p->vCones->nSize > 20 ) 
+            continue;
+        ////////////////////////////////
 
         for ( k = 0; k < p->vCones->nSize; k++ )
             for ( m = k+1; m < p->vCones->nSize; m++ )

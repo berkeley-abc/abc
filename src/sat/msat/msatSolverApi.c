@@ -64,6 +64,7 @@ void               Msat_SolverClausesIncrementL( Msat_Solver_t * p )           {
 void               Msat_SolverClausesDecrementL( Msat_Solver_t * p )           { p->nClausesAllocL--;  }
 void               Msat_SolverMarkLastClauseTypeA( Msat_Solver_t * p )         { Msat_ClauseSetTypeA( Msat_ClauseVecReadEntry( p->vClauses, Msat_ClauseVecReadSize(p->vClauses)-1 ), 1 ); }
 void               Msat_SolverMarkClausesStart( Msat_Solver_t * p )            { p->nClausesStart = Msat_ClauseVecReadSize(p->vClauses); }
+float *            Msat_SolverReadFactors( Msat_Solver_t * p )                 { return p->pFactors;   }
 
 /**Function*************************************************************
 
@@ -174,11 +175,11 @@ Msat_Solver_t * Msat_SolverAlloc( int nVarsAlloc,
     p->dVarDecay = dVarDecay;
 
     p->pdActivity = ALLOC( double, p->nVarsAlloc );
-    p->pActLevels = ALLOC( int, p->nVarsAlloc );
+    p->pFactors   = ALLOC( float, p->nVarsAlloc );
     for ( i = 0; i < p->nVarsAlloc; i++ )
     {
-        p->pdActivity[i] = 0;
-        p->pActLevels[i] = 0;
+        p->pdActivity[i] = 0.0;
+        p->pFactors[i]   = 1.0;
     }
 
     p->pAssigns  = ALLOC( int, p->nVarsAlloc ); 
@@ -243,9 +244,12 @@ void Msat_SolverResize( Msat_Solver_t * p, int nVarsAlloc )
     p->nVarsAlloc = nVarsAlloc;
 
     p->pdActivity = REALLOC( double, p->pdActivity, p->nVarsAlloc );
-    p->pActLevels = REALLOC( int, p->pActLevels, p->nVarsAlloc );
+    p->pFactors   = REALLOC( float, p->pFactors, p->nVarsAlloc );
     for ( i = nVarsAllocOld; i < p->nVarsAlloc; i++ )
-        p->pdActivity[i] = 0;
+    {
+        p->pdActivity[i] = 0.0;
+        p->pFactors[i]   = 1.0;
+    }
 
     p->pAssigns  = REALLOC( int, p->pAssigns, p->nVarsAlloc );
     p->pModel    = REALLOC( int, p->pModel, p->nVarsAlloc );
@@ -399,7 +403,7 @@ void Msat_SolverFree( Msat_Solver_t * p )
     Msat_ClauseVecFree( p->vLearned );
 
     FREE( p->pdActivity );
-    FREE( p->pActLevels );
+    FREE( p->pFactors );
     Msat_OrderFree( p->pOrder );
 
     for ( i = 0; i < 2 * p->nVarsAlloc; i++ )

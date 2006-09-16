@@ -709,16 +709,19 @@ bool Abc_NtkCompareBoxes( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb )
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_NtkCompareSignals( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb )
+bool Abc_NtkCompareSignals( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fOnlyPis, int fComb )
 {
     Abc_NtkOrderObjsByName( pNtk1, fComb );
     Abc_NtkOrderObjsByName( pNtk2, fComb );
-    if ( !Abc_NtkCompareBoxes( pNtk1, pNtk2, fComb ) )
-        return 0;
     if ( !Abc_NtkComparePis( pNtk1, pNtk2, fComb ) )
         return 0;
-    if ( !Abc_NtkComparePos( pNtk1, pNtk2, fComb ) )
-        return 0;
+    if ( !fOnlyPis )
+    {
+        if ( !Abc_NtkCompareBoxes( pNtk1, pNtk2, fComb ) )
+            return 0;
+        if ( !Abc_NtkComparePos( pNtk1, pNtk2, fComb ) )
+            return 0;
+    }
     return 1;
 }
 

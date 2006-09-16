@@ -91,6 +91,7 @@ void * Abc_NtkPlayer( void * pNtk, int nLutMax, int nPlaMax, int RankCost, int f
         Ivy_FastMapPerform( pMan, nLutMax );
         // convert from the extended AIG manager into an SOP network
         pNtkNew = Ivy_ManToAbc( pNtk, pMan, NULL, fFastMode );
+//        pNtkNew = NULL;
         Ivy_FastMapStop( pMan );
     }
     else
@@ -104,7 +105,7 @@ void * Abc_NtkPlayer( void * pNtk, int nLutMax, int nPlaMax, int RankCost, int f
     }
     Ivy_ManStop( pMan );
     // chech the resulting network
-    if ( !Abc_NtkCheck( pNtkNew ) )
+    if ( pNtkNew && !Abc_NtkCheck( pNtkNew ) )
     {
         printf( "Abc_NtkPlayer: The network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );

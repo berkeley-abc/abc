@@ -96,6 +96,14 @@ Ivy_Obj_t * Ivy_ObjCreate( Ivy_Man_t * p, Ivy_Obj_t * pGhost )
         pObj->Level = Ivy_ObjFanin0(pObj)->Level;
     else if ( !Ivy_ObjIsPi(pObj) )
         assert( 0 );
+    // create phase
+    if ( Ivy_ObjIsNode(pObj) )
+        pObj->fPhase = Ivy_ObjFaninPhase(Ivy_ObjChild0(pObj)) & Ivy_ObjFaninPhase(Ivy_ObjChild1(pObj));
+    else if ( Ivy_ObjIsOneFanin(pObj) )
+        pObj->fPhase = Ivy_ObjFaninPhase(Ivy_ObjChild0(pObj));
+    // set the fail TFO flag
+    if ( Ivy_ObjIsNode(pObj) )
+        pObj->fFailTfo = Ivy_ObjFanin0(pObj)->fFailTfo | Ivy_ObjFanin1(pObj)->fFailTfo;
     // mark the fanins in a special way if the node is EXOR
     if ( Ivy_ObjIsExor(pObj) )
     {

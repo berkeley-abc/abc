@@ -209,7 +209,8 @@ Abc_Ntk_t * Abc_NtkFromFpga( Fpga_Man_t * pMan, Abc_Ntk_t * pNtk )
     Abc_NtkForEachCi( pNtk, pNode, i )
         Fpga_NodeSetData0( Fpga_ManReadInputs(pMan)[i], (char *)pNode->pCopy );
     // set the constant node
-    Fpga_NodeSetData0( Fpga_ManReadConst1(pMan), (char *)Abc_NodeCreateConst1(pNtkNew) );
+//    if ( Fpga_NodeReadRefs(Fpga_ManReadConst1(pMan)) > 0 )
+        Fpga_NodeSetData0( Fpga_ManReadConst1(pMan), (char *)Abc_NodeCreateConst1(pNtkNew) );
     // process the nodes in topological order
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pNode, i )
@@ -222,6 +223,10 @@ Abc_Ntk_t * Abc_NtkFromFpga( Fpga_Man_t * pMan, Abc_Ntk_t * pNtk )
     Extra_ProgressBarStop( pProgress );
     // finalize the new network
     Abc_NtkFinalize( pNtk, pNtkNew );
+    // remove the constant node if not used
+    pNodeNew = (Abc_Obj_t *)Fpga_NodeReadData0(Fpga_ManReadConst1(pMan));
+    if ( Abc_ObjFanoutNum(pNodeNew) == 0 )
+        Abc_NtkDeleteObj( pNodeNew );
     // decouple the PO driver nodes to reduce the number of levels
     nDupGates = Abc_NtkLogicMakeSimpleCos( pNtkNew, 1 );
 //    if ( nDupGates && Fpga_ManReadVerbose(pMan) )

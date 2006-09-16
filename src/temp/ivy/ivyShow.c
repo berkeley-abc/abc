@@ -24,7 +24,7 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static void Ivy_WriteDotAig( Ivy_Man_t * pMan, char * pFileName, int fHaig );
+static void Ivy_WriteDotAig( Ivy_Man_t * pMan, char * pFileName, int fHaig, Vec_Ptr_t * vBold );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -41,7 +41,7 @@ static void Ivy_WriteDotAig( Ivy_Man_t * pMan, char * pFileName, int fHaig );
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_ManShow( Ivy_Man_t * pMan, int fHaig )
+void Ivy_ManShow( Ivy_Man_t * pMan, int fHaig, Vec_Ptr_t * vBold )
 {
     extern void Abc_ShowFile( char * FileNameDot );
     static Counter = 0;
@@ -58,7 +58,7 @@ void Ivy_ManShow( Ivy_Man_t * pMan, int fHaig )
     }
     fclose( pFile );
     // generate the file
-    Ivy_WriteDotAig( pMan, FileNameDot, fHaig );
+    Ivy_WriteDotAig( pMan, FileNameDot, fHaig, vBold );
     // visualize the file 
     Abc_ShowFile( FileNameDot );
 }
@@ -75,7 +75,7 @@ void Ivy_ManShow( Ivy_Man_t * pMan, int fHaig )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_WriteDotAig( Ivy_Man_t * pMan, char * pFileName, int fHaig )
+void Ivy_WriteDotAig( Ivy_Man_t * pMan, char * pFileName, int fHaig, Vec_Ptr_t * vBold )
 {
     FILE * pFile;
     Ivy_Obj_t * pNode, * pTemp, * pPrev;
@@ -91,6 +91,11 @@ void Ivy_WriteDotAig( Ivy_Man_t * pMan, char * pFileName, int fHaig )
         fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", pFileName );
         return;
     }
+
+    // mark the nodes
+    if ( vBold )
+        Vec_PtrForEachEntry( vBold, pNode, i )
+            pNode->fMarkB = 1;
 
     // compute levels
     LevelMax = 1 + Ivy_ManSetLevels( pMan, fHaig );
@@ -218,6 +223,8 @@ void Ivy_WriteDotAig( Ivy_Man_t * pMan, char * pFileName, int fHaig )
                 fprintf( pFile, "  Node%d [label = \"%d(%d%s)\"", pNode->Id, pNode->Id, 
                     Ivy_Regular(pNode->pEquiv)->Id, Ivy_IsComplement(pNode->pEquiv)? "\'":"" );
             fprintf( pFile, ", shape = ellipse" );
+            if ( vBold && pNode->fMarkB )
+                fprintf( pFile, ", style = filled" );
             fprintf( pFile, "];\n" );
         }
         fprintf( pFile, "}" );
@@ -316,6 +323,11 @@ void Ivy_WriteDotAig( Ivy_Man_t * pMan, char * pFileName, int fHaig )
     fprintf( pFile, "\n" );
     fprintf( pFile, "\n" );
     fclose( pFile );
+
+    // unmark nodes
+    if ( vBold )
+        Vec_PtrForEachEntry( vBold, pNode, i )
+            pNode->fMarkB = 0;
 }
 
 

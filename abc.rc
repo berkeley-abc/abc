@@ -2,8 +2,8 @@
 #set check         # checks intermediate networks
 #set checkfio      # prints warnings when fanins/fanouts are duplicated
 #set checkread     # checks new networks after reading from file
-set backup        # saves backup networks retrived by "undo" and "recall"
-set savesteps 1   # sets the maximum number of backup networks to save 
+#set backup        # saves backup networks retrived by "undo" and "recall"
+#set savesteps 1   # sets the maximum number of backup networks to save 
 set progressbar   # display the progress bar
 
 # program names for internal calls
@@ -99,6 +99,8 @@ alias src_rws     "st; rw -l; rs -K 6 -N 2 -l; rwz -l; rs -K 9 -N 2 -l; rwz -l; 
 alias compress2rs "b -l; rs -K 6 -l; rw -l; rs -K 6 -N 2 -l; rf -l; rs -K 8 -l; b -l; rs -K 8 -N 2 -l; rw -l; rs -K 10 -l; rwz -l; rs -K 10 -N 2 -l; b -l; rs -K 12 -l; rfz -l; rs -K 12 -N 2 -l; rwz -l; b -l"
 
 # temporaries
-alias test        "rvl th/lib.v; rvv th/t2.v"
+#alias test        "rvl th/lib.v; rvv th/t2.v"
+alias test         "so c/pure_sat/test.c"
+
 
 

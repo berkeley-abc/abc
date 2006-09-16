@@ -22,34 +22,27 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #ifndef solver_h
 #define solver_h
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifdef _WIN32
 #define inline __inline // compatible with MS VS 6.0
 #endif
 
-#include "solver_vec.h"
-#include "asatmem.h"
+#include "vec.h"
 
 //=================================================================================================
 // Simple types:
 
-//typedef int  bool;
-#ifndef __cplusplus
-#ifndef bool
-#define bool int
-#endif
-#endif
+// does not work for c++
+typedef int  bool;
+static const bool  true      = 1;
+static const bool  false     = 0;
 
 typedef int                lit;
 typedef char               lbool;
 
 #ifdef _WIN32
-typedef signed __int64     sint64;   // compatible with MS VS 6.0
+typedef signed __int64     uint64;   // compatible with MS VS 6.0
 #else
-typedef long long          sint64;
+typedef unsigned long long uint64;
 #endif
 
 static const int   var_Undef = -1;
@@ -59,14 +52,14 @@ static const lbool l_Undef   =  0;
 static const lbool l_True    =  1;
 static const lbool l_False   = -1;
 
-static inline lit neg       (lit l)        { return l ^ 1; }
-static inline lit toLit     (int v)        { return v + v; }
-static inline lit toLitCond (int v, int c) { return v + v + (int)(c != 0); }
+static inline lit  toLit   (int v) { return v + v; }
+static inline lit  lit_neg (lit l) { return l ^ 1; }
+static inline int  lit_var (lit l) { return l >> 1; }
+static inline int  lit_sign(lit l) { return (l & 1); }
+
 
 //=================================================================================================
 // Public interface:
-
-typedef struct Asat_JMan_t_  Asat_JMan_t;
 
 struct solver_t;
 typedef struct solver_t solver;
@@ -76,30 +69,18 @@ extern void    solver_delete(solver* s);
 
 extern bool    solver_addclause(solver* s, lit* begin, lit* end);
 extern bool    solver_simplify(solver* s);
-extern int     solver_solve(solver* s, lit* begin, lit* end, sint64 nConfLimit, sint64 nInsLimit );
-extern int *   solver_get_model( solver * p, int * pVars, int nVars );
+extern bool    solver_solve(solver* s, lit* begin, lit* end);
 
 extern int     solver_nvars(solver* s);
 extern int     solver_nclauses(solver* s);
+extern int     solver_nconflicts(solver* s);
 
-
-// additional procedures
-extern void    Asat_SolverWriteDimacs( solver * pSat, char * pFileName,
-                                       lit* assumptionsBegin, lit* assumptionsEnd,
-                                       int incrementVars);
-extern void    Asat_SatPrintStats( FILE * pFile, solver * p );
-extern void    Asat_SolverSetPrefVars( solver * s, int * pPrefVars, int nPrefVars );
-extern void    Asat_SolverSetFactors( solver * s, float * pFactors );
-
-// J-frontier support
-extern Asat_JMan_t * Asat_JManStart( solver * pSat, void * vCircuit );
-extern void          Asat_JManStop(  solver * pSat );
-
+extern void    solver_setnvars(solver* s,int n);
 
 struct stats_t
 {
-    sint64   starts, decisions, propagations, inspects, conflicts;
-    sint64   clauses, clauses_literals, learnts, learnts_literals, max_literals, tot_literals;
+    uint64   starts, decisions, propagations, inspects, conflicts;
+    uint64   clauses, clauses_literals, learnts, learnts_literals, max_literals, tot_literals;
 };
 typedef struct stats_t stats;
 
@@ -117,8 +98,8 @@ struct solver_t
     int      qtail;         // Tail index of queue.
 
     // clauses
-    vec      clauses;       // List of problem constraints. (contains: clause*)
-    vec      learnts;       // List of learnt clauses. (contains: clause*)
+    vecp     clauses;       // List of problem constraints. (contains: clause*)
+    vecp     learnts;       // List of learnt clauses. (contains: clause*)
 
     // activities
     double   var_inc;       // Amount to bump next variable with.
@@ -126,9 +107,8 @@ struct solver_t
     float    cla_inc;       // Amount to bump next clause with.
     float    cla_decay;     // INVERSE decay factor for clause activity: stores 1/decay.
 
-    vec*     wlists;        // 
+    vecp*    wlists;        // 
     double*  activity;      // A heuristic measurement of the activity of a variable.
-    float *  factors;       // the factor of variable activity
     lbool*   assigns;       // Current values of variables.
     int*     orderpos;      // Index in variable order.
     clause** reasons;       //
@@ -151,29 +131,7 @@ struct solver_t
     double   progress_estimate;
     int      verbosity;     // Verbosity level. 0=silent, 1=some progress report, 2=everything
 
-    sint64   nConfLimit;    // external limit on the number of conflicts
-    sint64   nInsLimit;     // external limit on the number of implications
-
-    // the memory manager
-    Asat_MmStep_t *     pMem;
-
-    // J-frontier
-    Asat_JMan_t *       pJMan;
-
-    // for making decisions on some variables first
-    int      nPrefDecNum;
-    int *    pPrefVars;
-    int      nPrefVars;
-
-    // solver statistics
-    stats    solver_stats;
-    int      timeTotal;
-    int      timeSelect;
-    int      timeUpdate;
+    stats    stats;
 };
- 
-#ifdef __cplusplus
-}
-#endif
 
 #endif
