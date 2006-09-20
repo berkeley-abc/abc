@@ -601,8 +601,8 @@ extern Abc_Obj_t *        Abc_NtkDupBox( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pBox, 
 extern Abc_Obj_t *        Abc_NtkCloneObj( Abc_Obj_t * pNode );
 extern Abc_Obj_t *        Abc_NtkFindNode( Abc_Ntk_t * pNtk, char * pName );
 extern Abc_Obj_t *        Abc_NtkFindNet( Abc_Ntk_t * pNtk, char * pName );
-extern Abc_Obj_t *        Abc_NtkFindTerm( Abc_Ntk_t * pNtk, char * pName );
 extern Abc_Obj_t *        Abc_NtkFindCi( Abc_Ntk_t * pNtk, char * pName );
+extern Abc_Obj_t *        Abc_NtkFindCo( Abc_Ntk_t * pNtk, char * pName );
 extern Abc_Obj_t *        Abc_NtkFindOrCreateNet( Abc_Ntk_t * pNtk, char * pName );
 extern Abc_Obj_t *        Abc_NodeCreateConst0( Abc_Ntk_t * pNtk );
 extern Abc_Obj_t *        Abc_NodeCreateConst1( Abc_Ntk_t * pNtk );

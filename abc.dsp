@@ -2114,6 +2114,14 @@ SOURCE=.\src\temp\ivy\ivyUtil.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\temp\ivy\satMem.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\temp\ivy\satMem.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\temp\ivy\satSolver.c
 # End Source File
 # Begin Source File

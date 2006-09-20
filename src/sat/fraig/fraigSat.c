@@ -300,6 +300,7 @@ int Fraig_NodeIsEquivalent( Fraig_Man_t * p, Fraig_Node_t * pOld, Fraig_Node_t *
 {
     int RetValue, RetValue1, i, fComp, clk;
     int fVerbose = 0;
+    int fSwitch = 0;
 
     // make sure the nodes are not complemented
     assert( !Fraig_IsComplement(pNew) );
@@ -318,6 +319,7 @@ int Fraig_NodeIsEquivalent( Fraig_Man_t * p, Fraig_Node_t * pOld, Fraig_Node_t *
         if ( nBTLimit <= 10 )
             return 0;
         nBTLimit = (int)sqrt(nBTLimit);
+//        fSwitch = 1;
     }
 
     p->nSatCalls++;
@@ -417,6 +419,8 @@ PRT( "time", clock() - clk );
 //        if ( pOld->fFailTfo || pNew->fFailTfo )
 //            printf( "*" );
 //        printf( "s(%d)", pNew->Level );
+        if ( fSwitch )
+             printf( "s(%d)", pNew->Level );
         p->nSatCounter++;
         return 0;
     }
@@ -433,6 +437,8 @@ p->time3 += clock() - clk;
             pOld->fFailTfo = 1;
         pNew->fFailTfo = 1;
 //        p->nSatFails++;
+        if ( fSwitch )
+             printf( "T(%d)", pNew->Level );
         p->nSatFailsReal++;
         return 0;
     }
@@ -491,6 +497,8 @@ PRT( "time", clock() - clk );
 //        if ( pOld->fFailTfo || pNew->fFailTfo )
 //            printf( "*" );
 //        printf( "s(%d)", pNew->Level );
+        if ( fSwitch )
+             printf( "s(%d)", pNew->Level );
         return 0;
     }
     else // if ( RetValue1 == MSAT_UNKNOWN )
@@ -500,6 +508,8 @@ p->time3 += clock() - clk;
 //        if ( pOld->fFailTfo || pNew->fFailTfo )
 //            printf( "*" );
 //        printf( "T(%d)", pNew->Level );
+        if ( fSwitch )
+             printf( "T(%d)", pNew->Level );
 
         // mark the node as the failed node
         pOld->fFailTfo = 1;
@@ -515,6 +525,10 @@ p->time3 += clock() - clk;
 //    if ( pOld->fFailTfo || pNew->fFailTfo )
 //        printf( "*" );
 //    printf( "u(%d)", pNew->Level );
+
+    if ( fSwitch )
+         printf( "u(%d)", pNew->Level );
+
     return 1;
 }
 

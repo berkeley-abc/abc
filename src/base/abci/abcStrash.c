@@ -135,9 +135,8 @@ Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes, bool fCleanup )
   Synopsis    [Appends the second network to the first.]
 
   Description [Modifies the first network by adding the logic of the second. 
-  Performs structural hashing while appending the networks. Does not add 
-  the COs of the second. Does not change the second network. Returns 0 
-  if the appending failed, 1 otherise.]
+  Performs structural hashing while appending the networks. Does not change 
+  the second network. Returns 0 if the appending failed, 1 otherise.]
                
   SideEffects []
 
@@ -159,11 +158,15 @@ int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fAddPos )
     // check that the networks have the same PIs
     // reorder PIs of pNtk2 according to pNtk1
     if ( !Abc_NtkCompareSignals( pNtk1, pNtk2, 1, 1 ) )
-        return 0;
+        printf( "Abc_NtkAppend(): The union of the network PIs is computed (warning).\n" );
     // perform strashing
     Abc_NtkCleanCopy( pNtk2 );
     Abc_NtkForEachCi( pNtk2, pObj, i )
-        pObj->pCopy = Abc_NtkCi(pNtk1, i); 
+    {
+        pObj->pCopy = Abc_NtkFindCi(pNtk1, Abc_ObjName(pObj));
+        if ( pObj->pCopy == NULL )
+            pObj->pCopy = Abc_NtkDupObj(pNtk1, pObj, 1);
+    }
     // add pNtk2 to pNtk1 while strashing
     if ( Abc_NtkIsLogic(pNtk2) )
         Abc_NtkStrashPerform( pNtk2, pNtk1, 1 );

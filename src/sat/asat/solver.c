@@ -853,9 +853,16 @@ static lbool solver_search(solver* s, int nof_conflicts, int nof_learnts)
 
     // reset the activities
     if ( s->factors )
+    {
+        s->var_inc = 1.0;
         for ( i = 0; i < s->size; i++ )
+        {
             s->activity[i] = (double)s->factors[i];
+//            if ( s->orderpos[i] != -1 )
+//                order_update(s, i );
+        }
 //            s->activity[i] = 1.0;
+    }
 
     for (;;){
         clause* confl = solver_propagate(s);

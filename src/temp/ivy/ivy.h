@@ -128,8 +128,17 @@ struct Ivy_Man_t_
 
 struct Ivy_FraigParams_t_
 {
-    int              nSimWords;      // the number of words in the simulation info
-    double           SimSatur;       // the ratio of refined classes when saturation is reached
+    int              nSimWords;         // the number of words in the simulation info
+    double           SimSatur;          // the ratio of refined classes when saturation is reached
+    int              fPatScores;        // enables simulation pattern scoring
+    int              MaxScore;          // max score after which resimulation is used
+    int              fVerbose;          // verbose output
+    int              nBTLimitNode;      // conflict limit at a node
+    int              nBTLimitMiter;     // conflict limit at an output
+    int              nBTLimitGlobal;    // conflict limit global
+    int              nInsLimitNode;     // inspection limit at a node
+    int              nInsLimitMiter;    // inspection limit at an output
+    int              nInsLimitGlobal;   // inspection limit global
 };
 
 
@@ -441,7 +450,9 @@ extern void            Ivy_FastMapStop( Ivy_Man_t * pAig );
 extern void            Ivy_FastMapReadSupp( Ivy_Man_t * pAig, Ivy_Obj_t * pObj, Vec_Int_t * vLeaves );
 extern void            Ivy_FastMapReverseLevel( Ivy_Man_t * pAig );
 /*=== ivyFraig.c ==========================================================*/
+extern Ivy_Man_t *     Ivy_FraigMiter( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParams );
 extern Ivy_Man_t *     Ivy_FraigPerform( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParams );
+extern Ivy_Man_t *     Ivy_FraigProve( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParams );
 extern void            Ivy_FraigParamsDefault( Ivy_FraigParams_t * pParams );
 /*=== ivyHaig.c ==========================================================*/
 extern void            Ivy_ManHaigStart( Ivy_Man_t * p, int fVerbose );

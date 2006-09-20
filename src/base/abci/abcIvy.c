@@ -338,7 +338,7 @@ Abc_Ntk_t * Abc_NtkIvyResyn( Abc_Ntk_t * pNtk, int fUpdateLevel, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkIvyFraig( Abc_Ntk_t * pNtk )
+Abc_Ntk_t * Abc_NtkIvySat( Abc_Ntk_t * pNtk, int nConfLimit, int fVerbose )
 {
     Ivy_FraigParams_t Params, * pParams = &Params; 
     Abc_Ntk_t * pNtkAig;
@@ -347,7 +347,66 @@ Abc_Ntk_t * Abc_NtkIvyFraig( Abc_Ntk_t * pNtk )
     if ( pMan == NULL )
         return NULL;
     Ivy_FraigParamsDefault( pParams );
+    pParams->nBTLimitMiter = nConfLimit;
+    pParams->fVerbose = fVerbose;
+//    pMan = Ivy_FraigPerform( pTemp = pMan, pParams );
+    pMan = Ivy_FraigMiter( pTemp = pMan, pParams );
+    Ivy_ManStop( pTemp );
+    pNtkAig = Abc_NtkIvyAfter( pNtk, pMan, 0, 0 );
+    Ivy_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkIvyFraig( Abc_Ntk_t * pNtk, int nConfLimit, int fVerbose )
+{
+    Ivy_FraigParams_t Params, * pParams = &Params; 
+    Abc_Ntk_t * pNtkAig;
+    Ivy_Man_t * pMan, * pTemp;
+    pMan = Abc_NtkIvyBefore( pNtk, 0, 0 );
+    if ( pMan == NULL )
+        return NULL;
+    Ivy_FraigParamsDefault( pParams );
+    pParams->nBTLimitNode = nConfLimit;
+    pParams->fVerbose = fVerbose;
     pMan = Ivy_FraigPerform( pTemp = pMan, pParams );
+    Ivy_ManStop( pTemp );
+    pNtkAig = Abc_NtkIvyAfter( pNtk, pMan, 0, 0 );
+    Ivy_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkIvyProve( Abc_Ntk_t * pNtk )
+{
+    Ivy_FraigParams_t Params, * pParams = &Params; 
+    Abc_Ntk_t * pNtkAig;
+    Ivy_Man_t * pMan, * pTemp;
+    pMan = Abc_NtkIvyBefore( pNtk, 0, 0 );
+    if ( pMan == NULL )
+        return NULL;
+    Ivy_FraigParamsDefault( pParams );
+    pMan = Ivy_FraigProve( pTemp = pMan, pParams );
     Ivy_ManStop( pTemp );
     pNtkAig = Abc_NtkIvyAfter( pNtk, pMan, 0, 0 );
     Ivy_ManStop( pMan );

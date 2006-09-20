@@ -20,13 +20,33 @@
 
 #include "ivy.h"
 #include "satSolver.h"
+#include "extra.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-typedef struct Ivy_Fraig_t_        Ivy_Fraig_t;
-struct Ivy_Fraig_t_
+typedef struct Ivy_FraigMan_t_        Ivy_FraigMan_t;
+typedef struct Ivy_FraigSim_t_        Ivy_FraigSim_t;
+typedef struct Ivy_FraigList_t_       Ivy_FraigList_t;
+
+struct Ivy_FraigList_t_
+{
+    Ivy_Obj_t *         pHead;
+    Ivy_Obj_t *         pTail;
+    int                 nItems;
+};
+
+struct Ivy_FraigSim_t_
+{
+    int                 Type;
+    Ivy_FraigSim_t *    pNext;
+    Ivy_FraigSim_t *    pFanin0;
+    Ivy_FraigSim_t *    pFanin1;
+    unsigned            pData[0];
+};
+
+struct Ivy_FraigMan_t_
 {
     // general info 
     Ivy_FraigParams_t * pParams;        // various parameters
@@ -34,23 +54,31 @@ struct Ivy_Fraig_t_
     Ivy_Man_t *         pManAig;        // the starting AIG manager
     Ivy_Man_t *         pManFraig;      // the final AIG manager
     // simulation information
-    int                 nWords;         // the number of words
-    unsigned *          pWords;         // the simulation info
+    int                 nSimWords;      // the number of words
+    char *              pSimWords;      // the simulation info
+    Ivy_FraigSim_t *    pSimStart;      // the list of simulation info for internal nodes
     // counter example storage
     int                 nPatWords;      // the number of words in the counter example
     unsigned *          pPatWords;      // the counter example
+    int *               pPatScores;     // the scores of each pattern
     // equivalence classes 
-    int                 nClasses;       // the number of equivalence classes
-    Ivy_Obj_t *         pClassesHead;   // the linked list of classes
-    Ivy_Obj_t *         pClassesTail;   // the linked list of classes
+    Ivy_FraigList_t     lClasses;       // equivalence classes
+    Ivy_FraigList_t     lCand;          // candidatates
+    int                 nPairs;         // the number of pairs of nodes
     // equivalence checking
     sat_solver *        pSat;           // SAT solver
     int                 nSatVars;       // the number of variables currently used
+    Vec_Ptr_t *         vPiVars;        // the PIs of the cone used 
+    // other 
+    ProgressBar *       pProgress;
     // statistics
     int                 nSimRounds;
+    int                 nNodesMiter;
     int                 nClassesZero;
     int                 nClassesBeg;
     int                 nClassesEnd;
+    int                 nPairsBeg;
+    int                 nPairsEnd;
     int                 nSatCalls;
     int                 nSatCallsSat;
     int                 nSatCallsUnsat;
@@ -61,11 +89,16 @@ struct Ivy_Fraig_t_
     int                 timeSim;
     int                 timeTrav;
     int                 timeSat;
+    int                 timeSatUnsat;
+    int                 timeSatSat;
+    int                 timeSatFail;
     int                 timeRef;
     int                 timeTotal;
+    int                 time1;
+    int                 time2;
 };
 
-static inline unsigned *  Ivy_ObjSim( Ivy_Obj_t * pObj )                                 { return (unsigned *)pObj->pFanout;  }
+static inline Ivy_FraigSim_t * Ivy_ObjSim( Ivy_Obj_t * pObj )                            { return (Ivy_FraigSim_t *)pObj->pFanout;  }
 static inline Ivy_Obj_t * Ivy_ObjClassNodeLast( Ivy_Obj_t * pObj )                       { return pObj->pNextFan0;  }
 static inline Ivy_Obj_t * Ivy_ObjClassNodeRepr( Ivy_Obj_t * pObj )                       { return pObj->pNextFan0;  }
 static inline Ivy_Obj_t * Ivy_ObjClassNodeNext( Ivy_Obj_t * pObj )                       { return pObj->pNextFan1;  }
@@ -76,7 +109,7 @@ static inline Ivy_Obj_t * Ivy_ObjFraig( Ivy_Obj_t * pObj )                      
 static inline int         Ivy_ObjSatNum( Ivy_Obj_t * pObj )                              { return (int)pObj->pNextFan0;         }
 static inline Vec_Ptr_t * Ivy_ObjFaninVec( Ivy_Obj_t * pObj )                            { return (Vec_Ptr_t *)pObj->pNextFan1; }
 
-static inline void        Ivy_ObjSetSim( Ivy_Obj_t * pObj, unsigned * pSim )             { pObj->pFanout = (Ivy_Obj_t *)pSim; }
+static inline void        Ivy_ObjSetSim( Ivy_Obj_t * pObj, Ivy_FraigSim_t * pSim )       { pObj->pFanout = (Ivy_Obj_t *)pSim; }
 static inline void        Ivy_ObjSetClassNodeLast( Ivy_Obj_t * pObj, Ivy_Obj_t * pLast ) { pObj->pNextFan0 = pLast; }
 static inline void        Ivy_ObjSetClassNodeRepr( Ivy_Obj_t * pObj, Ivy_Obj_t * pRepr ) { pObj->pNextFan0 = pRepr; }
 static inline void        Ivy_ObjSetClassNodeNext( Ivy_Obj_t * pObj, Ivy_Obj_t * pNext ) { pObj->pNextFan1 = pNext; }
@@ -105,33 +138,26 @@ static inline unsigned    Ivy_ObjRandomSim()                       { return (ran
     for ( pEnt = pClass;                                          \
           pEnt;                                                   \
           pEnt = Ivy_ObjClassNodeNext(pEnt) )
-#define Ivy_FraigForEachClassNodeSafe( pClass, pEnt, pEnt2 )      \
-    for ( pEnt = pClass,                                          \
-          pEnt2 = pEnt? Ivy_ObjClassNodeNext(pEnt): NULL;         \
-          pEnt;                                                   \
-          pEnt = pEnt2,                                           \
-          pEnt2 = pEnt? Ivy_ObjClassNodeNext(pEnt): NULL )
 // iterate through nodes in the hash table
 #define Ivy_FraigForEachBinNode( pBin, pEnt )                     \
     for ( pEnt = pBin;                                            \
           pEnt;                                                   \
           pEnt = Ivy_ObjNodeHashNext(pEnt) )
-#define Ivy_FraigForEachBinNodeSafe( pBin, pEnt, pEnt2 )          \
-    for ( pEnt = pBin,                                            \
-          pEnt2 = pEnt? Ivy_ObjNodeHashNext(pEnt): NULL;          \
-          pEnt;                                                   \
-          pEnt = pEnt2,                                           \
-          pEnt2 = pEnt? Ivy_ObjNodeHashNext(pEnt): NULL )
 
-static Ivy_Fraig_t * Ivy_FraigStart( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParams );
-static void          Ivy_FraigPrint( Ivy_Fraig_t * p );
-static void          Ivy_FraigStop( Ivy_Fraig_t * p );
-static void          Ivy_FraigSimulate( Ivy_Fraig_t * p );
-static void          Ivy_FraigSweep( Ivy_Fraig_t * p );
-static Ivy_Obj_t *   Ivy_FraigAnd( Ivy_Fraig_t * p, Ivy_Obj_t * pObjOld );
-static int           Ivy_FraigNodesAreEquiv( Ivy_Fraig_t * p, Ivy_Obj_t * pObj0, Ivy_Obj_t * pObj1, int nBTLimit );
-static void          Ivy_FraigNodeAddToSolver( Ivy_Fraig_t * p, Ivy_Obj_t * pObj0, Ivy_Obj_t * pObj1 );
-static int           Ivy_FraigMarkConeSetActivity_rec( Ivy_Fraig_t * p, Ivy_Obj_t * pObj, int * pTravIds, int TravId, double * pFactors, int LevelMax );
+static Ivy_FraigMan_t * Ivy_FraigStart( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParams );
+static Ivy_FraigMan_t * Ivy_FraigStartSimple( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParams );
+static void          Ivy_FraigPrint( Ivy_FraigMan_t * p );
+static void          Ivy_FraigStop( Ivy_FraigMan_t * p );
+static void          Ivy_FraigSimulate( Ivy_FraigMan_t * p );
+static void          Ivy_FraigSweep( Ivy_FraigMan_t * p );
+static Ivy_Obj_t *   Ivy_FraigAnd( Ivy_FraigMan_t * p, Ivy_Obj_t * pObjOld );
+static int           Ivy_FraigNodesAreEquiv( Ivy_FraigMan_t * p, Ivy_Obj_t * pObj0, Ivy_Obj_t * pObj1 );
+static int           Ivy_FraigNodeIsConst( Ivy_FraigMan_t * p, Ivy_Obj_t * pObj );
+static void          Ivy_FraigNodeAddToSolver( Ivy_FraigMan_t * p, Ivy_Obj_t * pObj0, Ivy_Obj_t * pObj1 );
+static int           Ivy_FraigMarkConeSetActivity( Ivy_FraigMan_t * p, Ivy_Obj_t * pOld, Ivy_Obj_t * pNew );
+static void          Ivy_FraigAddToPatScores( Ivy_FraigMan_t * p, Ivy_Obj_t * pClass, Ivy_Obj_t * pClassNew );
+static int           Ivy_FraigMiterStatus( Ivy_FraigMan_t * p );
+static void          Ivy_FraigMiterProve( Ivy_FraigMan_t * p );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -148,9 +174,9 @@ static int           Ivy_FraigMarkConeSetActivity_rec( Ivy_Fraig_t * p, Ivy_Obj_
   SeeAlso     []
 
 ***********************************************************************/
-Ivy_Man_t * Ivy_FraigPerform( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParams )
+Ivy_Man_t * Ivy_FraigProve( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParams )
 {
-    Ivy_Fraig_t * p;
+    Ivy_FraigMan_t * p;
     Ivy_Man_t * pManAigNew;
     int clk;
 clk = clock();
@@ -175,11 +201,89 @@ p->timeTotal = clock() - clk;
   SeeAlso     []
 
 ***********************************************************************/
+Ivy_Man_t * Ivy_FraigPerform( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParams )
+{
+    Ivy_FraigMan_t * p;
+    Ivy_Man_t * pManAigNew;
+    int clk;
+clk = clock();
+    assert( Ivy_ManLatchNum(pManAig) == 0 );
+    p = Ivy_FraigStart( pManAig, pParams );
+    Ivy_FraigSimulate( p );
+    Ivy_FraigSweep( p );
+    pManAigNew = p->pManFraig;
+p->timeTotal = clock() - clk;
+    Ivy_FraigStop( p );
+    return pManAigNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs fraiging of the initial AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ivy_Man_t * Ivy_FraigMiter( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParams )
+{
+    Ivy_FraigMan_t * p;
+    Ivy_Man_t * pManAigNew;
+    Ivy_Obj_t * pObj;
+    int i, clk;
+clk = clock();
+    assert( Ivy_ManLatchNum(pManAig) == 0 );
+    p = Ivy_FraigStartSimple( pManAig, pParams );
+    // duplicate internal nodes
+    Ivy_ManForEachNode( p->pManAig, pObj, i )
+        pObj->pEquiv = Ivy_And( p->pManFraig, Ivy_ObjChild0Equiv(pObj), Ivy_ObjChild1Equiv(pObj) );
+    // try to prove each output of the miter
+    Ivy_FraigMiterProve( p );
+    // add the POs
+    Ivy_ManForEachPo( p->pManAig, pObj, i )
+        Ivy_ObjCreatePo( p->pManFraig, Ivy_ObjChild0Equiv(pObj) );
+    // clean the new manager
+    Ivy_ManForEachObj( p->pManFraig, pObj, i )
+    {
+        if ( Ivy_ObjFaninVec(pObj) )
+            Vec_PtrFree( Ivy_ObjFaninVec(pObj) );
+        pObj->pNextFan0 = pObj->pNextFan1 = NULL;
+    }
+    // remove dangling nodes 
+    Ivy_ManCleanup( p->pManFraig );
+    pManAigNew = p->pManFraig;
+p->timeTotal = clock() - clk;
+    Ivy_FraigStop( p );
+    return pManAigNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs fraiging of the initial AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Ivy_FraigParamsDefault( Ivy_FraigParams_t * pParams )
 {
     memset( pParams, 0, sizeof(Ivy_FraigParams_t) );
-    pParams->nSimWords =     32;
-    pParams->SimSatur  =  0.005;
+    pParams->nSimWords    =     32;
+    pParams->SimSatur     =  0.005;
+    pParams->fPatScores   =      0;
+    pParams->MaxScore     =     25;
+    pParams->nBTLimitNode     =     100;     // conflict limit at a node
+    pParams->nBTLimitMiter    =  500000;     // conflict limit at an output
+    pParams->nBTLimitGlobal   =       0;     // conflict limit global
+    pParams->nInsLimitNode    =       0;     // inspection limit at a node
+    pParams->nInsLimitMiter   =       0;     // inspection limit at an output
+    pParams->nInsLimitGlobal  =       0;     // inspection limit global
 }
 
 /**Function*************************************************************
@@ -193,31 +297,81 @@ void Ivy_FraigParamsDefault( Ivy_FraigParams_t * pParams )
   SeeAlso     []
 
 ***********************************************************************/
-Ivy_Fraig_t * Ivy_FraigStart( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParams )
+Ivy_FraigMan_t * Ivy_FraigStartSimple( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParams )
 {
-    Ivy_Fraig_t * p;
+    Ivy_FraigMan_t * p;
+    // allocat the fraiging manager
+    p = ALLOC( Ivy_FraigMan_t, 1 );
+    memset( p, 0, sizeof(Ivy_FraigMan_t) );
+    p->pParams   = pParams;
+    p->pManAig   = pManAig;
+    p->pManFraig = Ivy_ManStartFrom( pManAig );
+    p->vPiVars   = Vec_PtrAlloc( 100 );
+    return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Starts the fraiging manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ivy_FraigMan_t * Ivy_FraigStart( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParams )
+{
+    Ivy_FraigMan_t * p;
+    Ivy_FraigSim_t * pSims;
     Ivy_Obj_t * pObj;
-    int i, k;
+    int i, k, EntrySize;
     // clean the fanout representation
     Ivy_ManForEachObj( pManAig, pObj, i )
 //        pObj->pEquiv = pObj->pFanout = pObj->pNextFan0 = pObj->pNextFan1 = pObj->pPrevFan0 = pObj->pPrevFan1 = NULL;
         assert( !pObj->pEquiv && !pObj->pFanout );
     // allocat the fraiging manager
-    p = ALLOC( Ivy_Fraig_t, 1 );
-    memset( p, 0, sizeof(Ivy_Fraig_t) );
+    p = ALLOC( Ivy_FraigMan_t, 1 );
+    memset( p, 0, sizeof(Ivy_FraigMan_t) );
     p->pParams   = pParams;
     p->pManAig   = pManAig;
     p->pManFraig = Ivy_ManStartFrom( pManAig );
     // allocate simulation info
-    p->nWords    = pParams->nSimWords;
-    p->pWords    = ALLOC( unsigned, Ivy_ManObjNum(pManAig) * p->nWords ); 
+    p->nSimWords    = pParams->nSimWords;
+//    p->pSimWords    = ALLOC( unsigned, Ivy_ManObjNum(pManAig) * p->nSimWords ); 
+    EntrySize    = sizeof(Ivy_FraigSim_t) + sizeof(unsigned) * p->nSimWords;
+    p->pSimWords = (char *)malloc( Ivy_ManObjNum(pManAig) * EntrySize ); 
+    memset( p->pSimWords, 0, EntrySize );
     k = 0;
     Ivy_ManForEachObj( pManAig, pObj, i )
-        Ivy_ObjSetSim( pObj, p->pWords + p->nWords * k++ );
+    {
+        pSims = (Ivy_FraigSim_t *)(p->pSimWords + EntrySize * k++);
+        pSims->pNext = NULL;
+        if ( Ivy_ObjIsNode(pObj) )
+        {
+            if ( p->pSimStart == NULL )
+                p->pSimStart = pSims;
+            else
+                ((Ivy_FraigSim_t *)(p->pSimWords + EntrySize * (k-2)))->pNext = pSims;
+            pSims->pFanin0 = Ivy_ObjSim( Ivy_ObjFanin0(pObj) );
+            pSims->pFanin1 = Ivy_ObjSim( Ivy_ObjFanin1(pObj) );
+            pSims->Type = (Ivy_ObjFaninPhase(Ivy_ObjChild0(pObj)) << 2) | (Ivy_ObjFaninPhase(Ivy_ObjChild1(pObj)) << 1) | pObj->fPhase;
+        }
+        else
+        {
+            pSims->pFanin0 = NULL;
+            pSims->pFanin1 = NULL;
+            pSims->Type = 0;
+        }
+        Ivy_ObjSetSim( pObj, pSims );
+    }
     assert( k == Ivy_ManObjNum(pManAig) );
     // allocate storage for sim pattern
     p->nPatWords = Ivy_BitWordNum( Ivy_ManPiNum(pManAig) );
     p->pPatWords = ALLOC( unsigned, p->nPatWords ); 
+    p->pPatScores = ALLOC( int, 32 * p->nSimWords ); 
+    p->vPiVars   = Vec_PtrAlloc( 100 );
     // set random number generator
     srand( 0xABCABC );
     return p;
@@ -234,22 +388,27 @@ Ivy_Fraig_t * Ivy_FraigStart( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParams )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_FraigPrint( Ivy_Fraig_t * p )
+void Ivy_FraigPrint( Ivy_FraigMan_t * p )
 {
     double nMemory;
-    nMemory = (double)Ivy_ManObjNum(p->pManAig)*p->nWords*sizeof(unsigned)/(1<<20);
-    printf( "SimWords = %d. Rounds = %d. Mem = %0.2f Mb.  ", p->nWords, p->nSimRounds, nMemory );
+    nMemory = (double)Ivy_ManObjNum(p->pManAig)*p->nSimWords*sizeof(unsigned)/(1<<20);
+    printf( "SimWords = %d. Rounds = %d. Mem = %0.2f Mb.  ", p->nSimWords, p->nSimRounds, nMemory );
     printf( "Classes: Beg = %d. End = %d.\n", p->nClassesBeg, p->nClassesEnd );
+    printf( "Limits: BTNode = %d. BTMiter = %d.\n", p->pParams->nBTLimitNode, p->pParams->nBTLimitMiter );
     printf( "Proof = %d. Counter-example = %d. Fail = %d. FailReal = %d. Zero = %d.\n", 
         p->nSatProof, p->nSatCallsSat, p->nSatFails, p->nSatFailsReal, p->nClassesZero );
-    printf( "Nodes: Final = %d. Total = %d. Mux = %d. (Exor = %d.) SatVars = %d.\n", 
-        Ivy_ManNodeNum(p->pManFraig), Ivy_ManNodeNum(p->pManAig), 0, 0, p->nSatVars );
+    printf( "Final = %d. Miter = %d. Total = %d. Mux = %d. (Exor = %d.) SatVars = %d.\n", 
+        Ivy_ManNodeNum(p->pManFraig), p->nNodesMiter, Ivy_ManNodeNum(p->pManAig), 0, 0, p->nSatVars );
     if ( p->pSat ) Sat_SolverPrintStats( stdout, p->pSat );
     PRT( "AIG simulation  ", p->timeSim  );
     PRT( "AIG traversal   ", p->timeTrav  );
     PRT( "SAT solving     ", p->timeSat   );
+    PRT( "    Unsat       ", p->timeSatUnsat );
+    PRT( "    Sat         ", p->timeSatSat   );
+    PRT( "    Fail        ", p->timeSatFail  );
     PRT( "Class refining  ", p->timeRef   );
     PRT( "TOTAL RUNTIME   ", p->timeTotal );
+    PRT( "time1           ", p->time1 );
 }
 
 /**Function*************************************************************
@@ -263,15 +422,19 @@ void Ivy_FraigPrint( Ivy_Fraig_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_FraigStop( Ivy_Fraig_t * p )
+void Ivy_FraigStop( Ivy_FraigMan_t * p )
 {
-    Ivy_FraigPrint( p );
+    if ( p->pParams->fVerbose )
+        Ivy_FraigPrint( p );
+    if ( p->vPiVars ) Vec_PtrFree( p->vPiVars );
     if ( p->pSat ) sat_solver_delete( p->pSat );
-    free( p->pPatWords );
-    free( p->pWords );
+    FREE( p->pPatScores );
+    FREE( p->pPatWords );
+    FREE( p->pSimWords );
     free( p );
 }
 
+
 /**Function*************************************************************
 
   Synopsis    [Simulates one node.]
@@ -283,13 +446,13 @@ void Ivy_FraigStop( Ivy_Fraig_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_NodeAssignRandom( Ivy_Fraig_t * p, Ivy_Obj_t * pObj )
+void Ivy_NodeAssignRandom( Ivy_FraigMan_t * p, Ivy_Obj_t * pObj )
 {
-    unsigned * pSims;
+    Ivy_FraigSim_t * pSims;
     int i;
     pSims = Ivy_ObjSim(pObj);
-    for ( i = 0; i < p->nWords; i++ )
-        pSims[i] = Ivy_ObjRandomSim();
+    for ( i = 0; i < p->nSimWords; i++ )
+        pSims->pData[i] = Ivy_ObjRandomSim();
 }
 
 /**Function*************************************************************
@@ -303,13 +466,13 @@ void Ivy_NodeAssignRandom( Ivy_Fraig_t * p, Ivy_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_NodeAssignConst( Ivy_Fraig_t * p, Ivy_Obj_t * pObj, int fConst1 )
+void Ivy_NodeAssignConst( Ivy_FraigMan_t * p, Ivy_Obj_t * pObj, int fConst1 )
 {
-    unsigned * pSims;
+    Ivy_FraigSim_t * pSims;
     int i;
     pSims = Ivy_ObjSim(pObj);
-    for ( i = 0; i < p->nWords; i++ )
-        pSims[i] = fConst1? ~(unsigned)0 : 0;
+    for ( i = 0; i < p->nSimWords; i++ )
+        pSims->pData[i] = fConst1? ~(unsigned)0 : 0;
 }
 
 /**Function*************************************************************
@@ -323,13 +486,13 @@ void Ivy_NodeAssignConst( Ivy_Fraig_t * p, Ivy_Obj_t * pObj, int fConst1 )
   SeeAlso     []
 
 ***********************************************************************/
-int Ivy_NodeHasZeroSim( Ivy_Fraig_t * p, Ivy_Obj_t * pObj )
+int Ivy_NodeHasZeroSim( Ivy_FraigMan_t * p, Ivy_Obj_t * pObj )
 {
-    unsigned * pSims;
+    Ivy_FraigSim_t * pSims;
     int i;
     pSims = Ivy_ObjSim(pObj);
-    for ( i = 0; i < p->nWords; i++ )
-        if ( pSims[i] )
+    for ( i = 0; i < p->nSimWords; i++ )
+        if ( pSims->pData[i] )
             return 0;
     return 1;
 }
@@ -345,14 +508,14 @@ int Ivy_NodeHasZeroSim( Ivy_Fraig_t * p, Ivy_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-int Ivy_NodeCompareSims( Ivy_Fraig_t * p, Ivy_Obj_t * pObj0, Ivy_Obj_t * pObj1 )
+int Ivy_NodeCompareSims( Ivy_FraigMan_t * p, Ivy_Obj_t * pObj0, Ivy_Obj_t * pObj1 )
 {
-    unsigned * pSims0, * pSims1;
+    Ivy_FraigSim_t * pSims0, * pSims1;
     int i;
     pSims0 = Ivy_ObjSim(pObj0);
     pSims1 = Ivy_ObjSim(pObj1);
-    for ( i = 0; i < p->nWords; i++ )
-        if ( pSims0[i] != pSims1[i] )
+    for ( i = 0; i < p->nSimWords; i++ )
+        if ( pSims0->pData[i] != pSims1->pData[i] )
             return 0;
     return 1;
 }
@@ -368,9 +531,64 @@ int Ivy_NodeCompareSims( Ivy_Fraig_t * p, Ivy_Obj_t * pObj0, Ivy_Obj_t * pObj1 )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_NodeSimulate( Ivy_Fraig_t * p, Ivy_Obj_t * pObj )
+void Ivy_NodeSimulateSim( Ivy_FraigMan_t * p, Ivy_FraigSim_t * pSims )
 {
-    unsigned * pSims, * pSims0, * pSims1;
+    unsigned * pData, * pData0, * pData1;
+    int i;
+    pData  = pSims->pData;
+    pData0 = pSims->pFanin0->pData;
+    pData1 = pSims->pFanin1->pData;
+    switch( pSims->Type )
+    {
+    case 0:
+        for ( i = 0; i < p->nSimWords; i++ )
+            pData[i] = (pData0[i] & pData1[i]);
+        break;
+    case 1:
+        for ( i = 0; i < p->nSimWords; i++ )
+            pData[i] = ~(pData0[i] & pData1[i]);
+        break;
+    case 2:
+        for ( i = 0; i < p->nSimWords; i++ )
+            pData[i] = (pData0[i] & ~pData1[i]);
+        break;
+    case 3:
+        for ( i = 0; i < p->nSimWords; i++ )
+            pData[i] = (~pData0[i] | pData1[i]);
+        break;
+    case 4:
+        for ( i = 0; i < p->nSimWords; i++ )
+            pData[i] = (~pData0[i] & pData1[i]);
+        break;
+    case 5:
+        for ( i = 0; i < p->nSimWords; i++ )
+            pData[i] = (pData0[i] | ~pData1[i]);
+        break;
+    case 6:
+        for ( i = 0; i < p->nSimWords; i++ )
+            pData[i] = ~(pData0[i] | pData1[i]);
+        break;
+    case 7:
+        for ( i = 0; i < p->nSimWords; i++ )
+            pData[i] = (pData0[i] | pData1[i]);
+        break;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Simulates one node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_NodeSimulate( Ivy_FraigMan_t * p, Ivy_Obj_t * pObj )
+{
+    Ivy_FraigSim_t * pSims, * pSims0, * pSims1;
     int fCompl, fCompl0, fCompl1, i;
     assert( !Ivy_IsComplement(pObj) );
     // get hold of the simulation information
@@ -385,38 +603,38 @@ void Ivy_NodeSimulate( Ivy_Fraig_t * p, Ivy_Obj_t * pObj )
     if ( fCompl0 && fCompl1 )
     {
         if ( fCompl )
-            for ( i = 0; i < p->nWords; i++ )
-                pSims[i] = (pSims0[i] | pSims1[i]);
+            for ( i = 0; i < p->nSimWords; i++ )
+                pSims->pData[i] = (pSims0->pData[i] | pSims1->pData[i]);
         else
-            for ( i = 0; i < p->nWords; i++ )
-                pSims[i] = ~(pSims0[i] | pSims1[i]);
+            for ( i = 0; i < p->nSimWords; i++ )
+                pSims->pData[i] = ~(pSims0->pData[i] | pSims1->pData[i]);
     }
     else if ( fCompl0 && !fCompl1 )
     {
         if ( fCompl )
-            for ( i = 0; i < p->nWords; i++ )
-                pSims[i] = (pSims0[i] | ~pSims1[i]);
+            for ( i = 0; i < p->nSimWords; i++ )
+                pSims->pData[i] = (pSims0->pData[i] | ~pSims1->pData[i]);
         else
-            for ( i = 0; i < p->nWords; i++ )
-                pSims[i] = (~pSims0[i] & pSims1[i]);
+            for ( i = 0; i < p->nSimWords; i++ )
+                pSims->pData[i] = (~pSims0->pData[i] & pSims1->pData[i]);
     }
     else if ( !fCompl0 && fCompl1 )
     {
         if ( fCompl )
-            for ( i = 0; i < p->nWords; i++ )
-                pSims[i] = (~pSims0[i] | pSims1[i]);
+            for ( i = 0; i < p->nSimWords; i++ )
+                pSims->pData[i] = (~pSims0->pData[i] | pSims1->pData[i]);
         else
-            for ( i = 0; i < p->nWords; i++ )
-                pSims[i] = (pSims0[i] & ~pSims1[i]);
+            for ( i = 0; i < p->nSimWords; i++ )
+                pSims->pData[i] = (pSims0->pData[i] & ~pSims1->pData[i]);
     }
     else // if ( !fCompl0 && !fCompl1 )
     {
         if ( fCompl )
-            for ( i = 0; i < p->nWords; i++ )
-                pSims[i] = ~(pSims0[i] & pSims1[i]);
+            for ( i = 0; i < p->nSimWords; i++ )
+                pSims->pData[i] = ~(pSims0->pData[i] & pSims1->pData[i]);
         else
-            for ( i = 0; i < p->nWords; i++ )
-                pSims[i] = (pSims0[i] & pSims1[i]);
+            for ( i = 0; i < p->nSimWords; i++ )
+                pSims->pData[i] = (pSims0->pData[i] & pSims1->pData[i]);
     }
 }
 
@@ -431,7 +649,7 @@ void Ivy_NodeSimulate( Ivy_Fraig_t * p, Ivy_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-unsigned Ivy_NodeHash( Ivy_Fraig_t * p, Ivy_Obj_t * pObj )
+unsigned Ivy_NodeHash( Ivy_FraigMan_t * p, Ivy_Obj_t * pObj )
 {
     static int s_FPrimes[128] = { 
         1009, 1049, 1093, 1151, 1201, 1249, 1297, 1361, 1427, 1459, 
@@ -448,13 +666,14 @@ unsigned Ivy_NodeHash( Ivy_Fraig_t * p, Ivy_Obj_t * pObj )
         7393, 7477, 7523, 7561, 7607, 7681, 7727, 7817, 7877, 7933, 
         8011, 8039, 8059, 8081, 8093, 8111, 8123, 8147
     };
-    unsigned uHash, * pSims;
+    Ivy_FraigSim_t * pSims;
+    unsigned uHash;
     int i;
-    assert( p->nWords <= 128 );
+    assert( p->nSimWords <= 128 );
     uHash = 0;
     pSims  = Ivy_ObjSim(pObj);
-    for ( i = 0; i < p->nWords; i++ )
-        uHash ^= pSims[i] * s_FPrimes[i];
+    for ( i = 0; i < p->nSimWords; i++ )
+        uHash ^= pSims->pData[i] * s_FPrimes[i];
     return uHash;
 }
 
@@ -469,7 +688,7 @@ unsigned Ivy_NodeHash( Ivy_Fraig_t * p, Ivy_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_FraigSimulateOne( Ivy_Fraig_t * p )
+void Ivy_FraigSimulateOne( Ivy_FraigMan_t * p )
 {
     Ivy_Obj_t * pObj;
     int i, clk;
@@ -501,7 +720,29 @@ p->nSimRounds++;
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_FraigAssignRandom( Ivy_Fraig_t * p )
+void Ivy_FraigSimulateOneSim( Ivy_FraigMan_t * p )
+{
+    Ivy_FraigSim_t * pSims;
+    int clk;
+clk = clock();
+    for ( pSims = p->pSimStart; pSims; pSims = pSims->pNext )
+        Ivy_NodeSimulateSim( p, pSims );
+p->timeSim += clock() - clk;
+p->nSimRounds++;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Simulates AIG manager.]
+
+  Description [Assumes that the PI simulation info is attached.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_FraigAssignRandom( Ivy_FraigMan_t * p )
 {
     Ivy_Obj_t * pObj;
     int i;
@@ -520,15 +761,15 @@ void Ivy_FraigAssignRandom( Ivy_Fraig_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_FraigAssignDist1( Ivy_Fraig_t * p, unsigned * pPat )
+void Ivy_FraigAssignDist1( Ivy_FraigMan_t * p, unsigned * pPat )
 {
     Ivy_Obj_t * pObj;
     int i, Limit;
     Ivy_ManForEachPi( p->pManAig, pObj, i )
         Ivy_NodeAssignConst( p, pObj, Ivy_InfoHasBit(pPat, i) );
-    Limit = IVY_MIN( Ivy_ManPiNum(p->pManAig), p->nWords * 32 - 1 );
+    Limit = IVY_MIN( Ivy_ManPiNum(p->pManAig), p->nSimWords * 32 - 1 );
     for ( i = 0; i < Limit; i++ )
-        Ivy_InfoXorBit( Ivy_ObjSim( Ivy_ManPi(p->pManAig,i) ), i+1 );
+        Ivy_InfoXorBit( Ivy_ObjSim( Ivy_ManPi(p->pManAig,i) )->pData, i+1 );
 /*
     for ( i = 0; i < Limit; i++ )
         Extra_PrintBinary( stdout, Ivy_ObjSim( Ivy_ManPi(p->pManAig,i) ), 30 ), printf( "\n" );
@@ -568,23 +809,23 @@ void Ivy_NodeAddToClass( Ivy_Obj_t * pClass, Ivy_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_FraigAddClass( Ivy_Fraig_t * p, Ivy_Obj_t * pClass )
+void Ivy_FraigAddClass( Ivy_FraigList_t * pList, Ivy_Obj_t * pClass )
 {
-    if ( p->pClassesHead == NULL )
+    if ( pList->pHead == NULL )
     {
-        p->pClassesHead = pClass;
-        p->pClassesTail = pClass;
+        pList->pHead = pClass;
+        pList->pTail = pClass;
         Ivy_ObjSetEquivListPrev( pClass, NULL );
         Ivy_ObjSetEquivListNext( pClass, NULL ); 
     }
     else
     {
-        Ivy_ObjSetEquivListNext( p->pClassesTail, pClass ); 
-        Ivy_ObjSetEquivListPrev( pClass, p->pClassesTail );
+        Ivy_ObjSetEquivListNext( pList->pTail, pClass ); 
+        Ivy_ObjSetEquivListPrev( pClass, pList->pTail );
         Ivy_ObjSetEquivListNext( pClass, NULL ); 
-        p->pClassesTail = pClass;
+        pList->pTail = pClass;
     }
-    p->nClasses++;
+    pList->nItems++;
 }
  
 /**Function*************************************************************
@@ -598,16 +839,16 @@ void Ivy_FraigAddClass( Ivy_Fraig_t * p, Ivy_Obj_t * pClass )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_FraigInsertClass( Ivy_Fraig_t * p, Ivy_Obj_t * pBase, Ivy_Obj_t * pClass )
+void Ivy_FraigInsertClass( Ivy_FraigList_t * pList, Ivy_Obj_t * pBase, Ivy_Obj_t * pClass )
 {
     Ivy_ObjSetEquivListPrev( pClass, pBase );
     Ivy_ObjSetEquivListNext( pClass, Ivy_ObjEquivListNext(pBase) ); 
     if ( Ivy_ObjEquivListNext(pBase) )
         Ivy_ObjSetEquivListPrev( Ivy_ObjEquivListNext(pBase), pClass );
     Ivy_ObjSetEquivListNext( pBase, pClass ); 
-    if ( p->pClassesTail == pBase )
-        p->pClassesTail = pClass;
-    p->nClasses++;
+    if ( pList->pTail == pBase )
+        pList->pTail = pClass;
+    pList->nItems++;
 }
 
 /**Function*************************************************************
@@ -621,19 +862,47 @@ void Ivy_FraigInsertClass( Ivy_Fraig_t * p, Ivy_Obj_t * pBase, Ivy_Obj_t * pClas
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_FraigRemoveClass( Ivy_Fraig_t * p, Ivy_Obj_t * pClass )
+void Ivy_FraigRemoveClass( Ivy_FraigList_t * pList, Ivy_Obj_t * pClass )
 {
-    if ( p->pClassesHead == pClass )
-        p->pClassesHead = Ivy_ObjEquivListNext(pClass);
-    if ( p->pClassesTail == pClass )
-        p->pClassesTail = Ivy_ObjEquivListPrev(pClass);
+    if ( pList->pHead == pClass )
+        pList->pHead = Ivy_ObjEquivListNext(pClass);
+    if ( pList->pTail == pClass )
+        pList->pTail = Ivy_ObjEquivListPrev(pClass);
     if ( Ivy_ObjEquivListPrev(pClass) )
         Ivy_ObjSetEquivListNext( Ivy_ObjEquivListPrev(pClass), Ivy_ObjEquivListNext(pClass) ); 
     if ( Ivy_ObjEquivListNext(pClass) )
         Ivy_ObjSetEquivListPrev( Ivy_ObjEquivListNext(pClass), Ivy_ObjEquivListPrev(pClass) );
     Ivy_ObjSetEquivListNext( pClass, NULL ); 
     Ivy_ObjSetEquivListPrev( pClass, NULL );
-    p->nClasses--;
+    pClass->fMarkA = 0;
+    pList->nItems--;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Count the number of pairs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_FraigCountPairsClasses( Ivy_FraigMan_t * p )
+{
+    Ivy_Obj_t * pClass, * pNode;
+    int nPairs = 0, nNodes;
+    return nPairs;
+
+    Ivy_FraigForEachEquivClass( p->lClasses.pHead, pClass )
+    {
+        nNodes = 0;
+        Ivy_FraigForEachClassNode( pClass, pNode )
+            nNodes++;
+        nPairs += nNodes * (nNodes - 1) / 2;
+    }
+    return nPairs;
 }
 
 /**Function*************************************************************
@@ -647,10 +916,10 @@ void Ivy_FraigRemoveClass( Ivy_Fraig_t * p, Ivy_Obj_t * pClass )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_FraigCreateClasses( Ivy_Fraig_t * p )
+void Ivy_FraigCreateClasses( Ivy_FraigMan_t * p )
 {
     Ivy_Obj_t ** pTable;
-    Ivy_Obj_t * pObj, * pConst1, * pBin, * pEntry, * pEntry2;
+    Ivy_Obj_t * pObj, * pConst1, * pBin, * pEntry;
     int i, nTableSize;
     unsigned Hash;
     pConst1 = Ivy_ManConst1(p->pManAig);
@@ -684,21 +953,24 @@ void Ivy_FraigCreateClasses( Ivy_Fraig_t * p )
         pTable[Hash % nTableSize] = pObj;
     }
     // collect non-trivial classes
-    assert( p->pClassesHead == NULL );
-    if ( Ivy_ObjClassNodeNext(pConst1) )
+    assert( p->lClasses.pHead == NULL );
+    Ivy_ManForEachObj( p->pManAig, pObj, i )
     {
-        Ivy_FraigAddClass( p, pConst1 );
-        Ivy_ObjSetClassNodeLast( pConst1, NULL );
+        if ( !Ivy_ObjIsConst1(pObj) && !Ivy_ObjIsPi(pObj) && !Ivy_ObjIsNode(pObj) )
+            continue;
+        Ivy_ObjSetNodeHashNext( pObj, NULL );
+        if ( Ivy_ObjClassNodeRepr(pObj) == NULL )
+        {
+            assert( Ivy_ObjClassNodeNext(pObj) == NULL );
+            continue;
+        }
+        // recognize the head of the class
+        if ( Ivy_ObjClassNodeNext( Ivy_ObjClassNodeRepr(pObj) ) != NULL )
+            continue;
+        // clean the class representative and add it to the list
+        Ivy_ObjSetClassNodeRepr( pObj, NULL );
+        Ivy_FraigAddClass( &p->lClasses, pObj );
     }
-    for ( i = 0; i < nTableSize; i++ )
-        Ivy_FraigForEachBinNodeSafe( pTable[i], pEntry, pEntry2 )
-            if ( Ivy_ObjClassNodeNext(pEntry) )
-            {
-                Ivy_FraigAddClass( p, pEntry );
-                Ivy_ObjSetClassNodeLast( pEntry, NULL );
-            }
-            else
-                Ivy_ObjSetNodeHashNext( pEntry, NULL );
     // free the table
     free( pTable );
 }
@@ -714,15 +986,20 @@ void Ivy_FraigCreateClasses( Ivy_Fraig_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Ivy_FraigRefineClass_rec( Ivy_Fraig_t * p, Ivy_Obj_t * pClass )
+int Ivy_FraigRefineClass_rec( Ivy_FraigMan_t * p, Ivy_Obj_t * pClass )
 {
     Ivy_Obj_t * pClassNew, * pListOld, * pListNew, * pNode;
+    int RetValue = 0;
     // check if there is refinement
     pListOld = pClass;
     Ivy_FraigForEachClassNode( Ivy_ObjClassNodeNext(pClass), pClassNew )
     {
         if ( !Ivy_NodeCompareSims(p, pClass, pClassNew) )
+        {
+            if ( p->pParams->fPatScores )
+                Ivy_FraigAddToPatScores( p, pClass, pClassNew );
             break;
+        }
         pListOld = pClassNew;
     }
     if ( pClassNew == NULL )
@@ -749,16 +1026,16 @@ int Ivy_FraigRefineClass_rec( Ivy_Fraig_t * p, Ivy_Obj_t * pClass )
     Ivy_ObjSetClassNodeNext( pListNew, NULL );
     Ivy_ObjSetClassNodeNext( pListOld, NULL );
     // update the list of classes
-    Ivy_FraigInsertClass( p, pClass, pClassNew );
+    Ivy_FraigInsertClass( &p->lClasses, pClass, pClassNew );
     // if the old class is trivial, remove it
     if ( Ivy_ObjClassNodeNext(pClass) == NULL )
-        Ivy_FraigRemoveClass( p, pClass );
+        Ivy_FraigRemoveClass( &p->lClasses, pClass );
     // if the new class is trivial, remove it; otherwise, try to refine it
     if ( Ivy_ObjClassNodeNext(pClassNew) == NULL )
-        Ivy_FraigRemoveClass( p, pClassNew );
+        Ivy_FraigRemoveClass( &p->lClasses, pClassNew );
     else
-        Ivy_FraigRefineClass_rec( p, pClassNew );
-    return 1;
+        RetValue = Ivy_FraigRefineClass_rec( p, pClassNew );
+    return RetValue + 1;
 }
 
 /**Function*************************************************************
@@ -773,15 +1050,24 @@ int Ivy_FraigRefineClass_rec( Ivy_Fraig_t * p, Ivy_Obj_t * pClass )
   SeeAlso     []
 
 ***********************************************************************/
-int Ivy_FraigRefineClasses( Ivy_Fraig_t * p )
+int Ivy_FraigRefineClasses( Ivy_FraigMan_t * p )
 {
     Ivy_Obj_t * pClass, * pClass2;
-    int clk, RetValue = 0;
+    int clk, RetValue, Counter = 0;
 clk = clock();
-    Ivy_FraigForEachEquivClassSafe( p->pClassesHead, pClass, pClass2 )
-        RetValue += Ivy_FraigRefineClass_rec( p, pClass );
+    Ivy_FraigForEachEquivClassSafe( p->lClasses.pHead, pClass, pClass2 )
+    {
+        if ( pClass->fMarkA )
+            continue;
+        RetValue = Ivy_FraigRefineClass_rec( p, pClass );
+        Counter += ( RetValue > 0 );
+//if ( Ivy_ObjIsConst1(pClass) )
+//printf( "%d ", RetValue );
+if ( Ivy_ObjIsConst1(pClass) )
+    p->time1 += clock() - clk;
+    }
 p->timeRef += clock() - clk;
-    return RetValue;
+    return Counter;
 }
 
 /**Function*************************************************************
@@ -835,30 +1121,10 @@ int Ivy_FraigCountClassNodes( Ivy_Obj_t * pClass )
   SeeAlso     []
 
 ***********************************************************************/
-int Ivy_FraigCountClasses( Ivy_Fraig_t * p )
+void Ivy_FraigPrintSimClasses( Ivy_FraigMan_t * p )
 {
     Ivy_Obj_t * pClass;
-    int Counter = 0;
-    Ivy_FraigForEachEquivClass( p->pClassesHead, pClass )
-        Counter++;
-    return Counter;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Stops the fraiging manager.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ivy_FraigPrintSimClasses( Ivy_Fraig_t * p )
-{
-    Ivy_Obj_t * pClass;
-    Ivy_FraigForEachEquivClass( p->pClassesHead, pClass )
+    Ivy_FraigForEachEquivClass( p->lClasses.pHead, pClass )
     {
 //        Ivy_FraigPrintClass( pClass );
         printf( "%d ", Ivy_FraigCountClassNodes( pClass ) );
@@ -866,10 +1132,9 @@ void Ivy_FraigPrintSimClasses( Ivy_Fraig_t * p )
 //    printf( "\n" );
 }
 
-
 /**Function*************************************************************
 
-  Synopsis    [Stops the fraiging manager.]
+  Synopsis    [Copy pattern from the solver into the internal storage.]
 
   Description []
                
@@ -878,21 +1143,115 @@ void Ivy_FraigPrintSimClasses( Ivy_Fraig_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_FraigSimulate( Ivy_Fraig_t * p )
+void Ivy_FraigSavePattern0( Ivy_FraigMan_t * p )
 {
-    int nChanges, nClasses;
-    Ivy_FraigAssignRandom( p );
-    Ivy_FraigSimulateOne( p );
-    Ivy_FraigCreateClasses( p );
-//printf( "Starting classes = %5d.\n", p->nClasses );
-    do {
-        Ivy_FraigAssignRandom( p );
-        Ivy_FraigSimulateOne( p );
-        nClasses = p->nClasses;
-        nChanges = Ivy_FraigRefineClasses( p );
-//printf( "Refined classes  = %5d.   Changes = %4d.\n", p->nClasses, nChanges );
-    } while ( (double)nChanges / nClasses > p->pParams->SimSatur );
-//    Ivy_FraigPrintSimClasses( p );
+    memset( p->pPatWords, 0, sizeof(unsigned) * p->nPatWords );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Copy pattern from the solver into the internal storage.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_FraigSavePattern1( Ivy_FraigMan_t * p )
+{
+    memset( p->pPatWords, 0xff, sizeof(unsigned) * p->nPatWords );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Copy pattern from the solver into the internal storage.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_FraigSavePattern( Ivy_FraigMan_t * p )
+{
+    Ivy_Obj_t * pObj;
+    int i;
+    memset( p->pPatWords, 0, sizeof(unsigned) * p->nPatWords );
+    Ivy_ManForEachPi( p->pManFraig, pObj, i )
+//    Vec_PtrForEachEntry( p->vPiVars, pObj, i )
+        if ( p->pSat->model.ptr[Ivy_ObjSatNum(pObj)] == l_True )
+            Ivy_InfoSetBit( p->pPatWords, i );
+//            Ivy_InfoSetBit( p->pPatWords, pObj->Id - 1 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Copy pattern from the solver into the internal storage.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_FraigSavePattern2( Ivy_FraigMan_t * p )
+{
+    Ivy_Obj_t * pObj;
+    int i;
+    memset( p->pPatWords, 0, sizeof(unsigned) * p->nPatWords );
+//    Ivy_ManForEachPi( p->pManFraig, pObj, i )
+    Vec_PtrForEachEntry( p->vPiVars, pObj, i )
+        if ( p->pSat->model.ptr[Ivy_ObjSatNum(pObj)] == l_True )
+//            Ivy_InfoSetBit( p->pPatWords, i );
+            Ivy_InfoSetBit( p->pPatWords, pObj->Id - 1 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Copy pattern from the solver into the internal storage.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_FraigSavePattern3( Ivy_FraigMan_t * p )
+{
+    Ivy_Obj_t * pObj;
+    int i;
+    for ( i = 0; i < p->nPatWords; i++ )
+        p->pPatWords[i] = Ivy_ObjRandomSim();
+    Vec_PtrForEachEntry( p->vPiVars, pObj, i )
+        if ( Ivy_InfoHasBit( p->pPatWords, pObj->Id - 1 ) ^ (p->pSat->model.ptr[Ivy_ObjSatNum(pObj)] == l_True) )
+            Ivy_InfoXorBit( p->pPatWords, pObj->Id - 1 );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if the one of the output is already non-constant 0.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_FraigCheckOutputSims( Ivy_FraigMan_t * p )
+{
+    Ivy_Obj_t * pObj;
+    int i;
+    Ivy_ManForEachPo( p->pManAig, pObj, i )
+        if ( !Ivy_NodeHasZeroSim( p, Ivy_ObjFanin0(pObj) ) )
+            return 1;
+    return 0;
 }
 
 /**Function*************************************************************
@@ -906,16 +1265,289 @@ void Ivy_FraigSimulate( Ivy_Fraig_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_FraigResimulate( Ivy_Fraig_t * p )
+void Ivy_FraigSimulate( Ivy_FraigMan_t * p )
+{
+    int nChanges, nClasses;
+    // start the classes
+    Ivy_FraigAssignRandom( p );
+    Ivy_FraigSimulateOne( p );
+    Ivy_FraigCreateClasses( p );
+//printf( "Starting classes = %5d.   Pairs = %6d.\n", p->lClasses.nItems, Ivy_FraigCountPairsClasses(p) );
+    // refine classes by walking 0/1 patterns
+    Ivy_FraigSavePattern0( p );
+    Ivy_FraigAssignDist1( p, p->pPatWords );
+    Ivy_FraigSimulateOne( p );
+    nChanges = Ivy_FraigRefineClasses( p );
+//printf( "Refined classes  = %5d.   Changes = %4d.   Pairs = %6d.\n", p->lClasses.nItems, nChanges, Ivy_FraigCountPairsClasses(p) );
+    Ivy_FraigSavePattern1( p );
+    Ivy_FraigAssignDist1( p, p->pPatWords );
+    Ivy_FraigSimulateOne( p );
+    nChanges = Ivy_FraigRefineClasses( p );
+//printf( "Refined classes  = %5d.   Changes = %4d.   Pairs = %6d.\n", p->lClasses.nItems, nChanges, Ivy_FraigCountPairsClasses(p) );
+    // refine classes by random simulation
+    do {
+        Ivy_FraigAssignRandom( p );
+        Ivy_FraigSimulateOne( p );
+        nClasses = p->lClasses.nItems;
+        nChanges = Ivy_FraigRefineClasses( p );
+//printf( "Refined classes  = %5d.   Changes = %4d.   Pairs = %6d.\n", p->lClasses.nItems, nChanges, Ivy_FraigCountPairsClasses(p) );
+    } while ( (double)nChanges / nClasses > p->pParams->SimSatur );
+//    Ivy_FraigPrintSimClasses( p );
+    // check if some outputs already became non-constant
+    if ( Ivy_FraigCheckOutputSims(p) )
+        printf( "Special case: One of the POs is already non-const zero.\n" );
+}
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Cleans pattern scores.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_FraigCleanPatScores( Ivy_FraigMan_t * p )
+{
+    int i, nLimit = p->nSimWords * 32;
+    for ( i = 0; i < nLimit; i++ )
+        p->pPatScores[i] = 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds to pattern scores.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_FraigAddToPatScores( Ivy_FraigMan_t * p, Ivy_Obj_t * pClass, Ivy_Obj_t * pClassNew )
+{
+    Ivy_FraigSim_t * pSims0, * pSims1;
+    unsigned uDiff;
+    int i, w;
+    // get hold of the simulation information
+    pSims0 = Ivy_ObjSim(pClass);
+    pSims1 = Ivy_ObjSim(pClassNew);
+    // iterate through the differences and record the score
+    for ( w = 0; w < p->nSimWords; w++ )
+    {
+        uDiff = pSims0->pData[w] ^ pSims1->pData[w];
+        if ( uDiff == 0 )
+            continue;
+        for ( i = 0; i < 32; i++ )
+            if ( uDiff & ( 1 << i ) )
+                p->pPatScores[w*32+i]++;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Selects the best pattern.]
+
+  Description [Returns 1 if such pattern is found.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_FraigSelectBestPat( Ivy_FraigMan_t * p )
+{
+    Ivy_FraigSim_t * pSims;
+    Ivy_Obj_t * pObj;
+    int i, nLimit = p->nSimWords * 32, MaxScore = 0, BestPat = -1;
+    for ( i = 1; i < nLimit; i++ )
+    {
+        if ( MaxScore < p->pPatScores[i] )
+        {
+            MaxScore = p->pPatScores[i];
+            BestPat = i;
+        }
+    }
+    if ( MaxScore == 0 )
+        return 0;
+//    if ( MaxScore > p->pParams->MaxScore )
+//    printf( "Max score is %3d.  ", MaxScore );
+    // copy the best pattern into the selected pattern
+    memset( p->pPatWords, 0, sizeof(unsigned) * p->nPatWords );
+    Ivy_ManForEachPi( p->pManAig, pObj, i )
+    {
+        pSims = Ivy_ObjSim(pObj);
+        if ( Ivy_InfoHasBit(pSims->pData, BestPat) )
+            Ivy_InfoSetBit(p->pPatWords, i);
+    }
+    return MaxScore;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Stops the fraiging manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_FraigResimulate( Ivy_FraigMan_t * p )
 {
     int nChanges;
     Ivy_FraigAssignDist1( p, p->pPatWords );
     Ivy_FraigSimulateOne( p );
+    if ( p->pParams->fPatScores )
+        Ivy_FraigCleanPatScores( p );
     nChanges = Ivy_FraigRefineClasses( p );
+    if ( nChanges < 1 )
+        printf( "Error: A counter-example did not refine classes!\n" );
     assert( nChanges >= 1 );
-//printf( "Refined classes! = %5d.   Changes = %4d.\n", p->nClasses, nChanges );
+//printf( "Refined classes! = %5d.   Changes = %4d.\n", p->lClasses.nItems, nChanges );
+
+    if ( !p->pParams->fPatScores )
+        return;
+
+    // perform additional simulation using dist1 patterns derived from successful patterns
+    while ( Ivy_FraigSelectBestPat(p) > p->pParams->MaxScore )
+    {
+        Ivy_FraigAssignDist1( p, p->pPatWords );
+        Ivy_FraigSimulateOne( p );
+        Ivy_FraigCleanPatScores( p );
+        nChanges = Ivy_FraigRefineClasses( p );
+//printf( "Refined class!!! = %5d.   Changes = %4d.   Pairs = %6d.\n", p->lClasses.nItems, nChanges, Ivy_FraigCountPairsClasses(p) );
+        if ( nChanges == 0 )
+            break;
+    }
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Reports the status of the miter.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_FraigMiterStatus( Ivy_FraigMan_t * p )
+{
+    Ivy_Obj_t * pObj, * pObjNew;
+    int i, CountConst0 = 0, CountNonConst0 = 0, CountUndecided = 0;
+    Ivy_ManForEachPo( p->pManAig, pObj, i )
+    {
+        pObjNew = Ivy_ObjChild0Equiv(pObj);
+        // check if the output is constant 1
+        if ( pObjNew == p->pManFraig->pConst1 )
+        {
+            CountNonConst0++;
+            continue;
+        }
+        // check if the output is constant 0
+        if ( pObjNew == Ivy_Not(p->pManFraig->pConst1) )
+        {
+            CountConst0++;
+            continue;
+        }
+        // check if the output can be constant 0
+        if ( Ivy_Regular(pObjNew)->fPhase != (unsigned)Ivy_IsComplement(pObjNew) )
+        {
+            CountNonConst0++;
+            continue;
+        }
+        CountUndecided++;
+    }
+    if ( p->pParams->fVerbose )
+    {
+        printf( "Miter has %d outputs. ", Ivy_ManPoNum(p->pManAig) );
+        printf( "Const0 = %d.  ", CountConst0 );
+        printf( "NonConst0 = %d.  ", CountNonConst0 );
+        printf( "Undecided = %d.  ", CountUndecided );
+        printf( "\n" );
+    }
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Works on the miter.]
+
+  Description [Tries to prove each output until encountering a sat output.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_FraigMiterProve( Ivy_FraigMan_t * p )
+{
+    Ivy_Obj_t * pObj, * pObjNew;
+    int i, RetValue, clk = clock();
+    int fVerbose = p->pParams->fVerbose;
+    Ivy_ManForEachPo( p->pManAig, pObj, i )
+    {
+        if ( i && fVerbose )
+        {
+            PRT( "Time", clock() -clk );
+        }
+        pObjNew = Ivy_ObjChild0Equiv(pObj);
+        // check if the output is constant 1
+        if ( pObjNew == p->pManFraig->pConst1 )
+        {
+            if ( fVerbose )
+                printf( "Output %2d (out of %2d) is constant 1.  ", i, Ivy_ManPoNum(p->pManAig) );
+            break;
+        }
+        // check if the output is constant 0
+        if ( pObjNew == Ivy_Not(p->pManFraig->pConst1) )
+        {
+            if ( fVerbose )
+                printf( "Output %2d (out of %2d) is already constant 0.  ", i, Ivy_ManPoNum(p->pManAig) );
+            continue;
+        }
+        // check if the output can be constant 0
+        if ( Ivy_Regular(pObjNew)->fPhase != (unsigned)Ivy_IsComplement(pObjNew) )
+        {
+            if ( fVerbose )
+                printf( "Output %2d (out of %2d) cannot be constant 0.  ", i, Ivy_ManPoNum(p->pManAig) );
+            break;
+        }
+        // try to prove the output constant 0
+        RetValue = Ivy_FraigNodeIsConst( p, Ivy_Regular(pObjNew) );
+        if ( RetValue == 1 )  // proved equivalent
+        {
+            if ( fVerbose )
+                printf( "Output %2d (out of %2d) was proved constant 0.  ", i, Ivy_ManPoNum(p->pManAig) );
+            // set the constant miter
+            Ivy_ObjFanin0(pObj)->pEquiv = Ivy_NotCond( p->pManFraig->pConst1, !Ivy_IsComplement(pObj) );
+            continue;
+        }
+        if ( RetValue == -1 ) // failed
+        {
+            if ( fVerbose )
+                printf( "Output %2d (out of %2d) has timed out at %d backtracks.  ", i, Ivy_ManPoNum(p->pManAig), p->pParams->nBTLimitMiter );
+            continue;
+        }
+        // proved satisfiable
+        if ( fVerbose )
+            printf( "Output %2d (out of %2d) was proved NOT a constant 0.  ", i, Ivy_ManPoNum(p->pManAig) );
+        break;
+    }
+    if ( fVerbose )
+    {
+        PRT( "Time", clock() -clk );
+    }
+}
 
 /**Function*************************************************************
 
@@ -928,16 +1560,25 @@ void Ivy_FraigResimulate( Ivy_Fraig_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_FraigSweep( Ivy_Fraig_t * p )
+void Ivy_FraigSweep( Ivy_FraigMan_t * p )
 {
     Ivy_Obj_t * pObj;
-    int i;
-p->nClassesZero = Ivy_ObjIsConst1(p->pClassesHead) ? Ivy_FraigCountClassNodes(p->pClassesHead) : 0;
-p->nClassesBeg  = Ivy_FraigCountClasses(p);
+    int i, k = 0;
+p->nClassesZero = Ivy_ObjIsConst1(p->lClasses.pHead) ? Ivy_FraigCountClassNodes(p->lClasses.pHead) : 0;
+p->nClassesBeg  = p->lClasses.nItems;
     // duplicate internal nodes
+    p->pProgress = Extra_ProgressBarStart( stdout, Ivy_ManNodeNum(p->pManAig) );
     Ivy_ManForEachNode( p->pManAig, pObj, i )
+    {
+        Extra_ProgressBarUpdate( p->pProgress, k++, NULL );
         pObj->pEquiv = Ivy_FraigAnd( p, pObj );
-p->nClassesEnd = Ivy_FraigCountClasses(p);
+    }
+    Extra_ProgressBarStop( p->pProgress );
+p->nClassesEnd = p->lClasses.nItems;
+    // try to prove the outputs of the miter
+    p->nNodesMiter = Ivy_ManNodeNum(p->pManFraig);
+    Ivy_FraigMiterStatus( p );
+    Ivy_FraigMiterProve( p );
     // add the POs
     Ivy_ManForEachPo( p->pManAig, pObj, i )
         Ivy_ObjCreatePo( p->pManFraig, Ivy_ObjChild0Equiv(pObj) );
@@ -953,6 +1594,9 @@ p->nClassesEnd = Ivy_FraigCountClasses(p);
     }
     // remove dangling nodes 
     Ivy_ManCleanup( p->pManFraig );
+    // clean up the class marks
+    Ivy_FraigForEachEquivClass( p->lClasses.pHead, pObj )
+        pObj->fMarkA = 0;
 }
 
 /**Function*************************************************************
@@ -966,7 +1610,7 @@ p->nClassesEnd = Ivy_FraigCountClasses(p);
   SeeAlso     []
 
 ***********************************************************************/
-Ivy_Obj_t * Ivy_FraigAnd( Ivy_Fraig_t * p, Ivy_Obj_t * pObjOld )
+Ivy_Obj_t * Ivy_FraigAnd( Ivy_FraigMan_t * p, Ivy_Obj_t * pObjOld )
 {
     Ivy_Obj_t * pObjNew, * pFanin0New, * pFanin1New, * pObjReprNew;
     int RetValue;
@@ -988,42 +1632,21 @@ Ivy_Obj_t * Ivy_FraigAnd( Ivy_Fraig_t * p, Ivy_Obj_t * pObjOld )
     // if the fraiged nodes are the same return
     if ( Ivy_Regular(pObjNew) == Ivy_Regular(pObjReprNew) )
         return pObjNew;
+    assert( Ivy_Regular(pObjNew) != Ivy_ManConst1(p->pManFraig) );
     // they are different (the counter-example is in p->pPatWords)
-    RetValue = Ivy_FraigNodesAreEquiv( p, Ivy_Regular(pObjReprNew), Ivy_Regular(pObjNew), 1000 );
+    RetValue = Ivy_FraigNodesAreEquiv( p, Ivy_Regular(pObjReprNew), Ivy_Regular(pObjNew) );
     if ( RetValue == 1 )  // proved equivalent
+    {
+        // mark the class as proved
+        if ( Ivy_ObjClassNodeNext(pObjOld) == NULL )
+            Ivy_ObjClassNodeRepr(pObjOld)->fMarkA = 1;
         return Ivy_NotCond( pObjReprNew, pObjOld->fPhase ^ Ivy_ObjClassNodeRepr(pObjOld)->fPhase );
+    }
     if ( RetValue == -1 ) // failed
         return pObjNew;
     // simulate the counter-example and return the new node
     Ivy_FraigResimulate( p );
     return pObjNew;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Copy pattern from the solver into the internal storage.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ivy_FraigSavePattern( Ivy_Fraig_t * p )
-{
-    Ivy_Obj_t * pObj;
-    int i;
-    memset( p->pPatWords, 0, sizeof(unsigned) * p->nPatWords );
-    Ivy_ManForEachPi( p->pManFraig, pObj, i )
-        if ( p->pSat->model.ptr[Ivy_ObjSatNum(pObj)] == l_True )
-            Ivy_InfoSetBit( p->pPatWords, i );
-/*
-    // print sat variables
-    for ( i = 0; i < p->nSatVars; i++ )
-        printf( "%d=%d ", i, p->pSat->model.ptr[i] );
-    printf( "\n" );
-*/
 }
 
 /**Function*************************************************************
@@ -1037,11 +1660,53 @@ void Ivy_FraigSavePattern( Ivy_Fraig_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Ivy_FraigNodesAreEquiv( Ivy_Fraig_t * p, Ivy_Obj_t * pOld, Ivy_Obj_t * pNew, int nBTLimit )
+void Ivy_FraigCleanActivity( Ivy_FraigMan_t * p )
 {
-    int pLits[4], RetValue, RetValue1, clk, Counter;
+    double * pActivity;
+    int i;
+    pActivity = sat_solver_activity(p->pSat);
+    for ( i = 0; i < p->nSatVars; i++ )
+    {
+        pActivity[i] = 0.0;
+        sat_solver_order_update( p->pSat, i );
+    }
+}
 
-//    printf( "Trying to prove nodes %d and %d\n", pOld->Id, pNew->Id );
+/**Function*************************************************************
+
+  Synopsis    [Performs fraiging for one node.]
+
+  Description [Returns the fraiged node.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_FraigPrintActivity( Ivy_FraigMan_t * p )
+{
+    double * pActivity;
+    int i;
+    pActivity = sat_solver_activity(p->pSat);
+    for ( i = 0; i < p->nSatVars; i++ )
+        printf( "%d %.3f  ", i, pActivity[i] );
+    printf( "\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs fraiging for one node.]
+
+  Description [Returns the fraiged node.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_FraigNodesAreEquiv( Ivy_FraigMan_t * p, Ivy_Obj_t * pOld, Ivy_Obj_t * pNew )
+{
+    int pLits[4], RetValue, RetValue1, nBTLimit, clk;
 
     // make sure the nodes are not complemented
     assert( !Ivy_IsComplement(pNew) );
@@ -1051,9 +1716,13 @@ int Ivy_FraigNodesAreEquiv( Ivy_Fraig_t * p, Ivy_Obj_t * pOld, Ivy_Obj_t * pNew,
     // if at least one of the nodes is a failed node, perform adjustments:
     // if the backtrack limit is small, simply skip this node
     // if the backtrack limit is > 10, take the quare root of the limit
+    nBTLimit = p->pParams->nBTLimitNode;
     if ( nBTLimit > 0 && (pOld->fFailTfo || pNew->fFailTfo) )
     {
         p->nSatFails++;
+        // fail immediately
+        return -1;
+
         if ( nBTLimit <= 10 )
             return -1;
         nBTLimit = (int)sqrt(nBTLimit);
@@ -1071,25 +1740,19 @@ int Ivy_FraigNodesAreEquiv( Ivy_Fraig_t * p, Ivy_Obj_t * pOld, Ivy_Obj_t * pNew,
     // if the nodes do not have SAT variables, allocate them
     Ivy_FraigNodeAddToSolver( p, pOld, pNew );
 
-    // prepare variable activity
-clk = clock();
-    Ivy_ManIncrementTravId( p->pManFraig );
-    Counter  = Ivy_FraigMarkConeSetActivity_rec( p, pOld, NULL, 0, NULL, 0 );
-    Counter += Ivy_FraigMarkConeSetActivity_rec( p, pNew, NULL, 0, NULL, 0 );
-//    printf( "%d ", Counter );
-p->timeTrav += clock() - clk;
-
-
     // solve under assumptions
     // A = 1; B = 0     OR     A = 1; B = 1 
 clk = clock();
     pLits[0] = toLitCond( Ivy_ObjSatNum(pOld), 0 );
     pLits[1] = toLitCond( Ivy_ObjSatNum(pNew), pOld->fPhase == pNew->fPhase );
 //Sat_SolverWriteDimacs( p->pSat, "temp.cnf", pLits, pLits + 2, 1 );
-    RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + 2 );
+    RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + 2, 
+        nBTLimit, p->pParams->nInsLimitNode, 
+        p->pParams->nBTLimitGlobal, p->pParams->nInsLimitGlobal );
 p->timeSat += clock() - clk;
     if ( RetValue1 == l_False )
     {
+p->timeSatUnsat += clock() - clk;
         pLits[0] = lit_neg( pLits[0] );
         pLits[1] = lit_neg( pLits[1] );
         RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
@@ -1099,12 +1762,14 @@ p->timeSat += clock() - clk;
     }
     else if ( RetValue1 == l_True )
     {
+p->timeSatSat += clock() - clk;
         Ivy_FraigSavePattern( p );
         p->nSatCallsSat++;
         return 0;
     }
     else // if ( RetValue1 == l_Undef )
     {
+p->timeSatFail += clock() - clk;
         // mark the node as the failed node
         if ( pOld != p->pManFraig->pConst1 ) 
             pOld->fFailTfo = 1;
@@ -1125,10 +1790,13 @@ p->timeSat += clock() - clk;
 clk = clock();
     pLits[0] = toLitCond( Ivy_ObjSatNum(pOld), 1 );
     pLits[1] = toLitCond( Ivy_ObjSatNum(pNew), pOld->fPhase ^ pNew->fPhase );
-    RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + 2 );
+    RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + 2, 
+        nBTLimit, p->pParams->nInsLimitNode, 
+        p->pParams->nBTLimitGlobal, p->pParams->nInsLimitGlobal );
 p->timeSat += clock() - clk;
     if ( RetValue1 == l_False )
     {
+p->timeSatUnsat += clock() - clk;
         pLits[0] = lit_neg( pLits[0] );
         pLits[1] = lit_neg( pLits[1] );
         RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
@@ -1137,14 +1805,87 @@ p->timeSat += clock() - clk;
     }
     else if ( RetValue1 == l_True )
     {
+p->timeSatSat += clock() - clk;
         Ivy_FraigSavePattern( p );
         p->nSatCallsSat++;
         return 0;
     }
     else // if ( RetValue1 == l_Undef )
     {
+p->timeSatFail += clock() - clk;
         // mark the node as the failed node
         pOld->fFailTfo = 1;
+        pNew->fFailTfo = 1;
+        p->nSatFailsReal++;
+        return -1;
+    }
+
+    // return SAT proof
+    p->nSatProof++;
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs fraiging for one node.]
+
+  Description [Returns the fraiged node.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_FraigNodeIsConst( Ivy_FraigMan_t * p, Ivy_Obj_t * pNew )
+{
+    int pLits[2], RetValue1, RetValue, clk;
+
+    // make sure the nodes are not complemented
+    assert( !Ivy_IsComplement(pNew) );
+    assert( pNew != p->pManFraig->pConst1 );
+    p->nSatCalls++;
+
+    // make sure the solver is allocated and has enough variables
+    if ( p->pSat == NULL )
+    {
+        p->pSat = sat_solver_new();
+        p->nSatVars = 1;
+        sat_solver_setnvars( p->pSat, 1000 );
+    }
+
+    // if the nodes do not have SAT variables, allocate them
+    Ivy_FraigNodeAddToSolver( p, NULL, pNew );
+
+    // prepare variable activity
+    Ivy_FraigMarkConeSetActivity( p, NULL, pNew ); 
+
+    // solve under assumptions
+clk = clock();
+    pLits[0] = toLitCond( Ivy_ObjSatNum(pNew), pNew->fPhase );
+    RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + 1, 
+        p->pParams->nBTLimitMiter, p->pParams->nInsLimitMiter, 
+        p->pParams->nBTLimitGlobal, p->pParams->nInsLimitGlobal );
+p->timeSat += clock() - clk;
+    if ( RetValue1 == l_False )
+    {
+p->timeSatUnsat += clock() - clk;
+        pLits[0] = lit_neg( pLits[0] );
+        RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 1 );
+        assert( RetValue );
+        // continue solving the other implication
+        p->nSatCallsUnsat++;
+    }
+    else if ( RetValue1 == l_True )
+    {
+p->timeSatSat += clock() - clk;
+        Ivy_FraigSavePattern( p );
+        p->nSatCallsSat++;
+        return 0;
+    }
+    else // if ( RetValue1 == l_Undef )
+    {
+p->timeSatFail += clock() - clk;
+        // mark the node as the failed node
         pNew->fFailTfo = 1;
         p->nSatFailsReal++;
         return -1;
@@ -1166,7 +1907,7 @@ p->timeSat += clock() - clk;
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_FraigAddClausesMux( Ivy_Fraig_t * p, Ivy_Obj_t * pNode )
+void Ivy_FraigAddClausesMux( Ivy_FraigMan_t * p, Ivy_Obj_t * pNode )
 {
     Ivy_Obj_t * pNodeI, * pNodeT, * pNodeE;
     int pLits[4], RetValue, VarF, VarI, VarT, VarE, fCompT, fCompE;
@@ -1249,7 +1990,7 @@ void Ivy_FraigAddClausesMux( Ivy_Fraig_t * p, Ivy_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_FraigAddClausesSuper( Ivy_Fraig_t * p, Ivy_Obj_t * pNode, Vec_Ptr_t * vSuper )
+void Ivy_FraigAddClausesSuper( Ivy_FraigMan_t * p, Ivy_Obj_t * pNode, Vec_Ptr_t * vSuper )
 {
     Ivy_Obj_t * pFanin;
     int * pLits, nLits, RetValue, i;
@@ -1333,7 +2074,7 @@ Vec_Ptr_t * Ivy_FraigCollectSuper( Ivy_Obj_t * pObj, int fUseMuxes )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_FraigObjAddToFrontier( Ivy_Fraig_t * p, Ivy_Obj_t * pObj, Vec_Ptr_t * vFrontier )
+void Ivy_FraigObjAddToFrontier( Ivy_FraigMan_t * p, Ivy_Obj_t * pObj, Vec_Ptr_t * vFrontier )
 {
     assert( !Ivy_IsComplement(pObj) );
     if ( Ivy_ObjSatNum(pObj) )
@@ -1359,18 +2100,19 @@ void Ivy_FraigObjAddToFrontier( Ivy_Fraig_t * p, Ivy_Obj_t * pObj, Vec_Ptr_t * v
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_FraigNodeAddToSolver( Ivy_Fraig_t * p, Ivy_Obj_t * pOld, Ivy_Obj_t * pNew )
-{
+void Ivy_FraigNodeAddToSolver( Ivy_FraigMan_t * p, Ivy_Obj_t * pOld, Ivy_Obj_t * pNew )
+{ 
     Vec_Ptr_t * vFrontier, * vFanins;
     Ivy_Obj_t * pNode, * pFanin;
     int i, k, fUseMuxes = 1;
+    assert( pOld || pNew );
     // quit if CNF is ready
-    if ( Ivy_ObjFaninVec(pOld) && Ivy_ObjFaninVec(pNew) )
+    if ( (!pOld || Ivy_ObjFaninVec(pOld)) && (!pNew || Ivy_ObjFaninVec(pNew)) )
         return;
     // start the frontier
     vFrontier = Vec_PtrAlloc( 100 );
-    Ivy_FraigObjAddToFrontier( p, pOld, vFrontier );
-    Ivy_FraigObjAddToFrontier( p, pNew, vFrontier );
+    if ( pOld ) Ivy_FraigObjAddToFrontier( p, pOld, vFrontier );
+    if ( pNew ) Ivy_FraigObjAddToFrontier( p, pNew, vFrontier );
     // explore nodes in the frontier
     Vec_PtrForEachEntry( vFrontier, pNode, i )
     {
@@ -1412,7 +2154,7 @@ void Ivy_FraigNodeAddToSolver( Ivy_Fraig_t * p, Ivy_Obj_t * pOld, Ivy_Obj_t * pN
   SeeAlso     []
 
 ***********************************************************************/
-int Ivy_FraigMarkConeSetActivity_rec( Ivy_Fraig_t * p, Ivy_Obj_t * pObj, int * pTravIds, int TravId, double * pFactors, int LevelMax )
+int Ivy_FraigMarkConeSetActivity_rec( Ivy_FraigMan_t * p, Ivy_Obj_t * pObj, double * pActivity, int LevelMax, Vec_Ptr_t * vPiVars )
 {
     Vec_Ptr_t * vFanins;
     Ivy_Obj_t * pFanin;
@@ -1421,21 +2163,74 @@ int Ivy_FraigMarkConeSetActivity_rec( Ivy_Fraig_t * p, Ivy_Obj_t * pObj, int * p
     if ( Ivy_ObjIsConst1(pObj) )
         return 0;
     assert( Ivy_ObjSatNum(pObj) );
-//    if ( pTravIds[Ivy_ObjSatNum(pObj)] == TravId )
-//        return;
-//    pTravIds[Ivy_ObjSatNum(pObj)] = TravId;
-//    pFactors[Ivy_ObjSatNum(pObj)] = pow( 0.97, LevelMax - pObj->Level );
     if ( Ivy_ObjIsTravIdCurrent(p->pManFraig, pObj) )
         return 0;
     Ivy_ObjSetTravIdCurrent(p->pManFraig, pObj);
-    if ( Ivy_ObjIsPi(pObj) )
-        return 0;
 
+    // add this variable to the decision
+    assert( Ivy_ObjSatNum(pObj) > 0 );
+//    pActivity[Ivy_ObjSatNum(pObj)] = 3.0 * pow( 0.97, LevelMax - pObj->Level );
+//    sat_solver_order_unassigned( p->pSat, Ivy_ObjSatNum(pObj) );
+
+//    pActivity[Ivy_ObjSatNum(pObj)] += 3.0 * pObj->Level / LevelMax;
+//    sat_solver_order_update( p->pSat, Ivy_ObjSatNum(pObj) );
+
+    if ( LevelMax > 150 && (int)pObj->Level > LevelMax - 100 )
+        sat_solver_act_var_bump_factor( p->pSat, Ivy_ObjSatNum(pObj), 1.0 + 10.0 * (pObj->Level - (LevelMax - 100)) / 100 );
+
+    // add the PI to the list
+    if ( Ivy_ObjIsPi(pObj) )
+    {
+        Vec_PtrPush( vPiVars, pObj );
+        return 0;
+    }
+
+    // explore the fanins
     vFanins = Ivy_ObjFaninVec( pObj );
     Counter = 1;
     Vec_PtrForEachEntry( vFanins, pFanin, i )
-        Counter += Ivy_FraigMarkConeSetActivity_rec( p, Ivy_Regular(pFanin), pTravIds, TravId, pFactors, LevelMax );
+        Counter += Ivy_FraigMarkConeSetActivity_rec( p, Ivy_Regular(pFanin), pActivity, LevelMax, vPiVars );
     return Counter;
+
+//    Counter  = Ivy_FraigMarkConeSetActivity_rec( p, Ivy_ObjFanin0(pObj), pActivity, LevelMax, vPiVars );
+//    Counter += Ivy_FraigMarkConeSetActivity_rec( p, Ivy_ObjFanin1(pObj), pActivity, LevelMax, vPiVars );
+//    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs fraiging for one node.]
+
+  Description [Returns the fraiged node.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_FraigMarkConeSetActivity( Ivy_FraigMan_t * p, Ivy_Obj_t * pOld, Ivy_Obj_t * pNew )
+{
+    int clk, LevelMax, Counter;
+    assert( pOld || pNew );
+clk = clock(); 
+    Vec_PtrClear( p->vPiVars );
+    Ivy_ManIncrementTravId( p->pManFraig );
+//    Ivy_FraigCleanActivity( p );
+//    sat_solver_order_clean( p->pSat );
+//printf( "\n" );
+//printf( "Adding\n" );
+    LevelMax = IVY_MAX( pNew ? pNew->Level : 0, pOld ? pOld->Level : 0 );
+    Counter  = 0;
+    if ( pOld )
+        Counter += Ivy_FraigMarkConeSetActivity_rec( p, pOld, sat_solver_activity(p->pSat), LevelMax, p->vPiVars );
+    if ( pNew )
+        Counter += Ivy_FraigMarkConeSetActivity_rec( p, pNew, sat_solver_activity(p->pSat), LevelMax, p->vPiVars );
+//Ivy_FraigPrintActivity( p );
+//printf( "\n" );
+//printf( "Solving\n" );
+//    printf( "%d ", Vec_PtrSize(p->vPiVars) );
+p->timeTrav += clock() - clk;
+    return 1;
 }
 
 ////////////////////////////////////////////////////////////////////////

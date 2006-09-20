@@ -27,6 +27,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #endif
 
 #include "satVec.h"
+#include "satMem.h"
 
 //=================================================================================================
 // Simple types:
@@ -70,13 +71,20 @@ extern void        sat_solver_delete(sat_solver* s);
 
 extern bool        sat_solver_addclause(sat_solver* s, lit* begin, lit* end);
 extern bool        sat_solver_simplify(sat_solver* s);
-extern int         sat_solver_solve(sat_solver* s, lit* begin, lit* end);
+extern int         sat_solver_solve(sat_solver* s, lit* begin, lit* end, sint64 nConfLimit, sint64 nInsLimit, sint64 nConfLimitGlobal, sint64 nInsLimitGlobal);
 
 extern int         sat_solver_nvars(sat_solver* s);
 extern int         sat_solver_nclauses(sat_solver* s);
 extern int         sat_solver_nconflicts(sat_solver* s);
 
 extern void        sat_solver_setnvars(sat_solver* s,int n);
+
+extern void        sat_solver_order_clean(sat_solver* s);
+extern void        sat_solver_order_unassigned(sat_solver* s, int v);
+extern void        sat_solver_order_update(sat_solver* s, int v);
+
+extern double*     sat_solver_activity(sat_solver* s);
+extern void        sat_solver_act_var_bump_factor(sat_solver* s, int v, double factor);
 
 struct stats_t
 {
@@ -136,6 +144,11 @@ struct sat_solver_t
     int      verbosity;     // Verbosity level. 0=silent, 1=some progress report, 2=everything
 
     stats    stats;
+
+    sint64   nConfLimit;    // external limit on the number of conflicts
+    sint64   nInsLimit;     // external limit on the number of implications
+
+    Sat_MmStep_t * pMem;
 };
 
 #endif

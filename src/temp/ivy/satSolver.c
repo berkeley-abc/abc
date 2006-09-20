@@ -26,6 +26,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include "satSolver.h"
 
+//#define ASAT_USE_SYSTEM_MEMORY_MANAGEMENT
+
 //=================================================================================================
 // Debug:
 
@@ -142,6 +144,7 @@ static inline void order_unassigned(sat_solver* s, int v) // undoorder
         orderpos[v] = veci_size(&s->order);
         veci_push(&s->order,v);
         order_update(s,v);
+//printf( "+%d ", v );
     }
 }
 
@@ -202,11 +205,27 @@ static int  order_select(sat_solver* s, float random_var_freq) // selectvar
             orderpos[heap[i]] = i;
         }
 
+//printf( "-%d ", next );
         if (values[next] == l_Undef)
             return next;
     }
 
     return var_Undef;
+}
+
+void sat_solver_order_clean(sat_solver* s) // removes all variables from the queue
+{
+    while ( order_select(s, 0.0) != var_Undef );
+}
+
+void sat_solver_order_unassigned(sat_solver* s, int v) // undoorder
+{
+    order_unassigned(s, v);
+}
+
+void sat_solver_order_update(sat_solver* s, int v) // updateorder
+{
+    order_update(s, v);
 }
 
 //=================================================================================================
@@ -223,6 +242,18 @@ static inline void act_var_rescale(sat_solver* s) {
 static inline void act_var_bump(sat_solver* s, int v) {
     double* activity = s->activity;
     if ((activity[v] += s->var_inc) > 1e100)
+        act_var_rescale(s);
+
+    //printf("bump %d %f\n", v-1, activity[v]);
+
+    if (s->orderpos[v] != -1)
+        order_update(s,v);
+
+}
+
+void sat_solver_act_var_bump_factor(sat_solver* s, int v, double factor) {
+    double* activity = s->activity;
+    if ((activity[v] += s->var_inc * factor) > 1e100)
         act_var_rescale(s);
 
     //printf("bump %d %f\n", v-1, activity[v]);
@@ -253,6 +284,7 @@ static inline void act_clause_bump(sat_solver* s, clause *c) {
 
 static inline void act_clause_decay(sat_solver* s) { s->cla_inc *= s->cla_decay; }
 
+double* sat_solver_activity(sat_solver* s) { return s->activity; }
 
 //=================================================================================================
 // Clause functions:
@@ -268,7 +300,13 @@ static clause* clause_new(sat_solver* s, lit* begin, lit* end, int learnt)
     assert(end - begin > 1);
     assert(learnt >= 0 && learnt < 2);
     size           = end - begin;
-    c              = (clause*)malloc(sizeof(clause) + sizeof(lit) * size + learnt * sizeof(float));
+//    c              = (clause*)malloc(sizeof(clause) + sizeof(lit) * size + learnt * sizeof(float));
+#ifdef ASAT_USE_SYSTEM_MEMORY_MANAGEMENT
+    c = (clause*)malloc(sizeof(clause) + sizeof(lit) * size + learnt * sizeof(float));
+#else
+    c = (clause*)Sat_MmStepEntryFetch( s->pMem, sizeof(clause) + sizeof(lit) * size + learnt * sizeof(float) );
+#endif
+
     c->size_learnt = (size << 1) | learnt;
     assert(((unsigned int)c & 1) == 0);
 
@@ -317,7 +355,11 @@ static void clause_remove(sat_solver* s, clause* c)
         s->stats.clauses_literals -= clause_size(c);
     }
 
+#ifdef ASAT_USE_SYSTEM_MEMORY_MANAGEMENT
     free(c);
+#else
+    Sat_MmStepEntryRecycle( s->pMem, (char *)c, sizeof(clause) + sizeof(lit) * clause_size(c) + clause_learnt(c) * sizeof(float) );
+#endif
 }
 
 
@@ -833,6 +875,16 @@ static lbool sat_solver_search(sat_solver* s, int nof_conflicts, int nof_learnts
                 veci_delete(&learnt_clause);
                 return l_Undef; }
 
+            if ( s->nConfLimit && s->stats.conflicts > s->nConfLimit ||
+                 s->nInsLimit  && s->stats.inspects  > s->nInsLimit )
+            {
+                // Reached bound on number of conflicts:
+                s->progress_estimate = sat_solver_progress(s);
+                sat_solver_canceluntil(s,s->root_level);
+                veci_delete(&learnt_clause);
+                return l_Undef; 
+            }
+
             if (sat_solver_dlevel(s) == 0)
                 // Simplify the set of problem clauses:
                 sat_solver_simplify(s);
@@ -931,18 +983,27 @@ sat_solver* sat_solver_new(void)
     s->stats.max_literals     = 0;
     s->stats.tot_literals     = 0;
 
+#ifdef ASAT_USE_SYSTEM_MEMORY_MANAGEMENT
+    s->pMem = NULL;
+#else
+    s->pMem = Sat_MmStepStart( 10 );
+#endif
     return s;
 }
 
 
 void sat_solver_delete(sat_solver* s)
 {
+
+#ifdef ASAT_USE_SYSTEM_MEMORY_MANAGEMENT
     int i;
     for (i = 0; i < vecp_size(&s->clauses); i++)
         free(vecp_begin(&s->clauses)[i]);
-
     for (i = 0; i < vecp_size(&s->learnts); i++)
         free(vecp_begin(&s->learnts)[i]);
+#else
+    Sat_MmStepStop( s->pMem, 0 );
+#endif
 
     // delete vectors
     vecp_delete(&s->clauses);
@@ -1065,14 +1126,26 @@ bool sat_solver_simplify(sat_solver* s)
 }
 
 
-int sat_solver_solve(sat_solver* s, lit* begin, lit* end)
+int sat_solver_solve(sat_solver* s, lit* begin, lit* end, sint64 nConfLimit, sint64 nInsLimit, sint64 nConfLimitGlobal, sint64 nInsLimitGlobal)
 {
     double  nof_conflicts = 100;
     double  nof_learnts   = sat_solver_nclauses(s) / 3;
     lbool   status        = l_Undef;
     lbool*  values        = s->assigns;
     lit*    i;
-    
+
+    // set the external limits
+    s->nConfLimit = 0;
+    s->nInsLimit  = 0;
+    if ( nConfLimit )
+        s->nConfLimit = s->stats.conflicts + nConfLimit;
+    if ( nInsLimit )
+        s->nInsLimit = s->stats.inspects + nInsLimit;
+    if ( nConfLimitGlobal && s->nConfLimit > nConfLimitGlobal )
+        s->nConfLimit = nConfLimitGlobal;
+    if ( nInsLimitGlobal && s->nInsLimit > nInsLimitGlobal )
+        s->nInsLimit = nInsLimitGlobal;
+
     //printf("solve: "); printlits(begin, end); printf("\n");
     for (i = begin; i < end; i++){
         switch (lit_sign(*i) ? -values[lit_var(*i)] : values[lit_var(*i)]){
@@ -1117,6 +1190,18 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end)
         status = sat_solver_search(s,(int)nof_conflicts, (int)nof_learnts);
         nof_conflicts *= 1.5;
         nof_learnts   *= 1.1;
+
+        // quit the loop if reached an external limit
+        if ( s->nConfLimit && s->stats.conflicts > s->nConfLimit )
+        {
+//            printf( "Reached the limit on the number of conflicts (%d).\n", s->nConfLimit );
+            break;
+        }
+        if ( s->nInsLimit  && s->stats.inspects > s->nInsLimit )
+        {
+//            printf( "Reached the limit on the number of implications (%d).\n", s->nInsLimit );
+            break;
+        }
     }
     if (s->verbosity >= 1)
         printf("==============================================================================\n");
