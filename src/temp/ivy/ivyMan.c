@@ -123,7 +123,10 @@ Ivy_Man_t * Ivy_ManDup( Ivy_Man_t * p )
         pObj->pEquiv = Ivy_ObjCreatePi(pNew);
     // duplicate internal nodes
     Ivy_ManForEachNodeVec( p, vNodes, pObj, i )
-        pObj->pEquiv = Ivy_And( pNew, Ivy_ObjChild0Equiv(pObj), Ivy_ObjChild1Equiv(pObj) );
+        if ( Ivy_ObjIsBuf(pObj) )
+            pObj->pEquiv = Ivy_ObjChild0Equiv(pObj);
+        else
+            pObj->pEquiv = Ivy_And( pNew, Ivy_ObjChild0Equiv(pObj), Ivy_ObjChild1Equiv(pObj) );
     // add the POs
     Ivy_ManForEachPo( p, pObj, i )
         Ivy_ObjCreatePo( pNew, Ivy_ObjChild0Equiv(pObj) );
@@ -181,9 +184,9 @@ void Ivy_ManStop( Ivy_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the number of dangling nodes removed.]
+  Synopsis    [Removes nodes without fanout.]
 
-  Description []
+  Description [Returns the number of dangling nodes removed.]
                
   SideEffects []
 
@@ -199,7 +202,93 @@ int Ivy_ManCleanup( Ivy_Man_t * p )
         if ( Ivy_ObjIsNode(pNode) || Ivy_ObjIsLatch(pNode) || Ivy_ObjIsBuf(pNode) )
             if ( Ivy_ObjRefs(pNode) == 0 )
                 Ivy_ObjDelete_rec( p, pNode, 1 );
+//printf( "Cleanup removed %d nodes.\n", nNodesOld - Ivy_ManNodeNum(p) );
     return nNodesOld - Ivy_ManNodeNum(p);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Marks nodes reachable from the given one.]
+
+  Description [Returns the number of dangling nodes removed.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_ManCleanupSeq_rec( Ivy_Obj_t * pObj )
+{
+    if ( Ivy_ObjIsMarkA(pObj) )
+        return;
+    Ivy_ObjSetMarkA(pObj);
+    if ( pObj->pFanin0 != NULL )
+        Ivy_ManCleanupSeq_rec( Ivy_ObjFanin0(pObj) );
+    if ( pObj->pFanin1 != NULL )
+        Ivy_ManCleanupSeq_rec( Ivy_ObjFanin1(pObj) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Removes logic that does not feed into POs.]
+
+  Description [Returns the number of dangling nodes removed.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_ManCleanupSeq( Ivy_Man_t * p )
+{
+    Vec_Ptr_t * vNodes;
+    Ivy_Obj_t * pObj;
+    int i, RetValue;
+    // mark the constant and PIs
+    Ivy_ObjSetMarkA( Ivy_ManConst1(p) );
+    Ivy_ManForEachPi( p, pObj, i )
+        Ivy_ObjSetMarkA( pObj );
+    // mark nodes visited from POs
+    Ivy_ManForEachPo( p, pObj, i )
+        Ivy_ManCleanupSeq_rec( pObj );
+    // collect unmarked nodes
+    vNodes = Vec_PtrAlloc( 100 );
+    Ivy_ManForEachObj( p, pObj, i )
+    {
+        if ( Ivy_ObjIsMarkA(pObj) )
+            Ivy_ObjClearMarkA(pObj);
+        else
+            Vec_PtrPush( vNodes, pObj );
+    }
+    if ( Vec_PtrSize(vNodes) == 0 )
+    {
+        Vec_PtrFree( vNodes );
+//printf( "Sequential sweep cleaned out %d nodes.\n", 0 );
+        return 0;
+    }
+    // disconnect the marked objects
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+        Ivy_ObjDisconnect( p, pObj );
+    // remove the dangling objects
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+    {
+        assert( Ivy_ObjIsNode(pObj) || Ivy_ObjIsLatch(pObj) || Ivy_ObjIsBuf(pObj) );
+        assert( Ivy_ObjRefs(pObj) == 0 );
+        // update node counters of the manager
+        p->nObjs[pObj->Type]--;
+        p->nDeleted++;
+        // delete buffer from the array of buffers
+        if ( p->fFanout && Ivy_ObjIsBuf(pObj) )
+            Vec_PtrRemove( p->vBufs, pObj );
+        // free the node
+        Vec_PtrWriteEntry( p->vObjs, pObj->Id, NULL );
+        Ivy_ManRecycleMemory( p, pObj );
+    }
+    // return the number of nodes freed
+    RetValue = Vec_PtrSize(vNodes);
+    Vec_PtrFree( vNodes );
+//printf( "Sequential sweep cleaned out %d nodes.\n", RetValue );
+    return RetValue;
 }
 
 /**Function*************************************************************
@@ -216,13 +305,21 @@ int Ivy_ManCleanup( Ivy_Man_t * p )
 int Ivy_ManPropagateBuffers( Ivy_Man_t * p, int fUpdateLevel )
 {
     Ivy_Obj_t * pNode;
+    int LimitFactor = 20;
     int nSteps;
     for ( nSteps = 0; Vec_PtrSize(p->vBufs) > 0; nSteps++ )
     {
         pNode = Vec_PtrEntryLast(p->vBufs);
         while ( Ivy_ObjIsBuf(pNode) )
             pNode = Ivy_ObjReadFirstFanout( p, pNode );
+//printf( "Propagating buffer %d with input %d and output %d\n", Ivy_ObjFaninId0(pNode), Ivy_ObjFaninId0(Ivy_ObjFanin0(pNode)), pNode->Id );
+//printf( "Latch num %d\n", Ivy_ManLatchNum(p) );
         Ivy_NodeFixBufferFanins( p, pNode, fUpdateLevel );
+        if ( nSteps > Ivy_ManNodeNum(p) * LimitFactor )
+        {
+            printf( "This circuit cannot be forward retimed completely. Structural hashing is not finished after %d forward latch moves.\n", Ivy_ManNodeNum(p) * LimitFactor );
+            break;
+        }
     }
 //    printf( "Number of steps = %d\n", nSteps );
     return nSteps;
@@ -307,6 +404,7 @@ void Ivy_ManMakeSeq( Ivy_Man_t * p, int nLatches, int * pInits )
     p->nDeleted -= 2 * nLatches;
     // remove dangling nodes
     Ivy_ManCleanup(p);
+    Ivy_ManCleanupSeq(p);
 /* 
     // check for dangling nodes
     Ivy_ManForEachObj( p, pObj, i )

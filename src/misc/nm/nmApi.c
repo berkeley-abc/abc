@@ -175,9 +175,9 @@ char * Nm_ManCreateUniqueName( Nm_Man_t * p, int ObjId )
     int i;
     if ( pEntry = Nm_ManTableLookupId(p, ObjId) )
         return pEntry->Name;
-    sprintf( NameStr, "[%d]", ObjId );
+    sprintf( NameStr, "n%d", ObjId );
     for ( i = 1; Nm_ManTableLookupName(p, NameStr, -1); i++ )
-        sprintf( NameStr, "[%d]_%d", ObjId, i );
+        sprintf( NameStr, "n%d_%d", ObjId, i );
     return NameStr;
 }
 

@@ -189,7 +189,6 @@ Abc_Obj_t * Abc_NodeBddToMuxes( Abc_Obj_t * pNodeOld, Abc_Ntk_t * pNtkNew )
     // create the table mapping BDD nodes into the ABC nodes
     tBdd2Node = st_init_table( st_ptrcmp, st_ptrhash );
     // add the constant and the elementary vars
-    st_insert( tBdd2Node, (char *)b1, (char *)Abc_AigConst1(pNtkNew) );
     Abc_ObjForEachFanin( pNodeOld, pFaninOld, i )
         st_insert( tBdd2Node, (char *)Cudd_bddIthVar(dd, i), (char *)pFaninOld->pCopy );
     // create the new nodes recursively
@@ -215,6 +214,8 @@ Abc_Obj_t * Abc_NodeBddToMuxes_rec( DdManager * dd, DdNode * bFunc, Abc_Ntk_t * 
 {
     Abc_Obj_t * pNodeNew, * pNodeNew0, * pNodeNew1, * pNodeNewC;
     assert( !Cudd_IsComplement(bFunc) );
+    if ( bFunc == b1 )
+        return Abc_NodeCreateConst1(pNtkNew);
     if ( st_lookup( tBdd2Node, (char *)bFunc, (char **)&pNodeNew ) )
         return pNodeNew;
     // solve for the children nodes

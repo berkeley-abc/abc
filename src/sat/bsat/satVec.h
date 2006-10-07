@@ -45,7 +45,7 @@ static inline void   veci_resize (veci* v, int k)   { v->size = k;    } // only 
 static inline void   veci_push   (veci* v, int e)
 {
     if (v->size == v->cap) {
-        int newsize = v->cap * 2+1;
+        int newsize = v->cap * 2;//+1;
         v->ptr = (int*)realloc(v->ptr,sizeof(int)*newsize);
         v->cap = newsize; }
     v->ptr[v->size++] = e;
@@ -73,7 +73,7 @@ static inline void   vecp_resize (vecp* v, int   k) { v->size = k;    } // only 
 static inline void   vecp_push   (vecp* v, void* e)
 {
     if (v->size == v->cap) {
-        int newsize = v->cap * 2+1;
+        int newsize = v->cap * 2;//+1;
         v->ptr = (void**)realloc(v->ptr,sizeof(void*)*newsize);
         v->cap = newsize; }
     v->ptr[v->size++] = e;

@@ -129,9 +129,12 @@ struct Ivy_Man_t_
 struct Ivy_FraigParams_t_
 {
     int              nSimWords;         // the number of words in the simulation info
-    double           SimSatur;          // the ratio of refined classes when saturation is reached
+    double           dSimSatur;         // the ratio of refined classes when saturation is reached
     int              fPatScores;        // enables simulation pattern scoring
     int              MaxScore;          // max score after which resimulation is used
+    double           dActConeRatio;     // the ratio of cone to be bumped
+    double           dActConeBumpMax;   // the largest bump in activity
+    int              fProve;            // prove the miter outputs
     int              fVerbose;          // verbose output
     int              nBTLimitNode;      // conflict limit at a node
     int              nBTLimitMiter;     // conflict limit at an output
@@ -445,14 +448,14 @@ extern void            Ivy_ObjCollectFanouts( Ivy_Man_t * p, Ivy_Obj_t * pObj, V
 extern Ivy_Obj_t *     Ivy_ObjReadFirstFanout( Ivy_Man_t * p, Ivy_Obj_t * pObj );
 extern int             Ivy_ObjFanoutNum( Ivy_Man_t * p, Ivy_Obj_t * pObj );
 /*=== ivyFastMap.c =============================================================*/
-extern void            Ivy_FastMapPerform( Ivy_Man_t * pAig, int nLimit );
+extern void            Ivy_FastMapPerform( Ivy_Man_t * pAig, int nLimit, int fRecovery, int fVerbose );
 extern void            Ivy_FastMapStop( Ivy_Man_t * pAig );
 extern void            Ivy_FastMapReadSupp( Ivy_Man_t * pAig, Ivy_Obj_t * pObj, Vec_Int_t * vLeaves );
 extern void            Ivy_FastMapReverseLevel( Ivy_Man_t * pAig );
 /*=== ivyFraig.c ==========================================================*/
-extern Ivy_Man_t *     Ivy_FraigMiter( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParams );
+extern int             Ivy_FraigProve( Ivy_Man_t ** ppManAig, void * pPars );
 extern Ivy_Man_t *     Ivy_FraigPerform( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParams );
-extern Ivy_Man_t *     Ivy_FraigProve( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParams );
+extern Ivy_Man_t *     Ivy_FraigMiter( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParams );
 extern void            Ivy_FraigParamsDefault( Ivy_FraigParams_t * pParams );
 /*=== ivyHaig.c ==========================================================*/
 extern void            Ivy_ManHaigStart( Ivy_Man_t * p, int fVerbose );
@@ -505,6 +508,7 @@ extern Ivy_Obj_t *     Ivy_Latch( Ivy_Man_t * p, Ivy_Obj_t * pObj, Ivy_Init_t In
 /*=== ivyResyn.c =========================================================*/
 extern Ivy_Man_t *     Ivy_ManResyn0( Ivy_Man_t * p, int fUpdateLevel, int fVerbose );
 extern Ivy_Man_t *     Ivy_ManResyn( Ivy_Man_t * p, int fUpdateLevel, int fVerbose );
+extern Ivy_Man_t *     Ivy_ManRwsat( Ivy_Man_t * pMan, int fVerbose );
 /*=== ivyRewrite.c =========================================================*/
 extern int             Ivy_ManSeqRewrite( Ivy_Man_t * p, int fUpdateLevel, int fUseZeroCost );
 extern int             Ivy_ManRewriteAlg( Ivy_Man_t * p, int fUpdateLevel, int fUseZeroCost );
@@ -524,6 +528,7 @@ extern void            Ivy_TableProfile( Ivy_Man_t * p );
 extern void            Ivy_ManIncrementTravId( Ivy_Man_t * p );
 extern void            Ivy_ManCleanTravId( Ivy_Man_t * p );
 extern unsigned *      Ivy_ManCutTruth( Ivy_Man_t * p, Ivy_Obj_t * pRoot, Vec_Int_t * vLeaves, Vec_Int_t * vNodes, Vec_Int_t * vTruth );
+extern void            Ivy_ManCollectCut( Ivy_Man_t * p, Ivy_Obj_t * pRoot, Vec_Int_t * vLeaves, Vec_Int_t * vNodes );
 extern Vec_Int_t *     Ivy_ManLatches( Ivy_Man_t * p );
 extern int             Ivy_ManLevels( Ivy_Man_t * p );
 extern void            Ivy_ManResetLevels( Ivy_Man_t * p );

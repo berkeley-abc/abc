@@ -8,11 +8,25 @@
  *
  */
 #include <stdio.h>
-#include "extra.h"
+//#include "extra.h"
 #include "st.h"
 
 #ifndef ABS
 #  define ABS(a)            ((a) < 0 ? -(a) : (a))
+#endif
+
+#ifndef ALLOC
+#define ALLOC(type, num)     ((type *) malloc(sizeof(type) * (num)))
+#endif
+
+#ifndef FREE
+#define FREE(obj)             ((obj) ? (free((char *) (obj)), (obj) = 0) : 0)
+#endif
+
+#ifndef REALLOC
+#define REALLOC(type, obj, num)    \
+        ((obj) ? ((type *) realloc((char *)(obj), sizeof(type) * (num))) : \
+         ((type *) malloc(sizeof(type) * (num))))
 #endif
 
 #define ST_NUMCMP(x,y) ((x) != (y))

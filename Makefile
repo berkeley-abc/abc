@@ -7,11 +7,12 @@ CP   := cp
 PROG := abc
 
 MODULES := src/base/abc src/base/abci src/base/seq src/base/cmd src/base/io src/base/main \
-           src/bdd/cudd src/bdd/dsd src/bdd/epd src/bdd/mtr src/bdd/parse src/bdd/reo \
-           src/map/fpga src/map/pga src/map/mapper src/map/mio src/map/super \
-           src/misc/extra src/misc/mvc src/misc/st src/misc/util src/misc/espresso src/misc/nm src/misc/vec src/misc/hash \
-	   src/opt/cut src/opt/dec src/opt/fxu src/opt/rwr src/opt/sim \
-           src/sat/asat src/sat/csat src/sat/msat src/sat/fraig
+	src/bdd/cudd src/bdd/dsd src/bdd/epd src/bdd/mtr src/bdd/parse src/bdd/reo \
+	src/map/fpga src/map/pga src/map/mapper src/map/mio src/map/super \
+	src/misc/extra src/misc/mvc src/misc/st src/misc/util src/misc/espresso src/misc/nm src/misc/vec src/misc/hash \
+	src/opt/cut src/opt/dec src/opt/fxu src/opt/rwr src/opt/sim \
+	src/sat/asat src/sat/bsat src/sat/csat src/sat/msat src/sat/fraig \
+	src/temp/ivy src/temp/aig src/temp/rwt src/temp/deco src/temp/mem src/temp/ver
 
 default: $(PROG)
 

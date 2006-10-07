@@ -338,6 +338,60 @@ Aig_Obj_t * Aig_Transfer( Aig_Man_t * pSour, Aig_Man_t * pDest, Aig_Obj_t * pRoo
     return Aig_NotCond( Aig_Regular(pRoot)->pData, Aig_IsComplement(pRoot) );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Composes the AIG (pRoot) with the function (pFunc) using PI var (iVar).]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_Compose_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFunc, Aig_Obj_t * pVar )
+{
+    assert( !Aig_IsComplement(pObj) );
+    if ( Aig_ObjIsMarkA(pObj) )
+        return;
+    if ( Aig_ObjIsConst1(pObj) || Aig_ObjIsPi(pObj) )
+    {
+        pObj->pData = pObj == pVar ? pFunc : pObj;
+        return;
+    }
+    Aig_Compose_rec( p, Aig_ObjFanin0(pObj), pFunc, pVar ); 
+    Aig_Compose_rec( p, Aig_ObjFanin1(pObj), pFunc, pVar );
+    pObj->pData = Aig_And( p, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+    assert( !Aig_ObjIsMarkA(pObj) ); // loop detection
+    Aig_ObjSetMarkA( pObj );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Composes the AIG (pRoot) with the function (pFunc) using PI var (iVar).]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Obj_t * Aig_Compose( Aig_Man_t * p, Aig_Obj_t * pRoot, Aig_Obj_t * pFunc, int iVar )
+{
+    // quit if the PI variable is not defined
+    if ( iVar >= Aig_ManPiNum(p) )
+    {
+        printf( "Aig_Compose(): The PI variable %d is not defined.\n", iVar );
+        return NULL;
+    }
+    // recursively perform composition
+    Aig_Compose_rec( p, Aig_Regular(pRoot), pFunc, Aig_ManPi(p, iVar) );
+    // clear the markings
+    Aig_ConeUnmark_rec( Aig_Regular(pRoot) );
+    return Aig_NotCond( Aig_Regular(pRoot)->pData, Aig_IsComplement(pRoot) );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

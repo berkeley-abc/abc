@@ -1,10 +1,10 @@
 /**CFile****************************************************************
 
-  FileName    [vec.h]
+  FileName    [cudd2.h]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Resizable arrays.]
+  PackageName [Minimalistic And-Inverter Graph package.]
 
   Synopsis    [External declarations.]
 
@@ -12,31 +12,22 @@
   
   Affiliation [UC Berkeley]
 
-  Date        [Ver. 1.0. Started - June 20, 2005.]
+  Date        [Ver. 1.0. Started - October 3, 2006.]
 
-  Revision    [$Id: vec.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: cudd2.h,v 1.00 2006/05/11 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
- 
-#ifndef __VEC_H__
-#define __VEC_H__
+
+#ifndef __CUDD2_H__
+#define __CUDD2_H__
 
 #ifdef __cplusplus
 extern "C" {
-#endif
+#endif 
 
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
-
-#ifdef _WIN32
-#define inline __inline // compatible with MS VS 6.0
-#endif
-
-#include "vecInt.h"
-#include "vecStr.h"
-#include "vecPtr.h"
-#include "vecVec.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -50,9 +41,28 @@ extern "C" {
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
+
+////////////////////////////////////////////////////////////////////////
+///                             ITERATORS                            ///
+////////////////////////////////////////////////////////////////////////
+
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+extern void Cudd2_Init      ( unsigned int numVars, unsigned int numVarsZ, unsigned int numSlots, unsigned int cacheSize, unsigned long maxMemory, void * pCudd );
+extern void Cudd2_Quit      ( void * pCudd );
+extern void Cudd2_bddIthVar ( void * pCudd, int iVar, void * pResult );
+extern void Cudd2_bddAnd    ( void * pCudd, void * pArg0, void * pArg1, void * pResult );
+extern void Cudd2_bddOr     ( void * pCudd, void * pArg0, void * pArg1, void * pResult );
+extern void Cudd2_bddNand   ( void * pCudd, void * pArg0, void * pArg1, void * pResult );
+extern void Cudd2_bddNor    ( void * pCudd, void * pArg0, void * pArg1, void * pResult );
+extern void Cudd2_bddXor    ( void * pCudd, void * pArg0, void * pArg1, void * pResult );
+extern void Cudd2_bddXnor   ( void * pCudd, void * pArg0, void * pArg1, void * pResult );
+extern void Cudd2_bddIte    ( void * pCudd, void * pArg0, void * pArg1, void * pArg2, void * pResult );
+extern void Cudd2_bddCompose( void * pCudd, void * pArg0, void * pArg1, int v, void * pResult );
+extern void Cudd2_bddLeq    ( void * pCudd, void * pArg0, void * pArg1, int Result );
+extern void Cudd2_bddEqual  ( void * pCudd, void * pArg0, void * pArg1, int Result );
 
 #ifdef __cplusplus
 }

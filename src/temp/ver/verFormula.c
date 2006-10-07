@@ -95,7 +95,7 @@ void * Ver_FormulaParser( char * pFormula, void * pMan, Vec_Ptr_t * vNames, Vec_
         sprintf( pErrorMessage, "Parse_FormulaParser(): Different number of opening and closing parantheses ()." );
         return NULL;
     }
-
+ 
     // add parantheses
     pTemp = pFormula + strlen(pFormula) + 2;
     *pTemp-- = 0; *pTemp = ')';
@@ -114,7 +114,6 @@ void * Ver_FormulaParser( char * pFormula, void * pMan, Vec_Ptr_t * vNames, Vec_
         case '\t':
         case '\r':
         case '\n':
-        case '\\': // skip name opening statement
             continue;
 
         // treat Constant 0 as a variable
@@ -231,6 +230,8 @@ void * Ver_FormulaParser( char * pFormula, void * pMan, Vec_Ptr_t * vNames, Vec_
         default:
             // scan the next name
             v = Ver_FormulaParserFindVar( pTemp, vNames );
+            if ( *pTemp == '\\' )
+                pTemp++;
             pTemp += (int)Vec_PtrEntry( vNames, 2*v ) - 1;
 
             // assume operation AND, if vars follow one another
@@ -376,14 +377,24 @@ int Ver_FormulaParserFindVar( char * pString, Vec_Ptr_t * vNames )
 {
     char * pTemp, * pTemp2;
     int nLength, nLength2, i;
-    // find the end of the string delimited by other characters
+    // start the string
     pTemp = pString;
-    while ( *pTemp && *pTemp != ' ' && *pTemp != '\t' && *pTemp != '\r' && *pTemp != '\n' && *pTemp != ',' && *pTemp != '}' && 
-            *pTemp != VER_PARSE_SYM_OPEN && *pTemp != VER_PARSE_SYM_CLOSE && 
-            *pTemp != VER_PARSE_SYM_NEGBEF1 && *pTemp != VER_PARSE_SYM_NEGBEF2 && 
-            *pTemp != VER_PARSE_SYM_AND && *pTemp != VER_PARSE_SYM_OR && *pTemp != VER_PARSE_SYM_XOR && 
-            *pTemp != VER_PARSE_SYM_MUX1 && *pTemp != VER_PARSE_SYM_MUX2 )
+    // find the end of the string delimited by other characters
+    if ( *pTemp == '\\' )
+    {
+        pString++;
+        while ( *pTemp && *pTemp != ' ' )
             pTemp++;
+    }
+    else
+    {
+        while ( *pTemp && *pTemp != ' ' && *pTemp != '\t' && *pTemp != '\r' && *pTemp != '\n' && *pTemp != ',' && *pTemp != '}' && 
+                *pTemp != VER_PARSE_SYM_OPEN && *pTemp != VER_PARSE_SYM_CLOSE && 
+                *pTemp != VER_PARSE_SYM_NEGBEF1 && *pTemp != VER_PARSE_SYM_NEGBEF2 && 
+                *pTemp != VER_PARSE_SYM_AND && *pTemp != VER_PARSE_SYM_OR && *pTemp != VER_PARSE_SYM_XOR && 
+                *pTemp != VER_PARSE_SYM_MUX1 && *pTemp != VER_PARSE_SYM_MUX2 )
+                pTemp++;
+    }
     // look for this string in the array
     nLength = pTemp - pString;
     for ( i = 0; i < Vec_PtrSize(vNames)/2; i++ )

@@ -698,6 +698,10 @@ extern int                Abc_NodeRef_rec( Abc_Obj_t * pNode );
 /*=== abcRenode.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkRenode( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax, int fCnf, int fMulti, int fSimple, int fFactor );
 extern DdNode *           Abc_NtkRenodeDeriveBdd( DdManager * dd, Abc_Obj_t * pNodeOld, Vec_Ptr_t * vFaninsOld );
+/*=== abcRefactor.c ==========================================================*/
+extern int                Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, bool fUpdateLevel, bool fUseZeros, bool fUseDcs, bool fVerbose );
+/*=== abcRewrite.c ==========================================================*/
+extern int                Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeros, int fVerbose );
 /*=== abcSat.c ==========================================================*/
 extern int                Abc_NtkMiterSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fJFront, int fVerbose, sint64 * pNumConfs, sint64 * pNumInspects );
 extern solver *           Abc_NtkMiterSatCreate( Abc_Ntk_t * pNtk, int fJFront );

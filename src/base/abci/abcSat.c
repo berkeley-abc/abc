@@ -56,8 +56,8 @@ int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int 
     assert( Abc_NtkIsStrash(pNtk) );
     assert( Abc_NtkLatchNum(pNtk) == 0 );
 
-    if ( Abc_NtkPoNum(pNtk) > 1 )
-        fprintf( stdout, "Warning: The miter has %d outputs. SAT will try to prove all of them.\n", Abc_NtkPoNum(pNtk) );
+//    if ( Abc_NtkPoNum(pNtk) > 1 )
+//        fprintf( stdout, "Warning: The miter has %d outputs. SAT will try to prove all of them.\n", Abc_NtkPoNum(pNtk) );
 
     // load clauses into the solver
     clk = clock();
@@ -165,6 +165,29 @@ int Abc_NtkClauseTriv( solver * pSat, Abc_Obj_t * pNode, Vec_Int_t * vVars )
 //printf( "Adding triv %d.         %d\n", Abc_ObjRegular(pNode)->Id, (int)pSat->solver_stats.clauses );
     vVars->nSize = 0;
     Vec_IntPush( vVars, toLitCond( (int)Abc_ObjRegular(pNode)->pCopy, Abc_ObjIsComplement(pNode) ) );
+//    Vec_IntPush( vVars, toLitCond( (int)Abc_ObjRegular(pNode)->Id, Abc_ObjIsComplement(pNode) ) );
+    return solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize );
+}
+ 
+/**Function*************************************************************
+
+  Synopsis    [Adds trivial clause.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkClauseTop( solver * pSat, Vec_Ptr_t * vNodes, Vec_Int_t * vVars )
+{
+    Abc_Obj_t * pNode;
+    int i;
+//printf( "Adding triv %d.         %d\n", Abc_ObjRegular(pNode)->Id, (int)pSat->solver_stats.clauses );
+    vVars->nSize = 0;
+    Vec_PtrForEachEntry( vNodes, pNode, i )
+        Vec_IntPush( vVars, toLitCond( (int)Abc_ObjRegular(pNode)->pCopy, Abc_ObjIsComplement(pNode) ) );
 //    Vec_IntPush( vVars, toLitCond( (int)Abc_ObjRegular(pNode)->Id, Abc_ObjIsComplement(pNode) ) );
     return solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize );
 }
@@ -467,8 +490,8 @@ int Abc_NtkMiterSatCreateInt( solver * pSat, Abc_Ntk_t * pNtk, int fJFront )
         Vec_PtrPush( vNodes, pNode );
     }
 */
-
     // collect the nodes that need clauses and top-level assignments
+    Vec_PtrClear( vSuper );
     Abc_NtkForEachCo( pNtk, pNode, i )
     {
         // get the fanin
@@ -481,9 +504,11 @@ int Abc_NtkMiterSatCreateInt( solver * pSat, Abc_Ntk_t * pNtk, int fJFront )
             Vec_PtrPush( vNodes, pFanin );
         }
         // add the trivial clause
-        if ( !Abc_NtkClauseTriv( pSat, Abc_ObjChild0(pNode), vVars ) )
-            goto Quits;
+        Vec_PtrPush( vSuper, Abc_ObjChild0(pNode) );
     }
+    if ( !Abc_NtkClauseTop( pSat, vSuper, vVars ) )
+        goto Quits;
+
 
     // add the clauses
     Vec_PtrForEachEntry( vNodes, pNode, i )

@@ -390,10 +390,10 @@ Abc_Obj_t * Abc_NtkFindNode( Abc_Ntk_t * pNtk, char * pName )
     // try to find the terminal
     Num = Nm_ManFindIdByName( pNtk->pManName, pName, ABC_OBJ_PO );
     if ( Num >= 0 )
-        return Abc_NtkObj( pNtk, Num );
+        return Abc_ObjFanin0( Abc_NtkObj( pNtk, Num ) );
     Num = Nm_ManFindIdByName( pNtk->pManName, pName, ABC_OBJ_BO );
     if ( Num >= 0 )
-        return Abc_NtkObj( pNtk, Num );
+        return Abc_ObjFanin0( Abc_NtkObj( pNtk, Num ) );
     Num = Nm_ManFindIdByName( pNtk->pManName, pName, ABC_OBJ_NODE );
     if ( Num >= 0 )
         return Abc_NtkObj( pNtk, Num );

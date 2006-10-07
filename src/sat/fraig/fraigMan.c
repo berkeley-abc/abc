@@ -52,9 +52,9 @@ void Prove_ParamsSetDefault( Prove_Params_t * pParams )
     // iterations
     pParams->nItersMax            = 6;       // the number of iterations
     // mitering 
-    pParams->nMiteringLimitStart  = 1000;    // starting mitering limit
+    pParams->nMiteringLimitStart  = 300;    // starting mitering limit
     pParams->nMiteringLimitMulti  = 2.0;     // multiplicative coefficient to increase the limit in each iteration
-    // rewriting 
+    // rewriting (currently not used)
     pParams->nRewritingLimitStart = 3;       // the number of rewriting iterations
     pParams->nRewritingLimitMulti = 1.0;     // multiplicative coefficient to increase the limit in each iteration
     // fraiging 

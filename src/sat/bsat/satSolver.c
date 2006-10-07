@@ -26,7 +26,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include "satSolver.h"
 
-//#define ASAT_USE_SYSTEM_MEMORY_MANAGEMENT
+//#define SAT_USE_SYSTEM_MEMORY_MANAGEMENT
 
 //=================================================================================================
 // Debug:
@@ -213,21 +213,6 @@ static int  order_select(sat_solver* s, float random_var_freq) // selectvar
     return var_Undef;
 }
 
-void sat_solver_order_clean(sat_solver* s) // removes all variables from the queue
-{
-    while ( order_select(s, 0.0) != var_Undef );
-}
-
-void sat_solver_order_unassigned(sat_solver* s, int v) // undoorder
-{
-    order_unassigned(s, v);
-}
-
-void sat_solver_order_update(sat_solver* s, int v) // updateorder
-{
-    order_update(s, v);
-}
-
 //=================================================================================================
 // Activity functions:
 
@@ -240,27 +225,21 @@ static inline void act_var_rescale(sat_solver* s) {
 }
 
 static inline void act_var_bump(sat_solver* s, int v) {
-    double* activity = s->activity;
-    if ((activity[v] += s->var_inc) > 1e100)
+    s->activity[v] += s->var_inc;
+    if (s->activity[v] > 1e100)
         act_var_rescale(s);
-
     //printf("bump %d %f\n", v-1, activity[v]);
-
     if (s->orderpos[v] != -1)
         order_update(s,v);
-
 }
 
-void sat_solver_act_var_bump_factor(sat_solver* s, int v, double factor) {
-    double* activity = s->activity;
-    if ((activity[v] += s->var_inc * factor) > 1e100)
+static inline void act_var_bump_factor(sat_solver* s, int v) {
+    s->activity[v] += (s->var_inc * s->factors[v]);
+    if (s->activity[v] > 1e100)
         act_var_rescale(s);
-
     //printf("bump %d %f\n", v-1, activity[v]);
-
     if (s->orderpos[v] != -1)
         order_update(s,v);
-
 }
 
 static inline void act_var_decay(sat_solver* s) { s->var_inc *= s->var_decay; }
@@ -284,8 +263,6 @@ static inline void act_clause_bump(sat_solver* s, clause *c) {
 
 static inline void act_clause_decay(sat_solver* s) { s->cla_inc *= s->cla_decay; }
 
-double* sat_solver_activity(sat_solver* s) { return s->activity; }
-
 //=================================================================================================
 // Clause functions:
 
@@ -301,7 +278,7 @@ static clause* clause_new(sat_solver* s, lit* begin, lit* end, int learnt)
     assert(learnt >= 0 && learnt < 2);
     size           = end - begin;
 //    c              = (clause*)malloc(sizeof(clause) + sizeof(lit) * size + learnt * sizeof(float));
-#ifdef ASAT_USE_SYSTEM_MEMORY_MANAGEMENT
+#ifdef SAT_USE_SYSTEM_MEMORY_MANAGEMENT
     c = (clause*)malloc(sizeof(clause) + sizeof(lit) * size + learnt * sizeof(float));
 #else
     c = (clause*)Sat_MmStepEntryFetch( s->pMem, sizeof(clause) + sizeof(lit) * size + learnt * sizeof(float) );
@@ -355,7 +332,7 @@ static void clause_remove(sat_solver* s, clause* c)
         s->stats.clauses_literals -= clause_size(c);
     }
 
-#ifdef ASAT_USE_SYSTEM_MEMORY_MANAGEMENT
+#ifdef SAT_USE_SYSTEM_MEMORY_MANAGEMENT
     free(c);
 #else
     Sat_MmStepEntryRecycle( s->pMem, (char *)c, sizeof(clause) + sizeof(lit) * clause_size(c) + clause_learnt(c) * sizeof(float) );
@@ -392,6 +369,7 @@ void sat_solver_setnvars(sat_solver* s,int n)
 
         s->wlists    = (vecp*)   realloc(s->wlists,   sizeof(vecp)*s->cap*2);
         s->activity  = (double*) realloc(s->activity, sizeof(double)*s->cap);
+        s->factors   = (double*) realloc(s->factors,  sizeof(double)*s->cap);
         s->assigns   = (lbool*)  realloc(s->assigns,  sizeof(lbool)*s->cap);
         s->orderpos  = (int*)    realloc(s->orderpos, sizeof(int)*s->cap);
         s->reasons   = (clause**)realloc(s->reasons,  sizeof(clause*)*s->cap);
@@ -404,6 +382,7 @@ void sat_solver_setnvars(sat_solver* s,int n)
         vecp_new(&s->wlists[2*var]);
         vecp_new(&s->wlists[2*var+1]);
         s->activity [var] = 0;
+        s->factors  [var] = 0;
         s->assigns  [var] = l_Undef;
         s->orderpos [var] = veci_size(&s->order);
         s->reasons  [var] = (clause*)0;
@@ -831,14 +810,21 @@ static lbool sat_solver_search(sat_solver* s, int nof_conflicts, int nof_learnts
 
     int     conflictC       = 0;
     veci    learnt_clause;
+    int     i;
 
     assert(s->root_level == sat_solver_dlevel(s));
 
+    s->nRestarts++;
     s->stats.starts++;
     s->var_decay = (float)(1 / var_decay   );
     s->cla_decay = (float)(1 / clause_decay);
     veci_resize(&s->model,0);
     veci_new(&learnt_clause);
+
+    // use activity factors in every even restart
+    if ( (s->nRestarts & 1) && veci_size(&s->act_vars) > 0 )
+        for ( i = 0; i < s->act_vars.size; i++ )
+            act_var_bump_factor(s, s->act_vars.ptr[i]);
 
     for (;;){
         clause* confl = sat_solver_propagate(s);
@@ -941,10 +927,12 @@ sat_solver* sat_solver_new(void)
     veci_new(&s->tagged);
     veci_new(&s->stack);
     veci_new(&s->model);
+    veci_new(&s->act_vars);
 
     // initialize arrays
     s->wlists    = 0;
     s->activity  = 0;
+    s->factors   = 0;
     s->assigns   = 0;
     s->orderpos  = 0;
     s->reasons   = 0;
@@ -983,7 +971,7 @@ sat_solver* sat_solver_new(void)
     s->stats.max_literals     = 0;
     s->stats.tot_literals     = 0;
 
-#ifdef ASAT_USE_SYSTEM_MEMORY_MANAGEMENT
+#ifdef SAT_USE_SYSTEM_MEMORY_MANAGEMENT
     s->pMem = NULL;
 #else
     s->pMem = Sat_MmStepStart( 10 );
@@ -995,7 +983,7 @@ sat_solver* sat_solver_new(void)
 void sat_solver_delete(sat_solver* s)
 {
 
-#ifdef ASAT_USE_SYSTEM_MEMORY_MANAGEMENT
+#ifdef SAT_USE_SYSTEM_MEMORY_MANAGEMENT
     int i;
     for (i = 0; i < vecp_size(&s->clauses); i++)
         free(vecp_begin(&s->clauses)[i]);
@@ -1013,6 +1001,7 @@ void sat_solver_delete(sat_solver* s)
     veci_delete(&s->tagged);
     veci_delete(&s->stack);
     veci_delete(&s->model);
+    veci_delete(&s->act_vars);
     free(s->binary);
 
     // delete arrays
@@ -1022,8 +1011,9 @@ void sat_solver_delete(sat_solver* s)
             vecp_delete(&s->wlists[i]);
 
         // if one is different from null, all are
-        free(s->wlists);
+        free(s->wlists   );
         free(s->activity );
+        free(s->factors  );
         free(s->assigns  );
         free(s->orderpos );
         free(s->reasons  );
@@ -1135,6 +1125,7 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, sint64 nConfLimit, sin
     lit*    i;
 
     // set the external limits
+    s->nRestarts  = 0;
     s->nConfLimit = 0;
     s->nInsLimit  = 0;
     if ( nConfLimit )

@@ -421,7 +421,79 @@ void Aig_ManPrintVerbose( Aig_Man_t * p, int fHaig )
     printf( "\n" );
 }
 
+/**Function*************************************************************
 
+  Synopsis    [Writes the AIG into the BLIF file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName )
+{
+    FILE * pFile;
+    Vec_Ptr_t * vNodes;
+    Aig_Obj_t * pObj, * pConst1 = NULL;
+    int i, nDigits, Counter = 0;
+    if ( Aig_ManPoNum(p) == 0 )
+    {
+        printf( "Aig_ManDumpBlif(): AIG manager does not have POs.\n" );
+        return;
+    }
+    // collect nodes in the DFS order
+    vNodes = Aig_ManDfs( p );
+    // assign IDs to objects
+    Aig_ManConst1(p)->pData = (void *)Counter++;
+    Aig_ManForEachPi( p, pObj, i )
+        pObj->pData = (void *)Counter++;
+    Aig_ManForEachPo( p, pObj, i )
+        pObj->pData = (void *)Counter++;
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+        pObj->pData = (void *)Counter++;
+    nDigits = Extra_Base10Log( Counter );
+    // write the file
+    pFile = fopen( pFileName, "w" );
+    fprintf( pFile, "# BLIF file written by procedure Aig_ManDumpBlif() in ABC\n" );
+    fprintf( pFile, "# http://www.eecs.berkeley.edu/~alanmi/abc/\n" );
+    fprintf( pFile, ".model test\n" );
+    // write PIs
+    fprintf( pFile, ".inputs" );
+    Aig_ManForEachPi( p, pObj, i )
+        fprintf( pFile, " n%0*d", nDigits, (int)pObj->pData );
+    fprintf( pFile, "\n" );
+    // write POs
+    fprintf( pFile, ".outputs" );
+    Aig_ManForEachPo( p, pObj, i )
+        fprintf( pFile, " n%0*d", nDigits, (int)pObj->pData );
+    fprintf( pFile, "\n" );
+    // write nodes
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+    {
+        fprintf( pFile, ".names n%0*d n%0*d n%0*d\n", 
+            nDigits, (int)Aig_ObjFanin0(pObj)->pData, 
+            nDigits, (int)Aig_ObjFanin1(pObj)->pData, 
+            nDigits, (int)pObj->pData );
+        fprintf( pFile, "%d%d 1\n", !Aig_ObjFaninC0(pObj), !Aig_ObjFaninC1(pObj) );
+    }
+    // write POs
+    Aig_ManForEachPo( p, pObj, i )
+    {
+        fprintf( pFile, ".names n%0*d n%0*d\n", 
+            nDigits, (int)Aig_ObjFanin0(pObj)->pData, 
+            nDigits, (int)pObj->pData );
+        fprintf( pFile, "%d 1\n", !Aig_ObjFaninC0(pObj) );
+        if ( Aig_ObjIsConst1(Aig_ObjFanin0(pObj)) )
+            pConst1 = Aig_ManConst1(p);
+    }
+    if ( pConst1 )
+        fprintf( pFile, ".names n%0*d\n 1\n", nDigits, (int)pConst1->pData );
+    fprintf( pFile, ".end\n\n" );
+    fclose( pFile );
+    Vec_PtrFree( vNodes );
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

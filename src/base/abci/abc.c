@@ -117,6 +117,7 @@ static int Abc_CommandSuperChoice    ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandSuperChoiceLut ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandFpga           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFpgaFast       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPga            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandScut           ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -246,6 +247,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "SC mapping",   "scl",           Abc_CommandSuperChoiceLut,   1 );
 
     Cmd_CommandAdd( pAbc, "FPGA mapping", "fpga",          Abc_CommandFpga,             1 );
+    Cmd_CommandAdd( pAbc, "FPGA mapping", "ffpga",         Abc_CommandFpgaFast,         1 );
     Cmd_CommandAdd( pAbc, "FPGA mapping", "pga",           Abc_CommandPga,              1 );
 
     Cmd_CommandAdd( pAbc, "Sequential",   "scut",          Abc_CommandScut,             0 );
@@ -4007,6 +4009,7 @@ int Abc_CommandOneOutput( Abc_Frame_t * pAbc, int argc, char ** argv )
         goto usage;
     }
 
+    pNodeCo = NULL;
     if ( argc == globalUtilOptind + 1 )
     {
         pNode = Abc_NtkFindNode( pNtk, argv[globalUtilOptind] );
@@ -4827,7 +4830,7 @@ usage:
 int Abc_CommandXyz( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
-    Abc_Ntk_t * pNtk, * pNtkRes;
+    Abc_Ntk_t * pNtk, * pNtkRes;//, * pNtkTemp;
     int c;
     int nLutMax;
     int nPlaMax;
@@ -4844,13 +4847,13 @@ int Abc_CommandXyz( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nLutMax    = 6;
+    nLutMax    = 8;
     nPlaMax    = 128;
     RankCost   = 96000;
     fFastMode  = 1;
     fRewriting = 0;
     fSynthesis = 0;
-    fVerbose   = 1;
+    fVerbose   = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "LPRfrsvh" ) ) != EOF )
     {
@@ -4927,8 +4930,17 @@ int Abc_CommandXyz( Abc_Frame_t * pAbc, int argc, char ** argv )
 */
     // run the command
 //    pNtkRes = Abc_NtkXyz( pNtk, nPlaMax, 1, 0, fInvs, fVerbose );
-    pNtkRes = Abc_NtkPlayer( pNtk, nLutMax, nPlaMax, RankCost, fFastMode, fRewriting, fSynthesis, fVerbose );
-//    pNtkRes = NULL;
+/*
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        pNtkTemp = Abc_NtkStrash( pNtk, 0, 1 );
+        pNtkRes = Abc_NtkPlayer( pNtkTemp, nLutMax, nPlaMax, RankCost, fFastMode, fRewriting, fSynthesis, fVerbose );
+        Abc_NtkDelete( pNtkTemp );
+    }
+    else
+        pNtkRes = Abc_NtkPlayer( pNtk, nLutMax, nPlaMax, RankCost, fFastMode, fRewriting, fSynthesis, fVerbose );
+*/
+    pNtkRes = NULL;
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
@@ -5537,10 +5549,10 @@ int Abc_CommandIFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
-    int c, fUpdateLevel, fVerbose;
+    int c, fProve, fVerbose;
     int nConfLimit;
 
-    extern Abc_Ntk_t * Abc_NtkIvyFraig( Abc_Ntk_t * pNtk, int nConfLimit, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkIvyFraig( Abc_Ntk_t * pNtk, int nConfLimit, int fProve, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -5548,10 +5560,10 @@ int Abc_CommandIFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     nConfLimit   = 100;   
-    fUpdateLevel = 1;
+    fProve       = 0;
     fVerbose     = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Clzvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Cpvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -5566,8 +5578,8 @@ int Abc_CommandIFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nConfLimit < 0 ) 
                 goto usage;
             break;
-        case 'l':
-            fUpdateLevel ^= 1;
+        case 'p':
+            fProve ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -5589,7 +5601,7 @@ int Abc_CommandIFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    pNtkRes = Abc_NtkIvyFraig( pNtk, nConfLimit, fVerbose );
+    pNtkRes = Abc_NtkIvyFraig( pNtk, nConfLimit, fProve, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
@@ -5600,10 +5612,10 @@ int Abc_CommandIFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: ifraig [-C num] [-vh]\n" );
+    fprintf( pErr, "usage: ifraig [-C num] [-pvh]\n" );
     fprintf( pErr, "\t         performs fraiging using a new method\n" );
-    fprintf( pErr, "\t-C num : limit on the number of conflicts [default = %d]\n",    nConfLimit );
-//    fprintf( pErr, "\t-l     : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
+    fprintf( pErr, "\t-C num : limit on the number of conflicts [default = %d]\n", nConfLimit );
+    fprintf( pErr, "\t-p     : toggle proving miter outputs [default = %s]\n", fProve? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -5622,29 +5634,31 @@ usage:
 ***********************************************************************/
 int Abc_CommandIProve( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    Prove_Params_t Params, * pParams = &Params;
     FILE * pOut, * pErr;
-    Abc_Ntk_t * pNtk, * pNtkRes;
-    int c, fUpdateLevel, fVerbose;
+    Abc_Ntk_t * pNtk, * pNtkTemp;
+    int c, clk, RetValue;
 
-    extern Abc_Ntk_t * Abc_NtkIvyProve( Abc_Ntk_t * pNtk );
+    extern int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fUpdateLevel = 1;
-    fVerbose     = 0;
+    Prove_ParamsSetDefault( pParams );
+    pParams->fUseRewriting = 1;
+    pParams->fVerbose      = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "lzvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "rvh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'l':
-            fUpdateLevel ^= 1;
+        case 'r':
+            pParams->fUseRewriting ^= 1;
             break;
         case 'v':
-            fVerbose ^= 1;
+            pParams->fVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -5663,21 +5677,43 @@ int Abc_CommandIProve( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    pNtkRes = Abc_NtkIvyProve( pNtk );
-    if ( pNtkRes == NULL )
+
+    clk = clock();
+
+    if ( Abc_NtkIsStrash(pNtk) )
+        pNtkTemp = Abc_NtkDup( pNtk );
+    else
+        pNtkTemp = Abc_NtkStrash( pNtk, 0, 0 );
+
+    RetValue = Abc_NtkIvyProve( &pNtkTemp, pParams );
+
+    // verify that the pattern is correct
+    if ( RetValue == 0 )
     {
-        fprintf( pErr, "Command has failed.\n" );
-        return 0;
+        int * pSimInfo = Abc_NtkVerifySimulatePattern( pNtk, pNtkTemp->pModel );
+        if ( pSimInfo[0] != 1 )
+            printf( "ERROR in Abc_NtkMiterProve(): Generated counter-example is invalid.\n" );
+        free( pSimInfo );
     }
+ 
+    if ( RetValue == -1 ) 
+        printf( "UNDECIDED      " );
+    else if ( RetValue == 0 )
+        printf( "SATISFIABLE    " );
+    else
+        printf( "UNSATISFIABLE  " );
+    //printf( "\n" );
+
+    PRT( "Time", clock() - clk );
     // replace the current network
-    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkTemp );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: iprove [-h]\n" );
+    fprintf( pErr, "usage: iprove [-rvh]\n" );
     fprintf( pErr, "\t         performs CEC using a new method\n" );
-//    fprintf( pErr, "\t-l     : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
-//    fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-r     : toggle AIG rewriting [default = %s]\n", pParams->fUseRewriting? "yes": "no" );
+    fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", pParams->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -6916,6 +6952,147 @@ usage:
     fprintf( pErr, "\t-l       : optimizes latch paths for delay, other paths for area [default = %s]\n", fLatchPaths? "yes": "no" );
     fprintf( pErr, "\t-D float : sets the required time for the mapping [default = %s]\n", Buffer );  
     fprintf( pErr, "\t-K num   : the number of LUT inputs (2 < num < 11) [default = %s]%s\n", LutSize, (nLutSize == -1 ? " (type \"print_lut\")" : "") );
+    fprintf( pErr, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h       : prints the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandFpgaFast( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    char Buffer[100];
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c;
+    int fRecovery;
+    int fVerbose;
+    int nLutSize;
+    float DelayTarget;
+
+    extern Abc_Ntk_t * Abc_NtkFpgaFast( Abc_Ntk_t * pNtk, int nLutSize, int fRecovery, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fRecovery   = 1;
+    fVerbose    = 0;
+    DelayTarget =-1;
+    nLutSize    = 8;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "avhDK" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'a':
+            fRecovery ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-D\" should be followed by a floating point number.\n" );
+                goto usage;
+            }
+            DelayTarget = (float)atof(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( DelayTarget <= 0.0 ) 
+                goto usage;
+            break;
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-K\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nLutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLutSize < 0 ) 
+                goto usage;
+            break;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( Abc_NtkIsSeq(pNtk) )
+    {
+        fprintf( pErr, "Cannot FPGA map a sequential AIG.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        // strash and balance the network
+        pNtk = Abc_NtkStrash( pNtk, 0, 0 );
+        if ( pNtk == NULL )
+        {
+            fprintf( pErr, "Strashing before FPGA mapping has failed.\n" );
+            return 1;
+        }
+        pNtk = Abc_NtkBalance( pNtkRes = pNtk, 0, 0, 1 );
+        Abc_NtkDelete( pNtkRes );
+        if ( pNtk == NULL )
+        {
+            fprintf( pErr, "Balancing before FPGA mapping has failed.\n" );
+            return 1;
+        }
+        fprintf( pOut, "The network was strashed and balanced before FPGA mapping.\n" );
+        // get the new network
+        pNtkRes = Abc_NtkFpgaFast( pNtk, nLutSize, fRecovery, fVerbose );
+        if ( pNtkRes == NULL )
+        {
+            Abc_NtkDelete( pNtk );
+            fprintf( pErr, "FPGA mapping has failed.\n" );
+            return 1;
+        }
+        Abc_NtkDelete( pNtk );
+    }
+    else
+    {
+        // get the new network
+        pNtkRes = Abc_NtkFpgaFast( pNtk, nLutSize, fRecovery, fVerbose );
+        if ( pNtkRes == NULL )
+        {
+            fprintf( pErr, "FPGA mapping has failed.\n" );
+            return 1;
+        }
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    if ( DelayTarget == -1 ) 
+        sprintf( Buffer, "not used" );
+    else
+        sprintf( Buffer, "%.2f", DelayTarget );
+    fprintf( pErr, "usage: ffpga [-K num] [-avh]\n" );
+    fprintf( pErr, "\t           performs fast FPGA mapping of the current network\n" );
+    fprintf( pErr, "\t-a       : toggles area recovery [default = %s]\n", fRecovery? "yes": "no" );
+//    fprintf( pErr, "\t-D float : sets the required time for the mapping [default = %s]\n", Buffer );  
+    fprintf( pErr, "\t-K num   : the number of LUT inputs (2 < num < 32) [default = %d]\n", nLutSize );
     fprintf( pErr, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h       : prints the command usage\n");
     return 1;

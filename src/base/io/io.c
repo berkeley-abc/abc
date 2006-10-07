@@ -31,7 +31,7 @@ static int IoCommandReadBlif    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadBench   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadEdif    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadEqn     ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int IoCommandReadVerilog ( Abc_Frame_t * pAbc, int argc, char **argv );
+//static int IoCommandReadVerilog ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadVer     ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadVerLib  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadPla     ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -75,7 +75,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "read_bench",    IoCommandReadBench,    1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_edif",     IoCommandReadEdif,     1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_eqn",      IoCommandReadEqn,      1 );
-    Cmd_CommandAdd( pAbc, "I/O", "read_verilog",  IoCommandReadVerilog,  1 );
+//    Cmd_CommandAdd( pAbc, "I/O", "read_verilog",  IoCommandReadVerilog,  1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_ver",      IoCommandReadVer,      1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_verlib",   IoCommandReadVerLib,   0 );
     Cmd_CommandAdd( pAbc, "I/O", "read_pla",      IoCommandReadPla,      1 );
@@ -1622,20 +1622,27 @@ int IoCommandWriteVerilog( Abc_Frame_t * pAbc, int argc, char **argv )
     // get the input file name
     FileName = argv[globalUtilOptind];
 
+    if ( Abc_NtkLatchNum(pNtk) > 0 )
+    {
+        fprintf( pAbc->Out, "Currently cannot write verilog for sequential networks.\n" );
+        return 0;
+    }
+
     // derive the netlist
     pNtkTemp = Abc_NtkLogicToNetlist(pNtk,0);
+    Abc_NtkSopToAig( pNtkTemp );
     if ( pNtkTemp == NULL )
     {
         fprintf( pAbc->Out, "Writing PLA has failed.\n" );
         return 0;
     }
-    Io_WriteVerilog( pNtkTemp, FileName, 0 );
+    Io_WriteVerilog( pNtkTemp, FileName, 1 );
     Abc_NtkDelete( pNtkTemp );
     return 0;
 
 usage:
     fprintf( pAbc->Err, "usage: write_verilog [-h] <file>\n" );
-    fprintf( pAbc->Err, "\t         write a very special subset of Verilog\n" );
+    fprintf( pAbc->Err, "\t         write the current network in Verilog format\n" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
     return 1;

@@ -3,10 +3,9 @@ r examples/C2670.blif;   resyn; fpga; cec; ps;          u; map; cec; ps
 r examples/frg2.blif;    dsd; muxes; cec; clp; share; resyn; map; cec; ps
 r examples/pj1.blif;     resyn; fpga; cec; ps;          u; map; cec; ps
 r examples/s38584.bench; resyn; fpga; cec; ps;          u; map; cec; ps
-r examples/ac.v;         resyn; fpga; cec; ps;          u; map; cec; ps
 r examples/s444.blif;    b; esd -v; dsd; cec; ps
 r examples/i10.blif;     fpga; cec; ps;                 u; map; cec; ps
 r examples/i10.blif;     choice; fpga; cec; ps;         u; map; cec; ps
-r examples/s6669.blif;   fpga; ps; sec; u;   sfpga; ps; sec; u;   fpga; ret; ps; sec
+#r examples/s6669.blif;   fpga; ps; sec; u;   sfpga; ps; sec; u;   fpga; ret; ps; sec
 #r examples/s5378.blif;   map -s; ps; sec; u; smap; ps; sec; u;    map; ret; ps; sec
 time

@@ -514,10 +514,6 @@ Abc_Ntk_t * Abc_NtkCreateTarget( Abc_Ntk_t * pNtk, Vec_Ptr_t * vRoots, Vec_Int_t
     int i;
 
     assert( Abc_NtkIsLogic(pNtk) );
-
-    // convert the network into the AIG form
-    if ( !Abc_NtkLogicToAig(pNtk) )
-        return NULL;
     
     // start the network
     Abc_NtkCleanCopy( pNtk );

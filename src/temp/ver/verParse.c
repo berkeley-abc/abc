@@ -96,8 +96,12 @@ char * Ver_ParseGetName( Ver_Man_t * pMan )
         return NULL;
     Symbol = Ver_StreamScanChar( p );
     if ( Symbol == '\\' )
+    {
         Ver_StreamPopChar( p );
-    pWord = Ver_StreamGetWord( p, " \t\n\r(),;" );
+        pWord = Ver_StreamGetWord( p, " " );
+    }
+    else
+        pWord = Ver_StreamGetWord( p, " \t\n\r(),;" );
     if ( !Ver_ParseSkipComments( pMan ) )
         return NULL;
     return pWord;

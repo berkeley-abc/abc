@@ -79,13 +79,6 @@ extern int         sat_solver_nconflicts(sat_solver* s);
 
 extern void        sat_solver_setnvars(sat_solver* s,int n);
 
-extern void        sat_solver_order_clean(sat_solver* s);
-extern void        sat_solver_order_unassigned(sat_solver* s, int v);
-extern void        sat_solver_order_update(sat_solver* s, int v);
-
-extern double*     sat_solver_activity(sat_solver* s);
-extern void        sat_solver_act_var_bump_factor(sat_solver* s, int v, double factor);
-
 struct stats_t
 {
     sint64   starts, decisions, propagations, inspects, conflicts;
@@ -148,6 +141,10 @@ struct sat_solver_t
     sint64   nConfLimit;    // external limit on the number of conflicts
     sint64   nInsLimit;     // external limit on the number of implications
 
+    veci     act_vars;      // variables whose activity has changed
+    double*  factors;       // the activity factors
+    int      nRestarts;     // the number of local restarts
+ 
     Sat_MmStep_t * pMem;
 };
 

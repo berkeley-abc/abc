@@ -7,12 +7,16 @@ SRC +=    src/base/abci/abc.c \
     src/base/abci/abcCut.c \
     src/base/abci/abcDsd.c \
     src/base/abci/abcEspresso.c \
+    src/base/abci/abcExtract.c \
     src/base/abci/abcFpga.c \
+    src/base/abci/abcFpgaFast.c \
     src/base/abci/abcFraig.c \
         src/base/abci/abcFxu.c \
         src/base/abci/abcGen.c \
+        src/base/abci/abcIvy.c \
     src/base/abci/abcLut.c \
     src/base/abci/abcMap.c \
+    src/base/abci/abcMini.c \
     src/base/abci/abcMiter.c \
     src/base/abci/abcNtbdd.c \
     src/base/abci/abcOrder.c \

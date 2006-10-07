@@ -536,7 +536,7 @@ int Abc_NtkSopToAig( Abc_Ntk_t * pNtk )
     Aig_Man_t * pMan;
     int i;
 
-    assert( Abc_NtkIsSopLogic(pNtk) ); 
+    assert( Abc_NtkIsSopLogic(pNtk) || Abc_NtkIsSopNetlist(pNtk) ); 
 
     // start the functionality manager
     pMan = Aig_ManStart();

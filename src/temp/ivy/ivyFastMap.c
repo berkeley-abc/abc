@@ -64,7 +64,7 @@ static inline Ivy_Supp_t * Ivy_ObjSuppStart( Ivy_Man_t * pAig, Ivy_Obj_t * pObj 
     return pSupp;
 }
 
-static int  Ivy_FastMapPrint( Ivy_Man_t * pAig, int Time );
+static void Ivy_FastMapPrint( Ivy_Man_t * pAig, int Delay, int Area, int Time, char * pStr );
 static int  Ivy_FastMapDelay( Ivy_Man_t * pAig );
 static int  Ivy_FastMapArea( Ivy_Man_t * pAig );
 static void Ivy_FastMapNode( Ivy_Man_t * pAig, Ivy_Obj_t * pObj, int nLimit );
@@ -99,11 +99,11 @@ extern int s_MappingMem;
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_FastMapPerform( Ivy_Man_t * pAig, int nLimit )
+void Ivy_FastMapPerform( Ivy_Man_t * pAig, int nLimit, int fRecovery, int fVerbose )
 {
     Ivy_SuppMan_t * pMan;
     Ivy_Obj_t * pObj;
-    int i, Delay, clk, clkTotal = clock();
+    int i, Delay, Area, clk, clkTotal = clock();
     // start the memory for supports
     pMan = ALLOC( Ivy_SuppMan_t, 1 );
     memset( pMan, 0, sizeof(Ivy_SuppMan_t) );
@@ -123,32 +123,43 @@ clk = clock();
     Ivy_ManForEachNode( pAig, pObj, i )
         Ivy_FastMapNode( pAig, pObj, nLimit );
     // find the best arrival time and area
-    printf( "Delay oriented mapping: " );
-    Delay = Ivy_FastMapPrint( pAig, clock() - clk );
+    Delay = Ivy_FastMapDelay( pAig );
+    Area = Ivy_FastMapArea(pAig);
+    if ( fVerbose )
+        Ivy_FastMapPrint( pAig, Delay, Area, clock() - clk, "Delay oriented mapping: " );
 
 // 2-1-2 (doing 2-1-2-1-2 improves 0.5%)
 
+    if ( fRecovery )
+    {
 clk = clock();
     Ivy_FastMapRequired( pAig, Delay, 0 );
     // remap the nodes
     Ivy_FastMapRecover( pAig, nLimit );
-    printf( "Area recovery 2       : " );
-    Delay = Ivy_FastMapPrint( pAig, clock() - clk );
+    Delay = Ivy_FastMapDelay( pAig );
+    Area = Ivy_FastMapArea(pAig);
+    if ( fVerbose )
+        Ivy_FastMapPrint( pAig, Delay, Area, clock() - clk, "Area recovery 2       : " );
 
 clk = clock();
     Ivy_FastMapRequired( pAig, Delay, 0 );
     // iterate through all nodes in the topological order
     Ivy_ManForEachNode( pAig, pObj, i )
         Ivy_FastMapNodeArea( pAig, pObj, nLimit );
-    printf( "Area recovery 1       : " );
-    Delay = Ivy_FastMapPrint( pAig, clock() - clk );
+    Delay = Ivy_FastMapDelay( pAig );
+    Area = Ivy_FastMapArea(pAig);
+    if ( fVerbose )
+        Ivy_FastMapPrint( pAig, Delay, Area, clock() - clk, "Area recovery 1       : " );
 
 clk = clock();
     Ivy_FastMapRequired( pAig, Delay, 0 );
     // remap the nodes
     Ivy_FastMapRecover( pAig, nLimit );
-    printf( "Area recovery 2       : " );
-    Delay = Ivy_FastMapPrint( pAig, clock() - clk );
+    Delay = Ivy_FastMapDelay( pAig );
+    Area = Ivy_FastMapArea(pAig);
+    if ( fVerbose )
+        Ivy_FastMapPrint( pAig, Delay, Area, clock() - clk, "Area recovery 2       : " );
+    }
 
 
     s_MappingTime = clock() - clkTotal;
@@ -196,14 +207,10 @@ void Ivy_FastMapStop( Ivy_Man_t * pAig )
   SeeAlso     []
 
 ***********************************************************************/
-int Ivy_FastMapPrint( Ivy_Man_t * pAig, int Time )
+void Ivy_FastMapPrint( Ivy_Man_t * pAig, int Delay, int Area, int Time, char * pStr )
 {
-    int Delay, Area;
-    Delay = Ivy_FastMapDelay( pAig );
-    Area  = Ivy_FastMapArea( pAig );
-    printf( "Delay = %3d. Area = %6d. ", Delay, Area );
+    printf( "%s : Delay = %3d. Area = %6d. ", pStr, Delay, Area );
     PRT( "Time", Time );
-    return Delay;
 }
 
 /**Function*************************************************************

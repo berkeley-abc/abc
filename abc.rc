@@ -48,8 +48,7 @@ alias rl read_blif
 alias rb read_bench
 alias ret retime
 alias rp read_pla
-alias rv read_verilog
-alias rvv read_ver
+alias rv read_ver
 alias rvl read_verlib
 alias rsup read_super mcnc5_old.super
 alias rlib read_library
@@ -100,7 +99,8 @@ alias compress2rs "b -l; rs -K 6 -l; rw -l; rs -K 6 -N 2 -l; rf -l; rs -K 8 -l; 
 
 # temporaries
 #alias test        "rvl th/lib.v; rvv th/t2.v"
-alias test         "so c/pure_sat/test.c"
+#alias test         "so c/pure_sat/test.c"
+alias test         "r c/14/csat_998.bench; st; ps"
 
 
 

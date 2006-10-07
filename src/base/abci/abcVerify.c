@@ -174,7 +174,8 @@ void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fV
     // solve the CNF using the SAT solver
     Prove_ParamsSetDefault( pParams );
     pParams->nItersMax = 5;
-    RetValue = Abc_NtkMiterProve( &pMiter, pParams );
+//    RetValue = Abc_NtkMiterProve( &pMiter, pParams );
+    RetValue = Abc_NtkIvyProve( &pMiter, pParams );
     if ( RetValue == -1 )
         printf( "Networks are undecided (resource limits is reached).\n" );
     else if ( RetValue == 0 )
@@ -399,12 +400,11 @@ int * Abc_NtkVerifyGetCleanModel( Abc_Ntk_t * pNtk, int nFrames )
                
   SideEffects []
 
-  SeeAlso     []
+  SeeAlso     [] 
 
 ***********************************************************************/
 int * Abc_NtkVerifySimulatePattern( Abc_Ntk_t * pNtk, int * pModel )
 {
-    Vec_Ptr_t * vNodes;
     Abc_Obj_t * pNode;
     int * pValues, Value0, Value1, i;
     int fStrashed = 0;
@@ -416,22 +416,16 @@ int * Abc_NtkVerifySimulatePattern( Abc_Ntk_t * pNtk, int * pModel )
     // increment the trav ID
     Abc_NtkIncrementTravId( pNtk );
     // set the CI values
+    Abc_AigConst1(pNtk)->pCopy = (void *)1;
     Abc_NtkForEachCi( pNtk, pNode, i )
         pNode->pCopy = (void *)pModel[i];
     // simulate in the topological order
-    vNodes = Abc_NtkDfs( pNtk, 1 );
-    Vec_PtrForEachEntry( vNodes, pNode, i )
+    Abc_NtkForEachNode( pNtk, pNode, i )
     {
-//        if ( Abc_NodeIsConst(pNode) )
-//            pNode->pCopy = NULL;
-//        else
-        {
-            Value0 = ((int)Abc_ObjFanin0(pNode)->pCopy) ^ Abc_ObjFaninC0(pNode);
-            Value1 = ((int)Abc_ObjFanin1(pNode)->pCopy) ^ Abc_ObjFaninC1(pNode);
-            pNode->pCopy = (void *)(Value0 & Value1);
-        }
+        Value0 = ((int)Abc_ObjFanin0(pNode)->pCopy) ^ Abc_ObjFaninC0(pNode);
+        Value1 = ((int)Abc_ObjFanin1(pNode)->pCopy) ^ Abc_ObjFaninC1(pNode);
+        pNode->pCopy = (void *)(Value0 & Value1);
     }
-    Vec_PtrFree( vNodes );
     // fill the output values
     pValues = ALLOC( int, Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pNode, i )

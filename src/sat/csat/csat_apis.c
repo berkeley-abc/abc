@@ -571,8 +571,8 @@ void ABC_SolveInit( ABC_Manager mng )
     if ( mng->pTarget ) Abc_NtkDelete( mng->pTarget );
 
     // set the new target network
-    mng->pTarget = Abc_NtkCreateTarget( mng->pNtk, mng->vNodes, mng->vValues );
-
+//    mng->pTarget = Abc_NtkCreateTarget( mng->pNtk, mng->vNodes, mng->vValues );
+    mng->pTarget = Abc_NtkStrash( mng->pNtk, 0, 1 );
 }
 
 /**Function*************************************************************
@@ -614,7 +614,8 @@ enum CSAT_StatusT ABC_Solve( ABC_Manager mng )
     if ( mng->mode )
         RetValue = Abc_NtkMiterSat( mng->pTarget, (sint64)pParams->nMiteringLimitLast, (sint64)0, 0, 0, NULL, NULL );
     else
-        RetValue = Abc_NtkMiterProve( &mng->pTarget, pParams );
+//        RetValue = Abc_NtkMiterProve( &mng->pTarget, pParams ); // old CEC engine
+        RetValue = Abc_NtkIvyProve( &mng->pTarget, pParams ); // new CEC engine
 
     // analyze the result
     mng->pResult = ABC_TargetResAlloc( Abc_NtkCiNum(mng->pTarget) );

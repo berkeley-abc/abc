@@ -21,6 +21,7 @@
 #include "abc.h"
 #include "dec.h"
 #include "ivy.h"
+#include "fraig.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -81,7 +82,7 @@ Ivy_Man_t * Abc_NtkIvyBefore( Abc_Ntk_t * pNtk, int fSeq, int fUseDc )
             return NULL;
         }
     }
-    if ( Abc_NtkCountSelfFeedLatches(pNtk) )
+    if ( fSeq && Abc_NtkCountSelfFeedLatches(pNtk) )
     {
         printf( "Warning: The network has %d self-feeding latches. Quitting.\n", Abc_NtkCountSelfFeedLatches(pNtk) );
         return NULL;
@@ -368,7 +369,7 @@ Abc_Ntk_t * Abc_NtkIvySat( Abc_Ntk_t * pNtk, int nConfLimit, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkIvyFraig( Abc_Ntk_t * pNtk, int nConfLimit, int fVerbose )
+Abc_Ntk_t * Abc_NtkIvyFraig( Abc_Ntk_t * pNtk, int nConfLimit, int fProve, int fVerbose )
 {
     Ivy_FraigParams_t Params, * pParams = &Params; 
     Abc_Ntk_t * pNtkAig;
@@ -379,6 +380,7 @@ Abc_Ntk_t * Abc_NtkIvyFraig( Abc_Ntk_t * pNtk, int nConfLimit, int fVerbose )
     Ivy_FraigParamsDefault( pParams );
     pParams->nBTLimitNode = nConfLimit;
     pParams->fVerbose = fVerbose;
+    pParams->fProve = fProve;
     pMan = Ivy_FraigPerform( pTemp = pMan, pParams );
     Ivy_ManStop( pTemp );
     pNtkAig = Abc_NtkIvyAfter( pNtk, pMan, 0, 0 );
@@ -394,23 +396,76 @@ Abc_Ntk_t * Abc_NtkIvyFraig( Abc_Ntk_t * pNtk, int nConfLimit, int fVerbose )
                
   SideEffects []
 
-  SeeAlso     []
+  SeeAlso     [] 
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkIvyProve( Abc_Ntk_t * pNtk )
+int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars )
 {
-    Ivy_FraigParams_t Params, * pParams = &Params; 
-    Abc_Ntk_t * pNtkAig;
-    Ivy_Man_t * pMan, * pTemp;
+    Prove_Params_t * pParams = pPars;
+    Abc_Ntk_t * pNtk = *ppNtk, * pNtkTemp;
+    Ivy_Man_t * pMan;
+    int RetValue;
+    assert( Abc_NtkIsStrash(pNtk) || Abc_NtkIsLogic(pNtk) );
+    // experiment with various parameters settings
+//    pParams->fUseBdds = 1;
+//    pParams->fBddReorder = 1;
+//    pParams->nTotalBacktrackLimit = 10000;
+
+    // strash the network if it is not strashed already
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        pNtk = Abc_NtkStrash( pNtkTemp = pNtk, 0, 1 );
+        Abc_NtkDelete( pNtkTemp );
+    }
+
+    // if SAT only, solve without iteration
+    RetValue = Abc_NtkMiterSat( pNtk, 2*(sint64)pParams->nMiteringLimitStart, (sint64)0, 0, 0, NULL, NULL );
+    if ( RetValue >= 0 )
+        return RetValue;
+
+    // apply AIG rewriting
+    if ( pParams->fUseRewriting && Abc_NtkNodeNum(pNtk) > 500 )
+    {
+        pParams->fUseRewriting = 0;
+        Abc_NtkRewrite( pNtk, 0, 0, 0 );
+        pNtk = Abc_NtkBalance( pNtkTemp = pNtk, 0, 0, 0 );          
+        Abc_NtkDelete( pNtkTemp );
+        Abc_NtkRewrite( pNtk, 0, 0, 0 );
+        Abc_NtkRefactor( pNtk, 10, 16, 0, 0, 0, 0 );
+    }
+
+    // convert ABC network into IVY network
     pMan = Abc_NtkIvyBefore( pNtk, 0, 0 );
-    if ( pMan == NULL )
-        return NULL;
-    Ivy_FraigParamsDefault( pParams );
-    pMan = Ivy_FraigProve( pTemp = pMan, pParams );
-    Ivy_ManStop( pTemp );
-    pNtkAig = Abc_NtkIvyAfter( pNtk, pMan, 0, 0 );
+    // solve the CEC problem
+    RetValue = Ivy_FraigProve( &pMan, pParams );
+    // convert IVY network into ABC network    
+    pNtk = Abc_NtkIvyAfter( pNtkTemp = pNtk, pMan, 0, 0 );
+    Abc_NtkDelete( pNtkTemp );
+    // transfer model if given
+    pNtk->pModel = pMan->pData; pMan->pData = NULL;
     Ivy_ManStop( pMan );
-    return pNtkAig;
+
+    // try to prove it using brute force SAT
+    if ( RetValue < 0 && pParams->fUseBdds )
+    {
+        if ( pParams->fVerbose )
+        {
+            printf( "Attempting BDDs with node limit %d ...\n", pParams->nBddSizeLimit );
+            fflush( stdout );
+        }
+        pNtk = Abc_NtkCollapse( pNtkTemp = pNtk, pParams->nBddSizeLimit, 0, pParams->fBddReorder, 0 );
+        if ( pNtk )   
+        {
+            Abc_NtkDelete( pNtkTemp );
+            RetValue = ( (Abc_NtkNodeNum(pNtk) == 1) && (Abc_ObjFanin0(Abc_NtkPo(pNtk,0))->pData == Cudd_ReadLogicZero(pNtk->pManFunc)) );
+        }
+        else 
+            pNtk = pNtkTemp;
+    }
+
+    // return the result
+    *ppNtk = pNtk;
+    return RetValue;
 }
 
 /**Function*************************************************************

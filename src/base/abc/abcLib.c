@@ -163,7 +163,7 @@ int Abc_LibDeriveBlackBoxes( Abc_Ntk_t * pNtk, Abc_Lib_t * pLib )
     }
     return Vec_PtrSize(pNtk->vBoxes);
 */
-    return 1;
+    return 0;
 }
 
 /**Function*************************************************************
@@ -205,7 +205,7 @@ void Abc_NodeStrashUsingNetwork_rec( Abc_Ntk_t * pNtkAig, Abc_Obj_t * pObj )
 
 ***********************************************************************/
 void Abc_NodeStrashUsingNetwork( Abc_Ntk_t * pNtkAig, Abc_Obj_t * pBox )
-{
+{ 
     Abc_Ntk_t * pNtkGate;
     Abc_Obj_t * pObj;
     unsigned * pPolarity;
@@ -229,6 +229,7 @@ void Abc_NodeStrashUsingNetwork( Abc_Ntk_t * pNtkAig, Abc_Obj_t * pBox )
         Abc_NodeStrashUsingNetwork_rec( pNtkAig, Abc_ObjFanin0Ntk(Abc_ObjFanin0(pObj)) );
         Abc_ObjFanout(pBox,i)->pCopy = Abc_ObjFanin0(pObj)->pCopy;
     }
+//printf( "processing %d\n", pBox->Id );
 }
 
 /**Function*************************************************************

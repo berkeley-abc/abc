@@ -252,6 +252,7 @@ extern void            Aig_ManCreateRefs( Aig_Man_t * p );
 extern int             Aig_DagSize( Aig_Obj_t * pObj );
 extern void            Aig_ConeUnmark_rec( Aig_Obj_t * pObj );
 extern Aig_Obj_t *     Aig_Transfer( Aig_Man_t * pSour, Aig_Man_t * pDest, Aig_Obj_t * pObj, int nVars );
+extern Aig_Obj_t *     Aig_Compose( Aig_Man_t * p, Aig_Obj_t * pRoot, Aig_Obj_t * pFunc, int iVar );
 /*=== aigMan.c ==========================================================*/
 extern Aig_Man_t *     Aig_ManStart();
 extern Aig_Man_t *     Aig_ManDup( Aig_Man_t * p );
@@ -297,6 +298,7 @@ extern Aig_Obj_t *     Aig_ObjRecognizeMux( Aig_Obj_t * pObj, Aig_Obj_t ** ppObj
 extern void            Aig_ObjPrintVerilog( FILE * pFile, Aig_Obj_t * pObj, Vec_Vec_t * vLevels, int Level );
 extern void            Aig_ObjPrintVerbose( Aig_Obj_t * pObj, int fHaig );
 extern void            Aig_ManPrintVerbose( Aig_Man_t * p, int fHaig );
+extern void            Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName );
 
 #ifdef __cplusplus
 }

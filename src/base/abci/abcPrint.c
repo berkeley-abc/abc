@@ -144,7 +144,7 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
     }
 */
 
-
+/*
     // print the statistic into a file
     {
         FILE * pTable;
@@ -157,7 +157,7 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
         fprintf( pTable, "\n" );
         fclose( pTable );
     }
-
+*/
 
 /*
     // print the statistic into a file

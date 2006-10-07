@@ -285,7 +285,7 @@ int Ver_ParseModule( Ver_Man_t * pMan )
     Abc_NtkFindOrCreateNet( pNtk, "1'b1" );
 
     // make sure we stopped at the opening paranthesis
-    if ( Ver_StreamScanChar(p) != '(' )
+    if ( Ver_StreamPopChar(p) != '(' )
     {
         sprintf( pMan->sError, "Cannot find \"(\" after \"module\".", pNtk->pName );
         Ver_ParsePrintErrorMessage( pMan );
@@ -293,19 +293,12 @@ int Ver_ParseModule( Ver_Man_t * pMan )
     }
 
     // skip to the end of parantheses
-    while ( 1 )
-    {
-        Extra_ProgressBarUpdate( pMan->pProgress, Ver_StreamGetCurPosition(p), NULL );
-        Ver_StreamSkipToChars( p, ",/)" );
-        while ( Ver_StreamScanChar(p) == '/' )
-        {
-            Ver_ParseSkipComments( pMan );
-            Ver_StreamSkipToChars( p, ",/)" );
-        }
+    do {
+        if ( Ver_ParseGetName( pMan ) == NULL )
+            return 0;
         Symbol = Ver_StreamPopChar(p);
-        if ( Symbol== ')' )
-            break;
-    }
+    } while ( Symbol == ',' );
+    assert( Symbol == ')' );
     if ( !Ver_ParseSkipComments( pMan ) )
         return 0;
     Symbol = Ver_StreamPopChar(p);
@@ -482,7 +475,6 @@ int Ver_ParseAssign( Ver_Man_t * pMan )
         return 0;
     }
 
-
     while ( 1 )
     {
         // get the name of the output signal
@@ -495,6 +487,7 @@ int Ver_ParseAssign( Ver_Man_t * pMan )
         {
             pWord++;
             pWord[strlen(pWord)-1] = 0;
+            assert( pWord[0] != '\\' );
         }
         // get the fanout net
         pNet = Abc_NtkFindNet( pNtk, pWord );
@@ -740,7 +733,7 @@ int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtkGate )
     Abc_Ntk_t * pNtk = pMan->pNtkCur;
     Abc_Obj_t * pNetFormal, * pNetActual;
     Abc_Obj_t * pObj, * pNode;
-    char * pWord, Symbol;
+    char * pWord, Symbol, * pGateName;
     int i, fCompl, fComplUsed = 0;
     unsigned * pPolarity;
 
@@ -754,6 +747,7 @@ int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtkGate )
     if ( pWord == NULL )
         return 0;
     // this is gate name - throw it away
+    pGateName = pWord;
     if ( Ver_StreamPopChar(p) != '(' )
     {
         sprintf( pMan->sError, "Cannot parse gate %s (expected opening paranthesis).", pNtkGate->pName );
@@ -893,6 +887,12 @@ int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtkGate )
     }
     // create box to represent this gate
     pNode = Abc_NtkCreateBlackbox( pMan->pNtkCur );
+/*
+    if ( pNode->Id == 57548 )
+    {
+        int x = 0;
+    }
+*/
     pNode->pNext = (Abc_Obj_t *)pPolarity;
     pNode->pData = pNtkGate;
     // connect to fanin nets

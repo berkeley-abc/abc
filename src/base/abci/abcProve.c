@@ -314,6 +314,29 @@ void Abc_NtkMiterPrint( Abc_Ntk_t * pNtk, char * pString, int clk, int fVerbose 
     PRT( pString, clock() - clk );
 }
 
+  
+/**Function*************************************************************
+
+  Synopsis    [Implements resynthesis for CEC.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkMiterRwsat( Abc_Ntk_t * pNtk )
+{
+    Abc_Ntk_t * pNtkTemp;
+    Abc_NtkRewrite( pNtk, 0, 0, 0 );
+    pNtk = Abc_NtkBalance( pNtkTemp = pNtk, 0, 0, 0 );  Abc_NtkDelete( pNtkTemp );
+    Abc_NtkRewrite( pNtk, 0, 0, 0 );
+    Abc_NtkRefactor( pNtk, 10, 16, 0, 0, 0, 0 );
+    return pNtk;
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

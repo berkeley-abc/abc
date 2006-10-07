@@ -98,6 +98,38 @@ struct Ivy_FraigMan_t_
     int                 time2;
 };
 
+typedef struct Prove_ParamsStruct_t_      Prove_Params_t;
+struct Prove_ParamsStruct_t_
+{
+    // general parameters
+    int     fUseFraiging;          // enables fraiging
+    int     fUseRewriting;         // enables rewriting
+    int     fUseBdds;              // enables BDD construction when other methods fail
+    int     fVerbose;              // prints verbose stats
+    // iterations
+    int     nItersMax;             // the number of iterations
+    // mitering 
+    int     nMiteringLimitStart;   // starting mitering limit
+    float   nMiteringLimitMulti;   // multiplicative coefficient to increase the limit in each iteration
+    // rewriting 
+    int     nRewritingLimitStart;  // the number of rewriting iterations
+    float   nRewritingLimitMulti;  // multiplicative coefficient to increase the limit in each iteration
+    // fraiging 
+    int     nFraigingLimitStart;   // starting backtrack(conflict) limit
+    float   nFraigingLimitMulti;   // multiplicative coefficient to increase the limit in each iteration
+    // last-gasp BDD construction
+    int     nBddSizeLimit;         // the number of BDD nodes when construction is aborted
+    int     fBddReorder;           // enables dynamic BDD variable reordering
+    // last-gasp mitering
+    int     nMiteringLimitLast;    // final mitering limit
+    // global SAT solver limits
+    sint64  nTotalBacktrackLimit;  // global limit on the number of backtracks
+    sint64  nTotalInspectLimit;    // global limit on the number of clause inspects
+    // global resources applied
+    sint64  nTotalBacktracksMade;  // the total number of backtracks made
+    sint64  nTotalInspectsMade;    // the total number of inspects made
+};
+
 static inline Ivy_FraigSim_t * Ivy_ObjSim( Ivy_Obj_t * pObj )                            { return (Ivy_FraigSim_t *)pObj->pFanout;  }
 static inline Ivy_Obj_t * Ivy_ObjClassNodeLast( Ivy_Obj_t * pObj )                       { return pObj->pNextFan0;  }
 static inline Ivy_Obj_t * Ivy_ObjClassNodeRepr( Ivy_Obj_t * pObj )                       { return pObj->pNextFan0;  }
@@ -146,6 +178,7 @@ static inline unsigned    Ivy_ObjRandomSim()                       { return (ran
 
 static Ivy_FraigMan_t * Ivy_FraigStart( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParams );
 static Ivy_FraigMan_t * Ivy_FraigStartSimple( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParams );
+static Ivy_Man_t *   Ivy_FraigPerform_int( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParams, sint64 * pnSatConfs, sint64 * pnSatInspects );
 static void          Ivy_FraigPrint( Ivy_FraigMan_t * p );
 static void          Ivy_FraigStop( Ivy_FraigMan_t * p );
 static void          Ivy_FraigSimulate( Ivy_FraigMan_t * p );
@@ -154,10 +187,12 @@ static Ivy_Obj_t *   Ivy_FraigAnd( Ivy_FraigMan_t * p, Ivy_Obj_t * pObjOld );
 static int           Ivy_FraigNodesAreEquiv( Ivy_FraigMan_t * p, Ivy_Obj_t * pObj0, Ivy_Obj_t * pObj1 );
 static int           Ivy_FraigNodeIsConst( Ivy_FraigMan_t * p, Ivy_Obj_t * pObj );
 static void          Ivy_FraigNodeAddToSolver( Ivy_FraigMan_t * p, Ivy_Obj_t * pObj0, Ivy_Obj_t * pObj1 );
-static int           Ivy_FraigMarkConeSetActivity( Ivy_FraigMan_t * p, Ivy_Obj_t * pOld, Ivy_Obj_t * pNew );
+static int           Ivy_FraigSetActivityFactors( Ivy_FraigMan_t * p, Ivy_Obj_t * pOld, Ivy_Obj_t * pNew );
 static void          Ivy_FraigAddToPatScores( Ivy_FraigMan_t * p, Ivy_Obj_t * pClass, Ivy_Obj_t * pClassNew );
-static int           Ivy_FraigMiterStatus( Ivy_FraigMan_t * p );
+static int           Ivy_FraigMiterStatus( Ivy_Man_t * pMan );
 static void          Ivy_FraigMiterProve( Ivy_FraigMan_t * p );
+static void          Ivy_FraigMiterPrint( Ivy_Man_t * pNtk, char * pString, int clk, int fVerbose );
+static int *         Ivy_FraigCreateModel( Ivy_FraigMan_t * p );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -165,7 +200,7 @@ static void          Ivy_FraigMiterProve( Ivy_FraigMan_t * p );
 
 /**Function*************************************************************
 
-  Synopsis    [Performs fraiging of the initial AIG.]
+  Synopsis    [Sets the default solving parameters.]
 
   Description []
                
@@ -174,11 +209,184 @@ static void          Ivy_FraigMiterProve( Ivy_FraigMan_t * p );
   SeeAlso     []
 
 ***********************************************************************/
-Ivy_Man_t * Ivy_FraigProve( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParams )
+void Ivy_FraigParamsDefault( Ivy_FraigParams_t * pParams )
 {
+    memset( pParams, 0, sizeof(Ivy_FraigParams_t) );
+    pParams->nSimWords        =      32;  // the number of words in the simulation info
+    pParams->dSimSatur        =   0.005;  // the ratio of refined classes when saturation is reached
+    pParams->fPatScores       =       0;  // enables simulation pattern scoring
+    pParams->MaxScore         =      25;  // max score after which resimulation is used
+//    pParams->dActConeRatio    =    0.05;  // the ratio of cone to be bumped
+//    pParams->dActConeBumpMax  =     5.0;  // the largest bump of activity
+    pParams->dActConeRatio    =     0.3;  // the ratio of cone to be bumped
+    pParams->dActConeBumpMax  =    10.0;  // the largest bump of activity
+
+    pParams->nBTLimitNode     =     100;  // conflict limit at a node
+    pParams->nBTLimitMiter    =  500000;  // conflict limit at an output
+    pParams->nBTLimitGlobal   =       0;  // conflict limit global
+    pParams->nInsLimitNode    =       0;  // inspection limit at a node
+    pParams->nInsLimitMiter   =       0;  // inspection limit at an output
+    pParams->nInsLimitGlobal  =       0;  // inspection limit global
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs combinational equivalence checking for the miter.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_FraigProve( Ivy_Man_t ** ppManAig, void * pPars )
+{
+    Prove_Params_t * pParams = pPars;
+    Ivy_FraigParams_t Params, * pIvyParams = &Params; 
+    Ivy_Man_t * pManAig, * pManTemp;
+    int RetValue, nIter, Counter, clk, timeStart = clock();
+    sint64 nSatConfs, nSatInspects, nInspectLimit;
+
+    // start the network and parameters
+    pManAig = *ppManAig;
+    Ivy_FraigParamsDefault( pIvyParams );
+    pIvyParams->fVerbose = pParams->fVerbose;
+    pIvyParams->fProve = 1;
+
+    if ( pParams->fVerbose )
+    {
+        printf( "RESOURCE LIMITS: Iterations = %d. Rewriting = %s. Fraiging = %s.\n",
+            pParams->nItersMax, pParams->fUseRewriting? "yes":"no", pParams->fUseFraiging? "yes":"no" );
+        printf( "Mitering = %d (%3.1f).  Rewriting = %d (%3.1f).  Fraiging = %d (%3.1f).\n", 
+            pParams->nMiteringLimitStart,  pParams->nMiteringLimitMulti, 
+            pParams->nRewritingLimitStart, pParams->nRewritingLimitMulti,
+            pParams->nFraigingLimitStart,  pParams->nFraigingLimitMulti );
+        printf( "Mitering last = %d.\n", 
+            pParams->nMiteringLimitLast );
+    }
+
+    // if SAT only, solve without iteration
+    if ( !pParams->fUseRewriting && !pParams->fUseFraiging )
+    {
+        clk = clock();
+        pIvyParams->nBTLimitMiter = pParams->nMiteringLimitLast / Ivy_ManPoNum(pManAig);
+        pManAig = Ivy_FraigMiter( pManTemp = pManAig, pIvyParams );  Ivy_ManStop( pManTemp );
+        RetValue = Ivy_FraigMiterStatus( pManAig );
+        Ivy_FraigMiterPrint( pManAig, "SAT solving", clk, pParams->fVerbose );
+        *ppManAig = pManAig;
+        return RetValue;
+    }
+
+    if ( Ivy_ManNodeNum(pManAig) < 500 )
+    {
+        // run the first mitering
+        clk = clock();
+        pIvyParams->nBTLimitMiter = pParams->nMiteringLimitStart / Ivy_ManPoNum(pManAig);
+        pManAig = Ivy_FraigMiter( pManTemp = pManAig, pIvyParams );  Ivy_ManStop( pManTemp );
+        RetValue = Ivy_FraigMiterStatus( pManAig );
+        Ivy_FraigMiterPrint( pManAig, "SAT solving", clk, pParams->fVerbose );
+        if ( RetValue >= 0 )
+        {
+            *ppManAig = pManAig;
+            return RetValue;
+        }
+    }
+
+    // check the current resource limits
+    RetValue = -1;
+    for ( nIter = 0; nIter < pParams->nItersMax; nIter++ )
+    {
+        if ( pParams->fVerbose )
+        {
+            printf( "ITERATION %2d : Confs = %6d. FraigBTL = %3d. \n", nIter+1, 
+                 (int)(pParams->nMiteringLimitStart * pow(pParams->nMiteringLimitMulti,nIter)), 
+                 (int)(pParams->nFraigingLimitStart * pow(pParams->nFraigingLimitMulti,nIter)) );
+            fflush( stdout );
+        }
+
+        // try rewriting
+        if ( pParams->fUseRewriting )
+        {
+            clk = clock();
+            Counter = (int)(pParams->nRewritingLimitStart * pow(pParams->nRewritingLimitMulti,nIter));
+            pManAig = Ivy_ManRwsat( pManAig, 0 );  
+            RetValue = Ivy_FraigMiterStatus( pManAig );
+            Ivy_FraigMiterPrint( pManAig, "Rewriting  ", clk, pParams->fVerbose );
+        }
+        if ( RetValue >= 0 )
+            break;
+
+        // try fraiging followed by mitering
+        if ( pParams->fUseFraiging )
+        {
+            clk = clock();
+            nInspectLimit = pParams->nTotalInspectLimit? pParams->nTotalInspectLimit - pParams->nTotalInspectsMade : 0;
+            pIvyParams->nBTLimitNode  = (int)(pParams->nFraigingLimitStart * pow(pParams->nFraigingLimitMulti,nIter));
+            pIvyParams->nBTLimitMiter = (int)(pParams->nMiteringLimitStart * pow(pParams->nMiteringLimitMulti,nIter)) / Ivy_ManPoNum(pManAig);
+            pManAig = Ivy_FraigPerform_int( pManTemp = pManAig, pIvyParams, &nSatConfs, &nSatInspects );  Ivy_ManStop( pManTemp );
+            RetValue = Ivy_FraigMiterStatus( pManAig );
+            Ivy_FraigMiterPrint( pManAig, "Fraiging   ", clk, pParams->fVerbose );
+        }
+        if ( RetValue >= 0 )
+            break;
+
+        // add to the number of backtracks and inspects
+        pParams->nTotalBacktracksMade += nSatConfs;
+        pParams->nTotalInspectsMade   += nSatInspects;
+        // check if global resource limit is reached
+        if ( (pParams->nTotalBacktrackLimit && pParams->nTotalBacktracksMade >= pParams->nTotalBacktrackLimit) ||
+             (pParams->nTotalInspectLimit   && pParams->nTotalInspectsMade   >= pParams->nTotalInspectLimit) )
+        {
+            printf( "Reached global limit on conflicts/inspects. Quitting.\n" );
+            *ppManAig = pManAig;
+            return -1;
+        }
+    }    
+
+    if ( RetValue < 0 )
+    {
+        if ( pParams->fVerbose )
+        {
+            printf( "Attempting SAT with conflict limit %d ...\n", pParams->nMiteringLimitLast );
+            fflush( stdout );
+        }
+        clk = clock();
+        nInspectLimit = pParams->nTotalInspectLimit? pParams->nTotalInspectLimit - pParams->nTotalInspectsMade : 0;
+        pIvyParams->nBTLimitMiter = pParams->nMiteringLimitLast / Ivy_ManPoNum(pManAig);
+        pManAig = Ivy_FraigMiter( pManTemp = pManAig, pIvyParams );  Ivy_ManStop( pManTemp );
+        RetValue = Ivy_FraigMiterStatus( pManAig );
+        Ivy_FraigMiterPrint( pManAig, "SAT solving", clk, pParams->fVerbose );
+    }
+
+    // assign the model if it was proved by rewriting (const 1 miter)
+    if ( RetValue == 0 && pManAig->pData == NULL )
+    {
+        pManAig->pData = ALLOC( int, Ivy_ManPiNum(pManAig) );
+        memset( pManAig->pData, 0, sizeof(int) * Ivy_ManPiNum(pManAig) );
+    }
+    *ppManAig = pManAig;
+    return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs fraiging of the AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ivy_Man_t * Ivy_FraigPerform_int( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParams, sint64 * pnSatConfs, sint64 * pnSatInspects )
+{ 
     Ivy_FraigMan_t * p;
     Ivy_Man_t * pManAigNew;
     int clk;
+    if ( Ivy_ManNodeNum(pManAig) == 0 )
+        return Ivy_ManDup(pManAig);
 clk = clock();
     assert( Ivy_ManLatchNum(pManAig) == 0 );
     p = Ivy_FraigStart( pManAig, pParams );
@@ -186,13 +394,17 @@ clk = clock();
     Ivy_FraigSweep( p );
     pManAigNew = p->pManFraig;
 p->timeTotal = clock() - clk;
+    if ( pnSatConfs )
+        *pnSatConfs = p->pSat? p->pSat->stats.conflicts : 0;
+    if ( pnSatInspects )
+        *pnSatInspects = p->pSat? p->pSat->stats.inspects : 0;
     Ivy_FraigStop( p );
     return pManAigNew;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Performs fraiging of the initial AIG.]
+  Synopsis    [Performs fraiging of the AIG.]
 
   Description []
                
@@ -206,6 +418,8 @@ Ivy_Man_t * Ivy_FraigPerform( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParams )
     Ivy_FraigMan_t * p;
     Ivy_Man_t * pManAigNew;
     int clk;
+    if ( Ivy_ManNodeNum(pManAig) == 0 )
+        return Ivy_ManDup(pManAig);
 clk = clock();
     assert( Ivy_ManLatchNum(pManAig) == 0 );
     p = Ivy_FraigStart( pManAig, pParams );
@@ -219,7 +433,7 @@ p->timeTotal = clock() - clk;
 
 /**Function*************************************************************
 
-  Synopsis    [Performs fraiging of the initial AIG.]
+  Synopsis    [Applies brute-force SAT to the miter.]
 
   Description []
                
@@ -256,39 +470,16 @@ clk = clock();
     Ivy_ManCleanup( p->pManFraig );
     pManAigNew = p->pManFraig;
 p->timeTotal = clock() - clk;
+
+//printf( "Final nodes = %6d. ", Ivy_ManNodeNum(pManAigNew) );
+//PRT( "Time", p->timeTotal );
     Ivy_FraigStop( p );
     return pManAigNew;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Performs fraiging of the initial AIG.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ivy_FraigParamsDefault( Ivy_FraigParams_t * pParams )
-{
-    memset( pParams, 0, sizeof(Ivy_FraigParams_t) );
-    pParams->nSimWords    =     32;
-    pParams->SimSatur     =  0.005;
-    pParams->fPatScores   =      0;
-    pParams->MaxScore     =     25;
-    pParams->nBTLimitNode     =     100;     // conflict limit at a node
-    pParams->nBTLimitMiter    =  500000;     // conflict limit at an output
-    pParams->nBTLimitGlobal   =       0;     // conflict limit global
-    pParams->nInsLimitNode    =       0;     // inspection limit at a node
-    pParams->nInsLimitMiter   =       0;     // inspection limit at an output
-    pParams->nInsLimitGlobal  =       0;     // inspection limit global
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Starts the fraiging manager.]
+  Synopsis    [Starts the fraiging manager without simulation info.]
 
   Description []
                
@@ -388,6 +579,29 @@ Ivy_FraigMan_t * Ivy_FraigStart( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParam
   SeeAlso     []
 
 ***********************************************************************/
+void Ivy_FraigStop( Ivy_FraigMan_t * p )
+{
+    if ( p->pParams->fVerbose )
+        Ivy_FraigPrint( p );
+    if ( p->vPiVars ) Vec_PtrFree( p->vPiVars );
+    if ( p->pSat ) sat_solver_delete( p->pSat );
+    FREE( p->pPatScores );
+    FREE( p->pPatWords );
+    FREE( p->pSimWords );
+    free( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints stats for the fraiging manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Ivy_FraigPrint( Ivy_FraigMan_t * p )
 {
     double nMemory;
@@ -408,36 +622,14 @@ void Ivy_FraigPrint( Ivy_FraigMan_t * p )
     PRT( "    Fail        ", p->timeSatFail  );
     PRT( "Class refining  ", p->timeRef   );
     PRT( "TOTAL RUNTIME   ", p->timeTotal );
-    PRT( "time1           ", p->time1 );
+    if ( p->time1 ) { PRT( "time1           ", p->time1 ); }
 }
 
-/**Function*************************************************************
-
-  Synopsis    [Stops the fraiging manager.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ivy_FraigStop( Ivy_FraigMan_t * p )
-{
-    if ( p->pParams->fVerbose )
-        Ivy_FraigPrint( p );
-    if ( p->vPiVars ) Vec_PtrFree( p->vPiVars );
-    if ( p->pSat ) sat_solver_delete( p->pSat );
-    FREE( p->pPatScores );
-    FREE( p->pPatWords );
-    FREE( p->pSimWords );
-    free( p );
-}
 
 
 /**Function*************************************************************
 
-  Synopsis    [Simulates one node.]
+  Synopsis    [Assigns random patterns to the PI node.]
 
   Description []
                
@@ -450,6 +642,7 @@ void Ivy_NodeAssignRandom( Ivy_FraigMan_t * p, Ivy_Obj_t * pObj )
 {
     Ivy_FraigSim_t * pSims;
     int i;
+    assert( Ivy_ObjIsPi(pObj) );
     pSims = Ivy_ObjSim(pObj);
     for ( i = 0; i < p->nSimWords; i++ )
         pSims->pData[i] = Ivy_ObjRandomSim();
@@ -457,7 +650,7 @@ void Ivy_NodeAssignRandom( Ivy_FraigMan_t * p, Ivy_Obj_t * pObj )
 
 /**Function*************************************************************
 
-  Synopsis    [Simulates one node.]
+  Synopsis    [Assigns constant patterns to the PI node.]
 
   Description []
                
@@ -470,9 +663,51 @@ void Ivy_NodeAssignConst( Ivy_FraigMan_t * p, Ivy_Obj_t * pObj, int fConst1 )
 {
     Ivy_FraigSim_t * pSims;
     int i;
+    assert( Ivy_ObjIsPi(pObj) );
     pSims = Ivy_ObjSim(pObj);
     for ( i = 0; i < p->nSimWords; i++ )
         pSims->pData[i] = fConst1? ~(unsigned)0 : 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Assings random simulation info for the PIs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_FraigAssignRandom( Ivy_FraigMan_t * p )
+{
+    Ivy_Obj_t * pObj;
+    int i;
+    Ivy_ManForEachPi( p->pManAig, pObj, i )
+        Ivy_NodeAssignRandom( p, pObj );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Assings distance-1 simulation info for the PIs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_FraigAssignDist1( Ivy_FraigMan_t * p, unsigned * pPat )
+{
+    Ivy_Obj_t * pObj;
+    int i, Limit;
+    Ivy_ManForEachPi( p->pManAig, pObj, i )
+        Ivy_NodeAssignConst( p, pObj, Ivy_InfoHasBit(pPat, i) );
+    Limit = IVY_MIN( Ivy_ManPiNum(p->pManAig), p->nSimWords * 32 - 1 );
+    for ( i = 0; i < Limit; i++ )
+        Ivy_InfoXorBit( Ivy_ObjSim( Ivy_ManPi(p->pManAig,i) )->pData, i+1 );
 }
 
 /**Function*************************************************************
@@ -733,52 +968,7 @@ p->nSimRounds++;
 
 /**Function*************************************************************
 
-  Synopsis    [Simulates AIG manager.]
-
-  Description [Assumes that the PI simulation info is attached.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ivy_FraigAssignRandom( Ivy_FraigMan_t * p )
-{
-    Ivy_Obj_t * pObj;
-    int i;
-    Ivy_ManForEachPi( p->pManAig, pObj, i )
-        Ivy_NodeAssignRandom( p, pObj );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Simulates AIG manager.]
-
-  Description [Assumes that the PI simulation info is attached.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ivy_FraigAssignDist1( Ivy_FraigMan_t * p, unsigned * pPat )
-{
-    Ivy_Obj_t * pObj;
-    int i, Limit;
-    Ivy_ManForEachPi( p->pManAig, pObj, i )
-        Ivy_NodeAssignConst( p, pObj, Ivy_InfoHasBit(pPat, i) );
-    Limit = IVY_MIN( Ivy_ManPiNum(p->pManAig), p->nSimWords * 32 - 1 );
-    for ( i = 0; i < Limit; i++ )
-        Ivy_InfoXorBit( Ivy_ObjSim( Ivy_ManPi(p->pManAig,i) )->pData, i+1 );
-/*
-    for ( i = 0; i < Limit; i++ )
-        Extra_PrintBinary( stdout, Ivy_ObjSim( Ivy_ManPi(p->pManAig,i) ), 30 ), printf( "\n" );
-*/
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Adds new nodes to the equivalence class.]
+  Synopsis    [Adds one node to the equivalence class.]
 
   Description []
                
@@ -800,7 +990,7 @@ void Ivy_NodeAddToClass( Ivy_Obj_t * pClass, Ivy_Obj_t * pObj )
 
 /**Function*************************************************************
 
-  Synopsis    [Adds new nodes to the equivalence class.]
+  Synopsis    [Adds equivalence class to the list of classes.]
 
   Description []
                
@@ -853,7 +1043,7 @@ void Ivy_FraigInsertClass( Ivy_FraigList_t * pList, Ivy_Obj_t * pBase, Ivy_Obj_t
 
 /**Function*************************************************************
 
-  Synopsis    [Updates the list of classes after base class has split.]
+  Synopsis    [Removes equivalence class from the list of classes.]
 
   Description []
                
@@ -1045,7 +1235,7 @@ int Ivy_FraigRefineClass_rec( Ivy_FraigMan_t * p, Ivy_Obj_t * pClass )
   Description [Assumes that simulation info is assigned. Returns the
   number of classes refined.]
                
-  SideEffects []
+  SideEffects [Large equivalence class of constant 0 may cause problems.]
 
   SeeAlso     []
 
@@ -1063,8 +1253,8 @@ clk = clock();
         Counter += ( RetValue > 0 );
 //if ( Ivy_ObjIsConst1(pClass) )
 //printf( "%d ", RetValue );
-if ( Ivy_ObjIsConst1(pClass) )
-    p->time1 += clock() - clk;
+//if ( Ivy_ObjIsConst1(pClass) )
+//    p->time1 += clock() - clk;
     }
 p->timeRef += clock() - clk;
     return Counter;
@@ -1112,7 +1302,7 @@ int Ivy_FraigCountClassNodes( Ivy_Obj_t * pClass )
 
 /**Function*************************************************************
 
-  Synopsis    [Stops the fraiging manager.]
+  Synopsis    [Prints simulation classes.]
 
   Description []
                
@@ -1134,7 +1324,7 @@ void Ivy_FraigPrintSimClasses( Ivy_FraigMan_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Copy pattern from the solver into the internal storage.]
+  Synopsis    [Generated const 0 pattern.]
 
   Description []
                
@@ -1150,7 +1340,7 @@ void Ivy_FraigSavePattern0( Ivy_FraigMan_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Copy pattern from the solver into the internal storage.]
+  Synopsis    [[Generated const 1 pattern.]
 
   Description []
                
@@ -1162,6 +1352,28 @@ void Ivy_FraigSavePattern0( Ivy_FraigMan_t * p )
 void Ivy_FraigSavePattern1( Ivy_FraigMan_t * p )
 {
     memset( p->pPatWords, 0xff, sizeof(unsigned) * p->nPatWords );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Generates the counter-example satisfying the miter.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int * Ivy_FraigCreateModel( Ivy_FraigMan_t * p )
+{
+    int * pModel;
+    Ivy_Obj_t * pObj;
+    int i;
+    pModel = ALLOC( int, Ivy_ManPiNum(p->pManFraig) );
+    Ivy_ManForEachPi( p->pManFraig, pObj, i )
+        pModel[i] = ( p->pSat->model.ptr[Ivy_ObjSatNum(pObj)] == l_True );
+    return pModel;
 }
 
 /**Function*************************************************************
@@ -1256,7 +1468,7 @@ int Ivy_FraigCheckOutputSims( Ivy_FraigMan_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Stops the fraiging manager.]
+  Synopsis    [Performs simulation of the manager.]
 
   Description []
                
@@ -1291,11 +1503,12 @@ void Ivy_FraigSimulate( Ivy_FraigMan_t * p )
         nClasses = p->lClasses.nItems;
         nChanges = Ivy_FraigRefineClasses( p );
 //printf( "Refined classes  = %5d.   Changes = %4d.   Pairs = %6d.\n", p->lClasses.nItems, nChanges, Ivy_FraigCountPairsClasses(p) );
-    } while ( (double)nChanges / nClasses > p->pParams->SimSatur );
+    } while ( (double)nChanges / nClasses > p->pParams->dSimSatur );
 //    Ivy_FraigPrintSimClasses( p );
+
     // check if some outputs already became non-constant
-    if ( Ivy_FraigCheckOutputSims(p) )
-        printf( "Special case: One of the POs is already non-const zero.\n" );
+//    if ( Ivy_FraigCheckOutputSims(p) )
+//        printf( "Special case: One of the POs is already non-const zero.\n" );
 }
 
 
@@ -1390,7 +1603,7 @@ int Ivy_FraigSelectBestPat( Ivy_FraigMan_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Stops the fraiging manager.]
+  Synopsis    [Resimulates fraiging manager after finding a counter-example.]
 
   Description []
                
@@ -1431,6 +1644,25 @@ void Ivy_FraigResimulate( Ivy_FraigMan_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Prints the status of the miter.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_FraigMiterPrint( Ivy_Man_t * pNtk, char * pString, int clk, int fVerbose )
+{
+    if ( !fVerbose )
+        return;
+    printf( "Nodes = %7d.  Levels = %4d.  ", Ivy_ManNodeNum(pNtk), Ivy_ManLevels(pNtk) );
+    PRT( pString, clock() - clk );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Reports the status of the miter.]
 
   Description []
@@ -1440,21 +1672,23 @@ void Ivy_FraigResimulate( Ivy_FraigMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Ivy_FraigMiterStatus( Ivy_FraigMan_t * p )
+int Ivy_FraigMiterStatus( Ivy_Man_t * pMan )
 {
     Ivy_Obj_t * pObj, * pObjNew;
     int i, CountConst0 = 0, CountNonConst0 = 0, CountUndecided = 0;
-    Ivy_ManForEachPo( p->pManAig, pObj, i )
+    if ( pMan->pData )
+        return 0;
+    Ivy_ManForEachPo( pMan, pObj, i )
     {
-        pObjNew = Ivy_ObjChild0Equiv(pObj);
+        pObjNew = Ivy_ObjChild0(pObj);
         // check if the output is constant 1
-        if ( pObjNew == p->pManFraig->pConst1 )
+        if ( pObjNew == pMan->pConst1 )
         {
             CountNonConst0++;
             continue;
         }
         // check if the output is constant 0
-        if ( pObjNew == Ivy_Not(p->pManFraig->pConst1) )
+        if ( pObjNew == Ivy_Not(pMan->pConst1) )
         {
             CountConst0++;
             continue;
@@ -1467,6 +1701,7 @@ int Ivy_FraigMiterStatus( Ivy_FraigMan_t * p )
         }
         CountUndecided++;
     }
+/*
     if ( p->pParams->fVerbose )
     {
         printf( "Miter has %d outputs. ", Ivy_ManPoNum(p->pManAig) );
@@ -1475,14 +1710,19 @@ int Ivy_FraigMiterStatus( Ivy_FraigMan_t * p )
         printf( "Undecided = %d.  ", CountUndecided );
         printf( "\n" );
     }
+*/
+    if ( CountNonConst0 )
+        return 0;
+    if ( CountUndecided )
+        return -1;
     return 1;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Works on the miter.]
+  Synopsis    [Tries to prove each output of the miter until encountering a sat output.]
 
-  Description [Tries to prove each output until encountering a sat output.]
+  Description []
                
   SideEffects []
 
@@ -1493,7 +1733,7 @@ void Ivy_FraigMiterProve( Ivy_FraigMan_t * p )
 {
     Ivy_Obj_t * pObj, * pObjNew;
     int i, RetValue, clk = clock();
-    int fVerbose = p->pParams->fVerbose;
+    int fVerbose = 0;
     Ivy_ManForEachPo( p->pManAig, pObj, i )
     {
         if ( i && fVerbose )
@@ -1520,6 +1760,9 @@ void Ivy_FraigMiterProve( Ivy_FraigMan_t * p )
         {
             if ( fVerbose )
                 printf( "Output %2d (out of %2d) cannot be constant 0.  ", i, Ivy_ManPoNum(p->pManAig) );
+            // assing constant 0 model
+            p->pManFraig->pData = ALLOC( int, Ivy_ManPiNum(p->pManFraig) );
+            memset( p->pManFraig->pData, 0, sizeof(int) * Ivy_ManPiNum(p->pManFraig) );
             break;
         }
         // try to prove the output constant 0
@@ -1529,7 +1772,7 @@ void Ivy_FraigMiterProve( Ivy_FraigMan_t * p )
             if ( fVerbose )
                 printf( "Output %2d (out of %2d) was proved constant 0.  ", i, Ivy_ManPoNum(p->pManAig) );
             // set the constant miter
-            Ivy_ObjFanin0(pObj)->pEquiv = Ivy_NotCond( p->pManFraig->pConst1, !Ivy_IsComplement(pObj) );
+            Ivy_ObjFanin0(pObj)->pEquiv = Ivy_NotCond( p->pManFraig->pConst1, !Ivy_ObjFaninC0(pObj) );
             continue;
         }
         if ( RetValue == -1 ) // failed
@@ -1541,6 +1784,8 @@ void Ivy_FraigMiterProve( Ivy_FraigMan_t * p )
         // proved satisfiable
         if ( fVerbose )
             printf( "Output %2d (out of %2d) was proved NOT a constant 0.  ", i, Ivy_ManPoNum(p->pManAig) );
+        // create the model
+        p->pManFraig->pData = Ivy_FraigCreateModel(p);
         break;
     }
     if ( fVerbose )
@@ -1564,7 +1809,7 @@ void Ivy_FraigSweep( Ivy_FraigMan_t * p )
 {
     Ivy_Obj_t * pObj;
     int i, k = 0;
-p->nClassesZero = Ivy_ObjIsConst1(p->lClasses.pHead) ? Ivy_FraigCountClassNodes(p->lClasses.pHead) : 0;
+p->nClassesZero = p->lClasses.pHead? (Ivy_ObjIsConst1(p->lClasses.pHead) ? Ivy_FraigCountClassNodes(p->lClasses.pHead) : 0) : 0;
 p->nClassesBeg  = p->lClasses.nItems;
     // duplicate internal nodes
     p->pProgress = Extra_ProgressBarStart( stdout, Ivy_ManNodeNum(p->pManAig) );
@@ -1577,8 +1822,9 @@ p->nClassesBeg  = p->lClasses.nItems;
 p->nClassesEnd = p->lClasses.nItems;
     // try to prove the outputs of the miter
     p->nNodesMiter = Ivy_ManNodeNum(p->pManFraig);
-    Ivy_FraigMiterStatus( p );
-    Ivy_FraigMiterProve( p );
+//    Ivy_FraigMiterStatus( p->pManFraig );
+    if ( p->pParams->fProve )
+        Ivy_FraigMiterProve( p );
     // add the POs
     Ivy_ManForEachPo( p->pManAig, pObj, i )
         Ivy_ObjCreatePo( p->pManFraig, Ivy_ObjChild0Equiv(pObj) );
@@ -1651,32 +1897,9 @@ Ivy_Obj_t * Ivy_FraigAnd( Ivy_FraigMan_t * p, Ivy_Obj_t * pObjOld )
 
 /**Function*************************************************************
 
-  Synopsis    [Performs fraiging for one node.]
+  Synopsis    [Prints variable activity.]
 
-  Description [Returns the fraiged node.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ivy_FraigCleanActivity( Ivy_FraigMan_t * p )
-{
-    double * pActivity;
-    int i;
-    pActivity = sat_solver_activity(p->pSat);
-    for ( i = 0; i < p->nSatVars; i++ )
-    {
-        pActivity[i] = 0.0;
-        sat_solver_order_update( p->pSat, i );
-    }
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Performs fraiging for one node.]
-
-  Description [Returns the fraiged node.]
+  Description []
                
   SideEffects []
 
@@ -1685,19 +1908,17 @@ void Ivy_FraigCleanActivity( Ivy_FraigMan_t * p )
 ***********************************************************************/
 void Ivy_FraigPrintActivity( Ivy_FraigMan_t * p )
 {
-    double * pActivity;
     int i;
-    pActivity = sat_solver_activity(p->pSat);
     for ( i = 0; i < p->nSatVars; i++ )
-        printf( "%d %.3f  ", i, pActivity[i] );
+        printf( "%d %.3f  ", i, p->pSat->activity[i] );
     printf( "\n" );
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Performs fraiging for one node.]
+  Synopsis    [Runs equivalence test for the two nodes.]
 
-  Description [Returns the fraiged node.]
+  Description []
                
   SideEffects []
 
@@ -1721,11 +1942,10 @@ int Ivy_FraigNodesAreEquiv( Ivy_FraigMan_t * p, Ivy_Obj_t * pOld, Ivy_Obj_t * pN
     {
         p->nSatFails++;
         // fail immediately
-        return -1;
-
+//        return -1;
         if ( nBTLimit <= 10 )
             return -1;
-        nBTLimit = (int)sqrt(nBTLimit);
+        nBTLimit = (int)pow(nBTLimit, 0.7);
     }
     p->nSatCalls++;
 
@@ -1739,6 +1959,9 @@ int Ivy_FraigNodesAreEquiv( Ivy_FraigMan_t * p, Ivy_Obj_t * pOld, Ivy_Obj_t * pN
 
     // if the nodes do not have SAT variables, allocate them
     Ivy_FraigNodeAddToSolver( p, pOld, pNew );
+
+    // prepare variable activity
+    Ivy_FraigSetActivityFactors( p, pOld, pNew ); 
 
     // solve under assumptions
     // A = 1; B = 0     OR     A = 1; B = 1 
@@ -1827,7 +2050,7 @@ p->timeSatFail += clock() - clk;
 
 /**Function*************************************************************
 
-  Synopsis    [Performs fraiging for one node.]
+  Synopsis    [Runs equivalence test for one node.]
 
   Description [Returns the fraiged node.]
                
@@ -1857,7 +2080,7 @@ int Ivy_FraigNodeIsConst( Ivy_FraigMan_t * p, Ivy_Obj_t * pNew )
     Ivy_FraigNodeAddToSolver( p, NULL, pNew );
 
     // prepare variable activity
-    Ivy_FraigMarkConeSetActivity( p, NULL, pNew ); 
+    Ivy_FraigSetActivityFactors( p, NULL, pNew ); 
 
     // solve under assumptions
 clk = clock();
@@ -1878,7 +2101,8 @@ p->timeSatUnsat += clock() - clk;
     else if ( RetValue1 == l_True )
     {
 p->timeSatSat += clock() - clk;
-        Ivy_FraigSavePattern( p );
+        if ( p->pPatWords )
+            Ivy_FraigSavePattern( p );
         p->nSatCallsSat++;
         return 0;
     }
@@ -2065,7 +2289,7 @@ Vec_Ptr_t * Ivy_FraigCollectSuper( Ivy_Obj_t * pObj, int fUseMuxes )
 
 /**Function*************************************************************
 
-  Synopsis    [Collects the supergate.]
+  Synopsis    [Updates the solver clause database.]
 
   Description []
                
@@ -2091,7 +2315,7 @@ void Ivy_FraigObjAddToFrontier( Ivy_FraigMan_t * p, Ivy_Obj_t * pObj, Vec_Ptr_t 
 
 /**Function*************************************************************
 
-  Synopsis    [Addes clauses to the solver.]
+  Synopsis    [Updates the solver clause database.]
 
   Description []
                
@@ -2145,90 +2369,70 @@ void Ivy_FraigNodeAddToSolver( Ivy_FraigMan_t * p, Ivy_Obj_t * pOld, Ivy_Obj_t *
 
 /**Function*************************************************************
 
-  Synopsis    [Performs fraiging for one node.]
+  Synopsis    [Sets variable activities in the cone.]
 
-  Description [Returns the fraiged node.]
+  Description []
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-int Ivy_FraigMarkConeSetActivity_rec( Ivy_FraigMan_t * p, Ivy_Obj_t * pObj, double * pActivity, int LevelMax, Vec_Ptr_t * vPiVars )
+int Ivy_FraigSetActivityFactors_rec( Ivy_FraigMan_t * p, Ivy_Obj_t * pObj, int LevelMin, int LevelMax )
 {
     Vec_Ptr_t * vFanins;
     Ivy_Obj_t * pFanin;
-    int i, Counter;
+    int i, Counter = 0;
     assert( !Ivy_IsComplement(pObj) );
-    if ( Ivy_ObjIsConst1(pObj) )
-        return 0;
     assert( Ivy_ObjSatNum(pObj) );
+    // skip visited variables
     if ( Ivy_ObjIsTravIdCurrent(p->pManFraig, pObj) )
         return 0;
     Ivy_ObjSetTravIdCurrent(p->pManFraig, pObj);
-
-    // add this variable to the decision
-    assert( Ivy_ObjSatNum(pObj) > 0 );
-//    pActivity[Ivy_ObjSatNum(pObj)] = 3.0 * pow( 0.97, LevelMax - pObj->Level );
-//    sat_solver_order_unassigned( p->pSat, Ivy_ObjSatNum(pObj) );
-
-//    pActivity[Ivy_ObjSatNum(pObj)] += 3.0 * pObj->Level / LevelMax;
-//    sat_solver_order_update( p->pSat, Ivy_ObjSatNum(pObj) );
-
-    if ( LevelMax > 150 && (int)pObj->Level > LevelMax - 100 )
-        sat_solver_act_var_bump_factor( p->pSat, Ivy_ObjSatNum(pObj), 1.0 + 10.0 * (pObj->Level - (LevelMax - 100)) / 100 );
-
     // add the PI to the list
-    if ( Ivy_ObjIsPi(pObj) )
-    {
-        Vec_PtrPush( vPiVars, pObj );
+    if ( pObj->Level <= (unsigned)LevelMin || Ivy_ObjIsPi(pObj) )
         return 0;
-    }
-
+    // set the factor of this variable
+    // (LevelMax-LevelMin) / (pObj->Level-LevelMin) = p->pParams->dActConeBumpMax / ThisBump
+    p->pSat->factors[Ivy_ObjSatNum(pObj)] = p->pParams->dActConeBumpMax * (pObj->Level - LevelMin)/(LevelMax - LevelMin);
+    veci_push(&p->pSat->act_vars, Ivy_ObjSatNum(pObj));
     // explore the fanins
     vFanins = Ivy_ObjFaninVec( pObj );
-    Counter = 1;
     Vec_PtrForEachEntry( vFanins, pFanin, i )
-        Counter += Ivy_FraigMarkConeSetActivity_rec( p, Ivy_Regular(pFanin), pActivity, LevelMax, vPiVars );
-    return Counter;
-
-//    Counter  = Ivy_FraigMarkConeSetActivity_rec( p, Ivy_ObjFanin0(pObj), pActivity, LevelMax, vPiVars );
-//    Counter += Ivy_FraigMarkConeSetActivity_rec( p, Ivy_ObjFanin1(pObj), pActivity, LevelMax, vPiVars );
-//    return Counter;
+        Counter += Ivy_FraigSetActivityFactors_rec( p, Ivy_Regular(pFanin), LevelMin, LevelMax );
+    return 1 + Counter;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Performs fraiging for one node.]
+  Synopsis    [Sets variable activities in the cone.]
 
-  Description [Returns the fraiged node.]
+  Description []
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-int Ivy_FraigMarkConeSetActivity( Ivy_FraigMan_t * p, Ivy_Obj_t * pOld, Ivy_Obj_t * pNew )
+int Ivy_FraigSetActivityFactors( Ivy_FraigMan_t * p, Ivy_Obj_t * pOld, Ivy_Obj_t * pNew )
 {
-    int clk, LevelMax, Counter;
+    int clk, LevelMin, LevelMax;
     assert( pOld || pNew );
 clk = clock(); 
-    Vec_PtrClear( p->vPiVars );
+    // reset the active variables
+    veci_resize(&p->pSat->act_vars, 0);
+    // prepare for traversal
     Ivy_ManIncrementTravId( p->pManFraig );
-//    Ivy_FraigCleanActivity( p );
-//    sat_solver_order_clean( p->pSat );
-//printf( "\n" );
-//printf( "Adding\n" );
-    LevelMax = IVY_MAX( pNew ? pNew->Level : 0, pOld ? pOld->Level : 0 );
-    Counter  = 0;
-    if ( pOld )
-        Counter += Ivy_FraigMarkConeSetActivity_rec( p, pOld, sat_solver_activity(p->pSat), LevelMax, p->vPiVars );
-    if ( pNew )
-        Counter += Ivy_FraigMarkConeSetActivity_rec( p, pNew, sat_solver_activity(p->pSat), LevelMax, p->vPiVars );
+    // determine the min and max level to visit
+    assert( p->pParams->dActConeRatio > 0 && p->pParams->dActConeRatio < 1 );
+    LevelMax = IVY_MAX( (pNew ? pNew->Level : 0), (pOld ? pOld->Level : 0) );
+    LevelMin = (int)(LevelMax * (1.0 - p->pParams->dActConeRatio));
+    // traverse
+    if ( pOld && !Ivy_ObjIsConst1(pOld) )
+        Ivy_FraigSetActivityFactors_rec( p, pOld, LevelMin, LevelMax );
+    if ( pNew && !Ivy_ObjIsConst1(pNew) )
+        Ivy_FraigSetActivityFactors_rec( p, pNew, LevelMin, LevelMax );
 //Ivy_FraigPrintActivity( p );
-//printf( "\n" );
-//printf( "Solving\n" );
-//    printf( "%d ", Vec_PtrSize(p->vPiVars) );
 p->timeTrav += clock() - clk;
     return 1;
 }

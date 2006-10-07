@@ -59,6 +59,7 @@ Abc_Ntk_t * Abc_NtkMiniBalance( Abc_Ntk_t * pNtk )
     }
     // perform balance
     Aig_ManPrintStats( pMan );
+//    Aig_ManDumpBlif( pMan, "aig_temp.blif" );
     pMan = Aig_ManBalance( pTemp = pMan, 1 );
     Aig_ManStop( pTemp );
     Aig_ManPrintStats( pMan );
