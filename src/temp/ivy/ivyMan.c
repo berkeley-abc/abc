@@ -46,9 +46,9 @@ Ivy_Man_t * Ivy_ManStart()
     p = ALLOC( Ivy_Man_t, 1 );
     memset( p, 0, sizeof(Ivy_Man_t) );
     // perform initializations
-    p->Ghost.Id = -1;
-    p->nTravIds = 1;
-    p->fCatchExor = 1;
+    p->Ghost.Id   = -1;
+    p->nTravIds   =  1;
+    p->fCatchExor =  1;
     // allocate arrays for nodes
     p->vPis = Vec_PtrAlloc( 100 );
     p->vPos = Vec_PtrAlloc( 100 );
@@ -154,6 +154,72 @@ Ivy_Man_t * Ivy_ManDup( Ivy_Man_t * p )
         printf( "Ivy_ManMakeSeq(): The check has failed.\n" );
     return pNew;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Stops the AIG manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ivy_Man_t * Ivy_ManFrames( Ivy_Man_t * pMan, int nLatches, int nFrames, int fInit, Vec_Ptr_t ** pvMapping )
+{
+    Vec_Ptr_t * vMapping;
+    Ivy_Man_t * pNew;
+    Ivy_Obj_t * pObj;
+    int i, f, nPis, nPos, nIdMax;
+    assert( Ivy_ManLatchNum(pMan) == 0 );
+    assert( nFrames > 0 );
+    // prepare the mapping
+    nPis = Ivy_ManPiNum(pMan) - nLatches;
+    nPos = Ivy_ManPoNum(pMan) - nLatches;
+    nIdMax = Ivy_ManObjIdMax(pMan);
+    // create the new manager
+    pNew = Ivy_ManStart();
+    // set the starting values of latch inputs
+    for ( i = 0; i < nLatches; i++ )
+        Ivy_ManPo(pMan, nPos+i)->pEquiv = fInit? Ivy_Not(Ivy_ManConst1(pNew)) : Ivy_ObjCreatePi(pNew);
+    // add timeframes
+    vMapping = Vec_PtrStart( nIdMax * nFrames + 1 );
+    for ( f = 0; f < nFrames; f++ )
+    {
+        // create PIs
+        Ivy_ManConst1(pMan)->pEquiv = Ivy_ManConst1(pNew);
+        for ( i = 0; i < nPis; i++ )
+            Ivy_ManPi(pMan, i)->pEquiv = Ivy_ObjCreatePi(pNew);
+        // transfer values to latch outputs
+        for ( i = 0; i < nLatches; i++ )
+            Ivy_ManPi(pMan, nPis+i)->pEquiv = Ivy_ManPo(pMan, nPos+i)->pEquiv;
+        // perform strashing
+        Ivy_ManForEachNode( pMan, pObj, i )
+            pObj->pEquiv = Ivy_And( pNew, Ivy_ObjChild0Equiv(pObj), Ivy_ObjChild1Equiv(pObj) );
+        // create POs
+        for ( i = 0; i < nPos; i++ )
+            Ivy_ManPo(pMan, i)->pEquiv = Ivy_ObjCreatePo( pNew, Ivy_ObjChild0Equiv(Ivy_ManPo(pMan, i)) );
+        // set the results of latch inputs
+        for ( i = 0; i < nLatches; i++ )
+            Ivy_ManPo(pMan, nPos+i)->pEquiv = Ivy_ObjChild0Equiv(Ivy_ManPo(pMan, nPos+i));
+        // save the pointers in this frame
+        Ivy_ManForEachObj( pMan, pObj, i )
+            Vec_PtrWriteEntry( vMapping, f * nIdMax + i, pObj->pEquiv );
+    }
+    // connect latches
+    if ( !fInit )
+        for ( i = 0; i < nLatches; i++ )
+            Ivy_ObjCreatePo( pNew, Ivy_ManPo(pMan, nPos+i)->pEquiv );
+    // remove dangling nodes
+    Ivy_ManCleanup(pNew);
+    *pvMapping = vMapping;
+    // check the resulting network
+    if ( !Ivy_ManCheck(pNew) )
+        printf( "Ivy_ManFrames(): The check has failed.\n" );
+    return pNew;
+}
+
 
 /**Function*************************************************************
 
@@ -291,6 +357,46 @@ int Ivy_ManCleanupSeq( Ivy_Man_t * p )
     return RetValue;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Checks if latches form self-loop.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_ManLatchIsSelfFeed_rec( Ivy_Obj_t * pLatch, Ivy_Obj_t * pLatchRoot )
+{
+    if ( !Ivy_ObjIsLatch(pLatch) && !Ivy_ObjIsBuf(pLatch) )
+        return 0;
+    if ( pLatch == pLatchRoot )
+        return 1;
+    return Ivy_ManLatchIsSelfFeed_rec( Ivy_ObjFanin0(pLatch), pLatchRoot );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks if latches form self-loop.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_ManLatchIsSelfFeed( Ivy_Obj_t * pLatch )
+{
+    if ( !Ivy_ObjIsLatch(pLatch) )
+        return 0;
+    return Ivy_ManLatchIsSelfFeed_rec( Ivy_ObjFanin0(pLatch), pLatch );
+}
+
+
 /**Function*************************************************************
 
   Synopsis    [Returns the number of dangling nodes removed.]
@@ -305,23 +411,30 @@ int Ivy_ManCleanupSeq( Ivy_Man_t * p )
 int Ivy_ManPropagateBuffers( Ivy_Man_t * p, int fUpdateLevel )
 {
     Ivy_Obj_t * pNode;
-    int LimitFactor = 20;
+    int LimitFactor = 100;
+    int NodeBeg = Ivy_ManNodeNum(p);
     int nSteps;
     for ( nSteps = 0; Vec_PtrSize(p->vBufs) > 0; nSteps++ )
     {
         pNode = Vec_PtrEntryLast(p->vBufs);
         while ( Ivy_ObjIsBuf(pNode) )
             pNode = Ivy_ObjReadFirstFanout( p, pNode );
+        // check if this buffer should remain
+        if ( Ivy_ManLatchIsSelfFeed(pNode) )
+        {
+            Vec_PtrPop(p->vBufs);
+            continue;
+        }
 //printf( "Propagating buffer %d with input %d and output %d\n", Ivy_ObjFaninId0(pNode), Ivy_ObjFaninId0(Ivy_ObjFanin0(pNode)), pNode->Id );
 //printf( "Latch num %d\n", Ivy_ManLatchNum(p) );
         Ivy_NodeFixBufferFanins( p, pNode, fUpdateLevel );
-        if ( nSteps > Ivy_ManNodeNum(p) * LimitFactor )
+        if ( nSteps > NodeBeg * LimitFactor )
         {
-            printf( "This circuit cannot be forward retimed completely. Structural hashing is not finished after %d forward latch moves.\n", Ivy_ManNodeNum(p) * LimitFactor );
+            printf( "This circuit cannot be forward retimed completely. Structural hashing is not finished after %d forward latch moves.\n", NodeBeg * LimitFactor );
             break;
         }
     }
-//    printf( "Number of steps = %d\n", nSteps );
+    printf( "Number of steps = %d. Nodes beg = %d. Nodes end = %d.\n", nSteps, NodeBeg, Ivy_ManNodeNum(p) );
     return nSteps;
 }
 
@@ -416,6 +529,8 @@ void Ivy_ManMakeSeq( Ivy_Man_t * p, int nLatches, int * pInits )
 */
     // perform hashing by propagating the buffers
     Ivy_ManPropagateBuffers( p, 0 );
+    if ( Ivy_ManBufNum(p) )
+        printf( "The number of remaining buffers is %d.\n", Ivy_ManBufNum(p) );
     // fix the levels
     Ivy_ManResetLevels( p );
     // check the resulting network

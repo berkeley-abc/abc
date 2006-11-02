@@ -623,9 +623,10 @@ Ivy_Obj_t * Ivy_ObjReal( Ivy_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-void Ivy_ObjPrintVerbose( Ivy_Obj_t * pObj, int fHaig )
+void Ivy_ObjPrintVerbose( Ivy_Man_t * p, Ivy_Obj_t * pObj, int fHaig )
 {
     Ivy_Obj_t * pTemp;
+    int fShowFanouts = 0;
     assert( !Ivy_IsComplement(pObj) );
     printf( "Node %5d : ", Ivy_ObjId(pObj) );
     if ( Ivy_ObjIsConst1(pObj) )
@@ -635,14 +636,40 @@ void Ivy_ObjPrintVerbose( Ivy_Obj_t * pObj, int fHaig )
     else if ( Ivy_ObjIsPo(pObj) )
         printf( "PO" );
     else if ( Ivy_ObjIsLatch(pObj) )
-        printf( "latch %d%s", Ivy_ObjFanin0(pObj)->Id, (Ivy_ObjFaninC0(pObj)? "\'" : " ") );
+        printf( "latch (%d%s)", Ivy_ObjFanin0(pObj)->Id, (Ivy_ObjFaninC0(pObj)? "\'" : " ") );
     else if ( Ivy_ObjIsBuf(pObj) )
-        printf( "buffer %d%s", Ivy_ObjFanin0(pObj)->Id, (Ivy_ObjFaninC0(pObj)? "\'" : " ") );
+        printf( "buffer (%d%s)", Ivy_ObjFanin0(pObj)->Id, (Ivy_ObjFaninC0(pObj)? "\'" : " ") );
     else
         printf( "AND( %5d%s, %5d%s )", 
             Ivy_ObjFanin0(pObj)->Id, (Ivy_ObjFaninC0(pObj)? "\'" : " "), 
             Ivy_ObjFanin1(pObj)->Id, (Ivy_ObjFaninC1(pObj)? "\'" : " ") );
     printf( " (refs = %3d)", Ivy_ObjRefs(pObj) );
+    if ( fShowFanouts )
+    {
+        Vec_Ptr_t * vFanouts;
+        Ivy_Obj_t * pFanout;
+        int i;
+        vFanouts = Vec_PtrAlloc( 10 );
+        printf( "\nFanouts:\n" );
+        Ivy_ObjForEachFanout( p, pObj, vFanouts, pFanout, i )
+        {
+            printf( "    " );
+            printf( "Node %5d : ", Ivy_ObjId(pFanout) );
+            if ( Ivy_ObjIsPo(pFanout) )
+                printf( "PO" );
+            else if ( Ivy_ObjIsLatch(pFanout) )
+                printf( "latch (%d%s)", Ivy_ObjFanin0(pFanout)->Id, (Ivy_ObjFaninC0(pFanout)? "\'" : " ") );
+            else if ( Ivy_ObjIsBuf(pFanout) )
+                printf( "buffer (%d%s)", Ivy_ObjFanin0(pFanout)->Id, (Ivy_ObjFaninC0(pFanout)? "\'" : " ") );
+            else
+                printf( "AND( %5d%s, %5d%s )", 
+                    Ivy_ObjFanin0(pFanout)->Id, (Ivy_ObjFaninC0(pFanout)? "\'" : " "), 
+                    Ivy_ObjFanin1(pFanout)->Id, (Ivy_ObjFaninC1(pFanout)? "\'" : " ") );
+            printf( "\n" );
+        }
+        Vec_PtrFree( vFanouts );
+        return;
+    }
     if ( !fHaig )
     {
         if ( pObj->pEquiv == NULL )
@@ -700,7 +727,7 @@ void Ivy_ManPrintVerbose( Ivy_Man_t * p, int fHaig )
     printf( "\n" );
     vNodes = Ivy_ManDfsSeq( p, NULL );
     Ivy_ManForEachNodeVec( p, vNodes, pObj, i )
-        Ivy_ObjPrintVerbose( pObj, fHaig ), printf( "\n" );
+        Ivy_ObjPrintVerbose( p, pObj, fHaig ), printf( "\n" );
     printf( "\n" );
 }
 

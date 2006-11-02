@@ -69,8 +69,8 @@ Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func, int fUseMemMan
     // start the functionality manager
     if ( Abc_NtkIsStrash(pNtk) )
         pNtk->pManFunc = Abc_AigAlloc( pNtk );
-    else if ( Abc_NtkIsSeq(pNtk) )
-        pNtk->pManFunc = Seq_Create( pNtk );
+//    else if ( Abc_NtkIsSeq(pNtk) )
+//        pNtk->pManFunc = Seq_Create( pNtk );
     else if ( Abc_NtkHasSop(pNtk) )
         pNtk->pManFunc = Extra_MmFlexStart();
     else if ( Abc_NtkHasBdd(pNtk) )
@@ -301,6 +301,7 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
             printf( "Warning: Structural hashing during duplication reduced %d nodes (this is a minor bug).\n",
                 Abc_NtkNodeNum(pNtk) - Abc_NtkNodeNum(pNtkNew) );
     }
+/*
     else if ( Abc_NtkIsSeq(pNtk) )
     {
         // start the storage for initial states
@@ -333,6 +334,7 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
         Abc_SeqForEachCutsetNode( pNtk, pObj, i )
             Vec_PtrPush( pNtkNew->vCutSet, pObj->pCopy );
     }
+*/
     else
     {
         // duplicate the nets and nodes (CIs/COs/latches already dupped)
@@ -351,6 +353,65 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
     if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkDup(): Network check has failed.\n" );
     return pNtkNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Attaches the second network at the bottom of the first.]
+
+  Description [Returns the first network. Deletes the second network.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkAttachBottom( Abc_Ntk_t * pNtkTop, Abc_Ntk_t * pNtkBottom )
+{
+    Abc_Obj_t * pObj, * pFanin, * pBuffer;
+    Vec_Ptr_t * vNodes;
+    int i, k;
+    assert( pNtkBottom != NULL );
+    if ( pNtkTop == NULL )
+        return pNtkBottom;
+    // make sure the networks are combinational
+    assert( Abc_NtkPiNum(pNtkTop) == Abc_NtkCiNum(pNtkTop) );
+    assert( Abc_NtkPiNum(pNtkBottom) == Abc_NtkCiNum(pNtkBottom) );
+    // make sure the POs of the bottom correspond to the PIs of the top
+    assert( Abc_NtkPoNum(pNtkBottom) == Abc_NtkPiNum(pNtkTop) );
+    assert( Abc_NtkPiNum(pNtkBottom) <  Abc_NtkPiNum(pNtkTop) );
+    // add buffers for the PIs of the top - save results in the POs of the bottom
+    Abc_NtkForEachPi( pNtkTop, pObj, i )
+    {
+        pBuffer = Abc_NtkCreateNodeBuf( pNtkTop, NULL );
+        Abc_ObjTransferFanout( pObj, pBuffer );
+        Abc_NtkPo(pNtkBottom, i)->pCopy = pBuffer;
+    }
+    // remove useless PIs of the top
+    for ( i = Abc_NtkPiNum(pNtkTop) - 1; i >= Abc_NtkPiNum(pNtkBottom); i-- )
+        Abc_NtkDeleteObj( Abc_NtkPi(pNtkTop, i) );
+    assert( Abc_NtkPiNum(pNtkBottom) == Abc_NtkPiNum(pNtkTop) );
+    // copy the bottom network
+    Abc_NtkForEachPi( pNtkBottom, pObj, i )
+        Abc_NtkPi(pNtkBottom, i)->pCopy = Abc_NtkPi(pNtkTop, i);
+    // construct all nodes
+    vNodes = Abc_NtkDfs( pNtkBottom, 0 );
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+    {
+        Abc_NtkDupObj(pNtkTop, pObj, 0);
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+            Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
+    }
+    Vec_PtrFree( vNodes );
+    // connect the POs
+    Abc_NtkForEachPo( pNtkBottom, pObj, i )
+        Abc_ObjAddFanin( pObj->pCopy, Abc_ObjFanin0(pObj)->pCopy );
+    // delete old network
+    Abc_NtkDelete( pNtkBottom );
+    // return the network
+    if ( !Abc_NtkCheck( pNtkTop ) )
+        fprintf( stdout, "Abc_NtkAttachBottom(): Network check has failed.\n" );
+    return pNtkTop;
 }
 
 /**Function*************************************************************
@@ -720,8 +781,8 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     // start the functionality manager
     if ( Abc_NtkIsStrash(pNtk) )
         Abc_AigFree( pNtk->pManFunc );
-    else if ( Abc_NtkIsSeq(pNtk) )
-        Seq_Delete( pNtk->pManFunc );
+//    else if ( Abc_NtkIsSeq(pNtk) )
+//        Seq_Delete( pNtk->pManFunc );
     else if ( Abc_NtkHasSop(pNtk) )
         Extra_MmFlexStop( pNtk->pManFunc, 0 );
     else if ( Abc_NtkHasBdd(pNtk) )
@@ -777,7 +838,7 @@ void Abc_NtkFixNonDrivenNets( Abc_Ntk_t * pNtk )
         if ( Abc_ObjFaninNum(pNet) > 0 )
             continue;
         // add the constant 0 driver
-        pNode = Abc_NodeCreateConst0( pNtk );
+        pNode = Abc_NtkCreateNodeConst0( pNtk );
         // add the fanout net
         Abc_ObjAddFanin( pNet, pNode );
         // add the net to those for which the warning will be printed

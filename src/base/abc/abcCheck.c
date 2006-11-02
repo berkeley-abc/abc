@@ -167,13 +167,8 @@ bool Abc_NtkDoCheck( Abc_Ntk_t * pNtk )
     }
 
     // check the nodes
-    if ( Abc_NtkHasAig(pNtk) )
-    {
-        if ( Abc_NtkIsStrash(pNtk) ) 
-            Abc_AigCheck( pNtk->pManFunc );
-        else
-            Abc_NtkSeqCheck( pNtk );
-    }
+    if ( Abc_NtkIsStrash(pNtk) )
+        Abc_AigCheck( pNtk->pManFunc );
     else
     {
         Abc_NtkForEachNode( pNtk, pNode, i )
@@ -240,9 +235,10 @@ bool Abc_NtkCheckNames( Abc_Ntk_t * pNtk )
     Vec_Int_t * vNameIds;
     char * pName;
     int i, NameId;
-
+/*
     if ( Abc_NtkIsNetlist(pNtk) )
     {
+
         // check that each net has a name
         Abc_NtkForEachNet( pNtk, pObj, i )
         {
@@ -254,6 +250,7 @@ bool Abc_NtkCheckNames( Abc_Ntk_t * pNtk )
         }
     }
     else
+*/
     {
         // check that each CI/CO has a name
         Abc_NtkForEachCi( pNtk, pObj, i )

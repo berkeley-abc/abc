@@ -574,8 +574,34 @@ static inline void Vec_PtrReorder( Vec_Ptr_t * p, int nItems )
 ***********************************************************************/
 static inline void Vec_PtrSort( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)() )
 {
+    if ( p->nSize < 2 )
+        return;
     qsort( (void *)p->pArray, p->nSize, sizeof(void *), 
             (int (*)(const void *, const void *)) Vec_PtrSortCompare );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sorting the entries by their integer value.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_PtrUniqify( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)() )
+{
+    int i, k;
+    if ( p->nSize < 2 )
+        return;
+    qsort( (void *)p->pArray, p->nSize, sizeof(void *), 
+            (int (*)(const void *, const void *)) Vec_PtrSortCompare );
+    for ( i = k = 1; i < p->nSize; i++ )
+        if ( p->pArray[i] != p->pArray[i-1] )
+            p->pArray[k++] = p->pArray[i];
+    p->nSize = k;
 }
 
 #endif

@@ -183,10 +183,10 @@ static inline int          Ivy_InfoHasBit( unsigned * p, int i )  { return (p[(i
 static inline void         Ivy_InfoSetBit( unsigned * p, int i )  { p[(i)>>5] |= (1<<((i) & 31));                   }
 static inline void         Ivy_InfoXorBit( unsigned * p, int i )  { p[(i)>>5] ^= (1<<((i) & 31));                   }
 
-static inline Ivy_Obj_t *  Ivy_Regular( Ivy_Obj_t * p )           { return (Ivy_Obj_t *)((unsigned)(p) & ~01);      }
-static inline Ivy_Obj_t *  Ivy_Not( Ivy_Obj_t * p )               { return (Ivy_Obj_t *)((unsigned)(p) ^  01);      }
-static inline Ivy_Obj_t *  Ivy_NotCond( Ivy_Obj_t * p, int c )    { return (Ivy_Obj_t *)((unsigned)(p) ^ (c));      }
-static inline int          Ivy_IsComplement( Ivy_Obj_t * p )      { return (int )(((unsigned)p) & 01);              }
+static inline Ivy_Obj_t *  Ivy_Regular( Ivy_Obj_t * p )           { return (Ivy_Obj_t *)((unsigned long)(p) & ~01);      }
+static inline Ivy_Obj_t *  Ivy_Not( Ivy_Obj_t * p )               { return (Ivy_Obj_t *)((unsigned long)(p) ^  01);      }
+static inline Ivy_Obj_t *  Ivy_NotCond( Ivy_Obj_t * p, int c )    { return (Ivy_Obj_t *)((unsigned long)(p) ^ (c));      }
+static inline int          Ivy_IsComplement( Ivy_Obj_t * p )      { return (int )(((unsigned long)p) & 01);              }
 
 static inline Ivy_Obj_t *  Ivy_ManConst0( Ivy_Man_t * p )         { return Ivy_Not(p->pConst1);                     }
 static inline Ivy_Obj_t *  Ivy_ManConst1( Ivy_Man_t * p )         { return p->pConst1;                              }
@@ -471,6 +471,7 @@ extern int             Ivy_TruthIsop( unsigned * puTruth, int nVars, Vec_Int_t *
 extern Ivy_Man_t *     Ivy_ManStart();
 extern Ivy_Man_t *     Ivy_ManStartFrom( Ivy_Man_t * p );
 extern Ivy_Man_t *     Ivy_ManDup( Ivy_Man_t * p );
+extern Ivy_Man_t *     Ivy_ManFrames( Ivy_Man_t * pMan, int nLatches, int nFrames, int fInit, Vec_Ptr_t ** pvMapping );
 extern void            Ivy_ManStop( Ivy_Man_t * p );
 extern int             Ivy_ManCleanup( Ivy_Man_t * p );
 extern int             Ivy_ManPropagateBuffers( Ivy_Man_t * p, int fUpdateLevel );
@@ -538,7 +539,7 @@ extern void            Ivy_ObjUpdateLevelR_rec( Ivy_Man_t * p, Ivy_Obj_t * pObj,
 extern int             Ivy_ObjIsMuxType( Ivy_Obj_t * pObj );
 extern Ivy_Obj_t *     Ivy_ObjRecognizeMux( Ivy_Obj_t * pObj, Ivy_Obj_t ** ppObjT, Ivy_Obj_t ** ppObjE );
 extern Ivy_Obj_t *     Ivy_ObjReal( Ivy_Obj_t * pObj );
-extern void            Ivy_ObjPrintVerbose( Ivy_Obj_t * pObj, int fHaig );
+extern void            Ivy_ObjPrintVerbose( Ivy_Man_t * p, Ivy_Obj_t * pObj, int fHaig );
 extern void            Ivy_ManPrintVerbose( Ivy_Man_t * p, int fHaig );
 
 #ifdef __cplusplus

@@ -242,12 +242,14 @@ p->timeRes += clock() - clk;
 
     if ( GainBest == -1 )
         return -1;
-
 /*
+    {
+    Ivy_Cut_t * pCut = p->pCut;
     printf( "Node %5d. Using cut : {", Ivy_ObjId(pNode) );
     for ( i = 0; i < pCut->nSize; i++ )
         printf( " %d(%d)", Ivy_LeafId(pCut->pArray[i]), Ivy_LeafLat(pCut->pArray[i]) );
     printf( " }\n" );
+    }
 */
 
     // copy the leaves

@@ -333,7 +333,7 @@ void Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nF
         printf( "Networks are NOT EQUIVALENT after framing.\n" );
         // report the error
         pFrames->pModel = Abc_NtkVerifyGetCleanModel( pFrames, 1 );
-        Abc_NtkVerifyReportErrorSeq( pNtk1, pNtk2, pFrames->pModel, nFrames );
+//        Abc_NtkVerifyReportErrorSeq( pNtk1, pNtk2, pFrames->pModel, nFrames );
         FREE( pFrames->pModel );
         Abc_NtkDelete( pFrames );
         return;
@@ -365,7 +365,7 @@ void Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nF
     else if ( RetValue == 0 )
     {
         printf( "Networks are NOT EQUIVALENT after fraiging.\n" );
-        Abc_NtkVerifyReportErrorSeq( pNtk1, pNtk2, Fraig_ManReadModel(pMan), nFrames );
+//        Abc_NtkVerifyReportErrorSeq( pNtk1, pNtk2, Fraig_ManReadModel(pMan), nFrames );
     }
     else assert( 0 );
     // delete the fraig manager

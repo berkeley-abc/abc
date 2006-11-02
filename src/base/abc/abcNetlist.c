@@ -253,9 +253,12 @@ Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk, int fDirect )
     }
     else if ( Abc_NtkIsSeq(pNtk) )
     {
+        assert( 0 );
+/*
         pNtkTemp = Abc_NtkSeqToLogicSop(pNtk);
         pNtkNew = Abc_NtkLogicSopToNetlist( pNtkTemp );
         Abc_NtkDelete( pNtkTemp );
+*/
     }
     else if ( Abc_NtkIsBddLogic(pNtk) )
     {
@@ -416,7 +419,7 @@ Abc_Ntk_t * Abc_NtkAigToLogicSop( Abc_Ntk_t * pNtk )
     // if the constant node is used, duplicate it
     pObj = Abc_AigConst1(pNtk);
     if ( Abc_ObjFanoutNum(pObj) > 0 )
-        pObj->pCopy = Abc_NodeCreateConst1(pNtkNew);
+        pObj->pCopy = Abc_NtkCreateNodeConst1(pNtkNew);
     // duplicate the nodes and create node functions
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
@@ -505,19 +508,19 @@ Abc_Ntk_t * Abc_NtkAigToLogicSopBench( Abc_Ntk_t * pNtk )
     pObj = Abc_AigConst1(pNtk);
     if ( Abc_AigNodeHasComplFanoutEdgeTrav(pObj) )
     {
-        pObj->pCopy = Abc_NodeCreateConst1(pNtkNew);
-        pObj->pCopy->pCopy = Abc_NodeCreateInv( pNtkNew, pObj->pCopy );
+        pObj->pCopy = Abc_NtkCreateNodeConst1(pNtkNew);
+        pObj->pCopy->pCopy = Abc_NtkCreateNodeInv( pNtkNew, pObj->pCopy );
     }
     Abc_NtkForEachCi( pNtk, pObj, i )
         if ( Abc_AigNodeHasComplFanoutEdgeTrav(pObj) )
-            pObj->pCopy->pCopy = Abc_NodeCreateInv( pNtkNew, pObj->pCopy );
+            pObj->pCopy->pCopy = Abc_NtkCreateNodeInv( pNtkNew, pObj->pCopy );
     // duplicate the nodes, create node functions, and inverters
     Vec_PtrForEachEntry( vNodes, pObj, i )
     {
         Abc_NtkDupObj( pNtkNew, pObj, 0 );
         pObj->pCopy->pData = Abc_SopCreateAnd( pNtkNew->pManFunc, 2, NULL );
         if ( Abc_AigNodeHasComplFanoutEdgeTrav(pObj) )
-            pObj->pCopy->pCopy = Abc_NodeCreateInv( pNtkNew, pObj->pCopy );
+            pObj->pCopy->pCopy = Abc_NtkCreateNodeInv( pNtkNew, pObj->pCopy );
     }
     // connect the objects
     Vec_PtrForEachEntry( vNodes, pObj, i )

@@ -25,6 +25,11 @@
 extern "C" {
 #endif 
 
+// HA: Added for printing messages
+#ifndef MSG 
+#define MSG(msg) (printf("%s = \n",(msg)));
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -52,6 +57,7 @@ extern "C" {
 
 extern void Cudd2_Init      ( unsigned int numVars, unsigned int numVarsZ, unsigned int numSlots, unsigned int cacheSize, unsigned long maxMemory, void * pCudd );
 extern void Cudd2_Quit      ( void * pCudd );
+extern void Cudd2_bddOne    ( void * pCudd, void * pResult );
 extern void Cudd2_bddIthVar ( void * pCudd, int iVar, void * pResult );
 extern void Cudd2_bddAnd    ( void * pCudd, void * pArg0, void * pArg1, void * pResult );
 extern void Cudd2_bddOr     ( void * pCudd, void * pArg0, void * pArg1, void * pResult );

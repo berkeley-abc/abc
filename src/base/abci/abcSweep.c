@@ -32,6 +32,7 @@ static void           Abc_NtkFraigMergeClassMapped( Abc_Ntk_t * pNtk, Abc_Obj_t 
 static void           Abc_NtkFraigMergeClass( Abc_Ntk_t * pNtk, Abc_Obj_t * pChain, int fUseInv, int fVerbose );
 static int            Abc_NodeDroppingCost( Abc_Obj_t * pNode );
 
+static int            Abc_NtkReduceNodes( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes );
 static void           Abc_NodeSweep( Abc_Obj_t * pNode, int fVerbose );
 static void           Abc_NodeConstantInput( Abc_Obj_t * pNode, Abc_Obj_t * pFanin, bool fConst0 );
 static void           Abc_NodeComplementInput( Abc_Obj_t * pNode, Abc_Obj_t * pFanin );
@@ -425,7 +426,7 @@ void Abc_NtkFraigMergeClass( Abc_Ntk_t * pNtk, Abc_Obj_t * pChain, int fUseInv, 
         return;
 
     // add the invertor
-    pNodeMinInv = Abc_NodeCreateInv( pNtk, pNodeMin );
+    pNodeMinInv = Abc_NtkCreateNodeInv( pNtk, pNodeMin );
    
     // move the fanouts of the inverted nodes
     for ( pNode = pListInv; pNode; pNode = pNode->pNext )
@@ -583,7 +584,7 @@ int Abc_NtkSweep( Abc_Ntk_t * pNtk, int fVerbose )
         if ( Abc_ObjFanoutNum(pNode) > 0 )
             Vec_PtrPush( vNodes, pNode );
         else
-            Abc_NtkDeleteObj_rec( pNode );
+            Abc_NtkDeleteObj_rec( pNode, 1 );
     }
     Vec_PtrFree( vNodes );
     // sweep a node into its CO fanout if all of this is true:
@@ -671,6 +672,263 @@ void Abc_NodeComplementInput( Abc_Obj_t * pNode, Abc_Obj_t * pFanin )
     Cudd_RecursiveDeref( dd, bCof0 );
     Cudd_RecursiveDeref( dd, bCof1 );
 }
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Removes all objects whose trav ID is not current.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NodeRemoveNonCurrentObjects( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int Counter, i;
+    int fVerbose = 0;
+
+    // report on the nodes to be deleted
+    if ( fVerbose )
+    {
+        printf( "These nodes will be deleted: \n" );
+        Abc_NtkForEachObj( pNtk, pObj, i )
+            if ( !Abc_NodeIsTravIdCurrent( pObj ) )
+            {
+                printf( "    " );
+                Abc_ObjPrint( stdout, pObj );
+            }
+    }
+    
+    // delete the nodes    
+    Counter = 0;
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        if ( !Abc_NodeIsTravIdCurrent( pObj ) )
+        {
+            Abc_NtkDeleteObj( pObj );
+            Counter++;
+        }
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Check if the fanin of this latch is a constant.]
+
+  Description [Returns 0/1 if constant; -1 if not a constant.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkSetTravId_rec( Abc_Obj_t * pObj )
+{
+    Abc_NodeSetTravIdCurrent(pObj);
+    if ( Abc_ObjFaninNum(pObj) == 0 )
+        return;
+    assert( Abc_ObjFaninNum(pObj) == 1 );
+    Abc_NtkSetTravId_rec( Abc_ObjFanin0(pObj) );    
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Check if the fanin of this latch is a constant.]
+
+  Description [Returns 0/1 if constant; -1 if not a constant.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkCheckConstant_rec( Abc_Obj_t * pObj )
+{
+    if ( Abc_ObjFaninNum(pObj) == 0 )
+    {
+        if ( !Abc_ObjIsNode(pObj) )
+            return -1;
+        if ( Abc_NodeIsConst0(pObj) )
+            return 0;
+        if ( Abc_NodeIsConst1(pObj) )
+            return 1;
+        assert( 0 );
+        return -1;
+    }
+    if ( Abc_ObjIsLatch(pObj) || Abc_ObjFaninNum(pObj) > 1 )
+        return -1;
+    if ( !Abc_ObjIsNode(pObj) || Abc_NodeIsBuf(pObj) )
+        return Abc_NtkCheckConstant_rec( Abc_ObjFanin0(pObj) );
+    if ( Abc_NodeIsInv(pObj) )
+    {
+        int RetValue = Abc_NtkCheckConstant_rec( Abc_ObjFanin0(pObj) );
+        if ( RetValue == 0 )
+            return 1;
+        if ( RetValue == 1 )
+            return 0;
+        return RetValue;
+    }
+    assert( 0 );
+    return -1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Removes redundant latches.]
+
+  Description [The redundant latches are of two types:
+  - Latches fed by a constant which matches the init value of the latch.
+  - Latches fed by a constant which does not match the init value of the latch
+  can be all replaced by one latch.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkLatchSweep( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pFanin, * pLatch, * pLatchPivot = NULL;
+    int Counter, RetValue, i;
+    Counter = 0;
+    // go through the latches
+    Abc_NtkForEachLatch( pNtk, pLatch, i )
+    {
+        // check if the latch has constant input
+        RetValue = Abc_NtkCheckConstant_rec( Abc_ObjFanin0(pLatch) );
+        if ( RetValue == -1 )
+            continue;
+        // found a latch with constant fanin
+        if ( (RetValue == 1 && Abc_LatchIsInit0(pLatch)) ||
+             (RetValue == 0 && Abc_LatchIsInit1(pLatch)) )
+        {
+            // fanin constant differs from the latch init value
+            if ( pLatchPivot == NULL )
+            {
+                pLatchPivot = pLatch;
+                continue;
+            }
+            if ( Abc_LatchInit(pLatch) != Abc_LatchInit(pLatchPivot) ) // add inverter
+                pFanin = Abc_NtkCreateNodeInv( pNtk, Abc_ObjFanout0(pLatchPivot) );
+            else
+                pFanin = Abc_ObjFanout0(pLatchPivot);
+        }
+        else
+            pFanin = Abc_ObjFanin0(Abc_ObjFanin0(pLatch));
+        // replace latch
+        Abc_ObjTransferFanout( Abc_ObjFanout0(pLatch), pFanin );
+        // delete the extra nodes
+        Abc_NtkDeleteObj_rec( Abc_ObjFanout0(pLatch), 0 );
+        Counter++;
+    }
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Replaces autonumnous logic by free inputs.]
+
+  Description [Assumes that non-autonomous logic is marked with
+  the current ID.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkReplaceAutonomousLogic( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNode, * pFanin;
+    Vec_Ptr_t * vNodes;
+    int i, k, Counter;
+    // collect the nodes that feed into the reachable logic
+    vNodes = Vec_PtrAlloc( 100 );
+    Abc_NtkForEachObj( pNtk, pNode, i )
+    {
+        // skip non-visited fanins
+        if ( !Abc_NodeIsTravIdCurrent(pNode) )
+            continue;
+        // look for non-visited fanins
+        Abc_ObjForEachFanin( pNode, pFanin, k )
+        {
+            // skip visited fanins
+            if ( Abc_NodeIsTravIdCurrent(pFanin) )
+                continue;
+            // skip constants and latches fed by constants
+            if ( Abc_NtkCheckConstant_rec(pFanin) != -1 ||
+                 (Abc_ObjIsBi(pFanin) && Abc_NtkCheckConstant_rec(Abc_ObjFanin0(Abc_ObjFanin0(pFanin))) != -1) )
+            {
+                Abc_NtkSetTravId_rec( pFanin );
+                continue;
+            }
+            assert( !Abc_ObjIsLatch(pFanin) );
+            Vec_PtrPush( vNodes, pFanin );
+        }
+    }
+    Vec_PtrUniqify( vNodes, Abc_ObjPointerCompare );
+    // replace these nodes by the PIs
+    Vec_PtrForEachEntry( vNodes, pNode, i )
+    {
+        pFanin = Abc_NtkCreatePi(pNtk);
+        Abc_NodeSetTravIdCurrent( pFanin );
+        Abc_ObjTransferFanout( pNode, pFanin );
+    }
+    Counter = Vec_PtrSize(vNodes);
+    Vec_PtrFree( vNodes );
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sequential cleanup.]
+
+  Description [Performs three tasks:
+  - Removes logic that does not feed into POs.
+  - Removes latches driven by constant values equal to the initial state.
+  - Replaces the autonomous components by additional PI variables.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkCleanupSeq( Abc_Ntk_t * pNtk, int fVerbose )
+{
+    Vec_Ptr_t * vNodes;
+    int Counter;
+    assert( Abc_NtkIsLogic(pNtk) );
+    // mark the nodes reachable from the POs
+    vNodes = Abc_NtkDfsSeq( pNtk );
+    Vec_PtrFree( vNodes );
+    // remove the non-marked nodes
+    Counter = Abc_NodeRemoveNonCurrentObjects( pNtk );
+    if ( fVerbose )
+        printf( "Cleanup removed %4d dangling objects.\n", Counter );
+    // check if some of the latches can be removed
+    Counter = Abc_NtkLatchSweep( pNtk );
+    if ( fVerbose )
+        printf( "Cleanup removed %4d redundant latches.\n", Counter );
+    // detect the autonomous components
+    vNodes = Abc_NtkDfsSeqReverse( pNtk );
+    Vec_PtrFree( vNodes );
+    // replace them by PIs
+    Counter = Abc_NtkReplaceAutonomousLogic( pNtk );
+    if ( fVerbose )
+        printf( "Cleanup added   %4d additional PIs.\n", Counter );
+    // remove the non-marked nodes
+    Counter = Abc_NodeRemoveNonCurrentObjects( pNtk );
+    if ( fVerbose )
+        printf( "Cleanup removed %4d autonomous objects.\n", Counter );
+    // check
+    if ( !Abc_NtkCheck( pNtk ) )
+        printf( "Abc_NtkCleanupSeq: The network check has failed.\n" );
+    return 1;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

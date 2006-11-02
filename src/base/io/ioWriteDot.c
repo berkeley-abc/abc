@@ -112,10 +112,13 @@ void Io_WriteDotAig( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
     fprintf( pFile, "\n" );
     fprintf( pFile, "digraph AIG {\n" );
     fprintf( pFile, "size = \"7.5,10\";\n" );
+//    fprintf( pFile, "size = \"10,8.5\";\n" );
+//    fprintf( pFile, "size = \"14,11\";\n" );
+//    fprintf( pFile, "page = \"8,11\";\n" );
 //  fprintf( pFile, "ranksep = 0.5;\n" );
 //  fprintf( pFile, "nodesep = 0.5;\n" );
     fprintf( pFile, "center = true;\n" );
-//  fprintf( pFile, "orientation = landscape;\n" );
+//    fprintf( pFile, "orientation = landscape;\n" );
 //  fprintf( pFile, "edge [fontsize = 10];\n" );
 //  fprintf( pFile, "edge [dir = none];\n" );
     fprintf( pFile, "edge [dir = back];\n" );
@@ -320,8 +323,8 @@ void Io_WriteDotAig( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
             fprintf( pFile, "Node%d%s",  Abc_ObjFaninId0(pNode), (Abc_ObjIsLatch(Abc_ObjFanin0(pNode))? "_out":"") );
             fprintf( pFile, " [" );
             fprintf( pFile, "style = %s", Abc_ObjFaninC0(pNode)? "dotted" : "bold" );
-            if ( Abc_NtkIsSeq(pNode->pNtk) && Seq_ObjFaninL0(pNode) > 0 )
-            fprintf( pFile, ", label = \"%s\"", Seq_ObjFaninGetInitPrintable(pNode,0) );
+//            if ( Abc_NtkIsSeq(pNode->pNtk) && Seq_ObjFaninL0(pNode) > 0 )
+//            fprintf( pFile, ", label = \"%s\"", Seq_ObjFaninGetInitPrintable(pNode,0) );
             fprintf( pFile, "]" );
             fprintf( pFile, ";\n" );
         }
@@ -335,8 +338,8 @@ void Io_WriteDotAig( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
             fprintf( pFile, "Node%d%s",  Abc_ObjFaninId1(pNode), (Abc_ObjIsLatch(Abc_ObjFanin1(pNode))? "_out":"") );
             fprintf( pFile, " [" );
             fprintf( pFile, "style = %s", Abc_ObjFaninC1(pNode)? "dotted" : "bold" );
-            if ( Abc_NtkIsSeq(pNode->pNtk) && Seq_ObjFaninL1(pNode) > 0 )
-            fprintf( pFile, ", label = \"%s\"", Seq_ObjFaninGetInitPrintable(pNode,1) );
+//            if ( Abc_NtkIsSeq(pNode->pNtk) && Seq_ObjFaninL1(pNode) > 0 )
+//            fprintf( pFile, ", label = \"%s\"", Seq_ObjFaninGetInitPrintable(pNode,1) );
             fprintf( pFile, "]" );
             fprintf( pFile, ";\n" );
         }

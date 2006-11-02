@@ -209,6 +209,118 @@ void Abc_NtkDfsReverse_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
 
 /**Function*************************************************************
 
+  Synopsis    [Performs DFS for one node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkDfsSeq_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
+{
+    Abc_Obj_t * pFanin;
+    int i;
+    // if this node is already visited, skip
+    if ( Abc_NodeIsTravIdCurrent( pNode ) )
+        return;
+    // mark the node as visited
+    Abc_NodeSetTravIdCurrent( pNode );
+    // visit the transitive fanin of the node
+    Abc_ObjForEachFanin( pNode, pFanin, i )
+        Abc_NtkDfsSeq_rec( pFanin, vNodes );
+    // add the node after the fanins have been added
+    Vec_PtrPush( vNodes, pNode );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the array of nodes and latches reachable from POs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_NtkDfsSeq( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vNodes;
+    Abc_Obj_t * pObj;
+    int i;
+    assert( !Abc_NtkIsNetlist(pNtk) );
+    // set the traversal ID
+    Abc_NtkIncrementTravId( pNtk );
+    // start the array of nodes
+    vNodes = Vec_PtrAlloc( 100 );
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        Abc_NtkDfsSeq_rec( pObj, vNodes );
+    // mark the PIs
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        Abc_NtkDfsSeq_rec( pObj, vNodes );
+    return vNodes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs DFS for one node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkDfsSeqReverse_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
+{
+    Abc_Obj_t * pFanout;
+    int i;
+    // if this node is already visited, skip
+    if ( Abc_NodeIsTravIdCurrent( pNode ) )
+        return;
+    // mark the node as visited
+    Abc_NodeSetTravIdCurrent( pNode );
+    // visit the transitive fanin of the node
+    Abc_ObjForEachFanout( pNode, pFanout, i )
+        Abc_NtkDfsSeqReverse_rec( pFanout, vNodes );
+    // add the node after the fanins have been added
+    Vec_PtrPush( vNodes, pNode );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the array of nodes and latches reachable from POs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_NtkDfsSeqReverse( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vNodes;
+    Abc_Obj_t * pObj;
+    int i;
+    assert( !Abc_NtkIsNetlist(pNtk) );
+    // set the traversal ID
+    Abc_NtkIncrementTravId( pNtk );
+    // start the array of nodes
+    vNodes = Vec_PtrAlloc( 100 );
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        Abc_NtkDfsSeqReverse_rec( pObj, vNodes );
+    // mark the logic feeding into POs
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        Abc_NtkDfsSeq_rec( pObj, vNodes );
+    return vNodes;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns 1 if the ordering of nodes is DFS.]
 
   Description []
@@ -611,9 +723,9 @@ bool Abc_NtkIsAcyclic_rec( Abc_Obj_t * pNode )
     Abc_Obj_t * pFanin;
     int fAcyclic, i;
     assert( !Abc_ObjIsNet(pNode) );
-    if ( Abc_ObjIsCi(pNode) || Abc_ObjIsBox(pNode) )
+    if ( Abc_ObjIsCi(pNode) || Abc_ObjIsBox(pNode) || (Abc_NtkIsStrash(pNode->pNtk) && Abc_AigNodeIsConst(pNode)) )
         return 1;
-    assert( Abc_ObjIsNode( pNode ) || Abc_ObjIsBox( pNode ) );
+    assert( Abc_ObjIsNode(pNode) );
     // make sure the node is not visited
     assert( !Abc_NodeIsTravIdPrevious(pNode) );
     // check if the node is part of the combinational loop

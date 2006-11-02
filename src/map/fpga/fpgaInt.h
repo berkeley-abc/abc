@@ -67,16 +67,16 @@
 #define FPGA_SEQ_SIGN(p)        (1 << (((unsigned)p)%31));
 
 // internal macros to work with cuts
-#define Fpga_CutIsComplement(p)  (((int)((long) (p) & 01)))
-#define Fpga_CutRegular(p)       ((Fpga_Cut_t *)((unsigned)(p) & ~01)) 
-#define Fpga_CutNot(p)           ((Fpga_Cut_t *)((long)(p) ^ 01)) 
-#define Fpga_CutNotCond(p,c)     ((Fpga_Cut_t *)((long)(p) ^ (c)))
+#define Fpga_CutIsComplement(p)  (((int)((unsigned long) (p) & 01)))
+#define Fpga_CutRegular(p)       ((Fpga_Cut_t *)((unsigned long)(p) & ~01)) 
+#define Fpga_CutNot(p)           ((Fpga_Cut_t *)((unsigned long)(p) ^ 01)) 
+#define Fpga_CutNotCond(p,c)     ((Fpga_Cut_t *)((unsigned long)(p) ^ (c)))
 
 // the cut nodes
-#define Fpga_SeqIsComplement( p )      (((int)((long) (p) & 01)))
-#define Fpga_SeqRegular( p )           ((Fpga_Node_t *)((unsigned)(p) & ~015))
-#define Fpga_SeqIndex( p )             ((((unsigned)(p)) >> 1) & 07)
-#define Fpga_SeqIndexCreate( p, Ind )  (((unsigned)(p)) | (1 << (((unsigned)(Ind)) & 07)))
+#define Fpga_SeqIsComplement( p )      (((int)((unsigned long) (p) & 01)))
+#define Fpga_SeqRegular( p )           ((Fpga_Node_t *)((unsigned long)(p) & ~015))
+#define Fpga_SeqIndex( p )             ((((unsigned long)(p)) >> 1) & 07)
+#define Fpga_SeqIndexCreate( p, Ind )  (((unsigned long)(p)) | (1 << (((unsigned)(Ind)) & 07)))
 
 // internal macros for referencing of nodes
 #define Fpga_NodeReadRef(p)      ((Fpga_Regular(p))->nRefs)

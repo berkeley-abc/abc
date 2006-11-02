@@ -580,7 +580,8 @@ int Seq_NtkCleanup( Abc_Ntk_t * pNtk, int fVerbose )
         Abc_NtkNodeNum(pNtk), Vec_PtrSize(vNodesPo), Vec_PtrSize(vNodesPi) );
     if ( Abc_NtkNodeNum(pNtk) > Vec_PtrSize(vNodesPo) )
     {
-        Counter = Abc_NtkReduceNodes( pNtk, vNodesPo );
+//        Counter = Abc_NtkReduceNodes( pNtk, vNodesPo );
+        Counter = 0;
         if ( fVerbose )
             printf( "Cleanup removed %d nodes that are not reachable from the POs.\n", Counter );
     }

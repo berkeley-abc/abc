@@ -120,7 +120,7 @@ char * Nm_ManStoreIdName( Nm_Man_t * p, int ObjId, int Type, char * pName, char 
     nEntrySize = sizeof(Nm_Entry_t) + strlen(pName) + (pSuffix?strlen(pSuffix):0) + 1;
     nEntrySize = (nEntrySize / 4 + ((nEntrySize % 4) > 0)) * 4;
     pEntry = (Nm_Entry_t *)Extra_MmFlexEntryFetch( p->pMem, nEntrySize );
-    pEntry->pNextI2N = pEntry->pNextN2I = NULL;
+    pEntry->pNextI2N = pEntry->pNextN2I = pEntry->pNameSake = NULL;
     pEntry->ObjId = ObjId;
     pEntry->Type = Type;
     sprintf( pEntry->Name, "%s%s", pName, pSuffix? pSuffix : "" );

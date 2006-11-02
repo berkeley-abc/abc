@@ -387,13 +387,13 @@ int Ver_ParseModule( Ver_Man_t * pMan )
     if ( Abc_ObjFanoutNum(pNet) == 0 )
         Abc_NtkDeleteObj(pNet);
     else
-        Abc_ObjAddFanin( pNet, Abc_NodeCreateConst0(pNtk) );
+        Abc_ObjAddFanin( pNet, Abc_NtkCreateNodeConst0(pNtk) );
     // check if constant 1 net is used
     pNet = Abc_NtkFindOrCreateNet( pNtk, "1'b1" );
     if ( Abc_ObjFanoutNum(pNet) == 0 )
         Abc_NtkDeleteObj(pNet);
     else
-        Abc_ObjAddFanin( pNet, Abc_NodeCreateConst1(pNtk) );
+        Abc_ObjAddFanin( pNet, Abc_NtkCreateNodeConst1(pNtk) );
 
     // fix the dangling nets
     Abc_NtkFinalizeRead( pNtk );

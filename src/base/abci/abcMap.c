@@ -259,7 +259,7 @@ Abc_Obj_t * Abc_NodeFromMap_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap, int
 
     // check the case of constant node
     if ( Map_NodeIsConst(pNodeMap) )
-        return fPhase? Abc_NodeCreateConst1(pNtkNew) : Abc_NodeCreateConst0(pNtkNew);
+        return fPhase? Abc_NtkCreateNodeConst1(pNtkNew) : Abc_NtkCreateNodeConst0(pNtkNew);
 
     // check if the phase is already implemented
     pNodeNew = (Abc_Obj_t *)Map_NodeReadData( pNodeMap, fPhase );
@@ -369,7 +369,7 @@ Abc_Obj_t * Abc_NodeFromMapSuper_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap
              * (since the cut only has 4 variables). An interesting question is what
              * if the first variable (and not the fifth one is the redundant one;
              * can that happen?) */
-            return Abc_NodeCreateConst0(pNtkNew);
+            return Abc_NtkCreateNodeConst0(pNtkNew);
         }
     }
 
@@ -503,14 +503,14 @@ Abc_Ntk_t * Abc_NtkFromMapSuperChoice( Map_Man_t * pMan, Abc_Ntk_t * pNtk )
     // set the pointers from the mapper to the new nodes
     Abc_NtkForEachCi( pNtk, pNode, i )
     {
-        Map_NodeSetData( Map_ManReadInputs(pMan)[i], 0, (char *)Abc_NodeCreateInv(pNtkNew,pNode->pCopy) );
+        Map_NodeSetData( Map_ManReadInputs(pMan)[i], 0, (char *)Abc_NtkCreateNodeInv(pNtkNew,pNode->pCopy) );
         Map_NodeSetData( Map_ManReadInputs(pMan)[i], 1, (char *)pNode->pCopy );
     }
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
 //        if ( Abc_NodeIsConst(pNode) )
 //            continue;
-        Map_NodeSetData( (Map_Node_t *)pNode->pNext, 0, (char *)Abc_NodeCreateInv(pNtkNew,pNode->pCopy) );
+        Map_NodeSetData( (Map_Node_t *)pNode->pNext, 0, (char *)Abc_NtkCreateNodeInv(pNtkNew,pNode->pCopy) );
         Map_NodeSetData( (Map_Node_t *)pNode->pNext, 1, (char *)pNode->pCopy );
     }
 
@@ -630,7 +630,7 @@ Abc_Obj_t * Abc_NodeFromMapSuperChoice_rec( Abc_Ntk_t * pNtkNew, Map_Super_t * p
              * (since the cut only has 4 variables). An interesting question is what
              * if the first variable (and not the fifth one is the redundant one;
              * can that happen?) */
-            return Abc_NodeCreateConst0(pNtkNew);
+            return Abc_NtkCreateNodeConst0(pNtkNew);
         }
     }
 

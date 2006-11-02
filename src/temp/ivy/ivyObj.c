@@ -124,7 +124,7 @@ Ivy_Obj_t * Ivy_ObjCreate( Ivy_Man_t * p, Ivy_Obj_t * pGhost )
     p->nCreated++;
 
 //    printf( "Adding %sAIG node: ", p->pHaig==NULL? "H":" " );
-//    Ivy_ObjPrintVerbose( pObj, p->pHaig==NULL );
+//    Ivy_ObjPrintVerbose( p, pObj, p->pHaig==NULL );
 //    printf( "\n" );
 
     // if HAIG is defined, create a corresponding node
@@ -234,7 +234,7 @@ void Ivy_ObjPatchFanin0( Ivy_Man_t * p, Ivy_Obj_t * pObj, Ivy_Obj_t * pFaninNew 
     if ( p->fFanout )
         Ivy_ObjAddFanout( p, Ivy_Regular(pFaninNew), pObj );
     // get rid of old fanin
-    if ( !Ivy_ObjIsPi(pFaninOld) && Ivy_ObjRefs(pFaninOld) == 0 )
+    if ( !Ivy_ObjIsPi(pFaninOld) && !Ivy_ObjIsConst1(pFaninOld) && Ivy_ObjRefs(pFaninOld) == 0 )
         Ivy_ObjDelete_rec( p, pFaninOld, 1 );
 }
 
@@ -333,6 +333,8 @@ void Ivy_ObjReplace( Ivy_Man_t * p, Ivy_Obj_t * pObjOld, Ivy_Obj_t * pObjNew, in
     assert( !Ivy_ObjIsBuf(Ivy_Regular(pObjNew)) );
     // the object cannot be the same
     assert( pObjOld != Ivy_Regular(pObjNew) );
+//printf( "Replacing %d by %d.\n", Ivy_Regular(pObjOld)->Id, Ivy_Regular(pObjNew)->Id );
+
     // if HAIG is defined, create the choice node
     if ( p->pHaig )
     {
@@ -410,8 +412,8 @@ void Ivy_ObjReplace( Ivy_Man_t * p, Ivy_Obj_t * pObjOld, Ivy_Obj_t * pObjNew, in
     if ( p->pHaig )
     {
         int x;
-        Ivy_ManShow( p, 0 );
-        Ivy_ManShow( p->pHaig, 1 );
+        Ivy_ManShow( p, 0, NULL );
+        Ivy_ManShow( p->pHaig, 1, NULL );
         x = 0;
     }
 */
@@ -458,6 +460,11 @@ void Ivy_NodeFixBufferFanins( Ivy_Man_t * p, Ivy_Obj_t * pNode, int fUpdateLevel
         pResult = Ivy_Latch( p, pFanReal0, Ivy_ObjInit(pNode) );
     else 
         assert( 0 );
+
+//printf( "===== Replacing %d by %d.\n", pNode->Id, pResult->Id );
+//Ivy_ObjPrintVerbose( p, pNode, 0 );   printf( "\n" );
+//Ivy_ObjPrintVerbose( p, pResult, 0 ); printf( "\n" );
+
     // perform the replacement
     Ivy_ObjReplace( p, pNode, pResult, 1, 0, fUpdateLevel ); 
 }

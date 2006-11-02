@@ -51,7 +51,7 @@ static inline Abc_Obj_t *  Abc_EdgeToNode( Abc_Ntk_t * p, Abc_Edge_t Edge )    {
 static inline Abc_Obj_t *  Abc_ObjFanin0Ivy( Abc_Ntk_t * p, Ivy_Obj_t * pObj ) { return Abc_ObjNotCond( Abc_EdgeToNode(p, Ivy_ObjFanin0(pObj)->TravId), Ivy_ObjFaninC0(pObj) ); }
 static inline Abc_Obj_t *  Abc_ObjFanin1Ivy( Abc_Ntk_t * p, Ivy_Obj_t * pObj ) { return Abc_ObjNotCond( Abc_EdgeToNode(p, Ivy_ObjFanin1(pObj)->TravId), Ivy_ObjFaninC1(pObj) ); }
 
-static int * Abc_NtkCollectLatchValues( Abc_Ntk_t * pNtk, int fUseDcs );
+static Vec_Int_t * Abc_NtkCollectLatchValuesIvy( Abc_Ntk_t * pNtk, int fUseDcs );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -85,7 +85,7 @@ Ivy_Man_t * Abc_NtkIvyBefore( Abc_Ntk_t * pNtk, int fSeq, int fUseDc )
     if ( fSeq && Abc_NtkCountSelfFeedLatches(pNtk) )
     {
         printf( "Warning: The network has %d self-feeding latches. Quitting.\n", Abc_NtkCountSelfFeedLatches(pNtk) );
-        return NULL;
+//        return NULL;
     }
     // print warning about choice nodes
     if ( Abc_NtkGetChoiceNum( pNtk ) )
@@ -102,9 +102,9 @@ Ivy_Man_t * Abc_NtkIvyBefore( Abc_Ntk_t * pNtk, int fSeq, int fUseDc )
     if ( fSeq )
     {
         int nLatches = Abc_NtkLatchNum(pNtk);
-        int * pInit = Abc_NtkCollectLatchValues( pNtk, fUseDc );
-        Ivy_ManMakeSeq( pMan, nLatches, pInit );
-        FREE( pInit );
+        Vec_Int_t * vInit = Abc_NtkCollectLatchValuesIvy( pNtk, fUseDc );
+        Ivy_ManMakeSeq( pMan, nLatches, vInit->pArray );
+        Vec_IntFree( vInit );
 //        Ivy_ManPrintStats( pMan );
     }
     return pMan;
@@ -191,8 +191,8 @@ Abc_Ntk_t * Abc_NtkIvyHaig( Abc_Ntk_t * pNtk, int nIters, int fUseZeroCost, int 
         return NULL;
 
     Ivy_ManHaigStart( pMan, fVerbose );
-    Ivy_ManRewriteSeq( pMan, 0, 0 );
-    for ( i = 1; i < nIters; i++ )
+//    Ivy_ManRewriteSeq( pMan, 0, 0 );
+    for ( i = 0; i < nIters; i++ )
         Ivy_ManRewriteSeq( pMan, fUseZeroCost, 0 );
     Ivy_ManHaigPostprocess( pMan, fVerbose );
 
@@ -486,7 +486,7 @@ Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk )
     int fCleanup = 1;
 //    int nNodes;
     int nLatches = Abc_NtkLatchNum(pNtk);
-    int * pInit = Abc_NtkCollectLatchValues( pNtk, 0 );
+    Vec_Int_t * vInit = Abc_NtkCollectLatchValuesIvy( pNtk, 0 );
 
     assert( !Abc_NtkIsNetlist(pNtk) );
     assert( !Abc_NtkIsSeq(pNtk) );
@@ -494,7 +494,7 @@ Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk )
     {
         if ( !Abc_NtkBddToSop(pNtk, 0) )
         {
-            FREE( pInit );
+            Vec_IntFree( vInit );
             printf( "Abc_NtkIvy(): Converting to SOPs has failed.\n" );
             return NULL;
         }
@@ -513,7 +513,7 @@ Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk )
     pMan = Abc_NtkToAig( pNtk );
     if ( !Ivy_ManCheck( pMan ) )
     {
-        FREE( pInit );
+        Vec_IntFree( vInit );
         printf( "AIG check has failed.\n" );
         Ivy_ManStop( pMan );
         return NULL;
@@ -975,22 +975,23 @@ Ivy_Obj_t * Abc_NodeStrashAigFactorAig( Ivy_Man_t * pMan, Abc_Obj_t * pRoot, cha
   SeeAlso     []
 
 ***********************************************************************/
-int * Abc_NtkCollectLatchValues( Abc_Ntk_t * pNtk, int fUseDcs )
+Vec_Int_t * Abc_NtkCollectLatchValuesIvy( Abc_Ntk_t * pNtk, int fUseDcs )
 {
     Abc_Obj_t * pLatch;
-    int * pArray, i;
-    pArray = ALLOC( int, Abc_NtkLatchNum(pNtk) );
+    Vec_Int_t * vArray;
+    int i;
+    vArray = Vec_IntAlloc( Abc_NtkLatchNum(pNtk) );
     Abc_NtkForEachLatch( pNtk, pLatch, i )
     {
         if ( fUseDcs || Abc_LatchIsInitDc(pLatch) )
-            pArray[i] = IVY_INIT_DC;
+            Vec_IntPush( vArray, IVY_INIT_DC );
         else if ( Abc_LatchIsInit1(pLatch) )
-            pArray[i] = IVY_INIT_1;
+            Vec_IntPush( vArray, IVY_INIT_1 );
         else if ( Abc_LatchIsInit0(pLatch) )
-            pArray[i] = IVY_INIT_0;
+            Vec_IntPush( vArray, IVY_INIT_0 );
         else assert( 0 );
     }
-    return pArray;
+    return vArray;
 }
 
 ////////////////////////////////////////////////////////////////////////

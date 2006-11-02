@@ -53,7 +53,9 @@ static Aig_CuddMan_t * s_pCuddMan = NULL;
 void Cudd2_Init( unsigned int numVars, unsigned int numVarsZ, unsigned int numSlots, unsigned int cacheSize, unsigned long maxMemory, void * pCudd )
 {
     int v;
-    assert( s_pCuddMan == NULL );
+    // start the BDD-to-AIG manager when the first BDD manager is allocated
+    if ( s_pCuddMan != NULL )
+        return;
     s_pCuddMan = ALLOC( Aig_CuddMan_t, 1 );
     s_pCuddMan->pAig = Aig_ManStart();
     s_pCuddMan->pTable = st_init_table( st_ptrcmp, st_ptrhash );
@@ -123,6 +125,22 @@ static void Cudd2_SetArg( Aig_Obj_t * pNode, void * pResult )
         return;
     pNode = Aig_NotCond( pNode,  Aig_IsComplement(pResult) );
     st_insert( s_pCuddMan->pTable, (char *)Aig_Regular(pResult), (char *)pNode );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Registers constant 1 node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cudd2_bddOne( void * pCudd, void * pResult )
+{
+    Cudd2_SetArg( Aig_ManConst1(s_pCuddMan->pAig), pResult );
 }
 
 /**Function*************************************************************

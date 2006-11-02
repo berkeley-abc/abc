@@ -223,8 +223,8 @@ void Abc_ObjTransferFanout( Abc_Obj_t * pNodeFrom, Abc_Obj_t * pNodeTo )
     int nFanoutsOld, i;
     assert( !Abc_ObjIsComplement(pNodeFrom) );
     assert( !Abc_ObjIsComplement(pNodeTo) );
-    assert( Abc_ObjIsNode(pNodeFrom) );
-    assert( Abc_ObjIsNode(pNodeTo) );
+    assert( Abc_ObjIsNode(pNodeFrom) || Abc_ObjIsCi(pNodeFrom) );
+    assert( !Abc_ObjIsPo(pNodeTo) );
     assert( pNodeFrom->pNtk == pNodeTo->pNtk );
     assert( pNodeFrom != pNodeTo );
     assert( Abc_ObjFanoutNum(pNodeFrom) > 0 );
@@ -255,12 +255,9 @@ void Abc_ObjReplace( Abc_Obj_t * pNodeOld, Abc_Obj_t * pNodeNew )
 {
     assert( !Abc_ObjIsComplement(pNodeOld) );
     assert( !Abc_ObjIsComplement(pNodeNew) );
-    assert( Abc_ObjIsNode(pNodeOld) );
-    assert( Abc_ObjIsNode(pNodeNew) );
     assert( pNodeOld->pNtk == pNodeNew->pNtk );
     assert( pNodeOld != pNodeNew );
     assert( Abc_ObjFanoutNum(pNodeOld) > 0 );
-    assert( Abc_ObjFanoutNum(pNodeNew) == 0 );
     // transfer the fanouts to the old node
     Abc_ObjTransferFanout( pNodeOld, pNodeNew );
     // remove the old node

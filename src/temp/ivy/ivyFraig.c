@@ -1807,7 +1807,7 @@ void Ivy_FraigMiterProve( Ivy_FraigMan_t * p )
 ***********************************************************************/
 void Ivy_FraigSweep( Ivy_FraigMan_t * p )
 {
-    Ivy_Obj_t * pObj;
+    Ivy_Obj_t * pObj;//, * pTemp;
     int i, k = 0;
 p->nClassesZero = p->lClasses.pHead? (Ivy_ObjIsConst1(p->lClasses.pHead) ? Ivy_FraigCountClassNodes(p->lClasses.pHead) : 0) : 0;
 p->nClassesBeg  = p->lClasses.nItems;
@@ -1817,6 +1817,9 @@ p->nClassesBeg  = p->lClasses.nItems;
     {
         Extra_ProgressBarUpdate( p->pProgress, k++, NULL );
         pObj->pEquiv = Ivy_FraigAnd( p, pObj );
+        assert( pObj->pEquiv != NULL );
+//        pTemp = Ivy_Regular(pObj->pEquiv);
+//        assert( Ivy_Regular(pObj->pEquiv)->Type );
     }
     Extra_ProgressBarStop( p->pProgress );
 p->nClassesEnd = p->lClasses.nItems;

@@ -88,7 +88,7 @@ void Abc_NodeShowBdd( Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkShowAig( Abc_Ntk_t * pNtk )
+void Abc_NtkShowAig( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodesShow )
 {
     FILE * pFile;
     Abc_Obj_t * pNode;
@@ -96,7 +96,7 @@ void Abc_NtkShowAig( Abc_Ntk_t * pNtk )
     char FileNameDot[200];
     int i;
 
-    assert( Abc_NtkHasAig(pNtk) );
+    assert( Abc_NtkIsStrash(pNtk) );
     // create the file name
     Abc_ShowGetFileName( pNtk->pName, FileNameDot );
     // check that the file can be opened
@@ -112,7 +112,7 @@ void Abc_NtkShowAig( Abc_Ntk_t * pNtk )
     Abc_NtkForEachObj( pNtk, pNode, i )
         Vec_PtrPush( vNodes, pNode );
     // write the DOT file
-    Io_WriteDotAig( pNtk, vNodes, NULL, FileNameDot, 0 );
+    Io_WriteDotAig( pNtk, vNodes, vNodesShow, FileNameDot, 0 );
     Vec_PtrFree( vNodes );
 
     // visualize the file 

@@ -186,6 +186,10 @@ SOURCE=.\src\base\abci\abcBalance.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcBmc.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcClpBdd.c
 # End Source File
 # Begin Source File
@@ -332,73 +336,9 @@ SOURCE=.\src\base\abci\abcUnreach.c
 
 SOURCE=.\src\base\abci\abcVerify.c
 # End Source File
-# End Group
-# Begin Group "seq"
-
-# PROP Default_Filter ""
 # Begin Source File
 
-SOURCE=.\src\base\seq\seq.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\seq\seqAigCore.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\seq\seqAigIter.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\seq\seqCreate.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\seq\seqFpgaCore.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\seq\seqFpgaIter.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\seq\seqInt.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\seq\seqLatch.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\seq\seqMan.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\seq\seqMapCore.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\seq\seqMapIter.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\seq\seqMaxMeanCycle.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\seq\seqRetCore.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\seq\seqRetIter.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\seq\seqShare.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\seq\seqUtil.c
+SOURCE=.\src\base\abci\abcXsim.c
 # End Source File
 # End Group
 # Begin Group "cmd"
@@ -1389,6 +1329,42 @@ SOURCE=.\src\opt\sim\simSymStr.c
 SOURCE=.\src\opt\sim\simUtils.c
 # End Source File
 # End Group
+# Begin Group "ret"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\opt\ret\retArea.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\ret\retBwd.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\ret\retCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\ret\retDelay.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\ret\retFlow.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\ret\retFwd.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\ret\retInit.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\ret\retInt.h
+# End Source File
+# End Group
 # End Group
 # Begin Group "map"
 
@@ -2299,14 +2275,6 @@ SOURCE=.\src\temp\aig\aigTable.c
 # Begin Source File
 
 SOURCE=.\src\temp\aig\aigUtil.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\aig\cudd2.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\aig\cudd2.h
 # End Source File
 # End Group
 # End Group

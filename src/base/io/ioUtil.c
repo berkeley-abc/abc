@@ -179,7 +179,7 @@ Abc_Obj_t * Io_ReadCreateNode( Abc_Ntk_t * pNtk, char * pNameOut, char * pNamesI
 Abc_Obj_t * Io_ReadCreateConst( Abc_Ntk_t * pNtk, char * pName, bool fConst1 )
 {
     Abc_Obj_t * pNet, * pTerm;
-    pTerm = fConst1? Abc_NodeCreateConst1(pNtk) : Abc_NodeCreateConst0(pNtk);
+    pTerm = fConst1? Abc_NtkCreateNodeConst1(pNtk) : Abc_NtkCreateNodeConst0(pNtk);
     pNet  = Abc_NtkFindNet(pNtk, pName);    assert( pNet );
     Abc_ObjAddFanin( pNet, pTerm );
     return pTerm;
@@ -200,7 +200,7 @@ Abc_Obj_t * Io_ReadCreateInv( Abc_Ntk_t * pNtk, char * pNameIn, char * pNameOut 
 {
     Abc_Obj_t * pNet, * pNode;
     pNet  = Abc_NtkFindNet(pNtk, pNameIn);     assert( pNet );
-    pNode = Abc_NodeCreateInv(pNtk, pNet);
+    pNode = Abc_NtkCreateNodeInv(pNtk, pNet);
     pNet  = Abc_NtkFindNet(pNtk, pNameOut);    assert( pNet );
     Abc_ObjAddFanin( pNet, pNode );
     return pNode;
@@ -221,7 +221,7 @@ Abc_Obj_t * Io_ReadCreateBuf( Abc_Ntk_t * pNtk, char * pNameIn, char * pNameOut 
 {
     Abc_Obj_t * pNet, * pNode;
     pNet  = Abc_NtkFindNet(pNtk, pNameIn);     assert( pNet );
-    pNode = Abc_NodeCreateBuf(pNtk, pNet);
+    pNode = Abc_NtkCreateNodeBuf(pNtk, pNet);
     pNet  = Abc_NtkFindNet(pNtk, pNameOut);    assert( pNet );
     Abc_ObjAddFanin( pNet, pNode );
     return pNet;

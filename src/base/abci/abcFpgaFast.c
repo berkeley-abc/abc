@@ -99,7 +99,7 @@ Abc_Ntk_t * Ivy_ManFpgaToAbc( Abc_Ntk_t * pNtk, Ivy_Man_t * pMan )
     // start the new ABC network
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_AIG );
     // transfer the pointers to the basic nodes
-    Abc_ObjSetIvy2Abc( pMan, Ivy_ManConst1(pMan)->Id, Abc_NodeCreateConst1(pNtkNew) );
+    Abc_ObjSetIvy2Abc( pMan, Ivy_ManConst1(pMan)->Id, Abc_NtkCreateNodeConst1(pNtkNew) );
     Abc_NtkForEachCi( pNtkNew, pObjAbc, i )
         Abc_ObjSetIvy2Abc( pMan, Ivy_ManPi(pMan, i)->Id, pObjAbc ); 
     // recursively construct the network
@@ -112,7 +112,7 @@ Abc_Ntk_t * Ivy_ManFpgaToAbc( Abc_Ntk_t * pNtk, Ivy_Man_t * pMan )
         if ( Ivy_ObjFaninC0(pObjIvy) ) // complement
         {
             if ( Abc_ObjIsCi(pObjAbc) )
-                pObjAbc = Abc_NodeCreateInv( pNtkNew, pObjAbc );
+                pObjAbc = Abc_NtkCreateNodeInv( pNtkNew, pObjAbc );
             else
             {
                 // clone the node

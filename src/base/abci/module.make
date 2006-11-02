@@ -2,6 +2,7 @@ SRC +=    src/base/abci/abc.c \
     src/base/abci/abcAttach.c \
     src/base/abci/abcAuto.c \
     src/base/abci/abcBalance.c \
+    src/base/abci/abcBmc.c \
     src/base/abci/abcClpBdd.c \
     src/base/abci/abcClpSop.c \
     src/base/abci/abcCut.c \
@@ -37,4 +38,5 @@ SRC +=    src/base/abci/abc.c \
     src/base/abci/abcTiming.c \
     src/base/abci/abcUnate.c \
     src/base/abci/abcUnreach.c \
-    src/base/abci/abcVerify.c 
+    src/base/abci/abcVerify.c \
+    src/base/abci/abcXsim.c 

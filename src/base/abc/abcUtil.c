@@ -81,6 +81,17 @@ void Abc_NtkOrderCisCos( Abc_Ntk_t * pNtk )
         Vec_PtrPush( pNtk->vCos, pObj );
     Abc_NtkForEachBox( pNtk, pObj, i )
     {
+        if ( Abc_ObjIsLatch(pObj) )
+            continue;
+        Abc_ObjForEachFanin( pObj, pTerm, k )
+            Vec_PtrPush( pNtk->vCos, pTerm );
+        Abc_ObjForEachFanout( pObj, pTerm, k )
+            Vec_PtrPush( pNtk->vCis, pTerm );
+    }
+    Abc_NtkForEachBox( pNtk, pObj, i )
+    {
+        if ( !Abc_ObjIsLatch(pObj) )
+            continue;
         Abc_ObjForEachFanin( pObj, pTerm, k )
             Vec_PtrPush( pNtk->vCos, pTerm );
         Abc_ObjForEachFanout( pObj, pTerm, k )
@@ -545,11 +556,11 @@ void Abc_NtkFixCoDriverProblem( Abc_Obj_t * pDriver, Abc_Obj_t * pNodeCo, int fD
         // add inverters and buffers when necessary
         if ( Abc_ObjFaninC0(pNodeCo) )
         {
-            pDriverNew = Abc_NodeCreateInv( pNtk, pDriver );
+            pDriverNew = Abc_NtkCreateNodeInv( pNtk, pDriver );
             Abc_ObjXorFaninC( pNodeCo, 0 );
         }
         else
-            pDriverNew = Abc_NodeCreateBuf( pNtk, pDriver );        
+            pDriverNew = Abc_NtkCreateNodeBuf( pNtk, pDriver );        
     }
     // update the fanin of the PO node
     Abc_ObjPatchFanin( pNodeCo, pDriver, pDriverNew );
@@ -925,13 +936,14 @@ int Abc_NtkPrepareTwoNtks( FILE * pErr, Abc_Ntk_t * pNtk, char ** argv, int argc
         }
         else
             fclose( pFile );
-
+/*
         if ( Abc_NtkIsSeq(pNtk) )
         {
             pNtk1 = Abc_NtkSeqToLogicSop(pNtk);
             *pfDelete1 = 1;
         }
         else
+*/
             pNtk1 = pNtk;
         pNtk2 = Io_Read( pNtk->pSpec, fCheck );
         if ( pNtk2 == NULL )
@@ -945,12 +957,14 @@ int Abc_NtkPrepareTwoNtks( FILE * pErr, Abc_Ntk_t * pNtk, char ** argv, int argc
             fprintf( pErr, "Empty current network.\n" );
             return 0;
         }
+/*
         if ( Abc_NtkIsSeq(pNtk) )
         {
             pNtk1 = Abc_NtkSeqToLogicSop(pNtk);
             *pfDelete1 = 1;
         }
         else
+*/
             pNtk1 = pNtk;
         pNtk2 = Io_Read( argv[util_optind], fCheck );
         if ( pNtk2 == NULL )
@@ -1264,6 +1278,26 @@ void Abc_NtkDetectMatching( Abc_Ntk_t * pNtk )
 */
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Compares the pointers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_ObjPointerCompare( void ** pp1, void ** pp2 )
+{
+    if ( *pp1 < *pp2 )
+        return -1;
+    if ( *pp1 > *pp2 ) 
+        return 1;
+    return 0; 
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

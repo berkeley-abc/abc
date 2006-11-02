@@ -1,7 +1,7 @@
 # global parameters
-#set check         # checks intermediate networks
+set check         # checks intermediate networks
 #set checkfio      # prints warnings when fanins/fanouts are duplicated
-#set checkread     # checks new networks after reading from file
+set checkread     # checks new networks after reading from file
 set backup        # saves backup networks retrived by "undo" and "recall"
 set savesteps 1   # sets the maximum number of backup networks to save 
 set progressbar   # display the progress bar
@@ -61,6 +61,7 @@ alias rez restructure -z
 alias rs resub
 alias rsz resub -z
 alias sa set autoexec ps
+alias scl scleanup
 alias so source -x
 alias st strash
 alias sw sweep
@@ -100,7 +101,7 @@ alias compress2rs "b -l; rs -K 6 -l; rw -l; rs -K 6 -N 2 -l; rf -l; rs -K 8 -l; 
 # temporaries
 #alias test        "rvl th/lib.v; rvv th/t2.v"
 #alias test         "so c/pure_sat/test.c"
-alias test         "r c/14/csat_998.bench; st; ps"
+#alias test         "r c/14/csat_998.bench; st; ps"
 
 
 

@@ -52,10 +52,10 @@ typedef struct Fpga_LutLibStruct_t_      Fpga_LutLib_t;
 ///                       MACRO DEFINITIONS                          ///
 ////////////////////////////////////////////////////////////////////////
  
-#define Fpga_IsComplement(p)    (((int)((long) (p) & 01)))
-#define Fpga_Regular(p)         ((Fpga_Node_t *)((unsigned)(p) & ~01)) 
-#define Fpga_Not(p)             ((Fpga_Node_t *)((long)(p) ^ 01)) 
-#define Fpga_NotCond(p,c)       ((Fpga_Node_t *)((long)(p) ^ (c)))
+#define Fpga_IsComplement(p)    (((int)((unsigned long) (p) & 01)))
+#define Fpga_Regular(p)         ((Fpga_Node_t *)((unsigned long)(p) & ~01)) 
+#define Fpga_Not(p)             ((Fpga_Node_t *)((unsigned long)(p) ^ 01)) 
+#define Fpga_NotCond(p,c)       ((Fpga_Node_t *)((unsigned long)(p) ^ (c)))
 
 #define Fpga_Ref(p)   
 #define Fpga_Deref(p)

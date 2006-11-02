@@ -148,7 +148,7 @@ int Abc_NtkSuperChoiceLut( Abc_Ntk_t * pNtk, int nLutSize, int nCutSizeMax, int 
         // if there is no delay improvement, skip; otherwise, update level
         if ( pObjTop->Level >= pObj->Level )
         {
-            Abc_NtkDeleteObj_rec( pObjTop );
+            Abc_NtkDeleteObj_rec( pObjTop, 1 );
             continue;
         }
         pObj->Level = pObjTop->Level;
@@ -570,7 +570,7 @@ Abc_Obj_t * Abc_NodeSuperChoiceLut( Abc_ManScl_t * p, Abc_Obj_t * pObj )
         {
             Vec_PtrForEachEntry( p->vLeaves, pFanin, i )
                 if ( Abc_ObjIsNode(pFanin) && Abc_ObjFanoutNum(pFanin) == 0 )
-                    Abc_NtkDeleteObj_rec( pFanin );
+                    Abc_NtkDeleteObj_rec( pFanin, 1 );
             return NULL;
         }
     // create the topmost node

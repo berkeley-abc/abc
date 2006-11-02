@@ -104,10 +104,10 @@ struct Prove_ParamsStruct_t_
 ////////////////////////////////////////////////////////////////////////
  
 // macros working with complemented attributes of the nodes
-#define Fraig_IsComplement(p)    (((int)((long) (p) & 01)))
-#define Fraig_Regular(p)         ((Fraig_Node_t *)((unsigned)(p) & ~01)) 
-#define Fraig_Not(p)             ((Fraig_Node_t *)((long)(p) ^ 01)) 
-#define Fraig_NotCond(p,c)       ((Fraig_Node_t *)((long)(p) ^ (c)))
+#define Fraig_IsComplement(p)    (((int)((unsigned long) (p) & 01)))
+#define Fraig_Regular(p)         ((Fraig_Node_t *)((unsigned long)(p) & ~01)) 
+#define Fraig_Not(p)             ((Fraig_Node_t *)((unsigned long)(p) ^ 01)) 
+#define Fraig_NotCond(p,c)       ((Fraig_Node_t *)((unsigned long)(p) ^ (c)))
 
 // these are currently not used
 #define Fraig_Ref(p)              

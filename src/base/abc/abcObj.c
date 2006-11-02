@@ -129,10 +129,10 @@ Abc_Obj_t * Abc_NtkCreateObj( Abc_Ntk_t * pNtk, Abc_ObjType_t Type )
             Vec_PtrPush( pNtk->vCos, pObj );
             break;
         case ABC_OBJ_BI:     
-            Vec_PtrPush( pNtk->vCis, pObj );
+            if ( pNtk->vCis ) Vec_PtrPush( pNtk->vCis, pObj );
             break;
         case ABC_OBJ_BO:     
-            Vec_PtrPush( pNtk->vCos, pObj );
+            if ( pNtk->vCos ) Vec_PtrPush( pNtk->vCos, pObj );
             break;
         case ABC_OBJ_ASSERT:     
             Vec_PtrPush( pNtk->vAsserts, pObj );
@@ -146,7 +146,7 @@ Abc_Obj_t * Abc_NtkCreateObj( Abc_Ntk_t * pNtk, Abc_ObjType_t Type )
             pObj->pData = (void *)ABC_INIT_NONE;
         case ABC_OBJ_TRI:     
         case ABC_OBJ_BLACKBOX:     
-            Vec_PtrPush( pNtk->vBoxes, pObj );
+            if ( pNtk->vBoxes ) Vec_PtrPush( pNtk->vBoxes, pObj );
             break;
         default:
             assert(0); 
@@ -171,6 +171,9 @@ void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
     Abc_Ntk_t * pNtk = pObj->pNtk;
     Vec_Ptr_t * vNodes;
     int i;
+    // remove from the table of names
+    if ( Nm_ManFindNameById(pObj->pNtk->pManName, pObj->Id) )
+        Nm_ManDeleteIdName(pObj->pNtk->pManName, pObj->Id);
     // delete fanins and fanouts
     assert( !Abc_ObjIsComplement(pObj) );
     vNodes = Vec_PtrAlloc( 100 );
@@ -186,9 +189,6 @@ void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
     pObj->Id = (1<<26)-1;
     pNtk->nObjCounts[pObj->Type]--;
     pNtk->nObjs--;
-    // remove from the table of names
-    if ( Nm_ManFindNameById(pObj->pNtk->pManName, pObj->Id) )
-        Nm_ManDeleteIdName(pObj->pNtk->pManName, pObj->Id);
     // perform specialized operations depending on the object type
     switch (pObj->Type)
     {
@@ -210,10 +210,10 @@ void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
             Vec_PtrRemove( pNtk->vCos, pObj );
             break;
         case ABC_OBJ_BI:     
-            Vec_PtrRemove( pNtk->vCis, pObj );
+            if ( pNtk->vCis ) Vec_PtrRemove( pNtk->vCis, pObj );
             break;
         case ABC_OBJ_BO:     
-            Vec_PtrRemove( pNtk->vCos, pObj );
+            if ( pNtk->vCos ) Vec_PtrRemove( pNtk->vCos, pObj );
             break;
         case ABC_OBJ_ASSERT:     
             Vec_PtrRemove( pNtk->vAsserts, pObj );
@@ -230,7 +230,7 @@ void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
         case ABC_OBJ_LATCH:     
         case ABC_OBJ_TRI:     
         case ABC_OBJ_BLACKBOX:     
-            Vec_PtrRemove( pNtk->vBoxes, pObj );
+            if ( pNtk->vBoxes ) Vec_PtrRemove( pNtk->vBoxes, pObj );
             break;
         default:
             assert(0); 
@@ -251,20 +251,30 @@ void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkDeleteObj_rec( Abc_Obj_t * pObj )
+void Abc_NtkDeleteObj_rec( Abc_Obj_t * pObj, int fOnlyNodes )
 {
     Abc_Ntk_t * pNtk = pObj->pNtk;
     Vec_Ptr_t * vNodes;
     int i;
     assert( !Abc_ObjIsComplement(pObj) );
+    assert( !Abc_ObjIsPi(pObj) );
     assert( Abc_ObjFanoutNum(pObj) == 0 );
     // delete fanins and fanouts
     vNodes = Vec_PtrAlloc( 100 );
     Abc_NodeCollectFanins( pObj, vNodes );
     Abc_NtkDeleteObj( pObj );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
-        if ( Abc_ObjIsNode(pObj) && Abc_ObjFanoutNum(pObj) == 0 )
-            Abc_NtkDeleteObj_rec( pObj );
+    if ( fOnlyNodes )
+    {
+        Vec_PtrForEachEntry( vNodes, pObj, i )
+            if ( Abc_ObjIsNode(pObj) && Abc_ObjFanoutNum(pObj) == 0 )
+                Abc_NtkDeleteObj_rec( pObj, fOnlyNodes );
+    }
+    else
+    {
+        Vec_PtrForEachEntry( vNodes, pObj, i )
+            if ( !Abc_ObjIsPi(pObj) && Abc_ObjFanoutNum(pObj) == 0 )
+                Abc_NtkDeleteObj_rec( pObj, fOnlyNodes );
+    }
     Vec_PtrFree( vNodes );
 }
 
@@ -530,7 +540,7 @@ Abc_Obj_t * Abc_NtkFindOrCreateNet( Abc_Ntk_t * pNtk, char * pName )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_NodeCreateConst0( Abc_Ntk_t * pNtk )
+Abc_Obj_t * Abc_NtkCreateNodeConst0( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
     assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsNetlist(pNtk) );
@@ -559,7 +569,7 @@ Abc_Obj_t * Abc_NodeCreateConst0( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_NodeCreateConst1( Abc_Ntk_t * pNtk )
+Abc_Obj_t * Abc_NtkCreateNodeConst1( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
     assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsNetlist(pNtk) );
@@ -588,12 +598,12 @@ Abc_Obj_t * Abc_NodeCreateConst1( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_NodeCreateInv( Abc_Ntk_t * pNtk, Abc_Obj_t * pFanin )
+Abc_Obj_t * Abc_NtkCreateNodeInv( Abc_Ntk_t * pNtk, Abc_Obj_t * pFanin )
 {
     Abc_Obj_t * pNode;
     assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsNetlist(pNtk) );
     pNode = Abc_NtkCreateNode( pNtk );   
-    Abc_ObjAddFanin( pNode, pFanin );
+    if ( pFanin ) Abc_ObjAddFanin( pNode, pFanin );
     if ( Abc_NtkHasSop(pNtk) )
         pNode->pData = Abc_SopRegister( pNtk->pManFunc, "0 1\n" );
     else if ( Abc_NtkHasBdd(pNtk) )
@@ -618,12 +628,12 @@ Abc_Obj_t * Abc_NodeCreateInv( Abc_Ntk_t * pNtk, Abc_Obj_t * pFanin )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_NodeCreateBuf( Abc_Ntk_t * pNtk, Abc_Obj_t * pFanin )
+Abc_Obj_t * Abc_NtkCreateNodeBuf( Abc_Ntk_t * pNtk, Abc_Obj_t * pFanin )
 {
     Abc_Obj_t * pNode;
     assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsNetlist(pNtk) );
-    pNode = Abc_NtkCreateNode( pNtk );   
-    Abc_ObjAddFanin( pNode, pFanin );
+    pNode = Abc_NtkCreateNode( pNtk ); 
+    if ( pFanin ) Abc_ObjAddFanin( pNode, pFanin );
     if ( Abc_NtkHasSop(pNtk) )
         pNode->pData = Abc_SopRegister( pNtk->pManFunc, "1 1\n" );
     else if ( Abc_NtkHasBdd(pNtk) )
@@ -648,7 +658,7 @@ Abc_Obj_t * Abc_NodeCreateBuf( Abc_Ntk_t * pNtk, Abc_Obj_t * pFanin )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_NodeCreateAnd( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins )
+Abc_Obj_t * Abc_NtkCreateNodeAnd( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins )
 {
     Abc_Obj_t * pNode;
     int i;
@@ -678,7 +688,7 @@ Abc_Obj_t * Abc_NodeCreateAnd( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_NodeCreateOr( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins )
+Abc_Obj_t * Abc_NtkCreateNodeOr( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins )
 {
     Abc_Obj_t * pNode;
     int i;
@@ -708,7 +718,7 @@ Abc_Obj_t * Abc_NodeCreateOr( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_NodeCreateExor( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins )
+Abc_Obj_t * Abc_NtkCreateNodeExor( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins )
 {
     Abc_Obj_t * pNode;
     int i;
@@ -738,7 +748,7 @@ Abc_Obj_t * Abc_NodeCreateExor( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_NodeCreateMux( Abc_Ntk_t * pNtk, Abc_Obj_t * pNodeC, Abc_Obj_t * pNode1, Abc_Obj_t * pNode0 )
+Abc_Obj_t * Abc_NtkCreateNodeMux( Abc_Ntk_t * pNtk, Abc_Obj_t * pNodeC, Abc_Obj_t * pNode1, Abc_Obj_t * pNode0 )
 {
     Abc_Obj_t * pNode;
     assert( Abc_NtkIsLogic(pNtk) );
@@ -772,8 +782,7 @@ Abc_Obj_t * Abc_NodeCreateMux( Abc_Ntk_t * pNtk, Abc_Obj_t * pNodeC, Abc_Obj_t *
 bool Abc_NodeIsConst( Abc_Obj_t * pNode )    
 { 
     assert( Abc_NtkIsLogic(pNode->pNtk) || Abc_NtkIsNetlist(pNode->pNtk) );
-    assert( Abc_ObjIsNode(pNode) );      
-    return Abc_ObjFaninNum(pNode) == 0;
+    return Abc_ObjIsNode(pNode) && Abc_ObjFaninNum(pNode) == 0;
 }
 
 /**Function*************************************************************

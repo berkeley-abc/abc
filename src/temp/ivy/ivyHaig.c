@@ -44,7 +44,7 @@ static inline Ivy_Obj_t * Ivy_HaigObjRepr( Ivy_Obj_t * pObj )
 {
     Ivy_Obj_t * pTemp;
     assert( !Ivy_IsComplement(pObj) );
-    // if the node has no equivalent or has fanout, it is representative
+    // if the node has no equivalent node or has fanout, it is representative
     if ( pObj->pEquiv == NULL || Ivy_ObjRefs(pObj) > 0 )
         return pObj;
     // the node belongs to a class and is not a representative
@@ -110,6 +110,14 @@ void Ivy_ManHaigStart( Ivy_Man_t * p, int fVerbose )
         Vec_IntPush( vLatches, pObj->Id );
     }
     p->pHaig->pData = vLatches;
+/*
+    {
+        int x;
+        Ivy_ManShow( p, 0, NULL );
+        Ivy_ManShow( p->pHaig, 1, NULL );
+        x = 0;
+    }
+*/
 }
 
 /**Function*************************************************************
@@ -257,7 +265,7 @@ void Ivy_ManHaigCreateChoice( Ivy_Man_t * p, Ivy_Obj_t * pObjOld, Ivy_Obj_t * pO
         return;
     // if the second node belongs to a class, do not merge classes (for the time being)
     if ( Ivy_ObjRefs(pObjOldHaigR) == 0 || pObjNewHaigR->pEquiv != NULL || 
-        Ivy_ObjRefs(pObjNewHaigR) > 0 || Ivy_ObjIsInTfi_rec(pObjNewHaigR, pObjOldHaigR, 10) )
+        Ivy_ObjRefs(pObjNewHaigR) > 0 ) //|| Ivy_ObjIsInTfi_rec(pObjNewHaigR, pObjOldHaigR, 10) )
     {
 /*
         if ( pObjNewHaigR->pEquiv != NULL )
@@ -363,8 +371,8 @@ void Ivy_ManHaigPostprocess( Ivy_Man_t * p, int fVerbose )
     else
         printf( "HAIG contains a cycle\n" );
 
-    if ( fVerbose )
-        Ivy_ManHaigSimulate( p );
+//    if ( fVerbose )
+//        Ivy_ManHaigSimulate( p );
 }
 
 

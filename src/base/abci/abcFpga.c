@@ -210,7 +210,7 @@ Abc_Ntk_t * Abc_NtkFromFpga( Fpga_Man_t * pMan, Abc_Ntk_t * pNtk )
         Fpga_NodeSetData0( Fpga_ManReadInputs(pMan)[i], (char *)pNode->pCopy );
     // set the constant node
 //    if ( Fpga_NodeReadRefs(Fpga_ManReadConst1(pMan)) > 0 )
-        Fpga_NodeSetData0( Fpga_ManReadConst1(pMan), (char *)Abc_NodeCreateConst1(pNtkNew) );
+        Fpga_NodeSetData0( Fpga_ManReadConst1(pMan), (char *)Abc_NtkCreateNodeConst1(pNtkNew) );
     // process the nodes in topological order
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pNode, i )

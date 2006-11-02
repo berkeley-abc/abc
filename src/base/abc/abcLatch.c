@@ -48,7 +48,7 @@ bool Abc_NtkLatchIsSelfFeed_rec( Abc_Obj_t * pLatch, Abc_Obj_t * pLatchRoot )
     pFanin = Abc_ObjFanin0(Abc_ObjFanin0(pLatch));
     if ( !Abc_ObjIsBi(pFanin) || !Abc_ObjIsLatch(Abc_ObjFanin0(pFanin)) )
         return 0;
-    return Abc_NtkLatchIsSelfFeed_rec( Abc_ObjFanin0(pFanin), pLatch );
+    return Abc_NtkLatchIsSelfFeed_rec( Abc_ObjFanin0(pFanin), pLatchRoot );
 }
 
 /**Function*************************************************************
@@ -120,7 +120,7 @@ int Abc_NtkRemoveSelfFeedLatches( Abc_Ntk_t * pNtk )
             if ( Abc_NtkIsStrash(pNtk) || Abc_NtkIsSeq(pNtk) )
                 pConst1 = Abc_AigConst1(pNtk);
             else
-                pConst1 = Abc_NodeCreateConst1(pNtk);
+                pConst1 = Abc_NtkCreateNodeConst1(pNtk);
             Abc_ObjPatchFanin( pLatch, Abc_ObjFanin0(Abc_ObjFanin0(pLatch)), pConst1 );
             Counter++;
         }
@@ -168,6 +168,28 @@ void Abc_NtkLatchPipe( Abc_Ntk_t * pNtk, int nLatches )
     }
     Vec_PtrFree( vNodes );
     Abc_NtkLogicMakeSimpleCos( pNtk, 0 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Strashes one logic node using its SOP.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Abc_NtkCollectLatchValues( Abc_Ntk_t * pNtk )
+{
+    Vec_Int_t * vArray;
+    Abc_Obj_t * pLatch;
+    int i;
+    vArray = Vec_IntAlloc( Abc_NtkLatchNum(pNtk) );
+    Abc_NtkForEachLatch( pNtk, pLatch, i )
+        Vec_IntPush( vArray, Abc_LatchIsInit1(pLatch) );
+    return vArray;
 }
 
 

@@ -63,10 +63,10 @@ enum Dsd_Type_t_ {
 ////////////////////////////////////////////////////////////////////////
 
 // complementation and testing for pointers for decomposition entries
-#define Dsd_IsComplement(p)  (((int)((long) (p) & 01)))
-#define Dsd_Regular(p)       ((Dsd_Node_t *)((unsigned)(p) & ~01)) 
-#define Dsd_Not(p)           ((Dsd_Node_t *)((long)(p) ^ 01)) 
-#define Dsd_NotCond(p,c)     ((Dsd_Node_t *)((long)(p) ^ (c)))
+#define Dsd_IsComplement(p)  (((int)((unsigned long) (p) & 01)))
+#define Dsd_Regular(p)       ((Dsd_Node_t *)((unsigned long)(p) & ~01)) 
+#define Dsd_Not(p)           ((Dsd_Node_t *)((unsigned long)(p) ^ 01)) 
+#define Dsd_NotCond(p,c)     ((Dsd_Node_t *)((unsigned long)(p) ^ (c)))
 
 ////////////////////////////////////////////////////////////////////////
 ///                         ITERATORS                                ///

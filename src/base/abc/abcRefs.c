@@ -316,12 +316,18 @@ void Abc_NodeMffsConeSupp( Abc_Obj_t * pNode, Vec_Ptr_t * vCone, Vec_Ptr_t * vSu
 void Abc_NodeMffsConeSuppPrint( Abc_Obj_t * pNode )
 {
     Vec_Ptr_t * vCone, * vSupp;
+    Abc_Obj_t * pObj;
+    int i;
     vCone = Vec_PtrAlloc( 100 );
     vSupp = Vec_PtrAlloc( 100 );
     Abc_NodeDeref_rec( pNode );
     Abc_NodeMffsConeSupp( pNode, vCone, vSupp );
     Abc_NodeRef_rec( pNode );
-    printf( "Cone = %6d. Supp = %6d. \n", Vec_PtrSize(vCone), Vec_PtrSize(vSupp) );
+    printf( "Node = %6s : Supp = %3d  Cone = %3d  (", 
+        Abc_ObjName(pNode), Vec_PtrSize(vSupp), Vec_PtrSize(vCone) );
+    Vec_PtrForEachEntry( vCone, pObj, i )
+        printf( " %s", Abc_ObjName(pObj) );
+    printf( " )\n" );
     Vec_PtrFree( vCone );
     Vec_PtrFree( vSupp );
 }
