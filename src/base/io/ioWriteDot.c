@@ -19,7 +19,9 @@
 ***********************************************************************/
 
 #include "io.h"
-#include "seqInt.h"
+#include "main.h"
+#include "mio.h"
+//#include "seqInt.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -292,6 +294,10 @@ void Io_WriteDotAig( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
     {
         if ( Abc_ObjFaninNum(pNode) == 0 )
             continue;
+
+        if ( Abc_ObjIsBo(pNode) )
+            continue;
+
         if ( fMulti && Abc_ObjIsNode(pNode) )
         {
             Vec_Ptr_t * vSuper;
@@ -305,6 +311,10 @@ void Io_WriteDotAig( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
                 pFanin = Abc_ObjRegular(pFanin);
                 if ( !pFanin->fMarkC )
                     continue;
+
+                if ( Abc_ObjIsBi(pFanin) )
+                    continue;
+
                 fprintf( pFile, "Node%d",  pNode->Id );
                 fprintf( pFile, " -> " );
                 fprintf( pFile, "Node%d%s",  pFanin->Id, (Abc_ObjIsLatch(pFanin)? "_out":"") );
@@ -316,7 +326,7 @@ void Io_WriteDotAig( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
             continue;
         }
         // generate the edge from this node to the next
-        if ( Abc_ObjFanin0(pNode)->fMarkC )
+        if ( Abc_ObjFanin0(pNode)->fMarkC && !Abc_ObjIsBi(Abc_ObjFanin0(pNode)) )
         {
             fprintf( pFile, "Node%d%s",  pNode->Id, (Abc_ObjIsLatch(pNode)? "_in":"") );
             fprintf( pFile, " -> " );
@@ -331,7 +341,7 @@ void Io_WriteDotAig( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
         if ( Abc_ObjFaninNum(pNode) == 1 )
             continue;
         // generate the edge from this node to the next
-        if ( Abc_ObjFanin1(pNode)->fMarkC )
+        if ( Abc_ObjFanin1(pNode)->fMarkC && !Abc_ObjIsBi(Abc_ObjFanin1(pNode)) )
         {
             fprintf( pFile, "Node%d",  pNode->Id );
             fprintf( pFile, " -> " );
@@ -392,7 +402,7 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
     int LevelMin, LevelMax, fHasCos, Level, i, k, fHasBdds;
     int Limit = 300;
 
-    assert( !Abc_NtkHasAig(pNtk) );
+    assert( !Abc_NtkIsStrash(pNtk) );
 
     if ( vNodes->nSize < 1 )
     {
@@ -606,7 +616,7 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
         fprintf( pFile, "  rank = same;\n" );
         // the labeling node of this level
         fprintf( pFile, "  Level%d;\n",  LevelMin );
-        // generat the PO nodes
+        // generate the PO nodes
         Vec_PtrForEachEntry( vNodes, pNode, i )
         {
             if ( !Abc_ObjIsCi(pNode) )
@@ -653,6 +663,11 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
         {
             if ( !Abc_ObjFanin0(pNode)->fMarkC )
                 continue;
+
+            // added to fix the bug after adding boxes
+            if ( Abc_ObjIsBo(pNode) || Abc_ObjIsBi(pFanin) )
+                continue;
+
             // generate the edge from this node to the next
             fprintf( pFile, "Node%d%s",  pNode->Id, (Abc_ObjIsLatch(pNode)? "_in":"") );
             fprintf( pFile, " -> " );

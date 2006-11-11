@@ -84,7 +84,7 @@ Ivy_Man_t * Abc_NtkIvyBefore( Abc_Ntk_t * pNtk, int fSeq, int fUseDc )
     }
     if ( fSeq && Abc_NtkCountSelfFeedLatches(pNtk) )
     {
-        printf( "Warning: The network has %d self-feeding latches. Quitting.\n", Abc_NtkCountSelfFeedLatches(pNtk) );
+        printf( "Warning: The network has %d self-feeding latches.\n", Abc_NtkCountSelfFeedLatches(pNtk) );
 //        return NULL;
     }
     // print warning about choice nodes
@@ -369,7 +369,7 @@ Abc_Ntk_t * Abc_NtkIvySat( Abc_Ntk_t * pNtk, int nConfLimit, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkIvyFraig( Abc_Ntk_t * pNtk, int nConfLimit, int fProve, int fVerbose )
+Abc_Ntk_t * Abc_NtkIvyFraig( Abc_Ntk_t * pNtk, int nConfLimit, int fDoSparse, int fProve, int fVerbose )
 {
     Ivy_FraigParams_t Params, * pParams = &Params; 
     Abc_Ntk_t * pNtkAig;
@@ -379,8 +379,9 @@ Abc_Ntk_t * Abc_NtkIvyFraig( Abc_Ntk_t * pNtk, int nConfLimit, int fProve, int f
         return NULL;
     Ivy_FraigParamsDefault( pParams );
     pParams->nBTLimitNode = nConfLimit;
-    pParams->fVerbose = fVerbose;
-    pParams->fProve = fProve;
+    pParams->fVerbose     = fVerbose;
+    pParams->fProve       = fProve;
+    pParams->fDoSparse    = fDoSparse;
     pMan = Ivy_FraigPerform( pTemp = pMan, pParams );
     Ivy_ManStop( pTemp );
     pNtkAig = Abc_NtkIvyAfter( pNtk, pMan, 0, 0 );
@@ -668,8 +669,8 @@ Abc_Ntk_t * Abc_NtkFromAigSeq( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan, int fHaig 
     Ivy_ManForEachNodeVec( pMan, vLatches, pNode, i )
     {
         pObjNew = Abc_NtkCreateLatch( pNtk );
-        pFaninNew0 = Abc_NtkCreateBo( pNtk );
-        pFaninNew1 = Abc_NtkCreateBi( pNtk );
+        pFaninNew0 = Abc_NtkCreateBi( pNtk );
+        pFaninNew1 = Abc_NtkCreateBo( pNtk );
         Abc_ObjAddFanin( pObjNew, pFaninNew0 );
         Abc_ObjAddFanin( pFaninNew1, pObjNew );
         if ( fHaig || Ivy_ObjInit(pNode) == IVY_INIT_DC )

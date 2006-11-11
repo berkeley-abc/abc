@@ -286,7 +286,7 @@ void Abc_NtkSecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nI
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nFrames, int fVerbose )
+int Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nFrames, int fVerbose )
 {
     Fraig_Params_t Params;
     Fraig_Man_t * pMan;
@@ -299,7 +299,7 @@ void Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nF
     if ( pMiter == NULL )
     {
         printf( "Miter computation has failed.\n" );
-        return;
+        return 0;
     }
     RetValue = Abc_NtkMiterIsConstant( pMiter );
     if ( RetValue == 0 )
@@ -310,13 +310,13 @@ void Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nF
         Abc_NtkVerifyReportErrorSeq( pNtk1, pNtk2, pMiter->pModel, nFrames );
         FREE( pMiter->pModel );
         Abc_NtkDelete( pMiter );
-        return;
+        return 0;
     }
     if ( RetValue == 1 )
     {
         Abc_NtkDelete( pMiter );
         printf( "Networks are equivalent after structural hashing.\n" );
-        return;
+        return 1;
     }
 
     // create the timeframes
@@ -325,7 +325,7 @@ void Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nF
     if ( pFrames == NULL )
     {
         printf( "Frames computation has failed.\n" );
-        return;
+        return 0;
     }
     RetValue = Abc_NtkMiterIsConstant( pFrames );
     if ( RetValue == 0 )
@@ -336,13 +336,13 @@ void Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nF
 //        Abc_NtkVerifyReportErrorSeq( pNtk1, pNtk2, pFrames->pModel, nFrames );
         FREE( pFrames->pModel );
         Abc_NtkDelete( pFrames );
-        return;
+        return 0;
     }
     if ( RetValue == 1 )
     {
         Abc_NtkDelete( pFrames );
         printf( "Networks are equivalent after framing.\n" );
-        return;
+        return 1;
     }
 
     // convert the miter into a FRAIG
@@ -372,6 +372,7 @@ void Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nF
     Fraig_ManFree( pMan );
     // delete the miter
     Abc_NtkDelete( pFrames );
+    return RetValue == 1;
 }
 
 /**Function*************************************************************

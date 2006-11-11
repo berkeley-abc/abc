@@ -344,8 +344,8 @@ static inline bool        Abc_ObjIsPo( Abc_Obj_t * pObj )            { return pO
 static inline bool        Abc_ObjIsBi( Abc_Obj_t * pObj )            { return pObj->Type == ABC_OBJ_BI;      }
 static inline bool        Abc_ObjIsBo( Abc_Obj_t * pObj )            { return pObj->Type == ABC_OBJ_BO;      }
 static inline bool        Abc_ObjIsAssert( Abc_Obj_t * pObj )        { return pObj->Type == ABC_OBJ_ASSERT;  }
-static inline bool        Abc_ObjIsCi( Abc_Obj_t * pObj )            { return pObj->Type == ABC_OBJ_PI || pObj->Type == ABC_OBJ_BI; }
-static inline bool        Abc_ObjIsCo( Abc_Obj_t * pObj )            { return pObj->Type == ABC_OBJ_PO || pObj->Type == ABC_OBJ_BO || pObj->Type == ABC_OBJ_ASSERT; }
+static inline bool        Abc_ObjIsCi( Abc_Obj_t * pObj )            { return pObj->Type == ABC_OBJ_PI || pObj->Type == ABC_OBJ_BO; }
+static inline bool        Abc_ObjIsCo( Abc_Obj_t * pObj )            { return pObj->Type == ABC_OBJ_PO || pObj->Type == ABC_OBJ_BI || pObj->Type == ABC_OBJ_ASSERT; }
 static inline bool        Abc_ObjIsTerm( Abc_Obj_t * pObj )          { return Abc_ObjIsCi(pObj) || Abc_ObjIsCo(pObj); }
 static inline bool        Abc_ObjIsNet( Abc_Obj_t * pObj )           { return pObj->Type == ABC_OBJ_NET;     }
 static inline bool        Abc_ObjIsNode( Abc_Obj_t * pObj )          { return pObj->Type == ABC_OBJ_NODE;    }
@@ -547,6 +547,7 @@ extern void               Abc_ObjPatchFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFani
 extern Abc_Obj_t *        Abc_ObjInsertBetween( Abc_Obj_t * pNodeIn, Abc_Obj_t * pNodeOut, Abc_ObjType_t Type );
 extern void               Abc_ObjTransferFanout( Abc_Obj_t * pObjOld, Abc_Obj_t * pObjNew );
 extern void               Abc_ObjReplace( Abc_Obj_t * pObjOld, Abc_Obj_t * pObjNew );
+extern int                Abc_ObjFanoutFaninNum( Abc_Obj_t * pFanout, Abc_Obj_t * pFanin );
 /*=== abcFraig.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkFraig( Abc_Ntk_t * pNtk, void * pParams, int fAllNodes, int fExdc );
 extern void *             Abc_NtkToFraig( Abc_Ntk_t * pNtk, void * pParams, int fAllNodes, int fExdc );
@@ -573,6 +574,7 @@ extern bool               Abc_NtkLatchIsSelfFeed( Abc_Obj_t * pLatch );
 extern int                Abc_NtkCountSelfFeedLatches( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkRemoveSelfFeedLatches( Abc_Ntk_t * pNtk );
 extern Vec_Int_t *        Abc_NtkCollectLatchValues( Abc_Ntk_t * pNtk );
+extern void               Abc_NtkInsertLatchValues( Abc_Ntk_t * pNtk, Vec_Int_t * vValues );
  /*=== abcLib.c ==========================================================*/
 extern Abc_Lib_t *        Abc_LibCreate( char * pName );
 extern void               Abc_LibFree( Abc_Lib_t * pLib );
@@ -599,6 +601,7 @@ extern void               Abc_ObjRecycle( Abc_Obj_t * pObj );
 extern Abc_Obj_t *        Abc_NtkCreateObj( Abc_Ntk_t * pNtk, Abc_ObjType_t Type );
 extern void               Abc_NtkDeleteObj( Abc_Obj_t * pObj );
 extern void               Abc_NtkDeleteObj_rec( Abc_Obj_t * pObj, int fOnlyNodes );
+extern void               Abc_NtkDeleteAll_rec( Abc_Obj_t * pObj );
 extern Abc_Obj_t *        Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, int fCopyName );
 extern Abc_Obj_t *        Abc_NtkDupBox( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pBox, int fCopyName );
 extern Abc_Obj_t *        Abc_NtkCloneObj( Abc_Obj_t * pNode );
@@ -808,6 +811,7 @@ extern Abc_Obj_t *        Abc_NodeRecognizeMux( Abc_Obj_t * pNode, Abc_Obj_t ** 
 extern int                Abc_NtkPrepareTwoNtks( FILE * pErr, Abc_Ntk_t * pNtk, char ** argv, int argc, Abc_Ntk_t ** ppNtk1, Abc_Ntk_t ** ppNtk2, int * pfDelete1, int * pfDelete2 );
 extern void               Abc_NodeCollectFanins( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes );
 extern void               Abc_NodeCollectFanouts( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes );
+extern Vec_Ptr_t *        Abc_NtkCollectLatches( Abc_Ntk_t * pNtk );
 extern int                Abc_NodeCompareLevelsIncrease( Abc_Obj_t ** pp1, Abc_Obj_t ** pp2 );
 extern int                Abc_NodeCompareLevelsDecrease( Abc_Obj_t ** pp1, Abc_Obj_t ** pp2 );
 extern Vec_Int_t *        Abc_NtkFanoutCounts( Abc_Ntk_t * pNtk );

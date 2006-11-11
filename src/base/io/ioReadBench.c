@@ -142,6 +142,8 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
                     Abc_ObjSetData( pNode, Abc_SopCreateBuf(pNtk->pManFunc) );
                 else if ( strcmp(pType, "NOT") == 0 )
                     Abc_ObjSetData( pNode, Abc_SopCreateInv(pNtk->pManFunc) );
+                else if ( strncmp(pType, "MUX", 3) == 0 )
+                    Abc_ObjSetData( pNode, Abc_SopRegister(pNtk->pManFunc, "1-0 1\n-11 1\n") );
                 else 
                 {
                     printf( "Cannot determine gate type \"%s\" in line %d.\n", pType, Extra_FileReaderGetLineNumber(p, 0) );

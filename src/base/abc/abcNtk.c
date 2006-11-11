@@ -22,7 +22,7 @@
 #include "abcInt.h"
 #include "main.h"
 #include "mio.h"
-#include "seqInt.h"
+//#include "seqInt.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -343,13 +343,99 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
                 Abc_NtkDupObj(pNtkNew, pObj, 0);
         // reconnect all objects (no need to transfer attributes on edges)
         Abc_NtkForEachObj( pNtk, pObj, i )
-            if ( !Abc_ObjIsBox(pObj) && !Abc_ObjIsBi(pObj) )
+            if ( !Abc_ObjIsBox(pObj) && !Abc_ObjIsBo(pObj) )
                 Abc_ObjForEachFanin( pObj, pFanin, k )
                     Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
     }
     // duplicate the EXDC Ntk
     if ( pNtk->pExdc )
         pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );
+    if ( !Abc_NtkCheck( pNtkNew ) )
+        fprintf( stdout, "Abc_NtkDup(): Network check has failed.\n" );
+    return pNtkNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicate the network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkDouble( Abc_Ntk_t * pNtk )
+{
+    char Buffer[500];
+    Abc_Ntk_t * pNtkNew; 
+    Abc_Obj_t * pObj, * pFanin;
+    int i, k;
+    assert( Abc_NtkIsLogic(pNtk) );
+
+    // start the network
+    pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc, 1 );
+    sprintf( Buffer, "%s%s", pNtk->pName, "_doubled" );
+    pNtkNew->pName = Extra_UtilStrsav(Buffer);
+
+    // clean the node copy fields
+    Abc_NtkCleanCopy( pNtk );
+    // clone CIs/CIs/boxes
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        Abc_NtkDupObj( pNtkNew, pObj, 0 );
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        Abc_NtkDupObj( pNtkNew, pObj, 0 );
+    Abc_NtkForEachAssert( pNtk, pObj, i )
+        Abc_NtkDupObj( pNtkNew, pObj, 0 );
+    Abc_NtkForEachBox( pNtk, pObj, i )
+        Abc_NtkDupBox( pNtkNew, pObj, 0 );
+    // copy the internal nodes
+    // duplicate the nets and nodes (CIs/COs/latches already dupped)
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        if ( pObj->pCopy == NULL )
+            Abc_NtkDupObj(pNtkNew, pObj, 0);
+    // reconnect all objects (no need to transfer attributes on edges)
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        if ( !Abc_ObjIsBox(pObj) && !Abc_ObjIsBo(pObj) )
+            Abc_ObjForEachFanin( pObj, pFanin, k )
+                Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
+
+    // clean the node copy fields
+    Abc_NtkCleanCopy( pNtk );
+    // clone CIs/CIs/boxes
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        Abc_NtkDupObj( pNtkNew, pObj, 0 );
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        Abc_NtkDupObj( pNtkNew, pObj, 0 );
+    Abc_NtkForEachAssert( pNtk, pObj, i )
+        Abc_NtkDupObj( pNtkNew, pObj, 0 );
+    Abc_NtkForEachBox( pNtk, pObj, i )
+        Abc_NtkDupBox( pNtkNew, pObj, 0 );
+    // copy the internal nodes
+    // duplicate the nets and nodes (CIs/COs/latches already dupped)
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        if ( pObj->pCopy == NULL )
+            Abc_NtkDupObj(pNtkNew, pObj, 0);
+    // reconnect all objects (no need to transfer attributes on edges)
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        if ( !Abc_ObjIsBox(pObj) && !Abc_ObjIsBo(pObj) )
+            Abc_ObjForEachFanin( pObj, pFanin, k )
+                Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
+
+    // assign names
+    Abc_NtkForEachCi( pNtk, pObj, i )
+    {
+        Abc_ObjAssignName( Abc_NtkCi(pNtkNew,                      i), "1_", Abc_ObjName(pObj) );
+        Abc_ObjAssignName( Abc_NtkCi(pNtkNew, Abc_NtkCiNum(pNtk) + i), "2_", Abc_ObjName(pObj) );
+    }
+    Abc_NtkForEachCo( pNtk, pObj, i )
+    {
+        Abc_ObjAssignName( Abc_NtkCo(pNtkNew,                      i), "1_", Abc_ObjName(pObj) );
+        Abc_ObjAssignName( Abc_NtkCo(pNtkNew, Abc_NtkCoNum(pNtk) + i), "2_", Abc_ObjName(pObj) );
+    }
+
+    // perform the final check
     if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkDup(): Network check has failed.\n" );
     return pNtkNew;

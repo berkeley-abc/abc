@@ -120,13 +120,13 @@ Abc_Obj_t * Io_ReadCreateLatch( Abc_Ntk_t * pNtk, char * pNetLI, char * pNetLO )
     // get the LI net
     pNet = Abc_NtkFindOrCreateNet( pNtk, pNetLI );
     // add the BO terminal
-    pTerm = Abc_NtkCreateBo( pNtk );
+    pTerm = Abc_NtkCreateBi( pNtk );
     Abc_ObjAddFanin( pTerm, pNet );
     // add the latch box
     pLatch = Abc_NtkCreateLatch( pNtk );
     Abc_ObjAddFanin( pLatch, pTerm  );
     // add the BI terminal
-    pTerm = Abc_NtkCreateBi( pNtk );
+    pTerm = Abc_NtkCreateBo( pNtk );
     Abc_ObjAddFanin( pTerm, pLatch );
     // get the LO net
     pNet = Abc_NtkFindOrCreateNet( pNtk, pNetLO );

@@ -148,11 +148,11 @@ int Abc_LibDeriveBlackBoxes( Abc_Ntk_t * pNtk, Abc_Lib_t * pLib )
     {
         // go through the fanin nets
         Abc_ObjForEachFanin( pObj, pFanin, k )
-            Abc_ObjInsertBetween( pFanin, pObj, ABC_OBJ_BO );
+            Abc_ObjInsertBetween( pFanin, pObj, ABC_OBJ_BI );
         // go through the fanout nets
         Abc_ObjForEachFanout( pObj, pFanout, k )
         {
-            Abc_ObjInsertBetween( pObj, pFanout, ABC_OBJ_BI );
+            Abc_ObjInsertBetween( pObj, pFanout, ABC_OBJ_BO );
             // if the name is not given assign name
             if ( pFanout->pData == NULL )
             {

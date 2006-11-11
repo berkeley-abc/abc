@@ -24,9 +24,9 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define XVS0   1
-#define XVS1   2
-#define XVSX   3
+#define XVS0   ABC_INIT_ZERO
+#define XVS1   ABC_INIT_ONE
+#define XVSX   ABC_INIT_DC
 
 static inline void Abc_ObjSetXsim( Abc_Obj_t * pObj, int Value )  { pObj->pCopy = (void *)Value;  }
 static inline int  Abc_ObjGetXsim( Abc_Obj_t * pObj )             { return (int)pObj->pCopy;      }
@@ -155,6 +155,49 @@ void Abc_NtkXValueSimulate( Abc_Ntk_t * pNtk, int nFrames, int fInputs, int fVer
         Abc_NtkForEachLatch( pNtk, pObj, i )
             Abc_ObjSetXsim( Abc_ObjFanout0(pObj), Abc_ObjGetXsim(Abc_ObjFanin0(pObj)) );
     }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Cycles the circuit to create a new initial state.]
+
+  Description [Simulates the circuit with random input for the given 
+  number of timeframes to get a better initial state.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkCycleInitState( Abc_Ntk_t * pNtk, int nFrames, int fVerbose )
+{
+    Abc_Obj_t * pObj;
+    int i, f;
+    assert( Abc_NtkIsStrash(pNtk) );
+    srand( 0x12341234 );
+    // initialize the values
+    Abc_ObjSetXsim( Abc_AigConst1(pNtk), XVS1 );
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        Abc_ObjSetXsim( pObj, Abc_XsimRand2() );
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+        Abc_ObjSetXsim( Abc_ObjFanout0(pObj), Abc_LatchIsInit1(pObj)? XVS1 : XVS0 );
+    // simulate for the given number of timeframes
+    for ( f = 0; f < nFrames; f++ )
+    {
+        Abc_AigForEachAnd( pNtk, pObj, i )
+            Abc_ObjSetXsim( pObj, Abc_XsimAnd(Abc_ObjGetXsimFanin0(pObj), Abc_ObjGetXsimFanin1(pObj)) );
+        Abc_NtkForEachCo( pNtk, pObj, i )
+            Abc_ObjSetXsim( pObj, Abc_ObjGetXsimFanin0(pObj) );
+        // assign input values
+        Abc_NtkForEachPi( pNtk, pObj, i )
+            Abc_ObjSetXsim( pObj, Abc_XsimRand2() );
+        // transfer the latch values
+        Abc_NtkForEachLatch( pNtk, pObj, i )
+            Abc_ObjSetXsim( Abc_ObjFanout0(pObj), Abc_ObjGetXsim(Abc_ObjFanin0(pObj)) );
+    }
+    // set the final values
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+        pObj->pData = (void *)Abc_ObjGetXsim(Abc_ObjFanout0(pObj));
 }
 
 ///////////////////////////////////////////////////////////////////////

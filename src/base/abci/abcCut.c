@@ -20,7 +20,7 @@
 
 #include "abc.h"
 #include "cut.h"
-#include "seqInt.h"
+//#include "seqInt.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -401,6 +401,7 @@ void * Abc_NodeGetCuts( void * p, Abc_Obj_t * pObj, int fDag, int fTree )
 ***********************************************************************/
 void Abc_NodeGetCutsSeq( void * p, Abc_Obj_t * pObj, int fTriv )
 {
+/*
     int CutSetNum;
     assert( Abc_NtkIsSeq(pObj->pNtk) );
     assert( Abc_ObjFaninNum(pObj) == 2 );
@@ -408,6 +409,7 @@ void Abc_NodeGetCutsSeq( void * p, Abc_Obj_t * pObj, int fTriv )
     CutSetNum = pObj->fMarkC ? (int)pObj->pCopy : -1;
     Cut_NodeComputeCutsSeq( p, pObj->Id, Abc_ObjFaninId0(pObj), Abc_ObjFaninId1(pObj),  
         Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj), Seq_ObjFaninL0(pObj), Seq_ObjFaninL1(pObj), fTriv, CutSetNum );  
+*/
 }
 
 /**Function*************************************************************

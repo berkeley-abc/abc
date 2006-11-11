@@ -136,6 +136,7 @@ struct Ivy_FraigParams_t_
     double           dActConeBumpMax;   // the largest bump in activity
     int              fProve;            // prove the miter outputs
     int              fVerbose;          // verbose output
+    int              fDoSparse;         // skip sparse functions
     int              nBTLimitNode;      // conflict limit at a node
     int              nBTLimitMiter;     // conflict limit at an output
     int              nBTLimitGlobal;    // conflict limit global

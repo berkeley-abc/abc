@@ -22,7 +22,7 @@
 #include "main.h"
 #include "mio.h"
 #include "dec.h"
-#include "seq.h"
+//#include "seq.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -1034,6 +1034,28 @@ void Abc_NodeCollectFanouts( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
     Vec_PtrClear(vNodes);
     Abc_ObjForEachFanout( pNode, pFanout, i )
         Vec_PtrPush( vNodes, pFanout );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects all latches in the network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_NtkCollectLatches( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vLatches;
+    Abc_Obj_t * pObj;
+    int i;
+    vLatches = Vec_PtrAlloc( 10 );
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        Vec_PtrPush( vLatches, pObj );
+    return vLatches;
 }
 
 /**Function*************************************************************

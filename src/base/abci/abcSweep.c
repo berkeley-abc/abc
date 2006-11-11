@@ -860,7 +860,7 @@ int Abc_NtkReplaceAutonomousLogic( Abc_Ntk_t * pNtk )
                 continue;
             // skip constants and latches fed by constants
             if ( Abc_NtkCheckConstant_rec(pFanin) != -1 ||
-                 (Abc_ObjIsBi(pFanin) && Abc_NtkCheckConstant_rec(Abc_ObjFanin0(Abc_ObjFanin0(pFanin))) != -1) )
+                 (Abc_ObjIsBo(pFanin) && Abc_NtkCheckConstant_rec(Abc_ObjFanin0(Abc_ObjFanin0(pFanin))) != -1) )
             {
                 Abc_NtkSetTravId_rec( pFanin );
                 continue;
@@ -874,6 +874,7 @@ int Abc_NtkReplaceAutonomousLogic( Abc_Ntk_t * pNtk )
     Vec_PtrForEachEntry( vNodes, pNode, i )
     {
         pFanin = Abc_NtkCreatePi(pNtk);
+        Abc_ObjAssignName( pFanin, Abc_ObjName(pFanin), NULL );
         Abc_NodeSetTravIdCurrent( pFanin );
         Abc_ObjTransferFanout( pNode, pFanin );
     }

@@ -22,7 +22,7 @@
 #include "dec.h"
 #include "main.h"
 #include "mio.h"
-#include "seq.h"
+//#include "seq.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -142,7 +142,7 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
         fprintf( pTable, "\n" );
         fclose( pTable );
     }
-*/
+*/ 
 
 /*
     // print the statistic into a file
@@ -162,14 +162,22 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
 /*
     // print the statistic into a file
     {
+        static int Counter = 0;
+        extern int timeRetime;
         FILE * pTable;
-        pTable = fopen( "stats.txt", "a+" );
-        fprintf( pTable, "%s ",  pNtk->pName );
+        Counter++;
+        pTable = fopen( "sap/stats_retime.txt", "a+" );
+        fprintf( pTable, "%s ", pNtk->pName );
+        fprintf( pTable, "%d ", Abc_NtkNodeNum(pNtk) );
         fprintf( pTable, "%d ", Abc_NtkLatchNum(pNtk) );
-        fprintf( pTable, "\n" );
+        fprintf( pTable, "%d ", Abc_NtkGetLevelNum(pNtk) );
+        fprintf( pTable, "%.2f ", (float)(timeRetime)/(float)(CLOCKS_PER_SEC) );
+        if ( Counter % 4 == 0 )
+            fprintf( pTable, "\n" );
         fclose( pTable );
     }
 */
+
 /*
     s_TotalNodes += Abc_NtkNodeNum(pNtk);
     printf( "Total nodes = %6d   %6.2f Mb   Changes = %6d.\n", 
@@ -254,8 +262,18 @@ void Abc_NtkPrintLatch( FILE * pFile, Abc_Ntk_t * pNtk )
         InitNums[Init]++;
 
         pFanin = Abc_ObjFanin0(Abc_ObjFanin0(pLatch));
-        if ( !Abc_ObjIsNode(pFanin) || !Abc_NodeIsConst(pFanin) )
-            continue;
+        if ( Abc_NtkIsLogic(pNtk) )
+        {
+            if ( !Abc_NodeIsConst(pFanin) )
+                continue;
+        }
+        else if ( Abc_NtkIsStrash(pNtk) )
+        {
+            if ( !Abc_AigNodeIsConst(pFanin) )
+                continue;
+        }
+        else
+            assert( 0 );
 
         // the latch input is a constant node
         Counter0++;

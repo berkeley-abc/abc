@@ -110,6 +110,7 @@ int Nm_ManTableDelete( Nm_Man_t * p, int ObjId )
 {
     Nm_Entry_t ** ppSpot, * pEntry, * pPrev;
     int fRemoved;
+    p->nEntries--;
     // remove the entry from the table Id->Name
     assert( Nm_ManTableLookupId(p, ObjId) != NULL );
     ppSpot = p->pBinsI2N + Nm_HashNumber(ObjId, p->nBins);

@@ -50,38 +50,36 @@ extern Abc_Ntk_t * Abc_NtkAttachBottom( Abc_Ntk_t * pNtkTop, Abc_Ntk_t * pNtkBot
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRetimeMinArea( Abc_Ntk_t * pNtk, int fVerbose )
+int Abc_NtkRetimeMinArea( Abc_Ntk_t * pNtk, int fForwardOnly, int fBackwardOnly, int fVerbose )
 {
-    Abc_Ntk_t * pNtkTotal = NULL, * pNtkBottom, * pNtkMiter;
-    Vec_Int_t * vValues;
+    Abc_Ntk_t * pNtkTotal = NULL, * pNtkBottom;
+    Vec_Int_t * vValuesNew = NULL, * vValues;
     int nLatches = Abc_NtkLatchNum(pNtk);
+    assert( !fForwardOnly || !fBackwardOnly );
     // there should not be black boxes
     assert( Abc_NtkIsSopLogic(pNtk) );
     assert( Abc_NtkLatchNum(pNtk) == Vec_PtrSize(pNtk->vBoxes) );
     // reorder CI/CO/latch inputs
     Abc_NtkOrderCisCos( pNtk );
     // perform forward retiming
-    vValues = Abc_NtkCollectLatchValues( pNtk );
 //    Abc_NtkRetimeMinAreaFwd( pNtk, fVerbose );
-    pNtkTotal = Abc_NtkRetimeMinAreaBwd( pNtk, fVerbose );
-
-//    while ( Abc_NtkRetimeMinAreaFwd( pNtk, fVerbose ) );
+//    pNtkTotal = Abc_NtkRetimeMinAreaBwd( pNtk, fVerbose );
+    if ( !fBackwardOnly )
+        while ( Abc_NtkRetimeMinAreaFwd( pNtk, fVerbose ) );
+    // remember initial values
+    vValues = Abc_NtkCollectLatchValues( pNtk );
     // perform backward retiming
-//    while ( pNtkBottom = Abc_NtkRetimeMinAreaBwd( pNtk, fVerbose ) )
-//        pNtkTotal = Abc_NtkAttachBottom( pNtkTotal, pNtkBottom );  
+    if ( !fForwardOnly )
+//        pNtkTotal = Abc_NtkRetimeMinAreaBwd( pNtk, fVerbose );
+        while ( pNtkBottom = Abc_NtkRetimeMinAreaBwd( pNtk, fVerbose ) )
+            pNtkTotal = Abc_NtkAttachBottom( pNtkTotal, pNtkBottom );  
     // compute initial values
-    if ( pNtkTotal )
-    {
-        // convert the target network to AIG
-        Abc_NtkLogicToAig( pNtkTotal );
-        // get the miter
-        pNtkMiter = Abc_NtkCreateTarget( pNtkTotal, pNtkTotal->vCos, vValues );
-        Abc_NtkDelete( pNtkTotal );
-        // get the initial values
-        Abc_NtkRetimeInitialValues( pNtk, pNtkMiter, fVerbose );
-        Abc_NtkDelete( pNtkMiter );
-    }
-    Vec_IntFree( vValues );
+    vValuesNew = Abc_NtkRetimeInitialValues( pNtkTotal, vValues, fVerbose );
+    if ( pNtkTotal ) Abc_NtkDelete( pNtkTotal );
+    // insert new initial values
+    Abc_NtkInsertLatchValues( pNtk, vValuesNew );
+    if ( vValuesNew ) Vec_IntFree( vValuesNew );
+    if ( vValues )    Vec_IntFree( vValues );
     // fix the COs
     Abc_NtkLogicMakeSimpleCos( pNtk, 0 );
     // check for correctness
@@ -311,46 +309,6 @@ void Abc_NtkRetimeMinAreaRemoveBuffers( Abc_Ntk_t * pNtk, Vec_Ptr_t * vBuffers )
 
 /**Function*************************************************************
 
-  Synopsis    [Computes the results of simulating one node.]
-
-  Description [Assumes that fanins have pCopy set to the input values.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_ObjSopSimulate( Abc_Obj_t * pObj )
-{
-    char * pCube, * pSop = pObj->pData;
-    int nVars, Value, v, ResOr, ResAnd, ResVar;
-    assert( pSop && !Abc_SopIsExorType(pSop) );
-    // simulate the SOP of the node
-    ResOr = 0;
-    nVars = Abc_SopGetVarNum(pSop);
-    Abc_SopForEachCube( pSop, nVars, pCube )
-    {
-        ResAnd = 1;
-        Abc_CubeForEachVar( pCube, Value, v )
-        {
-            if ( Value == '0' )
-                ResVar = 1 ^ ((int)Abc_ObjFanin(pObj, v)->pCopy);
-            else if ( Value == '1' )
-                ResVar = (int)Abc_ObjFanin(pObj, v)->pCopy;
-            else
-                continue;
-            ResAnd &= ResVar;
-        }
-        ResOr |= ResAnd;
-    }
-    // complement the result if necessary
-    if ( !Abc_SopGetPhase(pSop) )
-        ResOr ^= 1;
-    return ResOr;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Compute initial values.]
 
   Description []
@@ -369,7 +327,7 @@ int Abc_NtkRetimeMinAreaInitValue_rec( Abc_Obj_t * pObj )
         return (int)pObj->pCopy;
     Abc_NodeSetTravIdCurrent(pObj);
     // consider the case of a latch output
-    if ( Abc_ObjIsBi(pObj) )
+    if ( Abc_ObjIsBo(pObj) )
     {
         assert( Abc_ObjIsLatch(Abc_ObjFanin0(pObj)) );
         pObj->pCopy = (void *)Abc_NtkRetimeMinAreaInitValue_rec( Abc_ObjFanin0(pObj) );
@@ -431,8 +389,11 @@ Abc_Obj_t * Abc_NtkRetimeMinAreaConstructNtk_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t
         return pObj->pCopy;
     Abc_NodeSetTravIdCurrent(pObj);
     // consider the case of a latch output
-    if ( Abc_ObjIsBo(pObj) )
-        return Abc_NtkRetimeMinAreaConstructNtk_rec( pNtkNew, Abc_ObjFanin0(pObj) );
+    if ( Abc_ObjIsBi(pObj) )
+    {
+        pObj->pCopy = Abc_NtkRetimeMinAreaConstructNtk_rec( pNtkNew, Abc_ObjFanin0(pObj) );
+        return pObj->pCopy;
+    }
     assert( Abc_ObjIsNode(pObj) );
     // visit the fanins
     Abc_ObjForEachFanin( pObj, pFanin, i )
@@ -462,7 +423,7 @@ Abc_Ntk_t * Abc_NtkRetimeMinAreaConstructNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMin
     int i;
     // create new network
     pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_SOP, 1 );
-    // set mapping of new latches into the PIs of the network
+    // map new latches into PIs of the new network
     Abc_NtkIncrementTravId(pNtk);
     Vec_PtrForEachEntry( vMinCut, pObj, i )
     {
@@ -475,12 +436,85 @@ Abc_Ntk_t * Abc_NtkRetimeMinAreaConstructNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMin
         pObjNew = Abc_NtkRetimeMinAreaConstructNtk_rec( pNtkNew, Abc_ObjFanin0(pObj) );
         Abc_ObjAddFanin( Abc_NtkCreatePo(pNtkNew), pObjNew );
     }
+    // unmark the nodes in the cut
+    Vec_PtrForEachEntry( vMinCut, pObj, i )
+        Abc_NodeSetTravIdPrevious( pObj );
     // assign dummy node names
     Abc_NtkAddDummyPiNames( pNtkNew );
     Abc_NtkAddDummyPoNames( pNtkNew );
     if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkRetimeMinAreaConstructNtk(): Network check has failed.\n" );
     return pNtkNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Mark the inside of the min-cut with current traversal ID.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkRetimeMinAreaMarkInside_rec( Abc_Obj_t * pObj, int fForward )
+{
+    Abc_Obj_t * pNext;
+    int i;
+    // skip visited nodes
+    if ( Abc_NodeIsTravIdCurrent(pObj) )
+        return;
+    Abc_NodeSetTravIdCurrent( pObj );
+    // make sure we never reach PIs/POs/latches
+    if ( Abc_ObjIsPi(pObj) || Abc_ObjIsPo(pObj) || Abc_ObjIsLatch(pObj) )
+        printf( "Abc_NtkRetimeMinAreaMarkInside(): The set of nodes is not a cut. Internal error!!!\n" );
+    // continue to explore the cone
+    if ( fForward )
+    {
+        Abc_ObjForEachFanout( pObj, pNext, i )
+            Abc_NtkRetimeMinAreaMarkInside_rec( pNext, fForward );
+    }
+    else
+    {
+        Abc_ObjForEachFanin( pObj, pNext, i )
+            Abc_NtkRetimeMinAreaMarkInside_rec( pNext, fForward );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Marks the inside of the min-cut with current traversal ID.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkRetimeMinAreaMarkInside( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, int fForward )
+{
+    Abc_Obj_t * pObj;
+    int i;
+    // mark the mincut
+    Abc_NtkIncrementTravId(pNtk);
+    Vec_PtrForEachEntry( vMinCut, pObj, i )
+        Abc_NodeSetTravIdCurrent( pObj );
+    // mark the area inside of the cut
+    if ( fForward )
+    {
+        Abc_NtkForEachLatch( pNtk, pObj, i )
+            Abc_NtkRetimeMinAreaMarkInside_rec( Abc_ObjFanout0(pObj), fForward );
+    }
+    else
+    {
+        Abc_NtkForEachLatch( pNtk, pObj, i )
+            Abc_NtkRetimeMinAreaMarkInside_rec( Abc_ObjFanin0(pObj), fForward );
+        // unmark the nodes in the cut
+        Vec_PtrForEachEntry( vMinCut, pObj, i )
+            Abc_NodeSetTravIdPrevious( pObj );
+    }
 }
 
 /**Function*************************************************************
@@ -496,9 +530,11 @@ Abc_Ntk_t * Abc_NtkRetimeMinAreaConstructNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMin
 ***********************************************************************/
 void Abc_NtkRetimeMinAreaUpdateLatches( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, int fForward )
 {
-    Vec_Ptr_t * vCis, * vCos, * vBoxes, * vBoxesNew, * vFanouts;
-    Abc_Obj_t * pObj, * pLatch, * pLatchIn, * pLatchOut, * pFanout;
+    Vec_Ptr_t * vCis, * vCos, * vBoxes, * vBoxesNew, * vNodes;
+    Abc_Obj_t * pObj, * pLatch, * pLatchIn, * pLatchOut, * pNext;
     int i, k;
+    // mark the inside of min-cut with new trav ID
+    Abc_NtkRetimeMinAreaMarkInside( pNtk, vMinCut, fForward );
     // create new latches
     Vec_PtrShrink( pNtk->vCis, Abc_NtkCiNum(pNtk) - Abc_NtkLatchNum(pNtk) );
     Vec_PtrShrink( pNtk->vCos, Abc_NtkCoNum(pNtk) - Abc_NtkLatchNum(pNtk) );
@@ -511,8 +547,7 @@ void Abc_NtkRetimeMinAreaUpdateLatches( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, i
         if ( !Abc_ObjIsLatch(pObj) )
             Vec_PtrPush( vBoxesNew, pObj );
     // create or reuse latches
-    Abc_NtkIncrementTravId(pNtk);
-    vFanouts = Vec_PtrAlloc( 100 );
+    vNodes = Vec_PtrAlloc( 100 );
     Vec_PtrForEachEntry( vMinCut, pObj, i )
     {
         if ( Abc_ObjIsCi(pObj) && fForward )
@@ -520,7 +555,7 @@ void Abc_NtkRetimeMinAreaUpdateLatches( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, i
             pLatchOut = pObj;
             pLatch    = Abc_ObjFanin0(pLatchOut);
             pLatchIn  = Abc_ObjFanin0(pLatch);
-            assert( Abc_ObjIsBi(pLatchOut) && Abc_ObjIsLatch(pLatch) && Abc_ObjIsBo(pLatchIn) );
+            assert( Abc_ObjIsBo(pLatchOut) && Abc_ObjIsLatch(pLatch) && Abc_ObjIsBi(pLatchIn) );
             // mark the latch as reused
             Abc_NodeSetTravIdCurrent( pLatch );
         }
@@ -529,15 +564,15 @@ void Abc_NtkRetimeMinAreaUpdateLatches( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, i
             pLatchIn  = pObj;
             pLatch    = Abc_ObjFanout0(pLatchIn);
             pLatchOut = Abc_ObjFanout0(pLatch);
-            assert( Abc_ObjIsBi(pLatchOut) && Abc_ObjIsLatch(pLatch) && Abc_ObjIsBo(pLatchIn) );
+            assert( Abc_ObjIsBo(pLatchOut) && Abc_ObjIsLatch(pLatch) && Abc_ObjIsBi(pLatchIn) );
             // mark the latch as reused
             Abc_NodeSetTravIdCurrent( pLatch );
         }
         else
         {
-            pLatchOut = Abc_NtkCreateBi(pNtk);
+            pLatchOut = Abc_NtkCreateBo(pNtk);
             pLatch    = Abc_NtkCreateLatch(pNtk);
-            pLatchIn  = Abc_NtkCreateBo(pNtk);
+            pLatchIn  = Abc_NtkCreateBi(pNtk);
             Abc_ObjAssignName( pLatchOut, Abc_ObjName(pLatchOut), NULL );
             Abc_ObjAssignName( pLatchIn,  Abc_ObjName(pLatchIn), NULL );
             // connect
@@ -545,16 +580,20 @@ void Abc_NtkRetimeMinAreaUpdateLatches( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, i
             Abc_ObjAddFanin( pLatch, pLatchIn );
             if ( fForward )
             {
-                Abc_ObjTransferFanout( pObj, pLatchOut );
                 pLatch->pData = (void *)(pObj->pCopy? ABC_INIT_ONE : ABC_INIT_ZERO);
+                // redirect edges to the unvisited fanouts of the node
+                Abc_NodeCollectFanouts( pObj, vNodes );
+                Vec_PtrForEachEntry( vNodes, pNext, k )
+                    if ( !Abc_NodeIsTravIdCurrent(pNext) )
+                        Abc_ObjPatchFanin( pNext, pObj, pLatchOut );
             }
             else
             {
-                // redirect unmarked edges
-                Abc_NodeCollectFanouts( pObj, vFanouts );
-                Vec_PtrForEachEntry( vFanouts, pFanout, k )
-                    if ( !pFanout->fMarkA )
-                        Abc_ObjPatchFanin( pFanout, pObj, pLatchOut );
+                // redirect edges to the visited fanouts of the node
+                Abc_NodeCollectFanouts( pObj, vNodes );
+                Vec_PtrForEachEntry( vNodes, pNext, k )
+                    if ( Abc_NodeIsTravIdCurrent(pNext) )
+                        Abc_ObjPatchFanin( pNext, pObj, pLatchOut );
             }
             // connect latch to the node
             Abc_ObjAddFanin( pLatchIn, pObj );
@@ -563,7 +602,7 @@ void Abc_NtkRetimeMinAreaUpdateLatches( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, i
         Vec_PtrPush( vBoxesNew, pLatch );
         Vec_PtrPush( vCos, pLatchIn );
     }
-    Vec_PtrFree( vFanouts );
+    Vec_PtrFree( vNodes );
     // remove useless latches
     Vec_PtrForEachEntry( vBoxes, pObj, i )
     {
@@ -574,7 +613,8 @@ void Abc_NtkRetimeMinAreaUpdateLatches( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, i
         pLatchOut = Abc_ObjFanout0(pObj);
         pLatch    = pObj;
         pLatchIn  = Abc_ObjFanin0(pObj);
-        Abc_ObjTransferFanout( pLatchOut, Abc_ObjFanin0(pLatchIn) );
+        if ( Abc_ObjFanoutNum(pLatchOut) > 0 )
+            Abc_ObjTransferFanout( pLatchOut, Abc_ObjFanin0(pLatchIn) );
         Abc_NtkDeleteObj( pLatchOut );
         Abc_NtkDeleteObj( pObj );
         Abc_NtkDeleteObj( pLatchIn );

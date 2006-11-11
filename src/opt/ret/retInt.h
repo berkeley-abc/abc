@@ -44,20 +44,28 @@
 ////////////////////////////////////////////////////////////////////////
 
 /*=== retArea.c ========================================================*/
-extern int         Abc_NtkRetimeMinArea( Abc_Ntk_t * pNtk, int fVerbose );
-/*=== retBwd.c ========================================================*/
-extern int         Abc_NtkRetimeBackward( Abc_Ntk_t * pNtk, int fVerbose );
+extern int         Abc_NtkRetimeMinArea( Abc_Ntk_t * pNtk, int fForwardOnly, int fBackwardOnly, int fVerbose );
 /*=== retCore.c ========================================================*/
-extern int         Abc_NtkRetime( Abc_Ntk_t * pNtk, int Mode, int fVerbose );
+extern int         Abc_NtkRetime( Abc_Ntk_t * pNtk, int Mode, int fForwardOnly, int fBackwardOnly, int fVerbose );
 /*=== retDelay.c ========================================================*/
-extern int         Abc_NtkRetimeMinDelay( Abc_Ntk_t * pNtk, int fVerbose );
+extern int         Abc_NtkRetimeMinDelay( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkCopy, int nIterLimit, int fForward, int fVerbose );
+/*=== retDirect.c ========================================================*/
+extern int         Abc_NtkRetimeIncremental( Abc_Ntk_t * pNtk, int fForward, int fMinDelay, int fVerbose );
+extern void        Abc_NtkRetimeShareLatches( Abc_Ntk_t * pNtk );
+extern int         Abc_NtkRetimeNodeIsEnabled( Abc_Obj_t * pObj, int fForward );
+extern void        Abc_NtkRetimeNode( Abc_Obj_t * pObj, int fForward, int fInitial );
 /*=== retFlow.c ========================================================*/
 extern void        Abc_NtkMaxFlowTest( Abc_Ntk_t * pNtk );
 extern Vec_Ptr_t * Abc_NtkMaxFlow( Abc_Ntk_t * pNtk, int fForward, int fVerbose );
-/*=== retFwd.c ========================================================*/
-extern int         Abc_NtkRetimeForward( Abc_Ntk_t * pNtk, int fVerbose );
 /*=== retInit.c ========================================================*/
-extern void        Abc_NtkRetimeInitialValues( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkMiter, int fVerbose );
+extern Vec_Int_t * Abc_NtkRetimeInitialValues( Abc_Ntk_t * pNtkSat, Vec_Int_t * vValues, int fVerbose );
+extern int         Abc_ObjSopSimulate( Abc_Obj_t * pObj );
+extern void        Abc_NtkRetimeTranferToCopy( Abc_Ntk_t * pNtk );
+extern void        Abc_NtkRetimeTranferFromCopy( Abc_Ntk_t * pNtk );
+extern Vec_Int_t * Abc_NtkRetimeCollectLatchValues( Abc_Ntk_t * pNtk );
+extern void        Abc_NtkRetimeInsertLatchValues( Abc_Ntk_t * pNtk, Vec_Int_t * vValues );
+extern Abc_Ntk_t * Abc_NtkRetimeBackwardInitialStart( Abc_Ntk_t * pNtk );
+extern void        Abc_NtkRetimeBackwardInitialFinish( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, Vec_Int_t * vValuesOld, int fVerbose );
 
 #endif
 

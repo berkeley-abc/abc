@@ -46,9 +46,9 @@ bool Abc_NtkLatchIsSelfFeed_rec( Abc_Obj_t * pLatch, Abc_Obj_t * pLatchRoot )
     if ( pLatch == pLatchRoot )
         return 1;
     pFanin = Abc_ObjFanin0(Abc_ObjFanin0(pLatch));
-    if ( !Abc_ObjIsBi(pFanin) || !Abc_ObjIsLatch(Abc_ObjFanin0(pFanin)) )
+    if ( !Abc_ObjIsBo(pFanin) || !Abc_ObjIsLatch(Abc_ObjFanin0(pFanin)) )
         return 0;
-    return Abc_NtkLatchIsSelfFeed_rec( Abc_ObjFanin0(pFanin), pLatchRoot );
+    return Abc_NtkLatchIsSelfFeed_rec( Abc_ObjFanin0(pFanin), pLatch );
 }
 
 /**Function*************************************************************
@@ -67,7 +67,7 @@ bool Abc_NtkLatchIsSelfFeed( Abc_Obj_t * pLatch )
     Abc_Obj_t * pFanin;
     assert( Abc_ObjIsLatch(pLatch) );
     pFanin = Abc_ObjFanin0(Abc_ObjFanin0(pLatch));
-    if ( !Abc_ObjIsBi(pFanin) || !Abc_ObjIsLatch(Abc_ObjFanin0(pFanin)) )
+    if ( !Abc_ObjIsBo(pFanin) || !Abc_ObjIsLatch(Abc_ObjFanin0(pFanin)) )
         return 0;
     return Abc_NtkLatchIsSelfFeed_rec( Abc_ObjFanin0(pFanin), pLatch );
 }
@@ -183,13 +183,32 @@ void Abc_NtkLatchPipe( Abc_Ntk_t * pNtk, int nLatches )
 ***********************************************************************/
 Vec_Int_t * Abc_NtkCollectLatchValues( Abc_Ntk_t * pNtk )
 {
-    Vec_Int_t * vArray;
+    Vec_Int_t * vValues;
     Abc_Obj_t * pLatch;
     int i;
-    vArray = Vec_IntAlloc( Abc_NtkLatchNum(pNtk) );
+    vValues = Vec_IntAlloc( Abc_NtkLatchNum(pNtk) );
     Abc_NtkForEachLatch( pNtk, pLatch, i )
-        Vec_IntPush( vArray, Abc_LatchIsInit1(pLatch) );
-    return vArray;
+        Vec_IntPush( vValues, Abc_LatchIsInit1(pLatch) );
+    return vValues;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Strashes one logic node using its SOP.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkInsertLatchValues( Abc_Ntk_t * pNtk, Vec_Int_t * vValues )
+{
+    Abc_Obj_t * pLatch;
+    int i;
+    Abc_NtkForEachLatch( pNtk, pLatch, i )
+        pLatch->pData = (void *)(vValues? (Vec_IntEntry(vValues,i)? ABC_INIT_ONE : ABC_INIT_ZERO) : ABC_INIT_DC);
 }
 
 

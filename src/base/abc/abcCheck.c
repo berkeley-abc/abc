@@ -20,7 +20,7 @@
 
 #include "abc.h"
 #include "main.h"
-#include "seq.h"
+//#include "seq.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///

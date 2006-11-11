@@ -343,7 +343,7 @@ DdManager * Abc_NtkGlobalBdds( Abc_Ntk_t * pNtk, int nBddSizeMax, int fLatchOnly
 */
     // reset references
     Abc_NtkForEachObj( pNtk, pObj, i )
-        if ( !Abc_ObjIsBox(pObj) && !Abc_ObjIsBi(pObj) )
+        if ( !Abc_ObjIsBox(pObj) && !Abc_ObjIsBo(pObj) )
             Abc_ObjForEachFanin( pObj, pFanin, k )
                 pFanin->vFanouts.nSize++;
 

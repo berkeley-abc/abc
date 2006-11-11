@@ -129,10 +129,10 @@ Abc_Obj_t * Abc_NtkCreateObj( Abc_Ntk_t * pNtk, Abc_ObjType_t Type )
             Vec_PtrPush( pNtk->vCos, pObj );
             break;
         case ABC_OBJ_BI:     
-            if ( pNtk->vCis ) Vec_PtrPush( pNtk->vCis, pObj );
+            if ( pNtk->vCos ) Vec_PtrPush( pNtk->vCos, pObj );
             break;
         case ABC_OBJ_BO:     
-            if ( pNtk->vCos ) Vec_PtrPush( pNtk->vCos, pObj );
+            if ( pNtk->vCis ) Vec_PtrPush( pNtk->vCis, pObj );
             break;
         case ABC_OBJ_ASSERT:     
             Vec_PtrPush( pNtk->vAsserts, pObj );
@@ -171,11 +171,11 @@ void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
     Abc_Ntk_t * pNtk = pObj->pNtk;
     Vec_Ptr_t * vNodes;
     int i;
+    assert( !Abc_ObjIsComplement(pObj) );
     // remove from the table of names
     if ( Nm_ManFindNameById(pObj->pNtk->pManName, pObj->Id) )
         Nm_ManDeleteIdName(pObj->pNtk->pManName, pObj->Id);
     // delete fanins and fanouts
-    assert( !Abc_ObjIsComplement(pObj) );
     vNodes = Vec_PtrAlloc( 100 );
     Abc_NodeCollectFanouts( pObj, vNodes );
     for ( i = 0; i < vNodes->nSize; i++ )
@@ -210,10 +210,10 @@ void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
             Vec_PtrRemove( pNtk->vCos, pObj );
             break;
         case ABC_OBJ_BI:     
-            if ( pNtk->vCis ) Vec_PtrRemove( pNtk->vCis, pObj );
+            if ( pNtk->vCos ) Vec_PtrRemove( pNtk->vCos, pObj );
             break;
         case ABC_OBJ_BO:     
-            if ( pNtk->vCos ) Vec_PtrRemove( pNtk->vCos, pObj );
+            if ( pNtk->vCis ) Vec_PtrRemove( pNtk->vCis, pObj );
             break;
         case ABC_OBJ_ASSERT:     
             Vec_PtrRemove( pNtk->vAsserts, pObj );
@@ -253,7 +253,6 @@ void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
 ***********************************************************************/
 void Abc_NtkDeleteObj_rec( Abc_Obj_t * pObj, int fOnlyNodes )
 {
-    Abc_Ntk_t * pNtk = pObj->pNtk;
     Vec_Ptr_t * vNodes;
     int i;
     assert( !Abc_ObjIsComplement(pObj) );
@@ -275,6 +274,33 @@ void Abc_NtkDeleteObj_rec( Abc_Obj_t * pObj, int fOnlyNodes )
             if ( !Abc_ObjIsPi(pObj) && Abc_ObjFanoutNum(pObj) == 0 )
                 Abc_NtkDeleteObj_rec( pObj, fOnlyNodes );
     }
+    Vec_PtrFree( vNodes );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Deletes the node and MFFC of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkDeleteAll_rec( Abc_Obj_t * pObj )
+{
+    Vec_Ptr_t * vNodes;
+    int i;
+    assert( !Abc_ObjIsComplement(pObj) );
+    assert( Abc_ObjFanoutNum(pObj) == 0 );
+    // delete fanins and fanouts
+    vNodes = Vec_PtrAlloc( 100 );
+    Abc_NodeCollectFanins( pObj, vNodes );
+    Abc_NtkDeleteObj( pObj );
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+        if ( Abc_ObjFanoutNum(pObj) == 0 )
+            Abc_NtkDeleteAll_rec( pObj );
     Vec_PtrFree( vNodes );
 }
 
@@ -401,7 +427,7 @@ Abc_Obj_t * Abc_NtkFindNode( Abc_Ntk_t * pNtk, char * pName )
     Num = Nm_ManFindIdByName( pNtk->pManName, pName, ABC_OBJ_PO );
     if ( Num >= 0 )
         return Abc_ObjFanin0( Abc_NtkObj( pNtk, Num ) );
-    Num = Nm_ManFindIdByName( pNtk->pManName, pName, ABC_OBJ_BO );
+    Num = Nm_ManFindIdByName( pNtk->pManName, pName, ABC_OBJ_BI );
     if ( Num >= 0 )
         return Abc_ObjFanin0( Abc_NtkObj( pNtk, Num ) );
     Num = Nm_ManFindIdByName( pNtk->pManName, pName, ABC_OBJ_NODE );
@@ -474,7 +500,7 @@ Abc_Obj_t * Abc_NtkFindCi( Abc_Ntk_t * pNtk, char * pName )
     Num = Nm_ManFindIdByName( pNtk->pManName, pName, ABC_OBJ_PI );
     if ( Num >= 0 )
         return Abc_NtkObj( pNtk, Num );
-    Num = Nm_ManFindIdByName( pNtk->pManName, pName, ABC_OBJ_BI );
+    Num = Nm_ManFindIdByName( pNtk->pManName, pName, ABC_OBJ_BO );
     if ( Num >= 0 )
         return Abc_NtkObj( pNtk, Num );
     return NULL;
@@ -498,7 +524,7 @@ Abc_Obj_t * Abc_NtkFindCo( Abc_Ntk_t * pNtk, char * pName )
     Num = Nm_ManFindIdByName( pNtk->pManName, pName, ABC_OBJ_PO );
     if ( Num >= 0 )
         return Abc_NtkObj( pNtk, Num );
-    Num = Nm_ManFindIdByName( pNtk->pManName, pName, ABC_OBJ_BO );
+    Num = Nm_ManFindIdByName( pNtk->pManName, pName, ABC_OBJ_BI );
     if ( Num >= 0 )
         return Abc_NtkObj( pNtk, Num );
     return NULL;

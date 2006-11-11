@@ -638,6 +638,10 @@ int Abc_NtkGetLevelNum_rec( Abc_Obj_t * pNode )
     Abc_Obj_t * pFanin;
     int i, Level;
     assert( !Abc_ObjIsNet(pNode) );
+    if ( pNode->Id == 27278 )
+    {
+        int x = 0;        
+    }
     // skip the PI
     if ( Abc_ObjIsCi(pNode) )
         return 0;

@@ -259,7 +259,8 @@ void Abc_NtkShow( Abc_Ntk_t * pNtk, int fGateNames )
     char FileNameDot[200];
     int i;
 
-    assert( !Abc_NtkHasAig(pNtk) );
+    assert( !Abc_NtkIsStrash(pNtk) );
+    Abc_NtkLogicToSop( pNtk, 0 );
     // create the file name
     Abc_ShowGetFileName( pNtk->pName, FileNameDot );
     // check that the file can be opened
@@ -273,7 +274,8 @@ void Abc_NtkShow( Abc_Ntk_t * pNtk, int fGateNames )
     // collect all nodes in the network
     vNodes = Vec_PtrAlloc( 100 );
     Abc_NtkForEachObj( pNtk, pNode, i )
-        Vec_PtrPush( vNodes, pNode );
+//        if ( !Abc_ObjIsBi(pNode) && !Abc_ObjIsBo(pNode) )
+            Vec_PtrPush( vNodes, pNode );
     // write the DOT file
     Io_WriteDotNtk( pNtk, vNodes, NULL, FileNameDot, fGateNames );
     Vec_PtrFree( vNodes );

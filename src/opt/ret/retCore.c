@@ -24,6 +24,8 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+int timeRetime = 0;
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -39,34 +41,72 @@
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRetime( Abc_Ntk_t * pNtk, int Mode, int fVerbose )
+int Abc_NtkRetime( Abc_Ntk_t * pNtk, int Mode, int fForwardOnly, int fBackwardOnly, int fVerbose )
 {
-    int RetValue;
+    int nLatches = Abc_NtkLatchNum(pNtk);
+    int nLevels  = Abc_NtkGetLevelNum(pNtk);
+    int RetValue = 0, clkTotal = clock();
     assert( Mode > 0 && Mode < 6 );
+    assert( !fForwardOnly || !fBackwardOnly );
     // perform forward retiming
     switch ( Mode )
     {
     case 1: // forward 
-        RetValue = Abc_NtkRetimeForward( pNtk, fVerbose );
+        RetValue = Abc_NtkRetimeIncremental( pNtk, 1, 0, fVerbose );
         break;
     case 2: // backward 
-        RetValue = Abc_NtkRetimeBackward( pNtk, fVerbose );
+        RetValue = Abc_NtkRetimeIncremental( pNtk, 0, 0, fVerbose );
         break;
     case 3: // min-area 
-        RetValue = Abc_NtkRetimeMinArea( pNtk, fVerbose );
+        RetValue = Abc_NtkRetimeMinArea( pNtk, fForwardOnly, fBackwardOnly, fVerbose );
         break;
     case 4: // min-delay
-        RetValue = Abc_NtkRetimeMinDelay( pNtk, fVerbose );
+        if ( !fBackwardOnly )
+            RetValue += Abc_NtkRetimeIncremental( pNtk, 1, 1, fVerbose );
+        if ( !fForwardOnly )
+            RetValue += Abc_NtkRetimeIncremental( pNtk, 0, 1, fVerbose );
         break;
     case 5: // min-area + min-delay
-        RetValue  = Abc_NtkRetimeMinArea( pNtk, fVerbose );
-        RetValue += Abc_NtkRetimeMinDelay( pNtk, fVerbose );
+        RetValue  = Abc_NtkRetimeMinArea( pNtk, fForwardOnly, fBackwardOnly, fVerbose );
+        if ( !fBackwardOnly )
+            RetValue += Abc_NtkRetimeIncremental( pNtk, 1, 1, fVerbose );
+        if ( !fForwardOnly )
+            RetValue += Abc_NtkRetimeIncremental( pNtk, 0, 1, fVerbose );
         break;
     default:
         printf( "Unknown retiming option.\n" );
         break;
     }
+    if ( fVerbose )
+    {
+        printf( "Reduction in area = %3d. Reduction in delay = %3d. ", 
+            nLatches - Abc_NtkLatchNum(pNtk), nLevels - Abc_NtkGetLevelNum(pNtk) );
+        PRT( "Total runtime", clock() - clkTotal );
+    }
+    timeRetime = clock() - clkTotal;
     return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Used for automated debugging.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkRetimeDebug( Abc_Ntk_t * pNtk )
+{
+    extern int Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nFrames, int fVerbose );
+    Abc_Ntk_t * pNtkRet;
+    assert( Abc_NtkIsLogic(pNtk) );
+    Abc_NtkLogicToSop( pNtk, 0 );
+    pNtkRet = Abc_NtkDup( pNtk );
+    Abc_NtkRetime( pNtkRet, 3, 0, 1, 0 );
+    return !Abc_NtkSecFraig( pNtk, pNtkRet, 10000, 3, 0 );
 }
 
 ////////////////////////////////////////////////////////////////////////

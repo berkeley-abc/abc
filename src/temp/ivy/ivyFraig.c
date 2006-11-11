@@ -216,6 +216,7 @@ void Ivy_FraigParamsDefault( Ivy_FraigParams_t * pParams )
     pParams->dSimSatur        =   0.005;  // the ratio of refined classes when saturation is reached
     pParams->fPatScores       =       0;  // enables simulation pattern scoring
     pParams->MaxScore         =      25;  // max score after which resimulation is used
+    pParams->fDoSparse        =       1;  // skips sparse functions
 //    pParams->dActConeRatio    =    0.05;  // the ratio of cone to be bumped
 //    pParams->dActConeBumpMax  =     5.0;  // the largest bump of activity
     pParams->dActConeRatio    =     0.3;  // the ratio of cone to be bumped
@@ -1227,6 +1228,69 @@ int Ivy_FraigRefineClass_rec( Ivy_FraigMan_t * p, Ivy_Obj_t * pClass )
         RetValue = Ivy_FraigRefineClass_rec( p, pClassNew );
     return RetValue + 1;
 }
+ 
+/**Function*************************************************************
+
+  Synopsis    [Creates the counter-example from the successful pattern.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_FraigCheckOutputSimsSavePattern( Ivy_FraigMan_t * p, Ivy_Obj_t * pObj )
+{ 
+    Ivy_FraigSim_t * pSims;
+    int i, k, BestPat, * pModel;
+    // find the word of the pattern
+    pSims = Ivy_ObjSim(pObj);
+    for ( i = 0; i < p->nSimWords; i++ )
+        if ( pSims->pData[i] )
+            break;
+    assert( i < p->nSimWords );
+    // find the bit of the pattern
+    for ( k = 0; k < 32; k++ )
+        if ( pSims->pData[i] & (1 << k) )
+            break;
+    assert( k < 32 );
+    // determine the best pattern
+    BestPat = i * 32 + k;
+    // fill in the counter-example data
+    pModel = ALLOC( int, Ivy_ManPiNum(p->pManFraig) );
+    Ivy_ManForEachPi( p->pManAig, pObj, i )
+        pModel[i] = Ivy_InfoHasBit(Ivy_ObjSim(pObj)->pData, BestPat);
+    // set the model
+    assert( p->pManFraig->pData == NULL );
+    p->pManFraig->pData = pModel;
+    return;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if the one of the output is already non-constant 0.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_FraigCheckOutputSims( Ivy_FraigMan_t * p )
+{
+    Ivy_Obj_t * pObj;
+    int i;
+    Ivy_ManForEachPo( p->pManAig, pObj, i )
+        if ( !Ivy_NodeHasZeroSim( p, Ivy_ObjFanin0(pObj) ) )
+        {
+            // create the counter-example from this pattern
+            Ivy_FraigCheckOutputSimsSavePattern( p, Ivy_ObjFanin0(pObj) );
+            return 1;
+        }
+    return 0;
+}
 
 /**Function*************************************************************
 
@@ -1244,6 +1308,13 @@ int Ivy_FraigRefineClasses( Ivy_FraigMan_t * p )
 {
     Ivy_Obj_t * pClass, * pClass2;
     int clk, RetValue, Counter = 0;
+    // check if some outputs already became non-constant
+    // this is a special case when computation can be stopped!!!
+    if ( p->pParams->fProve )
+        Ivy_FraigCheckOutputSims( p );
+    if ( p->pManFraig->pData )
+        return 0;
+    // refine the classed
 clk = clock();
     Ivy_FraigForEachEquivClassSafe( p->lClasses.pHead, pClass, pClass2 )
     {
@@ -1447,27 +1518,6 @@ void Ivy_FraigSavePattern3( Ivy_FraigMan_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Returns 1 if the one of the output is already non-constant 0.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ivy_FraigCheckOutputSims( Ivy_FraigMan_t * p )
-{
-    Ivy_Obj_t * pObj;
-    int i;
-    Ivy_ManForEachPo( p->pManAig, pObj, i )
-        if ( !Ivy_NodeHasZeroSim( p, Ivy_ObjFanin0(pObj) ) )
-            return 1;
-    return 0;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Performs simulation of the manager.]
 
   Description []
@@ -1490,11 +1540,15 @@ void Ivy_FraigSimulate( Ivy_FraigMan_t * p )
     Ivy_FraigAssignDist1( p, p->pPatWords );
     Ivy_FraigSimulateOne( p );
     nChanges = Ivy_FraigRefineClasses( p );
+    if ( p->pManFraig->pData )
+        return;
 //printf( "Refined classes  = %5d.   Changes = %4d.   Pairs = %6d.\n", p->lClasses.nItems, nChanges, Ivy_FraigCountPairsClasses(p) );
     Ivy_FraigSavePattern1( p );
     Ivy_FraigAssignDist1( p, p->pPatWords );
     Ivy_FraigSimulateOne( p );
     nChanges = Ivy_FraigRefineClasses( p );
+    if ( p->pManFraig->pData )
+        return;
 //printf( "Refined classes  = %5d.   Changes = %4d.   Pairs = %6d.\n", p->lClasses.nItems, nChanges, Ivy_FraigCountPairsClasses(p) );
     // refine classes by random simulation
     do {
@@ -1502,13 +1556,11 @@ void Ivy_FraigSimulate( Ivy_FraigMan_t * p )
         Ivy_FraigSimulateOne( p );
         nClasses = p->lClasses.nItems;
         nChanges = Ivy_FraigRefineClasses( p );
+        if ( p->pManFraig->pData )
+            return;
 //printf( "Refined classes  = %5d.   Changes = %4d.   Pairs = %6d.\n", p->lClasses.nItems, nChanges, Ivy_FraigCountPairsClasses(p) );
     } while ( (double)nChanges / nClasses > p->pParams->dSimSatur );
 //    Ivy_FraigPrintSimClasses( p );
-
-    // check if some outputs already became non-constant
-//    if ( Ivy_FraigCheckOutputSims(p) )
-//        printf( "Special case: One of the POs is already non-const zero.\n" );
 }
 
 
@@ -1620,6 +1672,8 @@ void Ivy_FraigResimulate( Ivy_FraigMan_t * p )
     if ( p->pParams->fPatScores )
         Ivy_FraigCleanPatScores( p );
     nChanges = Ivy_FraigRefineClasses( p );
+    if ( p->pManFraig->pData )
+        return;
     if ( nChanges < 1 )
         printf( "Error: A counter-example did not refine classes!\n" );
     assert( nChanges >= 1 );
@@ -1635,6 +1689,8 @@ void Ivy_FraigResimulate( Ivy_FraigMan_t * p )
         Ivy_FraigSimulateOne( p );
         Ivy_FraigCleanPatScores( p );
         nChanges = Ivy_FraigRefineClasses( p );
+        if ( p->pManFraig->pData )
+            return;
 //printf( "Refined class!!! = %5d.   Changes = %4d.   Pairs = %6d.\n", p->lClasses.nItems, nChanges, Ivy_FraigCountPairsClasses(p) );
         if ( nChanges == 0 )
             break;
@@ -1765,6 +1821,14 @@ void Ivy_FraigMiterProve( Ivy_FraigMan_t * p )
             memset( p->pManFraig->pData, 0, sizeof(int) * Ivy_ManPiNum(p->pManFraig) );
             break;
         }
+/*
+        // check the representative of this node
+        pRepr = Ivy_ObjClassNodeRepr(Ivy_ObjFanin0(pObj));
+        if ( Ivy_Regular(pRepr) != p->pManAig->pConst1 )
+            printf( "Representative is not constant 1.\n" );
+        else
+            printf( "Representative is constant 1.\n" );
+*/
         // try to prove the output constant 0
         RetValue = Ivy_FraigNodeIsConst( p, Ivy_Regular(pObjNew) );
         if ( RetValue == 1 )  // proved equivalent
@@ -1816,7 +1880,11 @@ p->nClassesBeg  = p->lClasses.nItems;
     Ivy_ManForEachNode( p->pManAig, pObj, i )
     {
         Extra_ProgressBarUpdate( p->pProgress, k++, NULL );
-        pObj->pEquiv = Ivy_FraigAnd( p, pObj );
+        // default to simple strashing if simulation detected a counter-example for a PO
+        if ( p->pManFraig->pData )
+            pObj->pEquiv = Ivy_And( p->pManFraig, Ivy_ObjChild0Equiv(pObj), Ivy_ObjChild1Equiv(pObj) );
+        else
+            pObj->pEquiv = Ivy_FraigAnd( p, pObj );
         assert( pObj->pEquiv != NULL );
 //        pTemp = Ivy_Regular(pObj->pEquiv);
 //        assert( Ivy_Regular(pObj->pEquiv)->Type );
@@ -1826,7 +1894,7 @@ p->nClassesEnd = p->lClasses.nItems;
     // try to prove the outputs of the miter
     p->nNodesMiter = Ivy_ManNodeNum(p->pManFraig);
 //    Ivy_FraigMiterStatus( p->pManFraig );
-    if ( p->pParams->fProve )
+    if ( p->pParams->fProve && p->pManFraig->pData == NULL )
         Ivy_FraigMiterProve( p );
     // add the POs
     Ivy_ManForEachPo( p->pManAig, pObj, i )
@@ -1860,7 +1928,7 @@ p->nClassesEnd = p->lClasses.nItems;
 
 ***********************************************************************/
 Ivy_Obj_t * Ivy_FraigAnd( Ivy_FraigMan_t * p, Ivy_Obj_t * pObjOld )
-{
+{ 
     Ivy_Obj_t * pObjNew, * pFanin0New, * pFanin1New, * pObjReprNew;
     int RetValue;
     // get the fraiged fanins
@@ -1869,8 +1937,13 @@ Ivy_Obj_t * Ivy_FraigAnd( Ivy_FraigMan_t * p, Ivy_Obj_t * pObjOld )
     // get the candidate fraig node
     pObjNew = Ivy_And( p->pManFraig, pFanin0New, pFanin1New );
     // get representative of this class
-    if ( Ivy_ObjClassNodeRepr(pObjOld) == NULL ) // this is a unique node
+    if ( Ivy_ObjClassNodeRepr(pObjOld) == NULL || // this is a unique node
+         (!p->pParams->fDoSparse && Ivy_ObjClassNodeRepr(pObjOld) == p->pManAig->pConst1) ) // this is a sparse node
     {
+//        if ( Ivy_ObjClassNodeRepr(pObjOld) == p->pManAig->pConst1 )
+//        {
+//            int x = 0;
+//        }
         assert( Ivy_Regular(pFanin0New) != Ivy_Regular(pFanin1New) );
         assert( pObjNew != Ivy_Regular(pFanin0New) );
         assert( pObjNew != Ivy_Regular(pFanin1New) );

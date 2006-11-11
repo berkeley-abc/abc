@@ -100,10 +100,10 @@ Abc_Ntk_t * Io_ReadBaf( char * pFileName, int fCheck )
         pObj = Abc_NtkCreateLatch(pNtkNew);
         Abc_ObjAssignName( pObj, pCur, NULL );  while ( *pCur++ ); 
 
-        pNode0 = Abc_NtkCreateBo(pNtkNew);
+        pNode0 = Abc_NtkCreateBi(pNtkNew);
         Abc_ObjAssignName( pNode0, pCur, NULL );  while ( *pCur++ ); 
 
-        pNode1 = Abc_NtkCreateBi(pNtkNew);
+        pNode1 = Abc_NtkCreateBo(pNtkNew);
         Abc_ObjAssignName( pNode1, pCur, NULL );  while ( *pCur++ ); 
         Vec_PtrPush( vNodes, pNode1 );
 

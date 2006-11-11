@@ -126,9 +126,12 @@ Vec_Ptr_t * Abc_NtkMaxFlow( Abc_Ntk_t * pNtk, int fForward, int fVerbose )
         printf( "Abc_NtkMaxFlow() error! The computed min-cut is not a cut!\n" );
 
     // report the results
+    if ( fVerbose )
+    {
     printf( "Latches = %6d. %s max-flow = %6d.  Min-cut = %6d.  ", 
         Abc_NtkLatchNum(pNtk), fForward? "Forward " : "Backward", Flow, Vec_PtrSize(vMinCut) );
 PRT( "Time", clock() - clk );
+    }
 
 //    Abc_NtkMaxFlowPrintCut( vMinCut );
     return vMinCut;
@@ -377,6 +380,15 @@ int Abc_NtkMaxFlowVerifyCut( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, int fForward
                 return 0;
         }
     }
+/*
+    {
+        // count the volume of the cut
+        int Counter = 0;
+        Abc_NtkForEachObj( pNtk, pObj, i )
+            Counter += Abc_NodeIsTravIdCurrent( pObj );
+        printf( "Volume = %d.\n", Counter );
+    }
+*/
     return 1;
 }
 

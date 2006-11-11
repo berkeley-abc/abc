@@ -354,7 +354,7 @@ int Io_ReadBlifNetworkAsserts( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
 
 ***********************************************************************/
 int Io_ReadBlifNetworkLatch( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
-{
+{ 
     Abc_Ntk_t * pNtk = p->pNtkCur;
     Abc_Obj_t * pLatch;
     int ResetValue;

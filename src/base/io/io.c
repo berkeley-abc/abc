@@ -40,6 +40,7 @@ static int IoCommandReadTruth   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteBaf    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteBlif   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteBench  ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandWriteCellNet( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteCnf    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteDot    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteEqn    ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -84,6 +85,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "write_baf",     IoCommandWriteBaf,     0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_blif",    IoCommandWriteBlif,    0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_bench",   IoCommandWriteBench,   0 );
+    Cmd_CommandAdd( pAbc, "I/O", "write_cellnet", IoCommandWriteCellNet, 0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_cnf",     IoCommandWriteCnf,     0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_dot",     IoCommandWriteDot,     0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_eqn",     IoCommandWriteEqn,     0 );
@@ -1173,6 +1175,68 @@ usage:
     fprintf( pAbc->Err, "usage: write_bench [-h] <file>\n" );
     fprintf( pAbc->Err, "\t         write the network in BENCH format\n" );
 //    fprintf( pAbc->Err, "\t-l     : toggle writing latches [default = %s]\n", fWriteLatches? "yes":"no" );
+    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IoCommandWriteCellNet( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    Abc_Ntk_t * pNtk;
+    char * FileName;
+    int c;
+    extern void Io_WriteCellNet( Abc_Ntk_t * pNtk, char * pFileName );
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+
+    pNtk = pAbc->pNtkCur;
+    if ( pNtk == NULL )
+    {
+        fprintf( pAbc->Out, "Empty network.\n" );
+        return 0;
+    }
+
+    if ( argc != globalUtilOptind + 1 )
+    {
+        goto usage;
+    }
+    // get the input file name
+    FileName = argv[globalUtilOptind];
+
+    if ( !Abc_NtkIsLogic(pNtk) )
+    {
+        fprintf( pAbc->Out, "The network should be a logic network (if it an AIG, use command \"logic\")\n" );
+        return 0;
+    }
+
+    // derive the netlist
+    Io_WriteCellNet( pNtk, FileName );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: write_cellnet [-h] <file>\n" );
+    fprintf( pAbc->Err, "\t         write the network is the cellnet format\n" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
     return 1;

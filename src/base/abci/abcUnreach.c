@@ -95,7 +95,7 @@ int Abc_NtkExtractSequentialDcs( Abc_Ntk_t * pNtk, bool fVerbose )
     pNtk->pManGlob = NULL;
 
     // make sure that everything is okay
-    if ( !Abc_NtkCheck( pNtk->pExdc ) )
+    if ( pNtk->pExdc && !Abc_NtkCheck( pNtk->pExdc ) )
     {
         printf( "Abc_NtkExtractSequentialDcs: The network check has failed.\n" );
         Abc_NtkDelete( pNtk->pExdc );
