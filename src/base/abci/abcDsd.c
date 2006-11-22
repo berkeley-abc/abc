@@ -55,31 +55,22 @@ static int             Abc_NodeFindMuxVar( DdManager * dd, DdNode * bFunc, int n
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkDsdGlobal( Abc_Ntk_t * pNtk, bool fVerbose, bool fPrint, bool fShort )
 {
+    DdManager * dd;
     Abc_Ntk_t * pNtkNew;
-
     assert( Abc_NtkIsStrash(pNtk) );
-
-    // perform FPGA mapping
-    if ( Abc_NtkGlobalBdds(pNtk, 10000000, 0, 1, fVerbose) == NULL )
+    dd = Abc_NtkBuildGlobalBdds( pNtk, 10000000, 1, 1, fVerbose );
+    if ( dd == NULL )
         return NULL;
     if ( fVerbose )
-        printf( "The shared BDD size is %d nodes.\n", Cudd_ReadKeys(pNtk->pManGlob) - Cudd_ReadDead(pNtk->pManGlob) );
-
+        printf( "The shared BDD size is %d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
     // transform the result of mapping into a BDD network
     pNtkNew = Abc_NtkDsdInternal( pNtk, fVerbose, fPrint, fShort );
+    Extra_StopManager( dd );
     if ( pNtkNew == NULL )
-    {
-        Cudd_Quit( pNtk->pManGlob );
-        pNtk->pManGlob = NULL;
         return NULL;
-    }
-    Extra_StopManager( pNtk->pManGlob );
-    pNtk->pManGlob = NULL;
-
+    // copy EXDC network
     if ( pNtk->pExdc )
         pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );
-
-    // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
         printf( "Abc_NtkDsdGlobal: The network check has failed.\n" );
@@ -102,26 +93,25 @@ Abc_Ntk_t * Abc_NtkDsdGlobal( Abc_Ntk_t * pNtk, bool fVerbose, bool fPrint, bool
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkDsdInternal( Abc_Ntk_t * pNtk, bool fVerbose, bool fPrint, bool fShort )
 {
-    DdManager * dd = pNtk->pManGlob;
+    char ** ppNamesCi, ** ppNamesCo;
+    Vec_Ptr_t * vFuncsGlob;
     Dsd_Manager_t * pManDsd;
     Abc_Ntk_t * pNtkNew;
-    DdNode * bFunc;
-    char ** ppNamesCi, ** ppNamesCo;
+    DdManager * dd;
     Abc_Obj_t * pObj;
     int i;
 
     // complement the global functions
+    vFuncsGlob = Vec_PtrAlloc( Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pObj, i )
-    {
-        bFunc = Vec_PtrEntry(pNtk->vFuncsGlob, i);
-        Vec_PtrWriteEntry(pNtk->vFuncsGlob, i, Cudd_NotCond(bFunc, Abc_ObjFaninC0(pObj)) );
-    }
+        Vec_PtrPush( vFuncsGlob, Cudd_NotCond(Abc_ObjGlobalBdd(pObj), Abc_ObjFaninC0(pObj)) );
 
     // perform the decomposition
-    assert( Vec_PtrSize(pNtk->vFuncsGlob) == Abc_NtkCoNum(pNtk) );
+    dd = Abc_NtkGlobalBddMan(pNtk);
     pManDsd = Dsd_ManagerStart( dd, Abc_NtkCiNum(pNtk), fVerbose );
-    Dsd_Decompose( pManDsd, (DdNode **)pNtk->vFuncsGlob->pArray, Abc_NtkCoNum(pNtk) );
-    Abc_NtkFreeGlobalBdds( pNtk );
+    Dsd_Decompose( pManDsd, (DdNode **)vFuncsGlob->pArray, Abc_NtkCoNum(pNtk) );
+    Vec_PtrFree( vFuncsGlob );
+    Abc_NtkFreeGlobalBdds( pNtk, 0 );
     if ( pManDsd == NULL )
     {
         Cudd_Quit( dd );
@@ -138,7 +128,6 @@ Abc_Ntk_t * Abc_NtkDsdInternal( Abc_Ntk_t * pNtk, bool fVerbose, bool fPrint, bo
     Abc_NtkFinalize( pNtk, pNtkNew );
     // fix the problem with complemented and duplicated CO edges
     Abc_NtkLogicMakeSimpleCos( pNtkNew, 0 );
-
     if ( fPrint )
     {
         ppNamesCi = Abc_NtkCollectCioNames( pNtk, 0 );

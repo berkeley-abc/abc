@@ -46,14 +46,40 @@ static inline Abc_Obj_t * Abc_ObjGetFaninPath( Abc_Obj_t * pObj )
             return pFanin;
     return NULL;
 }
+static inline Abc_Obj_t * Abc_ObjGetPredecessorBwd( Abc_Obj_t * pObj ) 
+{ 
+    Abc_Obj_t * pNext;
+    int i;
+    Abc_ObjForEachFanout( pObj, pNext, i )
+        if ( Abc_ObjGetPath(pNext) == pObj )
+            return pNext;
+    Abc_ObjForEachFanin( pObj, pNext, i )
+        if ( Abc_ObjGetPath(pNext) == pObj )
+            return pNext;
+    return NULL;
+}
+static inline Abc_Obj_t * Abc_ObjGetPredecessorFwd( Abc_Obj_t * pObj ) 
+{ 
+    Abc_Obj_t * pNext;
+    int i;
+    Abc_ObjForEachFanin( pObj, pNext, i )
+        if ( Abc_ObjGetPath(pNext) == pObj )
+            return pNext;
+    Abc_ObjForEachFanout( pObj, pNext, i )
+        if ( Abc_ObjGetPath(pNext) == pObj )
+            return pNext;
+    return NULL;
+}
 
-static int         Abc_NtkMaxFlowPath( Abc_Ntk_t * pNtk, int * pStart, int fForward );
 static int         Abc_NtkMaxFlowBwdPath_rec( Abc_Obj_t * pObj );
 static int         Abc_NtkMaxFlowFwdPath_rec( Abc_Obj_t * pObj );
-static Vec_Ptr_t * Abc_NtkMaxFlowMinCut( Abc_Ntk_t * pNtk );
+static int         Abc_NtkMaxFlowBwdPath2_rec( Abc_Obj_t * pObj );
+static int         Abc_NtkMaxFlowFwdPath2_rec( Abc_Obj_t * pObj );
+static Vec_Ptr_t * Abc_NtkMaxFlowMinCut( Abc_Ntk_t * pNtk, int fForward );
+static void        Abc_NtkMaxFlowMinCutUpdate( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, int fForward );
 static int         Abc_NtkMaxFlowVerifyCut( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, int fForward );
+static void        Abc_NtkMaxFlowPrintCut( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut );
 static void        Abc_NtkMaxFlowPrintFlow( Abc_Ntk_t * pNtk, int fForward );
-static void        Abc_NtkMaxFlowPrintCut( Vec_Ptr_t * vMinCut );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -93,6 +119,7 @@ void Abc_NtkMaxFlowTest( Abc_Ntk_t * pNtk )
     vMinCut = Abc_NtkMaxFlow( pNtk, 0, 1 );
     Vec_PtrFree( vMinCut );
     Abc_NtkCleanMarkA( pNtk );
+
 }
 
 /**Function*************************************************************
@@ -109,75 +136,97 @@ void Abc_NtkMaxFlowTest( Abc_Ntk_t * pNtk )
 Vec_Ptr_t * Abc_NtkMaxFlow( Abc_Ntk_t * pNtk, int fForward, int fVerbose )
 {
     Vec_Ptr_t * vMinCut;
-    int Flow, RetValue;
+    Abc_Obj_t * pLatch;
+    int Flow, FlowCur, RetValue, i;
     int clk = clock();
-    int Start = 0;
+    int fUseDirectedFlow = 1;
 
     // find the max-flow
     Abc_NtkCleanCopy( pNtk );
-    for ( Flow = 0; Abc_NtkMaxFlowPath( pNtk, &Start, fForward ); Flow++ );
-//    Abc_NtkMaxFlowPrintFlow( pNtk, fForward );
-
-    // find the min-cut with the smallest volume
-    RetValue = Abc_NtkMaxFlowPath( pNtk, NULL, fForward );
-    assert( RetValue == 0 );
-    vMinCut = Abc_NtkMaxFlowMinCut( pNtk );
-    if ( !Abc_NtkMaxFlowVerifyCut(pNtk, vMinCut, fForward) )
-        printf( "Abc_NtkMaxFlow() error! The computed min-cut is not a cut!\n" );
-
-    // report the results
-    if ( fVerbose )
-    {
-    printf( "Latches = %6d. %s max-flow = %6d.  Min-cut = %6d.  ", 
-        Abc_NtkLatchNum(pNtk), fForward? "Forward " : "Backward", Flow, Vec_PtrSize(vMinCut) );
-PRT( "Time", clock() - clk );
-    }
-
-//    Abc_NtkMaxFlowPrintCut( vMinCut );
-    return vMinCut;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Finds and augments one path.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_NtkMaxFlowPath( Abc_Ntk_t * pNtk, int * pStart, int fForward )
-{
-    Abc_Obj_t * pLatch;
-    int i, LatchStart = pStart? *pStart : 0;
+    Flow = 0;
     Abc_NtkIncrementTravId(pNtk);
-    Vec_PtrForEachEntryStart( pNtk->vBoxes, pLatch, i, LatchStart )
+    Abc_NtkForEachLatch( pNtk, pLatch, i )
     {
-        if ( !Abc_ObjIsLatch(pLatch) )
-            continue;
         if ( fForward )
         {
-            assert( !Abc_ObjFanout0(pLatch)->fMarkA );
-            if ( Abc_NtkMaxFlowFwdPath_rec( Abc_ObjFanout0(pLatch) ) )
-            {
-                if ( pStart ) *pStart = i + 1;
-                return 1;
-            }
+//            assert( !Abc_ObjFanout0(pLatch)->fMarkA );
+            FlowCur  = Abc_NtkMaxFlowFwdPath2_rec( Abc_ObjFanout0(pLatch) );
+            Flow    += FlowCur;
         }
         else
         {
             assert( !Abc_ObjFanin0(pLatch)->fMarkA );
-            if ( Abc_NtkMaxFlowBwdPath_rec( Abc_ObjFanin0(pLatch) ) )
+            FlowCur  = Abc_NtkMaxFlowBwdPath2_rec( Abc_ObjFanin0(pLatch) );
+            Flow    += FlowCur;
+        }
+        if ( FlowCur )
+            Abc_NtkIncrementTravId(pNtk);
+    }
+
+    if ( !fUseDirectedFlow )
+    {
+        Abc_NtkIncrementTravId(pNtk);
+        Abc_NtkForEachLatch( pNtk, pLatch, i )
+        {
+            if ( fForward )
             {
-                if ( pStart ) *pStart = i + 1;
-                return 1;
+    //            assert( !Abc_ObjFanout0(pLatch)->fMarkA );
+                FlowCur  = Abc_NtkMaxFlowFwdPath_rec( Abc_ObjFanout0(pLatch) );
+                Flow    += FlowCur;
             }
+            else
+            {
+                assert( !Abc_ObjFanin0(pLatch)->fMarkA );
+                FlowCur  = Abc_NtkMaxFlowBwdPath_rec( Abc_ObjFanin0(pLatch) );
+                Flow    += FlowCur;
+            }
+            if ( FlowCur )
+                Abc_NtkIncrementTravId(pNtk);
         }
     }
-    if ( pStart ) *pStart = 0;
-    return 0;
+//    Abc_NtkMaxFlowPrintFlow( pNtk, fForward );
+
+    // mark the nodes reachable from the latches
+    Abc_NtkIncrementTravId(pNtk);
+    Abc_NtkForEachLatch( pNtk, pLatch, i )
+    {
+        if ( fForward )
+        {
+//            assert( !Abc_ObjFanout0(pLatch)->fMarkA );
+            if ( fUseDirectedFlow )
+                RetValue = Abc_NtkMaxFlowFwdPath2_rec( Abc_ObjFanout0(pLatch) );
+            else
+                RetValue = Abc_NtkMaxFlowFwdPath_rec( Abc_ObjFanout0(pLatch) );
+        }
+        else
+        {
+            assert( !Abc_ObjFanin0(pLatch)->fMarkA );
+            if ( fUseDirectedFlow )
+                RetValue = Abc_NtkMaxFlowBwdPath2_rec( Abc_ObjFanin0(pLatch) );
+            else
+                RetValue = Abc_NtkMaxFlowBwdPath_rec( Abc_ObjFanin0(pLatch) );
+        }
+        assert( RetValue == 0 );
+    }
+
+    // find the min-cut with the smallest volume
+    vMinCut = Abc_NtkMaxFlowMinCut( pNtk, fForward );
+    // verify the cut
+    if ( !Abc_NtkMaxFlowVerifyCut(pNtk, vMinCut, fForward) )
+        printf( "Abc_NtkMaxFlow() error! The computed min-cut is not a cut!\n" );
+    // make the cut retimable
+    Abc_NtkMaxFlowMinCutUpdate( pNtk, vMinCut, fForward );
+
+    // report the results
+    if ( fVerbose )
+    {
+    printf( "L = %6d. %s max-flow = %6d.  Min-cut = %6d.  ", 
+        Abc_NtkLatchNum(pNtk), fForward? "Forward " : "Backward", Flow, Vec_PtrSize(vMinCut) );
+PRT( "Time", clock() - clk );
+    }
+
+//    Abc_NtkMaxFlowPrintCut( pNtk, vMinCut );
+    return vMinCut;
 }
 
 /**Function*************************************************************
@@ -193,12 +242,14 @@ int Abc_NtkMaxFlowPath( Abc_Ntk_t * pNtk, int * pStart, int fForward )
 ***********************************************************************/
 int Abc_NtkMaxFlowBwdPath_rec( Abc_Obj_t * pObj )
 {
-    Abc_Obj_t * pFanout, * pFanin;
+    Abc_Obj_t * pNext, * pPred;
     int i;
     // skip visited nodes
     if ( Abc_NodeIsTravIdCurrent(pObj) )
         return 0;
     Abc_NodeSetTravIdCurrent(pObj);
+    // get the predecessor
+    pPred = Abc_ObjGetPredecessorBwd( pObj );
     // process node without flow
     if ( !Abc_ObjGetPath(pObj) )
     {
@@ -206,22 +257,27 @@ int Abc_NtkMaxFlowBwdPath_rec( Abc_Obj_t * pObj )
         if ( pObj->fMarkA )
             return Abc_ObjSetPath( pObj, (void *)1 );
         // explore the fanins
-        Abc_ObjForEachFanin( pObj, pFanin, i )
-            if ( Abc_NtkMaxFlowBwdPath_rec(pFanin) )
-                return Abc_ObjSetPath( pObj, pFanin );
+        Abc_ObjForEachFanin( pObj, pNext, i )
+            if ( pNext != pPred && !Abc_ObjIsLatch(pNext) && Abc_NtkMaxFlowBwdPath_rec(pNext) )
+                return Abc_ObjSetPath( pObj, pNext );
+        Abc_ObjForEachFanout( pObj, pNext, i )
+            if ( pNext != pPred && !Abc_ObjIsLatch(pNext) && Abc_NtkMaxFlowBwdPath_rec(pNext) )
+                return Abc_ObjSetPath( pObj, pNext );
         return 0;
     }
     // pObj has flow - find the fanout with flow
-    pFanout = Abc_ObjGetFanoutPath( pObj );
-    if ( pFanout == NULL )
+    if ( pPred == NULL )
         return 0;
-    // go through the fanins of the fanout with flow
-    Abc_ObjForEachFanin( pFanout, pFanin, i )
-        if ( pFanin != pObj && Abc_NtkMaxFlowBwdPath_rec( pFanin ) )
-            return Abc_ObjSetPath( pFanout, pFanin );
+    // go through the successors of the predecessor
+    Abc_ObjForEachFanin( pPred, pNext, i )
+        if ( !Abc_ObjIsLatch(pNext) && Abc_NtkMaxFlowBwdPath_rec( pNext ) )
+            return Abc_ObjSetPath( pPred, pNext );
+    Abc_ObjForEachFanout( pPred, pNext, i )
+        if ( !Abc_ObjIsLatch(pNext) && Abc_NtkMaxFlowBwdPath_rec( pNext ) )
+            return Abc_ObjSetPath( pPred, pNext );
     // try the fanout
-    if ( Abc_NtkMaxFlowBwdPath_rec( pFanout ) )
-        return Abc_ObjSetPath( pFanout, NULL );
+    if ( Abc_NtkMaxFlowBwdPath_rec( pPred ) )
+        return Abc_ObjSetPath( pPred, NULL );
     return 0;
 }
 
@@ -238,6 +294,103 @@ int Abc_NtkMaxFlowBwdPath_rec( Abc_Obj_t * pObj )
 ***********************************************************************/
 int Abc_NtkMaxFlowFwdPath_rec( Abc_Obj_t * pObj )
 {
+    Abc_Obj_t * pNext, * pPred;
+    int i;
+    // skip visited nodes
+    if ( Abc_NodeIsTravIdCurrent(pObj) )
+        return 0;
+    Abc_NodeSetTravIdCurrent(pObj);
+    // get the predecessor
+    pPred = Abc_ObjGetPredecessorFwd( pObj );
+    // process node without flow
+    if ( !Abc_ObjGetPath(pObj) )
+    {
+        // start the path if we reached a terminal node
+        if ( pObj->fMarkA )
+            return Abc_ObjSetPath( pObj, (void *)1 );
+        // explore the fanins
+        Abc_ObjForEachFanout( pObj, pNext, i )
+            if ( pNext != pPred && !Abc_ObjIsLatch(pNext) && Abc_NtkMaxFlowFwdPath_rec(pNext) )
+                return Abc_ObjSetPath( pObj, pNext );
+        Abc_ObjForEachFanin( pObj, pNext, i )
+            if ( pNext != pPred && !Abc_ObjIsLatch(pNext) && Abc_NtkMaxFlowFwdPath_rec(pNext) )
+                return Abc_ObjSetPath( pObj, pNext );
+        return 0;
+    }
+    // pObj has flow - find the fanout with flow
+    if ( pPred == NULL )
+        return 0;
+    // go through the successors of the predecessor
+    Abc_ObjForEachFanout( pPred, pNext, i )
+        if ( !Abc_ObjIsLatch(pNext) && Abc_NtkMaxFlowFwdPath_rec( pNext ) )
+            return Abc_ObjSetPath( pPred, pNext );
+    Abc_ObjForEachFanin( pPred, pNext, i )
+        if ( !Abc_ObjIsLatch(pNext) && Abc_NtkMaxFlowFwdPath_rec( pNext ) )
+            return Abc_ObjSetPath( pPred, pNext );
+    // try the fanout
+    if ( Abc_NtkMaxFlowFwdPath_rec( pPred ) )
+        return Abc_ObjSetPath( pPred, NULL );
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Tries to find an augmenting path originating in this node.]
+
+  Description [This procedure works for directed graphs only!]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkMaxFlowBwdPath2_rec( Abc_Obj_t * pObj )
+{
+    Abc_Obj_t * pFanout, * pFanin;
+    int i;
+    // skip visited nodes
+    if ( Abc_NodeIsTravIdCurrent(pObj) )
+        return 0;
+    Abc_NodeSetTravIdCurrent(pObj);
+    // process node without flow
+    if ( !Abc_ObjGetPath(pObj) )
+    {
+        // start the path if we reached a terminal node
+        if ( pObj->fMarkA )
+            return Abc_ObjSetPath( pObj, (void *)1 );
+        // explore the fanins
+        Abc_ObjForEachFanin( pObj, pFanin, i )
+            if ( Abc_NtkMaxFlowBwdPath2_rec(pFanin) )
+                return Abc_ObjSetPath( pObj, pFanin );
+        return 0;
+    }
+    // pObj has flow - find the fanout with flow
+    pFanout = Abc_ObjGetFanoutPath( pObj );
+    if ( pFanout == NULL )
+        return 0;
+    // go through the fanins of the fanout with flow
+    Abc_ObjForEachFanin( pFanout, pFanin, i )
+        if ( Abc_NtkMaxFlowBwdPath2_rec( pFanin ) )
+            return Abc_ObjSetPath( pFanout, pFanin );
+    // try the fanout
+    if ( Abc_NtkMaxFlowBwdPath2_rec( pFanout ) )
+        return Abc_ObjSetPath( pFanout, NULL );
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Tries to find an augmenting path originating in this node.]
+
+  Description [This procedure works for directed graphs only!]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkMaxFlowFwdPath2_rec( Abc_Obj_t * pObj )
+{
     Abc_Obj_t * pFanout, * pFanin;
     int i;
     // skip visited nodes
@@ -252,7 +405,7 @@ int Abc_NtkMaxFlowFwdPath_rec( Abc_Obj_t * pObj )
             return Abc_ObjSetPath( pObj, (void *)1 );
         // explore the fanins
         Abc_ObjForEachFanout( pObj, pFanout, i )
-            if ( Abc_NtkMaxFlowFwdPath_rec(pFanout) )
+            if ( Abc_NtkMaxFlowFwdPath2_rec(pFanout) )
                 return Abc_ObjSetPath( pObj, pFanout );
         return 0;
     }
@@ -262,18 +415,17 @@ int Abc_NtkMaxFlowFwdPath_rec( Abc_Obj_t * pObj )
         return 0;
     // go through the fanins of the fanout with flow
     Abc_ObjForEachFanout( pFanin, pFanout, i )
-        if ( pFanout != pObj && Abc_NtkMaxFlowFwdPath_rec( pFanout ) )
+        if ( Abc_NtkMaxFlowFwdPath2_rec( pFanout ) )
             return Abc_ObjSetPath( pFanin, pFanout );
     // try the fanout
-    if ( Abc_NtkMaxFlowFwdPath_rec( pFanin ) )
+    if ( Abc_NtkMaxFlowFwdPath2_rec( pFanin ) )
         return Abc_ObjSetPath( pFanin, NULL );
     return 0;
 }
 
-
 /**Function*************************************************************
 
-  Synopsis    [Find one minumum cut.]
+  Synopsis    [Find minimum-volume minumum cut.]
 
   Description []
                
@@ -282,7 +434,7 @@ int Abc_NtkMaxFlowFwdPath_rec( Abc_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Abc_NtkMaxFlowMinCut( Abc_Ntk_t * pNtk )
+Vec_Ptr_t * Abc_NtkMaxFlowMinCut( Abc_Ntk_t * pNtk, int fForward )
 {
     Vec_Ptr_t * vMinCut;
     Abc_Obj_t * pObj;
@@ -302,6 +454,113 @@ Vec_Ptr_t * Abc_NtkMaxFlowMinCut( Abc_Ntk_t * pNtk )
             Vec_PtrPush( vMinCut, pObj );
     }
     return vMinCut;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Marks the TFI cone with MarkA.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkMaxFlowMarkCut_rec( Abc_Obj_t * pObj )
+{
+    Abc_Obj_t * pNext;
+    int i;
+    if ( pObj->fMarkA )
+        return;
+    pObj->fMarkA = 1;
+    Abc_ObjForEachFanin( pObj, pNext, i )
+        Abc_NtkMaxFlowMarkCut_rec( pNext );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Visits the TFI up to marked nodes and collects marked nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkMaxFlowCollectCut_rec( Abc_Obj_t * pObj, Vec_Ptr_t * vNodes )
+{
+    Abc_Obj_t * pNext;
+    int i;
+    if ( Abc_NodeIsTravIdCurrent(pObj) )
+        return;
+    Abc_NodeSetTravIdCurrent(pObj);
+    if ( pObj->fMarkA )
+    {
+        Vec_PtrPush( vNodes, pObj );
+        return;
+    }
+    Abc_ObjForEachFanin( pObj, pNext, i )
+        Abc_NtkMaxFlowCollectCut_rec( pNext, vNodes );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Updates the minimum cut to be retimable.]
+
+  Description [This procedure also labels the nodes reachable from
+  the latches to the cut with fMarkA.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkMaxFlowMinCutUpdate( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, int fForward )
+{
+    Abc_Obj_t * pObj, * pNext;
+    int i, k;
+    // clean marks
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        pObj->fMarkA = 0;
+    // set latch outputs
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+        Abc_ObjFanout0(pObj)->fMarkA = 1;
+    // traverse from cut nodes
+    Vec_PtrForEachEntry( vMinCut, pObj, i )
+        Abc_NtkMaxFlowMarkCut_rec( pObj );
+    if ( fForward )
+    {
+        // change mincut to be nodes with unmarked fanouts
+        Vec_PtrClear( vMinCut );
+        Abc_NtkForEachObj( pNtk, pObj, i )
+        {
+            if ( !pObj->fMarkA )
+                continue;
+            Abc_ObjForEachFanout( pObj, pNext, k )
+            {
+                if ( pNext->fMarkA )
+                    continue;
+                Vec_PtrPush( vMinCut, pObj );
+                break;
+            }
+        }
+    }
+    else
+    {
+        // change mincut to be marked fanins of the unmarked nodes
+        Vec_PtrClear( vMinCut );
+        Abc_NtkIncrementTravId(pNtk);
+        Abc_NtkForEachLatch( pNtk, pObj, i )
+            Abc_NtkMaxFlowCollectCut_rec( Abc_ObjFanin0(pObj), vMinCut );
+        // transfer the attribute
+        Abc_NtkForEachObj( pNtk, pObj, i )
+            pObj->fMarkA = Abc_NodeIsTravIdCurrent(pObj);
+        // unmark the cut nodes
+        Vec_PtrForEachEntry( vMinCut, pObj, i )
+            pObj->fMarkA = 0;
+    }
 }
 
 /**Function*************************************************************
@@ -369,13 +628,11 @@ int Abc_NtkMaxFlowVerifyCut( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, int fForward
     {
         if ( fForward )
         {
-            assert( !Abc_ObjFanout0(pObj)->fMarkA );
             if ( !Abc_NtkMaxFlowVerifyCut_rec( Abc_ObjFanout0(pObj), fForward ) )
                 return 0;
         }
         else
         {
-            assert( !Abc_ObjFanin0(pObj)->fMarkA );
             if ( !Abc_NtkMaxFlowVerifyCut_rec( Abc_ObjFanin0(pObj), fForward ) )
                 return 0;
         }
@@ -456,13 +713,18 @@ void Abc_NtkMaxFlowPrintFlow( Abc_Ntk_t * pNtk, int fForward )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkMaxFlowPrintCut( Vec_Ptr_t * vMinCut )
+void Abc_NtkMaxFlowPrintCut( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut )
 {
     Abc_Obj_t * pObj;
     int i;
     printf( "Min-cut: " );
     Vec_PtrForEachEntry( vMinCut, pObj, i )
-        printf( "%d ", pObj->Id );
+        printf( "%s(%d) ", Abc_ObjName(pObj), pObj->Id );
+    printf( "\n" );
+    printf( "Marked nodes: " );
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        if ( pObj->fMarkA )
+            printf( "%s(%d) ", Abc_ObjName(pObj), pObj->Id );
     printf( "\n" );
 }
 

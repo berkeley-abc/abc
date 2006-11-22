@@ -36,7 +36,7 @@ extern "C" {
 #include <time.h>
 
 #include "cuddInt.h"
-#include "aig.h"
+#include "hop.h"
 #include "extra.h"
 #include "solver.h"
 #include "vec.h"
@@ -178,7 +178,6 @@ struct Abc_Ntk_t_
     Vec_Ptr_t *       vPios;         // the array of PIOs
     Vec_Ptr_t *       vAsserts;      // the array of assertions
     Vec_Ptr_t *       vBoxes;        // the array of boxes
-    Vec_Ptr_t *       vCutSet;       // the array of cutset nodes (used in the sequential AIG)
     // the number of living objects
     int               nObjs;         // the number of live objs
     int nObjCounts[ABC_OBJ_NUMBER];  // the number of objects by type
@@ -196,8 +195,6 @@ struct Abc_Ntk_t_
     Extra_MmStep_t *  pMmStep;       // memory manager for arrays
     void *            pManFunc;      // functionality manager (AIG manager, BDD manager, or memory manager for SOPs)
 //    Abc_Lib_t *       pVerLib;       // for structural verilog designs
-    void *            pManGlob;      // the global BDD manager
-    Vec_Ptr_t *       vFuncsGlob;    // the global BDDs of CO functions
     Abc_ManTime_t *   pManTime;      // the timing manager (for mapped networks) stores arrival/required times for all nodes
     void *            pManCut;       // the cut manager (for AIGs) stores information about the cuts computed for the nodes
     int               LevelMax;      // maximum number of levels
@@ -206,10 +203,8 @@ struct Abc_Ntk_t_
     int *             pModel;        // counter-example (for miters)
     Abc_Ntk_t *       pExdc;         // the EXDC network (if given)
     void *            pData;         // misc
-    // skew values (for latches)
-    float             maxMeanCycle;  // maximum mean cycle time
-    float             globalSkew;    // global skewing
-    Vec_Flt_t *       vSkews;        // endpoint skewing
+    // node attributes
+    Vec_Ptr_t *       vAttrs;        // managers of various node attributes (node functionality, global BDDs, etc)
 };
 
 struct Abc_Lib_t_ 
@@ -282,7 +277,6 @@ static inline int         Abc_NtkCiNum( Abc_Ntk_t * pNtk )           { return Ve
 static inline int         Abc_NtkCoNum( Abc_Ntk_t * pNtk )           { return Vec_PtrSize(pNtk->vCos);            }
 static inline int         Abc_NtkAssertNum( Abc_Ntk_t * pNtk )       { return Vec_PtrSize(pNtk->vAsserts);        }
 static inline int         Abc_NtkBoxNum( Abc_Ntk_t * pNtk )          { return Vec_PtrSize(pNtk->vBoxes);          }
-static inline int         Abc_NtkCutSetNodeNum( Abc_Ntk_t * pNtk )   { return Vec_PtrSize(pNtk->vCutSet);         }
 static inline int         Abc_NtkBiNum( Abc_Ntk_t * pNtk )           { return pNtk->nObjCounts[ABC_OBJ_BI];       }
 static inline int         Abc_NtkBoNum( Abc_Ntk_t * pNtk )           { return pNtk->nObjCounts[ABC_OBJ_BO];       }
 static inline int         Abc_NtkNetNum( Abc_Ntk_t * pNtk )          { return pNtk->nObjCounts[ABC_OBJ_NET];      }
@@ -315,7 +309,6 @@ static inline Abc_Obj_t * Abc_NtkCi( Abc_Ntk_t * pNtk, int i )       { return (A
 static inline Abc_Obj_t * Abc_NtkCo( Abc_Ntk_t * pNtk, int i )       { return (Abc_Obj_t *)Vec_PtrEntry( pNtk->vCos, i );    }
 static inline Abc_Obj_t * Abc_NtkAssert( Abc_Ntk_t * pNtk, int i )   { return (Abc_Obj_t *)Vec_PtrEntry( pNtk->vAsserts, i );}
 static inline Abc_Obj_t * Abc_NtkBox( Abc_Ntk_t * pNtk, int i )      { return (Abc_Obj_t *)Vec_PtrEntry( pNtk->vBoxes, i );  }
-static inline Abc_Obj_t * Abc_NtkCutSetNode( Abc_Ntk_t * pNtk, int i){ return (Abc_Obj_t *)Vec_PtrEntry( pNtk->vCutSet, i ); }
 
 // reading data members of the object
 static inline unsigned    Abc_ObjType( Abc_Obj_t * pObj )            { return pObj->Type;               }
@@ -409,9 +402,12 @@ static inline bool        Abc_LatchIsInit1( Abc_Obj_t * pLatch )     { assert(Ab
 static inline bool        Abc_LatchIsInitDc( Abc_Obj_t * pLatch )    { assert(Abc_ObjIsLatch(pLatch)); return pLatch->pData == (void *)ABC_INIT_DC;   }
 static inline int         Abc_LatchInit( Abc_Obj_t * pLatch )        { assert(Abc_ObjIsLatch(pLatch)); return (int)pLatch->pData;          }
 
-// skewing latches
-static inline void        Abc_NtkSetLatSkew ( Abc_Ntk_t * pNtk, int lat, float skew )  { Vec_FltWriteEntry( pNtk->vSkews, lat, skew ); }
-static inline float       Abc_NtkGetLatSkew ( Abc_Ntk_t * pNtk, int lat )              { if (lat >= Vec_FltSize( pNtk->vSkews )) return 0; else return Vec_FltEntry( pNtk->vSkews, lat ); }
+// global BDDs of the nodes
+static inline void *      Abc_NtkGlobalBdds( Abc_Ntk_t * pNtk )         { return (void *)Vec_PtrEntry(pNtk->vAttrs, VEC_ATTR_GLOBAL_BDD);          }
+static inline DdManager * Abc_NtkGlobalBddMan( Abc_Ntk_t * pNtk )       { return (DdManager *)Vec_AttMan( Abc_NtkGlobalBdds(pNtk) );                  }
+static inline DdNode **   Abc_NtkGlobalBddArray( Abc_Ntk_t * pNtk )     { return (DdNode **)Vec_AttArray( Abc_NtkGlobalBdds(pNtk) );                  }
+static inline DdNode *    Abc_ObjGlobalBdd( Abc_Obj_t * pObj )          { return (DdNode *)Vec_AttEntry( Abc_NtkGlobalBdds(pObj->pNtk), pObj->Id );   }
+static inline void        Abc_ObjSetGlobalBdd( Abc_Obj_t * pObj, DdNode * bF )   { Vec_AttWriteEntry( Abc_NtkGlobalBdds(pObj->pNtk), pObj->Id, bF );              }
 
 // outputs the runtime in seconds
 #define PRT(a,t)  printf("%s = ", (a)); printf("%6.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC))
@@ -436,9 +432,6 @@ static inline float       Abc_NtkGetLatSkew ( Abc_Ntk_t * pNtk, int lat )       
 #define Abc_AigForEachAnd( pNtk, pNode, i )                                                        \
     for ( i = 0; (i < Vec_PtrSize((pNtk)->vObjs)) && (((pNode) = Abc_NtkObj(pNtk, i)), 1); i++ )   \
         if ( (pNode) == NULL || !Abc_AigNodeIsAnd(pNode) ) {} else
-#define Abc_SeqForEachCutsetNode( pNtk, pNode, i )                                                 \
-    for ( i = 0; (i < Abc_NtkCutSetNodeNum(pNtk)) && (((pNode) = Abc_NtkCutSetNode(pNtk, i)), 1); i++ )\
-        if ( (pNode) == NULL ) {} else
 // various boxes
 #define Abc_NtkForEachBox( pNtk, pObj, i )                                                         \
     for ( i = 0; (i < Vec_PtrSize((pNtk)->vBoxes)) && (((pObj) = Abc_NtkBox(pNtk, i)), 1); i++ )
@@ -489,7 +482,7 @@ extern Abc_Aig_t *        Abc_AigAlloc( Abc_Ntk_t * pNtk );
 extern void               Abc_AigFree( Abc_Aig_t * pMan );
 extern int                Abc_AigCleanup( Abc_Aig_t * pMan );
 extern bool               Abc_AigCheck( Abc_Aig_t * pMan );
-extern int                Abc_AigGetLevelNum( Abc_Ntk_t * pNtk );
+extern int                Abc_AigLevel( Abc_Ntk_t * pNtk );
 extern Abc_Obj_t *        Abc_AigConst1( Abc_Ntk_t * pNtk );
 extern Abc_Obj_t *        Abc_AigAnd( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 );
 extern Abc_Obj_t *        Abc_AigAndLookup( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 );
@@ -536,7 +529,8 @@ extern Vec_Ptr_t *        Abc_NtkSupport( Abc_Ntk_t * pNtk );
 extern Vec_Ptr_t *        Abc_NtkNodeSupport( Abc_Ntk_t * pNtk, Abc_Obj_t ** ppNodes, int nNodes );
 extern Vec_Ptr_t *        Abc_AigDfs( Abc_Ntk_t * pNtk, int fCollectAll, int fCollectCos );
 extern Vec_Vec_t *        Abc_DfsLevelized( Abc_Obj_t * pNode, bool fTfi );
-extern int                Abc_NtkGetLevelNum( Abc_Ntk_t * pNtk );
+extern int                Abc_NtkLevel( Abc_Ntk_t * pNtk );
+extern int                Abc_NtkLevelReverse( Abc_Ntk_t * pNtk );
 extern bool               Abc_NtkIsAcyclic( Abc_Ntk_t * pNtk );
 extern Vec_Ptr_t *        Abc_AigGetLevelizedOrder( Abc_Ntk_t * pNtk, int fCollectCis );
 /*=== abcFanio.c ==========================================================*/
@@ -652,8 +646,8 @@ extern Abc_Ntk_t *        Abc_NtkAigToLogicSopBench( Abc_Ntk_t * pNtk );
 /*=== abcNtbdd.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkDeriveFromBdd( DdManager * dd, DdNode * bFunc, char * pNamePo, Vec_Ptr_t * vNamesPi );
 extern Abc_Ntk_t *        Abc_NtkBddToMuxes( Abc_Ntk_t * pNtk );
-extern DdManager *        Abc_NtkGlobalBdds( Abc_Ntk_t * pNtk, int fBddSizeMax, int fLatchOnly, int fReorder, int fVerbose );
-extern void               Abc_NtkFreeGlobalBdds( Abc_Ntk_t * pNtk );
+extern DdManager *        Abc_NtkBuildGlobalBdds( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDropInternal, int fReorder, int fVerbose );
+extern DdManager *        Abc_NtkFreeGlobalBdds( Abc_Ntk_t * pNtk, int fFreeMan );
 /*=== abcNtk.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func, int fUseMemMan );
 extern Abc_Ntk_t *        Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_t Func );
@@ -759,7 +753,7 @@ extern Abc_Ntk_t *        Abc_NtkTopmost( Abc_Ntk_t * pNtk, int nLevels );
 /*=== abcSweep.c ==========================================================*/
 extern int                Abc_NtkSweep( Abc_Ntk_t * pNtk, int fVerbose );
 extern int                Abc_NtkCleanup( Abc_Ntk_t * pNtk, int fVerbose );
-extern int                Abc_NtkCleanupSeq( Abc_Ntk_t * pNtk, int fVerbose );
+extern int                Abc_NtkCleanupSeq( Abc_Ntk_t * pNtk, int fLatchSweep, int fAutoSweep, int fVerbose );
 /*=== abcTiming.c ==========================================================*/
 extern Abc_Time_t *       Abc_NodeReadArrival( Abc_Obj_t * pNode );
 extern Abc_Time_t *       Abc_NodeReadRequired( Abc_Obj_t * pNode );
@@ -782,6 +776,7 @@ extern void               Abc_NodeSetReverseLevel( Abc_Obj_t * pObj, int LevelR 
 extern int                Abc_NodeReadReverseLevel( Abc_Obj_t * pObj );
 extern int                Abc_NodeReadRequiredLevel( Abc_Obj_t * pObj );
 /*=== abcUtil.c ==========================================================*/
+extern void *             Abc_NtkAttrFree( Abc_Ntk_t * pNtk, int Attr, int fFreeMan );
 extern void               Abc_NtkIncrementTravId( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkOrderCisCos( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkGetCubeNum( Abc_Ntk_t * pNtk );

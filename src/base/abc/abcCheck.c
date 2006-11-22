@@ -580,10 +580,31 @@ bool Abc_NtkCheckLatch( Abc_Ntk_t * pNtk, Abc_Obj_t * pLatch )
         fprintf( stdout, "NodeCheck: Latch \"%s\" has wrong number (%d) of fanins.\n", Abc_ObjName(pLatch), Abc_ObjFaninNum(pLatch) );
         Value = 0;
     }
-    // make sure the latch has only one fanin
+    // make sure the latch has only one fanout
     if ( Abc_ObjFanoutNum(pLatch) != 1 )
     {
         fprintf( stdout, "NodeCheck: Latch \"%s\" has wrong number (%d) of fanouts.\n", Abc_ObjName(pLatch), Abc_ObjFanoutNum(pLatch) );
+        Value = 0;
+    }
+    // make sure the latch input has only one fanin
+    if ( Abc_ObjFaninNum(Abc_ObjFanin0(pLatch)) != 1 )
+    {
+        fprintf( stdout, "NodeCheck: Input of latch \"%s\" has wrong number (%d) of fanins.\n", 
+            Abc_ObjName(Abc_ObjFanin0(pLatch)), Abc_ObjFaninNum(Abc_ObjFanin0(pLatch)) );
+        Value = 0;
+    }
+    // make sure the latch input has only one fanout
+    if ( Abc_ObjFanoutNum(Abc_ObjFanin0(pLatch)) != 1 )
+    {
+        fprintf( stdout, "NodeCheck: Input of latch \"%s\" has wrong number (%d) of fanouts.\n", 
+            Abc_ObjName(Abc_ObjFanin0(pLatch)), Abc_ObjFanoutNum(Abc_ObjFanin0(pLatch)) );
+        Value = 0;
+    }
+    // make sure the latch output has only one fanin
+    if ( Abc_ObjFaninNum(Abc_ObjFanout0(pLatch)) != 1 )
+    {
+        fprintf( stdout, "NodeCheck: Output of latch \"%s\" has wrong number (%d) of fanins.\n", 
+            Abc_ObjName(Abc_ObjFanout0(pLatch)), Abc_ObjFaninNum(Abc_ObjFanout0(pLatch)) );
         Value = 0;
     }
     return Value;

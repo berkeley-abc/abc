@@ -88,7 +88,7 @@ void Abc_NtkSymmetriesUsingBdds( Abc_Ntk_t * pNtk, int fNaive, int fVerbose )
 
     // compute the global functions
 clk = clock();
-    dd = Abc_NtkGlobalBdds( pNtk, 10000000, 0, 1, fVerbose );
+    dd = Abc_NtkBuildGlobalBdds( pNtk, 10000000, 1, 1, fVerbose );
     Cudd_AutodynDisable( dd );
     Cudd_zddVarsFromBddVars( dd, 2 );
 clkBdd = clock() - clk;
@@ -97,9 +97,10 @@ clk = clock();
     Ntk_NetworkSymmsBdd( dd, pNtk, fNaive, fVerbose );
 clkSym = clock() - clk;
     // undo the global functions
-    Abc_NtkFreeGlobalBdds( pNtk );
-    Extra_StopManager( dd );
-    pNtk->pManGlob = NULL;
+//    Abc_NtkFreeGlobalBdds( pNtk );
+//    Extra_StopManager( dd );
+//    pNtk->pManGlob = NULL;
+    Abc_NtkFreeGlobalBdds( pNtk, 1 );
 
 PRT( "Constructing BDDs", clkBdd );
 PRT( "Computing symms  ", clkSym );
@@ -129,7 +130,8 @@ void Ntk_NetworkSymmsBdd( DdManager * dd, Abc_Ntk_t * pNtk, int fNaive, int fVer
     // compute symmetry info for each PO
     Abc_NtkForEachCo( pNtk, pNode, i )
     {
-        bFunc = pNtk->vFuncsGlob->pArray[i];
+//      bFunc = pNtk->vFuncsGlob->pArray[i];
+        bFunc = Abc_ObjGlobalBdd( pNode );
         nSupps += Cudd_SupportSize( dd, bFunc );
         if ( Cudd_IsConstant(bFunc) )
             continue;

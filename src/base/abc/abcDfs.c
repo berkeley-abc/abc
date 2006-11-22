@@ -24,12 +24,12 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+static void     Abc_NtkDfs_iter( Vec_Ptr_t * vStack, Abc_Obj_t * pRoot, Vec_Ptr_t * vNodes );
 static void     Abc_NtkDfs_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes );
 static void     Abc_AigDfs_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes );
 static void     Abc_NtkDfsReverse_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes );
 static void     Abc_NtkNodeSupport_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes );
 static void     Abc_DfsLevelizedTfo_rec( Abc_Obj_t * pNode, Vec_Vec_t * vLevels );
-static int      Abc_NtkGetLevelNum_rec( Abc_Obj_t * pNode );
 static bool     Abc_NtkIsAcyclic_rec( Abc_Obj_t * pNode );
 
 ////////////////////////////////////////////////////////////////////////
@@ -135,6 +135,101 @@ void Abc_NtkDfs_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
         Abc_NtkDfs_rec( Abc_ObjFanin0Ntk(pFanin), vNodes );
     // add the node after the fanins have been added
     Vec_PtrPush( vNodes, pNode );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the DFS ordered array of logic nodes.]
+
+  Description [Collects only the internal nodes, leaving CIs and CO.
+  However it marks with the current TravId both CIs and COs.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_NtkDfsIter( Abc_Ntk_t * pNtk, int fCollectAll )
+{
+    Vec_Ptr_t * vNodes, * vStack;
+    Abc_Obj_t * pObj;
+    int i;
+    // set the traversal ID
+    Abc_NtkIncrementTravId( pNtk );
+    // start the array of nodes
+    vNodes = Vec_PtrAlloc( 1000 );
+    vStack = Vec_PtrAlloc( 1000 );
+    Abc_NtkForEachCo( pNtk, pObj, i )
+    {
+        Abc_NodeSetTravIdCurrent( pObj );
+        Abc_NtkDfs_iter( vStack, Abc_ObjFanin0Ntk(Abc_ObjFanin0(pObj)), vNodes );
+    }
+    // collect dangling nodes if asked to
+    if ( fCollectAll )
+    {
+        Abc_NtkForEachNode( pNtk, pObj, i )
+            if ( !Abc_NodeIsTravIdCurrent(pObj) )
+                Abc_NtkDfs_iter( vStack, pObj, vNodes );
+    }
+    Vec_PtrFree( vStack );
+    return vNodes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Iterative version of the DFS procedure.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkDfs_iter( Vec_Ptr_t * vStack, Abc_Obj_t * pRoot, Vec_Ptr_t * vNodes )
+{
+    Abc_Obj_t * pNode, * pFanin;
+    int iFanin;
+    // if this node is already visited, skip
+    if ( Abc_NodeIsTravIdCurrent( pRoot ) )
+        return;
+    // mark the node as visited
+    Abc_NodeSetTravIdCurrent( pRoot );
+    // skip the CI
+    if ( Abc_ObjIsCi(pRoot) || (Abc_NtkIsStrash(pRoot->pNtk) && Abc_AigNodeIsConst(pRoot)) )
+        return;
+    // add the CI
+    Vec_PtrClear( vStack );
+    Vec_PtrPush( vStack, pRoot );
+    Vec_PtrPush( vStack, (void *)0 );
+    while ( Vec_PtrSize(vStack) > 0 )
+    {
+        // get the node and its fanin
+        iFanin = (int)Vec_PtrPop(vStack);
+        pNode  = Vec_PtrPop(vStack);
+        assert( !Abc_ObjIsNet(pNode) );
+        // add it to the array of nodes if we finished
+        if ( iFanin == Abc_ObjFaninNum(pNode) )
+        {
+            Vec_PtrPush( vNodes, pNode );
+            continue;
+        }
+        // explore the next fanin
+        Vec_PtrPush( vStack, pNode );
+        Vec_PtrPush( vStack, (void *)(iFanin+1) );
+        // get the fanin
+        pFanin = Abc_ObjFanin0Ntk( Abc_ObjFanin(pNode,iFanin) );
+        // if this node is already visited, skip
+        if ( Abc_NodeIsTravIdCurrent( pFanin ) )
+            continue;
+        // mark the node as visited
+        Abc_NodeSetTravIdCurrent( pFanin );
+        // skip the CI
+        if ( Abc_ObjIsCi(pFanin) || (Abc_NtkIsStrash(pFanin->pNtk) && Abc_AigNodeIsConst(pFanin)) )
+            continue;
+        Vec_PtrPush( vStack, pFanin );
+        Vec_PtrPush( vStack, (void *)0 );   
+    }
 }
 
 
@@ -593,7 +688,7 @@ void Abc_DfsLevelizedTfo_rec( Abc_Obj_t * pNode, Vec_Vec_t * vLevels )
 
 /**Function*************************************************************
 
-  Synopsis    [Computes the number of logic levels not counting PIs/POs.]
+  Synopsis    [Recursively counts the number of logic levels of one node.]
 
   Description []
                
@@ -602,24 +697,31 @@ void Abc_DfsLevelizedTfo_rec( Abc_Obj_t * pNode, Vec_Vec_t * vLevels )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkGetLevelNum( Abc_Ntk_t * pNtk )
+int Abc_NtkLevel_rec( Abc_Obj_t * pNode )
 {
-    Abc_Obj_t * pNode;
-    int i, LevelsMax;
-    // set the traversal ID for this traversal
-    Abc_NtkIncrementTravId( pNtk );
-    // set the CI levels to zero
-    Abc_NtkForEachCi( pNtk, pNode, i )
-        pNode->Level = 0;
-    // perform the traversal
-    LevelsMax = 0;
-    Abc_NtkForEachNode( pNtk, pNode, i )
+    Abc_Obj_t * pNext;
+    int i, Level;
+    assert( !Abc_ObjIsNet(pNode) );
+    // skip the PI
+    if ( Abc_ObjIsCi(pNode) )
+        return pNode->Level;
+    assert( Abc_ObjIsNode( pNode ) );
+    // if this node is already visited, return
+    if ( Abc_NodeIsTravIdCurrent( pNode ) )
+        return pNode->Level;
+    // mark the node as visited
+    Abc_NodeSetTravIdCurrent( pNode );
+    // visit the transitive fanin
+    pNode->Level = 0;
+    Abc_ObjForEachFanin( pNode, pNext, i )
     {
-        Abc_NtkGetLevelNum_rec( pNode );
-        if ( LevelsMax < (int)pNode->Level )
-            LevelsMax = (int)pNode->Level;
+        Level = Abc_NtkLevel_rec( Abc_ObjFanin0Ntk(pNext) );
+        if ( pNode->Level < (unsigned)Level )
+            pNode->Level = Level;
     }
-    return LevelsMax;
+    if ( Abc_ObjFaninNum(pNode) > 0 )
+        pNode->Level++;
+    return pNode->Level;
 }
 
 /**Function*************************************************************
@@ -633,18 +735,14 @@ int Abc_NtkGetLevelNum( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkGetLevelNum_rec( Abc_Obj_t * pNode )
+int Abc_NtkLevelReverse_rec( Abc_Obj_t * pNode )
 {
-    Abc_Obj_t * pFanin;
+    Abc_Obj_t * pNext;
     int i, Level;
     assert( !Abc_ObjIsNet(pNode) );
-    if ( pNode->Id == 27278 )
-    {
-        int x = 0;        
-    }
     // skip the PI
-    if ( Abc_ObjIsCi(pNode) )
-        return 0;
+    if ( Abc_ObjIsCo(pNode) )
+        return pNode->Level;
     assert( Abc_ObjIsNode( pNode ) );
     // if this node is already visited, return
     if ( Abc_NodeIsTravIdCurrent( pNode ) )
@@ -653,15 +751,74 @@ int Abc_NtkGetLevelNum_rec( Abc_Obj_t * pNode )
     Abc_NodeSetTravIdCurrent( pNode );
     // visit the transitive fanin
     pNode->Level = 0;
-    Abc_ObjForEachFanin( pNode, pFanin, i )
+    Abc_ObjForEachFanout( pNode, pNext, i )
     {
-        Level = Abc_NtkGetLevelNum_rec( Abc_ObjFanin0Ntk(pFanin) );
+        Level = Abc_NtkLevelReverse_rec( Abc_ObjFanout0Ntk(pNext) );
         if ( pNode->Level < (unsigned)Level )
             pNode->Level = Level;
     }
-    if ( Abc_ObjFaninNum(pNode) > 0 )
-        pNode->Level++;
+    pNode->Level++;
     return pNode->Level;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the number of logic levels not counting PIs/POs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkLevel( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNode;
+    int i, LevelsMax;
+    // set the CI levels to zero
+    Abc_NtkForEachCi( pNtk, pNode, i )
+        pNode->Level = 0;
+    // perform the traversal
+    LevelsMax = 0;
+    Abc_NtkIncrementTravId( pNtk );
+    Abc_NtkForEachNode( pNtk, pNode, i )
+    {
+        Abc_NtkLevel_rec( pNode );
+        if ( LevelsMax < (int)pNode->Level )
+            LevelsMax = (int)pNode->Level;
+    }
+    return LevelsMax;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the number of logic levels not counting PIs/POs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkLevelReverse( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNode;
+    int i, LevelsMax;
+    // set the CO levels to zero
+    Abc_NtkForEachCo( pNtk, pNode, i )
+        pNode->Level = 0;
+    // perform the traversal
+    LevelsMax = 0;
+    Abc_NtkIncrementTravId( pNtk );
+    Abc_NtkForEachNode( pNtk, pNode, i )
+    {
+        Abc_NtkLevelReverse_rec( pNode );
+        if ( LevelsMax < (int)pNode->Level )
+            LevelsMax = (int)pNode->Level;
+    }
+    return LevelsMax;
 }
 
 

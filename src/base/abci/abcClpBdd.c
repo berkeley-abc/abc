@@ -49,25 +49,27 @@ Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, i
 
     assert( Abc_NtkIsStrash(pNtk) );
     // compute the global BDDs
-    if ( Abc_NtkGlobalBdds(pNtk, fBddSizeMax, 0, fReorder, fVerbose) == NULL )
+    if ( Abc_NtkBuildGlobalBdds(pNtk, fBddSizeMax, 1, fReorder, fVerbose) == NULL )
         return NULL;
     if ( fVerbose )
     {
-        printf( "The shared BDD size is %d nodes.  ", Cudd_ReadKeys(pNtk->pManGlob) - Cudd_ReadDead(pNtk->pManGlob) );
+        DdManager * dd = Abc_NtkGlobalBddMan( pNtk );
+        printf( "The shared BDD size is %d nodes.  ", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
         PRT( "BDD construction time", clock() - clk );
     }
 
     // create the new network
     pNtkNew = Abc_NtkFromGlobalBdds( pNtk );
-    Abc_NtkFreeGlobalBdds( pNtk );
+//    Abc_NtkFreeGlobalBdds( pNtk );
+    Abc_NtkFreeGlobalBdds( pNtk, 1 );
     if ( pNtkNew == NULL )
     {
-        Cudd_Quit( pNtk->pManGlob );
-        pNtk->pManGlob = NULL;
+//        Cudd_Quit( pNtk->pManGlob );
+//        pNtk->pManGlob = NULL;
         return NULL;
     }
-    Extra_StopManager( pNtk->pManGlob );
-    pNtk->pManGlob = NULL;
+//    Extra_StopManager( pNtk->pManGlob );
+//    pNtk->pManGlob = NULL;
 
     // make the network minimum base
     Abc_NtkMinimumBase( pNtkNew );
@@ -100,8 +102,9 @@ Abc_Ntk_t * Abc_NtkFromGlobalBdds( Abc_Ntk_t * pNtk )
 {
     ProgressBar * pProgress;
     Abc_Ntk_t * pNtkNew;
-    Abc_Obj_t * pNode, * pNodeNew;
-    DdManager * dd = pNtk->pManGlob;
+    Abc_Obj_t * pNode, * pDriver, * pNodeNew;
+//    DdManager * dd = pNtk->pManGlob;
+    DdManager * dd = Abc_NtkGlobalBddMan( pNtk );
     int i;
     // start the new network
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_BDD );
@@ -112,7 +115,14 @@ Abc_Ntk_t * Abc_NtkFromGlobalBdds( Abc_Ntk_t * pNtk )
     Abc_NtkForEachCo( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
-        pNodeNew = Abc_NodeFromGlobalBdds( pNtkNew, dd, Vec_PtrEntry(pNtk->vFuncsGlob, i) );
+        pDriver = Abc_ObjFanin0(pNode);
+        if ( Abc_ObjIsCi(pDriver) && !strcmp(Abc_ObjName(pNode), Abc_ObjName(pDriver)) )
+        {
+            Abc_ObjAddFanin( pNode->pCopy, pDriver->pCopy );
+            continue;
+        }
+//        pNodeNew = Abc_NodeFromGlobalBdds( pNtkNew, dd, Vec_PtrEntry(pNtk->vFuncsGlob, i) );
+        pNodeNew = Abc_NodeFromGlobalBdds( pNtkNew, dd, Abc_ObjGlobalBdd(pNode) );
         Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
     }
     Extra_ProgressBarStop( pProgress );

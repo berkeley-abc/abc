@@ -458,7 +458,7 @@ int Abc_NtkMiterSatCreateInt( solver * pSat, Abc_Ntk_t * pNtk, int fJFront )
     int i, k, fUseMuxes = 1;
     int clk1 = clock(), clk;
     int fOrderCiVarsFirst = 0;
-    int nLevelsMax = Abc_AigGetLevelNum(pNtk);
+    int nLevelsMax = Abc_AigLevel(pNtk);
     int RetValue = 0;
 
     assert( Abc_NtkIsStrash(pNtk) );

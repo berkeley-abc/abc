@@ -1132,9 +1132,9 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, sint64 nConfLimit, sin
         s->nConfLimit = s->stats.conflicts + nConfLimit;
     if ( nInsLimit )
         s->nInsLimit = s->stats.inspects + nInsLimit;
-    if ( nConfLimitGlobal && s->nConfLimit > nConfLimitGlobal )
+    if ( nConfLimitGlobal && (s->nConfLimit == 0 || s->nConfLimit > nConfLimitGlobal) )
         s->nConfLimit = nConfLimitGlobal;
-    if ( nInsLimitGlobal && s->nInsLimit > nInsLimitGlobal )
+    if ( nInsLimitGlobal && (s->nInsLimit == 0 || s->nInsLimit > nInsLimitGlobal) )
         s->nInsLimit = nInsLimitGlobal;
 
     //printf("solve: "); printlits(begin, end); printf("\n");

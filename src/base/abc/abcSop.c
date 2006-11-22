@@ -768,7 +768,8 @@ bool Abc_SopCheck( char * pSop, int nFanins )
         // compare the distance
         if ( pCubes - pCubesOld != nFanins )
         {
-            fprintf( stdout, "Abc_SopCheck: SOP has a mismatch between its cover and its fanins.\n" );
+            fprintf( stdout, "Abc_SopCheck: SOP has a mismatch between its cover size (%d) and its fanin number (%d).\n",
+                pCubes - pCubesOld, nFanins );
             return 0;
         }
         // check the output values for this cube
@@ -779,7 +780,7 @@ bool Abc_SopCheck( char * pSop, int nFanins )
             fFound1 = 1;
         else if ( *pCubes != 'x' && *pCubes != 'n' )
         {
-            fprintf( stdout, "Abc_SopCheck: SOP has a strange character in the output part of its cube.\n" );
+            fprintf( stdout, "Abc_SopCheck: SOP has a strange character (%c) in the output part of its cube.\n", *pCubes );
             return 0;
         }
         // check the last symbol (new line)

@@ -299,7 +299,7 @@ void Abc_NtkDeleteAll_rec( Abc_Obj_t * pObj )
     Abc_NodeCollectFanins( pObj, vNodes );
     Abc_NtkDeleteObj( pObj );
     Vec_PtrForEachEntry( vNodes, pObj, i )
-        if ( Abc_ObjFanoutNum(pObj) == 0 )
+        if ( !Abc_ObjIsNode(pObj) && Abc_ObjFanoutNum(pObj) == 0 )
             Abc_NtkDeleteAll_rec( pObj );
     Vec_PtrFree( vNodes );
 }
@@ -342,7 +342,7 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, int fCopyName 
             else if ( Abc_NtkHasBdd(pNtkNew) )
                 pObjNew->pData = Cudd_bddTransfer(pObj->pNtk->pManFunc, pNtkNew->pManFunc, pObj->pData), Cudd_Ref(pObjNew->pData);
             else if ( Abc_NtkHasAig(pNtkNew) )
-                pObjNew->pData = Aig_Transfer(pObj->pNtk->pManFunc, pNtkNew->pManFunc, pObj->pData, Abc_ObjFaninNum(pObj));
+                pObjNew->pData = Hop_Transfer(pObj->pNtk->pManFunc, pNtkNew->pManFunc, pObj->pData, Abc_ObjFaninNum(pObj));
             else if ( Abc_NtkHasMapping(pNtkNew) )
                 pObjNew->pData = pObj->pData;
             else assert( 0 );
@@ -576,7 +576,7 @@ Abc_Obj_t * Abc_NtkCreateNodeConst0( Abc_Ntk_t * pNtk )
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_ReadLogicZero(pNtk->pManFunc), Cudd_Ref( pNode->pData );
     else if ( Abc_NtkHasAig(pNtk) )
-        pNode->pData = Aig_ManConst0(pNtk->pManFunc);
+        pNode->pData = Hop_ManConst0(pNtk->pManFunc);
     else if ( Abc_NtkHasMapping(pNtk) )
         pNode->pData = Mio_LibraryReadConst0(Abc_FrameReadLibGen());
     else if ( !Abc_NtkHasBlackbox(pNtk) )
@@ -605,7 +605,7 @@ Abc_Obj_t * Abc_NtkCreateNodeConst1( Abc_Ntk_t * pNtk )
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_ReadOne(pNtk->pManFunc), Cudd_Ref( pNode->pData );
     else if ( Abc_NtkHasAig(pNtk) )
-        pNode->pData = Aig_ManConst1(pNtk->pManFunc);
+        pNode->pData = Hop_ManConst1(pNtk->pManFunc);
     else if ( Abc_NtkHasMapping(pNtk) )
         pNode->pData = Mio_LibraryReadConst1(Abc_FrameReadLibGen());
     else if ( !Abc_NtkHasBlackbox(pNtk) )
@@ -635,7 +635,7 @@ Abc_Obj_t * Abc_NtkCreateNodeInv( Abc_Ntk_t * pNtk, Abc_Obj_t * pFanin )
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_Not(Cudd_bddIthVar(pNtk->pManFunc,0)), Cudd_Ref( pNode->pData );
     else if ( Abc_NtkHasAig(pNtk) )
-        pNode->pData = Aig_Not(Aig_IthVar(pNtk->pManFunc,0));
+        pNode->pData = Hop_Not(Hop_IthVar(pNtk->pManFunc,0));
     else if ( Abc_NtkHasMapping(pNtk) )
         pNode->pData = Mio_LibraryReadInv(Abc_FrameReadLibGen());
     else
@@ -665,7 +665,7 @@ Abc_Obj_t * Abc_NtkCreateNodeBuf( Abc_Ntk_t * pNtk, Abc_Obj_t * pFanin )
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_bddIthVar(pNtk->pManFunc,0), Cudd_Ref( pNode->pData );
     else if ( Abc_NtkHasAig(pNtk) )
-        pNode->pData = Aig_IthVar(pNtk->pManFunc,0);
+        pNode->pData = Hop_IthVar(pNtk->pManFunc,0);
     else if ( Abc_NtkHasMapping(pNtk) )
         pNode->pData = Mio_LibraryReadBuf(Abc_FrameReadLibGen());
     else
@@ -697,7 +697,7 @@ Abc_Obj_t * Abc_NtkCreateNodeAnd( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins )
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Extra_bddCreateAnd( pNtk->pManFunc, Vec_PtrSize(vFanins) ), Cudd_Ref(pNode->pData); 
     else if ( Abc_NtkHasAig(pNtk) )
-        pNode->pData = Aig_CreateAnd( pNtk->pManFunc, Vec_PtrSize(vFanins) ); 
+        pNode->pData = Hop_CreateAnd( pNtk->pManFunc, Vec_PtrSize(vFanins) ); 
     else
         assert( 0 );
     return pNode;
@@ -727,7 +727,7 @@ Abc_Obj_t * Abc_NtkCreateNodeOr( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins )
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Extra_bddCreateOr( pNtk->pManFunc, Vec_PtrSize(vFanins) ), Cudd_Ref(pNode->pData); 
     else if ( Abc_NtkHasAig(pNtk) )
-        pNode->pData = Aig_CreateOr( pNtk->pManFunc, Vec_PtrSize(vFanins) ); 
+        pNode->pData = Hop_CreateOr( pNtk->pManFunc, Vec_PtrSize(vFanins) ); 
     else
         assert( 0 );
     return pNode;
@@ -757,7 +757,7 @@ Abc_Obj_t * Abc_NtkCreateNodeExor( Abc_Ntk_t * pNtk, Vec_Ptr_t * vFanins )
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Extra_bddCreateExor( pNtk->pManFunc, Vec_PtrSize(vFanins) ), Cudd_Ref(pNode->pData); 
     else if ( Abc_NtkHasAig(pNtk) )
-        pNode->pData = Aig_CreateExor( pNtk->pManFunc, Vec_PtrSize(vFanins) ); 
+        pNode->pData = Hop_CreateExor( pNtk->pManFunc, Vec_PtrSize(vFanins) ); 
     else
         assert( 0 );
     return pNode;
@@ -787,7 +787,7 @@ Abc_Obj_t * Abc_NtkCreateNodeMux( Abc_Ntk_t * pNtk, Abc_Obj_t * pNodeC, Abc_Obj_
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_bddIte(pNtk->pManFunc,Cudd_bddIthVar(pNtk->pManFunc,0),Cudd_bddIthVar(pNtk->pManFunc,1),Cudd_bddIthVar(pNtk->pManFunc,2)), Cudd_Ref( pNode->pData );
     else if ( Abc_NtkHasAig(pNtk) )
-        pNode->pData = Aig_Mux(pNtk->pManFunc,Aig_IthVar(pNtk->pManFunc,0),Aig_IthVar(pNtk->pManFunc,1),Aig_IthVar(pNtk->pManFunc,2));
+        pNode->pData = Hop_Mux(pNtk->pManFunc,Hop_IthVar(pNtk->pManFunc,0),Hop_IthVar(pNtk->pManFunc,1),Hop_IthVar(pNtk->pManFunc,2));
     else
         assert( 0 );
     return pNode;
@@ -834,7 +834,7 @@ bool Abc_NodeIsConst0( Abc_Obj_t * pNode )
     if ( Abc_NtkHasBdd(pNtk) )
         return Cudd_IsComplement(pNode->pData);
     if ( Abc_NtkHasAig(pNtk) )
-        return Aig_IsComplement(pNode->pData);
+        return Hop_IsComplement(pNode->pData);
     if ( Abc_NtkHasMapping(pNtk) )
         return pNode->pData == Mio_LibraryReadConst0(Abc_FrameReadLibGen());
     assert( 0 );
@@ -864,7 +864,7 @@ bool Abc_NodeIsConst1( Abc_Obj_t * pNode )
     if ( Abc_NtkHasBdd(pNtk) )
         return !Cudd_IsComplement(pNode->pData);
     if ( Abc_NtkHasAig(pNtk) )
-        return !Aig_IsComplement(pNode->pData);
+        return !Hop_IsComplement(pNode->pData);
     if ( Abc_NtkHasMapping(pNtk) )
         return pNode->pData == Mio_LibraryReadConst1(Abc_FrameReadLibGen());
     assert( 0 );
@@ -894,7 +894,7 @@ bool Abc_NodeIsBuf( Abc_Obj_t * pNode )
     if ( Abc_NtkHasBdd(pNtk) )
         return !Cudd_IsComplement(pNode->pData);
     if ( Abc_NtkHasAig(pNtk) )
-        return !Aig_IsComplement(pNode->pData);
+        return !Hop_IsComplement(pNode->pData);
     if ( Abc_NtkHasMapping(pNtk) )
         return pNode->pData == Mio_LibraryReadBuf(Abc_FrameReadLibGen());
     assert( 0 );
@@ -924,7 +924,7 @@ bool Abc_NodeIsInv( Abc_Obj_t * pNode )
     if ( Abc_NtkHasBdd(pNtk) )
         return Cudd_IsComplement(pNode->pData);
     if ( Abc_NtkHasAig(pNtk) )
-        return Aig_IsComplement(pNode->pData);
+        return Hop_IsComplement(pNode->pData);
     if ( Abc_NtkHasMapping(pNtk) )
         return pNode->pData == Mio_LibraryReadInv(Abc_FrameReadLibGen());
     assert( 0 );
@@ -951,7 +951,7 @@ void Abc_NodeComplement( Abc_Obj_t * pNode )
     else if ( Abc_NtkHasBdd(pNode->pNtk) )
         pNode->pData = Cudd_Not( pNode->pData );
     else if ( Abc_NtkHasAig(pNode->pNtk) )
-        pNode->pData = Aig_Not( pNode->pData );
+        pNode->pData = Hop_Not( pNode->pData );
     else
         assert( 0 );
 }

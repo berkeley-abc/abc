@@ -463,7 +463,7 @@ void Io_WriteVerilogVerLibStyle( FILE * pFile, Abc_Ntk_t * pNtk )
     Vec_Vec_t * vLevels;
     Abc_Ntk_t * pNtkGate;
     Abc_Obj_t * pObj, * pTerm, * pFanin;
-    Aig_Obj_t * pFunc;
+    Hop_Obj_t * pFunc;
     int i, k, Counter, nDigits;
 
     Counter = 1;
@@ -495,13 +495,13 @@ void Io_WriteVerilogVerLibStyle( FILE * pFile, Abc_Ntk_t * pNtk )
         fprintf( pFile, "  assign %s = ", Io_WriteVerilogGetName(Abc_ObjFanout0(pObj)) );
         // set the input names
         Abc_ObjForEachFanin( pObj, pFanin, k )
-            Aig_IthVar(pNtk->pManFunc, k)->pData = Extra_UtilStrsav(Io_WriteVerilogGetName(pFanin));
+            Hop_IthVar(pNtk->pManFunc, k)->pData = Extra_UtilStrsav(Io_WriteVerilogGetName(pFanin));
         // write the formula
-        Aig_ObjPrintVerilog( pFile, pFunc, vLevels, 0 );
+        Hop_ObjPrintVerilog( pFile, pFunc, vLevels, 0 );
         fprintf( pFile, ";\n" );
         // clear the input names
         Abc_ObjForEachFanin( pObj, pFanin, k )
-            free( Aig_IthVar(pNtk->pManFunc, k)->pData );
+            free( Hop_IthVar(pNtk->pManFunc, k)->pData );
     }
     Vec_VecFree( vLevels );
 }

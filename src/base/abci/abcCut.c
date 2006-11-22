@@ -202,6 +202,7 @@ void Abc_NtkCutsOracle( Abc_Ntk_t * pNtk, Cut_Oracle_t * p )
 ***********************************************************************/
 Cut_Man_t * Abc_NtkSeqCuts( Abc_Ntk_t * pNtk, Cut_Params_t * pParams )
 {
+/*
     Cut_Man_t *  p;
     Abc_Obj_t * pObj, * pNode;
     int i, nIters, fStatus;
@@ -288,6 +289,8 @@ printf( "Converged after %d iterations.\n", nIters );
 }
 //Abc_NtkPrintCuts( p, pNtk, 1 );
     return p;
+*/
+    return NULL;
 }
 
 /**Function*************************************************************

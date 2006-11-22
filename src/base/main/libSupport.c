@@ -49,7 +49,7 @@ void open_libs() {
 
     env = getenv ("ABC_LIB_PATH");
     if (env == NULL) {
-      printf("Warning: ABC_LIB_PATH not defined. Looking into the current directory.\n");
+//    printf("Warning: ABC_LIB_PATH not defined. Looking into the current directory.\n");
       init_p = malloc (2*sizeof(char));
       init_p[0]='.'; init_p[1] = 0;
     } else {
@@ -67,7 +67,7 @@ void open_libs() {
 
       dirp = opendir(p);
       if (dirp == NULL) {
-        printf("Warning: directory in ABC_LIB_PATH does not exist (%s).\n", p);
+//      printf("Warning: directory in ABC_LIB_PATH does not exist (%s).\n", p);
         continue;
       }
 

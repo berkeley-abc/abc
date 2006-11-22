@@ -214,26 +214,26 @@ void Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, bool fUpda
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Obj_t * Dec_GraphToNetworkAig( Aig_Man_t * pMan, Dec_Graph_t * pGraph )
+Hop_Obj_t * Dec_GraphToNetworkAig( Hop_Man_t * pMan, Dec_Graph_t * pGraph )
 {
     Dec_Node_t * pNode;
-    Aig_Obj_t * pAnd0, * pAnd1;
+    Hop_Obj_t * pAnd0, * pAnd1;
     int i;
     // check for constant function
     if ( Dec_GraphIsConst(pGraph) )
-        return Aig_NotCond( Aig_ManConst1(pMan), Dec_GraphIsComplement(pGraph) );
+        return Hop_NotCond( Hop_ManConst1(pMan), Dec_GraphIsComplement(pGraph) );
     // check for a literal
     if ( Dec_GraphIsVar(pGraph) )
-        return Aig_NotCond( Dec_GraphVar(pGraph)->pFunc, Dec_GraphIsComplement(pGraph) );
+        return Hop_NotCond( Dec_GraphVar(pGraph)->pFunc, Dec_GraphIsComplement(pGraph) );
     // build the AIG nodes corresponding to the AND gates of the graph
     Dec_GraphForEachNode( pGraph, pNode, i )
     {
-        pAnd0 = Aig_NotCond( Dec_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc, pNode->eEdge0.fCompl ); 
-        pAnd1 = Aig_NotCond( Dec_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc, pNode->eEdge1.fCompl ); 
-        pNode->pFunc = Aig_And( pMan, pAnd0, pAnd1 );
+        pAnd0 = Hop_NotCond( Dec_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc, pNode->eEdge0.fCompl ); 
+        pAnd1 = Hop_NotCond( Dec_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc, pNode->eEdge1.fCompl ); 
+        pNode->pFunc = Hop_And( pMan, pAnd0, pAnd1 );
     }
     // complement the result if necessary
-    return Aig_NotCond( pNode->pFunc, Dec_GraphIsComplement(pGraph) );
+    return Hop_NotCond( pNode->pFunc, Dec_GraphIsComplement(pGraph) );
 }
 
 /**Function*************************************************************
@@ -247,9 +247,9 @@ Aig_Obj_t * Dec_GraphToNetworkAig( Aig_Man_t * pMan, Dec_Graph_t * pGraph )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Obj_t * Dec_GraphFactorSop( Aig_Man_t * pMan, char * pSop )
+Hop_Obj_t * Dec_GraphFactorSop( Hop_Man_t * pMan, char * pSop )
 {
-    Aig_Obj_t * pFunc;
+    Hop_Obj_t * pFunc;
     Dec_Graph_t * pFForm;
     Dec_Node_t * pNode;
     int i;
@@ -257,7 +257,7 @@ Aig_Obj_t * Dec_GraphFactorSop( Aig_Man_t * pMan, char * pSop )
     pFForm = Dec_Factor( pSop );
     // collect the fanins
     Dec_GraphForEachLeaf( pFForm, pNode, i )
-        pNode->pFunc = Aig_IthVar( pMan, i );
+        pNode->pFunc = Hop_IthVar( pMan, i );
     // perform strashing
     pFunc = Dec_GraphToNetworkAig( pMan, pFForm );
     Dec_GraphFree( pFForm );

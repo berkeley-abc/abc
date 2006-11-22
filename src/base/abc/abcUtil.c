@@ -34,6 +34,27 @@
 
 /**Function*************************************************************
 
+  Synopsis    [Frees one attribute manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void * Abc_NtkAttrFree( Abc_Ntk_t * pNtk, int Attr, int fFreeMan ) 
+{  
+    void * pUserMan;
+    Vec_Att_t * pAttrMan;
+    pAttrMan = Vec_PtrEntry( pNtk->vAttrs, Attr );
+    Vec_PtrWriteEntry( pNtk->vAttrs, Attr, NULL );
+    pUserMan = Vec_AttFree( pAttrMan, fFreeMan );
+    return pUserMan;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Increments the current traversal ID of the network.]
 
   Description []
@@ -225,7 +246,7 @@ int Abc_NtkGetAigNodeNum( Abc_Ntk_t * pNtk )
         assert( pNode->pData );
         if ( Abc_NodeIsConst(pNode) )
             continue;
-        nNodes += pNode->pData? Aig_DagSize( pNode->pData ) : 0;
+        nNodes += pNode->pData? Hop_DagSize( pNode->pData ) : 0;
     }
     return nNodes;
 }
@@ -356,7 +377,7 @@ int Abc_NtkGetChoiceNum( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
     int i, Counter;
-    if ( !Abc_NtkHasAig(pNtk) )
+    if ( !Abc_NtkIsStrash(pNtk) )
         return 0;
     Counter = 0;
     Abc_NtkForEachNode( pNtk, pNode, i )
@@ -578,7 +599,7 @@ void Abc_NtkFixCoDriverProblem( Abc_Obj_t * pDriver, Abc_Obj_t * pNodeCo, int fD
   Description [The COs of a logic network are simple under three conditions:
   (1) The edge from CO to its driver is not complemented.
   (2) If CI is a driver of a CO, they have the same name.]
-  (2) If two COs share the same driver, they have the same name.]
+  (3) If two COs share the same driver, they have the same name.]
                
   SideEffects []
 
@@ -621,7 +642,7 @@ bool Abc_NtkLogicHasSimpleCos( Abc_Ntk_t * pNtk )
   Description [The COs of a logic network are simple under three conditions:
   (1) The edge from CO to its driver is not complemented.
   (2) If CI is a driver of a CO, they have the same name.]
-  (2) If two COs share the same driver, they have the same name.
+  (3) If two COs share the same driver, they have the same name.
   In some cases, such as FPGA mapping, we prevent the increase in delay
   by duplicating the driver nodes, rather than adding invs/bufs.]
                

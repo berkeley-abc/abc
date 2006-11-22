@@ -50,6 +50,10 @@ void Abc_ObjAddFanin( Abc_Obj_t * pObj, Abc_Obj_t * pFanin )
     Vec_IntPushMem( pObj->pNtk->pMmStep, &pFaninR->vFanouts, pObj->Id    );
     if ( Abc_ObjIsComplement(pFanin) )
         Abc_ObjSetFaninC( pObj, Abc_ObjFaninNum(pObj)-1 );
+    if ( Abc_ObjIsNet(pObj) && Abc_ObjFaninNum(pObj) > 1 )
+    {
+        int x = 0; 
+    }
 }
 
 

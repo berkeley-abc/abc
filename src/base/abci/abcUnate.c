@@ -66,20 +66,22 @@ void Abc_NtkPrintUnateBdd( Abc_Ntk_t * pNtk, int fUseNaive, int fVerbose )
     Abc_Obj_t * pNode;
     Extra_UnateInfo_t * p;
     DdManager * dd;         // the BDD manager used to hold shared BDDs
-    DdNode ** pbGlobal;     // temporary storage for global BDDs
+//    DdNode ** pbGlobal;     // temporary storage for global BDDs
     int TotalSupps = 0;
     int TotalUnate = 0;
     int i, clk = clock();
     int clkBdd, clkUnate;
 
     // compute the global BDDs
-    if ( Abc_NtkGlobalBdds(pNtk, 10000000, 0, 1, fVerbose) == NULL )
+    dd = Abc_NtkBuildGlobalBdds(pNtk, 10000000, 1, 1, fVerbose);
+    if ( dd == NULL )
         return;
 clkBdd = clock() - clk;
 
     // get information about the network
-    dd       = pNtk->pManGlob;
-    pbGlobal = (DdNode **)Vec_PtrArray( pNtk->vFuncsGlob );
+//    dd       = pNtk->pManGlob;
+//    dd       = Abc_NtkGlobalBddMan( pNtk );
+//    pbGlobal = (DdNode **)Vec_PtrArray( pNtk->vFuncsGlob );
 
     // print the size of the BDDs
     printf( "The shared BDD size is %d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
@@ -89,7 +91,8 @@ clkBdd = clock() - clk;
     {
         Abc_NtkForEachCo( pNtk, pNode, i )
         {
-            p = Extra_UnateComputeSlow( dd, pbGlobal[i] );
+//            p = Extra_UnateComputeSlow( dd, pbGlobal[i] );
+            p = Extra_UnateComputeSlow( dd, Abc_ObjGlobalBdd(pNode) );
             if ( fVerbose )
                 Extra_UnateInfoPrint( p );
             TotalSupps += p->nVars;
@@ -104,7 +107,8 @@ clkBdd = clock() - clk;
         Cudd_zddVarsFromBddVars( dd, 2 );
         Abc_NtkForEachCo( pNtk, pNode, i )
         {
-            p = Extra_UnateComputeFast( dd, pbGlobal[i] );
+//            p = Extra_UnateComputeFast( dd, pbGlobal[i] );
+            p = Extra_UnateComputeFast( dd, Abc_ObjGlobalBdd(pNode) );
             if ( fVerbose )
                 Extra_UnateInfoPrint( p );
             TotalSupps += p->nVars;
@@ -122,10 +126,11 @@ clkUnate = clock() - clk - clkBdd;
     PRT( "Total    ", clock() - clk );
 
     // deref the PO functions
-    Abc_NtkFreeGlobalBdds( pNtk );
+//    Abc_NtkFreeGlobalBdds( pNtk );
     // stop the global BDD manager
-    Extra_StopManager( pNtk->pManGlob );
-    pNtk->pManGlob = NULL;
+//    Extra_StopManager( pNtk->pManGlob );
+//    pNtk->pManGlob = NULL;
+    Abc_NtkFreeGlobalBdds( pNtk, 1 );
 }
 
 /**Function*************************************************************

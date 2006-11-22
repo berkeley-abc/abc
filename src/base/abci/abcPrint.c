@@ -113,9 +113,9 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
     }
 
     if ( Abc_NtkIsStrash(pNtk) )
-        fprintf( pFile, "  lev = %3d", Abc_AigGetLevelNum(pNtk) );
+        fprintf( pFile, "  lev = %3d", Abc_AigLevel(pNtk) );
     else if ( !Abc_NtkIsSeq(pNtk) )
-        fprintf( pFile, "  lev = %3d", Abc_NtkGetLevelNum(pNtk) );
+        fprintf( pFile, "  lev = %3d", Abc_NtkLevel(pNtk) );
 
     fprintf( pFile, "\n" );
     // print the statistic into a file
@@ -126,7 +126,7 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
         fprintf( pTable, "%s ",  pNtk->pName );
         fprintf( pTable, "%d ", Abc_NtkPiNum(pNtk) );
         fprintf( pTable, "%d ", Abc_NtkNodeNum(pNtk) );
-        fprintf( pTable, "%d ", Abc_AigGetLevelNum(pNtk) );
+        fprintf( pTable, "%d ", Abc_AigLevel(pNtk) );
         fprintf( pTable, "\n" );
         fclose( pTable );
     }
@@ -150,7 +150,7 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
         FILE * pTable;
         pTable = fopen( "fpga/fpga_stats.txt", "a+" );
         fprintf( pTable, "%s ",  pNtk->pName );
-        fprintf( pTable, "%d ", Abc_NtkGetLevelNum(pNtk) );
+        fprintf( pTable, "%d ", Abc_NtkLevel(pNtk) );
         fprintf( pTable, "%d ", Abc_NtkNodeNum(pNtk) );
         fprintf( pTable, "%.2f ", (float)(s_MappingMem)/(float)(1<<20) );
         fprintf( pTable, "%.2f", (float)(s_MappingTime)/(float)(CLOCKS_PER_SEC) );
@@ -159,6 +159,24 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
     }
 */
 
+
+    // print the statistic into a file
+    {
+        static int Counter = 0;
+        extern int timeRetime;
+        FILE * pTable;
+        Counter++;
+        pTable = fopen( "a/ret__stats.txt", "a+" );
+        fprintf( pTable, "%s ", pNtk->pName );
+        fprintf( pTable, "%d ", Abc_NtkNodeNum(pNtk) );
+        fprintf( pTable, "%d ", Abc_NtkLatchNum(pNtk) );
+        fprintf( pTable, "%d ", Abc_NtkLevel(pNtk) );
+        fprintf( pTable, "%.2f ", (float)(timeRetime)/(float)(CLOCKS_PER_SEC) );
+        if ( Counter % 4 == 0 )
+            fprintf( pTable, "\n" );
+        fclose( pTable );
+    }
+
 /*
     // print the statistic into a file
     {
@@ -166,14 +184,14 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
         extern int timeRetime;
         FILE * pTable;
         Counter++;
-        pTable = fopen( "sap/stats_retime.txt", "a+" );
+        pTable = fopen( "d/stats.txt", "a+" );
         fprintf( pTable, "%s ", pNtk->pName );
+//        fprintf( pTable, "%d ", Abc_NtkPiNum(pNtk) );
+//        fprintf( pTable, "%d ", Abc_NtkPoNum(pNtk) );
+//        fprintf( pTable, "%d ", Abc_NtkLatchNum(pNtk) );
         fprintf( pTable, "%d ", Abc_NtkNodeNum(pNtk) );
-        fprintf( pTable, "%d ", Abc_NtkLatchNum(pNtk) );
-        fprintf( pTable, "%d ", Abc_NtkGetLevelNum(pNtk) );
         fprintf( pTable, "%.2f ", (float)(timeRetime)/(float)(CLOCKS_PER_SEC) );
-        if ( Counter % 4 == 0 )
-            fprintf( pTable, "\n" );
+        fprintf( pTable, "\n" );
         fclose( pTable );
     }
 */
@@ -214,7 +232,8 @@ void Abc_NtkPrintIo( FILE * pFile, Abc_Ntk_t * pNtk )
 
     fprintf( pFile, "Latches (%d):  ", Abc_NtkLatchNum(pNtk) );  
     Abc_NtkForEachLatch( pNtk, pObj, i )
-        fprintf( pFile, " %s", Abc_ObjName(pObj) );
+        fprintf( pFile, " %s(%s=%s)", Abc_ObjName(pObj), 
+            Abc_ObjName(Abc_ObjFanout0(pObj)), Abc_ObjName(Abc_ObjFanin0(pObj)) );
     fprintf( pFile, "\n" );   
 }
 
@@ -500,7 +519,7 @@ void Abc_NtkPrintLevel( FILE * pFile, Abc_Ntk_t * pNtk, int fProfile, int fListN
     if ( fListNodes )
     {
         int nLevels;
-        nLevels = Abc_NtkGetLevelNum(pNtk);
+        nLevels = Abc_NtkLevel(pNtk);
         printf( "Nodes by level:\n" );
         for ( i = 0; i <= nLevels; i++ )
         {
@@ -553,7 +572,7 @@ void Abc_NtkPrintLevel( FILE * pFile, Abc_Ntk_t * pNtk, int fProfile, int fListN
         int nOutsSum, nOutsTotal;
 
         if ( !Abc_NtkIsStrash(pNtk) )
-            Abc_NtkGetLevelNum(pNtk);
+            Abc_NtkLevel(pNtk);
 
         LevelMax = 0;
         Abc_NtkForEachCo( pNtk, pNode, i )
@@ -840,41 +859,6 @@ void Abc_NtkPrintStrSupports( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
-  Synopsis    [Prints information about the clock skew schedule.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkPrintSkews( FILE * pFile, Abc_Ntk_t * pNtk, int fPrintAll ) {
-
-  Abc_Obj_t * pObj;
-  int         i;
-  int         nNonZero = 0;
-  float       skew, sum = 0.0, avg;
-
-  if (fPrintAll) fprintf( pFile, "Full Clock Skew Schedule:\n\tGlobal Skew = %.2f\n", pNtk->globalSkew );
-
-  Abc_NtkForEachLatch( pNtk, pObj, i ) {
-    skew = Abc_NtkGetLatSkew( pNtk, i );
-    if ( skew != 0.0 ) {
-      nNonZero++;
-      sum += ABS( skew );
-    }
-    if (fPrintAll) fprintf( pFile, "\tLatch %d (Id = %d) \t Endpoint Skew = %.2f\n", i, pObj->Id, skew);
-  }
-
-  avg = sum / Abc_NtkLatchNum( pNtk );
- 
-  fprintf( pFile, "Endpoint Skews : Total |Skew| = %.2f\t Avg |Skew| = %.2f\t Non-Zero Skews = %d\n", 
-           sum, avg, nNonZero );
-}
-
-/**Function*************************************************************
-
   Synopsis    [Prints information about the object.]
 
   Description []
@@ -942,6 +926,12 @@ void Abc_ObjPrint( FILE * pFile, Abc_Obj_t * pObj )
     Abc_ObjForEachFanin( pObj, pFanin, i )
         fprintf( pFile, "%d ", pFanin->Id );
     fprintf( pFile, ") " );
+/*
+    fprintf( pFile, " Fanouts ( " );
+    Abc_ObjForEachFanout( pObj, pFanin, i )
+        fprintf( pFile, "%d(%c) ", pFanin->Id, Abc_NodeIsTravIdCurrent(pFanin)? '+' : '-' );
+    fprintf( pFile, ") " );
+*/
     // print the logic function
     if ( Abc_ObjIsNode(pObj) && Abc_NtkIsSopLogic(pObj->pNtk) )
         fprintf( pFile, " %s", pObj->pData );

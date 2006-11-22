@@ -44,11 +44,21 @@ int timeRetime = 0;
 int Abc_NtkRetime( Abc_Ntk_t * pNtk, int Mode, int fForwardOnly, int fBackwardOnly, int fVerbose )
 {
     int nLatches = Abc_NtkLatchNum(pNtk);
-    int nLevels  = Abc_NtkGetLevelNum(pNtk);
+    int nLevels  = Abc_NtkLevel(pNtk);
     int RetValue = 0, clkTotal = clock();
-    assert( Mode > 0 && Mode < 6 );
+    int nNodesOld, nLatchesOld;
+    assert( Mode > 0 && Mode < 7 );
     assert( !fForwardOnly || !fBackwardOnly );
-    // perform forward retiming
+
+    // cleanup the network
+    nNodesOld   = Abc_NtkNodeNum(pNtk);
+    nLatchesOld = Abc_NtkLatchNum(pNtk);
+    Abc_NtkCleanupSeq(pNtk, 0, 0, 0);
+    if ( nNodesOld > Abc_NtkNodeNum(pNtk) || nLatchesOld > Abc_NtkLatchNum(pNtk) )
+        printf( "Cleanup before retiming removed %d dangling nodes and %d dangling latches.\n",
+            nNodesOld - Abc_NtkNodeNum(pNtk), nLatchesOld - Abc_NtkLatchNum(pNtk) );
+
+    // perform retiming
     switch ( Mode )
     {
     case 1: // forward 
@@ -73,6 +83,9 @@ int Abc_NtkRetime( Abc_Ntk_t * pNtk, int Mode, int fForwardOnly, int fBackwardOn
         if ( !fForwardOnly )
             RetValue += Abc_NtkRetimeIncremental( pNtk, 0, 1, fVerbose );
         break;
+    case 6: // Pan's algorithm
+        RetValue = Abc_NtkRetimeLValue( pNtk, 200, fVerbose );
+        break;
     default:
         printf( "Unknown retiming option.\n" );
         break;
@@ -80,7 +93,7 @@ int Abc_NtkRetime( Abc_Ntk_t * pNtk, int Mode, int fForwardOnly, int fBackwardOn
     if ( fVerbose )
     {
         printf( "Reduction in area = %3d. Reduction in delay = %3d. ", 
-            nLatches - Abc_NtkLatchNum(pNtk), nLevels - Abc_NtkGetLevelNum(pNtk) );
+            nLatches - Abc_NtkLatchNum(pNtk), nLevels - Abc_NtkLevel(pNtk) );
         PRT( "Total runtime", clock() - clkTotal );
     }
     timeRetime = clock() - clkTotal;
@@ -104,8 +117,11 @@ int Abc_NtkRetimeDebug( Abc_Ntk_t * pNtk )
     Abc_Ntk_t * pNtkRet;
     assert( Abc_NtkIsLogic(pNtk) );
     Abc_NtkLogicToSop( pNtk, 0 );
+//    if ( !Abc_NtkCheck( pNtk ) )
+//        fprintf( stdout, "Abc_NtkRetimeDebug(): Network check has failed.\n" );
+//    Io_WriteBlifLogic( pNtk, "debug_temp.blif", 1 );
     pNtkRet = Abc_NtkDup( pNtk );
-    Abc_NtkRetime( pNtkRet, 3, 0, 1, 0 );
+    Abc_NtkRetime( pNtkRet, 3, 0, 1, 0 ); // debugging backward flow
     return !Abc_NtkSecFraig( pNtk, pNtkRet, 10000, 3, 0 );
 }
 

@@ -42,7 +42,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /I "src\base\abc" /I "src\base\abci" /I "src\base\abcs" /I "src\base\seq" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\ft" /I "src\sat\asat" /I "src\sat\bsat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\sim" /I "src\opt\rwr" /I "src\map\fpga" /I "src\map\pga" /I "src\map\mapper" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\mvc" /I "src\misc\util" /I "src\misc\npn" /I "src\misc\vec" /I "src\misc\espresso" /I "src\misc\nm" /I "src\misc\hash" /I "src\temp\ivy" /I "src\temp\esop" /I "src\temp\rwt" /I "src\temp\deco" /I "src\temp\mem" /I "src\temp\aig" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /FR /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /I "src\base\abc" /I "src\base\abci" /I "src\base\abcs" /I "src\base\seq" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\ft" /I "src\sat\asat" /I "src\sat\bsat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\sim" /I "src\opt\rwr" /I "src\map\fpga" /I "src\map\if" /I "src\map\mapper" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\mvc" /I "src\misc\util" /I "src\misc\npn" /I "src\misc\vec" /I "src\misc\espresso" /I "src\misc\nm" /I "src\misc\hash" /I "src\aig\ivy" /I "src\aig\hop" /I "src\aig\rwt" /I "src\aig\deco" /I "src\aig\mem" /I "src\temp\esop" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /FR /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -66,7 +66,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /c
-# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "src\base\abc" /I "src\base\abci" /I "src\base\abcs" /I "src\base\seq" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\ft" /I "src\sat\asat" /I "src\sat\bsat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\sim" /I "src\opt\rwr" /I "src\map\fpga" /I "src\map\pga" /I "src\map\mapper" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\mvc" /I "src\misc\util" /I "src\misc\npn" /I "src\misc\vec" /I "src\misc\espresso" /I "src\misc\nm" /I "src\misc\hash" /I "src\temp\ivy" /I "src\temp\esop" /I "src\temp\rwt" /I "src\temp\deco" /I "src\temp\mem" /I "src\temp\aig" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /FR /YX /FD /GZ /c
+# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "src\base\abc" /I "src\base\abci" /I "src\base\abcs" /I "src\base\seq" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\ft" /I "src\sat\asat" /I "src\sat\bsat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\sim" /I "src\opt\rwr" /I "src\map\fpga" /I "src\map\if" /I "src\map\mapper" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\mvc" /I "src\misc\util" /I "src\misc\npn" /I "src\misc\vec" /I "src\misc\espresso" /I "src\misc\nm" /I "src\misc\hash" /I "src\aig\ivy" /I "src\aig\hop" /I "src\aig\rwt" /I "src\aig\deco" /I "src\aig\mem" /I "src\temp\esop" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /FR /YX /FD /GZ /c
 # SUBTRACT CPP /X
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
@@ -238,6 +238,10 @@ SOURCE=.\src\base\abci\abcGen.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcIf.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcIvy.c
 # End Source File
 # Begin Source File
@@ -267,10 +271,6 @@ SOURCE=.\src\base\abci\abcNtbdd.c
 # Begin Source File
 
 SOURCE=.\src\base\abci\abcOrder.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\abci\abcPga.c
 # End Source File
 # Begin Source File
 
@@ -504,6 +504,226 @@ SOURCE=.\src\base\main\mainInt.h
 
 SOURCE=.\src\base\main\mainUtils.c
 # End Source File
+# End Group
+# Begin Group "ver"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\base\ver\ver.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\ver\verCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\ver\verFormula.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\ver\verParse.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\ver\verStream.c
+# End Source File
+# End Group
+# End Group
+# Begin Group "aig"
+
+# PROP Default_Filter ""
+# Begin Group "hop"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\aig\hop\hop.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\hop\hopBalance.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\hop\hopCheck.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\hop\hopDfs.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\hop\hopMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\hop\hopMem.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\hop\hopObj.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\hop\hopOper.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\hop\hopTable.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\hop\hopUtil.c
+# End Source File
+# End Group
+# Begin Group "ivy"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\aig\ivy\ivy.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ivy\ivyBalance.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ivy\ivyCanon.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ivy\ivyCheck.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ivy\ivyCut.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ivy\ivyCutTrav.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ivy\ivyDfs.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ivy\ivyDsd.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ivy\ivyFanout.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ivy\ivyFastMap.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ivy\ivyFpga.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ivy\ivyFraig.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ivy\ivyHaig.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ivy\ivyIsop.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ivy\ivyMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ivy\ivyMem.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ivy\ivyMulti.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ivy\ivyObj.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ivy\ivyOper.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ivy\ivyResyn.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ivy\ivyRwr.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ivy\ivySeq.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ivy\ivyShow.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ivy\ivyTable.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ivy\ivyUtil.c
+# End Source File
+# End Group
+# Begin Group "rwt"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\aig\rwt\rwt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\rwt\rwtDec.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\rwt\rwtMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\rwt\rwtUtil.c
+# End Source File
+# End Group
+# Begin Group "deco"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\aig\deco\deco.h
+# End Source File
+# End Group
+# Begin Group "mem"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\aig\mem\mem.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\mem\mem.h
+# End Source File
+# End Group
+# Begin Group "ec"
+
+# PROP Default_Filter ""
 # End Group
 # End Group
 # Begin Group "bdd"
@@ -1364,6 +1584,10 @@ SOURCE=.\src\opt\ret\retInit.c
 
 SOURCE=.\src\opt\ret\retInt.h
 # End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\ret\retLvalue.c
+# End Source File
 # End Group
 # End Group
 # Begin Group "map"
@@ -1577,32 +1801,32 @@ SOURCE=.\src\map\super\superInt.h
 SOURCE=.\src\map\super\superWrite.c
 # End Source File
 # End Group
-# Begin Group "pga"
+# Begin Group "if"
 
 # PROP Default_Filter ""
 # Begin Source File
 
-SOURCE=.\src\map\pga\pga.h
+SOURCE=.\src\map\if\if.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\pga\pgaCore.c
+SOURCE=.\src\map\if\ifCore.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\pga\pgaInt.h
+SOURCE=.\src\map\if\ifCut.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\pga\pgaMan.c
+SOURCE=.\src\map\if\ifMan.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\pga\pgaMatch.c
+SOURCE=.\src\map\if\ifMap.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\pga\pgaUtil.c
+SOURCE=.\src\map\if\ifUtil.c
 # End Source File
 # End Group
 # End Group
@@ -1771,6 +1995,10 @@ SOURCE=.\src\misc\mvc\mvcUtils.c
 # Begin Source File
 
 SOURCE=.\src\misc\vec\vec.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\vec\vecAtt.h
 # End Source File
 # Begin Source File
 
@@ -2025,258 +2253,6 @@ SOURCE=.\src\misc\hash\hashPtr.h
 # Begin Group "temp"
 
 # PROP Default_Filter ""
-# Begin Group "ivy"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\temp\ivy\ivy.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\ivy\ivyBalance.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\ivy\ivyCanon.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\ivy\ivyCheck.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\ivy\ivyCut.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\ivy\ivyCutTrav.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\ivy\ivyDfs.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\ivy\ivyDsd.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\ivy\ivyFanout.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\ivy\ivyFastMap.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\ivy\ivyFraig.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\ivy\ivyHaig.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\ivy\ivyIsop.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\ivy\ivyMan.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\ivy\ivyMem.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\ivy\ivyMulti.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\ivy\ivyObj.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\ivy\ivyOper.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\ivy\ivyResyn.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\ivy\ivyRwr.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\ivy\ivySeq.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\ivy\ivyShow.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\ivy\ivyTable.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\ivy\ivyUtil.c
-# End Source File
-# End Group
-# Begin Group "player"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\temp\player\player.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\player\playerCore.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\player\playerMan.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\player\playerToAbc.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\player\playerUtil.c
-# End Source File
-# End Group
-# Begin Group "esop"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\temp\esop\esop.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\esop\esopMan.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\esop\esopMin.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\esop\esopUtil.c
-# End Source File
-# End Group
-# Begin Group "rwt"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\temp\rwt\rwt.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\rwt\rwtDec.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\rwt\rwtMan.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\rwt\rwtUtil.c
-# End Source File
-# End Group
-# Begin Group "deco"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\temp\deco\deco.h
-# End Source File
-# End Group
-# Begin Group "mem"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\temp\mem\mem.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\mem\mem.h
-# End Source File
-# End Group
-# Begin Group "ver"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\temp\ver\ver.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\ver\verCore.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\ver\verFormula.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\ver\verParse.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\ver\verStream.c
-# End Source File
-# End Group
-# Begin Group "aig"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\temp\aig\aig.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\aig\aigBalance.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\aig\aigCheck.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\aig\aigDfs.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\aig\aigMan.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\aig\aigMem.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\aig\aigObj.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\aig\aigOper.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\aig\aigTable.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\temp\aig\aigUtil.c
-# End Source File
-# End Group
 # End Group
 # End Group
 # Begin Group "Header Files"

@@ -53,6 +53,8 @@ static inline Abc_Obj_t *  Abc_ObjFanin1Ivy( Abc_Ntk_t * p, Ivy_Obj_t * pObj ) {
 
 static Vec_Int_t * Abc_NtkCollectLatchValuesIvy( Abc_Ntk_t * pNtk, int fUseDcs );
 
+extern int timeRetime;
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -72,6 +74,7 @@ Ivy_Man_t * Abc_NtkIvyBefore( Abc_Ntk_t * pNtk, int fSeq, int fUseDc )
 {
     Ivy_Man_t * pMan;
     int fCleanup = 1;
+//timeRetime = clock();
     assert( !Abc_NtkIsNetlist(pNtk) );
     assert( !Abc_NtkIsSeq(pNtk) );
     if ( Abc_NtkIsBddLogic(pNtk) )
@@ -107,6 +110,7 @@ Ivy_Man_t * Abc_NtkIvyBefore( Abc_Ntk_t * pNtk, int fSeq, int fUseDc )
         Vec_IntFree( vInit );
 //        Ivy_ManPrintStats( pMan );
     }
+//timeRetime = clock() - timeRetime;
     return pMan;
 }
 
@@ -184,17 +188,22 @@ Abc_Ntk_t * Abc_NtkIvyHaig( Abc_Ntk_t * pNtk, int nIters, int fUseZeroCost, int 
 {
     Abc_Ntk_t * pNtkAig;
     Ivy_Man_t * pMan;
-    int i;
+//    int i;
 
     pMan = Abc_NtkIvyBefore( pNtk, 1, 1 );
     if ( pMan == NULL )
         return NULL;
+//timeRetime = clock();
 
     Ivy_ManHaigStart( pMan, fVerbose );
 //    Ivy_ManRewriteSeq( pMan, 0, 0 );
-    for ( i = 0; i < nIters; i++ )
-        Ivy_ManRewriteSeq( pMan, fUseZeroCost, 0 );
-    Ivy_ManHaigPostprocess( pMan, fVerbose );
+//    for ( i = 0; i < nIters; i++ )
+//        Ivy_ManRewriteSeq( pMan, fUseZeroCost, 0 );
+    Ivy_ManRewriteSeq( pMan, 0, 0 );
+    Ivy_ManRewriteSeq( pMan, 1, 0 );
+//printf( "Haig size = %d.\n", Ivy_ManNodeNum(pMan->pHaig) );
+//    Ivy_ManHaigPostprocess( pMan, fVerbose );
+//timeRetime = clock() - timeRetime;
 
     // write working AIG into the current network
 //    pNtkAig = Abc_NtkIvyAfter( pNtk, pMan, 1, 0 ); 
@@ -246,7 +255,9 @@ Abc_Ntk_t * Abc_NtkIvyRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeroC
     pMan = Abc_NtkIvyBefore( pNtk, 0, 0 );
     if ( pMan == NULL )
         return NULL;
+//timeRetime = clock();
     Ivy_ManRewritePre( pMan, fUpdateLevel, fUseZeroCost, fVerbose );
+//timeRetime = clock() - timeRetime;
     pNtkAig = Abc_NtkIvyAfter( pNtk, pMan, 0, 0 );
     Ivy_ManStop( pMan );
     return pNtkAig;
@@ -270,7 +281,9 @@ Abc_Ntk_t * Abc_NtkIvyRewriteSeq( Abc_Ntk_t * pNtk, int fUseZeroCost, int fVerbo
     pMan = Abc_NtkIvyBefore( pNtk, 1, 1 );
     if ( pMan == NULL )
         return NULL;
+//timeRetime = clock();
     Ivy_ManRewriteSeq( pMan, fUseZeroCost, fVerbose );
+//timeRetime = clock() - timeRetime;
 //    Ivy_ManRewriteSeq( pMan, 1, 0 );
 //    Ivy_ManRewriteSeq( pMan, 1, 0 );
     pNtkAig = Abc_NtkIvyAfter( pNtk, pMan, 1, 0 );

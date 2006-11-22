@@ -76,7 +76,7 @@ int Abc_NtkRetimeMinDelayTry( Abc_Ntk_t * pNtk, int fForward, int fInitial, int 
     Vec_Ptr_t * vCritical;
     Vec_Int_t * vValues;
     Abc_Obj_t * pObj;
-    int i, k, IterBest, DelayCur, DelayBest, DelayStart;
+    int i, k, IterBest, DelayCur, DelayBest, DelayStart, LatchesBest;
     // transfer intitial values
     if ( fInitial )
     {
@@ -90,8 +90,15 @@ int Abc_NtkRetimeMinDelayTry( Abc_Ntk_t * pNtk, int fForward, int fInitial, int 
             pNtkNew = Abc_NtkRetimeBackwardInitialStart( pNtk );
         }
     }
+if ( fVerbose )
+{
+    if ( !fInitial )
+        printf( "Performing analysis:\n" );
+    else
+        printf( "Moving latches to the best position:\n" );
+}
     // find the best iteration
-    DelayBest = ABC_INFINITY; IterBest = 0;
+    DelayBest = ABC_INFINITY; IterBest = 0; LatchesBest = Abc_NtkLatchNum(pNtk);
     vCritical = Vec_PtrAlloc( 100 );
     for ( i = 0; ; i++ )
     {
@@ -102,16 +109,29 @@ int Abc_NtkRetimeMinDelayTry( Abc_Ntk_t * pNtk, int fForward, int fInitial, int 
         // record this position if it has the best delay
         if ( DelayBest > DelayCur )
         {
+if ( fVerbose )
+    printf( "%s Iter = %3d. Delay = %3d. Latches = %5d. Delta = %6.2f. Ratio = %4.2f %%\n", 
+        fForward ? "Fwd": "Bwd", i, DelayCur, Abc_NtkLatchNum(pNtk), 
+        1.0*(Abc_NtkLatchNum(pNtk)-LatchesBest)/(DelayBest-DelayCur), 
+        100.0*(Abc_NtkLatchNum(pNtk)-LatchesBest)/Abc_NtkLatchNum(pNtk)/(DelayBest-DelayCur) );
+
             DelayBest = DelayCur;
             IterBest = i;
+            LatchesBest = Abc_NtkLatchNum(pNtk);
         }
         // quit after timing analysis
         if ( i == nIterLimit )
+            break;
+        // skip if 10 interations did not give improvement
+        if ( i - IterBest > 20 )
             break;
         // try retiming to improve the delay
         Vec_PtrForEachEntry( vCritical, pObj, k )
             if ( Abc_NtkRetimeNodeIsEnabled(pObj, fForward) )
                 Abc_NtkRetimeNode( pObj, fForward, fInitial );
+        // share latches
+        if ( !fForward )
+            Abc_NtkRetimeShareLatches( pNtk, fInitial );    
     }
     Vec_PtrFree( vCritical );
     // transfer the initial state back to the latches

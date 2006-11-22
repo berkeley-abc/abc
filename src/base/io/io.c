@@ -1339,12 +1339,6 @@ int IoCommandWriteDot( Abc_Frame_t * pAbc, int argc, char **argv )
         return 0;
     }
 
-    if ( !Abc_NtkHasAig(pAbc->pNtkCur) )
-    {
-        fprintf( stdout, "IoCommandWriteDot(): Currently can only process AIGs.\n" );
-        return 0;
-    }
-
     if ( argc != globalUtilOptind + 1 )
     {
         goto usage;
@@ -1354,13 +1348,13 @@ int IoCommandWriteDot( Abc_Frame_t * pAbc, int argc, char **argv )
     FileName = argv[globalUtilOptind];
     // write the file
     vNodes = Abc_NtkCollectObjects( pAbc->pNtkCur );
-    Io_WriteDotAig( pAbc->pNtkCur, vNodes, NULL, FileName, 0 );
+    Io_WriteDotNtk( pAbc->pNtkCur, vNodes, NULL, FileName, 0, 0 );
     Vec_PtrFree( vNodes );
     return 0;
 
 usage:
     fprintf( pAbc->Err, "usage: write_dot [-h] <file>\n" );
-    fprintf( pAbc->Err, "\t         write the AIG into a DOT file\n" );
+    fprintf( pAbc->Err, "\t         write the current network into a DOT file\n" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
     return 1;
@@ -1598,13 +1592,13 @@ int IoCommandWritePla( Abc_Frame_t * pAbc, int argc, char **argv )
         return 0;
     }
 
-    if ( Abc_NtkGetLevelNum(pNtk) > 1 )
+    if ( Abc_NtkLevel(pNtk) > 1 )
     {
         fprintf( pAbc->Out, "PLA writing is available for collapsed networks.\n" );
         return 0;
     }
 
-    if ( Abc_NtkGetLevelNum(pNtk) > 1 )
+    if ( Abc_NtkLevel(pNtk) > 1 )
     {
         fprintf( pAbc->Out, "PLA writing is available for collapsed networks.\n" );
         return 0;

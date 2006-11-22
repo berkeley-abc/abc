@@ -68,6 +68,7 @@ void Prove_ParamsSetDefault( Prove_Params_t * pParams )
     // global SAT solver limits
     pParams->nTotalBacktrackLimit = 0;       // global limit on the number of backtracks
     pParams->nTotalInspectLimit   = 0;       // global limit on the number of clause inspects
+//    pParams->nTotalInspectLimit   = 100000000;  // global limit on the number of clause inspects
 }
 
 /**Function*************************************************************

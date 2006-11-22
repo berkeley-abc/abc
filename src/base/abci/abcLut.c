@@ -104,7 +104,7 @@ int Abc_NtkSuperChoiceLut( Abc_Ntk_t * pNtk, int nLutSize, int nCutSizeMax, int 
     Abc_NtkForEachCi( pNtk, pObj, i )
         pObj->Level = 0;
 
-//Abc_NtkGetLevelNum( pNtk );
+//Abc_NtkLevel( pNtk );
  
     // start the managers
     pManScl = Abc_ManSclStart( nLutSize, nCutSizeMax, 1000 );

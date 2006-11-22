@@ -132,7 +132,7 @@ Abc_Obj_t * Io_ReadCreateLatch( Abc_Ntk_t * pNtk, char * pNetLI, char * pNetLO )
     pNet = Abc_NtkFindOrCreateNet( pNtk, pNetLO );
     Abc_ObjAddFanin( pNet, pTerm );
     // set latch name
-    Abc_ObjAssignName( pLatch, pNetLO, "_latch" );
+    Abc_ObjAssignName( pLatch, pNetLO, "L" );
     return pLatch;
 }
 

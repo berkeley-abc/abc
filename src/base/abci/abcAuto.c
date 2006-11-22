@@ -49,16 +49,24 @@ void Abc_NtkAutoPrint( Abc_Ntk_t * pNtk, int Output, int fNaive, int fVerbose )
     char ** pInputNames;    // pointers to the CI names
     char ** pOutputNames;   // pointers to the CO names
     int nOutputs, nInputs, i;
+    Vec_Ptr_t * vFuncsGlob;
+    Abc_Obj_t * pObj;
 
     // compute the global BDDs
-    if ( Abc_NtkGlobalBdds(pNtk, 10000000, 0, 1, fVerbose) == NULL )
+    if ( Abc_NtkBuildGlobalBdds(pNtk, 10000000, 1, 1, fVerbose) == NULL )
         return;
 
     // get information about the network
     nInputs  = Abc_NtkCiNum(pNtk);
     nOutputs = Abc_NtkCoNum(pNtk);
-    dd       = pNtk->pManGlob;
-    pbGlobal = (DdNode **)Vec_PtrArray( pNtk->vFuncsGlob );
+//    dd       = pNtk->pManGlob;
+    dd = Abc_NtkGlobalBddMan( pNtk );
+
+    // complement the global functions
+    vFuncsGlob = Vec_PtrAlloc( Abc_NtkCoNum(pNtk) );
+    Abc_NtkForEachCo( pNtk, pObj, i )
+        Vec_PtrPush( vFuncsGlob, Abc_ObjGlobalBdd(pObj) );
+    pbGlobal = (DdNode **)Vec_PtrArray( vFuncsGlob );
 
     // get the network names
     pInputNames = Abc_NtkCollectCioNames( pNtk, 0 );
@@ -83,12 +91,14 @@ void Abc_NtkAutoPrint( Abc_Ntk_t * pNtk, int Output, int fNaive, int fVerbose )
         Abc_NtkAutoPrintOne( dd, nInputs, pbGlobal, Output, pInputNames, pOutputNames, fNaive );
 
     // deref the PO functions
-    Abc_NtkFreeGlobalBdds( pNtk );
+//    Abc_NtkFreeGlobalBdds( pNtk );
     // stop the global BDD manager
-    Extra_StopManager( pNtk->pManGlob );
-    pNtk->pManGlob = NULL;
+//    Extra_StopManager( pNtk->pManGlob );
+//    pNtk->pManGlob = NULL;
+    Abc_NtkFreeGlobalBdds( pNtk, 1 );
     free( pInputNames );
     free( pOutputNames );
+    Vec_PtrFree( vFuncsGlob );
 }
 
 /**Function*************************************************************

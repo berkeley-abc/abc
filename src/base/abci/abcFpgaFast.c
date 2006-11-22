@@ -118,7 +118,7 @@ Abc_Ntk_t * Ivy_ManFpgaToAbc( Abc_Ntk_t * pNtk, Ivy_Man_t * pMan )
                 // clone the node
                 pObj = Abc_NtkCloneObj( pObjAbc );
                 // set complemented functions
-                pObj->pData = Aig_Not( pObjAbc->pData );
+                pObj->pData = Hop_Not( pObjAbc->pData );
                 // return the new node
                 pObjAbc = pObj;
             }
@@ -172,9 +172,9 @@ Abc_Obj_t * Ivy_ManToAbcFast_rec( Abc_Ntk_t * pNtkNew, Ivy_Man_t * pMan, Ivy_Obj
     Ivy_ManForEachNodeVec( pMan, vNodes, pNodeIvy, i )
     {
         if ( i < Vec_IntSize(vSupp) )
-            pNodeIvy->pEquiv = (Ivy_Obj_t *)Aig_IthVar( pNtkNew->pManFunc, i );
+            pNodeIvy->pEquiv = (Ivy_Obj_t *)Hop_IthVar( pNtkNew->pManFunc, i );
         else
-            pNodeIvy->pEquiv = (Ivy_Obj_t *)Aig_And( pNtkNew->pManFunc, (Aig_Obj_t *)Ivy_ObjChild0Equiv(pNodeIvy), (Aig_Obj_t *)Ivy_ObjChild1Equiv(pNodeIvy) );
+            pNodeIvy->pEquiv = (Ivy_Obj_t *)Hop_And( pNtkNew->pManFunc, (Hop_Obj_t *)Ivy_ObjChild0Equiv(pNodeIvy), (Hop_Obj_t *)Ivy_ObjChild1Equiv(pNodeIvy) );
     }
     // set the local function
     pObjAbc->pData = (Abc_Obj_t *)pObjIvy->pEquiv;

@@ -251,15 +251,6 @@ Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk, int fDirect )
         pNtkNew = Abc_NtkLogicSopToNetlist( pNtkTemp );
         Abc_NtkDelete( pNtkTemp );
     }
-    else if ( Abc_NtkIsSeq(pNtk) )
-    {
-        assert( 0 );
-/*
-        pNtkTemp = Abc_NtkSeqToLogicSop(pNtk);
-        pNtkNew = Abc_NtkLogicSopToNetlist( pNtkTemp );
-        Abc_NtkDelete( pNtkTemp );
-*/
-    }
     else if ( Abc_NtkIsBddLogic(pNtk) )
     {
         if ( !Abc_NtkBddToSop(pNtk, fDirect) )
@@ -328,12 +319,21 @@ Abc_Ntk_t * Abc_NtkLogicSopToNetlist( Abc_Ntk_t * pNtk )
     Abc_NtkCleanup( pNtk, 0 );
 
     assert( Abc_NtkIsLogic(pNtk) );
-    assert( Abc_NtkLogicHasSimpleCos(pNtk) );
+//    assert( Abc_NtkLogicHasSimpleCos(pNtk) );
+    if ( !Abc_NtkLogicHasSimpleCos(pNtk) )
+    {
+        printf( "Abc_NtkLogicSopToNetlist() warning: The network is converted to have simple COs.\n" );
+        Abc_NtkLogicMakeSimpleCos( pNtk, 0 );
+    }
+
     if ( Abc_NtkIsBddLogic(pNtk) )
     {
         if ( !Abc_NtkBddToSop(pNtk,0) )
             return NULL;
     }
+
+//    Abc_NtkForEachCo(pNtk, pObj, i)
+//        Abc_ObjPrint( stdout, Abc_ObjFanin0(pObj) );
 
     // start the netlist by creating PI/PO/Latch objects
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_NETLIST, pNtk->ntkFunc );
@@ -358,7 +358,7 @@ Abc_Ntk_t * Abc_NtkLogicSopToNetlist( Abc_Ntk_t * pNtk )
             continue;
         }
         assert( Abc_ObjIsNode(pDriver) );
-        // if the CO drive has no net, create it
+        // if the CO driver has no net, create it
         if ( pDriver->pCopy->pCopy == NULL )
         {
             // create the CO net and connect it to CO

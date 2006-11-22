@@ -47,7 +47,7 @@ Abc_Lib_t * Abc_LibCreate( char * pName )
     p->pName    = Extra_UtilStrsav( pName );
     p->tModules = st_init_table( strcmp, st_strhash );
     p->vModules = Vec_PtrAlloc( 100 );
-    p->pManFunc = Aig_ManStart();
+    p->pManFunc = Hop_ManStart();
     p->pLibrary = NULL;
     return p;
 }
@@ -70,7 +70,7 @@ void Abc_LibFree( Abc_Lib_t * pLib )
     if ( pLib->pName )
         free( pLib->pName );
     if ( pLib->pManFunc )
-        Aig_ManStop( pLib->pManFunc );
+        Hop_ManStop( pLib->pManFunc );
     if ( pLib->tModules )
         st_free_table( pLib->tModules );
     if ( pLib->vModules )

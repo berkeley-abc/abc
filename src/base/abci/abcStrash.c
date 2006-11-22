@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [aigStrash.c]
+  FileName    [abcStrash.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: aigStrash.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: abcStrash.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -46,10 +46,12 @@ static void Abc_NtkStrashPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, bool fA
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkRestrash( Abc_Ntk_t * pNtk, bool fCleanup )
 {
+    extern int timeRetime;
     Abc_Ntk_t * pNtkAig;
     Abc_Obj_t * pObj;
-    int i, nNodes;
+    int i, nNodes, RetValue;
     assert( Abc_NtkIsStrash(pNtk) );
+//timeRetime = clock();
     // print warning about choice nodes
     if ( Abc_NtkGetChoiceNum( pNtk ) )
         printf( "Warning: The choice nodes in the original AIG are removed by strashing.\n" );
@@ -58,7 +60,7 @@ Abc_Ntk_t * Abc_NtkRestrash( Abc_Ntk_t * pNtk, bool fCleanup )
     // restrash the nodes (assuming a topological order of the old network)
     Abc_NtkForEachNode( pNtk, pObj, i )
         pObj->pCopy = Abc_AigAnd( pNtkAig->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
-    // finalize the network
+    //l finalize the network
     Abc_NtkFinalize( pNtk, pNtkAig );
     // print warning about self-feed latches
 //    if ( Abc_NtkCountSelfFeedLatches(pNtkAig) )
@@ -76,6 +78,9 @@ Abc_Ntk_t * Abc_NtkRestrash( Abc_Ntk_t * pNtk, bool fCleanup )
         Abc_NtkDelete( pNtkAig );
         return NULL;
     }
+//timeRetime = clock() - timeRetime;
+    if ( RetValue = Abc_NtkRemoveSelfFeedLatches(pNtkAig) )
+        printf( "Modified %d self-feeding latches. The result will not verify.\n", RetValue );
     return pNtkAig;
 
 }
@@ -106,7 +111,7 @@ Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes, bool fCleanup )
         return NULL;
     }
     // perform strashing
-    Abc_NtkCleanCopy( pNtk );
+//    Abc_NtkCleanCopy( pNtk );
     pNtkAig = Abc_NtkStartFrom( pNtk, ABC_NTK_STRASH, ABC_FUNC_AIG );
     Abc_NtkStrashPerform( pNtk, pNtkAig, fAllNodes );
     Abc_NtkFinalize( pNtk, pNtkAig );
@@ -205,13 +210,17 @@ int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fAddPos )
 ***********************************************************************/
 void Abc_NtkStrashPerform( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew, bool fAllNodes )
 {
+    extern Vec_Ptr_t * Abc_NtkDfsIter( Abc_Ntk_t * pNtk, int fCollectAll );
     ProgressBar * pProgress;
     Vec_Ptr_t * vNodes;
     Abc_Obj_t * pNodeOld;
-    int i;
+    int i, clk = clock();
     assert( Abc_NtkIsLogic(pNtkOld) );
     assert( Abc_NtkIsStrash(pNtkNew) );
-    vNodes = Abc_NtkDfs( pNtkOld, fAllNodes );
+//    vNodes = Abc_NtkDfs( pNtkOld, fAllNodes );
+    vNodes = Abc_NtkDfsIter( pNtkOld, fAllNodes );
+//printf( "Nodes = %d. ", Vec_PtrSize(vNodes) );
+//PRT( "Time", clock() - clk );
     pProgress = Extra_ProgressBarStart( stdout, vNodes->nSize );
     Vec_PtrForEachEntry( vNodes, pNodeOld, i )
     {
@@ -233,16 +242,16 @@ void Abc_NtkStrashPerform( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew, bool fAllNo
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NodeStrash_rec( Abc_Aig_t * pMan, Aig_Obj_t * pObj )
+void Abc_NodeStrash_rec( Abc_Aig_t * pMan, Hop_Obj_t * pObj )
 {
-    assert( !Aig_IsComplement(pObj) );
-    if ( !Aig_ObjIsNode(pObj) || Aig_ObjIsMarkA(pObj) )
+    assert( !Hop_IsComplement(pObj) );
+    if ( !Hop_ObjIsNode(pObj) || Hop_ObjIsMarkA(pObj) )
         return;
-    Abc_NodeStrash_rec( pMan, Aig_ObjFanin0(pObj) ); 
-    Abc_NodeStrash_rec( pMan, Aig_ObjFanin1(pObj) );
-    pObj->pData = Abc_AigAnd( pMan, (Abc_Obj_t *)Aig_ObjChild0Copy(pObj), (Abc_Obj_t *)Aig_ObjChild1Copy(pObj) );
-    assert( !Aig_ObjIsMarkA(pObj) ); // loop detection
-    Aig_ObjSetMarkA( pObj );
+    Abc_NodeStrash_rec( pMan, Hop_ObjFanin0(pObj) ); 
+    Abc_NodeStrash_rec( pMan, Hop_ObjFanin1(pObj) );
+    pObj->pData = Abc_AigAnd( pMan, (Abc_Obj_t *)Hop_ObjChild0Copy(pObj), (Abc_Obj_t *)Hop_ObjChild1Copy(pObj) );
+    assert( !Hop_ObjIsMarkA(pObj) ); // loop detection
+    Hop_ObjSetMarkA( pObj );
 }
 
 /**Function*************************************************************
@@ -258,8 +267,8 @@ void Abc_NodeStrash_rec( Abc_Aig_t * pMan, Aig_Obj_t * pObj )
 ***********************************************************************/
 Abc_Obj_t * Abc_NodeStrash( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld )
 {
-    Aig_Man_t * pMan;
-    Aig_Obj_t * pRoot;
+    Hop_Man_t * pMan;
+    Hop_Obj_t * pRoot;
     Abc_Obj_t * pFanin;
     int i;
     assert( Abc_ObjIsNode(pNodeOld) );
@@ -269,15 +278,15 @@ Abc_Obj_t * Abc_NodeStrash( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld )
     pRoot = pNodeOld->pData;
     // check the constant case
     if ( Abc_NodeIsConst(pNodeOld) )
-        return Abc_ObjNotCond( Abc_AigConst1(pNtkNew), Aig_IsComplement(pRoot) );
+        return Abc_ObjNotCond( Abc_AigConst1(pNtkNew), Hop_IsComplement(pRoot) );
     // set elementary variables
     Abc_ObjForEachFanin( pNodeOld, pFanin, i )
-        Aig_IthVar(pMan, i)->pData = pFanin->pCopy;
+        Hop_IthVar(pMan, i)->pData = pFanin->pCopy;
     // strash the AIG of this node
-    Abc_NodeStrash_rec( pNtkNew->pManFunc, Aig_Regular(pRoot) );
-    Aig_ConeUnmark_rec( Aig_Regular(pRoot) );
+    Abc_NodeStrash_rec( pNtkNew->pManFunc, Hop_Regular(pRoot) );
+    Hop_ConeUnmark_rec( Hop_Regular(pRoot) );
     // return the final node
-    return Abc_ObjNotCond( Aig_Regular(pRoot)->pData, Aig_IsComplement(pRoot) );
+    return Abc_ObjNotCond( Hop_Regular(pRoot)->pData, Hop_IsComplement(pRoot) );
 }
 
 
@@ -328,7 +337,7 @@ Abc_Ntk_t * Abc_NtkTopmost( Abc_Ntk_t * pNtk, int nLevels )
     assert( Abc_NtkIsStrash(pNtk) );
     assert( Abc_NtkCoNum(pNtk) == 1 );
     // get the cutoff level
-    LevelCut = ABC_MAX( 0, Abc_AigGetLevelNum(pNtk) - nLevels );
+    LevelCut = ABC_MAX( 0, Abc_AigLevel(pNtk) - nLevels );
     // start the network
     pNtkNew = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG, 1 );
     pNtkNew->pName = Extra_UtilStrsav(pNtk->pName);

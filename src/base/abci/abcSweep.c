@@ -79,7 +79,7 @@ bool Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fExdc, int fVerbose )
     if ( fUseTrick )
     {
         extern void * Abc_FrameReadLibGen(); 
-        Aig_ManStop( pNtk->pManFunc );
+        Hop_ManStop( pNtk->pManFunc );
         pNtk->pManFunc = Abc_FrameReadLibGen();
         pNtk->ntkFunc = ABC_FUNC_MAP;
         Abc_NtkForEachNode( pNtk, pObj, i )
@@ -269,7 +269,7 @@ void Abc_NtkFraigTransform( Abc_Ntk_t * pNtk, stmm_table * tEquiv, int fUseInv, 
     if ( stmm_count(tEquiv) == 0 )
         return;
     // assign levels to the nodes of the network
-    Abc_NtkGetLevelNum( pNtk );
+    Abc_NtkLevel( pNtk );
     // merge nodes in the classes
     if ( Abc_NtkHasMapping( pNtk ) )
     {
@@ -897,7 +897,7 @@ int Abc_NtkReplaceAutonomousLogic( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkCleanupSeq( Abc_Ntk_t * pNtk, int fVerbose )
+int Abc_NtkCleanupSeq( Abc_Ntk_t * pNtk, int fLatchSweep, int fAutoSweep, int fVerbose )
 {
     Vec_Ptr_t * vNodes;
     int Counter;
@@ -910,20 +910,26 @@ int Abc_NtkCleanupSeq( Abc_Ntk_t * pNtk, int fVerbose )
     if ( fVerbose )
         printf( "Cleanup removed %4d dangling objects.\n", Counter );
     // check if some of the latches can be removed
-    Counter = Abc_NtkLatchSweep( pNtk );
-    if ( fVerbose )
-        printf( "Cleanup removed %4d redundant latches.\n", Counter );
+    if ( fLatchSweep )
+    {
+        Counter = Abc_NtkLatchSweep( pNtk );
+        if ( fVerbose )
+            printf( "Cleanup removed %4d redundant latches.\n", Counter );
+    }
     // detect the autonomous components
-    vNodes = Abc_NtkDfsSeqReverse( pNtk );
-    Vec_PtrFree( vNodes );
-    // replace them by PIs
-    Counter = Abc_NtkReplaceAutonomousLogic( pNtk );
-    if ( fVerbose )
-        printf( "Cleanup added   %4d additional PIs.\n", Counter );
-    // remove the non-marked nodes
-    Counter = Abc_NodeRemoveNonCurrentObjects( pNtk );
-    if ( fVerbose )
-        printf( "Cleanup removed %4d autonomous objects.\n", Counter );
+    if ( fAutoSweep )
+    {
+        vNodes = Abc_NtkDfsSeqReverse( pNtk );
+        Vec_PtrFree( vNodes );
+        // replace them by PIs
+        Counter = Abc_NtkReplaceAutonomousLogic( pNtk );
+        if ( fVerbose )
+            printf( "Cleanup added   %4d additional PIs.\n", Counter );
+        // remove the non-marked nodes
+        Counter = Abc_NodeRemoveNonCurrentObjects( pNtk );
+        if ( fVerbose )
+            printf( "Cleanup removed %4d autonomous objects.\n", Counter );
+    }
     // check
     if ( !Abc_NtkCheck( pNtk ) )
         printf( "Abc_NtkCleanupSeq: The network check has failed.\n" );

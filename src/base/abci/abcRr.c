@@ -104,7 +104,7 @@ int Abc_NtkRR( Abc_Ntk_t * pNtk, int nFaninLevels, int nFanoutLevels, int fUseFa
     p->nFaninLevels  = nFaninLevels;
     p->nFanoutLevels = nFanoutLevels;
     p->nNodesOld     = Abc_NtkNodeNum(pNtk);
-    p->nLevelsOld    = Abc_AigGetLevelNum(pNtk);
+    p->nLevelsOld    = Abc_AigLevel(pNtk);
     // remember latch values
 //    Abc_NtkForEachLatch( pNtk, pNode, i )
 //        pNode->pNext = pNode->pData;
@@ -220,7 +220,7 @@ int Abc_NtkRR( Abc_Ntk_t * pNtk, int nFaninLevels, int nFanoutLevels, int fUseFa
 //        pNode->pData = pNode->pNext, pNode->pNext = NULL;
     // put the nodes into the DFS order and reassign their IDs
     Abc_NtkReassignIds( pNtk );
-    Abc_NtkGetLevelNum( pNtk );
+    Abc_NtkLevel( pNtk );
     // check
     if ( !Abc_NtkCheck( pNtk ) )
     {
@@ -298,7 +298,7 @@ void Abc_RRManPrintStats( Abc_RRMan_t * p )
     printf( "Edges tried     = %6d.\n", p->nEdgesTried );
     printf( "Edges removed   = %6d. (%5.2f %%)\n", p->nEdgesRemoved, 100.0*p->nEdgesRemoved/p->nEdgesTried );
     printf( "Node gain       = %6d. (%5.2f %%)\n", p->nNodesOld  - Abc_NtkNodeNum(p->pNtk), Ratio );
-    printf( "Level gain      = %6d.\n", p->nLevelsOld - Abc_AigGetLevelNum(p->pNtk) );
+    printf( "Level gain      = %6d.\n", p->nLevelsOld - Abc_AigLevel(p->pNtk) );
     PRT( "Windowing      ", p->timeWindow );
     PRT( "Miter          ", p->timeMiter );
     PRT( "    Construct  ", p->timeMiter - p->timeProve );

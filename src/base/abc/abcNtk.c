@@ -58,9 +58,7 @@ Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func, int fUseMemMan
     pNtk->vPos        = Vec_PtrAlloc( 100 );
     pNtk->vCis        = Vec_PtrAlloc( 100 );
     pNtk->vCos        = Vec_PtrAlloc( 100 );
-    pNtk->vCutSet     = Vec_PtrAlloc( 100 );
     pNtk->vBoxes      = Vec_PtrAlloc( 100 );
-    pNtk->vSkews      = Vec_FltAlloc( 100 );
     // start the memory managers
     pNtk->pMmObj      = fUseMemMan? Extra_MmFixedStart( sizeof(Abc_Obj_t) ) : NULL;
     pNtk->pMmStep     = fUseMemMan? Extra_MmStepStart( ABC_NUM_STEPS ) : NULL;
@@ -76,13 +74,15 @@ Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func, int fUseMemMan
     else if ( Abc_NtkHasBdd(pNtk) )
         pNtk->pManFunc = Cudd_Init( 20, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
     else if ( Abc_NtkHasAig(pNtk) )
-        pNtk->pManFunc = Aig_ManStart();
+        pNtk->pManFunc = Hop_ManStart();
     else if ( Abc_NtkHasMapping(pNtk) )
         pNtk->pManFunc = Abc_FrameReadLibGen();
     else if ( !Abc_NtkHasBlackbox(pNtk) )
         assert( 0 );
     // name manager
     pNtk->pManName = Nm_ManCreate( 200 );
+    // attribute manager
+    pNtk->vAttrs = Vec_PtrStart( VEC_ATTR_TOTAL_NUM );
     return pNtk;
 }
 
@@ -301,40 +301,6 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
             printf( "Warning: Structural hashing during duplication reduced %d nodes (this is a minor bug).\n",
                 Abc_NtkNodeNum(pNtk) - Abc_NtkNodeNum(pNtkNew) );
     }
-/*
-    else if ( Abc_NtkIsSeq(pNtk) )
-    {
-        // start the storage for initial states
-        Seq_Resize( pNtkNew->pManFunc, Abc_NtkObjNumMax(pNtk) );
-        // copy the nodes
-        Abc_NtkForEachObj( pNtk, pObj, i )
-            if ( pObj->pCopy == NULL )
-            {
-                Abc_NtkDupObj(pNtkNew, pObj, 0);
-                pObj->pCopy->Level = pObj->Level;
-                pObj->pCopy->fPhase = pObj->fPhase;
-            }
-        // connect the nodes
-        Abc_NtkForEachObj( pNtk, pObj, i )
-        {
-            Abc_ObjForEachFanin( pObj, pFanin, k )
-            {
-                Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
-                if ( Abc_ObjFaninC(pObj, k) )
-                    Abc_ObjSetFaninC( pObj->pCopy, k );
-                if ( Seq_ObjFaninL(pObj, k) )
-                    Seq_NodeDupLats( pObj->pCopy, pObj, k );
-            }
-        }
-        // relink the choice nodes
-        Abc_AigForEachAnd( pNtk, pObj, i )
-            if ( pObj->pData )
-                pObj->pCopy->pData = ((Abc_Obj_t *)pObj->pData)->pCopy;
-        // copy the cutset
-        Abc_SeqForEachCutsetNode( pNtk, pObj, i )
-            Vec_PtrPush( pNtkNew->vCutSet, pObj->pCopy );
-    }
-*/
     else
     {
         // duplicate the nets and nodes (CIs/COs/latches already dupped)
@@ -795,6 +761,7 @@ Abc_Ntk_t * Abc_NtkCreateWithNode( char * pSop )
 void Abc_NtkDelete( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj;
+    void * pAttrMan;
     int TotalMemory, i;
     int LargePiece = (4 << ABC_NUM_STEPS);
     if ( pNtk == NULL )
@@ -845,9 +812,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     Vec_PtrFree( pNtk->vCos );
     Vec_PtrFree( pNtk->vAsserts );
     Vec_PtrFree( pNtk->vObjs );
-    Vec_PtrFree( pNtk->vCutSet );
     Vec_PtrFree( pNtk->vBoxes );
-    Vec_FltFree( pNtk->vSkews );
     if ( pNtk->vLevelsR ) Vec_IntFree( pNtk->vLevelsR );
     if ( pNtk->pModel ) free( pNtk->pModel );
     TotalMemory  = 0;
@@ -874,7 +839,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     else if ( Abc_NtkHasBdd(pNtk) )
         Extra_StopManager( pNtk->pManFunc );
     else if ( Abc_NtkHasAig(pNtk) )
-        { if ( pNtk->pManFunc ) Aig_ManStop( pNtk->pManFunc ); }
+        { if ( pNtk->pManFunc ) Hop_ManStop( pNtk->pManFunc ); }
     else if ( Abc_NtkHasMapping(pNtk) )
         pNtk->pManFunc = NULL;
     else if ( !Abc_NtkHasBlackbox(pNtk) )
@@ -891,6 +856,11 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     }
     if ( pNtk->pBlackBoxes ) 
         Vec_IntFree( pNtk->pBlackBoxes );
+    // free node attributes
+    Vec_PtrForEachEntry( pNtk->vAttrs, pAttrMan, i )
+        if ( pAttrMan )
+            Vec_AttFree( pAttrMan, 1 );
+    Vec_PtrFree( pNtk->vAttrs );
     free( pNtk );
 }
 

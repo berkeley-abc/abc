@@ -51,9 +51,11 @@ extern int         Abc_NtkRetime( Abc_Ntk_t * pNtk, int Mode, int fForwardOnly, 
 extern int         Abc_NtkRetimeMinDelay( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkCopy, int nIterLimit, int fForward, int fVerbose );
 /*=== retDirect.c ========================================================*/
 extern int         Abc_NtkRetimeIncremental( Abc_Ntk_t * pNtk, int fForward, int fMinDelay, int fVerbose );
-extern void        Abc_NtkRetimeShareLatches( Abc_Ntk_t * pNtk );
+extern void        Abc_NtkRetimeShareLatches( Abc_Ntk_t * pNtk, int fInitial );
 extern int         Abc_NtkRetimeNodeIsEnabled( Abc_Obj_t * pObj, int fForward );
 extern void        Abc_NtkRetimeNode( Abc_Obj_t * pObj, int fForward, int fInitial );
+extern st_table *  Abc_NtkRetimePrepareLatches( Abc_Ntk_t * pNtk );
+extern int         Abc_NtkRetimeFinalizeLatches( Abc_Ntk_t * pNtk, st_table * tLatches, int nIdMaxStart );
 /*=== retFlow.c ========================================================*/
 extern void        Abc_NtkMaxFlowTest( Abc_Ntk_t * pNtk );
 extern Vec_Ptr_t * Abc_NtkMaxFlow( Abc_Ntk_t * pNtk, int fForward, int fVerbose );
@@ -66,6 +68,8 @@ extern Vec_Int_t * Abc_NtkRetimeCollectLatchValues( Abc_Ntk_t * pNtk );
 extern void        Abc_NtkRetimeInsertLatchValues( Abc_Ntk_t * pNtk, Vec_Int_t * vValues );
 extern Abc_Ntk_t * Abc_NtkRetimeBackwardInitialStart( Abc_Ntk_t * pNtk );
 extern void        Abc_NtkRetimeBackwardInitialFinish( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, Vec_Int_t * vValuesOld, int fVerbose );
+/*=== retLvalue.c ========================================================*/
+extern int         Abc_NtkRetimeLValue( Abc_Ntk_t * pNtk, int nIterLimit, int fVerbose );
 
 #endif
 

@@ -47,7 +47,7 @@ int Io_WritePla( Abc_Ntk_t * pNtk, char * pFileName )
     FILE * pFile;
 
     assert( Abc_NtkIsSopNetlist(pNtk) );
-    assert( Abc_NtkGetLevelNum(pNtk) == 1 );
+    assert( Abc_NtkLevel(pNtk) == 1 );
 
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )

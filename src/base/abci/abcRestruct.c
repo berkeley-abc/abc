@@ -183,7 +183,7 @@ pManRst->timeTotal = clock() - clkStart;
     if ( fUpdateLevel )
         Abc_NtkStopReverseLevels( pNtk );
     else
-        Abc_NtkGetLevelNum( pNtk );
+        Abc_NtkLevel( pNtk );
     // check
     if ( !Abc_NtkCheck( pNtk ) )
     {

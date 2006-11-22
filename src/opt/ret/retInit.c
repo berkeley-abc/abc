@@ -281,7 +281,6 @@ void Abc_NtkRetimeBackwardInitialFinish( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, 
     Abc_NtkForEachObj( pNtk, pObj, i )
         if ( Abc_ObjIsLatch(pObj) )
             Abc_ObjAddFanin( pObj->pCopy, Abc_NtkCreatePi(pNtkNew) );
-    pObj = Abc_NtkPo(pNtkNew, 0);
     // assign dummy node names
     Abc_NtkAddDummyPiNames( pNtkNew );
     Abc_NtkAddDummyPoNames( pNtkNew );

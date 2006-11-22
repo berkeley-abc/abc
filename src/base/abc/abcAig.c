@@ -269,7 +269,7 @@ bool Abc_AigCheck( Abc_Aig_t * pMan )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_AigGetLevelNum( Abc_Ntk_t * pNtk )
+int Abc_AigLevel( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
     int i, LevelsMax;

@@ -24,8 +24,6 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static st_table * Abc_NtkRetimePrepareLatches( Abc_Ntk_t * pNtk );
-static int Abc_NtkRetimeFinalizeLatches( Abc_Ntk_t * pNtk, st_table * tLatches, int nIdMaxStart );
 static int Abc_NtkRetimeOneWay( Abc_Ntk_t * pNtk, int fForward, int fVerbose );
 
 ////////////////////////////////////////////////////////////////////////
@@ -57,13 +55,15 @@ int Abc_NtkRetimeIncremental( Abc_Ntk_t * pNtk, int fForward, int fMinDelay, int
     Abc_NtkOrderCisCos( pNtk );
     if ( fMinDelay ) 
     {
-        nIterLimit = 2 * Abc_NtkGetLevelNum(pNtk);
+        nIterLimit = 2 * Abc_NtkLevel(pNtk);
         pNtkCopy = Abc_NtkDup( pNtk );
         tLatches = Abc_NtkRetimePrepareLatches( pNtkCopy );
         st_free_table( tLatches );
     }
     // collect latches and remove CIs/COs
     tLatches = Abc_NtkRetimePrepareLatches( pNtk );
+    // share the latches
+    Abc_NtkRetimeShareLatches( pNtk, 0 );    
     // save boxes
     vBoxes = pNtk->vBoxes;  pNtk->vBoxes = NULL;
     // perform the retiming
@@ -74,7 +74,7 @@ int Abc_NtkRetimeIncremental( Abc_Ntk_t * pNtk, int fForward, int fMinDelay, int
     if ( fMinDelay ) 
         Abc_NtkDelete( pNtkCopy );
     // share the latches
-    Abc_NtkRetimeShareLatches( pNtk );    
+    Abc_NtkRetimeShareLatches( pNtk, 0 );    
     // restore boxes
     pNtk->vBoxes = vBoxes;
     // finalize the latches
@@ -83,7 +83,7 @@ int Abc_NtkRetimeIncremental( Abc_Ntk_t * pNtk, int fForward, int fMinDelay, int
     if ( RetValue == 0 )
         return 0;
     // fix the COs
-    Abc_NtkLogicMakeSimpleCos( pNtk, 0 );
+//    Abc_NtkLogicMakeSimpleCos( pNtk, 0 );
     // check for correctness
     if ( !Abc_NtkCheck( pNtk ) )
         fprintf( stdout, "Abc_NtkRetimeForward(): Network check has failed.\n" );
@@ -121,7 +121,8 @@ st_table * Abc_NtkRetimePrepareLatches( Abc_Ntk_t * pNtk )
         // disconnect LO     
         pLatchOut = Abc_ObjFanout0(pLatch);
         pFanin = Abc_ObjFanin0(pLatchOut);
-        Abc_ObjTransferFanout( pLatchOut, pFanin );
+        if ( Abc_ObjFanoutNum(pLatchOut) > 0 )
+            Abc_ObjTransferFanout( pLatchOut, pFanin );
         Abc_ObjDeleteFanin( pLatchOut, pFanin );
     }
     return tLatches;
@@ -164,8 +165,8 @@ int Abc_NtkRetimeFinalizeLatches( Abc_Ntk_t * pNtk, st_table * tLatches, int nId
             // this is a new latch 
             pLatchIn  = Abc_NtkCreateBi(pNtk);
             pLatchOut = Abc_NtkCreateBo(pNtk);
-            Abc_ObjAssignName( pLatchIn,  Abc_ObjName(pLatchIn), NULL );
-            Abc_ObjAssignName( pLatchOut, Abc_ObjName(pLatchOut), NULL );
+            Abc_ObjAssignName( pLatchOut, Abc_ObjName(pLatch), "_out" );
+            Abc_ObjAssignName( pLatchIn,  Abc_ObjName(pLatch), "_in" );
         }
         else
         {
@@ -184,7 +185,8 @@ int Abc_NtkRetimeFinalizeLatches( Abc_Ntk_t * pNtk, st_table * tLatches, int nId
         // connect
         Abc_ObjAddFanin( pLatchIn, Abc_ObjFanin0(pLatch) );
         Abc_ObjPatchFanin( pLatch, Abc_ObjFanin0(pLatch), pLatchIn );
-        Abc_ObjTransferFanout( pLatch, pLatchOut );
+        if ( Abc_ObjFanoutNum(pLatch) > 0 )
+            Abc_ObjTransferFanout( pLatch, pLatchOut );
         Abc_ObjAddFanin( pLatchOut, pLatch );
         // add to the arrays
         Vec_PtrPush( vCisNew, pLatchOut );
@@ -221,7 +223,7 @@ int Abc_NtkRetimeOneWay( Abc_Ntk_t * pNtk, int fForward, int fVerbose )
     Abc_Ntk_t * pNtkNew;
     Vec_Int_t * vValues;
     Abc_Obj_t * pObj;
-    int i, fChanges, nTotalMoves = 0, nTotalMovesLimit = 5000;
+    int i, fChanges, nTotalMoves = 0, nTotalMovesLimit = 10000;
     if ( fForward )
         Abc_NtkRetimeTranferToCopy( pNtk );
     else
@@ -330,7 +332,8 @@ void Abc_NtkRetimeNode( Abc_Obj_t * pObj, int fForward, int fInitial )
         }
         // add a new latch on top
         pNext = Abc_NtkCreateLatch(pObj->pNtk);
-        Abc_ObjTransferFanout( pObj, pNext );
+        if ( Abc_ObjFanoutNum(pObj) > 0 )
+            Abc_ObjTransferFanout( pObj, pNext );
         Abc_ObjAddFanin( pNext, pObj );
         // set the initial value
         if ( fInitial )
@@ -416,35 +419,36 @@ int Abc_NtkRetimeCheckCompatibleLatchFanouts( Abc_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkRetimeShareLatches( Abc_Ntk_t * pNtk )
+void Abc_NtkRetimeShareLatches( Abc_Ntk_t * pNtk, int fInitial )
 {
     Vec_Ptr_t * vNodes;
-    Abc_Obj_t * pFanin, * pLatch, * pLatchTop, * pLatchCur;
+    Abc_Obj_t * pFanin, * pLatchTop, * pLatchCur;
     int i, k;
     vNodes = Vec_PtrAlloc( 10 );
     // consider latch fanins
-    Abc_NtkForEachObj( pNtk, pLatch, i )
+    Abc_NtkForEachObj( pNtk, pFanin, i )
     {
-        if ( !Abc_ObjIsLatch(pLatch) )
-            continue;
-        pFanin = Abc_ObjFanin0(pLatch);
         if ( Abc_NtkRetimeCheckCompatibleLatchFanouts(pFanin) <= 1 )
             continue;
         // get the first latch
+        pLatchTop = NULL;
         Abc_ObjForEachFanout( pFanin, pLatchTop, k )
             if ( Abc_ObjIsLatch(pLatchTop) )
                 break;
-        assert( Abc_ObjIsLatch(pLatchTop) );
+        assert( pLatchTop && Abc_ObjIsLatch(pLatchTop) );
         // redirect compatible fanout latches to the first latch
         Abc_NodeCollectFanouts( pFanin, vNodes );
         Vec_PtrForEachEntry( vNodes, pLatchCur, k )
         {
-            if ( pLatchCur == pLatchTop )
-                continue;
             if ( !Abc_ObjIsLatch(pLatchCur) )
+                continue;
+            if ( pLatchCur == pLatchTop )
                 continue;
             if ( pLatchCur->pData != pLatchTop->pData )
                 continue;
+            // connect the initial state
+            if ( fInitial )
+                Abc_ObjAddFanin( pLatchCur->pCopy, pLatchTop->pCopy );
             // redirect the fanouts
             Abc_ObjTransferFanout( pLatchCur, pLatchTop );
             Abc_NtkDeleteObj(pLatchCur);

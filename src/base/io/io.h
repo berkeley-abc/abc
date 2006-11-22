@@ -86,8 +86,8 @@ extern int                Io_WriteBench( Abc_Ntk_t * pNtk, char * FileName );
 /*=== abcWriteCnf.c ==========================================================*/
 extern int                Io_WriteCnf( Abc_Ntk_t * pNtk, char * FileName );
 /*=== abcWriteDot.c ==========================================================*/
-extern void               Io_WriteDotAig( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesShow, char * pFileName, int fMulti );
-extern void               Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesShow, char * pFileName, int fGateNames );
+extern void               Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesShow, char * pFileName, int fGateNames, int fUseReverse );
+extern void               Io_WriteDotSeq( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesShow, char * pFileName, int fGateNames, int fUseReverse );
 /*=== abcWriteEqn.c ==========================================================*/
 extern void               Io_WriteEqn( Abc_Ntk_t * pNtk, char * pFileName );
 /*=== abcWriteGml.c ==========================================================*/

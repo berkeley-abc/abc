@@ -29,8 +29,8 @@
 #define ABC_MUX_CUBES   100000
 
 static int Abc_ConvertZddToSop( DdManager * dd, DdNode * zCover, char * pSop, int nFanins, Vec_Str_t * vCube, int fPhase );
-static DdNode * Abc_ConvertAigToBdd( DdManager * dd, Aig_Obj_t * pRoot);
-static Aig_Obj_t * Abc_ConvertSopToAig( Aig_Man_t * pMan, char * pSop );
+static DdNode * Abc_ConvertAigToBdd( DdManager * dd, Hop_Obj_t * pRoot);
+static Hop_Obj_t * Abc_ConvertSopToAig( Hop_Man_t * pMan, char * pSop );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -533,13 +533,13 @@ int Abc_CountZddCubes( DdManager * dd, DdNode * zCover )
 int Abc_NtkSopToAig( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
-    Aig_Man_t * pMan;
+    Hop_Man_t * pMan;
     int i;
 
     assert( Abc_NtkIsSopLogic(pNtk) || Abc_NtkIsSopNetlist(pNtk) ); 
 
     // start the functionality manager
-    pMan = Aig_ManStart();
+    pMan = Hop_ManStart();
 
     // convert each node from SOP to BDD
     Abc_NtkForEachNode( pNtk, pNode, i )
@@ -572,32 +572,32 @@ int Abc_NtkSopToAig( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Obj_t * Abc_ConvertSopToAigInternal( Aig_Man_t * pMan, char * pSop )
+Hop_Obj_t * Abc_ConvertSopToAigInternal( Hop_Man_t * pMan, char * pSop )
 {
-    Aig_Obj_t * pAnd, * pSum;
+    Hop_Obj_t * pAnd, * pSum;
     int i, Value, nFanins;
     char * pCube;
     // get the number of variables
     nFanins = Abc_SopGetVarNum(pSop);
     // go through the cubes of the node's SOP
-    pSum = Aig_ManConst0(pMan);
+    pSum = Hop_ManConst0(pMan);
     Abc_SopForEachCube( pSop, nFanins, pCube )
     {
         // create the AND of literals
-        pAnd = Aig_ManConst1(pMan);
+        pAnd = Hop_ManConst1(pMan);
         Abc_CubeForEachVar( pCube, Value, i )
         {
             if ( Value == '1' )
-                pAnd = Aig_And( pMan, pAnd, Aig_IthVar(pMan,i) );
+                pAnd = Hop_And( pMan, pAnd, Hop_IthVar(pMan,i) );
             else if ( Value == '0' )
-                pAnd = Aig_And( pMan, pAnd, Aig_Not(Aig_IthVar(pMan,i)) );
+                pAnd = Hop_And( pMan, pAnd, Hop_Not(Hop_IthVar(pMan,i)) );
         }
         // add to the sum of cubes
-        pSum = Aig_Or( pMan, pSum, pAnd );
+        pSum = Hop_Or( pMan, pSum, pAnd );
     }
     // decide whether to complement the result
     if ( Abc_SopIsComplement(pSop) )
-        pSum = Aig_Not(pSum);
+        pSum = Hop_Not(pSum);
     return pSum;
 }
 
@@ -612,16 +612,16 @@ Aig_Obj_t * Abc_ConvertSopToAigInternal( Aig_Man_t * pMan, char * pSop )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Obj_t * Abc_ConvertSopToAig( Aig_Man_t * pMan, char * pSop )
+Hop_Obj_t * Abc_ConvertSopToAig( Hop_Man_t * pMan, char * pSop )
 {
-    extern Aig_Obj_t * Dec_GraphFactorSop( Aig_Man_t * pMan, char * pSop );
+    extern Hop_Obj_t * Dec_GraphFactorSop( Hop_Man_t * pMan, char * pSop );
     int fUseFactor = 1;
     // consider the constant node
     if ( Abc_SopGetVarNum(pSop) == 0 )
-        return Aig_NotCond( Aig_ManConst1(pMan), Abc_SopIsConst0(pSop) );
+        return Hop_NotCond( Hop_ManConst1(pMan), Abc_SopIsConst0(pSop) );
     // consider the special case of EXOR function
     if ( Abc_SopIsExorType(pSop) )
-        return Aig_NotCond( Aig_CreateExor(pMan, Abc_SopGetVarNum(pSop)), Abc_SopIsComplement(pSop) );
+        return Hop_NotCond( Hop_CreateExor(pMan, Abc_SopGetVarNum(pSop)), Abc_SopIsComplement(pSop) );
     // decide when to use factoring
     if ( fUseFactor && Abc_SopGetVarNum(pSop) > 2 && Abc_SopGetCubeNum(pSop) > 1 )
         return Dec_GraphFactorSop( pMan, pSop );
@@ -642,7 +642,7 @@ Aig_Obj_t * Abc_ConvertSopToAig( Aig_Man_t * pMan, char * pSop )
 int Abc_NtkAigToBdd( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;
-    Aig_Man_t * pMan;
+    Hop_Man_t * pMan;
     DdManager * dd;
     int nFaninsMax, i;
 
@@ -657,9 +657,9 @@ int Abc_NtkAigToBdd( Abc_Ntk_t * pNtk )
 
     // set the mapping of AIG nodes into the BDD nodes
     pMan = pNtk->pManFunc;
-    assert( Aig_ManPiNum(pMan) >= nFaninsMax ); 
+    assert( Hop_ManPiNum(pMan) >= nFaninsMax ); 
     for ( i = 0; i < nFaninsMax; i++ )
-        Aig_ManPi(pMan, i)->pData = Cudd_bddIthVar(dd, i);
+        Hop_ManPi(pMan, i)->pData = Cudd_bddIthVar(dd, i);
 
     // convert each node from SOP to BDD
     Abc_NtkForEachNode( pNtk, pNode, i )
@@ -674,7 +674,7 @@ int Abc_NtkAigToBdd( Abc_Ntk_t * pNtk )
         Cudd_Ref( pNode->pData );
     }
 
-    Aig_ManStop( pNtk->pManFunc );
+    Hop_ManStop( pNtk->pManFunc );
     pNtk->pManFunc = dd;
 
     // update the network type
@@ -693,17 +693,17 @@ int Abc_NtkAigToBdd( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_ConvertAigToBdd_rec1( DdManager * dd, Aig_Obj_t * pObj )
+void Abc_ConvertAigToBdd_rec1( DdManager * dd, Hop_Obj_t * pObj )
 {
-    assert( !Aig_IsComplement(pObj) );
-    if ( !Aig_ObjIsNode(pObj) || Aig_ObjIsMarkA(pObj) )
+    assert( !Hop_IsComplement(pObj) );
+    if ( !Hop_ObjIsNode(pObj) || Hop_ObjIsMarkA(pObj) )
         return;
-    Abc_ConvertAigToBdd_rec1( dd, Aig_ObjFanin0(pObj) ); 
-    Abc_ConvertAigToBdd_rec1( dd, Aig_ObjFanin1(pObj) );
-    pObj->pData = Cudd_bddAnd( dd, (DdNode *)Aig_ObjChild0Copy(pObj), (DdNode *)Aig_ObjChild1Copy(pObj) ); 
+    Abc_ConvertAigToBdd_rec1( dd, Hop_ObjFanin0(pObj) ); 
+    Abc_ConvertAigToBdd_rec1( dd, Hop_ObjFanin1(pObj) );
+    pObj->pData = Cudd_bddAnd( dd, (DdNode *)Hop_ObjChild0Copy(pObj), (DdNode *)Hop_ObjChild1Copy(pObj) ); 
     Cudd_Ref( pObj->pData );
-    assert( !Aig_ObjIsMarkA(pObj) ); // loop detection
-    Aig_ObjSetMarkA( pObj );
+    assert( !Hop_ObjIsMarkA(pObj) ); // loop detection
+    Hop_ObjSetMarkA( pObj );
 }
 
 /**Function*************************************************************
@@ -717,17 +717,17 @@ void Abc_ConvertAigToBdd_rec1( DdManager * dd, Aig_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_ConvertAigToBdd_rec2( DdManager * dd, Aig_Obj_t * pObj )
+void Abc_ConvertAigToBdd_rec2( DdManager * dd, Hop_Obj_t * pObj )
 {
-    assert( !Aig_IsComplement(pObj) );
-    if ( !Aig_ObjIsNode(pObj) || !Aig_ObjIsMarkA(pObj) )
+    assert( !Hop_IsComplement(pObj) );
+    if ( !Hop_ObjIsNode(pObj) || !Hop_ObjIsMarkA(pObj) )
         return;
-    Abc_ConvertAigToBdd_rec2( dd, Aig_ObjFanin0(pObj) ); 
-    Abc_ConvertAigToBdd_rec2( dd, Aig_ObjFanin1(pObj) );
+    Abc_ConvertAigToBdd_rec2( dd, Hop_ObjFanin0(pObj) ); 
+    Abc_ConvertAigToBdd_rec2( dd, Hop_ObjFanin1(pObj) );
     Cudd_RecursiveDeref( dd, pObj->pData );
     pObj->pData = NULL;
-    assert( Aig_ObjIsMarkA(pObj) ); // loop detection
-    Aig_ObjClearMarkA( pObj );
+    assert( Hop_ObjIsMarkA(pObj) ); // loop detection
+    Hop_ObjClearMarkA( pObj );
 }
 
 /**Function*************************************************************
@@ -741,18 +741,18 @@ void Abc_ConvertAigToBdd_rec2( DdManager * dd, Aig_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-DdNode * Abc_ConvertAigToBdd( DdManager * dd, Aig_Obj_t * pRoot )
+DdNode * Abc_ConvertAigToBdd( DdManager * dd, Hop_Obj_t * pRoot )
 {
     DdNode * bFunc;
     // check the case of a constant
-    if ( Aig_ObjIsConst1( Aig_Regular(pRoot) ) )
-        return Cudd_NotCond( Cudd_ReadOne(dd), Aig_IsComplement(pRoot) );
+    if ( Hop_ObjIsConst1( Hop_Regular(pRoot) ) )
+        return Cudd_NotCond( Cudd_ReadOne(dd), Hop_IsComplement(pRoot) );
     // construct BDD
-    Abc_ConvertAigToBdd_rec1( dd, Aig_Regular(pRoot) );
+    Abc_ConvertAigToBdd_rec1( dd, Hop_Regular(pRoot) );
     // hold on to the result
-    bFunc = Cudd_NotCond( Aig_Regular(pRoot)->pData, Aig_IsComplement(pRoot) );  Cudd_Ref( bFunc );
+    bFunc = Cudd_NotCond( Hop_Regular(pRoot)->pData, Hop_IsComplement(pRoot) );  Cudd_Ref( bFunc );
     // dereference BDD
-    Abc_ConvertAigToBdd_rec2( dd, Aig_Regular(pRoot) );
+    Abc_ConvertAigToBdd_rec2( dd, Hop_Regular(pRoot) );
     // return the result
     Cudd_Deref( bFunc );
     return bFunc;

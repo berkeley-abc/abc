@@ -38,6 +38,7 @@ extern "C" {
 #include "vecStr.h"
 #include "vecPtr.h"
 #include "vecVec.h"
+#include "vecAtt.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///

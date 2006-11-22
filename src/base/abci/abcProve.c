@@ -310,7 +310,7 @@ void Abc_NtkMiterPrint( Abc_Ntk_t * pNtk, char * pString, int clk, int fVerbose 
     if ( !fVerbose )
         return;
     printf( "Nodes = %7d.  Levels = %4d.  ", Abc_NtkNodeNum(pNtk), 
-        Abc_NtkIsStrash(pNtk)? Abc_AigGetLevelNum(pNtk) : Abc_NtkGetLevelNum(pNtk) );
+        Abc_NtkIsStrash(pNtk)? Abc_AigLevel(pNtk) : Abc_NtkLevel(pNtk) );
     PRT( pString, clock() - clk );
 }
 

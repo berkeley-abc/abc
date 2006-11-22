@@ -22,10 +22,9 @@
 #include "mainInt.h"
 #include "fraig.h"
 #include "fxu.h"
-#include "fpga.h"
-#include "pga.h"
 #include "cut.h"
-//#include "seq.h"
+#include "fpga.h"
+#include "if.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -46,12 +45,10 @@ static int Abc_CommandPrintAuto      ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandPrintKMap      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintGates     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintSharing   ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPrintSkews     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
+static int Abc_CommandShow           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandShowBdd        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandShowCut        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandShowAig        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandShowNtk        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandCollapse       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandStrash         ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -123,7 +120,7 @@ static int Abc_CommandSuperChoiceLut ( Abc_Frame_t * pAbc, int argc, char ** arg
 
 static int Abc_CommandFpga           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFpgaFast       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandPga            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandIf             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandScut           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandInit           ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -144,9 +141,6 @@ static int Abc_CommandDebug          ( Abc_Frame_t * pAbc, int argc, char ** arg
 
 static int Abc_CommandTraceStart     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTraceCheck     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-
-static int Abc_CommandHoward       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandSkewForward  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -182,12 +176,10 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Printing",     "print_kmap",    Abc_CommandPrintKMap,        0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_gates",   Abc_CommandPrintGates,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_sharing", Abc_CommandPrintSharing,     0 );
-    Cmd_CommandAdd( pAbc, "Printing",     "print_skews",   Abc_CommandPrintSkews,       0 );
 
+    Cmd_CommandAdd( pAbc, "Printing",     "show",          Abc_CommandShow,             0 );
     Cmd_CommandAdd( pAbc, "Printing",     "show_bdd",      Abc_CommandShowBdd,          0 );
     Cmd_CommandAdd( pAbc, "Printing",     "show_cut",      Abc_CommandShowCut,          0 );
-    Cmd_CommandAdd( pAbc, "Printing",     "show_aig",      Abc_CommandShowAig,          0 );
-    Cmd_CommandAdd( pAbc, "Printing",     "show_ntk",      Abc_CommandShowNtk,          0 );
 
     Cmd_CommandAdd( pAbc, "Synthesis",    "collapse",      Abc_CommandCollapse,         1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "strash",        Abc_CommandStrash,           1 );
@@ -259,7 +251,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 
     Cmd_CommandAdd( pAbc, "FPGA mapping", "fpga",          Abc_CommandFpga,             1 );
     Cmd_CommandAdd( pAbc, "FPGA mapping", "ffpga",         Abc_CommandFpgaFast,         1 );
-    Cmd_CommandAdd( pAbc, "FPGA mapping", "pga",           Abc_CommandPga,              1 );
+    Cmd_CommandAdd( pAbc, "FPGA mapping", "if",            Abc_CommandIf,               1 );
 
 //    Cmd_CommandAdd( pAbc, "Sequential",   "scut",          Abc_CommandScut,             0 );
     Cmd_CommandAdd( pAbc, "Sequential",   "init",          Abc_CommandInit,             1 );
@@ -280,9 +272,6 @@ void Abc_Init( Abc_Frame_t * pAbc )
 
 //    Cmd_CommandAdd( pAbc, "Verification", "trace_start",   Abc_CommandTraceStart,       0 );
 //    Cmd_CommandAdd( pAbc, "Verification", "trace_check",   Abc_CommandTraceCheck,       0 );
-
-//    Cmd_CommandAdd( pAbc, "Sequential",   "howard",        Abc_CommandHoward,           0 );
-//    Cmd_CommandAdd( pAbc, "Sequential",   "skew_fwd",      Abc_CommandSkewForward,      0 );
 
 //    Rwt_Man4ExploreStart();
 //    Map_Var3Print();
@@ -1383,29 +1372,38 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_CommandPrintSkews( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandShow( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
     int c;
-    int fPrintAll;
+    int fSeq;
+    int fGateNames;
+    int fUseReverse;
+    extern void Abc_NtkShow( Abc_Ntk_t * pNtk, int fGateNames, int fSeq, int fUseReverse );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fPrintAll = 0;
+    fSeq        = 0;
+    fGateNames  = 0;
+    fUseReverse = 1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ah" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "rsgh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'a':
-            fPrintAll = 1;
+        case 'r':
+            fUseReverse ^= 1;
             break;
-        case 'h':
-            goto usage;
+        case 's':
+            fSeq ^= 1;
+            break;
+        case 'g':
+            fGateNames ^= 1;
+            break;
         default:
             goto usage;
         }
@@ -1417,25 +1415,19 @@ int Abc_CommandPrintSkews( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( !Abc_NtkIsSeq(pNtk) && Abc_NtkLatchNum(pNtk) == 0 )
-    {
-        fprintf( pErr, "The network has no latches.\n" );
-        return 0;
-    }
-
-    if ( pNtk->vSkews == NULL || pNtk->vSkews->nSize == 0 )
-    {
-        fprintf( pErr, "The network has no clock skew schedule.\n" );
-        return 0;
-    }
-
-    Abc_NtkPrintSkews( pOut, pNtk, fPrintAll );
+    Abc_NtkShow( pNtk, fGateNames, fSeq, fUseReverse );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: print_skews [-h] [-a]\n" );
-    fprintf( pErr, "\t        prints information about a clock skew schedule\n" );
-    fprintf( pErr, "\t-a    : dumps the skew of every latch [default = no]\n");
+    fprintf( pErr, "usage: show [-srgh]\n" );
+    fprintf( pErr, "       visualizes the network structure using DOT and GSVIEW\n" );
+#ifdef WIN32
+    fprintf( pErr, "       \"dot.exe\" and \"gsview32.exe\" should be set in the paths\n" );
+    fprintf( pErr, "       (\"gsview32.exe\" may be in \"C:\\Program Files\\Ghostgum\\gsview\\\")\n" );
+#endif
+    fprintf( pErr, "\t-s    : toggles visualization of sequential networks [default = %s].\n", fSeq? "yes": "no" );  
+    fprintf( pErr, "\t-r    : toggles ordering nodes in reverse order [default = %s].\n", fUseReverse? "yes": "no" );  
+    fprintf( pErr, "\t-g    : toggles printing gate names for mapped network [default = %s].\n", fGateNames? "yes": "no" );  
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -1625,145 +1617,6 @@ usage:
     fprintf( pErr, "\t-C num : the max support of the containing cone [default = %d]\n", nConeSizeMax );  
     fprintf( pErr, "\tnode   : the node to consider\n");
     fprintf( pErr, "\t-h     : print the command usage\n");
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandShowAig( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    FILE * pOut, * pErr;
-    Abc_Ntk_t * pNtk;
-    int c;
-    int fMulti;
-    extern void Abc_NtkShowAig( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodesShow );
-    extern void Abc_NtkShowMulti( Abc_Ntk_t * pNtk );
-
-    pNtk = Abc_FrameReadNtk(pAbc);
-    pOut = Abc_FrameReadOut(pAbc);
-    pErr = Abc_FrameReadErr(pAbc);
-
-    // set defaults
-    fMulti = 0;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "mh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'm':
-            fMulti ^= 1;
-            break;
-        default:
-            goto usage;
-        }
-    }
-
-    if ( pNtk == NULL )
-    {
-        fprintf( pErr, "Empty network.\n" );
-        return 1;
-    }
-
-    if ( !Abc_NtkIsStrash(pNtk) )
-    {
-        fprintf( pErr, "Visualizing networks other than AIGs can be done using command \"show_ntk\".\n" );
-        return 1;
-    }
-
-    if ( fMulti && !Abc_NtkIsStrash(pNtk) )
-    {
-        fprintf( pErr, "Visualizing multi-input ANDs cannot be done for sequential network (run \"unseq\").\n" );
-        return 1;
-    }
-
-    if ( !fMulti )
-        Abc_NtkShowAig( pNtk, NULL );
-    else
-        Abc_NtkShowMulti( pNtk );
-    return 0;
-
-usage:
-    fprintf( pErr, "usage: show_aig [-h]\n" );
-    fprintf( pErr, "       visualizes the AIG with choices using DOT and GSVIEW\n" );
-#ifdef WIN32
-    fprintf( pErr, "       \"dot.exe\" and \"gsview32.exe\" should be set in the paths\n" );
-    fprintf( pErr, "       (\"gsview32.exe\" may be in \"C:\\Program Files\\Ghostgum\\gsview\\\")\n" );
-#endif
-    fprintf( pErr, "\t-m    : toggles visualization of multi-input ANDs [default = %s].\n", fMulti? "yes": "no" );  
-    fprintf( pErr, "\t-h    : print the command usage\n");
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandShowNtk( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    FILE * pOut, * pErr;
-    Abc_Ntk_t * pNtk;
-    int c;
-    int fGateNames;
-    extern void Abc_NtkShow( Abc_Ntk_t * pNtk, int fGateNames );
-
-    pNtk = Abc_FrameReadNtk(pAbc);
-    pOut = Abc_FrameReadOut(pAbc);
-    pErr = Abc_FrameReadErr(pAbc);
-
-    // set defaults
-    fGateNames = 0;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "gh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'g':
-            fGateNames ^= 1;
-            break;
-        default:
-            goto usage;
-        }
-    }
-
-    if ( pNtk == NULL )
-    {
-        fprintf( pErr, "Empty network.\n" );
-        return 1;
-    }
-
-    if ( Abc_NtkIsStrash(pNtk) )
-    {
-        fprintf( pErr, "Visualizing AIG can only be done using command \"show_aig\".\n" );
-        return 1;
-    }
-    Abc_NtkShow( pNtk, fGateNames );
-    return 0;
-
-usage:
-    fprintf( pErr, "usage: show_ntk [-gh]\n" );
-    fprintf( pErr, "       visualizes the network structure using DOT and GSVIEW\n" );
-#ifdef WIN32
-    fprintf( pErr, "       \"dot.exe\" and \"gsview32.exe\" should be set in the paths\n" );
-    fprintf( pErr, "       (\"gsview32.exe\" may be in \"C:\\Program Files\\Ghostgum\\gsview\\\")\n" );
-#endif
-    fprintf( pErr, "\t-g    : toggles printing gate names for mapped network [default = %s].\n", fGateNames? "yes": "no" );  
-    fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
 
@@ -5136,8 +4989,8 @@ int Abc_CommandCycle( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nFrames    = 50;
-    fVerbose   =  0;
+    nFrames    = 100;
+    fVerbose   =   0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Fvh" ) ) != EOF )
     {
@@ -5633,7 +5486,7 @@ int Abc_CommandIRewriteSeq( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fUpdateLevel = 1;
+    fUpdateLevel = 0;
     fUseZeroCost = 0;
     fVerbose     = 0;
     Extra_UtilGetoptReset();
@@ -7343,7 +7196,7 @@ int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     if ( DelayTarget == -1 ) 
-        sprintf( Buffer, "not used" );
+        sprintf( Buffer, "best possible" );
     else
         sprintf( Buffer, "%.2f", DelayTarget );
     if ( nLutSize == -1 ) 
@@ -7394,7 +7247,7 @@ int Abc_CommandFpgaFast( Abc_Frame_t * pAbc, int argc, char ** argv )
     fRecovery   = 1;
     fVerbose    = 0;
     DelayTarget =-1;
-    nLutSize    = 8;
+    nLutSize    = 5;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "avhDK" ) ) != EOF )
     {
@@ -7514,46 +7367,90 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_CommandPga( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    char Buffer[100];
+    char LutSize[100];
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
-    Pga_Params_t Params, * pParams = &Params;
+    If_Par_t Pars, * pPars = &Pars;
     int c;
-    extern Abc_Ntk_t * Abc_NtkPga( Pga_Params_t * pParams );
+    extern Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    memset( pParams, 0, sizeof(Pga_Params_t) );
-    pParams->pNtk       = pNtk;
-    pParams->pLutLib    = Abc_FrameReadLibLut();
-    pParams->fAreaFlow  = 1;
-    pParams->fArea      = 1;
-    pParams->fSwitching = 0;
-    pParams->fDropCuts  = 0;
-    pParams->fVerbose   = 0;
+    memset( pPars, 0, sizeof(If_Par_t) );
+    pPars->Mode        = 1;
+    pPars->nLutSize    = 4;
+//    pPars->pLutLib    = Abc_FrameReadLibLut();
+    pPars->nCutsMax    = 2;
+    pPars->fSeq        = 0;
+    pPars->fLatchPaths = 0;
+    pPars->nLatches    = 0;
+    pPars->pTimesArr   = Abc_NtkGetCiArrivalFloats(pNtk);
+    pPars->pTimesReq   = NULL;
+    pPars->DelayTarget = -1;
+    pPars->fVerbose    = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "fapdvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "MKCDlsvh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'f':
-            pParams->fAreaFlow ^= 1;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-M\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            pPars->Mode = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->Mode < 0 ) 
+                goto usage;
             break;
-        case 'a':
-            pParams->fArea ^= 1;
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-K\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            pPars->nLutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nLutSize < 0 ) 
+                goto usage;
             break;
-        case 'p':
-            pParams->fSwitching ^= 1;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-C\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            pPars->nCutsMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nCutsMax < 0 ) 
+                goto usage;
             break;
-        case 'd':
-            pParams->fDropCuts ^= 1;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-D\" should be followed by a floating point number.\n" );
+                goto usage;
+            }
+            pPars->DelayTarget = (float)atof(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->DelayTarget <= 0.0 ) 
+                goto usage;
+            break;
+        case 'l':
+            pPars->fLatchPaths ^= 1;
+            break;
+        case 's':
+            pPars->fSeq ^= 1;
             break;
         case 'v':
-            pParams->fVerbose ^= 1;
+            pPars->fVerbose ^= 1;
             break;
         case 'h':
         default:
@@ -7567,8 +7464,18 @@ int Abc_CommandPga( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    printf( "This command is not yet implemented.\n" );
-    return 0;
+    if ( pPars->Mode < 0 || pPars->Mode > 4 )
+    {
+        fprintf( pErr, "Incorrect mapping mode.\n" );
+        return 1;
+    }
+
+    // set the latch paths
+    if ( pPars->fLatchPaths )
+    {
+        for ( c = 0; c < Abc_NtkPiNum(pNtk); c++ )
+            pPars->pTimesArr[c] = -ABC_INFINITY;
+    }
 
     if ( !Abc_NtkIsStrash(pNtk) )
     {
@@ -7588,7 +7495,7 @@ int Abc_CommandPga( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         fprintf( pOut, "The network was strashed and balanced before FPGA mapping.\n" );
         // get the new network
-        pNtkRes = Abc_NtkPga( pParams );
+        pNtkRes = Abc_NtkIf( pNtk, pPars );
         if ( pNtkRes == NULL )
         {
             Abc_NtkDelete( pNtk );
@@ -7600,7 +7507,7 @@ int Abc_CommandPga( Abc_Frame_t * pAbc, int argc, char ** argv )
     else
     {
         // get the new network
-        pNtkRes = Abc_NtkPga( pParams );
+        pNtkRes = Abc_NtkIf( pNtk, pPars );
         if ( pNtkRes == NULL )
         {
             fprintf( pErr, "FPGA mapping has failed.\n" );
@@ -7612,14 +7519,28 @@ int Abc_CommandPga( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: pga [-fapdvh]\n" );
-    fprintf( pErr, "\t        performs FPGA mapping of the current network\n" );
-    fprintf( pErr, "\t-f    : toggles area flow recovery [default = %s]\n", pParams->fAreaFlow? "yes": "no" );
-    fprintf( pErr, "\t-a    : toggles area recovery [default = %s]\n", pParams->fArea? "yes": "no" );
-    fprintf( pErr, "\t-p    : optimizes power by minimizing switching activity [default = %s]\n", pParams->fSwitching? "yes": "no" );
-    fprintf( pErr, "\t-d    : toggles dropping cuts to save memory [default = %s]\n", pParams->fDropCuts? "yes": "no" );
-    fprintf( pErr, "\t-v    : toggles verbose output [default = %s]\n", pParams->fVerbose? "yes": "no" );
-    fprintf( pErr, "\t-h    : prints the command usage\n");
+    if ( pPars->DelayTarget == -1 ) 
+        sprintf( Buffer, "best possible" );
+    else
+        sprintf( Buffer, "%.2f", pPars->DelayTarget );
+    if ( pPars->nLutSize == -1 ) 
+        sprintf( LutSize, "library" );
+    else
+        sprintf( LutSize, "%d", pPars->nLutSize );
+    fprintf( pErr, "usage: if [-M num] [-K num] [-C num] [-D float] [-lsvh]\n" );
+    fprintf( pErr, "\t           performs FPGA mapping of the network as follows:\n" );
+    fprintf( pErr, "\t               1 - delay only\n" );
+    fprintf( pErr, "\t               2 - area only\n" );
+    fprintf( pErr, "\t               3 - area under delay constraints\n" );
+    fprintf( pErr, "\t               4 - area under delay constraints with area recovery\n" );
+    fprintf( pErr, "\t-M num   : the mapping mode [default = %d]\n", pPars->Mode );
+    fprintf( pErr, "\t-K num   : the number of LUT inputs (2 < num < 32) [default = %s]\n", LutSize );
+    fprintf( pErr, "\t-C num   : the max number of cuts to use (1 < num < 2^12) [default = %d]\n", pPars->nCutsMax );
+    fprintf( pErr, "\t-D float : sets the delay constraint for the mapping [default = %s]\n", Buffer );  
+    fprintf( pErr, "\t-l       : optimizes latch paths for delay, other paths for area [default = %s]\n", pPars->fLatchPaths? "yes": "no" );
+    fprintf( pErr, "\t-s       : toggles sequential mapping [default = %s]\n", pPars->fSeq? "yes": "no" );
+    fprintf( pErr, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h       : prints the command usage\n");
     return 1;
 }
 
@@ -7996,7 +7917,7 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     Mode      =  5;
     fForward  =  0;
     fBackward =  0;
-    fVerbose  =  1;
+    fVerbose  =  0;
     nMaxIters = 15;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Mfbvh" ) ) != EOF )
@@ -8048,6 +7969,12 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
 
+    if ( Mode < 0 || Mode > 6 )
+    {
+        fprintf( pErr, "The mode (%d) is incorrect. Retiming is not performed.\n", Mode );
+        return 0;
+    }
+
     if ( Abc_NtkIsStrash(pNtk) )
     {
         if ( Abc_NtkGetChoiceNum(pNtk) )
@@ -8089,6 +8016,7 @@ usage:
     fprintf( pErr, "\t             3: forward and backward min-area retiming\n" );
     fprintf( pErr, "\t             4: forward and backward min-delay retiming\n" );
     fprintf( pErr, "\t             5: mode 3 followed by mode 4\n" );
+    fprintf( pErr, "\t             6: Pan's optimum-delay retiming using binary search\n" );
     fprintf( pErr, "\t-M num : the retiming algorithm to use [default = %d]\n", Mode );
     fprintf( pErr, "\t-f     : enables forward-only retiming in modes 3,4,5 [default = %s]\n", fForward? "yes": "no" );
     fprintf( pErr, "\t-b     : enables backward-only retiming in modes 3,4,5 [default = %s]\n", fBackward? "yes": "no" );
@@ -8488,6 +8416,8 @@ int Abc_CommandSeqCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
     int c;
+    int fLatchSweep;
+    int fAutoSweep;
     int fVerbose;
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -8495,12 +8425,20 @@ int Abc_CommandSeqCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fVerbose = 1;
+    fLatchSweep = 0;
+    fAutoSweep  = 0;
+    fVerbose    = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "lavh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'l':
+            fLatchSweep ^= 1;
+            break;
+        case 'a':
+            fAutoSweep ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -8521,16 +8459,18 @@ int Abc_CommandSeqCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     // modify the current network
-    Abc_NtkCleanupSeq( pNtk, fVerbose );
+    Abc_NtkCleanupSeq( pNtk, fLatchSweep, fAutoSweep, fVerbose );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: scleanup [-vh]\n" );
+    fprintf( pErr, "usage: scleanup [-lavh]\n" );
     fprintf( pErr, "\t         performs sequential cleanup\n" );
     fprintf( pErr, "\t         - removes nodes/latches that do not feed into POs\n" );
     fprintf( pErr, "\t         - removes and shared latches driven by constants\n" );
     fprintf( pErr, "\t         - replaces autonomous logic by free PI variables\n" );
     fprintf( pErr, "\t           (the latter may change sequential behaviour)\n" );
+    fprintf( pErr, "\t-l     : toggle sweeping latches [default = %s]\n", fLatchSweep? "yes": "no" );
+    fprintf( pErr, "\t-a     : toggle removing autonomous logic [default = %s]\n", fAutoSweep? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -8694,7 +8634,7 @@ int Abc_CommandSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     fSat     =  0;
     fVerbose =  0;
-    nFrames  =  3;
+    nFrames  =  5;
     nSeconds = 20;
     nConfLimit = 10000;   
     nInsLimit  = 0;
@@ -8756,6 +8696,12 @@ int Abc_CommandSec( Abc_Frame_t * pAbc, int argc, char ** argv )
         default:
             goto usage;
         }
+    }
+
+    if ( Abc_NtkLatchNum(pNtk) == 0 )
+    {
+        printf( "The network has no latches. Used combinational command \"cec\".\n" );
+        return 0;
     }
 
     pArgvNew = argv + globalUtilOptind;
@@ -9287,168 +9233,6 @@ usage:
     fprintf( pErr, "usage: trace_check [-h]\n" );
     fprintf( pErr, "\t        checks the current network using verification trace\n" );
     fprintf( pErr, "\t-h    : print the command usage\n");
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandHoward( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    FILE * pOut, * pErr;
-    Abc_Ntk_t * pNtk;
-    int c;
-    int fVerbose;
-    double result;
-
-    pNtk = Abc_FrameReadNtk(pAbc);
-    pOut = Abc_FrameReadOut(pAbc);
-    pErr = Abc_FrameReadErr(pAbc);
-
-    // set defaults
-    fVerbose =  0;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'v':
-            fVerbose ^= 1;
-            break;
-        default:
-            goto usage;
-        }
-    }
-
-    if ( pNtk == NULL )
-    {
-        fprintf( pErr, "Empty network.\n" );
-        return 1;
-    }
-
-    if ( !Abc_NtkIsSeq(pNtk) && Abc_NtkLatchNum(pNtk) == 0 )
-    {
-        fprintf( pErr, "The network has no latches. Analysis is not performed.\n" );
-        return 0;
-    }
-
-    if ( Abc_NtkHasAig(pNtk) )
-    {
-        // quit if there are choice nodes
-        if ( Abc_NtkGetChoiceNum(pNtk) )
-        {
-            fprintf( pErr, "Currently cannot analyze networks with choice nodes.\n" );
-            return 0;
-        }
-
-        /*
-        if ( Abc_NtkIsStrash(pNtk) )
-            pNtkRes = Abc_NtkAigToSeq(pNtk);
-        else
-            pNtkRes = Abc_NtkDup(pNtk);
-
-        */
-
-        fprintf( pErr, "Currently cannot analyze unmapped networks.\n" );
-        return 0;
-    }
-
-//    result = Seq_NtkHoward( pNtk, fVerbose );
-    result = 0;
-
-    if (result < 0) {
-      fprintf( pErr, "Analysis failed.\n" );
-      return 0;
-    }
-
-    printf("Maximum mean cycle time = %.2f\n", result);
-
-    return 1;
-
-usage:
-    fprintf( pErr, "usage: howard [-h]\n" );
-    fprintf( pErr, "\t         computes the maximum mean cycle time using Howard's algorithm\n" );
-    fprintf( pErr, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
-    fprintf( pErr, "\t-h     : print the command usage\n");
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandSkewForward( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    FILE * pOut, * pErr;
-    Abc_Ntk_t * pNtk;
-    int c;
-    int fMinimize;
-    float target;
-
-    pNtk = Abc_FrameReadNtk(pAbc);
-    pOut = Abc_FrameReadOut(pAbc);
-    pErr = Abc_FrameReadErr(pAbc);
-
-    // set defaults
-    target = pNtk->maxMeanCycle;
-    fMinimize =  0;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "mh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'm':
-            fMinimize ^= 1;
-            break;
-        default:
-            goto usage;
-        }
-    }
-
-
-    if ( pNtk == NULL )
-    {
-        fprintf( pErr, "Empty network.\n" );
-        return 1;
-    }
-
-    if ( !Abc_NtkIsSeq(pNtk) && Abc_NtkLatchNum(pNtk) == 0 )
-    {
-        fprintf( pErr, "The network has no latches.\n" );
-        return 0;
-    }
-
-    if ( pNtk->vSkews == NULL || pNtk->vSkews->nSize == 0 )
-    {
-        fprintf( pErr, "The network has no clock skew schedule.\n" );
-        return 0;
-    }
-
-//    Seq_NtkSkewForward( pNtk, target, fMinimize );
-
-    return 1;
-
-usage:
-    fprintf( pErr, "usage: skew_fwd [-h] [-m] [-t float]\n" );
-    fprintf( pErr, "\t         converts a skew schedule into a set of forward skews 0<skew<T\n" );
-    fprintf( pErr, "\t-m     : minimizes sum of skews [default = %s]\n", fMinimize? "yes": "no" );
-    fprintf( pErr, "\t-t     : clock period, T [default = maxMeanCycle] (unimplemented)\n");
-    fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
 }
 
