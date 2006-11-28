@@ -269,15 +269,16 @@ DdManager * Abc_NtkBuildGlobalBdds( Abc_Ntk_t * pNtk, int nBddSizeMax, int fDrop
     pObj = Abc_AigConst1(pNtk);
     if ( Abc_ObjFanoutNum(pObj) > 0 )
     {
-        Abc_ObjSetGlobalBdd( pObj, dd->one );
-        Cudd_Ref( dd->one );
+        bFunc = dd->one;
+        Abc_ObjSetGlobalBdd( pObj, bFunc );   Cudd_Ref( bFunc );
     }
     // set the elementary variables
     Abc_NtkForEachCi( pNtk, pObj, i )
         if ( Abc_ObjFanoutNum(pObj) > 0 )
         {
-            Abc_ObjSetGlobalBdd( pObj, dd->vars[i] );
-            Cudd_Ref( dd->vars[i] );
+            bFunc = dd->vars[i];
+//            bFunc = dd->vars[Abc_NtkCiNum(pNtk) - 1 - i];
+            Abc_ObjSetGlobalBdd( pObj, bFunc );  Cudd_Ref( bFunc );
         }
 
     // collect the global functions of the COs
@@ -458,6 +459,31 @@ DdNode * Abc_NodeGlobalBdds_rec( DdManager * dd, Abc_Obj_t * pNode, int nBddSize
 DdManager * Abc_NtkFreeGlobalBdds( Abc_Ntk_t * pNtk, int fFreeMan ) 
 { 
     return Abc_NtkAttrFree( pNtk, VEC_ATTR_GLOBAL_BDD, fFreeMan ); 
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the shared size of global BDDs of the COs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkSizeOfGlobalBdds( Abc_Ntk_t * pNtk ) 
+{
+    Vec_Ptr_t * vFuncsGlob;
+    Abc_Obj_t * pObj;
+    int RetValue, i;
+    // complement the global functions
+    vFuncsGlob = Vec_PtrAlloc( Abc_NtkCoNum(pNtk) );
+    Abc_NtkForEachCo( pNtk, pObj, i )
+        Vec_PtrPush( vFuncsGlob, Abc_ObjGlobalBdd(pObj) );
+    RetValue = Cudd_SharingSize( (DdNode **)Vec_PtrArray(vFuncsGlob), Vec_PtrSize(vFuncsGlob) );
+    Vec_PtrFree( vFuncsGlob );
+    return RetValue;
 }
 
 /**Function*************************************************************

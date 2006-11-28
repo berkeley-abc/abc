@@ -648,6 +648,7 @@ extern Abc_Ntk_t *        Abc_NtkDeriveFromBdd( DdManager * dd, DdNode * bFunc, 
 extern Abc_Ntk_t *        Abc_NtkBddToMuxes( Abc_Ntk_t * pNtk );
 extern DdManager *        Abc_NtkBuildGlobalBdds( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDropInternal, int fReorder, int fVerbose );
 extern DdManager *        Abc_NtkFreeGlobalBdds( Abc_Ntk_t * pNtk, int fFreeMan );
+extern int                Abc_NtkSizeOfGlobalBdds( Abc_Ntk_t * pNtk );
 /*=== abcNtk.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func, int fUseMemMan );
 extern Abc_Ntk_t *        Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_t Func );

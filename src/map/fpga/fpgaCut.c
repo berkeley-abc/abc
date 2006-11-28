@@ -130,6 +130,7 @@ void Fpga_MappingCuts( Fpga_Man_t * p )
     Fpga_CutTable_t * pTable;
     Fpga_Node_t * pNode;
     int nCuts, nNodes, i;
+    int clk = clock();
 
     // set the elementary cuts for the PI variables
     assert( p->nVarsMax > 1 && p->nVarsMax < 11 );
@@ -154,8 +155,9 @@ void Fpga_MappingCuts( Fpga_Man_t * p )
     if ( p->fVerbose )
     {
         nCuts = Fpga_CutCountAll(p);
-        printf( "Nodes = %6d. Total %d-feasible cuts = %d. Cuts per node = %.1f.\n", 
+        printf( "Nodes = %6d. Total %d-cuts = %d. Cuts per node = %.1f. ", 
                p->nNodes, p->nVarsMax, nCuts, ((float)nCuts)/p->nNodes );
+        PRT( "Time", clock() - clk );
     }
 
     // print the cuts for the first primary output

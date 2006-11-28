@@ -934,8 +934,9 @@ int Abc_CommandPrintSymms( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int fUseBdds;
     int fNaive;
+    int fReorder;
     int fVerbose;
-    extern void Abc_NtkSymmetries( Abc_Ntk_t * pNtk, int fUseBdds, int fNaive, int fVerbose );
+    extern void Abc_NtkSymmetries( Abc_Ntk_t * pNtk, int fUseBdds, int fNaive, int fReorder, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -944,9 +945,10 @@ int Abc_CommandPrintSymms( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     fUseBdds = 0;
     fNaive   = 0;
+    fReorder = 1;
     fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "bnvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "bnrvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -955,6 +957,9 @@ int Abc_CommandPrintSymms( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'n':
             fNaive ^= 1;
+            break;
+        case 'r':
+            fReorder ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -975,19 +980,22 @@ int Abc_CommandPrintSymms( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "This command works only for combinational networks.\n" );
         return 1;
     }
-    if ( !Abc_NtkIsStrash(pNtk) )
+    if ( Abc_NtkIsStrash(pNtk) )
+        Abc_NtkSymmetries( pNtk, fUseBdds, fNaive, fReorder, fVerbose );
+    else
     {
-        fprintf( pErr, "This command works only for AIGs (run \"strash\").\n" );
-        return 1;
+        pNtk = Abc_NtkStrash( pNtk, 0, 0 );
+        Abc_NtkSymmetries( pNtk, fUseBdds, fNaive, fReorder, fVerbose );
+        Abc_NtkDelete( pNtk );
     }
-    Abc_NtkSymmetries( pNtk, fUseBdds, fNaive, fVerbose );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: print_symm [-nbvh]\n" );
+    fprintf( pErr, "usage: print_symm [-bnrvh]\n" );
     fprintf( pErr, "\t         computes symmetries of the PO functions\n" );
     fprintf( pErr, "\t-b     : toggle BDD-based or SAT-based computations [default = %s].\n", fUseBdds? "BDD": "SAT" );  
     fprintf( pErr, "\t-n     : enable naive BDD-based computation [default = %s].\n", fNaive? "yes": "no" );  
+    fprintf( pErr, "\t-r     : enable dynamic BDD variable reordering [default = %s].\n", fReorder? "yes": "no" );  
     fprintf( pErr, "\t-v     : enable verbose output [default = %s].\n", fVerbose? "yes": "no" );  
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -7082,7 +7090,7 @@ int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
     fRecovery   = 1;
     fSwitching  = 0;
     fLatchPaths = 0;
-    fVerbose    = 0;
+    fVerbose    = 1;
     DelayTarget =-1;
     nLutSize    =-1;
     Extra_UtilGetoptReset();
@@ -7383,19 +7391,19 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     memset( pPars, 0, sizeof(If_Par_t) );
-    pPars->Mode        = 1;
-    pPars->nLutSize    = 4;
-//    pPars->pLutLib    = Abc_FrameReadLibLut();
-    pPars->nCutsMax    = 2;
-    pPars->fSeq        = 0;
-    pPars->fLatchPaths = 0;
-    pPars->nLatches    = 0;
-    pPars->pTimesArr   = Abc_NtkGetCiArrivalFloats(pNtk);
-    pPars->pTimesReq   = NULL;
+    pPars->Mode        =  0;
+    pPars->nLutSize    =  5;
+//    pPars->pLutLib    =  Abc_FrameReadLibLut();
+    pPars->nCutsMax    = 10;
+    pPars->fArea       =  0;
+    pPars->fFancy      =  0;
+    pPars->fLatchPaths =  0;
+    pPars->fSeq        =  0;
+    pPars->nLatches    =  0;
     pPars->DelayTarget = -1;
-    pPars->fVerbose    = 0;
+    pPars->fVerbose    =  1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "MKCDlsvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "MKCDaflsvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -7443,6 +7451,12 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->DelayTarget <= 0.0 ) 
                 goto usage;
             break;
+        case 'a':
+            pPars->fArea ^= 1;
+            break;
+        case 'f':
+            pPars->fFancy ^= 1;
+            break;
         case 'l':
             pPars->fLatchPaths ^= 1;
             break;
@@ -7467,7 +7481,13 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pPars->Mode < 0 || pPars->Mode > 4 )
     {
         fprintf( pErr, "Incorrect mapping mode.\n" );
-        return 1;
+        goto usage;
+    }
+
+    if ( pPars->nCutsMax < 2 || pPars->nCutsMax >= (1<<12) )
+    {
+        fprintf( pErr, "Incorrect number of cuts.\n" );
+        goto usage;
     }
 
     // set the latch paths
@@ -7527,7 +7547,7 @@ usage:
         sprintf( LutSize, "library" );
     else
         sprintf( LutSize, "%d", pPars->nLutSize );
-    fprintf( pErr, "usage: if [-M num] [-K num] [-C num] [-D float] [-lsvh]\n" );
+    fprintf( pErr, "usage: if [-M num] [-K num] [-C num] [-D float] [-aflsvh]\n" );
     fprintf( pErr, "\t           performs FPGA mapping of the network as follows:\n" );
     fprintf( pErr, "\t               1 - delay only\n" );
     fprintf( pErr, "\t               2 - area only\n" );
@@ -7537,6 +7557,8 @@ usage:
     fprintf( pErr, "\t-K num   : the number of LUT inputs (2 < num < 32) [default = %s]\n", LutSize );
     fprintf( pErr, "\t-C num   : the max number of cuts to use (1 < num < 2^12) [default = %d]\n", pPars->nCutsMax );
     fprintf( pErr, "\t-D float : sets the delay constraint for the mapping [default = %s]\n", Buffer );  
+    fprintf( pErr, "\t-a       : toggles area-oriented mapping [default = %s]\n", pPars->fArea? "yes": "no" );
+    fprintf( pErr, "\t-f       : toggles one fancy feature [default = %s]\n", pPars->fFancy? "yes": "no" );
     fprintf( pErr, "\t-l       : optimizes latch paths for delay, other paths for area [default = %s]\n", pPars->fLatchPaths? "yes": "no" );
     fprintf( pErr, "\t-s       : toggles sequential mapping [default = %s]\n", pPars->fSeq? "yes": "no" );
     fprintf( pErr, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );

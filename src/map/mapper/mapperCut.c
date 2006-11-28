@@ -612,7 +612,8 @@ int Map_CutMergeTwo( Map_Cut_t * pCut1, Map_Cut_t * pCut2, Map_Node_t * ppNodes[
     {
         min = i;
         for ( k = i+1; k < nTotal; k++ )
-            if ( ppNodes[k] < ppNodes[min] )
+//            if ( ppNodes[k] < ppNodes[min] ) // reported bug fix (non-determinism!)
+            if ( ppNodes[k]->Num < ppNodes[min]->Num )
                 min = k;
         pNodeTemp    = ppNodes[i];
         ppNodes[i]   = ppNodes[min];

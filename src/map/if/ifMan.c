@@ -97,7 +97,7 @@ void If_ManStop( If_Man_t * p )
         FREE( p->pPars->pTimesReq );
     // free temporary cut memory
     pTemp = p->ppCuts[0];
-    for ( i = 1; i < p->pPars->nCutsMax * p->pPars->nCutsMax; i++ )
+    for ( i = 1; i < 1 + p->pPars->nCutsMax * p->pPars->nCutsMax; i++ )
         if ( pTemp > p->ppCuts[i] )
             pTemp = p->ppCuts[i];
     free( pTemp );
@@ -228,14 +228,18 @@ If_Cut_t ** If_ManSetupCuts( If_Man_t * p )
 {
     If_Cut_t ** pCutStore;
     int * pArrays, nCutSize, nCutsTotal, i;
-    nCutsTotal = p->pPars->nCutsMax * p->pPars->nCutsMax;
+    // decide how many cuts to alloc
+    nCutsTotal = 1 + p->pPars->nCutsMax * p->pPars->nCutsMax;
+    // figure out the cut size
     nCutSize = sizeof(If_Cut_t) + sizeof(int) * p->pPars->nLutSize;
+    // allocate and clean space for cuts
     pCutStore = (If_Cut_t **)ALLOC( If_Cut_t *, (nCutsTotal + 1) );
     memset( pCutStore, 0, sizeof(If_Cut_t *) * (nCutsTotal + 1) );
     pCutStore[0] = (If_Cut_t *)ALLOC( char, nCutSize * nCutsTotal );
     memset( pCutStore[0], 0, nCutSize * nCutsTotal );
     for ( i = 1; i < nCutsTotal; i++ )
         pCutStore[i] = (If_Cut_t *)((char *)pCutStore[0] + sizeof(If_Cut_t) * i);
+    // assign room for cut leaves
     pArrays = (int *)((char *)pCutStore[0] + sizeof(If_Cut_t) * nCutsTotal);
     for ( i = 0; i < nCutsTotal; i++ )
         pCutStore[i]->pLeaves = pArrays + i * p->pPars->nLutSize;

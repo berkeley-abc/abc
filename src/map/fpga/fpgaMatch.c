@@ -87,6 +87,18 @@ int Fpga_MappingMatches( Fpga_Man_t * p, int fDelayOriented )
         Extra_ProgressBarUpdate( pProgress, i, "Matches ..." );
     }
     Extra_ProgressBarStop( pProgress );
+/*
+    if ( !fDelayOriented )
+    {
+        float Area = 0.0;
+        for ( i = 0; i < p->nOutputs; i++ )
+        {
+            printf( "%5.2f ", Fpga_Regular(p->pOutputs[i])->pCutBest->aFlow );
+            Area += Fpga_Regular(p->pOutputs[i])->pCutBest->aFlow;
+        }
+        printf( "\nTotal = %5.2f\n", Area );
+    }
+*/
     return 1;
 }
 

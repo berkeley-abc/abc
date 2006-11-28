@@ -75,8 +75,10 @@ struct If_Par_t_
     If_Lib_t *         pLutLib;       // the LUT library
     int                nCutsMax;      // the max number of cuts
     int                fVerbose;      // the verbosity flag
-    int                fSeq;          // sequential mapping
+    int                fArea;         // area-oriented mapping
+    int                fFancy;        // a fancy feature
     int                fLatchPaths;   // reset timing on latch paths
+    int                fSeq;          // sequential mapping
     int                nLatches;      // the number of latches
     float              DelayTarget;   // delay target
     float *            pTimesArr;     // arrival times
@@ -110,6 +112,9 @@ struct If_Man_t_
     float              fEpsilon;      // epsilon used for comparison
     float              RequiredGlo;   // global required times
     float              AreaGlo;       // global area
+    int                nCutsUsed;     // the number of cuts currently used
+    int                nCutsMerged;   // the total number of cuts merged
+    int                nCutsMax;      // the maximum number of cuts at a node
     // memory management
     Mem_Fixed_t *      pMem;          // memory manager
     int                nEntrySize;    // the size of the entry
@@ -123,7 +128,6 @@ struct If_Man_t_
 struct If_Cut_t_
 {
     float              Delay;         // the delay of the cut
-    float              Flow;          // the area flow of the cut
     float              Area;          // the area of the cut
     If_Cut_t *         pOne;          // the parent cut
     If_Cut_t *         pTwo;          // the parent cut
@@ -161,6 +165,10 @@ static inline If_Obj_t * If_ManPi( If_Man_t * p, int i )                     { r
 static inline If_Obj_t * If_ManPo( If_Man_t * p, int i )                     { return (If_Obj_t *)Vec_PtrEntry( p->vPos, i );  }
 static inline If_Obj_t * If_ManObj( If_Man_t * p, int i )                    { return (If_Obj_t *)Vec_PtrEntry( p->vObjs, i ); }
 static inline If_Cut_t * If_ManCut( If_Man_t * p, int i )                    { return p->ppCuts[i];                            }
+
+static inline int        If_ManPiNum( If_Man_t * p )                         { return p->nObjs[IF_PI];               }
+static inline int        If_ManPoNum( If_Man_t * p )                         { return p->nObjs[IF_PO];               }
+static inline int        If_ManAndNum( If_Man_t * p )                        { return p->nObjs[IF_AND];              }
 
 static inline int        If_ObjIsConst1( If_Obj_t * pObj )                   { return pObj->Type == IF_CONST1;       }
 static inline int        If_ObjIsPi( If_Obj_t * pObj )                       { return pObj->Type == IF_PI;           }
@@ -229,6 +237,8 @@ static inline float      If_CutLutArea( If_Man_t * p, If_Cut_t * pCut )      { r
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+/*=== ifCore.c ==========================================================*/
+extern int             If_ManPerformMapping( If_Man_t * p );
 /*=== ifMan.c ==========================================================*/
 extern If_Man_t *      If_ManStart( If_Par_t * pPars );
 extern void            If_ManStop( If_Man_t * p );
@@ -236,11 +246,12 @@ extern If_Obj_t *      If_ManCreatePi( If_Man_t * p );
 extern If_Obj_t *      If_ManCreatePo( If_Man_t * p, If_Obj_t * pDriver, int fCompl0 );
 extern If_Obj_t *      If_ManCreateAnd( If_Man_t * p, If_Obj_t * pFan0, int fCompl0, If_Obj_t * pFan1, int fCompl1 );
 /*=== ifMap.c ==========================================================*/
-extern int             If_ManPerformMapping( If_Man_t * p );
+extern void            If_ObjPerformMapping( If_Man_t * p, If_Obj_t * pObj, int Mode );
 /*=== ifUtil.c ==========================================================*/
 extern float           If_ManDelayMax( If_Man_t * p );
 extern void            If_ManCleanNodeCopy( If_Man_t * p );
 extern void            If_ManCleanCutData( If_Man_t * p );
+extern void            If_ManComputeRequired( If_Man_t * p, int fFirstTime );
 extern float           If_ManScanMapping( If_Man_t * p );
 
 #ifdef __cplusplus
