@@ -1,3 +1,3 @@
-SRC +=  src/hop/rwt/rwtDec.c \
-    src/hop/rwt/rwtMan.c \
-    src/hop/rwt/rwtUtil.c
+SRC +=  src/aig/rwt/rwtDec.c \
+    src/aig/rwt/rwtMan.c \
+    src/aig/rwt/rwtUtil.c

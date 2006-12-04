@@ -55,7 +55,7 @@ typedef enum {
     IF_BO,       // 6: box output
     IF_BOX,      // 7: box
     IF_VOID      // 8: unused object
-} Hop_Type_t;
+} If_Type_t;
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -75,8 +75,10 @@ struct If_Par_t_
     If_Lib_t *         pLutLib;       // the LUT library
     int                nCutsMax;      // the max number of cuts
     int                fVerbose;      // the verbosity flag
+    int                fPreprocess;   // preprossing
     int                fArea;         // area-oriented mapping
     int                fFancy;        // a fancy feature
+    int                fExpRed;       // expand/reduce of the best cuts
     int                fLatchPaths;   // reset timing on latch paths
     int                fSeq;          // sequential mapping
     int                nLatches;      // the number of latches
@@ -115,6 +117,7 @@ struct If_Man_t_
     int                nCutsUsed;     // the number of cuts currently used
     int                nCutsMerged;   // the total number of cuts merged
     int                nCutsMax;      // the maximum number of cuts at a node
+    float              Fi;            // the current value of the clock period (for seq mapping)
     // memory management
     Mem_Fixed_t *      pMem;          // memory manager
     int                nEntrySize;    // the size of the entry
@@ -127,15 +130,16 @@ struct If_Man_t_
 // priority cut
 struct If_Cut_t_
 {
-    float              Delay;         // the delay of the cut
-    float              Area;          // the area of the cut
-    If_Cut_t *         pOne;          // the parent cut
-    If_Cut_t *         pTwo;          // the parent cut
-    char               fCompl0;       // the complemented attribute
-    char               fCompl1;       // the complemented attribute
-    char               Phase;         // the complemented attribute
-    char               nLeaves;       // the number of leaves
-    int *              pLeaves;       // the array of fanins
+    float              Delay;         // delay of the cut
+    float              Area;          // area (or area-flow) of the cut
+    If_Cut_t *         pOne;          // parent cut
+    If_Cut_t *         pTwo;          // parent cut
+    unsigned           uSign;         // cut signature
+    char               fCompl0;       // complemented attribute
+    char               fCompl1;       // complemented attribute
+    char               Phase;         // complemented attribute
+    char               nLeaves;       // number of leaves
+    int *              pLeaves;       // array of fanins
 };
 
 // node extension
@@ -149,8 +153,7 @@ struct If_Obj_t_
     unsigned           Level   : 24;  // logic level of the node
     int                Id;            // integer ID
     int                nRefs;         // the number of references
-    short              nCuts;         // the number of cuts
-    short              iCut;          // the number of the best cut
+    int                nCuts;         // the number of cuts
     If_Obj_t *         pFanin0;       // the first fanin 
     If_Obj_t *         pFanin1;       // the second fanin
     If_Obj_t *         pEquiv;        // the choice node
@@ -188,7 +191,8 @@ static inline void       If_ObjSetChoice( If_Obj_t * pObj, If_Obj_t * pEqu ) { p
 
 static inline If_Cut_t * If_ObjCut( If_Obj_t * pObj, int iCut )              { return pObj->Cuts + iCut;             }
 static inline If_Cut_t * If_ObjCutTriv( If_Obj_t * pObj )                    { return pObj->Cuts;                    }
-static inline If_Cut_t * If_ObjCutBest( If_Obj_t * pObj )                    { return pObj->Cuts + pObj->iCut;       }
+static inline If_Cut_t * If_ObjCutBest( If_Obj_t * pObj )                    { return pObj->Cuts + 1;                }
+static inline unsigned   If_ObjCutSign( unsigned ObjId )                     { return (1 << (ObjId % 31));           }
 
 static inline void *     If_CutData( If_Cut_t * pCut )                       { return *(void **)pCut;                }
 static inline void       If_CutSetData( If_Cut_t * pCut, void * pData )      { *(void **)pCut = pData;               }
@@ -239,6 +243,7 @@ static inline float      If_CutLutArea( If_Man_t * p, If_Cut_t * pCut )      { r
 
 /*=== ifCore.c ==========================================================*/
 extern int             If_ManPerformMapping( If_Man_t * p );
+extern int             If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fRequired );
 /*=== ifMan.c ==========================================================*/
 extern If_Man_t *      If_ManStart( If_Par_t * pPars );
 extern void            If_ManStop( If_Man_t * p );
@@ -247,6 +252,19 @@ extern If_Obj_t *      If_ManCreatePo( If_Man_t * p, If_Obj_t * pDriver, int fCo
 extern If_Obj_t *      If_ManCreateAnd( If_Man_t * p, If_Obj_t * pFan0, int fCompl0, If_Obj_t * pFan1, int fCompl1 );
 /*=== ifMap.c ==========================================================*/
 extern void            If_ObjPerformMapping( If_Man_t * p, If_Obj_t * pObj, int Mode );
+extern float           If_CutAreaDerefed( If_Man_t * p, If_Cut_t * pCut, int nLevels );
+extern float           If_CutAreaRefed( If_Man_t * p, If_Cut_t * pCut, int nLevels );
+extern float           If_CutDeref( If_Man_t * p, If_Cut_t * pCut, int nLevels );
+extern float           If_CutRef( If_Man_t * p, If_Cut_t * pCut, int nLevels );
+extern void            If_CutPrint( If_Man_t * p, If_Cut_t * pCut );
+extern float           If_CutDelay( If_Man_t * p, If_Cut_t * pCut );
+extern float           If_CutFlow( If_Man_t * p, If_Cut_t * pCut );
+extern int             If_CutMerge( If_Cut_t * pCut0, If_Cut_t * pCut1, If_Cut_t * pCut, int nLimit );
+extern void            If_CutCopy( If_Cut_t * pCutDest, If_Cut_t * pCutSrc );
+/*=== ifReduce.c ==========================================================*/
+extern void            If_ManImproveMapping( If_Man_t * p );
+/*=== ifSelect.c ==========================================================*/
+extern void            If_ManPerformMappingPreprocess( If_Man_t * p );
 /*=== ifUtil.c ==========================================================*/
 extern float           If_ManDelayMax( If_Man_t * p );
 extern void            If_ManCleanNodeCopy( If_Man_t * p );

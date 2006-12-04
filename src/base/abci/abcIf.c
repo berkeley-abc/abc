@@ -55,7 +55,11 @@ Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
 
     // print a warning about choice nodes
     if ( Abc_NtkGetChoiceNum( pNtk ) )
-        printf( "Performing FPGA mapping with choices.\n" );
+    {
+//        printf( "Performing FPGA mapping with choices.\n" );
+        printf( "Currently mapping with choices is not enabled.\n" );
+        return NULL;
+    }
 
     // get timing information
     pPars->pTimesArr = Abc_NtkGetCiArrivalFloats(pNtk);
@@ -222,7 +226,6 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
     If_ObjSetCopy( pIfObj, pNodeNew );
     return pNodeNew;
 }
-
 
 /**Function*************************************************************
 

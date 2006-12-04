@@ -24,8 +24,6 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode );
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -44,7 +42,7 @@ static int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode );
 int If_ManPerformMapping( If_Man_t * p )
 {
     If_Obj_t * pObj;
-    int nItersFlow = 2;
+    int nItersFlow = 1;
     int nItersArea = 1;
     int clkTotal = clock();
     int i;
@@ -56,13 +54,27 @@ int If_ManPerformMapping( If_Man_t * p )
     If_ManForEachPi( p, pObj, i )
         pObj->EstRefs = (float)1.0;
     // delay oriented mapping
-    If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0 );
+    if ( p->pPars->fPreprocess && !p->pPars->fArea && p->pPars->nCutsMax >= 4  )
+        If_ManPerformMappingPreprocess( p );
+    else
+        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 1 );
+    // try to improve area by expanding and reducing the cuts
+    if ( p->pPars->fExpRed )
+        If_ManImproveMapping( p );
     // area flow oriented mapping
     for ( i = 0; i < nItersFlow; i++ )
-        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 1 );
+    {
+        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 1, 1 );
+        if ( p->pPars->fExpRed )
+            If_ManImproveMapping( p );
+    }
     // area oriented mapping
     for ( i = 0; i < nItersArea; i++ )
-        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 2 );
+    {
+        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 2, 1 );
+        if ( p->pPars->fExpRed )
+            If_ManImproveMapping( p );
+    }
     if ( p->pPars->fVerbose )
     {
         PRT( "Total time", clock() - clkTotal );
@@ -81,7 +93,7 @@ int If_ManPerformMapping( If_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode )
+int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fRequired )
 {
     If_Obj_t * pObj;
     int i, clk = clock();
@@ -94,15 +106,18 @@ int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode )
     If_ManForEachNode( p, pObj, i )
         If_ObjPerformMapping( p, pObj, Mode );
     // compute required times and stats
-    If_ManComputeRequired( p, Mode==0 );
-    if ( p->pPars->fVerbose )
+    if ( fRequired )
     {
-        char Symb = (Mode == 0)? 'D' : ((Mode == 1)? 'F' : 'A');
-        printf( "%c:  Del = %6.2f. Area = %8.2f. Cuts = %6d. Lim = %2d. Ave = %5.2f. ", 
-            Symb, p->RequiredGlo, p->AreaGlo, p->nCutsMerged, p->nCutsUsed, 1.0 * p->nCutsMerged / If_ManAndNum(p) );
-        PRT( "T", clock() - clk );
+        If_ManComputeRequired( p, Mode==0 );
+        if ( p->pPars->fVerbose )
+        {
+            char Symb = (Mode == 0)? 'D' : ((Mode == 1)? 'F' : 'A');
+            printf( "%c:  Del = %6.2f. Area = %8.2f. Cuts = %6d. Lim = %2d. Ave = %5.2f. ", 
+                Symb, p->RequiredGlo, p->AreaGlo, p->nCutsMerged, p->nCutsUsed, 1.0 * p->nCutsMerged / If_ManAndNum(p) );
+            PRT( "T", clock() - clk );
 //    printf( "Max number of cuts = %d. Average number of cuts = %5.2f.\n", 
 //        p->nCutsMax, 1.0 * p->nCutsMerged / If_ManAndNum(p) );
+        }
     }
     return 1;
 }

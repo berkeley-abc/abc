@@ -64,7 +64,8 @@ void Prove_ParamsSetDefault( Prove_Params_t * pParams )
     pParams->nBddSizeLimit        = 1000000; // the number of BDD nodes when construction is aborted
     pParams->fBddReorder          = 1;       // enables dynamic BDD variable reordering
     // last-gasp mitering
-    pParams->nMiteringLimitLast   = 1000000; // final mitering limit
+//    pParams->nMiteringLimitLast   = 1000000; // final mitering limit
+    pParams->nMiteringLimitLast   = 0;       // final mitering limit
     // global SAT solver limits
     pParams->nTotalBacktrackLimit = 0;       // global limit on the number of backtracks
     pParams->nTotalInspectLimit   = 0;       // global limit on the number of clause inspects

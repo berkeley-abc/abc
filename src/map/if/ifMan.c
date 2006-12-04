@@ -191,6 +191,7 @@ If_Obj_t * If_ManCreateAnd( If_Man_t * p, If_Obj_t * pFan0, int fCompl0, If_Obj_
 ***********************************************************************/
 If_Obj_t * If_ManSetupObj( If_Man_t * p )
 {
+    If_Cut_t * pCut;
     If_Obj_t * pObj;
     int i, * pArrays;
     // get memory for the object
@@ -204,10 +205,12 @@ If_Obj_t * If_ManSetupObj( If_Man_t * p )
     pObj->Id = Vec_PtrSize(p->vObjs);
     Vec_PtrPush( p->vObjs, pObj );
     // assign elementary cut
+    pCut = pObj->Cuts;
+    pCut->nLeaves    = 1;
+    pCut->pLeaves[0] = p->pPars->fSeq? (pObj->Id << 8) : pObj->Id;
+    pCut->uSign      = If_ObjCutSign( pCut->pLeaves[0] );
+    // set the number of cuts
     pObj->nCuts = 1;
-    pObj->Cuts[0].nLeaves    = 1;
-    pObj->Cuts[0].pLeaves[0] = pObj->Id;
-    pObj->iCut = 0;
     // set the required times
     pObj->Required = IF_FLOAT_LARGE;
     return pObj;

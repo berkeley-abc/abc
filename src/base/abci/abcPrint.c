@@ -148,18 +148,18 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
     // print the statistic into a file
     {
         FILE * pTable;
-        pTable = fopen( "fpga/fpga_stats.txt", "a+" );
+        pTable = fopen( "a/fpga_stats.txt", "a+" );
         fprintf( pTable, "%s ",  pNtk->pName );
         fprintf( pTable, "%d ", Abc_NtkLevel(pNtk) );
         fprintf( pTable, "%d ", Abc_NtkNodeNum(pNtk) );
-        fprintf( pTable, "%.2f ", (float)(s_MappingMem)/(float)(1<<20) );
-        fprintf( pTable, "%.2f", (float)(s_MappingTime)/(float)(CLOCKS_PER_SEC) );
+//        fprintf( pTable, "%.2f ", (float)(s_MappingMem)/(float)(1<<20) );
+//        fprintf( pTable, "%.2f", (float)(s_MappingTime)/(float)(CLOCKS_PER_SEC) );
         fprintf( pTable, "\n" );
         fclose( pTable );
     }
 */
 
-
+/*
     // print the statistic into a file
     {
         static int Counter = 0;
@@ -176,6 +176,7 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
             fprintf( pTable, "\n" );
         fclose( pTable );
     }
+*/
 
 /*
     // print the statistic into a file

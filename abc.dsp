@@ -1826,6 +1826,18 @@ SOURCE=.\src\map\if\ifMap.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\map\if\ifReduce.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\if\ifSelect.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\if\ifSeq.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\map\if\ifUtil.c
 # End Source File
 # End Group
