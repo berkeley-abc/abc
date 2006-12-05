@@ -698,9 +698,6 @@ extern int                Abc_NodeMffcLabel( Abc_Obj_t * pNode );
 extern void               Abc_NodeMffsConeSupp( Abc_Obj_t * pNode, Vec_Ptr_t * vCone, Vec_Ptr_t * vSupp );
 extern int                Abc_NodeDeref_rec( Abc_Obj_t * pNode );
 extern int                Abc_NodeRef_rec( Abc_Obj_t * pNode );
-/*=== abcRenode.c ==========================================================*/
-extern Abc_Ntk_t *        Abc_NtkRenode( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax, int fCnf, int fMulti, int fSimple, int fFactor );
-extern DdNode *           Abc_NtkRenodeDeriveBdd( DdManager * dd, Abc_Obj_t * pNodeOld, Vec_Ptr_t * vFaninsOld );
 /*=== abcRefactor.c ==========================================================*/
 extern int                Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, bool fUpdateLevel, bool fUseZeros, bool fUseDcs, bool fVerbose );
 /*=== abcRewrite.c ==========================================================*/

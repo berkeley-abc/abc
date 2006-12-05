@@ -25,16 +25,398 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-extern Dec_Edge_t  Dec_Factor32_rec( Dec_Graph_t * pFForm, Vec_Int_t * vCover, int nVars );
-extern Dec_Edge_t  Dec_Factor32LF_rec( Dec_Graph_t * pFForm, Vec_Int_t * vCover, int nVars, Vec_Int_t * vSimple );
-extern Dec_Edge_t  Dec_Factor32Trivial( Dec_Graph_t * pFForm, Vec_Int_t * vCover, int nVars );
-extern Dec_Edge_t  Dec_Factor32TrivialCube( Dec_Graph_t * pFForm, Vec_Int_t * vCover, int nVars, Mvc_Cube_t * pCube, Vec_Int_t * vEdgeLits );
-extern Dec_Edge_t  Dec_Factor32TrivialTree_rec( Dec_Graph_t * pFForm, Dec_Edge_t * peNodes, int nNodes, int fNodeOr );
-extern Vec_Int_t * Dec_Factor32Divisor( Vec_Int_t * vCover, int nVars );
-extern void        Dec_Factor32DivisorZeroKernel( Vec_Int_t * vCover, int nVars );
-extern int         Dec_Factor32WorstLiteral( Vec_Int_t * vCover, int nVars );
+// ISOP computation fails if intermediate memory usage exceed this limit
+#define IVY_FACTOR_MEM_LIMIT  16*4096
 
-extern Vec_Int_t * Mvc_CoverCommonCubeCover( Vec_Int_t * vCover );
+// intermediate ISOP representation
+typedef struct Ivy_Sop_t_ Ivy_Sop_t;
+struct Ivy_Sop_t_
+{
+    unsigned * uCubes;
+    int        nCubes;
+};
+
+static inline int          Ivy_CubeHasLit( unsigned uCube, int i )              { return (uCube &  (unsigned)(1<<i)) > 0;}
+static inline unsigned     Ivy_CubeSetLit( unsigned uCube, int i )              { return  uCube |  (unsigned)(1<<i);     }
+static inline unsigned     Ivy_CubeXorLit( unsigned uCube, int i )              { return  uCube ^  (unsigned)(1<<i);     }
+static inline unsigned     Ivy_CubeRemLit( unsigned uCube, int i )              { return  uCube & ~(unsigned)(1<<i);     }
+
+static inline int          Ivy_CubeContains( unsigned uLarge, unsigned uSmall ) { return (uLarge & uSmall) == uSmall;    }
+static inline unsigned     Ivy_CubeSharp( unsigned uCube, unsigned uPart )      { return uCube & ~uPart;                 }
+static inline unsigned     Ivy_CubeMask( int nVar )                             { return (~(unsigned)0) >> (32-nVar);    }
+
+static inline int          Ivy_CubeIsMarked( unsigned uCube )                   { return Ivy_CubeHasLit( uCube, 31 );    }
+static inline void         Ivy_CubeMark( unsigned uCube )                       { Ivy_CubeSetLit( uCube, 31 );           }
+static inline void         Ivy_CubeUnmark( unsigned uCube )                     { Ivy_CubeRemLit( uCube, 31 );           }
+
+static inline int          Ivy_SopCubeNum( Ivy_Sop_t * cSop )                   { return cSop->nCubes;                   }
+static inline unsigned     Ivy_SopCube( Ivy_Sop_t * cSop, int i )               { return cSop->uCubes[i];                }
+static inline void         Ivy_SopAddCube( Ivy_Sop_t * cSop, unsigned uCube )   { cSop->uCubes[cSop->nCubes++] = uCube;  }
+static inline void         Ivy_SopSetCube( Ivy_Sop_t * cSop, unsigned uCube, int i ) { cSop->uCubes[i] = uCube;          }
+static inline void         Ivy_SopShrink( Ivy_Sop_t * cSop, int nCubesNew )     { cSop->nCubes = nCubesNew;              }
+
+// iterators
+#define Ivy_SopForEachCube( cSop, uCube, i )                                      \
+    for ( i = 0; (i < Ivy_SopCubeNum(cSop)) && ((uCube) = Ivy_SopCube(cSop, i)); i++ )
+#define Ivy_CubeForEachLiteral( uCube, Lit, nLits, i )                            \
+    for ( i = 0; (i < (nLits)) && ((Lit) = Ivy_CubeHasLit(uCube, i)); i++ )
+
+/**Function*************************************************************
+
+  Synopsis    [Divides cover by one cube.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_SopDivideByCube( Vec_Int_t * vStore, int nVars, Ivy_Sop_t * cSop, Ivy_Sop_t * cDiv, Ivy_Sop_t * vQuo, Ivy_Sop_t * vRem )
+{
+    unsigned uCube, uDiv;
+    int i;
+    // get the only cube
+    assert( Ivy_SopCubeNum(cDiv) == 1 );
+    uDiv = Ivy_SopCube(cDiv, 0);
+    // allocate covers
+    vQuo->nCubes = 0;
+    vQuo->uCubes = Vec_IntFetch( vStore, Ivy_SopCubeNum(cSop) );
+    vRem->nCubes = 0;
+    vRem->uCubes = Vec_IntFetch( vStore, Ivy_SopCubeNum(cSop) );
+    // sort the cubes
+    Ivy_SopForEachCube( cSop, uCube, i )
+    {
+        if ( Ivy_CubeContains( uCube, uDiv ) )
+            Ivy_SopAddCube( vQuo, Ivy_CubeSharp(uCube, uDiv) );
+        else
+            Ivy_SopAddCube( vRem, uCube );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Divides cover by one cube.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_SopDivideInternal( Vec_Int_t * vStore, int nVars, Ivy_Sop_t * cSop, Ivy_Sop_t * cDiv, Ivy_Sop_t * vQuo, Ivy_Sop_t * vRem )
+{
+    unsigned uCube, uCube2, uDiv, uDiv2, uQuo;
+    int i, i2, k, k2;
+    assert( Ivy_SopCubeNum(cSop) >= Ivy_SopCubeNum(cDiv) );
+    if ( Ivy_SopCubeNum(cDiv) == 1 )
+    {
+        Ivy_SopDivideByCube( cSop, cDiv, vQuo, vRem );
+        return;
+    }
+    // allocate quotient
+    vQuo->nCubes = 0;
+    vQuo->uCubes = Vec_IntFetch( vStore, Ivy_SopCubeNum(cSop) / Ivy_SopCubeNum(cDiv) );
+    // for each cube of the cover
+    // it either belongs to the quotient or to the remainder
+    Ivy_SopForEachCube( cSop, uCube, i )
+    {
+        // skip taken cubes
+        if ( Ivy_CubeIsMarked(uCube) )
+            continue;
+        // mark the cube
+        Ivy_SopSetCube( cSop, Ivy_CubeMark(uCube), i );
+        // find a matching cube in the divisor
+        Ivy_SopForEachCube( cDiv, uDiv, k )
+            if ( Ivy_CubeContains( uCube, uDiv ) )
+                break;
+        // the case when the cube is not found
+        // (later we will add marked cubes to the remainder)
+        if ( k == Ivy_SopCubeNum(cDiv) )
+            continue;
+        // if the quotient cube exist, it will be 
+        uQuo = Ivy_CubeSharp( uCube, uDiv );
+        // try to find other cubes of the divisor
+        Ivy_SopForEachCube( cDiv, uDiv2, k2 )
+        {
+            if ( k2 == k )
+                continue;
+            // find a matching cube
+            Ivy_SopForEachCube( cSop, uCube2, i2 )
+            {
+                // skip taken cubes
+                if ( Ivy_CubeIsMarked(uCube2) )
+                    continue;
+                // check if the cube can be used
+                if ( Ivy_CubeContains( uCube2, uDiv2 ) && uQuo == Ivy_CubeSharp( uCube2, uDiv2 ) )
+                    break;
+            }
+            // the case when the cube is not found
+            if ( i2 == Ivy_SopCubeNum(cSop) )
+                break;
+            // the case when the cube is found - mark it and keep going
+            Ivy_SopSetCube( cSop, Ivy_CubeMark(uCube2), i2 );
+        }
+        // if we did not find some cube, continue 
+        // (later we will add marked cubes to the remainder)
+        if ( k2 != Ivy_SopCubeNum(cDiv) )
+            continue;
+        // we found all cubes - add the quotient cube
+        Ivy_SopAddCube( vQuo, uQuo );
+    }
+    // allocate remainder
+    vRem->nCubes = 0;
+    vRem->uCubes = Vec_IntFetch( vStore, Ivy_SopCubeNum(cSop) - Ivy_SopCubeNum(vQuo) * Ivy_SopCubeNum(cDiv) );
+    // finally add the remaining cubes to the remainder 
+    // and clean the marked cubes in the cover
+    Ivy_SopForEachCube( cSop, uCube, i )
+    {
+        if ( !Ivy_CubeIsMarked(uCube) )
+            continue;
+        Ivy_SopSetCube( cSop, Ivy_CubeUnmark(uCube), i );
+        Ivy_SopAddCube( vRem, Ivy_CubeUnmark(uCube) );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives the quotient of division by literal.]
+
+  Description [Reduces the cover to be the equal to the result of
+  division of the given cover by the literal.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_SopDivideByLiteralQuo( Ivy_Sop_t * cSop, int iLit )
+{
+    unsigned uCube;
+    int i, k = 0;
+    Ivy_SopForEachCube( cSop, uCube, i )
+    {
+        if ( Ivy_CubeHasLit(uCube, iLit) )
+            Ivy_SopSetCube( cSop, Ivy_CubeRemLit(uCube, iLit), k++ );
+    }
+    Ivy_SopShrink( cSop, k );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_SopCommonCubeCover( Ivy_Sop_t * cSop, Ivy_Sop_t * vCommon, Vec_Int_t * vStore )
+{
+    unsigned uTemp, uCube;
+    int i;
+    uCube = ~(unsigned)0;
+    Ivy_SopForEachCube( cSop, uTemp, i )
+        uCube &= uTemp;
+    vCommon->nCubes = 0;
+    vCommon->uCubes = Vec_IntFetch( vStore, 1 );
+    Ivy_SopPush( vCommon, uCube );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_SopCreateInverse( Ivy_Sop_t * cSop, Vec_Int_t * vInput, int nVars, Vec_Int_t * vStore )
+{
+    unsigned uCube, uMask;
+    int i;
+    // start the cover
+    cSop->nCubes = 0;
+    cSop->uCubes = Vec_IntFetch( vStore, Vec_IntSize(vInput) );
+    // add the cubes
+    uMask = Ivy_CubeMask( nVars );
+    Vec_IntForEachEntry( vInput, uCube, i )
+        Vec_IntPush( cSop, Ivy_CubeSharp(uMask, uCube) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_SopDup( Ivy_Sop_t * cSop, Ivy_Sop_t * vCopy, Vec_Int_t * vStore )
+{
+    unsigned uCube;
+    int i;
+    // start the cover
+    vCopy->nCubes = 0;
+    vCopy->uCubes = Vec_IntFetch( vStore, Vec_IntSize(cSop) );
+    // add the cubes
+    Ivy_SopForEachCube( cSop, uTemp, i )
+        Ivy_SopPush( vCopy, uTemp );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Find the least often occurring literal.]
+
+  Description [Find the least often occurring literal among those
+  that occur more than once.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_SopWorstLiteral( Ivy_Sop_t * cSop, int nLits )
+{
+    unsigned uCube;
+    int nWord, nBit;
+    int i, k, iMin, nLitsMin, nLitsCur;
+    int fUseFirst = 1;
+
+    // go through each literal
+    iMin = -1;
+    nLitsMin = 1000000;
+    for ( i = 0; i < nLits; i++ )
+    {
+        // go through all the cubes
+        nLitsCur = 0;
+        Ivy_SopForEachCube( cSop, uCube, k )
+            if ( Ivy_CubeHasLit(uCube, i) )
+                nLitsCur++;
+        // skip the literal that does not occur or occurs once
+        if ( nLitsCur < 2 )
+            continue;
+        // check if this is the best literal
+        if ( fUseFirst )
+        {
+            if ( nLitsMin > nLitsCur )
+            {
+                nLitsMin = nLitsCur;
+                iMin = i;
+            }
+        }
+        else
+        {
+            if ( nLitsMin >= nLitsCur )
+            {
+                nLitsMin = nLitsCur;
+                iMin = i;
+            }
+        }
+    }
+    if ( nLitsMin < 1000000 )
+        return iMin;
+    return -1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes a level-zero kernel.]
+
+  Description [Modifies the cover to contain one level-zero kernel.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_SopMakeCubeFree( Ivy_Sop_t * cSop )
+{
+    unsigned uMask;
+    int i;
+    assert( Ivy_SopCubeNum(cSop) > 0 );
+    // find the common cube
+    uMask = ~(unsigned)0;
+    Ivy_SopForEachCube( cSop, uCube, i )
+        uMask &= uCube;
+    if ( uMask == 0 )
+        return;
+    // remove the common cube
+    Ivy_SopForEachCube( cSop, uCube, i )
+        Ivy_SopSetCube( cSop, Ivy_CubeSharp(uCube, uMask), i );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes a level-zero kernel.]
+
+  Description [Modifies the cover to contain one level-zero kernel.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_SopDivisorZeroKernel_rec( Ivy_Sop_t * cSop, int nLits )
+{
+    int iLit;
+    // find any literal that occurs at least two times
+    iLit = Ivy_SopWorstLiteral( cSop, nLits );
+    if ( iLit == -1 )
+        return;
+    // derive the cube-free quotient
+    Ivy_SopDivideByLiteralQuo( cSop, iLit ); // the same cover
+    Ivy_SopMakeCubeFree( cSop );             // the same cover
+    // call recursively
+    Ivy_SopDivisorZeroKernel_rec( cSop );    // the same cover
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the quick divisor of the cover.]
+
+  Description [Returns NULL, if there is not divisor other than
+  trivial.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_SopDivisor( Ivy_Sop_t * cSop, int nLits, Ivy_Sop_t * cDiv, Vec_Int_t * vStore )
+{
+    if ( Ivy_SopCubeNum(cSop) <= 1 )
+        return 0;
+    if ( Ivy_SopWorstLiteral( cSop, nLits ) == -1 )
+        return 0;
+    // duplicate the cover
+    Ivy_SopDup( cSop, cDiv, vStore );
+    // perform the kerneling
+    Ivy_SopDivisorZeroKernel_rec( cDiv, int nLits );
+    assert( Ivy_SopCubeNum(cDiv) > 0 );
+    return 1;
+}
+
+
+
+
+
+extern Dec_Edge_t  Dec_Factor32_rec( Dec_Graph_t * pFForm, Vec_Int_t * cSop, int nVars );
+extern Dec_Edge_t  Dec_Factor32LF_rec( Dec_Graph_t * pFForm, Vec_Int_t * cSop, int nVars, Vec_Int_t * vSimple );
+extern Dec_Edge_t  Dec_Factor32Trivial( Dec_Graph_t * pFForm, Vec_Int_t * cSop, int nVars );
+extern Dec_Edge_t  Dec_Factor32TrivialCube( Dec_Graph_t * pFForm, Vec_Int_t * cSop, int nVars, unsigned uCube, Vec_Int_t * vEdgeLits );
+extern Dec_Edge_t  Dec_Factor32TrivialTree_rec( Dec_Graph_t * pFForm, Dec_Edge_t * peNodes, int nNodes, int fNodeOr );
+extern int         Dec_Factor32Verify( Vec_Int_t * cSop, Dec_Graph_t * pFForm )
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -52,29 +434,38 @@ extern Vec_Int_t * Mvc_CoverCommonCubeCover( Vec_Int_t * vCover );
   SeeAlso     []
 
 ***********************************************************************/
-Dec_Graph_t * Dec_Factor32( Vec_Int_t * vCover, int nVars )
+Dec_Graph_t * Dec_Factor32( Vec_Int_t * cSop, int nVars, Vec_Int_t * vStore )
 {
+    Ivy_Sop_t cSop, cRes;
+    Ivy_Sop_t * pcSop = &cSop, * pcRes = &cRes;
     Dec_Graph_t * pFForm;
     Dec_Edge_t eRoot;
 
+    assert( nVars < 16 );
+
     // check for trivial functions
-    if ( Vec_IntSize(vCover) == 0 )
+    if ( Vec_IntSize(cSop) == 0 )
         return Dec_GraphCreateConst0();
-    if ( Vec_IntSize(vCover) == 1 && /* tautology */ )
+    if ( Vec_IntSize(cSop) == 1 && Vec_IntEntry(cSop, 0) == Ivy_CubeMask(nVars) )
         return Dec_GraphCreateConst1();
 
+    // prepare memory manager
+    Vec_IntClear( vStore );
+    Vec_IntGrow( vStore, IVY_FACTOR_MEM_LIMIT );
+
     // perform CST
-    Mvc_CoverInverse( vCover ); // CST
+    Ivy_SopCreateInverse( cSop, pcSop, nVars, vStore ); // CST
+
     // start the factored form
-    pFForm = Dec_GraphCreate( Abc_SopGetVarNum(pSop) );
+    pFForm = Dec_GraphCreate( nVars );
     // factor the cover
-    eRoot = Dec_Factor32_rec( pFForm, vCover, nVars );
+    eRoot = Dec_Factor32_rec( pFForm, cSop, 2 * nVars );
     // finalize the factored form
     Dec_GraphSetRoot( pFForm, eRoot );
+
     // verify the factored form
-//    if ( !Dec_Factor32Verify( pSop, pFForm ) )
-//        printf( "Verification has failed.\n" );
-//    Mvc_CoverInverse( vCover ); // undo CST
+    if ( !Dec_Factor32Verify( pSop, pFForm, nVars ) )
+        printf( "Verification has failed.\n" );
     return pFForm;
 }
 
@@ -89,47 +480,47 @@ Dec_Graph_t * Dec_Factor32( Vec_Int_t * vCover, int nVars )
   SeeAlso     []
 
 ***********************************************************************/
-Dec_Edge_t Dec_Factor32_rec( Dec_Graph_t * pFForm, Vec_Int_t * vCover, int nVars )
+Dec_Edge_t Dec_Factor32_rec( Dec_Graph_t * pFForm, Vec_Int_t * cSop, int nLits )
 {
-    Vec_Int_t * vDiv, * vQuo, * vRem, * vCom;
+    Vec_Int_t * cDiv, * vQuo, * vRem, * vCom;
     Dec_Edge_t eNodeDiv, eNodeQuo, eNodeRem;
     Dec_Edge_t eNodeAnd, eNode;
 
     // make sure the cover contains some cubes
-    assert( Vec_IntSize(vCover) );
+    assert( Vec_IntSize(cSop) );
 
     // get the divisor
-    vDiv = Dec_Factor32Divisor( vCover, nVars );
-    if ( vDiv == NULL )
-        return Dec_Factor32Trivial( pFForm, vCover, nVars );
+    cDiv = Ivy_SopDivisor( cSop, nLits );
+    if ( cDiv == NULL )
+        return Dec_Factor32Trivial( pFForm, cSop, nLits );
 
     // divide the cover by the divisor
-    Mvc_CoverDivideInternal( vCover, nVars, vDiv, &vQuo, &vRem );
+    Ivy_SopDivideInternal( cSop, nLits, cDiv, &vQuo, &vRem );
     assert( Vec_IntSize(vQuo) );
 
-    Vec_IntFree( vDiv );
+    Vec_IntFree( cDiv );
     Vec_IntFree( vRem );
 
     // check the trivial case
     if ( Vec_IntSize(vQuo) == 1 )
     {
-        eNode = Dec_Factor32LF_rec( pFForm, vCover, nVars, vQuo );
+        eNode = Dec_Factor32LF_rec( pFForm, cSop, nLits, vQuo );
         Vec_IntFree( vQuo );
         return eNode;
     }
 
     // make the quotient cube free
-    Mvc_CoverMakeCubeFree( vQuo );
+    Ivy_SopMakeCubeFree( vQuo );
 
     // divide the cover by the quotient
-    Mvc_CoverDivideInternal( vCover, nVars, vQuo, &vDiv, &vRem );
+    Ivy_SopDivideInternal( cSop, nLits, vQuo, &cDiv, &vRem );
 
     // check the trivial case
-    if ( Mvc_CoverIsCubeFree( vDiv ) )
+    if ( Ivy_SopIsCubeFree( cDiv ) )
     {
-        eNodeDiv = Dec_Factor32_rec( pFForm, vDiv );
+        eNodeDiv = Dec_Factor32_rec( pFForm, cDiv );
         eNodeQuo = Dec_Factor32_rec( pFForm, vQuo );
-        Vec_IntFree( vDiv );
+        Vec_IntFree( cDiv );
         Vec_IntFree( vQuo );
         eNodeAnd = Dec_GraphAddNodeAnd( pFForm, eNodeDiv, eNodeQuo );
         if ( Vec_IntSize(vRem) == 0 )
@@ -146,13 +537,13 @@ Dec_Edge_t Dec_Factor32_rec( Dec_Graph_t * pFForm, Vec_Int_t * vCover, int nVars
     }
 
     // get the common cube
-    vCom = Mvc_CoverCommonCubeCover( vDiv );
-    Vec_IntFree( vDiv );
+    vCom = Ivy_SopCommonCubeCover( cDiv );
+    Vec_IntFree( cDiv );
     Vec_IntFree( vQuo );
     Vec_IntFree( vRem );
 
     // solve the simple problem
-    eNode = Dec_Factor32LF_rec( pFForm, vCover, nVars, vCom );
+    eNode = Dec_Factor32LF_rec( pFForm, cSop, nLits, vCom );
     Vec_IntFree( vCom );
     return eNode;
 }
@@ -169,21 +560,21 @@ Dec_Edge_t Dec_Factor32_rec( Dec_Graph_t * pFForm, Vec_Int_t * vCover, int nVars
   SeeAlso     []
 
 ***********************************************************************/
-Dec_Edge_t Dec_Factor32LF_rec( Dec_Graph_t * pFForm, Vec_Int_t * vCover, int nVars, Vec_Int_t * vSimple )
+Dec_Edge_t Dec_Factor32LF_rec( Dec_Graph_t * pFForm, Vec_Int_t * cSop, int nLits, Vec_Int_t * vSimple )
 {
     Dec_Man_t * pManDec = Abc_FrameReadManDec();
     Vec_Int_t * vEdgeLits  = pManDec->vLits;
-    Vec_Int_t * vDiv, * vQuo, * vRem;
+    Vec_Int_t * cDiv, * vQuo, * vRem;
     Dec_Edge_t eNodeDiv, eNodeQuo, eNodeRem;
     Dec_Edge_t eNodeAnd;
 
     // get the most often occurring literal
-    vDiv = Mvc_CoverBestLiteralCover( vCover, nVars, vSimple );
+    cDiv = Ivy_SopBestLiteralCover( cSop, nLits, vSimple );
     // divide the cover by the literal
-    Mvc_CoverDivideByLiteral( vCover, nVars, vDiv, &vQuo, &vRem );
+    Ivy_SopDivideByLiteral( cSop, nLits, cDiv, &vQuo, &vRem );
     // get the node pointer for the literal
-    eNodeDiv = Dec_Factor32TrivialCube( pFForm, vDiv, Mvc_CoverReadCubeHead(vDiv), vEdgeLits );
-    Vec_IntFree( vDiv );
+    eNodeDiv = Dec_Factor32TrivialCube( pFForm, cDiv, Ivy_SopReadCubeHead(cDiv), vEdgeLits );
+    Vec_IntFree( cDiv );
     // factor the quotient and remainder
     eNodeQuo = Dec_Factor32_rec( pFForm, vQuo );
     Vec_IntFree( vQuo );
@@ -214,20 +605,20 @@ Dec_Edge_t Dec_Factor32LF_rec( Dec_Graph_t * pFForm, Vec_Int_t * vCover, int nVa
   SeeAlso     []
 
 ***********************************************************************/
-Dec_Edge_t Dec_Factor32Trivial( Dec_Graph_t * pFForm, Vec_Int_t * vCover, int nVars )
+Dec_Edge_t Dec_Factor32Trivial( Dec_Graph_t * pFForm, Vec_Int_t * cSop, int nLits )
 {
     Dec_Man_t * pManDec = Abc_FrameReadManDec();
     Vec_Int_t * vEdgeCubes = pManDec->vCubes;
     Vec_Int_t * vEdgeLits  = pManDec->vLits;
     Mvc_Manager_t * pMem = pManDec->pMvcMem;
     Dec_Edge_t eNode;
-    Mvc_Cube_t * pCube;
+    unsigned uCube;
     int i;
     // create the factored form for each cube
     Vec_IntClear( vEdgeCubes );
-    Mvc_CoverForEachCube( vCover, pCube )
+    Ivy_SopForEachCube( cSop, uCube )
     {
-        eNode = Dec_Factor32TrivialCube( pFForm, vCover, nVars, pCube, vEdgeLits );
+        eNode = Dec_Factor32TrivialCube( pFForm, cSop, nLits, uCube, vEdgeLits );
         Vec_IntPush( vEdgeCubes, Dec_EdgeToInt_(eNode) );
     }
     // balance the factored forms
@@ -245,13 +636,13 @@ Dec_Edge_t Dec_Factor32Trivial( Dec_Graph_t * pFForm, Vec_Int_t * vCover, int nV
   SeeAlso     []
 
 ***********************************************************************/
-Dec_Edge_t Dec_Factor32TrivialCube( Dec_Graph_t * pFForm, Vec_Int_t * vCover, Mvc_Cube_t * pCube, int nVars, Vec_Int_t * vEdgeLits )
+Dec_Edge_t Dec_Factor32TrivialCube( Dec_Graph_t * pFForm, Vec_Int_t * cSop, unsigned uCube, int nLits, Vec_Int_t * vEdgeLits )
 {
     Dec_Edge_t eNode;
     int iBit, Value;
     // create the factored form for each literal
     Vec_IntClear( vEdgeLits );
-    Mvc_CubeForEachBit( vCover, pCube, iBit, Value )
+    Mvc_CubeForEachLit( cSop, uCube, iBit, Value )
         if ( Value )
         {
             eNode = Dec_EdgeCreate( iBit/2, iBit%2 ); // CST
@@ -296,126 +687,15 @@ Dec_Edge_t Dec_Factor32TrivialTree_rec( Dec_Graph_t * pFForm, Dec_Edge_t * peNod
         return Dec_GraphAddNodeAnd( pFForm, eNode1, eNode2 );
 }
 
-/**Function*************************************************************
 
-  Synopsis    [Returns the quick divisor of the cover.]
 
-  Description [Returns NULL, if there is not divisor other than
-  trivial.]
-               
-  SideEffects []
 
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Int_t * Dec_Factor32Divisor( Vec_Int_t * vCover, int nVars )
-{
-    Vec_Int_t * pKernel;
-    if ( Vec_IntSize(vCover) <= 1 )
-        return NULL;
-    // allocate the literal array and count literals
-    if ( Mvc_CoverAnyLiteral( vCover, NULL ) == -1 )
-        return NULL;
-    // duplicate the cover
-    pKernel = Mvc_CoverDup(vCover);
-    // perform the kerneling
-    Dec_Factor32DivisorZeroKernel( pKernel );
-    assert( Vec_IntSize(pKernel) );
-    return pKernel;
-}
+// verification using temporary BDD package
+#include "cuddInt.h"
 
 /**Function*************************************************************
 
-  Synopsis    [Computes a level-zero kernel.]
-
-  Description [Modifies the cover to contain one level-zero kernel.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Dec_Factor32DivisorZeroKernel( Vec_Int_t * vCover, int nVars )
-{
-    int iLit;
-    // find any literal that occurs at least two times
-//    iLit = Mvc_CoverAnyLiteral( vCover, NULL );
-    iLit = Dec_Factor32WorstLiteral( vCover, NULL );
-//    iLit = Mvc_CoverBestLiteral( vCover, NULL );
-    if ( iLit == -1 )
-        return;
-    // derive the cube-free quotient
-    Mvc_CoverDivideByLiteralQuo( vCover, iLit ); // the same cover
-    Mvc_CoverMakeCubeFree( vCover );             // the same cover
-    // call recursively
-    Dec_Factor32DivisorZeroKernel( vCover );              // the same cover
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Find the most often occurring literal.]
-
-  Description [Find the most often occurring literal among those
-  that occur more than once.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Dec_Factor32WorstLiteral( Vec_Int_t * vCover, int nVars )
-{
-    Mvc_Cube_t * pCube;
-    int nWord, nBit;
-    int i, iMin, nLitsMin, nLitsCur;
-    int fUseFirst = 1;
-
-    // go through each literal
-    iMin = -1;
-    nLitsMin = 1000000;
-    for ( i = 0; i < vCover->nBits; i++ )
-    {
-        // get the word and bit of this literal
-        nWord = Mvc_CubeWhichWord(i);
-        nBit  = Mvc_CubeWhichBit(i);
-        // go through all the cubes
-        nLitsCur = 0;
-        Mvc_CoverForEachCube( vCover, pCube )
-            if ( pCube->pData[nWord] & (1<<nBit) )
-                nLitsCur++;
-
-        // skip the literal that does not occur or occurs once
-        if ( nLitsCur < 2 )
-            continue;
-
-        // check if this is the best literal
-        if ( fUseFirst )
-        {
-            if ( nLitsMin > nLitsCur )
-            {
-                nLitsMin = nLitsCur;
-                iMin = i;
-            }
-        }
-        else
-        {
-            if ( nLitsMin >= nLitsCur )
-            {
-                nLitsMin = nLitsCur;
-                iMin = i;
-            }
-        }
-    }
-
-    if ( nLitsMin < 1000000 )
-        return iMin;
-    return -1;
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    []
+  Synopsis    [Verifies that the factoring is correct.]
 
   Description []
                
@@ -424,272 +704,43 @@ int Dec_Factor32WorstLiteral( Vec_Int_t * vCover, int nVars )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Mvc_CoverCommonCubeCover( Vec_Int_t * vCover )
+DdNode * Ivy_SopCoverToBdd( DdManager * dd, Vec_Int_t * cSop, int nVars )
 {
-    Vec_Int_t * vRes;
-    unsigned uTemp, uCube;
-    int i;
-    uCube = ~(unsigned)0;
-    Vec_IntForEachEntry( vCover, uTemp, i )
-        uCube &= uTemp;
-    vRes = Vec_IntAlloc( 1 );
-    Vec_IntPush( vRes, uCube );
-    return vRes;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Returns 1 if the support of cover2 is contained in the support of cover1.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Mvc_CoverCheckSuppContainment( Vec_Int_t * vCover1, Vec_Int_t * vCover2 )
-{
-    unsigned uTemp, uSupp1, uSupp2;
-    int i;
-    // set the supports
-    uSupp1 = 0;
-    Vec_IntForEachEntry( vCover1, uTemp, i )
-        uSupp1 |= uTemp;
-    uSupp2 = 0;
-    Vec_IntForEachEntry( vCover2, uTemp, i )
-        uSupp2 |= uTemp;
-    // return containment
-    return uSupp1 & !uSupp2;
-//    Mvc_CubeBitNotImpl( Result, vCover2->pMask, vCover1->pMask );
-//    return !Result;
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Mvc_CoverDivide( Vec_Int_t * vCover, Vec_Int_t * vDiv, Vec_Int_t ** pvQuo, Vec_Int_t ** pvRem )
-{
-    // check the number of cubes
-    if ( Vec_IntSize( vCover ) < Vec_IntSize( vDiv ) )
+    DdNode * bSum, * bCube, * bTemp, * bVar;
+    unsigned uCube;
+    int Value, v;
+    assert( nVars < 16 );
+    // start the cover
+    bSum = Cudd_ReadLogicZero(dd);   Cudd_Ref( bSum );
+   // check the logic function of the node
+    Vec_IntForEachEntry( cSop, uCube, i )
     {
-        *pvQuo = NULL;
-        *pvRem = NULL;
-        return;
-    }
-
-    // make sure that support of vCover contains that of vDiv
-    if ( !Mvc_CoverCheckSuppContainment( vCover, vDiv ) )
-    {
-        *pvQuo = NULL;
-        *pvRem = NULL;
-        return;
-    }
-
-    // perform the general division
-    Mvc_CoverDivideInternal( vCover, vDiv, pvQuo, pvRem );
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    [Merge the cubes inside the groups.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Mvc_CoverDivideInternal( Vec_Int_t * vCover, Vec_Int_t * vDiv, Vec_Int_t ** pvQuo, Vec_Int_t ** pvRem )
-{
-    Vec_Int_t * vQuo, * vRem;
-    Mvc_Cube_t * pCubeC, * pCubeD, * pCubeCopy;
-    Mvc_Cube_t * pCube1, * pCube2;
-    int * pGroups, nGroups;    // the cube groups
-    int nCubesC, nCubesD, nMerges, iCubeC, iCubeD, iMerge;
-    int fSkipG, GroupSize, g, c, RetValue;
-    int nCubes;
-
-    // get cover sizes
-    nCubesD = Vec_IntSize( vDiv );
-    nCubesC = Vec_IntSize( vCover );
-
-    // check trivial cases
-    if ( nCubesD == 1 )
-    {
-        if ( Mvc_CoverIsOneLiteral( vDiv ) )
-            Mvc_CoverDivideByLiteral( vCover, vDiv, pvQuo, pvRem );
-        else
-            Mvc_CoverDivideByCube( vCover, vDiv, pvQuo, pvRem );
-        return;
-    }
-
-    // create the divisor and the remainder 
-    vQuo = Mvc_CoverAlloc( vCover->pMem, vCover->nBits );
-    vRem = Mvc_CoverAlloc( vCover->pMem, vCover->nBits );
-
-    // get the support of the divisor
-    Mvc_CoverAllocateMask( vDiv );
-    Mvc_CoverSupport( vDiv, vDiv->pMask );
-
-    // sort the cubes of the divisor
-    Mvc_CoverSort( vDiv, NULL, Mvc_CubeCompareInt );
-    // sort the cubes of the cover
-    Mvc_CoverSort( vCover, vDiv->pMask, Mvc_CubeCompareIntOutsideAndUnderMask );
-
-    // allocate storage for cube groups
-    pGroups = MEM_ALLOC( vCover->pMem, int, nCubesC + 1 );
-
-    // mask contains variables in the support of Div
-    // split the cubes into groups using the mask
-    Mvc_CoverList2Array( vCover );
-    Mvc_CoverList2Array( vDiv );
-    pGroups[0] = 0;
-    nGroups    = 1;
-    for ( c = 1; c < nCubesC; c++ )
-    {
-        // get the cubes
-        pCube1 = vCover->pCubes[c-1];
-        pCube2 = vCover->pCubes[c  ];
-        // compare the cubes
-        Mvc_CubeBitEqualOutsideMask( RetValue, pCube1, pCube2, vDiv->pMask );
-        if ( !RetValue )
-            pGroups[nGroups++] = c;
-    }
-    // finish off the last group
-    pGroups[nGroups] = nCubesC;
-
-    // consider each group separately and decide
-    // whether it can produce a quotient cube
-    nCubes = 0;
-    for ( g = 0; g < nGroups; g++ )
-    {
-        // if the group has less than nCubesD cubes, 
-        // there is no way it can produce the quotient cube
-        // copy the cubes to the remainder
-        GroupSize = pGroups[g+1] - pGroups[g];
-        if ( GroupSize < nCubesD )
+        bCube = Cudd_ReadOne(dd);   Cudd_Ref( bCube );
+        for ( v = 0; v < nVars; v++ )
         {
-            for ( c = pGroups[g]; c < pGroups[g+1]; c++ )
-            {
-                pCubeCopy = Mvc_CubeDup( vRem, vCover->pCubes[c] );
-                Mvc_CoverAddCubeTail( vRem, pCubeCopy );
-                nCubes++;
-            }
-            continue;
-        }
-
-        // mark the cubes as those that should be added to the remainder
-        for ( c = pGroups[g]; c < pGroups[g+1]; c++ )
-            Mvc_CubeSetSize( vCover->pCubes[c], 1 );
-
-        // go through the cubes in the group and at the same time
-        // go through the cubes in the divisor
-        iCubeD  = 0;
-        iCubeC  = 0;
-        pCubeD  = vDiv->pCubes[iCubeD++];
-        pCubeC  = vCover->pCubes[pGroups[g]+iCubeC++];
-        fSkipG  = 0;
-        nMerges = 0;
-
-        while ( 1 )
-        {
-            // compare the topmost cubes in F and in D
-            RetValue = Mvc_CubeCompareIntUnderMask( pCubeC, pCubeD, vDiv->pMask );
-            // cube are ordered in increasing order of their int value
-            if ( RetValue == -1 ) // pCubeC is above pCubeD
-            {  // cube in C should be added to the remainder
-                // check that there is enough cubes in the group
-                if ( GroupSize - iCubeC < nCubesD - nMerges )
-                {
-                    fSkipG = 1;
-                    break;
-                }
-                // get the next cube in the cover
-                pCubeC = vCover->pCubes[pGroups[g]+iCubeC++];
+            Value = ((uCube >> 2*v) & 3);
+            if ( Value == 1 )
+                bVar = Cudd_Not( Cudd_bddIthVar( dd, v ) );
+            else if ( Value == 2 )
+                bVar = Cudd_bddIthVar( dd, v );
+            else
                 continue;
-            }
-            if ( RetValue == 1 ) // pCubeD is above pCubeC
-            { // given cube in D does not have a corresponding cube in the cover
-                fSkipG = 1;
-                break;
-            }
-            // mark the cube as the one that should NOT be added to the remainder
-            Mvc_CubeSetSize( pCubeC, 0 );
-            // remember this merged cube
-            iMerge = iCubeC-1;
-            nMerges++;
-
-            // stop if we considered the last cube of the group
-            if ( iCubeD == nCubesD )
-                break;
-
-            // advance the cube of the divisor
-            assert( iCubeD < nCubesD );
-            pCubeD = vDiv->pCubes[iCubeD++];
-
-            // advance the cube of the group
-            assert( pGroups[g]+iCubeC < nCubesC );
-            pCubeC = vCover->pCubes[pGroups[g]+iCubeC++];
+            bCube  = Cudd_bddAnd( dd, bTemp = bCube, bVar );   Cudd_Ref( bCube );
+            Cudd_RecursiveDeref( dd, bTemp );
         }
-
-        if ( fSkipG )
-        { 
-            // the group has failed, add all the cubes to the remainder
-            for ( c = pGroups[g]; c < pGroups[g+1]; c++ )
-            {
-                pCubeCopy = Mvc_CubeDup( vRem, vCover->pCubes[c] );
-                Mvc_CoverAddCubeTail( vRem, pCubeCopy );
-                nCubes++;
-            }
-            continue;
-        }
-
-        // the group has worked, add left-over cubes to the remainder
-        for ( c = pGroups[g]; c < pGroups[g+1]; c++ )
-        {
-            pCubeC = vCover->pCubes[c];
-            if ( Mvc_CubeReadSize(pCubeC) )
-            {
-                pCubeCopy = Mvc_CubeDup( vRem, pCubeC );
-                Mvc_CoverAddCubeTail( vRem, pCubeCopy );
-                nCubes++;
-            }
-        }
-
-        // create the quotient cube
-        pCube1 = Mvc_CubeAlloc( vQuo );
-        Mvc_CubeBitSharp( pCube1, vCover->pCubes[pGroups[g]+iMerge], vDiv->pMask );
-        // add the cube to the quotient
-        Mvc_CoverAddCubeTail( vQuo, pCube1 );
-        nCubes += nCubesD;
+        bSum = Cudd_bddOr( dd, bTemp = bSum, bCube );   
+        Cudd_Ref( bSum );
+        Cudd_RecursiveDeref( dd, bTemp );
+        Cudd_RecursiveDeref( dd, bCube );
     }
-    assert( nCubes == nCubesC );
-
-    // deallocate the memory
-    MEM_FREE( vCover->pMem, int, nCubesC + 1, pGroups );
-
-    // return the results
-    *pvRem = vRem;
-    *pvQuo = vQuo;
-//    Mvc_CoverVerifyDivision( vCover, vDiv, vQuo, vRem );
+    // complement the result if necessary
+    Cudd_Deref( bSum );
+    return bSum;
 }
-
 
 /**Function*************************************************************
 
-  Synopsis    [Divides the cover by a cube.]
+  Synopsis    [Verifies that the factoring is correct.]
 
   Description []
                
@@ -698,133 +749,32 @@ void Mvc_CoverDivideInternal( Vec_Int_t * vCover, Vec_Int_t * vDiv, Vec_Int_t **
   SeeAlso     []
 
 ***********************************************************************/
-void Mvc_CoverDivideByCube( Vec_Int_t * vCover, Vec_Int_t * vDiv, Vec_Int_t ** pvQuo, Vec_Int_t ** pvRem )
+int Dec_Factor32Verify( Vec_Int_t * cSop, Dec_Graph_t * pFForm, int nVars )
 {
-    Vec_Int_t * vQuo, * vRem;
-    Mvc_Cube_t * pCubeC, * pCubeD, * pCubeCopy;
-    int ComvResult;
-
-    // get the only cube of D
-    assert( Vec_IntSize(vDiv) == 1 );
-
-    // start the quotient and the remainder
-    vQuo = Mvc_CoverAlloc( vCover->pMem, vCover->nBits );
-    vRem = Mvc_CoverAlloc( vCover->pMem, vCover->nBits );
-
-    // get the first and only cube of the divisor
-    pCubeD = Mvc_CoverReadCubeHead( vDiv );
-
-    // iterate through the cubes in the cover
-    Mvc_CoverForEachCube( vCover, pCubeC )
+    static DdManager * dd = NULL;
+    DdNode * bFunc1, * bFunc2;
+    int RetValue;
+    // get the manager
+    if ( dd == NULL )
+        dd = Cudd_Init( 16, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+    // get the functions
+    bFunc1 = Ivy_SopCoverToBdd( dd, cSop, nVars );   Cudd_Ref( bFunc1 );
+    bFunc2 = Dec_GraphDeriveBdd( dd, pFForm );         Cudd_Ref( bFunc2 );
+//Extra_bddPrint( dd, bFunc1 ); printf("\n");
+//Extra_bddPrint( dd, bFunc2 ); printf("\n");
+    RetValue = (bFunc1 == bFunc2);
+    if ( bFunc1 != bFunc2 )
     {
-        // check the containment of literals from pCubeD in pCube
-        Mvc_Cube2BitNotImpl( ComvResult, pCubeD, pCubeC );
-        if ( !ComvResult )
-        { // this cube belongs to the quotient
-            // alloc the cube
-            pCubeCopy = Mvc_CubeAlloc( vQuo );
-            // clean the support of D
-            Mvc_CubeBitSharp( pCubeCopy, pCubeC, pCubeD );
-            // add the cube to the quotient
-            Mvc_CoverAddCubeTail( vQuo, pCubeCopy );
-        }
-        else
-        { 
-            // copy the cube
-            pCubeCopy = Mvc_CubeDup( vRem, pCubeC );
-            // add the cube to the remainder
-            Mvc_CoverAddCubeTail( vRem, pCubeCopy );
-        }
+        int s;
+        Extra_bddPrint( dd, bFunc1 ); printf("\n");
+        Extra_bddPrint( dd, bFunc2 ); printf("\n");
+        s  = 0;
     }
-    // return the results
-    *pvRem = vRem;
-    *pvQuo = vQuo;
+    Cudd_RecursiveDeref( dd, bFunc1 );
+    Cudd_RecursiveDeref( dd, bFunc2 );
+    return RetValue;
 }
 
-/**Function*************************************************************
-
-  Synopsis    [Divides the cover by a literal.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Mvc_CoverDivideByLiteral( Vec_Int_t * vCover, Vec_Int_t * vDiv, Vec_Int_t ** pvQuo, Vec_Int_t ** pvRem )
-{
-    Vec_Int_t * vQuo, * vRem;
-    Mvc_Cube_t * pCubeC, * pCubeCopy;
-    int iLit;
-
-    // get the only cube of D
-    assert( Vec_IntSize(vDiv) == 1 );
-
-    // start the quotient and the remainder
-    vQuo = Mvc_CoverAlloc( vCover->pMem, vCover->nBits );
-    vRem = Mvc_CoverAlloc( vCover->pMem, vCover->nBits );
-
-    // get the first and only literal in the divisor cube
-    iLit = Mvc_CoverFirstCubeFirstLit( vDiv );
-
-    // iterate through the cubes in the cover
-    Mvc_CoverForEachCube( vCover, pCubeC )
-    {
-        // copy the cube
-        pCubeCopy = Mvc_CubeDup( vCover, pCubeC );
-        // add the cube to the quotient or to the remainder depending on the literal
-        if ( Mvc_CubeBitValue( pCubeCopy, iLit ) )
-        {   // remove the literal
-            Mvc_CubeBitRemove( pCubeCopy, iLit );
-            // add the cube ot the quotient
-            Mvc_CoverAddCubeTail( vQuo, pCubeCopy );
-        }
-        else
-        {   // add the cube ot the remainder
-            Mvc_CoverAddCubeTail( vRem, pCubeCopy );
-        }
-    }
-    // return the results
-    *pvRem = vRem;
-    *pvQuo = vQuo;
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    [Derives the quotient of division by literal.]
-
-  Description [Reduces the cover to be the equal to the result of
-  division of the given cover by the literal.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Mvc_CoverDivideByLiteralQuo( Vec_Int_t * vCover, int iLit )
-{
-    Mvc_Cube_t * pCube, * pCube2, * pPrev;
-    // delete those cubes that do not have this literal
-    // remove this literal from other cubes
-    pPrev = NULL;
-    Mvc_CoverForEachCubeSafe( vCover, pCube, pCube2 )
-    {
-        if ( Mvc_CubeBitValue( pCube, iLit ) == 0 )
-        { // delete the cube from the cover
-            Mvc_CoverDeleteCube( vCover, pPrev, pCube );
-            Mvc_CubeFree( vCover, pCube );
-            // don't update the previous cube
-        }
-        else
-        { // delete this literal from the cube
-            Mvc_CubeBitRemove( pCube, iLit );
-            // update the previous cube
-            pPrev = pCube;
-        }
-    }
-}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

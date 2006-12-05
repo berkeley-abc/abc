@@ -21,6 +21,7 @@ SRC +=    src/base/abci/abc.c \
     src/base/abci/abcMap.c \
     src/base/abci/abcMini.c \
     src/base/abci/abcMiter.c \
+    src/base/abci/abcMulti.c \
     src/base/abci/abcNtbdd.c \
     src/base/abci/abcOrder.c \
     src/base/abci/abcPrint.c \
@@ -28,6 +29,7 @@ SRC +=    src/base/abci/abc.c \
     src/base/abci/abcReconv.c \
     src/base/abci/abcRefactor.c \
     src/base/abci/abcRenode.c \
+    src/base/abci/abcReorder.c \
     src/base/abci/abcRestruct.c \
     src/base/abci/abcResub.c \
     src/base/abci/abcRewrite.c \

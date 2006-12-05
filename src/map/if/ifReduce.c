@@ -522,11 +522,11 @@ void If_ManImproveNodeReduce( If_Man_t * p, If_Obj_t * pObj, int nLimit )
 
     // merge the cuts
     pCutR = p->ppCuts[0];
-    RetValue = If_CutMerge( pCut0, pCut1, pCutR, nLimit );
+    RetValue = If_CutMerge( pCut0, pCut1, pCutR );
     // try very simple cut
     if ( !RetValue )
     {
-        RetValue = If_CutMerge( If_ObjCutTriv(pFanin0), If_ObjCutTriv(pFanin1), pCutR, nLimit );
+        RetValue = If_CutMerge( If_ObjCutTriv(pFanin0), If_ObjCutTriv(pFanin1), pCutR );
         assert( RetValue == 1 );
     }
     if ( RetValue )

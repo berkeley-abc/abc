@@ -30,7 +30,6 @@ alias fs fraig_sweep
 alias fsto fraig_store
 alias fres fraig_restore
 alias ft fraig_trust
-alias mu renode -m
 alias pex print_exdc -d
 alias pf print_factor
 alias pfan print_fanio

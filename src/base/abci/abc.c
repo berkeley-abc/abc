@@ -53,6 +53,7 @@ static int Abc_CommandShowCut        ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandCollapse       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandStrash         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBalance        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandMulti          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRenode         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCleanup        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSweep          ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -184,6 +185,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "collapse",      Abc_CommandCollapse,         1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "strash",        Abc_CommandStrash,           1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "balance",       Abc_CommandBalance,          1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "multi",         Abc_CommandMulti,            1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "renode",        Abc_CommandRenode,           1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "cleanup",       Abc_CommandCleanup,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "sweep",         Abc_CommandSweep,            1 );
@@ -1911,7 +1913,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandMulti( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
@@ -1920,6 +1922,7 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fMulti;
     int fSimple;
     int fFactor;
+    extern Abc_Ntk_t * Abc_NtkMulti( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax, int fCnf, int fMulti, int fSimple, int fFactor );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -1990,7 +1993,7 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    pNtkRes = Abc_NtkRenode( pNtk, nThresh, nFaninMax, fCnf, fMulti, fSimple, fFactor );
+    pNtkRes = Abc_NtkMulti( pNtk, nThresh, nFaninMax, fCnf, fMulti, fSimple, fFactor );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Renoding has failed.\n" );
@@ -2001,7 +2004,7 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: renode [-T num] [-F num] [-msfch]\n" );
+    fprintf( pErr, "usage: multi [-T num] [-F num] [-msfch]\n" );
     fprintf( pErr, "\t          transforms an AIG into a logic network by creating larger nodes\n" );
     fprintf( pErr, "\t-F num  : the maximum fanin size after renoding [default = %d]\n", nFaninMax );
     fprintf( pErr, "\t-T num  : the threshold for AIG node duplication [default = %d]\n", nThresh );
@@ -2012,6 +2015,95 @@ usage:
     fprintf( pErr, "\t-s      : creates a simple AIG (no renoding) [default = %s]\n", fSimple? "yes": "no" );
     fprintf( pErr, "\t-f      : creates a factor-cut network [default = %s]\n", fFactor? "yes": "no" );
     fprintf( pErr, "\t-c      : performs renoding to derive the CNF [default = %s]\n", fCnf? "yes": "no" );
+    fprintf( pErr, "\t-h      : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int nFaninMax, c;
+    int fUseBdds;
+    int fVerbose;
+    extern Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int fUseBdds, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    nFaninMax =  8;
+    fUseBdds  =  0;
+    fVerbose  =  0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Fbvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFaninMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFaninMax < 0 ) 
+                goto usage;
+            break;
+        case 'b':
+            fUseBdds ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "Cannot renode a network that is not an AIG (run \"strash\").\n" );
+        return 1;
+    }
+
+    // get the new network
+    pNtkRes = Abc_NtkRenode( pNtk, nFaninMax, fUseBdds, fVerbose );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Renoding has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: renode [-F num] [-bv]\n" );
+    fprintf( pErr, "\t          transforms an AIG into a logic network by creating larger nodes\n" );
+    fprintf( pErr, "\t-F num  : the maximum fanin size after renoding [default = %d]\n", nFaninMax );
+    fprintf( pErr, "\t-b      : toggles cost function (BDD nodes or FF literals) [default = %s]\n", fUseBdds? "BDD nodes": "FF literals" );
+    fprintf( pErr, "\t-v      : print verbose information [default = %s]\n", fVerbose? "yes": "no" ); 
     fprintf( pErr, "\t-h      : print the command usage\n");
     return 1;
 }
@@ -7391,19 +7483,26 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     memset( pPars, 0, sizeof(If_Par_t) );
+    // user-controlable paramters
     pPars->Mode        =  0;
     pPars->nLutSize    =  4;
-//    pPars->pLutLib    =  Abc_FrameReadLibLut();
     pPars->nCutsMax    = 20;
+    pPars->DelayTarget = -1;
     pPars->fPreprocess =  1;
     pPars->fArea       =  0;
     pPars->fFancy      =  0;
-    pPars->fLatchPaths =  0;
     pPars->fExpRed     =  1;
+    pPars->fLatchPaths =  0;
     pPars->fSeq        =  0;
-    pPars->nLatches    =  0;
-    pPars->DelayTarget = -1;
     pPars->fVerbose    =  0;
+    // internal parameters
+    pPars->fTruth      =  1;
+    pPars->nLatches    =  pNtk? Abc_NtkLatchNum(pNtk) : 0;
+    pPars->pLutLib     =  NULL; // Abc_FrameReadLibLut();
+    pPars->pTimesArr   =  NULL; 
+    pPars->pTimesArr   =  NULL;   
+    pPars->pFuncCost   =  NULL;   
+
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "MKCDpaflrsvh" ) ) != EOF )
     {

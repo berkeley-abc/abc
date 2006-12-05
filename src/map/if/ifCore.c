@@ -59,20 +59,20 @@ int If_ManPerformMapping( If_Man_t * p )
     else
         If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 1 );
     // try to improve area by expanding and reducing the cuts
-    if ( p->pPars->fExpRed )
+    if ( p->pPars->fExpRed && !p->pPars->fTruth )
         If_ManImproveMapping( p );
     // area flow oriented mapping
     for ( i = 0; i < nItersFlow; i++ )
     {
         If_ManPerformMappingRound( p, p->pPars->nCutsMax, 1, 1 );
-        if ( p->pPars->fExpRed )
+        if ( p->pPars->fExpRed && !p->pPars->fTruth )
             If_ManImproveMapping( p );
     }
     // area oriented mapping
     for ( i = 0; i < nItersArea; i++ )
     {
         If_ManPerformMappingRound( p, p->pPars->nCutsMax, 2, 1 );
-        if ( p->pPars->fExpRed )
+        if ( p->pPars->fExpRed && !p->pPars->fTruth )
             If_ManImproveMapping( p );
     }
     if ( p->pPars->fVerbose )

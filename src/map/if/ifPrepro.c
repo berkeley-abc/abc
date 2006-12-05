@@ -1,12 +1,12 @@
 /**CFile****************************************************************
 
-  FileName    [ifSelect.c]
+  FileName    [ifPrepro.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
   PackageName [FPGA mapping based on priority cuts.]
 
-  Synopsis    [Selects what mapping to use.]
+  Synopsis    [Selects the starting mapping.]
 
   Author      [Alan Mishchenko]
   
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - November 21, 2006.]
 
-  Revision    [$Id: ifSelect.c,v 1.00 2006/11/21 00:00:00 alanmi Exp $]
+  Revision    [$Id: ifPrepro.c,v 1.00 2006/11/21 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 

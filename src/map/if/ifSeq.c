@@ -95,7 +95,7 @@ int If_ManPerformMappingSeq( If_Man_t * p )
 ***********************************************************************/
 void If_CutLift( If_Cut_t * pCut )
 {
-    int i;
+    unsigned i;
     for ( i = 0; i < pCut->nLeaves; i++ )
         pCut->pLeaves[i] = ((pCut->pLeaves[i] >> 8) << 8) | ((pCut->pLeaves[i] & 255) + 1);
 }

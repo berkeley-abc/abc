@@ -46,6 +46,7 @@ static void  Abc_NtkVerifyReportErrorSeq( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, 
 ***********************************************************************/
 void Abc_NtkCecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nInsLimit )
 {
+    extern Abc_Ntk_t * Abc_NtkMulti( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax, int fCnf, int fMulti, int fSimple, int fFactor );
     Abc_Ntk_t * pMiter;
     Abc_Ntk_t * pCnf;
     int RetValue;
@@ -76,7 +77,7 @@ void Abc_NtkCecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nI
     }
 
     // convert the miter into a CNF
-    pCnf = Abc_NtkRenode( pMiter, 0, 100, 1, 0, 0, 0 );
+    pCnf = Abc_NtkMulti( pMiter, 0, 100, 1, 0, 0, 0 );
     Abc_NtkDelete( pMiter );
     if ( pCnf == NULL )
     {
@@ -207,6 +208,7 @@ void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fV
 ***********************************************************************/
 void Abc_NtkSecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nInsLimit, int nFrames )
 {
+    extern Abc_Ntk_t * Abc_NtkMulti( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax, int fCnf, int fMulti, int fSimple, int fFactor );
     Abc_Ntk_t * pMiter;
     Abc_Ntk_t * pFrames;
     Abc_Ntk_t * pCnf;
@@ -256,7 +258,7 @@ void Abc_NtkSecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nI
     }
 
     // convert the miter into a CNF
-    pCnf = Abc_NtkRenode( pFrames, 0, 100, 1, 0, 0, 0 );
+    pCnf = Abc_NtkMulti( pFrames, 0, 100, 1, 0, 0, 0 );
     Abc_NtkDelete( pFrames );
     if ( pCnf == NULL )
     {

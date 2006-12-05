@@ -57,9 +57,20 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
     p->vMapped = Vec_PtrAlloc( 100 );
     p->vTemp   = Vec_PtrAlloc( 100 );
     // prepare the memory manager
-    p->nEntrySize = sizeof(If_Obj_t) + p->pPars->nCutsMax * (sizeof(If_Cut_t) + sizeof(int) * p->pPars->nLutSize);
-    p->nEntryBase = sizeof(If_Obj_t) + p->pPars->nCutsMax * (sizeof(If_Cut_t));
+    p->nTruthSize = p->pPars->fTruth? If_CutTruthWords( p->pPars->nLutSize ) : 0;
+    p->nCutSize   = sizeof(If_Cut_t) + sizeof(int) * p->pPars->nLutSize + sizeof(unsigned) * p->nTruthSize;
+    p->nEntrySize = sizeof(If_Obj_t) + p->pPars->nCutsMax * p->nCutSize;
+    p->nEntryBase = sizeof(If_Obj_t) + p->pPars->nCutsMax * sizeof(If_Cut_t);
     p->pMem = Mem_FixedStart( p->nEntrySize );
+    // report expected memory usage
+    if ( p->pPars->fVerbose )
+        printf( "Memory (bytes): Truth = %3d. Cut = %3d. Entry = %4d. Total = %.2f Mb / 1K AIG nodes\n", 
+            4 * p->nTruthSize, p->nCutSize, p->nEntrySize, 1000.0 * p->nEntrySize / (1<<20) );
+    // room for temporary truth tables
+    p->puTemp[0] = p->pPars->fTruth? ALLOC( unsigned, 4 * p->nTruthSize ) : NULL;
+    p->puTemp[1] = p->puTemp[0] + p->nTruthSize;
+    p->puTemp[2] = p->puTemp[1] + p->nTruthSize;
+    p->puTemp[3] = p->puTemp[2] + p->nTruthSize;
     // create the constant node
     p->pConst1 = If_ManSetupObj( p );
     p->pConst1->Type = IF_CONST1;
@@ -100,6 +111,7 @@ void If_ManStop( If_Man_t * p )
     for ( i = 1; i < 1 + p->pPars->nCutsMax * p->pPars->nCutsMax; i++ )
         if ( pTemp > p->ppCuts[i] )
             pTemp = p->ppCuts[i];
+    FREE( p->puTemp[0] );
     free( pTemp );
     free( p->ppCuts );
     free( p );
@@ -200,7 +212,12 @@ If_Obj_t * If_ManSetupObj( If_Man_t * p )
     // organize memory
     pArrays = (int *)((char *)pObj + p->nEntryBase);
     for ( i = 0; i < p->pPars->nCutsMax; i++ )
-        pObj->Cuts[i].pLeaves = pArrays + i * p->pPars->nLutSize;
+    {
+        pCut = pObj->Cuts + i;
+        pCut->nLimit  = p->pPars->nLutSize;
+        pCut->pLeaves = pArrays + i * p->pPars->nLutSize;
+        pCut->pTruth  = pArrays + p->pPars->nCutsMax * p->pPars->nLutSize + i * p->nTruthSize;
+    }
     // assign ID and save 
     pObj->Id = Vec_PtrSize(p->vObjs);
     Vec_PtrPush( p->vObjs, pObj );
@@ -230,22 +247,24 @@ If_Obj_t * If_ManSetupObj( If_Man_t * p )
 If_Cut_t ** If_ManSetupCuts( If_Man_t * p )
 {
     If_Cut_t ** pCutStore;
-    int * pArrays, nCutSize, nCutsTotal, i;
+    int * pArrays, nCutsTotal, i;
     // decide how many cuts to alloc
     nCutsTotal = 1 + p->pPars->nCutsMax * p->pPars->nCutsMax;
-    // figure out the cut size
-    nCutSize = sizeof(If_Cut_t) + sizeof(int) * p->pPars->nLutSize;
     // allocate and clean space for cuts
     pCutStore = (If_Cut_t **)ALLOC( If_Cut_t *, (nCutsTotal + 1) );
     memset( pCutStore, 0, sizeof(If_Cut_t *) * (nCutsTotal + 1) );
-    pCutStore[0] = (If_Cut_t *)ALLOC( char, nCutSize * nCutsTotal );
-    memset( pCutStore[0], 0, nCutSize * nCutsTotal );
-    for ( i = 1; i < nCutsTotal; i++ )
-        pCutStore[i] = (If_Cut_t *)((char *)pCutStore[0] + sizeof(If_Cut_t) * i);
-    // assign room for cut leaves
+    pCutStore[0] = (If_Cut_t *)ALLOC( char, p->nCutSize * nCutsTotal );
+    memset( pCutStore[0], 0, p->nCutSize * nCutsTotal );
+    // assign cut paramters and space for the cut leaves
+    assert( sizeof(int) == sizeof(unsigned) );
     pArrays = (int *)((char *)pCutStore[0] + sizeof(If_Cut_t) * nCutsTotal);
     for ( i = 0; i < nCutsTotal; i++ )
+    {
+        pCutStore[i] = (If_Cut_t *)((char *)pCutStore[0] + sizeof(If_Cut_t) * i);
+        pCutStore[i]->nLimit  = p->pPars->nLutSize;
         pCutStore[i]->pLeaves = pArrays + i * p->pPars->nLutSize;
+        pCutStore[i]->pTruth  = pArrays + nCutsTotal * p->pPars->nLutSize + i * p->nTruthSize;
+    }
     return pCutStore;
 }
 

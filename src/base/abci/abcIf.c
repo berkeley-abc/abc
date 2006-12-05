@@ -28,8 +28,7 @@
 static If_Man_t *  Abc_NtkToIf( Abc_Ntk_t * pNtk, If_Par_t * pPars );
 static Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk );
 static Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t * pIfObj );
-static Hop_Obj_t * Abc_NodeIfToHop( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Cut_t * pCut );
-static Hop_Obj_t * Abc_NodeIfToHop2( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj_t * pIfObj );
+static Hop_Obj_t * Abc_NodeIfToHop( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj_t * pIfObj );
  
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -75,7 +74,7 @@ Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
         return NULL;
     }
 
-    // transform the result of mapping into a BDD network
+    // transform the result of mapping into the new network
     pNtkNew = Abc_NtkFromIf( pIfMan, pNtk );
     if ( pNtkNew == NULL )
         return NULL;
@@ -163,7 +162,10 @@ Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk )
     Abc_Obj_t * pNode, * pNodeNew;
     int i, nDupGates;
     // create the new network
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_AIG );
+    if ( pIfMan->pPars->fUseBdds )
+        pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_BDD );
+    else
+        pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_AIG );
     // prepare the mapping manager
     If_ManCleanNodeCopy( pIfMan );
     If_ManCleanCutData( pIfMan );
@@ -221,8 +223,33 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
     If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, i )
         Abc_ObjAddFanin( pNodeNew, Abc_NodeFromIf_rec(pNtkNew, pIfMan, pIfLeaf) );
     // derive the function of this node
-//    pNodeNew->pData = Abc_NodeIfToHop( pNtkNew->pManFunc, pIfMan, pCutBest );
-    pNodeNew->pData = Abc_NodeIfToHop2( pNtkNew->pManFunc, pIfMan, pIfObj );
+
+    if ( pIfMan->pPars->fTruth )
+    {
+        if ( pIfMan->pPars->fUseBdds )
+        { 
+            extern void Abc_NodeBddReorder( void * p, Abc_Obj_t * pNode );
+            extern DdNode * Kit_TruthToBdd( DdManager * dd, unsigned * pTruth, int nVars );
+            // transform truth table into the BDD 
+            pNodeNew->pData = Kit_TruthToBdd( pNtkNew->pManFunc, If_CutTruth(pCutBest), pCutBest->nLimit );
+            // reorder the fanins to minimize the BDD size
+            Abc_NodeBddReorder( pIfMan->pPars->pReoMan, pNodeNew );
+        }
+        else
+        {
+            typedef int Kit_Graph_t;
+            extern Kit_Graph_t * Kit_TruthToGraph( unsigned * pTruth, int nVars );
+            extern Hop_Obj_t * Dec_GraphToNetworkAig( Hop_Man_t * pMan, Kit_Graph_t * pGraph );
+            // transform truth table into the decomposition tree
+            Kit_Graph_t * pGraph = Kit_TruthToGraph( If_CutTruth(pCutBest), pCutBest->nLimit );
+            // derive the AIG for that tree
+            pNodeNew->pData = Dec_GraphToNetworkAig( pNtkNew->pManFunc, pGraph );
+            Kit_GraphFree( pGraph );
+        }
+    }
+    else
+
+        pNodeNew->pData = Abc_NodeIfToHop( pNtkNew->pManFunc, pIfMan, pIfObj );
     If_ObjSetCopy( pIfObj, pNodeNew );
     return pNodeNew;
 }
@@ -238,70 +265,7 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
   SeeAlso     []
 
 ***********************************************************************/
-Hop_Obj_t * Abc_NodeIfToHop_rec( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Cut_t * pCut, Vec_Ptr_t * vVisited )
-{
-    Hop_Obj_t * gFunc, * gFunc0, * gFunc1;
-    // if the cut is visited, return the result
-    if ( If_CutData(pCut) )
-        return If_CutData(pCut);
-    // compute the functions of the children
-    gFunc0 = Abc_NodeIfToHop_rec( pHopMan, pIfMan, pCut->pOne, vVisited );
-    gFunc1 = Abc_NodeIfToHop_rec( pHopMan, pIfMan, pCut->pTwo, vVisited );
-    // get the function of the cut
-    gFunc  = Hop_And( pHopMan, Hop_NotCond(gFunc0, pCut->fCompl0), Hop_NotCond(gFunc1, pCut->fCompl1) );  
-    gFunc  = Hop_NotCond( gFunc, pCut->Phase );
-    assert( If_CutData(pCut) == NULL );
-    If_CutSetData( pCut, gFunc );
-    // add this cut to the visited list
-    Vec_PtrPush( vVisited, pCut );
-    return gFunc;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Derives the truth table for one cut.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Hop_Obj_t * Abc_NodeIfToHop( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Cut_t * pCut )
-{
-    Hop_Obj_t * gFunc;
-    If_Obj_t * pLeaf;
-    int i;
-    assert( pCut->nLeaves > 1 );
-    // set the leaf variables
-    If_CutForEachLeaf( pIfMan, pCut, pLeaf, i )
-        If_CutSetData( If_ObjCutTriv(pLeaf), Hop_IthVar(pHopMan, i) );
-    // recursively compute the function while collecting visited cuts
-    Vec_PtrClear( pIfMan->vTemp );
-    gFunc = Abc_NodeIfToHop_rec( pHopMan, pIfMan, pCut, pIfMan->vTemp ); 
-//    printf( "%d ", Vec_PtrSize(p->vTemp) );
-    // clean the cuts
-    If_CutForEachLeaf( pIfMan, pCut, pLeaf, i )
-        If_CutSetData( If_ObjCutTriv(pLeaf), NULL );
-    Vec_PtrForEachEntry( pIfMan->vTemp, pCut, i )
-        If_CutSetData( pCut, NULL );
-    return gFunc;
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    [Recursively derives the truth table for the cut.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Hop_Obj_t * Abc_NodeIfToHop2_rec( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj_t * pIfObj, Vec_Ptr_t * vVisited )
+Hop_Obj_t * Abc_NodeIfToHop_rec( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj_t * pIfObj, Vec_Ptr_t * vVisited )
 {
     If_Cut_t * pCut;
     Hop_Obj_t * gFunc, * gFunc0, * gFunc1;
@@ -311,11 +275,10 @@ Hop_Obj_t * Abc_NodeIfToHop2_rec( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj
     if ( If_CutData(pCut) )
         return If_CutData(pCut);
     // compute the functions of the children
-    gFunc0 = Abc_NodeIfToHop2_rec( pHopMan, pIfMan, pIfObj->pFanin0, vVisited );
-    gFunc1 = Abc_NodeIfToHop2_rec( pHopMan, pIfMan, pIfObj->pFanin1, vVisited );
+    gFunc0 = Abc_NodeIfToHop_rec( pHopMan, pIfMan, pIfObj->pFanin0, vVisited );
+    gFunc1 = Abc_NodeIfToHop_rec( pHopMan, pIfMan, pIfObj->pFanin1, vVisited );
     // get the function of the cut
     gFunc  = Hop_And( pHopMan, Hop_NotCond(gFunc0, pIfObj->fCompl0), Hop_NotCond(gFunc1, pIfObj->fCompl1) );  
-    gFunc  = Hop_NotCond( gFunc, pCut->Phase );
     assert( If_CutData(pCut) == NULL );
     If_CutSetData( pCut, gFunc );
     // add this cut to the visited list
@@ -334,7 +297,7 @@ Hop_Obj_t * Abc_NodeIfToHop2_rec( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj
   SeeAlso     []
 
 ***********************************************************************/
-Hop_Obj_t * Abc_NodeIfToHop2( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj_t * pIfObj )
+Hop_Obj_t * Abc_NodeIfToHop( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj_t * pIfObj )
 {
     If_Cut_t * pCut;
     Hop_Obj_t * gFunc;
@@ -348,7 +311,7 @@ Hop_Obj_t * Abc_NodeIfToHop2( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj_t *
         If_CutSetData( If_ObjCutTriv(pLeaf), Hop_IthVar(pHopMan, i) );
     // recursively compute the function while collecting visited cuts
     Vec_PtrClear( pIfMan->vTemp );
-    gFunc = Abc_NodeIfToHop2_rec( pHopMan, pIfMan, pIfObj, pIfMan->vTemp ); 
+    gFunc = Abc_NodeIfToHop_rec( pHopMan, pIfMan, pIfObj, pIfMan->vTemp ); 
 //    printf( "%d ", Vec_PtrSize(p->vTemp) );
     // clean the cuts
     If_CutForEachLeaf( pIfMan, pCut, pLeaf, i )

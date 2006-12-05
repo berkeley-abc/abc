@@ -262,6 +262,10 @@ SOURCE=.\src\base\abci\abcMiter.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcMulti.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcMv.c
 # End Source File
 # Begin Source File
@@ -291,6 +295,10 @@ SOURCE=.\src\base\abci\abcRefactor.c
 # Begin Source File
 
 SOURCE=.\src\base\abci\abcRenode.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcReorder.c
 # End Source File
 # Begin Source File
 
@@ -1826,15 +1834,19 @@ SOURCE=.\src\map\if\ifMap.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\map\if\ifPrepro.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\map\if\ifReduce.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\if\ifSelect.c
+SOURCE=.\src\map\if\ifSeq.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\if\ifSeq.c
+SOURCE=.\src\map\if\ifTruth.c
 # End Source File
 # Begin Source File
 
