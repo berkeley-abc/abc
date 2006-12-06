@@ -1,43 +1,35 @@
 /**CFile****************************************************************
 
-  FileName    [ivyIsop.c]
+  FileName    [kitIsop.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [And-Inverter Graph package.]
+  PackageName [Computation kit.]
 
-  Synopsis    [Computing irredundant SOP using truth table.]
+  Synopsis    [ISOP computation based on Morreale's algorithm.]
 
   Author      [Alan Mishchenko]
   
   Affiliation [UC Berkeley]
 
-  Date        [Ver. 1.0. Started - May 11, 2006.]
+  Date        [Ver. 1.0. Started - Dec 6, 2006.]
 
-  Revision    [$Id: ivyIsop.c,v 1.00 2006/05/11 00:00:00 alanmi Exp $]
+  Revision    [$Id: kitIsop.c,v 1.00 2006/12/06 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "ivy.h"
+#include "kit.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
 // ISOP computation fails if intermediate memory usage exceed this limit
-#define IVY_ISOP_MEM_LIMIT  16*4096
-
-// intermediate ISOP representation
-typedef struct Ivy_Sop_t_ Ivy_Sop_t;
-struct Ivy_Sop_t_
-{
-    unsigned * pCubes;
-    int        nCubes;
-};
+#define KIT_ISOP_MEM_LIMIT  (1<<16)
 
 // static procedures to compute ISOP
-static unsigned * Ivy_TruthIsop_rec( unsigned * puOn, unsigned * puOnDc, int nVars, Ivy_Sop_t * pcRes, Vec_Int_t * vStore );
-static unsigned   Ivy_TruthIsop5_rec( unsigned uOn, unsigned uOnDc, int nVars, Ivy_Sop_t * pcRes, Vec_Int_t * vStore );
+static unsigned * Kit_TruthIsop_rec( unsigned * puOn, unsigned * puOnDc, int nVars, Kit_Sop_t * pcRes, Vec_Int_t * vStore );
+static unsigned   Kit_TruthIsop5_rec( unsigned uOn, unsigned uOnDc, int nVars, Kit_Sop_t * pcRes, Vec_Int_t * vStore );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -47,9 +39,9 @@ static unsigned   Ivy_TruthIsop5_rec( unsigned uOn, unsigned uOnDc, int nVars, I
 
   Synopsis    [Computes ISOP from TT.]
 
-  Description [Returns the cover in vCover. Uses the rest of array in vCover
+  Description [Returns the cover in vMemory. Uses the rest of array in vMemory
   as an intermediate memory storage. Returns the cover with -1 cubes, if the
-  the computation exceeded the memory limit (IVY_ISOP_MEM_LIMIT words of
+  the computation exceeded the memory limit (KIT_ISOP_MEM_LIMIT words of
   intermediate data).]
                
   SideEffects []
@@ -57,10 +49,10 @@ static unsigned   Ivy_TruthIsop5_rec( unsigned uOn, unsigned uOnDc, int nVars, I
   SeeAlso     []
 
 ***********************************************************************/
-int Ivy_TruthIsop( unsigned * puTruth, int nVars, Vec_Int_t * vCover, int fTryBoth )
+int Kit_TruthIsop( unsigned * puTruth, int nVars, Vec_Int_t * vMemory, int fTryBoth )
 {
-    Ivy_Sop_t cRes, * pcRes = &cRes;
-    Ivy_Sop_t cRes2, * pcRes2 = &cRes2;
+    Kit_Sop_t cRes, * pcRes = &cRes;
+    Kit_Sop_t cRes2, * pcRes2 = &cRes2;
     unsigned * pResult;
     int RetValue = 0;
     assert( nVars >= 0 && nVars < 16 );
@@ -68,13 +60,13 @@ int Ivy_TruthIsop( unsigned * puTruth, int nVars, Vec_Int_t * vCover, int fTryBo
 //    for ( i = nVars; i < 5; i++ )
 //        assert( !Extra_TruthVarInSupport(puTruth, 5, i) );
     // prepare memory manager
-    Vec_IntClear( vCover );
-    Vec_IntGrow( vCover, IVY_ISOP_MEM_LIMIT );
+    Vec_IntClear( vMemory );
+    Vec_IntGrow( vMemory, KIT_ISOP_MEM_LIMIT );
     // compute ISOP for the direct polarity
-    pResult = Ivy_TruthIsop_rec( puTruth, puTruth, nVars, pcRes, vCover );
+    pResult = Kit_TruthIsop_rec( puTruth, puTruth, nVars, pcRes, vMemory );
     if ( pcRes->nCubes == -1 )
     {
-        vCover->nSize = -1;
+        vMemory->nSize = -1;
         return 0;
     }
     assert( Extra_TruthIsEqual( puTruth, pResult, nVars ) );
@@ -82,7 +74,7 @@ int Ivy_TruthIsop( unsigned * puTruth, int nVars, Vec_Int_t * vCover, int fTryBo
     {
         // compute ISOP for the complemented polarity
         Extra_TruthNot( puTruth, puTruth, nVars );
-        pResult = Ivy_TruthIsop_rec( puTruth, puTruth, nVars, pcRes2, vCover );
+        pResult = Kit_TruthIsop_rec( puTruth, puTruth, nVars, pcRes2, vMemory );
         if ( pcRes2->nCubes >= 0 )
         {
             assert( Extra_TruthIsEqual( puTruth, pResult, nVars ) );
@@ -94,10 +86,10 @@ int Ivy_TruthIsop( unsigned * puTruth, int nVars, Vec_Int_t * vCover, int fTryBo
         }
         Extra_TruthNot( puTruth, puTruth, nVars );
     }
-//    printf( "%d ", vCover->nSize );
+//    printf( "%d ", vMemory->nSize );
     // move the cover representation to the beginning of the memory buffer
-    memmove( vCover->pArray, pcRes->pCubes, pcRes->nCubes * sizeof(unsigned) );
-    Vec_IntShrink( vCover, pcRes->nCubes );
+    memmove( vMemory->pArray, pcRes->pCubes, pcRes->nCubes * sizeof(unsigned) );
+    Vec_IntShrink( vMemory, pcRes->nCubes );
     return RetValue;
 }
 
@@ -112,10 +104,10 @@ int Ivy_TruthIsop( unsigned * puTruth, int nVars, Vec_Int_t * vCover, int fTryBo
   SeeAlso     []
 
 ***********************************************************************/
-unsigned * Ivy_TruthIsop_rec( unsigned * puOn, unsigned * puOnDc, int nVars, Ivy_Sop_t * pcRes, Vec_Int_t * vStore )
+unsigned * Kit_TruthIsop_rec( unsigned * puOn, unsigned * puOnDc, int nVars, Kit_Sop_t * pcRes, Vec_Int_t * vStore )
 {
-    Ivy_Sop_t cRes0, cRes1, cRes2;
-    Ivy_Sop_t * pcRes0 = &cRes0, * pcRes1 = &cRes1, * pcRes2 = &cRes2;
+    Kit_Sop_t cRes0, cRes1, cRes2;
+    Kit_Sop_t * pcRes0 = &cRes0, * pcRes1 = &cRes1, * pcRes2 = &cRes2;
     unsigned * puRes0, * puRes1, * puRes2;
     unsigned * puOn0, * puOn1, * puOnDc0, * puOnDc1, * pTemp, * pTemp0, * pTemp1;
     int i, k, Var, nWords, nWordsAll;
@@ -159,7 +151,7 @@ unsigned * Ivy_TruthIsop_rec( unsigned * puOn, unsigned * puOnDc, int nVars, Ivy
     // consider a simple case when one-word computation can be used
     if ( Var < 5 )
     {
-        unsigned uRes = Ivy_TruthIsop5_rec( puOn[0], puOnDc[0], Var+1, pcRes, vStore );
+        unsigned uRes = Kit_TruthIsop5_rec( puOn[0], puOnDc[0], Var+1, pcRes, vStore );
         for ( i = 0; i < nWordsAll; i++ )
             pTemp[i] = uRes;
         return pTemp;
@@ -172,14 +164,14 @@ unsigned * Ivy_TruthIsop_rec( unsigned * puOn, unsigned * puOnDc, int nVars, Ivy
     pTemp0  = pTemp;   pTemp1  = pTemp + nWords;
     // solve for cofactors
     Extra_TruthSharp( pTemp0, puOn0, puOnDc1, Var );
-    puRes0 = Ivy_TruthIsop_rec( pTemp0, puOnDc0, Var, pcRes0, vStore );
+    puRes0 = Kit_TruthIsop_rec( pTemp0, puOnDc0, Var, pcRes0, vStore );
     if ( pcRes0->nCubes == -1 )
     {
         pcRes->nCubes = -1;
         return NULL;
     }
     Extra_TruthSharp( pTemp1, puOn1, puOnDc0, Var );
-    puRes1 = Ivy_TruthIsop_rec( pTemp1, puOnDc1, Var, pcRes1, vStore );
+    puRes1 = Kit_TruthIsop_rec( pTemp1, puOnDc1, Var, pcRes1, vStore );
     if ( pcRes1->nCubes == -1 )
     {
         pcRes->nCubes = -1;
@@ -189,7 +181,7 @@ unsigned * Ivy_TruthIsop_rec( unsigned * puOn, unsigned * puOnDc, int nVars, Ivy
     Extra_TruthSharp( pTemp1, puOn1, puRes1, Var );
     Extra_TruthOr( pTemp0, pTemp0, pTemp1, Var );
     Extra_TruthAnd( pTemp1, puOnDc0, puOnDc1, Var );
-    puRes2 = Ivy_TruthIsop_rec( pTemp0, pTemp1, Var, pcRes2, vStore );
+    puRes2 = Kit_TruthIsop_rec( pTemp0, pTemp1, Var, pcRes2, vStore );
     if ( pcRes2->nCubes == -1 )
     {
         pcRes->nCubes = -1;
@@ -205,9 +197,9 @@ unsigned * Ivy_TruthIsop_rec( unsigned * puOn, unsigned * puOnDc, int nVars, Ivy
     }
     k = 0;
     for ( i = 0; i < pcRes0->nCubes; i++ )
-        pcRes->pCubes[k++] = pcRes0->pCubes[i] | (1 << ((Var<<1)+1));
+        pcRes->pCubes[k++] = pcRes0->pCubes[i] | (1 << ((Var<<1)+0));
     for ( i = 0; i < pcRes1->nCubes; i++ )
-        pcRes->pCubes[k++] = pcRes1->pCubes[i] | (1 << ((Var<<1)+0));
+        pcRes->pCubes[k++] = pcRes1->pCubes[i] | (1 << ((Var<<1)+1));
     for ( i = 0; i < pcRes2->nCubes; i++ )
         pcRes->pCubes[k++] = pcRes2->pCubes[i];
     assert( k == pcRes->nCubes );
@@ -236,11 +228,11 @@ unsigned * Ivy_TruthIsop_rec( unsigned * puOn, unsigned * puOnDc, int nVars, Ivy
   SeeAlso     []
 
 ***********************************************************************/
-unsigned Ivy_TruthIsop5_rec( unsigned uOn, unsigned uOnDc, int nVars, Ivy_Sop_t * pcRes, Vec_Int_t * vStore )
+unsigned Kit_TruthIsop5_rec( unsigned uOn, unsigned uOnDc, int nVars, Kit_Sop_t * pcRes, Vec_Int_t * vStore )
 {
     unsigned uMasks[5] = { 0xAAAAAAAA, 0xCCCCCCCC, 0xF0F0F0F0, 0xFF00FF00, 0xFFFF0000 };
-    Ivy_Sop_t cRes0, cRes1, cRes2;
-    Ivy_Sop_t * pcRes0 = &cRes0, * pcRes1 = &cRes1, * pcRes2 = &cRes2;
+    Kit_Sop_t cRes0, cRes1, cRes2;
+    Kit_Sop_t * pcRes0 = &cRes0, * pcRes1 = &cRes1, * pcRes2 = &cRes2;
     unsigned uOn0, uOn1, uOnDc0, uOnDc1, uRes0, uRes1, uRes2;
     int i, k, Var;
     assert( nVars <= 5 );
@@ -278,19 +270,19 @@ unsigned Ivy_TruthIsop5_rec( unsigned uOn, unsigned uOnDc, int nVars, Ivy_Sop_t 
     Extra_TruthCofactor0( &uOnDc0, Var + 1, Var );
     Extra_TruthCofactor1( &uOnDc1, Var + 1, Var );
     // solve for cofactors
-    uRes0 = Ivy_TruthIsop5_rec( uOn0 & ~uOnDc1, uOnDc0, Var, pcRes0, vStore );
+    uRes0 = Kit_TruthIsop5_rec( uOn0 & ~uOnDc1, uOnDc0, Var, pcRes0, vStore );
     if ( pcRes0->nCubes == -1 )
     {
         pcRes->nCubes = -1;
         return 0;
     }
-    uRes1 = Ivy_TruthIsop5_rec( uOn1 & ~uOnDc0, uOnDc1, Var, pcRes1, vStore );
+    uRes1 = Kit_TruthIsop5_rec( uOn1 & ~uOnDc0, uOnDc1, Var, pcRes1, vStore );
     if ( pcRes1->nCubes == -1 )
     {
         pcRes->nCubes = -1;
         return 0;
     }
-    uRes2 = Ivy_TruthIsop5_rec( (uOn0 & ~uRes0) | (uOn1 & ~uRes1), uOnDc0 & uOnDc1, Var, pcRes2, vStore );
+    uRes2 = Kit_TruthIsop5_rec( (uOn0 & ~uRes0) | (uOn1 & ~uRes1), uOnDc0 & uOnDc1, Var, pcRes2, vStore );
     if ( pcRes2->nCubes == -1 )
     {
         pcRes->nCubes = -1;
@@ -306,9 +298,9 @@ unsigned Ivy_TruthIsop5_rec( unsigned uOn, unsigned uOnDc, int nVars, Ivy_Sop_t 
     }
     k = 0;
     for ( i = 0; i < pcRes0->nCubes; i++ )
-        pcRes->pCubes[k++] = pcRes0->pCubes[i] | (1 << ((Var<<1)+1));
+        pcRes->pCubes[k++] = pcRes0->pCubes[i] | (1 << ((Var<<1)+0));
     for ( i = 0; i < pcRes1->nCubes; i++ )
-        pcRes->pCubes[k++] = pcRes1->pCubes[i] | (1 << ((Var<<1)+0));
+        pcRes->pCubes[k++] = pcRes1->pCubes[i] | (1 << ((Var<<1)+1));
     for ( i = 0; i < pcRes2->nCubes; i++ )
         pcRes->pCubes[k++] = pcRes2->pCubes[i];
     assert( k == pcRes->nCubes );

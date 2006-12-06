@@ -511,7 +511,6 @@ static inline void Extra_TruthNand( unsigned * pOut, unsigned * pIn0, unsigned *
 extern void     Extra_TruthSwapAdjacentVars( unsigned * pOut, unsigned * pIn, int nVars, int Start );
 extern void     Extra_TruthStretch( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll, unsigned Phase );
 extern void     Extra_TruthShrink( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll, unsigned Phase );
-extern DdNode * Extra_TruthToBdd( DdManager * dd, unsigned * pTruth, int nVars );
 extern int      Extra_TruthVarInSupport( unsigned * pTruth, int nVars, int iVar );
 extern int      Extra_TruthSupportSize( unsigned * pTruth, int nVars );
 extern int      Extra_TruthSupport( unsigned * pTruth, int nVars );

@@ -598,6 +598,9 @@ static inline int Vec_IntPushUnique( Vec_Int_t * p, int Entry )
 ***********************************************************************/
 static inline unsigned * Vec_IntFetch( Vec_Int_t * p, int nWords )
 {
+    if ( nWords == 0 )
+        return NULL;
+    assert( nWords > 0 );
     p->nSize += nWords;
     if ( p->nSize > p->nCap )
     {

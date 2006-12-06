@@ -20,6 +20,7 @@
 
 #include "abc.h"
 #include "if.h"
+#include "kit.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -164,6 +165,8 @@ Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk )
     // create the new network
     if ( pIfMan->pPars->fUseBdds )
         pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_BDD );
+    else if ( pIfMan->pPars->fUseSops )
+        pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
     else
         pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_AIG );
     // prepare the mapping manager
@@ -223,7 +226,6 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
     If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, i )
         Abc_ObjAddFanin( pNodeNew, Abc_NodeFromIf_rec(pNtkNew, pIfMan, pIfLeaf) );
     // derive the function of this node
-
     if ( pIfMan->pPars->fTruth )
     {
         if ( pIfMan->pPars->fUseBdds )
@@ -235,20 +237,29 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
             // reorder the fanins to minimize the BDD size
             Abc_NodeBddReorder( pIfMan->pPars->pReoMan, pNodeNew );
         }
-        else
+        else if ( pIfMan->pPars->fUseSops ) 
         {
-            typedef int Kit_Graph_t;
-            extern Kit_Graph_t * Kit_TruthToGraph( unsigned * pTruth, int nVars );
-            extern Hop_Obj_t * Dec_GraphToNetworkAig( Hop_Man_t * pMan, Kit_Graph_t * pGraph );
-            // transform truth table into the decomposition tree
-            Kit_Graph_t * pGraph = Kit_TruthToGraph( If_CutTruth(pCutBest), pCutBest->nLimit );
+            Vec_Int_t * vCover = Vec_IntAlloc( 1 << 16 );
+            // transform truth table into the SOP
+            int RetValue = Kit_TruthIsop( If_CutTruth(pCutBest), pCutBest->nLimit, vCover, 0 );
+            assert( RetValue == 0 );
             // derive the AIG for that tree
-            pNodeNew->pData = Dec_GraphToNetworkAig( pNtkNew->pManFunc, pGraph );
+            pNodeNew->pData = Abc_SopCreateFromIsop( pNtkNew->pManFunc, pCutBest->nLimit, vCover );
+            Vec_IntFree( vCover );
+        }
+        else 
+        {
+            extern Hop_Obj_t * Kit_GraphToHop( Hop_Man_t * pMan, Kit_Graph_t * pGraph );
+            Vec_Int_t * vMemory = Vec_IntAlloc( 1 << 16 );
+            // transform truth table into the decomposition tree
+            Kit_Graph_t * pGraph = Kit_TruthToGraph( If_CutTruth(pCutBest), pCutBest->nLimit, vMemory );
+            // derive the AIG for the decomposition tree
+            pNodeNew->pData = Kit_GraphToHop( pNtkNew->pManFunc, pGraph );
             Kit_GraphFree( pGraph );
+            Vec_IntFree( vMemory );
         }
     }
     else
-
         pNodeNew->pData = Abc_NodeIfToHop( pNtkNew->pManFunc, pIfMan, pIfObj );
     If_ObjSetCopy( pIfObj, pNodeNew );
     return pNodeNew;

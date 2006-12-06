@@ -9,7 +9,6 @@ SRC +=    src/aig/ivy/ivyBalance.c \
     src/aig/ivy/ivyFastMap.c \
     src/aig/ivy/ivyFraig.c \
     src/aig/ivy/ivyHaig.c \
-    src/aig/ivy/ivyIsop.c \
     src/aig/ivy/ivyMan.c \
     src/aig/ivy/ivyMem.c \
     src/aig/ivy/ivyMulti.c \

@@ -85,6 +85,7 @@ struct If_Par_t_
     // internal parameters
     int                fTruth;        // truth table computation enabled
     int                fUseBdds;      // sets local BDDs at the nodes
+    int                fUseSops;      // sets local SOPs at the nodes
     int                nLatches;      // the number of latches in seq mapping
     If_Lib_t *         pLutLib;       // the LUT library
     float *            pTimesArr;     // arrival times

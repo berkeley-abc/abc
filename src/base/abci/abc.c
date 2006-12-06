@@ -2034,25 +2034,28 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
-    int nFaninMax, c;
+    int nFaninMax, nCubeMax, c;
     int fUseBdds;
+    int fUseSops;
     int fVerbose;
-    extern Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int fUseBdds, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int nCubeMax, int fUseBdds, int fUseSops, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nFaninMax =  8;
+    nFaninMax =  5;
+    nCubeMax  =  5;
     fUseBdds  =  0;
+    fUseSops  =  0;
     fVerbose  =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Fbvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCbsvh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'F':
+        case 'K':
             if ( globalUtilOptind >= argc )
             {
                 fprintf( pErr, "Command line switch \"-F\" should be followed by an integer.\n" );
@@ -2063,8 +2066,22 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nFaninMax < 0 ) 
                 goto usage;
             break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nCubeMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nCubeMax < 0 ) 
+                goto usage;
+            break;
         case 'b':
             fUseBdds ^= 1;
+            break;
+        case 's':
+            fUseSops ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -2074,6 +2091,12 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
         default:
             goto usage;
         }
+    }
+
+    if ( fUseBdds && fUseSops )
+    {
+        fprintf( pErr, "Cannot optimize both BDDs and SOPs at the same time.\n" );
+        goto usage;
     }
 
     if ( pNtk == NULL )
@@ -2088,7 +2111,7 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    pNtkRes = Abc_NtkRenode( pNtk, nFaninMax, fUseBdds, fVerbose );
+    pNtkRes = Abc_NtkRenode( pNtk, nFaninMax, nCubeMax, fUseBdds, fUseSops, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Renoding has failed.\n" );
@@ -2099,10 +2122,13 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: renode [-F num] [-bv]\n" );
-    fprintf( pErr, "\t          transforms an AIG into a logic network by creating larger nodes\n" );
-    fprintf( pErr, "\t-F num  : the maximum fanin size after renoding [default = %d]\n", nFaninMax );
-    fprintf( pErr, "\t-b      : toggles cost function (BDD nodes or FF literals) [default = %s]\n", fUseBdds? "BDD nodes": "FF literals" );
+    fprintf( pErr, "usage: renode [-K num] [-C num] [-bsv]\n" );
+    fprintf( pErr, "\t          transforms the AIG into a logic network with larger nodes\n" );
+    fprintf( pErr, "\t          while minimizing the number of FF literals of the node SOPs\n" );
+    fprintf( pErr, "\t-K num  : the maximum fanin size after renoding [default = %d]\n", nFaninMax );
+    fprintf( pErr, "\t-C num  : the maximum number of cubes used at a node [default = %d]\n", nCubeMax );
+    fprintf( pErr, "\t-b      : toggles minimizing the number of BDD nodes [default = %s]\n", fUseBdds? "yes": "no" );
+    fprintf( pErr, "\t-s      : toggles minimizing the number of SOP cubes [default = %s]\n", fUseSops? "yes": "no" );
     fprintf( pErr, "\t-v      : print verbose information [default = %s]\n", fVerbose? "yes": "no" ); 
     fprintf( pErr, "\t-h      : print the command usage\n");
     return 1;

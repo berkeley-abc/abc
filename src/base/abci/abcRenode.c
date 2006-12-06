@@ -21,6 +21,7 @@
 #include "abc.h"
 #include "reo.h"
 #include "if.h"
+#include "kit.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -28,13 +29,11 @@
 
 static int Abc_NtkRenodeEvalBdd( unsigned * pTruth, int nVars );
 static int Abc_NtkRenodeEvalSop( unsigned * pTruth, int nVars );
+static int Abc_NtkRenodeEvalAig( unsigned * pTruth, int nVars );
 
-static reo_man * s_pReo = NULL;
-static DdManager * s_pDd  = NULL;
-
-typedef int Kit_Graph_t;
-extern DdNode * Kit_TruthToBdd( DdManager * dd, unsigned * pTruth, int nVars );
-extern Kit_Graph_t * Kit_TruthToGraph( unsigned * pTruth, int nVars );
+static reo_man * s_pReo      = NULL;
+static DdManager * s_pDd     = NULL;
+static Vec_Int_t * s_vMemory = NULL;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -51,7 +50,7 @@ extern Kit_Graph_t * Kit_TruthToGraph( unsigned * pTruth, int nVars );
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int fUseBdds, int fVerbose )
+Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int nCubeMax, int fUseBdds, int fUseSops, int fVerbose )
 {
     extern Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars );
     If_Par_t Pars, * pPars = &Pars;
@@ -77,7 +76,14 @@ Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int fUseBdds, int fV
     pPars->pLutLib     =  NULL; // Abc_FrameReadLibLut();
     pPars->pTimesArr   =  NULL; 
     pPars->pTimesArr   =  NULL;   
-    pPars->pFuncCost   =  fUseBdds? Abc_NtkRenodeEvalBdd : Abc_NtkRenodeEvalSop;   
+    pPars->fUseBdds    =  fUseBdds;
+    pPars->fUseSops    =  fUseSops;
+    if ( fUseBdds )
+        pPars->pFuncCost = Abc_NtkRenodeEvalBdd;
+    else if ( fUseSops )
+        pPars->pFuncCost = Abc_NtkRenodeEvalSop;
+    else
+        pPars->pFuncCost = Abc_NtkRenodeEvalAig;
 
     // start the manager
     if ( fUseBdds )
@@ -85,8 +91,12 @@ Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int fUseBdds, int fV
         assert( s_pReo == NULL );
         s_pDd  = Cudd_Init( nFaninMax, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
         s_pReo = Extra_ReorderInit( nFaninMax, 100 );
-        pPars->fUseBdds = 1;
         pPars->pReoMan  = s_pReo;
+    }
+    else
+    {
+        assert( s_vMemory == NULL );
+        s_vMemory = Vec_IntAlloc( 1 << 16 );
     }
 
     // perform mapping/renoding
@@ -98,14 +108,20 @@ Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int fUseBdds, int fV
         Extra_StopManager( s_pDd );
         Extra_ReorderQuit( s_pReo );
         s_pReo = NULL;
-        s_pDd = NULL;
+        s_pDd  = NULL;
     }
+    else
+    {
+        Vec_IntFree( s_vMemory );
+        s_vMemory = NULL;
+    }
+
     return pNtkNew;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Derives the BDD after reordering.]
+  Synopsis    [Computes the cost based on the BDD size after reordering.]
 
   Description []
                
@@ -120,7 +136,8 @@ int Abc_NtkRenodeEvalBdd( unsigned * pTruth, int nVars )
     int nNodes, nSupport;
     bFunc = Kit_TruthToBdd( s_pDd, pTruth, nVars );           Cudd_Ref( bFunc );
     bFuncNew = Extra_Reorder( s_pReo, s_pDd, bFunc, NULL );   Cudd_Ref( bFuncNew );
-    nSupport = Cudd_SupportSize( s_pDd, bFuncNew );
+//    nSupport = Cudd_SupportSize( s_pDd, bFuncNew );
+    nSupport = 1;
     nNodes = Cudd_DagSize( bFuncNew );
     Cudd_RecursiveDeref( s_pDd, bFuncNew );
     Cudd_RecursiveDeref( s_pDd, bFunc );
@@ -129,7 +146,7 @@ int Abc_NtkRenodeEvalBdd( unsigned * pTruth, int nVars )
 
 /**Function*************************************************************
 
-  Synopsis    [Derives the BDD after reordering.]
+  Synopsis    [Computes the cost based on ISOP.]
 
   Description []
                
@@ -140,11 +157,32 @@ int Abc_NtkRenodeEvalBdd( unsigned * pTruth, int nVars )
 ***********************************************************************/
 int Abc_NtkRenodeEvalSop( unsigned * pTruth, int nVars )
 {
+    int nCubes, RetValue;
+    RetValue = Kit_TruthIsop( pTruth, nVars, s_vMemory, 0 );
+    assert( RetValue == 0 );
+    nCubes = Vec_IntSize( s_vMemory );
+    return (1 << 16) | nCubes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the cost based on the factored form.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkRenodeEvalAig( unsigned * pTruth, int nVars )
+{
     Kit_Graph_t * pGraph;
     int nNodes, nDepth;
-    pGraph = Kit_TruthToGraph( pTruth, nVars );
+    pGraph = Kit_TruthToGraph( pTruth, nVars, s_vMemory );
     nNodes = Kit_GraphNodeNum( pGraph );
-    nDepth = Kit_GraphLevelNum( pGraph );
+//    nDepth = Kit_GraphLevelNum( pGraph );
+    nDepth = 1;
     Kit_GraphFree( pGraph );
     return (nDepth << 16) | nNodes;
 }

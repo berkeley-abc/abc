@@ -427,9 +427,9 @@ char * Abc_SopCreateFromIsop( Extra_MmFlex_t * pMan, int nVars, Vec_Int_t * vCov
         {
             Literal = 3 & (Entry >> (k << 1));
             if ( Literal == 1 )
-                pCube[k] = '1';
-            else if ( Literal == 2 )
                 pCube[k] = '0';
+            else if ( Literal == 2 )
+                pCube[k] = '1';
             else if ( Literal != 0 )
                 assert( 0 );
         }

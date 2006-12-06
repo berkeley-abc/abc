@@ -205,7 +205,7 @@ If_Obj_t * If_ManSetupObj( If_Man_t * p )
 {
     If_Cut_t * pCut;
     If_Obj_t * pObj;
-    int i, * pArrays;
+    int i, * pArrays, nTruthWords;
     // get memory for the object
     pObj = (If_Obj_t *)Mem_FixedEntryFetch( p->pMem );
     memset( pObj, 0, p->nEntryBase );
@@ -230,6 +230,13 @@ If_Obj_t * If_ManSetupObj( If_Man_t * p )
     pObj->nCuts = 1;
     // set the required times
     pObj->Required = IF_FLOAT_LARGE;
+    // set up elementary truth table of the unit cut
+    if ( p->pPars->fTruth )
+    {
+        nTruthWords = Extra_TruthWordNum( pCut->nLimit );
+        for ( i = 0; i < nTruthWords; i++ )
+            If_CutTruth(pCut)[i] = 0xAAAAAAAA;
+    }
     return pObj;
 }
 

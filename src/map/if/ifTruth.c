@@ -69,6 +69,8 @@ static inline unsigned Cut_TruthPhase( If_Cut_t * pCut, If_Cut_t * pCut1 )
 ***********************************************************************/
 void If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 )
 {
+    extern void Kit_FactorTest( unsigned * pTruth, int nVars );
+
     // permute the first table
     if ( fCompl0 ) 
         Extra_TruthNot( p->puTemp[0], If_CutTruth(pCut0), pCut->nLimit );
@@ -86,6 +88,9 @@ void If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut
         Extra_TruthNand( If_CutTruth(pCut), p->puTemp[2], p->puTemp[3], pCut->nLimit );
     else
         Extra_TruthAnd( If_CutTruth(pCut), p->puTemp[2], p->puTemp[3], pCut->nLimit );
+
+    // perform 
+//    Kit_FactorTest( If_CutTruth(pCut), pCut->nLimit );
 }
 
 ////////////////////////////////////////////////////////////////////////

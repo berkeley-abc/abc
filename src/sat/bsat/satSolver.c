@@ -801,14 +801,14 @@ void sat_solver_reducedb(sat_solver* s)
     vecp_resize(&s->learnts,j);
 }
 
-static lbool sat_solver_search(sat_solver* s, int nof_conflicts, int nof_learnts)
+static lbool sat_solver_search(sat_solver* s, sint64 nof_conflicts, sint64 nof_learnts)
 {
     int*    levels          = s->levels;
     double  var_decay       = 0.95;
     double  clause_decay    = 0.999;
     double  random_var_freq = 0.02;
 
-    int     conflictC       = 0;
+    sint64  conflictC       = 0;
     veci    learnt_clause;
     int     i;
 
@@ -1118,8 +1118,8 @@ bool sat_solver_simplify(sat_solver* s)
 
 int sat_solver_solve(sat_solver* s, lit* begin, lit* end, sint64 nConfLimit, sint64 nInsLimit, sint64 nConfLimitGlobal, sint64 nInsLimitGlobal)
 {
-    double  nof_conflicts = 100;
-    double  nof_learnts   = sat_solver_nclauses(s) / 3;
+    sint64  nof_conflicts = 100;
+    sint64  nof_learnts   = sat_solver_nclauses(s) / 3;
     lbool   status        = l_Undef;
     lbool*  values        = s->assigns;
     lit*    i;
@@ -1178,9 +1178,9 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, sint64 nConfLimit, sin
                 s->progress_estimate*100);
             fflush(stdout);
         }
-        status = sat_solver_search(s,(int)nof_conflicts, (int)nof_learnts);
-        nof_conflicts *= 1.5;
-        nof_learnts   *= 1.1;
+        status = sat_solver_search(s, nof_conflicts, nof_learnts);
+        nof_conflicts = nof_conflicts * 3 / 2; //*= 1.5;
+        nof_learnts   = nof_learnts * 11 / 10; //*= 1.1;
 
         // quit the loop if reached an external limit
         if ( s->nConfLimit && s->stats.conflicts > s->nConfLimit )

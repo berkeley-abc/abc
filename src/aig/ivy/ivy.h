@@ -466,8 +466,6 @@ extern void            Ivy_ManHaigPostprocess( Ivy_Man_t * p, int fVerbose );
 extern void            Ivy_ManHaigCreateObj( Ivy_Man_t * p, Ivy_Obj_t * pObj );
 extern void            Ivy_ManHaigCreateChoice( Ivy_Man_t * p, Ivy_Obj_t * pObjOld, Ivy_Obj_t * pObjNew );
 extern void            Ivy_ManHaigSimulate( Ivy_Man_t * p );
-/*=== ivyIsop.c ==========================================================*/
-extern int             Ivy_TruthIsop( unsigned * puTruth, int nVars, Vec_Int_t * vCover, int fTryBoth );
 /*=== ivyMan.c ==========================================================*/
 extern Ivy_Man_t *     Ivy_ManStart();
 extern Ivy_Man_t *     Ivy_ManStartFrom( Ivy_Man_t * p );

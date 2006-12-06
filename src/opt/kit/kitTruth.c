@@ -1,40 +1,28 @@
 /**CFile****************************************************************
 
-  FileName    [extraUtilMisc.c]
+  FileName    [kitTruth.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [extra]
+  PackageName [Computation kit.]
 
-  Synopsis    [Various procedures for truth table manipulation.]
+  Synopsis    [Procedures involving truth tables.]
 
   Author      [Alan Mishchenko]
   
   Affiliation [UC Berkeley]
 
-  Date        [Ver. 1.0. Started - June 20, 2005.]
+  Date        [Ver. 1.0. Started - Dec 6, 2006.]
 
-  Revision    [$Id: extraUtilMisc.c,v 1.0 2003/09/01 00:00:00 alanmi Exp $]
+  Revision    [$Id: kitTruth.c,v 1.00 2006/12/06 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "extra.h"
+#include "kit.h"
 
-/*---------------------------------------------------------------------------*/
-/* Constant declarations                                                     */
-/*---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------*/
-/* Stucture declarations                                                     */
-/*---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------*/
-/* Type declarations                                                         */
-/*---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------*/
-/* Variable declarations                                                     */
-/*---------------------------------------------------------------------------*/
+////////////////////////////////////////////////////////////////////////
+///                        DECLARATIONS                              ///
+////////////////////////////////////////////////////////////////////////
 
 static unsigned s_VarMasks[5][2] = {
     { 0x33333333, 0xAAAAAAAA },
@@ -44,21 +32,9 @@ static unsigned s_VarMasks[5][2] = {
     { 0x0000FFFF, 0xFFFF0000 }
 };
 
-/*---------------------------------------------------------------------------*/
-/* Macro declarations                                                        */
-/*---------------------------------------------------------------------------*/
-
-/**AutomaticStart*************************************************************/
-
-/*---------------------------------------------------------------------------*/
-/* Static function prototypes                                                */
-/*---------------------------------------------------------------------------*/
-
-/**AutomaticEnd***************************************************************/
-
-/*---------------------------------------------------------------------------*/
-/* Definition of exported functions                                          */
-/*---------------------------------------------------------------------------*/
+////////////////////////////////////////////////////////////////////////
+///                     FUNCTION DEFINITIONS                         ///
+////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
 
@@ -72,7 +48,7 @@ static unsigned s_VarMasks[5][2] = {
   SeeAlso     []
 
 ***********************************************************************/
-void Extra_TruthSwapAdjacentVars( unsigned * pOut, unsigned * pIn, int nVars, int iVar )
+void Kit_TruthSwapAdjacentVars( unsigned * pOut, unsigned * pIn, int nVars, int iVar )
 {
     static unsigned PMasks[4][3] = {
         { 0x99999999, 0x22222222, 0x44444444 },
@@ -80,7 +56,7 @@ void Extra_TruthSwapAdjacentVars( unsigned * pOut, unsigned * pIn, int nVars, in
         { 0xF00FF00F, 0x00F000F0, 0x0F000F00 },
         { 0xFF0000FF, 0x0000FF00, 0x00FF0000 }
     };
-    int nWords = Extra_TruthWordNum( nVars );
+    int nWords = Kit_TruthWordNum( nVars );
     int i, k, Step, Shift;
 
     assert( iVar < nVars - 1 );
@@ -129,7 +105,7 @@ void Extra_TruthSwapAdjacentVars( unsigned * pOut, unsigned * pIn, int nVars, in
   SeeAlso     []
 
 ***********************************************************************/
-void Extra_TruthSwapAdjacentVars2( unsigned * pIn, unsigned * pOut, int nVars, int Start )
+void Kit_TruthSwapAdjacentVars2( unsigned * pIn, unsigned * pOut, int nVars, int Start )
 {
     int nWords = (nVars <= 5)? 1 : (1 << (nVars-5));
     int i, k, Step;
@@ -192,7 +168,7 @@ void Extra_TruthSwapAdjacentVars2( unsigned * pIn, unsigned * pOut, int nVars, i
   SeeAlso     []
 
 ***********************************************************************/
-void Extra_TruthStretch( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll, unsigned Phase )
+void Kit_TruthStretch( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll, unsigned Phase )
 {
     unsigned * pTemp;
     int i, k, Var = nVars - 1, Counter = 0;
@@ -201,7 +177,7 @@ void Extra_TruthStretch( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAl
         {
             for ( k = Var; k < i; k++ )
             {
-                Extra_TruthSwapAdjacentVars( pOut, pIn, nVarsAll, k );
+                Kit_TruthSwapAdjacentVars( pOut, pIn, nVarsAll, k );
                 pTemp = pIn; pIn = pOut; pOut = pTemp;
                 Counter++;
             }
@@ -210,7 +186,7 @@ void Extra_TruthStretch( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAl
     assert( Var == -1 );
     // swap if it was moved an even number of times
     if ( !(Counter & 1) )
-        Extra_TruthCopy( pOut, pIn, nVarsAll );
+        Kit_TruthCopy( pOut, pIn, nVarsAll );
 }
 
 /**Function*************************************************************
@@ -226,7 +202,7 @@ void Extra_TruthStretch( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAl
   SeeAlso     []
 
 ***********************************************************************/
-void Extra_TruthShrink( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll, unsigned Phase )
+void Kit_TruthShrink( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll, unsigned Phase )
 {
     unsigned * pTemp;
     int i, k, Var = 0, Counter = 0;
@@ -235,7 +211,7 @@ void Extra_TruthShrink( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll
         {
             for ( k = i-1; k >= Var; k-- )
             {
-                Extra_TruthSwapAdjacentVars( pOut, pIn, nVarsAll, k );
+                Kit_TruthSwapAdjacentVars( pOut, pIn, nVarsAll, k );
                 pTemp = pIn; pIn = pOut; pOut = pTemp;
                 Counter++;
             }
@@ -244,7 +220,7 @@ void Extra_TruthShrink( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll
     assert( Var == nVars );
     // swap if it was moved an even number of times
     if ( !(Counter & 1) )
-        Extra_TruthCopy( pOut, pIn, nVarsAll );
+        Kit_TruthCopy( pOut, pIn, nVarsAll );
 }
 
 
@@ -259,9 +235,9 @@ void Extra_TruthShrink( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll
   SeeAlso     []
 
 ***********************************************************************/
-int Extra_TruthVarInSupport( unsigned * pTruth, int nVars, int iVar )
+int Kit_TruthVarInSupport( unsigned * pTruth, int nVars, int iVar )
 {
-    int nWords = Extra_TruthWordNum( nVars );
+    int nWords = Kit_TruthWordNum( nVars );
     int i, k, Step;
 
     assert( iVar < nVars );
@@ -316,11 +292,11 @@ int Extra_TruthVarInSupport( unsigned * pTruth, int nVars, int iVar )
   SeeAlso     []
 
 ***********************************************************************/
-int Extra_TruthSupportSize( unsigned * pTruth, int nVars )
+int Kit_TruthSupportSize( unsigned * pTruth, int nVars )
 {
     int i, Counter = 0;
     for ( i = 0; i < nVars; i++ )
-        Counter += Extra_TruthVarInSupport( pTruth, nVars, i );
+        Counter += Kit_TruthVarInSupport( pTruth, nVars, i );
     return Counter;
 }
 
@@ -335,11 +311,11 @@ int Extra_TruthSupportSize( unsigned * pTruth, int nVars )
   SeeAlso     []
 
 ***********************************************************************/
-int Extra_TruthSupport( unsigned * pTruth, int nVars )
+int Kit_TruthSupport( unsigned * pTruth, int nVars )
 {
     int i, Support = 0;
     for ( i = 0; i < nVars; i++ )
-        if ( Extra_TruthVarInSupport( pTruth, nVars, i ) )
+        if ( Kit_TruthVarInSupport( pTruth, nVars, i ) )
             Support |= (1 << i);
     return Support;
 }
@@ -357,9 +333,9 @@ int Extra_TruthSupport( unsigned * pTruth, int nVars )
   SeeAlso     []
 
 ***********************************************************************/
-void Extra_TruthCofactor1( unsigned * pTruth, int nVars, int iVar )
+void Kit_TruthCofactor1( unsigned * pTruth, int nVars, int iVar )
 {
-    int nWords = Extra_TruthWordNum( nVars );
+    int nWords = Kit_TruthWordNum( nVars );
     int i, k, Step;
 
     assert( iVar < nVars );
@@ -408,9 +384,9 @@ void Extra_TruthCofactor1( unsigned * pTruth, int nVars, int iVar )
   SeeAlso     []
 
 ***********************************************************************/
-void Extra_TruthCofactor0( unsigned * pTruth, int nVars, int iVar )
+void Kit_TruthCofactor0( unsigned * pTruth, int nVars, int iVar )
 {
-    int nWords = Extra_TruthWordNum( nVars );
+    int nWords = Kit_TruthWordNum( nVars );
     int i, k, Step;
 
     assert( iVar < nVars );
@@ -460,9 +436,9 @@ void Extra_TruthCofactor0( unsigned * pTruth, int nVars, int iVar )
   SeeAlso     []
 
 ***********************************************************************/
-void Extra_TruthExist( unsigned * pTruth, int nVars, int iVar )
+void Kit_TruthExist( unsigned * pTruth, int nVars, int iVar )
 {
-    int nWords = Extra_TruthWordNum( nVars );
+    int nWords = Kit_TruthWordNum( nVars );
     int i, k, Step;
 
     assert( iVar < nVars );
@@ -514,9 +490,9 @@ void Extra_TruthExist( unsigned * pTruth, int nVars, int iVar )
   SeeAlso     []
 
 ***********************************************************************/
-void Extra_TruthForall( unsigned * pTruth, int nVars, int iVar )
+void Kit_TruthForall( unsigned * pTruth, int nVars, int iVar )
 {
-    int nWords = Extra_TruthWordNum( nVars );
+    int nWords = Kit_TruthWordNum( nVars );
     int i, k, Step;
 
     assert( iVar < nVars );
@@ -569,9 +545,9 @@ void Extra_TruthForall( unsigned * pTruth, int nVars, int iVar )
   SeeAlso     []
 
 ***********************************************************************/
-void Extra_TruthMux( unsigned * pOut, unsigned * pCof0, unsigned * pCof1, int nVars, int iVar )
+void Kit_TruthMux( unsigned * pOut, unsigned * pCof0, unsigned * pCof1, int nVars, int iVar )
 {
-    int nWords = Extra_TruthWordNum( nVars );
+    int nWords = Kit_TruthWordNum( nVars );
     int i, k, Step;
 
     assert( iVar < nVars );
@@ -623,20 +599,20 @@ void Extra_TruthMux( unsigned * pOut, unsigned * pCof0, unsigned * pCof1, int nV
   SeeAlso     []
 
 ***********************************************************************/
-int Extra_TruthVarsSymm( unsigned * pTruth, int nVars, int iVar0, int iVar1 )
+int Kit_TruthVarsSymm( unsigned * pTruth, int nVars, int iVar0, int iVar1 )
 {
     static unsigned uTemp0[16], uTemp1[16];
     assert( nVars <= 9 );
     // compute Cof01
-    Extra_TruthCopy( uTemp0, pTruth, nVars );
-    Extra_TruthCofactor0( uTemp0, nVars, iVar0 );
-    Extra_TruthCofactor1( uTemp0, nVars, iVar1 );
+    Kit_TruthCopy( uTemp0, pTruth, nVars );
+    Kit_TruthCofactor0( uTemp0, nVars, iVar0 );
+    Kit_TruthCofactor1( uTemp0, nVars, iVar1 );
     // compute Cof10
-    Extra_TruthCopy( uTemp1, pTruth, nVars );
-    Extra_TruthCofactor1( uTemp1, nVars, iVar0 );
-    Extra_TruthCofactor0( uTemp1, nVars, iVar1 );
+    Kit_TruthCopy( uTemp1, pTruth, nVars );
+    Kit_TruthCofactor1( uTemp1, nVars, iVar0 );
+    Kit_TruthCofactor0( uTemp1, nVars, iVar1 );
     // compare
-    return Extra_TruthIsEqual( uTemp0, uTemp1, nVars );
+    return Kit_TruthIsEqual( uTemp0, uTemp1, nVars );
 }
 
 /**Function*************************************************************
@@ -650,20 +626,20 @@ int Extra_TruthVarsSymm( unsigned * pTruth, int nVars, int iVar0, int iVar1 )
   SeeAlso     []
 
 ***********************************************************************/
-int Extra_TruthVarsAntiSymm( unsigned * pTruth, int nVars, int iVar0, int iVar1 )
+int Kit_TruthVarsAntiSymm( unsigned * pTruth, int nVars, int iVar0, int iVar1 )
 {
     static unsigned uTemp0[16], uTemp1[16];
     assert( nVars <= 9 );
     // compute Cof00
-    Extra_TruthCopy( uTemp0, pTruth, nVars );
-    Extra_TruthCofactor0( uTemp0, nVars, iVar0 );
-    Extra_TruthCofactor0( uTemp0, nVars, iVar1 );
+    Kit_TruthCopy( uTemp0, pTruth, nVars );
+    Kit_TruthCofactor0( uTemp0, nVars, iVar0 );
+    Kit_TruthCofactor0( uTemp0, nVars, iVar1 );
     // compute Cof11
-    Extra_TruthCopy( uTemp1, pTruth, nVars );
-    Extra_TruthCofactor1( uTemp1, nVars, iVar0 );
-    Extra_TruthCofactor1( uTemp1, nVars, iVar1 );
+    Kit_TruthCopy( uTemp1, pTruth, nVars );
+    Kit_TruthCofactor1( uTemp1, nVars, iVar0 );
+    Kit_TruthCofactor1( uTemp1, nVars, iVar1 );
     // compare
-    return Extra_TruthIsEqual( uTemp0, uTemp1, nVars );
+    return Kit_TruthIsEqual( uTemp0, uTemp1, nVars );
 }
 
 /**Function*************************************************************
@@ -677,9 +653,9 @@ int Extra_TruthVarsAntiSymm( unsigned * pTruth, int nVars, int iVar0, int iVar1 
   SeeAlso     []
 
 ***********************************************************************/
-void Extra_TruthChangePhase( unsigned * pTruth, int nVars, int iVar )
+void Kit_TruthChangePhase( unsigned * pTruth, int nVars, int iVar )
 {
-    int nWords = Extra_TruthWordNum( nVars );
+    int nWords = Kit_TruthWordNum( nVars );
     int i, k, Step;
     unsigned Temp;
 
@@ -733,7 +709,7 @@ void Extra_TruthChangePhase( unsigned * pTruth, int nVars, int iVar )
   SeeAlso     []
 
 ***********************************************************************/
-int Extra_TruthMinCofSuppOverlap( unsigned * pTruth, int nVars, int * pVarMin )
+int Kit_TruthMinCofSuppOverlap( unsigned * pTruth, int nVars, int * pVarMin )
 {
     static unsigned uCofactor[16];
     int i, ValueCur, ValueMin, VarMin;
@@ -745,19 +721,19 @@ int Extra_TruthMinCofSuppOverlap( unsigned * pTruth, int nVars, int * pVarMin )
     for ( i = 0; i < nVars; i++ )
     {
         // get negative cofactor
-        Extra_TruthCopy( uCofactor, pTruth, nVars );
-        Extra_TruthCofactor0( uCofactor, nVars, i );
-        uSupp0 = Extra_TruthSupport( uCofactor, nVars );
-        nVars0 = Extra_WordCountOnes( uSupp0 );
-//Extra_PrintBinary( stdout, &uSupp0, 8 ); printf( "\n" );
+        Kit_TruthCopy( uCofactor, pTruth, nVars );
+        Kit_TruthCofactor0( uCofactor, nVars, i );
+        uSupp0 = Kit_TruthSupport( uCofactor, nVars );
+        nVars0 = Kit_WordCountOnes( uSupp0 );
+//Kit_PrintBinary( stdout, &uSupp0, 8 ); printf( "\n" );
         // get positive cofactor
-        Extra_TruthCopy( uCofactor, pTruth, nVars );
-        Extra_TruthCofactor1( uCofactor, nVars, i );
-        uSupp1 = Extra_TruthSupport( uCofactor, nVars );
-        nVars1 = Extra_WordCountOnes( uSupp1 );
-//Extra_PrintBinary( stdout, &uSupp1, 8 ); printf( "\n" );
+        Kit_TruthCopy( uCofactor, pTruth, nVars );
+        Kit_TruthCofactor1( uCofactor, nVars, i );
+        uSupp1 = Kit_TruthSupport( uCofactor, nVars );
+        nVars1 = Kit_WordCountOnes( uSupp1 );
+//Kit_PrintBinary( stdout, &uSupp1, 8 ); printf( "\n" );
         // get the number of common vars
-        ValueCur = Extra_WordCountOnes( uSupp0 & uSupp1 );
+        ValueCur = Kit_WordCountOnes( uSupp0 & uSupp1 );
         if ( ValueMin > ValueCur && nVars0 <= 5 && nVars1 <= 5 )
         {
             ValueMin = ValueCur;
@@ -786,37 +762,37 @@ int Extra_TruthMinCofSuppOverlap( unsigned * pTruth, int nVars, int * pVarMin )
   SeeAlso     []
 
 ***********************************************************************/
-void Extra_TruthCountOnesInCofs( unsigned * pTruth, int nVars, short * pStore )
+void Kit_TruthCountOnesInCofs( unsigned * pTruth, int nVars, short * pStore )
 {
-    int nWords = Extra_TruthWordNum( nVars );
+    int nWords = Kit_TruthWordNum( nVars );
     int i, k, Counter;
     memset( pStore, 0, sizeof(short) * 2 * nVars );
     if ( nVars <= 5 )
     {
         if ( nVars > 0 )
         {
-            pStore[2*0+0] = Extra_WordCountOnes( pTruth[0] & 0x55555555 );
-            pStore[2*0+1] = Extra_WordCountOnes( pTruth[0] & 0xAAAAAAAA );
+            pStore[2*0+0] = Kit_WordCountOnes( pTruth[0] & 0x55555555 );
+            pStore[2*0+1] = Kit_WordCountOnes( pTruth[0] & 0xAAAAAAAA );
         }
         if ( nVars > 1 )
         {
-            pStore[2*1+0] = Extra_WordCountOnes( pTruth[0] & 0x33333333 );
-            pStore[2*1+1] = Extra_WordCountOnes( pTruth[0] & 0xCCCCCCCC );
+            pStore[2*1+0] = Kit_WordCountOnes( pTruth[0] & 0x33333333 );
+            pStore[2*1+1] = Kit_WordCountOnes( pTruth[0] & 0xCCCCCCCC );
         }
         if ( nVars > 2 )
         {
-            pStore[2*2+0] = Extra_WordCountOnes( pTruth[0] & 0x0F0F0F0F );
-            pStore[2*2+1] = Extra_WordCountOnes( pTruth[0] & 0xF0F0F0F0 );
+            pStore[2*2+0] = Kit_WordCountOnes( pTruth[0] & 0x0F0F0F0F );
+            pStore[2*2+1] = Kit_WordCountOnes( pTruth[0] & 0xF0F0F0F0 );
         }
         if ( nVars > 3 )
         {
-            pStore[2*3+0] = Extra_WordCountOnes( pTruth[0] & 0x00FF00FF );
-            pStore[2*3+1] = Extra_WordCountOnes( pTruth[0] & 0xFF00FF00 );
+            pStore[2*3+0] = Kit_WordCountOnes( pTruth[0] & 0x00FF00FF );
+            pStore[2*3+1] = Kit_WordCountOnes( pTruth[0] & 0xFF00FF00 );
         }
         if ( nVars > 4 )
         {
-            pStore[2*4+0] = Extra_WordCountOnes( pTruth[0] & 0x0000FFFF );
-            pStore[2*4+1] = Extra_WordCountOnes( pTruth[0] & 0xFFFF0000 );
+            pStore[2*4+0] = Kit_WordCountOnes( pTruth[0] & 0x0000FFFF );
+            pStore[2*4+1] = Kit_WordCountOnes( pTruth[0] & 0xFFFF0000 );
         }
         return;
     }
@@ -824,7 +800,7 @@ void Extra_TruthCountOnesInCofs( unsigned * pTruth, int nVars, short * pStore )
     // count 1's for all other variables
     for ( k = 0; k < nWords; k++ )
     {
-        Counter = Extra_WordCountOnes( pTruth[k] );
+        Counter = Kit_WordCountOnes( pTruth[k] );
         for ( i = 5; i < nVars; i++ )
             if ( k & (1 << (i-5)) )
                 pStore[2*i+1] += Counter;
@@ -834,16 +810,16 @@ void Extra_TruthCountOnesInCofs( unsigned * pTruth, int nVars, short * pStore )
     // count 1's for the first five variables
     for ( k = 0; k < nWords/2; k++ )
     {
-        pStore[2*0+0] += Extra_WordCountOnes( (pTruth[0] & 0x55555555) | ((pTruth[1] & 0x55555555) <<  1) );
-        pStore[2*0+1] += Extra_WordCountOnes( (pTruth[0] & 0xAAAAAAAA) | ((pTruth[1] & 0xAAAAAAAA) >>  1) );
-        pStore[2*1+0] += Extra_WordCountOnes( (pTruth[0] & 0x33333333) | ((pTruth[1] & 0x33333333) <<  2) );
-        pStore[2*1+1] += Extra_WordCountOnes( (pTruth[0] & 0xCCCCCCCC) | ((pTruth[1] & 0xCCCCCCCC) >>  2) );
-        pStore[2*2+0] += Extra_WordCountOnes( (pTruth[0] & 0x0F0F0F0F) | ((pTruth[1] & 0x0F0F0F0F) <<  4) );
-        pStore[2*2+1] += Extra_WordCountOnes( (pTruth[0] & 0xF0F0F0F0) | ((pTruth[1] & 0xF0F0F0F0) >>  4) );
-        pStore[2*3+0] += Extra_WordCountOnes( (pTruth[0] & 0x00FF00FF) | ((pTruth[1] & 0x00FF00FF) <<  8) );
-        pStore[2*3+1] += Extra_WordCountOnes( (pTruth[0] & 0xFF00FF00) | ((pTruth[1] & 0xFF00FF00) >>  8) );
-        pStore[2*4+0] += Extra_WordCountOnes( (pTruth[0] & 0x0000FFFF) | ((pTruth[1] & 0x0000FFFF) << 16) );
-        pStore[2*4+1] += Extra_WordCountOnes( (pTruth[0] & 0xFFFF0000) | ((pTruth[1] & 0xFFFF0000) >> 16) );
+        pStore[2*0+0] += Kit_WordCountOnes( (pTruth[0] & 0x55555555) | ((pTruth[1] & 0x55555555) <<  1) );
+        pStore[2*0+1] += Kit_WordCountOnes( (pTruth[0] & 0xAAAAAAAA) | ((pTruth[1] & 0xAAAAAAAA) >>  1) );
+        pStore[2*1+0] += Kit_WordCountOnes( (pTruth[0] & 0x33333333) | ((pTruth[1] & 0x33333333) <<  2) );
+        pStore[2*1+1] += Kit_WordCountOnes( (pTruth[0] & 0xCCCCCCCC) | ((pTruth[1] & 0xCCCCCCCC) >>  2) );
+        pStore[2*2+0] += Kit_WordCountOnes( (pTruth[0] & 0x0F0F0F0F) | ((pTruth[1] & 0x0F0F0F0F) <<  4) );
+        pStore[2*2+1] += Kit_WordCountOnes( (pTruth[0] & 0xF0F0F0F0) | ((pTruth[1] & 0xF0F0F0F0) >>  4) );
+        pStore[2*3+0] += Kit_WordCountOnes( (pTruth[0] & 0x00FF00FF) | ((pTruth[1] & 0x00FF00FF) <<  8) );
+        pStore[2*3+1] += Kit_WordCountOnes( (pTruth[0] & 0xFF00FF00) | ((pTruth[1] & 0xFF00FF00) >>  8) );
+        pStore[2*4+0] += Kit_WordCountOnes( (pTruth[0] & 0x0000FFFF) | ((pTruth[1] & 0x0000FFFF) << 16) );
+        pStore[2*4+1] += Kit_WordCountOnes( (pTruth[0] & 0xFFFF0000) | ((pTruth[1] & 0xFFFF0000) >> 16) );
         pTruth += 2;
     }
 }
@@ -860,7 +836,7 @@ void Extra_TruthCountOnesInCofs( unsigned * pTruth, int nVars, short * pStore )
   SeeAlso     []
 
 ***********************************************************************/
-unsigned Extra_TruthHash( unsigned * pIn, int nWords )
+unsigned Kit_TruthHash( unsigned * pIn, int nWords )
 {
     // The 1,024 smallest prime numbers used to compute the hash value
     // http://www.math.utah.edu/~alfeld/math/primelist.html
@@ -957,24 +933,24 @@ unsigned Extra_TruthHash( unsigned * pIn, int nWords )
   SeeAlso     []
 
 ***********************************************************************/
-unsigned Extra_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars, char * pCanonPerm, short * pStore )
+unsigned Kit_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars, char * pCanonPerm, short * pStore )
 {
     unsigned * pIn = pInOut, * pOut = pAux, * pTemp;
-    int nWords = Extra_TruthWordNum( nVars );
+    int nWords = Kit_TruthWordNum( nVars );
     int i, Temp, fChange, Counter, nOnes;//, k, j, w, Limit;
     unsigned uCanonPhase;
 
     // canonicize output
     uCanonPhase = 0;
-    nOnes = Extra_TruthCountOnes(pIn, nVars);
+    nOnes = Kit_TruthCountOnes(pIn, nVars);
     if ( (nOnes > nWords * 16) || ((nOnes == nWords * 16) && (pIn[0] & 1)) )
     {
         uCanonPhase |= (1 << nVars);
-        Extra_TruthNot( pIn, pIn, nVars );
+        Kit_TruthNot( pIn, pIn, nVars );
     }
 
     // collect the minterm counts
-    Extra_TruthCountOnesInCofs( pIn, nVars, pStore );
+    Kit_TruthCountOnesInCofs( pIn, nVars, pStore );
 
     // canonicize phase
     for ( i = 0; i < nVars; i++ )
@@ -985,10 +961,10 @@ unsigned Extra_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVar
         Temp = pStore[2*i+0];
         pStore[2*i+0] = pStore[2*i+1];
         pStore[2*i+1] = Temp;
-        Extra_TruthChangePhase( pIn, nVars, i );
+        Kit_TruthChangePhase( pIn, nVars, i );
     }
 
-//    Extra_PrintHexadecimal( stdout, pIn, nVars );
+//    Kit_PrintHexadecimal( stdout, pIn, nVars );
 //    printf( "\n" );
 
     // permute
@@ -1014,17 +990,17 @@ unsigned Extra_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVar
             pStore[2*i+1] = pStore[2*(i+1)+1];
             pStore[2*(i+1)+1] = Temp;
 
-            Extra_TruthSwapAdjacentVars( pOut, pIn, nVars, i );
+            Kit_TruthSwapAdjacentVars( pOut, pIn, nVars, i );
             pTemp = pIn; pIn = pOut; pOut = pTemp;
         }
     } while ( fChange );
 
 /*
-    Extra_PrintBinary( stdout, &uCanonPhase, nVars+1 ); printf( " : " );
+    Kit_PrintBinary( stdout, &uCanonPhase, nVars+1 ); printf( " : " );
     for ( i = 0; i < nVars; i++ )
         printf( "%d=%d/%d  ", pCanonPerm[i], pStore[2*i], pStore[2*i+1] );
     printf( "  C = %d\n", Counter );
-    Extra_PrintHexadecimal( stdout, pIn, nVars );
+    Kit_PrintHexadecimal( stdout, pIn, nVars );
     printf( "\n" );
 */
 
@@ -1037,10 +1013,10 @@ unsigned Extra_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVar
             continue;
         if ( pStore[2*i] != pStore[2*i+1] )
             continue;
-        if ( Extra_TruthVarsSymm( pIn, nVars, i, i+1 ) )
+        if ( Kit_TruthVarsSymm( pIn, nVars, i, i+1 ) )
             continue;
-        if ( Extra_TruthVarsAntiSymm( pIn, nVars, i, i+1 ) )
-            Extra_TruthChangePhase( pIn, nVars, i+1 );
+        if ( Kit_TruthVarsAntiSymm( pIn, nVars, i, i+1 ) )
+            Kit_TruthChangePhase( pIn, nVars, i+1 );
     }
 */
 
@@ -1062,7 +1038,7 @@ unsigned Extra_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVar
         for ( j = i + 1; j < Limit; j++ )
         {
             // check symmetry
-            if ( Extra_TruthVarsSymm( pIn, nVars, i, j ) )
+            if ( Kit_TruthVarsSymm( pIn, nVars, i, j ) )
             {
                 uSymms |= (1 << j);
                 continue;
@@ -1070,9 +1046,9 @@ unsigned Extra_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVar
             // they are phase-unknown
             if ( pStore[2*i] == pStore[2*i+1] ) 
             {
-                if ( Extra_TruthVarsAntiSymm( pIn, nVars, i, j ) )
+                if ( Kit_TruthVarsAntiSymm( pIn, nVars, i, j ) )
                 {
-                    Extra_TruthChangePhase( pIn, nVars, j );
+                    Kit_TruthChangePhase( pIn, nVars, j );
                     uCanonPhase ^= (1 << j);
                     uSymms |= (1 << j);
                     continue;
@@ -1089,7 +1065,7 @@ unsigned Extra_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVar
                 pCanonPerm[k+1] = Temp;
 
                 assert( pStore[2*k] == pStore[2*(k+1)] );
-                Extra_TruthSwapAdjacentVars( pOut, pIn, nVars, k );
+                Kit_TruthSwapAdjacentVars( pOut, pIn, nVars, k );
                 pTemp = pIn; pIn = pOut; pOut = pTemp;
             }
             Limit--;
@@ -1101,7 +1077,7 @@ unsigned Extra_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVar
 
     // swap if it was moved an even number of times
     if ( Counter & 1 )
-        Extra_TruthCopy( pOut, pIn, nVars );
+        Kit_TruthCopy( pOut, pIn, nVars );
     return uCanonPhase;
 }
 
