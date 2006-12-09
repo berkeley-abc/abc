@@ -46,7 +46,7 @@
 #endif
 
 // the maximum number of cut leaves (currently does not work for 7)
-#define FPGA_MAX_LEAVES           10   
+#define FPGA_MAX_LEAVES           6   
 
 // the bit masks
 #define FPGA_MASK(n)             ((~((unsigned)0)) >> (32-(n)))
@@ -171,8 +171,9 @@ struct Fpga_LutLibStruct_t_
 {
     char *              pName;         // the name of the LUT library
     int                 LutMax;        // the maximum LUT size 
+    int                 fVarPinDelays; // set to 1 if variable pin delays are specified
     float               pLutAreas[FPGA_MAX_LUTSIZE+1]; // the areas of LUTs
-    float               pLutDelays[FPGA_MAX_LUTSIZE+1];// the delays of LUTs
+    float               pLutDelays[FPGA_MAX_LUTSIZE+1][FPGA_MAX_LUTSIZE+1];// the delays of LUTs
 };
 
 // the mapping node

@@ -67,9 +67,14 @@ int Kit_TruthIsop( unsigned * puTruth, int nVars, Vec_Int_t * vMemory, int fTryB
     if ( pcRes->nCubes == -1 )
     {
         vMemory->nSize = -1;
-        return 0;
+        return -1;
     }
     assert( Extra_TruthIsEqual( puTruth, pResult, nVars ) );
+    if ( pcRes->nCubes == 0 || (pcRes->nCubes == 1 && pcRes->pCubes[0] == 0) )
+    {
+        Vec_IntShrink( vMemory, pcRes->nCubes );
+        return 0;
+    }
     if ( fTryBoth )
     {
         // compute ISOP for the complemented polarity

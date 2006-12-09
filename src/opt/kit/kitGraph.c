@@ -354,11 +354,38 @@ Kit_Graph_t * Kit_TruthToGraph( unsigned * pTruth, int nVars, Vec_Int_t * vMemor
     Kit_Graph_t * pGraph;
     int RetValue;
     // derive SOP
-    RetValue = Kit_TruthIsop( pTruth, nVars, vMemory, 0 );
-    assert( RetValue == 0 );
+    RetValue = Kit_TruthIsop( pTruth, nVars, vMemory, 0 ); // tried 1 and found not useful in "renode"
+    if ( RetValue == -1 )
+        return NULL;
+    assert( RetValue == 0 || RetValue == 1 );
     // derive factored form
-    pGraph = Kit_SopFactor( vMemory, 0, nVars, vMemory );
+    pGraph = Kit_SopFactor( vMemory, RetValue, nVars, vMemory );
     return pGraph;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives the maximum depth from the leaf to the root.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Kit_GraphLeafDepth_rec( Kit_Graph_t * pGraph, Kit_Node_t * pNode, Kit_Node_t * pLeaf )
+{
+    int Depth0, Depth1, Depth;
+    if ( pNode == pLeaf )
+        return 0;
+    if ( Kit_GraphNodeIsVar(pGraph, pNode) )
+        return -100;
+    Depth0 = Kit_GraphLeafDepth_rec( pGraph, Kit_GraphNodeFanin0(pGraph, pNode), pLeaf );
+    Depth1 = Kit_GraphLeafDepth_rec( pGraph, Kit_GraphNodeFanin1(pGraph, pNode), pLeaf );
+    Depth = KIT_MAX( Depth0, Depth1 );
+    Depth = (Depth == -100) ? -100 : Depth + 1;
+    return Depth;
 }
 
 ////////////////////////////////////////////////////////////////////////

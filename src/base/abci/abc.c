@@ -2034,24 +2034,26 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
-    int nFaninMax, nCubeMax, c;
+    int nLutSize, nCutsMax, c;
+    int fArea;
     int fUseBdds;
     int fUseSops;
     int fVerbose;
-    extern Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int nCubeMax, int fUseBdds, int fUseSops, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nLutSize, int nCutsMax, int fArea, int fUseBdds, int fUseSops, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nFaninMax =  5;
-    nCubeMax  =  5;
+    nLutSize  =  8;
+    nCutsMax  =  5;
+    fArea     =  0;
     fUseBdds  =  0;
     fUseSops  =  0;
     fVerbose  =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCbsvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCabsvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -2061,9 +2063,9 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
                 fprintf( pErr, "Command line switch \"-F\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nFaninMax = atoi(argv[globalUtilOptind]);
+            nLutSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFaninMax < 0 ) 
+            if ( nLutSize < 0 ) 
                 goto usage;
             break;
         case 'C':
@@ -2072,10 +2074,13 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
                 fprintf( pErr, "Command line switch \"-C\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nCubeMax = atoi(argv[globalUtilOptind]);
+            nCutsMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nCubeMax < 0 ) 
+            if ( nCutsMax < 0 ) 
                 goto usage;
+            break;
+        case 'a':
+            fArea ^= 1;
             break;
         case 'b':
             fUseBdds ^= 1;
@@ -2096,7 +2101,19 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fUseBdds && fUseSops )
     {
         fprintf( pErr, "Cannot optimize both BDDs and SOPs at the same time.\n" );
-        goto usage;
+        return 1;
+    }
+
+    if ( nLutSize < 3 || nLutSize > IF_MAX_FUNC_LUTSIZE )
+    {
+        fprintf( pErr, "Incorrect LUT size (%d).\n", nLutSize );
+        return 1;
+    }
+
+    if ( nCutsMax < 2 || nCutsMax >= (1<<12) )
+    {
+        fprintf( pErr, "Incorrect number of cuts.\n" );
+        return 1;
     }
 
     if ( pNtk == NULL )
@@ -2111,7 +2128,7 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    pNtkRes = Abc_NtkRenode( pNtk, nFaninMax, nCubeMax, fUseBdds, fUseSops, fVerbose );
+    pNtkRes = Abc_NtkRenode( pNtk, nLutSize, nCutsMax, fArea, fUseBdds, fUseSops, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Renoding has failed.\n" );
@@ -2122,13 +2139,14 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: renode [-K num] [-C num] [-bsv]\n" );
+    fprintf( pErr, "usage: renode [-K num] [-C num] [-sbav]\n" );
     fprintf( pErr, "\t          transforms the AIG into a logic network with larger nodes\n" );
     fprintf( pErr, "\t          while minimizing the number of FF literals of the node SOPs\n" );
-    fprintf( pErr, "\t-K num  : the maximum fanin size after renoding [default = %d]\n", nFaninMax );
-    fprintf( pErr, "\t-C num  : the maximum number of cubes used at a node [default = %d]\n", nCubeMax );
-    fprintf( pErr, "\t-b      : toggles minimizing the number of BDD nodes [default = %s]\n", fUseBdds? "yes": "no" );
-    fprintf( pErr, "\t-s      : toggles minimizing the number of SOP cubes [default = %s]\n", fUseSops? "yes": "no" );
+    fprintf( pErr, "\t-K num  : the max cut size for renoding (2 < num < %d) [default = %d]\n", IF_MAX_FUNC_LUTSIZE+1, nLutSize );
+    fprintf( pErr, "\t-C num  : the max number of cuts used at a node (1 < num < 2^12) [default = %d]\n", nCutsMax );
+    fprintf( pErr, "\t-s      : toggles minimizing SOP cubes instead of FF lits [default = %s]\n", fUseSops? "yes": "no" );
+    fprintf( pErr, "\t-b      : toggles minimizing BDD nodes instead of FF lits [default = %s]\n", fUseBdds? "yes": "no" );
+    fprintf( pErr, "\t-a      : toggles area-oriented mapping [default = %s]\n", fArea? "yes": "no" );
     fprintf( pErr, "\t-v      : print verbose information [default = %s]\n", fVerbose? "yes": "no" ); 
     fprintf( pErr, "\t-h      : print the command usage\n");
     return 1;
@@ -2731,18 +2749,18 @@ int Abc_CommandRestructure( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
     int c;
-    int nCutMax;
+    int nCutsMax;
     bool fUpdateLevel;
     bool fUseZeros;
     bool fVerbose;
-    extern int Abc_NtkRestructure( Abc_Ntk_t * pNtk, int nCutMax, bool fUpdateLevel, bool fUseZeros, bool fVerbose );
+    extern int Abc_NtkRestructure( Abc_Ntk_t * pNtk, int nCutsMax, bool fUpdateLevel, bool fUseZeros, bool fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nCutMax      =  5;
+    nCutsMax      =  5;
     fUpdateLevel =  0;
     fUseZeros    =  0;
     fVerbose     =  0;
@@ -2757,9 +2775,9 @@ int Abc_CommandRestructure( Abc_Frame_t * pAbc, int argc, char ** argv )
                 fprintf( pErr, "Command line switch \"-K\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nCutMax = atoi(argv[globalUtilOptind]);
+            nCutsMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nCutMax < 0 ) 
+            if ( nCutsMax < 0 ) 
                 goto usage;
             break;
         case 'l':
@@ -2783,7 +2801,7 @@ int Abc_CommandRestructure( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Empty network.\n" );
         return 1;
     }
-    if ( nCutMax < 4 || nCutMax > CUT_SIZE_MAX )
+    if ( nCutsMax < 4 || nCutsMax > CUT_SIZE_MAX )
     {
         fprintf( pErr, "Can only compute the cuts for %d <= K <= %d.\n", 4, CUT_SIZE_MAX );
         return 1;
@@ -2800,7 +2818,7 @@ int Abc_CommandRestructure( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // modify the current network
-    if ( !Abc_NtkRestructure( pNtk, nCutMax, fUpdateLevel, fUseZeros, fVerbose ) )
+    if ( !Abc_NtkRestructure( pNtk, nCutsMax, fUpdateLevel, fUseZeros, fVerbose ) )
     {
         fprintf( pErr, "Refactoring has failed.\n" );
         return 1;
@@ -2810,7 +2828,7 @@ int Abc_CommandRestructure( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     fprintf( pErr, "usage: restructure [-K num] [-lzvh]\n" );
     fprintf( pErr, "\t         performs technology-independent restructuring of the AIG\n" );
-    fprintf( pErr, "\t-K num : the max cut size (%d <= num <= %d) [default = %d]\n",   CUT_SIZE_MIN, CUT_SIZE_MAX, nCutMax );  
+    fprintf( pErr, "\t-K num : the max cut size (%d <= num <= %d) [default = %d]\n",   CUT_SIZE_MIN, CUT_SIZE_MAX, nCutsMax );  
     fprintf( pErr, "\t-l     : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
     fprintf( pErr, "\t-z     : toggle using zero-cost replacements [default = %s]\n", fUseZeros? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
@@ -2836,19 +2854,19 @@ int Abc_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
     int RS_CUT_MIN =  4;
     int RS_CUT_MAX = 16;
     int c;
-    int nCutMax;
+    int nCutsMax;
     int nNodesMax;
     bool fUpdateLevel;
     bool fUseZeros;
     bool fVerbose;
-    extern int Abc_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutMax, int nNodesMax, bool fUpdateLevel, bool fVerbose );
+    extern int Abc_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutsMax, int nNodesMax, bool fUpdateLevel, bool fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nCutMax      =  8;
+    nCutsMax      =  8;
     nNodesMax    =  1;
     fUpdateLevel =  1;
     fUseZeros    =  0;
@@ -2864,9 +2882,9 @@ int Abc_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
                 fprintf( pErr, "Command line switch \"-K\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nCutMax = atoi(argv[globalUtilOptind]);
+            nCutsMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nCutMax < 0 ) 
+            if ( nCutsMax < 0 ) 
                 goto usage;
             break;
         case 'N':
@@ -2901,7 +2919,7 @@ int Abc_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Empty network.\n" );
         return 1;
     }
-    if ( nCutMax < RS_CUT_MIN || nCutMax > RS_CUT_MAX )
+    if ( nCutsMax < RS_CUT_MIN || nCutsMax > RS_CUT_MAX )
     {
         fprintf( pErr, "Can only compute the cuts for %d <= K <= %d.\n", RS_CUT_MIN, RS_CUT_MAX );
         return 1;
@@ -2918,7 +2936,7 @@ int Abc_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // modify the current network
-    if ( !Abc_NtkResubstitute( pNtk, nCutMax, nNodesMax, fUpdateLevel, fVerbose ) )
+    if ( !Abc_NtkResubstitute( pNtk, nCutsMax, nNodesMax, fUpdateLevel, fVerbose ) )
     {
         fprintf( pErr, "Refactoring has failed.\n" );
         return 1;
@@ -2928,7 +2946,7 @@ int Abc_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     fprintf( pErr, "usage: resub [-K num] [-N num] [-lzvh]\n" );
     fprintf( pErr, "\t         performs technology-independent restructuring of the AIG\n" );
-    fprintf( pErr, "\t-K num : the max cut size (%d <= num <= %d) [default = %d]\n", RS_CUT_MIN, RS_CUT_MAX, nCutMax );  
+    fprintf( pErr, "\t-K num : the max cut size (%d <= num <= %d) [default = %d]\n", RS_CUT_MIN, RS_CUT_MAX, nCutsMax );  
     fprintf( pErr, "\t-N num : the max number of nodes to add [default = %d]\n", nNodesMax );  
     fprintf( pErr, "\t-l     : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
     fprintf( pErr, "\t-z     : toggle using zero-cost replacements [default = %s]\n", fUseZeros? "yes": "no" );
@@ -7510,9 +7528,8 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     memset( pPars, 0, sizeof(If_Par_t) );
     // user-controlable paramters
-    pPars->Mode        =  0;
     pPars->nLutSize    =  4;
-    pPars->nCutsMax    = 20;
+    pPars->nCutsMax    = 10;
     pPars->DelayTarget = -1;
     pPars->fPreprocess =  1;
     pPars->fArea       =  0;
@@ -7522,7 +7539,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->fSeq        =  0;
     pPars->fVerbose    =  0;
     // internal parameters
-    pPars->fTruth      =  1;
+    pPars->fTruth      =  0;
     pPars->nLatches    =  pNtk? Abc_NtkLatchNum(pNtk) : 0;
     pPars->pLutLib     =  NULL; // Abc_FrameReadLibLut();
     pPars->pTimesArr   =  NULL; 
@@ -7530,21 +7547,10 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->pFuncCost   =  NULL;   
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "MKCDpaflrsvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCDpaflrsvh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'M':
-            if ( globalUtilOptind >= argc )
-            {
-                fprintf( pErr, "Command line switch \"-M\" should be followed by a positive integer.\n" );
-                goto usage;
-            }
-            pPars->Mode = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->Mode < 0 ) 
-                goto usage;
-            break;
         case 'K':
             if ( globalUtilOptind >= argc )
             {
@@ -7614,19 +7620,33 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pPars->fSeq )
     {
         fprintf( pErr, "Sequential mapping is currently being implemented.\n" );
-        goto usage;
+        return 1;
     }
 
-    if ( pPars->Mode < 0 || pPars->Mode > 4 )
+    if ( pPars->nLutSize < 3 || pPars->nLutSize > IF_MAX_LUTSIZE )
     {
-        fprintf( pErr, "Incorrect mapping mode.\n" );
-        goto usage;
+        fprintf( pErr, "Incorrect LUT size (%d).\n", pPars->nLutSize );
+        return 1;
     }
 
     if ( pPars->nCutsMax < 2 || pPars->nCutsMax >= (1<<12) )
     {
         fprintf( pErr, "Incorrect number of cuts.\n" );
-        goto usage;
+        return 1;
+    }
+
+    if ( Abc_NtkGetChoiceNum( pNtk ) )
+    {
+        printf( "Performing FPGA mapping with choices.\n" );
+//        printf( "Currently mapping with choices is not enabled.\n" );
+        pPars->fTruth = 1;
+//        return 1;
+    }
+
+    if ( pPars->fTruth && pPars->nLutSize > IF_MAX_FUNC_LUTSIZE )
+    {
+        fprintf( pErr, "Mapping with choices requires computing truth tables. In this case, the LUT size cannot be more than %d.\n", IF_MAX_FUNC_LUTSIZE );
+        return 1;
     }
 
     // set the latch paths
@@ -7686,21 +7706,16 @@ usage:
         sprintf( LutSize, "library" );
     else
         sprintf( LutSize, "%d", pPars->nLutSize );
-    fprintf( pErr, "usage: if [-M num] [-K num] [-C num] [-D float] [-pafrsvh]\n" );
-    fprintf( pErr, "\t           performs FPGA mapping of the network as follows:\n" );
-    fprintf( pErr, "\t               1 - delay only\n" );
-    fprintf( pErr, "\t               2 - area only\n" );
-    fprintf( pErr, "\t               3 - area under delay constraints\n" );
-    fprintf( pErr, "\t               4 - area under delay constraints with area recovery\n" );
-    fprintf( pErr, "\t-M num   : the mapping mode [default = %d]\n", pPars->Mode );
-    fprintf( pErr, "\t-K num   : the number of LUT inputs (2 < num < 32) [default = %s]\n", LutSize );
+    fprintf( pErr, "usage: if [-K num] [-C num] [-D float] [-pafrsvh]\n" );
+    fprintf( pErr, "\t           performs FPGA technology mapping of the network\n" );
+    fprintf( pErr, "\t-K num   : the number of LUT inputs (2 < num < %d) [default = %s]\n", IF_MAX_LUTSIZE+1, LutSize );
     fprintf( pErr, "\t-C num   : the max number of cuts to use (1 < num < 2^12) [default = %d]\n", pPars->nCutsMax );
     fprintf( pErr, "\t-D float : sets the delay constraint for the mapping [default = %s]\n", Buffer );  
     fprintf( pErr, "\t-p       : toggles preprocessing using several starting points [default = %s]\n", pPars->fPreprocess? "yes": "no" );
     fprintf( pErr, "\t-a       : toggles area-oriented mapping [default = %s]\n", pPars->fArea? "yes": "no" );
     fprintf( pErr, "\t-f       : toggles one fancy feature [default = %s]\n", pPars->fFancy? "yes": "no" );
-//    fprintf( pErr, "\t-l       : optimizes latch paths for delay, other paths for area [default = %s]\n", pPars->fLatchPaths? "yes": "no" );
     fprintf( pErr, "\t-r       : enables expansion/reduction of the best cuts [default = %s]\n", pPars->fExpRed? "yes": "no" );
+    fprintf( pErr, "\t-l       : optimizes latch paths for delay, other paths for area [default = %s]\n", pPars->fLatchPaths? "yes": "no" );
     fprintf( pErr, "\t-s       : toggles sequential mapping [default = %s]\n", pPars->fSeq? "yes": "no" );
     fprintf( pErr, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h       : prints the command usage\n");

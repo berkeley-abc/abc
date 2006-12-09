@@ -58,7 +58,8 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
     p->vTemp   = Vec_PtrAlloc( 100 );
     // prepare the memory manager
     p->nTruthSize = p->pPars->fTruth? If_CutTruthWords( p->pPars->nLutSize ) : 0;
-    p->nCutSize   = sizeof(If_Cut_t) + sizeof(int) * p->pPars->nLutSize + sizeof(unsigned) * p->nTruthSize;
+    p->nPermSize  = p->pPars->fUsePerm? If_CutPermWords( p->pPars->nLutSize ) : 0;
+    p->nCutSize   = sizeof(If_Cut_t) + sizeof(int) * (p->pPars->nLutSize + p->nPermSize + p->nTruthSize);
     p->nEntrySize = sizeof(If_Obj_t) + p->pPars->nCutsMax * p->nCutSize;
     p->nEntryBase = sizeof(If_Obj_t) + p->pPars->nCutsMax * sizeof(If_Cut_t);
     p->pMem = Mem_FixedStart( p->nEntrySize );
@@ -182,12 +183,37 @@ If_Obj_t * If_ManCreateAnd( If_Man_t * p, If_Obj_t * pFan0, int fCompl0, If_Obj_
     pObj->fCompl1 = fCompl1;
     pObj->pFanin0 = pFan0; pFan0->nRefs++;
     pObj->pFanin1 = pFan1; pFan1->nRefs++;
-    pObj->fPhase  = (fCompl0? !pFan0->fPhase : pFan0->fPhase) & (fCompl1? !pFan1->fPhase : pFan1->fPhase);
+    pObj->fPhase  = (fCompl0 ^ pFan0->fPhase) & (fCompl1 ^ pFan1->fPhase);
     pObj->Level   = 1 + IF_MAX( pFan0->Level, pFan1->Level );
     if ( p->nLevelMax < (int)pObj->Level )
         p->nLevelMax = (int)pObj->Level;
     p->nObjs[IF_AND]++;
     return pObj;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates the choice node.]
+
+  Description [Should be called after the equivalence class nodes are linked.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void If_ManCreateChoice( If_Man_t * p, If_Obj_t * pObj )
+{
+    If_Obj_t * pTemp;
+    // mark the node as a representative if its class
+    assert( pObj->fRepr == 0 );
+    pObj->fRepr = 1;
+    // update the level of this node (needed for correct required time computation)
+    for ( pTemp = pObj->pEquiv; pTemp; pTemp = pTemp->pEquiv )
+        pObj->Level = IF_MAX( pObj->Level, pTemp->Level );
+    // mark the largest level
+    if ( p->nLevelMax < (int)pObj->Level )
+        p->nLevelMax = (int)pObj->Level;
 }
 
 /**Function*************************************************************
@@ -216,7 +242,8 @@ If_Obj_t * If_ManSetupObj( If_Man_t * p )
         pCut = pObj->Cuts + i;
         pCut->nLimit  = p->pPars->nLutSize;
         pCut->pLeaves = pArrays + i * p->pPars->nLutSize;
-        pCut->pTruth  = pArrays + p->pPars->nCutsMax * p->pPars->nLutSize + i * p->nTruthSize;
+        pCut->pPerm   = (char *)(p->pPars->fUsePerm? pArrays + p->pPars->nCutsMax * p->pPars->nLutSize + i * p->nPermSize : NULL);
+        pCut->pTruth  = p->pPars->fTruth? pArrays + p->pPars->nCutsMax * (p->pPars->nLutSize + p->nPermSize) + i * p->nTruthSize : NULL;
     }
     // assign ID and save 
     pObj->Id = Vec_PtrSize(p->vObjs);
@@ -270,7 +297,8 @@ If_Cut_t ** If_ManSetupCuts( If_Man_t * p )
         pCutStore[i] = (If_Cut_t *)((char *)pCutStore[0] + sizeof(If_Cut_t) * i);
         pCutStore[i]->nLimit  = p->pPars->nLutSize;
         pCutStore[i]->pLeaves = pArrays + i * p->pPars->nLutSize;
-        pCutStore[i]->pTruth  = pArrays + nCutsTotal * p->pPars->nLutSize + i * p->nTruthSize;
+        pCutStore[i]->pPerm   = (char *)(p->pPars->fUsePerm? pArrays + nCutsTotal * p->pPars->nLutSize + i * p->nPermSize : NULL);
+        pCutStore[i]->pTruth  = p->pPars->fTruth? pArrays + nCutsTotal * (p->pPars->nLutSize + p->nPermSize) + i * p->nTruthSize : NULL;
     }
     return pCutStore;
 }

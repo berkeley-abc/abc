@@ -197,6 +197,7 @@ Kit_Edge_t Kit_SopFactorTrivialCube_rec( Kit_Graph_t * pFForm, unsigned uCube, i
 {
     Kit_Edge_t eNode1, eNode2;
     int i, iLit, nLits, nLits1, nLits2;
+    assert( uCube );
     // count the number of literals in this interval
     nLits = 0;
     for ( i = nStart; i < nFinish; i++ )

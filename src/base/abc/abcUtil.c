@@ -218,9 +218,9 @@ int Abc_NtkGetBddNodeNum( Abc_Ntk_t * pNtk )
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         assert( pNode->pData );
-        if ( Abc_NodeIsConst(pNode) )
+        if ( Abc_ObjFaninNum(pNode) < 2 )
             continue;
-        nNodes += pNode->pData? Cudd_DagSize( pNode->pData ) : 0;
+        nNodes += pNode->pData? -1 + Cudd_DagSize( pNode->pData ) : 0;
     }
     return nNodes;
 }
@@ -244,7 +244,7 @@ int Abc_NtkGetAigNodeNum( Abc_Ntk_t * pNtk )
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         assert( pNode->pData );
-        if ( Abc_NodeIsConst(pNode) )
+        if ( Abc_ObjFaninNum(pNode) < 2 )
             continue;
         nNodes += pNode->pData? Hop_DagSize( pNode->pData ) : 0;
     }

@@ -323,7 +323,7 @@ clk = clock();
     if ( pNode->nRefs ) 
     {
         pNode->pCutBest->aFlow = Fpga_CutRef( p, pNode, pNode->pCutBest, 0 );
-        assert( pNode->pCutBest->aFlow <= aAreaCutBest );
+//        assert( pNode->pCutBest->aFlow <= aAreaCutBest );
 //        assert( pNode->tRequired < FPGA_FLOAT_LARGE );
     }
     return 1;

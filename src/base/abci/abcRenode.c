@@ -27,9 +27,9 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static int Abc_NtkRenodeEvalBdd( unsigned * pTruth, int nVars );
-static int Abc_NtkRenodeEvalSop( unsigned * pTruth, int nVars );
-static int Abc_NtkRenodeEvalAig( unsigned * pTruth, int nVars );
+static int Abc_NtkRenodeEvalBdd( If_Cut_t * pCut );
+static int Abc_NtkRenodeEvalSop( If_Cut_t * pCut );
+static int Abc_NtkRenodeEvalAig( If_Cut_t * pCut );
 
 static reo_man * s_pReo      = NULL;
 static DdManager * s_pDd     = NULL;
@@ -50,7 +50,7 @@ static Vec_Int_t * s_vMemory = NULL;
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int nCubeMax, int fUseBdds, int fUseSops, int fVerbose )
+Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int nCubeMax, int fArea, int fUseBdds, int fUseSops, int fVerbose )
 {
     extern Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars );
     If_Par_t Pars, * pPars = &Pars;
@@ -59,19 +59,19 @@ Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int nCubeMax, int fU
     // set defaults
     memset( pPars, 0, sizeof(If_Par_t) );
     // user-controlable paramters
-    pPars->Mode        =  0;
     pPars->nLutSize    =  nFaninMax;
-    pPars->nCutsMax    = 10;
+    pPars->nCutsMax    =  nCubeMax;
     pPars->DelayTarget = -1;
     pPars->fPreprocess =  1;
-    pPars->fArea       =  0;
+    pPars->fArea       =  fArea;
     pPars->fFancy      =  0;
     pPars->fExpRed     =  0; //
     pPars->fLatchPaths =  0;
     pPars->fSeq        =  0;
-    pPars->fVerbose    =  0;
+    pPars->fVerbose    =  fVerbose;
     // internal parameters
     pPars->fTruth      =  1;
+    pPars->fUsePerm    =  1; //!fUseSops;
     pPars->nLatches    =  0;
     pPars->pLutLib     =  NULL; // Abc_FrameReadLibLut();
     pPars->pTimesArr   =  NULL; 
@@ -130,18 +130,22 @@ Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int nCubeMax, int fU
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRenodeEvalBdd( unsigned * pTruth, int nVars )
+int Abc_NtkRenodeEvalBdd( If_Cut_t * pCut )
 {
+    int pOrder[IF_MAX_LUTSIZE];
     DdNode * bFunc, * bFuncNew;
-    int nNodes, nSupport;
-    bFunc = Kit_TruthToBdd( s_pDd, pTruth, nVars );           Cudd_Ref( bFunc );
-    bFuncNew = Extra_Reorder( s_pReo, s_pDd, bFunc, NULL );   Cudd_Ref( bFuncNew );
-//    nSupport = Cudd_SupportSize( s_pDd, bFuncNew );
-    nSupport = 1;
-    nNodes = Cudd_DagSize( bFuncNew );
+    int i, k, nNodes;
+    for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
+        pCut->pPerm[i] = pOrder[i] = -100;
+    bFunc = Kit_TruthToBdd( s_pDd, If_CutTruth(pCut), If_CutLeaveNum(pCut), 0 );  Cudd_Ref( bFunc );
+    bFuncNew = Extra_Reorder( s_pReo, s_pDd, bFunc, pOrder );                     Cudd_Ref( bFuncNew );
+    for ( i = k = 0; i < If_CutLeaveNum(pCut); i++ )
+        if ( pOrder[i] >= 0 )
+            pCut->pPerm[pOrder[i]] = ++k; // double-check this!
+    nNodes = -1 + Cudd_DagSize( bFuncNew );
     Cudd_RecursiveDeref( s_pDd, bFuncNew );
     Cudd_RecursiveDeref( s_pDd, bFunc );
-    return (nSupport << 16) | nNodes;
+    return nNodes; 
 }
 
 /**Function*************************************************************
@@ -155,13 +159,16 @@ int Abc_NtkRenodeEvalBdd( unsigned * pTruth, int nVars )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRenodeEvalSop( unsigned * pTruth, int nVars )
+int Abc_NtkRenodeEvalSop( If_Cut_t * pCut )
 {
-    int nCubes, RetValue;
-    RetValue = Kit_TruthIsop( pTruth, nVars, s_vMemory, 0 );
-    assert( RetValue == 0 );
-    nCubes = Vec_IntSize( s_vMemory );
-    return (1 << 16) | nCubes;
+    int i, RetValue;
+    for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
+        pCut->pPerm[i] = 1;
+    RetValue = Kit_TruthIsop( If_CutTruth(pCut), If_CutLeaveNum(pCut), s_vMemory, 1 );
+    if ( RetValue == -1 )
+        return ABC_INFINITY;
+    assert( RetValue == 0 || RetValue == 1 );
+    return Vec_IntSize( s_vMemory );
 }
 
 /**Function*************************************************************
@@ -175,16 +182,22 @@ int Abc_NtkRenodeEvalSop( unsigned * pTruth, int nVars )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRenodeEvalAig( unsigned * pTruth, int nVars )
+int Abc_NtkRenodeEvalAig( If_Cut_t * pCut )
 {
     Kit_Graph_t * pGraph;
-    int nNodes, nDepth;
-    pGraph = Kit_TruthToGraph( pTruth, nVars, s_vMemory );
+    int i, nNodes;
+    pGraph = Kit_TruthToGraph( If_CutTruth(pCut), If_CutLeaveNum(pCut), s_vMemory );
+    if ( pGraph == NULL )
+    {
+        for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
+            pCut->pPerm[i] = 100;
+        return ABC_INFINITY;
+    }
     nNodes = Kit_GraphNodeNum( pGraph );
-//    nDepth = Kit_GraphLevelNum( pGraph );
-    nDepth = 1;
+    for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
+        pCut->pPerm[i] = Kit_GraphLeafDepth_rec( pGraph, Kit_GraphNodeLast(pGraph), Kit_GraphNode(pGraph, i) );
     Kit_GraphFree( pGraph );
-    return (nDepth << 16) | nNodes;
+    return nNodes;
 }
 
 ////////////////////////////////////////////////////////////////////////

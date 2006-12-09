@@ -55,7 +55,7 @@ void If_ManImproveMapping( If_Man_t * p )
     If_ManComputeRequired( p, 0 );
     if ( p->pPars->fVerbose )
     {
-        printf( "E:  Del = %6.2f. Area = %8.2f. Cuts = %6d. Lim = %2d. Ave = %5.2f. ", 
+        printf( "E:  Del = %6.2f. Area = %8.2f. Cuts = %8d. Lim = %2d. Ave = %5.2f. ", 
             p->RequiredGlo, p->AreaGlo, p->nCutsMerged, p->nCutsUsed, 1.0 * p->nCutsMerged / If_ManAndNum(p) );
         PRT( "T", clock() - clk );
     }
@@ -65,7 +65,7 @@ void If_ManImproveMapping( If_Man_t * p )
     If_ManComputeRequired( p, 0 );
     if ( p->pPars->fVerbose )
     {
-        printf( "R:  Del = %6.2f. Area = %8.2f. Cuts = %6d. Lim = %2d. Ave = %5.2f. ", 
+        printf( "R:  Del = %6.2f. Area = %8.2f. Cuts = %8d. Lim = %2d. Ave = %5.2f. ", 
             p->RequiredGlo, p->AreaGlo, p->nCutsMerged, p->nCutsUsed, 1.0 * p->nCutsMerged / If_ManAndNum(p) );
         PRT( "T", clock() - clk );
     }
@@ -75,7 +75,7 @@ void If_ManImproveMapping( If_Man_t * p )
     If_ManComputeRequired( p, 0 );
     if ( p->pPars->fVerbose )
     {
-        printf( "E:  Del = %6.2f. Area = %8.2f. Cuts = %6d. Lim = %2d. Ave = %5.2f. ", 
+        printf( "E:  Del = %6.2f. Area = %8.2f. Cuts = %8d. Lim = %2d. Ave = %5.2f. ", 
             p->RequiredGlo, p->AreaGlo, p->nCutsMerged, p->nCutsUsed, 1.0 * p->nCutsMerged / If_ManAndNum(p) );
         PRT( "T", clock() - clk );
     }

@@ -149,7 +149,7 @@ void Map_MappingCuts( Map_Man_t * p )
     if ( p->fVerbose )
     {
         nCuts = Map_MappingCountAllCuts(p);
-        printf( "Nodes = %6d. Total %d-feasible cuts = %d. Per node = %.1f. ", 
+        printf( "Nodes = %6d.  Total %d-feasible cuts = %10d.  Per node = %.1f. ", 
                p->nNodes, p->nVarsMax, nCuts, ((float)nCuts)/p->nNodes );
         PRT( "Time", clock() - clk );
     }

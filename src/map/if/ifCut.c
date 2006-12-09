@@ -96,7 +96,9 @@ int If_CutFilter( If_Man_t * p, If_Cut_t * pCut )
         pTemp = p->ppCuts[i];
         if ( pTemp->nLeaves > pCut->nLeaves )
         {
-//            continue;
+            // do not fiter the first cut
+            if ( i == 0 )
+                continue;
             // skip the non-contained cuts
             if ( (pTemp->uSign & pCut->uSign) != pCut->uSign )
                 continue;
@@ -368,6 +370,10 @@ int If_CutCompareArea( If_Cut_t ** ppC0, If_Cut_t ** ppC1 )
         return -1;
     if ( pC0->Area > pC1->Area + 0.0001 )
         return 1;
+    if ( pC0->AveRefs > pC1->AveRefs )
+        return -1;
+    if ( pC0->AveRefs < pC1->AveRefs )
+        return 1;
     if ( pC0->nLeaves < pC1->nLeaves )
         return -1;
     if ( pC0->nLeaves > pC1->nLeaves )
@@ -403,29 +409,6 @@ void If_ManSortCuts( If_Man_t * p, int Mode )
 
 /**Function*************************************************************
 
-  Synopsis    [Computes delay.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-float If_CutDelay( If_Man_t * p, If_Cut_t * pCut )
-{
-    If_Obj_t * pLeaf;
-    float Delay;
-    int i;
-    assert( pCut->nLeaves > 1 );
-    Delay = -IF_FLOAT_LARGE;
-    If_CutForEachLeaf( p, pCut, pLeaf, i )
-        Delay = IF_MAX( Delay, If_ObjCutBest(pLeaf)->Delay );
-    return Delay + If_CutLutDelay(p, pCut);
-}
-
-/**Function*************************************************************
-
   Synopsis    [Computes area flow.]
 
   Description []
@@ -453,6 +436,28 @@ float If_CutFlow( If_Man_t * p, If_Cut_t * pCut )
         }
     }
     return Flow;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Average number of references of the leaves.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float If_CutAverageRefs( If_Man_t * p, If_Cut_t * pCut )
+{
+    If_Obj_t * pLeaf;
+    int nRefsTotal, i;
+    assert( pCut->nLeaves > 1 );
+    nRefsTotal = 0;
+    If_CutForEachLeaf( p, pCut, pLeaf, i )
+        nRefsTotal += pLeaf->nRefs;
+    return ((float)nRefsTotal)/pCut->nLeaves;
 }
 
 /**Function*************************************************************
@@ -531,6 +536,27 @@ void If_CutPrint( If_Man_t * p, If_Cut_t * pCut )
 
 /**Function*************************************************************
 
+  Synopsis    [Prints one cut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void If_CutPrintTiming( If_Man_t * p, If_Cut_t * pCut )
+{
+    If_Obj_t * pLeaf;
+    unsigned i;
+    printf( "{" );
+    If_CutForEachLeaf( p, pCut, pLeaf, i )
+        printf( " %d(%.2f/%.2f)", pLeaf->Id, If_ObjCutBest(pLeaf)->Delay, pLeaf->Required );
+    printf( " }\n" );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Computes area of the first level.]
 
   Description [The cut need to be derefed.]
@@ -585,15 +611,24 @@ float If_CutAreaRefed( If_Man_t * p, If_Cut_t * pCut, int nLevels )
 void If_CutCopy( If_Cut_t * pCutDest, If_Cut_t * pCutSrc )
 {
     int * pLeaves;
+    char * pPerm;
     unsigned * pTruth;
+    // save old arrays
     pLeaves = pCutDest->pLeaves;
+    pPerm   = pCutDest->pPerm;
     pTruth  = pCutDest->pTruth;
+    // copy the cut info
     *pCutDest = *pCutSrc;
+    // restore the arrays
     pCutDest->pLeaves = pLeaves;
+    pCutDest->pPerm   = pPerm;
     pCutDest->pTruth  = pTruth;
+    // copy the array data
     memcpy( pCutDest->pLeaves, pCutSrc->pLeaves, sizeof(int) * pCutSrc->nLeaves );
+    if ( pCutSrc->pPerm )
+        memcpy( pCutDest->pPerm, pCutSrc->pPerm, sizeof(unsigned) * If_CutPermWords(pCutSrc->nLimit) );
     if ( pCutSrc->pTruth )
-    memcpy( pCutDest->pTruth,  pCutSrc->pTruth,  sizeof(unsigned) * If_CutTruthWords(pCutSrc->nLimit) );
+        memcpy( pCutDest->pTruth, pCutSrc->pTruth, sizeof(unsigned) * If_CutTruthWords(pCutSrc->nLimit) );
 }
 
 ////////////////////////////////////////////////////////////////////////

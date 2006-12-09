@@ -72,18 +72,19 @@ void If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut
     extern void Kit_FactorTest( unsigned * pTruth, int nVars );
 
     // permute the first table
-    if ( fCompl0 ) 
+    if ( fCompl0 ^ pCut0->fCompl ) 
         Extra_TruthNot( p->puTemp[0], If_CutTruth(pCut0), pCut->nLimit );
     else
         Extra_TruthCopy( p->puTemp[0], If_CutTruth(pCut0), pCut->nLimit );
     Extra_TruthStretch( p->puTemp[2], p->puTemp[0], pCut0->nLeaves, pCut->nLimit, Cut_TruthPhase(pCut, pCut0) );
     // permute the second table
-    if ( fCompl1 ) 
+    if ( fCompl1 ^ pCut1->fCompl ) 
         Extra_TruthNot( p->puTemp[1], If_CutTruth(pCut1), pCut->nLimit );
     else
         Extra_TruthCopy( p->puTemp[1], If_CutTruth(pCut1), pCut->nLimit );
     Extra_TruthStretch( p->puTemp[3], p->puTemp[1], pCut1->nLeaves, pCut->nLimit, Cut_TruthPhase(pCut, pCut1) );
     // produce the resulting table
+    assert( pCut->fCompl == 0 );
     if ( pCut->fCompl )
         Extra_TruthNand( If_CutTruth(pCut), p->puTemp[2], p->puTemp[3], pCut->nLimit );
     else
@@ -91,6 +92,7 @@ void If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut
 
     // perform 
 //    Kit_FactorTest( If_CutTruth(pCut), pCut->nLimit );
+//    printf( "%d ", If_CutLeaveNum(pCut) - Kit_TruthSupportSize(If_CutTruth(pCut), If_CutLeaveNum(pCut)) );
 }
 
 ////////////////////////////////////////////////////////////////////////

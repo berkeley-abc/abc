@@ -50,7 +50,7 @@ void If_ManPerformMappingPreprocess( If_Man_t * p )
 
     // perform min-area mapping and move the cut to the end
     p->pPars->fArea = 1;
-    If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 0 );
+    If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 0, "Start delay" );
     p->pPars->fArea = 0;
     delayArea = If_ManDelayMax( p );
     if ( p->pPars->DelayTarget != -1 && delayArea < p->pPars->DelayTarget - p->fEpsilon )
@@ -59,15 +59,15 @@ void If_ManPerformMappingPreprocess( If_Man_t * p )
 
     // perfrom min-delay mapping and move the cut to the end
     p->pPars->fFancy = 1;
-    If_ManPerformMappingRound( p, p->pPars->nCutsMax - 1, 0, 0 );
+    If_ManPerformMappingRound( p, p->pPars->nCutsMax - 1, 0, 0, "Start delay-2" );
     p->pPars->fFancy = 0;
     delayDelay = If_ManDelayMax( p );
     if ( p->pPars->DelayTarget != -1 && delayDelay < p->pPars->DelayTarget - p->fEpsilon )
         delayDelay = p->pPars->DelayTarget;
     If_ManPerformMappingMoveBestCut( p, p->pPars->nCutsMax - 2, 1 );
 
-    // perform min-area mapping 
-    If_ManPerformMappingRound( p, p->pPars->nCutsMax - 2, 0, 0 );
+    // perform min-delay mapping
+    If_ManPerformMappingRound( p, p->pPars->nCutsMax - 2, 0, 0, "Start flow" );
     delayPure = If_ManDelayMax( p );
     if ( p->pPars->DelayTarget != -1 && delayPure < p->pPars->DelayTarget - p->fEpsilon )
         delayPure = p->pPars->DelayTarget;
@@ -100,7 +100,7 @@ void If_ManPerformMappingPreprocess( If_Man_t * p )
     If_ManComputeRequired( p, 1 );
     if ( p->pPars->fVerbose )
     {
-        printf( "S:  Del = %6.2f. Area = %8.2f. Cuts = %6d. Lim = %2d. Ave = %5.2f. ", 
+        printf( "S:  Del = %6.2f. Area = %8.2f. Cuts = %8d. Lim = %2d. Ave = %5.2f. ", 
             p->RequiredGlo, p->AreaGlo, p->nCutsMerged, p->nCutsUsed, 1.0 * p->nCutsMerged / If_ManAndNum(p) );
         PRT( "T", clock() - clk );
     }

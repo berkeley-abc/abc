@@ -135,26 +135,26 @@ DdNode * Kit_GraphToBdd( DdManager * dd, Kit_Graph_t * pGraph )
   SeeAlso     []
 
 ***********************************************************************/
-DdNode * Kit_TruthToBdd_rec( DdManager * dd, unsigned * pTruth, int iBit, int nVars, int nVarsTotal )
+DdNode * Kit_TruthToBdd_rec( DdManager * dd, unsigned * pTruth, int iBit, int nVars, int nVarsTotal, int fMSBonTop )
 {
     DdNode * bF0, * bF1, * bF;
-    if ( nVars == 0 )
+    int Var;
+    if ( nVars <= 5 )
     {
-        if ( pTruth[iBit>>5] & (1 << iBit&31) )
-            return b1;
-        return b0;
-    }
-    if ( nVars == 5 )
-    {
-        if ( pTruth[iBit>>5] == 0xFFFFFFFF )
-            return b1;
-        if ( pTruth[iBit>>5] == 0 )
+        unsigned uTruth, uMask;
+        uMask = ((~(unsigned)0) >> (32 - (1<<nVars)));
+        uTruth = (pTruth[iBit>>5] >> (iBit&31)) & uMask;
+        if ( uTruth == 0 )
             return b0;
+        if ( uTruth == uMask )
+            return b1;        
     }
+    // find the variable to use
+    Var = fMSBonTop? nVarsTotal-nVars : nVars-1;
     // other special cases can be added
-    bF0 = Kit_TruthToBdd_rec( dd, pTruth, iBit,                nVars-1, nVarsTotal );  Cudd_Ref( bF0 );
-    bF1 = Kit_TruthToBdd_rec( dd, pTruth, iBit+(1<<(nVars-1)), nVars-1, nVarsTotal );  Cudd_Ref( bF1 );
-    bF  = Cudd_bddIte( dd, dd->vars[nVarsTotal-nVars], bF1, bF0 );                     Cudd_Ref( bF );
+    bF0 = Kit_TruthToBdd_rec( dd, pTruth, iBit,                nVars-1, nVarsTotal, fMSBonTop );  Cudd_Ref( bF0 );
+    bF1 = Kit_TruthToBdd_rec( dd, pTruth, iBit+(1<<(nVars-1)), nVars-1, nVarsTotal, fMSBonTop );  Cudd_Ref( bF1 );
+    bF  = Cudd_bddIte( dd, dd->vars[Var], bF1, bF0 );                     Cudd_Ref( bF );
     Cudd_RecursiveDeref( dd, bF0 );
     Cudd_RecursiveDeref( dd, bF1 );
     Cudd_Deref( bF );
@@ -176,9 +176,9 @@ DdNode * Kit_TruthToBdd_rec( DdManager * dd, unsigned * pTruth, int iBit, int nV
   SeeAlso     []
 
 ***********************************************************************/
-DdNode * Kit_TruthToBdd( DdManager * dd, unsigned * pTruth, int nVars )
+DdNode * Kit_TruthToBdd( DdManager * dd, unsigned * pTruth, int nVars, int fMSBonTop )
 {
-    return Kit_TruthToBdd_rec( dd, pTruth, 0, nVars, nVars );
+    return Kit_TruthToBdd_rec( dd, pTruth, 0, nVars, nVars, fMSBonTop );
 }
 
 /**Function*************************************************************

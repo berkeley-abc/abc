@@ -1854,6 +1854,10 @@ SOURCE=.\src\map\if\ifCut.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\map\if\ifLib.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\map\if\ifMan.c
 # End Source File
 # Begin Source File

@@ -28,8 +28,9 @@
 
 static If_Man_t *  Abc_NtkToIf( Abc_Ntk_t * pNtk, If_Par_t * pPars );
 static Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk );
-static Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t * pIfObj );
+static Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t * pIfObj, Vec_Int_t * vCover );
 static Hop_Obj_t * Abc_NodeIfToHop( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj_t * pIfObj );
+static Vec_Ptr_t * Abc_NtkFindGoodOrder( Abc_Ntk_t * pNtk );
  
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -52,14 +53,6 @@ Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
     If_Man_t * pIfMan;
 
     assert( Abc_NtkIsStrash(pNtk) );
-
-    // print a warning about choice nodes
-    if ( Abc_NtkGetChoiceNum( pNtk ) )
-    {
-//        printf( "Performing FPGA mapping with choices.\n" );
-        printf( "Currently mapping with choices is not enabled.\n" );
-        return NULL;
-    }
 
     // get timing information
     pPars->pTimesArr = Abc_NtkGetCiArrivalFloats(pNtk);
@@ -111,9 +104,12 @@ If_Man_t * Abc_NtkToIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
     ProgressBar * pProgress;
     If_Man_t * pIfMan;
     Abc_Obj_t * pNode, * pFanin, * pPrev;
+    Vec_Ptr_t * vNodes;
     int i;
 
     assert( Abc_NtkIsStrash(pNtk) );
+//    vNodes = Abc_NtkFindGoodOrder( pNtk );
+    vNodes = Abc_AigDfs( pNtk, 0, 0 );
 
     // start the mapping manager and set its parameters
     pIfMan = If_ManStart( pPars );
@@ -125,19 +121,24 @@ If_Man_t * Abc_NtkToIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
 
     // load the AIG into the mapper
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkObjNumMax(pNtk) );
-    Abc_AigForEachAnd( pNtk, pNode, i )
+//    Abc_AigForEachAnd( pNtk, pNode, i )
+    Vec_PtrForEachEntry( vNodes, pNode, i )
     {
-        Extra_ProgressBarUpdate( pProgress, i, NULL );
+        Extra_ProgressBarUpdate( pProgress, i, "Initial" );
         // add the node to the mapper
         pNode->pCopy = (Abc_Obj_t *)If_ManCreateAnd( pIfMan, 
             (If_Obj_t *)Abc_ObjFanin0(pNode)->pCopy, Abc_ObjFaninC0(pNode), 
             (If_Obj_t *)Abc_ObjFanin1(pNode)->pCopy, Abc_ObjFaninC1(pNode) );
         // set up the choice node
         if ( Abc_AigNodeIsChoice( pNode ) )
+        {
             for ( pPrev = pNode, pFanin = pNode->pData; pFanin; pPrev = pFanin, pFanin = pFanin->pData )
                 If_ObjSetChoice( (If_Obj_t *)pPrev->pCopy, (If_Obj_t *)pFanin->pCopy );
+            If_ManCreateChoice( pIfMan, (If_Obj_t *)pNode->pCopy );
+        }
     }
     Extra_ProgressBarStop( pProgress );
+    Vec_PtrFree( vNodes );
 
     // set the primary outputs without copying the phase
     Abc_NtkForEachCo( pNtk, pNode, i )
@@ -161,6 +162,7 @@ Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk )
     ProgressBar * pProgress;
     Abc_Ntk_t * pNtkNew;
     Abc_Obj_t * pNode, * pNodeNew;
+    Vec_Int_t * vCover;
     int i, nDupGates;
     // create the new network
     if ( pIfMan->pPars->fUseBdds )
@@ -177,15 +179,17 @@ Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk )
     Abc_NtkForEachCi( pNtk, pNode, i )
         If_ObjSetCopy( If_ManPi(pIfMan, i), pNode->pCopy );
     // process the nodes in topological order
+    vCover = Vec_IntAlloc( 1 << 16 );
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pNode, i )
     {
-        Extra_ProgressBarUpdate( pProgress, i, NULL );
-        pNodeNew = Abc_NodeFromIf_rec( pNtkNew, pIfMan, If_ObjFanin0(If_ManPo(pIfMan, i)) );
+        Extra_ProgressBarUpdate( pProgress, i, "Final" );
+        pNodeNew = Abc_NodeFromIf_rec( pNtkNew, pIfMan, If_ObjFanin0(If_ManPo(pIfMan, i)), vCover );
         pNodeNew = Abc_ObjNotCond( pNodeNew, If_ObjFaninC0(If_ManPo(pIfMan, i)) );
         Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
     }
     Extra_ProgressBarStop( pProgress );
+    Vec_IntFree( vCover );
     // remove the constant node if not used
     pNodeNew = (Abc_Obj_t *)If_ObjCopy( If_ManConst1(pIfMan) );
     if ( Abc_ObjFanoutNum(pNodeNew) == 0 )
@@ -208,7 +212,7 @@ Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t * pIfObj )
+Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t * pIfObj, Vec_Int_t * vCover )
 {
     Abc_Obj_t * pNodeNew;
     If_Cut_t * pCutBest;
@@ -224,40 +228,60 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
     pNodeNew = Abc_NtkCreateNode( pNtkNew );
     pCutBest = If_ObjCutBest( pIfObj );
     If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, i )
-        Abc_ObjAddFanin( pNodeNew, Abc_NodeFromIf_rec(pNtkNew, pIfMan, pIfLeaf) );
+        Abc_ObjAddFanin( pNodeNew, Abc_NodeFromIf_rec(pNtkNew, pIfMan, pIfLeaf, vCover) );
     // derive the function of this node
     if ( pIfMan->pPars->fTruth )
     {
         if ( pIfMan->pPars->fUseBdds )
         { 
             extern void Abc_NodeBddReorder( void * p, Abc_Obj_t * pNode );
-            extern DdNode * Kit_TruthToBdd( DdManager * dd, unsigned * pTruth, int nVars );
             // transform truth table into the BDD 
-            pNodeNew->pData = Kit_TruthToBdd( pNtkNew->pManFunc, If_CutTruth(pCutBest), pCutBest->nLimit );
-            // reorder the fanins to minimize the BDD size
-            Abc_NodeBddReorder( pIfMan->pPars->pReoMan, pNodeNew );
+            pNodeNew->pData = Kit_TruthToBdd( pNtkNew->pManFunc, If_CutTruth(pCutBest), If_CutLeaveNum(pCutBest), 0 );  Cudd_Ref(pNodeNew->pData); 
+            if ( pNodeNew->pData == Cudd_ReadLogicZero(pNtkNew->pManFunc) || pNodeNew->pData == Cudd_ReadOne(pNtkNew->pManFunc) )
+            {
+                // replace the node by a constant node
+                pNodeNew = pNodeNew->pData == Cudd_ReadOne(pNtkNew->pManFunc) ? Abc_NtkCreateNodeConst1(pNtkNew) : Abc_NtkCreateNodeConst0(pNtkNew);
+            }
+            else
+            {
+                // make sure the node is minimum base
+                Abc_NodeMinimumBase( pNodeNew );
+                // reorder the fanins to minimize the BDD size
+                Abc_NodeBddReorder( pIfMan->pPars->pReoMan, pNodeNew );
+            }
         }
         else if ( pIfMan->pPars->fUseSops ) 
         {
-            Vec_Int_t * vCover = Vec_IntAlloc( 1 << 16 );
             // transform truth table into the SOP
-            int RetValue = Kit_TruthIsop( If_CutTruth(pCutBest), pCutBest->nLimit, vCover, 0 );
-            assert( RetValue == 0 );
-            // derive the AIG for that tree
-            pNodeNew->pData = Abc_SopCreateFromIsop( pNtkNew->pManFunc, pCutBest->nLimit, vCover );
-            Vec_IntFree( vCover );
+            int RetValue = Kit_TruthIsop( If_CutTruth(pCutBest), If_CutLeaveNum(pCutBest), vCover, 1 );
+            assert( RetValue == 0 || RetValue == 1 );
+            // check the case of constant cover
+            if ( Vec_IntSize(vCover) == 0 || (Vec_IntSize(vCover) == 1 && Vec_IntEntry(vCover,0) == 0) )
+            {
+                assert( RetValue == 0 );
+                pNodeNew->pData = Abc_SopCreateAnd( pNtkNew->pManFunc, If_CutLeaveNum(pCutBest), NULL );
+                pNodeNew = (Vec_IntSize(vCover) == 0) ? Abc_NtkCreateNodeConst0(pNtkNew) : Abc_NtkCreateNodeConst1(pNtkNew);
+            }
+            else
+            {
+                // derive the AIG for that tree
+                pNodeNew->pData = Abc_SopCreateFromIsop( pNtkNew->pManFunc, If_CutLeaveNum(pCutBest), vCover );
+                if ( RetValue )
+                    Abc_SopComplement( pNodeNew->pData );
+            }
         }
         else 
         {
             extern Hop_Obj_t * Kit_GraphToHop( Hop_Man_t * pMan, Kit_Graph_t * pGraph );
-            Vec_Int_t * vMemory = Vec_IntAlloc( 1 << 16 );
             // transform truth table into the decomposition tree
-            Kit_Graph_t * pGraph = Kit_TruthToGraph( If_CutTruth(pCutBest), pCutBest->nLimit, vMemory );
+            Kit_Graph_t * pGraph = Kit_TruthToGraph( If_CutTruth(pCutBest), If_CutLeaveNum(pCutBest), vCover );
             // derive the AIG for the decomposition tree
             pNodeNew->pData = Kit_GraphToHop( pNtkNew->pManFunc, pGraph );
             Kit_GraphFree( pGraph );
-            Vec_IntFree( vMemory );
         }
+        // complement the node if the cut was complemented
+        if ( pCutBest->fCompl )
+            Abc_NodeComplement( pNodeNew );
     }
     else
         pNodeNew->pData = Abc_NodeIfToHop( pNtkNew->pManFunc, pIfMan, pIfObj );
@@ -332,6 +356,116 @@ Hop_Obj_t * Abc_NodeIfToHop( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj_t * 
     return gFunc;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Comparison for two nodes with the flow.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_ObjCompareFlow( Abc_Obj_t ** ppNode0, Abc_Obj_t ** ppNode1 )
+{
+    float Flow0 = Abc_Int2Float((int)(*ppNode0)->pCopy);
+    float Flow1 = Abc_Int2Float((int)(*ppNode1)->pCopy);
+    if ( Flow0 > Flow1 )
+        return -1;
+    if ( Flow0 < Flow1 )
+        return 1;
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Orders AIG nodes so that nodes from larger cones go first.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkFindGoodOrder_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
+{
+    if ( !Abc_ObjIsNode(pNode) )
+        return;
+    assert( Abc_ObjIsNode( pNode ) );
+    // if this node is already visited, skip
+    if ( Abc_NodeIsTravIdCurrent( pNode ) )
+        return;
+    // mark the node as visited
+    Abc_NodeSetTravIdCurrent( pNode );
+    // visit the transitive fanin of the node
+    Abc_NtkFindGoodOrder_rec( Abc_ObjFanin0(pNode), vNodes );
+    Abc_NtkFindGoodOrder_rec( Abc_ObjFanin1(pNode), vNodes );
+    // add the node after the fanins have been added
+    Vec_PtrPush( vNodes, pNode );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Orders AIG nodes so that nodes from larger cones go first.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_NtkFindGoodOrder( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vNodes, * vCos;
+    Abc_Obj_t * pNode, * pFanin0, * pFanin1;
+    float Flow0, Flow1;
+    int i;
+
+    // initialize the flow
+    Abc_AigConst1(pNtk)->pCopy = NULL;
+    Abc_NtkForEachCi( pNtk, pNode, i )
+        pNode->pCopy = NULL;
+    // compute the flow
+    Abc_AigForEachAnd( pNtk, pNode, i )
+    {
+        pFanin0 = Abc_ObjFanin0(pNode);
+        pFanin1 = Abc_ObjFanin1(pNode);
+        Flow0 = Abc_Int2Float((int)pFanin0->pCopy)/Abc_ObjFanoutNum(pFanin0);
+        Flow1 = Abc_Int2Float((int)pFanin1->pCopy)/Abc_ObjFanoutNum(pFanin1);
+        pNode->pCopy = (Abc_Obj_t *)Abc_Float2Int(Flow0 + Flow1+(float)1.0);
+    }
+    // find the flow of the COs
+    vCos = Vec_PtrAlloc( Abc_NtkCoNum(pNtk) );
+    Abc_NtkForEachCo( pNtk, pNode, i )
+    {
+        pNode->pCopy = Abc_ObjFanin0(pNode)->pCopy;
+//        pNode->pCopy = (Abc_Obj_t *)Abc_Float2Int((float)Abc_ObjFanin0(pNode)->Level);
+        Vec_PtrPush( vCos, pNode );
+    }
+
+    // sort nodes in the increasing order of the flow
+    qsort( (Abc_Obj_t **)Vec_PtrArray(vCos), Abc_NtkCoNum(pNtk), 
+        sizeof(Abc_Obj_t *), (int (*)(const void *, const void *))Abc_ObjCompareFlow );
+    // verify sorting
+    pFanin0 = Vec_PtrEntry(vCos, 0);
+    pFanin1 = Vec_PtrEntryLast(vCos);
+    assert( Abc_Int2Float((int)pFanin0->pCopy) >= Abc_Int2Float((int)pFanin1->pCopy) );
+
+    // collect the nodes in the topological order from the new array
+    Abc_NtkIncrementTravId( pNtk );
+    vNodes = Vec_PtrAlloc( 100 );
+    Vec_PtrForEachEntry( vCos, pNode, i )
+    {
+        Abc_NtkFindGoodOrder_rec( Abc_ObjFanin0(pNode), vNodes );
+//        printf( "%.2f ", Abc_Int2Float((int)pNode->pCopy) );
+    }
+    Vec_PtrFree( vCos );
+    return vNodes;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

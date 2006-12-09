@@ -8,7 +8,7 @@
  *
  */
 #include <stdio.h>
-//#include "extra.h"
+#include <stdlib.h>
 #include "st.h"
 
 #ifndef ABS

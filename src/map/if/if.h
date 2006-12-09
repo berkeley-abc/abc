@@ -40,9 +40,11 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
-
+ 
 // the maximum size of LUTs used for mapping (should be the same as FPGA_MAX_LUTSIZE defined in "fpga.h"!!!)
-#define IF_MAX_LUTSIZE   32
+#define IF_MAX_LUTSIZE       32
+// the largest possible number of LUT inputs when funtionality of the LUTs are computed
+#define IF_MAX_FUNC_LUTSIZE  15
 
 // object types
 typedef enum { 
@@ -71,7 +73,6 @@ typedef struct If_Cut_t_     If_Cut_t;
 struct If_Par_t_
 {
     // user-controlable paramters
-    int                Mode;          // the mapping mode
     int                nLutSize;      // the LUT size
     int                nCutsMax;      // the max number of cuts
     float              DelayTarget;   // delay target
@@ -84,13 +85,14 @@ struct If_Par_t_
     int                fVerbose;      // the verbosity flag
     // internal parameters
     int                fTruth;        // truth table computation enabled
+    int                fUsePerm;      // use permutation (delay info)
     int                fUseBdds;      // sets local BDDs at the nodes
     int                fUseSops;      // sets local SOPs at the nodes
     int                nLatches;      // the number of latches in seq mapping
     If_Lib_t *         pLutLib;       // the LUT library
     float *            pTimesArr;     // arrival times
     float *            pTimesReq;     // required times
-    int(*pFuncCost)(unsigned *, int); // procedure the user's cost of a cut
+    int (* pFuncCost)  (If_Cut_t *);  // procedure to compute the user's cost of a cut
     void *             pReoMan;       // reordering manager
 };
 
@@ -99,8 +101,9 @@ struct If_Lib_t_
 {
     char *             pName;         // the name of the LUT library
     int                LutMax;        // the maximum LUT size 
+    int                fVarPinDelays; // set to 1 if variable pin delays are specified
     float              pLutAreas[IF_MAX_LUTSIZE+1]; // the areas of LUTs
-    float              pLutDelays[IF_MAX_LUTSIZE+1];// the delays of LUTs
+    float              pLutDelays[IF_MAX_LUTSIZE+1][IF_MAX_LUTSIZE+1];// the delays of LUTs
 };
 
 // manager
@@ -123,6 +126,7 @@ struct If_Man_t_
     float              AreaGlo;       // global area
     int                nCutsUsed;     // the number of cuts currently used
     int                nCutsMerged;   // the total number of cuts merged
+    int                nCutsSaved;    // the total number of cuts saved
     int                nCutsMax;      // the maximum number of cuts at a node
     float              Fi;            // the current value of the clock period (for seq mapping)
     unsigned *         puTemp[4];     // used for the truth table computation
@@ -131,6 +135,7 @@ struct If_Man_t_
     int                nEntrySize;    // the size of the entry
     int                nEntryBase;    // the size of the entry minus cut leaf arrays
     int                nTruthSize;    // the size of the truth table if allocated
+    int                nPermSize;     // the size of the permutation array (in words)
     int                nCutSize;      // the size of the cut
     // temporary cut storage
     int                nCuts;         // the number of cuts used
@@ -142,13 +147,15 @@ struct If_Cut_t_
 {
     float              Delay;         // delay of the cut
     float              Area;          // area (or area-flow) of the cut
+    float              AveRefs;       // the average number of leaf references
     unsigned           uSign;         // cut signature
-    unsigned           Cost    : 10;  // the user's cost of the cut
-    unsigned           Depth   :  9;  // the user's depth of the cut
+    unsigned           Cost    : 14;  // the user's cost of the cut
     unsigned           fCompl  :  1;  // the complemented attribute 
-    unsigned           nLimit  :  6;  // the maximum number of leaves
-    unsigned           nLeaves :  6;  // the number of leaves
+    unsigned           fUser   :  1;  // using the user's area and delay
+    unsigned           nLimit  :  8;  // the maximum number of leaves
+    unsigned           nLeaves :  8;  // the number of leaves
     int *              pLeaves;       // array of fanins
+    char *             pPerm;         // permutation
     unsigned *         pTruth;        // the truth table
 };
 
@@ -159,8 +166,9 @@ struct If_Obj_t_
     unsigned           fCompl0 :  1;  // complemented attribute
     unsigned           fCompl1 :  1;  // complemented attribute
     unsigned           fPhase  :  1;  // phase of the node
+    unsigned           fRepr   :  1;  // representative of the equivalence class
     unsigned           fMark   :  1;  // multipurpose mark
-    unsigned           Level   : 24;  // logic level of the node
+    unsigned           Level   : 23;  // logic level of the node
     int                Id;            // integer ID
     int                nRefs;         // the number of references
     int                nCuts;         // the number of cuts
@@ -182,6 +190,7 @@ static inline If_Cut_t * If_ManCut( If_Man_t * p, int i )                    { r
 static inline int        If_ManPiNum( If_Man_t * p )                         { return p->nObjs[IF_PI];               }
 static inline int        If_ManPoNum( If_Man_t * p )                         { return p->nObjs[IF_PO];               }
 static inline int        If_ManAndNum( If_Man_t * p )                        { return p->nObjs[IF_AND];              }
+static inline int        If_ManObjNum( If_Man_t * p )                        { return Vec_PtrSize(p->vObjs);         }
 
 static inline int        If_ObjIsConst1( If_Obj_t * pObj )                   { return pObj->Type == IF_CONST1;       }
 static inline int        If_ObjIsPi( If_Obj_t * pObj )                       { return pObj->Type == IF_PI;           }
@@ -207,11 +216,12 @@ static inline unsigned   If_ObjCutSign( unsigned ObjId )                     { r
 static inline void *     If_CutData( If_Cut_t * pCut )                       { return *(void **)pCut;                }
 static inline void       If_CutSetData( If_Cut_t * pCut, void * pData )      { *(void **)pCut = pData;               }
 
-static inline int        If_CutTruthWords( int nVarsMax )                    { return nVarsMax <= 5 ? 1 : (1 << (nVarsMax - 5)); }
+static inline int        If_CutLeaveNum( If_Cut_t * pCut )                   { return pCut->nLeaves;                             }
 static inline unsigned * If_CutTruth( If_Cut_t * pCut )                      { return pCut->pTruth;                              }
+static inline int        If_CutTruthWords( int nVarsMax )                    { return nVarsMax <= 5 ? 1 : (1 << (nVarsMax - 5)); }
+static inline int        If_CutPermWords( int nVarsMax )                     { return nVarsMax / sizeof(int) + ((nVarsMax % sizeof(int)) > 0); }
 
-static inline float      If_CutLutDelay( If_Man_t * p, If_Cut_t * pCut )     { return pCut->Depth? (float)pCut->Depth : (p->pPars->pLutLib? p->pPars->pLutLib->pLutDelays[pCut->nLeaves] : (float)1.0);  }
-static inline float      If_CutLutArea( If_Man_t * p, If_Cut_t * pCut )      { return pCut->Cost?  (float)pCut->Cost  : (p->pPars->pLutLib? p->pPars->pLutLib->pLutAreas[pCut->nLeaves]  : (float)1.0);  }
+static inline float      If_CutLutArea( If_Man_t * p, If_Cut_t * pCut )      { return pCut->fUser? (float)pCut->Cost : (p->pPars->pLutLib? p->pPars->pLutLib->pLutAreas[pCut->nLeaves] : (float)1.0); }
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
@@ -233,7 +243,7 @@ static inline float      If_CutLutArea( If_Man_t * p, If_Cut_t * pCut )      { r
     Vec_PtrForEachEntry( p->vPos, pObj, i )
 // iterator over the latches 
 #define If_ManForEachLatch( p, pObj, i )                                       \
-    Vec_PtrForEachEntryStart( p->vPos, pObj, i, p->pPars->nLatches )
+    Vec_PtrForEachEntryStart( p->vPos, pObj, i, If_ManPoNum(p) - p->pPars->nLatches )
 // iterator over all objects, including those currently not used
 #define If_ManForEachObj( p, pObj, i )                                         \
     Vec_PtrForEachEntry( p->vObjs, pObj, i )
@@ -256,27 +266,32 @@ static inline float      If_CutLutArea( If_Man_t * p, If_Cut_t * pCut )      { r
 
 /*=== ifCore.c ==========================================================*/
 extern int             If_ManPerformMapping( If_Man_t * p );
-extern int             If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fRequired );
 /*=== ifCut.c ==========================================================*/
 extern float           If_CutAreaDerefed( If_Man_t * p, If_Cut_t * pCut, int nLevels );
 extern float           If_CutAreaRefed( If_Man_t * p, If_Cut_t * pCut, int nLevels );
 extern float           If_CutDeref( If_Man_t * p, If_Cut_t * pCut, int nLevels );
 extern float           If_CutRef( If_Man_t * p, If_Cut_t * pCut, int nLevels );
 extern void            If_CutPrint( If_Man_t * p, If_Cut_t * pCut );
-extern float           If_CutDelay( If_Man_t * p, If_Cut_t * pCut );
+extern void            If_CutPrintTiming( If_Man_t * p, If_Cut_t * pCut );
 extern float           If_CutFlow( If_Man_t * p, If_Cut_t * pCut );
+extern float           If_CutAverageRefs( If_Man_t * p, If_Cut_t * pCut );
 extern int             If_CutFilter( If_Man_t * p, If_Cut_t * pCut );
 extern int             If_CutMerge( If_Cut_t * pCut0, If_Cut_t * pCut1, If_Cut_t * pCut );
 extern void            If_CutCopy( If_Cut_t * pCutDest, If_Cut_t * pCutSrc );
 extern void            If_ManSortCuts( If_Man_t * p, int Mode );
+/*=== ifLib.c ==========================================================*/
+extern float           If_CutDelay( If_Man_t * p, If_Cut_t * pCut );
+extern void            If_CutPropagateRequired( If_Man_t * p, If_Cut_t * pCut, float Required );
 /*=== ifMan.c ==========================================================*/
 extern If_Man_t *      If_ManStart( If_Par_t * pPars );
 extern void            If_ManStop( If_Man_t * p );
 extern If_Obj_t *      If_ManCreatePi( If_Man_t * p );
 extern If_Obj_t *      If_ManCreatePo( If_Man_t * p, If_Obj_t * pDriver, int fCompl0 );
 extern If_Obj_t *      If_ManCreateAnd( If_Man_t * p, If_Obj_t * pFan0, int fCompl0, If_Obj_t * pFan1, int fCompl1 );
+extern void            If_ManCreateChoice( If_Man_t * p, If_Obj_t * pRepr );
 /*=== ifMap.c ==========================================================*/
 extern void            If_ObjPerformMapping( If_Man_t * p, If_Obj_t * pObj, int Mode );
+extern int             If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fRequired, char * pLabel );
 /*=== ifPrepro.c ==========================================================*/
 extern void            If_ManPerformMappingPreprocess( If_Man_t * p );
 /*=== ifReduce.c ==========================================================*/

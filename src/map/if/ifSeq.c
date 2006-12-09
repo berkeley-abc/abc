@@ -58,7 +58,7 @@ int If_ManPerformMappingSeq( If_Man_t * p )
         pObj->EstRefs = (float)1.0;
     // delay oriented mapping
     p->pPars->fFancy = 1;
-    If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 0 );
+    If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 0, NULL );
     p->pPars->fFancy = 0;
 
     // perform iterations over the circuit

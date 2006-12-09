@@ -44,10 +44,24 @@ float If_ManDelayMax( If_Man_t * p )
     If_Obj_t * pObj;
     float DelayBest;
     int i;
+    if ( p->pPars->fLatchPaths && p->pPars->nLatches == 0 )
+    {
+        printf( "Delay optimization of latch path is not performed because there is no latches.\n" );
+        p->pPars->fLatchPaths = 0;
+    }
     DelayBest = -IF_FLOAT_LARGE;
-    If_ManForEachPo( p, pObj, i )
-        if ( DelayBest < If_ObjCutBest( If_ObjFanin0(pObj) )->Delay )
-             DelayBest = If_ObjCutBest( If_ObjFanin0(pObj) )->Delay;
+    if ( p->pPars->fLatchPaths )
+    {
+        If_ManForEachLatch( p, pObj, i )
+            if ( DelayBest < If_ObjCutBest( If_ObjFanin0(pObj) )->Delay )
+                 DelayBest = If_ObjCutBest( If_ObjFanin0(pObj) )->Delay;
+    }
+    else
+    {
+        If_ManForEachPo( p, pObj, i )
+            if ( DelayBest < If_ObjCutBest( If_ObjFanin0(pObj) )->Delay )
+                 DelayBest = If_ObjCutBest( If_ObjFanin0(pObj) )->Delay;
+    }
     return DelayBest;
 }
 
@@ -174,10 +188,8 @@ float If_ManScanMapping( If_Man_t * p )
 ***********************************************************************/
 void If_ManComputeRequired( If_Man_t * p, int fFirstTime )
 {
-    If_Obj_t * pObj, * pLeaf;
-    If_Cut_t * pCutBest;
-    float Required;
-    int i, k;
+    If_Obj_t * pObj;
+    int i;
     // compute area, clean required times, collect nodes used in the mapping
     p->AreaGlo = If_ManScanMapping( p );
     // get the global required times
@@ -209,16 +221,8 @@ void If_ManComputeRequired( If_Man_t * p, int fFirstTime )
             If_ObjFanin0(pObj)->Required = p->RequiredGlo;
     }
     // go through the nodes in the reverse topological order
-    Vec_PtrForEachEntry( p->vMapped, pObj, k )
-    {
-        // get the best cut of the node
-        pCutBest = If_ObjCutBest(pObj);
-        // get the required times for the leaves of the cut
-        Required = pObj->Required - If_CutLutDelay( p, pCutBest );
-        // update the required time of the leaves
-        If_CutForEachLeaf( p, pCutBest, pLeaf, i )
-            pLeaf->Required = IF_MIN( pLeaf->Required, Required );
-    }
+    Vec_PtrForEachEntry( p->vMapped, pObj, i )
+        If_CutPropagateRequired( p, If_ObjCutBest(pObj), pObj->Required );
 }
 
 

@@ -56,10 +56,10 @@ static int Fpga_CommandPrintLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
 void Fpga_Init( Abc_Frame_t * pAbc )
 {
     // set the default library
-    //Fpga_LutLib_t s_LutLib = { "lutlib", 6, {0,1,2,4,8,16,32}, {0,1,2,3,4,5,6} };
-//    Fpga_LutLib_t s_LutLib = { "lutlib", 5, {0,1,1,1,1,1}, {0,1,1,1,1,1} };
-    Fpga_LutLib_t s_LutLib = { "lutlib", 4, {0,1,1,1,1}, {0,1,1,1,1} };
-    //Fpga_LutLib_t s_LutLib = { "lutlib", 3, {0,1,1,1}, {0,1,1,1} };
+    //Fpga_LutLib_t s_LutLib = { "lutlib", 6, 0, {0,1,2,4,8,16,32}, {{0},{1},{2},{3},{4},{5},{6}} };
+//    Fpga_LutLib_t s_LutLib = { "lutlib", 5, 0, {0,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1}} };
+    Fpga_LutLib_t s_LutLib = { "lutlib", 4, 0, {0,1,1,1,1}, {{0},{1},{1},{1},{1}} };
+    //Fpga_LutLib_t s_LutLib = { "lutlib", 3, 0, {0,1,1,1}, {{0},{1},{1},{1}} };
 
     Abc_FrameSetLibLut( Fpga_LutLibDup(&s_LutLib) );
 
@@ -248,14 +248,14 @@ usage:
 ***********************************************************************/
 void Fpga_SetSimpleLutLib( int nLutSize )
 {
-    Fpga_LutLib_t s_LutLib10= { "lutlib",10, {0,1,1,1,1,1,1,1,1,1,1}, {0,1,1,1,1,1,1,1,1,1,1} };
-    Fpga_LutLib_t s_LutLib9 = { "lutlib", 9, {0,1,1,1,1,1,1,1,1,1}, {0,1,1,1,1,1,1,1,1,1} };
-    Fpga_LutLib_t s_LutLib8 = { "lutlib", 8, {0,1,1,1,1,1,1,1,1}, {0,1,1,1,1,1,1,1,1} };
-    Fpga_LutLib_t s_LutLib7 = { "lutlib", 7, {0,1,1,1,1,1,1,1}, {0,1,1,1,1,1,1,1} };
-    Fpga_LutLib_t s_LutLib6 = { "lutlib", 6, {0,1,1,1,1,1,1}, {0,1,1,1,1,1,1} };
-    Fpga_LutLib_t s_LutLib5 = { "lutlib", 5, {0,1,1,1,1,1}, {0,1,1,1,1,1} };
-    Fpga_LutLib_t s_LutLib4 = { "lutlib", 4, {0,1,1,1,1}, {0,1,1,1,1} };
-    Fpga_LutLib_t s_LutLib3 = { "lutlib", 3, {0,1,1,1}, {0,1,1,1} };
+    Fpga_LutLib_t s_LutLib10= { "lutlib",10, 0, {0,1,1,1,1,1,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1},{1},{1},{1},{1},{1}} };
+    Fpga_LutLib_t s_LutLib9 = { "lutlib", 9, 0, {0,1,1,1,1,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1},{1},{1},{1},{1}} };
+    Fpga_LutLib_t s_LutLib8 = { "lutlib", 8, 0, {0,1,1,1,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1},{1},{1},{1}} };
+    Fpga_LutLib_t s_LutLib7 = { "lutlib", 7, 0, {0,1,1,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1},{1},{1}} };
+    Fpga_LutLib_t s_LutLib6 = { "lutlib", 6, 0, {0,1,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1},{1}} };
+    Fpga_LutLib_t s_LutLib5 = { "lutlib", 5, 0, {0,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1}} };
+    Fpga_LutLib_t s_LutLib4 = { "lutlib", 4, 0, {0,1,1,1,1}, {{0},{1},{1},{1},{1}} };
+    Fpga_LutLib_t s_LutLib3 = { "lutlib", 3, 0, {0,1,1,1}, {{0},{1},{1},{1}} };
     Fpga_LutLib_t * pLutLib;
     assert( nLutSize >= 3 && nLutSize <= 10 );
     switch ( nLutSize )
