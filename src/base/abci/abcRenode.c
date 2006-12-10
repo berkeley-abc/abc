@@ -56,6 +56,9 @@ Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int nCubeMax, int fA
     If_Par_t Pars, * pPars = &Pars;
     Abc_Ntk_t * pNtkNew;
 
+    if ( Abc_NtkGetChoiceNum( pNtk ) )
+        printf( "Performing renoding with choices.\n" );
+
     // set defaults
     memset( pPars, 0, sizeof(If_Par_t) );
     // user-controlable paramters
@@ -67,11 +70,11 @@ Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int nCubeMax, int fA
     pPars->fFancy      =  0;
     pPars->fExpRed     =  0; //
     pPars->fLatchPaths =  0;
-    pPars->fSeq        =  0;
+    pPars->fSeqMap     =  0;
     pPars->fVerbose    =  fVerbose;
     // internal parameters
     pPars->fTruth      =  1;
-    pPars->fUsePerm    =  1; //!fUseSops;
+    pPars->fUsePerm    =  1; 
     pPars->nLatches    =  0;
     pPars->pLutLib     =  NULL; // Abc_FrameReadLibLut();
     pPars->pTimesArr   =  NULL; 

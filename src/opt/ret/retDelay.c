@@ -90,13 +90,9 @@ int Abc_NtkRetimeMinDelayTry( Abc_Ntk_t * pNtk, int fForward, int fInitial, int 
             pNtkNew = Abc_NtkRetimeBackwardInitialStart( pNtk );
         }
     }
-if ( fVerbose )
-{
-    if ( !fInitial )
-        printf( "Performing analysis:\n" );
-    else
-        printf( "Moving latches to the best position:\n" );
-}
+
+if ( fVerbose && !fInitial )
+    printf( "Performing analysis:\n" );
     // find the best iteration
     DelayBest = ABC_INFINITY; IterBest = 0; LatchesBest = Abc_NtkLatchNum(pNtk);
     vCritical = Vec_PtrAlloc( 100 );
@@ -109,7 +105,7 @@ if ( fVerbose )
         // record this position if it has the best delay
         if ( DelayBest > DelayCur )
         {
-if ( fVerbose )
+if ( fVerbose && !fInitial )
     printf( "%s Iter = %3d. Delay = %3d. Latches = %5d. Delta = %6.2f. Ratio = %4.2f %%\n", 
         fForward ? "Fwd": "Bwd", i, DelayCur, Abc_NtkLatchNum(pNtk), 
         1.0*(Abc_NtkLatchNum(pNtk)-LatchesBest)/(DelayBest-DelayCur), 
@@ -146,9 +142,9 @@ if ( fVerbose )
             Vec_IntFree( vValues );
         }
     }
-    if ( !fInitial && fVerbose )
-        printf( "%s : Starting delay = %3d.  Final delay = %3d.  IterBest = %2d (out of %2d).\n", 
-            fForward? "Forward " : "Backward", DelayStart, DelayBest, IterBest, nIterLimit );
+if ( fVerbose && !fInitial )
+    printf( "%s : Starting delay = %3d.  Final delay = %3d.  IterBest = %2d (out of %2d).\n", 
+        fForward? "Forward " : "Backward", DelayStart, DelayBest, IterBest, nIterLimit );
     *pIterBest = IterBest;
     return DelayBest;
 }

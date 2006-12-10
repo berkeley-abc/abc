@@ -1,12 +1,12 @@
 /**CFile****************************************************************
 
-  FileName    [ifLib.c]
+  FileName    [ifTime.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
   PackageName [FPGA mapping based on priority cuts.]
 
-  Synopsis    [Computation of LUT paramters depending on the library.]
+  Synopsis    [Computation of delay paramters depending on the library.]
 
   Author      [Alan Mishchenko]
   
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - November 21, 2006.]
 
-  Revision    [$Id: ifLib.c,v 1.00 2006/11/21 00:00:00 alanmi Exp $]
+  Revision    [$Id: ifTime.c,v 1.00 2006/11/21 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -48,11 +48,12 @@ float If_CutDelay( If_Man_t * p, If_Cut_t * pCut )
     If_Obj_t * pLeaf;
     float Delay, DelayCur;
     float * pLutDelays;
-    int i;
-    assert( pCut->nLeaves > 1 );
+    int i, Shift;
+    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
     Delay = -IF_FLOAT_LARGE;
     if ( p->pPars->pLutLib )
     {
+        assert( !p->pPars->fLiftLeaves );
         pLutDelays = p->pPars->pLutLib->pLutDelays[pCut->nLeaves];
         if ( p->pPars->pLutLib->fVarPinDelays )
         {
@@ -77,6 +78,7 @@ float If_CutDelay( If_Man_t * p, If_Cut_t * pCut )
     {
         if ( pCut->fUser )
         {
+            assert( !p->pPars->fLiftLeaves );
             If_CutForEachLeaf( p, pCut, pLeaf, i )
             {
                 DelayCur = If_ObjCutBest(pLeaf)->Delay + (float)pCut->pPerm[i];
@@ -85,10 +87,21 @@ float If_CutDelay( If_Man_t * p, If_Cut_t * pCut )
         }
         else
         {
-            If_CutForEachLeaf( p, pCut, pLeaf, i )
+            if ( p->pPars->fLiftLeaves )
             {
-                DelayCur = If_ObjCutBest(pLeaf)->Delay;
-                Delay = IF_MAX( Delay, DelayCur );
+                If_CutForEachLeafSeq( p, pCut, pLeaf, Shift, i )
+                {
+                    DelayCur = If_ObjCutBest(pLeaf)->Delay - Shift * p->Period;
+                    Delay = IF_MAX( Delay, DelayCur );
+                }
+            }
+            else
+            {
+                If_CutForEachLeaf( p, pCut, pLeaf, i )
+                {
+                    DelayCur = If_ObjCutBest(pLeaf)->Delay;
+                    Delay = IF_MAX( Delay, DelayCur );
+                }
             }
             Delay += 1.0;
         }
@@ -115,6 +128,7 @@ void If_CutPropagateRequired( If_Man_t * p, If_Cut_t * pCut, float ObjRequired )
     float * pLutDelays;
     float Required;
     int i;
+    assert( !p->pPars->fLiftLeaves );
     // compute the pins
     if ( p->pPars->pLutLib )
     {

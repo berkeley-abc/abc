@@ -84,7 +84,7 @@ int Abc_NtkRetime( Abc_Ntk_t * pNtk, int Mode, int fForwardOnly, int fBackwardOn
             RetValue += Abc_NtkRetimeIncremental( pNtk, 0, 1, fVerbose );
         break;
     case 6: // Pan's algorithm
-        RetValue = Abc_NtkRetimeLValue( pNtk, 200, fVerbose );
+        RetValue = Abc_NtkRetimeLValue( pNtk, 500, fVerbose );
         break;
     default:
         printf( "Unknown retiming option.\n" );

@@ -30,43 +30,6 @@
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the max delay of the POs.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-float If_ManDelayMax( If_Man_t * p )
-{
-    If_Obj_t * pObj;
-    float DelayBest;
-    int i;
-    if ( p->pPars->fLatchPaths && p->pPars->nLatches == 0 )
-    {
-        printf( "Delay optimization of latch path is not performed because there is no latches.\n" );
-        p->pPars->fLatchPaths = 0;
-    }
-    DelayBest = -IF_FLOAT_LARGE;
-    if ( p->pPars->fLatchPaths )
-    {
-        If_ManForEachLatch( p, pObj, i )
-            if ( DelayBest < If_ObjCutBest( If_ObjFanin0(pObj) )->Delay )
-                 DelayBest = If_ObjCutBest( If_ObjFanin0(pObj) )->Delay;
-    }
-    else
-    {
-        If_ManForEachPo( p, pObj, i )
-            if ( DelayBest < If_ObjCutBest( If_ObjFanin0(pObj) )->Delay )
-                 DelayBest = If_ObjCutBest( If_ObjFanin0(pObj) )->Delay;
-    }
-    return DelayBest;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Sets all the node copy to NULL.]
 
   Description []
@@ -107,6 +70,119 @@ void If_ManCleanCutData( If_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Sets all visited marks to 0.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void If_ManCleanMarkV( If_Man_t * p )
+{
+    If_Obj_t * pObj;
+    int i;
+    If_ManForEachObj( p, pObj, i )
+        pObj->fVisit = 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the max delay of the POs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float If_ManDelayMax( If_Man_t * p, int fSeq )
+{
+    If_Obj_t * pObj;
+    float DelayBest;
+    int i;
+    if ( p->pPars->fLatchPaths && p->pPars->nLatches == 0 )
+    {
+        printf( "Delay optimization of latch path is not performed because there is no latches.\n" );
+        p->pPars->fLatchPaths = 0;
+    }
+    DelayBest = -IF_FLOAT_LARGE;
+    if ( fSeq )
+    {
+        assert( p->pPars->nLatches > 0 );
+        If_ManForEachPo( p, pObj, i )
+            if ( DelayBest < If_ObjCutBest( If_ObjFanin0(pObj) )->Delay )
+                 DelayBest = If_ObjCutBest( If_ObjFanin0(pObj) )->Delay;
+    }
+    else if ( p->pPars->fLatchPaths )
+    {
+        If_ManForEachLatch( p, pObj, i )
+            if ( DelayBest < If_ObjCutBest( If_ObjFanin0(pObj) )->Delay )
+                 DelayBest = If_ObjCutBest( If_ObjFanin0(pObj) )->Delay;
+    }
+    else 
+    {
+        If_ManForEachCo( p, pObj, i )
+            if ( DelayBest < If_ObjCutBest( If_ObjFanin0(pObj) )->Delay )
+                 DelayBest = If_ObjCutBest( If_ObjFanin0(pObj) )->Delay;
+    }
+    return DelayBest;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the required times of all nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void If_ManComputeRequired( If_Man_t * p, int fFirstTime )
+{
+    If_Obj_t * pObj;
+    int i;
+    // compute area, clean required times, collect nodes used in the mapping
+    p->AreaGlo = If_ManScanMapping( p );
+    // get the global required times
+    p->RequiredGlo = If_ManDelayMax( p, 0 );
+    // update the required times according to the target
+    if ( p->pPars->DelayTarget != -1 )
+    {
+        if ( p->RequiredGlo > p->pPars->DelayTarget + p->fEpsilon )
+        {
+            if ( fFirstTime )
+                printf( "Cannot meet the target required times (%4.2f). Mapping continues anyway.\n", p->pPars->DelayTarget );
+        }
+        else if ( p->RequiredGlo < p->pPars->DelayTarget - p->fEpsilon )
+        {
+            if ( fFirstTime )
+                printf( "Relaxing the required times from (%4.2f) to the target (%4.2f).\n", p->RequiredGlo, p->pPars->DelayTarget );
+            p->RequiredGlo = p->pPars->DelayTarget;
+        }
+    }
+    // set the required times for the POs
+    if ( p->pPars->fLatchPaths )
+    {
+        If_ManForEachLatch( p, pObj, i )
+            If_ObjFanin0(pObj)->Required = p->RequiredGlo;
+    }
+    else
+    {
+        If_ManForEachCo( p, pObj, i )
+            If_ObjFanin0(pObj)->Required = p->RequiredGlo;
+    }
+    // go through the nodes in the reverse topological order
+    Vec_PtrForEachEntry( p->vMapped, pObj, i )
+        If_CutPropagateRequired( p, If_ObjCutBest(pObj), pObj->Required );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Computes area, references, and nodes used in the mapping.]
 
   Description []
@@ -122,7 +198,7 @@ float If_ManScanMapping_rec( If_Man_t * p, If_Obj_t * pObj, If_Obj_t ** ppStore 
     If_Cut_t * pCutBest;
     float aArea;
     int i;
-    if ( pObj->nRefs++ || If_ObjIsPi(pObj) || If_ObjIsConst1(pObj) )
+    if ( pObj->nRefs++ || If_ObjIsCi(pObj) || If_ObjIsConst1(pObj) )
         return 0.0;
     // store the node in the structure by level
     assert( If_ObjIsAnd(pObj) );
@@ -153,6 +229,7 @@ float If_ManScanMapping( If_Man_t * p )
     If_Obj_t * pObj, ** ppStore;
     float aArea;
     int i;
+    assert( !p->pPars->fLiftLeaves );
     // clean all references
     If_ManForEachObj( p, pObj, i )
     {
@@ -164,7 +241,7 @@ float If_ManScanMapping( If_Man_t * p )
     memset( ppStore, 0, sizeof(If_Obj_t *) * (p->nLevelMax + 1) );
     // collect nodes reachable from POs in the DFS order through the best cuts
     aArea = 0;
-    If_ManForEachPo( p, pObj, i )
+    If_ManForEachCo( p, pObj, i )
         aArea += If_ManScanMapping_rec( p, If_ObjFanin0(pObj), ppStore );
     // reconnect the nodes in reverse topological order
     Vec_PtrClear( p->vMapped );
@@ -177,7 +254,7 @@ float If_ManScanMapping( If_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Computes the required times of all nodes.]
+  Synopsis    [Computes area, references, and nodes used in the mapping.]
 
   Description []
                
@@ -186,45 +263,54 @@ float If_ManScanMapping( If_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void If_ManComputeRequired( If_Man_t * p, int fFirstTime )
+float If_ManScanMappingSeq_rec( If_Man_t * p, If_Obj_t * pObj, Vec_Ptr_t * vMapped )
 {
-    If_Obj_t * pObj;
-    int i;
-    // compute area, clean required times, collect nodes used in the mapping
-    p->AreaGlo = If_ManScanMapping( p );
-    // get the global required times
-    p->RequiredGlo = If_ManDelayMax( p );
-    // update the required times according to the target
-    if ( p->pPars->DelayTarget != -1 )
-    {
-        if ( p->RequiredGlo > p->pPars->DelayTarget + p->fEpsilon )
-        {
-            if ( fFirstTime )
-                printf( "Cannot meet the target required times (%4.2f). Mapping continues anyway.\n", p->pPars->DelayTarget );
-        }
-        else if ( p->RequiredGlo < p->pPars->DelayTarget - p->fEpsilon )
-        {
-            if ( fFirstTime )
-                printf( "Relaxing the required times from (%4.2f) to the target (%4.2f).\n", p->RequiredGlo, p->pPars->DelayTarget );
-            p->RequiredGlo = p->pPars->DelayTarget;
-        }
-    }
-    // set the required times for the POs
-    if ( p->pPars->fLatchPaths )
-    {
-        If_ManForEachLatch( p, pObj, i )
-            If_ObjFanin0(pObj)->Required = p->RequiredGlo;
-    }
-    else
-    {
-        If_ManForEachPo( p, pObj, i )
-            If_ObjFanin0(pObj)->Required = p->RequiredGlo;
-    }
-    // go through the nodes in the reverse topological order
-    Vec_PtrForEachEntry( p->vMapped, pObj, i )
-        If_CutPropagateRequired( p, If_ObjCutBest(pObj), pObj->Required );
+    If_Obj_t * pLeaf;
+    If_Cut_t * pCutBest;
+    float aArea;
+    int i, Shift;
+    if ( pObj->nRefs++ || If_ObjIsCi(pObj) || If_ObjIsConst1(pObj) )
+        return 0.0;
+    // store the node in the structure by level
+    assert( If_ObjIsAnd(pObj) );
+    // visit the transitive fanin of the selected cut
+    pCutBest = If_ObjCutBest(pObj);
+    aArea = If_ObjIsAnd(pObj)? If_CutLutArea(p, pCutBest) : (float)0.0;
+    If_CutForEachLeafSeq( p, pCutBest, pLeaf, Shift, i )
+        aArea += If_ManScanMappingSeq_rec( p, pLeaf, vMapped );
+    // add the node
+    Vec_PtrPush( vMapped, pObj );
+    return aArea;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Computes area, references, and nodes used in the mapping.]
+
+  Description [Collects the nodes in reverse topological order in array 
+  p->vMapping.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float If_ManScanMappingSeq( If_Man_t * p )
+{
+    If_Obj_t * pObj;
+    float aArea;
+    int i;
+    assert( p->pPars->fLiftLeaves );
+    // clean all references
+    If_ManForEachObj( p, pObj, i )
+        pObj->nRefs = 0;
+    // collect nodes reachable from POs in the DFS order through the best cuts
+    aArea = 0;
+    Vec_PtrClear( p->vMapped );
+    If_ManForEachPo( p, pObj, i )
+        aArea += If_ManScanMappingSeq_rec( p, If_ObjFanin0(pObj), p->vMapped );
+    return aArea;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

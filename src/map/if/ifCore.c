@@ -45,13 +45,25 @@ int If_ManPerformMapping( If_Man_t * p )
     int nItersFlow = 1;
     int nItersArea = 2;
     int clkTotal = clock();
-    int i;
+    int RetValue, i;
+
+    // try sequential mapping
+    if ( p->pPars->fSeqMap )
+    {
+        RetValue = If_ManPerformMappingSeq( p );
+        if ( p->pPars->fVerbose )
+        {
+            PRT( "Total time", clock() - clkTotal );
+        }
+        return RetValue;
+    }
+
     // set arrival times and trivial cuts at const 1 and PIs
     If_ManConst1(p)->Cuts[0].Delay = 0.0;
-    If_ManForEachPi( p, pObj, i )
+    If_ManForEachCi( p, pObj, i )
         pObj->Cuts[0].Delay = p->pPars->pTimesArr[i];
     // set the fanout estimates of the PIs
-    If_ManForEachPi( p, pObj, i )
+    If_ManForEachCi( p, pObj, i )
         pObj->EstRefs = (float)1.0;
     // delay oriented mapping
     if ( p->pPars->fPreprocess && !p->pPars->fArea && p->pPars->nCutsMax >= 4  )

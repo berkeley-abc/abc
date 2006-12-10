@@ -58,6 +58,14 @@ Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
     pPars->pTimesArr = Abc_NtkGetCiArrivalFloats(pNtk);
     pPars->pTimesReq = NULL;
 
+    // set the latch paths
+    if ( pPars->fLatchPaths && pPars->pTimesArr )
+    {
+        int c;
+        for ( c = 0; c < Abc_NtkPiNum(pNtk); c++ )
+            pPars->pTimesArr[c] = -ABC_INFINITY;
+    }
+
     // perform FPGA mapping
     pIfMan = Abc_NtkToIf( pNtk, pPars );    
     if ( pIfMan == NULL )
@@ -117,7 +125,10 @@ If_Man_t * Abc_NtkToIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
     // create PIs and remember them in the old nodes
     Abc_AigConst1(pNtk)->pCopy = (Abc_Obj_t *)If_ManConst1( pIfMan );
     Abc_NtkForEachCi( pNtk, pNode, i )
-        pNode->pCopy = (Abc_Obj_t *)If_ManCreatePi( pIfMan );
+    {
+        pNode->pCopy = (Abc_Obj_t *)If_ManCreateCi( pIfMan );
+//printf( "AIG CI %2d -> IF CI %2d\n", pNode->Id, ((If_Obj_t *)pNode->pCopy)->Id );
+    }
 
     // load the AIG into the mapper
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkObjNumMax(pNtk) );
@@ -136,13 +147,14 @@ If_Man_t * Abc_NtkToIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
                 If_ObjSetChoice( (If_Obj_t *)pPrev->pCopy, (If_Obj_t *)pFanin->pCopy );
             If_ManCreateChoice( pIfMan, (If_Obj_t *)pNode->pCopy );
         }
+//printf( "AIG node %2d -> IF node %2d\n", pNode->Id, ((If_Obj_t *)pNode->pCopy)->Id );
     }
     Extra_ProgressBarStop( pProgress );
     Vec_PtrFree( vNodes );
 
     // set the primary outputs without copying the phase
     Abc_NtkForEachCo( pNtk, pNode, i )
-        If_ManCreatePo( pIfMan, (If_Obj_t *)Abc_ObjFanin0(pNode)->pCopy, Abc_ObjFaninC0(pNode) );
+        If_ManCreateCo( pIfMan, (If_Obj_t *)Abc_ObjFanin0(pNode)->pCopy, Abc_ObjFaninC0(pNode) );
     return pIfMan;
 }
 
@@ -177,15 +189,15 @@ Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk )
     // make the mapper point to the new network
     If_ObjSetCopy( If_ManConst1(pIfMan), Abc_NtkCreateNodeConst1(pNtkNew) );
     Abc_NtkForEachCi( pNtk, pNode, i )
-        If_ObjSetCopy( If_ManPi(pIfMan, i), pNode->pCopy );
+        If_ObjSetCopy( If_ManCi(pIfMan, i), pNode->pCopy );
     // process the nodes in topological order
     vCover = Vec_IntAlloc( 1 << 16 );
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, "Final" );
-        pNodeNew = Abc_NodeFromIf_rec( pNtkNew, pIfMan, If_ObjFanin0(If_ManPo(pIfMan, i)), vCover );
-        pNodeNew = Abc_ObjNotCond( pNodeNew, If_ObjFaninC0(If_ManPo(pIfMan, i)) );
+        pNodeNew = Abc_NodeFromIf_rec( pNtkNew, pIfMan, If_ObjFanin0(If_ManCo(pIfMan, i)), vCover );
+        pNodeNew = Abc_ObjNotCond( pNodeNew, If_ObjFaninC0(If_ManCo(pIfMan, i)) );
         Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
     }
     Extra_ProgressBarStop( pProgress );

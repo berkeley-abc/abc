@@ -51,8 +51,8 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
     p->pPars = pPars;
     p->fEpsilon = (float)0.001;
     // allocate arrays for nodes
-    p->vPis    = Vec_PtrAlloc( 100 );
-    p->vPos    = Vec_PtrAlloc( 100 );
+    p->vCis    = Vec_PtrAlloc( 100 );
+    p->vCos    = Vec_PtrAlloc( 100 );
     p->vObjs   = Vec_PtrAlloc( 100 );
     p->vMapped = Vec_PtrAlloc( 100 );
     p->vTemp   = Vec_PtrAlloc( 100 );
@@ -96,11 +96,13 @@ void If_ManStop( If_Man_t * p )
 {
     If_Cut_t * pTemp;
     int i;
-    Vec_PtrFree( p->vPis );
-    Vec_PtrFree( p->vPos );
+    Vec_PtrFree( p->vCis );
+    Vec_PtrFree( p->vCos );
     Vec_PtrFree( p->vObjs );
     Vec_PtrFree( p->vMapped );
     Vec_PtrFree( p->vTemp );
+    if ( p->vLatchOrder ) Vec_PtrFree( p->vLatchOrder );
+    if ( p->vLags ) Vec_IntFree( p->vLags );
     Mem_FixedStop( p->pMem, 0 );
     // free pars memory
     if ( p->pPars->pTimesArr )
@@ -129,13 +131,13 @@ void If_ManStop( If_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-If_Obj_t * If_ManCreatePi( If_Man_t * p )
+If_Obj_t * If_ManCreateCi( If_Man_t * p )
 {
     If_Obj_t * pObj;
     pObj = If_ManSetupObj( p );
-    pObj->Type = IF_PI;
-    Vec_PtrPush( p->vPis, pObj );
-    p->nObjs[IF_PI]++;
+    pObj->Type = IF_CI;
+    Vec_PtrPush( p->vCis, pObj );
+    p->nObjs[IF_CI]++;
     return pObj;
 }
 
@@ -150,15 +152,15 @@ If_Obj_t * If_ManCreatePi( If_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-If_Obj_t * If_ManCreatePo( If_Man_t * p, If_Obj_t * pDriver, int fCompl0 )
+If_Obj_t * If_ManCreateCo( If_Man_t * p, If_Obj_t * pDriver, int fCompl0 )
 {
     If_Obj_t * pObj;
     pObj = If_ManSetupObj( p );
-    pObj->Type = IF_PO;
+    pObj->Type = IF_CO;
     pObj->fCompl0 = fCompl0;
-    Vec_PtrPush( p->vPos, pObj );
+    Vec_PtrPush( p->vCos, pObj );
     pObj->pFanin0 = pDriver; pDriver->nRefs++;
-    p->nObjs[IF_PO]++;
+    p->nObjs[IF_CO]++;
     return pObj;
 }
 
@@ -251,7 +253,7 @@ If_Obj_t * If_ManSetupObj( If_Man_t * p )
     // assign elementary cut
     pCut = pObj->Cuts;
     pCut->nLeaves    = 1;
-    pCut->pLeaves[0] = p->pPars->fSeq? (pObj->Id << 8) : pObj->Id;
+    pCut->pLeaves[0] = p->pPars->fLiftLeaves? (pObj->Id << 8) : pObj->Id;
     pCut->uSign      = If_ObjCutSign( pCut->pLeaves[0] );
     // set the number of cuts
     pObj->nCuts = 1;

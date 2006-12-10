@@ -151,7 +151,8 @@ Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes, bool fCleanup )
 int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fAddPos )
 {
     Abc_Obj_t * pObj;
-    int i;
+    char * pName;
+    int i, nNewCis;
     // the first network should be an AIG
     assert( Abc_NtkIsStrash(pNtk1) );
     assert( Abc_NtkIsLogic(pNtk2) || Abc_NtkIsStrash(pNtk2) ); 
@@ -165,13 +166,20 @@ int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fAddPos )
     if ( !Abc_NtkCompareSignals( pNtk1, pNtk2, 1, 1 ) )
         printf( "Abc_NtkAppend(): The union of the network PIs is computed (warning).\n" );
     // perform strashing
+    nNewCis = 0;
     Abc_NtkCleanCopy( pNtk2 );
     Abc_NtkForEachCi( pNtk2, pObj, i )
     {
+        pName = Abc_ObjName(pObj);
         pObj->pCopy = Abc_NtkFindCi(pNtk1, Abc_ObjName(pObj));
         if ( pObj->pCopy == NULL )
+        {
             pObj->pCopy = Abc_NtkDupObj(pNtk1, pObj, 1);
+            nNewCis++;
+        }
     }
+    if ( nNewCis )
+        printf( "Warning: Procedure Abc_NtkAppend() added %d new CIs.\n", nNewCis );
     // add pNtk2 to pNtk1 while strashing
     if ( Abc_NtkIsLogic(pNtk2) )
         Abc_NtkStrashPerform( pNtk2, pNtk1, 1 );

@@ -187,12 +187,22 @@ Nm_Entry_t * Nm_ManTableLookupId( Nm_Man_t * p, int ObjId )
 ***********************************************************************/
 Nm_Entry_t * Nm_ManTableLookupName( Nm_Man_t * p, char * pName, int Type )
 {
-    Nm_Entry_t * pEntry;
+    Nm_Entry_t * pEntry, * pTemp;
     int Counter = 0;
     for ( pEntry = p->pBinsN2I[ Nm_HashString(pName, p->nBins) ]; pEntry; pEntry = pEntry->pNextN2I )
+    {
+        // check the entry itself
         if ( !strcmp(pEntry->Name, pName) && (Type == -1 || pEntry->Type == (unsigned)Type) )
             return pEntry;
-    return pEntry;
+        // if there is no namesakes, continue
+        if ( pEntry->pNameSake == NULL )
+            continue;
+        // check the list of namesakes
+        for ( pTemp = pEntry->pNameSake; pTemp != pEntry; pTemp = pTemp->pNameSake )
+            if ( !strcmp(pTemp->Name, pName) && (Type == -1 || pTemp->Type == (unsigned)Type) )
+                return pTemp;
+    }
+    return NULL;
 }
 
 /**Function*************************************************************

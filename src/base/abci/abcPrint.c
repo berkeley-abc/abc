@@ -118,15 +118,19 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
         fprintf( pFile, "  lev = %3d", Abc_NtkLevel(pNtk) );
 
     fprintf( pFile, "\n" );
+
+
     // print the statistic into a file
 /*
     {
         FILE * pTable;
-        pTable = fopen( "stats.txt", "a+" );
+        pTable = fopen( "a/seqmap__stats.txt", "a+" );
         fprintf( pTable, "%s ",  pNtk->pName );
         fprintf( pTable, "%d ", Abc_NtkPiNum(pNtk) );
+        fprintf( pTable, "%d ", Abc_NtkPoNum(pNtk) );
+        fprintf( pTable, "%d ", Abc_NtkLatchNum(pNtk) );
         fprintf( pTable, "%d ", Abc_NtkNodeNum(pNtk) );
-        fprintf( pTable, "%d ", Abc_AigLevel(pNtk) );
+        fprintf( pTable, "%d ", Abc_NtkLevel(pNtk) );
         fprintf( pTable, "\n" );
         fclose( pTable );
     }

@@ -117,7 +117,7 @@ void * Abc_NtkToFraig( Abc_Ntk_t * pNtk, void * pParams, int fAllNodes, int fExd
     // create PIs and remember them in the old nodes
     Abc_NtkForEachCi( pNtk, pNode, i )
         pNode->pCopy = (Abc_Obj_t *)Fraig_ManReadIthVar(pMan, i);
-
+ 
     // perform strashing
     vNodes = Abc_AigDfs( pNtk, fAllNodes, 0 );
     if ( !fInternal )

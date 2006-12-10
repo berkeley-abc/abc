@@ -52,7 +52,7 @@ void If_ManPerformMappingPreprocess( If_Man_t * p )
     p->pPars->fArea = 1;
     If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 0, "Start delay" );
     p->pPars->fArea = 0;
-    delayArea = If_ManDelayMax( p );
+    delayArea = If_ManDelayMax( p, 0 );
     if ( p->pPars->DelayTarget != -1 && delayArea < p->pPars->DelayTarget - p->fEpsilon )
         delayArea = p->pPars->DelayTarget;
     If_ManPerformMappingMoveBestCut( p, p->pPars->nCutsMax - 1, 1 );
@@ -61,14 +61,14 @@ void If_ManPerformMappingPreprocess( If_Man_t * p )
     p->pPars->fFancy = 1;
     If_ManPerformMappingRound( p, p->pPars->nCutsMax - 1, 0, 0, "Start delay-2" );
     p->pPars->fFancy = 0;
-    delayDelay = If_ManDelayMax( p );
+    delayDelay = If_ManDelayMax( p, 0 );
     if ( p->pPars->DelayTarget != -1 && delayDelay < p->pPars->DelayTarget - p->fEpsilon )
         delayDelay = p->pPars->DelayTarget;
     If_ManPerformMappingMoveBestCut( p, p->pPars->nCutsMax - 2, 1 );
 
     // perform min-delay mapping
     If_ManPerformMappingRound( p, p->pPars->nCutsMax - 2, 0, 0, "Start flow" );
-    delayPure = If_ManDelayMax( p );
+    delayPure = If_ManDelayMax( p, 0 );
     if ( p->pPars->DelayTarget != -1 && delayPure < p->pPars->DelayTarget - p->fEpsilon )
         delayPure = p->pPars->DelayTarget;
 

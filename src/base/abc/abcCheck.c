@@ -111,7 +111,7 @@ bool Abc_NtkDoCheck( Abc_Ntk_t * pNtk )
             return 0;
         }
     }
-/*
+
     // check CI/CO numbers
     if ( Abc_NtkPiNum(pNtk) + Abc_NtkLatchNum(pNtk) != Abc_NtkCiNum(pNtk) )
     {
@@ -127,7 +127,7 @@ bool Abc_NtkDoCheck( Abc_Ntk_t * pNtk )
         fprintf( stdout, "in procedure Abc_NtkCreateObj() and in the user's code.\n" );
         return 0;
     }
-*/
+
     // check the names
     if ( !Abc_NtkCheckNames( pNtk ) )
         return 0;

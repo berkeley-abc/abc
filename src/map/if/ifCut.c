@@ -423,13 +423,15 @@ float If_CutFlow( If_Man_t * p, If_Cut_t * pCut )
     If_Obj_t * pLeaf;
     float Flow;
     int i;
-    assert( pCut->nLeaves > 1 );
+    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
     Flow = If_CutLutArea(p, pCut);
     If_CutForEachLeaf( p, pCut, pLeaf, i )
     {
         if ( pLeaf->nRefs == 0 )
             Flow += If_ObjCutBest(pLeaf)->Area;
-        else
+        else if ( p->pPars->fSeqMap ) // seq
+            Flow += If_ObjCutBest(pLeaf)->Area / pLeaf->nRefs;
+        else 
         {
             assert( pLeaf->EstRefs > p->fEpsilon );
             Flow += If_ObjCutBest(pLeaf)->Area / pLeaf->EstRefs;
@@ -453,7 +455,7 @@ float If_CutAverageRefs( If_Man_t * p, If_Cut_t * pCut )
 {
     If_Obj_t * pLeaf;
     int nRefsTotal, i;
-    assert( pCut->nLeaves > 1 );
+    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
     nRefsTotal = 0;
     If_CutForEachLeaf( p, pCut, pLeaf, i )
         nRefsTotal += pLeaf->nRefs;
@@ -569,7 +571,7 @@ void If_CutPrintTiming( If_Man_t * p, If_Cut_t * pCut )
 float If_CutAreaDerefed( If_Man_t * p, If_Cut_t * pCut, int nLevels )
 {
     float aResult, aResult2;
-    assert( pCut->nLeaves > 1 );
+    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
     aResult2 = If_CutRef( p, pCut, nLevels );
     aResult  = If_CutDeref( p, pCut, nLevels );
     assert( aResult == aResult2 );
@@ -590,11 +592,32 @@ float If_CutAreaDerefed( If_Man_t * p, If_Cut_t * pCut, int nLevels )
 float If_CutAreaRefed( If_Man_t * p, If_Cut_t * pCut, int nLevels )
 {
     float aResult, aResult2;
-    assert( pCut->nLeaves > 1 );
+    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
     aResult2 = If_CutDeref( p, pCut, nLevels );
     aResult  = If_CutRef( p, pCut, nLevels );
     assert( aResult == aResult2 );
     return aResult;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Moves the cut over the latch.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void If_CutLift( If_Cut_t * pCut )
+{
+    unsigned i;
+    for ( i = 0; i < pCut->nLeaves; i++ )
+    {
+        assert( (pCut->pLeaves[i] & 255) < 255 );
+        pCut->pLeaves[i]++;
+    }
 }
 
 /**Function*************************************************************

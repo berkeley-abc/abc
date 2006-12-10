@@ -29,11 +29,12 @@ enum { ABC_RET_UPDATE_FAIL, ABC_RET_UPDATE_NO, ABC_RET_UPDATE_YES };
 
 // the internal procedures
 static Vec_Int_t * Abc_NtkRetimeGetLags( Abc_Ntk_t * pNtk, int nIterLimit, int fVerbose );
+static int         Abc_NtkRetimeSearch_rec( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vLatches, int FiMin, int FiMax, int nMaxIters, int fVerbose );
+static int         Abc_NtkRetimeForPeriod( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vLatches, int Fi, int nMaxIters, int fVerbose );
+static int         Abc_NtkRetimeUpdateLValue( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vLatches, int Fi );
+static int         Abc_NtkRetimePosOverLimit( Abc_Ntk_t * pNtk, int Fi );
+static Vec_Ptr_t * Abc_ManCollectLatches( Abc_Ntk_t * pNtk );
 static int         Abc_NtkRetimeUsingLags( Abc_Ntk_t * pNtk, Vec_Int_t * vLags, int fVerbose );
-static int         Abc_NtkRetimeSearch_rec( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, int FiMin, int FiMax, int nMaxIters, int fVerbose );
-static int         Abc_NtkRetimeForPeriod( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, int Fi, int nMaxIters, int fVerbose );
-static int         Abc_NtkRetimeNodeUpdateLValue( Abc_Obj_t * pObj, int Fi );
-static Vec_Ptr_t * Abc_NtkRetimeCollect( Abc_Ntk_t * pNtk );
 
 static inline int  Abc_NodeComputeLag( int LValue, int Fi )          { return (LValue + (1<<16)*Fi)/Fi - (1<<16) - (int)(LValue % Fi == 0);     }
 static inline int  Abc_NodeGetLValue( Abc_Obj_t * pNode )            { return (int)pNode->pCopy;        }
@@ -87,17 +88,18 @@ int Abc_NtkRetimeLValue( Abc_Ntk_t * pNtk, int nIterLimit, int fVerbose )
 Vec_Int_t * Abc_NtkRetimeGetLags( Abc_Ntk_t * pNtk, int nIterLimit, int fVerbose )
 {
     Vec_Int_t * vLags;
-    Vec_Ptr_t * vNodes;
+    Vec_Ptr_t * vNodes, * vLatches;
     Abc_Obj_t * pNode;
     int i, FiMax, FiBest, RetValue, clk, clkIter;
     char NodeLag;
 
     // get the upper bound on the clock period
-    FiMax = 10 + Abc_NtkLevel(pNtk);
+    FiMax = Abc_NtkLevel(pNtk);
 
     // make sure this clock period is feasible
-    vNodes = Abc_NtkRetimeCollect(pNtk);
-    if ( !Abc_NtkRetimeForPeriod( pNtk, vNodes, FiMax, nIterLimit, fVerbose ) )
+    vNodes = Abc_NtkDfs( pNtk, 0 );
+    vLatches = Abc_ManCollectLatches( pNtk );
+    if ( !Abc_NtkRetimeForPeriod( pNtk, vNodes, vLatches, FiMax, nIterLimit, fVerbose ) )
     {
         Vec_PtrFree( vNodes );
         printf( "Abc_NtkRetimeGetLags() error: The upper bound on the clock period cannot be computed.\n" );
@@ -106,13 +108,12 @@ Vec_Int_t * Abc_NtkRetimeGetLags( Abc_Ntk_t * pNtk, int nIterLimit, int fVerbose
  
     // search for the optimal clock period between 0 and nLevelMax
 clk = clock();
-    FiBest = Abc_NtkRetimeSearch_rec( pNtk, vNodes, 0, FiMax, nIterLimit, fVerbose );
+    FiBest = Abc_NtkRetimeSearch_rec( pNtk, vNodes, vLatches, 0, FiMax, nIterLimit, fVerbose );
 clkIter = clock() - clk;
 
     // recompute the best l-values
-    RetValue = Abc_NtkRetimeForPeriod( pNtk, vNodes, FiBest, nIterLimit, fVerbose );
+    RetValue = Abc_NtkRetimeForPeriod( pNtk, vNodes, vLatches, FiBest, nIterLimit, fVerbose );
     assert( RetValue );
-    Vec_PtrFree( vNodes );
 
     // fix the problem with non-converged delays
     Abc_NtkForEachNode( pNtk, pNode, i )
@@ -131,31 +132,16 @@ clkIter = clock() - clk;
 //    if ( fVerbose )
     printf( "The best clock period is %3d. (Currently, network is not modified.)\n", FiBest );
 /*
-    // print the statistic into a file
     {
         FILE * pTable;
-        pTable = fopen( "a/ret__stats.txt", "a+" );
-        fprintf( pTable, "%d ", FiBest );
-        fclose( pTable );
-    }
-*/
-
-/*
-    printf( "lvalues and lags : " );
-    Abc_NtkForEachNode( pNtk, pNode, i )
-        printf( "%d=%d(%d) ", pNode->Id, Abc_NodeGetLValue(pNode), Abc_NodeGetLag(pNode) );
-    printf( "\n" );
-*/
-/*
-    {
-        FILE * pTable;
-        pTable = fopen( "a/ret_stats_pan.txt", "a+" );
-        fprintf( pTable, "%s ",  pNtk->pName );
+        pTable = fopen( "a/seqmap__stats.txt", "a+" );
         fprintf( pTable, "%d ", FiBest );
         fprintf( pTable, "\n" );
         fclose( pTable );
     }
 */
+    Vec_PtrFree( vNodes );
+    Vec_PtrFree( vLatches );
     return vLags;
 }
 
@@ -170,17 +156,17 @@ clkIter = clock() - clk;
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRetimeSearch_rec( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, int FiMin, int FiMax, int nMaxIters, int fVerbose )
+int Abc_NtkRetimeSearch_rec( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vLatches, int FiMin, int FiMax, int nMaxIters, int fVerbose )
 {
     int Median;
     assert( FiMin < FiMax );
     if ( FiMin + 1 == FiMax )
         return FiMax;
     Median = FiMin + (FiMax - FiMin)/2;
-    if ( Abc_NtkRetimeForPeriod( pNtk, vNodes, Median, nMaxIters, fVerbose ) )
-        return Abc_NtkRetimeSearch_rec( pNtk, vNodes, FiMin, Median, nMaxIters, fVerbose ); // Median is feasible
+    if ( Abc_NtkRetimeForPeriod( pNtk, vNodes, vLatches, Median, nMaxIters, fVerbose ) )
+        return Abc_NtkRetimeSearch_rec( pNtk, vNodes, vLatches, FiMin, Median, nMaxIters, fVerbose ); // Median is feasible
     else 
-        return Abc_NtkRetimeSearch_rec( pNtk, vNodes, Median, FiMax, nMaxIters, fVerbose ); // Median is infeasible
+        return Abc_NtkRetimeSearch_rec( pNtk, vNodes, vLatches, Median, FiMax, nMaxIters, fVerbose ); // Median is infeasible
 }
 
 /**Function*************************************************************
@@ -194,56 +180,35 @@ int Abc_NtkRetimeSearch_rec( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, int FiMin, in
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRetimeForPeriod( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, int Fi, int nMaxIters, int fVerbose )
+int Abc_NtkRetimeForPeriod( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vLatches, int Fi, int nMaxIters, int fVerbose )
 {
     Abc_Obj_t * pObj;
-    int i, c, fContained, fChange, RetValue, Counter;
-    char * pReason = "";
-
+    int c, i, fConverged;
     // set l-values of all nodes to be minus infinity, except PIs and constants
     Abc_NtkForEachObj( pNtk, pObj, i )
         if ( Abc_ObjFaninNum(pObj) == 0 )
             Abc_NodeSetLValue( pObj, 0 );
         else
             Abc_NodeSetLValue( pObj, -ABC_INFINITY );
-
     // update all values iteratively
-    Counter    = 0;
-    fContained = 1;
-    fChange    = 1;
-    for ( c = 0; fContained && fChange && c < nMaxIters; c++ )
+    fConverged = 0;
+    for ( c = 1; c <= nMaxIters; c++ )
     {
-        // go through the nodes and detect change
-        fChange = 0;
-        Vec_PtrForEachEntry( vNodes, pObj, i )
+        if ( !Abc_NtkRetimeUpdateLValue( pNtk, vNodes, vLatches, Fi ) )
         {
-            RetValue = Abc_NtkRetimeNodeUpdateLValue( pObj, Fi );
-            if ( RetValue == ABC_RET_UPDATE_FAIL )
-            {
-                fContained = 0;
-                break;
-            }
-            if ( RetValue == ABC_RET_UPDATE_NO )
-                continue;
-            // updating happened
-            fChange = 1;
-            Counter++;
+            fConverged = 1;
+            break;
         }
+        if ( Abc_NtkRetimePosOverLimit(pNtk, Fi) )
+            break;
     }
-    if ( c == nMaxIters )
-    {
-        fContained = 0;
-        pReason = "(timeout)";
-    }
-    else
-        c++;
     // report the results
     if ( fVerbose )
     {
-        if ( !fContained )
-            printf( "Period = %3d.  Iterations = %3d.  Updates = %10d.    Infeasible %s\n", Fi, c, Counter, pReason );
+        if ( !fConverged )
+            printf( "Period = %3d.  Iterations = %3d.    Infeasible %s\n", Fi, c, (c > nMaxIters)? "(timeout)" : "" );
         else
-            printf( "Period = %3d.  Iterations = %3d.  Updates = %10d.      Feasible\n",    Fi, c, Counter );
+            printf( "Period = %3d.  Iterations = %3d.      Feasible\n",    Fi, c );
     }
 /*
     // check if any AND gates have infinite delay
@@ -253,55 +218,126 @@ int Abc_NtkRetimeForPeriod( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, int Fi, int nM
     if ( Counter > 0 )
         printf( "Warning: %d internal nodes have wrong l-values!\n", Counter );
 */
-    return fContained;
+    return fConverged;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Computes the l-value of the node.]
+  Synopsis    [Performs one iteration of l-value computation for the nodes.]
 
-  Description [The node can be internal or a PO.]
+  Description [Experimentally it was found that checking POs changes
+  is not enough to detect the convergence of l-values in the network.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRetimeNodeUpdateLValue( Abc_Obj_t * pObj, int Fi )
+int Abc_NtkRetimeUpdateLValue( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vLatches, int Fi )
 {
-    Abc_Obj_t * pFanin;
-    int lValueNew, i;
-    // terminals
-    if ( Abc_ObjFaninNum(pObj) == 0 )
-        return ABC_RET_UPDATE_NO;
-    // primary outputs
-    if ( Abc_ObjIsPo(pObj) )
-        return (Abc_NodeGetLValue(Abc_ObjFanin0(pObj)) > Fi)? ABC_RET_UPDATE_FAIL : ABC_RET_UPDATE_NO;
-    // other types of objects
-    if ( Abc_ObjIsBi(pObj) || Abc_ObjIsBo(pObj) )
-        lValueNew = Abc_NodeGetLValue(Abc_ObjFanin0(pObj));
-    else if ( Abc_ObjIsLatch(pObj) )
-        lValueNew = Abc_NodeGetLValue(Abc_ObjFanin0(pObj)) - Fi;
-    else
+    Abc_Obj_t * pObj, * pFanin;
+    int i, k, lValueNew, fChange;
+    // go through the nodes and detect change
+    fChange = 0;
+    Vec_PtrForEachEntry( vNodes, pObj, i )
     {
         assert( Abc_ObjIsNode(pObj) );
         lValueNew = -ABC_INFINITY;
-        Abc_ObjForEachFanin( pObj, pFanin, i )
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+        {
             if ( lValueNew < Abc_NodeGetLValue(pFanin) )
                 lValueNew = Abc_NodeGetLValue(pFanin);
+        }
         lValueNew++;
+        if ( Abc_NodeGetLValue(pObj) < lValueNew )
+        {
+            Abc_NodeSetLValue( pObj, lValueNew );
+            fChange = 1;
+        }
     }
-    // check if it needs to be updated
-    if ( lValueNew <= Abc_NodeGetLValue(pObj) )
-        return ABC_RET_UPDATE_NO;
-    // update if needed
-    Abc_NodeSetLValue( pObj, lValueNew );
-    return ABC_RET_UPDATE_YES;
+    // propagate values through the latches
+    Vec_PtrForEachEntry( vLatches, pObj, i )
+        Abc_NodeSetLValue( Abc_ObjFanout0(pObj), Abc_NodeGetLValue(Abc_ObjFanin0(Abc_ObjFanin0(pObj))) - Fi );
+    return fChange;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Implements the retiming given as a set of retiming lags.]
+  Synopsis    [Detects the case when l-values exceeded the limit.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkRetimePosOverLimit( Abc_Ntk_t * pNtk, int Fi )
+{
+    Abc_Obj_t * pObj;
+    int i;
+    Abc_NtkForEachPo( pNtk, pObj, i )
+        if ( Abc_NodeGetLValue(Abc_ObjFanin0(pObj)) > Fi )
+            return 1;
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects latches in the topological order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+ 
+***********************************************************************/
+void Abc_ManCollectLatches_rec( Abc_Obj_t * pObj, Vec_Ptr_t * vLatches )
+{
+    Abc_Obj_t * pDriver;
+    if ( !Abc_ObjIsLatch(pObj) )
+        return;
+    // skip already collected latches
+    if ( Abc_NodeIsTravIdCurrent(pObj)  )
+        return;
+    Abc_NodeSetTravIdCurrent(pObj);
+    // get the driver node feeding into the latch
+    pDriver = Abc_ObjFanin0(Abc_ObjFanin0(pObj));
+    // call recursively if the driver looks like a latch output
+    if ( Abc_ObjIsBo(pDriver) )
+        Abc_ManCollectLatches_rec( Abc_ObjFanin0(pDriver), vLatches );
+    // collect the latch
+    Vec_PtrPush( vLatches, pObj );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects latches in the topological order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_ManCollectLatches( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vLatches;
+    Abc_Obj_t * pObj;
+    int i;
+    vLatches = Vec_PtrAlloc( Abc_NtkLatchNum(pNtk) );
+    Abc_NtkIncrementTravId( pNtk );
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+        Abc_ManCollectLatches_rec( pObj, vLatches );
+    assert( Vec_PtrSize(vLatches) == Abc_NtkLatchNum(pNtk) );
+    return vLatches;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Implements the retiming given as the array of retiming lags.]
 
   Description []
                
@@ -342,74 +378,6 @@ int Abc_NtkRetimeUsingLags( Abc_Ntk_t * pNtk, Vec_Int_t * vLags, int fVerbose )
     if ( Counter )
         printf( "Warning! The number of nodes with unrealized lag = %d.\n", Counter );
     return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Collect objects in the topological order from the latch inputs.]
-
-  Description [If flag fOnlyMarked is set, collects only marked nodes.
-  Otherwise, collects only unmarked nodes.]
-               
-  SideEffects []
-
-  SeeAlso     []
- 
-***********************************************************************/
-void Abc_NtkRetimeCollect_rec( Abc_Obj_t * pObj, int fOnlyMarked, Vec_Ptr_t * vNodes )
-{
-    Abc_Obj_t * pFanin;
-    int i;
-    // skip collected nodes
-    if ( Abc_NodeIsTravIdCurrent(pObj)  )
-        return;
-    Abc_NodeSetTravIdCurrent(pObj);
-    // collect recursively
-    if ( fOnlyMarked ^ pObj->fMarkA )
-        return;
-    // visit the fanins
-    Abc_ObjForEachFanin( pObj, pFanin, i )
-        Abc_NtkRetimeCollect_rec( pFanin, fOnlyMarked, vNodes );
-    // collect non-trivial objects
-    if ( Abc_ObjFaninNum(pObj) > 0 )
-        Vec_PtrPush( vNodes, pObj );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Collect objects in the topological order using LIs as a cut.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Ptr_t * Abc_NtkRetimeCollect( Abc_Ntk_t * pNtk )
-{
-    Vec_Ptr_t * vNodes;
-    Abc_Obj_t * pObj, * pFanin;
-    int i, k;
-    vNodes = Vec_PtrAlloc( 100 );
-    // mark the latch inputs
-    Abc_NtkForEachLatch( pNtk, pObj, i )
-        Abc_ObjFanin0(pObj)->fMarkA = 1;
-    // collect nodes in the DFS order from the marked nodes
-    Abc_NtkIncrementTravId(pNtk);
-    Abc_NtkForEachPo( pNtk, pObj, i )
-        Abc_NtkRetimeCollect_rec( pObj, 0, vNodes );
-    Abc_NtkForEachLatch( pNtk, pObj, i )
-        Abc_ObjForEachFanin( Abc_ObjFanin0(pObj), pFanin, k )
-            Abc_NtkRetimeCollect_rec( pFanin, 0, vNodes );
-    // collect marked nodes
-    Abc_NtkIncrementTravId(pNtk);
-    Abc_NtkForEachLatch( pNtk, pObj, i )
-        Abc_NtkRetimeCollect_rec( Abc_ObjFanin0(pObj), 1, vNodes );
-    // clean the marks
-    Abc_NtkForEachLatch( pNtk, pObj, i )
-        Abc_ObjFanin0(pObj)->fMarkA = 0;
-    return vNodes;
 }
 
 ////////////////////////////////////////////////////////////////////////

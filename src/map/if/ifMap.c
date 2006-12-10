@@ -69,27 +69,31 @@ static inline int If_WordCountOnes( unsigned uWord )
   SeeAlso     []
 
 ***********************************************************************/
-void If_ObjPerformMapping( If_Man_t * p, If_Obj_t * pObj, int Mode )
+void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode )
 {
     If_Cut_t * pCut0, * pCut1, * pCut;
     int i, k, iCut;
 
-    assert( !If_ObjIsAnd(pObj->pFanin0) || pObj->pFanin0->nCuts > 1 );
-    assert( !If_ObjIsAnd(pObj->pFanin1) || pObj->pFanin1->nCuts > 1 );
+    assert( p->pPars->fSeqMap || !If_ObjIsAnd(pObj->pFanin0) || pObj->pFanin0->nCuts > 1 );
+    assert( p->pPars->fSeqMap || !If_ObjIsAnd(pObj->pFanin1) || pObj->pFanin1->nCuts > 1 );
 
     // prepare
-    if ( Mode == 0 )
-        pObj->EstRefs = (float)pObj->nRefs;
-    else if ( Mode == 1 )
-        pObj->EstRefs = (float)((2.0 * pObj->EstRefs + pObj->nRefs) / 3.0);
-    else if ( Mode == 2 && pObj->nRefs > 0 )
+    if ( !p->pPars->fSeqMap )
+    {
+        if ( Mode == 0 )
+            pObj->EstRefs = (float)pObj->nRefs;
+        else if ( Mode == 1 )
+            pObj->EstRefs = (float)((2.0 * pObj->EstRefs + pObj->nRefs) / 3.0);
+    }
+    if ( Mode && pObj->nRefs > 0 )
         If_CutDeref( p, If_ObjCutBest(pObj), 100 );
 
-    // recompute the parameters of the best cut
+    // save the best cut as one of the candidate cuts
     p->nCuts = 0;
     p->nCutsMerged++;
     if ( Mode )
     {
+        // recompute the parameters of the best cut
         pCut = If_ObjCutBest(pObj);
         pCut->Delay = If_CutDelay( p, pCut );
         assert( pCut->Delay <= pObj->Required + p->fEpsilon );
@@ -114,12 +118,12 @@ void If_ObjPerformMapping( If_Man_t * p, If_Obj_t * pObj, int Mode )
             continue;
         // check if this cut is contained in any of the available cuts
         pCut->uSign = pCut0->uSign | pCut1->uSign;
-        pCut->fCompl = 0;
 //        if ( p->pPars->pFuncCost == NULL && If_CutFilter( p, pCut ) ) // do not filter functionality cuts
         if ( If_CutFilter( p, pCut ) )
             continue;
         // the cuts have been successfully merged
         // compute the truth table
+        pCut->fCompl = 0;
         if ( p->pPars->fTruth )
             If_CutComputeTruth( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
         // compute the application-specific cost and depth
@@ -149,16 +153,14 @@ void If_ObjPerformMapping( If_Man_t * p, If_Obj_t * pObj, int Mode )
     If_ManSortCuts( p, Mode );
     // decide how many cuts to use
     pObj->nCuts = IF_MIN( p->nCuts + 1, p->nCutsUsed );
+//printf( "%d(%d) ", p->nCuts, pObj->nCuts );
     // take the first
     If_ObjForEachCutStart( pObj, pCut, i, 1 )
         If_CutCopy( pCut, p->ppCuts[i-1] );
-    assert( If_ObjCutBest(pObj)->nLeaves > 1 );
+    assert( p->pPars->fSeqMap || If_ObjCutBest(pObj)->nLeaves > 1 );
     // ref the selected cut
-    if ( Mode == 2 && pObj->nRefs > 0 )
+    if ( Mode && pObj->nRefs > 0 )
         If_CutRef( p, If_ObjCutBest(pObj), 100 );
-    // find the largest cut
-    if ( p->nCutsMax < pObj->nCuts )
-        p->nCutsMax = pObj->nCuts;
 }
 
 /**Function*************************************************************
@@ -172,14 +174,14 @@ void If_ObjPerformMapping( If_Man_t * p, If_Obj_t * pObj, int Mode )
   SeeAlso     []
 
 ***********************************************************************/
-void If_ObjMergeChoice( If_Man_t * p, If_Obj_t * pObj, int Mode )
+void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode )
 {
     If_Obj_t * pTemp;
     If_Cut_t * pCutTemp, * pCut;
     int i, iCut;
     assert( pObj->pEquiv != NULL );
     // prepare
-    if ( Mode == 2 && pObj->nRefs > 0 )
+    if ( Mode && pObj->nRefs > 0 )
         If_CutDeref( p, If_ObjCutBest(pObj), 100 );
     // prepare room for the next cut
     p->nCuts = 0;
@@ -227,13 +229,10 @@ void If_ObjMergeChoice( If_Man_t * p, If_Obj_t * pObj, int Mode )
     // take the first
     If_ObjForEachCutStart( pObj, pCut, i, 1 )
         If_CutCopy( pCut, p->ppCuts[i-1] );
-    assert( If_ObjCutBest(pObj)->nLeaves > 1 );
+    assert( p->pPars->fSeqMap || If_ObjCutBest(pObj)->nLeaves > 1 );
     // ref the selected cut
-    if ( Mode == 2 && pObj->nRefs > 0 )
+    if ( Mode && pObj->nRefs > 0 )
         If_CutRef( p, If_ObjCutBest(pObj), 100 );
-    // find the largest cut
-    if ( p->nCutsMax < pObj->nCuts )
-        p->nCutsMax = pObj->nCuts;
 }
 
 /**Function*************************************************************
@@ -249,25 +248,23 @@ void If_ObjMergeChoice( If_Man_t * p, If_Obj_t * pObj, int Mode )
 ***********************************************************************/
 int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fRequired, char * pLabel )
 {
-    ProgressBar * pProgress;
+//    ProgressBar * pProgress;
     If_Obj_t * pObj;
     int i, clk = clock();
     assert( Mode >= 0 && Mode <= 2 );
     // set the cut number
     p->nCutsUsed   = nCutsUsed;
     p->nCutsMerged = 0;
-    p->nCutsSaved  = 0;
-    p->nCutsMax    = 0;
     // map the internal nodes
-    pProgress = Extra_ProgressBarStart( stdout, If_ManObjNum(p) );
+//    pProgress = Extra_ProgressBarStart( stdout, If_ManObjNum(p) );
     If_ManForEachNode( p, pObj, i )
     {
-        Extra_ProgressBarUpdate( pProgress, i, pLabel );
-        If_ObjPerformMapping( p, pObj, Mode );
+//        Extra_ProgressBarUpdate( pProgress, i, pLabel );
+        If_ObjPerformMappingAnd( p, pObj, Mode );
         if ( pObj->fRepr )
-            If_ObjMergeChoice( p, pObj, Mode );
+            If_ObjPerformMappingChoice( p, pObj, Mode );
     }
-    Extra_ProgressBarStop( pProgress );
+//    Extra_ProgressBarStop( pProgress );
     // compute required times and stats
     if ( fRequired )
     {
@@ -278,7 +275,6 @@ int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fRequi
             printf( "%c:  Del = %6.2f. Area = %8.2f. Cuts = %8d. Lim = %2d. Ave = %5.2f. ", 
                 Symb, p->RequiredGlo, p->AreaGlo, p->nCutsMerged, p->nCutsUsed, 1.0 * p->nCutsMerged / If_ManAndNum(p) );
             PRT( "T", clock() - clk );
-//            printf( "Saved cuts = %d.\n", p->nCutsSaved );
 //    printf( "Max number of cuts = %d. Average number of cuts = %5.2f.\n", 
 //        p->nCutsMax, 1.0 * p->nCutsMerged / If_ManAndNum(p) );
         }

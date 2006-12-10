@@ -361,7 +361,7 @@ int If_ManImproveNodeFaninCompact0( If_Man_t * p, If_Obj_t * pObj, int nLimit, V
     int i;
     Vec_PtrForEachEntry( vFront, pFanin, i )
     {
-        if ( If_ObjIsPi(pFanin) )
+        if ( If_ObjIsCi(pFanin) )
             continue;
         if ( If_ManImproveNodeWillGrow(p, pFanin) )
             continue;
@@ -391,7 +391,7 @@ int If_ManImproveNodeFaninCompact1( If_Man_t * p, If_Obj_t * pObj, int nLimit, V
     int i;
     Vec_PtrForEachEntry( vFront, pFanin, i )
     {
-        if ( If_ObjIsPi(pFanin) )
+        if ( If_ObjIsCi(pFanin) )
             continue;
         if ( If_ManImproveNodeFaninCost(p, pFanin) < 0 )
         {
@@ -419,7 +419,7 @@ int If_ManImproveNodeFaninCompact2( If_Man_t * p, If_Obj_t * pObj, int nLimit, V
     int i;
     Vec_PtrForEachEntry( vFront, pFanin, i )
     {
-        if ( If_ObjIsPi(pFanin) )
+        if ( If_ObjIsCi(pFanin) )
             continue;
         if ( If_ManImproveNodeFaninCost(p, pFanin) <= 0 )
         {
@@ -498,8 +498,8 @@ void If_ManImproveNodeReduce( If_Man_t * p, If_Obj_t * pObj, int nLimit )
     pFanin1 = If_ObjFanin1(pObj);
     // get the cuts
     pCut  = If_ObjCutBest(pObj);
-    pCut0 = If_ObjIsPi(pFanin0) ? If_ObjCutTriv(pFanin0) : If_ObjCutBest(pFanin0);
-    pCut1 = If_ObjIsPi(pFanin1) ? If_ObjCutTriv(pFanin1) : If_ObjCutBest(pFanin1);
+    pCut0 = If_ObjIsCi(pFanin0) ? If_ObjCutTriv(pFanin0) : If_ObjCutBest(pFanin0);
+    pCut1 = If_ObjIsCi(pFanin1) ? If_ObjCutTriv(pFanin1) : If_ObjCutBest(pFanin1);
     assert( pCut->Delay <= pObj->Required + p->fEpsilon );
 
     // deref the cut if the node is refed

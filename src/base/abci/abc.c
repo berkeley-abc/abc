@@ -7529,25 +7529,26 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     memset( pPars, 0, sizeof(If_Par_t) );
     // user-controlable paramters
     pPars->nLutSize    =  4;
-    pPars->nCutsMax    = 10;
+    pPars->nCutsMax    =  8;
     pPars->DelayTarget = -1;
     pPars->fPreprocess =  1;
     pPars->fArea       =  0;
     pPars->fFancy      =  0;
     pPars->fExpRed     =  1;
     pPars->fLatchPaths =  0;
-    pPars->fSeq        =  0;
+    pPars->fSeqMap     =  0;
     pPars->fVerbose    =  0;
     // internal parameters
     pPars->fTruth      =  0;
     pPars->nLatches    =  pNtk? Abc_NtkLatchNum(pNtk) : 0;
+    pPars->fLiftLeaves =  0;
     pPars->pLutLib     =  NULL; // Abc_FrameReadLibLut();
     pPars->pTimesArr   =  NULL; 
     pPars->pTimesArr   =  NULL;   
     pPars->pFuncCost   =  NULL;   
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCDpaflrsvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCDpaflrstvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -7600,7 +7601,10 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->fExpRed ^= 1;
             break;
         case 's':
-            pPars->fSeq ^= 1;
+            pPars->fSeqMap ^= 1;
+            break;
+        case 't':
+            pPars->fLiftLeaves ^= 1;
             break;
         case 'v':
             pPars->fVerbose ^= 1;
@@ -7616,10 +7620,16 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Empty network.\n" );
         return 1;
     }
-
+/*
     if ( pPars->fSeq )
     {
         fprintf( pErr, "Sequential mapping is currently being implemented.\n" );
+        return 1;
+    }
+*/
+    if ( pPars->fSeqMap && pPars->nLatches == 0 )
+    {
+        fprintf( pErr, "The network has no latches. Use combinational mapping instead of sequential.\n" );
         return 1;
     }
 
@@ -7649,13 +7659,6 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    // set the latch paths
-    if ( pPars->fLatchPaths )
-    {
-        for ( c = 0; c < Abc_NtkPiNum(pNtk); c++ )
-            pPars->pTimesArr[c] = -ABC_INFINITY;
-    }
-
     if ( !Abc_NtkIsStrash(pNtk) )
     {
         // strash and balance the network
@@ -7679,7 +7682,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         {
             Abc_NtkDelete( pNtk );
             fprintf( pErr, "FPGA mapping has failed.\n" );
-            return 1;
+            return 0;
         }
         Abc_NtkDelete( pNtk );
     }
@@ -7690,7 +7693,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         if ( pNtkRes == NULL )
         {
             fprintf( pErr, "FPGA mapping has failed.\n" );
-            return 1;
+            return 0;
         }
     }
     // replace the current network
@@ -7706,17 +7709,18 @@ usage:
         sprintf( LutSize, "library" );
     else
         sprintf( LutSize, "%d", pPars->nLutSize );
-    fprintf( pErr, "usage: if [-K num] [-C num] [-D float] [-pafrsvh]\n" );
+    fprintf( pErr, "usage: if [-K num] [-C num] [-D float] [-pafrstvh]\n" );
     fprintf( pErr, "\t           performs FPGA technology mapping of the network\n" );
     fprintf( pErr, "\t-K num   : the number of LUT inputs (2 < num < %d) [default = %s]\n", IF_MAX_LUTSIZE+1, LutSize );
     fprintf( pErr, "\t-C num   : the max number of cuts to use (1 < num < 2^12) [default = %d]\n", pPars->nCutsMax );
     fprintf( pErr, "\t-D float : sets the delay constraint for the mapping [default = %s]\n", Buffer );  
     fprintf( pErr, "\t-p       : toggles preprocessing using several starting points [default = %s]\n", pPars->fPreprocess? "yes": "no" );
     fprintf( pErr, "\t-a       : toggles area-oriented mapping [default = %s]\n", pPars->fArea? "yes": "no" );
-    fprintf( pErr, "\t-f       : toggles one fancy feature [default = %s]\n", pPars->fFancy? "yes": "no" );
+//    fprintf( pErr, "\t-f       : toggles one fancy feature [default = %s]\n", pPars->fFancy? "yes": "no" );
     fprintf( pErr, "\t-r       : enables expansion/reduction of the best cuts [default = %s]\n", pPars->fExpRed? "yes": "no" );
     fprintf( pErr, "\t-l       : optimizes latch paths for delay, other paths for area [default = %s]\n", pPars->fLatchPaths? "yes": "no" );
-    fprintf( pErr, "\t-s       : toggles sequential mapping [default = %s]\n", pPars->fSeq? "yes": "no" );
+    fprintf( pErr, "\t-s       : toggles sequential mapping [default = %s]\n", pPars->fSeqMap? "yes": "no" );
+    fprintf( pErr, "\t-t       : toggles the use of true sequential cuts [default = %s]\n", pPars->fLiftLeaves? "yes": "no" );
     fprintf( pErr, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h       : prints the command usage\n");
     return 1;
