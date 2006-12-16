@@ -320,7 +320,7 @@ void Abc_NtkOrderObjsByName( Abc_Ntk_t * pNtk, int fComb )
     Abc_NtkForEachPo( pNtk, pObj, i )
         pObj->pCopy = (Abc_Obj_t *)Abc_ObjName(pObj);
     Abc_NtkForEachBox( pNtk, pObj, i )
-        pObj->pCopy = (Abc_Obj_t *)Abc_ObjName(pObj);
+        pObj->pCopy = (Abc_Obj_t *)Abc_ObjName(Abc_ObjFanout0(pObj));
     // order objects alphabetically
     qsort( (void *)Vec_PtrArray(pNtk->vPis), Vec_PtrSize(pNtk->vPis), sizeof(Abc_Obj_t *), 
         (int (*)(const void *, const void *)) Abc_NodeCompareNames );

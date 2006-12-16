@@ -30,7 +30,7 @@
 
 /**Function*************************************************************
 
-  Synopsis    [Writes the AIG in the binary format.]
+  Synopsis    [Reads the AIG in the binary format.]
 
   Description []
   
@@ -150,7 +150,7 @@ Abc_Ntk_t * Io_ReadBaf( char * pFileName, int fCheck )
     Vec_PtrFree( vNodes );
 
     // remove the extra nodes
-    Abc_AigCleanup( pNtkNew->pManFunc );
+//    Abc_AigCleanup( pNtkNew->pManFunc );
 
     // check the result
     if ( fCheck && !Abc_NtkCheckRead( pNtkNew ) )

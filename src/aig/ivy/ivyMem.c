@@ -87,15 +87,16 @@ void Ivy_ManAddMemory( Ivy_Man_t * p )
 {
     char * pMemory;
     int i, nBytes;
-    assert( sizeof(Ivy_Obj_t) <= 64 );
+    int EntrySizeMax = 128;
+    assert( sizeof(Ivy_Obj_t) <= EntrySizeMax );
     assert( p->pListFree == NULL );
 //    assert( (Ivy_ManObjNum(p) & IVY_PAGE_MASK) == 0 );
     // allocate new memory page
-    nBytes = sizeof(Ivy_Obj_t) * (1<<IVY_PAGE_SIZE) + 64;
+    nBytes = sizeof(Ivy_Obj_t) * (1<<IVY_PAGE_SIZE) + EntrySizeMax;
     pMemory = ALLOC( char, nBytes );
     Vec_PtrPush( p->vChunks, pMemory );
     // align memory at the 32-byte boundary
-    pMemory = pMemory + 64 - (((int)pMemory) & 63);
+    pMemory = pMemory + EntrySizeMax - (((int)pMemory) & (EntrySizeMax-1));
     // remember the manager in the first entry
     Vec_PtrPush( p->vPages, pMemory );
     // break the memory down into nodes

@@ -186,7 +186,7 @@ void If_CutSortInputPins( If_Man_t * p, If_Cut_t * pCut, int * pPinPerm, float *
     If_Obj_t * pLeaf;
     int i, j, best_i, temp;
     // start the trivial permutation and collect pin delays
-    If_CutForEachLeaf( p, pCut, pLeaf, i );
+    If_CutForEachLeaf( p, pCut, pLeaf, i )
     {
         pPinPerm[i] = i;
         pPinDelays[i] = If_ObjCutBest(pLeaf)->Delay;
@@ -206,8 +206,12 @@ void If_CutSortInputPins( If_Man_t * p, If_Cut_t * pCut, int * pPinPerm, float *
         pPinPerm[best_i] = temp;
     }
     // verify
+    assert( pPinPerm[0] < pCut->nLeaves );
     for ( i = 1; i < (int)pCut->nLeaves; i++ )
+    {
+        assert( pPinPerm[i] < (int)pCut->nLeaves );
         assert( pPinDelays[pPinPerm[i-1]] >= pPinDelays[pPinPerm[i]] );
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////

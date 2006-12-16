@@ -189,38 +189,43 @@ void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode )
     pCut = p->ppCuts[iCut];
     // generate cuts
     for ( pTemp = pObj; pTemp; pTemp = pTemp->pEquiv )
-    If_ObjForEachCutStart( pTemp, pCutTemp, i, 1 )
     {
-        assert( pTemp->nCuts > 1 );
-        assert( pTemp == pObj || pTemp->nRefs == 0 );
-        // copy the cut into storage
-        If_CutCopy( pCut, pCutTemp );
-        // check if this cut is contained in any of the available cuts
-        if ( If_CutFilter( p, pCut ) )
-            continue;
-        // the cuts have been successfully merged
-        // check if the cut satisfies the required times
-        assert( pCut->Delay == If_CutDelay( p, pCut ) );
-        if ( Mode && pCut->Delay > pObj->Required + p->fEpsilon )
-            continue;
-        // set the phase attribute
-        pCut->fCompl ^= (pObj->fPhase ^ pTemp->fPhase);
-        // compute area of the cut (this area may depend on the application specific cost)
-        pCut->Area = (Mode == 2)? If_CutAreaDerefed( p, pCut, 100 ) : If_CutFlow( p, pCut );
-        pCut->AveRefs = (Mode == 0)? (float)0.0 : If_CutAverageRefs( p, pCut );
-        // make sure the cut is the last one (after filtering it may not be so)
-        assert( pCut == p->ppCuts[iCut] );
-        p->ppCuts[iCut] = p->ppCuts[p->nCuts];
-        p->ppCuts[p->nCuts] = pCut;
-        // count the cut
-        p->nCuts++;
-        // prepare room for the next cut
-        iCut = p->nCuts;
-        pCut = p->ppCuts[iCut];
+        If_ObjForEachCutStart( pTemp, pCutTemp, i, 1 )
+        {
+            assert( pTemp->nCuts > 1 );
+            assert( pTemp == pObj || pTemp->nRefs == 0 );
+            // copy the cut into storage
+            If_CutCopy( pCut, pCutTemp );
+            // check if this cut is contained in any of the available cuts
+            if ( If_CutFilter( p, pCut ) )
+                continue;
+            // the cuts have been successfully merged
+            // check if the cut satisfies the required times
+            assert( pCut->Delay == If_CutDelay( p, pCut ) );
+            if ( Mode && pCut->Delay > pObj->Required + p->fEpsilon )
+                continue;
+            // set the phase attribute
+            pCut->fCompl ^= (pObj->fPhase ^ pTemp->fPhase);
+            // compute area of the cut (this area may depend on the application specific cost)
+            pCut->Area = (Mode == 2)? If_CutAreaDerefed( p, pCut, 100 ) : If_CutFlow( p, pCut );
+            pCut->AveRefs = (Mode == 0)? (float)0.0 : If_CutAverageRefs( p, pCut );
+            // make sure the cut is the last one (after filtering it may not be so)
+            assert( pCut == p->ppCuts[iCut] );
+            p->ppCuts[iCut] = p->ppCuts[p->nCuts];
+            p->ppCuts[p->nCuts] = pCut;
+            // count the cut
+            p->nCuts++;
+            // prepare room for the next cut
+            iCut = p->nCuts;
+            pCut = p->ppCuts[iCut];
+            // quit if we exceeded the number of cuts
+            if ( p->nCuts >= p->pPars->nCutsMax * p->pPars->nCutsMax )
+                break;
+        }
         // quit if we exceeded the number of cuts
         if ( p->nCuts >= p->pPars->nCutsMax * p->pPars->nCutsMax )
             break;
-    } 
+    }
     assert( p->nCuts > 0 );
     // sort if we have more cuts
     If_ManSortCuts( p, Mode );

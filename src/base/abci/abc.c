@@ -7542,7 +7542,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->fTruth      =  0;
     pPars->nLatches    =  pNtk? Abc_NtkLatchNum(pNtk) : 0;
     pPars->fLiftLeaves =  0;
-    pPars->pLutLib     =  NULL; // Abc_FrameReadLibLut();
+    pPars->pLutLib     =  Abc_FrameReadLibLut();
     pPars->pTimesArr   =  NULL; 
     pPars->pTimesArr   =  NULL;   
     pPars->pFuncCost   =  NULL;   
@@ -7562,6 +7562,8 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( pPars->nLutSize < 0 ) 
                 goto usage;
+            // if the LUT size is specified, disable library
+            pPars->pLutLib = NULL; 
             break;
         case 'C':
             if ( globalUtilOptind >= argc )
@@ -7709,7 +7711,7 @@ usage:
         sprintf( LutSize, "library" );
     else
         sprintf( LutSize, "%d", pPars->nLutSize );
-    fprintf( pErr, "usage: if [-K num] [-C num] [-D float] [-pafrstvh]\n" );
+    fprintf( pErr, "usage: if [-K num] [-C num] [-D float] [-pafrsvh]\n" );
     fprintf( pErr, "\t           performs FPGA technology mapping of the network\n" );
     fprintf( pErr, "\t-K num   : the number of LUT inputs (2 < num < %d) [default = %s]\n", IF_MAX_LUTSIZE+1, LutSize );
     fprintf( pErr, "\t-C num   : the max number of cuts to use (1 < num < 2^12) [default = %d]\n", pPars->nCutsMax );
@@ -7720,7 +7722,7 @@ usage:
     fprintf( pErr, "\t-r       : enables expansion/reduction of the best cuts [default = %s]\n", pPars->fExpRed? "yes": "no" );
     fprintf( pErr, "\t-l       : optimizes latch paths for delay, other paths for area [default = %s]\n", pPars->fLatchPaths? "yes": "no" );
     fprintf( pErr, "\t-s       : toggles sequential mapping [default = %s]\n", pPars->fSeqMap? "yes": "no" );
-    fprintf( pErr, "\t-t       : toggles the use of true sequential cuts [default = %s]\n", pPars->fLiftLeaves? "yes": "no" );
+//    fprintf( pErr, "\t-t       : toggles the use of true sequential cuts [default = %s]\n", pPars->fLiftLeaves? "yes": "no" );
     fprintf( pErr, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h       : prints the command usage\n");
     return 1;

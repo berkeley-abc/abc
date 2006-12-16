@@ -140,7 +140,7 @@ clk = clock();
         Fpga_CutGetParameters( p, pCut );
 //p->time2 += clock() - clk;
         // drop the cut if it does not meet the required times
-        if ( pCut->tArrival > pNode->tRequired )
+        if ( Fpga_FloatMoreThan(p, pCut->tArrival, pNode->tRequired) )
             continue;
         // if no cut is assigned, use the current one
         if ( pNode->pCutBest == NULL )
@@ -152,11 +152,11 @@ clk = clock();
         // (1) delay oriented mapping (first traversal), delay first, area-flow as a tie-breaker
         // (2) area recovery (subsequent traversals), area-flow first, delay as a tie-breaker
         if ( (fDelayOriented && 
-               (pNode->pCutBest->tArrival >  pCut->tArrival || 
-                pNode->pCutBest->tArrival == pCut->tArrival && pNode->pCutBest->aFlow > pCut->aFlow)) ||
+               (Fpga_FloatMoreThan(p, pNode->pCutBest->tArrival, pCut->tArrival) || 
+                Fpga_FloatEqual(p, pNode->pCutBest->tArrival, pCut->tArrival) && Fpga_FloatMoreThan(p, pNode->pCutBest->aFlow, pCut->aFlow) )) ||
              (!fDelayOriented && 
-               (pNode->pCutBest->aFlow >  pCut->aFlow || 
-                pNode->pCutBest->aFlow == pCut->aFlow && pNode->pCutBest->tArrival > pCut->tArrival))  )
+               (Fpga_FloatMoreThan(p, pNode->pCutBest->aFlow, pCut->aFlow) || 
+                Fpga_FloatEqual(p, pNode->pCutBest->aFlow, pCut->aFlow) && Fpga_FloatMoreThan(p, pNode->pCutBest->tArrival, pCut->tArrival)))  )
         {
             pNode->pCutBest = pCut;
         }
@@ -289,7 +289,7 @@ clk = clock();
         pCut->tArrival = Fpga_TimeCutComputeArrival( p, pCut );
 //p->time2 += clock() - clk;
         // drop the cut if it does not meet the required times
-        if ( pCut->tArrival > pNode->tRequired )
+        if ( Fpga_FloatMoreThan( p, pCut->tArrival, pNode->tRequired ) )
             continue;
         // get the area of this cut
         pCut->aFlow = Fpga_CutGetAreaDerefed( p, pCut );
@@ -300,8 +300,8 @@ clk = clock();
             continue;
         }
         // choose the best cut as follows: exact area first, delay as a tie-breaker
-        if ( pNode->pCutBest->aFlow >  pCut->aFlow || 
-             pNode->pCutBest->aFlow == pCut->aFlow && pNode->pCutBest->tArrival > pCut->tArrival  )
+        if ( Fpga_FloatMoreThan(p, pNode->pCutBest->aFlow, pCut->aFlow) || 
+             Fpga_FloatEqual(p, pNode->pCutBest->aFlow, pCut->aFlow) && Fpga_FloatMoreThan(p, pNode->pCutBest->tArrival, pCut->tArrival) )
         {
             pNode->pCutBest = pCut;
         }
@@ -410,7 +410,7 @@ clk = clock();
         pCut->tArrival = Fpga_TimeCutComputeArrival( p, pCut );
 //p->time2 += clock() - clk;
         // drop the cut if it does not meet the required times
-        if ( pCut->tArrival > pNode->tRequired )
+        if ( Fpga_FloatMoreThan( p, pCut->tArrival, pNode->tRequired ) )
             continue;
         // get the area of this cut
         pCut->aFlow = Fpga_CutGetSwitchDerefed( p, pNode, pCut );
@@ -421,8 +421,8 @@ clk = clock();
             continue;
         }
         // choose the best cut as follows: exact area first, delay as a tie-breaker
-        if ( pNode->pCutBest->aFlow >  pCut->aFlow || 
-             pNode->pCutBest->aFlow == pCut->aFlow && pNode->pCutBest->tArrival > pCut->tArrival  )
+        if ( Fpga_FloatMoreThan(p, pNode->pCutBest->aFlow, pCut->aFlow) || 
+             Fpga_FloatEqual(p, pNode->pCutBest->aFlow, pCut->aFlow) && Fpga_FloatMoreThan(p, pNode->pCutBest->tArrival, pCut->tArrival) )
         {
             pNode->pCutBest = pCut;
         }

@@ -127,6 +127,14 @@ clkIter = clock() - clk;
         NodeLag = Abc_NodeComputeLag( Abc_NodeGetLValue(pNode), FiBest );
         Vec_IntWriteEntry( vLags, pNode->Id, NodeLag );
     }
+/*
+    Abc_NtkForEachPo( pNtk, pNode, i )
+        printf( "%d ", Abc_NodeGetLValue(Abc_ObjFanin0(pNode)) );
+    printf( "\n" );
+    Abc_NtkForEachLatch( pNtk, pNode, i )
+        printf( "%d/%d ", Abc_NodeGetLValue(Abc_ObjFanout0(pNode)), Abc_NodeGetLValue(Abc_ObjFanout0(pNode)) + FiBest );
+    printf( "\n" );
+*/
 
     // print the result
 //    if ( fVerbose )
@@ -134,7 +142,7 @@ clkIter = clock() - clk;
 /*
     {
         FILE * pTable;
-        pTable = fopen( "a/seqmap__stats.txt", "a+" );
+        pTable = fopen( "iscas/seqmap__stats2.txt", "a+" );
         fprintf( pTable, "%d ", FiBest );
         fprintf( pTable, "\n" );
         fclose( pTable );

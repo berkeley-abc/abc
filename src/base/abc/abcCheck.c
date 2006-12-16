@@ -422,6 +422,10 @@ bool Abc_NtkCheckObj( Abc_Ntk_t * pNtk, Abc_Obj_t * pObj )
         fprintf( stdout, "NetworkCheck: Object \"%s\" has incorrect ID.\n", Abc_ObjName(pObj) );
         return 0;
     }
+
+    if ( !Abc_FrameIsFlagEnabled("checkfio") )
+        return Value;
+
     // go through the fanins of the object and make sure fanins have this object as a fanout
     Abc_ObjForEachFanin( pObj, pFanin, i )
     {
@@ -442,9 +446,6 @@ bool Abc_NtkCheckObj( Abc_Ntk_t * pNtk, Abc_Obj_t * pObj )
             Value = 0;
         }
     }
-
-    if ( !Abc_FrameIsFlagEnabled("checkfio") )
-        return Value;
 
     // make sure fanins are not duplicated
     for ( i = 0; i < pObj->vFanins.nSize; i++ )
@@ -706,10 +707,10 @@ bool Abc_NtkCompareBoxes( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb )
     // for each PI of pNet1 find corresponding PI of pNet2 and reorder them
     Abc_NtkForEachBox( pNtk1, pObj1, i )
     {
-        if ( strcmp( Abc_ObjName(pObj1), Abc_ObjName(Abc_NtkBox(pNtk2,i)) ) != 0 )
+        if ( strcmp( Abc_ObjName(Abc_ObjFanout0(pObj1)), Abc_ObjName(Abc_ObjFanout0(Abc_NtkBox(pNtk2,i))) ) != 0 )
         {
             printf( "Box #%d is different in network 1 ( \"%s\") and in network 2 (\"%s\").\n", 
-                i, Abc_ObjName(pObj1), Abc_ObjName(Abc_NtkBox(pNtk2,i)) );
+                i, Abc_ObjName(Abc_ObjFanout0(pObj1)), Abc_ObjName(Abc_ObjFanout0(Abc_NtkBox(pNtk2,i))) );
             return 0;
         }
     }

@@ -340,7 +340,7 @@ float Fpga_CutGetAreaRefed( Fpga_Man_t * pMan, Fpga_Cut_t * pCut )
         return 0;
     aResult  = Fpga_CutDeref( pMan, NULL, pCut, 0 );
     aResult2 = Fpga_CutRef( pMan, NULL, pCut, 0 );
-    assert( aResult == aResult2 );
+    assert( Fpga_FloatEqual( pMan, aResult, aResult2 ) );
     return aResult;
 }
 
@@ -362,7 +362,7 @@ float Fpga_CutGetAreaDerefed( Fpga_Man_t * pMan, Fpga_Cut_t * pCut )
         return 0;
     aResult2 = Fpga_CutRef( pMan, NULL, pCut, 0 );
     aResult  = Fpga_CutDeref( pMan, NULL, pCut, 0 );
-    assert( aResult == aResult2 );
+    assert( Fpga_FloatEqual( pMan, aResult, aResult2 ) );
     return aResult;
 }
 

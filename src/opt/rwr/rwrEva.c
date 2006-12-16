@@ -28,6 +28,7 @@
 static Dec_Graph_t * Rwr_CutEvaluate( Rwr_Man_t * p, Abc_Obj_t * pRoot, Cut_Cut_t * pCut, Vec_Ptr_t * vFaninsCur, int nNodesSaved, int LevelMax, int * pGainBest );
 static int Rwr_CutIsBoolean( Abc_Obj_t * pObj, Vec_Ptr_t * vLeaves );
 static int Rwr_CutCountNumNodes( Abc_Obj_t * pObj, Cut_Cut_t * pCut );
+static int Rwr_NodeGetDepth_rec( Abc_Obj_t * pObj, Vec_Ptr_t * vLeaves );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -186,6 +187,13 @@ p->timeRes += clock() - clk;
     // copy the leaves
     Vec_PtrForEachEntry( p->vFanins, pFanin, i )
         Dec_GraphNode(p->pGraph, i)->pFunc = pFanin;
+/*
+    printf( "(" );
+    Vec_PtrForEachEntry( p->vFanins, pFanin, i )
+        printf( " %d", Abc_ObjRegular(pFanin)->vFanouts.nSize - 1 );
+    printf( " )  " );
+*/
+//    printf( "%d ", Rwr_NodeGetDepth_rec( pNode, p->vFanins ) );
 
     p->nScores[p->pMap[uTruthBest]]++;
     p->nNodesGained += GainBest;
@@ -382,6 +390,32 @@ int Rwr_CutCountNumNodes( Abc_Obj_t * pObj, Cut_Cut_t * pCut )
     Counter = Vec_PtrSize(vNodes);
     Vec_PtrFree( vNodes );
     return Counter;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Returns depth of the cut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Rwr_NodeGetDepth_rec( Abc_Obj_t * pObj, Vec_Ptr_t * vLeaves )
+{
+    Abc_Obj_t * pLeaf;
+    int i, Depth0, Depth1;
+    if ( Abc_ObjIsCi(pObj) )
+        return 0;
+    Vec_PtrForEachEntry( vLeaves, pLeaf, i )
+        if ( pObj == Abc_ObjRegular(pLeaf) )
+            return 0;
+    Depth0 = Rwr_NodeGetDepth_rec( Abc_ObjFanin0(pObj), vLeaves );
+    Depth1 = Rwr_NodeGetDepth_rec( Abc_ObjFanin1(pObj), vLeaves );
+    return 1 + ABC_MAX( Depth0, Depth1 );
 }
 
 ////////////////////////////////////////////////////////////////////////

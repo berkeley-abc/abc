@@ -26,6 +26,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 static int IoCommandRead        ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandReadAiger   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadBaf     ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadBlif    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadBench   ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -37,6 +38,7 @@ static int IoCommandReadVerLib  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadPla     ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadTruth   ( Abc_Frame_t * pAbc, int argc, char **argv );
 
+static int IoCommandWriteAiger  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteBaf    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteBlif   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteBench  ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -71,6 +73,7 @@ extern Abc_Lib_t * Ver_ParseFile( char * pFileName, Abc_Lib_t * pGateLib, int fC
 void Io_Init( Abc_Frame_t * pAbc )
 {
     Cmd_CommandAdd( pAbc, "I/O", "read",          IoCommandRead,         1 );
+    Cmd_CommandAdd( pAbc, "I/O", "read_aiger",    IoCommandReadAiger,    1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_baf",      IoCommandReadBaf,      1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_blif",     IoCommandReadBlif,     1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_bench",    IoCommandReadBench,    1 );
@@ -82,6 +85,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "read_pla",      IoCommandReadPla,      1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_truth",    IoCommandReadTruth,    1 );
 
+    Cmd_CommandAdd( pAbc, "I/O", "write_aiger",   IoCommandWriteAiger,   0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_baf",     IoCommandWriteBaf,     0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_blif",    IoCommandWriteBlif,    0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_bench",   IoCommandWriteBench,   0 );
@@ -157,7 +161,7 @@ int IoCommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( (pFile = fopen( FileName, "r" )) == NULL )
     {
         fprintf( pAbc->Err, "Cannot open input file \"%s\". ", FileName );
-        if ( FileName = Extra_FileGetSimilarName( FileName, ".mv", ".blif", ".pla", ".eqn", ".bench" ) )
+        if ( FileName = Extra_FileGetSimilarName( FileName, ".blif", ".bench", ".pla", ".baf", ".aig" ) )
             fprintf( pAbc->Err, "Did you mean \"%s\"?", FileName );
         fprintf( pAbc->Err, "\n" );
         return 1;
@@ -177,7 +181,80 @@ int IoCommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     fprintf( pAbc->Err, "usage: read [-ch] <file>\n" );
-    fprintf( pAbc->Err, "\t         read the network from file in Verilog/BLIF/BENCH format\n" );
+    fprintf( pAbc->Err, "\t         read the network from file in BLIF/BENCH/PLA/BAF/AIGER format\n" );
+    fprintf( pAbc->Err, "\t-c     : toggle network check after reading [default = %s]\n", fCheck? "yes":"no" );
+    fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IoCommandReadAiger( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk;
+    char * FileName;
+    FILE * pFile;
+    int fCheck;
+    int c;
+
+    fCheck = 1;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ch" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'c':
+                fCheck ^= 1;
+                break;
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+
+    if ( argc != globalUtilOptind + 1 )
+    {
+        goto usage;
+    }
+
+    // get the input file name
+    FileName = argv[globalUtilOptind];
+    if ( (pFile = fopen( FileName, "r" )) == NULL )
+    {
+        fprintf( pAbc->Err, "Cannot open input file \"%s\". ", FileName );
+        if ( FileName = Extra_FileGetSimilarName( FileName, ".blif", ".bench", ".pla", ".baf", ".aig" ) )
+            fprintf( pAbc->Err, "Did you mean \"%s\"?", FileName );
+        fprintf( pAbc->Err, "\n" );
+        return 1;
+    }
+    fclose( pFile );
+ 
+    // set the new network
+    pNtk = Io_ReadAiger( FileName, fCheck );
+    if ( pNtk == NULL )
+    {
+        fprintf( pAbc->Err, "Reading network from the AIGER file has failed.\n" );
+        return 1;
+    }
+
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: read_aiger [-ch] <file>\n" );
+    fprintf( pAbc->Err, "\t         read the network in the AIGER format (http://fmv.jku.at/aiger)\n" );
     fprintf( pAbc->Err, "\t-c     : toggle network check after reading [default = %s]\n", fCheck? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
     fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
@@ -229,7 +306,7 @@ int IoCommandReadBaf( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( (pFile = fopen( FileName, "r" )) == NULL )
     {
         fprintf( pAbc->Err, "Cannot open input file \"%s\". ", FileName );
-        if ( FileName = Extra_FileGetSimilarName( FileName, ".mv", ".blif", ".pla", ".eqn", ".bench" ) )
+        if ( FileName = Extra_FileGetSimilarName( FileName, ".blif", ".bench", ".pla", ".baf", ".aig" ) )
             fprintf( pAbc->Err, "Did you mean \"%s\"?", FileName );
         fprintf( pAbc->Err, "\n" );
         return 1;
@@ -240,7 +317,7 @@ int IoCommandReadBaf( Abc_Frame_t * pAbc, int argc, char ** argv )
     pNtk = Io_ReadBaf( FileName, fCheck );
     if ( pNtk == NULL )
     {
-        fprintf( pAbc->Err, "Reading network from BAF file has failed.\n" );
+        fprintf( pAbc->Err, "Reading network from the BAF file has failed.\n" );
         return 1;
     }
 
@@ -302,7 +379,7 @@ int IoCommandReadBlif( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( (pFile = fopen( FileName, "r" )) == NULL )
     {
         fprintf( pAbc->Err, "Cannot open input file \"%s\". ", FileName );
-        if ( FileName = Extra_FileGetSimilarName( FileName, ".mv", ".blif", ".pla", ".eqn", ".bench" ) )
+        if ( FileName = Extra_FileGetSimilarName( FileName, ".blif", ".bench", ".pla", ".baf", ".aig" ) )
             fprintf( pAbc->Err, "Did you mean \"%s\"?", FileName );
         fprintf( pAbc->Err, "\n" );
         return 1;
@@ -383,7 +460,7 @@ int IoCommandReadBench( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( (pFile = fopen( FileName, "r" )) == NULL )
     {
         fprintf( pAbc->Err, "Cannot open input file \"%s\". ", FileName );
-        if ( FileName = Extra_FileGetSimilarName( FileName, ".mv", ".blif", ".pla", ".eqn", ".bench" ) )
+        if ( FileName = Extra_FileGetSimilarName( FileName, ".blif", ".bench", ".pla", ".baf", ".aig" ) )
             fprintf( pAbc->Err, "Did you mean \"%s\"?", FileName );
         fprintf( pAbc->Err, "\n" );
         return 1;
@@ -463,7 +540,7 @@ int IoCommandReadEdif( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( (pFile = fopen( FileName, "r" )) == NULL )
     {
         fprintf( pAbc->Err, "Cannot open input file \"%s\". ", FileName );
-        if ( FileName = Extra_FileGetSimilarName( FileName, ".mv", ".blif", ".pla", ".eqn", ".bench" ) )
+        if ( FileName = Extra_FileGetSimilarName( FileName, ".blif", ".bench", ".pla", ".baf", ".aig" ) )
             fprintf( pAbc->Err, "Did you mean \"%s\"?", FileName );
         fprintf( pAbc->Err, "\n" );
         return 1;
@@ -543,7 +620,7 @@ int IoCommandReadEqn( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( (pFile = fopen( FileName, "r" )) == NULL )
     {
         fprintf( pAbc->Err, "Cannot open input file \"%s\". ", FileName );
-        if ( FileName = Extra_FileGetSimilarName( FileName, ".mv", ".blif", ".pla", ".eqn", ".bench" ) )
+        if ( FileName = Extra_FileGetSimilarName( FileName, ".blif", ".bench", ".pla", ".baf", ".aig" ) )
             fprintf( pAbc->Err, "Did you mean \"%s\"?", FileName );
         fprintf( pAbc->Err, "\n" );
         return 1;
@@ -626,7 +703,7 @@ int IoCommandReadVerilog( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( (pFile = fopen( FileName, "r" )) == NULL )
     {
         fprintf( pAbc->Err, "Cannot open input file \"%s\". ", FileName );
-        if ( FileName = Extra_FileGetSimilarName( FileName, ".mv", ".blif", ".pla", ".eqn", ".bench" ) )
+        if ( FileName = Extra_FileGetSimilarName( FileName, ".blif", ".bench", ".pla", ".baf", ".aig" ) )
             fprintf( pAbc->Err, "Did you mean \"%s\"?", FileName );
         fprintf( pAbc->Err, "\n" );
         return 1;
@@ -709,7 +786,7 @@ int IoCommandReadVer( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( (pFile = fopen( FileName, "r" )) == NULL )
     {
         fprintf( pAbc->Err, "Cannot open input file \"%s\". ", FileName );
-        if ( FileName = Extra_FileGetSimilarName( FileName, ".mv", ".blif", ".pla", ".eqn", ".bench" ) )
+        if ( FileName = Extra_FileGetSimilarName( FileName, ".blif", ".bench", ".pla", ".baf", ".aig" ) )
             fprintf( pAbc->Err, "Did you mean \"%s\"?", FileName );
         fprintf( pAbc->Err, "\n" );
         return 1;
@@ -799,7 +876,7 @@ int IoCommandReadVerLib( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( (pFile = fopen( FileName, "r" )) == NULL )
     {
         fprintf( pAbc->Err, "Cannot open input file \"%s\". ", FileName );
-        if ( FileName = Extra_FileGetSimilarName( FileName, ".mv", ".blif", ".pla", ".eqn", ".bench" ) )
+        if ( FileName = Extra_FileGetSimilarName( FileName, ".blif", ".bench", ".pla", ".baf", ".aig" ) )
             fprintf( pAbc->Err, "Did you mean \"%s\"?", FileName );
         fprintf( pAbc->Err, "\n" );
         return 1;
@@ -875,7 +952,7 @@ int IoCommandReadPla( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( (pFile = fopen( FileName, "r" )) == NULL )
     {
         fprintf( pAbc->Err, "Cannot open input file \"%s\". ", FileName );
-        if ( FileName = Extra_FileGetSimilarName( FileName, ".mv", ".blif", ".pla", ".eqn", ".bench" ) )
+        if ( FileName = Extra_FileGetSimilarName( FileName, ".blif", ".bench", ".pla", ".baf", ".aig" ) )
             fprintf( pAbc->Err, "Did you mean \"%s\"?", FileName );
         fprintf( pAbc->Err, "\n" );
         return 1;
@@ -992,6 +1069,65 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int IoCommandWriteAiger( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    Abc_Ntk_t * pNtk;
+    char * FileName;
+    int c;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "lh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+
+    pNtk = pAbc->pNtkCur;
+    if ( pNtk == NULL )
+    {
+        fprintf( pAbc->Out, "Empty network.\n" );
+        return 0;
+    }
+
+    if ( argc != globalUtilOptind + 1 )
+    {
+        goto usage;
+    }
+    FileName = argv[globalUtilOptind];
+
+    // check the network type
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pAbc->Out, "Writing AIGER is only possible for structurally hashed AIGs.\n" );
+        return 0;
+    }
+    Io_WriteAiger( pNtk, FileName );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: write_aiger [-lh] <file>\n" );
+    fprintf( pAbc->Err, "\t         write the network in the AIGER format (http://fmv.jku.at/aiger)\n" );
+    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of the file to write (extension .aig)\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int IoCommandWriteBaf( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     Abc_Ntk_t * pNtk;
@@ -1026,7 +1162,7 @@ int IoCommandWriteBaf( Abc_Frame_t * pAbc, int argc, char **argv )
     // check the network type
     if ( !Abc_NtkIsStrash(pNtk) )
     {
-        fprintf( pAbc->Out, "Currently can only write strashed combinational AIGs.\n" );
+        fprintf( pAbc->Out, "Writing BAF is only possible for structurally hashed AIGs.\n" );
         return 0;
     }
     Io_WriteBaf( pNtk, FileName );
@@ -1036,7 +1172,7 @@ usage:
     fprintf( pAbc->Err, "usage: write_baf [-lh] <file>\n" );
     fprintf( pAbc->Err, "\t         write the network into a BLIF file\n" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
-    fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of the file to write (extension .baf)\n" );
     return 1;
 }
 
@@ -1102,7 +1238,7 @@ usage:
     fprintf( pAbc->Err, "\t         write the network into a BLIF file\n" );
     fprintf( pAbc->Err, "\t-l     : toggle writing latches [default = %s]\n", fWriteLatches? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
-    fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of the file to write (extension .blif)\n" );
     return 1;
 }
 
@@ -1176,7 +1312,7 @@ usage:
     fprintf( pAbc->Err, "\t         write the network in BENCH format\n" );
 //    fprintf( pAbc->Err, "\t-l     : toggle writing latches [default = %s]\n", fWriteLatches? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
-    fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of the file to write (extension .bench)\n" );
     return 1;
 }
 

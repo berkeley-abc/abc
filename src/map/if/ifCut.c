@@ -257,9 +257,11 @@ static inline int If_CutMergeOrdered2( If_Cut_t * pC0, If_Cut_t * pC1, If_Cut_t 
         pC->pLeaves[k++] = pC1->pLeaves[i];
         pC->nLeaves++;
     }
+/*
     assert( pC->nLeaves <= pC->nLimit );
     for ( i = 1; i < (int)pC->nLeaves; i++ )
         assert( pC->pLeaves[i-1] < pC->pLeaves[i] );
+*/
     return 1;
 }
 
@@ -574,7 +576,8 @@ float If_CutAreaDerefed( If_Man_t * p, If_Cut_t * pCut, int nLevels )
     assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
     aResult2 = If_CutRef( p, pCut, nLevels );
     aResult  = If_CutDeref( p, pCut, nLevels );
-    assert( aResult == aResult2 );
+    assert( aResult > aResult2 - p->fEpsilon );
+    assert( aResult < aResult2 + p->fEpsilon );
     return aResult;
 }
 
@@ -595,7 +598,8 @@ float If_CutAreaRefed( If_Man_t * p, If_Cut_t * pCut, int nLevels )
     assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
     aResult2 = If_CutDeref( p, pCut, nLevels );
     aResult  = If_CutRef( p, pCut, nLevels );
-    assert( aResult == aResult2 );
+    assert( aResult > aResult2 - p->fEpsilon );
+    assert( aResult < aResult2 + p->fEpsilon );
     return aResult;
 }
 

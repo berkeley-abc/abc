@@ -51,6 +51,8 @@ extern "C" {
 
 /*=== abcRead.c ==========================================================*/
 extern Abc_Ntk_t *        Io_Read( char * pFileName, int fCheck );
+/*=== abcReadAiger.c ==========================================================*/
+extern Abc_Ntk_t *        Io_ReadAiger( char * pFileName, int fCheck );
 /*=== abcReadBaf.c ==========================================================*/
 extern Abc_Ntk_t *        Io_ReadBaf( char * pFileName, int fCheck );
 /*=== abcReadBlif.c ==========================================================*/
@@ -75,6 +77,8 @@ extern Abc_Obj_t *        Io_ReadCreateConst( Abc_Ntk_t * pNtk, char * pName, bo
 extern Abc_Obj_t *        Io_ReadCreateInv( Abc_Ntk_t * pNtk, char * pNameIn, char * pNameOut );
 extern Abc_Obj_t *        Io_ReadCreateBuf( Abc_Ntk_t * pNtk, char * pNameIn, char * pNameOut );
 extern FILE *             Io_FileOpen( const char * FileName, const char * PathVar, const char * Mode, int fVerbose );
+/*=== abcWriteAiger.c ==========================================================*/
+extern void               Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName );
 /*=== abcWriteBaf.c ==========================================================*/
 extern void               Io_WriteBaf( Abc_Ntk_t * pNtk, char * pFileName );
 /*=== abcWriteBlif.c ==========================================================*/

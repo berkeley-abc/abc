@@ -269,7 +269,11 @@ float If_ManScanMappingSeq_rec( If_Man_t * p, If_Obj_t * pObj, Vec_Ptr_t * vMapp
     If_Cut_t * pCutBest;
     float aArea;
     int i, Shift;
-    if ( pObj->nRefs++ || If_ObjIsCi(pObj) || If_ObjIsConst1(pObj) )
+    // treat latches transparently
+    if ( If_ObjIsLatch(pObj) )
+        return If_ManScanMappingSeq_rec( p, If_ObjFanin0(pObj), vMapped );
+    // consider trivial cases
+    if ( pObj->nRefs++ || If_ObjIsPi(pObj) || If_ObjIsConst1(pObj) )
         return 0.0;
     // store the node in the structure by level
     assert( If_ObjIsAnd(pObj) );

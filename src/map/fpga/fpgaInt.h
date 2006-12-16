@@ -278,6 +278,10 @@ struct Fpga_NodeVecStruct_t_
           pFanout  = pFanout2,                                   \
           pFanout2 = Fpga_NodeReadNextFanout(pNode, pFanout) )
 
+static inline Fpga_FloatMoreThan( Fpga_Man_t * p, float Arg1, float Arg2 ) { return Arg1 > Arg2 + p->fEpsilon; }
+static inline Fpga_FloatLessThan( Fpga_Man_t * p, float Arg1, float Arg2 ) { return Arg1 < Arg2 - p->fEpsilon; }
+static inline Fpga_FloatEqual( Fpga_Man_t * p, float Arg1, float Arg2 )    { return Arg1 > Arg2 - p->fEpsilon && Arg1 < Arg2 + p->fEpsilon; }
+
 ////////////////////////////////////////////////////////////////////////
 ///                       GLOBAL VARIABLES                           ///
 ////////////////////////////////////////////////////////////////////////

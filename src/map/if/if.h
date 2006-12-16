@@ -273,10 +273,10 @@ static inline float      If_CutLutArea( If_Man_t * p, If_Cut_t * pCut )      { r
 #define If_ObjForEachCutStart( pObj, pCut, i, Start )                          \
     for ( i = Start; (i < (int)(pObj)->nCuts) && ((pCut) = (pObj)->Cuts + i); i++ )
 // iterator over the leaves of the cut
-//#define If_CutForEachLeaf( p, pCut, pLeaf, i )                                 \
-//    for ( i = 0; (i < (int)(pCut)->nLeaves) && ((pLeaf) = If_ManObj(p, (pCut)->pLeaves[i])); i++ )
 #define If_CutForEachLeaf( p, pCut, pLeaf, i )                                 \
-    for ( i = 0; (i < (int)(pCut)->nLeaves) && ((pLeaf) = If_ManObj(p, p->pPars->fLiftLeaves? (pCut)->pLeaves[i] >> 8 : (pCut)->pLeaves[i])); i++ )
+    for ( i = 0; (i < (int)(pCut)->nLeaves) && ((pLeaf) = If_ManObj(p, (pCut)->pLeaves[i])); i++ )
+//#define If_CutForEachLeaf( p, pCut, pLeaf, i )                                 \
+//    for ( i = 0; (i < (int)(pCut)->nLeaves) && ((pLeaf) = If_ManObj(p, p->pPars->fLiftLeaves? (pCut)->pLeaves[i] >> 8 : (pCut)->pLeaves[i])); i++ )
 // iterator over the leaves of the sequential cut
 #define If_CutForEachLeafSeq( p, pCut, pLeaf, Shift, i )                       \
     for ( i = 0; (i < (int)(pCut)->nLeaves) && ((pLeaf) = If_ManObj(p, (pCut)->pLeaves[i] >> 8)) && (((Shift) = ((pCut)->pLeaves[i] & 255)) >= 0); i++ )

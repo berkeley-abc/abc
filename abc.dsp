@@ -410,6 +410,10 @@ SOURCE=.\src\base\io\ioRead.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\io\ioReadAiger.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\io\ioReadBaf.c
 # End Source File
 # Begin Source File
@@ -435,6 +439,10 @@ SOURCE=.\src\base\io\ioReadPla.c
 # Begin Source File
 
 SOURCE=.\src\base\io\ioUtil.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\io\ioWriteAiger.c
 # End Source File
 # Begin Source File
 

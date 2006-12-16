@@ -96,7 +96,7 @@ int If_ManPerformMappingSeq( If_Man_t * p )
     // print the statistic into a file
     {
         FILE * pTable;
-        pTable = fopen( "a/seqmap__stats.txt", "a+" );
+        pTable = fopen( "iscas/seqmap__stats.txt", "a+" );
         fprintf( pTable, "%d ", p->Period );
         fprintf( pTable, "\n" );
         fclose( pTable );
@@ -198,7 +198,7 @@ int If_ManBinarySearchPeriod( If_Man_t * p, int Mode )
     // report the results
     if ( p->pPars->fVerbose )
     {
-        p->AreaGlo = p->pPars->fLiftLeaves? If_ManScanMappingSeq(p) : If_ManScanMapping(p);
+        p->AreaGlo = p->pPars->fLiftLeaves? 0/*If_ManScanMappingSeq(p)*/ : If_ManScanMapping(p);
         printf( "Attempt = %2d.  Iters = %3d.  Area = %10.2f.  Fi = %6.2f.  ", p->nAttempts, c, p->AreaGlo, (float)p->Period );
         if ( fConverged )
             printf( "  Feasible" );
@@ -358,7 +358,9 @@ int If_ManPrepareMappingSeq( If_Man_t * p )
             pCut->Delay  -= p->Period;
             pCut->fCompl ^= pObj->fCompl0;
 
-            pTemp = If_ManObj(p, pCut->pLeaves[0] >> 8);
+            // there is a bug here, which shows when there are choices...
+//            pTemp = If_ManObj(p, pCut->pLeaves[0] >> 8);
+            pTemp = If_ManObj(p, pCut->pLeaves[0]);
             assert( !If_ObjIsLatch(pTemp) );
         }
     }
