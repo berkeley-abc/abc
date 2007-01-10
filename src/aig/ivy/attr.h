@@ -193,7 +193,7 @@ static inline void Attr_ManStop( Attr_Man_t * p )
         p->pFuncFreeMan( p->pManAttr );
     // free the memory manager
     if ( p->pManMem )  
-        Extra_MmFixedStop( p->pManMem, 0 );
+        Extra_MmFixedStop( p->pManMem);
     // free the attribute manager
     FREE( p->pAttrs );
     free( p );

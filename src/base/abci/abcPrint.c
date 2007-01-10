@@ -51,28 +51,20 @@ int s_MappingMem = 0;
 ***********************************************************************/
 void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
 {
-    int Num;//, Num2;
-
-//    Abc_NtkDetectMatching( pNtk );
-//    return;
+    int Num;
     fprintf( pFile, "%-13s:",       pNtk->pName );
     if ( Abc_NtkAssertNum(pNtk) )
         fprintf( pFile, " i/o/a = %4d/%4d/%4d", Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk), Abc_NtkAssertNum(pNtk) );
     else
         fprintf( pFile, " i/o = %4d/%4d", Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk) );
-
-//    if ( !Abc_NtkIsSeq(pNtk) )
-        fprintf( pFile, "  lat = %4d", Abc_NtkLatchNum(pNtk) );
-//    else
-//        fprintf( pFile, "  lat = %4d(%d,%d)", Seq_NtkLatchNum(pNtk), Seq_NtkLatchNumShared(pNtk), Seq_NtkLatchNumMax(pNtk) );
-
+    fprintf( pFile, "  lat = %4d", Abc_NtkLatchNum(pNtk) );
     if ( Abc_NtkIsNetlist(pNtk) )
     {
         fprintf( pFile, "  net = %5d", Abc_NtkNetNum(pNtk) );
         fprintf( pFile, "  nd = %5d",  Abc_NtkNodeNum(pNtk) );
         fprintf( pFile, "  box = %5d", Abc_NtkBoxNum(pNtk) );
     }
-    else if ( Abc_NtkIsStrash(pNtk) || Abc_NtkIsSeq(pNtk) )
+    else if ( Abc_NtkIsStrash(pNtk) )
     {        
         fprintf( pFile, "  and = %5d", Abc_NtkNodeNum(pNtk) );
         if ( Num = Abc_NtkGetChoiceNum(pNtk) )
@@ -87,7 +79,7 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
     else 
         fprintf( pFile, "  nd = %5d", Abc_NtkNodeNum(pNtk) );
 
-    if ( Abc_NtkIsStrash(pNtk) || Abc_NtkIsSeq(pNtk) || Abc_NtkIsNetlist(pNtk) )
+    if ( Abc_NtkIsStrash(pNtk) || Abc_NtkIsNetlist(pNtk) )
     {
     }
     else if ( Abc_NtkHasSop(pNtk) )   
@@ -114,7 +106,7 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
 
     if ( Abc_NtkIsStrash(pNtk) )
         fprintf( pFile, "  lev = %3d", Abc_AigLevel(pNtk) );
-    else if ( !Abc_NtkIsSeq(pNtk) )
+    else 
         fprintf( pFile, "  lev = %3d", Abc_NtkLevel(pNtk) );
 
     fprintf( pFile, "\n" );
@@ -260,16 +252,6 @@ void Abc_NtkPrintLatch( FILE * pFile, Abc_Ntk_t * pNtk )
     int InitNums[4], Init;
 
     assert( !Abc_NtkIsNetlist(pNtk) );
-/*
-    if ( Abc_NtkIsSeq(pNtk) )
-    {
-        Seq_NtkLatchGetInitNums( pNtk, InitNums );
-        fprintf( pFile, "%-15s:  ", pNtk->pName );
-        fprintf( pFile, "Latch = %6d. No = %4d. Zero = %4d. One = %4d. DC = %4d.\n", 
-            Abc_NtkLatchNum(pNtk), InitNums[0], InitNums[1], InitNums[2], InitNums[3] );
-        return;
-    }
-*/
     if ( Abc_NtkLatchNum(pNtk) == 0 )
     {
         fprintf( pFile, "The network is combinational.\n" );

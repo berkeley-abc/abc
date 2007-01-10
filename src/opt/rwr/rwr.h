@@ -95,6 +95,9 @@ struct Rwr_Node_t_ // 24 bytes
 {
     int                Id;               // ID 
     int                TravId;           // traversal ID
+    short              nScore;
+    short              nGain;
+    short              nAdded;
     unsigned           uTruth : 16;      // truth table
     unsigned           Volume :  8;      // volume
     unsigned           Level  :  6;      // level
@@ -123,6 +126,8 @@ static inline Rwr_Node_t * Rwr_NotCond( Rwr_Node_t * p, int c )  { return (Rwr_N
 extern void              Rwr_ManPreprocess( Rwr_Man_t * p );
 /*=== rwrEva.c ========================================================*/
 extern int               Rwr_NodeRewrite( Rwr_Man_t * p, Cut_Man_t * pManCut, Abc_Obj_t * pNode, int fUpdateLevel, int fUseZeros );
+extern void              Rwr_ScoresClean( Rwr_Man_t * p );
+extern void              Rwr_ScoresReport( Rwr_Man_t * p );
 /*=== rwrLib.c ========================================================*/
 extern void              Rwr_ManPrecompute( Rwr_Man_t * p );
 extern Rwr_Node_t *      Rwr_ManAddVar( Rwr_Man_t * p, unsigned uTruth, int fPrecompute );

@@ -148,7 +148,7 @@ void Cut_OracleStop( Cut_Oracle_t * p )
     if ( p->vNodeStarts ) Vec_IntFree( p->vNodeStarts );
     if ( p->vCutPairs )   Vec_IntFree( p->vCutPairs );
 
-    Extra_MmFixedStop( p->pMmCuts, 0 );
+    Extra_MmFixedStop( p->pMmCuts );
     free( p ); 
 }
 

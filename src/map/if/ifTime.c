@@ -206,7 +206,7 @@ void If_CutSortInputPins( If_Man_t * p, If_Cut_t * pCut, int * pPinPerm, float *
         pPinPerm[best_i] = temp;
     }
     // verify
-    assert( pPinPerm[0] < pCut->nLeaves );
+    assert( pPinPerm[0] < (int)pCut->nLeaves );
     for ( i = 1; i < (int)pCut->nLeaves; i++ )
     {
         assert( pPinPerm[i] < (int)pCut->nLeaves );

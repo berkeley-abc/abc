@@ -280,7 +280,6 @@ DdNode * Abc_NtkComputeUnreachable( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * b
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkConstructExdc( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bUnreach )
 {
-/*
     Abc_Ntk_t * pNtkNew;
     Abc_Obj_t * pNode, * pNodeNew;
     int * pPermute;
@@ -292,14 +291,14 @@ Abc_Ntk_t * Abc_NtkConstructExdc( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bUn
     pNtkNew->pSpec = NULL;
 
     // create PIs corresponding to LOs
-    Abc_NtkForEachLatch( pNtk, pNode, i )
+    Abc_NtkForEachLatchOutput( pNtk, pNode, i )
         Abc_ObjAssignName( pNode->pCopy = Abc_NtkCreatePi(pNtkNew), Abc_ObjName(pNode), NULL );
     // cannot ADD POs here because pLatch->pCopy point to the PIs
 
     // create a new node
     pNodeNew = Abc_NtkCreateNode(pNtkNew);
     // add the fanins corresponding to latch outputs
-    Abc_NtkForEachLatch( pNtk, pNode, i )
+    Abc_NtkForEachLatchOutput( pNtk, pNode, i )
         Abc_ObjAddFanin( pNodeNew, pNode->pCopy );
 
     // create the logic function
@@ -317,14 +316,14 @@ Abc_Ntk_t * Abc_NtkConstructExdc( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bUn
     Abc_NtkForEachPo( pNtk, pNode, i )
         if ( !Abc_ObjIsCi(Abc_ObjFanin0(pNode)) )
             Abc_ObjAssignName( pNode->pCopy = Abc_NtkCreatePo(pNtkNew), Abc_ObjName(pNode), NULL );
-    Abc_NtkForEachLatch( pNtk, pNode, i )
-        Abc_ObjAssignName( pNode->pCopy = Abc_NtkCreatePo(pNtkNew), Abc_ObjNameSuffix(pNode, "_in"), NULL );
+    Abc_NtkForEachLatchInput( pNtk, pNode, i )
+        Abc_ObjAssignName( pNode->pCopy = Abc_NtkCreatePo(pNtkNew), Abc_ObjName(pNode), NULL );
 
     // link to the POs of the network 
     Abc_NtkForEachPo( pNtk, pNode, i )
         if ( !Abc_ObjIsCi(Abc_ObjFanin0(pNode)) )
             Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
-    Abc_NtkForEachLatch( pNtk, pNode, i )
+    Abc_NtkForEachLatchInput( pNtk, pNode, i )
         Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
 
     // remove the extra nodes
@@ -340,8 +339,7 @@ Abc_Ntk_t * Abc_NtkConstructExdc( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bUn
         return NULL;
     }
     return pNtkNew;
-*/
-    return NULL;
+//    return NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////

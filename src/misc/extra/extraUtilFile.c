@@ -110,7 +110,7 @@ char * Extra_FileGetSimilarName( char * pFileNameWrong, char * pS1, char * pS2, 
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Returns the pointer to the file extension.]
 
   Description []
 
@@ -119,21 +119,14 @@ char * Extra_FileGetSimilarName( char * pFileNameWrong, char * pS1, char * pS2, 
   SeeAlso     []
 
 ***********************************************************************/
-int Extra_FileNameCheckExtension( char * FileName, char * Extension )
+char * Extra_FileNameExtension( char * FileName )
 {
     char * pDot;
-    // find "dot" if it is present in the file name
-//    pDot = strstr( FileName, "." );
+    // find the last "dot" in the file name, if it is present
     for ( pDot = FileName + strlen(FileName)-1; pDot >= FileName; pDot-- )
         if ( *pDot == '.' )
-            break;
-    if ( *pDot != '.' )
-        return 0;
-    // check the extension
-    if ( pDot && strcmp( pDot+1, Extension ) == 0 )
-        return 1;
-    else
-        return 0;
+            return pDot + 1;
+   return NULL;
 }
 
 /**Function*************************************************************
@@ -255,8 +248,8 @@ char * Extra_FileRead( FILE * pFile )
 char * Extra_TimeStamp()
 {
     static char Buffer[100];
-    time_t ltime;
     char * TimeStamp;
+    time_t ltime;
     // get the current time
     time( &ltime );
     TimeStamp = asctime( localtime( &ltime ) );

@@ -335,7 +335,7 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, int fCopyName 
     {
         if ( pNtkNew->ntkFunc == pObj->pNtk->ntkFunc ) 
         {
-            if ( Abc_NtkIsStrash(pNtkNew) || Abc_NtkIsSeq(pNtkNew) ) 
+            if ( Abc_NtkIsStrash(pNtkNew) ) 
             {}
             else if ( Abc_NtkHasSop(pNtkNew) )
                 pObjNew->pData = Abc_SopRegister( pNtkNew->pManFunc, pObj->pData );
@@ -436,7 +436,7 @@ Abc_Obj_t * Abc_NtkFindNode( Abc_Ntk_t * pNtk, char * pName )
     // find the internal node
     if ( pName[0] != '[' || pName[strlen(pName)-1] != ']' )
     {
-        printf( "Name \"%s\" is not found among CIs/COs (internal name looks like this: \"[integer]\").\n", pName );
+        printf( "Name \"%s\" is not found among CIs/COs (internal names often look as \"[integer]\").\n", pName );
         return NULL;
     }
     Num = atoi( pName + 1 );

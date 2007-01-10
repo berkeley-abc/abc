@@ -105,7 +105,7 @@ stmm_free_table (table)
     // no need to deallocate entries because they are in the memory manager now
     // added by alanmi
     if ( table->pMemMan )
-        Extra_MmFixedStop (table->pMemMan, 0);
+        Extra_MmFixedStop (table->pMemMan);
     FREE (table->bins);
     FREE (table);
 }
@@ -446,7 +446,7 @@ stmm_copy (old_table)
                     }
                 }
 */
-        Extra_MmFixedStop (new_table->pMemMan, 0);
+        Extra_MmFixedStop (new_table->pMemMan);
 
         FREE (new_table->bins);
         FREE (new_table);

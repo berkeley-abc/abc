@@ -45,6 +45,26 @@ static int    Abc_NtkCountLogicNodes( Vec_Ptr_t * vNodes );
   SeeAlso     []
 
 ***********************************************************************/
+void Io_WriteDot( Abc_Ntk_t * pNtk, char * FileName )
+{
+    Vec_Ptr_t * vNodes;
+    vNodes = Abc_NtkCollectObjects( pNtk );
+    Io_WriteDotNtk( pNtk, vNodes, NULL, FileName, 0, 0 );
+    Vec_PtrFree( vNodes );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Writes the graph structure of network for DOT.]
+
+  Description [Useful for graph visualization using tools such as GraphViz: 
+  http://www.graphviz.org/]
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesShow, char * pFileName, int fGateNames, int fUseReverse )
 {
     FILE * pFile;

@@ -28,7 +28,7 @@
        01- 1
        1-1 1
 
-    is the string: "01- 1/n1-1 1/n" where '/n' is a single char.
+    is the string: "01- 1\n1-1 1\n" where '\n' is a single char.
 */
 
 ////////////////////////////////////////////////////////////////////////

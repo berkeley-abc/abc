@@ -51,7 +51,7 @@ static void        Abc_ManShowCutCone( Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves );
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeros, int fVerbose )
+int Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeros, int fVerbose, int fVeryVerbose )
 {
     ProgressBar * pProgress;
     Cut_Man_t * pManCut;
@@ -75,6 +75,9 @@ clk = clock();
     pManCut = Abc_NtkStartCutManForRewrite( pNtk );
 Rwr_ManAddTimeCuts( pManRwr, clock() - clk );
     pNtk->pManCut = pManCut;
+
+    if ( fVeryVerbose )
+        Rwr_ScoresClean( pManRwr );
 
     // resynthesize each node once
     nNodes = Abc_NtkObjNumMax(pNtk);
@@ -147,6 +150,8 @@ Rwr_ManAddTimeTotal( pManRwr, clock() - clkStart );
     if ( fVerbose )
         Rwr_ManPrintStats( pManRwr );
 //        Rwr_ManPrintStatsFile( pManRwr );
+    if ( fVeryVerbose )
+        Rwr_ScoresReport( pManRwr );
     // delete the managers
     Rwr_ManStop( pManRwr );
     Cut_ManStop( pManCut );

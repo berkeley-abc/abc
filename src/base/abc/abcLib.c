@@ -46,6 +46,7 @@ Abc_Lib_t * Abc_LibCreate( char * pName )
     memset( p, 0, sizeof(Abc_Lib_t) );
     p->pName    = Extra_UtilStrsav( pName );
     p->tModules = st_init_table( strcmp, st_strhash );
+    p->vTops    = Vec_PtrAlloc( 100 );
     p->vModules = Vec_PtrAlloc( 100 );
     p->pManFunc = Hop_ManStart();
     p->pLibrary = NULL;
@@ -77,12 +78,82 @@ void Abc_LibFree( Abc_Lib_t * pLib )
     {
         Vec_PtrForEachEntry( pLib->vModules, pNtk, i )
         {
-            pNtk->pManFunc = NULL;
+//            pNtk->pManFunc = NULL;
             Abc_NtkDelete( pNtk );
         }
         Vec_PtrFree( pLib->vModules );
     }
+    if ( pLib->vTops )
+        Vec_PtrFree( pLib->vTops );
     free( pLib );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints the library.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_LibPrint( Abc_Lib_t * pLib )
+{
+    Abc_Ntk_t * pNtk;
+    Abc_Obj_t * pObj;
+    int i, k;
+    printf( "Models of design %s:\n", pLib->pName );
+    Vec_PtrForEachEntry( pLib->vModules, pNtk, i )
+    {
+        printf( "%2d : %20s   ", i+1, pNtk->pName );
+        printf( "nd = %6d   lat = %6d   box = %3d\n", Abc_NtkNodeNum(pNtk), Abc_NtkLatchNum(pNtk), Abc_NtkBlackboxNum(pNtk) );
+        if ( Abc_NtkBlackboxNum(pNtk) == 0 )
+            continue;
+        Abc_NtkForEachBlackbox( pNtk, pObj, k )
+            printf( "     %20s (submodel)\n", Abc_NtkName(pObj->pData) );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Create the library.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_LibAddModel( Abc_Lib_t * pLib, Abc_Ntk_t * pNtk )
+{
+    if ( st_is_member( pLib->tModules, (char *)pNtk->pName ) )
+        return 0;
+    st_insert( pLib->tModules, (char *)pNtk->pName, (char *)pNtk );
+    Vec_PtrPush( pLib->vModules, pNtk );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Create the library.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_LibFindModelByName( Abc_Lib_t * pLib, char * pName )
+{
+    Abc_Ntk_t * pNtk;
+    if ( !st_is_member( pLib->tModules, (char *)pName ) )
+        return NULL;
+    st_lookup( pLib->tModules, (char *)pName, (char **)&pNtk );
+    return pNtk;
 }
 
 /**Function*************************************************************
@@ -279,7 +350,7 @@ Abc_Ntk_t * Abc_LibDeriveAig( Abc_Ntk_t * pNtk, Abc_Lib_t * pLib )
     // deallocate memory manager, which remembers the phase
     if ( pNtk->pData )
     {
-        Extra_MmFlexStop( pNtk->pData, 0 );
+        Extra_MmFlexStop( pNtk->pData );
         pNtk->pData = NULL;
     }
     // set the COs

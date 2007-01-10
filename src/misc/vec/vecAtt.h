@@ -26,7 +26,6 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
-#include "extra.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -46,9 +45,9 @@ typedef enum {
     VEC_ATTR_LEVEL_REV,    // 9
     VEC_ATTR_RETIME_LAG,   // 10
     VEC_ATTR_FRAIG,        // 11
-    VEC_ATTR_DATA1,        // 12
-    VEC_ATTR_DATA2,        // 13
-    VEC_ATTR_DATA3,        // 14
+    VEC_ATTR_MVVAR,        // 12
+    VEC_ATTR_DATA1,        // 13
+    VEC_ATTR_DATA2,        // 14
     VEC_ATTR_TOTAL_NUM     // 15
 } Vec_AttrType_t;
 
@@ -244,12 +243,12 @@ static inline void Vec_AttGrow( Vec_Att_t * p, int nCapMin )
     if ( p->pArrayInt )
     {
         p->pArrayInt = REALLOC( int, p->pArrayInt, nCapMin ); 
-        memset( p->pArrayInt + nCapMin, 0xff, sizeof(int) * (nCapMin - p->nCap) );
+        memset( p->pArrayInt + p->nCap, 0xff, sizeof(int) * (nCapMin - p->nCap) );
     }
     else
     {
         p->pArrayPtr = REALLOC( void *, p->pArrayPtr, nCapMin ); 
-        memset( p->pArrayPtr + nCapMin, 0, sizeof(void *) * (nCapMin - p->nCap) );
+        memset( p->pArrayPtr + p->nCap, 0, sizeof(void *) * (nCapMin - p->nCap) );
     }
     p->nCap = nCapMin;
 }
@@ -270,7 +269,7 @@ static inline void Vec_AttWriteEntry( Vec_Att_t * p, int i, void * pEntry )
     assert( p->pArrayPtr );
     assert( p->pFuncStartObj == NULL );
     if ( i >= p->nCap )
-        Vec_AttGrow( p, (2 * p->nCap > i)? 2 * p->nCap : i );
+        Vec_AttGrow( p, (2 * p->nCap > i)? 2 * p->nCap : i + 10 );
     p->pArrayPtr[i] = pEntry;
 }
 
@@ -290,7 +289,7 @@ static inline void Vec_AttWriteEntryInt( Vec_Att_t * p, int i, int Entry )
     assert( p->pArrayInt );
     assert( p->pFuncStartObj == NULL );
     if ( i >= p->nCap )
-        Vec_AttGrow( p, (2 * p->nCap > i)? 2 * p->nCap : i );
+        Vec_AttGrow( p, (2 * p->nCap > i)? 2 * p->nCap : i + 10 );
     p->pArrayInt[i] = Entry;
 }
 
@@ -309,7 +308,7 @@ static inline void * Vec_AttEntry( Vec_Att_t * p, int i )
 {
     assert( p->pArrayPtr );
     if ( i >= p->nCap )
-        Vec_AttGrow( p, (2 * p->nCap > i)? 2 * p->nCap : i );
+        Vec_AttGrow( p, (2 * p->nCap > i)? 2 * p->nCap : i + 10 );
     if ( p->pArrayPtr[i] == NULL && p->pFuncStartObj )
         p->pArrayPtr[i] = p->pFuncStartObj( p->pMan );
     return p->pArrayPtr[i];
@@ -331,7 +330,7 @@ static inline int Vec_AttEntryInt( Vec_Att_t * p, int i )
     assert( p->pArrayInt );
     assert( p->pMan == NULL );
     if ( i >= p->nCap )
-        Vec_AttGrow( p, (2 * p->nCap > i)? 2 * p->nCap : i );
+        Vec_AttGrow( p, (2 * p->nCap > i)? 2 * p->nCap : i + 10 );
     return p->pArrayInt[i];
 }
 

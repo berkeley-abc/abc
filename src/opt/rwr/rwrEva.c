@@ -198,7 +198,9 @@ p->timeRes += clock() - clk;
     p->nScores[p->pMap[uTruthBest]]++;
     p->nNodesGained += GainBest;
     if ( fUseZeros || GainBest > 0 )
+    {
         p->nNodesRewritten++;
+    }
 
     // report the progress
     if ( fVeryVerbose && GainBest > 0 )
@@ -257,6 +259,14 @@ Dec_Graph_t * Rwr_CutEvaluate( Rwr_Man_t * p, Abc_Obj_t * pRoot, Cut_Cut_t * pCu
             GainBest   = nNodesSaved - nNodesAdded;
             pGraphBest = pGraphCur;
 
+            // score the graph
+            if ( GainBest > 0 )
+            {
+                pNode->nScore++;
+                pNode->nGain += GainBest;
+                pNode->nAdded += nNodesAdded;
+            }
+
 //            if ( GainBest > 0 )
 //            printf( "%d %d  ", nNodesSaved, nNodesAdded );
         }
@@ -266,7 +276,6 @@ Dec_Graph_t * Rwr_CutEvaluate( Rwr_Man_t * p, Abc_Obj_t * pRoot, Cut_Cut_t * pCu
     *pGainBest = GainBest;
     return pGraphBest;
 }
-
 
 /**Function*************************************************************
 
@@ -416,6 +425,107 @@ int Rwr_NodeGetDepth_rec( Abc_Obj_t * pObj, Vec_Ptr_t * vLeaves )
     Depth0 = Rwr_NodeGetDepth_rec( Abc_ObjFanin0(pObj), vLeaves );
     Depth1 = Rwr_NodeGetDepth_rec( Abc_ObjFanin1(pObj), vLeaves );
     return 1 + ABC_MAX( Depth0, Depth1 );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Rwr_ScoresClean( Rwr_Man_t * p )
+{
+    Vec_Ptr_t * vSubgraphs;
+    Rwr_Node_t * pNode;
+    int i, k;
+    for ( i = 0; i < p->vClasses->nSize; i++ )
+    {
+        vSubgraphs = Vec_VecEntry( p->vClasses, i );
+        Vec_PtrForEachEntry( vSubgraphs, pNode, k )
+            pNode->nScore = pNode->nGain = pNode->nAdded = 0;
+    }
+}
+
+static int Gains[222];
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Rwr_ScoresCompare( int * pNum1, int * pNum2 )
+{
+    if ( Gains[*pNum1] > Gains[*pNum2] )
+        return -1;
+    if ( Gains[*pNum1] < Gains[*pNum2] )
+        return 1;
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Rwr_ScoresReport( Rwr_Man_t * p )
+{
+    extern void Ivy_TruthDsdComputePrint( unsigned uTruth );
+    int Perm[222];
+    Vec_Ptr_t * vSubgraphs;
+    Rwr_Node_t * pNode;
+    int i, iNew, k;
+    unsigned uTruth;
+    // collect total gains
+    assert( p->vClasses->nSize == 222 );
+    for ( i = 0; i < p->vClasses->nSize; i++ )
+    {
+        Perm[i] = i;
+        Gains[i] = 0;
+        vSubgraphs = Vec_VecEntry( p->vClasses, i );
+        Vec_PtrForEachEntry( vSubgraphs, pNode, k )
+            Gains[i] += pNode->nGain;
+    }
+    // sort the gains
+    qsort( Perm, 222, sizeof(int), (int (*)(const void *, const void *))Rwr_ScoresCompare );
+
+    // print classes
+    for ( i = 0; i < p->vClasses->nSize; i++ )
+    {
+        iNew = Perm[i];
+        if ( Gains[iNew] == 0 )
+            break;
+        vSubgraphs = Vec_VecEntry( p->vClasses, iNew );
+        printf( "CLASS %3d: Subgr = %3d. Total gain = %6d.  ", iNew, Vec_PtrSize(vSubgraphs), Gains[iNew] );
+        uTruth = (unsigned)p->pMapInv[iNew];
+        Extra_PrintBinary( stdout, &uTruth, 16 );
+        printf( "  " );
+        Ivy_TruthDsdComputePrint( (unsigned)p->pMapInv[iNew] | ((unsigned)p->pMapInv[iNew] << 16) );
+        Vec_PtrForEachEntry( vSubgraphs, pNode, k )
+        {
+            if ( pNode->nScore == 0 )
+                continue;
+            printf( "    %2d: S=%5d. A=%5d. G=%6d. ", k, pNode->nScore, pNode->nAdded, pNode->nGain );
+            Dec_GraphPrint( stdout, (Dec_Graph_t *)pNode->pNext, NULL, NULL );
+        }
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////

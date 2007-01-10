@@ -53,7 +53,7 @@ void Mio_LibraryDelete( Mio_Library_t * pLib )
     FREE( pLib->pName );
     Mio_LibraryForEachGateSafe( pLib, pGate, pGate2 )
         Mio_GateDelete( pGate );
-    Extra_MmFlexStop( pLib->pMmFlex, 0 );
+    Extra_MmFlexStop( pLib->pMmFlex );
     Vec_StrFree( pLib->vCube );
     if ( pLib->tName2Gate )
         st_free_table( pLib->tName2Gate );

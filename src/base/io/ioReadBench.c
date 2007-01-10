@@ -82,7 +82,7 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
     ProgressBar * pProgress;
     Vec_Ptr_t * vTokens;
     Abc_Ntk_t * pNtk;
-    Abc_Obj_t * pNet, * pNode;
+    Abc_Obj_t * pNode;
     Vec_Str_t * vString;
     char * pType, ** ppNames;
     int iLine, nNames;
@@ -144,7 +144,11 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
                     Abc_ObjSetData( pNode, Abc_SopCreateInv(pNtk->pManFunc) );
                 else if ( strncmp(pType, "MUX", 3) == 0 )
                     Abc_ObjSetData( pNode, Abc_SopRegister(pNtk->pManFunc, "1-0 1\n-11 1\n") );
-                else 
+                else if ( strncmp(pType, "vdd", 3) == 0 )
+                    Abc_ObjSetData( pNode, Abc_SopRegister( pNtk->pManFunc, " 1\n" ) );
+                else if ( strncmp(pType, "gnd", 3) == 0 )
+                    Abc_ObjSetData( pNode, Abc_SopRegister( pNtk->pManFunc, " 0\n" ) );
+                else
                 {
                     printf( "Cannot determine gate type \"%s\" in line %d.\n", pType, Extra_FileReaderGetLineNumber(p, 0) );
                     Vec_StrFree( vString );
@@ -158,10 +162,10 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
     Vec_StrFree( vString );
 
     // check if constant have been added
-    if ( pNet = Abc_NtkFindNet( pNtk, "vdd" ) )
-        Io_ReadCreateConst( pNtk, "vdd", 1 );
-    if ( pNet = Abc_NtkFindNet( pNtk, "gnd" ) )
-        Io_ReadCreateConst( pNtk, "gnd", 0 );
+//    if ( pNet = Abc_NtkFindNet( pNtk, "vdd" ) )
+//        Io_ReadCreateConst( pNtk, "vdd", 1 );
+//    if ( pNet = Abc_NtkFindNet( pNtk, "gnd" ) )
+//        Io_ReadCreateConst( pNtk, "gnd", 0 );
 
     Abc_NtkFinalizeRead( pNtk );
     return pNtk;

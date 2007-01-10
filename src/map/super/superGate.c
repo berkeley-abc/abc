@@ -886,7 +886,7 @@ Super_Man_t * Super_ManStart()
 ***********************************************************************/
 void Super_ManStop( Super_Man_t * pMan )
 {
-    Extra_MmFixedStop( pMan->pMem, 0 );
+    Extra_MmFixedStop( pMan->pMem );
     if ( pMan->tTable ) stmm_free_table( pMan->tTable );
     FREE( pMan->pGates );
     free( pMan );

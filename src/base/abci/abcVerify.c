@@ -176,6 +176,7 @@ void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fV
     Prove_ParamsSetDefault( pParams );
     pParams->nItersMax = 5;
 //    RetValue = Abc_NtkMiterProve( &pMiter, pParams );
+//    pParams->fVerbose = 1;
     RetValue = Abc_NtkIvyProve( &pMiter, pParams );
     if ( RetValue == -1 )
         printf( "Networks are undecided (resource limits is reached).\n" );

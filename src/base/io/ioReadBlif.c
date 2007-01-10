@@ -265,7 +265,7 @@ Abc_Ntk_t * Io_ReadBlifNetworkOne( Io_ReadBlif_t * p )
         {
             pNtk->ntkType = ABC_NTK_NETLIST;
             pNtk->ntkFunc = ABC_FUNC_BLACKBOX;
-            Extra_MmFlexStop( pNtk->pManFunc, 0 );
+            Extra_MmFlexStop( pNtk->pManFunc );
             pNtk->pManFunc = NULL;
         }
         else
@@ -560,7 +560,7 @@ int Io_ReadBlifNetworkGate( Io_ReadBlif_t * p, Vec_Ptr_t * vTokens )
     {
         assert( p->pNtkCur->ntkFunc == ABC_FUNC_SOP );
         p->pNtkCur->ntkFunc = ABC_FUNC_MAP;
-        Extra_MmFlexStop( p->pNtkCur->pManFunc, 0 );
+        Extra_MmFlexStop( p->pNtkCur->pManFunc );
         p->pNtkCur->pManFunc = pGenlib;
     }
 

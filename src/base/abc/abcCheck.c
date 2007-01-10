@@ -93,12 +93,12 @@ bool Abc_NtkDoCheck( Abc_Ntk_t * pNtk )
     int i;
 
     // check network types
-    if ( !Abc_NtkIsNetlist(pNtk) && !Abc_NtkIsLogic(pNtk) && !Abc_NtkIsStrash(pNtk) && !Abc_NtkIsSeq(pNtk) )
+    if ( !Abc_NtkIsNetlist(pNtk) && !Abc_NtkIsLogic(pNtk) && !Abc_NtkIsStrash(pNtk) )
     {
         fprintf( stdout, "NetworkCheck: Unknown network type.\n" );
         return 0;
     }
-    if ( !Abc_NtkHasSop(pNtk) && !Abc_NtkHasBdd(pNtk) && !Abc_NtkHasAig(pNtk) && !Abc_NtkHasMapping(pNtk) && !Abc_NtkHasBlackbox(pNtk) )
+    if ( !Abc_NtkHasSop(pNtk) && !Abc_NtkHasBdd(pNtk) && !Abc_NtkHasAig(pNtk) && !Abc_NtkHasMapping(pNtk) && !Abc_NtkHasBlifMv(pNtk) && !Abc_NtkHasBlackbox(pNtk) )
     {
         fprintf( stdout, "NetworkCheck: Unknown functionality type.\n" );
         return 0;
@@ -112,20 +112,23 @@ bool Abc_NtkDoCheck( Abc_Ntk_t * pNtk )
         }
     }
 
-    // check CI/CO numbers
-    if ( Abc_NtkPiNum(pNtk) + Abc_NtkLatchNum(pNtk) != Abc_NtkCiNum(pNtk) )
+    if ( !Abc_NtkBlackboxNum(pNtk) )
     {
-        fprintf( stdout, "NetworkCheck: Number of CIs does not match number of PIs and latches.\n" );
-        fprintf( stdout, "One possible reason is that latches are added twice:\n" );
-        fprintf( stdout, "in procedure Abc_NtkCreateObj() and in the user's code.\n" );
-        return 0;
-    }
-    if ( Abc_NtkPoNum(pNtk) + Abc_NtkAssertNum(pNtk) + Abc_NtkLatchNum(pNtk) != Abc_NtkCoNum(pNtk) )
-    {
-        fprintf( stdout, "NetworkCheck: Number of COs does not match number of POs, asserts, and latches.\n" );
-        fprintf( stdout, "One possible reason is that latches are added twice:\n" );
-        fprintf( stdout, "in procedure Abc_NtkCreateObj() and in the user's code.\n" );
-        return 0;
+        // check CI/CO numbers
+        if ( Abc_NtkPiNum(pNtk) + Abc_NtkLatchNum(pNtk) != Abc_NtkCiNum(pNtk) )
+        {
+            fprintf( stdout, "NetworkCheck: Number of CIs does not match number of PIs and latches.\n" );
+            fprintf( stdout, "One possible reason is that latches are added twice:\n" );
+            fprintf( stdout, "in procedure Abc_NtkCreateObj() and in the user's code.\n" );
+            return 0;
+        }
+        if ( Abc_NtkPoNum(pNtk) + Abc_NtkAssertNum(pNtk) + Abc_NtkLatchNum(pNtk) != Abc_NtkCoNum(pNtk) )
+        {
+            fprintf( stdout, "NetworkCheck: Number of COs does not match number of POs, asserts, and latches.\n" );
+            fprintf( stdout, "One possible reason is that latches are added twice:\n" );
+            fprintf( stdout, "in procedure Abc_NtkCreateObj() and in the user's code.\n" );
+            return 0;
+        }
     }
 
     // check the names
@@ -177,14 +180,13 @@ bool Abc_NtkDoCheck( Abc_Ntk_t * pNtk )
     }
 
     // check the latches
-    if ( !Abc_NtkIsSeq(pNtk) )
-        Abc_NtkForEachLatch( pNtk, pNode, i )
-            if ( !Abc_NtkCheckLatch( pNtk, pNode ) )
-                return 0;
+    Abc_NtkForEachLatch( pNtk, pNode, i )
+        if ( !Abc_NtkCheckLatch( pNtk, pNode ) )
+            return 0;
 
     // finally, check for combinational loops
 //  clk = clock();
-    if ( !Abc_NtkIsSeq( pNtk ) && !Abc_NtkIsAcyclic( pNtk ) )
+    if ( !Abc_NtkIsAcyclic( pNtk ) )
     {
         fprintf( stdout, "NetworkCheck: Network contains a combinational loop.\n" );
         return 0;
@@ -541,7 +543,7 @@ bool Abc_NtkCheckNode( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode )
             return 0;
         }
     }
-    else if ( !Abc_NtkHasMapping(pNtk) && !Abc_NtkHasAig(pNtk) )
+    else if ( !Abc_NtkHasMapping(pNtk) && !Abc_NtkHasBlifMv(pNtk) && !Abc_NtkHasAig(pNtk) )
     {
         assert( 0 );
     }

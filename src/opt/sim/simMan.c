@@ -210,7 +210,7 @@ void Sim_ManStop( Sim_Man_t * p )
     if ( p->vSuppStr )     Sim_UtilInfoFree( p->vSuppStr );    
 //    if ( p->vSuppFun )     Sim_UtilInfoFree( p->vSuppFun );    
     if ( p->vSuppTargs )   Vec_VecFree( p->vSuppTargs );
-    if ( p->pMmPat )       Extra_MmFixedStop( p->pMmPat, 0 );
+    if ( p->pMmPat )       Extra_MmFixedStop( p->pMmPat );
     if ( p->vFifo )        Vec_PtrFree( p->vFifo );
     if ( p->vDiffs )       Vec_IntFree( p->vDiffs );
     free( p );

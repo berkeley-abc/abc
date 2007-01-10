@@ -20,7 +20,6 @@
 
 #include "abc.h"
 #include "cut.h"
-//#include "seqInt.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///

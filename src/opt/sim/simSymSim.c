@@ -65,8 +65,8 @@ clk = clock();
     Abc_NtkForEachCo( p->pNtk, pNode, i )
     {
         pNode = Abc_ObjFanin0(pNode);
-        if ( Abc_ObjIsCi(pNode) || Abc_AigNodeIsConst(pNode) )
-            continue;
+//        if ( Abc_ObjIsCi(pNode) || Abc_AigNodeIsConst(pNode) )
+//            continue;
         nPairsTotal  = Vec_IntEntry(p->vPairsTotal, i);
         nPairsSym    = Vec_IntEntry(p->vPairsSym,   i);
         nPairsNonSym = Vec_IntEntry(p->vPairsNonSym,i);

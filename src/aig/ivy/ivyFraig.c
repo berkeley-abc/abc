@@ -752,6 +752,26 @@ int Ivy_NodeHasZeroSim( Ivy_FraigMan_t * p, Ivy_Obj_t * pObj )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns 1 if simulation info is composed of all zeros.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ivy_NodeComplementSim( Ivy_FraigMan_t * p, Ivy_Obj_t * pObj )
+{
+    Ivy_FraigSim_t * pSims;
+    int i;
+    pSims = Ivy_ObjSim(pObj);
+    for ( i = 0; i < p->nSimWords; i++ )
+        pSims->pData[i] = ~pSims->pData[i];
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns 1 if simulation infos are equal.]
 
   Description []
@@ -1277,7 +1297,11 @@ void Ivy_FraigCheckOutputSimsSavePattern( Ivy_FraigMan_t * p, Ivy_Obj_t * pObj )
     // fill in the counter-example data
     pModel = ALLOC( int, Ivy_ManPiNum(p->pManFraig) );
     Ivy_ManForEachPi( p->pManAig, pObj, i )
+    {
         pModel[i] = Ivy_InfoHasBit(Ivy_ObjSim(pObj)->pData, BestPat);
+//        printf( "%d", pModel[i] );
+    }
+//    printf( "\n" );
     // set the model
     assert( p->pManFraig->pData == NULL );
     p->pManFraig->pData = pModel;
@@ -1299,13 +1323,25 @@ int Ivy_FraigCheckOutputSims( Ivy_FraigMan_t * p )
 {
     Ivy_Obj_t * pObj;
     int i;
+    // make sure the reference simulation pattern does not detect the bug
+    pObj = Ivy_ManPo( p->pManAig, 0 );
+    assert( Ivy_ObjFanin0(pObj)->fPhase == (unsigned)Ivy_ObjFaninC0(pObj) ); // Ivy_ObjFaninPhase(Ivy_ObjChild0(pObj)) == 0
     Ivy_ManForEachPo( p->pManAig, pObj, i )
+    {
+        // complement simulation info
+//        if ( Ivy_ObjFanin0(pObj)->fPhase ^ Ivy_ObjFaninC0(pObj) ) // Ivy_ObjFaninPhase(Ivy_ObjChild0(pObj))
+//            Ivy_NodeComplementSim( p, Ivy_ObjFanin0(pObj) );
+        // check 
         if ( !Ivy_NodeHasZeroSim( p, Ivy_ObjFanin0(pObj) ) )
         {
             // create the counter-example from this pattern
             Ivy_FraigCheckOutputSimsSavePattern( p, Ivy_ObjFanin0(pObj) );
             return 1;
         }
+        // complement simulation info
+//        if ( Ivy_ObjFanin0(pObj)->fPhase ^ Ivy_ObjFaninC0(pObj) )
+//            Ivy_NodeComplementSim( p, Ivy_ObjFanin0(pObj) );
+    }
     return 0;
 }
 
@@ -1819,6 +1855,9 @@ void Ivy_FraigMiterProve( Ivy_FraigMan_t * p )
         {
             if ( fVerbose )
                 printf( "Output %2d (out of %2d) is constant 1.  ", i, Ivy_ManPoNum(p->pManAig) );
+            // assing constant 0 model
+            p->pManFraig->pData = ALLOC( int, Ivy_ManPiNum(p->pManFraig) );
+            memset( p->pManFraig->pData, 0, sizeof(int) * Ivy_ManPiNum(p->pManFraig) );
             break;
         }
         // check if the output is constant 0
@@ -1957,10 +1996,6 @@ Ivy_Obj_t * Ivy_FraigAnd( Ivy_FraigMan_t * p, Ivy_Obj_t * pObjOld )
     if ( Ivy_ObjClassNodeRepr(pObjOld) == NULL || // this is a unique node
          (!p->pParams->fDoSparse && Ivy_ObjClassNodeRepr(pObjOld) == p->pManAig->pConst1) ) // this is a sparse node
     {
-//        if ( Ivy_ObjClassNodeRepr(pObjOld) == p->pManAig->pConst1 )
-//        {
-//            int x = 0;
-//        }
         assert( Ivy_Regular(pFanin0New) != Ivy_Regular(pFanin1New) );
         assert( pObjNew != Ivy_Regular(pFanin0New) );
         assert( pObjNew != Ivy_Regular(pFanin1New) );

@@ -72,7 +72,7 @@ Nm_Man_t * Nm_ManCreate( int nSize )
 ***********************************************************************/
 void Nm_ManFree( Nm_Man_t * p )
 {
-    Extra_MmFlexStop( p->pMem, 0 );
+    Extra_MmFlexStop( p->pMem );
     FREE( p->pBinsI2N );
     FREE( p->pBinsN2I );
     FREE( p );

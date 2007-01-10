@@ -75,7 +75,7 @@ int Abc_NtkSopToBdd( Abc_Ntk_t * pNtk )
         Cudd_Ref( pNode->pData );
     }
 
-    Extra_MmFlexStop( pNtk->pManFunc, 0 );
+    Extra_MmFlexStop( pNtk->pManFunc );
     pNtk->pManFunc = dd;
 
     // update the network type
@@ -235,7 +235,7 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect )
         pNode->pNext = (Abc_Obj_t *)Abc_ConvertBddToSop( pManNew, dd, bFunc, bFunc, Abc_ObjFaninNum(pNode), vCube, fMode );
         if ( pNode->pNext == NULL )
         {
-            Extra_MmFlexStop( pManNew, 0 );
+            Extra_MmFlexStop( pManNew );
             Abc_NtkCleanNext( pNtk );
 //            printf( "Converting from BDDs to SOPs has failed.\n" );
             Vec_StrFree( vCube );
@@ -552,7 +552,7 @@ int Abc_NtkSopToAig( Abc_Ntk_t * pNtk )
             return 0;
         }
     }
-    Extra_MmFlexStop( pNtk->pManFunc, 0 );
+    Extra_MmFlexStop( pNtk->pManFunc );
     pNtk->pManFunc = pMan;
 
     // update the network type
@@ -655,11 +655,14 @@ int Abc_NtkAigToBdd( Abc_Ntk_t * pNtk )
 
     dd = Cudd_Init( nFaninsMax, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
 
-    // set the mapping of AIG nodes into the BDD nodes
+    // set the mapping of elementary AIG nodes into the elementary BDD nodes
     pMan = pNtk->pManFunc;
     assert( Hop_ManPiNum(pMan) >= nFaninsMax ); 
     for ( i = 0; i < nFaninsMax; i++ )
+    {
         Hop_ManPi(pMan, i)->pData = Cudd_bddIthVar(dd, i);
+        Cudd_Ref( Hop_ManPi(pMan, i)->pData );
+    }
 
     // convert each node from SOP to BDD
     Abc_NtkForEachNode( pNtk, pNode, i )
@@ -673,6 +676,10 @@ int Abc_NtkAigToBdd( Abc_Ntk_t * pNtk )
         }
         Cudd_Ref( pNode->pData );
     }
+
+    // dereference intermediate BDD nodes
+    for ( i = 0; i < nFaninsMax; i++ )
+        Cudd_RecursiveDeref( dd, Hop_ManPi(pMan, i)->pData );
 
     Hop_ManStop( pNtk->pManFunc );
     pNtk->pManFunc = dd;

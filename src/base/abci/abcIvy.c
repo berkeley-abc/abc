@@ -76,7 +76,6 @@ Ivy_Man_t * Abc_NtkIvyBefore( Abc_Ntk_t * pNtk, int fSeq, int fUseDc )
     int fCleanup = 1;
 //timeRetime = clock();
     assert( !Abc_NtkIsNetlist(pNtk) );
-    assert( !Abc_NtkIsSeq(pNtk) );
     if ( Abc_NtkIsBddLogic(pNtk) )
     {
         if ( !Abc_NtkBddToSop(pNtk, 0) )
@@ -373,6 +372,43 @@ Abc_Ntk_t * Abc_NtkIvySat( Abc_Ntk_t * pNtk, int nConfLimit, int fVerbose )
 
 /**Function*************************************************************
 
+  Synopsis    [Sets the final nodes to point to the original nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkTransferPointers( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkAig )
+{
+    Abc_Obj_t * pObj;
+    Ivy_Obj_t * pObjIvy, * pObjFraig;
+    int i;
+    pObj = Abc_AigConst1(pNtk);
+    pObj->pCopy = Abc_AigConst1(pNtkAig);
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        pObj->pCopy = Abc_NtkCi(pNtkAig, i);
+    Abc_NtkForEachCo( pNtk, pObj, i )
+        pObj->pCopy = Abc_NtkCo(pNtkAig, i);
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+        pObj->pCopy = Abc_NtkBox(pNtkAig, i);
+    Abc_NtkForEachNode( pNtk, pObj, i )
+    {
+        pObjIvy = (Ivy_Obj_t *)pObj->pCopy;
+        if ( pObjIvy == NULL )
+            continue;
+        pObjFraig = Ivy_ObjEquiv( pObjIvy );
+        if ( pObjFraig == NULL )
+            continue;
+        pObj->pCopy = Abc_EdgeToNode( pNtkAig, Ivy_Regular(pObjFraig)->TravId );
+        pObj->pCopy = Abc_ObjNotCond( pObj->pCopy, Ivy_IsComplement(pObjFraig) );
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Gives the current ABC network to AIG manager for processing.]
 
   Description []
@@ -382,7 +418,7 @@ Abc_Ntk_t * Abc_NtkIvySat( Abc_Ntk_t * pNtk, int nConfLimit, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkIvyFraig( Abc_Ntk_t * pNtk, int nConfLimit, int fDoSparse, int fProve, int fVerbose )
+Abc_Ntk_t * Abc_NtkIvyFraig( Abc_Ntk_t * pNtk, int nConfLimit, int fDoSparse, int fProve, int fTransfer, int fVerbose )
 {
     Ivy_FraigParams_t Params, * pParams = &Params; 
     Abc_Ntk_t * pNtkAig;
@@ -396,8 +432,19 @@ Abc_Ntk_t * Abc_NtkIvyFraig( Abc_Ntk_t * pNtk, int nConfLimit, int fDoSparse, in
     pParams->fProve       = fProve;
     pParams->fDoSparse    = fDoSparse;
     pMan = Ivy_FraigPerform( pTemp = pMan, pParams );
+    // transfer the pointers
+    if ( fTransfer == 1 )
+    {
+        Vec_Ptr_t * vCopies;
+        vCopies = Abc_NtkSaveCopy( pNtk );
+        pNtkAig = Abc_NtkIvyAfter( pNtk, pMan, 0, 0 );
+        Abc_NtkLoadCopy( pNtk, vCopies );
+        Vec_PtrFree( vCopies );
+        Abc_NtkTransferPointers( pNtk, pNtkAig );
+    }
+    else
+        pNtkAig = Abc_NtkIvyAfter( pNtk, pMan, 0, 0 );
     Ivy_ManStop( pTemp );
-    pNtkAig = Abc_NtkIvyAfter( pNtk, pMan, 0, 0 );
     Ivy_ManStop( pMan );
     return pNtkAig;
 }
@@ -417,6 +464,7 @@ int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars )
 {
     Prove_Params_t * pParams = pPars;
     Abc_Ntk_t * pNtk = *ppNtk, * pNtkTemp;
+    Abc_Obj_t * pObj, * pFanin;
     Ivy_Man_t * pMan;
     int RetValue;
     assert( Abc_NtkIsStrash(pNtk) || Abc_NtkIsLogic(pNtk) );
@@ -432,6 +480,16 @@ int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars )
         Abc_NtkDelete( pNtkTemp );
     }
 
+    // check the case when the 0000 simulation pattern detect the bug
+    pObj = Abc_NtkPo(pNtk,0);
+    pFanin = Abc_ObjFanin0(pObj);
+    if ( Abc_ObjFanin0(pObj)->fPhase != (unsigned)Abc_ObjFaninC0(pObj) )
+    {
+        pNtk->pModel = ALLOC( int, Abc_NtkPiNum(pNtk) );
+        memset( pNtk->pModel, 0, sizeof(int) * Abc_NtkPiNum(pNtk) );
+        return 0;
+    }
+
     // if SAT only, solve without iteration
     RetValue = Abc_NtkMiterSat( pNtk, 2*(sint64)pParams->nMiteringLimitStart, (sint64)0, 0, 0, NULL, NULL );
     if ( RetValue >= 0 )
@@ -441,15 +499,16 @@ int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars )
     if ( pParams->fUseRewriting && Abc_NtkNodeNum(pNtk) > 500 )
     {
         pParams->fUseRewriting = 0;
-        Abc_NtkRewrite( pNtk, 0, 0, 0 );
+        Abc_NtkRewrite( pNtk, 0, 0, 0, 0 );
         pNtk = Abc_NtkBalance( pNtkTemp = pNtk, 0, 0, 0 );          
         Abc_NtkDelete( pNtkTemp );
-        Abc_NtkRewrite( pNtk, 0, 0, 0 );
+        Abc_NtkRewrite( pNtk, 0, 0, 0, 0 );
         Abc_NtkRefactor( pNtk, 10, 16, 0, 0, 0, 0 );
     }
 
     // convert ABC network into IVY network
     pMan = Abc_NtkIvyBefore( pNtk, 0, 0 );
+
     // solve the CEC problem
     RetValue = Ivy_FraigProve( &pMan, pParams );
     // convert IVY network into ABC network    
@@ -503,7 +562,6 @@ Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk )
     Vec_Int_t * vInit = Abc_NtkCollectLatchValuesIvy( pNtk, 0 );
 
     assert( !Abc_NtkIsNetlist(pNtk) );
-    assert( !Abc_NtkIsSeq(pNtk) );
     if ( Abc_NtkIsBddLogic(pNtk) )
     {
         if ( !Abc_NtkBddToSop(pNtk, 0) )
@@ -624,14 +682,14 @@ Abc_Ntk_t * Abc_NtkFromAig( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan )
     vNodes = Ivy_ManDfs( pMan );
     Ivy_ManForEachNodeVec( pMan, vNodes, pNode, i )
     {
-        // add the first fanins
+        // add the first fanin
         pFaninNew0 = Abc_ObjFanin0Ivy( pNtk, pNode );
         if ( Ivy_ObjIsBuf(pNode) )
         {
             pNode->TravId = Abc_EdgeFromNode( pFaninNew0 );
             continue;
         }
-        // add the first second
+        // add the second fanin
         pFaninNew1 = Abc_ObjFanin1Ivy( pNtk, pNode );
         // create the new node
         if ( Ivy_ObjIsExor(pNode) )

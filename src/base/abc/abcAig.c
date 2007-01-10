@@ -309,8 +309,9 @@ Abc_Obj_t * Abc_AigAndCreate( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 )
     Abc_ObjAddFanin( pAnd, p0 );
     Abc_ObjAddFanin( pAnd, p1 );
     // set the level of the new node
-    pAnd->Level      = 1 + ABC_MAX( Abc_ObjRegular(p0)->Level, Abc_ObjRegular(p1)->Level ); 
-    pAnd->fExor      = Abc_NodeIsExorType(pAnd);
+    pAnd->Level  = 1 + ABC_MAX( Abc_ObjRegular(p0)->Level, Abc_ObjRegular(p1)->Level ); 
+    pAnd->fExor  = Abc_NodeIsExorType(pAnd);
+    pAnd->fPhase = (Abc_ObjIsComplement(p0) ^ Abc_ObjRegular(p0)->fPhase) & (Abc_ObjIsComplement(p1) ^ Abc_ObjRegular(p1)->fPhase);
     // add the node to the corresponding linked list in the table
     Key = Abc_HashKey2( p0, p1, pMan->nBins );
     pAnd->pNext      = pMan->pBins[Key];
@@ -650,7 +651,7 @@ void Abc_AigRehash( Abc_Aig_t * pMan )
 ***********************************************************************/
 Abc_Obj_t * Abc_AigConst1( Abc_Ntk_t * pNtk )
 {
-    assert( Abc_NtkIsStrash(pNtk) || Abc_NtkIsSeq(pNtk) );
+    assert( Abc_NtkIsStrash(pNtk) );
     return ((Abc_Aig_t *)pNtk->pManFunc)->pConst1;
 }
 

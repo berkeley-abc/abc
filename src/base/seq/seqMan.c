@@ -122,7 +122,7 @@ void Seq_Delete( Abc_Seq_t * p )
     if ( p->vUses )       Vec_StrFree( p->vUses );       // the uses of phases
     if ( p->vInits )      Vec_PtrFree( p->vInits );      // the initial values of the latches
     if ( p->vNums )       Vec_IntFree( p->vNums );       // the numbers of latches
-    Extra_MmFixedStop( p->pMmInits, 0 );
+    Extra_MmFixedStop( p->pMmInits );
     free( p );
 }
 

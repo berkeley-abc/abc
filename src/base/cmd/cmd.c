@@ -518,25 +518,24 @@ int CmdCommandSource( Abc_Frame_t * pAbc, int argc, char **argv )
     interactive = silent = prompt = echo = 0;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "hipsx" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ipsxh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'h':
-            goto usage;
-            break;
         case 'i':               /* a hack to distinguish EOF from stdin */
             interactive = 1;
             break;
         case 'p':
-            prompt = 1;
+            prompt ^= 1;
             break;
         case 's':
-            silent = 1;
+            silent ^= 1;
             break;
         case 'x':
             echo ^= 1;
             break;
+        case 'h':
+            goto usage;
         default:
             goto usage;
         }
@@ -664,11 +663,11 @@ int CmdCommandSource( Abc_Frame_t * pAbc, int argc, char **argv )
     return status;
 
   usage:
-    fprintf( pAbc->Err, "usage: source [-h] [-p] [-s] [-x] file_name\n" );
+    fprintf( pAbc->Err, "usage: source [-psxh] <file_name>\n" );
+    fprintf( pAbc->Err, "\t-p     supply prompt before reading each line [default = %s]\n", prompt? "yes": "no" );
+    fprintf( pAbc->Err, "\t-s     silently ignore nonexistant file [default = %s]\n", silent? "yes": "no" );
+    fprintf( pAbc->Err, "\t-x     echo each line as it is executed [default = %s]\n", echo? "yes": "no" );
     fprintf( pAbc->Err, "\t-h     print the command usage\n" );
-    fprintf( pAbc->Err, "\t-p     supply prompt before reading each line\n" );
-    fprintf( pAbc->Err, "\t-s     silently ignore nonexistant file\n" );
-    fprintf( pAbc->Err, "\t-x     echo each line as it is executed\n" );
     return 1;
 }
 
@@ -1308,7 +1307,7 @@ int CmdCommandSis( Abc_Frame_t * pAbc, int argc, char **argv )
     fclose( pFile );
 
     // set the new network
-    pNtkNew = Io_Read( "_sis_out.blif", 1 );
+    pNtkNew = Io_Read( "_sis_out.blif", IO_FILE_BLIF, 1 );
     // set the original spec of the new network
     if ( pNtk->pSpec )
     {
@@ -1449,7 +1448,7 @@ int CmdCommandMvsis( Abc_Frame_t * pAbc, int argc, char **argv )
     fclose( pFile );
 
     // set the new network
-    pNtkNew = Io_Read( "_mvsis_out.blif", 1 );
+    pNtkNew = Io_Read( "_mvsis_out.blif", IO_FILE_BLIF, 1 );
     // set the original spec of the new network
     if ( pNtk->pSpec )
     {

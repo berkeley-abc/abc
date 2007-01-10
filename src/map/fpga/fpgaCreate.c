@@ -226,8 +226,8 @@ void Fpga_ManFree( Fpga_Man_t * p )
         Fpga_NodeVecFree( p->vAnds );
     if ( p->vNodesAll )    
         Fpga_NodeVecFree( p->vNodesAll );
-    Extra_MmFixedStop( p->mmNodes, 0 );
-    Extra_MmFixedStop( p->mmCuts, 0 );
+    Extra_MmFixedStop( p->mmNodes );
+    Extra_MmFixedStop( p->mmCuts );
     FREE( p->ppOutputNames );
     FREE( p->pInputArrivals );
     FREE( p->pInputs );

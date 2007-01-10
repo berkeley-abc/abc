@@ -147,9 +147,9 @@ void Map_SuperLibFree( Map_SuperLib_t * p )
         Map_SuperTableFree( p->tTableC );
     if ( p->tTable )
         Map_SuperTableFree( p->tTable );
-    Extra_MmFixedStop( p->mmSupers, 0 );
-    Extra_MmFixedStop( p->mmEntries, 0 );
-    Extra_MmFlexStop( p->mmForms, 0 );
+    Extra_MmFixedStop( p->mmSupers );
+    Extra_MmFixedStop( p->mmEntries );
+    Extra_MmFlexStop( p->mmForms );
     FREE( p->ppSupers );
     FREE( p );
 }

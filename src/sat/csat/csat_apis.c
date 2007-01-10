@@ -111,7 +111,7 @@ void ABC_ReleaseManager( ABC_Manager mng )
     ABC_TargetResFree(p_res);
     if ( mng->tNode2Name ) stmm_free_table( mng->tNode2Name );
     if ( mng->tName2Node ) stmm_free_table( mng->tName2Node );
-    if ( mng->pMmNames )   Extra_MmFlexStop( mng->pMmNames, 0 );
+    if ( mng->pMmNames )   Extra_MmFlexStop( mng->pMmNames );
     if ( mng->pNtk )       Abc_NtkDelete( mng->pNtk );
     if ( mng->pTarget )    Abc_NtkDelete( mng->pTarget );
     if ( mng->vNodes )     Vec_PtrFree( mng->vNodes );

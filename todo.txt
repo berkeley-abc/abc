@@ -1,56 +1,26 @@
-Minor things:
-
-- add required time support
-- clean end-of-line markers (CR is more preferable than CR-LF)
-- prevent node name clash between PO and internal names (i.e. [484])
-- add the output of ABC version/platform in the output files  
-- fix gcc compiler warnings                                   
-
-Major things:
-
-- substantially improving performance of FRAIGing 
-(used in equivalence checking and lossless synthesis)
-
-- developing a new (more efficient and faster) AIG rewriting package
-
-- implementing additional rewriting options for delay optimization
-
-- making technology mapping applicable to very large designs by adding 
-on-demand cut computation currenlty available as a stand-alone command "cut"
-
-- experimenting with yield-aware standard-cell mapping
-
-- developing a mapper for arbitrary programmable macrocell 
-architecture specified using a configuration file (this mapper should work 
-for both cell-evalution and mainstream FPGA mapping)
-
-- developing incremental retiming and incremental integrated sequential 
-synthesis
-
-- developing sequential verification combined with integrated sequential 
-synthesis 
-
-
-Other great projects:
-
-- hierarchical BLIF input in ABC (output of black boxes)
+- required time support
+- printing ABC version/platform in the output files  
+- fix gcc compiler warnings
+- port "mfs" from MVSIS
+- improve AIG rewriting package
+- unify functional representation of local functions
+- additional rewriting options for delay optimization
+- experiment with yield-aware standard-cell mapping
+- improving area recovery in integrated sequential synthesis 
 - high-effort logic synthesis for hard miters (cofactoring, Boolean division)
-- incremental retiming and sequential integration
-- 5-6 input AIG rewriting using new ideas
-- placement-aware mapping
 - mapping into MV cells
-- better ways of constructing BDDs
 - SAT solver with linear constraints
 - specialized synthesis for EXORs and large MUXes
-- sequential AIG rewriting
+- sequential AIG rewriting initial state computation
+- placement-aware mapping
+- sequential equivalence checking
+- parser for Verilog netlists
+- hierarchy manager (hierarchical BLIF/BLIF-MV parser)
 
-Other:
+- required time based on all cuts
+- comparing tts of differently derived the same cut
+- area flow based AIG rewriting
+- cut frontier adjustment
 
-- completely silent mode
 
-High-priority changes:
 
-- add a new mode to "fpga" to differentiate latch-to-latch and pad-to-latch paths
-- support asynchronous set/reset in retiming and retiming/mapping
-- port "mfs" into ABC
-- reduce the latch count in the new version of "retime" and "spfga"

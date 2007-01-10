@@ -206,6 +206,10 @@ SOURCE=.\src\base\abci\abcDebug.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcDress.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcDsd.c
 # End Source File
 # Begin Source File
@@ -406,10 +410,6 @@ SOURCE=.\src\base\io\ioInt.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\io\ioRead.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\base\io\ioReadAiger.c
 # End Source File
 # Begin Source File
@@ -423,6 +423,14 @@ SOURCE=.\src\base\io\ioReadBench.c
 # Begin Source File
 
 SOURCE=.\src\base\io\ioReadBlif.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\io\ioReadBlifAig.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\io\ioReadBlifMv.c
 # End Source File
 # Begin Source File
 
@@ -455,6 +463,10 @@ SOURCE=.\src\base\io\ioWriteBench.c
 # Begin Source File
 
 SOURCE=.\src\base\io\ioWriteBlif.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\io\ioWriteBlifMv.c
 # End Source File
 # Begin Source File
 
@@ -544,6 +556,10 @@ SOURCE=.\src\base\ver\verParse.c
 
 SOURCE=.\src\base\ver\verStream.c
 # End Source File
+# End Group
+# Begin Group "func"
+
+# PROP Default_Filter ""
 # End Group
 # End Group
 # Begin Group "aig"
@@ -1035,6 +1051,10 @@ SOURCE=.\src\bdd\parse\parse.h
 # Begin Source File
 
 SOURCE=.\src\bdd\parse\parseCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\parse\parseEqn.c
 # End Source File
 # Begin Source File
 

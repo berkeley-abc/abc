@@ -55,6 +55,43 @@ void * Abc_NtkAttrFree( Abc_Ntk_t * pNtk, int Attr, int fFreeMan )
 
 /**Function*************************************************************
 
+  Synopsis    [Starts the Mv-Var manager.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkStartMvVars( Abc_Ntk_t * pNtk ) 
+{
+    Vec_Att_t * pAttMan;
+    assert( Abc_NtkMvVar(pNtk) == NULL );
+    pAttMan = Vec_AttAlloc( 0, Abc_NtkObjNumMax(pNtk) + 1, Extra_MmFlexStart(), Extra_MmFlexStop, NULL, NULL );
+    Vec_PtrWriteEntry( pNtk->vAttrs, VEC_ATTR_MVVAR, pAttMan );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Stops the Mv-Var manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkFreeMvVars( Abc_Ntk_t * pNtk ) 
+{ 
+    void * pUserMan;
+    pUserMan = Abc_NtkAttrFree( pNtk, VEC_ATTR_GLOBAL_BDD, 0 ); 
+    Extra_MmFlexStop( pUserMan );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Increments the current traversal ID of the network.]
 
   Description []
@@ -422,9 +459,73 @@ int Abc_NtkGetFaninMax( Abc_Ntk_t * pNtk )
 void Abc_NtkCleanCopy( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj;
-    int i = 0;
+    int i;
     Abc_NtkForEachObj( pNtk, pObj, i )
         pObj->pCopy = NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of nodes having non-trivial copies.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkCountCopy( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int i, Counter = 0;
+    Abc_NtkForEachObj( pNtk, pObj, i )
+    {
+        if ( Abc_ObjIsNode(pObj) )
+            Counter += (pObj->pCopy != NULL);
+    }
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Saves copy field of the objects.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_NtkSaveCopy( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vCopies;
+    Abc_Obj_t * pObj;
+    int i;
+    vCopies = Vec_PtrStart( Abc_NtkObjNumMax(pNtk) );
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        Vec_PtrWriteEntry( vCopies, i, pObj->pCopy );
+    return vCopies;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Loads copy field of the objects.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkLoadCopy( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCopies )
+{
+    Abc_Obj_t * pObj;
+    int i;
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        pObj->pCopy = Vec_PtrEntry( vCopies, i );
 }
 
 /**Function*************************************************************
@@ -957,16 +1058,8 @@ int Abc_NtkPrepareTwoNtks( FILE * pErr, Abc_Ntk_t * pNtk, char ** argv, int argc
         }
         else
             fclose( pFile );
-/*
-        if ( Abc_NtkIsSeq(pNtk) )
-        {
-            pNtk1 = Abc_NtkSeqToLogicSop(pNtk);
-            *pfDelete1 = 1;
-        }
-        else
-*/
-            pNtk1 = pNtk;
-        pNtk2 = Io_Read( pNtk->pSpec, fCheck );
+        pNtk1 = pNtk;
+        pNtk2 = Io_Read( pNtk->pSpec, Io_ReadFileType(pNtk->pSpec), fCheck );
         if ( pNtk2 == NULL )
             return 0;
         *pfDelete2 = 1;
@@ -978,26 +1071,18 @@ int Abc_NtkPrepareTwoNtks( FILE * pErr, Abc_Ntk_t * pNtk, char ** argv, int argc
             fprintf( pErr, "Empty current network.\n" );
             return 0;
         }
-/*
-        if ( Abc_NtkIsSeq(pNtk) )
-        {
-            pNtk1 = Abc_NtkSeqToLogicSop(pNtk);
-            *pfDelete1 = 1;
-        }
-        else
-*/
-            pNtk1 = pNtk;
-        pNtk2 = Io_Read( argv[util_optind], fCheck );
+        pNtk1 = pNtk;
+        pNtk2 = Io_Read( argv[util_optind], Io_ReadFileType(argv[util_optind]), fCheck );
         if ( pNtk2 == NULL )
             return 0;
         *pfDelete2 = 1;
     }
     else if ( argc == util_optind + 2 ) 
     {
-        pNtk1 = Io_Read(  argv[util_optind], fCheck );
+        pNtk1 = Io_Read( argv[util_optind], Io_ReadFileType(argv[util_optind]), fCheck );
         if ( pNtk1 == NULL )
             return 0;
-        pNtk2 = Io_Read( argv[util_optind+1], fCheck );
+        pNtk2 = Io_Read( argv[util_optind+1], Io_ReadFileType(argv[util_optind+1]), fCheck );
         if ( pNtk2 == NULL )
         {
             Abc_NtkDelete( pNtk1 );
@@ -1340,6 +1425,29 @@ int Abc_ObjPointerCompare( void ** pp1, void ** pp2 )
     if ( *pp1 > *pp2 ) 
         return 1;
     return 0; 
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adjusts the copy pointers.]
+
+  Description [This procedure assumes that the network was transformed
+  into another network, which was in turn transformed into yet another
+  network. It makes the pCopy pointers of the original network point to
+  the objects of the yet another network.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkTransferCopy( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int i;
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        if ( !Abc_ObjIsNet(pObj) )
+            pObj->pCopy = pObj->pCopy? Abc_ObjEquiv(pObj->pCopy) : NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////

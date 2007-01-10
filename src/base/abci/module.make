@@ -7,6 +7,7 @@ SRC +=    src/base/abci/abc.c \
     src/base/abci/abcClpSop.c \
     src/base/abci/abcCut.c \
     src/base/abci/abcDebug.c \
+    src/base/abci/abcDress.c \
     src/base/abci/abcDsd.c \
     src/base/abci/abcEspresso.c \
     src/base/abci/abcExtract.c \

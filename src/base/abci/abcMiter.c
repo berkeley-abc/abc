@@ -1028,6 +1028,12 @@ int Abc_NtkDemiter( Abc_Ntk_t * pNtk )
     printf( "First cone = %6d.  Second cone = %6d.  Common = %6d.\n", vNodes1->nSize, vNodes2->nSize, nCommon );
     Vec_PtrFree( vNodes1 );
     Vec_PtrFree( vNodes2 );
+
+    // reorder the latches
+    Abc_NtkOrderCisCos( pNtk );
+    // make sure that everything is okay
+    if ( !Abc_NtkCheck( pNtk ) )
+        printf( "Abc_NtkDemiter: The network check has failed.\n" );
     return 1;
 }
 

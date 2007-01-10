@@ -261,8 +261,8 @@ void Map_ManFree( Map_Man_t * p )
     if ( p->uCanons )   free( p->uCanons );
     if ( p->uPhases )   free( p->uPhases );
     if ( p->pCounters ) free( p->pCounters );
-    Extra_MmFixedStop( p->mmNodes, 0 );
-    Extra_MmFixedStop( p->mmCuts, 0 );
+    Extra_MmFixedStop( p->mmNodes );
+    Extra_MmFixedStop( p->mmCuts );
     FREE( p->pInputArrivals );
     FREE( p->pInputs );
     FREE( p->pOutputs );

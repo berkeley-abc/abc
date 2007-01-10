@@ -145,7 +145,7 @@ void Cut_ManStop( Cut_Man_t * p )
     if ( p->vCutPairs )   Vec_IntFree( p->vCutPairs );
     if ( p->puTemp[0] )   free( p->puTemp[0] );
 
-    Extra_MmFixedStop( p->pMmCuts, 0 );
+    Extra_MmFixedStop( p->pMmCuts );
     free( p );
 }
 

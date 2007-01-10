@@ -19,7 +19,6 @@
 ***********************************************************************/
 
 #include "io.h"
-//#include "seqInt.h"
 
 /*
 -------- Original Message --------
@@ -103,7 +102,7 @@ void Io_WriteList( Abc_Ntk_t * pNtk, char * pFileName, int fUseHost )
     Abc_Obj_t * pObj;
     int i;
 
-    assert( Abc_NtkIsSeq(pNtk)  );
+//    assert( Abc_NtkIsSeq(pNtk)  );
 
     // start the output stream
     pFile = fopen( pFileName, "w" );

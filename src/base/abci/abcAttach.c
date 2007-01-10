@@ -142,7 +142,7 @@ int Abc_NtkAttach( Abc_Ntk_t * pNtk )
     Abc_NtkForEachNode( pNtk, pNode, i )
         pNode->pData = pNode->pCopy, pNode->pCopy = NULL;
     pNtk->ntkFunc = ABC_FUNC_MAP;
-    Extra_MmFlexStop( pNtk->pManFunc, 0 );
+    Extra_MmFlexStop( pNtk->pManFunc );
     pNtk->pManFunc = pGenlib;
 
     printf( "Library gates are successfully attached to the nodes.\n" );

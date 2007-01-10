@@ -285,7 +285,7 @@ Abc_Obj_t * Abc_NodeStrash( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld )
     pMan = pNodeOld->pNtk->pManFunc;
     pRoot = pNodeOld->pData;
     // check the constant case
-    if ( Abc_NodeIsConst(pNodeOld) )
+    if ( Abc_NodeIsConst(pNodeOld) || Hop_Regular(pRoot) == Hop_ManConst1(pMan) )
         return Abc_ObjNotCond( Abc_AigConst1(pNtkNew), Hop_IsComplement(pRoot) );
     // set elementary variables
     Abc_ObjForEachFanin( pNodeOld, pFanin, i )

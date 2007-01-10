@@ -798,7 +798,7 @@ Cut_CMan_t * Cut_CManStart()
 void Cut_CManStop( Cut_CMan_t * p )
 {
     st_free_table( p->tTable );
-    Extra_MmFixedStop( p->pMem, 0 );
+    Extra_MmFixedStop( p->pMem );
     free( p );
 }
 /**Function*************************************************************

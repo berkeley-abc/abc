@@ -118,7 +118,7 @@ void Rwr_ManStop( Rwr_Man_t * p )
     Vec_IntFree( p->vLevNums );
     Vec_PtrFree( p->vFanins );
     Vec_PtrFree( p->vFaninsCur );
-    Extra_MmFixedStop( p->pMmNode, 0 );
+    Extra_MmFixedStop( p->pMmNode );
     FREE( p->pMapInv );
     free( p->pTable );
     free( p->pPractical );
@@ -159,7 +159,7 @@ void Rwr_ManPrintStats( Rwr_Man_t * p )
     PRT( "Update      ", p->timeUpdate );
     PRT( "TOTAL       ", p->timeTotal );
 
-
+/*
     printf( "The scores are:\n" );
     for ( i = 0; i < 222; i++ )
         if ( p->nScores[i] > 0 )
@@ -168,6 +168,7 @@ void Rwr_ManPrintStats( Rwr_Man_t * p )
             printf( "%3d = %8d  canon = %5d  ", i, p->nScores[i], p->pMapInv[i] );
             Ivy_TruthDsdComputePrint( (unsigned)p->pMapInv[i] | ((unsigned)p->pMapInv[i] << 16) );
         }
+*/
     printf( "\n" );
 
 }

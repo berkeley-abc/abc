@@ -63,7 +63,7 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
     // check if the input file format is correct
     if ( strncmp(pContents, "aig", 3) != 0 )
     {
-        fprintf( stdout, "Wrong input file format." );
+        fprintf( stdout, "Wrong input file format.\n" );
         return NULL;
     }
 
@@ -90,7 +90,7 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
     // check the parameters
     if ( nTotal != nInputs + nLatches + nAnds )
     {
-        fprintf( stdout, "The paramters are wrong." );
+        fprintf( stdout, "The paramters are wrong.\n" );
         return NULL;
     }
 
@@ -181,7 +181,7 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
             vTerms = pNtkNew->vPos;
         else
         {
-            fprintf( stdout, "Wrong terminal type." );
+            fprintf( stdout, "Wrong terminal type.\n" );
             return NULL;
         }
         // get the terminal number
@@ -189,7 +189,7 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
         // get the node
         if ( iTerm >= Vec_PtrSize(vTerms) )
         {
-            fprintf( stdout, "The number of terminal is out of bound." );
+            fprintf( stdout, "The number of terminal is out of bound.\n" );
             return NULL;
         }
         pObj = Vec_PtrEntry( vTerms, iTerm );

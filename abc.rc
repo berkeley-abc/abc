@@ -51,6 +51,7 @@ alias rl read_blif
 alias rb read_bench
 alias ret retime
 alias rp read_pla
+alias rt read_truth
 alias rv read_ver
 alias rvl read_verlib
 alias rsup read_super mcnc5_old.super
@@ -73,16 +74,15 @@ alias tr0 trace_start
 alias tr1 trace_check
 alias trt "r c.blif; st; tr0; b; tr1"
 alias u undo
+alias w write
 alias wb write_blif
 alias wl write_blif
 alias wp write_pla
 alias wv write_verilog
 
 # standard scripts
-alias opt         "b; ren; b"
-alias share       "b; ren; fx; b"
-alias sharem      "b; ren -m; fx; b"
-alias sharedsd    "b; ren; dsd -g; sw; fx; b"
+alias share       "b; ren -s; fx; b"
+alias sharedsd    "b; ren -b; dsd -g; sw; fx; b"
 alias resyn       "b; rw; rwz; b; rwz; b"
 alias resyn2      "b; rw; rf; b; rw; rwz; b; rfz; rwz; b"
 alias resyn2a     "b; rw; b; rw; rwz; b; rwz; b"

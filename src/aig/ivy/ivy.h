@@ -268,6 +268,7 @@ static inline Ivy_Obj_t *  Ivy_ObjChild0( Ivy_Obj_t * pObj )      { return pObj-
 static inline Ivy_Obj_t *  Ivy_ObjChild1( Ivy_Obj_t * pObj )      { return pObj->pFanin1;                          }
 static inline Ivy_Obj_t *  Ivy_ObjChild0Equiv( Ivy_Obj_t * pObj ) { assert( !Ivy_IsComplement(pObj) ); return Ivy_ObjFanin0(pObj)? Ivy_NotCond(Ivy_ObjFanin0(pObj)->pEquiv, Ivy_ObjFaninC0(pObj)) : NULL;  }
 static inline Ivy_Obj_t *  Ivy_ObjChild1Equiv( Ivy_Obj_t * pObj ) { assert( !Ivy_IsComplement(pObj) ); return Ivy_ObjFanin1(pObj)? Ivy_NotCond(Ivy_ObjFanin1(pObj)->pEquiv, Ivy_ObjFaninC1(pObj)) : NULL;  }
+static inline Ivy_Obj_t *  Ivy_ObjEquiv( Ivy_Obj_t * pObj )       { return Ivy_Regular(pObj)->pEquiv? Ivy_NotCond(Ivy_Regular(pObj)->pEquiv, Ivy_IsComplement(pObj)) : NULL; }
 static inline int          Ivy_ObjLevel( Ivy_Obj_t * pObj )       { return pObj->Level;                            }
 static inline int          Ivy_ObjLevelNew( Ivy_Obj_t * pObj )    { return 1 + Ivy_ObjIsExor(pObj) + IVY_MAX(Ivy_ObjFanin0(pObj)->Level, Ivy_ObjFanin1(pObj)->Level);       }
 static inline int          Ivy_ObjFaninPhase( Ivy_Obj_t * pObj )  { return Ivy_IsComplement(pObj)? !Ivy_Regular(pObj)->fPhase : pObj->fPhase; }

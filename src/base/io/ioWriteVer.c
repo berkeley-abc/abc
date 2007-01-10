@@ -62,6 +62,12 @@ void Io_WriteVerilog( Abc_Ntk_t * pNtk, char * pFileName, int fVerLibStyle )
         printf( "Io_WriteVerilog(): Can produce Verilog for AIG netlists only.\n" );
         return;
     }
+    if ( Abc_NtkLatchNum(pNtk) > 0 )
+    {
+        printf( "Io_WriteVerilog(): Currently cannot write verilog for sequential networks.\n" );
+        return;
+    }
+
 /*
     if ( !(Abc_NtkIsNetlist(pNtk) && (Abc_NtkHasMapping(pNtk) || Io_WriteVerilogCheckNtk(pNtk))) )
     {

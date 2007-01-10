@@ -429,7 +429,6 @@ bool Abc_NtkIsDfsOrdered( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode, * pFanin;
     int i, k;
-    assert( !Abc_NtkIsSeq(pNtk) );
     // set the traversal ID
     Abc_NtkIncrementTravId( pNtk );
     // mark the CIs

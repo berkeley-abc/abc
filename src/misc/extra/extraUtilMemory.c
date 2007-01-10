@@ -155,18 +155,30 @@ Extra_MmFixed_t * Extra_MmFixedStart( int nEntrySize )
   SeeAlso     []
 
 ***********************************************************************/
-void Extra_MmFixedStop( Extra_MmFixed_t * p, int fVerbose )
+void Extra_MmFixedPrint( Extra_MmFixed_t * p )
+{
+    printf( "Fixed memory manager: Entry = %5d. Chunk = %5d. Chunks used = %5d.\n",
+        p->nEntrySize, p->nChunkSize, p->nChunks );
+    printf( "   Entries used = %8d. Entries peak = %8d. Memory used = %8d. Memory alloc = %8d.\n",
+        p->nEntriesUsed, p->nEntriesMax, p->nEntrySize * p->nEntriesUsed, p->nMemoryAlloc );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Extra_MmFixedStop( Extra_MmFixed_t * p )
 {
     int i;
     if ( p == NULL )
         return;
-    if ( fVerbose )
-    {
-        printf( "Fixed memory manager: Entry = %5d. Chunk = %5d. Chunks used = %5d.\n",
-            p->nEntrySize, p->nChunkSize, p->nChunks );
-        printf( "   Entries used = %8d. Entries peak = %8d. Memory used = %8d. Memory alloc = %8d.\n",
-            p->nEntriesUsed, p->nEntriesMax, p->nEntrySize * p->nEntriesUsed, p->nMemoryAlloc );
-    }
     for ( i = 0; i < p->nChunks; i++ )
         free( p->pChunks[i] );
     free( p->pChunks );
@@ -343,18 +355,30 @@ Extra_MmFlex_t * Extra_MmFlexStart()
   SeeAlso     []
 
 ***********************************************************************/
-void Extra_MmFlexStop( Extra_MmFlex_t * p, int fVerbose )
+void Extra_MmFlexPrint( Extra_MmFlex_t * p )
+{
+    printf( "Flexible memory manager: Chunk size = %d. Chunks used = %d.\n",
+        p->nChunkSize, p->nChunks );
+    printf( "   Entries used = %d. Memory used = %d. Memory alloc = %d.\n",
+        p->nEntriesUsed, p->nMemoryUsed, p->nMemoryAlloc );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Extra_MmFlexStop( Extra_MmFlex_t * p )
 {
     int i;
     if ( p == NULL )
         return;
-    if ( fVerbose )
-    {
-        printf( "Flexible memory manager: Chunk size = %d. Chunks used = %d.\n",
-            p->nChunkSize, p->nChunks );
-        printf( "   Entries used = %d. Memory used = %d. Memory alloc = %d.\n",
-            p->nEntriesUsed, p->nMemoryUsed, p->nMemoryAlloc );
-    }
     for ( i = 0; i < p->nChunks; i++ )
         free( p->pChunks[i] );
     free( p->pChunks );
@@ -482,11 +506,11 @@ Extra_MmStep_t * Extra_MmStepStart( int nSteps )
   SeeAlso     []
 
 ***********************************************************************/
-void Extra_MmStepStop( Extra_MmStep_t * p, int fVerbose )
+void Extra_MmStepStop( Extra_MmStep_t * p )
 {
     int i;
     for ( i = 0; i < p->nMems; i++ )
-        Extra_MmFixedStop( p->pMems[i], fVerbose );
+        Extra_MmFixedStop( p->pMems[i] );
 //    if ( p->pLargeChunks ) 
 //    {
 //      for ( i = 0; i < p->nLargeChunks; i++ )

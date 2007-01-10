@@ -183,7 +183,7 @@ Super2_Man_t * Super2_ManStart()
 ***********************************************************************/
 void Super2_ManStop( Super2_Man_t * pMan )
 {
-    Extra_MmFixedStop( pMan->pMem, 0 );
+    Extra_MmFixedStop( pMan->pMem );
     stmm_free_table( pMan->tTable );
     free( pMan );
 }

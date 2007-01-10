@@ -177,7 +177,7 @@ void Asat_JManStop( solver * pSat )
     if ( p == NULL )
         return;
     pSat->pJMan = NULL;
-    Extra_MmFlexStop( p->pMem, 0 );
+    Extra_MmFlexStop( p->pMem );
     Vec_PtrFree( p->vVars );
     free( p );
 }

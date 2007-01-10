@@ -244,7 +244,7 @@ void Abc_NtkNetlistToLogicHie_rec( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtkOld, int
 Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk, int fDirect )
 {
     Abc_Ntk_t * pNtkNew, * pNtkTemp; 
-    assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsStrash(pNtk) || Abc_NtkIsSeq(pNtk) );
+    assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsStrash(pNtk) );
     if ( Abc_NtkIsStrash(pNtk) )
     {
         pNtkTemp = Abc_NtkAigToLogicSop(pNtk);

@@ -22,7 +22,6 @@
 #include "abcInt.h"
 #include "main.h"
 #include "mio.h"
-//#include "seqInt.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -67,9 +66,7 @@ Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func, int fUseMemMan
     // start the functionality manager
     if ( Abc_NtkIsStrash(pNtk) )
         pNtk->pManFunc = Abc_AigAlloc( pNtk );
-//    else if ( Abc_NtkIsSeq(pNtk) )
-//        pNtk->pManFunc = Seq_Create( pNtk );
-    else if ( Abc_NtkHasSop(pNtk) )
+    else if ( Abc_NtkHasSop(pNtk) || Abc_NtkHasBlifMv(pNtk) )
         pNtk->pManFunc = Extra_MmFlexStart();
     else if ( Abc_NtkHasBdd(pNtk) )
         pNtk->pManFunc = Cudd_Init( 20, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
@@ -342,7 +339,7 @@ Abc_Ntk_t * Abc_NtkDouble( Abc_Ntk_t * pNtk )
 
     // start the network
     pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc, 1 );
-    sprintf( Buffer, "%s%s", pNtk->pName, "_doubled" );
+    sprintf( Buffer, "%s%s", pNtk->pName, "_2x" );
     pNtkNew->pName = Extra_UtilStrsav(Buffer);
 
     // clean the node copy fields
@@ -821,9 +818,9 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
 //    fprintf( stdout, "The total memory allocated internally by the network = %0.2f Mb.\n", ((double)TotalMemory)/(1<<20) );
     // free the storage 
     if ( pNtk->pMmObj )
-        Extra_MmFixedStop( pNtk->pMmObj,   0 );
+        Extra_MmFixedStop( pNtk->pMmObj );
     if ( pNtk->pMmStep )
-        Extra_MmStepStop ( pNtk->pMmStep,  0 );
+        Extra_MmStepStop ( pNtk->pMmStep );
     // name manager
     Nm_ManFree( pNtk->pManName );
     // free the timing manager
@@ -832,10 +829,8 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     // start the functionality manager
     if ( Abc_NtkIsStrash(pNtk) )
         Abc_AigFree( pNtk->pManFunc );
-//    else if ( Abc_NtkIsSeq(pNtk) )
-//        Seq_Delete( pNtk->pManFunc );
-    else if ( Abc_NtkHasSop(pNtk) )
-        Extra_MmFlexStop( pNtk->pManFunc, 0 );
+    else if ( Abc_NtkHasSop(pNtk) || Abc_NtkHasBlifMv(pNtk) )
+        Extra_MmFlexStop( pNtk->pManFunc );
     else if ( Abc_NtkHasBdd(pNtk) )
         Extra_StopManager( pNtk->pManFunc );
     else if ( Abc_NtkHasAig(pNtk) )
@@ -877,6 +872,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 void Abc_NtkFixNonDrivenNets( Abc_Ntk_t * pNtk )
 { 
+    char Buffer[10];
     Vec_Ptr_t * vNets;
     Abc_Obj_t * pNet, * pNode;
     int i;
@@ -894,26 +890,31 @@ void Abc_NtkFixNonDrivenNets( Abc_Ntk_t * pNtk )
         if ( Abc_ObjFaninNum(pNet) > 0 )
             continue;
         // add the constant 0 driver
-        pNode = Abc_NtkCreateNodeConst0( pNtk );
+        if ( Abc_NtkHasBlifMv(pNtk) )
+        {
+            pNode = Abc_NtkCreateNode( pNtk );   
+            sprintf( Buffer, "%d\n0\n", Abc_ObjMvVarNum(pNet) );
+            pNode->pData = Abc_SopRegister( pNtk->pManFunc, Buffer );
+        }
+        else
+            pNode = Abc_NtkCreateNodeConst0( pNtk );
         // add the fanout net
         Abc_ObjAddFanin( pNet, pNode );
         // add the net to those for which the warning will be printed
-        Vec_PtrPush( vNets, pNet->pData );
+        Vec_PtrPush( vNets, pNet );
     }
 
     // print the warning
     if ( vNets->nSize > 0 )
     {
-        printf( "Constant-zero drivers were added to %d non-driven nets in network %s:\n", vNets->nSize, pNtk->pName );
-        for ( i = 0; i < vNets->nSize; i++ )
+        printf( "Constant-0 drivers added to %d non-driven nets in network \"%s\":\n", Vec_PtrSize(vNets), pNtk->pName );
+        Vec_PtrForEachEntry( vNets, pNet, i )
         {
-            if ( i == 0 )
-                printf( "%s", vNets->pArray[i] );
-            else if ( i == 1 )
-                printf( ", %s", vNets->pArray[i] );
-            else if ( i == 2 )
+            printf( "%s%s", (i? ", ": ""), Abc_ObjName(pNet) );
+            if ( i == 3 )
             {
-                printf( ", %s, etc.", vNets->pArray[i] );
+                if ( Vec_PtrSize(vNets) > 3 )
+                    printf( " ..." );
                 break;
             }
         }
@@ -922,6 +923,67 @@ void Abc_NtkFixNonDrivenNets( Abc_Ntk_t * pNtk )
     Vec_PtrFree( vNets );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Converts the network to combinational.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkMakeComb( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int i;
+
+    if ( Abc_NtkIsComb(pNtk) )
+        return;
+
+    assert( !Abc_NtkIsNetlist(pNtk) );
+    assert( Abc_NtkHasOnlyLatchBoxes(pNtk) );
+
+    // detach the latches
+//    Abc_NtkForEachLatch( pNtk, pObj, i )
+    Vec_PtrForEachEntryReverse( pNtk->vBoxes, pObj, i )
+        Abc_NtkDeleteObj( pObj );
+    assert( Abc_NtkLatchNum(pNtk) == 0 );
+    assert( Abc_NtkBoxNum(pNtk) == 0 );
+
+    // move CIs to become PIs
+    Vec_PtrClear( pNtk->vPis );
+    Abc_NtkForEachCi( pNtk, pObj, i )
+    {
+        if ( Abc_ObjIsBo(pObj) )
+        {
+            pObj->Type = ABC_OBJ_PI;
+            pNtk->nObjCounts[ABC_OBJ_PI]++;
+            pNtk->nObjCounts[ABC_OBJ_BO]--;
+        }
+        Vec_PtrPush( pNtk->vPis, pObj );
+    }
+    assert( Abc_NtkBoNum(pNtk) == 0 );
+
+    // move COs to become POs
+    Vec_PtrClear( pNtk->vPos );
+    Abc_NtkForEachCo( pNtk, pObj, i )
+    {
+        if ( Abc_ObjIsBi(pObj) )
+        {
+            pObj->Type = ABC_OBJ_PO;
+            pNtk->nObjCounts[ABC_OBJ_PO]++;
+            pNtk->nObjCounts[ABC_OBJ_BI]--;
+        }
+        Vec_PtrPush( pNtk->vPos, pObj );
+    }
+    assert( Abc_NtkBiNum(pNtk) == 0 );
+
+    if ( !Abc_NtkCheck( pNtk ) )
+        fprintf( stdout, "Abc_NtkMakeComb(): Network check has failed.\n" );
+}
 
 
 

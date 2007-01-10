@@ -291,7 +291,7 @@ extern int          Extra_BitMatrixIsClique( Extra_BitMat_t * p );
 /*=== extraUtilFile.c ========================================================*/
 
 extern char *       Extra_FileGetSimilarName( char * pFileNameWrong, char * pS1, char * pS2, char * pS3, char * pS4, char * pS5 );
-extern int          Extra_FileNameCheckExtension( char * FileName, char * Extension );
+extern char *       Extra_FileNameExtension( char * FileName );
 extern char *       Extra_FileNameAppend( char * pBase, char * pSuffix );
 extern char *       Extra_FileNameGeneric( char * FileName );
 extern int          Extra_FileSize( char * pFileName );
@@ -325,19 +325,20 @@ typedef struct Extra_MmStep_t_     Extra_MmStep_t;
 
 // fixed-size-block memory manager
 extern Extra_MmFixed_t *  Extra_MmFixedStart( int nEntrySize );
-extern void        Extra_MmFixedStop( Extra_MmFixed_t * p, int fVerbose );
+extern void        Extra_MmFixedStop( Extra_MmFixed_t * p );
 extern char *      Extra_MmFixedEntryFetch( Extra_MmFixed_t * p );
 extern void        Extra_MmFixedEntryRecycle( Extra_MmFixed_t * p, char * pEntry );
 extern void        Extra_MmFixedRestart( Extra_MmFixed_t * p );
 extern int         Extra_MmFixedReadMemUsage( Extra_MmFixed_t * p );
 // flexible-size-block memory manager
 extern Extra_MmFlex_t * Extra_MmFlexStart();
-extern void        Extra_MmFlexStop( Extra_MmFlex_t * p, int fVerbose );
+extern void        Extra_MmFlexStop( Extra_MmFlex_t * p );
+extern void        Extra_MmFlexPrint( Extra_MmFlex_t * p );
 extern char *      Extra_MmFlexEntryFetch( Extra_MmFlex_t * p, int nBytes );
 extern int         Extra_MmFlexReadMemUsage( Extra_MmFlex_t * p );
 // hierarchical memory manager
 extern Extra_MmStep_t * Extra_MmStepStart( int nSteps );
-extern void        Extra_MmStepStop( Extra_MmStep_t * p, int fVerbose );
+extern void        Extra_MmStepStop( Extra_MmStep_t * p );
 extern char *      Extra_MmStepEntryFetch( Extra_MmStep_t * p, int nBytes );
 extern void        Extra_MmStepEntryRecycle( Extra_MmStep_t * p, char * pEntry, int nBytes );
 extern int         Extra_MmStepReadMemUsage( Extra_MmStep_t * p );

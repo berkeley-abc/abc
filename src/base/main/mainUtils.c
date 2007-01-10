@@ -20,6 +20,10 @@
 
 #include "mainInt.h"
 
+#ifndef _WIN32
+#include "readline/readline.h"
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -62,9 +66,18 @@ char * Abc_UtilsGetUsersInput( Abc_Frame_t * pAbc )
 {
     static char Buffer[1000], Prompt[1000];
     sprintf( Prompt, "abc %02d> ", pAbc->nSteps );
+#ifdef _WIN32
     fprintf( pAbc->Out, "%s", Prompt );
     fgets( Buffer, 999, stdin );
     return Buffer;
+#else
+    static char* line = NULL;
+    if (line != NULL) free(line);
+    line = readline(Prompt);  
+    if (line == NULL){ printf("***EOF***\n"); exit(0); }
+    add_history(line);
+    return line;
+#endif
 }
 
 /**Function*************************************************************

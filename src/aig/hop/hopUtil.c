@@ -283,6 +283,53 @@ Hop_Obj_t * Hop_ObjRecognizeMux( Hop_Obj_t * pNode, Hop_Obj_t ** ppNodeT, Hop_Ob
 
 /**Function*************************************************************
 
+  Synopsis    [Prints Eqn formula for the AIG rooted at this node.]
+
+  Description [The formula is in terms of PIs, which should have
+  their names assigned in pObj->pData fields.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Hop_ObjPrintEqn( FILE * pFile, Hop_Obj_t * pObj, Vec_Vec_t * vLevels, int Level )
+{
+    Vec_Ptr_t * vSuper;
+    Hop_Obj_t * pFanin;
+    int fCompl, i;
+    // store the complemented attribute
+    fCompl = Hop_IsComplement(pObj);
+    pObj = Hop_Regular(pObj);
+    // constant case
+    if ( Hop_ObjIsConst1(pObj) )
+    {
+        fprintf( pFile, "%d", !fCompl );
+        return;
+    }
+    // PI case
+    if ( Hop_ObjIsPi(pObj) )
+    {
+        fprintf( pFile, "%s%s", fCompl? "!" : "", pObj->pData );
+        return;
+    }
+    // AND case
+    Vec_VecExpand( vLevels, Level );
+    vSuper = Vec_VecEntry(vLevels, Level);
+    Hop_ObjCollectMulti( pObj, vSuper );
+    fprintf( pFile, "%s", (Level==0? "" : "(") );
+    Vec_PtrForEachEntry( vSuper, pFanin, i )
+    {
+        Hop_ObjPrintEqn( pFile, Hop_NotCond(pFanin, fCompl), vLevels, Level+1 );
+        if ( i < Vec_PtrSize(vSuper) - 1 )
+            fprintf( pFile, " %s ", fCompl? "+" : "*" );
+    }
+    fprintf( pFile, "%s", (Level==0? "" : ")") );
+    return;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Prints Verilog formula for the AIG rooted at this node.]
 
   Description [The formula is in terms of PIs, which should have
