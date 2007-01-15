@@ -765,6 +765,65 @@ DdNode * Abc_ConvertAigToBdd( DdManager * dd, Hop_Obj_t * pRoot )
     return bFunc;
 }
 
+
+
+/**Function*************************************************************
+
+  Synopsis    [Construct BDDs and mark AIG nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_ConvertAigToAig_rec( Abc_Ntk_t * pNtkAig, Hop_Obj_t * pObj )
+{
+    assert( !Hop_IsComplement(pObj) );
+    if ( !Hop_ObjIsNode(pObj) || Hop_ObjIsMarkA(pObj) )
+        return;
+    Abc_ConvertAigToAig_rec( pNtkAig, Hop_ObjFanin0(pObj) ); 
+    Abc_ConvertAigToAig_rec( pNtkAig, Hop_ObjFanin1(pObj) );
+    pObj->pData = Abc_AigAnd( pNtkAig->pManFunc, (Abc_Obj_t *)Hop_ObjChild0Copy(pObj), (Abc_Obj_t *)Hop_ObjChild1Copy(pObj) ); 
+    assert( !Hop_ObjIsMarkA(pObj) ); // loop detection
+    Hop_ObjSetMarkA( pObj );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converts the network from AIG to BDD representation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Abc_ConvertAigToAig( Abc_Ntk_t * pNtkAig, Abc_Obj_t * pObjOld )
+{
+    Hop_Man_t * pHopMan;
+    Hop_Obj_t * pRoot;
+    Abc_Obj_t * pFanin;
+    int i;
+    // get the local AIG
+    pHopMan = pObjOld->pNtk->pManFunc;
+    pRoot = pObjOld->pData;
+    // check the case of a constant
+    if ( Hop_ObjIsConst1( Hop_Regular(pRoot) ) )
+        return Abc_ObjNotCond( Abc_AigConst1(pNtkAig->pManFunc), Hop_IsComplement(pRoot) );
+    // assign the fanin nodes
+    Abc_ObjForEachFanin( pObjOld, pFanin, i )
+        Hop_ManPi(pHopMan, i)->pData = pFanin->pCopy;
+    // construct the AIG
+    Abc_ConvertAigToAig_rec( pNtkAig, Hop_Regular(pRoot) );
+    Hop_ConeUnmark_rec( Hop_Regular(pRoot) );
+    // return the result
+    return Abc_ObjNotCond( Hop_Regular(pRoot)->pData, Hop_IsComplement(pRoot) );  
+}
+
+
 /**Function*************************************************************
 
   Synopsis    [Unmaps the network.]

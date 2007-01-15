@@ -199,7 +199,7 @@ Abc_Ntk_t * Abc_NtkIvyHaig( Abc_Ntk_t * pNtk, int nIters, int fUseZeroCost, int 
 //    for ( i = 0; i < nIters; i++ )
 //        Ivy_ManRewriteSeq( pMan, fUseZeroCost, 0 );
     Ivy_ManRewriteSeq( pMan, 0, 0 );
-    Ivy_ManRewriteSeq( pMan, 1, 0 );
+//    Ivy_ManRewriteSeq( pMan, 1, 0 );
 //printf( "Haig size = %d.\n", Ivy_ManNodeNum(pMan->pHaig) );
 //    Ivy_ManHaigPostprocess( pMan, fVerbose );
 //timeRetime = clock() - timeRetime;

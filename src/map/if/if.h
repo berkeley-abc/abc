@@ -125,6 +125,7 @@ struct If_Man_t_
     float              fEpsilon;      // epsilon used for comparison
     float              RequiredGlo;   // global required times
     float              AreaGlo;       // global area
+    int                nNets;         // the sum total of fanins of all LUTs in the mapping
     int                nCutsUsed;     // the number of cuts currently used
     int                nCutsMerged;   // the total number of cuts merged
     unsigned *         puTemp[4];     // used for the truth table computation

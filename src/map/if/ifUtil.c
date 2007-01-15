@@ -147,6 +147,7 @@ void If_ManComputeRequired( If_Man_t * p, int fFirstTime )
     If_Obj_t * pObj;
     int i;
     // compute area, clean required times, collect nodes used in the mapping
+    p->nNets = 0;
     p->AreaGlo = If_ManScanMapping( p );
     // get the global required times
     p->RequiredGlo = If_ManDelayMax( p, 0 );
@@ -206,6 +207,7 @@ float If_ManScanMapping_rec( If_Man_t * p, If_Obj_t * pObj, If_Obj_t ** ppStore 
     ppStore[pObj->Level] = pObj;
     // visit the transitive fanin of the selected cut
     pCutBest = If_ObjCutBest(pObj);
+    p->nNets += pCutBest->nLeaves;
     aArea = If_CutLutArea( p, pCutBest );
     If_CutForEachLeaf( p, pCutBest, pLeaf, i )
         aArea += If_ManScanMapping_rec( p, pLeaf, ppStore );

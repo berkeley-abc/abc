@@ -61,6 +61,8 @@ struct Vec_Vec_t_
 #define Vec_VecForEachEntry( vGlob, pEntry, i, k )                                            \
     for ( i = 0; i < Vec_VecSize(vGlob); i++ )                                                \
         Vec_PtrForEachEntry( Vec_VecEntry(vGlob, i), pEntry, k ) 
+#define Vec_VecForEachEntryLevel( vGlob, pEntry, i, Level )                                   \
+        Vec_PtrForEachEntry( Vec_VecEntry(vGlob, Level), pEntry, i ) 
 #define Vec_VecForEachEntryStart( vGlob, pEntry, i, k, LevelStart )                           \
     for ( i = LevelStart; i < Vec_VecSize(vGlob); i++ )                                       \
         Vec_PtrForEachEntry( Vec_VecEntry(vGlob, i), pEntry, k ) 

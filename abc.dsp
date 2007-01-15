@@ -1653,6 +1653,42 @@ SOURCE=.\src\opt\kit\kitSop.c
 SOURCE=.\src\opt\kit\kitTruth.c
 # End Source File
 # End Group
+# Begin Group "res"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\opt\res\res.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\res\resCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\res\resFilter.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\res\resSat.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\res\resSim.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\res\resStrash.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\res\resUpdate.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\res\resWin.c
+# End Source File
+# End Group
 # End Group
 # Begin Group "map"
 

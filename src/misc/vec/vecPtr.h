@@ -151,6 +151,32 @@ static inline Vec_Ptr_t * Vec_PtrAllocArrayCopy( void ** pArray, int nSize )
 
 /**Function*************************************************************
 
+  Synopsis    [Allocates the array of simulation info.]
+
+  Description [Allocates the array containing given number of entries, 
+  each of which contains given number of unsigned words of simulation data.
+  The resulting array can be freed using regular procedure Vec_PtrFree().
+  It is the responsibility of the user to ensure this array is never grown.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Vec_Ptr_t * Vec_PtrAllocSimInfo( int nEntries, int nWords )
+{
+    void ** pMemory;
+    unsigned * pInfo;
+    int i;
+    pMemory = (void **)ALLOC( char, (sizeof(void *) + sizeof(unsigned) * nWords) * nEntries );
+    pInfo = (unsigned *)(pMemory + nEntries);
+    for ( i = 0; i < nEntries; i++ )
+        pMemory[i] = pInfo + i * nWords;
+    return Vec_PtrAllocArray( pMemory, nEntries );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Duplicates the integer array.]
 
   Description []

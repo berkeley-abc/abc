@@ -59,6 +59,7 @@ static int Abc_CommandCleanup        ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandSweep          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFastExtract    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDisjoint       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandMfs            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandRewrite        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRefactor       ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -193,6 +194,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "sweep",         Abc_CommandSweep,            1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "fx",            Abc_CommandFastExtract,      1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "dsd",           Abc_CommandDisjoint,         1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "mfs",           Abc_CommandMfs,              1 );
 
     Cmd_CommandAdd( pAbc, "Synthesis",    "rewrite",       Abc_CommandRewrite,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "refactor",      Abc_CommandRefactor,         1 );
@@ -2512,6 +2514,109 @@ usage:
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+    int nWindow;
+    int nSimWords;
+    int fVerbose;
+    int fVeryVerbose;
+    // external functions
+    extern int Abc_NtkResynthesize( Abc_Ntk_t * pNtk, int nWindow, int nSimWords, int fVerbose, int fVeryVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    nWindow      = 33;
+    nSimWords    =  8;
+    fVerbose     =  1;
+    fVeryVerbose =  0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WSvwh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'W':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-W\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nWindow = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nWindow < 1 || nWindow > 99 ) 
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nSimWords = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nSimWords < 2 || nSimWords > 256 ) 
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'w':
+            fVeryVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkHasAig(pNtk) )
+    {
+        fprintf( pErr, "This command can only be applied to AIG logic network (run \"aig\").\n" );
+        return 1;
+    }
+
+    // modify the current network
+    if ( !Abc_NtkResynthesize( pNtk, nWindow, nSimWords, fVerbose, fVeryVerbose ) )
+    {
+        fprintf( pErr, "Resynthesis has failed.\n" );
+        return 1;
+    }
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: mfs [-W <NM>] [-S <n>] [-vwh]\n" );
+    fprintf( pErr, "\t          performs resubstitution-based resynthesis with don't-cares\n" );
+    fprintf( pErr, "\t-W <NM> : specifies the windowing paramters (00 < NM <= 99) [default = %d%d]\n", nWindow/10, nWindow%10 );
+    fprintf( pErr, "\t-S <n>  : specifies the number of simulation words (2 <= n <= 256) [default = %d]\n", nSimWords );
+    fprintf( pErr, "\t-v      : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-w      : toggle printout subgraph statistics [default = %s]\n", fVeryVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h      : print the command usage\n");
+    return 1;
+} 
+
 
 /**Function*************************************************************
 
