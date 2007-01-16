@@ -12,9 +12,9 @@
   
   Affiliation [UC Berkeley]
 
-  Date        [Ver. 1.0. Started - June 20, 2005.]
+  Date        [Ver. 1.0. Started - January 15, 2007.]
 
-  Revision    [$Id: resCore.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: resCore.c,v 1.00 2007/01/15 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -65,25 +65,24 @@ int Abc_NtkResynthesize( Abc_Ntk_t * pNtk, int nWindow, int nSimWords, int fVerb
         if ( pObj->Id > nNodesOld )
             break;
         // create the window for this node
-        if ( !Res_WinCompute(pObj, nWindow/10, nWindow%10, pObj->Level - 1, pWin) )
+        if ( !Res_WinCompute(pObj, nWindow/10, nWindow%10, pWin) )
             continue;
+        // collect the divisors
+        Res_WinDivisors( pWin, pObj->Level - 1 );
         // create the AIG for the window
         pAig = Res_WndStrash( pWin );
         // prepare simulation info
-        if ( !Res_SimPrepare( pSim, pAig ) )
+        if ( Res_SimPrepare( pSim, pAig ) )
         {
-            Abc_NtkDelete( pAig );
-            continue;
+            // find resub candidates for the node
+            vFanins = Res_FilterCandidates( pWin, pSim );
+            // check using SAT
+            pFunc = Res_SatFindFunction( pNtk->pManFunc, pWin, vFanins, pAig );
+            // update the network
+            if ( pFunc == NULL )
+                Res_UpdateNetwork( pObj, vFanins, pFunc, pWin->vLevels );
         }
-        // find resub candidates for the node
-        vFanins = Res_FilterCandidates( pWin, pSim );
-        // check using SAT
-        pFunc = Res_SatFindFunction( pNtk->pManFunc, pWin, vFanins, pAig );
         Abc_NtkDelete( pAig );
-        if ( pFunc == NULL )
-            continue;
-        // update the network
-        Res_UpdateNetwork( pObj, vFanins, pFunc );
     }
     Res_WinFree( pWin );
     Res_SimFree( pSim );

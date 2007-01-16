@@ -25,13 +25,15 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+static int Res_UpdateNetworkLevelNew( Abc_Obj_t * pObj );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Incrementally updates level of the nodes.]
 
   Description []
                
@@ -40,8 +42,61 @@
   SeeAlso     []
 
 ***********************************************************************/
-void Res_UpdateNetwork( Abc_Obj_t * pObj, Vec_Ptr_t * vFanins, Hop_Obj_t * pFunc )
+void Res_UpdateNetwork( Abc_Obj_t * pObj, Vec_Ptr_t * vFanins, Hop_Obj_t * pFunc, Vec_Vec_t * vLevels )
 {
+    Abc_Obj_t * pObjNew, * pFanin, * pFanout, * pTemp;
+    int i, k, m;
+    // create the new node
+    pObjNew = Abc_NtkCreateNode( pObj->pNtk );
+    pObjNew->pData = pFunc;
+    Vec_PtrForEachEntry( vFanins, pFanin, i )
+        Abc_ObjAddFanin( pObjNew, pFanin );
+    // replace the old node by the new node
+    pObjNew->Level = pObj->Level;
+    Abc_ObjReplace( pObj, pObjNew );
+    // check if level has changed
+    if ( (int)pObjNew->Level == Res_UpdateNetworkLevelNew(pObjNew) )
+        return;
+    // start the data structure for level update
+    Vec_VecClear( vLevels );
+    Vec_VecPush( vLevels, pObjNew->Level, pObjNew );
+    pObjNew->fMarkA = 1;
+    // recursively update level
+    Vec_VecForEachEntryStart( vLevels, pTemp, i, k, pObjNew->Level )
+    {
+        pTemp->fMarkA = 0;
+        pTemp->Level = Res_UpdateNetworkLevelNew( pTemp );
+        // if the level did not change, to need to check the fanout levels
+        if ( (int)pTemp->Level == i )
+            continue;
+        // schedule fanout for level update
+        Abc_ObjForEachFanout( pTemp, pFanout, m )
+            if ( !Abc_ObjIsCo(pFanout) && !pFanout->fMarkA )
+            {
+                Vec_VecPush( vLevels, pFanout->Level, pFanout );
+                pFanout->fMarkA = 1;
+            }
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the level of the node using its fanin levels.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Res_UpdateNetworkLevelNew( Abc_Obj_t * pObj )
+{
+    Abc_Obj_t * pFanin;
+    int i, Level = 0;
+    Abc_ObjForEachFanin( pObj, pFanin, i )
+        Level = ABC_MAX( Level, (int)pFanin->Level );
+    return Level + 1;
 }
 
 ////////////////////////////////////////////////////////////////////////

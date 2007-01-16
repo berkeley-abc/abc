@@ -74,64 +74,20 @@ void Res_WinFree( Res_Win_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Adds one node to the window.]
+  Synopsis    [Collects nodes in the limited TFI of the node.]
 
-  Description []
+  Description [Marks the collected nodes.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Res_WinAddNode( Res_Win_t * p, Abc_Obj_t * pObj )
-{
-    assert( !pObj->fMarkA );
-    pObj->fMarkA = 1;
-    Vec_VecPush( p->vLevels, pObj->Level, pObj );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Expands the frontier by one level.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Res_WinCollectTfiOne( Res_Win_t * p, int Level )
+void Res_WinCollectNodeTfi( Res_Win_t * p )
 {
     Vec_Ptr_t * vFront;
     Abc_Obj_t * pObj, * pFanin;
-    int i, k;
-    assert( Level > 0 );
-    vFront = Vec_VecEntry( p->vLevels, Level );
-    Vec_PtrForEachEntry( vFront, pObj, i )
-    {
-        Abc_ObjForEachFanin( pObj, pFanin, k )
-        {
-            if ( !pFanin->fMarkA )
-                Res_WinAddNode( p, pFanin );
-        }
-    }
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Collects nodes in the limited TFI of the node.]
-
-  Description [Marks the collected nodes with the current trav ID.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Res_WinCollectTfi( Res_Win_t * p )
-{
-    int i;
+    int i, k, m;
     // expand storage for levels
     if ( Vec_VecSize( p->vLevels ) <= (int)p->pNode->Level + p->nWinTfoMax )
         Vec_VecExpand( p->vLevels, (int)p->pNode->Level + p->nWinTfoMax );
@@ -139,8 +95,39 @@ void Res_WinCollectTfi( Res_Win_t * p )
     Vec_VecClear( p->vLevels );
     Res_WinAddNode( p, p->pNode );
     // add one level at a time
-    for ( i = p->pNode->Level; i > p->nLevLeaves; i-- )
-        Res_WinCollectTfiOne( p, i );
+    Vec_VecForEachLevelReverseStartStop( p->vLevels, vFront, i, p->pNode->Level, p->nLevLeaves -1 )
+    {
+        Vec_PtrForEachEntry( vFront, pObj, k )
+            Abc_ObjForEachFanin( pObj, pFanin, m )
+                if ( !pFanin->fMarkA )
+                    Res_WinAddNode( p, pFanin );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collect all the nodes that fanin into the window nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Res_WinCollectLeaves( Res_Win_t * p )
+{
+    Vec_Ptr_t * vLevel;
+    Abc_Obj_t * pObj;
+    int i, k;
+    // add the leaves
+    Vec_PtrClear( p->vLeaves );
+    // collect the nodes below the given level
+    Vec_VecForEachEntryStartStop( p->vLevels, pObj, i, k, 0, p->nLevLeaves )
+        Vec_PtrPush( p->vLeaves, pObj );
+    // remove leaves from the set
+    Vec_VecForEachLevelStartStop( p->vLevels, vLevel, i, 0, p->nLevLeaves )
+        Vec_PtrClear( vLevel );
 }
 
 /**Function*************************************************************
@@ -154,7 +141,7 @@ void Res_WinCollectTfi( Res_Win_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Res_WinSweepTfo_rec( Abc_Obj_t * pObj, int nLevelLimit, Abc_Obj_t * pNode )
+void Res_WinSweepLeafTfo_rec( Abc_Obj_t * pObj, int nLevelLimit, Abc_Obj_t * pNode )
 {
     Abc_Obj_t * pFanout;
     int i;
@@ -164,7 +151,7 @@ void Res_WinSweepTfo_rec( Abc_Obj_t * pObj, int nLevelLimit, Abc_Obj_t * pNode )
         return;
     Abc_NodeSetTravIdCurrent( pObj );
     Abc_ObjForEachFanout( pObj, pFanout, i )
-        Res_WinSweepTfo_rec( pFanout, nLevelLimit, pNode );
+        Res_WinSweepLeafTfo_rec( pFanout, nLevelLimit, pNode );
 }
 
 /**Function*************************************************************
@@ -178,13 +165,13 @@ void Res_WinSweepTfo_rec( Abc_Obj_t * pObj, int nLevelLimit, Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-void Res_WinSweepTfo( Res_Win_t * p )
+void Res_WinSweepLeafTfo( Res_Win_t * p )
 {
     Abc_Obj_t * pObj;
-    int i, k;
+    int i;
     Abc_NtkIncrementTravId( p->pNode->pNtk );
-    Vec_VecForEachEntryStartStop( p->vLevels, pObj, i, k, 0, p->nLevLeaves )
-        Res_WinSweepTfo_rec( pObj, p->pNode->Level + p->nWinTfoMax, p->pNode );
+    Vec_PtrForEachEntry( p->vLeaves, pObj, i )
+        Res_WinSweepLeafTfo_rec( pObj, p->pNode->Level + p->nWinTfoMax, p->pNode );
 }
 
 /**Function*************************************************************
@@ -239,7 +226,7 @@ void Res_WinCollectRoots( Res_Win_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Recursively augments the window.]
+  Synopsis    [Recursively adds missing nodes and leaves.]
 
   Description []
                
@@ -252,10 +239,14 @@ void Res_WinAddMissing_rec( Res_Win_t * p, Abc_Obj_t * pObj )
 {
     Abc_Obj_t * pFanin;
     int i;
-    if ( !Abc_NodeIsTravIdCurrent(pObj) )
-        return;
     if ( pObj->fMarkA )
         return;
+    if ( !Abc_NodeIsTravIdCurrent(pObj) )
+    {
+        Vec_PtrPush( p->vLeaves, pObj );
+        pObj->fMarkA = 1;
+        return;
+    }
     Res_WinAddNode( p, pObj );
     // visit the fanins of the node
     Abc_ObjForEachFanin( pObj, pFanin, i )
@@ -264,7 +255,7 @@ void Res_WinAddMissing_rec( Res_Win_t * p, Abc_Obj_t * pObj )
 
 /**Function*************************************************************
 
-  Synopsis    [Adds to the window visited nodes in the TFI of the roots.]
+  Synopsis    [Adds to the window nodes and leaves in the TFI of the roots.]
 
   Description []
                
@@ -283,7 +274,7 @@ void Res_WinAddMissing( Res_Win_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Collect all the nodes that fanin into the window nodes.]
+  Synopsis    [Unmarks the leaves and nodes of the window.]
 
   Description []
                
@@ -292,32 +283,19 @@ void Res_WinAddMissing( Res_Win_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Res_WinCollectLeaves( Res_Win_t * p )
+void Res_WinUnmark( Res_Win_t * p )
 {
-    Abc_Obj_t * pObj, * pFanin;
-    int i, k, f;
-    // add the leaves
-    Vec_PtrClear( p->vLeaves );
-    // collect the nodes below the given level
-    Vec_VecForEachEntryStartStop( p->vLevels, pObj, i, k, 0, p->nLevLeaves )
-        Vec_PtrPush( p->vLeaves, pObj );
-    // add to leaves the fanins of the nodes above the given level
-    Vec_VecForEachEntryStart( p->vLevels, pObj, i, k, p->nLevLeaves + 1 )
-    {
-        Abc_ObjForEachFanin( pObj, pFanin, f )
-        {
-            if ( !pFanin->fMarkA )
-            {
-                pFanin->fMarkA = 1;
-                Vec_PtrPush( p->vLeaves, pFanin );
-            }
-        }
-    }
+    Abc_Obj_t * pObj;
+    int i, k;
+    Vec_VecForEachEntry( p->vLevels, pObj, i, k )
+        pObj->fMarkA = 0;
+    Vec_PtrForEachEntry( p->vLeaves, pObj, i )
+        pObj->fMarkA = 0;
 }
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Labels the TFO of the node with the current trav ID.]
 
   Description []
                
@@ -329,83 +307,7 @@ void Res_WinCollectLeaves( Res_Win_t * p )
 void Res_WinVisitNodeTfo( Res_Win_t * p )
 {
     // mark the TFO of the node
-    Abc_NtkIncrementTravId( p->pNode->pNtk );
-    Res_WinSweepTfo_rec( p->pNode, p->nLevDivMax, NULL );
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Res_WinCollectDivisors( Res_Win_t * p )
-{
-    Abc_Obj_t * pObj, * pFanout, * pFanin;
-    int i, k, f, m;
-    // mark the TFO of the node
-    Res_WinVisitNodeTfo( p );
-    // go through all the legal levels and check if their fanouts can be divisors
-    Vec_VecForEachEntryStartStop( p->vLevels, pObj, i, k, 0, p->nLevDivMax - 1 )
-    {
-        Abc_ObjForEachFanout( pObj, pFanout, f )
-        {
-            // skip COs
-            if ( !Abc_ObjIsNode(pFanout) ) 
-                continue;
-            // skip nodes in the TFO of node
-            if ( Abc_NodeIsTravIdCurrent(pFanout) )
-                continue;
-            // skip nodes that are already added
-            if ( pFanout->fMarkA )
-                continue;
-            // skip nodes with large level
-            if ( (int)pFanout->Level > p->nLevDivMax )
-                continue;
-            // skip nodes whose fanins are not in the cone
-            Abc_ObjForEachFanin( pFanout, pFanin, m )
-                if ( !pFanin->fMarkA )
-                    break;
-            if ( m < Abc_ObjFaninNum(pFanin) )
-                continue;
-            // add the node
-            Res_WinAddNode( p, pFanout );
-        }
-    }
-    // collect the divisors below the line
-    Vec_PtrClear( p->vDivs );
-    Vec_VecForEachEntryStartStop( p->vLevels, pObj, i, k, 0, p->nLevDivMax )
-        Vec_PtrPush( p->vDivs, pObj );
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Res_WinUnmark( Res_Win_t * p )
-{
-    Vec_Ptr_t * vLevel;
-    Abc_Obj_t * pObj;
-    int i, k;
-    Vec_VecForEachEntry( p->vLevels, pObj, i, k )
-        pObj->fMarkA = 0;
-    Vec_PtrForEachEntry( p->vLeaves, pObj, i )
-        pObj->fMarkA = 0;
-    // remove leaves from the set
-    Vec_VecForEachLevelStartStop( p->vLevels, vLevel, i, 0, p->nLevLeaves )
-        Vec_PtrClear( vLevel );
+    Res_WinSweepLeafTfo_rec( p->pNode, p->nLevDivMax, NULL );
 }
 
 /**Function*************************************************************
@@ -419,7 +321,7 @@ void Res_WinUnmark( Res_Win_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Res_WinCompute( Abc_Obj_t * pNode, int nWinTfiMax, int nWinTfoMax, int nLevDivMax, Res_Win_t * p )
+int Res_WinCompute( Abc_Obj_t * pNode, int nWinTfiMax, int nWinTfoMax, Res_Win_t * p )
 {
     assert( Abc_ObjIsNode(pNode) );
     assert( nWinTfiMax > 0 && nWinTfoMax > 0 );
@@ -427,23 +329,19 @@ int Res_WinCompute( Abc_Obj_t * pNode, int nWinTfiMax, int nWinTfoMax, int nLevD
     p->pNode = pNode;
     p->nWinTfiMax = nWinTfiMax;
     p->nWinTfoMax = nWinTfoMax;
-    p->nLevDivMax = nLevDivMax;
     p->nLevLeaves = ABC_MAX( 0, p->pNode->Level - p->nWinTfiMax - 1 );
-    // collect the nodes in TFI cone of pNode down to the given level (nWinTfiMax)
-    Res_WinCollectTfi( p );
-    // mark the TFO of the collected nodes up to the given level (nWinTfoMax)
-    Res_WinSweepTfo( p );
+    p->nLevDivMax = 0;
+    Vec_PtrClear( p->vDivs );
+    // collect the nodes in TFI cone of pNode above the level of leaves (p->nLevLeaves)
+    Res_WinCollectNodeTfi( p );
+    // find the leaves of the window
+    Res_WinCollectLeaves( p );
+    // mark the TFO of the collected nodes up to the given level (p->pNode->Level + p->nWinTfoMax)
+    Res_WinSweepLeafTfo( p );
     // find the roots of the window
     Res_WinCollectRoots( p );
     // add the nodes in the TFI of the roots that are not yet in the window
     Res_WinAddMissing( p );
-    // find the leaves of the window
-    Res_WinCollectLeaves( p );
-    // collect the divisors up to the given maximum divisor level (nLevDivMax)
-    if ( nLevDivMax >= 0 )
-        Res_WinCollectDivisors( p );
-    else
-        Vec_PtrClear( p->vDivs );
     // unmark window nodes
     Res_WinUnmark( p );
     return 1;

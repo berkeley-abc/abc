@@ -1666,6 +1666,10 @@ SOURCE=.\src\opt\res\resCore.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\opt\res\resDivs.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\opt\res\resFilter.c
 # End Source File
 # Begin Source File

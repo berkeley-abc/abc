@@ -221,7 +221,8 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect )
     else
         fMode = -1;
 
-    assert( Abc_NtkIsBddLogic(pNtk) ); 
+    assert( Abc_NtkIsBddLogic(pNtk) );
+    if ( dd->size > 0 )
     Cudd_zddVarsFromBddVars( dd, 2 );
     // create the new manager
     pManNew = Extra_MmFlexStart();

@@ -1,4 +1,5 @@
 SRC +=  src/opt/res/resCore.c \
+    src/opt/res/resDivs.c \
     src/opt/res/resFilter.c \
     src/opt/res/resSat.c \
     src/opt/res/resSim.c \

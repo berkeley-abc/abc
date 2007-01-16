@@ -6,7 +6,7 @@
 
   PackageName [Resynthesis package.]
 
-  Synopsis    []
+  Synopsis    [Filtering resubstitution candidates.]
 
   Author      [Alan Mishchenko]
   
@@ -42,6 +42,23 @@
 ***********************************************************************/
 Vec_Ptr_t * Res_FilterCandidates( Res_Win_t * pWin, Res_Sim_t * pSim )
 {
+    unsigned * pInfo;
+    Abc_Obj_t * pFanin;
+    int i, RetValue;
+    // check that the info the node is one
+    pInfo = Vec_PtrEntry( pSim->vOuts, 1 );
+    RetValue = Abc_InfoIsOne( pInfo, pSim->nWordsOut );
+    if ( RetValue == 0 )
+        printf( "Failed 1!" );
+    // collect the fanin info
+    pInfo = Vec_PtrEntry( pSim->vOuts, 0 );
+    Abc_InfoClear( pInfo, pSim->nWordsOut );
+    Abc_ObjForEachFanin( pWin->pNode, pFanin, i )
+        Abc_InfoOr( pInfo, Vec_PtrEntry( pSim->vOuts, 2+i ), pSim->nWordsOut );
+    // check that the simulation info is constant 1
+    RetValue = Abc_InfoIsOne( pInfo, pSim->nWordsOut );
+    if ( RetValue == 0 )
+        printf( "Failed 2!" );
     return NULL;
 }
 

@@ -263,7 +263,7 @@ void Abc_ObjReplace( Abc_Obj_t * pNodeOld, Abc_Obj_t * pNodeNew )
     // transfer the fanouts to the old node
     Abc_ObjTransferFanout( pNodeOld, pNodeNew );
     // remove the old node
-    Abc_NtkDeleteObj( pNodeOld );
+    Abc_NtkDeleteObj_rec( pNodeOld, 1 );
 }
 
 /**Function*************************************************************

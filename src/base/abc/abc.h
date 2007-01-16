@@ -232,6 +232,16 @@ static inline int         Abc_TruthWordNum( int nVars )              { return nV
 static inline int         Abc_InfoHasBit( unsigned * p, int i )      { return (p[(i)>>5] & (1<<((i) & 31))) > 0;    }
 static inline void        Abc_InfoSetBit( unsigned * p, int i )      { p[(i)>>5] |= (1<<((i) & 31));                }
 static inline void        Abc_InfoXorBit( unsigned * p, int i )      { p[(i)>>5] ^= (1<<((i) & 31));                }
+static inline unsigned    Abc_InfoRandom()                           { return ((((unsigned)rand()) << 24) ^ (((unsigned)rand()) << 12) ^ ((unsigned)rand())); } // #define RAND_MAX 0x7fff
+static inline void        Abc_InfoClear( unsigned * p, int nWords )  { memset( p, 0, sizeof(unsigned) * nWords );   } 
+static inline void        Abc_InfoFill( unsigned * p, int nWords )   { memset( p, 0xff, sizeof(unsigned) * nWords );} 
+static inline void        Abc_InfoNot( unsigned * p, int nWords )    { int i; for ( i = nWords - 1; i >= 0; i-- ) p[i] = ~p[i];   } 
+static inline int         Abc_InfoIsZero( unsigned * p, int nWords ) { int i; for ( i = nWords - 1; i >= 0; i-- ) if ( p[i] ) return 0; return 1;  } 
+static inline int         Abc_InfoIsOne( unsigned * p, int nWords )  { int i; for ( i = nWords - 1; i >= 0; i-- ) if ( !p[i] ) return 0; return 1; } 
+static inline void        Abc_InfoCopy( unsigned * p, unsigned * q, int nWords )  { int i; for ( i = nWords - 1; i >= 0; i-- ) p[i] = q[i];   } 
+static inline void        Abc_InfoAnd( unsigned * p, unsigned * q, int nWords )   { int i; for ( i = nWords - 1; i >= 0; i-- ) p[i] &= q[i];  } 
+static inline void        Abc_InfoOr( unsigned * p, unsigned * q, int nWords )    { int i; for ( i = nWords - 1; i >= 0; i-- ) p[i] |= q[i];  } 
+static inline void        Abc_InfoXor( unsigned * p, unsigned * q, int nWords )   { int i; for ( i = nWords - 1; i >= 0; i-- ) p[i] ^= q[i];  } 
 
 // checking the network type
 static inline bool        Abc_NtkIsNetlist( Abc_Ntk_t * pNtk )       { return pNtk->ntkType == ABC_NTK_NETLIST;     }

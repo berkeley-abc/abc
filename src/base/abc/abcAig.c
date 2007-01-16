@@ -139,6 +139,7 @@ Abc_Aig_t * Abc_AigAlloc( Abc_Ntk_t * pNtkAig )
     assert( pNtkAig->vObjs->nSize == 0 );
     pMan->pConst1 = Abc_NtkCreateObj( pNtkAig, ABC_OBJ_NODE );
     pMan->pConst1->Type = ABC_OBJ_CONST1;
+    pMan->pConst1->fPhase = 1;
     pNtkAig->nObjCounts[ABC_OBJ_NODE]--;
     // save the current network
     pMan->pNtkAig = pNtkAig;

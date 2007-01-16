@@ -43,8 +43,8 @@ struct Res_Win_t_
     // the general data
     int              nWinTfiMax; // the fanin levels
     int              nWinTfoMax; // the fanout levels
-    int              nLevDivMax; // the maximum divisor level
     int              nLevLeaves; // the level where leaves begin
+    int              nLevDivMax; // the maximum divisor level
     Abc_Obj_t *      pNode;      // the node in the center
     // the window data
     Vec_Vec_t *      vLevels;    // nodes by level
@@ -73,6 +73,14 @@ struct Res_Sim_t_
     Vec_Vec_t *      vCands;     // resubstitution candidates
 };
 
+// adds one node to the window
+static inline void Res_WinAddNode( Res_Win_t * p, Abc_Obj_t * pObj )
+{
+    assert( !pObj->fMarkA );
+    pObj->fMarkA = 1;
+    Vec_VecPush( p->vLevels, pObj->Level, pObj );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
@@ -81,6 +89,9 @@ struct Res_Sim_t_
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+/*=== resDivs.c ==========================================================*/
+extern void          Res_WinDivisors( Res_Win_t * p, int nLevDivMax );
+extern int           Res_WinVisitMffc( Res_Win_t * p );
 /*=== resFilter.c ==========================================================*/
 extern Vec_Ptr_t *   Res_FilterCandidates( Res_Win_t * pWin, Res_Sim_t * pSim );
 /*=== resSat.c ==========================================================*/
@@ -92,11 +103,11 @@ extern int           Res_SimPrepare( Res_Sim_t * p, Abc_Ntk_t * pAig );
 /*=== resStrash.c ==========================================================*/
 extern Abc_Ntk_t *   Res_WndStrash( Res_Win_t * p );
 /*=== resWnd.c ==========================================================*/
-extern void          Res_UpdateNetwork( Abc_Obj_t * pObj, Vec_Ptr_t * vFanins, Hop_Obj_t * pFunc );
+extern void          Res_UpdateNetwork( Abc_Obj_t * pObj, Vec_Ptr_t * vFanins, Hop_Obj_t * pFunc, Vec_Vec_t * vLevels );
 /*=== resWnd.c ==========================================================*/
 extern Res_Win_t *   Res_WinAlloc();
 extern void          Res_WinFree( Res_Win_t * p );
-extern int           Res_WinCompute( Abc_Obj_t * pNode, int nWinTfiMax, int nWinTfoMax, int nLevDivMax, Res_Win_t * p );
+extern int           Res_WinCompute( Abc_Obj_t * pNode, int nWinTfiMax, int nWinTfoMax, Res_Win_t * p );
 extern void          Res_WinVisitNodeTfo( Res_Win_t * p );
 
 

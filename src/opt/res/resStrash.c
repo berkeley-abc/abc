@@ -6,7 +6,7 @@
 
   PackageName [Resynthesis package.]
 
-  Synopsis    [Strashes the window.]
+  Synopsis    [Structural hashing of the nodes in the window.]
 
   Author      [Alan Mishchenko]
   
@@ -52,7 +52,6 @@ Abc_Ntk_t * Res_WndStrash( Res_Win_t * p )
     assert( Abc_NtkHasAig(p->pNode->pNtk) );
     // create the network
     pAig = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG, 1 );
-    // duplicate the name and the spec
     pAig->pName = Extra_UtilStrsav( "window" );
     // create the inputs
     Vec_PtrForEachEntry( p->vLeaves, pObj, i )
@@ -61,7 +60,8 @@ Abc_Ntk_t * Res_WndStrash( Res_Win_t * p )
     Vec_VecForEachEntryStartStop( p->vLevels, pObj, i, k, p->nLevLeaves + 1, (int)p->pNode->Level + p->nWinTfoMax )
     {
         pObj->pCopy = Abc_ConvertAigToAig( pAig, pObj );
-        pObj->pCopy = Abc_ObjNotCond( pObj->pCopy, pObj == p->pNode );
+        if ( pObj == p->pNode )
+            pObj->pCopy = Abc_ObjNot( pObj->pCopy );
     }
     // collect the PO outputs
     vPairs = Vec_PtrAlloc( 2 * Vec_PtrSize(p->vRoots) );
@@ -71,6 +71,7 @@ Abc_Ntk_t * Res_WndStrash( Res_Win_t * p )
         Vec_PtrPush( vPairs, NULL );
     }
     // mark the TFO of the node
+    Abc_NtkIncrementTravId( p->pNode->pNtk );
     Res_WinVisitNodeTfo( p );
     // redo strashing in the TFO
     p->pNode->pCopy = Abc_ObjNot( p->pNode->pCopy );

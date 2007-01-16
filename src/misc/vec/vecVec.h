@@ -56,6 +56,8 @@ struct Vec_Vec_t_
     for ( i = LevelStart; (i <= LevelStop) && (((vVec) = (Vec_Ptr_t*)Vec_VecEntry(vGlob, i)), 1); i++ )
 #define Vec_VecForEachLevelReverse( vGlob, vVec, i )                                          \
     for ( i = Vec_VecSize(vGlob) - 1; (i >= 0) && (((vVec) = (Vec_Ptr_t*)Vec_VecEntry(vGlob, i)), 1); i-- )
+#define Vec_VecForEachLevelReverseStartStop( vGlob, vVec, i, LevelStart, LevelStop )                                          \
+    for ( i = LevelStart; (i >= LevelStop) && (((vVec) = (Vec_Ptr_t*)Vec_VecEntry(vGlob, i)), 1); i-- )
 
 // iteratores through entries
 #define Vec_VecForEachEntry( vGlob, pEntry, i, k )                                            \
