@@ -29,6 +29,7 @@
 
 static int Abc_NtkRenodeEvalBdd( If_Cut_t * pCut );
 static int Abc_NtkRenodeEvalSop( If_Cut_t * pCut );
+static int Abc_NtkRenodeEvalCnf( If_Cut_t * pCut );
 static int Abc_NtkRenodeEvalAig( If_Cut_t * pCut );
 
 static reo_man * s_pReo      = NULL;
@@ -50,7 +51,7 @@ static Vec_Int_t * s_vMemory = NULL;
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int nCubeMax, int fArea, int fUseBdds, int fUseSops, int fVerbose )
+Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int nCubeMax, int nFlowIters, int nAreaIters, int fArea, int fUseBdds, int fUseSops, int fUseCnfs, int fVerbose )
 {
     extern Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars );
     If_Par_t Pars, * pPars = &Pars;
@@ -64,6 +65,8 @@ Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int nCubeMax, int fA
     // user-controlable paramters
     pPars->nLutSize    =  nFaninMax;
     pPars->nCutsMax    =  nCubeMax;
+    pPars->nFlowIters  =  nFlowIters;
+    pPars->nAreaIters  =  nAreaIters;
     pPars->DelayTarget = -1;
     pPars->fPreprocess =  1;
     pPars->fArea       =  fArea;
@@ -81,10 +84,16 @@ Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int nCubeMax, int fA
     pPars->pTimesArr   =  NULL;   
     pPars->fUseBdds    =  fUseBdds;
     pPars->fUseSops    =  fUseSops;
+    pPars->fUseCnfs    =  fUseCnfs;
     if ( fUseBdds )
         pPars->pFuncCost = Abc_NtkRenodeEvalBdd;
     else if ( fUseSops )
         pPars->pFuncCost = Abc_NtkRenodeEvalSop;
+    else if ( fUseCnfs )
+    {
+        pPars->fArea = 1;
+        pPars->pFuncCost = Abc_NtkRenodeEvalCnf;
+    }
     else
         pPars->pFuncCost = Abc_NtkRenodeEvalAig;
 
@@ -172,6 +181,39 @@ int Abc_NtkRenodeEvalSop( If_Cut_t * pCut )
         return ABC_INFINITY;
     assert( RetValue == 0 || RetValue == 1 );
     return Vec_IntSize( s_vMemory );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the cost based on two ISOPs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkRenodeEvalCnf( If_Cut_t * pCut )
+{
+    int i, RetValue, nClauses;
+    for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
+        pCut->pPerm[i] = 1;
+    // compute ISOP for the positive phase
+    RetValue = Kit_TruthIsop( If_CutTruth(pCut), If_CutLeaveNum(pCut), s_vMemory, 0 );
+    if ( RetValue == -1 )
+        return ABC_INFINITY;
+    assert( RetValue == 0 || RetValue == 1 );
+    nClauses = Vec_IntSize( s_vMemory );
+    // compute ISOP for the negative phase
+    Kit_TruthNot( If_CutTruth(pCut), If_CutTruth(pCut), If_CutLeaveNum(pCut) );
+    RetValue = Kit_TruthIsop( If_CutTruth(pCut), If_CutLeaveNum(pCut), s_vMemory, 0 );
+    Kit_TruthNot( If_CutTruth(pCut), If_CutTruth(pCut), If_CutLeaveNum(pCut) );
+    if ( RetValue == -1 )
+        return ABC_INFINITY;
+    assert( RetValue == 0 || RetValue == 1 );
+    nClauses += Vec_IntSize( s_vMemory );
+    return nClauses;
 }
 
 /**Function*************************************************************

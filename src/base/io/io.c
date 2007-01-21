@@ -1212,12 +1212,17 @@ int IoCommandWriteCnf( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     char * pFileName;
     int c;
+    int fAllPrimes;
 
+    fAllPrimes = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ph" ) ) != EOF )
     {
         switch ( c )
         {
+            case 'p':
+                fAllPrimes ^= 1;
+                break;
             case 'h':
                 goto usage;
             default:
@@ -1228,13 +1233,23 @@ int IoCommandWriteCnf( Abc_Frame_t * pAbc, int argc, char **argv )
         goto usage;
     // get the output file name
     pFileName = argv[globalUtilOptind];
+    // check if the feature will be used
+    if ( Abc_NtkIsStrash(pAbc->pNtkCur) && fAllPrimes )
+    {
+        fAllPrimes = 0;
+        printf( "Warning: Selected option to write all primes has no effect when deriving CNF from AIG.\n" );
+    }
     // call the corresponding file writer
-    Io_Write( pAbc->pNtkCur, pFileName, IO_FILE_CNF );
+    if ( fAllPrimes )
+        Io_WriteCnf( pAbc->pNtkCur, pFileName, 1 );
+    else
+        Io_Write( pAbc->pNtkCur, pFileName, IO_FILE_CNF );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: write_cnf [-h] <file>\n" );
+    fprintf( pAbc->Err, "usage: write_cnf [-ph] <file>\n" );
     fprintf( pAbc->Err, "\t         write the miter cone into a CNF file\n" );
+    fprintf( pAbc->Err, "\t-p     : toggle using all primes to enhance implicativity [default = %s]\n", fAllPrimes? "yes" : "no" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
     return 1;

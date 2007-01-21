@@ -1039,7 +1039,7 @@ int Abc_NtkDemiter( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
-  Synopsis    [ORs the outputs.]
+  Synopsis    [Computes OR or AND of the POs.]
 
   Description []
 
@@ -1048,16 +1048,23 @@ int Abc_NtkDemiter( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkOrPos( Abc_Ntk_t * pNtk )
+int Abc_NtkCombinePos( Abc_Ntk_t * pNtk, int fAnd )
 {
     Abc_Obj_t * pNode, * pMiter;
     int i;
     assert( Abc_NtkIsStrash(pNtk) );
     assert( Abc_NtkLatchNum(pNtk) == 0 );
-    // OR the POs
-    pMiter = Abc_ObjNot( Abc_AigConst1(pNtk) );
+    // start the result
+    if ( fAnd )
+        pMiter = Abc_AigConst1(pNtk);
+    else
+        pMiter = Abc_ObjNot( Abc_AigConst1(pNtk) );
+    // perform operations on the POs
     Abc_NtkForEachPo( pNtk, pNode, i )
-        pMiter = Abc_AigOr( pNtk->pManFunc, pMiter, Abc_ObjChild0(pNode) );
+        if ( fAnd )
+            pMiter = Abc_AigAnd( pNtk->pManFunc, pMiter, Abc_ObjChild0(pNode) );
+        else
+            pMiter = Abc_AigOr( pNtk->pManFunc, pMiter, Abc_ObjChild0(pNode) );
     // remove the POs and their names
     for ( i = Abc_NtkPoNum(pNtk) - 1; i >= 0; i-- )
         Abc_NtkDeleteObj( Abc_NtkPo(pNtk, i) );

@@ -90,7 +90,7 @@ ABC_Manager ABC_InitManager()
     // set default parameters for CEC
     Prove_ParamsSetDefault( &mng->Params );
     // set infinite resource limit for the final mitering
-    mng->Params.nMiteringLimitLast = ABC_INFINITY;
+//    mng->Params.nMiteringLimitLast = ABC_INFINITY;
     return mng;
 }
 

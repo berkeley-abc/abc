@@ -24,6 +24,7 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+static solver * Abc_NtkMiterSatCreateLogic( Abc_Ntk_t * pNtk, int fAllPrimes );
 extern Vec_Int_t * Abc_NtkGetCiSatVarNums( Abc_Ntk_t * pNtk );
 static nMuxes;
 
@@ -53,7 +54,6 @@ int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int 
     if ( pNumInspects )
         *pNumInspects = 0;
 
-    assert( Abc_NtkIsStrash(pNtk) );
     assert( Abc_NtkLatchNum(pNtk) == 0 );
 
 //    if ( Abc_NtkPoNum(pNtk) > 1 )
@@ -61,7 +61,7 @@ int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int 
 
     // load clauses into the solver
     clk = clock();
-    pSat = Abc_NtkMiterSatCreate( pNtk, fJFront );
+    pSat = Abc_NtkMiterSatCreate( pNtk, fJFront, 0 );
     if ( pSat == NULL )
         return 1;
 //    printf( "Created SAT problem with %d variable and %d clauses. ", solver_nvars(pSat), solver_nclauses(pSat) );
@@ -120,6 +120,9 @@ int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int 
         *pNumConfs = (int)pSat->solver_stats.conflicts;
     if ( pNumInspects )
         *pNumInspects = (int)pSat->solver_stats.inspects;
+
+Sat_SolverTraceWrite( pSat, NULL, NULL, 0 );
+Sat_SolverTraceStop( pSat );
 
     solver_delete( pSat );
     return RetValue;
@@ -660,14 +663,17 @@ Quits :
   SeeAlso     []
 
 ***********************************************************************/
-solver * Abc_NtkMiterSatCreate( Abc_Ntk_t * pNtk, int fJFront )
+solver * Abc_NtkMiterSatCreate( Abc_Ntk_t * pNtk, int fJFront, int fAllPrimes )
 {
     solver * pSat;
     Abc_Obj_t * pNode;
     int RetValue, i, clk = clock();
 
-    nMuxes = 0;
+    assert( Abc_NtkIsStrash(pNtk) || Abc_NtkIsBddLogic(pNtk) );
+    if ( Abc_NtkIsBddLogic(pNtk) )
+        return Abc_NtkMiterSatCreateLogic(pNtk, fAllPrimes);
 
+    nMuxes = 0;
     pSat = solver_new();
     RetValue = Abc_NtkMiterSatCreateInt( pSat, pNtk, fJFront );
     Abc_NtkForEachObj( pNtk, pNode, i )
@@ -682,6 +688,242 @@ solver * Abc_NtkMiterSatCreate( Abc_Ntk_t * pNtk, int fJFront )
 //    PRT( "Creating solver", clock() - clk );
     return pSat;
 }
+
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Adds clauses for the internal node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NodeAddClauses( solver * pSat, char * pSop0, char * pSop1, Abc_Obj_t * pNode, Vec_Int_t * vVars )
+{
+    Abc_Obj_t * pFanin;
+    int i, c, nFanins;
+    int RetValue;
+    char * pCube;
+
+    nFanins = Abc_ObjFaninNum( pNode );
+    assert( nFanins == Abc_SopGetVarNum( pSop0 ) );
+
+//    if ( nFanins == 0 )
+    if ( Cudd_Regular(pNode->pData) == Cudd_ReadOne(pNode->pNtk->pManFunc) )
+    {
+        vVars->nSize = 0;
+//        if ( Abc_SopIsConst1(pSop1) )
+        if ( !Cudd_IsComplement(pNode->pData) )
+            Vec_IntPush( vVars, toLit(pNode->Id) );
+        else
+            Vec_IntPush( vVars, neg(toLit(pNode->Id)) );
+        RetValue = solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize );
+        if ( !RetValue ) 
+        {
+            printf( "The CNF is trivially UNSAT.\n" );
+            return 0;
+        }
+        return 1;
+    }
+ 
+    // add clauses for the negative phase
+    for ( c = 0; ; c++ )
+    {
+        // get the cube
+        pCube = pSop0 + c * (nFanins + 3);
+        if ( *pCube == 0 )
+            break;
+        // add the clause
+        vVars->nSize = 0;
+        Abc_ObjForEachFanin( pNode, pFanin, i )
+        {
+            if ( pCube[i] == '0' )
+                Vec_IntPush( vVars, toLit(pFanin->Id) );
+            else if ( pCube[i] == '1' )
+                Vec_IntPush( vVars, neg(toLit(pFanin->Id)) );
+        }
+        Vec_IntPush( vVars, neg(toLit(pNode->Id)) );
+        RetValue = solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize );
+        if ( !RetValue ) 
+        {
+            printf( "The CNF is trivially UNSAT.\n" );
+            return 0;
+        }
+    }
+
+    // add clauses for the positive phase
+    for ( c = 0; ; c++ )
+    {
+        // get the cube
+        pCube = pSop1 + c * (nFanins + 3);
+        if ( *pCube == 0 )
+            break;
+        // add the clause
+        vVars->nSize = 0;
+        Abc_ObjForEachFanin( pNode, pFanin, i )
+        {
+            if ( pCube[i] == '0' )
+                Vec_IntPush( vVars, toLit(pFanin->Id) );
+            else if ( pCube[i] == '1' )
+                Vec_IntPush( vVars, neg(toLit(pFanin->Id)) );
+        }
+        Vec_IntPush( vVars, toLit(pNode->Id) );
+        RetValue = solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize );
+        if ( !RetValue ) 
+        {
+            printf( "The CNF is trivially UNSAT.\n" );
+            return 0;
+        }
+    }
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds clauses for the PO node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NodeAddClausesTop( solver * pSat, Abc_Obj_t * pNode, Vec_Int_t * vVars )
+{
+    Abc_Obj_t * pFanin;
+    int RetValue;
+
+    pFanin = Abc_ObjFanin0(pNode);
+    if ( Abc_ObjFaninC0(pNode) )
+    {
+        vVars->nSize = 0;
+        Vec_IntPush( vVars, toLit(pFanin->Id) );
+        Vec_IntPush( vVars, toLit(pNode->Id) );
+        RetValue = solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize );
+        if ( !RetValue ) 
+        {
+            printf( "The CNF is trivially UNSAT.\n" );
+            return 0;
+        }
+
+        vVars->nSize = 0;
+        Vec_IntPush( vVars, neg(toLit(pFanin->Id)) );
+        Vec_IntPush( vVars, neg(toLit(pNode->Id)) );
+        RetValue = solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize );
+        if ( !RetValue ) 
+        {
+            printf( "The CNF is trivially UNSAT.\n" );
+            return 0;
+        }
+    }
+    else
+    {
+        vVars->nSize = 0;
+        Vec_IntPush( vVars, neg(toLit(pFanin->Id)) );
+        Vec_IntPush( vVars, toLit(pNode->Id) );
+        RetValue = solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize );
+        if ( !RetValue ) 
+        {
+            printf( "The CNF is trivially UNSAT.\n" );
+            return 0;
+        }
+
+        vVars->nSize = 0;
+        Vec_IntPush( vVars, toLit(pFanin->Id) );
+        Vec_IntPush( vVars, neg(toLit(pNode->Id)) );
+        RetValue = solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize );
+        if ( !RetValue ) 
+        {
+            printf( "The CNF is trivially UNSAT.\n" );
+            return 0;
+        }
+    }
+
+    vVars->nSize = 0;
+    Vec_IntPush( vVars, toLit(pNode->Id) );
+    RetValue = solver_addclause( pSat, vVars->pArray, vVars->pArray + vVars->nSize );
+    if ( !RetValue ) 
+    {
+        printf( "The CNF is trivially UNSAT.\n" );
+        return 0;
+    }
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sets up the SAT solver.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+solver * Abc_NtkMiterSatCreateLogic( Abc_Ntk_t * pNtk, int fAllPrimes )
+{
+    solver * pSat;
+    Extra_MmFlex_t * pMmFlex;
+    Abc_Obj_t * pNode;
+    Vec_Str_t * vCube;
+    Vec_Int_t * vVars;
+    char * pSop0, * pSop1;
+    int i;
+
+    assert( Abc_NtkIsBddLogic(pNtk) );
+
+    // transfer the IDs to the copy field
+    Abc_NtkForEachPi( pNtk, pNode, i )
+        pNode->pCopy = (void *)pNode->Id;
+
+    // start the data structures
+    pSat    = solver_new();
+    pMmFlex = Extra_MmFlexStart();
+    vCube   = Vec_StrAlloc( 100 );
+    vVars   = Vec_IntAlloc( 100 );
+
+Sat_SolverTraceStart( pSat, "trace.cnf" );
+
+    // add clauses for each internal nodes
+    Abc_NtkForEachNode( pNtk, pNode, i )
+    {
+        // derive SOPs for both phases of the node
+        Abc_NodeBddToCnf( pNode, pMmFlex, vCube, fAllPrimes, &pSop0, &pSop1 );
+        // add the clauses to the solver
+        if ( !Abc_NodeAddClauses( pSat, pSop0, pSop1, pNode, vVars ) )
+        {
+            solver_delete( pSat );
+            pSat = NULL;
+            goto finish;
+        }
+    }
+    // add clauses for each PO
+    Abc_NtkForEachPo( pNtk, pNode, i )
+    {
+        if ( !Abc_NodeAddClausesTop( pSat, pNode, vVars ) )
+        {
+            solver_delete( pSat );
+            pSat = NULL;
+            goto finish;
+        }
+    }
+
+finish:
+    // delete
+    Vec_StrFree( vCube );
+    Vec_IntFree( vVars );
+    Extra_MmFlexStop( pMmFlex );
+    return pSat;
+}
+
+
 
 
 ////////////////////////////////////////////////////////////////////////

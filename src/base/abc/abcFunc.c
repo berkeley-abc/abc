@@ -184,7 +184,7 @@ void Abc_NtkLogicMakeDirectSops( Abc_Ntk_t * pNtk )
         if ( Abc_SopIsComplement(pNode->pData) )
         {
             bFunc = Abc_ConvertSopToBdd( dd, pNode->pData );  Cudd_Ref( bFunc );
-            pNode->pData = Abc_ConvertBddToSop( pNtk->pManFunc, dd, bFunc, bFunc, Abc_ObjFaninNum(pNode), vCube, 1 );
+            pNode->pData = Abc_ConvertBddToSop( pNtk->pManFunc, dd, bFunc, bFunc, Abc_ObjFaninNum(pNode), 0, vCube, 1 );
             Cudd_RecursiveDeref( dd, bFunc );
             assert( !Abc_SopIsComplement(pNode->pData) );
         }
@@ -233,7 +233,7 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect )
     {
         assert( pNode->pData );
         bFunc = pNode->pData;
-        pNode->pNext = (Abc_Obj_t *)Abc_ConvertBddToSop( pManNew, dd, bFunc, bFunc, Abc_ObjFaninNum(pNode), vCube, fMode );
+        pNode->pNext = (Abc_Obj_t *)Abc_ConvertBddToSop( pManNew, dd, bFunc, bFunc, Abc_ObjFaninNum(pNode), 0, vCube, fMode );
         if ( pNode->pNext == NULL )
         {
             Extra_MmFlexStop( pManNew );
@@ -273,7 +273,7 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect )
   SeeAlso     []
 
 ***********************************************************************/
-char * Abc_ConvertBddToSop( Extra_MmFlex_t * pMan, DdManager * dd, DdNode * bFuncOn, DdNode * bFuncOnDc, int nFanins, Vec_Str_t * vCube, int fMode )
+char * Abc_ConvertBddToSop( Extra_MmFlex_t * pMan, DdManager * dd, DdNode * bFuncOn, DdNode * bFuncOnDc, int nFanins, int fAllPrimes, Vec_Str_t * vCube, int fMode )
 {
     int fVerify = 0;
     char * pSop;
@@ -301,6 +301,7 @@ char * Abc_ConvertBddToSop( Extra_MmFlex_t * pMan, DdManager * dd, DdNode * bFun
 
     if ( fMode == -1 )
     { // try both phases
+        assert( fAllPrimes == 0 );
 
         // get the ZDD of the negative polarity
         bCover = Cudd_zddIsop( dd, Cudd_Not(bFuncOnDc), Cudd_Not(bFuncOn), &zCover0 );
@@ -335,20 +336,36 @@ char * Abc_ConvertBddToSop( Extra_MmFlex_t * pMan, DdManager * dd, DdNode * bFun
     else if ( fMode == 0 )
     {
         // get the ZDD of the negative polarity
-        bCover = Cudd_zddIsop( dd, Cudd_Not(bFuncOnDc), Cudd_Not(bFuncOn), &zCover );
-        Cudd_Ref( zCover );
-        Cudd_Ref( bCover );
-        Cudd_RecursiveDeref( dd, bCover );
+        if ( fAllPrimes )
+        {
+            zCover = Extra_zddPrimes( dd, Cudd_Not(bFuncOnDc) ); 
+            Cudd_Ref( zCover );
+        }
+        else
+        {
+            bCover = Cudd_zddIsop( dd, Cudd_Not(bFuncOnDc), Cudd_Not(bFuncOn), &zCover );
+            Cudd_Ref( zCover );
+            Cudd_Ref( bCover );
+            Cudd_RecursiveDeref( dd, bCover );
+        }
         nCubes = Abc_CountZddCubes( dd, zCover );
         fPhase = 0;
     }
     else if ( fMode == 1 )
     {
         // get the ZDD of the positive polarity
-        bCover = Cudd_zddIsop( dd, bFuncOn, bFuncOnDc, &zCover );
-        Cudd_Ref( zCover );
-        Cudd_Ref( bCover );
-        Cudd_RecursiveDeref( dd, bCover );
+        if ( fAllPrimes )
+        {
+            zCover = Extra_zddPrimes( dd, bFuncOnDc ); 
+            Cudd_Ref( zCover );
+        }
+        else
+        {
+            bCover = Cudd_zddIsop( dd, bFuncOn, bFuncOnDc, &zCover );
+            Cudd_Ref( zCover );
+            Cudd_Ref( bCover );
+            Cudd_RecursiveDeref( dd, bCover );
+        }
         nCubes = Abc_CountZddCubes( dd, zCover );
         fPhase = 1;
     }
@@ -462,11 +479,11 @@ int Abc_ConvertZddToSop( DdManager * dd, DdNode * zCover, char * pSop, int nFani
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NodeBddToCnf( Abc_Obj_t * pNode, Extra_MmFlex_t * pMmMan, Vec_Str_t * vCube, char ** ppSop0, char ** ppSop1 )
+void Abc_NodeBddToCnf( Abc_Obj_t * pNode, Extra_MmFlex_t * pMmMan, Vec_Str_t * vCube, int fAllPrimes, char ** ppSop0, char ** ppSop1 )
 {
     assert( Abc_NtkIsBddLogic(pNode->pNtk) ); 
-    *ppSop0 = Abc_ConvertBddToSop( pMmMan, pNode->pNtk->pManFunc, pNode->pData, pNode->pData, Abc_ObjFaninNum(pNode), vCube, 0 );
-    *ppSop1 = Abc_ConvertBddToSop( pMmMan, pNode->pNtk->pManFunc, pNode->pData, pNode->pData, Abc_ObjFaninNum(pNode), vCube, 1 );
+    *ppSop0 = Abc_ConvertBddToSop( pMmMan, pNode->pNtk->pManFunc, pNode->pData, pNode->pData, Abc_ObjFaninNum(pNode), fAllPrimes, vCube, 0 );
+    *ppSop1 = Abc_ConvertBddToSop( pMmMan, pNode->pNtk->pManFunc, pNode->pData, pNode->pData, Abc_ObjFaninNum(pNode), fAllPrimes, vCube, 1 );
 }
 
 

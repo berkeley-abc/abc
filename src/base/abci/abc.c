@@ -72,6 +72,7 @@ static int Abc_CommandComb           ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandMiter          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDemiter        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandOrPos          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAndPos         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAppend         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFrames         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSop            ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -207,6 +208,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "miter",         Abc_CommandMiter,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "demiter",       Abc_CommandDemiter,          1 );
     Cmd_CommandAdd( pAbc, "Various",      "orpos",         Abc_CommandOrPos,            1 );
+    Cmd_CommandAdd( pAbc, "Various",      "andpos",        Abc_CommandAndPos,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "append",        Abc_CommandAppend,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "frames",        Abc_CommandFrames,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "sop",           Abc_CommandSop,              0 );
@@ -2038,25 +2040,30 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
     int nLutSize, nCutsMax, c;
+    int nFlowIters, nAreaIters;
     int fArea;
     int fUseBdds;
     int fUseSops;
+    int fUseCnfs;
     int fVerbose;
-    extern Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nLutSize, int nCutsMax, int fArea, int fUseBdds, int fUseSops, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nLutSize, int nCutsMax, int nFlowIters, int nAreaIters, int fArea, int fUseBdds, int fUseSops, int fUseCnfs, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nLutSize  =  8;
-    nCutsMax  =  5;
-    fArea     =  0;
-    fUseBdds  =  0;
-    fUseSops  =  0;
-    fVerbose  =  0;
+    nLutSize   =  8;
+    nCutsMax   =  5;
+    nFlowIters =  1;
+    nAreaIters =  1;
+    fArea      =  0;
+    fUseBdds   =  0;
+    fUseSops   =  0;
+    fUseCnfs   =  0;
+    fVerbose   =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCabsvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAabscvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -2082,6 +2089,28 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nCutsMax < 0 ) 
                 goto usage;
             break;
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-F\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nFlowIters = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFlowIters < 0 ) 
+                goto usage;
+            break;
+        case 'A':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-A\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nAreaIters = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nAreaIters < 0 ) 
+                goto usage;
+            break;
         case 'a':
             fArea ^= 1;
             break;
@@ -2090,6 +2119,9 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 's':
             fUseSops ^= 1;
+            break;
+        case 'c':
+            fUseCnfs ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -2101,9 +2133,9 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
 
-    if ( fUseBdds && fUseSops )
+    if ( fUseBdds && fUseSops || fUseBdds && fUseCnfs || fUseSops && fUseCnfs )
     {
-        fprintf( pErr, "Cannot optimize both BDDs and SOPs at the same time.\n" );
+        fprintf( pErr, "Cannot optimize two parameters at the same time.\n" );
         return 1;
     }
 
@@ -2131,7 +2163,7 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    pNtkRes = Abc_NtkRenode( pNtk, nLutSize, nCutsMax, fArea, fUseBdds, fUseSops, fVerbose );
+    pNtkRes = Abc_NtkRenode( pNtk, nLutSize, nCutsMax, nFlowIters, nAreaIters, fArea, fUseBdds, fUseSops, fUseCnfs, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Renoding has failed.\n" );
@@ -2142,13 +2174,16 @@ int Abc_CommandRenode( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: renode [-K num] [-C num] [-sbav]\n" );
+    fprintf( pErr, "usage: renode [-K num] [-C num] [-F num] [-A num] [-sbcav]\n" );
     fprintf( pErr, "\t          transforms the AIG into a logic network with larger nodes\n" );
     fprintf( pErr, "\t          while minimizing the number of FF literals of the node SOPs\n" );
     fprintf( pErr, "\t-K num  : the max cut size for renoding (2 < num < %d) [default = %d]\n", IF_MAX_FUNC_LUTSIZE+1, nLutSize );
     fprintf( pErr, "\t-C num  : the max number of cuts used at a node (1 < num < 2^12) [default = %d]\n", nCutsMax );
+    fprintf( pErr, "\t-F num  : the number of area flow recovery iterations (num >= 0) [default = %d]\n", nFlowIters );
+    fprintf( pErr, "\t-A num  : the number of exact area recovery iterations (num >= 0) [default = %d]\n", nAreaIters );
     fprintf( pErr, "\t-s      : toggles minimizing SOP cubes instead of FF lits [default = %s]\n", fUseSops? "yes": "no" );
     fprintf( pErr, "\t-b      : toggles minimizing BDD nodes instead of FF lits [default = %s]\n", fUseBdds? "yes": "no" );
+    fprintf( pErr, "\t-c      : toggles minimizing CNF clauses instead of FF lits [default = %s]\n", fUseCnfs? "yes": "no" );
     fprintf( pErr, "\t-a      : toggles area-oriented mapping [default = %s]\n", fArea? "yes": "no" );
     fprintf( pErr, "\t-v      : print verbose information [default = %s]\n", fVerbose? "yes": "no" ); 
     fprintf( pErr, "\t-h      : print the command usage\n");
@@ -3450,7 +3485,7 @@ int Abc_CommandOrPos( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk;//, * pNtkRes;
     int fComb;
     int c;
-    extern int Abc_NtkOrPos( Abc_Ntk_t * pNtk );
+    extern int Abc_NtkCombinePos( Abc_Ntk_t * pNtk, int fAnd );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -3489,7 +3524,7 @@ int Abc_CommandOrPos( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    if ( !Abc_NtkOrPos( pNtk ) )
+    if ( !Abc_NtkCombinePos( pNtk, 0 ) )
     {
         fprintf( pErr, "ORing the POs has failed.\n" );
         return 1;
@@ -3501,6 +3536,79 @@ int Abc_CommandOrPos( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     fprintf( pErr, "usage: orpos [-h]\n" );
     fprintf( pErr, "\t        creates single-output miter by ORing the POs of the current network\n" );
+//    fprintf( pErr, "\t-c    : computes combinational miter (latches as POs) [default = %s]\n", fComb? "yes": "no" );
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAndPos( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;//, * pNtkRes;
+    int fComb;
+    int c;
+    extern int Abc_NtkCombinePos( Abc_Ntk_t * pNtk, int fAnd );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ch" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'c':
+            fComb ^= 1;
+            break;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "The network is not strashed.\n" );
+        return 1;
+    }
+
+    if ( Abc_NtkPoNum(pNtk) == 1 )
+    {
+        fprintf( pErr, "The network already has one PO.\n" );
+        return 1;
+    }
+
+    if ( Abc_NtkLatchNum(pNtk) )
+    {
+        fprintf( pErr, "The miter has latches. ORing is not performed.\n" );
+        return 1;
+    }
+
+    // get the new network
+    if ( !Abc_NtkCombinePos( pNtk, 1 ) )
+    {
+        fprintf( pErr, "ANDing the POs has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+//    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: andpos [-h]\n" );
+    fprintf( pErr, "\t        creates single-output miter by ANDing the POs of the current network\n" );
 //    fprintf( pErr, "\t-c    : computes combinational miter (latches as POs) [default = %s]\n", fComb? "yes": "no" );
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
@@ -5286,6 +5394,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern Abc_Ntk_t * Abc_NtkNewAig( Abc_Ntk_t * pNtk );
 //    extern Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk );
     extern void Abc_NtkMaxFlowTest( Abc_Ntk_t * pNtk );
+    extern int Pr_ManProofTest( char * pFileName );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -5379,7 +5488,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
 */
-    Abc_NtkMaxFlowTest( pNtk );
+//    Abc_NtkMaxFlowTest( pNtk );
+    Pr_ManProofTest( "trace.cnf" );
     return 0;
 
 usage:
@@ -7524,6 +7634,8 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     // user-controlable paramters
     pPars->nLutSize    =  4;
     pPars->nCutsMax    =  8;
+    pPars->nFlowIters  =  1;
+    pPars->nAreaIters  =  2;
     pPars->DelayTarget = -1;
     pPars->fPreprocess =  1;
     pPars->fArea       =  0;
@@ -7542,7 +7654,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->pFuncCost   =  NULL;   
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCDpaflrstvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFADpaflrstvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -7568,6 +7680,28 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nCutsMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nCutsMax < 0 ) 
+                goto usage;
+            break;
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-F\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            pPars->nFlowIters = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFlowIters < 0 ) 
+                goto usage;
+            break;
+        case 'A':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-A\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            pPars->nAreaIters = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nAreaIters < 0 ) 
                 goto usage;
             break;
         case 'D':
@@ -7705,10 +7839,12 @@ usage:
         sprintf( LutSize, "library" );
     else
         sprintf( LutSize, "%d", pPars->nLutSize );
-    fprintf( pErr, "usage: if [-K num] [-C num] [-D float] [-pafrsvh]\n" );
+    fprintf( pErr, "usage: if [-K num] [-C num] [-F num] [-A num] [-D float] [-pafrsvh]\n" );
     fprintf( pErr, "\t           performs FPGA technology mapping of the network\n" );
     fprintf( pErr, "\t-K num   : the number of LUT inputs (2 < num < %d) [default = %s]\n", IF_MAX_LUTSIZE+1, LutSize );
     fprintf( pErr, "\t-C num   : the max number of cuts to use (1 < num < 2^12) [default = %d]\n", pPars->nCutsMax );
+    fprintf( pErr, "\t-F num   : the number of area flow recovery iterations (num >= 0) [default = %d]\n", pPars->nFlowIters );
+    fprintf( pErr, "\t-A num   : the number of exact area recovery iterations (num >= 0) [default = %d]\n", pPars->nAreaIters );
     fprintf( pErr, "\t-D float : sets the delay constraint for the mapping [default = %s]\n", Buffer );  
     fprintf( pErr, "\t-p       : toggles preprocessing using several starting points [default = %s]\n", pPars->fPreprocess? "yes": "no" );
     fprintf( pErr, "\t-a       : toggles area-oriented mapping [default = %s]\n", pPars->fArea? "yes": "no" );
@@ -9143,11 +9279,9 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else
     {
-        Abc_Ntk_t * pTemp;
-        pTemp = Abc_NtkStrash( pNtk, 0, 0 );
-        RetValue = Abc_NtkMiterSat( pTemp, (sint64)nConfLimit, (sint64)nInsLimit, fJFront, fVerbose, NULL, NULL );
-        pNtk->pModel = pTemp->pModel;  pTemp->pModel = NULL;
-        Abc_NtkDelete( pTemp );
+        assert( Abc_NtkIsLogic(pNtk) );
+        Abc_NtkLogicToBdd( pNtk );
+        RetValue = Abc_NtkMiterSat( pNtk, (sint64)nConfLimit, (sint64)nInsLimit, fJFront, fVerbose, NULL, NULL );
     }
 
     // verify that the pattern is correct

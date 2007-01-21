@@ -233,7 +233,7 @@ p->timeDcs += clock() - clk;
 
     // get the SOP of the cut
 clk = clock();
-    pSop = Abc_ConvertBddToSop( NULL, p->dd, bNodeFunc, bNodeFunc, vFanins->nSize, p->vCube, -1 );
+    pSop = Abc_ConvertBddToSop( NULL, p->dd, bNodeFunc, bNodeFunc, vFanins->nSize, 0, p->vCube, -1 );
 p->timeSop += clock() - clk;
 
     // get the factored form

@@ -31,6 +31,8 @@ static Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk );
 static Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t * pIfObj, Vec_Int_t * vCover );
 static Hop_Obj_t * Abc_NodeIfToHop( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj_t * pIfObj );
 static Vec_Ptr_t * Abc_NtkFindGoodOrder( Abc_Ntk_t * pNtk );
+
+extern void Abc_NtkBddReorder( Abc_Ntk_t * pNtk, int fVerbose );
  
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -122,6 +124,11 @@ If_Man_t * Abc_NtkToIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
     // start the mapping manager and set its parameters
     pIfMan = If_ManStart( pPars );
 
+    // print warning about excessive memory usage
+    if ( 1.0 * Abc_NtkObjNum(pNtk) * pIfMan->nEntrySize / (1<<30) > 0.5 )
+        printf( "Warning: The mapper is about to allocate %.1f Gb for to represent %d cuts per node.\n", 
+            1.0 * Abc_NtkObjNum(pNtk) * pIfMan->nEntrySize / (1<<30), pPars->nCutsMax );
+
     // create PIs and remember them in the old nodes
     Abc_AigConst1(pNtk)->pCopy = (Abc_Obj_t *)If_ManConst1( pIfMan );
     Abc_NtkForEachCi( pNtk, pNode, i )
@@ -177,7 +184,7 @@ Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk )
     Vec_Int_t * vCover;
     int i, nDupGates;
     // create the new network
-    if ( pIfMan->pPars->fUseBdds )
+    if ( pIfMan->pPars->fUseBdds || pIfMan->pPars->fUseCnfs )
         pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_BDD );
     else if ( pIfMan->pPars->fUseSops )
         pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
@@ -206,6 +213,11 @@ Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk )
     pNodeNew = (Abc_Obj_t *)If_ObjCopy( If_ManConst1(pIfMan) );
     if ( Abc_ObjFanoutNum(pNodeNew) == 0 )
         Abc_NtkDeleteObj( pNodeNew );
+    // minimize the node
+    if ( pIfMan->pPars->fUseCnfs || pIfMan->pPars->fUseBdds )
+        Abc_NtkSweep( pNtkNew, 0 );
+    if ( pIfMan->pPars->fUseBdds )
+        Abc_NtkBddReorder( pNtkNew, 0 );
     // decouple the PO driver nodes to reduce the number of levels
     nDupGates = Abc_NtkLogicMakeSimpleCos( pNtkNew, 1 );
 //    if ( nDupGates && If_ManReadVerbose(pIfMan) )
@@ -239,28 +251,28 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
     // create a new node 
     pNodeNew = Abc_NtkCreateNode( pNtkNew );
     pCutBest = If_ObjCutBest( pIfObj );
-    If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, i )
-        Abc_ObjAddFanin( pNodeNew, Abc_NodeFromIf_rec(pNtkNew, pIfMan, pIfLeaf, vCover) );
+    if ( pIfMan->pPars->fUseCnfs )
+    {
+        If_CutForEachLeafReverse( pIfMan, pCutBest, pIfLeaf, i )
+            Abc_ObjAddFanin( pNodeNew, Abc_NodeFromIf_rec(pNtkNew, pIfMan, pIfLeaf, vCover) );
+    }
+    else
+    {
+        If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, i )
+            Abc_ObjAddFanin( pNodeNew, Abc_NodeFromIf_rec(pNtkNew, pIfMan, pIfLeaf, vCover) );
+    }
     // derive the function of this node
     if ( pIfMan->pPars->fTruth )
     {
         if ( pIfMan->pPars->fUseBdds )
         { 
-            extern void Abc_NodeBddReorder( void * p, Abc_Obj_t * pNode );
             // transform truth table into the BDD 
             pNodeNew->pData = Kit_TruthToBdd( pNtkNew->pManFunc, If_CutTruth(pCutBest), If_CutLeaveNum(pCutBest), 0 );  Cudd_Ref(pNodeNew->pData); 
-            if ( pNodeNew->pData == Cudd_ReadLogicZero(pNtkNew->pManFunc) || pNodeNew->pData == Cudd_ReadOne(pNtkNew->pManFunc) )
-            {
-                // replace the node by a constant node
-                pNodeNew = pNodeNew->pData == Cudd_ReadOne(pNtkNew->pManFunc) ? Abc_NtkCreateNodeConst1(pNtkNew) : Abc_NtkCreateNodeConst0(pNtkNew);
-            }
-            else
-            {
-                // make sure the node is minimum base
-                Abc_NodeMinimumBase( pNodeNew );
-                // reorder the fanins to minimize the BDD size
-                Abc_NodeBddReorder( pIfMan->pPars->pReoMan, pNodeNew );
-            }
+        }
+        else if ( pIfMan->pPars->fUseCnfs )
+        { 
+            // transform truth table into the BDD 
+            pNodeNew->pData = Kit_TruthToBdd( pNtkNew->pManFunc, If_CutTruth(pCutBest), If_CutLeaveNum(pCutBest), 1 );  Cudd_Ref(pNodeNew->pData); 
         }
         else if ( pIfMan->pPars->fUseSops ) 
         {

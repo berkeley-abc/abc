@@ -20,6 +20,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 // Modified to compile with MS Visual Studio 6.0 by Alan Mishchenko
 
 #include <stdio.h>
+#include <string.h>
 #include <assert.h>
 #include <math.h>
 #include <time.h>
@@ -505,6 +506,8 @@ static void solver_record(solver* s, veci* cls)
     clause* c     = (veci_size(cls) > 1) ? clause_new(s,begin,end,1) : (clause*)0;
     enqueue(s,*begin,c);
 
+Sat_SolverTraceWrite( s, begin, end, 0 );
+
     assert(veci_size(cls) > 0);
 
     if (c != 0) {
@@ -948,6 +951,7 @@ static lbool solver_search(solver* s, int nof_conflicts, int nof_learnts)
 solver* solver_new(void)
 {
     solver* s = (solver*)malloc(sizeof(solver));
+    memset( s, 0, sizeof(solver) );
 
     // initialize vectors
     vec_new(&s->clauses);
@@ -1100,7 +1104,10 @@ bool solver_addclause(solver* s, lit* begin, lit* end)
 
     if (j == begin)          // empty clause
         return 0;
-    else if (j - begin == 1) // unit clause
+
+Sat_SolverTraceWrite( s, begin, end, 1 );
+
+    if (j - begin == 1) // unit clause
         return enqueue(s,*begin,(clause*)0);
 
     // create new clause

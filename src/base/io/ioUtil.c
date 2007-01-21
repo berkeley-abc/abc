@@ -220,7 +220,7 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
     // write non-netlist types
     if ( FileType == IO_FILE_CNF )
     {
-        Io_WriteCnf( pNtk, pFileName );
+        Io_WriteCnf( pNtk, pFileName, 0 );
         return;
     }
     if ( FileType == IO_FILE_DOT )

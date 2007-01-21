@@ -42,8 +42,6 @@
 int If_ManPerformMapping( If_Man_t * p )
 {
     If_Obj_t * pObj;
-    int nItersFlow = 1;
-    int nItersArea = 2;
     int clkTotal = clock();
     int RetValue, i;
 
@@ -74,14 +72,14 @@ int If_ManPerformMapping( If_Man_t * p )
     if ( p->pPars->fExpRed && !p->pPars->fTruth )
         If_ManImproveMapping( p );
     // area flow oriented mapping
-    for ( i = 0; i < nItersFlow; i++ )
+    for ( i = 0; i < p->pPars->nFlowIters; i++ )
     {
         If_ManPerformMappingRound( p, p->pPars->nCutsMax, 1, 1, "Flow" );
         if ( p->pPars->fExpRed && !p->pPars->fTruth )
             If_ManImproveMapping( p );
     }
     // area oriented mapping
-    for ( i = 0; i < nItersArea; i++ )
+    for ( i = 0; i < p->pPars->nAreaIters; i++ )
     {
         If_ManPerformMappingRound( p, p->pPars->nCutsMax, 2, 1, "Area" );
         if ( p->pPars->fExpRed && !p->pPars->fTruth )

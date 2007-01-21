@@ -64,7 +64,7 @@ Kit_Graph_t * Kit_SopFactor( Vec_Int_t * vCover, int fCompl, int nVars, Vec_Int_
     // check for trivial functions
     if ( Vec_IntSize(vCover) == 0 )
         return Kit_GraphCreateConst0();
-    if ( Vec_IntSize(vCover) == 1 && Vec_IntEntry(vCover, 0) == (int)Kit_CubeMask(nVars) )
+    if ( Vec_IntSize(vCover) == 1 && Vec_IntEntry(vCover, 0) == 0 ) //(int)Kit_CubeMask(2 * nVars) )
         return Kit_GraphCreateConst1();
 
     // prepare memory manager

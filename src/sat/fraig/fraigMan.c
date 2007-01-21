@@ -74,6 +74,39 @@ void Prove_ParamsSetDefault( Prove_Params_t * pParams )
 
 /**Function*************************************************************
 
+  Synopsis    [Prints out the current values of CEC engine parameters.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Prove_ParamsPrint( Prove_Params_t * pParams )
+{
+    printf( "CEC enging parameters:\n" );
+    printf( "Fraiging enabled: %s\n", pParams->fUseFraiging? "yes":"no" );
+    printf( "Rewriting enabled: %s\n", pParams->fUseRewriting? "yes":"no" );
+    printf( "BDD construction enabled: %s\n", pParams->fUseBdds? "yes":"no" );
+    printf( "Verbose output enabled: %s\n", pParams->fVerbose? "yes":"no" );
+    printf( "Solver iterations: %d\n", pParams->nItersMax );
+    printf( "Starting mitering limit: %d\n", pParams->nMiteringLimitStart );
+    printf( "Multiplicative coeficient for mitering: %.2f\n", pParams->nMiteringLimitMulti );
+    printf( "Starting number of rewriting iterations: %d\n", pParams->nRewritingLimitStart );
+    printf( "Multiplicative coeficient for rewriting: %.2f\n", pParams->nRewritingLimitMulti );
+    printf( "Starting number of conflicts in fraiging: %d\n", pParams->nFraigingLimitMulti );
+    printf( "Multiplicative coeficient for fraiging: %.2f\n", pParams->nRewritingLimitMulti );
+    printf( "BDD size limit for bailing out: %.2f\n", pParams->nBddSizeLimit );
+    printf( "BDD reordering enabled: %s\n", pParams->fBddReorder? "yes":"no" );
+    printf( "Last-gasp mitering limit: %d\n", pParams->nMiteringLimitLast );
+    printf( "Total conflict limit: %d\n", pParams->nTotalBacktrackLimit );
+    printf( "Total inspection limit: %d\n", pParams->nTotalInspectLimit );
+    printf( "Parameter dump complete.\n" );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Sets the default parameters of the package.]
 
   Description [This set of parameters is tuned for equivalence checking.]

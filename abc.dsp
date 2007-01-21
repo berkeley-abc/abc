@@ -1166,6 +1166,10 @@ SOURCE=.\src\sat\asat\jfront.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\asat\satTrace.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\asat\solver.c
 # End Source File
 # Begin Source File
@@ -1343,6 +1347,18 @@ SOURCE=.\src\sat\bsat\satUtil.c
 # Begin Source File
 
 SOURCE=.\src\sat\bsat\satVec.h
+# End Source File
+# End Group
+# Begin Group "proof"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\sat\proof\pr.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\proof\pr.h
 # End Source File
 # End Group
 # End Group

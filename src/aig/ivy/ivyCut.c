@@ -930,6 +930,8 @@ Ivy_Store_t * Ivy_NodeFindCutsAll( Ivy_Man_t * p, Ivy_Obj_t * pObj, int nLeaves 
 */
             iLeaf0 = Ivy_ObjId( Ivy_ObjRealFanin(Ivy_ObjFanin0(pLeaf)) );
             iLeaf1 = Ivy_ObjId( Ivy_ObjRealFanin(Ivy_ObjFanin1(pLeaf)) );
+//            if ( iLeaf0 == iLeaf1 ) // strange situation observed on Jan 18, 2007
+//                continue;
             if ( !Ivy_NodeCutPrescreen( pCut, iLeaf0, iLeaf1 ) )
                 continue;
             if ( iLeaf0 > iLeaf1 )

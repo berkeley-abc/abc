@@ -570,9 +570,9 @@ extern void               Abc_NtkFraigStoreClean();
 /*=== abcFunc.c ==========================================================*/
 extern int                Abc_NtkSopToBdd( Abc_Ntk_t * pNtk );
 extern DdNode *           Abc_ConvertSopToBdd( DdManager * dd, char * pSop );
-extern char *             Abc_ConvertBddToSop( Extra_MmFlex_t * pMan, DdManager * dd, DdNode * bFuncOn, DdNode * bFuncOnDc, int nFanins, Vec_Str_t * vCube, int fMode );
+extern char *             Abc_ConvertBddToSop( Extra_MmFlex_t * pMan, DdManager * dd, DdNode * bFuncOn, DdNode * bFuncOnDc, int nFanins, int fAllPrimes, Vec_Str_t * vCube, int fMode );
 extern int                Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect );
-extern void               Abc_NodeBddToCnf( Abc_Obj_t * pNode, Extra_MmFlex_t * pMmMan, Vec_Str_t * vCube, char ** ppSop0, char ** ppSop1 );
+extern void               Abc_NodeBddToCnf( Abc_Obj_t * pNode, Extra_MmFlex_t * pMmMan, Vec_Str_t * vCube, int fAllPrimes, char ** ppSop0, char ** ppSop1 );
 extern int                Abc_CountZddCubes( DdManager * dd, DdNode * zCover );
 extern void               Abc_NtkLogicMakeDirectSops( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkSopToAig( Abc_Ntk_t * pNtk );
@@ -726,7 +726,7 @@ extern int                Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, i
 extern int                Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeros, int fVerbose, int fVeryVerbose );
 /*=== abcSat.c ==========================================================*/
 extern int                Abc_NtkMiterSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fJFront, int fVerbose, sint64 * pNumConfs, sint64 * pNumInspects );
-extern solver *           Abc_NtkMiterSatCreate( Abc_Ntk_t * pNtk, int fJFront );
+extern solver *           Abc_NtkMiterSatCreate( Abc_Ntk_t * pNtk, int fJFront, int fAllPrimes );
 /*=== abcSop.c ==========================================================*/
 extern char *             Abc_SopRegister( Extra_MmFlex_t * pMan, char * pName );
 extern char *             Abc_SopStart( Extra_MmFlex_t * pMan, int nCubes, int nVars );

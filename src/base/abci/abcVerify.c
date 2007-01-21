@@ -417,6 +417,12 @@ int * Abc_NtkVerifySimulatePattern( Abc_Ntk_t * pNtk, int * pModel )
         pNtk = Abc_NtkStrash(pNtk, 0, 0);
         fStrashed = 1;
     }
+/*
+    printf( "Counter example: " );
+    Abc_NtkForEachCi( pNtk, pNode, i )
+        printf( " %d", pModel[i] );
+    printf( "\n" );
+*/
     // increment the trav ID
     Abc_NtkIncrementTravId( pNtk );
     // set the CI values

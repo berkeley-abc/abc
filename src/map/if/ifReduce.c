@@ -156,17 +156,17 @@ void If_ManImproveNodeExpand( If_Man_t * p, If_Obj_t * pObj, int nLimit, Vec_Ptr
     // get the delay
     DelayOld = pCut->Delay;
     // get the area
-    AreaBef = If_CutAreaRefed( p, pCut, 100000 );
+    AreaBef = If_CutAreaRefed( p, pCut, IF_INFINITY );
 //    if ( AreaBef == 1 )
 //        return;
     // the cut is non-trivial
     If_ManImproveNodePrepare( p, pObj, nLimit, vFront, vFrontOld, vVisited );
     // iteratively modify the cut
-    If_CutDeref( p, pCut, 100000 );
+    If_CutDeref( p, pCut, IF_INFINITY );
     CostBef = If_ManImproveCutCost( p, vFront );
     If_ManImproveNodeFaninCompact( p, pObj, nLimit, vFront, vVisited );
     CostAft = If_ManImproveCutCost( p, vFront );
-    If_CutRef( p, pCut, 100000 );
+    If_CutRef( p, pCut, IF_INFINITY );
     assert( CostBef >= CostAft );
     // clean up
     Vec_PtrForEachEntry( vVisited, pFanin, i )
@@ -175,11 +175,11 @@ void If_ManImproveNodeExpand( If_Man_t * p, If_Obj_t * pObj, int nLimit, Vec_Ptr
     If_ManImproveNodeUpdate( p, pObj, vFront );
     pCut->Delay = If_CutDelay( p, pCut );
     // get the new area
-    AreaAft = If_CutAreaRefed( p, pCut, 100000 );
+    AreaAft = If_CutAreaRefed( p, pCut, IF_INFINITY );
     if ( AreaAft > AreaBef || pCut->Delay > pObj->Required + p->fEpsilon )
     {
         If_ManImproveNodeUpdate( p, pObj, vFrontOld );
-        AreaAft = If_CutAreaRefed( p, pCut, 100000 );
+        AreaAft = If_CutAreaRefed( p, pCut, IF_INFINITY );
         assert( AreaAft == AreaBef );
         pCut->Delay = DelayOld;
     }
@@ -257,13 +257,13 @@ void If_ManImproveNodeUpdate( If_Man_t * p, If_Obj_t * pObj, Vec_Ptr_t * vFront 
     int i;
     pCut = If_ObjCutBest(pObj);
     // deref node's cut
-    If_CutDeref( p, pCut, 10000 );
+    If_CutDeref( p, pCut, IF_INFINITY );
     // update the node's cut
     pCut->nLeaves = Vec_PtrSize(vFront);
     Vec_PtrForEachEntry( vFront, pFanin, i )
         pCut->pLeaves[i] = pFanin->Id;
     // ref the new cut
-    If_CutRef( p, pCut, 10000 );
+    If_CutRef( p, pCut, IF_INFINITY );
 }
 
 
@@ -506,9 +506,9 @@ void If_ManImproveNodeReduce( If_Man_t * p, If_Obj_t * pObj, int nLimit )
 
     // deref the cut if the node is refed
     if ( pObj->nRefs > 0 )
-        If_CutDeref( p, pCut, 100000 );
+        If_CutDeref( p, pCut, IF_INFINITY );
     // get the area
-    AreaBef = If_CutAreaDerefed( p, pCut, 100000 );
+    AreaBef = If_CutAreaDerefed( p, pCut, IF_INFINITY );
     // get the fanin support
     if ( pFanin0->nRefs > 2 && pCut0->Delay < pObj->Required + p->fEpsilon )
 //    if ( pSupp0->nRefs > 0 && pSupp0->Delay < pSupp->DelayR ) // this leads to 2% worse results
@@ -534,7 +534,7 @@ void If_ManImproveNodeReduce( If_Man_t * p, If_Obj_t * pObj, int nLimit )
     if ( RetValue )
     {
         pCutR->Delay = If_CutDelay( p, pCutR );
-        AreaAft = If_CutAreaDerefed( p, pCutR, 100000 );
+        AreaAft = If_CutAreaDerefed( p, pCutR, IF_INFINITY );
         // update the best cut
         if ( AreaAft < AreaBef - p->fEpsilon && pCutR->Delay < pObj->Required + p->fEpsilon )
             If_CutCopy( pCut, pCutR );
@@ -543,7 +543,7 @@ void If_ManImproveNodeReduce( If_Man_t * p, If_Obj_t * pObj, int nLimit )
     pCut->Delay = If_CutDelay( p, pCut );
     // ref the cut if the node is refed
     if ( pObj->nRefs > 0 )
-        If_CutRef( p, pCut, 100000 );
+        If_CutRef( p, pCut, IF_INFINITY );
 }
 
 /**Function*************************************************************

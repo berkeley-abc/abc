@@ -72,6 +72,7 @@ int Kit_TruthIsop( unsigned * puTruth, int nVars, Vec_Int_t * vMemory, int fTryB
     assert( Extra_TruthIsEqual( puTruth, pResult, nVars ) );
     if ( pcRes->nCubes == 0 || (pcRes->nCubes == 1 && pcRes->pCubes[0] == 0) )
     {
+        vMemory->pArray[0] = 0;
         Vec_IntShrink( vMemory, pcRes->nCubes );
         return 0;
     }

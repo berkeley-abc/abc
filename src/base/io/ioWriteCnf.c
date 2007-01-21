@@ -41,14 +41,13 @@ static Abc_Ntk_t * s_pNtk = NULL;
   SeeAlso     []
 
 ***********************************************************************/
-int Io_WriteCnf( Abc_Ntk_t * pNtk, char * pFileName )
+int Io_WriteCnf( Abc_Ntk_t * pNtk, char * pFileName, int fAllPrimes )
 {
     solver * pSat;
-    if ( !Abc_NtkIsStrash(pNtk) )
-    {
-        fprintf( stdout, "Io_WriteCnf(): Currently can only process AIGs.\n" );
-        return 0;
-    }
+    if ( Abc_NtkIsStrash(pNtk) )
+        printf( "Io_WriteCnf() warning: Generating CNF by applying heuristic AIG to CNF conversion.\n" );
+    else
+        printf( "Io_WriteCnf() warning: Generating CNF by convering logic nodes into CNF clauses.\n" );
     if ( Abc_NtkPoNum(pNtk) != 1 )
     {
         fprintf( stdout, "Io_WriteCnf(): Currently can only process the miter (the network with one PO).\n" );
@@ -64,8 +63,11 @@ int Io_WriteCnf( Abc_Ntk_t * pNtk, char * pFileName )
         fprintf( stdout, "The network has no logic nodes. No CNF file is generaled.\n" );
         return 0;
     }
+    // convert to logic BDD network
+    if ( Abc_NtkIsLogic(pNtk) )
+        Abc_NtkLogicToBdd( pNtk );
     // create solver with clauses
-    pSat = Abc_NtkMiterSatCreate( pNtk, 0 );
+    pSat = Abc_NtkMiterSatCreate( pNtk, 0, fAllPrimes );
     if ( pSat == NULL )
     {
         fprintf( stdout, "The problem is trivially UNSAT. No CNF file is generated.\n" );

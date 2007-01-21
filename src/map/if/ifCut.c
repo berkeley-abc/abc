@@ -473,7 +473,7 @@ float If_CutAverageRefs( If_Man_t * p, If_Cut_t * pCut )
   SideEffects []
 
   SeeAlso     []
-
+ 
 ***********************************************************************/
 float If_CutDeref( If_Man_t * p, If_Cut_t * pCut, int nLevels )
 {

@@ -352,7 +352,7 @@ int Seq_NtkImplementRetimingBackward( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMoves, int 
     printf( "The number of ANDs in the AIG = %5d.\n", Abc_NtkNodeNum(pNtkMiter) );
 
     // transform the miter into a logic network for efficient CNF construction
-//    pNtkCnf = Abc_NtkRenode( pNtkMiter, 0, 100, 1, 0, 0 );
+//    pNtkCnf = Abc_Ntk_Renode( pNtkMiter, 0, 100, 1, 0, 0 );
 //    Abc_NtkDelete( pNtkMiter );
     pNtkCnf = pNtkMiter;
 

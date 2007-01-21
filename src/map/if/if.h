@@ -45,6 +45,8 @@ extern "C" {
 #define IF_MAX_LUTSIZE       32
 // the largest possible number of LUT inputs when funtionality of the LUTs are computed
 #define IF_MAX_FUNC_LUTSIZE  15
+// a very large number
+#define IF_INFINITY          100000000   
 
 // object types
 typedef enum { 
@@ -75,6 +77,8 @@ struct If_Par_t_
     // user-controlable paramters
     int                nLutSize;      // the LUT size
     int                nCutsMax;      // the max number of cuts
+    int                nFlowIters;    // the number of iterations of area recovery
+    int                nAreaIters;    // the number of iterations of area recovery
     float              DelayTarget;   // delay target
     int                fPreprocess;   // preprossing
     int                fArea;         // area-oriented mapping
@@ -88,6 +92,7 @@ struct If_Par_t_
     int                fUsePerm;      // use permutation (delay info)
     int                fUseBdds;      // sets local BDDs at the nodes
     int                fUseSops;      // sets local SOPs at the nodes
+    int                fUseCnfs;      // sets local CNFs at the nodes
     int                nLatches;      // the number of latches in seq mapping
     int                fLiftLeaves;   // shift the leaves for seq mapping
     If_Lib_t *         pLutLib;       // the LUT library
@@ -276,6 +281,8 @@ static inline float      If_CutLutArea( If_Man_t * p, If_Cut_t * pCut )      { r
 // iterator over the leaves of the cut
 #define If_CutForEachLeaf( p, pCut, pLeaf, i )                                 \
     for ( i = 0; (i < (int)(pCut)->nLeaves) && ((pLeaf) = If_ManObj(p, (pCut)->pLeaves[i])); i++ )
+#define If_CutForEachLeafReverse( p, pCut, pLeaf, i )                                 \
+    for ( i = (int)(pCut)->nLeaves - 1; (i >= 0) && ((pLeaf) = If_ManObj(p, (pCut)->pLeaves[i])); i-- )
 //#define If_CutForEachLeaf( p, pCut, pLeaf, i )                                 \
 //    for ( i = 0; (i < (int)(pCut)->nLeaves) && ((pLeaf) = If_ManObj(p, p->pPars->fLiftLeaves? (pCut)->pLeaves[i] >> 8 : (pCut)->pLeaves[i])); i++ )
 // iterator over the leaves of the sequential cut

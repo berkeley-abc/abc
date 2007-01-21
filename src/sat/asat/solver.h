@@ -91,6 +91,11 @@ extern void    Asat_SatPrintStats( FILE * pFile, solver * p );
 extern void    Asat_SolverSetPrefVars( solver * s, int * pPrefVars, int nPrefVars );
 extern void    Asat_SolverSetFactors( solver * s, float * pFactors );
 
+// trace recording
+extern void    Sat_SolverTraceStart( solver * pSat, char * pName );
+extern void    Sat_SolverTraceStop( solver * pSat );
+extern void    Sat_SolverTraceWrite( solver * pSat, int * pBeg, int * pEnd, int fRoot );
+
 // J-frontier support
 extern Asat_JMan_t * Asat_JManStart( solver * pSat, void * vCircuit );
 extern void          Asat_JManStop(  solver * pSat );
@@ -170,6 +175,11 @@ struct solver_t
     int      timeTotal;
     int      timeSelect;
     int      timeUpdate;
+
+    // trace recording
+    FILE *   pFile;
+    int      nClauses;
+    int      nRoots;
 };
  
 #ifdef __cplusplus

@@ -55,6 +55,8 @@ static DdNode * extraTransferPermute( DdManager * ddS, DdManager * ddD, DdNode *
 static void ddSupportStep(DdNode *f, int *support);
 static void ddClearFlag(DdNode *f);
 
+static DdNode* extraZddPrimes( DdManager *dd, DdNode* F );
+
 /**AutomaticEnd***************************************************************/
 
 /*---------------------------------------------------------------------------*/
@@ -890,6 +892,30 @@ DdNode * Extra_bddCreateExor( DdManager * dd, int nVars )
     return bFunc;
 }
 
+/**Function********************************************************************
+
+  Synopsis    [Computes the set of primes as a ZDD.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+DdNode * Extra_zddPrimes( DdManager * dd, DdNode * F )
+{
+    DdNode    *res;
+    do {
+        dd->reordered = 0;
+        res = extraZddPrimes(dd, F);
+        if ( dd->reordered == 1 )
+            printf("\nReordering in Extra_zddPrimes()\n");
+    } while (dd->reordered == 1);
+    return(res);
+
+} /* end of Extra_zddPrimes */
+
 
 /*---------------------------------------------------------------------------*/
 /* Definition of internal functions                                          */
@@ -1245,6 +1271,201 @@ ddClearFlag(
 
 } /* end of ddClearFlag */
 
+
+/**Function********************************************************************
+
+  Synopsis    [Composed three subcovers into one ZDD.]
+
+  Description []
+
+  SideEffects [None]
+
+  SeeAlso     []
+
+******************************************************************************/
+DdNode *
+extraComposeCover( 
+  DdManager* dd,    /* the manager */
+  DdNode* zC0,     /* the pointer to the negative var cofactor */ 
+  DdNode* zC1,     /* the pointer to the positive var cofactor */ 
+  DdNode* zC2,     /* the pointer to the cofactor without var */ 
+  int TopVar)    /* the index of the positive ZDD var */
+{
+    DdNode * zRes, * zTemp;
+    /* compose with-neg-var and without-var using the neg ZDD var */
+    zTemp = cuddZddGetNode( dd, 2*TopVar + 1, zC0, zC2 );
+    if ( zTemp == NULL ) 
+    {
+        Cudd_RecursiveDerefZdd(dd, zC0);
+        Cudd_RecursiveDerefZdd(dd, zC1);
+        Cudd_RecursiveDerefZdd(dd, zC2);
+        return NULL;
+    }
+    cuddRef( zTemp );
+    cuddDeref( zC0 );
+    cuddDeref( zC2 );
+
+    /* compose with-pos-var and previous result using the pos ZDD var */
+    zRes = cuddZddGetNode( dd, 2*TopVar, zC1, zTemp );
+    if ( zRes == NULL ) 
+    {
+        Cudd_RecursiveDerefZdd(dd, zC1);
+        Cudd_RecursiveDerefZdd(dd, zTemp);
+        return NULL;
+    }
+    cuddDeref( zC1 );
+    cuddDeref( zTemp );
+    return zRes;
+} /* extraComposeCover */
+
+/**Function********************************************************************
+
+  Synopsis    [Performs the recursive step of prime computation.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+DdNode* extraZddPrimes( DdManager *dd, DdNode* F )
+{
+    DdNode *zRes;
+
+    if ( F == Cudd_Not( dd->one ) )
+        return dd->zero;
+    if ( F == dd->one )
+        return dd->one;
+
+    /* check cache */
+    zRes = cuddCacheLookup1Zdd(dd, extraZddPrimes, F);
+    if (zRes)
+        return(zRes);
+    {
+        /* temporary variables */
+        DdNode *bF01, *zP0, *zP1;
+        /* three components of the prime set */
+        DdNode *zResE, *zResP, *zResN;
+        int fIsComp = Cudd_IsComplement( F );
+
+        /* find cofactors of F */
+        DdNode * bF0 = Cudd_NotCond( Cudd_E( F ), fIsComp );
+        DdNode * bF1 = Cudd_NotCond( Cudd_T( F ), fIsComp );
+
+        /* find the intersection of cofactors */
+        bF01 = cuddBddAndRecur( dd, bF0, bF1 );
+        if ( bF01 == NULL ) return NULL;
+        cuddRef( bF01 );
+
+        /* solve the problems for cofactors */
+        zP0 = extraZddPrimes( dd, bF0 );
+        if ( zP0 == NULL )
+        {
+            Cudd_RecursiveDeref( dd, bF01 );
+            return NULL;
+        }
+        cuddRef( zP0 );
+
+        zP1 = extraZddPrimes( dd, bF1 );
+        if ( zP1 == NULL )
+        {
+            Cudd_RecursiveDeref( dd, bF01 );
+            Cudd_RecursiveDerefZdd( dd, zP0 );
+            return NULL;
+        }
+        cuddRef( zP1 );
+
+        /* check for local unateness */
+        if ( bF01 == bF0 )       /* unate increasing */
+        {
+            /* intersection is useless */
+            cuddDeref( bF01 );
+            /* the primes of intersection are the primes of F0 */
+            zResE = zP0;
+            /* there are no primes with negative var */
+            zResN = dd->zero;
+            cuddRef( zResN );
+            /* primes with positive var are primes of F1 that are not primes of F01 */
+            zResP = cuddZddDiff( dd, zP1, zP0 );
+            if ( zResP == NULL )  
+            {
+                Cudd_RecursiveDerefZdd( dd, zResE );
+                Cudd_RecursiveDerefZdd( dd, zResN );
+                Cudd_RecursiveDerefZdd( dd, zP1 );
+                return NULL;
+            }
+            cuddRef( zResP );
+            Cudd_RecursiveDerefZdd( dd, zP1 );
+        }
+        else if ( bF01 == bF1 ) /* unate decreasing */
+        {
+            /* intersection is useless */
+            cuddDeref( bF01 );
+            /* the primes of intersection are the primes of F1 */
+            zResE = zP1;
+            /* there are no primes with positive var */
+            zResP = dd->zero;
+            cuddRef( zResP );
+            /* primes with negative var are primes of F0 that are not primes of F01 */
+            zResN = cuddZddDiff( dd, zP0, zP1 );
+            if ( zResN == NULL )  
+            {
+                Cudd_RecursiveDerefZdd( dd, zResE );
+                Cudd_RecursiveDerefZdd( dd, zResP );
+                Cudd_RecursiveDerefZdd( dd, zP0 );
+                return NULL;
+            }
+            cuddRef( zResN );
+            Cudd_RecursiveDerefZdd( dd, zP0 );
+        }
+        else /* not unate */
+        {
+            /* primes without the top var are primes of F10 */
+            zResE = extraZddPrimes( dd, bF01 );
+            if ( zResE == NULL )  
+            {
+                Cudd_RecursiveDerefZdd( dd, bF01 );
+                Cudd_RecursiveDerefZdd( dd, zP0 );
+                Cudd_RecursiveDerefZdd( dd, zP1 );
+                return NULL;
+            }
+            cuddRef( zResE );
+            Cudd_RecursiveDeref( dd, bF01 );
+
+            /* primes with the negative top var are those of P0 that are not in F10 */
+            zResN = cuddZddDiff( dd, zP0, zResE );
+            if ( zResN == NULL )  
+            {
+                Cudd_RecursiveDerefZdd( dd, zResE );
+                Cudd_RecursiveDerefZdd( dd, zP0 );
+                Cudd_RecursiveDerefZdd( dd, zP1 );
+                return NULL;
+            }
+            cuddRef( zResN );
+            Cudd_RecursiveDerefZdd( dd, zP0 );
+
+            /* primes with the positive top var are those of P1 that are not in F10 */
+            zResP = cuddZddDiff( dd, zP1, zResE );
+            if ( zResP == NULL )  
+            {
+                Cudd_RecursiveDerefZdd( dd, zResE );
+                Cudd_RecursiveDerefZdd( dd, zResN );
+                Cudd_RecursiveDerefZdd( dd, zP1 );
+                return NULL;
+            }
+            cuddRef( zResP );
+            Cudd_RecursiveDerefZdd( dd, zP1 );
+        }
+
+        zRes = extraComposeCover( dd, zResN, zResP, zResE, Cudd_Regular(F)->index );
+        if ( zRes == NULL ) return NULL;
+
+        /* insert the result into cache */
+        cuddCacheInsert1(dd, extraZddPrimes, F, zRes);
+        return zRes;
+    }
+} /* end of extraZddPrimes */
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

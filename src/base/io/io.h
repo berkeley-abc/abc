@@ -100,7 +100,7 @@ extern void               Io_WriteBlifMvNetlist( Abc_Ntk_t * pNtk, char * FileNa
 /*=== abcWriteBench.c =========================================================*/
 extern int                Io_WriteBench( Abc_Ntk_t * pNtk, char * FileName );
 /*=== abcWriteCnf.c ===========================================================*/
-extern int                Io_WriteCnf( Abc_Ntk_t * pNtk, char * FileName );
+extern int                Io_WriteCnf( Abc_Ntk_t * pNtk, char * FileName, int fAllPrimes );
 /*=== abcWriteDot.c ===========================================================*/
 extern void               Io_WriteDot( Abc_Ntk_t * pNtk, char * FileName );
 extern void               Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesShow, char * pFileName, int fGateNames, int fUseReverse );

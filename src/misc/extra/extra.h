@@ -169,6 +169,7 @@ extern int          Extra_bddIsVar( DdNode * bFunc );
 extern DdNode *     Extra_bddCreateAnd( DdManager * dd, int nVars );
 extern DdNode *     Extra_bddCreateOr( DdManager * dd, int nVars );
 extern DdNode *     Extra_bddCreateExor( DdManager * dd, int nVars );
+extern DdNode *     Extra_zddPrimes( DdManager * dd, DdNode * F );
 
 /*=== extraBddKmap.c ================================================================*/
 

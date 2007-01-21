@@ -252,7 +252,7 @@ int Ivy_FraigProve( Ivy_Man_t ** ppManAig, void * pPars )
     Prove_Params_t * pParams = pPars;
     Ivy_FraigParams_t Params, * pIvyParams = &Params; 
     Ivy_Man_t * pManAig, * pManTemp;
-    int RetValue, nIter, Counter, clk, timeStart = clock();
+    int RetValue, nIter, clk, timeStart = clock();//, Counter;
     sint64 nSatConfs, nSatInspects;
 
     // start the network and parameters
@@ -314,12 +314,14 @@ int Ivy_FraigProve( Ivy_Man_t ** ppManAig, void * pPars )
 
         // try rewriting
         if ( pParams->fUseRewriting )
-        {
+        { // bug in Ivy_NodeFindCutsAll() when leaves are identical!
+/*
             clk = clock();
             Counter = (int)(pParams->nRewritingLimitStart * pow(pParams->nRewritingLimitMulti,nIter));
             pManAig = Ivy_ManRwsat( pManAig, 0 );  
             RetValue = Ivy_FraigMiterStatus( pManAig );
             Ivy_FraigMiterPrint( pManAig, "Rewriting  ", clk, pParams->fVerbose );
+*/
         }
         if ( RetValue >= 0 )
             break;
@@ -368,6 +370,15 @@ int Ivy_FraigProve( Ivy_Man_t ** ppManAig, void * pPars )
         s_nInsLimitGlobal = 0;        
         RetValue = Ivy_FraigMiterStatus( pManAig );
         Ivy_FraigMiterPrint( pManAig, "SAT solving", clk, pParams->fVerbose );
+        // make sure that the sover never returns "undecided" when infinite resource limits are set
+        if( RetValue == -1 && pParams->nTotalInspectLimit == 0 &&
+            pParams->nTotalBacktrackLimit == 0 )
+        {
+            extern void Prove_ParamsPrint( Prove_Params_t * pParams );
+            Prove_ParamsPrint( pParams );
+            printf("ERROR: ABC has returned \"undecided\" in spite of no limits...\n");
+            exit(1);
+        }
     }
 
     // assign the model if it was proved by rewriting (const 1 miter)

@@ -49,7 +49,7 @@ Abc_Ntk_t * Abc_NtkRestrash( Abc_Ntk_t * pNtk, bool fCleanup )
     extern int timeRetime;
     Abc_Ntk_t * pNtkAig;
     Abc_Obj_t * pObj;
-    int i, nNodes, RetValue;
+    int i, nNodes;//, RetValue;
     assert( Abc_NtkIsStrash(pNtk) );
 //timeRetime = clock();
     // print warning about choice nodes
@@ -79,8 +79,8 @@ Abc_Ntk_t * Abc_NtkRestrash( Abc_Ntk_t * pNtk, bool fCleanup )
         return NULL;
     }
 //timeRetime = clock() - timeRetime;
-    if ( RetValue = Abc_NtkRemoveSelfFeedLatches(pNtkAig) )
-        printf( "Modified %d self-feeding latches. The result will not verify.\n", RetValue );
+//    if ( RetValue = Abc_NtkRemoveSelfFeedLatches(pNtkAig) )
+//        printf( "Modified %d self-feeding latches. The result will not verify.\n", RetValue );
     return pNtkAig;
 
 }
