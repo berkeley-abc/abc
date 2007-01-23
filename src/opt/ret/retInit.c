@@ -57,7 +57,7 @@ Vec_Int_t * Abc_NtkRetimeInitialValues( Abc_Ntk_t * pNtkCone, Vec_Int_t * vValue
         printf( "The miter for initial state computation has %d AIG nodes. ", Abc_NtkNodeNum(pNtkMiter) );
     // solve the miter
     clk = clock();
-    RetValue = Abc_NtkMiterSat( pNtkMiter, (sint64)500000, (sint64)50000000, 0, 0, NULL, NULL );
+    RetValue = Abc_NtkMiterSat( pNtkMiter, (sint64)500000, (sint64)50000000, 0, NULL, NULL );
     if ( fVerbose ) 
         { PRT( "SAT solving time", clock() - clk ); }
     // analyze the result

@@ -40,7 +40,7 @@
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Res_FilterCandidates( Res_Win_t * pWin, Res_Sim_t * pSim )
+Vec_Vec_t * Res_FilterCandidates( Res_Win_t * pWin, Res_Sim_t * pSim )
 {
     unsigned * pInfo;
     Abc_Obj_t * pFanin;

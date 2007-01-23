@@ -612,7 +612,7 @@ enum CSAT_StatusT ABC_Solve( ABC_Manager mng )
 
     // try to prove the miter using a number of techniques
     if ( mng->mode )
-        RetValue = Abc_NtkMiterSat( mng->pTarget, (sint64)pParams->nMiteringLimitLast, (sint64)0, 0, 0, NULL, NULL );
+        RetValue = Abc_NtkMiterSat( mng->pTarget, (sint64)pParams->nMiteringLimitLast, (sint64)0, 0, NULL, NULL );
     else
 //        RetValue = Abc_NtkMiterProve( &mng->pTarget, pParams ); // old CEC engine
         RetValue = Abc_NtkIvyProve( &mng->pTarget, pParams ); // new CEC engine

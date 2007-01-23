@@ -4,7 +4,7 @@
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [C-language MiniSat solver.]
+  PackageName [SAT sat_solver.]
 
   Synopsis    [Records the trace of SAT solving in the CNF form.]
 
@@ -20,7 +20,7 @@
 
 #include <stdio.h>
 #include <assert.h>
-#include "solver.h"
+#include "satSolver.h"
 
 /*
     The trace of SAT solving contains the original clause of the problem
@@ -33,9 +33,6 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline int  lit_var  (lit l)        { return l >> 1; }
-static inline int  lit_sign (lit l)        { return l & 1; }
-static inline int  lit_print(lit l)        { return lit_sign(l)? -lit_var(l)-1 : lit_var(l)+1; }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -52,7 +49,7 @@ static inline int  lit_print(lit l)        { return lit_sign(l)? -lit_var(l)-1 :
   SeeAlso     []
 
 ***********************************************************************/
-void Sat_SolverTraceStart( solver * pSat, char * pName )
+void Sat_SolverTraceStart( sat_solver * pSat, char * pName )
 {
     assert( pSat->pFile == NULL );
     pSat->pFile = fopen( pName, "w" );
@@ -72,12 +69,12 @@ void Sat_SolverTraceStart( solver * pSat, char * pName )
   SeeAlso     []
 
 ***********************************************************************/
-void Sat_SolverTraceStop( solver * pSat )
+void Sat_SolverTraceStop( sat_solver * pSat )
 {
     if ( pSat->pFile == NULL )
         return;
     rewind( pSat->pFile );
-    fprintf( pSat->pFile, "p %d %d %d", solver_nvars(pSat), pSat->nClauses, pSat->nRoots );
+    fprintf( pSat->pFile, "p %d %d %d", sat_solver_nvars(pSat), pSat->nClauses, pSat->nRoots );
     fclose( pSat->pFile );
     pSat->pFile = NULL;
 }
@@ -94,7 +91,7 @@ void Sat_SolverTraceStop( solver * pSat )
   SeeAlso     []
 
 ***********************************************************************/
-void Sat_SolverTraceWrite( solver * pSat, int * pBeg, int * pEnd, int fRoot )
+void Sat_SolverTraceWrite( sat_solver * pSat, int * pBeg, int * pEnd, int fRoot )
 {
     if ( pSat->pFile == NULL )
         return;

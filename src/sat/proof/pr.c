@@ -23,7 +23,7 @@
 #include <string.h>
 #include <assert.h>
 #include <time.h>
-#include "vec.h"
+//#include "vec.h"
 #include "pr.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -150,7 +150,7 @@ Pr_Man_t * Pr_ManAlloc( int nVarsAlloc )
     // set the starting number of variables
     p->nVars = 0;
     // memory management
-    p->nChunkSize = (1<<18); // use 256K chunks
+    p->nChunkSize = (1<<16); // use 64K chunks
     // verification
     p->nResLitsAlloc = (1<<16);
     p->pResLits = malloc( sizeof(lit) * p->nResLitsAlloc );
@@ -329,13 +329,6 @@ int Pr_ManAddClause( Pr_Man_t * p, lit * pBeg, lit * pEnd, int fRoot, int fClaus
             printf( "More than one empty clause!\n" );
         p->pEmpty = pClause;
     }
-
-    // create watcher lists for the root clauses
-    if ( fRoot && pClause->nLits > 1 )
-    {
-        Pr_ManWatchClause( p, pClause, pClause->pLits[0] );
-        Pr_ManWatchClause( p, pClause, pClause->pLits[1] );
-    }
     return 1;
 }
 
@@ -384,6 +377,29 @@ void Pr_ManMemoryStop( Pr_Man_t * p )
     for ( pMem = p->pChunkLast; pNext = *(char **)pMem; pMem = pNext )
         free( pMem );
     free( pMem );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reports memory usage in bytes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Pr_ManMemoryReport( Pr_Man_t * p )
+{
+    int Total;
+    char * pMem, * pNext;
+    if ( p->pChunkLast == NULL )
+        return 0;
+    Total = p->nChunkUsed; 
+    for ( pMem = p->pChunkLast; pNext = *(char **)pMem; pMem = pNext )
+        Total += p->nChunkSize;
+    return Total;
 }
 
 /**Function*************************************************************
@@ -688,12 +704,18 @@ int Pr_ManProofTraceOne( Pr_Man_t * p, Pr_Cls_t * pConflict, Pr_Cls_t * pFinal )
         Var = lit_var(p->pTrail[i]);
         if ( !p->pSeens[Var] )
             continue;
+        p->pSeens[Var] = 0;
 
         // skip literals of the resulting clause
         pReason = p->pReasons[Var];
         if ( pReason == NULL )
             continue;
         assert( p->pTrail[i] == pReason->pLits[0] );
+
+        // add the variables to seen
+        for ( v = 1; v < (int)pReason->nLits; v++ )
+            p->pSeens[lit_var(pReason->pLits[v])] = 1;
+
 
         // record the reason clause
         assert( pReason->pProof > 0 );
@@ -751,16 +773,15 @@ int Pr_ManProofTraceOne( Pr_Man_t * p, Pr_Cls_t * pConflict, Pr_Cls_t * pFinal )
             }
         }
 
-        // add the variables to seen
-        for ( v = 1; v < (int)pReason->nLits; v++ )
-            p->pSeens[lit_var(pReason->pLits[v])] = 1;
-
 //        Vec_PtrPush( pFinal->pAntis, pReason );
     }
 
     // unmark all seen variables
-    for ( i = p->nTrailSize - 1; i >= 0; i-- )
-        p->pSeens[lit_var(p->pTrail[i])] = 0;
+//    for ( i = p->nTrailSize - 1; i >= 0; i-- )
+//        p->pSeens[lit_var(p->pTrail[i])] = 0;
+    // check that the literals are unmarked
+//    for ( i = p->nTrailSize - 1; i >= 0; i-- )
+//        assert( p->pSeens[lit_var(p->pTrail[i])] == 0 );
 
     // use the resulting clause to check the correctness of resolution
     if ( p->fProofVerif )
@@ -904,6 +925,12 @@ int Pr_ManProcessRoots( Pr_Man_t * p )
     p->nTrailSize = 0;
     Pr_ManForEachClauseRoot( p, pClause )
     {
+        // create watcher lists for the root clauses
+        if ( pClause->nLits > 1 )
+        {
+            Pr_ManWatchClause( p, pClause, pClause->pLits[0] );
+            Pr_ManWatchClause( p, pClause, pClause->pLits[1] );
+        }
         // empty clause and large clauses
         if ( pClause->nLits != 1 )
             continue;
@@ -1218,9 +1245,10 @@ p->timeRead = clock() - clk;
         1.0*(p->Counter-p->nRoots)/(p->nClauses-p->nRoots),
         nUsed, 1.0*nUsed/(p->nClauses-p->nRoots)  );
 */
-    printf( "Vars = %d. Roots = %d. Learned = %d. Resolution steps = %d.  Ave = %.2f.\n", 
+    printf( "Vars = %d. Roots = %d. Learned = %d. Resol steps = %d.  Ave = %.2f.  Mem = %.2f Mb\n", 
         p->nVars, p->nRoots, p->nClauses-p->nRoots, p->Counter,  
-        1.0*(p->Counter-p->nRoots)/(p->nClauses-p->nRoots)  );
+        1.0*(p->Counter-p->nRoots)/(p->nClauses-p->nRoots), 
+        1.0*Pr_ManMemoryReport(p)/(1<<20) );
 
 p->timeTotal = clock() - clkTotal;
     Pr_ManFree( p );

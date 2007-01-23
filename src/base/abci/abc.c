@@ -9206,7 +9206,6 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk;
     int c;
     int RetValue;
-    int fJFront;
     int fVerbose;
     int nConfLimit;
     int nInsLimit;
@@ -9217,12 +9216,11 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fJFront    = 0;
     fVerbose   = 0;
     nConfLimit = 100000;   
     nInsLimit  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CIvjh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CIvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -9248,9 +9246,6 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nInsLimit < 0 ) 
                 goto usage;
             break;
-        case 'j':
-            fJFront ^= 1;
-            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -9275,13 +9270,13 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     clk = clock();
     if ( Abc_NtkIsStrash(pNtk) )
     {
-        RetValue = Abc_NtkMiterSat( pNtk, (sint64)nConfLimit, (sint64)nInsLimit, fJFront, fVerbose, NULL, NULL );
+        RetValue = Abc_NtkMiterSat( pNtk, (sint64)nConfLimit, (sint64)nInsLimit, fVerbose, NULL, NULL );
     }
     else
     {
         assert( Abc_NtkIsLogic(pNtk) );
         Abc_NtkLogicToBdd( pNtk );
-        RetValue = Abc_NtkMiterSat( pNtk, (sint64)nConfLimit, (sint64)nInsLimit, fJFront, fVerbose, NULL, NULL );
+        RetValue = Abc_NtkMiterSat( pNtk, (sint64)nConfLimit, (sint64)nInsLimit, fVerbose, NULL, NULL );
     }
 
     // verify that the pattern is correct
@@ -9316,12 +9311,11 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: sat [-C num] [-I num] [-jvh]\n" );
+    fprintf( pErr, "usage: sat [-C num] [-I num] [-vh]\n" );
     fprintf( pErr, "\t         solves the combinational miter using SAT solver MiniSat-1.14\n" );
     fprintf( pErr, "\t         derives CNF from the current network and leave it unchanged\n" );
     fprintf( pErr, "\t-C num : limit on the number of conflicts [default = %d]\n",    nConfLimit );
     fprintf( pErr, "\t-I num : limit on the number of inspections [default = %d]\n", nInsLimit );
-    fprintf( pErr, "\t-j     : toggle the use of J-frontier [default = %s]\n", fJFront? "yes": "no" );  
     fprintf( pErr, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;

@@ -33,7 +33,13 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 // Simple types:
 
 // does not work for c++
-typedef int  bool;
+//typedef int                   bool;
+#ifndef __cplusplus
+#ifndef bool
+#define bool int
+#endif
+#endif
+
 static const bool  true      = 1;
 static const bool  false     = 0;
 
@@ -58,6 +64,8 @@ static inline lit  toLitCond(int v, int c) { return v + v + (c != 0); }
 static inline lit  lit_neg  (lit l)        { return l ^ 1; }
 static inline int  lit_var  (lit l)        { return l >> 1; }
 static inline int  lit_sign (lit l)        { return l & 1; }
+static inline int  lit_print(lit l)        { return lit_sign(l)? -lit_var(l)-1 : lit_var(l)+1; }
+static inline lit  lit_read (int s)        { return s > 0 ? toLit(s-1) : lit_neg(toLit(-s-1)); }
 
 
 //=================================================================================================
@@ -88,6 +96,21 @@ typedef struct stats_t stats;
 
 extern void        Sat_SolverWriteDimacs( sat_solver * p, char * pFileName, lit* assumptionsBegin, lit* assumptionsEnd, int incrementVars );
 extern void        Sat_SolverPrintStats( FILE * pFile, sat_solver * p );
+extern int *       Sat_SolverGetModel( sat_solver * p, int * pVars, int nVars );
+extern void        Sat_SolverDoubleClauses( sat_solver * p, int iVar );
+
+// trace recording
+extern void        Sat_SolverTraceStart( sat_solver * pSat, char * pName );
+extern void        Sat_SolverTraceStop( sat_solver * pSat );
+extern void        Sat_SolverTraceWrite( sat_solver * pSat, int * pBeg, int * pEnd, int fRoot );
+
+// clause storage
+extern void        sat_solver_store_alloc( sat_solver * s );
+extern void        sat_solver_store_write( sat_solver * s, char * pFileName );
+extern void        sat_solver_store_free( sat_solver * s );
+extern void        sat_solver_store_mark_roots( sat_solver * s );
+extern void        sat_solver_store_mark_clauses_a( sat_solver * s );
+extern void *      sat_solver_store_release( sat_solver * s ); 
 
 //=================================================================================================
 // Solver representation:
@@ -146,6 +169,14 @@ struct sat_solver_t
     int      nRestarts;     // the number of local restarts
  
     Sat_MmStep_t * pMem;
+
+    // clause store
+    void *   pStore;
+
+    // trace recording
+    FILE *   pFile;
+    int      nClauses;
+    int      nRoots;
 };
 
 #endif

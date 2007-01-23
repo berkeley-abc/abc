@@ -86,7 +86,7 @@ void Abc_NtkCecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nI
     }
 
     // solve the CNF using the SAT solver
-    RetValue = Abc_NtkMiterSat( pCnf, (sint64)nConfLimit, (sint64)nInsLimit, 0, 0, NULL, NULL );
+    RetValue = Abc_NtkMiterSat( pCnf, (sint64)nConfLimit, (sint64)nInsLimit, 0, NULL, NULL );
     if ( RetValue == -1 )
         printf( "Networks are undecided (SAT solver timed out).\n" );
     else if ( RetValue == 0 )
@@ -268,7 +268,7 @@ void Abc_NtkSecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nI
     }
 
     // solve the CNF using the SAT solver
-    RetValue = Abc_NtkMiterSat( pCnf, (sint64)nConfLimit, (sint64)nInsLimit, 0, 0, NULL, NULL );
+    RetValue = Abc_NtkMiterSat( pCnf, (sint64)nConfLimit, (sint64)nInsLimit, 0, NULL, NULL );
     if ( RetValue == -1 )
         printf( "Networks are undecided (SAT solver timed out).\n" );
     else if ( RetValue == 0 )

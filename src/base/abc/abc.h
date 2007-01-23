@@ -38,7 +38,6 @@ extern "C" {
 #include "cuddInt.h"
 #include "hop.h"
 #include "extra.h"
-#include "solver.h"
 #include "vec.h"
 #include "stmm.h"
 #include "nm.h"
@@ -116,6 +115,12 @@ typedef enum {
 #ifndef bool
 #define bool int
 #endif
+#endif
+
+#ifdef _WIN32
+typedef signed __int64     sint64;   // compatible with MS VS 6.0
+#else
+typedef long long          sint64;
 #endif
 
 typedef struct Abc_Lib_t_       Abc_Lib_t;
@@ -725,8 +730,8 @@ extern int                Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, i
 /*=== abcRewrite.c ==========================================================*/
 extern int                Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeros, int fVerbose, int fVeryVerbose );
 /*=== abcSat.c ==========================================================*/
-extern int                Abc_NtkMiterSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fJFront, int fVerbose, sint64 * pNumConfs, sint64 * pNumInspects );
-extern solver *           Abc_NtkMiterSatCreate( Abc_Ntk_t * pNtk, int fJFront, int fAllPrimes );
+extern int                Abc_NtkMiterSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fVerbose, sint64 * pNumConfs, sint64 * pNumInspects );
+extern void *             Abc_NtkMiterSatCreate( Abc_Ntk_t * pNtk, int fAllPrimes );
 /*=== abcSop.c ==========================================================*/
 extern char *             Abc_SopRegister( Extra_MmFlex_t * pMan, char * pName );
 extern char *             Abc_SopStart( Extra_MmFlex_t * pMan, int nCubes, int nVars );
@@ -761,8 +766,6 @@ extern bool               Abc_SopIsAndType( char * pSop );
 extern bool               Abc_SopIsOrType( char * pSop );
 extern int                Abc_SopIsExorType( char * pSop );
 extern bool               Abc_SopCheck( char * pSop, int nFanins );
-extern void               Abc_SopWriteCnf( FILE * pFile, char * pClauses, Vec_Int_t * vVars );
-extern void               Abc_SopAddCnfToSolver( solver * pSat, char * pClauses, Vec_Int_t * vVars, Vec_Int_t * vTemp );
 extern char *             Abc_SopFromTruthBin( char * pTruth );
 extern char *             Abc_SopFromTruthHex( char * pTruth );
 /*=== abcStrash.c ==========================================================*/

@@ -1145,42 +1145,6 @@ SOURCE=.\src\bdd\reo\reoUnits.c
 # Begin Group "sat"
 
 # PROP Default_Filter ""
-# Begin Group "asat"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\sat\asat\added.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\asat\asatmem.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\asat\asatmem.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\asat\jfront.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\asat\satTrace.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\asat\solver.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\asat\solver.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\asat\solver_vec.h
-# End Source File
-# End Group
 # Begin Group "msat"
 
 # PROP Default_Filter ""
@@ -1326,6 +1290,10 @@ SOURCE=.\src\sat\csat\csat_apis.h
 # PROP Default_Filter ""
 # Begin Source File
 
+SOURCE=.\src\sat\bsat\satInter.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\bsat\satMem.c
 # End Source File
 # Begin Source File
@@ -1339,6 +1307,18 @@ SOURCE=.\src\sat\bsat\satSolver.c
 # Begin Source File
 
 SOURCE=.\src\sat\bsat\satSolver.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\bsat\satStore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\bsat\satStore.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\bsat\satTrace.c
 # End Source File
 # Begin Source File
 

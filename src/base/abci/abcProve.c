@@ -79,7 +79,7 @@ int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pPars )
     if ( !pParams->fUseRewriting && !pParams->fUseFraiging )
     {
         clk = clock();
-        RetValue = Abc_NtkMiterSat( pNtk, (sint64)pParams->nMiteringLimitLast, (sint64)0, 0, 0, NULL, NULL );
+        RetValue = Abc_NtkMiterSat( pNtk, (sint64)pParams->nMiteringLimitLast, (sint64)0, 0, NULL, NULL );
         Abc_NtkMiterPrint( pNtk, "SAT solving", clk, pParams->fVerbose );
         *ppNtk = pNtk;
         return RetValue;
@@ -99,7 +99,7 @@ int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pPars )
         // try brute-force SAT
         clk = clock();
         nInspectLimit = pParams->nTotalInspectLimit? pParams->nTotalInspectLimit - pParams->nTotalInspectsMade : 0;
-        RetValue = Abc_NtkMiterSat( pNtk, (sint64)(pParams->nMiteringLimitStart * pow(pParams->nMiteringLimitMulti,nIter)), (sint64)nInspectLimit, 0, 0, &nSatConfs, &nSatInspects );
+        RetValue = Abc_NtkMiterSat( pNtk, (sint64)(pParams->nMiteringLimitStart * pow(pParams->nMiteringLimitMulti,nIter)), (sint64)nInspectLimit, 0, &nSatConfs, &nSatInspects );
         Abc_NtkMiterPrint( pNtk, "SAT solving", clk, pParams->fVerbose );
         if ( RetValue >= 0 )
             break;
@@ -213,7 +213,7 @@ int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pPars )
         }
         clk = clock();
         nInspectLimit = pParams->nTotalInspectLimit? pParams->nTotalInspectLimit - pParams->nTotalInspectsMade : 0;
-        RetValue = Abc_NtkMiterSat( pNtk, (sint64)pParams->nMiteringLimitLast, (sint64)nInspectLimit, 0, 0, NULL, NULL );
+        RetValue = Abc_NtkMiterSat( pNtk, (sint64)pParams->nMiteringLimitLast, (sint64)nInspectLimit, 0, NULL, NULL );
         Abc_NtkMiterPrint( pNtk, "SAT solving", clk, pParams->fVerbose );
     }
 

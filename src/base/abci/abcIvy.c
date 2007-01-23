@@ -491,7 +491,7 @@ int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars )
     }
 
     // if SAT only, solve without iteration
-    RetValue = Abc_NtkMiterSat( pNtk, 2*(sint64)pParams->nMiteringLimitStart, (sint64)0, 0, 0, NULL, NULL );
+    RetValue = Abc_NtkMiterSat( pNtk, 2*(sint64)pParams->nMiteringLimitStart, (sint64)0, 0, NULL, NULL );
     if ( RetValue >= 0 )
         return RetValue;
 

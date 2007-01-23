@@ -153,6 +153,77 @@ void Sat_SolverPrintStats( FILE * pFile, sat_solver * p )
     printf( "inspects      : %d\n", (int)p->stats.inspects );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns a counter-example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int * Sat_SolverGetModel( sat_solver * p, int * pVars, int nVars )
+{
+    int * pModel;
+    int i;
+    pModel = ALLOC( int, nVars );
+    for ( i = 0; i < nVars; i++ )
+    {
+        assert( pVars[i] >= 0 && pVars[i] < p->size );
+        pModel[i] = (int)(p->model.ptr[pVars[i]] == l_True);
+    }
+    return pModel;    
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates all clauses, complements unit clause of the given var.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Sat_SolverDoubleClauses( sat_solver * p, int iVar )
+{
+    clause ** pClauses;
+    lit Lit, * pLits;
+    int RetValue, nClauses, nVarsOld, nLitsOld, nLits, c, v;
+    // get the number of variables
+    nVarsOld = p->size;
+    nLitsOld = 2 * p->size;
+    // extend the solver to depend on two sets of variables
+    sat_solver_setnvars( p, 2 * p->size );
+    // duplicate implications
+    for ( v = 0; v < nVarsOld; v++ )
+        if ( p->assigns[v] != l_Undef )
+        {
+            Lit = nLitsOld + toLitCond( v, p->assigns[v]==l_False );
+            if ( v == iVar )
+                Lit = lit_neg(Lit);
+            RetValue = sat_solver_addclause( p, &Lit, &Lit + 1 );
+            assert( RetValue );
+        }
+    // duplicate clauses
+    nClauses = vecp_size(&p->clauses);
+    pClauses = (clause**)vecp_begin(&p->clauses);
+    for ( c = 0; c < nClauses; c++ )
+    {
+        nLits = clause_size(pClauses[c]);
+        pLits = clause_begin(pClauses[c]);
+        for ( v = 0; v < nLits; v++ )
+            pLits[v] += nLitsOld;
+        RetValue = sat_solver_addclause( p, pLits, pLits + nLits );
+        assert( RetValue );
+        for ( v = 0; v < nLits; v++ )
+            pLits[v] -= nLitsOld;
+    }
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -93,9 +93,9 @@ static inline void Res_WinAddNode( Res_Win_t * p, Abc_Obj_t * pObj )
 extern void          Res_WinDivisors( Res_Win_t * p, int nLevDivMax );
 extern int           Res_WinVisitMffc( Res_Win_t * p );
 /*=== resFilter.c ==========================================================*/
-extern Vec_Ptr_t *   Res_FilterCandidates( Res_Win_t * pWin, Res_Sim_t * pSim );
+extern Vec_Vec_t *   Res_FilterCandidates( Res_Win_t * pWin, Res_Sim_t * pSim );
 /*=== resSat.c ==========================================================*/
-extern Hop_Obj_t *   Res_SatFindFunction( Hop_Man_t * pMan, Res_Win_t * pWin, Vec_Ptr_t * vFanins, Abc_Ntk_t * pAig );
+extern void *        Res_SatProveUnsat( Abc_Ntk_t * pAig, Vec_Ptr_t * vFanins );
 /*=== resSim.c ==========================================================*/
 extern Res_Sim_t *   Res_SimAlloc( int nWords );
 extern void          Res_SimFree( Res_Sim_t * p );

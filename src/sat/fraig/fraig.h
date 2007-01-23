@@ -27,7 +27,11 @@ extern "C" {
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "solver.h"
+#ifdef _WIN32
+typedef signed __int64     sint64;   // compatible with MS VS 6.0
+#else
+typedef long long          sint64;
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///

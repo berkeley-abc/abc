@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "io.h"
+#include "satSolver.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -43,7 +44,7 @@ static Abc_Ntk_t * s_pNtk = NULL;
 ***********************************************************************/
 int Io_WriteCnf( Abc_Ntk_t * pNtk, char * pFileName, int fAllPrimes )
 {
-    solver * pSat;
+    sat_solver * pSat;
     if ( Abc_NtkIsStrash(pNtk) )
         printf( "Io_WriteCnf() warning: Generating CNF by applying heuristic AIG to CNF conversion.\n" );
     else
@@ -67,7 +68,7 @@ int Io_WriteCnf( Abc_Ntk_t * pNtk, char * pFileName, int fAllPrimes )
     if ( Abc_NtkIsLogic(pNtk) )
         Abc_NtkLogicToBdd( pNtk );
     // create solver with clauses
-    pSat = Abc_NtkMiterSatCreate( pNtk, 0, fAllPrimes );
+    pSat = Abc_NtkMiterSatCreate( pNtk, fAllPrimes );
     if ( pSat == NULL )
     {
         fprintf( stdout, "The problem is trivially UNSAT. No CNF file is generated.\n" );
@@ -75,10 +76,10 @@ int Io_WriteCnf( Abc_Ntk_t * pNtk, char * pFileName, int fAllPrimes )
     }        
     // write the clauses
     s_pNtk = pNtk;
-    Asat_SolverWriteDimacs( pSat, pFileName, 0, 0, 1 );
+    Sat_SolverWriteDimacs( pSat, pFileName, 0, 0, 1 );
     s_pNtk = NULL;
     // free the solver
-    solver_delete( pSat );
+    sat_solver_delete( pSat );
     return 1;
 }
 
