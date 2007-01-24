@@ -71,18 +71,18 @@ struct Int_Man_t_
     int             timeTotal;    // the total runtime of interpolation
 };
 
-// procedure to get hold of the clauses' truth table
+// procedure to get hold of the clauses' truth table 
 static inline unsigned * Int_ManTruthRead( Int_Man_t * p, Sto_Cls_t * pCls )          { return p->pInters + pCls->Id * p->nWords;                 }
-static inline void       Int_ManTruthClear( unsigned * p, int nWords )                { int i; for ( i = nWords - 1; i >= 0; i-- ) p[i] = 0;      }
-static inline void       Int_ManTruthFill( unsigned * p, int nWords )                 { int i; for ( i = nWords - 1; i >= 0; i-- ) p[i] = ~0;     }
-static inline void       Int_ManTruthCopy( unsigned * p, unsigned * q, int nWords )   { int i; for ( i = nWords - 1; i >= 0; i-- ) p[i] = q[i];   }
-static inline void       Int_ManTruthAnd( unsigned * p, unsigned * q, int nWords )    { int i; for ( i = nWords - 1; i >= 0; i-- ) p[i] &= q[i];  }
-static inline void       Int_ManTruthOr( unsigned * p, unsigned * q, int nWords )     { int i; for ( i = nWords - 1; i >= 0; i-- ) p[i] |= q[i];  }
+static inline void       Int_ManTruthClear( unsigned * p, int nWords )                { int i; for ( i = nWords - 1; i >= 0; i-- ) p[i]  =  0;    }
+static inline void       Int_ManTruthFill( unsigned * p, int nWords )                 { int i; for ( i = nWords - 1; i >= 0; i-- ) p[i]  = ~0;    }
+static inline void       Int_ManTruthCopy( unsigned * p, unsigned * q, int nWords )   { int i; for ( i = nWords - 1; i >= 0; i-- ) p[i]  =  q[i]; }
+static inline void       Int_ManTruthAnd( unsigned * p, unsigned * q, int nWords )    { int i; for ( i = nWords - 1; i >= 0; i-- ) p[i] &=  q[i]; }
+static inline void       Int_ManTruthOr( unsigned * p, unsigned * q, int nWords )     { int i; for ( i = nWords - 1; i >= 0; i-- ) p[i] |=  q[i]; }
 static inline void       Int_ManTruthOrNot( unsigned * p, unsigned * q, int nWords )  { int i; for ( i = nWords - 1; i >= 0; i-- ) p[i] |= ~q[i]; }
 
 // reading/writing the proof for a clause
-static inline int        Int_ManProofRead( Int_Man_t * p, Sto_Cls_t * pCls )          { return p->pProofNums[pCls->Id];  }
-static inline void       Int_ManProofWrite( Int_Man_t * p, Sto_Cls_t * pCls, int n )  { p->pProofNums[pCls->Id] = n;     }
+static inline int        Int_ManProofGet( Int_Man_t * p, Sto_Cls_t * pCls )           { return p->pProofNums[pCls->Id];  }
+static inline void       Int_ManProofSet( Int_Man_t * p, Sto_Cls_t * pCls, int n )    { p->pProofNums[pCls->Id] = n;     }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -110,7 +110,7 @@ Int_Man_t * Int_ManAlloc( int nVarsAlloc )
     p->pResLits = malloc( sizeof(lit) * p->nResLitsAlloc );
     // parameters
     p->fProofWrite = 0;
-    p->fProofVerif = 0;
+    p->fProofVerif = 1;
     return p;    
 }
 
@@ -125,7 +125,7 @@ Int_Man_t * Int_ManAlloc( int nVarsAlloc )
   SeeAlso     []
 
 ***********************************************************************/
-int Int_ManCommonVars( Int_Man_t * p )
+int Int_ManGlobalVars( Int_Man_t * p )
 {
     Sto_Cls_t * pClause;
     int Var, nVarsAB, v;
@@ -161,8 +161,8 @@ int Int_ManCommonVars( Int_Man_t * p )
     nVarsAB = 0;
     for ( v = 0; v < p->pCnf->nVars; v++ )
         if ( p->pVarTypes[v] == -1 )
-            p->pVarTypes[v] -= p->nVarsAB++;
-printf( "There are %d global variables.\n", nVarsAB );
+            p->pVarTypes[v] -= nVarsAB++;
+//printf( "There are %d global variables.\n", nVarsAB );
     return nVarsAB;
 }
 
@@ -182,7 +182,6 @@ void Int_ManResize( Int_Man_t * p )
     // check if resizing is needed
     if ( p->nVarsAlloc < p->pCnf->nVars )
     {
-        int nVarsAllocOld = p->nVarsAlloc;
         // find the new size
         if ( p->nVarsAlloc == 0 )
             p->nVarsAlloc = 1;
@@ -205,7 +204,7 @@ void Int_ManResize( Int_Man_t * p )
     memset( p->pWatches , 0,    sizeof(Sto_Cls_t *) * p->pCnf->nVars*2 );
 
     // compute the number of common variables
-    p->nVarsAB = Int_ManCommonVars( p );
+    p->nVarsAB = Int_ManGlobalVars( p );
     // compute the number of words in the truth table
     p->nWords = (p->nVarsAB <= 5 ? 1 : (1 << (p->nVarsAB - 5)));
 
@@ -228,7 +227,7 @@ void Int_ManResize( Int_Man_t * p )
         p->nIntersAlloc = p->nWords * p->pCnf->nClauses;
         p->pInters = (unsigned *) realloc( p->pInters, sizeof(unsigned) * p->nIntersAlloc );
     }
-    memset( p->pInters, 0, sizeof(unsigned) * p->nIntersAlloc );
+//    memset( p->pInters, 0, sizeof(unsigned) * p->nWords * p->pCnf->nClauses );
 }
 
 /**Function*************************************************************
@@ -244,11 +243,12 @@ void Int_ManResize( Int_Man_t * p )
 ***********************************************************************/
 void Int_ManFree( Int_Man_t * p )
 {
+/*
     printf( "Runtime stats:\n" );
 PRT( "BCP     ", p->timeBcp   );
 PRT( "Trace   ", p->timeTrace );
 PRT( "TOTAL   ", p->timeTotal );
-
+*/
     free( p->pInters );
     free( p->pProofNums );
     free( p->pTrail );
@@ -278,7 +278,7 @@ PRT( "TOTAL   ", p->timeTotal );
 void Int_ManPrintClause( Int_Man_t * p, Sto_Cls_t * pClause )
 {
     int i;
-    printf( "Clause ID = %d. Proof = %d. {", pClause->Id, Int_ManProofRead(p, pClause) );
+    printf( "Clause ID = %d. Proof = %d. {", pClause->Id, Int_ManProofGet(p, pClause) );
     for ( i = 0; i < (int)pClause->nLits; i++ )
         printf( " %d", pClause->pLits[i] );
     printf( " }\n" );
@@ -534,12 +534,12 @@ p->timeBcp += clock() - clk;
 ***********************************************************************/
 void Int_ManProofWriteOne( Int_Man_t * p, Sto_Cls_t * pClause )
 {
-    Int_ManProofWrite( p, pClause, ++p->Counter );
+    Int_ManProofSet( p, pClause, ++p->Counter );
 
     if ( p->fProofWrite )
     {
         int v;
-        fprintf( p->pFile, "%d", Int_ManProofRead(p, pClause) );
+        fprintf( p->pFile, "%d", Int_ManProofGet(p, pClause) );
         for ( v = 0; v < (int)pClause->nLits; v++ )
             fprintf( p->pFile, " %d", lit_print(pClause->pLits[v]) );
         fprintf( p->pFile, " 0 0\n" );
@@ -584,7 +584,7 @@ int Int_ManProofTraceOne( Int_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pFin
         Int_ManTruthCopy( Int_ManTruthRead(p, pFinal), Int_ManTruthRead(p, pConflict), p->nWords );
 
     // follow the trail backwards
-    PrevId = Int_ManProofRead(p, pConflict);
+    PrevId = Int_ManProofGet(p, pConflict);
     for ( i = p->nTrailSize - 1; i >= 0; i-- )
     {
         // skip literals that are not involved
@@ -605,10 +605,10 @@ int Int_ManProofTraceOne( Int_Man_t * p, Sto_Cls_t * pConflict, Sto_Cls_t * pFin
 
 
         // record the reason clause
-        assert( Int_ManProofRead(p, pReason) > 0 );
+        assert( Int_ManProofGet(p, pReason) > 0 );
         p->Counter++;
         if ( p->fProofWrite )
-            fprintf( p->pFile, "%d * %d %d 0\n", p->Counter, PrevId, Int_ManProofRead(p, pReason) );
+            fprintf( p->pFile, "%d * %d %d 0\n", p->Counter, PrevId, Int_ManProofGet(p, pReason) );
         PrevId = p->Counter;
 
         if ( p->pCnf->nClausesA )
@@ -700,7 +700,7 @@ p->timeTrace += clock() - clk;
     {
 //        Int_ManPrintInterOne( p, pFinal );
     }
-    Int_ManProofWrite( p, pFinal, p->Counter );
+    Int_ManProofSet( p, pFinal, p->Counter );
     return p->Counter;
 }
 
@@ -839,7 +839,7 @@ int Int_ManProcessRoots( Int_Man_t * p )
     {
         // detected root level conflict
         printf( "Int_ManProcessRoots(): Detected a root-level conflict\n" );
-        assert( 0 );
+//        assert( 0 );
         return 0;
     }
 
@@ -873,7 +873,7 @@ void Int_ManPrepareInter( Int_Man_t * p )
         { 0x00000000,0x00000000,0x00000000,0x00000000,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF } 
     };
     Sto_Cls_t * pClause;
-    int Var, v;
+    int Var, VarAB, v;
     assert( p->nVarsAB <= 8 );
 
     // set interpolants for root clauses
@@ -892,10 +892,12 @@ void Int_ManPrepareInter( Int_Man_t * p )
             Var = lit_var(pClause->pLits[v]);
             if ( p->pVarTypes[Var] < 0 ) // global var
             {
+                VarAB = -p->pVarTypes[Var]-1;
+                assert( VarAB >= 0 && VarAB < p->nVarsAB );
                 if ( lit_sign(pClause->pLits[v]) ) // negative var
-                    Int_ManTruthOrNot( Int_ManTruthRead(p, pClause), uTruths[ -p->pVarTypes[Var]-1 ], p->nWords );
+                    Int_ManTruthOrNot( Int_ManTruthRead(p, pClause), uTruths[VarAB], p->nWords );
                 else
-                    Int_ManTruthOr( Int_ManTruthRead(p, pClause), uTruths[ -p->pVarTypes[Var]-1 ], p->nWords );
+                    Int_ManTruthOr( Int_ManTruthRead(p, pClause), uTruths[VarAB], p->nWords );
             }
         }
 //        Int_ManPrintInterOne( p, pClause );
@@ -922,12 +924,17 @@ int Int_ManInterpolate( Int_Man_t * p, Sto_Man_t * pCnf, int fVerbose, unsigned 
 
     // check that the CNF makes sense
     assert( pCnf->nVars > 0 && pCnf->nClauses > 0 );
+    p->pCnf = pCnf;
 
     // adjust the manager
     Int_ManResize( p );
 
     // propagate root level assignments
-    Int_ManProcessRoots( p );
+    if ( !Int_ManProcessRoots( p ) )
+    {
+        *ppResult = NULL;
+        return p->nVarsAB;
+    }
 
     // prepare the interpolant computation
     Int_ManPrepareInter( p );
@@ -969,8 +976,8 @@ int Int_ManInterpolate( Int_Man_t * p, Sto_Man_t * pCnf, int fVerbose, unsigned 
         1.0*Sto_ManMemoryReport(p->pCnf)/(1<<20) );
 
 p->timeTotal += clock() - clkTotal;
-    Int_ManFree( p );
-    return 1;
+    *ppResult = Int_ManTruthRead( p, p->pCnf->pTail );
+    return p->nVarsAB;
 }
 
 ////////////////////////////////////////////////////////////////////////

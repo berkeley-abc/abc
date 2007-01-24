@@ -116,6 +116,8 @@ extern int          Sto_ManAddClause( Sto_Man_t * p, lit * pBeg, lit * pEnd );
 extern int          Sto_ManMemoryReport( Sto_Man_t * p );
 extern void         Sto_ManMarkRoots( Sto_Man_t * p );
 extern void         Sto_ManMarkClausesA( Sto_Man_t * p );
+extern void         Sto_ManDumpClauses( Sto_Man_t * p, char * pFileName );
+extern Sto_Man_t *  Sto_ManLoadClauses( char * pFileName );
 
 /*=== satInter.c ==========================================================*/
 typedef struct Int_Man_t_ Int_Man_t;

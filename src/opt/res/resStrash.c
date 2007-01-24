@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
-#include "res.h"
+#include "resInt.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -72,7 +72,7 @@ Abc_Ntk_t * Res_WndStrash( Res_Win_t * p )
     }
     // mark the TFO of the node
     Abc_NtkIncrementTravId( p->pNode->pNtk );
-    Res_WinVisitNodeTfo( p );
+    Res_WinSweepLeafTfo_rec( p->pNode, (int)p->pNode->Level + p->nWinTfoMax, NULL );
     // redo strashing in the TFO
     p->pNode->pCopy = Abc_ObjNot( p->pNode->pCopy );
     Vec_VecForEachEntryStartStop( p->vLevels, pObj, i, k, p->pNode->Level + 1, (int)p->pNode->Level + p->nWinTfoMax )
@@ -92,6 +92,9 @@ Abc_Ntk_t * Res_WndStrash( Res_Win_t * p )
     // add the divisors
     Vec_PtrForEachEntry( p->vDivs, pObj, i )
         Abc_ObjAddFanin( Abc_NtkCreatePo(pAig), pObj->pCopy );
+    // add the names
+    Abc_NtkAddDummyPiNames( pAig );
+    Abc_NtkAddDummyPoNames( pAig );
     // check the resulting network
     if ( !Abc_NtkCheck( pAig ) )
         fprintf( stdout, "Res_WndStrash(): Network check has failed.\n" );

@@ -830,10 +830,13 @@ Abc_Obj_t * Abc_ConvertAigToAig( Abc_Ntk_t * pNtkAig, Abc_Obj_t * pObjOld )
     pRoot = pObjOld->pData;
     // check the case of a constant
     if ( Hop_ObjIsConst1( Hop_Regular(pRoot) ) )
-        return Abc_ObjNotCond( Abc_AigConst1(pNtkAig->pManFunc), Hop_IsComplement(pRoot) );
+        return Abc_ObjNotCond( Abc_AigConst1(pNtkAig), Hop_IsComplement(pRoot) );
     // assign the fanin nodes
     Abc_ObjForEachFanin( pObjOld, pFanin, i )
+    {
+        assert( pFanin->pCopy != NULL );
         Hop_ManPi(pHopMan, i)->pData = pFanin->pCopy;
+    }
     // construct the AIG
     Abc_ConvertAigToAig_rec( pNtkAig, Hop_Regular(pRoot) );
     Hop_ConeUnmark_rec( Hop_Regular(pRoot) );

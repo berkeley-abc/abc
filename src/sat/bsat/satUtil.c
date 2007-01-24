@@ -190,7 +190,7 @@ int * Sat_SolverGetModel( sat_solver * p, int * pVars, int nVars )
 ***********************************************************************/
 void Sat_SolverDoubleClauses( sat_solver * p, int iVar )
 {
-    clause ** pClauses;
+    clause * pClause;
     lit Lit, * pLits;
     int RetValue, nClauses, nVarsOld, nLitsOld, nLits, c, v;
     // get the number of variables
@@ -210,11 +210,11 @@ void Sat_SolverDoubleClauses( sat_solver * p, int iVar )
         }
     // duplicate clauses
     nClauses = vecp_size(&p->clauses);
-    pClauses = (clause**)vecp_begin(&p->clauses);
     for ( c = 0; c < nClauses; c++ )
     {
-        nLits = clause_size(pClauses[c]);
-        pLits = clause_begin(pClauses[c]);
+        pClause = p->clauses.ptr[c];
+        nLits = clause_size(pClause);
+        pLits = clause_begin(pClause);
         for ( v = 0; v < nLits; v++ )
             pLits[v] += nLitsOld;
         RetValue = sat_solver_addclause( p, pLits, pLits + nLits );

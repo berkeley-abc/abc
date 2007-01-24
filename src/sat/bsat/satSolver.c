@@ -1223,7 +1223,7 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, sint64 nConfLimit, sin
     sat_solver_canceluntil(s,0);
 
     ////////////////////////////////////////////////
-    if ( status == l_Undef && s->pStore )
+    if ( status == l_False && s->pStore )
     {
         extern int Sto_ManAddClause( void * p, lit * pBeg, lit * pEnd );
         int RetValue = Sto_ManAddClause( s->pStore, NULL, NULL );

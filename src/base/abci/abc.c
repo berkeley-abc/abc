@@ -25,6 +25,7 @@
 #include "cut.h"
 #include "fpga.h"
 #include "if.h"
+#include "res.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -2565,23 +2566,19 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
+    Res_Par_t Pars, * pPars = &Pars;
     int c;
-    int nWindow;
-    int nSimWords;
-    int fVerbose;
-    int fVeryVerbose;
-    // external functions
-    extern int Abc_NtkResynthesize( Abc_Ntk_t * pNtk, int nWindow, int nSimWords, int fVerbose, int fVeryVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nWindow      = 33;
-    nSimWords    =  8;
-    fVerbose     =  1;
-    fVeryVerbose =  0;
+    pPars->nWindow      = 33;
+    pPars->nCands       =  3;
+    pPars->nSimWords    =  8;
+    pPars->fVerbose     =  1;
+    pPars->fVeryVerbose =  0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "WSvwh" ) ) != EOF )
     {
@@ -2593,9 +2590,9 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
                 fprintf( pErr, "Command line switch \"-W\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nWindow = atoi(argv[globalUtilOptind]);
+            pPars->nWindow = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nWindow < 1 || nWindow > 99 ) 
+            if ( pPars->nWindow < 1 || pPars->nWindow > 99 ) 
                 goto usage;
             break;
         case 'S':
@@ -2604,16 +2601,16 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
                 fprintf( pErr, "Command line switch \"-S\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nSimWords = atoi(argv[globalUtilOptind]);
+            pPars->nSimWords = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nSimWords < 2 || nSimWords > 256 ) 
+            if ( pPars->nSimWords < 1 || pPars->nSimWords > 256 ) 
                 goto usage;
             break;
         case 'v':
-            fVerbose ^= 1;
+            pPars->fVerbose ^= 1;
             break;
         case 'w':
-            fVeryVerbose ^= 1;
+            pPars->fVeryVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -2634,7 +2631,7 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // modify the current network
-    if ( !Abc_NtkResynthesize( pNtk, nWindow, nSimWords, fVerbose, fVeryVerbose ) )
+    if ( !Abc_NtkResynthesize( pNtk, pPars ) )
     {
         fprintf( pErr, "Resynthesis has failed.\n" );
         return 1;
@@ -2642,13 +2639,13 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: mfs [-W <NM>] [-S <n>] [-vwh]\n" );
-    fprintf( pErr, "\t          performs resubstitution-based resynthesis with don't-cares\n" );
-    fprintf( pErr, "\t-W <NM> : specifies the windowing paramters (00 < NM <= 99) [default = %d%d]\n", nWindow/10, nWindow%10 );
-    fprintf( pErr, "\t-S <n>  : specifies the number of simulation words (2 <= n <= 256) [default = %d]\n", nSimWords );
-    fprintf( pErr, "\t-v      : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
-    fprintf( pErr, "\t-w      : toggle printout subgraph statistics [default = %s]\n", fVeryVerbose? "yes": "no" );
-    fprintf( pErr, "\t-h      : print the command usage\n");
+    fprintf( pErr, "usage: mfs [-W <NM>] [-S <num>] [-vwh]\n" );
+    fprintf( pErr, "\t           performs resubstitution-based resynthesis with don't-cares\n" );
+    fprintf( pErr, "\t-W <NM>  : specifies the windowing paramters (00 < NM <= 99) [default = %d%d]\n", pPars->nWindow/10, pPars->nWindow%10 );
+    fprintf( pErr, "\t-S <num> : specifies the number of simulation words (1 <= n <= 256) [default = %d]\n", pPars->nSimWords );
+    fprintf( pErr, "\t-v       : toggle verbose printout [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-w       : toggle printout subgraph statistics [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h       : print the command usage\n");
     return 1;
 } 
 

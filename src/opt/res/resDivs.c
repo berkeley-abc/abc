@@ -19,7 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
-#include "res.h"
+#include "resInt.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -56,11 +56,12 @@ void Res_WinDivisors( Res_Win_t * p, int nLevDivMax )
     // prepare the new trav ID
     Abc_NtkIncrementTravId( p->pNode->pNtk );
     // mark the TFO of the node (does not increment trav ID)
-    Res_WinVisitNodeTfo( p );
+    Res_WinSweepLeafTfo_rec( p->pNode, p->nLevDivMax, NULL );
     // mark the MFFC of the node (does not increment trav ID)
     Res_WinVisitMffc( p );
 
     // go through all the legal levels and check if their fanouts can be divisors
+    p->nDivsPlus = 0;
     Vec_VecForEachEntryStartStop( p->vLevels, pObj, i, k, 0, p->nLevDivMax - 1 )
     {
         // skip nodes in the TFO or in the MFFC of node
@@ -69,14 +70,14 @@ void Res_WinDivisors( Res_Win_t * p, int nLevDivMax )
         // consider fanouts of this node
         Abc_ObjForEachFanout( pObj, pFanout, f )
         {
+            // skip nodes that are already added
+            if ( pFanout->fMarkA )
+                continue;
             // skip COs
             if ( !Abc_ObjIsNode(pFanout) ) 
                 continue;
             // skip nodes in the TFO or in the MFFC of node
             if ( Abc_NodeIsTravIdCurrent(pFanout) )
-                continue;
-            // skip nodes that are already added
-            if ( pFanout->fMarkA )
                 continue;
             // skip nodes with large level
             if ( (int)pFanout->Level > p->nLevDivMax )
@@ -85,10 +86,11 @@ void Res_WinDivisors( Res_Win_t * p, int nLevDivMax )
             Abc_ObjForEachFanin( pFanout, pFanin, m )
                 if ( !pFanin->fMarkA )
                     break;
-            if ( m < Abc_ObjFaninNum(pFanin) )
+            if ( m < Abc_ObjFaninNum(pFanout) )
                 continue;
             // add the node
             Res_WinAddNode( p, pFanout );
+            p->nDivsPlus++;
         }
     }
 
@@ -100,8 +102,8 @@ void Res_WinDivisors( Res_Win_t * p, int nLevDivMax )
 
     // collect the divisors below the line
     Vec_PtrClear( p->vDivs );
-    // collect the node fanins first
-    Abc_ObjForEachFanin( pObj, pFanin, m )
+    // collect the node fanins first and mark the fanins
+    Abc_ObjForEachFanin( p->pNode, pFanin, m )
     {
         Vec_PtrPush( p->vDivs, pFanin );
         Abc_NodeSetTravIdCurrent( pFanin );
@@ -114,6 +116,9 @@ void Res_WinDivisors( Res_Win_t * p, int nLevDivMax )
     Vec_VecForEachEntryStartStop( p->vLevels, pObj, i, k, p->nLevLeaves, p->nLevDivMax )
         if ( !Abc_NodeIsTravIdCurrent(pObj) )
             Vec_PtrPush( p->vDivs, pObj );
+
+    // verify the resulting window
+//    Res_WinVerify( p );
 }
 
 /**Function*************************************************************

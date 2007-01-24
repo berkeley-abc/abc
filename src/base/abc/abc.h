@@ -241,9 +241,9 @@ static inline unsigned    Abc_InfoRandom()                           { return ((
 static inline void        Abc_InfoClear( unsigned * p, int nWords )  { memset( p, 0, sizeof(unsigned) * nWords );   } 
 static inline void        Abc_InfoFill( unsigned * p, int nWords )   { memset( p, 0xff, sizeof(unsigned) * nWords );} 
 static inline void        Abc_InfoNot( unsigned * p, int nWords )    { int i; for ( i = nWords - 1; i >= 0; i-- ) p[i] = ~p[i];   } 
-static inline int         Abc_InfoIsZero( unsigned * p, int nWords ) { int i; for ( i = nWords - 1; i >= 0; i-- ) if ( p[i] ) return 0; return 1;  } 
-static inline int         Abc_InfoIsOne( unsigned * p, int nWords )  { int i; for ( i = nWords - 1; i >= 0; i-- ) if ( !p[i] ) return 0; return 1; } 
-static inline void        Abc_InfoCopy( unsigned * p, unsigned * q, int nWords )  { int i; for ( i = nWords - 1; i >= 0; i-- ) p[i] = q[i];   } 
+static inline int         Abc_InfoIsZero( unsigned * p, int nWords ) { int i; for ( i = nWords - 1; i >= 0; i-- ) if ( p[i] )  return 0; return 1; } 
+static inline int         Abc_InfoIsOne( unsigned * p, int nWords )  { int i; for ( i = nWords - 1; i >= 0; i-- ) if ( ~p[i] ) return 0; return 1; } 
+static inline void        Abc_InfoCopy( unsigned * p, unsigned * q, int nWords )  { int i; for ( i = nWords - 1; i >= 0; i-- ) p[i]  = q[i];  } 
 static inline void        Abc_InfoAnd( unsigned * p, unsigned * q, int nWords )   { int i; for ( i = nWords - 1; i >= 0; i-- ) p[i] &= q[i];  } 
 static inline void        Abc_InfoOr( unsigned * p, unsigned * q, int nWords )    { int i; for ( i = nWords - 1; i >= 0; i-- ) p[i] |= q[i];  } 
 static inline void        Abc_InfoXor( unsigned * p, unsigned * q, int nWords )   { int i; for ( i = nWords - 1; i >= 0; i-- ) p[i] ^= q[i];  } 

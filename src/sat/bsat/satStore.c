@@ -292,7 +292,7 @@ void Sto_ManDumpClauses( Sto_Man_t * p, char * pFileName )
             fprintf( pFile, " %d", lit_print(pClause->pLits[i]) );
         fprintf( pFile, "\n" );
     }
-    fprintf( pFile, "\n" );
+    fprintf( pFile, " 0\n" );
     fclose( pFile );
 }
 

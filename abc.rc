@@ -103,9 +103,11 @@ alias resyn2rs    "b; rs -K 6; rw; rs -K 6 -N 2; rf; rs -K 8; b; rs -K 8 -N 2; r
 alias compress2rs "b -l; rs -K 6 -l; rw -l; rs -K 6 -N 2 -l; rf -l; rs -K 8 -l; b -l; rs -K 8 -N 2 -l; rw -l; rs -K 10 -l; rwz -l; rs -K 10 -N 2 -l; b -l; rs -K 12 -l; rfz -l; rs -K 12 -N 2 -l; rwz -l; b -l"
 
 # temporaries
-#alias test        "rvl th/lib.v; rvv th/t2.v"
-#alias test         "so c/pure_sat/test.c"
-#alias test         "r c/14/csat_998.bench; st; ps"
+#alias t        "rvl th/lib.v; rvv th/t2.v"
+#alias t        "so c/pure_sat/test.c"
+#alias t        "r c/14/csat_998.bench; st; ps"
+alias t0        "r res.blif; aig; mfs"  
+alias t        "r res2.blif; aig; mfs"  
 
 
 
