@@ -111,6 +111,7 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
 
     fprintf( pFile, "\n" );
 
+//    Abc_NtkCrossCut( pNtk );
 
     // print the statistic into a file
 /*

@@ -278,6 +278,10 @@ SOURCE=.\src\base\abci\abcNtbdd.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcOdc.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcOrder.c
 # End Source File
 # Begin Source File
@@ -1667,6 +1671,10 @@ SOURCE=.\src\opt\res\resDivs.c
 # Begin Source File
 
 SOURCE=.\src\opt\res\resFilter.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\res\resInt.h
 # End Source File
 # Begin Source File
 

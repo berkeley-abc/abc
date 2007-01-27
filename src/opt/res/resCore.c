@@ -200,8 +200,11 @@ p->timeAig += clock() - clk;
 
         if ( p->pPars->fVeryVerbose )
         {
-            printf( "%5d : ", pObj->Id );
-            printf( "Win = %3d/%4d/%3d ", Vec_PtrSize(p->pWin->vLeaves), Vec_VecSizeSize(p->pWin->vLevels), Vec_PtrSize(p->pWin->vRoots) );
+            printf( "%5d (lev=%2d) : ", pObj->Id, pObj->Level );
+            printf( "Win = %3d/%3d/%4d/%3d   ", 
+                Vec_PtrSize(p->pWin->vLeaves) - p->pWin->nLeavesPlus, 
+                p->pWin->nLeavesPlus, Vec_VecSizeSize(p->pWin->vLevels), 
+                Vec_PtrSize(p->pWin->vRoots) );
             printf( "D = %3d ", Vec_PtrSize(p->pWin->vDivs) );
             printf( "D+ = %3d ", p->pWin->nDivsPlus );
             printf( "AIG = %4d ", Abc_NtkNodeNum(p->pAig) );
@@ -242,12 +245,13 @@ p->timeSat += clock() - clk;
 //                printf( " Sat\n" );
                 continue;
             }
+            p->nProvedSets++;
 //            printf( " Unsat\n" );
+            continue;
 
             // write it into a file
 //            Sto_ManDumpClauses( p->pCnf, "trace.cnf" );
 
-            p->nProvedSets++;
 
             // interplate the problem if it was UNSAT
 clk = clock();

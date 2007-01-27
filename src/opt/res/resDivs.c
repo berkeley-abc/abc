@@ -60,6 +60,8 @@ void Res_WinDivisors( Res_Win_t * p, int nLevDivMax )
     // mark the MFFC of the node (does not increment trav ID)
     Res_WinVisitMffc( p );
 
+    // what about the fanouts of the leaves!!!
+
     // go through all the legal levels and check if their fanouts can be divisors
     p->nDivsPlus = 0;
     Vec_VecForEachEntryStartStop( p->vLevels, pObj, i, k, 0, p->nLevDivMax - 1 )

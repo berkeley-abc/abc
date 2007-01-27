@@ -243,6 +243,7 @@ void Res_WinAddMissing_rec( Res_Win_t * p, Abc_Obj_t * pObj )
         return;
     if ( !Abc_NodeIsTravIdCurrent(pObj) || (int)pObj->Level <= p->nLevLeaves )
     {
+        p->nLeavesPlus++;
         Vec_PtrPush( p->vLeaves, pObj );
         pObj->fMarkA = 1;
         return;
@@ -349,6 +350,7 @@ int Res_WinCompute( Abc_Obj_t * pNode, int nWinTfiMax, int nWinTfoMax, Res_Win_t
     p->pNode = pNode;
     p->nWinTfiMax = nWinTfiMax;
     p->nWinTfoMax = nWinTfoMax;
+    p->nLeavesPlus = 0;
     p->nLevLeaves = ABC_MAX( 0, ((int)p->pNode->Level) - p->nWinTfiMax - 1 );
     // collect the nodes in TFI cone of pNode above the level of leaves (p->nLevLeaves)
     Res_WinCollectNodeTfi( p );

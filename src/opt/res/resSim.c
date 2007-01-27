@@ -141,12 +141,11 @@ void Res_SimSetRandom( Res_Sim_t * p )
 {
     Abc_Obj_t * pObj;
     unsigned * pInfo;
-    int i, w;
+    int i;
     Abc_NtkForEachPi( p->pAig, pObj, i )
     {
         pInfo = Vec_PtrEntry( p->vPats, pObj->Id );
-        for ( w = 0; w < p->nWords; w++ )
-            pInfo[w] = Abc_InfoRandom();
+        Abc_InfoRandom( pInfo, p->nWords );
     }
 }
 
@@ -478,7 +477,7 @@ int Res_SimPrepare( Res_Sim_t * p, Abc_Ntk_t * pAig )
     // prepare the manager
     Res_SimAdjust( p, pAig );
     // collect 0/1 simulation info
-    for ( Limit = 0; Limit < 100; Limit++ )
+    for ( Limit = 0; Limit < 10; Limit++ )
     {
         Res_SimSetRandom( p );
         Res_SimPerformRound( p );
@@ -489,10 +488,14 @@ int Res_SimPrepare( Res_Sim_t * p, Abc_Ntk_t * pAig )
     }
 //    printf( "%d   ", Limit );
     // report the last set of patterns
-//    Res_SimReportOne( p );
+    Res_SimReportOne( p );
+    printf( "\n" );
     // quit if there is not enough
     if ( p->nPats0 < 4 || p->nPats1 < 4 )
+    {
+//        Res_SimReportOne( p );
         return 0;
+    }
     // create bit-matrix info
     if ( p->nPats0 < p->nPats )
         Res_SimPadSimInfo( p->vPats0, p->nPats0, p->nWords );

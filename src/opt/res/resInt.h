@@ -48,6 +48,7 @@ struct Res_Win_t_
     int              nLevLeaves; // the level where leaves begin
     int              nLevDivMax; // the maximum divisor level
     int              nDivsPlus;  // the number of additional divisors
+    int              nLeavesPlus;// the number of additional leaves
     Abc_Obj_t *      pNode;      // the node in the center
     // the window data
     Vec_Vec_t *      vLevels;    // nodes by level

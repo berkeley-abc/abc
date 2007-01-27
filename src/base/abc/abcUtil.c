@@ -1450,6 +1450,100 @@ void Abc_NtkTransferCopy( Abc_Ntk_t * pNtk )
             pObj->pCopy = pObj->pCopy? Abc_ObjEquiv(pObj->pCopy) : NULL;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Increaments the cut counter.]
+
+  Description [Returns 1 if it becomes equal to the ref counter.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Abc_ObjCrossCutInc( Abc_Obj_t * pObj )
+{
+    pObj->pCopy = (void *)(((int)pObj->pCopy)++);
+    return (int)pObj->pCopy == Abc_ObjFanoutNum(pObj);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes cross-cut of the circuit.]
+
+  Description [Returns 1 if it is the last visit to the node.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkCrossCut_rec( Abc_Obj_t * pObj, int * pnCutSize, int * pnCutSizeMax )
+{
+    Abc_Obj_t * pFanin;
+    int i, nDecrem = 0;
+    int fReverse = 0;
+    if ( Abc_ObjIsCi(pObj) )
+        return 0;
+    // if visited, increment visit counter 
+    if ( Abc_NodeIsTravIdCurrent( pObj ) )
+        return Abc_ObjCrossCutInc( pObj );
+    Abc_NodeSetTravIdCurrent( pObj );
+    // visit the fanins
+    if ( !Abc_ObjIsCi(pObj) )
+    {
+        if ( fReverse )
+        {
+            Abc_ObjForEachFanin( pObj, pFanin, i )
+            {
+                pFanin = Abc_ObjFanin( pObj, Abc_ObjFaninNum(pObj) - 1 - i );
+                nDecrem += Abc_NtkCrossCut_rec( pFanin, pnCutSize, pnCutSizeMax );
+            }
+        }
+        else
+        {
+            Abc_ObjForEachFanin( pObj, pFanin, i )
+                nDecrem += Abc_NtkCrossCut_rec( pFanin, pnCutSize, pnCutSizeMax );
+        }
+    }
+    // count the node
+    (*pnCutSize)++;
+    if ( *pnCutSizeMax < *pnCutSize )
+        *pnCutSizeMax = *pnCutSize;
+    (*pnCutSize) -= nDecrem;
+    return Abc_ObjCrossCutInc( pObj );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes cross-cut of the circuit.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkCrossCut( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int nCutSize = 0, nCutSizeMax = 0;
+    int i;
+    Abc_NtkCleanCopy( pNtk );
+    Abc_NtkIncrementTravId( pNtk );
+    Abc_NtkForEachCo( pNtk, pObj, i )
+    {
+        Abc_NtkCrossCut_rec( pObj, &nCutSize, &nCutSizeMax );
+        nCutSize--;
+    }
+    assert( nCutSize == 0 );
+    printf( "Max cross cut size = %6d.  Ratio = %6.2f %%\n", nCutSizeMax, 100.0 * nCutSizeMax/Abc_NtkObjNum(pNtk) );
+    return nCutSizeMax;
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

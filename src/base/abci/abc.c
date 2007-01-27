@@ -2999,23 +2999,27 @@ int Abc_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int nCutsMax;
     int nNodesMax;
+    int nLevelsOdc;
     bool fUpdateLevel;
     bool fUseZeros;
     bool fVerbose;
-    extern int Abc_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutsMax, int nNodesMax, bool fUpdateLevel, bool fVerbose );
+    bool fVeryVerbose;
+    extern int Abc_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutsMax, int nNodesMax, int nLevelsOdc, bool fUpdateLevel, bool fVerbose, bool fVeryVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nCutsMax      =  8;
+    nCutsMax     =  8;
     nNodesMax    =  1;
+    nLevelsOdc   =  0;
     fUpdateLevel =  1;
     fUseZeros    =  0;
     fVerbose     =  0;
+    fVeryVerbose =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KNlzvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KNFlzvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -3041,6 +3045,17 @@ int Abc_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nNodesMax < 0 ) 
                 goto usage;
             break;
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLevelsOdc = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLevelsOdc < 0 ) 
+                goto usage;
+            break;
         case 'l':
             fUpdateLevel ^= 1;
             break;
@@ -3049,6 +3064,9 @@ int Abc_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'v':
             fVerbose ^= 1;
+            break;
+        case 'w':
+            fVeryVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -3064,7 +3082,12 @@ int Abc_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( nCutsMax < RS_CUT_MIN || nCutsMax > RS_CUT_MAX )
     {
-        fprintf( pErr, "Can only compute the cuts for %d <= K <= %d.\n", RS_CUT_MIN, RS_CUT_MAX );
+        fprintf( pErr, "Can only compute cuts for %d <= K <= %d.\n", RS_CUT_MIN, RS_CUT_MAX );
+        return 1;
+    }
+    if ( nNodesMax < 0 || nNodesMax > 3 )
+    {
+        fprintf( pErr, "Can only resubstitute at most 3 nodes.\n" );
         return 1;
     }
     if ( !Abc_NtkIsStrash(pNtk) )
@@ -3079,7 +3102,7 @@ int Abc_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // modify the current network
-    if ( !Abc_NtkResubstitute( pNtk, nCutsMax, nNodesMax, fUpdateLevel, fVerbose ) )
+    if ( !Abc_NtkResubstitute( pNtk, nCutsMax, nNodesMax, nLevelsOdc, fUpdateLevel, fVerbose, fVeryVerbose ) )
     {
         fprintf( pErr, "Refactoring has failed.\n" );
         return 1;
@@ -3087,13 +3110,15 @@ int Abc_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: resub [-K num] [-N num] [-lzvh]\n" );
+    fprintf( pErr, "usage: resub [-K num] [-N num] [-F num] [-lzvwh]\n" );
     fprintf( pErr, "\t         performs technology-independent restructuring of the AIG\n" );
     fprintf( pErr, "\t-K num : the max cut size (%d <= num <= %d) [default = %d]\n", RS_CUT_MIN, RS_CUT_MAX, nCutsMax );  
-    fprintf( pErr, "\t-N num : the max number of nodes to add [default = %d]\n", nNodesMax );  
+    fprintf( pErr, "\t-N num : the max number of nodes to add (0 <= num <= 3) [default = %d]\n", nNodesMax );  
+    fprintf( pErr, "\t-F num : the number of fanout levels for ODC computation [default = %d]\n", nLevelsOdc );  
     fprintf( pErr, "\t-l     : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
     fprintf( pErr, "\t-z     : toggle using zero-cost replacements [default = %s]\n", fUseZeros? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-w     : toggle verbose printout of ODC computation [default = %s]\n", fVeryVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
 }
