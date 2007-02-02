@@ -65,6 +65,10 @@ int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int 
     pSat = Abc_NtkMiterSatCreate( pNtk, 0 );
     if ( pSat == NULL )
         return 1;
+//printf( "%d \n", pSat->clauses.size );
+//sat_solver_delete( pSat );
+//return 1;
+
 //    printf( "Created SAT problem with %d variable and %d clauses. ", sat_solver_nvars(pSat), sat_solver_nclauses(pSat) );
 //    PRT( "Time", clock() - clk );
 
@@ -619,7 +623,7 @@ void * Abc_NtkMiterSatCreate( Abc_Ntk_t * pNtk, int fAllPrimes )
 
     nMuxes = 0;
     pSat = sat_solver_new();
-sat_solver_store_alloc( pSat );
+//sat_solver_store_alloc( pSat );
     RetValue = Abc_NtkMiterSatCreateInt( pSat, pNtk );
 sat_solver_store_mark_roots( pSat );
 

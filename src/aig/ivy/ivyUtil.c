@@ -731,6 +731,86 @@ void Ivy_ManPrintVerbose( Ivy_Man_t * p, int fHaig )
     printf( "\n" );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Performs incremental rewriting of the AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_CutTruthPrint2( Ivy_Man_t * p, Ivy_Cut_t * pCut, unsigned uTruth )
+{
+    int i;
+    printf( "Trying cut : {" );
+    for ( i = 0; i < pCut->nSize; i++ )
+        printf( " %6d(%d)", Ivy_LeafId(pCut->pArray[i]), Ivy_LeafLat(pCut->pArray[i]) );
+    printf( " }   " );
+    Extra_PrintBinary( stdout, &uTruth, 16 );  printf( "\n" );
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs incremental rewriting of the AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ivy_CutTruthPrint( Ivy_Man_t * p, Ivy_Cut_t * pCut, unsigned uTruth )
+{
+    Vec_Ptr_t * vArray;
+    Ivy_Obj_t * pObj, * pFanout;
+    int nLatches = 0;
+    int nPresent = 0;
+    int i, k;
+    int fVerbose = 0;
+
+    if ( fVerbose )
+        printf( "Trying cut : {" );
+    for ( i = 0; i < pCut->nSize; i++ )
+    {
+        if ( fVerbose )
+            printf( " %6d(%d)", Ivy_LeafId(pCut->pArray[i]), Ivy_LeafLat(pCut->pArray[i]) );
+        nLatches += Ivy_LeafLat(pCut->pArray[i]);
+    }
+    if ( fVerbose )
+        printf( " }   " );
+    if ( fVerbose )
+        printf( "Latches = %d. ", nLatches );
+
+    // check if there are latches on the fanout edges
+    vArray = Vec_PtrAlloc( 100 );
+    for ( i = 0; i < pCut->nSize; i++ )
+    {
+        pObj = Ivy_ManObj( p, Ivy_LeafId(pCut->pArray[i]) );
+        Ivy_ObjForEachFanout( p, pObj, vArray, pFanout, k )
+        {
+            if ( Ivy_ObjIsLatch(pFanout) )
+            {
+                nPresent++;
+                break;
+            }
+        }
+    }
+    Vec_PtrSize( vArray );
+    if ( fVerbose )
+    {
+        printf( "Present = %d. ", nPresent );
+        if ( nLatches > nPresent )
+            printf( "Clauses = %d. ", 2*(nLatches - nPresent) );
+        printf( "\n" );
+    }
+    return ( nLatches > nPresent ) ? 2*(nLatches - nPresent) : 0;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

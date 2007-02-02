@@ -37,7 +37,7 @@ extern int Res_SatAddAnd( sat_solver * pSat, int iVar, int iVar0, int iVar1, int
 
 /**Function*************************************************************
 
-  Synopsis    [Loads AIG into the SAT solver.]
+  Synopsis    [Loads AIG into the SAT solver for checking resubstitution.]
 
   Description []
                
@@ -122,6 +122,66 @@ void * Res_SatProveUnsat( Abc_Ntk_t * pAig, Vec_Ptr_t * vFanins )
     }
     sat_solver_delete( pSat );
     return pCnf;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Loads AIG into the SAT solver for constrained simulation.]
+
+  Description [The array of fanins contains exactly two entries: the 
+  care set and the functions.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void * Res_SatSimulateConstr( Abc_Ntk_t * pAig, Vec_Ptr_t * vFanins )
+{
+    sat_solver * pSat;
+    Vec_Ptr_t * vNodes;
+    Abc_Obj_t * pObj;
+    int i, nNodes;
+
+    // make sure fanins contain POs of the AIG
+    pObj = Vec_PtrEntry( vFanins, 0 );
+    assert( pObj->pNtk == pAig && Abc_ObjIsPo(pObj) );
+    assert( Vec_PtrSize(vFanins) == 2 );
+
+    // collect reachable nodes
+    vNodes = Abc_NtkDfsNodes( pAig, (Abc_Obj_t **)vFanins->pArray, vFanins->nSize );
+
+    // assign unique numbers to each node
+    nNodes = 0;
+    Abc_AigConst1(pAig)->pCopy = (void *)nNodes++;
+    Abc_NtkForEachPi( pAig, pObj, i )
+        pObj->pCopy = (void *)nNodes++;
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+        pObj->pCopy = (void *)nNodes++;
+    Vec_PtrForEachEntry( vFanins, pObj, i ) // useful POs
+        pObj->pCopy = (void *)nNodes++;
+
+    // start the solver
+    pSat = sat_solver_new();
+
+    // add clause for the constant node
+    Res_SatAddConst1( pSat, (int)Abc_AigConst1(pAig)->pCopy, 0 );
+    // add clauses for AND gates
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+        Res_SatAddAnd( pSat, (int)pObj->pCopy, 
+            (int)Abc_ObjFanin0(pObj)->pCopy, (int)Abc_ObjFanin1(pObj)->pCopy, Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj) );
+    Vec_PtrFree( vNodes );
+    // add clauses for POs
+    Vec_PtrForEachEntry( vFanins, pObj, i )
+        Res_SatAddEqual( pSat, (int)pObj->pCopy, 
+            (int)Abc_ObjFanin0(pObj)->pCopy, Abc_ObjFaninC0(pObj) );
+
+    // add trivial clauses
+    pObj = Vec_PtrEntry(vFanins, 0);
+    Res_SatAddConst1( pSat, (int)pObj->pCopy, 0 ); // care-set
+    pObj = Vec_PtrEntry(vFanins, 1);
+    Res_SatAddConst1( pSat, (int)pObj->pCopy, 0 ); // on-set
+    return pSat;
 }
 
 /**Function*************************************************************

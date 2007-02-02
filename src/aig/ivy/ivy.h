@@ -152,6 +152,7 @@ struct Ivy_FraigParams_t_
 typedef struct Ivy_Cut_t_ Ivy_Cut_t;
 struct Ivy_Cut_t_
 {
+    int         nLatches;
     short       nSize;
     short       nSizeMax;
     int         pArray[IVY_CUT_INPUT];
@@ -541,6 +542,7 @@ extern Ivy_Obj_t *     Ivy_ObjRecognizeMux( Ivy_Obj_t * pObj, Ivy_Obj_t ** ppObj
 extern Ivy_Obj_t *     Ivy_ObjReal( Ivy_Obj_t * pObj );
 extern void            Ivy_ObjPrintVerbose( Ivy_Man_t * p, Ivy_Obj_t * pObj, int fHaig );
 extern void            Ivy_ManPrintVerbose( Ivy_Man_t * p, int fHaig );
+extern int             Ivy_CutTruthPrint( Ivy_Man_t * p, Ivy_Cut_t * pCut, unsigned uTruth );
 
 #ifdef __cplusplus
 }

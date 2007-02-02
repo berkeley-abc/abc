@@ -105,7 +105,7 @@ void Abc_NtkIncrementTravId( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj;
     int i;
-    if ( pNtk->nTravIds == (1<<30)-1 )
+    if ( pNtk->nTravIds >= (1<<30)-1 )
     {
         pNtk->nTravIds = 0;
         Abc_NtkForEachObj( pNtk, pObj, i )
@@ -443,6 +443,26 @@ int Abc_NtkGetFaninMax( Abc_Ntk_t * pNtk )
             nFaninsMax = Abc_ObjFaninNum(pNode);
     }
     return nFaninsMax;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reads the total number of all fanins.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkGetTotalFanins( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNode;
+    int i, nFanins = 0;
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        nFanins += Abc_ObjFaninNum(pNode);
+    return nFanins;
 }
 
 /**Function*************************************************************

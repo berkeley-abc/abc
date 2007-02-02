@@ -1697,6 +1697,18 @@ SOURCE=.\src\opt\res\resUpdate.c
 SOURCE=.\src\opt\res\resWin.c
 # End Source File
 # End Group
+# Begin Group "bdc"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\opt\bdc\bdc.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\bdc\bdcInt.h
+# End Source File
+# End Group
 # End Group
 # Begin Group "map"
 

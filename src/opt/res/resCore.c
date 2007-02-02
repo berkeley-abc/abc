@@ -39,15 +39,19 @@ struct Res_Man_t_
     Sto_Man_t *   pCnf;          // the CNF of the SAT problem
     Int_Man_t *   pMan;          // interpolation manager;
     Vec_Int_t *   vMem;          // memory for intermediate SOPs
-    Vec_Vec_t *   vResubs;       // resubstitution candidates
+    Vec_Vec_t *   vResubs;       // resubstitution candidates of the AIG
+    Vec_Vec_t *   vResubsW;      // resubstitution candidates of the window
     Vec_Vec_t *   vLevels;       // levelized structure for updating
     // statistics
     int           nWins;         // the number of windows tried
     int           nWinNodes;     // the total number of window nodes
     int           nDivNodes;     // the total number of divisors
+    int           nWinsTriv;     // the total number of trivial windows
+    int           nWinsUsed;     // the total number of useful windows (with at least one candidate)
     int           nCandSets;     // the total number of candidates
     int           nProvedSets;   // the total number of proved groups
     int           nSimEmpty;     // the empty simulation info
+    int           nTotalNets;    // the total number of nets
     // runtime
     int           timeWin;       // windowing
     int           timeDiv;       // divisors
@@ -90,6 +94,7 @@ Res_Man_t * Res_ManAlloc( Res_Par_t * pPars )
     p->pMan = Int_ManAlloc( 512 );
     p->vMem = Vec_IntAlloc( 0 );
     p->vResubs = Vec_VecStart( pPars->nCands );
+    p->vResubsW = Vec_VecStart( pPars->nCands );
     p->vLevels = Vec_VecStart( 32 );
     return p;
 }
@@ -113,9 +118,11 @@ void Res_ManFree( Res_Man_t * p )
         printf( "Nodes = %d. (Ave = %5.1f)  ", p->nWinNodes, 1.0*p->nWinNodes/p->nWins );
         printf( "Divs = %d. (Ave = %5.1f)  ",  p->nDivNodes, 1.0*p->nDivNodes/p->nWins );
         printf( "\n" );
-        printf( "SimEmpt = %d. ", p->nSimEmpty );
+        printf( "WinsTriv = %d. ", p->nWinsTriv );
+        printf( "SimsEmpt = %d. ", p->nSimEmpty );
+        printf( "WindUsed = %d. ", p->nWinsUsed );
         printf( "Cands = %d. ", p->nCandSets );
-        printf( "Proved = %d. ", p->nProvedSets );
+        printf( "Proved = %d. (%.2f %%)", p->nProvedSets, 100.0*p->nProvedSets/p->nTotalNets );
         printf( "\n" );
 
         PRT( "Windowing  ", p->timeWin );
@@ -135,6 +142,7 @@ void Res_ManFree( Res_Man_t * p )
     Int_ManFree( p->pMan );
     Vec_IntFree( p->vMem );
     Vec_VecFree( p->vResubs );
+    Vec_VecFree( p->vResubsW );
     Vec_VecFree( p->vLevels );
     free( p );
 }
@@ -164,6 +172,7 @@ int Abc_NtkResynthesize( Abc_Ntk_t * pNtk, Res_Par_t * pPars )
 
     // start the manager
     p = Res_ManAlloc( pPars );
+    p->nTotalNets = Abc_NtkGetTotalFanins(pNtk);
     // set the number of levels
     Abc_NtkLevel( pNtk );
 
@@ -182,15 +191,32 @@ clk = clock();
 p->timeWin += clock() - clk;
         if ( !RetValue )
             continue;
+        p->nWinsTriv += Res_WinIsTrivial( p->pWin );
 
-        p->nWins++;
-        p->nWinNodes += Vec_VecSizeSize( p->pWin->vLevels );
+        if ( p->pPars->fVeryVerbose )
+        {
+            printf( "%5d (lev=%2d) : ", pObj->Id, pObj->Level );
+            printf( "Win = %3d/%3d/%4d/%3d   ", 
+                Vec_PtrSize(p->pWin->vLeaves), 
+                Vec_PtrSize(p->pWin->vBranches),
+                Vec_PtrSize(p->pWin->vNodes), 
+                Vec_PtrSize(p->pWin->vRoots) );
+        }
 
         // collect the divisors
 clk = clock();
         Res_WinDivisors( p->pWin, pObj->Level - 1 );
 p->timeDiv += clock() - clk;
-        p->nDivNodes += Vec_PtrSize( p->pWin->vDivs );
+
+        p->nWins++;
+        p->nWinNodes += Vec_PtrSize(p->pWin->vNodes);
+        p->nDivNodes += Vec_PtrSize( p->pWin->vDivs);
+
+        if ( p->pPars->fVeryVerbose )
+        {
+            printf( "D = %3d ", Vec_PtrSize(p->pWin->vDivs) );
+            printf( "D+ = %3d ", p->pWin->nDivsPlus );
+        }
 
         // create the AIG for the window
 clk = clock();
@@ -200,13 +226,6 @@ p->timeAig += clock() - clk;
 
         if ( p->pPars->fVeryVerbose )
         {
-            printf( "%5d (lev=%2d) : ", pObj->Id, pObj->Level );
-            printf( "Win = %3d/%3d/%4d/%3d   ", 
-                Vec_PtrSize(p->pWin->vLeaves) - p->pWin->nLeavesPlus, 
-                p->pWin->nLeavesPlus, Vec_VecSizeSize(p->pWin->vLevels), 
-                Vec_PtrSize(p->pWin->vRoots) );
-            printf( "D = %3d ", Vec_PtrSize(p->pWin->vDivs) );
-            printf( "D+ = %3d ", p->pWin->nDivsPlus );
             printf( "AIG = %4d ", Abc_NtkNodeNum(p->pAig) );
             printf( "\n" );
         }
@@ -223,11 +242,13 @@ p->timeSim += clock() - clk;
 
         // find resub candidates for the node
 clk = clock();
-        RetValue = Res_FilterCandidates( p->pWin, p->pAig, p->pSim, p->vResubs );
+        RetValue = Res_FilterCandidates( p->pWin, p->pAig, p->pSim, p->vResubs, p->vResubsW );
 p->timeCand += clock() - clk;
         p->nCandSets += RetValue;
         if ( RetValue == 0 )
             continue;
+
+        p->nWinsUsed++;
 
         // iterate through candidate resubstitutions
         Vec_VecForEachLevel( p->vResubs, vFanins, k )
@@ -247,26 +268,19 @@ p->timeSat += clock() - clk;
             }
             p->nProvedSets++;
 //            printf( " Unsat\n" );
-            continue;
+//            continue;
 
             // write it into a file
 //            Sto_ManDumpClauses( p->pCnf, "trace.cnf" );
 
-
-            // interplate the problem if it was UNSAT
+            // interpolate the problem if it was UNSAT
 clk = clock();
-            RetValue = Int_ManInterpolate( p->pMan, p->pCnf, p->pPars->fVerbose, &puTruth );
+            nFanins = Int_ManInterpolate( p->pMan, p->pCnf, 0, &puTruth );
 p->timeInt += clock() - clk;
-            assert( RetValue == Vec_PtrSize(vFanins) - 2 );
-
-            if ( puTruth )
-            {
-                Extra_PrintBinary( stdout, puTruth, 1 << RetValue );
-                printf( "\n" );
-            }
-
-            continue;
-            
+            assert( nFanins == Vec_PtrSize(vFanins) - 2 );
+            assert( puTruth );
+//            Extra_PrintBinary( stdout, puTruth, 1 << nFanins );  printf( "\n" );
+           
             // transform interpolant into the AIG
             pGraph = Kit_TruthToGraph( puTruth, nFanins, p->vMem );
 
@@ -276,10 +290,11 @@ p->timeInt += clock() - clk;
 
             // update the network
 clk = clock();
-            Res_UpdateNetwork( pObj, vFanins, pFunc, p->vLevels );
+            Res_UpdateNetwork( pObj, Vec_VecEntry(p->vResubsW, k), pFunc, p->vLevels );
 p->timeUpd += clock() - clk;
             break;
         }
+
     }
 
     // quit resubstitution manager

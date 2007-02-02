@@ -1264,7 +1264,7 @@ void sat_solver_store_alloc( sat_solver * s )
 void sat_solver_store_write( sat_solver * s, char * pFileName )
 {
     extern void Sto_ManDumpClauses( void * p, char * pFileName );
-    Sto_ManDumpClauses( s->pStore, pFileName );
+    if ( s->pStore ) Sto_ManDumpClauses( s->pStore, pFileName );
 }
 
 void sat_solver_store_free( sat_solver * s )
@@ -1273,7 +1273,7 @@ void sat_solver_store_free( sat_solver * s )
     if ( s->pStore ) Sto_ManFree( s->pStore );
     s->pStore = NULL;
 }
-
+ 
 void sat_solver_store_mark_roots( sat_solver * s )
 {
     extern void Sto_ManMarkRoots( void * p );

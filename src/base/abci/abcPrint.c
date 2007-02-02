@@ -77,7 +77,10 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
 //            fprintf( pFile, " (other = %d)", Abc_NtkNodeNum(pNtk)-3*Num2 );
     }
     else 
+    {
         fprintf( pFile, "  nd = %5d", Abc_NtkNodeNum(pNtk) );
+        fprintf( pFile, "  net = %5d", Abc_NtkGetTotalFanins(pNtk) );
+    }
 
     if ( Abc_NtkIsStrash(pNtk) || Abc_NtkIsNetlist(pNtk) )
     {

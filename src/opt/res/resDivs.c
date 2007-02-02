@@ -25,6 +25,9 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+static void Res_WinMarkTfi( Res_Win_t * p );
+static int  Res_WinVisitMffc( Res_Win_t * p );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -43,84 +46,155 @@
 void Res_WinDivisors( Res_Win_t * p, int nLevDivMax )
 {
     Abc_Obj_t * pObj, * pFanout, * pFanin;
-    int i, k, f, m;
+    int k, f, m;
 
+    // set the maximum level of the divisors
     p->nLevDivMax = nLevDivMax;
 
-    // mark the leaves and the internal nodes
-    Vec_PtrForEachEntry( p->vLeaves, pObj, i )
-        pObj->fMarkA = 1;
-    Vec_VecForEachEntry( p->vLevels, pObj, i, k )
-        pObj->fMarkA = 1;
-
-    // prepare the new trav ID
+    // mark the TFI with the current trav ID
     Abc_NtkIncrementTravId( p->pNode->pNtk );
-    // mark the TFO of the node (does not increment trav ID)
-    Res_WinSweepLeafTfo_rec( p->pNode, p->nLevDivMax, NULL );
-    // mark the MFFC of the node (does not increment trav ID)
+    Res_WinMarkTfi( p );
+
+    // mark with the current trav ID those nodes that should not be divisors:
+    // (1) the node and its TFO
+    // (2) the MFFC of the node
+    // (3) the node's fanins (these are treated as a special case)
+    Abc_NtkIncrementTravId( p->pNode->pNtk );
+    Res_WinSweepLeafTfo_rec( p->pNode, p->nLevDivMax );
     Res_WinVisitMffc( p );
+    Abc_ObjForEachFanin( p->pNode, pObj, k )
+        Abc_NodeSetTravIdCurrent( pObj );
 
-    // what about the fanouts of the leaves!!!
+    // at this point the nodes are marked with two trav IDs:
+    // nodes to be collected as divisors are marked with previous trav ID
+    // nodes to be avoided as divisors are marked with current trav ID
 
-    // go through all the legal levels and check if their fanouts can be divisors
-    p->nDivsPlus = 0;
-    Vec_VecForEachEntryStartStop( p->vLevels, pObj, i, k, 0, p->nLevDivMax - 1 )
+    // start collecting the divisors
+    Vec_PtrClear( p->vDivs );
+    Vec_PtrForEachEntry( p->vLeaves, pObj, k )
     {
-        // skip nodes in the TFO or in the MFFC of node
-        if ( Abc_NodeIsTravIdCurrent(pObj) )
+        assert( (int)pObj->Level >= p->nLevLeafMin ); 
+        if ( !Abc_NodeIsTravIdPrevious(pObj) )
             continue;
+        if ( (int)pObj->Level > p->nLevDivMax )
+            continue;
+        Vec_PtrPush( p->vDivs, pObj );
+    }
+    // add the internal nodes to the data structure
+    Vec_PtrForEachEntry( p->vNodes, pObj, k )
+    {
+        if ( !Abc_NodeIsTravIdPrevious(pObj) )
+            continue;
+        if ( (int)pObj->Level > p->nLevDivMax )
+            continue;
+        Vec_PtrPush( p->vDivs, pObj );
+    }
+
+    // explore the fanouts of already collected divisors
+    p->nDivsPlus = 0;
+    Vec_PtrForEachEntry( p->vDivs, pObj, k )
+    {
         // consider fanouts of this node
         Abc_ObjForEachFanout( pObj, pFanout, f )
         {
+            // stop if there are too many fanouts
+            if ( f > 20 )
+                break;
             // skip nodes that are already added
-            if ( pFanout->fMarkA )
-                continue;
-            // skip COs
-            if ( !Abc_ObjIsNode(pFanout) ) 
+            if ( Abc_NodeIsTravIdPrevious(pFanout) )
                 continue;
             // skip nodes in the TFO or in the MFFC of node
             if ( Abc_NodeIsTravIdCurrent(pFanout) )
                 continue;
-            // skip nodes with large level
-            if ( (int)pFanout->Level > p->nLevDivMax )
+            // skip COs
+            if ( !Abc_ObjIsNode(pFanout) ) 
                 continue;
-            // skip nodes whose fanins are not in the cone
+            // skip nodes with large level
+            if ( (int)pFanout->Level >= p->nLevDivMax )
+                continue;
+            // skip nodes whose fanins are not divisors
             Abc_ObjForEachFanin( pFanout, pFanin, m )
-                if ( !pFanin->fMarkA )
+                if ( !Abc_NodeIsTravIdPrevious(pFanin) )
                     break;
             if ( m < Abc_ObjFaninNum(pFanout) )
                 continue;
-            // add the node
-            Res_WinAddNode( p, pFanout );
+            // add the node to the divisors
+            Vec_PtrPush( p->vDivs, pFanout );
+            Vec_PtrPush( p->vNodes, pFanout );
+            Abc_NodeSetTravIdPrevious( pFanout );
             p->nDivsPlus++;
         }
     }
+}
 
-    // unmark the leaves and the internal nodes
+/**Function*************************************************************
+
+  Synopsis    [Marks the TFI cone of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Res_WinMarkTfi_rec( Res_Win_t * p, Abc_Obj_t * pObj )
+{
+    Abc_Obj_t * pFanin;
+    int i;
+    if ( Abc_NodeIsTravIdCurrent(pObj) )
+        return;
+    Abc_NodeSetTravIdCurrent( pObj );
+    assert( Abc_ObjIsNode(pObj) );
+    // visit the fanins of the node
+    Abc_ObjForEachFanin( pObj, pFanin, i )
+        Res_WinMarkTfi_rec( p, pFanin );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Marks the TFI cone of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Res_WinMarkTfi( Res_Win_t * p )
+{
+    Abc_Obj_t * pObj;
+    int i;
+    // mark the leaves
     Vec_PtrForEachEntry( p->vLeaves, pObj, i )
-        pObj->fMarkA = 0;
-    Vec_VecForEachEntry( p->vLevels, pObj, i, k )
-        pObj->fMarkA = 0;
+        Abc_NodeSetTravIdCurrent( pObj );
+    // start from the node
+    Res_WinMarkTfi_rec( p, p->pNode );
+}
 
-    // collect the divisors below the line
-    Vec_PtrClear( p->vDivs );
-    // collect the node fanins first and mark the fanins
-    Abc_ObjForEachFanin( p->pNode, pFanin, m )
-    {
-        Vec_PtrPush( p->vDivs, pFanin );
-        Abc_NodeSetTravIdCurrent( pFanin );
-    }
-    // collect the remaining leaves
-    Vec_PtrForEachEntry( p->vLeaves, pObj, i )
-        if ( !Abc_NodeIsTravIdCurrent(pObj) )
-            Vec_PtrPush( p->vDivs, pObj );
-    // collect remaining unvisited divisors 
-    Vec_VecForEachEntryStartStop( p->vLevels, pObj, i, k, p->nLevLeaves, p->nLevDivMax )
-        if ( !Abc_NodeIsTravIdCurrent(pObj) )
-            Vec_PtrPush( p->vDivs, pObj );
+/**Function*************************************************************
 
-    // verify the resulting window
-//    Res_WinVerify( p );
+  Synopsis    [Marks the TFO of the collected nodes up to the given level.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Res_WinSweepLeafTfo_rec( Abc_Obj_t * pObj, int nLevelLimit )
+{
+    Abc_Obj_t * pFanout;
+    int i;
+    if ( Abc_ObjIsCo(pObj) || (int)pObj->Level > nLevelLimit )
+        return;
+    if ( Abc_NodeIsTravIdCurrent(pObj) )
+        return;
+    Abc_NodeSetTravIdCurrent( pObj );
+    Abc_ObjForEachFanout( pObj, pFanout, i )
+        Res_WinSweepLeafTfo_rec( pFanout, nLevelLimit );
 }
 
 /**Function*************************************************************

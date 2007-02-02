@@ -771,7 +771,8 @@ int Int_ManProofRecordOne( Int_Man_t * p, Sto_Cls_t * pClause )
     {
         // construct the proof
         Int_ManProofTraceOne( p, pConflict, p->pCnf->pEmpty );
-        printf( "Found last conflict after adding unit clause number %d!\n", pClause->Id );
+        if ( p->fVerbose )
+            printf( "Found last conflict after adding unit clause number %d!\n", pClause->Id );
         return 0;
     }
 
@@ -827,7 +828,7 @@ int Int_ManProcessRoots( Int_Man_t * p )
         if ( !Int_ManEnqueue( p, pClause->pLits[0], pClause ) )
         {
             // detected root level conflict
-            printf( "Int_ManProcessRoots(): Detected a root-level conflict\n" );
+            printf( "Error in Int_ManProcessRoots(): Detected a root-level conflict too early!\n" );
             assert( 0 );
             return 0;
         }
@@ -838,8 +839,9 @@ int Int_ManProcessRoots( Int_Man_t * p )
     if ( pClause )
     {
         // detected root level conflict
-        printf( "Int_ManProcessRoots(): Detected a root-level conflict\n" );
-//        assert( 0 );
+        Int_ManProofTraceOne( p, pClause, p->pCnf->pEmpty );
+        if ( p->fVerbose )
+            printf( "Found root level conflict!\n" );
         return 0;
     }
 
@@ -925,16 +927,11 @@ int Int_ManInterpolate( Int_Man_t * p, Sto_Man_t * pCnf, int fVerbose, unsigned 
     // check that the CNF makes sense
     assert( pCnf->nVars > 0 && pCnf->nClauses > 0 );
     p->pCnf = pCnf;
+    p->fVerbose = fVerbose;
+    *ppResult = NULL;
 
     // adjust the manager
     Int_ManResize( p );
-
-    // propagate root level assignments
-    if ( !Int_ManProcessRoots( p ) )
-    {
-        *ppResult = NULL;
-        return p->nVarsAB;
-    }
 
     // prepare the interpolant computation
     Int_ManPrepareInter( p );
@@ -951,15 +948,19 @@ int Int_ManInterpolate( Int_Man_t * p, Sto_Man_t * pCnf, int fVerbose, unsigned 
     Sto_ManForEachClauseRoot( p->pCnf, pClause )
         Int_ManProofWriteOne( p, pClause );
 
-    // consider each learned clause
-    Sto_ManForEachClause( p->pCnf, pClause )
+    // propagate root level assignments
+    if ( Int_ManProcessRoots( p ) )
     {
-        if ( pClause->fRoot )
-            continue;
-        if ( !Int_ManProofRecordOne( p, pClause ) )
+        // if there is no conflict, consider learned clauses
+        Sto_ManForEachClause( p->pCnf, pClause )
         {
-            RetValue = 0;
-            break;
+            if ( pClause->fRoot )
+                continue;
+            if ( !Int_ManProofRecordOne( p, pClause ) )
+            {
+                RetValue = 0;
+                break;
+            }
         }
     }
 
@@ -970,12 +971,15 @@ int Int_ManInterpolate( Int_Man_t * p, Sto_Man_t * pCnf, int fVerbose, unsigned 
         p->pFile = NULL;    
     }
 
+    if ( fVerbose )
+    {
     printf( "Vars = %d. Roots = %d. Learned = %d. Resol steps = %d.  Ave = %.2f.  Mem = %.2f Mb\n", 
         p->pCnf->nVars, p->pCnf->nRoots, p->pCnf->nClauses-p->pCnf->nRoots, p->Counter,  
         1.0*(p->Counter-p->pCnf->nRoots)/(p->pCnf->nClauses-p->pCnf->nRoots), 
         1.0*Sto_ManMemoryReport(p->pCnf)/(1<<20) );
-
 p->timeTotal += clock() - clkTotal;
+    }
+
     *ppResult = Int_ManTruthRead( p, p->pCnf->pTail );
     return p->nVarsAB;
 }

@@ -2569,6 +2569,9 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     Res_Par_t Pars, * pPars = &Pars;
     int c;
 
+//    printf( "Implementation of this command is not finished.\n" );
+//    return 1;
+
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
@@ -2641,8 +2644,8 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     fprintf( pErr, "usage: mfs [-W <NM>] [-S <num>] [-vwh]\n" );
     fprintf( pErr, "\t           performs resubstitution-based resynthesis with don't-cares\n" );
-    fprintf( pErr, "\t-W <NM>  : specifies the windowing paramters (00 < NM <= 99) [default = %d%d]\n", pPars->nWindow/10, pPars->nWindow%10 );
-    fprintf( pErr, "\t-S <num> : specifies the number of simulation words (1 <= n <= 256) [default = %d]\n", pPars->nSimWords );
+    fprintf( pErr, "\t-W <NM>  : Fanin/Fanout levels (NxM) of the window (00 <= NM <= 99) [default = %d%d]\n", pPars->nWindow/10, pPars->nWindow%10 );
+    fprintf( pErr, "\t-S <num> : the number of simulation words (1 <= n <= 256) [default = %d]\n", pPars->nSimWords );
     fprintf( pErr, "\t-v       : toggle verbose printout [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-w       : toggle printout subgraph statistics [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     fprintf( pErr, "\t-h       : print the command usage\n");

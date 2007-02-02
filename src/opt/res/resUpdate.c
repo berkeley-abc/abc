@@ -45,11 +45,11 @@ static int Res_UpdateNetworkLevelNew( Abc_Obj_t * pObj );
 void Res_UpdateNetwork( Abc_Obj_t * pObj, Vec_Ptr_t * vFanins, Hop_Obj_t * pFunc, Vec_Vec_t * vLevels )
 {
     Abc_Obj_t * pObjNew, * pFanin, * pFanout, * pTemp;
-    int i, k, m;
+    int Lev, k, m;
     // create the new node
     pObjNew = Abc_NtkCreateNode( pObj->pNtk );
     pObjNew->pData = pFunc;
-    Vec_PtrForEachEntry( vFanins, pFanin, i )
+    Vec_PtrForEachEntry( vFanins, pFanin, k )
         Abc_ObjAddFanin( pObjNew, pFanin );
     // replace the old node by the new node
     pObjNew->Level = pObj->Level;
@@ -62,12 +62,12 @@ void Res_UpdateNetwork( Abc_Obj_t * pObj, Vec_Ptr_t * vFanins, Hop_Obj_t * pFunc
     Vec_VecPush( vLevels, pObjNew->Level, pObjNew );
     pObjNew->fMarkA = 1;
     // recursively update level
-    Vec_VecForEachEntryStart( vLevels, pTemp, i, k, pObjNew->Level )
+    Vec_VecForEachEntryStart( vLevels, pTemp, Lev, k, pObjNew->Level )
     {
         pTemp->fMarkA = 0;
         pTemp->Level = Res_UpdateNetworkLevelNew( pTemp );
         // if the level did not change, to need to check the fanout levels
-        if ( (int)pTemp->Level == i )
+        if ( (int)pTemp->Level == Lev )
             continue;
         // schedule fanout for level update
         Abc_ObjForEachFanout( pTemp, pFanout, m )

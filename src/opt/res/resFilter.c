@@ -42,7 +42,7 @@ static unsigned * Res_FilterCollectFaninInfo( Res_Win_t * pWin, Res_Sim_t * pSim
   SeeAlso     []
 
 ***********************************************************************/
-int Res_FilterCandidates( Res_Win_t * pWin, Abc_Ntk_t * pAig, Res_Sim_t * pSim, Vec_Vec_t * vResubs )
+int Res_FilterCandidates( Res_Win_t * pWin, Abc_Ntk_t * pAig, Res_Sim_t * pSim, Vec_Vec_t * vResubs, Vec_Vec_t * vResubsW )
 {
     Abc_Obj_t * pFanin, * pFanin2;
     unsigned * pInfo;
@@ -52,18 +52,19 @@ int Res_FilterCandidates( Res_Win_t * pWin, Abc_Ntk_t * pAig, Res_Sim_t * pSim, 
     pInfo = Vec_PtrEntry( pSim->vOuts, 1 );
     RetValue = Abc_InfoIsOne( pInfo, pSim->nWordsOut );
     if ( RetValue == 0 )
-        printf( "Failed 1!" );
+        printf( "Failed 1!\n" );
 
     // collect the fanin info
     pInfo = Res_FilterCollectFaninInfo( pWin, pSim, ~0 );
     RetValue = Abc_InfoIsOne( pInfo, pSim->nWordsOut );
     if ( RetValue == 0 )
-        printf( "Failed 2!" );
+        printf( "Failed 2!\n" );
 
     // try removing fanins
 //    printf( "Fanins: " );
     Counter = 0;
     Vec_VecClear( vResubs );
+    Vec_VecClear( vResubsW );
     Abc_ObjForEachFanin( pWin->pNode, pFanin, i )
     {
         pInfo = Res_FilterCollectFaninInfo( pWin, pSim, ~(1 << i) );
@@ -78,7 +79,10 @@ int Res_FilterCandidates( Res_Win_t * pWin, Abc_Ntk_t * pAig, Res_Sim_t * pSim, 
             Abc_ObjForEachFanin( pWin->pNode, pFanin2, k )
             {
                 if ( k != i )
+                {
                     Vec_VecPush( vResubs, Counter, Abc_NtkPo(pAig,2+k) );
+                    Vec_VecPush( vResubsW, Counter, pFanin2 );
+                }
             }
             Counter++;
         }

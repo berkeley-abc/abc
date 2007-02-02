@@ -814,6 +814,7 @@ extern int                Abc_NtkGetExorNum( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkGetMuxNum( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkGetChoiceNum( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkGetFaninMax( Abc_Ntk_t * pNtk );
+extern int                Abc_NtkGetTotalFanins( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkCleanCopy( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkCountCopy( Abc_Ntk_t * pNtk );
 extern Vec_Ptr_t *        Abc_NtkSaveCopy( Abc_Ntk_t * pNtk );

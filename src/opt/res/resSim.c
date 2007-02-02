@@ -484,13 +484,13 @@ int Res_SimPrepare( Res_Sim_t * p, Abc_Ntk_t * pAig )
         Res_SimProcessPats( p );
         if ( !(p->nPats0 < p->nPats || p->nPats1 < p->nPats) )
             break;
-
     }
 //    printf( "%d   ", Limit );
     // report the last set of patterns
-    Res_SimReportOne( p );
-    printf( "\n" );
+//    Res_SimReportOne( p );
+//    printf( "\n" );
     // quit if there is not enough
+//    if ( p->nPats0 < 4 || p->nPats1 < 4 )
     if ( p->nPats0 < 4 || p->nPats1 < 4 )
     {
 //        Res_SimReportOne( p );

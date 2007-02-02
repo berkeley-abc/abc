@@ -187,18 +187,44 @@ Abc_Ntk_t * Abc_NtkIvyHaig( Abc_Ntk_t * pNtk, int nIters, int fUseZeroCost, int 
 {
     Abc_Ntk_t * pNtkAig;
     Ivy_Man_t * pMan;
+    int clk;
 //    int i;
+/*
+extern int nMoves;
+extern int nMovesS;
+extern int nClauses;
+extern int timeInv;
 
+nMoves = 0;
+nMovesS = 0;
+nClauses = 0;
+timeInv = 0;
+*/
     pMan = Abc_NtkIvyBefore( pNtk, 1, 1 );
     if ( pMan == NULL )
         return NULL;
 //timeRetime = clock();
 
+clk = clock();
     Ivy_ManHaigStart( pMan, fVerbose );
 //    Ivy_ManRewriteSeq( pMan, 0, 0 );
 //    for ( i = 0; i < nIters; i++ )
 //        Ivy_ManRewriteSeq( pMan, fUseZeroCost, 0 );
+
+//printf( "%d ", Ivy_ManNodeNum(pMan) );
     Ivy_ManRewriteSeq( pMan, 0, 0 );
+    Ivy_ManRewriteSeq( pMan, 0, 0 );
+    Ivy_ManRewriteSeq( pMan, 1, 0 );
+//printf( "%d ", Ivy_ManNodeNum(pMan) );
+//printf( "%d ", Ivy_ManNodeNum(pMan->pHaig) );
+//PRT( " ", clock() - clk );
+//printf( "\n" );
+/*
+    printf( "Moves = %d.  ", nMoves );
+    printf( "MovesS = %d.  ", nMovesS );
+    printf( "Clauses = %d.  ", nClauses );
+    PRT( "Time", timeInv );
+*/
 //    Ivy_ManRewriteSeq( pMan, 1, 0 );
 //printf( "Haig size = %d.\n", Ivy_ManNodeNum(pMan->pHaig) );
 //    Ivy_ManHaigPostprocess( pMan, fVerbose );

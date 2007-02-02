@@ -41,6 +41,11 @@ static inline int Ivy_CutHashValue( int NodeId )  { return 1 << (NodeId % 31); }
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+//int nMoves;
+//int nMovesS;
+//int nClauses;
+//int timeInv;
+
 /**Function*************************************************************
 
   Synopsis    [Performs incremental rewriting of the AIG.]
@@ -58,6 +63,7 @@ int Ivy_ManRewriteSeq( Ivy_Man_t * p, int fUseZeroCost, int fVerbose )
     Ivy_Obj_t * pNode;
     int i, nNodes, nGain;
     int clk, clkStart = clock();
+
     // set the DC latch values
     Ivy_ManForEachLatch( p, pNode, i )
         pNode->Init = IVY_INIT_DC;
@@ -81,7 +87,7 @@ int Ivy_ManRewriteSeq( Ivy_Man_t * p, int fUseZeroCost, int fVerbose )
 //        if ( Ivy_ObjIsBuf(pNode) )
 //            continue;
         // stop if all nodes have been tried once
-        if ( i > nNodes )
+        if ( i > nNodes ) 
             break;
         // for each cut, try to resynthesize it
         nGain = Ivy_NodeRewriteSeq( p, pManRwt, pNode, fUseZeroCost );
@@ -114,6 +120,7 @@ Rwt_ManAddTimeTotal( pManRwt, clock() - clkStart );
     return 1;
 }
 
+
 /**Function*************************************************************
 
   Synopsis    [Performs rewriting for one node.]
@@ -140,11 +147,11 @@ int Ivy_NodeRewriteSeq( Ivy_Man_t * pMan, Rwt_Man_t * p, Ivy_Obj_t * pNode, int 
     Ivy_Cut_t * pCut;
     Ivy_Obj_t * pFanin;//, * pFanout;
     Vec_Ptr_t * vFanout;
-    unsigned uPhase, uTruthBest, uTruth;
+    unsigned uPhase, uTruthBest, uTruth;//, nNewClauses;
     char * pPerm;
     int nNodesSaved, nNodesSaveCur;
     int i, c, GainCur, GainBest = -1;
-    int clk, clk2;
+    int clk, clk2;//, clk3;
 
     p->nNodesConsidered++;
     // get the node's cuts
@@ -201,18 +208,6 @@ clk2 = clock();
         Vec_PtrForEachEntry( p->vFaninsCur, pFanin, i )
             Ivy_ObjRefsDec( Ivy_Regular(pFanin) );
 p->timeMffc += clock() - clk2;
-/*
-if ( pNode->Id == 8648 )
-{
-    int i;
-    printf( "Trying cut : {" );
-    for ( i = 0; i < pCut->nSize; i++ )
-        printf( " %d(%d)", Ivy_LeafId(pCut->pArray[i]), Ivy_LeafLat(pCut->pArray[i]) );
-//    printf( " }\n" );
-    printf( " }   " );
-    Extra_PrintBinary( stdout, &uTruth, 16 );  printf( "\n" );
-}
-*/
 
         // evaluate the cut
 clk2 = clock();
@@ -251,6 +246,15 @@ p->timeRes += clock() - clk;
     printf( " }\n" );
     }
 */
+
+//clk3 = clock();
+//nNewClauses = Ivy_CutTruthPrint( pMan, p->pCut, uTruth );
+//timeInv += clock() - clk;
+
+//    nClauses += nNewClauses;
+//    nMoves++;
+//    if ( nNewClauses > 0 )
+//        nMovesS++;
 
     // copy the leaves
     Ivy_GraphPrepare( p->pGraph, p->pCut, p->vFanins, p->pPerm );
