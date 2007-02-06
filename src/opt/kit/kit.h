@@ -207,6 +207,22 @@ static inline int Kit_TruthIsImply( unsigned * pIn1, unsigned * pIn2, int nVars 
             return 0;
     return 1;
 }
+static inline int Kit_TruthIsDisjoint( unsigned * pIn1, unsigned * pIn2, int nVars )
+{
+    int w;
+    for ( w = Kit_TruthWordNum(nVars)-1; w >= 0; w-- )
+        if ( pIn1[w] & pIn2[w] )
+            return 0;
+    return 1;
+}
+static inline int Kit_TruthIsDisjoint3( unsigned * pIn1, unsigned * pIn2, unsigned * pIn3, int nVars )
+{
+    int w;
+    for ( w = Kit_TruthWordNum(nVars)-1; w >= 0; w-- )
+        if ( pIn1[w] & pIn2[w] & pIn3[w] )
+            return 0;
+    return 1;
+}
 static inline void Kit_TruthCopy( unsigned * pOut, unsigned * pIn, int nVars )
 {
     int w;
@@ -320,7 +336,11 @@ extern int             Kit_TruthSupport( unsigned * pTruth, int nVars );
 extern void            Kit_TruthCofactor0( unsigned * pTruth, int nVars, int iVar );
 extern void            Kit_TruthCofactor1( unsigned * pTruth, int nVars, int iVar );
 extern void            Kit_TruthExist( unsigned * pTruth, int nVars, int iVar );
+extern void            Kit_TruthExistNew( unsigned * pRes, unsigned * pTruth, int nVars, int iVar );
+extern void            Kit_TruthExistSet( unsigned * pRes, unsigned * pTruth, int nVars, unsigned uMask );
 extern void            Kit_TruthForall( unsigned * pTruth, int nVars, int iVar );
+extern void            Kit_TruthForallNew( unsigned * pRes, unsigned * pTruth, int nVars, int iVar );
+extern void            Kit_TruthForallSet( unsigned * pRes, unsigned * pTruth, int nVars, unsigned uMask );
 extern void            Kit_TruthMux( unsigned * pOut, unsigned * pCof0, unsigned * pCof1, int nVars, int iVar );
 extern void            Kit_TruthChangePhase( unsigned * pTruth, int nVars, int iVar );
 extern int             Kit_TruthMinCofSuppOverlap( unsigned * pTruth, int nVars, int * pVarMin );

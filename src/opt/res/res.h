@@ -44,6 +44,8 @@ struct Res_Par_t_
     int           nWindow;       // window size
     int           nSimWords;     // the number of simulation words 
     int           nCands;        // the number of candidates to try
+    int           fArea;         // performs optimization for area
+    int           fDelay;        // performs optimization for delay
     int           fVerbose;      // enable basic stats
     int           fVeryVerbose;  // enable detailed stats
 };

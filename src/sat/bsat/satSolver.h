@@ -170,6 +170,8 @@ struct sat_solver_t
  
     Sat_MmStep_t * pMem;
 
+    int      fSkipSimplify; // set to one to skip simplification of the clause database
+
     // clause store
     void *   pStore;
 

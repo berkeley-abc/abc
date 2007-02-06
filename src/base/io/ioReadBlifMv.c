@@ -176,6 +176,8 @@ Abc_Lib_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
             }
         }
     }
+// pDesign should be linked to all models of the design
+
 Io_WriteBlifMvDesign( pDesign, "_temp_.mv" );
 Abc_LibPrint( pDesign );
 Abc_LibFree( pDesign );
@@ -637,7 +639,7 @@ static void Io_MvReadInterfaces( Io_MvMan_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Reads the AIG in the binary AIGER format.]
+  Synopsis    []
 
   Description []
   

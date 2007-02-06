@@ -457,6 +457,12 @@ static inline void sat_solver_canceluntil(sat_solver* s, int level) {
     reasons = s->reasons;
     bound   = (veci_begin(&s->trail_lim))[level];
 
+    ////////////////////////////////////////
+    // added to cancel all assignments
+//    if ( level == -1 )
+//        bound = 0;
+    ////////////////////////////////////////
+
     for (c = s->qtail-1; c >= bound; c--) {
         int     x  = lit_var(trail[c]);
         values [x] = l_Undef;
@@ -881,7 +887,7 @@ static lbool sat_solver_search(sat_solver* s, sint64 nof_conflicts, sint64 nof_l
                 return l_Undef; 
             }
 
-            if (sat_solver_dlevel(s) == 0)
+            if (sat_solver_dlevel(s) == 0 && !s->fSkipSimplify)
                 // Simplify the set of problem clauses:
                 sat_solver_simplify(s);
 

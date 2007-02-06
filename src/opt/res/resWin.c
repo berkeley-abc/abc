@@ -94,7 +94,7 @@ void Res_WinFree( Res_Win_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Res_WinCollectLeavesAndNodes( Res_Win_t * p )
+int Res_WinCollectLeavesAndNodes( Res_Win_t * p )
 {
     Vec_Ptr_t * vFront;
     Abc_Obj_t * pObj, * pTemp;
@@ -127,7 +127,8 @@ void Res_WinCollectLeavesAndNodes( Res_Win_t * p )
             }
         }
     }
-    assert( Vec_PtrSize(p->vLeaves) > 0 );
+    if ( Vec_PtrSize(p->vLeaves) == 0 )
+        return 0;
 
     // collect the nodes in the reverse order
     Vec_PtrClear( p->vNodes );
@@ -146,6 +147,7 @@ void Res_WinCollectLeavesAndNodes( Res_Win_t * p )
     // set minimum traversal level
     p->nLevTravMin = ABC_MAX( ((int)p->pNode->Level) - p->nWinTfiMax - p->nLevTfiMinus, p->nLevLeafMin );
     assert( p->nLevTravMin >= 0 );
+    return 1;
 }
 
 
@@ -371,6 +373,7 @@ void Res_WinAddMissing_rec( Res_Win_t * p, Abc_Obj_t * pObj, int nLevTravMin )
     // if this is not an internal node - make it a new branch
     if ( !Abc_NodeIsTravIdPrevious(pObj) )
     {
+        assert( Vec_PtrFind(p->vLeaves, pObj) == -1 );
         Abc_NodeSetTravIdCurrent( pObj );
         Vec_PtrPush( p->vBranches, pObj );
         return;
@@ -452,11 +455,15 @@ int Res_WinCompute( Abc_Obj_t * pNode, int nWinTfiMax, int nWinTfoMax, Res_Win_t
     p->pNode      = pNode;
     p->nWinTfiMax = nWinTfiMax;
     p->nWinTfoMax = nWinTfoMax;
+
+    Vec_PtrClear( p->vBranches );
+    Vec_PtrClear( p->vDivs );
     Vec_PtrClear( p->vRoots );
     Vec_PtrPush( p->vRoots, pNode );
 
     // compute the leaves
-    Res_WinCollectLeavesAndNodes( p );
+    if ( !Res_WinCollectLeavesAndNodes( p ) )
+        return 0;
 
     // compute the candidate roots
     if ( p->nWinTfoMax > 0 && Res_WinComputeRoots(p) )

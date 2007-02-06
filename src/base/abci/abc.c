@@ -2577,13 +2577,14 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    pPars->nWindow      = 33;
-    pPars->nCands       =  3;
-    pPars->nSimWords    =  8;
-    pPars->fVerbose     =  1;
+    pPars->nWindow      = 62;
+    pPars->nCands       =  5;
+    pPars->nSimWords    =  4;
+    pPars->fArea        =  0;
+    pPars->fVerbose     =  0;
     pPars->fVeryVerbose =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WSvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WSavwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -2609,6 +2610,9 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nSimWords < 1 || pPars->nSimWords > 256 ) 
                 goto usage;
             break;
+        case 'a':
+            pPars->fArea ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -2627,9 +2631,9 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Empty network.\n" );
         return 1;
     }
-    if ( !Abc_NtkHasAig(pNtk) )
+    if ( !Abc_NtkIsLogic(pNtk) )
     {
-        fprintf( pErr, "This command can only be applied to AIG logic network (run \"aig\").\n" );
+        fprintf( pErr, "This command can only be applied to a logic network.\n" );
         return 1;
     }
 
@@ -2642,10 +2646,11 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: mfs [-W <NM>] [-S <num>] [-vwh]\n" );
+    fprintf( pErr, "usage: mfs [-W <NM>] [-S <num>] [-avwh]\n" );
     fprintf( pErr, "\t           performs resubstitution-based resynthesis with don't-cares\n" );
     fprintf( pErr, "\t-W <NM>  : Fanin/Fanout levels (NxM) of the window (00 <= NM <= 99) [default = %d%d]\n", pPars->nWindow/10, pPars->nWindow%10 );
     fprintf( pErr, "\t-S <num> : the number of simulation words (1 <= n <= 256) [default = %d]\n", pPars->nSimWords );
+    fprintf( pErr, "\t-a       : toggle optimization for area only [default = %s]\n", pPars->fArea? "yes": "no" );
     fprintf( pErr, "\t-v       : toggle verbose printout [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-w       : toggle printout subgraph statistics [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     fprintf( pErr, "\t-h       : print the command usage\n");

@@ -112,6 +112,10 @@ typedef unsigned long long uint64;
 #define PRT(a,t)  printf("%s = ", (a)); printf("%6.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC))
 #endif
 
+#ifndef PRTP
+#define PRTP(a,t,T)  printf("%s = ", (a)); printf("%6.2f sec (%6.2f %%)\n", (float)(t)/(float)(CLOCKS_PER_SEC), 100.0*(t)/(T))
+#endif
+
 /*===========================================================================*/
 /*     Various Utilities                                                     */
 /*===========================================================================*/

@@ -48,17 +48,24 @@ struct Res_Man_t_
     int           nDivNodes;     // the total number of divisors
     int           nWinsTriv;     // the total number of trivial windows
     int           nWinsUsed;     // the total number of useful windows (with at least one candidate)
+    int           nConstsUsed;   // the total number of constant nodes under ODC
     int           nCandSets;     // the total number of candidates
     int           nProvedSets;   // the total number of proved groups
     int           nSimEmpty;     // the empty simulation info
     int           nTotalNets;    // the total number of nets
+    int           nTotalNodes;   // the total number of nodess
+    int           nTotalNets2;   // the total number of nets
+    int           nTotalNodes2;  // the total number of nodess
     // runtime
     int           timeWin;       // windowing
     int           timeDiv;       // divisors
     int           timeAig;       // strashing
     int           timeSim;       // simulation
     int           timeCand;      // resubstitution candidates
-    int           timeSat;       // SAT solving
+    int           timeSatTotal;  // SAT solving total 
+    int           timeSatSat;    // SAT solving (sat calls)
+    int           timeSatUnsat;  // SAT solving (unsat calls)
+    int           timeSatSim;    // SAT solving (simulation)
     int           timeInt;       // interpolation 
     int           timeUpd;       // updating  
     int           timeTotal;     // total runtime
@@ -120,19 +127,30 @@ void Res_ManFree( Res_Man_t * p )
         printf( "\n" );
         printf( "WinsTriv = %d. ", p->nWinsTriv );
         printf( "SimsEmpt = %d. ", p->nSimEmpty );
+        printf( "Const = %d. ", p->nConstsUsed );
         printf( "WindUsed = %d. ", p->nWinsUsed );
         printf( "Cands = %d. ", p->nCandSets );
-        printf( "Proved = %d. (%.2f %%)", p->nProvedSets, 100.0*p->nProvedSets/p->nTotalNets );
+        printf( "Proved = %d.", p->nProvedSets );
+        printf( "\n" );
+        printf( "Reduction in nodes = %d. (%.2f %%) ", 
+            p->nTotalNodes-p->nTotalNodes2, 
+            100.0*(p->nTotalNodes-p->nTotalNodes2)/p->nTotalNodes );
+        printf( "Reduction in nets = %d. (%.2f %%) ", 
+            p->nTotalNets-p->nTotalNets2, 
+            100.0*(p->nTotalNets-p->nTotalNets2)/p->nTotalNets );
         printf( "\n" );
 
-        PRT( "Windowing  ", p->timeWin );
-        PRT( "Divisors   ", p->timeDiv );
-        PRT( "Strashing  ", p->timeAig );
-        PRT( "Simulation ", p->timeSim );
-        PRT( "Candidates ", p->timeCand );
-        PRT( "SAT solver ", p->timeSat );
-        PRT( "Interpol   ", p->timeInt );
-        PRT( "Undating   ", p->timeUpd );
+        PRTP( "Windowing  ", p->timeWin,      p->timeTotal );
+        PRTP( "Divisors   ", p->timeDiv,      p->timeTotal );
+        PRTP( "Strashing  ", p->timeAig,      p->timeTotal );
+        PRTP( "Simulation ", p->timeSim,      p->timeTotal );
+        PRTP( "Candidates ", p->timeCand,     p->timeTotal );
+        PRTP( "SAT solver ", p->timeSatTotal, p->timeTotal );
+        PRTP( "    sat    ", p->timeSatSat,   p->timeTotal );
+        PRTP( "    unsat  ", p->timeSatUnsat, p->timeTotal );
+        PRTP( "    simul  ", p->timeSatSim,   p->timeTotal );
+        PRTP( "Interpol   ", p->timeInt,      p->timeTotal );
+        PRTP( "Undating   ", p->timeUpd,      p->timeTotal );
         PRT( "TOTAL      ", p->timeTotal );
     }
     Res_WinFree( p->pWin );
@@ -160,6 +178,7 @@ void Res_ManFree( Res_Man_t * p )
 ***********************************************************************/
 int Abc_NtkResynthesize( Abc_Ntk_t * pNtk, Res_Par_t * pPars )
 {
+    ProgressBar * pProgress;
     Res_Man_t * p;
     Abc_Obj_t * pObj;
     Hop_Obj_t * pFunc;
@@ -168,18 +187,33 @@ int Abc_NtkResynthesize( Abc_Ntk_t * pNtk, Res_Par_t * pPars )
     unsigned * puTruth;
     int i, k, RetValue, nNodesOld, nFanins;
     int clk, clkTotal = clock();
-    assert( Abc_NtkHasAig(pNtk) );
 
     // start the manager
     p = Res_ManAlloc( pPars );
     p->nTotalNets = Abc_NtkGetTotalFanins(pNtk);
+    p->nTotalNodes = Abc_NtkNodeNum(pNtk);
+
+    // perform the network sweep
+    Abc_NtkSweep( pNtk, 0 );
+
+    // convert into the AIG
+    if ( !Abc_NtkLogicToAig(pNtk) )
+    {
+        fprintf( stdout, "Converting to BDD has failed.\n" );
+        Res_ManFree( p );
+        return 0;
+    }
+    assert( Abc_NtkHasAig(pNtk) );
+
     // set the number of levels
     Abc_NtkLevel( pNtk );
 
     // try resynthesizing nodes in the topological order
     nNodesOld = Abc_NtkObjNumMax(pNtk);
+    pProgress = Extra_ProgressBarStart( stdout, nNodesOld );
     Abc_NtkForEachObj( pNtk, pObj, i )
     {
+        Extra_ProgressBarUpdate( pProgress, i, NULL );
         if ( !Abc_ObjIsNode(pObj) )
             continue;
         if ( pObj->Id > nNodesOld )
@@ -205,7 +239,7 @@ p->timeWin += clock() - clk;
 
         // collect the divisors
 clk = clock();
-        Res_WinDivisors( p->pWin, pObj->Level - 1 );
+        Res_WinDivisors( p->pWin, pObj->Level + 2 ); //- 1 );
 p->timeDiv += clock() - clk;
 
         p->nWins++;
@@ -232,7 +266,7 @@ p->timeAig += clock() - clk;
 
         // prepare simulation info
 clk = clock();
-        RetValue = Res_SimPrepare( p->pSim, p->pAig );
+        RetValue = Res_SimPrepare( p->pSim, p->pAig, Vec_PtrSize(p->pWin->vLeaves), 0 ); //p->pPars->fVerbose );
 p->timeSim += clock() - clk;
         if ( !RetValue )
         {
@@ -240,13 +274,32 @@ p->timeSim += clock() - clk;
             continue;
         }
 
+        // consider the case of constant node
+        if ( p->pSim->fConst0 || p->pSim->fConst1 )
+        {
+            p->nConstsUsed++;
+
+            pFunc = p->pSim->fConst1? Hop_ManConst1(pNtk->pManFunc) : Hop_ManConst0(pNtk->pManFunc);
+            vFanins = Vec_VecEntry( p->vResubsW, 0 );
+            Vec_PtrClear( vFanins );
+            Res_UpdateNetwork( pObj, vFanins, pFunc, p->vLevels );
+            continue;
+        }
+
+//        printf( " " );
+
         // find resub candidates for the node
 clk = clock();
-        RetValue = Res_FilterCandidates( p->pWin, p->pAig, p->pSim, p->vResubs, p->vResubsW );
+        if ( p->pPars->fArea )
+            RetValue = Res_FilterCandidatesArea( p->pWin, p->pAig, p->pSim, p->vResubs, p->vResubsW );
+        else
+            RetValue = Res_FilterCandidatesNets( p->pWin, p->pAig, p->pSim, p->vResubs, p->vResubsW );
 p->timeCand += clock() - clk;
         p->nCandSets += RetValue;
         if ( RetValue == 0 )
             continue;
+
+//        printf( "%d(%d) ", Vec_PtrSize(p->pWin->vDivs), RetValue );
 
         p->nWinsUsed++;
 
@@ -260,15 +313,20 @@ p->timeCand += clock() - clk;
 clk = clock();
             if ( p->pCnf ) Sto_ManFree( p->pCnf );
             p->pCnf = Res_SatProveUnsat( p->pAig, vFanins );
-p->timeSat += clock() - clk;
             if ( p->pCnf == NULL )
             {
+p->timeSatSat += clock() - clk;
 //                printf( " Sat\n" );
+//                printf( "-" );
                 continue;
             }
+p->timeSatUnsat += clock() - clk;
+//            printf( "+" );
+
             p->nProvedSets++;
 //            printf( " Unsat\n" );
 //            continue;
+//            printf( "Proved %d.\n", k );
 
             // write it into a file
 //            Sto_ManDumpClauses( p->pCnf, "trace.cnf" );
@@ -277,10 +335,11 @@ p->timeSat += clock() - clk;
 clk = clock();
             nFanins = Int_ManInterpolate( p->pMan, p->pCnf, 0, &puTruth );
 p->timeInt += clock() - clk;
-            assert( nFanins == Vec_PtrSize(vFanins) - 2 );
+            if ( nFanins != Vec_PtrSize(vFanins) - 2 )
+                continue;
             assert( puTruth );
 //            Extra_PrintBinary( stdout, puTruth, 1 << nFanins );  printf( "\n" );
-           
+
             // transform interpolant into the AIG
             pGraph = Kit_TruthToGraph( puTruth, nFanins, p->vMem );
 
@@ -294,8 +353,15 @@ clk = clock();
 p->timeUpd += clock() - clk;
             break;
         }
-
+//        printf( "\n" );
     }
+    Extra_ProgressBarStop( pProgress );
+
+p->timeSatSim += p->pSim->timeSat;
+p->timeSatTotal = p->timeSatSat + p->timeSatUnsat + p->timeSatSim;
+
+    p->nTotalNets2 = Abc_NtkGetTotalFanins(pNtk);
+    p->nTotalNodes2 = Abc_NtkNodeNum(pNtk);
 
     // quit resubstitution manager
 p->timeTotal = clock() - clkTotal;

@@ -68,9 +68,15 @@ typedef struct Res_Sim_t_ Res_Sim_t;
 struct Res_Sim_t_
 {
     Abc_Ntk_t *      pAig;         // AIG for simulation
+    int              nTruePis;     // the number of true PIs of the window
+    int              fConst0;      // the node can be replaced by constant 0
+    int              fConst1;      // the node can be replaced by constant 0
     // simulation parameters
     int              nWords;       // the number of simulation words
     int              nPats;        // the number of patterns
+    int              nWordsIn;     // the number of simulation words in the input patterns
+    int              nPatsIn;      // the number of patterns in the input patterns 
+    int              nBytesIn;     // the number of bytes in the input patterns
     int              nWordsOut;    // the number of simulation words in the output patterns
     int              nPatsOut;     // the number of patterns in the output patterns 
     // simulation info
@@ -82,6 +88,8 @@ struct Res_Sim_t_
     int              nPats1;       // the number of 1-patterns accumulated
     // resub candidates
     Vec_Vec_t *      vCands;       // resubstitution candidates
+    // statistics
+    int              timeSat;
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -95,15 +103,17 @@ struct Res_Sim_t_
 /*=== resDivs.c ==========================================================*/
 extern void          Res_WinDivisors( Res_Win_t * p, int nLevDivMax );
 extern void          Res_WinSweepLeafTfo_rec( Abc_Obj_t * pObj, int nLevelLimit );
+extern int           Res_WinVisitMffc( Abc_Obj_t * pNode );
 /*=== resFilter.c ==========================================================*/
-extern int           Res_FilterCandidates( Res_Win_t * pWin, Abc_Ntk_t * pAig, Res_Sim_t * pSim, Vec_Vec_t * vResubs, Vec_Vec_t * vResubsW );
+extern int           Res_FilterCandidatesNets( Res_Win_t * pWin, Abc_Ntk_t * pAig, Res_Sim_t * pSim, Vec_Vec_t * vResubs, Vec_Vec_t * vResubsW );
+extern int           Res_FilterCandidatesArea( Res_Win_t * pWin, Abc_Ntk_t * pAig, Res_Sim_t * pSim, Vec_Vec_t * vResubs, Vec_Vec_t * vResubsW );
 /*=== resSat.c ==========================================================*/
 extern void *        Res_SatProveUnsat( Abc_Ntk_t * pAig, Vec_Ptr_t * vFanins );
-extern void *        Res_SatSimulateConstr( Abc_Ntk_t * pAig, Vec_Ptr_t * vFanins );
+extern int           Res_SatSimulate( Res_Sim_t * p, int nPats, int fOnSet );
 /*=== resSim.c ==========================================================*/
 extern Res_Sim_t *   Res_SimAlloc( int nWords );
 extern void          Res_SimFree( Res_Sim_t * p );
-extern int           Res_SimPrepare( Res_Sim_t * p, Abc_Ntk_t * pAig );
+extern int           Res_SimPrepare( Res_Sim_t * p, Abc_Ntk_t * pAig, int nTruePis, int fVerbose );
 /*=== resStrash.c ==========================================================*/
 extern Abc_Ntk_t *   Res_WndStrash( Res_Win_t * p );
 /*=== resWnd.c ==========================================================*/

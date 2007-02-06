@@ -327,7 +327,7 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, int fCopyName 
             Abc_ObjAssignName( pObjNew, Abc_ObjName(Abc_ObjFanout0Ntk(pObj)), NULL );
         else if ( Abc_ObjIsCo(pObj) )
             Abc_ObjAssignName( pObjNew, Abc_ObjName(Abc_ObjFanin0Ntk(pObj)), NULL );
-        else if ( Abc_ObjIsBox(pObj) )
+        else if ( Abc_ObjIsBox(pObj) || Abc_ObjIsNet(pObj) )
             Abc_ObjAssignName( pObjNew, Abc_ObjName(pObj), NULL );
     }
     // copy functionality/names
@@ -350,8 +350,6 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, int fCopyName 
     }
     else if ( Abc_ObjIsNet(pObj) ) // copy the name
     {
-        assert( 0 );
-//        pObjNew->pData = Nm_ManStoreIdName( pNtkNew->pManName, pObjNew->Id, pObj->pData, NULL );
     }
     else if ( Abc_ObjIsLatch(pObj) ) // copy the reset value
         pObjNew->pData = pObj->pData;

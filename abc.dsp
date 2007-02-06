@@ -1706,7 +1706,19 @@ SOURCE=.\src\opt\bdc\bdc.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\opt\bdc\bdcCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\bdc\bdcDec.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\opt\bdc\bdcInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\bdc\bdcTable.c
 # End Source File
 # End Group
 # End Group

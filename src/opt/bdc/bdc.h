@@ -20,7 +20,7 @@
  
 #ifndef __BDC_H__
 #define __BDC_H__
-
+ 
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -57,8 +57,8 @@ struct Bdc_Par_t_
 
 /*=== bdcCore.c ==========================================================*/
 extern Bdc_Man_t * Bdc_ManAlloc( Bdc_Par_t * pPars );
-extern void        Bdc_ManAlloc( Bdc_Man_t * p );
-extern int         Bdc_ManDecompose( Bdc_Man_t * p, unsigned * puFunc, unsigned * puCare, int nVars, Vec_Ptr_t * vDivs, int nNodeLimit );
+extern void        Bdc_ManFree( Bdc_Man_t * p );
+extern int         Bdc_ManDecompose( Bdc_Man_t * p, unsigned * puFunc, unsigned * puCare, int nVars, Vec_Ptr_t * vDivs, int nNodesLimit );
 
 
 #ifdef __cplusplus

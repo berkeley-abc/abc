@@ -26,7 +26,6 @@
 ////////////////////////////////////////////////////////////////////////
 
 static void Res_WinMarkTfi( Res_Win_t * p );
-static int  Res_WinVisitMffc( Res_Win_t * p );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -61,7 +60,7 @@ void Res_WinDivisors( Res_Win_t * p, int nLevDivMax )
     // (3) the node's fanins (these are treated as a special case)
     Abc_NtkIncrementTravId( p->pNode->pNtk );
     Res_WinSweepLeafTfo_rec( p->pNode, p->nLevDivMax );
-    Res_WinVisitMffc( p );
+    Res_WinVisitMffc( p->pNode );
     Abc_ObjForEachFanin( p->pNode, pObj, k )
         Abc_NodeSetTravIdCurrent( pObj );
 
@@ -260,13 +259,14 @@ int Res_NodeRef_rec( Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-int Res_WinVisitMffc( Res_Win_t * p )
+int Res_WinVisitMffc( Abc_Obj_t * pNode )
 {
     int Count1, Count2;
+    assert( Abc_ObjIsNode(pNode) );
     // dereference the node (mark with the current trav ID)
-    Count1 = Res_NodeDeref_rec( p->pNode );
+    Count1 = Res_NodeDeref_rec( pNode );
     // reference it back
-    Count2 = Res_NodeRef_rec( p->pNode );
+    Count2 = Res_NodeRef_rec( pNode );
     assert( Count1 == Count2 );
     return Count1;
 }
