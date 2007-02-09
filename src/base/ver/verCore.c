@@ -220,7 +220,7 @@ void Ver_ParseFreeData( Ver_Man_t * p )
     }
     if ( p->pDesign )
     {
-        Abc_LibFree( p->pDesign );
+        Abc_LibFree( p->pDesign, NULL );
         p->pDesign = NULL;
     }
 }

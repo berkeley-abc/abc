@@ -840,17 +840,13 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     else if ( !Abc_NtkHasBlackbox(pNtk) )
         assert( 0 );
     // free the hierarchy
-    if ( Abc_NtkIsNetlist(pNtk) && pNtk->tName2Model )
+    if ( pNtk->pDesign )
     {
-        stmm_generator * gen;
-        Abc_Ntk_t * pNtkTemp;
-        char * pName;
-        stmm_foreach_item( pNtk->tName2Model, gen, &pName, (char **)&pNtkTemp )
-            Abc_NtkDelete( pNtkTemp );
-        stmm_free_table( pNtk->tName2Model );
+        Abc_LibFree( pNtk->pDesign, pNtk );
+        pNtk->pDesign = NULL;
     }
-    if ( pNtk->pBlackBoxes ) 
-        Vec_IntFree( pNtk->pBlackBoxes );
+//    if ( pNtk->pBlackBoxes ) 
+//        Vec_IntFree( pNtk->pBlackBoxes );
     // free node attributes
     Vec_PtrForEachEntry( pNtk->vAttrs, pAttrMan, i )
         if ( pAttrMan )
@@ -879,7 +875,7 @@ void Abc_NtkFixNonDrivenNets( Abc_Ntk_t * pNtk )
 
     if ( Abc_NtkNodeNum(pNtk) == 0 )
     {
-        pNtk->ntkFunc = ABC_FUNC_BLACKBOX;
+//        pNtk->ntkFunc = ABC_FUNC_BLACKBOX;
         return;
     }
 

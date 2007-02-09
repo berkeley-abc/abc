@@ -140,11 +140,10 @@ Abc_Obj_t * Abc_NtkCreateObj( Abc_Ntk_t * pNtk, Abc_ObjType_t Type )
             break;
         case ABC_OBJ_NET:  
         case ABC_OBJ_NODE: 
-        case ABC_OBJ_GATE: 
             break;
         case ABC_OBJ_LATCH:     
             pObj->pData = (void *)ABC_INIT_NONE;
-        case ABC_OBJ_TRI:     
+        case ABC_OBJ_WHITEBOX:     
         case ABC_OBJ_BLACKBOX:     
             if ( pNtk->vBoxes ) Vec_PtrPush( pNtk->vBoxes, pObj );
             break;
@@ -220,7 +219,6 @@ void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
             Vec_PtrRemove( pNtk->vCos, pObj );
             break;
         case ABC_OBJ_NET:  
-        case ABC_OBJ_GATE:  
             break;
         case ABC_OBJ_NODE: 
             if ( Abc_NtkHasBdd(pNtk) )
@@ -228,7 +226,7 @@ void Abc_NtkDeleteObj( Abc_Obj_t * pObj )
             pObj->pData = NULL;
             break;
         case ABC_OBJ_LATCH:     
-        case ABC_OBJ_TRI:     
+        case ABC_OBJ_WHITEBOX:     
         case ABC_OBJ_BLACKBOX:     
             if ( pNtk->vBoxes ) Vec_PtrRemove( pNtk->vBoxes, pObj );
             break;
@@ -324,9 +322,15 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, int fCopyName 
     if ( fCopyName )
     {
         if ( Abc_ObjIsCi(pObj) )
-            Abc_ObjAssignName( pObjNew, Abc_ObjName(Abc_ObjFanout0Ntk(pObj)), NULL );
+        {
+            if ( !Abc_NtkIsNetlist(pNtkNew) )
+                Abc_ObjAssignName( pObjNew, Abc_ObjName(Abc_ObjFanout0Ntk(pObj)), NULL );
+        }
         else if ( Abc_ObjIsCo(pObj) )
-            Abc_ObjAssignName( pObjNew, Abc_ObjName(Abc_ObjFanin0Ntk(pObj)), NULL );
+        {
+            if ( !Abc_NtkIsNetlist(pNtkNew) )
+                Abc_ObjAssignName( pObjNew, Abc_ObjName(Abc_ObjFanin0Ntk(pObj)), NULL );
+        }
         else if ( Abc_ObjIsBox(pObj) || Abc_ObjIsNet(pObj) )
             Abc_ObjAssignName( pObjNew, Abc_ObjName(pObj), NULL );
     }

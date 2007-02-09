@@ -157,6 +157,7 @@ Abc_Ntk_t * Io_ReadBlifNetwork( Io_ReadBlif_t * p )
             p->pNtkMaster = pNtkMaster = pNtk;
             continue;
         }
+/*
         // make sure hierarchy does not have the network with this name
         if ( pNtkMaster->tName2Model && stmm_is_member( pNtkMaster->tName2Model, pNtk->pName ) )
         {
@@ -172,8 +173,9 @@ Abc_Ntk_t * Io_ReadBlifNetwork( Io_ReadBlif_t * p )
         if ( pNtkMaster->tName2Model == NULL )
             pNtkMaster->tName2Model = stmm_init_table(strcmp, stmm_strhash);
         stmm_insert( pNtkMaster->tName2Model, pNtk->pName, (char *)pNtk );
+*/
     }
-
+/*
     // if there is a hierarchy, connect the boxes
     if ( pNtkMaster && pNtkMaster->tName2Model )
     {
@@ -183,7 +185,9 @@ Abc_Ntk_t * Io_ReadBlifNetwork( Io_ReadBlif_t * p )
             return NULL;
         }
     }
-    else if ( !p->fError )
+    else 
+*/
+    if ( !p->fError )
         Abc_NtkFinalizeRead( pNtkMaster );
     // return the master network
     return pNtkMaster;
@@ -252,8 +256,8 @@ Abc_Ntk_t * Io_ReadBlifNetworkOne( Io_ReadBlif_t * p )
             fStatus = Io_ReadBlifNetworkInputArrival( p, p->vTokens );
         else if ( !strcmp( pDirective, ".default_input_arrival" ) )
             fStatus = Io_ReadBlifNetworkDefaultInputArrival( p, p->vTokens );
-        else if ( !strcmp( pDirective, ".subckt" ) )
-            fStatus = Io_ReadBlifNetworkSubcircuit( p, p->vTokens );
+//        else if ( !strcmp( pDirective, ".subckt" ) )
+//            fStatus = Io_ReadBlifNetworkSubcircuit( p, p->vTokens );
         else if ( !strcmp( pDirective, ".exdc" ) )
             break;
         else if ( !strcmp( pDirective, ".end" ) )
@@ -1064,6 +1068,8 @@ int Io_ReadBlifNetworkConnectBoxesOne( Io_ReadBlif_t * p, Abc_Ntk_t * pNtk, stmm
     return 0;
 }
 
+#if 0
+
 /**Function*************************************************************
 
   Synopsis    [Connect the boxes in the hierarchy of networks.]
@@ -1089,6 +1095,8 @@ int Io_ReadBlifNetworkConnectBoxes( Io_ReadBlif_t * p, Abc_Ntk_t * pNtkMaster )
             return 1;
     return 0;
 }
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

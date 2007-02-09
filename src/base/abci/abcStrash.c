@@ -218,7 +218,6 @@ int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fAddPos )
 ***********************************************************************/
 void Abc_NtkStrashPerform( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew, bool fAllNodes )
 {
-    extern Vec_Ptr_t * Abc_NtkDfsIter( Abc_Ntk_t * pNtk, int fCollectAll );
     ProgressBar * pProgress;
     Vec_Ptr_t * vNodes;
     Abc_Obj_t * pNodeOld;

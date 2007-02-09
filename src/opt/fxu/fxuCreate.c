@@ -179,7 +179,8 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
     // consider the case when cube pairs should be preprocessed
     // before adding them to the set of divisors
     if ( nPairsTotal > pData->nPairsMax )
-        Fxu_PreprocessCubePairs( p, pData->vSops, nPairsTotal, pData->nPairsMax );
+        if ( !Fxu_PreprocessCubePairs( p, pData->vSops, nPairsTotal, pData->nPairsMax ) )
+            return NULL;
 
     // add the var pairs to the heap
     Fxu_MatrixComputeSingles( p );

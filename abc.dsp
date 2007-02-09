@@ -118,6 +118,10 @@ SOURCE=.\src\base\abc\abcFunc.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abc\abcHie.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abc\abcInt.h
 # End Source File
 # Begin Source File

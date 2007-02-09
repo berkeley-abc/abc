@@ -90,11 +90,10 @@ typedef enum {
     ABC_OBJ_ASSERT,     //  7:  assertion terminal
     ABC_OBJ_NET,        //  8:  net
     ABC_OBJ_NODE,       //  9:  node
-    ABC_OBJ_GATE,       // 10:  mapped node
-    ABC_OBJ_LATCH,      // 11:  latch
-    ABC_OBJ_TRI,        // 12:  tristate element
-    ABC_OBJ_BLACKBOX,   // 13:  box with unknown contents
-    ABC_OBJ_NUMBER      // 14:  unused
+    ABC_OBJ_LATCH,      // 10:  latch
+    ABC_OBJ_WHITEBOX,   // 11:  box with known contents
+    ABC_OBJ_BLACKBOX,   // 12:  box with unknown contents
+    ABC_OBJ_NUMBER      // 13:  unused
 } Abc_ObjType_t;
 
 // latch initial values
@@ -188,8 +187,7 @@ struct Abc_Ntk_t_
     Abc_Ntk_t *       pNetBackup;    // the pointer to the previous backup network
     int               iStep;         // the generation number for the given network
     // hierarchy
-    stmm_table *      tName2Model;   // the table hashing names into network pointers (or NULL if no hierarchy)
-    Vec_Int_t *       pBlackBoxes;   // stores pairs (PI num, PO num) for each model, including the base model (or NULL if no hierarchy)
+    Abc_Lib_t *       pDesign;
     short             fHieVisited;   // flag to mark the visited network
     short             fHiePath;      // flag to mark the network on the path
     // miscellaneous data members
@@ -197,7 +195,6 @@ struct Abc_Ntk_t_
     Extra_MmFixed_t * pMmObj;        // memory manager for objects
     Extra_MmStep_t *  pMmStep;       // memory manager for arrays
     void *            pManFunc;      // functionality manager (AIG manager, BDD manager, or memory manager for SOPs)
-    Abc_Lib_t *       pDesign;
 //    Abc_Lib_t *       pVerLib;       // for structural verilog designs
     Abc_ManTime_t *   pManTime;      // the timing manager (for mapped networks) stores arrival/required times for all nodes
     void *            pManCut;       // the cut manager (for AIGs) stores information about the cuts computed for the nodes
@@ -299,9 +296,8 @@ static inline int         Abc_NtkBiNum( Abc_Ntk_t * pNtk )           { return pN
 static inline int         Abc_NtkBoNum( Abc_Ntk_t * pNtk )           { return pNtk->nObjCounts[ABC_OBJ_BO];       }
 static inline int         Abc_NtkNetNum( Abc_Ntk_t * pNtk )          { return pNtk->nObjCounts[ABC_OBJ_NET];      }
 static inline int         Abc_NtkNodeNum( Abc_Ntk_t * pNtk )         { return pNtk->nObjCounts[ABC_OBJ_NODE];     }
-static inline int         Abc_NtkGateNum( Abc_Ntk_t * pNtk )         { return pNtk->nObjCounts[ABC_OBJ_GATE];     }
 static inline int         Abc_NtkLatchNum( Abc_Ntk_t * pNtk )        { return pNtk->nObjCounts[ABC_OBJ_LATCH];    }
-static inline int         Abc_NtkTriNum( Abc_Ntk_t * pNtk )          { return pNtk->nObjCounts[ABC_OBJ_TRI];      }
+static inline int         Abc_NtkWhiteboxNum( Abc_Ntk_t * pNtk )     { return pNtk->nObjCounts[ABC_OBJ_WHITEBOX]; }
 static inline int         Abc_NtkBlackboxNum( Abc_Ntk_t * pNtk )     { return pNtk->nObjCounts[ABC_OBJ_BLACKBOX]; }
 static inline bool        Abc_NtkIsComb( Abc_Ntk_t * pNtk )          { return Abc_NtkLatchNum(pNtk) == 0;                   }
 static inline bool        Abc_NtkHasOnlyLatchBoxes(Abc_Ntk_t * pNtk ){ return Abc_NtkLatchNum(pNtk) == Abc_NtkBoxNum(pNtk); }
@@ -315,8 +311,7 @@ static inline Abc_Obj_t * Abc_NtkCreateBo( Abc_Ntk_t * pNtk )        { return Ab
 static inline Abc_Obj_t * Abc_NtkCreateAssert( Abc_Ntk_t * pNtk )    { return Abc_NtkCreateObj( pNtk, ABC_OBJ_ASSERT );     }
 static inline Abc_Obj_t * Abc_NtkCreateNode( Abc_Ntk_t * pNtk )      { return Abc_NtkCreateObj( pNtk, ABC_OBJ_NODE );       }
 static inline Abc_Obj_t * Abc_NtkCreateLatch( Abc_Ntk_t * pNtk )     { return Abc_NtkCreateObj( pNtk, ABC_OBJ_LATCH );      }
-static inline Abc_Obj_t * Abc_NtkCreateGate( Abc_Ntk_t * pNtk )      { return Abc_NtkCreateObj( pNtk, ABC_OBJ_GATE );       }
-static inline Abc_Obj_t * Abc_NtkCreateTri( Abc_Ntk_t * pNtk )       { return Abc_NtkCreateObj( pNtk, ABC_OBJ_TRI );        }
+static inline Abc_Obj_t * Abc_NtkCreateWhitebox( Abc_Ntk_t * pNtk )  { return Abc_NtkCreateObj( pNtk, ABC_OBJ_WHITEBOX );   }
 static inline Abc_Obj_t * Abc_NtkCreateBlackbox( Abc_Ntk_t * pNtk )  { return Abc_NtkCreateObj( pNtk, ABC_OBJ_BLACKBOX );   }
 
 // reading objects
@@ -361,11 +356,11 @@ static inline bool        Abc_ObjIsCo( Abc_Obj_t * pObj )            { return pO
 static inline bool        Abc_ObjIsTerm( Abc_Obj_t * pObj )          { return Abc_ObjIsCi(pObj) || Abc_ObjIsCo(pObj); }
 static inline bool        Abc_ObjIsNet( Abc_Obj_t * pObj )           { return pObj->Type == ABC_OBJ_NET;     }
 static inline bool        Abc_ObjIsNode( Abc_Obj_t * pObj )          { return pObj->Type == ABC_OBJ_NODE;    }
-static inline bool        Abc_ObjIsGate( Abc_Obj_t * pObj )          { return pObj->Type == ABC_OBJ_GATE;    }
 static inline bool        Abc_ObjIsLatch( Abc_Obj_t * pObj )         { return pObj->Type == ABC_OBJ_LATCH;   }
-static inline bool        Abc_ObjIsTri( Abc_Obj_t * pObj )           { return pObj->Type == ABC_OBJ_TRI;     }
+static inline bool        Abc_ObjIsBox( Abc_Obj_t * pObj )           { return pObj->Type == ABC_OBJ_LATCH || pObj->Type == ABC_OBJ_WHITEBOX || pObj->Type == ABC_OBJ_BLACKBOX; }
+static inline bool        Abc_ObjIsWhitebox( Abc_Obj_t * pObj )      { return pObj->Type == ABC_OBJ_WHITEBOX;}
 static inline bool        Abc_ObjIsBlackbox( Abc_Obj_t * pObj )      { return pObj->Type == ABC_OBJ_BLACKBOX;}
-static inline bool        Abc_ObjIsBox( Abc_Obj_t * pObj )           { return pObj->Type == ABC_OBJ_LATCH || pObj->Type == ABC_OBJ_TRI || pObj->Type == ABC_OBJ_BLACKBOX; }
+static inline void        Abc_ObjBlackboxToWhitebox( Abc_Obj_t * pObj ) { assert( Abc_ObjIsBlackbox(pObj) ); pObj->Type = ABC_OBJ_WHITEBOX; pObj->pNtk->nObjCounts[ABC_OBJ_BLACKBOX]--; pObj->pNtk->nObjCounts[ABC_OBJ_WHITEBOX]++; }
 
 // working with fanin/fanout edges
 static inline int         Abc_ObjFaninNum( Abc_Obj_t * pObj )        { return pObj->vFanins.nSize;     }
@@ -470,9 +465,9 @@ static inline void        Abc_ObjSetMvVar( Abc_Obj_t * pObj, void * pV) { Vec_At
 #define Abc_NtkForEachLatchOutput( pNtk, pObj, i )                                                  \
     for ( i = 0; (i < Vec_PtrSize((pNtk)->vBoxes)) && (((pObj) = Abc_ObjFanout0(Abc_NtkBox(pNtk, i))), 1); i++ )   \
         if ( !Abc_ObjIsLatch(Abc_NtkBox(pNtk, i)) ) {} else
-#define Abc_NtkForEachTri( pNtk, pObj, i )                                                         \
+#define Abc_NtkForEachWhitebox( pNtk, pObj, i )                                                    \
     for ( i = 0; (i < Vec_PtrSize((pNtk)->vBoxes)) && (((pObj) = Abc_NtkBox(pNtk, i)), 1); i++ )   \
-        if ( !Abc_ObjIsTri(pObj) ) {} else
+        if ( !Abc_ObjIsWhitebox(pObj) ) {} else
 #define Abc_NtkForEachBlackbox( pNtk, pObj, i )                                                    \
     for ( i = 0; (i < Vec_PtrSize((pNtk)->vBoxes)) && (((pObj) = Abc_NtkBox(pNtk, i)), 1); i++ )   \
         if ( !Abc_ObjIsBlackbox(pObj) ) {} else
@@ -536,6 +531,7 @@ extern bool               Abc_NtkCheckRead( Abc_Ntk_t * pNtk );
 extern bool               Abc_NtkDoCheck( Abc_Ntk_t * pNtk );
 extern bool               Abc_NtkCheckObj( Abc_Ntk_t * pNtk, Abc_Obj_t * pObj );
 extern bool               Abc_NtkCompareSignals( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fOnlyPis, int fComb );
+extern int                Abc_NtkIsAcyclicHierarchy( Abc_Ntk_t * pNtk );
 /*=== abcCollapse.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, int fReorder, int fVerbose );
 /*=== abcCut.c ==========================================================*/
@@ -550,6 +546,8 @@ extern Vec_Ptr_t *        Abc_NtkDfsNodes( Abc_Ntk_t * pNtk, Abc_Obj_t ** ppNode
 extern Vec_Ptr_t *        Abc_NtkDfsReverse( Abc_Ntk_t * pNtk );
 extern Vec_Ptr_t *        Abc_NtkDfsSeq( Abc_Ntk_t * pNtk );
 extern Vec_Ptr_t *        Abc_NtkDfsSeqReverse( Abc_Ntk_t * pNtk );
+extern Vec_Ptr_t *        Abc_NtkDfsIter( Abc_Ntk_t * pNtk, int fCollectAll );
+extern Vec_Ptr_t *        Abc_NtkDfsHie( Abc_Ntk_t * pNtk, int fCollectAll );
 extern bool               Abc_NtkIsDfsOrdered( Abc_Ntk_t * pNtk );
 extern Vec_Ptr_t *        Abc_NtkSupport( Abc_Ntk_t * pNtk );
 extern Vec_Ptr_t *        Abc_NtkNodeSupport( Abc_Ntk_t * pNtk, Abc_Obj_t ** ppNodes, int nNodes );
@@ -589,6 +587,10 @@ extern int                Abc_NtkMapToSop( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkLogicToSop( Abc_Ntk_t * pNtk, int fDirect );
 extern int                Abc_NtkLogicToBdd( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkLogicToAig( Abc_Ntk_t * pNtk );
+/*=== abcHie.c ==========================================================*/
+extern Abc_Ntk_t *        Abc_NtkFlattenLogicHierarchy( Abc_Ntk_t * pNtk );
+extern Abc_Ntk_t *        Abc_NtkConvertBlackboxes( Abc_Ntk_t * pNtk );
+extern Abc_Ntk_t *        Abc_NtkInsertNewLogic( Abc_Ntk_t * pNtkH, Abc_Ntk_t * pNtkL );
 /*=== abcLatch.c ==========================================================*/
 extern bool               Abc_NtkLatchIsSelfFeed( Abc_Obj_t * pLatch );
 extern int                Abc_NtkCountSelfFeedLatches( Abc_Ntk_t * pNtk );
@@ -597,7 +599,7 @@ extern Vec_Int_t *        Abc_NtkCollectLatchValues( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkInsertLatchValues( Abc_Ntk_t * pNtk, Vec_Int_t * vValues );
  /*=== abcLib.c ==========================================================*/
 extern Abc_Lib_t *        Abc_LibCreate( char * pName );
-extern void               Abc_LibFree( Abc_Lib_t * pLib );
+extern void               Abc_LibFree( Abc_Lib_t * pLib, Abc_Ntk_t * pNtk );
 extern void               Abc_LibPrint( Abc_Lib_t * pLib );
 extern int                Abc_LibAddModel( Abc_Lib_t * pLib, Abc_Ntk_t * pNtk );
 extern Abc_Ntk_t *        Abc_LibFindModelByName( Abc_Lib_t * pLib, char * pName );

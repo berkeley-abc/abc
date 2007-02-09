@@ -75,7 +75,7 @@ extern Abc_Ntk_t *        Io_ReadBaf( char * pFileName, int fCheck );
 /*=== abcReadBlif.c ===========================================================*/
 extern Abc_Ntk_t *        Io_ReadBlif( char * pFileName, int fCheck );
 /*=== abcReadBlifMv.c =========================================================*/
-extern Abc_Lib_t *        Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck );
+extern Abc_Ntk_t *        Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck );
 /*=== abcReadBench.c ==========================================================*/
 extern Abc_Ntk_t *        Io_ReadBench( char * pFileName, int fCheck );
 /*=== abcReadEdif.c ===========================================================*/
@@ -92,7 +92,7 @@ extern void               Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName );
 extern void               Io_WriteBaf( Abc_Ntk_t * pNtk, char * pFileName );
 /*=== abcWriteBlif.c ==========================================================*/
 extern void               Io_WriteBlifLogic( Abc_Ntk_t * pNtk, char * pFileName, int fWriteLatches );
-extern void               Io_WriteBlifNetlist( Abc_Ntk_t * pNtk, char * pFileName, int fWriteLatches );
+extern void               Io_WriteBlif( Abc_Ntk_t * pNtk, char * pFileName, int fWriteLatches );
 extern void               Io_WriteTimingInfo( FILE * pFile, Abc_Ntk_t * pNtk );
 /*=== abcWriteBlifMv.c ==========================================================*/ 
 extern void               Io_WriteBlifMvDesign( Abc_Lib_t * pLib, char * FileName );
@@ -119,7 +119,9 @@ extern void               Io_WriteVerilog( Abc_Ntk_t * pNtk, char * FileName, in
 extern Io_FileType_t      Io_ReadFileType( char * pFileName );
 extern Abc_Ntk_t *        Io_ReadNetlist( char * pFileName, Io_FileType_t FileType, int fCheck );
 extern Abc_Ntk_t *        Io_Read( char * pFileName, Io_FileType_t FileType, int fCheck );
+extern Abc_Ntk_t *        Io_ReadHie( char * pFileName, Io_FileType_t FileType, int fCheck );
 extern void               Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType );
+extern void               Io_WriteHie( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType, char * pBaseName );
 extern Abc_Obj_t *        Io_ReadCreatePi( Abc_Ntk_t * pNtk, char * pName );
 extern Abc_Obj_t *        Io_ReadCreatePo( Abc_Ntk_t * pNtk, char * pName );
 extern Abc_Obj_t *        Io_ReadCreateAssert( Abc_Ntk_t * pNtk, char * pName );

@@ -47,6 +47,7 @@ alias r3 retime -M 3
 alias r3f retime -M 3 -f
 alias r3b retime -M 3 -b
 alias ren renode
+alias rh read_hie
 alias rl read_blif
 alias rb read_bench
 alias ret retime
@@ -76,6 +77,7 @@ alias trt "r c.blif; st; tr0; b; tr1"
 alias u undo
 alias w write
 alias wb write_blif
+alias wh write_hie
 alias wl write_blif
 alias wp write_pla
 alias wv write_verilog
@@ -106,6 +108,9 @@ alias compress2rs "b -l; rs -K 6 -l; rw -l; rs -K 6 -N 2 -l; rf -l; rs -K 8 -l; 
 alias resyn2rsdc    "b; rs -K 6 -F 2; rw; rs -K 6 -N 2 -F 2; rf; rs -K 8 -F 2; b; rs -K 8 -N 2 -F 2; rw; rs -K 10 -F 2; rwz; rs -K 10 -N 2 -F 2; b; rs -K 12 -F 2; rfz; rs -K 12 -N 2 -F 2; rwz; b"
 alias compress2rsdc "b -l; rs -K 6 -F 2 -l; rw -l; rs -K 6 -N 2 -F 2 -l; rf -l; rs -K 8 -F 2 -l; b -l; rs -K 8 -N 2 -F 2 -l; rw -l; rs -K 10 -F 2 -l; rwz -l; rs -K 10 -N 2 -F 2 -l; b -l; rs -K 12 -F 2 -l; rfz -l; rs -K 12 -N 2 -F 2 -l; rwz -l; b -l"
 
+# minimizing for FF literals
+alias fflitmin    "compress2rs; ren; sop; ps -f"
+
 # temporaries
 #alias t        "rvl th/lib.v; rvv th/t2.v"
 #alias t        "so c/pure_sat/test.c"
@@ -113,5 +118,6 @@ alias compress2rsdc "b -l; rs -K 6 -F 2 -l; rw -l; rs -K 6 -N 2 -F 2 -l; rf -l; 
 alias t0        "r res.blif; aig; mfs"  
 alias t        "r res2.blif; aig; mfs"  
 
+alias tt       "rh a/quip_opt/nut_002_opt.blif"
 
 

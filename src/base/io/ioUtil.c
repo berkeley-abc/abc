@@ -179,6 +179,69 @@ Abc_Ntk_t * Io_Read( char * pFileName, Io_FileType_t FileType, int fCheck )
 
 /**Function*************************************************************
 
+  Synopsis    [Read the network from a file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Io_ReadHie( char * pFileName, Io_FileType_t FileType, int fCheck )
+{
+    Abc_Ntk_t * pNtk, * pTemp;
+    // detect the file type
+
+    if ( Io_ReadFileType(pFileName) == IO_FILE_BLIF )
+        pNtk = Io_ReadBlifMv( pFileName, 0, fCheck );
+//    else if ( Io_ReadFileType(pFileName) == IO_FILE_BLIFMV )
+//        pNtk = Io_ReadBlifMv( pFileName, 1, fCheck );
+    else
+    {
+        printf( "Wrong file type.\n" );
+        return NULL;
+    }
+    if ( pNtk == NULL )
+        return NULL;
+//    printf( "\n" );
+    // flatten logic hierarchy
+    assert( Abc_NtkIsNetlist(pNtk) );
+    if ( Abc_NtkWhiteboxNum(pNtk) > 0 )
+    {
+        pNtk = Abc_NtkFlattenLogicHierarchy( pTemp = pNtk );
+        Abc_NtkDelete( pTemp );
+        if ( pNtk == NULL )
+        {
+            fprintf( stdout, "Flattening logic hierarchy has failed.\n" );
+            return NULL;
+        }
+    }
+    // convert blackboxes
+    if ( Abc_NtkBlackboxNum(pNtk) > 0 )
+    {
+        printf( "Hierarchical parser is converting %d blackboxes.\n", Abc_NtkBlackboxNum(pNtk) );
+        pNtk = Abc_NtkConvertBlackboxes( pTemp = pNtk );
+        Abc_NtkDelete( pTemp );
+        if ( pNtk == NULL )
+        {
+            fprintf( stdout, "Converting blackboxes has failed.\n" );
+            return NULL;
+        }
+    }
+    // convert the netlist into the logic network
+    pNtk = Abc_NtkNetlistToLogic( pTemp = pNtk );
+    Abc_NtkDelete( pTemp );
+    if ( pNtk == NULL )
+    {
+        fprintf( stdout, "Converting netlist to logic network after reading has failed.\n" );
+        return NULL;
+    }
+    return pNtk;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Write the network into file.]
 
   Description []
@@ -269,7 +332,7 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
         return;
     }
     if ( FileType == IO_FILE_BLIF )
-        Io_WriteBlifNetlist( pNtkTemp, pFileName, 1 );
+        Io_WriteBlif( pNtkTemp, pFileName, 1 );
     else if ( FileType == IO_FILE_BENCH )
         Io_WriteBench( pNtkTemp, pFileName );
     else if ( FileType == IO_FILE_PLA )
@@ -289,6 +352,63 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
     else 
         fprintf( stderr, "Unknown file format.\n" );
     Abc_NtkDelete( pNtkTemp );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Write the network into file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Io_WriteHie( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType, char * pBaseName )
+{
+    Abc_Ntk_t * pNtkTemp, * pNtkBase, * pNtkResult;
+    // check if the current network is available
+    if ( pNtk == NULL )
+    {
+        fprintf( stdout, "Empty network.\n" );
+        return;
+    }
+    // check if the file extension if given
+    if ( FileType == IO_FILE_NONE || FileType == IO_FILE_UNKNOWN )
+    {
+        fprintf( stdout, "The generic file writer requires a known file extension.\n" );
+        return;
+    }
+    // write the AIG formats
+    if ( FileType == IO_FILE_BLIF )
+    {
+        pNtkBase = Io_ReadBlifMv( pBaseName, 0, 1 );
+        if ( Abc_NtkWhiteboxNum(pNtk) > 0 )
+        {
+            pNtkBase = Abc_NtkFlattenLogicHierarchy( pNtkTemp = pNtkBase );
+            Abc_NtkDelete( pNtkTemp );
+        }
+        if ( Abc_NtkBlackboxNum(pNtk) > 0 )
+        {
+            pNtkResult = Abc_NtkLogicToNetlist( pNtk, 0 );
+            pNtkResult = Abc_NtkInsertNewLogic( pNtkBase, pNtkTemp = pNtkResult );
+            Abc_NtkDelete( pNtkTemp );
+            printf( "Hierarchy writer reintroduced %d blackboxes.\n", Abc_NtkBlackboxNum(pNtk) );
+        }
+        else
+        {
+            printf( "Warning: The output network does not contain blackboxes.\n" );
+            pNtkResult = Abc_NtkLogicToNetlist( pNtk, 0 );
+        }
+        Abc_NtkDelete( pNtkBase );
+        if ( pNtkResult == NULL )
+            return;
+        Io_WriteBlif( pNtkResult, pFileName, 0 );
+        Abc_NtkDelete( pNtkResult );
+    }
+    else 
+        fprintf( stderr, "Unknown file format.\n" );
 }
 
 /**Function*************************************************************

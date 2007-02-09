@@ -896,14 +896,11 @@ void Abc_ObjPrint( FILE * pFile, Abc_Obj_t * pObj )
         case ABC_OBJ_NODE: 
             fprintf( pFile, "Node   " );  
             break;
-        case ABC_OBJ_GATE: 
-            fprintf( pFile, "Gate   " );  
-            break;
         case ABC_OBJ_LATCH:     
             fprintf( pFile, "Latch  " );  
             break;
-        case ABC_OBJ_TRI:     
-            fprintf( pFile, "Tristate" );  
+        case ABC_OBJ_WHITEBOX: 
+            fprintf( pFile, "Whitebox" );  
             break;
         case ABC_OBJ_BLACKBOX:     
             fprintf( pFile, "Blackbox" );  

@@ -40,6 +40,7 @@ static int IoCommandReadVer     ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadVerLib  ( Abc_Frame_t * pAbc, int argc, char **argv );
 
 static int IoCommandWrite       ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandWriteHie    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteAiger  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteBaf    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteBlif   ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -75,7 +76,7 @@ extern Abc_Lib_t * Ver_ParseFile( char * pFileName, Abc_Lib_t * pGateLib, int fC
 void Io_Init( Abc_Frame_t * pAbc )
 {
     Cmd_CommandAdd( pAbc, "I/O", "read",          IoCommandRead,         1 );
-    Cmd_CommandAdd( pAbc, "I/O", "rh",            IoCommandReadHie,      1 );
+    Cmd_CommandAdd( pAbc, "I/O", "read_hie",      IoCommandReadHie,      1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_aiger",    IoCommandReadAiger,    1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_baf",      IoCommandReadBaf,      1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_blif",     IoCommandReadBlif,     1 );
@@ -89,6 +90,7 @@ void Io_Init( Abc_Frame_t * pAbc )
 //    Cmd_CommandAdd( pAbc, "I/O", "read_verlib",   IoCommandReadVerLib,   0 );
 
     Cmd_CommandAdd( pAbc, "I/O", "write",         IoCommandWrite,        0 );
+    Cmd_CommandAdd( pAbc, "I/O", "write_hie",     IoCommandWriteHie,     0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_aiger",   IoCommandWriteAiger,   0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_baf",     IoCommandWriteBaf,     0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_blif",    IoCommandWriteBlif,    0 );
@@ -169,6 +171,7 @@ usage:
     fprintf( pAbc->Err, "usage: read [-ch] <file>\n" );
     fprintf( pAbc->Err, "\t         replaces the current network by the network read from <file>\n" );
     fprintf( pAbc->Err, "\t         by calling the parser that matches the extension of <file>\n" );
+    fprintf( pAbc->Err, "\t         (to read a hierarchical design, use \"read_hie\")\n" );
     fprintf( pAbc->Err, "\t-c     : toggle network check after reading [default = %s]\n", fCheck? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
     fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
@@ -190,7 +193,7 @@ int IoCommandReadHie( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk;
     char * pFileName;
-    int fCheck, fBlifMv;
+    int fCheck;
     int c;
 
     fCheck = 1;
@@ -213,18 +216,7 @@ int IoCommandReadHie( Abc_Frame_t * pAbc, int argc, char ** argv )
     // get the input file name
     pFileName = argv[globalUtilOptind];
     // read the file using the corresponding file reader
-//    pNtk = Io_Read( pFileName, Io_ReadFileType(pFileName), fCheck );
-    if ( Io_ReadFileType(pFileName) == IO_FILE_BLIFMV )
-        fBlifMv = 1;
-    else if ( Io_ReadFileType(pFileName) == IO_FILE_BLIF )
-        fBlifMv = 0;
-    else
-    {
-        printf( "Wrong file type.\n" );
-        return 1;
-    }
-    Io_ReadBlifMv( pFileName, fBlifMv, fCheck );
-    pNtk = NULL;
+    pNtk = Io_ReadHie( pFileName, Io_ReadFileType(pFileName), fCheck );
     if ( pNtk == NULL )
         return 0;
     // replace the current network
@@ -232,7 +224,7 @@ int IoCommandReadHie( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: rh [-ch] <file>\n" );
+    fprintf( pAbc->Err, "usage: read_hie [-ch] <file>\n" );
     fprintf( pAbc->Err, "\t         reads hierarchical design represented in BLIF or BLIF-MV\n" );
     fprintf( pAbc->Err, "\t         by calling the parser that matches the extension of <file>\n" );
     fprintf( pAbc->Err, "\t-c     : toggle network check after reading [default = %s]\n", fCheck? "yes":"no" );
@@ -820,7 +812,7 @@ int IoCommandReadVer( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // derive root design
     pNtk = Abc_LibDeriveRoot( pDesign );
-    Abc_LibFree( pDesign );
+    Abc_LibFree( pDesign, NULL );
     if ( pNtk == NULL )
     {
         fprintf( pAbc->Err, "Deriving root module has failed.\n" );
@@ -910,7 +902,7 @@ int IoCommandReadVerLib( Abc_Frame_t * pAbc, int argc, char ** argv )
     printf( "The library contains %d gates.\n", st_count(pLibrary->tModules) );
     // free old library
     if ( Abc_FrameReadLibVer() )
-        Abc_LibFree( Abc_FrameReadLibVer() );
+        Abc_LibFree( Abc_FrameReadLibVer(), NULL );
     // read new library
     Abc_FrameSetLibVer( pLibrary );
     return 0;
@@ -965,6 +957,53 @@ usage:
     fprintf( pAbc->Err, "\t         writes the current network into <file> by calling\n" );
     fprintf( pAbc->Err, "\t         the writer that matches the extension of <file>\n" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IoCommandWriteHie( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    char * pBaseName, * pFileName;
+    int c;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 2 )
+        goto usage;
+    // get the output file name
+    pBaseName = argv[globalUtilOptind];
+    pFileName = argv[globalUtilOptind+1];
+    // call the corresponding file writer
+//    Io_Write( pAbc->pNtkCur, pFileName, Io_ReadFileType(pFileName) );
+    Io_WriteHie( pAbc->pNtkCur, pFileName, Io_ReadFileType(pFileName), pBaseName );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: write_hie [-h] <orig> <file>\n" );
+    fprintf( pAbc->Err, "\t         writes the current network into <file> by calling\n" );
+    fprintf( pAbc->Err, "\t         the hierarchical writer that matches the extension of <file>\n" );
+    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
+    fprintf( pAbc->Err, "\torig   : the name of the original file with the hierarchical design\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
     return 1;
 }

@@ -142,7 +142,7 @@ void Abc_FrameDeallocate( Abc_Frame_t * p )
     undefine_cube_size();
     Rwt_ManGlobalStop();
 //    Ivy_TruthManStop();
-    if ( p->pLibVer ) Abc_LibFree( p->pLibVer );
+    if ( p->pLibVer ) Abc_LibFree( p->pLibVer, NULL );
     if ( p->pManDec ) Dec_ManStop( p->pManDec );
     if ( p->dd )      Extra_StopManager( p->dd );
     Abc_FrameDeleteAllNetworks( p );

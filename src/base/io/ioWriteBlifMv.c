@@ -187,7 +187,8 @@ void Io_NtkWriteBlifMvOne( FILE * pFile, Abc_Ntk_t * pNtk )
     }
 
     // write the subcircuits
-    if ( !Abc_NtkBlackboxNum(pNtk) )
+    assert( Abc_NtkWhiteboxNum(pNtk) == 0 );
+    if ( Abc_NtkBlackboxNum(pNtk) > 0 )
     {
         fprintf( pFile, "\n" );
         Abc_NtkForEachBlackbox( pNtk, pNode, i )

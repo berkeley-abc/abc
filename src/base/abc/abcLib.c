@@ -64,7 +64,7 @@ Abc_Lib_t * Abc_LibCreate( char * pName )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_LibFree( Abc_Lib_t * pLib )
+void Abc_LibFree( Abc_Lib_t * pLib, Abc_Ntk_t * pNtkSave )
 {
     Abc_Ntk_t * pNtk;
     int i;
@@ -79,6 +79,8 @@ void Abc_LibFree( Abc_Lib_t * pLib )
         Vec_PtrForEachEntry( pLib->vModules, pNtk, i )
         {
 //            pNtk->pManFunc = NULL;
+            if ( pNtk == pNtkSave )
+                continue;
             Abc_NtkDelete( pNtk );
         }
         Vec_PtrFree( pLib->vModules );
@@ -108,11 +110,15 @@ void Abc_LibPrint( Abc_Lib_t * pLib )
     Vec_PtrForEachEntry( pLib->vModules, pNtk, i )
     {
         printf( "%2d : %20s   ", i+1, pNtk->pName );
-        printf( "nd = %6d   lat = %6d   box = %3d\n", Abc_NtkNodeNum(pNtk), Abc_NtkLatchNum(pNtk), Abc_NtkBlackboxNum(pNtk) );
+        printf( "nd = %6d   lat = %6d   whitebox = %3d   blackbox = %3d\n", 
+            Abc_NtkNodeNum(pNtk), Abc_NtkLatchNum(pNtk), 
+            Abc_NtkWhiteboxNum(pNtk), Abc_NtkBlackboxNum(pNtk) );
         if ( Abc_NtkBlackboxNum(pNtk) == 0 )
             continue;
+        Abc_NtkForEachWhitebox( pNtk, pObj, k )
+            printf( "     %20s (whitebox)\n", Abc_NtkName(pObj->pData) );
         Abc_NtkForEachBlackbox( pNtk, pObj, k )
-            printf( "     %20s (submodel)\n", Abc_NtkName(pObj->pData) );
+            printf( "     %20s (blackbox)\n", Abc_NtkName(pObj->pData) );
     }
 }
 

@@ -49,7 +49,8 @@ Abc_Ntk_t * Abc_NtkNetlistToLogic( Abc_Ntk_t * pNtk )
     int i, k;
     assert( Abc_NtkIsNetlist(pNtk) );
     // consider simple case when there is hierarchy
-    assert( pNtk->tName2Model == NULL );
+    assert( pNtk->pDesign == NULL );
+//    assert( pNtk->tName2Model == NULL );
 //    if ( pNtk->tName2Model )
 //        return Abc_NtkNetlistToLogicHie( pNtk );
     // start the network

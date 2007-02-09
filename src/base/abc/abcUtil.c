@@ -735,6 +735,12 @@ bool Abc_NtkLogicHasSimpleCos( Abc_Ntk_t * pNtk )
     Abc_NtkIncrementTravId( pNtk );
     Abc_NtkForEachCo( pNtk, pNode, i ) 
     {
+/*
+        if ( strcmp( Abc_ObjName(pNode), "g704" ) == 0 )
+        {
+            int s = 1;
+        }
+*/
         // if the driver is complemented, this is an error
         pDriver = Abc_ObjFanin0(pNode);
         if ( Abc_ObjFaninC0(pNode) )
@@ -1563,6 +1569,31 @@ int Abc_NtkCrossCut( Abc_Ntk_t * pNtk )
     return nCutSizeMax;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Prints all 3-var functions.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkPrint256()
+{
+    FILE * pFile;
+    int i;
+    pFile = fopen( "4varfs.txt", "w" );
+    for ( i = 1; i < (1<<16)-1; i++ )
+    {
+        fprintf( pFile, "read_truth " );
+        Extra_PrintBinary( pFile, &i, 16 );
+        fprintf( pFile, "; clp; st; w 1.blif; map; cec 1.blif\n" );
+    }
+    fclose( pFile );
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

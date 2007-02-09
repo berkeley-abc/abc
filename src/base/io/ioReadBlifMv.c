@@ -119,12 +119,12 @@ extern void              Abc_NtkStartMvVars( Abc_Ntk_t * pNtk );
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Lib_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
+Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
 {
     FILE * pFile;
     Io_MvMan_t * p;
-    Abc_Lib_t * pDesign;
     Abc_Ntk_t * pNtk;
+    Abc_Lib_t * pDesign;
     char * pDesignName;
     int i;
 
@@ -171,18 +171,33 @@ Abc_Lib_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
             if ( !Abc_NtkCheckRead( pNtk ) )
             {
                 printf( "Io_ReadBlifMv: The network check has failed for network %s.\n", pNtk->pName );
-                Abc_LibFree( pDesign );
+                Abc_LibFree( pDesign, NULL );
                 return NULL;
             }
         }
     }
 // pDesign should be linked to all models of the design
 
-Io_WriteBlifMvDesign( pDesign, "_temp_.mv" );
-Abc_LibPrint( pDesign );
-Abc_LibFree( pDesign );
-return NULL;
-//    return pDesign;
+    // extract the master network
+    pNtk = Vec_PtrEntry( pDesign->vModules, 0 );
+    pNtk->pDesign = pDesign;
+
+    // verify the design for cyclic dependence
+    assert( Vec_PtrSize(pDesign->vModules) > 0 );
+    if ( Vec_PtrSize(pDesign->vModules) == 1 )
+    {
+        printf( "Warning: The design is not hierarchical.\n" );
+        Abc_LibFree( pDesign, pNtk );
+        pNtk->pDesign = NULL;
+    }
+    else
+        Abc_NtkIsAcyclicHierarchy( pNtk );
+
+//Io_WriteBlifMvDesign( pDesign, "_temp_.mv" );
+//Abc_LibPrint( pDesign );
+//Abc_LibFree( pDesign );
+//return NULL;
+    return pNtk;
 }
 
 /**Function*************************************************************
@@ -225,7 +240,7 @@ static void Io_MvFree( Io_MvMan_t * p )
     Io_MvMod_t * pMod;
     int i;
     if ( p->pDesign )
-        Abc_LibFree( p->pDesign );
+        Abc_LibFree( p->pDesign, NULL );
     if ( p->pBuffer )  
         free( p->pBuffer );
     if ( p->vLines )
@@ -899,7 +914,10 @@ static int Io_MvParseLineSubckt( Io_MvMod_t * p, char * pLine )
     ppNames = (char **)Vec_PtrArray(vTokens) + 2 + p->pMan->fBlifMv;
 
     // create the box with these terminals
-    pBox = Abc_NtkCreateBlackbox( p->pNtk );
+    if ( Abc_NtkHasBlackbox(pModel) )
+        pBox = Abc_NtkCreateBlackbox( p->pNtk );
+    else
+        pBox = Abc_NtkCreateWhitebox( p->pNtk );
     pBox->pData = pModel;
     if ( p->pMan->fBlifMv )
         Abc_ObjAssignName( pBox, Vec_PtrEntry(vTokens,2), NULL );

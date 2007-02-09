@@ -840,6 +840,12 @@ char * Abc_SopFromTruthBin( char * pTruth )
         if ( Digit == 1 )
             Vec_IntPush( vMints, nTruthSize - 1 - i );
     }
+    if ( Vec_IntSize( vMints ) == 0 || Vec_IntSize( vMints ) == nTruthSize )
+    {
+        Vec_IntFree( vMints );
+        printf( "Cannot create constant function.\n" );
+        return NULL;
+    }
 
     // create the SOP representation of the minterms
     Length = Vec_IntSize(vMints) * (nVars + 3);

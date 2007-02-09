@@ -61,7 +61,7 @@ void Io_WriteBlifLogic( Abc_Ntk_t * pNtk, char * FileName, int fWriteLatches )
         fprintf( stdout, "Writing BLIF has failed.\n" );
         return;
     }
-    Io_WriteBlifNetlist( pNtkTemp, FileName, fWriteLatches );
+    Io_WriteBlif( pNtkTemp, FileName, fWriteLatches );
     Abc_NtkDelete( pNtkTemp );
 }
 
@@ -76,28 +76,34 @@ void Io_WriteBlifLogic( Abc_Ntk_t * pNtk, char * FileName, int fWriteLatches )
   SeeAlso     []
 
 ***********************************************************************/
-void Io_WriteBlifNetlist( Abc_Ntk_t * pNtk, char * FileName, int fWriteLatches )
+void Io_WriteBlif( Abc_Ntk_t * pNtk, char * FileName, int fWriteLatches )
 {
-    stmm_generator * gen;
-    Abc_Ntk_t * pNtkTemp;
     FILE * pFile;
     assert( Abc_NtkIsNetlist(pNtk) );
     // start writing the file
     pFile = fopen( FileName, "w" );
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Io_WriteBlifNetlist(): Cannot open the output file.\n" );
+        fprintf( stdout, "Io_WriteBlif(): Cannot open the output file.\n" );
         return;
     }
     fprintf( pFile, "# Benchmark \"%s\" written by ABC on %s\n", pNtk->pName, Extra_TimeStamp() );
     // write the master network
     Io_NtkWrite( pFile, pNtk, fWriteLatches );
+    // make sure there is no logic hierarchy
+    assert( Abc_NtkWhiteboxNum(pNtk) == 0 );
     // write the hierarchy if present
-    if ( pNtk->tName2Model )
+    if ( Abc_NtkBlackboxNum(pNtk) > 0 )
     {
-        fprintf( pFile, "\n\n" );
-        stmm_foreach_item( pNtk->tName2Model, gen, NULL, (char **)&pNtkTemp )
+        Abc_Ntk_t * pNtkTemp;
+        Abc_Obj_t * pObj;
+        int i;
+        Abc_NtkForEachBlackbox( pNtk, pObj, i )
+        {
+            pNtkTemp = pObj->pData;
+            assert( pNtkTemp != NULL && Abc_NtkHasBlackbox(pNtkTemp) );
             Io_NtkWrite( pFile, pNtkTemp, fWriteLatches );
+        }
     }
     fclose( pFile );
 }

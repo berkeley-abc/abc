@@ -288,7 +288,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
 //    Map_Var3Print();
 //    Map_Var4Test();
 
-}
+//    Abc_NtkPrint256();
+} 
 
 /**Function*************************************************************
 

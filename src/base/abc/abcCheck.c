@@ -38,8 +38,6 @@ static bool Abc_NtkComparePis( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb )
 static bool Abc_NtkComparePos( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb );
 static bool Abc_NtkCompareLatches( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb );
 
-static int  Abc_NtkIsAcyclicHierarchy( Abc_Ntk_t * pNtk );
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -112,7 +110,7 @@ bool Abc_NtkDoCheck( Abc_Ntk_t * pNtk )
         }
     }
 
-    if ( !Abc_NtkBlackboxNum(pNtk) )
+    if ( Abc_NtkHasOnlyLatchBoxes(pNtk) )
     {
         // check CI/CO numbers
         if ( Abc_NtkPiNum(pNtk) + Abc_NtkLatchNum(pNtk) != Abc_NtkCiNum(pNtk) )
@@ -196,7 +194,7 @@ bool Abc_NtkDoCheck( Abc_Ntk_t * pNtk )
     // check the EXDC network if present
     if ( pNtk->pExdc )
         Abc_NtkCheck( pNtk->pExdc );
-
+/*
     // check the hierarchy
     if ( Abc_NtkIsNetlist(pNtk) && pNtk->tName2Model )
     {
@@ -217,6 +215,7 @@ bool Abc_NtkDoCheck( Abc_Ntk_t * pNtk )
             return 0;
         }
     }
+*/
     return 1;
 }
 
@@ -746,7 +745,6 @@ bool Abc_NtkCompareSignals( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fOnlyPis, 
     return 1;
 }
 
-
 /**Function*************************************************************
 
   Synopsis    [Returns 0 if the network hierachy contains a cycle.]
@@ -774,6 +772,8 @@ int Abc_NtkIsAcyclicHierarchy_rec( Abc_Ntk_t * pNtk )
     // go through all the children networks
     Abc_NtkForEachBox( pNtk, pObj, i )
     {
+        if ( Abc_ObjIsLatch(pObj) )
+            continue;
         pNtkNext = pObj->pData;
         assert( pNtkNext != NULL );
         if ( pNtkNext->fHiePath )
@@ -799,9 +799,20 @@ int Abc_NtkIsAcyclicHierarchy_rec( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 int Abc_NtkIsAcyclicHierarchy( Abc_Ntk_t * pNtk )
 {
-    assert( Abc_NtkIsNetlist(pNtk) && pNtk->tName2Model );
+    Abc_Ntk_t * pTemp;
+    int i, RetValue;
+    assert( Abc_NtkIsNetlist(pNtk) && pNtk->pDesign );
+    // clear the modules
+    Vec_PtrForEachEntry( pNtk->pDesign->vModules, pTemp, i )
+        pTemp->fHieVisited = pTemp->fHiePath = 0;
+    // traverse
     pNtk->fHiePath = 1;
-    return Abc_NtkIsAcyclicHierarchy_rec( pNtk );
+    RetValue = Abc_NtkIsAcyclicHierarchy_rec( pNtk );
+    pNtk->fHiePath = 0;
+    // clear the modules
+    Vec_PtrForEachEntry( pNtk->pDesign->vModules, pTemp, i )
+        pTemp->fHieVisited = pTemp->fHiePath = 0;
+    return RetValue;
 }
 
 ////////////////////////////////////////////////////////////////////////
