@@ -62,7 +62,8 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
     {
         fprintf( pFile, "  net = %5d", Abc_NtkNetNum(pNtk) );
         fprintf( pFile, "  nd = %5d",  Abc_NtkNodeNum(pNtk) );
-        fprintf( pFile, "  box = %5d", Abc_NtkBoxNum(pNtk) );
+        fprintf( pFile, "  wbox = %3d", Abc_NtkWhiteboxNum(pNtk) );
+        fprintf( pFile, "  bbox = %3d", Abc_NtkBlackboxNum(pNtk) );
     }
     else if ( Abc_NtkIsStrash(pNtk) )
     {        

@@ -140,6 +140,9 @@ bool Abc_NtkDoCheck( Abc_Ntk_t * pNtk )
     if ( !Abc_NtkCheckPos( pNtk ) )
         return 0;
 
+    if ( Abc_NtkHasBlackbox(pNtk) )
+        return 1;
+
     // check the connectivity of objects
     Abc_NtkForEachObj( pNtk, pObj, i )
         if ( !Abc_NtkCheckObj( pNtk, pObj ) )
@@ -236,41 +239,27 @@ bool Abc_NtkCheckNames( Abc_Ntk_t * pNtk )
     Vec_Int_t * vNameIds;
     char * pName;
     int i, NameId;
-/*
-    if ( Abc_NtkIsNetlist(pNtk) )
-    {
 
-        // check that each net has a name
-        Abc_NtkForEachNet( pNtk, pObj, i )
+    if ( Abc_NtkIsNetlist(pNtk) )
+        return 1;
+
+    // check that each CI/CO has a name
+    Abc_NtkForEachCi( pNtk, pObj, i )
+    {
+        pObj = Abc_ObjFanout0Ntk(pObj);
+        if ( Nm_ManFindNameById(pObj->pNtk->pManName, pObj->Id) == NULL )
         {
-            if ( Nm_ManFindNameById(pObj->pNtk->pManName, pObj->Id) )
-            {
-                fprintf( stdout, "NetworkCheck: Net \"%s\" has different name in the name table and at the data pointer.\n", pObj->pData );
-                return 0;
-            }
+            fprintf( stdout, "NetworkCheck: CI with ID %d is in the network but not in the name table.\n", pObj->Id );
+            return 0;
         }
     }
-    else
-*/
+    Abc_NtkForEachCo( pNtk, pObj, i )
     {
-        // check that each CI/CO has a name
-        Abc_NtkForEachCi( pNtk, pObj, i )
+        pObj = Abc_ObjFanin0Ntk(pObj);
+        if ( Nm_ManFindNameById(pObj->pNtk->pManName, pObj->Id) == NULL )
         {
-            pObj = Abc_ObjFanout0Ntk(pObj);
-            if ( Nm_ManFindNameById(pObj->pNtk->pManName, pObj->Id) == NULL )
-            {
-                fprintf( stdout, "NetworkCheck: CI with ID %d is in the network but not in the name table.\n", pObj->Id );
-                return 0;
-            }
-        }
-        Abc_NtkForEachCo( pNtk, pObj, i )
-        {
-            pObj = Abc_ObjFanin0Ntk(pObj);
-            if ( Nm_ManFindNameById(pObj->pNtk->pManName, pObj->Id) == NULL )
-            {
-                fprintf( stdout, "NetworkCheck: CO with ID %d is in the network but not in the name table.\n", pObj->Id );
-                return 0;
-            }
+            fprintf( stdout, "NetworkCheck: CO with ID %d is in the network but not in the name table.\n", pObj->Id );
+            return 0;
         }
     }
 

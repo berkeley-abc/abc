@@ -329,7 +329,15 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, int fCopyName 
         else if ( Abc_ObjIsCo(pObj) )
         {
             if ( !Abc_NtkIsNetlist(pNtkNew) )
-                Abc_ObjAssignName( pObjNew, Abc_ObjName(Abc_ObjFanin0Ntk(pObj)), NULL );
+            {
+                if ( Abc_ObjIsPo(pObj) )
+                    Abc_ObjAssignName( pObjNew, Abc_ObjName(Abc_ObjFanin0Ntk(pObj)), NULL );
+                else
+                {
+                    assert( Abc_ObjIsLatch(Abc_ObjFanout0(pObj)) );
+                    Abc_ObjAssignName( pObjNew, Abc_ObjName(pObj), NULL );
+                }
+            }
         }
         else if ( Abc_ObjIsBox(pObj) || Abc_ObjIsNet(pObj) )
             Abc_ObjAssignName( pObjNew, Abc_ObjName(pObj), NULL );

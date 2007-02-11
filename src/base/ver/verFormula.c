@@ -83,6 +83,11 @@ void * Ver_FormulaParser( char * pFormula, void * pMan, Vec_Ptr_t * vNames, Vec_
     Vec_PtrClear( vStackFn );
     Vec_IntClear( vStackOp );
 
+    if ( !strcmp(pFormula, "0") || !strcmp(pFormula, "1\'b0") )
+        return Hop_ManConst0(pMan);
+    if ( !strcmp(pFormula, "1") || !strcmp(pFormula, "1\'b1") )
+        return Hop_ManConst1(pMan);
+
     // make sure that the number of opening and closing parantheses is the same
     nParans = 0;
     for ( pTemp = pFormula; *pTemp; pTemp++ )

@@ -48,6 +48,7 @@ struct Ver_Man_t_
     // input file stream
     char *          pFileName;
     Ver_Stream_t *  pReader;
+    int             fNameLast;
     ProgressBar *   pProgress;
     // current network and library
     Abc_Ntk_t *     pNtkCur;       // the network under construction

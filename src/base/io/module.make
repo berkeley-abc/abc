@@ -8,6 +8,7 @@ SRC +=  src/base/io/io.c \
     src/base/io/ioReadEdif.c \
     src/base/io/ioReadEqn.c \
     src/base/io/ioReadPla.c \
+    src/base/io/ioReadVerilog.c \
     src/base/io/ioUtil.c \
     src/base/io/ioWriteAiger.c \
     src/base/io/ioWriteBaf.c \
@@ -20,5 +21,4 @@ SRC +=  src/base/io/io.c \
     src/base/io/ioWriteGml.c \
     src/base/io/ioWriteList.c \
     src/base/io/ioWritePla.c \
-    src/base/io/ioWriteVer.c \
-    src/base/io/ioWriteVerAux.c
+    src/base/io/ioWriteVerilog.c

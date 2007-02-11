@@ -132,6 +132,8 @@ Abc_Ntk_t * Io_ReadNetlist( char * pFileName, Io_FileType_t FileType, int fCheck
         pNtk = Io_ReadEqn( pFileName, fCheck );
     else if ( FileType == IO_FILE_PLA )
         pNtk = Io_ReadPla( pFileName, fCheck );
+    else if ( FileType == IO_FILE_VERILOG )
+        pNtk = Io_ReadVerilog( pFileName, fCheck );
     else 
     {
         fprintf( stderr, "Unknown file format.\n" );
@@ -140,6 +142,12 @@ Abc_Ntk_t * Io_ReadNetlist( char * pFileName, Io_FileType_t FileType, int fCheck
     if ( pNtk == NULL )
     {
         fprintf( stdout, "Reading network from file has failed.\n" );
+        return NULL;
+    }
+    if ( Abc_NtkBlackboxNum(pNtk) || Abc_NtkBlackboxNum(pNtk) )
+    {
+        fprintf( stdout, "The network contains hierarchy. Use \"read_hie\".\n" );
+        Abc_NtkDelete( pNtk );
         return NULL;
     }
     return pNtk;
@@ -197,6 +205,8 @@ Abc_Ntk_t * Io_ReadHie( char * pFileName, Io_FileType_t FileType, int fCheck )
         pNtk = Io_ReadBlifMv( pFileName, 0, fCheck );
 //    else if ( Io_ReadFileType(pFileName) == IO_FILE_BLIFMV )
 //        pNtk = Io_ReadBlifMv( pFileName, 1, fCheck );
+    else if ( Io_ReadFileType(pFileName) == IO_FILE_VERILOG )
+        pNtk = Io_ReadVerilog( pFileName, fCheck );
     else
     {
         printf( "Wrong file type.\n" );
@@ -220,7 +230,7 @@ Abc_Ntk_t * Io_ReadHie( char * pFileName, Io_FileType_t FileType, int fCheck )
     // convert blackboxes
     if ( Abc_NtkBlackboxNum(pNtk) > 0 )
     {
-        printf( "Hierarchical parser is converting %d blackboxes.\n", Abc_NtkBlackboxNum(pNtk) );
+        printf( "Hierarchical parser converted %d blackboxes.\n", Abc_NtkBlackboxNum(pNtk) );
         pNtk = Abc_NtkConvertBlackboxes( pTemp = pNtk );
         Abc_NtkDelete( pTemp );
         if ( pNtk == NULL )
@@ -347,7 +357,7 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
     {
         if ( Abc_NtkIsSopNetlist(pNtkTemp) )
             Abc_NtkSopToAig( pNtkTemp );
-        Io_WriteVerilog( pNtkTemp, pFileName, 1 );
+        Io_WriteVerilog( pNtkTemp, pFileName );
     }
     else 
         fprintf( stderr, "Unknown file format.\n" );
@@ -365,50 +375,64 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
   SeeAlso     []
 
 ***********************************************************************/
-void Io_WriteHie( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType, char * pBaseName )
+void Io_WriteHie( Abc_Ntk_t * pNtk, char * pBaseName, char * pFileName )
 {
-    Abc_Ntk_t * pNtkTemp, * pNtkBase, * pNtkResult;
+    Abc_Ntk_t * pNtkTemp, * pNtkResult, * pNtkBase = NULL;
     // check if the current network is available
     if ( pNtk == NULL )
     {
         fprintf( stdout, "Empty network.\n" );
         return;
     }
-    // check if the file extension if given
-    if ( FileType == IO_FILE_NONE || FileType == IO_FILE_UNKNOWN )
-    {
-        fprintf( stdout, "The generic file writer requires a known file extension.\n" );
-        return;
-    }
-    // write the AIG formats
-    if ( FileType == IO_FILE_BLIF )
-    {
+
+    // read the base network
+    assert( Abc_NtkIsStrash(pNtk) || Abc_NtkIsLogic(pNtk) );
+    if ( Io_ReadFileType(pBaseName) == IO_FILE_BLIF )
         pNtkBase = Io_ReadBlifMv( pBaseName, 0, 1 );
-        if ( Abc_NtkWhiteboxNum(pNtk) > 0 )
-        {
-            pNtkBase = Abc_NtkFlattenLogicHierarchy( pNtkTemp = pNtkBase );
-            Abc_NtkDelete( pNtkTemp );
-        }
-        if ( Abc_NtkBlackboxNum(pNtk) > 0 )
-        {
-            pNtkResult = Abc_NtkLogicToNetlist( pNtk, 0 );
-            pNtkResult = Abc_NtkInsertNewLogic( pNtkBase, pNtkTemp = pNtkResult );
-            Abc_NtkDelete( pNtkTemp );
-            printf( "Hierarchy writer reintroduced %d blackboxes.\n", Abc_NtkBlackboxNum(pNtk) );
-        }
-        else
-        {
-            printf( "Warning: The output network does not contain blackboxes.\n" );
-            pNtkResult = Abc_NtkLogicToNetlist( pNtk, 0 );
-        }
-        Abc_NtkDelete( pNtkBase );
-        if ( pNtkResult == NULL )
+    else 
+        fprintf( stderr, "Unknown input file format.\n" );
+    if ( pNtkBase == NULL )
+        return;
+
+    if ( Abc_NtkWhiteboxNum(pNtkBase) > 0 )
+    {
+        pNtkBase = Abc_NtkFlattenLogicHierarchy( pNtkTemp = pNtkBase );
+        if ( pNtkBase == NULL )
             return;
-        Io_WriteBlif( pNtkResult, pFileName, 0 );
-        Abc_NtkDelete( pNtkResult );
+        Abc_NtkDelete( pNtkTemp );
+    }
+
+    // reintroduce the boxes into the netlist
+    if ( Abc_NtkBlackboxNum(pNtkBase) > 0 )
+    {
+        pNtkResult = Abc_NtkLogicToNetlist( pNtk, 0 );
+        pNtkResult = Abc_NtkInsertNewLogic( pNtkBase, pNtkTemp = pNtkResult );
+        Abc_NtkDelete( pNtkTemp );
+        if ( pNtkResult )
+            printf( "Hierarchy writer reintroduced %d blackboxes.\n", Abc_NtkBlackboxNum(pNtkBase) );
+    }
+    else
+    {
+        printf( "Warning: The output network does not contain blackboxes.\n" );
+        pNtkResult = Abc_NtkLogicToNetlist( pNtk, 0 );
+    }
+    Abc_NtkDelete( pNtkBase );
+    if ( pNtkResult == NULL )
+        return;
+
+    // write the resulting network
+    if ( Io_ReadFileType(pFileName) == IO_FILE_BLIF )
+        Io_WriteBlif( pNtkResult, pFileName, 1 );
+    else if ( Io_ReadFileType(pFileName) == IO_FILE_VERILOG )
+    {
+        if ( Abc_NtkIsSopNetlist(pNtkResult) )
+            Abc_NtkSopToAig( pNtkResult );
+        Io_WriteVerilog( pNtkResult, pFileName );
     }
     else 
-        fprintf( stderr, "Unknown file format.\n" );
+        fprintf( stderr, "Unknown output file format.\n" );
+
+    Abc_NtkDelete( pNtkResult );
 }
 
 /**Function*************************************************************

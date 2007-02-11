@@ -454,6 +454,10 @@ SOURCE=.\src\base\io\ioReadPla.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\io\ioReadVerilog.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\io\ioUtil.c
 # End Source File
 # Begin Source File
@@ -502,11 +506,7 @@ SOURCE=.\src\base\io\ioWritePla.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\io\ioWriteVer.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\io\ioWriteVerAux.c
+SOURCE=.\src\base\io\ioWriteVerilog.c
 # End Source File
 # End Group
 # Begin Group "main"

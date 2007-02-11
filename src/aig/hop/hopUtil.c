@@ -351,7 +351,7 @@ void Hop_ObjPrintVerilog( FILE * pFile, Hop_Obj_t * pObj, Vec_Vec_t * vLevels, i
     // constant case
     if ( Hop_ObjIsConst1(pObj) )
     {
-        fprintf( pFile, "%d", !fCompl );
+        fprintf( pFile, "1\'b%d", !fCompl );
         return;
     }
     // PI case

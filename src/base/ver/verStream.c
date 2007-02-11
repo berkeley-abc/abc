@@ -279,6 +279,9 @@ char Ver_StreamPopChar( Ver_Stream_t * p )
         p->fStop = 1;
         return -1;
     }
+    // count the lines
+    if ( *p->pBufferCur == '\n' )
+        p->nLineCounter++;
     return *p->pBufferCur++;
 }
 
@@ -359,6 +362,9 @@ void Ver_StreamSkipToChars( Ver_Stream_t * p, char * pCharsToStop )
         if ( *pTemp == 0 ) // pChar is not found in the list
             continue;
         // the symbol is found - move position and return
+        if ( *pChar == '\n' )
+            p->nLineCounter--;
+        // update buffer
         p->pBufferCur = pChar;
         return;
     }

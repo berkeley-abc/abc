@@ -265,7 +265,7 @@ Abc_Ntk_t * Abc_NtkConvertBlackboxes( Abc_Ntk_t * pNtk )
         Abc_ObjForEachFanin( pObj, pTerm, k )
         {
             pNet = Abc_ObjFanin0(pTerm);
-            if ( pNet->pCopy )
+            if ( pNet->pCopy && !Abc_ObjIsCi(Abc_ObjFanin0(pNet)) )
             {
                 Abc_NodeSetTravIdCurrent( pTerm );
                 continue;
@@ -315,13 +315,14 @@ Abc_Ntk_t * Abc_NtkConvertBlackboxes( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkInsertNewLogic( Abc_Ntk_t * pNtkH, Abc_Ntk_t * pNtkL )
 {
+    Abc_Lib_t * pDesign;
     Abc_Ntk_t * pNtkNew;
     Abc_Obj_t * pObjH, * pObjL, * pNetH, * pNetL, * pTermH;
     int i, k;
 
     assert( Abc_NtkIsNetlist(pNtkH) );
     assert( Abc_NtkWhiteboxNum(pNtkH) == 0 );
-    assert( Abc_NtkBlackboxNum(pNtkL) > 0 );
+    assert( Abc_NtkBlackboxNum(pNtkH) > 0 );
 
     assert( Abc_NtkIsNetlist(pNtkL) );
     assert( Abc_NtkWhiteboxNum(pNtkL) == 0 );
@@ -343,38 +344,73 @@ Abc_Ntk_t * Abc_NtkInsertNewLogic( Abc_Ntk_t * pNtkH, Abc_Ntk_t * pNtkL )
         pNetL = Abc_NtkFindNet( pNtkL, Abc_ObjName(pNetH) );
         if ( pNetL == NULL || !Abc_ObjIsPi( Abc_ObjFanin0(pNetL) ) )
         {
-            printf( "There is no PI corresponding to the PI %s.\n", Abc_ObjName(pNetH) );
+            printf( "Error in Abc_NtkInsertNewLogic(): There is no PI corresponding to the PI %s.\n", Abc_ObjName(pNetH) );
             Abc_NtkDelete( pNtkNew );
             return NULL;
         }
-        // duplicate 
+        if ( pNetL->pCopy )
+        {
+            printf( "Error in Abc_NtkInsertNewLogic(): Primary input %s is repeated twice.\n", Abc_ObjName(pNetH) );
+            Abc_NtkDelete( pNtkNew );
+            return NULL;
+        }
+        // create the new net
         pNetL->pCopy = Abc_NtkFindOrCreateNet( pNtkNew, Abc_ObjName(pNetH) );
         Abc_NtkDupObj( pNtkNew, Abc_ObjFanin0(pNetL), 0 );
-    }
-    Abc_NtkForEachPo( pNtkH, pObjH, i )
-    {
-        pNetH = Abc_ObjFanin0(pObjH);
-        pNetL = Abc_NtkFindNet( pNtkL, Abc_ObjName(pNetH) );
-        if ( pNetL == NULL || !Abc_ObjIsPo( Abc_ObjFanout0(pNetL) ) )
-        {
-            printf( "There is no PO corresponding to the PO %s.\n", Abc_ObjName(pNetH) );
-            Abc_NtkDelete( pNtkNew );
-            return NULL;
-        }
-        // duplicate 
-        pNetL->pCopy = Abc_NtkFindOrCreateNet( pNtkNew, Abc_ObjName(pNetH) );
-        Abc_NtkDupObj( pNtkNew, Abc_ObjFanout0(pNetL), 0 );
     }
 
     // make sure every BB has a PI/PO in the processed network
     Abc_NtkForEachBlackbox( pNtkH, pObjH, i )
     {
         // duplicate the box 
-        Abc_NtkDupObj( pNtkNew, pObjH, 1 );
-        // look and fanins/fanouts of the box
+        Abc_NtkDupBox( pNtkNew, pObjH, 0 );
+        pObjH->pCopy->pData = pObjH->pData;
+        // create PIs
+        Abc_ObjForEachFanout( pObjH, pTermH, k )
+        {
+            pNetH = Abc_ObjFanout0( pTermH );
+            pNetL = Abc_NtkFindNet( pNtkL, Abc_ObjName(pNetH) );
+            if ( pNetL == NULL || !Abc_ObjIsPi( Abc_ObjFanin0(pNetL) ) )
+            {
+                printf( "Error in Abc_NtkInsertNewLogic(): There is no PI corresponding to the inpout %s of blackbox %s.\n", Abc_ObjName(pNetH), Abc_ObjName(pObjH) );
+                Abc_NtkDelete( pNtkNew );
+                return NULL;
+            }
+            if ( pNetL->pCopy )
+            {
+                printf( "Error in Abc_NtkInsertNewLogic(): Box output %s is repeated twice.\n", Abc_ObjName(pNetH) );
+                Abc_NtkDelete( pNtkNew );
+                return NULL;
+            }
+            // create net and map the PI
+            pNetL->pCopy = Abc_NtkFindOrCreateNet( pNtkNew, Abc_ObjName(pNetH) );
+            Abc_ObjFanin0(pNetL)->pCopy = pTermH->pCopy;
+        }
+    }
+
+    Abc_NtkForEachPo( pNtkH, pObjH, i )
+    {
+        pNetH = Abc_ObjFanin0(pObjH);
+        pNetL = Abc_NtkFindNet( pNtkL, Abc_ObjName(pNetH) );
+        if ( pNetL == NULL || !Abc_ObjIsPo( Abc_ObjFanout0(pNetL) ) )
+        {
+            printf( "Error in Abc_NtkInsertNewLogic(): There is no PO corresponding to the PO %s.\n", Abc_ObjName(pNetH) );
+            Abc_NtkDelete( pNtkNew );
+            return NULL;
+        }
+        if ( pNetL->pCopy )
+            continue;
+        // create the new net
+        pNetL->pCopy = Abc_NtkFindOrCreateNet( pNtkNew, Abc_ObjName(pNetH) );
+        Abc_NtkDupObj( pNtkNew, Abc_ObjFanout0(pNetL), 0 );
+    }
+    Abc_NtkForEachBlackbox( pNtkH, pObjH, i )
+    {
         Abc_ObjForEachFanin( pObjH, pTermH, k )
         {
+            char * pName;
             pNetH = Abc_ObjFanin0( pTermH );
+            pName = Abc_ObjName(pNetH);
             pNetL = Abc_NtkFindNet( pNtkL, Abc_ObjName(pNetH) );
             if ( pNetL == NULL || !Abc_ObjIsPo( Abc_ObjFanout0(pNetL) ) )
             {
@@ -382,39 +418,39 @@ Abc_Ntk_t * Abc_NtkInsertNewLogic( Abc_Ntk_t * pNtkH, Abc_Ntk_t * pNtkL )
                 Abc_NtkDelete( pNtkNew );
                 return NULL;
             }
-            // duplicate 
-            pNetL->pCopy = Abc_NtkFindOrCreateNet( pNtkNew, Abc_ObjName(pNetH) );
-            Abc_NtkDupObj( pNtkNew, Abc_ObjFanout0(pNetL), 0 );
-            // connect 
-            Abc_ObjAddFanin( pObjH->pCopy, Abc_ObjFanout0(pNetL)->pCopy );
-        }
-        Abc_ObjForEachFanout( pObjH, pTermH, k )
-        {
-            pNetH = Abc_ObjFanout0( pTermH );
-            pNetL = Abc_NtkFindNet( pNtkL, Abc_ObjName(pNetH) );
-            if ( pNetL == NULL || !Abc_ObjIsPi( Abc_ObjFanin0(pNetL) ) )
+            // create net and map the PO
+            if ( pNetL->pCopy )
             {
-                printf( "There is no PI corresponding to the inpout %s of blackbox %s.\n", Abc_ObjName(pNetH), Abc_ObjName(pObjH) );
-                Abc_NtkDelete( pNtkNew );
-                return NULL;
+                if ( Abc_ObjFanout0(pNetL)->pCopy == NULL )
+                    Abc_ObjFanout0(pNetL)->pCopy = pTermH->pCopy;
+                else
+                    Abc_ObjAddFanin( pTermH->pCopy, pNetL->pCopy );
+                continue;
             }
-            // duplicate 
             pNetL->pCopy = Abc_NtkFindOrCreateNet( pNtkNew, Abc_ObjName(pNetH) );
-            Abc_NtkDupObj( pNtkNew, Abc_ObjFanin0(pNetL), 0 );
-            // connect 
-            Abc_ObjAddFanin( Abc_ObjFanin0(pNetL)->pCopy, pObjH->pCopy );
+            Abc_ObjFanout0(pNetL)->pCopy = pTermH->pCopy;
         }
     }
 
     // duplicate other objects of the logic network
     Abc_NtkForEachObj( pNtkL, pObjL, i )
-        if ( pObjL->pCopy )
-            Abc_NtkDupObj( pNtkNew, pObjL, 0 );
+        if ( pObjL->pCopy == NULL && !Abc_ObjIsPo(pObjL) ) // skip POs feeding into PIs
+            Abc_NtkDupObj( pNtkNew, pObjL, Abc_ObjIsNet(pObjL) );
 
     // connect objects
     Abc_NtkForEachObj( pNtkL, pObjL, i )
         Abc_ObjForEachFanin( pObjL, pNetL, k )
-            Abc_ObjAddFanin( pObjL->pCopy, pNetL->pCopy );
+            if ( pObjL->pCopy )
+                Abc_ObjAddFanin( pObjL->pCopy, pNetL->pCopy );
+
+    // transfer the design
+    pDesign = pNtkH->pDesign;  pNtkH->pDesign = NULL;
+    assert( Vec_PtrEntry( pDesign->vModules, 0 ) == pNtkH );
+    Vec_PtrWriteEntry( pDesign->vModules, 0, pNtkNew );
+    pNtkNew->pDesign = pDesign;
+
+//Abc_NtkPrintStats( stdout, pNtkH, 0 );
+//Abc_NtkPrintStats( stdout, pNtkNew, 0 );
 
     // check integrity
     if ( !Abc_NtkCheck( pNtkNew ) )

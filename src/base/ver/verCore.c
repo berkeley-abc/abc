@@ -60,7 +60,8 @@ static int  Ver_ParseGateStandard( Ver_Man_t * pMan, Ver_GateType_t GateType );
 
 static Abc_Obj_t * Ver_ParseCreatePi( Abc_Ntk_t * pNtk, char * pName );
 static Abc_Obj_t * Ver_ParseCreatePo( Abc_Ntk_t * pNtk, char * pName );
-static Abc_Obj_t * Ver_ParseCreateLatch( Abc_Ntk_t * pNtk, char * pNetLI, char * pNetLO );
+static Abc_Obj_t * Ver_ParseCreateLatch( Abc_Ntk_t * pNtk, Abc_Obj_t * pNetLI, Abc_Obj_t * pNetLO );
+static Abc_Obj_t * Ver_ParseCreateInv( Abc_Ntk_t * pNtk, Abc_Obj_t * pNet );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -281,8 +282,8 @@ int Ver_ParseModule( Ver_Man_t * pMan )
     pNtk->pSpec = NULL;
 
     // create constant nets
-    Abc_NtkFindOrCreateNet( pNtk, "1'b0" );
-    Abc_NtkFindOrCreateNet( pNtk, "1'b1" );
+    Abc_NtkFindOrCreateNet( pNtk, "1\'b0" );
+    Abc_NtkFindOrCreateNet( pNtk, "1\'b1" );
 
     // make sure we stopped at the opening paranthesis
     if ( Ver_StreamPopChar(p) != '(' )
@@ -383,13 +384,13 @@ int Ver_ParseModule( Ver_Man_t * pMan )
     }
 
     // check if constant 0 net is used
-    pNet = Abc_NtkFindOrCreateNet( pNtk, "1'b0" );
+    pNet = Abc_NtkFindOrCreateNet( pNtk, "1\'b0" );
     if ( Abc_ObjFanoutNum(pNet) == 0 )
         Abc_NtkDeleteObj(pNet);
     else
         Abc_ObjAddFanin( pNet, Abc_NtkCreateNodeConst0(pNtk) );
     // check if constant 1 net is used
-    pNet = Abc_NtkFindOrCreateNet( pNtk, "1'b1" );
+    pNet = Abc_NtkFindOrCreateNet( pNtk, "1\'b1" );
     if ( Abc_ObjFanoutNum(pNet) == 0 )
         Abc_NtkDeleteObj(pNet);
     else
@@ -397,6 +398,13 @@ int Ver_ParseModule( Ver_Man_t * pMan )
 
     // fix the dangling nets
     Abc_NtkFinalizeRead( pNtk );
+
+    // check the functionality to blackbox if insides are not defined
+    if ( Abc_NtkNodeNum(pNtk) == 0 && Abc_NtkBoxNum(pNtk) == 0 )
+    {
+        pNtk->ntkFunc = ABC_FUNC_BLACKBOX;
+        pNtk->pManFunc = NULL;
+    }
     return 1;
 }
 
@@ -415,6 +423,8 @@ int Ver_ParseSignal( Ver_Man_t * pMan, Ver_SignalType_t SigType )
 {
     Ver_Stream_t * p = pMan->pReader;
     Abc_Ntk_t * pNtk = pMan->pNtkCur;
+    char Buffer[1000];
+    int Lower, Upper, i;
     char * pWord;
     char Symbol;
     while ( 1 )
@@ -422,12 +432,41 @@ int Ver_ParseSignal( Ver_Man_t * pMan, Ver_SignalType_t SigType )
         pWord = Ver_ParseGetName( pMan );
         if ( pWord == NULL )
             return 0;
-        if ( SigType == VER_SIG_INPUT || SigType == VER_SIG_INOUT )
-            Ver_ParseCreatePi( pNtk, pWord );
-        if ( SigType == VER_SIG_OUTPUT || SigType == VER_SIG_INOUT )
-            Ver_ParseCreatePo( pNtk, pWord );
-        if ( SigType == VER_SIG_WIRE || SigType == VER_SIG_REG )
-            Abc_NtkFindOrCreateNet( pNtk, pWord );
+        if ( pWord[0] == '[' && !pMan->fNameLast )
+        {
+            Lower = atoi( pWord + 1 );
+            while ( *pWord && *pWord != ':' )
+                pWord++;
+            if ( *pWord == 0 )
+                Upper = Lower;
+            else
+                Upper = atoi( pWord + 1 );
+            if ( Lower > Upper )
+                i = Lower, Lower = Upper, Upper = i;
+            // get the signal name
+            pWord = Ver_ParseGetName( pMan );
+            if ( pWord == NULL )
+                return 0;
+            for ( i = Lower; i <= Upper; i++ )
+            {
+                sprintf( Buffer, "%s[%d]", pWord, i );
+                if ( SigType == VER_SIG_INPUT || SigType == VER_SIG_INOUT )
+                    Ver_ParseCreatePi( pNtk, Buffer );
+                if ( SigType == VER_SIG_OUTPUT || SigType == VER_SIG_INOUT )
+                    Ver_ParseCreatePo( pNtk, Buffer );
+                if ( SigType == VER_SIG_WIRE || SigType == VER_SIG_REG )
+                    Abc_NtkFindOrCreateNet( pNtk, Buffer );
+            }
+        }
+        else
+        {
+            if ( SigType == VER_SIG_INPUT || SigType == VER_SIG_INOUT )
+                Ver_ParseCreatePi( pNtk, pWord );
+            if ( SigType == VER_SIG_OUTPUT || SigType == VER_SIG_INOUT )
+                Ver_ParseCreatePo( pNtk, pWord );
+            if ( SigType == VER_SIG_WIRE || SigType == VER_SIG_REG )
+                Abc_NtkFindOrCreateNet( pNtk, pWord );
+        }
         Symbol = Ver_StreamPopChar(p);
         if ( Symbol == ',' )
             continue;
@@ -461,6 +500,11 @@ int Ver_ParseAssign( Ver_Man_t * pMan )
     char Symbol;
     int i, Length, fReduction;
 
+//    if ( Ver_StreamGetLineNumber(p) == 2756 )
+//    {
+//        int x = 0;
+//    }
+
     // convert from the mapped netlist into the BDD netlist
     if ( pNtk->ntkFunc == ABC_FUNC_BLACKBOX )
     {
@@ -482,7 +526,9 @@ int Ver_ParseAssign( Ver_Man_t * pMan )
         if ( pWord == NULL )
             return 0;
         // consider the case of reduction operations
-        fReduction = (pWord[0] == '{');
+        fReduction = 0;
+        if ( pWord[0] == '{' && !pMan->fNameLast )
+            fReduction = 1;
         if ( fReduction )
         {
             pWord++;
@@ -497,7 +543,7 @@ int Ver_ParseAssign( Ver_Man_t * pMan )
             Ver_ParsePrintErrorMessage( pMan );
             return 0;
         }
-        // get the equal sign
+        // get the equality sign
         if ( Ver_StreamPopChar(p) != '=' )
         {
             sprintf( pMan->sError, "Cannot read the assign statement for %s (expected equality sign).", pWord );
@@ -572,28 +618,39 @@ int Ver_ParseAlways( Ver_Man_t * pMan )
     Ver_Stream_t * p = pMan->pReader;
     Abc_Ntk_t * pNtk = pMan->pNtkCur;
     Abc_Obj_t * pNet, * pNet2;
+    int fStopAfterOne;
     char * pWord, * pWord2;
     char Symbol;
     // parse the directive 
     pWord = Ver_ParseGetName( pMan );
     if ( pWord == NULL )
         return 0;
-    if ( strcmp( pWord, "begin" ) )
+    if ( pWord[0] == '@' )
     {
-        sprintf( pMan->sError, "Cannot parse the always statement (expected \"begin\")." );
-        Ver_ParsePrintErrorMessage( pMan );
-        return 0;
-    }
-    // iterate over the initial states
-    while ( 1 )
-    {
-        // get the name of the output signal
+        Ver_StreamSkipToChars( p, ")" );
+        Ver_StreamPopChar(p);
+        // parse the directive 
         pWord = Ver_ParseGetName( pMan );
         if ( pWord == NULL )
             return 0;
-        // look for the end of directive
-        if ( !strcmp( pWord, "end" ) )
-            break;
+    }
+    // decide how many statements to parse
+    fStopAfterOne = 0;
+    if ( strcmp( pWord, "begin" ) )
+        fStopAfterOne = 1;
+    // iterate over the initial states
+    while ( 1 )
+    {
+        if ( !fStopAfterOne )
+        {
+            // get the name of the output signal
+            pWord = Ver_ParseGetName( pMan );
+            if ( pWord == NULL )
+                return 0;
+            // look for the end of directive
+            if ( !strcmp( pWord, "end" ) )
+                break;
+        }
         // get the fanout net
         pNet = Abc_NtkFindNet( pNtk, pWord );
         if ( pNet == NULL )
@@ -602,13 +659,16 @@ int Ver_ParseAlways( Ver_Man_t * pMan )
             Ver_ParsePrintErrorMessage( pMan );
             return 0;
         }
-        // get the equal sign
-        if ( Ver_StreamPopChar(p) != '=' )
+        // get the equality sign
+        Symbol = Ver_StreamPopChar(p);
+        if ( Symbol != '<' && Symbol != '=' )
         {
-            sprintf( pMan->sError, "Cannot read the always statement for %s (expected equality sign).", pWord );
+            sprintf( pMan->sError, "Cannot read the assign statement for %s (expected <= or =).", pWord );
             Ver_ParsePrintErrorMessage( pMan );
             return 0;
         }
+        if ( Symbol == '<' )
+            Ver_StreamPopChar(p);
         // skip the comments
         if ( !Ver_ParseSkipComments( pMan ) )
             return 0;
@@ -616,8 +676,14 @@ int Ver_ParseAlways( Ver_Man_t * pMan )
         pWord2 = Ver_ParseGetName( pMan );
         if ( pWord2 == NULL )
             return 0;
-        // get the fanin net
-        pNet2 = Abc_NtkFindNet( pNtk, pWord2 );
+        // check if the name is complemented
+        if ( pWord2[0] == '~' )
+        {
+            pNet2 = Abc_NtkFindNet( pNtk, pWord2+1 );
+            pNet2 = Ver_ParseCreateInv( pNtk, pNet2 );
+        }
+        else
+            pNet2 = Abc_NtkFindNet( pNtk, pWord2 );
         if ( pNet2 == NULL )
         {
             sprintf( pMan->sError, "Cannot read the always statement for %s (input wire is not defined).", pWord2 );
@@ -625,10 +691,13 @@ int Ver_ParseAlways( Ver_Man_t * pMan )
             return 0;
         }
         // create the latch
-        Ver_ParseCreateLatch( pNtk, pNet2->pData, pNet->pData );
+        Ver_ParseCreateLatch( pNtk, pNet2, pNet );
         // remove the last symbol
         Symbol = Ver_StreamPopChar(p);
         assert( Symbol == ';' );
+        // quit if only one directive
+        if ( fStopAfterOne )
+            break;
     }
     return 1;
 }
@@ -649,28 +718,30 @@ int Ver_ParseInitial( Ver_Man_t * pMan )
     Ver_Stream_t * p = pMan->pReader;
     Abc_Ntk_t * pNtk = pMan->pNtkCur;
     Abc_Obj_t * pNode, * pNet;
+    int fStopAfterOne;
     char * pWord, * pEquation;
     char Symbol;
     // parse the directive 
     pWord = Ver_ParseGetName( pMan );
     if ( pWord == NULL )
         return 0;
+    // decide how many statements to parse
+    fStopAfterOne = 0;
     if ( strcmp( pWord, "begin" ) )
-    {
-        sprintf( pMan->sError, "Cannot parse the initial statement (expected \"begin\")." );
-        Ver_ParsePrintErrorMessage( pMan );
-        return 0;
-    }
+        fStopAfterOne = 1;
     // iterate over the initial states
     while ( 1 )
     {
-        // get the name of the output signal
-        pWord = Ver_ParseGetName( pMan );
-        if ( pWord == NULL )
-            return 0;
-        // look for the end of directive
-        if ( !strcmp( pWord, "end" ) )
-            break;
+        if ( !fStopAfterOne )
+        {
+            // get the name of the output signal
+            pWord = Ver_ParseGetName( pMan );
+            if ( pWord == NULL )
+                return 0;
+            // look for the end of directive
+            if ( !strcmp( pWord, "end" ) )
+                break;
+        }
         // get the fanout net
         pNet = Abc_NtkFindNet( pNtk, pWord );
         if ( pNet == NULL )
@@ -679,13 +750,16 @@ int Ver_ParseInitial( Ver_Man_t * pMan )
             Ver_ParsePrintErrorMessage( pMan );
             return 0;
         }
-        // get the equal sign
-        if ( Ver_StreamPopChar(p) != '=' )
+        // get the equality sign
+        Symbol = Ver_StreamPopChar(p);
+        if ( Symbol != '<' && Symbol != '=' )
         {
-            sprintf( pMan->sError, "Cannot read the initial statement for %s (expected equality sign).", pWord );
+            sprintf( pMan->sError, "Cannot read the assign statement for %s (expected <= or =).", pWord );
             Ver_ParsePrintErrorMessage( pMan );
             return 0;
         }
+        if ( Symbol == '<' )
+            Ver_StreamPopChar(p);
         // skip the comments
         if ( !Ver_ParseSkipComments( pMan ) )
             return 0;
@@ -694,24 +768,33 @@ int Ver_ParseInitial( Ver_Man_t * pMan )
         if ( pEquation == NULL )
             return 0;
         // find the corresponding latch
-        pNode = Abc_ObjFanin0(pNet);
+        if ( Abc_ObjFaninNum(pNet) == 0 )
+        {
+            sprintf( pMan->sError, "Cannot find the latch to assign the initial value." );
+            Ver_ParsePrintErrorMessage( pMan );
+            return 0;
+        }
+        pNode = Abc_ObjFanin0(Abc_ObjFanin0(pNet));
         assert( Abc_ObjIsLatch(pNode) );
         // set the initial state
-        if ( pEquation[0] == '2' )
-            Abc_LatchSetInitDc( pNode );
-        else if ( pEquation[0] == '1')
-            Abc_LatchSetInit1( pNode );
-        else if ( pEquation[0] == '0' )
+        if ( !strcmp(pEquation, "0") || !strcmp(pEquation, "1\'b0") )
             Abc_LatchSetInit0( pNode );
-        else
+        else if ( !strcmp(pEquation, "1") || !strcmp(pEquation, "1\'b1") )
+            Abc_LatchSetInit1( pNode );
+//        else if ( !strcmp(pEquation, "2") )
+//            Abc_LatchSetInitDc( pNode );
+        else 
         {
-            sprintf( pMan->sError, "Incorrect initial value of the latch %s (expected equality sign).", pWord );
+            sprintf( pMan->sError, "Incorrect initial value of the latch %s.", Abc_ObjName(pNet) );
             Ver_ParsePrintErrorMessage( pMan );
             return 0;
         }
         // remove the last symbol
         Symbol = Ver_StreamPopChar(p);
         assert( Symbol == ';' );
+        // quit if only one directive
+        if ( fStopAfterOne )
+            break;
     }
     return 1;
 }
@@ -732,7 +815,7 @@ int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtkGate )
     Ver_Stream_t * p = pMan->pReader;
     Abc_Ntk_t * pNtk = pMan->pNtkCur;
     Abc_Obj_t * pNetFormal, * pNetActual;
-    Abc_Obj_t * pObj, * pNode;
+    Abc_Obj_t * pObj, * pNode, * pTerm;
     char * pWord, Symbol, * pGateName;
     int i, fCompl, fComplUsed = 0;
     unsigned * pPolarity;
@@ -820,9 +903,9 @@ int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtkGate )
         }
 
         // process the pair
-        if ( Abc_ObjIsPi(Abc_ObjFanin0Ntk(pNetFormal)) )  // PI net (with polarity!)
+        if ( Abc_ObjFaninNum(pNetFormal) > 0 && Abc_ObjIsPi(Abc_ObjFanin0Ntk(pNetFormal)) )  // PI net (with polarity!)
             Abc_ObjFanin0Ntk(pNetFormal)->pCopy = Abc_ObjNotCond( pNetActual, fCompl );
-        else if ( Abc_ObjIsPo(Abc_ObjFanout0Ntk(pNetFormal)) )  // P0 net
+        else if ( Abc_ObjFanoutNum(pNetFormal) > 0 && Abc_ObjIsPo(Abc_ObjFanout0Ntk(pNetFormal)) )  // P0 net
         {
             assert( fCompl == 0 );
             Abc_ObjFanout0Ntk(pNetFormal)->pCopy = pNetActual; // Abc_ObjNotCond( pNetActual, fCompl );
@@ -862,7 +945,7 @@ int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtkGate )
     Abc_NtkForEachPi( pNtkGate, pObj, i )
         if ( pObj->pCopy == NULL )
         {
-            sprintf( pMan->sError, "Formal input %s of gate %s has no actual input.", Abc_ObjFanout0(pObj)->pData, pNtkGate->pName );
+            sprintf( pMan->sError, "Formal input %s of gate %s has no actual input.", Abc_ObjName(Abc_ObjFanout0(pObj)), pNtkGate->pName );
             Ver_ParsePrintErrorMessage( pMan );
             return 0;
         }
@@ -871,7 +954,7 @@ int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtkGate )
     Abc_NtkForEachPo( pNtkGate, pObj, i )
         if ( pObj->pCopy == NULL )
         {
-            sprintf( pMan->sError, "Formal output %s of gate %s has no actual output.", Abc_ObjFanin0(pObj)->pData, pNtkGate->pName );
+            sprintf( pMan->sError, "Formal output %s of gate %s has no actual output.", Abc_ObjName(Abc_ObjFanin0(pObj)), pNtkGate->pName );
             Ver_ParsePrintErrorMessage( pMan );
             return 0;
         }
@@ -887,12 +970,6 @@ int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtkGate )
     }
     // create box to represent this gate
     pNode = Abc_NtkCreateBlackbox( pMan->pNtkCur );
-/*
-    if ( pNode->Id == 57548 )
-    {
-        int x = 0;
-    }
-*/
     pNode->pNext = (Abc_Obj_t *)pPolarity;
     pNode->pData = pNtkGate;
     // connect to fanin nets
@@ -904,15 +981,20 @@ int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtkGate )
             pObj->pCopy = Abc_ObjRegular( pObj->pCopy );
         }
         assert( !Abc_ObjIsComplement(pObj->pCopy) );
-        Abc_ObjAddFanin( pNode, pObj->pCopy );
+//        Abc_ObjAddFanin( pNode, pObj->pCopy );
+        pTerm = Abc_NtkCreateBi( pNtk );
+        Abc_ObjAddFanin( pTerm, pObj->pCopy );
+        Abc_ObjAddFanin( pNode, pTerm );
     }
     // connect to fanout nets
     Abc_NtkForEachPo( pNtkGate, pObj, i )
     {
-        if ( pObj->pCopy )
-            Abc_ObjAddFanin( pObj->pCopy, pNode );
-        else
-            Abc_ObjAddFanin( Abc_NtkFindOrCreateNet(pNtk, NULL), pNode );
+        if ( pObj->pCopy == NULL )
+            pObj->pCopy = Abc_NtkFindOrCreateNet(pNtk, NULL);
+//        Abc_ObjAddFanin( pObj->pCopy, pNode );
+        pTerm = Abc_NtkCreateBo( pNtk );
+        Abc_ObjAddFanin( pTerm, pNode );
+        Abc_ObjAddFanin( pObj->pCopy, pTerm );
     }
     return 1;
 }
@@ -1063,27 +1145,52 @@ Abc_Obj_t * Ver_ParseCreatePo( Abc_Ntk_t * pNtk, char * pName )
 
   Synopsis    [Create a latch with the given input/output.]
 
-  Description [By default, the latch value is unknown (ABC_INIT_NONE).]
+  Description [By default, the latch value is a don't-care.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Ver_ParseCreateLatch( Abc_Ntk_t * pNtk, char * pNetLI, char * pNetLO )
+Abc_Obj_t * Ver_ParseCreateLatch( Abc_Ntk_t * pNtk, Abc_Obj_t * pNetLI, Abc_Obj_t * pNetLO )
 {
-    Abc_Obj_t * pLatch, * pNet;
-    // create a new latch and add it to the network
+    Abc_Obj_t * pLatch, * pTerm;
+    // add the BO terminal
+    pTerm = Abc_NtkCreateBi( pNtk );
+    Abc_ObjAddFanin( pTerm, pNetLI );
+    // add the latch box
     pLatch = Abc_NtkCreateLatch( pNtk );
-    // get the LI net
-    pNet = Abc_NtkFindOrCreateNet( pNtk, pNetLI );
-    Abc_ObjAddFanin( pLatch, pNet );
+    Abc_ObjAddFanin( pLatch, pTerm  );
+    // add the BI terminal
+    pTerm = Abc_NtkCreateBo( pNtk );
+    Abc_ObjAddFanin( pTerm, pLatch );
     // get the LO net
-    pNet = Abc_NtkFindOrCreateNet( pNtk, pNetLO );
-    Abc_ObjAddFanin( pNet, pLatch );
+    Abc_ObjAddFanin( pNetLO, pTerm );
+    // set latch name
+    Abc_ObjAssignName( pLatch, Abc_ObjName(pNetLO), "L" );
+    Abc_LatchSetInitDc( pLatch );
     return pLatch;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Creates inverter and returns its net.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Ver_ParseCreateInv( Abc_Ntk_t * pNtk, Abc_Obj_t * pNet )
+{
+    Abc_Obj_t * pObj;
+    pObj = Abc_NtkCreateNodeInv( pNtk, pNet );
+    pNet = Abc_NtkCreateObj( pNtk, ABC_OBJ_NET );
+    Abc_ObjAddFanin( pNet, pObj );
+    return pNet;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

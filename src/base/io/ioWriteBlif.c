@@ -102,6 +102,7 @@ void Io_WriteBlif( Abc_Ntk_t * pNtk, char * FileName, int fWriteLatches )
         {
             pNtkTemp = pObj->pData;
             assert( pNtkTemp != NULL && Abc_NtkHasBlackbox(pNtkTemp) );
+            fprintf( pFile, "\n\n", Abc_NtkName(pNtk) );
             Io_NtkWrite( pFile, pNtkTemp, fWriteLatches );
         }
     }
