@@ -26,7 +26,6 @@
 ////////////////////////////////////////////////////////////////////////
 
 static int IoCommandRead        ( Abc_Frame_t * pAbc, int argc, char **argv );
-static int IoCommandReadHie     ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadAiger   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadBaf     ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadBlif    ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -76,7 +75,6 @@ extern Abc_Lib_t * Ver_ParseFile( char * pFileName, Abc_Lib_t * pGateLib, int fC
 void Io_Init( Abc_Frame_t * pAbc )
 {
     Cmd_CommandAdd( pAbc, "I/O", "read",          IoCommandRead,         1 );
-    Cmd_CommandAdd( pAbc, "I/O", "read_hie",      IoCommandReadHie,      1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_aiger",    IoCommandReadAiger,    1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_baf",      IoCommandReadBaf,      1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_blif",     IoCommandReadBlif,     1 );
@@ -172,61 +170,6 @@ usage:
     fprintf( pAbc->Err, "\t         replaces the current network by the network read from <file>\n" );
     fprintf( pAbc->Err, "\t         by calling the parser that matches the extension of <file>\n" );
     fprintf( pAbc->Err, "\t         (to read a hierarchical design, use \"read_hie\")\n" );
-    fprintf( pAbc->Err, "\t-c     : toggle network check after reading [default = %s]\n", fCheck? "yes":"no" );
-    fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
-    fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int IoCommandReadHie( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    Abc_Ntk_t * pNtk;
-    char * pFileName;
-    int fCheck;
-    int c;
-
-    fCheck = 1;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ch" ) ) != EOF )
-    {
-        switch ( c )
-        {
-            case 'c':
-                fCheck ^= 1;
-                break;
-            case 'h':
-                goto usage;
-            default:
-                goto usage;
-        }
-    }
-    if ( argc != globalUtilOptind + 1 )
-        goto usage;
-    // get the input file name
-    pFileName = argv[globalUtilOptind];
-    // read the file using the corresponding file reader
-    pNtk = Io_ReadHie( pFileName, Io_ReadFileType(pFileName), fCheck );
-    if ( pNtk == NULL )
-        return 0;
-    // replace the current network
-    Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
-    return 0;
-
-usage:
-    fprintf( pAbc->Err, "usage: read_hie [-ch] <file>\n" );
-    fprintf( pAbc->Err, "\t         reads hierarchical design represented in BLIF or BLIF-MV\n" );
-    fprintf( pAbc->Err, "\t         by calling the parser that matches the extension of <file>\n" );
     fprintf( pAbc->Err, "\t-c     : toggle network check after reading [default = %s]\n", fCheck? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
     fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
@@ -388,7 +331,8 @@ int IoCommandReadBlif( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fReadAsAig )
         pNtk = Io_ReadBlifAsAig( pFileName, fCheck );
     else
-        pNtk = Io_Read( pFileName, IO_FILE_BLIF, fCheck );
+//        pNtk = Io_Read( pFileName, IO_FILE_BLIF, fCheck );
+        pNtk = Io_ReadBlif( pFileName, fCheck );
     if ( pNtk == NULL )
         return 1;
     // replace the current network
@@ -1704,7 +1648,7 @@ int IoCommandWriteVerLib( Abc_Frame_t * pAbc, int argc, char **argv )
         fprintf( pAbc->Out, "Verilog library is not specified.\n" );
         return 0;
     }
-    Io_WriteVerilogLibrary( pLibrary, pFileName );
+//    Io_WriteVerilogLibrary( pLibrary, pFileName );
     return 0;
 
 usage:

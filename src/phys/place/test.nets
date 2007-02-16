@@ -1,0 +1,9 @@
+UCLA nets 1.0
+NumNets : 2
+NumPins : 4
+NetDegree 2 :
+0 pin : 0 0
+3 pin : 0 0
+NetDegree 2 :
+2 pin : 0 0
+3 pin : 0 0

@@ -66,7 +66,7 @@ static Abc_Obj_t * Ver_ParseCreateInv( Abc_Ntk_t * pNtk, Abc_Obj_t * pNet );
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
-
+ 
 /**Function*************************************************************
 
   Synopsis    [File parser.]
@@ -396,15 +396,15 @@ int Ver_ParseModule( Ver_Man_t * pMan )
     else
         Abc_ObjAddFanin( pNet, Abc_NtkCreateNodeConst1(pNtk) );
 
-    // fix the dangling nets
-    Abc_NtkFinalizeRead( pNtk );
-
     // check the functionality to blackbox if insides are not defined
     if ( Abc_NtkNodeNum(pNtk) == 0 && Abc_NtkBoxNum(pNtk) == 0 )
     {
         pNtk->ntkFunc = ABC_FUNC_BLACKBOX;
         pNtk->pManFunc = NULL;
     }
+
+    // fix the dangling nets
+    Abc_NtkFinalizeRead( pNtk );
     return 1;
 }
 
@@ -435,18 +435,43 @@ int Ver_ParseSignal( Ver_Man_t * pMan, Ver_SignalType_t SigType )
         if ( pWord[0] == '[' && !pMan->fNameLast )
         {
             Lower = atoi( pWord + 1 );
-            while ( *pWord && *pWord != ':' )
+            // find the splitter
+            while ( *pWord && *pWord != ':' && *pWord != ']' )
                 pWord++;
             if ( *pWord == 0 )
+            {
+                sprintf( pMan->sError, "Cannot find closing bracket in this line." );
+                Ver_ParsePrintErrorMessage( pMan );
+                return 0;
+            }
+            if ( *pWord == ']' )
                 Upper = Lower;
             else
+            {
                 Upper = atoi( pWord + 1 );
-            if ( Lower > Upper )
-                i = Lower, Lower = Upper, Upper = i;
-            // get the signal name
-            pWord = Ver_ParseGetName( pMan );
-            if ( pWord == NULL )
-                return 0;
+                if ( Lower > Upper )
+                    i = Lower, Lower = Upper, Upper = i;
+                // find the closing paranthesis
+                while ( *pWord && *pWord != ']' )
+                    pWord++;
+                if ( *pWord == 0 )
+                {
+                    sprintf( pMan->sError, "Cannot find closing bracket in this line." );
+                    Ver_ParsePrintErrorMessage( pMan );
+                    return 0;
+                }
+                assert( *pWord == ']' );
+            }
+            // check the case of no space between bracket and the next word
+            if ( *(pWord+1) != 0 )
+                pWord++;
+            else
+            {
+                // get the signal name
+                pWord = Ver_ParseGetName( pMan );
+                if ( pWord == NULL )
+                    return 0;
+            }
             for ( i = Lower; i <= Upper; i++ )
             {
                 sprintf( Buffer, "%s[%d]", pWord, i );
@@ -559,7 +584,11 @@ int Ver_ParseAssign( Ver_Man_t * pMan )
         else
             pEquation = Ver_StreamGetWord( p, ",;" );
         if ( pEquation == NULL )
+        {
+            sprintf( pMan->sError, "Cannot read the equation for %s.", Abc_ObjName(pNet) );
+            Ver_ParsePrintErrorMessage( pMan );
             return 0;
+        }
 
         // parse the formula
         if ( fReduction )
@@ -969,7 +998,10 @@ int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtkGate )
         memset( pPolarity, 0, nBytes );
     }
     // create box to represent this gate
-    pNode = Abc_NtkCreateBlackbox( pMan->pNtkCur );
+    if ( Abc_NtkHasBlackbox(pNtkGate) )
+        pNode = Abc_NtkCreateBlackbox( pMan->pNtkCur );
+    else
+        pNode = Abc_NtkCreateWhitebox( pMan->pNtkCur );
     pNode->pNext = (Abc_Obj_t *)pPolarity;
     pNode->pData = pNtkGate;
     // connect to fanin nets

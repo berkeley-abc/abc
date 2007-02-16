@@ -123,7 +123,10 @@ Abc_Ntk_t * Io_ReadNetlist( char * pFileName, Io_FileType_t FileType, int fCheck
     }
     // read the new netlist
     if ( FileType == IO_FILE_BLIF )
-        pNtk = Io_ReadBlif( pFileName, fCheck );
+//        pNtk = Io_ReadBlif( pFileName, fCheck );
+        pNtk = Io_ReadBlifMv( pFileName, 0, fCheck );
+    else if ( Io_ReadFileType(pFileName) == IO_FILE_BLIFMV )
+        pNtk = Io_ReadBlifMv( pFileName, 1, fCheck );
     else if ( FileType == IO_FILE_BENCH )
         pNtk = Io_ReadBench( pFileName, fCheck );
     else if ( FileType == IO_FILE_EDIF )
@@ -144,16 +147,12 @@ Abc_Ntk_t * Io_ReadNetlist( char * pFileName, Io_FileType_t FileType, int fCheck
         fprintf( stdout, "Reading network from file has failed.\n" );
         return NULL;
     }
-    if ( Abc_NtkBlackboxNum(pNtk) || Abc_NtkBlackboxNum(pNtk) )
-    {
-        fprintf( stdout, "The network contains hierarchy. Use \"read_hie\".\n" );
-        Abc_NtkDelete( pNtk );
-        return NULL;
-    }
+    if ( Abc_NtkBlackboxNum(pNtk) || Abc_NtkWhiteboxNum(pNtk) )
+        fprintf( stdout, "Warning: The network contains hierarchy.\n" );
     return pNtk;
 }
 
-
+ 
 /**Function*************************************************************
 
   Synopsis    [Read the network from a file.]
@@ -174,6 +173,51 @@ Abc_Ntk_t * Io_Read( char * pFileName, Io_FileType_t FileType, int fCheck )
         return NULL;
     if ( !Abc_NtkIsNetlist(pNtk) )
         return pNtk;
+    // consider the case of BLIF-MV
+    if ( Io_ReadFileType(pFileName) == IO_FILE_BLIFMV )
+    {
+        extern Abc_Ntk_t * Abc_NtkConvertBlifMv( Abc_Ntk_t * pNtk );
+Abc_NtkPrintStats( stdout, pNtk, 0 );
+/*
+{
+    FILE * pFile = fopen( "_temp_.mv", "w" );
+    Io_NtkWriteBlifMv( pFile, pNtk );
+    fclose( pFile );
+}
+*/
+        pNtk = Abc_NtkConvertBlifMv( pTemp = pNtk );
+        Abc_NtkDelete( pTemp );
+        if ( pNtk == NULL )
+        {
+            fprintf( stdout, "Converting BLIF-MV has failed.\n" );
+            return NULL;
+        }
+        return pNtk;
+    }
+    // flatten logic hierarchy
+    assert( Abc_NtkIsNetlist(pNtk) );
+    if ( Abc_NtkWhiteboxNum(pNtk) > 0 )
+    {
+        pNtk = Abc_NtkFlattenLogicHierarchy( pTemp = pNtk );
+        Abc_NtkDelete( pTemp );
+        if ( pNtk == NULL )
+        {
+            fprintf( stdout, "Flattening logic hierarchy has failed.\n" );
+            return NULL;
+        }
+    }
+    // convert blackboxes
+    if ( Abc_NtkBlackboxNum(pNtk) > 0 )
+    {
+        printf( "Hierarchy reader converted %d blackboxes.\n", Abc_NtkBlackboxNum(pNtk) );
+        pNtk = Abc_NtkConvertBlackboxes( pTemp = pNtk );
+        Abc_NtkDelete( pTemp );
+        if ( pNtk == NULL )
+        {
+            fprintf( stdout, "Converting blackboxes has failed.\n" );
+            return NULL;
+        }
+    }
     // convert the netlist into the logic network
     pNtk = Abc_NtkNetlistToLogic( pTemp = pNtk );
     Abc_NtkDelete( pTemp );
@@ -230,7 +274,7 @@ Abc_Ntk_t * Io_ReadHie( char * pFileName, Io_FileType_t FileType, int fCheck )
     // convert blackboxes
     if ( Abc_NtkBlackboxNum(pNtk) > 0 )
     {
-        printf( "Hierarchical parser converted %d blackboxes.\n", Abc_NtkBlackboxNum(pNtk) );
+        printf( "Hierarchy reader converted %d blackboxes.\n", Abc_NtkBlackboxNum(pNtk) );
         pNtk = Abc_NtkConvertBlackboxes( pTemp = pNtk );
         Abc_NtkDelete( pTemp );
         if ( pNtk == NULL )
@@ -389,6 +433,8 @@ void Io_WriteHie( Abc_Ntk_t * pNtk, char * pBaseName, char * pFileName )
     assert( Abc_NtkIsStrash(pNtk) || Abc_NtkIsLogic(pNtk) );
     if ( Io_ReadFileType(pBaseName) == IO_FILE_BLIF )
         pNtkBase = Io_ReadBlifMv( pBaseName, 0, 1 );
+    else if ( Io_ReadFileType(pBaseName) == IO_FILE_VERILOG )
+        pNtkBase = Io_ReadVerilog( pBaseName, 1 );
     else 
         fprintf( stderr, "Unknown input file format.\n" );
     if ( pNtkBase == NULL )
@@ -405,6 +451,15 @@ void Io_WriteHie( Abc_Ntk_t * pNtk, char * pBaseName, char * pFileName )
     // reintroduce the boxes into the netlist
     if ( Abc_NtkBlackboxNum(pNtkBase) > 0 )
     {
+        // bring the current network to the same representation
+        if ( Abc_NtkIsLogic(pNtk) )
+        {
+            if ( Abc_NtkIsSopNetlist(pNtkBase) )
+                Abc_NtkLogicToSop( pNtk, 0 );
+            else if ( Abc_NtkIsAigNetlist(pNtkBase) )
+                Abc_NtkLogicToAig( pNtk );
+        }
+        // derive the netlist
         pNtkResult = Abc_NtkLogicToNetlist( pNtk, 0 );
         pNtkResult = Abc_NtkInsertNewLogic( pNtkBase, pNtkTemp = pNtkResult );
         Abc_NtkDelete( pNtkTemp );

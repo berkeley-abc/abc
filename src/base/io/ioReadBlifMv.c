@@ -186,9 +186,10 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
     assert( Vec_PtrSize(pDesign->vModules) > 0 );
     if ( Vec_PtrSize(pDesign->vModules) == 1 )
     {
-        printf( "Warning: The design is not hierarchical.\n" );
+//        printf( "Warning: The design is not hierarchical.\n" );
         Abc_LibFree( pDesign, pNtk );
         pNtk->pDesign = NULL;
+        pNtk->pSpec = Extra_UtilStrsav( pFileName );
     }
     else
         Abc_NtkIsAcyclicHierarchy( pNtk );
@@ -1303,7 +1304,7 @@ static int Io_MvParseLineNamesMv( Io_MvMod_t * p, char * pLine, int fReset )
     // split names line into tokens
     Io_MvSplitIntoTokens( vTokens, pLine, '\0' );
     if ( fReset )
-        assert( !strcmp(Vec_PtrEntry(vTokens,0), "r") );
+        assert( !strcmp(Vec_PtrEntry(vTokens,0), "r") || !strcmp(Vec_PtrEntry(vTokens,0), "reset") );
     else
         assert( !strcmp(Vec_PtrEntry(vTokens,0), "names") || !strcmp(Vec_PtrEntry(vTokens,0), "table") );
     // find the number of inputs and outputs

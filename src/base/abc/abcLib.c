@@ -81,6 +81,7 @@ void Abc_LibFree( Abc_Lib_t * pLib, Abc_Ntk_t * pNtkSave )
 //            pNtk->pManFunc = NULL;
             if ( pNtk == pNtkSave )
                 continue;
+            pNtk->pManFunc = NULL;
             Abc_NtkDelete( pNtk );
         }
         Vec_PtrFree( pLib->vModules );
@@ -89,6 +90,32 @@ void Abc_LibFree( Abc_Lib_t * pLib, Abc_Ntk_t * pNtkSave )
         Vec_PtrFree( pLib->vTops );
     free( pLib );
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Frees the library.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Lib_t * Abc_LibDupBlackboxes( Abc_Lib_t * pLib, Abc_Ntk_t * pNtkSave )
+{
+    Abc_Lib_t * pLibNew;
+    Abc_Ntk_t * pNtkTemp;
+    int i;
+    pLibNew = Abc_LibCreate( pLib->pName );
+//    pLibNew->pManFunc = pNtkSave->pManFunc;
+    Vec_PtrPush( pLibNew->vModules, pNtkSave );
+    Vec_PtrForEachEntry( pLib->vModules, pNtkTemp, i )
+        if ( Abc_NtkHasBlackbox( pNtkTemp ) )
+            Vec_PtrPush( pLibNew->vModules, Abc_NtkDup(pNtkTemp) );
+    return pLibNew;
+}
+
 
 /**Function*************************************************************
 

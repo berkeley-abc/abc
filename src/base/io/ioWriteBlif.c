@@ -30,6 +30,7 @@ static void Io_NtkWrite( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches );
 static void Io_NtkWriteOne( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches );
 static void Io_NtkWritePis( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches );
 static void Io_NtkWritePos( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches );
+static void Io_NtkWriteSubckt( FILE * pFile, Abc_Obj_t * pNode );
 static void Io_NtkWriteAsserts( FILE * pFile, Abc_Ntk_t * pNtk );
 static void Io_NtkWriteNodeGate( FILE * pFile, Abc_Obj_t * pNode );
 static void Io_NtkWriteNodeFanins( FILE * pFile, Abc_Obj_t * pNode );
@@ -191,6 +192,16 @@ void Io_NtkWriteOne( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches )
         fprintf( pFile, "\n" );
         Abc_NtkForEachLatch( pNtk, pLatch, i )
             Io_NtkWriteLatch( pFile, pLatch );
+        fprintf( pFile, "\n" );
+    }
+
+    // write the subcircuits
+    assert( Abc_NtkWhiteboxNum(pNtk) == 0 );
+    if ( Abc_NtkBlackboxNum(pNtk) > 0 )
+    {
+        fprintf( pFile, "\n" );
+        Abc_NtkForEachBlackbox( pNtk, pNode, i )
+            Io_NtkWriteSubckt( pFile, pNode );
         fprintf( pFile, "\n" );
     }
 
@@ -369,6 +380,41 @@ void Io_NtkWriteAsserts( FILE * pFile, Abc_Ntk_t * pNtk )
         LineLength += AddedLength;
         NameCounter++;
     }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Write the latch into a file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Io_NtkWriteSubckt( FILE * pFile, Abc_Obj_t * pNode )
+{
+    Abc_Ntk_t * pModel = pNode->pData;
+    Abc_Obj_t * pTerm;
+    int i;
+    // write the subcircuit
+//    fprintf( pFile, ".subckt %s %s", Abc_NtkName(pModel), Abc_ObjName(pNode) );
+    fprintf( pFile, ".subckt %s", Abc_NtkName(pModel) );
+    // write pairs of the formal=actual names
+    Abc_NtkForEachPi( pModel, pTerm, i )
+    {
+        fprintf( pFile, " %s", Abc_ObjName(Abc_ObjFanout0(pTerm)) );
+        pTerm = Abc_ObjFanin( pNode, i );
+        fprintf( pFile, "=%s", Abc_ObjName(Abc_ObjFanin0(pTerm)) );
+    }
+    Abc_NtkForEachPo( pModel, pTerm, i )
+    {
+        fprintf( pFile, " %s", Abc_ObjName(Abc_ObjFanin0(pTerm)) );
+        pTerm = Abc_ObjFanout( pNode, i );
+        fprintf( pFile, "=%s", Abc_ObjName(Abc_ObjFanout0(pTerm)) );
+    }
+    fprintf( pFile, "\n" );
 }
 
 /**Function*************************************************************

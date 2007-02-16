@@ -26,7 +26,7 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static void Io_NtkWriteBlifMv( FILE * pFile, Abc_Ntk_t * pNtk );
+void Io_NtkWriteBlifMv( FILE * pFile, Abc_Ntk_t * pNtk );
 static void Io_NtkWriteBlifMvOne( FILE * pFile, Abc_Ntk_t * pNtk );
 static void Io_NtkWriteBlifMvPis( FILE * pFile, Abc_Ntk_t * pNtk );
 static void Io_NtkWriteBlifMvPos( FILE * pFile, Abc_Ntk_t * pNtk );

@@ -133,13 +133,13 @@ int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pPars )
                     break;
 */
 /*
-                Abc_NtkRewrite( pNtk, 0, 0, 0, 0 );
+                Abc_NtkRewrite( pNtk, 0, 0, 0, 0, 0 );
                 if ( (RetValue = Abc_NtkMiterIsConstant(pNtk)) >= 0 )
                     break;
                 if ( --Counter == 0 )
                     break;
 */
-                Abc_NtkRewrite( pNtk, 0, 0, 0, 0 );
+                Abc_NtkRewrite( pNtk, 0, 0, 0, 0, 0 );
                 if ( (RetValue = Abc_NtkMiterIsConstant(pNtk)) >= 0 )
                     break;
                 if ( --Counter == 0 )
@@ -328,9 +328,9 @@ void Abc_NtkMiterPrint( Abc_Ntk_t * pNtk, char * pString, int clk, int fVerbose 
 Abc_Ntk_t * Abc_NtkMiterRwsat( Abc_Ntk_t * pNtk )
 {
     Abc_Ntk_t * pNtkTemp;
-    Abc_NtkRewrite( pNtk, 0, 0, 0, 0 );
+    Abc_NtkRewrite( pNtk, 0, 0, 0, 0, 0 );
     pNtk = Abc_NtkBalance( pNtkTemp = pNtk, 0, 0, 0 );  Abc_NtkDelete( pNtkTemp );
-    Abc_NtkRewrite( pNtk, 0, 0, 0, 0 );
+    Abc_NtkRewrite( pNtk, 0, 0, 0, 0, 0 );
     Abc_NtkRefactor( pNtk, 10, 16, 0, 0, 0, 0 );
     return pNtk;
 }

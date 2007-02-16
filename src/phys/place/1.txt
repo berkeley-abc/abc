@@ -1,0 +1,35 @@
+ Volume in drive C is IBM_PRELOAD
+ Volume Serial Number is 20EA-F780
+
+ Directory of C:\_projects\abc\src\phys\place
+
+02/16/2007  11:01 AM    <DIR>          .
+02/16/2007  11:01 AM    <DIR>          ..
+01/23/2007  10:02 PM               165 1.c
+02/16/2007  11:01 AM                 0 1.txt
+02/10/2007  05:52 PM         1,103,488 ac97_emap.fastplace.pl
+02/09/2007  04:37 PM           362,675 ac97_emap.initial.pl
+02/09/2007  03:34 PM         1,247,692 ac97_emap.nets
+02/09/2007  03:34 PM           294,862 ac97_emap.nodes
+02/13/2007  12:19 AM           670,459 ac97_emap.pl
+02/10/2007  05:52 PM             1,184 hpwl
+02/10/2007  01:52 AM               551 libhmetis.h
+02/13/2007  12:25 AM               625 Makefile
+02/13/2007  12:16 AM             9,552 place_base.c
+02/16/2007  10:29 AM             3,801 place_base.h
+02/13/2007  12:08 AM             8,175 place_bin.c
+02/13/2007  12:16 AM             9,263 place_genqp.c
+02/13/2007  12:08 AM             4,950 place_gordian.c
+02/13/2007  12:18 AM             1,886 place_gordian.h
+02/13/2007  12:08 AM               514 place_legalize.c
+02/13/2007  12:08 AM             4,900 place_pads.c
+02/13/2007  12:17 AM            36,942 place_partition.c
+02/13/2007  12:08 AM            29,189 place_qpsolver.c
+02/13/2007  12:08 AM             4,882 place_qpsolver.h
+02/13/2007  12:08 AM             9,454 place_test.c
+02/12/2007  05:01 PM             1,577 README
+02/10/2007  04:26 PM               114 test.nets
+02/10/2007  04:25 PM               112 test.nodes
+02/11/2007  03:31 PM               130 test.pl
+              26 File(s)      3,807,142 bytes
+               2 Dir(s)   1,486,884,864 bytes free

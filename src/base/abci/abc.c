@@ -2680,6 +2680,7 @@ int Abc_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     bool fUseZeros;
     bool fVerbose;
     bool fVeryVerbose;
+    bool fPlaceEnable;
     // external functions
     extern void Rwr_Precompute();
 
@@ -2693,8 +2694,9 @@ int Abc_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     fUseZeros    = 0;
     fVerbose     = 0;
     fVeryVerbose = 0;
+    fPlaceEnable = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "lxzvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "lxzvwph" ) ) != EOF )
     {
         switch ( c )
         {
@@ -2712,6 +2714,9 @@ int Abc_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'w':
             fVeryVerbose ^= 1;
+            break;
+        case 'p':
+            fPlaceEnable ^= 1;
             break;
         case 'h':
             goto usage;
@@ -2743,7 +2748,7 @@ int Abc_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // modify the current network
-    if ( !Abc_NtkRewrite( pNtk, fUpdateLevel, fUseZeros, fVerbose, fVeryVerbose ) )
+    if ( !Abc_NtkRewrite( pNtk, fUpdateLevel, fUseZeros, fVerbose, fVeryVerbose, fPlaceEnable ) )
     {
         fprintf( pErr, "Rewriting has failed.\n" );
         return 1;
@@ -2751,12 +2756,13 @@ int Abc_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: rewrite [-lzvwh]\n" );
+    fprintf( pErr, "usage: rewrite [-lzvwph]\n" );
     fprintf( pErr, "\t         performs technology-independent rewriting of the AIG\n" );
     fprintf( pErr, "\t-l     : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
     fprintf( pErr, "\t-z     : toggle using zero-cost replacements [default = %s]\n", fUseZeros? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-w     : toggle printout subgraph statistics [default = %s]\n", fVeryVerbose? "yes": "no" );
+    fprintf( pErr, "\t-p     : toggle placement-aware rewriting [default = %s]\n", fPlaceEnable? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
 } 
@@ -5424,8 +5430,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nLevels;
 //    extern Abc_Ntk_t * Abc_NtkNewAig( Abc_Ntk_t * pNtk );
 //    extern Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk );
-    extern void Abc_NtkMaxFlowTest( Abc_Ntk_t * pNtk );
-    extern int Pr_ManProofTest( char * pFileName );
+//    extern void Abc_NtkMaxFlowTest( Abc_Ntk_t * pNtk );
+//    extern int Pr_ManProofTest( char * pFileName );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -5520,7 +5526,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
 */
 //    Abc_NtkMaxFlowTest( pNtk );
-    Pr_ManProofTest( "trace.cnf" );
+//    Pr_ManProofTest( "trace.cnf" );
     return 0;
 
 usage:

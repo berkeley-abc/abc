@@ -242,15 +242,23 @@ Abc_Ntk_t * Abc_NtkStartRead( char * pName )
 ***********************************************************************/
 void Abc_NtkFinalizeRead( Abc_Ntk_t * pNtk )
 {
-    Abc_Obj_t * pBox, * pObj;
+    Abc_Obj_t * pBox, * pObj, * pTerm;
     int i;
     if ( Abc_NtkHasBlackbox(pNtk) )
     {
         pBox = Abc_NtkCreateBlackbox(pNtk);
         Abc_NtkForEachPi( pNtk, pObj, i )
-            Abc_ObjAddFanin( pBox, Abc_ObjFanout0(pObj) );
+        {
+            pTerm = Abc_NtkCreateBi(pNtk);
+            Abc_ObjAddFanin( pTerm, Abc_ObjFanout0(pObj) );
+            Abc_ObjAddFanin( pBox, pTerm );
+        }
         Abc_NtkForEachPo( pNtk, pObj, i )
-            Abc_ObjAddFanin( Abc_ObjFanin0(pObj), pBox );
+        {
+            pTerm = Abc_NtkCreateBo(pNtk);
+            Abc_ObjAddFanin( pTerm, pBox );
+            Abc_ObjAddFanin( Abc_ObjFanin0(pObj), pTerm );
+        }
         return;
     }
     assert( Abc_NtkIsNetlist(pNtk) );
@@ -315,6 +323,7 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
         pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );
     if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkDup(): Network check has failed.\n" );
+    pNtk->pCopy = pNtkNew;
     return pNtkNew;
 }
 
@@ -799,8 +808,6 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
             free( pObj );
     }
         
-    FREE( pNtk->pName );
-    FREE( pNtk->pSpec );
     // free the arrays
     Vec_PtrFree( pNtk->vPios );
     Vec_PtrFree( pNtk->vPis );
@@ -852,6 +859,8 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
         if ( pAttrMan )
             Vec_AttFree( pAttrMan, 1 );
     Vec_PtrFree( pNtk->vAttrs );
+    FREE( pNtk->pName );
+    FREE( pNtk->pSpec );
     free( pNtk );
 }
 

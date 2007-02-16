@@ -25,7 +25,7 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static Dec_Graph_t * Rwr_CutEvaluate( Rwr_Man_t * p, Abc_Obj_t * pRoot, Cut_Cut_t * pCut, Vec_Ptr_t * vFaninsCur, int nNodesSaved, int LevelMax, int * pGainBest );
+static Dec_Graph_t * Rwr_CutEvaluate( Rwr_Man_t * p, Abc_Obj_t * pRoot, Cut_Cut_t * pCut, Vec_Ptr_t * vFaninsCur, int nNodesSaved, int LevelMax, int * pGainBest, int fPlaceEnable );
 static int Rwr_CutIsBoolean( Abc_Obj_t * pObj, Vec_Ptr_t * vLeaves );
 static int Rwr_CutCountNumNodes( Abc_Obj_t * pObj, Cut_Cut_t * pCut );
 static int Rwr_NodeGetDepth_rec( Abc_Obj_t * pObj, Vec_Ptr_t * vLeaves );
@@ -52,7 +52,7 @@ static int Rwr_NodeGetDepth_rec( Abc_Obj_t * pObj, Vec_Ptr_t * vLeaves );
   SeeAlso     []
 
 ***********************************************************************/
-int Rwr_NodeRewrite( Rwr_Man_t * p, Cut_Man_t * pManCut, Abc_Obj_t * pNode, int fUpdateLevel, int fUseZeros )
+int Rwr_NodeRewrite( Rwr_Man_t * p, Cut_Man_t * pManCut, Abc_Obj_t * pNode, int fUpdateLevel, int fUseZeros, int fPlaceEnable )
 {
     int fVeryVerbose = 0;
     Dec_Graph_t * pGraph;
@@ -83,7 +83,6 @@ clk = clock();
         // consider only 4-input cuts
         if ( pCut->nLeaves < 4 )
             continue;
-//        if ( pNode->Id == 82 )
 //            Cut_CutPrint( pCut, 0 ), printf( "\n" );
 
         // get the fanin permutation
@@ -138,7 +137,7 @@ p->timeMffc += clock() - clk2;
 
         // evaluate the cut
 clk2 = clock();
-        pGraph = Rwr_CutEvaluate( p, pNode, pCut, p->vFaninsCur, nNodesSaved, Required, &GainCur );
+        pGraph = Rwr_CutEvaluate( p, pNode, pCut, p->vFaninsCur, nNodesSaved, Required, &GainCur, fPlaceEnable );
 p->timeEval += clock() - clk2;
 
         // check if the cut is better than the current best one
@@ -228,19 +227,21 @@ p->timeRes += clock() - clk;
   SeeAlso     []
 
 ***********************************************************************/
-Dec_Graph_t * Rwr_CutEvaluate( Rwr_Man_t * p, Abc_Obj_t * pRoot, Cut_Cut_t * pCut, Vec_Ptr_t * vFaninsCur, int nNodesSaved, int LevelMax, int * pGainBest )
+Dec_Graph_t * Rwr_CutEvaluate( Rwr_Man_t * p, Abc_Obj_t * pRoot, Cut_Cut_t * pCut, Vec_Ptr_t * vFaninsCur, int nNodesSaved, int LevelMax, int * pGainBest, int fPlaceEnable )
 {
     Vec_Ptr_t * vSubgraphs;
     Dec_Graph_t * pGraphBest, * pGraphCur;
     Rwr_Node_t * pNode, * pFanin;
     int nNodesAdded, GainBest, i, k;
     unsigned uTruth;
+    float CostBest, CostCur;
     // find the matching class of subgraphs
     uTruth = 0xFFFF & *Cut_CutReadTruth(pCut);
     vSubgraphs = Vec_VecEntry( p->vClasses, p->pMap[uTruth] );
     p->nSubgraphs += vSubgraphs->nSize;
     // determine the best subgraph
     GainBest = -1;
+    CostBest = ABC_INFINITY;
     Vec_PtrForEachEntry( vSubgraphs, pNode, i )
     {
         // get the current graph
@@ -253,22 +254,57 @@ Dec_Graph_t * Rwr_CutEvaluate( Rwr_Man_t * p, Abc_Obj_t * pRoot, Cut_Cut_t * pCu
         if ( nNodesAdded == -1 )
             continue;
         assert( nNodesSaved >= nNodesAdded );
-        // count the gain at this node
-        if ( GainBest < nNodesSaved - nNodesAdded )
+
+        // evaluate the cut
+        if ( fPlaceEnable )
         {
-            GainBest   = nNodesSaved - nNodesAdded;
-            pGraphBest = pGraphCur;
+            extern float Abc_PlaceEvaluateCut( Abc_Obj_t * pRoot, Vec_Ptr_t * vFanins );
 
-            // score the graph
-            if ( GainBest > 0 )
+            float Alpha = 0.5; // ???
+            float PlaceCost;
+
+            // get the placement cost of the cut
+            PlaceCost = Abc_PlaceEvaluateCut( pRoot, vFaninsCur );
+
+            // get the weigted cost of the cut
+            CostCur = nNodesSaved - nNodesAdded + Alpha * PlaceCost;
+
+            // do not allow uphill moves
+            if ( nNodesSaved - nNodesAdded < 0 )
+                continue;
+
+            // decide what cut to use
+            if ( CostBest > CostCur )
             {
-                pNode->nScore++;
-                pNode->nGain += GainBest;
-                pNode->nAdded += nNodesAdded;
-            }
+                GainBest   = nNodesSaved - nNodesAdded; // pure node cost
+                CostBest   = CostCur;                   // cost with placement
+                pGraphBest = pGraphCur;                 // subgraph to be used for rewriting
 
-//            if ( GainBest > 0 )
-//            printf( "%d %d  ", nNodesSaved, nNodesAdded );
+                // score the graph
+                if ( nNodesSaved - nNodesAdded > 0 )
+                {
+                    pNode->nScore++;
+                    pNode->nGain += GainBest;
+                    pNode->nAdded += nNodesAdded;
+                }
+            }
+        }
+        else
+        {
+            // count the gain at this node
+            if ( GainBest < nNodesSaved - nNodesAdded )
+            {
+                GainBest   = nNodesSaved - nNodesAdded;
+                pGraphBest = pGraphCur;
+
+                // score the graph
+                if ( nNodesSaved - nNodesAdded > 0 )
+                {
+                    pNode->nScore++;
+                    pNode->nGain += GainBest;
+                    pNode->nAdded += nNodesAdded;
+                }
+            }
         }
     }
     if ( GainBest == -1 )

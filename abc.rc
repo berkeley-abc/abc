@@ -2,7 +2,7 @@
 set check         # checks intermediate networks
 #set checkfio      # prints warnings when fanins/fanouts are duplicated
 set checkread     # checks new networks after reading from file
-#set backup        # saves backup networks retrived by "undo" and "recall"
+set backup        # saves backup networks retrived by "undo" and "recall"
 set savesteps 1   # sets the maximum number of backup networks to save 
 set progressbar   # display the progress bar
 
@@ -53,7 +53,7 @@ alias rb read_bench
 alias ret retime
 alias rp read_pla
 alias rt read_truth
-alias rv read_ver
+alias rv read_verilog
 alias rvl read_verlib
 alias rsup read_super mcnc5_old.super
 alias rlib read_library

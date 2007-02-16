@@ -46,10 +46,15 @@ static const bool  false     = 0;
 typedef int                lit;
 typedef char               lbool;
 
+#ifndef SINT64
+#define SINT64
+
 #ifdef _WIN32
 typedef signed __int64     sint64;   // compatible with MS VS 6.0
 #else
 typedef long long          sint64;
+#endif
+
 #endif
 
 static const int   var_Undef = -1;

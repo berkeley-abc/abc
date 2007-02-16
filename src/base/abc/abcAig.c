@@ -59,6 +59,7 @@ struct Abc_Aig_t_
     Vec_Ptr_t *       vStackReplaceNew;  // the nodes to be used for replacement
     Vec_Vec_t *       vLevels;           // the nodes to be updated
     Vec_Vec_t *       vLevelsR;          // the nodes to be updated
+    Vec_Ptr_t *       vUpdates;          // the added and removed nodes
 
     int               nStrash0;
     int               nStrash1;
@@ -162,6 +163,8 @@ void Abc_AigFree( Abc_Aig_t * pMan )
     assert( Vec_PtrSize( pMan->vStackReplaceOld ) == 0 );
     assert( Vec_PtrSize( pMan->vStackReplaceNew ) == 0 );
     // free the table
+    if ( pMan->vUpdates )
+        Vec_PtrFree( pMan->vUpdates );
     Vec_VecFree( pMan->vLevels );
     Vec_VecFree( pMan->vLevelsR );
     Vec_PtrFree( pMan->vStackReplaceOld );
@@ -322,6 +325,9 @@ Abc_Obj_t * Abc_AigAndCreate( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 )
 //    if ( pAnd->pNtk->pManCut )
 //        Abc_NodeGetCuts( pAnd->pNtk->pManCut, pAnd );
     pAnd->pCopy = NULL;
+    // add the node to the list of updated nodes
+    if ( pMan->vUpdates )
+        Vec_PtrPush( pMan->vUpdates, pAnd );
     return pAnd;
 }
 
@@ -359,6 +365,9 @@ Abc_Obj_t * Abc_AigAndCreateFrom( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * 
 //    if ( pAnd->pNtk->pManCut )
 //        Abc_NodeGetCuts( pAnd->pNtk->pManCut, pAnd );
     pAnd->pCopy = NULL;
+    // add the node to the list of updated nodes
+    if ( pMan->vUpdates )
+        Vec_PtrPush( pMan->vUpdates, pAnd );
     return pAnd;
 }
 
@@ -539,6 +548,9 @@ void Abc_AigAndDelete( Abc_Aig_t * pMan, Abc_Obj_t * pThis )
     // delete the cuts if defined
     if ( pThis->pNtk->pManCut )
         Abc_NodeFreeCuts( pThis->pNtk->pManCut, pThis );
+    // add the node to the list of updated nodes
+    if ( pMan->vUpdates )
+        Vec_PtrPush( pMan->vUpdates, pThis );
 }
 
 /**Function*************************************************************
@@ -1341,6 +1353,92 @@ void Abc_AigSetNodePhases( Abc_Ntk_t * pNtk )
         pObj->fPhase = (Abc_ObjFanin0(pObj)->fPhase ^ Abc_ObjFaninC0(pObj));
     Abc_NtkForEachLatchInput( pNtk, pObj, i )
         pObj->fPhase = (Abc_ObjFanin0(pObj)->fPhase ^ Abc_ObjFaninC0(pObj));
+}
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Start the update list.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_AigUpdateStart( Abc_Aig_t * pMan )
+{
+    assert( pMan->vUpdates == NULL );
+    return pMan->vUpdates = Vec_PtrAlloc( 1000 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Start the update list.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_AigUpdateStop( Abc_Aig_t * pMan )
+{
+    assert( pMan->vUpdates != NULL );
+    Vec_PtrFree( pMan->vUpdates );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Start the update list.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_AigUpdateReset( Abc_Aig_t * pMan )
+{
+    assert( pMan->vUpdates != NULL );
+    Vec_PtrClear( pMan->vUpdates );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Add a new update.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_AigUpdateAdd( Abc_Aig_t * pMan, Abc_Obj_t * pObj )
+{
+    if ( pMan->vUpdates )
+        Vec_PtrPush( pMan->vUpdates, pObj );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Read the updates array.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_AigUpdateRead( Abc_Aig_t * pMan )
+{
+    return pMan->vUpdates;
 }
 
 ////////////////////////////////////////////////////////////////////////

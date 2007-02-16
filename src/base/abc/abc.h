@@ -116,10 +116,15 @@ typedef enum {
 #endif
 #endif
 
+#ifndef SINT64
+#define SINT64
+
 #ifdef _WIN32
 typedef signed __int64     sint64;   // compatible with MS VS 6.0
 #else
 typedef long long          sint64;
+#endif
+
 #endif
 
 typedef struct Abc_Lib_t_       Abc_Lib_t;
@@ -204,6 +209,7 @@ struct Abc_Ntk_t_
     int *             pModel;        // counter-example (for miters)
     Abc_Ntk_t *       pExdc;         // the EXDC network (if given)
     void *            pData;         // misc
+    Abc_Ntk_t *       pCopy;
     // node attributes
     Vec_Ptr_t *       vAttrs;        // managers of various node attributes (node functionality, global BDDs, etc)
 };
@@ -521,6 +527,11 @@ extern void               Abc_AigPrintNode( Abc_Obj_t * pNode );
 extern bool               Abc_AigNodeIsAcyclic( Abc_Obj_t * pNode, Abc_Obj_t * pRoot );
 extern void               Abc_AigCheckFaninOrder( Abc_Aig_t * pMan );
 extern void               Abc_AigSetNodePhases( Abc_Ntk_t * pNtk );
+extern Vec_Ptr_t *        Abc_AigUpdateStart( Abc_Aig_t * pMan );
+extern void               Abc_AigUpdateStop( Abc_Aig_t * pMan );
+extern void               Abc_AigUpdateReset( Abc_Aig_t * pMan );
+extern void               Abc_AigUpdateAdd( Abc_Aig_t * pMan, Abc_Obj_t * pObj );
+extern Vec_Ptr_t *        Abc_AigUpdateRead( Abc_Aig_t * pMan );
 /*=== abcAttach.c ==========================================================*/
 extern int                Abc_NtkAttach( Abc_Ntk_t * pNtk );
 /*=== abcBalance.c ==========================================================*/
@@ -733,7 +744,7 @@ extern int                Abc_NodeRef_rec( Abc_Obj_t * pNode );
 /*=== abcRefactor.c ==========================================================*/
 extern int                Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, bool fUpdateLevel, bool fUseZeros, bool fUseDcs, bool fVerbose );
 /*=== abcRewrite.c ==========================================================*/
-extern int                Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeros, int fVerbose, int fVeryVerbose );
+extern int                Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeros, int fVerbose, int fVeryVerbose, int fPlaceEnable );
 /*=== abcSat.c ==========================================================*/
 extern int                Abc_NtkMiterSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fVerbose, sint64 * pNumConfs, sint64 * pNumInspects );
 extern void *             Abc_NtkMiterSatCreate( Abc_Ntk_t * pNtk, int fAllPrimes );

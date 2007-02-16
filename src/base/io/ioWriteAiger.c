@@ -160,7 +160,7 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName )
     pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Io_WriteBaf(): Cannot open the output file \"%s\".\n", pFileName );
+        fprintf( stdout, "Io_WriteAiger(): Cannot open the output file \"%s\".\n", pFileName );
         return;
     }
 

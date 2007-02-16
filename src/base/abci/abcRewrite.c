@@ -36,6 +36,10 @@ static Cut_Man_t * Abc_NtkStartCutManForRewrite( Abc_Ntk_t * pNtk );
 static void        Abc_NodePrintCuts( Abc_Obj_t * pNode );
 static void        Abc_ManShowCutCone( Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves );
 
+extern void  Abc_PlaceBegin( Abc_Ntk_t * pNtk );
+extern void  Abc_PlaceEnd( Abc_Ntk_t * pNtk );
+extern void  Abc_PlaceUpdate( Vec_Ptr_t * vUpdates, int nNodesOld );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -51,18 +55,28 @@ static void        Abc_ManShowCutCone( Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves );
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeros, int fVerbose, int fVeryVerbose )
+int Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeros, int fVerbose, int fVeryVerbose, int fPlaceEnable )
 {
     ProgressBar * pProgress;
     Cut_Man_t * pManCut;
     Rwr_Man_t * pManRwr;
     Abc_Obj_t * pNode;
-    int i, nNodes, nGain;
+    Vec_Ptr_t * vUpdates = NULL;
+    Dec_Graph_t * pGraph;
+    int i, nNodes, nGain, fCompl;
     int clk, clkStart = clock();
 
     assert( Abc_NtkIsStrash(pNtk) );
     // cleanup the AIG
     Abc_AigCleanup(pNtk->pManFunc);
+
+    // start placement package
+    if ( fPlaceEnable )
+    {
+        Abc_PlaceBegin( pNtk );
+        vUpdates = Abc_AigUpdateStart( pNtk->pManFunc );
+    }
+
     // start the rewriting manager
     pManRwr = Rwr_ManStart( 0 );
     if ( pManRwr == NULL )
@@ -88,61 +102,37 @@ Rwr_ManAddTimeCuts( pManRwr, clock() - clk );
         // stop if all nodes have been tried once
         if ( i >= nNodes )
             break;
-        // skip the constant node
-//        if ( Abc_NodeIsConst(pNode) )
-//            continue;
         // skip persistant nodes
         if ( Abc_NodeIsPersistant(pNode) )
             continue;
         // skip the nodes with many fanouts
         if ( Abc_ObjFanoutNum(pNode) > 1000 )
             continue;
-//printf( "*******Node %d: \n", pNode->Id );
 
         // for each cut, try to resynthesize it
-        nGain = Rwr_NodeRewrite( pManRwr, pManCut, pNode, fUpdateLevel, fUseZeros );
-        if ( nGain > 0 || nGain == 0 && fUseZeros )
-        {
-//            extern void Abc_RwrExpWithCut( Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves );
+        nGain = Rwr_NodeRewrite( pManRwr, pManCut, pNode, fUpdateLevel, fUseZeros, fPlaceEnable );
+        if ( !(nGain > 0 || nGain == 0 && fUseZeros) )
+            continue;
+        // if we end up here, a rewriting step is accepted
 
-            Dec_Graph_t * pGraph = Rwr_ManReadDecs(pManRwr);
-            int fCompl           = Rwr_ManReadCompl(pManRwr);
+        // get hold of the new subgraph to be added to the AIG
+        pGraph = Rwr_ManReadDecs(pManRwr);
+        fCompl = Rwr_ManReadCompl(pManRwr);
 
-//            Abc_RwrExpWithCut( pNode, Rwr_ManReadLeaves(pManRwr) );
+        // reset the array of the changed nodes
+        if ( fPlaceEnable )
+            Abc_AigUpdateReset( pNtk->pManFunc );
 
-/*
-            {
-                Abc_Obj_t * pObj;
-                int i;
-                printf( "USING: (" );
-                Vec_PtrForEachEntry( Rwr_ManReadLeaves(pManRwr), pObj, i )
-                    printf( "%d ", Abc_ObjFanoutNum(Abc_ObjRegular(pObj)) );
-                printf( ")   Gain = %d.\n", nGain );
-            }
-*/
-            
-//            if ( nGain > 0 )
-//                Abc_ManShowCutCone( pNode, Rwr_ManReadLeaves(pManRwr) );
-
-/*
-            if ( nGain > 0 )
-            { // print stats on the MFFC
-                extern void Abc_NodeMffsConeSuppPrint( Abc_Obj_t * pNode );
-                printf( "Node %6d : Gain = %4d  ", pNode->Id, nGain );
-                Abc_NodeMffsConeSuppPrint( pNode );
-            }
-*/
-            // complement the FF if needed
-            if ( fCompl ) Dec_GraphComplement( pGraph );
+        // complement the FF if needed
+        if ( fCompl ) Dec_GraphComplement( pGraph );
 clk = clock();
-            Dec_GraphUpdateNetwork( pNode, pGraph, fUpdateLevel, nGain );
+        Dec_GraphUpdateNetwork( pNode, pGraph, fUpdateLevel, nGain );
 Rwr_ManAddTimeUpdate( pManRwr, clock() - clk );
-            if ( fCompl ) Dec_GraphComplement( pGraph );
-//    {
-//        extern int s_TotalChanges;
-//        s_TotalChanges++;
-//    }
-        }
+        if ( fCompl ) Dec_GraphComplement( pGraph );
+
+        // use the array of changed nodes to update placement
+        if ( fPlaceEnable )
+            Abc_PlaceUpdate( vUpdates, nNodes );
     }
     Extra_ProgressBarStop( pProgress );
 Rwr_ManAddTimeTotal( pManRwr, clock() - clkStart );
@@ -156,6 +146,14 @@ Rwr_ManAddTimeTotal( pManRwr, clock() - clkStart );
     Rwr_ManStop( pManRwr );
     Cut_ManStop( pManCut );
     pNtk->pManCut = NULL;
+
+    // start placement package
+    if ( fPlaceEnable )
+    {
+        Abc_PlaceEnd( pNtk );
+        Abc_AigUpdateStop( pNtk->pManFunc );
+    }
+
     // put the nodes into the DFS order and reassign their IDs
     Abc_NtkReassignIds( pNtk );
 //    Abc_AigCheckFaninOrder( pNtk->pManFunc );

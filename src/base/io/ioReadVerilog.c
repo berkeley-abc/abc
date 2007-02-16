@@ -45,6 +45,7 @@ Abc_Ntk_t * Io_ReadVerilog( char * pFileName, int fCheck )
 {
     Abc_Ntk_t * pNtk;
     Abc_Lib_t * pDesign;
+    int i;
 
     // parse the verilog file
     pDesign = Ver_ParseFile( pFileName, NULL, 1, fCheck );
@@ -60,12 +61,20 @@ Abc_Ntk_t * Io_ReadVerilog( char * pFileName, int fCheck )
     assert( Vec_PtrSize(pDesign->vModules) > 0 );
     if ( Vec_PtrSize(pDesign->vModules) == 1 )
     {
-        printf( "Warning: The design is not hierarchical.\n" );
+//        printf( "Warning: The design is not hierarchical.\n" );
         Abc_LibFree( pDesign, pNtk );
         pNtk->pDesign = NULL;
+        pNtk->pSpec = Extra_UtilStrsav( pFileName );
     }
     else
+    {
+        // bring the root model to the beginning
+        for ( i = Vec_PtrSize(pDesign->vModules) - 2; i >= 0; i-- )
+            Vec_PtrWriteEntry(pDesign->vModules, i+1, Vec_PtrEntry(pDesign->vModules, i) );
+        Vec_PtrWriteEntry(pDesign->vModules, 0, pNtk );
+        // check that there is no cyclic dependency
         Abc_NtkIsAcyclicHierarchy( pNtk );
+    }
     return pNtk;
 }
 
