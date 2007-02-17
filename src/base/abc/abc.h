@@ -393,6 +393,8 @@ static inline Abc_Obj_t * Abc_ObjChild1( Abc_Obj_t * pObj )          { return Ab
 static inline Abc_Obj_t * Abc_ObjChildCopy( Abc_Obj_t * pObj, int i ){ return Abc_ObjNotCond( Abc_ObjFanin(pObj,i)->pCopy, Abc_ObjFaninC(pObj,i) );  }
 static inline Abc_Obj_t * Abc_ObjChild0Copy( Abc_Obj_t * pObj )      { return Abc_ObjNotCond( Abc_ObjFanin0(pObj)->pCopy, Abc_ObjFaninC0(pObj) );    }
 static inline Abc_Obj_t * Abc_ObjChild1Copy( Abc_Obj_t * pObj )      { return Abc_ObjNotCond( Abc_ObjFanin1(pObj)->pCopy, Abc_ObjFaninC1(pObj) );    }
+static inline Abc_Obj_t * Abc_ObjChild0Data( Abc_Obj_t * pObj )      { return Abc_ObjNotCond( Abc_ObjFanin0(pObj)->pData, Abc_ObjFaninC0(pObj) );    }
+static inline Abc_Obj_t * Abc_ObjChild1Data( Abc_Obj_t * pObj )      { return Abc_ObjNotCond( Abc_ObjFanin1(pObj)->pData, Abc_ObjFaninC1(pObj) );    }
 
 // checking the AIG node types
 static inline bool        Abc_AigNodeIsConst( Abc_Obj_t * pNode )    { assert(Abc_NtkIsStrash(Abc_ObjRegular(pNode)->pNtk));  return Abc_ObjRegular(pNode)->Type == ABC_OBJ_CONST1;       }
@@ -527,11 +529,9 @@ extern void               Abc_AigPrintNode( Abc_Obj_t * pNode );
 extern bool               Abc_AigNodeIsAcyclic( Abc_Obj_t * pNode, Abc_Obj_t * pRoot );
 extern void               Abc_AigCheckFaninOrder( Abc_Aig_t * pMan );
 extern void               Abc_AigSetNodePhases( Abc_Ntk_t * pNtk );
-extern Vec_Ptr_t *        Abc_AigUpdateStart( Abc_Aig_t * pMan );
+extern Vec_Ptr_t *        Abc_AigUpdateStart( Abc_Aig_t * pMan, Vec_Ptr_t ** pvUpdatedNets );
 extern void               Abc_AigUpdateStop( Abc_Aig_t * pMan );
 extern void               Abc_AigUpdateReset( Abc_Aig_t * pMan );
-extern void               Abc_AigUpdateAdd( Abc_Aig_t * pMan, Abc_Obj_t * pObj );
-extern Vec_Ptr_t *        Abc_AigUpdateRead( Abc_Aig_t * pMan );
 /*=== abcAttach.c ==========================================================*/
 extern int                Abc_NtkAttach( Abc_Ntk_t * pNtk );
 /*=== abcBalance.c ==========================================================*/
@@ -555,6 +555,7 @@ extern void               Abc_NodeFreeCuts( void * p, Abc_Obj_t * pObj );
 extern Vec_Ptr_t *        Abc_NtkDfs( Abc_Ntk_t * pNtk, int fCollectAll );
 extern Vec_Ptr_t *        Abc_NtkDfsNodes( Abc_Ntk_t * pNtk, Abc_Obj_t ** ppNodes, int nNodes );
 extern Vec_Ptr_t *        Abc_NtkDfsReverse( Abc_Ntk_t * pNtk );
+extern Vec_Ptr_t *        Abc_NtkDfsReverseNodes( Abc_Ntk_t * pNtk, Abc_Obj_t ** ppNodes, int nNodes );
 extern Vec_Ptr_t *        Abc_NtkDfsSeq( Abc_Ntk_t * pNtk );
 extern Vec_Ptr_t *        Abc_NtkDfsSeqReverse( Abc_Ntk_t * pNtk );
 extern Vec_Ptr_t *        Abc_NtkDfsIter( Abc_Ntk_t * pNtk, int fCollectAll );
@@ -623,7 +624,7 @@ extern int                Abc_NodeRemoveDupFanins( Abc_Obj_t * pNode );
 /*=== abcMiter.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkMiter( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb );
 extern void               Abc_NtkMiterAddCone( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkMiter, Abc_Obj_t * pNode );
-extern Abc_Ntk_t *        Abc_NtkMiterAnd( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 );
+extern Abc_Ntk_t *        Abc_NtkMiterAnd( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fOr, int fCompl2 );
 extern Abc_Ntk_t *        Abc_NtkMiterCofactor( Abc_Ntk_t * pNtk, Vec_Int_t * vPiValues );
 extern Abc_Ntk_t *        Abc_NtkMiterForCofactors( Abc_Ntk_t * pNtk, int Out, int In1, int In2 );
 extern Abc_Ntk_t *        Abc_NtkMiterQuantify( Abc_Ntk_t * pNtk, int In, int fExist );
@@ -831,6 +832,7 @@ extern int                Abc_NtkGetChoiceNum( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkGetFaninMax( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkGetTotalFanins( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkCleanCopy( Abc_Ntk_t * pNtk );
+extern void               Abc_NtkCleanData( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkCountCopy( Abc_Ntk_t * pNtk );
 extern Vec_Ptr_t *        Abc_NtkSaveCopy( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkLoadCopy( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCopies );

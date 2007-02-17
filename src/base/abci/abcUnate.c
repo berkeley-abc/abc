@@ -84,7 +84,7 @@ clkBdd = clock() - clk;
 //    pbGlobal = (DdNode **)Vec_PtrArray( pNtk->vFuncsGlob );
 
     // print the size of the BDDs
-    printf( "The shared BDD size is %d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
+    printf( "Shared BDD size = %6d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
 
     // perform naive BDD-based computation
     if ( fUseNaive )

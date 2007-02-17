@@ -3,6 +3,7 @@ SRC +=    src/base/abci/abc.c \
     src/base/abci/abcAuto.c \
     src/base/abci/abcBalance.c \
     src/base/abci/abcBmc.c \
+    src/base/abci/abcCas.c \
     src/base/abci/abcClpBdd.c \
     src/base/abci/abcClpSop.c \
     src/base/abci/abcCut.c \
@@ -29,6 +30,7 @@ SRC +=    src/base/abci/abc.c \
     src/base/abci/abcPlace.c \
     src/base/abci/abcPrint.c \
     src/base/abci/abcProve.c \
+    src/base/abci/abcQuant.c \
     src/base/abci/abcReconv.c \
     src/base/abci/abcRefactor.c \
     src/base/abci/abcRenode.c \

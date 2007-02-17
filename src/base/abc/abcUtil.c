@@ -486,6 +486,25 @@ void Abc_NtkCleanCopy( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
+  Synopsis    [Cleans the copy field of all objects.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkCleanData( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int i;
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        pObj->pData = NULL;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Counts the number of nodes having non-trivial copies.]
 
   Description []

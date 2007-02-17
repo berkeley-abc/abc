@@ -62,7 +62,7 @@ Abc_Ntk_t * Abc_NtkDsdGlobal( Abc_Ntk_t * pNtk, bool fVerbose, bool fPrint, bool
     if ( dd == NULL )
         return NULL;
     if ( fVerbose )
-        printf( "The shared BDD size is %d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
+        printf( "Shared BDD size = %6d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
     // transform the result of mapping into a BDD network
     pNtkNew = Abc_NtkDsdInternal( pNtk, fVerbose, fPrint, fShort );
     Extra_StopManager( dd );

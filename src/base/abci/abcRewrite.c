@@ -38,7 +38,7 @@ static void        Abc_ManShowCutCone( Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves );
 
 extern void  Abc_PlaceBegin( Abc_Ntk_t * pNtk );
 extern void  Abc_PlaceEnd( Abc_Ntk_t * pNtk );
-extern void  Abc_PlaceUpdate( Vec_Ptr_t * vUpdates, int nNodesOld );
+extern void  Abc_PlaceUpdate( Vec_Ptr_t * vAddedCells, Vec_Ptr_t * vUpdatedNets );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -61,7 +61,7 @@ int Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeros, int fVerb
     Cut_Man_t * pManCut;
     Rwr_Man_t * pManRwr;
     Abc_Obj_t * pNode;
-    Vec_Ptr_t * vUpdates = NULL;
+    Vec_Ptr_t * vAddedCells = NULL, * vUpdatedNets = NULL;
     Dec_Graph_t * pGraph;
     int i, nNodes, nGain, fCompl;
     int clk, clkStart = clock();
@@ -74,7 +74,7 @@ int Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeros, int fVerb
     if ( fPlaceEnable )
     {
         Abc_PlaceBegin( pNtk );
-        vUpdates = Abc_AigUpdateStart( pNtk->pManFunc );
+        vAddedCells = Abc_AigUpdateStart( pNtk->pManFunc, &vUpdatedNets );
     }
 
     // start the rewriting manager
@@ -132,7 +132,7 @@ Rwr_ManAddTimeUpdate( pManRwr, clock() - clk );
 
         // use the array of changed nodes to update placement
         if ( fPlaceEnable )
-            Abc_PlaceUpdate( vUpdates, nNodes );
+            Abc_PlaceUpdate( vAddedCells, vUpdatedNets );
     }
     Extra_ProgressBarStop( pProgress );
 Rwr_ManAddTimeTotal( pManRwr, clock() - clkStart );

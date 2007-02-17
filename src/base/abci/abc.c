@@ -67,6 +67,7 @@ static int Abc_CommandRefactor       ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandRestructure    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandResubstitute   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRr             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandCascade        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandLogic          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandComb           ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -95,6 +96,10 @@ static int Abc_CommandGen            ( Abc_Frame_t * pAbc, int argc, char ** arg
 //static int Abc_CommandXyz            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDouble         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTest           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+
+static int Abc_CommandQuaVar         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandQuaRel         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandQuaReach       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandIStrash        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandICut           ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -203,6 +208,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 //    Cmd_CommandAdd( pAbc, "Synthesis",    "restructure",   Abc_CommandRestructure,      1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "resub",         Abc_CommandResubstitute,     1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "rr",            Abc_CommandRr,               1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "cascade",       Abc_CommandCascade,          1 );
 
     Cmd_CommandAdd( pAbc, "Various",      "logic",         Abc_CommandLogic,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "comb",          Abc_CommandComb,             1 );
@@ -231,6 +237,10 @@ void Abc_Init( Abc_Frame_t * pAbc )
 //    Cmd_CommandAdd( pAbc, "Various",      "xyz",           Abc_CommandXyz,              1 );
     Cmd_CommandAdd( pAbc, "Various",      "double",        Abc_CommandDouble,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "test",          Abc_CommandTest,             0 );
+
+    Cmd_CommandAdd( pAbc, "Various",      "qvar",          Abc_CommandQuaVar,           1 );
+    Cmd_CommandAdd( pAbc, "Various",      "qrel",          Abc_CommandQuaRel,           1 );
+    Cmd_CommandAdd( pAbc, "Various",      "qreach",        Abc_CommandQuaReach,         1 );
 
     Cmd_CommandAdd( pAbc, "New AIG",      "istrash",       Abc_CommandIStrash,          1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "icut",          Abc_CommandICut,             0 );
@@ -3234,6 +3244,109 @@ usage:
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandCascade( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c, nLutSize;
+    int fCheck;
+    int fVerbose;
+    extern Abc_Ntk_t * Abc_NtkCascade( Abc_Ntk_t * pNtk, int nLutSize, int fCheck, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    nLutSize = 12;
+    fCheck   = 0;
+    fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Kcvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLutSize < 0 ) 
+                goto usage;
+            break;
+        case 'c':
+            fCheck ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkIsLogic(pNtk) && !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "Can only collapse a logic network or an AIG.\n" );
+        return 1;
+    }
+
+    // get the new network
+    if ( Abc_NtkIsStrash(pNtk) )
+        pNtkRes = Abc_NtkCascade( pNtk, nLutSize, fCheck, fVerbose );
+    else
+    {
+        pNtk = Abc_NtkStrash( pNtk, 0, 0 );
+        pNtkRes = Abc_NtkCascade( pNtk, nLutSize, fCheck, fVerbose );
+        Abc_NtkDelete( pNtk );
+    }
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Cascade synthesis has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: cascade [-K <num>] [-cvh]\n" );
+    fprintf( pErr, "\t         performs LUT cascade synthesis for the current network\n" );
+    fprintf( pErr, "\t-K num : the number of LUT inputs [default = %d]\n", nLutSize );
+    fprintf( pErr, "\t-c     : check equivalence after synthesis [default = %s]\n", fCheck? "yes": "no" );
+    fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    fprintf( pErr, "\t         \n");
+    fprintf( pErr, "  A lookup-table cascade is a programmable architecture developed by\n");
+    fprintf( pErr, "  Professor Tsutomu Sasao (sasao@cse.kyutech.ac.jp) at Kyushu Institute\n");
+    fprintf( pErr, "  of Technology. This work received Takeda Techno-Entrepreneurship Award:\n");
+    fprintf( pErr, "  http://www.lsi-cad.com/sasao/photo/takeda.html\n");
+    fprintf( pErr, "\t         \n");
+    return 1;
+}
+
 
 /**Function*************************************************************
 
@@ -5532,6 +5645,293 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     fprintf( pErr, "usage: test [-h]\n" );
     fprintf( pErr, "\t         testbench for new procedures\n" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandQuaVar( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c, iVar, fVerbose, RetValue;
+    extern int Abc_NtkQuantify( Abc_Ntk_t * pNtk, int iVar, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    iVar = 0;
+    fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Ivh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            iVar = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( iVar < 0 ) 
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( Abc_NtkGetChoiceNum( pNtk ) )
+    {
+        fprintf( pErr, "This command cannot be applied to an AIG with choice nodes.\n" );
+        return 1;
+    }
+
+    // get the strashed network
+    pNtkRes = Abc_NtkStrash( pNtk, 0, 1 );
+    RetValue = Abc_NtkQuantify( pNtkRes, iVar, fVerbose );
+    // clean temporary storage for the cofactors
+    Abc_NtkCleanData( pNtkRes );
+    Abc_AigCleanup( pNtkRes->pManFunc );
+    // check the result 
+    if ( !RetValue )
+    {
+        fprintf( pErr, "Command has failed.\n" );
+        return 0;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: qvar [-I num] [-vh]\n" );
+    fprintf( pErr, "\t         quantifies one variable using the AIG\n" );
+    fprintf( pErr, "\t-I num : the zero-based index of a variable to quantify [default = %d]\n", iVar );
+    fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandQuaRel( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c, iVar, fInputs, fVerbose;
+    extern Abc_Ntk_t * Abc_NtkTransRel( Abc_Ntk_t * pNtk, int fInputs, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    iVar = 0;
+    fInputs = 1;
+    fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Iqvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            iVar = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( iVar < 0 ) 
+                goto usage;
+            break;
+        case 'q':
+            fInputs ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( Abc_NtkGetChoiceNum( pNtk ) )
+    {
+        fprintf( pErr, "This command cannot be applied to an AIG with choice nodes.\n" );
+        return 1;
+    }
+    if ( Abc_NtkIsComb(pNtk) )
+    {
+        fprintf( pErr, "This command works only for sequential circuits.\n" );
+        return 1;
+    }
+
+    // get the strashed network
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        pNtk = Abc_NtkStrash( pNtk, 0, 1 );
+        pNtkRes = Abc_NtkTransRel( pNtk, fInputs, fVerbose );
+        Abc_NtkDelete( pNtk );
+    }
+    else
+        pNtkRes = Abc_NtkTransRel( pNtk, fInputs, fVerbose );
+    // check if the result is available
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Command has failed.\n" );
+        return 0;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: qrel [-qvh]\n" );
+    fprintf( pErr, "\t         computes transition relation of the sequential network\n" );
+//    fprintf( pErr, "\t-I num : the zero-based index of a variable to quantify [default = %d]\n", iVar );
+    fprintf( pErr, "\t-q     : perform quantification of inputs [default = %s]\n", fInputs? "yes": "no" );
+    fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandQuaReach( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c, nIters, fVerbose;
+    extern Abc_Ntk_t * Abc_NtkReachability( Abc_Ntk_t * pNtk, int nIters, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    nIters   = 256;
+    fVerbose =   0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Ivh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nIters = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nIters < 0 ) 
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( Abc_NtkGetChoiceNum( pNtk ) )
+    {
+        fprintf( pErr, "This command cannot be applied to an AIG with choice nodes.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsComb(pNtk) )
+    {
+        fprintf( pErr, "This command works only for combinational transition relations.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "This command works only for strashed networks.\n" );
+        return 1;
+    }
+    if ( Abc_NtkPoNum(pNtk) > 1 )
+    {
+        fprintf( pErr, "The transition relation should have one output.\n" );
+        return 1;
+    }
+    if ( Abc_NtkPiNum(pNtk) % 2 != 0 )
+    {
+        fprintf( pErr, "The transition relation should have an even number of inputs.\n" );
+        return 1;
+    }
+
+    pNtkRes = Abc_NtkReachability( pNtk, nIters, fVerbose );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Command has failed.\n" );
+        return 0;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: qreach [-I num] [-vh]\n" );
+    fprintf( pErr, "\t         computes unreachable states using AIG-based quantification\n" );
+    fprintf( pErr, "\t         assumes that the current network is a transition relation\n" );
+    fprintf( pErr, "\t         assumes that the initial state is composed of all zeros\n" );
+    fprintf( pErr, "\t-I num : the number of image computations to perform [default = %d]\n", nIters );
+    fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
 }

@@ -294,7 +294,7 @@ void Abc_NtkMiterFinalize( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Abc_Ntk_t * pNt
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkMiterAnd( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
+Abc_Ntk_t * Abc_NtkMiterAnd( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fOr, int fCompl2 )
 {
     char Buffer[1000];
     Abc_Ntk_t * pNtkMiter;
@@ -313,7 +313,8 @@ Abc_Ntk_t * Abc_NtkMiterAnd( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
 
     // start the new network
     pNtkMiter = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG, 1 );
-    sprintf( Buffer, "%s_%s_miter", pNtk1->pName, pNtk2->pName );
+//    sprintf( Buffer, "%s_%s_miter", pNtk1->pName, pNtk2->pName );
+    sprintf( Buffer, "product" );
     pNtkMiter->pName = Extra_UtilStrsav(Buffer);
 
     // perform strashing
@@ -324,10 +325,13 @@ Abc_Ntk_t * Abc_NtkMiterAnd( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
     pRoot1 = Abc_NtkPo(pNtk1,0);
     pRoot2 = Abc_NtkPo(pNtk2,0);
     pOutput1 = Abc_ObjNotCond( Abc_ObjFanin0(pRoot1)->pCopy, Abc_ObjFaninC0(pRoot1) );
-    pOutput2 = Abc_ObjNotCond( Abc_ObjFanin0(pRoot2)->pCopy, Abc_ObjFaninC0(pRoot2) );
-
+    pOutput2 = Abc_ObjNotCond( Abc_ObjFanin0(pRoot2)->pCopy, Abc_ObjFaninC0(pRoot2) ^ fCompl2 );
+    
     // create the miter of the two outputs
-    pMiter = Abc_AigAnd( pNtkMiter->pManFunc, pOutput1, pOutput2 );
+    if ( fOr )
+        pMiter = Abc_AigOr( pNtkMiter->pManFunc, pOutput1, pOutput2 );
+    else
+        pMiter = Abc_AigAnd( pNtkMiter->pManFunc, pOutput1, pOutput2 );
     Abc_ObjAddFanin( Abc_NtkPo(pNtkMiter,0), pMiter );
 
     // make sure that everything is okay

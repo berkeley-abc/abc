@@ -120,7 +120,7 @@ float Abc_PlaceEvaluateCut( Abc_Obj_t * pRoot, Vec_Ptr_t * vFanins )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_PlaceUpdate( Vec_Ptr_t * vUpdates, int nNodesOld )
+void Abc_PlaceUpdate( Vec_Ptr_t * vAddedCells, Vec_Ptr_t * vUpdatedNets )
 {
     Abc_Obj_t * pObj, * pFanin;
     int i, k;
@@ -130,24 +130,26 @@ void Abc_PlaceUpdate( Vec_Ptr_t * vUpdates, int nNodesOld )
     vCells = Vec_PtrAlloc( 16 );
     vNets = Vec_PtrAlloc( 32 );
 
-    // go through the modified nodes
-    Vec_PtrForEachEntry( vUpdates, pObj, i )
+    // go through the new nodes
+    Vec_PtrForEachEntry( vAddedCells, pObj, i )
     {
-        if ( pObj->Id > nNodesOld ) // pObj is a new node
-        {
-            Abc_PlaceCreateCell( pObj, 1 );
-            Abc_PlaceUpdateNet( pObj );
+        assert( !Abc_ObjIsComplement(pObj) );
+        Abc_PlaceCreateCell( pObj, 1 );
+        Abc_PlaceUpdateNet( pObj );
 
-            // add the new cell and its fanin nets to temporary storage
-            Vec_PtrPush( vCells, &(cells[pObj->Id]) );
-            Abc_ObjForEachFanin( pObj, pFanin, k )
-                Vec_PtrPushUnique( vNets, &(nets[pFanin->Id]) );
-        }
-        else // pObj is an old node
-        {
-            Abc_PlaceUpdateNet( Abc_ObjFanin0(pObj) );
-            Abc_PlaceUpdateNet( Abc_ObjFanin1(pObj) );
-        }
+        // add the new cell and its fanin nets to temporary storage
+        Vec_PtrPush( vCells, &(cells[pObj->Id]) );
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+            Vec_PtrPushUnique( vNets, &(nets[pFanin->Id]) );
+    }
+
+    // go through the modified nets
+    Vec_PtrForEachEntry( vUpdatedNets, pObj, i )
+    {
+        assert( !Abc_ObjIsComplement(pObj) );
+        if ( Abc_ObjType(pObj) == ABC_OBJ_NONE ) // dead node
+            continue;
+        Abc_PlaceUpdateNet( pObj );
     }
 
     // update the placement

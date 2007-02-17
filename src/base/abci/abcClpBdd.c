@@ -54,7 +54,7 @@ Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, i
     if ( fVerbose )
     {
         DdManager * dd = Abc_NtkGlobalBddMan( pNtk );
-        printf( "The shared BDD size is %d nodes.  ", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
+        printf( "Shared BDD size = %6d nodes.  ", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
         PRT( "BDD construction time", clock() - clk );
     }
 

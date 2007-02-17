@@ -147,6 +147,19 @@ extern DdNode *      extraBddSpaceFromMatrixNeg( DdManager * dd, DdNode * zA );
 extern DdNode *     Extra_bddSpaceReduce( DdManager * dd, DdNode * bFunc, DdNode * bCanonVars );
 extern DdNode **    Extra_bddSpaceExorGates( DdManager * dd, DdNode * bFuncRed, DdNode * zEquations );
 
+/*=== extraBddCas.c =============================================================*/
+
+/* performs the binary encoding of the set of function using the given vars */
+extern DdNode *     Extra_bddEncodingBinary( DdManager * dd, DdNode ** pbFuncs, int nFuncs, DdNode ** pbVars, int nVars );
+/* solves the column encoding problem using a sophisticated method */
+extern DdNode *     Extra_bddEncodingNonStrict( DdManager * dd, DdNode ** pbColumns, int nColumns, DdNode * bVarsCol, DdNode ** pCVars, int nMulti, int * pSimple );
+/* collects the nodes under the cut and, for each node, computes the sum of paths leading to it from the root */
+extern st_table *   Extra_bddNodePathsUnderCut( DdManager * dd, DdNode * bFunc, int CutLevel );
+/* collects the nodes under the cut starting from the given set of ADD nodes */
+extern int          Extra_bddNodePathsUnderCutArray( DdManager * dd, DdNode ** paNodes, DdNode ** pbCubes, int nNodes, DdNode ** paNodesRes, DdNode ** pbCubesRes, int CutLevel );
+/* find the profile of a DD (the number of edges crossing each level) */
+extern int          Extra_ProfileWidth( DdManager * dd, DdNode * F, int * Profile, int CutLevel );
+
 /*=== extraBddMisc.c ========================================================*/
 
 extern DdNode *     Extra_TransferPermute( DdManager * ddSource, DdManager * ddDestination, DdNode * f, int * Permute );
@@ -174,6 +187,7 @@ extern DdNode *     Extra_bddCreateAnd( DdManager * dd, int nVars );
 extern DdNode *     Extra_bddCreateOr( DdManager * dd, int nVars );
 extern DdNode *     Extra_bddCreateExor( DdManager * dd, int nVars );
 extern DdNode *     Extra_zddPrimes( DdManager * dd, DdNode * F );
+extern void         Extra_bddPermuteArray( DdManager * dd, DdNode ** bNodesIn, DdNode ** bNodesOut, int nNodes, int *permut );
 
 /*=== extraBddKmap.c ================================================================*/
 

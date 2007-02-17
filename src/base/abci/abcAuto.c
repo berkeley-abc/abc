@@ -74,7 +74,7 @@ void Abc_NtkAutoPrint( Abc_Ntk_t * pNtk, int Output, int fNaive, int fVerbose )
 
     // print the size of the BDDs
     if ( fVerbose )
-        printf( "The shared BDD size is %d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
+        printf( "Shared BDD size = %6d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
 
     // allocate additional variables
     for ( i = 0; i < nInputs; i++ )

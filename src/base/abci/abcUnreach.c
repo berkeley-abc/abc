@@ -62,7 +62,7 @@ int Abc_NtkExtractSequentialDcs( Abc_Ntk_t * pNtk, bool fVerbose )
     if ( dd == NULL )
         return 0;
     if ( fVerbose )
-        printf( "The shared BDD size is %d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
+        printf( "Shared BDD size = %6d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
 
     // create the transition relation (dereferenced global BDDs)
     bRelation = Abc_NtkTransitionRelation( dd, pNtk, fVerbose );              Cudd_Ref( bRelation );
@@ -221,7 +221,7 @@ DdNode * Abc_NtkComputeUnreachable( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * b
 {
     DdNode * bRelation, * bReached, * bCubeCs;
     DdNode * bCurrent, * bNext, * bTemp;
-    int nIters;
+    int nIters, nMints;
 
     // perform reachability analisys
     bCurrent  = bInitial;   Cudd_Ref( bCurrent );
@@ -258,9 +258,9 @@ DdNode * Abc_NtkComputeUnreachable( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * b
     // report the stats
     if ( fVerbose )
     {
-    fprintf( stdout, "Reachability analysis completed in %d iterations.\n", nIters );
-    fprintf( stdout, "The number of minterms in the reachable state set = %d.\n", 
-                        (int)Cudd_CountMinterm(dd, bReached, Abc_NtkLatchNum(pNtk) ) ); 
+        nMints = (int)Cudd_CountMinterm(dd, bReached, Abc_NtkLatchNum(pNtk) );
+        fprintf( stdout, "Reachability analysis completed in %d iterations.\n", nIters );
+        fprintf( stdout, "The number of minterms in the reachable state set = %d. (%6.2f %%)\n", nMints, 100.0*nMints/(1<<Abc_NtkLatchNum(pNtk)) );
     }
 //PRB( dd, bReached );
     Cudd_Deref( bReached );

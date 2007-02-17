@@ -199,6 +199,76 @@ Vec_Ptr_t * Abc_NtkDfsReverse( Abc_Ntk_t * pNtk )
     return vNodes;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Performs DFS for one node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkDfsReverseNodes_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
+{
+    Abc_Obj_t * pFanout;
+    int i;
+    assert( !Abc_ObjIsNet(pNode) );
+    // if this node is already visited, skip
+    if ( Abc_NodeIsTravIdCurrent( pNode ) )
+        return;
+    // mark the node as visited
+    Abc_NodeSetTravIdCurrent( pNode );
+    // skip the CI
+    if ( Abc_ObjIsCo(pNode) )
+        return;
+    assert( Abc_ObjIsNode( pNode ) );
+    // visit the transitive fanin of the node
+    pNode = Abc_ObjFanout0Ntk(pNode);
+    Abc_ObjForEachFanout( pNode, pFanout, i )
+        Abc_NtkDfsReverseNodes_rec( pFanout, vNodes );
+    // add the node after the fanins have been added
+//    Vec_PtrPush( vNodes, pNode );
+    Vec_PtrFillExtra( vNodes, pNode->Level + 1, NULL );
+    pNode->pCopy = Vec_PtrEntry( vNodes, pNode->Level );
+    Vec_PtrWriteEntry( vNodes, pNode->Level, pNode );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the levelized array of TFO nodes.]
+
+  Description [Collects the levelized array of internal nodes, leaving out CIs/COs.
+  However it marks both CIs and COs with the current TravId.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_NtkDfsReverseNodes( Abc_Ntk_t * pNtk, Abc_Obj_t ** ppNodes, int nNodes )
+{
+    Vec_Ptr_t * vNodes;
+    Abc_Obj_t * pObj, * pFanout;
+    int i, k;
+    assert( Abc_NtkIsStrash(pNtk) );
+    // set the traversal ID
+    Abc_NtkIncrementTravId( pNtk );
+    // start the array of nodes
+    vNodes = Vec_PtrStart( Abc_AigLevel(pNtk) + 1 );
+    for ( i = 0; i < nNodes; i++ )
+    {
+        pObj = ppNodes[i];
+        assert( Abc_ObjIsCi(pObj) );
+        Abc_NodeSetTravIdCurrent( pObj );
+        pObj = Abc_ObjFanout0Ntk(pObj);
+        Abc_ObjForEachFanout( pObj, pFanout, k )
+            Abc_NtkDfsReverseNodes_rec( pFanout, vNodes );
+    }
+    return vNodes;
+}
+
 
 /**Function*************************************************************
 

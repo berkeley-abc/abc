@@ -13,6 +13,8 @@
 #include <limits.h>
 #include <assert.h>
 
+//#define DEBUG
+
 #include "place_base.h"
 
 // --------------------------------------------------------------------
@@ -93,7 +95,9 @@ void spreadDensityX(int numBins, float maxMovement) {
       memcpy(binCells, &(allCells[yBinStart]), sizeof(ConcreteCell*)*yBinCount);
       qsort(binCells, yBinCount, sizeof(ConcreteCell*), cellSortByX);
 
-      // printf("y-bin %d count=%d area=%f\n",y,yBinCount, yBinArea);
+#if defined(DEBUG)
+      printf("y-bin %d count=%d area=%f\n",y,yBinCount, yBinArea);
+#endif
 
       x = 0;
       xBinCount = 0, xBinStart =  0;
@@ -109,6 +113,8 @@ void spreadDensityX(int numBins, float maxMovement) {
         xBinCount++;
         curOldEdge = xCell->m_x;
         
+        printf("%.3f ", xCell->m_x);
+
         // have we filled up an x-bin?
         if (xCumArea >= yBinArea*(x+1)/numBins && xBinArea > 0) {
           curNewEdge = lastNewEdge + g_place_coreBounds.w*xBinArea/yBinArea;
@@ -118,21 +124,28 @@ void spreadDensityX(int numBins, float maxMovement) {
           if ((curNewEdge-curOldEdge)>maxMovement) curNewEdge = curOldEdge + maxMovement;
           if ((curOldEdge-curNewEdge)>maxMovement) curNewEdge = curOldEdge - maxMovement;
 
+#if defined(DEBUG)
+          printf("->\tx-bin %d count=%d area=%f (%f,%f)->(%f,%f)\n",x, xBinCount, xBinArea,
+                 curOldEdge, lastOldEdge, curNewEdge, lastNewEdge);
+#endif
+          
           stretch = (curNewEdge-lastNewEdge)/(curOldEdge-lastOldEdge);
-
-
+          
           // stretch!
           for(c3=xBinStart; c3<xBinStart+xBinCount; c3++) {
-            binCells[c3]->m_x = lastNewEdge+(binCells[c3]->m_x-lastOldEdge)*stretch;
-
-            // force within core
+            if (curOldEdge == lastOldEdge)
+              binCells[c3]->m_x = lastNewEdge+(c3-xBinStart)*(curNewEdge-lastNewEdge);
+            else
+              binCells[c3]->m_x = lastNewEdge+(binCells[c3]->m_x-lastOldEdge)*stretch;
+            
+              // force within core
             w = binCells[c3]->m_parent->m_width*0.5;
             if (binCells[c3]->m_x-w < g_place_coreBounds.x)
               binCells[c3]->m_x = g_place_coreBounds.x+w;
             if (binCells[c3]->m_x+w > g_place_coreBounds.x+g_place_coreBounds.w)
               binCells[c3]->m_x = g_place_coreBounds.x+g_place_coreBounds.w-w;
           }
-
+          
           lastOldEdge = curOldEdge;
           lastNewEdge = curNewEdge;
           x++;
@@ -141,7 +154,7 @@ void spreadDensityX(int numBins, float maxMovement) {
           xBinStart = c2+1;
         }
       }
-
+      
       y++;
       yBinCount = 0;
       yBinArea = 0;
@@ -228,6 +241,7 @@ void spreadDensityY(int numBins, float maxMovement) {
           if ((curNewEdge-curOldEdge)>maxMovement) curNewEdge = curOldEdge + maxMovement;
           if ((curOldEdge-curNewEdge)>maxMovement) curNewEdge = curOldEdge - maxMovement;
 
+          if (curOldEdge == lastOldEdge) continue; // hmmm
           stretch = (curNewEdge-lastNewEdge)/(curOldEdge-lastOldEdge);
 
           // stretch!

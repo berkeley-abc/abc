@@ -1,4 +1,5 @@
 SRC +=    src/misc/extra/extraBddAuto.c \
+    src/misc/extra/extraBddCas.c \
     src/misc/extra/extraBddKmap.c \
     src/misc/extra/extraBddMisc.c \
     src/misc/extra/extraBddSymm.c \

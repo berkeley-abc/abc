@@ -55,7 +55,7 @@ Abc_Ntk_t * Abc_NtkRestrash( Abc_Ntk_t * pNtk, bool fCleanup )
     // print warning about choice nodes
     if ( Abc_NtkGetChoiceNum( pNtk ) )
         printf( "Warning: The choice nodes in the original AIG are removed by strashing.\n" );
-    // start the new network (constants and CIs are already mappined after this step
+    // start the new network (constants and CIs of the old network will point to the their counterparts in the new network)
     pNtkAig = Abc_NtkStartFrom( pNtk, ABC_NTK_STRASH, ABC_FUNC_AIG );
     // restrash the nodes (assuming a topological order of the old network)
     Abc_NtkForEachNode( pNtk, pObj, i )

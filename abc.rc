@@ -122,4 +122,6 @@ alias tt       "rh a/quip_opt/nut_001_opt.blif"
 alias ttb      "wh a/quip_opt/nut_001_opt.blif 1.blif"
 alias ttv      "wh a/quip_opt/nut_001_opt.blif 1.v"
 
+alias reach    "st; ps; compress2; ps; qrel; ps; qreach -v; ps"
+
 

@@ -6,7 +6,7 @@
 //              ahurst@eecs.berkeley.edu
 //
 /*===================================================================*/
- 
+
 #if !defined(PLACE_BASE_H_)
 #define PLACE_BASE_H_
 
@@ -37,7 +37,9 @@ typedef struct Rect {
 
 typedef struct AbstractCell {
   char *m_label;            // string description
+
   float m_width, m_height;  // dimensions
+
   bool  m_pad;              // a pad (external I/O) cell?
 } AbstractCell;
 
@@ -45,11 +47,15 @@ typedef struct AbstractCell {
 // --- ConcreteCell - a design object
 
 typedef struct ConcreteCell {
-  AbstractCell *m_parent;   // cell type
-  char         *m_label;    // string description
   int           m_id;       // a unique ID (see below)
+  char         *m_label;    // string description
+
+  AbstractCell *m_parent;   // cell type
+
   bool          m_fixed;    // position is fixed?
   float         m_x, m_y;   // center of cell
+
+  int           m_data;
 } ConcreteCell;
 
 
@@ -57,9 +63,13 @@ typedef struct ConcreteCell {
 
 typedef struct ConcreteNet {
   int            m_id;       // a unique ID (see below)
+
   int            m_numTerms; // num. of connected cells
   ConcreteCell **m_terms;    // connected cells
+
   float          m_weight;   // relative weight
+
+  int            m_data;
 } ConcreteNet;
 
 
@@ -102,15 +112,17 @@ void   globalPlace();
 void   globalIncremental();
 void   globalFixDensity(int numBins, float maxMovement);
 
-float  fastUnplace(ConcreteCell *cell);                    // UNIMPLEMENTED
-float  fastPlace(int numCells, ConcreteCell *cells []);    // UNIMPLEMENTED
-float  fastEstimate(int numCells, ConcreteCell *cells []); // UNIMPLEMENTED
+float fastEstimate(ConcreteCell *cell,
+                   int numNets, ConcreteNet *nets[]);
+float fastTopoPlace(int numCells, ConcreteCell *cells[], 
+                    int numNets, ConcreteNet *nets[]);
 
 Rect   getNetBBox(const ConcreteNet *net);
 float  getNetWirelength(const ConcreteNet *net);
 float  getTotalWirelength();
 float  getCellArea(const ConcreteCell *cell);
 
+void   writeBookshelf(const char *filename);
 
 // comparative qsort-style functions
 int    netSortByL(const void *a, const void *b);

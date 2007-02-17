@@ -112,6 +112,8 @@ void   addConcreteNet(ConcreteNet *net) {
   assert(net);
   assert(net->m_id >= 0);
   if (net->m_id >= g_place_concreteNetsSize) {
+    g_place_concreteNetsSize = (net->m_id > g_place_concreteNetsSize ? 
+                               net->m_id : g_place_concreteNetsSize);
     g_place_concreteNetsSize *= 1.5;
     g_place_concreteNetsSize += 20;
     g_place_concreteNets = (ConcreteNet**)realloc(g_place_concreteNets, 
@@ -122,6 +124,7 @@ void   addConcreteNet(ConcreteNet *net) {
     memset(&(g_place_concreteNets[g_place_numNets]), 0,
             sizeof(ConcreteNet*)*(net->m_id+1-g_place_numNets));
     g_place_numNets = net->m_id+1;
+    assert(g_place_numNets <= g_place_concreteNetsSize);
   }
   g_place_concreteNets[net->m_id] = net;
 }
@@ -150,6 +153,8 @@ void   addConcreteCell(ConcreteCell *cell) {
   assert(cell);
   assert(cell->m_id >= 0);
   if (cell->m_id >= g_place_concreteCellsSize) {
+    g_place_concreteCellsSize = (cell->m_id > g_place_concreteCellsSize ? 
+                                 cell->m_id : g_place_concreteCellsSize);
     g_place_concreteCellsSize *= 1.5;
     g_place_concreteCellsSize += 20;
     g_place_concreteCells = (ConcreteCell**)realloc(g_place_concreteCells, 

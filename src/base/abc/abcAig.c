@@ -59,7 +59,8 @@ struct Abc_Aig_t_
     Vec_Ptr_t *       vStackReplaceNew;  // the nodes to be used for replacement
     Vec_Vec_t *       vLevels;           // the nodes to be updated
     Vec_Vec_t *       vLevelsR;          // the nodes to be updated
-    Vec_Ptr_t *       vUpdates;          // the added and removed nodes
+    Vec_Ptr_t *       vAddedCells;       // the added nodes
+    Vec_Ptr_t *       vUpdatedNets;      // the nodes whose fanouts have changed
 
     int               nStrash0;
     int               nStrash1;
@@ -163,8 +164,10 @@ void Abc_AigFree( Abc_Aig_t * pMan )
     assert( Vec_PtrSize( pMan->vStackReplaceOld ) == 0 );
     assert( Vec_PtrSize( pMan->vStackReplaceNew ) == 0 );
     // free the table
-    if ( pMan->vUpdates )
-        Vec_PtrFree( pMan->vUpdates );
+    if ( pMan->vAddedCells )
+        Vec_PtrFree( pMan->vAddedCells );
+    if ( pMan->vUpdatedNets )
+        Vec_PtrFree( pMan->vUpdatedNets );
     Vec_VecFree( pMan->vLevels );
     Vec_VecFree( pMan->vLevelsR );
     Vec_PtrFree( pMan->vStackReplaceOld );
@@ -326,8 +329,8 @@ Abc_Obj_t * Abc_AigAndCreate( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 )
 //        Abc_NodeGetCuts( pAnd->pNtk->pManCut, pAnd );
     pAnd->pCopy = NULL;
     // add the node to the list of updated nodes
-    if ( pMan->vUpdates )
-        Vec_PtrPush( pMan->vUpdates, pAnd );
+    if ( pMan->vAddedCells )
+        Vec_PtrPush( pMan->vAddedCells, pAnd );
     return pAnd;
 }
 
@@ -366,8 +369,8 @@ Abc_Obj_t * Abc_AigAndCreateFrom( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * 
 //        Abc_NodeGetCuts( pAnd->pNtk->pManCut, pAnd );
     pAnd->pCopy = NULL;
     // add the node to the list of updated nodes
-    if ( pMan->vUpdates )
-        Vec_PtrPush( pMan->vUpdates, pAnd );
+//    if ( pMan->vAddedCells )
+//        Vec_PtrPush( pMan->vAddedCells, pAnd );
     return pAnd;
 }
 
@@ -548,9 +551,6 @@ void Abc_AigAndDelete( Abc_Aig_t * pMan, Abc_Obj_t * pThis )
     // delete the cuts if defined
     if ( pThis->pNtk->pManCut )
         Abc_NodeFreeCuts( pThis->pNtk->pManCut, pThis );
-    // add the node to the list of updated nodes
-    if ( pMan->vUpdates )
-        Vec_PtrPush( pMan->vUpdates, pThis );
 }
 
 /**Function*************************************************************
@@ -961,6 +961,13 @@ void Abc_AigDeleteNode( Abc_Aig_t * pMan, Abc_Obj_t * pNode )
     pNode0 = Abc_ObjFanin0( pNode );
     pNode1 = Abc_ObjFanin1( pNode );
 
+    // add the node to the list of updated nodes
+    if ( pMan->vUpdatedNets )
+    {
+        Vec_PtrPushUnique( pMan->vUpdatedNets, pNode0 );
+        Vec_PtrPushUnique( pMan->vUpdatedNets, pNode1 );
+    }
+
     // remove the node from the table
     Abc_AigAndDelete( pMan, pNode );
     // if the node is in the level structure, remove it
@@ -1368,10 +1375,13 @@ void Abc_AigSetNodePhases( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Abc_AigUpdateStart( Abc_Aig_t * pMan )
+Vec_Ptr_t * Abc_AigUpdateStart( Abc_Aig_t * pMan, Vec_Ptr_t ** pvUpdatedNets )
 {
-    assert( pMan->vUpdates == NULL );
-    return pMan->vUpdates = Vec_PtrAlloc( 1000 );
+    assert( pMan->vAddedCells == NULL );
+    pMan->vAddedCells  = Vec_PtrAlloc( 1000 );
+    pMan->vUpdatedNets = Vec_PtrAlloc( 1000 );
+    *pvUpdatedNets = pMan->vUpdatedNets;
+    return pMan->vAddedCells;
 }
 
 /**Function*************************************************************
@@ -1387,8 +1397,11 @@ Vec_Ptr_t * Abc_AigUpdateStart( Abc_Aig_t * pMan )
 ***********************************************************************/
 void Abc_AigUpdateStop( Abc_Aig_t * pMan )
 {
-    assert( pMan->vUpdates != NULL );
-    Vec_PtrFree( pMan->vUpdates );
+    assert( pMan->vAddedCells != NULL );
+    Vec_PtrFree( pMan->vAddedCells );
+    Vec_PtrFree( pMan->vUpdatedNets );
+    pMan->vAddedCells = NULL;
+    pMan->vUpdatedNets = NULL;
 }
 
 /**Function*************************************************************
@@ -1404,41 +1417,9 @@ void Abc_AigUpdateStop( Abc_Aig_t * pMan )
 ***********************************************************************/
 void Abc_AigUpdateReset( Abc_Aig_t * pMan )
 {
-    assert( pMan->vUpdates != NULL );
-    Vec_PtrClear( pMan->vUpdates );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Add a new update.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_AigUpdateAdd( Abc_Aig_t * pMan, Abc_Obj_t * pObj )
-{
-    if ( pMan->vUpdates )
-        Vec_PtrPush( pMan->vUpdates, pObj );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Read the updates array.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Ptr_t * Abc_AigUpdateRead( Abc_Aig_t * pMan )
-{
-    return pMan->vUpdates;
+    assert( pMan->vAddedCells != NULL );
+    Vec_PtrClear( pMan->vAddedCells );
+    Vec_PtrClear( pMan->vUpdatedNets );
 }
 
 ////////////////////////////////////////////////////////////////////////
