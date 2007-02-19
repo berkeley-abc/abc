@@ -105,7 +105,7 @@ Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes, bool fCleanup )
     if ( Abc_NtkIsStrash(pNtk) )
         return Abc_NtkRestrash( pNtk, fCleanup );
     // convert the node representation in the logic network to the AIG form
-    if ( !Abc_NtkLogicToAig(pNtk) )
+    if ( !Abc_NtkToAig(pNtk) )
     {
         printf( "Converting to AIGs has failed.\n" );
         return NULL;
@@ -156,7 +156,7 @@ int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fAddPos )
     // the first network should be an AIG
     assert( Abc_NtkIsStrash(pNtk1) );
     assert( Abc_NtkIsLogic(pNtk2) || Abc_NtkIsStrash(pNtk2) ); 
-    if ( Abc_NtkIsLogic(pNtk2) && !Abc_NtkLogicToAig(pNtk2) )
+    if ( Abc_NtkIsLogic(pNtk2) && !Abc_NtkToAig(pNtk2) )
     {
         printf( "Converting to AIGs has failed.\n" );
         return 0;

@@ -24,8 +24,8 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static Hop_Man_t * Abc_NtkToAig( Abc_Ntk_t * pNtk );
-static Abc_Ntk_t * Abc_NtkFromAig( Abc_Ntk_t * pNtkOld, Hop_Man_t * pMan );
+static Hop_Man_t * Abc_NtkToMini( Abc_Ntk_t * pNtk );
+static Abc_Ntk_t * Abc_NtkFromMini( Abc_Ntk_t * pNtkOld, Hop_Man_t * pMan );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -48,7 +48,7 @@ Abc_Ntk_t * Abc_NtkMiniBalance( Abc_Ntk_t * pNtk )
     Hop_Man_t * pMan, * pTemp;
     assert( Abc_NtkIsStrash(pNtk) );
     // convert to the AIG manager
-    pMan = Abc_NtkToAig( pNtk );
+    pMan = Abc_NtkToMini( pNtk );
     if ( pMan == NULL )
         return NULL;
     if ( !Hop_ManCheck( pMan ) )
@@ -64,7 +64,7 @@ Abc_Ntk_t * Abc_NtkMiniBalance( Abc_Ntk_t * pNtk )
     Hop_ManStop( pTemp );
     Hop_ManPrintStats( pMan );
     // convert from the AIG manager
-    pNtkAig = Abc_NtkFromAig( pNtk, pMan );
+    pNtkAig = Abc_NtkFromMini( pNtk, pMan );
     if ( pNtkAig == NULL )
         return NULL;
     Hop_ManStop( pMan );
@@ -89,7 +89,7 @@ Abc_Ntk_t * Abc_NtkMiniBalance( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-Hop_Man_t * Abc_NtkToAig( Abc_Ntk_t * pNtk )
+Hop_Man_t * Abc_NtkToMini( Abc_Ntk_t * pNtk )
 {
     Hop_Man_t * pMan;
     Abc_Obj_t * pObj;
@@ -121,7 +121,7 @@ Hop_Man_t * Abc_NtkToAig( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkFromAig( Abc_Ntk_t * pNtk, Hop_Man_t * pMan )
+Abc_Ntk_t * Abc_NtkFromMini( Abc_Ntk_t * pNtk, Hop_Man_t * pMan )
 {
     Vec_Ptr_t * vNodes;
     Abc_Ntk_t * pNtkNew;
@@ -142,7 +142,7 @@ Abc_Ntk_t * Abc_NtkFromAig( Abc_Ntk_t * pNtk, Hop_Man_t * pMan )
     Hop_ManForEachPo( pMan, pObj, i )
         Abc_ObjAddFanin( Abc_NtkCo(pNtkNew, i), (Abc_Obj_t *)Hop_ObjChild0Copy(pObj) );
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkFromAig(): Network check has failed.\n" );
+        fprintf( stdout, "Abc_NtkFromMini(): Network check has failed.\n" );
     return pNtkNew;
 }
 

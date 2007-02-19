@@ -50,7 +50,7 @@ Vec_Int_t * Abc_NtkRetimeInitialValues( Abc_Ntk_t * pNtkCone, Vec_Int_t * vValue
         return Vec_IntDup( vValues );
     // convert the target network to AIG
     pNtkLogic = Abc_NtkDup( pNtkCone );
-    Abc_NtkLogicToAig( pNtkLogic );
+    Abc_NtkToAig( pNtkLogic );
     // get the miter
     pNtkMiter = Abc_NtkCreateTarget( pNtkLogic, pNtkLogic->vCos, vValues );
     if ( fVerbose )

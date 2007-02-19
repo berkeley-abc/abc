@@ -209,7 +209,7 @@ Abc_NtkPrintStats( stdout, pNtk, 0 );
     // convert blackboxes
     if ( Abc_NtkBlackboxNum(pNtk) > 0 )
     {
-        printf( "Hierarchy reader converted %d blackboxes.\n", Abc_NtkBlackboxNum(pNtk) );
+        printf( "Hierarchy reader converted %d instances of blackboxes.\n", Abc_NtkBlackboxNum(pNtk) );
         pNtk = Abc_NtkConvertBlackboxes( pTemp = pNtk );
         Abc_NtkDelete( pTemp );
         if ( pNtk == NULL )
@@ -219,7 +219,7 @@ Abc_NtkPrintStats( stdout, pNtk, 0 );
         }
     }
     // convert the netlist into the logic network
-    pNtk = Abc_NtkNetlistToLogic( pTemp = pNtk );
+    pNtk = Abc_NtkToLogic( pTemp = pNtk );
     Abc_NtkDelete( pTemp );
     if ( pNtk == NULL )
     {
@@ -244,7 +244,6 @@ Abc_Ntk_t * Io_ReadHie( char * pFileName, Io_FileType_t FileType, int fCheck )
 {
     Abc_Ntk_t * pNtk, * pTemp;
     // detect the file type
-
     if ( Io_ReadFileType(pFileName) == IO_FILE_BLIF )
         pNtk = Io_ReadBlifMv( pFileName, 0, fCheck );
 //    else if ( Io_ReadFileType(pFileName) == IO_FILE_BLIFMV )
@@ -274,7 +273,7 @@ Abc_Ntk_t * Io_ReadHie( char * pFileName, Io_FileType_t FileType, int fCheck )
     // convert blackboxes
     if ( Abc_NtkBlackboxNum(pNtk) > 0 )
     {
-        printf( "Hierarchy reader converted %d blackboxes.\n", Abc_NtkBlackboxNum(pNtk) );
+        printf( "Hierarchy reader converted %d instances of blackboxes.\n", Abc_NtkBlackboxNum(pNtk) );
         pNtk = Abc_NtkConvertBlackboxes( pTemp = pNtk );
         Abc_NtkDelete( pTemp );
         if ( pNtk == NULL )
@@ -284,7 +283,7 @@ Abc_Ntk_t * Io_ReadHie( char * pFileName, Io_FileType_t FileType, int fCheck )
         }
     }
     // convert the netlist into the logic network
-    pNtk = Abc_NtkNetlistToLogic( pTemp = pNtk );
+    pNtk = Abc_NtkToLogic( pTemp = pNtk );
     Abc_NtkDelete( pTemp );
     if ( pNtk == NULL )
     {
@@ -350,6 +349,7 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
         Io_WriteGml( pNtk, pFileName );
         return;
     }
+
     // convert logic network into netlist
     if ( FileType == IO_FILE_PLA )
     {
@@ -359,13 +359,13 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
             return;
         }
         if ( Abc_NtkIsComb(pNtk) )
-            pNtkTemp = Abc_NtkLogicToNetlist( pNtk, 1 );
+            pNtkTemp = Abc_NtkToNetlist( pNtk, 1 );
         else
         {
             fprintf( stdout, "Latches are writen into the PLA file at PI/PO pairs.\n" );
             pNtkCopy = Abc_NtkDup( pNtk );
             Abc_NtkMakeComb( pNtkCopy );
-            pNtkTemp = Abc_NtkLogicToNetlist( pNtk, 1 );
+            pNtkTemp = Abc_NtkToNetlist( pNtk, 1 );
             Abc_NtkDelete( pNtkCopy );
         }
     }
@@ -376,31 +376,37 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
             fprintf( stdout, "Writing BENCH is available for AIGs.\n" );
             return;
         }
-        pNtkTemp = Abc_NtkLogicToNetlistBench( pNtk );
+        pNtkTemp = Abc_NtkToNetlistBench( pNtk );
     }
     else
-        pNtkTemp = Abc_NtkLogicToNetlist( pNtk, 0 );
+        pNtkTemp = Abc_NtkToNetlist( pNtk, 0 );
+
     if ( pNtkTemp == NULL )
     {
         fprintf( stdout, "Converting to netlist has failed.\n" );
         return;
     }
+
     if ( FileType == IO_FILE_BLIF )
+    {
+        if ( !Abc_NtkHasSop(pNtkTemp) && !Abc_NtkHasMapping(pNtkTemp) )
+            Abc_NtkToSop( pNtkTemp, 0 );
         Io_WriteBlif( pNtkTemp, pFileName, 1 );
+    }
     else if ( FileType == IO_FILE_BENCH )
         Io_WriteBench( pNtkTemp, pFileName );
     else if ( FileType == IO_FILE_PLA )
         Io_WritePla( pNtkTemp, pFileName );
     else if ( FileType == IO_FILE_EQN )
     {
-        if ( Abc_NtkIsSopNetlist(pNtkTemp) )
-            Abc_NtkSopToAig( pNtkTemp );
+        if ( !Abc_NtkHasAig(pNtkTemp) )
+            Abc_NtkToAig( pNtkTemp );
         Io_WriteEqn( pNtkTemp, pFileName );
     }
     else if ( FileType == IO_FILE_VERILOG )
     {
-        if ( Abc_NtkIsSopNetlist(pNtkTemp) )
-            Abc_NtkSopToAig( pNtkTemp );
+        if ( !Abc_NtkHasAig(pNtkTemp) && !Abc_NtkHasMapping(pNtkTemp) )
+            Abc_NtkToAig( pNtkTemp );
         Io_WriteVerilog( pNtkTemp, pFileName );
     }
     else 
@@ -451,25 +457,17 @@ void Io_WriteHie( Abc_Ntk_t * pNtk, char * pBaseName, char * pFileName )
     // reintroduce the boxes into the netlist
     if ( Abc_NtkBlackboxNum(pNtkBase) > 0 )
     {
-        // bring the current network to the same representation
-        if ( Abc_NtkIsLogic(pNtk) )
-        {
-            if ( Abc_NtkIsSopNetlist(pNtkBase) )
-                Abc_NtkLogicToSop( pNtk, 0 );
-            else if ( Abc_NtkIsAigNetlist(pNtkBase) )
-                Abc_NtkLogicToAig( pNtk );
-        }
         // derive the netlist
-        pNtkResult = Abc_NtkLogicToNetlist( pNtk, 0 );
+        pNtkResult = Abc_NtkToNetlist( pNtk, 0 );
         pNtkResult = Abc_NtkInsertNewLogic( pNtkBase, pNtkTemp = pNtkResult );
         Abc_NtkDelete( pNtkTemp );
         if ( pNtkResult )
-            printf( "Hierarchy writer reintroduced %d blackboxes.\n", Abc_NtkBlackboxNum(pNtkBase) );
+            printf( "Hierarchy writer reintroduced %d instances of blackboxes.\n", Abc_NtkBlackboxNum(pNtkBase) );
     }
     else
     {
         printf( "Warning: The output network does not contain blackboxes.\n" );
-        pNtkResult = Abc_NtkLogicToNetlist( pNtk, 0 );
+        pNtkResult = Abc_NtkToNetlist( pNtk, 0 );
     }
     Abc_NtkDelete( pNtkBase );
     if ( pNtkResult == NULL )
@@ -477,11 +475,15 @@ void Io_WriteHie( Abc_Ntk_t * pNtk, char * pBaseName, char * pFileName )
 
     // write the resulting network
     if ( Io_ReadFileType(pFileName) == IO_FILE_BLIF )
+    {
+        if ( !Abc_NtkHasSop(pNtkResult) && !Abc_NtkHasMapping(pNtkResult) )
+            Abc_NtkToSop( pNtkResult, 0 );
         Io_WriteBlif( pNtkResult, pFileName, 1 );
+    }
     else if ( Io_ReadFileType(pFileName) == IO_FILE_VERILOG )
     {
-        if ( Abc_NtkIsSopNetlist(pNtkResult) )
-            Abc_NtkSopToAig( pNtkResult );
+        if ( !Abc_NtkHasAig(pNtkResult) && !Abc_NtkHasMapping(pNtkResult) )
+            Abc_NtkToAig( pNtkResult );
         Io_WriteVerilog( pNtkResult, pFileName );
     }
     else 

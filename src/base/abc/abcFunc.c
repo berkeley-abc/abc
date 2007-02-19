@@ -53,7 +53,7 @@ int Abc_NtkSopToBdd( Abc_Ntk_t * pNtk )
     DdManager * dd;
     int nFaninsMax, i;
 
-    assert( Abc_NtkIsSopLogic(pNtk) ); 
+    assert( Abc_NtkHasSop(pNtk) ); 
 
     // start the functionality manager
     nFaninsMax = Abc_NtkGetFaninMax( pNtk );
@@ -159,7 +159,7 @@ void Abc_NtkLogicMakeDirectSops( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pNode;
     int nFaninsMax, fFound, i;
 
-    assert( Abc_NtkIsSopLogic(pNtk) );
+    assert( Abc_NtkHasSop(pNtk) );
 
     // check if there are nodes with complemented SOPs
     fFound = 0;
@@ -221,7 +221,7 @@ int Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fDirect )
     else
         fMode = -1;
 
-    assert( Abc_NtkIsBddLogic(pNtk) );
+    assert( Abc_NtkHasBdd(pNtk) );
     if ( dd->size > 0 )
     Cudd_zddVarsFromBddVars( dd, 2 );
     // create the new manager
@@ -481,7 +481,7 @@ int Abc_ConvertZddToSop( DdManager * dd, DdNode * zCover, char * pSop, int nFani
 ***********************************************************************/
 void Abc_NodeBddToCnf( Abc_Obj_t * pNode, Extra_MmFlex_t * pMmMan, Vec_Str_t * vCube, int fAllPrimes, char ** ppSop0, char ** ppSop1 )
 {
-    assert( Abc_NtkIsBddLogic(pNode->pNtk) ); 
+    assert( Abc_NtkHasBdd(pNode->pNtk) ); 
     *ppSop0 = Abc_ConvertBddToSop( pMmMan, pNode->pNtk->pManFunc, pNode->pData, pNode->pData, Abc_ObjFaninNum(pNode), fAllPrimes, vCube, 0 );
     *ppSop1 = Abc_ConvertBddToSop( pMmMan, pNode->pNtk->pManFunc, pNode->pData, pNode->pData, Abc_ObjFaninNum(pNode), fAllPrimes, vCube, 1 );
 }
@@ -554,7 +554,7 @@ int Abc_NtkSopToAig( Abc_Ntk_t * pNtk )
     Hop_Man_t * pMan;
     int i;
 
-    assert( Abc_NtkIsSopLogic(pNtk) || Abc_NtkIsSopNetlist(pNtk) ); 
+    assert( Abc_NtkHasSop(pNtk) ); 
 
     // start the functionality manager
     pMan = Hop_ManStart();
@@ -664,7 +664,7 @@ int Abc_NtkAigToBdd( Abc_Ntk_t * pNtk )
     DdManager * dd;
     int nFaninsMax, i;
 
-    assert( Abc_NtkIsAigLogic(pNtk) ); 
+    assert( Abc_NtkHasAig(pNtk) ); 
 
     // start the functionality manager
     nFaninsMax = Abc_NtkGetFaninMax( pNtk );
@@ -863,7 +863,7 @@ int Abc_NtkMapToSop( Abc_Ntk_t * pNtk )
     char * pSop;
     int i;
 
-    assert( Abc_NtkIsMappedLogic(pNtk) );
+    assert( Abc_NtkHasMapping(pNtk) );
     // update the functionality manager
     assert( pNtk->pManFunc == Abc_FrameReadLibGen() );
     pNtk->pManFunc = Extra_MmFlexStart();
@@ -889,10 +889,10 @@ int Abc_NtkMapToSop( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkLogicToSop( Abc_Ntk_t * pNtk, int fDirect )
+int Abc_NtkToSop( Abc_Ntk_t * pNtk, int fDirect )
 {
-    assert( Abc_NtkIsLogic(pNtk) );
-    if ( Abc_NtkIsSopLogic(pNtk) )
+    assert( !Abc_NtkIsStrash(pNtk) );
+    if ( Abc_NtkHasSop(pNtk) )
     {
         if ( !fDirect )
             return 1;
@@ -900,11 +900,11 @@ int Abc_NtkLogicToSop( Abc_Ntk_t * pNtk, int fDirect )
             return 0;
         return Abc_NtkBddToSop(pNtk, fDirect);
     }
-    if ( Abc_NtkIsMappedLogic(pNtk) )
+    if ( Abc_NtkHasMapping(pNtk) )
         return Abc_NtkMapToSop(pNtk);
-    if ( Abc_NtkIsBddLogic(pNtk) )
+    if ( Abc_NtkHasBdd(pNtk) )
         return Abc_NtkBddToSop(pNtk, fDirect);
-    if ( Abc_NtkIsAigLogic(pNtk) )
+    if ( Abc_NtkHasAig(pNtk) )
     {
         if ( !Abc_NtkAigToBdd(pNtk) )
             return 0;
@@ -925,19 +925,19 @@ int Abc_NtkLogicToSop( Abc_Ntk_t * pNtk, int fDirect )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkLogicToBdd( Abc_Ntk_t * pNtk )
+int Abc_NtkToBdd( Abc_Ntk_t * pNtk )
 {
-    assert( Abc_NtkIsLogic(pNtk) );
-    if ( Abc_NtkIsBddLogic(pNtk) )
+    assert( !Abc_NtkIsStrash(pNtk) );
+    if ( Abc_NtkHasBdd(pNtk) )
         return 1;
-    if ( Abc_NtkIsMappedLogic(pNtk) )
+    if ( Abc_NtkHasMapping(pNtk) )
     {
         Abc_NtkMapToSop(pNtk);
         return Abc_NtkSopToBdd(pNtk);
     }
-    if ( Abc_NtkIsSopLogic(pNtk) )
+    if ( Abc_NtkHasSop(pNtk) )
         return Abc_NtkSopToBdd(pNtk);
-    if ( Abc_NtkIsAigLogic(pNtk) )
+    if ( Abc_NtkHasAig(pNtk) )
         return Abc_NtkAigToBdd(pNtk);
     assert( 0 );
     return 0;
@@ -954,23 +954,23 @@ int Abc_NtkLogicToBdd( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkLogicToAig( Abc_Ntk_t * pNtk )
+int Abc_NtkToAig( Abc_Ntk_t * pNtk )
 {
-    assert( Abc_NtkIsLogic(pNtk) );
-    if ( Abc_NtkIsAigLogic(pNtk) )
+    assert( !Abc_NtkIsStrash(pNtk) );
+    if ( Abc_NtkHasAig(pNtk) )
         return 1;
-    if ( Abc_NtkIsMappedLogic(pNtk) )
+    if ( Abc_NtkHasMapping(pNtk) )
     {
         Abc_NtkMapToSop(pNtk);
         return Abc_NtkSopToAig(pNtk);
     }
-    if ( Abc_NtkIsBddLogic(pNtk) )
+    if ( Abc_NtkHasBdd(pNtk) )
     {
         if ( !Abc_NtkBddToSop(pNtk,0) )
             return 0;
         return Abc_NtkSopToAig(pNtk);
     }
-    if ( Abc_NtkIsSopLogic(pNtk) )
+    if ( Abc_NtkHasSop(pNtk) )
         return Abc_NtkSopToAig(pNtk);
     assert( 0 );
     return 0;

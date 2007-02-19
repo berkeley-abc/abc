@@ -26,6 +26,9 @@
 ////////////////////////////////////////////////////////////////////////
 
 static void Abc_NtkAddPoBuffers( Abc_Ntk_t * pNtk );
+static Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk );
+static Abc_Ntk_t * Abc_NtkAigToLogicSop( Abc_Ntk_t * pNtk );
+static Abc_Ntk_t * Abc_NtkAigToLogicSopBench( Abc_Ntk_t * pNtk );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -42,22 +45,21 @@ static void Abc_NtkAddPoBuffers( Abc_Ntk_t * pNtk );
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkNetlistToLogic( Abc_Ntk_t * pNtk )
+Abc_Ntk_t * Abc_NtkToLogic( Abc_Ntk_t * pNtk )
 {
     Abc_Ntk_t * pNtkNew; 
     Abc_Obj_t * pObj, * pFanin;
     int i, k;
+    // consider the case of the AIG
+    if ( Abc_NtkIsStrash(pNtk) )
+        return Abc_NtkAigToLogicSop( pNtk );
     assert( Abc_NtkIsNetlist(pNtk) );
     // consider simple case when there is hierarchy
     assert( pNtk->pDesign == NULL );
-//    assert( pNtk->tName2Model == NULL );
-//    if ( pNtk->tName2Model )
-//        return Abc_NtkNetlistToLogicHie( pNtk );
+    assert( Abc_NtkWhiteboxNum(pNtk) == 0 );
+    assert( Abc_NtkBlackboxNum(pNtk) == 0 );
     // start the network
-    if ( Abc_NtkHasMapping(pNtk) )
-        pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_MAP );
-    else
-        pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, pNtk->ntkFunc );
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, pNtk->ntkFunc );
     // duplicate the nodes 
     Abc_NtkForEachNode( pNtk, pObj, i )
         Abc_NtkDupObj(pNtkNew, pObj, 0);
@@ -71,9 +73,9 @@ Abc_Ntk_t * Abc_NtkNetlistToLogic( Abc_Ntk_t * pNtk )
     Abc_NtkLogicMakeSimpleCos( pNtkNew, 0 );
     // duplicate EXDC 
     if ( pNtk->pExdc )
-        pNtkNew->pExdc = Abc_NtkNetlistToLogic( pNtk->pExdc );
+        pNtkNew->pExdc = Abc_NtkToLogic( pNtk->pExdc );
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkNetlistToLogic(): Network check has failed.\n" );
+        fprintf( stdout, "Abc_NtkToLogic(): Network check has failed.\n" );
     return pNtkNew;
 }
 
@@ -88,36 +90,18 @@ Abc_Ntk_t * Abc_NtkNetlistToLogic( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk, int fDirect )
+Abc_Ntk_t * Abc_NtkToNetlist( Abc_Ntk_t * pNtk, int fDirect )
 {
     Abc_Ntk_t * pNtkNew, * pNtkTemp; 
     assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsStrash(pNtk) );
     if ( Abc_NtkIsStrash(pNtk) )
     {
         pNtkTemp = Abc_NtkAigToLogicSop(pNtk);
-        pNtkNew = Abc_NtkLogicSopToNetlist( pNtkTemp );
+        pNtkNew = Abc_NtkLogicToNetlist( pNtkTemp );
         Abc_NtkDelete( pNtkTemp );
+        return pNtkNew;
     }
-    else if ( Abc_NtkIsBddLogic(pNtk) )
-    {
-        if ( !Abc_NtkBddToSop(pNtk, fDirect) )
-            return NULL;
-        pNtkNew = Abc_NtkLogicSopToNetlist( pNtk );
-        Abc_NtkSopToBdd(pNtk);
-    }
-    else if ( Abc_NtkIsAigLogic(pNtk) )
-    {
-        if ( !Abc_NtkAigToBdd(pNtk) )
-            return NULL;
-        if ( !Abc_NtkBddToSop(pNtk, fDirect) )
-            return NULL;
-        pNtkNew = Abc_NtkLogicSopToNetlist( pNtk );
-        Abc_NtkSopToAig(pNtk);
-    }
-    else if ( Abc_NtkIsSopLogic(pNtk) || Abc_NtkIsMappedLogic(pNtk) )
-        pNtkNew = Abc_NtkLogicSopToNetlist( pNtk );
-    else assert( 0 );
-    return pNtkNew;
+    return Abc_NtkLogicToNetlist( pNtk );
 }
 
 /**Function*************************************************************
@@ -131,12 +115,12 @@ Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk, int fDirect )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkLogicToNetlistBench( Abc_Ntk_t * pNtk )
+Abc_Ntk_t * Abc_NtkToNetlistBench( Abc_Ntk_t * pNtk )
 {
     Abc_Ntk_t * pNtkNew, * pNtkTemp; 
     assert( Abc_NtkIsStrash(pNtk) );
     pNtkTemp = Abc_NtkAigToLogicSopBench( pNtk );
-    pNtkNew = Abc_NtkLogicSopToNetlist( pNtkTemp );
+    pNtkNew = Abc_NtkLogicToNetlist( pNtkTemp );
     Abc_NtkDelete( pNtkTemp );
     return pNtkNew;
 }
@@ -156,31 +140,23 @@ Abc_Ntk_t * Abc_NtkLogicToNetlistBench( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkLogicSopToNetlist( Abc_Ntk_t * pNtk )
+Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk )
 {
     Abc_Ntk_t * pNtkNew; 
     Abc_Obj_t * pObj, * pNet, * pDriver, * pFanin;
     int i, k;
 
+    assert( Abc_NtkIsLogic(pNtk) );
+
     // remove dangling nodes
     Abc_NtkCleanup( pNtk, 0 );
 
-    assert( Abc_NtkIsLogic(pNtk) );
 //    assert( Abc_NtkLogicHasSimpleCos(pNtk) );
     if ( !Abc_NtkLogicHasSimpleCos(pNtk) )
     {
-        printf( "Abc_NtkLogicSopToNetlist() warning: The network is converted to have simple COs.\n" );
+        printf( "Abc_NtkLogicToNetlist() warning: The network is converted to have simple COs.\n" );
         Abc_NtkLogicMakeSimpleCos( pNtk, 0 );
     }
-
-    if ( Abc_NtkIsBddLogic(pNtk) )
-    {
-        if ( !Abc_NtkBddToSop(pNtk,0) )
-            return NULL;
-    }
-
-//    Abc_NtkForEachCo(pNtk, pObj, i)
-//        Abc_ObjPrint( stdout, Abc_ObjFanin0(pObj) );
 
     // start the netlist by creating PI/PO/Latch objects
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_NETLIST, pNtk->ntkFunc );
@@ -227,7 +203,7 @@ Abc_Ntk_t * Abc_NtkLogicSopToNetlist( Abc_Ntk_t * pNtk )
         if ( pObj->pCopy->pCopy ) // the net of the new object is already created
             continue;
         // create the new net
-        pNet = Abc_NtkFindOrCreateNet( pNtkNew, Abc_ObjName(pObj) );
+        pNet = Abc_NtkFindOrCreateNet( pNtkNew, Abc_ObjName(pObj) ); // here we create ridiculous names net line "n48", where 48 is the ID of the node
         Abc_ObjAddFanin( pNet, pObj->pCopy );
         pObj->pCopy->pCopy = pNet;
     }
@@ -237,9 +213,9 @@ Abc_Ntk_t * Abc_NtkLogicSopToNetlist( Abc_Ntk_t * pNtk )
             Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy->pCopy );
     // duplicate EXDC 
     if ( pNtk->pExdc )
-        pNtkNew->pExdc = Abc_NtkLogicToNetlist( pNtk->pExdc, 0 );
+        pNtkNew->pExdc = Abc_NtkToNetlist( pNtk->pExdc, 0 );
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkLogicSopToNetlist(): Network check has failed.\n" );
+        fprintf( stdout, "Abc_NtkLogicToNetlist(): Network check has failed.\n" );
     return pNtkNew;
 }
 

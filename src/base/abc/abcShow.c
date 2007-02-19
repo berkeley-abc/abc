@@ -164,7 +164,7 @@ void Abc_NtkShow( Abc_Ntk_t * pNtk, int fGateNames, int fSeq, int fUseReverse )
     }
     // convert to logic SOP
     if ( Abc_NtkIsLogic(pNtk) )
-        Abc_NtkLogicToSop( pNtk, 0 );
+        Abc_NtkToSop( pNtk, 0 );
     // create the file name
     Abc_ShowGetFileName( pNtk->pName, FileNameDot );
     // check that the file can be opened

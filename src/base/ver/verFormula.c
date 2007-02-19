@@ -72,8 +72,8 @@ static int         Ver_FormulaParserFindVar( char * pString, Vec_Ptr_t * vNames 
 ***********************************************************************/
 void * Ver_FormulaParser( char * pFormula, void * pMan, Vec_Ptr_t * vNames, Vec_Ptr_t * vStackFn, Vec_Int_t * vStackOp, char * pErrorMessage )
 {
-    Hop_Obj_t * bFunc, * bTemp;
     char * pTemp;
+    Hop_Obj_t * bFunc, * bTemp;
     int nParans, Flag;
     int Oper, Oper1, Oper2;
     int v;

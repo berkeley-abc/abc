@@ -242,9 +242,9 @@ Abc_Ntk_t * Abc_NtkStartRead( char * pName )
 ***********************************************************************/
 void Abc_NtkFinalizeRead( Abc_Ntk_t * pNtk )
 {
-    Abc_Obj_t * pBox, * pObj, * pTerm;
+    Abc_Obj_t * pBox, * pObj, * pTerm, * pNet;
     int i;
-    if ( Abc_NtkHasBlackbox(pNtk) )
+    if ( Abc_NtkHasBlackbox(pNtk) && Abc_NtkBoxNum(pNtk) == 0 )
     {
         pBox = Abc_NtkCreateBlackbox(pNtk);
         Abc_NtkForEachPi( pNtk, pObj, i )
@@ -262,8 +262,23 @@ void Abc_NtkFinalizeRead( Abc_Ntk_t * pNtk )
         return;
     }
     assert( Abc_NtkIsNetlist(pNtk) );
+
+    // check if constant 0 net is used
+    pNet = Abc_NtkFindOrCreateNet( pNtk, "1\'b0" );
+    if ( Abc_ObjFanoutNum(pNet) == 0 )
+        Abc_NtkDeleteObj(pNet);
+    else if ( Abc_ObjFaninNum(pNet) == 0 )
+        Abc_ObjAddFanin( pNet, Abc_NtkCreateNodeConst0(pNtk) );
+    // check if constant 1 net is used
+    pNet = Abc_NtkFindOrCreateNet( pNtk, "1\'b1" );
+    if ( Abc_ObjFanoutNum(pNet) == 0 )
+        Abc_NtkDeleteObj(pNet);
+    else if ( Abc_ObjFaninNum(pNet) == 0 )
+        Abc_ObjAddFanin( pNet, Abc_NtkCreateNodeConst1(pNtk) );
+
     // fix the net drivers
     Abc_NtkFixNonDrivenNets( pNtk );
+
     // reorder the CI/COs to PI/POs first
     Abc_NtkOrderCisCos( pNtk );
 }

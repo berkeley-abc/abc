@@ -55,7 +55,7 @@ static int IoCommandWritePla    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteVerilog( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteVerLib ( Abc_Frame_t * pAbc, int argc, char **argv );
 
-extern Abc_Lib_t * Ver_ParseFile( char * pFileName, Abc_Lib_t * pGateLib, int fCheck, int fUseMemMan );
+extern int glo_fMapped;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -139,11 +139,15 @@ int IoCommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
 
     fCheck = 1;
+    glo_fMapped = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ch" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "mch" ) ) != EOF )
     {
         switch ( c )
         {
+            case 'm':
+                glo_fMapped ^= 1;
+                break;
             case 'c':
                 fCheck ^= 1;
                 break;
@@ -166,10 +170,11 @@ int IoCommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: read [-ch] <file>\n" );
+    fprintf( pAbc->Err, "usage: read [-mch] <file>\n" );
     fprintf( pAbc->Err, "\t         replaces the current network by the network read from <file>\n" );
     fprintf( pAbc->Err, "\t         by calling the parser that matches the extension of <file>\n" );
     fprintf( pAbc->Err, "\t         (to read a hierarchical design, use \"read_hie\")\n" );
+    fprintf( pAbc->Err, "\t-m     : toggle reading mapped Verilog [default = %s]\n", glo_fMapped? "yes":"no" );
     fprintf( pAbc->Err, "\t-c     : toggle network check after reading [default = %s]\n", fCheck? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
     fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
@@ -332,7 +337,13 @@ int IoCommandReadBlif( Abc_Frame_t * pAbc, int argc, char ** argv )
         pNtk = Io_ReadBlifAsAig( pFileName, fCheck );
     else
 //        pNtk = Io_Read( pFileName, IO_FILE_BLIF, fCheck );
+    {
+        Abc_Ntk_t * pTemp;
         pNtk = Io_ReadBlif( pFileName, fCheck );
+        pNtk = Abc_NtkToLogic( pTemp = pNtk );
+        Abc_NtkDelete( pTemp );
+    }
+
     if ( pNtk == NULL )
         return 1;
     // replace the current network
@@ -657,11 +668,15 @@ int IoCommandReadVerilog( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
     fCheck = 1;
+    glo_fMapped = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ch" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "mch" ) ) != EOF )
     {
         switch ( c )
         {
+            case 'm':
+                glo_fMapped ^= 1;
+                break;
             case 'c':
                 fCheck ^= 1;
                 break;
@@ -684,8 +699,9 @@ int IoCommandReadVerilog( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: read_verilog [-ch] <file>\n" );
-    fprintf( pAbc->Err, "\t         read the network in Verilog (IWLS 2005 subset)\n" );
+    fprintf( pAbc->Err, "usage: read_verilog [-mch] <file>\n" );
+    fprintf( pAbc->Err, "\t         read the network in Verilog (IWLS 2002/2005 subset)\n" );
+    fprintf( pAbc->Err, "\t-m     : toggle reading mapped Verilog [default = %s]\n", glo_fMapped? "yes":"no" );
     fprintf( pAbc->Err, "\t-c     : toggle network check after reading [default = %s]\n", fCheck? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
     fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
@@ -712,6 +728,7 @@ int IoCommandReadVer( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fCheck;
     int c;
     extern Abc_Ntk_t * Abc_LibDeriveAig( Abc_Ntk_t * pNtk, Abc_Lib_t * pLib );
+    extern Abc_Lib_t * Ver_ParseFile( char * pFileName, Abc_Lib_t * pGateLib, int fCheck, int fUseMemMan );
 
     fCheck = 1;
     Extra_UtilGetoptReset();
@@ -921,11 +938,15 @@ int IoCommandWriteHie( Abc_Frame_t * pAbc, int argc, char **argv )
     char * pBaseName, * pFileName;
     int c;
 
+    glo_fMapped = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "mh" ) ) != EOF )
     {
         switch ( c )
         {
+            case 'm':
+                glo_fMapped ^= 1;
+                break;
             case 'h':
                 goto usage;
             default:
@@ -946,6 +967,7 @@ usage:
     fprintf( pAbc->Err, "usage: write_hie [-h] <orig> <file>\n" );
     fprintf( pAbc->Err, "\t         writes the current network into <file> by calling\n" );
     fprintf( pAbc->Err, "\t         the hierarchical writer that matches the extension of <file>\n" );
+    fprintf( pAbc->Err, "\t-m     : toggle reading mapped Verilog for <orig> [default = %s]\n", glo_fMapped? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\torig   : the name of the original file with the hierarchical design\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );

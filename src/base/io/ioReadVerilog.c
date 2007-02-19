@@ -45,13 +45,12 @@ Abc_Ntk_t * Io_ReadVerilog( char * pFileName, int fCheck )
 {
     Abc_Ntk_t * pNtk;
     Abc_Lib_t * pDesign;
-    int i;
 
     // parse the verilog file
-    pDesign = Ver_ParseFile( pFileName, NULL, 1, fCheck );
+    pDesign = Ver_ParseFile( pFileName, NULL, fCheck, 1 );
     if ( pDesign == NULL )
         return NULL;
-
+/*
     // extract the master network
     pNtk = Vec_PtrEntryLast( pDesign->vModules );
     pNtk->pDesign = pDesign;
@@ -72,6 +71,28 @@ Abc_Ntk_t * Io_ReadVerilog( char * pFileName, int fCheck )
         for ( i = Vec_PtrSize(pDesign->vModules) - 2; i >= 0; i-- )
             Vec_PtrWriteEntry(pDesign->vModules, i+1, Vec_PtrEntry(pDesign->vModules, i) );
         Vec_PtrWriteEntry(pDesign->vModules, 0, pNtk );
+        // check that there is no cyclic dependency
+        Abc_NtkIsAcyclicHierarchy( pNtk );
+    }
+*/
+    // extract the master network
+    pNtk = Vec_PtrEntry( pDesign->vModules, 0 );
+    pNtk->pDesign = pDesign;
+    pDesign->pManFunc = NULL;
+
+//Io_WriteVerilog( pNtk, "_temp.v" );
+
+    // verify the design for cyclic dependence
+    assert( Vec_PtrSize(pDesign->vModules) > 0 );
+    if ( Vec_PtrSize(pDesign->vModules) == 1 )
+    {
+//        printf( "Warning: The design is not hierarchical.\n" );
+        Abc_LibFree( pDesign, pNtk );
+        pNtk->pDesign = NULL;
+        pNtk->pSpec = Extra_UtilStrsav( pFileName );
+    }
+    else
+    {
         // check that there is no cyclic dependency
         Abc_NtkIsAcyclicHierarchy( pNtk );
     }

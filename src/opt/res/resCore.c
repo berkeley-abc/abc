@@ -197,7 +197,7 @@ int Abc_NtkResynthesize( Abc_Ntk_t * pNtk, Res_Par_t * pPars )
     Abc_NtkSweep( pNtk, 0 );
 
     // convert into the AIG
-    if ( !Abc_NtkLogicToAig(pNtk) )
+    if ( !Abc_NtkToAig(pNtk) )
     {
         fprintf( stdout, "Converting to BDD has failed.\n" );
         Res_ManFree( p );

@@ -3395,7 +3395,7 @@ int Abc_CommandLogic( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    pNtkRes = Abc_NtkAigToLogicSop( pNtk );
+    pNtkRes = Abc_NtkToLogic( pNtk );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Converting to a logic network has failed.\n" );
@@ -3984,7 +3984,7 @@ int Abc_CommandSop( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Converting to SOP is possible only for logic networks.\n" );
         return 1;
     }
-    if ( !Abc_NtkLogicToSop(pNtk, fDirect) )
+    if ( !Abc_NtkToSop(pNtk, fDirect) )
     {
         fprintf( pErr, "Converting to SOP has failed.\n" );
         return 1;
@@ -4047,7 +4047,7 @@ int Abc_CommandBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pOut, "The logic network is already in the BDD form.\n" );
         return 0;
     }
-    if ( !Abc_NtkLogicToBdd(pNtk) )
+    if ( !Abc_NtkToBdd(pNtk) )
     {
         fprintf( pErr, "Converting to BDD has failed.\n" );
         return 1;
@@ -4109,7 +4109,7 @@ int Abc_CommandAig( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pOut, "The logic network is already in the AIG form.\n" );
         return 0;
     }
-    if ( !Abc_NtkLogicToAig(pNtk) )
+    if ( !Abc_NtkToAig(pNtk) )
     {
         fprintf( pErr, "Converting to AIG has failed.\n" );
         return 1;
@@ -7719,7 +7719,7 @@ int Abc_CommandSuperChoiceLut( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // convert the network into the SOP network
-    pNtkRes = Abc_NtkAigToLogicSop( pNtk );
+    pNtkRes = Abc_NtkToLogic( pNtk );
 
     // get the new network
     if ( !Abc_NtkSuperChoiceLut( pNtkRes, nLutSize, nCutSizeMax, fVerbose ) )
@@ -8716,7 +8716,7 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 0;
         }
         // convert the network into an SOP network
-        pNtkRes = Abc_NtkAigToLogicSop( pNtk );
+        pNtkRes = Abc_NtkToLogic( pNtk );
         // perform the retiming
         Abc_NtkRetime( pNtkRes, Mode, fForward, fBackward, fVerbose );
         // replace the current network
@@ -8725,7 +8725,7 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the network in the SOP form
-    if ( !Abc_NtkLogicToSop(pNtk, 0) )
+    if ( !Abc_NtkToSop(pNtk, 0) )
     {
         printf( "Converting to SOPs has failed.\n" );
         return 0;
@@ -9712,7 +9712,7 @@ int Abc_CommandSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     else
     {
         assert( Abc_NtkIsLogic(pNtk) );
-        Abc_NtkLogicToBdd( pNtk );
+        Abc_NtkToBdd( pNtk );
         RetValue = Abc_NtkMiterSat( pNtk, (sint64)nConfLimit, (sint64)nInsLimit, fVerbose, NULL, NULL );
     }
 

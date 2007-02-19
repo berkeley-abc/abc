@@ -150,7 +150,7 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
                     Abc_ObjSetData( pNode, Abc_SopRegister( pNtk->pManFunc, " 0\n" ) );
                 else
                 {
-                    printf( "Cannot determine gate type \"%s\" in line %d.\n", pType, Extra_FileReaderGetLineNumber(p, 0) );
+                    printf( "Io_ReadBenchNetwork(): Cannot determine gate type \"%s\" in line %d.\n", pType, Extra_FileReaderGetLineNumber(p, 0) );
                     Vec_StrFree( vString );
                     Abc_NtkDelete( pNtk );
                     return NULL;

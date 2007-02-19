@@ -61,7 +61,7 @@ bool Abc_NtkFastExtract( Abc_Ntk_t * pNtk, Fxu_Data_t * p )
 //        Abc_NtkBddToSop(pNtk);
     }
     // get the network in the SOP form
-    if ( !Abc_NtkLogicToSop(pNtk, 0) )
+    if ( !Abc_NtkToSop(pNtk, 0) )
     {
         printf( "Abc_NtkFastExtract(): Converting to SOPs has failed.\n" );
         return 0;

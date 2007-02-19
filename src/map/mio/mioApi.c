@@ -60,6 +60,30 @@ float             Mio_LibraryReadAreaNand2     ( Mio_Library_t * pLib )  { retur
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the longest gate name.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Mio_LibraryReadGateNameMax( Mio_Library_t * pLib )
+{
+    Mio_Gate_t * pGate;
+    int LenMax = 0, LenCur;
+    Mio_LibraryForEachGate( pLib, pGate )
+    {
+        LenCur = strlen( Mio_GateReadName(pGate) );
+        if ( LenMax < LenCur )
+            LenMax = LenCur;
+    }
+    return LenMax;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Read Mvc of the gate by name.]
 
   Description []

@@ -677,7 +677,7 @@ void ABC_Dump_Bench_File( ABC_Manager mng )
  
     // derive the netlist
     pNtkAig = Abc_NtkStrash( mng->pNtk, 0, 0 );
-    pNtkTemp = Abc_NtkLogicToNetlistBench( pNtkAig );
+    pNtkTemp = Abc_NtkToNetlistBench( pNtkAig );
     Abc_NtkDelete( pNtkAig );
     if ( pNtkTemp == NULL ) 
         { printf( "ABC_Dump_Bench_File: Dumping BENCH has failed.\n" ); return; }

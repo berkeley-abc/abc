@@ -1404,6 +1404,8 @@ void Abc_NtkReassignIds( Abc_Ntk_t * pNtk )
 
     // rehash the AIG
     Abc_AigRehash( pNtk->pManFunc );
+
+    // update the name manager!!!
 }
 
 /**Function*************************************************************

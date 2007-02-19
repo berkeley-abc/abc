@@ -195,7 +195,7 @@ Abc_Ntk_t * Abc_NtkFlattenLogicHierarchy( Abc_Ntk_t * pNtk )
     // recursively flatten hierarchy, create internal logic, add new PI/PO names if there are black boxes
     Counter = -1;
     Abc_NtkFlattenLogicHierarchy_rec( pNtkNew, pNtk, &Counter );
-    printf( "Hierarchy reader flattened %d logic instances. Preserved %d black boxes.\n", 
+    printf( "Hierarchy reader flattened %d instances of logic boxes and left %d black boxes.\n", 
         Counter, Abc_NtkBlackboxNum(pNtkNew) );
 
     // pass the design
@@ -249,44 +249,29 @@ Abc_Ntk_t * Abc_NtkConvertBlackboxes( Abc_Ntk_t * pNtk )
     // clean the node copy fields
     Abc_NtkCleanCopy( pNtk );
 
-    // create PIs/POs for the box inputs/outputs
     // mark the nodes that should not be connected
     Abc_NtkIncrementTravId( pNtk );
     Abc_NtkForEachBlackbox( pNtk, pObj, i )
-    {
         Abc_NodeSetTravIdCurrent( pObj );
-        Abc_ObjForEachFanout( pObj, pTerm, k )
-        {
-            pNet = Abc_ObjFanout0(pTerm);
-            if ( pNet->pCopy )
-            {
-                printf( "Error in Abc_NtkConvertBlackboxes(): Output %s of a black box has a non-unique name.\n", Abc_ObjName(pNet->pCopy) );
-                Abc_NtkDelete( pNtkNew );
-                return NULL;
-            }
-            pNet->pCopy = Abc_NtkFindOrCreateNet( pNtkNew, Abc_ObjName(pNet) );
-            pTerm->pCopy = Abc_NtkCreatePi( pNtkNew );
-            Abc_NodeSetTravIdCurrent( pTerm );
-        }
-    }
+    Abc_NtkForEachCi( pNtk, pTerm, i )
+        Abc_NodeSetTravIdCurrent( pTerm );
+    Abc_NtkForEachCo( pNtk, pTerm, i )
+        Abc_NodeSetTravIdCurrent( pTerm );
+    // unmark PIs and LIs/LOs
+    Abc_NtkForEachPi( pNtk, pTerm, i )
+        Abc_NodeSetTravIdPrevious( pTerm );
+    Abc_NtkForEachLatchInput( pNtk, pTerm, i )
+        Abc_NodeSetTravIdPrevious( pTerm );
+    Abc_NtkForEachLatchOutput( pNtk, pTerm, i )
+        Abc_NodeSetTravIdPrevious( pTerm );
+    // copy the box outputs
     Abc_NtkForEachBlackbox( pNtk, pObj, i )
-    {
-        Abc_ObjForEachFanin( pObj, pTerm, k )
-        {
-            pNet = Abc_ObjFanin0(pTerm);
-            if ( pNet->pCopy && !Abc_ObjIsCi(Abc_ObjFanin0(pNet)) )
-            {
-                Abc_NodeSetTravIdCurrent( pTerm );
-                continue;
-            }
-            pNet->pCopy = Abc_NtkFindOrCreateNet( pNtkNew, Abc_ObjName(pNet) );
-            pTerm->pCopy = Abc_NtkCreatePo( pNtkNew );
-        }
-    }
+        Abc_ObjForEachFanout( pObj, pTerm, k )
+            pTerm->pCopy = Abc_NtkCreatePi( pNtkNew );
 
     // duplicate other objects
     Abc_NtkForEachObj( pNtk, pObj, i )
-        if ( !Abc_NodeIsTravIdCurrent(pObj) && pObj->pCopy == NULL )
+        if ( !Abc_NodeIsTravIdCurrent(pObj) )
             Abc_NtkDupObj( pNtkNew, pObj, Abc_ObjIsNet(pObj) );
 
     // connect all objects
@@ -294,6 +279,23 @@ Abc_Ntk_t * Abc_NtkConvertBlackboxes( Abc_Ntk_t * pNtk )
         if ( !Abc_NodeIsTravIdCurrent(pObj) )
             Abc_ObjForEachFanin( pObj, pFanin, k )
                 Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
+
+    // create unique PO for each net feeding into blackboxes or POs
+    Abc_NtkIncrementTravId( pNtk );
+    Abc_NtkForEachCo( pNtk, pTerm, i )
+    {
+        // skip latch inputs
+        assert( Abc_ObjFanoutNum(pTerm) <= 1 );
+        if ( Abc_ObjFanoutNum(pTerm) > 0 && Abc_ObjIsLatch(Abc_ObjFanout0(pTerm)) )
+            continue;
+        // check if the net is visited
+        pNet = Abc_ObjFanin0(pTerm);
+        if ( Abc_NodeIsTravIdCurrent(pNet) )
+            continue;
+        // create PO
+        Abc_NodeSetTravIdCurrent( pNet );
+        Abc_ObjAddFanin( Abc_NtkCreatePo(pNtkNew), pNet->pCopy );
+    }
 
     // check integrity
     if ( !Abc_NtkCheck( pNtkNew ) )
@@ -337,18 +339,11 @@ Abc_Ntk_t * Abc_NtkInsertNewLogic( Abc_Ntk_t * pNtkH, Abc_Ntk_t * pNtkL )
     assert( Abc_NtkWhiteboxNum(pNtkL) == 0 );
     assert( Abc_NtkBlackboxNum(pNtkL) == 0 );
 
-    if ( Abc_NtkIsSopNetlist(pNtkH) && Abc_NtkIsAigNetlist(pNtkL) )
-        Abc_NtkSopToAig( pNtkH );
-    if ( Abc_NtkIsAigNetlist(pNtkH) && Abc_NtkIsSopNetlist(pNtkL) )
-        Abc_NtkSopToAig( pNtkL );
-
-    assert( pNtkH->ntkFunc == pNtkL->ntkFunc );
-
     // prepare the logic network for copying
     Abc_NtkCleanCopy( pNtkL );
 
     // start the network
-    pNtkNew = Abc_NtkAlloc( pNtkH->ntkType, pNtkH->ntkFunc, 1 );
+    pNtkNew = Abc_NtkAlloc( pNtkL->ntkType, pNtkL->ntkFunc, 1 );
     // duplicate the name and the spec
     pNtkNew->pName = Extra_UtilStrsav( pNtkH->pName );
     pNtkNew->pSpec = Extra_UtilStrsav( pNtkH->pSpec );

@@ -100,7 +100,7 @@ char * Ver_ParseGetName( Ver_Man_t * pMan )
     {
         pMan->fNameLast = 1;
         Ver_StreamPopChar( p );
-        pWord = Ver_StreamGetWord( p, " " );
+        pWord = Ver_StreamGetWord( p, " \r\n" );
     }
     else
         pWord = Ver_StreamGetWord( p, " \t\n\r(),;" );

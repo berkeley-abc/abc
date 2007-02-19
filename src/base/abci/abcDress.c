@@ -63,7 +63,7 @@ void Abc_NtkDress( Abc_Ntk_t * pNtkLogic, char * pFileName, int fVerbose )
     Abc_NtkCleanCopy(pNtkOrig);
 
     // convert it into the logic network
-    pNtkLogicOrig = Abc_NtkNetlistToLogic( pNtkOrig );
+    pNtkLogicOrig = Abc_NtkToLogic( pNtkOrig );
     // check that the networks have the same PIs/POs/latches
     if ( !Abc_NtkCompareSignals( pNtkLogic, pNtkLogicOrig, 1, 1 ) )
     {

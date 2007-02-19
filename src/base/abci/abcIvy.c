@@ -27,9 +27,9 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static Abc_Ntk_t *  Abc_NtkFromAig( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan );
-static Abc_Ntk_t *  Abc_NtkFromAigSeq( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan, int fHaig );
-static Ivy_Man_t *  Abc_NtkToAig( Abc_Ntk_t * pNtkOld );
+static Abc_Ntk_t *  Abc_NtkFromIvy( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan );
+static Abc_Ntk_t *  Abc_NtkFromIvySeq( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan, int fHaig );
+static Ivy_Man_t *  Abc_NtkToIvy( Abc_Ntk_t * pNtkOld );
 
 static void         Abc_NtkStrashPerformAig( Abc_Ntk_t * pNtk, Ivy_Man_t * pMan );
 static Ivy_Obj_t *  Abc_NodeStrashAig( Ivy_Man_t * pMan, Abc_Obj_t * pNode );
@@ -93,7 +93,7 @@ Ivy_Man_t * Abc_NtkIvyBefore( Abc_Ntk_t * pNtk, int fSeq, int fUseDc )
     if ( Abc_NtkGetChoiceNum( pNtk ) )
         printf( "Warning: The choice nodes in the initial AIG are removed by strashing.\n" );
     // convert to the AIG manager
-    pMan = Abc_NtkToAig( pNtk );
+    pMan = Abc_NtkToIvy( pNtk );
     if ( !Ivy_ManCheck( pMan ) )
     {
         printf( "AIG check has failed.\n" );
@@ -130,9 +130,9 @@ Abc_Ntk_t * Abc_NtkIvyAfter( Abc_Ntk_t * pNtk, Ivy_Man_t * pMan, int fSeq, int f
     int nNodes, fCleanup = 1;
     // convert from the AIG manager
     if ( fSeq )
-        pNtkAig = Abc_NtkFromAigSeq( pNtk, pMan, fHaig );
+        pNtkAig = Abc_NtkFromIvySeq( pNtk, pMan, fHaig );
     else
-        pNtkAig = Abc_NtkFromAig( pNtk, pMan );
+        pNtkAig = Abc_NtkFromIvy( pNtk, pMan );
     // report the cleanup results
     if ( !fHaig && fCleanup && (nNodes = Abc_AigCleanup(pNtkAig->pManFunc)) )
         printf( "Warning: AIG cleanup removed %d nodes (this is not a bug).\n", nNodes );
@@ -608,7 +608,7 @@ Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk )
         printf( "Warning: The choice nodes in the initial AIG are removed by strashing.\n" );
 
     // convert to the AIG manager
-    pMan = Abc_NtkToAig( pNtk );
+    pMan = Abc_NtkToIvy( pNtk );
     if ( !Ivy_ManCheck( pMan ) )
     {
         Vec_IntFree( vInit );
@@ -654,8 +654,8 @@ Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk )
 
 /*
     // convert from the AIG manager
-    pNtkAig = Abc_NtkFromAig( pNtk, pMan );
-//    pNtkAig = Abc_NtkFromAigSeq( pNtk, pMan );
+    pNtkAig = Abc_NtkFromIvy( pNtk, pMan );
+//    pNtkAig = Abc_NtkFromIvySeq( pNtk, pMan );
     Ivy_ManStop( pMan );
 
     // report the cleanup results
@@ -691,7 +691,7 @@ Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkFromAig( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan )
+Abc_Ntk_t * Abc_NtkFromIvy( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan )
 {
     Vec_Int_t * vNodes;
     Abc_Ntk_t * pNtk;
@@ -732,7 +732,7 @@ Abc_Ntk_t * Abc_NtkFromAig( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan )
     }
     Vec_IntFree( vNodes );
     if ( !Abc_NtkCheck( pNtk ) )
-        fprintf( stdout, "Abc_NtkFromAig(): Network check has failed.\n" );
+        fprintf( stdout, "Abc_NtkFromIvy(): Network check has failed.\n" );
     return pNtk;
 }
 
@@ -747,7 +747,7 @@ Abc_Ntk_t * Abc_NtkFromAig( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkFromAigSeq( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan, int fHaig )
+Abc_Ntk_t * Abc_NtkFromIvySeq( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan, int fHaig )
 {
     Vec_Int_t * vNodes, * vLatches;
     Abc_Ntk_t * pNtk;
@@ -830,7 +830,7 @@ Abc_Ntk_t * Abc_NtkFromAigSeq( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan, int fHaig 
     Vec_IntFree( vLatches );
     Vec_IntFree( vNodes );
     if ( !Abc_NtkCheck( pNtk ) )
-        fprintf( stdout, "Abc_NtkFromAigSeq(): Network check has failed.\n" );
+        fprintf( stdout, "Abc_NtkFromIvySeq(): Network check has failed.\n" );
     return pNtk;
 }
 
@@ -845,7 +845,7 @@ Abc_Ntk_t * Abc_NtkFromAigSeq( Abc_Ntk_t * pNtkOld, Ivy_Man_t * pMan, int fHaig 
   SeeAlso     []
 
 ***********************************************************************/
-Ivy_Man_t * Abc_NtkToAig( Abc_Ntk_t * pNtkOld )
+Ivy_Man_t * Abc_NtkToIvy( Abc_Ntk_t * pNtkOld )
 {
     Ivy_Man_t * pMan;
     Abc_Obj_t * pObj;

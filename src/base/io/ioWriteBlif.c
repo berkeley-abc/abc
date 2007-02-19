@@ -32,9 +32,9 @@ static void Io_NtkWritePis( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches );
 static void Io_NtkWritePos( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches );
 static void Io_NtkWriteSubckt( FILE * pFile, Abc_Obj_t * pNode );
 static void Io_NtkWriteAsserts( FILE * pFile, Abc_Ntk_t * pNtk );
-static void Io_NtkWriteNodeGate( FILE * pFile, Abc_Obj_t * pNode );
+static void Io_NtkWriteNodeGate( FILE * pFile, Abc_Obj_t * pNode, int Length );
 static void Io_NtkWriteNodeFanins( FILE * pFile, Abc_Obj_t * pNode );
-static void Io_NtkWriteNode( FILE * pFile, Abc_Obj_t * pNode );
+static void Io_NtkWriteNode( FILE * pFile, Abc_Obj_t * pNode, int Length );
 static void Io_NtkWriteLatch( FILE * pFile, Abc_Obj_t * pLatch );
 
 ////////////////////////////////////////////////////////////////////////
@@ -56,7 +56,7 @@ void Io_WriteBlifLogic( Abc_Ntk_t * pNtk, char * FileName, int fWriteLatches )
 {
     Abc_Ntk_t * pNtkTemp;
     // derive the netlist
-    pNtkTemp = Abc_NtkLogicToNetlist(pNtk,0);
+    pNtkTemp = Abc_NtkToNetlist(pNtk,0);
     if ( pNtkTemp == NULL )
     {
         fprintf( stdout, "Writing BLIF has failed.\n" );
@@ -97,13 +97,22 @@ void Io_WriteBlif( Abc_Ntk_t * pNtk, char * FileName, int fWriteLatches )
     if ( Abc_NtkBlackboxNum(pNtk) > 0 )
     {
         Abc_Ntk_t * pNtkTemp;
-        Abc_Obj_t * pObj;
         int i;
+/*
+        Abc_Obj_t * pObj;
         Abc_NtkForEachBlackbox( pNtk, pObj, i )
         {
             pNtkTemp = pObj->pData;
             assert( pNtkTemp != NULL && Abc_NtkHasBlackbox(pNtkTemp) );
-            fprintf( pFile, "\n\n", Abc_NtkName(pNtk) );
+            fprintf( pFile, "\n\n" );
+            Io_NtkWrite( pFile, pNtkTemp, fWriteLatches );
+        }
+*/
+        Vec_PtrForEachEntry( pNtk->pDesign->vModules, pNtkTemp, i )
+        {
+            if ( pNtkTemp == pNtk )
+                continue;
+            fprintf( pFile, "\n\n" );
             Io_NtkWrite( pFile, pNtkTemp, fWriteLatches );
         }
     }
@@ -156,7 +165,7 @@ void Io_NtkWriteOne( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches )
 {
     ProgressBar * pProgress;
     Abc_Obj_t * pNode, * pLatch;
-    int i;
+    int i, Length;
 
     // write the PIs
     fprintf( pFile, ".inputs" );
@@ -206,11 +215,12 @@ void Io_NtkWriteOne( FILE * pFile, Abc_Ntk_t * pNtk, int fWriteLatches )
     }
 
     // write each internal node
+    Length = Abc_NtkHasMapping(pNtk)? Mio_LibraryReadGateNameMax(pNtk->pManFunc) : 0;
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkObjNumMax(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
-        Io_NtkWriteNode( pFile, pNode );
+        Io_NtkWriteNode( pFile, pNode, Length );
     }
     Extra_ProgressBarStop( pProgress );
 }
@@ -454,13 +464,13 @@ void Io_NtkWriteLatch( FILE * pFile, Abc_Obj_t * pLatch )
   SeeAlso     []
 
 ***********************************************************************/
-void Io_NtkWriteNode( FILE * pFile, Abc_Obj_t * pNode )
+void Io_NtkWriteNode( FILE * pFile, Abc_Obj_t * pNode, int Length )
 {
     if ( Abc_NtkHasMapping(pNode->pNtk) )
     {
         // write the .gate line
         fprintf( pFile, ".gate" );
-        Io_NtkWriteNodeGate( pFile, pNode );
+        Io_NtkWriteNodeGate( pFile, pNode, Length );
         fprintf( pFile, "\n" );
     }
     else
@@ -485,17 +495,17 @@ void Io_NtkWriteNode( FILE * pFile, Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-void Io_NtkWriteNodeGate( FILE * pFile, Abc_Obj_t * pNode )
+void Io_NtkWriteNodeGate( FILE * pFile, Abc_Obj_t * pNode, int Length )
 {
     Mio_Gate_t * pGate = pNode->pData;
     Mio_Pin_t * pGatePin;
     int i;
     // write the node
-    fprintf( pFile, " %s ", Mio_GateReadName(pGate) );
+    fprintf( pFile, " %-*s ", Length, Mio_GateReadName(pGate) );
     for ( pGatePin = Mio_GateReadPins(pGate), i = 0; pGatePin; pGatePin = Mio_PinReadNext(pGatePin), i++ )
         fprintf( pFile, "%s=%s ", Mio_PinReadName(pGatePin), Abc_ObjName( Abc_ObjFanin(pNode,i) ) );
     assert ( i == Abc_ObjFaninNum(pNode) );
-    fprintf( pFile, "%s=%s", Mio_GateReadOutName(pGate), Abc_ObjName(pNode) );
+    fprintf( pFile, "%s=%s", Mio_GateReadOutName(pGate), Abc_ObjName( Abc_ObjFanout0(pNode) ) );
 }
 
 /**Function*************************************************************

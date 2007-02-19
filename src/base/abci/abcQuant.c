@@ -30,6 +30,39 @@
 
 /**Function*************************************************************
 
+  Synopsis    [Performs fast synthesis.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkSynthesize( Abc_Ntk_t ** ppNtk, int fMoreEffort )
+{
+    Abc_Ntk_t * pNtk, * pNtkTemp;
+
+    pNtk = *ppNtk;
+
+    Abc_NtkRewrite( pNtk, 0, 0, 0, 0, 0 );
+    Abc_NtkRefactor( pNtk, 10, 16, 0, 0, 0, 0 );
+    pNtk = Abc_NtkBalance( pNtkTemp = pNtk, 0, 0, 0 );          
+    Abc_NtkDelete( pNtkTemp );
+
+    if ( fMoreEffort )
+    {
+        Abc_NtkRewrite( pNtk, 0, 0, 0, 0, 0 );
+        Abc_NtkRefactor( pNtk, 10, 16, 0, 0, 0, 0 );
+        pNtk = Abc_NtkBalance( pNtkTemp = pNtk, 0, 0, 0 );          
+        Abc_NtkDelete( pNtkTemp );
+    }
+
+    *ppNtk = pNtk;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Existentially quantifies one variable.]
 
   Description []
@@ -113,6 +146,7 @@ Abc_Ntk_t * Abc_NtkTransRel( Abc_Ntk_t * pNtk, int fInputs, int fVerbose )
     Abc_Ntk_t * pNtkNew;
     Abc_Obj_t * pObj, * pMiter;
     int i, nLatches;
+    int fSynthesis = 1;
 
     assert( Abc_NtkIsStrash(pNtk) );
     assert( Abc_NtkLatchNum(pNtk) );
@@ -136,7 +170,10 @@ Abc_Ntk_t * Abc_NtkTransRel( Abc_Ntk_t * pNtk, int fInputs, int fVerbose )
     // create PI variables
     Abc_NtkForEachPi( pNtk, pObj, i )
         Abc_NtkDupObj( pNtkNew, pObj, 1 );
+    // create the PO
+    Abc_NtkCreatePo( pNtkNew );
     // restrash the nodes (assuming a topological order of the old network)
+    Abc_AigConst1(pNtk)->pCopy = Abc_AigConst1(pNtkNew);
     Abc_NtkForEachNode( pNtk, pObj, i )
         pObj->pCopy = Abc_AigAnd( pNtkNew->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
     // create the function of the primary output
@@ -150,7 +187,7 @@ Abc_Ntk_t * Abc_NtkTransRel( Abc_Ntk_t * pNtk, int fInputs, int fVerbose )
     pMiter = Abc_AigMiter( pNtkNew->pManFunc, vPairs );
     Vec_PtrFree( vPairs );
     // add the primary output
-    Abc_ObjAddFanin( Abc_NtkCreatePo(pNtkNew), Abc_ObjNot(pMiter) );
+    Abc_ObjAddFanin( Abc_NtkPo(pNtkNew,0), Abc_ObjNot(pMiter) );
     Abc_ObjAssignName( Abc_NtkPo(pNtkNew,0), "rel", NULL );
 
     // quantify inputs
@@ -158,7 +195,20 @@ Abc_Ntk_t * Abc_NtkTransRel( Abc_Ntk_t * pNtk, int fInputs, int fVerbose )
     {
         assert( Abc_NtkPiNum(pNtkNew) == Abc_NtkPiNum(pNtk) + 2*nLatches );
         for ( i = Abc_NtkPiNum(pNtkNew) - 1; i >= 2*nLatches; i-- )
+//        for ( i = 2*nLatches; i < Abc_NtkPiNum(pNtkNew); i++ )
+        {
             Abc_NtkQuantify( pNtkNew, i, fVerbose );
+//            if ( fSynthesis && (i % 3 == 2) )
+            if ( fSynthesis  )
+            {
+                Abc_NtkCleanData( pNtkNew );
+                Abc_AigCleanup( pNtkNew->pManFunc );
+                Abc_NtkSynthesize( &pNtkNew, 1 );
+            }
+//            printf( "Var = %3d. Nodes = %6d. ", Abc_NtkPiNum(pNtkNew) - 1 - i, Abc_NtkNodeNum(pNtkNew) );
+//            printf( "Var = %3d. Nodes = %6d. ", i - 2*nLatches, Abc_NtkNodeNum(pNtkNew) );
+        }
+//        printf( "\n" );
         Abc_NtkCleanData( pNtkNew );
         Abc_AigCleanup( pNtkNew->pManFunc );
         for ( i = Abc_NtkPiNum(pNtkNew) - 1; i >= 2*nLatches; i-- )
@@ -169,7 +219,7 @@ Abc_Ntk_t * Abc_NtkTransRel( Abc_Ntk_t * pNtk, int fInputs, int fVerbose )
         }
     }
 
-    // make sure that everything is okay
+    // check consistency of the network
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
         printf( "Abc_NtkTransRel: The network check has failed.\n" );
@@ -263,6 +313,7 @@ Abc_Ntk_t * Abc_NtkReachability( Abc_Ntk_t * pNtkRel, int nIters, int fVerbose )
     int clk, i, v, nVars, nNodesOld, nNodesNew, nNodesPrev;
     int fFixedPoint = 0;
     int fSynthesis  = 1;
+    int fMoreEffort = 1;
 
     assert( Abc_NtkIsStrash(pNtkRel) );
     assert( Abc_NtkLatchNum(pNtkRel) == 0 );
@@ -273,8 +324,8 @@ Abc_Ntk_t * Abc_NtkReachability( Abc_Ntk_t * pNtkRel, int nIters, int fVerbose )
     pNtkReached = Abc_NtkDup( pNtkFront );
 //Abc_NtkShow( pNtkReached, 0, 0, 0 );
 
-    if ( fVerbose )
-        printf( "Transition relation = %6d.\n", Abc_NtkNodeNum(pNtkRel) );
+//    if ( fVerbose )
+//        printf( "Transition relation = %6d.\n", Abc_NtkNodeNum(pNtkRel) );
 
     // perform iterations of reachability analysis
     nNodesPrev = Abc_NtkNodeNum(pNtkFront);
@@ -293,25 +344,13 @@ Abc_Ntk_t * Abc_NtkReachability( Abc_Ntk_t * pNtkRel, int nIters, int fVerbose )
             {
                 Abc_NtkCleanData( pNtkNext );
                 Abc_AigCleanup( pNtkNext->pManFunc );
-
-                Abc_NtkRewrite( pNtkNext, 0, 0, 0, 0, 0 );
-                pNtkNext = Abc_NtkBalance( pNtkTemp = pNtkNext, 0, 0, 0 );          
-                Abc_NtkDelete( pNtkTemp );
+                Abc_NtkSynthesize( &pNtkNext, fMoreEffort );
             }
         }
         Abc_NtkCleanData( pNtkNext );
         Abc_AigCleanup( pNtkNext->pManFunc );
         if ( fSynthesis )
-        {
-            Abc_NtkRewrite( pNtkNext, 0, 0, 0, 0, 0 );
-            pNtkNext = Abc_NtkBalance( pNtkTemp = pNtkNext, 0, 0, 0 );          
-            Abc_NtkDelete( pNtkTemp );
-
-            Abc_NtkRewrite( pNtkNext, 0, 0, 0, 0, 0 );
-            Abc_NtkRefactor( pNtkReached, 10, 16, 0, 0, 0, 0 );
-            pNtkNext = Abc_NtkBalance( pNtkTemp = pNtkNext, 0, 0, 0 );          
-            Abc_NtkDelete( pNtkTemp );
-        }
+            Abc_NtkSynthesize( &pNtkNext, 1 );
         // map the next states into the current states
         pNtkNext = Abc_NtkSwapVariables( pNtkTemp = pNtkNext );
         Abc_NtkDelete( pNtkTemp );
@@ -333,33 +372,21 @@ Abc_Ntk_t * Abc_NtkReachability( Abc_Ntk_t * pNtkRel, int nIters, int fVerbose )
         nNodesOld = Abc_NtkNodeNum(pNtkFront);
         if ( fSynthesis )
         {
-            Abc_NtkRewrite( pNtkFront, 0, 0, 0, 0, 0 );
-            pNtkFront = Abc_NtkBalance( pNtkTemp = pNtkFront, 0, 0, 0 );          
-            Abc_NtkDelete( pNtkTemp );
-
-            Abc_NtkRewrite( pNtkReached, 0, 0, 0, 0, 0 );
-            pNtkReached = Abc_NtkBalance( pNtkTemp = pNtkReached, 0, 0, 0 );          
-            Abc_NtkDelete( pNtkTemp );
+            Abc_NtkSynthesize( &pNtkFront, fMoreEffort );
+            Abc_NtkSynthesize( &pNtkReached, fMoreEffort );
         }
         nNodesNew = Abc_NtkNodeNum(pNtkFront);
         // print statistics
         if ( fVerbose )
         {
-            printf( "I = %3d : Reached = %6d  Front = %6d  FrontM = %6d  %6.2f %%   ", 
-                i + 1, Abc_NtkNodeNum(pNtkReached), nNodesOld, nNodesNew, 100.0*(nNodesNew-nNodesPrev)/nNodesNew );
+            printf( "I = %3d : Reach = %6d  Fr = %6d  FrM = %6d  %7.2f %%   ", 
+                i + 1, Abc_NtkNodeNum(pNtkReached), nNodesOld, nNodesNew, 100.0*(nNodesNew-nNodesPrev)/nNodesPrev );
             PRT( "T", clock() - clk );
         }
         nNodesPrev = Abc_NtkNodeNum(pNtkFront);
     }
     if ( !fFixedPoint )
         fprintf( stdout, "Reachability analysis stopped after %d iterations.\n", nIters );
-
-    // report the stats
-    if ( fVerbose )
-    {
-//        nMints = 1;
-//        fprintf( stdout, "The estimated number of minterms in the reachable state set = %d. (%6.2f %%)\n", nMints, 100.0*nMints/(1<<Abc_NtkLatchNum(pNtk)) );
-    }
 
     // complement the output to represent the set of unreachable states
     Abc_ObjXorFaninC( Abc_NtkPo(pNtkReached,0), 0 );
@@ -372,7 +399,7 @@ Abc_Ntk_t * Abc_NtkReachability( Abc_Ntk_t * pNtkRel, int nIters, int fVerbose )
         Abc_NtkDeleteObj( pObj );
     }
 
-    // make sure that everything is okay
+    // check consistency of the network
     if ( !Abc_NtkCheck( pNtkReached ) )
     {
         printf( "Abc_NtkReachability: The network check has failed.\n" );

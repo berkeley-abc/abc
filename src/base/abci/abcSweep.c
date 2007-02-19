@@ -536,7 +536,7 @@ int Abc_NtkSweep( Abc_Ntk_t * pNtk, int fVerbose )
     int i, nNodesOld;
     assert( Abc_NtkIsLogic(pNtk) ); 
     // convert network to BDD representation
-    if ( !Abc_NtkLogicToBdd(pNtk) )
+    if ( !Abc_NtkToBdd(pNtk) )
     {
         fprintf( stdout, "Converting to BDD has failed.\n" );
         return 1;

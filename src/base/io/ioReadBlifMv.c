@@ -98,6 +98,7 @@ static int               Io_MvParseLineSubckt( Io_MvMod_t * p, char * pLine );
 static int               Io_MvParseLineMv( Io_MvMod_t * p, char * pLine );
 static int               Io_MvParseLineNamesMv( Io_MvMod_t * p, char * pLine, int fReset );
 static int               Io_MvParseLineNamesBlif( Io_MvMod_t * p, char * pLine );
+static int               Io_MvParseLineGateBlif( Io_MvMod_t * p, Vec_Ptr_t * vTokens );
 
 static int               Io_MvCharIsSpace( char s )  { return s == ' ' || s == '\t' || s == '\r' || s == '\n';  }
 static int               Io_MvCharIsMvSymb( char s ) { return s == '(' || s == ')' || s == '{' || s == '}' || s == '-' || s == ',' || s == '!';  }
@@ -568,7 +569,7 @@ static void Io_MvReadPreparse( Io_MvMan_t * p )
         // parse directives
         if ( *(pCur-1) != '.' )
             continue;
-        if ( !strncmp(pCur, "names", 5) || !strncmp(pCur, "table", 5) )
+        if ( !strncmp(pCur, "names", 5) || !strncmp(pCur, "table", 5) || !strncmp(pCur, "gate", 4) )
             Vec_PtrPush( p->pLatest->vNames, pCur );
         else if ( p->fBlifMv && (!strncmp(pCur, "def ", 4) || !strncmp(pCur, "default ", 8)) )
             continue;
@@ -1464,6 +1465,10 @@ static int Io_MvParseLineNamesBlif( Io_MvMod_t * p, char * pLine )
     char * pName;
     assert( !p->pMan->fBlifMv );
     Io_MvSplitIntoTokens( vTokens, pLine, '\0' );
+    // parse the mapped node
+    if ( !strcmp(Vec_PtrEntry(vTokens,0), "gate") )
+        return Io_MvParseLineGateBlif( p, vTokens );
+    // parse the regular name line
     assert( !strcmp(Vec_PtrEntry(vTokens,0), "names") );
     pName = Vec_PtrEntryLast( vTokens );
     pNet = Abc_NtkFindOrCreateNet( p->pNtk, pName );
@@ -1482,6 +1487,104 @@ static int Io_MvParseLineNamesBlif( Io_MvMod_t * p, char * pLine )
     return 1;
 }
 
+
+#include "mio.h"
+#include "main.h"
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static char * Io_ReadBlifCleanName( char * pName )
+{
+    int i, Length;
+    Length = strlen(pName);
+    for ( i = 0; i < Length; i++ )
+        if ( pName[i] == '=' )
+            return pName + i + 1;
+    return NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Io_MvParseLineGateBlif( Io_MvMod_t * p, Vec_Ptr_t * vTokens )
+{
+    Mio_Library_t * pGenlib; 
+    Mio_Gate_t * pGate;
+    Abc_Obj_t * pNode;
+    char ** ppNames, * pName;
+    int i, nNames;
+
+    pName = vTokens->pArray[0];
+
+    // check that the library is available
+    pGenlib = Abc_FrameReadLibGen();
+    if ( pGenlib == NULL )
+    {
+        sprintf( p->pMan->sError, "Line %d: The current library is not available.", Io_MvGetLine(p->pMan, pName) );
+        return 0;
+    }
+
+    // create a new node and add it to the network
+    if ( vTokens->nSize < 2 )
+    {
+        sprintf( p->pMan->sError, "Line %d: The .gate line has less than two tokens.", Io_MvGetLine(p->pMan, pName) );
+        return 0;
+    }
+
+    // get the gate
+    pGate = Mio_LibraryReadGateByName( pGenlib, vTokens->pArray[1] );
+    if ( pGate == NULL )
+    {
+        sprintf( p->pMan->sError, "Line %d: Cannot find gate \"%s\" in the library.", Io_MvGetLine(p->pMan, pName), vTokens->pArray[1] );
+        return 0;
+    }
+
+    // if this is the first line with gate, update the network type
+    if ( Abc_NtkNodeNum(p->pNtk) == 0 )
+    {
+        assert( p->pNtk->ntkFunc == ABC_FUNC_SOP );
+        p->pNtk->ntkFunc = ABC_FUNC_MAP;
+        Extra_MmFlexStop( p->pNtk->pManFunc );
+        p->pNtk->pManFunc = pGenlib;
+    }
+
+    // remove the formal parameter names
+    for ( i = 2; i < vTokens->nSize; i++ )
+    {
+        vTokens->pArray[i] = Io_ReadBlifCleanName( vTokens->pArray[i] );
+        if ( vTokens->pArray[i] == NULL )
+        {
+            sprintf( p->pMan->sError, "Line %d: Invalid gate input assignment.", Io_MvGetLine(p->pMan, pName) );
+            return 0;
+        }
+    }
+
+    // create the node
+    ppNames = (char **)vTokens->pArray + 2;
+    nNames  = vTokens->nSize - 3;
+    pNode   = Io_ReadCreateNode( p->pNtk, ppNames[nNames], ppNames, nNames );
+
+    // set the pointer to the functionality of the node
+    Abc_ObjSetData( pNode, pGate );
+    return 1;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

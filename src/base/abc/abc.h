@@ -222,6 +222,7 @@ struct Abc_Lib_t_
     Vec_Ptr_t *       vModules;      // the array of modules
     st_table *        tModules;      // the table hashing module names into their networks
     Abc_Lib_t *       pLibrary;      // the library used to map this design
+    void *            pGenlib;       // the genlib library used to map this design
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -468,11 +469,11 @@ static inline void        Abc_ObjSetMvVar( Abc_Obj_t * pObj, void * pV) { Vec_At
     for ( i = 0; (i < Vec_PtrSize((pNtk)->vBoxes)) && (((pObj) = Abc_NtkBox(pNtk, i)), 1); i++ )   \
         if ( !Abc_ObjIsLatch(pObj) ) {} else
 #define Abc_NtkForEachLatchInput( pNtk, pObj, i )                                                  \
-    for ( i = 0; (i < Vec_PtrSize((pNtk)->vBoxes)) && (((pObj) = Abc_ObjFanin0(Abc_NtkBox(pNtk, i))), 1); i++ )   \
-        if ( !Abc_ObjIsLatch(Abc_NtkBox(pNtk, i)) ) {} else
-#define Abc_NtkForEachLatchOutput( pNtk, pObj, i )                                                  \
-    for ( i = 0; (i < Vec_PtrSize((pNtk)->vBoxes)) && (((pObj) = Abc_ObjFanout0(Abc_NtkBox(pNtk, i))), 1); i++ )   \
-        if ( !Abc_ObjIsLatch(Abc_NtkBox(pNtk, i)) ) {} else
+    for ( i = 0; (i < Vec_PtrSize((pNtk)->vBoxes)); i++ )                                          \
+        if ( !(Abc_ObjIsLatch(Abc_NtkBox(pNtk, i)) && (((pObj) = Abc_ObjFanin0(Abc_NtkBox(pNtk, i))), 1)) ) {} else
+#define Abc_NtkForEachLatchOutput( pNtk, pObj, i )                                                 \
+    for ( i = 0; (i < Vec_PtrSize((pNtk)->vBoxes)); i++ )                                          \
+        if ( !(Abc_ObjIsLatch(Abc_NtkBox(pNtk, i)) && (((pObj) = Abc_ObjFanout0(Abc_NtkBox(pNtk, i))), 1)) ) {} else
 #define Abc_NtkForEachWhitebox( pNtk, pObj, i )                                                    \
     for ( i = 0; (i < Vec_PtrSize((pNtk)->vBoxes)) && (((pObj) = Abc_NtkBox(pNtk, i)), 1); i++ )   \
         if ( !Abc_ObjIsWhitebox(pObj) ) {} else
@@ -596,9 +597,9 @@ extern void               Abc_NtkLogicMakeDirectSops( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkSopToAig( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkAigToBdd( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkMapToSop( Abc_Ntk_t * pNtk );
-extern int                Abc_NtkLogicToSop( Abc_Ntk_t * pNtk, int fDirect );
-extern int                Abc_NtkLogicToBdd( Abc_Ntk_t * pNtk );
-extern int                Abc_NtkLogicToAig( Abc_Ntk_t * pNtk );
+extern int                Abc_NtkToSop( Abc_Ntk_t * pNtk, int fDirect );
+extern int                Abc_NtkToBdd( Abc_Ntk_t * pNtk );
+extern int                Abc_NtkToAig( Abc_Ntk_t * pNtk );
 /*=== abcHie.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkFlattenLogicHierarchy( Abc_Ntk_t * pNtk );
 extern Abc_Ntk_t *        Abc_NtkConvertBlackboxes( Abc_Ntk_t * pNtk );
@@ -680,12 +681,9 @@ extern void               Abc_NtkAddDummyAssertNames( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkAddDummyBoxNames( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkShortNames( Abc_Ntk_t * pNtk );
 /*=== abcNetlist.c ==========================================================*/
-extern Abc_Ntk_t *        Abc_NtkNetlistToLogic( Abc_Ntk_t * pNtk );
-extern Abc_Ntk_t *        Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk, int fDirect );
-extern Abc_Ntk_t *        Abc_NtkLogicToNetlistBench( Abc_Ntk_t * pNtk );
-extern Abc_Ntk_t *        Abc_NtkLogicSopToNetlist( Abc_Ntk_t * pNtk );
-extern Abc_Ntk_t *        Abc_NtkAigToLogicSop( Abc_Ntk_t * pNtk );
-extern Abc_Ntk_t *        Abc_NtkAigToLogicSopBench( Abc_Ntk_t * pNtk );
+extern Abc_Ntk_t *        Abc_NtkToLogic( Abc_Ntk_t * pNtk );
+extern Abc_Ntk_t *        Abc_NtkToNetlist( Abc_Ntk_t * pNtk, int fDirect );
+extern Abc_Ntk_t *        Abc_NtkToNetlistBench( Abc_Ntk_t * pNtk );
 /*=== abcNtbdd.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkDeriveFromBdd( DdManager * dd, DdNode * bFunc, char * pNamePo, Vec_Ptr_t * vNamesPi );
 extern Abc_Ntk_t *        Abc_NtkBddToMuxes( Abc_Ntk_t * pNtk );

@@ -66,7 +66,7 @@ int Io_WriteCnf( Abc_Ntk_t * pNtk, char * pFileName, int fAllPrimes )
     }
     // convert to logic BDD network
     if ( Abc_NtkIsLogic(pNtk) )
-        Abc_NtkLogicToBdd( pNtk );
+        Abc_NtkToBdd( pNtk );
     // create solver with clauses
     pSat = Abc_NtkMiterSatCreate( pNtk, fAllPrimes );
     if ( pSat == NULL )

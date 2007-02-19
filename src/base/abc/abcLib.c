@@ -82,6 +82,7 @@ void Abc_LibFree( Abc_Lib_t * pLib, Abc_Ntk_t * pNtkSave )
             if ( pNtk == pNtkSave )
                 continue;
             pNtk->pManFunc = NULL;
+            pNtk->pDesign = NULL;
             Abc_NtkDelete( pNtk );
         }
         Vec_PtrFree( pLib->vModules );
@@ -166,6 +167,7 @@ int Abc_LibAddModel( Abc_Lib_t * pLib, Abc_Ntk_t * pNtk )
         return 0;
     st_insert( pLib->tModules, (char *)pNtk->pName, (char *)pNtk );
     Vec_PtrPush( pLib->vModules, pNtk );
+    pNtk->pDesign = pLib;
     return 1;
 }
 

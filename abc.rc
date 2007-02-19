@@ -57,6 +57,7 @@ alias rv read_verilog
 alias rvl read_verlib
 alias rsup read_super mcnc5_old.super
 alias rlib read_library
+alias rlibc read_library cadence.genlib
 alias rw rewrite
 alias rwz rewrite -z
 alias rf refactor
@@ -118,10 +119,10 @@ alias fflitmin    "compress2rs; ren; sop; ps -f"
 alias t0        "r res.blif; aig; mfs"  
 alias t        "r res2.blif; aig; mfs"  
 
-alias tt       "rh a/quip_opt/nut_001_opt.blif"
+alias tt       "r a/quip_opt/nut_001_opt.blif"
 alias ttb      "wh a/quip_opt/nut_001_opt.blif 1.blif"
 alias ttv      "wh a/quip_opt/nut_001_opt.blif 1.v"
 
-alias reach    "st; ps; compress2; ps; qrel; ps; qreach -v; ps"
+alias reach    "st; ps; compress2; ps; qrel; ps; compress2; ps; qreach -v; ps"
 
 
