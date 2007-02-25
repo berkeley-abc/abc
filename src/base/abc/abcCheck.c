@@ -277,6 +277,19 @@ bool Abc_NtkCheckNames( Abc_Ntk_t * pNtk )
         }
     }
     Vec_IntFree( vNameIds );
+
+    // make sure the CI names are unique
+    if ( !Abc_NtkCheckUniqueCiNames(pNtk) )
+        return 0;
+
+    // make sure the CO names are unique
+    if ( !Abc_NtkCheckUniqueCoNames(pNtk) )
+        return 0;
+
+    // make sure that if a CO has the same name as a CI, they point directly
+    if ( !Abc_NtkCheckUniqueCioNames(pNtk) )
+        return 0;
+
     return 1;
 }
 
@@ -802,6 +815,121 @@ int Abc_NtkIsAcyclicHierarchy( Abc_Ntk_t * pNtk )
     Vec_PtrForEachEntry( pNtk->pDesign->vModules, pTemp, i )
         pTemp->fHieVisited = pTemp->fHiePath = 0;
     return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 0 if CI names are repeated.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkNamesCompare( char ** pName1, char ** pName2 )
+{
+    return strcmp( *pName1, *pName2 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 0 if CI names are repeated.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkCheckUniqueCiNames( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vNames;
+    Abc_Obj_t * pObj;
+    int i, fRetValue = 1;
+    assert( !Abc_NtkIsNetlist(pNtk) );
+    vNames = Vec_PtrAlloc( Abc_NtkCiNum(pNtk) );
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        Vec_PtrPush( vNames, Abc_ObjName(pObj) );
+    Vec_PtrSort( vNames, Abc_NtkNamesCompare );
+    for ( i = 1; i < Abc_NtkCiNum(pNtk); i++ )
+        if ( !strcmp( Vec_PtrEntry(vNames,i-1), Vec_PtrEntry(vNames,i) ) )
+        {
+            printf( "Abc_NtkCheck: Repeated CI names: %s and %s.\n", Vec_PtrEntry(vNames,i-1), Vec_PtrEntry(vNames,i) );
+            fRetValue = 0;
+        }
+    Vec_PtrFree( vNames );
+    return fRetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 0 if CO names are repeated.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkCheckUniqueCoNames( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vNames;
+    Abc_Obj_t * pObj;
+    int i, fRetValue = 1;
+    assert( !Abc_NtkIsNetlist(pNtk) );
+    vNames = Vec_PtrAlloc( Abc_NtkCoNum(pNtk) );
+    Abc_NtkForEachCo( pNtk, pObj, i )
+        Vec_PtrPush( vNames, Abc_ObjName(pObj) );
+    Vec_PtrSort( vNames, Abc_NtkNamesCompare );
+    for ( i = 1; i < Abc_NtkCoNum(pNtk); i++ )
+    {
+//        printf( "%s\n", Vec_PtrEntry(vNames,i) );
+        if ( !strcmp( Vec_PtrEntry(vNames,i-1), Vec_PtrEntry(vNames,i) ) )
+        {
+            printf( "Abc_NtkCheck: Repeated CO names: %s and %s.\n", Vec_PtrEntry(vNames,i-1), Vec_PtrEntry(vNames,i) );
+            fRetValue = 0;
+        }
+    }
+    Vec_PtrFree( vNames );
+    return fRetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 0 if there is a pair of CI/CO with the same name and logic in between.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkCheckUniqueCioNames( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj, * pObjCi;
+    int i, nCiId, fRetValue = 1;
+    assert( !Abc_NtkIsNetlist(pNtk) );
+    Abc_NtkForEachCo( pNtk, pObj, i )
+    {
+        nCiId = Nm_ManFindIdByName( pNtk->pManName, Abc_ObjName(pObj), ABC_OBJ_PI );
+        if ( nCiId == -1 )
+            nCiId = Nm_ManFindIdByName( pNtk->pManName, Abc_ObjName(pObj), ABC_OBJ_BO );
+        if ( nCiId == -1 )
+            continue;
+        pObjCi = Abc_NtkObj( pNtk, nCiId );
+        assert( !strcmp( Abc_ObjName(pObj), Abc_ObjName(pObjCi) ) );
+        if ( Abc_ObjFanin0(pObj) != pObjCi )
+        {
+            printf( "Abc_NtkCheck: A CI/CO pair share the name (%s) but do not link directly.\n", Abc_ObjName(pObj) );
+            fRetValue = 0;
+        }
+    }
+    return fRetValue;
 }
 
 ////////////////////////////////////////////////////////////////////////

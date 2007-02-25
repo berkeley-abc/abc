@@ -27,14 +27,16 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+static int Abc_NtkRenodeEvalAig( If_Cut_t * pCut );
 static int Abc_NtkRenodeEvalBdd( If_Cut_t * pCut );
 static int Abc_NtkRenodeEvalSop( If_Cut_t * pCut );
 static int Abc_NtkRenodeEvalCnf( If_Cut_t * pCut );
-static int Abc_NtkRenodeEvalAig( If_Cut_t * pCut );
+static int Abc_NtkRenodeEvalMv( If_Cut_t * pCut );
 
-static reo_man * s_pReo      = NULL;
-static DdManager * s_pDd     = NULL;
-static Vec_Int_t * s_vMemory = NULL;
+static reo_man * s_pReo       = NULL;
+static DdManager * s_pDd      = NULL;
+static Vec_Int_t * s_vMemory  = NULL;
+static Vec_Int_t * s_vMemory2 = NULL;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -51,7 +53,7 @@ static Vec_Int_t * s_vMemory = NULL;
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int nCubeMax, int nFlowIters, int nAreaIters, int fArea, int fUseBdds, int fUseSops, int fUseCnfs, int fVerbose )
+Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int nCubeMax, int nFlowIters, int nAreaIters, int fArea, int fUseBdds, int fUseSops, int fUseCnfs, int fUseMv, int fVerbose )
 {
     extern Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars );
     If_Par_t Pars, * pPars = &Pars;
@@ -85,6 +87,7 @@ Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int nCubeMax, int nF
     pPars->fUseBdds    =  fUseBdds;
     pPars->fUseSops    =  fUseSops;
     pPars->fUseCnfs    =  fUseCnfs;
+    pPars->fUseMv      =  fUseMv;
     if ( fUseBdds )
         pPars->pFuncCost = Abc_NtkRenodeEvalBdd;
     else if ( fUseSops )
@@ -94,6 +97,8 @@ Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int nCubeMax, int nF
         pPars->fArea = 1;
         pPars->pFuncCost = Abc_NtkRenodeEvalCnf;
     }
+    else if ( fUseMv )
+        pPars->pFuncCost = Abc_NtkRenodeEvalMv;
     else
         pPars->pFuncCost = Abc_NtkRenodeEvalAig;
 
@@ -108,7 +113,8 @@ Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int nCubeMax, int nF
     else
     {
         assert( s_vMemory == NULL );
-        s_vMemory = Vec_IntAlloc( 1 << 16 );
+        s_vMemory  = Vec_IntAlloc( 1 << 16 );
+        s_vMemory2 = Vec_IntAlloc( 1 << 16 );
     }
 
     // perform mapping/renoding
@@ -125,10 +131,41 @@ Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int nCubeMax, int nF
     else
     {
         Vec_IntFree( s_vMemory );
+        Vec_IntFree( s_vMemory2 );
         s_vMemory = NULL;
+        s_vMemory2 = NULL;
     }
 
     return pNtkNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the cost based on the factored form.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkRenodeEvalAig( If_Cut_t * pCut )
+{
+    Kit_Graph_t * pGraph;
+    int i, nNodes;
+    pGraph = Kit_TruthToGraph( If_CutTruth(pCut), If_CutLeaveNum(pCut), s_vMemory );
+    if ( pGraph == NULL )
+    {
+        for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
+            pCut->pPerm[i] = 100;
+        return IF_COST_MAX;
+    }
+    nNodes = Kit_GraphNodeNum( pGraph );
+    for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
+        pCut->pPerm[i] = Kit_GraphLeafDepth_rec( pGraph, Kit_GraphNodeLast(pGraph), Kit_GraphNode(pGraph, i) );
+    Kit_GraphFree( pGraph );
+    return nNodes;
 }
 
 /**Function*************************************************************
@@ -178,7 +215,7 @@ int Abc_NtkRenodeEvalSop( If_Cut_t * pCut )
         pCut->pPerm[i] = 1;
     RetValue = Kit_TruthIsop( If_CutTruth(pCut), If_CutLeaveNum(pCut), s_vMemory, 1 );
     if ( RetValue == -1 )
-        return ABC_INFINITY;
+        return IF_COST_MAX;
     assert( RetValue == 0 || RetValue == 1 );
     return Vec_IntSize( s_vMemory );
 }
@@ -197,12 +234,13 @@ int Abc_NtkRenodeEvalSop( If_Cut_t * pCut )
 int Abc_NtkRenodeEvalCnf( If_Cut_t * pCut )
 {
     int i, RetValue, nClauses;
+    // set internal mapper parameters
     for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
         pCut->pPerm[i] = 1;
     // compute ISOP for the positive phase
     RetValue = Kit_TruthIsop( If_CutTruth(pCut), If_CutLeaveNum(pCut), s_vMemory, 0 );
     if ( RetValue == -1 )
-        return ABC_INFINITY;
+        return IF_COST_MAX;
     assert( RetValue == 0 || RetValue == 1 );
     nClauses = Vec_IntSize( s_vMemory );
     // compute ISOP for the negative phase
@@ -210,7 +248,7 @@ int Abc_NtkRenodeEvalCnf( If_Cut_t * pCut )
     RetValue = Kit_TruthIsop( If_CutTruth(pCut), If_CutLeaveNum(pCut), s_vMemory, 0 );
     Kit_TruthNot( If_CutTruth(pCut), If_CutTruth(pCut), If_CutLeaveNum(pCut) );
     if ( RetValue == -1 )
-        return ABC_INFINITY;
+        return IF_COST_MAX;
     assert( RetValue == 0 || RetValue == 1 );
     nClauses += Vec_IntSize( s_vMemory );
     return nClauses;
@@ -218,7 +256,7 @@ int Abc_NtkRenodeEvalCnf( If_Cut_t * pCut )
 
 /**Function*************************************************************
 
-  Synopsis    [Computes the cost based on the factored form.]
+  Synopsis    [Computes the cost of MV-SOP of the cut function.]
 
   Description []
                
@@ -227,22 +265,29 @@ int Abc_NtkRenodeEvalCnf( If_Cut_t * pCut )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRenodeEvalAig( If_Cut_t * pCut )
+int Abc_NtkRenodeEvalMv( If_Cut_t * pCut )
 {
-    Kit_Graph_t * pGraph;
-    int i, nNodes;
-    pGraph = Kit_TruthToGraph( If_CutTruth(pCut), If_CutLeaveNum(pCut), s_vMemory );
-    if ( pGraph == NULL )
-    {
-        for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
-            pCut->pPerm[i] = 100;
-        return ABC_INFINITY;
-    }
-    nNodes = Kit_GraphNodeNum( pGraph );
+    int i, RetValue;
+    // set internal mapper parameters
     for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
-        pCut->pPerm[i] = Kit_GraphLeafDepth_rec( pGraph, Kit_GraphNodeLast(pGraph), Kit_GraphNode(pGraph, i) );
-    Kit_GraphFree( pGraph );
-    return nNodes;
+        pCut->pPerm[i] = 1;
+    // compute ISOP for the positive phase
+    RetValue = Kit_TruthIsop( If_CutTruth(pCut), If_CutLeaveNum(pCut), s_vMemory, 0 );
+    if ( RetValue == -1 )
+        return IF_COST_MAX;
+    assert( RetValue == 0 || RetValue == 1 );
+    // compute ISOP for the negative phase
+    Kit_TruthNot( If_CutTruth(pCut), If_CutTruth(pCut), If_CutLeaveNum(pCut) );
+    RetValue = Kit_TruthIsop( If_CutTruth(pCut), If_CutLeaveNum(pCut), s_vMemory2, 0 );
+    Kit_TruthNot( If_CutTruth(pCut), If_CutTruth(pCut), If_CutLeaveNum(pCut) );
+    if ( RetValue == -1 )
+        return IF_COST_MAX;
+    assert( RetValue == 0 || RetValue == 1 );
+    // return the cost of the cut 
+    RetValue = Abc_NodeEvalMvCost( If_CutLeaveNum(pCut), s_vMemory, s_vMemory2 );
+    if ( RetValue >= IF_COST_MAX )
+        return IF_COST_MAX;
+    return RetValue;
 }
 
 ////////////////////////////////////////////////////////////////////////

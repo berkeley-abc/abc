@@ -933,6 +933,139 @@ char * Abc_SopFromTruthHex( char * pTruth )
     return pSopCover;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Creates one encoder node.]
+
+  Description [Produces MV-SOP for BLIF-MV representation.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_SopEncoderPos( Extra_MmFlex_t * pMan, int iValue, int nValues )
+{
+    char Buffer[32];
+    assert( iValue < nValues );
+    sprintf( Buffer, "d0\n%d 1\n", iValue );
+    return Abc_SopRegister( pMan, Buffer );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates one encoder node.]
+
+  Description [Produces MV-SOP for BLIF-MV representation.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_SopEncoderLog( Extra_MmFlex_t * pMan, int iBit, int nValues )
+{
+    char * pResult;
+    Vec_Str_t * vSop;
+    int v, Counter, fFirst = 1, nBits = Extra_Base2Log(nValues);
+    assert( iBit < nBits );
+    // count the number of literals
+    Counter = 0;
+    for ( v = 0; v < nValues; v++ )
+        Counter += ( (v & (1 << iBit)) > 0 );
+    // create the cover
+    vSop = Vec_StrAlloc( 100 );
+    Vec_StrPrintStr( vSop, "d0\n" );
+    if ( Counter > 1 )
+        Vec_StrPrintStr( vSop, "(" );
+    for ( v = 0; v < nValues; v++ )
+        if ( v & (1 << iBit) )
+        {
+            if ( fFirst )
+                fFirst = 0;
+            else
+                Vec_StrPush( vSop, ',' );
+            Vec_StrPrintNum( vSop, v );
+        }
+    if ( Counter > 1 )
+        Vec_StrPrintStr( vSop, ")" );
+    Vec_StrPrintStr( vSop, " 1\n" );
+    Vec_StrPush( vSop, 0 );
+    pResult = Abc_SopRegister( pMan, Vec_StrArray(vSop) );
+    Vec_StrFree( vSop );
+    return pResult;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates the decoder node.]
+
+  Description [Produces MV-SOP for BLIF-MV representation.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_SopDecoderPos( Extra_MmFlex_t * pMan, int nValues )
+{
+    char * pResult;
+    Vec_Str_t * vSop;
+    int i, k;
+    assert( nValues > 1 );
+    vSop = Vec_StrAlloc( 100 );
+    for ( i = 0; i < nValues; i++ )
+    {
+        for ( k = 0; k < nValues; k++ )
+        {
+            if ( k == i )
+                Vec_StrPrintStr( vSop, "1 " );
+            else
+                Vec_StrPrintStr( vSop, "- " );
+        }
+        Vec_StrPrintNum( vSop, i );
+        Vec_StrPush( vSop, '\n' );
+    }
+    Vec_StrPush( vSop, 0 );
+    pResult = Abc_SopRegister( pMan, Vec_StrArray(vSop) );
+    Vec_StrFree( vSop );
+    return pResult;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates the decover node.]
+
+  Description [Produces MV-SOP for BLIF-MV representation.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_SopDecoderLog( Extra_MmFlex_t * pMan, int nValues )
+{
+    char * pResult;
+    Vec_Str_t * vSop;
+    int i, b, nBits = Extra_Base2Log(nValues);
+    assert( nValues > 1 && nValues <= (1<<nBits) );
+    vSop = Vec_StrAlloc( 100 );
+    for ( i = 0; i < nValues; i++ )
+    {
+        for ( b = 0; b < nBits; b++ )
+        {
+            Vec_StrPrintNum( vSop, (int)((i & (1 << b)) > 0) );
+            Vec_StrPush( vSop, ' ' );
+        }
+        Vec_StrPrintNum( vSop, i );
+        Vec_StrPush( vSop, '\n' );
+    }
+    Vec_StrPush( vSop, 0 );
+    pResult = Abc_SopRegister( pMan, Vec_StrArray(vSop) );
+    Vec_StrFree( vSop );
+    return pResult;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

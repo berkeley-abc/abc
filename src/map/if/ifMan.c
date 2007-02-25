@@ -25,7 +25,9 @@
 ////////////////////////////////////////////////////////////////////////
 
 static If_Obj_t * If_ManSetupObj( If_Man_t * p );
-static If_Cut_t ** If_ManSetupCuts( If_Man_t * p );
+
+static void       If_ManCutSetRecycle( If_Man_t * p, If_Set_t * pSet ) { pSet->pNext = p->pFreeList; p->pFreeList = pSet;                            }
+static If_Set_t * If_ManCutSetFetch( If_Man_t * p )                    { If_Set_t * pTemp = p->pFreeList; p->pFreeList = p->pFreeList->pNext; return pTemp; }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -57,27 +59,26 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
     p->vMapped = Vec_PtrAlloc( 100 );
     p->vTemp   = Vec_PtrAlloc( 100 );
     // prepare the memory manager
-    p->nTruthSize = p->pPars->fTruth? If_CutTruthWords( p->pPars->nLutSize ) : 0;
-    p->nPermSize  = p->pPars->fUsePerm? If_CutPermWords( p->pPars->nLutSize ) : 0;
-    p->nCutSize   = sizeof(If_Cut_t) + sizeof(int) * (p->pPars->nLutSize + p->nPermSize + p->nTruthSize);
-    p->nEntrySize = sizeof(If_Obj_t) + p->pPars->nCutsMax * p->nCutSize;
-    p->nEntryBase = sizeof(If_Obj_t) + p->pPars->nCutsMax * sizeof(If_Cut_t);
-    p->pMem = Mem_FixedStart( p->nEntrySize );
+    p->nTruthWords = p->pPars->fTruth? If_CutTruthWords( p->pPars->nLutSize ) : 0;
+    p->nPermWords  = p->pPars->fUsePerm? If_CutPermWords( p->pPars->nLutSize ) : 0;
+    p->nObjBytes   = sizeof(If_Obj_t) + sizeof(int) * (p->pPars->nLutSize + p->nPermWords + p->nTruthWords);
+    p->nCutBytes   = sizeof(If_Cut_t) + sizeof(int) * (p->pPars->nLutSize + p->nPermWords + p->nTruthWords);
+    p->nSetBytes   = sizeof(If_Set_t) + (sizeof(If_Cut_t *) + p->nCutBytes) * (p->pPars->nCutsMax + 1);
+    p->pMemObj     = Mem_FixedStart( p->nObjBytes );
+//    p->pMemSet     = Mem_FixedStart( p->nSetBytes );
     // report expected memory usage
     if ( p->pPars->fVerbose )
-        printf( "Memory (bytes): Truth = %3d. Cut = %3d. Entry = %4d. Total = %.2f Mb / 1K AIG nodes\n", 
-            4 * p->nTruthSize, p->nCutSize, p->nEntrySize, 1000.0 * p->nEntrySize / (1<<20) );
+        printf( "Memory (bytes): Truth = %4d. Cut = %4d. Obj = %4d. Set = %4d.\n", 
+            4 * p->nTruthWords, p->nCutBytes, p->nObjBytes, p->nSetBytes );
     // room for temporary truth tables
-    p->puTemp[0] = p->pPars->fTruth? ALLOC( unsigned, 4 * p->nTruthSize ) : NULL;
-    p->puTemp[1] = p->puTemp[0] + p->nTruthSize;
-    p->puTemp[2] = p->puTemp[1] + p->nTruthSize;
-    p->puTemp[3] = p->puTemp[2] + p->nTruthSize;
+    p->puTemp[0] = p->pPars->fTruth? ALLOC( unsigned, 4 * p->nTruthWords ) : NULL;
+    p->puTemp[1] = p->puTemp[0] + p->nTruthWords;
+    p->puTemp[2] = p->puTemp[1] + p->nTruthWords;
+    p->puTemp[3] = p->puTemp[2] + p->nTruthWords;
     // create the constant node
     p->pConst1 = If_ManSetupObj( p );
     p->pConst1->Type = IF_CONST1;
     p->pConst1->fPhase = 1;
-    // create temporary cuts
-    p->ppCuts = If_ManSetupCuts( p );
     return p;
 }
 
@@ -94,8 +95,6 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
 ***********************************************************************/
 void If_ManStop( If_Man_t * p )
 {
-    If_Cut_t * pTemp;
-    int i;
     Vec_PtrFree( p->vCis );
     Vec_PtrFree( p->vCos );
     Vec_PtrFree( p->vObjs );
@@ -103,20 +102,16 @@ void If_ManStop( If_Man_t * p )
     Vec_PtrFree( p->vTemp );
     if ( p->vLatchOrder ) Vec_PtrFree( p->vLatchOrder );
     if ( p->vLags ) Vec_IntFree( p->vLags );
-    Mem_FixedStop( p->pMem, 0 );
+    Mem_FixedStop( p->pMemObj, 0 );
+//    Mem_FixedStop( p->pMemSet, 0 );
+    FREE( p->pMemCi );
+    FREE( p->pMemAnd );
+    FREE( p->puTemp[0] );
     // free pars memory
     if ( p->pPars->pTimesArr )
         FREE( p->pPars->pTimesArr );
     if ( p->pPars->pTimesReq )
         FREE( p->pPars->pTimesReq );
-    // free temporary cut memory
-    pTemp = p->ppCuts[0];
-    for ( i = 1; i < 1 + p->pPars->nCutsMax * p->pPars->nCutsMax; i++ )
-        if ( pTemp > p->ppCuts[i] )
-            pTemp = p->ppCuts[i];
-    FREE( p->puTemp[0] );
-    free( pTemp );
-    free( p->ppCuts );
     free( p );
 }
 
@@ -159,7 +154,7 @@ If_Obj_t * If_ManCreateCo( If_Man_t * p, If_Obj_t * pDriver, int fCompl0 )
     pObj->Type = IF_CO;
     pObj->fCompl0 = fCompl0;
     Vec_PtrPush( p->vCos, pObj );
-    pObj->pFanin0 = pDriver; pDriver->nRefs++;
+    pObj->pFanin0 = pDriver; pDriver->nRefs++; 
     p->nObjs[IF_CO]++;
     return pObj;
 }
@@ -183,8 +178,8 @@ If_Obj_t * If_ManCreateAnd( If_Man_t * p, If_Obj_t * pFan0, int fCompl0, If_Obj_
     pObj->Type    = IF_AND;
     pObj->fCompl0 = fCompl0;
     pObj->fCompl1 = fCompl1;
-    pObj->pFanin0 = pFan0; pFan0->nRefs++;
-    pObj->pFanin1 = pFan1; pFan1->nRefs++;
+    pObj->pFanin0 = pFan0; pFan0->nRefs++; pFan0->nVisits++; pFan0->nVisitsCopy++;
+    pObj->pFanin1 = pFan1; pFan1->nRefs++; pFan1->nVisits++; pFan1->nVisitsCopy++;
     pObj->fPhase  = (fCompl0 ^ pFan0->fPhase) & (fCompl1 ^ pFan1->fPhase);
     pObj->Level   = 1 + IF_MAX( pFan0->Level, pFan1->Level );
     if ( p->nLevelMax < (int)pObj->Level )
@@ -211,11 +206,92 @@ void If_ManCreateChoice( If_Man_t * p, If_Obj_t * pObj )
     assert( pObj->fRepr == 0 );
     pObj->fRepr = 1;
     // update the level of this node (needed for correct required time computation)
-    for ( pTemp = pObj->pEquiv; pTemp; pTemp = pTemp->pEquiv )
+    for ( pTemp = pObj; pTemp; pTemp = pTemp->pEquiv )
+    {
         pObj->Level = IF_MAX( pObj->Level, pTemp->Level );
+        pTemp->nVisits++; pTemp->nVisitsCopy++;
+    }
     // mark the largest level
     if ( p->nLevelMax < (int)pObj->Level )
         p->nLevelMax = (int)pObj->Level;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prepares memory for one cut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void If_ManSetupCut( If_Man_t * p, If_Cut_t * pCut )
+{
+    memset( pCut, 0, sizeof(If_Cut_t) );
+    pCut->nLimit  = p->pPars->nLutSize;
+    pCut->pLeaves = (int *)(pCut + 1);
+    if ( p->pPars->fUsePerm )
+        pCut->pPerm  = (char *)(pCut->pLeaves + p->pPars->nLutSize);
+    if ( p->pPars->fTruth )
+        pCut->pTruth = pCut->pLeaves + p->pPars->nLutSize + p->nPermWords;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prepares memory for one cutset.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void If_ManSetupSet( If_Man_t * p, If_Set_t * pSet )
+{
+    char * pArray;
+    int i;
+    pSet->nCuts = 0;
+    pSet->nCutsMax = p->pPars->nCutsMax;
+    pSet->ppCuts = (If_Cut_t **)(pSet + 1);
+    pArray = (char *)pSet->ppCuts + sizeof(If_Cut_t *) * (pSet->nCutsMax+1);
+    for ( i = 0; i <= pSet->nCutsMax; i++ )
+    {
+        pSet->ppCuts[i] = (If_Cut_t *)(pArray + i * p->nCutBytes); 
+        If_ManSetupCut( p, pSet->ppCuts[i] );
+    }
+//    pArray += (pSet->nCutsMax + 1) * p->nCutBytes;
+//    assert( ((char *)pArray) - ((char *)pSet) == p->nSetBytes );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prepares memory for one cut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void If_ManSetupCutTriv( If_Man_t * p, If_Cut_t * pCut, int ObjId )
+{
+    pCut->fCompl     = 0;
+    pCut->nLimit     = p->pPars->nLutSize;
+    pCut->nLeaves    = 1;
+    pCut->pLeaves[0] = p->pPars->fLiftLeaves? (ObjId << 8) : ObjId;
+    pCut->uSign      = If_ObjCutSign( pCut->pLeaves[0] );
+    // set up elementary truth table of the unit cut
+    if ( p->pPars->fTruth )
+    {
+        int i, nTruthWords;
+        nTruthWords = Extra_TruthWordNum( pCut->nLimit );
+        for ( i = 0; i < nTruthWords; i++ )
+            If_CutTruth(pCut)[i] = 0xAAAAAAAA;
+    }
 }
 
 /**Function*************************************************************
@@ -231,47 +307,22 @@ void If_ManCreateChoice( If_Man_t * p, If_Obj_t * pObj )
 ***********************************************************************/
 If_Obj_t * If_ManSetupObj( If_Man_t * p )
 {
-    If_Cut_t * pCut;
     If_Obj_t * pObj;
-    int i, * pArrays, nTruthWords;
     // get memory for the object
-    pObj = (If_Obj_t *)Mem_FixedEntryFetch( p->pMem );
-    memset( pObj, 0, p->nEntryBase );
-    // organize memory
-    pArrays = (int *)((char *)pObj + p->nEntryBase);
-    for ( i = 0; i < p->pPars->nCutsMax; i++ )
-    {
-        pCut = pObj->Cuts + i;
-        pCut->nLimit  = p->pPars->nLutSize;
-        pCut->pLeaves = pArrays + i * p->pPars->nLutSize;
-        pCut->pPerm   = (char *)(p->pPars->fUsePerm? pArrays + p->pPars->nCutsMax * p->pPars->nLutSize + i * p->nPermSize : NULL);
-        pCut->pTruth  = p->pPars->fTruth? pArrays + p->pPars->nCutsMax * (p->pPars->nLutSize + p->nPermSize) + i * p->nTruthSize : NULL;
-    }
+    pObj = (If_Obj_t *)Mem_FixedEntryFetch( p->pMemObj );
+    memset( pObj, 0, sizeof(If_Obj_t) );
+    If_ManSetupCut( p, &pObj->CutBest );
     // assign ID and save 
     pObj->Id = Vec_PtrSize(p->vObjs);
     Vec_PtrPush( p->vObjs, pObj );
-    // assign elementary cut
-    pCut = pObj->Cuts;
-    pCut->nLeaves    = 1;
-    pCut->pLeaves[0] = p->pPars->fLiftLeaves? (pObj->Id << 8) : pObj->Id;
-    pCut->uSign      = If_ObjCutSign( pCut->pLeaves[0] );
-    // set the number of cuts
-    pObj->nCuts = 1;
     // set the required times
     pObj->Required = IF_FLOAT_LARGE;
-    // set up elementary truth table of the unit cut
-    if ( p->pPars->fTruth )
-    {
-        nTruthWords = Extra_TruthWordNum( pCut->nLimit );
-        for ( i = 0; i < nTruthWords; i++ )
-            If_CutTruth(pCut)[i] = 0xAAAAAAAA;
-    }
     return pObj;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Prepares memory for additional cuts of the manager.]
+  Synopsis    [Prepares memory for one cut.]
 
   Description []
                
@@ -280,31 +331,162 @@ If_Obj_t * If_ManSetupObj( If_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-If_Cut_t ** If_ManSetupCuts( If_Man_t * p )
+void If_ManSetupCiCutSets( If_Man_t * p )
 {
-    If_Cut_t ** pCutStore;
-    int * pArrays, nCutsTotal, i;
-    // decide how many cuts to alloc
-    nCutsTotal = 1 + p->pPars->nCutsMax * p->pPars->nCutsMax;
-    // allocate and clean space for cuts
-    pCutStore = (If_Cut_t **)ALLOC( If_Cut_t *, (nCutsTotal + 1) );
-    memset( pCutStore, 0, sizeof(If_Cut_t *) * (nCutsTotal + 1) );
-    pCutStore[0] = (If_Cut_t *)ALLOC( char, p->nCutSize * nCutsTotal );
-    memset( pCutStore[0], 0, p->nCutSize * nCutsTotal );
-    // assign cut paramters and space for the cut leaves
-    assert( sizeof(int) == sizeof(unsigned) );
-    pArrays = (int *)((char *)pCutStore[0] + sizeof(If_Cut_t) * nCutsTotal);
-    for ( i = 0; i < nCutsTotal; i++ )
+    If_Obj_t * pObj;
+    int i;
+    assert( p->pMemCi == NULL );
+    // create elementary cuts for the CIs
+    If_ManForEachCi( p, pObj, i )
+        If_ManSetupCutTriv( p, &pObj->CutBest, pObj->Id );
+    // create elementary cutsets for the CIs
+    p->pMemCi = (If_Set_t *)malloc( If_ManCiNum(p) * (sizeof(If_Set_t) + sizeof(void *)) );
+    If_ManForEachCi( p, pObj, i )
     {
-        pCutStore[i] = (If_Cut_t *)((char *)pCutStore[0] + sizeof(If_Cut_t) * i);
-        pCutStore[i]->nLimit  = p->pPars->nLutSize;
-        pCutStore[i]->pLeaves = pArrays + i * p->pPars->nLutSize;
-        pCutStore[i]->pPerm   = (char *)(p->pPars->fUsePerm? pArrays + nCutsTotal * p->pPars->nLutSize + i * p->nPermSize : NULL);
-        pCutStore[i]->pTruth  = p->pPars->fTruth? pArrays + nCutsTotal * (p->pPars->nLutSize + p->nPermSize) + i * p->nTruthSize : NULL;
+        pObj->pCutSet = (If_Set_t *)((char *)p->pMemCi + i * (sizeof(If_Set_t) + sizeof(void *)));
+        pObj->pCutSet->nCuts = 1;
+        pObj->pCutSet->nCutsMax = p->pPars->nCutsMax;
+        pObj->pCutSet->ppCuts = (If_Cut_t **)(pObj->pCutSet + 1);
+        pObj->pCutSet->ppCuts[0] = &pObj->CutBest;
     }
-    return pCutStore;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Prepares cutset of the node.]
+
+  Description [Elementary cutset will be added last.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+If_Set_t * If_ManSetupNodeCutSet( If_Man_t * p, If_Obj_t * pObj )
+{
+    assert( If_ObjIsAnd(pObj) );
+    assert( pObj->pCutSet == NULL );
+//    pObj->pCutSet = (If_Set_t *)Mem_FixedEntryFetch( p->pMemSet );
+//    If_ManSetupSet( p, pObj->pCutSet );
+
+    pObj->pCutSet = If_ManCutSetFetch( p );
+    pObj->pCutSet->nCuts = 0;
+    pObj->pCutSet->nCutsMax = p->pPars->nCutsMax;
+
+    return pObj->pCutSet;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Dereferences cutset of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void If_ManDerefNodeCutSet( If_Man_t * p, If_Obj_t * pObj )
+{
+    If_Obj_t * pFanin;
+    assert( If_ObjIsAnd(pObj) );
+    // consider the node
+    assert( pObj->nVisits >= 0 );
+    if ( pObj->nVisits == 0 )
+    {
+//        Mem_FixedEntryRecycle( p->pMemSet, (char *)pObj->pCutSet );
+        If_ManCutSetRecycle( p, pObj->pCutSet );
+        pObj->pCutSet = NULL;
+    }
+    // consider the first fanin
+    pFanin = If_ObjFanin0(pObj);
+    assert( pFanin->nVisits > 0 );
+    if ( !If_ObjIsCi(pFanin) && --pFanin->nVisits == 0 )
+    {
+//        Mem_FixedEntryRecycle( p->pMemSet, (char *)pFanin->pCutSet );
+        If_ManCutSetRecycle( p, pFanin->pCutSet );
+        pFanin->pCutSet = NULL;
+    }
+    // consider the second fanin
+    pFanin = If_ObjFanin1(pObj);
+    assert( pFanin->nVisits > 0 );
+    if ( !If_ObjIsCi(pFanin) && --pFanin->nVisits == 0 )
+    {
+//        Mem_FixedEntryRecycle( p->pMemSet, (char *)pFanin->pCutSet );
+        If_ManCutSetRecycle( p, pFanin->pCutSet );
+        pFanin->pCutSet = NULL;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Dereferences cutset of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void If_ManDerefChoiceCutSet( If_Man_t * p, If_Obj_t * pObj )
+{
+    If_Obj_t * pTemp;
+    assert( If_ObjIsAnd(pObj) );
+    assert( pObj->fRepr );
+    assert( pObj->nVisits > 0 );
+    // consider the nodes in the choice class
+    for ( pTemp = pObj; pTemp; pTemp = pTemp->pEquiv )
+    {
+        assert( pTemp == pObj || pTemp->nVisits == 1 );
+        if ( --pTemp->nVisits == 0 )
+        {
+//            Mem_FixedEntryRecycle( p->pMemSet, (char *)pTemp->pCutSet );
+            If_ManCutSetRecycle( p, pTemp->pCutSet );
+            pTemp->pCutSet = NULL;
+        }
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Dereferences cutset of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void If_ManSetupSetAll( If_Man_t * p )
+{
+    If_Set_t * pCutSet;
+    int i, nCrossCut, nCutSets;
+    nCrossCut = If_ManCrossCut( p );
+    nCutSets = 128 + nCrossCut;
+    p->pFreeList = p->pMemAnd = pCutSet = (If_Set_t *)malloc( nCutSets * p->nSetBytes );
+    for ( i = 0; i < nCutSets; i++ )
+    {
+        If_ManSetupSet( p, pCutSet );
+        if ( i == nCutSets - 1 )
+            pCutSet->pNext = NULL;
+        else
+            pCutSet->pNext = (If_Set_t *)( (char *)pCutSet + p->nSetBytes );
+        pCutSet = pCutSet->pNext;
+    }
+    assert( pCutSet == NULL );
+
+    if ( p->pPars->fVerbose )
+    {
+        printf( "Total memory = %7.2f Mb. Peak cut memory = %7.2f Mb.  \n", 
+            1.0 * (p->nObjBytes + 2*sizeof(void *)) * If_ManObjNum(p) / (1<<20), 
+            1.0 * p->nSetBytes * nCrossCut / (1<<20) );
+    }
+//    printf( "Cross cut = %d.\n", nCrossCut );
+
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

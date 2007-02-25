@@ -278,6 +278,22 @@ int Mem_FixedReadMemUsage( Mem_Fixed_t * p )
     return p->nMemoryAlloc;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Mem_FixedReadMaxEntriesUsed( Mem_Fixed_t * p )
+{
+    return p->nEntriesMax;
+}
+
 
 
 /**Function*************************************************************

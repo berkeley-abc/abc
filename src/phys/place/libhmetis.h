@@ -3,7 +3,7 @@
 #ifndef LIBHMETIS_H_
 #define LIBHMETIS_H_
 
-void HMETIS_PartRecursive(int nvtxs, 
+static void HMETIS_PartRecursive(int nvtxs, 
               int nhedges, 
               int *vwgts, 
               int *eptr,
@@ -13,10 +13,10 @@ void HMETIS_PartRecursive(int nvtxs,
               int nbfactor, 
               int *options, 
               int *part, 
-              int *edgecnt );
+              int *edgecnt ) {} //;
 
 
-void HMETIS_PartKway(int nvtxs, 
+static void HMETIS_PartKway(int nvtxs, 
              int nhedges, 
              int *vwgts, 
              int *eptr, 
@@ -26,6 +26,6 @@ void HMETIS_PartKway(int nvtxs,
              int nbfactor, 
              int *options, 
              int *part, 
-             int *edgecnt );
+             int *edgecnt ) {} //;
 
 #endif

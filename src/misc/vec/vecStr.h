@@ -403,6 +403,59 @@ static inline void Vec_StrPush( Vec_Str_t * p, char Entry )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_StrPrintNum( Vec_Str_t * p, int Num )
+{
+    int i, nDigits;
+    if ( Num < 0 )
+    {
+        Vec_StrPush( p, '-' );
+        Num = -Num;
+    }
+    if ( Num < 10 )
+    {
+        Vec_StrPush( p, (char)('0' + Num) );
+        return;
+    }
+    nDigits = Extra_Base10Log( Num );
+    Vec_StrGrow( p, p->nSize + nDigits );
+    for ( i = nDigits - 1; i >= 0; i-- )
+    {
+        Vec_StrWriteEntry( p, p->nSize + i, (char)('0' + Num % 10) );
+        Num /= 10;
+    }
+    assert( Num == 0 );
+    p->nSize += nDigits;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_StrPrintStr( Vec_Str_t * p, char * pStr )
+{
+    int i, Length = strlen(pStr);
+    for ( i = 0; i < Length; i++ )
+        Vec_StrPush( p, pStr[i] );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Appends the string to the char vector.]
 
   Description []

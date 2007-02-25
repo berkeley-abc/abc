@@ -52,11 +52,11 @@ void If_ManImproveMapping( If_Man_t * p )
 
     clk = clock();
     If_ManImproveExpand( p, p->pPars->nLutSize );
-    If_ManComputeRequired( p, 0 );
+    If_ManComputeRequired( p );
     if ( p->pPars->fVerbose )
     {
-        printf( "E:  Del = %6.2f. Area = %8.2f. Nets = %6d. Cuts = %8d. Lim = %2d. Ave = %5.2f. ", 
-            p->RequiredGlo, p->AreaGlo, p->nNets, p->nCutsMerged, p->nCutsUsed, 1.0 * p->nCutsMerged / If_ManAndNum(p) );
+        printf( "E:  Del = %6.2f. Ar = %8.2f. Net = %6d. Cut = %8d. ", 
+            p->RequiredGlo, p->AreaGlo, p->nNets, p->nCutsMerged );
         PRT( "T", clock() - clk );
     }
 
@@ -488,6 +488,7 @@ void If_ManImproveNodeFaninCompact( If_Man_t * p, If_Obj_t * pObj, int nLimit, V
 ***********************************************************************/
 void If_ManImproveNodeReduce( If_Man_t * p, If_Obj_t * pObj, int nLimit )
 {
+/*
     If_Cut_t * pCut, * pCut0, * pCut1, * pCutR;
     If_Obj_t * pFanin0, * pFanin1;
     float AreaBef, AreaAft;
@@ -537,13 +538,14 @@ void If_ManImproveNodeReduce( If_Man_t * p, If_Obj_t * pObj, int nLimit )
         AreaAft = If_CutAreaDerefed( p, pCutR, IF_INFINITY );
         // update the best cut
         if ( AreaAft < AreaBef - p->fEpsilon && pCutR->Delay < pObj->Required + p->fEpsilon )
-            If_CutCopy( pCut, pCutR );
+            If_CutCopy( p, pCut, pCutR );
     }
     // recompute the delay of the best cut
     pCut->Delay = If_CutDelay( p, pCut );
     // ref the cut if the node is refed
     if ( pObj->nRefs > 0 )
         If_CutRef( p, pCut, IF_INFINITY );
+*/
 }
 
 /**Function*************************************************************
@@ -562,13 +564,7 @@ void If_ManImproveReduce( If_Man_t * p, int nLimit )
     If_Obj_t * pObj;
     int i;
     If_ManForEachNode( p, pObj, i )
-    {
-        if ( 278 == i )
-        {
-            int s = 0;
-        }
         If_ManImproveNodeReduce( p, pObj, nLimit );
-    }
 }
 
 ////////////////////////////////////////////////////////////////////////

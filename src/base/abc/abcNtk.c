@@ -264,18 +264,23 @@ void Abc_NtkFinalizeRead( Abc_Ntk_t * pNtk )
     assert( Abc_NtkIsNetlist(pNtk) );
 
     // check if constant 0 net is used
-    pNet = Abc_NtkFindOrCreateNet( pNtk, "1\'b0" );
-    if ( Abc_ObjFanoutNum(pNet) == 0 )
-        Abc_NtkDeleteObj(pNet);
-    else if ( Abc_ObjFaninNum(pNet) == 0 )
-        Abc_ObjAddFanin( pNet, Abc_NtkCreateNodeConst0(pNtk) );
+    pNet = Abc_NtkFindNet( pNtk, "1\'b0" );
+    if ( pNet )
+    {
+        if ( Abc_ObjFanoutNum(pNet) == 0 )
+            Abc_NtkDeleteObj(pNet);
+        else if ( Abc_ObjFaninNum(pNet) == 0 )
+            Abc_ObjAddFanin( pNet, Abc_NtkCreateNodeConst0(pNtk) );
+    }
     // check if constant 1 net is used
-    pNet = Abc_NtkFindOrCreateNet( pNtk, "1\'b1" );
-    if ( Abc_ObjFanoutNum(pNet) == 0 )
-        Abc_NtkDeleteObj(pNet);
-    else if ( Abc_ObjFaninNum(pNet) == 0 )
-        Abc_ObjAddFanin( pNet, Abc_NtkCreateNodeConst1(pNtk) );
-
+    pNet = Abc_NtkFindNet( pNtk, "1\'b1" );
+    if ( pNet )
+    {
+        if ( Abc_ObjFanoutNum(pNet) == 0 )
+            Abc_NtkDeleteObj(pNet);
+        else if ( Abc_ObjFaninNum(pNet) == 0 )
+            Abc_ObjAddFanin( pNet, Abc_NtkCreateNodeConst1(pNtk) );
+    }
     // fix the net drivers
     Abc_NtkFixNonDrivenNets( pNtk );
 
@@ -872,7 +877,10 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     // free node attributes
     Vec_PtrForEachEntry( pNtk->vAttrs, pAttrMan, i )
         if ( pAttrMan )
+        {
+//printf( "deleting attr\n" );
             Vec_AttFree( pAttrMan, 1 );
+        }
     Vec_PtrFree( pNtk->vAttrs );
     FREE( pNtk->pName );
     FREE( pNtk->pSpec );
@@ -892,16 +900,12 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 void Abc_NtkFixNonDrivenNets( Abc_Ntk_t * pNtk )
 { 
-    char Buffer[10];
     Vec_Ptr_t * vNets;
     Abc_Obj_t * pNet, * pNode;
     int i;
 
     if ( Abc_NtkNodeNum(pNtk) == 0 )
-    {
-//        pNtk->ntkFunc = ABC_FUNC_BLACKBOX;
         return;
-    }
 
     // check for non-driven nets
     vNets = Vec_PtrAlloc( 100 );
@@ -910,14 +914,7 @@ void Abc_NtkFixNonDrivenNets( Abc_Ntk_t * pNtk )
         if ( Abc_ObjFaninNum(pNet) > 0 )
             continue;
         // add the constant 0 driver
-        if ( Abc_NtkHasBlifMv(pNtk) )
-        {
-            pNode = Abc_NtkCreateNode( pNtk );   
-            sprintf( Buffer, "%d\n0\n", Abc_ObjMvVarNum(pNet) );
-            pNode->pData = Abc_SopRegister( pNtk->pManFunc, Buffer );
-        }
-        else
-            pNode = Abc_NtkCreateNodeConst0( pNtk );
+        pNode = Abc_NtkCreateNodeConst0( pNtk );
         // add the fanout net
         Abc_ObjAddFanin( pNet, pNode );
         // add the net to those for which the warning will be printed
@@ -927,7 +924,7 @@ void Abc_NtkFixNonDrivenNets( Abc_Ntk_t * pNtk )
     // print the warning
     if ( vNets->nSize > 0 )
     {
-        printf( "Constant-0 drivers added to %d non-driven nets in network \"%s\":\n", Vec_PtrSize(vNets), pNtk->pName );
+        printf( "Warning: Constant-0 drivers added to %d non-driven nets in network \"%s\":\n", Vec_PtrSize(vNets), pNtk->pName );
         Vec_PtrForEachEntry( vNets, pNet, i )
         {
             printf( "%s%s", (i? ", ": ""), Abc_ObjName(pNet) );

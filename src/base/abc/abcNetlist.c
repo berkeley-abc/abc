@@ -55,7 +55,7 @@ Abc_Ntk_t * Abc_NtkToLogic( Abc_Ntk_t * pNtk )
         return Abc_NtkAigToLogicSop( pNtk );
     assert( Abc_NtkIsNetlist(pNtk) );
     // consider simple case when there is hierarchy
-    assert( pNtk->pDesign == NULL );
+//    assert( pNtk->pDesign == NULL );
     assert( Abc_NtkWhiteboxNum(pNtk) == 0 );
     assert( Abc_NtkBlackboxNum(pNtk) == 0 );
     // start the network
@@ -90,7 +90,7 @@ Abc_Ntk_t * Abc_NtkToLogic( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkToNetlist( Abc_Ntk_t * pNtk, int fDirect )
+Abc_Ntk_t * Abc_NtkToNetlist( Abc_Ntk_t * pNtk )
 {
     Abc_Ntk_t * pNtkNew, * pNtkTemp; 
     assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsStrash(pNtk) );
@@ -150,6 +150,11 @@ Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk )
 
     // remove dangling nodes
     Abc_NtkCleanup( pNtk, 0 );
+
+    // make sure the CO names are unique
+    Abc_NtkCheckUniqueCiNames( pNtk );
+    Abc_NtkCheckUniqueCoNames( pNtk );
+    Abc_NtkCheckUniqueCioNames( pNtk );
 
 //    assert( Abc_NtkLogicHasSimpleCos(pNtk) );
     if ( !Abc_NtkLogicHasSimpleCos(pNtk) )
@@ -213,7 +218,7 @@ Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk )
             Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy->pCopy );
     // duplicate EXDC 
     if ( pNtk->pExdc )
-        pNtkNew->pExdc = Abc_NtkToNetlist( pNtk->pExdc, 0 );
+        pNtkNew->pExdc = Abc_NtkToNetlist( pNtk->pExdc );
     if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkLogicToNetlist(): Network check has failed.\n" );
     return pNtkNew;

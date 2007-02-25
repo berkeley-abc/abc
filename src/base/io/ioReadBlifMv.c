@@ -62,11 +62,13 @@ struct Io_MvMan_t_
 {
     // general info about file
     int                  fBlifMv;      // the file is BLIF-MV
+    int                  fUseReset;    // the reset circuitry is added
     char *               pFileName;    // the name of the file
     char *               pBuffer;      // the contents of the file
     Vec_Ptr_t *          vLines;       // the line beginnings
     // the results of reading
     Abc_Lib_t *          pDesign;      // the design under construction
+    int                  nNDnodes;     // the counter of ND nodes
     // intermediate storage for models
     Vec_Ptr_t *          vModels;      // vector of models
     Io_MvMod_t *         pLatest;      // the current model
@@ -99,6 +101,7 @@ static int               Io_MvParseLineMv( Io_MvMod_t * p, char * pLine );
 static int               Io_MvParseLineNamesMv( Io_MvMod_t * p, char * pLine, int fReset );
 static int               Io_MvParseLineNamesBlif( Io_MvMod_t * p, char * pLine );
 static int               Io_MvParseLineGateBlif( Io_MvMod_t * p, Vec_Ptr_t * vTokens );
+static Io_MvVar_t *      Abc_NtkMvVarDup( Abc_Ntk_t * pNtk, Io_MvVar_t * pVar );
 
 static int               Io_MvCharIsSpace( char s )  { return s == ' ' || s == '\t' || s == '\r' || s == '\n';  }
 static int               Io_MvCharIsMvSymb( char s ) { return s == '(' || s == ')' || s == '{' || s == '}' || s == '-' || s == ',' || s == '!';  }
@@ -127,7 +130,7 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
     Abc_Ntk_t * pNtk;
     Abc_Lib_t * pDesign;
     char * pDesignName;
-    int i;
+    int RetValue, i;
 
     // check that the file is available
     pFile = fopen( pFileName, "rb" );
@@ -141,6 +144,7 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
     // start the file reader
     p = Io_MvAlloc();
     p->fBlifMv   = fBlifMv;
+    p->fUseReset = 0;
     p->pFileName = pFileName;
     p->pBuffer   = Io_MvLoadFile( pFileName );
     if ( p->pBuffer == NULL )
@@ -152,6 +156,9 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
     pDesignName  = Extra_FileNameGeneric( pFileName );
     p->pDesign   = Abc_LibCreate( pDesignName );
     free( pDesignName );
+    // free the HOP manager
+    Hop_ManStop( p->pDesign->pManFunc );
+    p->pDesign->pManFunc = NULL;
     // prepare the file for parsing
     Io_MvReadPreparse( p );
     // parse interfaces of each network
@@ -163,6 +170,7 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
     if ( pDesign == NULL )
         return NULL;
     Io_MvFree( p );
+// pDesign should be linked to all models of the design
 
     // make sure that everything is okay with the network structure
     if ( fCheck )
@@ -177,11 +185,19 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
             }
         }
     }
-// pDesign should be linked to all models of the design
+
+//Abc_LibPrint( pDesign );
+
+    // detect top-level model
+    RetValue = Abc_LibFindTopLevelModels( pDesign );
+    pNtk = Vec_PtrEntry( pDesign->vTops, 0 );
+    if ( RetValue > 1 )
+        printf( "Warning: The design has %d root-level modules. The first one (%s) will be used.\n",
+            Vec_PtrSize(pDesign->vTops), pNtk->pName );
 
     // extract the master network
-    pNtk = Vec_PtrEntry( pDesign->vModules, 0 );
     pNtk->pDesign = pDesign;
+    pDesign->pManFunc = NULL;
 
     // verify the design for cyclic dependence
     assert( Vec_PtrSize(pDesign->vModules) > 0 );
@@ -195,10 +211,7 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
     else
         Abc_NtkIsAcyclicHierarchy( pNtk );
 
-//Io_WriteBlifMvDesign( pDesign, "_temp_.mv" );
-//Abc_LibPrint( pDesign );
-//Abc_LibFree( pDesign );
-//return NULL;
+//Io_WriteBlifMv( pNtk, "_temp_.mv" );
     return pNtk;
 }
 
@@ -691,16 +704,18 @@ static Abc_Lib_t * Io_MvParse( Io_MvMan_t * p )
                 return NULL;
             }
             // create binary latch with 1-data and 0-init
-            pMod->pResetLatch = Io_ReadCreateResetLatch( pMod->pNtk, p->fBlifMv );
+            if ( p->fUseReset ) 
+                pMod->pResetLatch = Io_ReadCreateResetLatch( pMod->pNtk, p->fBlifMv );
         }
         // parse the latches
         Vec_PtrForEachEntry( pMod->vLatches, pLine, k )
             if ( !Io_MvParseLineLatch( pMod, pLine ) )
                 return NULL;
         // parse the reset lines
-        Vec_PtrForEachEntry( pMod->vResets, pLine, k )
-            if ( !Io_MvParseLineNamesMv( pMod, pLine, 1 ) )
-                return NULL;
+        if ( p->fUseReset )
+            Vec_PtrForEachEntry( pMod->vResets, pLine, k )
+                if ( !Io_MvParseLineNamesMv( pMod, pLine, 1 ) )
+                    return NULL;
         // parse the nodes
         if ( p->fBlifMv )
         {
@@ -721,6 +736,9 @@ static Abc_Lib_t * Io_MvParse( Io_MvMan_t * p )
         // finalize the network
         Abc_NtkFinalizeRead( pMod->pNtk );
     }
+    if ( p->nNDnodes )
+//        printf( "Warning: The parser added %d PIs to replace non-deterministic nodes.\n", p->nNDnodes );
+        printf( "Warning: The parser added %d constant 0 nodes to replace non-deterministic nodes.\n", p->nNDnodes );
     // return the network
     pDesign = p->pDesign;
     p->pDesign = NULL;
@@ -822,7 +840,7 @@ static int Io_MvParseLineOutputs( Io_MvMod_t * p, char * pLine )
 static int Io_MvParseLineLatch( Io_MvMod_t * p, char * pLine )
 {
     Vec_Ptr_t * vTokens = p->pMan->vTokens;
-    Abc_Obj_t * pObj, * pMux, * pNet;
+    Abc_Obj_t * pObj, * pNet;
     char * pToken;
     int Init;
     Io_MvSplitIntoTokens( vTokens, pLine, '\0' );
@@ -838,33 +856,35 @@ static int Io_MvParseLineLatch( Io_MvMod_t * p, char * pLine )
     {
         pObj = Io_ReadCreateLatch( p->pNtk, Vec_PtrEntry(vTokens,1), Vec_PtrEntry(vTokens,2) );
         // get initial value
-        if ( Vec_PtrSize(vTokens) > 3 )
-            Init = atoi( Vec_PtrEntry(vTokens,3) );
-        else
-            Init = 2;
-        if ( Init < 0 || Init > 2 )
-        {
-            sprintf( p->pMan->sError, "Line %d: Initial state of the latch is incorrect \"%s\".", Io_MvGetLine(p->pMan, pToken), Vec_PtrEntry(vTokens,3) );
-            return 0;
-        }
-        if ( Init == 0 )
+        if ( p->pMan->fBlifMv )
             Abc_LatchSetInit0( pObj );
-        else if ( Init == 1 )
-            Abc_LatchSetInit1( pObj );
-        else // if ( Init == 2 )
-            Abc_LatchSetInitDc( pObj );
+        else
+        {
+            if ( Vec_PtrSize(vTokens) > 3 )
+                Init = atoi( Vec_PtrEntry(vTokens,3) );
+            else
+                Init = 2;
+            if ( Init < 0 || Init > 2 )
+            {
+                sprintf( p->pMan->sError, "Line %d: Initial state of the latch is incorrect \"%s\".", Io_MvGetLine(p->pMan, pToken), Vec_PtrEntry(vTokens,3) );
+                return 0;
+            }
+            if ( Init == 0 )
+                Abc_LatchSetInit0( pObj );
+            else if ( Init == 1 )
+                Abc_LatchSetInit1( pObj );
+            else // if ( Init == 2 )
+                Abc_LatchSetInitDc( pObj );
+        }
     }
     else
     {
-        // get the net corresponding to output of reset latch
-        pNet = Abc_ObjFanout0(Abc_ObjFanout0(p->pResetLatch));
-        assert( Abc_ObjIsNet(pNet) );
-        // create mux
-        pMux = Io_ReadCreateResetMux( p->pNtk, Abc_ObjName(pNet), Vec_PtrEntry(vTokens,1), p->pMan->fBlifMv );
-        // get the net of mux output
-        pNet = Abc_ObjFanout0(pMux);
+        // get the net corresponding to the output of the latch
+        pNet = Abc_NtkFindOrCreateNet( p->pNtk, Vec_PtrEntry(vTokens,2) );
+        // get the net corresponding to the latch output (feeding into reset MUX)
+        pNet = Abc_NtkFindOrCreateNet( p->pNtk, Abc_ObjNameSuffix(pNet, "_out") );
         // create latch
-        pObj = Io_ReadCreateLatch( p->pNtk, Abc_ObjName(pNet), Vec_PtrEntry(vTokens,2) );
+        pObj = Io_ReadCreateLatch( p->pNtk, Vec_PtrEntry(vTokens,1), Abc_ObjName(pNet) );
         Abc_LatchSetInit0( pObj );
     }
     return 1;
@@ -1180,7 +1200,7 @@ static char * Io_MvParseTableMv( Io_MvMod_t * p, Abc_Obj_t * pNode, Vec_Ptr_t * 
     // prepare the place for the cover
     Vec_StrClear( vFunc );
     // write the number of values
-    Io_MvWriteValues( pNode, vFunc );
+//    Io_MvWriteValues( pNode, vFunc );
     // get the first token
     pFirst = Vec_PtrEntry( vTokens2, 0 );
     if ( pFirst[0] == '.' )
@@ -1217,6 +1237,60 @@ static char * Io_MvParseTableMv( Io_MvMod_t * p, Abc_Obj_t * pNode, Vec_Ptr_t * 
 
 /**Function*************************************************************
 
+  Synopsis    [Adds reset circuitry corresponding to latch with pName.]
+
+  Description [Returns the reset node's net.]
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static Abc_Obj_t * Io_MvParseAddResetCircuit( Io_MvMod_t * p, char * pName )
+{
+    char Buffer[50];
+    Abc_Obj_t * pNode, * pData0Net, * pData1Net, * pResetLONet, * pOutNet;
+    Io_MvVar_t * pVar;
+    // make sure the reset latch exists
+    assert( p->pResetLatch != NULL );
+    // get the reset net
+    pResetLONet = Abc_ObjFanout0(Abc_ObjFanout0(p->pResetLatch));
+    // get the output net
+    pOutNet = Abc_NtkFindOrCreateNet( p->pNtk, pName );
+    // get the data nets
+    pData0Net = Abc_NtkFindOrCreateNet( p->pNtk, Abc_ObjNameSuffix(pOutNet, "_reset") );
+    pData1Net = Abc_NtkFindOrCreateNet( p->pNtk, Abc_ObjNameSuffix(pOutNet, "_out") );
+    // duplicate MV variables
+    if ( Abc_NtkMvVar(p->pNtk) )
+    {
+        pVar = Abc_ObjMvVar( pOutNet );
+        Abc_ObjSetMvVar( pData0Net, Abc_NtkMvVarDup(p->pNtk, pVar) );
+        Abc_ObjSetMvVar( pData1Net, Abc_NtkMvVarDup(p->pNtk, pVar) );
+    }
+    // create the node
+    pNode = Abc_NtkCreateNode( p->pNtk );
+    // create the output net
+    Abc_ObjAddFanin( pOutNet, pNode );
+    // create the function
+    if ( p->pMan->fBlifMv )
+    {
+//        Vec_Att_t * p = Abc_NtkMvVar( pNtk );
+        int nValues = Abc_ObjMvVarNum(pOutNet);
+//        sprintf( Buffer, "2 %d %d %d\n1 - - =1\n0 - - =2\n", nValues, nValues, nValues );
+        sprintf( Buffer, "1 - - =1\n0 - - =2\n" );
+        pNode->pData = Abc_SopRegister( p->pNtk->pManFunc, Buffer );
+    }
+    else
+        pNode->pData = Abc_SopCreateMux( p->pNtk->pManFunc );
+    // add nets
+    Abc_ObjAddFanin( pNode, pResetLONet );
+    Abc_ObjAddFanin( pNode, pData1Net );
+    Abc_ObjAddFanin( pNode, pData0Net );
+    return pData0Net;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Parses the nodes line.]
 
   Description []
@@ -1241,19 +1315,15 @@ static int Io_MvParseLineNamesMvOne( Io_MvMod_t * p, Vec_Ptr_t * vTokens, Vec_Pt
             sprintf( p->pMan->sError, "Line %d: Latch with output signal \"%s\" does not exist.", Io_MvGetLine(p->pMan, pName), pName );
             return 0;
         }
+/*
         if ( !Abc_ObjIsBo(Abc_ObjFanin0(pNet)) )
         {
             sprintf( p->pMan->sError, "Line %d: Reset line \"%s\" defines signal that is not a latch output.", Io_MvGetLine(p->pMan, pName), pName );
             return 0;
         }
-        // get the latch input
-        pNode = Abc_ObjFanin0(Abc_ObjFanin0(Abc_ObjFanin0(pNet)));
-        assert( Abc_ObjIsBi(pNode) );
-        // get the MUX feeding into the latch
-        pNode = Abc_ObjFanin0(Abc_ObjFanin0(pNode));
-        assert( Abc_ObjFaninNum(pNode) == 3 );
-        // get the corresponding fanin net
-        pNet = Abc_ObjFanin( pNode, 2 );
+*/
+        // construct the reset circuit and get the reset net feeding into it
+        pNet = Io_MvParseAddResetCircuit( p, pName );
         // create fanins
         pNode = Io_ReadCreateNode( p->pNtk, Abc_ObjName(pNet), (char **)(vTokens->pArray + 1), nInputs );
         assert( nInputs == Vec_PtrSize(vTokens) - 2 );
@@ -1292,6 +1362,7 @@ static int Io_MvParseLineNamesMv( Io_MvMod_t * p, char * pLine, int fReset )
 {
     Vec_Ptr_t * vTokens = p->pMan->vTokens;
     Vec_Ptr_t * vTokens2 = p->pMan->vTokens2;
+    Abc_Obj_t * pNet;
     char * pName, * pFirst, * pArrow;
     int nInputs, nOutputs, nLiterals, nLines, i;
     assert( p->pMan->fBlifMv );
@@ -1341,27 +1412,23 @@ static int Io_MvParseLineNamesMv( Io_MvMod_t * p, char * pLine, int fReset )
     nLines = nLiterals / (nInputs + nOutputs);
     if ( nInputs == 0 && nLines > 1 )
     {
-        Abc_Obj_t * pNode, * pNet;
         // add the outputs to the PIs
         for ( i = 0; i < nOutputs; i++ )
         {
             pName = Vec_PtrEntry( vTokens, Vec_PtrSize(vTokens) - nOutputs + i );
-            fprintf( stdout, "Io_ReadBlifMv(): Adding PI for internal non-deterministic node \"%s\".\n", pName );
             // get the net corresponding to this node
             pNet = Abc_NtkFindOrCreateNet(p->pNtk, pName);
             if ( fReset )
             {
-                // get the latch input
-                pNode = Abc_ObjFanin0(Abc_ObjFanin0(Abc_ObjFanin0(pNet)));
-                assert( Abc_ObjIsBi(pNode) );
-                // get the MUX feeding into the latch
-                pNode = Abc_ObjFanin0(Abc_ObjFanin0(pNode));
-                assert( Abc_ObjFaninNum(pNode) == 3 );
-                // get the corresponding fanin net
-                pNet = Abc_ObjFanin( pNode, 2 );
+                assert( p->pResetLatch != NULL );
+                // construct the reset circuit and get the reset net feeding into it
+                pNet = Io_MvParseAddResetCircuit( p, pName );
             }
-//            Io_ReadCreatePi( p->pNtk, pName );
-            Abc_ObjAddFanin( pNet, Abc_NtkCreatePi(p->pNtk) );
+            // add the new PI node
+//            Abc_ObjAddFanin( pNet, Abc_NtkCreatePi(p->pNtk) );
+//            fprintf( stdout, "Io_ReadBlifMv(): Adding PI for internal non-deterministic node \"%s\".\n", pName );
+            p->pMan->nNDnodes++;
+            Abc_ObjAddFanin( pNet, Abc_NtkCreateNodeConst0(p->pNtk) );
         }
         return 1;
     }
@@ -1437,7 +1504,7 @@ static char * Io_MvParseTableBlif( Io_MvMod_t * p, char * pTable, int nFanins )
             sprintf( p->pMan->sError, "Line %d: Output value \"%s\" differs from the value in the first line of the table (%d).", Io_MvGetLine(p->pMan, pProduct), pOutput, Polarity );
             return NULL;
         }
-        // parse one product product
+        // parse one product 
         Vec_StrAppend( vFunc, pProduct );
         Vec_StrPush( vFunc, ' ' );
         Vec_StrPush( vFunc, pOutput[0] );
@@ -1485,6 +1552,40 @@ static int Io_MvParseLineNamesBlif( Io_MvMod_t * p, char * pLine )
         return 0;
     pNode->pData = Abc_SopRegister( p->pNtk->pManFunc, pNode->pData );
     return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicate the MV variable.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Io_MvVar_t * Abc_NtkMvVarDup( Abc_Ntk_t * pNtk, Io_MvVar_t * pVar )
+{
+    Extra_MmFlex_t * pFlex;
+    Io_MvVar_t * pVarDup;
+    int i;
+    if ( pVar == NULL )
+        return NULL;
+    pFlex = Abc_NtkMvVarMan( pNtk );
+    assert( pFlex != NULL );
+    pVarDup = (Io_MvVar_t *)Extra_MmFlexEntryFetch( pFlex, sizeof(Io_MvVar_t) );
+    pVarDup->nValues = pVar->nValues;
+    pVarDup->pNames = NULL;
+    if ( pVar->pNames == NULL )
+        return pVarDup;
+    pVarDup->pNames = (char **)Extra_MmFlexEntryFetch( pFlex, sizeof(char *) * pVar->nValues );
+    for ( i = 0; i < pVar->nValues; i++ )
+    {
+        pVarDup->pNames[i] = (char *)Extra_MmFlexEntryFetch( pFlex, strlen(pVar->pNames[i]) + 1 );
+        strcpy( pVarDup->pNames[i], pVar->pNames[i] );
+    }
+    return pVarDup;
 }
 
 

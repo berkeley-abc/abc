@@ -49,7 +49,7 @@ extern int          isspace( int c );  // to silence the warning in VS
   SeeAlso     []
 
 ***********************************************************************/
-Mio_Library_t * Mio_LibraryRead( Abc_Frame_t * pAbc, char * FileName, char * ExcludeFile, int fVerbose )
+Mio_Library_t * Mio_LibraryRead( void * pAbc, char * FileName, char * ExcludeFile, int fVerbose )
 {
     Mio_Library_t * pLib;
     int num;
@@ -486,7 +486,7 @@ void Mio_LibraryDetectSpecialGates( Mio_Library_t * pLib )
   SeeAlso     []
 
 ***********************************************************************/
-int Mio_LibraryReadExclude( Abc_Frame_t * pAbc, char * ExcludeFile, st_table * tExcludeGate )
+int Mio_LibraryReadExclude( void * pAbc, char * ExcludeFile, st_table * tExcludeGate )
 {
     int nDel = 0;
     FILE *pEx;

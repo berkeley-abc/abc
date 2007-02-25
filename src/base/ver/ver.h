@@ -56,6 +56,7 @@ struct Ver_Man_t_
     ProgressBar *   pProgress;
     // current design
     Abc_Lib_t *     pDesign;
+    st_table *      tName2Suffix;
     // error handling
     FILE *          Output;
     int             fTopLevel;
@@ -66,6 +67,7 @@ struct Ver_Man_t_
     Vec_Ptr_t *     vStackFn;
     Vec_Int_t *     vStackOp;
 };
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///

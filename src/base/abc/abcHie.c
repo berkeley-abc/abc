@@ -146,6 +146,15 @@ void Abc_NtkFlattenLogicHierarchy_rec( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, in
         // call recursively
         Abc_NtkFlattenLogicHierarchy_rec( pNtkNew, pNtkModel, pCounter );
     }
+
+    // if it is a BLIF-MV netlist transfer the values of all nets
+    if ( Abc_NtkHasBlifMv(pNtk) && Abc_NtkMvVar(pNtk) )
+    {
+        if ( Abc_NtkMvVar( pNtkNew ) == NULL )
+            Abc_NtkStartMvVars( pNtkNew );
+        Abc_NtkForEachNet( pNtk, pObj, i )
+            Abc_NtkSetMvVarValues( pObj->pCopy, Abc_ObjMvVarNum(pObj) );
+    }
 }
 
 /**Function*************************************************************
@@ -198,12 +207,15 @@ Abc_Ntk_t * Abc_NtkFlattenLogicHierarchy( Abc_Ntk_t * pNtk )
     printf( "Hierarchy reader flattened %d instances of logic boxes and left %d black boxes.\n", 
         Counter, Abc_NtkBlackboxNum(pNtkNew) );
 
-    // pass the design
-    assert( Vec_PtrEntry(pNtk->pDesign->vModules, 0) == pNtk );
-    pNtkNew->pDesign = Abc_LibDupBlackboxes( pNtk->pDesign, pNtkNew );
-    // update the pointers
-    Abc_NtkForEachBlackbox( pNtkNew, pTerm, i )
-        pTerm->pData = ((Abc_Ntk_t *)pTerm->pData)->pCopy;
+    if ( pNtk->pDesign )
+    {
+        // pass on the design
+        assert( Vec_PtrEntry(pNtk->pDesign->vTops, 0) == pNtk );
+        pNtkNew->pDesign = Abc_LibDupBlackboxes( pNtk->pDesign, pNtkNew );
+        // update the pointers
+        Abc_NtkForEachBlackbox( pNtkNew, pTerm, i )
+            pTerm->pData = ((Abc_Ntk_t *)pTerm->pData)->pCopy;
+    }
 
     // copy the timing information
 //    Abc_ManTimeDup( pNtk, pNtkNew );
@@ -467,276 +479,6 @@ Abc_Ntk_t * Abc_NtkInsertNewLogic( Abc_Ntk_t * pNtkH, Abc_Ntk_t * pNtkL )
     if ( !Abc_NtkCheck( pNtkNew ) )
     {
         fprintf( stdout, "Abc_NtkInsertNewLogic(): Network check has failed.\n" );
-        Abc_NtkDelete( pNtkNew );
-        return NULL;
-    }
-    return pNtkNew;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Assigns name with index.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkConvertAssignName( Abc_Obj_t * pObj, Abc_Obj_t * pNet, int Index )
-{
-    char Suffix[16];
-    assert( Abc_ObjIsTerm(pObj) );
-    assert( Abc_ObjIsNet(pNet) );
-    sprintf( Suffix, "[%d]", Index );
-    Abc_ObjAssignName( pObj, Abc_ObjName(pNet), Suffix );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Strashes the BLIF-MV netlist.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Ntk_t * Abc_NtkConvertBlifMv( Abc_Ntk_t * pNtk )
-{
-    char * pSop;
-    Vec_Ptr_t * vNodes;
-    Abc_Obj_t * pBits[16];
-    Abc_Obj_t ** pValues, ** pValuesF;
-    Abc_Ntk_t * pNtkNew;
-    Abc_Obj_t * pObj, * pTemp, * pBit, * pFanin, * pNet;
-    int fUsePositional = 0;
-    int i, k, v, nValues, Val, Index, Len, nBits, Def;
-
-    assert( Abc_NtkIsNetlist(pNtk) );
-    assert( Abc_NtkHasBlifMv(pNtk) );
-
-    // clean the node copy fields
-    Abc_NtkCleanCopy( pNtk );
-
-    // start the network
-    pNtkNew = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG, 1 );
-    // duplicate the name and the spec
-    pNtkNew->pName = Extra_UtilStrsav( pNtk->pName );
-//    pNtkNew->pSpec = Extra_UtilStrsav( pNtk->pName );
-
-    // check temporary assumptions
-    Abc_NtkForEachNet( pNtk, pObj, i )
-        assert( Abc_ObjMvVarNum(pObj) < 10 );
-
-    // encode the CI nets
-    if ( fUsePositional )
-    {
-        Abc_NtkForEachCi( pNtk, pObj, i )
-        {
-            pNet = Abc_ObjFanout0(pObj);
-            nValues = Abc_ObjMvVarNum(pNet);
-            pValues = ALLOC( Abc_Obj_t *, nValues );
-            // create PIs for the values
-            for ( v = 0; v < nValues; v++ )
-            {
-                pValues[v] = Abc_NtkCreatePi( pNtkNew );
-                Abc_NtkConvertAssignName( pValues[v], pNet, v );
-            }
-            // save the values in the fanout net
-            pNet->pCopy = (Abc_Obj_t *)pValues;
-        }
-    }
-    else
-    {
-        Abc_NtkForEachCi( pNtk, pObj, i )
-        {
-            pNet = Abc_ObjFanout0(pObj);
-            nValues = Abc_ObjMvVarNum(pNet);
-            pValues = ALLOC( Abc_Obj_t *, nValues );
-            // create PIs for the encoding bits
-            nBits = Extra_Base2Log( nValues );
-            for ( k = 0; k < nBits; k++ )
-            {
-                pBits[k] = Abc_NtkCreatePi( pNtkNew );
-                Abc_NtkConvertAssignName( pBits[k], pNet, k );
-            }
-            // encode the values
-            for ( v = 0; v < nValues; v++ )
-            {
-                pValues[v] = Abc_AigConst1(pNtkNew);
-                for ( k = 0; k < nBits; k++ )
-                {
-                    pBit = Abc_ObjNotCond( pBits[k], (v&(1<<k)) == 0 );
-                    pValues[v] = Abc_AigAnd( pNtkNew->pManFunc, pValues[v], pBit );
-                }
-            }
-            // save the values in the fanout net
-            pNet->pCopy = (Abc_Obj_t *)pValues;
-        }
-    }
-
-    // process nodes in the topological order
-    vNodes = Abc_NtkDfs( pNtk, 0 );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
-    {
-        assert( Abc_ObjIsNode(pObj) );
-        pNet = Abc_ObjFanout0(pObj);
-        nValues = Abc_ObjMvVarNum(pNet);
-        pValues = ALLOC( Abc_Obj_t *, nValues );
-        for ( v = 0; v < nValues; v++ )
-            pValues[v] = Abc_ObjNot( Abc_AigConst1(pNtkNew) );
-        // get the BLIF-MV formula
-        pSop = pObj->pData;
-        // skip the value line
-        while ( *pSop++ != '\n' );
-
-        // handle the constant
-        if ( Abc_ObjFaninNum(pObj) == 0 )
-        {
-            Index = *pSop-'0';
-            pValues[Index] = Abc_AigConst1(pNtkNew);
-            // save the values in the fanout net
-            pNet->pCopy = (Abc_Obj_t *)pValues;
-            continue;
-        }
-/*
-        // handle the mux
-        if ( *pSop != 'd' )
-        {
-            assert( Abc_ObjFaninNum(pObj) == 3 );
-            pValuesF = (Abc_Obj_t **)Abc_ObjFanin(pObj,1)->pCopy;
-            for ( v = 0; v < nValues; v++ )
-                pValues[v] = pValuesF[v];
-            // save the values in the fanout net
-            pNet->pCopy = (Abc_Obj_t *)pValues;
-            continue;
-        }
-*/
-        // detect muxes
-        Len = strlen(pSop);
-        for ( k = 0; k < Len; k++ )
-            if ( *(pSop+k) == '=' )
-                break;
-        if ( k < Len )
-        {
-            assert( Abc_ObjFaninNum(pObj) == 3 );
-            pValuesF = (Abc_Obj_t **)Abc_ObjFanin(pObj,1)->pCopy;
-            for ( v = 0; v < nValues; v++ )
-                pValues[v] = pValuesF[v];
-            // save the values in the fanout net
-            pNet->pCopy = (Abc_Obj_t *)pValues;
-            continue;
-        }
- 
-        // skip the default line
-//        assert( *pSop == 'd' );
-        if ( *pSop == 'd' )
-        {
-            Def = *(pSop+1) - '0';
-            while ( *pSop++ != '\n' );
-        }
-        else
-            Def = -1;
-        // convert the values
-        while ( *pSop )
-        {
-            // encode the values
-            pTemp = Abc_AigConst1(pNtkNew); 
-            Abc_ObjForEachFanin( pObj, pFanin, k )
-            {
-                if ( *pSop == '-' )
-                {
-                    pSop += 2;
-                    continue;
-                }
-                Val = Abc_ObjMvVarNum(pFanin);
-                pValuesF = (Abc_Obj_t **)pFanin->pCopy;
-                Index = *pSop-'0';
-                assert( Index >= 0 && Index <= 9 && Index < Val );
-                pTemp = Abc_AigAnd( pNtkNew->pManFunc, pTemp, pValuesF[Index] );
-                pSop += 2;
-            }
-            // get the output value
-            Index = *pSop-'0';
-            assert( Index >= 0 && Index <= 9 );
-            pValues[Index] = Abc_AigOr( pNtkNew->pManFunc, pValues[Index], pTemp );
-            pSop++;
-            assert( *pSop == '\n' );
-            pSop++;
-        }
-        // compute the default value
-//        Def = 0;
-        if ( Def >= 0 )
-        {
-            assert( pValues[Def] == Abc_ObjNot( Abc_AigConst1(pNtkNew) ) );
-            pValues[Def] = Abc_AigConst1(pNtkNew);
-            for ( v = 0; v < nValues; v++ )
-            {
-                if ( v == Def )
-                    continue;
-                pValues[Def] = Abc_AigAnd( pNtkNew->pManFunc, pValues[Def], Abc_ObjNot(pValues[v]) );
-            }
-            // experiment
-    //        if ( nValues > 2 )
-    //            pValues[Def] = Abc_ObjNot( Abc_AigConst1(pNtkNew) );
-        }
-
-        // save the values in the fanout net
-        pNet->pCopy = (Abc_Obj_t *)pValues;
-    }
-    Vec_PtrFree( vNodes );
-
-    // encode the CO nets
-    if ( fUsePositional )
-    {
-        Abc_NtkForEachCo( pNtk, pObj, i )
-        {
-            pNet = Abc_ObjFanin0(pObj);
-            nValues = Abc_ObjMvVarNum(pNet);
-            pValues = (Abc_Obj_t **)pNet->pCopy;
-            for ( v = 0; v < nValues; v++ )
-            {
-                pTemp = Abc_NtkCreatePo( pNtkNew );
-                Abc_ObjAddFanin( pTemp, pValues[v] );
-                Abc_NtkConvertAssignName( pTemp, pNet, v );
-            }
-        }
-    }
-    else
-    {
-        Abc_NtkForEachCo( pNtk, pObj, i )
-        {
-            pNet = Abc_ObjFanin0(pObj);
-            nValues = Abc_ObjMvVarNum(pNet);
-            pValues = (Abc_Obj_t **)pNet->pCopy;
-            nBits = Extra_Base2Log( nValues );
-            for ( k = 0; k < nBits; k++ )
-            {
-                pBit = Abc_ObjNot( Abc_AigConst1(pNtkNew) );
-                for ( v = 0; v < nValues; v++ )
-                    if ( v & (1<<k) )
-                        pBit = Abc_AigOr( pNtkNew->pManFunc, pBit, pValues[v] );
-                pTemp = Abc_NtkCreatePo( pNtkNew );
-                Abc_ObjAddFanin( pTemp, pBit );
-                Abc_NtkConvertAssignName( pTemp, pNet, k );
-            }
-        }
-    }
-
-    // cleanup
-    Abc_NtkForEachObj( pNtk, pObj, i )
-        if ( pObj->pCopy )
-            free( pObj->pCopy );
-
-    Abc_AigCleanup(pNtkNew->pManFunc);
-
-    // check integrity
-    if ( !Abc_NtkCheck( pNtkNew ) )
-    {
-        fprintf( stdout, "Abc_NtkConvertBlifMv(): Network check has failed.\n" );
         Abc_NtkDelete( pNtkNew );
         return NULL;
     }

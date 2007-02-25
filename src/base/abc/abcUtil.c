@@ -55,43 +55,6 @@ void * Abc_NtkAttrFree( Abc_Ntk_t * pNtk, int Attr, int fFreeMan )
 
 /**Function*************************************************************
 
-  Synopsis    [Starts the Mv-Var manager.]
-
-  Description []
-  
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkStartMvVars( Abc_Ntk_t * pNtk ) 
-{
-    Vec_Att_t * pAttMan;
-    assert( Abc_NtkMvVar(pNtk) == NULL );
-    pAttMan = Vec_AttAlloc( 0, Abc_NtkObjNumMax(pNtk) + 1, Extra_MmFlexStart(), Extra_MmFlexStop, NULL, NULL );
-    Vec_PtrWriteEntry( pNtk->vAttrs, VEC_ATTR_MVVAR, pAttMan );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Stops the Mv-Var manager.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkFreeMvVars( Abc_Ntk_t * pNtk ) 
-{ 
-    void * pUserMan;
-    pUserMan = Abc_NtkAttrFree( pNtk, VEC_ATTR_GLOBAL_BDD, 0 ); 
-    Extra_MmFlexStop( pUserMan );
-}
-
-/**Function*************************************************************
-
   Synopsis    [Increments the current traversal ID of the network.]
 
   Description []
@@ -754,12 +717,6 @@ bool Abc_NtkLogicHasSimpleCos( Abc_Ntk_t * pNtk )
     Abc_NtkIncrementTravId( pNtk );
     Abc_NtkForEachCo( pNtk, pNode, i ) 
     {
-/*
-        if ( strcmp( Abc_ObjName(pNode), "g704" ) == 0 )
-        {
-            int s = 1;
-        }
-*/
         // if the driver is complemented, this is an error
         pDriver = Abc_ObjFanin0(pNode);
         if ( Abc_ObjFaninC0(pNode) )

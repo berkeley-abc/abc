@@ -277,6 +277,8 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
         {
             if ( (int)pNode->Level != Level )
                 continue;
+            if ( Abc_ObjFaninNum(pNode) == 0 )
+                continue;
 //            fprintf( pFile, "  Node%d [label = \"%d\"", pNode->Id, pNode->Id );
             if ( Abc_NtkIsStrash(pNtk) )
                 pSopString = "";
@@ -313,7 +315,7 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
                 // check if the costant node is present
                 if ( Abc_ObjFaninNum(pNode) == 0 && Abc_ObjFanoutNum(pNode) > 0 )
                 {
-                    fprintf( pFile, "  Node%d [label = \"Const1\"", pNode->Id );
+                    fprintf( pFile, "  Node%d [label = \"Const%d\"", pNode->Id, Abc_NtkIsStrash(pNode->pNtk) || Abc_NodeIsConst1(pNode) );
                     fprintf( pFile, ", shape = ellipse" );
                     if ( pNode->fMarkB )
                         fprintf( pFile, ", style = filled" );

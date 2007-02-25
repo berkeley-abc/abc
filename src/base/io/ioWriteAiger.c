@@ -225,7 +225,7 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName )
     // write the buffer
     fwrite( pBuffer, 1, Pos, pFile );
     free( pBuffer );
-
+/*
     // write the symbol table
     // write PIs
     Abc_NtkForEachPi( pNtk, pObj, i )
@@ -236,7 +236,7 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName )
     // write POs
     Abc_NtkForEachPo( pNtk, pObj, i )
         fprintf( pFile, "o%d %s\n", i, Abc_ObjName(pObj) );
-
+*/
     // write the comment
     fprintf( pFile, "c\n" );
     fprintf( pFile, "%s\n", pNtk->pName );

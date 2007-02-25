@@ -61,11 +61,9 @@ void If_ManCleanNodeCopy( If_Man_t * p )
 void If_ManCleanCutData( If_Man_t * p )
 {
     If_Obj_t * pObj;
-    If_Cut_t * pCut;
-    int i, k;
+    int i;
     If_ManForEachObj( p, pObj, i )
-        If_ObjForEachCut( pObj, pCut, k )
-            If_CutSetData( pCut, NULL );
+        If_CutSetData( If_ObjCutBest(pObj), NULL );
 }
 
 /**Function*************************************************************
@@ -113,20 +111,20 @@ float If_ManDelayMax( If_Man_t * p, int fSeq )
     {
         assert( p->pPars->nLatches > 0 );
         If_ManForEachPo( p, pObj, i )
-            if ( DelayBest < If_ObjCutBest( If_ObjFanin0(pObj) )->Delay )
-                 DelayBest = If_ObjCutBest( If_ObjFanin0(pObj) )->Delay;
+            if ( DelayBest < If_ObjArrTime(If_ObjFanin0(pObj)) )
+                 DelayBest = If_ObjArrTime(If_ObjFanin0(pObj));
     }
     else if ( p->pPars->fLatchPaths )
     {
-        If_ManForEachLatch( p, pObj, i )
-            if ( DelayBest < If_ObjCutBest( If_ObjFanin0(pObj) )->Delay )
-                 DelayBest = If_ObjCutBest( If_ObjFanin0(pObj) )->Delay;
+        If_ManForEachLatchInput( p, pObj, i )
+            if ( DelayBest < If_ObjArrTime(If_ObjFanin0(pObj)) )
+                 DelayBest = If_ObjArrTime(If_ObjFanin0(pObj));
     }
     else 
     {
         If_ManForEachCo( p, pObj, i )
-            if ( DelayBest < If_ObjCutBest( If_ObjFanin0(pObj) )->Delay )
-                 DelayBest = If_ObjCutBest( If_ObjFanin0(pObj) )->Delay;
+            if ( DelayBest < If_ObjArrTime(If_ObjFanin0(pObj)) )
+                 DelayBest = If_ObjArrTime(If_ObjFanin0(pObj));
     }
     return DelayBest;
 }
@@ -142,40 +140,67 @@ float If_ManDelayMax( If_Man_t * p, int fSeq )
   SeeAlso     []
 
 ***********************************************************************/
-void If_ManComputeRequired( If_Man_t * p, int fFirstTime )
+void If_ManComputeRequired( If_Man_t * p )
 {
     If_Obj_t * pObj;
     int i;
+
     // compute area, clean required times, collect nodes used in the mapping
     p->nNets = 0;
     p->AreaGlo = If_ManScanMapping( p );
-    // get the global required times
-    p->RequiredGlo = If_ManDelayMax( p, 0 );
-    // update the required times according to the target
-    if ( p->pPars->DelayTarget != -1 )
+
+    // consider the case when the required times are given
+    if ( p->pPars->pTimesReq )
     {
-        if ( p->RequiredGlo > p->pPars->DelayTarget + p->fEpsilon )
+        assert( !p->pPars->fAreaOnly );
+        // make sure that the required time hold
+        If_ManForEachCo( p, pObj, i )
         {
-            if ( fFirstTime )
-                printf( "Cannot meet the target required times (%4.2f). Mapping continues anyway.\n", p->pPars->DelayTarget );
+            if ( If_ObjArrTime(If_ObjFanin0(pObj)) > p->pPars->pTimesReq[i] + p->fEpsilon )
+                printf( "Required times are violated for output %d (arr = %d; req = %d).\n", 
+                    i, (int)If_ObjArrTime(If_ObjFanin0(pObj)), (int)p->pPars->pTimesReq[i] );
+            If_ObjFanin0(pObj)->Required = p->pPars->pTimesReq[i];
         }
-        else if ( p->RequiredGlo < p->pPars->DelayTarget - p->fEpsilon )
-        {
-            if ( fFirstTime )
-                printf( "Relaxing the required times from (%4.2f) to the target (%4.2f).\n", p->RequiredGlo, p->pPars->DelayTarget );
-            p->RequiredGlo = p->pPars->DelayTarget;
-        }
-    }
-    // set the required times for the POs
-    if ( p->pPars->fLatchPaths )
-    {
-        If_ManForEachLatch( p, pObj, i )
-            If_ObjFanin0(pObj)->Required = p->RequiredGlo;
     }
     else
     {
-        If_ManForEachCo( p, pObj, i )
-            If_ObjFanin0(pObj)->Required = p->RequiredGlo;
+        // get the global required times
+        p->RequiredGlo = If_ManDelayMax( p, 0 );
+        // update the required times according to the target
+        if ( p->pPars->DelayTarget != -1 )
+        {
+            if ( p->RequiredGlo > p->pPars->DelayTarget + p->fEpsilon )
+            {
+                if ( p->fNextRound == 0 )
+                {
+                    p->fNextRound = 1;
+                    printf( "Cannot meet the target required times (%4.2f). Mapping continues anyway.\n", p->pPars->DelayTarget );
+                }
+            }
+            else if ( p->RequiredGlo < p->pPars->DelayTarget - p->fEpsilon )
+            {
+                if ( p->fNextRound == 0 )
+                {
+                    p->fNextRound = 1;
+                    printf( "Relaxing the required times from (%4.2f) to the target (%4.2f).\n", p->RequiredGlo, p->pPars->DelayTarget );
+                }
+                p->RequiredGlo = p->pPars->DelayTarget;
+            }
+        }
+        // do not propagate required times if area minimization is requested
+        if ( p->pPars->fAreaOnly ) 
+            return;
+        // set the required times for the POs
+        if ( p->pPars->fLatchPaths )
+        {
+            If_ManForEachLatchInput( p, pObj, i )
+                If_ObjFanin0(pObj)->Required = p->RequiredGlo;
+        }
+        else 
+        {
+            If_ManForEachCo( p, pObj, i )
+                If_ObjFanin0(pObj)->Required = p->RequiredGlo;
+        }
     }
     // go through the nodes in the reverse topological order
     Vec_PtrForEachEntry( p->vMapped, pObj, i )
@@ -236,7 +261,8 @@ float If_ManScanMapping( If_Man_t * p )
     If_ManForEachObj( p, pObj, i )
     {
         pObj->Required = IF_FLOAT_LARGE;
-        pObj->nRefs = 0;
+        pObj->nVisits  = pObj->nVisitsCopy;
+        pObj->nRefs    = 0;
     }
     // allocate place to store the nodes
     ppStore = ALLOC( If_Obj_t *, p->nLevelMax + 1 );
@@ -316,6 +342,83 @@ float If_ManScanMappingSeq( If_Man_t * p )
     If_ManForEachPo( p, pObj, i )
         aArea += If_ManScanMappingSeq_rec( p, If_ObjFanin0(pObj), p->vMapped );
     return aArea;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes area, references, and nodes used in the mapping.]
+
+  Description [Collects the nodes in reverse topological order in array 
+  p->vMapping.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void If_ManResetOriginalRefs( If_Man_t * p )
+{
+    If_Obj_t * pObj;
+    int i;
+    If_ManForEachObj( p, pObj, i )
+        pObj->nRefs = 0;
+    If_ManForEachObj( p, pObj, i )
+    {
+        if ( If_ObjIsAnd(pObj) )
+        {
+            pObj->pFanin0->nRefs++;
+            pObj->pFanin1->nRefs++;
+        }
+        else if ( If_ObjIsCo(pObj) )
+            pObj->pFanin0->nRefs++;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes cross-cut of the circuit.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_ManCrossCut( If_Man_t * p )
+{
+    If_Obj_t * pObj, * pFanin;
+    int i, nCutSize = 0, nCutSizeMax = 0;
+    If_ManForEachObj( p, pObj, i )
+    {
+        if ( !If_ObjIsAnd(pObj) )
+            continue;
+        // consider the node
+        if ( nCutSizeMax < ++nCutSize )
+            nCutSizeMax = nCutSize;
+        if ( pObj->nVisits == 0 )
+            nCutSize--;
+        // consider the fanins
+        pFanin = If_ObjFanin0(pObj);
+        if ( !If_ObjIsCi(pFanin) && --pFanin->nVisits == 0 )
+            nCutSize--;
+        pFanin = If_ObjFanin1(pObj);
+        if ( !If_ObjIsCi(pFanin) && --pFanin->nVisits == 0 )
+            nCutSize--;
+        // consider the choice class
+        if ( pObj->fRepr )
+            for ( pFanin = pObj; pFanin; pFanin = pFanin->pEquiv )
+                if ( !If_ObjIsCi(pFanin) && --pFanin->nVisits == 0 )
+                    nCutSize--;
+    }
+    If_ManForEachObj( p, pObj, i )
+    {
+        assert( If_ObjIsCi(pObj) || pObj->fVisit == 0 );
+        pObj->nVisits = pObj->nVisitsCopy;
+    }
+    assert( nCutSize == 0 );
+//    printf( "Max cross cut size = %6d.\n", nCutSizeMax );
+    return nCutSizeMax;
 }
 
 ////////////////////////////////////////////////////////////////////////

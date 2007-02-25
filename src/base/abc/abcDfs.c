@@ -884,7 +884,8 @@ int Abc_NtkLevelReverse_rec( Abc_Obj_t * pNode )
         if ( pNode->Level < (unsigned)Level )
             pNode->Level = Level;
     }
-    pNode->Level++;
+    if ( Abc_ObjFaninNum(pNode) > 0 )
+        pNode->Level++;
     return pNode->Level;
 }
 
@@ -975,8 +976,8 @@ bool Abc_NtkIsAcyclic_rec( Abc_Obj_t * pNode )
     if ( Abc_NodeIsTravIdCurrent(pNode) )
     {
         fprintf( stdout, "Network \"%s\" contains combinational loop!\n", Abc_NtkName(pNtk) );
-        fprintf( stdout, "Node \"%s\" is encountered twice on the following path:\n", Abc_ObjName(pNode) );
-        fprintf( stdout, " %s", Abc_ObjIsNode(pNode)? Abc_ObjName(pNode) : Abc_NtkName(pNode->pData) );
+        fprintf( stdout, "Node \"%s\" is encountered twice on the following path:\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+        fprintf( stdout, " %s", Abc_ObjIsNode(pNode)? Abc_ObjName(Abc_ObjFanout0(pNode)) : Abc_NtkName(pNode->pData) );
         return 0;
     }
     // mark this node as a node on the current path
@@ -1041,7 +1042,7 @@ bool Abc_NtkIsAcyclic( Abc_Ntk_t * pNtk )
         if ( fAcyclic = Abc_NtkIsAcyclic_rec(pNode) )
             continue;
         // stop as soon as the first loop is detected
-        fprintf( stdout, " (cone of CO \"%s\")\n", Abc_ObjName(pNode) );
+        fprintf( stdout, " (cone of CO \"%s\")\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
         break;
     }
     return fAcyclic;

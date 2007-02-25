@@ -26,7 +26,7 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-void Io_NtkWriteBlifMv( FILE * pFile, Abc_Ntk_t * pNtk );
+static void Io_NtkWriteBlifMv( FILE * pFile, Abc_Ntk_t * pNtk );
 static void Io_NtkWriteBlifMvOne( FILE * pFile, Abc_Ntk_t * pNtk );
 static void Io_NtkWriteBlifMvPis( FILE * pFile, Abc_Ntk_t * pNtk );
 static void Io_NtkWriteBlifMvPos( FILE * pFile, Abc_Ntk_t * pNtk );
@@ -52,49 +52,34 @@ static void Io_NtkWriteBlifMvValues( FILE * pFile, Abc_Obj_t * pNode );
   SeeAlso     []
 
 ***********************************************************************/
-void Io_WriteBlifMvDesign( Abc_Lib_t * pLib, char * FileName )
+void Io_WriteBlifMv( Abc_Ntk_t * pNtk, char * FileName )
 {
     FILE * pFile;
-    Abc_Ntk_t * pNtk;
+    Abc_Ntk_t * pNtkTemp;
     int i;
+    assert( Abc_NtkIsNetlist(pNtk) );
+    assert( Abc_NtkHasBlifMv(pNtk) );
     // start writing the file
     pFile = fopen( FileName, "w" );
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Io_WriteBlifMvDesign(): Cannot open the output file.\n" );
-        return;
-    }
-    fprintf( pFile, "# Benchmark \"%s\" written by ABC on %s\n", pLib->pName, Extra_TimeStamp() );
-    // write the master network
-    Vec_PtrForEachEntry( pLib->vModules, pNtk, i )
-        Io_NtkWriteBlifMv( pFile, pNtk );
-    fclose( pFile );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Write the network into a BLIF file with the given name.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Io_WriteBlifMvNetlist( Abc_Ntk_t * pNtk, char * FileName )
-{
-    FILE * pFile;
-    // start writing the file
-    pFile = fopen( FileName, "w" );
-    if ( pFile == NULL )
-    {
-        fprintf( stdout, "Io_WriteMvNetlist(): Cannot open the output file.\n" );
+        fprintf( stdout, "Io_WriteBlifMv(): Cannot open the output file.\n" );
         return;
     }
     fprintf( pFile, "# Benchmark \"%s\" written by ABC on %s\n", pNtk->pName, Extra_TimeStamp() );
     // write the master network
     Io_NtkWriteBlifMv( pFile, pNtk );
+    // write the remaining networks
+    if ( pNtk->pDesign )
+    {
+        Vec_PtrForEachEntry( pNtk->pDesign->vModules, pNtkTemp, i )
+        {
+            if ( pNtkTemp == pNtk )
+                continue;
+            fprintf( pFile, "\n\n" );
+            Io_NtkWriteBlifMv( pFile, pNtkTemp );
+        }
+    }
     fclose( pFile );
 }
 
@@ -185,7 +170,7 @@ void Io_NtkWriteBlifMvOne( FILE * pFile, Abc_Ntk_t * pNtk )
             Io_NtkWriteBlifMvLatch( pFile, pLatch );
         fprintf( pFile, "\n" );
     }
-
+/*
     // write the subcircuits
     assert( Abc_NtkWhiteboxNum(pNtk) == 0 );
     if ( Abc_NtkBlackboxNum(pNtk) > 0 )
@@ -193,6 +178,18 @@ void Io_NtkWriteBlifMvOne( FILE * pFile, Abc_Ntk_t * pNtk )
         fprintf( pFile, "\n" );
         Abc_NtkForEachBlackbox( pNtk, pNode, i )
             Io_NtkWriteBlifMvSubckt( pFile, pNode );
+        fprintf( pFile, "\n" );
+    }
+*/
+    if ( Abc_NtkBlackboxNum(pNtk) > 0 || Abc_NtkWhiteboxNum(pNtk) > 0 )
+    {
+        fprintf( pFile, "\n" );
+        Abc_NtkForEachBox( pNtk, pNode, i )
+        {
+            if ( Abc_ObjIsLatch(pNode) )
+                continue;
+            Io_NtkWriteBlifMvSubckt( pFile, pNode );
+        }
         fprintf( pFile, "\n" );
     }
 
@@ -414,26 +411,32 @@ void Io_NtkWriteBlifMvNode( FILE * pFile, Abc_Obj_t * pNode )
     Abc_Obj_t * pFanin;
     char * pCur;
     int nValues, iFanin, i;
-    fprintf( pFile, "\n" );
+
     // write .mv directives for the fanins
-    pCur = Abc_ObjData(pNode);
+    fprintf( pFile, "\n" );
     Abc_ObjForEachFanin( pNode, pFanin, i )
     {
-        nValues = atoi(pCur);
+//        nValues = atoi(pCur);
+        nValues = Abc_ObjMvVarNum( pFanin );
         if ( nValues > 2 )
             fprintf( pFile, ".mv %s %d\n", Abc_ObjName(pFanin), nValues );
-        while ( *pCur++ != ' ' );
+//        while ( *pCur++ != ' ' );
     }
+
     // write .mv directives for the node
-    nValues = atoi(pCur);
+//    nValues = atoi(pCur);
+    nValues = Abc_ObjMvVarNum( Abc_ObjFanout0(pNode) );
     if ( nValues > 2 )
         fprintf( pFile, ".mv %s %d\n", Abc_ObjName(Abc_ObjFanout0(pNode)), nValues );
-    while ( *pCur++ != '\n' );
+//    while ( *pCur++ != '\n' );
+
     // write the .names line
     fprintf( pFile, ".table" );
     Io_NtkWriteBlifMvNodeFanins( pFile, pNode );
     fprintf( pFile, "\n" );
+
     // write the cubes
+    pCur = Abc_ObjData(pNode);
     if ( *pCur == 'd' )
     {
         fprintf( pFile, ".default " );

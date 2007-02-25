@@ -41,54 +41,98 @@
 ***********************************************************************/
 int If_ManPerformMapping( If_Man_t * p )
 {
-    If_Obj_t * pObj;
-    int clkTotal = clock();
-    int RetValue, i;
+    p->pPars->fAreaOnly = p->pPars->fArea; // temporary
+
+    // create the CI cutsets
+    If_ManSetupCiCutSets( p );
+    // allocate memory for other cutsets
+    If_ManSetupSetAll( p );
 
     // try sequential mapping
     if ( p->pPars->fSeqMap )
     {
+        int RetValue;
+//        printf( "Currently sequential mapping is not performed.\n" );
         RetValue = If_ManPerformMappingSeq( p );
-        if ( p->pPars->fVerbose )
-        {
-            PRT( "Total time", clock() - clkTotal );
-        }
         return RetValue;
+//        return 1;
     }
 
-    // set arrival times and trivial cuts at const 1 and PIs
-    If_ManConst1(p)->Cuts[0].Delay = 0.0;
+    return If_ManPerformMappingComb( p );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_ManPerformMappingComb( If_Man_t * p )
+{
+    If_Obj_t * pObj;
+    int clkTotal = clock();
+    int i;
+
+    // set arrival times and fanout estimates
     If_ManForEachCi( p, pObj, i )
-        pObj->Cuts[0].Delay = p->pPars->pTimesArr[i];
-    // set the fanout estimates of the PIs
-    If_ManForEachCi( p, pObj, i )
+    {
+        If_ObjSetArrTime( pObj, p->pPars->pTimesArr[i] );
         pObj->EstRefs = (float)1.0;
+    }
+
     // delay oriented mapping
-    if ( p->pPars->fPreprocess && !p->pPars->fArea && p->pPars->nCutsMax >= 4  )
-        If_ManPerformMappingPreprocess( p );
-    else
+    if ( p->pPars->fPreprocess && !p->pPars->fArea )
+    {
+        // map for delay
         If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 1, "Delay" );
+        // map for delay second option
+        p->pPars->fFancy = 1;
+        If_ManResetOriginalRefs( p );
+        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 1, "Delay-2" );
+        p->pPars->fFancy = 0;
+        // map for area
+        p->pPars->fArea = 1;
+        If_ManResetOriginalRefs( p );
+        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 1, "Area" );
+        p->pPars->fArea = 0;
+    }
+    else
+        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 0, "Delay" );
+
     // try to improve area by expanding and reducing the cuts
     if ( p->pPars->fExpRed && !p->pPars->fTruth )
         If_ManImproveMapping( p );
+
     // area flow oriented mapping
     for ( i = 0; i < p->pPars->nFlowIters; i++ )
     {
-        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 1, 1, "Flow" );
+        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 1, 0, "Flow" );
         if ( p->pPars->fExpRed && !p->pPars->fTruth )
             If_ManImproveMapping( p );
     }
+
     // area oriented mapping
     for ( i = 0; i < p->pPars->nAreaIters; i++ )
     {
-        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 2, 1, "Area" );
+        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 2, 0, "Area" );
         if ( p->pPars->fExpRed && !p->pPars->fTruth )
             If_ManImproveMapping( p );
     }
+
     if ( p->pPars->fVerbose )
     {
+//        printf( "Total memory = %7.2f Mb. Peak cut memory = %7.2f Mb.  ", 
+//            1.0 * (p->nObjBytes + 2*sizeof(void *)) * If_ManObjNum(p) / (1<<20), 
+//            1.0 * p->nSetBytes * Mem_FixedReadMaxEntriesUsed(p->pMemSet) / (1<<20) );
         PRT( "Total time", clock() - clkTotal );
     }
+//    printf( "Cross cut memory = %d.\n", Mem_FixedReadMaxEntriesUsed(p->pMemSet) );
     return 1;
 }
 

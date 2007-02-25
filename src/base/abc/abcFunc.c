@@ -880,6 +880,22 @@ int Abc_NtkMapToSop( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
+  Synopsis    [Converts SOP functions into BLIF-MV functions.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkSopToBlifMv( Abc_Ntk_t * pNtk )
+{
+    return 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Convers logic network to the SOP form.]
 
   Description []

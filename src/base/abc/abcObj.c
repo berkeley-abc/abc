@@ -349,7 +349,7 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, int fCopyName 
         {
             if ( Abc_NtkIsStrash(pNtkNew) ) 
             {}
-            else if ( Abc_NtkHasSop(pNtkNew) )
+            else if ( Abc_NtkHasSop(pNtkNew) || Abc_NtkHasBlifMv(pNtkNew) )
                 pObjNew->pData = Abc_SopRegister( pNtkNew->pManFunc, pObj->pData );
             else if ( Abc_NtkHasBdd(pNtkNew) )
                 pObjNew->pData = Cudd_bddTransfer(pObj->pNtk->pManFunc, pNtkNew->pManFunc, pObj->pData), Cudd_Ref(pObjNew->pData);
@@ -558,8 +558,9 @@ Abc_Obj_t * Abc_NtkFindOrCreateNet( Abc_Ntk_t * pNtk, char * pName )
     assert( Abc_NtkIsNetlist(pNtk) );
     if ( pName && (pNet = Abc_NtkFindNet( pNtk, pName )) )
         return pNet;
+//printf( "Creating net %s.\n", pName );
     // create a new net
-    pNet = Abc_NtkCreateObj( pNtk, ABC_OBJ_NET );
+    pNet = Abc_NtkCreateNet( pNtk );
     if ( pName )
         Nm_ManStoreIdName( pNtk->pManName, pNet->Id, pNet->Type, pName, NULL );
     return pNet;
@@ -581,7 +582,7 @@ Abc_Obj_t * Abc_NtkCreateNodeConst0( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pNode;
     assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsNetlist(pNtk) );
     pNode = Abc_NtkCreateNode( pNtk );   
-    if ( Abc_NtkHasSop(pNtk) )
+    if ( Abc_NtkHasSop(pNtk) || Abc_NtkHasBlifMv(pNtk) )
         pNode->pData = Abc_SopRegister( pNtk->pManFunc, " 0\n" );
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_ReadLogicZero(pNtk->pManFunc), Cudd_Ref( pNode->pData );
@@ -610,7 +611,7 @@ Abc_Obj_t * Abc_NtkCreateNodeConst1( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pNode;
     assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsNetlist(pNtk) );
     pNode = Abc_NtkCreateNode( pNtk );   
-    if ( Abc_NtkHasSop(pNtk) )
+    if ( Abc_NtkHasSop(pNtk) || Abc_NtkHasBlifMv(pNtk) )
         pNode->pData = Abc_SopRegister( pNtk->pManFunc, " 1\n" );
     else if ( Abc_NtkHasBdd(pNtk) )
         pNode->pData = Cudd_ReadOne(pNtk->pManFunc), Cudd_Ref( pNode->pData );

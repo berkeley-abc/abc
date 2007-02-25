@@ -87,13 +87,14 @@ static inline int If_CutCheckEquality( If_Cut_t * pDom, If_Cut_t * pCut )
   SeeAlso     []
 
 ***********************************************************************/
-int If_CutFilter( If_Man_t * p, If_Cut_t * pCut )
-{
+int If_CutFilter( If_Set_t * pCutSet, If_Cut_t * pCut )
+{ 
     If_Cut_t * pTemp;
-    int i;
-    for ( i = 0; i < p->nCuts; i++ )
+    int i, k;
+    assert( pCutSet->ppCuts[pCutSet->nCuts] == pCut );
+    for ( i = 0; i < pCutSet->nCuts; i++ )
     {
-        pTemp = p->ppCuts[i];
+        pTemp = pCutSet->ppCuts[i];
         if ( pTemp->nLeaves > pCut->nLeaves )
         {
             // do not fiter the first cut
@@ -105,10 +106,15 @@ int If_CutFilter( If_Man_t * p, If_Cut_t * pCut )
             // check containment seriously
             if ( If_CutCheckDominance( pCut, pTemp ) )
             {
-                // removed contained cut
-                p->ppCuts[i] = p->ppCuts[p->nCuts-1];
-                p->ppCuts[p->nCuts-1] = pTemp;
-                p->nCuts--;
+//                p->ppCuts[i] = p->ppCuts[p->nCuts-1];
+//                p->ppCuts[p->nCuts-1] = pTemp;
+//                p->nCuts--;
+//                i--;
+                // remove contained cut
+                for ( k = i; k < pCutSet->nCuts; k++ )
+                    pCutSet->ppCuts[k] = pCutSet->ppCuts[k+1];
+                pCutSet->ppCuts[pCutSet->nCuts] = pTemp;
+                pCutSet->nCuts--;
                 i--;
             }
          }
@@ -290,6 +296,7 @@ int If_CutMerge( If_Cut_t * pCut0, If_Cut_t * pCut1, If_Cut_t * pCut )
         if ( !If_CutMergeOrdered( pCut0, pCut1, pCut ) )
             return 0;
     }
+    pCut->uSign = pCut0->uSign | pCut1->uSign;
     return 1;
 }
 
@@ -400,6 +407,7 @@ int If_CutCompareArea( If_Cut_t ** ppC0, If_Cut_t ** ppC1 )
 ***********************************************************************/
 void If_ManSortCuts( If_Man_t * p, int Mode )
 {
+/*
     // sort the cuts
     if ( Mode || p->pPars->fArea ) // area
         qsort( p->ppCuts, p->nCuts, sizeof(If_Cut_t *), (int (*)(const void *, const void *))If_CutCompareArea );
@@ -407,6 +415,115 @@ void If_ManSortCuts( If_Man_t * p, int Mode )
         qsort( p->ppCuts, p->nCuts, sizeof(If_Cut_t *), (int (*)(const void *, const void *))If_CutCompareDelayOld );
     else
         qsort( p->ppCuts, p->nCuts, sizeof(If_Cut_t *), (int (*)(const void *, const void *))If_CutCompareDelay );
+*/
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Comparison function for two cuts.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int If_ManSortCompare( If_Man_t * p, If_Cut_t * pC0, If_Cut_t * pC1 )
+{
+    if ( p->SortMode == 1 ) // area
+    {
+        if ( pC0->Area < pC1->Area - 0.0001 )
+            return -1;
+        if ( pC0->Area > pC1->Area + 0.0001 )
+            return 1;
+        if ( pC0->AveRefs > pC1->AveRefs )
+            return -1;
+        if ( pC0->AveRefs < pC1->AveRefs )
+            return 1;
+        if ( pC0->nLeaves < pC1->nLeaves )
+            return -1;
+        if ( pC0->nLeaves > pC1->nLeaves )
+            return 1;
+        if ( pC0->Delay < pC1->Delay - 0.0001 )
+            return -1;
+        if ( pC0->Delay > pC1->Delay + 0.0001 )
+            return 1;
+        return 0;
+    }
+    if ( p->SortMode == 0 ) // delay
+    {
+        if ( pC0->Delay < pC1->Delay - 0.0001 )
+            return -1;
+        if ( pC0->Delay > pC1->Delay + 0.0001 )
+            return 1;
+        if ( pC0->nLeaves < pC1->nLeaves )
+            return -1;
+        if ( pC0->nLeaves > pC1->nLeaves )
+            return 1;
+        if ( pC0->Area < pC1->Area - 0.0001 )
+            return -1;
+        if ( pC0->Area > pC1->Area + 0.0001 )
+            return 1;
+        return 0;
+    }
+    assert( p->SortMode == 2 ); // delay old
+    if ( pC0->Delay < pC1->Delay - 0.0001 )
+        return -1;
+    if ( pC0->Delay > pC1->Delay + 0.0001 )
+        return 1;
+    if ( pC0->Area < pC1->Area - 0.0001 )
+        return -1;
+    if ( pC0->Area > pC1->Area + 0.0001 )
+        return 1;
+    if ( pC0->nLeaves < pC1->nLeaves )
+        return -1;
+    if ( pC0->nLeaves > pC1->nLeaves )
+        return 1;
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs incremental sorting of cuts.]
+
+  Description [Currently only the trivial sorting is implemented.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void If_CutSort( If_Man_t * p, If_Set_t * pCutSet, If_Cut_t * pCut )
+{
+//    int Counter = 0;
+    int i;
+
+    // the new cut is the last one
+    assert( pCutSet->ppCuts[pCutSet->nCuts] == pCut );
+    assert( pCutSet->nCuts <= pCutSet->nCutsMax );
+
+    // cut structure is empty
+    if ( pCutSet->nCuts == 0 )
+    {
+        pCutSet->nCuts++;
+        return;
+    }
+
+    // the cut will be added - find its place
+    for ( i = pCutSet->nCuts-1; i >= 0; i-- )
+    {
+//        Counter++;
+        if ( If_ManSortCompare( p, pCutSet->ppCuts[i], pCut ) <= 0 )
+            break;
+        pCutSet->ppCuts[i+1] = pCutSet->ppCuts[i];
+        pCutSet->ppCuts[i] = pCut;
+    }
+//    printf( "%d ", Counter );
+
+    // update the number of cuts
+    if ( pCutSet->nCuts < pCutSet->nCutsMax )
+        pCutSet->nCuts++;
 }
 
 /**Function*************************************************************
@@ -635,7 +752,7 @@ void If_CutLift( If_Cut_t * pCut )
   SeeAlso     []
 
 ***********************************************************************/
-void If_CutCopy( If_Cut_t * pCutDest, If_Cut_t * pCutSrc )
+void If_CutCopy( If_Man_t * p, If_Cut_t * pCutDest, If_Cut_t * pCutSrc )
 {
     int * pLeaves;
     char * pPerm;
@@ -645,17 +762,11 @@ void If_CutCopy( If_Cut_t * pCutDest, If_Cut_t * pCutSrc )
     pPerm   = pCutDest->pPerm;
     pTruth  = pCutDest->pTruth;
     // copy the cut info
-    *pCutDest = *pCutSrc;
+    memcpy( pCutDest, pCutSrc, p->nCutBytes );
     // restore the arrays
     pCutDest->pLeaves = pLeaves;
     pCutDest->pPerm   = pPerm;
     pCutDest->pTruth  = pTruth;
-    // copy the array data
-    memcpy( pCutDest->pLeaves, pCutSrc->pLeaves, sizeof(int) * pCutSrc->nLeaves );
-    if ( pCutSrc->pPerm )
-        memcpy( pCutDest->pPerm, pCutSrc->pPerm, sizeof(unsigned) * If_CutPermWords(pCutSrc->nLimit) );
-    if ( pCutSrc->pTruth )
-        memcpy( pCutDest->pTruth, pCutSrc->pTruth, sizeof(unsigned) * If_CutTruthWords(pCutSrc->nLimit) );
 }
 
 ////////////////////////////////////////////////////////////////////////

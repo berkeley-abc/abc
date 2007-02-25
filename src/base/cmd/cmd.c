@@ -1265,7 +1265,7 @@ int CmdCommandSis( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
     // write out the current network
-    pNetlist = Abc_NtkToNetlist(pNtk,0);
+    pNetlist = Abc_NtkToNetlist(pNtk);
     if ( pNetlist == NULL )
     {
         fprintf( pErr, "Cannot produce the intermediate network.\n" );
@@ -1406,7 +1406,7 @@ int CmdCommandMvsis( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
     // write out the current network
-    pNetlist = Abc_NtkToNetlist(pNtk,0);
+    pNetlist = Abc_NtkToNetlist(pNtk);
     if ( pNetlist == NULL )
     {
         fprintf( pErr, "Cannot produce the intermediate network.\n" );
@@ -1552,7 +1552,7 @@ int CmdCommandCapo( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
     // write out the current network
-    pNetlist = Abc_NtkToNetlist(pNtk,0);
+    pNetlist = Abc_NtkToNetlist(pNtk);
     if ( pNetlist == NULL )
     {
         fprintf( pErr, "Cannot produce the intermediate network.\n" );

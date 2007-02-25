@@ -310,6 +310,21 @@ int Extra_MmFixedReadMemUsage( Extra_MmFixed_t * p )
     return p->nMemoryAlloc;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Extra_MmFixedReadMaxEntriesUsed( Extra_MmFixed_t * p )
+{
+    return p->nEntriesMax;
+}
 
 
 /**Function*************************************************************
@@ -326,7 +341,7 @@ int Extra_MmFixedReadMemUsage( Extra_MmFixed_t * p )
 Extra_MmFlex_t * Extra_MmFlexStart()
 {
     Extra_MmFlex_t * p;
-
+//printf( "allocing flex\n" );
     p = ALLOC( Extra_MmFlex_t, 1 );
     memset( p, 0, sizeof(Extra_MmFlex_t) );
 
@@ -379,6 +394,7 @@ void Extra_MmFlexStop( Extra_MmFlex_t * p )
     int i;
     if ( p == NULL )
         return;
+//printf( "deleting flex\n" );
     for ( i = 0; i < p->nChunks; i++ )
         free( p->pChunks[i] );
     free( p->pChunks );

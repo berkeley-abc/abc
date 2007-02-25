@@ -56,7 +56,7 @@ void Io_WriteBlifLogic( Abc_Ntk_t * pNtk, char * FileName, int fWriteLatches )
 {
     Abc_Ntk_t * pNtkTemp;
     // derive the netlist
-    pNtkTemp = Abc_NtkToNetlist(pNtk,0);
+    pNtkTemp = Abc_NtkToNetlist(pNtk);
     if ( pNtkTemp == NULL )
     {
         fprintf( stdout, "Writing BLIF has failed.\n" );
@@ -80,6 +80,8 @@ void Io_WriteBlifLogic( Abc_Ntk_t * pNtk, char * FileName, int fWriteLatches )
 void Io_WriteBlif( Abc_Ntk_t * pNtk, char * FileName, int fWriteLatches )
 {
     FILE * pFile;
+    Abc_Ntk_t * pNtkTemp;
+    int i;
     assert( Abc_NtkIsNetlist(pNtk) );
     // start writing the file
     pFile = fopen( FileName, "w" );
@@ -96,18 +98,6 @@ void Io_WriteBlif( Abc_Ntk_t * pNtk, char * FileName, int fWriteLatches )
     // write the hierarchy if present
     if ( Abc_NtkBlackboxNum(pNtk) > 0 )
     {
-        Abc_Ntk_t * pNtkTemp;
-        int i;
-/*
-        Abc_Obj_t * pObj;
-        Abc_NtkForEachBlackbox( pNtk, pObj, i )
-        {
-            pNtkTemp = pObj->pData;
-            assert( pNtkTemp != NULL && Abc_NtkHasBlackbox(pNtkTemp) );
-            fprintf( pFile, "\n\n" );
-            Io_NtkWrite( pFile, pNtkTemp, fWriteLatches );
-        }
-*/
         Vec_PtrForEachEntry( pNtk->pDesign->vModules, pNtkTemp, i )
         {
             if ( pNtkTemp == pNtk )

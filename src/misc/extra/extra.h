@@ -349,6 +349,7 @@ extern char *      Extra_MmFixedEntryFetch( Extra_MmFixed_t * p );
 extern void        Extra_MmFixedEntryRecycle( Extra_MmFixed_t * p, char * pEntry );
 extern void        Extra_MmFixedRestart( Extra_MmFixed_t * p );
 extern int         Extra_MmFixedReadMemUsage( Extra_MmFixed_t * p );
+extern int         Extra_MmFixedReadMaxEntriesUsed( Extra_MmFixed_t * p );
 // flexible-size-block memory manager
 extern Extra_MmFlex_t * Extra_MmFlexStart();
 extern void        Extra_MmFlexStop( Extra_MmFlex_t * p );

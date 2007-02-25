@@ -45,6 +45,7 @@ extern char *        Mem_FixedEntryFetch( Mem_Fixed_t * p );
 extern void          Mem_FixedEntryRecycle( Mem_Fixed_t * p, char * pEntry );
 extern void          Mem_FixedRestart( Mem_Fixed_t * p );
 extern int           Mem_FixedReadMemUsage( Mem_Fixed_t * p );
+extern int           Mem_FixedReadMaxEntriesUsed( Mem_Fixed_t * p );
 // flexible-size-block memory manager
 extern Mem_Flex_t *  Mem_FlexStart();
 extern void          Mem_FlexStop( Mem_Flex_t * p, int fVerbose );

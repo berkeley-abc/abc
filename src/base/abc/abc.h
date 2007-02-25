@@ -316,6 +316,7 @@ static inline Abc_Obj_t * Abc_NtkCreatePo( Abc_Ntk_t * pNtk )        { return Ab
 static inline Abc_Obj_t * Abc_NtkCreateBi( Abc_Ntk_t * pNtk )        { return Abc_NtkCreateObj( pNtk, ABC_OBJ_BI );         }
 static inline Abc_Obj_t * Abc_NtkCreateBo( Abc_Ntk_t * pNtk )        { return Abc_NtkCreateObj( pNtk, ABC_OBJ_BO );         }
 static inline Abc_Obj_t * Abc_NtkCreateAssert( Abc_Ntk_t * pNtk )    { return Abc_NtkCreateObj( pNtk, ABC_OBJ_ASSERT );     }
+static inline Abc_Obj_t * Abc_NtkCreateNet( Abc_Ntk_t * pNtk )       { return Abc_NtkCreateObj( pNtk, ABC_OBJ_NET );        }
 static inline Abc_Obj_t * Abc_NtkCreateNode( Abc_Ntk_t * pNtk )      { return Abc_NtkCreateObj( pNtk, ABC_OBJ_NODE );       }
 static inline Abc_Obj_t * Abc_NtkCreateLatch( Abc_Ntk_t * pNtk )     { return Abc_NtkCreateObj( pNtk, ABC_OBJ_LATCH );      }
 static inline Abc_Obj_t * Abc_NtkCreateWhitebox( Abc_Ntk_t * pNtk )  { return Abc_NtkCreateObj( pNtk, ABC_OBJ_WHITEBOX );   }
@@ -535,6 +536,15 @@ extern void               Abc_AigUpdateStop( Abc_Aig_t * pMan );
 extern void               Abc_AigUpdateReset( Abc_Aig_t * pMan );
 /*=== abcAttach.c ==========================================================*/
 extern int                Abc_NtkAttach( Abc_Ntk_t * pNtk );
+/*=== abcBlifMv.c ==========================================================*/
+extern void               Abc_NtkStartMvVars( Abc_Ntk_t * pNtk );
+extern void               Abc_NtkFreeMvVars( Abc_Ntk_t * pNtk );
+extern void               Abc_NtkSetMvVarValues( Abc_Obj_t * pObj, int nValues );
+extern Abc_Ntk_t *        Abc_NtkStrashBlifMv( Abc_Ntk_t * pNtk );
+extern Abc_Ntk_t *        Abc_NtkInsertBlifMv( Abc_Ntk_t * pNtkBase, Abc_Ntk_t * pNtkLogic );
+extern int                Abc_NtkConvertToBlifMv( Abc_Ntk_t * pNtk );
+extern char *             Abc_NodeConvertSopToMvSop( int nVars, Vec_Int_t * vSop0, Vec_Int_t * vSop1 );
+extern int                Abc_NodeEvalMvCost( int nVars, Vec_Int_t * vSop0, Vec_Int_t * vSop1 );
 /*=== abcBalance.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkBalance( Abc_Ntk_t * pNtk, bool fDuplicate, bool fSelective, bool fUpdateLevel );
 /*=== abcCheck.c ==========================================================*/
@@ -544,6 +554,9 @@ extern bool               Abc_NtkDoCheck( Abc_Ntk_t * pNtk );
 extern bool               Abc_NtkCheckObj( Abc_Ntk_t * pNtk, Abc_Obj_t * pObj );
 extern bool               Abc_NtkCompareSignals( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fOnlyPis, int fComb );
 extern int                Abc_NtkIsAcyclicHierarchy( Abc_Ntk_t * pNtk );
+extern int                Abc_NtkCheckUniqueCiNames( Abc_Ntk_t * pNtk );
+extern int                Abc_NtkCheckUniqueCoNames( Abc_Ntk_t * pNtk );
+extern int                Abc_NtkCheckUniqueCioNames( Abc_Ntk_t * pNtk );
 /*=== abcCollapse.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, int fReorder, int fVerbose );
 /*=== abcCut.c ==========================================================*/
@@ -616,6 +629,7 @@ extern void               Abc_LibFree( Abc_Lib_t * pLib, Abc_Ntk_t * pNtk );
 extern void               Abc_LibPrint( Abc_Lib_t * pLib );
 extern int                Abc_LibAddModel( Abc_Lib_t * pLib, Abc_Ntk_t * pNtk );
 extern Abc_Ntk_t *        Abc_LibFindModelByName( Abc_Lib_t * pLib, char * pName );
+extern int                Abc_LibFindTopLevelModels( Abc_Lib_t * pLib );
 extern Abc_Ntk_t *        Abc_LibDeriveRoot( Abc_Lib_t * pLib );
 /*=== abcMiter.c ==========================================================*/
 extern int                Abc_NtkMinimumBase( Abc_Ntk_t * pNtk );
@@ -682,7 +696,7 @@ extern void               Abc_NtkAddDummyBoxNames( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkShortNames( Abc_Ntk_t * pNtk );
 /*=== abcNetlist.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkToLogic( Abc_Ntk_t * pNtk );
-extern Abc_Ntk_t *        Abc_NtkToNetlist( Abc_Ntk_t * pNtk, int fDirect );
+extern Abc_Ntk_t *        Abc_NtkToNetlist( Abc_Ntk_t * pNtk );
 extern Abc_Ntk_t *        Abc_NtkToNetlistBench( Abc_Ntk_t * pNtk );
 /*=== abcNtbdd.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkDeriveFromBdd( DdManager * dd, DdNode * bFunc, char * pNamePo, Vec_Ptr_t * vNamesPi );
@@ -783,6 +797,10 @@ extern int                Abc_SopIsExorType( char * pSop );
 extern bool               Abc_SopCheck( char * pSop, int nFanins );
 extern char *             Abc_SopFromTruthBin( char * pTruth );
 extern char *             Abc_SopFromTruthHex( char * pTruth );
+extern char *             Abc_SopEncoderPos( Extra_MmFlex_t * pMan, int iValue, int nValues );
+extern char *             Abc_SopEncoderLog( Extra_MmFlex_t * pMan, int iBit, int nValues );
+extern char *             Abc_SopDecoderPos( Extra_MmFlex_t * pMan, int nValues );
+extern char *             Abc_SopDecoderLog( Extra_MmFlex_t * pMan, int nValues );
 /*=== abcStrash.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes, bool fCleanup );
 extern Abc_Obj_t *        Abc_NodeStrash( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode );

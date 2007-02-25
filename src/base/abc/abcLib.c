@@ -108,8 +108,11 @@ Abc_Lib_t * Abc_LibDupBlackboxes( Abc_Lib_t * pLib, Abc_Ntk_t * pNtkSave )
     Abc_Lib_t * pLibNew;
     Abc_Ntk_t * pNtkTemp;
     int i;
+    assert( Vec_PtrSize(pLib->vTops) > 0 );
+    assert( Vec_PtrSize(pLib->vModules) > 1 );
     pLibNew = Abc_LibCreate( pLib->pName );
 //    pLibNew->pManFunc = pNtkSave->pManFunc;
+    Vec_PtrPush( pLibNew->vTops, pNtkSave );
     Vec_PtrPush( pLibNew->vModules, pNtkSave );
     Vec_PtrForEachEntry( pLib->vModules, pNtkTemp, i )
         if ( Abc_NtkHasBlackbox( pNtkTemp ) )
@@ -215,7 +218,50 @@ Abc_Ntk_t * Abc_LibDeriveRoot( Abc_Lib_t * pLib )
     return pNtk;
 }
 
+/**Function*************************************************************
 
+  Synopsis    [Detects the top-level models.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_LibFindTopLevelModels( Abc_Lib_t * pLib )
+{
+    Abc_Ntk_t * pNtk, * pNtkBox;
+    Abc_Obj_t * pObj;
+    int i, k;
+    assert( Vec_PtrSize( pLib->vModules ) > 0 );
+    // clear the models
+    Vec_PtrForEachEntry( pLib->vModules, pNtk, i )
+        pNtk->fHieVisited = 0;
+    // mark all the models reachable from other models
+    Vec_PtrForEachEntry( pLib->vModules, pNtk, i )
+    {
+        Abc_NtkForEachBox( pNtk, pObj, k )
+        {
+            if ( Abc_ObjIsLatch(pObj) )
+                continue;
+            if ( pObj->pData == NULL )
+                continue;
+            pNtkBox = pObj->pData;
+            pNtkBox->fHieVisited = 1;
+        }
+    }
+    // collect the models that are not marked
+    Vec_PtrClear( pLib->vTops );
+    Vec_PtrForEachEntry( pLib->vModules, pNtk, i )
+    {
+        if ( pNtk->fHieVisited == 0 )
+            Vec_PtrPush( pLib->vTops, pNtk );
+        else
+            pNtk->fHieVisited = 0;
+    }
+    return Vec_PtrSize( pLib->vTops );
+}
 
 
 /**Function*************************************************************

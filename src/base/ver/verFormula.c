@@ -120,7 +120,7 @@ void * Ver_FormulaParser( char * pFormula, void * pMan, Vec_Ptr_t * vNames, Vec_
         case '\r':
         case '\n':
             continue;
-
+/*
         // treat Constant 0 as a variable
         case VER_PARSE_SYM_CONST0:
             Vec_PtrPush( vStackFn, Hop_ManConst0(pMan) );  // Cudd_Ref( Hop_ManConst0(pMan) );
@@ -144,7 +144,7 @@ void * Ver_FormulaParser( char * pFormula, void * pMan, Vec_Ptr_t * vNames, Vec_
             }
             Flag = VER_PARSE_FLAG_VAR; 
             break;
-
+*/
         case VER_PARSE_SYM_NEGBEF1:
         case VER_PARSE_SYM_NEGBEF2:
             if ( Flag == VER_PARSE_FLAG_VAR )
