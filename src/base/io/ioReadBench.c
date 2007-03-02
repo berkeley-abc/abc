@@ -84,7 +84,8 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
     Abc_Ntk_t * pNtk;
     Abc_Obj_t * pNode;
     Vec_Str_t * vString;
-    char * pType, ** ppNames;
+    unsigned uTruth[8];
+    char * pType, ** ppNames, * pString;
     int iLine, nNames;
     
     // allocate the empty network
@@ -114,10 +115,70 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
         {
             // get the node name and the node type
             pType = vTokens->pArray[1];
-            if ( strcmp(pType, "DFF") == 0 )
+            if ( strncmp(pType, "DFF", 3) == 0 ) // works for both DFF and DFFRSE
             {
                 pNode = Io_ReadCreateLatch( pNtk, vTokens->pArray[2], vTokens->pArray[0] );
                 Abc_LatchSetInit0( pNode );
+            }
+            else if ( strcmp(pType, "LUT") == 0 )
+            {
+                ppNames = (char **)vTokens->pArray + 3;
+                nNames  = vTokens->nSize - 3;
+                // check the number of inputs
+                if ( nNames > 8 )
+                {
+                    printf( "%s: Currently cannot read truth tables with more than 8 inputs (%d).\n", Extra_FileReaderGetFileName(p), nNames );
+                    Vec_StrFree( vString );
+                    Abc_NtkDelete( pNtk );
+                    return NULL;
+                }
+                // get the hex string
+                pString = vTokens->pArray[2];
+                if ( strncmp( pString, "0x", 2 ) )
+                {
+                    printf( "%s: The LUT signature (%s) does not look like a hexadecimal beginning with \"0x\".\n", Extra_FileReaderGetFileName(p), pString );
+                    Vec_StrFree( vString );
+                    Abc_NtkDelete( pNtk );
+                    return NULL;
+                }
+                pString += 2;
+                if ( !Extra_ReadHexadecimal( uTruth, pString, nNames ) )
+                {
+                    printf( "%s: Reading hexadecimal number (%s) has failed.\n", Extra_FileReaderGetFileName(p), pString );
+                    Vec_StrFree( vString );
+                    Abc_NtkDelete( pNtk );
+                    return NULL;
+                }
+                // check if the node is a constant node
+                if ( Extra_TruthIsConst0(uTruth, nNames) )
+                {
+                    pNode = Io_ReadCreateNode( pNtk, vTokens->pArray[0], ppNames, 0 );
+                    Abc_ObjSetData( pNode, Abc_SopRegister( pNtk->pManFunc, " 0\n" ) );
+                }
+                else if ( Extra_TruthIsConst1(uTruth, nNames) )
+                {
+                    pNode = Io_ReadCreateNode( pNtk, vTokens->pArray[0], ppNames, 0 );
+                    Abc_ObjSetData( pNode, Abc_SopRegister( pNtk->pManFunc, " 1\n" ) );
+                }
+                else
+                {
+                    // create the node
+                    pNode = Io_ReadCreateNode( pNtk, vTokens->pArray[0], ppNames, nNames );
+                    assert( nNames > 0 );
+                    if ( nNames > 1 )
+                        Abc_ObjSetData( pNode, Abc_SopCreateFromTruth(pNtk->pManFunc, nNames, uTruth) );
+                    else if ( pString[0] == '2' )
+                        Abc_ObjSetData( pNode, Abc_SopCreateBuf(pNtk->pManFunc) );
+                    else if ( pString[0] == '1' )
+                        Abc_ObjSetData( pNode, Abc_SopCreateInv(pNtk->pManFunc) );
+                    else
+                    {
+                        printf( "%s: Reading truth table (%s) of single-input node has failed.\n", Extra_FileReaderGetFileName(p), pString );
+                        Vec_StrFree( vString );
+                        Abc_NtkDelete( pNtk );
+                        return NULL;
+                    }
+                }
             }
             else
             {
@@ -144,10 +205,10 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
                     Abc_ObjSetData( pNode, Abc_SopCreateInv(pNtk->pManFunc) );
                 else if ( strncmp(pType, "MUX", 3) == 0 )
                     Abc_ObjSetData( pNode, Abc_SopRegister(pNtk->pManFunc, "1-0 1\n-11 1\n") );
-                else if ( strncmp(pType, "vdd", 3) == 0 )
-                    Abc_ObjSetData( pNode, Abc_SopRegister( pNtk->pManFunc, " 1\n" ) );
                 else if ( strncmp(pType, "gnd", 3) == 0 )
                     Abc_ObjSetData( pNode, Abc_SopRegister( pNtk->pManFunc, " 0\n" ) );
+                else if ( strncmp(pType, "vdd", 3) == 0 )
+                    Abc_ObjSetData( pNode, Abc_SopRegister( pNtk->pManFunc, " 1\n" ) );
                 else
                 {
                     printf( "Io_ReadBenchNetwork(): Cannot determine gate type \"%s\" in line %d.\n", pType, Extra_FileReaderGetLineNumber(p, 0) );

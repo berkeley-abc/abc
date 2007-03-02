@@ -73,8 +73,6 @@ static void Ver_ParseRemoveSuffixTable( Ver_Man_t * pMan );
 static inline int Ver_NtkIsDefined( Abc_Ntk_t * pNtkBox )  { assert( pNtkBox->pName );     return Abc_NtkPiNum(pNtkBox) || Abc_NtkPoNum(pNtkBox);  }
 static inline int Ver_ObjIsConnected( Abc_Obj_t * pObj )   { assert( Abc_ObjIsBox(pObj) ); return Abc_ObjFaninNum(pObj) || Abc_ObjFanoutNum(pObj); }
 
-//static inline Abc_Obj_t * Abc_NtkCreateNet( Abc_Ntk_t * pNtk )       { return Abc_NtkCreateObj( pNtk, ABC_OBJ_NET );        }
-
 int glo_fMapped = 0; // this is bad!
 
 typedef struct Ver_Bundle_t_    Ver_Bundle_t;
@@ -109,7 +107,6 @@ Ver_Man_t * Ver_ParseStart( char * pFileName, Abc_Lib_t * pGateLib )
     if ( p->pReader == NULL )
         return NULL;
     p->Output    = stdout;
-    p->pProgress = Extra_ProgressBarStart( stdout, Ver_StreamGetFileSize(p->pReader) );
     p->vNames    = Vec_PtrAlloc( 100 );
     p->vStackFn  = Vec_PtrAlloc( 100 );
     p->vStackOp  = Vec_IntAlloc( 100 );
@@ -133,8 +130,9 @@ Ver_Man_t * Ver_ParseStart( char * pFileName, Abc_Lib_t * pGateLib )
 ***********************************************************************/
 void Ver_ParseStop( Ver_Man_t * p )
 {
+    if ( p->pProgress )
+        Extra_ProgressBarStop( p->pProgress );
     Ver_StreamFree( p->pReader );
-    Extra_ProgressBarStop( p->pProgress );
     Vec_PtrFree( p->vNames   );
     Vec_PtrFree( p->vStackFn );
     Vec_IntFree( p->vStackOp );
@@ -194,6 +192,7 @@ void Ver_ParseInternal( Ver_Man_t * pMan )
     int i;
 
     // preparse the modeles
+    pMan->pProgress = Extra_ProgressBarStart( stdout, Ver_StreamGetFileSize(pMan->pReader) );
     while ( 1 )
     {
         // get the next token
@@ -210,6 +209,8 @@ void Ver_ParseInternal( Ver_Man_t * pMan )
         if ( !Ver_ParseModule(pMan) )
             return;
     }
+    Extra_ProgressBarStop( pMan->pProgress );
+    pMan->pProgress = NULL;
 
     // process defined and undefined boxes
     if ( !Ver_ParseAttachBoxes( pMan ) )
@@ -1547,13 +1548,13 @@ int Ver_ParseBox( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkBox )
     // continue parsing the box
     if ( Ver_StreamPopChar(p) != '(' )
     {
-        sprintf( pMan->sError, "Cannot parse gate %s (expected opening paranthesis).", Abc_ObjName(pNode) );
+        sprintf( pMan->sError, "Cannot parse box %s (expected opening paranthesis).", Abc_ObjName(pNode) );
         Ver_ParsePrintErrorMessage( pMan );
         return 0;
     }
     Ver_ParseSkipComments( pMan );
  
-    // parse pairs of formal/actural inputs
+    // parse pairs of formal/actual inputs
     vBundles = Vec_PtrAlloc( 16 );
     pNode->pCopy = (Abc_Obj_t *)vBundles;
     while ( 1 )
@@ -1571,7 +1572,7 @@ int Ver_ParseBox( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkBox )
             fFormalIsGiven = 1;
             if ( Ver_StreamPopChar(p) != '.' )
             {
-                sprintf( pMan->sError, "Cannot parse gate %s (expected .).", Abc_ObjName(pNode) );
+                sprintf( pMan->sError, "Cannot parse box %s (expected .).", Abc_ObjName(pNode) );
                 Ver_ParsePrintErrorMessage( pMan );
                 return 0;
             }
@@ -1587,7 +1588,7 @@ int Ver_ParseBox( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkBox )
             // open the paranthesis
             if ( Ver_StreamPopChar(p) != '(' )
             {
-                sprintf( pMan->sError, "Cannot formal parameter %s of gate %s (expected opening paranthesis).", pWord, Abc_ObjName(pNode));
+                sprintf( pMan->sError, "Cannot formal parameter %s of box %s (expected opening paranthesis).", pWord, Abc_ObjName(pNode));
                 Ver_ParsePrintErrorMessage( pMan );
                 return 0;
             }
@@ -1603,7 +1604,6 @@ int Ver_ParseBox( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkBox )
             int i, k, Bit, Limit, nMsb, nLsb, fQuit;
 
             // skip this char
-            Ver_ParseSkipComments( pMan );
             Ver_StreamPopChar(p);
 
             // read actual names
@@ -1661,9 +1661,14 @@ int Ver_ParseBox( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkBox )
                         pNetActual = Ver_ParseFindNet( pNtk, pWord );
                         if ( pNetActual == NULL )
                         {
-                            sprintf( pMan->sError, "Actual net \"%s\" is missing in gate \"%s\".", pWord, Abc_ObjName(pNode) );
-                            Ver_ParsePrintErrorMessage( pMan );
-                            return 0;
+                            if ( !strncmp(pWord, "Open_", 5) ) 
+                                pNetActual = Abc_NtkCreateNet( pNtk );
+                            else
+                            {
+                                sprintf( pMan->sError, "Actual net \"%s\" is missing in box \"%s\".", pWord, Abc_ObjName(pNode) );
+                                Ver_ParsePrintErrorMessage( pMan );
+                                return 0;
+                            }
                         }
                         Vec_PtrPush( pBundle->vNetsActual, pNetActual );
                         i++;
@@ -1680,9 +1685,14 @@ int Ver_ParseBox( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkBox )
                             pNetActual = Ver_ParseFindNet( pNtk, Buffer );
                             if ( pNetActual == NULL )
                             {
-                                sprintf( pMan->sError, "Actual net \"%s\" is missing in gate \"%s\".", Buffer, Abc_ObjName(pNode) );
-                                Ver_ParsePrintErrorMessage( pMan );
-                                return 0;
+                                if ( !strncmp(pWord, "Open_", 5) ) 
+                                    pNetActual = Abc_NtkCreateNet( pNtk );
+                                else
+                                {
+                                    sprintf( pMan->sError, "Actual net \"%s\" is missing in box \"%s\".", pWord, Abc_ObjName(pNode) );
+                                    Ver_ParsePrintErrorMessage( pMan );
+                                    return 0;
+                                }
                             }
                             Vec_PtrPush( pBundle->vNetsActual, pNetActual );
                         }
@@ -1733,9 +1743,14 @@ int Ver_ParseBox( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkBox )
                 pNetActual = Ver_ParseFindNet( pNtk, pWord );
                 if ( pNetActual == NULL )
                 {
-                    sprintf( pMan->sError, "Actual net \"%s\" is missing in gate \"%s\".", pWord, Abc_ObjName(pNode) );
-                    Ver_ParsePrintErrorMessage( pMan );
-                    return 0;
+                    if ( !strncmp(pWord, "Open_", 5) ) 
+                        pNetActual = Abc_NtkCreateNet( pNtk );
+                    else
+                    {
+                        sprintf( pMan->sError, "Actual net \"%s\" is missing in box \"%s\".", pWord, Abc_ObjName(pNode) );
+                        Ver_ParsePrintErrorMessage( pMan );
+                        return 0;
+                    }
                 }
             }
             Vec_PtrPush( pBundle->vNetsActual, Abc_ObjNotCond( pNetActual, fCompl ) );
@@ -1747,7 +1762,7 @@ int Ver_ParseBox( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkBox )
             Ver_ParseSkipComments( pMan );
             if ( Ver_StreamPopChar(p) != ')' )
             {
-                sprintf( pMan->sError, "Cannot parse formal parameter %s of gate %s (expected closing paranthesis).", pWord, Abc_ObjName(pNode) );
+                sprintf( pMan->sError, "Cannot parse formal parameter %s of box %s (expected closing paranthesis).", pWord, Abc_ObjName(pNode) );
                 Ver_ParsePrintErrorMessage( pMan );
                 return 0;
             }
@@ -1761,7 +1776,7 @@ int Ver_ParseBox( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkBox )
         // skip comma
         if ( Symbol != ',' )
         {
-            sprintf( pMan->sError, "Cannot parse formal parameter %s of gate %s (expected comma).", pWord, Abc_ObjName(pNode) );
+            sprintf( pMan->sError, "Cannot parse formal parameter %s of box %s (expected comma).", pWord, Abc_ObjName(pNode) );
             Ver_ParsePrintErrorMessage( pMan );
             return 0;
         }
@@ -1772,7 +1787,7 @@ int Ver_ParseBox( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkBox )
     Ver_ParseSkipComments( pMan );
     if ( Ver_StreamPopChar(p) != ';' )
     {
-        sprintf( pMan->sError, "Cannot read gate %s (expected closing semicolumn).", Abc_ObjName(pNode) );
+        sprintf( pMan->sError, "Cannot read box %s (expected closing semicolumn).", Abc_ObjName(pNode) );
         Ver_ParsePrintErrorMessage( pMan );
         return 0;
     }
@@ -2429,6 +2444,131 @@ int Ver_ParseMaxBoxSize( Vec_Ptr_t * vUndefs )
     return nMaxSize;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Prints the comprehensive report into a log file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ver_ParsePrintLog( Ver_Man_t * pMan )
+{
+    Abc_Ntk_t * pNtk, * pNtkBox;
+    Abc_Obj_t * pBox;
+    FILE * pFile;
+    char * pNameGeneric;
+    char Buffer[1000];
+    int i, k;
+
+    // open the log file
+    pNameGeneric = Extra_FileNameGeneric( pMan->pFileName );
+    sprintf( Buffer, "%s.log", pNameGeneric );
+    free( pNameGeneric );
+    pFile = fopen( Buffer, "w" );
+
+    // count the total number of instances and how many times they occur
+    Vec_PtrForEachEntry( pMan->pDesign->vModules, pNtk, i )
+        pNtk->fHieVisited = 0;
+    Vec_PtrForEachEntry( pMan->pDesign->vModules, pNtk, i )
+        Abc_NtkForEachBox( pNtk, pBox, k )
+        {
+            if ( Abc_ObjIsLatch(pBox) )
+                continue;
+            pNtkBox = pBox->pData;
+            if ( pNtkBox == NULL )
+                continue;
+            pNtkBox->fHieVisited++;
+        }
+    // print each box and its stats
+    fprintf( pFile, "The hierarhical design %s contains %d modules:\n", pMan->pFileName, Vec_PtrSize(pMan->pDesign->vModules) );
+    Vec_PtrForEachEntry( pMan->pDesign->vModules, pNtk, i )
+    {
+        fprintf( pFile, "%-24s : ", Abc_NtkName(pNtk) );
+        if ( !Ver_NtkIsDefined(pNtk) )
+            fprintf( pFile, "undefbox" );
+        else if ( Abc_NtkHasBlackbox(pNtk) )
+            fprintf( pFile, "blackbox" );
+        else
+            fprintf( pFile, "logicbox" );
+        fprintf( pFile, " instantiated %6d times ", pNtk->fHieVisited );
+//        fprintf( pFile, "\n   " );
+        fprintf( pFile, " pi = %4d", Abc_NtkPiNum(pNtk) );
+        fprintf( pFile, " po = %4d", Abc_NtkPiNum(pNtk) );
+        fprintf( pFile, " nd = %8d",  Abc_NtkNodeNum(pNtk) );
+        fprintf( pFile, " lat = %6d",  Abc_NtkLatchNum(pNtk) );
+        fprintf( pFile, " box = %6d", Abc_NtkBoxNum(pNtk)-Abc_NtkLatchNum(pNtk) );
+        fprintf( pFile, "\n" );
+    }
+    Vec_PtrForEachEntry( pMan->pDesign->vModules, pNtk, i )
+        pNtk->fHieVisited = 0;
+
+    // report instances with dangling outputs
+    if ( Vec_PtrSize(pMan->pDesign->vModules) > 1 )
+    {
+        Vec_Ptr_t * vBundles;
+        Ver_Bundle_t * pBundle;
+        int j, nActNets, Counter = 0, CounterBoxes = 0;
+        // count the number of instances with dangling outputs
+        Vec_PtrForEachEntry( pMan->pDesign->vModules, pNtk, i )
+        {
+            Abc_NtkForEachBox( pNtk, pBox, k )
+            {
+                if ( Abc_ObjIsLatch(pBox) )
+                    continue;
+                vBundles = (Vec_Ptr_t *)pBox->pCopy;
+                pNtkBox = pBox->pData;
+                if ( pNtkBox == NULL )
+                    continue;
+                if ( !Ver_NtkIsDefined(pNtkBox) )
+                    continue;
+                // count the number of actual nets
+                nActNets = 0;
+                Vec_PtrForEachEntry( vBundles, pBundle, j )
+                    nActNets += Vec_PtrSize(pBundle->vNetsActual);
+                // the box is defined and will be connected
+                if ( nActNets != Abc_NtkPiNum(pNtkBox) + Abc_NtkPoNum(pNtkBox) )
+                    Counter++;
+            }
+        }
+        if ( Counter == 0 )
+            fprintf( pFile, "The outputs of all box instances are connected.\n" );
+        else
+        {
+            fprintf( pFile, "\n" );
+            fprintf( pFile, "The outputs of %d box instances are not connected:\n", Counter );
+            // enumerate through the boxes
+            Vec_PtrForEachEntry( pMan->pDesign->vModules, pNtk, i )
+            {
+                Abc_NtkForEachBox( pNtk, pBox, k )
+                {
+                    if ( Abc_ObjIsLatch(pBox) )
+                        continue;
+                    vBundles = (Vec_Ptr_t *)pBox->pCopy;
+                    pNtkBox = pBox->pData;
+                    if ( pNtkBox == NULL )
+                        continue;
+                    if ( !Ver_NtkIsDefined(pNtkBox) )
+                        continue;
+                    // count the number of actual nets
+                    nActNets = 0;
+                    Vec_PtrForEachEntry( vBundles, pBundle, j )
+                        nActNets += Vec_PtrSize(pBundle->vNetsActual);
+                    // the box is defined and will be connected
+                    if ( nActNets != Abc_NtkPiNum(pNtkBox) + Abc_NtkPoNum(pNtkBox) )
+                        fprintf( pFile, "In module \"%s\" instance \"%s\" of box \"%s\" has different numbers of actual/formal nets (%d/%d).\n",
+                            Abc_NtkName(pNtk), Abc_ObjName(pBox), Abc_NtkName(pNtkBox), nActNets, Abc_NtkPiNum(pNtkBox) + Abc_NtkPoNum(pNtkBox) );
+                }
+            }
+        }
+    }
+    fclose( pFile );
+    printf( "Hierarchy statistics can be found in log file \"%s\".\n", Buffer );
+}
+
 
 /**Function*************************************************************
 
@@ -2454,6 +2594,9 @@ int Ver_ParseAttachBoxes( Ver_Man_t * pMan )
     Ver_Bundle_t * pBundle;
     Vec_Ptr_t * vUndefs;
     int i, RetValue, Counter, nMaxBoxSize;
+
+    // print the log file
+    Ver_ParsePrintLog( pMan );
 
     // connect defined boxes
     RetValue = Ver_ParseConnectDefBoxes( pMan );

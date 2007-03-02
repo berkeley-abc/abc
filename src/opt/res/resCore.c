@@ -263,7 +263,7 @@ p->timeAig += clock() - clk;
             printf( "AIG = %4d ", Abc_NtkNodeNum(p->pAig) );
             printf( "\n" );
         }
-
+ 
         // prepare simulation info
 clk = clock();
         RetValue = Res_SimPrepare( p->pSim, p->pAig, Vec_PtrSize(p->pWin->vLeaves), 0 ); //p->pPars->fVerbose );

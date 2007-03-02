@@ -72,7 +72,7 @@ void Abc_NtkSynthesize( Abc_Ntk_t ** ppNtk, int fMoreEffort )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkQuantify( Abc_Ntk_t * pNtk, int iVar, int fVerbose )
+int Abc_NtkQuantify( Abc_Ntk_t * pNtk, int fUniv, int iVar, int fVerbose )
 {
     Vec_Ptr_t * vNodes;
     Abc_Obj_t * pObj, * pNext, * pFanin;
@@ -112,7 +112,10 @@ int Abc_NtkQuantify( Abc_Ntk_t * pNtk, int iVar, int fVerbose )
             continue;
         pFanin = Abc_ObjFanin0(pObj);
         // get the result of quantification
-        pNext = Abc_AigOr( pNtk->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild0Data(pObj) );
+        if ( fUniv )
+            pNext = Abc_AigAnd( pNtk->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild0Data(pObj) );
+        else
+            pNext = Abc_AigOr( pNtk->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild0Data(pObj) );
         pNext = Abc_ObjNotCond( pNext, Abc_ObjFaninC0(pObj) );
         if ( Abc_ObjRegular(pNext) == pFanin )
             continue;
@@ -197,7 +200,7 @@ Abc_Ntk_t * Abc_NtkTransRel( Abc_Ntk_t * pNtk, int fInputs, int fVerbose )
         for ( i = Abc_NtkPiNum(pNtkNew) - 1; i >= 2*nLatches; i-- )
 //        for ( i = 2*nLatches; i < Abc_NtkPiNum(pNtkNew); i++ )
         {
-            Abc_NtkQuantify( pNtkNew, i, fVerbose );
+            Abc_NtkQuantify( pNtkNew, 0, i, fVerbose );
 //            if ( fSynthesis && (i % 3 == 2) )
             if ( fSynthesis  )
             {
@@ -339,7 +342,7 @@ Abc_Ntk_t * Abc_NtkReachability( Abc_Ntk_t * pNtkRel, int nIters, int fVerbose )
         // quantify the current state variables
         for ( v = 0; v < nVars; v++ )
         {
-            Abc_NtkQuantify( pNtkNext, v, fVerbose );
+            Abc_NtkQuantify( pNtkNext, 0, v, fVerbose );
             if ( fSynthesis && (v % 3 == 2) )
             {
                 Abc_NtkCleanData( pNtkNext );

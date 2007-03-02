@@ -310,6 +310,10 @@ SOURCE=.\src\base\abci\abcProve.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcQbf.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcQuant.c
 # End Source File
 # Begin Source File

@@ -278,7 +278,7 @@ int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPrepr
     if ( p->pPars->fVerbose )
     {
         char Symb = fPreprocess? 'P' : ((Mode == 0)? 'D' : ((Mode == 1)? 'F' : 'A'));
-        printf( "%c:  Del = %6.2f. Ar = %8.2f. Net = %6d. Cut = %8d. ", 
+        printf( "%c: Del = %7.2f. Ar = %9.1f. Net = %8d. Cut = %8d. ", 
             Symb, p->RequiredGlo, p->AreaGlo, p->nNets, p->nCutsMerged );
         PRT( "T", clock() - clk );
 //    printf( "Max number of cuts = %d. Average number of cuts = %5.2f.\n", 

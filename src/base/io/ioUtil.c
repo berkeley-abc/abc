@@ -257,7 +257,7 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
             return;
         }
         if ( FileType == IO_FILE_AIGER )
-            Io_WriteAiger( pNtk, pFileName );
+            Io_WriteAiger( pNtk, pFileName, 1 );
         else // if ( FileType == IO_FILE_BAF )
             Io_WriteBaf( pNtk, pFileName );
         return;
@@ -310,7 +310,7 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
     {
         if ( !Abc_NtkIsStrash(pNtk) )
         {
-            fprintf( stdout, "Writing BENCH is available for AIGs.\n" );
+            fprintf( stdout, "Writing traditional BENCH is available for AIGs only (use \"write_bench\").\n" );
             return;
         }
         pNtkTemp = Abc_NtkToNetlistBench( pNtk );

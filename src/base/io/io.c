@@ -29,6 +29,7 @@ static int IoCommandRead        ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadAiger   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadBaf     ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadBlif    ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandReadBlifMv  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadBench   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadEdif    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadEqn     ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -43,6 +44,7 @@ static int IoCommandWriteHie    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteAiger  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteBaf    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteBlif   ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandWriteBlifMv ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteBench  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteCellNet( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteCnf    ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -78,6 +80,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "read_aiger",    IoCommandReadAiger,    1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_baf",      IoCommandReadBaf,      1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_blif",     IoCommandReadBlif,     1 );
+    Cmd_CommandAdd( pAbc, "I/O", "read_blif_mv",  IoCommandReadBlif,     1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_bench",    IoCommandReadBench,    1 );
 //    Cmd_CommandAdd( pAbc, "I/O", "read_edif",     IoCommandReadEdif,     1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_eqn",      IoCommandReadEqn,      1 );
@@ -92,6 +95,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "write_aiger",   IoCommandWriteAiger,   0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_baf",     IoCommandWriteBaf,     0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_blif",    IoCommandWriteBlif,    0 );
+    Cmd_CommandAdd( pAbc, "I/O", "write_blif_mv", IoCommandWriteBlifMv,  0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_bench",   IoCommandWriteBench,   0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_cellnet", IoCommandWriteCellNet, 0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_counter", IoCommandWriteCounter, 0 );
@@ -354,6 +358,60 @@ usage:
     fprintf( pAbc->Err, "usage: read_blif [-ach] <file>\n" );
     fprintf( pAbc->Err, "\t         read the network in binary BLIF format\n" );
     fprintf( pAbc->Err, "\t-a     : toggle creating AIG while reading the file [default = %s]\n", fReadAsAig? "yes":"no" );
+    fprintf( pAbc->Err, "\t-c     : toggle network check after reading [default = %s]\n", fCheck? "yes":"no" );
+    fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IoCommandReadBlifMv( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk;
+    char * pFileName;
+    int fCheck;
+    int c;
+
+    fCheck = 1;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ch" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'c':
+                fCheck ^= 1;
+                break;
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 1 )
+        goto usage;
+    // get the input file name
+    pFileName = argv[globalUtilOptind];
+    // read the file using the corresponding file reader
+    pNtk = Io_Read( pFileName, IO_FILE_BLIFMV, fCheck );
+    if ( pNtk == NULL )
+        return 1;
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: read_blif_mv [-ch] <file>\n" );
+    fprintf( pAbc->Err, "\t         read the network in BLIF-MV format\n" );
     fprintf( pAbc->Err, "\t-c     : toggle network check after reading [default = %s]\n", fCheck? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
     fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
@@ -988,13 +1046,18 @@ usage:
 int IoCommandWriteAiger( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     char * pFileName;
+    int fWriteSymbols;
     int c;
 
+    fWriteSymbols = 1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "sh" ) ) != EOF )
     {
         switch ( c )
         {
+            case 's':
+                fWriteSymbols ^= 1;
+                break;
             case 'h':
                 goto usage;
             default:
@@ -1006,12 +1069,23 @@ int IoCommandWriteAiger( Abc_Frame_t * pAbc, int argc, char **argv )
     // get the output file name
     pFileName = argv[globalUtilOptind];
     // call the corresponding file writer
-    Io_Write( pAbc->pNtkCur, pFileName, IO_FILE_AIGER );
+    if ( fWriteSymbols )
+        Io_Write( pAbc->pNtkCur, pFileName, IO_FILE_AIGER );
+    else
+    {
+        if ( !Abc_NtkIsStrash(pAbc->pNtkCur) )
+        {
+            fprintf( stdout, "Writing this format is only possible for structurally hashed AIGs.\n" );
+            return 1;
+        }
+        Io_WriteAiger( pAbc->pNtkCur, pFileName, 0 );
+    }
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: write_aiger [-h] <file>\n" );
+    fprintf( pAbc->Err, "usage: write_aiger [-sh] <file>\n" );
     fprintf( pAbc->Err, "\t         write the network in the AIGER format (http://fmv.jku.at/aiger)\n" );
+    fprintf( pAbc->Err, "\t-s     : toggle saving I/O names [default = %s]\n", fWriteSymbols? "yes" : "no" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write (extension .aig)\n" );
     return 1;
@@ -1096,8 +1170,51 @@ int IoCommandWriteBlif( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: write_blif [-lh] <file>\n" );
+    fprintf( pAbc->Err, "usage: write_blif [-h] <file>\n" );
     fprintf( pAbc->Err, "\t         write the network into a BLIF file\n" );
+    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of the file to write (extension .blif)\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IoCommandWriteBlifMv( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    char * pFileName;
+    int c;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 1 )
+        goto usage;
+    // get the output file name
+    pFileName = argv[globalUtilOptind];
+    // call the corresponding file writer
+    Io_Write( pAbc->pNtkCur, pFileName, IO_FILE_BLIFMV );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: write_blif_mv [-h] <file>\n" );
+    fprintf( pAbc->Err, "\t         write the network into a BLIF-MV file\n" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write (extension .blif)\n" );
     return 1;
@@ -1117,13 +1234,18 @@ usage:
 int IoCommandWriteBench( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     char * pFileName;
+    int fUseLuts;
     int c;
 
+    fUseLuts = 1;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "lh" ) ) != EOF )
     {
         switch ( c )
         {
+            case 'l':
+                fUseLuts ^= 1;
+                break;
             case 'h':
                 goto usage;
             default:
@@ -1135,12 +1257,22 @@ int IoCommandWriteBench( Abc_Frame_t * pAbc, int argc, char **argv )
     // get the output file name
     pFileName = argv[globalUtilOptind];
     // call the corresponding file writer
-    Io_Write( pAbc->pNtkCur, pFileName, IO_FILE_BENCH );
+    if ( !fUseLuts )
+        Io_Write( pAbc->pNtkCur, pFileName, IO_FILE_BENCH );
+    else
+    {
+        Abc_Ntk_t * pNtkTemp;
+        pNtkTemp = Abc_NtkToNetlist( pAbc->pNtkCur );
+        Abc_NtkToAig( pNtkTemp );
+        Io_WriteBenchLut( pNtkTemp, pFileName );
+        Abc_NtkDelete( pNtkTemp );
+    }
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: write_bench [-h] <file>\n" );
+    fprintf( pAbc->Err, "usage: write_bench [-lh] <file>\n" );
     fprintf( pAbc->Err, "\t         write the network in BENCH format\n" );
+    fprintf( pAbc->Err, "\t-l     : toggle using LUTs in the output [default = %s]\n", fUseLuts? "yes" : "no" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write (extension .bench)\n" );
     return 1;

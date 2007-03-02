@@ -1422,6 +1422,32 @@ void Abc_AigUpdateReset( Abc_Aig_t * pMan )
     Vec_PtrClear( pMan->vUpdatedNets );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Start the update list.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_AigCountNext( Abc_Aig_t * pMan )
+{
+    Abc_Obj_t * pAnd;
+    int i, Counter = 0, CounterTotal = 0;
+    // count how many nodes have pNext set
+    for ( i = 0; i < pMan->nBins; i++ )
+        Abc_AigBinForEachEntry( pMan->pBins[i], pAnd )
+        {
+            Counter += (pAnd->pNext != NULL);
+            CounterTotal++;
+        }
+    printf( "Counter = %d.  Nodes = %d.  Ave = %6.2f\n", Counter, CounterTotal, 1.0 * CounterTotal/pMan->nBins );
+    return Counter;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

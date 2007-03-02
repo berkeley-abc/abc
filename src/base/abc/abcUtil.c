@@ -1294,6 +1294,7 @@ void Abc_NtkReassignIds( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pNode, * pTemp, * pConst1;
     int i, k;
     assert( Abc_NtkIsStrash(pNtk) );
+//printf( "Total = %d. Current = %d.\n", Abc_NtkObjNumMax(pNtk), Abc_NtkObjNum(pNtk) );
     // start the array of objects with new IDs
     vObjsNew = Vec_PtrAlloc( pNtk->nObjs );
     // put constant node first

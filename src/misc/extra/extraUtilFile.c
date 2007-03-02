@@ -324,9 +324,11 @@ void Extra_PrintBinary( FILE * pFile, unsigned Sign[], int nBits )
 ***********************************************************************/
 int Extra_ReadHexadecimal( unsigned Sign[], char * pString, int nVars )
 {
-    int nDigits, Digit, k, c;
-    Sign[0] = 0;
-    // write the number into the file
+    int nWords, nDigits, Digit, k, c;
+    nWords = Extra_TruthWordNum( nVars );
+    for ( k = 0; k < nWords; k++ )
+        Sign[k] = 0;
+    // read the number from the string
     nDigits = (1 << nVars) / 4;
     for ( k = 0; k < nDigits; k++ )
     {

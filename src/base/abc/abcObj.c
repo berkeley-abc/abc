@@ -446,7 +446,7 @@ Abc_Obj_t * Abc_NtkFindNode( Abc_Ntk_t * pNtk, char * pName )
     // find the internal node
     if ( pName[0] != '[' || pName[strlen(pName)-1] != ']' )
     {
-        printf( "Name \"%s\" is not found among CIs/COs (internal names often look as \"[integer]\").\n", pName );
+        printf( "Name \"%s\" is not found among CO or node names (internal names often look as \"n<num>\").\n", pName );
         return NULL;
     }
     Num = atoi( pName + 1 );

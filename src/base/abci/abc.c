@@ -85,8 +85,8 @@ static int Abc_CommandReorder        ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandOrder          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMuxes          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandExtSeqDcs      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandOneOutput      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandOneNode        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandCone      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandNode        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandShortNames     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandExdcFree       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandExdcGet        ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -113,6 +113,7 @@ static int Abc_CommandIProve         ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandHaig           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMini           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBmc            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandQbf            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandFraig          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFraigTrust     ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -227,8 +228,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "order",         Abc_CommandOrder,            0 );
     Cmd_CommandAdd( pAbc, "Various",      "muxes",         Abc_CommandMuxes,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "ext_seq_dcs",   Abc_CommandExtSeqDcs,        0 );
-    Cmd_CommandAdd( pAbc, "Various",      "cone",          Abc_CommandOneOutput,        1 );
-    Cmd_CommandAdd( pAbc, "Various",      "node",          Abc_CommandOneNode,          1 );
+    Cmd_CommandAdd( pAbc, "Various",      "cone",          Abc_CommandCone,        1 );
+    Cmd_CommandAdd( pAbc, "Various",      "node",          Abc_CommandNode,          1 );
     Cmd_CommandAdd( pAbc, "Various",      "short_names",   Abc_CommandShortNames,       0 );
     Cmd_CommandAdd( pAbc, "Various",      "exdc_free",     Abc_CommandExdcFree,         1 );
     Cmd_CommandAdd( pAbc, "Various",      "exdc_get",      Abc_CommandExdcGet,          1 );
@@ -255,6 +256,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "New AIG",      "haig",          Abc_CommandHaig,             1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "mini",          Abc_CommandMini,             1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "bmc",           Abc_CommandBmc,              0 );
+    Cmd_CommandAdd( pAbc, "New AIG",      "qbf",           Abc_CommandQbf,              0 );
 
     Cmd_CommandAdd( pAbc, "Fraiging",     "fraig",         Abc_CommandFraig,            1 );
     Cmd_CommandAdd( pAbc, "Fraiging",     "fraig_trust",   Abc_CommandFraigTrust,       1 );
@@ -3585,7 +3587,7 @@ int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
 
     // compute the miter
-    pNtkRes = Abc_NtkMiter( pNtk1, pNtk2, fComb );
+    pNtkRes = Abc_NtkMiter( pNtk1, pNtk2, fComb, 10 );
     if ( fDelete1 ) Abc_NtkDelete( pNtk1 );
     if ( fDelete2 ) Abc_NtkDelete( pNtk2 );
 
@@ -4486,7 +4488,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_CommandOneOutput( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandCone( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
@@ -4615,7 +4617,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_CommandOneNode( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandNode( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
@@ -5284,10 +5286,12 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nVars;
     int fAdder;
     int fSorter;
+    int fMesh;
     int fVerbose;
     char * FileName;
     extern void Abc_GenAdder( char * pFileName, int nVars );
     extern void Abc_GenSorter( char * pFileName, int nVars );
+    extern void Abc_GenMesh( char * pFileName, int nVars );
 
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -5300,7 +5304,7 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     fSorter = 0;
     fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Nasvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nasmvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -5320,6 +5324,9 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 's':
             fSorter ^= 1;
+            break;
+        case 'm':
+            fMesh ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -5342,16 +5349,19 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_GenAdder( FileName, nVars );
     else if ( fSorter )
         Abc_GenSorter( FileName, nVars );
+    else if ( fMesh )
+        Abc_GenMesh( FileName, nVars );
     else
         printf( "Type of circuit is not specified.\n" );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: gen [-N] [-asvh] <file>\n" );
+    fprintf( pErr, "usage: gen [-N] [-asmvh] <file>\n" );
     fprintf( pErr, "\t         generates simple circuits\n" );
     fprintf( pErr, "\t-N num : the number of variables [default = %d]\n", nVars );  
-    fprintf( pErr, "\t-a     : toggle ripple-carry adder [default = %s]\n", fAdder? "yes": "no" );  
-    fprintf( pErr, "\t-s     : toggle simple sorter [default = %s]\n", fSorter? "yes": "no" );  
+    fprintf( pErr, "\t-a     : generate ripple-carry adder [default = %s]\n", fAdder? "yes": "no" );  
+    fprintf( pErr, "\t-s     : generate a sorter [default = %s]\n", fSorter? "yes": "no" );  
+    fprintf( pErr, "\t-m     : generate a mesh [default = %s]\n", fMesh? "yes": "no" );  
     fprintf( pErr, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
     fprintf( pErr, "\t-h     : print the command usage\n");
     fprintf( pErr, "\t<file> : output file name\n");
@@ -5730,8 +5740,8 @@ int Abc_CommandQuaVar( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
-    int c, iVar, fVerbose, RetValue;
-    extern int Abc_NtkQuantify( Abc_Ntk_t * pNtk, int iVar, int fVerbose );
+    int c, iVar, fUniv, fVerbose, RetValue;
+    extern int Abc_NtkQuantify( Abc_Ntk_t * pNtk, int fUniv, int iVar, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -5739,9 +5749,10 @@ int Abc_CommandQuaVar( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     iVar = 0;
+    fUniv = 0;
     fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Ivh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Iuvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -5755,6 +5766,9 @@ int Abc_CommandQuaVar( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( iVar < 0 ) 
                 goto usage;
+            break;
+        case 'u':
+            fUniv ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -5778,7 +5792,7 @@ int Abc_CommandQuaVar( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // get the strashed network
     pNtkRes = Abc_NtkStrash( pNtk, 0, 1 );
-    RetValue = Abc_NtkQuantify( pNtkRes, iVar, fVerbose );
+    RetValue = Abc_NtkQuantify( pNtkRes, fUniv, iVar, fVerbose );
     // clean temporary storage for the cofactors
     Abc_NtkCleanData( pNtkRes );
     Abc_AigCleanup( pNtkRes->pManFunc );
@@ -5793,9 +5807,10 @@ int Abc_CommandQuaVar( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: qvar [-I num] [-vh]\n" );
+    fprintf( pErr, "usage: qvar [-I num] [-uvh]\n" );
     fprintf( pErr, "\t         quantifies one variable using the AIG\n" );
     fprintf( pErr, "\t-I num : the zero-based index of a variable to quantify [default = %d]\n", iVar );
+    fprintf( pErr, "\t-u     : toggle universal quantification [default = %s]\n", fUniv? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -6820,6 +6835,98 @@ usage:
     fprintf( pErr, "\t         perform bounded model checking\n" );
     fprintf( pErr, "\t-K num : number of time frames [default = %d]\n", nFrames );
     fprintf( pErr, "\t-i     : toggle initialization of the first frame [default = %s]\n", fInit? "yes": "no" );
+    fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+ 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandQbf( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+    int nPars;
+    int fVerbose;
+
+    extern void Abc_NtkQbf( Abc_Ntk_t * pNtk, int nPars, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    nPars    = -1;
+    fVerbose =  1;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Pvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nPars = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nPars < 0 ) 
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsComb(pNtk) )
+    {
+        fprintf( pErr, "Works only for combinational networks.\n" );
+        return 1;
+    }
+    if ( Abc_NtkPoNum(pNtk) != 1 )
+    {
+        fprintf( pErr, "The miter should have one primary output.\n" );
+        return 1;
+    }
+    if ( !(nPars > 0 && nPars < Abc_NtkPiNum(pNtk)) )
+    {
+        fprintf( pErr, "The number of paramter variables is invalid (should be > 0 and < PI num).\n" );
+        return 1;
+    }
+    if ( Abc_NtkIsStrash(pNtk) )
+        Abc_NtkQbf( pNtk, nPars, fVerbose );
+    else
+    {
+        pNtk = Abc_NtkStrash( pNtk, 0, 1 );
+        Abc_NtkQbf( pNtk, nPars, fVerbose );
+        Abc_NtkDelete( pNtk );
+    }
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: qbf [-P num] [-vh]\n" );
+    fprintf( pErr, "\t         solves a quantified boolean formula problem EpVxM(p,x)\n" );
+    fprintf( pErr, "\t-P num : number of paramters (should be the first PIs) [default = %d]\n", nPars );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -9447,6 +9554,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    char Buffer[16];
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtk1, * pNtk2;
     int fDelete1, fDelete2;
@@ -9456,11 +9564,13 @@ int Abc_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fSat;
     int fVerbose;
     int nSeconds;
+    int nPartSize;
     int nConfLimit;
     int nInsLimit;
 
     extern void Abc_NtkCecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nInsLimit );
     extern void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fVerbose );
+    extern void Abc_NtkCecFraigPart( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nPartSize, int fVerbose );
 
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -9471,10 +9581,11 @@ int Abc_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     fSat     =  0;
     fVerbose =  0;
     nSeconds = 20;
+    nPartSize  = 0;
     nConfLimit = 10000;   
     nInsLimit  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "TCIsvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "TCIPsvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -9511,6 +9622,17 @@ int Abc_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nInsLimit < 0 ) 
                 goto usage;
             break;
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nPartSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nPartSize < 0 ) 
+                goto usage;
+            break;
         case 's':
             fSat ^= 1;
             break;
@@ -9528,7 +9650,9 @@ int Abc_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
 
     // perform equivalence checking
-    if ( fSat )
+    if ( nPartSize )
+        Abc_NtkCecFraigPart( pNtk1, pNtk2, nSeconds, nPartSize, fVerbose );
+    else if ( fSat )
         Abc_NtkCecSat( pNtk1, pNtk2, nConfLimit, nInsLimit );
     else
         Abc_NtkCecFraig( pNtk1, pNtk2, nSeconds, fVerbose );
@@ -9538,11 +9662,16 @@ int Abc_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: cec [-T num] [-C num] [-I num] [-svh] <file1> <file2>\n" );
+    if ( nPartSize == 0 )
+        strcpy( Buffer, "unused" );
+    else
+        sprintf( Buffer, "%d", nPartSize );
+    fprintf( pErr, "usage: cec [-T num] [-C num] [-I num] [-P num] [-svh] <file1> <file2>\n" );
     fprintf( pErr, "\t         performs combinational equivalence checking\n" );
     fprintf( pErr, "\t-T num : approximate runtime limit in seconds [default = %d]\n", nSeconds );
     fprintf( pErr, "\t-C num : limit on the number of conflicts [default = %d]\n",    nConfLimit );
     fprintf( pErr, "\t-I num : limit on the number of clause inspections [default = %d]\n", nInsLimit );
+    fprintf( pErr, "\t-P num : partition size for multi-output networks [default = %s]\n", Buffer );
     fprintf( pErr, "\t-s     : toggle \"SAT only\" and \"FRAIG + SAT\" [default = %s]\n", fSat? "SAT only": "FRAIG + SAT" );
     fprintf( pErr, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");

@@ -77,7 +77,8 @@ alias tr1 trace_check
 alias trt "r c.blif; st; tr0; b; tr1"
 alias u undo
 alias w write
-alias wb write_blif
+alias wa write_aiger
+alias wb write_bench
 alias wh write_hie
 alias wl write_blif
 alias wp write_pla

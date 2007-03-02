@@ -341,6 +341,7 @@ static inline Abc_Obj_t * Abc_ObjNotCond( Abc_Obj_t * p, int c )     { return (A
 static inline unsigned    Abc_ObjType( Abc_Obj_t * pObj )            { return pObj->Type;               }
 static inline unsigned    Abc_ObjId( Abc_Obj_t * pObj )              { return pObj->Id;                 }
 static inline int         Abc_ObjTravId( Abc_Obj_t * pObj )          { return pObj->TravId;             }
+static inline int         Abc_ObjLevel( Abc_Obj_t * pObj )           { return pObj->Level;              }
 static inline Vec_Int_t * Abc_ObjFaninVec( Abc_Obj_t * pObj )        { return &pObj->vFanins;           }
 static inline Vec_Int_t * Abc_ObjFanoutVec( Abc_Obj_t * pObj )       { return &pObj->vFanouts;          }
 static inline Abc_Obj_t * Abc_ObjCopy( Abc_Obj_t * pObj )            { return pObj->pCopy;              }
@@ -609,6 +610,7 @@ extern int                Abc_CountZddCubes( DdManager * dd, DdNode * zCover );
 extern void               Abc_NtkLogicMakeDirectSops( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkSopToAig( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkAigToBdd( Abc_Ntk_t * pNtk );
+extern unsigned *         Abc_ConvertAigToTruth( Hop_Man_t * p, Hop_Obj_t * pRoot, int nVars, Vec_Int_t * vTruth );
 extern int                Abc_NtkMapToSop( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkToSop( Abc_Ntk_t * pNtk, int fDirect );
 extern int                Abc_NtkToBdd( Abc_Ntk_t * pNtk );
@@ -637,7 +639,7 @@ extern int                Abc_NodeMinimumBase( Abc_Obj_t * pNode );
 extern int                Abc_NtkRemoveDupFanins( Abc_Ntk_t * pNtk );
 extern int                Abc_NodeRemoveDupFanins( Abc_Obj_t * pNode );
 /*=== abcMiter.c ==========================================================*/
-extern Abc_Ntk_t *        Abc_NtkMiter( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb );
+extern Abc_Ntk_t *        Abc_NtkMiter( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb, int nPartSize );
 extern void               Abc_NtkMiterAddCone( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkMiter, Abc_Obj_t * pNode );
 extern Abc_Ntk_t *        Abc_NtkMiterAnd( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fOr, int fCompl2 );
 extern Abc_Ntk_t *        Abc_NtkMiterCofactor( Abc_Ntk_t * pNtk, Vec_Int_t * vPiValues );

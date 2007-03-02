@@ -55,7 +55,7 @@ void If_ManImproveMapping( If_Man_t * p )
     If_ManComputeRequired( p );
     if ( p->pPars->fVerbose )
     {
-        printf( "E:  Del = %6.2f. Ar = %8.2f. Net = %6d. Cut = %8d. ", 
+        printf( "E: Del = %7.2f. Ar = %9.1f. Net = %8d. Cut = %8d. ", 
             p->RequiredGlo, p->AreaGlo, p->nNets, p->nCutsMerged );
         PRT( "T", clock() - clk );
     }

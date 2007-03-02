@@ -425,6 +425,40 @@ static inline void Vec_PtrFillExtra( Vec_Ptr_t * p, int nSize, void * Entry )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the entry even if the place not exist.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void * Vec_PtrGetEntry( Vec_Ptr_t * p, int i )
+{
+    Vec_PtrFillExtra( p, i + 1, NULL );
+    return Vec_PtrEntry( p, i );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Inserts the entry even if the place does not exist.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_PtrSetEntry( Vec_Ptr_t * p, int i, void * Entry )
+{
+    Vec_PtrFillExtra( p, i + 1, NULL );
+    Vec_PtrWriteEntry( p, i, Entry );
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []

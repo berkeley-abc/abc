@@ -52,6 +52,10 @@ int s_MappingMem = 0;
 void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
 {
     int Num;
+
+//    if ( Abc_NtkIsStrash(pNtk) )
+//        Abc_AigCountNext( pNtk->pManFunc );
+
     fprintf( pFile, "%-13s:",       pNtk->pName );
     if ( Abc_NtkAssertNum(pNtk) )
         fprintf( pFile, " i/o/a = %4d/%4d/%4d", Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk), Abc_NtkAssertNum(pNtk) );

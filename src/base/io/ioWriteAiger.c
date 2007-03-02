@@ -146,7 +146,7 @@ static int      Io_WriteAigerEncode( char * pBuffer, int Pos, unsigned x );
   SeeAlso     []
 
 ***********************************************************************/
-void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName )
+void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols )
 {
     ProgressBar * pProgress;
     FILE * pFile;
@@ -225,18 +225,21 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName )
     // write the buffer
     fwrite( pBuffer, 1, Pos, pFile );
     free( pBuffer );
-/*
+
     // write the symbol table
-    // write PIs
-    Abc_NtkForEachPi( pNtk, pObj, i )
-        fprintf( pFile, "i%d %s\n", i, Abc_ObjName(pObj) );
-    // write latches
-    Abc_NtkForEachLatch( pNtk, pObj, i )
-        fprintf( pFile, "l%d %s\n", i, Abc_ObjName(Abc_ObjFanout0(pObj)) );
-    // write POs
-    Abc_NtkForEachPo( pNtk, pObj, i )
-        fprintf( pFile, "o%d %s\n", i, Abc_ObjName(pObj) );
-*/
+    if ( fWriteSymbols )
+    {
+        // write PIs
+        Abc_NtkForEachPi( pNtk, pObj, i )
+            fprintf( pFile, "i%d %s\n", i, Abc_ObjName(pObj) );
+        // write latches
+        Abc_NtkForEachLatch( pNtk, pObj, i )
+            fprintf( pFile, "l%d %s\n", i, Abc_ObjName(Abc_ObjFanout0(pObj)) );
+        // write POs
+        Abc_NtkForEachPo( pNtk, pObj, i )
+            fprintf( pFile, "o%d %s\n", i, Abc_ObjName(pObj) );
+    }
+
     // write the comment
     fprintf( pFile, "c\n" );
     fprintf( pFile, "%s\n", pNtk->pName );

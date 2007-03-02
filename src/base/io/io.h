@@ -87,7 +87,7 @@ extern Abc_Ntk_t *        Io_ReadPla( char * pFileName, int fCheck );
 /*=== abcReadVerilog.c ========================================================*/
 extern Abc_Ntk_t *        Io_ReadVerilog( char * pFileName, int fCheck );
 /*=== abcWriteAiger.c =========================================================*/
-extern void               Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName );
+extern void               Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols );
 /*=== abcWriteBaf.c ===========================================================*/
 extern void               Io_WriteBaf( Abc_Ntk_t * pNtk, char * pFileName );
 /*=== abcWriteBlif.c ==========================================================*/
@@ -98,6 +98,7 @@ extern void               Io_WriteTimingInfo( FILE * pFile, Abc_Ntk_t * pNtk );
 extern void               Io_WriteBlifMv( Abc_Ntk_t * pNtk, char * FileName );
 /*=== abcWriteBench.c =========================================================*/
 extern int                Io_WriteBench( Abc_Ntk_t * pNtk, char * FileName );
+extern int                Io_WriteBenchLut( Abc_Ntk_t * pNtk, char * FileName );
 /*=== abcWriteCnf.c ===========================================================*/
 extern int                Io_WriteCnf( Abc_Ntk_t * pNtk, char * FileName, int fAllPrimes );
 /*=== abcWriteDot.c ===========================================================*/
