@@ -24,6 +24,8 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+extern int s_MappingTime;
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -133,6 +135,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
         PRT( "Total time", clock() - clkTotal );
     }
 //    printf( "Cross cut memory = %d.\n", Mem_FixedReadMaxEntriesUsed(p->pMemSet) );
+    s_MappingTime = clock() - clkTotal;
     return 1;
 }
 

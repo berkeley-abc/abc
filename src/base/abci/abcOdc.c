@@ -24,7 +24,7 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define ABC_DC_MAX_NODES   (1<<14)
+#define ABC_DC_MAX_NODES   (1<<15)
 
 typedef unsigned short Odc_Lit_t;
 
@@ -416,7 +416,7 @@ void Abc_NtkDontCareWinCollectRoots( Odc_Man_t * p )
                
   SideEffects []
 
-  SeeAlso     []
+  SeeAlso     [] 
 
 ***********************************************************************/
 int Abc_NtkDontCareWinAddMissing_rec( Odc_Man_t * p, Abc_Obj_t * pObj )

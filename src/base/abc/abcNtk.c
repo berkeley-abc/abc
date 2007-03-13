@@ -792,6 +792,9 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     int LargePiece = (4 << ABC_NUM_STEPS);
     if ( pNtk == NULL )
         return;
+    // free the HAIG
+    if ( pNtk->pHaig )
+        Abc_NtkHaigStop( pNtk );
     // free EXDC Ntk
     if ( pNtk->pExdc )
         Abc_NtkDelete( pNtk->pExdc );

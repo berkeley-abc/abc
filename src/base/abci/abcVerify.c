@@ -603,10 +603,14 @@ void Abc_NtkVerifyReportError( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int * pMode
         Abc_NtkForEachCi( pNtk1, pNode, i )
             pNode->pCopy = (void*)i;
         // print the model
-        Vec_PtrForEachEntry( vNodes, pNode, i )
+        pNode = Vec_PtrEntry( vNodes, 0 );
+        if ( Abc_ObjIsCi(pNode) )
         {
-            assert( Abc_ObjIsCi(pNode) );
-            printf( " %s=%d", Abc_ObjName(pNode), pModel[(int)pNode->pCopy] );
+            Vec_PtrForEachEntry( vNodes, pNode, i )
+            {
+                assert( Abc_ObjIsCi(pNode) );
+                printf( " %s=%d", Abc_ObjName(pNode), pModel[(int)pNode->pCopy] );
+            }
         }
         printf( "\n" );
         Vec_PtrFree( vNodes );

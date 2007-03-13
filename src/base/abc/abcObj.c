@@ -365,6 +365,9 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, int fCopyName 
     }
     else if ( Abc_ObjIsLatch(pObj) ) // copy the reset value
         pObjNew->pData = pObj->pData;
+    // transfer HAIG
+//    pObjNew->pEquiv = pObj->pEquiv;
+    // remember the new node in the old node
     pObj->pCopy = pObjNew;
     return pObjNew;
 }

@@ -331,6 +331,9 @@ Abc_Obj_t * Abc_AigAndCreate( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 )
     // add the node to the list of updated nodes
     if ( pMan->vAddedCells )
         Vec_PtrPush( pMan->vAddedCells, pAnd );
+    // create HAIG
+    if ( pAnd->pNtk->pHaig )
+        pAnd->pEquiv = Hop_And( pAnd->pNtk->pHaig, Abc_ObjChild0Equiv(pAnd), Abc_ObjChild1Equiv(pAnd) );
     return pAnd;
 }
 
@@ -371,6 +374,9 @@ Abc_Obj_t * Abc_AigAndCreateFrom( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * 
     // add the node to the list of updated nodes
 //    if ( pMan->vAddedCells )
 //        Vec_PtrPush( pMan->vAddedCells, pAnd );
+    // create HAIG
+    if ( pAnd->pNtk->pHaig )
+        pAnd->pEquiv = Hop_And( pAnd->pNtk->pHaig, Abc_ObjChild0Equiv(pAnd), Abc_ObjChild1Equiv(pAnd) );
     return pAnd;
 }
 
@@ -812,6 +818,9 @@ void Abc_AigReplace( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew, bool 
     Vec_PtrPush( pMan->vStackReplaceOld, pOld );
     Vec_PtrPush( pMan->vStackReplaceNew, pNew );
     assert( !Abc_ObjIsComplement(pOld) );
+    // create HAIG
+    if ( pOld->pNtk->pHaig )
+        Hop_ObjCreateChoice( pOld->pEquiv, Abc_ObjRegular(pNew)->pEquiv );
     // process the replacements
     while ( Vec_PtrSize(pMan->vStackReplaceOld) )
     {

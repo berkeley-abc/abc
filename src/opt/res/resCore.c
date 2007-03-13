@@ -73,6 +73,8 @@ struct Res_Man_t_
 
 extern Hop_Obj_t * Kit_GraphToHop( Hop_Man_t * pMan, Kit_Graph_t * pGraph );
 
+extern int s_ResynTime;
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -185,13 +187,14 @@ int Abc_NtkResynthesize( Abc_Ntk_t * pNtk, Res_Par_t * pPars )
     Kit_Graph_t * pGraph;
     Vec_Ptr_t * vFanins;
     unsigned * puTruth;
-    int i, k, RetValue, nNodesOld, nFanins;
+    int i, k, RetValue, nNodesOld, nFanins, nFaninsMax;
     int clk, clkTotal = clock();
 
     // start the manager
     p = Res_ManAlloc( pPars );
     p->nTotalNets = Abc_NtkGetTotalFanins(pNtk);
     p->nTotalNodes = Abc_NtkNodeNum(pNtk);
+    nFaninsMax = Abc_NtkGetFaninMax(pNtk);
 
     // perform the network sweep
     Abc_NtkSweep( pNtk, 0 );
@@ -236,10 +239,10 @@ p->timeWin += clock() - clk;
                 Vec_PtrSize(p->pWin->vNodes), 
                 Vec_PtrSize(p->pWin->vRoots) );
         }
-
+ 
         // collect the divisors
 clk = clock();
-        Res_WinDivisors( p->pWin, pObj->Level + 2 ); //- 1 );
+        Res_WinDivisors( p->pWin, pObj->Level + pPars->nGrowthLevel - 1 );
 p->timeDiv += clock() - clk;
 
         p->nWins++;
@@ -291,9 +294,9 @@ p->timeSim += clock() - clk;
         // find resub candidates for the node
 clk = clock();
         if ( p->pPars->fArea )
-            RetValue = Res_FilterCandidatesArea( p->pWin, p->pAig, p->pSim, p->vResubs, p->vResubsW );
+            RetValue = Res_FilterCandidates( p->pWin, p->pAig, p->pSim, p->vResubs, p->vResubsW, nFaninsMax, 1 );
         else
-            RetValue = Res_FilterCandidatesNets( p->pWin, p->pAig, p->pSim, p->vResubs, p->vResubsW );
+            RetValue = Res_FilterCandidates( p->pWin, p->pAig, p->pSim, p->vResubs, p->vResubsW, nFaninsMax, 0 );
 p->timeCand += clock() - clk;
         p->nCandSets += RetValue;
         if ( RetValue == 0 )
@@ -367,6 +370,7 @@ p->timeSatTotal = p->timeSatSat + p->timeSatUnsat + p->timeSatSim;
 p->timeTotal = clock() - clkTotal;
     Res_ManFree( p );
 
+s_ResynTime += clock() - clkTotal;
     // check the resulting network
     if ( !Abc_NtkCheck( pNtk ) )
     {

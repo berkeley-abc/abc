@@ -166,6 +166,7 @@ struct Abc_Obj_t_ // 12 words
     void *            pData;         // the network specific data (SOP, BDD, gate, equiv class, etc)
     Abc_Obj_t *       pNext;         // the next pointer in the hash table
     Abc_Obj_t *       pCopy;         // the copy of this object
+    Hop_Obj_t *       pEquiv;        // pointer to the HAIG node
 };
 
 struct Abc_Ntk_t_ 
@@ -210,6 +211,7 @@ struct Abc_Ntk_t_
     Abc_Ntk_t *       pExdc;         // the EXDC network (if given)
     void *            pData;         // misc
     Abc_Ntk_t *       pCopy;
+    Hop_Man_t *       pHaig;         // history AIG
     // node attributes
     Vec_Ptr_t *       vAttrs;        // managers of various node attributes (node functionality, global BDDs, etc)
 };
@@ -254,6 +256,7 @@ static inline void        Abc_InfoAnd( unsigned * p, unsigned * q, int nWords ) 
 static inline void        Abc_InfoOr( unsigned * p, unsigned * q, int nWords )     { int i; for ( i = nWords - 1; i >= 0; i-- ) p[i] |= q[i];  } 
 static inline void        Abc_InfoXor( unsigned * p, unsigned * q, int nWords )    { int i; for ( i = nWords - 1; i >= 0; i-- ) p[i] ^= q[i];  } 
 static inline int         Abc_InfoIsOrOne( unsigned * p, unsigned * q, int nWords ){ int i; for ( i = nWords - 1; i >= 0; i-- ) if ( ~(p[i] | q[i]) ) return 0; return 1; } 
+static inline int         Abc_InfoIsOrOne3( unsigned * p, unsigned * q, unsigned * r, int nWords ){ int i; for ( i = nWords - 1; i >= 0; i-- ) if ( ~(p[i] | q[i] | r[i]) ) return 0; return 1; } 
 
 // checking the network type
 static inline bool        Abc_NtkIsNetlist( Abc_Ntk_t * pNtk )       { return pNtk->ntkType == ABC_NTK_NETLIST;     }
@@ -347,7 +350,8 @@ static inline Vec_Int_t * Abc_ObjFanoutVec( Abc_Obj_t * pObj )       { return &p
 static inline Abc_Obj_t * Abc_ObjCopy( Abc_Obj_t * pObj )            { return pObj->pCopy;              }
 static inline Abc_Ntk_t * Abc_ObjNtk( Abc_Obj_t * pObj )             { return pObj->pNtk;               }
 static inline void *      Abc_ObjData( Abc_Obj_t * pObj )            { return pObj->pData;              }
-static inline Abc_Obj_t * Abc_ObjEquiv( Abc_Obj_t * pObj )           { return Abc_ObjRegular(pObj)->pCopy? Abc_ObjNotCond(Abc_ObjRegular(pObj)->pCopy, Abc_ObjIsComplement(pObj)) : NULL;  }
+static inline Hop_Obj_t * Abc_ObjEquiv( Abc_Obj_t * pObj )           { return pObj->pEquiv;             }
+static inline Abc_Obj_t * Abc_ObjCopyCond( Abc_Obj_t * pObj )        { return Abc_ObjRegular(pObj)->pCopy? Abc_ObjNotCond(Abc_ObjRegular(pObj)->pCopy, Abc_ObjIsComplement(pObj)) : NULL;  }
 
 // setting data members of the network
 static inline void        Abc_ObjSetCopy( Abc_Obj_t * pObj, Abc_Obj_t * pCopy )  { pObj->pCopy =  pCopy;    } 
@@ -398,6 +402,8 @@ static inline Abc_Obj_t * Abc_ObjChild0Copy( Abc_Obj_t * pObj )      { return Ab
 static inline Abc_Obj_t * Abc_ObjChild1Copy( Abc_Obj_t * pObj )      { return Abc_ObjNotCond( Abc_ObjFanin1(pObj)->pCopy, Abc_ObjFaninC1(pObj) );    }
 static inline Abc_Obj_t * Abc_ObjChild0Data( Abc_Obj_t * pObj )      { return Abc_ObjNotCond( Abc_ObjFanin0(pObj)->pData, Abc_ObjFaninC0(pObj) );    }
 static inline Abc_Obj_t * Abc_ObjChild1Data( Abc_Obj_t * pObj )      { return Abc_ObjNotCond( Abc_ObjFanin1(pObj)->pData, Abc_ObjFaninC1(pObj) );    }
+static inline Hop_Obj_t * Abc_ObjChild0Equiv( Abc_Obj_t * pObj )     { return Hop_NotCond( Abc_ObjFanin0(pObj)->pEquiv, Abc_ObjFaninC0(pObj) );      }
+static inline Hop_Obj_t * Abc_ObjChild1Equiv( Abc_Obj_t * pObj )     { return Hop_NotCond( Abc_ObjFanin1(pObj)->pEquiv, Abc_ObjFaninC1(pObj) );      }
 
 // checking the AIG node types
 static inline bool        Abc_AigNodeIsConst( Abc_Obj_t * pNode )    { assert(Abc_NtkIsStrash(Abc_ObjRegular(pNode)->pNtk));  return Abc_ObjRegular(pNode)->Type == ABC_OBJ_CONST1;       }
@@ -615,6 +621,10 @@ extern int                Abc_NtkMapToSop( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkToSop( Abc_Ntk_t * pNtk, int fDirect );
 extern int                Abc_NtkToBdd( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkToAig( Abc_Ntk_t * pNtk );
+/*=== abcHaig.c ==========================================================*/
+extern int                Abc_NtkHaigStart( Abc_Ntk_t * pNtk );
+extern int                Abc_NtkHaigStop( Abc_Ntk_t * pNtk );
+extern Abc_Ntk_t *        Abc_NtkHaigUse( Abc_Ntk_t * pNtk );
 /*=== abcHie.c ==========================================================*/
 extern Abc_Ntk_t *        Abc_NtkFlattenLogicHierarchy( Abc_Ntk_t * pNtk );
 extern Abc_Ntk_t *        Abc_NtkConvertBlackboxes( Abc_Ntk_t * pNtk );

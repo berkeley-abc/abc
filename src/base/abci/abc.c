@@ -61,7 +61,7 @@ static int Abc_CommandCleanup        ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandSweep          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFastExtract    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDisjoint       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandMfs            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandIfs            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandRewrite        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRefactor       ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -85,8 +85,8 @@ static int Abc_CommandReorder        ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandOrder          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMuxes          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandExtSeqDcs      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandCone      ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandNode        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandCone           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandNode           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandShortNames     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandExdcFree       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandExdcGet        ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -122,6 +122,10 @@ static int Abc_CommandFraigRestore   ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandFraigClean     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFraigSweep     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFraigDress     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+
+static int Abc_CommandHaigStart      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandHaigStop       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandHaigUse        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandMap            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandUnmap          ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -204,7 +208,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "sweep",         Abc_CommandSweep,            1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "fx",            Abc_CommandFastExtract,      1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "dsd",           Abc_CommandDisjoint,         1 );
-    Cmd_CommandAdd( pAbc, "Synthesis",    "mfs",           Abc_CommandMfs,              1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "ifs",           Abc_CommandIfs,              1 );
 
     Cmd_CommandAdd( pAbc, "Synthesis",    "rewrite",       Abc_CommandRewrite,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "refactor",      Abc_CommandRefactor,         1 );
@@ -228,8 +232,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "order",         Abc_CommandOrder,            0 );
     Cmd_CommandAdd( pAbc, "Various",      "muxes",         Abc_CommandMuxes,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "ext_seq_dcs",   Abc_CommandExtSeqDcs,        0 );
-    Cmd_CommandAdd( pAbc, "Various",      "cone",          Abc_CommandCone,        1 );
-    Cmd_CommandAdd( pAbc, "Various",      "node",          Abc_CommandNode,          1 );
+    Cmd_CommandAdd( pAbc, "Various",      "cone",          Abc_CommandCone,             1 );
+    Cmd_CommandAdd( pAbc, "Various",      "node",          Abc_CommandNode,             1 );
     Cmd_CommandAdd( pAbc, "Various",      "short_names",   Abc_CommandShortNames,       0 );
     Cmd_CommandAdd( pAbc, "Various",      "exdc_free",     Abc_CommandExdcFree,         1 );
     Cmd_CommandAdd( pAbc, "Various",      "exdc_get",      Abc_CommandExdcGet,          1 );
@@ -265,6 +269,10 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Fraiging",     "fraig_clean",   Abc_CommandFraigClean,       0 );
     Cmd_CommandAdd( pAbc, "Fraiging",     "fraig_sweep",   Abc_CommandFraigSweep,       1 );
     Cmd_CommandAdd( pAbc, "Fraiging",     "dress",         Abc_CommandFraigDress,       1 );
+
+    Cmd_CommandAdd( pAbc, "Choicing",     "haig_start",    Abc_CommandHaigStart,        0 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "haig_stop",     Abc_CommandHaigStop,         0 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "haig_use",      Abc_CommandHaigUse,          1 );
 
     Cmd_CommandAdd( pAbc, "SC mapping",   "map",           Abc_CommandMap,              1 );
     Cmd_CommandAdd( pAbc, "SC mapping",   "unmap",         Abc_CommandUnmap,            1 );
@@ -2641,7 +2649,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandIfs( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
@@ -2657,13 +2665,14 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     pPars->nWindow      = 62;
+    pPars->nGrowthLevel =  3;
     pPars->nCands       =  5;
     pPars->nSimWords    =  4;
     pPars->fArea        =  0;
     pPars->fVerbose     =  0;
     pPars->fVeryVerbose =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WSavwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WSCLavwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -2687,6 +2696,28 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nSimWords = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nSimWords < 1 || pPars->nSimWords > 256 ) 
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nCands = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nCands < 0 || pPars->nCands > ABC_INFINITY ) 
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nGrowthLevel = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nGrowthLevel < 0 || pPars->nGrowthLevel > ABC_INFINITY ) 
                 goto usage;
             break;
         case 'a':
@@ -2725,9 +2756,11 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: mfs [-W <NM>] [-S <num>] [-avwh]\n" );
-    fprintf( pErr, "\t           performs resubstitution-based resynthesis with don't-cares\n" );
-    fprintf( pErr, "\t-W <NM>  : Fanin/Fanout levels (NxM) of the window (00 <= NM <= 99) [default = %d%d]\n", pPars->nWindow/10, pPars->nWindow%10 );
+    fprintf( pErr, "usage: ifs [-W <NM>] [-L <num>] [-C <num>] [-S <num>] [-avwh]\n" );
+    fprintf( pErr, "\t           performs resubstitution-based resynthesis with interpolation\n" );
+    fprintf( pErr, "\t-W <NM>  : fanin/fanout levels (NxM) of the window (00 <= NM <= 99) [default = %d%d]\n", pPars->nWindow/10, pPars->nWindow%10 );
+    fprintf( pErr, "\t-L <num> : the largest increase in node level after resynthesis (0 <= num) [default = %d]\n", pPars->nGrowthLevel );
+    fprintf( pErr, "\t-C <num> : the max number of resub candidates (1 <= n) [default = %d]\n", pPars->nCands );
     fprintf( pErr, "\t-S <num> : the number of simulation words (1 <= n <= 256) [default = %d]\n", pPars->nSimWords );
     fprintf( pErr, "\t-a       : toggle optimization for area only [default = %s]\n", pPars->fArea? "yes": "no" );
     fprintf( pErr, "\t-v       : toggle verbose printout [default = %s]\n", pPars->fVerbose? "yes": "no" );
@@ -5287,11 +5320,13 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fAdder;
     int fSorter;
     int fMesh;
+    int fFpga;
     int fVerbose;
     char * FileName;
     extern void Abc_GenAdder( char * pFileName, int nVars );
     extern void Abc_GenSorter( char * pFileName, int nVars );
     extern void Abc_GenMesh( char * pFileName, int nVars );
+    extern void Abc_GenFpga( char * pFileName, int nLutSize, int nLuts, int nVars );
 
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -5302,9 +5337,11 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     nVars = 8;
     fAdder = 0;
     fSorter = 0;
+    fMesh = 0;
+    fFpga = 0;
     fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Nasmvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nasmfvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -5327,6 +5364,9 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'm':
             fMesh ^= 1;
+            break;
+        case 'f':
+            fFpga ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -5351,17 +5391,22 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_GenSorter( FileName, nVars );
     else if ( fMesh )
         Abc_GenMesh( FileName, nVars );
+    else if ( fFpga )
+        Abc_GenFpga( FileName, 4, 3, 10 );
+//        Abc_GenFpga( FileName, 2, 2, 3 );
+//        Abc_GenFpga( FileName, 3, 2, 5 );
     else
         printf( "Type of circuit is not specified.\n" );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: gen [-N] [-asmvh] <file>\n" );
+    fprintf( pErr, "usage: gen [-N] [-asmfvh] <file>\n" );
     fprintf( pErr, "\t         generates simple circuits\n" );
     fprintf( pErr, "\t-N num : the number of variables [default = %d]\n", nVars );  
     fprintf( pErr, "\t-a     : generate ripple-carry adder [default = %s]\n", fAdder? "yes": "no" );  
     fprintf( pErr, "\t-s     : generate a sorter [default = %s]\n", fSorter? "yes": "no" );  
     fprintf( pErr, "\t-m     : generate a mesh [default = %s]\n", fMesh? "yes": "no" );  
+    fprintf( pErr, "\t-f     : generate a LUT FPGA structure [default = %s]\n", fFpga? "yes": "no" );  
     fprintf( pErr, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
     fprintf( pErr, "\t-h     : print the command usage\n");
     fprintf( pErr, "\t<file> : output file name\n");
@@ -7498,6 +7543,158 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandHaigStart( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "dh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "This command works only for AIGs; run strashing (\"st\").\n" );
+        return 0;
+    }
+    Abc_NtkHaigStart( pNtk );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: haig_start [-h]\n" );
+    fprintf( pErr, "\t        starts constructive accumulation of combinational choices\n" );
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandHaigStop( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "dh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "This command works only for AIGs; run strashing (\"st\").\n" );
+        return 0;
+    }
+    Abc_NtkHaigStop( pNtk );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: haig_stop [-h]\n" );
+    fprintf( pErr, "\t        cleans the internal storage for combinational choices\n" );
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandHaigUse( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c;
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "dh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "This command works only for AIGs; run strashing (\"st\").\n" );
+        return 0;
+    }
+    // get the new network
+    pNtkRes = Abc_NtkHaigUse( pNtk );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Transforming internal storage into AIG with choices has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: haig_use [-h]\n" );
+    fprintf( pErr, "\t        transforms internal storage into an AIG with choices\n" );
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
@@ -8242,7 +8439,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     memset( pPars, 0, sizeof(If_Par_t) );
     // user-controlable paramters
-    pPars->nLutSize    =  4;
+    pPars->nLutSize    = -1;
     pPars->nCutsMax    =  8;
     pPars->nFlowIters  =  1;
     pPars->nAreaIters  =  2;
@@ -8360,17 +8557,22 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Empty network.\n" );
         return 1;
     }
-/*
-    if ( pPars->fSeq )
-    {
-        fprintf( pErr, "Sequential mapping is currently being implemented.\n" );
-        return 1;
-    }
-*/
+
     if ( pPars->fSeqMap && pPars->nLatches == 0 )
     {
         fprintf( pErr, "The network has no latches. Use combinational mapping instead of sequential.\n" );
         return 1;
+    }
+
+    if ( pPars->nLutSize == -1 )
+    {
+        if ( pPars->pLutLib == NULL )
+        {
+            fprintf( pErr, "The LUT library is not given.\n" );
+            return 1;
+        }
+        // get LUT size from the library
+        pPars->nLutSize = pPars->pLutLib->LutMax;
     }
 
     if ( pPars->nLutSize < 3 || pPars->nLutSize > IF_MAX_LUTSIZE )

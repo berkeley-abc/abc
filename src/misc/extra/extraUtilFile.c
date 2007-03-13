@@ -330,6 +330,8 @@ int Extra_ReadHexadecimal( unsigned Sign[], char * pString, int nVars )
         Sign[k] = 0;
     // read the number from the string
     nDigits = (1 << nVars) / 4;
+    if ( nDigits == 0 )
+        nDigits = 1;
     for ( k = 0; k < nDigits; k++ )
     {
         c = nDigits-1-k;

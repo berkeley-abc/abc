@@ -97,6 +97,7 @@ void Hop_ManStop( Hop_Man_t * p )
     if ( p->vChunks )   Hop_ManStopMemory( p );
     if ( p->vPis )      Vec_PtrFree( p->vPis );
     if ( p->vPos )      Vec_PtrFree( p->vPos );
+    if ( p->vNodes )    Vec_PtrFree( p->vNodes );
     free( p->pTable );
     free( p );
 }

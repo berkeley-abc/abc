@@ -52,7 +52,7 @@ int Abc_NtkSopToBdd( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pNode;
     DdManager * dd;
     int nFaninsMax, i;
-
+ 
     assert( Abc_NtkHasSop(pNtk) ); 
 
     // start the functionality manager

@@ -86,7 +86,7 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
     Vec_Str_t * vString;
     unsigned uTruth[8];
     char * pType, ** ppNames, * pString;
-    int iLine, nNames;
+    int iLine, nNames, nDigits, fLutsPresent = 0;
     
     // allocate the empty network
     pNtk = Abc_NtkStartRead( Extra_FileReaderGetFileName(p) );
@@ -122,6 +122,7 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
             }
             else if ( strcmp(pType, "LUT") == 0 )
             {
+                fLutsPresent = 1;
                 ppNames = (char **)vTokens->pArray + 3;
                 nNames  = vTokens->nSize - 3;
                 // check the number of inputs
@@ -142,6 +143,18 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
                     return NULL;
                 }
                 pString += 2;
+                // pad the string with zero's if needed
+                nDigits = (1 << nNames) / 4;
+                if ( nDigits == 0 )
+                    nDigits = 1;
+                if ( strlen(pString) < (unsigned)nDigits )
+                {
+                    Vec_StrFill( vString, nDigits - strlen(pString), '0' );
+                    Vec_StrPrintStr( vString, pString );
+                    Vec_StrPush( vString, 0 );
+                    pString = Vec_StrArray( vString );
+                }
+                // read the hex number from the string
                 if ( !Extra_ReadHexadecimal( uTruth, pString, nNames ) )
                 {
                     printf( "%s: Reading hexadecimal number (%s) has failed.\n", Extra_FileReaderGetFileName(p), pString );
@@ -229,6 +242,23 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
 //        Io_ReadCreateConst( pNtk, "gnd", 0 );
 
     Abc_NtkFinalizeRead( pNtk );
+
+    // if LUTs are present, collapse the truth tables into cubes
+    if ( fLutsPresent )
+    {
+        if ( !Abc_NtkToBdd(pNtk) )
+        {
+            printf( "Io_ReadBenchNetwork(): Converting to BDD has failed.\n" );
+            Abc_NtkDelete( pNtk );
+            return NULL;
+        }
+        if ( !Abc_NtkToSop(pNtk, 0) )
+        {
+            printf( "Io_ReadBenchNetwork(): Converting to SOP has failed.\n" );
+            Abc_NtkDelete( pNtk );
+            return NULL;
+        }
+    }
     return pNtk;
 }
 

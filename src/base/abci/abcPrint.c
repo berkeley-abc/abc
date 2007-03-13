@@ -33,6 +33,8 @@
 
 int s_MappingTime = 0;
 int s_MappingMem = 0;
+int s_ResubTime = 0;
+int s_ResynTime = 0;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -147,20 +149,27 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
         fprintf( pTable, "\n" );
         fclose( pTable );
     }
-*/ 
+*/
 
 /*
     // print the statistic into a file
     {
         FILE * pTable;
-        pTable = fopen( "a/fpga_stats.txt", "a+" );
+        pTable = fopen( "x/stats_new.txt", "a+" );
         fprintf( pTable, "%s ",  pNtk->pName );
-        fprintf( pTable, "%d ", Abc_NtkLevel(pNtk) );
-        fprintf( pTable, "%d ", Abc_NtkNodeNum(pNtk) );
+//        fprintf( pTable, "%d ", Abc_NtkPiNum(pNtk) );
+//        fprintf( pTable, "%d ", Abc_NtkPoNum(pNtk) );
+//        fprintf( pTable, "%d ", Abc_NtkLevel(pNtk) );
+//        fprintf( pTable, "%d ", Abc_NtkNodeNum(pNtk) );
+//        fprintf( pTable, "%d ", Abc_NtkGetTotalFanins(pNtk) );
+//        fprintf( pTable, "%d ", Abc_NtkLatchNum(pNtk) );
 //        fprintf( pTable, "%.2f ", (float)(s_MappingMem)/(float)(1<<20) );
-//        fprintf( pTable, "%.2f", (float)(s_MappingTime)/(float)(CLOCKS_PER_SEC) );
+        fprintf( pTable, "%.2f", (float)(s_MappingTime)/(float)(CLOCKS_PER_SEC) );
+//        fprintf( pTable, "%.2f", (float)(s_ResynTime)/(float)(CLOCKS_PER_SEC) );
         fprintf( pTable, "\n" );
         fclose( pTable );
+
+        s_ResynTime = 0;
     }
 */
 

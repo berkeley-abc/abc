@@ -24,6 +24,8 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+extern int s_MappingTime;
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -186,15 +188,20 @@ int If_ManBinarySearchPeriod( If_Man_t * p )
 
     p->nAttempts++;
 
-    // set LValues of of PIs to be 0 and other nodes to be -infinity
-    // LValues of the PIs are already set to 0
-    // undo any previous mapping, except for CIs
+    // reset initial LValues (PIs to 0; others to -inf)
     If_ManForEachObj( p, pObj, i )
     {
         if ( If_ObjIsPi(pObj) || If_ObjIsConst1(pObj) )
+        {
             If_ObjSetLValue( pObj, (float)0.0 );
+            If_ObjSetArrTime( pObj, (float)0.0 );
+        }
         else
+        {
             If_ObjSetLValue( pObj, (float)-IF_INFINITY );
+            If_ObjSetArrTime( pObj, (float)-IF_INFINITY );
+        }
+        // undo any previous mapping, except for CIs
         if ( If_ObjIsAnd(pObj) )
             If_ObjCutBest(pObj)->nLeaves = 0;
     }
@@ -368,6 +375,18 @@ int If_ManPerformMappingSeq( If_Man_t * p )
     }
     if ( p->pPars->fVerbose )
     {
+/*
+        {
+            FILE * pTable;
+            pTable = fopen( "iscas/stats_new.txt", "a+" );
+//            fprintf( pTable, "%s ",  pNtk->pName );
+            fprintf( pTable, "%d ", p->Period );
+    //        fprintf( pTable, "%.2f ", (float)(s_MappingMem)/(float)(1<<20) );
+//            fprintf( pTable, "%.2f", (float)(s_MappingTime)/(float)(CLOCKS_PER_SEC) );
+//            fprintf( pTable, "\n" );
+            fclose( pTable );
+        }
+*/
         printf( "The best clock period is %3d.  ", p->Period );
         PRT( "Sequential time", clock() - clkTotal );
     }
@@ -375,6 +394,7 @@ int If_ManPerformMappingSeq( If_Man_t * p )
 
     // postprocess it using combinational mapping
     If_ManPerformMappingSeqPost( p );
+    s_MappingTime = clock() - clkTotal;
     return 1;
 }
 

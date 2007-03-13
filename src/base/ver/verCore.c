@@ -318,7 +318,7 @@ Abc_Obj_t * Ver_ParseFindNet( Abc_Ntk_t * pNtk, char * pName )
     Abc_Obj_t * pObj;
     if ( pObj = Abc_NtkFindNet(pNtk, pName) )
         return pObj;
-    if ( !strcmp( pName, "1\'b0" ) )
+    if ( !strcmp( pName, "1\'b0" ) || !strcmp( pName, "1\'bx" ) )
         return Abc_NtkFindOrCreateNet( pNtk, "1\'b0" );
     if ( !strcmp( pName, "1\'b1" ) )
         return Abc_NtkFindOrCreateNet( pNtk, "1\'b1" );
@@ -749,17 +749,19 @@ int Ver_ParseConstant( Ver_Man_t * pMan, char * pWord )
     Vec_PtrClear( pMan->vNames );
     for ( i = 0; i < nBits; i++ )
     {
-        if ( pWord[i] != '0' && pWord[i] != '1' )
-        {
-            sprintf( pMan->sError, "Having problem parsing the binary constant." );
-            Ver_ParsePrintErrorMessage( pMan );
-            return 0;
-        }
-        Vec_PtrPush( pMan->vNames, (void *)(pWord[i]-'0') );
+      if ( pWord[i] != '0' && pWord[i] != '1' && pWord[i] != 'x' )
+      {
+         sprintf( pMan->sError, "Having problem parsing the binary constant." );
+         Ver_ParsePrintErrorMessage( pMan );
+         return 0;
+      }
+      if ( pWord[i] == 'x' ) 
+          Vec_PtrPush( pMan->vNames, (void *)0 );
+      else 
+          Vec_PtrPush( pMan->vNames, (void *)(pWord[i]-'0') );
     }
     return 1;
 }
-
 
 /**Function*************************************************************
 
@@ -1100,7 +1102,7 @@ int Ver_ParseAssign( Ver_Man_t * pMan, Abc_Ntk_t * pNtk )
                 return 0;
             }
 
-            // set individual bits of the constant
+            // get individual bits of the constant
             if ( !Ver_ParseConstant( pMan, pWord ) )
                 return 0;
             // check that the constant has the same size
@@ -1206,7 +1208,11 @@ int Ver_ParseAssign( Ver_Man_t * pMan, Abc_Ntk_t * pNtk )
             else
             {
                 // parse the formula
-                if ( fReduction )
+                if ( !strcmp(pEquation, "0") || !strcmp(pEquation, "1\'b0") || !strcmp(pEquation, "1\'bx") )
+                    pFunc = Hop_ManConst0(pNtk->pManFunc);
+                else if ( !strcmp(pEquation, "1") || !strcmp(pEquation, "1\'b1") )
+                    pFunc = Hop_ManConst1(pNtk->pManFunc);
+                else if ( fReduction )
                     pFunc = Ver_FormulaReduction( pEquation, pNtk->pManFunc, pMan->vNames, pMan->sError );  
                 else
                     pFunc = Ver_FormulaParser( pEquation, pNtk->pManFunc, pMan->vNames, pMan->vStackFn, pMan->vStackOp, pMan->sError );  

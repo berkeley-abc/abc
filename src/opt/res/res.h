@@ -42,6 +42,7 @@ struct Res_Par_t_
 {
     // general parameters
     int           nWindow;       // window size
+    int           nGrowthLevel;  // the maximum allowed growth in level after one iteration of resynthesis
     int           nSimWords;     // the number of simulation words 
     int           nCands;        // the number of candidates to try
     int           fArea;         // performs optimization for area

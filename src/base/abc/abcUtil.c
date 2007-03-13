@@ -1452,7 +1452,7 @@ void Abc_NtkTransferCopy( Abc_Ntk_t * pNtk )
     int i;
     Abc_NtkForEachObj( pNtk, pObj, i )
         if ( !Abc_ObjIsNet(pObj) )
-            pObj->pCopy = pObj->pCopy? Abc_ObjEquiv(pObj->pCopy) : NULL;
+            pObj->pCopy = pObj->pCopy? Abc_ObjCopyCond(pObj->pCopy) : NULL;
 }
 
 
@@ -1469,7 +1469,8 @@ void Abc_NtkTransferCopy( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 static inline int Abc_ObjCrossCutInc( Abc_Obj_t * pObj )
 {
-    pObj->pCopy = (void *)(((int)pObj->pCopy)++);
+//    pObj->pCopy = (void *)(((int)pObj->pCopy)++);
+    ((char*)pObj->pCopy)++;
     return (int)pObj->pCopy == Abc_ObjFanoutNum(pObj);
 }
 
@@ -1563,7 +1564,7 @@ int Abc_NtkCrossCut( Abc_Ntk_t * pNtk )
 void Abc_NtkPrint256()
 {
     FILE * pFile;
-    int i;
+    unsigned i;
     pFile = fopen( "4varfs.txt", "w" );
     for ( i = 1; i < (1<<16)-1; i++ )
     {

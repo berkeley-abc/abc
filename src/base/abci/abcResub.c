@@ -118,6 +118,7 @@ extern void Abc_NtkDontCareClear( void * p );
 extern void Abc_NtkDontCareFree( void * p );
 extern int Abc_NtkDontCareCompute( void * p, Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves, unsigned * puTruth );
 
+extern int s_ResubTime;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -261,6 +262,7 @@ pManRes->timeTotal = clock() - clkStart;
         printf( "Abc_NtkRefactor: The network check has failed.\n" );
         return 0;
     }
+s_ResubTime = clock() - clkStart;
     return 1;
 }
 

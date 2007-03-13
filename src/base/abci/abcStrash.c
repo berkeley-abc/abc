@@ -60,7 +60,7 @@ Abc_Ntk_t * Abc_NtkRestrash( Abc_Ntk_t * pNtk, bool fCleanup )
     // restrash the nodes (assuming a topological order of the old network)
     Abc_NtkForEachNode( pNtk, pObj, i )
         pObj->pCopy = Abc_AigAnd( pNtkAig->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
-    //l finalize the network
+    // finalize the network
     Abc_NtkFinalize( pNtk, pNtkAig );
     // print warning about self-feed latches
 //    if ( Abc_NtkCountSelfFeedLatches(pNtkAig) )

@@ -61,9 +61,10 @@ typedef enum {
 } Hop_Type_t;
 
 // the AIG node
-struct Hop_Obj_t_  // 4 words
+struct Hop_Obj_t_  // 6 words
 {
     void *           pData;          // misc
+    Hop_Obj_t *      pNext;          // strashing table
     Hop_Obj_t *      pFanin0;        // fanin
     Hop_Obj_t *      pFanin1;        // fanin
     unsigned long    Type    :  3;   // object type
@@ -71,6 +72,7 @@ struct Hop_Obj_t_  // 4 words
     unsigned long    fMarkA  :  1;   // multipurpose mask
     unsigned long    fMarkB  :  1;   // multipurpose mask
     unsigned long    nRefs   : 26;   // reference count (level)
+    int              Id;             // unique ID of the node
 };
 
 // the AIG manager
@@ -79,6 +81,7 @@ struct Hop_Man_t_
     // AIG nodes
     Vec_Ptr_t *      vPis;           // the array of PIs
     Vec_Ptr_t *      vPos;           // the array of POs
+    Vec_Ptr_t *      vNodes;         // the array of all nodes (optional)
     Hop_Obj_t *      pConst1;        // the constant 1 node
     Hop_Obj_t        Ghost;          // the ghost node
     // AIG node counters
@@ -181,6 +184,7 @@ static inline Hop_Obj_t *  Hop_ObjChild0Copy( Hop_Obj_t * pObj ) { assert( !Hop_
 static inline Hop_Obj_t *  Hop_ObjChild1Copy( Hop_Obj_t * pObj ) { assert( !Hop_IsComplement(pObj) ); return Hop_ObjFanin1(pObj)? Hop_NotCond(Hop_ObjFanin1(pObj)->pData, Hop_ObjFaninC1(pObj)) : NULL;  }
 static inline int          Hop_ObjLevel( Hop_Obj_t * pObj )       { return pObj->nRefs;                            }
 static inline int          Hop_ObjLevelNew( Hop_Obj_t * pObj )    { return 1 + Hop_ObjIsExor(pObj) + AIG_MAX(Hop_ObjFanin0(pObj)->nRefs, Hop_ObjFanin1(pObj)->nRefs);       }
+static inline int          Hop_ObjFaninPhase( Hop_Obj_t * pObj )  { return Hop_IsComplement(pObj)? !Hop_Regular(pObj)->fPhase : pObj->fPhase; }
 static inline void         Hop_ObjClean( Hop_Obj_t * pObj )       { memset( pObj, 0, sizeof(Hop_Obj_t) ); }
 static inline int          Hop_ObjWhatFanin( Hop_Obj_t * pObj, Hop_Obj_t * pFanin )    
 { 
@@ -219,6 +223,12 @@ static inline Hop_Obj_t * Hop_ManFetchMemory( Hop_Man_t * p )
     pTemp = p->pListFree;
     p->pListFree = *((Hop_Obj_t **)pTemp);
     memset( pTemp, 0, sizeof(Hop_Obj_t) ); 
+    if ( p->vNodes )
+    {
+        assert( p->nCreated == Vec_PtrSize(p->vNodes) );
+        Vec_PtrPush( p->vNodes, pTemp );
+    }
+    pTemp->Id = p->nCreated++;
     return pTemp;
 }
 static inline void Hop_ManRecycleMemory( Hop_Man_t * p, Hop_Obj_t * pEntry )
@@ -279,6 +289,8 @@ extern void            Hop_ObjConnect( Hop_Man_t * p, Hop_Obj_t * pObj, Hop_Obj_
 extern void            Hop_ObjDisconnect( Hop_Man_t * p, Hop_Obj_t * pObj );
 extern void            Hop_ObjDelete( Hop_Man_t * p, Hop_Obj_t * pObj );
 extern void            Hop_ObjDelete_rec( Hop_Man_t * p, Hop_Obj_t * pObj );
+extern Hop_Obj_t *     Hop_ObjRepr( Hop_Obj_t * pObj );
+extern void            Hop_ObjCreateChoice( Hop_Obj_t * pOld, Hop_Obj_t * pNew );
 /*=== aigOper.c =========================================================*/
 extern Hop_Obj_t *     Hop_IthVar( Hop_Man_t * p, int i );
 extern Hop_Obj_t *     Hop_Oper( Hop_Man_t * p, Hop_Obj_t * p0, Hop_Obj_t * p1, Hop_Type_t Type );

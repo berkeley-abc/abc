@@ -41,13 +41,13 @@ static int        Res_FilterCriticalFanin( Abc_Obj_t * pNode );
   SideEffects []
 
   SeeAlso     []
-
+ 
 ***********************************************************************/
-int Res_FilterCandidatesNets( Res_Win_t * pWin, Abc_Ntk_t * pAig, Res_Sim_t * pSim, Vec_Vec_t * vResubs, Vec_Vec_t * vResubsW )
+int Res_FilterCandidates( Res_Win_t * pWin, Abc_Ntk_t * pAig, Res_Sim_t * pSim, Vec_Vec_t * vResubs, Vec_Vec_t * vResubsW, int nFaninsMax, int fArea )
 {
-    Abc_Obj_t * pFanin, * pFanin2;
-    unsigned * pInfo;
-    int Counter, RetValue, i, k;
+    Abc_Obj_t * pFanin, * pFanin2, * pFaninTemp;
+    unsigned * pInfo, * pInfoDiv, * pInfoDiv2;
+    int Counter, RetValue, i, i2, d, d2, iDiv, iDiv2, k;
 
     // check that the info the node is one
     pInfo = Vec_PtrEntry( pSim->vOuts, 1 );
@@ -67,37 +67,159 @@ int Res_FilterCandidatesNets( Res_Win_t * pWin, Abc_Ntk_t * pAig, Res_Sim_t * pS
         return 0;
     }
 
-    // try removing fanins
+    // try removing each fanin
 //    printf( "Fanins: " );
     Counter = 0;
     Vec_VecClear( vResubs );
     Vec_VecClear( vResubsW );
     Abc_ObjForEachFanin( pWin->pNode, pFanin, i )
     {
+        if ( fArea && Abc_ObjFanoutNum(pFanin) > 1 )
+            continue;
+        // get simulation info without this fanin
         pInfo = Res_FilterCollectFaninInfo( pWin, pSim, ~(1 << i) );
         RetValue = Abc_InfoIsOne( pInfo, pSim->nWordsOut );
         if ( RetValue )
         {
 //            printf( "Node %4d. Candidate fanin %4d.\n", pWin->pNode->Id, pFanin->Id );
-
             // collect the nodes
             Vec_VecPush( vResubs, Counter, Abc_NtkPo(pAig,0) );
             Vec_VecPush( vResubs, Counter, Abc_NtkPo(pAig,1) );
-            Abc_ObjForEachFanin( pWin->pNode, pFanin2, k )
+            Abc_ObjForEachFanin( pWin->pNode, pFaninTemp, k )
             {
                 if ( k != i )
                 {
                     Vec_VecPush( vResubs, Counter, Abc_NtkPo(pAig,2+k) );
-                    Vec_VecPush( vResubsW, Counter, pFanin2 );
+                    Vec_VecPush( vResubsW, Counter, pFaninTemp );
                 }
             }
             Counter++;
+            if ( Counter == Vec_VecSize(vResubs) )
+                return Counter;    
         }
-        if ( Counter == Vec_VecSize(vResubs) )
-            break;            
-//        printf( "%d", RetValue );
     }
-//    printf( "\n\n" );
+
+    // try replacing each critical fanin by a non-critical fanin
+    Abc_ObjForEachFanin( pWin->pNode, pFanin, i )
+    {
+        if ( Abc_ObjFanoutNum(pFanin) > 1 )
+            continue;
+        // get simulation info without this fanin
+        pInfo = Res_FilterCollectFaninInfo( pWin, pSim, ~(1 << i) );
+        // go over the set of divisors
+        for ( d = Abc_ObjFaninNum(pWin->pNode) + 2; d < Abc_NtkPoNum(pAig); d++ )
+        {
+            pInfoDiv = Vec_PtrEntry( pSim->vOuts, d );
+            iDiv = d - (Abc_ObjFaninNum(pWin->pNode) + 2);
+            if ( !Abc_InfoIsOrOne( pInfo, pInfoDiv, pSim->nWordsOut ) )
+                continue;
+            // collect the nodes
+            Vec_VecPush( vResubs, Counter, Abc_NtkPo(pAig,0) );
+            Vec_VecPush( vResubs, Counter, Abc_NtkPo(pAig,1) );
+            // collect the remaning fanins and the divisor
+            Abc_ObjForEachFanin( pWin->pNode, pFaninTemp, k )
+            {
+                if ( k != i )
+                {
+                    Vec_VecPush( vResubs, Counter, Abc_NtkPo(pAig,2+k) );
+                    Vec_VecPush( vResubsW, Counter, pFaninTemp );
+                }
+            }
+            // collect the divisor
+            Vec_VecPush( vResubs, Counter, Abc_NtkPo(pAig,d) );
+            Vec_VecPush( vResubsW, Counter, Vec_PtrEntry(pWin->vDivs, iDiv) );
+            Counter++;
+            if ( Counter == Vec_VecSize(vResubs) )
+                return Counter;           
+        }
+    }
+
+    // consider the case when two fanins can be added instead of one
+    if ( Abc_ObjFaninNum(pWin->pNode) < nFaninsMax )
+    {
+        // try to replace each critical fanin by two non-critical fanins
+        Abc_ObjForEachFanin( pWin->pNode, pFanin, i )
+        {
+            if ( Abc_ObjFanoutNum(pFanin) > 1 )
+                continue;
+            // get simulation info without this fanin
+            pInfo = Res_FilterCollectFaninInfo( pWin, pSim, ~(1 << i) );
+            // go over the set of divisors
+            for ( d = Abc_ObjFaninNum(pWin->pNode) + 2; d < Abc_NtkPoNum(pAig); d++ )
+            {
+                pInfoDiv = Vec_PtrEntry( pSim->vOuts, d );
+                iDiv = d - (Abc_ObjFaninNum(pWin->pNode) + 2);
+                // go through the second divisor
+                for ( d2 = d + 1; d2 < Abc_NtkPoNum(pAig); d2++ )
+                {
+                    pInfoDiv2 = Vec_PtrEntry( pSim->vOuts, d2 );
+                    iDiv2 = d2 - (Abc_ObjFaninNum(pWin->pNode) + 2);
+                    if ( !Abc_InfoIsOrOne3( pInfo, pInfoDiv, pInfoDiv2, pSim->nWordsOut ) )
+                        continue;
+                    // collect the nodes
+                    Vec_VecPush( vResubs, Counter, Abc_NtkPo(pAig,0) );
+                    Vec_VecPush( vResubs, Counter, Abc_NtkPo(pAig,1) );
+                    // collect the remaning fanins and the divisor
+                    Abc_ObjForEachFanin( pWin->pNode, pFaninTemp, k )
+                    {
+                        if ( k != i )
+                        {
+                            Vec_VecPush( vResubs, Counter, Abc_NtkPo(pAig,2+k) );
+                            Vec_VecPush( vResubsW, Counter, pFaninTemp );
+                        }
+                    }
+                    // collect the divisor
+                    Vec_VecPush( vResubs, Counter, Abc_NtkPo(pAig,d) );
+                    Vec_VecPush( vResubs, Counter, Abc_NtkPo(pAig,d2) );
+                    Vec_VecPush( vResubsW, Counter, Vec_PtrEntry(pWin->vDivs, iDiv) );
+                    Vec_VecPush( vResubsW, Counter, Vec_PtrEntry(pWin->vDivs, iDiv2) );
+                    Counter++;
+                    if ( Counter == Vec_VecSize(vResubs) )
+                        return Counter;           
+                }
+            }
+        }
+    }
+
+    // try to replace two nets by one
+    if ( !fArea )
+    {
+        Abc_ObjForEachFanin( pWin->pNode, pFanin, i )
+        {
+            for ( i2 = i + 1; i2 < Abc_ObjFaninNum(pWin->pNode); i2++ )
+            {
+                pFanin2 = Abc_ObjFanin(pWin->pNode, i2);
+                // get simulation info without these fanins
+                pInfo = Res_FilterCollectFaninInfo( pWin, pSim, (~(1 << i)) & (~(1 << i2)) );
+                // go over the set of divisors
+                for ( d = Abc_ObjFaninNum(pWin->pNode) + 2; d < Abc_NtkPoNum(pAig); d++ )
+                {
+                    pInfoDiv = Vec_PtrEntry( pSim->vOuts, d );
+                    iDiv = d - (Abc_ObjFaninNum(pWin->pNode) + 2);
+                    if ( !Abc_InfoIsOrOne( pInfo, pInfoDiv, pSim->nWordsOut ) )
+                        continue;
+                    // collect the nodes
+                    Vec_VecPush( vResubs, Counter, Abc_NtkPo(pAig,0) );
+                    Vec_VecPush( vResubs, Counter, Abc_NtkPo(pAig,1) );
+                    // collect the remaning fanins and the divisor
+                    Abc_ObjForEachFanin( pWin->pNode, pFaninTemp, k )
+                    {
+                        if ( k != i && k != i2 )
+                        {
+                            Vec_VecPush( vResubs, Counter, Abc_NtkPo(pAig,2+k) );
+                            Vec_VecPush( vResubsW, Counter, pFaninTemp );
+                        }
+                    }
+                    // collect the divisor
+                    Vec_VecPush( vResubs, Counter, Abc_NtkPo(pAig,d) );
+                    Vec_VecPush( vResubsW, Counter, Vec_PtrEntry(pWin->vDivs, iDiv) );
+                    Counter++;
+                    if ( Counter == Vec_VecSize(vResubs) )
+                        return Counter;           
+                }
+            }
+        }
+    }
     return Counter;
 }
 
@@ -106,18 +228,18 @@ int Res_FilterCandidatesNets( Res_Win_t * pWin, Abc_Ntk_t * pAig, Res_Sim_t * pS
 
   Synopsis    [Finds sets of feasible candidates.]
 
-  Description []
+  Description [This procedure is a special case of the above.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-int Res_FilterCandidatesArea( Res_Win_t * pWin, Abc_Ntk_t * pAig, Res_Sim_t * pSim, Vec_Vec_t * vResubs, Vec_Vec_t * vResubsW )
+int Res_FilterCandidatesArea( Res_Win_t * pWin, Abc_Ntk_t * pAig, Res_Sim_t * pSim, Vec_Vec_t * vResubs, Vec_Vec_t * vResubsW, int nFaninsMax )
 {
     Abc_Obj_t * pFanin;
-    unsigned * pInfo, * pInfo2;
-    int Counter, RetValue, i, k, iBest;
+    unsigned * pInfo, * pInfoDiv, * pInfoDiv2;
+    int Counter, RetValue, d, d2, k, iDiv, iDiv2, iBest;
 
     // check that the info the node is one
     pInfo = Vec_PtrEntry( pSim->vOuts, 1 );
@@ -170,11 +292,14 @@ int Res_FilterCandidatesArea( Res_Win_t * pWin, Abc_Ntk_t * pAig, Res_Sim_t * pS
     }
 
     // go through the divisors
-    for ( i = Abc_ObjFaninNum(pWin->pNode) + 2; i < Abc_NtkPoNum(pAig); i++ )
+    for ( d = Abc_ObjFaninNum(pWin->pNode) + 2; d < Abc_NtkPoNum(pAig); d++ )
     {
-        pInfo2 = Vec_PtrEntry( pSim->vOuts, i );
-        if ( !Abc_InfoIsOrOne( pInfo, pInfo2, pSim->nWordsOut ) )
+        pInfoDiv = Vec_PtrEntry( pSim->vOuts, d );
+        iDiv = d - (Abc_ObjFaninNum(pWin->pNode) + 2);
+        if ( !Abc_InfoIsOrOne( pInfo, pInfoDiv, pSim->nWordsOut ) )
             continue;
+//if ( Abc_ObjLevel(pWin->pNode) <= Abc_ObjLevel( Vec_PtrEntry(pWin->vDivs, iDiv) ) )
+//    printf( "Node level = %d. Divisor level = %d.\n", Abc_ObjLevel(pWin->pNode), Abc_ObjLevel( Vec_PtrEntry(pWin->vDivs, iDiv) ) );
         // collect the nodes
         Vec_VecPush( vResubs, Counter, Abc_NtkPo(pAig,0) );
         Vec_VecPush( vResubs, Counter, Abc_NtkPo(pAig,1) );
@@ -188,10 +313,52 @@ int Res_FilterCandidatesArea( Res_Win_t * pWin, Abc_Ntk_t * pAig, Res_Sim_t * pS
             }
         }
         // collect the divisor
-        Vec_VecPush( vResubs, Counter, Abc_NtkPo(pAig,i) );
-        Vec_VecPush( vResubsW, Counter, Vec_PtrEntry(pWin->vDivs, i-2-Abc_ObjFaninNum(pWin->pNode)) );
+        Vec_VecPush( vResubs, Counter, Abc_NtkPo(pAig,d) );
+        Vec_VecPush( vResubsW, Counter, Vec_PtrEntry(pWin->vDivs, iDiv) );
         Counter++;
 
+        if ( Counter == Vec_VecSize(vResubs) )
+            break;            
+    }
+
+    if ( Counter > 0 || Abc_ObjFaninNum(pWin->pNode) >= nFaninsMax )
+        return Counter;
+
+    // try to find the node pairs
+    for ( d = Abc_ObjFaninNum(pWin->pNode) + 2; d < Abc_NtkPoNum(pAig); d++ )
+    {
+        pInfoDiv = Vec_PtrEntry( pSim->vOuts, d );
+        iDiv = d - (Abc_ObjFaninNum(pWin->pNode) + 2);
+        // go through the second divisor
+        for ( d2 = d + 1; d2 < Abc_NtkPoNum(pAig); d2++ )
+        {
+            pInfoDiv2 = Vec_PtrEntry( pSim->vOuts, d2 );
+            iDiv2 = d2 - (Abc_ObjFaninNum(pWin->pNode) + 2);
+
+            if ( !Abc_InfoIsOrOne3( pInfo, pInfoDiv, pInfoDiv2, pSim->nWordsOut ) )
+                continue;
+            // collect the nodes
+            Vec_VecPush( vResubs, Counter, Abc_NtkPo(pAig,0) );
+            Vec_VecPush( vResubs, Counter, Abc_NtkPo(pAig,1) );
+            // collect the remaning fanins and the divisor
+            Abc_ObjForEachFanin( pWin->pNode, pFanin, k )
+            {
+                if ( k != iBest )
+                {
+                    Vec_VecPush( vResubs, Counter, Abc_NtkPo(pAig,2+k) );
+                    Vec_VecPush( vResubsW, Counter, pFanin );
+                }
+            }
+            // collect the divisor
+            Vec_VecPush( vResubs, Counter, Abc_NtkPo(pAig,d) );
+            Vec_VecPush( vResubs, Counter, Abc_NtkPo(pAig,d2) );
+            Vec_VecPush( vResubsW, Counter, Vec_PtrEntry(pWin->vDivs, iDiv) );
+            Vec_VecPush( vResubsW, Counter, Vec_PtrEntry(pWin->vDivs, iDiv2) );
+            Counter++;
+
+            if ( Counter == Vec_VecSize(vResubs) )
+                break;            
+        }
         if ( Counter == Vec_VecSize(vResubs) )
             break;            
     }

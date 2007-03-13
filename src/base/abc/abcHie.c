@@ -256,7 +256,7 @@ Abc_Ntk_t * Abc_NtkConvertBlackboxes( Abc_Ntk_t * pNtk )
     pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc, 1 );
     // duplicate the name and the spec
     pNtkNew->pName = Extra_UtilStrsav( pNtk->pName );
-//    pNtkNew->pSpec = Extra_UtilStrsav( pNtk->pSpec );
+    pNtkNew->pSpec = Extra_UtilStrsav( pNtk->pSpec );
 
     // clean the node copy fields
     Abc_NtkCleanCopy( pNtk );

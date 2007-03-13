@@ -30,7 +30,6 @@ alias fs fraig_sweep
 alias fsto fraig_store
 alias fres fraig_restore
 alias ft fraig_trust
-alias ifs if -s
 alias pex print_exdc -d
 alias pf print_factor
 alias pfan print_fanio
@@ -68,6 +67,7 @@ alias rs resub
 alias rsz resub -z
 alias sa set autoexec ps
 alias scl scleanup
+alias sif if -s
 alias so source -x
 alias st strash
 alias sw sweep
@@ -117,13 +117,25 @@ alias fflitmin    "compress2rs; ren; sop; ps -f"
 #alias t        "rvl th/lib.v; rvv th/t2.v"
 #alias t        "so c/pure_sat/test.c"
 #alias t        "r c/14/csat_998.bench; st; ps"
-alias t0        "r res.blif; aig; mfs"  
-alias t        "r res2.blif; aig; mfs"  
+#alias t0        "r res.blif; aig; mfs"  
+#alias t        "r res2.blif; aig; mfs"  
 
-alias tt       "r a/quip_opt/nut_001_opt.blif"
-alias ttb      "wh a/quip_opt/nut_001_opt.blif 1.blif"
-alias ttv      "wh a/quip_opt/nut_001_opt.blif 1.v"
+#alias tt       "r a/quip_opt/nut_001_opt.blif"
+#alias ttb      "wh a/quip_opt/nut_001_opt.blif 1.blif"
+#alias ttv      "wh a/quip_opt/nut_001_opt.blif 1.v"
+
+alias t        "r c.blif; st; haig_start; resyn; haig_use"
+alias tt       "r i10.blif; st; haig_start; resyn2; haig_use"
 
 alias reach    "st; ps; compress2; ps; qrel; ps; compress2; ps; qreach -v; ps"
 
-
+alias qs1      "qvar -I 96 -u; ps; qbf -P 96" 
+alias qs2      "qvar -I 96 -u; qvar -I 97 -u; ps; qbf -P 96" 
+alias qs3      "qvar -I 96 -u; qvar -I 97 -u; qvar -I 98 -u; ps; qbf -P 96" 
+alias qs4      "qvar -I 96 -u; qvar -I 97 -u; qvar -I 98 -u; qvar -I 99 -u; ps; qbf -P 96" 
+alias qs5      "qvar -I 96 -u; qvar -I 97 -u; qvar -I 98 -u; qvar -I 99 -u; qvar -I 100 -u; ps; qbf -P 96" 
+alias qs6      "qvar -I 96 -u; qvar -I 97 -u; qvar -I 98 -u; qvar -I 99 -u; qvar -I 100 -u; qvar -I 101 -u; ps; qbf -P 96" 
+alias qs7      "qvar -I 96 -u; qvar -I 97 -u; qvar -I 98 -u; qvar -I 99 -u; qvar -I 100 -u; qvar -I 101 -u; qvar -I 102 -u; ps; qbf -P 96" 
+alias qs8      "qvar -I 96 -u; qvar -I 97 -u; qvar -I 98 -u; qvar -I 99 -u; qvar -I 100 -u; qvar -I 101 -u; qvar -I 102 -u; qvar -I 103 -u; ps; qbf -P 96" 
+alias qs9      "qvar -I 96 -u; qvar -I 97 -u; qvar -I 98 -u; qvar -I 99 -u; qvar -I 100 -u; qvar -I 101 -u; qvar -I 102 -u; qvar -I 103 -u; qvar -I 104 -u; ps; qbf -P 96" 
+alias qsA      "qvar -I 96 -u; qvar -I 97 -u; qvar -I 98 -u; qvar -I 99 -u; qvar -I 100 -u; qvar -I 101 -u; qvar -I 102 -u; qvar -I 103 -u; qvar -I 104 -u; qvar -I 105 -u; ps; qbf -P 96" 

@@ -420,9 +420,9 @@ void Abc_NtkAddDummyBoxNames( Abc_Ntk_t * pNtk )
     nDigits = Extra_Base10Log( Abc_NtkLatchNum(pNtk) );
     Abc_NtkForEachLatch( pNtk, pObj, i )
     {
-        Abc_ObjAssignName( pObj, Abc_ObjNameDummy("L", i, nDigits), NULL );
-        Abc_ObjAssignName( Abc_ObjFanin0(pObj),  Abc_ObjNameDummy("Li", i, nDigits), NULL );
-        Abc_ObjAssignName( Abc_ObjFanout0(pObj), Abc_ObjNameDummy("Lo", i, nDigits), NULL );
+        Abc_ObjAssignName( pObj, Abc_ObjNameDummy("l", i, nDigits), NULL );
+        Abc_ObjAssignName( Abc_ObjFanin0(pObj),  Abc_ObjNameDummy("li", i, nDigits), NULL );
+        Abc_ObjAssignName( Abc_ObjFanout0(pObj), Abc_ObjNameDummy("lo", i, nDigits), NULL );
     }
 /*
     nDigits = Extra_Base10Log( Abc_NtkBlackboxNum(pNtk) );

@@ -143,7 +143,7 @@ float If_ManDelayMax( If_Man_t * p, int fSeq )
 void If_ManComputeRequired( If_Man_t * p )
 {
     If_Obj_t * pObj;
-    int i;
+    int i, Counter;
 
     // compute area, clean required times, collect nodes used in the mapping
     p->nNets = 0;
@@ -154,13 +154,19 @@ void If_ManComputeRequired( If_Man_t * p )
     {
         assert( !p->pPars->fAreaOnly );
         // make sure that the required time hold
+        Counter = 0;
         If_ManForEachCo( p, pObj, i )
         {
             if ( If_ObjArrTime(If_ObjFanin0(pObj)) > p->pPars->pTimesReq[i] + p->fEpsilon )
-                printf( "Required times are violated for output %d (arr = %d; req = %d).\n", 
-                    i, (int)If_ObjArrTime(If_ObjFanin0(pObj)), (int)p->pPars->pTimesReq[i] );
+            {
+                Counter++;
+//                printf( "Required times are violated for output %d (arr = %d; req = %d).\n", 
+//                    i, (int)If_ObjArrTime(If_ObjFanin0(pObj)), (int)p->pPars->pTimesReq[i] );
+            }
             If_ObjFanin0(pObj)->Required = p->pPars->pTimesReq[i];
         }
+        if ( Counter )
+            printf( "Required times are violated for %d outputs.\n", Counter );
     }
     else
     {

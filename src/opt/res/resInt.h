@@ -105,8 +105,8 @@ extern void          Res_WinDivisors( Res_Win_t * p, int nLevDivMax );
 extern void          Res_WinSweepLeafTfo_rec( Abc_Obj_t * pObj, int nLevelLimit );
 extern int           Res_WinVisitMffc( Abc_Obj_t * pNode );
 /*=== resFilter.c ==========================================================*/
-extern int           Res_FilterCandidatesNets( Res_Win_t * pWin, Abc_Ntk_t * pAig, Res_Sim_t * pSim, Vec_Vec_t * vResubs, Vec_Vec_t * vResubsW );
-extern int           Res_FilterCandidatesArea( Res_Win_t * pWin, Abc_Ntk_t * pAig, Res_Sim_t * pSim, Vec_Vec_t * vResubs, Vec_Vec_t * vResubsW );
+extern int           Res_FilterCandidates( Res_Win_t * pWin, Abc_Ntk_t * pAig, Res_Sim_t * pSim, Vec_Vec_t * vResubs, Vec_Vec_t * vResubsW, int nFaninsMax, int fArea );
+extern int           Res_FilterCandidatesArea( Res_Win_t * pWin, Abc_Ntk_t * pAig, Res_Sim_t * pSim, Vec_Vec_t * vResubs, Vec_Vec_t * vResubsW, int nFaninsMax );
 /*=== resSat.c ==========================================================*/
 extern void *        Res_SatProveUnsat( Abc_Ntk_t * pAig, Vec_Ptr_t * vFanins );
 extern int           Res_SatSimulate( Res_Sim_t * p, int nPats, int fOnSet );

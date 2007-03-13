@@ -877,6 +877,7 @@ int IoCommandReadVerLib( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pFile;
     int fCheck;
     int c;
+    extern Abc_Lib_t * Ver_ParseFile( char * pFileName, Abc_Lib_t * pGateLib, int fCheck, int fUseMemMan );
 
     fCheck = 1;
     Extra_UtilGetoptReset();

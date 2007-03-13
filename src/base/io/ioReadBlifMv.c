@@ -212,6 +212,8 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
         Abc_NtkIsAcyclicHierarchy( pNtk );
 
 //Io_WriteBlifMv( pNtk, "_temp_.mv" );
+    if ( pNtk->pSpec == NULL )
+        pNtk->pSpec = Extra_UtilStrsav( pFileName );
     return pNtk;
 }
 

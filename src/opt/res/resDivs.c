@@ -124,6 +124,13 @@ void Res_WinDivisors( Res_Win_t * p, int nLevDivMax )
             p->nDivsPlus++;
         }
     }
+/*
+    printf( "Node level = %d.  ", Abc_ObjLevel(p->pNode) );
+    Vec_PtrForEachEntryStart( p->vDivs, pObj, k, Vec_PtrSize(p->vDivs)-p->nDivsPlus )
+        printf( "%d ", Abc_ObjLevel(pObj) );
+    printf( "\n" );
+*/
+//printf( "%d ", p->nDivsPlus );
 }
 
 /**Function*************************************************************

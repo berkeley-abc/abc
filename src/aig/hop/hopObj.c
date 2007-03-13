@@ -46,7 +46,6 @@ Hop_Obj_t * Hop_ObjCreatePi( Hop_Man_t * p )
     pObj->Type = AIG_PI;
     Vec_PtrPush( p->vPis, pObj );
     p->nObjs[AIG_PI]++;
-    p->nCreated++;
     return pObj;
 }
 
@@ -73,9 +72,10 @@ Hop_Obj_t * Hop_ObjCreatePo( Hop_Man_t * p, Hop_Obj_t * pDriver )
         Hop_ObjRef( Hop_Regular(pDriver) );
     else
         pObj->nRefs = Hop_ObjLevel( Hop_Regular(pDriver) );
+    // set the phase
+//    pObj->fPhase = Hop_ObjFaninPhase(pDriver);
     // update node counters of the manager
     p->nObjs[AIG_PO]++;
-    p->nCreated++;
     return pObj;
 }
 
@@ -103,7 +103,7 @@ Hop_Obj_t * Hop_ObjCreate( Hop_Man_t * p, Hop_Obj_t * pGhost )
     Hop_ObjConnect( p, pObj, pGhost->pFanin0, pGhost->pFanin1 );
     // update node counters of the manager
     p->nObjs[Hop_ObjType(pObj)]++;
-    p->nCreated++;
+    assert( pObj->pData == NULL );
     return pObj;
 }
 
@@ -135,6 +135,8 @@ void Hop_ObjConnect( Hop_Man_t * p, Hop_Obj_t * pObj, Hop_Obj_t * pFan0, Hop_Obj
     }
     else
         pObj->nRefs = Hop_ObjLevelNew( pObj );
+    // set the phase
+//    pObj->fPhase = Hop_ObjFaninPhase(pFan0) & Hop_ObjFaninPhase(pFan1);
     // add the node to the structural hash table
     Hop_TableInsert( p, pObj );
 }
@@ -219,6 +221,46 @@ void Hop_ObjDelete_rec( Hop_Man_t * p, Hop_Obj_t * pObj )
         Hop_ObjDelete_rec( p, pFanin0 );
     if ( pFanin1 && !Hop_ObjIsNone(pFanin1) && Hop_ObjRefs(pFanin1) == 0 )
         Hop_ObjDelete_rec( p, pFanin1 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the representative of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Hop_Obj_t * Hop_ObjRepr( Hop_Obj_t * pObj )
+{
+    if ( Hop_Regular(pObj)->pData == NULL )
+        return Hop_Regular(pObj);
+    return Hop_ObjRepr( Hop_Regular(pObj)->pData );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sets an equivalence relation between the nodes.]
+
+  Description [Makes the representative of pNew point to the representaive of pOld.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Hop_ObjCreateChoice( Hop_Obj_t * pOld, Hop_Obj_t * pNew )
+{
+    Hop_Obj_t * pOldRepr;
+    Hop_Obj_t * pNewRepr;
+    assert( pOld != NULL && pNew != NULL );
+    pOldRepr = Hop_ObjRepr(pOld);
+    pNewRepr = Hop_ObjRepr(pNew);
+    if ( pNewRepr != pOldRepr )
+        pNewRepr->pData = pOldRepr;
 }
 
 ////////////////////////////////////////////////////////////////////////

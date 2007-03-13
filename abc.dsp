@@ -254,6 +254,10 @@ SOURCE=.\src\base\abci\abcGen.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcHaig.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcIf.c
 # End Source File
 # Begin Source File
