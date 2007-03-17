@@ -47,6 +47,7 @@ static int Abc_CommandPrintKMap      ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandPrintGates     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintSharing   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintXCut      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintDsd       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandShow           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandShowBdd        ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -61,7 +62,7 @@ static int Abc_CommandCleanup        ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandSweep          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFastExtract    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDisjoint       ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandIfs            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandImfs           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandRewrite        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRefactor       ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -194,6 +195,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Printing",     "print_gates",   Abc_CommandPrintGates,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_sharing", Abc_CommandPrintSharing,     0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_xcut",    Abc_CommandPrintXCut,        0 );
+    Cmd_CommandAdd( pAbc, "Printing",     "print_dsd",     Abc_CommandPrintDsd,         0 );
 
     Cmd_CommandAdd( pAbc, "Printing",     "show",          Abc_CommandShow,             0 );
     Cmd_CommandAdd( pAbc, "Printing",     "show_bdd",      Abc_CommandShowBdd,          0 );
@@ -208,7 +210,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "sweep",         Abc_CommandSweep,            1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "fx",            Abc_CommandFastExtract,      1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "dsd",           Abc_CommandDisjoint,         1 );
-    Cmd_CommandAdd( pAbc, "Synthesis",    "ifs",           Abc_CommandIfs,              1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "imfs",          Abc_CommandImfs,             1 );
 
     Cmd_CommandAdd( pAbc, "Synthesis",    "rewrite",       Abc_CommandRewrite,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "refactor",      Abc_CommandRefactor,         1 );
@@ -1463,6 +1465,92 @@ usage:
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandPrintDsd( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+    int fUseLibrary;
+
+    extern void Kit_DsdTest( unsigned * pTruth, int nVars );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fUseLibrary = 1;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "lh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'l':
+            fUseLibrary ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    // get the truth table of the first output
+    if ( !Abc_NtkIsLogic(pNtk) )
+    {
+        fprintf( pErr, "Currently works only for logic networks.\n" );
+        return 1;
+    }
+    Abc_NtkToAig( pNtk );
+    // convert it to truth table
+    {
+        Abc_Obj_t * pObj = Abc_ObjFanin0( Abc_NtkPo(pNtk, 0) );
+        Vec_Int_t * vMemory = Vec_IntAlloc( 100 );
+        unsigned * pTruth;
+        if ( !Abc_ObjIsNode(pObj) )
+        {
+            fprintf( pErr, "The fanin of the first PO node does not have a logic function.\n" );
+            return 1;
+        }
+        if ( Abc_ObjFaninNum(pObj) > 8 )
+        {
+            fprintf( pErr, "Currently works only for up to 8 inputs.\n" );
+            return 1;
+        }
+        pTruth = Abc_ConvertAigToTruth( pNtk->pManFunc, Hop_Regular(pObj->pData), Abc_ObjFaninNum(pObj), vMemory, 1 );
+        if ( Hop_IsComplement(pObj->pData) )
+            Extra_TruthNot( pTruth, pTruth, Abc_ObjFaninNum(pObj) );
+        Extra_PrintBinary( stdout, pTruth, 1 << Abc_ObjFaninNum(pObj) );
+        printf( "\n" );
+        Kit_DsdTest( pTruth, Abc_ObjFaninNum(pObj) );
+        Vec_IntFree( vMemory );
+    }
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: print_dsd [-h]\n" );
+    fprintf( pErr, "\t        print DSD formula for a single-output function with less than 16 variables\n" );
+//    fprintf( pErr, "\t-l    : used library gate names (if mapped) [default = %s]\n", fUseLibrary? "yes": "no" );
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
+
 
 /**Function*************************************************************
 
@@ -2649,7 +2737,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_CommandIfs( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandImfs( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
@@ -2756,7 +2844,7 @@ int Abc_CommandIfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: ifs [-W <NM>] [-L <num>] [-C <num>] [-S <num>] [-avwh]\n" );
+    fprintf( pErr, "usage: imfs [-W <NM>] [-L <num>] [-C <num>] [-S <num>] [-avwh]\n" );
     fprintf( pErr, "\t           performs resubstitution-based resynthesis with interpolation\n" );
     fprintf( pErr, "\t-W <NM>  : fanin/fanout levels (NxM) of the window (00 <= NM <= 99) [default = %d%d]\n", pPars->nWindow/10, pPars->nWindow%10 );
     fprintf( pErr, "\t-L <num> : the largest increase in node level after resynthesis (0 <= num) [default = %d]\n", pPars->nGrowthLevel );

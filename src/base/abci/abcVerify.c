@@ -256,13 +256,25 @@ void Abc_NtkCecFraigPart( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, in
     nOutputs = 0;
     Abc_NtkForEachPo( pMiter, pObj, i )
     {
-        // get the cone of this output
-        pMiterPart = Abc_NtkCreateCone( pMiter, Abc_ObjFanin0(pObj), Abc_ObjName(pObj), 0 );
-        if ( Abc_ObjFaninC0(pObj) )
-            Abc_ObjXorFaninC( Abc_NtkPo(pMiterPart,0), 0 );
-        // solve the cone
-    //    RetValue = Abc_NtkMiterProve( &pMiterPart, pParams );
-        RetValue = Abc_NtkIvyProve( &pMiterPart, pParams );
+        if ( Abc_ObjFanin0(pObj) == Abc_AigConst1(pMiter) )
+        {
+            if ( Abc_ObjFaninC0(pObj) ) // complemented -> const 0
+                RetValue = 1;
+            else
+                RetValue = 0;
+            pMiterPart = NULL;
+        }
+        else
+        {
+            // get the cone of this output
+            pMiterPart = Abc_NtkCreateCone( pMiter, Abc_ObjFanin0(pObj), Abc_ObjName(pObj), 0 );
+            if ( Abc_ObjFaninC0(pObj) )
+                Abc_ObjXorFaninC( Abc_NtkPo(pMiterPart,0), 0 );
+            // solve the cone
+        //    RetValue = Abc_NtkMiterProve( &pMiterPart, pParams );
+            RetValue = Abc_NtkIvyProve( &pMiterPart, pParams );
+        }
+
         if ( RetValue == -1 )
         {
             printf( "Networks are undecided (resource limits is reached).\r" );
@@ -286,7 +298,8 @@ void Abc_NtkCecFraigPart( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, in
         }
 //        if ( pMiter->pModel )
 //            Abc_NtkVerifyReportError( pNtk1, pNtk2, pMiter->pModel );
-        Abc_NtkDelete( pMiterPart );
+        if ( pMiterPart )
+            Abc_NtkDelete( pMiterPart );
     }
 
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "set progressbar" );

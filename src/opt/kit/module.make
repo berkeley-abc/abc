@@ -1,4 +1,5 @@
 SRC +=  src/opt/kit/kitBdd.c \
+    src/opt/kit/kitDsd.c \
     src/opt/kit/kitFactor.c \
     src/opt/kit/kitGraph.c \
     src/opt/kit/kitHop.c \

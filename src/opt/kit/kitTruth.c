@@ -311,7 +311,7 @@ int Kit_TruthSupportSize( unsigned * pTruth, int nVars )
   SeeAlso     []
 
 ***********************************************************************/
-int Kit_TruthSupport( unsigned * pTruth, int nVars )
+unsigned Kit_TruthSupport( unsigned * pTruth, int nVars )
 {
     int i, Support = 0;
     for ( i = 0; i < nVars; i++ )
@@ -321,6 +321,57 @@ int Kit_TruthSupport( unsigned * pTruth, int nVars )
 }
 
 
+
+/**Function*************************************************************
+
+  Synopsis    [Computes negative cofactor of the function.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Kit_TruthCofactor0( unsigned * pTruth, int nVars, int iVar )
+{
+    int nWords = Kit_TruthWordNum( nVars );
+    int i, k, Step;
+
+    assert( iVar < nVars );
+    switch ( iVar )
+    {
+    case 0:
+        for ( i = 0; i < nWords; i++ )
+            pTruth[i] = (pTruth[i] & 0x55555555) | ((pTruth[i] & 0x55555555) << 1);
+        return;
+    case 1:
+        for ( i = 0; i < nWords; i++ )
+            pTruth[i] = (pTruth[i] & 0x33333333) | ((pTruth[i] & 0x33333333) << 2);
+        return;
+    case 2:
+        for ( i = 0; i < nWords; i++ )
+            pTruth[i] = (pTruth[i] & 0x0F0F0F0F) | ((pTruth[i] & 0x0F0F0F0F) << 4);
+        return;
+    case 3:
+        for ( i = 0; i < nWords; i++ )
+            pTruth[i] = (pTruth[i] & 0x00FF00FF) | ((pTruth[i] & 0x00FF00FF) << 8);
+        return;
+    case 4:
+        for ( i = 0; i < nWords; i++ )
+            pTruth[i] = (pTruth[i] & 0x0000FFFF) | ((pTruth[i] & 0x0000FFFF) << 16);
+        return;
+    default:
+        Step = (1 << (iVar - 5));
+        for ( k = 0; k < nWords; k += 2*Step )
+        {
+            for ( i = 0; i < Step; i++ )
+                pTruth[Step+i] = pTruth[i];
+            pTruth += 2*Step;
+        }
+        return;
+    }
+}
 
 /**Function*************************************************************
 
@@ -375,7 +426,7 @@ void Kit_TruthCofactor1( unsigned * pTruth, int nVars, int iVar )
 
 /**Function*************************************************************
 
-  Synopsis    [Computes negative cofactor of the function.]
+  Synopsis    [Computes positive cofactor of the function.]
 
   Description []
                
@@ -384,7 +435,7 @@ void Kit_TruthCofactor1( unsigned * pTruth, int nVars, int iVar )
   SeeAlso     []
 
 ***********************************************************************/
-void Kit_TruthCofactor0( unsigned * pTruth, int nVars, int iVar )
+void Kit_TruthCofactor0New( unsigned * pOut, unsigned * pIn, int nVars, int iVar )
 {
     int nWords = Kit_TruthWordNum( nVars );
     int i, k, Step;
@@ -394,31 +445,84 @@ void Kit_TruthCofactor0( unsigned * pTruth, int nVars, int iVar )
     {
     case 0:
         for ( i = 0; i < nWords; i++ )
-            pTruth[i] = (pTruth[i] & 0x55555555) | ((pTruth[i] & 0x55555555) << 1);
+            pOut[i] = (pIn[i] & 0x55555555) | ((pIn[i] & 0x55555555) << 1);
         return;
     case 1:
         for ( i = 0; i < nWords; i++ )
-            pTruth[i] = (pTruth[i] & 0x33333333) | ((pTruth[i] & 0x33333333) << 2);
+            pOut[i] = (pIn[i] & 0x33333333) | ((pIn[i] & 0x33333333) << 2);
         return;
     case 2:
         for ( i = 0; i < nWords; i++ )
-            pTruth[i] = (pTruth[i] & 0x0F0F0F0F) | ((pTruth[i] & 0x0F0F0F0F) << 4);
+            pOut[i] = (pIn[i] & 0x0F0F0F0F) | ((pIn[i] & 0x0F0F0F0F) << 4);
         return;
     case 3:
         for ( i = 0; i < nWords; i++ )
-            pTruth[i] = (pTruth[i] & 0x00FF00FF) | ((pTruth[i] & 0x00FF00FF) << 8);
+            pOut[i] = (pIn[i] & 0x00FF00FF) | ((pIn[i] & 0x00FF00FF) << 8);
         return;
     case 4:
         for ( i = 0; i < nWords; i++ )
-            pTruth[i] = (pTruth[i] & 0x0000FFFF) | ((pTruth[i] & 0x0000FFFF) << 16);
+            pOut[i] = (pIn[i] & 0x0000FFFF) | ((pIn[i] & 0x0000FFFF) << 16);
         return;
     default:
         Step = (1 << (iVar - 5));
         for ( k = 0; k < nWords; k += 2*Step )
         {
             for ( i = 0; i < Step; i++ )
-                pTruth[Step+i] = pTruth[i];
-            pTruth += 2*Step;
+                pOut[i] = pOut[Step+i] = pIn[i];
+            pIn += 2*Step;
+            pOut += 2*Step;
+        }
+        return;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes positive cofactor of the function.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Kit_TruthCofactor1New( unsigned * pOut, unsigned * pIn, int nVars, int iVar )
+{
+    int nWords = Kit_TruthWordNum( nVars );
+    int i, k, Step;
+
+    assert( iVar < nVars );
+    switch ( iVar )
+    {
+    case 0:
+        for ( i = 0; i < nWords; i++ )
+            pOut[i] = (pIn[i] & 0xAAAAAAAA) | ((pIn[i] & 0xAAAAAAAA) >> 1);
+        return;
+    case 1:
+        for ( i = 0; i < nWords; i++ )
+            pOut[i] = (pIn[i] & 0xCCCCCCCC) | ((pIn[i] & 0xCCCCCCCC) >> 2);
+        return;
+    case 2:
+        for ( i = 0; i < nWords; i++ )
+            pOut[i] = (pIn[i] & 0xF0F0F0F0) | ((pIn[i] & 0xF0F0F0F0) >> 4);
+        return;
+    case 3:
+        for ( i = 0; i < nWords; i++ )
+            pOut[i] = (pIn[i] & 0xFF00FF00) | ((pIn[i] & 0xFF00FF00) >> 8);
+        return;
+    case 4:
+        for ( i = 0; i < nWords; i++ )
+            pOut[i] = (pIn[i] & 0xFFFF0000) | ((pIn[i] & 0xFFFF0000) >> 16);
+        return;
+    default:
+        Step = (1 << (iVar - 5));
+        for ( k = 0; k < nWords; k += 2*Step )
+        {
+            for ( i = 0; i < Step; i++ )
+                pOut[i] = pOut[Step+i] = pIn[Step+i];
+            pIn += 2*Step;
+            pOut += 2*Step;
         }
         return;
     }
@@ -733,6 +837,8 @@ void Kit_TruthMux( unsigned * pOut, unsigned * pCof0, unsigned * pCof1, int nVar
                 pOut[Step+i] = pCof1[Step+i];
             }
             pOut += 2*Step;
+            pCof0 += 2*Step;
+            pCof1 += 2*Step;
         }
         return;
     }

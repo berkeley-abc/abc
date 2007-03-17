@@ -38,6 +38,8 @@ static DdManager * s_pDd      = NULL;
 static Vec_Int_t * s_vMemory  = NULL;
 static Vec_Int_t * s_vMemory2 = NULL;
 
+static int nDsdCounter = 0;
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -61,6 +63,8 @@ Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int nCubeMax, int nF
 
     if ( Abc_NtkGetChoiceNum( pNtk ) )
         printf( "Performing renoding with choices.\n" );
+
+    nDsdCounter = 0;
 
     // set defaults
     memset( pPars, 0, sizeof(If_Par_t) );
@@ -136,6 +140,8 @@ Abc_Ntk_t * Abc_NtkRenode( Abc_Ntk_t * pNtk, int nFaninMax, int nCubeMax, int nF
         s_vMemory2 = NULL;
     }
 
+    printf( "Decomposed %d functions.\n", nDsdCounter );
+
     return pNtkNew;
 }
 
@@ -154,6 +160,14 @@ int Abc_NtkRenodeEvalAig( If_Cut_t * pCut )
 {
     Kit_Graph_t * pGraph;
     int i, nNodes;
+
+extern void Kit_DsdTest( unsigned * pTruth, int nVars );
+if ( If_CutLeaveNum(pCut) == 8 )
+{
+    nDsdCounter++;
+    Kit_DsdTest( If_CutTruth(pCut), If_CutLeaveNum(pCut) );
+}
+
     pGraph = Kit_TruthToGraph( If_CutTruth(pCut), If_CutLeaveNum(pCut), s_vMemory );
     if ( pGraph == NULL )
     {

@@ -153,13 +153,22 @@ static inline Kit_Node_t * Kit_GraphNodeFanin1( Kit_Graph_t * pGraph, Kit_Node_t
 
 static inline int          Kit_Float2Int( float Val )     { return *((int *)&Val);               }
 static inline float        Kit_Int2Float( int Num )       { return *((float *)&Num);             }
-static inline int          Kit_BitWordNum( int nBits )    { return nBits/(8*sizeof(unsigned)) + ((nBits%(8*sizeof(unsigned))) > 0);  }
-static inline int          Kit_TruthWordNum( int nVars )  { return nVars <= 5 ? 1 : (1 << (nVars - 5)); }
+static inline int          Kit_BitWordNum( int nBits )    { return nBits/(8*sizeof(unsigned)) + ((nBits%(8*sizeof(unsigned))) > 0); }
+static inline int          Kit_TruthWordNum( int nVars )  { return nVars <= 5 ? 1 : (1 << (nVars - 5));                             }
+static inline unsigned     Kit_BitMask( int nBits )       { assert( nBits <= 32 ); return ~((~(unsigned)0) << nBits);               }
 
 static inline void         Kit_TruthSetBit( unsigned * p, int Bit )   { p[Bit>>5] |= (1<<(Bit & 31));               }
 static inline void         Kit_TruthXorBit( unsigned * p, int Bit )   { p[Bit>>5] ^= (1<<(Bit & 31));               }
 static inline int          Kit_TruthHasBit( unsigned * p, int Bit )   { return (p[Bit>>5] & (1<<(Bit & 31))) > 0;   }
 
+static inline int Kit_WordFindFirstBit( unsigned uWord )
+{
+    int i;
+    for ( i = 0; i < 32; i++ )
+        if ( uWord & (1 << i) )
+            return i;
+    return -1;
+}
 static inline int Kit_WordCountOnes( unsigned uWord )
 {
     uWord = (uWord & 0x55555555) + ((uWord>>1) & 0x55555555);
@@ -180,6 +189,14 @@ static inline int Kit_TruthIsEqual( unsigned * pIn0, unsigned * pIn1, int nVars 
     int w;
     for ( w = Kit_TruthWordNum(nVars)-1; w >= 0; w-- )
         if ( pIn0[w] != pIn1[w] )
+            return 0;
+    return 1;
+}
+static inline int Kit_TruthIsOpposite( unsigned * pIn0, unsigned * pIn1, int nVars )
+{
+    int w;
+    for ( w = Kit_TruthWordNum(nVars)-1; w >= 0; w-- )
+        if ( pIn0[w] != ~pIn1[w] )
             return 0;
     return 1;
 }
@@ -332,9 +349,11 @@ extern void            Kit_TruthStretch( unsigned * pOut, unsigned * pIn, int nV
 extern void            Kit_TruthShrink( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll, unsigned Phase );
 extern int             Kit_TruthVarInSupport( unsigned * pTruth, int nVars, int iVar );
 extern int             Kit_TruthSupportSize( unsigned * pTruth, int nVars );
-extern int             Kit_TruthSupport( unsigned * pTruth, int nVars );
+extern unsigned        Kit_TruthSupport( unsigned * pTruth, int nVars );
 extern void            Kit_TruthCofactor0( unsigned * pTruth, int nVars, int iVar );
 extern void            Kit_TruthCofactor1( unsigned * pTruth, int nVars, int iVar );
+extern void            Kit_TruthCofactor0New( unsigned * pOut, unsigned * pIn, int nVars, int iVar );
+extern void            Kit_TruthCofactor1New( unsigned * pOut, unsigned * pIn, int nVars, int iVar );
 extern void            Kit_TruthExist( unsigned * pTruth, int nVars, int iVar );
 extern void            Kit_TruthExistNew( unsigned * pRes, unsigned * pTruth, int nVars, int iVar );
 extern void            Kit_TruthExistSet( unsigned * pRes, unsigned * pTruth, int nVars, unsigned uMask );

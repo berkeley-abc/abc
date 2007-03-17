@@ -616,7 +616,7 @@ extern int                Abc_CountZddCubes( DdManager * dd, DdNode * zCover );
 extern void               Abc_NtkLogicMakeDirectSops( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkSopToAig( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkAigToBdd( Abc_Ntk_t * pNtk );
-extern unsigned *         Abc_ConvertAigToTruth( Hop_Man_t * p, Hop_Obj_t * pRoot, int nVars, Vec_Int_t * vTruth );
+extern unsigned *         Abc_ConvertAigToTruth( Hop_Man_t * p, Hop_Obj_t * pRoot, int nVars, Vec_Int_t * vTruth, int fMsbFirst );
 extern int                Abc_NtkMapToSop( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkToSop( Abc_Ntk_t * pNtk, int fDirect );
 extern int                Abc_NtkToBdd( Abc_Ntk_t * pNtk );

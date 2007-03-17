@@ -73,7 +73,7 @@ Hop_Obj_t * Hop_ObjCreatePo( Hop_Man_t * p, Hop_Obj_t * pDriver )
     else
         pObj->nRefs = Hop_ObjLevel( Hop_Regular(pDriver) );
     // set the phase
-//    pObj->fPhase = Hop_ObjFaninPhase(pDriver);
+    pObj->fPhase = Hop_ObjFaninPhase(pDriver);
     // update node counters of the manager
     p->nObjs[AIG_PO]++;
     return pObj;
@@ -136,7 +136,7 @@ void Hop_ObjConnect( Hop_Man_t * p, Hop_Obj_t * pObj, Hop_Obj_t * pFan0, Hop_Obj
     else
         pObj->nRefs = Hop_ObjLevelNew( pObj );
     // set the phase
-//    pObj->fPhase = Hop_ObjFaninPhase(pFan0) & Hop_ObjFaninPhase(pFan1);
+    pObj->fPhase = Hop_ObjFaninPhase(pFan0) & Hop_ObjFaninPhase(pFan1);
     // add the node to the structural hash table
     Hop_TableInsert( p, pObj );
 }
@@ -236,9 +236,10 @@ void Hop_ObjDelete_rec( Hop_Man_t * p, Hop_Obj_t * pObj )
 ***********************************************************************/
 Hop_Obj_t * Hop_ObjRepr( Hop_Obj_t * pObj )
 {
-    if ( Hop_Regular(pObj)->pData == NULL )
-        return Hop_Regular(pObj);
-    return Hop_ObjRepr( Hop_Regular(pObj)->pData );
+    assert( !Hop_IsComplement(pObj) );
+    if ( pObj->pData == NULL || pObj->pData == pObj )
+        return pObj;
+    return Hop_ObjRepr( pObj->pData );
 }
 
 /**Function*************************************************************

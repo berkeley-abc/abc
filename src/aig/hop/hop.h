@@ -81,7 +81,7 @@ struct Hop_Man_t_
     // AIG nodes
     Vec_Ptr_t *      vPis;           // the array of PIs
     Vec_Ptr_t *      vPos;           // the array of POs
-    Vec_Ptr_t *      vNodes;         // the array of all nodes (optional)
+    Vec_Ptr_t *      vObjs;          // the array of all nodes (optional)
     Hop_Obj_t *      pConst1;        // the constant 1 node
     Hop_Obj_t        Ghost;          // the ghost node
     // AIG node counters
@@ -131,6 +131,8 @@ static inline Hop_Obj_t *  Hop_ManConst0( Hop_Man_t * p )         { return Hop_N
 static inline Hop_Obj_t *  Hop_ManConst1( Hop_Man_t * p )         { return p->pConst1;                              }
 static inline Hop_Obj_t *  Hop_ManGhost( Hop_Man_t * p )          { return &p->Ghost;                               }
 static inline Hop_Obj_t *  Hop_ManPi( Hop_Man_t * p, int i )      { return (Hop_Obj_t *)Vec_PtrEntry(p->vPis, i);   }
+static inline Hop_Obj_t *  Hop_ManPo( Hop_Man_t * p, int i )      { return (Hop_Obj_t *)Vec_PtrEntry(p->vPos, i);   }
+static inline Hop_Obj_t *  Hop_ManObj( Hop_Man_t * p, int i )     { return p->vObjs ? (Hop_Obj_t *)Vec_PtrEntry(p->vObjs, i) : NULL;  }
 
 static inline Hop_Edge_t   Hop_EdgeCreate( int Id, int fCompl )            { return (Id << 1) | fCompl;             }
 static inline int          Hop_EdgeId( Hop_Edge_t Edge )                   { return Edge >> 1;                      }
@@ -223,10 +225,10 @@ static inline Hop_Obj_t * Hop_ManFetchMemory( Hop_Man_t * p )
     pTemp = p->pListFree;
     p->pListFree = *((Hop_Obj_t **)pTemp);
     memset( pTemp, 0, sizeof(Hop_Obj_t) ); 
-    if ( p->vNodes )
+    if ( p->vObjs )
     {
-        assert( p->nCreated == Vec_PtrSize(p->vNodes) );
-        Vec_PtrPush( p->vNodes, pTemp );
+        assert( p->nCreated == Vec_PtrSize(p->vObjs) );
+        Vec_PtrPush( p->vObjs, pTemp );
     }
     pTemp->Id = p->nCreated++;
     return pTemp;

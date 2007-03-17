@@ -94,10 +94,10 @@ void Hop_ManStop( Hop_Man_t * p )
     if ( p->time1 ) { PRT( "time1", p->time1 ); }
     if ( p->time2 ) { PRT( "time2", p->time2 ); }
 //    Hop_TableProfile( p );
-    if ( p->vChunks )   Hop_ManStopMemory( p );
-    if ( p->vPis )      Vec_PtrFree( p->vPis );
-    if ( p->vPos )      Vec_PtrFree( p->vPos );
-    if ( p->vNodes )    Vec_PtrFree( p->vNodes );
+    if ( p->vChunks )  Hop_ManStopMemory( p );
+    if ( p->vPis )     Vec_PtrFree( p->vPis );
+    if ( p->vPos )     Vec_PtrFree( p->vPos );
+    if ( p->vObjs )    Vec_PtrFree( p->vObjs );
     free( p->pTable );
     free( p );
 }
@@ -115,20 +115,20 @@ void Hop_ManStop( Hop_Man_t * p )
 ***********************************************************************/
 int Hop_ManCleanup( Hop_Man_t * p )
 {
-    Vec_Ptr_t * vNodes;
+    Vec_Ptr_t * vObjs;
     Hop_Obj_t * pNode;
     int i, nNodesOld;
     assert( p->fRefCount );
     nNodesOld = Hop_ManNodeNum(p);
     // collect roots of dangling nodes
-    vNodes = Vec_PtrAlloc( 100 );
+    vObjs = Vec_PtrAlloc( 100 );
     Hop_ManForEachNode( p, pNode, i )
         if ( Hop_ObjRefs(pNode) == 0 )
-            Vec_PtrPush( vNodes, pNode );
+            Vec_PtrPush( vObjs, pNode );
     // recursively remove dangling nodes
-    Vec_PtrForEachEntry( vNodes, pNode, i )
+    Vec_PtrForEachEntry( vObjs, pNode, i )
         Hop_ObjDelete_rec( p, pNode );
-    Vec_PtrFree( vNodes );
+    Vec_PtrFree( vObjs );
     return nNodesOld - Hop_ManNodeNum(p);
 }
 

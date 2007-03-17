@@ -466,6 +466,10 @@ SOURCE=.\src\base\io\ioReadBlifMv.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\io\ioReadDsd.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\io\ioReadEdif.c
 # End Source File
 # Begin Source File
@@ -1671,6 +1675,10 @@ SOURCE=.\src\opt\kit\kit.h
 # Begin Source File
 
 SOURCE=.\src\opt\kit\kitBdd.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\kit\kitDsd.c
 # End Source File
 # Begin Source File
 

@@ -150,6 +150,7 @@ If_Man_t * Abc_NtkToIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
         // set up the choice node
         if ( Abc_AigNodeIsChoice( pNode ) )
         {
+            pIfMan->nChoices++;
             for ( pPrev = pNode, pFanin = pNode->pData; pFanin; pPrev = pFanin, pFanin = pFanin->pData )
                 If_ObjSetChoice( (If_Obj_t *)pPrev->pCopy, (If_Obj_t *)pFanin->pCopy );
             If_ManCreateChoice( pIfMan, (If_Obj_t *)pNode->pCopy );

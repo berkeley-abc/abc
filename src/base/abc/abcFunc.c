@@ -866,7 +866,7 @@ unsigned * Abc_ConvertAigToTruth_rec2( Hop_Obj_t * pObj, Vec_Int_t * vTruth, int
   SeeAlso     []
 
 ***********************************************************************/
-unsigned * Abc_ConvertAigToTruth( Hop_Man_t * p, Hop_Obj_t * pRoot, int nVars, Vec_Int_t * vTruth )
+unsigned * Abc_ConvertAigToTruth( Hop_Man_t * p, Hop_Obj_t * pRoot, int nVars, Vec_Int_t * vTruth, int fMsbFirst )
 {
     static unsigned uTruths[8][8] = { // elementary truth tables
         { 0xAAAAAAAA,0xAAAAAAAA,0xAAAAAAAA,0xAAAAAAAA,0xAAAAAAAA,0xAAAAAAAA,0xAAAAAAAA,0xAAAAAAAA },
@@ -899,9 +899,18 @@ unsigned * Abc_ConvertAigToTruth( Hop_Man_t * p, Hop_Obj_t * pRoot, int nVars, V
         return pTruth;
     }
     // set elementary truth tables at the leaves
+    assert( nVars <= Hop_ManPiNum(p) );
     assert( Hop_ManPiNum(p) <= 8 ); 
-    Hop_ManForEachPi( p, pObj, i )
-        pObj->pData = (void *)uTruths[i];
+    if ( fMsbFirst )
+    {
+        Hop_ManForEachPi( p, pObj, i )
+            pObj->pData = (void *)uTruths[nVars-1-i];
+    }
+    else
+    {
+        Hop_ManForEachPi( p, pObj, i )
+            pObj->pData = (void *)uTruths[i];
+    }
     // clear the marks and compute the truth table
     pTruth2 = Abc_ConvertAigToTruth_rec2( pRoot, vTruth, nWords );
     // copy the result

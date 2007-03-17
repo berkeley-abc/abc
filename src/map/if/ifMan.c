@@ -480,7 +480,8 @@ void If_ManSetupSetAll( If_Man_t * p )
 
     if ( p->pPars->fVerbose )
     {
-        printf( "Total memory = %7.2f Mb. Peak cut memory = %7.2f Mb.  \n", 
+        printf( "Node = %7d.  Ch = %5d.  Total mem = %7.2f Mb. Peak cut mem = %7.2f Mb.\n", 
+            If_ManAndNum(p), p->nChoices,
             1.0 * (p->nObjBytes + 2*sizeof(void *)) * If_ManObjNum(p) / (1<<20), 
             1.0 * p->nSetBytes * nCrossCut / (1<<20) );
     }

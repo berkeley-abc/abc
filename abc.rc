@@ -124,9 +124,6 @@ alias fflitmin    "compress2rs; ren; sop; ps -f"
 #alias ttb      "wh a/quip_opt/nut_001_opt.blif 1.blif"
 #alias ttv      "wh a/quip_opt/nut_001_opt.blif 1.v"
 
-alias t        "r c.blif; st; haig_start; resyn; haig_use"
-alias tt       "r i10.blif; st; haig_start; resyn2; haig_use"
-
 alias reach    "st; ps; compress2; ps; qrel; ps; compress2; ps; qreach -v; ps"
 
 alias qs1      "qvar -I 96 -u; ps; qbf -P 96" 
@@ -139,3 +136,18 @@ alias qs7      "qvar -I 96 -u; qvar -I 97 -u; qvar -I 98 -u; qvar -I 99 -u; qvar
 alias qs8      "qvar -I 96 -u; qvar -I 97 -u; qvar -I 98 -u; qvar -I 99 -u; qvar -I 100 -u; qvar -I 101 -u; qvar -I 102 -u; qvar -I 103 -u; ps; qbf -P 96" 
 alias qs9      "qvar -I 96 -u; qvar -I 97 -u; qvar -I 98 -u; qvar -I 99 -u; qvar -I 100 -u; qvar -I 101 -u; qvar -I 102 -u; qvar -I 103 -u; qvar -I 104 -u; ps; qbf -P 96" 
 alias qsA      "qvar -I 96 -u; qvar -I 97 -u; qvar -I 98 -u; qvar -I 99 -u; qvar -I 100 -u; qvar -I 101 -u; qvar -I 102 -u; qvar -I 103 -u; qvar -I 104 -u; qvar -I 105 -u; ps; qbf -P 96" 
+
+alias chnew    "st; haig_start; resyn2; haig_use"
+alias chnewrs  "st; haig_start; resyn2rs; haig_use"
+
+alias bug      "r a/quip_opt/nut_001_opt.blif; chnew; st; cec"
+alias bug2     "r a/quip_opt/nut_001_opt.blif; chnew; if -K 6; ps; cec"
+
+alias t        "read_dsd a*(b+(c*d)+e); clp -r; print_dsd"
+alias t1       "read_dsd a*(b+(c*d)); clp -r; print_dsd"
+alias t2       "read_dsd 56BA(a,b,c,d); clp -r; print_dsd"
+alias t3       "read_dsd 56BA(a,b*c,e,d); clp -r; print_dsd"
+alias t4       "read_dsd 56BA(a,b*c,e+d,f); clp -r; print_dsd"
+alias t5       "read_dsd 56BA(a,CA(b,c,d),e,f); clp -r; print_dsd"
+alias t6       "read_dsd f*CA(b,c,d)*CA(e,a,g); clp -r; print_dsd"
+

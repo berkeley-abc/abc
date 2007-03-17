@@ -855,7 +855,8 @@ char * Abc_SopFromTruthBin( char * pTruth )
     {
         pCube = pSopCover + i * (nVars + 3);
         for ( b = 0; b < nVars; b++ )
-            if ( Mint & (1 << b) )
+            if ( Mint & (1 << (nVars-1-b)) )
+//            if ( Mint & (1 << b) )
                 pCube[b] = '1';
             else
                 pCube[b] = '0';
@@ -921,7 +922,8 @@ char * Abc_SopFromTruthHex( char * pTruth )
     {
         pCube = pSopCover + i * (nVars + 3);
         for ( b = 0; b < nVars; b++ )
-            if ( Mint & (1 << b) )
+            if ( Mint & (1 << (nVars-1-b)) )
+//            if ( Mint & (1 << b) )
                 pCube[b] = '1';
             else
                 pCube[b] = '0';

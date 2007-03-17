@@ -139,6 +139,7 @@ struct If_Man_t_
     unsigned *         puTemp[4];     // used for the truth table computation
     int                SortMode;      // one of the three sorting modes
     int                fNextRound;    // set to 1 after the first round
+    int                nChoices;      // the number of choice nodes
     // sequential mapping
     Vec_Ptr_t *        vLatchOrder;   // topological ordering of latches
     Vec_Int_t *        vLags;         // sequentail lags of all nodes
