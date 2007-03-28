@@ -976,8 +976,7 @@ bool Abc_NtkIsAcyclic_rec( Abc_Obj_t * pNode )
     if ( Abc_NodeIsTravIdCurrent(pNode) )
     {
         fprintf( stdout, "Network \"%s\" contains combinational loop!\n", Abc_NtkName(pNtk) );
-        fprintf( stdout, "Node \"%s\" is encountered twice on the following path:\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
-        fprintf( stdout, " %s", Abc_ObjIsNode(pNode)? Abc_ObjName(Abc_ObjFanout0(pNode)) : Abc_NtkName(pNode->pData) );
+        fprintf( stdout, "Node \"%s\" is encountered twice on the following path to the COs:\n", Abc_ObjName(pNode) );
         return 0;
     }
     // mark this node as a node on the current path
@@ -995,8 +994,25 @@ bool Abc_NtkIsAcyclic_rec( Abc_Obj_t * pNode )
         if ( fAcyclic = Abc_NtkIsAcyclic_rec(pFanin) )
             continue;
         // return as soon as the loop is detected
-        fprintf( stdout, " <-- %s", Abc_ObjName(Abc_ObjFanout0(pFanin)) );
+        fprintf( stdout, " %s ->", Abc_ObjName(pFanin) );
         return 0;
+    }
+    // visit choices
+    if ( Abc_NtkIsStrash(pNode->pNtk) && Abc_AigNodeIsChoice(pNode) )
+    {
+        for ( pFanin = pNode->pData; pFanin; pFanin = pFanin->pData )
+        {
+            // check if the fanin is visited
+            if ( Abc_NodeIsTravIdPrevious(pFanin) ) 
+                continue;
+            // traverse the fanin's cone searching for the loop
+            if ( fAcyclic = Abc_NtkIsAcyclic_rec(pFanin) )
+                continue;
+            // return as soon as the loop is detected
+            fprintf( stdout, " %s", Abc_ObjName(pFanin) );
+            fprintf( stdout, " (choice of %s) -> ", Abc_ObjName(pNode) );
+            return 0;
+        }
     }
     // mark this node as a visited node
     Abc_NodeSetTravIdPrevious( pNode );
@@ -1042,7 +1058,7 @@ bool Abc_NtkIsAcyclic( Abc_Ntk_t * pNtk )
         if ( fAcyclic = Abc_NtkIsAcyclic_rec(pNode) )
             continue;
         // stop as soon as the first loop is detected
-        fprintf( stdout, " (cone of CO \"%s\")\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
+        fprintf( stdout, " CO \"%s\"\n", Abc_ObjName(Abc_ObjFanout0(pNode)) );
         break;
     }
     return fAcyclic;

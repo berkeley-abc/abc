@@ -73,7 +73,7 @@ void Abc_NtkDress( Abc_Ntk_t * pNtkLogic, char * pFileName, int fVerbose )
     }
 
     // convert the current logic network into an AIG
-    pMiter = Abc_NtkStrash( pNtkLogic, 1, 0 );
+    pMiter = Abc_NtkStrash( pNtkLogic, 1, 0, 0 );
 
     // convert it into the AIG and make the netlist point to the AIG
     Abc_NtkAppend( pMiter, pNtkLogicOrig, 1 );

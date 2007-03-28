@@ -166,7 +166,7 @@ Fraig_Node_t * Abc_NtkToFraigExdc( Fraig_Man_t * pMan, Abc_Ntk_t * pNtkMain, Abc
     char ** ppNames;
     int i, k;
     // strash the EXDC network
-    pNtkStrash = Abc_NtkStrash( pNtkExdc, 0, 0 );
+    pNtkStrash = Abc_NtkStrash( pNtkExdc, 0, 0, 0 );
     Abc_NtkCleanCopy( pNtkStrash );
     Abc_AigConst1(pNtkStrash)->pCopy = (Abc_Obj_t *)Fraig_ManReadConst1(pMan);
     // set the mapping of the PI nodes
@@ -664,7 +664,7 @@ int Abc_NtkFraigStore( Abc_Ntk_t * pNtk )
     if ( pStore == NULL )
     {
         // start the stored network
-        pStore = Abc_NtkStrash( pNtk, 0, 0 );
+        pStore = Abc_NtkStrash( pNtk, 0, 0, 0 );
         if ( pStore == NULL )
         {
             printf( "Abc_NtkFraigStore: Initial strashing has failed.\n" );

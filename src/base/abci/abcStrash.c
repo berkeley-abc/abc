@@ -26,7 +26,7 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static void Abc_NtkStrashPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, bool fAllNodes );
+static void Abc_NtkStrashPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, int fAllNodes, int fRecord );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -96,7 +96,7 @@ Abc_Ntk_t * Abc_NtkRestrash( Abc_Ntk_t * pNtk, bool fCleanup )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes, bool fCleanup )
+Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk, int fAllNodes, int fCleanup, int fRecord )
 {
     Abc_Ntk_t * pNtkAig;
     int nNodes;
@@ -113,7 +113,7 @@ Abc_Ntk_t * Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes, bool fCleanup )
     // perform strashing
 //    Abc_NtkCleanCopy( pNtk );
     pNtkAig = Abc_NtkStartFrom( pNtk, ABC_NTK_STRASH, ABC_FUNC_AIG );
-    Abc_NtkStrashPerform( pNtk, pNtkAig, fAllNodes );
+    Abc_NtkStrashPerform( pNtk, pNtkAig, fAllNodes, fRecord );
     Abc_NtkFinalize( pNtk, pNtkAig );
     // print warning about self-feed latches
 //    if ( Abc_NtkCountSelfFeedLatches(pNtkAig) )
@@ -182,7 +182,7 @@ int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fAddPos )
         printf( "Warning: Procedure Abc_NtkAppend() added %d new CIs.\n", nNewCis );
     // add pNtk2 to pNtk1 while strashing
     if ( Abc_NtkIsLogic(pNtk2) )
-        Abc_NtkStrashPerform( pNtk2, pNtk1, 1 );
+        Abc_NtkStrashPerform( pNtk2, pNtk1, 1, 0 );
     else
         Abc_NtkForEachNode( pNtk2, pObj, i )
             pObj->pCopy = Abc_AigAnd( pNtk1->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
@@ -216,7 +216,7 @@ int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fAddPos )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkStrashPerform( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew, bool fAllNodes )
+void Abc_NtkStrashPerform( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew, int fAllNodes, int fRecord )
 {
     ProgressBar * pProgress;
     Vec_Ptr_t * vNodes;
@@ -232,7 +232,7 @@ void Abc_NtkStrashPerform( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew, bool fAllNo
     Vec_PtrForEachEntry( vNodes, pNodeOld, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
-        pNodeOld->pCopy = Abc_NodeStrash( pNtkNew, pNodeOld );
+        pNodeOld->pCopy = Abc_NodeStrash( pNtkNew, pNodeOld, fRecord );
     }
     Extra_ProgressBarStop( pProgress );
     Vec_PtrFree( vNodes );
@@ -272,7 +272,7 @@ void Abc_NodeStrash_rec( Abc_Aig_t * pMan, Hop_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_NodeStrash( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld )
+Abc_Obj_t * Abc_NodeStrash( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, int fRecord )
 {
     Hop_Man_t * pMan;
     Hop_Obj_t * pRoot;
@@ -286,6 +286,20 @@ Abc_Obj_t * Abc_NodeStrash( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld )
     // check the constant case
     if ( Abc_NodeIsConst(pNodeOld) || Hop_Regular(pRoot) == Hop_ManConst1(pMan) )
         return Abc_ObjNotCond( Abc_AigConst1(pNtkNew), Hop_IsComplement(pRoot) );
+    // perform special case-strashing using the record of AIG subgraphs
+    if ( fRecord && Abc_NtkRecIsRunning() && Abc_ObjFaninNum(pNodeOld) > 2 && Abc_ObjFaninNum(pNodeOld) <= Abc_NtkRecVarNum() )
+    {
+        extern Vec_Int_t * Abc_NtkRecMemory();
+        extern int Abc_NtkRecStrashNode( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, unsigned * pTruth, int nVars );
+        int nVars = Abc_NtkRecVarNum();
+        Vec_Int_t * vMemory = Abc_NtkRecMemory();
+        unsigned * pTruth = Abc_ConvertAigToTruth( pMan, Hop_Regular(pRoot), nVars, vMemory, 0 );
+        assert( Extra_TruthSupportSize(pTruth, nVars) == Abc_ObjFaninNum(pNodeOld) ); // should be swept
+        if ( Hop_IsComplement(pRoot) )
+            Extra_TruthNot( pTruth, pTruth, nVars );
+        if ( Abc_NtkRecStrashNode( pNtkNew, pNodeOld, pTruth, nVars ) )
+            return pNodeOld->pCopy;
+    }
     // set elementary variables
     Abc_ObjForEachFanin( pNodeOld, pFanin, i )
         Hop_IthVar(pMan, i)->pData = pFanin->pCopy;

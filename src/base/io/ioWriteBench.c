@@ -223,7 +223,7 @@ int Io_WriteBenchLutOne( FILE * pFile, Abc_Ntk_t * pNtk )
     Abc_NtkForEachLatch( pNtk, pNode, i )
         fprintf( pFile, "%-11s = DFFRSE( %s, gnd, gnd, gnd, gnd )\n", 
             Abc_ObjName(Abc_ObjFanout0(Abc_ObjFanout0(pNode))), Abc_ObjName(Abc_ObjFanin0(Abc_ObjFanin0(pNode))) );
-
+//Abc_NtkLevel(pNtk);
     // write internal nodes
     vMemory = Vec_IntAlloc( 10000 );
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkObjNumMax(pNtk) );
@@ -283,6 +283,19 @@ int Io_WriteBenchLutOneNode( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_t * vTruth
     // write it in the hexadecimal form
     fprintf( pFile, "%-11s = LUT 0x",  Abc_ObjName(Abc_ObjFanout0(pNode)) );
     Extra_PrintHexadecimal( pFile, pTruth, nFanins );
+/*
+    {
+extern void Kit_DsdTest( unsigned * pTruth, int nVars );
+Abc_ObjForEachFanin( pNode, pFanin, i )
+printf( "%c%d ", 'a'+i, Abc_ObjFanin0(pFanin)->Level );
+printf( "\n" );
+Kit_DsdTest( pTruth, nFanins );
+    }
+    if ( pNode->Id % 1000 == 0 )
+    {
+        int x = 0;
+    }
+*/
     // write the fanins
     fprintf( pFile, " (" );
     Abc_ObjForEachFanin( pNode, pFanin, i )

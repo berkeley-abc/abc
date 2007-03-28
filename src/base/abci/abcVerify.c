@@ -529,7 +529,7 @@ int * Abc_NtkVerifySimulatePattern( Abc_Ntk_t * pNtk, int * pModel )
     int fStrashed = 0;
     if ( !Abc_NtkIsStrash(pNtk) )
     {
-        pNtk = Abc_NtkStrash(pNtk, 0, 0);
+        pNtk = Abc_NtkStrash(pNtk, 0, 0, 0);
         fStrashed = 1;
     }
 /*
@@ -699,9 +699,9 @@ void Abc_NtkVerifyReportErrorSeq( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int * pM
     int fRemove1 = 0, fRemove2 = 0;
 
     if ( !Abc_NtkIsStrash(pNtk1) )
-        fRemove1 = 1, pNtk1 = Abc_NtkStrash( pNtk1, 0, 0 );
+        fRemove1 = 1, pNtk1 = Abc_NtkStrash( pNtk1, 0, 0, 0 );
     if ( !Abc_NtkIsStrash(pNtk2) )
-        fRemove2 = 1, pNtk2 = Abc_NtkStrash( pNtk2, 0, 0 );
+        fRemove2 = 1, pNtk2 = Abc_NtkStrash( pNtk2, 0, 0, 0 );
 
     // simulate sequential circuits
     vInfo1 = Sim_SimulateSeqModel( pNtk1, nFrames, pModel );

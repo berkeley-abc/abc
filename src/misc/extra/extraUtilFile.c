@@ -385,6 +385,34 @@ void Extra_PrintHexadecimal( FILE * pFile, unsigned Sign[], int nVars )
   SeeAlso     []
 
 ***********************************************************************/
+void Extra_PrintHexadecimalString( char * pString, unsigned Sign[], int nVars )
+{
+    int nDigits, Digit, k;
+    // write the number into the file
+    nDigits = (1 << nVars) / 4;
+    for ( k = nDigits - 1; k >= 0; k-- )
+    {
+        Digit = ((Sign[k/8] >> ((k%8) * 4)) & 15);
+        if ( Digit < 10 )
+            *pString++ = '0' + Digit;
+        else
+            *pString++ = 'a' + Digit-10;
+    }
+//    fprintf( pFile, "\n" );
+    *pString = 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints the hex unsigned into a file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Extra_PrintHex( FILE * pFile, unsigned uTruth, int nVars )
 {
     int nMints, nDigits, Digit, k;

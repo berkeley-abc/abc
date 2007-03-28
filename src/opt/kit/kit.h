@@ -200,6 +200,23 @@ static inline int Kit_TruthIsOpposite( unsigned * pIn0, unsigned * pIn1, int nVa
             return 0;
     return 1;
 }
+static inline int Kit_TruthIsEqualWithPhase( unsigned * pIn0, unsigned * pIn1, int nVars )
+{
+    int w;
+    if ( (pIn0[0] & 1) == (pIn1[0] & 1) )
+    {
+        for ( w = Kit_TruthWordNum(nVars)-1; w >= 0; w-- )
+            if ( pIn0[w] != pIn1[w] )
+                return 0;
+    }
+    else
+    {
+        for ( w = Kit_TruthWordNum(nVars)-1; w >= 0; w-- )
+            if ( pIn0[w] != ~pIn1[w] )
+                return 0;
+    }
+    return 1;
+}
 static inline int Kit_TruthIsConst0( unsigned * pIn, int nVars )
 {
     int w;
@@ -288,6 +305,30 @@ static inline void Kit_TruthNand( unsigned * pOut, unsigned * pIn0, unsigned * p
     for ( w = Kit_TruthWordNum(nVars)-1; w >= 0; w-- )
         pOut[w] = ~(pIn0[w] & pIn1[w]);
 }
+static inline void Kit_TruthAndPhase( unsigned * pOut, unsigned * pIn0, unsigned * pIn1, int nVars, int fCompl0, int fCompl1 )
+{
+    int w;
+    if ( fCompl0 && fCompl1 )
+    {
+        for ( w = Kit_TruthWordNum(nVars)-1; w >= 0; w-- )
+            pOut[w] = ~(pIn0[w] | pIn1[w]);
+    }
+    else if ( fCompl0 && !fCompl1 )
+    {
+        for ( w = Kit_TruthWordNum(nVars)-1; w >= 0; w-- )
+            pOut[w] = ~pIn0[w] & pIn1[w];
+    }
+    else if ( !fCompl0 && fCompl1 )
+    {
+        for ( w = Kit_TruthWordNum(nVars)-1; w >= 0; w-- )
+            pOut[w] = pIn0[w] & ~pIn1[w];
+    }
+    else // if ( !fCompl0 && !fCompl1 )
+    {
+        for ( w = Kit_TruthWordNum(nVars)-1; w >= 0; w-- )
+            pOut[w] = pIn0[w] & pIn1[w];
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                           ITERATORS                              ///
@@ -345,8 +386,8 @@ extern int             Kit_SopDivisor( Kit_Sop_t * cResult, Kit_Sop_t * cSop, in
 extern void            Kit_SopBestLiteralCover( Kit_Sop_t * cResult, Kit_Sop_t * cSop, unsigned uCube, int nLits, Vec_Int_t * vMemory );
 /*=== kitTruth.c ==========================================================*/
 extern void            Kit_TruthSwapAdjacentVars( unsigned * pOut, unsigned * pIn, int nVars, int Start );
-extern void            Kit_TruthStretch( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll, unsigned Phase );
-extern void            Kit_TruthShrink( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll, unsigned Phase );
+extern void            Kit_TruthStretch( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll, unsigned Phase, int fReturnIn );
+extern void            Kit_TruthShrink( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll, unsigned Phase, int fReturnIn );
 extern int             Kit_TruthVarInSupport( unsigned * pTruth, int nVars, int iVar );
 extern int             Kit_TruthSupportSize( unsigned * pTruth, int nVars );
 extern unsigned        Kit_TruthSupport( unsigned * pTruth, int nVars );
@@ -364,6 +405,7 @@ extern void            Kit_TruthMux( unsigned * pOut, unsigned * pCof0, unsigned
 extern void            Kit_TruthChangePhase( unsigned * pTruth, int nVars, int iVar );
 extern int             Kit_TruthMinCofSuppOverlap( unsigned * pTruth, int nVars, int * pVarMin );
 extern void            Kit_TruthCountOnesInCofs( unsigned * pTruth, int nVars, short * pStore );
+extern void            Kit_TruthCountOnesInCofsSlow( unsigned * pTruth, int nVars, short * pStore, unsigned * pAux );
 extern unsigned        Kit_TruthHash( unsigned * pIn, int nWords );
 extern unsigned        Kit_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars, char * pCanonPerm, short * pStore );
 

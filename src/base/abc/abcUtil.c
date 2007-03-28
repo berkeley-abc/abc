@@ -246,6 +246,7 @@ int Abc_NtkGetAigNodeNum( Abc_Ntk_t * pNtk )
         assert( pNode->pData );
         if ( Abc_ObjFaninNum(pNode) < 2 )
             continue;
+//printf( "%d ", Hop_DagSize( pNode->pData ) );
         nNodes += pNode->pData? Hop_DagSize( pNode->pData ) : 0;
     }
     return nNodes;
@@ -464,6 +465,25 @@ void Abc_NtkCleanData( Abc_Ntk_t * pNtk )
     int i;
     Abc_NtkForEachObj( pNtk, pObj, i )
         pObj->pData = NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Cleans the copy field of all objects.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkCleanEquiv( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int i;
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        pObj->pEquiv = NULL;
 }
 
 /**Function*************************************************************

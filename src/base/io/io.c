@@ -785,9 +785,6 @@ int IoCommandReadVerilog( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fCheck;
     int c;
 
-    printf( "Stand-alone structural Verilog reader is now available as command \"read_ver\".\n" );
-    return 0;
-
     fCheck = 1;
     glo_fMapped = 0;
     Extra_UtilGetoptReset();
@@ -850,6 +847,9 @@ int IoCommandReadVer( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     extern Abc_Ntk_t * Abc_LibDeriveAig( Abc_Ntk_t * pNtk, Abc_Lib_t * pLib );
     extern Abc_Lib_t * Ver_ParseFile( char * pFileName, Abc_Lib_t * pGateLib, int fCheck, int fUseMemMan );
+
+    printf( "Stand-alone structural Verilog reader is available as command \"read_verilog\".\n" );
+    return 0;
 
     fCheck = 1;
     Extra_UtilGetoptReset();

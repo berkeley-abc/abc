@@ -62,6 +62,42 @@ static unsigned s_VarMasks[5][2] = {
 
 /**Function*************************************************************
 
+  Synopsis    [Derive elementary truth tables.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned ** Extra_TruthElementary( int nVars )
+{
+    unsigned ** pRes;
+    int i, k, nWords;
+    nWords = Extra_TruthWordNum(nVars);
+    pRes = (unsigned **)Extra_ArrayAlloc( nVars, nWords, 4 );
+    for ( i = 0; i < nVars; i++ )
+    {
+        if ( i < 5 )
+        {
+            for ( k = 0; k < nWords; k++ )
+                pRes[i][k] = s_VarMasks[i][1];
+        }
+        else
+        {
+            for ( k = 0; k < nWords; k++ )
+                if ( k & (1 << (i-5)) )
+                    pRes[i][k] = ~(unsigned)0;
+                else
+                    pRes[i][k] = 0;
+        }
+    }
+    return pRes;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Swaps two adjacent variables in the truth table.]
 
   Description [Swaps var number Start and var number Start+1 (0-based numbers).

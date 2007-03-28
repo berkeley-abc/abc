@@ -747,6 +747,17 @@ extern void               Abc_ObjPrint( FILE * pFile, Abc_Obj_t * pObj );
 /*=== abcProve.c ==========================================================*/
 extern int                Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pParams );
 extern int                Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars );
+/*=== abcRec.c ==========================================================*/
+extern void               Abc_NtkRecStart( Abc_Ntk_t * pNtk, int nVars, int nCuts );
+extern void               Abc_NtkRecStop();
+extern void               Abc_NtkRecAdd( Abc_Ntk_t * pNtk );
+extern void               Abc_NtkRecPs();
+extern void               Abc_NtkRecFilter( int iVar, int iPlus );
+extern Abc_Ntk_t *        Abc_NtkRecUse();
+extern int                Abc_NtkRecIsRunning();
+extern int                Abc_NtkRecVarNum();
+extern Vec_Int_t *        Abc_NtkRecMemory();
+extern int                Abc_NtkRecStrashNode( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, unsigned * pTruth, int nVars );
 /*=== abcReconv.c ==========================================================*/
 extern Abc_ManCut_t *     Abc_NtkManCutStart( int nNodeSizeMax, int nConeSizeMax, int nNodeFanStop, int nConeFanStop );
 extern void               Abc_NtkManCutStop( Abc_ManCut_t * p );
@@ -814,8 +825,8 @@ extern char *             Abc_SopEncoderLog( Extra_MmFlex_t * pMan, int iBit, in
 extern char *             Abc_SopDecoderPos( Extra_MmFlex_t * pMan, int nValues );
 extern char *             Abc_SopDecoderLog( Extra_MmFlex_t * pMan, int nValues );
 /*=== abcStrash.c ==========================================================*/
-extern Abc_Ntk_t *        Abc_NtkStrash( Abc_Ntk_t * pNtk, bool fAllNodes, bool fCleanup );
-extern Abc_Obj_t *        Abc_NodeStrash( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode );
+extern Abc_Ntk_t *        Abc_NtkStrash( Abc_Ntk_t * pNtk, int fAllNodes, int fCleanup, int fRecord );
+extern Abc_Obj_t *        Abc_NodeStrash( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, int fRecord );
 extern int                Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fAddPos );
 extern Abc_Ntk_t *        Abc_NtkTopmost( Abc_Ntk_t * pNtk, int nLevels );
 /*=== abcSweep.c ==========================================================*/
@@ -861,6 +872,7 @@ extern int                Abc_NtkGetFaninMax( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkGetTotalFanins( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkCleanCopy( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkCleanData( Abc_Ntk_t * pNtk );
+extern void               Abc_NtkCleanEquiv( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkCountCopy( Abc_Ntk_t * pNtk );
 extern Vec_Ptr_t *        Abc_NtkSaveCopy( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkLoadCopy( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCopies );

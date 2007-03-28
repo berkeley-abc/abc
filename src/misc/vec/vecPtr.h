@@ -309,6 +309,37 @@ static inline void * Vec_PtrEntry( Vec_Ptr_t * p, int i )
 
 /**Function*************************************************************
 
+  Synopsis    [Resizes the array of simulation info.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_PtrDoubleSimInfo( Vec_Ptr_t * vInfo )
+{
+    Vec_Ptr_t * vInfoNew;
+    int nWords;
+    assert( Vec_PtrSize(vInfo) > 2 );
+    // get the new array
+    nWords = (unsigned *)Vec_PtrEntry(vInfo,1) - (unsigned *)Vec_PtrEntry(vInfo,0);
+    vInfoNew = Vec_PtrAllocSimInfo( 2*Vec_PtrSize(vInfo), nWords );
+    // copy the simulation info
+    memcpy( Vec_PtrEntry(vInfoNew,0), Vec_PtrEntry(vInfo,0), Vec_PtrSize(vInfo) * nWords * 4 );
+    // replace the array
+    free( vInfo->pArray );
+    vInfo->pArray = vInfoNew->pArray;
+    vInfo->nSize *= 2;
+    vInfo->nCap *= 2;
+    // free the old array
+    vInfoNew->pArray = NULL;
+    free( vInfoNew );
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []

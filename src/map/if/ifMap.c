@@ -149,6 +149,11 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
     if ( Mode && pObj->nRefs > 0 )
         If_CutRef( p, If_ObjCutBest(pObj), IF_INFINITY );
 
+    // call the user specified function for each cut
+    if ( p->pPars->pFuncUser )
+        If_ObjForEachCut( pObj, pCut, i )
+            p->pPars->pFuncUser( p, pObj, pCut );
+
     // free the cuts
     If_ManDerefNodeCutSet( p, pObj );
 }

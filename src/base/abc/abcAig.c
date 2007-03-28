@@ -262,6 +262,16 @@ bool Abc_AigCheck( Abc_Aig_t * pMan )
         printf( "Abc_AigCheck: The number of nodes in the structural hashing table is wrong.\n" );
         return 0;
     }
+    // if the node is a choice node, nodes in its class should not have fanouts
+    Abc_NtkForEachNode( pMan->pNtkAig, pObj, i )
+        if ( Abc_AigNodeIsChoice(pObj) )
+            for ( pAnd = pObj->pData; pAnd; pAnd = pAnd->pData )
+                if ( Abc_ObjFanoutNum(pAnd) > 0 )
+                {
+                    printf( "Abc_AigCheck: Representative %s", Abc_ObjName(pAnd) );
+                    printf( " of choice node %s has %d fanouts.\n", Abc_ObjName(pObj), Abc_ObjFanoutNum(pAnd) );
+                    return 0;
+                }
     return 1;
 }
 

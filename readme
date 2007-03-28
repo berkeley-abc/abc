@@ -17,6 +17,9 @@ Several things to try if it does not compile on your platform:
   (c) Comment calls to Libs_Init() and Libs_End() in "src\base\main\mainInit.c"
 - Try linking with gcc (rather than g++)
   For this replace "LD   := g++" with "LD   := gcc -lm" in Makefile
+- If your Linux distributin does not have "readline", you may have problems 
+  compiling ABC with gcc. Please try installing this library from
+  http://tiswww.case.edu/php/chet/readline/rltop.html
 
 
 Finally, run regression test:

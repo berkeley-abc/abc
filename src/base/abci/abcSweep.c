@@ -74,7 +74,7 @@ bool Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fExdc, int fVerbose )
             pObj->pNext = pObj->pData;
     }
     // derive the AIG
-    pNtkAig = Abc_NtkStrash( pNtk, 0, 1 );
+    pNtkAig = Abc_NtkStrash( pNtk, 0, 1, 0 );
     // reconstruct gate assignments
     if ( fUseTrick )
     {

@@ -1184,9 +1184,9 @@ int Ver_ParseAssign( Ver_Man_t * pMan, Abc_Ntk_t * pNtk )
             }
 
             // consider the case of mapped network
+            Vec_PtrClear( pMan->vNames );
             if ( pMan->fMapped )
             {
-                Vec_PtrClear( pMan->vNames );
                 if ( !strcmp( pEquation, "1\'b0" ) )
                     pFunc = (Hop_Obj_t *)Mio_LibraryReadConst0(Abc_FrameReadLibGen());
                 else if ( !strcmp( pEquation, "1\'b1" ) )
@@ -1207,7 +1207,6 @@ int Ver_ParseAssign( Ver_Man_t * pMan, Abc_Ntk_t * pNtk )
             }
             else
             {
-                // parse the formula
                 if ( !strcmp(pEquation, "0") || !strcmp(pEquation, "1\'b0") || !strcmp(pEquation, "1\'bx") )
                     pFunc = Hop_ManConst0(pNtk->pManFunc);
                 else if ( !strcmp(pEquation, "1") || !strcmp(pEquation, "1\'b1") )

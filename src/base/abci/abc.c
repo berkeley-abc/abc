@@ -128,6 +128,12 @@ static int Abc_CommandHaigStart      ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandHaigStop       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandHaigUse        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
+static int Abc_CommandRecStart       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRecStop        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRecAdd         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRecPs          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRecUse         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+
 static int Abc_CommandMap            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandUnmap          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAttach         ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -276,6 +282,12 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Choicing",     "haig_stop",     Abc_CommandHaigStop,         0 );
     Cmd_CommandAdd( pAbc, "Choicing",     "haig_use",      Abc_CommandHaigUse,          1 );
 
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_start",     Abc_CommandRecStart,         0 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_stop",      Abc_CommandRecStop,          0 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_add",       Abc_CommandRecAdd,           0 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_ps",        Abc_CommandRecPs,            0 );
+    Cmd_CommandAdd( pAbc, "Choicing",     "rec_use",       Abc_CommandRecUse,           1 );
+
     Cmd_CommandAdd( pAbc, "SC mapping",   "map",           Abc_CommandMap,              1 );
     Cmd_CommandAdd( pAbc, "SC mapping",   "unmap",         Abc_CommandUnmap,            1 );
     Cmd_CommandAdd( pAbc, "SC mapping",   "attach",        Abc_CommandAttach,           1 );
@@ -313,6 +325,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 //    Map_Var4Test();
 
 //    Abc_NtkPrint256();
+//    Kit_TruthCountMintermsPrecomp();
 } 
 
 /**Function*************************************************************
@@ -454,7 +467,7 @@ int Abc_CommandPrintExdc( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         if ( !Abc_NtkIsStrash(pNtk->pExdc) )
         {
-            pNtkTemp = Abc_NtkStrash(pNtk->pExdc, 0, 0);
+            pNtkTemp = Abc_NtkStrash(pNtk->pExdc, 0, 0, 0);
             Percentage = Abc_NtkSpacePercentage( Abc_ObjChild0( Abc_NtkPo(pNtkTemp, 0) ) );
             Abc_NtkDelete( pNtkTemp );
         }
@@ -1029,7 +1042,7 @@ int Abc_CommandPrintSymms( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_NtkSymmetries( pNtk, fUseBdds, fNaive, fReorder, fVerbose );
     else
     {
-        pNtk = Abc_NtkStrash( pNtk, 0, 0 );
+        pNtk = Abc_NtkStrash( pNtk, 0, 0, 0 );
         Abc_NtkSymmetries( pNtk, fUseBdds, fNaive, fReorder, fVerbose );
         Abc_NtkDelete( pNtk );
     }
@@ -1891,7 +1904,7 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
         pNtkRes = Abc_NtkCollapse( pNtk, fBddSizeMax, fDualRail, fReorder, fVerbose );
     else
     {
-        pNtk = Abc_NtkStrash( pNtk, 0, 0 );
+        pNtk = Abc_NtkStrash( pNtk, 0, 0, 0 );
         pNtkRes = Abc_NtkCollapse( pNtk, fBddSizeMax, fDualRail, fReorder, fVerbose );
         Abc_NtkDelete( pNtk );
     }
@@ -1933,6 +1946,7 @@ int Abc_CommandStrash( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk, * pNtkRes;
     int c;
     int fAllNodes;
+    int fRecord;
     int fCleanup;
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -1942,8 +1956,9 @@ int Abc_CommandStrash( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     fAllNodes = 0;
     fCleanup  = 1;
+    fRecord   = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ach" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "acrh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -1952,6 +1967,9 @@ int Abc_CommandStrash( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'c':
             fCleanup ^= 1;
+            break;
+        case 'r':
+            fRecord ^= 1;
             break;
         case 'h':
             goto usage;
@@ -1967,7 +1985,7 @@ int Abc_CommandStrash( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    pNtkRes = Abc_NtkStrash( pNtk, fAllNodes, fCleanup );
+    pNtkRes = Abc_NtkStrash( pNtk, fAllNodes, fCleanup, fRecord );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Strashing has failed.\n" );
@@ -1978,10 +1996,11 @@ int Abc_CommandStrash( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: strash [-ach]\n" );
+    fprintf( pErr, "usage: strash [-acrh]\n" );
     fprintf( pErr, "\t        transforms combinational logic into an AIG\n" );
     fprintf( pErr, "\t-a    : toggles between using all nodes and DFS nodes [default = %s]\n", fAllNodes? "all": "DFS" );
     fprintf( pErr, "\t-c    : toggles cleanup to remove the dagling AIG nodes [default = %s]\n", fCleanup? "all": "DFS" );
+    fprintf( pErr, "\t-r    : enables using the record of AIG subgraphs [default = %s]\n", fRecord? "yes": "no" );
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -2047,7 +2066,7 @@ int Abc_CommandBalance( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else
     {
-        pNtkTemp = Abc_NtkStrash( pNtk, 0, 0 );
+        pNtkTemp = Abc_NtkStrash( pNtk, 0, 0, 0 );
         if ( pNtkTemp == NULL )
         {
             fprintf( pErr, "Strashing before balancing has failed.\n" );
@@ -2674,7 +2693,7 @@ int Abc_CommandDisjoint( Abc_Frame_t * pAbc, int argc, char ** argv )
         // get the new network
         if ( !Abc_NtkIsStrash(pNtk) )
         {
-            pNtkNew = Abc_NtkStrash( pNtk, 0, 0 );
+            pNtkNew = Abc_NtkStrash( pNtk, 0, 0, 0 );
             pNtkRes = Abc_NtkDsdGlobal( pNtkNew, fVerbose, fPrint, fShort );
             Abc_NtkDelete( pNtkNew );
         }
@@ -3507,7 +3526,7 @@ int Abc_CommandCascade( Abc_Frame_t * pAbc, int argc, char ** argv )
         pNtkRes = Abc_NtkCascade( pNtk, nLutSize, fCheck, fVerbose );
     else
     {
-        pNtk = Abc_NtkStrash( pNtk, 0, 0 );
+        pNtk = Abc_NtkStrash( pNtk, 0, 0, 0 );
         pNtkRes = Abc_NtkCascade( pNtk, nLutSize, fCheck, fVerbose );
         Abc_NtkDelete( pNtk );
     }
@@ -3708,7 +3727,7 @@ int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
 
     // compute the miter
-    pNtkRes = Abc_NtkMiter( pNtk1, pNtk2, fComb, 10 );
+    pNtkRes = Abc_NtkMiter( pNtk1, pNtk2, fComb, 0 );
     if ( fDelete1 ) Abc_NtkDelete( pNtk1 );
     if ( fDelete2 ) Abc_NtkDelete( pNtk2 );
 
@@ -4100,7 +4119,7 @@ int Abc_CommandFrames( Abc_Frame_t * pAbc, int argc, char ** argv )
     // get the new network
     if ( !Abc_NtkIsStrash(pNtk) )
     {
-        pNtkTemp = Abc_NtkStrash( pNtk, 0, 0 );
+        pNtkTemp = Abc_NtkStrash( pNtk, 0, 0, 0 );
         pNtkRes  = Abc_NtkFrames( pNtkTemp, nFrames, fInitial );
         Abc_NtkDelete( pNtkTemp );
     }
@@ -5619,7 +5638,7 @@ int Abc_CommandXyz( Abc_Frame_t * pAbc, int argc, char ** argv )
 /*
     if ( !Abc_NtkIsStrash(pNtk) )
     {
-        pNtkTemp = Abc_NtkStrash( pNtk, 0, 1 );
+        pNtkTemp = Abc_NtkStrash( pNtk, 0, 1, 0 );
         pNtkRes = Abc_NtkPlayer( pNtkTemp, nLutMax, nPlaMax, RankCost, fFastMode, fRewriting, fSynthesis, fVerbose );
         Abc_NtkDelete( pNtkTemp );
     }
@@ -5924,7 +5943,7 @@ int Abc_CommandQuaVar( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the strashed network
-    pNtkRes = Abc_NtkStrash( pNtk, 0, 1 );
+    pNtkRes = Abc_NtkStrash( pNtk, 0, 1, 0 );
     RetValue = Abc_NtkQuantify( pNtkRes, fUniv, iVar, fVerbose );
     // clean temporary storage for the cofactors
     Abc_NtkCleanData( pNtkRes );
@@ -6022,7 +6041,7 @@ int Abc_CommandQuaRel( Abc_Frame_t * pAbc, int argc, char ** argv )
     // get the strashed network
     if ( !Abc_NtkIsStrash(pNtk) )
     {
-        pNtk = Abc_NtkStrash( pNtk, 0, 1 );
+        pNtk = Abc_NtkStrash( pNtk, 0, 1, 0 );
         pNtkRes = Abc_NtkTransRel( pNtk, fInputs, fVerbose );
         Abc_NtkDelete( pNtk );
     }
@@ -6192,7 +6211,7 @@ int Abc_CommandIStrash( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( !Abc_NtkIsStrash(pNtk) )
     {
-        pNtkTemp = Abc_NtkStrash( pNtk, 0, 1 );
+        pNtkTemp = Abc_NtkStrash( pNtk, 0, 1, 0 );
         pNtkRes = Abc_NtkIvyStrash( pNtkTemp );
         Abc_NtkDelete( pNtkTemp );
     }
@@ -6713,7 +6732,7 @@ int Abc_CommandIProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( Abc_NtkIsStrash(pNtk) )
         pNtkTemp = Abc_NtkDup( pNtk );
     else
-        pNtkTemp = Abc_NtkStrash( pNtk, 0, 0 );
+        pNtkTemp = Abc_NtkStrash( pNtk, 0, 0, 0 );
 
     RetValue = Abc_NtkIvyProve( &pNtkTemp, pParams );
 
@@ -6957,7 +6976,7 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_NtkBmc( pNtk, nFrames, fInit, fVerbose );
     else
     {
-        pNtk = Abc_NtkStrash( pNtk, 0, 1 );
+        pNtk = Abc_NtkStrash( pNtk, 0, 1, 0 );
         Abc_NtkBmc( pNtk, nFrames, fInit, fVerbose );
         Abc_NtkDelete( pNtk );
     }
@@ -7050,7 +7069,7 @@ int Abc_CommandQbf( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_NtkQbf( pNtk, nPars, fVerbose );
     else
     {
-        pNtk = Abc_NtkStrash( pNtk, 0, 1 );
+        pNtk = Abc_NtkStrash( pNtk, 0, 1, 0 );
         Abc_NtkQbf( pNtk, nPars, fVerbose );
         Abc_NtkDelete( pNtk );
     }
@@ -7192,7 +7211,7 @@ int Abc_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
         pNtkRes = Abc_NtkFraig( pNtk, &Params, fAllNodes, fExdc );
     else
     {
-        pNtk = Abc_NtkStrash( pNtk, fAllNodes, !fAllNodes );
+        pNtk = Abc_NtkStrash( pNtk, fAllNodes, !fAllNodes, 0 );
         pNtkRes = Abc_NtkFraig( pNtk, &Params, fAllNodes, fExdc );
         Abc_NtkDelete( pNtk );
     }
@@ -7772,6 +7791,302 @@ usage:
     return 1;
 }
 
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandRecStart( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+    int nVars;
+    int nCuts;
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    nVars = 4;
+    nCuts = 8;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nVars = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nVars < 1 ) 
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nCuts = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nCuts < 1 ) 
+                goto usage;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !(nVars >= 3 && nVars <= 16) )
+    {
+        fprintf( pErr, "The range of allowed values is 3 <= K <= 16.\n" );
+        return 0;
+    }
+    if ( Abc_NtkRecIsRunning() )
+    {
+        fprintf( pErr, "The AIG subgraph recording is already started.\n" );
+        return 0;
+    }
+    if ( pNtk && !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "This command works only for AIGs; run strashing (\"st\").\n" );
+        return 0;
+    }
+    Abc_NtkRecStart( pNtk, nVars, nCuts );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: rec_start [-K num] [-C num] [-h]\n" );
+    fprintf( pErr, "\t         starts recording AIG subgraphs (should be called for\n" );
+    fprintf( pErr, "\t         an empty network or after reading in a previous record)\n" );
+    fprintf( pErr, "\t-K num : the largest number of inputs [default = %d]\n", nVars );
+    fprintf( pErr, "\t-C num : the max number of cuts used at a node (0 < num < 2^12) [default = %d]\n", nCuts );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandRecStop( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "dh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_NtkRecIsRunning() )
+    {
+        fprintf( pErr, "This command works only after calling \"rec_start\".\n" );
+        return 0;
+    }
+    Abc_NtkRecStop();
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: rec_stop [-h]\n" );
+    fprintf( pErr, "\t        cleans the internal storage for AIG subgraphs\n" );
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandRecAdd( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "dh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "This command works for AIGs.\n" );
+        return 0;
+    }
+    if ( !Abc_NtkRecIsRunning() )
+    {
+        fprintf( pErr, "This command works for AIGs after calling \"rec_start\".\n" );
+        return 0;
+    }
+    Abc_NtkRecAdd( pNtk );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: rec_add [-h]\n" );
+    fprintf( pErr, "\t        adds subgraphs from the current network to the set\n" );
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandRecPs( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "dh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_NtkRecIsRunning() )
+    {
+        fprintf( pErr, "This command works for AIGs only after calling \"rec_start\".\n" );
+        return 0;
+    }
+    Abc_NtkRecPs();
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: rec_ps [-h]\n" );
+    fprintf( pErr, "\t        prints statistics about the recorded AIG subgraphs\n" );
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandRecUse( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c;
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "dh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( !Abc_NtkRecIsRunning() )
+    {
+        fprintf( pErr, "This command works for AIGs only after calling \"rec_start\".\n" );
+        return 0;
+    }
+    // get the new network
+    pNtkRes = Abc_NtkRecUse();
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Transforming internal AIG subgraphs into an AIG with choices has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: rec_use [-h]\n" );
+    fprintf( pErr, "\t        transforms internal storage into an AIG with choices\n" );
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -7850,7 +8165,7 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( !Abc_NtkIsStrash(pNtk) )
     {
-        pNtk = Abc_NtkStrash( pNtk, 0, 0 );
+        pNtk = Abc_NtkStrash( pNtk, 0, 0, 0 );
         if ( pNtk == NULL )
         {
             fprintf( pErr, "Strashing before mapping has failed.\n" );
@@ -8305,7 +8620,7 @@ int Abc_CommandFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( !Abc_NtkIsStrash(pNtk) )
     {
         // strash and balance the network
-        pNtk = Abc_NtkStrash( pNtk, 0, 0 );
+        pNtk = Abc_NtkStrash( pNtk, 0, 0, 0 );
         if ( pNtk == NULL )
         {
             fprintf( pErr, "Strashing before FPGA mapping has failed.\n" );
@@ -8446,7 +8761,7 @@ int Abc_CommandFpgaFast( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( !Abc_NtkIsStrash(pNtk) )
     {
         // strash and balance the network
-        pNtk = Abc_NtkStrash( pNtk, 0, 0 );
+        pNtk = Abc_NtkStrash( pNtk, 0, 0, 0 );
         if ( pNtk == NULL )
         {
             fprintf( pErr, "Strashing before FPGA mapping has failed.\n" );
@@ -8692,7 +9007,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( !Abc_NtkIsStrash(pNtk) )
     {
         // strash and balance the network
-        pNtk = Abc_NtkStrash( pNtk, 0, 0 );
+        pNtk = Abc_NtkStrash( pNtk, 0, 0, 0 );
         if ( pNtk == NULL )
         {
             fprintf( pErr, "Strashing before FPGA mapping has failed.\n" );
@@ -9301,7 +9616,7 @@ int Abc_CommandSeqFpga( Abc_Frame_t * pAbc, int argc, char ** argv )
     else
     {
         // strash and balance the network
-        pNtkNew = Abc_NtkStrash( pNtk, 0, 0 );
+        pNtkNew = Abc_NtkStrash( pNtk, 0, 0, 0 );
         if ( pNtkNew == NULL )
         {
             fprintf( pErr, "Strashing before FPGA mapping/retiming has failed.\n" );
@@ -9428,7 +9743,7 @@ int Abc_CommandSeqMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     else
     {
         // strash and balance the network
-        pNtkNew = Abc_NtkStrash( pNtk, 0, 0 );
+        pNtkNew = Abc_NtkStrash( pNtk, 0, 0, 0 );
         if ( pNtkNew == NULL )
         {
             fprintf( pErr, "Strashing before SC mapping/retiming has failed.\n" );
@@ -10366,7 +10681,7 @@ int Abc_CommandProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( Abc_NtkIsStrash(pNtk) )
         pNtkTemp = Abc_NtkDup( pNtk );
     else
-        pNtkTemp = Abc_NtkStrash( pNtk, 0, 0 );
+        pNtkTemp = Abc_NtkStrash( pNtk, 0, 0, 0 );
 
     RetValue = Abc_NtkMiterProve( &pNtkTemp, pParams );
 

@@ -114,7 +114,7 @@ typedef unsigned long long uint64;
 #endif
 
 #ifndef PRTP
-#define PRTP(a,t,T)  printf("%s = ", (a)); printf("%6.2f sec (%6.2f %%)\n", (float)(t)/(float)(CLOCKS_PER_SEC), 100.0*(t)/(T))
+#define PRTP(a,t,T)  printf("%s = ", (a)); printf("%6.2f sec (%6.2f %%)\n", (float)(t)/(float)(CLOCKS_PER_SEC), (T)? 100.0*(t)/(T) : 0.0)
 #endif
 
 /*===========================================================================*/
@@ -322,6 +322,7 @@ extern unsigned     Extra_ReadBinary( char * Buffer );
 extern void         Extra_PrintBinary( FILE * pFile, unsigned Sign[], int nBits );
 extern int          Extra_ReadHexadecimal( unsigned Sign[], char * pString, int nVars );
 extern void         Extra_PrintHexadecimal( FILE * pFile, unsigned Sign[], int nVars );
+extern void         Extra_PrintHexadecimalString( char * pString, unsigned Sign[], int nVars );
 extern void         Extra_PrintHex( FILE * pFile, unsigned uTruth, int nVars );
 extern void         Extra_PrintSymbols( FILE * pFile, char Char, int nTimes, int fPrintNewLine );
 
@@ -530,22 +531,23 @@ static inline void Extra_TruthNand( unsigned * pOut, unsigned * pIn0, unsigned *
         pOut[w] = ~(pIn0[w] & pIn1[w]);
 }
 
-extern void     Extra_TruthSwapAdjacentVars( unsigned * pOut, unsigned * pIn, int nVars, int Start );
-extern void     Extra_TruthStretch( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll, unsigned Phase );
-extern void     Extra_TruthShrink( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll, unsigned Phase );
-extern int      Extra_TruthVarInSupport( unsigned * pTruth, int nVars, int iVar );
-extern int      Extra_TruthSupportSize( unsigned * pTruth, int nVars );
-extern int      Extra_TruthSupport( unsigned * pTruth, int nVars );
-extern void     Extra_TruthCofactor0( unsigned * pTruth, int nVars, int iVar );
-extern void     Extra_TruthCofactor1( unsigned * pTruth, int nVars, int iVar );
-extern void     Extra_TruthExist( unsigned * pTruth, int nVars, int iVar );
-extern void     Extra_TruthForall( unsigned * pTruth, int nVars, int iVar );
-extern void     Extra_TruthMux( unsigned * pOut, unsigned * pCof0, unsigned * pCof1, int nVars, int iVar );
-extern void     Extra_TruthChangePhase( unsigned * pTruth, int nVars, int iVar );
-extern int      Extra_TruthMinCofSuppOverlap( unsigned * pTruth, int nVars, int * pVarMin );
-extern void     Extra_TruthCountOnesInCofs( unsigned * pTruth, int nVars, short * pStore );
-extern unsigned Extra_TruthHash( unsigned * pIn, int nWords );
-extern unsigned Extra_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars, char * pCanonPerm, short * pStore );
+extern unsigned ** Extra_TruthElementary( int nVars );
+extern void        Extra_TruthSwapAdjacentVars( unsigned * pOut, unsigned * pIn, int nVars, int Start );
+extern void        Extra_TruthStretch( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll, unsigned Phase );
+extern void        Extra_TruthShrink( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll, unsigned Phase );
+extern int         Extra_TruthVarInSupport( unsigned * pTruth, int nVars, int iVar );
+extern int         Extra_TruthSupportSize( unsigned * pTruth, int nVars );
+extern int         Extra_TruthSupport( unsigned * pTruth, int nVars );
+extern void        Extra_TruthCofactor0( unsigned * pTruth, int nVars, int iVar );
+extern void        Extra_TruthCofactor1( unsigned * pTruth, int nVars, int iVar );
+extern void        Extra_TruthExist( unsigned * pTruth, int nVars, int iVar );
+extern void        Extra_TruthForall( unsigned * pTruth, int nVars, int iVar );
+extern void        Extra_TruthMux( unsigned * pOut, unsigned * pCof0, unsigned * pCof1, int nVars, int iVar );
+extern void        Extra_TruthChangePhase( unsigned * pTruth, int nVars, int iVar );
+extern int         Extra_TruthMinCofSuppOverlap( unsigned * pTruth, int nVars, int * pVarMin );
+extern void        Extra_TruthCountOnesInCofs( unsigned * pTruth, int nVars, short * pStore );
+extern unsigned    Extra_TruthHash( unsigned * pIn, int nWords );
+extern unsigned    Extra_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars, char * pCanonPerm, short * pStore );
 
 /*=== extraUtilUtil.c ================================================================*/
 

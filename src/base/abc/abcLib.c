@@ -340,7 +340,7 @@ void Abc_NodeStrashUsingNetwork_rec( Abc_Ntk_t * pNtkAig, Abc_Obj_t * pObj )
     Abc_ObjForEachFanin( pObj, pFanin, i )
         Abc_NodeStrashUsingNetwork_rec( pNtkAig, Abc_ObjFanin0Ntk(Abc_ObjFanin0(pObj)) );
     // compute for the node
-    pObj->pCopy = Abc_NodeStrash( pNtkAig, pObj );
+    pObj->pCopy = Abc_NodeStrash( pNtkAig, pObj, 0 );
     // set for the fanout net
     Abc_ObjFanout0(pObj)->pCopy = pObj->pCopy;
 }
@@ -420,7 +420,7 @@ Abc_Ntk_t * Abc_LibDeriveAig( Abc_Ntk_t * pNtk, Abc_Lib_t * pLib )
         Extra_ProgressBarUpdate( pProgress, i, NULL );
         if ( Abc_ObjIsNode(pObj) )
         {
-            pObj->pCopy = Abc_NodeStrash( pNtkAig, pObj );
+            pObj->pCopy = Abc_NodeStrash( pNtkAig, pObj, 0 );
             Abc_ObjFanout0(pObj)->pCopy = pObj->pCopy;
             continue;
         }

@@ -101,6 +101,7 @@ struct If_Par_t_
     float *            pTimesArr;     // arrival times
     float *            pTimesReq;     // required times
     int (* pFuncCost)  (If_Cut_t *);  // procedure to compute the user's cost of a cut
+    int (* pFuncUser)  (If_Man_t *, If_Obj_t *, If_Cut_t *); //  procedure called for each cut when cut computation is finished
     void *             pReoMan;       // reordering manager
 };
 

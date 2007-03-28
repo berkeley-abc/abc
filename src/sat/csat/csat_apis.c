@@ -572,7 +572,7 @@ void ABC_SolveInit( ABC_Manager mng )
 
     // set the new target network
 //    mng->pTarget = Abc_NtkCreateTarget( mng->pNtk, mng->vNodes, mng->vValues );
-    mng->pTarget = Abc_NtkStrash( mng->pNtk, 0, 1 );
+    mng->pTarget = Abc_NtkStrash( mng->pNtk, 0, 1, 0 );
 }
 
 /**Function*************************************************************
@@ -676,7 +676,7 @@ void ABC_Dump_Bench_File( ABC_Manager mng )
     char * pFileName;
  
     // derive the netlist
-    pNtkAig = Abc_NtkStrash( mng->pNtk, 0, 0 );
+    pNtkAig = Abc_NtkStrash( mng->pNtk, 0, 0, 0 );
     pNtkTemp = Abc_NtkToNetlistBench( pNtkAig );
     Abc_NtkDelete( pNtkAig );
     if ( pNtkTemp == NULL ) 

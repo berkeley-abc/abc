@@ -669,7 +669,7 @@ Abc_Ntk_t * Abc_NtkCreateTarget( Abc_Ntk_t * pNtk, Vec_Ptr_t * vRoots, Vec_Int_t
     }
     // copy the nodes
     Vec_PtrForEachEntry( vNodes, pObj, i )
-        pObj->pCopy = Abc_NodeStrash( pNtkNew, pObj );
+        pObj->pCopy = Abc_NodeStrash( pNtkNew, pObj, 0 );
     Vec_PtrFree( vNodes );
 
     // add the PO

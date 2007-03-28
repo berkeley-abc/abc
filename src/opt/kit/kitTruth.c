@@ -168,7 +168,7 @@ void Kit_TruthSwapAdjacentVars2( unsigned * pIn, unsigned * pOut, int nVars, int
   SeeAlso     []
 
 ***********************************************************************/
-void Kit_TruthStretch( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll, unsigned Phase )
+void Kit_TruthStretch( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll, unsigned Phase, int fReturnIn )
 {
     unsigned * pTemp;
     int i, k, Var = nVars - 1, Counter = 0;
@@ -185,7 +185,7 @@ void Kit_TruthStretch( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll,
         }
     assert( Var == -1 );
     // swap if it was moved an even number of times
-    if ( !(Counter & 1) )
+    if ( fReturnIn ^ !(Counter & 1) )
         Kit_TruthCopy( pOut, pIn, nVarsAll );
 }
 
@@ -202,7 +202,7 @@ void Kit_TruthStretch( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll,
   SeeAlso     []
 
 ***********************************************************************/
-void Kit_TruthShrink( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll, unsigned Phase )
+void Kit_TruthShrink( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll, unsigned Phase, int fReturnIn )
 {
     unsigned * pTemp;
     int i, k, Var = 0, Counter = 0;
@@ -219,7 +219,7 @@ void Kit_TruthShrink( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll, 
         }
     assert( Var == nVars );
     // swap if it was moved an even number of times
-    if ( !(Counter & 1) )
+    if ( fReturnIn ^ !(Counter & 1) )
         Kit_TruthCopy( pOut, pIn, nVarsAll );
 }
 
@@ -1080,6 +1080,28 @@ void Kit_TruthCountOnesInCofs( unsigned * pTruth, int nVars, short * pStore )
     }
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of 1's in each cofactor.]
+
+  Description [Verifies the above procedure.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Kit_TruthCountOnesInCofsSlow( unsigned * pTruth, int nVars, short * pStore, unsigned * pAux )
+{
+    int i;
+    for ( i = 0; i < nVars; i++ )
+    {
+        Kit_TruthCofactor0New( pAux, pTruth, nVars, i );
+        pStore[2*i+0] = Kit_TruthCountOnes( pAux, nVars ) / 2;
+        Kit_TruthCofactor1New( pAux, pTruth, nVars, i );
+        pStore[2*i+1] = Kit_TruthCountOnes( pAux, nVars ) / 2;
+    }
+}
 
 /**Function*************************************************************
 
@@ -1191,6 +1213,7 @@ unsigned Kit_TruthHash( unsigned * pIn, int nWords )
 ***********************************************************************/
 unsigned Kit_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars, char * pCanonPerm, short * pStore )
 {
+//    short pStore2[32];
     unsigned * pIn = pInOut, * pOut = pAux, * pTemp;
     int nWords = Kit_TruthWordNum( nVars );
     int i, Temp, fChange, Counter, nOnes;//, k, j, w, Limit;
@@ -1198,20 +1221,26 @@ unsigned Kit_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars,
 
     // canonicize output
     uCanonPhase = 0;
+/*
     nOnes = Kit_TruthCountOnes(pIn, nVars);
-    if ( (nOnes > nWords * 16) || ((nOnes == nWords * 16) && (pIn[0] & 1)) )
+    if ( (nOnes > nWords * 16) )//|| ((nOnes == nWords * 16) && (pIn[0] & 1)) )
     {
         uCanonPhase |= (1 << nVars);
         Kit_TruthNot( pIn, pIn, nVars );
     }
-
+*/
     // collect the minterm counts
     Kit_TruthCountOnesInCofs( pIn, nVars, pStore );
+//    Kit_TruthCountOnesInCofsSlow( pIn, nVars, pStore2, pAux );
+//    for ( i = 0; i < 2*nVars; i++ )
+//    {
+//        assert( pStore[i] == pStore2[i] );
+//    }
 
     // canonicize phase
     for ( i = 0; i < nVars; i++ )
     {
-        if ( pStore[2*i+0] <= pStore[2*i+1] )
+        if ( pStore[2*i+0] >= pStore[2*i+1] )
             continue;
         uCanonPhase |= (1 << i);
         Temp = pStore[2*i+0];
@@ -1229,7 +1258,7 @@ unsigned Kit_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars,
         fChange = 0;
         for ( i = 0; i < nVars-1; i++ )
         {
-            if ( pStore[2*i] <= pStore[2*(i+1)] )
+            if ( pStore[2*i] >= pStore[2*(i+1)] )
                 continue;
             Counter++;
             fChange = 1;
@@ -1246,17 +1275,24 @@ unsigned Kit_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars,
             pStore[2*i+1] = pStore[2*(i+1)+1];
             pStore[2*(i+1)+1] = Temp;
 
+            // if the polarity of variables is different, swap them
+            if ( ((uCanonPhase & (1 << i)) > 0) != ((uCanonPhase & (1 << (i+1))) > 0) )
+            {
+                uCanonPhase ^= (1 << i);
+                uCanonPhase ^= (1 << (i+1));
+            }
+
             Kit_TruthSwapAdjacentVars( pOut, pIn, nVars, i );
             pTemp = pIn; pIn = pOut; pOut = pTemp;
         }
     } while ( fChange );
 
 /*
-    Kit_PrintBinary( stdout, &uCanonPhase, nVars+1 ); printf( " : " );
+    Extra_PrintBinary( stdout, &uCanonPhase, nVars+1 ); printf( " : " );
     for ( i = 0; i < nVars; i++ )
         printf( "%d=%d/%d  ", pCanonPerm[i], pStore[2*i], pStore[2*i+1] );
     printf( "  C = %d\n", Counter );
-    Kit_PrintHexadecimal( stdout, pIn, nVars );
+    Extra_PrintHexadecimal( stdout, pIn, nVars );
     printf( "\n" );
 */
 
@@ -1335,6 +1371,144 @@ unsigned Kit_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars,
     if ( Counter & 1 )
         Kit_TruthCopy( pOut, pIn, nVars );
     return uCanonPhase;
+}
+
+ 
+/**Function*************************************************************
+
+  Synopsis    [Fast counting minterms in the cofactors of a function.]
+
+  Description [Returns the total number of minterms in the function.
+  The resulting array (pRes) contains the number of minterms in 0-cofactor
+  w.r.t. each variables. The additional array (pBytes) is used for internal 
+  storage. It should have the size equal to the number of truth table bytes.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Kit_TruthCountMinterms( unsigned * pTruth, int nVars, int * pRes, int * pBytes )
+{
+    // the number of 1s if every byte as well as in the 0-cofactors w.r.t. three variables
+    static unsigned Table[256] = {
+        0x00000000, 0x01010101, 0x01010001, 0x02020102, 0x01000101, 0x02010202, 0x02010102, 0x03020203,
+        0x01000001, 0x02010102, 0x02010002, 0x03020103, 0x02000102, 0x03010203, 0x03010103, 0x04020204,
+        0x00010101, 0x01020202, 0x01020102, 0x02030203, 0x01010202, 0x02020303, 0x02020203, 0x03030304,
+        0x01010102, 0x02020203, 0x02020103, 0x03030204, 0x02010203, 0x03020304, 0x03020204, 0x04030305,
+        0x00010001, 0x01020102, 0x01020002, 0x02030103, 0x01010102, 0x02020203, 0x02020103, 0x03030204,
+        0x01010002, 0x02020103, 0x02020003, 0x03030104, 0x02010103, 0x03020204, 0x03020104, 0x04030205,
+        0x00020102, 0x01030203, 0x01030103, 0x02040204, 0x01020203, 0x02030304, 0x02030204, 0x03040305,
+        0x01020103, 0x02030204, 0x02030104, 0x03040205, 0x02020204, 0x03030305, 0x03030205, 0x04040306,
+        0x00000101, 0x01010202, 0x01010102, 0x02020203, 0x01000202, 0x02010303, 0x02010203, 0x03020304,
+        0x01000102, 0x02010203, 0x02010103, 0x03020204, 0x02000203, 0x03010304, 0x03010204, 0x04020305,
+        0x00010202, 0x01020303, 0x01020203, 0x02030304, 0x01010303, 0x02020404, 0x02020304, 0x03030405,
+        0x01010203, 0x02020304, 0x02020204, 0x03030305, 0x02010304, 0x03020405, 0x03020305, 0x04030406,
+        0x00010102, 0x01020203, 0x01020103, 0x02030204, 0x01010203, 0x02020304, 0x02020204, 0x03030305,
+        0x01010103, 0x02020204, 0x02020104, 0x03030205, 0x02010204, 0x03020305, 0x03020205, 0x04030306,
+        0x00020203, 0x01030304, 0x01030204, 0x02040305, 0x01020304, 0x02030405, 0x02030305, 0x03040406,
+        0x01020204, 0x02030305, 0x02030205, 0x03040306, 0x02020305, 0x03030406, 0x03030306, 0x04040407,
+        0x00000001, 0x01010102, 0x01010002, 0x02020103, 0x01000102, 0x02010203, 0x02010103, 0x03020204,
+        0x01000002, 0x02010103, 0x02010003, 0x03020104, 0x02000103, 0x03010204, 0x03010104, 0x04020205,
+        0x00010102, 0x01020203, 0x01020103, 0x02030204, 0x01010203, 0x02020304, 0x02020204, 0x03030305,
+        0x01010103, 0x02020204, 0x02020104, 0x03030205, 0x02010204, 0x03020305, 0x03020205, 0x04030306,
+        0x00010002, 0x01020103, 0x01020003, 0x02030104, 0x01010103, 0x02020204, 0x02020104, 0x03030205,
+        0x01010003, 0x02020104, 0x02020004, 0x03030105, 0x02010104, 0x03020205, 0x03020105, 0x04030206,
+        0x00020103, 0x01030204, 0x01030104, 0x02040205, 0x01020204, 0x02030305, 0x02030205, 0x03040306,
+        0x01020104, 0x02030205, 0x02030105, 0x03040206, 0x02020205, 0x03030306, 0x03030206, 0x04040307,
+        0x00000102, 0x01010203, 0x01010103, 0x02020204, 0x01000203, 0x02010304, 0x02010204, 0x03020305,
+        0x01000103, 0x02010204, 0x02010104, 0x03020205, 0x02000204, 0x03010305, 0x03010205, 0x04020306,
+        0x00010203, 0x01020304, 0x01020204, 0x02030305, 0x01010304, 0x02020405, 0x02020305, 0x03030406,
+        0x01010204, 0x02020305, 0x02020205, 0x03030306, 0x02010305, 0x03020406, 0x03020306, 0x04030407,
+        0x00010103, 0x01020204, 0x01020104, 0x02030205, 0x01010204, 0x02020305, 0x02020205, 0x03030306,
+        0x01010104, 0x02020205, 0x02020105, 0x03030206, 0x02010205, 0x03020306, 0x03020206, 0x04030307,
+        0x00020204, 0x01030305, 0x01030205, 0x02040306, 0x01020305, 0x02030406, 0x02030306, 0x03040407,
+        0x01020205, 0x02030306, 0x02030206, 0x03040307, 0x02020306, 0x03030407, 0x03030307, 0x04040408
+    };
+    unsigned uSum;
+    unsigned char * pTruthC, * pLimit;
+    int i, iVar, Step, nWords, nBytes, nTotal;
+
+    assert( nVars <= 20 );
+
+    // clear storage
+    memset( pRes, 0, sizeof(int) * nVars );
+
+    // count the number of one's in 0-cofactors of the first three variables
+    nTotal = uSum = 0;
+    nWords = Kit_TruthWordNum( nVars );
+    nBytes = nWords * 4;
+    pTruthC = (unsigned char *)pTruth;
+    pLimit = pTruthC + nBytes;
+    for ( ; pTruthC < pLimit; pTruthC++ )
+    {
+        uSum += Table[*pTruthC];
+        *pBytes++ = (Table[*pTruthC] & 0xff);
+        if ( (uSum & 0xff) > 246 )
+        {
+            nTotal += (uSum & 0xff);
+            pRes[0] += ((uSum >>  8) & 0xff);
+            pRes[2] += ((uSum >> 16) & 0xff);
+            pRes[3] += ((uSum >> 24) & 0xff);
+            uSum = 0;
+        }
+    }
+    if ( uSum )
+    {
+        nTotal += (uSum & 0xff);
+        pRes[0] += ((uSum >>  8) & 0xff);
+        pRes[1] += ((uSum >> 16) & 0xff);
+        pRes[2] += ((uSum >> 24) & 0xff);
+    }
+
+    // count all other variables
+    for ( iVar = 3, Step = 1; Step < nBytes; Step *= 2, iVar++ )
+        for ( i = 0; i < nBytes; i += Step + Step )
+        {
+            pRes[iVar] += pBytes[i];
+            pBytes[i] += pBytes[i+Step];
+        }
+    assert( pBytes[0] == nTotal );
+    assert( iVar == nVars );
+    return nTotal;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Fast counting minterms for the functions.]
+
+  Description [Returns 0 if the function is a constant.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Kit_TruthCountMintermsPrecomp()
+{
+    int bit_count[256] = {
+      0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4,1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,
+      1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
+      1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
+      2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
+      1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
+      2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
+      2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
+      3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,4,5,5,6,5,6,6,7,5,6,6,7,6,7,7,8
+    };
+    unsigned i, uWord;
+    for ( i = 0; i < 256; i++ )
+    {
+        if ( i % 8 == 0 )
+            printf( "\n" );
+        uWord  =  bit_count[i];
+        uWord |= (bit_count[i & 0x55] <<  8);
+        uWord |= (bit_count[i & 0x33] << 16);
+        uWord |= (bit_count[i & 0x0f] << 24);
+        printf( "0x" );
+        Extra_PrintHexadecimal( stdout, &uWord, 5 );
+        printf( ", " );
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////
