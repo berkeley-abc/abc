@@ -177,6 +177,45 @@ static inline Vec_Ptr_t * Vec_PtrAllocSimInfo( int nEntries, int nWords )
 
 /**Function*************************************************************
 
+  Synopsis    [Allocates the array of truth tables for the given number of vars.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Vec_Ptr_t * Vec_PtrAllocTruthTables( int nVars )
+{
+    Vec_Ptr_t * p;
+    unsigned Masks[5] = { 0xAAAAAAAA, 0xCCCCCCCC, 0xF0F0F0F0, 0xFF00FF00, 0xFFFF0000 };
+    unsigned * pTruth;
+    int i, k, nWords;
+    nWords = (nVars <= 5 ? 1 : (1 << (nVars - 5)));
+    p = Vec_PtrAllocSimInfo( nVars, nWords );
+    for ( i = 0; i < nVars; i++ )
+    {
+        pTruth = p->pArray[i];
+        if ( i < 5 )
+        {
+            for ( k = 0; k < nWords; k++ )
+                pTruth[k] = Masks[i];
+        }
+        else
+        {
+            for ( k = 0; k < nWords; k++ )
+                if ( k & (1 << (i-5)) )
+                    pTruth[k] = ~(unsigned)0;
+                else
+                    pTruth[k] = 0;
+        }
+    }
+    return p;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Duplicates the integer array.]
 
   Description []

@@ -525,13 +525,13 @@ usage:
     fprintf( pAbc->Err, "\t          parses a formula representing DSD of a function\n" );
     fprintf( pAbc->Err, "\t-h      : prints the command summary\n" );
     fprintf( pAbc->Err, "\tformula : the formula representing disjoint-support decomposition (DSD)\n" );
-    fprintf( pAbc->Err, "\t          Example of a formula: !(a*(b+CA(c,!d,e*f))*79B3(g,h,i,k))\n" );
+    fprintf( pAbc->Err, "\t          Example of a formula: !(a*(b+CA(!d,e*f,c))*79B3(g,h,i,k))\n" );
     fprintf( pAbc->Err, "\t          where \'!\' is an INV, \'*\' is an AND, \'+\' is an XOR, \n" );
     fprintf( pAbc->Err, "\t          CA and 79B3 are hexadecimal representations of truth tables\n" );
-    fprintf( pAbc->Err, "\t          (in this case CA=11001010 is truth table of MUX(Ctrl,Data1,Data0))\n" );
+    fprintf( pAbc->Err, "\t          (in this case CA=11001010 is truth table of MUX(Data0,Data1,Ctrl))\n" );
     fprintf( pAbc->Err, "\t          The lower chars (a,b,c,etc) are reserved for elementary variables.\n" );
     fprintf( pAbc->Err, "\t          The upper chars (A,B,C,etc) are reserved for hexadecimal digits.\n" );
-    fprintf( pAbc->Err, "\t          No spaces are allowed in the formula.\n" );
+    fprintf( pAbc->Err, "\t          No spaces are allowed in formulas. In parantheses, LSB goes first.\n" );
     return 1;
 }
 

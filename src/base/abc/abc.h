@@ -227,6 +227,20 @@ struct Abc_Lib_t_
     void *            pGenlib;       // the genlib library used to map this design
 };
 
+typedef struct Lut_Par_t_ Lut_Par_t;
+struct Lut_Par_t_
+{
+    // user-controlled parameters
+    int               nLutsMax;      // (N) the maximum number of LUTs in the structure
+    int               nLutsOver;     // (Q) the maximum number of LUTs not in the MFFC
+    int               nVarsShared;   // (S) the maximum number of shared variables (crossbars)
+    int               fVerbose;      // the verbosiness flag
+    int               fVeryVerbose;  // additional verbose info printout
+    // internal parameters
+    int               nLutSize;      // (K) the LUT size (determined by the input network)
+    int               nVarsMax;      // (V) the largest number of variables: V = N * (K-1) + 1
+};
+
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////

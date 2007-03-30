@@ -293,6 +293,12 @@ static inline void Kit_TruthOr( unsigned * pOut, unsigned * pIn0, unsigned * pIn
     for ( w = Kit_TruthWordNum(nVars)-1; w >= 0; w-- )
         pOut[w] = pIn0[w] | pIn1[w];
 }
+static inline void Kit_TruthXor( unsigned * pOut, unsigned * pIn0, unsigned * pIn1, int nVars )
+{
+    int w;
+    for ( w = Kit_TruthWordNum(nVars)-1; w >= 0; w-- )
+        pOut[w] = pIn0[w] ^ pIn1[w];
+}
 static inline void Kit_TruthSharp( unsigned * pOut, unsigned * pIn0, unsigned * pIn1, int nVars )
 {
     int w;

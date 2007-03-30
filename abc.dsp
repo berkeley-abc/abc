@@ -226,6 +226,10 @@ SOURCE=.\src\base\abci\abcDsd.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcDsdRes.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcEspresso.c
 # End Source File
 # Begin Source File

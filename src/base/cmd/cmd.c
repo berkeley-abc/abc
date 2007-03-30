@@ -1265,6 +1265,8 @@ int CmdCommandSis( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
     // write out the current network
+    if ( Abc_NtkIsLogic(pNtk) )
+        Abc_NtkToSop(pNtk, 0);
     pNetlist = Abc_NtkToNetlist(pNtk);
     if ( pNetlist == NULL )
     {
@@ -1406,6 +1408,8 @@ int CmdCommandMvsis( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
     // write out the current network
+    if ( Abc_NtkIsLogic(pNtk) )
+        Abc_NtkToSop(pNtk, 0);
     pNetlist = Abc_NtkToNetlist(pNtk);
     if ( pNetlist == NULL )
     {
@@ -1552,6 +1556,8 @@ int CmdCommandCapo( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
     // write out the current network
+    if ( Abc_NtkIsLogic(pNtk) )
+        Abc_NtkToSop(pNtk, 0);
     pNetlist = Abc_NtkToNetlist(pNtk);
     if ( pNetlist == NULL )
     {
