@@ -94,7 +94,7 @@ int Abc_NodeMffcSizeStop( Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NodeMffcLabel( Abc_Obj_t * pNode )
+int Abc_NodeMffcLabelAig( Abc_Obj_t * pNode )
 {
     int nConeSize1, nConeSize2;
     assert( Abc_NtkIsStrash(pNode->pNtk) );
@@ -279,6 +279,7 @@ void Abc_NodeMffsConeSupp_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vCone, Vec_Ptr_t *
         Abc_NodeMffsConeSupp_rec( pFanin, vCone, vSupp, 0 );
     // collect the internal node
     if ( vCone ) Vec_PtrPush( vCone, pNode );
+//    printf( "%d ", pNode->Id );
 }
 
 /**Function*************************************************************
@@ -300,6 +301,7 @@ void Abc_NodeMffsConeSupp( Abc_Obj_t * pNode, Vec_Ptr_t * vCone, Vec_Ptr_t * vSu
     if ( vSupp ) Vec_PtrClear( vSupp );
     Abc_NtkIncrementTravId( pNode->pNtk );
     Abc_NodeMffsConeSupp_rec( pNode, vCone, vSupp, 1 );
+//    printf( "\n" );
 }
 
 /**Function*************************************************************
@@ -387,6 +389,60 @@ Vec_Ptr_t * Abc_NodeMffsInsideCollect( Abc_Obj_t * pNode )
     Count2 = Abc_NodeRef_rec( pNode );
     assert( Count1 == Count2 );
     return vInside;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects the internal and boundary nodes in the derefed MFFC.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NodeMffcLabel_rec( Abc_Obj_t * pNode, int fTopmost )
+{
+    Abc_Obj_t * pFanin;
+    int i;
+    // add to the new support nodes
+    if ( !fTopmost && (Abc_ObjIsCi(pNode) || pNode->vFanouts.nSize > 0) )
+        return;
+    // skip visited nodes
+    if ( Abc_NodeIsTravIdCurrent(pNode) )
+        return;
+    Abc_NodeSetTravIdCurrent(pNode);
+    // recur on the children
+    Abc_ObjForEachFanin( pNode, pFanin, i )
+        Abc_NodeMffcLabel_rec( pFanin, 0 );
+    // collect the internal node
+//    printf( "%d ", pNode->Id );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects the internal nodes of the MFFC limited by cut.]
+
+  Description []
+               
+  SideEffects [Increments the trav ID and marks visited nodes.]
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NodeMffcLabel( Abc_Obj_t * pNode )
+{
+    int Count1, Count2;
+    // dereference the node
+    Count1 = Abc_NodeDeref_rec( pNode );
+    // collect the nodes inside the MFFC
+    Abc_NtkIncrementTravId( pNode->pNtk );
+    Abc_NodeMffcLabel_rec( pNode, 1 );
+    // reference it back
+    Count2 = Abc_NodeRef_rec( pNode );
+    assert( Count1 == Count2 );
+    return Count1;
 }
 
 ////////////////////////////////////////////////////////////////////////

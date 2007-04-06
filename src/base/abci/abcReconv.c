@@ -712,7 +712,7 @@ Vec_Ptr_t * Abc_NodeCollectTfoCands( Abc_ManCut_t * p, Abc_Obj_t * pRoot, Vec_Pt
 
     // mark MFFC 
     if ( pRoot )
-        Abc_NodeMffcLabel( pRoot );
+        Abc_NodeMffcLabelAig( pRoot );
 
     // go through the levels up
     Vec_PtrClear( p->vNodesTfo );

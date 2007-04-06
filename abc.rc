@@ -30,6 +30,7 @@ alias fs fraig_sweep
 alias fsto fraig_store
 alias fres fraig_restore
 alias ft fraig_trust
+alias lp lutpack
 alias pex print_exdc -d
 alias pf print_factor
 alias pfan print_fanio
@@ -165,3 +166,5 @@ alias trec12   "rec_start -K 12; r i10.blif; st; rec_add; rec_use"
 alias tst4     "r i10_if4.blif; st; ps; r x/rec4_.blif; st; rec_start; r i10_if4.blif; st -r; ps; cec"
 alias tst4n    "r i10_if4.blif; st; ps; r 5npn/all_functions.aig; st; rec_start; r i10_if4.blif; st -r; ps; cec"
 alias tst6     "r i10_if6.blif; st; ps; r x/rec6_16_.blif; st; rec_start; r i10_if6.blif; st -r; ps; cec"
+
+

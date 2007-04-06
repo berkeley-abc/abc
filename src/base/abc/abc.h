@@ -787,6 +787,7 @@ extern Vec_Ptr_t *        Abc_NodeCollectTfoCands( Abc_ManCut_t * p, Abc_Obj_t *
 extern int                Abc_NodeMffcSize( Abc_Obj_t * pNode );
 extern int                Abc_NodeMffcSizeSupp( Abc_Obj_t * pNode );
 extern int                Abc_NodeMffcSizeStop( Abc_Obj_t * pNode );
+extern int                Abc_NodeMffcLabelAig( Abc_Obj_t * pNode );
 extern int                Abc_NodeMffcLabel( Abc_Obj_t * pNode );
 extern void               Abc_NodeMffsConeSupp( Abc_Obj_t * pNode, Vec_Ptr_t * vCone, Vec_Ptr_t * vSupp );
 extern int                Abc_NodeDeref_rec( Abc_Obj_t * pNode );

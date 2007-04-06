@@ -391,7 +391,7 @@ p->timeDsd += clock() - clk;
         pLeaf->vFanouts.nSize++;
     // label MFFC with current traversal ID
     Abc_NtkIncrementTravId( pRoot->pNtk );
-    nNodesSaved = Abc_NodeMffcLabel( pRoot );
+    nNodesSaved = Abc_NodeMffcLabelAig( pRoot );
     // unmark the fanin boundary and set the fanins as leaves in the form
     Vec_PtrForEachEntry( p->vLeaves, pLeaf, i )
         pLeaf->vFanouts.nSize--;

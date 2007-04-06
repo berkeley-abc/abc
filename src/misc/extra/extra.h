@@ -530,6 +530,30 @@ static inline void Extra_TruthNand( unsigned * pOut, unsigned * pIn0, unsigned *
     for ( w = Extra_TruthWordNum(nVars)-1; w >= 0; w-- )
         pOut[w] = ~(pIn0[w] & pIn1[w]);
 }
+static inline void Extra_TruthAndPhase( unsigned * pOut, unsigned * pIn0, unsigned * pIn1, int nVars, int fCompl0, int fCompl1 )
+{
+    int w;
+    if ( fCompl0 && fCompl1 )
+    {
+        for ( w = Extra_TruthWordNum(nVars)-1; w >= 0; w-- )
+            pOut[w] = ~(pIn0[w] | pIn1[w]);
+    }
+    else if ( fCompl0 && !fCompl1 )
+    {
+        for ( w = Extra_TruthWordNum(nVars)-1; w >= 0; w-- )
+            pOut[w] = ~pIn0[w] & pIn1[w];
+    }
+    else if ( !fCompl0 && fCompl1 )
+    {
+        for ( w = Extra_TruthWordNum(nVars)-1; w >= 0; w-- )
+            pOut[w] = pIn0[w] & ~pIn1[w];
+    }
+    else // if ( !fCompl0 && !fCompl1 )
+    {
+        for ( w = Extra_TruthWordNum(nVars)-1; w >= 0; w-- )
+            pOut[w] = pIn0[w] & pIn1[w];
+    }
+}
 
 extern unsigned ** Extra_TruthElementary( int nVars );
 extern void        Extra_TruthSwapAdjacentVars( unsigned * pOut, unsigned * pIn, int nVars, int Start );

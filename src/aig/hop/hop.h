@@ -314,6 +314,7 @@ extern void            Hop_TableProfile( Hop_Man_t * p );
 /*=== aigUtil.c =========================================================*/
 extern void            Hop_ManIncrementTravId( Hop_Man_t * p );
 extern void            Hop_ManCleanData( Hop_Man_t * p );
+extern void            Hop_ObjCleanData_rec( Hop_Obj_t * pObj );
 extern void            Hop_ObjCollectMulti( Hop_Obj_t * pFunc, Vec_Ptr_t * vSuper );
 extern int             Hop_ObjIsMuxType( Hop_Obj_t * pObj );
 extern int             Hop_ObjRecognizeExor( Hop_Obj_t * pObj, Hop_Obj_t ** ppFan0, Hop_Obj_t ** ppFan1 );

@@ -1203,6 +1203,12 @@ int Ver_ParseAssign( Ver_Man_t * pMan, Abc_Ntk_t * pNtk )
                     Vec_PtrPush( pMan->vNames, pEquation );
                     // get the buffer
                     pFunc = (Hop_Obj_t *)Mio_LibraryReadBuf(Abc_FrameReadLibGen());
+                    if ( pFunc == NULL )
+                    {
+                        sprintf( pMan->sError, "Reading assign statement for node %s has failed because the genlib library has no buffer.", Abc_ObjName(pNet) );
+                        Ver_ParsePrintErrorMessage( pMan );
+                        return 0;
+                    }
                 }
             }
             else
@@ -1391,6 +1397,7 @@ int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Mio_Gate_t * pGate )
         Ver_ParsePrintErrorMessage( pMan );
         return 0;
     }
+    Ver_ParseSkipComments( pMan );
 
     // start the node
     pNode = Abc_NtkCreateNode( pNtk );

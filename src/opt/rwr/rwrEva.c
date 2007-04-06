@@ -129,7 +129,7 @@ clk2 = clock();
 
         // label MFFC with current ID
         Abc_NtkIncrementTravId( pNode->pNtk );
-        nNodesSaved = Abc_NodeMffcLabel( pNode );
+        nNodesSaved = Abc_NodeMffcLabelAig( pNode );
         // unmark the fanin boundary
         Vec_PtrForEachEntry( p->vFaninsCur, pFanin, i )
             Abc_ObjRegular(pFanin)->vFanouts.nSize--;

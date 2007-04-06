@@ -523,7 +523,7 @@ bool Abc_NtkCheckNode( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode )
     // the node should have a function assigned unless it is an AIG
     if ( pNode->pData == NULL )
     {
-        fprintf( stdout, "NodeCheck: An internal node \"%s\" does not have a logic function.\n", Abc_ObjName(pNode) );
+        fprintf( stdout, "NodeCheck: An internal node \"%s\" does not have a logic function.\n", Abc_NtkIsNetlist(pNode->pNtk)? Abc_ObjName(Abc_ObjFanout0(pNode)) : Abc_ObjName(pNode) );
         return 0;
     }
     // the netlist and SOP logic network should have SOPs

@@ -63,7 +63,7 @@ static int Abc_CommandSweep          ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandFastExtract    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDisjoint       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandImfs           ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandLutjam         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandLutpack        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandRewrite        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRefactor       ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -218,7 +218,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "fx",            Abc_CommandFastExtract,      1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "dsd",           Abc_CommandDisjoint,         1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "imfs",          Abc_CommandImfs,             1 );
-    Cmd_CommandAdd( pAbc, "Synthesis",    "lutjam",        Abc_CommandLutjam,           1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "lutpack",       Abc_CommandLutpack,          1 );
 
     Cmd_CommandAdd( pAbc, "Synthesis",    "rewrite",       Abc_CommandRewrite,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "refactor",      Abc_CommandRefactor,         1 );
@@ -328,6 +328,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 
 //    Abc_NtkPrint256();
 //    Kit_TruthCountMintermsPrecomp();
+//    Kit_DsdPrecompute4Vars();
 } 
 
 /**Function*************************************************************
@@ -1536,7 +1537,7 @@ int Abc_CommandPrintDsd( Abc_Frame_t * pAbc, int argc, char ** argv )
     // convert it to truth table
     {
         Abc_Obj_t * pObj = Abc_ObjFanin0( Abc_NtkPo(pNtk, 0) );
-        Vec_Int_t * vMemory = Vec_IntAlloc( 100 );
+        Vec_Int_t * vMemory = Vec_IntAlloc( 10000 );
         unsigned * pTruth;
         if ( !Abc_ObjIsNode(pObj) )
         {
@@ -1548,7 +1549,7 @@ int Abc_CommandPrintDsd( Abc_Frame_t * pAbc, int argc, char ** argv )
             fprintf( pErr, "Currently works only for up to 8 inputs.\n" );
             return 1;
         }
-        pTruth = Abc_ConvertAigToTruth( pNtk->pManFunc, Hop_Regular(pObj->pData), Abc_ObjFaninNum(pObj), vMemory, 1 );
+        pTruth = Abc_ConvertAigToTruth( pNtk->pManFunc, Hop_Regular(pObj->pData), Abc_ObjFaninNum(pObj), vMemory, 0 );
         if ( Hop_IsComplement(pObj->pData) )
             Extra_TruthNot( pTruth, pTruth, Abc_ObjFaninNum(pObj) );
         Extra_PrintBinary( stdout, pTruth, 1 << Abc_ObjFaninNum(pObj) );
@@ -2889,7 +2890,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_CommandLutjam( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandLutpack( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
@@ -2907,7 +2908,7 @@ int Abc_CommandLutjam( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     memset( pPars, 0, sizeof(Lut_Par_t) );
     pPars->nLutsMax     =  4; // (N) the maximum number of LUTs in the structure
-    pPars->nLutsOver    =  1; // (Q) the maximum number of LUTs not in the MFFC
+    pPars->nLutsOver    =  2; // (Q) the maximum number of LUTs not in the MFFC
     pPars->nVarsShared  =  0; // (S) the maximum number of shared variables (crossbars)
     pPars->fVerbose     =  0;
     pPars->fVeryVerbose =  0;
@@ -2982,7 +2983,7 @@ int Abc_CommandLutjam( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: lutjam [-N <num>] [-Q <num>] [-S <num>] [-vwh]\n" );
+    fprintf( pErr, "usage: lutpack [-N <num>] [-Q <num>] [-S <num>] [-vwh]\n" );
     fprintf( pErr, "\t           performs \"rewriting\" for LUT networks\n" );
     fprintf( pErr, "\t-N <num> : the max number of LUTs in the structure (2 <= num) [default = %d]\n", pPars->nLutsMax );
     fprintf( pErr, "\t-Q <num> : the max number of LUTs not in MFFC (0 <= num) [default = %d]\n", pPars->nLutsOver );
