@@ -234,6 +234,9 @@ struct Lut_Par_t_
     int               nLutsMax;      // (N) the maximum number of LUTs in the structure
     int               nLutsOver;     // (Q) the maximum number of LUTs not in the MFFC
     int               nVarsShared;   // (S) the maximum number of shared variables (crossbars)
+    int               nGrowthLevel;  // (L) the maximum increase in the node level after resynthesis
+    int               fSatur;        // iterate till saturation
+    int               fZeroCost;     // accept zero-cost replacements
     int               fVerbose;      // the verbosiness flag
     int               fVeryVerbose;  // additional verbose info printout
     // internal parameters

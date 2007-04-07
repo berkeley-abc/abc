@@ -1216,7 +1216,7 @@ unsigned Kit_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars,
 //    short pStore2[32];
     unsigned * pIn = pInOut, * pOut = pAux, * pTemp;
     int nWords = Kit_TruthWordNum( nVars );
-    int i, Temp, fChange, Counter, nOnes;//, k, j, w, Limit;
+    int i, Temp, fChange, Counter;//, nOnes;//, k, j, w, Limit;
     unsigned uCanonPhase;
 
     // canonicize output

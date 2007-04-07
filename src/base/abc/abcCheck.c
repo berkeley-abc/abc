@@ -38,6 +38,8 @@ static bool Abc_NtkComparePis( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb )
 static bool Abc_NtkComparePos( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb );
 static bool Abc_NtkCompareLatches( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb );
 
+static inline char * Abc_ObjNameNet( Abc_Obj_t * pObj ) { return (Abc_ObjIsNode(pObj) && Abc_NtkIsNetlist(pObj->pNtk)) ? Abc_ObjName(Abc_ObjFanout0(pObj)) : Abc_ObjName(pObj); }
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -523,7 +525,7 @@ bool Abc_NtkCheckNode( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode )
     // the node should have a function assigned unless it is an AIG
     if ( pNode->pData == NULL )
     {
-        fprintf( stdout, "NodeCheck: An internal node \"%s\" does not have a logic function.\n", Abc_NtkIsNetlist(pNode->pNtk)? Abc_ObjName(Abc_ObjFanout0(pNode)) : Abc_ObjName(pNode) );
+        fprintf( stdout, "NodeCheck: An internal node \"%s\" does not have a logic function.\n", Abc_ObjNameNet(pNode) );
         return 0;
     }
     // the netlist and SOP logic network should have SOPs
@@ -531,7 +533,7 @@ bool Abc_NtkCheckNode( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode )
     {
         if ( !Abc_SopCheck( pNode->pData, Abc_ObjFaninNum(pNode) ) )
         {
-            fprintf( stdout, "NodeCheck: SOP check for node \"%s\" has failed.\n", Abc_ObjName(pNode) );
+            fprintf( stdout, "NodeCheck: SOP check for node \"%s\" has failed.\n", Abc_ObjNameNet(pNode) );
             return 0;
         }
     }
@@ -540,7 +542,7 @@ bool Abc_NtkCheckNode( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode )
         int nSuppSize = Cudd_SupportSize(pNtk->pManFunc, pNode->pData);
         if ( nSuppSize > Abc_ObjFaninNum(pNode) )
         {
-            fprintf( stdout, "NodeCheck: BDD of the node \"%s\" has incorrect support size.\n", Abc_ObjName(pNode) );
+            fprintf( stdout, "NodeCheck: BDD of the node \"%s\" has incorrect support size.\n", Abc_ObjNameNet(pNode) );
             return 0;
         }
     }

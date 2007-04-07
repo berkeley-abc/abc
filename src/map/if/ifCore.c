@@ -48,7 +48,7 @@ int If_ManPerformMapping( If_Man_t * p )
     // create the CI cutsets
     If_ManSetupCiCutSets( p );
     // allocate memory for other cutsets
-    If_ManSetupSetAll( p );
+    If_ManSetupSetAll( p, If_ManCrossCut(p) );
 
     // try sequential mapping
     if ( p->pPars->fSeqMap )

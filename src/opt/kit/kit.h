@@ -87,6 +87,69 @@ struct Kit_Graph_t_
     Kit_Edge_t        eRoot;           // the pointer to the topmost node
 };
 
+
+// DSD node types
+typedef enum { 
+    KIT_DSD_NONE  = 0,  // 0: unknown
+    KIT_DSD_CONST1,     // 1: constant 1
+    KIT_DSD_VAR,        // 2: elementary variable
+    KIT_DSD_AND,        // 3: multi-input AND
+    KIT_DSD_XOR,        // 4: multi-input XOR
+    KIT_DSD_PRIME       // 5: arbitrary function of 3+ variables
+} Kit_Dsd_t;
+
+// DSD node
+typedef struct Kit_DsdObj_t_ Kit_DsdObj_t;
+struct Kit_DsdObj_t_
+{ 
+    unsigned       Id         : 6;  // the number of this node
+    unsigned       Type       : 3;  // none, const, var, AND, XOR, MUX, PRIME
+    unsigned       fMark      : 1;  // finished checking output
+    unsigned       Offset     : 8;  // offset to the truth table
+    unsigned       nRefs      : 8;  // offset to the truth table
+    unsigned       nFans      : 6;  // the number of fanins of this node
+    unsigned char  pFans[0];        // the fanin literals
+};
+
+// DSD network
+typedef struct Kit_DsdNtk_t_ Kit_DsdNtk_t;
+struct Kit_DsdNtk_t_
+{
+    unsigned char  nVars;           // at most 16 (perhaps 18?)
+    unsigned char  nNodesAlloc;     // the number of allocated nodes (at most nVars)
+    unsigned char  nNodes;          // the number of nodes
+    unsigned char  Root;            // the root of the tree
+    unsigned *     pMem;            // memory for the truth tables (memory manager?)
+    Kit_DsdObj_t * pNodes[0];       // the nodes
+};
+
+// DSD manager
+typedef struct Kit_DsdMan_t_ Kit_DsdMan_t;
+struct Kit_DsdMan_t_
+{
+    int            nVars;           // the maximum number of variables
+    int            nWords;          // the number of words in TTs
+    Vec_Ptr_t *    vTtElems;        // elementary truth tables
+    Vec_Ptr_t *    vTtNodes;        // the node truth tables
+};
+
+static inline int             Kit_DsdVar2Lit( int Var, int fCompl )  { return Var + Var + fCompl; }
+static inline int             Kit_DsdLit2Var( int Lit )              { return Lit >> 1;           }
+static inline int             Kit_DsdLitIsCompl( int Lit )           { return Lit & 1;            }
+static inline int             Kit_DsdLitNot( int Lit )               { return Lit ^ 1;            }
+static inline int             Kit_DsdLitNotCond( int Lit, int c )    { return Lit ^ (int)(c > 0); }
+static inline int             Kit_DsdLitRegular( int Lit )           { return Lit & 0xfe;         }
+ 
+static inline unsigned        Kit_DsdObjOffset( int nFans )          { return (nFans >> 2) + ((nFans & 3) > 0);                    }
+static inline unsigned *      Kit_DsdObjTruth( Kit_DsdObj_t * pObj ) { return pObj->Type == KIT_DSD_PRIME ? (unsigned *)pObj->pFans + pObj->Offset: NULL; }
+static inline Kit_DsdObj_t *  Kit_DsdNtkObj( Kit_DsdNtk_t * pNtk, int Id )  { assert( Id >= 0 && Id < pNtk->nVars + pNtk->nNodes ); return Id < pNtk->nVars ? NULL : pNtk->pNodes[Id - pNtk->nVars]; }
+static inline Kit_DsdObj_t *  Kit_DsdNtkRoot( Kit_DsdNtk_t * pNtk )  { return Kit_DsdNtkObj( pNtk, Kit_DsdLit2Var(pNtk->Root) );   }
+
+#define Kit_DsdNtkForEachObj( pNtk, pObj, i )                                      \
+    for ( i = 0; (i < (pNtk)->nNodes) && ((pObj) = (pNtk)->pNodes[i]); i++ )
+#define Kit_DsdObjForEachFanin( pNtk, pObj, iLit, i )                              \
+    for ( i = 0; (i < (pObj)->nFans) && ((iLit) = (pObj)->pFans[i], 1); i++ )
+
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
@@ -358,6 +421,13 @@ static inline void Kit_TruthAndPhase( unsigned * pOut, unsigned * pIn0, unsigned
 extern DdNode *        Kit_SopToBdd( DdManager * dd, Kit_Sop_t * cSop, int nVars );
 extern DdNode *        Kit_GraphToBdd( DdManager * dd, Kit_Graph_t * pGraph );
 extern DdNode *        Kit_TruthToBdd( DdManager * dd, unsigned * pTruth, int nVars, int fMSBonTop );
+/*=== kitDsd.c ==========================================================*/
+extern Kit_DsdNtk_t *  Kit_DsdDeriveNtk( unsigned * pTruth, int nVars, int nLutSize );
+extern unsigned *      Kit_DsdTruthCompute( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk );
+extern void            Kit_DsdPrint( FILE * pFile, Kit_DsdNtk_t * pNtk );
+extern Kit_DsdNtk_t *  Kit_DsdDecompose( unsigned * pTruth, int nVars );
+extern void            Kit_DsdNtkFree( Kit_DsdNtk_t * pNtk );
+extern int             Kit_DsdNonDsdSizeMax( Kit_DsdNtk_t * pNtk );
 /*=== kitFactor.c ==========================================================*/
 extern Kit_Graph_t *   Kit_SopFactor( Vec_Int_t * vCover, int fCompl, int nVars, Vec_Int_t * vMemory );
 /*=== kitGraph.c ==========================================================*/

@@ -25,11 +25,29 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static int Res_UpdateNetworkLevelNew( Abc_Obj_t * pObj );
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the level of the node using its fanin levels.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Res_UpdateNetworkLevelNew( Abc_Obj_t * pObj )
+{
+    Abc_Obj_t * pFanin;
+    int i, Level = 0;
+    Abc_ObjForEachFanin( pObj, pFanin, i )
+        Level = ABC_MAX( Level, (int)pFanin->Level );
+    return Level + 1;
+}
 
 /**Function*************************************************************
 
@@ -42,18 +60,10 @@ static int Res_UpdateNetworkLevelNew( Abc_Obj_t * pObj );
   SeeAlso     []
 
 ***********************************************************************/
-void Res_UpdateNetwork( Abc_Obj_t * pObj, Vec_Ptr_t * vFanins, Hop_Obj_t * pFunc, Vec_Vec_t * vLevels )
+void Res_UpdateNetworkLevel( Abc_Obj_t * pObjNew, Vec_Vec_t * vLevels )
 {
-    Abc_Obj_t * pObjNew, * pFanin, * pFanout, * pTemp;
+    Abc_Obj_t * pFanout, * pTemp;
     int Lev, k, m;
-    // create the new node
-    pObjNew = Abc_NtkCreateNode( pObj->pNtk );
-    pObjNew->pData = pFunc;
-    Vec_PtrForEachEntry( vFanins, pFanin, k )
-        Abc_ObjAddFanin( pObjNew, pFanin );
-    // replace the old node by the new node
-    pObjNew->Level = pObj->Level;
-    Abc_ObjReplace( pObj, pObjNew );
     // check if level has changed
     if ( (int)pObjNew->Level == Res_UpdateNetworkLevelNew(pObjNew) )
         return;
@@ -81,7 +91,7 @@ void Res_UpdateNetwork( Abc_Obj_t * pObj, Vec_Ptr_t * vFanins, Hop_Obj_t * pFunc
 
 /**Function*************************************************************
 
-  Synopsis    [Computes the level of the node using its fanin levels.]
+  Synopsis    [Incrementally updates level of the nodes.]
 
   Description []
                
@@ -90,13 +100,20 @@ void Res_UpdateNetwork( Abc_Obj_t * pObj, Vec_Ptr_t * vFanins, Hop_Obj_t * pFunc
   SeeAlso     []
 
 ***********************************************************************/
-int Res_UpdateNetworkLevelNew( Abc_Obj_t * pObj )
+void Res_UpdateNetwork( Abc_Obj_t * pObj, Vec_Ptr_t * vFanins, Hop_Obj_t * pFunc, Vec_Vec_t * vLevels )
 {
-    Abc_Obj_t * pFanin;
-    int i, Level = 0;
-    Abc_ObjForEachFanin( pObj, pFanin, i )
-        Level = ABC_MAX( Level, (int)pFanin->Level );
-    return Level + 1;
+    Abc_Obj_t * pObjNew, * pFanin;
+    int k;
+    // create the new node
+    pObjNew = Abc_NtkCreateNode( pObj->pNtk );
+    pObjNew->pData = pFunc;
+    Vec_PtrForEachEntry( vFanins, pFanin, k )
+        Abc_ObjAddFanin( pObjNew, pFanin );
+    // replace the old node by the new node
+    pObjNew->Level = pObj->Level;
+    Abc_ObjReplace( pObj, pObjNew );
+    // update the level of the node
+    Res_UpdateNetworkLevel( pObjNew, vLevels );
 }
 
 ////////////////////////////////////////////////////////////////////////

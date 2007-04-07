@@ -1264,9 +1264,9 @@ int Abc_CommandPrintKMap( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( !Abc_NtkIsBddLogic(pNtk) )
+    if ( !Abc_NtkIsLogic(pNtk) )
     {
-        fprintf( pErr, "Visualizing Karnaugh map works for BDD logic networks (run \"bdd\").\n" );
+        fprintf( pErr, "Visualization of Karnaugh maps works for logic networks.\n" );
         return 1;
     }
     if ( argc > globalUtilOptind + 1 )
@@ -1292,6 +1292,7 @@ int Abc_CommandPrintKMap( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
     }
+    Abc_NtkToBdd(pNtk);
     Abc_NodePrintKMap( pNode, fUseRealNames );
     return 0;
 
@@ -2908,12 +2909,15 @@ int Abc_CommandLutpack( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     memset( pPars, 0, sizeof(Lut_Par_t) );
     pPars->nLutsMax     =  4; // (N) the maximum number of LUTs in the structure
-    pPars->nLutsOver    =  2; // (Q) the maximum number of LUTs not in the MFFC
+    pPars->nLutsOver    =  3; // (Q) the maximum number of LUTs not in the MFFC
     pPars->nVarsShared  =  0; // (S) the maximum number of shared variables (crossbars)
-    pPars->fVerbose     =  0;
+    pPars->nGrowthLevel =  1;
+    pPars->fSatur       =  1;
+    pPars->fZeroCost    =  0; 
+    pPars->fVerbose     =  1;
     pPars->fVeryVerbose =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NQSvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NQSLszvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -2950,6 +2954,23 @@ int Abc_CommandLutpack( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nVarsShared < 0 || pPars->nVarsShared > 4 ) 
                 goto usage;
             break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nGrowthLevel = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nGrowthLevel < 0 || pPars->nGrowthLevel > ABC_INFINITY ) 
+                goto usage;
+            break;
+        case 's':
+            pPars->fSatur ^= 1;
+            break;
+        case 'z':
+            pPars->fZeroCost ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -2983,11 +3004,14 @@ int Abc_CommandLutpack( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: lutpack [-N <num>] [-Q <num>] [-S <num>] [-vwh]\n" );
+    fprintf( pErr, "usage: lutpack [-N <num>] [-Q <num>] [-S <num>] [-L <num>] [-szvwh]\n" );
     fprintf( pErr, "\t           performs \"rewriting\" for LUT networks\n" );
     fprintf( pErr, "\t-N <num> : the max number of LUTs in the structure (2 <= num) [default = %d]\n", pPars->nLutsMax );
     fprintf( pErr, "\t-Q <num> : the max number of LUTs not in MFFC (0 <= num) [default = %d]\n", pPars->nLutsOver );
     fprintf( pErr, "\t-S <num> : the max number of LUT inputs shared (0 <= num) [default = %d]\n", pPars->nVarsShared );
+    fprintf( pErr, "\t-L <num> : the largest increase in node level after resynthesis (0 <= num) [default = %d]\n", pPars->nGrowthLevel );
+    fprintf( pErr, "\t-s       : toggle iteration till saturation [default = %s]\n", pPars->fSatur? "yes": "no" );
+    fprintf( pErr, "\t-z       : toggle zero-cost replacements [default = %s]\n", pPars->fZeroCost? "yes": "no" );
     fprintf( pErr, "\t-v       : toggle verbose printout [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-w       : toggle printout subgraph statistics [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     fprintf( pErr, "\t-h       : print the command usage\n");

@@ -79,7 +79,36 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
     p->pConst1 = If_ManSetupObj( p );
     p->pConst1->Type = IF_CONST1;
     p->pConst1->fPhase = 1;
+    p->nObjs[IF_CONST1]++;
     return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void If_ManRestart( If_Man_t * p )
+{
+    FREE( p->pMemCi );
+    Vec_PtrClear( p->vCis );
+    Vec_PtrClear( p->vCos );
+    Vec_PtrClear( p->vObjs );
+    Vec_PtrClear( p->vMapped );
+    Vec_PtrClear( p->vTemp );
+    Mem_FixedRestart( p->pMemObj );
+    // create the constant node
+    p->pConst1 = If_ManSetupObj( p );
+    p->pConst1->Type = IF_CONST1;
+    p->pConst1->fPhase = 1;
+    // reset the counter of other nodes
+    p->nObjs[IF_CI] = p->nObjs[IF_CO] = p->nObjs[IF_AND] = 0;
 }
 
 /**Function*************************************************************
@@ -103,7 +132,6 @@ void If_ManStop( If_Man_t * p )
     if ( p->vLatchOrder ) Vec_PtrFree( p->vLatchOrder );
     if ( p->vLags ) Vec_IntFree( p->vLags );
     Mem_FixedStop( p->pMemObj, 0 );
-//    Mem_FixedStop( p->pMemSet, 0 );
     FREE( p->pMemCi );
     FREE( p->pMemAnd );
     FREE( p->puTemp[0] );
@@ -186,6 +214,25 @@ If_Obj_t * If_ManCreateAnd( If_Man_t * p, If_Obj_t * pFan0, int fCompl0, If_Obj_
         p->nLevelMax = (int)pObj->Level;
     p->nObjs[IF_AND]++;
     return pObj;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Create the new node assuming it does not exist.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+If_Obj_t * If_ManCreateXnor( If_Man_t * p, If_Obj_t * pFan0, If_Obj_t * pFan1 )
+{
+    If_Obj_t * pRes1, * pRes2;
+    pRes1 = If_ManCreateAnd( p, pFan0, 0, pFan1, 1 );
+    pRes2 = If_ManCreateAnd( p, pFan0, 1, pFan1, 0 );
+    return If_ManCreateAnd( p, pRes1, 1, pRes2, 1 );
 }
 
 /**Function*************************************************************
@@ -460,11 +507,10 @@ void If_ManDerefChoiceCutSet( If_Man_t * p, If_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-void If_ManSetupSetAll( If_Man_t * p )
+void If_ManSetupSetAll( If_Man_t * p, int nCrossCut )
 {
     If_Set_t * pCutSet;
-    int i, nCrossCut, nCutSets;
-    nCrossCut = If_ManCrossCut( p );
+    int i, nCutSets;
     nCutSets = 128 + nCrossCut;
     p->pFreeList = p->pMemAnd = pCutSet = (If_Set_t *)malloc( nCutSets * p->nSetBytes );
     for ( i = 0; i < nCutSets; i++ )

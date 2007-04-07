@@ -331,17 +331,19 @@ extern void            If_CutCopy( If_Man_t * p, If_Cut_t * pCutDest, If_Cut_t *
 extern void            If_ManSortCuts( If_Man_t * p, int Mode );
 /*=== ifMan.c =============================================================*/
 extern If_Man_t *      If_ManStart( If_Par_t * pPars );
+extern void            If_ManRestart( If_Man_t * p );
 extern void            If_ManStop( If_Man_t * p );
 extern If_Obj_t *      If_ManCreateCi( If_Man_t * p );
 extern If_Obj_t *      If_ManCreateCo( If_Man_t * p, If_Obj_t * pDriver, int fCompl0 );
 extern If_Obj_t *      If_ManCreateAnd( If_Man_t * p, If_Obj_t * pFan0, int fCompl0, If_Obj_t * pFan1, int fCompl1 );
+extern If_Obj_t *      If_ManCreateXnor( If_Man_t * p, If_Obj_t * pFan0, If_Obj_t * pFan1 );
 extern void            If_ManCreateChoice( If_Man_t * p, If_Obj_t * pRepr );
 extern void            If_ManSetupCutTriv( If_Man_t * p, If_Cut_t * pCut, int ObjId );
 extern void            If_ManSetupCiCutSets( If_Man_t * p );
 extern If_Set_t *      If_ManSetupNodeCutSet( If_Man_t * p, If_Obj_t * pObj );
 extern void            If_ManDerefNodeCutSet( If_Man_t * p, If_Obj_t * pObj );
 extern void            If_ManDerefChoiceCutSet( If_Man_t * p, If_Obj_t * pObj );
-extern void            If_ManSetupSetAll( If_Man_t * p );
+extern void            If_ManSetupSetAll( If_Man_t * p, int nCrossCut );
 /*=== ifMap.c =============================================================*/
 extern void            If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPreprocess );
 extern void            If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPreprocess );
