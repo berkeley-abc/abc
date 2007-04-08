@@ -1595,6 +1595,140 @@ void Abc_NtkPrint256()
     fclose( pFile );
 }
 
+
+static     int * pSupps;
+
+/**Function*************************************************************
+
+  Synopsis    [Compares the supergates by their level.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkCompareConesCompare( int * pNum1, int * pNum2 )
+{
+    if ( pSupps[*pNum1] > pSupps[*pNum2] )
+        return -1;
+    if ( pSupps[*pNum1] < pSupps[*pNum2] )
+        return 1;
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Analyze choice node support.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkCompareCones( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vSupp, * vNodes, * vReverse;
+    Abc_Obj_t * pObj, * pTemp;
+    int Iter, i, k, Counter, CounterCos, CounterCosNew;
+    int * pPerms;
+
+    // sort COs by support size
+    pPerms = ALLOC( int, Abc_NtkCoNum(pNtk) );
+    pSupps = ALLOC( int, Abc_NtkCoNum(pNtk) );
+    Abc_NtkForEachCo( pNtk, pObj, i )
+    {
+        pPerms[i] = i;
+        vSupp = Abc_NtkNodeSupport( pNtk, &pObj, 1 );
+        pSupps[i] = Vec_PtrSize(vSupp);
+        Vec_PtrFree( vSupp );
+    }
+    qsort( (void *)pPerms, Abc_NtkCoNum(pNtk), sizeof(int), (int (*)(const void *, const void *)) Abc_NtkCompareConesCompare );
+
+    // consider COs in this order
+    Iter = 0;
+    Abc_NtkForEachCo( pNtk, pObj, i )
+    {
+        pObj = Abc_NtkCo( pNtk, pPerms[i] );
+        if ( pObj->fMarkA )
+            continue;
+        Iter++;
+
+        vSupp = Abc_NtkNodeSupport( pNtk, &pObj, 1 );
+        vNodes = Abc_NtkDfsNodes( pNtk, &pObj, 1 );
+        vReverse = Abc_NtkDfsReverseNodesContained( pNtk, (Abc_Obj_t **)Vec_PtrArray(vSupp), Vec_PtrSize(vSupp) );
+        // count the number of nodes in the reverse cone
+        Counter = 0;
+        for ( k = 1; k < Vec_PtrSize(vReverse) - 1; k++ )
+            for ( pTemp = Vec_PtrEntry(vReverse, k); pTemp; pTemp = pTemp->pCopy )
+                Counter++;
+        CounterCos = CounterCosNew = 0;
+        for ( pTemp = Vec_PtrEntryLast(vReverse); pTemp; pTemp = pTemp->pCopy )
+        {
+            assert( Abc_ObjIsCo(pTemp) );
+            CounterCos++;
+            if ( pTemp->fMarkA == 0 )
+                CounterCosNew++;
+            pTemp->fMarkA = 1;
+        }
+        // print statistics
+        printf( "%4d CO %5d :  Supp = %5d.  Lev = %3d.  Cone = %5d.  Rev = %5d.  COs = %3d (%3d).\n",
+            Iter, pPerms[i], Vec_PtrSize(vSupp), Abc_ObjLevel(Abc_ObjFanin0(pObj)), Vec_PtrSize(vNodes), Counter, CounterCos, CounterCosNew );
+
+        // free arrays
+        Vec_PtrFree( vSupp );
+        Vec_PtrFree( vNodes );
+        Vec_PtrFree( vReverse );
+
+        if ( Vec_PtrSize(vSupp) < 10 )
+            break;
+    }
+    Abc_NtkForEachCo( pNtk, pObj, i )
+        pObj->fMarkA = 0;
+
+    free( pPerms );
+    free( pSupps );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Analyze choice node support.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkCompareSupports( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vSupp;
+    Abc_Obj_t * pObj, * pTemp;
+    int i, nNodesOld;
+    assert( Abc_NtkIsStrash(pNtk) );
+    Abc_AigForEachAnd( pNtk, pObj, i )
+    {
+        if ( !Abc_AigNodeIsChoice(pObj) )
+            continue;
+
+        vSupp = Abc_NtkNodeSupport( pNtk, &pObj, 1 );
+        nNodesOld = Vec_PtrSize(vSupp);
+        Vec_PtrFree( vSupp );
+
+        for ( pTemp = pObj->pData; pTemp; pTemp = pTemp->pData )
+        {
+            vSupp = Abc_NtkNodeSupport( pNtk, &pTemp, 1 );
+            if ( nNodesOld != Vec_PtrSize(vSupp) )
+                printf( "Choice orig = %3d  Choice new = %3d\n", nNodesOld, Vec_PtrSize(vSupp) );
+            Vec_PtrFree( vSupp );
+        }
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

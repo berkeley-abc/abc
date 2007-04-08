@@ -564,6 +564,86 @@ Abc_Ntk_t * Abc_NtkCreateCone( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, char * pNode
 
 /**Function*************************************************************
 
+  Synopsis    [Creates the network composed of several logic cones.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkCreateConeArray( Abc_Ntk_t * pNtk, Vec_Ptr_t * vRoots, int fUseAllCis )
+{
+    Abc_Ntk_t * pNtkNew; 
+    Vec_Ptr_t * vNodes;
+    Abc_Obj_t * pObj, * pFanin, * pNodeCoNew;
+    char Buffer[1000];
+    int i, k;
+
+    assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsStrash(pNtk) );
+    
+    // start the network
+    pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc, 1 );
+    // set the name
+    sprintf( Buffer, "%s_part", pNtk->pName );
+    pNtkNew->pName = Extra_UtilStrsav(Buffer);
+
+    // establish connection between the constant nodes
+    if ( Abc_NtkIsStrash(pNtk) )
+        Abc_AigConst1(pNtk)->pCopy = Abc_AigConst1(pNtkNew);
+
+    // collect the nodes in the TFI of the output (mark the TFI)
+    vNodes = Abc_NtkDfsNodes( pNtk, (Abc_Obj_t **)Vec_PtrArray(vRoots), Vec_PtrSize(vRoots) );
+
+    // create the PIs
+    Abc_NtkForEachCi( pNtk, pObj, i )
+    {
+        if ( fUseAllCis || Abc_NodeIsTravIdCurrent(pObj) ) // TravId is set by DFS
+        {
+            pObj->pCopy = Abc_NtkCreatePi(pNtkNew);
+            Abc_ObjAssignName( pObj->pCopy, Abc_ObjName(pObj), NULL );
+        }
+    }
+
+    // copy the nodes
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+    {
+        // if it is an AIG, add to the hash table
+        if ( Abc_NtkIsStrash(pNtk) )
+        {
+            pObj->pCopy = Abc_AigAnd( pNtkNew->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
+        }
+        else
+        {
+            Abc_NtkDupObj( pNtkNew, pObj, 0 );
+            Abc_ObjForEachFanin( pObj, pFanin, k )
+                Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
+        }
+    }
+    Vec_PtrFree( vNodes );
+
+    // add the PO corresponding to the nodes
+    Vec_PtrForEachEntry( vRoots, pObj, i )
+    {
+        // create the PO node
+        pNodeCoNew = Abc_NtkCreatePo( pNtkNew );
+        // connect the internal nodes to the new CO
+        if ( Abc_ObjIsCo(pObj) )
+            Abc_ObjAddFanin( pNodeCoNew, Abc_ObjChild0Copy(pObj) );
+        else
+            Abc_ObjAddFanin( pNodeCoNew, pObj->pCopy );
+        // assign the name
+        Abc_ObjAssignName( pNodeCoNew, Abc_ObjName(pObj), NULL );
+    }
+
+    if ( !Abc_NtkCheck( pNtkNew ) )
+        fprintf( stdout, "Abc_NtkCreateConeArray(): Network check has failed.\n" );
+    return pNtkNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Creates the network composed of MFFC of one node.]
 
   Description []

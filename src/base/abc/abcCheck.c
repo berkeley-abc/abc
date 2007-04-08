@@ -918,9 +918,7 @@ int Abc_NtkCheckUniqueCioNames( Abc_Ntk_t * pNtk )
     assert( !Abc_NtkIsNetlist(pNtk) );
     Abc_NtkForEachCo( pNtk, pObj, i )
     {
-        nCiId = Nm_ManFindIdByName( pNtk->pManName, Abc_ObjName(pObj), ABC_OBJ_PI );
-        if ( nCiId == -1 )
-            nCiId = Nm_ManFindIdByName( pNtk->pManName, Abc_ObjName(pObj), ABC_OBJ_BO );
+        nCiId = Nm_ManFindIdByNameTwoTypes( pNtk->pManName, Abc_ObjName(pObj), ABC_OBJ_PI, ABC_OBJ_BO );
         if ( nCiId == -1 )
             continue;
         pObjCi = Abc_NtkObj( pNtk, nCiId );

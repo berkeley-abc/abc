@@ -775,6 +775,64 @@ static inline void Vec_IntSortUnsigned( Vec_Int_t * p )
             (int (*)(const void *, const void *)) Vec_IntSortCompareUnsigned );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns the number of common entries.]
+
+  Description [Assumes that the vectors are sorted in the increasing order.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_IntTwoCountCommon( Vec_Int_t * vArr1, Vec_Int_t * vArr2 )
+{
+    int i, k, Counter = 0;
+    for ( i = k = 0; i < Vec_IntSize(vArr1) && k < Vec_IntSize(vArr2); )
+    {
+        if ( Vec_IntEntry(vArr1,i) == Vec_IntEntry(vArr2,k) )
+            Counter++, i++, k++;
+        else if ( Vec_IntEntry(vArr1,i) < Vec_IntEntry(vArr2,k) )
+            i++;
+        else
+            k++;
+    }
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the result of merging the two vectors.]
+
+  Description [Assumes that the vectors are sorted in the increasing order.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Vec_Int_t * Vec_IntTwoMerge( Vec_Int_t * vArr1, Vec_Int_t * vArr2 )
+{
+    Vec_Int_t * vArr; 
+    int i, k;
+    vArr = Vec_IntAlloc( Vec_IntSize(vArr1) );
+    for ( i = k = 0; i < Vec_IntSize(vArr1) && k < Vec_IntSize(vArr2); )
+    {
+        if ( Vec_IntEntry(vArr1,i) == Vec_IntEntry(vArr2,k) )
+            Vec_IntPush( vArr, Vec_IntEntry(vArr1,i) ), i++, k++;
+        else if ( Vec_IntEntry(vArr1,i) < Vec_IntEntry(vArr2,k) )
+            Vec_IntPush( vArr, Vec_IntEntry(vArr1,i) ), i++;
+        else
+            Vec_IntPush( vArr, Vec_IntEntry(vArr2,k) ), k++;
+    }
+    for ( ; i < Vec_IntSize(vArr1); i++ )
+        Vec_IntPush( vArr, Vec_IntEntry(vArr1,i) );
+    for ( ; k < Vec_IntSize(vArr2); k++ )
+        Vec_IntPush( vArr, Vec_IntEntry(vArr2,k) );
+    return vArr;
+}
+
 #endif
 
 ////////////////////////////////////////////////////////////////////////

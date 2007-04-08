@@ -25,7 +25,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 static Abc_Ntk_t * Abc_NtkMiterInt( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb, int nPartSize );
-static void        Abc_NtkMiterPrepare( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Abc_Ntk_t * pNtkMiter, int fComb );
+static void        Abc_NtkMiterPrepare( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Abc_Ntk_t * pNtkMiter, int fComb, int nPartSize );
 static void        Abc_NtkMiterAddOne( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkMiter );
 static void        Abc_NtkMiterFinalize( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Abc_Ntk_t * pNtkMiter, int fComb, int nPartSize );
 static void        Abc_NtkAddFrame( Abc_Ntk_t * pNetNew, Abc_Ntk_t * pNet, int iFrame );
@@ -94,7 +94,7 @@ Abc_Ntk_t * Abc_NtkMiterInt( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb, in
     pNtkMiter->pName = Extra_UtilStrsav(Buffer);
 
     // perform strashing
-    Abc_NtkMiterPrepare( pNtk1, pNtk2, pNtkMiter, fComb );
+    Abc_NtkMiterPrepare( pNtk1, pNtk2, pNtkMiter, fComb, nPartSize );
     Abc_NtkMiterAddOne( pNtk1, pNtkMiter );
     Abc_NtkMiterAddOne( pNtk2, pNtkMiter );
     Abc_NtkMiterFinalize( pNtk1, pNtk2, pNtkMiter, fComb, nPartSize );
@@ -120,7 +120,7 @@ Abc_Ntk_t * Abc_NtkMiterInt( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb, in
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkMiterPrepare( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Abc_Ntk_t * pNtkMiter, int fComb )
+void Abc_NtkMiterPrepare( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Abc_Ntk_t * pNtkMiter, int fComb, int nPartSize )
 {
     Abc_Obj_t * pObj, * pObjNew;
     int i;
@@ -143,10 +143,13 @@ void Abc_NtkMiterPrepare( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Abc_Ntk_t * pNtk
             // add name
             Abc_ObjAssignName( pObjNew, Abc_ObjName(pObj), NULL );
         }
-        // create the only PO
-        pObjNew = Abc_NtkCreatePo( pNtkMiter );
-        // add the PO name
-        Abc_ObjAssignName( pObjNew, "miter", NULL );
+        if ( nPartSize <= 0 )
+        {
+            // create the only PO
+            pObjNew = Abc_NtkCreatePo( pNtkMiter );
+            // add the PO name
+            Abc_ObjAssignName( pObjNew, "miter", NULL );
+        }
     }
     else
     {
@@ -161,10 +164,13 @@ void Abc_NtkMiterPrepare( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Abc_Ntk_t * pNtk
             // add name
             Abc_ObjAssignName( pObjNew, Abc_ObjName(pObj), NULL );
         }
-        // create the only PO
-        pObjNew = Abc_NtkCreatePo( pNtkMiter );
-        // add the PO name
-        Abc_ObjAssignName( pObjNew, "miter", NULL );
+        if ( nPartSize <= 0 )
+        {
+            // create the only PO
+            pObjNew = Abc_NtkCreatePo( pNtkMiter );
+            // add the PO name
+            Abc_ObjAssignName( pObjNew, "miter", NULL );
+        }
         // create the latches
         Abc_NtkForEachLatch( pNtk1, pObj, i )
         {
@@ -276,7 +282,7 @@ void Abc_NtkMiterFinalize( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Abc_Ntk_t * pNt
             Abc_ObjAddFanin( Abc_ObjFanin0(pNode)->pCopy, Abc_ObjChild0Copy(Abc_ObjFanin0(pNode)) );
     }
     // add the miter
-    if ( nPartSize == 0 )
+    if ( nPartSize <= 0 )
     {
         pMiter = Abc_AigMiter( pNtkMiter->pManFunc, vPairs );
         Abc_ObjAddFanin( Abc_NtkPo(pNtkMiter,0), pMiter );
@@ -284,7 +290,7 @@ void Abc_NtkMiterFinalize( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Abc_Ntk_t * pNt
     }
     else
     {
-        char Buffer[10];
+        char Buffer[1024];
         Vec_Ptr_t * vPairsPart;
         int nParts, i, k, iCur;
         assert( Vec_PtrSize(vPairs) == 2 * Abc_NtkCoNum(pNtk1) );
@@ -303,15 +309,14 @@ void Abc_NtkMiterFinalize( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Abc_Ntk_t * pNt
                 Vec_PtrPush( vPairsPart, Vec_PtrEntry(vPairs, 2*iCur+1) );
             }
             pMiter = Abc_AigMiter( pNtkMiter->pManFunc, vPairsPart );
-            if ( i == 0 )
-                Abc_ObjAddFanin( Abc_NtkPo(pNtkMiter,0), pMiter );
+            pNode = Abc_NtkCreatePo( pNtkMiter );
+            Abc_ObjAddFanin( pNode, pMiter );
+            // assign the name to the node
+            if ( nPartSize == 1 )
+                sprintf( Buffer, "%s", Abc_ObjName(Abc_NtkPo(pNtk1,i)) );
             else
-            {
                 sprintf( Buffer, "%d", i );
-                pNode = Abc_NtkCreatePo( pNtkMiter );
-                Abc_ObjAssignName( pNode, "miter", Buffer );
-                Abc_ObjAddFanin( pNode, pMiter );
-            }
+            Abc_ObjAssignName( pNode, "miter_", Buffer );
         }
         Vec_PtrFree( vPairsPart );
         Vec_PtrFree( vPairs );
@@ -355,7 +360,7 @@ Abc_Ntk_t * Abc_NtkMiterAnd( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fOr, int 
     pNtkMiter->pName = Extra_UtilStrsav(Buffer);
 
     // perform strashing
-    Abc_NtkMiterPrepare( pNtk1, pNtk2, pNtkMiter, 1 );
+    Abc_NtkMiterPrepare( pNtk1, pNtk2, pNtkMiter, 1, -1 );
     Abc_NtkMiterAddOne( pNtk1, pNtkMiter );
     Abc_NtkMiterAddOne( pNtk2, pNtkMiter );
 //    Abc_NtkMiterFinalize( pNtk1, pNtk2, pNtkMiter, 1 );
@@ -414,7 +419,7 @@ Abc_Ntk_t * Abc_NtkMiterCofactor( Abc_Ntk_t * pNtk, Vec_Int_t * vPiValues )
     pRoot = Abc_NtkCo( pNtk, 0 );
 
     // perform strashing
-    Abc_NtkMiterPrepare( pNtk, pNtk, pNtkMiter, 1 );
+    Abc_NtkMiterPrepare( pNtk, pNtk, pNtkMiter, 1, -1 );
     // set the first cofactor
     Vec_IntForEachEntry( vPiValues, Value, i )
     {
@@ -482,7 +487,7 @@ Abc_Ntk_t * Abc_NtkMiterForCofactors( Abc_Ntk_t * pNtk, int Out, int In1, int In
     pRoot = Abc_NtkCo( pNtk, Out );
 
     // perform strashing
-    Abc_NtkMiterPrepare( pNtk, pNtk, pNtkMiter, 1 );
+    Abc_NtkMiterPrepare( pNtk, pNtk, pNtkMiter, 1, -1 );
     // set the first cofactor
     Abc_NtkCi(pNtk, In1)->pCopy = Abc_ObjNot( Abc_AigConst1(pNtkMiter) );
     if ( In2 >= 0 )
@@ -547,7 +552,7 @@ Abc_Ntk_t * Abc_NtkMiterQuantify( Abc_Ntk_t * pNtk, int In, int fExist )
     pRoot = Abc_NtkCo( pNtk, 0 );
 
     // perform strashing
-    Abc_NtkMiterPrepare( pNtk, pNtk, pNtkMiter, 1 );
+    Abc_NtkMiterPrepare( pNtk, pNtk, pNtkMiter, 1, -1 );
     // set the first cofactor
     Abc_NtkCi(pNtk, In)->pCopy = Abc_ObjNot( Abc_AigConst1(pNtkMiter) );
     // add the first cofactor

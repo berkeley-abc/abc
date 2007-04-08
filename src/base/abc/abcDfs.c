@@ -269,6 +269,79 @@ Vec_Ptr_t * Abc_NtkDfsReverseNodes( Abc_Ntk_t * pNtk, Abc_Obj_t ** ppNodes, int 
     return vNodes;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns the levelized array of TFO nodes.]
+
+  Description [Collects the levelized array of internal nodes, leaving out CIs/COs.
+  However it marks both CIs and COs with the current TravId.
+  Collects only the nodes whose support does not exceed the set of given CI nodes.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_NtkDfsReverseNodesContained( Abc_Ntk_t * pNtk, Abc_Obj_t ** ppNodes, int nNodes )
+{
+    Vec_Ptr_t * vNodes;
+    Abc_Obj_t * pObj, * pFanout, * pFanin;
+    int i, k, m, nLevels;
+    // set the levels
+    nLevels = Abc_NtkLevel( pNtk );
+    // set the traversal ID
+    Abc_NtkIncrementTravId( pNtk );
+    // start the array of nodes
+    vNodes = Vec_PtrStart( nLevels + 2 );
+    for ( i = 0; i < nNodes; i++ )
+    {
+        pObj = ppNodes[i];
+        assert( Abc_ObjIsCi(pObj) );
+        Abc_NodeSetTravIdCurrent( pObj );
+        // add to the array
+        assert( pObj->Level == 0 );
+        pObj->pCopy = Vec_PtrEntry( vNodes, pObj->Level );
+        Vec_PtrWriteEntry( vNodes, pObj->Level, pObj );
+    }
+    // iterate through the levels
+    for ( i = 0; i <= nLevels; i++ )
+    {
+        // iterate through the nodes on each level
+        for ( pObj = Vec_PtrEntry(vNodes, i); pObj; pObj = pObj->pCopy )
+        {
+            // iterate through the fanouts of each node
+            Abc_ObjForEachFanout( pObj, pFanout, k )
+            {
+                // skip visited nodes
+                if ( Abc_NodeIsTravIdCurrent(pFanout) )
+                    continue;
+                // visit the fanins of this fanout
+                Abc_ObjForEachFanin( pFanout, pFanin, m )
+                {
+                    if ( !Abc_NodeIsTravIdCurrent(pFanin) )
+                        break;
+                }
+                if ( m < Abc_ObjFaninNum(pFanout) )
+                    continue;
+                // all fanins are already collected
+
+                // mark the node as visited
+                Abc_NodeSetTravIdCurrent( pFanout );
+                // handle the COs
+                if ( Abc_ObjIsCo(pFanout) )
+                    pFanout->Level = nLevels + 1;
+                // add to the array
+                pFanout->pCopy = Vec_PtrEntry( vNodes, pFanout->Level );
+                Vec_PtrWriteEntry( vNodes, pFanout->Level, pFanout );
+                // handle the COs
+                if ( Abc_ObjIsCo(pFanout) )
+                    pFanout->Level = 0;
+            }
+        }
+    }
+    return vNodes;
+}
+
 
 /**Function*************************************************************
 

@@ -405,6 +405,8 @@ Abc_Obj_t * Abc_AigAndLookup( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 )
 {
     Abc_Obj_t * pAnd, * pConst1;
     unsigned Key;
+    assert( Abc_ObjRegular(p0)->pNtk->pManFunc == pMan );
+    assert( Abc_ObjRegular(p1)->pNtk->pManFunc == pMan );
     // check for trivial cases
     pConst1 = Abc_AigConst1(pMan->pNtkAig);
     if ( p0 == p1 )

@@ -77,6 +77,7 @@ extern void         Nm_ManDeleteIdName( Nm_Man_t * p, int ObjId );
 extern char *       Nm_ManCreateUniqueName( Nm_Man_t * p, int ObjId );
 extern char *       Nm_ManFindNameById( Nm_Man_t * p, int ObjId );
 extern int          Nm_ManFindIdByName( Nm_Man_t * p, char * pName, int Type );
+extern int          Nm_ManFindIdByNameTwoTypes( Nm_Man_t * p, char * pName, int Type1, int Type2 );
 extern Vec_Int_t *  Nm_ManReturnNameIds( Nm_Man_t * p );
 
 #ifdef __cplusplus

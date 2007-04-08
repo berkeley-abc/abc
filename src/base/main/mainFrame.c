@@ -53,8 +53,8 @@ void *      Abc_FrameReadManDd()                     { if ( s_GlobalFrame->dd ==
 void *      Abc_FrameReadManDec()                    { if ( s_GlobalFrame->pManDec == NULL ) s_GlobalFrame->pManDec = Dec_ManStart();                                        return s_GlobalFrame->pManDec; } 
 char *      Abc_FrameReadFlag( char * pFlag )        { return Cmd_FlagReadByName( s_GlobalFrame, pFlag );  } 
 
-void        Abc_FrameSetNtkStore( Abc_Ntk_t * pNtk ) { s_GlobalFrame->pStored  = pNtk;     } 
-void        Abc_FrameSetNtkStoreSize( int nStored )  { s_GlobalFrame->nStored  = nStored;  }
+void        Abc_FrameSetNtkStore( Abc_Ntk_t * pNtk ) { s_GlobalFrame->pStored   = pNtk;    } 
+void        Abc_FrameSetNtkStoreSize( int nStored )  { s_GlobalFrame->nStored   = nStored; }
 void        Abc_FrameSetLibLut( void * pLib )        { s_GlobalFrame->pLibLut   = pLib;    } 
 void        Abc_FrameSetLibGen( void * pLib )        { s_GlobalFrame->pLibGen   = pLib;    } 
 void        Abc_FrameSetLibSuper( void * pLib )      { s_GlobalFrame->pLibSuper = pLib;    } 

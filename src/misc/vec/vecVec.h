@@ -284,6 +284,67 @@ static inline void Vec_VecPushUnique( Vec_Vec_t * p, int Level, void * Entry )
         Vec_PtrPushUnique( (Vec_Ptr_t*)p->pArray[Level], Entry );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Comparison procedure for two arrays.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_VecSortCompare1( Vec_Ptr_t ** pp1, Vec_Ptr_t ** pp2 )
+{
+    if ( Vec_PtrSize(*pp1) < Vec_PtrSize(*pp2) )
+        return -1;
+    if ( Vec_PtrSize(*pp1) > Vec_PtrSize(*pp2) ) 
+        return 1;
+    return 0; 
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Comparison procedure for two integers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_VecSortCompare2( Vec_Ptr_t ** pp1, Vec_Ptr_t ** pp2 )
+{
+    if ( Vec_PtrSize(*pp1) > Vec_PtrSize(*pp2) )
+        return -1;
+    if ( Vec_PtrSize(*pp1) < Vec_PtrSize(*pp2) ) 
+        return 1;
+    return 0; 
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sorting the entries by their integer value.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_VecSort( Vec_Vec_t * p, int fReverse )
+{
+    if ( fReverse ) 
+        qsort( (void *)p->pArray, p->nSize, sizeof(void *), 
+                (int (*)(const void *, const void *)) Vec_VecSortCompare2 );
+    else
+        qsort( (void *)p->pArray, p->nSize, sizeof(void *), 
+                (int (*)(const void *, const void *)) Vec_VecSortCompare1 );
+}
+
 #endif
 
 ////////////////////////////////////////////////////////////////////////

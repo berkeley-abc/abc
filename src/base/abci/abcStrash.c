@@ -168,6 +168,7 @@ int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fAddPos )
     // perform strashing
     nNewCis = 0;
     Abc_NtkCleanCopy( pNtk2 );
+    Abc_AigConst1(pNtk2)->pCopy = Abc_AigConst1(pNtk1);
     Abc_NtkForEachCi( pNtk2, pObj, i )
     {
         pName = Abc_ObjName(pObj);
@@ -194,6 +195,27 @@ int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fAddPos )
             Abc_NtkDupObj( pNtk1, pObj, 0 );
             Abc_ObjAddFanin( pObj->pCopy, Abc_ObjChild0Copy(pObj) );
             Abc_ObjAssignName( pObj->pCopy, Abc_ObjName(pObj->pCopy), NULL );
+        }
+    }
+    else
+    {
+        Abc_Obj_t * pObjOld, * pDriverOld, * pDriverNew;
+        int fCompl, iNodeId;
+        // OR the choices
+        Abc_NtkForEachCo( pNtk2, pObj, i )
+        {
+            iNodeId = Nm_ManFindIdByNameTwoTypes( pNtk1->pManName, Abc_ObjName(pObj), ABC_OBJ_PO, ABC_OBJ_BI );
+            assert( iNodeId >= 0 );
+            pObjOld = Abc_NtkObj( pNtk1, iNodeId );
+            // derive the new driver
+            pDriverOld = Abc_ObjChild0( pObjOld );
+            pDriverNew = Abc_ObjChild0Copy( pObj );
+            pDriverNew = Abc_AigOr( pNtk1->pManFunc, pDriverOld, pDriverNew );
+            if ( Abc_ObjRegular(pDriverOld) == Abc_ObjRegular(pDriverNew) )
+                continue;
+            // replace the old driver by the new driver
+            fCompl = Abc_ObjRegular(pDriverOld)->fPhase ^ Abc_ObjRegular(pDriverNew)->fPhase;
+            Abc_ObjPatchFanin( pObjOld, Abc_ObjRegular(pDriverOld), Abc_ObjNotCond(Abc_ObjRegular(pDriverNew), fCompl) );
         }
     }
     // make sure that everything is okay

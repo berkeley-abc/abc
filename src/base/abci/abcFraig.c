@@ -704,6 +704,8 @@ int Abc_NtkFraigStore( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkFraigRestore()
 {
+    extern Abc_Ntk_t * Abc_NtkFraigPartitioned( Abc_Ntk_t * pNtk, void * pParams );
+
     Fraig_Params_t Params;
     Abc_Ntk_t * pStore, * pFraig;
     int nWords1, nWords2, nWordsMin;
@@ -743,7 +745,9 @@ Abc_Ntk_t * Abc_NtkFraigRestore()
 
 //    Fraig_ManReportChoices( p );
     // transform it into FRAIG
-    pFraig = Abc_NtkFraig( pStore, &Params, 1, 0 );
+//    pFraig = Abc_NtkFraig( pStore, &Params, 1, 0 );
+    pFraig = Abc_NtkFraigPartitioned( pStore, &Params );
+
 PRT( "Total fraiging time", clock() - clk );
     if ( pFraig == NULL )
         return NULL;

@@ -364,7 +364,7 @@ Hop_Man_t * Abc_NtkHaigReconstruct( Hop_Man_t * p )
         if ( pObj->pData ) // member of the class
             Hop_Regular(pObj->pNext)->pData = Hop_Regular(((Hop_Obj_t *)pObj->pData)->pNext);
     }
-    printf( " Counter = %d.\n", Counter );
+//    printf( " Counter = %d.\n", Counter );
     // transfer the POs
     Hop_ManForEachPo( p, pObj, i )
         Hop_ObjCreatePo( pNew, Hop_ObjChild0Hop(pObj) );
@@ -681,20 +681,41 @@ Abc_Ntk_t * Abc_NtkHaigUse( Abc_Ntk_t * pNtk )
         pMan = Abc_NtkHaigReconstruct( pManTemp = pMan );
         Hop_ManStop( pManTemp );
     }
-/*
-    pMan = Abc_NtkHaigReconstruct( pManTemp = pMan );
-    Hop_ManStop( pManTemp );
-    Abc_NtkHaigResetReprs( pMan );
 
-    pMan = Abc_NtkHaigReconstruct( pManTemp = pMan );
-    Hop_ManStop( pManTemp );
-    Abc_NtkHaigResetReprs( pMan );
-*/
     // traverse in the topological order and create new AIG
     pNtkAig = Abc_NtkHaigRecreateAig( pNtk, pMan );
     Hop_ManStop( pMan );
 
     // free HAIG
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Transform HOP manager into the one without loops.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkHopRemoveLoops( Abc_Ntk_t * pNtk, Hop_Man_t * pMan )
+{
+    Abc_Ntk_t * pNtkAig;
+    Hop_Man_t * pManTemp;
+
+    // iteratively reconstruct the HOP manager to create choice nodes
+    while ( Abc_NtkHaigResetReprs( pMan ) )
+    {
+        pMan = Abc_NtkHaigReconstruct( pManTemp = pMan );
+        Hop_ManStop( pManTemp );
+    }
+
+    // traverse in the topological order and create new AIG
+    pNtkAig = Abc_NtkHaigRecreateAig( pNtk, pMan );
+    Hop_ManStop( pMan );
     return pNtkAig;
 }
 

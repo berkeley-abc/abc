@@ -2914,7 +2914,7 @@ int Abc_CommandLutpack( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nGrowthLevel =  1;
     pPars->fSatur       =  1;
     pPars->fZeroCost    =  0; 
-    pPars->fVerbose     =  1;
+    pPars->fVerbose     =  0;
     pPars->fVeryVerbose =  0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "NQSLszvwh" ) ) != EOF )
@@ -3834,6 +3834,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    char Buffer[32];
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtk1, * pNtk2, * pNtkRes;
     int fDelete1, fDelete2;
@@ -3842,6 +3843,7 @@ int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int fCheck;
     int fComb;
+    int nPartSize;
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -3850,11 +3852,23 @@ int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     fComb  = 1;
     fCheck = 1;
+    nPartSize = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ch" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Pch" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nPartSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nPartSize < 0 ) 
+                goto usage;
+            break;
         case 'c':
             fComb ^= 1;
             break;
@@ -3869,7 +3883,7 @@ int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
 
     // compute the miter
-    pNtkRes = Abc_NtkMiter( pNtk1, pNtk2, fComb, 0 );
+    pNtkRes = Abc_NtkMiter( pNtk1, pNtk2, fComb, nPartSize );
     if ( fDelete1 ) Abc_NtkDelete( pNtk1 );
     if ( fDelete2 ) Abc_NtkDelete( pNtk2 );
 
@@ -3884,14 +3898,19 @@ int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: miter [-ch] <file1> <file2>\n" );
-    fprintf( pErr, "\t        computes the miter of the two circuits\n" );
-    fprintf( pErr, "\t-c    : computes combinational miter (latches as POs) [default = %s]\n", fComb? "yes": "no" );
-    fprintf( pErr, "\t-h    : print the command usage\n");
-    fprintf( pErr, "\tfile1 : (optional) the file with the first network\n");
-    fprintf( pErr, "\tfile2 : (optional) the file with the second network\n");
-    fprintf( pErr, "\t        if no files are given, uses the current network and its spec\n");
-    fprintf( pErr, "\t        if one file is given, uses the current network and the file\n");
+    if ( nPartSize == 0 )
+        strcpy( Buffer, "unused" );
+    else
+        sprintf( Buffer, "%d", nPartSize );
+    fprintf( pErr, "usage: miter [-P num] [-ch] <file1> <file2>\n" );
+    fprintf( pErr, "\t         computes the miter of the two circuits\n" );
+    fprintf( pErr, "\t-P num : output partition size [default = %s]\n", Buffer );
+    fprintf( pErr, "\t-c     : computes combinational miter (latches as POs) [default = %s]\n", fComb? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    fprintf( pErr, "\tfile1  : (optional) the file with the first network\n");
+    fprintf( pErr, "\tfile2  : (optional) the file with the second network\n");
+    fprintf( pErr, "\t         if no files are given, uses the current network and its spec\n");
+    fprintf( pErr, "\t         if one file is given, uses the current network and the file\n");
     return 1;
 }
 
@@ -5915,6 +5934,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk );
 //    extern void Abc_NtkMaxFlowTest( Abc_Ntk_t * pNtk );
 //    extern int Pr_ManProofTest( char * pFileName );
+    extern void Abc_NtkCompareSupports( Abc_Ntk_t * pNtk );
+    extern void Abc_NtkCompareCones( Abc_Ntk_t * pNtk );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -6010,6 +6031,17 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 */
 //    Abc_NtkMaxFlowTest( pNtk );
 //    Pr_ManProofTest( "trace.cnf" );
+
+//    Abc_NtkCompareSupports( pNtk );
+//    Abc_NtkCompareCones( pNtk );
+
+    {
+        extern Vec_Vec_t * Abc_NtkPartitionSmart( Abc_Ntk_t * pNtk, int fVerbose );
+        Vec_Vec_t * vParts;
+        vParts = Abc_NtkPartitionSmart( pNtk, 1 );
+        Vec_VecFree( vParts );
+    }
+
     return 0;
 
 usage:
