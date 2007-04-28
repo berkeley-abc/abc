@@ -26,7 +26,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 static void           Abc_NtkFraigSweepUsingExdc( Fraig_Man_t * pMan, Abc_Ntk_t * pNtk );
-static stmm_table *   Abc_NtkFraigEquiv( Abc_Ntk_t * pNtk, int fUseInv, bool fVerbose );
+static stmm_table *   Abc_NtkFraigEquiv( Abc_Ntk_t * pNtk, int fUseInv, int fVerbose, int fVeryVerbose );
 static void           Abc_NtkFraigTransform( Abc_Ntk_t * pNtk, stmm_table * tEquiv, int fUseInv, bool fVerbose );
 static void           Abc_NtkFraigMergeClassMapped( Abc_Ntk_t * pNtk, Abc_Obj_t * pChain, int fUseInv, int fVerbose );
 static void           Abc_NtkFraigMergeClass( Abc_Ntk_t * pNtk, Abc_Obj_t * pChain, int fUseInv, int fVerbose );
@@ -54,7 +54,7 @@ static void           Abc_NodeComplementInput( Abc_Obj_t * pNode, Abc_Obj_t * pF
   SeeAlso     []
 
 ***********************************************************************/
-bool Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fExdc, int fVerbose )
+bool Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fExdc, int fVerbose, int fVeryVerbose )
 {
     Fraig_Params_t Params;
     Abc_Ntk_t * pNtkAig;
@@ -100,9 +100,11 @@ bool Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fExdc, int fVerbose )
         else
             Abc_NtkFraigSweepUsingExdc( pMan, pNtk );
     }
+    // assign levels to the nodes of the network
+    Abc_NtkLevel( pNtk );
 
     // collect the classes of equivalent nets
-    tEquiv = Abc_NtkFraigEquiv( pNtk, fUseInv, fVerbose );
+    tEquiv = Abc_NtkFraigEquiv( pNtk, fUseInv, fVerbose, fVeryVerbose );
 
     // transform the network into the equivalent one
     Abc_NtkFraigTransform( pNtk, tEquiv, fUseInv, fVerbose );
@@ -113,7 +115,11 @@ bool Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fExdc, int fVerbose )
     Abc_NtkDelete( pNtkAig );
 
     // cleanup the dangling nodes
-    Abc_NtkCleanup( pNtk, fVerbose );
+    if ( Abc_NtkHasMapping(pNtk) )
+        Abc_NtkCleanup( pNtk, fVerbose );
+    else
+        Abc_NtkSweep( pNtk, fVerbose );
+
     // check
     if ( !Abc_NtkCheck( pNtk ) )
     {
@@ -175,7 +181,7 @@ void Abc_NtkFraigSweepUsingExdc( Fraig_Man_t * pMan, Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-stmm_table * Abc_NtkFraigEquiv( Abc_Ntk_t * pNtk, int fUseInv, bool fVerbose )
+stmm_table * Abc_NtkFraigEquiv( Abc_Ntk_t * pNtk, int fUseInv, int fVerbose, int fVeryVerbose )
 {
     Abc_Obj_t * pList, * pNode, * pNodeAig;
     Fraig_Node_t * gNode;
@@ -225,22 +231,22 @@ stmm_table * Abc_NtkFraigEquiv( Abc_Ntk_t * pNtk, int fUseInv, bool fVerbose )
         // count nodes in the non-trival classes
         for ( pNode = pList; pNode; pNode = pNode->pNext )
             Counter++;
-/*
-        if ( fVerbose )
+
+        if ( fVeryVerbose )
         {
             printf( "Class %2d : {", c );
             for ( pNode = pList; pNode; pNode = pNode->pNext )
             {
                 pNode->pCopy = NULL;
                 printf( " %s", Abc_ObjName(pNode) );
-                if ( pNode->fPhase )  printf( "(*)" );
+                printf( "(%c)", pNode->fPhase? '-' : '+' );
+                printf( "(%d)", pNode->Level );
             }
             printf( " }\n" );
             c++;
         }
-*/
     }
-    if ( fVerbose )
+    if ( fVerbose || fVeryVerbose )
     {
         printf( "Sweeping stats for network \"%s\":\n", pNtk->pName );
         printf( "Internal nodes = %d. Different functions (up to compl) = %d.\n", Abc_NtkNodeNum(pNtk), stmm_count(tStrash2Net) );
@@ -268,8 +274,6 @@ void Abc_NtkFraigTransform( Abc_Ntk_t * pNtk, stmm_table * tEquiv, int fUseInv, 
     Abc_Obj_t * pList;
     if ( stmm_count(tEquiv) == 0 )
         return;
-    // assign levels to the nodes of the network
-    Abc_NtkLevel( pNtk );
     // merge nodes in the classes
     if ( Abc_NtkHasMapping( pNtk ) )
     {

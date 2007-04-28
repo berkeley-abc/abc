@@ -330,7 +330,7 @@ static inline bool        Abc_NtkIsComb( Abc_Ntk_t * pNtk )          { return Ab
 static inline bool        Abc_NtkHasOnlyLatchBoxes(Abc_Ntk_t * pNtk ){ return Abc_NtkLatchNum(pNtk) == Abc_NtkBoxNum(pNtk); }
 
 // creating simple objects
-extern inline Abc_Obj_t * Abc_NtkCreateObj( Abc_Ntk_t * pNtk, Abc_ObjType_t Type );
+extern        Abc_Obj_t * Abc_NtkCreateObj( Abc_Ntk_t * pNtk, Abc_ObjType_t Type );
 static inline Abc_Obj_t * Abc_NtkCreatePi( Abc_Ntk_t * pNtk )        { return Abc_NtkCreateObj( pNtk, ABC_OBJ_PI );         }
 static inline Abc_Obj_t * Abc_NtkCreatePo( Abc_Ntk_t * pNtk )        { return Abc_NtkCreateObj( pNtk, ABC_OBJ_PO );         }
 static inline Abc_Obj_t * Abc_NtkCreateBi( Abc_Ntk_t * pNtk )        { return Abc_NtkCreateObj( pNtk, ABC_OBJ_BI );         }
@@ -417,8 +417,8 @@ static inline Abc_Obj_t * Abc_ObjChild1( Abc_Obj_t * pObj )          { return Ab
 static inline Abc_Obj_t * Abc_ObjChildCopy( Abc_Obj_t * pObj, int i ){ return Abc_ObjNotCond( Abc_ObjFanin(pObj,i)->pCopy, Abc_ObjFaninC(pObj,i) );  }
 static inline Abc_Obj_t * Abc_ObjChild0Copy( Abc_Obj_t * pObj )      { return Abc_ObjNotCond( Abc_ObjFanin0(pObj)->pCopy, Abc_ObjFaninC0(pObj) );    }
 static inline Abc_Obj_t * Abc_ObjChild1Copy( Abc_Obj_t * pObj )      { return Abc_ObjNotCond( Abc_ObjFanin1(pObj)->pCopy, Abc_ObjFaninC1(pObj) );    }
-static inline Abc_Obj_t * Abc_ObjChild0Data( Abc_Obj_t * pObj )      { return Abc_ObjNotCond( Abc_ObjFanin0(pObj)->pData, Abc_ObjFaninC0(pObj) );    }
-static inline Abc_Obj_t * Abc_ObjChild1Data( Abc_Obj_t * pObj )      { return Abc_ObjNotCond( Abc_ObjFanin1(pObj)->pData, Abc_ObjFaninC1(pObj) );    }
+static inline Abc_Obj_t * Abc_ObjChild0Data( Abc_Obj_t * pObj )      { return Abc_ObjNotCond( (Abc_Obj_t *)Abc_ObjFanin0(pObj)->pData, Abc_ObjFaninC0(pObj) );    }
+static inline Abc_Obj_t * Abc_ObjChild1Data( Abc_Obj_t * pObj )      { return Abc_ObjNotCond( (Abc_Obj_t *)Abc_ObjFanin1(pObj)->pData, Abc_ObjFaninC1(pObj) );    }
 static inline Hop_Obj_t * Abc_ObjChild0Equiv( Abc_Obj_t * pObj )     { return Hop_NotCond( Abc_ObjFanin0(pObj)->pEquiv, Abc_ObjFaninC0(pObj) );      }
 static inline Hop_Obj_t * Abc_ObjChild1Equiv( Abc_Obj_t * pObj )     { return Hop_NotCond( Abc_ObjFanin1(pObj)->pEquiv, Abc_ObjFaninC1(pObj) );      }
 
@@ -452,17 +452,17 @@ static inline int         Abc_LatchInit( Abc_Obj_t * pLatch )        { assert(Ab
 
 // global BDDs of the nodes
 static inline void *      Abc_NtkGlobalBdd( Abc_Ntk_t * pNtk )          { return (void *)Vec_PtrEntry(pNtk->vAttrs, VEC_ATTR_GLOBAL_BDD);             }
-static inline DdManager * Abc_NtkGlobalBddMan( Abc_Ntk_t * pNtk )       { return (DdManager *)Vec_AttMan( Abc_NtkGlobalBdd(pNtk) );                   }
-static inline DdNode **   Abc_NtkGlobalBddArray( Abc_Ntk_t * pNtk )     { return (DdNode **)Vec_AttArray( Abc_NtkGlobalBdd(pNtk) );                   }
-static inline DdNode *    Abc_ObjGlobalBdd( Abc_Obj_t * pObj )          { return (DdNode *)Vec_AttEntry( Abc_NtkGlobalBdd(pObj->pNtk), pObj->Id );    }
-static inline void        Abc_ObjSetGlobalBdd( Abc_Obj_t * pObj, DdNode * bF )   { Vec_AttWriteEntry( Abc_NtkGlobalBdd(pObj->pNtk), pObj->Id, bF );   }
+static inline DdManager * Abc_NtkGlobalBddMan( Abc_Ntk_t * pNtk )       { return (DdManager *)Vec_AttMan( (Vec_Att_t *)Abc_NtkGlobalBdd(pNtk) );                   }
+static inline DdNode **   Abc_NtkGlobalBddArray( Abc_Ntk_t * pNtk )     { return (DdNode **)Vec_AttArray( (Vec_Att_t *)Abc_NtkGlobalBdd(pNtk) );                   }
+static inline DdNode *    Abc_ObjGlobalBdd( Abc_Obj_t * pObj )          { return (DdNode *)Vec_AttEntry( (Vec_Att_t *)Abc_NtkGlobalBdd(pObj->pNtk), pObj->Id );    }
+static inline void        Abc_ObjSetGlobalBdd( Abc_Obj_t * pObj, DdNode * bF )   { Vec_AttWriteEntry( (Vec_Att_t *)Abc_NtkGlobalBdd(pObj->pNtk), pObj->Id, bF );   }
 
 // MV variables of the nodes
 static inline void *      Abc_NtkMvVar( Abc_Ntk_t * pNtk )              { return Vec_PtrEntry(pNtk->vAttrs, VEC_ATTR_MVVAR);                          }
-static inline void *      Abc_NtkMvVarMan( Abc_Ntk_t * pNtk )           { return Abc_NtkMvVar(pNtk)? Vec_AttMan( Abc_NtkMvVar(pNtk) ) : NULL;         }
-static inline void *      Abc_ObjMvVar( Abc_Obj_t * pObj )              { return Abc_NtkMvVar(pObj->pNtk)? Vec_AttEntry( Abc_NtkMvVar(pObj->pNtk), pObj->Id ) : NULL; }
+static inline void *      Abc_NtkMvVarMan( Abc_Ntk_t * pNtk )           { return Abc_NtkMvVar(pNtk)? Vec_AttMan( (Vec_Att_t *)Abc_NtkMvVar(pNtk) ) : NULL;         }
+static inline void *      Abc_ObjMvVar( Abc_Obj_t * pObj )              { return Abc_NtkMvVar(pObj->pNtk)? Vec_AttEntry( (Vec_Att_t *)Abc_NtkMvVar(pObj->pNtk), pObj->Id ) : NULL; }
 static inline int         Abc_ObjMvVarNum( Abc_Obj_t * pObj )           { return (Abc_NtkMvVar(pObj->pNtk) && Abc_ObjMvVar(pObj))? *((int*)Abc_ObjMvVar(pObj)) : 2;   }
-static inline void        Abc_ObjSetMvVar( Abc_Obj_t * pObj, void * pV) { Vec_AttWriteEntry( Abc_NtkMvVar(pObj->pNtk), pObj->Id, pV );                }
+static inline void        Abc_ObjSetMvVar( Abc_Obj_t * pObj, void * pV) { Vec_AttWriteEntry( (Vec_Att_t *)Abc_NtkMvVar(pObj->pNtk), pObj->Id, pV );                }
 
 // outputs the runtime in seconds
 #define PRT(a,t)  printf("%s = ", (a)); printf("%6.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC))

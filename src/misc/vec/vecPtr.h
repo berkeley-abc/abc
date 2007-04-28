@@ -196,7 +196,7 @@ static inline Vec_Ptr_t * Vec_PtrAllocTruthTables( int nVars )
     p = Vec_PtrAllocSimInfo( nVars, nWords );
     for ( i = 0; i < nVars; i++ )
     {
-        pTruth = p->pArray[i];
+        pTruth = (unsigned *)p->pArray[i];
         if ( i < 5 )
         {
             for ( k = 0; k < nWords; k++ )

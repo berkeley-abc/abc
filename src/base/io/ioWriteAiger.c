@@ -129,7 +129,7 @@ static unsigned Io_ObjMakeLit( int Var, int fCompl )                 { return (V
 static unsigned Io_ObjAigerNum( Abc_Obj_t * pObj )                   { return (unsigned)pObj->pCopy;  }
 static void     Io_ObjSetAigerNum( Abc_Obj_t * pObj, unsigned Num )  { pObj->pCopy = (void *)Num;     }
 
-static int      Io_WriteAigerEncode( char * pBuffer, int Pos, unsigned x );
+int      Io_WriteAigerEncode( char * pBuffer, int Pos, unsigned x );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///

@@ -525,6 +525,8 @@ int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars )
     if ( pParams->fUseRewriting && Abc_NtkNodeNum(pNtk) > 500 )
     {
         pParams->fUseRewriting = 0;
+        pNtk = Abc_NtkBalance( pNtkTemp = pNtk, 0, 0, 0 );          
+        Abc_NtkDelete( pNtkTemp );
         Abc_NtkRewrite( pNtk, 0, 0, 0, 0, 0 );
         pNtk = Abc_NtkBalance( pNtkTemp = pNtk, 0, 0, 0 );          
         Abc_NtkDelete( pNtkTemp );

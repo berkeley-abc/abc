@@ -74,9 +74,9 @@ Vec_Ptr_t * Abc_NtkPartitionCollectSupps( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkPartitionSmartFindPart( Vec_Ptr_t * vPartSuppsAll, Vec_Int_t * vOne )
+int Abc_NtkPartitionSmartFindPart( Vec_Ptr_t * vPartSuppsAll, Vec_Ptr_t * vPartsAll, int nPartSizeLimit, Vec_Int_t * vOne )
 {
-    Vec_Int_t * vPartSupp;
+    Vec_Int_t * vPartSupp, * vPart;
     double Attract, Repulse, Cost, CostBest;
     int i, nCommon, iBest;
     iBest = -1;
@@ -84,6 +84,11 @@ int Abc_NtkPartitionSmartFindPart( Vec_Ptr_t * vPartSuppsAll, Vec_Int_t * vOne )
     Vec_PtrForEachEntry( vPartSuppsAll, vPartSupp, i )
     {
         nCommon = Vec_IntTwoCountCommon( vPartSupp, vOne );
+        if ( nCommon == 0 )
+            continue;
+        vPart = Vec_PtrEntry( vPartsAll, i );
+        if ( nPartSizeLimit > 0 && Vec_IntSize(vPart) > nPartSizeLimit )
+            continue;
         if ( nCommon == Vec_IntSize(vOne) )
             return i;
         Attract = 1.0 * nCommon / Vec_IntSize(vOne);
@@ -143,17 +148,20 @@ void Abc_NtkPartitionPrint( Abc_Ntk_t * pNtk, Vec_Ptr_t * vPartsAll, Vec_Ptr_t *
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkPartitionCompact( Vec_Ptr_t * vPartsAll, Vec_Ptr_t * vPartSuppsAll )
+void Abc_NtkPartitionCompact( Vec_Ptr_t * vPartsAll, Vec_Ptr_t * vPartSuppsAll, int nPartSizeLimit )
 {
     Vec_Int_t * vOne, * vPart, * vPartSupp, * vTemp;
     int i, iPart;
+
+    if ( nPartSizeLimit == 0 )
+        nPartSizeLimit = 200;
 
     // pack smaller partitions into larger blocks
     iPart = 0;
     vPart = vPartSupp = NULL;
     Vec_PtrForEachEntry( vPartSuppsAll, vOne, i )
     {
-        if ( Vec_IntSize(vOne) < 200 )
+        if ( Vec_IntSize(vOne) < nPartSizeLimit )
         {
             if ( vPartSupp == NULL )
             {
@@ -169,7 +177,7 @@ void Abc_NtkPartitionCompact( Vec_Ptr_t * vPartsAll, Vec_Ptr_t * vPartSuppsAll )
                 Vec_IntFree( vTemp );
                 Vec_IntFree( Vec_PtrEntry(vPartsAll, i) );
             }
-            if ( Vec_IntSize(vPartSupp) < 200 )
+            if ( Vec_IntSize(vPartSupp) < nPartSizeLimit )
                 continue;
         }
         else
@@ -212,7 +220,7 @@ void Abc_NtkPartitionCompact( Vec_Ptr_t * vPartsAll, Vec_Ptr_t * vPartSuppsAll )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Vec_t * Abc_NtkPartitionSmart( Abc_Ntk_t * pNtk, int fVerbose )
+Vec_Vec_t * Abc_NtkPartitionSmart( Abc_Ntk_t * pNtk, int nPartSizeLimit, int fVerbose )
 {
     Vec_Ptr_t * vSupps, * vPartsAll, * vPartsAll2, * vPartSuppsAll, * vPartPtr;
     Vec_Int_t * vOne, * vPart, * vPartSupp, * vTemp;
@@ -235,7 +243,7 @@ clk = clock();
         // get the output number
         iOut = Vec_IntPop(vOne);
         // find closely matching part
-        iPart = Abc_NtkPartitionSmartFindPart( vPartSuppsAll, vOne );
+        iPart = Abc_NtkPartitionSmartFindPart( vPartSuppsAll, vPartsAll, nPartSizeLimit, vOne );
         if ( iPart == -1 )
         {
             // create new partition
@@ -280,7 +288,7 @@ clk = clock();
 
     // compact small partitions
 //    Abc_NtkPartitionPrint( pNtk, vPartsAll, vPartSuppsAll );
-    Abc_NtkPartitionCompact( vPartsAll, vPartSuppsAll );
+    Abc_NtkPartitionCompact( vPartsAll, vPartSuppsAll, nPartSizeLimit );
     if ( fVerbose )
     Abc_NtkPartitionPrint( pNtk, vPartsAll, vPartSuppsAll );
 if ( fVerbose )
@@ -668,7 +676,7 @@ Abc_Ntk_t * Abc_NtkFraigPartitioned( Abc_Ntk_t * pNtk, void * pParams )
     // perform partitioning
     assert( Abc_NtkIsStrash(pNtk) );
 //    vParts = Abc_NtkPartitionNaive( pNtk, 20 );
-    vParts = Abc_NtkPartitionSmart( pNtk, 0 );
+    vParts = Abc_NtkPartitionSmart( pNtk, 0, 0 );
 
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "unset progressbar" );
 

@@ -769,6 +769,61 @@ void Kit_TruthForallNew( unsigned * pRes, unsigned * pTruth, int nVars, int iVar
 
 /**Function*************************************************************
 
+  Synopsis    [Universally quantifies the variable.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Kit_TruthUniqueNew( unsigned * pRes, unsigned * pTruth, int nVars, int iVar )
+{
+    int nWords = Kit_TruthWordNum( nVars );
+    int i, k, Step;
+
+    assert( iVar < nVars );
+    switch ( iVar )
+    {
+    case 0:
+        for ( i = 0; i < nWords; i++ )
+            pRes[i] =  pTruth[i] ^ (((pTruth[i] & 0xAAAAAAAA) >> 1) | ((pTruth[i] & 0x55555555) << 1));
+        return;
+    case 1:
+        for ( i = 0; i < nWords; i++ )
+            pRes[i] =  pTruth[i] ^ (((pTruth[i] & 0xCCCCCCCC) >> 2) | ((pTruth[i] & 0x33333333) << 2));
+        return;
+    case 2:
+        for ( i = 0; i < nWords; i++ )
+            pRes[i] =  pTruth[i] ^ (((pTruth[i] & 0xF0F0F0F0) >> 4) | ((pTruth[i] & 0x0F0F0F0F) << 4));
+        return;
+    case 3:
+        for ( i = 0; i < nWords; i++ )
+            pRes[i] =  pTruth[i] ^ (((pTruth[i] & 0xFF00FF00) >> 8) | ((pTruth[i] & 0x00FF00FF) << 8));
+        return;
+    case 4:
+        for ( i = 0; i < nWords; i++ )
+            pRes[i] =  pTruth[i] ^ (((pTruth[i] & 0xFFFF0000) >> 16) | ((pTruth[i] & 0x0000FFFF) << 16));
+        return;
+    default:
+        Step = (1 << (iVar - 5));
+        for ( k = 0; k < nWords; k += 2*Step )
+        {
+            for ( i = 0; i < Step; i++ )
+            {
+                pRes[i]      = pTruth[i] ^ pTruth[Step+i];
+                pRes[Step+i] = pRes[i];
+            }
+            pRes += 2*Step;
+            pTruth += 2*Step;
+        }
+        return;
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Universally quantifies the set of variables.]
 
   Description []

@@ -1068,7 +1068,7 @@ int Kit_DsdTestCofs( Kit_DsdNtk_t * pNtk, unsigned * pTruthInit )
 //    Kit_DsdObj_t * pRoot;
     unsigned * pCofs2[2] = { pNtk->pMem, pNtk->pMem + Kit_TruthWordNum(pNtk->nVars) };
     unsigned i, * pTruth;
-    int fVerbose = 0;
+    int fVerbose = 1;
     int RetValue = 0;
 
     pTruth = pTruthInit;
@@ -1108,8 +1108,8 @@ int Kit_DsdTestCofs( Kit_DsdNtk_t * pNtk, unsigned * pTruthInit )
             Kit_DsdPrint( stdout, pNtk1 );
         }
 
-        if ( Kit_DsdCheckVar4Dec2( pNtk0, pNtk1 ) )
-            RetValue = 1;
+//        if ( Kit_DsdCheckVar4Dec2( pNtk0, pNtk1 ) )
+//            RetValue = 1;
 
         Kit_DsdNtkFree( pNtk0 );
         Kit_DsdNtkFree( pNtk1 );

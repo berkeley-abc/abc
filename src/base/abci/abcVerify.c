@@ -313,6 +313,123 @@ void Abc_NtkCecFraigPart( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, in
 
 /**Function*************************************************************
 
+  Synopsis    [Verifies sequential equivalence by fraiging followed by SAT.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkCecFraigPartAuto( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fVerbose )
+{
+    extern int Abc_NtkCombinePos( Abc_Ntk_t * pNtk, int fAnd );
+    extern Vec_Vec_t * Abc_NtkPartitionSmart( Abc_Ntk_t * pNtk, int nPartSizeLimit, int fVerbose );
+    extern int Cmd_CommandExecute( void * pAbc, char * sCommand );
+    extern void * Abc_FrameGetGlobalFrame();
+
+    Vec_Vec_t * vParts;
+    Vec_Ptr_t * vOne;
+    Prove_Params_t Params, * pParams = &Params;
+    Abc_Ntk_t * pMiter, * pMiterPart;
+    int i, RetValue, Status, nOutputs;
+
+    // solve the CNF using the SAT solver
+    Prove_ParamsSetDefault( pParams );
+    pParams->nItersMax = 5;
+    //    pParams->fVerbose = 1;
+
+    // get the miter of the two networks
+    pMiter = Abc_NtkMiter( pNtk1, pNtk2, 1, 1 );
+    if ( pMiter == NULL )
+    {
+        printf( "Miter computation has failed.\n" );
+        return;
+    }
+    RetValue = Abc_NtkMiterIsConstant( pMiter );
+    if ( RetValue == 0 )
+    {
+        printf( "Networks are NOT EQUIVALENT after structural hashing.\n" );
+        // report the error
+        pMiter->pModel = Abc_NtkVerifyGetCleanModel( pMiter, 1 );
+        Abc_NtkVerifyReportError( pNtk1, pNtk2, pMiter->pModel );
+        FREE( pMiter->pModel );
+        Abc_NtkDelete( pMiter );
+        return;
+    }
+    if ( RetValue == 1 )
+    {
+        printf( "Networks are equivalent after structural hashing.\n" );
+        Abc_NtkDelete( pMiter );
+        return;
+    }
+
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "unset progressbar" );
+
+    // partition the outputs
+    vParts = Abc_NtkPartitionSmart( pMiter, 50, 0 );
+
+    // fraig each partition
+    Status = 1;
+    nOutputs = 0;
+    Vec_VecForEachLevel( vParts, vOne, i )
+    {
+        // get this part of the miter
+        pMiterPart = Abc_NtkCreateConeArray( pMiter, vOne, 0 );
+        Abc_NtkCombinePos( pMiterPart, 0 );
+        // check the miter for being constant
+        RetValue = Abc_NtkMiterIsConstant( pMiterPart );
+        if ( RetValue == 0 )
+        {
+            printf( "Networks are NOT EQUIVALENT after partitioning.\n" );
+            Abc_NtkDelete( pMiterPart );
+            break;
+        }
+        if ( RetValue == 1 )
+        {
+            Abc_NtkDelete( pMiterPart );
+            continue;
+        }
+        // solve the problem
+        RetValue = Abc_NtkIvyProve( &pMiterPart, pParams );
+        if ( RetValue == -1 )
+        {
+            printf( "Networks are undecided (resource limits is reached).\r" );
+            Status = -1;
+        }
+        else if ( RetValue == 0 )
+        {
+            int * pSimInfo = Abc_NtkVerifySimulatePattern( pMiterPart, pMiterPart->pModel );
+            if ( pSimInfo[0] != 1 )
+                printf( "ERROR in Abc_NtkMiterProve(): Generated counter-example is invalid.\n" );
+            else
+                printf( "Networks are NOT EQUIVALENT.                 \n" );
+            free( pSimInfo );
+            Status = 0;
+            Abc_NtkDelete( pMiterPart );
+            break;
+        }
+        else
+        {
+            printf( "Finished part %d (out of %d)\r", i+1, Vec_VecSize(vParts) );
+            nOutputs += Vec_PtrSize(vOne);
+        }
+        Abc_NtkDelete( pMiterPart );
+    }
+    Vec_VecFree( vParts );
+
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "set progressbar" );
+
+    if ( Status == 1 )
+        printf( "Networks are equivalent.                         \n" );
+    else if ( Status == -1 )
+        printf( "Timed out after verifying %d outputs (out of %d).\n", nOutputs, Abc_NtkCoNum(pNtk1) );
+    Abc_NtkDelete( pMiter );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Verifies sequential equivalence by brute-force SAT.]
 
   Description []

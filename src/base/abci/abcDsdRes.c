@@ -994,6 +994,73 @@ If_Obj_t * Abc_LutIfManMap_New_rec( Lut_Man_t * p, Kit_DsdNtk_t * pNtk, int iLit
 
 /**Function*************************************************************
 
+  Synopsis    [Find the best cofactoring variable.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+/*
+int Abc_LutFindBestCofactoring( Lut_Man_t * p, Kit_DsdNtk_t * pNtk, unsigned * pTruth, int nVars )
+{
+    Kit_DsdNtk_t * pNtk0, * pNtk1, * pTemp;
+//    Kit_DsdObj_t * pRoot;
+    unsigned * pCofs2[2] = { pNtk->pMem, pNtk->pMem + Kit_TruthWordNum(pNtk->nVars) };
+    unsigned i, * pTruth;
+    int MaxBlock
+        Verbose = 0;
+    int RetValue = 0;
+
+    if ( fVerbose )
+    {
+        printf( "Function: " );
+//        Extra_PrintBinary( stdout, pTruth, (1 << nVars) ); 
+        Extra_PrintHexadecimal( stdout, pTruth, nVars ); 
+        printf( "\n" );
+        Kit_DsdPrint( stdout, pNtk );
+    }
+    for ( i = 0; i < nVars; i++ )
+    {
+        Kit_TruthCofactor0New( pCofs2[0], pTruth, nVars, i );
+        pNtk0 = Kit_DsdDecompose( pCofs2[0], nVars );
+        pNtk0 = Kit_DsdExpand( pTemp = pNtk0 );
+        Kit_DsdNtkFree( pTemp );
+
+        if ( fVerbose )
+        {
+            printf( "Cof%d0: ", i );
+            Kit_DsdPrint( stdout, pNtk0 );
+        }
+
+        Kit_TruthCofactor1New( pCofs2[1], pTruth, nVars, i );
+        pNtk1 = Kit_DsdDecompose( pCofs2[1], nVars );
+        pNtk1 = Kit_DsdExpand( pTemp = pNtk1 );
+        Kit_DsdNtkFree( pTemp );
+
+        if ( fVerbose )
+        {
+            printf( "Cof%d1: ", i );
+            Kit_DsdPrint( stdout, pNtk1 );
+        }
+
+        if ( Kit_DsdCheckVar4Dec2( pNtk0, pNtk1 ) )
+            RetValue = 1;
+
+        Kit_DsdNtkFree( pNtk0 );
+        Kit_DsdNtkFree( pNtk1 );
+    }
+    if ( fVerbose )
+        printf( "\n" );
+
+    return RetValue;
+    
+}
+*/
+/**Function*************************************************************
+
   Synopsis    [Prepares the mapping manager.]
 
   Description []
@@ -1220,6 +1287,7 @@ clk = clock();
         pTruth = Abc_LutCutTruth( p, pCut );
 p->timeTruth += clock() - clk;
 
+
 /*
         // evaluate the result of decomposition        
         Result = Kit_DsdEval( pTruth, pCut->nLeaves, 3 );
@@ -1247,6 +1315,18 @@ p->timeEval += clock() - clk;
             continue;
         }
 */
+  
+/*        
+        if ( pCut->nLeaves > 6 && pCut->nLeaves < 12 && Kit_DsdNonDsdSizeMax(pDsdNtk) == pCut->nLeaves )
+        {
+//            Abc_NtkPrintMeasures( pTruth, pCut->nLeaves );
+//            Kit_DsdTestCofs( pDsdNtk, pTruth );
+
+//            Abc_NtkPrintOneDecomp( pTruth, pCut->nLeaves );
+            Abc_NtkPrintOneDec( pTruth, pCut->nLeaves );
+        }
+*/
+
         if ( p->pPars->fVeryVerbose )
         {
 //            Extra_PrintHexadecimal( stdout, pTruth, pCut->nLeaves ); printf( "\n" );

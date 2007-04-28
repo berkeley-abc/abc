@@ -166,3 +166,4 @@ alias tst6     "r i10_if6.blif; st; ps; r x/rec6_16_.blif; st; rec_start; r i10_
 
 
 alias bug      "r pj1_if3.blif; lp"
+alias table    "r lutexp.baf; test"

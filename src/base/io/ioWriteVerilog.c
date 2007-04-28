@@ -213,17 +213,33 @@ void Io_WriteVerilogPis( FILE * pFile, Abc_Ntk_t * pNtk, int Start )
 ***********************************************************************/
 void Io_WriteVerilogPos( FILE * pFile, Abc_Ntk_t * pNtk, int Start )
 {
-    Abc_Obj_t * pTerm, * pNet;
+    Abc_Obj_t * pTerm, * pNet, * pSkip;
     int LineLength;
     int AddedLength;
     int NameCounter;
     int i;
+    int nskip;
+
+    pSkip = 0;
+    nskip = 0;
 
     LineLength  = Start;
     NameCounter = 0;
     Abc_NtkForEachPo( pNtk, pTerm, i )
     {
         pNet = Abc_ObjFanin0(pTerm);
+        
+        if ( Abc_ObjIsPi(Abc_ObjFanin0(pNet)) )
+        {
+            // Skip this output since it is a feedthrough -- the same
+            // name will appear as an input and an output which other
+            // tools reading verilog do not like.
+            
+            nskip++;
+            pSkip = pNet;   // save an example of skipped net
+            continue;
+        }
+        
         // get the line length after this name is written
         AddedLength = strlen(Io_WriteVerilogGetName(Abc_ObjName(pNet))) + 2;
         if ( NameCounter && LineLength + AddedLength + 3 > IO_WRITE_LINE_LENGTH )
@@ -237,6 +253,14 @@ void Io_WriteVerilogPos( FILE * pFile, Abc_Ntk_t * pNtk, int Start )
         LineLength += AddedLength;
         NameCounter++;
     }
+
+    if (nskip != 0)
+    {
+        assert (pSkip);
+        printf( "Io_WriteVerilogPos(): Omitted %d feedthrough nets from output list of module (e.g. %s).\n", nskip, Abc_ObjName(pSkip) );
+        return;
+    }
+
 }
 
 /**Function*************************************************************

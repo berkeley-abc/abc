@@ -477,6 +477,7 @@ extern void            Kit_TruthExistSet( unsigned * pRes, unsigned * pTruth, in
 extern void            Kit_TruthForall( unsigned * pTruth, int nVars, int iVar );
 extern void            Kit_TruthForallNew( unsigned * pRes, unsigned * pTruth, int nVars, int iVar );
 extern void            Kit_TruthForallSet( unsigned * pRes, unsigned * pTruth, int nVars, unsigned uMask );
+extern void            Kit_TruthUniqueNew( unsigned * pRes, unsigned * pTruth, int nVars, int iVar );
 extern void            Kit_TruthMux( unsigned * pOut, unsigned * pCof0, unsigned * pCof1, int nVars, int iVar );
 extern void            Kit_TruthChangePhase( unsigned * pTruth, int nVars, int iVar );
 extern int             Kit_TruthMinCofSuppOverlap( unsigned * pTruth, int nVars, int * pVarMin );

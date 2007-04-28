@@ -25,7 +25,7 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static unsigned Io_ReadAigerDecode( char ** ppPos );
+unsigned Io_ReadAigerDecode( char ** ppPos );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///

@@ -149,7 +149,7 @@ static inline int          Hop_ManNodeNum( Hop_Man_t * p )        { return p->nO
 static inline int          Hop_ManGetCost( Hop_Man_t * p )        { return p->nObjs[AIG_AND]+3*p->nObjs[AIG_EXOR]; }
 static inline int          Hop_ManObjNum( Hop_Man_t * p )         { return p->nCreated - p->nDeleted;           }
 
-static inline Hop_Type_t   Hop_ObjType( Hop_Obj_t * pObj )        { return pObj->Type;               }
+static inline Hop_Type_t   Hop_ObjType( Hop_Obj_t * pObj )        { return (Hop_Type_t)pObj->Type;               }
 static inline int          Hop_ObjIsNone( Hop_Obj_t * pObj )      { return pObj->Type == AIG_NONE;   }
 static inline int          Hop_ObjIsConst1( Hop_Obj_t * pObj )    { assert(!Hop_IsComplement(pObj)); return pObj->Type == AIG_CONST1; }
 static inline int          Hop_ObjIsPi( Hop_Obj_t * pObj )        { return pObj->Type == AIG_PI;     }
@@ -182,8 +182,8 @@ static inline Hop_Obj_t *  Hop_ObjFanin0( Hop_Obj_t * pObj )      { return Hop_R
 static inline Hop_Obj_t *  Hop_ObjFanin1( Hop_Obj_t * pObj )      { return Hop_Regular(pObj->pFanin1);             }
 static inline Hop_Obj_t *  Hop_ObjChild0( Hop_Obj_t * pObj )      { return pObj->pFanin0;                          }
 static inline Hop_Obj_t *  Hop_ObjChild1( Hop_Obj_t * pObj )      { return pObj->pFanin1;                          }
-static inline Hop_Obj_t *  Hop_ObjChild0Copy( Hop_Obj_t * pObj ) { assert( !Hop_IsComplement(pObj) ); return Hop_ObjFanin0(pObj)? Hop_NotCond(Hop_ObjFanin0(pObj)->pData, Hop_ObjFaninC0(pObj)) : NULL;  }
-static inline Hop_Obj_t *  Hop_ObjChild1Copy( Hop_Obj_t * pObj ) { assert( !Hop_IsComplement(pObj) ); return Hop_ObjFanin1(pObj)? Hop_NotCond(Hop_ObjFanin1(pObj)->pData, Hop_ObjFaninC1(pObj)) : NULL;  }
+static inline Hop_Obj_t *  Hop_ObjChild0Copy( Hop_Obj_t * pObj ) { assert( !Hop_IsComplement(pObj) ); return Hop_ObjFanin0(pObj)? Hop_NotCond((Hop_Obj_t *)Hop_ObjFanin0(pObj)->pData, Hop_ObjFaninC0(pObj)) : NULL;  }
+static inline Hop_Obj_t *  Hop_ObjChild1Copy( Hop_Obj_t * pObj ) { assert( !Hop_IsComplement(pObj) ); return Hop_ObjFanin1(pObj)? Hop_NotCond((Hop_Obj_t *)Hop_ObjFanin1(pObj)->pData, Hop_ObjFaninC1(pObj)) : NULL;  }
 static inline int          Hop_ObjLevel( Hop_Obj_t * pObj )       { return pObj->nRefs;                            }
 static inline int          Hop_ObjLevelNew( Hop_Obj_t * pObj )    { return 1 + Hop_ObjIsExor(pObj) + AIG_MAX(Hop_ObjFanin0(pObj)->nRefs, Hop_ObjFanin1(pObj)->nRefs);       }
 static inline int          Hop_ObjFaninPhase( Hop_Obj_t * pObj )  { return Hop_IsComplement(pObj)? !Hop_Regular(pObj)->fPhase : pObj->fPhase; }
@@ -210,8 +210,16 @@ static inline Hop_Obj_t *  Hop_ObjCreateGhost( Hop_Man_t * p, Hop_Obj_t * p0, Ho
     assert( Type == AIG_PI || Hop_Regular(p0) != Hop_Regular(p1) );
     pGhost = Hop_ManGhost(p);
     pGhost->Type = Type;
-    pGhost->pFanin0 = p0 < p1? p0 : p1;
-    pGhost->pFanin1 = p0 < p1? p1 : p0;
+    if ( Hop_Regular(p0)->Id < Hop_Regular(p1)->Id )
+    {
+        pGhost->pFanin0 = p0;
+        pGhost->pFanin1 = p1;
+    }
+    else
+    {
+        pGhost->pFanin0 = p1;
+        pGhost->pFanin1 = p0;
+    }
     return pGhost;
 }
 

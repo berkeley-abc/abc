@@ -329,6 +329,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
 //    Abc_NtkPrint256();
 //    Kit_TruthCountMintermsPrecomp();
 //    Kit_DsdPrecompute4Vars();
+
+    Dar_LibStart();
 } 
 
 /**Function*************************************************************
@@ -344,6 +346,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
 ***********************************************************************/
 void Abc_End()
 {
+    Dar_LibStop();
+
     Abc_NtkFraigStoreClean();
 //    Rwt_Man4ExplorePrint();
 }
@@ -6034,13 +6038,16 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 //    Abc_NtkCompareSupports( pNtk );
 //    Abc_NtkCompareCones( pNtk );
-
+/*
     {
         extern Vec_Vec_t * Abc_NtkPartitionSmart( Abc_Ntk_t * pNtk, int fVerbose );
         Vec_Vec_t * vParts;
         vParts = Abc_NtkPartitionSmart( pNtk, 1 );
         Vec_VecFree( vParts );
     }
+*/
+//    Abc_Ntk4VarTable( pNtk );
+//    Dat_NtkGenerateArrays( pNtk );
 
     return 0;
 
@@ -7677,7 +7684,8 @@ int Abc_CommandFraigSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fUseInv;
     int fExdc;
     int fVerbose;
-    extern bool Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fExdc, int fVerbose );
+    int fVeryVerbose;
+    extern bool Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fExdc, int fVerbose, int fVeryVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -7687,8 +7695,9 @@ int Abc_CommandFraigSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     fUseInv   = 1;
     fExdc     = 0;
     fVerbose  = 0;
+    fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ievh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ievwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -7700,6 +7709,9 @@ int Abc_CommandFraigSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'v':
             fVerbose ^= 1;
+            break;
+        case 'w':
+            fVeryVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -7724,7 +7736,7 @@ int Abc_CommandFraigSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     // modify the current network
-    if ( !Abc_NtkFraigSweep( pNtk, fUseInv, fExdc, fVerbose ) )
+    if ( !Abc_NtkFraigSweep( pNtk, fUseInv, fExdc, fVerbose, fVeryVerbose ) )
     {
         fprintf( pErr, "Sweeping has failed.\n" );
         return 1;
@@ -7732,10 +7744,11 @@ int Abc_CommandFraigSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: fraig_sweep [-evh]\n" );
+    fprintf( pErr, "usage: fraig_sweep [-evwh]\n" );
     fprintf( pErr, "\t        performs technology-dependent sweep\n" );
     fprintf( pErr, "\t-e    : toggle functional sweeping using EXDC [default = %s]\n", fExdc? "yes": "no" );
     fprintf( pErr, "\t-v    : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
+    fprintf( pErr, "\t-w    : prints equivalence class information [default = %s]\n", fVeryVerbose? "yes": "no" );  
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -8284,7 +8297,7 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fVerbose;
     int c;
     extern Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, int fSwitching, int fVerbose );
-    extern bool Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fExdc, int fVerbose );
+    extern bool Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fExdc, int fVerbose, int fVeryVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -8375,7 +8388,7 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     if ( fSweep )
-        Abc_NtkFraigSweep( pNtkRes, 0, 0, 0 );
+        Abc_NtkFraigSweep( pNtkRes, 0, 0, 0, 0 );
 
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
@@ -10346,11 +10359,12 @@ int Abc_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nPartSize;
     int nConfLimit;
     int nInsLimit;
+    int fPartition;
 
     extern void Abc_NtkCecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nInsLimit );
     extern void Abc_NtkCecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fVerbose );
     extern void Abc_NtkCecFraigPart( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nPartSize, int fVerbose );
-
+    extern void Abc_NtkCecFraigPartAuto( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -10363,8 +10377,9 @@ int Abc_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     nPartSize  = 0;
     nConfLimit = 10000;   
     nInsLimit  = 0;
+    fPartition = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "TCIPsvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "TCIPpsvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -10412,6 +10427,9 @@ int Abc_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nPartSize < 0 ) 
                 goto usage;
             break;
+        case 'p':
+            fPartition ^= 1;
+            break;
         case 's':
             fSat ^= 1;
             break;
@@ -10429,7 +10447,9 @@ int Abc_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
 
     // perform equivalence checking
-    if ( nPartSize )
+    if ( fPartition )
+        Abc_NtkCecFraigPartAuto( pNtk1, pNtk2, nSeconds, fVerbose );
+    else if ( nPartSize )
         Abc_NtkCecFraigPart( pNtk1, pNtk2, nSeconds, nPartSize, fVerbose );
     else if ( fSat )
         Abc_NtkCecSat( pNtk1, pNtk2, nConfLimit, nInsLimit );
@@ -10445,12 +10465,13 @@ usage:
         strcpy( Buffer, "unused" );
     else
         sprintf( Buffer, "%d", nPartSize );
-    fprintf( pErr, "usage: cec [-T num] [-C num] [-I num] [-P num] [-svh] <file1> <file2>\n" );
+    fprintf( pErr, "usage: cec [-T num] [-C num] [-I num] [-P num] [-psvh] <file1> <file2>\n" );
     fprintf( pErr, "\t         performs combinational equivalence checking\n" );
     fprintf( pErr, "\t-T num : approximate runtime limit in seconds [default = %d]\n", nSeconds );
     fprintf( pErr, "\t-C num : limit on the number of conflicts [default = %d]\n",    nConfLimit );
     fprintf( pErr, "\t-I num : limit on the number of clause inspections [default = %d]\n", nInsLimit );
     fprintf( pErr, "\t-P num : partition size for multi-output networks [default = %s]\n", Buffer );
+    fprintf( pErr, "\t-p     : toggle automatic partitioning [default = %s]\n", fPartition? "yes": "no" );
     fprintf( pErr, "\t-s     : toggle \"SAT only\" and \"FRAIG + SAT\" [default = %s]\n", fSat? "SAT only": "FRAIG + SAT" );
     fprintf( pErr, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
