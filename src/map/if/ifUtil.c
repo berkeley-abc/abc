@@ -427,6 +427,26 @@ int If_ManCrossCut( If_Man_t * p )
     return nCutSizeMax;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Computes cross-cut of the circuit.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_ManCountTrueArea( If_Man_t * p )
+{
+    If_Obj_t * pObj;
+    int i, Area = 0;
+    Vec_PtrForEachEntry( p->vMapped, pObj, i )
+        Area += 1 + (If_ObjCutBest(pObj)->nLeaves > (unsigned)p->pPars->nLutSize / 2);
+    return Area;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

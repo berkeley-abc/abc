@@ -39,15 +39,18 @@
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_ManDfs_rec( Dar_Obj_t * pObj, Vec_Ptr_t * vNodes )
+void Dar_ManDfs_rec( Dar_Man_t * p, Dar_Obj_t * pObj, Vec_Ptr_t * vNodes )
 {
     assert( !Dar_IsComplement(pObj) );
-    if ( !Dar_ObjIsNode(pObj) || Dar_ObjIsMarkA(pObj) )
+    if ( pObj == NULL )
         return;
-    Dar_ManDfs_rec( Dar_ObjFanin0(pObj), vNodes );
-    Dar_ManDfs_rec( Dar_ObjFanin1(pObj), vNodes );
-    assert( !Dar_ObjIsMarkA(pObj) ); // loop detection
-    Dar_ObjSetMarkA(pObj);
+    if ( Dar_ObjIsTravIdCurrent(p, pObj) )
+        return;
+    assert( Dar_ObjIsNode(pObj) || Dar_ObjIsBuf(pObj) );
+    Dar_ManDfs_rec( p, Dar_ObjFanin0(pObj), vNodes );
+    Dar_ManDfs_rec( p, Dar_ObjFanin1(pObj), vNodes );
+    assert( !Dar_ObjIsTravIdCurrent(p, pObj) ); // loop detection
+    Dar_ObjSetTravIdCurrent(p, pObj);
     Vec_PtrPush( vNodes, pObj );
 }
 
@@ -67,35 +70,21 @@ Vec_Ptr_t * Dar_ManDfs( Dar_Man_t * p )
     Vec_Ptr_t * vNodes;
     Dar_Obj_t * pObj;
     int i;
+    Dar_ManIncrementTravId( p );
+    // mark constant and PIs
+    Dar_ObjSetTravIdCurrent( p, Dar_ManConst1(p) );
+    Dar_ManForEachPi( p, pObj, i )
+        Dar_ObjSetTravIdCurrent( p, pObj );
+    // if there are latches, mark them
+    if ( Dar_ManLatchNum(p) > 0 )
+        Dar_ManForEachObj( p, pObj, i )
+            if ( Dar_ObjIsLatch(pObj) )
+                Dar_ObjSetTravIdCurrent( p, pObj );
+    // go through the nodes
     vNodes = Vec_PtrAlloc( Dar_ManNodeNum(p) );
     Dar_ManForEachObj( p, pObj, i )
-        Dar_ManDfs_rec( pObj, vNodes );
-    Dar_ManForEachObj( p, pObj, i )
-        Dar_ObjClearMarkA(pObj);
-    return vNodes;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Collects internal nodes in the DFS order.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Ptr_t * Dar_ManDfsNode( Dar_Man_t * p, Dar_Obj_t * pNode )
-{
-    Vec_Ptr_t * vNodes;
-    Dar_Obj_t * pObj;
-    int i;
-    assert( !Dar_IsComplement(pNode) );
-    vNodes = Vec_PtrAlloc( 16 );
-    Dar_ManDfs_rec( pNode, vNodes );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
-        Dar_ObjClearMarkA(pObj);
+        if ( Dar_ObjIsNode(pObj) || Dar_ObjIsBuf(pObj) )
+            Dar_ManDfs_rec( p, pObj, vNodes );
     return vNodes;
 }
 

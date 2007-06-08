@@ -987,7 +987,7 @@ void Abc_NtkFixNonDrivenNets( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pNet, * pNode;
     int i;
 
-    if ( Abc_NtkNodeNum(pNtk) == 0 )
+    if ( Abc_NtkNodeNum(pNtk) == 0 && Abc_NtkBoxNum(pNtk) == 0 )
         return;
 
     // check for non-driven nets

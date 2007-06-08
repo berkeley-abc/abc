@@ -89,6 +89,43 @@ Dar_Obj_t * Dar_Oper( Dar_Man_t * p, Dar_Obj_t * p0, Dar_Obj_t * p1, Dar_Type_t 
 
 /**Function*************************************************************
 
+  Synopsis    [Creates the canonical form of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Dar_Obj_t * Dar_CanonPair_rec( Dar_Man_t * p, Dar_Obj_t * pGhost )
+{
+    Dar_Obj_t * pResult, * pLat0, * pLat1;
+    int fCompl0, fCompl1;
+    Dar_Type_t Type;
+    assert( Dar_ObjIsNode(pGhost) );
+    // consider the case when the pair is canonical
+    if ( !Dar_ObjIsLatch(Dar_ObjFanin0(pGhost)) || !Dar_ObjIsLatch(Dar_ObjFanin1(pGhost)) )
+    {
+        if ( pResult = Dar_TableLookup( p, pGhost ) )
+            return pResult;
+        return Dar_ObjCreate( p, pGhost );
+    }
+    /// remember the latches
+    pLat0 = Dar_ObjFanin0(pGhost);
+    pLat1 = Dar_ObjFanin1(pGhost);
+    // remember type and compls
+    Type = Dar_ObjType(pGhost);
+    fCompl0 = Dar_ObjFaninC0(pGhost);
+    fCompl1 = Dar_ObjFaninC1(pGhost);
+    // call recursively
+    pResult = Dar_Oper( p, Dar_NotCond(Dar_ObjChild0(pLat0), fCompl0), Dar_NotCond(Dar_ObjChild0(pLat1), fCompl1), Type );
+    // build latch on top of this
+    return Dar_Latch( p, pResult, (Type == DAR_AIG_AND)? fCompl0 & fCompl1 : fCompl0 ^ fCompl1 );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs canonicization step.]
 
   Description [The argument nodes can be complemented.]
@@ -114,11 +151,30 @@ Dar_Obj_t * Dar_And( Dar_Man_t * p, Dar_Obj_t * p0, Dar_Obj_t * p1 )
     // check if it can be an EXOR gate
 //    if ( Dar_ObjIsExorType( p0, p1, &pFan0, &pFan1 ) )
 //        return Dar_Exor( p, pFan0, pFan1 );
-    // check the table
     pGhost = Dar_ObjCreateGhost( p, p0, p1, DAR_AIG_AND );
-    if ( pResult = Dar_TableLookup( p, pGhost ) )
-        return pResult;
-    return Dar_ObjCreate( p, pGhost );
+    pResult = Dar_CanonPair_rec( p, pGhost );
+    return pResult;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates the canonical form of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Dar_Obj_t * Dar_Latch( Dar_Man_t * p, Dar_Obj_t * pObj, int fInitOne )
+{
+    Dar_Obj_t * pGhost, * pResult;
+    pGhost = Dar_ObjCreateGhost( p, Dar_NotCond(pObj, fInitOne), NULL, DAR_AIG_LATCH );
+    pResult = Dar_TableLookup( p, pGhost );
+    if ( pResult == NULL )
+        pResult = Dar_ObjCreate( p, pGhost );
+    return Dar_NotCond( pResult, fInitOne );
 }
 
 /**Function*************************************************************

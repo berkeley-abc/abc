@@ -858,6 +858,10 @@ SOURCE=.\src\aig\dar\darOper.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\dar\darSeq.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\dar\darTable.c
 # End Source File
 # Begin Source File

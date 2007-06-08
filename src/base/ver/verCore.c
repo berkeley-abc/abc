@@ -110,6 +110,7 @@ Ver_Man_t * Ver_ParseStart( char * pFileName, Abc_Lib_t * pGateLib )
     p->vNames    = Vec_PtrAlloc( 100 );
     p->vStackFn  = Vec_PtrAlloc( 100 );
     p->vStackOp  = Vec_IntAlloc( 100 );
+    p->vPerm     = Vec_IntAlloc( 100 );
     // create the design library and assign the technology library
     p->pDesign   = Abc_LibCreate( pFileName );
     p->pDesign->pLibrary = pGateLib;
@@ -136,6 +137,7 @@ void Ver_ParseStop( Ver_Man_t * p )
     Vec_PtrFree( p->vNames   );
     Vec_PtrFree( p->vStackFn );
     Vec_IntFree( p->vStackOp );
+    Vec_IntFree( p->vPerm );
     free( p );
 }
  
@@ -1193,6 +1195,12 @@ int Ver_ParseAssign( Ver_Man_t * pMan, Abc_Ntk_t * pNtk )
                     pFunc = (Hop_Obj_t *)Mio_LibraryReadConst1(Abc_FrameReadLibGen());
                 else
                 {
+                    // "assign foo = \bar ;"
+                    if ( *pEquation == '\\' )
+                    {
+                        pEquation++;
+                        pEquation[strlen(pEquation) - 1] = 0;
+                    }
                     if ( Ver_ParseFindNet(pNtk, pEquation) == NULL )
                     {
                         sprintf( pMan->sError, "Cannot read Verilog with non-trivial assignments in the mapped netlist." );
@@ -1358,6 +1366,29 @@ int Ver_ParseGateStandard( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Ver_GateType_t Ga
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the index of the given pin the gate.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ver_FindGateInput( Mio_Gate_t * pGate, char * pName )
+{
+    Mio_Pin_t * pGatePin;
+    int i;
+    for ( i = 0, pGatePin = Mio_GateReadPins(pGate); pGatePin != NULL; pGatePin = Mio_PinReadNext(pGatePin), i++ )
+        if ( strcmp(pName, Mio_PinReadName(pGatePin)) == 0 )
+            return i;
+    if ( strcmp(pName, Mio_GateReadOutName(pGate)) == 0 )
+        return i;
+    return -1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Parses one directive.]
 
   Description []
@@ -1369,10 +1400,10 @@ int Ver_ParseGateStandard( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Ver_GateType_t Ga
 ***********************************************************************/
 int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Mio_Gate_t * pGate )
 {
-    Mio_Pin_t * pGatePin;
     Ver_Stream_t * p = pMan->pReader;
     Abc_Obj_t * pNetActual, * pNode;
     char * pWord, Symbol;
+    int Input, i, nFanins = Mio_GateReadInputs(pGate);
 
     // convert from the blackbox into the network with local functions representated by gates
     if ( 1 != pMan->fMapped )
@@ -1404,7 +1435,7 @@ int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Mio_Gate_t * pGate )
     pNode->pData = pGate;
 
     // parse pairs of formal/actural inputs
-    pGatePin = Mio_GateReadPins(pGate);
+    Vec_IntClear( pMan->vPerm );
     while ( 1 )
     {
         // process one pair of formal/actual parameters
@@ -1420,24 +1451,13 @@ int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Mio_Gate_t * pGate )
         if ( pWord == NULL )
             return 0;
 
-        // make sure that the formal name is the same as the gate's
-        if ( Mio_GateReadInputs(pGate) == Abc_ObjFaninNum(pNode) ) 
+        // find the corresponding pin of the gate
+        Input = Ver_FindGateInput( pGate, pWord );
+        if ( Input == -1 )
         {
-            if ( strcmp(pWord, Mio_GateReadOutName(pGate)) )
-            {
-                sprintf( pMan->sError, "Formal output name listed %s is different from the name of the gate output %s.", pWord, Mio_GateReadOutName(pGate) );
-                Ver_ParsePrintErrorMessage( pMan );
-                return 0;
-            }
-        }
-        else
-        {
-            if ( strcmp(pWord, Mio_PinReadName(pGatePin)) )
-            {
-                sprintf( pMan->sError, "Formal input name listed %s is different from the name of the corresponding pin %s.", pWord, Mio_PinReadName(pGatePin) );
-                Ver_ParsePrintErrorMessage( pMan );
-                return 0;
-            }
+            sprintf( pMan->sError, "Formal input name %s cannot be found in the gate %s.", pWord, Mio_GateReadOutName(pGate) );
+            Ver_ParsePrintErrorMessage( pMan );
+            return 0;
         }
 
         // open the paranthesis
@@ -1482,10 +1502,13 @@ int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Mio_Gate_t * pGate )
         }
 
         // add the fanin
-        if ( Mio_GateReadInputs(pGate) == Abc_ObjFaninNum(pNode) )
-            Abc_ObjAddFanin( pNetActual, pNode ); // fanout
-        else
+        if ( Input < nFanins )
+        {
+            Vec_IntPush( pMan->vPerm, Input );
             Abc_ObjAddFanin( pNode, pNetActual ); // fanin
+        }
+        else
+            Abc_ObjAddFanin( pNetActual, pNode ); // fanout
 
         // check if it is the end of gate
         Ver_ParseSkipComments( pMan );
@@ -1501,13 +1524,10 @@ int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Mio_Gate_t * pGate )
             return 0;
         }
         Ver_ParseSkipComments( pMan );
-
-        // get the next pin
-        pGatePin = Mio_PinReadNext(pGatePin);
     }
 
     // check that the gate as the same number of input
-    if ( !(Abc_ObjFaninNum(pNode) == Mio_GateReadInputs(pGate) && Abc_ObjFanoutNum(pNode) == 1) )
+    if ( !(Abc_ObjFaninNum(pNode) == nFanins && Abc_ObjFanoutNum(pNode) == 1) )
     {
         sprintf( pMan->sError, "Parsing of gate %s has failed.", Mio_GateReadName(pGate) );
         Ver_ParsePrintErrorMessage( pMan );
@@ -1521,6 +1541,20 @@ int Ver_ParseGate( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Mio_Gate_t * pGate )
         sprintf( pMan->sError, "Cannot read gate %s (expected closing semicolumn).", Mio_GateReadName(pGate) );
         Ver_ParsePrintErrorMessage( pMan );
         return 0;
+    }
+    
+    // check if we need to permute the inputs
+    Vec_IntForEachEntry( pMan->vPerm, Input, i )
+        if ( Input != i )
+            break;
+    if ( i < Vec_IntSize(pMan->vPerm) )
+    {
+        // add the fanin numnbers to the end of the permuation array
+        for ( i = 0; i < nFanins; i++ )
+            Vec_IntPush( pMan->vPerm, Abc_ObjFaninId(pNode, i) );
+        // write the fanin numbers into their corresponding places (according to the gate) 
+        for ( i = 0; i < nFanins; i++ )
+            Vec_IntWriteEntry( &pNode->vFanins, Vec_IntEntry(pMan->vPerm, i), Vec_IntEntry(pMan->vPerm, i+nFanins) );
     }
     return 1;
 }
@@ -1546,6 +1580,7 @@ int Ver_ParseBox( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkBox )
     Abc_Obj_t * pNode;
     char * pWord, Symbol;
     int fCompl, fFormalIsGiven;
+    int i, k, Bit, Limit, nMsb, nLsb, fQuit, flag;
 
     // gate the name of the box
     pWord = Ver_ParseGetName( pMan );
@@ -1613,8 +1648,6 @@ int Ver_ParseBox( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkBox )
         // consider the case of vector-inputs
         if ( Symbol == '{' )
         {
-            int i, k, Bit, Limit, nMsb, nLsb, fQuit;
-
             // skip this char
             Ver_StreamPopChar(p);
 
@@ -1673,7 +1706,8 @@ int Ver_ParseBox( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkBox )
                         pNetActual = Ver_ParseFindNet( pNtk, pWord );
                         if ( pNetActual == NULL )
                         {
-                            if ( !strncmp(pWord, "Open_", 5) ) 
+                            if ( !strncmp(pWord, "Open_", 5) ||
+                                !strncmp(pWord, "dct_unconnected", 15) ) 
                                 pNetActual = Abc_NtkCreateNet( pNtk );
                             else
                             {
@@ -1697,7 +1731,8 @@ int Ver_ParseBox( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkBox )
                             pNetActual = Ver_ParseFindNet( pNtk, Buffer );
                             if ( pNetActual == NULL )
                             {
-                                if ( !strncmp(pWord, "Open_", 5) ) 
+                                if ( !strncmp(pWord, "Open_", 5) ||
+                                    !strncmp(pWord, "dct_unconnected", 15) ) 
                                     pNetActual = Abc_NtkCreateNet( pNtk );
                                 else
                                 {
@@ -1738,34 +1773,72 @@ int Ver_ParseBox( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkBox )
             if ( pWord[0] == 0 )
             {
                 pNetActual = Abc_NtkCreateNet( pNtk );
+                Vec_PtrPush( pBundle->vNetsActual, Abc_ObjNotCond( pNetActual, fCompl ) );
             }
             else
             {
-/*
-            // check if the name is complemented
-            fCompl = (pWord[0] == '~');
-            if ( fCompl )
-            {
-                pWord++;
-                if ( pNtk->pData == NULL )
-                    pNtk->pData = Extra_MmFlexStart();
-            }
-*/
                 // get the actual net
+                flag=0;
                 pNetActual = Ver_ParseFindNet( pNtk, pWord );
-                if ( pNetActual == NULL )
+                if ( pNetActual == NULL ) 
                 {
-                    if ( !strncmp(pWord, "Open_", 5) ) 
-                        pNetActual = Abc_NtkCreateNet( pNtk );
-                    else
+                    Ver_ParseLookupSuffix( pMan, pWord, &nMsb, &nLsb );
+                    if ( nMsb == -1 && nLsb == -1 ) 
                     {
-                        sprintf( pMan->sError, "Actual net \"%s\" is missing in box \"%s\".", pWord, Abc_ObjName(pNode) );
-                        Ver_ParsePrintErrorMessage( pMan );
-                        return 0;
+                        Ver_ParseSignalSuffix( pMan, pWord, &nMsb, &nLsb );
+                        if ( nMsb == -1 && nLsb == -1 ) 
+                        {
+                            if ( !strncmp(pWord, "Open_", 5) ||
+                                !strncmp(pWord, "dct_unconnected", 15) ) 
+                            {
+                                pNetActual = Abc_NtkCreateNet( pNtk );
+                                Vec_PtrPush( pBundle->vNetsActual, pNetActual );
+                            } 
+                            else 
+                            {
+                                sprintf( pMan->sError, "Actual net \"%s\" is missing in box \"%s\".", pWord, Abc_ObjName(pNode) );
+                                Ver_ParsePrintErrorMessage( pMan );
+                                return 0;
+                            }
+                        } 
+                        else 
+                        {
+                            flag=1;
+                        }
+                    } 
+                    else 
+                    {
+                        flag=1;
                     }
+                    if (flag) 
+                    {
+                        Limit = (nMsb > nLsb) ? nMsb - nLsb + 1: nLsb - nMsb + 1;  
+                        for ( Bit = nMsb, k = Limit - 1; k >= 0; Bit = (nMsb > nLsb ? Bit - 1: Bit + 1), k--)
+                        {
+                            // get the actual net
+                            sprintf( Buffer, "%s[%d]", pWord, Bit );
+                            pNetActual = Ver_ParseFindNet( pNtk, Buffer );
+                            if ( pNetActual == NULL )
+                            {
+                                if ( !strncmp(pWord, "Open_", 5) ||
+                                    !strncmp(pWord, "dct_unconnected", 15)) 
+                                    pNetActual = Abc_NtkCreateNet( pNtk );
+                                else
+                                {
+                                    sprintf( pMan->sError, "Actual net \"%s\" is missing in box \"%s\".", pWord, Abc_ObjName(pNode) );
+                                    Ver_ParsePrintErrorMessage( pMan );
+                                    return 0;
+                                }
+                            }
+                            Vec_PtrPush( pBundle->vNetsActual, pNetActual );
+                        }
+                    }
+                } 
+                else 
+                {
+                    Vec_PtrPush( pBundle->vNetsActual, Abc_ObjNotCond( pNetActual, fCompl ) );
                 }
             }
-            Vec_PtrPush( pBundle->vNetsActual, Abc_ObjNotCond( pNetActual, fCompl ) );
         }
 
         if ( fFormalIsGiven )
@@ -2000,8 +2073,8 @@ int Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox )
             }
             if ( pBundle == NULL )
             {
-                printf( "Warning: The formal output %s is not driven when instantiating network %s in box %s.", 
-                    pNameFormal, pNtkBox->pName, Abc_ObjName(pBox) );
+//                printf( "Warning: The formal output %s is not driven when instantiating network %s in box %s.", 
+//                    pNameFormal, pNtkBox->pName, Abc_ObjName(pBox) );
                 continue;
             }
         }

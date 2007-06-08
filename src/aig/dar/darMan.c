@@ -55,6 +55,7 @@ Dar_Man_t * Dar_ManStart( int nNodesMax )
     // allocate arrays for nodes
     p->vPis = Vec_PtrAlloc( 100 );
     p->vPos = Vec_PtrAlloc( 100 );
+    p->vObjs = Vec_PtrAlloc( 1000 );
     // prepare the internal memory manager
     p->pMemObjs = Dar_MmFixedStart( sizeof(Dar_Obj_t), nNodesMax );
     p->pMemCuts = Dar_MmFlexStart();
@@ -66,7 +67,7 @@ Dar_Man_t * Dar_ManStart( int nNodesMax )
     p->pConst1 = Dar_ManFetchMemory( p );
     p->pConst1->Type = DAR_AIG_CONST1;
     p->pConst1->fPhase = 1;
-    p->nCreated = 1;
+    p->nObjs[DAR_AIG_CONST1]++;
     // start the table
     p->nTableSize = nNodesMax;
     p->pTable = ALLOC( Dar_Obj_t *, p->nTableSize );
@@ -100,10 +101,10 @@ void Dar_ManStop( Dar_Man_t * p )
 //    Dar_TableProfile( p );
     Dar_MmFixedStop( p->pMemObjs, 0 );
     Dar_MmFlexStop( p->pMemCuts, 0 );
-    if ( p->vPis )      Vec_PtrFree( p->vPis );
-    if ( p->vPos )      Vec_PtrFree( p->vPos );
-    if ( p->vObjs )     Vec_PtrFree( p->vObjs );
-    if ( p->vRequired ) Vec_IntFree( p->vRequired );
+    if ( p->vPis )        Vec_PtrFree( p->vPis );
+    if ( p->vPos )        Vec_PtrFree( p->vPos );
+    if ( p->vObjs )       Vec_PtrFree( p->vObjs );
+    if ( p->vRequired )   Vec_IntFree( p->vRequired );
     if ( p->vLeavesBest ) Vec_PtrFree( p->vLeavesBest );
     free( p->pTable );
     free( p );
@@ -151,12 +152,15 @@ int Dar_ManCleanup( Dar_Man_t * p )
 ***********************************************************************/
 void Dar_ManPrintStats( Dar_Man_t * p )
 {
-    printf( "PI/PO = %d/%d. ", Dar_ManPiNum(p), Dar_ManPoNum(p) );
-    printf( "A = %7d. ",       Dar_ManAndNum(p) );
-    printf( "X = %5d. ",       Dar_ManExorNum(p) );
-    printf( "Cre = %7d. ",     p->nCreated );
-    printf( "Del = %7d. ",     p->nDeleted );
-    printf( "Lev = %3d. ",     Dar_ManCountLevels(p) );
+    printf( "PI/PO/Lat = %5d/%5d/%5d   ", Dar_ManPiNum(p), Dar_ManPoNum(p), Dar_ManLatchNum(p) );
+    printf( "A = %6d. ",    Dar_ManAndNum(p) );
+    if ( Dar_ManExorNum(p) )
+        printf( "X = %5d. ",    Dar_ManExorNum(p) );
+    if ( Dar_ManBufNum(p) )
+        printf( "B = %3d. ",    Dar_ManBufNum(p) );
+    printf( "Cre = %6d. ",  p->nCreated );
+    printf( "Del = %6d. ",  p->nDeleted );
+//    printf( "Lev = %3d. ",  Dar_ManCountLevels(p) );
     printf( "\n" );
 }
 

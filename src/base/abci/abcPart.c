@@ -698,10 +698,65 @@ Abc_Ntk_t * Abc_NtkFraigPartitioned( Abc_Ntk_t * pNtk, void * pParams )
     // derive the final network
     pNtkFraig = Abc_NtkPartStitchChoices( pNtk, vFraigs );
     Vec_PtrForEachEntry( vFraigs, pNtkAig, i )
+    {
+//        Abc_NtkPrintStats( stdout, pNtkAig, 0 );
         Abc_NtkDelete( pNtkAig );
+    }
     Vec_PtrFree( vFraigs );
 
     return pNtkFraig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Stitches together several networks with choice nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkFraigPartitionedTime( Abc_Ntk_t * pNtk, void * pParams )
+{
+    extern int Cmd_CommandExecute( void * pAbc, char * sCommand );
+    extern void * Abc_FrameGetGlobalFrame();
+
+    Vec_Vec_t * vParts;
+    Vec_Ptr_t * vFraigs, * vOne;
+    Abc_Ntk_t * pNtkAig, * pNtkFraig;
+    int i;
+    int clk = clock();
+
+    // perform partitioning
+    assert( Abc_NtkIsStrash(pNtk) );
+//    vParts = Abc_NtkPartitionNaive( pNtk, 20 );
+    vParts = Abc_NtkPartitionSmart( pNtk, 0, 0 );
+
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "unset progressbar" );
+
+    // fraig each partition
+    vFraigs = Vec_PtrAlloc( Vec_VecSize(vParts) );
+    Vec_VecForEachLevel( vParts, vOne, i )
+    {
+        pNtkAig = Abc_NtkCreateConeArray( pNtk, vOne, 0 );
+        pNtkFraig = Abc_NtkFraig( pNtkAig, pParams, 0, 0 );
+        Vec_PtrPush( vFraigs, pNtkFraig );
+        Abc_NtkDelete( pNtkAig );
+
+        printf( "Finished part %d (out of %d)\r", i+1, Vec_VecSize(vParts) );
+    }
+    Vec_VecFree( vParts );
+
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "set progressbar" );
+
+    // derive the final network
+    Vec_PtrForEachEntry( vFraigs, pNtkAig, i )
+        Abc_NtkDelete( pNtkAig );
+    Vec_PtrFree( vFraigs );
+
+    PRT( "Partitioned fraiging time", clock() - clk );
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -118,7 +118,13 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
             if ( strncmp(pType, "DFF", 3) == 0 ) // works for both DFF and DFFRSE
             {
                 pNode = Io_ReadCreateLatch( pNtk, vTokens->pArray[2], vTokens->pArray[0] );
-                Abc_LatchSetInit0( pNode );
+//                Abc_LatchSetInit0( pNode );
+                if ( pType[3] == '0' )
+                    Abc_LatchSetInit0( pNode );
+                else if ( pType[3] == '1' )
+                    Abc_LatchSetInit1( pNode );
+                else
+                    Abc_LatchSetInitDc( pNode );
             }
             else if ( strcmp(pType, "LUT") == 0 )
             {

@@ -330,7 +330,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 //    Kit_TruthCountMintermsPrecomp();
 //    Kit_DsdPrecompute4Vars();
 
-    Dar_LibStart();
+//    Dar_LibStart();
 } 
 
 /**Function*************************************************************
@@ -346,7 +346,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 ***********************************************************************/
 void Abc_End()
 {
-    Dar_LibStop();
+//    Dar_LibStop();
 
     Abc_NtkFraigStoreClean();
 //    Rwt_Man4ExplorePrint();
@@ -5931,7 +5931,7 @@ usage:
 int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
-    Abc_Ntk_t * pNtk;//, * pNtkRes;
+    Abc_Ntk_t * pNtk, * pNtkRes;
     int c;
     int nLevels;
 //    extern Abc_Ntk_t * Abc_NtkNewAig( Abc_Ntk_t * pNtk );
@@ -5940,6 +5940,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern int Pr_ManProofTest( char * pFileName );
     extern void Abc_NtkCompareSupports( Abc_Ntk_t * pNtk );
     extern void Abc_NtkCompareCones( Abc_Ntk_t * pNtk );
+    extern Abc_Ntk_t * Abc_NtkDar( Abc_Ntk_t * pNtk );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -6049,8 +6050,21 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Abc_Ntk4VarTable( pNtk );
 //    Dat_NtkGenerateArrays( pNtk );
 
-    return 0;
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "Network should be strashed. Command has failed.\n" );
+        return 1;
+    }
+    pNtkRes = Abc_NtkDar( pNtk );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Command has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
 
+    return 0;
 usage:
     fprintf( pErr, "usage: test [-h]\n" );
     fprintf( pErr, "\t         testbench for new procedures\n" );
@@ -7286,6 +7300,7 @@ int Abc_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fAllNodes;
     int fExdc;
     int c;
+    int fPartition = 0;
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -7307,7 +7322,7 @@ int Abc_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     pParams->fVerbose   =    0; // the verbosiness flag
     pParams->fVerboseP  =    0; // the verbosiness flag
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "RDCrscpvaeh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "RDCrscptvaeh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -7360,6 +7375,9 @@ int Abc_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'v':
             pParams->fVerbose ^= 1;
             break;
+        case 't':
+            fPartition ^= 1;
+            break;
         case 'a':
             fAllNodes ^= 1;
             break;
@@ -7388,13 +7406,28 @@ int Abc_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     pParams->fVerboseP = pParams->fTryProve;
 
     // get the new network
-    if ( Abc_NtkIsStrash(pNtk) )
-        pNtkRes = Abc_NtkFraig( pNtk, &Params, fAllNodes, fExdc );
+    if ( fPartition )
+    {
+        pNtkRes = Abc_NtkDup( pNtk );
+        if ( Abc_NtkIsStrash(pNtk) )
+            Abc_NtkFraigPartitionedTime( pNtk, &Params );
+        else
+        {
+            pNtk = Abc_NtkStrash( pNtk, fAllNodes, !fAllNodes, 0 );
+            Abc_NtkFraigPartitionedTime( pNtk, &Params );
+            Abc_NtkDelete( pNtk );
+        }
+    }
     else
     {
-        pNtk = Abc_NtkStrash( pNtk, fAllNodes, !fAllNodes, 0 );
-        pNtkRes = Abc_NtkFraig( pNtk, &Params, fAllNodes, fExdc );
-        Abc_NtkDelete( pNtk );
+        if ( Abc_NtkIsStrash(pNtk) )
+            pNtkRes = Abc_NtkFraig( pNtk, &Params, fAllNodes, fExdc );
+        else
+        {
+            pNtk = Abc_NtkStrash( pNtk, fAllNodes, !fAllNodes, 0 );
+            pNtkRes = Abc_NtkFraig( pNtk, &Params, fAllNodes, fExdc );
+            Abc_NtkDelete( pNtk );
+        }
     }
     if ( pNtkRes == NULL )
     {
@@ -7411,7 +7444,7 @@ int Abc_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     sprintf( Buffer, "%d", pParams->nBTLimit );
-    fprintf( pErr, "usage: fraig [-R num] [-D num] [-C num] [-rscpvah]\n" );
+    fprintf( pErr, "usage: fraig [-R num] [-D num] [-C num] [-rscpvtah]\n" );
     fprintf( pErr, "\t         transforms a logic network into a functionally reduced AIG\n" );
     fprintf( pErr, "\t-R num : number of random patterns (127 < num < 32769) [default = %d]\n",     pParams->nPatsRand );
     fprintf( pErr, "\t-D num : number of systematic patterns (127 < num < 32769) [default = %d]\n", pParams->nPatsDyna );
@@ -7423,6 +7456,7 @@ usage:
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n",                       pParams->fVerbose?  "yes": "no" );
     fprintf( pErr, "\t-e     : toggle functional sweeping using EXDC [default = %s]\n",       fExdc? "yes": "no" );
     fprintf( pErr, "\t-a     : toggle between all nodes and DFS nodes [default = %s]\n",      fAllNodes? "all": "dfs" );
+    fprintf( pErr, "\t-t     : toggle using partitioned representation [default = %s]\n",     fPartition? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
 }

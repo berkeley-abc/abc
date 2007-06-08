@@ -96,7 +96,7 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
 
     // prepare the array of nodes
     vNodes = Vec_PtrAlloc( 1 + nInputs + nLatches + nAnds );
-    Vec_PtrPush( vNodes, Abc_AigConst1(pNtkNew) );
+    Vec_PtrPush( vNodes, Abc_ObjNot( Abc_AigConst1(pNtkNew) ) );
 
     // create the PIs
     for ( i = 0; i < nInputs; i++ )
@@ -122,6 +122,8 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
         Vec_PtrPush( vNodes, pNode1 );
         // assign names to latch and its input
         Abc_ObjAssignName( pObj, Abc_ObjNameDummy("_L", i, nDigits), NULL );
+
+        printf( "Creating latch %s with input %d and output %d.\n", Abc_ObjName(pObj), pNode0->Id, pNode1->Id );
     } 
     
     // remember the beginning of latch/PO literals
@@ -156,14 +158,17 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
     Abc_NtkForEachLatchInput( pNtkNew, pObj, i )
     {
         uLit0 = atoi( pCur );  while ( *pCur++ != '\n' );
-        pNode0 = Abc_ObjNotCond( Vec_PtrEntry(vNodes, uLit0 >> 1), (uLit0 & 1) ^ (uLit0 < 2) );
+        pNode0 = Abc_ObjNotCond( Vec_PtrEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );//^ (uLit0 < 2) );
         Abc_ObjAddFanin( pObj, pNode0 );
+
+        printf( "Adding input %d to latch input %d.\n", pNode0->Id, pObj->Id );
+
     }
     // read the PO driver literals
     Abc_NtkForEachPo( pNtkNew, pObj, i )
     {
         uLit0 = atoi( pCur );  while ( *pCur++ != '\n' );
-        pNode0 = Abc_ObjNotCond( Vec_PtrEntry(vNodes, uLit0 >> 1), (uLit0 & 1) ^ (uLit0 < 2) );
+        pNode0 = Abc_ObjNotCond( Vec_PtrEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );//^ (uLit0 < 2) );
         Abc_ObjAddFanin( pObj, pNode0 );
     }
 
@@ -204,7 +209,7 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
             Abc_ObjAssignName( Abc_ObjFanin0(Abc_ObjFanin0(pObj)), Abc_ObjName(pObj), "L" );
         // mark the node as named
         pObj->pCopy = (Abc_Obj_t *)Abc_ObjName(pObj);
-    }
+    } 
     // skipping the comments
     free( pContents );
     Vec_PtrFree( vNodes );

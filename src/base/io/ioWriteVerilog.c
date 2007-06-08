@@ -113,7 +113,12 @@ void Io_WriteVerilogInt( FILE * pFile, Abc_Ntk_t * pNtk )
 {
     // write inputs and outputs
 //    fprintf( pFile, "module %s ( gclk,\n   ", Abc_NtkName(pNtk) );
-    fprintf( pFile, "module %s ( \n   ", Abc_NtkName(pNtk) );
+    fprintf( pFile, "module %s ( ", Abc_NtkName(pNtk) );
+    // add the clock signal if it does not exist
+    if ( Abc_NtkLatchNum(pNtk) > 0 && Nm_ManFindIdByName(pNtk->pManName, "clock", ABC_OBJ_PI) == -1 )
+        fprintf( pFile, "clock, " );
+    // write other primary inputs
+    fprintf( pFile, "\n   " );
     if ( Abc_NtkPiNum(pNtk) > 0  )
     {
         Io_WriteVerilogPis( pFile, pNtk, 3 );
@@ -435,7 +440,8 @@ void Io_WriteVerilogLatches( FILE * pFile, Abc_Ntk_t * pNtk )
         return;
     // write the latches
 //    fprintf( pFile, "  always @(posedge %s) begin\n", Io_WriteVerilogGetName(Abc_ObjFanout0(Abc_NtkPi(pNtk,0))) );
-    fprintf( pFile, "  always begin\n" );
+//    fprintf( pFile, "  always begin\n" );
+    fprintf( pFile, "  always @ (posedge clock) begin\n" );
     Abc_NtkForEachLatch( pNtk, pLatch, i )
     {
         fprintf( pFile, "    %s", Io_WriteVerilogGetName(Abc_ObjName(Abc_ObjFanout0(Abc_ObjFanout0(pLatch)))) );

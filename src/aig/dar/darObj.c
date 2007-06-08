@@ -89,7 +89,7 @@ Dar_Obj_t * Dar_ObjCreate( Dar_Man_t * p, Dar_Obj_t * pGhost )
 {
     Dar_Obj_t * pObj;
     assert( !Dar_IsComplement(pGhost) );
-    assert( Dar_ObjIsNode(pGhost) );
+    assert( Dar_ObjIsHash(pGhost) );
     assert( pGhost == &p->Ghost );
     // get memory for the new object
     pObj = Dar_ManFetchMemory( p );
@@ -116,7 +116,7 @@ Dar_Obj_t * Dar_ObjCreate( Dar_Man_t * p, Dar_Obj_t * pGhost )
 void Dar_ObjConnect( Dar_Man_t * p, Dar_Obj_t * pObj, Dar_Obj_t * pFan0, Dar_Obj_t * pFan1 )
 {
     assert( !Dar_IsComplement(pObj) );
-    assert( Dar_ObjIsNode(pObj) );
+    assert( !Dar_ObjIsPi(pObj) );
     // add the first fanin
     pObj->pFanin0 = pFan0;
     pObj->pFanin1 = pFan1;
@@ -137,7 +137,7 @@ void Dar_ObjConnect( Dar_Man_t * p, Dar_Obj_t * pObj, Dar_Obj_t * pFan0, Dar_Obj
         pObj->fPhase = Dar_ObjFaninPhase(pFan0);
     }
     // add the node to the structural hash table
-    if ( Dar_ObjIsNode(pObj) )
+    if ( Dar_ObjIsHash(pObj) )
         Dar_TableInsert( p, pObj );
 }
 
@@ -161,7 +161,7 @@ void Dar_ObjDisconnect( Dar_Man_t * p, Dar_Obj_t * pObj )
     if ( pObj->pFanin1 != NULL )
         Dar_ObjDeref(Dar_ObjFanin1(pObj));
     // remove the node from the structural hash table
-    if ( Dar_ObjIsNode(pObj) )
+    if ( Dar_ObjIsHash(pObj) )
         Dar_TableDelete( p, pObj );
     // add the first fanin
     pObj->pFanin0 = NULL;
@@ -184,7 +184,7 @@ void Dar_ObjDelete( Dar_Man_t * p, Dar_Obj_t * pObj )
     assert( !Dar_IsComplement(pObj) );
     assert( !Dar_ObjIsTerm(pObj) );
     assert( Dar_ObjRefs(pObj) == 0 );
-    p->nDeleted++;
+    p->nObjs[pObj->Type]--;
     Vec_PtrWriteEntry( p->vObjs, pObj->Id, NULL );
     Dar_ManRecycleMemory( p, pObj );
 }
@@ -206,17 +206,43 @@ void Dar_ObjDelete_rec( Dar_Man_t * p, Dar_Obj_t * pObj, int fFreeTop )
     assert( !Dar_IsComplement(pObj) );
     if ( Dar_ObjIsConst1(pObj) || Dar_ObjIsPi(pObj) )
         return;
-    assert( Dar_ObjIsNode(pObj) );
+    assert( !Dar_ObjIsPo(pObj) );
     pFanin0 = Dar_ObjFanin0(pObj);
     pFanin1 = Dar_ObjFanin1(pObj);
     Dar_ObjDisconnect( p, pObj );
-    p->nObjs[pObj->Type]--;
     if ( fFreeTop )
         Dar_ObjDelete( p, pObj );
     if ( pFanin0 && !Dar_ObjIsNone(pFanin0) && Dar_ObjRefs(pFanin0) == 0 )
         Dar_ObjDelete_rec( p, pFanin0, 1 );
     if ( pFanin1 && !Dar_ObjIsNone(pFanin1) && Dar_ObjRefs(pFanin1) == 0 )
         Dar_ObjDelete_rec( p, pFanin1, 1 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Replaces the first fanin of the node by the new fanin.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Dar_ObjPatchFanin0( Dar_Man_t * p, Dar_Obj_t * pObj, Dar_Obj_t * pFaninNew )
+{
+    Dar_Obj_t * pFaninOld;
+    assert( !Dar_IsComplement(pObj) );
+    pFaninOld = Dar_ObjFanin0(pObj);
+    // decrement ref and remove fanout
+    Dar_ObjDeref( pFaninOld );
+    // update the fanin
+    pObj->pFanin0 = pFaninNew;
+    // increment ref and add fanout
+    Dar_ObjRef( Dar_Regular(pFaninNew) );
+    // get rid of old fanin
+    if ( !Dar_ObjIsPi(pFaninOld) && !Dar_ObjIsConst1(pFaninOld) && Dar_ObjRefs(pFaninOld) == 0 )
+        Dar_ObjDelete_rec( p, pFaninOld, 1 );
 }
 
 /**Function*************************************************************
@@ -232,27 +258,27 @@ void Dar_ObjDelete_rec( Dar_Man_t * p, Dar_Obj_t * pObj, int fFreeTop )
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_ObjReplace( Dar_Man_t * p, Dar_Obj_t * pObjOld, Dar_Obj_t * pObjNew )
+void Dar_ObjReplace( Dar_Man_t * p, Dar_Obj_t * pObjOld, Dar_Obj_t * pObjNew, int fNodesOnly )
 {
     Dar_Obj_t * pObjNewR = Dar_Regular(pObjNew);
     // the object to be replaced cannot be complemented
     assert( !Dar_IsComplement(pObjOld) );
     // the object to be replaced cannot be a terminal
     assert( !Dar_ObjIsPi(pObjOld) && !Dar_ObjIsPo(pObjOld) );
-    // the object to be used cannot be a buffer
+    // the object to be used cannot be a buffer or a PO
     assert( !Dar_ObjIsBuf(pObjNewR) && !Dar_ObjIsPo(pObjNewR) );
     // the object cannot be the same
     assert( pObjOld != pObjNewR );
     // make sure object is not pointing to itself
-    assert( pObjOld != Dar_ObjFanin0(pObjNewR) );
+//    assert( pObjOld != Dar_ObjFanin0(pObjNewR) );
     assert( pObjOld != Dar_ObjFanin1(pObjNewR) );
-    // delete the old node
+    // recursively delete the old node - but leave the object there
     Dar_ObjDelete_rec( p, pObjOld, 0 );
     // if the new object is complemented or already used, create a buffer
-    if ( Dar_IsComplement(pObjNew) || Dar_ObjRefs(pObjNew) > 0 || !Dar_ObjIsNode(pObjNew) )
+    p->nObjs[pObjOld->Type]--;
+    if ( Dar_IsComplement(pObjNew) || Dar_ObjRefs(pObjNew) > 0 || (fNodesOnly && !Dar_ObjIsNode(pObjNew)) )
     {
         pObjOld->Type = DAR_AIG_BUF;
-        p->nObjs[pObjOld->Type]++;
         Dar_ObjConnect( p, pObjOld, pObjNew, NULL );
     }
     else
@@ -261,9 +287,10 @@ void Dar_ObjReplace( Dar_Man_t * p, Dar_Obj_t * pObjOld, Dar_Obj_t * pObjNew )
         Dar_Obj_t * pFanin1 = pObjNew->pFanin1;
         pObjOld->Type = pObjNew->Type;
         Dar_ObjDisconnect( p, pObjNew );
-        Dar_ObjDelete( p, pObjNew );
         Dar_ObjConnect( p, pObjOld, pFanin0, pFanin1 );
+        Dar_ObjDelete( p, pObjNew );
     }
+    p->nObjs[pObjOld->Type]++;
 }
 
 ////////////////////////////////////////////////////////////////////////

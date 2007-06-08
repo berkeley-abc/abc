@@ -25,59 +25,9 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static Dar_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk );
-static Abc_Ntk_t * Abc_NtkFromDar( Abc_Ntk_t * pNtkOld, Dar_Man_t * pMan );
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
-
-/**Function*************************************************************
-
-  Synopsis    [Gives the current ABC network to AIG manager for processing.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Ntk_t * Abc_NtkDar( Abc_Ntk_t * pNtk )
-{
-    Abc_Ntk_t * pNtkAig;
-    Dar_Man_t * pMan;//, * pTemp;
-    assert( Abc_NtkIsStrash(pNtk) );
-    // convert to the AIG manager
-    pMan = Abc_NtkToDar( pNtk );
-    if ( pMan == NULL )
-        return NULL;
-    if ( !Dar_ManCheck( pMan ) )
-    {
-        printf( "Abc_NtkDar: AIG check has failed.\n" );
-        Dar_ManStop( pMan );
-        return NULL;
-    }
-    // perform balance
-    Dar_ManPrintStats( pMan );
-//    Dar_ManDumpBlif( pMan, "aig_temp.blif" );
-    pMan->pPars = Dar_ManDefaultParams();
-    Dar_ManRewrite( pMan );
-    Dar_ManPrintStats( pMan );
-    // convert from the AIG manager
-    pNtkAig = Abc_NtkFromDar( pNtk, pMan );
-    if ( pNtkAig == NULL )
-        return NULL;
-    Dar_ManStop( pMan );
-    // make sure everything is okay
-    if ( !Abc_NtkCheck( pNtkAig ) )
-    {
-        printf( "Abc_NtkDar: The network check has failed.\n" );
-        Abc_NtkDelete( pNtkAig );
-        return NULL;
-    }
-    return pNtkAig;
-}
 
 /**Function*************************************************************
 
@@ -96,7 +46,7 @@ Dar_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pObj;
     int i;
     // create the manager
-    pMan = Dar_ManStart( Abc_NtkNodeNum(pNtk) );
+    pMan = Dar_ManStart( Abc_NtkNodeNum(pNtk) + 100 );
     // transfer the pointers to the basic nodes
     Abc_AigConst1(pNtk)->pCopy = (Abc_Obj_t *)Dar_ManConst1(pMan);
     Abc_NtkForEachCi( pNtk, pObj, i )
@@ -122,14 +72,14 @@ Dar_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkFromDar( Abc_Ntk_t * pNtk, Dar_Man_t * pMan )
+Abc_Ntk_t * Abc_NtkFromDar( Abc_Ntk_t * pNtkOld, Dar_Man_t * pMan )
 {
     Vec_Ptr_t * vNodes;
     Abc_Ntk_t * pNtkNew;
     Dar_Obj_t * pObj;
     int i;
     // perform strashing
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_STRASH, ABC_FUNC_AIG );
+    pNtkNew = Abc_NtkStartFrom( pNtkOld, ABC_NTK_STRASH, ABC_FUNC_AIG );
     // transfer the pointers to the basic nodes
     Dar_ManConst1(pMan)->pData = Abc_AigConst1(pNtkNew);
     Dar_ManForEachPi( pMan, pObj, i )
@@ -145,6 +95,159 @@ Abc_Ntk_t * Abc_NtkFromDar( Abc_Ntk_t * pNtk, Dar_Man_t * pMan )
     if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkFromDar(): Network check has failed.\n" );
     return pNtkNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converts the network from the AIG manager into ABC.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkFromDarSeq( Abc_Ntk_t * pNtkOld, Dar_Man_t * pMan )
+{
+    Vec_Ptr_t * vNodes;
+    Abc_Ntk_t * pNtkNew;
+    Abc_Obj_t * pObjNew, * pFaninNew, * pFaninNew0, * pFaninNew1;
+    Dar_Obj_t * pObj;
+    int i;
+//    assert( Dar_ManLatchNum(pMan) > 0 );
+    // perform strashing
+    pNtkNew = Abc_NtkStartFromNoLatches( pNtkOld, ABC_NTK_STRASH, ABC_FUNC_AIG );
+    // transfer the pointers to the basic nodes
+    Dar_ManConst1(pMan)->pData = Abc_AigConst1(pNtkNew);
+    Dar_ManForEachPi( pMan, pObj, i )
+        pObj->pData = Abc_NtkPi(pNtkNew, i);
+    // create latches of the new network
+    Dar_ManForEachObj( pMan, pObj, i )
+    {
+        if ( !Dar_ObjIsLatch(pObj) )
+            continue;
+        pObjNew = Abc_NtkCreateLatch( pNtkNew );
+        pFaninNew0 = Abc_NtkCreateBi( pNtkNew );
+        pFaninNew1 = Abc_NtkCreateBo( pNtkNew );
+        Abc_ObjAddFanin( pObjNew, pFaninNew0 );
+        Abc_ObjAddFanin( pFaninNew1, pObjNew );
+        Abc_LatchSetInit0( pObjNew );
+        pObj->pData = Abc_ObjFanout0( pObjNew );
+    }
+    Abc_NtkAddDummyBoxNames( pNtkNew );
+    // rebuild the AIG
+    vNodes = Dar_ManDfs( pMan );
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+    {
+        // add the first fanin
+        pObj->pData = pFaninNew0 = (Abc_Obj_t *)Dar_ObjChild0Copy(pObj);
+        if ( Dar_ObjIsBuf(pObj) )
+            continue;
+        // add the second fanin
+        pFaninNew1 = (Abc_Obj_t *)Dar_ObjChild1Copy(pObj);
+        // create the new node
+        if ( Dar_ObjIsExor(pObj) )
+            pObj->pData = pObjNew = Abc_AigXor( pNtkNew->pManFunc, pFaninNew0, pFaninNew1 );
+        else
+            pObj->pData = pObjNew = Abc_AigAnd( pNtkNew->pManFunc, pFaninNew0, pFaninNew1 );
+    }
+    Vec_PtrFree( vNodes );
+    // connect the PO nodes
+    Dar_ManForEachPo( pMan, pObj, i )
+    {
+        pFaninNew = (Abc_Obj_t *)Dar_ObjChild0Copy( pObj );
+        Abc_ObjAddFanin( Abc_NtkPo(pNtkNew, i), pFaninNew );
+    }
+    // connect the latches
+    Dar_ManForEachObj( pMan, pObj, i )
+    {
+        if ( !Dar_ObjIsLatch(pObj) )
+            continue;
+        pFaninNew = (Abc_Obj_t *)Dar_ObjChild0Copy( pObj );
+        Abc_ObjAddFanin( Abc_ObjFanin0(Abc_ObjFanin0(pObj->pData)), pFaninNew );
+    }
+    if ( !Abc_NtkCheck( pNtkNew ) )
+        fprintf( stdout, "Abc_NtkFromIvySeq(): Network check has failed.\n" );
+    return pNtkNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collect latch values.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int * Abc_NtkGetLatchValues( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pLatch;
+    int i, * pArray;
+    pArray = ALLOC( int, Abc_NtkLatchNum(pNtk) );
+    Abc_NtkForEachLatch( pNtk, pLatch, i )
+        pArray[i] = Abc_LatchIsInit1(pLatch);
+    return pArray;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkDar( Abc_Ntk_t * pNtk )
+{
+    Abc_Ntk_t * pNtkAig;
+    Dar_Man_t * pMan;//, * pTemp;
+    int * pArray;
+
+    assert( Abc_NtkIsStrash(pNtk) );
+    // convert to the AIG manager
+    pMan = Abc_NtkToDar( pNtk );
+    if ( pMan == NULL )
+        return NULL;
+    if ( !Dar_ManCheck( pMan ) )
+    {
+        printf( "Abc_NtkDar: AIG check has failed.\n" );
+        Dar_ManStop( pMan );
+        return NULL;
+    }
+    // perform balance
+    Dar_ManPrintStats( pMan );
+
+    pArray = Abc_NtkGetLatchValues(pNtk);
+    Dar_ManSeqStrash( pMan, Abc_NtkLatchNum(pNtk), pArray );
+    free( pArray );
+
+//    Dar_ManDumpBlif( pMan, "aig_temp.blif" );
+//    pMan->pPars = Dar_ManDefaultParams();
+//    Dar_ManRewrite( pMan );
+    Dar_ManPrintStats( pMan );
+    // convert from the AIG manager
+    if ( Dar_ManLatchNum(pMan) )
+        pNtkAig = Abc_NtkFromDarSeq( pNtk, pMan );
+    else
+        pNtkAig = Abc_NtkFromDar( pNtk, pMan );
+    if ( pNtkAig == NULL )
+        return NULL;
+    Dar_ManStop( pMan );
+    // make sure everything is okay
+    if ( !Abc_NtkCheck( pNtkAig ) )
+    {
+        printf( "Abc_NtkDar: The network check has failed.\n" );
+        Abc_NtkDelete( pNtkAig );
+        return NULL;
+    }
+    return pNtkAig;
 }
 
 ////////////////////////////////////////////////////////////////////////

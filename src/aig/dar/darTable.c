@@ -39,8 +39,15 @@ static unsigned long Dar_Hash( Dar_Obj_t * pObj, int TableSize )
 static Dar_Obj_t ** Dar_TableFind( Dar_Man_t * p, Dar_Obj_t * pObj )
 {
     Dar_Obj_t ** ppEntry;
-    assert( Dar_ObjChild0(pObj) && Dar_ObjChild1(pObj) );
-    assert( Dar_ObjFanin0(pObj)->Id < Dar_ObjFanin1(pObj)->Id );
+    if ( Dar_ObjIsLatch(pObj) )
+    {
+        assert( Dar_ObjChild0(pObj) && Dar_ObjChild1(pObj) == NULL );
+    }
+    else
+    {
+        assert( Dar_ObjChild0(pObj) && Dar_ObjChild1(pObj) );
+        assert( Dar_ObjFanin0(pObj)->Id < Dar_ObjFanin1(pObj)->Id );
+    }
     for ( ppEntry = p->pTable + Dar_Hash(pObj, p->nTableSize); *ppEntry; ppEntry = &(*ppEntry)->pNext )
         if ( *ppEntry == pObj )
             return ppEntry;
@@ -70,10 +77,20 @@ Dar_Obj_t * Dar_TableLookup( Dar_Man_t * p, Dar_Obj_t * pGhost )
 {
     Dar_Obj_t * pEntry;
     assert( !Dar_IsComplement(pGhost) );
-    assert( Dar_ObjChild0(pGhost) && Dar_ObjChild1(pGhost) );
-    assert( Dar_ObjFanin0(pGhost)->Id < Dar_ObjFanin1(pGhost)->Id );
-    if ( !Dar_ObjRefs(Dar_ObjFanin0(pGhost)) || !Dar_ObjRefs(Dar_ObjFanin1(pGhost)) )
-        return NULL;
+    if ( pGhost->Type == DAR_AIG_LATCH )
+    {
+        assert( Dar_ObjChild0(pGhost) && Dar_ObjChild1(pGhost) == NULL );
+        if ( !Dar_ObjRefs(Dar_ObjFanin0(pGhost)) )
+            return NULL;
+    }
+    else
+    {
+        assert( pGhost->Type == DAR_AIG_AND );
+        assert( Dar_ObjChild0(pGhost) && Dar_ObjChild1(pGhost) );
+        assert( Dar_ObjFanin0(pGhost)->Id < Dar_ObjFanin1(pGhost)->Id );
+        if ( !Dar_ObjRefs(Dar_ObjFanin0(pGhost)) || !Dar_ObjRefs(Dar_ObjFanin1(pGhost)) )
+            return NULL;
+    }
     for ( pEntry = p->pTable[Dar_Hash(pGhost, p->nTableSize)]; pEntry; pEntry = pEntry->pNext )
     {
         if ( Dar_ObjChild0(pEntry) == Dar_ObjChild0(pGhost) && 

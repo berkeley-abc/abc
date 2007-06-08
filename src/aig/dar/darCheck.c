@@ -89,15 +89,24 @@ int Dar_ManCheck( Dar_Man_t * p )
         }
     }
     // count the total number of nodes
-    if ( Dar_ManObjNum(p) != 1 + Dar_ManPiNum(p) + Dar_ManPoNum(p) + Dar_ManAndNum(p) + Dar_ManExorNum(p) )
+    if ( Dar_ManObjNum(p) != 1 + Dar_ManPiNum(p) + Dar_ManPoNum(p) + Dar_ManBufNum(p) + Dar_ManAndNum(p) + Dar_ManExorNum(p) + Dar_ManLatchNum(p) )
     {
         printf( "Dar_ManCheck: The number of created nodes is wrong.\n" );
+        printf( "C1 = %d. Pi = %d. Po = %d. Buf = %d. And = %d. Xor = %d. Lat = %d. Total = %d.\n",
+            1, Dar_ManPiNum(p), Dar_ManPoNum(p), Dar_ManBufNum(p), Dar_ManAndNum(p), Dar_ManExorNum(p), Dar_ManLatchNum(p), 
+            1 + Dar_ManPiNum(p) + Dar_ManPoNum(p) + Dar_ManBufNum(p) + Dar_ManAndNum(p) + Dar_ManExorNum(p) + Dar_ManLatchNum(p) );
+        printf( "Created = %d. Deleted = %d. Existing = %d.\n",
+            p->nCreated, p->nDeleted, p->nCreated - p->nDeleted );
         return 0;
     }
     // count the number of nodes in the table
-    if ( Dar_TableCountEntries(p) != Dar_ManAndNum(p) + Dar_ManExorNum(p) )
+    if ( Dar_TableCountEntries(p) != Dar_ManAndNum(p) + Dar_ManExorNum(p) + Dar_ManLatchNum(p) )
     {
         printf( "Dar_ManCheck: The number of nodes in the structural hashing table is wrong.\n" );
+        printf( "Entries = %d. And = %d. Xor = %d. Lat = %d. Total = %d.\n", 
+            Dar_TableCountEntries(p), Dar_ManAndNum(p), Dar_ManExorNum(p), Dar_ManLatchNum(p),
+            Dar_ManAndNum(p) + Dar_ManExorNum(p) + Dar_ManLatchNum(p) );
+
         return 0;
     }
 //    if ( !Dar_ManIsAcyclic(p) )

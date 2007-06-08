@@ -76,7 +76,7 @@ int Dar_ManRewrite( Dar_Man_t * p )
         pObjNew = Dar_LibBuildBest( p );
         pObjNew = Dar_NotCond( pObjNew, pObjNew->fPhase ^ pObj->fPhase );
         // remove the old nodes
-        Dar_ObjReplace( p, pObj, pObjNew );
+        Dar_ObjReplace( p, pObj, pObjNew, 1 );
         // compare the gains
         nNodeAfter = Dar_ManNodeNum( p );
         assert( p->GainBest == nNodeBefore - nNodeAfter );
@@ -98,6 +98,8 @@ int Dar_ManRewrite( Dar_Man_t * p )
     }
     return 1;
 }
+
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

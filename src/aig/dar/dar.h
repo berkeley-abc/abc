@@ -65,7 +65,8 @@ typedef enum {
     DAR_AIG_BUF,                     // 4: buffer node
     DAR_AIG_AND,                     // 5: AND node
     DAR_AIG_EXOR,                    // 6: EXOR node
-    DAR_AIG_VOID                     // 7: unused object
+    DAR_AIG_LATCH,                   // 7: latch
+    DAR_AIG_VOID                     // 8: unused object
 } Dar_Type_t;
 
 // the parameters
@@ -179,11 +180,13 @@ static inline Dar_Obj_t *  Dar_ManObj( Dar_Man_t * p, int i )     { return p->vO
 
 static inline int          Dar_ManPiNum( Dar_Man_t * p )          { return p->nObjs[DAR_AIG_PI];                    }
 static inline int          Dar_ManPoNum( Dar_Man_t * p )          { return p->nObjs[DAR_AIG_PO];                    }
+static inline int          Dar_ManBufNum( Dar_Man_t * p )         { return p->nObjs[DAR_AIG_BUF];                   }
 static inline int          Dar_ManAndNum( Dar_Man_t * p )         { return p->nObjs[DAR_AIG_AND];                   }
 static inline int          Dar_ManExorNum( Dar_Man_t * p )        { return p->nObjs[DAR_AIG_EXOR];                  }
-static inline int          Dar_ManNodeNum( Dar_Man_t * p )        { return p->nObjs[DAR_AIG_AND]+p->nObjs[DAR_AIG_EXOR];}
+static inline int          Dar_ManLatchNum( Dar_Man_t * p )       { return p->nObjs[DAR_AIG_LATCH];                 }
+static inline int          Dar_ManNodeNum( Dar_Man_t * p )        { return p->nObjs[DAR_AIG_AND]+p->nObjs[DAR_AIG_EXOR];   }
 static inline int          Dar_ManGetCost( Dar_Man_t * p )        { return p->nObjs[DAR_AIG_AND]+3*p->nObjs[DAR_AIG_EXOR]; }
-static inline int          Dar_ManObjNum( Dar_Man_t * p )         { return p->nCreated - p->nDeleted;           }
+static inline int          Dar_ManObjNum( Dar_Man_t * p )         { return p->nCreated - p->nDeleted;               }
 
 static inline Dar_Type_t   Dar_ObjType( Dar_Obj_t * pObj )        { return (Dar_Type_t)pObj->Type;               }
 static inline int          Dar_ObjIsNone( Dar_Obj_t * pObj )      { return pObj->Type == DAR_AIG_NONE;   }
@@ -193,19 +196,20 @@ static inline int          Dar_ObjIsPo( Dar_Obj_t * pObj )        { return pObj-
 static inline int          Dar_ObjIsBuf( Dar_Obj_t * pObj )       { return pObj->Type == DAR_AIG_BUF;    }
 static inline int          Dar_ObjIsAnd( Dar_Obj_t * pObj )       { return pObj->Type == DAR_AIG_AND;    }
 static inline int          Dar_ObjIsExor( Dar_Obj_t * pObj )      { return pObj->Type == DAR_AIG_EXOR;   }
+static inline int          Dar_ObjIsLatch( Dar_Obj_t * pObj )     { return pObj->Type == DAR_AIG_LATCH;  }
 static inline int          Dar_ObjIsNode( Dar_Obj_t * pObj )      { return pObj->Type == DAR_AIG_AND || pObj->Type == DAR_AIG_EXOR;   }
-static inline int          Dar_ObjIsTerm( Dar_Obj_t * pObj )      { return pObj->Type == DAR_AIG_PI  || pObj->Type == DAR_AIG_PO || pObj->Type == DAR_AIG_CONST1; }
-static inline int          Dar_ObjIsHash( Dar_Obj_t * pObj )      { return pObj->Type == DAR_AIG_AND || pObj->Type == DAR_AIG_EXOR;   }
+static inline int          Dar_ObjIsTerm( Dar_Obj_t * pObj )      { return pObj->Type == DAR_AIG_PI  || pObj->Type == DAR_AIG_PO || pObj->Type == DAR_AIG_CONST1;  }
+static inline int          Dar_ObjIsHash( Dar_Obj_t * pObj )      { return pObj->Type == DAR_AIG_AND || pObj->Type == DAR_AIG_EXOR || pObj->Type == DAR_AIG_LATCH; }
 
 static inline int          Dar_ObjIsMarkA( Dar_Obj_t * pObj )     { return pObj->fMarkA;  }
 static inline void         Dar_ObjSetMarkA( Dar_Obj_t * pObj )    { pObj->fMarkA = 1;     }
 static inline void         Dar_ObjClearMarkA( Dar_Obj_t * pObj )  { pObj->fMarkA = 0;     }
  
-static inline void         Dar_ObjSetTravId( Dar_Obj_t * pObj, int TravId )                { pObj->pData = (void *)TravId;                       }
-static inline void         Dar_ObjSetTravIdCurrent( Dar_Man_t * p, Dar_Obj_t * pObj )      { pObj->pData = (void *)p->nTravIds;                  }
-static inline void         Dar_ObjSetTravIdPrevious( Dar_Man_t * p, Dar_Obj_t * pObj )     { pObj->pData = (void *)(p->nTravIds - 1);            }
-static inline int          Dar_ObjIsTravIdCurrent( Dar_Man_t * p, Dar_Obj_t * pObj )       { return (int )((int)pObj->pData == p->nTravIds);     }
-static inline int          Dar_ObjIsTravIdPrevious( Dar_Man_t * p, Dar_Obj_t * pObj )      { return (int )((int)pObj->pData == p->nTravIds - 1); }
+static inline void         Dar_ObjSetTravId( Dar_Obj_t * pObj, int TravId )                { pObj->TravId = TravId;                         }
+static inline void         Dar_ObjSetTravIdCurrent( Dar_Man_t * p, Dar_Obj_t * pObj )      { pObj->TravId = p->nTravIds;                    }
+static inline void         Dar_ObjSetTravIdPrevious( Dar_Man_t * p, Dar_Obj_t * pObj )     { pObj->TravId = p->nTravIds - 1;                }
+static inline int          Dar_ObjIsTravIdCurrent( Dar_Man_t * p, Dar_Obj_t * pObj )       { return (int)(pObj->TravId == p->nTravIds);     }
+static inline int          Dar_ObjIsTravIdPrevious( Dar_Man_t * p, Dar_Obj_t * pObj )      { return (int)(pObj->TravId == p->nTravIds - 1); }
 
 static inline int          Dar_ObjTravId( Dar_Obj_t * pObj )      { return (int)pObj->pData;                       }
 static inline int          Dar_ObjPhase( Dar_Obj_t * pObj )       { return pObj->fPhase;                           }
@@ -247,7 +251,7 @@ static inline Dar_Obj_t *  Dar_ObjCreateGhost( Dar_Man_t * p, Dar_Obj_t * p0, Da
     assert( Type == DAR_AIG_PI || Dar_Regular(p0) != Dar_Regular(p1) );
     pGhost = Dar_ManGhost(p);
     pGhost->Type = Type;
-    if ( Dar_Regular(p0)->Id < Dar_Regular(p1)->Id )
+    if ( p1 == NULL || Dar_Regular(p0)->Id < Dar_Regular(p1)->Id )
     {
         pGhost->pFanin0 = p0;
         pGhost->pFanin1 = p1;
@@ -274,7 +278,8 @@ static inline Dar_Obj_t * Dar_ManFetchMemory( Dar_Man_t * p )
 static inline void Dar_ManRecycleMemory( Dar_Man_t * p, Dar_Obj_t * pEntry )
 {
     extern void Dar_MmFixedEntryRecycle( Dar_MmFixed_t * p, char * pEntry );
-    pEntry->Type = DAR_AIG_NONE; // distinquishes dead node from live node
+    p->nDeleted++;
+    pEntry->Type = DAR_AIG_NONE; // distinquishes a dead node from a live node
     Dar_MmFixedEntryRecycle( p->pMemObjs, (char *)pEntry );
 }
 
@@ -291,7 +296,7 @@ static inline void Dar_ManRecycleMemory( Dar_Man_t * p, Dar_Obj_t * pEntry )
     Vec_PtrForEachEntry( p->vPos, pObj, i )
 // iterator over all objects, including those currently not used
 #define Dar_ManForEachObj( p, pObj, i )                                         \
-    Vec_PtrForEachEntry( p->vObjs, pObj, i )
+    Vec_PtrForEachEntry( p->vObjs, pObj, i ) if ( (pObj) == NULL ) {} else
 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
@@ -313,7 +318,6 @@ extern Vec_Int_t *     Dar_LibReadNodes();
 extern Vec_Int_t *     Dar_LibReadOuts();
 /*=== darDfs.c ==========================================================*/
 extern Vec_Ptr_t *     Dar_ManDfs( Dar_Man_t * p );
-extern Vec_Ptr_t *     Dar_ManDfsNode( Dar_Man_t * p, Dar_Obj_t * pNode );
 extern int             Dar_ManCountLevels( Dar_Man_t * p );
 extern void            Dar_ManCreateRefs( Dar_Man_t * p );
 extern int             Dar_DagSize( Dar_Obj_t * pObj );
@@ -342,11 +346,13 @@ extern void            Dar_ObjConnect( Dar_Man_t * p, Dar_Obj_t * pObj, Dar_Obj_
 extern void            Dar_ObjDisconnect( Dar_Man_t * p, Dar_Obj_t * pObj );
 extern void            Dar_ObjDelete( Dar_Man_t * p, Dar_Obj_t * pObj );
 extern void            Dar_ObjDelete_rec( Dar_Man_t * p, Dar_Obj_t * pObj, int fFreeTop );
-extern void            Dar_ObjReplace( Dar_Man_t * p, Dar_Obj_t * pObjOld, Dar_Obj_t * pObjNew );
+extern void            Dar_ObjPatchFanin0( Dar_Man_t * p, Dar_Obj_t * pObj, Dar_Obj_t * pFaninNew );
+extern void            Dar_ObjReplace( Dar_Man_t * p, Dar_Obj_t * pObjOld, Dar_Obj_t * pObjNew, int fNodesOnly );
 /*=== darOper.c =========================================================*/
 extern Dar_Obj_t *     Dar_IthVar( Dar_Man_t * p, int i );
 extern Dar_Obj_t *     Dar_Oper( Dar_Man_t * p, Dar_Obj_t * p0, Dar_Obj_t * p1, Dar_Type_t Type );
 extern Dar_Obj_t *     Dar_And( Dar_Man_t * p, Dar_Obj_t * p0, Dar_Obj_t * p1 );
+extern Dar_Obj_t *     Dar_Latch( Dar_Man_t * p, Dar_Obj_t * pObj, int fInitOne );
 extern Dar_Obj_t *     Dar_Or( Dar_Man_t * p, Dar_Obj_t * p0, Dar_Obj_t * p1 );
 extern Dar_Obj_t *     Dar_Exor( Dar_Man_t * p, Dar_Obj_t * p0, Dar_Obj_t * p1 );
 extern Dar_Obj_t *     Dar_Mux( Dar_Man_t * p, Dar_Obj_t * pC, Dar_Obj_t * p1, Dar_Obj_t * p0 );
@@ -355,6 +361,8 @@ extern Dar_Obj_t *     Dar_Miter( Dar_Man_t * p, Vec_Ptr_t * vPairs );
 extern Dar_Obj_t *     Dar_CreateAnd( Dar_Man_t * p, int nVars );
 extern Dar_Obj_t *     Dar_CreateOr( Dar_Man_t * p, int nVars );
 extern Dar_Obj_t *     Dar_CreateExor( Dar_Man_t * p, int nVars );
+/*=== darSeq.c ========================================================*/
+extern int             Dar_ManSeqStrash( Dar_Man_t * p, int nLatches, int * pInits );
 /*=== darTable.c ========================================================*/
 extern Dar_Obj_t *     Dar_TableLookup( Dar_Man_t * p, Dar_Obj_t * pGhost );
 extern void            Dar_TableInsert( Dar_Man_t * p, Dar_Obj_t * pObj );

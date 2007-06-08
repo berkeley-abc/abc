@@ -687,7 +687,7 @@ int Abc_NtkFraigStore( Abc_Ntk_t * pNtk )
         // set the number of networks stored
         Abc_FrameSetNtkStoreSize( Abc_FrameReadNtkStoreSize() + 1 );
     }
-//    printf( "The number of AIG nodes added to storage = %5d.\n", Abc_NtkNodeNum(pStore) - nAndsOld );
+    printf( "The number of AIG nodes added to storage = %5d.\n", Abc_NtkNodeNum(pStore) - nAndsOld );
     return 1;
 }
 
@@ -734,7 +734,7 @@ Abc_Ntk_t * Abc_NtkFraigRestore()
     Fraig_ParamsSetDefault( &Params );
     Params.nPatsRand  = nWordsMin * 32; // the number of words of random simulation info
     Params.nPatsDyna  = nWordsMin * 32; // the number of words of dynamic simulation info
-    Params.nBTLimit   = 99;             // the max number of backtracks to perform
+    Params.nBTLimit   = 999999;             // the max number of backtracks to perform
     Params.fFuncRed   =  1;             // performs only one level hashing
     Params.fFeedBack  =  1;             // enables solver feedback
     Params.fDist1Pats =  1;             // enables distance-1 patterns

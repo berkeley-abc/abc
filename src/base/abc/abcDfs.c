@@ -55,7 +55,10 @@ void Abc_NtkDfs_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
     assert( Abc_ObjIsNode( pNode ) || Abc_ObjIsBox( pNode ) );
     // visit the transitive fanin of the node
     Abc_ObjForEachFanin( pNode, pFanin, i )
+    {
+//        pFanin = Abc_ObjFanin( pNode, Abc_ObjFaninNum(pNode)-1-i );
         Abc_NtkDfs_rec( Abc_ObjFanin0Ntk(pFanin), vNodes );
+    }
     // add the node after the fanins have been added
     Vec_PtrPush( vNodes, pNode );
 }

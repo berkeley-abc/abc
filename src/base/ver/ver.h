@@ -66,6 +66,7 @@ struct Ver_Man_t_
     Vec_Ptr_t *     vNames;  
     Vec_Ptr_t *     vStackFn;
     Vec_Int_t *     vStackOp;
+    Vec_Int_t *     vPerm;
 };
 
 
