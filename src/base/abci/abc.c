@@ -26,6 +26,7 @@
 #include "fpga.h"
 #include "if.h"
 #include "res.h"
+//#include "dar.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -330,7 +331,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 //    Kit_TruthCountMintermsPrecomp();
 //    Kit_DsdPrecompute4Vars();
 
-//    Dar_LibStart();
+    Dar_LibStart();
 } 
 
 /**Function*************************************************************
@@ -346,7 +347,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 ***********************************************************************/
 void Abc_End()
 {
-//    Dar_LibStop();
+    Dar_LibStop();
 
     Abc_NtkFraigStoreClean();
 //    Rwt_Man4ExplorePrint();
@@ -6048,7 +6049,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 */
 //    Abc_Ntk4VarTable( pNtk );
-//    Dat_NtkGenerateArrays( pNtk );
+//    Dar_NtkGenerateArrays( pNtk );
+//    Dar_ManDeriveCnfTest2();
 
     if ( !Abc_NtkIsStrash(pNtk) )
     {
@@ -7301,6 +7303,7 @@ int Abc_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fExdc;
     int c;
     int fPartition = 0;
+    extern void Abc_NtkFraigPartitionedTime( Abc_Ntk_t * pNtk, void * pParams );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -10535,6 +10538,7 @@ int Abc_CommandSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     char ** pArgvNew;
     int nArgcNew;
     int c;
+    int fRetime;
     int fSat;
     int fVerbose;
     int nFrames;
@@ -10544,6 +10548,7 @@ int Abc_CommandSec( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     extern void Abc_NtkSecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nInsLimit, int nFrames );
     extern int Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nFrames, int fVerbose );
+    extern void Abc_NtkSecRetime( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 );
 
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -10551,6 +10556,7 @@ int Abc_CommandSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
+    fRetime  =  0; // verification after retiming
     fSat     =  0;
     fVerbose =  0;
     nFrames  =  5;
@@ -10558,7 +10564,7 @@ int Abc_CommandSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     nConfLimit = 10000;   
     nInsLimit  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FTCIsvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FTCIsrvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -10606,6 +10612,9 @@ int Abc_CommandSec( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nInsLimit < 0 ) 
                 goto usage;
             break;
+        case 'r':
+            fRetime ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -10629,7 +10638,9 @@ int Abc_CommandSec( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
 
     // perform equivalence checking
-    if ( fSat )
+    if ( fRetime )
+        Abc_NtkSecRetime( pNtk1, pNtk2 );
+    else if ( fSat )
         Abc_NtkSecSat( pNtk1, pNtk2, nConfLimit, nInsLimit, nFrames );
     else
         Abc_NtkSecFraig( pNtk1, pNtk2, nSeconds, nFrames, fVerbose );
@@ -10639,9 +10650,10 @@ int Abc_CommandSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: sec [-F num] [-T num] [-C num] [-I num] [-svh] <file1> <file2>\n" );
+    fprintf( pErr, "usage: sec [-F num] [-T num] [-C num] [-I num] [-srvh] <file1> <file2>\n" );
     fprintf( pErr, "\t         performs bounded sequential equivalence checking\n" );
     fprintf( pErr, "\t-s     : toggle \"SAT only\" and \"FRAIG + SAT\" [default = %s]\n", fSat? "SAT only": "FRAIG + SAT" );
+    fprintf( pErr, "\t-r     : toggles retiming verification [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     fprintf( pErr, "\t-F num : the number of time frames to use [default = %d]\n", nFrames );

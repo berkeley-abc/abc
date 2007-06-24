@@ -107,6 +107,13 @@ void Dar_ManStop( Dar_Man_t * p )
     if ( p->vRequired )   Vec_IntFree( p->vRequired );
     if ( p->vLeavesBest ) Vec_PtrFree( p->vLeavesBest );
     free( p->pTable );
+    // free CNF mapping data
+    if ( p->pSopSizes )
+    {
+        free( p->pSopSizes );
+        free( p->pSops[1] );
+        free( p->pSops );
+    }
     free( p );
 }
 
@@ -162,6 +169,38 @@ void Dar_ManPrintStats( Dar_Man_t * p )
     printf( "Del = %6d. ",  p->nDeleted );
 //    printf( "Lev = %3d. ",  Dar_ManCountLevels(p) );
     printf( "\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Stops the AIG manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Dar_ManPrintRuntime( Dar_Man_t * p )
+{
+    int i, Gain;
+    printf( "Good cuts = %d. Bad cuts = %d.\n", p->nCutsGood, p->nCutsBad );
+    PRT( "Cuts  ", p->timeCuts );
+    PRT( "Eval  ", p->timeEval );
+    PRT( "Other ", p->timeOther );
+    PRT( "TOTAL ", p->timeTotal );
+    Gain = p->nNodesInit - Dar_ManNodeNum(p);
+    for ( i = 0; i < 222; i++ )
+    {
+        if ( p->ClassGains[i] == 0 && p->ClassTimes[i] == 0 )
+            continue;
+        printf( "%3d : ", i );
+        printf( "G = %6d (%5.2f %%)  ", p->ClassGains[i], Gain? 100.0*p->ClassGains[i]/Gain : 0.0 );
+        printf( "S = %8d (%5.2f %%)  ", p->ClassSubgs[i], p->nTotalSubgs? 100.0*p->ClassSubgs[i]/p->nTotalSubgs : 0.0 );
+        printf( "R = %7d  ", p->ClassGains[i]? p->ClassSubgs[i]/p->ClassGains[i] : 9999999 );
+        PRTP( "T", p->ClassTimes[i], p->timeEval );
+    }
 }
 
 

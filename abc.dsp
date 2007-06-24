@@ -822,6 +822,10 @@ SOURCE=.\src\aig\dar\darCheck.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\dar\darCnf.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\dar\darCore.c
 # End Source File
 # Begin Source File
@@ -831,6 +835,10 @@ SOURCE=.\src\aig\dar\darCut.c
 # Begin Source File
 
 SOURCE=.\src\aig\dar\darData.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\dar\darData2.c
 # End Source File
 # Begin Source File
 
@@ -863,6 +871,10 @@ SOURCE=.\src\aig\dar\darSeq.c
 # Begin Source File
 
 SOURCE=.\src\aig\dar\darTable.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\dar\darTruth.c
 # End Source File
 # Begin Source File
 

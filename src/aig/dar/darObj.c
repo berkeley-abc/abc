@@ -122,9 +122,15 @@ void Dar_ObjConnect( Dar_Man_t * p, Dar_Obj_t * pObj, Dar_Obj_t * pFan0, Dar_Obj
     pObj->pFanin1 = pFan1;
     // increment references of the fanins and add their fanouts
     if ( pFan0 != NULL )
+    {
+        assert( Dar_ObjFanin0(pObj)->Type > 0 );
         Dar_ObjRef( Dar_ObjFanin0(pObj) );
+    }
     if ( pFan1 != NULL )
+    {
+        assert( Dar_ObjFanin1(pObj)->Type > 0 );
         Dar_ObjRef( Dar_ObjFanin1(pObj) );
+    }
     // set level and phase
     if ( pFan1 != NULL )
     {
@@ -270,10 +276,12 @@ void Dar_ObjReplace( Dar_Man_t * p, Dar_Obj_t * pObjOld, Dar_Obj_t * pObjNew, in
     // the object cannot be the same
     assert( pObjOld != pObjNewR );
     // make sure object is not pointing to itself
-//    assert( pObjOld != Dar_ObjFanin0(pObjNewR) );
+    assert( pObjOld != Dar_ObjFanin0(pObjNewR) );
     assert( pObjOld != Dar_ObjFanin1(pObjNewR) );
     // recursively delete the old node - but leave the object there
+    pObjNewR->nRefs++;
     Dar_ObjDelete_rec( p, pObjOld, 0 );
+    pObjNewR->nRefs--;
     // if the new object is complemented or already used, create a buffer
     p->nObjs[pObjOld->Type]--;
     if ( Dar_IsComplement(pObjNew) || Dar_ObjRefs(pObjNew) > 0 || (fNodesOnly && !Dar_ObjIsNode(pObjNew)) )

@@ -49,12 +49,13 @@ typedef struct Dar_Par_t_            Dar_Par_t;
 typedef struct Dar_Man_t_            Dar_Man_t;
 typedef struct Dar_Obj_t_            Dar_Obj_t;
 typedef struct Dar_Cut_t_            Dar_Cut_t;
+typedef struct Dar_Cnf_t_            Dar_Cnf_t;
 typedef struct Dar_MmFixed_t_        Dar_MmFixed_t;    
 typedef struct Dar_MmFlex_t_         Dar_MmFlex_t;     
 typedef struct Dar_MmStep_t_         Dar_MmStep_t;     
 
 // the maximum number of cuts stored at a node
-#define DAR_CUT_BASE                 32 
+#define DAR_CUT_BASE                 64 
 
 // object types
 typedef enum { 
@@ -82,11 +83,14 @@ struct Dar_Par_t_
 struct Dar_Cut_t_  // 8 words
 {
     unsigned         uSign;
-    unsigned         uTruth  : 16;
-    unsigned         nLeaves :  3;
-    int              pLeaves[4];
-    unsigned char    pIndices[4];
-    float            aFlow;
+    unsigned         uTruth  : 16;   // the truth table of the cut function
+    unsigned         Cost    :  6;   // the cost of the cut in terms of CNF clauses
+    unsigned         FanRefs :  4;   // the average number of fanin references
+    unsigned         NoRefs  :  3;   // the average number of fanin references
+    unsigned         nLeaves :  3;   // the number of leaves
+    int              pLeaves[4];     // the array of leaves
+//    unsigned char    pIndices[4];
+    float            Area;           // the area flow or exact area of the cut
 };
 
 // the AIG node
@@ -130,23 +134,50 @@ struct Dar_Man_t_
     Dar_Cut_t        BaseCuts[DAR_CUT_BASE];
     int              nBaseCuts;
     int              nCutsUsed;
+    int              nCutsFiltered;
     // current rewriting step
+    int              nNodesInit;     // the original number of nodes
     Vec_Ptr_t *      vLeavesBest;    // the best set of leaves
     int              OutBest;        // the best output (in the library)
     int              GainBest;       // the best gain
+    int              LevelBest;      // the level of node with the best gain
+    int              ClassBest;      // the equivalence class of the best replacement
+    int              nTotalSubgs;    // the total number of subgraphs tried
+    int              ClassTimes[222];// the runtimes for each class
+    int              ClassGains[222];// the gains for each class
+    int              ClassSubgs[222];// the graphs for each class
     // various data members
     Dar_MmFixed_t *  pMemObjs;       // memory manager for objects
     Dar_MmFlex_t *   pMemCuts;       // memory manager for cuts
     Vec_Int_t *      vRequired;      // the required times
+    int              nLevelMax;      // maximum number of levels
     void *           pData;          // the temporary data
     int              nTravIds;       // the current traversal ID
     int              fCatchExor;     // enables EXOR nodes
+    // CNF mapping
+    char *           pSopSizes;      // sizes of SOPs for 4-variable functions
+    char **          pSops;          // the SOPs for 4-variable functions
+    int              aArea;          // the area of the mapping
     // rewriting statistics
     int              nCutsBad;
     int              nCutsGood;
     // timing statistics
+    int              timeCuts;
+    int              timeEval;
+    int              timeOther;
+    int              timeTotal;
     int              time1;
     int              time2;
+};
+
+// the CNF asserting outputs of AIG to be 1
+struct Dar_Cnf_t_
+{
+    Dar_Man_t *     pMan;            // the AIG manager, for which CNF is computed
+    int             nLiterals;       // the number of CNF literals
+    int             nClauses;        // the number of CNF clauses
+    int **          pClauses;        // the CNF clauses
+    int *           pVarNums;        // the number of CNF variable for each node ID (-1 if unused)
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -155,6 +186,7 @@ struct Dar_Man_t_
 
 #define DAR_MIN(a,b)       (((a) < (b))? (a) : (b))
 #define DAR_MAX(a,b)       (((a) > (b))? (a) : (b))
+#define DAR_INFINITY       (100000000)
 
 #ifndef PRT
 #define PRT(a,t)  printf("%s = ", (a)); printf("%6.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC))
@@ -187,6 +219,7 @@ static inline int          Dar_ManLatchNum( Dar_Man_t * p )       { return p->nO
 static inline int          Dar_ManNodeNum( Dar_Man_t * p )        { return p->nObjs[DAR_AIG_AND]+p->nObjs[DAR_AIG_EXOR];   }
 static inline int          Dar_ManGetCost( Dar_Man_t * p )        { return p->nObjs[DAR_AIG_AND]+3*p->nObjs[DAR_AIG_EXOR]; }
 static inline int          Dar_ManObjNum( Dar_Man_t * p )         { return p->nCreated - p->nDeleted;               }
+static inline int          Dar_ManObjIdMax( Dar_Man_t * p )       { return Vec_PtrSize(p->vObjs);                   }
 
 static inline Dar_Type_t   Dar_ObjType( Dar_Obj_t * pObj )        { return (Dar_Type_t)pObj->Type;               }
 static inline int          Dar_ObjIsNone( Dar_Obj_t * pObj )      { return pObj->Type == DAR_AIG_NONE;   }
@@ -241,6 +274,8 @@ static inline int          Dar_ObjFanoutC( Dar_Obj_t * pObj, Dar_Obj_t * pFanout
     if ( Dar_ObjFanin1(pFanout) == pObj ) return Dar_ObjFaninC1(pObj); 
     assert(0); return -1; 
 }
+static inline Dar_Cut_t *  Dar_ObjBestCut( Dar_Obj_t * pObj ) { return (Dar_Cut_t *)pObj->pNext;  }
+static inline void         Dar_ObjSetBestCut( Dar_Obj_t * pObj, Dar_Cut_t * pCut )   { pObj->pNext = (Dar_Obj_t *)pCut; }
 
 // create the ghost of the new node
 static inline Dar_Obj_t *  Dar_ObjCreateGhost( Dar_Man_t * p, Dar_Obj_t * p0, Dar_Obj_t * p1, Dar_Type_t Type )    
@@ -278,9 +313,10 @@ static inline Dar_Obj_t * Dar_ManFetchMemory( Dar_Man_t * p )
 static inline void Dar_ManRecycleMemory( Dar_Man_t * p, Dar_Obj_t * pEntry )
 {
     extern void Dar_MmFixedEntryRecycle( Dar_MmFixed_t * p, char * pEntry );
-    p->nDeleted++;
+    assert( pEntry->nRefs == 0 );
     pEntry->Type = DAR_AIG_NONE; // distinquishes a dead node from a live node
     Dar_MmFixedEntryRecycle( p->pMemObjs, (char *)pEntry );
+    p->nDeleted++;
 }
 
 
@@ -297,6 +333,12 @@ static inline void Dar_ManRecycleMemory( Dar_Man_t * p, Dar_Obj_t * pEntry )
 // iterator over all objects, including those currently not used
 #define Dar_ManForEachObj( p, pObj, i )                                         \
     Vec_PtrForEachEntry( p->vObjs, pObj, i ) if ( (pObj) == NULL ) {} else
+// iterator over all cuts of the node
+#define Dar_ObjForEachCut( pObj, pCut, i )                                      \
+    for ( pCut = pObj->pData, i = 0; i < (int)pObj->nCuts; i++, pCut++ ) if ( i==0 ) {} else
+// iterator over leaves of the cut
+#define Dar_CutForEachLeaf( p, pCut, pLeaf, i )                                 \
+    for ( i = 0; (i < (int)(pCut)->nLeaves) && ((pLeaf) = Dar_ManObj(p, (pCut)->pLeaves[i])); i++ )
 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
@@ -307,15 +349,25 @@ extern Dar_Man_t *     Dar_ManBalance( Dar_Man_t * p, int fUpdateLevel );
 extern Dar_Obj_t *     Dar_NodeBalanceBuildSuper( Dar_Man_t * p, Vec_Ptr_t * vSuper, Dar_Type_t Type, int fUpdateLevel );
 /*=== darCheck.c ========================================================*/
 extern int             Dar_ManCheck( Dar_Man_t * p );
+/*=== darCnf.c ========================================================*/
+extern Dar_Cnf_t *     Dar_ManDeriveCnf( Dar_Man_t * p );
+extern Dar_Cut_t *     Dar_ObjFindBestCut( Dar_Obj_t * pObj );
+extern void            Dar_CutAssignAreaFlow( Dar_Man_t * p, Dar_Cut_t * pCut );
+extern void            Dar_CutAssignArea( Dar_Man_t * p, Dar_Cut_t * pCut );
+extern void            Dar_CnfFree( Dar_Cnf_t * pCnf );
 /*=== darCore.c ========================================================*/
 extern int             Dar_ManRewrite( Dar_Man_t * p );
+extern int             Dar_ManComputeCuts( Dar_Man_t * p );
 /*=== darCut.c ========================================================*/
 extern void            Dar_ManSetupPis( Dar_Man_t * p );
-extern void            Dar_ObjComputeCuts_rec( Dar_Man_t * p, Dar_Obj_t * pObj );
+extern Dar_Cut_t *     Dar_ObjComputeCuts_rec( Dar_Man_t * p, Dar_Obj_t * pObj );
+extern Dar_Cut_t *     Dar_ObjComputeCuts( Dar_Man_t * p, Dar_Obj_t * pObj );
 extern void            Dar_ManCutsFree( Dar_Man_t * p );
 /*=== darData.c ========================================================*/
 extern Vec_Int_t *     Dar_LibReadNodes();
 extern Vec_Int_t *     Dar_LibReadOuts();
+/*=== darData2.c ========================================================*/
+extern void            Dar_LibReadMsops( char ** ppSopSizes, char *** ppSops );
 /*=== darDfs.c ==========================================================*/
 extern Vec_Ptr_t *     Dar_ManDfs( Dar_Man_t * p );
 extern int             Dar_ManCountLevels( Dar_Man_t * p );
@@ -327,7 +379,7 @@ extern Dar_Obj_t *     Dar_Compose( Dar_Man_t * p, Dar_Obj_t * pRoot, Dar_Obj_t 
 /*=== darLib.c ==========================================================*/
 extern void            Dar_LibStart();
 extern void            Dar_LibStop();
-extern int             Dar_LibEval( Dar_Man_t * p, Dar_Obj_t * pRoot, Dar_Cut_t * pCut, int Required );
+extern void            Dar_LibEval( Dar_Man_t * p, Dar_Obj_t * pRoot, Dar_Cut_t * pCut, int Required );
 extern Dar_Obj_t *     Dar_LibBuildBest( Dar_Man_t * p );
 /*=== darMan.c ==========================================================*/
 extern Dar_Man_t *     Dar_ManStart();
@@ -335,6 +387,7 @@ extern Dar_Man_t *     Dar_ManDup( Dar_Man_t * p );
 extern void            Dar_ManStop( Dar_Man_t * p );
 extern int             Dar_ManCleanup( Dar_Man_t * p );
 extern void            Dar_ManPrintStats( Dar_Man_t * p );
+extern void            Dar_ManPrintRuntime( Dar_Man_t * p );
 /*=== darMem.c ==========================================================*/
 extern void            Dar_ManStartMemory( Dar_Man_t * p );
 extern void            Dar_ManStopMemory( Dar_Man_t * p );
@@ -372,12 +425,14 @@ extern void            Dar_TableProfile( Dar_Man_t * p );
 /*=== darUtil.c =========================================================*/
 extern Dar_Par_t *     Dar_ManDefaultParams();
 extern void            Dar_ManIncrementTravId( Dar_Man_t * p );
+extern int             Dar_ManLevels( Dar_Man_t * p );
 extern void            Dar_ManCleanData( Dar_Man_t * p );
 extern void            Dar_ObjCleanData_rec( Dar_Obj_t * pObj );
 extern void            Dar_ObjCollectMulti( Dar_Obj_t * pFunc, Vec_Ptr_t * vSuper );
 extern int             Dar_ObjIsMuxType( Dar_Obj_t * pObj );
 extern int             Dar_ObjRecognizeExor( Dar_Obj_t * pObj, Dar_Obj_t ** ppFan0, Dar_Obj_t ** ppFan1 );
 extern Dar_Obj_t *     Dar_ObjRecognizeMux( Dar_Obj_t * pObj, Dar_Obj_t ** ppObjT, Dar_Obj_t ** ppObjE );
+extern Dar_Obj_t *     Dar_ObjReal_rec( Dar_Obj_t * pObj );
 extern void            Dar_ObjPrintEqn( FILE * pFile, Dar_Obj_t * pObj, Vec_Vec_t * vLevels, int Level );
 extern void            Dar_ObjPrintVerilog( FILE * pFile, Dar_Obj_t * pObj, Vec_Vec_t * vLevels, int Level );
 extern void            Dar_ObjPrintVerbose( Dar_Obj_t * pObj, int fHaig );

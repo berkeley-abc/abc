@@ -67,6 +67,26 @@ void Dar_ManIncrementTravId( Dar_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Collect the latches.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Dar_ManLevels( Dar_Man_t * p )
+{
+    Dar_Obj_t * pObj;
+    int i, LevelMax = 0;
+    Dar_ManForEachPo( p, pObj, i )
+        LevelMax = DAR_MAX( LevelMax, (int)Dar_ObjFanin0(pObj)->Level );
+    return LevelMax;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Cleans the data pointers for the nodes.]
 
   Description []
@@ -314,6 +334,26 @@ Dar_Obj_t * Dar_ObjRecognizeMux( Dar_Obj_t * pNode, Dar_Obj_t ** ppNodeT, Dar_Ob
     }
     assert( 0 ); // this is not MUX
     return NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Dar_Obj_t * Dar_ObjReal_rec( Dar_Obj_t * pObj )
+{
+    Dar_Obj_t * pObjNew, * pObjR = Dar_Regular(pObj);
+    if ( !Dar_ObjIsBuf(pObjR) )
+        return pObj;
+    pObjNew = Dar_ObjReal_rec( Dar_ObjChild0(pObjR) );
+    return Dar_NotCond( pObjNew, Dar_IsComplement(pObj) );
 }
 
 

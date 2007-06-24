@@ -131,7 +131,7 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p )
             for ( i = 1; i < vTokens->nSize; i++ )
                 Io_ReadCreatePo( pNtk, vTokens->pArray[i] );
         }
-        else
+        else 
         {
             // check if the input/output names are given
             if ( Abc_NtkPiNum(pNtk) == 0 )

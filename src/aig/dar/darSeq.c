@@ -87,11 +87,13 @@ void Dar_ManDfsSeq_rec( Dar_Man_t * p, Dar_Obj_t * pObj, Vec_Ptr_t * vNodes )
     if ( Dar_ObjIsTravIdCurrent( p, pObj ) )
         return;
     Dar_ObjSetTravIdCurrent( p, pObj );
-    if ( Dar_ObjIsPi(pObj) )
+    if ( Dar_ObjIsPi(pObj) || Dar_ObjIsConst1(pObj) )
         return;
     Dar_ManDfsSeq_rec( p, Dar_ObjFanin0(pObj), vNodes );
     Dar_ManDfsSeq_rec( p, Dar_ObjFanin1(pObj), vNodes );
-    Vec_PtrPush( vNodes, pObj );
+//    if ( (Dar_ObjFanin0(pObj) == NULL || Dar_ObjIsBuf(Dar_ObjFanin0(pObj))) &&
+//         (Dar_ObjFanin1(pObj) == NULL || Dar_ObjIsBuf(Dar_ObjFanin1(pObj))) )
+        Vec_PtrPush( vNodes, pObj );
 }
 
 /**Function*************************************************************
@@ -218,8 +220,8 @@ Vec_Ptr_t * Dar_ManDfsUnreach( Dar_Man_t * p )
     } 
     while ( k < i );
 
-    if ( Vec_PtrSize(vNodes) > 0 )
-        printf( "Found %d unreachable.\n", Vec_PtrSize(vNodes) ); 
+//    if ( Vec_PtrSize(vNodes) > 0 )
+//        printf( "Found %d unreachable.\n", Vec_PtrSize(vNodes) ); 
     return vNodes;
 
 /*
@@ -278,29 +280,9 @@ int Dar_ManRemoveUnmarked( Dar_Man_t * p )
     RetValue = Vec_PtrSize(vNodes);
     Vec_PtrForEachEntry( vNodes, pObj, i )
         Dar_ObjDelete( p, pObj );
-    printf( "Removes %d dangling.\n", Vec_PtrSize(vNodes) ); 
+//    printf( "Removed %d dangling.\n", Vec_PtrSize(vNodes) ); 
     Vec_PtrFree( vNodes );
     return RetValue;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline Dar_Obj_t * Dar_ObjReal_rec( Dar_Obj_t * pObj )
-{
-    Dar_Obj_t * pObjNew, * pObjR = Dar_Regular(pObj);
-    if ( !Dar_ObjIsBuf(pObjR) )
-        return pObj;
-    pObjNew = Dar_ObjReal_rec( Dar_ObjChild0(pObjR) );
-    return Dar_NotCond( pObjNew, Dar_IsComplement(pObj) );
 }
 
 /**Function*************************************************************
@@ -317,11 +299,39 @@ static inline Dar_Obj_t * Dar_ObjReal_rec( Dar_Obj_t * pObj )
 int Dar_ManSeqRehashOne( Dar_Man_t * p, Vec_Ptr_t * vNodes, Vec_Ptr_t * vUnreach )
 {
     Dar_Obj_t * pObj, * pObjNew, * pFanin0, * pFanin1;
-    int i, RetValue = 0;
+    int i, RetValue = 0, Counter = 0, Counter2 = 0;
+
     // mark the unreachable nodes
     Dar_ManIncrementTravId( p );
     Vec_PtrForEachEntry( vUnreach, pObj, i )
         Dar_ObjSetTravIdCurrent(p, pObj);
+/*
+    // count the number of unreachable object connections
+    // that is the number of unreachable objects connected to main objects
+    Dar_ManForEachObj( p, pObj, i )
+    {
+        if ( Dar_ObjIsTravIdCurrent(p, pObj) )
+            continue;
+
+        pFanin0 = Dar_ObjFanin0(pObj);
+        if ( pFanin0 == NULL )
+            continue;
+        if ( Dar_ObjIsTravIdCurrent(p, pFanin0) )
+            pFanin0->fMarkA = 1;
+
+        pFanin1 = Dar_ObjFanin1(pObj);
+        if ( pFanin1 == NULL )
+            continue;
+        if ( Dar_ObjIsTravIdCurrent(p, pFanin1) )
+            pFanin1->fMarkA = 1;
+    }
+
+    // count the objects
+    Dar_ManForEachObj( p, pObj, i )
+        Counter2 += pObj->fMarkA, pObj->fMarkA = 0;
+    printf( "Connections = %d.\n", Counter2 );
+*/
+
     // go through the nodes while skipping unreachable
     Vec_PtrForEachEntry( vNodes, pObj, i )
     {
@@ -345,6 +355,7 @@ int Dar_ManSeqRehashOne( Dar_Man_t * p, Vec_Ptr_t * vNodes, Vec_Ptr_t * vUnreach
             pObjNew = Dar_Latch( p, pObjNew, 0 );
             Dar_ObjReplace( p, pObj, pObjNew, 1 );
             RetValue = 1;
+            Counter++;
             continue;
         }
         if ( Dar_ObjIsNode(pObj) )
@@ -356,9 +367,11 @@ int Dar_ManSeqRehashOne( Dar_Man_t * p, Vec_Ptr_t * vNodes, Vec_Ptr_t * vUnreach
             pObjNew = Dar_And( p, pFanin0, pFanin1 );
             Dar_ObjReplace( p, pObj, pObjNew, 1 );
             RetValue = 1;
+            Counter++;
             continue;
         }
     }
+//    printf( "Rehashings = %d.\n", Counter++ );
     return RetValue;
 }
 
@@ -423,30 +436,42 @@ void Dar_ManRemoveBuffers( Dar_Man_t * p )
 int Dar_ManSeqStrash( Dar_Man_t * p, int nLatches, int * pInits )
 {
     Vec_Ptr_t * vNodes, * vUnreach;
-    Dar_Obj_t * pObj;
-    int i;
-    int RetValue = 1;
+//    Dar_Obj_t * pObj, * pFanin;
+//    int i;
+    int Iter, RetValue = 1;
+
     // create latches out of the additional PI/PO pairs
     Dar_ManSeqStrashConvert( p, nLatches, pInits );
+
     // iteratively rehash the network
-    while ( RetValue )
+    for ( Iter = 0; RetValue; Iter++ )
     {
-        Dar_ManPrintStats( p );
-
+//        Dar_ManPrintStats( p );
+/*
         Dar_ManForEachObj( p, pObj, i )
+        {
             assert( pObj->Type > 0 );
-
+            pFanin = Dar_ObjFanin0(pObj);
+            assert( pFanin == NULL || pFanin->Type > 0 );
+            pFanin = Dar_ObjFanin1(pObj);
+            assert( pFanin == NULL || pFanin->Type > 0 );
+        }
+*/
         // mark nodes unreachable from the PIs
         vUnreach = Dar_ManDfsUnreach( p );
+        if ( Iter == 0 && Vec_PtrSize(vUnreach) > 0 )
+            printf( "Unreachable objects = %d.\n", Vec_PtrSize(vUnreach) );
         // collect nodes reachable from the POs
         vNodes = Dar_ManDfsSeq( p );
         // remove nodes unreachable from the POs
-        Dar_ManRemoveUnmarked( p );
+        if ( Iter == 0 )
+            Dar_ManRemoveUnmarked( p );
         // continue rehashing as long as there are changes
         RetValue = Dar_ManSeqRehashOne( p, vNodes, vUnreach );
         Vec_PtrFree( vNodes );
         Vec_PtrFree( vUnreach );
     }
+
     // perform the final cleanup
     Dar_ManIncrementTravId( p );
     vNodes = Dar_ManDfsSeq( p );
@@ -454,6 +479,7 @@ int Dar_ManSeqStrash( Dar_Man_t * p, int nLatches, int * pInits )
     Vec_PtrFree( vNodes );
     // remove buffers if they are left
 //    Dar_ManRemoveBuffers( p );
+
     // clean up
     if ( !Dar_ManCheck( p ) )
     {

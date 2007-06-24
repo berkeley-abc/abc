@@ -159,6 +159,17 @@ p->timeRes += clock() - clk;
 
     if ( GainBest == -1 )
         return -1;
+/*
+    if ( GainBest > 0 )
+    {
+        printf( "Class %d  ", p->pMap[uTruthBest] );
+        printf( "Gain = %d. Node %d : ", GainBest, pNode->Id );
+        Vec_PtrForEachEntry( p->vFanins, pFanin, i )
+            printf( "%d ", Abc_ObjRegular(pFanin)->Id );
+        Dec_GraphPrint( stdout, p->pGraph, NULL, NULL );
+        printf( "\n" );
+    }
+*/
 
 //    printf( "%d", nNodesSaveCur - GainBest );
 /*

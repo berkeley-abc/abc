@@ -53,7 +53,10 @@ Dar_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk )
         pObj->pCopy = (Abc_Obj_t *)Dar_ObjCreatePi(pMan);
     // perform the conversion of the internal nodes (assumes DFS ordering)
     Abc_NtkForEachNode( pNtk, pObj, i )
+    {
         pObj->pCopy = (Abc_Obj_t *)Dar_And( pMan, (Dar_Obj_t *)Abc_ObjChild0Copy(pObj), (Dar_Obj_t *)Abc_ObjChild1Copy(pObj) );
+//        printf( "%d->%d ", pObj->Id, ((Dar_Obj_t *)pObj->pCopy)->Id );
+    }
     // create the POs
     Abc_NtkForEachCo( pNtk, pObj, i )
         Dar_ObjCreatePo( pMan, (Dar_Obj_t *)Abc_ObjChild0Copy(pObj) );
@@ -87,7 +90,10 @@ Abc_Ntk_t * Abc_NtkFromDar( Abc_Ntk_t * pNtkOld, Dar_Man_t * pMan )
     // rebuild the AIG
     vNodes = Dar_ManDfs( pMan );
     Vec_PtrForEachEntry( vNodes, pObj, i )
-        pObj->pData = Abc_AigAnd( pNtkNew->pManFunc, (Abc_Obj_t *)Dar_ObjChild0Copy(pObj), (Abc_Obj_t *)Dar_ObjChild1Copy(pObj) );
+        if ( Dar_ObjIsBuf(pObj) )
+            pObj->pData = (Abc_Obj_t *)Dar_ObjChild0Copy(pObj);
+        else
+            pObj->pData = Abc_AigAnd( pNtkNew->pManFunc, (Abc_Obj_t *)Dar_ObjChild0Copy(pObj), (Abc_Obj_t *)Dar_ObjChild1Copy(pObj) );
     Vec_PtrFree( vNodes );
     // connect the PO nodes
     Dar_ManForEachPo( pMan, pObj, i )
@@ -195,6 +201,52 @@ int * Abc_NtkGetLatchValues( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
+  Synopsis    [Performs verification after retiming.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkSecRetime( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
+{
+    int fRemove1, fRemove2;
+    Dar_Man_t * pMan1, * pMan2;
+    int * pArray;
+
+    fRemove1 = (!Abc_NtkIsStrash(pNtk1)) && (pNtk1 = Abc_NtkStrash(pNtk1, 0, 0, 0));
+    fRemove2 = (!Abc_NtkIsStrash(pNtk2)) && (pNtk2 = Abc_NtkStrash(pNtk2, 0, 0, 0));
+
+
+    pMan1 = Abc_NtkToDar( pNtk1 );
+    pMan2 = Abc_NtkToDar( pNtk2 );
+
+    Dar_ManPrintStats( pMan1 );
+    Dar_ManPrintStats( pMan2 );
+
+    pArray = Abc_NtkGetLatchValues(pNtk1);
+    Dar_ManSeqStrash( pMan1, Abc_NtkLatchNum(pNtk1), pArray );
+    free( pArray );
+
+    pArray = Abc_NtkGetLatchValues(pNtk2);
+    Dar_ManSeqStrash( pMan2, Abc_NtkLatchNum(pNtk2), pArray );
+    free( pArray );
+
+    Dar_ManPrintStats( pMan1 );
+    Dar_ManPrintStats( pMan2 );
+
+    Dar_ManStop( pMan1 );
+    Dar_ManStop( pMan2 );
+
+
+    if ( fRemove1 )  Abc_NtkDelete( pNtk1 );
+    if ( fRemove2 )  Abc_NtkDelete( pNtk2 );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Gives the current ABC network to AIG manager for processing.]
 
   Description []
@@ -208,7 +260,7 @@ Abc_Ntk_t * Abc_NtkDar( Abc_Ntk_t * pNtk )
 {
     Abc_Ntk_t * pNtkAig;
     Dar_Man_t * pMan;//, * pTemp;
-    int * pArray;
+//    int * pArray;
 
     assert( Abc_NtkIsStrash(pNtk) );
     // convert to the AIG manager
@@ -223,15 +275,29 @@ Abc_Ntk_t * Abc_NtkDar( Abc_Ntk_t * pNtk )
     }
     // perform balance
     Dar_ManPrintStats( pMan );
-
+/*
     pArray = Abc_NtkGetLatchValues(pNtk);
     Dar_ManSeqStrash( pMan, Abc_NtkLatchNum(pNtk), pArray );
     free( pArray );
+*/
 
 //    Dar_ManDumpBlif( pMan, "aig_temp.blif" );
 //    pMan->pPars = Dar_ManDefaultParams();
-//    Dar_ManRewrite( pMan );
+    Dar_ManRewrite( pMan );
     Dar_ManPrintStats( pMan );
+    Dar_ManPrintRuntime( pMan );
+//    Dar_ManComputeCuts( pMan );
+
+/*
+{
+extern Dar_Cnf_t * Dar_ManDeriveCnf( Dar_Man_t * p );
+extern void Dar_CnfFree( Dar_Cnf_t * pCnf );
+Dar_Cnf_t * pCnf;
+pCnf = Dar_ManDeriveCnf( pMan );
+Dar_CnfFree( pCnf );
+}
+*/
+
     // convert from the AIG manager
     if ( Dar_ManLatchNum(pMan) )
         pNtkAig = Abc_NtkFromDarSeq( pNtk, pMan );
@@ -249,6 +315,8 @@ Abc_Ntk_t * Abc_NtkDar( Abc_Ntk_t * pNtk )
     }
     return pNtkAig;
 }
+
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

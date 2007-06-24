@@ -9476,7 +9476,7 @@ Vec_Int_t * Dar_LibReadOuts()
   SeeAlso     []
 
 ***********************************************************************/
-void Dat_NtkGenerateArrays( Abc_Ntk_t * pNtk )
+void Dar_NtkGenerateArrays( Abc_Ntk_t * pNtk )
 {
     extern int Io_WriteAigerEncode( char * pBuffer, int Pos, unsigned x );
 
@@ -9595,6 +9595,10 @@ void Dat_NtkGenerateArrays( Abc_Ntk_t * pNtk )
 }
 
 //#endif
+
+
+
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
