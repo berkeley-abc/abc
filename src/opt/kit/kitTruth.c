@@ -854,7 +854,7 @@ void Kit_TruthForallSet( unsigned * pRes, unsigned * pTruth, int nVars, unsigned
   SeeAlso     []
 
 ***********************************************************************/
-void Kit_TruthMux( unsigned * pOut, unsigned * pCof0, unsigned * pCof1, int nVars, int iVar )
+void Kit_TruthMuxVar( unsigned * pOut, unsigned * pCof0, unsigned * pCof1, int nVars, int iVar )
 {
     int nWords = Kit_TruthWordNum( nVars );
     int i, k, Step;

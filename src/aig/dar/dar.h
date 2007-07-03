@@ -84,10 +84,11 @@ struct Dar_Cut_t_  // 8 words
 {
     unsigned         uSign;
     unsigned         uTruth  : 16;   // the truth table of the cut function
-    unsigned         Cost    :  6;   // the cost of the cut in terms of CNF clauses
+    unsigned         Cost    :  5;   // the cost of the cut in terms of CNF clauses
     unsigned         FanRefs :  4;   // the average number of fanin references
     unsigned         NoRefs  :  3;   // the average number of fanin references
     unsigned         nLeaves :  3;   // the number of leaves
+    unsigned         fBest   :  1;   // marks the best cut
     int              pLeaves[4];     // the array of leaves
 //    unsigned char    pIndices[4];
     float            Area;           // the area flow or exact area of the cut
@@ -139,6 +140,7 @@ struct Dar_Man_t_
     int              nNodesInit;     // the original number of nodes
     Vec_Ptr_t *      vLeavesBest;    // the best set of leaves
     int              OutBest;        // the best output (in the library)
+    int              OutNumBest;     // the best number of the output
     int              GainBest;       // the best gain
     int              LevelBest;      // the level of node with the best gain
     int              ClassBest;      // the equivalence class of the best replacement
@@ -146,6 +148,7 @@ struct Dar_Man_t_
     int              ClassTimes[222];// the runtimes for each class
     int              ClassGains[222];// the gains for each class
     int              ClassSubgs[222];// the graphs for each class
+    int              nCutMemUsed;    // memory used for cuts
     // various data members
     Dar_MmFixed_t *  pMemObjs;       // memory manager for objects
     Dar_MmFlex_t *   pMemCuts;       // memory manager for cuts
@@ -155,9 +158,7 @@ struct Dar_Man_t_
     int              nTravIds;       // the current traversal ID
     int              fCatchExor;     // enables EXOR nodes
     // CNF mapping
-    char *           pSopSizes;      // sizes of SOPs for 4-variable functions
-    char **          pSops;          // the SOPs for 4-variable functions
-    int              aArea;          // the area of the mapping
+    void *           pManCnf;        // CNF conversion manager
     // rewriting statistics
     int              nCutsBad;
     int              nCutsGood;
@@ -274,8 +275,16 @@ static inline int          Dar_ObjFanoutC( Dar_Obj_t * pObj, Dar_Obj_t * pFanout
     if ( Dar_ObjFanin1(pFanout) == pObj ) return Dar_ObjFaninC1(pObj); 
     assert(0); return -1; 
 }
-static inline Dar_Cut_t *  Dar_ObjBestCut( Dar_Obj_t * pObj ) { return (Dar_Cut_t *)pObj->pNext;  }
-static inline void         Dar_ObjSetBestCut( Dar_Obj_t * pObj, Dar_Cut_t * pCut )   { pObj->pNext = (Dar_Obj_t *)pCut; }
+static inline Dar_Cut_t *  Dar_ObjBestCut( Dar_Obj_t * pObj ) 
+{ 
+    Dar_Cut_t * pCut; int i; 
+    for ( pCut = pObj->pData, i = 0; i < (int)pObj->nCuts; i++, pCut++ ) 
+        if ( pCut->fBest ) 
+            return pCut; 
+    return NULL;  
+}
+static inline void         Dar_ObjSetBestCut( Dar_Cut_t * pCut )     { assert( !pCut->fBest ); pCut->fBest = 1; }
+static inline void         Dar_ObjClearBestCut( Dar_Cut_t * pCut )   { assert(  pCut->fBest ); pCut->fBest = 0; }
 
 // create the ghost of the new node
 static inline Dar_Obj_t *  Dar_ObjCreateGhost( Dar_Man_t * p, Dar_Obj_t * p0, Dar_Obj_t * p1, Dar_Type_t Type )    
@@ -333,6 +342,9 @@ static inline void Dar_ManRecycleMemory( Dar_Man_t * p, Dar_Obj_t * pEntry )
 // iterator over all objects, including those currently not used
 #define Dar_ManForEachObj( p, pObj, i )                                         \
     Vec_PtrForEachEntry( p->vObjs, pObj, i ) if ( (pObj) == NULL ) {} else
+// iterator over all nodes
+#define Dar_ManForEachNode( p, pObj, i )                                         \
+    Vec_PtrForEachEntry( p->vObjs, pObj, i ) if ( (pObj) == NULL || !Dar_ObjIsNode(pObj) ) {} else
 // iterator over all cuts of the node
 #define Dar_ObjForEachCut( pObj, pCut, i )                                      \
     for ( pCut = pObj->pData, i = 0; i < (int)pObj->nCuts; i++, pCut++ ) if ( i==0 ) {} else
@@ -383,6 +395,7 @@ extern void            Dar_LibEval( Dar_Man_t * p, Dar_Obj_t * pRoot, Dar_Cut_t 
 extern Dar_Obj_t *     Dar_LibBuildBest( Dar_Man_t * p );
 /*=== darMan.c ==========================================================*/
 extern Dar_Man_t *     Dar_ManStart();
+extern Dar_Man_t *     Dar_ManStartFrom( Dar_Man_t * p );
 extern Dar_Man_t *     Dar_ManDup( Dar_Man_t * p );
 extern void            Dar_ManStop( Dar_Man_t * p );
 extern int             Dar_ManCleanup( Dar_Man_t * p );

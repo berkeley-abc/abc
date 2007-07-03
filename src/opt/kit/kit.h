@@ -120,6 +120,7 @@ struct Kit_DsdNtk_t_
     unsigned char  nNodes;          // the number of nodes
     unsigned char  Root;            // the root of the tree
     unsigned *     pMem;            // memory for the truth tables (memory manager?)
+    unsigned *     pSupps;          // supports of the nodes
     Kit_DsdObj_t * pNodes[0];       // the nodes
 };
 
@@ -142,8 +143,10 @@ static inline int             Kit_DsdLitRegular( int Lit )           { return Li
  
 static inline unsigned        Kit_DsdObjOffset( int nFans )          { return (nFans >> 2) + ((nFans & 3) > 0);                    }
 static inline unsigned *      Kit_DsdObjTruth( Kit_DsdObj_t * pObj ) { return pObj->Type == KIT_DSD_PRIME ? (unsigned *)pObj->pFans + pObj->Offset: NULL; }
-static inline Kit_DsdObj_t *  Kit_DsdNtkObj( Kit_DsdNtk_t * pNtk, int Id )  { assert( Id >= 0 && Id < pNtk->nVars + pNtk->nNodes ); return Id < pNtk->nVars ? NULL : pNtk->pNodes[Id - pNtk->nVars]; }
-static inline Kit_DsdObj_t *  Kit_DsdNtkRoot( Kit_DsdNtk_t * pNtk )  { return Kit_DsdNtkObj( pNtk, Kit_DsdLit2Var(pNtk->Root) );   }
+static inline Kit_DsdObj_t *  Kit_DsdNtkObj( Kit_DsdNtk_t * pNtk, int Id )      { assert( Id >= 0 && Id < pNtk->nVars + pNtk->nNodes ); return Id < pNtk->nVars ? NULL : pNtk->pNodes[Id - pNtk->nVars]; }
+static inline Kit_DsdObj_t *  Kit_DsdNtkRoot( Kit_DsdNtk_t * pNtk )             { return Kit_DsdNtkObj( pNtk, Kit_DsdLit2Var(pNtk->Root) );                      }
+static inline int             Kit_DsdLitIsLeaf( Kit_DsdNtk_t * pNtk, int Lit )   { int Id = Kit_DsdLit2Var(Lit); assert( Id >= 0 && Id < pNtk->nVars + pNtk->nNodes ); return Id < pNtk->nVars; }
+static inline unsigned        Kit_DsdLitSupport( Kit_DsdNtk_t * pNtk, int Lit )  { int Id = Kit_DsdLit2Var(Lit); assert( Id >= 0 && Id < pNtk->nVars + pNtk->nNodes ); return pNtk->pSupps? (Id < pNtk->nVars? (1 << Id) : pNtk->pSupps[Id - pNtk->nVars]) : 0; }
 
 #define Kit_DsdNtkForEachObj( pNtk, pObj, i )                                      \
     for ( i = 0; (i < (pNtk)->nNodes) && ((pObj) = (pNtk)->pNodes[i]); i++ )
@@ -398,6 +401,12 @@ static inline void Kit_TruthAndPhase( unsigned * pOut, unsigned * pIn0, unsigned
             pOut[w] = pIn0[w] & pIn1[w];
     }
 }
+static inline void Kit_TruthMux( unsigned * pOut, unsigned * pIn0, unsigned * pIn1, unsigned * pCtrl, int nVars )
+{
+    int w;
+    for ( w = Kit_TruthWordNum(nVars)-1; w >= 0; w-- )
+        pOut[w] = (pIn0[w] & ~pCtrl[w]) | (pIn1[w] & pCtrl[w]);
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                           ITERATORS                              ///
@@ -428,6 +437,11 @@ extern void            Kit_DsdPrint( FILE * pFile, Kit_DsdNtk_t * pNtk );
 extern Kit_DsdNtk_t *  Kit_DsdDecompose( unsigned * pTruth, int nVars );
 extern void            Kit_DsdNtkFree( Kit_DsdNtk_t * pNtk );
 extern int             Kit_DsdNonDsdSizeMax( Kit_DsdNtk_t * pNtk );
+extern void            Kit_DsdGetSupports( Kit_DsdNtk_t * p );
+extern Kit_DsdNtk_t *  Kit_DsdExpand( Kit_DsdNtk_t * p );
+extern Kit_DsdNtk_t *  Kit_DsdShrink( Kit_DsdNtk_t * p, int pPrios[] );
+extern void            Kit_DsdRotate( Kit_DsdNtk_t * p, int pFreqs[] );
+extern int             Kit_DsdCofactoring( unsigned * pTruth, int nVars, int * pCofVars, int nLimit, int fVerbose );
 /*=== kitFactor.c ==========================================================*/
 extern Kit_Graph_t *   Kit_SopFactor( Vec_Int_t * vCover, int fCompl, int nVars, Vec_Int_t * vMemory );
 /*=== kitGraph.c ==========================================================*/
@@ -478,7 +492,7 @@ extern void            Kit_TruthForall( unsigned * pTruth, int nVars, int iVar )
 extern void            Kit_TruthForallNew( unsigned * pRes, unsigned * pTruth, int nVars, int iVar );
 extern void            Kit_TruthForallSet( unsigned * pRes, unsigned * pTruth, int nVars, unsigned uMask );
 extern void            Kit_TruthUniqueNew( unsigned * pRes, unsigned * pTruth, int nVars, int iVar );
-extern void            Kit_TruthMux( unsigned * pOut, unsigned * pCof0, unsigned * pCof1, int nVars, int iVar );
+extern void            Kit_TruthMuxVar( unsigned * pOut, unsigned * pCof0, unsigned * pCof1, int nVars, int iVar );
 extern void            Kit_TruthChangePhase( unsigned * pTruth, int nVars, int iVar );
 extern int             Kit_TruthMinCofSuppOverlap( unsigned * pTruth, int nVars, int * pVarMin );
 extern void            Kit_TruthCountOnesInCofs( unsigned * pTruth, int nVars, short * pStore );

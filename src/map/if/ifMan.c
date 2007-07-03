@@ -237,6 +237,25 @@ If_Obj_t * If_ManCreateXnor( If_Man_t * p, If_Obj_t * pFan0, If_Obj_t * pFan1 )
 
 /**Function*************************************************************
 
+  Synopsis    [Create the new node assuming it does not exist.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+If_Obj_t * If_ManCreateMnux( If_Man_t * p, If_Obj_t * pFan0, If_Obj_t * pFan1, If_Obj_t * pCtrl )
+{
+    If_Obj_t * pRes1, * pRes2;
+    pRes1 = If_ManCreateAnd( p, pFan0, 0, pCtrl, 1 );
+    pRes2 = If_ManCreateAnd( p, pFan1, 0, pCtrl, 0 );
+    return If_ManCreateAnd( p, pRes1, 1, pRes2, 1 );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Creates the choice node.]
 
   Description [Should be called after the equivalence class nodes are linked.]

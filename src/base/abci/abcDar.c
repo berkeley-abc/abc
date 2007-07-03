@@ -20,6 +20,7 @@
 
 #include "abc.h"
 #include "dar.h"
+#include "cnf.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -316,6 +317,130 @@ Dar_CnfFree( pCnf );
     return pNtkAig;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkConstructFromCnf( Abc_Ntk_t * pNtk, Cnf_Man_t * p, Vec_Ptr_t * vMapped )
+{
+    Abc_Ntk_t * pNtkNew;
+    Abc_Obj_t * pNode, * pNodeNew;
+    Dar_Obj_t * pObj, * pLeaf;
+    Cnf_Cut_t * pCut;
+    Vec_Int_t * vCover;
+    unsigned uTruth;
+    int i, k, nDupGates;
+    // create the new network
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
+    // make the mapper point to the new network
+    Dar_ManConst1(p->pManAig)->pData = Abc_NtkCreateNodeConst1(pNtkNew);
+    Abc_NtkForEachCi( pNtk, pNode, i )
+        Dar_ManPi(p->pManAig, i)->pData = pNode->pCopy;
+    // process the nodes in topological order
+    vCover = Vec_IntAlloc( 1 << 16 );
+    Vec_PtrForEachEntry( vMapped, pObj, i )
+    {
+        // create new node
+        pNodeNew = Abc_NtkCreateNode( pNtkNew );
+        // add fanins according to the cut
+        pCut = pObj->pData;
+        Cnf_CutForEachLeaf( p->pManAig, pCut, pLeaf, k )
+            Abc_ObjAddFanin( pNodeNew, pLeaf->pData );
+        // add logic function
+        if ( pCut->nFanins < 5 )
+        {
+            uTruth = 0xFFFF & *Cnf_CutTruth(pCut);
+            Cnf_SopConvertToVector( p->pSops[uTruth], p->pSopSizes[uTruth], vCover );
+            pNodeNew->pData = Abc_SopCreateFromIsop( pNtkNew->pManFunc, pCut->nFanins, vCover );
+        }
+        else
+            pNodeNew->pData = Abc_SopCreateFromIsop( pNtkNew->pManFunc, pCut->nFanins, pCut->vIsop[1] );
+        // save the node
+        pObj->pData = pNodeNew;
+    }
+    Vec_IntFree( vCover );
+    // add the CO drivers
+    Abc_NtkForEachCo( pNtk, pNode, i )
+    {
+        pObj = Dar_ManPo(p->pManAig, i);
+        pNodeNew = Abc_ObjNotCond( Dar_ObjFanin0(pObj)->pData, Dar_ObjFaninC0(pObj) );
+        Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
+    }
+
+    // remove the constant node if not used
+    pNodeNew = (Abc_Obj_t *)Dar_ManConst1(p->pManAig)->pData;
+    if ( Abc_ObjFanoutNum(pNodeNew) == 0 )
+        Abc_NtkDeleteObj( pNodeNew );
+    // minimize the node
+//    Abc_NtkSweep( pNtkNew, 0 );
+    // decouple the PO driver nodes to reduce the number of levels
+    nDupGates = Abc_NtkLogicMakeSimpleCos( pNtkNew, 1 );
+//    if ( nDupGates && If_ManReadVerbose(pIfMan) )
+//        printf( "Duplicated %d gates to decouple the CO drivers.\n", nDupGates );
+    if ( !Abc_NtkCheck( pNtkNew ) )
+        fprintf( stdout, "Abc_NtkConstructFromCnf(): Network check has failed.\n" );
+    return pNtkNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName )
+{
+    Abc_Ntk_t * pNtkNew = NULL;
+    Cnf_Man_t * pCnf;
+    Dar_Man_t * pMan;
+    Cnf_Dat_t * pData;
+    assert( Abc_NtkIsStrash(pNtk) );
+    // convert to the AIG manager
+    pMan = Abc_NtkToDar( pNtk );
+    if ( pMan == NULL )
+        return NULL;
+    if ( !Dar_ManCheck( pMan ) )
+    {
+        printf( "Abc_NtkDarToCnf: AIG check has failed.\n" );
+        Dar_ManStop( pMan );
+        return NULL;
+    }
+    // perform balance
+    Dar_ManPrintStats( pMan );
+
+    // derive CNF
+    pCnf = Cnf_ManStart();
+    pData = Cnf_Derive( pCnf, pMan );
+
+    {
+        Vec_Ptr_t * vMapped;
+        vMapped = Cnf_ManScanMapping( pCnf, 1 );
+        pNtkNew = Abc_NtkConstructFromCnf( pNtk, pCnf, vMapped );
+        Vec_PtrFree( vMapped );
+    }
+
+    Dar_ManStop( pMan );
+    Cnf_ManStop( pCnf );
+
+    // write CNF into a file
+//    Cnf_DataWriteIntoFile( pData, pFileName );
+    Cnf_DataFree( pData );
+
+    return pNtkNew;
+}
 
 
 ////////////////////////////////////////////////////////////////////////

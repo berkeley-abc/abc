@@ -337,6 +337,7 @@ extern If_Obj_t *      If_ManCreateCi( If_Man_t * p );
 extern If_Obj_t *      If_ManCreateCo( If_Man_t * p, If_Obj_t * pDriver, int fCompl0 );
 extern If_Obj_t *      If_ManCreateAnd( If_Man_t * p, If_Obj_t * pFan0, int fCompl0, If_Obj_t * pFan1, int fCompl1 );
 extern If_Obj_t *      If_ManCreateXnor( If_Man_t * p, If_Obj_t * pFan0, If_Obj_t * pFan1 );
+extern If_Obj_t *      If_ManCreateMnux( If_Man_t * p, If_Obj_t * pFan0, If_Obj_t * pFan1, If_Obj_t * pCtrl );
 extern void            If_ManCreateChoice( If_Man_t * p, If_Obj_t * pRepr );
 extern void            If_ManSetupCutTriv( If_Man_t * p, If_Cut_t * pCut, int ObjId );
 extern void            If_ManSetupCiCutSets( If_Man_t * p );

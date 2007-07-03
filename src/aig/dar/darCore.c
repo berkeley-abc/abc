@@ -106,11 +106,15 @@ p->timeCuts += clock() - clk;
         // count gains of this class
         p->ClassGains[p->ClassBest] += nNodeBefore - nNodeAfter;
 
+//        if ( p->ClassBest == 29 )
+//            printf( "%d ", p->OutNumBest );
+
     }
 p->timeTotal = clock() - clkStart;
 p->timeOther = p->timeTotal - p->timeCuts - p->timeEval;
 
     Extra_ProgressBarStop( pProgress );
+    p->nCutMemUsed = Dar_MmFlexReadMemUsage(p->pMemCuts)/(1<<20);
     Dar_ManCutsFree( p );
     // put the nodes into the DFS order and reassign their IDs
 //    Dar_NtkReassignIds( p );
@@ -161,7 +165,6 @@ int Dar_ManComputeCuts( Dar_Man_t * p )
         Dar_ManNodeNum(p), nCutsTotal, nCutsMax, (float)nCutsTotal/Dar_ManNodeNum(p), 
         p->nCutsFiltered, p->nCutsFiltered+nCutsTotal+Dar_ManNodeNum(p)+Dar_ManPiNum(p) );
     PRT( "Time", clock() - clkStart );
-
     // free the cuts
 //    Dar_ManCutsFree( p );
     return 1;

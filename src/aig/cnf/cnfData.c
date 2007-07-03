@@ -1,10 +1,10 @@
 /**CFile****************************************************************
 
-  FileName    [dar_.c]
+  FileName    [cnfData.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [DAG-aware AIG rewriting.]
+  PackageName [AIG-to-CNF conversion.]
 
   Synopsis    []
 
@@ -14,11 +14,11 @@
 
   Date        [Ver. 1.0. Started - April 28, 2007.]
 
-  Revision    [$Id: dar_.c,v 1.00 2007/04/28 00:00:00 alanmi Exp $]
+  Revision    [$Id: cnfData.c,v 1.00 2007/04/28 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "dar.h"
+#include "cnf.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -4531,7 +4531,7 @@ NULL
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_LibReadMsops( char ** ppSopSizes, char *** ppSops )
+void Cnf_ReadMsops( char ** ppSopSizes, char *** ppSops )
 {
     unsigned uMasks[4][2] = {
         { 0x5555, 0xAAAA },
@@ -4566,6 +4566,7 @@ void Dar_LibReadMsops( char ** ppSopSizes, char *** ppSops )
     // set pointers and compute SOP sizes
     pSopSizes = ALLOC( char, 65536 );
     pSops = ALLOC( char *, 65536 );
+    pSopSizes[0] = 0;
     pSops[0] = NULL;
     pPrev = pMemory;
     for ( k = 0, i = 1; i < 65536; k++ )

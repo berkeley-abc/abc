@@ -65,7 +65,7 @@ static inline int Dar_CutCheckDominance( Dar_Cut_t * pDom, Dar_Cut_t * pCut )
   SeeAlso     []
 
 ***********************************************************************/
-int Dar_CutFilter( Dar_Man_t * p, Dar_Cut_t * pCut )
+static inline int Dar_CutFilter( Dar_Man_t * p, Dar_Cut_t * pCut )
 { 
     Dar_Cut_t * pTemp;
     int i, k;
@@ -213,7 +213,7 @@ static inline int Dar_CutMergeOrdered( Dar_Cut_t * pC, Dar_Cut_t * pC0, Dar_Cut_
   SeeAlso     []
 
 ***********************************************************************/
-int Dar_CutMerge( Dar_Cut_t * pCut, Dar_Cut_t * pCut0, Dar_Cut_t * pCut1 )
+static inline int Dar_CutMerge( Dar_Cut_t * pCut, Dar_Cut_t * pCut0, Dar_Cut_t * pCut1 )
 { 
     // merge the nodes
     if ( pCut0->nLeaves <= pCut1->nLeaves )
@@ -347,7 +347,7 @@ static inline unsigned Dar_CutTruthShrink( unsigned uTruth, int nVars, unsigned 
   SeeAlso     []
 
 ***********************************************************************/
-unsigned Dar_CutTruth( Dar_Cut_t * pCut, Dar_Cut_t * pCut0, Dar_Cut_t * pCut1, int fCompl0, int fCompl1 )
+static inline unsigned Dar_CutTruth( Dar_Cut_t * pCut, Dar_Cut_t * pCut0, Dar_Cut_t * pCut1, int fCompl0, int fCompl1 )
 {
     unsigned uTruth0 = fCompl0 ? ~pCut0->uTruth : pCut0->uTruth;
     unsigned uTruth1 = fCompl1 ? ~pCut1->uTruth : pCut1->uTruth;
@@ -367,7 +367,7 @@ unsigned Dar_CutTruth( Dar_Cut_t * pCut, Dar_Cut_t * pCut0, Dar_Cut_t * pCut1, i
   SeeAlso     []
 
 ***********************************************************************/
-int Dar_CutSuppMinimize( Dar_Cut_t * pCut )
+static inline int Dar_CutSuppMinimize( Dar_Cut_t * pCut )
 {
     unsigned uMasks[4][2] = {
         { 0x5555, 0xAAAA },
@@ -420,7 +420,7 @@ void Dar_ObjSetupTrivial( Dar_Obj_t * pObj )
 {
     Dar_Cut_t * pCut;
     pCut = pObj->pData;
-    pCut->Cost = 0;
+    memset( pCut, 0, sizeof(Dar_Cut_t) );
     pCut->nLeaves = 1;
     pCut->pLeaves[0] = pObj->Id;
 //    pCut->pIndices[0] = 0;
@@ -464,10 +464,7 @@ void Dar_ManSetupPis( Dar_Man_t * p )
 ***********************************************************************/
 void Dar_ManCutsFree( Dar_Man_t * p )
 {
-    Dar_Obj_t * pObj;
-    int i;
-    Dar_ManForEachObj( p, pObj, i )
-        pObj->pData = NULL;
+//    Dar_ManCleanData( p );
     Dar_MmFlexStop( p->pMemCuts, 0 );
     p->pMemCuts = NULL;
 }
@@ -519,11 +516,11 @@ Dar_Cut_t * Dar_ObjComputeCuts( Dar_Man_t * p, Dar_Obj_t * pObj )
                 continue;
         }
 
-        // CNF mapping: assign the cut cost if needed
-        if ( p->pSopSizes )
+        // CNF mapping: assign the cut cost 
+        if ( p->pManCnf )
         {
-            pCut->Cost = p->pSopSizes[pCut->uTruth] + p->pSopSizes[0xFFFF & ~pCut->uTruth];
-            Dar_CutAssignAreaFlow( p, pCut );
+            extern void Cnf_CutAssignAreaFlow( void * pManCnf, Dar_Cut_t * pCut );
+            Cnf_CutAssignAreaFlow( p->pManCnf, pCut );
         }
 
         // increment the number of cuts
@@ -538,9 +535,12 @@ Dar_Cut_t * Dar_ObjComputeCuts( Dar_Man_t * p, Dar_Obj_t * pObj )
     for ( i = 0; i < p->nCutsUsed; i++ )
         *++pCut = *(p->pBaseCuts[i]);
 
-    // CNF mapping: assign the best cut if needed
-    if ( p->pSopSizes )
-        Dar_ObjSetBestCut( pObj, Dar_ObjFindBestCut(pObj) );
+    // CNF mapping: assign the best cut 
+    if ( p->pManCnf )
+    {
+        extern Dar_Cut_t * Cnf_ObjFindBestCut( Dar_Obj_t * pObj );
+        Dar_ObjSetBestCut( Cnf_ObjFindBestCut(pObj) );
+    }
     return pObj->pData;
 }
 

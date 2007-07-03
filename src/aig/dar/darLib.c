@@ -273,6 +273,7 @@ void Dar_LibSetup( Dar_Lib_t * p, Vec_Int_t * vOuts )
          for ( k = 0; k < p->nSubgr[i]; k++ )
             Dar_LibSetup_rec( p, Dar_LibObj(p, p->pSubgr[i][k]), i );
          nNodesTotal += p->nNodes[i];
+//printf( "Class %3d : Subgraphs = %4d. Nodes = %5d.\n", i, p->nSubgr[i], p->nNodes[i] );
     }
     assert( nNodesTotal == p->pNodesTotal );
      // prepare the number of the PI nodes
@@ -604,6 +605,8 @@ void Dar_LibEval( Dar_Man_t * p, Dar_Obj_t * pRoot, Dar_Cut_t * pCut, int Requir
     int i, k, Class, nNodesSaved, nNodesAdded, nNodesGained, clk;
     if ( pCut->nLeaves != 4 )
         return;
+//    if ( s_DarLib->nSubgr[ s_DarLib->pMap[pCut->uTruth] ] > 100 )
+//        return;
     clk = clock();
 /*
     for ( k = 0; k < 4; k++ )
@@ -643,10 +646,11 @@ void Dar_LibEval( Dar_Man_t * p, Dar_Obj_t * pRoot, Dar_Cut_t * pCut, int Requir
         Vec_PtrClear( p->vLeavesBest );
         for ( k = 0; k < 4; k++ )
             Vec_PtrPush( p->vLeavesBest, s_DarLib->pDatas[k].pFunc );
-        p->OutBest   = s_DarLib->pSubgr[Class][i];
-        p->LevelBest = s_DarLib->pDatas[pObj->Num].Level;
-        p->GainBest  = nNodesGained;
-        p->ClassBest = Class;
+        p->OutBest    = s_DarLib->pSubgr[Class][i];
+        p->OutNumBest = i;
+        p->LevelBest  = s_DarLib->pDatas[pObj->Num].Level;
+        p->GainBest   = nNodesGained;
+        p->ClassBest  = Class;
     }
 clk = clock() - clk;
 p->ClassTimes[Class] += clk;

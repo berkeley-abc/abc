@@ -79,6 +79,68 @@ Dar_Man_t * Dar_ManStart( int nNodesMax )
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicates the AIG manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Dar_Man_t * Dar_ManStartFrom( Dar_Man_t * p )
+{
+    Dar_Man_t * pNew;
+    Dar_Obj_t * pObj;
+    int i;
+    // create the new manager
+    pNew = Dar_ManStart();
+    // create the PIs
+    Dar_ManConst1(p)->pData = Dar_ManConst1(pNew);
+    Dar_ManForEachPi( p, pObj, i )
+        pObj->pData = Dar_ObjCreatePi(pNew);
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the AIG manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Dar_Man_t * Dar_ManDup( Dar_Man_t * p )
+{
+    Dar_Man_t * pNew;
+    Dar_Obj_t * pObj;
+    int i;
+    // create the new manager
+    pNew = Dar_ManStart();
+    // create the PIs
+    Dar_ManConst1(p)->pData = Dar_ManConst1(pNew);
+    Dar_ManForEachPi( p, pObj, i )
+        pObj->pData = Dar_ObjCreatePi(pNew);
+    // duplicate internal nodes
+    Dar_ManForEachObj( p, pObj, i )
+        if ( Dar_ObjIsBuf(pObj) )
+            pObj->pData = Dar_ObjChild0Copy(pObj);
+        else if ( Dar_ObjIsNode(pObj) )
+            pObj->pData = Dar_And( pNew, Dar_ObjChild0Copy(pObj), Dar_ObjChild1Copy(pObj) );
+    // add the POs
+    Dar_ManForEachPo( p, pObj, i )
+        Dar_ObjCreatePo( pNew, Dar_ObjChild0Copy(pObj) );
+    // check the resulting network
+    if ( !Dar_ManCheck(pNew) )
+        printf( "Dar_ManDup(): The check has failed.\n" );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Stops the AIG manager.]
 
   Description []
@@ -107,13 +169,6 @@ void Dar_ManStop( Dar_Man_t * p )
     if ( p->vRequired )   Vec_IntFree( p->vRequired );
     if ( p->vLeavesBest ) Vec_PtrFree( p->vLeavesBest );
     free( p->pTable );
-    // free CNF mapping data
-    if ( p->pSopSizes )
-    {
-        free( p->pSopSizes );
-        free( p->pSops[1] );
-        free( p->pSops );
-    }
     free( p );
 }
 
@@ -185,7 +240,8 @@ void Dar_ManPrintStats( Dar_Man_t * p )
 void Dar_ManPrintRuntime( Dar_Man_t * p )
 {
     int i, Gain;
-    printf( "Good cuts = %d. Bad cuts = %d.\n", p->nCutsGood, p->nCutsBad );
+    printf( "Good cuts = %d. Bad cuts = %d.  Cut mem = %d Mb\n", 
+        p->nCutsGood, p->nCutsBad, p->nCutMemUsed );
     PRT( "Cuts  ", p->timeCuts );
     PRT( "Eval  ", p->timeEval );
     PRT( "Other ", p->timeOther );

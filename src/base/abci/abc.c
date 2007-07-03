@@ -331,7 +331,10 @@ void Abc_Init( Abc_Frame_t * pAbc )
 //    Kit_TruthCountMintermsPrecomp();
 //    Kit_DsdPrecompute4Vars();
 
-    Dar_LibStart();
+    {
+        extern void Dar_LibStart();
+        Dar_LibStart();
+    }
 } 
 
 /**Function*************************************************************
@@ -347,7 +350,10 @@ void Abc_Init( Abc_Frame_t * pAbc )
 ***********************************************************************/
 void Abc_End()
 {
-    Dar_LibStop();
+    {
+        extern void Dar_LibStop();
+        Dar_LibStop();
+    }
 
     Abc_NtkFraigStoreClean();
 //    Rwt_Man4ExplorePrint();
@@ -2915,7 +2921,7 @@ int Abc_CommandLutpack( Abc_Frame_t * pAbc, int argc, char ** argv )
     memset( pPars, 0, sizeof(Lut_Par_t) );
     pPars->nLutsMax     =  4; // (N) the maximum number of LUTs in the structure
     pPars->nLutsOver    =  3; // (Q) the maximum number of LUTs not in the MFFC
-    pPars->nVarsShared  =  0; // (S) the maximum number of shared variables (crossbars)
+    pPars->nVarsShared  =  3; // (S) the maximum number of shared variables (crossbars)
     pPars->nGrowthLevel =  1;
     pPars->fSatur       =  1;
     pPars->fZeroCost    =  0; 
@@ -5942,6 +5948,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Abc_NtkCompareSupports( Abc_Ntk_t * pNtk );
     extern void Abc_NtkCompareCones( Abc_Ntk_t * pNtk );
     extern Abc_Ntk_t * Abc_NtkDar( Abc_Ntk_t * pNtk );
+    extern Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -6057,7 +6064,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Network should be strashed. Command has failed.\n" );
         return 1;
     }
-    pNtkRes = Abc_NtkDar( pNtk );
+//    pNtkRes = Abc_NtkDar( pNtk );
+    pNtkRes = Abc_NtkDarToCnf( pNtk, "any.cnf" );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );

@@ -2070,6 +2070,55 @@ unsigned ** Extra_Truths8()
 
 /**Function*************************************************************
 
+  Synopsis    [Bubble-sorts components by scores in increasing order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Extra_BubbleSort( int Order[], int Costs[], int nSize, int fIncreasing )
+{
+    int i, Temp, fChanges;
+    assert( nSize < 1000 );
+    for ( i = 0; i < nSize; i++ )
+        Order[i] = i;
+    if ( fIncreasing )
+    {
+        do {
+            fChanges = 0;
+            for ( i = 0; i < nSize - 1; i++ )
+            {
+                if ( Costs[Order[i]] <= Costs[Order[i+1]] )
+                    continue;
+                Temp = Order[i];
+                Order[i] = Order[i+1];
+                Order[i+1] = Temp;
+                fChanges = 1;
+            }
+        } while ( fChanges );
+    }
+    else
+    {
+        do {
+            fChanges = 0;
+            for ( i = 0; i < nSize - 1; i++ )
+            {
+                if ( Costs[Order[i]] >= Costs[Order[i+1]] )
+                    continue;
+                Temp = Order[i];
+                Order[i] = Order[i+1];
+                Order[i+1] = Temp;
+                fChanges = 1;
+            }
+        } while ( fChanges );
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns the smallest prime larger than the number.]
 
   Description []
@@ -2103,7 +2152,6 @@ unsigned int Cudd_PrimeCopy( unsigned int  p)
     return(p);
 
 } /* end of Cudd_Prime */
-
 
 /*---------------------------------------------------------------------------*/
 /* Definition of internal functions                                          */

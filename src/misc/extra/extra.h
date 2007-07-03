@@ -405,6 +405,8 @@ extern void **     Extra_ArrayAlloc( int nCols, int nRows, int Size );
 extern unsigned short ** Extra_TruthPerm43();
 extern unsigned ** Extra_TruthPerm53();
 extern unsigned ** Extra_TruthPerm54();
+/* bubble sort for small number of entries */
+extern void        Extra_BubbleSort( int Order[], int Costs[], int nSize, int fIncreasing );
 /* for independence from CUDD */
 extern unsigned int Cudd_PrimeCopy( unsigned int  p );
 

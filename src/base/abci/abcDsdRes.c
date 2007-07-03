@@ -69,6 +69,7 @@ struct Lut_Man_t_
     Vec_Int_t *  vCover; 
     Vec_Vec_t *  vLevels;
     // temporary variables
+    int          fCofactoring;          // working in the cofactoring mode
     int          pRefs[LUT_SIZE_MAX];   // fanin reference counters 
     int          pCands[LUT_SIZE_MAX];  // internal nodes pointing only to the leaves
     // truth table representation
@@ -105,6 +106,8 @@ static inline If_Obj_t *  If_NotCond( If_Obj_t * p, int c ) { return (If_Obj_t *
 static inline int         If_IsComplement( If_Obj_t * p )   { return (int )(((unsigned long)p) & 01);         }
 
 extern void Res_UpdateNetworkLevel( Abc_Obj_t * pObjNew, Vec_Vec_t * vLevels );
+
+static If_Obj_t * Abc_LutIfManMapMulti( Lut_Man_t * p, unsigned * pTruth, int nLeaves, If_Obj_t ** ppLeaves );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -1003,62 +1006,81 @@ If_Obj_t * Abc_LutIfManMap_New_rec( Lut_Man_t * p, Kit_DsdNtk_t * pNtk, int iLit
   SeeAlso     []
 
 ***********************************************************************/
-/*
 int Abc_LutFindBestCofactoring( Lut_Man_t * p, Kit_DsdNtk_t * pNtk, unsigned * pTruth, int nVars )
 {
-    Kit_DsdNtk_t * pNtk0, * pNtk1, * pTemp;
-//    Kit_DsdObj_t * pRoot;
-    unsigned * pCofs2[2] = { pNtk->pMem, pNtk->pMem + Kit_TruthWordNum(pNtk->nVars) };
-    unsigned i, * pTruth;
-    int MaxBlock
-        Verbose = 0;
-    int RetValue = 0;
+    Kit_DsdNtk_t * pNtk0, * pNtk1;//, * pTemp;
+    unsigned * pCofs2[3] = { pNtk->pMem, pNtk->pMem + Kit_TruthWordNum(pNtk->nVars), pNtk->pMem + 2 * Kit_TruthWordNum(pNtk->nVars) };
+    int i, MaxBlock0, MaxBlock1, MaxBlockBest = 1000, VarBest = -1;
+    int fVerbose = 1;
 
     if ( fVerbose )
     {
-        printf( "Function: " );
+//        printf( "Function: " );
 //        Extra_PrintBinary( stdout, pTruth, (1 << nVars) ); 
-        Extra_PrintHexadecimal( stdout, pTruth, nVars ); 
+//        Extra_PrintHexadecimal( stdout, pTruth, nVars ); 
         printf( "\n" );
+        printf( "\n" );
+        printf( "V =%2d: ", pNtk->nVars );
         Kit_DsdPrint( stdout, pNtk );
     }
     for ( i = 0; i < nVars; i++ )
     {
         Kit_TruthCofactor0New( pCofs2[0], pTruth, nVars, i );
-        pNtk0 = Kit_DsdDecompose( pCofs2[0], nVars );
-        pNtk0 = Kit_DsdExpand( pTemp = pNtk0 );
-        Kit_DsdNtkFree( pTemp );
+        Kit_TruthCofactor1New( pCofs2[1], pTruth, nVars, i );
+        Kit_TruthXor( pCofs2[2], pCofs2[0], pCofs2[1], nVars ); 
 
+        pNtk0 = Kit_DsdDecompose( pCofs2[0], nVars );
+        MaxBlock0 = Kit_DsdNonDsdSizeMax( pNtk0 );
+//        pNtk0 = Kit_DsdExpand( pTemp = pNtk0 );
+//        Kit_DsdNtkFree( pTemp );
         if ( fVerbose )
         {
+            printf( "Variable %2d: Diff = %6d.\n", i, Kit_TruthCountOnes(pCofs2[2], nVars) );
+
             printf( "Cof%d0: ", i );
             Kit_DsdPrint( stdout, pNtk0 );
         }
 
-        Kit_TruthCofactor1New( pCofs2[1], pTruth, nVars, i );
         pNtk1 = Kit_DsdDecompose( pCofs2[1], nVars );
-        pNtk1 = Kit_DsdExpand( pTemp = pNtk1 );
-        Kit_DsdNtkFree( pTemp );
-
+        MaxBlock1 = Kit_DsdNonDsdSizeMax( pNtk1 );
+//        pNtk1 = Kit_DsdExpand( pTemp = pNtk1 );
+//        Kit_DsdNtkFree( pTemp );
         if ( fVerbose )
         {
             printf( "Cof%d1: ", i );
             Kit_DsdPrint( stdout, pNtk1 );
         }
 
-        if ( Kit_DsdCheckVar4Dec2( pNtk0, pNtk1 ) )
-            RetValue = 1;
+        if ( fVerbose )
+        {
+            printf( "MaxBlock0 = %2d. MaxBlock1 = %2d. ", MaxBlock0, MaxBlock1 );
+            if ( MaxBlock0 < p->pPars->nLutSize && MaxBlock1 < p->pPars->nLutSize )
+                printf( "  feasible\n" );
+            else
+                printf( "infeasible\n" );
+        }
+
+        if ( MaxBlock0 < p->pPars->nLutSize && MaxBlock1 < p->pPars->nLutSize )
+        {
+            if ( MaxBlockBest > ABC_MAX(MaxBlock0, MaxBlock1) )
+            {
+                MaxBlockBest = ABC_MAX(MaxBlock0, MaxBlock1);
+                VarBest = i;
+            }
+        }
 
         Kit_DsdNtkFree( pNtk0 );
         Kit_DsdNtkFree( pNtk1 );
     }
     if ( fVerbose )
+    {
+        printf( "Best variable = %d.\n", VarBest ); 
         printf( "\n" );
-
-    return RetValue;
-    
+    }
+    return VarBest;
+   
 }
-*/
+
 /**Function*************************************************************
 
   Synopsis    [Prepares the mapping manager.]
@@ -1070,7 +1092,7 @@ int Abc_LutFindBestCofactoring( Lut_Man_t * p, Kit_DsdNtk_t * pNtk, unsigned * p
   SeeAlso     []
 
 ***********************************************************************/
-If_Obj_t * Abc_LutIfManMap_rec( Lut_Man_t * p, Kit_DsdNtk_t * pNtk, int iLit )
+If_Obj_t * Abc_LutIfManMap_rec( Lut_Man_t * p, Kit_DsdNtk_t * pNtk, int iLit, If_Obj_t * pResult )
 {
     Kit_Graph_t * pGraph;
     Kit_DsdObj_t * pObj;
@@ -1092,8 +1114,8 @@ If_Obj_t * Abc_LutIfManMap_rec( Lut_Man_t * p, Kit_DsdNtk_t * pNtk, int iLit )
     if ( pObj->Type == KIT_DSD_AND )
     {
         assert( pObj->nFans == 2 );
-        pFansNew[0] = Abc_LutIfManMap_rec( p, pNtk, pObj->pFans[0] );
-        pFansNew[1] = Abc_LutIfManMap_rec( p, pNtk, pObj->pFans[1] );
+        pFansNew[0] = pResult? pResult : Abc_LutIfManMap_rec( p, pNtk, pObj->pFans[0], NULL );
+        pFansNew[1] = Abc_LutIfManMap_rec( p, pNtk, pObj->pFans[1], NULL );
         if ( pFansNew[0] == NULL || pFansNew[1] == NULL )
             return NULL;
         pObjNew = If_ManCreateAnd( p->pIfMan, If_Regular(pFansNew[0]), If_IsComplement(pFansNew[0]), If_Regular(pFansNew[1]), If_IsComplement(pFansNew[1]) ); 
@@ -1102,8 +1124,8 @@ If_Obj_t * Abc_LutIfManMap_rec( Lut_Man_t * p, Kit_DsdNtk_t * pNtk, int iLit )
     if ( pObj->Type == KIT_DSD_XOR )
     {
         assert( pObj->nFans == 2 );
-        pFansNew[0] = Abc_LutIfManMap_rec( p, pNtk, pObj->pFans[0] );
-        pFansNew[1] = Abc_LutIfManMap_rec( p, pNtk, pObj->pFans[1] );
+        pFansNew[0] = pResult? pResult : Abc_LutIfManMap_rec( p, pNtk, pObj->pFans[0], NULL );
+        pFansNew[1] = Abc_LutIfManMap_rec( p, pNtk, pObj->pFans[1], NULL );
         if ( pFansNew[0] == NULL || pFansNew[1] == NULL )
             return NULL;
         fCompl ^= 1 ^ If_IsComplement(pFansNew[0]) ^ If_IsComplement(pFansNew[1]);
@@ -1116,10 +1138,21 @@ If_Obj_t * Abc_LutIfManMap_rec( Lut_Man_t * p, Kit_DsdNtk_t * pNtk, int iLit )
     // solve for the inputs
     Kit_DsdObjForEachFanin( pNtk, pObj, iLitFanin, i )
     {
-        pFansNew[i] = Abc_LutIfManMap_rec( p, pNtk, iLitFanin );
+        if ( i == 0 )
+            pFansNew[i] = pResult? pResult : Abc_LutIfManMap_rec( p, pNtk, iLitFanin, NULL );
+        else
+            pFansNew[i] = Abc_LutIfManMap_rec( p, pNtk, iLitFanin, NULL );
         if ( pFansNew[i] == NULL )
             return NULL;
     }
+
+    // find best cofactoring variable
+//    if ( pObj->nFans > 3 )
+//        Kit_DsdCofactoring( Kit_DsdObjTruth(pObj), pObj->nFans, NULL, 4, 1 );
+    if ( !p->fCofactoring && p->pPars->nVarsShared > 0 && (int)pObj->nFans > p->pPars->nLutSize )
+//        return Abc_LutIfManMapMulti( p, Kit_DsdObjTruth(pObj), pObj->nFans, pFansNew );
+        Abc_LutIfManMapMulti( p, Kit_DsdObjTruth(pObj), pObj->nFans, pFansNew );
+
 
     // derive the factored form
     pGraph = Kit_TruthToGraph( Kit_DsdObjTruth(pObj), pObj->nFans, p->vCover );
@@ -1194,7 +1227,7 @@ int Abc_LutCutUpdate( Lut_Man_t * p, Lut_Cut_t * pCut, Kit_DsdNtk_t * pNtk )
     If_ManSetupCiCutSets( p->pIfMan );
     // create the internal nodes
 //    pDriver = Abc_LutIfManMap_New_rec( p, pNtk, pNtk->Root );
-    pDriver = Abc_LutIfManMap_rec( p, pNtk, pNtk->Root );
+    pDriver = Abc_LutIfManMap_rec( p, pNtk, pNtk->Root, NULL );
     if ( pDriver == NULL )
         return 0;
     // create the PO node
@@ -1458,6 +1491,280 @@ int Abc_LutResynthesize( Abc_Ntk_t * pNtk, Lut_Par_t * pPars )
         return 0;
     }
     return 1;
+}
+
+
+
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Records variable order.]
+
+  Description [Increaments Order[x][y] by 1 if x should be above y in the DSD.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_LutCreateVarOrder( Kit_DsdNtk_t * pNtk, char pTable[][16] )
+{
+    Kit_DsdObj_t * pObj;
+    unsigned uSuppFanins, k;
+    int Above[16], Below[16];
+    int nAbove, nBelow, iFaninLit, i, x, y;
+    // iterate through the nodes
+    Kit_DsdNtkForEachObj( pNtk, pObj, i )
+    {
+        // collect fanin support of this node
+        nAbove = 0;
+        uSuppFanins = 0;
+        Kit_DsdObjForEachFanin( pNtk, pObj, iFaninLit, k )
+        {
+            if ( Kit_DsdLitIsLeaf( pNtk, iFaninLit ) )
+                Above[nAbove++] = Kit_DsdLit2Var(iFaninLit);
+            else
+                uSuppFanins |= Kit_DsdLitSupport( pNtk, iFaninLit );
+        }
+        // find the below variables
+        nBelow = 0;
+        for ( y = 0; y < 16; y++ )
+            if ( uSuppFanins & (1 << y) )
+                Below[nBelow++] = y;
+        // create all pairs
+        for ( x = 0; x < nAbove; x++ )
+            for ( y = 0; y < nBelow; y++ )
+                pTable[Above[x]][Below[y]]++;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates commmon variable order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_LutCreateCommonOrder( char pTable[][16], int pOrder[], int nLeaves )
+{
+    int Score[16] = {0};
+    int i, y, x;
+    // compute scores for each leaf
+    for ( i = 0; i < nLeaves; i++ )
+    {
+        for ( y = 0; y < nLeaves; y++ )
+            Score[i] += pTable[i][y];
+        for ( x = 0; x < nLeaves; x++ )
+            Score[i] -= pTable[x][i];
+    }
+/*
+    printf( "Scores: " );
+    for ( i = 0; i < nLeaves; i++ )
+        printf( "%d ", Score[i] );
+    printf( "\n" );
+*/
+    // sort the scores
+    Extra_BubbleSort( pOrder, Score, nLeaves, 0 );
+/*
+    printf( "Scores: " );
+    for ( i = 0; i < nLeaves; i++ )
+        printf( "%d ", Score[pOrder[i]] );
+    printf( "\n" );
+*/
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prepares the mapping manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+If_Obj_t * Abc_LutIfManMapMulti_rec( Lut_Man_t * p, Kit_DsdNtk_t ** ppNtks, int * piLits, int * piCofVar, int nCBars, If_Obj_t ** ppLeaves, int nLeaves, int * pOrder )
+{
+    Kit_DsdObj_t * pObj;
+    If_Obj_t * pObjsNew[4][8], * pResPrev;
+    unsigned uSupps[8], uSuppFanin;
+    int piLitsNew[8], pDecision[8] = {0};
+    int i, v, k, nSize = (1 << nCBars);
+
+    // find which of the variables is highest in the order
+
+    // go though non-trivial components
+    for ( i = 0; i < nSize; i++ )
+    {
+        if ( piLits[i] == -1 )
+            continue;
+        pObj = Kit_DsdNtkObj( ppNtks[i], Kit_DsdLit2Var(piLits[i]) );
+        uSuppFanin = pObj? Kit_DsdLitSupport( ppNtks[i], pObj->pFans[0] ) : 0;
+        uSupps[i] = Kit_DsdLitSupport( ppNtks[i], piLits[i] ) & ~uSuppFanin;
+    }
+    // find the variable that appears the highest in the order
+    for ( v = 0; v < nLeaves; v++ )
+    {
+        for ( i = 0; i < nSize; i++ )
+            if ( uSupps[i] & (1 << pOrder[v]) )
+                break;
+    }
+    assert( v < nLeaves );
+    // pull out all components that have this variable
+    for ( i = 0; i < nSize; i++ )
+        pDecision[i] = ( uSupps[i] & (1 << pOrder[v]) );
+
+
+    // iterate over the nodes
+    for ( i = 0; i < nSize; i++ )
+    {
+        pObj = Kit_DsdNtkObj( ppNtks[i], Kit_DsdLit2Var(piLits[i]) );
+        if ( pDecision[i] )
+            piLitsNew[i] = pObj->pFans[0];
+        else
+            piLitsNew[i] = piLits[i];
+    }
+
+    // call again
+    pResPrev = Abc_LutIfManMapMulti_rec( p, ppNtks, piLitsNew, piCofVar, nCBars, ppLeaves, nLeaves, pOrder );
+
+    // create new set of nodes
+    for ( i = 0; i < nSize; i++ )
+    {
+        if ( pDecision[i] )
+            pObjsNew[nCBars][i] = Abc_LutIfManMap_rec( p, ppNtks[i], piLits[i], pResPrev );
+        else
+            pObjsNew[nCBars][i] = pResPrev;
+    }
+
+    // create MUX using these outputs
+    for ( k = nCBars; k > 0; k-- )
+    {
+        nSize /= 2;
+        for ( i = 0; i < nSize; i++ )
+            pObjsNew[k-1][i] = If_ManCreateMnux( p->pIfMan, pObjsNew[k][2*i+0], pObjsNew[k][2*i+1], ppLeaves[piCofVar[k-1]] );
+    }
+    assert( nCBars == 1 && nSize == 1 );
+    return If_NotCond( pObjsNew[0][0], nCBars & 1 );  
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prepares the mapping manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+If_Obj_t * Abc_LutIfManMapMulti( Lut_Man_t * p, unsigned * pTruth, int nVars, If_Obj_t ** ppLeaves )
+{
+    If_Obj_t * pResult;
+    Kit_DsdNtk_t * ppNtks[8] = {0}, * pTemp;
+    int piCofVar[4], pOrder[16] = {0}, pPrios[16], pFreqs[16] = {0}, piLits[16];
+    int i, k, nCBars, nSize, nMemSize;
+    unsigned * ppCofs[4][8], uSupport;
+    char pTable[16][16] = {0};
+    int fVerbose = 1;
+
+    // allocate storage for cofactors
+    nMemSize = Kit_TruthWordNum(nVars);
+    ppCofs[0][0] = ALLOC( unsigned, 32 * nMemSize );
+    nSize = 0;
+    for ( i = 0; i < 4; i++ )
+    for ( k = 0; k < 8; k++ )
+        ppCofs[i][k] = ppCofs[0][0] + nMemSize * nSize++;
+    assert( nSize == 32 );
+
+    // find the best cofactoring variables
+    nCBars = Kit_DsdCofactoring( pTruth, nVars, piCofVar, p->pPars->nVarsShared, 0 );
+
+    // copy the function
+    Kit_TruthCopy( ppCofs[0][0], pTruth, nVars );
+
+    // decompose w.r.t. these variables
+    for ( k = 0; k < nCBars; k++ )
+    {
+        nSize = (1 << k);
+        for ( i = 0; i < nSize; i++ )
+        {
+            Kit_TruthCofactor0New( ppCofs[k+1][2*i+0], ppCofs[k][i], nVars, piCofVar[k] );
+            Kit_TruthCofactor1New( ppCofs[k+1][2*i+1], ppCofs[k][i], nVars, piCofVar[k] );
+        }
+    }
+    nSize = (1 << nCBars);
+    // compute variable frequences
+    for ( i = 0; i < nSize; i++ )
+    {
+        uSupport = Kit_TruthSupport( ppCofs[nCBars][i], nVars );
+        for ( k = 0; k < nVars; k++ )
+            if ( uSupport & (1<<k) )
+                pFreqs[k]++;
+    }
+    // compute DSD networks
+    for ( i = 0; i < nSize; i++ )
+    {
+        ppNtks[i] = Kit_DsdDecompose( ppCofs[nCBars][i], nVars );
+        ppNtks[i] = Kit_DsdExpand( pTemp = ppNtks[i] );
+        Kit_DsdNtkFree( pTemp );
+        if ( fVerbose )
+        {
+            printf( "Cof%d%d: ", nCBars, i );
+            Kit_DsdPrint( stdout, ppNtks[i] );
+        }
+    }
+    free( ppCofs[0][0] );
+
+    // find common variable order
+    for ( i = 0; i < nSize; i++ )
+    {
+        Kit_DsdGetSupports( ppNtks[i] );
+        Abc_LutCreateVarOrder( ppNtks[i], pTable );
+    }
+    Abc_LutCreateCommonOrder( pTable, pOrder, nVars );
+
+    printf( "Common variable order: " );
+    for ( i = 0; i < nVars; i++ )
+        printf( "%c ", 'a' + pOrder[i] );
+    printf( "\n" );
+
+    // derive variable priority
+    for ( i = 0; i < 16; i++ )
+        pPrios[i] = 16;
+    for ( i = 0; i < nVars; i++ )
+        pPrios[pOrder[i]] = i;
+
+    // transform all networks according to the variable order
+    for ( i = 0; i < nSize; i++ )
+    {
+        ppNtks[i] = Kit_DsdShrink( pTemp = ppNtks[i], pPrios );
+        Kit_DsdNtkFree( pTemp );
+        Kit_DsdGetSupports( ppNtks[i] );
+        // undec nodes should be rotated in such a way that the first input has as many shared inputs as possible
+        Kit_DsdRotate( ppNtks[i], pFreqs );
+        // collect the roots
+        piLits[i] = ppNtks[i]->Root;
+    }
+/*
+    p->fCofactoring = 1;
+    pResult = Abc_LutIfManMapMulti_rec( p, ppNtks[nCBars], piLits, piCofVar, nCBars, ppLeaves, nVars, pOrder );
+    p->fCofactoring = 0;
+*/
+    // free the networks
+    for ( i = 0; i < 8; i++ )
+        if ( ppNtks[i] )
+            Kit_DsdNtkFree( ppNtks[i] );
+
+    return pResult;
 }
 
 ////////////////////////////////////////////////////////////////////////
