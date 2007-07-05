@@ -212,6 +212,11 @@ struct If_Obj_t_
     If_Cut_t           CutBest;       // the best cut selected 
 };
 
+static inline If_Obj_t * If_Regular( If_Obj_t * p )                          { return (If_Obj_t *)((unsigned long)(p) & ~01);  }
+static inline If_Obj_t * If_Not( If_Obj_t * p )                              { return (If_Obj_t *)((unsigned long)(p) ^  01);  }
+static inline If_Obj_t * If_NotCond( If_Obj_t * p, int c )                   { return (If_Obj_t *)((unsigned long)(p) ^ (c));  }
+static inline int        If_IsComplement( If_Obj_t * p )                     { return (int )(((unsigned long)p) & 01);         }
+
 static inline int        If_ManCiNum( If_Man_t * p )                         { return p->nObjs[IF_CI];               }
 static inline int        If_ManCoNum( If_Man_t * p )                         { return p->nObjs[IF_CO];               }
 static inline int        If_ManAndNum( If_Man_t * p )                        { return p->nObjs[IF_AND];              }
@@ -334,10 +339,10 @@ extern If_Man_t *      If_ManStart( If_Par_t * pPars );
 extern void            If_ManRestart( If_Man_t * p );
 extern void            If_ManStop( If_Man_t * p );
 extern If_Obj_t *      If_ManCreateCi( If_Man_t * p );
-extern If_Obj_t *      If_ManCreateCo( If_Man_t * p, If_Obj_t * pDriver, int fCompl0 );
-extern If_Obj_t *      If_ManCreateAnd( If_Man_t * p, If_Obj_t * pFan0, int fCompl0, If_Obj_t * pFan1, int fCompl1 );
-extern If_Obj_t *      If_ManCreateXnor( If_Man_t * p, If_Obj_t * pFan0, If_Obj_t * pFan1 );
-extern If_Obj_t *      If_ManCreateMnux( If_Man_t * p, If_Obj_t * pFan0, If_Obj_t * pFan1, If_Obj_t * pCtrl );
+extern If_Obj_t *      If_ManCreateCo( If_Man_t * p, If_Obj_t * pDriver );
+extern If_Obj_t *      If_ManCreateAnd( If_Man_t * p, If_Obj_t * pFan0, If_Obj_t * pFan1 );
+extern If_Obj_t *      If_ManCreateXor( If_Man_t * p, If_Obj_t * pFan0, If_Obj_t * pFan1 );
+extern If_Obj_t *      If_ManCreateMux( If_Man_t * p, If_Obj_t * pFan0, If_Obj_t * pFan1, If_Obj_t * pCtrl );
 extern void            If_ManCreateChoice( If_Man_t * p, If_Obj_t * pRepr );
 extern void            If_ManSetupCutTriv( If_Man_t * p, If_Cut_t * pCut, int ObjId );
 extern void            If_ManSetupCiCutSets( If_Man_t * p );

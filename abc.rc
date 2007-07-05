@@ -31,6 +31,7 @@ alias fsto fraig_store
 alias fres fraig_restore
 alias ft fraig_trust
 alias lp lutpack
+alias pd print_dsd
 alias pex print_exdc -d
 alias pf print_factor
 alias pfan print_fanio
@@ -169,6 +170,8 @@ alias tst6     "r i10_if6.blif; st; ps; r x/rec6_16_.blif; st; rec_start; r i10_
 alias bug      "r pj1_if3.blif; lp"
 alias table    "r lutexp.baf; test"
 
-alias t        "r c.blif; st; wc c.cnf"
+#alias t        "r c.blif; st; wc c.cnf"
+#alias t        "r test/dsdmap6.blif; lutpack -vw; cec"
+alias t        "r i10_if4.blif; lp"
 
 

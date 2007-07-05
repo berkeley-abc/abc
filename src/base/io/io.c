@@ -715,7 +715,7 @@ int IoCommandReadTruth( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fHex;
     int c;
 
-    fHex = 0;
+    fHex = 1;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "xh" ) ) != EOF )
     {

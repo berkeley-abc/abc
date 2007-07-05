@@ -47,7 +47,7 @@ Kit_DsdMan_t * Kit_DsdManAlloc( int nVars )
     p->nVars = nVars;
     p->nWords = Kit_TruthWordNum( p->nVars );
     p->vTtElems = Vec_PtrAllocTruthTables( p->nVars );
-    p->vTtNodes = Vec_PtrAllocSimInfo( 64, p->nWords );
+    p->vTtNodes = Vec_PtrAllocSimInfo( 1024, p->nWords );
     return p;
 }
 
@@ -262,6 +262,25 @@ void Kit_DsdPrint( FILE * pFile, Kit_DsdNtk_t * pNtk )
 
 /**Function*************************************************************
 
+  Synopsis    [Print the DSD formula.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Kit_DsdPrintExpanded( Kit_DsdNtk_t * pNtk )
+{
+    Kit_DsdNtk_t * pTemp;
+    pTemp = Kit_DsdExpand( pNtk );
+    Kit_DsdPrint( stdout, pNtk );
+    Kit_DsdNtkFree( pTemp );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Derives the truth table of the DSD node.]
 
   Description []
@@ -384,6 +403,26 @@ unsigned * Kit_DsdTruthCompute( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk )
     return pTruthRes;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Derives the truth table of the DSD network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Kit_DsdTruth( Kit_DsdNtk_t * pNtk, unsigned * pTruthRes )
+{
+    Kit_DsdMan_t * p;
+    unsigned * pTruth;
+    p = Kit_DsdManAlloc( pNtk->nVars );
+    pTruth = Kit_DsdTruthCompute( p, pNtk );
+    Kit_TruthCopy( pTruthRes, pTruth, pNtk->nVars );
+    Kit_DsdManFree( p );
+}
 
 /**Function*************************************************************
 
@@ -551,29 +590,25 @@ void Kit_DsdExpandCollectXor_rec( Kit_DsdNtk_t * p, int iLit, int * piLitsNew, i
 int Kit_DsdExpandNode_rec( Kit_DsdNtk_t * pNew, Kit_DsdNtk_t * p, int iLit )
 {
     unsigned * pTruth, * pTruthNew;
-    unsigned i, fCompl, iLitFanin, piLitsNew[16], nLitsNew = 0;
+    unsigned i, iLitFanin, piLitsNew[16], nLitsNew = 0;
     Kit_DsdObj_t * pObj, * pObjNew;
-
-    // remember the complement
-    fCompl = Kit_DsdLitIsCompl(iLit); 
-    iLit = Kit_DsdLitRegular(iLit); 
-    assert( !Kit_DsdLitIsCompl(iLit) );
 
     // consider the case of simple gate
     pObj = Kit_DsdNtkObj( p, Kit_DsdLit2Var(iLit) );
     if ( pObj == NULL )
-        return Kit_DsdLitNotCond( iLit, fCompl );
+        return iLit;
     if ( pObj->Type == KIT_DSD_AND )
     {
-        Kit_DsdExpandCollectAnd_rec( p, iLit, piLitsNew, &nLitsNew );
+        Kit_DsdExpandCollectAnd_rec( p, Kit_DsdLitRegular(iLit), piLitsNew, &nLitsNew );
         pObjNew = Kit_DsdObjAlloc( pNew, KIT_DSD_AND, nLitsNew );
         for ( i = 0; i < pObjNew->nFans; i++ )
             pObjNew->pFans[i] = Kit_DsdExpandNode_rec( pNew, p, piLitsNew[i] );
-        return Kit_DsdVar2Lit( pObjNew->Id, fCompl );
+        return Kit_DsdVar2Lit( pObjNew->Id, Kit_DsdLitIsCompl(iLit) );
     }
     if ( pObj->Type == KIT_DSD_XOR )
     {
-        Kit_DsdExpandCollectXor_rec( p, iLit, piLitsNew, &nLitsNew );
+        int fCompl = Kit_DsdLitIsCompl(iLit);
+        Kit_DsdExpandCollectXor_rec( p, Kit_DsdLitRegular(iLit), piLitsNew, &nLitsNew );
         pObjNew = Kit_DsdObjAlloc( pNew, KIT_DSD_XOR, nLitsNew );
         for ( i = 0; i < pObjNew->nFans; i++ )
         {
@@ -602,7 +637,7 @@ int Kit_DsdExpandNode_rec( Kit_DsdNtk_t * pNew, Kit_DsdNtk_t * p, int iLit )
         }
     }
     // if the incoming phase is complemented, absorb it into the prime node
-    if ( fCompl )
+    if ( Kit_DsdLitIsCompl(iLit) )
         Kit_TruthNot( pTruthNew, pTruthNew, pObj->nFans );
     return Kit_DsdVar2Lit( pObjNew->Id, 0 );
 }
@@ -655,46 +690,48 @@ Kit_DsdNtk_t * Kit_DsdExpand( Kit_DsdNtk_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Kit_DsdCompSort( int pPrios[], unsigned uSupps[], int piLitsNew[], int nVars )
+void Kit_DsdCompSort( int pPrios[], unsigned uSupps[], unsigned char * piLits, int nVars, int piLitsRes[] )
 {
-    int nSuppSizes[16], Priority[16], pOrder[16], Temp[16];
-    int i, k, iVarBest, SuppMax, PrioMin;
+    int nSuppSizes[16], Priority[16], pOrder[16];
+    int i, k, iVarBest, SuppMax, PrioMax;
     // compute support sizes and priorities of the components
     for ( i = 0; i < nVars; i++ )
     {
-        Temp[i] = piLitsNew[i];
+        assert( uSupps[i] );
         pOrder[i] = i;
-        Priority[i] = 16;
-        nSuppSizes[i] = Kit_WordCountOnes(uSupps[i]);
+        Priority[i] = KIT_INFINITY;
         for ( k = 0; k < 16; k++ )
             if ( uSupps[i] & (1 << k) )
                 Priority[i] = KIT_MIN( Priority[i], pPrios[k] );
         assert( Priority[i] != 16 );
+        nSuppSizes[i] = Kit_WordCountOnes(uSupps[i]);
     }
-    // find the component by with largest size and smallest priority
+    // sort the components by pririty
+    Extra_BubbleSort( pOrder, Priority, nVars, 0 );
+    // find the component by with largest size and lowest priority
     iVarBest = -1;
-    SuppMax = 0;
-    PrioMin = 16;
+    SuppMax  = 0;
+    PrioMax  = 0;
     for ( i = 0; i < nVars; i++ )
     {
-        if ( SuppMax < nSuppSizes[i] || (SuppMax == nSuppSizes[i] && PrioMin > Priority[i]) )
+        if ( SuppMax < nSuppSizes[i] || (SuppMax == nSuppSizes[i] && PrioMax < Priority[i]) )
         {
-            SuppMax = nSuppSizes[i];
-            PrioMin = Priority[i];
+            SuppMax  = nSuppSizes[i];
+            PrioMax  = Priority[i];
             iVarBest = i;
         }
     }
-    // sort the components by pririty
-    Extra_BubbleSort( pOrder, Priority, nVars, 1 );
+    assert( iVarBest != -1 );
     // copy the resulting literals
     k = 0;
-    piLitsNew[k++] = piLitsNew[iVarBest];
+    piLitsRes[k++] = piLits[iVarBest];
     for ( i = 0; i < nVars; i++ )
     {
         if ( pOrder[i] == iVarBest )
             continue;
-        piLitsNew[k++] = piLitsNew[pOrder[i]];
+        piLitsRes[k++] = piLits[pOrder[i]];
     }
+    assert( k == nVars );
 }
 
 /**Function*************************************************************
@@ -713,76 +750,52 @@ int Kit_DsdShrink_rec( Kit_DsdNtk_t * pNew, Kit_DsdNtk_t * p, int iLit, int pPri
     Kit_DsdObj_t * pObj, * pObjNew;
     unsigned * pTruth, * pTruthNew;
     unsigned i, piLitsNew[16], uSupps[16];
-    int fCompl, iLitFanin, iLitNew;
-
-    // remember the complement
-    fCompl = Kit_DsdLitIsCompl(iLit); 
-    iLit = Kit_DsdLitRegular(iLit); 
-    assert( !Kit_DsdLitIsCompl(iLit) );
+    int iLitFanin, iLitNew;
 
     // consider the case of simple gate
     pObj = Kit_DsdNtkObj( p, Kit_DsdLit2Var(iLit) );
     if ( pObj == NULL )
-        return Kit_DsdLitNotCond( iLit, fCompl );
+        return iLit;
     if ( pObj->Type == KIT_DSD_AND )
     {
-        if ( pObj->nFans == 2 )
+        // get the supports
+        Kit_DsdObjForEachFanin( p, pObj, iLitFanin, i )
+            uSupps[i] = Kit_DsdLitSupport( p, iLitFanin );
+        // put the largest component last
+        // sort other components in the decreasing order of priority of their vars
+        Kit_DsdCompSort( pPrios, uSupps, pObj->pFans, pObj->nFans, piLitsNew );
+        // construct the two-input node network
+        iLitNew = Kit_DsdShrink_rec( pNew, p, piLitsNew[0], pPrios );
+        for ( i = 1; i < pObj->nFans; i++ )
         {
             pObjNew = Kit_DsdObjAlloc( pNew, KIT_DSD_AND, 2 );
-            pObjNew->pFans[0] = Kit_DsdShrink_rec( pNew, p, pObj->pFans[0], pPrios );
-            pObjNew->pFans[1] = Kit_DsdShrink_rec( pNew, p, pObj->pFans[1], pPrios );
+            pObjNew->pFans[0] = Kit_DsdShrink_rec( pNew, p, piLitsNew[i], pPrios );
+            pObjNew->pFans[1] = iLitNew;
+            iLitNew = Kit_DsdVar2Lit( pObjNew->Id, 0 );
         }
-        else
-        {
-            // get the supports
-            Kit_DsdObjForEachFanin( p, pObj, iLitFanin, i )
-            {
-                piLitsNew[i] = iLitFanin;
-                uSupps[i] = Kit_DsdLitSupport( p, iLitFanin );
-            }
-            // put the largest component first
-            // sort other components in the increasing order of the highest variable
-            Kit_DsdCompSort( pPrios, uSupps, piLitsNew, pObj->nFans );
-            iLitNew = Kit_DsdShrink_rec( pNew, p, piLitsNew[0], pPrios );
-            for ( i = 1; i < pObj->nFans; i++ )
-            {
-                pObjNew = Kit_DsdObjAlloc( pNew, KIT_DSD_AND, 2 );
-                pObjNew->pFans[0] = iLitNew;
-                pObjNew->pFans[1] = Kit_DsdShrink_rec( pNew, p, piLitsNew[i], pPrios );
-                iLitNew = Kit_DsdVar2Lit( pObjNew->Id, 0 );
-            }
-        }
-        return Kit_DsdVar2Lit( pObjNew->Id, fCompl );
+        return Kit_DsdVar2Lit( pObjNew->Id, Kit_DsdLitIsCompl(iLit) );
     }
     if ( pObj->Type == KIT_DSD_XOR )
     {
-        if ( pObj->nFans == 2 )
+        // get the supports
+        Kit_DsdObjForEachFanin( p, pObj, iLitFanin, i )
+        {
+            assert( !Kit_DsdLitIsCompl(iLitFanin) );
+            uSupps[i] = Kit_DsdLitSupport( p, iLitFanin );
+        }
+        // put the largest component last
+        // sort other components in the decreasing order of priority of their vars
+        Kit_DsdCompSort( pPrios, uSupps, pObj->pFans, pObj->nFans, piLitsNew );
+        // construct the two-input node network
+        iLitNew = Kit_DsdShrink_rec( pNew, p, piLitsNew[0], pPrios );
+        for ( i = 1; i < pObj->nFans; i++ )
         {
             pObjNew = Kit_DsdObjAlloc( pNew, KIT_DSD_XOR, 2 );
-            pObjNew->pFans[0] = Kit_DsdShrink_rec( pNew, p, pObj->pFans[0], pPrios );
-            pObjNew->pFans[1] = Kit_DsdShrink_rec( pNew, p, pObj->pFans[1], pPrios );
+            pObjNew->pFans[0] = Kit_DsdShrink_rec( pNew, p, piLitsNew[i], pPrios );
+            pObjNew->pFans[1] = iLitNew;
+            iLitNew = Kit_DsdVar2Lit( pObjNew->Id, 0 );
         }
-        else
-        {
-            // get the supports
-            Kit_DsdObjForEachFanin( p, pObj, iLitFanin, i )
-            {
-                piLitsNew[i] = iLitFanin;
-                uSupps[i] = Kit_DsdLitSupport( p, iLitFanin );
-            }
-            // put the largest component first
-            // sort other components in the increasing order of the highest variable
-            Kit_DsdCompSort( pPrios, uSupps, piLitsNew, pObj->nFans );
-            iLitNew = Kit_DsdShrink_rec( pNew, p, piLitsNew[0], pPrios );
-            for ( i = 1; i < pObj->nFans; i++ )
-            {
-                pObjNew = Kit_DsdObjAlloc( pNew, KIT_DSD_XOR, 2 );
-                pObjNew->pFans[0] = iLitNew;
-                pObjNew->pFans[1] = Kit_DsdShrink_rec( pNew, p, piLitsNew[i], pPrios );
-                iLitNew = Kit_DsdVar2Lit( pObjNew->Id, 0 );
-            }
-        }
-        return Kit_DsdVar2Lit( pObjNew->Id, fCompl );
+        return Kit_DsdVar2Lit( pObjNew->Id, Kit_DsdLitIsCompl(iLit) );
     }
     assert( pObj->Type == KIT_DSD_PRIME );
 
@@ -804,7 +817,7 @@ int Kit_DsdShrink_rec( Kit_DsdNtk_t * pNew, Kit_DsdNtk_t * p, int iLit, int pPri
         }
     }
     // if the incoming phase is complemented, absorb it into the prime node
-    if ( fCompl )
+    if ( Kit_DsdLitIsCompl(iLit) )
         Kit_TruthNot( pTruthNew, pTruthNew, pObj->nFans );
     return Kit_DsdVar2Lit( pObjNew->Id, 0 );
 }
@@ -877,22 +890,26 @@ void Kit_DsdRotate( Kit_DsdNtk_t * p, int pFreqs[] )
             Weights[k] = 0;
             for ( v = 0; v < 16; v++ )
                 if ( uSuppFanin & (1 << v) )
-                    Weights[k] += pFreqs[v];
+                    Weights[k] += pFreqs[v] - 1;
         }
         // find the most frequent fanin
-        WeightMax = FaninMax = 0;
+        WeightMax = 0; 
+        FaninMax = -1;
         for ( k = 0; k < pObj->nFans; k++ )
             if ( WeightMax < Weights[k] )
             {
                 WeightMax = Weights[k];
                 FaninMax = k;
             }
-        assert( k < pObj->nFans );
+        // no need to reorder if there are no frequent fanins
+        if ( FaninMax == -1 )
+            continue;
         // move the fanins number k to the first place
         nSwaps = 0;
         pIn = Kit_DsdObjTruth(pObj);
-        pOut = p->pSupps;
-        for ( v = k-1; v >= 0; v-- )
+        pOut = p->pMem;
+//        for ( v = FaninMax; v < ((int)pObj->nFans)-1; v++ )
+        for ( v = FaninMax-1; v >= 0; v-- )
         {
             // swap the fanins
             Temp = pObj->pFans[v];
@@ -903,9 +920,36 @@ void Kit_DsdRotate( Kit_DsdNtk_t * p, int pFreqs[] )
             pTemp = pIn; pIn = pOut; pOut = pTemp;
             nSwaps++;
         }
-        if ( nSwaps & 1)
-            Kit_TruthCopy( pIn, pOut, pObj->nFans );
+        if ( nSwaps & 1 )
+            Kit_TruthCopy( pOut, pIn, pObj->nFans );
     }    
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Compute the support.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned Kit_DsdGetSupports_rec( Kit_DsdNtk_t * p, int iLit )
+{
+    Kit_DsdObj_t * pObj;
+    unsigned uSupport, k;
+    int iFaninLit;
+    pObj = Kit_DsdNtkObj( p, Kit_DsdLit2Var(iLit) );
+    if ( pObj == NULL )
+        return Kit_DsdLitSupport( p, iLit );
+    uSupport = 0;
+    Kit_DsdObjForEachFanin( p, pObj, iFaninLit, k )
+        uSupport |= Kit_DsdGetSupports_rec( p, iFaninLit );
+    p->pSupps[pObj->Id - p->nVars] = uSupport;
+    assert( uSupport <= 0xFFFF );
+    return uSupport;
 }
 
 /**Function*************************************************************
@@ -921,17 +965,24 @@ void Kit_DsdRotate( Kit_DsdNtk_t * p, int pFreqs[] )
 ***********************************************************************/
 void Kit_DsdGetSupports( Kit_DsdNtk_t * p )
 {
-    Kit_DsdObj_t * pObj;
-    unsigned uSupport, k;
-    int iFaninLit, i;
+    Kit_DsdObj_t * pRoot;
+    assert( p->pSupps == NULL );
     p->pSupps = ALLOC( unsigned, p->nNodes );
-    Kit_DsdNtkForEachObj( p, pObj, i )
+    // consider simple special cases
+    pRoot = Kit_DsdNtkRoot(p);
+    if ( pRoot->Type == KIT_DSD_CONST1 )
     {
-        uSupport = 0;
-        Kit_DsdObjForEachFanin( p, pObj, iFaninLit, k )
-            uSupport |= Kit_DsdLitSupport( p, iFaninLit );
-        p->pSupps[pObj->Id - p->nVars] = uSupport;
-    }    
+        assert( p->nNodes == 1 );
+        p->pSupps[0] = 0;
+    }
+    if ( pRoot->Type == KIT_DSD_VAR )
+    {
+        assert( p->nNodes == 1 );
+        p->pSupps[0] = Kit_DsdLitSupport( p, pRoot->pFans[0] );
+    }
+    else
+        Kit_DsdGetSupports_rec( p, p->Root );
+    assert( p->pSupps[0] <= 0xFFFF );
 }
 
 /**Function*************************************************************
@@ -1770,6 +1821,251 @@ int Kit_DsdCofactoring( unsigned * pTruth, int nVars, int * pCofVars, int nLimit
 
     assert( nStep <= nLimit );
     return nStep;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Canonical decomposition into completely DSD-structure.]
+
+  Description [Returns the number of cofactoring steps. Also returns
+  the cofactoring variables in pVars.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Kit_DsdPrintCofactors( unsigned * pTruth, int nVars, int nCofLevel, int fVerbose )
+{
+    Kit_DsdNtk_t * ppNtks[32] = {0}, * pTemp;
+    unsigned * ppCofs[5][16];
+    int piCofVar[5];
+    int nPrimeSizeMax, nPrimeSizeCur, nSuppSizeMax;
+    int i, k, v1, v2, v3, v4, s, nSteps, nSize, nMemSize;
+    assert( nCofLevel < 5 );
+
+    // print the function
+    ppNtks[0] = Kit_DsdDecompose( pTruth, nVars );
+    ppNtks[0] = Kit_DsdExpand( pTemp = ppNtks[0] );
+    Kit_DsdNtkFree( pTemp );
+    if ( fVerbose )
+        Kit_DsdPrint( stdout, ppNtks[0] );
+    Kit_DsdNtkFree( ppNtks[0] );
+
+    // allocate storage for cofactors
+    nMemSize = Kit_TruthWordNum(nVars);
+    ppCofs[0][0] = ALLOC( unsigned, 80 * nMemSize );
+    nSize = 0;
+    for ( i = 0; i <  5; i++ )
+    for ( k = 0; k < 16; k++ )
+        ppCofs[i][k] = ppCofs[0][0] + nMemSize * nSize++;
+    assert( nSize == 80 );
+
+    // copy the function
+    Kit_TruthCopy( ppCofs[0][0], pTruth, nVars );
+
+    if ( nCofLevel == 1 )
+    for ( v1 = 0; v1 < nVars; v1++ )
+    {
+        nSteps = 0;
+        piCofVar[nSteps++] = v1;
+
+        printf( "    Variables { " );
+        for ( i = 0; i < nSteps; i++ )
+            printf( "%c ", 'a' + piCofVar[i] );
+        printf( "}\n" );
+
+        // single cofactors
+        for ( s = 1; s <= nSteps; s++ )
+        {
+            for ( k = 0; k < s; k++ )
+            {
+                nSize = (1 << k);
+                for ( i = 0; i < nSize; i++ )
+                {
+                    Kit_TruthCofactor0New( ppCofs[k+1][2*i+0], ppCofs[k][i], nVars, piCofVar[k] );
+                    Kit_TruthCofactor1New( ppCofs[k+1][2*i+1], ppCofs[k][i], nVars, piCofVar[k] );
+                }
+            }
+        }
+        // compute DSD networks
+        nSize = (1 << nSteps);
+        nPrimeSizeMax = 0;
+        nSuppSizeMax = 0;
+        for ( i = 0; i < nSize; i++ )
+        {
+            ppNtks[i] = Kit_DsdDecompose( ppCofs[nSteps][i], nVars );
+            ppNtks[i] = Kit_DsdExpand( pTemp = ppNtks[i] );
+            Kit_DsdNtkFree( pTemp );
+            if ( fVerbose )
+            {
+                printf( "Cof%d%d: ", nSteps, i );
+                Kit_DsdPrint( stdout, ppNtks[i] );
+            }
+            // compute the largest non-decomp block
+            nPrimeSizeCur  = Kit_DsdNonDsdSizeMax(ppNtks[i]);
+            nPrimeSizeMax  = KIT_MAX( nPrimeSizeMax, nPrimeSizeCur );
+            Kit_DsdNtkFree( ppNtks[i] );
+            nSuppSizeMax += Kit_TruthSupportSize( ppCofs[nSteps][i], nVars );
+        }
+        printf( "Max = %2d. Supps = %2d.\n", nPrimeSizeMax, nSuppSizeMax );
+    }
+
+    if ( nCofLevel == 2 )
+    for ( v1 = 0; v1 < nVars; v1++ )
+    for ( v2 = v1+1; v2 < nVars; v2++ )
+    {
+        nSteps = 0;
+        piCofVar[nSteps++] = v1;
+        piCofVar[nSteps++] = v2;
+
+        printf( "    Variables { " );
+        for ( i = 0; i < nSteps; i++ )
+            printf( "%c ", 'a' + piCofVar[i] );
+        printf( "}\n" );
+
+        // single cofactors
+        for ( s = 1; s <= nSteps; s++ )
+        {
+            for ( k = 0; k < s; k++ )
+            {
+                nSize = (1 << k);
+                for ( i = 0; i < nSize; i++ )
+                {
+                    Kit_TruthCofactor0New( ppCofs[k+1][2*i+0], ppCofs[k][i], nVars, piCofVar[k] );
+                    Kit_TruthCofactor1New( ppCofs[k+1][2*i+1], ppCofs[k][i], nVars, piCofVar[k] );
+                }
+            }
+        }
+        // compute DSD networks
+        nSize = (1 << nSteps);
+        nPrimeSizeMax = 0;
+        nSuppSizeMax = 0;
+        for ( i = 0; i < nSize; i++ )
+        {
+            ppNtks[i] = Kit_DsdDecompose( ppCofs[nSteps][i], nVars );
+            ppNtks[i] = Kit_DsdExpand( pTemp = ppNtks[i] );
+            Kit_DsdNtkFree( pTemp );
+            if ( fVerbose )
+            {
+                printf( "Cof%d%d: ", nSteps, i );
+                Kit_DsdPrint( stdout, ppNtks[i] );
+            }
+            // compute the largest non-decomp block
+            nPrimeSizeCur  = Kit_DsdNonDsdSizeMax(ppNtks[i]);
+            nPrimeSizeMax  = KIT_MAX( nPrimeSizeMax, nPrimeSizeCur );
+            Kit_DsdNtkFree( ppNtks[i] );
+            nSuppSizeMax += Kit_TruthSupportSize( ppCofs[nSteps][i], nVars );
+        }
+        printf( "Max = %2d. Supps = %2d.\n", nPrimeSizeMax, nSuppSizeMax );
+    }
+
+    if ( nCofLevel == 3 )
+    for ( v1 = 0; v1 < nVars; v1++ )
+    for ( v2 = v1+1; v2 < nVars; v2++ )
+    for ( v3 = v2+1; v3 < nVars; v3++ )
+    {
+        nSteps = 0;
+        piCofVar[nSteps++] = v1;
+        piCofVar[nSteps++] = v2;
+        piCofVar[nSteps++] = v3;
+
+        printf( "    Variables { " );
+        for ( i = 0; i < nSteps; i++ )
+            printf( "%c ", 'a' + piCofVar[i] );
+        printf( "}\n" );
+
+        // single cofactors
+        for ( s = 1; s <= nSteps; s++ )
+        {
+            for ( k = 0; k < s; k++ )
+            {
+                nSize = (1 << k);
+                for ( i = 0; i < nSize; i++ )
+                {
+                    Kit_TruthCofactor0New( ppCofs[k+1][2*i+0], ppCofs[k][i], nVars, piCofVar[k] );
+                    Kit_TruthCofactor1New( ppCofs[k+1][2*i+1], ppCofs[k][i], nVars, piCofVar[k] );
+                }
+            }
+        }
+        // compute DSD networks
+        nSize = (1 << nSteps);
+        nPrimeSizeMax = 0;
+        nSuppSizeMax = 0;
+        for ( i = 0; i < nSize; i++ )
+        {
+            ppNtks[i] = Kit_DsdDecompose( ppCofs[nSteps][i], nVars );
+            ppNtks[i] = Kit_DsdExpand( pTemp = ppNtks[i] );
+            Kit_DsdNtkFree( pTemp );
+            if ( fVerbose )
+            {
+                printf( "Cof%d%d: ", nSteps, i );
+                Kit_DsdPrint( stdout, ppNtks[i] );
+            }
+            // compute the largest non-decomp block
+            nPrimeSizeCur  = Kit_DsdNonDsdSizeMax(ppNtks[i]);
+            nPrimeSizeMax  = KIT_MAX( nPrimeSizeMax, nPrimeSizeCur );
+            Kit_DsdNtkFree( ppNtks[i] );
+            nSuppSizeMax += Kit_TruthSupportSize( ppCofs[nSteps][i], nVars );
+        }
+        printf( "Max = %2d. Supps = %2d.\n", nPrimeSizeMax, nSuppSizeMax );
+    }
+
+    if ( nCofLevel == 4 )
+    for ( v1 = 0; v1 < nVars; v1++ )
+    for ( v2 = v1+1; v2 < nVars; v2++ )
+    for ( v3 = v2+1; v3 < nVars; v3++ )
+    for ( v4 = v3+1; v4 < nVars; v4++ )
+    {
+        nSteps = 0;
+        piCofVar[nSteps++] = v1;
+        piCofVar[nSteps++] = v2;
+        piCofVar[nSteps++] = v3;
+        piCofVar[nSteps++] = v4;
+
+        printf( "    Variables { " );
+        for ( i = 0; i < nSteps; i++ )
+            printf( "%c ", 'a' + piCofVar[i] );
+        printf( "}\n" );
+
+        // single cofactors
+        for ( s = 1; s <= nSteps; s++ )
+        {
+            for ( k = 0; k < s; k++ )
+            {
+                nSize = (1 << k);
+                for ( i = 0; i < nSize; i++ )
+                {
+                    Kit_TruthCofactor0New( ppCofs[k+1][2*i+0], ppCofs[k][i], nVars, piCofVar[k] );
+                    Kit_TruthCofactor1New( ppCofs[k+1][2*i+1], ppCofs[k][i], nVars, piCofVar[k] );
+                }
+            }
+        }
+        // compute DSD networks
+        nSize = (1 << nSteps);
+        nPrimeSizeMax = 0;
+        nSuppSizeMax = 0;
+        for ( i = 0; i < nSize; i++ )
+        {
+            ppNtks[i] = Kit_DsdDecompose( ppCofs[nSteps][i], nVars );
+            ppNtks[i] = Kit_DsdExpand( pTemp = ppNtks[i] );
+            Kit_DsdNtkFree( pTemp );
+            if ( fVerbose )
+            {
+                printf( "Cof%d%d: ", nSteps, i );
+                Kit_DsdPrint( stdout, ppNtks[i] );
+            }
+            // compute the largest non-decomp block
+            nPrimeSizeCur  = Kit_DsdNonDsdSizeMax(ppNtks[i]);
+            nPrimeSizeMax  = KIT_MAX( nPrimeSizeMax, nPrimeSizeCur );
+            Kit_DsdNtkFree( ppNtks[i] );
+            nSuppSizeMax += Kit_TruthSupportSize( ppCofs[nSteps][i], nVars );
+        }
+        printf( "Max = %2d. Supps = %2d.\n", nPrimeSizeMax, nSuppSizeMax );
+    }
+
+
+    free( ppCofs[0][0] );
 }
 
 ////////////////////////////////////////////////////////////////////////

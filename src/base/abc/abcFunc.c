@@ -881,12 +881,20 @@ unsigned * Abc_ConvertAigToTruth( Hop_Man_t * p, Hop_Obj_t * pRoot, int nVars, V
     Hop_Obj_t * pObj;
     unsigned * pTruth, * pTruth2;
     int i, nWords, nNodes;
+    Vec_Ptr_t * vTtElems;
+
+    // if the number of variables is more than 8, allocate truth tables
+    if ( nVars > 8 )
+        vTtElems = Vec_PtrAllocTruthTables( nVars );
+    else
+        vTtElems = NULL;
+
     // clear the data fields and set marks
     nNodes = Abc_ConvertAigToTruth_rec1( pRoot );
     // prepare memory
     nWords = Hop_TruthWordNum( nVars );
     Vec_IntClear( vTruth );
-    Vec_IntGrow( vTruth, nWords * nNodes );
+    Vec_IntGrow( vTruth, nWords * (nNodes+1) );
     pTruth = Vec_IntFetch( vTruth, nWords );
     // check the case of a constant
     if ( Hop_ObjIsConst1( Hop_Regular(pRoot) ) )
@@ -900,21 +908,33 @@ unsigned * Abc_ConvertAigToTruth( Hop_Man_t * p, Hop_Obj_t * pRoot, int nVars, V
     }
     // set elementary truth tables at the leaves
     assert( nVars <= Hop_ManPiNum(p) );
-    assert( Hop_ManPiNum(p) <= 8 ); 
+//    assert( Hop_ManPiNum(p) <= 8 ); 
     if ( fMsbFirst )
     {
         Hop_ManForEachPi( p, pObj, i )
-            pObj->pData = (void *)uTruths[nVars-1-i];
+        {
+            if ( vTtElems )
+                pObj->pData = Vec_PtrEntry(vTtElems, nVars-1-i);
+            else               
+                pObj->pData = (void *)uTruths[nVars-1-i];
+        }
     }
     else
     {
         Hop_ManForEachPi( p, pObj, i )
-            pObj->pData = (void *)uTruths[i];
+        {
+            if ( vTtElems )
+                pObj->pData = Vec_PtrEntry(vTtElems, i);
+            else               
+                pObj->pData = (void *)uTruths[i];
+        }
     }
     // clear the marks and compute the truth table
     pTruth2 = Abc_ConvertAigToTruth_rec2( pRoot, vTruth, nWords );
     // copy the result
     Extra_TruthCopy( pTruth, pTruth2, nVars );
+    if ( vTtElems )
+        Vec_PtrFree( vTtElems );
     return pTruth;
 }
 

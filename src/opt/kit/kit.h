@@ -159,6 +159,7 @@ static inline unsigned        Kit_DsdLitSupport( Kit_DsdNtk_t * pNtk, int Lit ) 
 
 #define KIT_MIN(a,b)       (((a) < (b))? (a) : (b))
 #define KIT_MAX(a,b)       (((a) > (b))? (a) : (b))
+#define KIT_INFINITY       (100000000)
 
 #ifndef ALLOC
 #define ALLOC(type, num)     ((type *) malloc(sizeof(type) * (num)))
@@ -235,6 +236,10 @@ static inline int Kit_WordFindFirstBit( unsigned uWord )
             return i;
     return -1;
 }
+static inline int Kit_WordHasOneBit( unsigned uWord )
+{
+    return (uWord & (uWord - 1)) == 0;
+}
 static inline int Kit_WordCountOnes( unsigned uWord )
 {
     uWord = (uWord & 0x55555555) + ((uWord>>1) & 0x55555555);
@@ -249,6 +254,14 @@ static inline int Kit_TruthCountOnes( unsigned * pIn, int nVars )
     for ( w = Kit_TruthWordNum(nVars)-1; w >= 0; w-- )
         Counter += Kit_WordCountOnes(pIn[w]);
     return Counter;
+}
+static inline int Kit_TruthFindFirstBit( unsigned * pIn, int nVars )
+{
+    int w;
+    for ( w = 0; w < Kit_TruthWordNum(nVars); w++ )
+        if ( pIn[w] )
+            return Kit_WordFindFirstBit(pIn[w]);
+    return -1;
 }
 static inline int Kit_TruthIsEqual( unsigned * pIn0, unsigned * pIn1, int nVars )
 {
@@ -433,7 +446,9 @@ extern DdNode *        Kit_TruthToBdd( DdManager * dd, unsigned * pTruth, int nV
 /*=== kitDsd.c ==========================================================*/
 extern Kit_DsdNtk_t *  Kit_DsdDeriveNtk( unsigned * pTruth, int nVars, int nLutSize );
 extern unsigned *      Kit_DsdTruthCompute( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk );
+extern void            Kit_DsdTruth( Kit_DsdNtk_t * pNtk, unsigned * pTruthRes );
 extern void            Kit_DsdPrint( FILE * pFile, Kit_DsdNtk_t * pNtk );
+extern void            Kit_DsdPrintExpanded( Kit_DsdNtk_t * pNtk );
 extern Kit_DsdNtk_t *  Kit_DsdDecompose( unsigned * pTruth, int nVars );
 extern void            Kit_DsdNtkFree( Kit_DsdNtk_t * pNtk );
 extern int             Kit_DsdNonDsdSizeMax( Kit_DsdNtk_t * pNtk );

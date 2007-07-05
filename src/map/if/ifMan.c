@@ -175,13 +175,13 @@ If_Obj_t * If_ManCreateCi( If_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-If_Obj_t * If_ManCreateCo( If_Man_t * p, If_Obj_t * pDriver, int fCompl0 )
+If_Obj_t * If_ManCreateCo( If_Man_t * p, If_Obj_t * pDriver )
 {
     If_Obj_t * pObj;
     pObj = If_ManSetupObj( p );
-    pObj->Type = IF_CO;
-    pObj->fCompl0 = fCompl0;
     Vec_PtrPush( p->vCos, pObj );
+    pObj->Type = IF_CO;
+    pObj->fCompl0 = If_IsComplement(pDriver); pDriver = If_Regular(pDriver);
     pObj->pFanin0 = pDriver; pDriver->nRefs++; 
     p->nObjs[IF_CO]++;
     return pObj;
@@ -198,17 +198,26 @@ If_Obj_t * If_ManCreateCo( If_Man_t * p, If_Obj_t * pDriver, int fCompl0 )
   SeeAlso     []
 
 ***********************************************************************/
-If_Obj_t * If_ManCreateAnd( If_Man_t * p, If_Obj_t * pFan0, int fCompl0, If_Obj_t * pFan1, int fCompl1 )
+If_Obj_t * If_ManCreateAnd( If_Man_t * p, If_Obj_t * pFan0, If_Obj_t * pFan1 )
 {
     If_Obj_t * pObj;
+    // perform constant propagation
+    if ( pFan0 == pFan1 )
+        return pFan0;
+    if ( pFan0 == If_Not(pFan1) )
+        return If_Not(p->pConst1);
+    if ( If_Regular(pFan0) == p->pConst1 )
+        return pFan0 == p->pConst1 ? pFan1 : If_Not(p->pConst1);
+    if ( If_Regular(pFan1) == p->pConst1 )
+        return pFan1 == p->pConst1 ? pFan0 : If_Not(p->pConst1);
     // get memory for the new object
     pObj = If_ManSetupObj( p );
     pObj->Type    = IF_AND;
-    pObj->fCompl0 = fCompl0;
-    pObj->fCompl1 = fCompl1;
+    pObj->fCompl0 = If_IsComplement(pFan0); pFan0 = If_Regular(pFan0);
+    pObj->fCompl1 = If_IsComplement(pFan1); pFan1 = If_Regular(pFan1);
     pObj->pFanin0 = pFan0; pFan0->nRefs++; pFan0->nVisits++; pFan0->nVisitsCopy++;
     pObj->pFanin1 = pFan1; pFan1->nRefs++; pFan1->nVisits++; pFan1->nVisitsCopy++;
-    pObj->fPhase  = (fCompl0 ^ pFan0->fPhase) & (fCompl1 ^ pFan1->fPhase);
+    pObj->fPhase  = (pObj->fCompl0 ^ pFan0->fPhase) & (pObj->fCompl1 ^ pFan1->fPhase);
     pObj->Level   = 1 + IF_MAX( pFan0->Level, pFan1->Level );
     if ( p->nLevelMax < (int)pObj->Level )
         p->nLevelMax = (int)pObj->Level;
@@ -227,12 +236,12 @@ If_Obj_t * If_ManCreateAnd( If_Man_t * p, If_Obj_t * pFan0, int fCompl0, If_Obj_
   SeeAlso     []
 
 ***********************************************************************/
-If_Obj_t * If_ManCreateXnor( If_Man_t * p, If_Obj_t * pFan0, If_Obj_t * pFan1 )
+If_Obj_t * If_ManCreateXor( If_Man_t * p, If_Obj_t * pFan0, If_Obj_t * pFan1 )
 {
     If_Obj_t * pRes1, * pRes2;
-    pRes1 = If_ManCreateAnd( p, pFan0, 0, pFan1, 1 );
-    pRes2 = If_ManCreateAnd( p, pFan0, 1, pFan1, 0 );
-    return If_ManCreateAnd( p, pRes1, 1, pRes2, 1 );
+    pRes1 = If_ManCreateAnd( p, If_Not(pFan0), pFan1 );
+    pRes2 = If_ManCreateAnd( p, pFan0, If_Not(pFan1) );
+    return If_Not( If_ManCreateAnd( p, If_Not(pRes1), If_Not(pRes2) ) );
 }
 
 /**Function*************************************************************
@@ -246,12 +255,12 @@ If_Obj_t * If_ManCreateXnor( If_Man_t * p, If_Obj_t * pFan0, If_Obj_t * pFan1 )
   SeeAlso     []
 
 ***********************************************************************/
-If_Obj_t * If_ManCreateMnux( If_Man_t * p, If_Obj_t * pFan0, If_Obj_t * pFan1, If_Obj_t * pCtrl )
+If_Obj_t * If_ManCreateMux( If_Man_t * p, If_Obj_t * pFan0, If_Obj_t * pFan1, If_Obj_t * pCtrl )
 {
     If_Obj_t * pRes1, * pRes2;
-    pRes1 = If_ManCreateAnd( p, pFan0, 0, pCtrl, 1 );
-    pRes2 = If_ManCreateAnd( p, pFan1, 0, pCtrl, 0 );
-    return If_ManCreateAnd( p, pRes1, 1, pRes2, 1 );
+    pRes1 = If_ManCreateAnd( p, pFan0, If_Not(pCtrl) );
+    pRes2 = If_ManCreateAnd( p, pFan1, pCtrl );
+    return If_Not( If_ManCreateAnd( p, If_Not(pRes1), If_Not(pRes2) ) );
 }
 
 /**Function*************************************************************

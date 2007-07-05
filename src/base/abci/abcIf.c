@@ -145,8 +145,8 @@ If_Man_t * Abc_NtkToIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
         Extra_ProgressBarUpdate( pProgress, i, "Initial" );
         // add the node to the mapper
         pNode->pCopy = (Abc_Obj_t *)If_ManCreateAnd( pIfMan, 
-            (If_Obj_t *)Abc_ObjFanin0(pNode)->pCopy, Abc_ObjFaninC0(pNode), 
-            (If_Obj_t *)Abc_ObjFanin1(pNode)->pCopy, Abc_ObjFaninC1(pNode) );
+            If_NotCond( (If_Obj_t *)Abc_ObjFanin0(pNode)->pCopy, Abc_ObjFaninC0(pNode) ), 
+            If_NotCond( (If_Obj_t *)Abc_ObjFanin1(pNode)->pCopy, Abc_ObjFaninC1(pNode) ) );
         // set up the choice node
         if ( Abc_AigNodeIsChoice( pNode ) )
         {
@@ -162,7 +162,7 @@ If_Man_t * Abc_NtkToIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
 
     // set the primary outputs without copying the phase
     Abc_NtkForEachCo( pNtk, pNode, i )
-        If_ManCreateCo( pIfMan, (If_Obj_t *)Abc_ObjFanin0(pNode)->pCopy, Abc_ObjFaninC0(pNode) );
+        If_ManCreateCo( pIfMan, If_NotCond( (If_Obj_t *)Abc_ObjFanin0(pNode)->pCopy, Abc_ObjFaninC0(pNode) ) );
     return pIfMan;
 }
 

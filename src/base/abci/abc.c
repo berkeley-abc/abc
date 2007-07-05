@@ -26,7 +26,7 @@
 #include "fpga.h"
 #include "if.h"
 #include "res.h"
-//#include "dar.h"
+#include "lpk.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -1509,23 +1509,37 @@ int Abc_CommandPrintDsd( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
     int c;
-    int fUseLibrary;
+    int fCofactor;
+    int nCofLevel;
 
     extern void Kit_DsdTest( unsigned * pTruth, int nVars );
+    extern void Kit_DsdPrintCofactors( unsigned * pTruth, int nVars, int nCofLevel, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fUseLibrary = 1;
+    nCofLevel = 1;
+    fCofactor = 1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "lh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nch" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'l':
-            fUseLibrary ^= 1;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nCofLevel = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nCofLevel < 0 ) 
+                goto usage;
+            break;
+        case 'c':
+            fCofactor ^= 1;
             break;
         case 'h':
             goto usage;
@@ -1549,16 +1563,16 @@ int Abc_CommandPrintDsd( Abc_Frame_t * pAbc, int argc, char ** argv )
     // convert it to truth table
     {
         Abc_Obj_t * pObj = Abc_ObjFanin0( Abc_NtkPo(pNtk, 0) );
-        Vec_Int_t * vMemory = Vec_IntAlloc( 10000 );
+        Vec_Int_t * vMemory = Vec_IntAlloc(0);
         unsigned * pTruth;
         if ( !Abc_ObjIsNode(pObj) )
         {
             fprintf( pErr, "The fanin of the first PO node does not have a logic function.\n" );
             return 1;
         }
-        if ( Abc_ObjFaninNum(pObj) > 8 )
+        if ( Abc_ObjFaninNum(pObj) > 16 )
         {
-            fprintf( pErr, "Currently works only for up to 8 inputs.\n" );
+            fprintf( pErr, "Currently works only for up to 16 inputs.\n" );
             return 1;
         }
         pTruth = Abc_ConvertAigToTruth( pNtk->pManFunc, Hop_Regular(pObj->pData), Abc_ObjFaninNum(pObj), vMemory, 0 );
@@ -1566,16 +1580,20 @@ int Abc_CommandPrintDsd( Abc_Frame_t * pAbc, int argc, char ** argv )
             Extra_TruthNot( pTruth, pTruth, Abc_ObjFaninNum(pObj) );
         Extra_PrintBinary( stdout, pTruth, 1 << Abc_ObjFaninNum(pObj) );
         printf( "\n" );
-        Kit_DsdTest( pTruth, Abc_ObjFaninNum(pObj) );
+        if ( fCofactor )
+            Kit_DsdPrintCofactors( pTruth, Abc_ObjFaninNum(pObj), nCofLevel, 1 );
+        else
+            Kit_DsdTest( pTruth, Abc_ObjFaninNum(pObj) );
         Vec_IntFree( vMemory );
     }
     return 0;
 
 usage:
-    fprintf( pErr, "usage: print_dsd [-h]\n" );
-    fprintf( pErr, "\t        print DSD formula for a single-output function with less than 16 variables\n" );
-//    fprintf( pErr, "\t-l    : used library gate names (if mapped) [default = %s]\n", fUseLibrary? "yes": "no" );
-    fprintf( pErr, "\t-h    : print the command usage\n");
+    fprintf( pErr, "usage: print_dsd [-ch] [-N num]\n" );
+    fprintf( pErr, "\t         print DSD formula for a single-output function with less than 16 variables\n" );
+    fprintf( pErr, "\t-c     : toggle recursive cofactoring [default = %s]\n", fCofactor? "yes": "no" );
+    fprintf( pErr, "\t-N num : the number of levels to cofactor [default = %d]\n", nCofLevel );
+    fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
 }
 
@@ -2906,26 +2924,22 @@ int Abc_CommandLutpack( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
-    Lut_Par_t Pars, * pPars = &Pars;
+    Lpk_Par_t Pars, * pPars = &Pars;
     int c;
-    extern int Abc_LutResynthesize( Abc_Ntk_t * pNtk, Lut_Par_t * pPars );
-
-//    printf( "Implementation of this command is not finished.\n" );
-//    return 1;
-
+ 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    memset( pPars, 0, sizeof(Lut_Par_t) );
+    memset( pPars, 0, sizeof(Lpk_Par_t) );
     pPars->nLutsMax     =  4; // (N) the maximum number of LUTs in the structure
     pPars->nLutsOver    =  3; // (Q) the maximum number of LUTs not in the MFFC
-    pPars->nVarsShared  =  3; // (S) the maximum number of shared variables (crossbars)
-    pPars->nGrowthLevel =  1;
+    pPars->nVarsShared  =  0; // (S) the maximum number of shared variables (crossbars)
+    pPars->nGrowthLevel =  9; // (L) the maximum number of increased levels
     pPars->fSatur       =  1;
     pPars->fZeroCost    =  0; 
-    pPars->fVerbose     =  0;
+    pPars->fVerbose     =  1;
     pPars->fVeryVerbose =  0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "NQSLszvwh" ) ) != EOF )
@@ -3007,7 +3021,7 @@ int Abc_CommandLutpack( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // modify the current network
-    if ( !Abc_LutResynthesize( pNtk, pPars ) )
+    if ( !Lpk_Resynthesize( pNtk, pPars ) )
     {
         fprintf( pErr, "Resynthesis has failed.\n" );
         return 1;
