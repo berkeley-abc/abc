@@ -39,18 +39,12 @@
   SeeAlso     []
 
 ***********************************************************************/
-int Lpk_MapTreeBestVar( Lpk_Man_t * p, unsigned * pTruth, int nVars )
+int Lpk_MapTreeBestCofVar( Lpk_Man_t * p, unsigned * pTruth, int nVars, unsigned * pCof0, unsigned * pCof1 )
 {
-//    Kit_DsdNtk_t * ppNtks[2], * pTemp;
-    unsigned * pCof0 = Vec_PtrEntry( p->vTtNodes, 0 );
-    unsigned * pCof1 = Vec_PtrEntry( p->vTtNodes, 1 );
     int i, iBestVar, nSuppSizeCur0, nSuppSizeCur1, nSuppSizeCur, nSuppSizeMin;
-//    int nPrimeSizeCur0, nPrimeSizeCur1, nPrimeSizeCur, nPrimeSizeMin;
-
     // iterate through variables
     iBestVar = -1;
-    nSuppSizeMin = ABC_INFINITY;
-//    nPrimeSizeMin = ABC_INFINITY;
+    nSuppSizeMin = KIT_INFINITY;
     for ( i = 0; i < nVars; i++ )
     {
         // cofactor the functiona and get support sizes
@@ -59,44 +53,22 @@ int Lpk_MapTreeBestVar( Lpk_Man_t * p, unsigned * pTruth, int nVars )
         nSuppSizeCur0 = Kit_TruthSupportSize( pCof0, nVars );
         nSuppSizeCur1 = Kit_TruthSupportSize( pCof1, nVars );
         nSuppSizeCur  = nSuppSizeCur0 + nSuppSizeCur1;
-/*
-        // check the size of the largest prime components
-        ppNtks[0] = Kit_DsdDecompose( pCof0, nVars );
-        ppNtks[1] = Kit_DsdDecompose( pCof1, nVars );
-        // compute the largest non-decomp block
-        nPrimeSizeCur0 = Kit_DsdNonDsdSizeMax(ppNtks[0]);
-        nPrimeSizeCur1 = Kit_DsdNonDsdSizeMax(ppNtks[1]);
-        nPrimeSizeCur  = KIT_MAX( nPrimeSizeCur0, nPrimeSizeCur1 );
-
-        printf( "Evaluating variable %c:\n", 'a'+i );
-//        Kit_DsdPrintExpanded( ppNtks[0] );
-//        Kit_DsdPrintExpanded( ppNtks[1] );
-
-        ppNtks[0] = Kit_DsdExpand( pTemp = ppNtks[0] );
-        Kit_DsdNtkFree( pTemp );
-
-        ppNtks[1] = Kit_DsdExpand( pTemp = ppNtks[1] );
-        Kit_DsdNtkFree( pTemp );
-
-        Kit_DsdPrint( stdout, ppNtks[0] );
-        Kit_DsdPrint( stdout, ppNtks[1] );
-
-//        Lpk_DsdEvalSets( p, ppNtks[0], ppNtks[1] );
-
-        // free the networks
-        Kit_DsdNtkFree( ppNtks[0] );
-        Kit_DsdNtkFree( ppNtks[1] );
-*/
+        // skip cofactoring that goes above the limit
+        if ( nSuppSizeCur0 > p->pPars->nLutSize || nSuppSizeCur1 > p->pPars->nLutSize )
+            continue;
         // compare this variable with other variables
-        if ( nSuppSizeMin > nSuppSizeCur ) //|| (nSuppSizeMin == nSuppSizeCur && nPrimeSizeMin > nPrimeSizeCur ) )
+        if ( nSuppSizeMin > nSuppSizeCur ) 
         {
             nSuppSizeMin = nSuppSizeCur;
-//            nPrimeSizeMin = nPrimeSizeCur;
             iBestVar = i;
         }
     }
-    printf( "\n" );
-    assert( iBestVar != -1 );
+    // cofactor w.r.t. this variable
+    if ( iBestVar != -1 )
+    {
+        Kit_TruthCofactor0New( pCof0, pTruth, nVars, iBestVar );
+        Kit_TruthCofactor1New( pCof1, pTruth, nVars, iBestVar );
+    }
     return iBestVar;
 }
 
@@ -113,18 +85,17 @@ int Lpk_MapTreeBestVar( Lpk_Man_t * p, unsigned * pTruth, int nVars )
 ***********************************************************************/
 If_Obj_t * Lpk_MapTreeMux_rec( Lpk_Man_t * p, unsigned * pTruth, int nVars, If_Obj_t ** ppLeaves )
 {
-    If_Obj_t * pObj0, * pObj1;
-    Kit_DsdNtk_t * ppNtks[2];
     unsigned * pCof0 = Vec_PtrEntry( p->vTtNodes, 0 );
     unsigned * pCof1 = Vec_PtrEntry( p->vTtNodes, 1 );
+    If_Obj_t * pObj0, * pObj1;
+    Kit_DsdNtk_t * ppNtks[2];
     int iBestVar;
     assert( nVars > 3 );
     p->fCalledOnce = 1;
-
     // cofactor w.r.t. the best variable
-    iBestVar = Lpk_MapTreeBestVar( p, pTruth, nVars );
-    Kit_TruthCofactor0New( pCof0, pTruth, nVars, iBestVar );
-    Kit_TruthCofactor1New( pCof1, pTruth, nVars, iBestVar );
+    iBestVar = Lpk_MapTreeBestCofVar( p, pTruth, nVars, pCof0, pCof1 );
+    if ( iBestVar == -1 )
+        return NULL;
     // decompose the functions
     ppNtks[0] = Kit_DsdDecompose( pCof0, nVars );
     ppNtks[1] = Kit_DsdDecompose( pCof1, nVars );
@@ -158,7 +129,7 @@ If_Obj_t * Lpk_MapTreeMux_rec( Lpk_Man_t * p, unsigned * pTruth, int nVars, If_O
 ***********************************************************************/
 If_Obj_t * Lpk_MapSuppRedDec_rec( Lpk_Man_t * p, unsigned * pTruth, int nVars, If_Obj_t ** ppLeaves )
 {
-    Kit_DsdNtk_t * pNtkDec, * pNtkComp;
+    Kit_DsdNtk_t * pNtkDec, * pNtkComp, * ppNtks[2], * pTemp;
     If_Obj_t * pObjNew;
     unsigned * pCof0 = Vec_PtrEntry( p->vTtNodes,  0 );
     unsigned * pCof1 = Vec_PtrEntry( p->vTtNodes,  1 );
@@ -172,80 +143,96 @@ If_Obj_t * Lpk_MapSuppRedDec_rec( Lpk_Man_t * p, unsigned * pTruth, int nVars, I
     unsigned * pCo0  = Vec_PtrEntry( p->vTtNodes,  9 );
     unsigned * pCo1  = Vec_PtrEntry( p->vTtNodes, 10 );
     unsigned * pCo   = Vec_PtrEntry( p->vTtNodes, 11 );
-    int TrueMint0, TrueMint1;
+    int TrueMint0, TrueMint1, FalseMint0, FalseMint1;
     int uSubsets, uSubset0, uSubset1, iVar, iVarReused, i;
 
     // determine if supp-red decomposition exists
     uSubsets = Lpk_MapSuppRedDecSelect( p, pTruth, nVars, &iVar, &iVarReused );
     if ( uSubsets == 0 )
         return NULL;
+    p->nCalledSRed++;
+
+    // get the cofactors
+    Kit_TruthCofactor0New( pCof0, pTruth, nVars, iVar );
+    Kit_TruthCofactor1New( pCof1, pTruth, nVars, iVar );
 
     // get the bound sets
     uSubset0 = uSubsets & 0xFFFF;
     uSubset1 = uSubsets >> 16;
-    // get the cofactors
-    Kit_TruthCofactor0New( pCof0, pTruth, nVars, iVar );
-    Kit_TruthCofactor1New( pCof1, pTruth, nVars, iVar );
-    // find any true assignments of the cofactors
-    TrueMint0 = Kit_TruthFindFirstBit( pCof0, nVars );
-    TrueMint1 = Kit_TruthFindFirstBit( pCof1, nVars );
-    assert( TrueMint0 >= 0 && TrueMint1 >= 0 );
-    // cofactor the cofactors according to these minterms
-    Kit_TruthCopy( pDec0, pCof0, nVars );
-    Kit_TruthCopy( pDec1, pCof1, nVars );
-    for ( i = 0; i < nVars; i++ )
-        if ( !(uSubset0 & (1 << i)) )
-        {
-            if ( TrueMint0 & (1 << i) )
-                Kit_TruthCofactor1( pDec0, nVars, i );
-            else
-                Kit_TruthCofactor0( pDec0, nVars, i );
-        }
-    for ( i = 0; i < nVars; i++ )
-        if ( !(uSubset1 & (1 << i)) )
-        {
-            if ( TrueMint1 & (1 << i) )
-                Kit_TruthCofactor1( pDec1, nVars, i );
-            else
-                Kit_TruthCofactor0( pDec1, nVars, i );
-        }
+
+    // compute the decomposed functions
+    ppNtks[0] = Kit_DsdDecompose( pCof0, nVars );
+    ppNtks[1] = Kit_DsdDecompose( pCof1, nVars );
+    ppNtks[0] = Kit_DsdExpand( pTemp = ppNtks[0] );      Kit_DsdNtkFree( pTemp );
+    ppNtks[1] = Kit_DsdExpand( pTemp = ppNtks[1] );      Kit_DsdNtkFree( pTemp );
+    Kit_DsdTruthPartial( p->pDsdMan, ppNtks[0], pDec0, uSubset0 );
+    Kit_DsdTruthPartial( p->pDsdMan, ppNtks[1], pDec1, uSubset1 );
+    Kit_DsdNtkFree( ppNtks[0] );
+    Kit_DsdNtkFree( ppNtks[1] );
+//Kit_DsdPrintFromTruth( pDec0, nVars );
+//Kit_DsdPrintFromTruth( pDec1, nVars );
     // get the decomposed function
     Kit_TruthMuxVar( pDec, pDec0, pDec1, nVars, iVar );
 
-    // derive the remainders
-    Kit_TruthAndPhase( pCo00, pCof0, pDec0, nVars, 0, 1 );
-    Kit_TruthAndPhase( pCo01, pCof0, pDec0, nVars, 0, 0 );
-    Kit_TruthAndPhase( pCo10, pCof1, pDec1, nVars, 0, 1 );
-    Kit_TruthAndPhase( pCo11, pCof1, pDec1, nVars, 0, 0 );
-    // quantify bound set variables
+    // find any true assignments of the decomposed functions
+    TrueMint0 = Kit_TruthFindFirstBit( pDec0, nVars );
+    TrueMint1 = Kit_TruthFindFirstBit( pDec1, nVars );
+    assert( TrueMint0 >= 0 && TrueMint1 >= 0 );
+    // find any false assignments of the decomposed functions
+    FalseMint0 = Kit_TruthFindFirstZero( pDec0, nVars );
+    FalseMint1 = Kit_TruthFindFirstZero( pDec1, nVars );
+    assert( FalseMint0 >= 0 && FalseMint1 >= 0 );
+
+    // cofactor the cofactors according to these minterms
+    Kit_TruthCopy( pCo00, pCof0, nVars );
+    Kit_TruthCopy( pCo01, pCof0, nVars );
     for ( i = 0; i < nVars; i++ )
         if ( uSubset0 & (1 << i) )
         {
-            Kit_TruthExist( pCo00, nVars, i );
-            Kit_TruthExist( pCo01, nVars, i );
+            if ( FalseMint0 & (1 << i) )
+                Kit_TruthCofactor1( pCo00, nVars, i );
+            else
+                Kit_TruthCofactor0( pCo00, nVars, i );
+            if ( TrueMint0 & (1 << i) )
+                Kit_TruthCofactor1( pCo01, nVars, i );
+            else
+                Kit_TruthCofactor0( pCo01, nVars, i );
         }
+    Kit_TruthCopy( pCo10, pCof1, nVars );
+    Kit_TruthCopy( pCo11, pCof1, nVars );
     for ( i = 0; i < nVars; i++ )
         if ( uSubset1 & (1 << i) )
         {
-            Kit_TruthExist( pCo10, nVars, i );
-            Kit_TruthExist( pCo11, nVars, i );
+            if ( FalseMint1 & (1 << i) )
+                Kit_TruthCofactor1( pCo10, nVars, i );
+            else
+                Kit_TruthCofactor0( pCo10, nVars, i );
+            if ( TrueMint1 & (1 << i) )
+                Kit_TruthCofactor1( pCo11, nVars, i );
+            else
+                Kit_TruthCofactor0( pCo11, nVars, i );
         }
+
     // derive the functions by composing them with the new variable (iVarReused)
     Kit_TruthMuxVar( pCo0, pCo00, pCo01, nVars, iVarReused );
     Kit_TruthMuxVar( pCo1, pCo10, pCo11, nVars, iVarReused );
+//Kit_DsdPrintFromTruth( pCo0, nVars );
+//Kit_DsdPrintFromTruth( pCo1, nVars );
     // derive the composition function
     Kit_TruthMuxVar( pCo , pCo0 , pCo1 , nVars, iVar );
 
     // process the decomposed function
     pNtkDec = Kit_DsdDecompose( pDec, nVars );
-    Kit_DsdPrint( stdout, pNtkDec );
-    ppLeaves[iVarReused] = Lpk_MapTree_rec( p, pNtkDec, ppLeaves, pNtkDec->Root, NULL );
-    Kit_DsdNtkFree( pNtkDec );
-
-    // process the composition function 
     pNtkComp = Kit_DsdDecompose( pCo, nVars );
-    Kit_DsdPrint( stdout, pNtkComp );
+//Kit_DsdPrint( stdout, pNtkDec );
+//Kit_DsdPrint( stdout, pNtkComp );
+//printf( "cofactored variable %c\n", 'a' + iVar );
+//printf( "reused variable %c\n", 'a' + iVarReused );
+
+    ppLeaves[iVarReused] = Lpk_MapTree_rec( p, pNtkDec, ppLeaves, pNtkDec->Root, NULL );
     pObjNew = Lpk_MapTree_rec( p, pNtkComp, ppLeaves, pNtkComp->Root, NULL );
+
+    Kit_DsdNtkFree( pNtkDec );
     Kit_DsdNtkFree( pNtkComp );
     return pObjNew;
 }

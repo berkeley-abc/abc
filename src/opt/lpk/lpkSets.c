@@ -104,7 +104,8 @@ unsigned Lpk_ComputeSets_rec( Kit_DsdNtk_t * p, int iLit, Vec_Int_t * vSets )
 ***********************************************************************/
 unsigned Lpk_ComputeSets( Kit_DsdNtk_t * p, Vec_Int_t * vSets )
 {
-    unsigned uSupport, Entry, i;
+    unsigned uSupport, Entry;
+    int Number, i;
     assert( p->nVars <= 16 );
     Vec_IntClear( vSets );
     Vec_IntPush( vSets, 0 );
@@ -120,8 +121,11 @@ unsigned Lpk_ComputeSets( Kit_DsdNtk_t * p, Vec_Int_t * vSets )
     assert( (uSupport & 0xFFFF0000) == 0 );
     Vec_IntPush( vSets, uSupport );
     // set the remaining variables
-    Vec_IntForEachEntry( vSets, Entry, i )
+    Vec_IntForEachEntry( vSets, Number, i )
+    {
+        Entry = Number;
         Vec_IntWriteEntry( vSets, i, Entry | ((uSupport & ~Entry) << 16) );
+    }
     return uSupport;
 }
 
@@ -157,10 +161,14 @@ void Lpk_PrintSetOne( int uSupport )
 ***********************************************************************/
 void Lpk_PrintSets( Vec_Int_t * vSets )
 {
-    unsigned uSupport, i;
+    unsigned uSupport;
+    int Number, i;
     printf( "Subsets(%d): ", Vec_IntSize(vSets) );
-    Vec_IntForEachEntry( vSets, uSupport, i )
+    Vec_IntForEachEntry( vSets, Number, i )
+    {
+        uSupport = Number;
         Lpk_PrintSetOne( uSupport );
+    }
     printf( "\n" );
 }
 
@@ -237,7 +245,7 @@ void Lpk_ComposeSets( Vec_Int_t * vSets0, Vec_Int_t * vSets1, int nVars, int iCo
         }
     }
 
-    // check if there are non-overlapping
+    // find the minimum overlap
     nMinOver = 1000;
     for ( s = 0; s < nUsed; s++ )
         if ( nMinOver > Over[Used[s]] )
@@ -267,7 +275,7 @@ void Lpk_ComposeSets( Vec_Int_t * vSets0, Vec_Int_t * vSets1, int nVars, int iCo
             // get the number of overlapping vars
             pEntry->Over = Kit_WordCountOnes( Entry & (Entry >> 16) );
             // get the support reduction
-            pEntry->SRed  = pEntry->Size - 1 - pEntry->Over;
+            pEntry->SRed = pEntry->Size - 1 - pEntry->Over;
             assert( pEntry->SRed > 0 );
         }
 }
@@ -318,13 +326,21 @@ unsigned Lpk_MapSuppRedDecSelect( Lpk_Man_t * p, unsigned * pTruth, int nVars, i
     Vec_Int_t * vSets1 = p->vSets[1];
     unsigned * pCof0 = Vec_PtrEntry( p->vTtNodes, 0 );
     unsigned * pCof1 = Vec_PtrEntry( p->vTtNodes, 1 );
-    int nSets, i, SizeMax;
+    int nSets, i, SizeMax;//, SRedMax;
     unsigned Entry;
+    int fVerbose = p->pPars->fVeryVerbose;
+//    int fVerbose = 0;
 
     // collect decomposable subsets for each pair of cofactors
+    if ( fVerbose )
+    {
+        printf( "\nExploring support-reducing bound-sets of function:\n" );
+        Kit_DsdPrintFromTruth( pTruth, nVars );
+    }
     nSets = 0;
     for ( i = 0; i < nVars; i++ )
     {
+        if ( fVerbose )
         printf( "Evaluating variable %c:\n", 'a'+i );
         // evaluate the cofactor pair
         Kit_TruthCofactor0New( pCof0, pTruth, nVars, i );
@@ -334,13 +350,17 @@ unsigned Lpk_MapSuppRedDecSelect( Lpk_Man_t * p, unsigned * pTruth, int nVars, i
         ppNtks[1] = Kit_DsdDecompose( pCof1, nVars );
         ppNtks[0] = Kit_DsdExpand( pTemp = ppNtks[0] );      Kit_DsdNtkFree( pTemp );
         ppNtks[1] = Kit_DsdExpand( pTemp = ppNtks[1] );      Kit_DsdNtkFree( pTemp );
+        if ( fVerbose )
         Kit_DsdPrint( stdout, ppNtks[0] );
+        if ( fVerbose )
         Kit_DsdPrint( stdout, ppNtks[1] );
         // compute subsets
         Lpk_ComputeSets( ppNtks[0], vSets0 );
         Lpk_ComputeSets( ppNtks[1], vSets1 );
         // print subsets
+        if ( fVerbose )
         Lpk_PrintSets( vSets0 );
+        if ( fVerbose )
         Lpk_PrintSets( vSets1 );
         // free the networks
         Kit_DsdNtkFree( ppNtks[0] );
@@ -350,7 +370,9 @@ unsigned Lpk_MapSuppRedDecSelect( Lpk_Man_t * p, unsigned * pTruth, int nVars, i
     }
 
     // print the results
+    if ( fVerbose )
     printf( "\n" );
+    if ( fVerbose )
     for ( i = 0; i < nSets; i++ )
         Lpk_MapSuppPrintSet( pStore + i, i );
 
@@ -368,14 +390,33 @@ unsigned Lpk_MapSuppRedDecSelect( Lpk_Man_t * p, unsigned * pTruth, int nVars, i
             SizeMax = pSet->Size;
         }
     }
+/*
+    // if the best is not choosen, select the one with largest reduction
+    SRedMax = 0;
     if ( pSetBest == NULL )
     {
+        for ( i = 0; i < nSets; i++ )
+        {
+            pSet = pStore + i;
+            if ( SRedMax < pSet->SRed )
+            {
+                pSetBest = pSet;
+                SRedMax = pSet->SRed;
+            }
+        }
+    }
+*/
+    if ( pSetBest == NULL )
+    {
+        if ( fVerbose )
         printf( "Could not select a subset.\n" );
         return 0;
     }
     else
     {
+        if ( fVerbose )
         printf( "Selected the following subset:\n" );
+        if ( fVerbose )
         Lpk_MapSuppPrintSet( pSetBest, pSetBest - pStore );
     }
 

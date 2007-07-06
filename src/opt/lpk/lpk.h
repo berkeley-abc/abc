@@ -47,6 +47,7 @@ struct Lpk_Par_t_
     int               nGrowthLevel;  // (L) the maximum increase in the node level after resynthesis
     int               fSatur;        // iterate till saturation
     int               fZeroCost;     // accept zero-cost replacements
+    int               fFirst;        // use root node and first cut only
     int               fVerbose;      // the verbosiness flag
     int               fVeryVerbose;  // additional verbose info printout
     // internal parameters

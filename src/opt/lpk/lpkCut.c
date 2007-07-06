@@ -545,11 +545,11 @@ int Lpk_NodeCuts( Lpk_Man_t * p )
         pCut = p->pCuts + i;
         if ( pCut->nLeaves < 2 )
             continue;
-        // compute the number of LUTs neede to implement this cut
+        // compute the minimum number of LUTs needed to implement this cut
         // V = N * (K-1) + 1  ~~~~~  N = Ceiling[(V-1)/(K-1)] = (V-1)/(K-1) + [(V-1)%(K-1) > 0]
         pCut->nLuts = (pCut->nLeaves-1)/(p->pPars->nLutSize-1) + ( (pCut->nLeaves-1)%(p->pPars->nLutSize-1) > 0 ); 
         pCut->Weight = (float)1.0 * (pCut->nNodes - pCut->nNodesDup) / pCut->nLuts; //p->pPars->nLutsMax;
-        if ( pCut->Weight <= 1.0 )
+        if ( pCut->Weight <= 1.001 )
             continue;
         pCut->fHasDsd = Lpk_NodeCutsCheckDsd( p, pCut );
         if ( pCut->fHasDsd )
@@ -566,7 +566,7 @@ int Lpk_NodeCuts( Lpk_Man_t * p )
         {
             pCut = p->pCuts + p->pEvals[i];
             pCut2 = p->pCuts + p->pEvals[i+1];
-            if ( pCut->Weight >= pCut2->Weight )
+            if ( pCut->Weight >= pCut2->Weight - 0.001 )
                 continue;
             Temp = p->pEvals[i];
             p->pEvals[i] = p->pEvals[i+1];
@@ -574,6 +574,14 @@ int Lpk_NodeCuts( Lpk_Man_t * p )
             fChanges = 1;
         }
     } while ( fChanges );
+/*
+    for ( i = 0; i < p->nEvals; i++ )
+    {
+        pCut = p->pCuts + p->pEvals[i];
+        printf( "Cut %3d : W = %5.2f.\n", i, pCut->Weight );
+    }
+    printf( "\n" );
+*/
     return 1;
 }
 

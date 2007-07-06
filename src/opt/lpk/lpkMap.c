@@ -24,59 +24,9 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-extern void Res_UpdateNetworkLevel( Abc_Obj_t * pObjNew, Vec_Vec_t * vLevels );
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
-
-/**Function*************************************************************
-
-  Synopsis    [Prepares the mapping manager.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Lpk_IfManStart( Lpk_Man_t * p )
-{
-    If_Par_t * pPars;
-    assert( p->pIfMan == NULL );
-    // set defaults
-    pPars = ALLOC( If_Par_t, 1 );
-    memset( pPars, 0, sizeof(If_Par_t) );
-    // user-controlable paramters
-    pPars->nLutSize    =  p->pPars->nLutSize;
-    pPars->nCutsMax    = 16;
-    pPars->nFlowIters  =  0; // 1
-    pPars->nAreaIters  =  0; // 1 
-    pPars->DelayTarget = -1;
-    pPars->fPreprocess =  0;
-    pPars->fArea       =  1;
-    pPars->fFancy      =  0;
-    pPars->fExpRed     =  0; //
-    pPars->fLatchPaths =  0;
-    pPars->fSeqMap     =  0;
-    pPars->fVerbose    =  0;
-    // internal parameters
-    pPars->fTruth      =  0;
-    pPars->fUsePerm    =  0; 
-    pPars->nLatches    =  0;
-    pPars->pLutLib     =  NULL; // Abc_FrameReadLibLut();
-    pPars->pTimesArr   =  NULL; 
-    pPars->pTimesArr   =  NULL;   
-    pPars->fUseBdds    =  0;
-    pPars->fUseSops    =  0;
-    pPars->fUseCnfs    =  0;
-    pPars->fUseMv      =  0;
-    // start the mapping manager and set its parameters
-    p->pIfMan = If_ManStart( pPars );
-    If_ManSetupSetAll( p->pIfMan, 1000 );
-    p->pIfMan->pPars->pTimesArr = ALLOC( float, 32 );
-}
 
 /**Function*************************************************************
 
@@ -154,122 +104,10 @@ If_Obj_t * Lpk_MapPrime( Lpk_Man_t * p, unsigned * pTruth, int nVars, If_Obj_t *
   SeeAlso     []
 
 ***********************************************************************/
-int Lpk_CutExplore( Lpk_Man_t * p, Lpk_Cut_t * pCut, Kit_DsdNtk_t * pNtk )
-{
-    extern Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t * pIfObj, Vec_Int_t * vCover );
-    Kit_DsdObj_t * pRoot;
-    If_Obj_t * pDriver, * ppLeaves[16];
-    Abc_Obj_t * pLeaf, * pObjNew;
-    int nGain, i;
-//    int nOldShared;
-
-    // check special cases
-    pRoot = Kit_DsdNtkRoot( pNtk );
-    if ( pRoot->Type == KIT_DSD_CONST1 )
-    {
-        if ( Kit_DsdLitIsCompl(pNtk->Root) )
-            pObjNew = Abc_NtkCreateNodeConst0( p->pNtk );
-        else
-            pObjNew = Abc_NtkCreateNodeConst1( p->pNtk );
-
-        // perform replacement
-        pObjNew->Level = p->pObj->Level;
-        Abc_ObjReplace( p->pObj, pObjNew );
-        Res_UpdateNetworkLevel( pObjNew, p->vLevels );
-        p->nGainTotal += pCut->nNodes - pCut->nNodesDup;
-        return 1;
-    }
-    if ( pRoot->Type == KIT_DSD_VAR )
-    {
-        pObjNew = Abc_NtkObj( p->pNtk, pCut->pLeaves[ Kit_DsdLit2Var(pRoot->pFans[0]) ] );
-        if ( Kit_DsdLitIsCompl(pNtk->Root) ^ Kit_DsdLitIsCompl(pRoot->pFans[0]) )
-            pObjNew = Abc_NtkCreateNodeInv( p->pNtk, pObjNew );
-
-        // perform replacement
-        pObjNew->Level = p->pObj->Level;
-        Abc_ObjReplace( p->pObj, pObjNew );
-        Res_UpdateNetworkLevel( pObjNew, p->vLevels );
-        p->nGainTotal += pCut->nNodes - pCut->nNodesDup;
-        return 1;
-    }
-    assert( pRoot->Type == KIT_DSD_AND || pRoot->Type == KIT_DSD_XOR || pRoot->Type == KIT_DSD_PRIME );
-
-    // start the mapping manager
-    if ( p->pIfMan == NULL )
-        Lpk_IfManStart( p );
-
-    // prepare the mapping manager
-    If_ManRestart( p->pIfMan );
-    // create the PI variables
-    for ( i = 0; i < p->pPars->nVarsMax; i++ )
-        ppLeaves[i] = If_ManCreateCi( p->pIfMan );
-    // set the arrival times
-    Lpk_CutForEachLeaf( p->pNtk, pCut, pLeaf, i )
-        p->pIfMan->pPars->pTimesArr[i] = (float)pLeaf->Level;
-    // prepare the PI cuts
-    If_ManSetupCiCutSets( p->pIfMan );
-    // create the internal nodes
-    p->fCalledOnce = 0;
-    pDriver = Lpk_MapTree_rec( p, pNtk, ppLeaves, pNtk->Root, NULL );
-    if ( pDriver == NULL )
-        return 0;
-    // create the PO node
-    If_ManCreateCo( p->pIfMan, If_Regular(pDriver) );
-
-    // perform mapping
-    p->pIfMan->pPars->fAreaOnly = 1;
-    If_ManPerformMappingComb( p->pIfMan );
-
-    // compute the gain in area
-    nGain = pCut->nNodes - pCut->nNodesDup - (int)p->pIfMan->AreaGlo;
-    if ( p->pPars->fVeryVerbose )
-        printf( "       Mffc = %2d. Mapped = %2d. Gain = %3d. Depth increase = %d.\n", 
-            pCut->nNodes - pCut->nNodesDup, (int)p->pIfMan->AreaGlo, nGain, (int)p->pIfMan->RequiredGlo - (int)p->pObj->Level );
-
-    // quit if there is no gain
-    if ( !(nGain > 0 || (p->pPars->fZeroCost && nGain == 0)) )
-        return 0;
-
-    // quit if depth increases too much
-    if ( (int)p->pIfMan->RequiredGlo - (int)p->pObj->Level > p->pPars->nGrowthLevel )
-        return 0;
-
-    // perform replacement
-    p->nGainTotal += nGain;
-    p->nChanges++;
-
-    // prepare the mapping manager
-    If_ManCleanNodeCopy( p->pIfMan );
-    If_ManCleanCutData( p->pIfMan );
-    // set the PIs of the cut
-    Lpk_CutForEachLeaf( p->pNtk, pCut, pLeaf, i )
-        If_ObjSetCopy( If_ManCi(p->pIfMan, i), pLeaf );
-    // get the area of mapping
-    pObjNew = Abc_NodeFromIf_rec( p->pNtk, p->pIfMan, If_Regular(pDriver), p->vCover );
-    pObjNew->pData = Hop_NotCond( pObjNew->pData, If_IsComplement(pDriver) );
-
-    // perform replacement
-    pObjNew->Level = p->pObj->Level;
-    Abc_ObjReplace( p->pObj, pObjNew );
-    Res_UpdateNetworkLevel( pObjNew, p->vLevels );
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Prepares the mapping manager.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 If_Obj_t * Lpk_MapTree_rec( Lpk_Man_t * p, Kit_DsdNtk_t * pNtk, If_Obj_t ** ppLeaves, int iLit, If_Obj_t * pResult )
 {
     Kit_DsdObj_t * pObj;
-    If_Obj_t * pObjNew, * pFansNew[16];
+    If_Obj_t * pObjNew = NULL, * pObjNew2 = NULL, * pFansNew[16];
     unsigned i, iLitFanin;
 
     assert( iLit >= 0 );
@@ -325,20 +163,38 @@ If_Obj_t * Lpk_MapTree_rec( Lpk_Man_t * p, Kit_DsdNtk_t * pNtk, If_Obj_t ** ppLe
         if ( pFansNew[i] == NULL )
             return NULL;
     }
-/*
+/* 
     if ( !p->fCofactoring && p->pPars->nVarsShared > 0 && (int)pObj->nFans > p->pPars->nLutSize )
     {
         pObjNew = Lpk_MapTreeMulti( p, Kit_DsdObjTruth(pObj), pObj->nFans, pFansNew );
         return If_NotCond( pObjNew, Kit_DsdLitIsCompl(iLit) );
     }
 */
+/*
+    if ( (int)pObj->nFans > p->pPars->nLutSize )
+    {
+        pObjNew2 = Lpk_MapTreeMux_rec( p, Kit_DsdObjTruth(pObj), pObj->nFans, pFansNew );
+//        if ( pObjNew2 )
+//            return If_NotCond( pObjNew2, Kit_DsdLitIsCompl(iLit) );
+    }
+*/
 
     // find best cofactoring variable
-    if ( pObj->nFans > 3 && !p->fCalledOnce )
-//        pObjNew = Lpk_MapTreeMux_rec( p, Kit_DsdObjTruth(pObj), pObj->nFans, pFansNew );
-        pObjNew = Lpk_MapSuppRedDec_rec( p, Kit_DsdObjTruth(pObj), pObj->nFans, pFansNew );
-    else
-        pObjNew = Lpk_MapPrime( p, Kit_DsdObjTruth(pObj), pObj->nFans, pFansNew );
+    if ( p->pPars->nVarsShared > 0 && (int)pObj->nFans > p->pPars->nLutSize )
+    {
+        pObjNew2 = Lpk_MapSuppRedDec_rec( p, Kit_DsdObjTruth(pObj), pObj->nFans, pFansNew );
+        if ( pObjNew2 )
+            return If_NotCond( pObjNew2, Kit_DsdLitIsCompl(iLit) );
+    }
+
+    pObjNew = Lpk_MapPrime( p, Kit_DsdObjTruth(pObj), pObj->nFans, pFansNew );
+
+    // add choice
+    if ( pObjNew && pObjNew2 )
+    {
+        If_ObjSetChoice( If_Regular(pObjNew), If_Regular(pObjNew2) );
+        If_ManCreateChoice( p->pIfMan, If_Regular(pObjNew) );
+    }
     return If_NotCond( pObjNew, Kit_DsdLitIsCompl(iLit) );
 }
 

@@ -705,7 +705,7 @@ void Abc_NtkVerifyReportError( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int * pMode
     nErrors = 0;
     for ( i = 0; i < Abc_NtkCoNum(pNtk1); i++ )
         nErrors += (int)( pValues1[i] != pValues2[i] );
-    printf( "Verification failed for %d outputs: ", nErrors );
+    printf( "Verification failed for at least %d outputs: ", nErrors );
     // print the first 3 outputs
     nPrinted = 0;
     for ( i = 0; i < Abc_NtkCoNum(pNtk1); i++ )
@@ -860,7 +860,7 @@ void Abc_NtkVerifyReportErrorSeq( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int * pM
         return;
     }
 
-    printf( "Verification failed for %d output%s of frame %d: ", nErrors, (nErrors>1? "s":""), iFrameError+1 );
+    printf( "Verification failed for at least %d output%s of frame %d: ", nErrors, (nErrors>1? "s":""), iFrameError+1 );
     // print the first 3 outputs
     nPrinted = 0;
     Abc_NtkForEachPo( pNtk1, pObj1, o )

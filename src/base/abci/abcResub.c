@@ -159,7 +159,7 @@ int Abc_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutMax, int nStepsMax, int nLeve
 
     // compute the reverse levels if level update is requested
     if ( fUpdateLevel )
-        Abc_NtkStartReverseLevels( pNtk );
+        Abc_NtkStartReverseLevels( pNtk, 0 );
 
     if ( Abc_NtkLatchNum(pNtk) )
         Abc_NtkForEachLatch(pNtk, pNode, i)
@@ -1617,7 +1617,7 @@ Dec_Graph_t * Abc_ManResubEval( Abc_ManRes_t * p, Abc_Obj_t * pRoot, Vec_Ptr_t *
     int Required;
     int clk;
 
-    Required = fUpdateLevel? Abc_NodeReadRequiredLevel(pRoot) : ABC_INFINITY;
+    Required = fUpdateLevel? Abc_ObjRequiredLevel(pRoot) : ABC_INFINITY;
 
     assert( nSteps >= 0 );
     assert( nSteps <= 3 );

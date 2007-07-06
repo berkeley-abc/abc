@@ -447,7 +447,7 @@ Abc_Obj_t * Abc_NtkFindNode( Abc_Ntk_t * pNtk, char * pName )
     if ( Num >= 0 )
         return Abc_NtkObj( pNtk, Num );
     // find the internal node
-    if ( pName[0] != '[' || pName[strlen(pName)-1] != ']' )
+    if ( pName[0] != 'n' )
     {
         printf( "Name \"%s\" is not found among CO or node names (internal names often look as \"n<num>\").\n", pName );
         return NULL;

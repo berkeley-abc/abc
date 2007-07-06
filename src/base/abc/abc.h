@@ -354,6 +354,7 @@ static inline Hop_Obj_t * Abc_ObjEquiv( Abc_Obj_t * pObj )           { return pO
 static inline Abc_Obj_t * Abc_ObjCopyCond( Abc_Obj_t * pObj )        { return Abc_ObjRegular(pObj)->pCopy? Abc_ObjNotCond(Abc_ObjRegular(pObj)->pCopy, Abc_ObjIsComplement(pObj)) : NULL;  }
 
 // setting data members of the network
+static inline void        Abc_ObjSetLevel( Abc_Obj_t * pObj, int Level )         { pObj->Level =  Level;    } 
 static inline void        Abc_ObjSetCopy( Abc_Obj_t * pObj, Abc_Obj_t * pCopy )  { pObj->pCopy =  pCopy;    } 
 static inline void        Abc_ObjSetData( Abc_Obj_t * pObj, void * pData )       { pObj->pData =  pData;    } 
 
@@ -852,11 +853,16 @@ extern void               Abc_NtkSetNodeLevelsArrival( Abc_Ntk_t * pNtk );
 extern float *            Abc_NtkGetCiArrivalFloats( Abc_Ntk_t * pNtk );
 extern Abc_Time_t *       Abc_NtkGetCiArrivalTimes( Abc_Ntk_t * pNtk );
 extern float              Abc_NtkDelayTrace( Abc_Ntk_t * pNtk );
-extern void               Abc_NtkStartReverseLevels( Abc_Ntk_t * pNtk );
+extern int                Abc_ObjLevelNew( Abc_Obj_t * pObj );
+extern int                Abc_ObjReverseLevelNew( Abc_Obj_t * pObj );
+extern int                Abc_ObjRequiredLevel( Abc_Obj_t * pObj );
+extern int                Abc_ObjReverseLevel( Abc_Obj_t * pObj );
+extern void               Abc_ObjSetReverseLevel( Abc_Obj_t * pObj, int LevelR );
+extern void               Abc_NtkStartReverseLevels( Abc_Ntk_t * pNtk, int nMaxLevelIncrease );
 extern void               Abc_NtkStopReverseLevels( Abc_Ntk_t * pNtk );
-extern void               Abc_NodeSetReverseLevel( Abc_Obj_t * pObj, int LevelR );
-extern int                Abc_NodeReadReverseLevel( Abc_Obj_t * pObj );
-extern int                Abc_NodeReadRequiredLevel( Abc_Obj_t * pObj );
+extern void               Abc_NtkUpdateLevel( Abc_Obj_t * pObjNew, Vec_Vec_t * vLevels );
+extern void               Abc_NtkUpdateReverseLevel( Abc_Obj_t * pObjNew, Vec_Vec_t * vLevels );
+extern void               Abc_NtkUpdate( Abc_Obj_t * pObj, Abc_Obj_t * pObjNew, Vec_Vec_t * vLevels );
 /*=== abcUtil.c ==========================================================*/
 extern void *             Abc_NtkAttrFree( Abc_Ntk_t * pNtk, int Attr, int fFreeMan );
 extern void               Abc_NtkIncrementTravId( Abc_Ntk_t * pNtk );

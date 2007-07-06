@@ -923,7 +923,7 @@ void Abc_AigReplace_int( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew, i
             {
                 assert( pFanout->fMarkB == 0 );
                 pFanout->fMarkB = 1;
-                Vec_VecPush( pMan->vLevelsR, Abc_NodeReadReverseLevel(pFanout), pFanout );
+                Vec_VecPush( pMan->vLevelsR, Abc_ObjReverseLevel(pFanout), pFanout );
             }
         }
 
@@ -1094,7 +1094,7 @@ void Abc_AigUpdateLevelR_int( Abc_Aig_t * pMan )
             if ( pNode == NULL )
                 continue;
             assert( Abc_ObjIsNode(pNode) );
-            assert( Abc_NodeReadReverseLevel(pNode) == i );
+            assert( Abc_ObjReverseLevel(pNode) == i );
             // clean the mark
             assert( pNode->fMarkB == 1 );
             pNode->fMarkB = 0;
@@ -1106,17 +1106,17 @@ void Abc_AigUpdateLevelR_int( Abc_Aig_t * pMan )
                 // get the new reverse level of this fanin
                 LevelNew = 0;
                 Abc_ObjForEachFanout( pFanin, pFanout, j )
-                    if ( LevelNew < Abc_NodeReadReverseLevel(pFanout) )
-                        LevelNew = Abc_NodeReadReverseLevel(pFanout);
+                    if ( LevelNew < Abc_ObjReverseLevel(pFanout) )
+                        LevelNew = Abc_ObjReverseLevel(pFanout);
                 LevelNew += 1;
                 assert( LevelNew > i );
-                if ( Abc_NodeReadReverseLevel(pFanin) == LevelNew ) // no change
+                if ( Abc_ObjReverseLevel(pFanin) == LevelNew ) // no change
                     continue;
                 // if the fanin is present in the data structure, pull it out
                 if ( pFanin->fMarkB )
                     Abc_AigRemoveFromLevelStructureR( pMan->vLevelsR, pFanin );
                 // update the reverse level
-                Abc_NodeSetReverseLevel( pFanin, LevelNew );
+                Abc_ObjSetReverseLevel( pFanin, LevelNew );
                 // add the fanin to the data structure to update its fanins
                 assert( pFanin->fMarkB == 0 );
                 pFanin->fMarkB = 1;
@@ -1173,7 +1173,7 @@ void Abc_AigRemoveFromLevelStructureR( Vec_Vec_t * vStruct, Abc_Obj_t * pNode )
     Abc_Obj_t * pTemp;
     int m;
     assert( pNode->fMarkB );
-    vVecTemp = Vec_VecEntry( vStruct, Abc_NodeReadReverseLevel(pNode) );
+    vVecTemp = Vec_VecEntry( vStruct, Abc_ObjReverseLevel(pNode) );
     Vec_PtrForEachEntry( vVecTemp, pTemp, m )
     {
         if ( pTemp != pNode )

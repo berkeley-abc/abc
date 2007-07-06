@@ -263,10 +263,7 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
             Abc_ObjAddFanin( pNodeNew, Abc_NodeFromIf_rec(pNtkNew, pIfMan, pIfLeaf, vCover) );
     }
     // set the level of the new node
-    {
-        extern int Res_UpdateNetworkLevelNew( Abc_Obj_t * pObj );
-        pNodeNew->Level = Res_UpdateNetworkLevelNew( pNodeNew );
-    }
+    pNodeNew->Level = Abc_ObjLevelNew( pNodeNew );
     // derive the function of this node
     if ( pIfMan->pPars->fTruth )
     {

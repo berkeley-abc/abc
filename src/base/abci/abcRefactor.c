@@ -100,7 +100,7 @@ int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, bool 
     pManRef->vLeaves   = Abc_NtkManCutReadCutLarge( pManCut );
     // compute the reverse levels if level update is requested
     if ( fUpdateLevel )
-        Abc_NtkStartReverseLevels( pNtk );
+        Abc_NtkStartReverseLevels( pNtk, 0 );
 
     // resynthesize each node once
     nNodes = Abc_NtkObjNumMax(pNtk);
@@ -187,7 +187,7 @@ Dec_Graph_t * Abc_NodeRefactor( Abc_ManRef_t * p, Abc_Obj_t * pNode, Vec_Ptr_t *
     char * pSop;
     int Required;
 
-    Required = fUpdateLevel? Abc_NodeReadRequiredLevel(pNode) : ABC_INFINITY;
+    Required = fUpdateLevel? Abc_ObjRequiredLevel(pNode) : ABC_INFINITY;
 
     p->nNodesConsidered++;
 

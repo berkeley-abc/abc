@@ -83,7 +83,7 @@ int Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeros, int fVerb
         return 0;
     // compute the reverse levels if level update is requested
     if ( fUpdateLevel )
-        Abc_NtkStartReverseLevels( pNtk );
+        Abc_NtkStartReverseLevels( pNtk, 0 );
     // start the cut manager
 clk = clock();
     pManCut = Abc_NtkStartCutManForRewrite( pNtk );

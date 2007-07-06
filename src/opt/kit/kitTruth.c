@@ -1061,6 +1061,48 @@ int Kit_TruthMinCofSuppOverlap( unsigned * pTruth, int nVars, int * pVarMin )
 
 /**Function*************************************************************
 
+  Synopsis    [Find the best cofactoring variable.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Kit_TruthBestCofVar( unsigned * pTruth, int nVars, unsigned * pCof0, unsigned * pCof1 )
+{
+    int i, iBestVar, nSuppSizeCur0, nSuppSizeCur1, nSuppSizeCur, nSuppSizeMin;
+    if ( Kit_TruthIsConst0(pTruth, nVars) || Kit_TruthIsConst1(pTruth, nVars) )
+        return -1;
+    // iterate through variables
+    iBestVar = -1;
+    nSuppSizeMin = KIT_INFINITY;
+    for ( i = 0; i < nVars; i++ )
+    {
+        // cofactor the functiona and get support sizes
+        Kit_TruthCofactor0New( pCof0, pTruth, nVars, i );
+        Kit_TruthCofactor1New( pCof1, pTruth, nVars, i );
+        nSuppSizeCur0 = Kit_TruthSupportSize( pCof0, nVars );
+        nSuppSizeCur1 = Kit_TruthSupportSize( pCof1, nVars );
+        nSuppSizeCur  = nSuppSizeCur0 + nSuppSizeCur1;
+        // compare this variable with other variables
+        if ( nSuppSizeMin > nSuppSizeCur ) 
+        {
+            nSuppSizeMin = nSuppSizeCur;
+            iBestVar = i;
+        }
+    }
+    assert( iBestVar != -1 );
+    // cofactor w.r.t. this variable
+    Kit_TruthCofactor0New( pCof0, pTruth, nVars, iBestVar );
+    Kit_TruthCofactor1New( pCof1, pTruth, nVars, iBestVar );
+    return iBestVar;
+}
+
+
+/**Function*************************************************************
+
   Synopsis    [Counts the number of 1's in each cofactor.]
 
   Description [The resulting numbers are stored in the array of shorts, 
@@ -1565,6 +1607,31 @@ void Kit_TruthCountMintermsPrecomp()
         printf( ", " );
     }
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Dumps truth table into a file.]
+
+  Description [Generates script file for reading into ABC.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Kit_TruthDumpToFile( unsigned * pTruth, int nVars, int nFile )
+{
+    static char pFileName[100];
+    FILE * pFile;
+    sprintf( pFileName, "s%03d", nFile );
+    pFile = fopen( pFileName, "w" );
+    fprintf( pFile, "rt " );
+    Extra_PrintHexadecimal( pFile, pTruth, nVars );
+    fprintf( pFile, "; bdd; sop; ps\n" );
+    fclose( pFile );
+    return pFileName;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

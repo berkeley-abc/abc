@@ -121,7 +121,7 @@ struct Kit_DsdNtk_t_
     unsigned char  Root;            // the root of the tree
     unsigned *     pMem;            // memory for the truth tables (memory manager?)
     unsigned *     pSupps;          // supports of the nodes
-    Kit_DsdObj_t * pNodes[0];       // the nodes
+    Kit_DsdObj_t** pNodes;          // the nodes
 };
 
 // DSD manager
@@ -260,7 +260,15 @@ static inline int Kit_TruthFindFirstBit( unsigned * pIn, int nVars )
     int w;
     for ( w = 0; w < Kit_TruthWordNum(nVars); w++ )
         if ( pIn[w] )
-            return Kit_WordFindFirstBit(pIn[w]);
+            return 32*w + Kit_WordFindFirstBit(pIn[w]);
+    return -1;
+}
+static inline int Kit_TruthFindFirstZero( unsigned * pIn, int nVars )
+{
+    int w;
+    for ( w = 0; w < Kit_TruthWordNum(nVars); w++ )
+        if ( ~pIn[w] )
+            return 32*w + Kit_WordFindFirstBit(~pIn[w]);
     return -1;
 }
 static inline int Kit_TruthIsEqual( unsigned * pIn0, unsigned * pIn1, int nVars )
@@ -444,12 +452,18 @@ extern DdNode *        Kit_SopToBdd( DdManager * dd, Kit_Sop_t * cSop, int nVars
 extern DdNode *        Kit_GraphToBdd( DdManager * dd, Kit_Graph_t * pGraph );
 extern DdNode *        Kit_TruthToBdd( DdManager * dd, unsigned * pTruth, int nVars, int fMSBonTop );
 /*=== kitDsd.c ==========================================================*/
+extern Kit_DsdMan_t *  Kit_DsdManAlloc( int nVars );
+extern void            Kit_DsdManFree( Kit_DsdMan_t * p );
 extern Kit_DsdNtk_t *  Kit_DsdDeriveNtk( unsigned * pTruth, int nVars, int nLutSize );
-extern unsigned *      Kit_DsdTruthCompute( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk );
+extern unsigned *      Kit_DsdTruthCompute( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk, unsigned uSupp );
 extern void            Kit_DsdTruth( Kit_DsdNtk_t * pNtk, unsigned * pTruthRes );
+extern void            Kit_DsdTruthPartial( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk, unsigned * pTruthRes, unsigned uSupp );
 extern void            Kit_DsdPrint( FILE * pFile, Kit_DsdNtk_t * pNtk );
 extern void            Kit_DsdPrintExpanded( Kit_DsdNtk_t * pNtk );
+extern void            Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars );
 extern Kit_DsdNtk_t *  Kit_DsdDecompose( unsigned * pTruth, int nVars );
+extern Kit_DsdNtk_t *  Kit_DsdDecomposeMux( unsigned * pTruth, int nVars, int nDecMux );
+extern void            Kit_DsdVerify( Kit_DsdNtk_t * pNtk, unsigned * pTruth, int nVars );
 extern void            Kit_DsdNtkFree( Kit_DsdNtk_t * pNtk );
 extern int             Kit_DsdNonDsdSizeMax( Kit_DsdNtk_t * pNtk );
 extern void            Kit_DsdGetSupports( Kit_DsdNtk_t * p );
@@ -510,10 +524,12 @@ extern void            Kit_TruthUniqueNew( unsigned * pRes, unsigned * pTruth, i
 extern void            Kit_TruthMuxVar( unsigned * pOut, unsigned * pCof0, unsigned * pCof1, int nVars, int iVar );
 extern void            Kit_TruthChangePhase( unsigned * pTruth, int nVars, int iVar );
 extern int             Kit_TruthMinCofSuppOverlap( unsigned * pTruth, int nVars, int * pVarMin );
+extern int             Kit_TruthBestCofVar( unsigned * pTruth, int nVars, unsigned * pCof0, unsigned * pCof1 );
 extern void            Kit_TruthCountOnesInCofs( unsigned * pTruth, int nVars, short * pStore );
 extern void            Kit_TruthCountOnesInCofsSlow( unsigned * pTruth, int nVars, short * pStore, unsigned * pAux );
 extern unsigned        Kit_TruthHash( unsigned * pIn, int nWords );
 extern unsigned        Kit_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux, int nVars, char * pCanonPerm, short * pStore );
+extern char *          Kit_TruthDumpToFile( unsigned * pTruth, int nVars, int nFile );
 
 #ifdef __cplusplus
 }

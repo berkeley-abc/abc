@@ -55,7 +55,7 @@ Abc_Ntk_t * Abc_NtkBalance( Abc_Ntk_t * pNtk, bool fDuplicate, bool fSelective, 
     // compute the required times
     if ( fSelective )
     {
-        Abc_NtkStartReverseLevels( pNtk );
+        Abc_NtkStartReverseLevels( pNtk, 0 );
         Abc_NtkMarkCriticalNodes( pNtk );
     }
     // perform balancing
@@ -600,7 +600,7 @@ void Abc_NtkMarkCriticalNodes( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pNode;
     int i, Counter = 0;
     Abc_NtkForEachNode( pNtk, pNode, i )
-        if ( Abc_NodeReadRequiredLevel(pNode) - pNode->Level <= 1 )
+        if ( Abc_ObjRequiredLevel(pNode) - pNode->Level <= 1 )
             pNode->fMarkA = 1, Counter++;
     printf( "The number of nodes on the critical paths = %6d  (%5.2f %%)\n", Counter, 100.0 * Counter / Abc_NtkNodeNum(pNtk) );
 }

@@ -1902,10 +1902,6 @@ SOURCE=.\src\opt\res\resStrash.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\opt\res\resUpdate.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\opt\res\resWin.c
 # End Source File
 # End Group

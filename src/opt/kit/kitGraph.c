@@ -354,9 +354,10 @@ Kit_Graph_t * Kit_TruthToGraph( unsigned * pTruth, int nVars, Vec_Int_t * vMemor
     Kit_Graph_t * pGraph;
     int RetValue;
     // derive SOP
-    RetValue = Kit_TruthIsop( pTruth, nVars, vMemory, 0 ); // tried 1 and found not useful in "renode"
+    RetValue = Kit_TruthIsop( pTruth, nVars, vMemory, 1 ); // tried 1 and found not useful in "renode"
     if ( RetValue == -1 )
         return NULL;
+//    printf( "Isop size = %d.\n", Vec_IntSize(vMemory) );
     assert( RetValue == 0 || RetValue == 1 );
     // derive factored form
     pGraph = Kit_SopFactor( vMemory, RetValue, nVars, vMemory );

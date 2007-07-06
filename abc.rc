@@ -143,14 +143,6 @@ alias qsA      "qvar -I 96 -u; qvar -I 97 -u; qvar -I 98 -u; qvar -I 99 -u; qvar
 alias chnew    "st; haig_start; resyn2; haig_use"
 alias chnewrs  "st; haig_start; resyn2rs; haig_use"
 
-alias t0       "read_dsd a*(b+(c*d)+e); clp -r; print_dsd"
-alias t1       "read_dsd a*(b+(c*d)); clp -r; print_dsd"
-alias t2       "read_dsd 56BA(a,b,c,d); clp -r; print_dsd"
-alias t3       "read_dsd 56BA(a,b*c,e,d); clp -r; print_dsd"
-alias t4       "read_dsd 56BA(a,b*c,e+d,f); clp -r; print_dsd"
-alias t5       "read_dsd 56BA(a,CA(b,c,d),e,f); clp -r; print_dsd"
-alias t6       "read_dsd f*CA(b,c,d)*CA(e,a,g); clp -r; print_dsd"
-
 alias stdsd    "r test/6in.blif; st; ps; u; bdd; dsd -g; st; ps"
 alias trec     "rec_start; r c.blif; st; rec_add; rec_use"
 alias trec4    "rec_start -K 4; r i10.blif; st; rec_add; rec_use"
@@ -166,12 +158,10 @@ alias tst4     "r i10_if4.blif; st; ps; r x/rec4_.blif; st; rec_start; r i10_if4
 alias tst4n    "r i10_if4.blif; st; ps; r 5npn/all_functions.aig; st; rec_start; r i10_if4.blif; st -r; ps; cec"
 alias tst6     "r i10_if6.blif; st; ps; r x/rec6_16_.blif; st; rec_start; r i10_if6.blif; st -r; ps; cec"
 
-
-alias bug      "r pj1_if3.blif; lp"
-alias table    "r lutexp.baf; test"
-
 #alias t        "r c.blif; st; wc c.cnf"
 #alias t        "r test/dsdmap6.blif; lutpack -vw; cec"
 alias t        "r i10_if4.blif; lp"
+alias t1        "r pj1_if4.blif; lp"
+alias t2        "r pj1_if6.blif; lp"
 
 

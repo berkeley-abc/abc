@@ -77,6 +77,9 @@ struct Vec_Vec_t_
 #define Vec_VecForEachEntryReverseReverse( vGlob, pEntry, i, k )                              \
     for ( i = Vec_VecSize(vGlob) - 1; i >= 0; i-- )                                           \
         Vec_PtrForEachEntryReverse( Vec_VecEntry(vGlob, i), pEntry, k ) 
+#define Vec_VecForEachEntryReverseStart( vGlob, pEntry, i, k, LevelStart )                    \
+    for ( i = LevelStart; i >= 0; i-- )                                                       \
+        Vec_PtrForEachEntry( Vec_VecEntry(vGlob, i), pEntry, k ) 
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///

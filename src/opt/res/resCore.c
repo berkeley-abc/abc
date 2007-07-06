@@ -102,9 +102,9 @@ Res_Man_t * Res_ManAlloc( Res_Par_t * pPars )
     p->pSim = Res_SimAlloc( pPars->nSimWords );
     p->pMan = Int_ManAlloc( 512 );
     p->vMem = Vec_IntAlloc( 0 );
-    p->vResubs = Vec_VecStart( pPars->nCands );
+    p->vResubs  = Vec_VecStart( pPars->nCands );
     p->vResubsW = Vec_VecStart( pPars->nCands );
-    p->vLevels = Vec_VecStart( 32 );
+    p->vLevels  = Vec_VecStart( 32 );
     return p;
 }
 
@@ -123,6 +123,14 @@ void Res_ManFree( Res_Man_t * p )
 {
     if ( p->pPars->fVerbose )
     {
+        printf( "Reduction in nodes = %5d. (%.2f %%) ", 
+            p->nTotalNodes-p->nTotalNodes2, 
+            100.0*(p->nTotalNodes-p->nTotalNodes2)/p->nTotalNodes );
+        printf( "Reduction in edges = %5d. (%.2f %%) ", 
+            p->nTotalNets-p->nTotalNets2, 
+            100.0*(p->nTotalNets-p->nTotalNets2)/p->nTotalNets );
+        printf( "\n" );
+
         printf( "Winds = %d. ", p->nWins );
         printf( "Nodes = %d. (Ave = %5.1f)  ", p->nWinNodes, 1.0*p->nWinNodes/p->nWins );
         printf( "Divs = %d. (Ave = %5.1f)  ",  p->nDivNodes, 1.0*p->nDivNodes/p->nWins );
@@ -133,13 +141,6 @@ void Res_ManFree( Res_Man_t * p )
         printf( "WindUsed = %d. ", p->nWinsUsed );
         printf( "Cands = %d. ", p->nCandSets );
         printf( "Proved = %d.", p->nProvedSets );
-        printf( "\n" );
-        printf( "Reduction in nodes = %d. (%.2f %%) ", 
-            p->nTotalNodes-p->nTotalNodes2, 
-            100.0*(p->nTotalNodes-p->nTotalNodes2)/p->nTotalNodes );
-        printf( "Reduction in nets = %d. (%.2f %%) ", 
-            p->nTotalNets-p->nTotalNets2, 
-            100.0*(p->nTotalNets-p->nTotalNets2)/p->nTotalNets );
         printf( "\n" );
 
         PRTP( "Windowing  ", p->timeWin,      p->timeTotal );
@@ -153,7 +154,7 @@ void Res_ManFree( Res_Man_t * p )
         PRTP( "    simul  ", p->timeSatSim,   p->timeTotal );
         PRTP( "Interpol   ", p->timeInt,      p->timeTotal );
         PRTP( "Undating   ", p->timeUpd,      p->timeTotal );
-        PRT( "TOTAL      ", p->timeTotal );
+        PRTP( "TOTAL      ", p->timeTotal,    p->timeTotal );
     }
     Res_WinFree( p->pWin );
     if ( p->pAig ) Abc_NtkDelete( p->pAig );
@@ -165,6 +166,31 @@ void Res_ManFree( Res_Man_t * p )
     Vec_VecFree( p->vResubsW );
     Vec_VecFree( p->vLevels );
     free( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Incrementally updates level of the nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Res_UpdateNetwork( Abc_Obj_t * pObj, Vec_Ptr_t * vFanins, Hop_Obj_t * pFunc, Vec_Vec_t * vLevels )
+{
+    Abc_Obj_t * pObjNew, * pFanin;
+    int k;
+    // create the new node
+    pObjNew = Abc_NtkCreateNode( pObj->pNtk );
+    pObjNew->pData = pFunc;
+    Vec_PtrForEachEntry( vFanins, pFanin, k )
+        Abc_ObjAddFanin( pObjNew, pFanin );
+    // replace the old node by the new node
+    // update the level of the node
+    Abc_NtkUpdate( pObj, pObjNew, vLevels );
 }
 
 /**Function*************************************************************
@@ -210,6 +236,7 @@ int Abc_NtkResynthesize( Abc_Ntk_t * pNtk, Res_Par_t * pPars )
 
     // set the number of levels
     Abc_NtkLevel( pNtk );
+    Abc_NtkStartReverseLevels( pNtk, pPars->nGrowthLevel );
 
     // try resynthesizing nodes in the topological order
     nNodesOld = Abc_NtkObjNumMax(pNtk);
@@ -239,10 +266,10 @@ p->timeWin += clock() - clk;
                 Vec_PtrSize(p->pWin->vNodes), 
                 Vec_PtrSize(p->pWin->vRoots) );
         }
- 
+
         // collect the divisors
 clk = clock();
-        Res_WinDivisors( p->pWin, pObj->Level + pPars->nGrowthLevel - 1 );
+        Res_WinDivisors( p->pWin, Abc_ObjRequiredLevel(pObj) - 1 );
 p->timeDiv += clock() - clk;
 
         p->nWins++;
@@ -359,6 +386,7 @@ p->timeUpd += clock() - clk;
 //        printf( "\n" );
     }
     Extra_ProgressBarStop( pProgress );
+    Abc_NtkStopReverseLevels( pNtk );
 
 p->timeSatSim += p->pSim->timeSat;
 p->timeSatTotal = p->timeSatSat + p->timeSatUnsat + p->timeSatSim;

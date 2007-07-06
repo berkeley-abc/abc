@@ -43,7 +43,7 @@
 ***********************************************************************/
 void Cmd_HistoryAddCommand(    Abc_Frame_t * p, char * command )
 {
-    char Buffer[500];
+    static char Buffer[MAX_STR];
     strcpy( Buffer, command );
     if ( command[strlen(command)-1] != '\n' )
         strcat( Buffer, "\n" );

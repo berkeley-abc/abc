@@ -2805,7 +2805,7 @@ int Abc_CommandImfs( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     pPars->nWindow      = 62;
-    pPars->nGrowthLevel =  3;
+    pPars->nGrowthLevel =  1;
     pPars->nCands       =  5;
     pPars->nSimWords    =  4;
     pPars->fArea        =  0;
@@ -2936,13 +2936,14 @@ int Abc_CommandLutpack( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nLutsMax     =  4; // (N) the maximum number of LUTs in the structure
     pPars->nLutsOver    =  3; // (Q) the maximum number of LUTs not in the MFFC
     pPars->nVarsShared  =  0; // (S) the maximum number of shared variables (crossbars)
-    pPars->nGrowthLevel =  9; // (L) the maximum number of increased levels
+    pPars->nGrowthLevel =  1; // (L) the maximum number of increased levels
     pPars->fSatur       =  1;
     pPars->fZeroCost    =  0; 
-    pPars->fVerbose     =  1;
+    pPars->fFirst       =  0;
+    pPars->fVerbose     =  0;
     pPars->fVeryVerbose =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NQSLszvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NQSLszfvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -2996,6 +2997,9 @@ int Abc_CommandLutpack( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'z':
             pPars->fZeroCost ^= 1;
             break;
+        case 'f':
+            pPars->fFirst ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -3029,7 +3033,7 @@ int Abc_CommandLutpack( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: lutpack [-N <num>] [-Q <num>] [-S <num>] [-L <num>] [-szvwh]\n" );
+    fprintf( pErr, "usage: lutpack [-N <num>] [-Q <num>] [-S <num>] [-L <num>] [-szfvwh]\n" );
     fprintf( pErr, "\t           performs \"rewriting\" for LUT networks\n" );
     fprintf( pErr, "\t-N <num> : the max number of LUTs in the structure (2 <= num) [default = %d]\n", pPars->nLutsMax );
     fprintf( pErr, "\t-Q <num> : the max number of LUTs not in MFFC (0 <= num) [default = %d]\n", pPars->nLutsOver );
@@ -3037,6 +3041,7 @@ usage:
     fprintf( pErr, "\t-L <num> : the largest increase in node level after resynthesis (0 <= num) [default = %d]\n", pPars->nGrowthLevel );
     fprintf( pErr, "\t-s       : toggle iteration till saturation [default = %s]\n", pPars->fSatur? "yes": "no" );
     fprintf( pErr, "\t-z       : toggle zero-cost replacements [default = %s]\n", pPars->fZeroCost? "yes": "no" );
+    fprintf( pErr, "\t-f       : toggle using only first node and first cut [default = %s]\n", pPars->fFirst? "yes": "no" );
     fprintf( pErr, "\t-v       : toggle verbose printout [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-w       : toggle printout subgraph statistics [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     fprintf( pErr, "\t-h       : print the command usage\n");
