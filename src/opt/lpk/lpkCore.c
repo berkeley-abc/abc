@@ -229,7 +229,6 @@ p->timeMap += clock() - clk;
 int Lpk_ResynthesizeNode( Lpk_Man_t * p )
 {
     static int Count = 0;
-    char * pFileName;
     Kit_DsdNtk_t * pDsdNtk;
     Lpk_Cut_t * pCut;
     unsigned * pTruth;
@@ -244,6 +243,8 @@ p->timeCuts += clock() - clk;
         return 0;
     }
 p->timeCuts += clock() - clk;
+
+//return 0;
 
     if ( p->pPars->fVeryVerbose )
     printf( "Node %5d : Mffc size = %5d. Cuts = %5d.\n", p->pObj->Id, p->nMffc, p->nEvals );
@@ -289,12 +290,13 @@ p->timeTruth += clock() - clk;
 
         if ( p->pPars->fVeryVerbose )
         {
+//            char * pFileName;
             printf( "  C%02d: L= %2d/%2d  V= %2d/%d  N= %d  W= %4.2f  ", 
                 i, pCut->nLeaves, nSuppSize, pCut->nNodes, pCut->nNodesDup, pCut->nLuts, pCut->Weight );
             Kit_DsdPrint( stdout, pDsdNtk );
 //            Kit_DsdPrintFromTruth( pTruth, pCut->nLeaves );
-            pFileName = Kit_TruthDumpToFile( pTruth, pCut->nLeaves, Count++ );
-            printf( "Saved truth table in file \"%s\".\n", pFileName );
+//            pFileName = Kit_TruthDumpToFile( pTruth, pCut->nLeaves, Count++ );
+//            printf( "Saved truth table in file \"%s\".\n", pFileName );
         }
 
         // update the network

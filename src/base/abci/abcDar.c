@@ -21,6 +21,7 @@
 #include "abc.h"
 #include "dar.h"
 #include "cnf.h"
+#include "fra.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -442,6 +443,37 @@ Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName )
     return pNtkNew;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkDarFraig( Abc_Ntk_t * pNtk, int nConfLimit, int fDoSparse, int fProve, int fTransfer, int fVerbose )
+{
+    Fra_Par_t Params, * pParams = &Params; 
+    Abc_Ntk_t * pNtkAig;
+    Dar_Man_t * pMan, * pTemp;
+    pMan = Abc_NtkToDar( pNtk );
+    if ( pMan == NULL )
+        return NULL;
+    Fra_ParamsDefault( pParams );
+    pParams->nBTLimitNode = nConfLimit;
+    pParams->fVerbose     = fVerbose;
+    pParams->fProve       = fProve;
+    pParams->fDoSparse    = fDoSparse;
+    pMan = Fra_Perform( pTemp = pMan, pParams );
+    pNtkAig = Abc_NtkFromDar( pNtk, pMan );
+    Dar_ManStop( pTemp );
+    Dar_ManStop( pMan );
+    return pNtkAig;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -69,8 +69,6 @@ void Fra_ParamsDefault( Fra_Par_t * pPars )
 Fra_Man_t * Fra_ManStart( Dar_Man_t * pManAig, Fra_Par_t * pPars )
 {
     Fra_Man_t * p;
-    Dar_Obj_t * pObj;
-    int i;
     // allocate the fraiging manager
     p = ALLOC( Fra_Man_t, 1 );
     memset( p, 0, sizeof(Fra_Man_t) );
@@ -82,13 +80,17 @@ Fra_Man_t * Fra_ManStart( Dar_Man_t * pManAig, Fra_Par_t * pPars )
     p->nSimWords  = pPars->nSimWords;
     p->pSimWords  = ALLOC( unsigned, (Dar_ManObjIdMax(pManAig) + 1) * p->nSimWords );
     // clean simulation info of the constant node
-    memset( p->pSimWords, 0, p->nSimWords * sizeof(unsigned) );
+    memset( p->pSimWords, 0, sizeof(unsigned) * ((Dar_ManPiNum(pManAig) + 1) * p->nSimWords) );
     // allocate storage for sim pattern
     p->nPatWords  = Dar_BitWordNum( Dar_ManPiNum(pManAig) );
     p->pPatWords  = ALLOC( unsigned, p->nPatWords ); 
     p->pPatScores = ALLOC( int, 32 * p->nSimWords ); 
     p->vPiVars    = Vec_PtrAlloc( 100 );
     p->vClasses   = Vec_PtrAlloc( 100 );
+    p->vClasses1  = Vec_PtrAlloc( 100 );
+    p->vClassOld  = Vec_PtrAlloc( 100 );
+    p->vClassNew  = Vec_PtrAlloc( 100 );
+    p->vClassesTemp = Vec_PtrAlloc( 100 );
     // allocate other members
     p->nSizeAlloc = Dar_ManObjIdMax(pManAig) + 1;
     p->pMemFraig  = ALLOC( Dar_Obj_t *, p->nSizeAlloc );
@@ -98,17 +100,41 @@ Fra_Man_t * Fra_ManStart( Dar_Man_t * pManAig, Fra_Par_t * pPars )
     p->pMemFanins  = ALLOC( Vec_Ptr_t *, p->nSizeAlloc );
     memset( p->pMemFanins, 0, p->nSizeAlloc * sizeof(Vec_Ptr_t *) );
     p->pMemSatNums  = ALLOC( int, p->nSizeAlloc );
-    memset( p->pMemSatNums, 0xff, p->nSizeAlloc * sizeof(int) );
+    memset( p->pMemSatNums, 0, p->nSizeAlloc * sizeof(int) );
+    // set random number generator
+    srand( 0xABCABC );
+    // make sure the satisfying assignment is node assigned
+    assert( p->pManFraig->pData == NULL );
+    // connect AIG managers to the FRAIG manager
+    Fra_ManPrepare( p );
+    return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prepares managers by transfering pointers to the objects.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fra_ManPrepare( Fra_Man_t * p )
+{
+    Dar_Obj_t * pObj;
+    int i;
+    // set the pointers to the manager
+    Dar_ManForEachObj( p->pManFraig, pObj, i )
+        pObj->pData = p;
+    // set the pointer to the manager
+    Dar_ManForEachObj( p->pManAig, pObj, i )
+        pObj->pData = p;
     // set the pointers to the available fraig nodes
     Fra_ObjSetFraig( Dar_ManConst1(p->pManAig), Dar_ManConst1(p->pManFraig) );
     Dar_ManForEachPi( p->pManAig, pObj, i )
         Fra_ObjSetFraig( pObj, Dar_ManPi(p->pManFraig, i) );
-    // set the pointers to the manager
-    Dar_ManForEachObj( p->pManFraig, pObj, i )
-        pObj->pData = p->pManFraig;
-    // set random number generator
-    srand( 0xABCABC );
-    return p;
 }
 
 /**Function*************************************************************

@@ -474,12 +474,16 @@ if ( p->pObj->Id == 31 && Node == 38 )//p->nCuts == 48 )
     assert( p->nCuts < LPK_CUTS_MAX );
     p->nCuts++;
 
-    assert( pCut->nNodes <= p->nMffc + pCutNew->nNodesDup );
+//    assert( pCut->nNodes <= p->nMffc + pCutNew->nNodesDup );
+
 /*
     printf( "      Creating cut: " );
     Lpk_NodePrintCut( p, pCutNew, 1 );
     printf( "\n" );
 */
+
+//    if ( !(pCut->nNodes <= p->nMffc + pCutNew->nNodesDup) )
+//        printf( "Assertion in line 477 failed.\n" );
 }
 
 /**Function*************************************************************
@@ -519,9 +523,17 @@ int Lpk_NodeCuts( Lpk_Man_t * p )
         pCut = p->pCuts + i;
         if ( pCut->nLeaves == 0 )
             continue;
+
         // try to expand the fanins of this cut
         for ( k = 0; k < (int)pCut->nLeaves; k++ )
         {
+
+            if ( p->pObj->Id == 28 && i == 273 && k == 13 )
+            {
+                Abc_Obj_t * pFanin = Abc_NtkObj(p->pNtk, pCut->pLeaves[k]);
+                int s = 0;
+            }
+
             // create a new cut
             Lpk_NodeCutsOne( p, pCut, pCut->pLeaves[k] );
             // quit if the number of cuts has exceeded the limit

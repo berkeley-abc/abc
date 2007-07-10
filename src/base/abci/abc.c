@@ -112,6 +112,7 @@ static int Abc_CommandIRewriteSeq    ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandIResyn         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandISat           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIFraig         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDFraig         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandHaig           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMini           ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -267,6 +268,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "New AIG",      "iresyn",        Abc_CommandIResyn,           1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "isat",          Abc_CommandISat,             1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "ifraig",        Abc_CommandIFraig,           1 );
+    Cmd_CommandAdd( pAbc, "New AIG",      "dfraig",        Abc_CommandDFraig,           1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "iprove",        Abc_CommandIProve,           1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "haig",          Abc_CommandHaig,             1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "mini",          Abc_CommandMini,             1 );
@@ -333,7 +335,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 
     {
         extern void Dar_LibStart();
-        Dar_LibStart();
+//        Dar_LibStart();
     }
 } 
 
@@ -352,7 +354,7 @@ void Abc_End()
 {
     {
         extern void Dar_LibStop();
-        Dar_LibStop();
+//        Dar_LibStop();
     }
 
     Abc_NtkFraigStoreClean();
@@ -6077,14 +6079,16 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Abc_Ntk4VarTable( pNtk );
 //    Dar_NtkGenerateArrays( pNtk );
 //    Dar_ManDeriveCnfTest2();
-
+/*
     if ( !Abc_NtkIsStrash(pNtk) )
     {
         fprintf( pErr, "Network should be strashed. Command has failed.\n" );
         return 1;
     }
+*/
 //    pNtkRes = Abc_NtkDar( pNtk );
-    pNtkRes = Abc_NtkDarToCnf( pNtk, "any.cnf" );
+//    pNtkRes = Abc_NtkDarToCnf( pNtk, "any.cnf" );
+    pNtkRes = NULL;
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
@@ -6891,6 +6895,93 @@ int Abc_CommandIFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     fprintf( pErr, "usage: ifraig [-C num] [-spvh]\n" );
+    fprintf( pErr, "\t         performs fraiging using a new method\n" );
+    fprintf( pErr, "\t-C num : limit on the number of conflicts [default = %d]\n", nConfLimit );
+    fprintf( pErr, "\t-s     : toggle considering sparse functions [default = %s]\n", fDoSparse? "yes": "no" );
+    fprintf( pErr, "\t-p     : toggle proving the miter outputs [default = %s]\n", fProve? "yes": "no" );
+    fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandDFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c, fProve, fVerbose, fDoSparse;
+    int nConfLimit;
+
+    extern Abc_Ntk_t * Abc_NtkDarFraig( Abc_Ntk_t * pNtk, int nConfLimit, int fDoSparse, int fProve, int fTransfer, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    nConfLimit   = 100;   
+    fDoSparse    = 0;
+    fProve       = 0;
+    fVerbose     = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Cspvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nConfLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nConfLimit < 0 ) 
+                goto usage;
+            break;
+        case 's':
+            fDoSparse ^= 1;
+            break;
+        case 'p':
+            fProve ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    pNtkRes = Abc_NtkDarFraig( pNtk, nConfLimit, fDoSparse, fProve, 0, fVerbose );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Command has failed.\n" );
+        return 0;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: dfraig [-C num] [-spvh]\n" );
     fprintf( pErr, "\t         performs fraiging using a new method\n" );
     fprintf( pErr, "\t-C num : limit on the number of conflicts [default = %d]\n", nConfLimit );
     fprintf( pErr, "\t-s     : toggle considering sparse functions [default = %s]\n", fDoSparse? "yes": "no" );

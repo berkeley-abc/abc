@@ -94,7 +94,7 @@ Dar_Man_t * Dar_ManStartFrom( Dar_Man_t * p )
     Dar_Obj_t * pObj;
     int i;
     // create the new manager
-    pNew = Dar_ManStart();
+    pNew = Dar_ManStart( Dar_ManObjIdMax(p) + 1 );
     // create the PIs
     Dar_ManConst1(p)->pData = Dar_ManConst1(pNew);
     Dar_ManForEachPi( p, pObj, i )
@@ -119,7 +119,7 @@ Dar_Man_t * Dar_ManDup( Dar_Man_t * p )
     Dar_Obj_t * pObj;
     int i;
     // create the new manager
-    pNew = Dar_ManStart();
+    pNew = Dar_ManStart( Dar_ManObjIdMax(p) + 1 );
     // create the PIs
     Dar_ManConst1(p)->pData = Dar_ManConst1(pNew);
     Dar_ManForEachPi( p, pObj, i )

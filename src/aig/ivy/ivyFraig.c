@@ -733,7 +733,12 @@ void Ivy_FraigAssignDist1( Ivy_FraigMan_t * p, unsigned * pPat )
     Ivy_Obj_t * pObj;
     int i, Limit;
     Ivy_ManForEachPi( p->pManAig, pObj, i )
+    {
         Ivy_NodeAssignConst( p, pObj, Ivy_InfoHasBit(pPat, i) );
+//        printf( "%d", Ivy_InfoHasBit(pPat, i) );
+    }
+//    printf( "\n" );
+
     Limit = IVY_MIN( Ivy_ManPiNum(p->pManAig), p->nSimWords * 32 - 1 );
     for ( i = 0; i < Limit; i++ )
         Ivy_InfoXorBit( Ivy_ObjSim( Ivy_ManPi(p->pManAig,i) )->pData, i+1 );
@@ -1742,7 +1747,6 @@ void Ivy_FraigResimulate( Ivy_FraigMan_t * p )
         printf( "Error: A counter-example did not refine classes!\n" );
     assert( nChanges >= 1 );
 //printf( "Refined classes! = %5d.   Changes = %4d.\n", p->lClasses.nItems, nChanges );
-
     if ( !p->pParams->fPatScores )
         return;
 
@@ -2018,6 +2022,8 @@ Ivy_Obj_t * Ivy_FraigAnd( Ivy_FraigMan_t * p, Ivy_Obj_t * pObjOld )
     if ( Ivy_Regular(pObjNew) == Ivy_Regular(pObjReprNew) )
         return pObjNew;
     assert( Ivy_Regular(pObjNew) != Ivy_ManConst1(p->pManFraig) );
+//    printf( "Node = %d. Repr = %d.\n", pObjOld->Id, Ivy_ObjClassNodeRepr(pObjOld)->Id );
+
     // they are different (the counter-example is in p->pPatWords)
     RetValue = Ivy_FraigNodesAreEquiv( p, Ivy_Regular(pObjReprNew), Ivy_Regular(pObjNew) );
     if ( RetValue == 1 )  // proved equivalent

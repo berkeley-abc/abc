@@ -51,14 +51,15 @@ Dar_Obj_t * Fra_And( Fra_Man_t * p, Dar_Obj_t * pObjOld )
     pFanin1Fraig = Fra_ObjChild1Fra(pObjOld);
     // get the fraiged node
     pObjFraig = Dar_And( p->pManFraig, pFanin0Fraig, pFanin1Fraig );
+    Dar_Regular(pObjFraig)->pData = p;
     // get representative of this class
     pObjOldRepr = Fra_ObjRepr(pObjOld);
     if ( pObjOldRepr == NULL || // this is a unique node
        (!p->pPars->fDoSparse && pObjOldRepr == Dar_ManConst1(p->pManAig)) ) // this is a sparse node
     {
         assert( Dar_Regular(pFanin0Fraig) != Dar_Regular(pFanin1Fraig) );
-        assert( pObjFraig != Dar_Regular(pFanin0Fraig) );
-        assert( pObjFraig != Dar_Regular(pFanin1Fraig) );
+        assert( Dar_Regular(pObjFraig) != Dar_Regular(pFanin0Fraig) );
+        assert( Dar_Regular(pObjFraig) != Dar_Regular(pFanin1Fraig) );
         return pObjFraig;
     }
     // get the fraiged representative
@@ -67,11 +68,13 @@ Dar_Obj_t * Fra_And( Fra_Man_t * p, Dar_Obj_t * pObjOld )
     if ( Dar_Regular(pObjFraig) == Dar_Regular(pObjOldReprFraig) )
         return pObjFraig;
     assert( Dar_Regular(pObjFraig) != Dar_ManConst1(p->pManFraig) );
+//    printf( "Node = %d. Repr = %d.\n", pObjOld->Id, pObjOldRepr->Id );
+
     // if they are proved different, the c-ex will be in p->pPatWords
     RetValue = Fra_NodesAreEquiv( p, Dar_Regular(pObjOldReprFraig), Dar_Regular(pObjFraig) );
     if ( RetValue == 1 )  // proved equivalent
     {
-        pObjOld->fMarkA = 1;
+//        pObjOld->fMarkA = 1;
         return Dar_NotCond( pObjOldReprFraig, pObjOld->fPhase ^ pObjOldRepr->fPhase );
     }
     if ( RetValue == -1 ) // failed
@@ -79,11 +82,12 @@ Dar_Obj_t * Fra_And( Fra_Man_t * p, Dar_Obj_t * pObjOld )
         if ( !p->pPars->fSpeculate )
             return pObjFraig;
         // substitute the node
-        pObjOld->fMarkB = 1;
+//        pObjOld->fMarkB = 1;
         return Dar_NotCond( pObjOldReprFraig, pObjOld->fPhase ^ pObjOldRepr->fPhase );
     }
     // simulate the counter-example and return the Fraig node
     Fra_Resimulate( p );
+    assert( Fra_ObjRepr(pObjOld) != pObjOldRepr );
     return pObjFraig;
 }
 
@@ -103,7 +107,7 @@ void Fra_Sweep( Fra_Man_t * p )
     Dar_Obj_t * pObj, * pObjNew;
     int i, k = 0;
 p->nClassesZero = Vec_PtrSize(p->vClasses1);
-p->nClassesBeg  = Vec_PtrSize(p->vClasses);
+p->nClassesBeg  = Vec_PtrSize(p->vClasses) + (int)(Vec_PtrSize(p->vClasses1) > 0);
     // duplicate internal nodes
 //    p->pProgress = Extra_ProgressBarStart( stdout, Dar_ManNodeNum(p->pManAig) );
     Dar_ManForEachNode( p->pManAig, pObj, i )
@@ -114,11 +118,11 @@ p->nClassesBeg  = Vec_PtrSize(p->vClasses);
             pObjNew = Dar_And( p->pManFraig, Fra_ObjChild0Fra(pObj), Fra_ObjChild1Fra(pObj) );
         else
             pObjNew = Fra_And( p, pObj ); // pObjNew can be complemented
-        assert( Fra_ObjFraig(pObj) != NULL );
         Fra_ObjSetFraig( pObj, pObjNew );
+        assert( Fra_ObjFraig(pObj) != NULL );
     }
 //    Extra_ProgressBarStop( p->pProgress );
-p->nClassesEnd = Vec_PtrSize(p->vClasses);
+p->nClassesEnd = Vec_PtrSize(p->vClasses) + (int)(Vec_PtrSize(p->vClasses1) > 0);
     // try to prove the outputs of the miter
     p->nNodesMiter = Dar_ManNodeNum(p->pManFraig);
 //    Fra_MiterStatus( p->pManFraig );

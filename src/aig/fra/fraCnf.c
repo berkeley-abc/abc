@@ -209,6 +209,7 @@ Vec_Ptr_t * Fra_CollectSuper( Dar_Obj_t * pObj, int fUseMuxes )
 ***********************************************************************/
 void Fra_ObjAddToFrontier( Fra_Man_t * p, Dar_Obj_t * pObj, Vec_Ptr_t * vFrontier )
 {
+    Fra_Man_t * pTemp = pObj->pData;
     assert( !Dar_IsComplement(pObj) );
     if ( Fra_ObjSatNum(pObj) )
         return;

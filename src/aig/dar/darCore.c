@@ -64,10 +64,6 @@ int Dar_ManRewrite( Dar_Man_t * p )
             continue;
         if ( i > nNodesOld )
             break;
-        if ( pObj->Id == 654 )
-        {
-            int x = 0;
-        }
         // compute cuts for the node
 clk = clock();
         pCutSet = Dar_ObjComputeCuts_rec( p, pObj );

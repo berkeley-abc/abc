@@ -105,7 +105,11 @@ void Fra_AssignDist1( Fra_Man_t * p, unsigned * pPat )
     Dar_Obj_t * pObj;
     int i, Limit;
     Dar_ManForEachPi( p->pManAig, pObj, i )
+    {
         Fra_NodeAssignConst( p, pObj, Dar_InfoHasBit(pPat, i) );
+//        printf( "%d", Dar_InfoHasBit(pPat, i) );
+    }
+//    printf( "\n" );
     Limit = DAR_MIN( Dar_ManPiNum(p->pManAig), p->nSimWords * 32 - 1 );
     for ( i = 0; i < Limit; i++ )
         Dar_InfoXorBit( Fra_ObjSim( Dar_ManPi(p->pManAig,i) ), i+1 );
@@ -441,7 +445,7 @@ void Fra_Resimulate( Fra_Man_t * p )
     if ( nChanges < 1 )
         printf( "Error: A counter-example did not refine classes!\n" );
     assert( nChanges >= 1 );
-//printf( "Refined classes! = %5d.   Changes = %4d.\n", p->lClasses.nItems, nChanges );
+//printf( "Refined classes = %5d.   Changes = %4d.\n", Vec_PtrSize(p->vClasses), nChanges );
 
     if ( !p->pPars->fPatScores )
         return;
@@ -487,7 +491,7 @@ void Fra_Simulate( Fra_Man_t * p )
     Fra_SimulateOne( p );
     nChanges = Fra_RefineClasses( p );
     nChanges += Fra_RefineClasses1( p );
-    if ( p->pManFraig )
+    if ( p->pManFraig->pData )
         return;
 //printf( "Refined classes  = %5d.   Changes = %4d.   Pairs = %6d.\n", p->lClasses.nItems, nChanges, Fra_CountPairsClasses(p) );
     Fra_SavePattern1( p );
@@ -495,7 +499,7 @@ void Fra_Simulate( Fra_Man_t * p )
     Fra_SimulateOne( p );
     nChanges = Fra_RefineClasses( p );
     nChanges += Fra_RefineClasses1( p );
-    if ( p->pManFraig )
+    if ( p->pManFraig->pData )
         return;
 //printf( "Refined classes  = %5d.   Changes = %4d.   Pairs = %6d.\n", p->lClasses.nItems, nChanges, Fra_CountPairsClasses(p) );
     // refine classes by random simulation
@@ -505,11 +509,11 @@ void Fra_Simulate( Fra_Man_t * p )
         nClasses = Vec_PtrSize(p->vClasses);
         nChanges = Fra_RefineClasses( p );
         nChanges += Fra_RefineClasses1( p );
-        if ( p->pManFraig )
+        if ( p->pManFraig->pData )
             return;
 //printf( "Refined classes  = %5d.   Changes = %4d.   Pairs = %6d.\n", p->lClasses.nItems, nChanges, Fra_CountPairsClasses(p) );
     } while ( (double)nChanges / nClasses > p->pPars->dSimSatur );
-//    Fra_PrintSimClasses( p );
+//    Fra_PrintClasses( p );
 }
  
 /**Function*************************************************************

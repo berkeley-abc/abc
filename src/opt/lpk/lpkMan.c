@@ -50,7 +50,7 @@ Lpk_Man_t * Lpk_ManStart( Lpk_Par_t * pPars )
     p->pPars = pPars;
     p->nCutsMax = LPK_CUTS_MAX;
     p->vTtElems = Vec_PtrAllocTruthTables( pPars->nVarsMax );
-    p->vTtNodes = Vec_PtrAllocSimInfo( 256, Abc_TruthWordNum(pPars->nVarsMax) );
+    p->vTtNodes = Vec_PtrAllocSimInfo( 1024, Abc_TruthWordNum(pPars->nVarsMax) );
     p->vCover = Vec_IntAlloc( 1 << 12 );
     for ( i = 0; i < 8; i++ )
         p->vSets[i] = Vec_IntAlloc(100);

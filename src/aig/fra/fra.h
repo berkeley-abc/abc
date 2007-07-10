@@ -142,13 +142,13 @@ static inline Dar_Obj_t *  Fra_ObjRepr( Dar_Obj_t * pObj )                      
 static inline Vec_Ptr_t *  Fra_ObjFaninVec( Dar_Obj_t * pObj )                           { return ((Fra_Man_t *)pObj->pData)->pMemFanins[pObj->Id];      }
 static inline int          Fra_ObjSatNum( Dar_Obj_t * pObj )                             { return ((Fra_Man_t *)pObj->pData)->pMemSatNums[pObj->Id];     }
 
-static inline Dar_Obj_t *  Fra_ObjChild0Fra( Dar_Obj_t * pObj ) { assert( !Dar_IsComplement(pObj) ); return Dar_ObjFanin0(pObj)? Dar_NotCond(Fra_ObjFraig(Dar_ObjFanin0(pObj)), Dar_ObjFaninC0(pObj)) : NULL;  }
-static inline Dar_Obj_t *  Fra_ObjChild1Fra( Dar_Obj_t * pObj ) { assert( !Dar_IsComplement(pObj) ); return Dar_ObjFanin1(pObj)? Dar_NotCond(Fra_ObjFraig(Dar_ObjFanin1(pObj)), Dar_ObjFaninC1(pObj)) : NULL;  }
-
 static inline void         Fra_ObjSetFraig( Dar_Obj_t * pObj, Dar_Obj_t * pNode )        { ((Fra_Man_t *)pObj->pData)->pMemFraig[pObj->Id]   = pNode;    }
 static inline void         Fra_ObjSetRepr( Dar_Obj_t * pObj, Dar_Obj_t * pNode )         { ((Fra_Man_t *)pObj->pData)->pMemRepr[pObj->Id]    = pNode;    }
 static inline void         Fra_ObjSetFaninVec( Dar_Obj_t * pObj, Vec_Ptr_t * vFanins )   { ((Fra_Man_t *)pObj->pData)->pMemFanins[pObj->Id]  = vFanins;  }
 static inline void         Fra_ObjSetSatNum( Dar_Obj_t * pObj, int Num )                 { ((Fra_Man_t *)pObj->pData)->pMemSatNums[pObj->Id] = Num;      }
+
+static inline Dar_Obj_t *  Fra_ObjChild0Fra( Dar_Obj_t * pObj ) { assert( !Dar_IsComplement(pObj) ); return Dar_ObjFanin0(pObj)? Dar_NotCond(Fra_ObjFraig(Dar_ObjFanin0(pObj)), Dar_ObjFaninC0(pObj)) : NULL;  }
+static inline Dar_Obj_t *  Fra_ObjChild1Fra( Dar_Obj_t * pObj ) { assert( !Dar_IsComplement(pObj) ); return Dar_ObjFanin1(pObj)? Dar_NotCond(Fra_ObjFraig(Dar_ObjFanin1(pObj)), Dar_ObjFaninC1(pObj)) : NULL;  }
 
 ////////////////////////////////////////////////////////////////////////
 ///                         ITERATORS                                ///
@@ -161,6 +161,7 @@ static inline void         Fra_ObjSetSatNum( Dar_Obj_t * pObj, int Num )        
 /*=== fraAnd.c ========================================================*/
 extern void                Fra_Sweep( Fra_Man_t * p );
 /*=== fraClass.c ========================================================*/
+extern void                Fra_PrintClasses( Fra_Man_t * p );
 extern void                Fra_CreateClasses( Fra_Man_t * p );
 extern int                 Fra_RefineClasses( Fra_Man_t * p );
 extern int                 Fra_RefineClasses1( Fra_Man_t * p );
@@ -171,6 +172,7 @@ extern Dar_Man_t *         Fra_Perform( Dar_Man_t * pManAig, Fra_Par_t * pParams
 /*=== fraMan.c ========================================================*/
 extern void                Fra_ParamsDefault( Fra_Par_t * pParams );
 extern Fra_Man_t *         Fra_ManStart( Dar_Man_t * pManAig, Fra_Par_t * pParams );
+extern void                Fra_ManPrepare( Fra_Man_t * p );
 extern void                Fra_ManStop( Fra_Man_t * p );
 extern void                Fra_ManPrint( Fra_Man_t * p );
 /*=== fraSat.c ========================================================*/
