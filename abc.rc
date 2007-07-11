@@ -163,6 +163,9 @@ alias tst6     "r i10_if6.blif; st; ps; r x/rec6_16_.blif; st; rec_start; r i10_
 #alias t        "r i10_if4.blif; lp"
 #alias t1        "r pj1_if4.blif; lp"
 #alias t2        "r pj1_if6.blif; lp"
-alias t        "r pj/pj1.blif; st; dfraig -v"
+#alias t        "r pj/pj1.blif; st; dfraig -v"
+#alias t        "r c/16/csat_2.bench; st; dfraig -C 100 -v -r"
+#alias t        "r c/16/csat_147.bench; st; dfraig -C 10 -v -r"
+alias t        "r i10.blif; st; ps; csweep; ps; cec"
 
 

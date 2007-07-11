@@ -117,6 +117,7 @@ struct Fra_Man_t_
     int              nSatProof;
     int              nSatFails;
     int              nSatFailsReal;
+    int              nSpeculs;         
     // runtime
     int              timeSim;
     int              timeTrav;

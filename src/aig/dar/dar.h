@@ -382,6 +382,7 @@ extern Vec_Int_t *     Dar_LibReadOuts();
 extern void            Dar_LibReadMsops( char ** ppSopSizes, char *** ppSops );
 /*=== darDfs.c ==========================================================*/
 extern Vec_Ptr_t *     Dar_ManDfs( Dar_Man_t * p );
+extern Vec_Ptr_t *     Dar_ManDfsNodes( Dar_Man_t * p, Dar_Obj_t ** ppNodes, int nNodes );
 extern int             Dar_ManCountLevels( Dar_Man_t * p );
 extern void            Dar_ManCreateRefs( Dar_Man_t * p );
 extern int             Dar_DagSize( Dar_Obj_t * pObj );

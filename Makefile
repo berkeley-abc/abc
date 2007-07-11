@@ -10,7 +10,7 @@ MODULES := src/base/abc src/base/abci src/base/cmd \
 	src/base/io src/base/main src/base/ver \
 	src/aig/ivy src/aig/hop src/aig/rwt src/aig/deco \
 	src/aig/mem src/aig/dar src/aig/fra src/aig/cnf \
-	src/aig/ec \
+	src/aig/csw src/aig/ec \
 	src/bdd/cudd src/bdd/dsd src/bdd/epd src/bdd/mtr \
 	src/bdd/parse src/bdd/reo src/bdd/cas \
 	src/map/fpga src/map/mapper src/map/mio \

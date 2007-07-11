@@ -90,6 +90,35 @@ Vec_Ptr_t * Dar_ManDfs( Dar_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Collects internal nodes in the DFS order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Dar_ManDfsNodes( Dar_Man_t * p, Dar_Obj_t ** ppNodes, int nNodes )
+{
+    Vec_Ptr_t * vNodes;
+    Dar_Obj_t * pObj;
+    int i;
+    assert( Dar_ManLatchNum(p) == 0 );
+    Dar_ManIncrementTravId( p );
+    // mark constant and PIs
+    Dar_ObjSetTravIdCurrent( p, Dar_ManConst1(p) );
+    Dar_ManForEachPi( p, pObj, i )
+        Dar_ObjSetTravIdCurrent( p, pObj );
+    // go through the nodes
+    vNodes = Vec_PtrAlloc( Dar_ManNodeNum(p) );
+    for ( i = 0; i < nNodes; i++ )
+        Dar_ManDfs_rec( p, ppNodes[i], vNodes );
+    return vNodes;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Computes the max number of levels in the manager.]
 
   Description []

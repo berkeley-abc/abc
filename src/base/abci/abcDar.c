@@ -455,7 +455,7 @@ Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkDarFraig( Abc_Ntk_t * pNtk, int nConfLimit, int fDoSparse, int fProve, int fTransfer, int fVerbose )
+Abc_Ntk_t * Abc_NtkDarFraig( Abc_Ntk_t * pNtk, int nConfLimit, int fDoSparse, int fProve, int fTransfer, int fSpeculate, int fVerbose )
 {
     Fra_Par_t Params, * pParams = &Params; 
     Abc_Ntk_t * pNtkAig;
@@ -468,7 +468,34 @@ Abc_Ntk_t * Abc_NtkDarFraig( Abc_Ntk_t * pNtk, int nConfLimit, int fDoSparse, in
     pParams->fVerbose     = fVerbose;
     pParams->fProve       = fProve;
     pParams->fDoSparse    = fDoSparse;
+    pParams->fSpeculate   = fSpeculate;
     pMan = Fra_Perform( pTemp = pMan, pParams );
+    pNtkAig = Abc_NtkFromDar( pNtk, pMan );
+    Dar_ManStop( pTemp );
+    Dar_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkCSweep( Abc_Ntk_t * pNtk, int nCutsMax, int nLeafMax, int fVerbose )
+{
+    extern Dar_Man_t * Csw_Sweep( Dar_Man_t * pAig, int nCutsMax, int nLeafMax, int fVerbose );
+    Abc_Ntk_t * pNtkAig;
+    Dar_Man_t * pMan, * pTemp;
+    pMan = Abc_NtkToDar( pNtk );
+    if ( pMan == NULL )
+        return NULL;
+    pMan = Csw_Sweep( pTemp = pMan, nCutsMax, nLeafMax, fVerbose );
     pNtkAig = Abc_NtkFromDar( pNtk, pMan );
     Dar_ManStop( pTemp );
     Dar_ManStop( pMan );

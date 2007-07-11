@@ -334,6 +334,7 @@ Dar_Obj_t ** Fra_RefineClassOne( Fra_Man_t * p, Dar_Obj_t ** ppClass )
     Dar_Obj_t * pObj, ** ppThis;
     int i;
     assert( ppClass[0] != NULL && ppClass[1] != NULL );
+
     // check if the class is going to be refined
     for ( ppThis = ppClass + 1; pObj = *ppThis; ppThis++ )        
         if ( !Fra_NodeCompareSims(p, ppClass[0], pObj) )
@@ -349,6 +350,15 @@ Dar_Obj_t ** Fra_RefineClassOne( Fra_Man_t * p, Dar_Obj_t ** ppClass )
             Vec_PtrPush( p->vClassOld, pObj );
         else
             Vec_PtrPush( p->vClassNew, pObj );
+/*
+    printf( "Refining class (" );
+    Vec_PtrForEachEntry( p->vClassOld, pObj, i )
+        printf( "%d,", pObj->Id );
+    printf( ") + (" );
+    Vec_PtrForEachEntry( p->vClassNew, pObj, i )
+        printf( "%d,", pObj->Id );
+    printf( ")\n" );
+*/
     // put the nodes back into the class memory
     Vec_PtrForEachEntry( p->vClassOld, pObj, i )
     {

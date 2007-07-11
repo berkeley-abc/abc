@@ -945,6 +945,34 @@ SOURCE=.\src\aig\cnf\cnfUtil.c
 SOURCE=.\src\aig\cnf\cnfWrite.c
 # End Source File
 # End Group
+# Begin Group "csw"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\aig\csw\csw.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\csw\cswCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\csw\cswCut.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\csw\cswInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\csw\cswMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\csw\cswTable.c
+# End Source File
+# End Group
 # End Group
 # Begin Group "bdd"
 

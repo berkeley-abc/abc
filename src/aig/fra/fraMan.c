@@ -205,6 +205,7 @@ void Fra_ManPrint( Fra_Man_t * p )
     PRT( "Class refining  ", p->timeRef   );
     PRT( "TOTAL RUNTIME   ", p->timeTotal );
     if ( p->time1 ) { PRT( "time1           ", p->time1 ); }
+    printf( "Speculations = %d.\n", p->nSpeculs );
 }
 
 ////////////////////////////////////////////////////////////////////////

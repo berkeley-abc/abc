@@ -51,6 +51,8 @@ Dar_Obj_t * Fra_And( Fra_Man_t * p, Dar_Obj_t * pObjOld )
     pFanin1Fraig = Fra_ObjChild1Fra(pObjOld);
     // get the fraiged node
     pObjFraig = Dar_And( p->pManFraig, pFanin0Fraig, pFanin1Fraig );
+    if ( Dar_ObjIsConst1(Dar_Regular(pObjFraig)) )
+        return pObjFraig;
     Dar_Regular(pObjFraig)->pData = p;
     // get representative of this class
     pObjOldRepr = Fra_ObjRepr(pObjOld);
@@ -79,14 +81,26 @@ Dar_Obj_t * Fra_And( Fra_Man_t * p, Dar_Obj_t * pObjOld )
     }
     if ( RetValue == -1 ) // failed
     {
+        Dar_Obj_t * ppNodes[2] = { Dar_Regular(pObjOldReprFraig), Dar_Regular(pObjFraig) };
+        Vec_Ptr_t * vNodes;
+
         if ( !p->pPars->fSpeculate )
             return pObjFraig;
         // substitute the node
 //        pObjOld->fMarkB = 1;
+        p->nSpeculs++;
+
+        vNodes = Dar_ManDfsNodes( p->pManFraig, ppNodes, 2 );
+        printf( "%d ", Vec_PtrSize(vNodes) );
+        Vec_PtrFree( vNodes );
+
         return Dar_NotCond( pObjOldReprFraig, pObjOld->fPhase ^ pObjOldRepr->fPhase );
     }
+//    printf( "Disproved %d and %d.\n", pObjOldRepr->Id, pObjOld->Id );
     // simulate the counter-example and return the Fraig node
+//    printf( "Representaive before = %d.\n", Fra_ObjRepr(pObjOld)? Fra_ObjRepr(pObjOld)->Id : -1 );
     Fra_Resimulate( p );
+//    printf( "Representaive after  = %d.\n", Fra_ObjRepr(pObjOld)? Fra_ObjRepr(pObjOld)->Id : -1 );
     assert( Fra_ObjRepr(pObjOld) != pObjOldRepr );
     return pObjFraig;
 }
