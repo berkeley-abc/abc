@@ -39,34 +39,48 @@
   SeeAlso     []
 
 ***********************************************************************/
-Dar_Man_t * Csw_Sweep( Dar_Man_t * pAig, int nCutsMax, int nLeafMax, int fVerbose )
+Aig_Man_t * Csw_Sweep( Aig_Man_t * pAig, int nCutsMax, int nLeafMax, int fVerbose )
 {
     Csw_Man_t * p;
-    Dar_Man_t * pRes;
-    Dar_Obj_t * pObj, * pObjNew, * pObjRes;
-    int i;
+    Aig_Man_t * pRes;
+    Aig_Obj_t * pObj, * pObjNew, * pObjRes;
+    int i, clk;
+clk = clock();
     // start the manager
     p = Csw_ManStart( pAig, nCutsMax, nLeafMax, fVerbose );
     // set elementary cuts at the PIs
-    Dar_ManForEachPi( p->pManRes, pObj, i )
+    Aig_ManForEachPi( p->pManRes, pObj, i )
+    {
         Csw_ObjPrepareCuts( p, pObj, 1 );
+        Csw_ObjAddRefs( p, pObj, Aig_ManPi(p->pManAig,i)->nRefs );
+    }
     // process the nodes
-    Dar_ManForEachNode( pAig, pObj, i )
+    Aig_ManForEachNode( pAig, pObj, i )
     {
         // create the new node
-        pObjNew = Dar_And( p->pManRes, Csw_ObjChild0Equiv(p, pObj), Csw_ObjChild1Equiv(p, pObj) );
+        pObjNew = Aig_And( p->pManRes, Csw_ObjChild0Equiv(p, pObj), Csw_ObjChild1Equiv(p, pObj) );
         // check if this node can be represented using another node
-        pObjRes = Csw_ObjSweep( p, Dar_Regular(pObjNew), pObj->nRefs > 1 );
-        pObjRes = Dar_NotCond( pObjRes, Dar_IsComplement(pObjNew) );
-        // set the resulting node
+//        pObjRes = Csw_ObjSweep( p, Aig_Regular(pObjNew), pObj->nRefs > 1 );
+//        pObjRes = Aig_NotCond( pObjRes, Aig_IsComplement(pObjNew) );
+        // try recursively if resubsitution is used
+        do {
+            pObjRes = Csw_ObjSweep( p, Aig_Regular(pObjNew), pObj->nRefs > 1 );
+            pObjRes = Aig_NotCond( pObjRes, Aig_IsComplement(pObjNew) );        
+            pObjNew = pObjRes;
+        } while ( Csw_ObjCuts(p, Aig_Regular(pObjNew)) == NULL && !Aig_ObjIsConst1(Aig_Regular(pObjNew)) );
+        // save the resulting node
         Csw_ObjSetEquiv( p, pObj, pObjRes );
+        // add to the reference counter
+        Csw_ObjAddRefs( p, Aig_Regular(pObjRes), pObj->nRefs );
     }
     // add the POs
-    Dar_ManForEachPo( pAig, pObj, i )
-        Dar_ObjCreatePo( p->pManRes, Csw_ObjChild0Equiv(p, pObj) );
+    Aig_ManForEachPo( pAig, pObj, i )
+        Aig_ObjCreatePo( p->pManRes, Csw_ObjChild0Equiv(p, pObj) );
     // remove dangling nodes 
-    Dar_ManCleanup( p->pManRes );
+    Aig_ManCleanup( p->pManRes );
     // return the resulting manager
+p->timeTotal = clock() - clk;
+p->timeOther = p->timeTotal - p->timeCuts - p->timeHash;
     pRes = p->pManRes;
     Csw_ManStop( p );
     return pRes;

@@ -56,13 +56,13 @@ int Rwr_NodeRewrite( Rwr_Man_t * p, Cut_Man_t * pManCut, Abc_Obj_t * pNode, int 
 {
     int fVeryVerbose = 0;
     Dec_Graph_t * pGraph;
-    Cut_Cut_t * pCut;
+    Cut_Cut_t * pCut;//, * pTemp;
     Abc_Obj_t * pFanin;
     unsigned uPhase, uTruthBest, uTruth;
     char * pPerm;
     int Required, nNodesSaved, nNodesSaveCur;
     int i, GainCur, GainBest = -1;
-    int clk, clk2;
+    int clk, clk2;//, Counter;
 
     p->nNodesConsidered++;
     // get the required times
@@ -75,7 +75,12 @@ clk = clock();
 p->timeCut += clock() - clk;
 
 //printf( " %d", Rwr_CutCountNumNodes(pNode, pCut) );
-
+/*
+    Counter = 0;
+    for ( pTemp = pCut->pNext; pTemp; pTemp = pTemp->pNext )
+        Counter++;
+    printf( "%d ", Counter );
+*/
     // go through the cuts
 clk = clock();
     for ( pCut = pCut->pNext; pCut; pCut = pCut->pNext )

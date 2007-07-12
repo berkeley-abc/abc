@@ -43,10 +43,10 @@
 Cnf_Cut_t * Cnf_CutAlloc( Cnf_Man_t * p, int nLeaves )
 {
     Cnf_Cut_t * pCut;
-    int nSize = sizeof(Cnf_Cut_t) + sizeof(int) * nLeaves + sizeof(unsigned) * Dar_TruthWordNum(nLeaves);
-    pCut = (Cnf_Cut_t *)Dar_MmFlexEntryFetch( p->pMemCuts, nSize );
+    int nSize = sizeof(Cnf_Cut_t) + sizeof(int) * nLeaves + sizeof(unsigned) * Aig_TruthWordNum(nLeaves);
+    pCut = (Cnf_Cut_t *)Aig_MmFlexEntryFetch( p->pMemCuts, nSize );
     pCut->nFanins = nLeaves;
-    pCut->nWords = Dar_TruthWordNum(nLeaves);
+    pCut->nWords = Aig_TruthWordNum(nLeaves);
     pCut->vIsop[0] = pCut->vIsop[1] = NULL;
     return pCut;
 }
@@ -81,13 +81,14 @@ void Cnf_CutFree( Cnf_Cut_t * pCut )
   SeeAlso     []
 
 ***********************************************************************/
-Cnf_Cut_t * Cnf_CutCreate( Cnf_Man_t * p, Dar_Obj_t * pObj )
+Cnf_Cut_t * Cnf_CutCreate( Cnf_Man_t * p, Aig_Obj_t * pObj )
 {
     Dar_Cut_t * pCutBest;
     Cnf_Cut_t * pCut;
     unsigned * pTruth;
-    assert( Dar_ObjIsNode(pObj) );
-    pCutBest = Dar_ObjBestCut( pObj );
+    assert( Aig_ObjIsNode(pObj) );
+//    pCutBest = Aig_ObjBestCut( pObj );
+        pCutBest = NULL;
     assert( pCutBest != NULL );
     assert( pCutBest->nLeaves <= 4 );
     pCut = Cnf_CutAlloc( p, pCutBest->nLeaves );
@@ -131,7 +132,7 @@ void Cnf_CutPrint( Cnf_Cut_t * pCut )
 ***********************************************************************/
 void Cnf_CutDeref( Cnf_Man_t * p, Cnf_Cut_t * pCut )
 {
-    Dar_Obj_t * pObj;
+    Aig_Obj_t * pObj;
     int i;
     Cnf_CutForEachLeaf( p->pManAig, pCut, pObj, i )
     {
@@ -153,7 +154,7 @@ void Cnf_CutDeref( Cnf_Man_t * p, Cnf_Cut_t * pCut )
 ***********************************************************************/
 void Cnf_CutRef( Cnf_Man_t * p, Cnf_Cut_t * pCut )
 {
-    Dar_Obj_t * pObj;
+    Aig_Obj_t * pObj;
     int i;
     Cnf_CutForEachLeaf( p->pManAig, pCut, pObj, i )
     {

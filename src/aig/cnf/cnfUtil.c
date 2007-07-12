@@ -39,22 +39,23 @@
   SeeAlso     []
 
 ***********************************************************************/
-int Dar_ManScanMapping_rec( Cnf_Man_t * p, Dar_Obj_t * pObj, Vec_Ptr_t * vMapped )
+int Aig_ManScanMapping_rec( Cnf_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vMapped )
 {
-    Dar_Obj_t * pLeaf;
+    Aig_Obj_t * pLeaf;
     Dar_Cut_t * pCutBest;
     int aArea, i;
-    if ( pObj->nRefs++ || Dar_ObjIsPi(pObj) || Dar_ObjIsConst1(pObj) )
+    if ( pObj->nRefs++ || Aig_ObjIsPi(pObj) || Aig_ObjIsConst1(pObj) )
         return 0;
-    assert( Dar_ObjIsAnd(pObj) );
+    assert( Aig_ObjIsAnd(pObj) );
     // collect the node first to derive pre-order
     if ( vMapped )
         Vec_PtrPush( vMapped, pObj );
     // visit the transitive fanin of the selected cut
-    pCutBest = Dar_ObjBestCut(pObj);
-    aArea = pCutBest->Cost;
+//    pCutBest = Aig_ObjBestCut(pObj);
+        pCutBest = NULL;
+    aArea = pCutBest->Value;
     Dar_CutForEachLeaf( p->pManAig, pCutBest, pLeaf, i )
-        aArea += Dar_ManScanMapping_rec( p, pLeaf, vMapped );
+        aArea += Aig_ManScanMapping_rec( p, pLeaf, vMapped );
     return aArea;
 }
 
@@ -69,21 +70,21 @@ int Dar_ManScanMapping_rec( Cnf_Man_t * p, Dar_Obj_t * pObj, Vec_Ptr_t * vMapped
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Dar_ManScanMapping( Cnf_Man_t * p, int fCollect )
+Vec_Ptr_t * Aig_ManScanMapping( Cnf_Man_t * p, int fCollect )
 {
     Vec_Ptr_t * vMapped = NULL;
-    Dar_Obj_t * pObj;
+    Aig_Obj_t * pObj;
     int i;
     // clean all references
-    Dar_ManForEachObj( p->pManAig, pObj, i )
+    Aig_ManForEachObj( p->pManAig, pObj, i )
         pObj->nRefs = 0;
     // allocate the array
     if ( fCollect )
         vMapped = Vec_PtrAlloc( 1000 );
     // collect nodes reachable from POs in the DFS order through the best cuts
     p->aArea = 0;
-    Dar_ManForEachPo( p->pManAig, pObj, i )
-        p->aArea += Dar_ManScanMapping_rec( p, Dar_ObjFanin0(pObj), vMapped );
+    Aig_ManForEachPo( p->pManAig, pObj, i )
+        p->aArea += Aig_ManScanMapping_rec( p, Aig_ObjFanin0(pObj), vMapped );
     printf( "Variables = %6d. Clauses = %8d.\n", vMapped? Vec_PtrSize(vMapped) : 0, p->aArea );
     return vMapped;
 }
@@ -99,14 +100,14 @@ Vec_Ptr_t * Dar_ManScanMapping( Cnf_Man_t * p, int fCollect )
   SeeAlso     []
 
 ***********************************************************************/
-int Cnf_ManScanMapping_rec( Cnf_Man_t * p, Dar_Obj_t * pObj, Vec_Ptr_t * vMapped )
+int Cnf_ManScanMapping_rec( Cnf_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vMapped )
 {
-    Dar_Obj_t * pLeaf;
+    Aig_Obj_t * pLeaf;
     Cnf_Cut_t * pCutBest;
     int aArea, i;
-    if ( pObj->nRefs++ || Dar_ObjIsPi(pObj) || Dar_ObjIsConst1(pObj) )
+    if ( pObj->nRefs++ || Aig_ObjIsPi(pObj) || Aig_ObjIsConst1(pObj) )
         return 0;
-    assert( Dar_ObjIsAnd(pObj) );
+    assert( Aig_ObjIsAnd(pObj) );
     assert( pObj->pData != NULL );
     // visit the transitive fanin of the selected cut
     pCutBest = pObj->pData;
@@ -134,18 +135,18 @@ int Cnf_ManScanMapping_rec( Cnf_Man_t * p, Dar_Obj_t * pObj, Vec_Ptr_t * vMapped
 Vec_Ptr_t * Cnf_ManScanMapping( Cnf_Man_t * p, int fCollect )
 {
     Vec_Ptr_t * vMapped = NULL;
-    Dar_Obj_t * pObj;
+    Aig_Obj_t * pObj;
     int i;
     // clean all references
-    Dar_ManForEachObj( p->pManAig, pObj, i )
+    Aig_ManForEachObj( p->pManAig, pObj, i )
         pObj->nRefs = 0;
     // allocate the array
     if ( fCollect )
         vMapped = Vec_PtrAlloc( 1000 );
     // collect nodes reachable from POs in the DFS order through the best cuts
     p->aArea = 0;
-    Dar_ManForEachPo( p->pManAig, pObj, i )
-        p->aArea += Cnf_ManScanMapping_rec( p, Dar_ObjFanin0(pObj), vMapped );
+    Aig_ManForEachPo( p->pManAig, pObj, i )
+        p->aArea += Cnf_ManScanMapping_rec( p, Aig_ObjFanin0(pObj), vMapped );
     printf( "Variables = %6d. Clauses = %8d.\n", vMapped? Vec_PtrSize(vMapped) : 0, p->aArea );
     return vMapped;
 }

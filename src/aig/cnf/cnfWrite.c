@@ -183,7 +183,7 @@ int Cnf_IsopWriteCube( int Cube, int nVars, int * pVars, int fCompl, int * pLite
 ***********************************************************************/
 Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped )
 {
-    Dar_Obj_t * pObj;
+    Aig_Obj_t * pObj;
     Cnf_Dat_t * pCnf;
     Cnf_Cut_t * pCut;
     int OutVar, pVars[32], * pLits, ** pClas;
@@ -191,11 +191,11 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped )
     int i, k, nLiterals, nClauses, nCubes, Cube, Number;
 
     // count the number of literals and clauses
-    nLiterals = 1 + Dar_ManPoNum( p->pManAig );
-    nClauses = 1 + Dar_ManPoNum( p->pManAig );
+    nLiterals = 1 + Aig_ManPoNum( p->pManAig );
+    nClauses = 1 + Aig_ManPoNum( p->pManAig );
     Vec_PtrForEachEntry( vMapped, pObj, i )
     {
-        assert( Dar_ObjIsNode(pObj) );
+        assert( Aig_ObjIsNode(pObj) );
         pCut = Cnf_ObjBestCut( pObj );
 
         // positive polarity of the cut
@@ -224,7 +224,7 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped )
             nLiterals += Cnf_IsopCountLiterals( pCut->vIsop[0], pCut->nFanins ) + Vec_IntSize(pCut->vIsop[0]);
             nClauses += Vec_IntSize(pCut->vIsop[0]);
         }
-//printf( "%d ", nClauses-(1 + Dar_ManPoNum( p->pManAig )) );
+//printf( "%d ", nClauses-(1 + Aig_ManPoNum( p->pManAig )) );
     }
 //printf( "\n" );
 
@@ -239,13 +239,13 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped )
 
     // set variable numbers
     Number = 0;
-    pCnf->pVarNums = ALLOC( int, 1+Dar_ManObjIdMax(p->pManAig) );
-    memset( pCnf->pVarNums, 0xff, sizeof(int) * (1+Dar_ManObjIdMax(p->pManAig)) );
+    pCnf->pVarNums = ALLOC( int, 1+Aig_ManObjIdMax(p->pManAig) );
+    memset( pCnf->pVarNums, 0xff, sizeof(int) * (1+Aig_ManObjIdMax(p->pManAig)) );
     Vec_PtrForEachEntry( vMapped, pObj, i )
         pCnf->pVarNums[pObj->Id] = Number++;
-    Dar_ManForEachPi( p->pManAig, pObj, i )
+    Aig_ManForEachPi( p->pManAig, pObj, i )
         pCnf->pVarNums[pObj->Id] = Number++;
-    pCnf->pVarNums[Dar_ManConst1(p->pManAig)->Id] = Number++;
+    pCnf->pVarNums[Aig_ManConst1(p->pManAig)->Id] = Number++;
     pCnf->nVars = Number;
 
     // assign the clauses
@@ -260,7 +260,7 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped )
         for ( k = 0; k < (int)pCut->nFanins; k++ )
         {
             pVars[k] = pCnf->pVarNums[ pCut->pFanins[k] ];
-            assert( pVars[k] <= Dar_ManObjIdMax(p->pManAig) );
+            assert( pVars[k] <= Aig_ManObjIdMax(p->pManAig) );
         }
 
         // positive polarity of the cut
@@ -310,17 +310,17 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped )
     }
 
     // write the constant literal
-    OutVar = pCnf->pVarNums[ Dar_ManConst1(p->pManAig)->Id ];
-    assert( OutVar <= Dar_ManObjIdMax(p->pManAig) );
+    OutVar = pCnf->pVarNums[ Aig_ManConst1(p->pManAig)->Id ];
+    assert( OutVar <= Aig_ManObjIdMax(p->pManAig) );
     *pClas++ = pLits;
     *pLits++ = 2 * OutVar; 
 
     // write the output literals
-    Dar_ManForEachPo( p->pManAig, pObj, i )
+    Aig_ManForEachPo( p->pManAig, pObj, i )
     {
-        OutVar = pCnf->pVarNums[ Dar_ObjFanin0(pObj)->Id ];
+        OutVar = pCnf->pVarNums[ Aig_ObjFanin0(pObj)->Id ];
         *pClas++ = pLits;
-        *pLits++ = 2 * OutVar + Dar_ObjFaninC0(pObj); 
+        *pLits++ = 2 * OutVar + Aig_ObjFaninC0(pObj); 
     }
 
     // verify that the correct number of literals and clauses was written

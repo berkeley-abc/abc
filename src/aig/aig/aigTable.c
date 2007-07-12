@@ -1,10 +1,10 @@
 /**CFile****************************************************************
 
-  FileName    [darTable.c]
+  FileName    [aigTable.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [DAG-aware AIG rewriting.]
+  PackageName [AIG package.]
 
   Synopsis    [Structural hashing table.]
 
@@ -14,48 +14,48 @@
 
   Date        [Ver. 1.0. Started - April 28, 2007.]
 
-  Revision    [$Id: darTable.c,v 1.00 2007/04/28 00:00:00 alanmi Exp $]
+  Revision    [$Id: aigTable.c,v 1.00 2007/04/28 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "dar.h"
+#include "aig.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
 // hashing the node
-static unsigned long Dar_Hash( Dar_Obj_t * pObj, int TableSize ) 
+static unsigned long Aig_Hash( Aig_Obj_t * pObj, int TableSize ) 
 {
-    unsigned long Key = Dar_ObjIsExor(pObj) * 1699;
-    Key ^= (long)Dar_ObjFanin0(pObj) * 7937;
-    Key ^= (long)Dar_ObjFanin1(pObj) * 2971;
-    Key ^= Dar_ObjFaninC0(pObj) * 911;
-    Key ^= Dar_ObjFaninC1(pObj) * 353;
+    unsigned long Key = Aig_ObjIsExor(pObj) * 1699;
+    Key ^= (long)Aig_ObjFanin0(pObj) * 7937;
+    Key ^= (long)Aig_ObjFanin1(pObj) * 2971;
+    Key ^= Aig_ObjFaninC0(pObj) * 911;
+    Key ^= Aig_ObjFaninC1(pObj) * 353;
     return Key % TableSize;
 }
 
 // returns the place where this node is stored (or should be stored)
-static Dar_Obj_t ** Dar_TableFind( Dar_Man_t * p, Dar_Obj_t * pObj )
+static Aig_Obj_t ** Aig_TableFind( Aig_Man_t * p, Aig_Obj_t * pObj )
 {
-    Dar_Obj_t ** ppEntry;
-    if ( Dar_ObjIsLatch(pObj) )
+    Aig_Obj_t ** ppEntry;
+    if ( Aig_ObjIsLatch(pObj) )
     {
-        assert( Dar_ObjChild0(pObj) && Dar_ObjChild1(pObj) == NULL );
+        assert( Aig_ObjChild0(pObj) && Aig_ObjChild1(pObj) == NULL );
     }
     else
     {
-        assert( Dar_ObjChild0(pObj) && Dar_ObjChild1(pObj) );
-        assert( Dar_ObjFanin0(pObj)->Id < Dar_ObjFanin1(pObj)->Id );
+        assert( Aig_ObjChild0(pObj) && Aig_ObjChild1(pObj) );
+        assert( Aig_ObjFanin0(pObj)->Id < Aig_ObjFanin1(pObj)->Id );
     }
-    for ( ppEntry = p->pTable + Dar_Hash(pObj, p->nTableSize); *ppEntry; ppEntry = &(*ppEntry)->pNext )
+    for ( ppEntry = p->pTable + Aig_Hash(pObj, p->nTableSize); *ppEntry; ppEntry = &(*ppEntry)->pNext )
         if ( *ppEntry == pObj )
             return ppEntry;
     assert( *ppEntry == NULL );
     return ppEntry;
 }
 
-static void         Dar_TableResize( Dar_Man_t * p );
+static void         Aig_TableResize( Aig_Man_t * p );
 static unsigned int Cudd_PrimeAig( unsigned int  p );
 
 ////////////////////////////////////////////////////////////////////////
@@ -73,29 +73,29 @@ static unsigned int Cudd_PrimeAig( unsigned int  p );
   SeeAlso     []
 
 ***********************************************************************/
-Dar_Obj_t * Dar_TableLookup( Dar_Man_t * p, Dar_Obj_t * pGhost )
+Aig_Obj_t * Aig_TableLookup( Aig_Man_t * p, Aig_Obj_t * pGhost )
 {
-    Dar_Obj_t * pEntry;
-    assert( !Dar_IsComplement(pGhost) );
-    if ( pGhost->Type == DAR_AIG_LATCH )
+    Aig_Obj_t * pEntry;
+    assert( !Aig_IsComplement(pGhost) );
+    if ( pGhost->Type == AIG_OBJ_LATCH )
     {
-        assert( Dar_ObjChild0(pGhost) && Dar_ObjChild1(pGhost) == NULL );
-        if ( !Dar_ObjRefs(Dar_ObjFanin0(pGhost)) )
+        assert( Aig_ObjChild0(pGhost) && Aig_ObjChild1(pGhost) == NULL );
+        if ( !Aig_ObjRefs(Aig_ObjFanin0(pGhost)) )
             return NULL;
     }
     else
     {
-        assert( pGhost->Type == DAR_AIG_AND );
-        assert( Dar_ObjChild0(pGhost) && Dar_ObjChild1(pGhost) );
-        assert( Dar_ObjFanin0(pGhost)->Id < Dar_ObjFanin1(pGhost)->Id );
-        if ( !Dar_ObjRefs(Dar_ObjFanin0(pGhost)) || !Dar_ObjRefs(Dar_ObjFanin1(pGhost)) )
+        assert( pGhost->Type == AIG_OBJ_AND );
+        assert( Aig_ObjChild0(pGhost) && Aig_ObjChild1(pGhost) );
+        assert( Aig_ObjFanin0(pGhost)->Id < Aig_ObjFanin1(pGhost)->Id );
+        if ( !Aig_ObjRefs(Aig_ObjFanin0(pGhost)) || !Aig_ObjRefs(Aig_ObjFanin1(pGhost)) )
             return NULL;
     }
-    for ( pEntry = p->pTable[Dar_Hash(pGhost, p->nTableSize)]; pEntry; pEntry = pEntry->pNext )
+    for ( pEntry = p->pTable[Aig_Hash(pGhost, p->nTableSize)]; pEntry; pEntry = pEntry->pNext )
     {
-        if ( Dar_ObjChild0(pEntry) == Dar_ObjChild0(pGhost) && 
-             Dar_ObjChild1(pEntry) == Dar_ObjChild1(pGhost) && 
-             Dar_ObjType(pEntry) == Dar_ObjType(pGhost) )
+        if ( Aig_ObjChild0(pEntry) == Aig_ObjChild0(pGhost) && 
+             Aig_ObjChild1(pEntry) == Aig_ObjChild1(pGhost) && 
+             Aig_ObjType(pEntry) == Aig_ObjType(pGhost) )
             return pEntry;
     }
     return NULL;
@@ -112,14 +112,14 @@ Dar_Obj_t * Dar_TableLookup( Dar_Man_t * p, Dar_Obj_t * pGhost )
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_TableInsert( Dar_Man_t * p, Dar_Obj_t * pObj )
+void Aig_TableInsert( Aig_Man_t * p, Aig_Obj_t * pObj )
 {
-    Dar_Obj_t ** ppPlace;
-    assert( !Dar_IsComplement(pObj) );
-    assert( Dar_TableLookup(p, pObj) == NULL );
-    if ( (pObj->Id & 0xFF) == 0 && 2 * p->nTableSize < Dar_ManNodeNum(p) )
-        Dar_TableResize( p );
-    ppPlace = Dar_TableFind( p, pObj );
+    Aig_Obj_t ** ppPlace;
+    assert( !Aig_IsComplement(pObj) );
+    assert( Aig_TableLookup(p, pObj) == NULL );
+    if ( (pObj->Id & 0xFF) == 0 && 2 * p->nTableSize < Aig_ManNodeNum(p) )
+        Aig_TableResize( p );
+    ppPlace = Aig_TableFind( p, pObj );
     assert( *ppPlace == NULL );
     *ppPlace = pObj;
 }
@@ -135,11 +135,11 @@ void Dar_TableInsert( Dar_Man_t * p, Dar_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_TableDelete( Dar_Man_t * p, Dar_Obj_t * pObj )
+void Aig_TableDelete( Aig_Man_t * p, Aig_Obj_t * pObj )
 {
-    Dar_Obj_t ** ppPlace;
-    assert( !Dar_IsComplement(pObj) );
-    ppPlace = Dar_TableFind( p, pObj );
+    Aig_Obj_t ** ppPlace;
+    assert( !Aig_IsComplement(pObj) );
+    ppPlace = Aig_TableFind( p, pObj );
     assert( *ppPlace == pObj ); // node should be in the table
     // remove the node
     *ppPlace = pObj->pNext;
@@ -157,9 +157,9 @@ void Dar_TableDelete( Dar_Man_t * p, Dar_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-int Dar_TableCountEntries( Dar_Man_t * p )
+int Aig_TableCountEntries( Aig_Man_t * p )
 {
-    Dar_Obj_t * pEntry;
+    Aig_Obj_t * pEntry;
     int i, Counter = 0;
     for ( i = 0; i < p->nTableSize; i++ )
         for ( pEntry = p->pTable[i]; pEntry; pEntry = pEntry->pNext )
@@ -178,33 +178,33 @@ int Dar_TableCountEntries( Dar_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_TableResize( Dar_Man_t * p )
+void Aig_TableResize( Aig_Man_t * p )
 {
-    Dar_Obj_t * pEntry, * pNext;
-    Dar_Obj_t ** pTableOld, ** ppPlace;
+    Aig_Obj_t * pEntry, * pNext;
+    Aig_Obj_t ** pTableOld, ** ppPlace;
     int nTableSizeOld, Counter, nEntries, i, clk;
 clk = clock();
     // save the old table
     pTableOld = p->pTable;
     nTableSizeOld = p->nTableSize;
     // get the new table
-    p->nTableSize = Cudd_PrimeAig( 2 * Dar_ManNodeNum(p) ); 
-    p->pTable = ALLOC( Dar_Obj_t *, p->nTableSize );
-    memset( p->pTable, 0, sizeof(Dar_Obj_t *) * p->nTableSize );
+    p->nTableSize = Cudd_PrimeAig( 2 * Aig_ManNodeNum(p) ); 
+    p->pTable = ALLOC( Aig_Obj_t *, p->nTableSize );
+    memset( p->pTable, 0, sizeof(Aig_Obj_t *) * p->nTableSize );
     // rehash the entries from the old table
     Counter = 0;
     for ( i = 0; i < nTableSizeOld; i++ )
     for ( pEntry = pTableOld[i], pNext = pEntry? pEntry->pNext : NULL; pEntry; pEntry = pNext, pNext = pEntry? pEntry->pNext : NULL )
     {
         // get the place where this entry goes in the table 
-        ppPlace = Dar_TableFind( p, pEntry );
+        ppPlace = Aig_TableFind( p, pEntry );
         assert( *ppPlace == NULL ); // should not be there
         // add the entry to the list
         *ppPlace = pEntry;
         pEntry->pNext = NULL;
         Counter++;
     }
-    nEntries = Dar_ManNodeNum(p);
+    nEntries = Aig_ManNodeNum(p);
     assert( Counter == nEntries );
     printf( "Increasing the structural table size from %6d to %6d. ", nTableSizeOld, p->nTableSize );
     PRT( "Time", clock() - clk );
@@ -223,9 +223,9 @@ clk = clock();
   SeeAlso     []
 
 ******************************************************************************/
-void Dar_TableProfile( Dar_Man_t * p )
+void Aig_TableProfile( Aig_Man_t * p )
 {
-    Dar_Obj_t * pEntry;
+    Aig_Obj_t * pEntry;
     int i, Counter;
     for ( i = 0; i < p->nTableSize; i++ )
     {

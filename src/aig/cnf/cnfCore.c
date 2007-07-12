@@ -39,20 +39,20 @@
   SeeAlso     []
 
 ***********************************************************************/
-Cnf_Dat_t * Cnf_Derive( Cnf_Man_t * p, Dar_Man_t * pAig )
+Cnf_Dat_t * Cnf_Derive( Cnf_Man_t * p, Aig_Man_t * pAig )
 {
+    Aig_MmFixed_t * pMemCuts;
     Cnf_Dat_t * pCnf = NULL;
     Vec_Ptr_t * vMapped;
     int nIters = 2;
     int clk;
 
     // connect the managers
-    pAig->pManCnf = p;
     p->pManAig = pAig;
 
     // generate cuts for all nodes, assign cost, and find best cuts
 clk = clock();
-    Dar_ManComputeCuts( pAig );
+    pMemCuts = Dar_ManComputeCuts( pAig );
 PRT( "Cuts", clock() - clk );
 /*
     // iteratively improve area flow
@@ -65,7 +65,7 @@ PRT( "iter ", clock() - clk );
     }
 */
     // write the file
-    vMapped = Dar_ManScanMapping( p, 1 );
+    vMapped = Aig_ManScanMapping( p, 1 );
     Vec_PtrFree( vMapped );
 
 clk = clock();
@@ -91,6 +91,7 @@ PRT( "Ext ", clock() - clk );
     Dar_ManCutsFree( pAig );
     return pCnf;
 */
+    Aig_MmFixedStop( pMemCuts, 0 );
     return NULL;
 }
 

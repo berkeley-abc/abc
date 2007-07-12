@@ -41,11 +41,39 @@
 ***********************************************************************/
 static inline int Csw_CutFindCost( Csw_Man_t * p, Csw_Cut_t * pCut )
 {
-    Dar_Obj_t * pObj;
+    Aig_Obj_t * pLeaf;
     int i, Cost = 0;
-    Csw_CutForEachLeaf( p->pManRes, pCut, pObj, i )
-        Cost += pObj->nRefs;
+    assert( pCut->nFanins > 0 );
+    Csw_CutForEachLeaf( p->pManRes, pCut, pLeaf, i )
+    {
+//        Cost += pLeaf->nRefs;
+        Cost += Csw_ObjRefs( p, pLeaf );
+//        printf( "%d ", pLeaf->nRefs );
+    }
+//printf( "\n" );
     return Cost * 100 / pCut->nFanins;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Compute the cost of the cut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline float Csw_CutFindCost2( Csw_Man_t * p, Csw_Cut_t * pCut )
+{
+    Aig_Obj_t * pLeaf;
+    float Cost = 0.0;
+    int i;
+    assert( pCut->nFanins > 0 );
+    Csw_CutForEachLeaf( p->pManRes, pCut, pLeaf, i )
+        Cost += (float)1.0/pLeaf->nRefs;
+    return 1/Cost;
 }
 
 /**Function*************************************************************
@@ -59,7 +87,7 @@ static inline int Csw_CutFindCost( Csw_Man_t * p, Csw_Cut_t * pCut )
   SeeAlso     []
 
 ***********************************************************************/
-static inline Csw_Cut_t * Csw_CutFindFree( Csw_Man_t * p, Dar_Obj_t * pObj )
+static inline Csw_Cut_t * Csw_CutFindFree( Csw_Man_t * p, Aig_Obj_t * pObj )
 {
     Csw_Cut_t * pCut, * pCutMax;
     int i;
@@ -131,7 +159,122 @@ unsigned * Csw_CutComputeTruth( Csw_Man_t * p, Csw_Cut_t * pCut, Csw_Cut_t * pCu
     Kit_TruthStretch( p->puTemp[3], p->puTemp[1], pCut1->nFanins, p->nLeafMax, Cut_TruthPhase(pCut, pCut1), 0 );
     // produce the resulting table
     Kit_TruthAnd( Csw_CutTruth(pCut), p->puTemp[2], p->puTemp[3], p->nLeafMax );
+//    assert( pCut->nFanins >= Kit_TruthSupportSize( Csw_CutTruth(pCut), p->nLeafMax ) );
     return Csw_CutTruth(pCut);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs support minimization for the truth table.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Csw_CutSupportMinimize( Csw_Man_t * p, Csw_Cut_t * pCut )
+{
+    unsigned * pTruth;
+    int uSupp, nFansNew, i, k;
+    // get truth table
+    pTruth = Csw_CutTruth( pCut );
+    // get support 
+    uSupp = Kit_TruthSupport( pTruth, p->nLeafMax );
+    // get the new support size
+    nFansNew = Kit_WordCountOnes( uSupp );
+    // check if there are redundant variables
+    if ( nFansNew == pCut->nFanins )
+        return nFansNew;
+    assert( nFansNew < pCut->nFanins );
+    // minimize support
+    Kit_TruthShrink( p->puTemp[0], pTruth, nFansNew, p->nLeafMax, uSupp, 1 );
+    for ( i = k = 0; i < pCut->nFanins; i++ )
+        if ( uSupp & (1 << i) )
+            pCut->pFanins[k++] = pCut->pFanins[i];
+    assert( k == nFansNew );
+    pCut->nFanins = nFansNew;
+//    assert( nFansNew == Kit_TruthSupportSize( pTruth, p->nLeafMax ) );
+//Extra_PrintBinary( stdout, pTruth, (1<<p->nLeafMax) ); printf( "\n" );
+    return nFansNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if pDom is contained in pCut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Csw_CutCheckDominance( Csw_Cut_t * pDom, Csw_Cut_t * pCut )
+{
+    int i, k;
+    for ( i = 0; i < (int)pDom->nFanins; i++ )
+    {
+        for ( k = 0; k < (int)pCut->nFanins; k++ )
+            if ( pDom->pFanins[i] == pCut->pFanins[k] )
+                break;
+        if ( k == (int)pCut->nFanins ) // node i in pDom is not contained in pCut
+            return 0;
+    }
+    // every node in pDom is contained in pCut
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if the cut is contained.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Csw_CutFilter( Csw_Man_t * p, Aig_Obj_t * pObj, Csw_Cut_t * pCut )
+{ 
+    Csw_Cut_t * pTemp;
+    int i;
+    // go through the cuts of the node
+    Csw_ObjForEachCut( p, pObj, pTemp, i )
+    {
+        if ( pTemp->nFanins < 2 )
+            continue;
+        if ( pTemp == pCut )
+            continue;
+        if ( pTemp->nFanins > pCut->nFanins )
+        {
+            // skip the non-contained cuts
+            if ( (pTemp->uSign & pCut->uSign) != pCut->uSign )
+                continue;
+            // check containment seriously
+            if ( Csw_CutCheckDominance( pCut, pTemp ) )
+            {
+                // remove contained cut
+                pTemp->nFanins = 0;
+            }
+         }
+        else
+        {
+            // skip the non-contained cuts
+            if ( (pTemp->uSign & pCut->uSign) != pTemp->uSign )
+                continue;
+            // check containment seriously
+            if ( Csw_CutCheckDominance( pTemp, pCut ) )
+            {
+                // remove the given
+                pCut->nFanins = 0;
+                return 1;
+            }
+        }
+    }
+    return 0;
 }
 
 /**Function*************************************************************
@@ -251,7 +394,7 @@ int Csw_CutMerge( Csw_Man_t * p, Csw_Cut_t * pCut0, Csw_Cut_t * pCut1, Csw_Cut_t
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Consider cut with more than 2 fanins having 2 true variables.]
 
   Description []
                
@@ -260,30 +403,37 @@ int Csw_CutMerge( Csw_Man_t * p, Csw_Cut_t * pCut0, Csw_Cut_t * pCut1, Csw_Cut_t
   SeeAlso     []
 
 ***********************************************************************/
-Csw_Cut_t * Csw_ObjPrepareCuts( Csw_Man_t * p, Dar_Obj_t * pObj, int fTriv )
+Aig_Obj_t * Csw_ObjTwoVarCut( Csw_Man_t * p, Csw_Cut_t * pCut )
 {
-    Csw_Cut_t * pCutSet, * pCut;
-    int i;
-    // create the cutset of the node
-    pCutSet = (Csw_Cut_t *)Dar_MmFixedEntryFetch( p->pMemCuts );
-    Csw_ObjSetCuts( p, pObj, pCutSet );
-    Csw_ObjForEachCut( p, pObj, pCut, i )
+    Aig_Obj_t * pRes, * pIn0, * pIn1;
+    int nVars, uTruth, fCompl = 0;
+    assert( pCut->nFanins > 2 );
+    // minimize support of this cut
+    nVars = Csw_CutSupportMinimize( p, pCut );
+    assert( nVars == 2 );
+    // get the fanins
+    pIn0 = Aig_ManObj( p->pManRes, pCut->pFanins[0] );
+    pIn1 = Aig_ManObj( p->pManRes, pCut->pFanins[1] );
+    // derive the truth table
+    uTruth = 0xF & *Csw_CutTruth(pCut);
+    if ( uTruth == 14 || uTruth == 13 || uTruth == 11 || uTruth == 7 )
     {
-        pCut->nFanins = 0;
-        pCut->iNode = pObj->Id;
+        uTruth = 0xF & ~uTruth;
+        fCompl = 1;
     }
-    // add unit cut if needed
-    if ( fTriv )
-    {
-        pCut = pCutSet;
-        pCut->Cost = 0;
-        pCut->iNode = pObj->Id;
-        pCut->nFanins = 1;
-        pCut->pFanins[0] = pObj->Id;
-        pCut->uSign = Csw_ObjCutSign( pObj->Id );
-        memset( Csw_CutTruth(pCut), 0xAA, sizeof(unsigned) * p->nTruthWords );
-    }
-    return pCutSet;
+    // compute the result
+    pRes = NULL;
+    if ( uTruth == 1  )  // 0001  // 1110  14
+        pRes = Aig_And( p->pManRes, Aig_Not(pIn0), Aig_Not(pIn1) );
+    if ( uTruth == 2  )  // 0010  // 1101  13 
+        pRes = Aig_And( p->pManRes,         pIn0 , Aig_Not(pIn1) );
+    if ( uTruth == 4  )  // 0100  // 1011  11
+        pRes = Aig_And( p->pManRes, Aig_Not(pIn0),         pIn1  );
+    if ( uTruth == 8  )  // 1000  // 0111   7
+        pRes = Aig_And( p->pManRes,         pIn0 ,         pIn1  );
+    if ( pRes )
+        pRes = Aig_NotCond( pRes, fCompl );
+    return pRes;
 }
 
 /**Function*************************************************************
@@ -297,23 +447,63 @@ Csw_Cut_t * Csw_ObjPrepareCuts( Csw_Man_t * p, Dar_Obj_t * pObj, int fTriv )
   SeeAlso     []
 
 ***********************************************************************/
-Dar_Obj_t * Csw_ObjSweep( Csw_Man_t * p, Dar_Obj_t * pObj, int fTriv )
+Csw_Cut_t * Csw_ObjPrepareCuts( Csw_Man_t * p, Aig_Obj_t * pObj, int fTriv )
 {
-    Csw_Cut_t * pCut0, * pCut1, * pCut, * pCutSet;
-    Dar_Obj_t * pFanin0 = Dar_ObjFanin0(pObj);
-    Dar_Obj_t * pFanin1 = Dar_ObjFanin1(pObj);
-    Dar_Obj_t * pObjNew;
-    unsigned * pTruth;
-    int i, k, nVars, iVar;
+    Csw_Cut_t * pCutSet, * pCut;
+    int i;
+    // create the cutset of the node
+    pCutSet = (Csw_Cut_t *)Aig_MmFixedEntryFetch( p->pMemCuts );
+    Csw_ObjSetCuts( p, pObj, pCutSet );
+    Csw_ObjForEachCut( p, pObj, pCut, i )
+    {
+        pCut->nFanins = 0;
+        pCut->iNode = pObj->Id;
+        pCut->nCutSize = p->nCutSize;
+        pCut->nLeafMax = p->nLeafMax;
+    }
+    // add unit cut if needed
+    if ( fTriv )
+    {
+        pCut = pCutSet;
+        pCut->Cost = 0;
+        pCut->iNode = pObj->Id;
+        pCut->nFanins = 1;
+        pCut->pFanins[0] = pObj->Id;
+        pCut->uSign = Aig_ObjCutSign( pObj->Id );
+        memset( Csw_CutTruth(pCut), 0xAA, sizeof(unsigned) * p->nTruthWords );
+    }
+    return pCutSet;
+}
 
-    assert( !Dar_IsComplement(pObj) );
-    if ( !Dar_ObjIsNode(pObj) )
+/**Function*************************************************************
+
+  Synopsis    [Derives cuts for one node and sweeps this node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Obj_t * Csw_ObjSweep( Csw_Man_t * p, Aig_Obj_t * pObj, int fTriv )
+{
+    int fUseResub = 1;
+    Csw_Cut_t * pCut0, * pCut1, * pCut, * pCutSet;
+    Aig_Obj_t * pFanin0 = Aig_ObjFanin0(pObj);
+    Aig_Obj_t * pFanin1 = Aig_ObjFanin1(pObj);
+    Aig_Obj_t * pObjNew;
+    unsigned * pTruth;
+    int i, k, nVars, nFanins, iVar, clk;
+
+    assert( !Aig_IsComplement(pObj) );
+    if ( !Aig_ObjIsNode(pObj) )
         return pObj;
     if ( Csw_ObjCuts(p, pObj) )
         return pObj;
     // the node is not processed yet
     assert( Csw_ObjCuts(p, pObj) == NULL );
-    assert( Dar_ObjIsNode(pObj) );
+    assert( Aig_ObjIsNode(pObj) );
 
     // set up the first cut
     pCutSet = Csw_ObjPrepareCuts( p, pObj, fTriv );
@@ -329,48 +519,77 @@ Dar_Obj_t * Csw_ObjSweep( Csw_Man_t * p, Dar_Obj_t * pObj, int fTriv )
             continue;
         // get the next cut of this node
         pCut = Csw_CutFindFree( p, pObj );
+clk = clock();
         // assemble the new cut
         if ( !Csw_CutMerge( p, pCut0, pCut1, pCut ) )
         {
             assert( pCut->nFanins == 0 );
             continue;
         }
-/*
         // check containment
-        if ( Csw_CutFilter( p, pCutSet, pCut ) )
+        if ( Csw_CutFilter( p, pObj, pCut ) )
         {
-            pCut->nFanins = 0;
+            assert( pCut->nFanins == 0 );
             continue;
         }
-*/
         // create its truth table
-        pTruth = Csw_CutComputeTruth( p, pCut, pCut0, pCut1, Dar_ObjFaninC0(pObj), Dar_ObjFaninC1(pObj) );
-        // check for trivial truth table
+        pTruth = Csw_CutComputeTruth( p, pCut, pCut0, pCut1, Aig_ObjFaninC0(pObj), Aig_ObjFaninC1(pObj) );
+        // support minimize the truth table
+        nFanins = pCut->nFanins;
+//        nVars = Csw_CutSupportMinimize( p, pCut ); // leads to quality degradation
         nVars = Kit_TruthSupportSize( pTruth, p->nLeafMax );
+p->timeCuts += clock() - clk;
+
+        // check for trivial truth tables
         if ( nVars == 0 )
-            return Dar_NotCond( Dar_ManConst1(p->pManRes), !(pTruth[0] & 1) );
+        {
+            p->nNodesTriv0++;
+            return Aig_NotCond( Aig_ManConst1(p->pManRes), !(pTruth[0] & 1) );
+        }
         if ( nVars == 1 )
         {
+            p->nNodesTriv1++;
             iVar = Kit_WordFindFirstBit( Kit_TruthSupport(pTruth, p->nLeafMax) );
             assert( iVar < pCut->nFanins );
-            return Dar_NotCond( Dar_ManObj(p->pManRes, pCut->pFanins[iVar]), (pTruth[0] & 1) );
+            return Aig_NotCond( Aig_ManObj(p->pManRes, pCut->pFanins[iVar]), (pTruth[0] & 1) );
         }
+        if ( nVars == 2 && nFanins > 2 && fUseResub )
+        {
+            if ( pObjNew = Csw_ObjTwoVarCut( p, pCut ) )
+            {
+                p->nNodesTriv2++;
+                return pObjNew;
+            }
+        }
+
         // check if an equivalent node with the same cut exists
-        if ( pObjNew = Csw_TableCutLookup( p, pCut ) )
+clk = clock();
+        pObjNew = pCut->nFanins > 2 ? Csw_TableCutLookup( p, pCut ) : NULL;
+p->timeHash += clock() - clk;
+        if ( pObjNew )
+        {
+            p->nNodesCuts++;
             return pObjNew;
+        }
+
         // assign the cost
         pCut->Cost = Csw_CutFindCost( p, pCut );
         assert( pCut->nFanins > 0 );
         assert( pCut->Cost > 0 );
     }
+    p->nNodesTried++;
 
     // load the resulting cuts into the table
+clk = clock();
     Csw_ObjForEachCut( p, pObj, pCut, i )
+    {
         if ( pCut->nFanins > 2 )
         {
             assert( pCut->Cost > 0 );
             Csw_TableCutInsert( p, pCut );
         }
+    }
+p->timeHash += clock() - clk;
 
     // return the node if could not replace it
     return pObj;

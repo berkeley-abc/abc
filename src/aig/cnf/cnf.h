@@ -36,7 +36,8 @@ extern "C" {
 #include <time.h>
 
 #include "vec.h"
-#include "dar.h"
+#include "aig.h"
+#include "darInt.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -53,7 +54,7 @@ typedef struct Cnf_Cut_t_            Cnf_Cut_t;
 // the CNF asserting outputs of AIG to be 1
 struct Cnf_Dat_t_
 {
-    Dar_Man_t *     pMan;            // the AIG manager, for which CNF is computed
+    Aig_Man_t *     pMan;            // the AIG manager, for which CNF is computed
     int             nVars;           // the number of variables
     int             nLiterals;       // the number of CNF literals
     int             nClauses;        // the number of CNF clauses
@@ -74,11 +75,11 @@ struct Cnf_Cut_t_
 // the CNF computation manager
 struct Cnf_Man_t_
 {
-    Dar_Man_t *     pManAig;         // the underlying AIG manager
+    Aig_Man_t *     pManAig;         // the underlying AIG manager
     char *          pSopSizes;       // sizes of SOPs for 4-variable functions
     char **         pSops;           // the SOPs for 4-variable functions
     int             aArea;           // the area of the mapping
-    Dar_MmFlex_t *  pMemCuts;        // memory manager for cuts
+    Aig_MmFlex_t *  pMemCuts;        // memory manager for cuts
     int             nMergeLimit;     // the limit on the size of merged cut
     unsigned *      pTruths[4];      // temporary truth tables
     Vec_Int_t *     vMemory;         // memory for intermediate ISOP representation
@@ -88,8 +89,8 @@ static inline int          Cnf_CutLeaveNum( Cnf_Cut_t * pCut )    { return pCut-
 static inline int *        Cnf_CutLeaves( Cnf_Cut_t * pCut )      { return pCut->pFanins;                               }
 static inline unsigned *   Cnf_CutTruth( Cnf_Cut_t * pCut )       { return (unsigned *)(pCut->pFanins + pCut->nFanins); }
 
-static inline Cnf_Cut_t *  Cnf_ObjBestCut( Dar_Obj_t * pObj )                       { return pObj->pData;  }
-static inline void         Cnf_ObjSetBestCut( Dar_Obj_t * pObj, Cnf_Cut_t * pCut )  { pObj->pData = pCut;  }
+static inline Cnf_Cut_t *  Cnf_ObjBestCut( Aig_Obj_t * pObj )                       { return pObj->pData;  }
+static inline void         Cnf_ObjSetBestCut( Aig_Obj_t * pObj, Cnf_Cut_t * pCut )  { pObj->pData = pCut;  }
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
@@ -101,16 +102,16 @@ static inline void         Cnf_ObjSetBestCut( Dar_Obj_t * pObj, Cnf_Cut_t * pCut
 
 // iterator over leaves of the cut
 #define Cnf_CutForEachLeaf( p, pCut, pLeaf, i )                         \
-    for ( i = 0; (i < (int)(pCut)->nFanins) && ((pLeaf) = Dar_ManObj(p, (pCut)->pFanins[i])); i++ )
+    for ( i = 0; (i < (int)(pCut)->nFanins) && ((pLeaf) = Aig_ManObj(p, (pCut)->pFanins[i])); i++ )
 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /*=== cnfCore.c ========================================================*/
-extern Cnf_Dat_t *     Cnf_Derive( Cnf_Man_t * p, Dar_Man_t * pAig );
+extern Cnf_Dat_t *     Cnf_Derive( Cnf_Man_t * p, Aig_Man_t * pAig );
 /*=== cnfCut.c ========================================================*/
-extern Cnf_Cut_t *     Cnf_CutCreate( Cnf_Man_t * p, Dar_Obj_t * pObj );
+extern Cnf_Cut_t *     Cnf_CutCreate( Cnf_Man_t * p, Aig_Obj_t * pObj );
 extern void            Cnf_CutPrint( Cnf_Cut_t * pCut );
 extern void            Cnf_CutFree( Cnf_Cut_t * pCut );
 extern void            Cnf_CutUpdateRefs( Cnf_Man_t * p, Cnf_Cut_t * pCut, Cnf_Cut_t * pCutFan, Cnf_Cut_t * pCutRes );
@@ -130,7 +131,7 @@ extern void            Cnf_ManTransferCuts( Cnf_Man_t * p );
 extern void            Cnf_ManFreeCuts( Cnf_Man_t * p );
 extern void            Cnf_ManPostprocess( Cnf_Man_t * p );
 /*=== cnfUtil.c ========================================================*/
-extern Vec_Ptr_t *     Dar_ManScanMapping( Cnf_Man_t * p, int fCollect );
+extern Vec_Ptr_t *     Aig_ManScanMapping( Cnf_Man_t * p, int fCollect );
 extern Vec_Ptr_t *     Cnf_ManScanMapping( Cnf_Man_t * p, int fCollect );
 /*=== cnfWrite.c ========================================================*/
 extern void            Cnf_SopConvertToVector( char * pSop, int nCubes, Vec_Int_t * vCover );

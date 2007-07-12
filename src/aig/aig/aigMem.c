@@ -1,10 +1,10 @@
 /**CFile****************************************************************
 
-  FileName    [darMem.c]
+  FileName    [aigMem.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [DAG-aware AIG rewriting.]
+  PackageName [AIG package.]
 
   Synopsis    [Memory managers.]
 
@@ -14,21 +14,17 @@
 
   Date        [Ver. 1.0. Started - April 28, 2007.]
 
-  Revision    [$Id: darMem.c,v 1.00 2007/04/28 00:00:00 alanmi Exp $]
+  Revision    [$Id: aigMem.c,v 1.00 2007/04/28 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-#include "dar.h"
+#include "aig.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-struct Dar_MmFixed_t_
+struct Aig_MmFixed_t_
 {
     // information about individual entries
     int           nEntrySize;    // the size of one entry
@@ -48,7 +44,7 @@ struct Dar_MmFixed_t_
     int           nMemoryAlloc;  // memory allocated
 };
 
-struct Dar_MmFlex_t_
+struct Aig_MmFlex_t_
 {
     // information about individual entries
     int           nEntriesUsed;  // the number of entries allocated
@@ -66,12 +62,12 @@ struct Dar_MmFlex_t_
     int           nMemoryAlloc;  // memory allocated
 };
 
-struct Dar_MmStep_t_
+struct Aig_MmStep_t_
 {
     int             nMems;    // the number of fixed memory managers employed
-    Dar_MmFixed_t **  pMems;    // memory managers: 2^1 words, 2^2 words, etc
+    Aig_MmFixed_t **  pMems;    // memory managers: 2^1 words, 2^2 words, etc
     int             nMapSize; // the size of the memory array
-    Dar_MmFixed_t **  pMap;     // maps the number of bytes into its memory manager
+    Aig_MmFixed_t **  pMap;     // maps the number of bytes into its memory manager
 };
 
 #define ALLOC(type, num)     ((type *) malloc(sizeof(type) * (num)))
@@ -96,12 +92,12 @@ struct Dar_MmStep_t_
   SeeAlso     []
 
 ***********************************************************************/
-Dar_MmFixed_t * Dar_MmFixedStart( int nEntrySize, int nEntriesMax )
+Aig_MmFixed_t * Aig_MmFixedStart( int nEntrySize, int nEntriesMax )
 {
-    Dar_MmFixed_t * p;
+    Aig_MmFixed_t * p;
 
-    p = ALLOC( Dar_MmFixed_t, 1 );
-    memset( p, 0, sizeof(Dar_MmFixed_t) );
+    p = ALLOC( Aig_MmFixed_t, 1 );
+    memset( p, 0, sizeof(Aig_MmFixed_t) );
 
     p->nEntrySize    = nEntrySize;
     p->nEntriesAlloc = 0;
@@ -132,7 +128,7 @@ Dar_MmFixed_t * Dar_MmFixedStart( int nEntrySize, int nEntriesMax )
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_MmFixedStop( Dar_MmFixed_t * p, int fVerbose )
+void Aig_MmFixedStop( Aig_MmFixed_t * p, int fVerbose )
 {
     int i;
     if ( p == NULL )
@@ -161,7 +157,7 @@ void Dar_MmFixedStop( Dar_MmFixed_t * p, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-char * Dar_MmFixedEntryFetch( Dar_MmFixed_t * p )
+char * Aig_MmFixedEntryFetch( Aig_MmFixed_t * p )
 {
     char * pTemp;
     int i;
@@ -212,7 +208,7 @@ char * Dar_MmFixedEntryFetch( Dar_MmFixed_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_MmFixedEntryRecycle( Dar_MmFixed_t * p, char * pEntry )
+void Aig_MmFixedEntryRecycle( Aig_MmFixed_t * p, char * pEntry )
 {
     // decrement the counter of used entries
     p->nEntriesUsed--;
@@ -232,7 +228,7 @@ void Dar_MmFixedEntryRecycle( Dar_MmFixed_t * p, char * pEntry )
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_MmFixedRestart( Dar_MmFixed_t * p )
+void Aig_MmFixedRestart( Aig_MmFixed_t * p )
 {
     int i;
     char * pTemp;
@@ -270,7 +266,7 @@ void Dar_MmFixedRestart( Dar_MmFixed_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Dar_MmFixedReadMemUsage( Dar_MmFixed_t * p )
+int Aig_MmFixedReadMemUsage( Aig_MmFixed_t * p )
 {
     return p->nMemoryAlloc;
 }
@@ -286,7 +282,7 @@ int Dar_MmFixedReadMemUsage( Dar_MmFixed_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Dar_MmFixedReadMaxEntriesUsed( Dar_MmFixed_t * p )
+int Aig_MmFixedReadMaxEntriesUsed( Aig_MmFixed_t * p )
 {
     return p->nEntriesMax;
 }
@@ -304,12 +300,12 @@ int Dar_MmFixedReadMaxEntriesUsed( Dar_MmFixed_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Dar_MmFlex_t * Dar_MmFlexStart()
+Aig_MmFlex_t * Aig_MmFlexStart()
 {
-    Dar_MmFlex_t * p;
+    Aig_MmFlex_t * p;
 
-    p = ALLOC( Dar_MmFlex_t, 1 );
-    memset( p, 0, sizeof(Dar_MmFlex_t) );
+    p = ALLOC( Aig_MmFlex_t, 1 );
+    memset( p, 0, sizeof(Aig_MmFlex_t) );
 
     p->nEntriesUsed  = 0;
     p->pCurrent      = NULL;
@@ -336,7 +332,7 @@ Dar_MmFlex_t * Dar_MmFlexStart()
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_MmFlexStop( Dar_MmFlex_t * p, int fVerbose )
+void Aig_MmFlexStop( Aig_MmFlex_t * p, int fVerbose )
 {
     int i;
     if ( p == NULL )
@@ -365,7 +361,7 @@ void Dar_MmFlexStop( Dar_MmFlex_t * p, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-char * Dar_MmFlexEntryFetch( Dar_MmFlex_t * p, int nBytes )
+char * Aig_MmFlexEntryFetch( Aig_MmFlex_t * p, int nBytes )
 {
     char * pTemp;
     // check if there are still free entries
@@ -410,7 +406,7 @@ char * Dar_MmFlexEntryFetch( Dar_MmFlex_t * p, int nBytes )
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_MmFlexRestart( Dar_MmFlex_t * p )
+void Aig_MmFlexRestart( Aig_MmFlex_t * p )
 {
     int i;
     if ( p->nChunks == 0 )
@@ -438,7 +434,7 @@ void Dar_MmFlexRestart( Dar_MmFlex_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Dar_MmFlexReadMemUsage( Dar_MmFlex_t * p )
+int Aig_MmFlexReadMemUsage( Aig_MmFlex_t * p )
 {
     return p->nMemoryUsed;
 }
@@ -467,20 +463,20 @@ int Dar_MmFlexReadMemUsage( Dar_MmFlex_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Dar_MmStep_t * Dar_MmStepStart( int nSteps )
+Aig_MmStep_t * Aig_MmStepStart( int nSteps )
 {
-    Dar_MmStep_t * p;
+    Aig_MmStep_t * p;
     int i, k;
-    p = ALLOC( Dar_MmStep_t, 1 );
-    memset( p, 0, sizeof(Dar_MmStep_t) );
+    p = ALLOC( Aig_MmStep_t, 1 );
+    memset( p, 0, sizeof(Aig_MmStep_t) );
     p->nMems = nSteps;
     // start the fixed memory managers
-    p->pMems = ALLOC( Dar_MmFixed_t *, p->nMems );
+    p->pMems = ALLOC( Aig_MmFixed_t *, p->nMems );
     for ( i = 0; i < p->nMems; i++ )
-        p->pMems[i] = Dar_MmFixedStart( (8<<i), (1<<13) );
+        p->pMems[i] = Aig_MmFixedStart( (8<<i), (1<<13) );
     // set up the mapping of the required memory size into the corresponding manager
     p->nMapSize = (4<<p->nMems);
-    p->pMap = ALLOC( Dar_MmFixed_t *, p->nMapSize+1 );
+    p->pMap = ALLOC( Aig_MmFixed_t *, p->nMapSize+1 );
     p->pMap[0] = NULL;
     for ( k = 1; k <= 4; k++ )
         p->pMap[k] = p->pMems[0];
@@ -503,11 +499,11 @@ Dar_MmStep_t * Dar_MmStepStart( int nSteps )
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_MmStepStop( Dar_MmStep_t * p, int fVerbose )
+void Aig_MmStepStop( Aig_MmStep_t * p, int fVerbose )
 {
     int i;
     for ( i = 0; i < p->nMems; i++ )
-        Dar_MmFixedStop( p->pMems[i], fVerbose );
+        Aig_MmFixedStop( p->pMems[i], fVerbose );
 //    if ( p->pLargeChunks ) 
 //    {
 //      for ( i = 0; i < p->nLargeChunks; i++ )
@@ -530,7 +526,7 @@ void Dar_MmStepStop( Dar_MmStep_t * p, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-char * Dar_MmStepEntryFetch( Dar_MmStep_t * p, int nBytes )
+char * Aig_MmStepEntryFetch( Aig_MmStep_t * p, int nBytes )
 {
     if ( nBytes == 0 )
         return NULL;
@@ -550,7 +546,7 @@ char * Dar_MmStepEntryFetch( Dar_MmStep_t * p, int nBytes )
 */
         return ALLOC( char, nBytes );
     }
-    return Dar_MmFixedEntryFetch( p->pMap[nBytes] );
+    return Aig_MmFixedEntryFetch( p->pMap[nBytes] );
 }
 
 
@@ -565,7 +561,7 @@ char * Dar_MmStepEntryFetch( Dar_MmStep_t * p, int nBytes )
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_MmStepEntryRecycle( Dar_MmStep_t * p, char * pEntry, int nBytes )
+void Aig_MmStepEntryRecycle( Aig_MmStep_t * p, char * pEntry, int nBytes )
 {
     if ( nBytes == 0 )
         return;
@@ -574,7 +570,7 @@ void Dar_MmStepEntryRecycle( Dar_MmStep_t * p, char * pEntry, int nBytes )
         free( pEntry );
         return;
     }
-    Dar_MmFixedEntryRecycle( p->pMap[nBytes], pEntry );
+    Aig_MmFixedEntryRecycle( p->pMap[nBytes], pEntry );
 }
 
 /**Function*************************************************************
@@ -588,7 +584,7 @@ void Dar_MmStepEntryRecycle( Dar_MmStep_t * p, char * pEntry, int nBytes )
   SeeAlso     []
 
 ***********************************************************************/
-int Dar_MmStepReadMemUsage( Dar_MmStep_t * p )
+int Aig_MmStepReadMemUsage( Aig_MmStep_t * p )
 {
     int i, nMemTotal = 0;
     for ( i = 0; i < p->nMems; i++ )

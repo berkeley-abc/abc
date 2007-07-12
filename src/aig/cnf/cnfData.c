@@ -4614,7 +4614,7 @@ void Cnf_ReadMsops( char ** ppSopSizes, char *** ppSops )
   SeeAlso     []
 
 ***********************************************************************/
-int Dar_ManDeriveCnfTest()
+int Aig_ManDeriveCnfTest()
 {
     int i, k, Lit;
     printf( "\n" );
@@ -4644,7 +4644,7 @@ int Dar_ManDeriveCnfTest()
   SeeAlso     []
 
 ***********************************************************************/
-int Dar_ManDeriveCnfTest2()
+int Aig_ManDeriveCnfTest2()
 {
     char s_Data3[81] = "!#&()*+,-.0123456789:;<=>?ABCDEFGHIJKLMNOPQRSTUVWXYZ[]abcdefghijklmnopqrstuvwxyz|";
 

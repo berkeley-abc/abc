@@ -39,11 +39,11 @@
   SeeAlso     []
 
 ***********************************************************************/
-void Fra_NodeAssignRandom( Fra_Man_t * p, Dar_Obj_t * pObj )
+void Fra_NodeAssignRandom( Fra_Man_t * p, Aig_Obj_t * pObj )
 {
     unsigned * pSims;
     int i;
-    assert( Dar_ObjIsPi(pObj) );
+    assert( Aig_ObjIsPi(pObj) );
     pSims = Fra_ObjSim(pObj);
     for ( i = 0; i < p->nSimWords; i++ )
         pSims[i] = Fra_ObjRandomSim();
@@ -60,11 +60,11 @@ void Fra_NodeAssignRandom( Fra_Man_t * p, Dar_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-void Fra_NodeAssignConst( Fra_Man_t * p, Dar_Obj_t * pObj, int fConst1 )
+void Fra_NodeAssignConst( Fra_Man_t * p, Aig_Obj_t * pObj, int fConst1 )
 {
     unsigned * pSims;
     int i;
-    assert( Dar_ObjIsPi(pObj) );
+    assert( Aig_ObjIsPi(pObj) );
     pSims = Fra_ObjSim(pObj);
     for ( i = 0; i < p->nSimWords; i++ )
         pSims[i] = fConst1? ~(unsigned)0 : 0;
@@ -83,9 +83,9 @@ void Fra_NodeAssignConst( Fra_Man_t * p, Dar_Obj_t * pObj, int fConst1 )
 ***********************************************************************/
 void Fra_AssignRandom( Fra_Man_t * p )
 {
-    Dar_Obj_t * pObj;
+    Aig_Obj_t * pObj;
     int i;
-    Dar_ManForEachPi( p->pManAig, pObj, i )
+    Aig_ManForEachPi( p->pManAig, pObj, i )
         Fra_NodeAssignRandom( p, pObj );
 }
 
@@ -102,17 +102,17 @@ void Fra_AssignRandom( Fra_Man_t * p )
 ***********************************************************************/
 void Fra_AssignDist1( Fra_Man_t * p, unsigned * pPat )
 {
-    Dar_Obj_t * pObj;
+    Aig_Obj_t * pObj;
     int i, Limit;
-    Dar_ManForEachPi( p->pManAig, pObj, i )
+    Aig_ManForEachPi( p->pManAig, pObj, i )
     {
-        Fra_NodeAssignConst( p, pObj, Dar_InfoHasBit(pPat, i) );
-//        printf( "%d", Dar_InfoHasBit(pPat, i) );
+        Fra_NodeAssignConst( p, pObj, Aig_InfoHasBit(pPat, i) );
+//        printf( "%d", Aig_InfoHasBit(pPat, i) );
     }
 //    printf( "\n" );
-    Limit = DAR_MIN( Dar_ManPiNum(p->pManAig), p->nSimWords * 32 - 1 );
+    Limit = AIG_MIN( Aig_ManPiNum(p->pManAig), p->nSimWords * 32 - 1 );
     for ( i = 0; i < Limit; i++ )
-        Dar_InfoXorBit( Fra_ObjSim( Dar_ManPi(p->pManAig,i) ), i+1 );
+        Aig_InfoXorBit( Fra_ObjSim( Aig_ManPi(p->pManAig,i) ), i+1 );
 }
 
 /**Function*************************************************************
@@ -126,7 +126,7 @@ void Fra_AssignDist1( Fra_Man_t * p, unsigned * pPat )
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_NodeHasZeroSim( Fra_Man_t * p, Dar_Obj_t * pObj )
+int Fra_NodeHasZeroSim( Fra_Man_t * p, Aig_Obj_t * pObj )
 {
     unsigned * pSims;
     int i;
@@ -148,7 +148,7 @@ int Fra_NodeHasZeroSim( Fra_Man_t * p, Dar_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-void Fra_NodeComplementSim( Fra_Man_t * p, Dar_Obj_t * pObj )
+void Fra_NodeComplementSim( Fra_Man_t * p, Aig_Obj_t * pObj )
 {
     unsigned * pSims;
     int i;
@@ -168,7 +168,7 @@ void Fra_NodeComplementSim( Fra_Man_t * p, Dar_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_NodeCompareSims( Fra_Man_t * p, Dar_Obj_t * pObj0, Dar_Obj_t * pObj1 )
+int Fra_NodeCompareSims( Fra_Man_t * p, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
 {
     unsigned * pSims0, * pSims1;
     int i;
@@ -192,20 +192,20 @@ int Fra_NodeCompareSims( Fra_Man_t * p, Dar_Obj_t * pObj0, Dar_Obj_t * pObj1 )
   SeeAlso     []
 
 ***********************************************************************/
-void Fra_NodeSimulate( Fra_Man_t * p, Dar_Obj_t * pObj )
+void Fra_NodeSimulate( Fra_Man_t * p, Aig_Obj_t * pObj )
 {
     unsigned * pSims, * pSims0, * pSims1;
     int fCompl, fCompl0, fCompl1, i;
-    assert( !Dar_IsComplement(pObj) );
-    assert( Dar_ObjIsNode(pObj) );
+    assert( !Aig_IsComplement(pObj) );
+    assert( Aig_ObjIsNode(pObj) );
     // get hold of the simulation information
     pSims  = Fra_ObjSim(pObj);
-    pSims0 = Fra_ObjSim(Dar_ObjFanin0(pObj));
-    pSims1 = Fra_ObjSim(Dar_ObjFanin1(pObj));
+    pSims0 = Fra_ObjSim(Aig_ObjFanin0(pObj));
+    pSims1 = Fra_ObjSim(Aig_ObjFanin1(pObj));
     // get complemented attributes of the children using their random info
     fCompl  = pObj->fPhase;
-    fCompl0 = Dar_ObjFaninPhase(Dar_ObjChild0(pObj));
-    fCompl1 = Dar_ObjFaninPhase(Dar_ObjChild1(pObj));
+    fCompl0 = Aig_ObjFaninPhase(Aig_ObjChild0(pObj));
+    fCompl1 = Aig_ObjFaninPhase(Aig_ObjChild1(pObj));
     // simulate
     if ( fCompl0 && fCompl1 )
     {
@@ -290,13 +290,13 @@ void Fra_SavePattern1( Fra_Man_t * p )
 ***********************************************************************/
 void Fra_SavePattern( Fra_Man_t * p )
 {
-    Dar_Obj_t * pObj;
+    Aig_Obj_t * pObj;
     int i;
     memset( p->pPatWords, 0, sizeof(unsigned) * p->nPatWords );
-    Dar_ManForEachPi( p->pManFraig, pObj, i )
+    Aig_ManForEachPi( p->pManFraig, pObj, i )
 //    Vec_PtrForEachEntry( p->vPiVars, pObj, i )
         if ( p->pSat->model.ptr[Fra_ObjSatNum(pObj)] == l_True )
-            Dar_InfoSetBit( p->pPatWords, i );
+            Aig_InfoSetBit( p->pPatWords, i );
 //            Ivy_InfoSetBit( p->pPatWords, pObj->Id - 1 );
 }
 
@@ -329,7 +329,7 @@ void Fra_CleanPatScores( Fra_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Fra_AddToPatScores( Fra_Man_t * p, Dar_Obj_t * pClass, Dar_Obj_t * pClassNew )
+void Fra_AddToPatScores( Fra_Man_t * p, Aig_Obj_t * pClass, Aig_Obj_t * pClassNew )
 {
     unsigned * pSims0, * pSims1;
     unsigned uDiff;
@@ -363,7 +363,7 @@ void Fra_AddToPatScores( Fra_Man_t * p, Dar_Obj_t * pClass, Dar_Obj_t * pClassNe
 int Fra_SelectBestPat( Fra_Man_t * p )
 {
     unsigned * pSims;
-    Dar_Obj_t * pObj;
+    Aig_Obj_t * pObj;
     int i, nLimit = p->nSimWords * 32, MaxScore = 0, BestPat = -1;
     for ( i = 1; i < nLimit; i++ )
     {
@@ -379,11 +379,11 @@ int Fra_SelectBestPat( Fra_Man_t * p )
 //    printf( "Max score is %3d.  ", MaxScore );
     // copy the best pattern into the selected pattern
     memset( p->pPatWords, 0, sizeof(unsigned) * p->nPatWords );
-    Dar_ManForEachPi( p->pManAig, pObj, i )
+    Aig_ManForEachPi( p->pManAig, pObj, i )
     {
         pSims = Fra_ObjSim(pObj);
-        if ( Dar_InfoHasBit(pSims, BestPat) )
-            Dar_InfoSetBit(p->pPatWords, i);
+        if ( Aig_InfoHasBit(pSims, BestPat) )
+            Aig_InfoSetBit(p->pPatWords, i);
     }
     return MaxScore;
 }
@@ -401,17 +401,17 @@ int Fra_SelectBestPat( Fra_Man_t * p )
 ***********************************************************************/
 void Fra_SimulateOne( Fra_Man_t * p )
 {
-    Dar_Obj_t * pObj;
+    Aig_Obj_t * pObj;
     int i, clk;
 clk = clock();
-    Dar_ManForEachNode( p->pManAig, pObj, i )
+    Aig_ManForEachNode( p->pManAig, pObj, i )
     {
         Fra_NodeSimulate( p, pObj );
 /*
-        if ( Dar_ObjFraig(pObj) == NULL )
+        if ( Aig_ObjFraig(pObj) == NULL )
             printf( "%3d --- -- %d  :  ", pObj->Id, pObj->fPhase );
         else
-            printf( "%3d %3d %2d %d  :  ", pObj->Id, Dar_Regular(Dar_ObjFraig(pObj))->Id, Dar_ObjSatNum(Dar_Regular(Dar_ObjFraig(pObj))), pObj->fPhase );
+            printf( "%3d %3d %2d %d  :  ", pObj->Id, Aig_Regular(Aig_ObjFraig(pObj))->Id, Aig_ObjSatNum(Aig_Regular(Aig_ObjFraig(pObj))), pObj->fPhase );
         Extra_PrintBinary( stdout, Fra_ObjSim(pObj), 30 );
         printf( "\n" );
 */
@@ -527,7 +527,7 @@ void Fra_Simulate( Fra_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Fra_CheckOutputSimsSavePattern( Fra_Man_t * p, Dar_Obj_t * pObj )
+void Fra_CheckOutputSimsSavePattern( Fra_Man_t * p, Aig_Obj_t * pObj )
 { 
     unsigned * pSims;
     int i, k, BestPat, * pModel;
@@ -545,10 +545,10 @@ void Fra_CheckOutputSimsSavePattern( Fra_Man_t * p, Dar_Obj_t * pObj )
     // determine the best pattern
     BestPat = i * 32 + k;
     // fill in the counter-example data
-    pModel = ALLOC( int, Dar_ManPiNum(p->pManFraig) );
-    Dar_ManForEachPi( p->pManAig, pObj, i )
+    pModel = ALLOC( int, Aig_ManPiNum(p->pManFraig) );
+    Aig_ManForEachPi( p->pManAig, pObj, i )
     {
-        pModel[i] = Dar_InfoHasBit(Fra_ObjSim(pObj), BestPat);
+        pModel[i] = Aig_InfoHasBit(Fra_ObjSim(pObj), BestPat);
 //        printf( "%d", pModel[i] );
     }
 //    printf( "\n" );
@@ -571,26 +571,26 @@ void Fra_CheckOutputSimsSavePattern( Fra_Man_t * p, Dar_Obj_t * pObj )
 ***********************************************************************/
 int Fra_CheckOutputSims( Fra_Man_t * p )
 {
-    Dar_Obj_t * pObj;
+    Aig_Obj_t * pObj;
     int i;
     // make sure the reference simulation pattern does not detect the bug
-    pObj = Dar_ManPo( p->pManAig, 0 );
-    assert( Dar_ObjFanin0(pObj)->fPhase == (unsigned)Dar_ObjFaninC0(pObj) ); // Dar_ObjFaninPhase(Dar_ObjChild0(pObj)) == 0
-    Dar_ManForEachPo( p->pManAig, pObj, i )
+    pObj = Aig_ManPo( p->pManAig, 0 );
+    assert( Aig_ObjFanin0(pObj)->fPhase == (unsigned)Aig_ObjFaninC0(pObj) ); // Aig_ObjFaninPhase(Aig_ObjChild0(pObj)) == 0
+    Aig_ManForEachPo( p->pManAig, pObj, i )
     {
         // complement simulation info
-//        if ( Dar_ObjFanin0(pObj)->fPhase ^ Dar_ObjFaninC0(pObj) ) // Dar_ObjFaninPhase(Dar_ObjChild0(pObj))
-//            Fra_NodeComplementSim( p, Dar_ObjFanin0(pObj) );
+//        if ( Aig_ObjFanin0(pObj)->fPhase ^ Aig_ObjFaninC0(pObj) ) // Aig_ObjFaninPhase(Aig_ObjChild0(pObj))
+//            Fra_NodeComplementSim( p, Aig_ObjFanin0(pObj) );
         // check 
-        if ( !Fra_NodeHasZeroSim( p, Dar_ObjFanin0(pObj) ) )
+        if ( !Fra_NodeHasZeroSim( p, Aig_ObjFanin0(pObj) ) )
         {
             // create the counter-example from this pattern
-            Fra_CheckOutputSimsSavePattern( p, Dar_ObjFanin0(pObj) );
+            Fra_CheckOutputSimsSavePattern( p, Aig_ObjFanin0(pObj) );
             return 1;
         }
         // complement simulation info
-//        if ( Dar_ObjFanin0(pObj)->fPhase ^ Dar_ObjFaninC0(pObj) )
-//            Fra_NodeComplementSim( p, Dar_ObjFanin0(pObj) );
+//        if ( Aig_ObjFanin0(pObj)->fPhase ^ Aig_ObjFaninC0(pObj) )
+//            Fra_NodeComplementSim( p, Aig_ObjFanin0(pObj) );
     }
     return 0;
 }

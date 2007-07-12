@@ -1,10 +1,10 @@
 /**CFile****************************************************************
 
-  FileName    [darUtil.c]
+  FileName    [aigUtil.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [DAG-aware AIG rewriting.]
+  PackageName [AIG package.]
 
   Synopsis    [Various procedures.]
 
@@ -14,11 +14,11 @@
 
   Date        [Ver. 1.0. Started - April 28, 2007.]
 
-  Revision    [$Id: darUtil.c,v 1.00 2007/04/28 00:00:00 alanmi Exp $]
+  Revision    [$Id: aigUtil.c,v 1.00 2007/04/28 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "dar.h"
+#include "aig.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -28,24 +28,41 @@
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/**Function*************************************************************
+/**Function********************************************************************
 
-  Synopsis    [Returns the structure with default assignment of parameters.]
+  Synopsis    [Returns the next prime >= p.]
 
-  Description []
-               
-  SideEffects []
+  Description [Copied from CUDD, for stand-aloneness.]
+
+  SideEffects [None]
 
   SeeAlso     []
 
-***********************************************************************/
-Dar_Par_t * Dar_ManDefaultParams()
+******************************************************************************/
+unsigned int Aig_PrimeCudd( unsigned int p )
 {
-    Dar_Par_t * p;
-    p = ALLOC( Dar_Par_t, 1 );
-    memset( p, 0, sizeof(Dar_Par_t) );
-    return p;
-}
+    int i,pn;
+
+    p--;
+    do {
+        p++;
+        if (p&1) {
+        pn = 1;
+        i = 3;
+        while ((unsigned) (i * i) <= p) {
+        if (p % i == 0) {
+            pn = 0;
+            break;
+        }
+        i += 2;
+        }
+    } else {
+        pn = 0;
+    }
+    } while (!pn);
+    return(p);
+
+} /* end of Cudd_Prime */
 
 /**Function*************************************************************
 
@@ -58,10 +75,10 @@ Dar_Par_t * Dar_ManDefaultParams()
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_ManIncrementTravId( Dar_Man_t * p )
+void Aig_ManIncrementTravId( Aig_Man_t * p )
 {
     if ( p->nTravIds >= (1<<30)-1 )
-        Dar_ManCleanData( p );
+        Aig_ManCleanData( p );
     p->nTravIds++;
 }
 
@@ -76,12 +93,12 @@ void Dar_ManIncrementTravId( Dar_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Dar_ManLevels( Dar_Man_t * p )
+int Aig_ManLevels( Aig_Man_t * p )
 {
-    Dar_Obj_t * pObj;
+    Aig_Obj_t * pObj;
     int i, LevelMax = 0;
-    Dar_ManForEachPo( p, pObj, i )
-        LevelMax = DAR_MAX( LevelMax, (int)Dar_ObjFanin0(pObj)->Level );
+    Aig_ManForEachPo( p, pObj, i )
+        LevelMax = AIG_MAX( LevelMax, (int)Aig_ObjFanin0(pObj)->Level );
     return LevelMax;
 }
 
@@ -96,11 +113,11 @@ int Dar_ManLevels( Dar_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_ManCleanData( Dar_Man_t * p )
+void Aig_ManCleanData( Aig_Man_t * p )
 {
-    Dar_Obj_t * pObj;
+    Aig_Obj_t * pObj;
     int i;
-    Dar_ManForEachObj( p, pObj, i )
+    Aig_ManForEachObj( p, pObj, i )
         pObj->pData = NULL;
 }
 
@@ -115,14 +132,14 @@ void Dar_ManCleanData( Dar_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_ObjCleanData_rec( Dar_Obj_t * pObj )
+void Aig_ObjCleanData_rec( Aig_Obj_t * pObj )
 {
-    assert( !Dar_IsComplement(pObj) );
-    assert( !Dar_ObjIsPo(pObj) );
-    if ( Dar_ObjIsAnd(pObj) )
+    assert( !Aig_IsComplement(pObj) );
+    assert( !Aig_ObjIsPo(pObj) );
+    if ( Aig_ObjIsAnd(pObj) )
     {
-        Dar_ObjCleanData_rec( Dar_ObjFanin0(pObj) );
-        Dar_ObjCleanData_rec( Dar_ObjFanin1(pObj) );
+        Aig_ObjCleanData_rec( Aig_ObjFanin0(pObj) );
+        Aig_ObjCleanData_rec( Aig_ObjFanin1(pObj) );
     }
     pObj->pData = NULL;
 }
@@ -138,15 +155,15 @@ void Dar_ObjCleanData_rec( Dar_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_ObjCollectMulti_rec( Dar_Obj_t * pRoot, Dar_Obj_t * pObj, Vec_Ptr_t * vSuper )
+void Aig_ObjCollectMulti_rec( Aig_Obj_t * pRoot, Aig_Obj_t * pObj, Vec_Ptr_t * vSuper )
 {
-    if ( pRoot != pObj && (Dar_IsComplement(pObj) || Dar_ObjIsPi(pObj) || Dar_ObjType(pRoot) != Dar_ObjType(pObj)) )
+    if ( pRoot != pObj && (Aig_IsComplement(pObj) || Aig_ObjIsPi(pObj) || Aig_ObjType(pRoot) != Aig_ObjType(pObj)) )
     {
         Vec_PtrPushUnique(vSuper, pObj);
         return;
     }
-    Dar_ObjCollectMulti_rec( pRoot, Dar_ObjChild0(pObj), vSuper );
-    Dar_ObjCollectMulti_rec( pRoot, Dar_ObjChild1(pObj), vSuper );
+    Aig_ObjCollectMulti_rec( pRoot, Aig_ObjChild0(pObj), vSuper );
+    Aig_ObjCollectMulti_rec( pRoot, Aig_ObjChild1(pObj), vSuper );
 }
 
 /**Function*************************************************************
@@ -160,11 +177,11 @@ void Dar_ObjCollectMulti_rec( Dar_Obj_t * pRoot, Dar_Obj_t * pObj, Vec_Ptr_t * v
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_ObjCollectMulti( Dar_Obj_t * pRoot, Vec_Ptr_t * vSuper )
+void Aig_ObjCollectMulti( Aig_Obj_t * pRoot, Vec_Ptr_t * vSuper )
 {
-    assert( !Dar_IsComplement(pRoot) );
+    assert( !Aig_IsComplement(pRoot) );
     Vec_PtrClear( vSuper );
-    Dar_ObjCollectMulti_rec( pRoot, pRoot, vSuper );
+    Aig_ObjCollectMulti_rec( pRoot, pRoot, vSuper );
 }
 
 /**Function*************************************************************
@@ -178,28 +195,28 @@ void Dar_ObjCollectMulti( Dar_Obj_t * pRoot, Vec_Ptr_t * vSuper )
   SeeAlso     []
 
 ***********************************************************************/
-int Dar_ObjIsMuxType( Dar_Obj_t * pNode )
+int Aig_ObjIsMuxType( Aig_Obj_t * pNode )
 {
-    Dar_Obj_t * pNode0, * pNode1;
+    Aig_Obj_t * pNode0, * pNode1;
     // check that the node is regular
-    assert( !Dar_IsComplement(pNode) );
+    assert( !Aig_IsComplement(pNode) );
     // if the node is not AND, this is not MUX
-    if ( !Dar_ObjIsAnd(pNode) )
+    if ( !Aig_ObjIsAnd(pNode) )
         return 0;
     // if the children are not complemented, this is not MUX
-    if ( !Dar_ObjFaninC0(pNode) || !Dar_ObjFaninC1(pNode) )
+    if ( !Aig_ObjFaninC0(pNode) || !Aig_ObjFaninC1(pNode) )
         return 0;
     // get children
-    pNode0 = Dar_ObjFanin0(pNode);
-    pNode1 = Dar_ObjFanin1(pNode);
+    pNode0 = Aig_ObjFanin0(pNode);
+    pNode1 = Aig_ObjFanin1(pNode);
     // if the children are not ANDs, this is not MUX
-    if ( !Dar_ObjIsAnd(pNode0) || !Dar_ObjIsAnd(pNode1) )
+    if ( !Aig_ObjIsAnd(pNode0) || !Aig_ObjIsAnd(pNode1) )
         return 0;
     // otherwise the node is MUX iff it has a pair of equal grandchildren
-    return (Dar_ObjFanin0(pNode0) == Dar_ObjFanin0(pNode1) && (Dar_ObjFaninC0(pNode0) ^ Dar_ObjFaninC0(pNode1))) || 
-           (Dar_ObjFanin0(pNode0) == Dar_ObjFanin1(pNode1) && (Dar_ObjFaninC0(pNode0) ^ Dar_ObjFaninC1(pNode1))) ||
-           (Dar_ObjFanin1(pNode0) == Dar_ObjFanin0(pNode1) && (Dar_ObjFaninC1(pNode0) ^ Dar_ObjFaninC0(pNode1))) ||
-           (Dar_ObjFanin1(pNode0) == Dar_ObjFanin1(pNode1) && (Dar_ObjFaninC1(pNode0) ^ Dar_ObjFaninC1(pNode1)));
+    return (Aig_ObjFanin0(pNode0) == Aig_ObjFanin0(pNode1) && (Aig_ObjFaninC0(pNode0) ^ Aig_ObjFaninC0(pNode1))) || 
+           (Aig_ObjFanin0(pNode0) == Aig_ObjFanin1(pNode1) && (Aig_ObjFaninC0(pNode0) ^ Aig_ObjFaninC1(pNode1))) ||
+           (Aig_ObjFanin1(pNode0) == Aig_ObjFanin0(pNode1) && (Aig_ObjFaninC1(pNode0) ^ Aig_ObjFaninC0(pNode1))) ||
+           (Aig_ObjFanin1(pNode0) == Aig_ObjFanin1(pNode1) && (Aig_ObjFaninC1(pNode0) ^ Aig_ObjFaninC1(pNode1)));
 }
 
 
@@ -214,33 +231,33 @@ int Dar_ObjIsMuxType( Dar_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-int Dar_ObjRecognizeExor( Dar_Obj_t * pObj, Dar_Obj_t ** ppFan0, Dar_Obj_t ** ppFan1 )
+int Aig_ObjRecognizeExor( Aig_Obj_t * pObj, Aig_Obj_t ** ppFan0, Aig_Obj_t ** ppFan1 )
 {
-    Dar_Obj_t * p0, * p1;
-    assert( !Dar_IsComplement(pObj) );
-    if ( !Dar_ObjIsNode(pObj) )
+    Aig_Obj_t * p0, * p1;
+    assert( !Aig_IsComplement(pObj) );
+    if ( !Aig_ObjIsNode(pObj) )
         return 0;
-    if ( Dar_ObjIsExor(pObj) )
+    if ( Aig_ObjIsExor(pObj) )
     {
-        *ppFan0 = Dar_ObjChild0(pObj);
-        *ppFan1 = Dar_ObjChild1(pObj);
+        *ppFan0 = Aig_ObjChild0(pObj);
+        *ppFan1 = Aig_ObjChild1(pObj);
         return 1;
     }
-    assert( Dar_ObjIsAnd(pObj) );
-    p0 = Dar_ObjChild0(pObj);
-    p1 = Dar_ObjChild1(pObj);
-    if ( !Dar_IsComplement(p0) || !Dar_IsComplement(p1) )
+    assert( Aig_ObjIsAnd(pObj) );
+    p0 = Aig_ObjChild0(pObj);
+    p1 = Aig_ObjChild1(pObj);
+    if ( !Aig_IsComplement(p0) || !Aig_IsComplement(p1) )
         return 0;
-    p0 = Dar_Regular(p0);
-    p1 = Dar_Regular(p1);
-    if ( !Dar_ObjIsAnd(p0) || !Dar_ObjIsAnd(p1) )
+    p0 = Aig_Regular(p0);
+    p1 = Aig_Regular(p1);
+    if ( !Aig_ObjIsAnd(p0) || !Aig_ObjIsAnd(p1) )
         return 0;
-    if ( Dar_ObjFanin0(p0) != Dar_ObjFanin0(p1) || Dar_ObjFanin1(p0) != Dar_ObjFanin1(p1) )
+    if ( Aig_ObjFanin0(p0) != Aig_ObjFanin0(p1) || Aig_ObjFanin1(p0) != Aig_ObjFanin1(p1) )
         return 0;
-    if ( Dar_ObjFaninC0(p0) == Dar_ObjFaninC0(p1) || Dar_ObjFaninC1(p0) == Dar_ObjFaninC1(p1) )
+    if ( Aig_ObjFaninC0(p0) == Aig_ObjFaninC0(p1) || Aig_ObjFaninC1(p0) == Aig_ObjFaninC1(p1) )
         return 0;
-    *ppFan0 = Dar_ObjChild0(p0);
-    *ppFan1 = Dar_ObjChild1(p0);
+    *ppFan0 = Aig_ObjChild0(p0);
+    *ppFan1 = Aig_ObjChild1(p0);
     return 1;
 }
 
@@ -258,78 +275,78 @@ int Dar_ObjRecognizeExor( Dar_Obj_t * pObj, Dar_Obj_t ** ppFan0, Dar_Obj_t ** pp
   SeeAlso     []
 
 ***********************************************************************/
-Dar_Obj_t * Dar_ObjRecognizeMux( Dar_Obj_t * pNode, Dar_Obj_t ** ppNodeT, Dar_Obj_t ** ppNodeE )
+Aig_Obj_t * Aig_ObjRecognizeMux( Aig_Obj_t * pNode, Aig_Obj_t ** ppNodeT, Aig_Obj_t ** ppNodeE )
 {
-    Dar_Obj_t * pNode0, * pNode1;
-    assert( !Dar_IsComplement(pNode) );
-    assert( Dar_ObjIsMuxType(pNode) );
+    Aig_Obj_t * pNode0, * pNode1;
+    assert( !Aig_IsComplement(pNode) );
+    assert( Aig_ObjIsMuxType(pNode) );
     // get children
-    pNode0 = Dar_ObjFanin0(pNode);
-    pNode1 = Dar_ObjFanin1(pNode);
+    pNode0 = Aig_ObjFanin0(pNode);
+    pNode1 = Aig_ObjFanin1(pNode);
 
     // find the control variable
-    if ( Dar_ObjFanin1(pNode0) == Dar_ObjFanin1(pNode1) && (Dar_ObjFaninC1(pNode0) ^ Dar_ObjFaninC1(pNode1)) )
+    if ( Aig_ObjFanin1(pNode0) == Aig_ObjFanin1(pNode1) && (Aig_ObjFaninC1(pNode0) ^ Aig_ObjFaninC1(pNode1)) )
     {
 //        if ( Fraig_IsComplement(pNode1->p2) )
-        if ( Dar_ObjFaninC1(pNode0) )
+        if ( Aig_ObjFaninC1(pNode0) )
         { // pNode2->p2 is positive phase of C
-            *ppNodeT = Dar_Not(Dar_ObjChild0(pNode1));//pNode2->p1);
-            *ppNodeE = Dar_Not(Dar_ObjChild0(pNode0));//pNode1->p1);
-            return Dar_ObjChild1(pNode1);//pNode2->p2;
+            *ppNodeT = Aig_Not(Aig_ObjChild0(pNode1));//pNode2->p1);
+            *ppNodeE = Aig_Not(Aig_ObjChild0(pNode0));//pNode1->p1);
+            return Aig_ObjChild1(pNode1);//pNode2->p2;
         }
         else
         { // pNode1->p2 is positive phase of C
-            *ppNodeT = Dar_Not(Dar_ObjChild0(pNode0));//pNode1->p1);
-            *ppNodeE = Dar_Not(Dar_ObjChild0(pNode1));//pNode2->p1);
-            return Dar_ObjChild1(pNode0);//pNode1->p2;
+            *ppNodeT = Aig_Not(Aig_ObjChild0(pNode0));//pNode1->p1);
+            *ppNodeE = Aig_Not(Aig_ObjChild0(pNode1));//pNode2->p1);
+            return Aig_ObjChild1(pNode0);//pNode1->p2;
         }
     }
-    else if ( Dar_ObjFanin0(pNode0) == Dar_ObjFanin0(pNode1) && (Dar_ObjFaninC0(pNode0) ^ Dar_ObjFaninC0(pNode1)) )
+    else if ( Aig_ObjFanin0(pNode0) == Aig_ObjFanin0(pNode1) && (Aig_ObjFaninC0(pNode0) ^ Aig_ObjFaninC0(pNode1)) )
     {
 //        if ( Fraig_IsComplement(pNode1->p1) )
-        if ( Dar_ObjFaninC0(pNode0) )
+        if ( Aig_ObjFaninC0(pNode0) )
         { // pNode2->p1 is positive phase of C
-            *ppNodeT = Dar_Not(Dar_ObjChild1(pNode1));//pNode2->p2);
-            *ppNodeE = Dar_Not(Dar_ObjChild1(pNode0));//pNode1->p2);
-            return Dar_ObjChild0(pNode1);//pNode2->p1;
+            *ppNodeT = Aig_Not(Aig_ObjChild1(pNode1));//pNode2->p2);
+            *ppNodeE = Aig_Not(Aig_ObjChild1(pNode0));//pNode1->p2);
+            return Aig_ObjChild0(pNode1);//pNode2->p1;
         }
         else
         { // pNode1->p1 is positive phase of C
-            *ppNodeT = Dar_Not(Dar_ObjChild1(pNode0));//pNode1->p2);
-            *ppNodeE = Dar_Not(Dar_ObjChild1(pNode1));//pNode2->p2);
-            return Dar_ObjChild0(pNode0);//pNode1->p1;
+            *ppNodeT = Aig_Not(Aig_ObjChild1(pNode0));//pNode1->p2);
+            *ppNodeE = Aig_Not(Aig_ObjChild1(pNode1));//pNode2->p2);
+            return Aig_ObjChild0(pNode0);//pNode1->p1;
         }
     }
-    else if ( Dar_ObjFanin0(pNode0) == Dar_ObjFanin1(pNode1) && (Dar_ObjFaninC0(pNode0) ^ Dar_ObjFaninC1(pNode1)) )
+    else if ( Aig_ObjFanin0(pNode0) == Aig_ObjFanin1(pNode1) && (Aig_ObjFaninC0(pNode0) ^ Aig_ObjFaninC1(pNode1)) )
     {
 //        if ( Fraig_IsComplement(pNode1->p1) )
-        if ( Dar_ObjFaninC0(pNode0) )
+        if ( Aig_ObjFaninC0(pNode0) )
         { // pNode2->p2 is positive phase of C
-            *ppNodeT = Dar_Not(Dar_ObjChild0(pNode1));//pNode2->p1);
-            *ppNodeE = Dar_Not(Dar_ObjChild1(pNode0));//pNode1->p2);
-            return Dar_ObjChild1(pNode1);//pNode2->p2;
+            *ppNodeT = Aig_Not(Aig_ObjChild0(pNode1));//pNode2->p1);
+            *ppNodeE = Aig_Not(Aig_ObjChild1(pNode0));//pNode1->p2);
+            return Aig_ObjChild1(pNode1);//pNode2->p2;
         }
         else
         { // pNode1->p1 is positive phase of C
-            *ppNodeT = Dar_Not(Dar_ObjChild1(pNode0));//pNode1->p2);
-            *ppNodeE = Dar_Not(Dar_ObjChild0(pNode1));//pNode2->p1);
-            return Dar_ObjChild0(pNode0);//pNode1->p1;
+            *ppNodeT = Aig_Not(Aig_ObjChild1(pNode0));//pNode1->p2);
+            *ppNodeE = Aig_Not(Aig_ObjChild0(pNode1));//pNode2->p1);
+            return Aig_ObjChild0(pNode0);//pNode1->p1;
         }
     }
-    else if ( Dar_ObjFanin1(pNode0) == Dar_ObjFanin0(pNode1) && (Dar_ObjFaninC1(pNode0) ^ Dar_ObjFaninC0(pNode1)) )
+    else if ( Aig_ObjFanin1(pNode0) == Aig_ObjFanin0(pNode1) && (Aig_ObjFaninC1(pNode0) ^ Aig_ObjFaninC0(pNode1)) )
     {
 //        if ( Fraig_IsComplement(pNode1->p2) )
-        if ( Dar_ObjFaninC1(pNode0) )
+        if ( Aig_ObjFaninC1(pNode0) )
         { // pNode2->p1 is positive phase of C
-            *ppNodeT = Dar_Not(Dar_ObjChild1(pNode1));//pNode2->p2);
-            *ppNodeE = Dar_Not(Dar_ObjChild0(pNode0));//pNode1->p1);
-            return Dar_ObjChild0(pNode1);//pNode2->p1;
+            *ppNodeT = Aig_Not(Aig_ObjChild1(pNode1));//pNode2->p2);
+            *ppNodeE = Aig_Not(Aig_ObjChild0(pNode0));//pNode1->p1);
+            return Aig_ObjChild0(pNode1);//pNode2->p1;
         }
         else
         { // pNode1->p2 is positive phase of C
-            *ppNodeT = Dar_Not(Dar_ObjChild0(pNode0));//pNode1->p1);
-            *ppNodeE = Dar_Not(Dar_ObjChild1(pNode1));//pNode2->p2);
-            return Dar_ObjChild1(pNode0);//pNode1->p2;
+            *ppNodeT = Aig_Not(Aig_ObjChild0(pNode0));//pNode1->p1);
+            *ppNodeE = Aig_Not(Aig_ObjChild1(pNode1));//pNode2->p2);
+            return Aig_ObjChild1(pNode0);//pNode1->p2;
         }
     }
     assert( 0 ); // this is not MUX
@@ -347,13 +364,13 @@ Dar_Obj_t * Dar_ObjRecognizeMux( Dar_Obj_t * pNode, Dar_Obj_t ** ppNodeT, Dar_Ob
   SeeAlso     []
 
 ***********************************************************************/
-Dar_Obj_t * Dar_ObjReal_rec( Dar_Obj_t * pObj )
+Aig_Obj_t * Aig_ObjReal_rec( Aig_Obj_t * pObj )
 {
-    Dar_Obj_t * pObjNew, * pObjR = Dar_Regular(pObj);
-    if ( !Dar_ObjIsBuf(pObjR) )
+    Aig_Obj_t * pObjNew, * pObjR = Aig_Regular(pObj);
+    if ( !Aig_ObjIsBuf(pObjR) )
         return pObj;
-    pObjNew = Dar_ObjReal_rec( Dar_ObjChild0(pObjR) );
-    return Dar_NotCond( pObjNew, Dar_IsComplement(pObj) );
+    pObjNew = Aig_ObjReal_rec( Aig_ObjChild0(pObjR) );
+    return Aig_NotCond( pObjNew, Aig_IsComplement(pObj) );
 }
 
 
@@ -369,22 +386,22 @@ Dar_Obj_t * Dar_ObjReal_rec( Dar_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_ObjPrintEqn( FILE * pFile, Dar_Obj_t * pObj, Vec_Vec_t * vLevels, int Level )
+void Aig_ObjPrintEqn( FILE * pFile, Aig_Obj_t * pObj, Vec_Vec_t * vLevels, int Level )
 {
     Vec_Ptr_t * vSuper;
-    Dar_Obj_t * pFanin;
+    Aig_Obj_t * pFanin;
     int fCompl, i;
     // store the complemented attribute
-    fCompl = Dar_IsComplement(pObj);
-    pObj = Dar_Regular(pObj);
+    fCompl = Aig_IsComplement(pObj);
+    pObj = Aig_Regular(pObj);
     // constant case
-    if ( Dar_ObjIsConst1(pObj) )
+    if ( Aig_ObjIsConst1(pObj) )
     {
         fprintf( pFile, "%d", !fCompl );
         return;
     }
     // PI case
-    if ( Dar_ObjIsPi(pObj) )
+    if ( Aig_ObjIsPi(pObj) )
     {
         fprintf( pFile, "%s%s", fCompl? "!" : "", pObj->pData );
         return;
@@ -392,11 +409,11 @@ void Dar_ObjPrintEqn( FILE * pFile, Dar_Obj_t * pObj, Vec_Vec_t * vLevels, int L
     // AND case
     Vec_VecExpand( vLevels, Level );
     vSuper = Vec_VecEntry(vLevels, Level);
-    Dar_ObjCollectMulti( pObj, vSuper );
+    Aig_ObjCollectMulti( pObj, vSuper );
     fprintf( pFile, "%s", (Level==0? "" : "(") );
     Vec_PtrForEachEntry( vSuper, pFanin, i )
     {
-        Dar_ObjPrintEqn( pFile, Dar_NotCond(pFanin, fCompl), vLevels, Level+1 );
+        Aig_ObjPrintEqn( pFile, Aig_NotCond(pFanin, fCompl), vLevels, Level+1 );
         if ( i < Vec_PtrSize(vSuper) - 1 )
             fprintf( pFile, " %s ", fCompl? "+" : "*" );
     }
@@ -416,36 +433,36 @@ void Dar_ObjPrintEqn( FILE * pFile, Dar_Obj_t * pObj, Vec_Vec_t * vLevels, int L
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_ObjPrintVerilog( FILE * pFile, Dar_Obj_t * pObj, Vec_Vec_t * vLevels, int Level )
+void Aig_ObjPrintVerilog( FILE * pFile, Aig_Obj_t * pObj, Vec_Vec_t * vLevels, int Level )
 {
     Vec_Ptr_t * vSuper;
-    Dar_Obj_t * pFanin, * pFanin0, * pFanin1, * pFaninC;
+    Aig_Obj_t * pFanin, * pFanin0, * pFanin1, * pFaninC;
     int fCompl, i;
     // store the complemented attribute
-    fCompl = Dar_IsComplement(pObj);
-    pObj = Dar_Regular(pObj);
+    fCompl = Aig_IsComplement(pObj);
+    pObj = Aig_Regular(pObj);
     // constant case
-    if ( Dar_ObjIsConst1(pObj) )
+    if ( Aig_ObjIsConst1(pObj) )
     {
         fprintf( pFile, "1\'b%d", !fCompl );
         return;
     }
     // PI case
-    if ( Dar_ObjIsPi(pObj) )
+    if ( Aig_ObjIsPi(pObj) )
     {
         fprintf( pFile, "%s%s", fCompl? "~" : "", pObj->pData );
         return;
     }
     // EXOR case
-    if ( Dar_ObjIsExor(pObj) )
+    if ( Aig_ObjIsExor(pObj) )
     {
         Vec_VecExpand( vLevels, Level );
         vSuper = Vec_VecEntry( vLevels, Level );
-        Dar_ObjCollectMulti( pObj, vSuper );
+        Aig_ObjCollectMulti( pObj, vSuper );
         fprintf( pFile, "%s", (Level==0? "" : "(") );
         Vec_PtrForEachEntry( vSuper, pFanin, i )
         {
-            Dar_ObjPrintVerilog( pFile, Dar_NotCond(pFanin, (fCompl && i==0)), vLevels, Level+1 );
+            Aig_ObjPrintVerilog( pFile, Aig_NotCond(pFanin, (fCompl && i==0)), vLevels, Level+1 );
             if ( i < Vec_PtrSize(vSuper) - 1 )
                 fprintf( pFile, " ^ " );
         }
@@ -453,25 +470,25 @@ void Dar_ObjPrintVerilog( FILE * pFile, Dar_Obj_t * pObj, Vec_Vec_t * vLevels, i
         return;
     }
     // MUX case
-    if ( Dar_ObjIsMuxType(pObj) )
+    if ( Aig_ObjIsMuxType(pObj) )
     {
-        if ( Dar_ObjRecognizeExor( pObj, &pFanin0, &pFanin1 ) )
+        if ( Aig_ObjRecognizeExor( pObj, &pFanin0, &pFanin1 ) )
         {
             fprintf( pFile, "%s", (Level==0? "" : "(") );
-            Dar_ObjPrintVerilog( pFile, Dar_NotCond(pFanin0, fCompl), vLevels, Level+1 );
+            Aig_ObjPrintVerilog( pFile, Aig_NotCond(pFanin0, fCompl), vLevels, Level+1 );
             fprintf( pFile, " ^ " );
-            Dar_ObjPrintVerilog( pFile, pFanin1, vLevels, Level+1 );
+            Aig_ObjPrintVerilog( pFile, pFanin1, vLevels, Level+1 );
             fprintf( pFile, "%s", (Level==0? "" : ")") );
         }
         else 
         {
-            pFaninC = Dar_ObjRecognizeMux( pObj, &pFanin1, &pFanin0 );
+            pFaninC = Aig_ObjRecognizeMux( pObj, &pFanin1, &pFanin0 );
             fprintf( pFile, "%s", (Level==0? "" : "(") );
-            Dar_ObjPrintVerilog( pFile, pFaninC, vLevels, Level+1 );
+            Aig_ObjPrintVerilog( pFile, pFaninC, vLevels, Level+1 );
             fprintf( pFile, " ? " );
-            Dar_ObjPrintVerilog( pFile, Dar_NotCond(pFanin1, fCompl), vLevels, Level+1 );
+            Aig_ObjPrintVerilog( pFile, Aig_NotCond(pFanin1, fCompl), vLevels, Level+1 );
             fprintf( pFile, " : " );
-            Dar_ObjPrintVerilog( pFile, Dar_NotCond(pFanin0, fCompl), vLevels, Level+1 );
+            Aig_ObjPrintVerilog( pFile, Aig_NotCond(pFanin0, fCompl), vLevels, Level+1 );
             fprintf( pFile, "%s", (Level==0? "" : ")") );
         }
         return;
@@ -479,11 +496,11 @@ void Dar_ObjPrintVerilog( FILE * pFile, Dar_Obj_t * pObj, Vec_Vec_t * vLevels, i
     // AND case
     Vec_VecExpand( vLevels, Level );
     vSuper = Vec_VecEntry(vLevels, Level);
-    Dar_ObjCollectMulti( pObj, vSuper );
+    Aig_ObjCollectMulti( pObj, vSuper );
     fprintf( pFile, "%s", (Level==0? "" : "(") );
     Vec_PtrForEachEntry( vSuper, pFanin, i )
     {
-        Dar_ObjPrintVerilog( pFile, Dar_NotCond(pFanin, fCompl), vLevels, Level+1 );
+        Aig_ObjPrintVerilog( pFile, Aig_NotCond(pFanin, fCompl), vLevels, Level+1 );
         if ( i < Vec_PtrSize(vSuper) - 1 )
             fprintf( pFile, " %s ", fCompl? "|" : "&" );
     }
@@ -503,19 +520,19 @@ void Dar_ObjPrintVerilog( FILE * pFile, Dar_Obj_t * pObj, Vec_Vec_t * vLevels, i
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_ObjPrintVerbose( Dar_Obj_t * pObj, int fHaig )
+void Aig_ObjPrintVerbose( Aig_Obj_t * pObj, int fHaig )
 {
-    assert( !Dar_IsComplement(pObj) );
+    assert( !Aig_IsComplement(pObj) );
     printf( "Node %p : ", pObj );
-    if ( Dar_ObjIsConst1(pObj) )
+    if ( Aig_ObjIsConst1(pObj) )
         printf( "constant 1" );
-    else if ( Dar_ObjIsPi(pObj) )
+    else if ( Aig_ObjIsPi(pObj) )
         printf( "PI" );
     else
         printf( "AND( %p%s, %p%s )", 
-            Dar_ObjFanin0(pObj), (Dar_ObjFaninC0(pObj)? "\'" : " "), 
-            Dar_ObjFanin1(pObj), (Dar_ObjFaninC1(pObj)? "\'" : " ") );
-    printf( " (refs = %3d)", Dar_ObjRefs(pObj) );
+            Aig_ObjFanin0(pObj), (Aig_ObjFaninC0(pObj)? "\'" : " "), 
+            Aig_ObjFanin1(pObj), (Aig_ObjFaninC1(pObj)? "\'" : " ") );
+    printf( " (refs = %3d)", Aig_ObjRefs(pObj) );
 }
 
 /**Function*************************************************************
@@ -529,18 +546,18 @@ void Dar_ObjPrintVerbose( Dar_Obj_t * pObj, int fHaig )
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_ManPrintVerbose( Dar_Man_t * p, int fHaig )
+void Aig_ManPrintVerbose( Aig_Man_t * p, int fHaig )
 {
     Vec_Ptr_t * vNodes;
-    Dar_Obj_t * pObj;
+    Aig_Obj_t * pObj;
     int i;
     printf( "PIs: " );
-    Dar_ManForEachPi( p, pObj, i )
+    Aig_ManForEachPi( p, pObj, i )
         printf( " %p", pObj );
     printf( "\n" );
-    vNodes = Dar_ManDfs( p );
+    vNodes = Aig_ManDfs( p );
     Vec_PtrForEachEntry( vNodes, pObj, i )
-        Dar_ObjPrintVerbose( pObj, fHaig ), printf( "\n" );
+        Aig_ObjPrintVerbose( pObj, fHaig ), printf( "\n" );
     printf( "\n" );
 }
 
@@ -555,61 +572,61 @@ void Dar_ManPrintVerbose( Dar_Man_t * p, int fHaig )
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_ManDumpBlif( Dar_Man_t * p, char * pFileName )
+void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName )
 {
     FILE * pFile;
     Vec_Ptr_t * vNodes;
-    Dar_Obj_t * pObj, * pConst1 = NULL;
+    Aig_Obj_t * pObj, * pConst1 = NULL;
     int i, nDigits, Counter = 0;
-    if ( Dar_ManPoNum(p) == 0 )
+    if ( Aig_ManPoNum(p) == 0 )
     {
-        printf( "Dar_ManDumpBlif(): AIG manager does not have POs.\n" );
+        printf( "Aig_ManDumpBlif(): AIG manager does not have POs.\n" );
         return;
     }
     // collect nodes in the DFS order
-    vNodes = Dar_ManDfs( p );
+    vNodes = Aig_ManDfs( p );
     // assign IDs to objects
-    Dar_ManConst1(p)->pData = (void *)Counter++;
-    Dar_ManForEachPi( p, pObj, i )
+    Aig_ManConst1(p)->pData = (void *)Counter++;
+    Aig_ManForEachPi( p, pObj, i )
         pObj->pData = (void *)Counter++;
-    Dar_ManForEachPo( p, pObj, i )
+    Aig_ManForEachPo( p, pObj, i )
         pObj->pData = (void *)Counter++;
     Vec_PtrForEachEntry( vNodes, pObj, i )
         pObj->pData = (void *)Counter++;
     nDigits = Extra_Base10Log( Counter );
     // write the file
     pFile = fopen( pFileName, "w" );
-    fprintf( pFile, "# BLIF file written by procedure Dar_ManDumpBlif() in ABC\n" );
+    fprintf( pFile, "# BLIF file written by procedure Aig_ManDumpBlif() in ABC\n" );
     fprintf( pFile, "# http://www.eecs.berkeley.edu/~alanmi/abc/\n" );
     fprintf( pFile, ".model test\n" );
     // write PIs
     fprintf( pFile, ".inputs" );
-    Dar_ManForEachPi( p, pObj, i )
+    Aig_ManForEachPi( p, pObj, i )
         fprintf( pFile, " n%0*d", nDigits, (int)pObj->pData );
     fprintf( pFile, "\n" );
     // write POs
     fprintf( pFile, ".outputs" );
-    Dar_ManForEachPo( p, pObj, i )
+    Aig_ManForEachPo( p, pObj, i )
         fprintf( pFile, " n%0*d", nDigits, (int)pObj->pData );
     fprintf( pFile, "\n" );
     // write nodes
     Vec_PtrForEachEntry( vNodes, pObj, i )
     {
         fprintf( pFile, ".names n%0*d n%0*d n%0*d\n", 
-            nDigits, (int)Dar_ObjFanin0(pObj)->pData, 
-            nDigits, (int)Dar_ObjFanin1(pObj)->pData, 
+            nDigits, (int)Aig_ObjFanin0(pObj)->pData, 
+            nDigits, (int)Aig_ObjFanin1(pObj)->pData, 
             nDigits, (int)pObj->pData );
-        fprintf( pFile, "%d%d 1\n", !Dar_ObjFaninC0(pObj), !Dar_ObjFaninC1(pObj) );
+        fprintf( pFile, "%d%d 1\n", !Aig_ObjFaninC0(pObj), !Aig_ObjFaninC1(pObj) );
     }
     // write POs
-    Dar_ManForEachPo( p, pObj, i )
+    Aig_ManForEachPo( p, pObj, i )
     {
         fprintf( pFile, ".names n%0*d n%0*d\n", 
-            nDigits, (int)Dar_ObjFanin0(pObj)->pData, 
+            nDigits, (int)Aig_ObjFanin0(pObj)->pData, 
             nDigits, (int)pObj->pData );
-        fprintf( pFile, "%d 1\n", !Dar_ObjFaninC0(pObj) );
-        if ( Dar_ObjIsConst1(Dar_ObjFanin0(pObj)) )
-            pConst1 = Dar_ManConst1(p);
+        fprintf( pFile, "%d 1\n", !Aig_ObjFaninC0(pObj) );
+        if ( Aig_ObjIsConst1(Aig_ObjFanin0(pObj)) )
+            pConst1 = Aig_ManConst1(p);
     }
     if ( pConst1 )
         fprintf( pFile, ".names n%0*d\n 1\n", nDigits, (int)pConst1->pData );

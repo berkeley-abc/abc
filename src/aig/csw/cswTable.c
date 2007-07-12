@@ -65,41 +65,26 @@ unsigned Csw_CutHash( Csw_Cut_t * pCut )
     return uHash;
 }
 
-/**Function********************************************************************
+/**Function*************************************************************
 
-  Synopsis    [Returns the next prime >= p.]
+  Synopsis    [Returns the total number of cuts in the table.]
 
-  Description [Copied from CUDD, for stand-aloneness.]
-
-  SideEffects [None]
+  Description []
+               
+  SideEffects []
 
   SeeAlso     []
 
-******************************************************************************/
-unsigned int Cudd_PrimeCws( unsigned int p )
+***********************************************************************/
+int Csw_TableCountCuts( Csw_Man_t * p )
 {
-    int i,pn;
-
-    p--;
-    do {
-        p++;
-        if (p&1) {
-        pn = 1;
-        i = 3;
-        while ((unsigned) (i * i) <= p) {
-        if (p % i == 0) {
-            pn = 0;
-            break;
-        }
-        i += 2;
-        }
-    } else {
-        pn = 0;
-    }
-    } while (!pn);
-    return(p);
-
-} /* end of Cudd_Prime */
+    Csw_Cut_t * pEnt;
+    int i, Counter = 0;
+    for ( i = 0; i < p->nTableSize; i++ )
+        for ( pEnt = p->pTable[i]; pEnt; pEnt = pEnt->pNext )
+            Counter++;
+    return Counter;
+}
 
 /**Function*************************************************************
 
@@ -130,9 +115,9 @@ void Csw_TableCutInsert( Csw_Man_t * p, Csw_Cut_t * pCut )
   SeeAlso     []
 
 ***********************************************************************/
-Dar_Obj_t * Csw_TableCutLookup( Csw_Man_t * p, Csw_Cut_t * pCut )
+Aig_Obj_t * Csw_TableCutLookup( Csw_Man_t * p, Csw_Cut_t * pCut )
 {
-    Dar_Obj_t * pRes = NULL;
+    Aig_Obj_t * pRes = NULL;
     Csw_Cut_t * pEnt;
     unsigned * pTruthNew, * pTruthOld;
     int iEntry = Csw_CutHash(pCut) % p->nTableSize;
@@ -150,8 +135,8 @@ Dar_Obj_t * Csw_TableCutLookup( Csw_Man_t * p, Csw_Cut_t * pCut )
         {
             if ( Kit_TruthIsEqual( pTruthOld, pTruthNew, pCut->nFanins ) )
             {
-                pRes = Dar_ManObj( p->pManRes, pEnt->iNode );
-                assert( pRes->fPhase == Dar_ManObj( p->pManRes, pCut->iNode )->fPhase );
+                pRes = Aig_ManObj( p->pManRes, pEnt->iNode );
+                assert( pRes->fPhase == Aig_ManObj( p->pManRes, pCut->iNode )->fPhase );
                 break;
             }
         }
@@ -159,8 +144,8 @@ Dar_Obj_t * Csw_TableCutLookup( Csw_Man_t * p, Csw_Cut_t * pCut )
         {
             if ( Kit_TruthIsOpposite( pTruthOld, pTruthNew, pCut->nFanins ) )
             {
-                pRes = Dar_Not( Dar_ManObj( p->pManRes, pEnt->iNode ) );
-                assert( Dar_Regular(pRes)->fPhase != Dar_ManObj( p->pManRes, pCut->iNode )->fPhase );
+                pRes = Aig_Not( Aig_ManObj( p->pManRes, pEnt->iNode ) );
+                assert( Aig_Regular(pRes)->fPhase != Aig_ManObj( p->pManRes, pCut->iNode )->fPhase );
                 break;
             }
         }

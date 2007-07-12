@@ -40,48 +40,48 @@
   SeeAlso     []
 
 ***********************************************************************/
-Dar_Obj_t * Fra_And( Fra_Man_t * p, Dar_Obj_t * pObjOld )
+Aig_Obj_t * Fra_And( Fra_Man_t * p, Aig_Obj_t * pObjOld )
 { 
-    Dar_Obj_t * pObjOldRepr, * pObjFraig, * pFanin0Fraig, * pFanin1Fraig, * pObjOldReprFraig;
+    Aig_Obj_t * pObjOldRepr, * pObjFraig, * pFanin0Fraig, * pFanin1Fraig, * pObjOldReprFraig;
     int RetValue;
-    assert( !Dar_IsComplement(pObjOld) );
-    assert( Dar_ObjIsNode(pObjOld) );
+    assert( !Aig_IsComplement(pObjOld) );
+    assert( Aig_ObjIsNode(pObjOld) );
     // get the fraiged fanins
     pFanin0Fraig = Fra_ObjChild0Fra(pObjOld);
     pFanin1Fraig = Fra_ObjChild1Fra(pObjOld);
     // get the fraiged node
-    pObjFraig = Dar_And( p->pManFraig, pFanin0Fraig, pFanin1Fraig );
-    if ( Dar_ObjIsConst1(Dar_Regular(pObjFraig)) )
+    pObjFraig = Aig_And( p->pManFraig, pFanin0Fraig, pFanin1Fraig );
+    if ( Aig_ObjIsConst1(Aig_Regular(pObjFraig)) )
         return pObjFraig;
-    Dar_Regular(pObjFraig)->pData = p;
+    Aig_Regular(pObjFraig)->pData = p;
     // get representative of this class
     pObjOldRepr = Fra_ObjRepr(pObjOld);
     if ( pObjOldRepr == NULL || // this is a unique node
-       (!p->pPars->fDoSparse && pObjOldRepr == Dar_ManConst1(p->pManAig)) ) // this is a sparse node
+       (!p->pPars->fDoSparse && pObjOldRepr == Aig_ManConst1(p->pManAig)) ) // this is a sparse node
     {
-        assert( Dar_Regular(pFanin0Fraig) != Dar_Regular(pFanin1Fraig) );
-        assert( Dar_Regular(pObjFraig) != Dar_Regular(pFanin0Fraig) );
-        assert( Dar_Regular(pObjFraig) != Dar_Regular(pFanin1Fraig) );
+        assert( Aig_Regular(pFanin0Fraig) != Aig_Regular(pFanin1Fraig) );
+        assert( Aig_Regular(pObjFraig) != Aig_Regular(pFanin0Fraig) );
+        assert( Aig_Regular(pObjFraig) != Aig_Regular(pFanin1Fraig) );
         return pObjFraig;
     }
     // get the fraiged representative
     pObjOldReprFraig = Fra_ObjFraig(pObjOldRepr);
     // if the fraiged nodes are the same, return
-    if ( Dar_Regular(pObjFraig) == Dar_Regular(pObjOldReprFraig) )
+    if ( Aig_Regular(pObjFraig) == Aig_Regular(pObjOldReprFraig) )
         return pObjFraig;
-    assert( Dar_Regular(pObjFraig) != Dar_ManConst1(p->pManFraig) );
+    assert( Aig_Regular(pObjFraig) != Aig_ManConst1(p->pManFraig) );
 //    printf( "Node = %d. Repr = %d.\n", pObjOld->Id, pObjOldRepr->Id );
 
     // if they are proved different, the c-ex will be in p->pPatWords
-    RetValue = Fra_NodesAreEquiv( p, Dar_Regular(pObjOldReprFraig), Dar_Regular(pObjFraig) );
+    RetValue = Fra_NodesAreEquiv( p, Aig_Regular(pObjOldReprFraig), Aig_Regular(pObjFraig) );
     if ( RetValue == 1 )  // proved equivalent
     {
 //        pObjOld->fMarkA = 1;
-        return Dar_NotCond( pObjOldReprFraig, pObjOld->fPhase ^ pObjOldRepr->fPhase );
+        return Aig_NotCond( pObjOldReprFraig, pObjOld->fPhase ^ pObjOldRepr->fPhase );
     }
     if ( RetValue == -1 ) // failed
     {
-        Dar_Obj_t * ppNodes[2] = { Dar_Regular(pObjOldReprFraig), Dar_Regular(pObjFraig) };
+        Aig_Obj_t * ppNodes[2] = { Aig_Regular(pObjOldReprFraig), Aig_Regular(pObjFraig) };
         Vec_Ptr_t * vNodes;
 
         if ( !p->pPars->fSpeculate )
@@ -90,11 +90,11 @@ Dar_Obj_t * Fra_And( Fra_Man_t * p, Dar_Obj_t * pObjOld )
 //        pObjOld->fMarkB = 1;
         p->nSpeculs++;
 
-        vNodes = Dar_ManDfsNodes( p->pManFraig, ppNodes, 2 );
+        vNodes = Aig_ManDfsNodes( p->pManFraig, ppNodes, 2 );
         printf( "%d ", Vec_PtrSize(vNodes) );
         Vec_PtrFree( vNodes );
 
-        return Dar_NotCond( pObjOldReprFraig, pObjOld->fPhase ^ pObjOldRepr->fPhase );
+        return Aig_NotCond( pObjOldReprFraig, pObjOld->fPhase ^ pObjOldRepr->fPhase );
     }
 //    printf( "Disproved %d and %d.\n", pObjOldRepr->Id, pObjOld->Id );
     // simulate the counter-example and return the Fraig node
@@ -118,18 +118,18 @@ Dar_Obj_t * Fra_And( Fra_Man_t * p, Dar_Obj_t * pObjOld )
 ***********************************************************************/
 void Fra_Sweep( Fra_Man_t * p )
 {
-    Dar_Obj_t * pObj, * pObjNew;
+    Aig_Obj_t * pObj, * pObjNew;
     int i, k = 0;
 p->nClassesZero = Vec_PtrSize(p->vClasses1);
 p->nClassesBeg  = Vec_PtrSize(p->vClasses) + (int)(Vec_PtrSize(p->vClasses1) > 0);
     // duplicate internal nodes
-//    p->pProgress = Extra_ProgressBarStart( stdout, Dar_ManNodeNum(p->pManAig) );
-    Dar_ManForEachNode( p->pManAig, pObj, i )
+//    p->pProgress = Extra_ProgressBarStart( stdout, Aig_ManNodeNum(p->pManAig) );
+    Aig_ManForEachNode( p->pManAig, pObj, i )
     {
 //        Extra_ProgressBarUpdate( p->pProgress, k++, NULL );
         // default to simple strashing if simulation detected a counter-example for a PO
         if ( p->pManFraig->pData )
-            pObjNew = Dar_And( p->pManFraig, Fra_ObjChild0Fra(pObj), Fra_ObjChild1Fra(pObj) );
+            pObjNew = Aig_And( p->pManFraig, Fra_ObjChild0Fra(pObj), Fra_ObjChild1Fra(pObj) );
         else
             pObjNew = Fra_And( p, pObj ); // pObjNew can be complemented
         Fra_ObjSetFraig( pObj, pObjNew );
@@ -138,15 +138,15 @@ p->nClassesBeg  = Vec_PtrSize(p->vClasses) + (int)(Vec_PtrSize(p->vClasses1) > 0
 //    Extra_ProgressBarStop( p->pProgress );
 p->nClassesEnd = Vec_PtrSize(p->vClasses) + (int)(Vec_PtrSize(p->vClasses1) > 0);
     // try to prove the outputs of the miter
-    p->nNodesMiter = Dar_ManNodeNum(p->pManFraig);
+    p->nNodesMiter = Aig_ManNodeNum(p->pManFraig);
 //    Fra_MiterStatus( p->pManFraig );
 //    if ( p->pPars->fProve && p->pManFraig->pData == NULL )
 //        Fra_MiterProve( p );
     // add the POs
-    Dar_ManForEachPo( p->pManAig, pObj, i )
-        Dar_ObjCreatePo( p->pManFraig, Fra_ObjChild0Fra(pObj) );
+    Aig_ManForEachPo( p->pManAig, pObj, i )
+        Aig_ObjCreatePo( p->pManFraig, Fra_ObjChild0Fra(pObj) );
     // remove dangling nodes 
-    Dar_ManCleanup( p->pManFraig );
+    Aig_ManCleanup( p->pManFraig );
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -41,27 +41,30 @@
 ***********************************************************************/
 void Cnf_ManPostprocess_old( Cnf_Man_t * p )
 {
-    extern int Dar_ManLargeCutEval( Dar_Man_t * p, Dar_Obj_t * pRoot, Dar_Cut_t * pCutR, Dar_Cut_t * pCutL, int Leaf );
+//    extern int Aig_ManLargeCutEval( Aig_Man_t * p, Aig_Obj_t * pRoot, Dar_Cut_t * pCutR, Dar_Cut_t * pCutL, int Leaf );
     int nNew, Gain, nGain = 0, nVars = 0;
 
-    Dar_Obj_t * pObj, * pFan;
+    Aig_Obj_t * pObj, * pFan;
     Dar_Cut_t * pCutBest, * pCut;
     int i, k;//, a, b, Counter;
-    Dar_ManForEachObj( p->pManAig, pObj, i )
+    Aig_ManForEachObj( p->pManAig, pObj, i )
     {
-        if ( !Dar_ObjIsNode(pObj) )
+        if ( !Aig_ObjIsNode(pObj) )
             continue;
         if ( pObj->nRefs == 0 )
             continue;
-        pCutBest = Dar_ObjBestCut(pObj);
+//        pCutBest = Aig_ObjBestCut(pObj);
+        pCutBest = NULL;
+
         Dar_CutForEachLeaf( p->pManAig, pCutBest, pFan, k )
         {
-            if ( !Dar_ObjIsNode(pFan) )
+            if ( !Aig_ObjIsNode(pFan) )
                 continue;
             assert( pFan->nRefs != 0 );
             if ( pFan->nRefs != 1 )
                 continue;
-            pCut = Dar_ObjBestCut(pFan);
+//            pCut = Aig_ObjBestCut(pFan);
+            pCut = NULL;
 /*
             // find how many common variable they have
             Counter = 0;
@@ -77,11 +80,16 @@ void Cnf_ManPostprocess_old( Cnf_Man_t * p )
             printf( "%d ", Counter );
 */
             // find the new truth table after collapsing these two cuts
-            nNew = Dar_ManLargeCutEval( p->pManAig, pObj, pCutBest, pCut, pFan->Id );
+
+
+//            nNew = Aig_ManLargeCutEval( p->pManAig, pObj, pCutBest, pCut, pFan->Id );
+            nNew = 0;
+
+
 //            printf( "%d+%d=%d:%d(%d) ", pCutBest->Cost, pCut->Cost, 
 //                pCutBest->Cost+pCut->Cost, nNew, pCutBest->Cost+pCut->Cost-nNew );
 
-            Gain = pCutBest->Cost+pCut->Cost-nNew;
+            Gain = pCutBest->Value + pCut->Value - nNew;
             if ( Gain > 0 )
             {
                 nGain += Gain;
@@ -105,12 +113,12 @@ void Cnf_ManPostprocess_old( Cnf_Man_t * p )
 ***********************************************************************/
 void Cnf_ManTransferCuts( Cnf_Man_t * p )
 {
-    Dar_Obj_t * pObj;
+    Aig_Obj_t * pObj;
     int i;
-    Dar_MmFlexRestart( p->pMemCuts );
-    Dar_ManForEachObj( p->pManAig, pObj, i )
+    Aig_MmFlexRestart( p->pMemCuts );
+    Aig_ManForEachObj( p->pManAig, pObj, i )
     {
-        if ( Dar_ObjIsNode(pObj) && pObj->nRefs > 0 )
+        if ( Aig_ObjIsNode(pObj) && pObj->nRefs > 0 )
             pObj->pData = Cnf_CutCreate( p, pObj );
         else
             pObj->pData = NULL;
@@ -130,9 +138,9 @@ void Cnf_ManTransferCuts( Cnf_Man_t * p )
 ***********************************************************************/
 void Cnf_ManFreeCuts( Cnf_Man_t * p )
 {
-    Dar_Obj_t * pObj;
+    Aig_Obj_t * pObj;
     int i;
-    Dar_ManForEachObj( p->pManAig, pObj, i )
+    Aig_ManForEachObj( p->pManAig, pObj, i )
         if ( pObj->pData )
         {
             Cnf_CutFree( pObj->pData );
@@ -154,10 +162,10 @@ void Cnf_ManFreeCuts( Cnf_Man_t * p )
 void Cnf_ManPostprocess( Cnf_Man_t * p )
 {
     Cnf_Cut_t * pCut, * pCutFan, * pCutRes;
-    Dar_Obj_t * pObj, * pFan;
+    Aig_Obj_t * pObj, * pFan;
     int Order[16], Costs[16];
     int i, k, fChanges;
-    Dar_ManForEachNode( p->pManAig, pObj, i )
+    Aig_ManForEachNode( p->pManAig, pObj, i )
     {
         if ( pObj->nRefs == 0 )
             continue;
@@ -167,7 +175,7 @@ void Cnf_ManPostprocess( Cnf_Man_t * p )
         Cnf_CutForEachLeaf( p->pManAig, pCut, pFan, k )
         {
             Order[k] = k;
-            Costs[k] = Dar_ObjIsNode(pFan)? Cnf_ObjBestCut(pFan)->Cost : 0;
+            Costs[k] = Aig_ObjIsNode(pFan)? Cnf_ObjBestCut(pFan)->Cost : 0;
         }
         // sort the cuts by Weight
         do {
@@ -186,9 +194,9 @@ void Cnf_ManPostprocess( Cnf_Man_t * p )
 
 
 //        Cnf_CutForEachLeaf( p->pManAig, pCut, pFan, k )
-        for ( k = 0; (k < (int)(pCut)->nFanins) && ((pFan) = Dar_ManObj(p->pManAig, (pCut)->pFanins[Order[k]])); k++ )
+        for ( k = 0; (k < (int)(pCut)->nFanins) && ((pFan) = Aig_ManObj(p->pManAig, (pCut)->pFanins[Order[k]])); k++ )
         {
-            if ( !Dar_ObjIsNode(pFan) )
+            if ( !Aig_ObjIsNode(pFan) )
                 continue;
             assert( pFan->nRefs != 0 );
             if ( pFan->nRefs != 1 )

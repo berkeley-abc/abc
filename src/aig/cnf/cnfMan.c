@@ -52,12 +52,12 @@ Cnf_Man_t * Cnf_ManStart()
     // derive internal data structures
     Cnf_ReadMsops( &p->pSopSizes, &p->pSops );
     // allocate memory manager for cuts
-    p->pMemCuts = Dar_MmFlexStart();
+    p->pMemCuts = Aig_MmFlexStart();
     p->nMergeLimit = 10;
     // allocate temporary truth tables
-    p->pTruths[0] = ALLOC( unsigned, 4 * Dar_TruthWordNum(p->nMergeLimit) );
+    p->pTruths[0] = ALLOC( unsigned, 4 * Aig_TruthWordNum(p->nMergeLimit) );
     for ( i = 1; i < 4; i++ )
-        p->pTruths[i] = p->pTruths[i-1] + Dar_TruthWordNum(p->nMergeLimit);
+        p->pTruths[i] = p->pTruths[i-1] + Aig_TruthWordNum(p->nMergeLimit);
     p->vMemory = Vec_IntAlloc( 1 << 18 );
     return p;
 }
@@ -77,7 +77,7 @@ void Cnf_ManStop( Cnf_Man_t * p )
 {
     Vec_IntFree( p->vMemory );
     free( p->pTruths[0] );
-    Dar_MmFlexStop( p->pMemCuts, 0 );
+    Aig_MmFlexStop( p->pMemCuts, 0 );
     free( p->pSopSizes );
     free( p->pSops[1] );
     free( p->pSops );

@@ -1,0 +1,224 @@
+/**CFile****************************************************************
+
+  FileName    [aigMan.c]
+
+  SystemName  [ABC: Logic synthesis and verification system.]
+
+  PackageName [AIG package.]
+
+  Synopsis    [AIG manager.]
+
+  Author      [Alan Mishchenko]
+  
+  Affiliation [UC Berkeley]
+
+  Date        [Ver. 1.0. Started - April 28, 2007.]
+
+  Revision    [$Id: aigMan.c,v 1.00 2007/04/28 00:00:00 alanmi Exp $]
+
+***********************************************************************/
+
+#include "aig.h"
+
+////////////////////////////////////////////////////////////////////////
+///                        DECLARATIONS                              ///
+////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////
+///                     FUNCTION DEFINITIONS                         ///
+////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Starts the AIG manager.]
+
+  Description [The argument of this procedure is a soft limit on the
+  the number of nodes, or 0 if the limit is unknown.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Aig_ManStart( int nNodesMax )
+{
+    Aig_Man_t * p;
+    if ( nNodesMax <= 0 )
+        nNodesMax = 10007;
+    // start the manager
+    p = ALLOC( Aig_Man_t, 1 );
+    memset( p, 0, sizeof(Aig_Man_t) );
+    // perform initializations
+    p->nTravIds = 1;
+    p->fCatchExor = 0;
+    // allocate arrays for nodes
+    p->vPis = Vec_PtrAlloc( 100 );
+    p->vPos = Vec_PtrAlloc( 100 );
+    p->vObjs = Vec_PtrAlloc( 1000 );
+    // prepare the internal memory manager
+    p->pMemObjs = Aig_MmFixedStart( sizeof(Aig_Obj_t), nNodesMax );
+    // create the constant node
+    p->pConst1 = Aig_ManFetchMemory( p );
+    p->pConst1->Type = AIG_OBJ_CONST1;
+    p->pConst1->fPhase = 1;
+    p->nObjs[AIG_OBJ_CONST1]++;
+    // start the table
+    p->nTableSize = Aig_PrimeCudd( nNodesMax );
+    p->pTable = ALLOC( Aig_Obj_t *, p->nTableSize );
+    memset( p->pTable, 0, sizeof(Aig_Obj_t *) * p->nTableSize );
+    return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the AIG manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Aig_ManStartFrom( Aig_Man_t * p )
+{
+    Aig_Man_t * pNew;
+    Aig_Obj_t * pObj;
+    int i;
+    // create the new manager
+    pNew = Aig_ManStart( Aig_ManObjIdMax(p) + 1 );
+    // create the PIs
+    Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
+    Aig_ManForEachPi( p, pObj, i )
+        pObj->pData = Aig_ObjCreatePi(pNew);
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the AIG manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Aig_ManDup( Aig_Man_t * p )
+{
+    Aig_Man_t * pNew;
+    Aig_Obj_t * pObj;
+    int i;
+    // create the new manager
+    pNew = Aig_ManStart( Aig_ManObjIdMax(p) + 1 );
+    // create the PIs
+    Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
+    Aig_ManForEachPi( p, pObj, i )
+        pObj->pData = Aig_ObjCreatePi(pNew);
+    // duplicate internal nodes
+    Aig_ManForEachObj( p, pObj, i )
+        if ( Aig_ObjIsBuf(pObj) )
+            pObj->pData = Aig_ObjChild0Copy(pObj);
+        else if ( Aig_ObjIsNode(pObj) )
+            pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+    // add the POs
+    Aig_ManForEachPo( p, pObj, i )
+        Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+    // check the resulting network
+    if ( !Aig_ManCheck(pNew) )
+        printf( "Aig_ManDup(): The check has failed.\n" );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Stops the AIG manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManStop( Aig_Man_t * p )
+{
+    Aig_Obj_t * pObj;
+    int i;
+    // print time
+    if ( p->time1 ) { PRT( "time1", p->time1 ); }
+    if ( p->time2 ) { PRT( "time2", p->time2 ); }
+    // make sure the nodes have clean marks
+    Aig_ManForEachObj( p, pObj, i )
+        assert( !pObj->fMarkA && !pObj->fMarkB );
+//    Aig_TableProfile( p );
+    Aig_MmFixedStop( p->pMemObjs, 0 );
+    if ( p->vPis )        Vec_PtrFree( p->vPis );
+    if ( p->vPos )        Vec_PtrFree( p->vPos );
+    if ( p->vObjs )       Vec_PtrFree( p->vObjs );
+    if ( p->vRequired )   Vec_IntFree( p->vRequired );
+    free( p->pTable );
+    free( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the number of dangling nodes removed.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Aig_ManCleanup( Aig_Man_t * p )
+{
+    Vec_Ptr_t * vObjs;
+    Aig_Obj_t * pNode;
+    int i, nNodesOld;
+    nNodesOld = Aig_ManNodeNum(p);
+    // collect roots of dangling nodes
+    vObjs = Vec_PtrAlloc( 100 );
+    Aig_ManForEachObj( p, pNode, i )
+        if ( Aig_ObjIsNode(pNode) && Aig_ObjRefs(pNode) == 0 )
+            Vec_PtrPush( vObjs, pNode );
+    // recursively remove dangling nodes
+    Vec_PtrForEachEntry( vObjs, pNode, i )
+        Aig_ObjDelete_rec( p, pNode, 1 );
+    Vec_PtrFree( vObjs );
+    return nNodesOld - Aig_ManNodeNum(p);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Stops the AIG manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManPrintStats( Aig_Man_t * p )
+{
+    printf( "PI/PO/Lat = %5d/%5d/%5d   ", Aig_ManPiNum(p), Aig_ManPoNum(p), Aig_ManLatchNum(p) );
+    printf( "A = %6d. ",    Aig_ManAndNum(p) );
+    if ( Aig_ManExorNum(p) )
+        printf( "X = %5d. ",    Aig_ManExorNum(p) );
+//    if ( Aig_ManBufNum(p) )
+        printf( "B = %3d. ",    Aig_ManBufNum(p) );
+    printf( "Cre = %6d. ",  p->nCreated );
+    printf( "Del = %6d. ",  p->nDeleted );
+//    printf( "Lev = %3d. ",  Aig_ManCountLevels(p) );
+    printf( "\n" );
+}
+
+
+////////////////////////////////////////////////////////////////////////
+///                       END OF FILE                                ///
+////////////////////////////////////////////////////////////////////////
+
+

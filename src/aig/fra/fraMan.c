@@ -66,7 +66,7 @@ void Fra_ParamsDefault( Fra_Par_t * pPars )
   SeeAlso     []
 
 ***********************************************************************/
-Fra_Man_t * Fra_ManStart( Dar_Man_t * pManAig, Fra_Par_t * pPars )
+Fra_Man_t * Fra_ManStart( Aig_Man_t * pManAig, Fra_Par_t * pPars )
 {
     Fra_Man_t * p;
     // allocate the fraiging manager
@@ -74,15 +74,15 @@ Fra_Man_t * Fra_ManStart( Dar_Man_t * pManAig, Fra_Par_t * pPars )
     memset( p, 0, sizeof(Fra_Man_t) );
     p->pPars      = pPars;
     p->pManAig    = pManAig;
-    p->pManFraig  = Dar_ManStartFrom( pManAig );
-    assert( Dar_ManPiNum(p->pManAig) == Dar_ManPiNum(p->pManFraig) );
+    p->pManFraig  = Aig_ManStartFrom( pManAig );
+    assert( Aig_ManPiNum(p->pManAig) == Aig_ManPiNum(p->pManFraig) );
     // allocate simulation info
     p->nSimWords  = pPars->nSimWords;
-    p->pSimWords  = ALLOC( unsigned, (Dar_ManObjIdMax(pManAig) + 1) * p->nSimWords );
+    p->pSimWords  = ALLOC( unsigned, (Aig_ManObjIdMax(pManAig) + 1) * p->nSimWords );
     // clean simulation info of the constant node
-    memset( p->pSimWords, 0, sizeof(unsigned) * ((Dar_ManPiNum(pManAig) + 1) * p->nSimWords) );
+    memset( p->pSimWords, 0, sizeof(unsigned) * ((Aig_ManPiNum(pManAig) + 1) * p->nSimWords) );
     // allocate storage for sim pattern
-    p->nPatWords  = Dar_BitWordNum( Dar_ManPiNum(pManAig) );
+    p->nPatWords  = Aig_BitWordNum( Aig_ManPiNum(pManAig) );
     p->pPatWords  = ALLOC( unsigned, p->nPatWords ); 
     p->pPatScores = ALLOC( int, 32 * p->nSimWords ); 
     p->vPiVars    = Vec_PtrAlloc( 100 );
@@ -92,11 +92,11 @@ Fra_Man_t * Fra_ManStart( Dar_Man_t * pManAig, Fra_Par_t * pPars )
     p->vClassNew  = Vec_PtrAlloc( 100 );
     p->vClassesTemp = Vec_PtrAlloc( 100 );
     // allocate other members
-    p->nSizeAlloc = Dar_ManObjIdMax(pManAig) + 1;
-    p->pMemFraig  = ALLOC( Dar_Obj_t *, p->nSizeAlloc );
-    memset( p->pMemFraig, 0, p->nSizeAlloc * sizeof(Dar_Obj_t *) );
-    p->pMemRepr  = ALLOC( Dar_Obj_t *, p->nSizeAlloc );
-    memset( p->pMemRepr, 0, p->nSizeAlloc * sizeof(Dar_Obj_t *) );
+    p->nSizeAlloc = Aig_ManObjIdMax(pManAig) + 1;
+    p->pMemFraig  = ALLOC( Aig_Obj_t *, p->nSizeAlloc );
+    memset( p->pMemFraig, 0, p->nSizeAlloc * sizeof(Aig_Obj_t *) );
+    p->pMemRepr  = ALLOC( Aig_Obj_t *, p->nSizeAlloc );
+    memset( p->pMemRepr, 0, p->nSizeAlloc * sizeof(Aig_Obj_t *) );
     p->pMemFanins  = ALLOC( Vec_Ptr_t *, p->nSizeAlloc );
     memset( p->pMemFanins, 0, p->nSizeAlloc * sizeof(Vec_Ptr_t *) );
     p->pMemSatNums  = ALLOC( int, p->nSizeAlloc );
@@ -123,18 +123,18 @@ Fra_Man_t * Fra_ManStart( Dar_Man_t * pManAig, Fra_Par_t * pPars )
 ***********************************************************************/
 void Fra_ManPrepare( Fra_Man_t * p )
 {
-    Dar_Obj_t * pObj;
+    Aig_Obj_t * pObj;
     int i;
     // set the pointers to the manager
-    Dar_ManForEachObj( p->pManFraig, pObj, i )
+    Aig_ManForEachObj( p->pManFraig, pObj, i )
         pObj->pData = p;
     // set the pointer to the manager
-    Dar_ManForEachObj( p->pManAig, pObj, i )
+    Aig_ManForEachObj( p->pManAig, pObj, i )
         pObj->pData = p;
     // set the pointers to the available fraig nodes
-    Fra_ObjSetFraig( Dar_ManConst1(p->pManAig), Dar_ManConst1(p->pManFraig) );
-    Dar_ManForEachPi( p->pManAig, pObj, i )
-        Fra_ObjSetFraig( pObj, Dar_ManPi(p->pManFraig, i) );
+    Fra_ObjSetFraig( Aig_ManConst1(p->pManAig), Aig_ManConst1(p->pManFraig) );
+    Aig_ManForEachPi( p->pManAig, pObj, i )
+        Fra_ObjSetFraig( pObj, Aig_ManPi(p->pManFraig, i) );
 }
 
 /**Function*************************************************************
@@ -187,14 +187,14 @@ void Fra_ManStop( Fra_Man_t * p )
 ***********************************************************************/
 void Fra_ManPrint( Fra_Man_t * p )
 {
-    double nMemory = 1.0*Dar_ManObjIdMax(p->pManAig)*((p->nSimWords+2)*sizeof(unsigned)+6*sizeof(void*))/(1<<20);
+    double nMemory = 1.0*Aig_ManObjIdMax(p->pManAig)*((p->nSimWords+2)*sizeof(unsigned)+6*sizeof(void*))/(1<<20);
     printf( "SimWords = %d. Rounds = %d. Mem = %0.2f Mb.  ", p->nSimWords, p->nSimRounds, nMemory );
     printf( "Classes: Beg = %d. End = %d.\n", p->nClassesBeg, p->nClassesEnd );
     printf( "Limits: BTNode = %d. BTMiter = %d.\n", p->pPars->nBTLimitNode, p->pPars->nBTLimitMiter );
     printf( "Proof = %d. Counter-example = %d. Fail = %d. FailReal = %d. Zero = %d.\n", 
         p->nSatProof, p->nSatCallsSat, p->nSatFails, p->nSatFailsReal, p->nClassesZero );
     printf( "Final = %d. Miter = %d. Total = %d. Mux = %d. (Exor = %d.) SatVars = %d.\n", 
-        Dar_ManNodeNum(p->pManFraig), p->nNodesMiter, Dar_ManNodeNum(p->pManAig), 0, 0, p->nSatVars );
+        Aig_ManNodeNum(p->pManFraig), p->nNodesMiter, Aig_ManNodeNum(p->pManAig), 0, 0, p->nSatVars );
     if ( p->pSat ) Sat_SolverPrintStats( stdout, p->pSat );
     PRT( "AIG simulation  ", p->timeSim  );
     PRT( "AIG traversal   ", p->timeTrav  );

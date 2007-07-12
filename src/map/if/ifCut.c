@@ -76,6 +76,7 @@ static inline int If_CutCheckEquality( If_Cut_t * pDom, If_Cut_t * pCut )
             return 0;
     return 1;
 }
+
 /**Function*************************************************************
 
   Synopsis    [Returns 1 if the cut is contained.]

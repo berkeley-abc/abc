@@ -27,6 +27,8 @@
 #include "if.h"
 #include "res.h"
 #include "lpk.h"
+#include "aig.h"
+#include "dar.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -108,6 +110,7 @@ static int Abc_CommandQuaReach       ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandIStrash        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandICut           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIRewrite       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDRewrite       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIRewriteSeq    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIResyn         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandISat           ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -265,6 +268,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "New AIG",      "istrash",       Abc_CommandIStrash,          1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "icut",          Abc_CommandICut,             0 );
     Cmd_CommandAdd( pAbc, "New AIG",      "irw",           Abc_CommandIRewrite,         1 );
+    Cmd_CommandAdd( pAbc, "New AIG",      "drw",           Abc_CommandDRewrite,         1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "irws",          Abc_CommandIRewriteSeq,      1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "iresyn",        Abc_CommandIResyn,           1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "isat",          Abc_CommandISat,             1 );
@@ -337,7 +341,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 
     {
         extern void Dar_LibStart();
-//        Dar_LibStart();
+        Dar_LibStart();
     }
 } 
 
@@ -354,13 +358,16 @@ void Abc_Init( Abc_Frame_t * pAbc )
 ***********************************************************************/
 void Abc_End()
 {
+//    Dar_LibDumpPriorities();
+
     {
         extern void Dar_LibStop();
-//        Dar_LibStop();
+        Dar_LibStop();
     }
 
     Abc_NtkFraigStoreClean();
 //    Rwt_Man4ExplorePrint();
+
 }
 
 /**Function*************************************************************
@@ -6081,14 +6088,13 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Abc_Ntk4VarTable( pNtk );
 //    Dar_NtkGenerateArrays( pNtk );
 //    Dar_ManDeriveCnfTest2();
-/*
+
     if ( !Abc_NtkIsStrash(pNtk) )
     {
         fprintf( pErr, "Network should be strashed. Command has failed.\n" );
         return 1;
     }
-*/
-//    pNtkRes = Abc_NtkDar( pNtk );
+    pNtkRes = Abc_NtkDar( pNtk );
 //    pNtkRes = Abc_NtkDarToCnf( pNtk, "any.cnf" );
     pNtkRes = NULL;
     if ( pNtkRes == NULL )
@@ -6609,6 +6615,105 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandDRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    Dar_Par_t Pars, * pPars = &Pars;
+    int c;
+
+    extern Abc_Ntk_t * Abc_NtkDRewrite( Abc_Ntk_t * pNtk, Dar_Par_t * pPars );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    Dar_ManDefaultParams( pPars );
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CNlzvwh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nCutsMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nCutsMax < 0 ) 
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nSubgMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nSubgMax < 0 ) 
+                goto usage;
+            break;
+        case 'l':
+            pPars->fUpdateLevel ^= 1;
+            break;
+        case 'z':
+            pPars->fUseZeros ^= 1;
+            break;
+        case 'v':
+            pPars->fVerbose ^= 1;
+            break;
+        case 'w':
+            pPars->fVeryVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    pNtkRes = Abc_NtkDRewrite( pNtk, pPars );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Command has failed.\n" );
+        return 0;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: drw [-C num] [-N num] [-lzvwh]\n" );
+    fprintf( pErr, "\t         perform combinational AIG rewriting\n" );
+    fprintf( pErr, "\t-C num : limit on the number of cuts at a node [default = %d]\n", pPars->nCutsMax );
+    fprintf( pErr, "\t-N num : limit on the number of subgraphs tried [default = %d]\n", pPars->nSubgMax );
+    fprintf( pErr, "\t-l     : toggle preserving the number of levels [default = %s]\n", pPars->fUpdateLevel? "yes": "no" );
+    fprintf( pErr, "\t-z     : toggle using zero-cost replacements [default = %s]\n", pPars->fUseZeros? "yes": "no" );
+    fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-w     : toggle very verbose printout [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandIRewriteSeq( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
@@ -7023,7 +7128,7 @@ int Abc_CommandCSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     nCutsMax  =  8;  
-    nLeafMax  =  8;
+    nLeafMax  =  6;
     fVerbose  =  0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "CKvh" ) ) != EOF )
@@ -7067,6 +7172,18 @@ int Abc_CommandCSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
+    if ( nCutsMax < 2 )
+    {
+        fprintf( pErr, "The number of cuts cannot be less than 2.\n" );
+        return 1;
+    }
+
+    if ( nLeafMax < 3 || nLeafMax > 16 )
+    {
+        fprintf( pErr, "The number of leaves is infeasible.\n" );
+        return 1;
+    }
+
     pNtkRes = Abc_NtkCSweep( pNtk, nCutsMax, nLeafMax, fVerbose );
     if ( pNtkRes == NULL )
     {
@@ -7080,8 +7197,8 @@ int Abc_CommandCSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     fprintf( pErr, "usage: csweep [-C num] [-K num] [-vh]\n" );
     fprintf( pErr, "\t         performs cut sweeping using a new method\n" );
-    fprintf( pErr, "\t-C num : limit on the number of cuts [default = %d]\n", nCutsMax );
-    fprintf( pErr, "\t-K num : limit on the cut size [default = %d]\n", nLeafMax );
+    fprintf( pErr, "\t-C num : limit on the number of cuts (C >= 2) [default = %d]\n", nCutsMax );
+    fprintf( pErr, "\t-K num : limit on the cut size (3 <= K <= 16) [default = %d]\n", nLeafMax );
     fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;

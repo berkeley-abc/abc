@@ -24,7 +24,7 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static int Fra_SetActivityFactors( Fra_Man_t * p, Dar_Obj_t * pOld, Dar_Obj_t * pNew );
+static int Fra_SetActivityFactors( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -41,13 +41,13 @@ static int Fra_SetActivityFactors( Fra_Man_t * p, Dar_Obj_t * pOld, Dar_Obj_t * 
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_NodesAreEquiv( Fra_Man_t * p, Dar_Obj_t * pOld, Dar_Obj_t * pNew )
+int Fra_NodesAreEquiv( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
 {
     int pLits[4], RetValue, RetValue1, nBTLimit, clk, clk2 = clock();
 
     // make sure the nodes are not complemented
-    assert( !Dar_IsComplement(pNew) );
-    assert( !Dar_IsComplement(pOld) );
+    assert( !Aig_IsComplement(pNew) );
+    assert( !Aig_IsComplement(pOld) );
     assert( pNew != pOld );
 
     // if at least one of the nodes is a failed node, perform adjustments:
@@ -189,12 +189,12 @@ p->timeSatFail += clock() - clk;
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_NodeIsConst( Fra_Man_t * p, Dar_Obj_t * pNew )
+int Fra_NodeIsConst( Fra_Man_t * p, Aig_Obj_t * pNew )
 {
     int pLits[2], RetValue1, RetValue, clk;
 
     // make sure the nodes are not complemented
-    assert( !Dar_IsComplement(pNew) );
+    assert( !Aig_IsComplement(pNew) );
     assert( pNew != p->pManFraig->pConst1 );
     p->nSatCalls++;
 
@@ -261,19 +261,19 @@ p->timeSatFail += clock() - clk;
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_SetActivityFactors_rec( Fra_Man_t * p, Dar_Obj_t * pObj, int LevelMin, int LevelMax )
+int Fra_SetActivityFactors_rec( Fra_Man_t * p, Aig_Obj_t * pObj, int LevelMin, int LevelMax )
 {
     Vec_Ptr_t * vFanins;
-    Dar_Obj_t * pFanin;
+    Aig_Obj_t * pFanin;
     int i, Counter = 0;
-    assert( !Dar_IsComplement(pObj) );
+    assert( !Aig_IsComplement(pObj) );
     assert( Fra_ObjSatNum(pObj) );
     // skip visited variables
-    if ( Dar_ObjIsTravIdCurrent(p->pManFraig, pObj) )
+    if ( Aig_ObjIsTravIdCurrent(p->pManFraig, pObj) )
         return 0;
-    Dar_ObjSetTravIdCurrent(p->pManFraig, pObj);
+    Aig_ObjSetTravIdCurrent(p->pManFraig, pObj);
     // add the PI to the list
-    if ( pObj->Level <= (unsigned)LevelMin || Dar_ObjIsPi(pObj) )
+    if ( pObj->Level <= (unsigned)LevelMin || Aig_ObjIsPi(pObj) )
         return 0;
     // set the factor of this variable
     // (LevelMax-LevelMin) / (pObj->Level-LevelMin) = p->pPars->dActConeBumpMax / ThisBump
@@ -282,7 +282,7 @@ int Fra_SetActivityFactors_rec( Fra_Man_t * p, Dar_Obj_t * pObj, int LevelMin, i
     // explore the fanins
     vFanins = Fra_ObjFaninVec( pObj );
     Vec_PtrForEachEntry( vFanins, pFanin, i )
-        Counter += Fra_SetActivityFactors_rec( p, Dar_Regular(pFanin), LevelMin, LevelMax );
+        Counter += Fra_SetActivityFactors_rec( p, Aig_Regular(pFanin), LevelMin, LevelMax );
     return 1 + Counter;
 }
 
@@ -297,7 +297,7 @@ int Fra_SetActivityFactors_rec( Fra_Man_t * p, Dar_Obj_t * pObj, int LevelMin, i
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_SetActivityFactors( Fra_Man_t * p, Dar_Obj_t * pOld, Dar_Obj_t * pNew )
+int Fra_SetActivityFactors( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
 {
     int clk, LevelMin, LevelMax;
     assert( pOld || pNew );
@@ -305,15 +305,15 @@ clk = clock();
     // reset the active variables
     veci_resize(&p->pSat->act_vars, 0);
     // prepare for traversal
-    Dar_ManIncrementTravId( p->pManFraig );
+    Aig_ManIncrementTravId( p->pManFraig );
     // determine the min and max level to visit
     assert( p->pPars->dActConeRatio > 0 && p->pPars->dActConeRatio < 1 );
-    LevelMax = DAR_MAX( (pNew ? pNew->Level : 0), (pOld ? pOld->Level : 0) );
+    LevelMax = AIG_MAX( (pNew ? pNew->Level : 0), (pOld ? pOld->Level : 0) );
     LevelMin = (int)(LevelMax * (1.0 - p->pPars->dActConeRatio));
     // traverse
-    if ( pOld && !Dar_ObjIsConst1(pOld) )
+    if ( pOld && !Aig_ObjIsConst1(pOld) )
         Fra_SetActivityFactors_rec( p, pOld, LevelMin, LevelMax );
-    if ( pNew && !Dar_ObjIsConst1(pNew) )
+    if ( pNew && !Aig_ObjIsConst1(pNew) )
         Fra_SetActivityFactors_rec( p, pNew, LevelMin, LevelMax );
 //Fra_PrintActivity( p );
 p->timeTrav += clock() - clk;

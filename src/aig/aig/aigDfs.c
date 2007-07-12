@@ -1,10 +1,10 @@
 /**CFile****************************************************************
 
-  FileName    [darDfs.c]
+  FileName    [aigDfs.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [DAG-aware AIG rewriting.]
+  PackageName [AIG package.]
 
   Synopsis    [DFS traversal procedures.]
 
@@ -14,11 +14,11 @@
 
   Date        [Ver. 1.0. Started - April 28, 2007.]
 
-  Revision    [$Id: darDfs.c,v 1.00 2007/04/28 00:00:00 alanmi Exp $]
+  Revision    [$Id: aigDfs.c,v 1.00 2007/04/28 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "dar.h"
+#include "aig.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -39,18 +39,18 @@
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_ManDfs_rec( Dar_Man_t * p, Dar_Obj_t * pObj, Vec_Ptr_t * vNodes )
+void Aig_ManDfs_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vNodes )
 {
-    assert( !Dar_IsComplement(pObj) );
+    assert( !Aig_IsComplement(pObj) );
     if ( pObj == NULL )
         return;
-    if ( Dar_ObjIsTravIdCurrent(p, pObj) )
+    if ( Aig_ObjIsTravIdCurrent(p, pObj) )
         return;
-    assert( Dar_ObjIsNode(pObj) || Dar_ObjIsBuf(pObj) );
-    Dar_ManDfs_rec( p, Dar_ObjFanin0(pObj), vNodes );
-    Dar_ManDfs_rec( p, Dar_ObjFanin1(pObj), vNodes );
-    assert( !Dar_ObjIsTravIdCurrent(p, pObj) ); // loop detection
-    Dar_ObjSetTravIdCurrent(p, pObj);
+    assert( Aig_ObjIsNode(pObj) || Aig_ObjIsBuf(pObj) );
+    Aig_ManDfs_rec( p, Aig_ObjFanin0(pObj), vNodes );
+    Aig_ManDfs_rec( p, Aig_ObjFanin1(pObj), vNodes );
+    assert( !Aig_ObjIsTravIdCurrent(p, pObj) ); // loop detection
+    Aig_ObjSetTravIdCurrent(p, pObj);
     Vec_PtrPush( vNodes, pObj );
 }
 
@@ -65,26 +65,26 @@ void Dar_ManDfs_rec( Dar_Man_t * p, Dar_Obj_t * pObj, Vec_Ptr_t * vNodes )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Dar_ManDfs( Dar_Man_t * p )
+Vec_Ptr_t * Aig_ManDfs( Aig_Man_t * p )
 {
     Vec_Ptr_t * vNodes;
-    Dar_Obj_t * pObj;
+    Aig_Obj_t * pObj;
     int i;
-    Dar_ManIncrementTravId( p );
+    Aig_ManIncrementTravId( p );
     // mark constant and PIs
-    Dar_ObjSetTravIdCurrent( p, Dar_ManConst1(p) );
-    Dar_ManForEachPi( p, pObj, i )
-        Dar_ObjSetTravIdCurrent( p, pObj );
+    Aig_ObjSetTravIdCurrent( p, Aig_ManConst1(p) );
+    Aig_ManForEachPi( p, pObj, i )
+        Aig_ObjSetTravIdCurrent( p, pObj );
     // if there are latches, mark them
-    if ( Dar_ManLatchNum(p) > 0 )
-        Dar_ManForEachObj( p, pObj, i )
-            if ( Dar_ObjIsLatch(pObj) )
-                Dar_ObjSetTravIdCurrent( p, pObj );
+    if ( Aig_ManLatchNum(p) > 0 )
+        Aig_ManForEachObj( p, pObj, i )
+            if ( Aig_ObjIsLatch(pObj) )
+                Aig_ObjSetTravIdCurrent( p, pObj );
     // go through the nodes
-    vNodes = Vec_PtrAlloc( Dar_ManNodeNum(p) );
-    Dar_ManForEachObj( p, pObj, i )
-        if ( Dar_ObjIsNode(pObj) || Dar_ObjIsBuf(pObj) )
-            Dar_ManDfs_rec( p, pObj, vNodes );
+    vNodes = Vec_PtrAlloc( Aig_ManNodeNum(p) );
+    Aig_ManForEachObj( p, pObj, i )
+        if ( Aig_ObjIsNode(pObj) || Aig_ObjIsBuf(pObj) )
+            Aig_ManDfs_rec( p, pObj, vNodes );
     return vNodes;
 }
 
@@ -99,21 +99,21 @@ Vec_Ptr_t * Dar_ManDfs( Dar_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Dar_ManDfsNodes( Dar_Man_t * p, Dar_Obj_t ** ppNodes, int nNodes )
+Vec_Ptr_t * Aig_ManDfsNodes( Aig_Man_t * p, Aig_Obj_t ** ppNodes, int nNodes )
 {
     Vec_Ptr_t * vNodes;
-    Dar_Obj_t * pObj;
+    Aig_Obj_t * pObj;
     int i;
-    assert( Dar_ManLatchNum(p) == 0 );
-    Dar_ManIncrementTravId( p );
+    assert( Aig_ManLatchNum(p) == 0 );
+    Aig_ManIncrementTravId( p );
     // mark constant and PIs
-    Dar_ObjSetTravIdCurrent( p, Dar_ManConst1(p) );
-    Dar_ManForEachPi( p, pObj, i )
-        Dar_ObjSetTravIdCurrent( p, pObj );
+    Aig_ObjSetTravIdCurrent( p, Aig_ManConst1(p) );
+    Aig_ManForEachPi( p, pObj, i )
+        Aig_ObjSetTravIdCurrent( p, pObj );
     // go through the nodes
-    vNodes = Vec_PtrAlloc( Dar_ManNodeNum(p) );
+    vNodes = Vec_PtrAlloc( Aig_ManNodeNum(p) );
     for ( i = 0; i < nNodes; i++ )
-        Dar_ManDfs_rec( p, ppNodes[i], vNodes );
+        Aig_ManDfs_rec( p, ppNodes[i], vNodes );
     return vNodes;
 }
 
@@ -128,28 +128,28 @@ Vec_Ptr_t * Dar_ManDfsNodes( Dar_Man_t * p, Dar_Obj_t ** ppNodes, int nNodes )
   SeeAlso     []
 
 ***********************************************************************/
-int Dar_ManCountLevels( Dar_Man_t * p )
+int Aig_ManCountLevels( Aig_Man_t * p )
 {
     Vec_Ptr_t * vNodes;
-    Dar_Obj_t * pObj;
+    Aig_Obj_t * pObj;
     int i, LevelsMax, Level0, Level1;
     // initialize the levels
-    Dar_ManConst1(p)->pData = NULL;
-    Dar_ManForEachPi( p, pObj, i )
+    Aig_ManConst1(p)->pData = NULL;
+    Aig_ManForEachPi( p, pObj, i )
         pObj->pData = NULL;
     // compute levels in a DFS order
-    vNodes = Dar_ManDfs( p );
+    vNodes = Aig_ManDfs( p );
     Vec_PtrForEachEntry( vNodes, pObj, i )
     {
-        Level0 = (int)Dar_ObjFanin0(pObj)->pData;
-        Level1 = (int)Dar_ObjFanin1(pObj)->pData;
-        pObj->pData = (void *)(1 + Dar_ObjIsExor(pObj) + DAR_MAX(Level0, Level1));
+        Level0 = (int)Aig_ObjFanin0(pObj)->pData;
+        Level1 = (int)Aig_ObjFanin1(pObj)->pData;
+        pObj->pData = (void *)(1 + Aig_ObjIsExor(pObj) + AIG_MAX(Level0, Level1));
     }
     Vec_PtrFree( vNodes );
     // get levels of the POs
     LevelsMax = 0;
-    Dar_ManForEachPo( p, pObj, i )
-        LevelsMax = DAR_MAX( LevelsMax, (int)Dar_ObjFanin0(pObj)->pData );
+    Aig_ManForEachPo( p, pObj, i )
+        LevelsMax = AIG_MAX( LevelsMax, (int)Aig_ObjFanin0(pObj)->pData );
     return LevelsMax;
 }
 
@@ -164,15 +164,15 @@ int Dar_ManCountLevels( Dar_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_ConeMark_rec( Dar_Obj_t * pObj )
+void Aig_ConeMark_rec( Aig_Obj_t * pObj )
 {
-    assert( !Dar_IsComplement(pObj) );
-    if ( !Dar_ObjIsNode(pObj) || Dar_ObjIsMarkA(pObj) )
+    assert( !Aig_IsComplement(pObj) );
+    if ( !Aig_ObjIsNode(pObj) || Aig_ObjIsMarkA(pObj) )
         return;
-    Dar_ConeMark_rec( Dar_ObjFanin0(pObj) );
-    Dar_ConeMark_rec( Dar_ObjFanin1(pObj) );
-    assert( !Dar_ObjIsMarkA(pObj) ); // loop detection
-    Dar_ObjSetMarkA( pObj );
+    Aig_ConeMark_rec( Aig_ObjFanin0(pObj) );
+    Aig_ConeMark_rec( Aig_ObjFanin1(pObj) );
+    assert( !Aig_ObjIsMarkA(pObj) ); // loop detection
+    Aig_ObjSetMarkA( pObj );
 }
 
 /**Function*************************************************************
@@ -186,15 +186,15 @@ void Dar_ConeMark_rec( Dar_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_ConeCleanAndMark_rec( Dar_Obj_t * pObj )
+void Aig_ConeCleanAndMark_rec( Aig_Obj_t * pObj )
 {
-    assert( !Dar_IsComplement(pObj) );
-    if ( !Dar_ObjIsNode(pObj) || Dar_ObjIsMarkA(pObj) )
+    assert( !Aig_IsComplement(pObj) );
+    if ( !Aig_ObjIsNode(pObj) || Aig_ObjIsMarkA(pObj) )
         return;
-    Dar_ConeCleanAndMark_rec( Dar_ObjFanin0(pObj) );
-    Dar_ConeCleanAndMark_rec( Dar_ObjFanin1(pObj) );
-    assert( !Dar_ObjIsMarkA(pObj) ); // loop detection
-    Dar_ObjSetMarkA( pObj );
+    Aig_ConeCleanAndMark_rec( Aig_ObjFanin0(pObj) );
+    Aig_ConeCleanAndMark_rec( Aig_ObjFanin1(pObj) );
+    assert( !Aig_ObjIsMarkA(pObj) ); // loop detection
+    Aig_ObjSetMarkA( pObj );
     pObj->pData = NULL;
 }
 
@@ -209,16 +209,16 @@ void Dar_ConeCleanAndMark_rec( Dar_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-int Dar_ConeCountAndMark_rec( Dar_Obj_t * pObj )
+int Aig_ConeCountAndMark_rec( Aig_Obj_t * pObj )
 {
     int Counter;
-    assert( !Dar_IsComplement(pObj) );
-    if ( !Dar_ObjIsNode(pObj) || Dar_ObjIsMarkA(pObj) )
+    assert( !Aig_IsComplement(pObj) );
+    if ( !Aig_ObjIsNode(pObj) || Aig_ObjIsMarkA(pObj) )
         return 0;
-    Counter = 1 + Dar_ConeCountAndMark_rec( Dar_ObjFanin0(pObj) ) + 
-        Dar_ConeCountAndMark_rec( Dar_ObjFanin1(pObj) );
-    assert( !Dar_ObjIsMarkA(pObj) ); // loop detection
-    Dar_ObjSetMarkA( pObj );
+    Counter = 1 + Aig_ConeCountAndMark_rec( Aig_ObjFanin0(pObj) ) + 
+        Aig_ConeCountAndMark_rec( Aig_ObjFanin1(pObj) );
+    assert( !Aig_ObjIsMarkA(pObj) ); // loop detection
+    Aig_ObjSetMarkA( pObj );
     return Counter;
 }
 
@@ -233,15 +233,15 @@ int Dar_ConeCountAndMark_rec( Dar_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_ConeUnmark_rec( Dar_Obj_t * pObj )
+void Aig_ConeUnmark_rec( Aig_Obj_t * pObj )
 {
-    assert( !Dar_IsComplement(pObj) );
-    if ( !Dar_ObjIsNode(pObj) || !Dar_ObjIsMarkA(pObj) )
+    assert( !Aig_IsComplement(pObj) );
+    if ( !Aig_ObjIsNode(pObj) || !Aig_ObjIsMarkA(pObj) )
         return;
-    Dar_ConeUnmark_rec( Dar_ObjFanin0(pObj) ); 
-    Dar_ConeUnmark_rec( Dar_ObjFanin1(pObj) );
-    assert( Dar_ObjIsMarkA(pObj) ); // loop detection
-    Dar_ObjClearMarkA( pObj );
+    Aig_ConeUnmark_rec( Aig_ObjFanin0(pObj) ); 
+    Aig_ConeUnmark_rec( Aig_ObjFanin1(pObj) );
+    assert( Aig_ObjIsMarkA(pObj) ); // loop detection
+    Aig_ObjClearMarkA( pObj );
 }
 
 /**Function*************************************************************
@@ -255,11 +255,11 @@ void Dar_ConeUnmark_rec( Dar_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-int Dar_DagSize( Dar_Obj_t * pObj )
+int Aig_DagSize( Aig_Obj_t * pObj )
 {
     int Counter;
-    Counter = Dar_ConeCountAndMark_rec( Dar_Regular(pObj) );
-    Dar_ConeUnmark_rec( Dar_Regular(pObj) );
+    Counter = Aig_ConeCountAndMark_rec( Aig_Regular(pObj) );
+    Aig_ConeUnmark_rec( Aig_Regular(pObj) );
     return Counter;
 }
 
@@ -274,16 +274,16 @@ int Dar_DagSize( Dar_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_Transfer_rec( Dar_Man_t * pDest, Dar_Obj_t * pObj )
+void Aig_Transfer_rec( Aig_Man_t * pDest, Aig_Obj_t * pObj )
 {
-    assert( !Dar_IsComplement(pObj) );
-    if ( !Dar_ObjIsNode(pObj) || Dar_ObjIsMarkA(pObj) )
+    assert( !Aig_IsComplement(pObj) );
+    if ( !Aig_ObjIsNode(pObj) || Aig_ObjIsMarkA(pObj) )
         return;
-    Dar_Transfer_rec( pDest, Dar_ObjFanin0(pObj) ); 
-    Dar_Transfer_rec( pDest, Dar_ObjFanin1(pObj) );
-    pObj->pData = Dar_And( pDest, Dar_ObjChild0Copy(pObj), Dar_ObjChild1Copy(pObj) );
-    assert( !Dar_ObjIsMarkA(pObj) ); // loop detection
-    Dar_ObjSetMarkA( pObj );
+    Aig_Transfer_rec( pDest, Aig_ObjFanin0(pObj) ); 
+    Aig_Transfer_rec( pDest, Aig_ObjFanin1(pObj) );
+    pObj->pData = Aig_And( pDest, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+    assert( !Aig_ObjIsMarkA(pObj) ); // loop detection
+    Aig_ObjSetMarkA( pObj );
 }
 
 /**Function*************************************************************
@@ -297,27 +297,27 @@ void Dar_Transfer_rec( Dar_Man_t * pDest, Dar_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-Dar_Obj_t * Dar_Transfer( Dar_Man_t * pSour, Dar_Man_t * pDest, Dar_Obj_t * pRoot, int nVars )
+Aig_Obj_t * Aig_Transfer( Aig_Man_t * pSour, Aig_Man_t * pDest, Aig_Obj_t * pRoot, int nVars )
 {
-    Dar_Obj_t * pObj;
+    Aig_Obj_t * pObj;
     int i;
     // solve simple cases
     if ( pSour == pDest )
         return pRoot;
-    if ( Dar_ObjIsConst1( Dar_Regular(pRoot) ) )
-        return Dar_NotCond( Dar_ManConst1(pDest), Dar_IsComplement(pRoot) );
+    if ( Aig_ObjIsConst1( Aig_Regular(pRoot) ) )
+        return Aig_NotCond( Aig_ManConst1(pDest), Aig_IsComplement(pRoot) );
     // set the PI mapping
-    Dar_ManForEachPi( pSour, pObj, i )
+    Aig_ManForEachPi( pSour, pObj, i )
     {
         if ( i == nVars )
            break;
-        pObj->pData = Dar_IthVar(pDest, i);
+        pObj->pData = Aig_IthVar(pDest, i);
     }
     // transfer and set markings
-    Dar_Transfer_rec( pDest, Dar_Regular(pRoot) );
+    Aig_Transfer_rec( pDest, Aig_Regular(pRoot) );
     // clear the markings
-    Dar_ConeUnmark_rec( Dar_Regular(pRoot) );
-    return Dar_NotCond( Dar_Regular(pRoot)->pData, Dar_IsComplement(pRoot) );
+    Aig_ConeUnmark_rec( Aig_Regular(pRoot) );
+    return Aig_NotCond( Aig_Regular(pRoot)->pData, Aig_IsComplement(pRoot) );
 }
 
 /**Function*************************************************************
@@ -331,21 +331,21 @@ Dar_Obj_t * Dar_Transfer( Dar_Man_t * pSour, Dar_Man_t * pDest, Dar_Obj_t * pRoo
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_Compose_rec( Dar_Man_t * p, Dar_Obj_t * pObj, Dar_Obj_t * pFunc, Dar_Obj_t * pVar )
+void Aig_Compose_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFunc, Aig_Obj_t * pVar )
 {
-    assert( !Dar_IsComplement(pObj) );
-    if ( Dar_ObjIsMarkA(pObj) )
+    assert( !Aig_IsComplement(pObj) );
+    if ( Aig_ObjIsMarkA(pObj) )
         return;
-    if ( Dar_ObjIsConst1(pObj) || Dar_ObjIsPi(pObj) )
+    if ( Aig_ObjIsConst1(pObj) || Aig_ObjIsPi(pObj) )
     {
         pObj->pData = pObj == pVar ? pFunc : pObj;
         return;
     }
-    Dar_Compose_rec( p, Dar_ObjFanin0(pObj), pFunc, pVar ); 
-    Dar_Compose_rec( p, Dar_ObjFanin1(pObj), pFunc, pVar );
-    pObj->pData = Dar_And( p, Dar_ObjChild0Copy(pObj), Dar_ObjChild1Copy(pObj) );
-    assert( !Dar_ObjIsMarkA(pObj) ); // loop detection
-    Dar_ObjSetMarkA( pObj );
+    Aig_Compose_rec( p, Aig_ObjFanin0(pObj), pFunc, pVar ); 
+    Aig_Compose_rec( p, Aig_ObjFanin1(pObj), pFunc, pVar );
+    pObj->pData = Aig_And( p, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+    assert( !Aig_ObjIsMarkA(pObj) ); // loop detection
+    Aig_ObjSetMarkA( pObj );
 }
 
 /**Function*************************************************************
@@ -359,19 +359,19 @@ void Dar_Compose_rec( Dar_Man_t * p, Dar_Obj_t * pObj, Dar_Obj_t * pFunc, Dar_Ob
   SeeAlso     []
 
 ***********************************************************************/
-Dar_Obj_t * Dar_Compose( Dar_Man_t * p, Dar_Obj_t * pRoot, Dar_Obj_t * pFunc, int iVar )
+Aig_Obj_t * Aig_Compose( Aig_Man_t * p, Aig_Obj_t * pRoot, Aig_Obj_t * pFunc, int iVar )
 {
     // quit if the PI variable is not defined
-    if ( iVar >= Dar_ManPiNum(p) )
+    if ( iVar >= Aig_ManPiNum(p) )
     {
-        printf( "Dar_Compose(): The PI variable %d is not defined.\n", iVar );
+        printf( "Aig_Compose(): The PI variable %d is not defined.\n", iVar );
         return NULL;
     }
     // recursively perform composition
-    Dar_Compose_rec( p, Dar_Regular(pRoot), pFunc, Dar_ManPi(p, iVar) );
+    Aig_Compose_rec( p, Aig_Regular(pRoot), pFunc, Aig_ManPi(p, iVar) );
     // clear the markings
-    Dar_ConeUnmark_rec( Dar_Regular(pRoot) );
-    return Dar_NotCond( Dar_Regular(pRoot)->pData, Dar_IsComplement(pRoot) );
+    Aig_ConeUnmark_rec( Aig_Regular(pRoot) );
+    return Aig_NotCond( Aig_Regular(pRoot)->pData, Aig_IsComplement(pRoot) );
 }
 
 ////////////////////////////////////////////////////////////////////////

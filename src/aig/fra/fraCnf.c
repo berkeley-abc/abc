@@ -40,23 +40,23 @@
   SeeAlso     []
 
 ***********************************************************************/
-void Fra_AddClausesMux( Fra_Man_t * p, Dar_Obj_t * pNode )
+void Fra_AddClausesMux( Fra_Man_t * p, Aig_Obj_t * pNode )
 {
-    Dar_Obj_t * pNodeI, * pNodeT, * pNodeE;
+    Aig_Obj_t * pNodeI, * pNodeT, * pNodeE;
     int pLits[4], RetValue, VarF, VarI, VarT, VarE, fCompT, fCompE;
 
-    assert( !Dar_IsComplement( pNode ) );
-    assert( Dar_ObjIsMuxType( pNode ) );
+    assert( !Aig_IsComplement( pNode ) );
+    assert( Aig_ObjIsMuxType( pNode ) );
     // get nodes (I = if, T = then, E = else)
-    pNodeI = Dar_ObjRecognizeMux( pNode, &pNodeT, &pNodeE );
+    pNodeI = Aig_ObjRecognizeMux( pNode, &pNodeT, &pNodeE );
     // get the variable numbers
     VarF = Fra_ObjSatNum(pNode);
     VarI = Fra_ObjSatNum(pNodeI);
-    VarT = Fra_ObjSatNum(Dar_Regular(pNodeT));
-    VarE = Fra_ObjSatNum(Dar_Regular(pNodeE));
+    VarT = Fra_ObjSatNum(Aig_Regular(pNodeT));
+    VarE = Fra_ObjSatNum(Aig_Regular(pNodeE));
     // get the complementation flags
-    fCompT = Dar_IsComplement(pNodeT);
-    fCompE = Dar_IsComplement(pNodeE);
+    fCompT = Aig_IsComplement(pNodeT);
+    fCompE = Aig_IsComplement(pNodeE);
 
     // f = ITE(i, t, e)
 
@@ -123,12 +123,12 @@ void Fra_AddClausesMux( Fra_Man_t * p, Dar_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-void Fra_AddClausesSuper( Fra_Man_t * p, Dar_Obj_t * pNode, Vec_Ptr_t * vSuper )
+void Fra_AddClausesSuper( Fra_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vSuper )
 {
-    Dar_Obj_t * pFanin;
+    Aig_Obj_t * pFanin;
     int * pLits, nLits, RetValue, i;
-    assert( !Dar_IsComplement(pNode) );
-    assert( Dar_ObjIsNode( pNode ) );
+    assert( !Aig_IsComplement(pNode) );
+    assert( Aig_ObjIsNode( pNode ) );
     // create storage for literals
     nLits = Vec_PtrSize(vSuper) + 1;
     pLits = ALLOC( int, nLits );
@@ -136,14 +136,14 @@ void Fra_AddClausesSuper( Fra_Man_t * p, Dar_Obj_t * pNode, Vec_Ptr_t * vSuper )
     // add !A => !C   or   A + !C
     Vec_PtrForEachEntry( vSuper, pFanin, i )
     {
-        pLits[0] = toLitCond(Fra_ObjSatNum(Dar_Regular(pFanin)), Dar_IsComplement(pFanin));
+        pLits[0] = toLitCond(Fra_ObjSatNum(Aig_Regular(pFanin)), Aig_IsComplement(pFanin));
         pLits[1] = toLitCond(Fra_ObjSatNum(pNode), 1);
         RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
         assert( RetValue );
     }
     // add A & B => C   or   !A + !B + C
     Vec_PtrForEachEntry( vSuper, pFanin, i )
-        pLits[i] = toLitCond(Fra_ObjSatNum(Dar_Regular(pFanin)), !Dar_IsComplement(pFanin));
+        pLits[i] = toLitCond(Fra_ObjSatNum(Aig_Regular(pFanin)), !Aig_IsComplement(pFanin));
     pLits[nLits-1] = toLitCond(Fra_ObjSatNum(pNode), 0);
     RetValue = sat_solver_addclause( p->pSat, pLits, pLits + nLits );
     assert( RetValue );
@@ -161,18 +161,18 @@ void Fra_AddClausesSuper( Fra_Man_t * p, Dar_Obj_t * pNode, Vec_Ptr_t * vSuper )
   SeeAlso     []
 
 ***********************************************************************/
-void Fra_CollectSuper_rec( Dar_Obj_t * pObj, Vec_Ptr_t * vSuper, int fFirst, int fUseMuxes )
+void Fra_CollectSuper_rec( Aig_Obj_t * pObj, Vec_Ptr_t * vSuper, int fFirst, int fUseMuxes )
 {
     // if the new node is complemented or a PI, another gate begins
-    if ( Dar_IsComplement(pObj) || Dar_ObjIsPi(pObj) || (!fFirst && Dar_ObjRefs(pObj) > 1) || 
-         (fUseMuxes && Dar_ObjIsMuxType(pObj)) )
+    if ( Aig_IsComplement(pObj) || Aig_ObjIsPi(pObj) || (!fFirst && Aig_ObjRefs(pObj) > 1) || 
+         (fUseMuxes && Aig_ObjIsMuxType(pObj)) )
     {
         Vec_PtrPushUnique( vSuper, pObj );
         return;
     }
     // go through the branches
-    Fra_CollectSuper_rec( Dar_ObjChild0(pObj), vSuper, 0, fUseMuxes );
-    Fra_CollectSuper_rec( Dar_ObjChild1(pObj), vSuper, 0, fUseMuxes );
+    Fra_CollectSuper_rec( Aig_ObjChild0(pObj), vSuper, 0, fUseMuxes );
+    Fra_CollectSuper_rec( Aig_ObjChild1(pObj), vSuper, 0, fUseMuxes );
 }
 
 /**Function*************************************************************
@@ -186,11 +186,11 @@ void Fra_CollectSuper_rec( Dar_Obj_t * pObj, Vec_Ptr_t * vSuper, int fFirst, int
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Fra_CollectSuper( Dar_Obj_t * pObj, int fUseMuxes )
+Vec_Ptr_t * Fra_CollectSuper( Aig_Obj_t * pObj, int fUseMuxes )
 {
     Vec_Ptr_t * vSuper;
-    assert( !Dar_IsComplement(pObj) );
-    assert( !Dar_ObjIsPi(pObj) );
+    assert( !Aig_IsComplement(pObj) );
+    assert( !Aig_ObjIsPi(pObj) );
     vSuper = Vec_PtrAlloc( 4 );
     Fra_CollectSuper_rec( pObj, vSuper, 1, fUseMuxes );
     return vSuper;
@@ -207,19 +207,19 @@ Vec_Ptr_t * Fra_CollectSuper( Dar_Obj_t * pObj, int fUseMuxes )
   SeeAlso     []
 
 ***********************************************************************/
-void Fra_ObjAddToFrontier( Fra_Man_t * p, Dar_Obj_t * pObj, Vec_Ptr_t * vFrontier )
+void Fra_ObjAddToFrontier( Fra_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vFrontier )
 {
     Fra_Man_t * pTemp = pObj->pData;
-    assert( !Dar_IsComplement(pObj) );
+    assert( !Aig_IsComplement(pObj) );
     if ( Fra_ObjSatNum(pObj) )
         return;
     assert( Fra_ObjSatNum(pObj) == 0 );
     assert( Fra_ObjFaninVec(pObj) == NULL );
-    if ( Dar_ObjIsConst1(pObj) )
+    if ( Aig_ObjIsConst1(pObj) )
         return;
 //printf( "Assigning node %d number %d\n", pObj->Id, p->nSatVars );
     Fra_ObjSetSatNum( pObj, p->nSatVars++ );
-    if ( Dar_ObjIsNode(pObj) )
+    if ( Aig_ObjIsNode(pObj) )
         Vec_PtrPush( vFrontier, pObj );
 }
 
@@ -234,10 +234,10 @@ void Fra_ObjAddToFrontier( Fra_Man_t * p, Dar_Obj_t * pObj, Vec_Ptr_t * vFrontie
   SeeAlso     []
 
 ***********************************************************************/
-void Fra_NodeAddToSolver( Fra_Man_t * p, Dar_Obj_t * pOld, Dar_Obj_t * pNew )
+void Fra_NodeAddToSolver( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
 { 
     Vec_Ptr_t * vFrontier, * vFanins;
-    Dar_Obj_t * pNode, * pFanin;
+    Aig_Obj_t * pNode, * pFanin;
     int i, k, fUseMuxes = 1;
     assert( pOld || pNew );
     // quit if CNF is ready
@@ -253,22 +253,22 @@ void Fra_NodeAddToSolver( Fra_Man_t * p, Dar_Obj_t * pOld, Dar_Obj_t * pNew )
         // create the supergate
         assert( Fra_ObjSatNum(pNode) );
         assert( Fra_ObjFaninVec(pNode) == NULL );
-        if ( fUseMuxes && Dar_ObjIsMuxType(pNode) )
+        if ( fUseMuxes && Aig_ObjIsMuxType(pNode) )
         {
             vFanins = Vec_PtrAlloc( 4 );
-            Vec_PtrPushUnique( vFanins, Dar_ObjFanin0( Dar_ObjFanin0(pNode) ) );
-            Vec_PtrPushUnique( vFanins, Dar_ObjFanin0( Dar_ObjFanin1(pNode) ) );
-            Vec_PtrPushUnique( vFanins, Dar_ObjFanin1( Dar_ObjFanin0(pNode) ) );
-            Vec_PtrPushUnique( vFanins, Dar_ObjFanin1( Dar_ObjFanin1(pNode) ) );
+            Vec_PtrPushUnique( vFanins, Aig_ObjFanin0( Aig_ObjFanin0(pNode) ) );
+            Vec_PtrPushUnique( vFanins, Aig_ObjFanin0( Aig_ObjFanin1(pNode) ) );
+            Vec_PtrPushUnique( vFanins, Aig_ObjFanin1( Aig_ObjFanin0(pNode) ) );
+            Vec_PtrPushUnique( vFanins, Aig_ObjFanin1( Aig_ObjFanin1(pNode) ) );
             Vec_PtrForEachEntry( vFanins, pFanin, k )
-                Fra_ObjAddToFrontier( p, Dar_Regular(pFanin), vFrontier );
+                Fra_ObjAddToFrontier( p, Aig_Regular(pFanin), vFrontier );
             Fra_AddClausesMux( p, pNode );
         }
         else
         {
             vFanins = Fra_CollectSuper( pNode, fUseMuxes );
             Vec_PtrForEachEntry( vFanins, pFanin, k )
-                Fra_ObjAddToFrontier( p, Dar_Regular(pFanin), vFrontier );
+                Fra_ObjAddToFrontier( p, Aig_Regular(pFanin), vFrontier );
             Fra_AddClausesSuper( p, pNode, vFanins );
         }
         assert( Vec_PtrSize(vFanins) > 1 );

@@ -36,6 +36,7 @@ extern "C" {
 #include <time.h>
 
 #include "vec.h"
+#include "aig.h"
 #include "dar.h"
 #include "satSolver.h"
 
@@ -73,8 +74,8 @@ struct Fra_Man_t_
     // high-level data    
     Fra_Par_t *      pPars;             // parameters governing fraiging
     // AIG managers
-    Dar_Man_t *      pManAig;           // the starting AIG manager
-    Dar_Man_t *      pManFraig;         // the final AIG manager
+    Aig_Man_t *      pManAig;           // the starting AIG manager
+    Aig_Man_t *      pManFraig;         // the final AIG manager
     // simulation info
     unsigned *       pSimWords;         // memory for simulation information
     int              nSimWords;         // the number of simulation words
@@ -86,8 +87,8 @@ struct Fra_Man_t_
     Vec_Ptr_t *      vClasses;          // equivalence classes
     Vec_Ptr_t *      vClasses1;         // equivalence class of Const1 node
     Vec_Ptr_t *      vClassesTemp;      // temporary storage for new classes
-    Dar_Obj_t **     pMemClasses;       // memory allocated for equivalence classes
-    Dar_Obj_t **     pMemClassesFree;   // memory allocated for equivalence classes to be used
+    Aig_Obj_t **     pMemClasses;       // memory allocated for equivalence classes
+    Aig_Obj_t **     pMemClassesFree;   // memory allocated for equivalence classes to be used
     Vec_Ptr_t *      vClassOld;         // old equivalence class after splitting
     Vec_Ptr_t *      vClassNew;         // new equivalence class(es) after splitting
     int              nPairs;            // the number of pairs of nodes
@@ -98,8 +99,8 @@ struct Fra_Man_t_
     sint64           nBTLimitGlobal;    // resource limit
     sint64           nInsLimitGlobal;   // resource limit
     // various data members
-    Dar_Obj_t **     pMemFraig;         // memory allocated for points to the fraig nodes
-    Dar_Obj_t **     pMemRepr;          // memory allocated for points to the node representatives
+    Aig_Obj_t **     pMemFraig;         // memory allocated for points to the fraig nodes
+    Aig_Obj_t **     pMemRepr;          // memory allocated for points to the node representatives
     Vec_Ptr_t **     pMemFanins;        // the arrays of fanins
     int *            pMemSatNums;       // the array of SAT numbers
     int              nSizeAlloc;        // allocated size of the arrays
@@ -135,21 +136,21 @@ struct Fra_Man_t_
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline unsigned *   Fra_ObjSim( Dar_Obj_t * pObj )   { return ((Fra_Man_t *)pObj->pData)->pSimWords + ((Fra_Man_t *)pObj->pData)->nSimWords * pObj->Id;  }
+static inline unsigned *   Fra_ObjSim( Aig_Obj_t * pObj )   { return ((Fra_Man_t *)pObj->pData)->pSimWords + ((Fra_Man_t *)pObj->pData)->nSimWords * pObj->Id;  }
 static inline unsigned     Fra_ObjRandomSim()               { return (rand() << 24) ^ (rand() << 12) ^ rand(); }
 
-static inline Dar_Obj_t *  Fra_ObjFraig( Dar_Obj_t * pObj )                              { return ((Fra_Man_t *)pObj->pData)->pMemFraig[pObj->Id];       }
-static inline Dar_Obj_t *  Fra_ObjRepr( Dar_Obj_t * pObj )                               { return ((Fra_Man_t *)pObj->pData)->pMemRepr[pObj->Id];        }
-static inline Vec_Ptr_t *  Fra_ObjFaninVec( Dar_Obj_t * pObj )                           { return ((Fra_Man_t *)pObj->pData)->pMemFanins[pObj->Id];      }
-static inline int          Fra_ObjSatNum( Dar_Obj_t * pObj )                             { return ((Fra_Man_t *)pObj->pData)->pMemSatNums[pObj->Id];     }
+static inline Aig_Obj_t *  Fra_ObjFraig( Aig_Obj_t * pObj )                              { return ((Fra_Man_t *)pObj->pData)->pMemFraig[pObj->Id];       }
+static inline Aig_Obj_t *  Fra_ObjRepr( Aig_Obj_t * pObj )                               { return ((Fra_Man_t *)pObj->pData)->pMemRepr[pObj->Id];        }
+static inline Vec_Ptr_t *  Fra_ObjFaninVec( Aig_Obj_t * pObj )                           { return ((Fra_Man_t *)pObj->pData)->pMemFanins[pObj->Id];      }
+static inline int          Fra_ObjSatNum( Aig_Obj_t * pObj )                             { return ((Fra_Man_t *)pObj->pData)->pMemSatNums[pObj->Id];     }
 
-static inline void         Fra_ObjSetFraig( Dar_Obj_t * pObj, Dar_Obj_t * pNode )        { ((Fra_Man_t *)pObj->pData)->pMemFraig[pObj->Id]   = pNode;    }
-static inline void         Fra_ObjSetRepr( Dar_Obj_t * pObj, Dar_Obj_t * pNode )         { ((Fra_Man_t *)pObj->pData)->pMemRepr[pObj->Id]    = pNode;    }
-static inline void         Fra_ObjSetFaninVec( Dar_Obj_t * pObj, Vec_Ptr_t * vFanins )   { ((Fra_Man_t *)pObj->pData)->pMemFanins[pObj->Id]  = vFanins;  }
-static inline void         Fra_ObjSetSatNum( Dar_Obj_t * pObj, int Num )                 { ((Fra_Man_t *)pObj->pData)->pMemSatNums[pObj->Id] = Num;      }
+static inline void         Fra_ObjSetFraig( Aig_Obj_t * pObj, Aig_Obj_t * pNode )        { ((Fra_Man_t *)pObj->pData)->pMemFraig[pObj->Id]   = pNode;    }
+static inline void         Fra_ObjSetRepr( Aig_Obj_t * pObj, Aig_Obj_t * pNode )         { ((Fra_Man_t *)pObj->pData)->pMemRepr[pObj->Id]    = pNode;    }
+static inline void         Fra_ObjSetFaninVec( Aig_Obj_t * pObj, Vec_Ptr_t * vFanins )   { ((Fra_Man_t *)pObj->pData)->pMemFanins[pObj->Id]  = vFanins;  }
+static inline void         Fra_ObjSetSatNum( Aig_Obj_t * pObj, int Num )                 { ((Fra_Man_t *)pObj->pData)->pMemSatNums[pObj->Id] = Num;      }
 
-static inline Dar_Obj_t *  Fra_ObjChild0Fra( Dar_Obj_t * pObj ) { assert( !Dar_IsComplement(pObj) ); return Dar_ObjFanin0(pObj)? Dar_NotCond(Fra_ObjFraig(Dar_ObjFanin0(pObj)), Dar_ObjFaninC0(pObj)) : NULL;  }
-static inline Dar_Obj_t *  Fra_ObjChild1Fra( Dar_Obj_t * pObj ) { assert( !Dar_IsComplement(pObj) ); return Dar_ObjFanin1(pObj)? Dar_NotCond(Fra_ObjFraig(Dar_ObjFanin1(pObj)), Dar_ObjFaninC1(pObj)) : NULL;  }
+static inline Aig_Obj_t *  Fra_ObjChild0Fra( Aig_Obj_t * pObj ) { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin0(pObj)? Aig_NotCond(Fra_ObjFraig(Aig_ObjFanin0(pObj)), Aig_ObjFaninC0(pObj)) : NULL;  }
+static inline Aig_Obj_t *  Fra_ObjChild1Fra( Aig_Obj_t * pObj ) { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin1(pObj)? Aig_NotCond(Fra_ObjFraig(Aig_ObjFanin1(pObj)), Aig_ObjFaninC1(pObj)) : NULL;  }
 
 ////////////////////////////////////////////////////////////////////////
 ///                         ITERATORS                                ///
@@ -167,21 +168,21 @@ extern void                Fra_CreateClasses( Fra_Man_t * p );
 extern int                 Fra_RefineClasses( Fra_Man_t * p );
 extern int                 Fra_RefineClasses1( Fra_Man_t * p );
 /*=== fraCnf.c ========================================================*/
-extern void                Fra_NodeAddToSolver( Fra_Man_t * p, Dar_Obj_t * pOld, Dar_Obj_t * pNew );
+extern void                Fra_NodeAddToSolver( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew );
 /*=== fraCore.c ========================================================*/
-extern Dar_Man_t *         Fra_Perform( Dar_Man_t * pManAig, Fra_Par_t * pParams );
+extern Aig_Man_t *         Fra_Perform( Aig_Man_t * pManAig, Fra_Par_t * pParams );
 /*=== fraMan.c ========================================================*/
 extern void                Fra_ParamsDefault( Fra_Par_t * pParams );
-extern Fra_Man_t *         Fra_ManStart( Dar_Man_t * pManAig, Fra_Par_t * pParams );
+extern Fra_Man_t *         Fra_ManStart( Aig_Man_t * pManAig, Fra_Par_t * pParams );
 extern void                Fra_ManPrepare( Fra_Man_t * p );
 extern void                Fra_ManStop( Fra_Man_t * p );
 extern void                Fra_ManPrint( Fra_Man_t * p );
 /*=== fraSat.c ========================================================*/
-extern int                 Fra_NodesAreEquiv( Fra_Man_t * p, Dar_Obj_t * pOld, Dar_Obj_t * pNew );
-extern int                 Fra_NodeIsConst( Fra_Man_t * p, Dar_Obj_t * pNew );
+extern int                 Fra_NodesAreEquiv( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew );
+extern int                 Fra_NodeIsConst( Fra_Man_t * p, Aig_Obj_t * pNew );
 /*=== fraSim.c ========================================================*/
-extern int                 Fra_NodeHasZeroSim( Fra_Man_t * p, Dar_Obj_t * pObj );
-extern int                 Fra_NodeCompareSims( Fra_Man_t * p, Dar_Obj_t * pObj0, Dar_Obj_t * pObj1 );
+extern int                 Fra_NodeHasZeroSim( Fra_Man_t * p, Aig_Obj_t * pObj );
+extern int                 Fra_NodeCompareSims( Fra_Man_t * p, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 );
 extern void                Fra_SavePattern( Fra_Man_t * p );
 extern void                Fra_Simulate( Fra_Man_t * p );
 extern void                Fra_Resimulate( Fra_Man_t * p );

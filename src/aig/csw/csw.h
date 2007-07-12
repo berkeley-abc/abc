@@ -51,7 +51,7 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 
 /*=== cnfCore.c ========================================================*/
-extern Dar_Man_t *     Csw_Sweep( Dar_Man_t * pAig, int nCutsMax, int nLeafMax, int fVerbose );
+extern Aig_Man_t *     Csw_Sweep( Aig_Man_t * pAig, int nCutsMax, int nLeafMax, int fVerbose );
 
 #ifdef __cplusplus
 }

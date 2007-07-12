@@ -18,7 +18,7 @@
 
 ***********************************************************************/
 
-#include "dar.h"
+#include "darInt.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -27,6 +27,8 @@
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+#if 0 
 
 /**Function*************************************************************
 
@@ -39,14 +41,14 @@
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_ManCollectCut_rec( Dar_Man_t * p, Dar_Obj_t * pNode, Vec_Int_t * vNodes )
+void Aig_ManCollectCut_rec( Aig_Man_t * p, Aig_Obj_t * pNode, Vec_Int_t * vNodes )
 {
     if ( pNode->fMarkA )
         return;
     pNode->fMarkA = 1;
-    assert( Dar_ObjIsAnd(pNode) || Dar_ObjIsExor(pNode) );
-    Dar_ManCollectCut_rec( p, Dar_ObjFanin0(pNode), vNodes );
-    Dar_ManCollectCut_rec( p, Dar_ObjFanin1(pNode), vNodes );
+    assert( Aig_ObjIsAnd(pNode) || Aig_ObjIsExor(pNode) );
+    Aig_ManCollectCut_rec( p, Aig_ObjFanin0(pNode), vNodes );
+    Aig_ManCollectCut_rec( p, Aig_ObjFanin1(pNode), vNodes );
     Vec_IntPush( vNodes, pNode->Id );
 }
 
@@ -62,7 +64,7 @@ void Dar_ManCollectCut_rec( Dar_Man_t * p, Dar_Obj_t * pNode, Vec_Int_t * vNodes
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_ManCollectCut( Dar_Man_t * p, Dar_Obj_t * pRoot, Vec_Int_t * vLeaves, Vec_Int_t * vNodes )
+void Aig_ManCollectCut( Aig_Man_t * p, Aig_Obj_t * pRoot, Vec_Int_t * vLeaves, Vec_Int_t * vNodes )
 {
     int i, Leaf;
     // collect and mark the leaves
@@ -70,13 +72,13 @@ void Dar_ManCollectCut( Dar_Man_t * p, Dar_Obj_t * pRoot, Vec_Int_t * vLeaves, V
     Vec_IntForEachEntry( vLeaves, Leaf, i )
     {
         Vec_IntPush( vNodes, Leaf );
-        Dar_ManObj(p, Leaf)->fMarkA = 1;
+        Aig_ManObj(p, Leaf)->fMarkA = 1;
     }
     // collect and mark the nodes
-    Dar_ManCollectCut_rec( p, pRoot, vNodes );
+    Aig_ManCollectCut_rec( p, pRoot, vNodes );
     // clean the nodes
     Vec_IntForEachEntry( vNodes, Leaf, i )
-        Dar_ManObj(p, Leaf)->fMarkA = 0;
+        Aig_ManObj(p, Leaf)->fMarkA = 0;
 }
 
 /**Function*************************************************************
@@ -90,7 +92,7 @@ void Dar_ManCollectCut( Dar_Man_t * p, Dar_Obj_t * pRoot, Vec_Int_t * vLeaves, V
   SeeAlso     []
 
 ***********************************************************************/
-unsigned * Dar_ObjGetTruthStore( int ObjNum, Vec_Int_t * vTruth )
+unsigned * Aig_ObjGetTruthStore( int ObjNum, Vec_Int_t * vTruth )
 {
    return ((unsigned *)Vec_IntArray(vTruth)) + 8 * ObjNum;
 }
@@ -106,26 +108,26 @@ unsigned * Dar_ObjGetTruthStore( int ObjNum, Vec_Int_t * vTruth )
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_ManCutTruthOne( Dar_Man_t * p, Dar_Obj_t * pNode, Vec_Int_t * vTruth, int nWords )
+void Aig_ManCutTruthOne( Aig_Man_t * p, Aig_Obj_t * pNode, Vec_Int_t * vTruth, int nWords )
 {
     unsigned * pTruth, * pTruth0, * pTruth1;
     int i;
-    pTruth  = Dar_ObjGetTruthStore( pNode->Level, vTruth );
-    pTruth0 = Dar_ObjGetTruthStore( Dar_ObjFanin0(pNode)->Level, vTruth );
-    pTruth1 = Dar_ObjGetTruthStore( Dar_ObjFanin1(pNode)->Level, vTruth );
-    if ( Dar_ObjIsExor(pNode) )
+    pTruth  = Aig_ObjGetTruthStore( pNode->Level, vTruth );
+    pTruth0 = Aig_ObjGetTruthStore( Aig_ObjFanin0(pNode)->Level, vTruth );
+    pTruth1 = Aig_ObjGetTruthStore( Aig_ObjFanin1(pNode)->Level, vTruth );
+    if ( Aig_ObjIsExor(pNode) )
         for ( i = 0; i < nWords; i++ )
             pTruth[i] = pTruth0[i] ^ pTruth1[i];
-    else if ( !Dar_ObjFaninC0(pNode) && !Dar_ObjFaninC1(pNode) )
+    else if ( !Aig_ObjFaninC0(pNode) && !Aig_ObjFaninC1(pNode) )
         for ( i = 0; i < nWords; i++ )
             pTruth[i] = pTruth0[i] & pTruth1[i];
-    else if ( !Dar_ObjFaninC0(pNode) && Dar_ObjFaninC1(pNode) )
+    else if ( !Aig_ObjFaninC0(pNode) && Aig_ObjFaninC1(pNode) )
         for ( i = 0; i < nWords; i++ )
             pTruth[i] = pTruth0[i] & ~pTruth1[i];
-    else if ( Dar_ObjFaninC0(pNode) && !Dar_ObjFaninC1(pNode) )
+    else if ( Aig_ObjFaninC0(pNode) && !Aig_ObjFaninC1(pNode) )
         for ( i = 0; i < nWords; i++ )
             pTruth[i] = ~pTruth0[i] & pTruth1[i];
-    else // if ( Dar_ObjFaninC0(pNode) && Dar_ObjFaninC1(pNode) )
+    else // if ( Aig_ObjFaninC0(pNode) && Aig_ObjFaninC1(pNode) )
         for ( i = 0; i < nWords; i++ )
             pTruth[i] = ~pTruth0[i] & ~pTruth1[i];
 }
@@ -142,7 +144,7 @@ void Dar_ManCutTruthOne( Dar_Man_t * p, Dar_Obj_t * pNode, Vec_Int_t * vTruth, i
   SeeAlso     []
 
 ***********************************************************************/
-unsigned * Dar_ManCutTruth( Dar_Man_t * p, Dar_Obj_t * pRoot, Vec_Int_t * vLeaves, Vec_Int_t * vNodes, Vec_Int_t * vTruth )
+unsigned * Aig_ManCutTruth( Aig_Man_t * p, Aig_Obj_t * pRoot, Vec_Int_t * vLeaves, Vec_Int_t * vNodes, Vec_Int_t * vTruth )
 {
     static unsigned uTruths[8][8] = { // elementary truth tables
         { 0xAAAAAAAA,0xAAAAAAAA,0xAAAAAAAA,0xAAAAAAAA,0xAAAAAAAA,0xAAAAAAAA,0xAAAAAAAA,0xAAAAAAAA },
@@ -156,20 +158,20 @@ unsigned * Dar_ManCutTruth( Dar_Man_t * p, Dar_Obj_t * pRoot, Vec_Int_t * vLeave
     };
     int i, Leaf;
     // collect the cut
-//    Dar_ManCollectCut( p, pRoot, vLeaves, vNodes );
+//    Aig_ManCollectCut( p, pRoot, vLeaves, vNodes );
     // set the node numbers
     Vec_IntForEachEntry( vNodes, Leaf, i )
-        Dar_ManObj(p, Leaf)->Level = i;
+        Aig_ManObj(p, Leaf)->Level = i;
     // alloc enough memory
     Vec_IntClear( vTruth );
     Vec_IntGrow( vTruth, 8 * Vec_IntSize(vNodes) );
     // set the elementary truth tables
     Vec_IntForEachEntry( vLeaves, Leaf, i )
-        memcpy( Dar_ObjGetTruthStore(i, vTruth), uTruths[i], 8 * sizeof(unsigned) );
+        memcpy( Aig_ObjGetTruthStore(i, vTruth), uTruths[i], 8 * sizeof(unsigned) );
     // compute truths for other nodes
     Vec_IntForEachEntryStart( vNodes, Leaf, i, Vec_IntSize(vLeaves) )
-        Dar_ManCutTruthOne( p, Dar_ManObj(p, Leaf), vTruth, 8 );
-    return Dar_ObjGetTruthStore( pRoot->Level, vTruth );
+        Aig_ManCutTruthOne( p, Aig_ManObj(p, Leaf), vTruth, 8 );
+    return Aig_ObjGetTruthStore( pRoot->Level, vTruth );
 }
 
 static inline int          Kit_TruthWordNum( int nVars )  { return nVars <= 5 ? 1 : (1 << (nVars - 5));                             }
@@ -191,21 +193,21 @@ static inline void Kit_TruthNot( unsigned * pOut, unsigned * pIn, int nVars )
   SeeAlso     []
 
 ***********************************************************************/
-int Dar_ManLargeCutEvalIsop( unsigned * pTruth, int nVars, Vec_Int_t * vMemory )
+int Aig_ManLargeCutEvalIsop( unsigned * pTruth, int nVars, Vec_Int_t * vMemory )
 {
     extern int Kit_TruthIsop( unsigned * puTruth, int nVars, Vec_Int_t * vMemory, int fTryBoth );
     int RetValue, nClauses;
     // compute ISOP for the positive phase
     RetValue = Kit_TruthIsop( pTruth, nVars, vMemory, 0 );
     if ( RetValue == -1 )
-        return DAR_INFINITY;
+        return AIG_INFINITY;
     assert( RetValue == 0 || RetValue == 1 );
     nClauses = Vec_IntSize( vMemory );
     // compute ISOP for the negative phase
     Kit_TruthNot( pTruth, pTruth, nVars );
     RetValue = Kit_TruthIsop( pTruth, nVars, vMemory, 0 );
     if ( RetValue == -1 )
-        return DAR_INFINITY;
+        return AIG_INFINITY;
     Kit_TruthNot( pTruth, pTruth, nVars );
     assert( RetValue == 0 || RetValue == 1 );
     nClauses += Vec_IntSize( vMemory );
@@ -223,21 +225,21 @@ int Dar_ManLargeCutEvalIsop( unsigned * pTruth, int nVars, Vec_Int_t * vMemory )
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_ManLargeCutCollect_rec( Dar_Man_t * p, Dar_Obj_t * pNode, Vec_Int_t * vLeaves, Vec_Int_t * vNodes )
+void Aig_ManLargeCutCollect_rec( Aig_Man_t * p, Aig_Obj_t * pNode, Vec_Int_t * vLeaves, Vec_Int_t * vNodes )
 {
-    if ( Dar_ObjIsTravIdCurrent(p, pNode) )
+    if ( Aig_ObjIsTravIdCurrent(p, pNode) )
         return;
-    if ( Dar_ObjIsTravIdPrevious(p, pNode) )
+    if ( Aig_ObjIsTravIdPrevious(p, pNode) )
     {
         Vec_IntPush( vLeaves, pNode->Id );
 //        Vec_IntPush( vNodes, pNode->Id );
-        Dar_ObjSetTravIdCurrent( p, pNode );
+        Aig_ObjSetTravIdCurrent( p, pNode );
         return;
     }
-    assert( Dar_ObjIsAnd(pNode) || Dar_ObjIsExor(pNode) );
-    Dar_ObjSetTravIdCurrent( p, pNode );
-    Dar_ManLargeCutCollect_rec( p, Dar_ObjFanin0(pNode), vLeaves, vNodes );
-    Dar_ManLargeCutCollect_rec( p, Dar_ObjFanin1(pNode), vLeaves, vNodes );
+    assert( Aig_ObjIsAnd(pNode) || Aig_ObjIsExor(pNode) );
+    Aig_ObjSetTravIdCurrent( p, pNode );
+    Aig_ManLargeCutCollect_rec( p, Aig_ObjFanin0(pNode), vLeaves, vNodes );
+    Aig_ManLargeCutCollect_rec( p, Aig_ObjFanin1(pNode), vLeaves, vNodes );
     Vec_IntPush( vNodes, pNode->Id );
 }
 
@@ -252,24 +254,24 @@ void Dar_ManLargeCutCollect_rec( Dar_Man_t * p, Dar_Obj_t * pNode, Vec_Int_t * v
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_ManLargeCutCollect( Dar_Man_t * p, Dar_Obj_t * pRoot, Dar_Cut_t * pCutR, Dar_Cut_t * pCutL, int Leaf, 
+void Aig_ManLargeCutCollect( Aig_Man_t * p, Aig_Obj_t * pRoot, Aig_Cut_t * pCutR, Aig_Cut_t * pCutL, int Leaf, 
                         Vec_Int_t * vLeaves, Vec_Int_t * vNodes )
 {
     Vec_Int_t * vTemp;
-    Dar_Obj_t * pObj;
+    Aig_Obj_t * pObj;
     int Node, i;
 
-    Dar_ManIncrementTravId( p );
-    Dar_CutForEachLeaf( p, pCutR, pObj, i )
+    Aig_ManIncrementTravId( p );
+    Aig_CutForEachLeaf( p, pCutR, pObj, i )
         if ( pObj->Id != Leaf )
-           Dar_ObjSetTravIdCurrent( p, pObj );
-    Dar_CutForEachLeaf( p, pCutL, pObj, i )
-        Dar_ObjSetTravIdCurrent( p, pObj );
+           Aig_ObjSetTravIdCurrent( p, pObj );
+    Aig_CutForEachLeaf( p, pCutL, pObj, i )
+        Aig_ObjSetTravIdCurrent( p, pObj );
 
     // collect the internal nodes and leaves
-    Dar_ManIncrementTravId( p );
+    Aig_ManIncrementTravId( p );
     vTemp = Vec_IntAlloc( 100 );
-    Dar_ManLargeCutCollect_rec( p, pRoot, vLeaves, vTemp );
+    Aig_ManLargeCutCollect_rec( p, pRoot, vLeaves, vTemp );
 
     Vec_IntForEachEntry( vLeaves, Node, i )
         Vec_IntPush( vNodes, Node );
@@ -291,22 +293,22 @@ void Dar_ManLargeCutCollect( Dar_Man_t * p, Dar_Obj_t * pRoot, Dar_Cut_t * pCutR
   SeeAlso     []
 
 ***********************************************************************/
-int Dar_ManLargeCutEval( Dar_Man_t * p, Dar_Obj_t * pRoot, Dar_Cut_t * pCutR, Dar_Cut_t * pCutL, int Leaf )
+int Aig_ManLargeCutEval( Aig_Man_t * p, Aig_Obj_t * pRoot, Aig_Cut_t * pCutR, Aig_Cut_t * pCutL, int Leaf )
 {
     Vec_Int_t * vLeaves, * vNodes, * vTruth, * vMemory;
     unsigned * pTruth;
     int RetValue;
-//    Dar_Obj_t * pObj;
+//    Aig_Obj_t * pObj;
 
     vMemory = Vec_IntAlloc( 1 << 16 );
     vTruth = Vec_IntAlloc( 1 << 16 );
     vLeaves = Vec_IntAlloc( 100 );
     vNodes = Vec_IntAlloc( 100 );
 
-    Dar_ManLargeCutCollect( p, pRoot, pCutR, pCutL, Leaf, vLeaves, vNodes );
+    Aig_ManLargeCutCollect( p, pRoot, pCutR, pCutL, Leaf, vLeaves, vNodes );
 /*
     // collect the nodes
-    Dar_CutForEachLeaf( p, pCutR, pObj, i )
+    Aig_CutForEachLeaf( p, pCutR, pObj, i )
     {
         if ( pObj->Id == Leaf )
             continue;
@@ -316,7 +318,7 @@ int Dar_ManLargeCutEval( Dar_Man_t * p, Dar_Obj_t * pRoot, Dar_Cut_t * pCutR, Da
         Vec_IntPush( vLeaves, pObj->Id );
         Vec_IntPush( vNodes, pObj->Id );
     }
-    Dar_CutForEachLeaf( p, pCutL, pObj, i )
+    Aig_CutForEachLeaf( p, pCutL, pObj, i )
     {
         if ( pObj->fMarkA )
             continue;
@@ -325,14 +327,14 @@ int Dar_ManLargeCutEval( Dar_Man_t * p, Dar_Obj_t * pRoot, Dar_Cut_t * pCutR, Da
         Vec_IntPush( vNodes, pObj->Id );
     }
     // collect and mark the nodes
-    Dar_ManCollectCut_rec( p, pRoot, vNodes );
+    Aig_ManCollectCut_rec( p, pRoot, vNodes );
     // clean the nodes
     Vec_IntForEachEntry( vNodes, Leaf, i )
-        Dar_ManObj(p, Leaf)->fMarkA = 0;
+        Aig_ManObj(p, Leaf)->fMarkA = 0;
 */
 
-    pTruth = Dar_ManCutTruth( p, pRoot, vLeaves, vNodes, vTruth );
-    RetValue = Dar_ManLargeCutEvalIsop( pTruth, Vec_IntSize(vLeaves), vMemory );
+    pTruth = Aig_ManCutTruth( p, pRoot, vLeaves, vNodes, vTruth );
+    RetValue = Aig_ManLargeCutEvalIsop( pTruth, Vec_IntSize(vLeaves), vMemory );
 
     Vec_IntFree( vLeaves );
     Vec_IntFree( vNodes );
@@ -342,6 +344,7 @@ int Dar_ManLargeCutEval( Dar_Man_t * p, Dar_Obj_t * pRoot, Dar_Cut_t * pCutR, Da
     return RetValue;
 }
 
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -28,6 +28,8 @@
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+#if 0
+
 /**Function*************************************************************
 
   Synopsis    [Computes area of the first level.]
@@ -39,16 +41,16 @@
   SeeAlso     []
  
 ***********************************************************************/
-void Dar_CutDeref( Dar_Man_t * p, Dar_Cut_t * pCut )
+void Aig_CutDeref( Aig_Man_t * p, Dar_Cut_t * pCut )
 { 
-    Dar_Obj_t * pLeaf;
+    Aig_Obj_t * pLeaf;
     int i;
     Dar_CutForEachLeaf( p, pCut, pLeaf, i )
     {
         assert( pLeaf->nRefs > 0 );
-        if ( --pLeaf->nRefs > 0 || !Dar_ObjIsAnd(pLeaf) )
+        if ( --pLeaf->nRefs > 0 || !Aig_ObjIsAnd(pLeaf) )
             continue;
-        Dar_CutDeref( p, Dar_ObjBestCut(pLeaf) );
+        Aig_CutDeref( p, Aig_ObjBestCut(pLeaf) );
     }
 }
 
@@ -63,16 +65,16 @@ void Dar_CutDeref( Dar_Man_t * p, Dar_Cut_t * pCut )
   SeeAlso     []
 
 ***********************************************************************/
-int Dar_CutRef( Dar_Man_t * p, Dar_Cut_t * pCut )
+int Aig_CutRef( Aig_Man_t * p, Dar_Cut_t * pCut )
 {
-    Dar_Obj_t * pLeaf;
-    int i, Area = pCut->Cost;
+    Aig_Obj_t * pLeaf;
+    int i, Area = pCut->Value;
     Dar_CutForEachLeaf( p, pCut, pLeaf, i )
     {
         assert( pLeaf->nRefs >= 0 );
-        if ( pLeaf->nRefs++ > 0 || !Dar_ObjIsAnd(pLeaf) )
+        if ( pLeaf->nRefs++ > 0 || !Aig_ObjIsAnd(pLeaf) )
             continue;
-        Area += Dar_CutRef( p, Dar_ObjBestCut(pLeaf) );
+        Area += Aig_CutRef( p, Aig_ObjBestCut(pLeaf) );
     }
     return Area;
 }
@@ -88,11 +90,11 @@ int Dar_CutRef( Dar_Man_t * p, Dar_Cut_t * pCut )
   SeeAlso     []
 
 ***********************************************************************/
-int Cnf_CutArea( Dar_Man_t * p, Dar_Cut_t * pCut )
+int Cnf_CutArea( Aig_Man_t * p, Dar_Cut_t * pCut )
 {
     int Area;
-    Area = Dar_CutRef( p, pCut );
-    Dar_CutDeref( p, pCut );
+    Area = Aig_CutRef( p, pCut );
+    Aig_CutDeref( p, pCut );
     return Area;
 }
 
@@ -136,7 +138,7 @@ static inline int Cnf_CutCompare( Dar_Cut_t * pC0, Dar_Cut_t * pC1 )
   SeeAlso     []
 
 ***********************************************************************/
-Dar_Cut_t * Cnf_ObjFindBestCut( Dar_Obj_t * pObj )
+Dar_Cut_t * Cnf_ObjFindBestCut( Aig_Obj_t * pObj )
 {
     Dar_Cut_t * pCut, * pCutBest;
     int i;
@@ -160,7 +162,7 @@ Dar_Cut_t * Cnf_ObjFindBestCut( Dar_Obj_t * pObj )
 ***********************************************************************/
 void Cnf_CutAssignAreaFlow( Cnf_Man_t * p, Dar_Cut_t * pCut )
 {
-    Dar_Obj_t * pLeaf;
+    Aig_Obj_t * pLeaf;
     int i;
     pCut->Cost    = p->pSopSizes[pCut->uTruth] + p->pSopSizes[0xFFFF & ~pCut->uTruth];
     pCut->Area    = (float)pCut->Cost;
@@ -168,16 +170,16 @@ void Cnf_CutAssignAreaFlow( Cnf_Man_t * p, Dar_Cut_t * pCut )
     pCut->FanRefs = 0;
     Dar_CutForEachLeaf( p->pManAig, pCut, pLeaf, i )
     {
-        if ( !Dar_ObjIsNode(pLeaf) )
+        if ( !Aig_ObjIsNode(pLeaf) )
             continue;
         if ( pLeaf->nRefs == 0 )
         {
-            pCut->Area += Dar_ObjBestCut(pLeaf)->Area;
+            pCut->Area += Aig_ObjBestCut(pLeaf)->Area;
             pCut->NoRefs++;
         }
         else
         {
-            pCut->Area += Dar_ObjBestCut(pLeaf)->Area / pLeaf->nRefs;
+            pCut->Area += Aig_ObjBestCut(pLeaf)->Area / pLeaf->nRefs;
             if ( pCut->FanRefs + pLeaf->nRefs > 15 )
                 pCut->FanRefs = 15;
             else
@@ -199,18 +201,18 @@ void Cnf_CutAssignAreaFlow( Cnf_Man_t * p, Dar_Cut_t * pCut )
 ***********************************************************************/
 void Cnf_CutAssignArea( Cnf_Man_t * p, Dar_Cut_t * pCut )
 {
-    Dar_Obj_t * pLeaf;
+    Aig_Obj_t * pLeaf;
     int i;
     pCut->Area    = (float)pCut->Cost;
     pCut->NoRefs  = 0;
     pCut->FanRefs = 0;
     Dar_CutForEachLeaf( p->pManAig, pCut, pLeaf, i )
     {
-        if ( !Dar_ObjIsNode(pLeaf) )
+        if ( !Aig_ObjIsNode(pLeaf) )
             continue;
         if ( pLeaf->nRefs == 0 )
         {
-            pCut->Area += Dar_ObjBestCut(pLeaf)->Cost;
+            pCut->Area += Aig_ObjBestCut(pLeaf)->Cost;
             pCut->NoRefs++;
         }
         else
@@ -236,18 +238,18 @@ void Cnf_CutAssignArea( Cnf_Man_t * p, Dar_Cut_t * pCut )
 ***********************************************************************/
 int Cnf_ManMapForCnf( Cnf_Man_t * p )
 {
-    Dar_Obj_t * pObj;
+    Aig_Obj_t * pObj;
     Dar_Cut_t * pCut, * pCutBest;
     int i, k;
     // visit the nodes in the topological order and update their best cuts
-    Dar_ManForEachNode( p->pManAig, pObj, i )
+    Aig_ManForEachNode( p->pManAig, pObj, i )
     {
         // find the old best cut
-        pCutBest = Dar_ObjBestCut(pObj);
+        pCutBest = Aig_ObjBestCut(pObj);
         Dar_ObjClearBestCut(pCutBest);
         // if the node is used, dereference its cut
         if ( pObj->nRefs )
-            Dar_CutDeref( p->pManAig, pCutBest );
+            Aig_CutDeref( p->pManAig, pCutBest );
 
         // evaluate the cuts of this node
         Dar_ObjForEachCut( pObj, pCut, k )
@@ -259,10 +261,12 @@ int Cnf_ManMapForCnf( Cnf_Man_t * p )
         Dar_ObjSetBestCut( pCutBest );
         // if the node is used, reference its cut
         if ( pObj->nRefs )
-            Dar_CutRef( p->pManAig, pCutBest );
+            Aig_CutRef( p->pManAig, pCutBest );
     }
     return 1;
 }
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
