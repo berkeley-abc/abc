@@ -45,7 +45,7 @@ Aig_Man_t * Fra_Perform( Aig_Man_t * pManAig, Fra_Par_t * pPars )
     Aig_Man_t * pManAigNew;
     int clk;
     if ( Aig_ManNodeNum(pManAig) == 0 )
-        return Aig_ManDup(pManAig);
+        return Aig_ManDup(pManAig, 1);
 clk = clock();
     assert( Aig_ManLatchNum(pManAig) == 0 );
     p = Fra_ManStart( pManAig, pPars );

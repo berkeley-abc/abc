@@ -43,6 +43,7 @@ void Aig_ManSeqStrashConvert( Aig_Man_t * p, int nLatches, int * pInits )
 {
     Aig_Obj_t * pObjLi, * pObjLo, * pLatch;
     int i;
+    assert( Vec_PtrSize( p->vBufs ) == 0 );
     // collect the POs to be converted into latches
     for ( i = 0; i < nLatches; i++ )
     {
@@ -58,6 +59,8 @@ void Aig_ManSeqStrashConvert( Aig_Man_t * p, int nLatches, int * pInits )
         // convert the corresponding PI to be a buffer and connect it to the latch
         pObjLo->Type = AIG_OBJ_BUF;
         Aig_ObjConnect( p, pObjLo, pLatch, NULL );
+        // save the buffer
+//        Vec_PtrPush( p->vBufs, pObjLo );
     }
     // shrink the arrays
     Vec_PtrShrink( p->vPis, Aig_ManPiNum(p) - nLatches );
@@ -353,7 +356,7 @@ int Aig_ManSeqRehashOne( Aig_Man_t * p, Vec_Ptr_t * vNodes, Vec_Ptr_t * vUnreach
                 continue;
             pObjNew = Aig_ObjReal_rec( Aig_ObjChild0(pObj) );
             pObjNew = Aig_Latch( p, pObjNew, 0 );
-            Aig_ObjReplace( p, pObj, pObjNew, 1 );
+            Aig_ObjReplace( p, pObj, pObjNew, 1, 0 );
             RetValue = 1;
             Counter++;
             continue;
@@ -365,7 +368,7 @@ int Aig_ManSeqRehashOne( Aig_Man_t * p, Vec_Ptr_t * vNodes, Vec_Ptr_t * vUnreach
             pFanin0 = Aig_ObjReal_rec( Aig_ObjChild0(pObj) );
             pFanin1 = Aig_ObjReal_rec( Aig_ObjChild1(pObj) );
             pObjNew = Aig_And( p, pFanin0, pFanin1 );
-            Aig_ObjReplace( p, pObj, pObjNew, 1 );
+            Aig_ObjReplace( p, pObj, pObjNew, 1, 0 );
             RetValue = 1;
             Counter++;
             continue;
@@ -407,7 +410,7 @@ void Aig_ManRemoveBuffers( Aig_Man_t * p )
                 continue;
             pFanin0 = Aig_ObjReal_rec( Aig_ObjChild0(pObj) );
             pObjNew = Aig_Latch( p, pFanin0, 0 );
-            Aig_ObjReplace( p, pObj, pObjNew, 0 );
+            Aig_ObjReplace( p, pObj, pObjNew, 0, 0 );
         }
         else if ( Aig_ObjIsAnd(pObj) )
         {
@@ -416,7 +419,7 @@ void Aig_ManRemoveBuffers( Aig_Man_t * p )
             pFanin0 = Aig_ObjReal_rec( Aig_ObjChild0(pObj) );
             pFanin1 = Aig_ObjReal_rec( Aig_ObjChild1(pObj) );
             pObjNew = Aig_And( p, pFanin0, pFanin1 );
-            Aig_ObjReplace( p, pObj, pObjNew, 0 );
+            Aig_ObjReplace( p, pObj, pObjNew, 0, 0 );
         }
     }
     assert( Aig_ManBufNum(p) == 0 );

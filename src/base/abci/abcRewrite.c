@@ -155,7 +155,11 @@ Rwr_ManAddTimeTotal( pManRwr, clock() - clkStart );
     }
 
     // put the nodes into the DFS order and reassign their IDs
+    {
+//        int clk = clock();
     Abc_NtkReassignIds( pNtk );
+//        PRT( "time", clock() - clk );
+    }
 //    Abc_AigCheckFaninOrder( pNtk->pManFunc );
     // fix the levels
     if ( fUpdateLevel )

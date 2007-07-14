@@ -1,12 +1,12 @@
 /**CFile****************************************************************
 
-  FileName    [dar_.c]
+  FileName    [darRefact.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
   PackageName [DAG-aware AIG rewriting.]
 
-  Synopsis    []
+  Synopsis    [Refactoring.]
 
   Author      [Alan Mishchenko]
   
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - April 28, 2007.]
 
-  Revision    [$Id: dar_.c,v 1.00 2007/04/28 00:00:00 alanmi Exp $]
+  Revision    [$Id: darRefact.c,v 1.00 2007/04/28 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 

@@ -62,20 +62,25 @@ static inline int Dar_WordCountOnes( unsigned uWord )
 static inline int Dar_CutFindValue( Dar_Man_t * p, Dar_Cut_t * pCut )
 {
     Aig_Obj_t * pLeaf;
-    int i, Value;
+    int i, Value, nOnes;
     assert( pCut->fUsed );
-    if ( pCut->nLeaves < 2 )
-        return 1001;
     Value = 0;
+    nOnes = 0;
     Dar_CutForEachLeaf( p->pAig, pCut, pLeaf, i )
     {
         if ( pLeaf == NULL )
             return 0;
         assert( pLeaf != NULL );
         Value += pLeaf->nRefs;
+        nOnes += (pLeaf->nRefs == 1);
     }
+    if ( pCut->nLeaves < 2 )
+        return 1001;
+//    Value = Value * 100 / pCut->nLeaves;
     if ( Value > 1000 )
         Value = 1000;
+    if ( nOnes > 3 )
+        Value = 5 - nOnes;
     return Value;
 }
 
@@ -83,7 +88,7 @@ static inline int Dar_CutFindValue( Dar_Man_t * p, Dar_Cut_t * pCut )
 
   Synopsis    [Returns the next free cut to use.]
 
-  Description []
+  Description [Uses the cut with the smallest value.]
                
   SideEffects []
 
@@ -110,6 +115,14 @@ static inline Dar_Cut_t * Dar_CutFindFree( Dar_Man_t * p, Aig_Obj_t * pObj )
         {
             if ( pCut->nLeaves < 2 )
                 continue;
+            if ( pCutMax == NULL || pCutMax->Value > pCut->Value )
+                pCutMax = pCut;
+        }
+    }
+    if ( pCutMax == NULL )
+    {
+        Dar_ObjForEachCutAll( pObj, pCut, i )
+        {
             if ( pCutMax == NULL || pCutMax->Value > pCut->Value )
                 pCutMax = pCut;
         }
@@ -466,7 +479,6 @@ static inline int Dar_CutSuppMinimize( Dar_Cut_t * pCut )
     unsigned uPhase = 0, uTruth = 0xFFFF & pCut->uTruth;
     int i, k, nLeaves;
     assert( pCut->fUsed );
-    assert( pCut->nLeaves > 0 );
     // compute the truth support of the cut's function
     nLeaves = pCut->nLeaves;
     for ( i = 0; i < (int)pCut->nLeaves; i++ )
@@ -566,6 +578,28 @@ Dar_Cut_t * Dar_ObjPrepareCuts( Dar_Man_t * p, Aig_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
+void Dar_ManCutsStart( Dar_Man_t * p )
+{
+    Aig_Obj_t * pObj;
+    int i;
+    Aig_ManCleanData( p->pAig );
+    Aig_MmFixedRestart( p->pMemCuts );
+    Dar_ObjPrepareCuts( p, Aig_ManConst1(p->pAig) );
+    Aig_ManForEachPi( p->pAig, pObj, i )
+        Dar_ObjPrepareCuts( p, pObj );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Dar_Cut_t * Dar_ObjComputeCuts( Dar_Man_t * p, Aig_Obj_t * pObj )
 {
     Aig_Obj_t * pFanin0 = Aig_ObjReal_rec( Aig_ObjChild0(pObj) );
@@ -612,10 +646,6 @@ Dar_Cut_t * Dar_ObjComputeCuts( Dar_Man_t * p, Aig_Obj_t * pObj )
         // minimize support of the cut
         if ( Dar_CutSuppMinimize( pCut ) )
         {
-            // if a simple cut is found return immediately
-            if ( pCut->nLeaves < 2 )
-                return pCutSet;
-            // otherwise, filter the cuts again
             RetValue = Dar_CutFilter( pObj, pCut );
             assert( !RetValue );
         }
@@ -628,6 +658,8 @@ Dar_Cut_t * Dar_ObjComputeCuts( Dar_Man_t * p, Aig_Obj_t * pObj )
             p->nCutsSkipped++;
             pCut->fUsed = 0;
         }
+        else if ( pCut->nLeaves < 2 )
+            return pCutSet;
     }
     // count the number of nontrivial cuts cuts
     Dar_ObjForEachCut( pObj, pCut, i )

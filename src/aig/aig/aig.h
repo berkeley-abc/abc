@@ -89,6 +89,7 @@ struct Aig_Man_t_
     Vec_Ptr_t *      vPis;           // the array of PIs
     Vec_Ptr_t *      vPos;           // the array of POs
     Vec_Ptr_t *      vObjs;          // the array of all nodes (optional)
+    Vec_Ptr_t *      vBufs;          // the array of buffers
     Aig_Obj_t *      pConst1;        // the constant 1 node
     Aig_Obj_t        Ghost;          // the ghost node
     // AIG node counters
@@ -98,9 +99,16 @@ struct Aig_Man_t_
     // structural hash table
     Aig_Obj_t **     pTable;         // structural hash table
     int              nTableSize;     // structural hash table size
+    // representation of fanouts
+    int *            pFanData;       // the database to store fanout information
+    int              nFansAlloc;     // the size of fanout representation
+    Vec_Vec_t *      vLevels;        // used to update timing information
+    int              nBufReplaces;   // the number of times replacement led to a buffer
+    int              nBufFixes;      // the number of times buffers were propagated
+    int              nBufMax;        // the maximum number of buffers during computation
     // various data members
     Aig_MmFixed_t *  pMemObjs;       // memory manager for objects
-    Vec_Int_t *      vRequired;      // the required times
+    Vec_Int_t *      vLevelR;        // the reverse level of the nodes
     int              nLevelMax;      // maximum number of levels
     void *           pData;          // the temporary data
     int              nTravIds;       // the current traversal ID
@@ -190,9 +198,10 @@ static inline Aig_Obj_t *  Aig_ObjChild1( Aig_Obj_t * pObj )      { return pObj-
 static inline Aig_Obj_t *  Aig_ObjChild0Copy( Aig_Obj_t * pObj ) { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin0(pObj)? Aig_NotCond((Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0(pObj)) : NULL;  }
 static inline Aig_Obj_t *  Aig_ObjChild1Copy( Aig_Obj_t * pObj ) { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin1(pObj)? Aig_NotCond((Aig_Obj_t *)Aig_ObjFanin1(pObj)->pData, Aig_ObjFaninC1(pObj)) : NULL;  }
 static inline int          Aig_ObjLevel( Aig_Obj_t * pObj )       { return pObj->nRefs;                            }
-static inline int          Aig_ObjLevelNew( Aig_Obj_t * pObj )    { return 1 + Aig_ObjIsExor(pObj) + AIG_MAX(Aig_ObjFanin0(pObj)->Level, Aig_ObjFanin1(pObj)->Level);       }
-static inline int          Aig_ObjFaninPhase( Aig_Obj_t * pObj )  { return Aig_Regular(pObj)->fPhase ^ Aig_IsComplement(pObj); }
-static inline void         Aig_ObjClean( Aig_Obj_t * pObj )       { memset( pObj, 0, sizeof(Aig_Obj_t) ); }
+static inline int          Aig_ObjLevelNew( Aig_Obj_t * pObj )    { return Aig_ObjFanin1(pObj)? 1 + Aig_ObjIsExor(pObj) + AIG_MAX(Aig_ObjFanin0(pObj)->Level, Aig_ObjFanin1(pObj)->Level) : Aig_ObjFanin0(pObj)->Level; }
+static inline int          Aig_ObjFaninPhase( Aig_Obj_t * pObj )  { return pObj? Aig_Regular(pObj)->fPhase ^ Aig_IsComplement(pObj) : 0;                              }
+static inline void         Aig_ObjClean( Aig_Obj_t * pObj )       { memset( pObj, 0, sizeof(Aig_Obj_t) );                                                             }
+static inline Aig_Obj_t *  Aig_ObjFanout0( Aig_Man_t * p, Aig_Obj_t * pObj )  { assert(p->pFanData && pObj->Id < p->nFansAlloc); return Aig_ManObj(p, p->pFanData[5*pObj->Id] >> 1); } 
 static inline int          Aig_ObjWhatFanin( Aig_Obj_t * pObj, Aig_Obj_t * pFanin )    
 { 
     if ( Aig_ObjFanin0(pObj) == pFanin ) return 0; 
@@ -263,8 +272,17 @@ static inline void Aig_ManRecycleMemory( Aig_Man_t * p, Aig_Obj_t * pEntry )
 #define Aig_ManForEachObj( p, pObj, i )                                         \
     Vec_PtrForEachEntry( p->vObjs, pObj, i ) if ( (pObj) == NULL ) {} else
 // iterator over all nodes
-#define Aig_ManForEachNode( p, pObj, i )                                         \
+#define Aig_ManForEachNode( p, pObj, i )                                        \
     Vec_PtrForEachEntry( p->vObjs, pObj, i ) if ( (pObj) == NULL || !Aig_ObjIsNode(pObj) ) {} else
+
+// these two procedures are only here for the use inside the iterator
+static inline int     Aig_ObjFanout0Int( Aig_Man_t * p, int ObjId )  { assert(ObjId < p->nFansAlloc);  return p->pFanData[5*ObjId];                         }
+static inline int     Aig_ObjFanoutNext( Aig_Man_t * p, int iFan )   { assert(iFan/2 < p->nFansAlloc); return p->pFanData[5*(iFan >> 1) + 3 + (iFan & 1)];  }
+// iterator over the fanouts
+#define Aig_ObjForEachFanout( p, pObj, pFanout, iFan, i )                       \
+    for ( assert(p->pFanData), i = 0; (i < (int)(pObj)->nRefs) &&               \
+          (((iFan) = i? Aig_ObjFanoutNext(p, iFan) : Aig_ObjFanout0Int(p, pObj->Id)), 1) && \
+          (((pFanout) = Aig_ManObj(p, iFan>>1)), 1); i++ )
 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
@@ -275,16 +293,21 @@ extern int             Aig_ManCheck( Aig_Man_t * p );
 /*=== aigDfs.c ==========================================================*/
 extern Vec_Ptr_t *     Aig_ManDfs( Aig_Man_t * p );
 extern Vec_Ptr_t *     Aig_ManDfsNodes( Aig_Man_t * p, Aig_Obj_t ** ppNodes, int nNodes );
+extern Vec_Ptr_t *     Aig_ManDfsReverse( Aig_Man_t * p );
 extern int             Aig_ManCountLevels( Aig_Man_t * p );
-extern void            Aig_ManCreateRefs( Aig_Man_t * p );
 extern int             Aig_DagSize( Aig_Obj_t * pObj );
 extern void            Aig_ConeUnmark_rec( Aig_Obj_t * pObj );
 extern Aig_Obj_t *     Aig_Transfer( Aig_Man_t * pSour, Aig_Man_t * pDest, Aig_Obj_t * pObj, int nVars );
 extern Aig_Obj_t *     Aig_Compose( Aig_Man_t * p, Aig_Obj_t * pRoot, Aig_Obj_t * pFunc, int iVar );
+/*=== aigFanout.c ==========================================================*/
+extern void            Aig_ObjAddFanout( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFanout );
+extern void            Aig_ObjRemoveFanout( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFanout );
+extern void            Aig_ManCreateFanout( Aig_Man_t * p );
+extern void            Aig_ManDeleteFanout( Aig_Man_t * p );
 /*=== aigMan.c ==========================================================*/
 extern Aig_Man_t *     Aig_ManStart();
 extern Aig_Man_t *     Aig_ManStartFrom( Aig_Man_t * p );
-extern Aig_Man_t *     Aig_ManDup( Aig_Man_t * p );
+extern Aig_Man_t *     Aig_ManDup( Aig_Man_t * p, int fOrdered );
 extern void            Aig_ManStop( Aig_Man_t * p );
 extern int             Aig_ManCleanup( Aig_Man_t * p );
 extern void            Aig_ManPrintStats( Aig_Man_t * p );
@@ -300,7 +323,7 @@ extern void            Aig_ObjDisconnect( Aig_Man_t * p, Aig_Obj_t * pObj );
 extern void            Aig_ObjDelete( Aig_Man_t * p, Aig_Obj_t * pObj );
 extern void            Aig_ObjDelete_rec( Aig_Man_t * p, Aig_Obj_t * pObj, int fFreeTop );
 extern void            Aig_ObjPatchFanin0( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFaninNew );
-extern void            Aig_ObjReplace( Aig_Man_t * p, Aig_Obj_t * pObjOld, Aig_Obj_t * pObjNew, int fNodesOnly );
+extern void            Aig_ObjReplace( Aig_Man_t * p, Aig_Obj_t * pObjOld, Aig_Obj_t * pObjNew, int fNodesOnly, int fUpdateLevel );
 /*=== aigOper.c =========================================================*/
 extern Aig_Obj_t *     Aig_IthVar( Aig_Man_t * p, int i );
 extern Aig_Obj_t *     Aig_Oper( Aig_Man_t * p, Aig_Obj_t * p0, Aig_Obj_t * p1, Aig_Type_t Type );
@@ -322,6 +345,12 @@ extern void            Aig_TableInsert( Aig_Man_t * p, Aig_Obj_t * pObj );
 extern void            Aig_TableDelete( Aig_Man_t * p, Aig_Obj_t * pObj );
 extern int             Aig_TableCountEntries( Aig_Man_t * p );
 extern void            Aig_TableProfile( Aig_Man_t * p );
+/*=== aigTiming.c ========================================================*/
+extern int             Aig_ObjRequiredLevel( Aig_Man_t * p, Aig_Obj_t * pObj );
+extern void            Aig_ManStartReverseLevels( Aig_Man_t * p, int nMaxLevelIncrease );
+extern void            Aig_ManStopReverseLevels( Aig_Man_t * p );
+extern void            Aig_ManUpdateLevel( Aig_Man_t * p, Aig_Obj_t * pObjNew );
+extern void            Aig_ManUpdateReverseLevel( Aig_Man_t * p, Aig_Obj_t * pObjNew );
 /*=== aigUtil.c =========================================================*/
 extern unsigned        Aig_PrimeCudd( unsigned p );
 extern void            Aig_ManIncrementTravId( Aig_Man_t * p );

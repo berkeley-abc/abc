@@ -66,9 +66,7 @@ Aig_Obj_t * Aig_ObjCreatePo( Aig_Man_t * p, Aig_Obj_t * pDriver )
     pObj = Aig_ManFetchMemory( p );
     pObj->Type = AIG_OBJ_PO;
     Vec_PtrPush( p->vPos, pObj );
-    // add connections
     Aig_ObjConnect( p, pObj, pDriver, NULL );
-    // update node counters of the manager
     p->nObjs[AIG_OBJ_PO]++;
     return pObj;
 }
@@ -125,23 +123,19 @@ void Aig_ObjConnect( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFan0, Aig_Obj
     {
         assert( Aig_ObjFanin0(pObj)->Type > 0 );
         Aig_ObjRef( Aig_ObjFanin0(pObj) );
+        if ( p->pFanData )
+            Aig_ObjAddFanout( p, Aig_ObjFanin0(pObj), pObj );
     }
     if ( pFan1 != NULL )
     {
         assert( Aig_ObjFanin1(pObj)->Type > 0 );
         Aig_ObjRef( Aig_ObjFanin1(pObj) );
+        if ( p->pFanData )
+            Aig_ObjAddFanout( p, Aig_ObjFanin1(pObj), pObj );
     }
     // set level and phase
-    if ( pFan1 != NULL )
-    {
-        pObj->Level = Aig_ObjLevelNew( pObj );
-        pObj->fPhase = Aig_ObjFaninPhase(pFan0) & Aig_ObjFaninPhase(pFan1);
-    }
-    else
-    {
-        pObj->Level = pFan0->Level;
-        pObj->fPhase = Aig_ObjFaninPhase(pFan0);
-    }
+    pObj->Level = Aig_ObjLevelNew( pObj );
+    pObj->fPhase = Aig_ObjFaninPhase(pFan0) & Aig_ObjFaninPhase(pFan1);
     // add the node to the structural hash table
     if ( Aig_ObjIsHash(pObj) )
         Aig_TableInsert( p, pObj );
@@ -163,9 +157,17 @@ void Aig_ObjDisconnect( Aig_Man_t * p, Aig_Obj_t * pObj )
     assert( !Aig_IsComplement(pObj) );
     // remove connections
     if ( pObj->pFanin0 != NULL )
+    {
+        if ( p->pFanData )
+            Aig_ObjRemoveFanout( p, Aig_ObjFanin0(pObj), pObj );
         Aig_ObjDeref(Aig_ObjFanin0(pObj));
+    }
     if ( pObj->pFanin1 != NULL )
+    {
+        if ( p->pFanData )
+            Aig_ObjRemoveFanout( p, Aig_ObjFanin1(pObj), pObj );
         Aig_ObjDeref(Aig_ObjFanin1(pObj));
+    }
     // remove the node from the structural hash table
     if ( Aig_ObjIsHash(pObj) )
         Aig_TableDelete( p, pObj );
@@ -190,6 +192,8 @@ void Aig_ObjDelete( Aig_Man_t * p, Aig_Obj_t * pObj )
     assert( !Aig_IsComplement(pObj) );
     assert( !Aig_ObjIsTerm(pObj) );
     assert( Aig_ObjRefs(pObj) == 0 );
+    if ( p->pFanData && Aig_ObjIsBuf(pObj) )
+        Vec_PtrRemove( p->vBufs, pObj );
     p->nObjs[pObj->Type]--;
     Vec_PtrWriteEntry( p->vObjs, pObj->Id, NULL );
     Aig_ManRecycleMemory( p, pObj );
@@ -241,11 +245,15 @@ void Aig_ObjPatchFanin0( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFaninNew 
     assert( !Aig_IsComplement(pObj) );
     pFaninOld = Aig_ObjFanin0(pObj);
     // decrement ref and remove fanout
+    if ( p->pFanData )
+        Aig_ObjRemoveFanout( p, pFaninOld, pObj );
     Aig_ObjDeref( pFaninOld );
     // update the fanin
     pObj->pFanin0 = pFaninNew;
     // increment ref and add fanout
-    Aig_ObjRef( Aig_Regular(pFaninNew) );
+    if ( p->pFanData )
+        Aig_ObjAddFanout( p, Aig_ObjFanin0(pObj), pObj );
+    Aig_ObjRef( Aig_ObjFanin0(pObj) );
     // get rid of old fanin
     if ( !Aig_ObjIsPi(pFaninOld) && !Aig_ObjIsConst1(pFaninOld) && Aig_ObjRefs(pFaninOld) == 0 )
         Aig_ObjDelete_rec( p, pFaninOld, 1 );
@@ -253,18 +261,89 @@ void Aig_ObjPatchFanin0( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFaninNew 
 
 /**Function*************************************************************
 
-  Synopsis    [Replaces one object by another.]
+  Synopsis    [Replaces node with a buffer fanin by a node without them.]
 
-  Description [Both objects are currently in the manager. The new object
-  (pObjNew) should be used instead of the old object (pObjOld). If the 
-  new object is complemented or used, the buffer is added.]
+  Description []
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-void Aig_ObjReplace( Aig_Man_t * p, Aig_Obj_t * pObjOld, Aig_Obj_t * pObjNew, int fNodesOnly )
+void Aig_NodeFixBufferFanins( Aig_Man_t * p, Aig_Obj_t * pObj, int fNodesOnly, int fUpdateLevel )
+{
+    Aig_Obj_t * pFanReal0, * pFanReal1, * pResult;
+    p->nBufFixes++;
+    if ( Aig_ObjIsPo(pObj) )
+    {
+        assert( Aig_ObjIsBuf(Aig_ObjFanin0(pObj)) );
+        pFanReal0 = Aig_ObjReal_rec( Aig_ObjChild0(pObj) );
+        Aig_ObjPatchFanin0( p, pObj, pFanReal0 );
+        return;
+    }
+    assert( Aig_ObjIsNode(pObj) );
+    assert( Aig_ObjIsBuf(Aig_ObjFanin0(pObj)) || Aig_ObjIsBuf(Aig_ObjFanin1(pObj)) );
+    // get the real fanins
+    pFanReal0 = Aig_ObjReal_rec( Aig_ObjChild0(pObj) );
+    pFanReal1 = Aig_ObjReal_rec( Aig_ObjChild1(pObj) );
+    // get the new node
+    if ( Aig_ObjIsNode(pObj) )
+        pResult = Aig_Oper( p, pFanReal0, pFanReal1, Aig_ObjType(pObj) );
+//    else if ( Aig_ObjIsLatch(pObj) )
+//        pResult = Aig_Latch( p, pFanReal0, Aig_ObjInit(pObj) );
+    else 
+        assert( 0 );
+    // replace the node with buffer by the node without buffer
+    Aig_ObjReplace( p, pObj, pResult, fNodesOnly, fUpdateLevel );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the number of dangling nodes removed.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     [] 
+
+***********************************************************************/
+int Aig_ManPropagateBuffers( Aig_Man_t * p, int fNodesOnly, int fUpdateLevel )
+{
+    Aig_Obj_t * pObj;
+    int nSteps;
+    assert( p->pFanData );
+    for ( nSteps = 0; Vec_PtrSize(p->vBufs) > 0; nSteps++ )
+    {
+        // get the node with a buffer fanin
+        for ( pObj = Vec_PtrEntryLast(p->vBufs); Aig_ObjIsBuf(pObj); pObj = Aig_ObjFanout0(p, pObj) );
+        // replace this node by a node without buffer
+        Aig_NodeFixBufferFanins( p, pObj, fNodesOnly, fUpdateLevel );
+        // stop if a cycle occured
+        if ( nSteps > 1000000 )
+        {
+            printf( "Error: A cycle is encountered while propagating buffers.\n" );
+            break;
+        }
+    }
+    return nSteps;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Replaces one object by another.]
+
+  Description [The new object (pObjNew) should be used instead of the old 
+  object (pObjOld). If the new object is complemented or used, the buffer 
+  is added and the new object remains in the manager; otherwise, the new
+  object is deleted.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ObjReplace( Aig_Man_t * p, Aig_Obj_t * pObjOld, Aig_Obj_t * pObjNew, int fNodesOnly, int fUpdateLevel )
 {
     Aig_Obj_t * pObjNewR = Aig_Regular(pObjNew);
     // the object to be replaced cannot be complemented
@@ -288,17 +367,34 @@ void Aig_ObjReplace( Aig_Man_t * p, Aig_Obj_t * pObjOld, Aig_Obj_t * pObjNew, in
     {
         pObjOld->Type = AIG_OBJ_BUF;
         Aig_ObjConnect( p, pObjOld, pObjNew, NULL );
+        p->nBufReplaces++;
     }
     else
     {
         Aig_Obj_t * pFanin0 = pObjNew->pFanin0;
         Aig_Obj_t * pFanin1 = pObjNew->pFanin1;
+        int LevelOld = pObjOld->Level;
         pObjOld->Type = pObjNew->Type;
         Aig_ObjDisconnect( p, pObjNew );
         Aig_ObjConnect( p, pObjOld, pFanin0, pFanin1 );
+        // delete the new object
         Aig_ObjDelete( p, pObjNew );
+        // update levels
+        if ( fUpdateLevel )
+        {
+            pObjOld->Level = LevelOld;
+            Aig_ManUpdateLevel( p, pObjOld );
+            Aig_ManUpdateReverseLevel( p, pObjOld );
+        }
     }
     p->nObjs[pObjOld->Type]++;
+    // store buffers if fanout is allocated
+    if ( p->pFanData && Aig_ObjIsBuf(pObjOld) )
+    {
+        Vec_PtrPush( p->vBufs, pObjOld );
+        p->nBufMax = AIG_MAX( p->nBufMax, Vec_PtrSize(p->vBufs) );
+        Aig_ManPropagateBuffers( p, fNodesOnly, fUpdateLevel );
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////

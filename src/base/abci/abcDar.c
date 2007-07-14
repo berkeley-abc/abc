@@ -521,14 +521,24 @@ Abc_Ntk_t * Abc_NtkCSweep( Abc_Ntk_t * pNtk, int nCutsMax, int nLeafMax, int fVe
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkDRewrite( Abc_Ntk_t * pNtk, Dar_Par_t * pPars )
 {
-    Aig_Man_t * pMan;
+    Aig_Man_t * pMan, * pTemp;
     Abc_Ntk_t * pNtkAig;
+    int clk;
     assert( Abc_NtkIsStrash(pNtk) );
     pMan = Abc_NtkToDar( pNtk );
     if ( pMan == NULL )
         return NULL;
 //    Aig_ManPrintStats( pMan );
+
     Dar_ManRewrite( pMan, pPars );
+//    pMan = Dar_ManBalance( pTemp = pMan, pPars->fUpdateLevel );
+//    Aig_ManStop( pTemp );
+
+clk = clock();
+    pMan = Aig_ManDup( pTemp = pMan, 0 ); 
+    Aig_ManStop( pTemp );
+PRT( "time", clock() - clk );
+
 //    Aig_ManPrintStats( pMan );
     pNtkAig = Abc_NtkFromDar( pNtk, pMan );
     Aig_ManStop( pMan );

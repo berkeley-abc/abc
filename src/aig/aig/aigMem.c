@@ -232,7 +232,8 @@ void Aig_MmFixedRestart( Aig_MmFixed_t * p )
 {
     int i;
     char * pTemp;
-
+    if ( p->nChunks == 0 )
+        return;
     // deallocate all chunks except the first one
     for ( i = 1; i < p->nChunks; i++ )
         free( p->pChunks[i] );

@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [dar_.c]
+  FileName    [darResub.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - April 28, 2007.]
 
-  Revision    [$Id: dar_.c,v 1.00 2007/04/28 00:00:00 alanmi Exp $]
+  Revision    [$Id: darResub.c,v 1.00 2007/04/28 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 

@@ -55,6 +55,7 @@ Aig_Man_t * Aig_ManStart( int nNodesMax )
     p->vPis = Vec_PtrAlloc( 100 );
     p->vPos = Vec_PtrAlloc( 100 );
     p->vObjs = Vec_PtrAlloc( 1000 );
+    p->vBufs = Vec_PtrAlloc( 100 );
     // prepare the internal memory manager
     p->pMemObjs = Aig_MmFixedStart( sizeof(Aig_Obj_t), nNodesMax );
     // create the constant node
@@ -96,6 +97,28 @@ Aig_Man_t * Aig_ManStartFrom( Aig_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicates the AIG manager recursively.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Obj_t * Aig_ManDup_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t * pObj )
+{
+    if ( pObj->pData )
+        return pObj->pData;
+    Aig_ManDup_rec( pNew, p, Aig_ObjFanin0(pObj) );
+    if ( Aig_ObjIsBuf(pObj) )
+        return pObj->pData = Aig_ObjChild0Copy(pObj);
+    Aig_ManDup_rec( pNew, p, Aig_ObjFanin1(pObj) );
+    return pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Duplicates the AIG manager.]
 
   Description []
@@ -105,7 +128,7 @@ Aig_Man_t * Aig_ManStartFrom( Aig_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Aig_ManDup( Aig_Man_t * p )
+Aig_Man_t * Aig_ManDup( Aig_Man_t * p, int fOrdered )
 {
     Aig_Man_t * pNew;
     Aig_Obj_t * pObj;
@@ -113,15 +136,25 @@ Aig_Man_t * Aig_ManDup( Aig_Man_t * p )
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjIdMax(p) + 1 );
     // create the PIs
+    Aig_ManCleanData( p );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
     Aig_ManForEachPi( p, pObj, i )
         pObj->pData = Aig_ObjCreatePi(pNew);
     // duplicate internal nodes
-    Aig_ManForEachObj( p, pObj, i )
-        if ( Aig_ObjIsBuf(pObj) )
-            pObj->pData = Aig_ObjChild0Copy(pObj);
-        else if ( Aig_ObjIsNode(pObj) )
-            pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+    if ( fOrdered )
+    {
+        Aig_ManForEachObj( p, pObj, i )
+            if ( Aig_ObjIsBuf(pObj) )
+                pObj->pData = Aig_ObjChild0Copy(pObj);
+            else if ( Aig_ObjIsNode(pObj) )
+                pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+    }
+    else
+    {
+        Aig_ManForEachObj( p, pObj, i )
+            if ( !Aig_ObjIsPo(pObj) )
+                Aig_ManDup_rec( pNew, p, pObj );        
+    }
     // add the POs
     Aig_ManForEachPo( p, pObj, i )
         Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
@@ -149,15 +182,20 @@ void Aig_ManStop( Aig_Man_t * p )
     // print time
     if ( p->time1 ) { PRT( "time1", p->time1 ); }
     if ( p->time2 ) { PRT( "time2", p->time2 ); }
+    // delete fanout
+    if ( p->pFanData ) 
+        Aig_ManDeleteFanout( p );
     // make sure the nodes have clean marks
     Aig_ManForEachObj( p, pObj, i )
         assert( !pObj->fMarkA && !pObj->fMarkB );
 //    Aig_TableProfile( p );
     Aig_MmFixedStop( p->pMemObjs, 0 );
-    if ( p->vPis )        Vec_PtrFree( p->vPis );
-    if ( p->vPos )        Vec_PtrFree( p->vPos );
-    if ( p->vObjs )       Vec_PtrFree( p->vObjs );
-    if ( p->vRequired )   Vec_IntFree( p->vRequired );
+    if ( p->vPis )     Vec_PtrFree( p->vPis );
+    if ( p->vPos )     Vec_PtrFree( p->vPos );
+    if ( p->vObjs )    Vec_PtrFree( p->vObjs );
+    if ( p->vBufs )    Vec_PtrFree( p->vBufs );
+    if ( p->vLevelR )  Vec_IntFree( p->vLevelR );
+    if ( p->vLevels )  Vec_VecFree( p->vLevels );
     free( p->pTable );
     free( p );
 }
@@ -205,14 +243,16 @@ int Aig_ManCleanup( Aig_Man_t * p )
 void Aig_ManPrintStats( Aig_Man_t * p )
 {
     printf( "PI/PO/Lat = %5d/%5d/%5d   ", Aig_ManPiNum(p), Aig_ManPoNum(p), Aig_ManLatchNum(p) );
-    printf( "A = %6d. ",    Aig_ManAndNum(p) );
+    printf( "A = %7d. ",    Aig_ManAndNum(p) );
     if ( Aig_ManExorNum(p) )
         printf( "X = %5d. ",    Aig_ManExorNum(p) );
 //    if ( Aig_ManBufNum(p) )
-        printf( "B = %3d. ",    Aig_ManBufNum(p) );
-    printf( "Cre = %6d. ",  p->nCreated );
-    printf( "Del = %6d. ",  p->nDeleted );
+        printf( "B = %5d. ",    Aig_ManBufNum(p) );
+//    printf( "Cre = %6d. ",  p->nCreated );
+//    printf( "Del = %6d. ",  p->nDeleted );
 //    printf( "Lev = %3d. ",  Aig_ManCountLevels(p) );
+    printf( "Max = %7d. ",  Aig_ManObjIdMax(p) );
+    printf( "Lev = %3d. ",  Aig_ManLevels(p) );
     printf( "\n" );
 }
 

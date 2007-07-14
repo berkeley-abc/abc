@@ -28,8 +28,8 @@
 static unsigned long Aig_Hash( Aig_Obj_t * pObj, int TableSize ) 
 {
     unsigned long Key = Aig_ObjIsExor(pObj) * 1699;
-    Key ^= (long)Aig_ObjFanin0(pObj) * 7937;
-    Key ^= (long)Aig_ObjFanin1(pObj) * 2971;
+    Key ^= Aig_ObjFanin0(pObj)->Id * 7937;
+    Key ^= Aig_ObjFanin1(pObj)->Id * 2971;
     Key ^= Aig_ObjFaninC0(pObj) * 911;
     Key ^= Aig_ObjFaninC1(pObj) * 353;
     return Key % TableSize;
@@ -55,13 +55,56 @@ static Aig_Obj_t ** Aig_TableFind( Aig_Man_t * p, Aig_Obj_t * pObj )
     return ppEntry;
 }
 
-static void         Aig_TableResize( Aig_Man_t * p );
-static unsigned int Cudd_PrimeAig( unsigned int  p );
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
  
+/**Function*************************************************************
+
+  Synopsis    [Resizes the table.]
+
+  Description [Typically this procedure should not be called.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_TableResize( Aig_Man_t * p )
+{
+    Aig_Obj_t * pEntry, * pNext;
+    Aig_Obj_t ** pTableOld, ** ppPlace;
+    int nTableSizeOld, Counter, nEntries, i, clk;
+clk = clock();
+    // save the old table
+    pTableOld = p->pTable;
+    nTableSizeOld = p->nTableSize;
+    // get the new table
+    p->nTableSize = Aig_PrimeCudd( 2 * Aig_ManNodeNum(p) ); 
+    p->pTable = ALLOC( Aig_Obj_t *, p->nTableSize );
+    memset( p->pTable, 0, sizeof(Aig_Obj_t *) * p->nTableSize );
+    // rehash the entries from the old table
+    Counter = 0;
+    for ( i = 0; i < nTableSizeOld; i++ )
+    for ( pEntry = pTableOld[i], pNext = pEntry? pEntry->pNext : NULL; 
+          pEntry; pEntry = pNext, pNext = pEntry? pEntry->pNext : NULL )
+    {
+        // get the place where this entry goes in the table 
+        ppPlace = Aig_TableFind( p, pEntry );
+        assert( *ppPlace == NULL ); // should not be there
+        // add the entry to the list
+        *ppPlace = pEntry;
+        pEntry->pNext = NULL;
+        Counter++;
+    }
+    nEntries = Aig_ManNodeNum(p);
+    assert( Counter == nEntries );
+    printf( "Increasing the structural table size from %6d to %6d. ", nTableSizeOld, p->nTableSize );
+    PRT( "Time", clock() - clk );
+    // replace the table and the parameters
+    free( pTableOld );
+}
+
 /**Function*************************************************************
 
   Synopsis    [Checks if node with the given attributes is in the hash table.]
@@ -167,51 +210,6 @@ int Aig_TableCountEntries( Aig_Man_t * p )
     return Counter;
 }
 
-/**Function*************************************************************
-
-  Synopsis    [Resizes the table.]
-
-  Description [Typically this procedure should not be called.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Aig_TableResize( Aig_Man_t * p )
-{
-    Aig_Obj_t * pEntry, * pNext;
-    Aig_Obj_t ** pTableOld, ** ppPlace;
-    int nTableSizeOld, Counter, nEntries, i, clk;
-clk = clock();
-    // save the old table
-    pTableOld = p->pTable;
-    nTableSizeOld = p->nTableSize;
-    // get the new table
-    p->nTableSize = Cudd_PrimeAig( 2 * Aig_ManNodeNum(p) ); 
-    p->pTable = ALLOC( Aig_Obj_t *, p->nTableSize );
-    memset( p->pTable, 0, sizeof(Aig_Obj_t *) * p->nTableSize );
-    // rehash the entries from the old table
-    Counter = 0;
-    for ( i = 0; i < nTableSizeOld; i++ )
-    for ( pEntry = pTableOld[i], pNext = pEntry? pEntry->pNext : NULL; pEntry; pEntry = pNext, pNext = pEntry? pEntry->pNext : NULL )
-    {
-        // get the place where this entry goes in the table 
-        ppPlace = Aig_TableFind( p, pEntry );
-        assert( *ppPlace == NULL ); // should not be there
-        // add the entry to the list
-        *ppPlace = pEntry;
-        pEntry->pNext = NULL;
-        Counter++;
-    }
-    nEntries = Aig_ManNodeNum(p);
-    assert( Counter == nEntries );
-    printf( "Increasing the structural table size from %6d to %6d. ", nTableSizeOld, p->nTableSize );
-    PRT( "Time", clock() - clk );
-    // replace the table and the parameters
-    free( pTableOld );
-}
-
 /**Function********************************************************************
 
   Synopsis    [Profiles the hash table.]
@@ -236,41 +234,6 @@ void Aig_TableProfile( Aig_Man_t * p )
             printf( "%d ", Counter );
     }
 }
-
-/**Function********************************************************************
-
-  Synopsis    [Returns the next prime &gt;= p.]
-
-  Description [Copied from CUDD, for stand-aloneness.]
-
-  SideEffects [None]
-
-  SeeAlso     []
-
-******************************************************************************/
-unsigned int Cudd_PrimeAig( unsigned int  p)
-{
-    int i,pn;
-    p--;
-    do {
-        p++;
-        if (p&1) {
-        pn = 1;
-        i = 3;
-        while ((unsigned) (i * i) <= p) {
-        if (p % i == 0) {
-            pn = 0;
-            break;
-        }
-        i += 2;
-        }
-    } else {
-        pn = 0;
-    }
-    } while (!pn);
-    return(p);
-
-} /* end of Cudd_Prime */
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

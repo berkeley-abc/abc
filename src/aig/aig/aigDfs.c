@@ -119,6 +119,65 @@ Vec_Ptr_t * Aig_ManDfsNodes( Aig_Man_t * p, Aig_Obj_t ** ppNodes, int nNodes )
 
 /**Function*************************************************************
 
+  Synopsis    [Collects internal nodes in the reverse DFS order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManDfsReverse_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vNodes )
+{
+    Aig_Obj_t * pFanout;
+    int iFanout, i;
+    assert( !Aig_IsComplement(pObj) );
+    if ( Aig_ObjIsTravIdCurrent(p, pObj) )
+        return;
+    assert( Aig_ObjIsNode(pObj) || Aig_ObjIsBuf(pObj) );
+    Aig_ObjForEachFanout( p, pObj, pFanout, iFanout, i )
+        Aig_ManDfsReverse_rec( p, pFanout, vNodes );
+    assert( !Aig_ObjIsTravIdCurrent(p, pObj) ); // loop detection
+    Aig_ObjSetTravIdCurrent(p, pObj);
+    Vec_PtrPush( vNodes, pObj );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects internal nodes in the reverse DFS order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Aig_ManDfsReverse( Aig_Man_t * p )
+{
+    Vec_Ptr_t * vNodes;
+    Aig_Obj_t * pObj;
+    int i;
+    Aig_ManIncrementTravId( p );
+    // mark POs
+    Aig_ManForEachPo( p, pObj, i )
+        Aig_ObjSetTravIdCurrent( p, pObj );
+    // if there are latches, mark them
+    if ( Aig_ManLatchNum(p) > 0 )
+        Aig_ManForEachObj( p, pObj, i )
+            if ( Aig_ObjIsLatch(pObj) )
+                Aig_ObjSetTravIdCurrent( p, pObj );
+    // go through the nodes
+    vNodes = Vec_PtrAlloc( Aig_ManNodeNum(p) );
+    Aig_ManForEachObj( p, pObj, i )
+        if ( Aig_ObjIsNode(pObj) || Aig_ObjIsBuf(pObj) )
+            Aig_ManDfsReverse_rec( p, pObj, vNodes );
+    return vNodes;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Computes the max number of levels in the manager.]
 
   Description []

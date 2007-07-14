@@ -1532,7 +1532,7 @@ int Abc_CommandPrintDsd( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     nCofLevel = 1;
-    fCofactor = 1;
+    fCofactor = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Nch" ) ) != EOF )
     {

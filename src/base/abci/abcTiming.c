@@ -811,7 +811,7 @@ void Abc_NtkUpdateLevel( Abc_Obj_t * pObjNew, Vec_Vec_t * vLevels )
         pTemp->fMarkA = 0;
         assert( Abc_ObjLevel(pTemp) == Lev );
         Abc_ObjSetLevel( pTemp, Abc_ObjLevelNew(pTemp) );
-        // if the level did not change, to need to check the fanout levels
+        // if the level did not change, no need to check the fanout levels
         if ( Abc_ObjLevel(pTemp) == Lev )
             continue;
         // schedule fanout for level update
@@ -858,7 +858,7 @@ void Abc_NtkUpdateReverseLevel( Abc_Obj_t * pObjNew, Vec_Vec_t * vLevels )
         LevelOld = Abc_ObjReverseLevel(pTemp); 
         assert( LevelOld == Lev );
         Abc_ObjSetReverseLevel( pTemp, Abc_ObjReverseLevelNew(pTemp) );
-        // if the level did not change, to need to check the fanout levels
+        // if the level did not change, no need to check the fanout levels
         if ( Abc_ObjReverseLevel(pTemp) == Lev )
             continue;
         // schedule fanins for level update

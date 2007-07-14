@@ -48,7 +48,7 @@ Dar_Man_t * Dar_ManStart( Aig_Man_t * pAig, Dar_Par_t * pPars )
     p->pPars = pPars;
     p->pAig  = pAig;
     // prepare the internal memory manager
-    p->pMemCuts = Aig_MmFixedStart( p->pPars->nCutsMax * sizeof(Dar_Cut_t), 512 );
+    p->pMemCuts = Aig_MmFixedStart( p->pPars->nCutsMax * sizeof(Dar_Cut_t), 1024 );
     // other data
     p->vLeavesBest = Vec_PtrAlloc( 4 );
     return p;
@@ -89,18 +89,27 @@ void Dar_ManStop( Dar_Man_t * p )
 ***********************************************************************/
 void Dar_ManPrintStats( Dar_Man_t * p )
 {
-    int i, Gain;
+    unsigned pCanons[222];
+    int Gain, i;
+    extern void Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars );
+
     Gain = p->nNodesInit - Aig_ManNodeNum(p->pAig);
     printf( "NodesBeg = %8d. NodesEnd = %8d. Gain = %6d. (%6.2f %%).  Cut mem = %d Mb\n", 
         p->nNodesInit, Aig_ManNodeNum(p->pAig), Gain, 100.0*Gain/p->nNodesInit, p->nCutMemUsed );
     printf( "Cuts = %8d. Tried = %8d. Used = %8d. Bad = %5d. Skipped = %5d. Ave = %.2f.\n", 
         p->nCutsAll, p->nCutsTried, p->nCutsUsed, p->nCutsBad, p->nCutsSkipped,
         (float)p->nCutsUsed/Aig_ManNodeNum(p->pAig) );
+
+    printf( "Bufs = %5d. BufMax = %5d. BufReplace = %6d. BufFix = %6d.\n", 
+        Aig_ManBufNum(p->pAig), p->pAig->nBufMax, p->pAig->nBufReplaces, p->pAig->nBufFixes );
     PRT( "Cuts  ", p->timeCuts );
     PRT( "Eval  ", p->timeEval );
     PRT( "Other ", p->timeOther );
     PRT( "TOTAL ", p->timeTotal );
-/*
+
+    if ( !p->pPars->fVeryVerbose )
+        return;
+    Dar_LibReturnCanonicals( pCanons );
     for ( i = 0; i < 222; i++ )
     {
         if ( p->ClassGains[i] == 0 && p->ClassTimes[i] == 0 )
@@ -108,10 +117,10 @@ void Dar_ManPrintStats( Dar_Man_t * p )
         printf( "%3d : ", i );
         printf( "G = %6d (%5.2f %%)  ", p->ClassGains[i], Gain? 100.0*p->ClassGains[i]/Gain : 0.0 );
         printf( "S = %8d (%5.2f %%)  ", p->ClassSubgs[i], p->nTotalSubgs? 100.0*p->ClassSubgs[i]/p->nTotalSubgs : 0.0 );
-        printf( "R = %7d  ", p->ClassGains[i]? p->ClassSubgs[i]/p->ClassGains[i] : 9999999 );
-        PRTP( "T", p->ClassTimes[i], p->timeEval );
+        printf( "R = %7d   ", p->ClassGains[i]? p->ClassSubgs[i]/p->ClassGains[i] : 9999999 );
+        Kit_DsdPrintFromTruth( pCanons + i, 4 );
+//        PRTP( "T", p->ClassTimes[i], p->timeEval );
     }
-*/
 }
 
 

@@ -2534,6 +2534,18 @@ SOURCE=.\src\aig\dar\darMan.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\dar\darRefact.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\dar\darResub.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\dar\darScript.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\dar\darTruth.c
 # End Source File
 # End Group
@@ -2722,6 +2734,10 @@ SOURCE=.\src\aig\aig\aigDfs.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\aig\aigFanout.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\aig\aigMan.c
 # End Source File
 # Begin Source File
@@ -2743,6 +2759,10 @@ SOURCE=.\src\aig\aig\aigSeq.c
 # Begin Source File
 
 SOURCE=.\src\aig\aig\aigTable.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\aig\aigTiming.c
 # End Source File
 # Begin Source File
 

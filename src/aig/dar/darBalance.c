@@ -49,7 +49,7 @@ static Aig_Obj_t * Dar_BalanceBuildSuper( Aig_Man_t * p, Vec_Ptr_t * vSuper, Aig
 Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
 {
     Aig_Man_t * pNew;
-    Aig_Obj_t * pObj, * pObjNew;
+    Aig_Obj_t * pObj, * pDriver, * pObjNew;
     Vec_Vec_t * vStore;
     int i;
     // create the new manager 
@@ -63,14 +63,15 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
     vStore = Vec_VecAlloc( 50 );
     Aig_ManForEachPo( p, pObj, i )
     {
-        pObjNew = Dar_Balance_rec( pNew, Aig_ObjFanin0(pObj), vStore, 0, fUpdateLevel );
-        Aig_ObjCreatePo( pNew, Aig_NotCond( pObjNew, Aig_ObjFaninC0(pObj) ) );
+        pDriver = Aig_ObjReal_rec( Aig_ObjChild0(pObj) );
+        pObjNew = Dar_Balance_rec( pNew, Aig_Regular(pDriver), vStore, 0, fUpdateLevel );
+        pObjNew = Aig_NotCond( pObjNew, Aig_IsComplement(pDriver) );
+        Aig_ObjCreatePo( pNew, pObjNew );
     }
     Vec_VecFree( vStore );
     // remove dangling nodes
-//    Aig_ManCreateRefs( pNew );
-//    if ( i = Aig_ManCleanup( pNew ) )
-//        printf( "Cleanup after balancing removed %d dangling nodes.\n", i );
+    if ( i = Aig_ManCleanup( pNew ) )
+        printf( "Cleanup after balancing removed %d dangling nodes.\n", i );
     // check the resulting AIG
     if ( !Aig_ManCheck(pNew) )
         printf( "Dar_ManBalance(): The check has failed.\n" );
@@ -94,6 +95,7 @@ Aig_Obj_t * Dar_Balance_rec( Aig_Man_t * pNew, Aig_Obj_t * pObjOld, Vec_Vec_t * 
     Vec_Ptr_t * vSuper;
     int i;
     assert( !Aig_IsComplement(pObjOld) );
+    assert( !Aig_ObjIsBuf(pObjOld) );
     // return if the result is known
     if ( pObjOld->pData )
         return pObjOld->pData;
@@ -157,8 +159,8 @@ int Dar_BalanceCone_rec( Aig_Obj_t * pRoot, Aig_Obj_t * pObj, Vec_Ptr_t * vSuper
     assert( !Aig_IsComplement(pObj) );
     assert( Aig_ObjIsNode(pObj) );
     // go through the branches
-    RetValue1 = Dar_BalanceCone_rec( pRoot, Aig_ObjChild0(pObj), vSuper );
-    RetValue2 = Dar_BalanceCone_rec( pRoot, Aig_ObjChild1(pObj), vSuper );
+    RetValue1 = Dar_BalanceCone_rec( pRoot, Aig_ObjReal_rec( Aig_ObjChild0(pObj) ), vSuper );
+    RetValue2 = Dar_BalanceCone_rec( pRoot, Aig_ObjReal_rec( Aig_ObjChild1(pObj) ), vSuper );
     if ( RetValue1 == -1 || RetValue2 == -1 )
         return -1;
     // return 1 if at least one branch has a duplicate
