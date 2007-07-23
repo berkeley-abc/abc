@@ -380,12 +380,13 @@ void Aig_ObjReplace( Aig_Man_t * p, Aig_Obj_t * pObjOld, Aig_Obj_t * pObjNew, in
         // delete the new object
         Aig_ObjDelete( p, pObjNew );
         // update levels
-        if ( fUpdateLevel )
+        if ( p->pFanData )
         {
             pObjOld->Level = LevelOld;
             Aig_ManUpdateLevel( p, pObjOld );
-            Aig_ManUpdateReverseLevel( p, pObjOld );
         }
+        if ( fUpdateLevel )
+            Aig_ManUpdateReverseLevel( p, pObjOld );
     }
     p->nObjs[pObjOld->Type]++;
     // store buffers if fanout is allocated

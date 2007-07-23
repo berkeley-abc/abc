@@ -150,7 +150,7 @@ void Rwr_ManPrintStats( Rwr_Man_t * p )
     printf( "Used NPN classes  = %8d.\n", Counter );
     printf( "Nodes considered  = %8d.\n", p->nNodesConsidered );
     printf( "Nodes rewritten   = %8d.\n", p->nNodesRewritten );
-    printf( "Calculated gain   = %8d.\n", p->nNodesGained     );
+    printf( "Gain              = %8d. (%6.2f %%).\n", p->nNodesBeg-p->nNodesEnd, 100.0*(p->nNodesBeg-p->nNodesEnd)/p->nNodesBeg );
     PRT( "Start       ", p->timeStart );
     PRT( "Cuts        ", p->timeCut );
     PRT( "Resynthesis ", p->timeRes );

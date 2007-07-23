@@ -64,8 +64,8 @@ struct Dar_Cut_t_  // 6 words
 // the AIG manager
 struct Dar_Man_t_
 {
-    // input data;
-    Dar_Par_t *      pPars;          // rewriting parameters
+    // input data
+    Dar_RwrPar_t *   pPars;          // rewriting parameters
     Aig_Man_t *      pAig;           // AIG manager 
     // various data members
     Aig_MmFixed_t *  pMemCuts;       // memory manager for cuts
@@ -125,7 +125,6 @@ static inline void         Dar_ObjSetCuts( Aig_Obj_t * pObj, Dar_Cut_t * pCuts )
 ////////////////////////////////////////////////////////////////////////
 
 /*=== darBalance.c ========================================================*/
-extern Aig_Man_t *     Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel );
 /*=== darCore.c ===========================================================*/
 /*=== darCut.c ============================================================*/
 extern void            Dar_ManCutsStart( Dar_Man_t * p );
@@ -144,7 +143,7 @@ extern void            Dar_LibReturnCanonicals( unsigned * pCanons );
 extern void            Dar_LibEval( Dar_Man_t * p, Aig_Obj_t * pRoot, Dar_Cut_t * pCut, int Required );
 extern Aig_Obj_t *     Dar_LibBuildBest( Dar_Man_t * p );
 /*=== darMan.c ============================================================*/
-extern Dar_Man_t *     Dar_ManStart( Aig_Man_t * pAig, Dar_Par_t * pPars );
+extern Dar_Man_t *     Dar_ManStart( Aig_Man_t * pAig, Dar_RwrPar_t * pPars );
 extern void            Dar_ManStop( Dar_Man_t * p );
 extern void            Dar_ManPrintStats( Dar_Man_t * p );
 

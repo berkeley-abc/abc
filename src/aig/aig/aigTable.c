@@ -146,6 +146,33 @@ Aig_Obj_t * Aig_TableLookup( Aig_Man_t * p, Aig_Obj_t * pGhost )
 
 /**Function*************************************************************
 
+  Synopsis    [Checks if node with the given attributes is in the hash table.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Obj_t * Aig_TableLookupTwo( Aig_Man_t * p, Aig_Obj_t * pFanin0, Aig_Obj_t * pFanin1 )
+{
+    Aig_Obj_t * pGhost;
+    // consider simple cases
+    if ( pFanin0 == pFanin1 )
+        return pFanin0;
+    if ( pFanin0 == Aig_Not(pFanin1) )
+        return Aig_ManConst0(p);
+    if ( Aig_Regular(pFanin0) == Aig_ManConst1(p) )
+        return pFanin0 == Aig_ManConst1(p) ? pFanin1 : Aig_ManConst0(p);
+    if ( Aig_Regular(pFanin1) == Aig_ManConst1(p) )
+        return pFanin1 == Aig_ManConst1(p) ? pFanin0 : Aig_ManConst0(p);
+    pGhost = Aig_ObjCreateGhost( p, pFanin0, pFanin1, AIG_OBJ_AND );
+    return Aig_TableLookup( p, pGhost );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Adds the new node to the hash table.]
 
   Description []

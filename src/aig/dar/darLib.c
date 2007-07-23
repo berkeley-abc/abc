@@ -707,65 +707,6 @@ int Dar_LibCutMatch( Dar_Man_t * p, Dar_Cut_t * pCut )
 
 /**Function*************************************************************
 
-  Synopsis    [Dereferences the node's MFFC.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Aig_NodeDeref_rec( Aig_Man_t * p, Aig_Obj_t * pNode )
-{
-    Aig_Obj_t * pFanin;
-    int Counter = 0;
-    if ( Aig_ObjIsPi(pNode) )
-        return Counter;
-    pFanin = Aig_ObjFanin0( pNode );
-    assert( pFanin->nRefs > 0 );
-    if ( --pFanin->nRefs == 0 )
-        Counter += Aig_NodeDeref_rec( p, pFanin );
-    if ( Aig_ObjIsBuf(pNode) )
-        return Counter;
-    pFanin = Aig_ObjFanin1( pNode );
-    assert( pFanin->nRefs > 0 );
-    if ( --pFanin->nRefs == 0 )
-        Counter += Aig_NodeDeref_rec( p, pFanin );
-    return 1 + Counter;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [References the node's MFFC.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Aig_NodeRef_rec( Aig_Man_t * p, Aig_Obj_t * pNode )
-{
-    Aig_Obj_t * pFanin;
-    int Counter = 0;
-    if ( Aig_ObjIsPi(pNode) )
-        return Counter;
-    Aig_ObjSetTravIdCurrent( p, pNode );
-    pFanin = Aig_ObjFanin0( pNode );
-    if ( pFanin->nRefs++ == 0 )
-        Counter += Aig_NodeRef_rec( p, pFanin );
-    if ( Aig_ObjIsBuf(pNode) )
-        return Counter;
-    pFanin = Aig_ObjFanin1( pNode );
-    if ( pFanin->nRefs++ == 0 )
-        Counter += Aig_NodeRef_rec( p, pFanin );
-    return 1 + Counter;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Marks the MFFC of the node.]
 
   Description []
@@ -777,19 +718,16 @@ int Aig_NodeRef_rec( Aig_Man_t * p, Aig_Obj_t * pNode )
 ***********************************************************************/
 int Dar_LibCutMarkMffc( Aig_Man_t * p, Aig_Obj_t * pRoot, int nLeaves )
 {
-    int i, nNodes1, nNodes2;
+    int i, nNodes;
     // mark the cut leaves
     for ( i = 0; i < nLeaves; i++ )
         Aig_Regular(s_DarLib->pDatas[i].pFunc)->nRefs++;
     // label MFFC with current ID
-    Aig_ManIncrementTravId( p );
-    nNodes1 = Aig_NodeDeref_rec( p, pRoot );
-    nNodes2 = Aig_NodeRef_rec( p, pRoot );
-    assert( nNodes1 == nNodes2 );
+    nNodes = Aig_NodeMffsLabel( p, pRoot );
     // unmark the cut leaves
     for ( i = 0; i < nLeaves; i++ )
         Aig_Regular(s_DarLib->pDatas[i].pFunc)->nRefs--;
-    return nNodes1;
+    return nNodes;
 }
 
 /**Function*************************************************************
@@ -836,7 +774,7 @@ void Dar_LibEvalAssignNums( Dar_Man_t * p, int Class )
 {
     Dar_LibObj_t * pObj;
     Dar_LibDat_t * pData, * pData0, * pData1;
-    Aig_Obj_t * pGhost, * pFanin0, * pFanin1;
+    Aig_Obj_t * pFanin0, * pFanin1;
     int i;
     for ( i = 0; i < s_DarLib->nNodes0[Class]; i++ )
     {
@@ -859,22 +797,7 @@ void Dar_LibEvalAssignNums( Dar_Man_t * p, int Class )
             continue;
         pFanin0 = Aig_NotCond( pData0->pFunc, pObj->fCompl0 );
         pFanin1 = Aig_NotCond( pData1->pFunc, pObj->fCompl1 );
-
-        // consider simple cases
-        if ( pFanin0 == pFanin1 )
-            pData->pFunc = pFanin0;
-        else if ( pFanin0 == Aig_Not(pFanin1) )
-            pData->pFunc = Aig_ManConst0(p->pAig);
-        else if ( Aig_Regular(pFanin0) == Aig_ManConst1(p->pAig) )
-            pData->pFunc = pFanin0 == Aig_ManConst1(p->pAig) ? pFanin1 : Aig_ManConst0(p->pAig);
-        else if ( Aig_Regular(pFanin1) == Aig_ManConst1(p->pAig) )
-            pData->pFunc = pFanin1 == Aig_ManConst1(p->pAig) ? pFanin0 : Aig_ManConst0(p->pAig);
-        else
-        {
-            pGhost = Aig_ObjCreateGhost( p->pAig, pFanin0, pFanin1, AIG_OBJ_AND );
-            pData->pFunc = Aig_TableLookup( p->pAig, pGhost );
-        }
-
+        pData->pFunc = Aig_TableLookupTwo( p->pAig, pFanin0, pFanin1 );
         // clear the node if it is part of MFFC
         if ( pData->pFunc != NULL && Aig_ObjIsTravIdCurrent(p->pAig, pData->pFunc) )
             pData->fMffc = 1;

@@ -39,15 +39,15 @@
   SeeAlso     []
 
 ***********************************************************************/
-void Dar_ManDefaultParams( Dar_Par_t * pPars )
+void Dar_ManDefaultRwrParams( Dar_RwrPar_t * pPars )
 {
-    memset( pPars, 0, sizeof(Dar_Par_t) );
-    pPars->nCutsMax     = 8;
-    pPars->nSubgMax     = 5; // 5 is a "magic number"
-    pPars->fUpdateLevel = 0;
-    pPars->fUseZeros    = 0;
-    pPars->fVerbose     = 0;
-    pPars->fVeryVerbose = 0;
+    memset( pPars, 0, sizeof(Dar_RwrPar_t) );
+    pPars->nCutsMax     =  8;
+    pPars->nSubgMax     =  5; // 5 is a "magic number"
+    pPars->fUpdateLevel =  0;
+    pPars->fUseZeros    =  0;
+    pPars->fVerbose     =  0;
+    pPars->fVeryVerbose =  0;
 }
 
 /**Function*************************************************************
@@ -61,7 +61,7 @@ void Dar_ManDefaultParams( Dar_Par_t * pPars )
   SeeAlso     []
 
 ***********************************************************************/
-int Dar_ManRewrite( Aig_Man_t * pAig, Dar_Par_t * pPars )
+int Dar_ManRewrite( Aig_Man_t * pAig, Dar_RwrPar_t * pPars )
 {
     Dar_Man_t * p;
     ProgressBar * pProgress;
@@ -128,7 +128,7 @@ p->timeCuts += clock() - clk;
 
         // evaluate the cuts
         p->GainBest = -1;
-        Required = 1000000;
+        Required = pAig->vLevelR? Aig_ObjRequiredLevel(pAig, pObj) : AIG_INFINITY;
         Dar_ObjForEachCut( pObj, pCut, k )
             Dar_LibEval( p, pObj, pCut, Required );
         // check the best gain

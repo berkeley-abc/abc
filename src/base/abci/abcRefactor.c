@@ -43,6 +43,8 @@ struct Abc_ManRef_t_
     int              nNodesConsidered;
     int              nNodesRefactored;
     int              nNodesGained;
+    int              nNodesBeg;
+    int              nNodesEnd;
     // runtime statistics
     int              timeCut;
     int              timeBdd;
@@ -103,6 +105,7 @@ int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, bool 
         Abc_NtkStartReverseLevels( pNtk, 0 );
 
     // resynthesize each node once
+    pManRef->nNodesBeg = Abc_NtkNodeNum(pNtk);
     nNodes = Abc_NtkObjNumMax(pNtk);
     pProgress = Extra_ProgressBarStart( stdout, nNodes );
     Abc_NtkForEachNode( pNtk, pNode, i )
@@ -142,6 +145,7 @@ pManRef->timeNtk += clock() - clk;
     }
     Extra_ProgressBarStop( pProgress );
 pManRef->timeTotal = clock() - clkStart;
+    pManRef->nNodesEnd = Abc_NtkNodeNum(pNtk);
 
     // print statistics of the manager
     if ( fVerbose )
@@ -355,7 +359,7 @@ void Abc_NtkManRefPrintStats( Abc_ManRef_t * p )
     printf( "Refactoring statistics:\n" );
     printf( "Nodes considered  = %8d.\n", p->nNodesConsidered );
     printf( "Nodes refactored  = %8d.\n", p->nNodesRefactored );
-    printf( "Calculated gain   = %8d.\n", p->nNodesGained     );
+    printf( "Gain              = %8d. (%6.2f %%).\n", p->nNodesBeg-p->nNodesEnd, 100.0*(p->nNodesBeg-p->nNodesEnd)/p->nNodesBeg );
     PRT( "Cuts       ", p->timeCut );
     PRT( "Resynthesis", p->timeRes );
     PRT( "    BDD    ", p->timeBdd );

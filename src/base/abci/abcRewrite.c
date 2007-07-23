@@ -94,6 +94,7 @@ Rwr_ManAddTimeCuts( pManRwr, clock() - clk );
         Rwr_ScoresClean( pManRwr );
 
     // resynthesize each node once
+    pManRwr->nNodesBeg = Abc_NtkNodeNum(pNtk);
     nNodes = Abc_NtkObjNumMax(pNtk);
     pProgress = Extra_ProgressBarStart( stdout, nNodes );
     Abc_NtkForEachNode( pNtk, pNode, i )
@@ -137,6 +138,7 @@ Rwr_ManAddTimeUpdate( pManRwr, clock() - clk );
     Extra_ProgressBarStop( pProgress );
 Rwr_ManAddTimeTotal( pManRwr, clock() - clkStart );
     // print stats
+    pManRwr->nNodesEnd = Abc_NtkNodeNum(pNtk);
     if ( fVerbose )
         Rwr_ManPrintStats( pManRwr );
 //        Rwr_ManPrintStatsFile( pManRwr );

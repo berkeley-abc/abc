@@ -39,7 +39,7 @@
   SeeAlso     []
 
 ***********************************************************************/
-Dar_Man_t * Dar_ManStart( Aig_Man_t * pAig, Dar_Par_t * pPars )
+Dar_Man_t * Dar_ManStart( Aig_Man_t * pAig, Dar_RwrPar_t * pPars )
 {
     Dar_Man_t * p;
     // start the manager

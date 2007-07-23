@@ -217,6 +217,7 @@ static inline Kit_Node_t * Kit_GraphVar( Kit_Graph_t * pGraph )                 
 static inline int          Kit_GraphVarInt( Kit_Graph_t * pGraph )                        { assert( Kit_GraphIsVar( pGraph ) );    return Kit_GraphNodeInt( pGraph, Kit_GraphVar(pGraph) ); }
 static inline Kit_Node_t * Kit_GraphNodeFanin0( Kit_Graph_t * pGraph, Kit_Node_t * pNode ){ return Kit_GraphNodeIsVar(pGraph, pNode)? NULL : Kit_GraphNode(pGraph, pNode->eEdge0.Node);     }
 static inline Kit_Node_t * Kit_GraphNodeFanin1( Kit_Graph_t * pGraph, Kit_Node_t * pNode ){ return Kit_GraphNodeIsVar(pGraph, pNode)? NULL : Kit_GraphNode(pGraph, pNode->eEdge1.Node);     }
+static inline int          Kit_GraphRootLevel( Kit_Graph_t * pGraph )                     { return Kit_GraphNode(pGraph, pGraph->eRoot.Node)->Level;                                        }
 
 static inline int          Kit_Float2Int( float Val )     { return *((int *)&Val);               }
 static inline float        Kit_Int2Float( int Num )       { return *((float *)&Num);             }

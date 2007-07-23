@@ -86,6 +86,8 @@ struct Abc_ManRes_t_
     int                nTotalDivs;
     int                nTotalLeaves;
     int                nTotalGain;
+    int                nNodesBeg;
+    int                nNodesEnd;
 };
 
 // external procedures
@@ -166,6 +168,7 @@ int Abc_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutMax, int nStepsMax, int nLeve
             pNode->pNext = pNode->pData;
 
     // resynthesize each node once
+    pManRes->nNodesBeg = Abc_NtkNodeNum(pNtk);
     nNodes = Abc_NtkObjNumMax(pNtk);
     pProgress = Extra_ProgressBarStart( stdout, nNodes );
     Abc_NtkForEachNode( pNtk, pNode, i )
@@ -230,6 +233,7 @@ pManRes->timeNtk += clock() - clk;
     }
     Extra_ProgressBarStop( pProgress );
 pManRes->timeTotal = clock() - clkStart;
+    pManRes->nNodesEnd = Abc_NtkNodeNum(pNtk);
 
     // print statistics
     if ( fVerbose )
@@ -385,7 +389,8 @@ void Abc_ManResubPrint( Abc_ManRes_t * p )
                                                    );                          PRT( "TOTAL ", p->timeTotal );
     printf( "Total leaves   = %8d.\n", p->nTotalLeaves );
     printf( "Total divisors = %8d.\n", p->nTotalDivs );
-    printf( "Total gain     = %8d.\n", p->nTotalGain );
+//    printf( "Total gain     = %8d.\n", p->nTotalGain );
+    printf( "Gain           = %8d. (%6.2f %%).\n", p->nNodesBeg-p->nNodesEnd, 100.0*(p->nNodesBeg-p->nNodesEnd)/p->nNodesBeg );
 }
 
 

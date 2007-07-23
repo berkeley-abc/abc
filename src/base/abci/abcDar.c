@@ -291,7 +291,7 @@ Abc_Ntk_t * Abc_NtkDar( Abc_Ntk_t * pNtk )
 */
 
 //    Aig_ManDumpBlif( pMan, "aig_temp.blif" );
-//    pMan->pPars = Dar_ManDefaultParams();
+//    pMan->pPars = Dar_ManDefaultRwrParams();
     Dar_ManRewrite( pMan, NULL );
     Aig_ManPrintStats( pMan );
 //    Dar_ManComputeCuts( pMan );
@@ -519,7 +519,7 @@ Abc_Ntk_t * Abc_NtkCSweep( Abc_Ntk_t * pNtk, int nCutsMax, int nLeafMax, int fVe
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkDRewrite( Abc_Ntk_t * pNtk, Dar_Par_t * pPars )
+Abc_Ntk_t * Abc_NtkDRewrite( Abc_Ntk_t * pNtk, Dar_RwrPar_t * pPars )
 {
     Aig_Man_t * pMan, * pTemp;
     Abc_Ntk_t * pNtkAig;
@@ -537,7 +537,77 @@ Abc_Ntk_t * Abc_NtkDRewrite( Abc_Ntk_t * pNtk, Dar_Par_t * pPars )
 clk = clock();
     pMan = Aig_ManDup( pTemp = pMan, 0 ); 
     Aig_ManStop( pTemp );
-PRT( "time", clock() - clk );
+//PRT( "time", clock() - clk );
+
+//    Aig_ManPrintStats( pMan );
+    pNtkAig = Abc_NtkFromDar( pNtk, pMan );
+    Aig_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkDRefactor( Abc_Ntk_t * pNtk, Dar_RefPar_t * pPars )
+{
+    Aig_Man_t * pMan, * pTemp;
+    Abc_Ntk_t * pNtkAig;
+    int clk;
+    assert( Abc_NtkIsStrash(pNtk) );
+    pMan = Abc_NtkToDar( pNtk );
+    if ( pMan == NULL )
+        return NULL;
+//    Aig_ManPrintStats( pMan );
+
+    Dar_ManRefactor( pMan, pPars );
+//    pMan = Dar_ManBalance( pTemp = pMan, pPars->fUpdateLevel );
+//    Aig_ManStop( pTemp );
+
+clk = clock();
+    pMan = Aig_ManDup( pTemp = pMan, 0 ); 
+    Aig_ManStop( pTemp );
+//PRT( "time", clock() - clk );
+
+//    Aig_ManPrintStats( pMan );
+    pNtkAig = Abc_NtkFromDar( pNtk, pMan );
+    Aig_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkDCompress2( Abc_Ntk_t * pNtk, int fVerbose )
+{
+    Aig_Man_t * pMan;//, * pTemp;
+    Abc_Ntk_t * pNtkAig;
+    int clk;
+    assert( Abc_NtkIsStrash(pNtk) );
+    pMan = Abc_NtkToDar( pNtk );
+    if ( pMan == NULL )
+        return NULL;
+//    Aig_ManPrintStats( pMan );
+
+clk = clock();
+    pMan = Dar_ManCompress2( pMan, fVerbose ); 
+//    Aig_ManStop( pTemp );
+//PRT( "time", clock() - clk );
 
 //    Aig_ManPrintStats( pMan );
     pNtkAig = Abc_NtkFromDar( pNtk, pMan );

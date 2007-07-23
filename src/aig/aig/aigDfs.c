@@ -433,6 +433,64 @@ Aig_Obj_t * Aig_Compose( Aig_Man_t * p, Aig_Obj_t * pRoot, Aig_Obj_t * pFunc, in
     return Aig_NotCond( Aig_Regular(pRoot)->pData, Aig_IsComplement(pRoot) );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Computes the internal nodes of the cut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManCollectCut_rec( Aig_Obj_t * pNode, Vec_Ptr_t * vNodes )
+{
+//    Aig_Obj_t * pFan0 = Aig_ObjFanin0(pNode);
+//    Aig_Obj_t * pFan1 = Aig_ObjFanin1(pNode);
+    if ( pNode->fMarkA )
+        return;
+    pNode->fMarkA = 1;
+    assert( Aig_ObjIsNode(pNode) );
+    Aig_ManCollectCut_rec( Aig_ObjFanin0(pNode), vNodes );
+    Aig_ManCollectCut_rec( Aig_ObjFanin1(pNode), vNodes );
+    Vec_PtrPush( vNodes, pNode );
+//printf( "added %d  ", pNode->Id );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the internal nodes of the cut.]
+
+  Description [Does not include the leaves of the cut.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManCollectCut( Aig_Obj_t * pRoot, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vNodes )
+{
+    Aig_Obj_t * pObj;
+    int i;
+    // collect and mark the leaves
+    Vec_PtrClear( vNodes );
+    Vec_PtrForEachEntry( vLeaves, pObj, i )
+    {
+        assert( pObj->fMarkA == 0 );
+        pObj->fMarkA = 1;
+//        printf( "%d " , pObj->Id );
+    }
+//printf( "\n" );
+    // collect and mark the nodes
+    Aig_ManCollectCut_rec( pRoot, vNodes );
+    // clean the nodes
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+        pObj->fMarkA = 0;
+    Vec_PtrForEachEntry( vLeaves, pObj, i )
+        pObj->fMarkA = 0;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

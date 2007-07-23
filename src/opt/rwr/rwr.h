@@ -77,6 +77,8 @@ struct Rwr_Man_t_
     int                nNodesConsidered;
     int                nNodesRewritten;
     int                nNodesGained;
+    int                nNodesBeg;
+    int                nNodesEnd;
     int                nScores[222];
     int                nCutsGood;
     int                nCutsBad;

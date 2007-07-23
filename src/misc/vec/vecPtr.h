@@ -562,6 +562,25 @@ static inline void Vec_PtrClear( Vec_Ptr_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Copies the interger array.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_PtrCopy( Vec_Ptr_t * pDest, Vec_Ptr_t * pSour )
+{
+    pDest->nSize = 0;
+    Vec_PtrGrow( pDest, pSour->nSize );
+    memcpy( pDest->pArray, pSour->pArray, sizeof(void *) * pSour->nSize );
+    pDest->nSize = pSour->nSize;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []

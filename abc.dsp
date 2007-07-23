@@ -2746,6 +2746,10 @@ SOURCE=.\src\aig\aig\aigMem.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\aig\aigMffc.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\aig\aigObj.c
 # End Source File
 # Begin Source File
@@ -2766,7 +2770,15 @@ SOURCE=.\src\aig\aig\aigTiming.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\aig\aigTruth.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\aig\aigUtil.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\aig\aigWin.c
 # End Source File
 # End Group
 # End Group

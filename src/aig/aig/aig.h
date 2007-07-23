@@ -274,6 +274,9 @@ static inline void Aig_ManRecycleMemory( Aig_Man_t * p, Aig_Obj_t * pEntry )
 // iterator over all nodes
 #define Aig_ManForEachNode( p, pObj, i )                                        \
     Vec_PtrForEachEntry( p->vObjs, pObj, i ) if ( (pObj) == NULL || !Aig_ObjIsNode(pObj) ) {} else
+// iterator over the nodes whose IDs are stored in the array
+#define Aig_ManForEachNodeVec( p, vIds, pObj, i )                               \
+    for ( i = 0; i < Vec_IntSize(vIds) && ((pObj) = Aig_ManObj(p, Vec_IntEntry(vIds,i))); i++ )
 
 // these two procedures are only here for the use inside the iterator
 static inline int     Aig_ObjFanout0Int( Aig_Man_t * p, int ObjId )  { assert(ObjId < p->nFansAlloc);  return p->pFanData[5*ObjId];                         }
@@ -299,6 +302,7 @@ extern int             Aig_DagSize( Aig_Obj_t * pObj );
 extern void            Aig_ConeUnmark_rec( Aig_Obj_t * pObj );
 extern Aig_Obj_t *     Aig_Transfer( Aig_Man_t * pSour, Aig_Man_t * pDest, Aig_Obj_t * pObj, int nVars );
 extern Aig_Obj_t *     Aig_Compose( Aig_Man_t * p, Aig_Obj_t * pRoot, Aig_Obj_t * pFunc, int iVar );
+extern void            Aig_ManCollectCut( Aig_Obj_t * pRoot, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vNodes );
 /*=== aigFanout.c ==========================================================*/
 extern void            Aig_ObjAddFanout( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFanout );
 extern void            Aig_ObjRemoveFanout( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFanout );
@@ -314,6 +318,13 @@ extern void            Aig_ManPrintStats( Aig_Man_t * p );
 /*=== aigMem.c ==========================================================*/
 extern void            Aig_ManStartMemory( Aig_Man_t * p );
 extern void            Aig_ManStopMemory( Aig_Man_t * p );
+/*=== aigMffc.c ==========================================================*/
+extern int             Aig_NodeRef_rec( Aig_Obj_t * pNode, unsigned LevelMin );
+extern int             Aig_NodeDeref_rec( Aig_Obj_t * pNode, unsigned LevelMin );
+extern int             Aig_NodeMffsSupp( Aig_Man_t * p, Aig_Obj_t * pNode, int LevelMin, Vec_Ptr_t * vSupp );
+extern int             Aig_NodeMffsLabel( Aig_Man_t * p, Aig_Obj_t * pNode );
+extern int             Aig_NodeMffsLabelCut( Aig_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vLeaves );
+extern int             Aig_NodeMffsExtendCut( Aig_Man_t * p, Aig_Obj_t * pNode, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vResult );
 /*=== aigObj.c ==========================================================*/
 extern Aig_Obj_t *     Aig_ObjCreatePi( Aig_Man_t * p );
 extern Aig_Obj_t *     Aig_ObjCreatePo( Aig_Man_t * p, Aig_Obj_t * pDriver );
@@ -341,6 +352,7 @@ extern Aig_Obj_t *     Aig_CreateExor( Aig_Man_t * p, int nVars );
 extern int             Aig_ManSeqStrash( Aig_Man_t * p, int nLatches, int * pInits );
 /*=== aigTable.c ========================================================*/
 extern Aig_Obj_t *     Aig_TableLookup( Aig_Man_t * p, Aig_Obj_t * pGhost );
+extern Aig_Obj_t *     Aig_TableLookupTwo( Aig_Man_t * p, Aig_Obj_t * pFanin0, Aig_Obj_t * pFanin1 );
 extern void            Aig_TableInsert( Aig_Man_t * p, Aig_Obj_t * pObj );
 extern void            Aig_TableDelete( Aig_Man_t * p, Aig_Obj_t * pObj );
 extern int             Aig_TableCountEntries( Aig_Man_t * p );
@@ -351,10 +363,13 @@ extern void            Aig_ManStartReverseLevels( Aig_Man_t * p, int nMaxLevelIn
 extern void            Aig_ManStopReverseLevels( Aig_Man_t * p );
 extern void            Aig_ManUpdateLevel( Aig_Man_t * p, Aig_Obj_t * pObjNew );
 extern void            Aig_ManUpdateReverseLevel( Aig_Man_t * p, Aig_Obj_t * pObjNew );
+/*=== aigTruth.c ========================================================*/
+extern unsigned *      Aig_ManCutTruth( Aig_Obj_t * pRoot, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vNodes, Vec_Ptr_t * vTruthElem, Vec_Ptr_t * vTruthStore );
 /*=== aigUtil.c =========================================================*/
 extern unsigned        Aig_PrimeCudd( unsigned p );
 extern void            Aig_ManIncrementTravId( Aig_Man_t * p );
 extern int             Aig_ManLevels( Aig_Man_t * p );
+extern void            Aig_ManCheckMarkA( Aig_Man_t * p );
 extern void            Aig_ManCleanData( Aig_Man_t * p );
 extern void            Aig_ObjCleanData_rec( Aig_Obj_t * pObj );
 extern void            Aig_ObjCollectMulti( Aig_Obj_t * pFunc, Vec_Ptr_t * vSuper );
@@ -367,6 +382,8 @@ extern void            Aig_ObjPrintVerilog( FILE * pFile, Aig_Obj_t * pObj, Vec_
 extern void            Aig_ObjPrintVerbose( Aig_Obj_t * pObj, int fHaig );
 extern void            Aig_ManPrintVerbose( Aig_Man_t * p, int fHaig );
 extern void            Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName );
+/*=== aigWin.c =========================================================*/
+extern void            Aig_ManFindCut( Aig_Obj_t * pRoot, Vec_Ptr_t * vFront, Vec_Ptr_t * vVisited, int nSizeLimit, int nFanoutLimit );
  
 /*=== aigMem.c ===========================================================*/
 // fixed-size-block memory manager
