@@ -234,6 +234,7 @@ struct Abc_Lib_t_
 // maximum/minimum operators
 #define ABC_MIN(a,b)      (((a) < (b))? (a) : (b))
 #define ABC_MAX(a,b)      (((a) > (b))? (a) : (b))
+#define ABC_ABS(a)        (((a) >= 0)?  (a) :-(a))
 #define ABC_INFINITY      (100000000)
 
 // transforming floats into ints and back

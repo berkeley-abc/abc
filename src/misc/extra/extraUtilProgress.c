@@ -68,7 +68,7 @@ ProgressBar * Extra_ProgressBarStart( FILE * pFile, int nItemsTotal )
     p->nItemsTotal = nItemsTotal;
     p->posTotal    = 78;
     p->posCur      = 1;
-    p->nItemsNext  = (int)((float)p->nItemsTotal/p->posTotal)*(p->posCur+5)+2;
+    p->nItemsNext  = (int)((7.0+p->posCur)*p->nItemsTotal/p->posTotal);
     Extra_ProgressBarShow( p, NULL );
     return p;
 }
@@ -89,12 +89,16 @@ void Extra_ProgressBarUpdate_int( ProgressBar * p, int nItemsCur, char * pString
     if ( p == NULL ) return;
     if ( nItemsCur < p->nItemsNext )
         return;
-    if ( nItemsCur > p->nItemsTotal )
-        nItemsCur = p->nItemsTotal;
-    p->posCur = (int)((double)nItemsCur * p->posTotal / p->nItemsTotal);
-    p->nItemsNext  = (int)((double)p->nItemsTotal/p->posTotal)*(p->posCur+10)+1;
-    if ( p->posCur == 0 )
-        p->posCur = 1;
+    if ( nItemsCur >= p->nItemsTotal )
+    {
+        p->posCur = 78;
+        p->nItemsNext = 0x7FFFFFFF;
+    }
+    else
+    {
+        p->posCur += 7;
+        p->nItemsNext = (int)((7.0+p->posCur)*p->nItemsTotal/p->posTotal);
+    }
     Extra_ProgressBarShow( p, pString );
 }
 

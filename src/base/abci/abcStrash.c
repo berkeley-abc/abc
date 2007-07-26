@@ -351,7 +351,7 @@ Abc_Obj_t * Abc_NodeStrash( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, int fReco
 ***********************************************************************/
 Abc_Obj_t * Abc_NtkTopmost_rec( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, int LevelCut )
 {
-    assert( Abc_ObjIsComplement(pNode) );
+    assert( !Abc_ObjIsComplement(pNode) );
     if ( pNode->pCopy )
         return pNode->pCopy;
     if ( pNode->Level <= (unsigned)LevelCut )
@@ -388,6 +388,7 @@ Abc_Ntk_t * Abc_NtkTopmost( Abc_Ntk_t * pNtk, int nLevels )
     // create PIs below the cut and nodes above the cut
     Abc_NtkCleanCopy( pNtk );
     pObjNew = Abc_NtkTopmost_rec( pNtkNew, Abc_ObjFanin0(Abc_NtkPo(pNtk, 0)), LevelCut );
+    pObjNew = Abc_ObjNotCond( pObjNew, Abc_ObjFaninC0(Abc_NtkPo(pNtk, 0)) );
     // add the PO node and name
     pPoNew = Abc_NtkCreatePo(pNtkNew);
     Abc_ObjAddFanin( pPoNew, pObjNew );

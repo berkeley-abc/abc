@@ -1195,7 +1195,8 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, sint64 nConfLimit, sin
         double Ratio = (s->stats.learnts == 0)? 0.0 :
             s->stats.learnts_literals / (double)s->stats.learnts;
 
-        if (s->verbosity >= 1){
+        if (s->verbosity >= 1)
+        {
             printf("| %9.0f | %7.0f %8.0f | %7.0f %7.0f %8.0f %7.1f | %6.3f %% |\n", 
                 (double)s->stats.conflicts,
                 (double)s->stats.clauses, 

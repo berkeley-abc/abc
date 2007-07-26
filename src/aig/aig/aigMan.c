@@ -153,16 +153,59 @@ Aig_Man_t * Aig_ManDup( Aig_Man_t * p, int fOrdered )
     {
         Aig_ManForEachObj( p, pObj, i )
             if ( !Aig_ObjIsPo(pObj) )
+            {
                 Aig_ManDup_rec( pNew, p, pObj );        
+                assert( pObj->Level == ((Aig_Obj_t*)pObj->pData)->Level );
+            }
     }
     // add the POs
     Aig_ManForEachPo( p, pObj, i )
         Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+    assert( Aig_ManBufNum(p) != 0 || Aig_ManNodeNum(p) == Aig_ManNodeNum(pNew) );
     // check the resulting network
     if ( !Aig_ManCheck(pNew) )
         printf( "Aig_ManDup(): The check has failed.\n" );
     return pNew;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Extracts the miter composed of XOR of the two nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Aig_ManExtractMiter( Aig_Man_t * p, Aig_Obj_t ** ppNodes, int nNodes )
+{
+    Aig_Man_t * pNew;
+    Aig_Obj_t * pObj;
+    int i;
+    assert( nNodes == 2 );
+    // create the new manager
+    pNew = Aig_ManStart( Aig_ManObjIdMax(p) + 1 );
+    // create the PIs
+    Aig_ManCleanData( p );
+    Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
+    Aig_ManForEachPi( p, pObj, i )
+        pObj->pData = Aig_ObjCreatePi(pNew);
+    // dump the nodes
+    for ( i = 0; i < nNodes; i++ )
+        Aig_ManDup_rec( pNew, p, ppNodes[i] );   
+    // construct the EXOR
+    pObj = Aig_Exor( pNew, ppNodes[0]->pData, ppNodes[1]->pData ); 
+    pObj = Aig_NotCond( pObj, Aig_Regular(pObj)->fPhase ^ Aig_IsComplement(pObj) );
+    // add the PO
+    Aig_ObjCreatePo( pNew, pObj );
+    // check the resulting network
+    if ( !Aig_ManCheck(pNew) )
+        printf( "Aig_ManDup(): The check has failed.\n" );
+    return pNew;
+}
+
 
 /**Function*************************************************************
 
@@ -184,7 +227,7 @@ void Aig_ManStop( Aig_Man_t * p )
     if ( p->time2 ) { PRT( "time2", p->time2 ); }
     // delete fanout
     if ( p->pFanData ) 
-        Aig_ManDeleteFanout( p );
+        Aig_ManFanoutStop( p );
     // make sure the nodes have clean marks
     Aig_ManForEachObj( p, pObj, i )
         assert( !pObj->fMarkA && !pObj->fMarkB );
@@ -196,6 +239,7 @@ void Aig_ManStop( Aig_Man_t * p )
     if ( p->vBufs )    Vec_PtrFree( p->vBufs );
     if ( p->vLevelR )  Vec_IntFree( p->vLevelR );
     if ( p->vLevels )  Vec_VecFree( p->vLevels );
+    FREE( p->pReprs );
     free( p->pTable );
     free( p );
 }

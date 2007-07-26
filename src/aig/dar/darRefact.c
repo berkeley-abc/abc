@@ -130,8 +130,8 @@ void Dar_ManRefPrintStats( Ref_Man_t * p )
     int Gain = p->nNodesInit - Aig_ManNodeNum(p->pAig);
     printf( "NodesBeg = %8d. NodesEnd = %8d. Gain = %6d. (%6.2f %%).\n", 
         p->nNodesInit, Aig_ManNodeNum(p->pAig), Gain, 100.0*Gain/p->nNodesInit );
-    printf( "Tried = %6d. Below = %5d. Extended = %5d.  Used = %5d.\n", 
-        p->nNodesTried, p->nNodesBelow, p->nNodesExten, p->nCutsUsed );
+    printf( "Tried = %6d. Below = %5d. Extended = %5d.  Used = %5d.  Levels = %4d.\n", 
+        p->nNodesTried, p->nNodesBelow, p->nNodesExten, p->nCutsUsed, Aig_ManLevels(p->pAig) );
     PRT( "Cuts  ", p->timeCuts );
     PRT( "Eval  ", p->timeEval );
     PRT( "Other ", p->timeOther );
@@ -358,7 +358,7 @@ int Dar_ManRefactorTryCuts( Ref_Man_t * p, Aig_Obj_t * pObj, int nNodesSaved, in
 
         p->nCutsTried++;
         // get the cut nodes
-        Aig_ManCollectCut( pObj, vCut, p->vCutNodes );
+        Aig_ObjCollectCut( pObj, vCut, p->vCutNodes );
         // get the truth table
         pTruth = Aig_ManCutTruth( pObj, vCut, p->vCutNodes, p->vTruthElem, p->vTruthStore );
         // try the positive phase
@@ -460,7 +460,7 @@ int Dar_ManRefactor( Aig_Man_t * pAig, Dar_RefPar_t * pPars )
     // remove dangling nodes
     Aig_ManCleanup( pAig );
     // if updating levels is requested, start fanout and timing
-    Aig_ManCreateFanout( pAig );
+    Aig_ManFanoutStart( pAig );
     if ( p->pPars->fUpdateLevel )
         Aig_ManStartReverseLevels( pAig, 0 );
 
@@ -479,11 +479,6 @@ int Dar_ManRefactor( Aig_Man_t * pAig, Dar_RefPar_t * pPars )
         if ( i > nNodesOld )
             break;
         Vec_VecClear( p->vCuts );
-
-        if ( pObj->Id == 738 )
-        {
-            int x = 0;
-        }
 
 //printf( "\nConsidering node %d.\n", pObj->Id );
         // get the bounded MFFC size
@@ -558,7 +553,7 @@ p->timeOther = p->timeTotal - p->timeCuts - p->timeEval;
     // put the nodes into the DFS order and reassign their IDs
 //    Aig_NtkReassignIds( p );
     // fix the levels
-    Aig_ManDeleteFanout( pAig );
+    Aig_ManFanoutStop( pAig );
     if ( p->pPars->fUpdateLevel )
         Aig_ManStopReverseLevels( pAig );
 

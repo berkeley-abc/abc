@@ -94,14 +94,14 @@ void Dar_ManPrintStats( Dar_Man_t * p )
     extern void Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars );
 
     Gain = p->nNodesInit - Aig_ManNodeNum(p->pAig);
-    printf( "NodesBeg = %8d. NodesEnd = %8d. Gain = %6d. (%6.2f %%).  Cut mem = %d Mb\n", 
-        p->nNodesInit, Aig_ManNodeNum(p->pAig), Gain, 100.0*Gain/p->nNodesInit, p->nCutMemUsed );
+    printf( "Tried = %8d. Beg = %8d. End = %8d. Gain = %6d. (%6.2f %%).  Cut mem = %d Mb\n", 
+        p->nNodesTried, p->nNodesInit, Aig_ManNodeNum(p->pAig), Gain, 100.0*Gain/p->nNodesInit, p->nCutMemUsed );
     printf( "Cuts = %8d. Tried = %8d. Used = %8d. Bad = %5d. Skipped = %5d. Ave = %.2f.\n", 
         p->nCutsAll, p->nCutsTried, p->nCutsUsed, p->nCutsBad, p->nCutsSkipped,
         (float)p->nCutsUsed/Aig_ManNodeNum(p->pAig) );
 
-    printf( "Bufs = %5d. BufMax = %5d. BufReplace = %6d. BufFix = %6d.\n", 
-        Aig_ManBufNum(p->pAig), p->pAig->nBufMax, p->pAig->nBufReplaces, p->pAig->nBufFixes );
+    printf( "Bufs = %5d. BufMax = %5d. BufReplace = %6d. BufFix = %6d.  Levels = %4d.\n", 
+        Aig_ManBufNum(p->pAig), p->pAig->nBufMax, p->pAig->nBufReplaces, p->pAig->nBufFixes, Aig_ManLevels(p->pAig) );
     PRT( "Cuts  ", p->timeCuts );
     PRT( "Eval  ", p->timeEval );
     PRT( "Other ", p->timeOther );

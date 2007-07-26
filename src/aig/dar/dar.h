@@ -44,6 +44,7 @@ struct Dar_RwrPar_t_
 {
     int              nCutsMax;       // the maximum number of cuts to try
     int              nSubgMax;       // the maximum number of subgraphs to try
+    int              fFanout;        // support fanout representation
     int              fUpdateLevel;   // update level 
     int              fUseZeros;      // performs zero-cost replacement
     int              fVerbose;       // enables verbose output
@@ -79,12 +80,13 @@ extern Aig_Man_t *     Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel );
 /*=== darCore.c ========================================================*/
 extern void            Dar_ManDefaultRwrParams( Dar_RwrPar_t * pPars );
 extern int             Dar_ManRewrite( Aig_Man_t * pAig, Dar_RwrPar_t * pPars );
-extern Aig_MmFixed_t * Dar_ManComputeCuts( Aig_Man_t * pAig );
+extern Aig_MmFixed_t * Dar_ManComputeCuts( Aig_Man_t * pAig, int nCutsMax );
 /*=== darRefact.c ========================================================*/
 extern void            Dar_ManDefaultRefParams( Dar_RefPar_t * pPars );
 extern int             Dar_ManRefactor( Aig_Man_t * pAig, Dar_RefPar_t * pPars );
 /*=== darScript.c ========================================================*/
-extern Aig_Man_t *     Dar_ManCompress2( Aig_Man_t * pAig, int fVerbose );
+extern Aig_Man_t *     Dar_ManCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fVerbose );
+extern Aig_Man_t *     Dar_ManRwsat( Aig_Man_t * pAig, int fBalance, int fVerbose );
 
 #ifdef __cplusplus
 }

@@ -368,7 +368,7 @@ void Abc_NtkCecFraigPartAuto( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "unset progressbar" );
 
     // partition the outputs
-    vParts = Abc_NtkPartitionSmart( pMiter, 50, 0 );
+    vParts = Abc_NtkPartitionSmart( pMiter, 50, 1 );
 
     // fraig each partition
     Status = 1;

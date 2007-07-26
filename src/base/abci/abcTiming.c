@@ -819,6 +819,7 @@ void Abc_NtkUpdateLevel( Abc_Obj_t * pObjNew, Vec_Vec_t * vLevels )
         {
             if ( !Abc_ObjIsCo(pFanout) && !pFanout->fMarkA )
             {
+                assert( Abc_ObjLevel(pFanout) >= Lev );
                 Vec_VecPush( vLevels, Abc_ObjLevel(pFanout), pFanout );
                 pFanout->fMarkA = 1;
             }
@@ -840,7 +841,7 @@ void Abc_NtkUpdateLevel( Abc_Obj_t * pObjNew, Vec_Vec_t * vLevels )
 void Abc_NtkUpdateReverseLevel( Abc_Obj_t * pObjNew, Vec_Vec_t * vLevels )
 {
     Abc_Obj_t * pFanin, * pTemp;
-    int LevelOld, Lev, k, m;
+    int LevelOld, LevFanin, Lev, k, m;
     // check if level has changed
     LevelOld = Abc_ObjReverseLevel(pObjNew);
     if ( LevelOld == Abc_ObjReverseLevelNew(pObjNew) )
@@ -866,7 +867,9 @@ void Abc_NtkUpdateReverseLevel( Abc_Obj_t * pObjNew, Vec_Vec_t * vLevels )
         {
             if ( !Abc_ObjIsCi(pFanin) && !pFanin->fMarkA )
             {
-                Vec_VecPush( vLevels, Abc_ObjReverseLevel(pFanin), pFanin );
+                LevFanin = Abc_ObjReverseLevel( pFanin );
+                assert( LevFanin >= Lev );
+                Vec_VecPush( vLevels, LevFanin, pFanin );
                 pFanin->fMarkA = 1;
             }
         }
@@ -891,6 +894,7 @@ void Abc_NtkUpdate( Abc_Obj_t * pObj, Abc_Obj_t * pObjNew, Vec_Vec_t * vLevels )
     Abc_ObjReplace( pObj, pObjNew );
     // update the level of the node
     Abc_NtkUpdateLevel( pObjNew, vLevels );
+    Abc_ObjSetReverseLevel( pObjNew, 0 );
     Abc_NtkUpdateReverseLevel( pObjNew, vLevels );
 }
 

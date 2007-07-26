@@ -54,8 +54,7 @@ int Fra_NodesAreEquiv( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
     // if the backtrack limit is small, simply skip this node
     // if the backtrack limit is > 10, take the quare root of the limit
     nBTLimit = p->pPars->nBTLimitNode;
-/*
-    if ( nBTLimit > 0 && (pOld->fFailTfo || pNew->fFailTfo) )
+    if ( !p->pPars->fSpeculate && (nBTLimit > 0 && (pOld->fMarkB || pNew->fMarkB)) )
     {
         p->nSatFails++;
         // fail immediately
@@ -64,7 +63,7 @@ int Fra_NodesAreEquiv( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
             return -1;
         nBTLimit = (int)pow(nBTLimit, 0.7);
     }
-*/
+
     p->nSatCalls++;
 
     // make sure the solver is allocated and has enough variables
@@ -112,9 +111,9 @@ p->timeSatSat += clock() - clk;
     {
 p->timeSatFail += clock() - clk;
         // mark the node as the failed node
-//        if ( pOld != p->pManFraig->pConst1 ) 
-//            pOld->fFailTfo = 1;
-//        pNew->fFailTfo = 1;
+        if ( pOld != p->pManFraig->pConst1 ) 
+            pOld->fMarkB = 1;
+        pNew->fMarkB = 1;
         p->nSatFailsReal++;
         return -1;
     }
@@ -155,8 +154,8 @@ p->timeSatSat += clock() - clk;
     {
 p->timeSatFail += clock() - clk;
         // mark the node as the failed node
-//        pOld->fFailTfo = 1;
-//        pNew->fFailTfo = 1;
+        pOld->fMarkB = 1;
+        pNew->fMarkB = 1;
         p->nSatFailsReal++;
         return -1;
     }
@@ -240,7 +239,7 @@ p->timeSatSat += clock() - clk;
     {
 p->timeSatFail += clock() - clk;
         // mark the node as the failed node
-//        pNew->fFailTfo = 1;
+        pNew->fMarkB = 1;
         p->nSatFailsReal++;
         return -1;
     }

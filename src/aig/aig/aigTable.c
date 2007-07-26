@@ -99,7 +99,7 @@ clk = clock();
     }
     nEntries = Aig_ManNodeNum(p);
     assert( Counter == nEntries );
-    printf( "Increasing the structural table size from %6d to %6d. ", nTableSizeOld, p->nTableSize );
+//    printf( "Increasing the structural table size from %6d to %6d. ", nTableSizeOld, p->nTableSize );
     PRT( "Time", clock() - clk );
     // replace the table and the parameters
     free( pTableOld );

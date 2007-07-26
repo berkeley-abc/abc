@@ -788,15 +788,19 @@ static inline void Vec_IntSortUnsigned( Vec_Int_t * p )
 ***********************************************************************/
 static inline int Vec_IntTwoCountCommon( Vec_Int_t * vArr1, Vec_Int_t * vArr2 )
 {
-    int i, k, Counter = 0;
-    for ( i = k = 0; i < Vec_IntSize(vArr1) && k < Vec_IntSize(vArr2); )
+    int * pBeg1 = vArr1->pArray;
+    int * pBeg2 = vArr2->pArray;
+    int * pEnd1 = vArr1->pArray + vArr1->nSize;
+    int * pEnd2 = vArr2->pArray + vArr2->nSize;
+    int Counter = 0;
+    while ( pBeg1 < pEnd1 && pBeg2 < pEnd2 )
     {
-        if ( Vec_IntEntry(vArr1,i) == Vec_IntEntry(vArr2,k) )
-            Counter++, i++, k++;
-        else if ( Vec_IntEntry(vArr1,i) < Vec_IntEntry(vArr2,k) )
-            i++;
-        else
-            k++;
+        if ( *pBeg1 == *pBeg2 )
+            *pBeg1++, pBeg2++, Counter++;
+        else if ( *pBeg1 < *pBeg2 )
+            *pBeg1++;
+        else 
+            *pBeg2++;
     }
     return Counter;
 }
@@ -814,22 +818,29 @@ static inline int Vec_IntTwoCountCommon( Vec_Int_t * vArr1, Vec_Int_t * vArr2 )
 ***********************************************************************/
 static inline Vec_Int_t * Vec_IntTwoMerge( Vec_Int_t * vArr1, Vec_Int_t * vArr2 )
 {
-    Vec_Int_t * vArr; 
-    int i, k;
-    vArr = Vec_IntAlloc( Vec_IntSize(vArr1) );
-    for ( i = k = 0; i < Vec_IntSize(vArr1) && k < Vec_IntSize(vArr2); )
+    Vec_Int_t * vArr = Vec_IntAlloc( vArr1->nSize + vArr2->nSize ); 
+    int * pBeg  = vArr->pArray;
+    int * pBeg1 = vArr1->pArray;
+    int * pBeg2 = vArr2->pArray;
+    int * pEnd1 = vArr1->pArray + vArr1->nSize;
+    int * pEnd2 = vArr2->pArray + vArr2->nSize;
+    while ( pBeg1 < pEnd1 && pBeg2 < pEnd2 )
     {
-        if ( Vec_IntEntry(vArr1,i) == Vec_IntEntry(vArr2,k) )
-            Vec_IntPush( vArr, Vec_IntEntry(vArr1,i) ), i++, k++;
-        else if ( Vec_IntEntry(vArr1,i) < Vec_IntEntry(vArr2,k) )
-            Vec_IntPush( vArr, Vec_IntEntry(vArr1,i) ), i++;
-        else
-            Vec_IntPush( vArr, Vec_IntEntry(vArr2,k) ), k++;
+        if ( *pBeg1 == *pBeg2 )
+            *pBeg++ = *pBeg1++, pBeg2++;
+        else if ( *pBeg1 < *pBeg2 )
+            *pBeg++ = *pBeg1++;
+        else 
+            *pBeg++ = *pBeg2++;
     }
-    for ( ; i < Vec_IntSize(vArr1); i++ )
-        Vec_IntPush( vArr, Vec_IntEntry(vArr1,i) );
-    for ( ; k < Vec_IntSize(vArr2); k++ )
-        Vec_IntPush( vArr, Vec_IntEntry(vArr2,k) );
+    while ( pBeg1 < pEnd1 )
+        *pBeg++ = *pBeg1++;
+    while ( pBeg2 < pEnd2 )
+        *pBeg++ = *pBeg2++;
+    vArr->nSize = pBeg - vArr->pArray;
+    assert( vArr->nSize <= vArr->nCap );
+    assert( vArr->nSize >= vArr1->nSize );
+    assert( vArr->nSize >= vArr2->nSize );
     return vArr;
 }
 

@@ -127,42 +127,15 @@ int Cnf_IsopCountLiterals( Vec_Int_t * vIsop, int nVars )
   SeeAlso     []
 
 ***********************************************************************/
-int Cnf_SopWriteCube( char Cube, int * pVars, int fCompl, int * pLiterals )
-{
-    int nLits = 4, b;
-    for ( b = 0; b < 4; b++ )
-    {
-        if ( Cube % 3 == 0 )
-            *pLiterals++ = 2 * pVars[b] + !fCompl;
-        else if ( Cube % 3 == 1 )
-            *pLiterals++ = 2 * pVars[b] + fCompl;
-        else
-            nLits--;
-        Cube = Cube / 3;
-    }
-    return nLits;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Writes the cube and returns the number of literals in it.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Cnf_IsopWriteCube( int Cube, int nVars, int * pVars, int fCompl, int * pLiterals )
+int Cnf_IsopWriteCube( int Cube, int nVars, int * pVars, int * pLiterals )
 {
     int nLits = nVars, b;
     for ( b = 0; b < nVars; b++ )
     {
-        if ( (Cube & 3) == 1 )
-            *pLiterals++ = 2 * pVars[b] + !fCompl;
-        else if ( (Cube & 3) == 2 )
-            *pLiterals++ = 2 * pVars[b] + fCompl;
+        if ( (Cube & 3) == 1 ) // value 0 --> write positive literal
+            *pLiterals++ = 2 * pVars[b];
+        else if ( (Cube & 3) == 2 ) // value 1 --> write negative literal
+            *pLiterals++ = 2 * pVars[b] + 1;
         else
             nLits--;
         Cube >>= 2;
@@ -186,9 +159,10 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped )
     Aig_Obj_t * pObj;
     Cnf_Dat_t * pCnf;
     Cnf_Cut_t * pCut;
+    Vec_Int_t * vCover, * vSopTemp;
     int OutVar, pVars[32], * pLits, ** pClas;
     unsigned uTruth;
-    int i, k, nLiterals, nClauses, nCubes, Cube, Number;
+    int i, k, nLiterals, nClauses, Cube, Number;
 
     // count the number of literals and clauses
     nLiterals = 1 + Aig_ManPoNum( p->pManAig );
@@ -249,6 +223,7 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped )
     pCnf->nVars = Number;
 
     // assign the clauses
+    vSopTemp = Vec_IntAlloc( 1 << 16 );
     pLits = pCnf->pClauses[0];
     pClas = pCnf->pClauses;
     Vec_PtrForEachEntry( vMapped, pObj, i )
@@ -267,48 +242,36 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped )
         if ( pCut->nFanins < 5 )
         {
             uTruth = 0xFFFF & *Cnf_CutTruth(pCut);
-            nCubes = p->pSopSizes[uTruth];
-            for ( k = 0; k < nCubes; k++ )
-            {
-                *pClas++ = pLits;
-                *pLits++ = 2 * OutVar + 1; 
-                pLits += Cnf_SopWriteCube( p->pSops[uTruth][k], pVars, 0, pLits );
-            }
+            Cnf_SopConvertToVector( p->pSops[uTruth], p->pSopSizes[uTruth], vSopTemp );
+            vCover = vSopTemp;
         }
         else
+            vCover = pCut->vIsop[1];
+        Vec_IntForEachEntry( vCover, Cube, k )
         {
-            Vec_IntForEachEntry( pCut->vIsop[1], Cube, k )
-            {
-                *pClas++ = pLits;
-                *pLits++ = 2 * OutVar + 1; 
-                pLits += Cnf_IsopWriteCube( Cube, pCut->nFanins, pVars, 0, pLits );
-            }
+            *pClas++ = pLits;
+            *pLits++ = 2 * OutVar; 
+            pLits += Cnf_IsopWriteCube( Cube, pCut->nFanins, pVars, pLits );
         }
 
         // negative polarity of the cut
         if ( pCut->nFanins < 5 )
         {
             uTruth = 0xFFFF & ~*Cnf_CutTruth(pCut);
-            nCubes = p->pSopSizes[uTruth];
-            for ( k = 0; k < nCubes; k++ )
-            {
-                *pClas++ = pLits;
-                *pLits++ = 2 * OutVar; 
-                pLits += Cnf_SopWriteCube( p->pSops[uTruth][k], pVars, 1, pLits );
-            }
+            Cnf_SopConvertToVector( p->pSops[uTruth], p->pSopSizes[uTruth], vSopTemp );
+            vCover = vSopTemp;
         }
         else
+            vCover = pCut->vIsop[0];
+        Vec_IntForEachEntry( vCover, Cube, k )
         {
-            Vec_IntForEachEntry( pCut->vIsop[0], Cube, k )
-            {
-                *pClas++ = pLits;
-                *pLits++ = 2 * OutVar; 
-                pLits += Cnf_IsopWriteCube( Cube, pCut->nFanins, pVars, 1, pLits );
-            }
+            *pClas++ = pLits;
+            *pLits++ = 2 * OutVar + 1; 
+            pLits += Cnf_IsopWriteCube( Cube, pCut->nFanins, pVars, pLits );
         }
-//printf( "%d ", pClas-pCnf->pClauses );
     }
-
+    Vec_IntFree( vSopTemp );
+ 
     // write the constant literal
     OutVar = pCnf->pVarNums[ Aig_ManConst1(p->pManAig)->Id ];
     assert( OutVar <= Aig_ManObjIdMax(p->pManAig) );

@@ -2558,10 +2558,6 @@ SOURCE=.\src\aig\fra\fra.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\fra\fraAnd.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\aig\fra\fraClass.c
 # End Source File
 # Begin Source File
@@ -2571,6 +2567,10 @@ SOURCE=.\src\aig\fra\fraCnf.c
 # Begin Source File
 
 SOURCE=.\src\aig\fra\fraCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\fra\fraDfs.c
 # End Source File
 # Begin Source File
 
@@ -2755,6 +2755,18 @@ SOURCE=.\src\aig\aig\aigObj.c
 # Begin Source File
 
 SOURCE=.\src\aig\aig\aigOper.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\aig\aigOrder.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\aig\aigPart.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\aig\aigRepr.c
 # End Source File
 # Begin Source File
 

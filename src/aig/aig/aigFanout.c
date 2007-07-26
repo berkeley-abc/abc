@@ -39,6 +39,56 @@ static inline int * Aig_FanoutNext( int * pData, int iFan )   { return pData + 5
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+/**Function*************************************************************
+
+  Synopsis    [Create fanout for all objects in the manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManFanoutStart( Aig_Man_t * p )
+{
+    Aig_Obj_t * pObj;
+    int i;
+    assert( Aig_ManBufNum(p) == 0 );
+    // allocate fanout datastructure
+    assert( p->pFanData == NULL );
+    p->nFansAlloc = 2 * Aig_ManObjIdMax(p);
+    if ( p->nFansAlloc < (1<<12) )
+        p->nFansAlloc = (1<<12);
+    p->pFanData = ALLOC( int, 5 * p->nFansAlloc );
+    memset( p->pFanData, 0, sizeof(int) * 5 * p->nFansAlloc );
+    // add fanouts for all objects
+    Aig_ManForEachObj( p, pObj, i )
+    {
+        if ( Aig_ObjChild0(pObj) )
+            Aig_ObjAddFanout( p, Aig_ObjFanin0(pObj), pObj );
+        if ( Aig_ObjChild1(pObj) )
+            Aig_ObjAddFanout( p, Aig_ObjFanin1(pObj), pObj );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Deletes fanout for all objects in the manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManFanoutStop( Aig_Man_t * p )
+{
+    assert( p->pFanData != NULL );
+    FREE( p->pFanData );
+    p->nFansAlloc = 0;
+}
 
 /**Function*************************************************************
 
@@ -130,56 +180,6 @@ void Aig_ObjRemoveFanout( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFanout )
     *pNext  = *pNextC;
     *pPrevC = 0;
     *pNextC = 0;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Create fanout for all objects in the manager.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Aig_ManCreateFanout( Aig_Man_t * p )
-{
-    Aig_Obj_t * pObj;
-    int i;
-    // allocate fanout datastructure
-    assert( p->pFanData == NULL );
-    p->nFansAlloc = 2 * Aig_ManObjIdMax(p);
-    if ( p->nFansAlloc < (1<<12) )
-        p->nFansAlloc = (1<<12);
-    p->pFanData = ALLOC( int, 5 * p->nFansAlloc );
-    memset( p->pFanData, 0, sizeof(int) * 5 * p->nFansAlloc );
-    // add fanouts for all objects
-    Aig_ManForEachObj( p, pObj, i )
-    {
-        if ( Aig_ObjChild0(pObj) )
-            Aig_ObjAddFanout( p, Aig_ObjFanin0(pObj), pObj );
-        if ( Aig_ObjChild1(pObj) )
-            Aig_ObjAddFanout( p, Aig_ObjFanin1(pObj), pObj );
-    }
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Deletes fanout for all objects in the manager.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Aig_ManDeleteFanout( Aig_Man_t * p )
-{
-    assert( p->pFanData != NULL );
-    FREE( p->pFanData );
-    p->nFansAlloc = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -123,6 +123,69 @@ Abc_Ntk_t * Abc_NtkFromDar( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
   SeeAlso     []
 
 ***********************************************************************/
+Abc_Ntk_t * Abc_NtkFromDarChoices( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
+{
+    Vec_Ptr_t * vNodes;
+    Abc_Ntk_t * pNtkNew;
+    Aig_Obj_t * pObj, * pTemp;
+    int i;
+    assert( pMan->pReprs != NULL );
+    assert( Aig_ManBufNum(pMan) == 0 );
+    // perform strashing
+    pNtkNew = Abc_NtkStartFrom( pNtkOld, ABC_NTK_STRASH, ABC_FUNC_AIG );
+    // transfer the pointers to the basic nodes
+    Aig_ManConst1(pMan)->pData = Abc_AigConst1(pNtkNew);
+    Aig_ManForEachPi( pMan, pObj, i )
+        pObj->pData = Abc_NtkCi(pNtkNew, i);
+    // rebuild the AIG
+    vNodes = Aig_ManDfsChoices( pMan );
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+    {
+        pObj->pData = Abc_AigAnd( pNtkNew->pManFunc, (Abc_Obj_t *)Aig_ObjChild0Copy(pObj), (Abc_Obj_t *)Aig_ObjChild1Copy(pObj) );
+        if ( pTemp = pMan->pReprs[pObj->Id] )
+        {
+            Abc_Obj_t * pAbcRepr, * pAbcObj;
+            assert( pTemp->pData != NULL );
+            pAbcRepr = pObj->pData;
+            pAbcObj  = pTemp->pData;
+            pAbcObj->pData  = pAbcRepr->pData;
+            pAbcRepr->pData = pAbcObj;
+        }
+    }
+printf( "Total = %d.  Collected = %d.\n", Aig_ManNodeNum(pMan), Vec_PtrSize(vNodes) );
+    Vec_PtrFree( vNodes );
+/*
+    {
+        Abc_Obj_t * pNode;
+        int k, Counter = 0;
+        Abc_NtkForEachNode( pNtkNew, pNode, k )
+            if ( pNode->pData != 0 )
+            {
+                int x = 0;
+                Counter++;
+            }
+        printf( "Choices = %d.\n", Counter );
+    }
+*/
+    // connect the PO nodes
+    Aig_ManForEachPo( pMan, pObj, i )
+        Abc_ObjAddFanin( Abc_NtkCo(pNtkNew, i), (Abc_Obj_t *)Aig_ObjChild0Copy(pObj) );
+    if ( !Abc_NtkCheck( pNtkNew ) )
+        fprintf( stdout, "Abc_NtkFromDar(): Network check has failed.\n" );
+    return pNtkNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converts the network from the AIG manager into ABC.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Abc_Ntk_t * Abc_NtkFromDarSeq( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
 {
     Vec_Ptr_t * vNodes;
@@ -291,7 +354,7 @@ Abc_Ntk_t * Abc_NtkDar( Abc_Ntk_t * pNtk )
 */
 
 //    Aig_ManDumpBlif( pMan, "aig_temp.blif" );
-//    pMan->pPars = Dar_ManDefaultRwrParams();
+//    pMan->pPars = Dar_ManDefaultRwrPars();
     Dar_ManRewrite( pMan, NULL );
     Aig_ManPrintStats( pMan );
 //    Dar_ManComputeCuts( pMan );
@@ -324,6 +387,215 @@ Aig_CnfFree( pCnf );
     return pNtkAig;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkDarFraig( Abc_Ntk_t * pNtk, int nConfLimit, int fDoSparse, int fProve, int fTransfer, int fSpeculate, int fChoicing, int fVerbose )
+{
+    Fra_Par_t Pars, * pPars = &Pars; 
+    Abc_Ntk_t * pNtkAig;
+    Aig_Man_t * pMan, * pTemp;
+    pMan = Abc_NtkToDar( pNtk );
+    if ( pMan == NULL )
+        return NULL;
+    Fra_ParamsDefault( pPars );
+    pPars->nBTLimitNode = nConfLimit;
+    pPars->fVerbose     = fVerbose;
+    pPars->fProve       = fProve;
+    pPars->fDoSparse    = fDoSparse;
+    pPars->fSpeculate   = fSpeculate;
+    pPars->fChoicing    = fChoicing;
+    pMan = Fra_Perform( pTemp = pMan, pPars );
+    if ( fChoicing )
+        pNtkAig = Abc_NtkFromDarChoices( pNtk, pMan );
+    else
+        pNtkAig = Abc_NtkFromDar( pNtk, pMan );
+    Aig_ManStop( pTemp );
+    Aig_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkCSweep( Abc_Ntk_t * pNtk, int nCutsMax, int nLeafMax, int fVerbose )
+{
+    extern Aig_Man_t * Csw_Sweep( Aig_Man_t * pAig, int nCutsMax, int nLeafMax, int fVerbose );
+    Abc_Ntk_t * pNtkAig;
+    Aig_Man_t * pMan, * pTemp;
+    pMan = Abc_NtkToDar( pNtk );
+    if ( pMan == NULL )
+        return NULL;
+    pMan = Csw_Sweep( pTemp = pMan, nCutsMax, nLeafMax, fVerbose );
+    pNtkAig = Abc_NtkFromDar( pNtk, pMan );
+    Aig_ManStop( pTemp );
+    Aig_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkDRewrite( Abc_Ntk_t * pNtk, Dar_RwrPar_t * pPars )
+{
+    Aig_Man_t * pMan, * pTemp;
+    Abc_Ntk_t * pNtkAig;
+    int clk;
+    assert( Abc_NtkIsStrash(pNtk) );
+    pMan = Abc_NtkToDar( pNtk );
+    if ( pMan == NULL )
+        return NULL;
+//    Aig_ManPrintStats( pMan );
+
+//    Aig_ManSupports( pMan );
+    {
+        Vec_Vec_t * vParts;
+        vParts = Aig_ManPartitionSmart( pMan, 50, 1, NULL );
+        Vec_VecFree( vParts );
+    }
+
+    Dar_ManRewrite( pMan, pPars );
+//    pMan = Dar_ManBalance( pTemp = pMan, pPars->fUpdateLevel );
+//    Aig_ManStop( pTemp );
+
+clk = clock();
+    pMan = Aig_ManDup( pTemp = pMan, 0 ); 
+    Aig_ManStop( pTemp );
+//PRT( "time", clock() - clk );
+
+//    Aig_ManPrintStats( pMan );
+    pNtkAig = Abc_NtkFromDar( pNtk, pMan );
+    Aig_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkDRefactor( Abc_Ntk_t * pNtk, Dar_RefPar_t * pPars )
+{
+    Aig_Man_t * pMan, * pTemp;
+    Abc_Ntk_t * pNtkAig;
+    int clk;
+    assert( Abc_NtkIsStrash(pNtk) );
+    pMan = Abc_NtkToDar( pNtk );
+    if ( pMan == NULL )
+        return NULL;
+//    Aig_ManPrintStats( pMan );
+
+    Dar_ManRefactor( pMan, pPars );
+//    pMan = Dar_ManBalance( pTemp = pMan, pPars->fUpdateLevel );
+//    Aig_ManStop( pTemp );
+
+clk = clock();
+    pMan = Aig_ManDup( pTemp = pMan, 0 ); 
+    Aig_ManStop( pTemp );
+//PRT( "time", clock() - clk );
+
+//    Aig_ManPrintStats( pMan );
+    pNtkAig = Abc_NtkFromDar( pNtk, pMan );
+    Aig_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkDCompress2( Abc_Ntk_t * pNtk, int fBalance, int fUpdateLevel, int fVerbose )
+{
+    Aig_Man_t * pMan;//, * pTemp;
+    Abc_Ntk_t * pNtkAig;
+    int clk;
+    assert( Abc_NtkIsStrash(pNtk) );
+    pMan = Abc_NtkToDar( pNtk );
+    if ( pMan == NULL )
+        return NULL;
+//    Aig_ManPrintStats( pMan );
+
+clk = clock();
+    pMan = Dar_ManCompress2( pMan, fBalance, fUpdateLevel, fVerbose ); 
+//    Aig_ManStop( pTemp );
+//PRT( "time", clock() - clk );
+
+//    Aig_ManPrintStats( pMan );
+    pNtkAig = Abc_NtkFromDar( pNtk, pMan );
+    Aig_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkDrwsat( Abc_Ntk_t * pNtk, int fBalance, int fVerbose )
+{
+    Aig_Man_t * pMan;//, * pTemp;
+    Abc_Ntk_t * pNtkAig;
+    int clk;
+    assert( Abc_NtkIsStrash(pNtk) );
+    pMan = Abc_NtkToDar( pNtk );
+    if ( pMan == NULL )
+        return NULL;
+//    Aig_ManPrintStats( pMan );
+
+clk = clock();
+    pMan = Dar_ManRwsat( pMan, fBalance, fVerbose ); 
+//    Aig_ManStop( pTemp );
+//PRT( "time", clock() - clk );
+
+//    Aig_ManPrintStats( pMan );
+    pNtkAig = Abc_NtkFromDar( pNtk, pMan );
+    Aig_ManStop( pMan );
+    return pNtkAig;
+}
 
 /**Function*************************************************************
 
@@ -410,11 +682,13 @@ Abc_Ntk_t * Abc_NtkConstructFromCnf( Abc_Ntk_t * pNtk, Cnf_Man_t * p, Vec_Ptr_t 
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName )
 {
-    Abc_Ntk_t * pNtkNew = NULL;
-    Cnf_Man_t * pCnf;
+    Vec_Ptr_t * vMapped;
     Aig_Man_t * pMan;
-    Cnf_Dat_t * pData;
+    Cnf_Man_t * pManCnf;
+    Cnf_Dat_t * pCnf;
+    Abc_Ntk_t * pNtkNew = NULL;
     assert( Abc_NtkIsStrash(pNtk) );
+
     // convert to the AIG manager
     pMan = Abc_NtkToDar( pNtk );
     if ( pMan == NULL )
@@ -429,30 +703,27 @@ Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName )
     Aig_ManPrintStats( pMan );
 
     // derive CNF
-    pCnf = Cnf_ManStart();
-    pData = Cnf_Derive( pCnf, pMan );
+    pCnf = Cnf_Derive( pMan );
+    pManCnf = Cnf_ManRead();
 
-    {
-        Vec_Ptr_t * vMapped;
-        vMapped = Cnf_ManScanMapping( pCnf, 1 );
-        pNtkNew = Abc_NtkConstructFromCnf( pNtk, pCnf, vMapped );
-        Vec_PtrFree( vMapped );
-    }
-
-    Aig_ManStop( pMan );
-    Cnf_ManStop( pCnf );
+    // write the network for verification
+    vMapped = Cnf_ManScanMapping( pManCnf, 1, 0 );
+    pNtkNew = Abc_NtkConstructFromCnf( pNtk, pManCnf, vMapped );
+    Vec_PtrFree( vMapped );
 
     // write CNF into a file
-//    Cnf_DataWriteIntoFile( pData, pFileName );
-    Cnf_DataFree( pData );
+    Cnf_DataWriteIntoFile( pCnf, pFileName );
+    Cnf_DataFree( pCnf );
+    Cnf_ClearMemory();
 
+    Aig_ManStop( pMan );
     return pNtkNew;
 }
 
 
 /**Function*************************************************************
 
-  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+  Synopsis    [Solves combinational miter using a SAT solver.]
 
   Description []
                
@@ -461,158 +732,90 @@ Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkDarFraig( Abc_Ntk_t * pNtk, int nConfLimit, int fDoSparse, int fProve, int fTransfer, int fSpeculate, int fVerbose )
+int Abc_NtkDSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fVerbose )
 {
-    Fra_Par_t Params, * pParams = &Params; 
-    Abc_Ntk_t * pNtkAig;
-    Aig_Man_t * pMan, * pTemp;
-    pMan = Abc_NtkToDar( pNtk );
-    if ( pMan == NULL )
-        return NULL;
-    Fra_ParamsDefault( pParams );
-    pParams->nBTLimitNode = nConfLimit;
-    pParams->fVerbose     = fVerbose;
-    pParams->fProve       = fProve;
-    pParams->fDoSparse    = fDoSparse;
-    pParams->fSpeculate   = fSpeculate;
-    pMan = Fra_Perform( pTemp = pMan, pParams );
-    pNtkAig = Abc_NtkFromDar( pNtk, pMan );
-    Aig_ManStop( pTemp );
-    Aig_ManStop( pMan );
-    return pNtkAig;
-}
+    sat_solver * pSat;
+    Aig_Man_t * pMan;
+    Cnf_Dat_t * pCnf;
+    int status, RetValue, clk = clock();
+    Vec_Int_t * vCiIds;
 
-/**Function*************************************************************
-
-  Synopsis    [Gives the current ABC network to AIG manager for processing.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Ntk_t * Abc_NtkCSweep( Abc_Ntk_t * pNtk, int nCutsMax, int nLeafMax, int fVerbose )
-{
-    extern Aig_Man_t * Csw_Sweep( Aig_Man_t * pAig, int nCutsMax, int nLeafMax, int fVerbose );
-    Abc_Ntk_t * pNtkAig;
-    Aig_Man_t * pMan, * pTemp;
-    pMan = Abc_NtkToDar( pNtk );
-    if ( pMan == NULL )
-        return NULL;
-    pMan = Csw_Sweep( pTemp = pMan, nCutsMax, nLeafMax, fVerbose );
-    pNtkAig = Abc_NtkFromDar( pNtk, pMan );
-    Aig_ManStop( pTemp );
-    Aig_ManStop( pMan );
-    return pNtkAig;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Gives the current ABC network to AIG manager for processing.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Ntk_t * Abc_NtkDRewrite( Abc_Ntk_t * pNtk, Dar_RwrPar_t * pPars )
-{
-    Aig_Man_t * pMan, * pTemp;
-    Abc_Ntk_t * pNtkAig;
-    int clk;
     assert( Abc_NtkIsStrash(pNtk) );
+    assert( Abc_NtkLatchNum(pNtk) == 0 );
+    assert( Abc_NtkPoNum(pNtk) == 1 );
+
+    // conver to the manager
     pMan = Abc_NtkToDar( pNtk );
-    if ( pMan == NULL )
-        return NULL;
-//    Aig_ManPrintStats( pMan );
-
-    Dar_ManRewrite( pMan, pPars );
-//    pMan = Dar_ManBalance( pTemp = pMan, pPars->fUpdateLevel );
-//    Aig_ManStop( pTemp );
-
-clk = clock();
-    pMan = Aig_ManDup( pTemp = pMan, 0 ); 
-    Aig_ManStop( pTemp );
-//PRT( "time", clock() - clk );
-
-//    Aig_ManPrintStats( pMan );
-    pNtkAig = Abc_NtkFromDar( pNtk, pMan );
+    // derive CNF
+    pCnf = Cnf_Derive( pMan );
+    // convert into the SAT solver
+    pSat = Cnf_DataWriteIntoSolver( pCnf );
+    vCiIds = Cnf_DataCollectPiSatNums( pCnf, pMan );
     Aig_ManStop( pMan );
-    return pNtkAig;
-}
+    Cnf_DataFree( pCnf );
+    // solve SAT
+    if ( pSat == NULL )
+    {
+        Vec_IntFree( vCiIds );
+//        printf( "Trivially unsat\n" );
+        return 1;
+    }
 
-/**Function*************************************************************
 
-  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+//    printf( "Created SAT problem with %d variable and %d clauses. ", sat_solver_nvars(pSat), sat_solver_nclauses(pSat) );
+    PRT( "Time", clock() - clk );
 
-  Description []
-               
-  SideEffects []
+    // simplify the problem
+    clk = clock();
+    status = sat_solver_simplify(pSat);
+//    printf( "Simplified the problem to %d variables and %d clauses. ", sat_solver_nvars(pSat), sat_solver_nclauses(pSat) );
+//    PRT( "Time", clock() - clk );
+    if ( status == 0 )
+    {
+        Vec_IntFree( vCiIds );
+        sat_solver_delete( pSat );
+//        printf( "The problem is UNSATISFIABLE after simplification.\n" );
+        return 1;
+    }
 
-  SeeAlso     []
+    // solve the miter
+    clk = clock();
+    if ( fVerbose )
+        pSat->verbosity = 1;
+    status = sat_solver_solve( pSat, NULL, NULL, (sint64)nConfLimit, (sint64)nInsLimit, (sint64)0, (sint64)0 );
+    if ( status == l_Undef )
+    {
+//        printf( "The problem timed out.\n" );
+        RetValue = -1;
+    }
+    else if ( status == l_True )
+    {
+//        printf( "The problem is SATISFIABLE.\n" );
+        RetValue = 0;
+    }
+    else if ( status == l_False )
+    {
+//        printf( "The problem is UNSATISFIABLE.\n" );
+        RetValue = 1;
+    }
+    else
+        assert( 0 );
+//    PRT( "SAT sat_solver time", clock() - clk );
+//    printf( "The number of conflicts = %d.\n", (int)pSat->sat_solver_stats.conflicts );
 
-***********************************************************************/
-Abc_Ntk_t * Abc_NtkDRefactor( Abc_Ntk_t * pNtk, Dar_RefPar_t * pPars )
-{
-    Aig_Man_t * pMan, * pTemp;
-    Abc_Ntk_t * pNtkAig;
-    int clk;
-    assert( Abc_NtkIsStrash(pNtk) );
-    pMan = Abc_NtkToDar( pNtk );
-    if ( pMan == NULL )
-        return NULL;
-//    Aig_ManPrintStats( pMan );
-
-    Dar_ManRefactor( pMan, pPars );
-//    pMan = Dar_ManBalance( pTemp = pMan, pPars->fUpdateLevel );
-//    Aig_ManStop( pTemp );
-
-clk = clock();
-    pMan = Aig_ManDup( pTemp = pMan, 0 ); 
-    Aig_ManStop( pTemp );
-//PRT( "time", clock() - clk );
-
-//    Aig_ManPrintStats( pMan );
-    pNtkAig = Abc_NtkFromDar( pNtk, pMan );
-    Aig_ManStop( pMan );
-    return pNtkAig;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Gives the current ABC network to AIG manager for processing.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Ntk_t * Abc_NtkDCompress2( Abc_Ntk_t * pNtk, int fVerbose )
-{
-    Aig_Man_t * pMan;//, * pTemp;
-    Abc_Ntk_t * pNtkAig;
-    int clk;
-    assert( Abc_NtkIsStrash(pNtk) );
-    pMan = Abc_NtkToDar( pNtk );
-    if ( pMan == NULL )
-        return NULL;
-//    Aig_ManPrintStats( pMan );
-
-clk = clock();
-    pMan = Dar_ManCompress2( pMan, fVerbose ); 
-//    Aig_ManStop( pTemp );
-//PRT( "time", clock() - clk );
-
-//    Aig_ManPrintStats( pMan );
-    pNtkAig = Abc_NtkFromDar( pNtk, pMan );
-    Aig_ManStop( pMan );
-    return pNtkAig;
+    // if the problem is SAT, get the counterexample
+    if ( status == l_True )
+    {
+        pNtk->pModel = Sat_SolverGetModel( pSat, vCiIds->pArray, vCiIds->nSize );
+    }
+    // free the sat_solver
+    if ( fVerbose )
+        Sat_SolverPrintStats( stdout, pSat );
+//sat_solver_store_write( pSat, "trace.cnf" );
+//sat_solver_store_free( pSat );
+    sat_solver_delete( pSat );
+    Vec_IntFree( vCiIds );
+    return RetValue;
 }
 
 ////////////////////////////////////////////////////////////////////////

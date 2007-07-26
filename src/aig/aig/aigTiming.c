@@ -68,6 +68,22 @@ static inline void Aig_ObjSetReverseLevel( Aig_Man_t * p, Aig_Obj_t * pObj, int 
 
 /**Function*************************************************************
 
+  Synopsis    [Resets reverse level of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ObjClearReverseLevel( Aig_Man_t * p, Aig_Obj_t * pObj )
+{
+    Aig_ObjSetReverseLevel( p, pObj, 0 );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns required level of the node.]
 
   Description [Converts the reverse levels of the node into its required 
@@ -178,6 +194,7 @@ void Aig_ManUpdateLevel( Aig_Man_t * p, Aig_Obj_t * pObjNew )
     Aig_Obj_t * pFanout, * pTemp;
     int iFanout, LevelOld, Lev, k, m;
     assert( p->pFanData != NULL );
+    assert( Aig_ObjIsNode(pObjNew) );
     // allocate level if needed
     if ( p->vLevels == NULL )
         p->vLevels = Vec_VecAlloc( Aig_ManLevels(p) + 8 );
@@ -203,8 +220,9 @@ void Aig_ManUpdateLevel( Aig_Man_t * p, Aig_Obj_t * pObjNew )
         // schedule fanout for level update
         Aig_ObjForEachFanout( p, pTemp, pFanout, iFanout, m )
         {
-            if ( !Aig_ObjIsPo(pFanout) && !pFanout->fMarkA )
+            if ( Aig_ObjIsNode(pFanout) && !pFanout->fMarkA )
             {
+                assert( Aig_ObjLevel(pFanout) >= Lev );
                 Vec_VecPush( p->vLevels, Aig_ObjLevel(pFanout), pFanout );
                 pFanout->fMarkA = 1;
             }
@@ -226,8 +244,9 @@ void Aig_ManUpdateLevel( Aig_Man_t * p, Aig_Obj_t * pObjNew )
 void Aig_ManUpdateReverseLevel( Aig_Man_t * p, Aig_Obj_t * pObjNew )
 {
     Aig_Obj_t * pFanin, * pTemp;
-    int LevelOld, Lev, k;
+    int LevelOld, LevFanin, Lev, k;
     assert( p->vLevelR != NULL );
+    assert( Aig_ObjIsNode(pObjNew) );
     // allocate level if needed
     if ( p->vLevels == NULL )
         p->vLevels = Vec_VecAlloc( Aig_ManLevels(p) + 8 );
@@ -253,20 +272,77 @@ void Aig_ManUpdateReverseLevel( Aig_Man_t * p, Aig_Obj_t * pObjNew )
             continue;
         // schedule fanins for level update
         pFanin = Aig_ObjFanin0(pTemp);
-        if ( pFanin && !Aig_ObjIsPi(pFanin) && !pFanin->fMarkA )
+        if ( Aig_ObjIsNode(pFanin) && !pFanin->fMarkA )
         {
-            Vec_VecPush( p->vLevels, Aig_ObjReverseLevel(p, pFanin), pFanin );
+            LevFanin = Aig_ObjReverseLevel( p, pFanin );
+            assert( LevFanin >= Lev );
+            Vec_VecPush( p->vLevels, LevFanin, pFanin );
             pFanin->fMarkA = 1;
         }
         pFanin = Aig_ObjFanin1(pTemp);
-        if ( pFanin && !Aig_ObjIsPi(pFanin) && !pFanin->fMarkA )
+        if ( Aig_ObjIsNode(pFanin) && !pFanin->fMarkA )
         {
-            Vec_VecPush( p->vLevels, Aig_ObjReverseLevel(p, pFanin), pFanin );
+            LevFanin = Aig_ObjReverseLevel( p, pFanin );
+            assert( LevFanin >= Lev );
+            Vec_VecPush( p->vLevels, LevFanin, pFanin );
             pFanin->fMarkA = 1;
         }
     }
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Verifies direct level of the nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManVerifyLevel( Aig_Man_t * p )
+{
+    Aig_Obj_t * pObj;
+    int i, Counter = 0;
+    assert( p->pFanData );
+    Aig_ManForEachNode( p, pObj, i )
+        if ( Aig_ObjLevel(pObj) != Aig_ObjLevelNew(pObj) )
+        {
+            printf( "Level of node %6d should be %4d instead of %4d.\n", 
+                pObj->Id, Aig_ObjLevelNew(pObj), Aig_ObjLevel(pObj) );
+            Counter++;
+        }
+    if ( Counter )
+    printf( "Levels of %d nodes are incorrect.\n", Counter );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Verifies reverse level of the nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManVerifyReverseLevel( Aig_Man_t * p )
+{
+    Aig_Obj_t * pObj;
+    int i, Counter = 0;
+    assert( p->vLevelR );
+    Aig_ManForEachNode( p, pObj, i )
+        if ( Aig_ObjLevel(pObj) != Aig_ObjLevelNew(pObj) )
+        {
+            printf( "Reverse level of node %6d should be %4d instead of %4d.\n", 
+                pObj->Id, Aig_ObjReverseLevelNew(p, pObj), Aig_ObjReverseLevel(p, pObj) );
+            Counter++;
+        }
+    if ( Counter )
+    printf( "Reverse levels of %d nodes are incorrect.\n", Counter );
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

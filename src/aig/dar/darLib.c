@@ -798,9 +798,13 @@ void Dar_LibEvalAssignNums( Dar_Man_t * p, int Class )
         pFanin0 = Aig_NotCond( pData0->pFunc, pObj->fCompl0 );
         pFanin1 = Aig_NotCond( pData1->pFunc, pObj->fCompl1 );
         pData->pFunc = Aig_TableLookupTwo( p->pAig, pFanin0, pFanin1 );
-        // clear the node if it is part of MFFC
-        if ( pData->pFunc != NULL && Aig_ObjIsTravIdCurrent(p->pAig, pData->pFunc) )
-            pData->fMffc = 1;
+        if ( pData->pFunc )
+        {
+            // update the level to be more accurate
+            pData->Level = Aig_Regular(pData->pFunc)->Level;
+            // mark the node if it is part of MFFC
+            pData->fMffc = Aig_ObjIsTravIdCurrent(p->pAig, pData->pFunc);
+        }
     }
 }
 
@@ -823,10 +827,10 @@ int Dar_LibEval_rec( Dar_LibObj_t * pObj, int Out, int nNodesSaved, int Required
         return 0;
     assert( pObj->Num > 3 );
     pData = s_DarLib->pDatas + pObj->Num;
-    if ( pData->pFunc && !pData->fMffc )
-        return 0;
     if ( pData->Level > Required )
         return 0xff;
+    if ( pData->pFunc && !pData->fMffc )
+        return 0;
     if ( pData->TravId == Out )
         return 0;
     pData->TravId = Out;
@@ -894,6 +898,7 @@ void Dar_LibEval( Dar_Man_t * p, Aig_Obj_t * pRoot, Dar_Cut_t * pCut, int Requir
         p->LevelBest  = s_DarLib->pDatas[pObj->Num].Level;
         p->GainBest   = nNodesGained;
         p->ClassBest  = Class;
+        assert( p->LevelBest <= Required );
     }
 clk = clock() - clk;
 p->ClassTimes[Class] += clk;
@@ -943,6 +948,7 @@ Aig_Obj_t * Dar_LibBuildBest_rec( Dar_Man_t * p, Dar_LibObj_t * pObj )
     pFanin0 = Aig_NotCond( pFanin0, pObj->fCompl0 );
     pFanin1 = Aig_NotCond( pFanin1, pObj->fCompl1 );
     pData->pFunc = Aig_And( p->pAig, pFanin0, pFanin1 );
+//    assert( pData->Level == (int)Aig_Regular(pData->pFunc)->Level );
     return pData->pFunc;
 }
 

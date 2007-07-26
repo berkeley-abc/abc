@@ -87,15 +87,14 @@ Cnf_Cut_t * Cnf_CutCreate( Cnf_Man_t * p, Aig_Obj_t * pObj )
     Cnf_Cut_t * pCut;
     unsigned * pTruth;
     assert( Aig_ObjIsNode(pObj) );
-//    pCutBest = Aig_ObjBestCut( pObj );
-        pCutBest = NULL;
+    pCutBest = Dar_ObjBestCut( pObj );
     assert( pCutBest != NULL );
     assert( pCutBest->nLeaves <= 4 );
     pCut = Cnf_CutAlloc( p, pCutBest->nLeaves );
     memcpy( pCut->pFanins, pCutBest->pLeaves, sizeof(int) * pCutBest->nLeaves );
     pTruth = Cnf_CutTruth(pCut);
     *pTruth = (pCutBest->uTruth << 16) | pCutBest->uTruth;
-    pCut->Cost = p->pSopSizes[0xFFFF & *pTruth] + p->pSopSizes[0xFFFF & ~*pTruth];
+    pCut->Cost = Cnf_CutSopCost( p, pCutBest );
     return pCut;
 }
 

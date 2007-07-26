@@ -55,7 +55,8 @@ struct Dar_Cut_t_  // 6 words
 {
     unsigned         uSign;          // cut signature
     unsigned         uTruth  : 16;   // the truth table of the cut function
-    unsigned         Value   : 12;   // the value of the cut 
+    unsigned         Value   : 11;   // the value of the cut 
+    unsigned         fBest   :  1;   // marks the best cut
     unsigned         fUsed   :  1;   // marks the cut currently in use
     unsigned         nLeaves :  3;   // the number of leaves
     int              pLeaves[4];     // the array of leaves
@@ -85,6 +86,7 @@ struct Dar_Man_t_
     int              nCutMemUsed;    // memory used for cuts
     // rewriting statistics
     int              nNodesInit;     // the original number of nodes
+    int              nNodesTried;    // the number of nodes attempted
     int              nCutsAll;       // all cut pairs
     int              nCutsTried;     // computed cuts
     int              nCutsUsed;      // used cuts

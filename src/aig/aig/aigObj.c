@@ -139,6 +139,9 @@ void Aig_ObjConnect( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFan0, Aig_Obj
     // add the node to the structural hash table
     if ( Aig_ObjIsHash(pObj) )
         Aig_TableInsert( p, pObj );
+    // add the node to the dynamically updated topological order
+    if ( p->pOrderData && Aig_ObjIsNode(pObj) )
+        Aig_ObjOrderInsert( p, pObj->Id );
 }
 
 /**Function*************************************************************
@@ -174,6 +177,9 @@ void Aig_ObjDisconnect( Aig_Man_t * p, Aig_Obj_t * pObj )
     // add the first fanin
     pObj->pFanin0 = NULL;
     pObj->pFanin1 = NULL;
+    // remove the node from the dynamically updated topological order
+    if ( p->pOrderData && Aig_ObjIsNode(pObj) )
+        Aig_ObjOrderRemove( p, pObj->Id );
 }
 
 /**Function*************************************************************
@@ -243,6 +249,7 @@ void Aig_ObjPatchFanin0( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFaninNew 
 {
     Aig_Obj_t * pFaninOld;
     assert( !Aig_IsComplement(pObj) );
+    assert( Aig_ObjIsPo(pObj) );
     pFaninOld = Aig_ObjFanin0(pObj);
     // decrement ref and remove fanout
     if ( p->pFanData )
@@ -386,7 +393,10 @@ void Aig_ObjReplace( Aig_Man_t * p, Aig_Obj_t * pObjOld, Aig_Obj_t * pObjNew, in
             Aig_ManUpdateLevel( p, pObjOld );
         }
         if ( fUpdateLevel )
+        {
+            Aig_ObjClearReverseLevel( p, pObjOld );
             Aig_ManUpdateReverseLevel( p, pObjOld );
+        }
     }
     p->nObjs[pObjOld->Type]++;
     // store buffers if fanout is allocated

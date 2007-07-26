@@ -352,11 +352,31 @@ Aig_Obj_t * Aig_Miter( Aig_Man_t * p, Vec_Ptr_t * vPairs )
     int i;
     assert( vPairs->nSize > 0 );
     assert( vPairs->nSize % 2 == 0 );
-    // go through the cubes of the node's SOP
     for ( i = 0; i < vPairs->nSize; i += 2 )
         vPairs->pArray[i/2] = Aig_Not( Aig_Exor( p, vPairs->pArray[i], vPairs->pArray[i+1] ) );
     vPairs->nSize = vPairs->nSize/2;
     return Aig_Not( Aig_Multi_rec( p, (Aig_Obj_t **)vPairs->pArray, vPairs->nSize, AIG_OBJ_AND ) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Implements the miter.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Obj_t * Aig_MiterTwo( Aig_Man_t * p, Vec_Ptr_t * vNodes1, Vec_Ptr_t * vNodes2 )
+{
+    int i;
+    assert( vNodes1->nSize > 0 && vNodes1->nSize > 0 );
+    assert( vNodes1->nSize == vNodes2->nSize );
+    for ( i = 0; i < vNodes1->nSize; i++ )
+        vNodes1->pArray[i] = Aig_Not( Aig_Exor( p, vNodes1->pArray[i], vNodes2->pArray[i] ) );
+    return Aig_Not( Aig_Multi_rec( p, (Aig_Obj_t **)vNodes1->pArray, vNodes1->nSize, AIG_OBJ_AND ) );
 }
 
 /**Function*************************************************************

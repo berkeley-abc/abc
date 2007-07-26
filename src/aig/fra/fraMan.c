@@ -97,6 +97,8 @@ Fra_Man_t * Fra_ManStart( Aig_Man_t * pManAig, Fra_Par_t * pPars )
     memset( p->pMemFraig, 0, p->nSizeAlloc * sizeof(Aig_Obj_t *) );
     p->pMemRepr  = ALLOC( Aig_Obj_t *, p->nSizeAlloc );
     memset( p->pMemRepr, 0, p->nSizeAlloc * sizeof(Aig_Obj_t *) );
+    p->pMemReprFra  = ALLOC( Aig_Obj_t *, p->nSizeAlloc );
+    memset( p->pMemReprFra, 0, p->nSizeAlloc * sizeof(Aig_Obj_t *) );
     p->pMemFanins  = ALLOC( Vec_Ptr_t *, p->nSizeAlloc );
     memset( p->pMemFanins, 0, p->nSizeAlloc * sizeof(Vec_Ptr_t *) );
     p->pMemSatNums  = ALLOC( int, p->nSizeAlloc );
@@ -166,6 +168,7 @@ void Fra_ManStop( Fra_Man_t * p )
     FREE( p->pMemSatNums );
     FREE( p->pMemFanins );
     FREE( p->pMemRepr );
+    FREE( p->pMemReprFra );
     FREE( p->pMemFraig );
     FREE( p->pMemClasses );
     FREE( p->pPatScores );

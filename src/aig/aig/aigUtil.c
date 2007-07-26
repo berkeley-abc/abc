@@ -123,6 +123,44 @@ void Aig_ManCheckMarkA( Aig_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Checks if the markA is reset.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManCleanMarkA( Aig_Man_t * p )
+{
+    Aig_Obj_t * pObj;
+    int i;
+    Aig_ManForEachObj( p, pObj, i )
+        pObj->fMarkA = 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks if the markA is reset.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManCleanMarkB( Aig_Man_t * p )
+{
+    Aig_Obj_t * pObj;
+    int i;
+    Aig_ManForEachObj( p, pObj, i )
+        pObj->fMarkB = 0;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Cleans the data pointers for the nodes.]
 
   Description []

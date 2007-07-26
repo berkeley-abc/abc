@@ -41,9 +41,9 @@
 ***********************************************************************/
 void Aig_ManDfs_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vNodes )
 {
-    assert( !Aig_IsComplement(pObj) );
     if ( pObj == NULL )
         return;
+    assert( !Aig_IsComplement(pObj) );
     if ( Aig_ObjIsTravIdCurrent(p, pObj) )
         return;
     assert( Aig_ObjIsNode(pObj) || Aig_ObjIsBuf(pObj) );
@@ -114,6 +114,62 @@ Vec_Ptr_t * Aig_ManDfsNodes( Aig_Man_t * p, Aig_Obj_t ** ppNodes, int nNodes )
     vNodes = Vec_PtrAlloc( Aig_ManNodeNum(p) );
     for ( i = 0; i < nNodes; i++ )
         Aig_ManDfs_rec( p, ppNodes[i], vNodes );
+    return vNodes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects internal nodes in the DFS order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManDfsChoices_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vNodes )
+{
+    if ( pObj == NULL )
+        return;
+    assert( !Aig_IsComplement(pObj) );
+    if ( Aig_ObjIsTravIdCurrent(p, pObj) )
+        return;
+    assert( Aig_ObjIsNode(pObj) );
+    Aig_ManDfsChoices_rec( p, Aig_ObjFanin0(pObj), vNodes );
+    Aig_ManDfsChoices_rec( p, Aig_ObjFanin1(pObj), vNodes );
+    Aig_ManDfsChoices_rec( p, p->pReprs[pObj->Id], vNodes );
+    assert( !Aig_ObjIsTravIdCurrent(p, pObj) ); // loop detection
+    Aig_ObjSetTravIdCurrent(p, pObj);
+    Vec_PtrPush( vNodes, pObj );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects internal nodes in the DFS order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Aig_ManDfsChoices( Aig_Man_t * p )
+{
+    Vec_Ptr_t * vNodes;
+    Aig_Obj_t * pObj;
+    int i;
+    assert( p->pReprs != NULL );
+    Aig_ManIncrementTravId( p );
+    // mark constant and PIs
+    Aig_ObjSetTravIdCurrent( p, Aig_ManConst1(p) );
+    Aig_ManForEachPi( p, pObj, i )
+        Aig_ObjSetTravIdCurrent( p, pObj );
+    // go through the nodes
+    vNodes = Vec_PtrAlloc( Aig_ManNodeNum(p) );
+    Aig_ManForEachPo( p, pObj, i )
+        Aig_ManDfsChoices_rec( p, Aig_ObjFanin0(pObj), vNodes );
     return vNodes;
 }
 
@@ -444,7 +500,7 @@ Aig_Obj_t * Aig_Compose( Aig_Man_t * p, Aig_Obj_t * pRoot, Aig_Obj_t * pFunc, in
   SeeAlso     []
 
 ***********************************************************************/
-void Aig_ManCollectCut_rec( Aig_Obj_t * pNode, Vec_Ptr_t * vNodes )
+void Aig_ObjCollectCut_rec( Aig_Obj_t * pNode, Vec_Ptr_t * vNodes )
 {
 //    Aig_Obj_t * pFan0 = Aig_ObjFanin0(pNode);
 //    Aig_Obj_t * pFan1 = Aig_ObjFanin1(pNode);
@@ -452,8 +508,8 @@ void Aig_ManCollectCut_rec( Aig_Obj_t * pNode, Vec_Ptr_t * vNodes )
         return;
     pNode->fMarkA = 1;
     assert( Aig_ObjIsNode(pNode) );
-    Aig_ManCollectCut_rec( Aig_ObjFanin0(pNode), vNodes );
-    Aig_ManCollectCut_rec( Aig_ObjFanin1(pNode), vNodes );
+    Aig_ObjCollectCut_rec( Aig_ObjFanin0(pNode), vNodes );
+    Aig_ObjCollectCut_rec( Aig_ObjFanin1(pNode), vNodes );
     Vec_PtrPush( vNodes, pNode );
 //printf( "added %d  ", pNode->Id );
 }
@@ -469,7 +525,7 @@ void Aig_ManCollectCut_rec( Aig_Obj_t * pNode, Vec_Ptr_t * vNodes )
   SeeAlso     []
 
 ***********************************************************************/
-void Aig_ManCollectCut( Aig_Obj_t * pRoot, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vNodes )
+void Aig_ObjCollectCut( Aig_Obj_t * pRoot, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vNodes )
 {
     Aig_Obj_t * pObj;
     int i;
@@ -483,12 +539,89 @@ void Aig_ManCollectCut( Aig_Obj_t * pRoot, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vNod
     }
 //printf( "\n" );
     // collect and mark the nodes
-    Aig_ManCollectCut_rec( pRoot, vNodes );
+    Aig_ObjCollectCut_rec( pRoot, vNodes );
     // clean the nodes
     Vec_PtrForEachEntry( vNodes, pObj, i )
         pObj->fMarkA = 0;
     Vec_PtrForEachEntry( vLeaves, pObj, i )
         pObj->fMarkA = 0;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Collects the nodes of the supergate.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Aig_ObjCollectSuper_rec( Aig_Obj_t * pRoot, Aig_Obj_t * pObj, Vec_Ptr_t * vSuper )
+{
+    int RetValue1, RetValue2, i;
+    // check if the node is visited
+    if ( Aig_Regular(pObj)->fMarkA )
+    {
+        // check if the node occurs in the same polarity
+        for ( i = 0; i < vSuper->nSize; i++ )
+            if ( vSuper->pArray[i] == pObj )
+                return 1;
+        // check if the node is present in the opposite polarity
+        for ( i = 0; i < vSuper->nSize; i++ )
+            if ( vSuper->pArray[i] == Aig_Not(pObj) )
+                return -1;
+        assert( 0 );
+        return 0;
+    }
+    // if the new node is complemented or a PI, another gate begins
+    if ( pObj != pRoot && (Aig_IsComplement(pObj) || Aig_ObjType(pObj) != Aig_ObjType(pRoot) || Aig_ObjRefs(pObj) > 1) )
+    {
+        Vec_PtrPush( vSuper, pObj );
+        Aig_Regular(pObj)->fMarkA = 1;
+        return 0;
+    }
+    assert( !Aig_IsComplement(pObj) );
+    assert( Aig_ObjIsNode(pObj) );
+    // go through the branches
+    RetValue1 = Aig_ObjCollectSuper_rec( pRoot, Aig_ObjReal_rec( Aig_ObjChild0(pObj) ), vSuper );
+    RetValue2 = Aig_ObjCollectSuper_rec( pRoot, Aig_ObjReal_rec( Aig_ObjChild1(pObj) ), vSuper );
+    if ( RetValue1 == -1 || RetValue2 == -1 )
+        return -1;
+    // return 1 if at least one branch has a duplicate
+    return RetValue1 || RetValue2;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects the nodes of the supergate.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Aig_ObjCollectSuper( Aig_Obj_t * pObj, Vec_Ptr_t * vSuper )
+{
+    int RetValue, i;
+    assert( !Aig_IsComplement(pObj) );
+    assert( Aig_ObjIsNode(pObj) );
+    // collect the nodes in the implication supergate
+    Vec_PtrClear( vSuper );
+    RetValue = Aig_ObjCollectSuper_rec( pObj, pObj, vSuper );
+    assert( Vec_PtrSize(vSuper) > 1 );
+    // unmark the visited nodes
+    Vec_PtrForEachEntry( vSuper, pObj, i )
+        Aig_Regular(pObj)->fMarkA = 0;
+    // if we found the node and its complement in the same implication supergate, 
+    // return empty set of nodes (meaning that we should use constant-0 node)
+    if ( RetValue == -1 )
+        vSuper->nSize = 0;
+    return RetValue;
 }
 
 ////////////////////////////////////////////////////////////////////////

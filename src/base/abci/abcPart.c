@@ -45,13 +45,17 @@ Vec_Ptr_t * Abc_NtkPartitionCollectSupps( Abc_Ntk_t * pNtk )
     Vec_Int_t * vSuppI;
     Abc_Obj_t * pObj, * pTemp;
     int i, k;
+    // set the PI numbers
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        pObj->pCopy = (void *)i;
+    // save hte CI numbers
     vSupports = Vec_PtrAlloc( Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pObj, i )
     {
         vSupp = Abc_NtkNodeSupport( pNtk, &pObj, 1 );
         vSuppI = (Vec_Int_t *)vSupp;
         Vec_PtrForEachEntry( vSupp, pTemp, k )
-            Vec_IntWriteEntry( vSuppI, k, pTemp->Id );
+            Vec_IntWriteEntry( vSuppI, k, (int)pTemp->pCopy );
         Vec_IntSort( vSuppI, 0 );
         // append the number of this output
         Vec_IntPush( vSuppI, i );
@@ -65,6 +69,71 @@ Vec_Ptr_t * Abc_NtkPartitionCollectSupps( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
+  Synopsis    [Start char-bases support representation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_NtkSuppCharStart( Vec_Int_t * vOne, int nPis )
+{
+    char * pBuffer;
+    int i, Entry;
+    pBuffer = ALLOC( char, nPis );
+    memset( pBuffer, 0, sizeof(char) * nPis );
+    Vec_IntForEachEntry( vOne, Entry, i )
+    {
+        assert( Entry < nPis );
+        pBuffer[Entry] = 1;
+    }
+    return pBuffer;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Add to char-bases support representation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkSuppCharAdd( char * pBuffer, Vec_Int_t * vOne, int nPis )
+{
+    int i, Entry;
+    Vec_IntForEachEntry( vOne, Entry, i )
+    {
+        assert( Entry < nPis );
+        pBuffer[Entry] = 1;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Find the common variables using char-bases support representation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkSuppCharCommon( char * pBuffer, Vec_Int_t * vOne )
+{
+    int i, Entry, nCommon = 0;
+    Vec_IntForEachEntry( vOne, Entry, i )
+        nCommon += pBuffer[Entry];
+    return nCommon;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Find the best partition.]
 
   Description []
@@ -74,8 +143,9 @@ Vec_Ptr_t * Abc_NtkPartitionCollectSupps( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkPartitionSmartFindPart( Vec_Ptr_t * vPartSuppsAll, Vec_Ptr_t * vPartsAll, int nPartSizeLimit, Vec_Int_t * vOne )
+int Abc_NtkPartitionSmartFindPart( Vec_Ptr_t * vPartSuppsAll, Vec_Ptr_t * vPartsAll, Vec_Ptr_t * vPartSuppsChar, int nPartSizeLimit, Vec_Int_t * vOne )
 {
+/*
     Vec_Int_t * vPartSupp, * vPart;
     double Attract, Repulse, Cost, CostBest;
     int i, nCommon, iBest;
@@ -83,11 +153,11 @@ int Abc_NtkPartitionSmartFindPart( Vec_Ptr_t * vPartSuppsAll, Vec_Ptr_t * vParts
     CostBest = 0.0;
     Vec_PtrForEachEntry( vPartSuppsAll, vPartSupp, i )
     {
+        vPart = Vec_PtrEntry( vPartsAll, i );
+        if ( nPartSizeLimit > 0 && Vec_IntSize(vPart) >= nPartSizeLimit )
+            continue;
         nCommon = Vec_IntTwoCountCommon( vPartSupp, vOne );
         if ( nCommon == 0 )
-            continue;
-        vPart = Vec_PtrEntry( vPartsAll, i );
-        if ( nPartSizeLimit > 0 && Vec_IntSize(vPart) > nPartSizeLimit )
             continue;
         if ( nCommon == Vec_IntSize(vOne) )
             return i;
@@ -104,6 +174,41 @@ int Abc_NtkPartitionSmartFindPart( Vec_Ptr_t * vPartSuppsAll, Vec_Ptr_t * vParts
         }
     }
     if ( CostBest < 0.6 )
+        return -1;
+    return iBest;
+*/
+
+    Vec_Int_t * vPartSupp, * vPart;
+    int Attract, Repulse, Value, ValueBest;
+    int i, nCommon, iBest;
+//    int nCommon2;
+    iBest = -1;
+    ValueBest = 0;
+    Vec_PtrForEachEntry( vPartSuppsAll, vPartSupp, i )
+    {
+        vPart = Vec_PtrEntry( vPartsAll, i );
+        if ( nPartSizeLimit > 0 && Vec_IntSize(vPart) >= nPartSizeLimit )
+            continue;
+//        nCommon2 = Vec_IntTwoCountCommon( vPartSupp, vOne );
+        nCommon = Abc_NtkSuppCharCommon( Vec_PtrEntry(vPartSuppsChar, i), vOne );
+//        assert( nCommon2 == nCommon );
+        if ( nCommon == 0 )
+            continue;
+        if ( nCommon == Vec_IntSize(vOne) )
+            return i;
+        Attract = 1000 * nCommon / Vec_IntSize(vOne);
+        if ( Vec_IntSize(vPartSupp) < 100 )
+            Repulse = 1;
+        else
+            Repulse = 1+Extra_Base2Log(Vec_IntSize(vPartSupp)-100);
+        Value = Attract/Repulse;
+        if ( ValueBest < Value )
+        {
+            ValueBest = Value;
+            iBest = i;
+        }
+    }
+    if ( ValueBest < 75 )
         return -1;
     return iBest;
 }
@@ -222,9 +327,10 @@ void Abc_NtkPartitionCompact( Vec_Ptr_t * vPartsAll, Vec_Ptr_t * vPartSuppsAll, 
 ***********************************************************************/
 Vec_Vec_t * Abc_NtkPartitionSmart( Abc_Ntk_t * pNtk, int nPartSizeLimit, int fVerbose )
 {
+    Vec_Ptr_t * vPartSuppsChar;
     Vec_Ptr_t * vSupps, * vPartsAll, * vPartsAll2, * vPartSuppsAll, * vPartPtr;
     Vec_Int_t * vOne, * vPart, * vPartSupp, * vTemp;
-    int i, iPart, iOut, clk;
+    int i, iPart, iOut, clk, clk2, timeFind = 0;
 
     // compute the supports for all outputs
 clk = clock();
@@ -233,6 +339,8 @@ if ( fVerbose )
 {
 PRT( "Supps", clock() - clk );
 }
+    // start char-based support representation
+    vPartSuppsChar = Vec_PtrAlloc( 1000 );
 
     // create partitions
 clk = clock();
@@ -243,7 +351,10 @@ clk = clock();
         // get the output number
         iOut = Vec_IntPop(vOne);
         // find closely matching part
-        iPart = Abc_NtkPartitionSmartFindPart( vPartSuppsAll, vPartsAll, nPartSizeLimit, vOne );
+clk2 = clock();
+        iPart = Abc_NtkPartitionSmartFindPart( vPartSuppsAll, vPartsAll, vPartSuppsChar, nPartSizeLimit, vOne );
+timeFind += clock() - clk2;
+//printf( "%4d->%4d  ", i, iPart );
         if ( iPart == -1 )
         {
             // create new partition
@@ -254,6 +365,8 @@ clk = clock();
             // add this partition and its support
             Vec_PtrPush( vPartsAll, vPart );
             Vec_PtrPush( vPartSuppsAll, vPartSupp );
+
+            Vec_PtrPush( vPartSuppsChar, Abc_NtkSuppCharStart(vOne, Abc_NtkPiNum(pNtk)) );
         }
         else
         {
@@ -266,11 +379,21 @@ clk = clock();
             Vec_IntFree( vTemp );
             // reinsert new support
             Vec_PtrWriteEntry( vPartSuppsAll, iPart, vPartSupp );
+
+            Abc_NtkSuppCharAdd( Vec_PtrEntry(vPartSuppsChar, iPart), vOne, Abc_NtkPiNum(pNtk) );
         }
     }
+
+    // stop char-based support representation
+    Vec_PtrForEachEntry( vPartSuppsChar, vTemp, i )
+        free( vTemp );
+    Vec_PtrFree( vPartSuppsChar );
+
+//printf( "\n" );
 if ( fVerbose )
 {
 PRT( "Parts", clock() - clk );
+//PRT( "Find ", timeFind );
 }
 
 clk = clock();
@@ -290,7 +413,9 @@ clk = clock();
 //    Abc_NtkPartitionPrint( pNtk, vPartsAll, vPartSuppsAll );
     Abc_NtkPartitionCompact( vPartsAll, vPartSuppsAll, nPartSizeLimit );
     if ( fVerbose )
-    Abc_NtkPartitionPrint( pNtk, vPartsAll, vPartSuppsAll );
+//    Abc_NtkPartitionPrint( pNtk, vPartsAll, vPartSuppsAll );
+    printf( "Created %d partitions.\n", Vec_PtrSize(vPartsAll) );
+
 if ( fVerbose )
 {
 PRT( "Comps", clock() - clk );
@@ -676,7 +801,7 @@ Abc_Ntk_t * Abc_NtkFraigPartitioned( Abc_Ntk_t * pNtk, void * pParams )
     // perform partitioning
     assert( Abc_NtkIsStrash(pNtk) );
 //    vParts = Abc_NtkPartitionNaive( pNtk, 20 );
-    vParts = Abc_NtkPartitionSmart( pNtk, 0, 0 );
+    vParts = Abc_NtkPartitionSmart( pNtk, 0, 1 );
 
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "unset progressbar" );
 

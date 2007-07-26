@@ -51,11 +51,24 @@ int Aig_ManScanMapping_rec( Cnf_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vMapped
     if ( vMapped )
         Vec_PtrPush( vMapped, pObj );
     // visit the transitive fanin of the selected cut
-//    pCutBest = Aig_ObjBestCut(pObj);
-        pCutBest = NULL;
-    aArea = pCutBest->Value;
-    Dar_CutForEachLeaf( p->pManAig, pCutBest, pLeaf, i )
-        aArea += Aig_ManScanMapping_rec( p, pLeaf, vMapped );
+    if ( pObj->fMarkB )
+    {
+        Vec_Ptr_t * vSuper = Vec_PtrAlloc( 100 );
+        Aig_ObjCollectSuper( pObj, vSuper );
+        aArea = Vec_PtrSize(vSuper) + 1;
+        Vec_PtrForEachEntry( vSuper, pLeaf, i )
+            aArea += Aig_ManScanMapping_rec( p, Aig_Regular(pLeaf), vMapped );
+        Vec_PtrFree( vSuper );
+        ////////////////////////////
+        pObj->fMarkB = 1;
+    }
+    else
+    {
+        pCutBest = Dar_ObjBestCut( pObj );
+        aArea = Cnf_CutSopCost( p, pCutBest );
+        Dar_CutForEachLeaf( p->pManAig, pCutBest, pLeaf, i )
+            aArea += Aig_ManScanMapping_rec( p, pLeaf, vMapped );
+    }
     return aArea;
 }
 
@@ -85,7 +98,7 @@ Vec_Ptr_t * Aig_ManScanMapping( Cnf_Man_t * p, int fCollect )
     p->aArea = 0;
     Aig_ManForEachPo( p->pManAig, pObj, i )
         p->aArea += Aig_ManScanMapping_rec( p, Aig_ObjFanin0(pObj), vMapped );
-    printf( "Variables = %6d. Clauses = %8d.\n", vMapped? Vec_PtrSize(vMapped) : 0, p->aArea );
+    printf( "Variables = %6d. Clauses = %8d.\n", vMapped? Vec_PtrSize(vMapped) + Aig_ManPiNum(p->pManAig) + 1 : 0, p->aArea + 2 );
     return vMapped;
 }
 
@@ -100,7 +113,7 @@ Vec_Ptr_t * Aig_ManScanMapping( Cnf_Man_t * p, int fCollect )
   SeeAlso     []
 
 ***********************************************************************/
-int Cnf_ManScanMapping_rec( Cnf_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vMapped )
+int Cnf_ManScanMapping_rec( Cnf_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vMapped, int fPreorder )
 {
     Aig_Obj_t * pLeaf;
     Cnf_Cut_t * pCutBest;
@@ -109,15 +122,32 @@ int Cnf_ManScanMapping_rec( Cnf_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vMapped
         return 0;
     assert( Aig_ObjIsAnd(pObj) );
     assert( pObj->pData != NULL );
+    // add the node to the mapping
+    if ( vMapped && fPreorder )
+         Vec_PtrPush( vMapped, pObj );
     // visit the transitive fanin of the selected cut
-    pCutBest = pObj->pData;
-    assert( pCutBest->Cost < 127 );
-    aArea = pCutBest->Cost;
-    Cnf_CutForEachLeaf( p->pManAig, pCutBest, pLeaf, i )
-        aArea += Cnf_ManScanMapping_rec( p, pLeaf, vMapped );
-    // collect the node first to derive pre-order
-    if ( vMapped )
-        Vec_PtrPush( vMapped, pObj );
+    if ( pObj->fMarkB )
+    {
+        Vec_Ptr_t * vSuper = Vec_PtrAlloc( 100 );
+        Aig_ObjCollectSuper( pObj, vSuper );
+        aArea = Vec_PtrSize(vSuper) + 1;
+        Vec_PtrForEachEntry( vSuper, pLeaf, i )
+            aArea += Cnf_ManScanMapping_rec( p, Aig_Regular(pLeaf), vMapped, fPreorder );
+        Vec_PtrFree( vSuper );
+        ////////////////////////////
+        pObj->fMarkB = 1;
+    }
+    else
+    {
+        pCutBest = pObj->pData;
+        assert( pCutBest->Cost < 127 );
+        aArea = pCutBest->Cost;
+        Cnf_CutForEachLeaf( p->pManAig, pCutBest, pLeaf, i )
+            aArea += Cnf_ManScanMapping_rec( p, pLeaf, vMapped, fPreorder );
+    }
+    // add the node to the mapping
+    if ( vMapped && !fPreorder )
+         Vec_PtrPush( vMapped, pObj );
     return aArea;
 }
 
@@ -132,7 +162,7 @@ int Cnf_ManScanMapping_rec( Cnf_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vMapped
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Cnf_ManScanMapping( Cnf_Man_t * p, int fCollect )
+Vec_Ptr_t * Cnf_ManScanMapping( Cnf_Man_t * p, int fCollect, int fPreorder )
 {
     Vec_Ptr_t * vMapped = NULL;
     Aig_Obj_t * pObj;
@@ -146,8 +176,8 @@ Vec_Ptr_t * Cnf_ManScanMapping( Cnf_Man_t * p, int fCollect )
     // collect nodes reachable from POs in the DFS order through the best cuts
     p->aArea = 0;
     Aig_ManForEachPo( p->pManAig, pObj, i )
-        p->aArea += Cnf_ManScanMapping_rec( p, Aig_ObjFanin0(pObj), vMapped );
-    printf( "Variables = %6d. Clauses = %8d.\n", vMapped? Vec_PtrSize(vMapped) : 0, p->aArea );
+        p->aArea += Cnf_ManScanMapping_rec( p, Aig_ObjFanin0(pObj), vMapped, fPreorder );
+    printf( "Variables = %6d. Clauses = %8d.\n", vMapped? Vec_PtrSize(vMapped) + Aig_ManPiNum(p->pManAig) + 1 : 0, p->aArea + 2 );
     return vMapped;
 }
 

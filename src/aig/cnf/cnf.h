@@ -83,7 +83,15 @@ struct Cnf_Man_t_
     int             nMergeLimit;     // the limit on the size of merged cut
     unsigned *      pTruths[4];      // temporary truth tables
     Vec_Int_t *     vMemory;         // memory for intermediate ISOP representation
+    int             timeCuts; 
+    int             timeMap;
+    int             timeSave;
 };
+
+
+static inline Dar_Cut_t *  Dar_ObjBestCut( Aig_Obj_t * pObj ) { Dar_Cut_t * pCut; int i; Dar_ObjForEachCut( pObj, pCut, i ) if ( pCut->fBest ) return pCut; return NULL; }
+
+static inline int          Cnf_CutSopCost( Cnf_Man_t * p, Dar_Cut_t * pCut ) { return p->pSopSizes[pCut->uTruth] + p->pSopSizes[0xFFFF & ~pCut->uTruth]; }
 
 static inline int          Cnf_CutLeaveNum( Cnf_Cut_t * pCut )    { return pCut->nFanins;                               }
 static inline int *        Cnf_CutLeaves( Cnf_Cut_t * pCut )      { return pCut->pFanins;                               }
@@ -109,7 +117,9 @@ static inline void         Cnf_ObjSetBestCut( Aig_Obj_t * pObj, Cnf_Cut_t * pCut
 ////////////////////////////////////////////////////////////////////////
 
 /*=== cnfCore.c ========================================================*/
-extern Cnf_Dat_t *     Cnf_Derive( Cnf_Man_t * p, Aig_Man_t * pAig );
+extern Cnf_Dat_t *     Cnf_Derive( Aig_Man_t * pAig );
+extern Cnf_Man_t *     Cnf_ManRead();
+extern void            Cnf_ClearMemory();
 /*=== cnfCut.c ========================================================*/
 extern Cnf_Cut_t *     Cnf_CutCreate( Cnf_Man_t * p, Aig_Obj_t * pObj );
 extern void            Cnf_CutPrint( Cnf_Cut_t * pCut );
@@ -121,10 +131,12 @@ extern void            Cnf_ReadMsops( char ** ppSopSizes, char *** ppSops );
 /*=== cnfMan.c ========================================================*/
 extern Cnf_Man_t *     Cnf_ManStart();
 extern void            Cnf_ManStop( Cnf_Man_t * p );
+extern Vec_Int_t *     Cnf_DataCollectPiSatNums( Cnf_Dat_t * pCnf, Aig_Man_t * p );
 extern void            Cnf_DataFree( Cnf_Dat_t * p );
 extern void            Cnf_DataWriteIntoFile( Cnf_Dat_t * p, char * pFileName );
 void *                 Cnf_DataWriteIntoSolver( Cnf_Dat_t * p );
 /*=== cnfMap.c ========================================================*/
+extern void            Cnf_DeriveMapping( Cnf_Man_t * p );
 extern int             Cnf_ManMapForCnf( Cnf_Man_t * p );
 /*=== cnfPost.c ========================================================*/
 extern void            Cnf_ManTransferCuts( Cnf_Man_t * p );
@@ -132,7 +144,7 @@ extern void            Cnf_ManFreeCuts( Cnf_Man_t * p );
 extern void            Cnf_ManPostprocess( Cnf_Man_t * p );
 /*=== cnfUtil.c ========================================================*/
 extern Vec_Ptr_t *     Aig_ManScanMapping( Cnf_Man_t * p, int fCollect );
-extern Vec_Ptr_t *     Cnf_ManScanMapping( Cnf_Man_t * p, int fCollect );
+extern Vec_Ptr_t *     Cnf_ManScanMapping( Cnf_Man_t * p, int fCollect, int fPreorder );
 /*=== cnfWrite.c ========================================================*/
 extern void            Cnf_SopConvertToVector( char * pSop, int nCubes, Vec_Int_t * vCover );
 extern Cnf_Dat_t *     Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped );
