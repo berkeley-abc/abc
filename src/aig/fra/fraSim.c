@@ -81,12 +81,27 @@ void Fra_NodeAssignConst( Fra_Man_t * p, Aig_Obj_t * pObj, int fConst1 )
   SeeAlso     []
 
 ***********************************************************************/
-void Fra_AssignRandom( Fra_Man_t * p )
+void Fra_AssignRandom( Fra_Man_t * p, int fInit )
 {
     Aig_Obj_t * pObj;
-    int i;
-    Aig_ManForEachPi( p->pManAig, pObj, i )
-        Fra_NodeAssignRandom( p, pObj );
+    int i, k;
+    if ( fInit )
+    {
+        assert( Aig_ManInitNum(p->pManAig) > 0 );
+        assert( Aig_ManInitNum(p->pManAig) < Aig_ManPiNum(p->pManAig) );
+        // assign random info for primary inputs
+        Aig_ManForEachPiSeq( p->pManAig, pObj, i )
+            Fra_NodeAssignRandom( p, pObj );
+        // assign the initial state for the latches
+        k = 0;
+        Aig_ManForEachLoSeq( p->pManAig, pObj, i )
+            Fra_NodeAssignConst( p, pObj, Vec_IntEntry(p->pManAig->vInits,k++) );
+    }
+    else
+    {
+        Aig_ManForEachPi( p->pManAig, pObj, i )
+            Fra_NodeAssignRandom( p, pObj );
+    }
 }
 
 /**Function*************************************************************
@@ -105,12 +120,8 @@ void Fra_AssignDist1( Fra_Man_t * p, unsigned * pPat )
     Aig_Obj_t * pObj;
     int i, Limit;
     Aig_ManForEachPi( p->pManAig, pObj, i )
-    {
         Fra_NodeAssignConst( p, pObj, Aig_InfoHasBit(pPat, i) );
-//        printf( "%d", Aig_InfoHasBit(pPat, i) );
-    }
-//    printf( "\n" );
-    Limit = AIG_MIN( Aig_ManPiNum(p->pManAig), p->nSimWords * 32 - 1 );
+    Limit = AIG_MIN( Aig_ManPiNum(p->pManAig) - Aig_ManInitNum(p->pManAig), p->nSimWords * 32 - 1 );
     for ( i = 0; i < Limit; i++ )
         Aig_InfoXorBit( Fra_ObjSim( Aig_ManPi(p->pManAig,i) ), i+1 );
 }
@@ -126,15 +137,14 @@ void Fra_AssignDist1( Fra_Man_t * p, unsigned * pPat )
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_NodeHasZeroSim( Fra_Man_t * p, Aig_Obj_t * pObj )
+void Fra_NodeComplementSim( Aig_Obj_t * pObj )
 {
+    Fra_Man_t * p = pObj->pData;
     unsigned * pSims;
     int i;
     pSims = Fra_ObjSim(pObj);
     for ( i = 0; i < p->nSimWords; i++ )
-        if ( pSims[i] )
-            return 0;
-    return 1;
+        pSims[i] = ~pSims[i];
 }
 
 /**Function*************************************************************
@@ -148,13 +158,16 @@ int Fra_NodeHasZeroSim( Fra_Man_t * p, Aig_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-void Fra_NodeComplementSim( Fra_Man_t * p, Aig_Obj_t * pObj )
+int Fra_NodeHasZeroSim( Aig_Obj_t * pObj )
 {
+    Fra_Man_t * p = pObj->pData;
     unsigned * pSims;
     int i;
     pSims = Fra_ObjSim(pObj);
     for ( i = 0; i < p->nSimWords; i++ )
-        pSims[i] = ~pSims[i];
+        if ( pSims[i] )
+            return 0;
+    return 1;
 }
 
 /**Function*************************************************************
@@ -168,8 +181,9 @@ void Fra_NodeComplementSim( Fra_Man_t * p, Aig_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_NodeCompareSims( Fra_Man_t * p, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
+int Fra_NodeCompareSims( Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
 {
+    Fra_Man_t * p = pObj0->pData;
     unsigned * pSims0, * pSims1;
     int i;
     pSims0 = Fra_ObjSim(pObj0);
@@ -180,6 +194,45 @@ int Fra_NodeCompareSims( Fra_Man_t * p, Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Computes hash value of the node using its simulation info.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned Fra_NodeHashSims( Aig_Obj_t * pObj )
+{
+    Fra_Man_t * p = pObj->pData;
+    static int s_FPrimes[128] = { 
+        1009, 1049, 1093, 1151, 1201, 1249, 1297, 1361, 1427, 1459, 
+        1499, 1559, 1607, 1657, 1709, 1759, 1823, 1877, 1933, 1997, 
+        2039, 2089, 2141, 2213, 2269, 2311, 2371, 2411, 2467, 2543, 
+        2609, 2663, 2699, 2741, 2797, 2851, 2909, 2969, 3037, 3089, 
+        3169, 3221, 3299, 3331, 3389, 3461, 3517, 3557, 3613, 3671, 
+        3719, 3779, 3847, 3907, 3943, 4013, 4073, 4129, 4201, 4243, 
+        4289, 4363, 4441, 4493, 4549, 4621, 4663, 4729, 4793, 4871, 
+        4933, 4973, 5021, 5087, 5153, 5227, 5281, 5351, 5417, 5471, 
+        5519, 5573, 5651, 5693, 5749, 5821, 5861, 5923, 6011, 6073, 
+        6131, 6199, 6257, 6301, 6353, 6397, 6481, 6563, 6619, 6689, 
+        6737, 6803, 6863, 6917, 6977, 7027, 7109, 7187, 7237, 7309, 
+        7393, 7477, 7523, 7561, 7607, 7681, 7727, 7817, 7877, 7933, 
+        8011, 8039, 8059, 8081, 8093, 8111, 8123, 8147
+    };
+    unsigned * pSims;
+    unsigned uHash;
+    int i;
+    assert( p->nSimWords <= 128 );
+    uHash = 0;
+    pSims = Fra_ObjSim(pObj);
+    for ( i = 0; i < p->nSimWords; i++ )
+        uHash ^= pSims[i] * s_FPrimes[i];
+    return uHash;
+}
 
 /**Function*************************************************************
 
@@ -245,6 +298,7 @@ void Fra_NodeSimulate( Fra_Man_t * p, Aig_Obj_t * pObj )
     }
 }
 
+
 /**Function*************************************************************
 
   Synopsis    [Generated const 0 pattern.]
@@ -294,10 +348,8 @@ void Fra_SavePattern( Fra_Man_t * p )
     int i;
     memset( p->pPatWords, 0, sizeof(unsigned) * p->nPatWords );
     Aig_ManForEachPi( p->pManFraig, pObj, i )
-//    Vec_PtrForEachEntry( p->vPiVars, pObj, i )
         if ( p->pSat->model.ptr[Fra_ObjSatNum(pObj)] == l_True )
             Aig_InfoSetBit( p->pPatWords, i );
-//            Ivy_InfoSetBit( p->pPatWords, pObj->Id - 1 );
 }
 
 /**Function*************************************************************
@@ -433,15 +485,17 @@ p->nSimRounds++;
 ***********************************************************************/
 void Fra_Resimulate( Fra_Man_t * p )
 {
-    int nChanges;
+    int nChanges, clk;
     Fra_AssignDist1( p, p->pPatWords );
     Fra_SimulateOne( p );
     if ( p->pPars->fPatScores )
         Fra_CleanPatScores( p );
-    nChanges = Fra_RefineClasses( p );
-    nChanges += Fra_RefineClasses1( p );
-    if ( p->pManFraig->pData )
+    if ( p->pPars->fProve && Fra_CheckOutputSims(p) )
         return;
+clk = clock();
+    nChanges = Fra_ClassesRefine( p->pCla );
+    nChanges += Fra_ClassesRefine1( p->pCla );
+p->timeRef += clock() - clk;
     if ( nChanges < 1 )
         printf( "Error: A counter-example did not refine classes!\n" );
     assert( nChanges >= 1 );
@@ -456,10 +510,12 @@ void Fra_Resimulate( Fra_Man_t * p )
         Fra_AssignDist1( p, p->pPatWords );
         Fra_SimulateOne( p );
         Fra_CleanPatScores( p );
-        nChanges = Fra_RefineClasses( p );
-        nChanges += Fra_RefineClasses1( p );
-        if ( p->pManFraig->pData )
+        if ( p->pPars->fProve && Fra_CheckOutputSims(p) )
             return;
+clk = clock();
+        nChanges = Fra_ClassesRefine( p->pCla );
+        nChanges += Fra_ClassesRefine1( p->pCla );
+p->timeRef += clock() - clk;
 //printf( "Refined class!!! = %5d.   Changes = %4d.   Pairs = %6d.\n", p->lClasses.nItems, nChanges, Fra_CountPairsClasses(p) );
         if ( nChanges == 0 )
             break;
@@ -477,43 +533,50 @@ void Fra_Resimulate( Fra_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Fra_Simulate( Fra_Man_t * p )
+void Fra_Simulate( Fra_Man_t * p, int fInit )
 {
-    int nChanges, nClasses;
+    int nChanges, nClasses, clk;
+    assert( !fInit || Aig_ManInitNum(p->pManAig) );
     // start the classes
-    Fra_AssignRandom( p );
+    Fra_AssignRandom( p, fInit );
     Fra_SimulateOne( p );
-    Fra_CreateClasses( p );
+    Fra_ClassesPrepare( p->pCla );
 //printf( "Starting classes = %5d.   Pairs = %6d.\n", p->lClasses.nItems, Fra_CountPairsClasses(p) );
     // refine classes by walking 0/1 patterns
     Fra_SavePattern0( p );
     Fra_AssignDist1( p, p->pPatWords );
     Fra_SimulateOne( p );
-    nChanges = Fra_RefineClasses( p );
-    nChanges += Fra_RefineClasses1( p );
-    if ( p->pManFraig->pData )
+    if ( p->pPars->fProve && Fra_CheckOutputSims(p) )
         return;
+clk = clock();
+    nChanges = Fra_ClassesRefine( p->pCla );
+    nChanges += Fra_ClassesRefine1( p->pCla );
+p->timeRef += clock() - clk;
 //printf( "Refined classes  = %5d.   Changes = %4d.   Pairs = %6d.\n", p->lClasses.nItems, nChanges, Fra_CountPairsClasses(p) );
     Fra_SavePattern1( p );
     Fra_AssignDist1( p, p->pPatWords );
     Fra_SimulateOne( p );
-    nChanges = Fra_RefineClasses( p );
-    nChanges += Fra_RefineClasses1( p );
-    if ( p->pManFraig->pData )
+    if ( p->pPars->fProve && Fra_CheckOutputSims(p) )
         return;
+clk = clock();
+    nChanges = Fra_ClassesRefine( p->pCla );
+    nChanges += Fra_ClassesRefine1( p->pCla );
+p->timeRef += clock() - clk;
 //printf( "Refined classes  = %5d.   Changes = %4d.   Pairs = %6d.\n", p->lClasses.nItems, nChanges, Fra_CountPairsClasses(p) );
     // refine classes by random simulation
     do {
-        Fra_AssignRandom( p );
+        Fra_AssignRandom( p, fInit );
         Fra_SimulateOne( p );
-        nClasses = Vec_PtrSize(p->vClasses);
-        nChanges = Fra_RefineClasses( p );
-        nChanges += Fra_RefineClasses1( p );
-        if ( p->pManFraig->pData )
+        nClasses = Vec_PtrSize(p->pCla->vClasses);
+        if ( p->pPars->fProve && Fra_CheckOutputSims(p) )
             return;
+clk = clock();
+        nChanges = Fra_ClassesRefine( p->pCla );
+        nChanges += Fra_ClassesRefine1( p->pCla );
+p->timeRef += clock() - clk;
 //printf( "Refined classes  = %5d.   Changes = %4d.   Pairs = %6d.\n", p->lClasses.nItems, nChanges, Fra_CountPairsClasses(p) );
     } while ( (double)nChanges / nClasses > p->pPars->dSimSatur );
-//    Fra_PrintClasses( p );
+//    Fra_ClassesPrint( p->pCla );
 }
  
 /**Function*************************************************************
@@ -578,19 +641,12 @@ int Fra_CheckOutputSims( Fra_Man_t * p )
     assert( Aig_ObjFanin0(pObj)->fPhase == (unsigned)Aig_ObjFaninC0(pObj) ); // Aig_ObjFaninPhase(Aig_ObjChild0(pObj)) == 0
     Aig_ManForEachPo( p->pManAig, pObj, i )
     {
-        // complement simulation info
-//        if ( Aig_ObjFanin0(pObj)->fPhase ^ Aig_ObjFaninC0(pObj) ) // Aig_ObjFaninPhase(Aig_ObjChild0(pObj))
-//            Fra_NodeComplementSim( p, Aig_ObjFanin0(pObj) );
-        // check 
-        if ( !Fra_NodeHasZeroSim( p, Aig_ObjFanin0(pObj) ) )
+        if ( !Fra_NodeHasZeroSim( Aig_ObjFanin0(pObj) ) )
         {
             // create the counter-example from this pattern
             Fra_CheckOutputSimsSavePattern( p, Aig_ObjFanin0(pObj) );
             return 1;
         }
-        // complement simulation info
-//        if ( Aig_ObjFanin0(pObj)->fPhase ^ Aig_ObjFaninC0(pObj) )
-//            Fra_NodeComplementSim( p, Aig_ObjFanin0(pObj) );
     }
     return 0;
 }

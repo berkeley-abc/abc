@@ -92,6 +92,8 @@ struct Aig_Man_t_
     Vec_Ptr_t *      vBufs;          // the array of buffers
     Aig_Obj_t *      pConst1;        // the constant 1 node
     Aig_Obj_t        Ghost;          // the ghost node
+    Vec_Int_t *      vInits;         // the initial values of the latches (latches are last PIs/POs)
+    int              nAsserts;       // the number of asserts among POs (asserts are first POs)
     // AIG node counters
     int              nObjs[AIG_OBJ_VOID];// the number of objects by type
     int              nCreated;       // the number of created objects
@@ -114,8 +116,9 @@ struct Aig_Man_t_
     int              nAndTotal;
     int              nAndPrev;
     // representatives
-    Aig_Obj_t **     pRepr;
-    int              nReprAlloc;
+    Aig_Obj_t **     pEquivs;        // linked list of equivalent nodes (when choices are used)
+    Aig_Obj_t **     pReprs;         // representatives of each node
+    int              nReprsAlloc;    // the number of allocated representatives
     // various data members
     Aig_MmFixed_t *  pMemObjs;       // memory manager for objects
     Vec_Int_t *      vLevelR;        // the reverse level of the nodes
@@ -123,7 +126,6 @@ struct Aig_Man_t_
     void *           pData;          // the temporary data
     int              nTravIds;       // the current traversal ID
     int              fCatchExor;     // enables EXOR nodes
-    Aig_Obj_t **     pReprs;         // linked list of equivalent nodes (when choices are used)
     // timing statistics
     int              time1;
     int              time2;
@@ -171,8 +173,9 @@ static inline int          Aig_ManNodeNum( Aig_Man_t * p )        { return p->nO
 static inline int          Aig_ManGetCost( Aig_Man_t * p )        { return p->nObjs[AIG_OBJ_AND]+3*p->nObjs[AIG_OBJ_EXOR]; }
 static inline int          Aig_ManObjNum( Aig_Man_t * p )         { return p->nCreated - p->nDeleted;               }
 static inline int          Aig_ManObjIdMax( Aig_Man_t * p )       { return Vec_PtrSize(p->vObjs);                   }
+static inline int          Aig_ManInitNum( Aig_Man_t * p )        { return p->vInits? Vec_IntSize(p->vInits) : 0;   }
 
-static inline Aig_Type_t   Aig_ObjType( Aig_Obj_t * pObj )        { return (Aig_Type_t)pObj->Type;               }
+static inline Aig_Type_t   Aig_ObjType( Aig_Obj_t * pObj )        { return (Aig_Type_t)pObj->Type;       }
 static inline int          Aig_ObjIsNone( Aig_Obj_t * pObj )      { return pObj->Type == AIG_OBJ_NONE;   }
 static inline int          Aig_ObjIsConst1( Aig_Obj_t * pObj )    { assert(!Aig_IsComplement(pObj)); return pObj->Type == AIG_OBJ_CONST1; }
 static inline int          Aig_ObjIsPi( Aig_Obj_t * pObj )        { return pObj->Type == AIG_OBJ_PI;     }
@@ -304,6 +307,24 @@ static inline int     Aig_ObjFanoutNext( Aig_Man_t * p, int iFan )   { assert(iF
           (((iFan) = i? Aig_ObjFanoutNext(p, iFan) : Aig_ObjFanout0Int(p, pObj->Id)), 1) && \
           (((pFanout) = Aig_ManObj(p, iFan>>1)), 1); i++ )
 
+
+////////////////////////////////////////////////////////////////////////
+///                     SEQUENTIAL ITERATORS                         ///
+////////////////////////////////////////////////////////////////////////
+
+// iterator over the primary inputs
+#define Aig_ManForEachPiSeq( p, pObj, i )                                       \
+    Vec_PtrForEachEntryStop( p->vPis, pObj, i, Aig_ManPiNum(p)-Aig_ManInitNum(p) )
+// iterator over the latch outputs
+#define Aig_ManForEachLoSeq( p, pObj, i )                                       \
+    Vec_PtrForEachEntryStart( p->vPis, pObj, i, Aig_ManPiNum(p)-Aig_ManInitNum(p) )
+// iterator over the primary outputs
+#define Aig_ManForEachPoSeq( p, pObj, i )                                       \
+    Vec_PtrForEachEntryStop( p->vPos, pObj, i, Aig_ManPoNum(p)-Aig_ManInitNum(p) )
+// iterator over the latch inputs
+#define Aig_ManForEachLiSeq( p, pObj, i )                                       \
+    Vec_PtrForEachEntryStart( p->vPos, pObj, i, Aig_ManPoNum(p)-Aig_ManInitNum(p) )
+
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -382,8 +403,11 @@ extern Vec_Vec_t *     Aig_ManPartitionNaive( Aig_Man_t * p, int nPartSize );
 /*=== aigRepr.c =========================================================*/
 extern void            Aig_ManReprStart( Aig_Man_t * p, int nIdMax );
 extern void            Aig_ManReprStop( Aig_Man_t * p );
+extern void            Aig_ObjCreateRepr( Aig_Man_t * p, Aig_Obj_t * pNode1, Aig_Obj_t * pNode2 );
 extern void            Aig_ManTransferRepr( Aig_Man_t * pNew, Aig_Man_t * p );
-extern Aig_Man_t *     Aig_ManCreateChoices( Aig_Man_t * p );
+extern Aig_Man_t *     Aig_ManDupRepr( Aig_Man_t * p );
+extern Aig_Man_t *     Aig_ManRehash( Aig_Man_t * p );
+extern void            Aig_ManCreateChoices( Aig_Man_t * p );
 /*=== aigSeq.c ========================================================*/
 extern int             Aig_ManSeqStrash( Aig_Man_t * p, int nLatches, int * pInits );
 /*=== aigTable.c ========================================================*/

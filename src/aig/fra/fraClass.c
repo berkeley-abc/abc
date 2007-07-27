@@ -45,6 +45,80 @@ static inline void         Fra_ObjSetNext( Aig_Obj_t ** ppNexts, Aig_Obj_t * pOb
 
 /**Function*************************************************************
 
+  Synopsis    [Starts representation of equivalence classes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Fra_Cla_t * Fra_ClassesStart( Aig_Man_t * pAig )
+{
+    Fra_Cla_t * p;
+    p = ALLOC( Fra_Cla_t, 1 );
+    memset( p, 0, sizeof(Fra_Cla_t) );
+    p->pAig = pAig;
+    p->pMemRepr  = ALLOC( Aig_Obj_t *, (Aig_ManObjIdMax(pAig) + 1) );
+    memset( p->pMemRepr, 0, sizeof(Aig_Obj_t *) * (Aig_ManObjIdMax(pAig) + 1) );
+    p->vClasses   = Vec_PtrAlloc( 100 );
+    p->vClasses1  = Vec_PtrAlloc( 100 );
+    p->vClassesTemp = Vec_PtrAlloc( 100 );
+    p->vClassOld  = Vec_PtrAlloc( 100 );
+    p->vClassNew  = Vec_PtrAlloc( 100 );
+    return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Stop representation of equivalence classes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fra_ClassesStop( Fra_Cla_t * p )
+{
+    free( p->pMemClasses );
+    free( p->pMemRepr );
+    if ( p->vClassesTemp ) Vec_PtrFree( p->vClassesTemp );
+    if ( p->vClassNew )    Vec_PtrFree( p->vClassNew );
+    if ( p->vClassOld )    Vec_PtrFree( p->vClassOld );
+    if ( p->vClasses1 )    Vec_PtrFree( p->vClasses1 );
+    if ( p->vClasses )     Vec_PtrFree( p->vClasses );
+    free( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Starts representation of equivalence classes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fra_ClassesCopyReprs( Fra_Cla_t * p, Vec_Ptr_t * vFailed )
+{
+    Aig_Obj_t * pObj;
+    int i;
+    Aig_ManReprStart( p->pAig, Aig_ManObjIdMax(p->pAig) + 1 );
+    memmove( p->pAig->pReprs, p->pMemRepr, sizeof(Aig_Obj_t *) * (Aig_ManObjIdMax(p->pAig) + 1) );
+    Vec_PtrForEachEntry( vFailed, pObj, i )
+    {
+//        assert( p->pAig->pReprs[pObj->Id] != NULL );
+        p->pAig->pReprs[pObj->Id] = NULL;
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Prints simulation classes.]
 
   Description []
@@ -75,7 +149,7 @@ void Fra_PrintClass( Aig_Obj_t ** pClass )
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_CountClass( Aig_Obj_t ** pClass )
+int Fra_ClassCount( Aig_Obj_t ** pClass )
 {
     Aig_Obj_t * pTemp;
     int i;
@@ -94,17 +168,42 @@ int Fra_CountClass( Aig_Obj_t ** pClass )
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_CountPairsClasses( Fra_Man_t * p )
+int Fra_ClassesCountPairs( Fra_Cla_t * p )
 {
     Aig_Obj_t ** pClass;
     int i, nNodes, nPairs = 0;
     Vec_PtrForEachEntry( p->vClasses, pClass, i )
     {
-        nNodes = Fra_CountClass( pClass );
+        nNodes = Fra_ClassCount( pClass );
         assert( nNodes > 1 );
         nPairs += nNodes * (nNodes - 1) / 2;
     }
     return nPairs;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Count the number of literals.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fra_ClassesCountLits( Fra_Cla_t * p )
+{
+    Aig_Obj_t ** pClass;
+    int i, nNodes, nLits = 0;
+    nLits = Vec_PtrSize( p->vClasses1 );
+    Vec_PtrForEachEntry( p->vClasses, pClass, i )
+    {
+        nNodes = Fra_ClassCount( pClass );
+        assert( nNodes > 1 );
+        nLits += nNodes - 1;
+    }
+    return nLits;
 }
 
 /**Function*************************************************************
@@ -118,94 +217,18 @@ int Fra_CountPairsClasses( Fra_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Fra_PrintClasses( Fra_Man_t * p )
+void Fra_ClassesPrint( Fra_Cla_t * p )
 {
     Aig_Obj_t ** pClass;
     int i;
-    printf( "Total classes = %d. Total pairs = %d.\n", Vec_PtrSize(p->vClasses), Fra_CountPairsClasses(p) );
+    printf( "Total classes = %d. Total pairs = %d.\n", Vec_PtrSize(p->vClasses), Fra_ClassesCountPairs(p) );
     Vec_PtrForEachEntry( p->vClasses, pClass, i )
     {
-//        printf( "%3d (%3d) : ", Fra_CountClass(pClass) );
-//        Fra_PrintClass( pClass );
+        printf( "%3d (%3d) : ", i, Fra_ClassCount(pClass) );
+        Fra_PrintClass( pClass );
     }
     printf( "\n" );
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Computes hash value of the node using its simulation info.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-unsigned Fra_NodeHash( Fra_Man_t * p, Aig_Obj_t * pObj )
-{
-    static int s_FPrimes[128] = { 
-        1009, 1049, 1093, 1151, 1201, 1249, 1297, 1361, 1427, 1459, 
-        1499, 1559, 1607, 1657, 1709, 1759, 1823, 1877, 1933, 1997, 
-        2039, 2089, 2141, 2213, 2269, 2311, 2371, 2411, 2467, 2543, 
-        2609, 2663, 2699, 2741, 2797, 2851, 2909, 2969, 3037, 3089, 
-        3169, 3221, 3299, 3331, 3389, 3461, 3517, 3557, 3613, 3671, 
-        3719, 3779, 3847, 3907, 3943, 4013, 4073, 4129, 4201, 4243, 
-        4289, 4363, 4441, 4493, 4549, 4621, 4663, 4729, 4793, 4871, 
-        4933, 4973, 5021, 5087, 5153, 5227, 5281, 5351, 5417, 5471, 
-        5519, 5573, 5651, 5693, 5749, 5821, 5861, 5923, 6011, 6073, 
-        6131, 6199, 6257, 6301, 6353, 6397, 6481, 6563, 6619, 6689, 
-        6737, 6803, 6863, 6917, 6977, 7027, 7109, 7187, 7237, 7309, 
-        7393, 7477, 7523, 7561, 7607, 7681, 7727, 7817, 7877, 7933, 
-        8011, 8039, 8059, 8081, 8093, 8111, 8123, 8147
-    };
-    unsigned * pSims;
-    unsigned uHash;
-    int i;
-    assert( p->nSimWords <= 128 );
-    uHash = 0;
-    pSims = Fra_ObjSim(pObj);
-    for ( i = 0; i < p->nSimWords; i++ )
-        uHash ^= pSims[i] * s_FPrimes[i];
-    return uHash;
-}
-
-/**Function********************************************************************
-
-  Synopsis    [Returns the next prime >= p.]
-
-  Description [Copied from CUDD, for stand-aloneness.]
-
-  SideEffects [None]
-
-  SeeAlso     []
-
-******************************************************************************/
-unsigned int Cudd_PrimeFra( unsigned int p )
-{
-    int i,pn;
-
-    p--;
-    do {
-        p++;
-        if (p&1) {
-        pn = 1;
-        i = 3;
-        while ((unsigned) (i * i) <= p) {
-        if (p % i == 0) {
-            pn = 0;
-            break;
-        }
-        i += 2;
-        }
-    } else {
-        pn = 0;
-    }
-    } while (!pn);
-    return(p);
-
-} /* end of Cudd_Prime */
-
 
 /**Function*************************************************************
 
@@ -218,31 +241,31 @@ unsigned int Cudd_PrimeFra( unsigned int p )
   SeeAlso     []
 
 ***********************************************************************/
-void Fra_CreateClasses( Fra_Man_t * p )
+void Fra_ClassesPrepare( Fra_Cla_t * p )
 {
     Aig_Obj_t ** ppTable, ** ppNexts;
     Aig_Obj_t * pObj, * pTemp;
     int i, k, nTableSize, nEntries, nNodes, iEntry;
 
     // allocate the hash table hashing simulation info into nodes
-    nTableSize = Cudd_PrimeFra( Aig_ManObjIdMax(p->pManAig) + 1 );
+    nTableSize = Aig_PrimeCudd( Aig_ManObjIdMax(p->pAig) + 1 );
     ppTable = ALLOC( Aig_Obj_t *, nTableSize ); 
     ppNexts = ALLOC( Aig_Obj_t *, nTableSize ); 
     memset( ppTable, 0, sizeof(Aig_Obj_t *) * nTableSize );
 
     // add all the nodes to the hash table
     Vec_PtrClear( p->vClasses1 );
-    Aig_ManForEachObj( p->pManAig, pObj, i )
+    Aig_ManForEachObj( p->pAig, pObj, i )
     {
         if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsPi(pObj) )
             continue;
         // hash the node by its simulation info
-        iEntry = Fra_NodeHash( p, pObj ) % nTableSize;
+        iEntry = Fra_NodeHashSims( pObj ) % nTableSize;
         // check if the node belongs to the class of constant 1
-        if ( iEntry == 0 && Fra_NodeHasZeroSim( p, pObj ) )
+        if ( iEntry == 0 && Fra_NodeHasZeroSim( pObj ) )
         {
             Vec_PtrPush( p->vClasses1, pObj );
-            Fra_ObjSetRepr( pObj, Aig_ManConst1(p->pManAig) );
+            Fra_ClassObjSetRepr( pObj, Aig_ManConst1(p->pAig) );
             continue;
         }
         // add the node to the class
@@ -281,7 +304,7 @@ void Fra_CreateClasses( Fra_Man_t * p )
     // copy the entries into storage in the topological order
     Vec_PtrClear( p->vClasses );
     nEntries = 0;
-    Aig_ManForEachObj( p->pManAig, pObj, i )
+    Aig_ManForEachObj( p->pAig, pObj, i )
     {
         if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsPi(pObj) )
             continue;
@@ -304,7 +327,7 @@ void Fra_CreateClasses( Fra_Man_t * p )
               pTemp = Fra_ObjNext(ppNexts, pTemp), k++ )
         {
             p->pMemClasses[2*nEntries+nNodes-k] = pTemp;
-            Fra_ObjSetRepr( pTemp, pObj );
+            Fra_ClassObjSetRepr( pTemp, pObj );
         }
         // add as many empty entries
 //        memset( p->pMemClasses + 2*nEntries + nNodes, 0, sizeof(Aig_Obj_t *) * nNodes );
@@ -315,7 +338,7 @@ void Fra_CreateClasses( Fra_Man_t * p )
     free( ppTable );
     free( ppNexts );
     // now it is time to refine the classes
-    Fra_RefineClasses( p );
+    Fra_ClassesRefine( p );
 }
 
 /**Function*************************************************************
@@ -329,7 +352,7 @@ void Fra_CreateClasses( Fra_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Obj_t ** Fra_RefineClassOne( Fra_Man_t * p, Aig_Obj_t ** ppClass )
+Aig_Obj_t ** Fra_RefineClassOne( Fra_Cla_t * p, Aig_Obj_t ** ppClass )
 {
     Aig_Obj_t * pObj, ** ppThis;
     int i;
@@ -337,7 +360,7 @@ Aig_Obj_t ** Fra_RefineClassOne( Fra_Man_t * p, Aig_Obj_t ** ppClass )
 
     // check if the class is going to be refined
     for ( ppThis = ppClass + 1; pObj = *ppThis; ppThis++ )        
-        if ( !Fra_NodeCompareSims(p, ppClass[0], pObj) )
+        if ( !Fra_NodeCompareSims(ppClass[0], pObj) )
             break;
     if ( pObj == NULL )
         return NULL;
@@ -346,7 +369,7 @@ Aig_Obj_t ** Fra_RefineClassOne( Fra_Man_t * p, Aig_Obj_t ** ppClass )
     Vec_PtrClear( p->vClassNew );
     Vec_PtrPush( p->vClassOld, ppClass[0] );
     for ( ppThis = ppClass + 1; pObj = *ppThis; ppThis++ )        
-        if ( Fra_NodeCompareSims(p, ppClass[0], pObj) )
+        if ( Fra_NodeCompareSims(ppClass[0], pObj) )
             Vec_PtrPush( p->vClassOld, pObj );
         else
             Vec_PtrPush( p->vClassNew, pObj );
@@ -364,7 +387,7 @@ Aig_Obj_t ** Fra_RefineClassOne( Fra_Man_t * p, Aig_Obj_t ** ppClass )
     {
         ppClass[i] = pObj;
         ppClass[Vec_PtrSize(p->vClassOld)+i] = NULL;
-        Fra_ObjSetRepr( pObj, i? ppClass[0] : NULL );
+        Fra_ClassObjSetRepr( pObj, i? ppClass[0] : NULL );
     }
     ppClass += 2*Vec_PtrSize(p->vClassOld);
     // put the new nodes into the class memory
@@ -372,7 +395,7 @@ Aig_Obj_t ** Fra_RefineClassOne( Fra_Man_t * p, Aig_Obj_t ** ppClass )
     {
         ppClass[i] = pObj;
         ppClass[Vec_PtrSize(p->vClassNew)+i] = NULL;
-        Fra_ObjSetRepr( pObj, i? ppClass[0] : NULL );
+        Fra_ClassObjSetRepr( pObj, i? ppClass[0] : NULL );
     }
     return ppClass;
 }
@@ -388,7 +411,7 @@ Aig_Obj_t ** Fra_RefineClassOne( Fra_Man_t * p, Aig_Obj_t ** ppClass )
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_RefineClassLastIter( Fra_Man_t * p, Vec_Ptr_t * vClasses )
+int Fra_RefineClassLastIter( Fra_Cla_t * p, Vec_Ptr_t * vClasses )
 {
     Aig_Obj_t ** pClass, ** pClass2;
     int nRefis;
@@ -423,19 +446,12 @@ int Fra_RefineClassLastIter( Fra_Man_t * p, Vec_Ptr_t * vClasses )
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_RefineClasses( Fra_Man_t * p )
+int Fra_ClassesRefine( Fra_Cla_t * p )
 {
     Vec_Ptr_t * vTemp;
     Aig_Obj_t ** pClass;
-    int clk, i, nRefis;
-    // check if some outputs already became non-constant
-    // this is a special case when computation can be stopped!!!
-    if ( p->pPars->fProve )
-        Fra_CheckOutputSims( p );
-    if ( p->pManFraig->pData )
-        return 0;
+    int i, nRefis;
     // refine the classes
-clk = clock();
     nRefis = 0;
     Vec_PtrClear( p->vClassesTemp );
     Vec_PtrForEachEntry( p->vClasses, pClass, i )
@@ -449,7 +465,7 @@ clk = clock();
     vTemp = p->vClassesTemp;
     p->vClassesTemp = p->vClasses;
     p->vClasses = vTemp;
-p->timeRef += clock() - clk;
+    p->fRefinement = (nRefis > 0);
     return nRefis;
 }
 
@@ -464,22 +480,21 @@ p->timeRef += clock() - clk;
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_RefineClasses1( Fra_Man_t * p )
+int Fra_ClassesRefine1( Fra_Cla_t * p )
 {
     Aig_Obj_t * pObj, ** ppClass;
-    int i, k, nRefis, clk;
+    int i, k, nRefis;
     // check if there is anything to refine
     if ( Vec_PtrSize(p->vClasses1) == 0 )
         return 0;
-clk = clock();
     // make sure constant 1 class contains only non-constant nodes
-    assert( Vec_PtrEntry(p->vClasses1,0) != Aig_ManConst1(p->pManAig) );
+    assert( Vec_PtrEntry(p->vClasses1,0) != Aig_ManConst1(p->pAig) );
     // collect all the nodes to be refined
     k = 0;
     Vec_PtrClear( p->vClassNew );
     Vec_PtrForEachEntry( p->vClasses1, pObj, i )
     {
-        if ( Fra_NodeHasZeroSim( p, pObj ) )
+        if ( Fra_NodeHasZeroSim( pObj ) )
             Vec_PtrWriteEntry( p->vClasses1, k++, pObj );
         else 
             Vec_PtrPush( p->vClassNew, pObj );
@@ -487,9 +502,10 @@ clk = clock();
     Vec_PtrShrink( p->vClasses1, k );
     if ( Vec_PtrSize(p->vClassNew) == 0 )
         return 0;
+    p->fRefinement = 1;
     if ( Vec_PtrSize(p->vClassNew) == 1 )
     {
-        Fra_ObjSetRepr( Vec_PtrEntry(p->vClassNew,0), NULL );
+        Fra_ClassObjSetRepr( Vec_PtrEntry(p->vClassNew,0), NULL );
         return 1;
     }
     // create a new class composed of these nodes
@@ -499,12 +515,11 @@ clk = clock();
     {
         ppClass[i] = pObj;
         ppClass[Vec_PtrSize(p->vClassNew)+i] = NULL;
-        Fra_ObjSetRepr( pObj, i? ppClass[0] : NULL );
+        Fra_ClassObjSetRepr( pObj, i? ppClass[0] : NULL );
     }
     Vec_PtrPush( p->vClasses, ppClass );
     // iteratively refine this class
     nRefis = 1 + Fra_RefineClassLastIter( p, p->vClasses );
-p->timeRef += clock() - clk;
     return nRefis;
 }
 

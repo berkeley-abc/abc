@@ -52,8 +52,8 @@ Aig_Man_t * Aig_ManStart( int nNodesMax )
     p->nTravIds = 1;
     p->fCatchExor = 0;
     // allocate arrays for nodes
-    p->vPis = Vec_PtrAlloc( 100 );
-    p->vPos = Vec_PtrAlloc( 100 );
+    p->vPis  = Vec_PtrAlloc( 100 );
+    p->vPos  = Vec_PtrAlloc( 100 );
     p->vObjs = Vec_PtrAlloc( 1000 );
     p->vBufs = Vec_PtrAlloc( 100 );
     // prepare the internal memory manager
@@ -239,7 +239,9 @@ void Aig_ManStop( Aig_Man_t * p )
     if ( p->vBufs )    Vec_PtrFree( p->vBufs );
     if ( p->vLevelR )  Vec_IntFree( p->vLevelR );
     if ( p->vLevels )  Vec_VecFree( p->vLevels );
+    if ( p->vInits )   Vec_IntFree( p->vInits );
     FREE( p->pReprs );
+    FREE( p->pEquivs );
     free( p->pTable );
     free( p );
 }

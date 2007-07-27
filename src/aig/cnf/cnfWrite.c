@@ -145,28 +145,30 @@ int Cnf_IsopWriteCube( int Cube, int nVars, int * pVars, int * pLiterals )
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Derives CNF for the mapping.]
 
-  Description []
+  Description [The last argument shows the number of last outputs
+  of the manager, which will not be converted into clauses but the
+  new variables for which will be introduced.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped )
+Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped, int nOutputs )
 {
     Aig_Obj_t * pObj;
     Cnf_Dat_t * pCnf;
     Cnf_Cut_t * pCut;
     Vec_Int_t * vCover, * vSopTemp;
-    int OutVar, pVars[32], * pLits, ** pClas;
+    int OutVar, PoVar, pVars[32], * pLits, ** pClas;
     unsigned uTruth;
     int i, k, nLiterals, nClauses, Cube, Number;
 
     // count the number of literals and clauses
-    nLiterals = 1 + Aig_ManPoNum( p->pManAig );
-    nClauses = 1 + Aig_ManPoNum( p->pManAig );
+    nLiterals = 1 + Aig_ManPoNum( p->pManAig ) + 3 * nOutputs;
+    nClauses = 1 + Aig_ManPoNum( p->pManAig ) + nOutputs;
     Vec_PtrForEachEntry( vMapped, pObj, i )
     {
         assert( Aig_ObjIsNode(pObj) );
@@ -211,12 +213,20 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped )
     pCnf->pClauses[0] = ALLOC( int, nLiterals );
     pCnf->pClauses[nClauses] = pCnf->pClauses[0] + nLiterals;
 
-    // set variable numbers
-    Number = 0;
+    // create room for variable numbers
     pCnf->pVarNums = ALLOC( int, 1+Aig_ManObjIdMax(p->pManAig) );
     memset( pCnf->pVarNums, 0xff, sizeof(int) * (1+Aig_ManObjIdMax(p->pManAig)) );
+    // assign variables to the last (nOutputs) POs
+    Number = 0;
+    for ( i = 0; i < nOutputs; i++ )
+    {
+        pObj = Aig_ManPo( p->pManAig, Aig_ManPoNum(p->pManAig) - nOutputs + i );
+        pCnf->pVarNums[pObj->Id] = Number++;
+    }
+    // assign variables to the internal nodes
     Vec_PtrForEachEntry( vMapped, pObj, i )
         pCnf->pVarNums[pObj->Id] = Number++;
+    // assign variables to the PIs and constant node
     Aig_ManForEachPi( p->pManAig, pObj, i )
         pCnf->pVarNums[pObj->Id] = Number++;
     pCnf->pVarNums[Aig_ManConst1(p->pManAig)->Id] = Number++;
@@ -281,9 +291,25 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped )
     // write the output literals
     Aig_ManForEachPo( p->pManAig, pObj, i )
     {
-        OutVar = pCnf->pVarNums[ Aig_ObjFanin0(pObj)->Id ];
-        *pClas++ = pLits;
-        *pLits++ = 2 * OutVar + Aig_ObjFaninC0(pObj); 
+        if ( i < Aig_ManPoNum(p->pManAig) - nOutputs )
+        {
+            OutVar = pCnf->pVarNums[ Aig_ObjFanin0(pObj)->Id ];
+            *pClas++ = pLits;
+            *pLits++ = 2 * OutVar + Aig_ObjFaninC0(pObj); 
+        }
+        else
+        {
+            PoVar = pCnf->pVarNums[ pObj->Id ];
+            OutVar = pCnf->pVarNums[ Aig_ObjFanin0(pObj)->Id ];
+            // first clause
+            *pClas++ = pLits;
+            *pLits++ = 2 * PoVar; 
+            *pLits++ = 2 * OutVar + !Aig_ObjFaninC0(pObj); 
+            // second clause
+            *pClas++ = pLits;
+            *pLits++ = 2 * PoVar + 1; 
+            *pLits++ = 2 * OutVar + Aig_ObjFaninC0(pObj); 
+        }
     }
 
     // verify that the correct number of literals and clauses was written

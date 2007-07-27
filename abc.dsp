@@ -2570,7 +2570,7 @@ SOURCE=.\src\aig\fra\fraCore.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\fra\fraDfs.c
+SOURCE=.\src\aig\fra\fraInd.c
 # End Source File
 # Begin Source File
 

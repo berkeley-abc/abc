@@ -129,7 +129,7 @@ Abc_Ntk_t * Abc_NtkFromDarChoices( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
     Abc_Ntk_t * pNtkNew;
     Aig_Obj_t * pObj, * pTemp;
     int i;
-    assert( pMan->pReprs != NULL );
+    assert( pMan->pEquivs != NULL );
     assert( Aig_ManBufNum(pMan) == 0 );
     // perform strashing
     pNtkNew = Abc_NtkStartFrom( pNtkOld, ABC_NTK_STRASH, ABC_FUNC_AIG );
@@ -142,7 +142,7 @@ Abc_Ntk_t * Abc_NtkFromDarChoices( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
     Vec_PtrForEachEntry( vNodes, pObj, i )
     {
         pObj->pData = Abc_AigAnd( pNtkNew->pManFunc, (Abc_Obj_t *)Aig_ObjChild0Copy(pObj), (Abc_Obj_t *)Aig_ObjChild1Copy(pObj) );
-        if ( pTemp = pMan->pReprs[pObj->Id] )
+        if ( pTemp = pMan->pEquivs[pObj->Id] )
         {
             Abc_Obj_t * pAbcRepr, * pAbcObj;
             assert( pTemp->pData != NULL );
@@ -261,14 +261,15 @@ Abc_Ntk_t * Abc_NtkFromDarSeq( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
   SeeAlso     []
 
 ***********************************************************************/
-int * Abc_NtkGetLatchValues( Abc_Ntk_t * pNtk )
+Vec_Int_t * Abc_NtkGetLatchValues( Abc_Ntk_t * pNtk )
 {
+    Vec_Int_t * vInits;
     Abc_Obj_t * pLatch;
-    int i, * pArray;
-    pArray = ALLOC( int, Abc_NtkLatchNum(pNtk) );
+    int i;
+    vInits = Vec_IntAlloc( Abc_NtkLatchNum(pNtk) );
     Abc_NtkForEachLatch( pNtk, pLatch, i )
-        pArray[i] = Abc_LatchIsInit1(pLatch);
-    return pArray;
+        Vec_IntPush( vInits, Abc_LatchIsInit1(pLatch) );
+    return vInits;
 }
 
 /**Function*************************************************************
@@ -298,11 +299,13 @@ void Abc_NtkSecRetime( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
     Aig_ManPrintStats( pMan1 );
     Aig_ManPrintStats( pMan2 );
 
-    pArray = Abc_NtkGetLatchValues(pNtk1);
+//    pArray = Abc_NtkGetLatchValues(pNtk1);
+    pArray = NULL;
     Aig_ManSeqStrash( pMan1, Abc_NtkLatchNum(pNtk1), pArray );
     free( pArray );
 
-    pArray = Abc_NtkGetLatchValues(pNtk2);
+//    pArray = Abc_NtkGetLatchValues(pNtk2);
+    pArray = NULL;
     Aig_ManSeqStrash( pMan2, Abc_NtkLatchNum(pNtk2), pArray );
     free( pArray );
 
@@ -414,7 +417,7 @@ Abc_Ntk_t * Abc_NtkDarFraig( Abc_Ntk_t * pNtk, int nConfLimit, int fDoSparse, in
     pPars->fDoSparse    = fDoSparse;
     pPars->fSpeculate   = fSpeculate;
     pPars->fChoicing    = fChoicing;
-    pMan = Fra_Perform( pTemp = pMan, pPars );
+    pMan = Fra_FraigPerform( pTemp = pMan, pPars );
     if ( fChoicing )
         pNtkAig = Abc_NtkFromDarChoices( pNtk, pMan );
     else
@@ -471,14 +474,14 @@ Abc_Ntk_t * Abc_NtkDRewrite( Abc_Ntk_t * pNtk, Dar_RwrPar_t * pPars )
     if ( pMan == NULL )
         return NULL;
 //    Aig_ManPrintStats( pMan );
-
+/*
 //    Aig_ManSupports( pMan );
     {
         Vec_Vec_t * vParts;
         vParts = Aig_ManPartitionSmart( pMan, 50, 1, NULL );
         Vec_VecFree( vParts );
     }
-
+*/
     Dar_ManRewrite( pMan, pPars );
 //    pMan = Dar_ManBalance( pTemp = pMan, pPars->fUpdateLevel );
 //    Aig_ManStop( pTemp );
@@ -703,7 +706,7 @@ Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName )
     Aig_ManPrintStats( pMan );
 
     // derive CNF
-    pCnf = Cnf_Derive( pMan );
+    pCnf = Cnf_Derive( pMan, 0 );
     pManCnf = Cnf_ManRead();
 
     // write the network for verification
@@ -747,7 +750,7 @@ int Abc_NtkDSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fVer
     // conver to the manager
     pMan = Abc_NtkToDar( pNtk );
     // derive CNF
-    pCnf = Cnf_Derive( pMan );
+    pCnf = Cnf_Derive( pMan, 0 );
     // convert into the SAT solver
     pSat = Cnf_DataWriteIntoSolver( pCnf );
     vCiIds = Cnf_DataCollectPiSatNums( pCnf, pMan );
@@ -763,7 +766,7 @@ int Abc_NtkDSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fVer
 
 
 //    printf( "Created SAT problem with %d variable and %d clauses. ", sat_solver_nvars(pSat), sat_solver_nclauses(pSat) );
-    PRT( "Time", clock() - clk );
+//    PRT( "Time", clock() - clk );
 
     // simplify the problem
     clk = clock();
@@ -817,6 +820,35 @@ int Abc_NtkDSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fVer
     Vec_IntFree( vCiIds );
     return RetValue;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkSeqSweep( Abc_Ntk_t * pNtk, int nFrames, int fVerbose )
+{
+    Abc_Ntk_t * pNtkAig;
+    Aig_Man_t * pMan, * pTemp;
+    pMan = Abc_NtkToDar( pNtk );
+    if ( pMan == NULL )
+        return NULL;
+    pMan->vInits = Abc_NtkGetLatchValues( pNtk );
+
+    pMan = Fra_Induction( pTemp = pMan, nFrames, fVerbose );
+    Aig_ManStop( pTemp );
+
+    pNtkAig = Abc_NtkFromDar( pNtk, pMan );
+    Aig_ManStop( pMan );
+    return pNtkAig;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

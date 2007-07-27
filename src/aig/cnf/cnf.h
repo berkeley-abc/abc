@@ -117,7 +117,7 @@ static inline void         Cnf_ObjSetBestCut( Aig_Obj_t * pObj, Cnf_Cut_t * pCut
 ////////////////////////////////////////////////////////////////////////
 
 /*=== cnfCore.c ========================================================*/
-extern Cnf_Dat_t *     Cnf_Derive( Aig_Man_t * pAig );
+extern Cnf_Dat_t *     Cnf_Derive( Aig_Man_t * pAig, int nOutputs );
 extern Cnf_Man_t *     Cnf_ManRead();
 extern void            Cnf_ClearMemory();
 /*=== cnfCut.c ========================================================*/
@@ -147,7 +147,7 @@ extern Vec_Ptr_t *     Aig_ManScanMapping( Cnf_Man_t * p, int fCollect );
 extern Vec_Ptr_t *     Cnf_ManScanMapping( Cnf_Man_t * p, int fCollect, int fPreorder );
 /*=== cnfWrite.c ========================================================*/
 extern void            Cnf_SopConvertToVector( char * pSop, int nCubes, Vec_Int_t * vCover );
-extern Cnf_Dat_t *     Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped );
+extern Cnf_Dat_t *     Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped, int nOutputs );
 
 #ifdef __cplusplus
 }

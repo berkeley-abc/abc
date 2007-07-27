@@ -41,7 +41,7 @@ static Cnf_Man_t * s_pManCnf = NULL;
   SeeAlso     []
 
 ***********************************************************************/
-Cnf_Dat_t * Cnf_Derive( Aig_Man_t * pAig )
+Cnf_Dat_t * Cnf_Derive( Aig_Man_t * pAig, int nOutputs )
 {
     Cnf_Man_t * p;
     Cnf_Dat_t * pCnf;
@@ -70,7 +70,7 @@ p->timeMap = clock() - clk;
 clk = clock();
     Cnf_ManTransferCuts( p );
     vMapped = Cnf_ManScanMapping( p, 1, 1 );
-    pCnf = Cnf_ManWriteCnf( p, vMapped );
+    pCnf = Cnf_ManWriteCnf( p, vMapped, nOutputs );
     Vec_PtrFree( vMapped );
     Aig_MmFixedStop( pMemCuts, 0 );
 p->timeSave = clock() - clk;

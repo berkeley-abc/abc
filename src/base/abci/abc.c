@@ -326,7 +326,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Sequential",   "retime",        Abc_CommandRetime,           1 );
 //    Cmd_CommandAdd( pAbc, "Sequential",   "sfpga",         Abc_CommandSeqFpga,          1 );
 //    Cmd_CommandAdd( pAbc, "Sequential",   "smap",          Abc_CommandSeqMap,           1 );
-//    Cmd_CommandAdd( pAbc, "Sequential",   "ssweep",        Abc_CommandSeqSweep,         1 );
+    Cmd_CommandAdd( pAbc, "Sequential",   "ssweep",        Abc_CommandSeqSweep,         1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "scleanup",      Abc_CommandSeqCleanup,       1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "cycle",         Abc_CommandCycle,            1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "xsim",          Abc_CommandXsim,             0 );
@@ -10736,8 +10736,7 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fExdc;
     int fImp;
     int fVerbose;
-    extern Abc_Ntk_t * Abc_NtkVanEijk( Abc_Ntk_t * pNtk, int nFrames, int fExdc, int fVerbose );
-    extern Abc_Ntk_t * Abc_NtkVanImp( Abc_Ntk_t * pNtk, int nFrames, int fExdc, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkSeqSweep( Abc_Ntk_t * pNtk, int nFrames, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -10801,14 +10800,10 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-//    if ( fImp )
-//        pNtkRes = Abc_NtkVanImp( pNtk, nFrames, fExdc, fVerbose );
-//    else
-//        pNtkRes = Abc_NtkVanEijk( pNtk, nFrames, fExdc, fVerbose );
-    pNtkRes = NULL;
+    pNtkRes = Abc_NtkSeqSweep( pNtk, nFrames, fVerbose );
     if ( pNtkRes == NULL )
     {
-        fprintf( pErr, "Sequential FPGA mapping has failed.\n" );
+        fprintf( pErr, "Sequential sweeping has failed.\n" );
         return 1;
     }
     // replace the current network
@@ -10819,8 +10814,8 @@ usage:
     fprintf( pErr, "usage: ssweep [-F num] [-eivh]\n" );
     fprintf( pErr, "\t         performs sequential sweep using van Eijk's method\n" );
     fprintf( pErr, "\t-F num : number of time frames in the base case [default = %d]\n", nFrames );
-    fprintf( pErr, "\t-e     : toggle writing EXDC network [default = %s]\n", fExdc? "yes": "no" );
-    fprintf( pErr, "\t-i     : toggle computing implications [default = %s]\n", fImp? "yes": "no" );
+//    fprintf( pErr, "\t-e     : toggle writing EXDC network [default = %s]\n", fExdc? "yes": "no" );
+//    fprintf( pErr, "\t-i     : toggle computing implications [default = %s]\n", fImp? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;

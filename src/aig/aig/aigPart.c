@@ -873,8 +873,8 @@ Aig_Man_t * Aig_ManChoicePartitioned( Vec_Ptr_t * vAigs, int nPartSize )
     // perform choicing for each derived AIG
     Vec_PtrForEachEntry( vMiters, pNew, i )
     {
-        extern Aig_Man_t * Fra_Choice( Aig_Man_t * pManAig );
-        pNew = Fra_Choice( p = pNew );
+        extern Aig_Man_t * Fra_FraigChoice( Aig_Man_t * pManAig );
+        pNew = Fra_FraigChoice( p = pNew );
         Vec_PtrWriteEntry( vMiters, i, pNew );
         Aig_ManStop( p );
     }
@@ -914,7 +914,7 @@ Aig_Man_t * Aig_ManChoicePartitioned( Vec_Ptr_t * vAigs, int nPartSize )
     Vec_PtrFree( vMiters );
 
     // derive the result of choicing
-    pChoice = Aig_ManCreateChoices( pNew );
+    pChoice = Aig_ManRehash( pNew );
     if ( pChoice != pNew )
         Aig_ManStop( pNew );
     return pChoice;

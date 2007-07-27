@@ -70,7 +70,7 @@ int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int 
 //return 1;
 
 //    printf( "Created SAT problem with %d variable and %d clauses. ", sat_solver_nvars(pSat), sat_solver_nclauses(pSat) );
-    PRT( "Time", clock() - clk );
+//    PRT( "Time", clock() - clk );
 
     // simplify the problem
     clk = clock();

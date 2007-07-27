@@ -138,7 +138,7 @@ void Aig_ManDfsChoices_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vNodes 
     assert( Aig_ObjIsNode(pObj) );
     Aig_ManDfsChoices_rec( p, Aig_ObjFanin0(pObj), vNodes );
     Aig_ManDfsChoices_rec( p, Aig_ObjFanin1(pObj), vNodes );
-    Aig_ManDfsChoices_rec( p, p->pReprs[pObj->Id], vNodes );
+    Aig_ManDfsChoices_rec( p, p->pEquivs[pObj->Id], vNodes );
     assert( !Aig_ObjIsTravIdCurrent(p, pObj) ); // loop detection
     Aig_ObjSetTravIdCurrent(p, pObj);
     Vec_PtrPush( vNodes, pObj );
@@ -160,7 +160,7 @@ Vec_Ptr_t * Aig_ManDfsChoices( Aig_Man_t * p )
     Vec_Ptr_t * vNodes;
     Aig_Obj_t * pObj;
     int i;
-    assert( p->pReprs != NULL );
+    assert( p->pEquivs != NULL );
     Aig_ManIncrementTravId( p );
     // mark constant and PIs
     Aig_ObjSetTravIdCurrent( p, Aig_ManConst1(p) );

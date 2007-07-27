@@ -54,7 +54,7 @@ int Fra_NodesAreEquiv( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
     // if the backtrack limit is small, simply skip this node
     // if the backtrack limit is > 10, take the quare root of the limit
     nBTLimit = p->pPars->nBTLimitNode;
-    if ( !p->pPars->fSpeculate && (nBTLimit > 0 && (pOld->fMarkB || pNew->fMarkB)) )
+    if ( !p->pPars->fSpeculate && p->pPars->nTimeFrames == 0 && (nBTLimit > 0 && (pOld->fMarkB || pNew->fMarkB)) )
     {
         p->nSatFails++;
         // fail immediately
@@ -78,7 +78,8 @@ int Fra_NodesAreEquiv( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
     Fra_NodeAddToSolver( p, pOld, pNew );
 
     // prepare variable activity
-    Fra_SetActivityFactors( p, pOld, pNew ); 
+    if ( p->pPars->fConeBias )
+        Fra_SetActivityFactors( p, pOld, pNew ); 
 
     // solve under assumptions
     // A = 1; B = 0     OR     A = 1; B = 1 
@@ -209,7 +210,8 @@ int Fra_NodeIsConst( Fra_Man_t * p, Aig_Obj_t * pNew )
     Fra_NodeAddToSolver( p, NULL, pNew );
 
     // prepare variable activity
-    Fra_SetActivityFactors( p, NULL, pNew ); 
+    if ( p->pPars->fConeBias )
+        Fra_SetActivityFactors( p, NULL, pNew ); 
 
     // solve under assumptions
 clk = clock();

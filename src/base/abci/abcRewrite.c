@@ -69,13 +69,13 @@ int Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeros, int fVerb
     assert( Abc_NtkIsStrash(pNtk) );
     // cleanup the AIG
     Abc_AigCleanup(pNtk->pManFunc);
-
+/*
     {
         Vec_Vec_t * vParts;
         vParts = Abc_NtkPartitionSmart( pNtk, 50, 1 );
         Vec_VecFree( vParts );
     }
-
+*/
 
     // start placement package
     if ( fPlaceEnable )
