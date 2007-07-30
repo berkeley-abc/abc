@@ -6187,7 +6187,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Abc_Ntk4VarTable( pNtk );
 //    Dar_NtkGenerateArrays( pNtk );
 //    Dar_ManDeriveCnfTest2();
-
+/*
     if ( !Abc_NtkIsStrash(pNtk) )
     {
         fprintf( pErr, "Network should be strashed. Command has failed.\n" );
@@ -6195,7 +6195,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 //    pNtkRes = Abc_NtkDar( pNtk );
     pNtkRes = Abc_NtkDarToCnf( pNtk, "any.cnf" );
-//    pNtkRes = NULL;
+*/
+    pNtkRes = NULL;
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
@@ -10732,7 +10733,7 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
     int c;
-    int nFrames;
+    int nFramesK;
     int fExdc;
     int fImp;
     int fVerbose;
@@ -10742,13 +10743,11 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
-    printf( "This command is not implemented\n" );
-
     // set defaults
-    nFrames  = 1;
+    nFramesK = 1;
     fExdc    = 1;
     fImp     = 0;
-    fVerbose = 1;
+    fVerbose = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Feivh" ) ) != EOF )
     {
@@ -10760,9 +10759,9 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
                 fprintf( pErr, "Command line switch \"-F\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nFrames = atoi(argv[globalUtilOptind]);
+            nFramesK = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFrames <= 0 ) 
+            if ( nFramesK <= 0 ) 
                 goto usage;
             break;
         case 'e':
@@ -10800,7 +10799,7 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    pNtkRes = Abc_NtkSeqSweep( pNtk, nFrames, fVerbose );
+    pNtkRes = Abc_NtkSeqSweep( pNtk, nFramesK, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Sequential sweeping has failed.\n" );
@@ -10813,7 +10812,7 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     fprintf( pErr, "usage: ssweep [-F num] [-eivh]\n" );
     fprintf( pErr, "\t         performs sequential sweep using van Eijk's method\n" );
-    fprintf( pErr, "\t-F num : number of time frames in the base case [default = %d]\n", nFrames );
+    fprintf( pErr, "\t-F num : number of time frames for induction (1=simple) [default = %d]\n", nFramesK );
 //    fprintf( pErr, "\t-e     : toggle writing EXDC network [default = %s]\n", fExdc? "yes": "no" );
 //    fprintf( pErr, "\t-i     : toggle computing implications [default = %s]\n", fImp? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );

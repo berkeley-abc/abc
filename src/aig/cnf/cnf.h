@@ -133,7 +133,7 @@ extern Cnf_Man_t *     Cnf_ManStart();
 extern void            Cnf_ManStop( Cnf_Man_t * p );
 extern Vec_Int_t *     Cnf_DataCollectPiSatNums( Cnf_Dat_t * pCnf, Aig_Man_t * p );
 extern void            Cnf_DataFree( Cnf_Dat_t * p );
-extern void            Cnf_DataWriteIntoFile( Cnf_Dat_t * p, char * pFileName );
+extern void            Cnf_DataWriteIntoFile( Cnf_Dat_t * p, char * pFileName, int fReadable );
 void *                 Cnf_DataWriteIntoSolver( Cnf_Dat_t * p );
 /*=== cnfMap.c ========================================================*/
 extern void            Cnf_DeriveMapping( Cnf_Man_t * p );
@@ -148,6 +148,7 @@ extern Vec_Ptr_t *     Cnf_ManScanMapping( Cnf_Man_t * p, int fCollect, int fPre
 /*=== cnfWrite.c ========================================================*/
 extern void            Cnf_SopConvertToVector( char * pSop, int nCubes, Vec_Int_t * vCover );
 extern Cnf_Dat_t *     Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped, int nOutputs );
+extern Cnf_Dat_t *     Cnf_DeriveSimple( Aig_Man_t * p, int nOutputs );
 
 #ifdef __cplusplus
 }

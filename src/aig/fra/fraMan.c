@@ -53,7 +53,7 @@ void Fra_ParamsDefault( Fra_Par_t * pPars )
     pPars->dActConeBumpMax  =    10.0;  // the largest bump of activity
     pPars->nBTLimitNode     =     100;  // conflict limit at a node
     pPars->nBTLimitMiter    =  500000;  // conflict limit at an output
-    pPars->nTimeFrames      =       0;  // the number of timeframes to unroll
+    pPars->nFramesK         =       0;  // the number of timeframes to unroll
     pPars->fConeBias        =       1;
 }
 
@@ -71,7 +71,7 @@ void Fra_ParamsDefault( Fra_Par_t * pPars )
 void Fra_ParamsDefaultSeq( Fra_Par_t * pPars )
 {
     memset( pPars, 0, sizeof(Fra_Par_t) );
-    pPars->nSimWords        =      32;  // the number of words in the simulation info
+    pPars->nSimWords        =       4;  // the number of words in the simulation info
     pPars->dSimSatur        =   0.005;  // the ratio of refined classes when saturation is reached
     pPars->fPatScores       =       0;  // enables simulation pattern scoring
     pPars->MaxScore         =      25;  // max score after which resimulation is used
@@ -82,7 +82,7 @@ void Fra_ParamsDefaultSeq( Fra_Par_t * pPars )
     pPars->dActConeBumpMax  =    10.0;  // the largest bump of activity
     pPars->nBTLimitNode     = 1000000;  // conflict limit at a node
     pPars->nBTLimitMiter    =  500000;  // conflict limit at an output
-    pPars->nTimeFrames      =       1;  // the number of timeframes to unroll
+    pPars->nFramesK         =       1;  // the number of timeframes to unroll
     pPars->fConeBias        =       0;
 }
 
@@ -100,36 +100,72 @@ void Fra_ParamsDefaultSeq( Fra_Par_t * pPars )
 Fra_Man_t * Fra_ManStart( Aig_Man_t * pManAig, Fra_Par_t * pPars )
 {
     Fra_Man_t * p;
+    Aig_Obj_t * pObj;
+    int i;
     // allocate the fraiging manager
     p = ALLOC( Fra_Man_t, 1 );
     memset( p, 0, sizeof(Fra_Man_t) );
     p->pPars      = pPars;
     p->pManAig    = pManAig;
     p->nSizeAlloc = Aig_ManObjIdMax( pManAig ) + 1;
-    p->nFrames    = pPars->nTimeFrames + 1;
+    p->nFramesAll = pPars->nFramesK + 1;
     // allocate simulation info
-    p->nSimWords  = pPars->nSimWords * p->nFrames;
-    p->pSimWords  = ALLOC( unsigned, p->nSizeAlloc * p->nSimWords * p->nFrames );
+    p->nSimWords  = pPars->nSimWords * p->nFramesAll;
+    p->pSimWords  = ALLOC( unsigned, p->nSizeAlloc * p->nSimWords );
     // clean simulation info of the constant node
-    memset( p->pSimWords, 0, sizeof(unsigned) * p->nSizeAlloc * p->nSimWords * p->nFrames );
+    memset( p->pSimWords, 0, sizeof(unsigned) * p->nSizeAlloc * p->nSimWords );
     // allocate storage for sim pattern
-    p->nPatWords  = Aig_BitWordNum( Aig_ManPiNum(pManAig) );
+    p->nPatWords  = Aig_BitWordNum( Aig_ManPiNum(pManAig) * p->nFramesAll );
     p->pPatWords  = ALLOC( unsigned, p->nPatWords ); 
     p->pPatScores = ALLOC( int, 32 * p->nSimWords ); 
     p->vPiVars    = Vec_PtrAlloc( 100 );
-    p->vTimeouts  = Vec_PtrAlloc( 100 );
     // equivalence classes
     p->pCla       = Fra_ClassesStart( pManAig );
     // allocate other members
-    p->pMemFraig  = ALLOC( Aig_Obj_t *, p->nSizeAlloc * p->nFrames );
-    memset( p->pMemFraig, 0, sizeof(Aig_Obj_t *) * p->nSizeAlloc * p->nFrames );
-    p->pMemFanins = ALLOC( Vec_Ptr_t *, p->nSizeAlloc * p->nFrames );
-    memset( p->pMemFanins, 0, sizeof(Vec_Ptr_t *) * p->nSizeAlloc * p->nFrames );
-    p->pMemSatNums = ALLOC( int, p->nSizeAlloc * p->nFrames );
-    memset( p->pMemSatNums, 0, sizeof(int) * p->nSizeAlloc * p->nFrames );
+    p->pMemFraig  = ALLOC( Aig_Obj_t *, p->nSizeAlloc * p->nFramesAll );
+    memset( p->pMemFraig, 0, sizeof(Aig_Obj_t *) * p->nSizeAlloc * p->nFramesAll );
+    p->pMemFanins = ALLOC( Vec_Ptr_t *, p->nSizeAlloc * p->nFramesAll + 10000 );
+    memset( p->pMemFanins, 0, sizeof(Vec_Ptr_t *) * p->nSizeAlloc * p->nFramesAll + 10000 );
+    p->pMemSatNums = ALLOC( int, p->nSizeAlloc * p->nFramesAll + 10000 );
+    memset( p->pMemSatNums, 0, sizeof(int) * p->nSizeAlloc * p->nFramesAll + 10000 );
     // set random number generator
     srand( 0xABCABC );
+    // set the pointer to the manager
+    Aig_ManForEachObj( p->pManAig, pObj, i )
+        pObj->pData = p;
     return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Starts the fraiging manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fra_ManClean( Fra_Man_t * p )
+{
+    int i, Limit;
+
+    Limit = Aig_ManObjIdMax(p->pManFraig) + 1;
+    for ( i = 0; i < Limit; i++ )
+        if ( p->pMemFanins[i] && p->pMemFanins[i] != (void *)1 )
+            Vec_PtrFree( p->pMemFanins[i] );
+
+    memset( p->pMemFraig, 0, sizeof(Aig_Obj_t *) * p->nSizeAlloc * p->nFramesAll );
+    memset( p->pMemFanins, 0, sizeof(Vec_Ptr_t *) * Limit );
+    memset( p->pMemSatNums, 0, sizeof(int) * Limit );
+
+    Aig_ManStop( p->pManFraig );   
+    p->pManFraig = NULL;
+
+    sat_solver_delete( p->pSat );  
+    p->pSat = NULL; 
+    p->nSatVars = 0;
 }
 
 /**Function*************************************************************
@@ -149,9 +185,6 @@ Aig_Man_t * Fra_ManPrepareComb( Fra_Man_t * p )
     Aig_Obj_t * pObj;
     int i;
     assert( p->pManFraig == NULL );
-    // set the pointer to the manager
-    Aig_ManForEachObj( p->pManAig, pObj, i )
-        pObj->pData = p;
     // start the fraig package
     pManFraig = Aig_ManStart( Aig_ManObjIdMax(p->pManAig) + 1 );
     // set the pointers to the available fraig nodes
@@ -204,7 +237,7 @@ void Fra_ManStop( Fra_Man_t * p )
 {
     int i;
     for ( i = 0; i < p->nSizeAlloc; i++ )
-        if ( p->pMemFanins[i] )
+        if ( p->pMemFanins[i] && p->pMemFanins[i] != (void *)1 )
             Vec_PtrFree( p->pMemFanins[i] );
     if ( p->pPars->fVerbose )
         Fra_ManPrint( p );

@@ -30,6 +30,37 @@
 
 /**Function*************************************************************
 
+  Synopsis    [Write speculative miter for one node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fra_FraigNodeSpeculate( Fra_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pObjFraig, Aig_Obj_t * pObjReprFraig )
+{ 
+    static int Counter = 0;
+    char FileName[20];
+    Aig_Man_t * pTemp;
+    Aig_Obj_t * pNode;
+    int i;
+    // create manager with the logic for these two nodes
+    Aig_Obj_t * ppNodes[2] = { pObjFraig, pObjReprFraig };
+    pTemp = Aig_ManExtractMiter( p->pManFraig, ppNodes, 2 );
+    // dump the logic into a file
+    sprintf( FileName, "aig\\%03d.blif", ++Counter );
+    Aig_ManDumpBlif( pTemp, FileName );
+    printf( "Speculation cone with %d nodes was written into file \"%s\".\n", Aig_ManNodeNum(pTemp), FileName );
+    // clean up
+    Aig_ManStop( pTemp );
+    Aig_ManForEachObj( p->pManFraig, pNode, i )
+        pNode->pData = p;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs fraiging for one node.]
 
   Description [Returns the fraiged node.]
@@ -39,84 +70,59 @@
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Obj_t * Fra_And( Fra_Man_t * p, Aig_Obj_t * pObj )
+void Fra_FraigNode( Fra_Man_t * p, Aig_Obj_t * pObj )
 { 
-    Aig_Obj_t * pObjRepr, * pObjFraig, * pFanin0Fraig, * pFanin1Fraig, * pObjReprFraig;
+    Aig_Obj_t * pObjRepr, * pObjFraig, * pObjFraig2, * pObjReprFraig;
     int RetValue;
     assert( !Aig_IsComplement(pObj) );
-    assert( Aig_ObjIsNode(pObj) );
-    // get the fraiged fanins
-    pFanin0Fraig = Fra_ObjChild0Fra(pObj,0);
-    pFanin1Fraig = Fra_ObjChild1Fra(pObj,0);
-    // get the fraiged node
-    pObjFraig = Aig_And( p->pManFraig, pFanin0Fraig, pFanin1Fraig );
-    if ( Aig_ObjIsConst1(Aig_Regular(pObjFraig)) )
-        return pObjFraig;
-    Aig_Regular(pObjFraig)->pData = p;
     // get representative of this class
-    pObjRepr = Fra_ClassObjRepr(pObj);
+    pObjRepr = Fra_ClassObjRepr( pObj );
     if ( pObjRepr == NULL || // this is a unique node
        (!p->pPars->fDoSparse && pObjRepr == Aig_ManConst1(p->pManAig)) ) // this is a sparse node
-    {
-        assert( Aig_Regular(pFanin0Fraig) != Aig_Regular(pFanin1Fraig) );
-        assert( Aig_Regular(pObjFraig) != Aig_Regular(pFanin0Fraig) );
-        assert( Aig_Regular(pObjFraig) != Aig_Regular(pFanin1Fraig) );
-        return pObjFraig;
-    }
+        return;
+    // get the fraiged node
+    pObjFraig = Fra_ObjFraig( pObj, p->pPars->nFramesK );
     // get the fraiged representative
-    pObjReprFraig = Fra_ObjFraig(pObjRepr,0);
+    pObjReprFraig = Fra_ObjFraig( pObjRepr, p->pPars->nFramesK );
     // if the fraiged nodes are the same, return
     if ( Aig_Regular(pObjFraig) == Aig_Regular(pObjReprFraig) )
-        return pObjFraig;
-    assert( Aig_Regular(pObjFraig) != Aig_ManConst1(p->pManFraig) );
-//    printf( "Node = %d. Repr = %d.\n", pObj->Id, pObjRepr->Id );
-
+        return;
+    assert( p->pPars->nFramesK || Aig_Regular(pObjFraig) != Aig_ManConst1(p->pManFraig) );
     // if they are proved different, the c-ex will be in p->pPatWords
     RetValue = Fra_NodesAreEquiv( p, Aig_Regular(pObjReprFraig), Aig_Regular(pObjFraig) );
     if ( RetValue == 1 )  // proved equivalent
     {
-//        pObj->fMarkA = 1;
 //        if ( p->pPars->fChoicing )
 //            Aig_ObjCreateRepr( p->pManFraig, Aig_Regular(pObjReprFraig), Aig_Regular(pObjFraig) );
-        return Aig_NotCond( pObjReprFraig, pObj->fPhase ^ pObjRepr->fPhase );
+        // the nodes proved equal
+        pObjFraig2 = Aig_NotCond( pObjReprFraig, pObj->fPhase ^ pObjRepr->fPhase );
+        Fra_ObjSetFraig( pObj, p->pPars->nFramesK, pObjFraig2 );
+        return;
     }
     if ( RetValue == -1 ) // failed
     {
-        static int Counter = 0;
-        char FileName[20];
-        Aig_Man_t * pTemp;
-        Aig_Obj_t * pNode;
-        int i;
-
-        Aig_Obj_t * ppNodes[2] = { Aig_Regular(pObjReprFraig), Aig_Regular(pObjFraig) };
-//        Vec_Ptr_t * vNodes;
-
+        if ( p->vTimeouts == NULL )
+            p->vTimeouts = Vec_PtrAlloc( 100 );
         Vec_PtrPush( p->vTimeouts, pObj );
         if ( !p->pPars->fSpeculate )
-            return pObjFraig;
-        // substitute the node
-//        pObj->fMarkB = 1;
+            return;
+        assert( 0 );
+        // speculate
         p->nSpeculs++;
-
-        pTemp = Aig_ManExtractMiter( p->pManFraig, ppNodes, 2 );
-        sprintf( FileName, "aig\\%03d.blif", ++Counter );
-        Aig_ManDumpBlif( pTemp, FileName );
-        printf( "Speculation cone with %d nodes was written into file \"%s\".\n", Aig_ManNodeNum(pTemp), FileName );
-        Aig_ManStop( pTemp );
-
-        Aig_ManForEachObj( p->pManFraig, pNode, i )
-            pNode->pData = p;
-
-//        vNodes = Aig_ManDfsNodes( p->pManFraig, ppNodes, 2 );
-//        printf( "Cone=%d ", Vec_PtrSize(vNodes) );
-//        Vec_PtrFree( vNodes );
-
-        return Aig_NotCond( pObjReprFraig, pObj->fPhase ^ pObjRepr->fPhase );
+        pObjFraig2 = Aig_NotCond( pObjReprFraig, pObj->fPhase ^ pObjRepr->fPhase );
+        Fra_ObjSetFraig( pObj, p->pPars->nFramesK, pObjFraig2 );
+        Fra_FraigNodeSpeculate( p, pObj, Aig_Regular(pObjFraig), Aig_Regular(pObjReprFraig) );
+        return;
     }
+//printf( "Disproved %d and %d.\n", pObj->Id, pObjRepr->Id );
+    // disprove the nodes
+    // if we do not include the node into those disproved, we may end up 
+    // merging this node with another representative, for which proof has timed out
+    if ( p->vTimeouts )
+        Vec_PtrPush( p->vTimeouts, pObj );
     // simulate the counter-example and return the Fraig node
     Fra_Resimulate( p );
     assert( Fra_ClassObjRepr(pObj) != pObjRepr );
-    return pObjFraig;
 }
 
 /**Function*************************************************************
@@ -139,15 +145,22 @@ p->nClassesZero = Vec_PtrSize(p->pCla->vClasses1);
 p->nClassesBeg  = Vec_PtrSize(p->pCla->vClasses) + (int)(Vec_PtrSize(p->pCla->vClasses1) > 0);
     // duplicate internal nodes
     pProgress = Extra_ProgressBarStart( stdout, Aig_ManObjIdMax(p->pManAig) );
+    // fraig latch outputs
+    Aig_ManForEachLoSeq( p->pManAig, pObj, i )
+        Fra_FraigNode( p, pObj );
+    // fraig internal nodes
     Aig_ManForEachNode( p->pManAig, pObj, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
-        // default to simple strashing if simulation detected a counter-example for a PO
+        // derive and remember the new fraig node
+        pObjNew = Aig_And( p->pManFraig, Fra_ObjChild0Fra(pObj,p->pPars->nFramesK), Fra_ObjChild1Fra(pObj,p->pPars->nFramesK) );
+        Fra_ObjSetFraig( pObj, p->pPars->nFramesK, pObjNew );
+        Aig_Regular(pObjNew)->pData = p;
+        // quit if simulation detected a counter-example for a PO
         if ( p->pManFraig->pData )
-            pObjNew = Aig_And( p->pManFraig, Fra_ObjChild0Fra(pObj,0), Fra_ObjChild1Fra(pObj,0) );
-        else
-            pObjNew = Fra_And( p, pObj ); // pObjNew can be complemented
-        Fra_ObjSetFraig( pObj, 0, pObjNew );
+            continue;
+        // perform fraiging
+        Fra_FraigNode( p, pObj );
     }
     Extra_ProgressBarStop( pProgress );
 p->nClassesEnd = Vec_PtrSize(p->pCla->vClasses) + (int)(Vec_PtrSize(p->pCla->vClasses1) > 0);
@@ -198,6 +211,14 @@ clk = clock();
         Aig_ManCleanup( p->pManFraig );
         pManAigNew = p->pManFraig;
         p->pManFraig = NULL;
+/*
+        Fra_ClassesCopyReprs( p->pCla, p->vTimeouts );
+        pManAigNew = Aig_ManDupRepr( p->pManAig );
+//        Aig_ManCreateChoices( pManAigNew );
+        Aig_ManCleanup( pManAigNew );
+        Aig_ManStop( p->pManFraig );
+        p->pManFraig = NULL;
+*/
     }
 p->timeTotal = clock() - clk;
     Fra_ManStop( p );

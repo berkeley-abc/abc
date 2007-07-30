@@ -44,6 +44,7 @@ static int Fra_SetActivityFactors( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * 
 int Fra_NodesAreEquiv( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
 {
     int pLits[4], RetValue, RetValue1, nBTLimit, clk, clk2 = clock();
+    int status;
 
     // make sure the nodes are not complemented
     assert( !Aig_IsComplement(pNew) );
@@ -54,7 +55,7 @@ int Fra_NodesAreEquiv( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
     // if the backtrack limit is small, simply skip this node
     // if the backtrack limit is > 10, take the quare root of the limit
     nBTLimit = p->pPars->nBTLimitNode;
-    if ( !p->pPars->fSpeculate && p->pPars->nTimeFrames == 0 && (nBTLimit > 0 && (pOld->fMarkB || pNew->fMarkB)) )
+    if ( !p->pPars->fSpeculate && p->pPars->nFramesK == 0 && (nBTLimit > 0 && (pOld->fMarkB || pNew->fMarkB)) )
     {
         p->nSatFails++;
         // fail immediately
@@ -76,6 +77,13 @@ int Fra_NodesAreEquiv( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
 
     // if the nodes do not have SAT variables, allocate them
     Fra_NodeAddToSolver( p, pOld, pNew );
+
+    if ( p->pSat->qtail != p->pSat->qhead )
+    {
+        status = sat_solver_simplify(p->pSat);
+        assert( status != 0 );
+        assert( p->pSat->qtail == p->pSat->qhead );
+    }
 
     // prepare variable activity
     if ( p->pPars->fConeBias )

@@ -75,9 +75,9 @@ clk = clock();
     Aig_MmFixedStop( pMemCuts, 0 );
 p->timeSave = clock() - clk;
 
-PRT( "Cuts   ", p->timeCuts );
-PRT( "Map    ", p->timeMap  );
-PRT( "Saving ", p->timeSave );
+//PRT( "Cuts   ", p->timeCuts );
+//PRT( "Map    ", p->timeMap  );
+//PRT( "Saving ", p->timeSave );
     return pCnf;
 }
 

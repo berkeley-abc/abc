@@ -69,7 +69,7 @@ struct Fra_Par_t_
     int              fConeBias;         // bias variables in the cone (good for unsat runs)
     int              nBTLimitNode;      // conflict limit at a node
     int              nBTLimitMiter;     // conflict limit at an output
-    int              nTimeFrames;       // the number of timeframes to unroll
+    int              nFramesK;          // the number of timeframes to unroll
 };
 
 // FRAIG equivalence classes
@@ -97,7 +97,7 @@ struct Fra_Man_t_
     Aig_Man_t *      pManAig;           // the starting AIG manager
     Aig_Man_t *      pManFraig;         // the final AIG manager
     // mapping AIG into FRAIG
-    int              nFrames;           // the number of timeframes used
+    int              nFramesAll;        // the number of timeframes used
     Aig_Obj_t **     pMemFraig;         // memory allocated for points to the fraig nodes
     // simulation info
     unsigned *       pSimWords;         // memory for simulation information
@@ -152,20 +152,20 @@ struct Fra_Man_t_
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline unsigned *   Fra_ObjSim( Aig_Obj_t * pObj )   { return ((Fra_Man_t *)pObj->pData)->pSimWords + ((Fra_Man_t *)pObj->pData)->nSimWords * pObj->Id;    }
-static inline unsigned     Fra_ObjRandomSim()               { return (rand() << 24) ^ (rand() << 12) ^ rand(); }
+static inline unsigned *   Fra_ObjSim( Aig_Obj_t * pObj )   { return ((Fra_Man_t *)pObj->pData)->pSimWords + ((Fra_Man_t *)pObj->pData)->nSimWords * pObj->Id;   }
+static inline unsigned     Fra_ObjRandomSim()               { return (rand() << 24) ^ (rand() << 12) ^ rand();                                                   }
 
-static inline Aig_Obj_t *  Fra_ObjFraig( Aig_Obj_t * pObj, int i )                       { return ((Fra_Man_t *)pObj->pData)->pMemFraig[((Fra_Man_t *)pObj->pData)->nFrames*pObj->Id + i];  }
-static inline void         Fra_ObjSetFraig( Aig_Obj_t * pObj, int i, Aig_Obj_t * pNode ) { ((Fra_Man_t *)pObj->pData)->pMemFraig[((Fra_Man_t *)pObj->pData)->nFrames*pObj->Id + i] = pNode; }
+static inline Aig_Obj_t *  Fra_ObjFraig( Aig_Obj_t * pObj, int i )                       { return ((Fra_Man_t *)pObj->pData)->pMemFraig[((Fra_Man_t *)pObj->pData)->nFramesAll*pObj->Id + i];  }
+static inline void         Fra_ObjSetFraig( Aig_Obj_t * pObj, int i, Aig_Obj_t * pNode ) { ((Fra_Man_t *)pObj->pData)->pMemFraig[((Fra_Man_t *)pObj->pData)->nFramesAll*pObj->Id + i] = pNode; }
 
-static inline Vec_Ptr_t *  Fra_ObjFaninVec( Aig_Obj_t * pObj )                           { return ((Fra_Man_t *)pObj->pData)->pMemFanins[pObj->Id];               }
-static inline void         Fra_ObjSetFaninVec( Aig_Obj_t * pObj, Vec_Ptr_t * vFanins )   { ((Fra_Man_t *)pObj->pData)->pMemFanins[pObj->Id]  = vFanins;           }
+static inline Vec_Ptr_t *  Fra_ObjFaninVec( Aig_Obj_t * pObj )                           { return ((Fra_Man_t *)pObj->pData)->pMemFanins[pObj->Id];      }
+static inline void         Fra_ObjSetFaninVec( Aig_Obj_t * pObj, Vec_Ptr_t * vFanins )   { ((Fra_Man_t *)pObj->pData)->pMemFanins[pObj->Id] = vFanins;   }
 
-static inline int          Fra_ObjSatNum( Aig_Obj_t * pObj )                             { return ((Fra_Man_t *)pObj->pData)->pMemSatNums[pObj->Id];              }
-static inline void         Fra_ObjSetSatNum( Aig_Obj_t * pObj, int Num )                 { ((Fra_Man_t *)pObj->pData)->pMemSatNums[pObj->Id] = Num;               }
+static inline int          Fra_ObjSatNum( Aig_Obj_t * pObj )                             { return ((Fra_Man_t *)pObj->pData)->pMemSatNums[pObj->Id];     }
+static inline void         Fra_ObjSetSatNum( Aig_Obj_t * pObj, int Num )                 { ((Fra_Man_t *)pObj->pData)->pMemSatNums[pObj->Id] = Num;      }
 
-static inline Aig_Obj_t *  Fra_ClassObjRepr( Aig_Obj_t * pObj )                          { return ((Fra_Man_t *)pObj->pData)->pCla->pMemRepr[pObj->Id];           }
-static inline void         Fra_ClassObjSetRepr( Aig_Obj_t * pObj, Aig_Obj_t * pNode )    { ((Fra_Man_t *)pObj->pData)->pCla->pMemRepr[pObj->Id]    = pNode;       }
+static inline Aig_Obj_t *  Fra_ClassObjRepr( Aig_Obj_t * pObj )                          { return ((Fra_Man_t *)pObj->pData)->pCla->pMemRepr[pObj->Id];  }
+static inline void         Fra_ClassObjSetRepr( Aig_Obj_t * pObj, Aig_Obj_t * pNode )    { ((Fra_Man_t *)pObj->pData)->pCla->pMemRepr[pObj->Id] = pNode; }
 
 static inline Aig_Obj_t *  Fra_ObjChild0Fra( Aig_Obj_t * pObj, int i ) { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin0(pObj)? Aig_NotCond(Fra_ObjFraig(Aig_ObjFanin0(pObj),i), Aig_ObjFaninC0(pObj)) : NULL;  }
 static inline Aig_Obj_t *  Fra_ObjChild1Fra( Aig_Obj_t * pObj, int i ) { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin1(pObj)? Aig_NotCond(Fra_ObjFraig(Aig_ObjFanin1(pObj),i), Aig_ObjFaninC1(pObj)) : NULL;  }
@@ -187,6 +187,8 @@ extern void                Fra_ClassesPrepare( Fra_Cla_t * p );
 extern int                 Fra_ClassesRefine( Fra_Cla_t * p );
 extern int                 Fra_ClassesRefine1( Fra_Cla_t * p );
 extern int                 Fra_ClassesCountLits( Fra_Cla_t * p );
+extern int                 Fra_ClassesCountPairs( Fra_Cla_t * p );
+extern void                Fra_ClassesTest( Fra_Cla_t * p, int Id1, int Id2 );
 /*=== fraCnf.c ========================================================*/
 extern void                Fra_NodeAddToSolver( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew );
 /*=== fraCore.c ========================================================*/
@@ -195,11 +197,12 @@ extern Aig_Man_t *         Fra_FraigChoice( Aig_Man_t * pManAig );
 extern void                Fra_FraigSweep( Fra_Man_t * pManAig );
 /*=== fraDfs.c ========================================================*/
 /*=== fraInd.c ========================================================*/
-extern Aig_Man_t *         Fra_Induction( Aig_Man_t * p, int nFrames, int fVerbose );
+extern Aig_Man_t *         Fra_FraigInduction( Aig_Man_t * p, int nFramesK, int fVerbose );
 /*=== fraMan.c ========================================================*/
 extern void                Fra_ParamsDefault( Fra_Par_t * pParams );
 extern void                Fra_ParamsDefaultSeq( Fra_Par_t * pParams );
 extern Fra_Man_t *         Fra_ManStart( Aig_Man_t * pManAig, Fra_Par_t * pParams );
+extern void                Fra_ManClean( Fra_Man_t * p );
 extern Aig_Man_t *         Fra_ManPrepareComb( Fra_Man_t * p );
 extern void                Fra_ManFinalizeComb( Fra_Man_t * p );
 extern void                Fra_ManStop( Fra_Man_t * p );

@@ -75,6 +75,8 @@ static int         Abc_NtkMaxFlowBwdPath_rec( Abc_Obj_t * pObj );
 static int         Abc_NtkMaxFlowFwdPath_rec( Abc_Obj_t * pObj );
 static int         Abc_NtkMaxFlowBwdPath2_rec( Abc_Obj_t * pObj );
 static int         Abc_NtkMaxFlowFwdPath2_rec( Abc_Obj_t * pObj );
+//static int         Abc_NtkMaxFlowBwdPath3_rec( Abc_Obj_t * pObj );
+static int         Abc_NtkMaxFlowFwdPath3_rec( Abc_Obj_t * pObj, Abc_Obj_t * pPrev, int fFanin );
 static Vec_Ptr_t * Abc_NtkMaxFlowMinCut( Abc_Ntk_t * pNtk, int fForward );
 static void        Abc_NtkMaxFlowMinCutUpdate( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, int fForward );
 static int         Abc_NtkMaxFlowVerifyCut( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMinCut, int fForward );
@@ -107,6 +109,7 @@ void Abc_NtkMaxFlowTest( Abc_Ntk_t * pNtk )
         pObj->fMarkA = 1;
     Abc_NtkForEachLatch( pNtk, pObj, i )
         pObj->fMarkA = Abc_ObjFanin0(pObj)->fMarkA = 1;
+//        Abc_ObjFanin0(pObj)->fMarkA = 1;
     vMinCut = Abc_NtkMaxFlow( pNtk, 1, 1 );
     Vec_PtrFree( vMinCut );
     Abc_NtkCleanMarkA( pNtk );
@@ -116,6 +119,7 @@ void Abc_NtkMaxFlowTest( Abc_Ntk_t * pNtk )
         pObj->fMarkA = 1;
     Abc_NtkForEachLatch( pNtk, pObj, i )
         pObj->fMarkA = Abc_ObjFanout0(pObj)->fMarkA = 1;
+//        Abc_ObjFanout0(pObj)->fMarkA = 1;
     vMinCut = Abc_NtkMaxFlow( pNtk, 0, 1 );
     Vec_PtrFree( vMinCut );
     Abc_NtkCleanMarkA( pNtk );
@@ -151,6 +155,7 @@ Vec_Ptr_t * Abc_NtkMaxFlow( Abc_Ntk_t * pNtk, int fForward, int fVerbose )
         {
 //            assert( !Abc_ObjFanout0(pLatch)->fMarkA );
             FlowCur  = Abc_NtkMaxFlowFwdPath2_rec( Abc_ObjFanout0(pLatch) );
+//            FlowCur  = Abc_NtkMaxFlowFwdPath3_rec( Abc_ObjFanout0(pLatch), pLatch, 1 );
             Flow    += FlowCur;
         }
         else
@@ -195,6 +200,7 @@ Vec_Ptr_t * Abc_NtkMaxFlow( Abc_Ntk_t * pNtk, int fForward, int fVerbose )
 //            assert( !Abc_ObjFanout0(pLatch)->fMarkA );
             if ( fUseDirectedFlow )
                 RetValue = Abc_NtkMaxFlowFwdPath2_rec( Abc_ObjFanout0(pLatch) );
+//                RetValue = Abc_NtkMaxFlowFwdPath3_rec( Abc_ObjFanout0(pLatch), pLatch, 1 );
             else
                 RetValue = Abc_NtkMaxFlowFwdPath_rec( Abc_ObjFanout0(pLatch) );
         }
@@ -330,6 +336,47 @@ int Abc_NtkMaxFlowFwdPath_rec( Abc_Obj_t * pObj )
     // try the fanout
     if ( Abc_NtkMaxFlowFwdPath_rec( pPred ) )
         return Abc_ObjSetPath( pPred, NULL );
+    return 0;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Tries to find an augmenting path originating in this edge.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkMaxFlowFwdPath3_rec( Abc_Obj_t * pObj, Abc_Obj_t * pPrev, int fFanin )
+{
+    Abc_Obj_t * pFanin, * pFanout;
+    int i;
+    // skip visited nodes
+    if ( Abc_NodeIsTravIdCurrent(pObj) )
+        return 0;
+    Abc_NodeSetTravIdCurrent(pObj);
+    // skip the fanin which already has flow
+    if ( fFanin && Abc_ObjGetPath(pPrev) )
+        return 0;
+    // if the node has no flow, try to push through the fanouts
+    if ( !Abc_ObjGetPath(pObj) )
+    {
+        // start the path if we reached a terminal node
+        if ( pObj->fMarkA )
+            return Abc_ObjSetPath( pObj, (void *)1 );
+        // try to push flow through the fanouts
+        Abc_ObjForEachFanout( pObj, pFanout, i )
+            if ( Abc_NtkMaxFlowFwdPath3_rec(pFanout, pObj, 1) )
+                return fFanin? Abc_ObjSetPath(pPrev, pObj) : 1;
+    }
+    // try to push through the fanins
+    Abc_ObjForEachFanin( pObj, pFanin, i )
+        if ( !Abc_ObjIsLatch(pFanin) && Abc_NtkMaxFlowFwdPath3_rec(pFanin, pObj, 0) )
+            return Abc_ObjSetPath( pFanin, NULL );
     return 0;
 }
 

@@ -26,6 +26,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 static inline int Cnf_Lit2Var( int Lit )        { return (Lit & 1)? -(Lit >> 1)-1 : (Lit >> 1)+1;  }
+static inline int Cnf_Lit2Var2( int Lit )       { return (Lit & 1)? -(Lit >> 1)   : (Lit >> 1);    }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -138,7 +139,7 @@ void Cnf_DataFree( Cnf_Dat_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Cnf_DataWriteIntoFile( Cnf_Dat_t * p, char * pFileName )
+void Cnf_DataWriteIntoFile( Cnf_Dat_t * p, char * pFileName, int fReadable )
 {
     FILE * pFile;
     int * pLit, * pStop, i;
@@ -153,7 +154,7 @@ void Cnf_DataWriteIntoFile( Cnf_Dat_t * p, char * pFileName )
     for ( i = 0; i < p->nClauses; i++ )
     {
         for ( pLit = p->pClauses[i], pStop = p->pClauses[i+1]; pLit < pStop; pLit++ )
-            fprintf( pFile, "%d ", Cnf_Lit2Var(*pLit) );
+            fprintf( pFile, "%d ", fReadable? Cnf_Lit2Var2(*pLit) : Cnf_Lit2Var(*pLit) );
         fprintf( pFile, "0\n" );
     }
     fprintf( pFile, "\n" );
@@ -174,7 +175,7 @@ void Cnf_DataWriteIntoFile( Cnf_Dat_t * p, char * pFileName )
 void * Cnf_DataWriteIntoSolver( Cnf_Dat_t * p )
 {
     sat_solver * pSat;
-    int i;
+    int i, status;
     pSat = sat_solver_new();
     sat_solver_setnvars( pSat, p->nVars );
     for ( i = 0; i < p->nClauses; i++ )
@@ -184,6 +185,12 @@ void * Cnf_DataWriteIntoSolver( Cnf_Dat_t * p )
             sat_solver_delete( pSat );
             return NULL;
         }
+    }
+    status = sat_solver_simplify(pSat);
+    if ( status == 0 )
+    {
+        sat_solver_delete( pSat );
+        return NULL;
     }
     return pSat;
 }

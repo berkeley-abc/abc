@@ -268,7 +268,10 @@ Vec_Int_t * Abc_NtkGetLatchValues( Abc_Ntk_t * pNtk )
     int i;
     vInits = Vec_IntAlloc( Abc_NtkLatchNum(pNtk) );
     Abc_NtkForEachLatch( pNtk, pLatch, i )
+    {
+        assert( Abc_LatchIsInit1(pLatch) == 0 );
         Vec_IntPush( vInits, Abc_LatchIsInit1(pLatch) );
+    }
     return vInits;
 }
 
@@ -715,7 +718,7 @@ Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName )
     Vec_PtrFree( vMapped );
 
     // write CNF into a file
-    Cnf_DataWriteIntoFile( pCnf, pFileName );
+    Cnf_DataWriteIntoFile( pCnf, pFileName, 0 );
     Cnf_DataFree( pCnf );
     Cnf_ClearMemory();
 
@@ -750,7 +753,8 @@ int Abc_NtkDSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fVer
     // conver to the manager
     pMan = Abc_NtkToDar( pNtk );
     // derive CNF
-    pCnf = Cnf_Derive( pMan, 0 );
+//    pCnf = Cnf_Derive( pMan, 0 );
+    pCnf = Cnf_DeriveSimple( pMan, 0 );
     // convert into the SAT solver
     pSat = Cnf_DataWriteIntoSolver( pCnf );
     vCiIds = Cnf_DataCollectPiSatNums( pCnf, pMan );
@@ -832,16 +836,16 @@ int Abc_NtkDSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fVer
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkSeqSweep( Abc_Ntk_t * pNtk, int nFrames, int fVerbose )
+Abc_Ntk_t * Abc_NtkSeqSweep( Abc_Ntk_t * pNtk, int nFramesK, int fVerbose )
 {
     Abc_Ntk_t * pNtkAig;
     Aig_Man_t * pMan, * pTemp;
     pMan = Abc_NtkToDar( pNtk );
     if ( pMan == NULL )
         return NULL;
-    pMan->vInits = Abc_NtkGetLatchValues( pNtk );
+    pMan->nRegs = Abc_NtkLatchNum(pNtk);
 
-    pMan = Fra_Induction( pTemp = pMan, nFrames, fVerbose );
+    pMan = Fra_FraigInduction( pTemp = pMan, nFramesK, fVerbose );
     Aig_ManStop( pTemp );
 
     pNtkAig = Abc_NtkFromDar( pNtk, pMan );

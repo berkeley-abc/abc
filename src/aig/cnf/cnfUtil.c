@@ -98,7 +98,7 @@ Vec_Ptr_t * Aig_ManScanMapping( Cnf_Man_t * p, int fCollect )
     p->aArea = 0;
     Aig_ManForEachPo( p->pManAig, pObj, i )
         p->aArea += Aig_ManScanMapping_rec( p, Aig_ObjFanin0(pObj), vMapped );
-    printf( "Variables = %6d. Clauses = %8d.\n", vMapped? Vec_PtrSize(vMapped) + Aig_ManPiNum(p->pManAig) + 1 : 0, p->aArea + 2 );
+//    printf( "Variables = %6d. Clauses = %8d.\n", vMapped? Vec_PtrSize(vMapped) + Aig_ManPiNum(p->pManAig) + 1 : 0, p->aArea + 2 );
     return vMapped;
 }
 
@@ -177,7 +177,7 @@ Vec_Ptr_t * Cnf_ManScanMapping( Cnf_Man_t * p, int fCollect, int fPreorder )
     p->aArea = 0;
     Aig_ManForEachPo( p->pManAig, pObj, i )
         p->aArea += Cnf_ManScanMapping_rec( p, Aig_ObjFanin0(pObj), vMapped, fPreorder );
-    printf( "Variables = %6d. Clauses = %8d.\n", vMapped? Vec_PtrSize(vMapped) + Aig_ManPiNum(p->pManAig) + 1 : 0, p->aArea + 2 );
+//    printf( "Variables = %6d. Clauses = %8d.\n", vMapped? Vec_PtrSize(vMapped) + Aig_ManPiNum(p->pManAig) + 1 : 0, p->aArea + 2 );
     return vMapped;
 }
 

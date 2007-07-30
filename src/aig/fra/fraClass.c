@@ -62,11 +62,11 @@ Fra_Cla_t * Fra_ClassesStart( Aig_Man_t * pAig )
     p->pAig = pAig;
     p->pMemRepr  = ALLOC( Aig_Obj_t *, (Aig_ManObjIdMax(pAig) + 1) );
     memset( p->pMemRepr, 0, sizeof(Aig_Obj_t *) * (Aig_ManObjIdMax(pAig) + 1) );
-    p->vClasses   = Vec_PtrAlloc( 100 );
-    p->vClasses1  = Vec_PtrAlloc( 100 );
+    p->vClasses     = Vec_PtrAlloc( 100 );
+    p->vClasses1    = Vec_PtrAlloc( 100 );
     p->vClassesTemp = Vec_PtrAlloc( 100 );
-    p->vClassOld  = Vec_PtrAlloc( 100 );
-    p->vClassNew  = Vec_PtrAlloc( 100 );
+    p->vClassOld    = Vec_PtrAlloc( 100 );
+    p->vClassNew    = Vec_PtrAlloc( 100 );
     return p;
 }
 
@@ -83,8 +83,8 @@ Fra_Cla_t * Fra_ClassesStart( Aig_Man_t * pAig )
 ***********************************************************************/
 void Fra_ClassesStop( Fra_Cla_t * p )
 {
-    free( p->pMemClasses );
-    free( p->pMemRepr );
+    FREE( p->pMemClasses );
+    FREE( p->pMemRepr );
     if ( p->vClassesTemp ) Vec_PtrFree( p->vClassesTemp );
     if ( p->vClassNew )    Vec_PtrFree( p->vClassNew );
     if ( p->vClassOld )    Vec_PtrFree( p->vClassOld );
@@ -110,11 +110,9 @@ void Fra_ClassesCopyReprs( Fra_Cla_t * p, Vec_Ptr_t * vFailed )
     int i;
     Aig_ManReprStart( p->pAig, Aig_ManObjIdMax(p->pAig) + 1 );
     memmove( p->pAig->pReprs, p->pMemRepr, sizeof(Aig_Obj_t *) * (Aig_ManObjIdMax(p->pAig) + 1) );
+    if ( vFailed )
     Vec_PtrForEachEntry( vFailed, pObj, i )
-    {
-//        assert( p->pAig->pReprs[pObj->Id] != NULL );
         p->pAig->pReprs[pObj->Id] = NULL;
-    }
 }
 
 /**Function*************************************************************
@@ -159,30 +157,6 @@ int Fra_ClassCount( Aig_Obj_t ** pClass )
 
 /**Function*************************************************************
 
-  Synopsis    [Count the number of pairs.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Fra_ClassesCountPairs( Fra_Cla_t * p )
-{
-    Aig_Obj_t ** pClass;
-    int i, nNodes, nPairs = 0;
-    Vec_PtrForEachEntry( p->vClasses, pClass, i )
-    {
-        nNodes = Fra_ClassCount( pClass );
-        assert( nNodes > 1 );
-        nPairs += nNodes * (nNodes - 1) / 2;
-    }
-    return nPairs;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Count the number of literals.]
 
   Description []
@@ -208,6 +182,30 @@ int Fra_ClassesCountLits( Fra_Cla_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Count the number of pairs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fra_ClassesCountPairs( Fra_Cla_t * p )
+{
+    Aig_Obj_t ** pClass;
+    int i, nNodes, nPairs = 0;
+    Vec_PtrForEachEntry( p->vClasses, pClass, i )
+    {
+        nNodes = Fra_ClassCount( pClass );
+        assert( nNodes > 1 );
+        nPairs += nNodes * (nNodes - 1) / 2;
+    }
+    return nPairs;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Prints simulation classes.]
 
   Description []
@@ -220,14 +218,22 @@ int Fra_ClassesCountLits( Fra_Cla_t * p )
 void Fra_ClassesPrint( Fra_Cla_t * p )
 {
     Aig_Obj_t ** pClass;
+    Aig_Obj_t * pObj;
     int i;
-    printf( "Total classes = %d. Total pairs = %d.\n", Vec_PtrSize(p->vClasses), Fra_ClassesCountPairs(p) );
+    printf( "Consts = %6d. Classes = %6d. Literals = %6d.\n", 
+        Vec_PtrSize(p->vClasses1), Vec_PtrSize(p->vClasses), Fra_ClassesCountLits(p) );
+/*
+    printf( "Constants { " );
+    Vec_PtrForEachEntry( p->vClasses1, pObj, i )
+        printf( "%d ", pObj->Id );
+    printf( "}\n" );
     Vec_PtrForEachEntry( p->vClasses, pClass, i )
     {
         printf( "%3d (%3d) : ", i, Fra_ClassCount(pClass) );
         Fra_PrintClass( pClass );
     }
     printf( "\n" );
+*/
 }
 
 /**Function*************************************************************
@@ -259,6 +265,9 @@ void Fra_ClassesPrepare( Fra_Cla_t * p )
     {
         if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsPi(pObj) )
             continue;
+//printf( "%3d : ", pObj->Id );
+//Extra_PrintBinary( stdout, Fra_ObjSim(pObj), 32 );
+//printf( "\n" );
         // hash the node by its simulation info
         iEntry = Fra_NodeHashSims( pObj ) % nTableSize;
         // check if the node belongs to the class of constant 1
@@ -428,6 +437,7 @@ int Fra_RefineClassLastIter( Fra_Cla_t * p, Vec_Ptr_t * vClasses )
             break;
         }
         // othewise, add the class and continue
+        assert( pClass2[0] != NULL );
         Vec_PtrPush( vClasses, pClass2 );
         pClass = pClass2;
     }
@@ -457,6 +467,7 @@ int Fra_ClassesRefine( Fra_Cla_t * p )
     Vec_PtrForEachEntry( p->vClasses, pClass, i )
     {
         // add the class to the new array
+        assert( pClass[0] != NULL );
         Vec_PtrPush( p->vClassesTemp, pClass );
         // refine the class iteratively
         nRefis += Fra_RefineClassLastIter( p, p->vClassesTemp );
@@ -517,10 +528,36 @@ int Fra_ClassesRefine1( Fra_Cla_t * p )
         ppClass[Vec_PtrSize(p->vClassNew)+i] = NULL;
         Fra_ClassObjSetRepr( pObj, i? ppClass[0] : NULL );
     }
+    assert( ppClass[0] != NULL );
     Vec_PtrPush( p->vClasses, ppClass );
     // iteratively refine this class
     nRefis = 1 + Fra_RefineClassLastIter( p, p->vClasses );
     return nRefis;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Starts representation of equivalence classes with one class.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fra_ClassesTest( Fra_Cla_t * p, int Id1, int Id2 )
+{
+    Aig_Obj_t ** pClass;
+    p->pMemClasses = ALLOC( Aig_Obj_t *, 4 );
+    pClass = p->pMemClasses;
+    assert( Id1 < Id2 );
+    pClass[0] = Aig_ManObj( p->pAig, Id1 );
+    pClass[1] = Aig_ManObj( p->pAig, Id2 );
+    pClass[2] = NULL;
+    pClass[3] = NULL;
+    Fra_ClassObjSetRepr( pClass[1], pClass[0] );
+    Vec_PtrPush( p->vClasses, pClass );
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -92,7 +92,7 @@ struct Aig_Man_t_
     Vec_Ptr_t *      vBufs;          // the array of buffers
     Aig_Obj_t *      pConst1;        // the constant 1 node
     Aig_Obj_t        Ghost;          // the ghost node
-    Vec_Int_t *      vInits;         // the initial values of the latches (latches are last PIs/POs)
+    int              nRegs;          // the number of registers
     int              nAsserts;       // the number of asserts among POs (asserts are first POs)
     // AIG node counters
     int              nObjs[AIG_OBJ_VOID];// the number of objects by type
@@ -156,13 +156,6 @@ static inline Aig_Obj_t *  Aig_Not( Aig_Obj_t * p )               { return (Aig_
 static inline Aig_Obj_t *  Aig_NotCond( Aig_Obj_t * p, int c )    { return (Aig_Obj_t *)((unsigned long)(p) ^ (c)); }
 static inline int          Aig_IsComplement( Aig_Obj_t * p )      { return (int )(((unsigned long)p) & 01);         }
 
-static inline Aig_Obj_t *  Aig_ManConst0( Aig_Man_t * p )         { return Aig_Not(p->pConst1);                     }
-static inline Aig_Obj_t *  Aig_ManConst1( Aig_Man_t * p )         { return p->pConst1;                              }
-static inline Aig_Obj_t *  Aig_ManGhost( Aig_Man_t * p )          { return &p->Ghost;                               }
-static inline Aig_Obj_t *  Aig_ManPi( Aig_Man_t * p, int i )      { return (Aig_Obj_t *)Vec_PtrEntry(p->vPis, i);   }
-static inline Aig_Obj_t *  Aig_ManPo( Aig_Man_t * p, int i )      { return (Aig_Obj_t *)Vec_PtrEntry(p->vPos, i);   }
-static inline Aig_Obj_t *  Aig_ManObj( Aig_Man_t * p, int i )     { return p->vObjs ? (Aig_Obj_t *)Vec_PtrEntry(p->vObjs, i) : NULL;  }
-
 static inline int          Aig_ManPiNum( Aig_Man_t * p )          { return p->nObjs[AIG_OBJ_PI];                    }
 static inline int          Aig_ManPoNum( Aig_Man_t * p )          { return p->nObjs[AIG_OBJ_PO];                    }
 static inline int          Aig_ManBufNum( Aig_Man_t * p )         { return p->nObjs[AIG_OBJ_BUF];                   }
@@ -173,7 +166,16 @@ static inline int          Aig_ManNodeNum( Aig_Man_t * p )        { return p->nO
 static inline int          Aig_ManGetCost( Aig_Man_t * p )        { return p->nObjs[AIG_OBJ_AND]+3*p->nObjs[AIG_OBJ_EXOR]; }
 static inline int          Aig_ManObjNum( Aig_Man_t * p )         { return p->nCreated - p->nDeleted;               }
 static inline int          Aig_ManObjIdMax( Aig_Man_t * p )       { return Vec_PtrSize(p->vObjs);                   }
-static inline int          Aig_ManInitNum( Aig_Man_t * p )        { return p->vInits? Vec_IntSize(p->vInits) : 0;   }
+static inline int          Aig_ManRegNum( Aig_Man_t * p )         { return p->nRegs;                                }
+
+static inline Aig_Obj_t *  Aig_ManConst0( Aig_Man_t * p )         { return Aig_Not(p->pConst1);                     }
+static inline Aig_Obj_t *  Aig_ManConst1( Aig_Man_t * p )         { return p->pConst1;                              }
+static inline Aig_Obj_t *  Aig_ManGhost( Aig_Man_t * p )          { return &p->Ghost;                               }
+static inline Aig_Obj_t *  Aig_ManPi( Aig_Man_t * p, int i )      { return (Aig_Obj_t *)Vec_PtrEntry(p->vPis, i);   }
+static inline Aig_Obj_t *  Aig_ManPo( Aig_Man_t * p, int i )      { return (Aig_Obj_t *)Vec_PtrEntry(p->vPos, i);   }
+static inline Aig_Obj_t *  Aig_ManLo( Aig_Man_t * p, int i )      { return (Aig_Obj_t *)Vec_PtrEntry(p->vPis, Aig_ManPiNum(p)-Aig_ManRegNum(p)+i);   }
+static inline Aig_Obj_t *  Aig_ManLi( Aig_Man_t * p, int i )      { return (Aig_Obj_t *)Vec_PtrEntry(p->vPos, Aig_ManPoNum(p)-Aig_ManRegNum(p)+i);   }
+static inline Aig_Obj_t *  Aig_ManObj( Aig_Man_t * p, int i )     { return p->vObjs ? (Aig_Obj_t *)Vec_PtrEntry(p->vObjs, i) : NULL;  }
 
 static inline Aig_Type_t   Aig_ObjType( Aig_Obj_t * pObj )        { return (Aig_Type_t)pObj->Type;       }
 static inline int          Aig_ObjIsNone( Aig_Obj_t * pObj )      { return pObj->Type == AIG_OBJ_NONE;   }
@@ -204,14 +206,16 @@ static inline int          Aig_ObjRefs( Aig_Obj_t * pObj )        { return pObj-
 static inline void         Aig_ObjRef( Aig_Obj_t * pObj )         { pObj->nRefs++;                                 }
 static inline void         Aig_ObjDeref( Aig_Obj_t * pObj )       { assert( pObj->nRefs > 0 ); pObj->nRefs--;      }
 static inline void         Aig_ObjClearRef( Aig_Obj_t * pObj )    { pObj->nRefs = 0;                               }
+static inline int          Aig_ObjFaninId0( Aig_Obj_t * pObj )    { return pObj->pFanin0? Aig_Regular(pObj->pFanin0)->Id : -1; }
+static inline int          Aig_ObjFaninId1( Aig_Obj_t * pObj )    { return pObj->pFanin1? Aig_Regular(pObj->pFanin1)->Id : -1; }
 static inline int          Aig_ObjFaninC0( Aig_Obj_t * pObj )     { return Aig_IsComplement(pObj->pFanin0);        }
 static inline int          Aig_ObjFaninC1( Aig_Obj_t * pObj )     { return Aig_IsComplement(pObj->pFanin1);        }
 static inline Aig_Obj_t *  Aig_ObjFanin0( Aig_Obj_t * pObj )      { return Aig_Regular(pObj->pFanin0);             }
 static inline Aig_Obj_t *  Aig_ObjFanin1( Aig_Obj_t * pObj )      { return Aig_Regular(pObj->pFanin1);             }
 static inline Aig_Obj_t *  Aig_ObjChild0( Aig_Obj_t * pObj )      { return pObj->pFanin0;                          }
 static inline Aig_Obj_t *  Aig_ObjChild1( Aig_Obj_t * pObj )      { return pObj->pFanin1;                          }
-static inline Aig_Obj_t *  Aig_ObjChild0Copy( Aig_Obj_t * pObj ) { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin0(pObj)? Aig_NotCond((Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0(pObj)) : NULL;  }
-static inline Aig_Obj_t *  Aig_ObjChild1Copy( Aig_Obj_t * pObj ) { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin1(pObj)? Aig_NotCond((Aig_Obj_t *)Aig_ObjFanin1(pObj)->pData, Aig_ObjFaninC1(pObj)) : NULL;  }
+static inline Aig_Obj_t *  Aig_ObjChild0Copy( Aig_Obj_t * pObj )  { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin0(pObj)? Aig_NotCond((Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0(pObj)) : NULL;  }
+static inline Aig_Obj_t *  Aig_ObjChild1Copy( Aig_Obj_t * pObj )  { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin1(pObj)? Aig_NotCond((Aig_Obj_t *)Aig_ObjFanin1(pObj)->pData, Aig_ObjFaninC1(pObj)) : NULL;  }
 static inline int          Aig_ObjLevel( Aig_Obj_t * pObj )       { return pObj->Level;                            }
 static inline int          Aig_ObjLevelNew( Aig_Obj_t * pObj )    { return Aig_ObjFanin1(pObj)? 1 + Aig_ObjIsExor(pObj) + AIG_MAX(Aig_ObjFanin0(pObj)->Level, Aig_ObjFanin1(pObj)->Level) : Aig_ObjFanin0(pObj)->Level; }
 static inline int          Aig_ObjFaninPhase( Aig_Obj_t * pObj )  { return pObj? Aig_Regular(pObj)->fPhase ^ Aig_IsComplement(pObj) : 0;                              }
@@ -314,16 +318,16 @@ static inline int     Aig_ObjFanoutNext( Aig_Man_t * p, int iFan )   { assert(iF
 
 // iterator over the primary inputs
 #define Aig_ManForEachPiSeq( p, pObj, i )                                       \
-    Vec_PtrForEachEntryStop( p->vPis, pObj, i, Aig_ManPiNum(p)-Aig_ManInitNum(p) )
+    Vec_PtrForEachEntryStop( p->vPis, pObj, i, Aig_ManPiNum(p)-Aig_ManRegNum(p) )
 // iterator over the latch outputs
 #define Aig_ManForEachLoSeq( p, pObj, i )                                       \
-    Vec_PtrForEachEntryStart( p->vPis, pObj, i, Aig_ManPiNum(p)-Aig_ManInitNum(p) )
+    Vec_PtrForEachEntryStart( p->vPis, pObj, i, Aig_ManPiNum(p)-Aig_ManRegNum(p) )
 // iterator over the primary outputs
 #define Aig_ManForEachPoSeq( p, pObj, i )                                       \
-    Vec_PtrForEachEntryStop( p->vPos, pObj, i, Aig_ManPoNum(p)-Aig_ManInitNum(p) )
+    Vec_PtrForEachEntryStop( p->vPos, pObj, i, Aig_ManPoNum(p)-Aig_ManRegNum(p) )
 // iterator over the latch inputs
 #define Aig_ManForEachLiSeq( p, pObj, i )                                       \
-    Vec_PtrForEachEntryStart( p->vPos, pObj, i, Aig_ManPoNum(p)-Aig_ManInitNum(p) )
+    Vec_PtrForEachEntryStart( p->vPos, pObj, i, Aig_ManPoNum(p)-Aig_ManRegNum(p) )
 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
@@ -410,6 +414,8 @@ extern Aig_Man_t *     Aig_ManRehash( Aig_Man_t * p );
 extern void            Aig_ManCreateChoices( Aig_Man_t * p );
 /*=== aigSeq.c ========================================================*/
 extern int             Aig_ManSeqStrash( Aig_Man_t * p, int nLatches, int * pInits );
+/*=== aigShow.c ========================================================*/
+extern void            Aig_ManShow( Aig_Man_t * pMan, int fHaig, Vec_Ptr_t * vBold );
 /*=== aigTable.c ========================================================*/
 extern Aig_Obj_t *     Aig_TableLookup( Aig_Man_t * p, Aig_Obj_t * pGhost );
 extern Aig_Obj_t *     Aig_TableLookupTwo( Aig_Man_t * p, Aig_Obj_t * pFanin0, Aig_Obj_t * pFanin1 );

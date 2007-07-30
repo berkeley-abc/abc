@@ -238,11 +238,15 @@ Aig_Man_t * Aig_ManDupRepr( Aig_Man_t * p )
     Aig_ManForEachPi( p, pObj, i )
         pObj->pData = Aig_ObjCreatePi(pNew);
     // map the internal nodes
+//printf( "\n" );
     Aig_ManForEachNode( p, pObj, i )
     {
         pObj->pData = Aig_And( pNew, Aig_ObjChild0Repr(p, pObj), Aig_ObjChild1Repr(p, pObj) );
         if ( pRepr = Aig_ObjFindRepr(p, pObj) ) // member of the class
+        {
+//printf( "Using node %d for node %d.\n", pRepr->Id, pObj->Id );
             Aig_ObjSetRepr( pNew, Aig_Regular(pRepr->pData), Aig_Regular(pObj->pData) );
+        }
     }
     // transfer the POs
     Aig_ManForEachPo( p, pObj, i )
@@ -381,6 +385,7 @@ void Aig_ManCreateChoices( Aig_Man_t * p )
         pRepr = Aig_ObjFindRepr( p, pObj );
         if ( pRepr == NULL )
             continue;
+        assert( pObj->nRefs == 0 );
         // skip constant and PI classes
         if ( !Aig_ObjIsNode(pRepr) )
         {

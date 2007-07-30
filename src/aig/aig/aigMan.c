@@ -239,7 +239,6 @@ void Aig_ManStop( Aig_Man_t * p )
     if ( p->vBufs )    Vec_PtrFree( p->vBufs );
     if ( p->vLevelR )  Vec_IntFree( p->vLevelR );
     if ( p->vLevels )  Vec_VecFree( p->vLevels );
-    if ( p->vInits )   Vec_IntFree( p->vInits );
     FREE( p->pReprs );
     FREE( p->pEquivs );
     free( p->pTable );

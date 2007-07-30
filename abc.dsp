@@ -2774,6 +2774,10 @@ SOURCE=.\src\aig\aig\aigSeq.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\aig\aigShow.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\aig\aigTable.c
 # End Source File
 # Begin Source File
