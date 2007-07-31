@@ -135,7 +135,7 @@ void Aig_ObjConnect( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFan0, Aig_Obj
     }
     // set level and phase
     pObj->Level = Aig_ObjLevelNew( pObj );
-    pObj->fPhase = Aig_ObjFaninPhase(pFan0) & Aig_ObjFaninPhase(pFan1);
+    pObj->fPhase = Aig_ObjPhaseReal(pFan0) & Aig_ObjPhaseReal(pFan1);
     // add the node to the structural hash table
     if ( Aig_ObjIsHash(pObj) )
         Aig_TableInsert( p, pObj );
@@ -285,6 +285,7 @@ void Aig_NodeFixBufferFanins( Aig_Man_t * p, Aig_Obj_t * pObj, int fNodesOnly, i
     {
         assert( Aig_ObjIsBuf(Aig_ObjFanin0(pObj)) );
         pFanReal0 = Aig_ObjReal_rec( Aig_ObjChild0(pObj) );
+        assert( Aig_ObjPhaseReal(Aig_ObjChild0(pObj)) == Aig_ObjPhaseReal(pFanReal0) );
         Aig_ObjPatchFanin0( p, pObj, pFanReal0 );
         return;
     }

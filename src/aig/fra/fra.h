@@ -70,6 +70,7 @@ struct Fra_Par_t_
     int              nBTLimitNode;      // conflict limit at a node
     int              nBTLimitMiter;     // conflict limit at an output
     int              nFramesK;          // the number of timeframes to unroll
+    int              fRewrite;          // use rewriting for constraint reduction
 };
 
 // FRAIG equivalence classes
@@ -121,11 +122,13 @@ struct Fra_Man_t_
     // statistics
     int              nSimRounds;
     int              nNodesMiter;
-    int              nClassesZero;
-    int              nClassesBeg;
-    int              nClassesEnd;
-    int              nPairsBeg;
-    int              nPairsEnd;
+    int              nLitsZero;
+    int              nLitsBeg;
+    int              nLitsEnd;
+    int              nNodesBeg;
+    int              nNodesEnd;
+    int              nRegsBeg;
+    int              nRegsEnd;
     int              nSatCalls;
     int              nSatCallsSat;
     int              nSatCallsUnsat;
@@ -138,6 +141,7 @@ struct Fra_Man_t_
     // runtime
     int              timeSim;
     int              timeTrav;
+    int              timeRwr;
     int              timeSat;
     int              timeSatUnsat;
     int              timeSatSat;
@@ -182,7 +186,7 @@ static inline Aig_Obj_t *  Fra_ObjChild1Fra( Aig_Obj_t * pObj, int i ) { assert(
 extern Fra_Cla_t *         Fra_ClassesStart( Aig_Man_t * pAig );
 extern void                Fra_ClassesStop( Fra_Cla_t * p );
 extern void                Fra_ClassesCopyReprs( Fra_Cla_t * p, Vec_Ptr_t * vFailed );
-extern void                Fra_ClassesPrint( Fra_Cla_t * p );
+extern void                Fra_ClassesPrint( Fra_Cla_t * p, int fVeryVerbose );
 extern void                Fra_ClassesPrepare( Fra_Cla_t * p );
 extern int                 Fra_ClassesRefine( Fra_Cla_t * p );
 extern int                 Fra_ClassesRefine1( Fra_Cla_t * p );
@@ -197,7 +201,7 @@ extern Aig_Man_t *         Fra_FraigChoice( Aig_Man_t * pManAig );
 extern void                Fra_FraigSweep( Fra_Man_t * pManAig );
 /*=== fraDfs.c ========================================================*/
 /*=== fraInd.c ========================================================*/
-extern Aig_Man_t *         Fra_FraigInduction( Aig_Man_t * p, int nFramesK, int fVerbose );
+extern Aig_Man_t *         Fra_FraigInduction( Aig_Man_t * p, int nFramesK, int fRewrite, int fVerbose );
 /*=== fraMan.c ========================================================*/
 extern void                Fra_ParamsDefault( Fra_Par_t * pParams );
 extern void                Fra_ParamsDefaultSeq( Fra_Par_t * pParams );

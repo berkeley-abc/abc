@@ -55,6 +55,7 @@ void Fra_ParamsDefault( Fra_Par_t * pPars )
     pPars->nBTLimitMiter    =  500000;  // conflict limit at an output
     pPars->nFramesK         =       0;  // the number of timeframes to unroll
     pPars->fConeBias        =       1;
+    pPars->fRewrite         =       0;
 }
 
 /**Function*************************************************************
@@ -71,7 +72,7 @@ void Fra_ParamsDefault( Fra_Par_t * pPars )
 void Fra_ParamsDefaultSeq( Fra_Par_t * pPars )
 {
     memset( pPars, 0, sizeof(Fra_Par_t) );
-    pPars->nSimWords        =       4;  // the number of words in the simulation info
+    pPars->nSimWords        =       1;  // the number of words in the simulation info
     pPars->dSimSatur        =   0.005;  // the ratio of refined classes when saturation is reached
     pPars->fPatScores       =       0;  // enables simulation pattern scoring
     pPars->MaxScore         =      25;  // max score after which resimulation is used
@@ -80,10 +81,11 @@ void Fra_ParamsDefaultSeq( Fra_Par_t * pPars )
 //    pPars->dActConeBumpMax  =     5.0;  // the largest bump of activity
     pPars->dActConeRatio    =     0.3;  // the ratio of cone to be bumped
     pPars->dActConeBumpMax  =    10.0;  // the largest bump of activity
-    pPars->nBTLimitNode     = 1000000;  // conflict limit at a node
+    pPars->nBTLimitNode     =10000000;  // conflict limit at a node
     pPars->nBTLimitMiter    =  500000;  // conflict limit at an output
     pPars->nFramesK         =       1;  // the number of timeframes to unroll
     pPars->fConeBias        =       0;
+    pPars->fRewrite         =       0;
 }
 
 /**Function*************************************************************
@@ -165,7 +167,6 @@ void Fra_ManClean( Fra_Man_t * p )
 
     sat_solver_delete( p->pSat );  
     p->pSat = NULL; 
-    p->nSatVars = 0;
 }
 
 /**Function*************************************************************
@@ -268,23 +269,28 @@ void Fra_ManStop( Fra_Man_t * p )
 void Fra_ManPrint( Fra_Man_t * p )
 {
     double nMemory = 1.0*Aig_ManObjIdMax(p->pManAig)*((p->nSimWords+2)*sizeof(unsigned)+6*sizeof(void*))/(1<<20);
-    printf( "SimWords = %d. Rounds = %d. Mem = %0.2f Mb.  ", p->nSimWords, p->nSimRounds, nMemory );
-    printf( "Classes: Beg = %d. End = %d.\n", p->nClassesBeg, p->nClassesEnd );
-    printf( "Limits: BTNode = %d. BTMiter = %d.\n", p->pPars->nBTLimitNode, p->pPars->nBTLimitMiter );
-    printf( "Proof = %d. Counter-example = %d. Fail = %d. FailReal = %d. Zero = %d.\n", 
-        p->nSatProof, p->nSatCallsSat, p->nSatFails, p->nSatFailsReal, p->nClassesZero );
-    printf( "Final = %d. Miter = %d. Total = %d. Mux = %d. (Exor = %d.) SatVars = %d.\n", 
-        p->pManFraig? Aig_ManNodeNum(p->pManFraig) : -1, p->nNodesMiter, Aig_ManNodeNum(p->pManAig), 0, 0, p->nSatVars );
+    printf( "SimWord = %d. Round = %d.  Mem = %0.2f Mb.  LitBeg = %d.  LitEnd = %d. (%6.2f %%).\n", 
+        p->nSimWords, p->nSimRounds, nMemory, p->nLitsBeg, p->nLitsEnd, 100.0*p->nLitsEnd/p->nLitsBeg );
+    printf( "Proof = %d. Cex = %d. Fail = %d. FailReal = %d. Zero = %d. C-lim = %d. Vars = %d.\n", 
+        p->nSatProof, p->nSatCallsSat, p->nSatFails, p->nSatFailsReal, p->nLitsZero, p->pPars->nBTLimitNode, p->nSatVars );
+    printf( "NBeg = %d. NEnd = %d. (Gain = %6.2f %%).  RBeg = %d. REnd = %d. (Gain = %6.2f %%).\n", 
+        p->nNodesBeg, p->nNodesEnd, 100.0*(p->nNodesBeg-p->nNodesEnd)/p->nNodesBeg, 
+        p->nRegsBeg, p->nRegsEnd, 100.0*(p->nRegsBeg-p->nRegsEnd)/p->nRegsBeg );
     if ( p->pSat ) Sat_SolverPrintStats( stdout, p->pSat );
     PRT( "AIG simulation  ", p->timeSim  );
-    PRT( "AIG traversal   ", p->timeTrav  );
-    PRT( "SAT solving     ", p->timeSat   );
+    PRT( "AIG traversal   ", p->timeTrav );
+    if ( p->timeRwr )
+    {
+    PRT( "AIG rewriting   ", p->timeRwr  );
+    }
+    PRT( "SAT solving     ", p->timeSat  );
     PRT( "    Unsat       ", p->timeSatUnsat );
     PRT( "    Sat         ", p->timeSatSat   );
     PRT( "    Fail        ", p->timeSatFail  );
     PRT( "Class refining  ", p->timeRef   );
     PRT( "TOTAL RUNTIME   ", p->timeTotal );
     if ( p->time1 ) { PRT( "time1           ", p->time1 ); }
+    if ( p->nSpeculs )
     printf( "Speculations = %d.\n", p->nSpeculs );
 }
 

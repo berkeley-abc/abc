@@ -157,6 +157,7 @@ static int Abc_CommandIf             ( Abc_Frame_t * pAbc, int argc, char ** arg
 
 static int Abc_CommandScut           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandInit           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandZero           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPipe           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSeq            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandUnseq          ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -320,6 +321,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 
 //    Cmd_CommandAdd( pAbc, "Sequential",   "scut",          Abc_CommandScut,             0 );
     Cmd_CommandAdd( pAbc, "Sequential",   "init",          Abc_CommandInit,             1 );
+    Cmd_CommandAdd( pAbc, "Sequential",   "zero",          Abc_CommandZero,             1 );
 //    Cmd_CommandAdd( pAbc, "Sequential",   "pipe",          Abc_CommandPipe,             1 );
 //    Cmd_CommandAdd( pAbc, "Sequential",   "seq",           Abc_CommandSeq,              1 );
 //    Cmd_CommandAdd( pAbc, "Sequential",   "unseq",         Abc_CommandUnseq,            1 );
@@ -370,6 +372,10 @@ void Abc_End()
 {
 //    Dar_LibDumpPriorities();
 
+    {
+        extern void Cnf_ClearMemory();
+        Cnf_ClearMemory();
+    }
     {
         extern void Dar_LibStop();
         Dar_LibStop();
@@ -4080,19 +4086,20 @@ int Abc_CommandOrPos( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "The network is not strashed.\n" );
         return 1;
     }
-
+/*
     if ( Abc_NtkPoNum(pNtk) == 1 )
     {
         fprintf( pErr, "The network already has one PO.\n" );
         return 1;
     }
-
+*/
+/*
     if ( Abc_NtkLatchNum(pNtk) )
     {
         fprintf( pErr, "The miter has latches. ORing is not performed.\n" );
         return 1;
     }
-
+*/
     // get the new network
     if ( !Abc_NtkCombinePos( pNtk, 0 ) )
     {
@@ -10113,6 +10120,78 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandZero( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c;
+
+    extern Abc_Ntk_t * Abc_NtkRestrashZero( Abc_Ntk_t * pNtk, bool fCleanup );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( Abc_NtkIsComb(pNtk) )
+    {
+        fprintf( pErr, "The current network is combinational.\n" );
+        return 0;
+    }
+
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "This command works only for AIGs.\n" );
+        return 0;
+    }
+
+    // get the new network
+    pNtkRes = Abc_NtkRestrashZero( pNtk, 0 );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Converting to sequential AIG has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: zero [-h]\n" );
+    fprintf( pErr, "\t        converts latches to have const-0 initial value\n" );
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandPipe( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
@@ -10736,8 +10815,9 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nFramesK;
     int fExdc;
     int fImp;
+    int fRewrite;
     int fVerbose;
-    extern Abc_Ntk_t * Abc_NtkSeqSweep( Abc_Ntk_t * pNtk, int nFrames, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkSeqSweep( Abc_Ntk_t * pNtk, int nFrames, int fRewrite, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -10747,9 +10827,10 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     nFramesK = 1;
     fExdc    = 1;
     fImp     = 0;
+    fRewrite = 0;
     fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Feivh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Feirvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -10769,6 +10850,9 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'i':
             fImp ^= 1;
+            break;
+        case 'r':
+            fRewrite ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -10799,7 +10883,7 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    pNtkRes = Abc_NtkSeqSweep( pNtk, nFramesK, fVerbose );
+    pNtkRes = Abc_NtkSeqSweep( pNtk, nFramesK, fRewrite, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Sequential sweeping has failed.\n" );
@@ -10810,11 +10894,12 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: ssweep [-F num] [-eivh]\n" );
-    fprintf( pErr, "\t         performs sequential sweep using van Eijk's method\n" );
+    fprintf( pErr, "usage: ssweep [-F num] [-rvh]\n" );
+    fprintf( pErr, "\t         performs sequential sweep using K-step induction\n" );
     fprintf( pErr, "\t-F num : number of time frames for induction (1=simple) [default = %d]\n", nFramesK );
 //    fprintf( pErr, "\t-e     : toggle writing EXDC network [default = %s]\n", fExdc? "yes": "no" );
 //    fprintf( pErr, "\t-i     : toggle computing implications [default = %s]\n", fImp? "yes": "no" );
+    fprintf( pErr, "\t-r     : toggle AIG rewriting [default = %s]\n", fRewrite? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;

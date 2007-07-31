@@ -20,6 +20,7 @@
 
 #include "fra.h"
 #include "cnf.h"
+#include "dar.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -28,6 +29,54 @@
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Performs AIG rewriting on the constaint manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fra_FraigInductionRewrite( Fra_Man_t * p )
+{
+    Aig_Man_t * pTemp;
+    Aig_Obj_t * pObj, * pObjPo;
+    int nTruePis, k, i, clk = clock();
+    // perform AIG rewriting on the speculated frames
+    pTemp = Aig_ManDup( p->pManFraig, 0 );
+//    pTemp = Dar_ManRwsat( pTemp, 1, 0 );
+    pTemp = Dar_ManRewriteDefault( pTemp );
+
+//    printf( "Before = %6d.  After = %6d.\n", Aig_ManNodeNum(p->pManFraig), Aig_ManNodeNum(pTemp) ); 
+//Aig_ManDumpBlif( p->pManFraig, "1.blif" );
+//Aig_ManDumpBlif( pTemp, "2.blif" );
+
+//    Fra_FramesWriteCone( pTemp );
+//    Aig_ManStop( pTemp );
+    // transfer PI/register pointers
+    assert( p->pManFraig->nRegs == pTemp->nRegs );
+    assert( p->pManFraig->nAsserts == pTemp->nAsserts );
+    nTruePis = Aig_ManPiNum(p->pManAig) - Aig_ManRegNum(p->pManAig);
+    memset( p->pMemFraig, 0, sizeof(Aig_Obj_t *) * p->nSizeAlloc * p->nFramesAll );
+    Fra_ObjSetFraig( Aig_ManConst1(p->pManAig), p->pPars->nFramesK, Aig_ManConst1(pTemp) );
+    Aig_ManForEachPiSeq( p->pManAig, pObj, i )
+        Fra_ObjSetFraig( pObj, p->pPars->nFramesK, Aig_ManPi(pTemp,nTruePis*p->pPars->nFramesK+i) );
+    k = 0;
+    assert( Aig_ManRegNum(p->pManAig) == Aig_ManPoNum(pTemp) - pTemp->nAsserts );
+    Aig_ManForEachLoSeq( p->pManAig, pObj, i )
+    {
+        pObjPo = Aig_ManPo(pTemp, pTemp->nAsserts + k++);
+        Fra_ObjSetFraig( pObj, p->pPars->nFramesK, Aig_ObjChild0(pObjPo) );
+    }
+    // exchange
+    Aig_ManStop( p->pManFraig );
+    p->pManFraig = pTemp;
+p->timeRwr += clock() - clk;
+}
 
 /**Function*************************************************************
 
@@ -131,6 +180,8 @@ Aig_Man_t * Fra_FramesWithClasses( Fra_Man_t * p )
     Aig_ManForEachLiSeq( p->pManAig, pObj, i )
         Aig_ObjCreatePo( pManFraig, Fra_ObjChild0Fra(pObj,f-1) );
 
+    // remove dangling nodes
+    Aig_ManCleanup( pManFraig );
     // make sure the satisfying assignment is node assigned
     assert( pManFraig->pData == NULL );
     return pManFraig;
@@ -147,35 +198,39 @@ Aig_Man_t * Fra_FramesWithClasses( Fra_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesK, int fVerbose )
+Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesK, int fRewrite, int fVerbose )
 {
     Fra_Man_t * p;
     Fra_Par_t Pars, * pPars = &Pars; 
     Aig_Obj_t * pObj;
     Cnf_Dat_t * pCnf;
     Aig_Man_t * pManAigNew;
-    int nIter, i;
+    int nIter, i, clk = clock(), clk2;
 
     if ( Aig_ManNodeNum(pManAig) == 0 )
         return Aig_ManDup(pManAig, 1);
     assert( Aig_ManLatchNum(pManAig) == 0 );
     assert( Aig_ManRegNum(pManAig) > 0 );
     assert( nFramesK > 0 );
+//Aig_ManShow( pManAig, 0, NULL );
 
     // get parameters
     Fra_ParamsDefaultSeq( pPars );
     pPars->nFramesK = nFramesK;
     pPars->fVerbose = fVerbose;
+    pPars->fRewrite = fRewrite;
 
     // start the fraig manager for this run
     p = Fra_ManStart( pManAig, pPars );
-    // derive and refine e-classes using the 1st init frame
+    // derive and refine e-classes using K initialized frames
     Fra_Simulate( p, 1 );
-//    Fra_ClassesTest( p->pCla, 2, 3 );
-//Aig_ManShow( pManAig, 0, NULL );
-
-    // refine e-classes using sequential simulation
+    // refine e-classes using sequential simulation?
  
+    p->nLitsZero = Vec_PtrSize( p->pCla->vClasses1 );
+    p->nLitsBeg  = Fra_ClassesCountLits( p->pCla );
+    p->nNodesBeg = Aig_ManNodeNum(pManAig);
+    p->nRegsBeg  = Aig_ManRegNum(pManAig);
+
     // iterate the inductive case
     p->pCla->fRefinement = 1;
     for ( nIter = 0; p->pCla->fRefinement; nIter++ )
@@ -184,6 +239,10 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesK, int fVerbose 
         p->pCla->fRefinement = 0;
         // derive non-init K-timeframes while implementing e-classes
         p->pManFraig = Fra_FramesWithClasses( p );
+        // perform AIG rewriting
+        if ( p->pPars->fRewrite )
+            Fra_FraigInductionRewrite( p );
+        // report the intermediate results
         if ( fVerbose )
         {
             printf( "%3d : Const = %6d. Class = %6d.  L = %6d. LR = %6d.  N = %6d. NR = %6d.\n", 
@@ -191,19 +250,22 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesK, int fVerbose 
                 Fra_ClassesCountLits(p->pCla), p->pManFraig->nAsserts,
                 Aig_ManNodeNum(p->pManAig), Aig_ManNodeNum(p->pManFraig) );
         }
-        // perform AIG rewriting on the speculated frames
 
         // convert the manager to SAT solver (the last nLatches outputs are inputs)
-//        pCnf = Cnf_Derive( p->pManFraig, Aig_ManRegNum(p->pManFraig) );
-        pCnf = Cnf_DeriveSimple( p->pManFraig, Aig_ManRegNum(p->pManFraig) );
+        pCnf = Cnf_Derive( p->pManFraig, Aig_ManRegNum(p->pManFraig) );
+//        pCnf = Cnf_DeriveSimple( p->pManFraig, Aig_ManRegNum(p->pManFraig) );
 //Cnf_DataWriteIntoFile( pCnf, "temp.cnf", 1 );
 
         p->pSat = Cnf_DataWriteIntoSolver( pCnf );
         p->nSatVars = pCnf->nVars;
+        assert( p->pSat != NULL );
+        if ( p->pSat == NULL )
+            printf( "Fra_FraigInduction(): Computed CNF is not valid.\n" );
 
         // set the pointers to the manager
         Aig_ManForEachObj( p->pManFraig, pObj, i )
             pObj->pData = p;
+
         // transfer PI/LO variable numbers
         pObj = Aig_ManConst1( p->pManFraig );
         Fra_ObjSetSatNum( pObj, pCnf->pVarNums[pObj->Id] );
@@ -216,20 +278,40 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesK, int fVerbose 
             Fra_ObjSetFaninVec( pObj, (void *)1 );
         }
         Cnf_DataFree( pCnf );
+/*
+        Aig_ManForEachObj( p->pManFraig, pObj, i )
+        {
+            Fra_ObjSetSatNum( pObj, pCnf->pVarNums[pObj->Id] );
+            Fra_ObjSetFaninVec( pObj, (void *)1 );
+        }
+        Cnf_DataFree( pCnf );
+*/
 
         // perform sweeping
         Fra_FraigSweep( p );
         assert( p->vTimeouts == NULL );
+        if ( p->vTimeouts )
+           printf( "Fra_FraigInduction(): SAT solver timed out!\n" );
 
         // cleanup
         Fra_ManClean( p );
     }
-
-    // move the classes into representatives
+    // move the classes into representatives and reduce AIG
+clk2 = clock();
     Fra_ClassesCopyReprs( p->pCla, p->vTimeouts );
-    // implement the classes
     pManAigNew = Aig_ManDupRepr( pManAig );
+p->timeTrav += clock() - clk2;
+p->timeTotal = clock() - clk;
+    // get the final stats
+    p->nLitsEnd  = Fra_ClassesCountLits( p->pCla );
+    p->nNodesEnd = Aig_ManNodeNum(pManAigNew);
+    p->nRegsEnd  = Aig_ManRegNum(pManAigNew);
+    // free the manager
     Fra_ManStop( p );
+    // check the output
+    if ( Aig_ManPoNum(pManAigNew) - Aig_ManRegNum(pManAigNew) == 1 )
+        if ( Aig_ObjChild0( Aig_ManPo(pManAigNew,0) ) == Aig_ManConst0(pManAigNew) )
+            printf( "Proved output constant 0.\n" );
     return pManAigNew;
 }
 

@@ -361,6 +361,21 @@ int Dar_ManRefactorTryCuts( Ref_Man_t * p, Aig_Obj_t * pObj, int nNodesSaved, in
         Aig_ObjCollectCut( pObj, vCut, p->vCutNodes );
         // get the truth table
         pTruth = Aig_ManCutTruth( pObj, vCut, p->vCutNodes, p->vTruthElem, p->vTruthStore );
+        if ( Kit_TruthIsConst0(pTruth, Vec_PtrSize(vCut)) )
+        {
+            p->GainBest = Vec_PtrSize(p->vCutNodes);
+            p->pGraphBest = Kit_GraphCreateConst0();
+            Vec_PtrCopy( p->vLeavesBest, vCut );
+            return p->GainBest;
+        }
+        if ( Kit_TruthIsConst1(pTruth, Vec_PtrSize(vCut)) )
+        {
+            p->GainBest = Vec_PtrSize(p->vCutNodes);
+            p->pGraphBest = Kit_GraphCreateConst1();
+            Vec_PtrCopy( p->vLeavesBest, vCut );
+            return p->GainBest;
+        }
+
         // try the positive phase
         RetValue = Kit_TruthIsop( pTruth, Vec_PtrSize(vCut), p->vMemory, 0 );
         if ( RetValue > -1 )
@@ -559,6 +574,7 @@ p->timeOther = p->timeTotal - p->timeCuts - p->timeEval;
 
     // stop the rewriting manager
     Dar_ManRefStop( p );
+    Aig_ManCheckPhase( pAig );
     if ( !Aig_ManCheck( pAig ) )
     {
         printf( "Dar_ManRefactor: The network check has failed.\n" );

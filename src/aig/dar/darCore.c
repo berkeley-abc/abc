@@ -42,7 +42,7 @@
 void Dar_ManDefaultRwrParams( Dar_RwrPar_t * pPars )
 {
     memset( pPars, 0, sizeof(Dar_RwrPar_t) );
-    pPars->nCutsMax     =  8;
+    pPars->nCutsMax     =  8; // 8
     pPars->nSubgMax     =  5; // 5 is a "magic number"
     pPars->fFanout      =  1;
     pPars->fUpdateLevel =  0;
@@ -151,8 +151,8 @@ p->timeCuts += clock() - clk;
         Dar_ObjSetCuts( pObj, NULL );
         // if we end up here, a rewriting step is accepted
         nNodeBefore = Aig_ManNodeNum( pAig );
-        pObjNew = Dar_LibBuildBest( p );
-        pObjNew = Aig_NotCond( pObjNew, pObjNew->fPhase ^ pObj->fPhase );
+        pObjNew = Dar_LibBuildBest( p ); // pObjNew can be complemented!
+        pObjNew = Aig_NotCond( pObjNew, Aig_ObjPhaseReal(pObjNew) ^ pObj->fPhase );
         assert( (int)Aig_Regular(pObjNew)->Level <= Required );
         // replace the node
         Aig_ObjReplace( pAig, pObj, pObjNew, 1, p->pPars->fUpdateLevel );
@@ -183,6 +183,7 @@ p->timeOther = p->timeTotal - p->timeCuts - p->timeEval;
     }
     // stop the rewriting manager
     Dar_ManStop( p );
+    Aig_ManCheckPhase( pAig );
     // check
     if ( !Aig_ManCheck( pAig ) )
     {
@@ -209,9 +210,12 @@ Aig_MmFixed_t * Dar_ManComputeCuts( Aig_Man_t * pAig, int nCutsMax )
     Dar_RwrPar_t Pars, * pPars = &Pars; 
     Aig_Obj_t * pObj;
     Aig_MmFixed_t * pMemCuts;
-    int i, clk = 0, clkStart = clock();
+    int i, nNodes, clk = 0, clkStart = clock();
     // remove dangling nodes
-    Aig_ManCleanup( pAig );
+    if ( nNodes = Aig_ManCleanup( pAig ) )
+    {
+//        printf( "Removing %d nodes.\n", nNodes );
+    }
     // create default parameters
     Dar_ManDefaultRwrParams( pPars );
     pPars->nCutsMax = nCutsMax;

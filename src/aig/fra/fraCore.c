@@ -39,7 +39,7 @@
   SeeAlso     []
 
 ***********************************************************************/
-void Fra_FraigNodeSpeculate( Fra_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pObjFraig, Aig_Obj_t * pObjReprFraig )
+static inline void Fra_FraigNodeSpeculate( Fra_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pObjFraig, Aig_Obj_t * pObjReprFraig )
 { 
     static int Counter = 0;
     char FileName[20];
@@ -47,8 +47,7 @@ void Fra_FraigNodeSpeculate( Fra_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pObjFr
     Aig_Obj_t * pNode;
     int i;
     // create manager with the logic for these two nodes
-    Aig_Obj_t * ppNodes[2] = { pObjFraig, pObjReprFraig };
-    pTemp = Aig_ManExtractMiter( p->pManFraig, ppNodes, 2 );
+    pTemp = Aig_ManExtractMiter( p->pManFraig, pObjFraig, pObjReprFraig );
     // dump the logic into a file
     sprintf( FileName, "aig\\%03d.blif", ++Counter );
     Aig_ManDumpBlif( pTemp, FileName );
@@ -70,7 +69,7 @@ void Fra_FraigNodeSpeculate( Fra_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pObjFr
   SeeAlso     []
 
 ***********************************************************************/
-void Fra_FraigNode( Fra_Man_t * p, Aig_Obj_t * pObj )
+static inline void Fra_FraigNode( Fra_Man_t * p, Aig_Obj_t * pObj )
 { 
     Aig_Obj_t * pObjRepr, * pObjFraig, * pObjFraig2, * pObjReprFraig;
     int RetValue;
@@ -123,6 +122,8 @@ void Fra_FraigNode( Fra_Man_t * p, Aig_Obj_t * pObj )
     // simulate the counter-example and return the Fraig node
     Fra_Resimulate( p );
     assert( Fra_ClassObjRepr(pObj) != pObjRepr );
+    if ( Fra_ClassObjRepr(pObj) == pObjRepr )
+        printf( "Fra_FraigNode(): Error in class refinement!\n" );
 }
 
 /**Function*************************************************************
@@ -141,8 +142,6 @@ void Fra_FraigSweep( Fra_Man_t * p )
     ProgressBar * pProgress;
     Aig_Obj_t * pObj, * pObjNew;
     int i, k = 0;
-p->nClassesZero = Vec_PtrSize(p->pCla->vClasses1);
-p->nClassesBeg  = Vec_PtrSize(p->pCla->vClasses) + (int)(Vec_PtrSize(p->pCla->vClasses1) > 0);
     // duplicate internal nodes
     pProgress = Extra_ProgressBarStart( stdout, Aig_ManObjIdMax(p->pManAig) );
     // fraig latch outputs
@@ -163,7 +162,6 @@ p->nClassesBeg  = Vec_PtrSize(p->pCla->vClasses) + (int)(Vec_PtrSize(p->pCla->vC
         Fra_FraigNode( p, pObj );
     }
     Extra_ProgressBarStop( pProgress );
-p->nClassesEnd = Vec_PtrSize(p->pCla->vClasses) + (int)(Vec_PtrSize(p->pCla->vClasses1) > 0);
     // try to prove the outputs of the miter
     p->nNodesMiter = Aig_ManNodeNum(p->pManFraig);
 //    Fra_MiterStatus( p->pManFraig );
@@ -196,15 +194,23 @@ clk = clock();
     Fra_Simulate( p, 0 );
     if ( p->pPars->fChoicing )
         Aig_ManReprStart( p->pManFraig, Aig_ManObjIdMax(p->pManAig)+1 );
+    // collect initial states
+    p->nLitsZero = Vec_PtrSize( p->pCla->vClasses1 );
+    p->nLitsBeg = Fra_ClassesCountLits( p->pCla );
+    p->nNodesBeg = Aig_ManNodeNum(pManAig);
+    p->nRegsBeg  = Aig_ManRegNum(pManAig);
+    // perform fraig sweep
     Fra_FraigSweep( p );
     Fra_ManFinalizeComb( p );
     if ( p->pPars->fChoicing )
     {
+        int clk2 = clock();
         Fra_ClassesCopyReprs( p->pCla, p->vTimeouts );
         pManAigNew = Aig_ManDupRepr( p->pManAig );
         Aig_ManCreateChoices( pManAigNew );
         Aig_ManStop( p->pManFraig );
         p->pManFraig = NULL;
+p->timeTrav += clock() - clk2;
     }
     else
     {
@@ -221,6 +227,10 @@ clk = clock();
 */
     }
 p->timeTotal = clock() - clk;
+    // collect final stats
+    p->nLitsEnd = Fra_ClassesCountLits( p->pCla );
+    p->nNodesEnd = Aig_ManNodeNum(pManAigNew);
+    p->nRegsEnd  = Aig_ManRegNum(pManAigNew);
     Fra_ManStop( p );
     return pManAigNew;
 }

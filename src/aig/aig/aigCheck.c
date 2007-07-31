@@ -114,6 +114,47 @@ int Aig_ManCheck( Aig_Man_t * p )
     return 1; 
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Checks if the markA is reset.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManCheckMarkA( Aig_Man_t * p )
+{
+    Aig_Obj_t * pObj;
+    int i;
+    Aig_ManForEachObj( p, pObj, i )
+        assert( pObj->fMarkA == 0 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks the consistency of phase assignment.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManCheckPhase( Aig_Man_t * p )
+{
+    Aig_Obj_t * pObj;
+    int i;
+    Aig_ManForEachObj( p, pObj, i )
+        if ( Aig_ObjIsPi(pObj) )
+            assert( (int)pObj->fPhase == 0 );
+        else
+            assert( (int)pObj->fPhase == (Aig_ObjPhaseReal(Aig_ObjChild0(pObj)) & Aig_ObjPhaseReal(Aig_ObjChild1(pObj))) );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

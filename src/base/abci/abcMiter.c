@@ -1099,7 +1099,9 @@ int Abc_NtkCombinePos( Abc_Ntk_t * pNtk, int fAnd )
     Abc_Obj_t * pNode, * pMiter;
     int i;
     assert( Abc_NtkIsStrash(pNtk) );
-    assert( Abc_NtkLatchNum(pNtk) == 0 );
+//    assert( Abc_NtkLatchNum(pNtk) == 0 );
+    if ( Abc_NtkPoNum(pNtk) == 1 )
+        return 1;
     // start the result
     if ( fAnd )
         pMiter = Abc_AigConst1(pNtk);

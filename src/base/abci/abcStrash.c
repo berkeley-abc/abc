@@ -87,6 +87,71 @@ Abc_Ntk_t * Abc_NtkRestrash( Abc_Ntk_t * pNtk, bool fCleanup )
 
 /**Function*************************************************************
 
+  Synopsis    [Reapplies structural hashing to the AIG.]
+
+  Description [Because of the structural hashing, this procedure should not 
+  change the number of nodes. It is useful to detect the bugs in the original AIG.]
+               
+  SideEffects []
+ 
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkRestrashZero( Abc_Ntk_t * pNtk, bool fCleanup )
+{
+    extern int timeRetime;
+    Abc_Ntk_t * pNtkAig;
+    Abc_Obj_t * pObj;
+    int i, nNodes;//, RetValue;
+    assert( Abc_NtkIsStrash(pNtk) );
+//timeRetime = clock();
+    // print warning about choice nodes
+    if ( Abc_NtkGetChoiceNum( pNtk ) )
+        printf( "Warning: The choice nodes in the original AIG are removed by strashing.\n" );
+    // start the new network (constants and CIs of the old network will point to the their counterparts in the new network)
+    pNtkAig = Abc_NtkStartFrom( pNtk, ABC_NTK_STRASH, ABC_FUNC_AIG );
+    // complement the 1-values registers
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+        if ( Abc_LatchIsInit1(pObj) )
+            Abc_ObjFanout0(pObj)->pCopy = Abc_ObjNot(Abc_ObjFanout0(pObj)->pCopy);
+    // restrash the nodes (assuming a topological order of the old network)
+    Abc_NtkForEachNode( pNtk, pObj, i )
+        pObj->pCopy = Abc_AigAnd( pNtkAig->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
+    // finalize the network
+    Abc_NtkFinalize( pNtk, pNtkAig );
+    // complement the 1-valued registers
+    Abc_NtkForEachLatch( pNtkAig, pObj, i )
+        if ( Abc_LatchIsInit1(pObj) )
+            Abc_ObjXorFaninC( Abc_ObjFanin0(pObj), 0 );
+    // set all constant-0 values
+    Abc_NtkForEachLatch( pNtkAig, pObj, i )
+        Abc_LatchSetInit0( pObj );
+
+    // print warning about self-feed latches
+//    if ( Abc_NtkCountSelfFeedLatches(pNtkAig) )
+//        printf( "Warning: The network has %d self-feeding latches.\n", Abc_NtkCountSelfFeedLatches(pNtkAig) );
+    // perform cleanup if requested
+    if ( fCleanup && (nNodes = Abc_AigCleanup(pNtkAig->pManFunc)) ) 
+        printf( "Abc_NtkRestrash(): AIG cleanup removed %d nodes (this is a bug).\n", nNodes );
+    // duplicate EXDC 
+    if ( pNtk->pExdc )
+        pNtkAig->pExdc = Abc_NtkDup( pNtk->pExdc );
+    // make sure everything is okay
+    if ( !Abc_NtkCheck( pNtkAig ) )
+    {
+        printf( "Abc_NtkStrash: The network check has failed.\n" );
+        Abc_NtkDelete( pNtkAig );
+        return NULL;
+    }
+//timeRetime = clock() - timeRetime;
+//    if ( RetValue = Abc_NtkRemoveSelfFeedLatches(pNtkAig) )
+//        printf( "Modified %d self-feeding latches. The result will not verify.\n", RetValue );
+    return pNtkAig;
+
+}
+
+/**Function*************************************************************
+
   Synopsis    [Transforms logic network into structurally hashed AIG.]
 
   Description []

@@ -30,6 +30,30 @@
 
 /**Function*************************************************************
 
+  Synopsis    [Performs one iteration of AIG rewriting.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Dar_ManRewriteDefault( Aig_Man_t * pAig )
+{
+    Aig_Man_t * pTemp;
+    Dar_RwrPar_t Pars, * pPars = &Pars;
+    Dar_ManDefaultRwrParams( pPars );
+    pAig = Aig_ManDup( pTemp = pAig, 0 ); 
+    Aig_ManStop( pTemp );
+    Dar_ManRewrite( pAig, pPars );
+    pAig = Aig_ManDup( pTemp = pAig, 0 ); 
+    Aig_ManStop( pTemp );
+    return pAig;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Reproduces script "compress2".]
 
   Description []

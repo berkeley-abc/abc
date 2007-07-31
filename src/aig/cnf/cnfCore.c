@@ -75,6 +75,8 @@ clk = clock();
     Aig_MmFixedStop( pMemCuts, 0 );
 p->timeSave = clock() - clk;
 
+   // reset reference counters
+    Aig_ManResetRefs( pAig );
 //PRT( "Cuts   ", p->timeCuts );
 //PRT( "Map    ", p->timeMap  );
 //PRT( "Saving ", p->timeSave );

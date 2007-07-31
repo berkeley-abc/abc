@@ -92,7 +92,7 @@ struct Aig_Man_t_
     Vec_Ptr_t *      vBufs;          // the array of buffers
     Aig_Obj_t *      pConst1;        // the constant 1 node
     Aig_Obj_t        Ghost;          // the ghost node
-    int              nRegs;          // the number of registers
+    int              nRegs;          // the number of registers (registers are last POs)
     int              nAsserts;       // the number of asserts among POs (asserts are first POs)
     // AIG node counters
     int              nObjs[AIG_OBJ_VOID];// the number of objects by type
@@ -202,6 +202,7 @@ static inline int          Aig_ObjIsTravIdPrevious( Aig_Man_t * p, Aig_Obj_t * p
 
 static inline int          Aig_ObjTravId( Aig_Obj_t * pObj )      { return (int)pObj->pData;                       }
 static inline int          Aig_ObjPhase( Aig_Obj_t * pObj )       { return pObj->fPhase;                           }
+static inline int          Aig_ObjPhaseReal( Aig_Obj_t * pObj )   { return pObj? Aig_Regular(pObj)->fPhase ^ Aig_IsComplement(pObj) : 1;                              }
 static inline int          Aig_ObjRefs( Aig_Obj_t * pObj )        { return pObj->nRefs;                            }
 static inline void         Aig_ObjRef( Aig_Obj_t * pObj )         { pObj->nRefs++;                                 }
 static inline void         Aig_ObjDeref( Aig_Obj_t * pObj )       { assert( pObj->nRefs > 0 ); pObj->nRefs--;      }
@@ -218,7 +219,6 @@ static inline Aig_Obj_t *  Aig_ObjChild0Copy( Aig_Obj_t * pObj )  { assert( !Aig
 static inline Aig_Obj_t *  Aig_ObjChild1Copy( Aig_Obj_t * pObj )  { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin1(pObj)? Aig_NotCond((Aig_Obj_t *)Aig_ObjFanin1(pObj)->pData, Aig_ObjFaninC1(pObj)) : NULL;  }
 static inline int          Aig_ObjLevel( Aig_Obj_t * pObj )       { return pObj->Level;                            }
 static inline int          Aig_ObjLevelNew( Aig_Obj_t * pObj )    { return Aig_ObjFanin1(pObj)? 1 + Aig_ObjIsExor(pObj) + AIG_MAX(Aig_ObjFanin0(pObj)->Level, Aig_ObjFanin1(pObj)->Level) : Aig_ObjFanin0(pObj)->Level; }
-static inline int          Aig_ObjFaninPhase( Aig_Obj_t * pObj )  { return pObj? Aig_Regular(pObj)->fPhase ^ Aig_IsComplement(pObj) : 0;                              }
 static inline void         Aig_ObjClean( Aig_Obj_t * pObj )       { memset( pObj, 0, sizeof(Aig_Obj_t) );                                                             }
 static inline Aig_Obj_t *  Aig_ObjFanout0( Aig_Man_t * p, Aig_Obj_t * pObj )  { assert(p->pFanData && pObj->Id < p->nFansAlloc); return Aig_ManObj(p, p->pFanData[5*pObj->Id] >> 1); } 
 static inline int          Aig_ObjWhatFanin( Aig_Obj_t * pObj, Aig_Obj_t * pFanin )    
@@ -335,6 +335,8 @@ static inline int     Aig_ObjFanoutNext( Aig_Man_t * p, int iFan )   { assert(iF
 
 /*=== aigCheck.c ========================================================*/
 extern int             Aig_ManCheck( Aig_Man_t * p );
+extern void            Aig_ManCheckMarkA( Aig_Man_t * p );
+extern void            Aig_ManCheckPhase( Aig_Man_t * p );
 /*=== aigDfs.c ==========================================================*/
 extern Vec_Ptr_t *     Aig_ManDfs( Aig_Man_t * p );
 extern Vec_Ptr_t *     Aig_ManDfsNodes( Aig_Man_t * p, Aig_Obj_t ** ppNodes, int nNodes );
@@ -356,7 +358,7 @@ extern void            Aig_ManFanoutStop( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManStart( int nNodesMax );
 extern Aig_Man_t *     Aig_ManStartFrom( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDup( Aig_Man_t * p, int fOrdered );
-extern Aig_Man_t *     Aig_ManExtractMiter( Aig_Man_t * p, Aig_Obj_t ** ppNodes, int nNodes );
+extern Aig_Man_t *     Aig_ManExtractMiter( Aig_Man_t * p, Aig_Obj_t * pNode1, Aig_Obj_t * pNode2 );
 extern void            Aig_ManStop( Aig_Man_t * p );
 extern int             Aig_ManCleanup( Aig_Man_t * p );
 extern void            Aig_ManPrintStats( Aig_Man_t * p );
@@ -438,7 +440,7 @@ extern unsigned *      Aig_ManCutTruth( Aig_Obj_t * pRoot, Vec_Ptr_t * vLeaves, 
 extern unsigned        Aig_PrimeCudd( unsigned p );
 extern void            Aig_ManIncrementTravId( Aig_Man_t * p );
 extern int             Aig_ManLevels( Aig_Man_t * p );
-extern void            Aig_ManCheckMarkA( Aig_Man_t * p );
+extern void            Aig_ManResetRefs( Aig_Man_t * p );
 extern void            Aig_ManCleanMarkA( Aig_Man_t * p );
 extern void            Aig_ManCleanMarkB( Aig_Man_t * p );
 extern void            Aig_ManCleanData( Aig_Man_t * p );
@@ -452,6 +454,7 @@ extern void            Aig_ObjPrintEqn( FILE * pFile, Aig_Obj_t * pObj, Vec_Vec_
 extern void            Aig_ObjPrintVerilog( FILE * pFile, Aig_Obj_t * pObj, Vec_Vec_t * vLevels, int Level );
 extern void            Aig_ObjPrintVerbose( Aig_Obj_t * pObj, int fHaig );
 extern void            Aig_ManPrintVerbose( Aig_Man_t * p, int fHaig );
+extern void            Aig_ManDump( Aig_Man_t * p );
 extern void            Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName );
 /*=== aigWin.c =========================================================*/
 extern void            Aig_ManFindCut( Aig_Obj_t * pRoot, Vec_Ptr_t * vFront, Vec_Ptr_t * vVisited, int nSizeLimit, int nFanoutLimit );

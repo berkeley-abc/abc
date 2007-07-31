@@ -54,6 +54,8 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
     int i;
     // create the new manager 
     pNew = Aig_ManStart( Aig_ManObjIdMax(p) + 1 );
+    pNew->nRegs = p->nRegs;
+    pNew->nAsserts = p->nAsserts;
     // map the PI nodes
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);

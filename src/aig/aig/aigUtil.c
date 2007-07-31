@@ -104,7 +104,7 @@ int Aig_ManLevels( Aig_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Checks if the markA is reset.]
+  Synopsis    [Reset reference counters.]
 
   Description []
                
@@ -113,17 +113,24 @@ int Aig_ManLevels( Aig_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Aig_ManCheckMarkA( Aig_Man_t * p )
+void Aig_ManResetRefs( Aig_Man_t * p )
 {
     Aig_Obj_t * pObj;
     int i;
     Aig_ManForEachObj( p, pObj, i )
-        assert( pObj->fMarkA == 0 );
+        pObj->nRefs = 0;
+    Aig_ManForEachObj( p, pObj, i )
+    {
+        if ( Aig_ObjFanin0(pObj) )
+            Aig_ObjFanin0(pObj)->nRefs++;
+        if ( Aig_ObjFanin1(pObj) )
+            Aig_ObjFanin1(pObj)->nRefs++;
+    }
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Checks if the markA is reset.]
+  Synopsis    [Cleans MarkB.]
 
   Description []
                
@@ -142,7 +149,7 @@ void Aig_ManCleanMarkA( Aig_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Checks if the markA is reset.]
+  Synopsis    [Cleans MarkB.]
 
   Description []
                
@@ -621,6 +628,27 @@ void Aig_ManPrintVerbose( Aig_Man_t * p, int fHaig )
 
 /**Function*************************************************************
 
+  Synopsis    [Write speculative miter for one node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManDump( Aig_Man_t * p )
+{ 
+    static int Counter = 0;
+    char FileName[20];
+    // dump the logic into a file
+    sprintf( FileName, "aigbug\\%03d.blif", ++Counter );
+    Aig_ManDumpBlif( p, FileName );
+    printf( "Intermediate AIG with %d nodes was written into file \"%s\".\n", Aig_ManNodeNum(p), FileName );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Writes the AIG into the BLIF file.]
 
   Description []
@@ -679,6 +707,10 @@ void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName )
     // write POs
     Aig_ManForEachPo( p, pObj, i )
     {
+        if ( (int)pObj->pData == 1359 )
+        {
+            int x = 0;
+        }
         fprintf( pFile, ".names n%0*d n%0*d\n", 
             nDigits, (int)Aig_ObjFanin0(pObj)->pData, 
             nDigits, (int)pObj->pData );

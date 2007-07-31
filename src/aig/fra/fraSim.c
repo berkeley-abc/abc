@@ -142,10 +142,14 @@ void Fra_AssignDist1( Fra_Man_t * p, unsigned * pPat )
             Fra_NodeAssignConst( p, pObj, Aig_InfoHasBit(pPat, nTruePis * p->nFramesAll + k++), 0 );
         assert( p->pManFraig == NULL || nTruePis * p->nFramesAll + k == Aig_ManPiNum(p->pManFraig) );
 
-        // flip one bit of the first frame
-        Limit = AIG_MIN( nTruePis, p->pPars->nSimWords * 32 - 1 );
-        for ( i = 0; i < Limit; i++ )
-            Aig_InfoXorBit( Fra_ObjSim( Aig_ManPi(p->pManAig,i) ), i+1 );
+        // flip one bit of the last frame
+        if ( p->nFramesAll == 2 )
+        {
+            Limit = AIG_MIN( nTruePis, p->pPars->nSimWords * 32 - 1 );
+            for ( i = 0; i < Limit; i++ )
+                Aig_InfoXorBit( Fra_ObjSim( Aig_ManPi(p->pManAig, i) ), i+1 );
+//            Aig_InfoXorBit( Fra_ObjSim( Aig_ManPi(p->pManAig, nTruePis*(p->nFramesAll-2) + i) ), i+1 );
+        }
     }
 }
 
@@ -261,8 +265,8 @@ void Fra_NodeSimulate( Fra_Man_t * p, Aig_Obj_t * pObj, int iFrame )
     pSims1 = Fra_ObjSim(Aig_ObjFanin1(pObj)) + nSimWords * iFrame;
     // get complemented attributes of the children using their random info
     fCompl  = pObj->fPhase;
-    fCompl0 = Aig_ObjFaninPhase(Aig_ObjChild0(pObj));
-    fCompl1 = Aig_ObjFaninPhase(Aig_ObjChild1(pObj));
+    fCompl0 = Aig_ObjPhaseReal(Aig_ObjChild0(pObj));
+    fCompl1 = Aig_ObjPhaseReal(Aig_ObjChild1(pObj));
     // simulate
     if ( fCompl0 && fCompl1 )
     {
@@ -326,7 +330,7 @@ void Fra_NodeCopyFanin( Fra_Man_t * p, Aig_Obj_t * pObj, int iFrame )
     pSims0 = Fra_ObjSim(Aig_ObjFanin0(pObj)) + nSimWords * iFrame;
     // get complemented attributes of the children using their random info
     fCompl  = pObj->fPhase;
-    fCompl0 = Aig_ObjFaninPhase(Aig_ObjChild0(pObj));
+    fCompl0 = Aig_ObjPhaseReal(Aig_ObjChild0(pObj));
     // copy information as it is
     if ( fCompl0 )
         for ( i = 0; i < nSimWords; i++ )
@@ -624,7 +628,7 @@ void Fra_Simulate( Fra_Man_t * p, int fInit )
     Fra_AssignRandom( p, fInit );
     Fra_SimulateOne( p );
     Fra_ClassesPrepare( p->pCla );
-//    Fra_ClassesPrint( p->pCla );
+//    Fra_ClassesPrint( p->pCla, 0 );
 //printf( "Starting classes = %5d.   Pairs = %6d.\n", p->lClasses.nItems, Fra_CountPairsClasses(p) );
 
     // refine classes by walking 0/1 patterns
@@ -667,7 +671,7 @@ p->timeRef += clock() - clk;
 //    printf( "Consts = %6d. Classes = %6d. Literals = %6d.\n", 
 //        Vec_PtrSize(p->pCla->vClasses1), Vec_PtrSize(p->pCla->vClasses), Fra_ClassesCountLits(p->pCla) );
 
-//    Fra_ClassesPrint( p->pCla );
+//    Fra_ClassesPrint( p->pCla, 0 );
 }
  
 /**Function*************************************************************
@@ -729,7 +733,7 @@ int Fra_CheckOutputSims( Fra_Man_t * p )
     int i;
     // make sure the reference simulation pattern does not detect the bug
     pObj = Aig_ManPo( p->pManAig, 0 );
-    assert( Aig_ObjFanin0(pObj)->fPhase == (unsigned)Aig_ObjFaninC0(pObj) ); // Aig_ObjFaninPhase(Aig_ObjChild0(pObj)) == 0
+    assert( Aig_ObjFanin0(pObj)->fPhase == (unsigned)Aig_ObjFaninC0(pObj) ); 
     Aig_ManForEachPo( p->pManAig, pObj, i )
     {
         if ( !Fra_NodeHasZeroSim( Aig_ObjFanin0(pObj) ) )

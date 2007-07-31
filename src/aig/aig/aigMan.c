@@ -135,6 +135,8 @@ Aig_Man_t * Aig_ManDup( Aig_Man_t * p, int fOrdered )
     int i;
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjIdMax(p) + 1 );
+    pNew->nRegs = p->nRegs;
+    pNew->nAsserts = p->nAsserts;
     // create the PIs
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
@@ -179,12 +181,11 @@ Aig_Man_t * Aig_ManDup( Aig_Man_t * p, int fOrdered )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Aig_ManExtractMiter( Aig_Man_t * p, Aig_Obj_t ** ppNodes, int nNodes )
+Aig_Man_t * Aig_ManExtractMiter( Aig_Man_t * p, Aig_Obj_t * pNode1, Aig_Obj_t * pNode2 )
 {
     Aig_Man_t * pNew;
     Aig_Obj_t * pObj;
     int i;
-    assert( nNodes == 2 );
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjIdMax(p) + 1 );
     // create the PIs
@@ -193,10 +194,10 @@ Aig_Man_t * Aig_ManExtractMiter( Aig_Man_t * p, Aig_Obj_t ** ppNodes, int nNodes
     Aig_ManForEachPi( p, pObj, i )
         pObj->pData = Aig_ObjCreatePi(pNew);
     // dump the nodes
-    for ( i = 0; i < nNodes; i++ )
-        Aig_ManDup_rec( pNew, p, ppNodes[i] );   
+    Aig_ManDup_rec( pNew, p, pNode1 );   
+    Aig_ManDup_rec( pNew, p, pNode2 );   
     // construct the EXOR
-    pObj = Aig_Exor( pNew, ppNodes[0]->pData, ppNodes[1]->pData ); 
+    pObj = Aig_Exor( pNew, pNode1->pData, pNode2->pData ); 
     pObj = Aig_NotCond( pObj, Aig_Regular(pObj)->fPhase ^ Aig_IsComplement(pObj) );
     // add the PO
     Aig_ObjCreatePo( pNew, pObj );

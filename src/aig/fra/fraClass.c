@@ -215,25 +215,28 @@ int Fra_ClassesCountPairs( Fra_Cla_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Fra_ClassesPrint( Fra_Cla_t * p )
+void Fra_ClassesPrint( Fra_Cla_t * p, int fVeryVerbose )
 {
     Aig_Obj_t ** pClass;
     Aig_Obj_t * pObj;
     int i;
+
     printf( "Consts = %6d. Classes = %6d. Literals = %6d.\n", 
         Vec_PtrSize(p->vClasses1), Vec_PtrSize(p->vClasses), Fra_ClassesCountLits(p) );
-/*
-    printf( "Constants { " );
-    Vec_PtrForEachEntry( p->vClasses1, pObj, i )
-        printf( "%d ", pObj->Id );
-    printf( "}\n" );
-    Vec_PtrForEachEntry( p->vClasses, pClass, i )
+
+    if ( fVeryVerbose )
     {
-        printf( "%3d (%3d) : ", i, Fra_ClassCount(pClass) );
-        Fra_PrintClass( pClass );
+        printf( "Constants { " );
+        Vec_PtrForEachEntry( p->vClasses1, pObj, i )
+            printf( "%d ", pObj->Id );
+        printf( "}\n" );
+        Vec_PtrForEachEntry( p->vClasses, pClass, i )
+        {
+            printf( "%3d (%3d) : ", i, Fra_ClassCount(pClass) );
+            Fra_PrintClass( pClass );
+        }
+        printf( "\n" );
     }
-    printf( "\n" );
-*/
 }
 
 /**Function*************************************************************

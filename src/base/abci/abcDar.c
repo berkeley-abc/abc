@@ -36,24 +36,48 @@
 
   Synopsis    [Converts the network from the AIG manager into ABC.]
 
-  Description []
+  Description [Assumes that registers are ordered after PIs/POs.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk )
+Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fRegisters )
 {
     Aig_Man_t * pMan;
+    Aig_Obj_t * pObjNew;
     Abc_Obj_t * pObj;
-    int i;
+    int i, nNodes;
+    // make sure the latches follow PIs/POs
+    if ( fRegisters )
+    {
+        assert( Abc_NtkBoxNum(pNtk) == Abc_NtkLatchNum(pNtk) );
+        Abc_NtkForEachCi( pNtk, pObj, i )
+            if ( i < Abc_NtkPiNum(pNtk) )
+                assert( Abc_ObjIsPi(pObj) );
+            else
+                assert( Abc_ObjIsBo(pObj) );
+        Abc_NtkForEachCo( pNtk, pObj, i )
+            if ( i < Abc_NtkPoNum(pNtk) )
+                assert( Abc_ObjIsPo(pObj) );
+            else
+                assert( Abc_ObjIsBi(pObj) );
+    }
     // create the manager
     pMan = Aig_ManStart( Abc_NtkNodeNum(pNtk) + 100 );
+    // save the number of registers
+    if ( fRegisters )
+        pMan->nRegs = Abc_NtkLatchNum(pNtk);
     // transfer the pointers to the basic nodes
     Abc_AigConst1(pNtk)->pCopy = (Abc_Obj_t *)Aig_ManConst1(pMan);
     Abc_NtkForEachCi( pNtk, pObj, i )
         pObj->pCopy = (Abc_Obj_t *)Aig_ObjCreatePi(pMan);
+    // complement the 1-values registers
+    if ( fRegisters )
+        Abc_NtkForEachLatch( pNtk, pObj, i )
+            if ( Abc_LatchIsInit1(pObj) )
+                Abc_ObjFanout0(pObj)->pCopy = Abc_ObjNot(Abc_ObjFanout0(pObj)->pCopy);
     // perform the conversion of the internal nodes (assumes DFS ordering)
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
@@ -63,7 +87,14 @@ Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk )
     // create the POs
     Abc_NtkForEachCo( pNtk, pObj, i )
         Aig_ObjCreatePo( pMan, (Aig_Obj_t *)Abc_ObjChild0Copy(pObj) );
-    Aig_ManCleanup( pMan );
+    // complement the 1-valued registers
+    if ( fRegisters )
+        Aig_ManForEachLiSeq( pMan, pObjNew, i )
+            if ( Abc_LatchIsInit1(Abc_ObjFanout0(Abc_NtkCo(pNtk,i))) )
+                pObjNew->pFanin0 = Aig_Not(pObjNew->pFanin0);
+    // remove dangling nodes
+    if ( nNodes = Aig_ManCleanup( pMan ) )
+        printf( "Abc_NtkToDar(): Unexpected %d dangling nodes when converting to AIG!\n", nNodes );
     if ( !Aig_ManCheck( pMan ) )
     {
         printf( "Abc_NtkToDar: AIG check has failed.\n" );
@@ -296,8 +327,8 @@ void Abc_NtkSecRetime( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
     fRemove2 = (!Abc_NtkIsStrash(pNtk2)) && (pNtk2 = Abc_NtkStrash(pNtk2, 0, 0, 0));
 
 
-    pMan1 = Abc_NtkToDar( pNtk1 );
-    pMan2 = Abc_NtkToDar( pNtk2 );
+    pMan1 = Abc_NtkToDar( pNtk1, 0 );
+    pMan2 = Abc_NtkToDar( pNtk2, 0 );
 
     Aig_ManPrintStats( pMan1 );
     Aig_ManPrintStats( pMan2 );
@@ -342,7 +373,7 @@ Abc_Ntk_t * Abc_NtkDar( Abc_Ntk_t * pNtk )
 
     assert( Abc_NtkIsStrash(pNtk) );
     // convert to the AIG manager
-    pMan = Abc_NtkToDar( pNtk );
+    pMan = Abc_NtkToDar( pNtk, 0 );
     if ( pMan == NULL )
         return NULL;
     if ( !Aig_ManCheck( pMan ) )
@@ -410,7 +441,7 @@ Abc_Ntk_t * Abc_NtkDarFraig( Abc_Ntk_t * pNtk, int nConfLimit, int fDoSparse, in
     Fra_Par_t Pars, * pPars = &Pars; 
     Abc_Ntk_t * pNtkAig;
     Aig_Man_t * pMan, * pTemp;
-    pMan = Abc_NtkToDar( pNtk );
+    pMan = Abc_NtkToDar( pNtk, 0 );
     if ( pMan == NULL )
         return NULL;
     Fra_ParamsDefault( pPars );
@@ -446,7 +477,7 @@ Abc_Ntk_t * Abc_NtkCSweep( Abc_Ntk_t * pNtk, int nCutsMax, int nLeafMax, int fVe
     extern Aig_Man_t * Csw_Sweep( Aig_Man_t * pAig, int nCutsMax, int nLeafMax, int fVerbose );
     Abc_Ntk_t * pNtkAig;
     Aig_Man_t * pMan, * pTemp;
-    pMan = Abc_NtkToDar( pNtk );
+    pMan = Abc_NtkToDar( pNtk, 0 );
     if ( pMan == NULL )
         return NULL;
     pMan = Csw_Sweep( pTemp = pMan, nCutsMax, nLeafMax, fVerbose );
@@ -473,7 +504,7 @@ Abc_Ntk_t * Abc_NtkDRewrite( Abc_Ntk_t * pNtk, Dar_RwrPar_t * pPars )
     Abc_Ntk_t * pNtkAig;
     int clk;
     assert( Abc_NtkIsStrash(pNtk) );
-    pMan = Abc_NtkToDar( pNtk );
+    pMan = Abc_NtkToDar( pNtk, 0 );
     if ( pMan == NULL )
         return NULL;
 //    Aig_ManPrintStats( pMan );
@@ -517,7 +548,7 @@ Abc_Ntk_t * Abc_NtkDRefactor( Abc_Ntk_t * pNtk, Dar_RefPar_t * pPars )
     Abc_Ntk_t * pNtkAig;
     int clk;
     assert( Abc_NtkIsStrash(pNtk) );
-    pMan = Abc_NtkToDar( pNtk );
+    pMan = Abc_NtkToDar( pNtk, 0 );
     if ( pMan == NULL )
         return NULL;
 //    Aig_ManPrintStats( pMan );
@@ -554,7 +585,7 @@ Abc_Ntk_t * Abc_NtkDCompress2( Abc_Ntk_t * pNtk, int fBalance, int fUpdateLevel,
     Abc_Ntk_t * pNtkAig;
     int clk;
     assert( Abc_NtkIsStrash(pNtk) );
-    pMan = Abc_NtkToDar( pNtk );
+    pMan = Abc_NtkToDar( pNtk, 0 );
     if ( pMan == NULL )
         return NULL;
 //    Aig_ManPrintStats( pMan );
@@ -587,7 +618,7 @@ Abc_Ntk_t * Abc_NtkDrwsat( Abc_Ntk_t * pNtk, int fBalance, int fVerbose )
     Abc_Ntk_t * pNtkAig;
     int clk;
     assert( Abc_NtkIsStrash(pNtk) );
-    pMan = Abc_NtkToDar( pNtk );
+    pMan = Abc_NtkToDar( pNtk, 0 );
     if ( pMan == NULL )
         return NULL;
 //    Aig_ManPrintStats( pMan );
@@ -696,7 +727,7 @@ Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName )
     assert( Abc_NtkIsStrash(pNtk) );
 
     // convert to the AIG manager
-    pMan = Abc_NtkToDar( pNtk );
+    pMan = Abc_NtkToDar( pNtk, 0 );
     if ( pMan == NULL )
         return NULL;
     if ( !Aig_ManCheck( pMan ) )
@@ -751,7 +782,7 @@ int Abc_NtkDSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fVer
     assert( Abc_NtkPoNum(pNtk) == 1 );
 
     // conver to the manager
-    pMan = Abc_NtkToDar( pNtk );
+    pMan = Abc_NtkToDar( pNtk, 0 );
     // derive CNF
 //    pCnf = Cnf_Derive( pMan, 0 );
     pCnf = Cnf_DeriveSimple( pMan, 0 );
@@ -809,7 +840,7 @@ int Abc_NtkDSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fVer
         assert( 0 );
 //    PRT( "SAT sat_solver time", clock() - clk );
 //    printf( "The number of conflicts = %d.\n", (int)pSat->sat_solver_stats.conflicts );
-
+ 
     // if the problem is SAT, get the counterexample
     if ( status == l_True )
     {
@@ -836,16 +867,16 @@ int Abc_NtkDSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fVer
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkSeqSweep( Abc_Ntk_t * pNtk, int nFramesK, int fVerbose )
+Abc_Ntk_t * Abc_NtkSeqSweep( Abc_Ntk_t * pNtk, int nFramesK, int fRewrite, int fVerbose )
 {
     Abc_Ntk_t * pNtkAig;
     Aig_Man_t * pMan, * pTemp;
-    pMan = Abc_NtkToDar( pNtk );
+    pMan = Abc_NtkToDar( pNtk, 0 );
     if ( pMan == NULL )
         return NULL;
     pMan->nRegs = Abc_NtkLatchNum(pNtk);
 
-    pMan = Fra_FraigInduction( pTemp = pMan, nFramesK, fVerbose );
+    pMan = Fra_FraigInduction( pTemp = pMan, nFramesK, fRewrite, fVerbose );
     Aig_ManStop( pTemp );
 
     pNtkAig = Abc_NtkFromDar( pNtk, pMan );

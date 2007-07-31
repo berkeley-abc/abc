@@ -232,6 +232,7 @@ Aig_Man_t * Aig_ManDupRepr( Aig_Man_t * p )
     int i;
     // start the HOP package
     pNew = Aig_ManStart( Aig_ManObjIdMax(p) + 1 );
+    pNew->nRegs = p->nRegs;
     Aig_ManReprStart( pNew, Aig_ManObjIdMax(p)+1 );
     // map the const and primary inputs
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
