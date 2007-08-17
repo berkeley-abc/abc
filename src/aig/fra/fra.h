@@ -71,6 +71,7 @@ struct Fra_Par_t_
     int              nBTLimitMiter;     // conflict limit at an output
     int              nFramesK;          // the number of timeframes to unroll
     int              fRewrite;          // use rewriting for constraint reduction
+    int              fLatchCorr;        // computes latch correspondence only
 };
 
 // FRAIG equivalence classes
@@ -101,6 +102,7 @@ struct Fra_Man_t_
     int              nFramesAll;        // the number of timeframes used
     Aig_Obj_t **     pMemFraig;         // memory allocated for points to the fraig nodes
     // simulation info
+    void *           pSim;              // the simulation manager
     unsigned *       pSimWords;         // memory for simulation information
     int              nSimWords;         // the number of simulation words
     // counter example storage
@@ -187,21 +189,23 @@ extern Fra_Cla_t *         Fra_ClassesStart( Aig_Man_t * pAig );
 extern void                Fra_ClassesStop( Fra_Cla_t * p );
 extern void                Fra_ClassesCopyReprs( Fra_Cla_t * p, Vec_Ptr_t * vFailed );
 extern void                Fra_ClassesPrint( Fra_Cla_t * p, int fVeryVerbose );
-extern void                Fra_ClassesPrepare( Fra_Cla_t * p );
+extern void                Fra_ClassesPrepare( Fra_Cla_t * p, int fLatchCorr );
 extern int                 Fra_ClassesRefine( Fra_Cla_t * p );
 extern int                 Fra_ClassesRefine1( Fra_Cla_t * p );
 extern int                 Fra_ClassesCountLits( Fra_Cla_t * p );
 extern int                 Fra_ClassesCountPairs( Fra_Cla_t * p );
 extern void                Fra_ClassesTest( Fra_Cla_t * p, int Id1, int Id2 );
+extern void                Fra_ClassesLatchCorr( Fra_Man_t * p );
 /*=== fraCnf.c ========================================================*/
 extern void                Fra_NodeAddToSolver( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew );
 /*=== fraCore.c ========================================================*/
 extern Aig_Man_t *         Fra_FraigPerform( Aig_Man_t * pManAig, Fra_Par_t * pPars );
 extern Aig_Man_t *         Fra_FraigChoice( Aig_Man_t * pManAig );
 extern void                Fra_FraigSweep( Fra_Man_t * pManAig );
+extern int                 Fra_FraigMiterStatus( Aig_Man_t * p );
 /*=== fraDfs.c ========================================================*/
 /*=== fraInd.c ========================================================*/
-extern Aig_Man_t *         Fra_FraigInduction( Aig_Man_t * p, int nFramesK, int fRewrite, int fVerbose );
+extern Aig_Man_t *         Fra_FraigInduction( Aig_Man_t * p, int nFramesK, int fRewrite, int fLatchCorr, int fVerbose, int * pnIter );
 /*=== fraMan.c ========================================================*/
 extern void                Fra_ParamsDefault( Fra_Par_t * pParams );
 extern void                Fra_ParamsDefaultSeq( Fra_Par_t * pParams );
@@ -214,6 +218,8 @@ extern void                Fra_ManPrint( Fra_Man_t * p );
 /*=== fraSat.c ========================================================*/
 extern int                 Fra_NodesAreEquiv( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew );
 extern int                 Fra_NodeIsConst( Fra_Man_t * p, Aig_Obj_t * pNew );
+/*=== fraSec.c ========================================================*/
+extern int                 Fra_FraigSec( Aig_Man_t * p, int nFrames, int fVerbose, int fVeryVerbose );
 /*=== fraSim.c ========================================================*/
 extern int                 Fra_NodeHasZeroSim( Aig_Obj_t * pObj );
 extern int                 Fra_NodeCompareSims( Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 );

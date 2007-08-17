@@ -41,7 +41,7 @@ static int Abc_NtkRetimeOneWay( Abc_Ntk_t * pNtk, int fForward, int fVerbose );
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRetimeIncremental( Abc_Ntk_t * pNtk, int fForward, int fMinDelay, int fVerbose )
+int Abc_NtkRetimeIncremental( Abc_Ntk_t * pNtk, int fForward, int fMinDelay, int fOneStep, int fVerbose )
 {
     Abc_Ntk_t * pNtkCopy = NULL;
     Vec_Ptr_t * vBoxes;
@@ -55,7 +55,7 @@ int Abc_NtkRetimeIncremental( Abc_Ntk_t * pNtk, int fForward, int fMinDelay, int
     Abc_NtkOrderCisCos( pNtk );
     if ( fMinDelay ) 
     {
-        nIterLimit = 2 * Abc_NtkLevel(pNtk);
+        nIterLimit = fOneStep? 1 : 2 * Abc_NtkLevel(pNtk);
         pNtkCopy = Abc_NtkDup( pNtk );
         tLatches = Abc_NtkRetimePrepareLatches( pNtkCopy );
         st_free_table( tLatches );

@@ -148,6 +148,89 @@ Aig_Obj_t * Aig_And( Aig_Man_t * p, Aig_Obj_t * p0, Aig_Obj_t * p1 )
         return p0 == p->pConst1 ? p1 : Aig_Not(p->pConst1);
     if ( Aig_Regular(p1) == p->pConst1 )
         return p1 == p->pConst1 ? p0 : Aig_Not(p->pConst1);
+    // check not so trivial cases
+    if ( p->fAddStrash && (Aig_ObjIsNode(Aig_Regular(p0)) || Aig_ObjIsNode(Aig_Regular(p1))) )
+    { // http://fmv.jku.at/papers/BrummayerBiere-MEMICS06.pdf
+        Aig_Obj_t * pFanA, * pFanB, * pFanC, * pFanD;
+        pFanA = Aig_ObjChild0(Aig_Regular(p0));
+        pFanB = Aig_ObjChild1(Aig_Regular(p0));
+        pFanC = Aig_ObjChild0(Aig_Regular(p1));
+        pFanD = Aig_ObjChild1(Aig_Regular(p1));
+        if ( Aig_IsComplement(p0) )
+        {
+            if ( pFanA == Aig_Not(p1) || pFanB == Aig_Not(p1) )
+                return p1;
+            if ( pFanB == p1 )
+                return Aig_And( p, Aig_Not(pFanA), pFanB );
+            if ( pFanA == p1 )
+                return Aig_And( p, Aig_Not(pFanB), pFanA );
+        }
+        else
+        {
+            if ( pFanA == Aig_Not(p1) || pFanB == Aig_Not(p1) )
+                return Aig_Not(p->pConst1);
+            if ( pFanA == p1 || pFanB == p1 )
+                return p0;
+        }
+        if ( Aig_IsComplement(p1) )
+        {
+            if ( pFanC == Aig_Not(p0) || pFanD == Aig_Not(p0) )
+                return p0;
+            if ( pFanD == p0 )
+                return Aig_And( p, Aig_Not(pFanC), pFanD );
+            if ( pFanC == p0 )
+                return Aig_And( p, Aig_Not(pFanD), pFanC );
+        }
+        else
+        {
+            if ( pFanC == Aig_Not(p0) || pFanD == Aig_Not(p0) )
+                return Aig_Not(p->pConst1);
+            if ( pFanC == p0 || pFanD == p0 )
+                return p1;
+        }
+        if ( !Aig_IsComplement(p0) && !Aig_IsComplement(p1) ) 
+        {
+            if ( pFanA == Aig_Not(pFanC) || pFanA == Aig_Not(pFanD) || pFanB == Aig_Not(pFanC) || pFanB == Aig_Not(pFanD) )
+                return Aig_Not(p->pConst1);
+            if ( pFanA == pFanC || pFanB == pFanC )
+                return Aig_And( p, p0, pFanD );
+            if ( pFanB == pFanC || pFanB == pFanD )
+                return Aig_And( p, pFanA, p1 );
+            if ( pFanA == pFanD || pFanB == pFanD )
+                return Aig_And( p, p0, pFanC );
+            if ( pFanA == pFanC || pFanA == pFanD )
+                return Aig_And( p, pFanB, p1 );
+        }
+        else if ( Aig_IsComplement(p0) && !Aig_IsComplement(p1) )
+        {
+            if ( pFanA == Aig_Not(pFanC) || pFanA == Aig_Not(pFanD) || pFanB == Aig_Not(pFanC) || pFanB == Aig_Not(pFanD) )
+                return p1;
+            if ( pFanB == pFanC || pFanB == pFanD )
+                return Aig_And( p, Aig_Not(pFanA), p1 );
+            if ( pFanA == pFanC || pFanA == pFanD )
+                return Aig_And( p, Aig_Not(pFanB), p1 );
+        }
+        else if ( !Aig_IsComplement(p0) && Aig_IsComplement(p1) )
+        {
+            if ( pFanC == Aig_Not(pFanA) || pFanC == Aig_Not(pFanB) || pFanD == Aig_Not(pFanA) || pFanD == Aig_Not(pFanB) )
+                return p0;
+            if ( pFanD == pFanA || pFanD == pFanB )
+                return Aig_And( p, Aig_Not(pFanC), p0 );
+            if ( pFanC == pFanA || pFanC == pFanB )
+                return Aig_And( p, Aig_Not(pFanD), p0 );
+        }
+        else // if ( Aig_IsComplement(p0) && Aig_IsComplement(p1) )
+        {
+            if ( pFanA == pFanD && pFanB == Aig_Not(pFanC) )
+                return Aig_Not(pFanA);
+            if ( pFanB == pFanC && pFanA == Aig_Not(pFanD) )
+                return Aig_Not(pFanB);
+            if ( pFanA == pFanC && pFanB == Aig_Not(pFanD) )
+                return Aig_Not(pFanA);
+            if ( pFanB == pFanD && pFanA == Aig_Not(pFanC) )
+                return Aig_Not(pFanB);
+        }
+    }
     // check if it can be an EXOR gate
 //    if ( Aig_ObjIsExorType( p0, p1, &pFan0, &pFan1 ) )
 //        return Aig_Exor( p, pFan0, pFan1 );

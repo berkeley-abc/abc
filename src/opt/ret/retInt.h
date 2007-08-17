@@ -46,11 +46,11 @@
 /*=== retArea.c ========================================================*/
 extern int         Abc_NtkRetimeMinArea( Abc_Ntk_t * pNtk, int fForwardOnly, int fBackwardOnly, int fVerbose );
 /*=== retCore.c ========================================================*/
-extern int         Abc_NtkRetime( Abc_Ntk_t * pNtk, int Mode, int fForwardOnly, int fBackwardOnly, int fVerbose );
+extern int         Abc_NtkRetime( Abc_Ntk_t * pNtk, int Mode, int fForwardOnly, int fBackwardOnly, int fOneStep, int fVerbose );
 /*=== retDelay.c ========================================================*/
 extern int         Abc_NtkRetimeMinDelay( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkCopy, int nIterLimit, int fForward, int fVerbose );
 /*=== retDirect.c ========================================================*/
-extern int         Abc_NtkRetimeIncremental( Abc_Ntk_t * pNtk, int fForward, int fMinDelay, int fVerbose );
+extern int         Abc_NtkRetimeIncremental( Abc_Ntk_t * pNtk, int fForward, int fMinDelay, int fOneStep, int fVerbose );
 extern void        Abc_NtkRetimeShareLatches( Abc_Ntk_t * pNtk, int fInitial );
 extern int         Abc_NtkRetimeNodeIsEnabled( Abc_Obj_t * pObj, int fForward );
 extern void        Abc_NtkRetimeNode( Abc_Obj_t * pObj, int fForward, int fInitial );

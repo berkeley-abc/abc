@@ -23,6 +23,7 @@
 #include "dar.h"
 #include "cnf.h"
 #include "fra.h"
+#include "fraig.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -79,11 +80,13 @@ Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fRegisters )
             if ( Abc_LatchIsInit1(pObj) )
                 Abc_ObjFanout0(pObj)->pCopy = Abc_ObjNot(Abc_ObjFanout0(pObj)->pCopy);
     // perform the conversion of the internal nodes (assumes DFS ordering)
+//    pMan->fAddStrash = 1;
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
         pObj->pCopy = (Abc_Obj_t *)Aig_And( pMan, (Aig_Obj_t *)Abc_ObjChild0Copy(pObj), (Aig_Obj_t *)Abc_ObjChild1Copy(pObj) );
 //        printf( "%d->%d ", pObj->Id, ((Aig_Obj_t *)pObj->pCopy)->Id );
     }
+    pMan->fAddStrash = 0;
     // create the POs
     Abc_NtkForEachCo( pNtk, pObj, i )
         Aig_ObjCreatePo( pMan, (Aig_Obj_t *)Abc_ObjChild0Copy(pObj) );
@@ -121,12 +124,66 @@ Abc_Ntk_t * Abc_NtkFromDar( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
     Abc_Ntk_t * pNtkNew;
     Aig_Obj_t * pObj;
     int i;
+    assert( Aig_ManRegNum(pMan) == Abc_NtkLatchNum(pNtkOld) );
     // perform strashing
     pNtkNew = Abc_NtkStartFrom( pNtkOld, ABC_NTK_STRASH, ABC_FUNC_AIG );
     // transfer the pointers to the basic nodes
     Aig_ManConst1(pMan)->pData = Abc_AigConst1(pNtkNew);
     Aig_ManForEachPi( pMan, pObj, i )
         pObj->pData = Abc_NtkCi(pNtkNew, i);
+    // rebuild the AIG
+    vNodes = Aig_ManDfs( pMan );
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+        if ( Aig_ObjIsBuf(pObj) )
+            pObj->pData = (Abc_Obj_t *)Aig_ObjChild0Copy(pObj);
+        else
+            pObj->pData = Abc_AigAnd( pNtkNew->pManFunc, (Abc_Obj_t *)Aig_ObjChild0Copy(pObj), (Abc_Obj_t *)Aig_ObjChild1Copy(pObj) );
+    Vec_PtrFree( vNodes );
+    // connect the PO nodes
+    Aig_ManForEachPo( pMan, pObj, i )
+        Abc_ObjAddFanin( Abc_NtkCo(pNtkNew, i), (Abc_Obj_t *)Aig_ObjChild0Copy(pObj) );
+    if ( !Abc_NtkCheck( pNtkNew ) )
+        fprintf( stdout, "Abc_NtkFromDar(): Network check has failed.\n" );
+    return pNtkNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converts the network from the AIG manager into ABC.]
+
+  Description [This procedure should be called after seq sweeping, 
+  which changes the number of registers.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkFromDarSeqSweep( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
+{
+    Vec_Ptr_t * vNodes;
+    Abc_Ntk_t * pNtkNew;
+    Abc_Obj_t * pObjNew;
+    Aig_Obj_t * pObj, * pObjLo, * pObjLi;
+    int i;
+//    assert( Aig_ManRegNum(pMan) != Abc_NtkLatchNum(pNtkOld) );
+    // perform strashing
+    pNtkNew = Abc_NtkStartFromNoLatches( pNtkOld, ABC_NTK_STRASH, ABC_FUNC_AIG );
+    // transfer the pointers to the basic nodes
+    Aig_ManConst1(pMan)->pData = Abc_AigConst1(pNtkNew);
+    Aig_ManForEachPiSeq( pMan, pObj, i )
+        pObj->pData = Abc_NtkCi(pNtkNew, i);
+    // create as many latches as there are registers in the manager
+    Aig_ManForEachLiLoSeq( pMan, pObjLi, pObjLo, i )
+    {
+        pObjNew = Abc_NtkCreateLatch( pNtkNew );
+        pObjLi->pData = Abc_NtkCreateBi( pNtkNew );
+        pObjLo->pData = Abc_NtkCreateBo( pNtkNew );
+        Abc_ObjAddFanin( pObjNew, pObjLi->pData );
+        Abc_ObjAddFanin( pObjLo->pData, pObjNew );
+        Abc_LatchSetInit0( pObjNew );
+    }
+    Abc_NtkAddDummyBoxNames( pNtkNew );
     // rebuild the AIG
     vNodes = Aig_ManDfs( pMan );
     Vec_PtrForEachEntry( vNodes, pObj, i )
@@ -367,55 +424,23 @@ void Abc_NtkSecRetime( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 )
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkDar( Abc_Ntk_t * pNtk )
 {
-    Abc_Ntk_t * pNtkAig;
-    Aig_Man_t * pMan;//, * pTemp;
-//    int * pArray;
+    Abc_Ntk_t * pNtkAig = NULL;
+    Aig_Man_t * pMan;
+    extern void Fra_ManPartitionTest( Aig_Man_t * p, int nComLim );
 
     assert( Abc_NtkIsStrash(pNtk) );
     // convert to the AIG manager
     pMan = Abc_NtkToDar( pNtk, 0 );
     if ( pMan == NULL )
         return NULL;
-    if ( !Aig_ManCheck( pMan ) )
-    {
-        printf( "Abc_NtkDar: AIG check has failed.\n" );
-        Aig_ManStop( pMan );
-        return NULL;
-    }
-    // perform balance
-    Aig_ManPrintStats( pMan );
-/*
-    pArray = Abc_NtkGetLatchValues(pNtk);
-    Aig_ManSeqStrash( pMan, Abc_NtkLatchNum(pNtk), pArray );
-    free( pArray );
-*/
 
-//    Aig_ManDumpBlif( pMan, "aig_temp.blif" );
-//    pMan->pPars = Dar_ManDefaultRwrPars();
-    Dar_ManRewrite( pMan, NULL );
-    Aig_ManPrintStats( pMan );
-//    Dar_ManComputeCuts( pMan );
-
-/*
-{
-extern Aig_Cnf_t * Aig_ManDeriveCnf( Aig_Man_t * p );
-extern void Aig_CnfFree( Aig_Cnf_t * pCnf );
-Aig_Cnf_t * pCnf;
-pCnf = Aig_ManDeriveCnf( pMan );
-Aig_CnfFree( pCnf );
-}
-*/
-
-    // convert from the AIG manager
-    if ( Aig_ManLatchNum(pMan) )
-        pNtkAig = Abc_NtkFromDarSeq( pNtk, pMan );
-    else
-        pNtkAig = Abc_NtkFromDar( pNtk, pMan );
-    if ( pNtkAig == NULL )
-        return NULL;
+    // perform computation
+//    Fra_ManPartitionTest( pMan, 4 );
+    pNtkAig = Abc_NtkFromDar( pNtk, pMan );
     Aig_ManStop( pMan );
+
     // make sure everything is okay
-    if ( !Abc_NtkCheck( pNtkAig ) )
+    if ( pNtkAig && !Abc_NtkCheck( pNtkAig ) )
     {
         printf( "Abc_NtkDar: The network check has failed.\n" );
         Abc_NtkDelete( pNtkAig );
@@ -867,23 +892,146 @@ int Abc_NtkDSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fVer
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkSeqSweep( Abc_Ntk_t * pNtk, int nFramesK, int fRewrite, int fVerbose )
+Abc_Ntk_t * Abc_NtkSeqSweep( Abc_Ntk_t * pNtk, int nFramesK, int fRewrite, int fLatchCorr, int fVerbose )
 {
     Abc_Ntk_t * pNtkAig;
     Aig_Man_t * pMan, * pTemp;
-    pMan = Abc_NtkToDar( pNtk, 0 );
+    pMan = Abc_NtkToDar( pNtk, 1 );
     if ( pMan == NULL )
         return NULL;
-    pMan->nRegs = Abc_NtkLatchNum(pNtk);
+//    pMan->nRegs = Abc_NtkLatchNum(pNtk);
 
-    pMan = Fra_FraigInduction( pTemp = pMan, nFramesK, fRewrite, fVerbose );
+    pMan = Fra_FraigInduction( pTemp = pMan, nFramesK, fRewrite, fLatchCorr, fVerbose, NULL );
     Aig_ManStop( pTemp );
 
-    pNtkAig = Abc_NtkFromDar( pNtk, pMan );
+    if ( Aig_ManRegNum(pMan) < Abc_NtkLatchNum(pNtk) )
+        pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
+    else
+        pNtkAig = Abc_NtkFromDar( pNtk, pMan );
     Aig_ManStop( pMan );
     return pNtkAig;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames, int fVerbose, int fVeryVerbose )
+{
+    Fraig_Params_t Params;
+    Aig_Man_t * pMan;
+    Abc_Ntk_t * pMiter, * pTemp;
+    int RetValue;
+
+    // get the miter of the two networks
+    pMiter = Abc_NtkMiter( pNtk1, pNtk2, 0, 0 );
+    if ( pMiter == NULL )
+    {
+        printf( "Miter computation has failed.\n" );
+        return 0;
+    }
+    RetValue = Abc_NtkMiterIsConstant( pMiter );
+    if ( RetValue == 0 )
+    {
+        extern void Abc_NtkVerifyReportErrorSeq( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int * pModel, int nFrames );
+        printf( "Networks are NOT EQUIVALENT after structural hashing.\n" );
+        // report the error
+        pMiter->pModel = Abc_NtkVerifyGetCleanModel( pMiter, nFrames );
+        Abc_NtkVerifyReportErrorSeq( pNtk1, pNtk2, pMiter->pModel, nFrames );
+        FREE( pMiter->pModel );
+        Abc_NtkDelete( pMiter );
+        return 0;
+    }
+    if ( RetValue == 1 )
+    {
+        Abc_NtkDelete( pMiter );
+        printf( "Networks are equivalent after structural hashing.\n" );
+        return 1;
+    }
+
+    // preprocess the miter by fraiging it
+    // (note that for each functional class, fraiging leaves one representative;
+    // so fraiging does not reduce the number of functions represented by nodes
+    Fraig_ParamsSetDefault( &Params );
+    pMiter = Abc_NtkFraig( pTemp = pMiter, &Params, 0, 0 );
+    Abc_NtkDelete( pTemp );
+
+    // derive the AIG manager
+    pMan = Abc_NtkToDar( pMiter, 1 );
+    Abc_NtkDelete( pMiter );
+    if ( pMan == NULL )
+    {
+        printf( "Converting miter into AIG has failed.\n" );
+        return -1;
+    }
+    assert( pMan->nRegs > 0 );
+
+    // perform verification
+    RetValue = Fra_FraigSec( pMan, nFrames, fVerbose, fVeryVerbose );
+    Aig_ManStop( pMan );
+    return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkDarLatchSweep( Abc_Ntk_t * pNtk, int fVerbose )
+{
+    Abc_Ntk_t * pNtkAig;
+    Aig_Man_t * pMan;
+    pMan = Abc_NtkToDar( pNtk, 1 );
+    if ( pMan == NULL )
+        return NULL;
+    pMan = Aig_ManReduceLaches( pMan, fVerbose );
+    pMan = Aig_ManConstReduce( pMan, fVerbose );
+    pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
+    Aig_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkDarRetime( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose )
+{
+    Abc_Ntk_t * pNtkAig;
+    Aig_Man_t * pMan, * pTemp;
+    pMan = Abc_NtkToDar( pNtk, 1 );
+    if ( pMan == NULL )
+        return NULL;
+    pMan = Rtm_ManRetimeFwd( pTemp = pMan, nStepsMax, fVerbose );
+    Aig_ManStop( pTemp );
+
+//    pMan = Aig_ManReduceLaches( pMan, 1 );
+//    pMan = Aig_ManConstReduce( pMan, 1 );
+
+    pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
+    Aig_ManStop( pMan );
+    return pNtkAig;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

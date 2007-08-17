@@ -163,6 +163,12 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols )
         fprintf( stdout, "Io_WriteAiger(): Cannot open the output file \"%s\".\n", pFileName );
         return;
     }
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+        if ( !Abc_LatchIsInit0(pObj) )
+        {
+            fprintf( stdout, "Io_WriteAiger(): Cannot write AIGER format with non-0 latch init values. Run \"zero\".\n" );
+            return;
+        }
 
     // set the node numbers to be used in the output file
     nNodes = 0;

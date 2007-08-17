@@ -98,6 +98,7 @@ Abc_Ntk_t * Abc_NtkMiterInt( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb, in
     Abc_NtkMiterAddOne( pNtk1, pNtkMiter );
     Abc_NtkMiterAddOne( pNtk2, pNtkMiter );
     Abc_NtkMiterFinalize( pNtk1, pNtk2, pNtkMiter, fComb, nPartSize );
+    Abc_AigCleanup(pNtkMiter->pManFunc);
 
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtkMiter ) )

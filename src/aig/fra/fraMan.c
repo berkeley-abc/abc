@@ -86,6 +86,7 @@ void Fra_ParamsDefaultSeq( Fra_Par_t * pPars )
     pPars->nFramesK         =       1;  // the number of timeframes to unroll
     pPars->fConeBias        =       0;
     pPars->fRewrite         =       0;
+    pPars->fLatchCorr       =       0;
 }
 
 /**Function*************************************************************

@@ -1086,6 +1086,89 @@ void Abc_NtkMakeComb( Abc_Ntk_t * pNtk )
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Removes POs with suppsize less than 2 and PIs without fanout.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkTrim( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    int i, k, m;
+
+    // filter POs
+    k = m = 0;
+    Abc_NtkForEachCo( pNtk, pObj, i )
+    {
+        if ( Abc_ObjIsPo(pObj) )
+        {
+            // remove constant nodes and PI pointers
+            if ( Abc_ObjFaninNum(Abc_ObjFanin0(pObj)) == 0 )
+            {
+                Abc_ObjDeleteFanin( pObj, Abc_ObjFanin0(pObj) );
+                if ( Abc_ObjFanoutNum(Abc_ObjFanin0(pObj)) == 0 && !Abc_ObjIsPi(Abc_ObjFanin0(pObj)) )
+                    Abc_NtkDeleteObj_rec( Abc_ObjFanin0(pObj), 1 );
+                pNtk->vObjs->pArray[pObj->Id] = NULL;
+                pObj->Id = (1<<26)-1;
+                pNtk->nObjCounts[pObj->Type]--;
+                pNtk->nObjs--;
+                Abc_ObjRecycle( pObj );
+                continue;
+            }
+            // remove buffers/inverters of PIs
+            if ( Abc_ObjFaninNum(Abc_ObjFanin0(pObj)) == 1 )
+            {
+                if ( Abc_ObjIsPi(Abc_ObjFanin0(Abc_ObjFanin0(pObj))) )
+                {
+                    Abc_ObjDeleteFanin( pObj, Abc_ObjFanin0(pObj) );
+                    if ( Abc_ObjFanoutNum(Abc_ObjFanin0(pObj)) == 0 )
+                        Abc_NtkDeleteObj_rec( Abc_ObjFanin0(pObj), 1 );
+                    pNtk->vObjs->pArray[pObj->Id] = NULL;
+                    pObj->Id = (1<<26)-1;
+                    pNtk->nObjCounts[pObj->Type]--;
+                    pNtk->nObjs--;
+                    Abc_ObjRecycle( pObj );
+                    continue;
+                }
+            }
+            Vec_PtrWriteEntry( pNtk->vPos, m++, pObj );
+        }
+        Vec_PtrWriteEntry( pNtk->vCos, k++, pObj );
+    }
+    Vec_PtrShrink( pNtk->vPos, m );
+    Vec_PtrShrink( pNtk->vCos, k );
+
+    // filter PIs
+    k = m = 0;
+    Abc_NtkForEachCi( pNtk, pObj, i )
+    {
+        if ( Abc_ObjIsPi(pObj) )
+        {
+            if ( Abc_ObjFanoutNum(pObj) == 0 )
+            {
+                pNtk->vObjs->pArray[pObj->Id] = NULL;
+                pObj->Id = (1<<26)-1;
+                pNtk->nObjCounts[pObj->Type]--;
+                pNtk->nObjs--;
+                Abc_ObjRecycle( pObj );
+                continue;
+            }
+            Vec_PtrWriteEntry( pNtk->vPis, m++, pObj );
+        }
+        Vec_PtrWriteEntry( pNtk->vCis, k++, pObj );
+    }
+    Vec_PtrShrink( pNtk->vPis, m );
+    Vec_PtrShrink( pNtk->vCis, k );
+
+    return Abc_NtkDup( pNtk );
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

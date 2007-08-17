@@ -126,6 +126,7 @@ struct Aig_Man_t_
     void *           pData;          // the temporary data
     int              nTravIds;       // the current traversal ID
     int              fCatchExor;     // enables EXOR nodes
+    int              fAddStrash;     // performs additional strashing
     // timing statistics
     int              time1;
     int              time2;
@@ -149,7 +150,16 @@ static inline int          Aig_TruthWordNum( int nVars )          { return nVars
 static inline int          Aig_InfoHasBit( unsigned * p, int i )  { return (p[(i)>>5] & (1<<((i) & 31))) > 0;       }
 static inline void         Aig_InfoSetBit( unsigned * p, int i )  { p[(i)>>5] |= (1<<((i) & 31));                   }
 static inline void         Aig_InfoXorBit( unsigned * p, int i )  { p[(i)>>5] ^= (1<<((i) & 31));                   }
+static inline unsigned     Aig_InfoMask( int nVar )               { return (~(unsigned)0) >> (32-nVar);             }
 static inline unsigned     Aig_ObjCutSign( unsigned ObjId )       { return (1 << (ObjId & 31));                     }
+static inline int          Aig_WordCountOnes( unsigned uWord )
+{
+    uWord = (uWord & 0x55555555) + ((uWord>>1) & 0x55555555);
+    uWord = (uWord & 0x33333333) + ((uWord>>2) & 0x33333333);
+    uWord = (uWord & 0x0F0F0F0F) + ((uWord>>4) & 0x0F0F0F0F);
+    uWord = (uWord & 0x00FF00FF) + ((uWord>>8) & 0x00FF00FF);
+    return  (uWord & 0x0000FFFF) + (uWord>>16);
+}
 
 static inline Aig_Obj_t *  Aig_Regular( Aig_Obj_t * p )           { return (Aig_Obj_t *)((unsigned long)(p) & ~01); }
 static inline Aig_Obj_t *  Aig_Not( Aig_Obj_t * p )               { return (Aig_Obj_t *)((unsigned long)(p) ^  01); }
@@ -328,6 +338,10 @@ static inline int     Aig_ObjFanoutNext( Aig_Man_t * p, int iFan )   { assert(iF
 // iterator over the latch inputs
 #define Aig_ManForEachLiSeq( p, pObj, i )                                       \
     Vec_PtrForEachEntryStart( p->vPos, pObj, i, Aig_ManPoNum(p)-Aig_ManRegNum(p) )
+// iterator over the latch input and outputs
+#define Aig_ManForEachLiLoSeq( p, pObjLi, pObjLo, k )                           \
+    for ( k = 0; (k < Aig_ManRegNum(p)) && (((pObjLi) = Aig_ManLi(p, k)), 1)    \
+        && (((pObjLo)=Aig_ManLo(p, k)), 1); k++ )
 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
@@ -358,10 +372,14 @@ extern void            Aig_ManFanoutStop( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManStart( int nNodesMax );
 extern Aig_Man_t *     Aig_ManStartFrom( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDup( Aig_Man_t * p, int fOrdered );
+extern Aig_Man_t *     Aig_ManRemap( Aig_Man_t * p, Vec_Ptr_t * vMap );
 extern Aig_Man_t *     Aig_ManExtractMiter( Aig_Man_t * p, Aig_Obj_t * pNode1, Aig_Obj_t * pNode2 );
 extern void            Aig_ManStop( Aig_Man_t * p );
 extern int             Aig_ManCleanup( Aig_Man_t * p );
+extern int             Aig_ManCountMergeRegs( Aig_Man_t * p );
+extern int             Aig_ManSeqCleanup( Aig_Man_t * p );
 extern void            Aig_ManPrintStats( Aig_Man_t * p );
+extern Aig_Man_t *     Aig_ManReduceLaches( Aig_Man_t * p, int fVerbose );
 /*=== aigMem.c ==========================================================*/
 extern void            Aig_ManStartMemory( Aig_Man_t * p );
 extern void            Aig_ManStopMemory( Aig_Man_t * p );
@@ -414,8 +432,11 @@ extern void            Aig_ManTransferRepr( Aig_Man_t * pNew, Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupRepr( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManRehash( Aig_Man_t * p );
 extern void            Aig_ManCreateChoices( Aig_Man_t * p );
+/*=== aigRet.c ========================================================*/
+extern Aig_Man_t *     Rtm_ManRetimeFwd( Aig_Man_t * p, int nStepsMax, int fVerbose );
 /*=== aigSeq.c ========================================================*/
 extern int             Aig_ManSeqStrash( Aig_Man_t * p, int nLatches, int * pInits );
+extern Aig_Man_t *     Aig_ManConstReduce( Aig_Man_t * p, int fVerbose );
 /*=== aigShow.c ========================================================*/
 extern void            Aig_ManShow( Aig_Man_t * pMan, int fHaig, Vec_Ptr_t * vBold );
 /*=== aigTable.c ========================================================*/

@@ -63,7 +63,7 @@ int Abc_NtkRetimeMinDelay( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkCopy, int nIterLimi
 
   Synopsis    [Returns the best delay and the number of best iteration.]
 
-  Description []
+  Description [] 
                
   SideEffects []
 
@@ -145,7 +145,7 @@ if ( fVerbose && !fInitial )
 if ( fVerbose && !fInitial )
     printf( "%s : Starting delay = %3d.  Final delay = %3d.  IterBest = %2d (out of %2d).\n", 
         fForward? "Forward " : "Backward", DelayStart, DelayBest, IterBest, nIterLimit );
-    *pIterBest = IterBest;
+    *pIterBest = (nIterLimit == 1) ? 1 : IterBest;
     return DelayBest;
 }
 

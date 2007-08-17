@@ -24,6 +24,70 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+#define AIG_XVS0   1
+#define AIG_XVS1   2
+#define AIG_XVSX   3
+
+static inline void Aig_ObjSetXsim( Aig_Obj_t * pObj, int Value )  { pObj->nCuts = Value;  }
+static inline int  Aig_ObjGetXsim( Aig_Obj_t * pObj )             { return pObj->nCuts;   }
+static inline int  Aig_XsimInv( int Value )   
+{ 
+    if ( Value == AIG_XVS0 )
+        return AIG_XVS1;
+    if ( Value == AIG_XVS1 )
+        return AIG_XVS0;
+    assert( Value == AIG_XVSX );       
+    return AIG_XVSX;
+}
+static inline int  Aig_XsimAnd( int Value0, int Value1 )   
+{ 
+    if ( Value0 == AIG_XVS0 || Value1 == AIG_XVS0 )
+        return AIG_XVS0;
+    if ( Value0 == AIG_XVSX || Value1 == AIG_XVSX )
+        return AIG_XVSX;
+    assert( Value0 == AIG_XVS1 && Value1 == AIG_XVS1 );
+    return AIG_XVS1;
+}
+static inline int  Aig_XsimRand2()   
+{
+    return (rand() & 1) ? AIG_XVS1 : AIG_XVS0;
+}
+static inline int  Aig_XsimRand3()   
+{
+    int RetValue;
+    do { 
+        RetValue = rand() & 3; 
+    } while ( RetValue == 0 );
+    return RetValue;
+}
+static inline int  Aig_ObjGetXsimFanin0( Aig_Obj_t * pObj )       
+{ 
+    int RetValue;
+    RetValue = Aig_ObjGetXsim(Aig_ObjFanin0(pObj));
+    return Aig_ObjFaninC0(pObj)? Aig_XsimInv(RetValue) : RetValue;
+}
+static inline int  Aig_ObjGetXsimFanin1( Aig_Obj_t * pObj )       
+{ 
+    int RetValue;
+    RetValue = Aig_ObjGetXsim(Aig_ObjFanin1(pObj));
+    return Aig_ObjFaninC1(pObj)? Aig_XsimInv(RetValue) : RetValue;
+}
+static inline void Aig_XsimPrint( FILE * pFile, int Value )   
+{ 
+    if ( Value == AIG_XVS0 )
+    {
+        fprintf( pFile, "0" );
+        return;
+    }
+    if ( Value == AIG_XVS1 )
+    {
+        fprintf( pFile, "1" );
+        return;
+    }
+    assert( Value == AIG_XVSX );       
+    fprintf( pFile, "x" );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -491,6 +555,163 @@ int Aig_ManSeqStrash( Aig_Man_t * p, int nLatches, int * pInits )
     }
     return 1;
 
+}
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Cycles the circuit to create a new initial state.]
+
+  Description [Simulates the circuit with random input for the given 
+  number of timeframes to get a better initial state.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Aig_ManTernarySimulate( Aig_Man_t * p, int fVerbose )
+{
+    int nRounds = 1000; // limit on the number of ternary simulation rounds
+    Vec_Ptr_t * vMap;
+    Vec_Ptr_t * vStates;
+    Aig_Obj_t * pObj, * pObjLi, * pObjLo;
+    unsigned * pState, * pPrev;
+    int i, k, f, fConstants, Value, nWords, nCounter;
+    // allocate storage for states
+    nWords  = Aig_BitWordNum( 2*Aig_ManRegNum(p) );
+    vStates = Vec_PtrAllocSimInfo( nRounds, nWords );
+    // initialize the values
+    Aig_ObjSetXsim( Aig_ManConst1(p), AIG_XVS1 );
+    Aig_ManForEachPiSeq( p, pObj, i )
+        Aig_ObjSetXsim( pObj, AIG_XVSX );
+    Aig_ManForEachLoSeq( p, pObj, i )
+        Aig_ObjSetXsim( pObj, AIG_XVS0 );
+    // simulate for the given number of timeframes
+    for ( f = 0; f < nRounds; f++ )
+    {
+        // collect this state
+        pState = Vec_PtrEntry( vStates, f );
+        memset( pState, 0, sizeof(unsigned) * nWords );
+        Aig_ManForEachLiLoSeq( p, pObjLi, pObjLo, i )
+        {
+            Value = Aig_ObjGetXsim(pObjLo);
+            if ( Value & 1 )
+                Aig_InfoSetBit( pState, 2 * i );
+            if ( Value & 2 )
+                Aig_InfoSetBit( pState, 2 * i + 1 );
+//            Aig_XsimPrint( stdout, Value );
+        }
+//        printf( "\n" );
+        // check if this state exists
+        for ( i = f - 1; i >= 0; i-- )
+        {
+            pPrev = Vec_PtrEntry( vStates, i );
+            if ( !memcmp( pPrev, pState, sizeof(unsigned) * nWords ) )
+                break;
+        }
+        if ( i >= 0 )
+            break;
+        // simulate internal nodes
+        Aig_ManForEachNode( p, pObj, i )
+            Aig_ObjSetXsim( pObj, Aig_XsimAnd(Aig_ObjGetXsimFanin0(pObj), Aig_ObjGetXsimFanin1(pObj)) );
+        // transfer the latch values
+        Aig_ManForEachLiSeq( p, pObj, i )
+            Aig_ObjSetXsim( pObj, Aig_ObjGetXsimFanin0(pObj) );
+        Aig_ManForEachLiLoSeq( p, pObjLi, pObjLo, i )
+            Aig_ObjSetXsim( pObjLo, Aig_ObjGetXsim(pObjLi) );
+    }
+    if ( f == nRounds )
+    {
+        printf( "Aig_ManTernarySimulate(): Did not reach a fixed point.\n" );
+        Vec_PtrFree( vStates );
+        return NULL;
+    }
+    // OR all the states
+    pState = Vec_PtrEntry( vStates, 0 );
+    for ( i = 1; i <= f; i++ )
+    {
+        pPrev = Vec_PtrEntry( vStates, i );
+        for ( k = 0; k < nWords; k++ )
+            pState[k] |= pPrev[k];
+    }
+    // check if there are constants
+    fConstants = 0;
+    if ( 2*Aig_ManRegNum(p) == 32*nWords )
+    {
+        for ( i = 0; i < nWords; i++ )
+            if ( pState[i] != ~0 )
+                fConstants = 1;
+    }
+    else
+    {
+        for ( i = 0; i < nWords - 1; i++ )
+            if ( pState[i] != ~0 )
+                fConstants = 1;
+        if ( pState[i] != Aig_InfoMask( 2*Aig_ManRegNum(p) - 32*(nWords-1) ) )
+            fConstants = 1;
+    }
+    if ( fConstants == 0 )
+    {
+        Vec_PtrFree( vStates );
+        return NULL;
+    }
+
+    // start mapping by adding the true PIs
+    vMap = Vec_PtrAlloc( Aig_ManPiNum(p) );
+    Aig_ManForEachPiSeq( p, pObj, i )
+        Vec_PtrPush( vMap, pObj );
+    // find constant registers
+    nCounter = 0;
+    Aig_ManForEachLiLoSeq( p, pObjLi, pObjLo, i )
+    {
+        Value = (Aig_InfoHasBit( pState, 2 * i + 1 ) << 1) | Aig_InfoHasBit( pState, 2 * i );
+        nCounter += (Value == 1 || Value == 2);
+        if ( Value == 1 )
+            Vec_PtrPush( vMap, Aig_ManConst0(p) );
+        else if ( Value == 2 )
+            Vec_PtrPush( vMap, Aig_ManConst1(p) );
+        else if ( Value == 3 )
+            Vec_PtrPush( vMap, pObjLo );
+        else
+            assert( 0 );
+//        Aig_XsimPrint( stdout, Value );
+    }
+//    printf( "\n" );
+    Vec_PtrFree( vStates );
+    if ( fVerbose )
+    printf( "Detected %d constants after %d iterations.\n", nCounter, f );
+    return vMap;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reduces the circuit using ternary simulation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Aig_ManConstReduce( Aig_Man_t * p, int fVerbose )
+{
+    Aig_Man_t * pTemp;
+    Vec_Ptr_t * vMap;
+    while ( vMap = Aig_ManTernarySimulate( p, fVerbose ) )
+    {
+        if ( fVerbose )
+        printf( "RBeg = %5d. NBeg = %6d.   ", Aig_ManRegNum(p), Aig_ManNodeNum(p) );
+        p = Aig_ManRemap( pTemp = p, vMap );
+        Aig_ManStop( pTemp );
+        Vec_PtrFree( vMap );
+        Aig_ManSeqCleanup( p );
+        if ( fVerbose )
+        printf( "REnd = %5d. NEnd = %6d.  \n", Aig_ManRegNum(p), Aig_ManNodeNum(p) );
+    }
+    return p;
 }
 
 ////////////////////////////////////////////////////////////////////////

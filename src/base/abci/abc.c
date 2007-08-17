@@ -93,6 +93,7 @@ static int Abc_CommandExtSeqDcs      ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandCone           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandNode           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTopmost        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandTrim           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandShortNames     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandExdcFree       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandExdcGet        ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -171,6 +172,7 @@ static int Abc_CommandXsim           ( Abc_Frame_t * pAbc, int argc, char ** arg
 
 static int Abc_CommandCec            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSec            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDSec           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSat            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDSat           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandProve          ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -257,6 +259,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "cone",          Abc_CommandCone,             1 );
     Cmd_CommandAdd( pAbc, "Various",      "node",          Abc_CommandNode,             1 );
     Cmd_CommandAdd( pAbc, "Various",      "topmost",       Abc_CommandTopmost,          1 );
+    Cmd_CommandAdd( pAbc, "Various",      "trim",          Abc_CommandTrim,             1 );
     Cmd_CommandAdd( pAbc, "Various",      "short_names",   Abc_CommandShortNames,       0 );
     Cmd_CommandAdd( pAbc, "Various",      "exdc_free",     Abc_CommandExdcFree,         1 );
     Cmd_CommandAdd( pAbc, "Various",      "exdc_get",      Abc_CommandExdcGet,          1 );
@@ -335,6 +338,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 
     Cmd_CommandAdd( pAbc, "Verification", "cec",           Abc_CommandCec,              0 );
     Cmd_CommandAdd( pAbc, "Verification", "sec",           Abc_CommandSec,              0 );
+    Cmd_CommandAdd( pAbc, "Verification", "dsec",          Abc_CommandDSec,             0 );
     Cmd_CommandAdd( pAbc, "Verification", "sat",           Abc_CommandSat,              0 );
     Cmd_CommandAdd( pAbc, "Verification", "dsat",          Abc_CommandDSat,             0 );
     Cmd_CommandAdd( pAbc, "Verification", "prove",         Abc_CommandProve,            1 );
@@ -5134,6 +5138,84 @@ usage:
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandTrim( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c, nLevels;
+    extern Abc_Ntk_t * Abc_NtkTrim( Abc_Ntk_t * pNtk );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    nLevels = 10;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+/* 
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLevels = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLevels < 0 ) 
+                goto usage;
+            break;
+*/
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( stdout, "Currently only works for logic circuits.\n" );
+        return 0;
+    }
+
+    pNtkRes = Abc_NtkTrim( pNtk );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "The command has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: trim [-h]\n" );
+    fprintf( pErr, "\t         removes POs fed by PIs and constants, and PIs w/o fanout\n" );
+//    fprintf( pErr, "\t-N num : max number of levels [default = %d]\n", nLevels );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
 
 /**Function*************************************************************
 
@@ -6085,6 +6167,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Abc_NtkCompareCones( Abc_Ntk_t * pNtk );
     extern Abc_Ntk_t * Abc_NtkDar( Abc_Ntk_t * pNtk );
     extern Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName );
+    extern Abc_Ntk_t * Abc_NtkFilter( Abc_Ntk_t * pNtk );
+    extern Abc_Ntk_t * Abc_NtkDarRetime( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -6200,10 +6284,16 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Network should be strashed. Command has failed.\n" );
         return 1;
     }
-//    pNtkRes = Abc_NtkDar( pNtk );
-    pNtkRes = Abc_NtkDarToCnf( pNtk, "any.cnf" );
 */
-    pNtkRes = NULL;
+
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( stdout, "Currently only works for structurally hashed circuits.\n" );
+        return 0;
+    }
+
+//    pNtkRes = Abc_NtkDar( pNtk );
+    pNtkRes = Abc_NtkDarRetime( pNtk, 100, 1 );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
@@ -6211,7 +6301,6 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-
     return 0;
 usage:
     fprintf( pErr, "usage: test [-h]\n" );
@@ -6627,6 +6716,11 @@ int Abc_CommandICut( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Empty network.\n" );
         return 1;
     }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "This command works only for strashed networks.\n" );
+        return 1;
+    }
 
     Abc_NtkIvyCuts( pNtk, nInputs );
     return 0;
@@ -6688,6 +6782,11 @@ int Abc_CommandIRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pNtk == NULL )
     {
         fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "This command works only for strashed networks.\n" );
         return 1;
     }
 
@@ -6788,6 +6887,11 @@ int Abc_CommandDRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pNtk == NULL )
     {
         fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "This command works only for strashed networks.\n" );
         return 1;
     }
     pNtkRes = Abc_NtkDRewrite( pNtk, pPars );
@@ -6904,6 +7008,11 @@ int Abc_CommandDRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Empty network.\n" );
         return 1;
     }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "This command works only for strashed networks.\n" );
+        return 1;
+    }
     if ( pPars->nLeafMax < 4 || pPars->nLeafMax > 15 )
     {
         fprintf( pErr, "This command only works for cut sizes 4 <= K <= 15.\n" );
@@ -6986,6 +7095,11 @@ int Abc_CommandDCompress2( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Empty network.\n" );
         return 1;
     }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "This command works only for strashed networks.\n" );
+        return 1;
+    }
     pNtkRes = Abc_NtkDCompress2( pNtk, fBalance, fUpdateLevel, fVerbose );
     if ( pNtkRes == NULL )
     {
@@ -7052,6 +7166,11 @@ int Abc_CommandDrwsat( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pNtk == NULL )
     {
         fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "This command works only for strashed networks.\n" );
         return 1;
     }
     pNtkRes = Abc_NtkDrwsat( pNtk, fBalance, fVerbose );
@@ -7124,6 +7243,11 @@ int Abc_CommandIRewriteSeq( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Empty network.\n" );
         return 1;
     }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "This command works only for strashed networks.\n" );
+        return 1;
+    }
 
     pNtkRes = Abc_NtkIvyRewriteSeq( pNtk, fUseZeroCost, fVerbose );
     if ( pNtkRes == NULL )
@@ -7190,6 +7314,11 @@ int Abc_CommandIResyn( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pNtk == NULL )
     {
         fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "This command works only for strashed networks.\n" );
         return 1;
     }
 
@@ -7271,6 +7400,11 @@ int Abc_CommandISat( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pNtk == NULL )
     {
         fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "This command works only for strashed networks.\n" );
         return 1;
     }
 
@@ -7357,6 +7491,11 @@ int Abc_CommandIFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pNtk == NULL )
     {
         fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "This command works only for strashed networks.\n" );
         return 1;
     }
 
@@ -7451,6 +7590,11 @@ int Abc_CommandDFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pNtk == NULL )
     {
         fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "This command works only for strashed networks.\n" );
         return 1;
     }
 
@@ -7555,6 +7699,11 @@ int Abc_CommandCSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( nLeafMax < 3 || nLeafMax > 16 )
     {
         fprintf( pErr, "The number of leaves is infeasible.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "This command works only for strashed networks.\n" );
         return 1;
     }
 
@@ -7726,6 +7875,11 @@ int Abc_CommandHaig( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pNtk == NULL )
     {
         fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "This command works only for strashed networks.\n" );
         return 1;
     }
 
@@ -10417,9 +10571,10 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c, nMaxIters;
     int fForward;
     int fBackward;
+    int fOneStep;
     int fVerbose;
     int Mode;
-    extern int Abc_NtkRetime( Abc_Ntk_t * pNtk, int Mode, int fForwardOnly, int fBackwardOnly, int fVerbose );
+    extern int Abc_NtkRetime( Abc_Ntk_t * pNtk, int Mode, int fForwardOnly, int fBackwardOnly, int fOneStep, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -10429,10 +10584,11 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     Mode      =  5;
     fForward  =  0;
     fBackward =  0;
+    fOneStep  =  0;
     fVerbose  =  0;
     nMaxIters = 15;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Mfbvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Mfbsvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -10452,6 +10608,9 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'b':
             fBackward ^= 1;
+            break;
+        case 's':
+            fOneStep ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -10497,7 +10656,7 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
         // convert the network into an SOP network
         pNtkRes = Abc_NtkToLogic( pNtk );
         // perform the retiming
-        Abc_NtkRetime( pNtkRes, Mode, fForward, fBackward, fVerbose );
+        Abc_NtkRetime( pNtkRes, Mode, fForward, fBackward, fOneStep, fVerbose );
         // replace the current network
         Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
         return 0;
@@ -10517,7 +10676,7 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // perform the retiming
-    Abc_NtkRetime( pNtk, Mode, fForward, fBackward, fVerbose );
+    Abc_NtkRetime( pNtk, Mode, fForward, fBackward, fOneStep, fVerbose );
     return 0;
 
 usage:
@@ -10532,6 +10691,7 @@ usage:
     fprintf( pErr, "\t-M num : the retiming algorithm to use [default = %d]\n", Mode );
     fprintf( pErr, "\t-f     : enables forward-only retiming in modes 3,4,5 [default = %s]\n", fForward? "yes": "no" );
     fprintf( pErr, "\t-b     : enables backward-only retiming in modes 3,4,5 [default = %s]\n", fBackward? "yes": "no" );
+    fprintf( pErr, "\t-s     : enables retiming one step only in mode 4 [default = %s]\n", fOneStep? "yes": "no" );
     fprintf( pErr, "\t-v     : enables verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -10816,21 +10976,23 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fExdc;
     int fImp;
     int fRewrite;
+    int fLatchCorr;
     int fVerbose;
-    extern Abc_Ntk_t * Abc_NtkSeqSweep( Abc_Ntk_t * pNtk, int nFrames, int fRewrite, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkSeqSweep( Abc_Ntk_t * pNtk, int nFrames, int fRewrite, int fLatchCorr, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nFramesK = 1;
-    fExdc    = 1;
-    fImp     = 0;
-    fRewrite = 0;
-    fVerbose = 0;
+    nFramesK   = 1;
+    fExdc      = 1;
+    fImp       = 0;
+    fRewrite   = 0;
+    fLatchCorr = 0;
+    fVerbose   = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Feirvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Feirlvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -10853,6 +11015,9 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'r':
             fRewrite ^= 1;
+            break;
+        case 'l':
+            fLatchCorr ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -10883,7 +11048,7 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    pNtkRes = Abc_NtkSeqSweep( pNtk, nFramesK, fRewrite, fVerbose );
+    pNtkRes = Abc_NtkSeqSweep( pNtk, nFramesK, fRewrite, fLatchCorr, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Sequential sweeping has failed.\n" );
@@ -10894,11 +11059,12 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: ssweep [-F num] [-rvh]\n" );
+    fprintf( pErr, "usage: ssweep [-F num] [-lrvh]\n" );
     fprintf( pErr, "\t         performs sequential sweep using K-step induction\n" );
     fprintf( pErr, "\t-F num : number of time frames for induction (1=simple) [default = %d]\n", nFramesK );
 //    fprintf( pErr, "\t-e     : toggle writing EXDC network [default = %s]\n", fExdc? "yes": "no" );
 //    fprintf( pErr, "\t-i     : toggle computing implications [default = %s]\n", fImp? "yes": "no" );
+    fprintf( pErr, "\t-l     : toggle latch correspondence only [default = %s]\n", fLatchCorr? "yes": "no" );
     fprintf( pErr, "\t-r     : toggle AIG rewriting [default = %s]\n", fRewrite? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
@@ -10919,11 +11085,12 @@ usage:
 int Abc_CommandSeqCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
-    Abc_Ntk_t * pNtk;
+    Abc_Ntk_t * pNtk, * pNtkRes, * pTemp;
     int c;
     int fLatchSweep;
     int fAutoSweep;
     int fVerbose;
+    extern Abc_Ntk_t * Abc_NtkDarLatchSweep( Abc_Ntk_t * pNtk, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -10964,14 +11131,31 @@ int Abc_CommandSeqCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     // modify the current network
-    Abc_NtkCleanupSeq( pNtk, fLatchSweep, fAutoSweep, fVerbose );
+
+    // get the new network
+    pNtkRes = Abc_NtkDup( pNtk ); 
+    Abc_NtkCleanupSeq( pNtkRes, 0, fAutoSweep, fVerbose );
+    if ( fLatchSweep )
+    {
+        pNtkRes = Abc_NtkStrash( pTemp = pNtkRes, 0, 0, 0 );
+        Abc_NtkDelete( pTemp );
+        pNtkRes = Abc_NtkDarLatchSweep( pTemp = pNtkRes, fVerbose );
+        Abc_NtkDelete( pTemp );
+    }
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Sequential cleanup has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
 
 usage:
     fprintf( pErr, "usage: scleanup [-lavh]\n" );
     fprintf( pErr, "\t         performs sequential cleanup\n" );
     fprintf( pErr, "\t         - removes nodes/latches that do not feed into POs\n" );
-    fprintf( pErr, "\t         - removes and shared latches driven by constants\n" );
+    fprintf( pErr, "\t         - removes stuck-at and identical latches (latch sweep)\n" );
     fprintf( pErr, "\t         - replaces autonomous logic by free PI variables\n" );
     fprintf( pErr, "\t           (the latter may change sequential behaviour)\n" );
     fprintf( pErr, "\t-l     : toggle sweeping latches [default = %s]\n", fLatchSweep? "yes": "no" );
@@ -11402,16 +11586,16 @@ int Abc_CommandSec( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
 
-    if ( Abc_NtkLatchNum(pNtk) == 0 )
-    {
-        printf( "The network has no latches. Used combinational command \"cec\".\n" );
-        return 0;
-    }
-
     pArgvNew = argv + globalUtilOptind;
     nArgcNew = argc - globalUtilOptind;
     if ( !Abc_NtkPrepareTwoNtks( pErr, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )
         return 1;
+
+    if ( Abc_NtkLatchNum(pNtk1) == 0 || Abc_NtkLatchNum(pNtk2) == 0 )
+    {
+        printf( "The network has no latches. Used combinational command \"cec\".\n" );
+        return 0;
+    }
 
     // perform equivalence checking
     if ( fRetime )
@@ -11443,6 +11627,97 @@ usage:
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtk1, * pNtk2;
+    int fDelete1, fDelete2;
+    char ** pArgvNew;
+    int nArgcNew;
+    int c;
+    int fVerbose;
+    int fVeryVerbose;
+    int nFrames;
+
+    extern int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames, int fVerbose, int fVeryVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    nFrames      = 0; // if 0, iterates through frames
+    fVerbose     = 1;
+    fVeryVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Fwvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFrames = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFrames <= 0 ) 
+                goto usage;
+            break;
+        case 'w':
+            fVeryVerbose ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        default:
+            goto usage;
+        }
+    }
+
+    pArgvNew = argv + globalUtilOptind;
+    nArgcNew = argc - globalUtilOptind;
+    if ( !Abc_NtkPrepareTwoNtks( pErr, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )
+        return 1;
+
+    if ( Abc_NtkLatchNum(pNtk1) == 0 || Abc_NtkLatchNum(pNtk2) == 0 )
+    {
+        printf( "The network has no latches. Used combinational command \"cec\".\n" );
+        return 0;
+    }
+
+    // perform verification
+    Abc_NtkDarSec( pNtk1, pNtk2, nFrames, fVerbose, fVeryVerbose );
+
+    if ( fDelete1 ) Abc_NtkDelete( pNtk1 );
+    if ( fDelete2 ) Abc_NtkDelete( pNtk2 );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: dsec [-F num] [-wvh] <file1> <file2>\n" );
+    fprintf( pErr, "\t         performs inductive sequential equivalence checking\n" );
+    fprintf( pErr, "\t-F num : the number of time frames to use [default = %d]\n", nFrames );
+    fprintf( pErr, "\t-w     : toggles additional verbose output [default = %s]\n", fVeryVerbose? "yes": "no" );
+    fprintf( pErr, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    fprintf( pErr, "\tfile1  : (optional) the file with the first network\n");
+    fprintf( pErr, "\tfile2  : (optional) the file with the second network\n");
+    fprintf( pErr, "\t         if no files are given, uses the current network and its spec\n");
+    fprintf( pErr, "\t         if one file is given, uses the current network and the file\n");
+    return 1;
+}
 /**Function*************************************************************
 
   Synopsis    []

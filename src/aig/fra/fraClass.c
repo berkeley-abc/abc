@@ -250,7 +250,7 @@ void Fra_ClassesPrint( Fra_Cla_t * p, int fVeryVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-void Fra_ClassesPrepare( Fra_Cla_t * p )
+void Fra_ClassesPrepare( Fra_Cla_t * p, int fLatchCorr )
 {
     Aig_Obj_t ** ppTable, ** ppNexts;
     Aig_Obj_t * pObj, * pTemp;
@@ -266,8 +266,16 @@ void Fra_ClassesPrepare( Fra_Cla_t * p )
     Vec_PtrClear( p->vClasses1 );
     Aig_ManForEachObj( p->pAig, pObj, i )
     {
-        if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsPi(pObj) )
-            continue;
+        if ( fLatchCorr )
+        {
+            if ( !Aig_ObjIsPi(pObj) )
+                continue;
+        }
+        else
+        {
+            if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsPi(pObj) )
+                continue;
+        }
 //printf( "%3d : ", pObj->Id );
 //Extra_PrintBinary( stdout, Fra_ObjSim(pObj), 32 );
 //printf( "\n" );
@@ -312,7 +320,7 @@ void Fra_ClassesPrepare( Fra_Cla_t * p )
     // allocate room for classes
     p->pMemClasses = ALLOC( Aig_Obj_t *, 2*(nEntries + Vec_PtrSize(p->vClasses1)) );
     p->pMemClassesFree = p->pMemClasses + 2*nEntries;
-
+ 
     // copy the entries into storage in the topological order
     Vec_PtrClear( p->vClasses );
     nEntries = 0;
@@ -561,6 +569,32 @@ void Fra_ClassesTest( Fra_Cla_t * p, int Id1, int Id2 )
     pClass[3] = NULL;
     Fra_ClassObjSetRepr( pClass[1], pClass[0] );
     Vec_PtrPush( p->vClasses, pClass );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates latch correspondence classes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fra_ClassesLatchCorr( Fra_Man_t * p )
+{
+    Aig_Obj_t * pObj;
+    int i, nEntries = 0;
+    Vec_PtrClear( p->pCla->vClasses1 );
+    Aig_ManForEachLoSeq( p->pManAig, pObj, i )
+    {
+        Vec_PtrPush( p->pCla->vClasses1, pObj );
+        Fra_ClassObjSetRepr( pObj, Aig_ManConst1(p->pManAig) );
+    }
+    // allocate room for classes
+    p->pCla->pMemClasses = ALLOC( Aig_Obj_t *, 2*(nEntries + Vec_PtrSize(p->pCla->vClasses1)) );
+    p->pCla->pMemClassesFree = p->pCla->pMemClasses + 2*nEntries;
 }
 
 ////////////////////////////////////////////////////////////////////////

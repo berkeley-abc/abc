@@ -198,7 +198,7 @@ Aig_Man_t * Fra_FramesWithClasses( Fra_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesK, int fRewrite, int fVerbose )
+Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesK, int fRewrite, int fLatchCorr, int fVerbose, int * pnIter )
 {
     Fra_Man_t * p;
     Fra_Par_t Pars, * pPars = &Pars; 
@@ -208,7 +208,10 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesK, int fRewrite,
     int nIter, i, clk = clock(), clk2;
 
     if ( Aig_ManNodeNum(pManAig) == 0 )
+    {
+        if ( pnIter ) *pnIter = 0;
         return Aig_ManDup(pManAig, 1);
+    }
     assert( Aig_ManLatchNum(pManAig) == 0 );
     assert( Aig_ManRegNum(pManAig) > 0 );
     assert( nFramesK > 0 );
@@ -216,14 +219,18 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesK, int fRewrite,
 
     // get parameters
     Fra_ParamsDefaultSeq( pPars );
-    pPars->nFramesK = nFramesK;
-    pPars->fVerbose = fVerbose;
-    pPars->fRewrite = fRewrite;
+    pPars->nFramesK   = nFramesK;
+    pPars->fVerbose   = fVerbose;
+    pPars->fRewrite   = fRewrite;
+    pPars->fLatchCorr = fLatchCorr;
 
     // start the fraig manager for this run
     p = Fra_ManStart( pManAig, pPars );
     // derive and refine e-classes using K initialized frames
-    Fra_Simulate( p, 1 );
+//    if ( fLatchCorr )
+//        Fra_ClassesLatchCorr( p );
+//    else
+        Fra_Simulate( p, 1 );
     // refine e-classes using sequential simulation?
  
     p->nLitsZero = Vec_PtrSize( p->pCla->vClasses1 );
@@ -239,6 +246,8 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesK, int fRewrite,
         p->pCla->fRefinement = 0;
         // derive non-init K-timeframes while implementing e-classes
         p->pManFraig = Fra_FramesWithClasses( p );
+//Aig_ManDumpBlif( p->pManFraig, "testaig.blif" );
+
         // perform AIG rewriting
         if ( p->pPars->fRewrite )
             Fra_FraigInductionRewrite( p );
@@ -252,8 +261,8 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesK, int fRewrite,
         }
 
         // convert the manager to SAT solver (the last nLatches outputs are inputs)
-        pCnf = Cnf_Derive( p->pManFraig, Aig_ManRegNum(p->pManFraig) );
-//        pCnf = Cnf_DeriveSimple( p->pManFraig, Aig_ManRegNum(p->pManFraig) );
+//        pCnf = Cnf_Derive( p->pManFraig, Aig_ManRegNum(p->pManFraig) );
+        pCnf = Cnf_DeriveSimple( p->pManFraig, Aig_ManRegNum(p->pManFraig) );
 //Cnf_DataWriteIntoFile( pCnf, "temp.cnf", 1 );
 
         p->pSat = Cnf_DataWriteIntoSolver( pCnf );
@@ -278,7 +287,7 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesK, int fRewrite,
             Fra_ObjSetFaninVec( pObj, (void *)1 );
         }
         Cnf_DataFree( pCnf );
-/*
+/* 
         Aig_ManForEachObj( p->pManFraig, pObj, i )
         {
             Fra_ObjSetSatNum( pObj, pCnf->pVarNums[pObj->Id] );
@@ -300,6 +309,8 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesK, int fRewrite,
 clk2 = clock();
     Fra_ClassesCopyReprs( p->pCla, p->vTimeouts );
     pManAigNew = Aig_ManDupRepr( pManAig );
+    Aig_ManSeqCleanup( pManAigNew );
+//    Aig_ManCountMergeRegs( pManAigNew );
 p->timeTrav += clock() - clk2;
 p->timeTotal = clock() - clk;
     // get the final stats
@@ -309,9 +320,10 @@ p->timeTotal = clock() - clk;
     // free the manager
     Fra_ManStop( p );
     // check the output
-    if ( Aig_ManPoNum(pManAigNew) - Aig_ManRegNum(pManAigNew) == 1 )
-        if ( Aig_ObjChild0( Aig_ManPo(pManAigNew,0) ) == Aig_ManConst0(pManAigNew) )
-            printf( "Proved output constant 0.\n" );
+//    if ( Aig_ManPoNum(pManAigNew) - Aig_ManRegNum(pManAigNew) == 1 )
+//        if ( Aig_ObjChild0( Aig_ManPo(pManAigNew,0) ) == Aig_ManConst0(pManAigNew) )
+//            printf( "Proved output constant 0.\n" );
+    if ( pnIter ) *pnIter = nIter;
     return pManAigNew;
 }
 

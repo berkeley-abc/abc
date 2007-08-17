@@ -76,7 +76,6 @@ struct Bdc_Isf_t_
     unsigned *       puOff;        // off-set
 };
 
-typedef struct Bdc_Man_t_ Bdc_Man_t;
 struct Bdc_Man_t_
 {
     // external parameters

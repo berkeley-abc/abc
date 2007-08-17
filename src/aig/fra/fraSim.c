@@ -537,7 +537,7 @@ int Fra_SelectBestPat( Fra_Man_t * p )
 ***********************************************************************/
 void Fra_SimulateOne( Fra_Man_t * p )
 {
-    Aig_Obj_t * pObj;
+    Aig_Obj_t * pObj, * pObjLi, * pObjLo;
     int f, i, clk;
 clk = clock();
     for ( f = 0; f < p->nFramesAll; f++ )
@@ -551,9 +551,10 @@ clk = clock();
         Aig_ManForEachLiSeq( p->pManAig, pObj, i )
             Fra_NodeCopyFanin( p, pObj, f );
         // copy simulation info into the inputs
-        for ( i = 0; i < Aig_ManRegNum(p->pManAig); i++ )
-            Fra_NodeTransferNext( p, Aig_ManLi(p->pManAig, i), Aig_ManLo(p->pManAig, i), f );
-
+//        for ( i = 0; i < Aig_ManRegNum(p->pManAig); i++ )
+//            Fra_NodeTransferNext( p, Aig_ManLi(p->pManAig, i), Aig_ManLo(p->pManAig, i), f );
+        Aig_ManForEachLiLoSeq( p->pManAig, pObjLi, pObjLo, i )
+            Fra_NodeTransferNext( p, pObjLi, pObjLo, f );
     }
 p->timeSim += clock() - clk;
 p->nSimRounds++;
@@ -627,7 +628,7 @@ void Fra_Simulate( Fra_Man_t * p, int fInit )
     // start the classes
     Fra_AssignRandom( p, fInit );
     Fra_SimulateOne( p );
-    Fra_ClassesPrepare( p->pCla );
+    Fra_ClassesPrepare( p->pCla, p->pPars->fLatchCorr );
 //    Fra_ClassesPrint( p->pCla, 0 );
 //printf( "Starting classes = %5d.   Pairs = %6d.\n", p->lClasses.nItems, Fra_CountPairsClasses(p) );
 

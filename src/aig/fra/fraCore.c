@@ -30,6 +30,63 @@
 
 /**Function*************************************************************
 
+  Synopsis    [Reports the status of the miter.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fra_FraigMiterStatus( Aig_Man_t * p )
+{
+    Aig_Obj_t * pObj, * pObjNew;
+    int i, CountConst0 = 0, CountNonConst0 = 0, CountUndecided = 0;
+    if ( p->pData )
+        return 0;
+    Aig_ManForEachPoSeq( p, pObj, i )
+    {
+        pObjNew = Aig_ObjChild0(pObj);
+        // check if the output is constant 0
+        if ( pObjNew == Aig_ManConst0(p) )
+        {
+            CountConst0++;
+            continue;
+        }
+        // check if the output is constant 1
+        if ( pObjNew == Aig_ManConst1(p) )
+        {
+            CountNonConst0++;
+            continue;
+        }
+        // check if the output can be constant 0
+        if ( Aig_Regular(pObjNew)->fPhase != (unsigned)Aig_IsComplement(pObjNew) )
+        {
+            CountNonConst0++;
+            continue;
+        }
+        CountUndecided++;
+    }
+/*
+    if ( p->pParams->fVerbose )
+    {
+        printf( "Miter has %d outputs. ", Aig_ManPoNum(p->pManAig) );
+        printf( "Const0 = %d.  ", CountConst0 );
+        printf( "NonConst0 = %d.  ", CountNonConst0 );
+        printf( "Undecided = %d.  ", CountUndecided );
+        printf( "\n" );
+    }
+*/
+    if ( CountNonConst0 )
+        return 0;
+    if ( CountUndecided )
+        return -1;
+    return 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Write speculative miter for one node.]
 
   Description []
@@ -121,9 +178,9 @@ static inline void Fra_FraigNode( Fra_Man_t * p, Aig_Obj_t * pObj )
         Vec_PtrPush( p->vTimeouts, pObj );
     // simulate the counter-example and return the Fraig node
     Fra_Resimulate( p );
-    assert( Fra_ClassObjRepr(pObj) != pObjRepr );
     if ( Fra_ClassObjRepr(pObj) == pObjRepr )
         printf( "Fra_FraigNode(): Error in class refinement!\n" );
+    assert( Fra_ClassObjRepr(pObj) != pObjRepr );
 }
 
 /**Function*************************************************************
@@ -196,7 +253,7 @@ clk = clock();
         Aig_ManReprStart( p->pManFraig, Aig_ManObjIdMax(p->pManAig)+1 );
     // collect initial states
     p->nLitsZero = Vec_PtrSize( p->pCla->vClasses1 );
-    p->nLitsBeg = Fra_ClassesCountLits( p->pCla );
+    p->nLitsBeg  = Fra_ClassesCountLits( p->pCla );
     p->nNodesBeg = Aig_ManNodeNum(pManAig);
     p->nRegsBeg  = Aig_ManRegNum(pManAig);
     // perform fraig sweep
@@ -228,7 +285,7 @@ p->timeTrav += clock() - clk2;
     }
 p->timeTotal = clock() - clk;
     // collect final stats
-    p->nLitsEnd = Fra_ClassesCountLits( p->pCla );
+    p->nLitsEnd  = Fra_ClassesCountLits( p->pCla );
     p->nNodesEnd = Aig_ManNodeNum(pManAigNew);
     p->nRegsEnd  = Aig_ManRegNum(pManAigNew);
     Fra_ManStop( p );
