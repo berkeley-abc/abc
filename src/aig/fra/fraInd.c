@@ -198,13 +198,14 @@ Aig_Man_t * Fra_FramesWithClasses( Fra_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesK, int fRewrite, int fLatchCorr, int fVerbose, int * pnIter )
+Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesK, int fRewrite, int fUseImps, int fLatchCorr, int fVerbose, int * pnIter )
 {
     Fra_Man_t * p;
     Fra_Par_t Pars, * pPars = &Pars; 
     Aig_Obj_t * pObj;
     Cnf_Dat_t * pCnf;
     Aig_Man_t * pManAigNew;
+//    Vec_Int_t * vImps;
     int nIter, i, clk = clock(), clk2;
 
     if ( Aig_ManNodeNum(pManAig) == 0 )
@@ -223,15 +224,26 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesK, int fRewrite,
     pPars->fVerbose   = fVerbose;
     pPars->fRewrite   = fRewrite;
     pPars->fLatchCorr = fLatchCorr;
+    pPars->fUseImps   = fUseImps;
 
     // start the fraig manager for this run
     p = Fra_ManStart( pManAig, pPars );
     // derive and refine e-classes using K initialized frames
-//    if ( fLatchCorr )
-//        Fra_ClassesLatchCorr( p );
-//    else
-        Fra_Simulate( p, 1 );
-    // refine e-classes using sequential simulation?
+//    p->pSml = Fra_SmlStart( pManAig, pPars->nFramesK + 1, pPars->nSimWords );
+//    Fra_SmlSimulate( p, 1 );
+
+    // remember that strange bug: r iscas/blif/s5378.blif    ; st; ssw -F 4; sec -F 10
+    // refine the classes with more simulation rounds
+    p->pSml = Fra_SmlSimulateSeq( pManAig, 32, 2 );  
+    Fra_ClassesPrepare( p->pCla, p->pPars->fLatchCorr );
+//    Fra_ClassesPostprocess( p->pCla );
+    // allocate new simulation manager for simulating counter-examples
+    Fra_SmlStop( p->pSml );
+    p->pSml = Fra_SmlStart( pManAig, pPars->nFramesK + 1, pPars->nSimWords );
+
+    // select the most expressive implications
+    if ( pPars->fUseImps )
+        p->pCla->vImps = Fra_ImpDerive( p, 5000000, 5000, pPars->fLatchCorr );
  
     p->nLitsZero = Vec_PtrSize( p->pCla->vClasses1 );
     p->nLitsBeg  = Fra_ClassesCountLits( p->pCla );
@@ -251,18 +263,13 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesK, int fRewrite,
         // perform AIG rewriting
         if ( p->pPars->fRewrite )
             Fra_FraigInductionRewrite( p );
-        // report the intermediate results
-        if ( fVerbose )
-        {
-            printf( "%3d : Const = %6d. Class = %6d.  L = %6d. LR = %6d.  N = %6d. NR = %6d.\n", 
-                nIter, Vec_PtrSize(p->pCla->vClasses1), Vec_PtrSize(p->pCla->vClasses), 
-                Fra_ClassesCountLits(p->pCla), p->pManFraig->nAsserts,
-                Aig_ManNodeNum(p->pManAig), Aig_ManNodeNum(p->pManFraig) );
-        }
 
+        // bug:  r iscas/blif/s1238.blif    ; st; ssw -v
         // convert the manager to SAT solver (the last nLatches outputs are inputs)
-//        pCnf = Cnf_Derive( p->pManFraig, Aig_ManRegNum(p->pManFraig) );
-        pCnf = Cnf_DeriveSimple( p->pManFraig, Aig_ManRegNum(p->pManFraig) );
+        if ( pPars->fUseImps )
+            pCnf = Cnf_DeriveSimple( p->pManFraig, Aig_ManRegNum(p->pManFraig) );
+        else
+            pCnf = Cnf_Derive( p->pManFraig, Aig_ManRegNum(p->pManFraig) );
 //Cnf_DataWriteIntoFile( pCnf, "temp.cnf", 1 );
 
         p->pSat = Cnf_DataWriteIntoSolver( pCnf );
@@ -270,6 +277,12 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesK, int fRewrite,
         assert( p->pSat != NULL );
         if ( p->pSat == NULL )
             printf( "Fra_FraigInduction(): Computed CNF is not valid.\n" );
+        if ( pPars->fUseImps )
+        {
+            Fra_ImpAddToSolver( p, p->pCla->vImps, pCnf->pVarNums );
+            if ( p->pSat == NULL )
+                printf( "Fra_FraigInduction(): Adding implicationsn to CNF led to a conflict.\n" );
+        }
 
         // set the pointers to the manager
         Aig_ManForEachObj( p->pManFraig, pObj, i )
@@ -295,9 +308,20 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesK, int fRewrite,
         }
         Cnf_DataFree( pCnf );
 */
+        // report the intermediate results
+        if ( fVerbose )
+        {
+            printf( "%3d : Const = %6d. Class = %6d.  L = %6d. LR = %6d.  I = %6d. NR = %6d.\n", 
+                nIter, Vec_PtrSize(p->pCla->vClasses1), Vec_PtrSize(p->pCla->vClasses), 
+                Fra_ClassesCountLits(p->pCla), p->pManFraig->nAsserts,
+                p->pCla->vImps? Vec_IntSize(p->pCla->vImps) : 0, Aig_ManNodeNum(p->pManFraig) );
+        }
 
         // perform sweeping
+        p->nSatCallsRecent = 0;
+        p->nSatCallsSkipped = 0;
         Fra_FraigSweep( p );
+//        printf( "Recent SAT called = %d. Skipped = %d.\n", p->nSatCallsRecent, p->nSatCallsSkipped );
         assert( p->vTimeouts == NULL );
         if ( p->vTimeouts )
            printf( "Fra_FraigInduction(): SAT solver timed out!\n" );

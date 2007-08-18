@@ -892,16 +892,26 @@ int Abc_NtkDSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fVer
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkSeqSweep( Abc_Ntk_t * pNtk, int nFramesK, int fRewrite, int fLatchCorr, int fVerbose )
+Abc_Ntk_t * Abc_NtkSeqSweep( Abc_Ntk_t * pNtk, int nFramesK, int fRewrite, int fUseImps, int fLatchCorr, int fVerbose )
 {
-    Abc_Ntk_t * pNtkAig;
+    Fraig_Params_t Params;
+    Abc_Ntk_t * pNtkAig, * pNtkFraig;
     Aig_Man_t * pMan, * pTemp;
-    pMan = Abc_NtkToDar( pNtk, 1 );
+
+    // preprocess the miter by fraiging it
+    // (note that for each functional class, fraiging leaves one representative;
+    // so fraiging does not reduce the number of functions represented by nodes
+    Fraig_ParamsSetDefault( &Params );
+    Params.nBTLimit = 100000;
+    pNtkFraig = Abc_NtkFraig( pNtk, &Params, 0, 0 );
+//    pNtkFraig = Abc_NtkDup( pNtk );
+
+    pMan = Abc_NtkToDar( pNtkFraig, 1 );
+    Abc_NtkDelete( pNtkFraig );
     if ( pMan == NULL )
         return NULL;
-//    pMan->nRegs = Abc_NtkLatchNum(pNtk);
 
-    pMan = Fra_FraigInduction( pTemp = pMan, nFramesK, fRewrite, fLatchCorr, fVerbose, NULL );
+    pMan = Fra_FraigInduction( pTemp = pMan, nFramesK, fRewrite, fUseImps, fLatchCorr, fVerbose, NULL );
     Aig_ManStop( pTemp );
 
     if ( Aig_ManRegNum(pMan) < Abc_NtkLatchNum(pNtk) )
@@ -960,6 +970,7 @@ int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames, int fVerbo
     // (note that for each functional class, fraiging leaves one representative;
     // so fraiging does not reduce the number of functions represented by nodes
     Fraig_ParamsSetDefault( &Params );
+    Params.nBTLimit = 100000;
     pMiter = Abc_NtkFraig( pTemp = pMiter, &Params, 0, 0 );
     Abc_NtkDelete( pTemp );
 

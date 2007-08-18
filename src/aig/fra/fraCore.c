@@ -142,7 +142,10 @@ static inline void Fra_FraigNode( Fra_Man_t * p, Aig_Obj_t * pObj )
     pObjReprFraig = Fra_ObjFraig( pObjRepr, p->pPars->nFramesK );
     // if the fraiged nodes are the same, return
     if ( Aig_Regular(pObjFraig) == Aig_Regular(pObjReprFraig) )
+    {
+        p->nSatCallsSkipped++;
         return;
+    }
     assert( p->pPars->nFramesK || Aig_Regular(pObjFraig) != Aig_ManConst1(p->pManFraig) );
     // if they are proved different, the c-ex will be in p->pPatWords
     RetValue = Fra_NodesAreEquiv( p, Aig_Regular(pObjReprFraig), Aig_Regular(pObjFraig) );
@@ -177,7 +180,7 @@ static inline void Fra_FraigNode( Fra_Man_t * p, Aig_Obj_t * pObj )
     if ( p->vTimeouts )
         Vec_PtrPush( p->vTimeouts, pObj );
     // simulate the counter-example and return the Fraig node
-    Fra_Resimulate( p );
+    Fra_SmlResimulate( p );
     if ( Fra_ClassObjRepr(pObj) == pObjRepr )
         printf( "Fra_FraigNode(): Error in class refinement!\n" );
     assert( Fra_ClassObjRepr(pObj) != pObjRepr );
@@ -198,13 +201,18 @@ void Fra_FraigSweep( Fra_Man_t * p )
 {
     ProgressBar * pProgress;
     Aig_Obj_t * pObj, * pObjNew;
-    int i, k = 0;
-    // duplicate internal nodes
-    pProgress = Extra_ProgressBarStart( stdout, Aig_ManObjIdMax(p->pManAig) );
+    int i, k = 0, Pos = 0;
     // fraig latch outputs
     Aig_ManForEachLoSeq( p->pManAig, pObj, i )
+    {
         Fra_FraigNode( p, pObj );
+        if ( p->pPars->fUseImps )
+            Pos = Fra_ImpCheckForNode( p, p->pCla->vImps, pObj, Pos );
+    }
+    if ( p->pPars->fLatchCorr )
+        return;
     // fraig internal nodes
+    pProgress = Extra_ProgressBarStart( stdout, Aig_ManObjIdMax(p->pManAig) );
     Aig_ManForEachNode( p->pManAig, pObj, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
@@ -217,6 +225,8 @@ void Fra_FraigSweep( Fra_Man_t * p )
             continue;
         // perform fraiging
         Fra_FraigNode( p, pObj );
+        if ( p->pPars->fUseImps )
+            Pos = Fra_ImpCheckForNode( p, p->pCla->vImps, pObj, Pos );
     }
     Extra_ProgressBarStop( pProgress );
     // try to prove the outputs of the miter
@@ -224,6 +234,9 @@ void Fra_FraigSweep( Fra_Man_t * p )
 //    Fra_MiterStatus( p->pManFraig );
 //    if ( p->pPars->fProve && p->pManFraig->pData == NULL )
 //        Fra_MiterProve( p );
+    // compress implications after processing all of them
+    if ( p->pPars->fUseImps )
+        Fra_ImpCompactArray( p->pCla->vImps );
 }
 
 /**Function*************************************************************
@@ -248,7 +261,8 @@ clk = clock();
     assert( Aig_ManLatchNum(pManAig) == 0 );
     p = Fra_ManStart( pManAig, pPars );
     p->pManFraig = Fra_ManPrepareComb( p );
-    Fra_Simulate( p, 0 );
+    p->pSml = Fra_SmlStart( pManAig, 1, pPars->nSimWords );
+    Fra_SmlSimulate( p, 0 );
     if ( p->pPars->fChoicing )
         Aig_ManReprStart( p->pManFraig, Aig_ManObjIdMax(p->pManAig)+1 );
     // collect initial states

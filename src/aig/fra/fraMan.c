@@ -77,8 +77,6 @@ void Fra_ParamsDefaultSeq( Fra_Par_t * pPars )
     pPars->fPatScores       =       0;  // enables simulation pattern scoring
     pPars->MaxScore         =      25;  // max score after which resimulation is used
     pPars->fDoSparse        =       1;  // skips sparse functions
-//    pPars->dActConeRatio    =    0.05;  // the ratio of cone to be bumped
-//    pPars->dActConeBumpMax  =     5.0;  // the largest bump of activity
     pPars->dActConeRatio    =     0.3;  // the ratio of cone to be bumped
     pPars->dActConeBumpMax  =    10.0;  // the largest bump of activity
     pPars->nBTLimitNode     =10000000;  // conflict limit at a node
@@ -112,15 +110,9 @@ Fra_Man_t * Fra_ManStart( Aig_Man_t * pManAig, Fra_Par_t * pPars )
     p->pManAig    = pManAig;
     p->nSizeAlloc = Aig_ManObjIdMax( pManAig ) + 1;
     p->nFramesAll = pPars->nFramesK + 1;
-    // allocate simulation info
-    p->nSimWords  = pPars->nSimWords * p->nFramesAll;
-    p->pSimWords  = ALLOC( unsigned, p->nSizeAlloc * p->nSimWords );
-    // clean simulation info of the constant node
-    memset( p->pSimWords, 0, sizeof(unsigned) * p->nSizeAlloc * p->nSimWords );
     // allocate storage for sim pattern
     p->nPatWords  = Aig_BitWordNum( Aig_ManPiNum(pManAig) * p->nFramesAll );
     p->pPatWords  = ALLOC( unsigned, p->nPatWords ); 
-    p->pPatScores = ALLOC( int, 32 * p->nSimWords ); 
     p->vPiVars    = Vec_PtrAlloc( 100 );
     // equivalence classes
     p->pCla       = Fra_ClassesStart( pManAig );
@@ -238,21 +230,20 @@ void Fra_ManFinalizeComb( Fra_Man_t * p )
 void Fra_ManStop( Fra_Man_t * p )
 {
     int i;
+    if ( p->pPars->fVerbose )
+        Fra_ManPrint( p );
     for ( i = 0; i < p->nSizeAlloc; i++ )
         if ( p->pMemFanins[i] && p->pMemFanins[i] != (void *)1 )
             Vec_PtrFree( p->pMemFanins[i] );
-    if ( p->pPars->fVerbose )
-        Fra_ManPrint( p );
     if ( p->vTimeouts ) Vec_PtrFree( p->vTimeouts );
     if ( p->vPiVars )   Vec_PtrFree( p->vPiVars );
     if ( p->pSat )      sat_solver_delete( p->pSat );
     if ( p->pCla  )     Fra_ClassesStop( p->pCla );
+    if ( p->pSml )      Fra_SmlStop( p->pSml );
     FREE( p->pMemFraig );
     FREE( p->pMemFanins );
     FREE( p->pMemSatNums );
-    FREE( p->pPatScores );
     FREE( p->pPatWords );
-    FREE( p->pSimWords );
     free( p );
 }
 
@@ -269,16 +260,16 @@ void Fra_ManStop( Fra_Man_t * p )
 ***********************************************************************/
 void Fra_ManPrint( Fra_Man_t * p )
 {
-    double nMemory = 1.0*Aig_ManObjIdMax(p->pManAig)*((p->nSimWords+2)*sizeof(unsigned)+6*sizeof(void*))/(1<<20);
+    double nMemory = 1.0*Aig_ManObjIdMax(p->pManAig)*(p->pSml->nWordsTotal*sizeof(unsigned)+6*sizeof(void*))/(1<<20);
     printf( "SimWord = %d. Round = %d.  Mem = %0.2f Mb.  LitBeg = %d.  LitEnd = %d. (%6.2f %%).\n", 
-        p->nSimWords, p->nSimRounds, nMemory, p->nLitsBeg, p->nLitsEnd, 100.0*p->nLitsEnd/p->nLitsBeg );
+        p->pPars->nSimWords, p->pSml->nSimRounds, nMemory, p->nLitsBeg, p->nLitsEnd, 100.0*p->nLitsEnd/p->nLitsBeg );
     printf( "Proof = %d. Cex = %d. Fail = %d. FailReal = %d. Zero = %d. C-lim = %d. Vars = %d.\n", 
         p->nSatProof, p->nSatCallsSat, p->nSatFails, p->nSatFailsReal, p->nLitsZero, p->pPars->nBTLimitNode, p->nSatVars );
     printf( "NBeg = %d. NEnd = %d. (Gain = %6.2f %%).  RBeg = %d. REnd = %d. (Gain = %6.2f %%).\n", 
         p->nNodesBeg, p->nNodesEnd, 100.0*(p->nNodesBeg-p->nNodesEnd)/p->nNodesBeg, 
         p->nRegsBeg, p->nRegsEnd, 100.0*(p->nRegsBeg-p->nRegsEnd)/p->nRegsBeg );
     if ( p->pSat ) Sat_SolverPrintStats( stdout, p->pSat );
-    PRT( "AIG simulation  ", p->timeSim  );
+    PRT( "AIG simulation  ", p->pSml->timeSim  );
     PRT( "AIG traversal   ", p->timeTrav );
     if ( p->timeRwr )
     {

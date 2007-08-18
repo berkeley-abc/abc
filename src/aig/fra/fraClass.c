@@ -90,6 +90,7 @@ void Fra_ClassesStop( Fra_Cla_t * p )
     if ( p->vClassOld )    Vec_PtrFree( p->vClassOld );
     if ( p->vClasses1 )    Vec_PtrFree( p->vClasses1 );
     if ( p->vClasses )     Vec_PtrFree( p->vClasses );
+    if ( p->vImps )        Vec_IntFree( p->vImps );
     free( p );
 }
 
@@ -595,6 +596,93 @@ void Fra_ClassesLatchCorr( Fra_Man_t * p )
     // allocate room for classes
     p->pCla->pMemClasses = ALLOC( Aig_Obj_t *, 2*(nEntries + Vec_PtrSize(p->pCla->vClasses1)) );
     p->pCla->pMemClassesFree = p->pCla->pMemClasses + 2*nEntries;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of 1s in the XOR of simulation data.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Fra_SmlNodeNotEquWeight( Fra_Sml_t * p, int Left, int Right )
+{
+    unsigned * pSimL, * pSimR;
+    int k, Counter = 0;
+    pSimL = Fra_ObjSim( p, Left );
+    pSimR = Fra_ObjSim( p, Right );
+    for ( k = 0; k < p->nWordsTotal; k++ )
+        Counter += Aig_WordCountOnes( pSimL[k] ^ pSimR[k] );
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Postprocesses the classes by removing half of the less useful.]
+
+  Description []
+               
+  SideEffects [] 
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fra_ClassesPostprocess( Fra_Cla_t * p )
+{
+    int Ratio = 2;
+    Fra_Sml_t * pComb;
+    Aig_Obj_t * pObj, * pRepr, ** ppClass;
+    int * pWeights, WeightMax = 0, i, k, c;
+    // perform combinational simulation
+    pComb = Fra_SmlSimulateComb( p->pAig, 32 );
+    // compute the weight of each node in the classes
+    pWeights = ALLOC( int, Aig_ManObjIdMax(p->pAig) + 1 );
+    memset( pWeights, 0, sizeof(int) * (Aig_ManObjIdMax(p->pAig) + 1) );
+    Aig_ManForEachObj( p->pAig, pObj, i )
+    { 
+        pRepr = Fra_ClassObjRepr( pObj );
+        if ( pRepr == NULL )
+            continue;
+        pWeights[i] = Fra_SmlNodeNotEquWeight( pComb, pRepr->Id, pObj->Id );
+        WeightMax = AIG_MAX( WeightMax, pWeights[i] );
+    }
+    Fra_SmlStop( pComb );
+    printf( "Before: Const = %6d. Class = %6d.  ", Vec_PtrSize(p->vClasses1), Vec_PtrSize(p->vClasses) );
+    // remove nodes from classes whose weight is less than WeightMax/Ratio
+    k = 0;
+    Vec_PtrForEachEntry( p->vClasses1, pObj, i )
+    {
+        if ( pWeights[pObj->Id] >= WeightMax/Ratio )
+            Vec_PtrWriteEntry( p->vClasses1, k++, pObj );
+        else
+            Fra_ClassObjSetRepr( pObj, NULL );
+    }
+    Vec_PtrShrink( p->vClasses1, k );
+    // in each class, compact the nodes
+    Vec_PtrForEachEntry( p->vClasses, ppClass, i )
+    {
+        k = 1;
+        for ( c = 1; ppClass[c]; c++ )
+        {
+            if ( pWeights[ppClass[c]->Id] >= WeightMax/Ratio )
+                ppClass[k++] = ppClass[c];
+            else
+                Fra_ClassObjSetRepr( ppClass[c], NULL );
+        }
+        ppClass[k] = NULL;
+    }
+    // remove classes with only repr
+    k = 0;
+    Vec_PtrForEachEntry( p->vClasses, ppClass, i )
+        if ( ppClass[1] != NULL )
+            Vec_PtrWriteEntry( p->vClasses, k++, ppClass );
+    Vec_PtrShrink( p->vClasses, k );
+    printf( "After: Const = %6d. Class = %6d. \n", Vec_PtrSize(p->vClasses1), Vec_PtrSize(p->vClasses) );
+    free( pWeights );
 }
 
 ////////////////////////////////////////////////////////////////////////

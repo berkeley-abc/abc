@@ -10974,11 +10974,11 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int nFramesK;
     int fExdc;
-    int fImp;
+    int fUseImps;
     int fRewrite;
     int fLatchCorr;
     int fVerbose;
-    extern Abc_Ntk_t * Abc_NtkSeqSweep( Abc_Ntk_t * pNtk, int nFrames, int fRewrite, int fLatchCorr, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkSeqSweep( Abc_Ntk_t * pNtk, int nFrames, int fRewrite, int fUseImps, int fLatchCorr, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -10987,7 +10987,7 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     nFramesK   = 1;
     fExdc      = 1;
-    fImp       = 0;
+    fUseImps   = 0;
     fRewrite   = 0;
     fLatchCorr = 0;
     fVerbose   = 0;
@@ -11011,7 +11011,7 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
             fExdc ^= 1;
             break;
         case 'i':
-            fImp ^= 1;
+            fUseImps ^= 1;
             break;
         case 'r':
             fRewrite ^= 1;
@@ -11048,7 +11048,7 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    pNtkRes = Abc_NtkSeqSweep( pNtk, nFramesK, fRewrite, fLatchCorr, fVerbose );
+    pNtkRes = Abc_NtkSeqSweep( pNtk, nFramesK, fRewrite, fUseImps, fLatchCorr, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Sequential sweeping has failed.\n" );
@@ -11059,11 +11059,11 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: ssweep [-F num] [-lrvh]\n" );
+    fprintf( pErr, "usage: ssweep [-F num] [-ilrvh]\n" );
     fprintf( pErr, "\t         performs sequential sweep using K-step induction\n" );
     fprintf( pErr, "\t-F num : number of time frames for induction (1=simple) [default = %d]\n", nFramesK );
 //    fprintf( pErr, "\t-e     : toggle writing EXDC network [default = %s]\n", fExdc? "yes": "no" );
-//    fprintf( pErr, "\t-i     : toggle computing implications [default = %s]\n", fImp? "yes": "no" );
+    fprintf( pErr, "\t-i     : toggle using implications [default = %s]\n", fUseImps? "yes": "no" );
     fprintf( pErr, "\t-l     : toggle latch correspondence only [default = %s]\n", fLatchCorr? "yes": "no" );
     fprintf( pErr, "\t-r     : toggle AIG rewriting [default = %s]\n", fRewrite? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );

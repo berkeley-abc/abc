@@ -24,398 +24,13 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-// simulation manager
-typedef struct Sml_Man_t_   Sml_Man_t;
-struct Sml_Man_t_
-{
-    Aig_Man_t *      pAig;
-    int              nFrames;
-    int              nWordsFrame;
-    int              nWordsTotal;
-    unsigned         pData[0];
-};
-
-static inline unsigned * Sml_ObjSim( Sml_Man_t * p, int Id )  { return p->pData + p->nWordsTotal * Id; }
-static inline int        Sml_ImpLeft( int Imp )               { return Imp & 0xFFFF;                   }
-static inline int        Sml_ImpRight( int Imp )              { return Imp >> 16;                      }
-static inline int        Sml_ImpCreate( int Left, int Right ) { return (Right << 16) | Left;           }
-
-static int * s_ImpCost = NULL;
+static inline int   Sml_ImpLeft( int Imp )               { return Imp & 0xFFFF;         }
+static inline int   Sml_ImpRight( int Imp )              { return Imp >> 16;            }
+static inline int   Sml_ImpCreate( int Left, int Right ) { return (Right << 16) | Left; }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
-
-/**Function*************************************************************
-
-  Synopsis    [Allocates simulation manager.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Sml_Man_t * Sml_ManStart( Aig_Man_t * pAig, int nFrames, int nWordsFrame )
-{
-    Sml_Man_t * p;
-    assert( Aig_ManObjIdMax(pAig) + 1 < (1 << 16) );
-    p = (Sml_Man_t *)malloc( sizeof(Sml_Man_t) + sizeof(unsigned) * (Aig_ManObjIdMax(pAig) + 1) * nFrames * nWordsFrame );
-    memset( p, 0, sizeof(Sml_Man_t) + sizeof(unsigned) * nFrames * nWordsFrame );
-    p->nFrames     = nFrames;
-    p->nWordsFrame = nWordsFrame;
-    p->nWordsTotal = nFrames * nWordsFrame;
-    return p;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Deallocates simulation manager.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Sml_ManStop( Sml_Man_t * p )
-{
-    free( p );
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    [Assigns random patterns to the PI node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Sml_ManAssignRandom( Sml_Man_t * p, Aig_Obj_t * pObj )
-{
-    unsigned * pSims;
-    int i;
-    assert( Aig_ObjIsPi(pObj) );
-    pSims = Sml_ObjSim( p, pObj->Id );
-    for ( i = 0; i < p->nWordsTotal; i++ )
-        pSims[i] = Fra_ObjRandomSim();
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Assigns constant patterns to the PI node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Sml_ManAssignConst( Sml_Man_t * p, Aig_Obj_t * pObj, int fConst1, int iFrame )
-{
-    unsigned * pSims;
-    int i;
-    assert( Aig_ObjIsPi(pObj) );
-    pSims = Sml_ObjSim( p, pObj->Id ) + p->nWordsFrame * iFrame;
-    for ( i = 0; i < p->nWordsFrame; i++ )
-        pSims[i] = fConst1? ~(unsigned)0 : 0;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Assings random simulation info for the PIs.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Sml_ManInitialize( Sml_Man_t * p, int fInit )
-{
-    Aig_Obj_t * pObj;
-    int i;
-    if ( fInit )
-    {
-        assert( Aig_ManRegNum(p->pAig) > 0 );
-        assert( Aig_ManRegNum(p->pAig) < Aig_ManPiNum(p->pAig) );
-        // assign random info for primary inputs
-        Aig_ManForEachPiSeq( p->pAig, pObj, i )
-            Sml_ManAssignRandom( p, pObj );
-        // assign the initial state for the latches
-        Aig_ManForEachLoSeq( p->pAig, pObj, i )
-            Sml_ManAssignConst( p, pObj, 0, 0 );
-    }
-    else
-    {
-        Aig_ManForEachPi( p->pAig, pObj, i )
-            Sml_ManAssignRandom( p, pObj );
-    }
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Assings distance-1 simulation info for the PIs.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Sml_ManAssignDist1( Sml_Man_t * p, unsigned * pPat )
-{
-    Aig_Obj_t * pObj;
-    int f, i, k, Limit, nTruePis;
-    assert( p->nFrames > 0 );
-    if ( p->nFrames == 1 )
-    {
-        // copy the PI info 
-        Aig_ManForEachPi( p->pAig, pObj, i )
-            Sml_ManAssignConst( p, pObj, Aig_InfoHasBit(pPat, i), 0 );
-        // flip one bit
-        Limit = AIG_MIN( Aig_ManPiNum(p->pAig), p->nWordsTotal * 32 - 1 );
-        for ( i = 0; i < Limit; i++ )
-            Aig_InfoXorBit( Sml_ObjSim( p, Aig_ManPi(p->pAig,i)->Id ), i+1 );
-    }
-    else
-    {
-        // copy the PI info for each frame
-        nTruePis = Aig_ManPiNum(p->pAig) - Aig_ManRegNum(p->pAig);
-        for ( f = 0; f < p->nFrames; f++ )
-            Aig_ManForEachPiSeq( p->pAig, pObj, i )
-                Sml_ManAssignConst( p, pObj, Aig_InfoHasBit(pPat, nTruePis * f + i), f );
-        // copy the latch info 
-        k = 0;
-        Aig_ManForEachLoSeq( p->pAig, pObj, i )
-            Sml_ManAssignConst( p, pObj, Aig_InfoHasBit(pPat, nTruePis * p->nFrames + k++), 0 );
-//        assert( p->pManFraig == NULL || nTruePis * p->nFrames + k == Aig_ManPiNum(p->pManFraig) );
-
-        // flip one bit of the last frame
-        if ( p->nFrames == 2 )
-        {
-            Limit = AIG_MIN( nTruePis, p->nWordsFrame * 32 - 1 );
-            for ( i = 0; i < Limit; i++ )
-                Aig_InfoXorBit( Sml_ObjSim( p, Aig_ManPi(p->pAig, i)->Id ), i+1 );
-//            Aig_InfoXorBit( Sml_ObjSim( p, Aig_ManPi(p->pAig, nTruePis*(p->nFrames-2) + i)->Id ), i+1 );
-        }
-    }
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    [Simulates one node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Sml_NodeSimulate( Sml_Man_t * p, Aig_Obj_t * pObj, int iFrame )
-{
-    unsigned * pSims, * pSims0, * pSims1;
-    int fCompl, fCompl0, fCompl1, i;
-    int nSimWords = p->nWordsFrame;
-    assert( !Aig_IsComplement(pObj) );
-    assert( Aig_ObjIsNode(pObj) );
-    assert( iFrame == 0 || nSimWords < p->nWordsTotal );
-    // get hold of the simulation information
-    pSims  = Fra_ObjSim(pObj) + nSimWords * iFrame;
-    pSims0 = Fra_ObjSim(Aig_ObjFanin0(pObj)) + nSimWords * iFrame;
-    pSims1 = Fra_ObjSim(Aig_ObjFanin1(pObj)) + nSimWords * iFrame;
-    // get complemented attributes of the children using their random info
-    fCompl  = pObj->fPhase;
-    fCompl0 = Aig_ObjPhaseReal(Aig_ObjChild0(pObj));
-    fCompl1 = Aig_ObjPhaseReal(Aig_ObjChild1(pObj));
-    // simulate
-    if ( fCompl0 && fCompl1 )
-    {
-        if ( fCompl )
-            for ( i = 0; i < nSimWords; i++ )
-                pSims[i] = (pSims0[i] | pSims1[i]);
-        else
-            for ( i = 0; i < nSimWords; i++ )
-                pSims[i] = ~(pSims0[i] | pSims1[i]);
-    }
-    else if ( fCompl0 && !fCompl1 )
-    {
-        if ( fCompl )
-            for ( i = 0; i < nSimWords; i++ )
-                pSims[i] = (pSims0[i] | ~pSims1[i]);
-        else
-            for ( i = 0; i < nSimWords; i++ )
-                pSims[i] = (~pSims0[i] & pSims1[i]);
-    }
-    else if ( !fCompl0 && fCompl1 )
-    {
-        if ( fCompl )
-            for ( i = 0; i < nSimWords; i++ )
-                pSims[i] = (~pSims0[i] | pSims1[i]);
-        else
-            for ( i = 0; i < nSimWords; i++ )
-                pSims[i] = (pSims0[i] & ~pSims1[i]);
-    }
-    else // if ( !fCompl0 && !fCompl1 )
-    {
-        if ( fCompl )
-            for ( i = 0; i < nSimWords; i++ )
-                pSims[i] = ~(pSims0[i] & pSims1[i]);
-        else
-            for ( i = 0; i < nSimWords; i++ )
-                pSims[i] = (pSims0[i] & pSims1[i]);
-    }
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Simulates one node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Sml_NodeCopyFanin( Sml_Man_t * p, Aig_Obj_t * pObj, int iFrame )
-{
-    unsigned * pSims, * pSims0;
-    int fCompl, fCompl0, i;
-    int nSimWords = p->nWordsFrame;
-    assert( !Aig_IsComplement(pObj) );
-    assert( Aig_ObjIsPo(pObj) );
-    assert( iFrame == 0 || nSimWords < p->nWordsTotal );
-    // get hold of the simulation information
-    pSims  = Sml_ObjSim(p, pObj->Id) + nSimWords * iFrame;
-    pSims0 = Sml_ObjSim(p, Aig_ObjFanin0(pObj)->Id) + nSimWords * iFrame;
-    // get complemented attributes of the children using their random info
-    fCompl  = pObj->fPhase;
-    fCompl0 = Aig_ObjPhaseReal(Aig_ObjChild0(pObj));
-    // copy information as it is
-    if ( fCompl0 )
-        for ( i = 0; i < nSimWords; i++ )
-            pSims[i] = ~pSims0[i];
-    else
-        for ( i = 0; i < nSimWords; i++ )
-            pSims[i] = pSims0[i];
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Simulates one node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Sml_NodeTransferNext( Sml_Man_t * p, Aig_Obj_t * pOut, Aig_Obj_t * pIn, int iFrame )
-{
-    unsigned * pSims0, * pSims1;
-    int i, nSimWords = p->nWordsFrame;
-    assert( !Aig_IsComplement(pOut) );
-    assert( !Aig_IsComplement(pIn) );
-    assert( Aig_ObjIsPo(pOut) );
-    assert( Aig_ObjIsPi(pIn) );
-    assert( iFrame == 0 || nSimWords < p->nWordsTotal );
-    // get hold of the simulation information
-    pSims0 = Sml_ObjSim(p, pOut->Id) + nSimWords * iFrame;
-    pSims1 = Sml_ObjSim(p, pIn->Id) + nSimWords * (iFrame+1);
-    // copy information as it is
-    for ( i = 0; i < nSimWords; i++ )
-        pSims1[i] = pSims0[i];
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    [Simulates AIG manager.]
-
-  Description [Assumes that the PI simulation info is attached.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Sml_SimulateOne( Sml_Man_t * p )
-{
-    Aig_Obj_t * pObj, * pObjLi, * pObjLo;
-    int f, i, clk;
-clk = clock();
-    for ( f = 0; f < p->nFrames; f++ )
-    {
-        // simulate the nodes
-        Aig_ManForEachNode( p->pAig, pObj, i )
-            Sml_NodeSimulate( p, pObj, f );
-        if ( f == p->nFrames - 1 )
-            break;
-        // copy simulation info into outputs
-        Aig_ManForEachLiSeq( p->pAig, pObj, i )
-            Sml_NodeCopyFanin( p, pObj, f );
-        // copy simulation info into the inputs
-//        for ( i = 0; i < Aig_ManRegNum(p->pAig); i++ )
-//            Sml_NodeTransferNext( p, Aig_ManLi(p->pAig, i), Aig_ManLo(p->pAig, i), f );
-        Aig_ManForEachLiLoSeq( p->pAig, pObjLi, pObjLo, i )
-            Sml_NodeTransferNext( p, pObjLi, pObjLo, f );
-    }
-//p->timeSim += clock() - clk;
-//p->nSimRounds++;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Performs simulation of the uninitialized circuit.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Sml_Man_t * Sml_ManSimulateComb( Aig_Man_t * pAig, int nWords )
-{
-    Sml_Man_t * p;
-    p = Sml_ManStart( pAig, 1, nWords );
-    Sml_ManInitialize( p, 0 );
-    Sml_SimulateOne( p );
-    return p;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Performs simulation of the initialized circuit.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Sml_Man_t * Sml_ManSimulateSeq( Aig_Man_t * pAig, int nFrames, int nWords )
-{
-    Sml_Man_t * p;
-    p = Sml_ManStart( pAig, nFrames, nWords );
-    Sml_ManInitialize( p, 1 );
-    Sml_SimulateOne( p );
-    return p;
-}
 
 /**Function*************************************************************
 
@@ -428,16 +43,16 @@ Sml_Man_t * Sml_ManSimulateSeq( Aig_Man_t * pAig, int nFrames, int nWords )
   SeeAlso     []
 
 ***********************************************************************/
-int * Sml_ManCountOnes( Sml_Man_t * p )
+static inline int * Fra_SmlCountOnes( Fra_Sml_t * p )
 {
     Aig_Obj_t * pObj;
     unsigned * pSim;
     int i, k, * pnBits; 
     pnBits = ALLOC( int, Aig_ManObjIdMax(p->pAig) + 1 );  
-    memset( pnBits, 0, sizeof(int) * Aig_ManObjIdMax(p->pAig) + 1 );
+    memset( pnBits, 0, sizeof(int) * (Aig_ManObjIdMax(p->pAig) + 1) );
     Aig_ManForEachObj( p->pAig, pObj, i )
     {
-        pSim = Sml_ObjSim( p, i );
+        pSim = Fra_ObjSim( p, i );
         for ( k = 0; k < p->nWordsTotal; k++ )
             pnBits[i] += Aig_WordCountOnes( pSim[k] );
     }
@@ -455,12 +70,12 @@ int * Sml_ManCountOnes( Sml_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Sml_NodeNotImpCost( Sml_Man_t * p, int Left, int Right )
+static inline int Sml_NodeNotImpWeight( Fra_Sml_t * p, int Left, int Right )
 {
     unsigned * pSimL, * pSimR;
     int k, Counter = 0;
-    pSimL = Sml_ObjSim( p, Left );
-    pSimR = Sml_ObjSim( p, Right );
+    pSimL = Fra_ObjSim( p, Left );
+    pSimR = Fra_ObjSim( p, Right );
     for ( k = 0; k < p->nWordsTotal; k++ )
         Counter += Aig_WordCountOnes( pSimL[k] & ~pSimR[k] );
     return Counter;
@@ -477,12 +92,12 @@ static inline int Sml_NodeNotImpCost( Sml_Man_t * p, int Left, int Right )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Sml_NodeCheckImp( Sml_Man_t * p, int Left, int Right )
+static inline int Sml_NodeCheckImp( Fra_Sml_t * p, int Left, int Right )
 {
     unsigned * pSimL, * pSimR;
     int k;
-    pSimL = Sml_ObjSim( p, Left );
-    pSimR = Sml_ObjSim( p, Right );
+    pSimL = Fra_ObjSim( p, Left );
+    pSimR = Fra_ObjSim( p, Right );
     for ( k = 0; k < p->nWordsTotal; k++ )
         if ( pSimL[k] & ~pSimR[k] )
             return 0;
@@ -500,42 +115,69 @@ static inline int Sml_NodeCheckImp( Sml_Man_t * p, int Left, int Right )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Sml_ManSortUsingOnes( Sml_Man_t * p )
+Vec_Ptr_t * Fra_SmlSortUsingOnes( Fra_Sml_t * p, int fLatchCorr )
 {
     Aig_Obj_t * pObj;
     Vec_Ptr_t * vNodes;
     int i, nNodes, nTotal, nBits, * pnNodes, * pnBits, * pMemory;
+    assert( p->nWordsTotal > 0 );
     // count 1s in each node's siminfo
-    pnBits = Sml_ManCountOnes( p );
+    pnBits = Fra_SmlCountOnes( p );
     // count number of nodes having that many 1s
-    nBits = p->nWordsTotal * 32;
-    assert( nBits >= 32 );
     nNodes = 0;
-    pnNodes = ALLOC( int, nBits );
-    memset( pnNodes, 0, sizeof(int) * nBits );
+    nBits = p->nWordsTotal * 32;
+    pnNodes = ALLOC( int, nBits + 1 );
+    memset( pnNodes, 0, sizeof(int) * (nBits + 1) );
     Aig_ManForEachObj( p->pAig, pObj, i )
     {
         if ( i == 0 ) continue;
-        assert( pnBits[i] < nBits ); // "<" because of normalized info
+        // skip non-PI and non-internal nodes
+        if ( fLatchCorr )
+        {
+            if ( !Aig_ObjIsPi(pObj) )
+                continue;
+        }
+        else
+        {
+            if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsPi(pObj) )
+                continue;
+        }
+        // skip nodes participating in the classes
+//        if ( Fra_ClassObjRepr(pObj) )
+//            continue;
+        assert( pnBits[i] <= nBits ); // "<" because of normalized info
         pnNodes[pnBits[i]]++;
         nNodes++;
     }
     // allocate memory for all the nodes
-    pMemory = ALLOC( int, nNodes + nBits );  
+    pMemory = ALLOC( int, nNodes + nBits + 1 );  
     // markup the memory for each node
-    vNodes = Vec_PtrAlloc( nBits );
+    vNodes = Vec_PtrAlloc( nBits + 1 );
     Vec_PtrPush( vNodes, pMemory );
-    Aig_ManForEachObj( p->pAig, pObj, i )
+    for ( i = 1; i <= nBits; i++ )
     {
-        if ( i == 0 ) continue;
-        pMemory += pnBits[i-1] + 1;
+        pMemory += pnNodes[i-1] + 1;
         Vec_PtrPush( vNodes, pMemory );
     }
     // add the nodes
-    memset( pnNodes, 0, sizeof(int) * nBits );
+    memset( pnNodes, 0, sizeof(int) * (nBits + 1) );
     Aig_ManForEachObj( p->pAig, pObj, i )
     {
         if ( i == 0 ) continue;
+        // skip non-PI and non-internal nodes
+        if ( fLatchCorr )
+        {
+            if ( !Aig_ObjIsPi(pObj) )
+                continue;
+        }
+        else
+        {
+            if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsPi(pObj) )
+                continue;
+        }
+        // skip nodes participating in the classes
+//        if ( Fra_ClassObjRepr(pObj) )
+//            continue;
         pMemory = Vec_PtrEntry( vNodes, pnBits[i] );
         pMemory[ pnNodes[pnBits[i]]++ ] = i;
     }
@@ -546,13 +188,15 @@ Vec_Ptr_t * Sml_ManSortUsingOnes( Sml_Man_t * p )
         pMemory[ pnNodes[i]++ ] = 0;
         nTotal += pnNodes[i];
     }
-    assert( nTotal == nNodes + nBits );
+    assert( nTotal == nNodes + nBits + 1 );
+    free( pnNodes );
+    free( pnBits );
     return vNodes;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Compares two implications using their cost.]
+  Synopsis    [Returns the array of implications with the highest cost.]
 
   Description []
                
@@ -561,15 +205,41 @@ Vec_Ptr_t * Sml_ManSortUsingOnes( Sml_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Sml_CompareCost( int * pNum1, int * pNum2 )
+Vec_Int_t * Fra_SmlSelectMaxCost( Vec_Int_t * vImps, int * pCosts, int nCostMax, int nImpLimit )
 {
-    int Cost1 = s_ImpCost[*pNum1];
-    int Cost2 = s_ImpCost[*pNum2];
-    if ( Cost1 > Cost2 )
-        return -1;
-    if ( Cost1 < Cost2  )
-        return 1;
-    return 0; 
+    Vec_Int_t * vImpsNew;
+    int * pCostCount, nImpCount, Imp, i, c;
+    assert( Vec_IntSize(vImps) >= nImpLimit );
+    // count how many implications have each cost
+    pCostCount = ALLOC( int, nCostMax + 1 );
+    memset( pCostCount, 0, sizeof(int) * (nCostMax + 1) );
+    for ( i = 0; i < Vec_IntSize(vImps); i++ )
+    {
+        assert( pCosts[i] <= nCostMax );
+        pCostCount[ pCosts[i] ]++;
+    }
+    assert( pCostCount[0] == 0 );
+    // select the bound on the cost (above this bound, implication will be included)
+    nImpCount = 0;
+    for ( c = nCostMax; c > 0; c-- )
+    {
+        nImpCount += pCostCount[c];
+        if ( nImpCount >= nImpLimit )
+            break;
+    }
+//    printf( "Cost range >= %d.\n", c );
+    // collect implications with the given costs
+    vImpsNew = Vec_IntAlloc( nImpLimit );
+    Vec_IntForEachEntry( vImps, Imp, i )
+    {
+        if ( pCosts[i] < c )
+            continue;
+        Vec_IntPush( vImpsNew, Imp );
+        if ( Vec_IntSize( vImpsNew ) == nImpLimit )
+            break;
+    }
+    free( pCostCount );
+    return vImpsNew;
 }
 
 /**Function*************************************************************
@@ -602,72 +272,103 @@ int Sml_CompareMaxId( unsigned short * pImp1, unsigned short * pImp2 )
   (1) they hold using sequential simulation information
   (2) they do not hold using combinational simulation information
   (3) they have as high expressive power as possible (heuristically)
-      - this means they are relatively far in terms of Humming distance
-        meaning their complement covers a larger Boolean space
-      - they are easy to disprove combinationally
-        meaning they cover relatively a larger sequential subspace.]
+      that is, they are easy to disprove combinationally
+      meaning they cover relatively larger sequential subspace.]
                
-  SideEffects [The managers should have the first pattern (000...)]
+  SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Sml_ManImpDerive( Fra_Man_t * p, int nImpMaxLimit, int nImpUseLimit )
+Vec_Int_t * Fra_ImpDerive( Fra_Man_t * p, int nImpMaxLimit, int nImpUseLimit, int fLatchCorr )
 {
-    Sml_Man_t * pSeq, * pComb;
+//    Aig_Obj_t * pObj;
+    int nSimWords = 64;
+    Fra_Sml_t * pSeq, * pComb;
     Vec_Int_t * vImps, * vTemp;
     Vec_Ptr_t * vNodes;
-    int * pNodesI, * pNodesK, * pNumbers;
-    int i, k, Imp;
+    int * pImpCosts, * pNodesI, * pNodesK;
+    int nImpsTotal = 0, nImpsTried = 0, nImpsNonSeq = 0, nImpsComb = 0, nImpsCollected = 0;
+    int CostMin = AIG_INFINITY, CostMax = 0;
+    int i, k, Imp, clk = clock();
     assert( nImpMaxLimit > 0 && nImpUseLimit > 0 && nImpUseLimit <= nImpMaxLimit );
     // normalize both managers
-    pComb = Sml_ManSimulateComb( p->pManAig, 32 );
-    pSeq = Sml_ManSimulateSeq( p->pManAig, 32, 1 );
+    pComb = Fra_SmlSimulateComb( p->pManAig, nSimWords );
+    pSeq = Fra_SmlSimulateSeq( p->pManAig, nSimWords, 1 );
     // get the nodes sorted by the number of 1s
-    vNodes = Sml_ManSortUsingOnes( pSeq );
+    vNodes = Fra_SmlSortUsingOnes( pSeq, fLatchCorr );
+/*
+Aig_ManForEachObj( p->pManAig, pObj, i )
+{
+    printf( "%6s", Aig_ObjIsPi(pObj)? "pi" : (Aig_ObjIsNode(pObj)? "node" : "other" ) );
+    printf( "%d (%d) :\n", i, pObj->fPhase );
+    Extra_PrintBinary( stdout, Fra_ObjSim( pComb, i ), 64 ); printf( "\n" );
+    Extra_PrintBinary( stdout, Fra_ObjSim( pSeq, i ), 64 ); printf( "\n" );
+}
+*/
+    // count the total number of implications
+    for ( k = nSimWords * 32; k > 0; k-- )
+    for ( i = k - 1; i > 0; i-- )
+    for ( pNodesI = Vec_PtrEntry( vNodes, i ); *pNodesI; pNodesI++ )
+    for ( pNodesK = Vec_PtrEntry( vNodes, k ); *pNodesK; pNodesK++ )
+        nImpsTotal++;
+
     // compute implications and their costs
-    s_ImpCost = ALLOC( int, nImpMaxLimit );
+    pImpCosts = ALLOC( int, nImpMaxLimit );
     vImps = Vec_IntAlloc( nImpMaxLimit );
-    for ( k = pSeq->nWordsTotal * 32 - 1; k >= 0; k-- )
-        for ( i = k - 1; i >= 0; i-- )
+    for ( k = pSeq->nWordsTotal * 32; k > 0; k-- )
+        for ( i = k - 1; i > 0; i-- )
         {
             for ( pNodesI = Vec_PtrEntry( vNodes, i ); *pNodesI; pNodesI++ )
             for ( pNodesK = Vec_PtrEntry( vNodes, k ); *pNodesK; pNodesK++ )
             {
-                if ( Sml_NodeCheckImp(pSeq, *pNodesI, *pNodesK) &&
-                    !Sml_NodeCheckImp(pComb, *pNodesI, *pNodesK) )
+                nImpsTried++;
+                if ( !Sml_NodeCheckImp(pSeq, *pNodesI, *pNodesK) )
                 {
-                    Imp = Sml_ImpCreate( *pNodesI, *pNodesK );
-                    s_ImpCost[ Vec_IntSize(vImps) ] = Sml_NodeNotImpCost(pComb, *pNodesI, *pNodesK);
-                    Vec_IntPush( vImps, Imp );
+                    nImpsNonSeq++;
+                    continue;
                 }
+                if ( Sml_NodeCheckImp(pComb, *pNodesI, *pNodesK) )
+                {
+                    nImpsComb++;
+                    continue;
+                }
+//                printf( "d=%d c=%d  ", k-i, Sml_NodeNotImpWeight(pComb, *pNodesI, *pNodesK) );
+
+                nImpsCollected++;
+                Imp = Sml_ImpCreate( *pNodesI, *pNodesK );
+                pImpCosts[ Vec_IntSize(vImps) ] = Sml_NodeNotImpWeight(pComb, *pNodesI, *pNodesK);
+                CostMin = AIG_MIN( CostMin, pImpCosts[ Vec_IntSize(vImps) ] );
+                CostMax = AIG_MAX( CostMax, pImpCosts[ Vec_IntSize(vImps) ] );
+                Vec_IntPush( vImps, Imp );
                 if ( Vec_IntSize(vImps) == nImpMaxLimit )
                     goto finish;
-            }
+            } 
         }
 finish:
-    Sml_ManStop( pComb );
-    Sml_ManStop( pSeq );
+    Fra_SmlStop( pComb );
+    Fra_SmlStop( pSeq );
 
-    // sort implications by their cost
-    pNumbers = ALLOC( int, Vec_IntSize(vImps) );
-    for ( i = 0; i < Vec_IntSize(vImps); i++ )
-        pNumbers[i] = i;
-    qsort( (void *)pNumbers, Vec_IntSize(vImps), sizeof(int), 
-            (int (*)(const void *, const void *)) Sml_CompareCost );
-    // reorder implications
-    vTemp = Vec_IntAlloc( nImpUseLimit );
-    for ( i = 0; i < nImpUseLimit; i++ )
-        Vec_IntPush( vTemp, Vec_IntEntry( vImps, pNumbers[i] ) );
-    Vec_IntFree( vImps );  vImps = vTemp;
+    // select implications with the highest cost
+    if ( Vec_IntSize(vImps) > nImpUseLimit )
+    {
+        vImps = Fra_SmlSelectMaxCost( vTemp = vImps, pImpCosts, nSimWords * 32, nImpUseLimit );
+        Vec_IntFree( vTemp );  
+    }
+
     // dealloc
-    free( pNumbers );
-    free( s_ImpCost ); s_ImpCost = NULL;
+    free( pImpCosts ); 
     free( Vec_PtrEntry(vNodes, 0) );
     Vec_PtrFree( vNodes );
-    // order implications by the max ID involved
+    // reorder implications topologically
     qsort( (void *)Vec_IntArray(vImps), Vec_IntSize(vImps), sizeof(int), 
             (int (*)(const void *, const void *)) Sml_CompareMaxId );
+if ( p->pPars->fVerbose )
+{
+printf( "Tot = %d. Try = %d. NonS = %d. C = %d. Found = %d.  Cost = [%d - %d]  ", 
+    nImpsTotal, nImpsTried, nImpsNonSeq, nImpsComb, nImpsCollected, CostMin, CostMax );
+PRT( "Time", clock() - clk );
+}
     return vImps;
 }
 
@@ -678,7 +379,7 @@ finish:
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Add implication clauses to the SAT solver.]
 
   Description []
                
@@ -687,17 +388,32 @@ finish:
   SeeAlso     []
 
 ***********************************************************************/
-void Fra_ImpAddToSolver( Fra_Man_t * p, Vec_Int_t * vImps )
+void Fra_ImpAddToSolver( Fra_Man_t * p, Vec_Int_t * vImps, int * pSatVarNums )
 {
     sat_solver * pSat = p->pSat;
     Aig_Obj_t * pLeft, * pRight;
     Aig_Obj_t * pLeftF, * pRightF;
     int pLits[2], Imp, Left, Right, i, f, status;
+    int fComplL, fComplR;
     Vec_IntForEachEntry( vImps, Imp, i )
     {
         // get the corresponding nodes
         pLeft = Aig_ManObj( p->pManAig, Sml_ImpLeft(Imp) );
         pRight = Aig_ManObj( p->pManAig, Sml_ImpRight(Imp) );
+        // check if all the nodes are present
+        for ( f = 0; f < p->pPars->nFramesK; f++ )
+        {
+            // map these info fraig
+            pLeftF = Fra_ObjFraig( pLeft, f );
+            pRightF = Fra_ObjFraig( pRight, f );
+            if ( Aig_ObjIsNone(Aig_Regular(pLeftF)) || Aig_ObjIsNone(Aig_Regular(pRightF)) )
+            {
+                Vec_IntWriteEntry( vImps, i, 0 );
+                break;
+            }
+        }
+        if ( f < p->pPars->nFramesK )
+            continue;
         // add constraints in each timeframe
         for ( f = 0; f < p->pPars->nFramesK; f++ )
         {
@@ -705,14 +421,17 @@ void Fra_ImpAddToSolver( Fra_Man_t * p, Vec_Int_t * vImps )
             pLeftF = Fra_ObjFraig( pLeft, f );
             pRightF = Fra_ObjFraig( pRight, f );
             // get the corresponding SAT numbers
-            Left = Fra_ObjSatNum( Aig_Regular(pLeftF) );
-            Right = Fra_ObjSatNum( Aig_Regular(pRightF) );
+            Left = pSatVarNums[ Aig_Regular(pLeftF)->Id ];
+            Right = pSatVarNums[ Aig_Regular(pRightF)->Id ];
             assert( Left > 0  && Left < p->nSatVars );
             assert( Right > 0 && Right < p->nSatVars );
+            // get the complemented attributes
+            fComplL = pLeft->fPhase ^ Aig_IsComplement(pLeftF);
+            fComplR = pRight->fPhase ^ Aig_IsComplement(pRightF);
             // get the constaint
-            // L => R      L' v R      L & R'
-            pLits[0] = 2 * Left  + !Aig_ObjPhaseReal(pLeftF);
-            pLits[1] = 2 * Right +  Aig_ObjPhaseReal(pRightF);
+            // L => R      L' v R     (complement = L & R')
+            pLits[0] = 2 * Left  + !fComplL;
+            pLits[1] = 2 * Right +  fComplR;
             // add contraint to solver
             if ( !sat_solver_addclause( pSat, pLits, pLits + 2 ) )
             {
@@ -728,6 +447,9 @@ void Fra_ImpAddToSolver( Fra_Man_t * p, Vec_Int_t * vImps )
         sat_solver_delete( pSat );
         p->pSat = NULL;
     }
+//    printf( "Total imps = %d. ", Vec_IntSize(vImps) );
+    Fra_ImpCompactArray( vImps );
+//    printf( "Valid imps = %d. \n", Vec_IntSize(vImps) );
 }
 
 /**Function*************************************************************
@@ -744,9 +466,13 @@ void Fra_ImpAddToSolver( Fra_Man_t * p, Vec_Int_t * vImps )
 int Fra_ImpCheckForNode( Fra_Man_t * p, Vec_Int_t * vImps, Aig_Obj_t * pNode, int Pos )
 {
     Aig_Obj_t * pLeft, * pRight;
+    Aig_Obj_t * pLeftF, * pRightF;
     int i, Imp, Left, Right, Max;
+    int fComplL, fComplR;
     Vec_IntForEachEntryStart( vImps, Imp, i, Pos )
     {
+        if ( Imp == 0 )
+            continue;
         Left = Sml_ImpLeft(Imp);
         Right = Sml_ImpRight(Imp);
         Max = AIG_MAX( Left, Right );
@@ -754,14 +480,35 @@ int Fra_ImpCheckForNode( Fra_Man_t * p, Vec_Int_t * vImps, Aig_Obj_t * pNode, in
         if ( Max > pNode->Id )
             return i;
         // get the corresponding nodes
-        pLeft = Aig_ManObj( p->pManAig, Left );
+        pLeft  = Aig_ManObj( p->pManAig, Left );
         pRight = Aig_ManObj( p->pManAig, Right );
+        // get the corresponding FRAIG nodes
+        pLeftF  = Fra_ObjFraig( pLeft, p->pPars->nFramesK );
+        pRightF = Fra_ObjFraig( pRight, p->pPars->nFramesK );
+        // get the complemented attributes
+        fComplL = pLeft->fPhase ^ Aig_IsComplement(pLeftF);
+        fComplR = pRight->fPhase ^ Aig_IsComplement(pRightF);
+        // check equality
+        if ( Aig_Regular(pLeftF) == Aig_Regular(pRightF) )
+        {
+//            assert( fComplL == fComplR );
+//            if ( fComplL != fComplR )
+//                printf( "Fra_ImpCheckForNode(): Unexpected situation!\n" );
+            if ( fComplL != fComplR )
+                Vec_IntWriteEntry( vImps, i, 0 );
+            continue;
+        }
         // check the implication 
         // - if true, a clause is added
         // - if false, a cex is simulated
-//        Fra_NodesAreImp( p, pLeft, pRight );
         // make sure the implication is refined
-        assert( Vec_IntEntry(vImps, Pos) == 0 );
+        if ( Fra_NodesAreImp( p, Aig_Regular(pLeftF), Aig_Regular(pRightF), fComplL, fComplR ) == 0 )
+        {
+            Fra_SmlResimulate( p );
+            if ( Vec_IntEntry(vImps, i) != 0 )
+                printf( "Fra_ImpCheckForNode(): Implication is not refined!\n" );
+            assert( Vec_IntEntry(vImps, i) == 0 );
+        }
     }
     return i;
 }
@@ -789,10 +536,11 @@ int Fra_ImpRefineUsingCex( Fra_Man_t * p, Vec_Int_t * vImps )
         pLeft = Aig_ManObj( p->pManAig, Sml_ImpLeft(Imp) );
         pRight = Aig_ManObj( p->pManAig, Sml_ImpRight(Imp) );
         // check if implication holds using this simulation info
-        if ( !Sml_NodeCheckImp(p->pSim, pLeft->Id, pRight->Id) )
+        if ( !Sml_NodeCheckImp(p->pSml, pLeft->Id, pRight->Id) )
         {
             Vec_IntWriteEntry( vImps, i, 0 );
             RetValue = 1;
+            p->pCla->fRefinement = 1;
         }
     }
     return RetValue;
