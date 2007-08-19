@@ -234,7 +234,7 @@ void Fra_ObjAddToFrontier( Fra_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vFrontie
   SeeAlso     []
 
 ***********************************************************************/
-void Fra_NodeAddToSolver( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
+void Fra_CnfNodeAddToSolver( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
 { 
     Vec_Ptr_t * vFrontier, * vFanins;
     Aig_Obj_t * pNode, * pFanin;

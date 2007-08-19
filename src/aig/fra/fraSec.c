@@ -47,7 +47,7 @@ int Fra_FraigSec( Aig_Man_t * p, int nFramesFix, int fVerbose, int fVeryVerbose 
     {
         nFrames = nFramesFix;
         // perform seq sweeping for one frame number
-        pNew = Fra_FraigInduction( p, nFrames, 0, 0, 0, fVeryVerbose, &nIter );
+        pNew = Fra_FraigInduction( p, 0, nFrames, 0, 0, 0, fVeryVerbose, &nIter );
     }
     else
     {
@@ -55,7 +55,7 @@ int Fra_FraigSec( Aig_Man_t * p, int nFramesFix, int fVerbose, int fVeryVerbose 
         for ( nFrames = 1; ; nFrames++ )
         {
 clk = clock();
-            pNew = Fra_FraigInduction( p, nFrames, 0, 0, 0, fVeryVerbose, &nIter );
+            pNew = Fra_FraigInduction( p, 0, nFrames, 0, 0, 0, fVeryVerbose, &nIter );
             RetValue = Fra_FraigMiterStatus( pNew );
             if ( fVerbose )
             {

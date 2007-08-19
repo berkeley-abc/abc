@@ -198,8 +198,16 @@ Aig_Man_t * Fra_FramesWithClasses( Fra_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesK, int fRewrite, int fUseImps, int fLatchCorr, int fVerbose, int * pnIter )
+Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesP, int nFramesK, int fRewrite, int fUseImps, int fLatchCorr, int fVerbose, int * pnIter )
 {
+    int fUseSimpleCnf = 0;
+    int fUseOldSimulation = 0;
+    // other paramaters affecting performance
+    // - presence of FRAIGing in Abc_NtkDarSeqSweep()
+    // - using distance-1 patterns in Fra_SmlAssignDist1()
+    // - the number of simulation patterns
+    // - the number of BMC frames
+
     Fra_Man_t * p;
     Fra_Par_t Pars, * pPars = &Pars; 
     Aig_Obj_t * pObj;
@@ -207,7 +215,6 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesK, int fRewrite,
     Aig_Man_t * pManAigNew;
 //    Vec_Int_t * vImps;
     int nIter, i, clk = clock(), clk2;
-
     if ( Aig_ManNodeNum(pManAig) == 0 )
     {
         if ( pnIter ) *pnIter = 0;
@@ -220,6 +227,7 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesK, int fRewrite,
 
     // get parameters
     Fra_ParamsDefaultSeq( pPars );
+    pPars->nFramesP   = nFramesP;
     pPars->nFramesK   = nFramesK;
     pPars->fVerbose   = fVerbose;
     pPars->fRewrite   = fRewrite;
@@ -229,17 +237,31 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesK, int fRewrite,
     // start the fraig manager for this run
     p = Fra_ManStart( pManAig, pPars );
     // derive and refine e-classes using K initialized frames
-//    p->pSml = Fra_SmlStart( pManAig, pPars->nFramesK + 1, pPars->nSimWords );
-//    Fra_SmlSimulate( p, 1 );
+    if ( fUseOldSimulation )
+    {
+        if ( pPars->nFramesP > 0 )
+        {
+            pPars->nFramesP = 0;
+            printf( "Fra_FraigInduction(): Prefix cannot be used.\n" );
+        }
+        p->pSml = Fra_SmlStart( pManAig, 0, pPars->nFramesK + 1, pPars->nSimWords );
+        Fra_SmlSimulate( p, 1 );
+    }
+    else
+    {
+        // bug:  r iscas/blif/s1238.blif    ; st; ssw -v
+        // refine the classes with more simulation rounds
+        p->pSml = Fra_SmlSimulateSeq( pManAig, pPars->nFramesP, 32, 2 ); //pPars->nFramesK + 1, 6 );  // 32, 2 );
+        Fra_ClassesPrepare( p->pCla, p->pPars->fLatchCorr );
+//        Fra_ClassesPostprocess( p->pCla );
+        // allocate new simulation manager for simulating counter-examples
+        Fra_SmlStop( p->pSml );
+        p->pSml = Fra_SmlStart( pManAig, 0, pPars->nFramesK + 1, pPars->nSimWords );
+    }
 
-    // remember that strange bug: r iscas/blif/s5378.blif    ; st; ssw -F 4; sec -F 10
-    // refine the classes with more simulation rounds
-    p->pSml = Fra_SmlSimulateSeq( pManAig, 32, 2 );  
-    Fra_ClassesPrepare( p->pCla, p->pPars->fLatchCorr );
-//    Fra_ClassesPostprocess( p->pCla );
-    // allocate new simulation manager for simulating counter-examples
-    Fra_SmlStop( p->pSml );
-    p->pSml = Fra_SmlStart( pManAig, pPars->nFramesK + 1, pPars->nSimWords );
+    // perform BMC
+    Fra_BmcPerform( p, pPars->nFramesP, pPars->nFramesK + 1 );
+//Fra_ClassesPrint( p->pCla, 1 );
 
     // select the most expressive implications
     if ( pPars->fUseImps )
@@ -264,9 +286,8 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesK, int fRewrite,
         if ( p->pPars->fRewrite )
             Fra_FraigInductionRewrite( p );
 
-        // bug:  r iscas/blif/s1238.blif    ; st; ssw -v
         // convert the manager to SAT solver (the last nLatches outputs are inputs)
-        if ( pPars->fUseImps )
+        if ( fUseSimpleCnf || pPars->fUseImps )
             pCnf = Cnf_DeriveSimple( p->pManFraig, Aig_ManRegNum(p->pManFraig) );
         else
             pCnf = Cnf_Derive( p->pManFraig, Aig_ManRegNum(p->pManFraig) );
@@ -289,32 +310,24 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesK, int fRewrite,
             pObj->pData = p;
 
         // transfer PI/LO variable numbers
-        pObj = Aig_ManConst1( p->pManFraig );
-        Fra_ObjSetSatNum( pObj, pCnf->pVarNums[pObj->Id] );
-        Aig_ManForEachPi( p->pManFraig, pObj, i )
-            Fra_ObjSetSatNum( pObj, pCnf->pVarNums[pObj->Id] );
-        // transfer LI variable numbers
-        Aig_ManForEachLiSeq( p->pManFraig, pObj, i )
-        {
-            Fra_ObjSetSatNum( pObj, pCnf->pVarNums[pObj->Id] );
-            Fra_ObjSetFaninVec( pObj, (void *)1 );
-        }
-        Cnf_DataFree( pCnf );
-/* 
         Aig_ManForEachObj( p->pManFraig, pObj, i )
         {
+            if ( pCnf->pVarNums[pObj->Id] == -1 )
+                continue;
             Fra_ObjSetSatNum( pObj, pCnf->pVarNums[pObj->Id] );
             Fra_ObjSetFaninVec( pObj, (void *)1 );
         }
         Cnf_DataFree( pCnf );
-*/
+
         // report the intermediate results
         if ( fVerbose )
         {
-            printf( "%3d : Const = %6d. Class = %6d.  L = %6d. LR = %6d.  I = %6d. NR = %6d.\n", 
+            printf( "%3d : Const = %6d. Class = %6d.  L = %6d. LR = %6d.  %s = %6d. NR = %6d.\n", 
                 nIter, Vec_PtrSize(p->pCla->vClasses1), Vec_PtrSize(p->pCla->vClasses), 
                 Fra_ClassesCountLits(p->pCla), p->pManFraig->nAsserts,
-                p->pCla->vImps? Vec_IntSize(p->pCla->vImps) : 0, Aig_ManNodeNum(p->pManFraig) );
+                p->pCla->vImps? "I" : "N", 
+                p->pCla->vImps? Vec_IntSize(p->pCla->vImps) : Aig_ManNodeNum(p->pManAig), 
+                Aig_ManNodeNum(p->pManFraig) );
         }
 
         // perform sweeping

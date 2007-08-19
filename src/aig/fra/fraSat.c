@@ -77,7 +77,7 @@ int Fra_NodesAreEquiv( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
     }
 
     // if the nodes do not have SAT variables, allocate them
-    Fra_NodeAddToSolver( p, pOld, pNew );
+    Fra_CnfNodeAddToSolver( p, pOld, pNew );
 
     if ( p->pSat->qtail != p->pSat->qhead )
     {
@@ -113,7 +113,7 @@ p->timeSatUnsat += clock() - clk;
     else if ( RetValue1 == l_True )
     {
 p->timeSatSat += clock() - clk;
-        Fra_SavePattern( p );
+        Fra_SmlSavePattern( p );
         p->nSatCallsSat++;
         return 0;
     }
@@ -156,7 +156,7 @@ p->timeSatUnsat += clock() - clk;
     else if ( RetValue1 == l_True )
     {
 p->timeSatSat += clock() - clk;
-        Fra_SavePattern( p );
+        Fra_SmlSavePattern( p );
         p->nSatCallsSat++;
         return 0;
     }
@@ -234,7 +234,7 @@ int Fra_NodesAreImp( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew, int fCom
     }
 
     // if the nodes do not have SAT variables, allocate them
-    Fra_NodeAddToSolver( p, pOld, pNew );
+    Fra_CnfNodeAddToSolver( p, pOld, pNew );
 
     if ( p->pSat->qtail != p->pSat->qhead )
     {
@@ -272,7 +272,7 @@ p->timeSatUnsat += clock() - clk;
     else if ( RetValue1 == l_True )
     {
 p->timeSatSat += clock() - clk;
-        Fra_SavePattern( p );
+        Fra_SmlSavePattern( p );
         p->nSatCallsSat++;
         return 0;
     }
@@ -320,7 +320,7 @@ int Fra_NodeIsConst( Fra_Man_t * p, Aig_Obj_t * pNew )
     }
 
     // if the nodes do not have SAT variables, allocate them
-    Fra_NodeAddToSolver( p, NULL, pNew );
+    Fra_CnfNodeAddToSolver( p, NULL, pNew );
 
     // prepare variable activity
     if ( p->pPars->fConeBias )
@@ -346,7 +346,7 @@ p->timeSatUnsat += clock() - clk;
     {
 p->timeSatSat += clock() - clk;
         if ( p->pPatWords )
-            Fra_SavePattern( p );
+            Fra_SmlSavePattern( p );
         p->nSatCallsSat++;
         return 0;
     }

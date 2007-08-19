@@ -111,7 +111,7 @@ Fra_Man_t * Fra_ManStart( Aig_Man_t * pManAig, Fra_Par_t * pPars )
     p->nSizeAlloc = Aig_ManObjIdMax( pManAig ) + 1;
     p->nFramesAll = pPars->nFramesK + 1;
     // allocate storage for sim pattern
-    p->nPatWords  = Aig_BitWordNum( Aig_ManPiNum(pManAig) * p->nFramesAll );
+    p->nPatWords  = Aig_BitWordNum( (Aig_ManPiNum(pManAig) - Aig_ManRegNum(pManAig)) * p->nFramesAll + Aig_ManRegNum(pManAig) );
     p->pPatWords  = ALLOC( unsigned, p->nPatWords ); 
     p->vPiVars    = Vec_PtrAlloc( 100 );
     // equivalence classes
@@ -232,6 +232,14 @@ void Fra_ManStop( Fra_Man_t * p )
     int i;
     if ( p->pPars->fVerbose )
         Fra_ManPrint( p );
+    // save mapping from original nodes into FRAIG nodes
+    if ( p->pManAig )
+    {
+        if ( p->pManAig->pObjCopies )
+            free( p->pManAig->pObjCopies );
+        p->pManAig->pObjCopies = p->pMemFraig;
+        p->pMemFraig = NULL;
+    }
     for ( i = 0; i < p->nSizeAlloc; i++ )
         if ( p->pMemFanins[i] && p->pMemFanins[i] != (void *)1 )
             Vec_PtrFree( p->pMemFanins[i] );

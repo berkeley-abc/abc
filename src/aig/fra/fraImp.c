@@ -53,32 +53,10 @@ static inline int * Fra_SmlCountOnes( Fra_Sml_t * p )
     Aig_ManForEachObj( p->pAig, pObj, i )
     {
         pSim = Fra_ObjSim( p, i );
-        for ( k = 0; k < p->nWordsTotal; k++ )
+        for ( k = p->nWordsPref; k < p->nWordsTotal; k++ )
             pnBits[i] += Aig_WordCountOnes( pSim[k] );
     }
     return pnBits;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Counts the number of 1s in the reverse implication.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline int Sml_NodeNotImpWeight( Fra_Sml_t * p, int Left, int Right )
-{
-    unsigned * pSimL, * pSimR;
-    int k, Counter = 0;
-    pSimL = Fra_ObjSim( p, Left );
-    pSimR = Fra_ObjSim( p, Right );
-    for ( k = 0; k < p->nWordsTotal; k++ )
-        Counter += Aig_WordCountOnes( pSimL[k] & ~pSimR[k] );
-    return Counter;
 }
 
 /**Function*************************************************************
@@ -98,10 +76,32 @@ static inline int Sml_NodeCheckImp( Fra_Sml_t * p, int Left, int Right )
     int k;
     pSimL = Fra_ObjSim( p, Left );
     pSimR = Fra_ObjSim( p, Right );
-    for ( k = 0; k < p->nWordsTotal; k++ )
+    for ( k = p->nWordsPref; k < p->nWordsTotal; k++ )
         if ( pSimL[k] & ~pSimR[k] )
             return 0;
     return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of 1s in the reverse implication.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Sml_NodeNotImpWeight( Fra_Sml_t * p, int Left, int Right )
+{
+    unsigned * pSimL, * pSimR;
+    int k, Counter = 0;
+    pSimL = Fra_ObjSim( p, Left );
+    pSimR = Fra_ObjSim( p, Right );
+    for ( k = p->nWordsPref; k < p->nWordsTotal; k++ )
+        Counter += Aig_WordCountOnes( pSimL[k] & ~pSimR[k] );
+    return Counter;
 }
 
 /**Function*************************************************************
@@ -294,7 +294,7 @@ Vec_Int_t * Fra_ImpDerive( Fra_Man_t * p, int nImpMaxLimit, int nImpUseLimit, in
     assert( nImpMaxLimit > 0 && nImpUseLimit > 0 && nImpUseLimit <= nImpMaxLimit );
     // normalize both managers
     pComb = Fra_SmlSimulateComb( p->pManAig, nSimWords );
-    pSeq = Fra_SmlSimulateSeq( p->pManAig, nSimWords, 1 );
+    pSeq = Fra_SmlSimulateSeq( p->pManAig, p->pPars->nFramesP, nSimWords, 1 );
     // get the nodes sorted by the number of 1s
     vNodes = Fra_SmlSortUsingOnes( pSeq, fLatchCorr );
 /*
@@ -334,7 +334,7 @@ Aig_ManForEachObj( p->pManAig, pObj, i )
                     continue;
                 }
 //                printf( "d=%d c=%d  ", k-i, Sml_NodeNotImpWeight(pComb, *pNodesI, *pNodesK) );
-
+ 
                 nImpsCollected++;
                 Imp = Sml_ImpCreate( *pNodesI, *pNodesK );
                 pImpCosts[ Vec_IntSize(vImps) ] = Sml_NodeNotImpWeight(pComb, *pNodesI, *pNodesK);

@@ -1,4 +1,5 @@
-SRC +=    src/aig/fra/fraCec.c \
+SRC +=    src/aig/fra/fraBmc.c \
+    src/aig/fra/fraCec.c \
     src/aig/fra/fraClass.c \
     src/aig/fra/fraCnf.c \
     src/aig/fra/fraCore.c \

@@ -892,7 +892,7 @@ int Abc_NtkDSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fVer
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkSeqSweep( Abc_Ntk_t * pNtk, int nFramesK, int fRewrite, int fUseImps, int fLatchCorr, int fVerbose )
+Abc_Ntk_t * Abc_NtkDarSeqSweep( Abc_Ntk_t * pNtk, int nFramesP, int nFramesK, int fRewrite, int fUseImps, int fLatchCorr, int fVerbose )
 {
     Fraig_Params_t Params;
     Abc_Ntk_t * pNtkAig, * pNtkFraig;
@@ -911,7 +911,7 @@ Abc_Ntk_t * Abc_NtkSeqSweep( Abc_Ntk_t * pNtk, int nFramesK, int fRewrite, int f
     if ( pMan == NULL )
         return NULL;
 
-    pMan = Fra_FraigInduction( pTemp = pMan, nFramesK, fRewrite, fUseImps, fLatchCorr, fVerbose, NULL );
+    pMan = Fra_FraigInduction( pTemp = pMan, nFramesP, nFramesK, fRewrite, fUseImps, fLatchCorr, fVerbose, NULL );
     Aig_ManStop( pTemp );
 
     if ( Aig_ManRegNum(pMan) < Abc_NtkLatchNum(pNtk) )

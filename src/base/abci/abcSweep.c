@@ -335,8 +335,8 @@ void Abc_NtkFraigMergeClassMapped( Abc_Ntk_t * pNtk, Abc_Obj_t * pChain, int fUs
     {
         Arrival1 = Abc_NodeReadArrival(pNodeMin)->Worst;
         Arrival2 = Abc_NodeReadArrival(pNode   )->Worst;
-        assert( Abc_ObjIsCi(pNodeMin) || Arrival1 > 0 );
-        assert( Abc_ObjIsCi(pNode)    || Arrival2 > 0 );
+//        assert( Abc_ObjIsCi(pNodeMin) || Arrival1 > 0 );
+//        assert( Abc_ObjIsCi(pNode)    || Arrival2 > 0 );
         if (  Arrival1 > Arrival2 ||
               Arrival1 == Arrival2 && pNodeMin->Level >  pNode->Level || 
               Arrival1 == Arrival2 && pNodeMin->Level == pNode->Level && 
@@ -355,8 +355,8 @@ void Abc_NtkFraigMergeClassMapped( Abc_Ntk_t * pNtk, Abc_Obj_t * pChain, int fUs
     {
         Arrival1 = Abc_NodeReadArrival(pNodeMin)->Worst;
         Arrival2 = Abc_NodeReadArrival(pNode   )->Worst;
-        assert( Abc_ObjIsCi(pNodeMin) || Arrival1 > 0 );
-        assert( Abc_ObjIsCi(pNode)    || Arrival2 > 0 );
+//        assert( Abc_ObjIsCi(pNodeMin) || Arrival1 > 0 );
+//        assert( Abc_ObjIsCi(pNode)    || Arrival2 > 0 );
         if (  Arrival1 > Arrival2 ||
               Arrival1 == Arrival2 && pNodeMin->Level >  pNode->Level || 
               Arrival1 == Arrival2 && pNodeMin->Level == pNode->Level && 

@@ -30,53 +30,6 @@
 
 /**Function*************************************************************
 
-  Synopsis    [Returns 1 if simulation info is composed of all zeros.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Fra_NodeHasZeroSim( Aig_Obj_t * pObj )
-{
-    Fra_Man_t * p = pObj->pData;
-    unsigned * pSims;
-    int i;
-    pSims = Fra_ObjSim(p->pSml, pObj->Id);
-    for ( i = 0; i < p->pSml->nWordsTotal; i++ )
-        if ( pSims[i] )
-            return 0;
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Returns 1 if simulation infos are equal.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Fra_NodeCompareSims( Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
-{
-    Fra_Man_t * p = pObj0->pData;
-    unsigned * pSims0, * pSims1;
-    int i;
-    pSims0 = Fra_ObjSim(p->pSml, pObj0->Id);
-    pSims1 = Fra_ObjSim(p->pSml, pObj1->Id);
-    for ( i = 0; i < p->pSml->nWordsTotal; i++ )
-        if ( pSims0[i] != pSims1[i] )
-            return 0;
-    return 1;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Computes hash value of the node using its simulation info.]
 
   Description []
@@ -86,7 +39,7 @@ int Fra_NodeCompareSims( Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
   SeeAlso     []
 
 ***********************************************************************/
-unsigned Fra_NodeHashSims( Aig_Obj_t * pObj )
+int Fra_SmlNodeHash( Aig_Obj_t * pObj, int nTableSize )
 {
     Fra_Man_t * p = pObj->pData;
     static int s_FPrimes[128] = { 
@@ -107,15 +60,82 @@ unsigned Fra_NodeHashSims( Aig_Obj_t * pObj )
     unsigned * pSims;
     unsigned uHash;
     int i;
-    assert( p->pSml->nWordsTotal <= 128 );
+//    assert( p->pSml->nWordsTotal <= 128 );
     uHash = 0;
     pSims = Fra_ObjSim(p->pSml, pObj->Id);
-    for ( i = 0; i < p->pSml->nWordsTotal; i++ )
-        uHash ^= pSims[i] * s_FPrimes[i];
-    return uHash;
+    for ( i = p->pSml->nWordsPref; i < p->pSml->nWordsTotal; i++ )
+        uHash ^= pSims[i] * s_FPrimes[i & 0x7F];
+    return uHash % nTableSize;
 }
 
+/**Function*************************************************************
 
+  Synopsis    [Returns 1 if simulation info is composed of all zeros.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fra_SmlNodeIsConst( Aig_Obj_t * pObj )
+{
+    Fra_Man_t * p = pObj->pData;
+    unsigned * pSims;
+    int i;
+    pSims = Fra_ObjSim(p->pSml, pObj->Id);
+    for ( i = p->pSml->nWordsPref; i < p->pSml->nWordsTotal; i++ )
+        if ( pSims[i] )
+            return 0;
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if simulation infos are equal.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fra_SmlNodesAreEqual( Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
+{
+    Fra_Man_t * p = pObj0->pData;
+    unsigned * pSims0, * pSims1;
+    int i;
+    pSims0 = Fra_ObjSim(p->pSml, pObj0->Id);
+    pSims1 = Fra_ObjSim(p->pSml, pObj1->Id);
+    for ( i = p->pSml->nWordsPref; i < p->pSml->nWordsTotal; i++ )
+        if ( pSims0[i] != pSims1[i] )
+            return 0;
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of 1s in the XOR of simulation data.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fra_SmlNodeNotEquWeight( Fra_Sml_t * p, int Left, int Right )
+{
+    unsigned * pSimL, * pSimR;
+    int k, Counter = 0;
+    pSimL = Fra_ObjSim( p, Left );
+    pSimR = Fra_ObjSim( p, Right );
+    for ( k = p->nWordsPref; k < p->nWordsTotal; k++ )
+        Counter += Aig_WordCountOnes( pSimL[k] ^ pSimR[k] );
+    return Counter;
+}
 
 
 
@@ -130,7 +150,7 @@ unsigned Fra_NodeHashSims( Aig_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-void Fra_SavePattern0( Fra_Man_t * p, int fInit )
+void Fra_SmlSavePattern0( Fra_Man_t * p, int fInit )
 {
     memset( p->pPatWords, 0, sizeof(unsigned) * p->nPatWords );
 }
@@ -146,13 +166,14 @@ void Fra_SavePattern0( Fra_Man_t * p, int fInit )
   SeeAlso     []
 
 ***********************************************************************/
-void Fra_SavePattern1( Fra_Man_t * p, int fInit )
+void Fra_SmlSavePattern1( Fra_Man_t * p, int fInit )
 {
     Aig_Obj_t * pObj;
     int i, k, nTruePis;
     memset( p->pPatWords, 0xff, sizeof(unsigned) * p->nPatWords );
     if ( !fInit )
         return;
+    // clear the state bits to correspond to all-0 initial state
     nTruePis = Aig_ManPiNum(p->pManAig) - Aig_ManRegNum(p->pManAig);
     k = 0;
     Aig_ManForEachLoSeq( p->pManAig, pObj, i )
@@ -170,7 +191,7 @@ void Fra_SavePattern1( Fra_Man_t * p, int fInit )
   SeeAlso     []
 
 ***********************************************************************/
-void Fra_SavePattern( Fra_Man_t * p )
+void Fra_SmlSavePattern( Fra_Man_t * p )
 {
     Aig_Obj_t * pObj;
     int i;
@@ -199,7 +220,7 @@ void Fra_SavePattern( Fra_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Fra_CheckOutputSimsSavePattern( Fra_Man_t * p, Aig_Obj_t * pObj )
+void Fra_SmlCheckOutputSavePattern( Fra_Man_t * p, Aig_Obj_t * pObj )
 { 
     unsigned * pSims;
     int i, k, BestPat, * pModel;
@@ -241,7 +262,7 @@ void Fra_CheckOutputSimsSavePattern( Fra_Man_t * p, Aig_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_CheckOutputSims( Fra_Man_t * p )
+int Fra_SmlCheckOutput( Fra_Man_t * p )
 {
     Aig_Obj_t * pObj;
     int i;
@@ -250,10 +271,10 @@ int Fra_CheckOutputSims( Fra_Man_t * p )
     assert( Aig_ObjFanin0(pObj)->fPhase == (unsigned)Aig_ObjFaninC0(pObj) ); 
     Aig_ManForEachPo( p->pManAig, pObj, i )
     {
-        if ( !Fra_NodeHasZeroSim( Aig_ObjFanin0(pObj) ) )
+        if ( !Fra_SmlNodeIsConst( Aig_ObjFanin0(pObj) ) )
         {
             // create the counter-example from this pattern
-            Fra_CheckOutputSimsSavePattern( p, Aig_ObjFanin0(pObj) );
+            Fra_SmlCheckOutputSavePattern( p, Aig_ObjFanin0(pObj) );
             return 1;
         }
     }
@@ -365,6 +386,8 @@ void Fra_SmlAssignDist1( Fra_Sml_t * p, unsigned * pPat )
     }
     else
     {
+        int fUseDist1 = 0;
+
         // copy the PI info for each frame
         nTruePis = Aig_ManPiNum(p->pAig) - Aig_ManRegNum(p->pAig);
         for ( f = 0; f < p->nFrames; f++ )
@@ -375,16 +398,15 @@ void Fra_SmlAssignDist1( Fra_Sml_t * p, unsigned * pPat )
         Aig_ManForEachLoSeq( p->pAig, pObj, i )
             Fra_SmlAssignConst( p, pObj, Aig_InfoHasBit(pPat, nTruePis * p->nFrames + k++), 0 );
 //        assert( p->pManFraig == NULL || nTruePis * p->nFrames + k == Aig_ManPiNum(p->pManFraig) );
-/*
+
         // flip one bit of the last frame
-        if ( p->nFrames == 2 )
+        if ( fUseDist1 && p->nFrames == 2 )
         {
             Limit = AIG_MIN( nTruePis, p->nWordsFrame * 32 - 1 );
             for ( i = 0; i < Limit; i++ )
                 Aig_InfoXorBit( Fra_ObjSim( p, Aig_ManPi(p->pAig, i)->Id ), i+1 );
 //            Aig_InfoXorBit( Fra_ObjSim( p, Aig_ManPi(p->pAig, nTruePis*(p->nFrames-2) + i)->Id ), i+1 );
         }
-*/
     }
 }
 
@@ -571,7 +593,7 @@ void Fra_SmlResimulate( Fra_Man_t * p )
     Fra_SmlSimulateOne( p->pSml );
 //    if ( p->pPars->fPatScores )
 //        Fra_CleanPatScores( p );
-    if ( p->pPars->fProve && Fra_CheckOutputSims(p) )
+    if ( p->pPars->fProve && Fra_SmlCheckOutput(p) )
         return;
 clk = clock();
     nChanges = Fra_ClassesRefine( p->pCla );
@@ -581,7 +603,7 @@ clk = clock();
 p->timeRef += clock() - clk;
     if ( nChanges < 1 )
         printf( "Error: A counter-example did not refine classes!\n" );
-    assert( nChanges >= 1 );
+//    assert( nChanges >= 1 );
 //printf( "Refined classes = %5d.   Changes = %4d.\n", Vec_PtrSize(p->vClasses), nChanges );
 }
 
@@ -609,11 +631,13 @@ void Fra_SmlSimulate( Fra_Man_t * p, int fInit )
 if ( fVerbose )
 printf( "Starting classes = %5d.   Lits = %6d.\n", Vec_PtrSize(p->pCla->vClasses), Fra_ClassesCountLits(p->pCla) );
 
+//return;
+
     // refine classes by walking 0/1 patterns
-    Fra_SavePattern0( p, fInit );
+    Fra_SmlSavePattern0( p, fInit );
     Fra_SmlAssignDist1( p->pSml, p->pPatWords );
     Fra_SmlSimulateOne( p->pSml );
-    if ( p->pPars->fProve && Fra_CheckOutputSims(p) )
+    if ( p->pPars->fProve && Fra_SmlCheckOutput(p) )
         return;
 clk = clock();
     nChanges = Fra_ClassesRefine( p->pCla );
@@ -621,10 +645,10 @@ clk = clock();
 p->timeRef += clock() - clk;
 if ( fVerbose )
 printf( "Refined classes  = %5d.   Changes = %4d.   Lits = %6d.\n", Vec_PtrSize(p->pCla->vClasses), nChanges, Fra_ClassesCountLits(p->pCla) );
-    Fra_SavePattern1( p, fInit );
+    Fra_SmlSavePattern1( p, fInit );
     Fra_SmlAssignDist1( p->pSml, p->pPatWords );
     Fra_SmlSimulateOne( p->pSml );
-    if ( p->pPars->fProve && Fra_CheckOutputSims(p) )
+    if ( p->pPars->fProve && Fra_SmlCheckOutput(p) )
         return;
 clk = clock();
     nChanges = Fra_ClassesRefine( p->pCla );
@@ -638,7 +662,7 @@ printf( "Refined classes  = %5d.   Changes = %4d.   Lits = %6d.\n", Vec_PtrSize(
         Fra_SmlInitialize( p->pSml, fInit );
         Fra_SmlSimulateOne( p->pSml );
         nClasses = Vec_PtrSize(p->pCla->vClasses);
-        if ( p->pPars->fProve && Fra_CheckOutputSims(p) )
+        if ( p->pPars->fProve && Fra_SmlCheckOutput(p) )
             return;
 clk = clock();
         nChanges = Fra_ClassesRefine( p->pCla );
@@ -666,16 +690,18 @@ printf( "Refined classes  = %5d.   Changes = %4d.   Lits = %6d.\n", Vec_PtrSize(
   SeeAlso     []
 
 ***********************************************************************/
-Fra_Sml_t * Fra_SmlStart( Aig_Man_t * pAig, int nFrames, int nWordsFrame )
+Fra_Sml_t * Fra_SmlStart( Aig_Man_t * pAig, int nPref, int nFrames, int nWordsFrame )
 {
     Fra_Sml_t * p;
     assert( Aig_ManObjIdMax(pAig) + 1 < (1 << 16) );
-    p = (Fra_Sml_t *)malloc( sizeof(Fra_Sml_t) + sizeof(unsigned) * (Aig_ManObjIdMax(pAig) + 1) * nFrames * nWordsFrame );
-    memset( p, 0, sizeof(Fra_Sml_t) + sizeof(unsigned) * nFrames * nWordsFrame );
+    p = (Fra_Sml_t *)malloc( sizeof(Fra_Sml_t) + sizeof(unsigned) * (Aig_ManObjIdMax(pAig) + 1) * (nPref + nFrames) * nWordsFrame );
+    memset( p, 0, sizeof(Fra_Sml_t) + sizeof(unsigned) * (nPref + nFrames) * nWordsFrame );
     p->pAig        = pAig;
-    p->nFrames     = nFrames;
+    p->nPref       = nPref;
+    p->nFrames     = nPref + nFrames;
     p->nWordsFrame = nWordsFrame;
-    p->nWordsTotal = nFrames * nWordsFrame;
+    p->nWordsTotal = (nPref + nFrames) * nWordsFrame;
+    p->nWordsPref  = nPref * nWordsFrame;
     return p;
 }
 
@@ -710,7 +736,7 @@ void Fra_SmlStop( Fra_Sml_t * p )
 Fra_Sml_t * Fra_SmlSimulateComb( Aig_Man_t * pAig, int nWords )
 {
     Fra_Sml_t * p;
-    p = Fra_SmlStart( pAig, 1, nWords );
+    p = Fra_SmlStart( pAig, 0, 1, nWords );
     Fra_SmlInitialize( p, 0 );
     Fra_SmlSimulateOne( p );
     return p;
@@ -727,10 +753,10 @@ Fra_Sml_t * Fra_SmlSimulateComb( Aig_Man_t * pAig, int nWords )
   SeeAlso     []
 
 ***********************************************************************/
-Fra_Sml_t * Fra_SmlSimulateSeq( Aig_Man_t * pAig, int nFrames, int nWords )
+Fra_Sml_t * Fra_SmlSimulateSeq( Aig_Man_t * pAig, int nPref, int nFrames, int nWords )
 {
     Fra_Sml_t * p;
-    p = Fra_SmlStart( pAig, nFrames, nWords );
+    p = Fra_SmlStart( pAig, nPref, nFrames, nWords );
     Fra_SmlInitialize( p, 1 );
     Fra_SmlSimulateOne( p );
     return p;

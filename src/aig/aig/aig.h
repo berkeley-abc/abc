@@ -127,6 +127,7 @@ struct Aig_Man_t_
     int              nTravIds;       // the current traversal ID
     int              fCatchExor;     // enables EXOR nodes
     int              fAddStrash;     // performs additional strashing
+    Aig_Obj_t **     pObjCopies;     // mapping of AIG nodes into FRAIG nodes
     // timing statistics
     int              time1;
     int              time2;

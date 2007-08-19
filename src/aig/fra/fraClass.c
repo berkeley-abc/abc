@@ -67,6 +67,9 @@ Fra_Cla_t * Fra_ClassesStart( Aig_Man_t * pAig )
     p->vClassesTemp = Vec_PtrAlloc( 100 );
     p->vClassOld    = Vec_PtrAlloc( 100 );
     p->vClassNew    = Vec_PtrAlloc( 100 );
+    p->pFuncNodeHash      = Fra_SmlNodeHash;
+    p->pFuncNodeIsConst   = Fra_SmlNodeIsConst;
+    p->pFuncNodesAreEqual = Fra_SmlNodesAreEqual;
     return p;
 }
 
@@ -114,27 +117,6 @@ void Fra_ClassesCopyReprs( Fra_Cla_t * p, Vec_Ptr_t * vFailed )
     if ( vFailed )
     Vec_PtrForEachEntry( vFailed, pObj, i )
         p->pAig->pReprs[pObj->Id] = NULL;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Prints simulation classes.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Fra_PrintClass( Aig_Obj_t ** pClass )
-{
-    Aig_Obj_t * pTemp;
-    int i;
-    printf( "{ " );
-    for ( i = 0; pTemp = pClass[i]; i++ )
-        printf( "%d ", pTemp->Id );
-    printf( "}\n" );
 }
 
 /**Function*************************************************************
@@ -216,17 +198,42 @@ int Fra_ClassesCountPairs( Fra_Cla_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+void Fra_PrintClass( Aig_Obj_t ** pClass )
+{
+    Aig_Obj_t * pTemp;
+    int i;
+    for ( i = 1; pTemp = pClass[i]; i++ )
+        assert( Fra_ClassObjRepr(pTemp) == pClass[0] );
+    printf( "{ " );
+    for ( i = 0; pTemp = pClass[i]; i++ )
+        printf( "%d ", pTemp->Id, Fra_ClassObjRepr(pTemp)? Fra_ClassObjRepr(pTemp)->Id : -1 );
+    printf( "}\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints simulation classes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Fra_ClassesPrint( Fra_Cla_t * p, int fVeryVerbose )
 {
     Aig_Obj_t ** pClass;
     Aig_Obj_t * pObj;
     int i;
 
-    printf( "Consts = %6d. Classes = %6d. Literals = %6d.\n", 
+    printf( "Const = %5d. Class = %5d. Lit = %5d.\n", 
         Vec_PtrSize(p->vClasses1), Vec_PtrSize(p->vClasses), Fra_ClassesCountLits(p) );
 
     if ( fVeryVerbose )
     {
+        Vec_PtrForEachEntry( p->vClasses1, pObj, i )
+            assert( Fra_ClassObjRepr(pObj) == Aig_ManConst1(p->pAig) );
         printf( "Constants { " );
         Vec_PtrForEachEntry( p->vClasses1, pObj, i )
             printf( "%d ", pObj->Id );
@@ -281,9 +288,9 @@ void Fra_ClassesPrepare( Fra_Cla_t * p, int fLatchCorr )
 //Extra_PrintBinary( stdout, Fra_ObjSim(pObj), 32 );
 //printf( "\n" );
         // hash the node by its simulation info
-        iEntry = Fra_NodeHashSims( pObj ) % nTableSize;
+        iEntry = p->pFuncNodeHash( pObj, nTableSize );
         // check if the node belongs to the class of constant 1
-        if ( iEntry == 0 && Fra_NodeHasZeroSim( pObj ) )
+        if ( p->pFuncNodeIsConst( pObj ) )
         {
             Vec_PtrPush( p->vClasses1, pObj );
             Fra_ClassObjSetRepr( pObj, Aig_ManConst1(p->pAig) );
@@ -351,7 +358,6 @@ void Fra_ClassesPrepare( Fra_Cla_t * p, int fLatchCorr )
             Fra_ClassObjSetRepr( pTemp, pObj );
         }
         // add as many empty entries
-//        memset( p->pMemClasses + 2*nEntries + nNodes, 0, sizeof(Aig_Obj_t *) * nNodes );
         p->pMemClasses[2*nEntries + nNodes] = NULL;
         // increment the number of entries
         nEntries += k;
@@ -381,7 +387,7 @@ Aig_Obj_t ** Fra_RefineClassOne( Fra_Cla_t * p, Aig_Obj_t ** ppClass )
 
     // check if the class is going to be refined
     for ( ppThis = ppClass + 1; pObj = *ppThis; ppThis++ )        
-        if ( !Fra_NodeCompareSims(ppClass[0], pObj) )
+        if ( !p->pFuncNodesAreEqual(ppClass[0], pObj) )
             break;
     if ( pObj == NULL )
         return NULL;
@@ -390,7 +396,7 @@ Aig_Obj_t ** Fra_RefineClassOne( Fra_Cla_t * p, Aig_Obj_t ** ppClass )
     Vec_PtrClear( p->vClassNew );
     Vec_PtrPush( p->vClassOld, ppClass[0] );
     for ( ppThis = ppClass + 1; pObj = *ppThis; ppThis++ )        
-        if ( Fra_NodeCompareSims(ppClass[0], pObj) )
+        if ( p->pFuncNodesAreEqual(ppClass[0], pObj) )
             Vec_PtrPush( p->vClassOld, pObj );
         else
             Vec_PtrPush( p->vClassNew, pObj );
@@ -517,7 +523,7 @@ int Fra_ClassesRefine1( Fra_Cla_t * p )
     Vec_PtrClear( p->vClassNew );
     Vec_PtrForEachEntry( p->vClasses1, pObj, i )
     {
-        if ( Fra_NodeHasZeroSim( pObj ) )
+        if ( p->pFuncNodeIsConst( pObj ) )
             Vec_PtrWriteEntry( p->vClasses1, k++, pObj );
         else 
             Vec_PtrPush( p->vClassNew, pObj );
@@ -526,6 +532,12 @@ int Fra_ClassesRefine1( Fra_Cla_t * p )
     if ( Vec_PtrSize(p->vClassNew) == 0 )
         return 0;
     p->fRefinement = 1;
+/*
+    printf( "Refined const-1 class: {" );
+    Vec_PtrForEachEntry( p->vClassNew, pObj, i )
+        printf( " %d", pObj->Id );
+    printf( " }\n" );
+*/
     if ( Vec_PtrSize(p->vClassNew) == 1 )
     {
         Fra_ClassObjSetRepr( Vec_PtrEntry(p->vClassNew,0), NULL );
@@ -600,28 +612,6 @@ void Fra_ClassesLatchCorr( Fra_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Counts the number of 1s in the XOR of simulation data.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline int Fra_SmlNodeNotEquWeight( Fra_Sml_t * p, int Left, int Right )
-{
-    unsigned * pSimL, * pSimR;
-    int k, Counter = 0;
-    pSimL = Fra_ObjSim( p, Left );
-    pSimR = Fra_ObjSim( p, Right );
-    for ( k = 0; k < p->nWordsTotal; k++ )
-        Counter += Aig_WordCountOnes( pSimL[k] ^ pSimR[k] );
-    return Counter;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Postprocesses the classes by removing half of the less useful.]
 
   Description []
@@ -683,6 +673,22 @@ void Fra_ClassesPostprocess( Fra_Cla_t * p )
     Vec_PtrShrink( p->vClasses, k );
     printf( "After: Const = %6d. Class = %6d. \n", Vec_PtrSize(p->vClasses1), Vec_PtrSize(p->vClasses) );
     free( pWeights );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives AIG for the partitioned problem.]
+
+  Description []
+               
+  SideEffects [] 
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Fra_ClassesDeriveAig( Fra_Cla_t * p, int nFramesK )
+{
+
 }
 
 ////////////////////////////////////////////////////////////////////////

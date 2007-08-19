@@ -181,8 +181,38 @@ static inline void Fra_FraigNode( Fra_Man_t * p, Aig_Obj_t * pObj )
         Vec_PtrPush( p->vTimeouts, pObj );
     // simulate the counter-example and return the Fraig node
     Fra_SmlResimulate( p );
+/*
+printf( "%d -> %d.\n", pObj->Id, pObjRepr->Id );
+Fra_ClassesPrint( p->pCla, 1 );
+printf( "%3d : ", 19 );
+Extra_PrintBinary( stdout, Fra_ObjSim(p->pSml, 19), 32 * p->pSml->nWordsTotal );
+printf( "\n" );
+printf( "%3d : ", 27 );
+Extra_PrintBinary( stdout, Fra_ObjSim(p->pSml, 27), 32 * p->pSml->nWordsTotal );
+printf( "\n" );
+printf( "%3d : ", 30 );
+Extra_PrintBinary( stdout, Fra_ObjSim(p->pSml, 30), 32 * p->pSml->nWordsTotal );
+printf( "\n" );
+printf( "\n\n" );
+*/
     if ( Fra_ClassObjRepr(pObj) == pObjRepr )
+    {
+/*
+//Fra_ClassesPrint( p->pCla, 1 );
+//printf( "\n\n" );
+printf( "%3d : ", pObj->Id );
+Extra_PrintBinary( stdout, Fra_ObjSim(p->pSml, pObj->Id), 32 * p->pSml->nWordsTotal );
+printf( "\n" );
+printf( "%3d : ", pObjRepr->Id );
+Extra_PrintBinary( stdout, Fra_ObjSim(p->pSml, pObjRepr->Id), 32 * p->pSml->nWordsTotal );
+printf( "\n" );
+*/
+        if ( Aig_ObjIsPi(pObj) )
+            printf( "primary input\n" );
+        else
+            printf( "NOT primary input\n" );
         printf( "Fra_FraigNode(): Error in class refinement!\n" );
+    }
     assert( Fra_ClassObjRepr(pObj) != pObjRepr );
 }
 
@@ -261,7 +291,7 @@ clk = clock();
     assert( Aig_ManLatchNum(pManAig) == 0 );
     p = Fra_ManStart( pManAig, pPars );
     p->pManFraig = Fra_ManPrepareComb( p );
-    p->pSml = Fra_SmlStart( pManAig, 1, pPars->nSimWords );
+    p->pSml = Fra_SmlStart( pManAig, 0, 1, pPars->nSimWords );
     Fra_SmlSimulate( p, 0 );
     if ( p->pPars->fChoicing )
         Aig_ManReprStart( p->pManFraig, Aig_ManObjIdMax(p->pManAig)+1 );

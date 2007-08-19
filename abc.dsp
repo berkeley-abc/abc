@@ -2558,6 +2558,10 @@ SOURCE=.\src\aig\fra\fra.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\fra\fraBmc.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\fra\fraCec.c
 # End Source File
 # Begin Source File

@@ -291,7 +291,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "New AIG",      "iprove",        Abc_CommandIProve,           1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "haig",          Abc_CommandHaig,             1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "mini",          Abc_CommandMini,             1 );
-    Cmd_CommandAdd( pAbc, "New AIG",      "bmc",           Abc_CommandBmc,              0 );
+    Cmd_CommandAdd( pAbc, "New AIG",      "_bmc",           Abc_CommandBmc,              0 );
     Cmd_CommandAdd( pAbc, "New AIG",      "qbf",           Abc_CommandQbf,              0 );
 
     Cmd_CommandAdd( pAbc, "Fraiging",     "fraig",         Abc_CommandFraig,            1 );
@@ -8039,7 +8039,7 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: bmc [-K num] [-ivh]\n" );
+    fprintf( pErr, "usage: _bmc [-K num] [-ivh]\n" );
     fprintf( pErr, "\t         perform bounded model checking\n" );
     fprintf( pErr, "\t-K num : number of time frames [default = %d]\n", nFrames );
     fprintf( pErr, "\t-i     : toggle initialization of the first frame [default = %s]\n", fInit? "yes": "no" );
@@ -10972,19 +10972,21 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
     int c;
+    int nFramesP;
     int nFramesK;
     int fExdc;
     int fUseImps;
     int fRewrite;
     int fLatchCorr;
     int fVerbose;
-    extern Abc_Ntk_t * Abc_NtkSeqSweep( Abc_Ntk_t * pNtk, int nFrames, int fRewrite, int fUseImps, int fLatchCorr, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkDarSeqSweep( Abc_Ntk_t * pNtk, int nFramesP, int nFrames, int fRewrite, int fUseImps, int fLatchCorr, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
+    nFramesP   = 0;
     nFramesK   = 1;
     fExdc      = 1;
     fUseImps   = 0;
@@ -10992,10 +10994,21 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     fLatchCorr = 0;
     fVerbose   = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Feirlvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PFeirlvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFramesP = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFramesP < 0 ) 
+                goto usage;
+            break;
         case 'F':
             if ( globalUtilOptind >= argc )
             {
@@ -11048,7 +11061,7 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    pNtkRes = Abc_NtkSeqSweep( pNtk, nFramesK, fRewrite, fUseImps, fLatchCorr, fVerbose );
+    pNtkRes = Abc_NtkDarSeqSweep( pNtk, nFramesP, nFramesK, fRewrite, fUseImps, fLatchCorr, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Sequential sweeping has failed.\n" );
@@ -11059,8 +11072,9 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: ssweep [-F num] [-ilrvh]\n" );
+    fprintf( pErr, "usage: ssweep [-P num] [-F num] [-ilrvh]\n" );
     fprintf( pErr, "\t         performs sequential sweep using K-step induction\n" );
+    fprintf( pErr, "\t-P num : number of time frames to use as the prefix [default = %d]\n", nFramesP );
     fprintf( pErr, "\t-F num : number of time frames for induction (1=simple) [default = %d]\n", nFramesK );
 //    fprintf( pErr, "\t-e     : toggle writing EXDC network [default = %s]\n", fExdc? "yes": "no" );
     fprintf( pErr, "\t-i     : toggle using implications [default = %s]\n", fUseImps? "yes": "no" );

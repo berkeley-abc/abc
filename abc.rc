@@ -88,8 +88,7 @@ alias wp write_pla
 alias wv write_verilog
 
 # standard scripts
-alias share       "b; ren -s; fx; b"
-alias sharedsd    "b; ren -b; dsd -g; sw; fx; b"
+alias share       "b; multi; fx; b"
 alias resyn       "b; rw; rwz; b; rwz; b"
 alias resyn2      "b; rw; rf; b; rw; rwz; b; rfz; rwz; b"
 alias resyn2a     "b; rw; b; rw; rwz; b; rwz; b"
@@ -170,5 +169,7 @@ alias tst6     "r i10_if6.blif; st; ps; r x/rec6_16_.blif; st; rec_start; r i10_
 #alias t        "r c/5/csat_777.bench; st; csweep -v"
 #alias t        "r i10.blif; st; drw -v"
 alias t        "r c.blif; st; drf"
+
+alias bmc      "frames -i -F 10; orpos; iprove"
 
 

@@ -700,7 +700,7 @@ Abc_Obj_t * Abc_AigConst1( Abc_Ntk_t * pNtk )
 Abc_Obj_t * Abc_AigAnd( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 )
 {
     Abc_Obj_t * pAnd;
-    if ( pAnd = Abc_AigAndLookup( pMan, p0, p1 ) )
+    if ( (pAnd = Abc_AigAndLookup( pMan, p0, p1 )) )
         return pAnd;
     return Abc_AigAndCreate( pMan, p0, p1 );
 }
@@ -886,7 +886,7 @@ void Abc_AigReplace_int( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew, i
         pFanin2 = Abc_ObjChild( pFanout, iFanin ^ 1 );
         assert( Abc_ObjRegular(pFanin2) != pFanout );
         // check if the node with these fanins exists
-        if ( pFanoutNew = Abc_AigAndLookup( pMan, pFanin1, pFanin2 ) )
+        if ( (pFanoutNew = Abc_AigAndLookup( pMan, pFanin1, pFanin2 )) )
         { // such node exists (it may be a constant)
             // schedule replacement of the old fanout by the new fanout
             Vec_PtrPush( pMan->vStackReplaceOld, pFanout );
@@ -1347,8 +1347,8 @@ void Abc_AigCheckFaninOrder( Abc_Aig_t * pMan )
         {
             if ( Abc_ObjRegular(Abc_ObjChild0(pEnt))->Id > Abc_ObjRegular(Abc_ObjChild1(pEnt))->Id )
             {
-                int i0 = Abc_ObjRegular(Abc_ObjChild0(pEnt))->Id;
-                int i1 = Abc_ObjRegular(Abc_ObjChild1(pEnt))->Id;
+//                int i0 = Abc_ObjRegular(Abc_ObjChild0(pEnt))->Id;
+//                int i1 = Abc_ObjRegular(Abc_ObjChild1(pEnt))->Id;
                 printf( "Node %d has incorrect ordering of fanins.\n", pEnt->Id );
             }
         }
