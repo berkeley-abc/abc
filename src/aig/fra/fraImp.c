@@ -205,7 +205,7 @@ Vec_Ptr_t * Fra_SmlSortUsingOnes( Fra_Sml_t * p, int fLatchCorr )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Fra_SmlSelectMaxCost( Vec_Int_t * vImps, int * pCosts, int nCostMax, int nImpLimit )
+Vec_Int_t * Fra_SmlSelectMaxCost( Vec_Int_t * vImps, int * pCosts, int nCostMax, int nImpLimit, int * pCostRange )
 {
     Vec_Int_t * vImpsNew;
     int * pCostCount, nImpCount, Imp, i, c;
@@ -239,6 +239,8 @@ Vec_Int_t * Fra_SmlSelectMaxCost( Vec_Int_t * vImps, int * pCosts, int nCostMax,
             break;
     }
     free( pCostCount );
+    if ( pCostRange )
+        *pCostRange = c;
     return vImpsNew;
 }
 
@@ -290,7 +292,7 @@ Vec_Int_t * Fra_ImpDerive( Fra_Man_t * p, int nImpMaxLimit, int nImpUseLimit, in
     int * pImpCosts, * pNodesI, * pNodesK;
     int nImpsTotal = 0, nImpsTried = 0, nImpsNonSeq = 0, nImpsComb = 0, nImpsCollected = 0;
     int CostMin = AIG_INFINITY, CostMax = 0;
-    int i, k, Imp, clk = clock();
+    int i, k, Imp, CostRange, clk = clock();
     assert( nImpMaxLimit > 0 && nImpUseLimit > 0 && nImpUseLimit <= nImpMaxLimit );
     // normalize both managers
     pComb = Fra_SmlSimulateComb( p->pManAig, nSimWords );
@@ -350,9 +352,10 @@ finish:
     Fra_SmlStop( pSeq );
 
     // select implications with the highest cost
+    CostRange = CostMin;
     if ( Vec_IntSize(vImps) > nImpUseLimit )
     {
-        vImps = Fra_SmlSelectMaxCost( vTemp = vImps, pImpCosts, nSimWords * 32, nImpUseLimit );
+        vImps = Fra_SmlSelectMaxCost( vTemp = vImps, pImpCosts, nSimWords * 32, nImpUseLimit, &CostRange );
         Vec_IntFree( vTemp );  
     }
 
@@ -365,8 +368,8 @@ finish:
             (int (*)(const void *, const void *)) Sml_CompareMaxId );
 if ( p->pPars->fVerbose )
 {
-printf( "Tot = %d. Try = %d. NonS = %d. C = %d. Found = %d.  Cost = [%d - %d]  ", 
-    nImpsTotal, nImpsTried, nImpsNonSeq, nImpsComb, nImpsCollected, CostMin, CostMax );
+printf( "Tot = %d. Try = %d. NonS = %d. C = %d. Found = %d.  Cost = [%d < %d < %d] ", 
+    nImpsTotal, nImpsTried, nImpsNonSeq, nImpsComb, nImpsCollected, CostMin, CostRange, CostMax );
 PRT( "Time", clock() - clk );
 }
     return vImps;
@@ -381,7 +384,7 @@ PRT( "Time", clock() - clk );
 
   Synopsis    [Add implication clauses to the SAT solver.]
 
-  Description []
+  Description [Note that implications should be checked in the first frame!]
                
   SideEffects []
 
@@ -540,7 +543,6 @@ int Fra_ImpRefineUsingCex( Fra_Man_t * p, Vec_Int_t * vImps )
         {
             Vec_IntWriteEntry( vImps, i, 0 );
             RetValue = 1;
-            p->pCla->fRefinement = 1;
         }
     }
     return RetValue;

@@ -892,11 +892,12 @@ int Abc_NtkDSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fVer
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkDarSeqSweep( Abc_Ntk_t * pNtk, int nFramesP, int nFramesK, int fRewrite, int fUseImps, int fLatchCorr, int fVerbose )
+Abc_Ntk_t * Abc_NtkDarSeqSweep( Abc_Ntk_t * pNtk, int nFramesP, int nFramesK, int nMaxImps, int fRewrite, int fUseImps, int fLatchCorr, int fVerbose )
 {
     Fraig_Params_t Params;
     Abc_Ntk_t * pNtkAig, * pNtkFraig;
     Aig_Man_t * pMan, * pTemp;
+    int clk = clock();
 
     // preprocess the miter by fraiging it
     // (note that for each functional class, fraiging leaves one representative;
@@ -905,13 +906,17 @@ Abc_Ntk_t * Abc_NtkDarSeqSweep( Abc_Ntk_t * pNtk, int nFramesP, int nFramesK, in
     Params.nBTLimit = 100000;
     pNtkFraig = Abc_NtkFraig( pNtk, &Params, 0, 0 );
 //    pNtkFraig = Abc_NtkDup( pNtk );
+if ( fVerbose ) 
+{
+PRT( "Initial fraiging time", clock() - clk );
+}
 
     pMan = Abc_NtkToDar( pNtkFraig, 1 );
     Abc_NtkDelete( pNtkFraig );
     if ( pMan == NULL )
         return NULL;
 
-    pMan = Fra_FraigInduction( pTemp = pMan, nFramesP, nFramesK, fRewrite, fUseImps, fLatchCorr, fVerbose, NULL );
+    pMan = Fra_FraigInduction( pTemp = pMan, nFramesP, nFramesK, nMaxImps, fRewrite, fUseImps, fLatchCorr, fVerbose, NULL );
     Aig_ManStop( pTemp );
 
     if ( Aig_ManRegNum(pMan) < Abc_NtkLatchNum(pNtk) )
@@ -1033,7 +1038,7 @@ Abc_Ntk_t * Abc_NtkDarRetime( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose )
     pMan = Abc_NtkToDar( pNtk, 1 );
     if ( pMan == NULL )
         return NULL;
-    pMan = Rtm_ManRetimeFwd( pTemp = pMan, nStepsMax, fVerbose );
+    pMan = Rtm_ManRetime( pTemp = pMan, 1, nStepsMax, 0 );
     Aig_ManStop( pTemp );
 
 //    pMan = Aig_ManReduceLaches( pMan, 1 );

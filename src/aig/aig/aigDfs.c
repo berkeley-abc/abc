@@ -380,6 +380,54 @@ int Aig_DagSize( Aig_Obj_t * pObj )
 
 /**Function*************************************************************
 
+  Synopsis    [Counts the support size of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_SupportSize_rec( Aig_Man_t * p, Aig_Obj_t * pObj, int * pCounter )
+{
+    if ( Aig_ObjIsTravIdCurrent(p, pObj) )
+        return;
+    Aig_ObjSetTravIdCurrent(p, pObj);
+    if ( Aig_ObjIsPi(pObj) )
+    {
+        (*pCounter)++;
+        return;
+    }
+    assert( Aig_ObjIsNode(pObj) || Aig_ObjIsBuf(pObj) );
+    Aig_SupportSize_rec( p, Aig_ObjFanin0(pObj), pCounter );
+    if ( Aig_ObjFanin1(pObj) )
+        Aig_SupportSize_rec( p, Aig_ObjFanin1(pObj), pCounter );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the support size of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Aig_SupportSize( Aig_Man_t * p, Aig_Obj_t * pObj )
+{
+    int Counter = 0;
+    assert( !Aig_IsComplement(pObj) );
+    assert( !Aig_ObjIsPo(pObj) );
+    Aig_ManIncrementTravId( p );
+    Aig_SupportSize_rec( p, pObj, &Counter );
+    return Counter;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Transfers the AIG from one manager into another.]
 
   Description []

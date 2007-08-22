@@ -411,7 +411,7 @@ int Ivy_ManLatchIsSelfFeed( Ivy_Obj_t * pLatch )
 int Ivy_ManPropagateBuffers( Ivy_Man_t * p, int fUpdateLevel )
 {
     Ivy_Obj_t * pNode;
-    int LimitFactor = 10;
+    int LimitFactor = 100;
     int NodeBeg = Ivy_ManNodeNum(p);
     int nSteps;
     for ( nSteps = 0; Vec_PtrSize(p->vBufs) > 0; nSteps++ )

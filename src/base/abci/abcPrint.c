@@ -127,13 +127,10 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
 /*
     {
         FILE * pTable;
-        pTable = fopen( "iscas/seqmap__stats.txt", "a+" );
+        pTable = fopen( "xs/reg_stats.txt", "a+" );
         fprintf( pTable, "%s ",  pNtk->pName );
-        fprintf( pTable, "%d ", Abc_NtkPiNum(pNtk) );
-        fprintf( pTable, "%d ", Abc_NtkPoNum(pNtk) );
         fprintf( pTable, "%d ", Abc_NtkLatchNum(pNtk) );
         fprintf( pTable, "%d ", Abc_NtkNodeNum(pNtk) );
-        fprintf( pTable, "%d ", Abc_NtkLevel(pNtk) );
         fprintf( pTable, "\n" );
         fclose( pTable );
     }

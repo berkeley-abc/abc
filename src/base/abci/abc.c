@@ -6293,7 +6293,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
 //    pNtkRes = Abc_NtkDar( pNtk );
-    pNtkRes = Abc_NtkDarRetime( pNtk, 100, 1 );
+    pNtkRes = Abc_NtkDarRetime( pNtk, 1000, 1 );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
@@ -10974,12 +10974,13 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int nFramesP;
     int nFramesK;
+    int nMaxImps;
     int fExdc;
     int fUseImps;
     int fRewrite;
     int fLatchCorr;
     int fVerbose;
-    extern Abc_Ntk_t * Abc_NtkDarSeqSweep( Abc_Ntk_t * pNtk, int nFramesP, int nFrames, int fRewrite, int fUseImps, int fLatchCorr, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkDarSeqSweep( Abc_Ntk_t * pNtk, int nFramesP, int nFrames, int nMaxImps, int fRewrite, int fUseImps, int fLatchCorr, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -10988,13 +10989,14 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     nFramesP   = 0;
     nFramesK   = 1;
+    nMaxImps   = 5000;
     fExdc      = 1;
     fUseImps   = 0;
     fRewrite   = 0;
     fLatchCorr = 0;
     fVerbose   = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PFeirlvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PFIeirlvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -11018,6 +11020,17 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
             nFramesK = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( nFramesK <= 0 ) 
+                goto usage;
+            break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nMaxImps = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nMaxImps <= 0 ) 
                 goto usage;
             break;
         case 'e':
@@ -11061,7 +11074,7 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    pNtkRes = Abc_NtkDarSeqSweep( pNtk, nFramesP, nFramesK, fRewrite, fUseImps, fLatchCorr, fVerbose );
+    pNtkRes = Abc_NtkDarSeqSweep( pNtk, nFramesP, nFramesK, nMaxImps, fRewrite, fUseImps, fLatchCorr, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Sequential sweeping has failed.\n" );
@@ -11072,10 +11085,11 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: ssweep [-P num] [-F num] [-ilrvh]\n" );
+    fprintf( pErr, "usage: ssweep [-P num] [-F num] [-I num] [-ilrvh]\n" );
     fprintf( pErr, "\t         performs sequential sweep using K-step induction\n" );
     fprintf( pErr, "\t-P num : number of time frames to use as the prefix [default = %d]\n", nFramesP );
     fprintf( pErr, "\t-F num : number of time frames for induction (1=simple) [default = %d]\n", nFramesK );
+    fprintf( pErr, "\t-I num : max number of implications to consider [default = %d]\n", nMaxImps );
 //    fprintf( pErr, "\t-e     : toggle writing EXDC network [default = %s]\n", fExdc? "yes": "no" );
     fprintf( pErr, "\t-i     : toggle using implications [default = %s]\n", fUseImps? "yes": "no" );
     fprintf( pErr, "\t-l     : toggle latch correspondence only [default = %s]\n", fLatchCorr? "yes": "no" );

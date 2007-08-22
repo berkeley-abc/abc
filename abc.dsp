@@ -2814,6 +2814,10 @@ SOURCE=.\src\aig\aig\aigTruth.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\aig\aigTsim.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\aig\aigUtil.c
 # End Source File
 # Begin Source File

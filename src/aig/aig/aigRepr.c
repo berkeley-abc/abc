@@ -130,7 +130,7 @@ static inline Aig_Obj_t * Aig_ObjFindRepr( Aig_Man_t * p, Aig_Obj_t * pNode )
     assert( p->pReprs != NULL );
     assert( !Aig_IsComplement(pNode) );
     assert( pNode->Id < p->nReprsAlloc );
-    assert( !p->pReprs[pNode->Id] || p->pReprs[pNode->Id]->Id < pNode->Id );
+//    assert( !p->pReprs[pNode->Id] || p->pReprs[pNode->Id]->Id < pNode->Id );
     return p->pReprs[pNode->Id];
 }
 
@@ -210,8 +210,34 @@ void Aig_ManTransferRepr( Aig_Man_t * pNew, Aig_Man_t * p )
     assert( pNew->pReprs != NULL );
     // go through the nodes which have representatives
     Aig_ManForEachObj( p, pObj, k )
-        if ( pRepr = Aig_ObjFindRepr(p, pObj) )
+        if ( (pRepr = Aig_ObjFindRepr(p, pObj)) )
             Aig_ObjSetRepr( pNew, Aig_Regular(pRepr->pData), Aig_Regular(pObj->pData) ); 
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the AIG manager recursively.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Obj_t * Aig_ManDupRepr_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t * pObj )
+{
+    Aig_Obj_t * pRepr;
+    if ( pObj->pData )
+        return pObj->pData;
+    if ( (pRepr = Aig_ObjFindRepr(p, pObj)) )
+    {
+        Aig_ManDupRepr_rec( pNew, p, pRepr );
+        return pObj->pData = Aig_NotCond( pRepr->pData, pRepr->fPhase ^ pObj->fPhase );
+    }
+    Aig_ManDupRepr_rec( pNew, p, Aig_ObjFanin0(pObj) );
+    Aig_ManDupRepr_rec( pNew, p, Aig_ObjFanin1(pObj) );
+    return pObj->pData = Aig_And( pNew, Aig_ObjChild0Repr(p, pObj), Aig_ObjChild1Repr(p, pObj) );
 }
 
 /**Function*************************************************************
@@ -227,27 +253,29 @@ void Aig_ManTransferRepr( Aig_Man_t * pNew, Aig_Man_t * p )
 ***********************************************************************/
 Aig_Man_t * Aig_ManDupRepr( Aig_Man_t * p )
 {
+    int fOrdered = 1;
     Aig_Man_t * pNew;
-    Aig_Obj_t * pObj, * pRepr;
+    Aig_Obj_t * pObj;
     int i;
     // start the HOP package
     pNew = Aig_ManStart( Aig_ManObjIdMax(p) + 1 );
     pNew->nRegs = p->nRegs;
     Aig_ManReprStart( pNew, Aig_ManObjIdMax(p)+1 );
     // map the const and primary inputs
+    Aig_ManCleanData( p );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
     Aig_ManForEachPi( p, pObj, i )
         pObj->pData = Aig_ObjCreatePi(pNew);
     // map the internal nodes
-//printf( "\n" );
-    Aig_ManForEachNode( p, pObj, i )
+    if ( fOrdered )
     {
-        pObj->pData = Aig_And( pNew, Aig_ObjChild0Repr(p, pObj), Aig_ObjChild1Repr(p, pObj) );
-        if ( pRepr = Aig_ObjFindRepr(p, pObj) ) // member of the class
-        {
-//printf( "Using node %d for node %d.\n", pRepr->Id, pObj->Id );
-            Aig_ObjSetRepr( pNew, Aig_Regular(pRepr->pData), Aig_Regular(pObj->pData) );
-        }
+        Aig_ManForEachNode( p, pObj, i )
+            pObj->pData = Aig_And( pNew, Aig_ObjChild0Repr(p, pObj), Aig_ObjChild1Repr(p, pObj) );
+    }
+    else
+    {
+        Aig_ManForEachPo( p, pObj, i )
+            Aig_ManDupRepr_rec( pNew, p, Aig_ObjFanin0(pObj) );
     }
     // transfer the POs
     Aig_ManForEachPo( p, pObj, i )

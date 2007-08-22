@@ -248,6 +248,7 @@ void Fra_ManStop( Fra_Man_t * p )
     if ( p->pSat )      sat_solver_delete( p->pSat );
     if ( p->pCla  )     Fra_ClassesStop( p->pCla );
     if ( p->pSml )      Fra_SmlStop( p->pSml );
+    if ( p->vCex )      Vec_IntFree( p->vCex );
     FREE( p->pMemFraig );
     FREE( p->pMemFanins );
     FREE( p->pMemSatNums );

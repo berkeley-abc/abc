@@ -200,6 +200,17 @@ void Fra_SmlSavePattern( Fra_Man_t * p )
         if ( p->pSat->model.ptr[Fra_ObjSatNum(pObj)] == l_True )
             Aig_InfoSetBit( p->pPatWords, i );
 /*
+    if ( p->vCex )
+    {
+        Vec_IntClear( p->vCex );
+        for ( i = 0; i < Aig_ManPiNum(p->pManAig) - Aig_ManRegNum(p->pManAig); i++ )
+            Vec_IntPush( p->vCex, Aig_InfoHasBit( p->pPatWords, i ) );
+        for ( i = Aig_ManPiNum(p->pManFraig) - Aig_ManRegNum(p->pManFraig); i < Aig_ManPiNum(p->pManFraig); i++ )
+            Vec_IntPush( p->vCex, Aig_InfoHasBit( p->pPatWords, i ) );
+    }
+*/
+
+/*
     printf( "Pattern: " );
     Aig_ManForEachPi( p->pManFraig, pObj, i )
         printf( "%d", Aig_InfoHasBit( p->pPatWords, i ) );
@@ -601,7 +612,7 @@ clk = clock();
     if ( p->pCla->vImps )
         nChanges += Fra_ImpRefineUsingCex( p, p->pCla->vImps );
 p->timeRef += clock() - clk;
-    if ( nChanges < 1 )
+    if ( !p->pPars->nFramesK && nChanges < 1 )
         printf( "Error: A counter-example did not refine classes!\n" );
 //    assert( nChanges >= 1 );
 //printf( "Refined classes = %5d.   Changes = %4d.\n", Vec_PtrSize(p->vClasses), nChanges );

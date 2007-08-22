@@ -170,6 +170,92 @@ PRT( "Scanning", clock() - clk );
 
 
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fra_ManPartitionTest2( Aig_Man_t * p )
+{
+    Vec_Vec_t * vSupps, * vSuppsIn;
+    Vec_Int_t * vSup, * vSup2, * vSup3;
+    Aig_Obj_t * pObj;
+    int Entry, Entry2, Entry3, Counter;
+    int i, k, m, n, clk;
+    char * pSupp;
+ 
+    // compute supports
+clk = clock();
+    vSupps = Aig_ManSupports( p );
+PRT( "Supports", clock() - clk );
+    // remove last entry
+    Aig_ManForEachPo( p, pObj, i )
+    {
+        vSup = Vec_VecEntry( vSupps, i );
+        Vec_IntPop( vSup );
+        // remember support
+//        pObj->pNext = (Aig_Obj_t *)vSup;
+    }
+
+    // create reverse supports
+clk = clock();
+    vSuppsIn = Vec_VecStart( Aig_ManPiNum(p) );
+    Aig_ManForEachPo( p, pObj, i )
+    {
+        if ( i == p->nAsserts )
+            break;
+        vSup = Vec_VecEntry( vSupps, i );
+        Vec_IntForEachEntry( vSup, Entry, k )
+            Vec_VecPush( vSuppsIn, Entry, (void *)i );
+    }
+PRT( "Inverse ", clock() - clk );
+
+    // create affective supports
+clk = clock();
+    pSupp = ALLOC( char, Aig_ManPiNum(p) );
+    Aig_ManForEachPo( p, pObj, i )
+    {
+        if ( i % 50 != 0 )
+            continue;
+        vSup = Vec_VecEntry( vSupps, i );
+        memset( pSupp, 0, sizeof(char) * Aig_ManPiNum(p) );
+        // go through each input of this output
+        Vec_IntForEachEntry( vSup, Entry, k )
+        {
+            pSupp[Entry] = 1;
+            vSup2 = Vec_VecEntry( vSuppsIn, Entry );
+            // go though each assert of this input
+            Vec_IntForEachEntry( vSup2, Entry2, m )
+            {
+                vSup3 = Vec_VecEntry( vSupps, Entry2 );
+                // go through each input of this assert
+                Vec_IntForEachEntry( vSup3, Entry3, n )
+                {
+                    pSupp[Entry3] = 1;
+                }
+            }
+        }
+        // count the entries
+        Counter = 0;
+        for ( m = 0; m < Aig_ManPiNum(p); m++ )
+            Counter += pSupp[m];
+        printf( "%d(%d) ", Vec_IntSize(vSup), Counter );
+    }
+    printf( "\n" );
+PRT( "Extension ", clock() - clk );
+
+    free( pSupp );
+    Vec_VecFree( vSupps );
+    Vec_VecFree( vSuppsIn );
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

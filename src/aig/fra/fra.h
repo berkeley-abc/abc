@@ -73,6 +73,7 @@ struct Fra_Par_t_
     int              nBTLimitMiter;     // conflict limit at an output
     int              nFramesP;          // the number of timeframes to in the prefix
     int              nFramesK;          // the number of timeframes to unroll
+    int              nMaxImps;          // the maximum number of implications to consider
     int              fRewrite;          // use rewriting for constraint reduction
     int              fLatchCorr;        // computes latch correspondence only
     int              fUseImps;          // use implications
@@ -133,6 +134,7 @@ struct Fra_Man_t_
     // counter example storage
     int              nPatWords;         // the number of words in the counter example
     unsigned *       pPatWords;         // the counter example
+    Vec_Int_t *      vCex;
     // satisfiability solving
     sat_solver *     pSat;              // SAT solver
     int              nSatVars;          // the number of variables currently used
@@ -226,6 +228,8 @@ extern int                 Fra_ClassesCountPairs( Fra_Cla_t * p );
 extern void                Fra_ClassesTest( Fra_Cla_t * p, int Id1, int Id2 );
 extern void                Fra_ClassesLatchCorr( Fra_Man_t * p );
 extern void                Fra_ClassesPostprocess( Fra_Cla_t * p );
+extern void                Fra_ClassesSelectRepr( Fra_Cla_t * p );
+extern Aig_Man_t *         Fra_ClassesDeriveAig( Fra_Cla_t * p, int nFramesK );
 /*=== fraCnf.c ========================================================*/
 extern void                Fra_CnfNodeAddToSolver( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew );
 /*=== fraCore.c ========================================================*/
@@ -240,7 +244,7 @@ extern int                 Fra_ImpCheckForNode( Fra_Man_t * p, Vec_Int_t * vImps
 extern int                 Fra_ImpRefineUsingCex( Fra_Man_t * p, Vec_Int_t * vImps );
 extern void                Fra_ImpCompactArray( Vec_Int_t * vImps );
 /*=== fraInd.c ========================================================*/
-extern Aig_Man_t *         Fra_FraigInduction( Aig_Man_t * p, int nFramesP, int nFramesK, int fRewrite, int fUseImps, int fLatchCorr, int fVerbose, int * pnIter );
+extern Aig_Man_t *         Fra_FraigInduction( Aig_Man_t * p, int nFramesP, int nFramesK, int nMaxImps, int fRewrite, int fUseImps, int fLatchCorr, int fVerbose, int * pnIter );
 /*=== fraMan.c ========================================================*/
 extern void                Fra_ParamsDefault( Fra_Par_t * pParams );
 extern void                Fra_ParamsDefaultSeq( Fra_Par_t * pParams );

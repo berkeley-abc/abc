@@ -359,6 +359,7 @@ extern Vec_Ptr_t *     Aig_ManDfsChoices( Aig_Man_t * p );
 extern Vec_Ptr_t *     Aig_ManDfsReverse( Aig_Man_t * p );
 extern int             Aig_ManCountLevels( Aig_Man_t * p );
 extern int             Aig_DagSize( Aig_Obj_t * pObj );
+extern int             Aig_SupportSize( Aig_Man_t * p, Aig_Obj_t * pObj );
 extern void            Aig_ConeUnmark_rec( Aig_Obj_t * pObj );
 extern Aig_Obj_t *     Aig_Transfer( Aig_Man_t * pSour, Aig_Man_t * pDest, Aig_Obj_t * pObj, int nVars );
 extern Aig_Obj_t *     Aig_Compose( Aig_Man_t * p, Aig_Obj_t * pRoot, Aig_Obj_t * pFunc, int iVar );
@@ -434,10 +435,9 @@ extern Aig_Man_t *     Aig_ManDupRepr( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManRehash( Aig_Man_t * p );
 extern void            Aig_ManCreateChoices( Aig_Man_t * p );
 /*=== aigRet.c ========================================================*/
-extern Aig_Man_t *     Rtm_ManRetimeFwd( Aig_Man_t * p, int nStepsMax, int fVerbose );
+extern Aig_Man_t *     Rtm_ManRetime( Aig_Man_t * p, int fForward, int nStepsMax, int fVerbose );
 /*=== aigSeq.c ========================================================*/
 extern int             Aig_ManSeqStrash( Aig_Man_t * p, int nLatches, int * pInits );
-extern Aig_Man_t *     Aig_ManConstReduce( Aig_Man_t * p, int fVerbose );
 /*=== aigShow.c ========================================================*/
 extern void            Aig_ManShow( Aig_Man_t * pMan, int fHaig, Vec_Ptr_t * vBold );
 /*=== aigTable.c ========================================================*/
@@ -458,6 +458,8 @@ extern void            Aig_ManVerifyLevel( Aig_Man_t * p );
 extern void            Aig_ManVerifyReverseLevel( Aig_Man_t * p );
 /*=== aigTruth.c ========================================================*/
 extern unsigned *      Aig_ManCutTruth( Aig_Obj_t * pRoot, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vNodes, Vec_Ptr_t * vTruthElem, Vec_Ptr_t * vTruthStore );
+/*=== aigTsim.c ========================================================*/
+extern Aig_Man_t *     Aig_ManConstReduce( Aig_Man_t * p, int fVerbose );
 /*=== aigUtil.c =========================================================*/
 extern unsigned        Aig_PrimeCudd( unsigned p );
 extern void            Aig_ManIncrementTravId( Aig_Man_t * p );

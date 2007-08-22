@@ -24,6 +24,23 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+/* 
+    Speculating reduction in the sequential case leads to an interesting 
+    situation when a counter-ex may not refine any classes. This happens
+    for non-constant equivalence classes. In such cases the representative
+    of the class (proved by simulation to be non-constant) may be reduced 
+    to a constant during the speculative reduction. The fraig-representative 
+    of this representative node is a constant node, even though this is a 
+    non-constant class. Experiments have shown that this situation happens 
+    very often at the beginning of the refinement iteration when there are 
+    many spurious candidate equivalence classes (especially if heavy-duty 
+    simulatation of BMC was node used at the beginning). As a result, the 
+    SAT solver run may return a counter-ex that  distinguishes the given 
+    representative node from the constant-1 node but this counter-ex
+    does not distinguish the nodes in the non-costant class... This is why 
+    there is no check of refinment after a counter-ex in the sequential case.
+*/
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -117,6 +134,54 @@ static inline void Fra_FraigNodeSpeculate( Fra_Man_t * p, Aig_Obj_t * pObj, Aig_
 
 /**Function*************************************************************
 
+  Synopsis    [Verifies the generated counter-ex.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fra_FraigVerifyCounterEx( Fra_Man_t * p, Vec_Int_t * vCex )
+{
+    Aig_Obj_t * pObj, ** ppClass;
+    int i, c;
+    assert( Aig_ManPiNum(p->pManAig) == Vec_IntSize(vCex) );
+    // make sure the input pattern is not used
+    Aig_ManForEachObj( p->pManAig, pObj, i )
+        assert( !pObj->fMarkB );
+    // simulate the cex through the AIG
+    Aig_ManConst1(p->pManAig)->fMarkB = 1;
+    Aig_ManForEachPi( p->pManAig, pObj, i )
+        pObj->fMarkB = Vec_IntEntry(vCex, i);
+    Aig_ManForEachNode( p->pManAig, pObj, i )
+        pObj->fMarkB = (Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj)) & 
+                       (Aig_ObjFanin1(pObj)->fMarkB ^ Aig_ObjFaninC1(pObj));
+    Aig_ManForEachPo( p->pManAig, pObj, i )
+        pObj->fMarkB = Aig_ObjFanin0(pObj)->fMarkB ^ Aig_ObjFaninC0(pObj);
+    // check if the classes hold
+    Vec_PtrForEachEntry( p->pCla->vClasses1, pObj, i )
+    {
+        if ( pObj->fPhase != pObj->fMarkB )
+            printf( "The node %d is not constant under cex!\n", pObj->Id );
+    }
+    Vec_PtrForEachEntry( p->pCla->vClasses, ppClass, i )
+    {
+        for ( c = 1; ppClass[c]; c++ )
+            if ( (ppClass[0]->fPhase ^ ppClass[c]->fPhase) != (ppClass[0]->fMarkB ^ ppClass[c]->fMarkB) )
+                printf( "The nodes %d and %d are not equal under cex!\n", ppClass[0]->Id, ppClass[c]->Id );
+//        for ( c = 0; ppClass[c]; c++ )
+//            if ( Fra_ObjFraig(ppClass[c],p->pPars->nFramesK) == Aig_ManConst1(p->pManFraig) )
+//                printf( "A member of non-constant class has a constant repr!\n" );
+    }
+    // clean the simulation pattern
+    Aig_ManForEachObj( p->pManAig, pObj, i )
+        pObj->fMarkB = 0;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs fraiging for one node.]
 
   Description [Returns the fraiged node.]
@@ -173,47 +238,20 @@ static inline void Fra_FraigNode( Fra_Man_t * p, Aig_Obj_t * pObj )
         Fra_FraigNodeSpeculate( p, pObj, Aig_Regular(pObjFraig), Aig_Regular(pObjReprFraig) );
         return;
     }
-//printf( "Disproved %d and %d.\n", pObj->Id, pObjRepr->Id );
     // disprove the nodes
+    p->pCla->fRefinement = 1;
     // if we do not include the node into those disproved, we may end up 
     // merging this node with another representative, for which proof has timed out
     if ( p->vTimeouts )
         Vec_PtrPush( p->vTimeouts, pObj );
+    // verify that the counter-example satisfies all the constraints
+//    if ( p->vCex )
+//    Fra_FraigVerifyCounterEx( p, p->vCex );
     // simulate the counter-example and return the Fraig node
     Fra_SmlResimulate( p );
-/*
-printf( "%d -> %d.\n", pObj->Id, pObjRepr->Id );
-Fra_ClassesPrint( p->pCla, 1 );
-printf( "%3d : ", 19 );
-Extra_PrintBinary( stdout, Fra_ObjSim(p->pSml, 19), 32 * p->pSml->nWordsTotal );
-printf( "\n" );
-printf( "%3d : ", 27 );
-Extra_PrintBinary( stdout, Fra_ObjSim(p->pSml, 27), 32 * p->pSml->nWordsTotal );
-printf( "\n" );
-printf( "%3d : ", 30 );
-Extra_PrintBinary( stdout, Fra_ObjSim(p->pSml, 30), 32 * p->pSml->nWordsTotal );
-printf( "\n" );
-printf( "\n\n" );
-*/
-    if ( Fra_ClassObjRepr(pObj) == pObjRepr )
-    {
-/*
-//Fra_ClassesPrint( p->pCla, 1 );
-//printf( "\n\n" );
-printf( "%3d : ", pObj->Id );
-Extra_PrintBinary( stdout, Fra_ObjSim(p->pSml, pObj->Id), 32 * p->pSml->nWordsTotal );
-printf( "\n" );
-printf( "%3d : ", pObjRepr->Id );
-Extra_PrintBinary( stdout, Fra_ObjSim(p->pSml, pObjRepr->Id), 32 * p->pSml->nWordsTotal );
-printf( "\n" );
-*/
-        if ( Aig_ObjIsPi(pObj) )
-            printf( "primary input\n" );
-        else
-            printf( "NOT primary input\n" );
+    if ( !p->pPars->nFramesK && Fra_ClassObjRepr(pObj) == pObjRepr )
         printf( "Fra_FraigNode(): Error in class refinement!\n" );
-    }
-    assert( Fra_ClassObjRepr(pObj) != pObjRepr );
+    assert( p->pPars->nFramesK || Fra_ClassObjRepr(pObj) != pObjRepr );
 }
 
 /**Function*************************************************************

@@ -114,9 +114,18 @@ void Fra_ClassesCopyReprs( Fra_Cla_t * p, Vec_Ptr_t * vFailed )
     int i;
     Aig_ManReprStart( p->pAig, Aig_ManObjIdMax(p->pAig) + 1 );
     memmove( p->pAig->pReprs, p->pMemRepr, sizeof(Aig_Obj_t *) * (Aig_ManObjIdMax(p->pAig) + 1) );
+    if ( Vec_PtrSize(p->vClasses1) == 0 && Vec_PtrSize(p->vClasses) == 0 )
+    {
+        Aig_ManForEachObj( p->pAig, pObj, i )
+        {
+            if ( p->pAig->pReprs[i] != NULL )
+                printf( "Classes are not cleared!\n" );
+            assert( p->pAig->pReprs[i] == NULL );
+        }
+    }
     if ( vFailed )
-    Vec_PtrForEachEntry( vFailed, pObj, i )
-        p->pAig->pReprs[pObj->Id] = NULL;
+        Vec_PtrForEachEntry( vFailed, pObj, i )
+            p->pAig->pReprs[pObj->Id] = NULL;
 }
 
 /**Function*************************************************************
@@ -206,7 +215,7 @@ void Fra_PrintClass( Aig_Obj_t ** pClass )
         assert( Fra_ClassObjRepr(pTemp) == pClass[0] );
     printf( "{ " );
     for ( i = 0; pTemp = pClass[i]; i++ )
-        printf( "%d ", pTemp->Id, Fra_ClassObjRepr(pTemp)? Fra_ClassObjRepr(pTemp)->Id : -1 );
+        printf( "%d(%d) ", pTemp->Id, pTemp->Level );
     printf( "}\n" );
 }
 
@@ -227,8 +236,11 @@ void Fra_ClassesPrint( Fra_Cla_t * p, int fVeryVerbose )
     Aig_Obj_t * pObj;
     int i;
 
-    printf( "Const = %5d. Class = %5d. Lit = %5d.\n", 
+    printf( "Const = %5d. Class = %5d. Lit = %5d. ", 
         Vec_PtrSize(p->vClasses1), Vec_PtrSize(p->vClasses), Fra_ClassesCountLits(p) );
+    if ( p->vImps && Vec_IntSize(p->vImps) > 0 )
+        printf( "Imp = %5d. ", Vec_IntSize(p->vImps) );
+    printf( "\n" );
 
     if ( fVeryVerbose )
     {
@@ -283,10 +295,10 @@ void Fra_ClassesPrepare( Fra_Cla_t * p, int fLatchCorr )
         {
             if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsPi(pObj) )
                 continue;
+            // skip the node with more that the given number of levels
+//            if ( pObj->Level > 3 )
+//                continue;
         }
-//printf( "%3d : ", pObj->Id );
-//Extra_PrintBinary( stdout, Fra_ObjSim(pObj), 32 );
-//printf( "\n" );
         // hash the node by its simulation info
         iEntry = p->pFuncNodeHash( pObj, nTableSize );
         // check if the node belongs to the class of constant 1
@@ -494,7 +506,6 @@ int Fra_ClassesRefine( Fra_Cla_t * p )
     vTemp = p->vClassesTemp;
     p->vClassesTemp = p->vClasses;
     p->vClasses = vTemp;
-    p->fRefinement = (nRefis > 0);
     return nRefis;
 }
 
@@ -531,7 +542,6 @@ int Fra_ClassesRefine1( Fra_Cla_t * p )
     Vec_PtrShrink( p->vClasses1, k );
     if ( Vec_PtrSize(p->vClassNew) == 0 )
         return 0;
-    p->fRefinement = 1;
 /*
     printf( "Refined const-1 class: {" );
     Vec_PtrForEachEntry( p->vClassNew, pObj, i )
@@ -677,6 +687,95 @@ void Fra_ClassesPostprocess( Fra_Cla_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Postprocesses the classes by selecting representative lowest in top order.]
+
+  Description []
+               
+  SideEffects [] 
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fra_ClassesSelectRepr( Fra_Cla_t * p )
+{
+    Aig_Obj_t ** pClass, * pNodeMin;
+    int i, c, cMinSupp, nSuppSizeMin, nSuppSizeCur;
+    // reassign representatives in each class
+    Vec_PtrForEachEntry( p->vClasses, pClass, i )
+    {
+        // collect support sizes and find the min-support node
+        pNodeMin = NULL;
+        nSuppSizeMin = AIG_INFINITY;
+        for ( c = 0; pClass[c]; c++ )
+        {
+            nSuppSizeCur = Aig_SupportSize( p->pAig, pClass[c] );
+//            nSuppSizeCur = 1;
+            if ( nSuppSizeMin > nSuppSizeCur || 
+                (nSuppSizeMin == nSuppSizeCur && pNodeMin->Level > pClass[c]->Level) )
+            {
+                nSuppSizeMin = nSuppSizeCur;
+                pNodeMin = pClass[c];
+                cMinSupp = c; 
+            }
+        }
+        // skip the case when the repr did not change
+        if ( cMinSupp == 0 )
+            continue;
+        // make the new node the representative of the class
+        pClass[cMinSupp] = pClass[0];
+        pClass[0] = pNodeMin;
+        // set the representative
+        for ( c = 0; pClass[c]; c++ )
+            Fra_ClassObjSetRepr( pClass[c], c? pClass[0] : NULL );
+    }
+}
+
+
+
+static inline Aig_Obj_t * Fra_ObjEqu( Aig_Obj_t ** ppEquivs, Aig_Obj_t * pObj )                       { return ppEquivs[pObj->Id];  }
+static inline void        Fra_ObjSetEqu( Aig_Obj_t ** ppEquivs, Aig_Obj_t * pObj, Aig_Obj_t * pNode ) { ppEquivs[pObj->Id] = pNode; }
+
+static inline Aig_Obj_t * Fra_ObjChild0Equ( Aig_Obj_t ** ppEquivs, Aig_Obj_t * pObj ) { return Aig_NotCond(Fra_ObjEqu(ppEquivs,Aig_ObjFanin0(pObj)), Aig_ObjFaninC0(pObj));  }
+static inline Aig_Obj_t * Fra_ObjChild1Equ( Aig_Obj_t ** ppEquivs, Aig_Obj_t * pObj ) { return Aig_NotCond(Fra_ObjEqu(ppEquivs,Aig_ObjFanin1(pObj)), Aig_ObjFaninC1(pObj));  }
+
+/**Function*************************************************************
+
+  Synopsis    [Add the node and its constraints to the new AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Fra_ClassesDeriveNode( Aig_Man_t * pManFraig, Aig_Obj_t * pObj, Aig_Obj_t ** ppEquivs )
+{
+    Aig_Obj_t * pObjNew, * pObjRepr, * pObjReprNew, * pMiter;//, * pObjNew2;
+    // skip nodes without representative
+    if ( (pObjRepr = Fra_ClassObjRepr(pObj)) == NULL )
+        return;
+    assert( pObjRepr->Id < pObj->Id );
+    // get the new node 
+    pObjNew = Fra_ObjEqu( ppEquivs, pObj );
+    // get the new node of the representative
+    pObjReprNew = Fra_ObjEqu( ppEquivs, pObjRepr );
+    // if this is the same node, no need to add constraints
+    if ( Aig_Regular(pObjNew) == Aig_Regular(pObjReprNew) )
+        return;
+    // these are different nodes - perform speculative reduction
+//    pObjNew2 = Aig_NotCond( pObjReprNew, pObj->fPhase ^ pObjRepr->fPhase );
+    // set the new node
+//    Fra_ObjSetEqu( ppEquivs, pObj, pObjNew2 );
+    // add the constraint
+    pMiter = Aig_Exor( pManFraig, Aig_Regular(pObjNew), Aig_Regular(pObjReprNew) );
+    pMiter = Aig_NotCond( pMiter, Aig_Regular(pMiter)->fPhase ^ Aig_IsComplement(pMiter) );
+    pMiter = Aig_Not( pMiter );
+    Aig_ObjCreatePo( pManFraig, pMiter );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Derives AIG for the partitioned problem.]
 
   Description []
@@ -688,7 +787,60 @@ void Fra_ClassesPostprocess( Fra_Cla_t * p )
 ***********************************************************************/
 Aig_Man_t * Fra_ClassesDeriveAig( Fra_Cla_t * p, int nFramesK )
 {
-
+    Aig_Man_t * pManFraig;
+    Aig_Obj_t * pObj, * pObjNew;
+    Aig_Obj_t ** pLatches, ** ppEquivs;
+    int i, k, f, nFramesAll = nFramesK + 1;
+    assert( Aig_ManRegNum(p->pAig) > 0 );
+    assert( Aig_ManRegNum(p->pAig) < Aig_ManPiNum(p->pAig) );
+    assert( nFramesK > 0 );
+    // start the fraig package
+    pManFraig = Aig_ManStart( (Aig_ManObjIdMax(p->pAig) + 1) * nFramesAll );
+    // allocate place for the node mapping
+    ppEquivs = ALLOC( Aig_Obj_t *, Aig_ManObjIdMax(p->pAig) + 1 );
+    Fra_ObjSetEqu( ppEquivs, Aig_ManConst1(p->pAig), Aig_ManConst1(pManFraig) );
+    // create latches for the first frame
+    Aig_ManForEachLoSeq( p->pAig, pObj, i )
+        Fra_ObjSetEqu( ppEquivs, pObj, Aig_ObjCreatePi(pManFraig) );
+    // add timeframes
+    pLatches = ALLOC( Aig_Obj_t *, Aig_ManRegNum(p->pAig) );
+    for ( f = 0; f < nFramesAll; f++ )
+    {
+        // create PIs for this frame
+        Aig_ManForEachPiSeq( p->pAig, pObj, i )
+            Fra_ObjSetEqu( ppEquivs, pObj, Aig_ObjCreatePi(pManFraig) );
+        // set the constraints on the latch outputs
+        Aig_ManForEachLoSeq( p->pAig, pObj, i )
+            Fra_ClassesDeriveNode( pManFraig, pObj, ppEquivs );
+        // add internal nodes of this frame
+        Aig_ManForEachNode( p->pAig, pObj, i )
+        {
+            pObjNew = Aig_And( pManFraig, Fra_ObjChild0Equ(ppEquivs, pObj), Fra_ObjChild1Equ(ppEquivs, pObj) );
+            Fra_ObjSetEqu( ppEquivs, pObj, pObjNew );
+            Fra_ClassesDeriveNode( pManFraig, pObj, ppEquivs );
+        }
+        if ( f == nFramesAll - 1 )
+            break;
+        if ( f == nFramesAll - 2 )
+            pManFraig->nAsserts = Aig_ManPoNum(pManFraig);
+        // save the latch input values
+        k = 0;
+        Aig_ManForEachLiSeq( p->pAig, pObj, i )
+            pLatches[k++] = Fra_ObjChild0Equ( ppEquivs, pObj );
+        // insert them to the latch output values
+        k = 0;
+        Aig_ManForEachLoSeq( p->pAig, pObj, i )
+            Fra_ObjSetEqu( ppEquivs, pObj, pLatches[k++] );
+    }
+    free( pLatches );
+    free( ppEquivs );
+    // mark the asserts
+    assert( Aig_ManPoNum(pManFraig) % nFramesAll == 0 );
+printf( "Assert miters = %6d. Output miters = %6d.\n", 
+       pManFraig->nAsserts, Aig_ManPoNum(pManFraig) - pManFraig->nAsserts );
+    // remove dangling nodes
+    Aig_ManCleanup( pManFraig );
+    return pManFraig;
 }
 
 ////////////////////////////////////////////////////////////////////////
