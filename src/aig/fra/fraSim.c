@@ -199,7 +199,7 @@ void Fra_SmlSavePattern( Fra_Man_t * p )
     Aig_ManForEachPi( p->pManFraig, pObj, i )
         if ( p->pSat->model.ptr[Fra_ObjSatNum(pObj)] == l_True )
             Aig_InfoSetBit( p->pPatWords, i );
-/*
+
     if ( p->vCex )
     {
         Vec_IntClear( p->vCex );
@@ -208,7 +208,6 @@ void Fra_SmlSavePattern( Fra_Man_t * p )
         for ( i = Aig_ManPiNum(p->pManFraig) - Aig_ManRegNum(p->pManFraig); i < Aig_ManPiNum(p->pManFraig); i++ )
             Vec_IntPush( p->vCex, Aig_InfoHasBit( p->pPatWords, i ) );
     }
-*/
 
 /*
     printf( "Pattern: " );
@@ -608,7 +607,7 @@ void Fra_SmlResimulate( Fra_Man_t * p )
         return;
 clk = clock();
     nChanges = Fra_ClassesRefine( p->pCla );
-    nChanges += Fra_ClassesRefine1( p->pCla );
+    nChanges += Fra_ClassesRefine1( p->pCla, 1, NULL );
     if ( p->pCla->vImps )
         nChanges += Fra_ImpRefineUsingCex( p, p->pCla->vImps );
 p->timeRef += clock() - clk;
@@ -652,7 +651,7 @@ printf( "Starting classes = %5d.   Lits = %6d.\n", Vec_PtrSize(p->pCla->vClasses
         return;
 clk = clock();
     nChanges = Fra_ClassesRefine( p->pCla );
-    nChanges += Fra_ClassesRefine1( p->pCla );
+    nChanges += Fra_ClassesRefine1( p->pCla, 1, NULL );
 p->timeRef += clock() - clk;
 if ( fVerbose )
 printf( "Refined classes  = %5d.   Changes = %4d.   Lits = %6d.\n", Vec_PtrSize(p->pCla->vClasses), nChanges, Fra_ClassesCountLits(p->pCla) );
@@ -663,7 +662,7 @@ printf( "Refined classes  = %5d.   Changes = %4d.   Lits = %6d.\n", Vec_PtrSize(
         return;
 clk = clock();
     nChanges = Fra_ClassesRefine( p->pCla );
-    nChanges += Fra_ClassesRefine1( p->pCla );
+    nChanges += Fra_ClassesRefine1( p->pCla, 1, NULL );
 p->timeRef += clock() - clk;
 
 if ( fVerbose )
@@ -677,7 +676,7 @@ printf( "Refined classes  = %5d.   Changes = %4d.   Lits = %6d.\n", Vec_PtrSize(
             return;
 clk = clock();
         nChanges = Fra_ClassesRefine( p->pCla );
-        nChanges += Fra_ClassesRefine1( p->pCla );
+        nChanges += Fra_ClassesRefine1( p->pCla, 1, NULL );
 p->timeRef += clock() - clk;
 if ( fVerbose )
 printf( "Refined classes  = %5d.   Changes = %4d.   Lits = %6d.\n", Vec_PtrSize(p->pCla->vClasses), nChanges, Fra_ClassesCountLits(p->pCla) );
@@ -704,7 +703,6 @@ printf( "Refined classes  = %5d.   Changes = %4d.   Lits = %6d.\n", Vec_PtrSize(
 Fra_Sml_t * Fra_SmlStart( Aig_Man_t * pAig, int nPref, int nFrames, int nWordsFrame )
 {
     Fra_Sml_t * p;
-    assert( Aig_ManObjIdMax(pAig) + 1 < (1 << 16) );
     p = (Fra_Sml_t *)malloc( sizeof(Fra_Sml_t) + sizeof(unsigned) * (Aig_ManObjIdMax(pAig) + 1) * (nPref + nFrames) * nWordsFrame );
     memset( p, 0, sizeof(Fra_Sml_t) + sizeof(unsigned) * (nPref + nFrames) * nWordsFrame );
     p->pAig        = pAig;

@@ -24,10 +24,6 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline int   Sml_ImpLeft( int Imp )               { return Imp & 0xFFFF;         }
-static inline int   Sml_ImpRight( int Imp )              { return Imp >> 16;            }
-static inline int   Sml_ImpCreate( int Left, int Right ) { return (Right << 16) | Left; }
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -43,19 +39,35 @@ static inline int   Sml_ImpCreate( int Left, int Right ) { return (Right << 16) 
   SeeAlso     []
 
 ***********************************************************************/
+static inline int Fra_SmlCountOnesOne( Fra_Sml_t * p, int Node )
+{
+    unsigned * pSim;
+    int k, Counter = 0;
+    pSim = Fra_ObjSim( p, Node );
+    for ( k = p->nWordsPref; k < p->nWordsTotal; k++ )
+        Counter += Aig_WordCountOnes( pSim[k] );
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of 1s in each siminfo of each node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline int * Fra_SmlCountOnes( Fra_Sml_t * p )
 {
     Aig_Obj_t * pObj;
-    unsigned * pSim;
-    int i, k, * pnBits; 
+    int i, * pnBits; 
     pnBits = ALLOC( int, Aig_ManObjIdMax(p->pAig) + 1 );  
     memset( pnBits, 0, sizeof(int) * (Aig_ManObjIdMax(p->pAig) + 1) );
     Aig_ManForEachObj( p->pAig, pObj, i )
-    {
-        pSim = Fra_ObjSim( p, i );
-        for ( k = p->nWordsPref; k < p->nWordsTotal; k++ )
-            pnBits[i] += Aig_WordCountOnes( pSim[k] );
-    }
+        pnBits[i] = Fra_SmlCountOnesOne( p, i );
     return pnBits;
 }
 
@@ -102,6 +114,27 @@ static inline int Sml_NodeNotImpWeight( Fra_Sml_t * p, int Left, int Right )
     for ( k = p->nWordsPref; k < p->nWordsTotal; k++ )
         Counter += Aig_WordCountOnes( pSimL[k] & ~pSimR[k] );
     return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of 1s in the reverse implication.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Sml_NodeSaveNotImpPatterns( Fra_Sml_t * p, int Left, int Right, unsigned * pResult )
+{
+    unsigned * pSimL, * pSimR;
+    int k;
+    pSimL = Fra_ObjSim( p, Left );
+    pSimR = Fra_ObjSim( p, Right );
+    for ( k = p->nWordsPref; k < p->nWordsTotal; k++ )
+        pResult[k] |= pSimL[k] & ~pSimR[k];
 }
 
 /**Function*************************************************************
@@ -284,7 +317,6 @@ int Sml_CompareMaxId( unsigned short * pImp1, unsigned short * pImp2 )
 ***********************************************************************/
 Vec_Int_t * Fra_ImpDerive( Fra_Man_t * p, int nImpMaxLimit, int nImpUseLimit, int fLatchCorr )
 {
-//    Aig_Obj_t * pObj;
     int nSimWords = 64;
     Fra_Sml_t * pSeq, * pComb;
     Vec_Int_t * vImps, * vTemp;
@@ -293,21 +325,13 @@ Vec_Int_t * Fra_ImpDerive( Fra_Man_t * p, int nImpMaxLimit, int nImpUseLimit, in
     int nImpsTotal = 0, nImpsTried = 0, nImpsNonSeq = 0, nImpsComb = 0, nImpsCollected = 0;
     int CostMin = AIG_INFINITY, CostMax = 0;
     int i, k, Imp, CostRange, clk = clock();
+    assert( Aig_ManObjIdMax(p->pManAig) + 1 < (1 << 15) );
     assert( nImpMaxLimit > 0 && nImpUseLimit > 0 && nImpUseLimit <= nImpMaxLimit );
     // normalize both managers
     pComb = Fra_SmlSimulateComb( p->pManAig, nSimWords );
     pSeq = Fra_SmlSimulateSeq( p->pManAig, p->pPars->nFramesP, nSimWords, 1 );
     // get the nodes sorted by the number of 1s
     vNodes = Fra_SmlSortUsingOnes( pSeq, fLatchCorr );
-/*
-Aig_ManForEachObj( p->pManAig, pObj, i )
-{
-    printf( "%6s", Aig_ObjIsPi(pObj)? "pi" : (Aig_ObjIsNode(pObj)? "node" : "other" ) );
-    printf( "%d (%d) :\n", i, pObj->fPhase );
-    Extra_PrintBinary( stdout, Fra_ObjSim( pComb, i ), 64 ); printf( "\n" );
-    Extra_PrintBinary( stdout, Fra_ObjSim( pSeq, i ), 64 ); printf( "\n" );
-}
-*/
     // count the total number of implications
     for ( k = nSimWords * 32; k > 0; k-- )
     for ( i = k - 1; i > 0; i-- )
@@ -335,10 +359,8 @@ Aig_ManForEachObj( p->pManAig, pObj, i )
                     nImpsComb++;
                     continue;
                 }
-//                printf( "d=%d c=%d  ", k-i, Sml_NodeNotImpWeight(pComb, *pNodesI, *pNodesK) );
- 
                 nImpsCollected++;
-                Imp = Sml_ImpCreate( *pNodesI, *pNodesK );
+                Imp = Fra_ImpCreate( *pNodesI, *pNodesK );
                 pImpCosts[ Vec_IntSize(vImps) ] = Sml_NodeNotImpWeight(pComb, *pNodesI, *pNodesK);
                 CostMin = AIG_MIN( CostMin, pImpCosts[ Vec_IntSize(vImps) ] );
                 CostMax = AIG_MAX( CostMax, pImpCosts[ Vec_IntSize(vImps) ] );
@@ -368,12 +390,15 @@ finish:
             (int (*)(const void *, const void *)) Sml_CompareMaxId );
 if ( p->pPars->fVerbose )
 {
-printf( "Tot = %d. Try = %d. NonS = %d. C = %d. Found = %d.  Cost = [%d < %d < %d] ", 
-    nImpsTotal, nImpsTried, nImpsNonSeq, nImpsComb, nImpsCollected, CostMin, CostRange, CostMax );
+printf( "Implications: All = %d. Try = %d. NonSeq = %d. Comb = %d. Res = %d.\n", 
+    nImpsTotal, nImpsTried, nImpsNonSeq, nImpsComb, nImpsCollected );
+printf( "Implication weight: Min = %d. Pivot = %d. Max = %d.   ", 
+       CostMin, CostRange, CostMax );
 PRT( "Time", clock() - clk );
 }
     return vImps;
 }
+
 
 // the following three procedures are called to 
 // - add implications to the SAT solver
@@ -401,8 +426,8 @@ void Fra_ImpAddToSolver( Fra_Man_t * p, Vec_Int_t * vImps, int * pSatVarNums )
     Vec_IntForEachEntry( vImps, Imp, i )
     {
         // get the corresponding nodes
-        pLeft = Aig_ManObj( p->pManAig, Sml_ImpLeft(Imp) );
-        pRight = Aig_ManObj( p->pManAig, Sml_ImpRight(Imp) );
+        pLeft = Aig_ManObj( p->pManAig, Fra_ImpLeft(Imp) );
+        pRight = Aig_ManObj( p->pManAig, Fra_ImpRight(Imp) );
         // check if all the nodes are present
         for ( f = 0; f < p->pPars->nFramesK; f++ )
         {
@@ -431,7 +456,7 @@ void Fra_ImpAddToSolver( Fra_Man_t * p, Vec_Int_t * vImps, int * pSatVarNums )
             // get the complemented attributes
             fComplL = pLeft->fPhase ^ Aig_IsComplement(pLeftF);
             fComplR = pRight->fPhase ^ Aig_IsComplement(pRightF);
-            // get the constaint
+            // get the constraint
             // L => R      L' v R     (complement = L & R')
             pLits[0] = 2 * Left  + !fComplL;
             pLits[1] = 2 * Right +  fComplR;
@@ -476,8 +501,8 @@ int Fra_ImpCheckForNode( Fra_Man_t * p, Vec_Int_t * vImps, Aig_Obj_t * pNode, in
     {
         if ( Imp == 0 )
             continue;
-        Left = Sml_ImpLeft(Imp);
-        Right = Sml_ImpRight(Imp);
+        Left = Fra_ImpLeft(Imp);
+        Right = Fra_ImpRight(Imp);
         Max = AIG_MAX( Left, Right );
         assert( Max >= pNode->Id );
         if ( Max > pNode->Id )
@@ -494,9 +519,6 @@ int Fra_ImpCheckForNode( Fra_Man_t * p, Vec_Int_t * vImps, Aig_Obj_t * pNode, in
         // check equality
         if ( Aig_Regular(pLeftF) == Aig_Regular(pRightF) )
         {
-//            assert( fComplL == fComplR );
-//            if ( fComplL != fComplR )
-//                printf( "Fra_ImpCheckForNode(): Unexpected situation!\n" );
             if ( fComplL != fComplR )
                 Vec_IntWriteEntry( vImps, i, 0 );
             continue;
@@ -507,6 +529,7 @@ int Fra_ImpCheckForNode( Fra_Man_t * p, Vec_Int_t * vImps, Aig_Obj_t * pNode, in
         // make sure the implication is refined
         if ( Fra_NodesAreImp( p, Aig_Regular(pLeftF), Aig_Regular(pRightF), fComplL, fComplR ) == 0 )
         {
+            p->pCla->fRefinement = 1;
             Fra_SmlResimulate( p );
             if ( Vec_IntEntry(vImps, i) != 0 )
                 printf( "Fra_ImpCheckForNode(): Implication is not refined!\n" );
@@ -536,8 +559,8 @@ int Fra_ImpRefineUsingCex( Fra_Man_t * p, Vec_Int_t * vImps )
         if ( Imp == 0 )
             continue;
         // get the corresponding nodes
-        pLeft = Aig_ManObj( p->pManAig, Sml_ImpLeft(Imp) );
-        pRight = Aig_ManObj( p->pManAig, Sml_ImpRight(Imp) );
+        pLeft = Aig_ManObj( p->pManAig, Fra_ImpLeft(Imp) );
+        pRight = Aig_ManObj( p->pManAig, Fra_ImpRight(Imp) );
         // check if implication holds using this simulation info
         if ( !Sml_NodeCheckImp(p->pSml, pLeft->Id, pRight->Id) )
         {
@@ -567,6 +590,113 @@ void Fra_ImpCompactArray( Vec_Int_t * vImps )
         if ( Imp )
             Vec_IntWriteEntry( vImps, k++, Imp );
     Vec_IntShrink( vImps, k );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Determines the ratio of the state space by computed implications.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+double Fra_ImpComputeStateSpaceRatio( Fra_Man_t * p )
+{
+    int nSimWords = 64;
+    Fra_Sml_t * pComb;
+    unsigned * pResult;
+    double Ratio = 0.0;
+    int Left, Right, Imp, i;
+    if ( p->pCla->vImps == NULL || Vec_IntSize(p->pCla->vImps) == 0 )
+        return Ratio;
+    // simulate the AIG manager with combinational patterns
+    pComb = Fra_SmlSimulateComb( p->pManAig, nSimWords );
+    // go through the implications and collect where they do not hold
+    pResult = Fra_ObjSim( pComb, 0 );
+    assert( pResult[0] == 0 );
+    Vec_IntForEachEntry( p->pCla->vImps, Imp, i )
+    {
+        Left = Fra_ImpLeft(Imp);
+        Right = Fra_ImpRight(Imp);
+        Sml_NodeSaveNotImpPatterns( pComb, Left, Right, pResult );
+    }
+    // count the number of ones in this area
+    Ratio = 100.0 * Fra_SmlCountOnesOne( pComb, 0 ) / (32*(pComb->nWordsTotal-pComb->nWordsPref));
+    Fra_SmlStop( pComb );
+    return Ratio;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the number of failed implications.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fra_ImpVerifyUsingSimulation( Fra_Man_t * p )
+{
+    int nSimWords = 2000;
+    Fra_Sml_t * pSeq;
+    char * pfFails;
+    int Left, Right, Imp, i, Counter;
+    if ( p->pCla->vImps == NULL || Vec_IntSize(p->pCla->vImps) == 0 )
+        return 0;
+    // simulate the AIG manager with combinational patterns
+    pSeq = Fra_SmlSimulateSeq( p->pManAig, p->pPars->nFramesP, nSimWords, 4 );
+    // go through the implications and check how many of them do not hold
+    pfFails = ALLOC( char, Vec_IntSize(p->pCla->vImps) );
+    memset( pfFails, 0, sizeof(char) * Vec_IntSize(p->pCla->vImps) );
+    Vec_IntForEachEntry( p->pCla->vImps, Imp, i )
+    {
+        Left = Fra_ImpLeft(Imp);
+        Right = Fra_ImpRight(Imp);
+        pfFails[i] = !Sml_NodeCheckImp( pSeq, Left, Right );
+    }
+    // count how many has failed
+    Counter = 0;
+    for ( i = 0; i < Vec_IntSize(p->pCla->vImps); i++ )
+        Counter += pfFails[i];
+    free( pfFails );
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Record proven implications in the AIG manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fra_ImpRecordInManager( Fra_Man_t * p, Aig_Man_t * pNew )
+{
+    Aig_Obj_t * pLeft, * pRight, * pMiter;
+    int nPosOld, Imp, i;
+    if ( p->pCla->vImps == NULL || Vec_IntSize(p->pCla->vImps) == 0 )
+        return;
+    // go through the implication
+    nPosOld = Aig_ManPoNum(pNew);
+    Vec_IntForEachEntry( p->pCla->vImps, Imp, i )
+    {
+        pLeft = Aig_ManObj( p->pManAig, Fra_ImpLeft(Imp) );
+        pRight = Aig_ManObj( p->pManAig, Fra_ImpRight(Imp) );
+        // record the implication: L' + R
+        pMiter = Aig_Or( pNew, 
+            Aig_NotCond(pLeft->pData, !pLeft->fPhase), 
+            Aig_NotCond(pRight->pData, pRight->fPhase) ); 
+        Aig_ObjCreatePo( pNew, pMiter );
+    }
+    pNew->nAsserts = Aig_ManPoNum(pNew) - nPosOld;
 }
 
 ////////////////////////////////////////////////////////////////////////

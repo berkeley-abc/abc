@@ -24,7 +24,7 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define TSI_MAX_ROUNDS    10000
+#define TSI_MAX_ROUNDS    1000
 
 #define AIG_XVS0   1
 #define AIG_XVS1   2
@@ -340,7 +340,7 @@ Vec_Ptr_t * Aig_ManTernarySimulate( Aig_Man_t * p, int fVerbose )
     }
     if ( f == TSI_MAX_ROUNDS )
     {
-        printf( "Aig_ManTernarySimulate(): Did not reach a fixed point after %d iterations.\n", TSI_MAX_ROUNDS );
+        printf( "Aig_ManTernarySimulate(): Did not reach a fixed point after %d iterations (not a bug).\n", TSI_MAX_ROUNDS );
         Aig_TsiStop( pTsi );
         return NULL;
     }

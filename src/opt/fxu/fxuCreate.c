@@ -178,12 +178,26 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
 
     // consider the case when cube pairs should be preprocessed
     // before adding them to the set of divisors
+//    if ( pData->fVerbose )
+//        printf( "The total number of cube pairs is %d.\n", nPairsTotal );
+    if ( nPairsTotal > 10000000 )
+    {
+        printf( "The total number of cube pairs of the network is more than 10,000,000.\n" );
+        printf( "Command \"fx\" takes a long time to run in such cases. It is suggested\n" );
+        printf( "that the user changes the network by reducing the size of logic node and\n" );
+        printf( "consequently the number of cube pairs to be processed by this command.\n" );
+        printf( "One way to achieve this is to run the commands \"st; multi -m -F <num>\"\n" );
+        printf( "as a proprocessing step, while selecting <num> as approapriate.\n" );
+        return NULL;
+    }
     if ( nPairsTotal > pData->nPairsMax )
         if ( !Fxu_PreprocessCubePairs( p, pData->vSops, nPairsTotal, pData->nPairsMax ) )
             return NULL;
+//    if ( pData->fVerbose )
+//        printf( "Only %d best cube pairs will be used by the fast extract command.\n", pData->nPairsMax );
 
     // add the var pairs to the heap
-    Fxu_MatrixComputeSingles( p );
+    Fxu_MatrixComputeSingles( p, pData->fUse0, pData->nSingleMax );
 
     // print stats
     if ( pData->fVerbose )
@@ -194,9 +208,8 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
             p->lVars.nItems, p->lCubes.nItems );
         fprintf( stdout, "Lits = %d  Density = %.5f%%\n", 
             p->nEntries, Density );
-        fprintf( stdout, "1-cube divisors = %6d.  ",  p->lSingles.nItems );
-        fprintf( stdout, "2-cube divisors = %6d.  ",  p->nDivsTotal );
-        fprintf( stdout, "Cube pairs = %6d.",    nPairsTotal );
+        fprintf( stdout, "1-cube divs = %6d. (Total = %6d)  ",  p->lSingles.nItems, p->nSingleTotal );
+        fprintf( stdout, "2-cube divs = %6d. (Total = %6d)",  p->nDivsTotal, nPairsTotal );
         fprintf( stdout, "\n" );
     }
 //    Fxu_MatrixPrint( stdout, p );

@@ -520,10 +520,10 @@ int Fra_ClassesRefine( Fra_Cla_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_ClassesRefine1( Fra_Cla_t * p )
+int Fra_ClassesRefine1( Fra_Cla_t * p, int fRefineNewClass, int * pSkipped )
 {
     Aig_Obj_t * pObj, ** ppClass;
-    int i, k, nRefis;
+    int i, k, nRefis = 1;
     // check if there is anything to refine
     if ( Vec_PtrSize(p->vClasses1) == 0 )
         return 0;
@@ -565,7 +565,10 @@ int Fra_ClassesRefine1( Fra_Cla_t * p )
     assert( ppClass[0] != NULL );
     Vec_PtrPush( p->vClasses, ppClass );
     // iteratively refine this class
-    nRefis = 1 + Fra_RefineClassLastIter( p, p->vClasses );
+    if ( fRefineNewClass )
+        nRefis += Fra_RefineClassLastIter( p, p->vClasses );
+    else if ( pSkipped )
+        (*pSkipped)++;
     return nRefis;
 }
 

@@ -77,6 +77,7 @@ struct Fra_Par_t_
     int              fRewrite;          // use rewriting for constraint reduction
     int              fLatchCorr;        // computes latch correspondence only
     int              fUseImps;          // use implications
+    int              fWriteImps;        // record implications
 };
 
 // FRAIG equivalence classes
@@ -148,7 +149,6 @@ struct Fra_Man_t_
     // statistics
     int              nSimRounds;
     int              nNodesMiter;
-    int              nLitsZero;
     int              nLitsBeg;
     int              nLitsEnd;
     int              nNodesBeg;
@@ -202,6 +202,10 @@ static inline void         Fra_ClassObjSetRepr( Aig_Obj_t * pObj, Aig_Obj_t * pN
 static inline Aig_Obj_t *  Fra_ObjChild0Fra( Aig_Obj_t * pObj, int i ) { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin0(pObj)? Aig_NotCond(Fra_ObjFraig(Aig_ObjFanin0(pObj),i), Aig_ObjFaninC0(pObj)) : NULL;  }
 static inline Aig_Obj_t *  Fra_ObjChild1Fra( Aig_Obj_t * pObj, int i ) { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin1(pObj)? Aig_NotCond(Fra_ObjFraig(Aig_ObjFanin1(pObj),i), Aig_ObjFaninC1(pObj)) : NULL;  }
 
+static inline int          Fra_ImpLeft( int Imp )                                        { return Imp & 0xFFFF;         }
+static inline int          Fra_ImpRight( int Imp )                                       { return Imp >> 16;            }
+static inline int          Fra_ImpCreate( int Left, int Right )                          { return (Right << 16) | Left; }
+
 ////////////////////////////////////////////////////////////////////////
 ///                         ITERATORS                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -222,7 +226,7 @@ extern void                Fra_ClassesCopyReprs( Fra_Cla_t * p, Vec_Ptr_t * vFai
 extern void                Fra_ClassesPrint( Fra_Cla_t * p, int fVeryVerbose );
 extern void                Fra_ClassesPrepare( Fra_Cla_t * p, int fLatchCorr );
 extern int                 Fra_ClassesRefine( Fra_Cla_t * p );
-extern int                 Fra_ClassesRefine1( Fra_Cla_t * p );
+extern int                 Fra_ClassesRefine1( Fra_Cla_t * p, int fRefineNewClass, int * pSkipped );
 extern int                 Fra_ClassesCountLits( Fra_Cla_t * p );
 extern int                 Fra_ClassesCountPairs( Fra_Cla_t * p );
 extern void                Fra_ClassesTest( Fra_Cla_t * p, int Id1, int Id2 );
@@ -233,18 +237,24 @@ extern Aig_Man_t *         Fra_ClassesDeriveAig( Fra_Cla_t * p, int nFramesK );
 /*=== fraCnf.c ========================================================*/
 extern void                Fra_CnfNodeAddToSolver( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew );
 /*=== fraCore.c ========================================================*/
-extern Aig_Man_t *         Fra_FraigPerform( Aig_Man_t * pManAig, Fra_Par_t * pPars );
-extern Aig_Man_t *         Fra_FraigChoice( Aig_Man_t * pManAig );
 extern void                Fra_FraigSweep( Fra_Man_t * pManAig );
 extern int                 Fra_FraigMiterStatus( Aig_Man_t * p );
+extern Aig_Man_t *         Fra_FraigPerform( Aig_Man_t * pManAig, Fra_Par_t * pPars );
+extern Aig_Man_t *         Fra_FraigChoice( Aig_Man_t * pManAig );
+extern Aig_Man_t *         Fra_FraigEquivence( Aig_Man_t * pManAig, int nConfMax );
 /*=== fraImp.c ========================================================*/
 extern Vec_Int_t *         Fra_ImpDerive( Fra_Man_t * p, int nImpMaxLimit, int nImpUseLimit, int fLatchCorr );
 extern void                Fra_ImpAddToSolver( Fra_Man_t * p, Vec_Int_t * vImps, int * pSatVarNums );
 extern int                 Fra_ImpCheckForNode( Fra_Man_t * p, Vec_Int_t * vImps, Aig_Obj_t * pNode, int Pos );
 extern int                 Fra_ImpRefineUsingCex( Fra_Man_t * p, Vec_Int_t * vImps );
 extern void                Fra_ImpCompactArray( Vec_Int_t * vImps );
+extern double              Fra_ImpComputeStateSpaceRatio( Fra_Man_t * p );
+extern int                 Fra_ImpVerifyUsingSimulation( Fra_Man_t * p );
+extern void                Fra_ImpRecordInManager( Fra_Man_t * p, Aig_Man_t * pNew );
 /*=== fraInd.c ========================================================*/
-extern Aig_Man_t *         Fra_FraigInduction( Aig_Man_t * p, int nFramesP, int nFramesK, int nMaxImps, int fRewrite, int fUseImps, int fLatchCorr, int fVerbose, int * pnIter );
+extern Aig_Man_t *         Fra_FraigInduction( Aig_Man_t * p, int nFramesP, int nFramesK, int nMaxImps, int fRewrite, int fUseImps, int fLatchCorr, int fWriteImps, int fVerbose, int * pnIter );
+/*=== fraLcr.c ========================================================*/
+extern Aig_Man_t *         Fra_FraigLatchCorrespondence( Aig_Man_t * pAig, int nFramesP, int nConfMax, int fVerbose, int * pnIter );
 /*=== fraMan.c ========================================================*/
 extern void                Fra_ParamsDefault( Fra_Par_t * pParams );
 extern void                Fra_ParamsDefaultSeq( Fra_Par_t * pParams );
@@ -259,7 +269,7 @@ extern int                 Fra_NodesAreEquiv( Fra_Man_t * p, Aig_Obj_t * pOld, A
 extern int                 Fra_NodesAreImp( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew, int fComplL, int fComplR );
 extern int                 Fra_NodeIsConst( Fra_Man_t * p, Aig_Obj_t * pNew );
 /*=== fraSec.c ========================================================*/
-extern int                 Fra_FraigSec( Aig_Man_t * p, int nFrames, int fVerbose, int fVeryVerbose );
+extern int                 Fra_FraigSec( Aig_Man_t * p, int nFrames, int fRetimeFirst, int fVerbose, int fVeryVerbose );
 /*=== fraSim.c ========================================================*/
 extern int                 Fra_SmlNodeHash( Aig_Obj_t * pObj, int nTableSize );
 extern int                 Fra_SmlNodeIsConst( Aig_Obj_t * pObj );

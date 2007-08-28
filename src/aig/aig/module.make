@@ -9,6 +9,8 @@ SRC +=    src/aig/aig/aigCheck.c \
     src/aig/aig/aigOrder.c \
     src/aig/aig/aigPart.c \
     src/aig/aig/aigRepr.c \
+    src/aig/aig/aigRet.c \
+    src/aig/aig/aigScl.c \
     src/aig/aig/aigSeq.c \
     src/aig/aig/aigTable.c \
     src/aig/aig/aigTiming.c \

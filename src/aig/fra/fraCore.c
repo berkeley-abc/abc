@@ -246,7 +246,7 @@ static inline void Fra_FraigNode( Fra_Man_t * p, Aig_Obj_t * pObj )
         Vec_PtrPush( p->vTimeouts, pObj );
     // verify that the counter-example satisfies all the constraints
 //    if ( p->vCex )
-//    Fra_FraigVerifyCounterEx( p, p->vCex );
+//        Fra_FraigVerifyCounterEx( p, p->vCex );
     // simulate the counter-example and return the Fraig node
     Fra_SmlResimulate( p );
     if ( !p->pPars->nFramesK && Fra_ClassObjRepr(pObj) == pObjRepr )
@@ -334,12 +334,15 @@ clk = clock();
     if ( p->pPars->fChoicing )
         Aig_ManReprStart( p->pManFraig, Aig_ManObjIdMax(p->pManAig)+1 );
     // collect initial states
-    p->nLitsZero = Vec_PtrSize( p->pCla->vClasses1 );
     p->nLitsBeg  = Fra_ClassesCountLits( p->pCla );
     p->nNodesBeg = Aig_ManNodeNum(pManAig);
     p->nRegsBeg  = Aig_ManRegNum(pManAig);
     // perform fraig sweep
     Fra_FraigSweep( p );
+    // call back the procedure to check implications
+    if ( pManAig->pImpFunc )
+        pManAig->pImpFunc( p, pManAig->pImpData );
+    // finalize the fraiged manager
     Fra_ManFinalizeComb( p );
     if ( p->pPars->fChoicing )
     {
@@ -397,6 +400,32 @@ Aig_Man_t * Fra_FraigChoice( Aig_Man_t * pManAig )
     pPars->fChoicing    = 1;
     return Fra_FraigPerform( pManAig, pPars );
 }
+ 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Fra_FraigEquivence( Aig_Man_t * pManAig, int nConfMax )
+{
+    Aig_Man_t * pFraig;
+    Fra_Par_t Pars, * pPars = &Pars; 
+    Fra_ParamsDefault( pPars );
+    pPars->nBTLimitNode = nConfMax;
+    pPars->fVerbose     = 0;
+    pPars->fProve       = 0;
+    pPars->fDoSparse    = 1;
+    pPars->fSpeculate   = 0;
+    pPars->fChoicing    = 0;
+    pFraig = Fra_FraigPerform( pManAig, pPars );
+    return pFraig;
+} 
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

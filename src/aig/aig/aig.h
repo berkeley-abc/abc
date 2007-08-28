@@ -128,6 +128,8 @@ struct Aig_Man_t_
     int              fCatchExor;     // enables EXOR nodes
     int              fAddStrash;     // performs additional strashing
     Aig_Obj_t **     pObjCopies;     // mapping of AIG nodes into FRAIG nodes
+    void (*pImpFunc) (void*, void*); // implication checking precedure
+    void *           pImpData;       // implication checking data
     // timing statistics
     int              time1;
     int              time2;
@@ -298,6 +300,9 @@ static inline void Aig_ManRecycleMemory( Aig_Man_t * p, Aig_Obj_t * pEntry )
 // iterator over the primary outputs
 #define Aig_ManForEachPo( p, pObj, i )                                          \
     Vec_PtrForEachEntry( p->vPos, pObj, i )
+// iterator over the assertions
+#define Aig_ManForEachAssert( p, pObj, i )                                      \
+    Vec_PtrForEachEntryStart( p->vPos, pObj, i, Aig_ManPoNum(p)-p->nAsserts )
 // iterator over all objects, including those currently not used
 #define Aig_ManForEachObj( p, pObj, i )                                         \
     Vec_PtrForEachEntry( p->vObjs, pObj, i ) if ( (pObj) == NULL ) {} else
@@ -373,15 +378,12 @@ extern void            Aig_ManFanoutStop( Aig_Man_t * p );
 /*=== aigMan.c ==========================================================*/
 extern Aig_Man_t *     Aig_ManStart( int nNodesMax );
 extern Aig_Man_t *     Aig_ManStartFrom( Aig_Man_t * p );
+extern Aig_Obj_t *     Aig_ManDup_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t * pObj );
 extern Aig_Man_t *     Aig_ManDup( Aig_Man_t * p, int fOrdered );
-extern Aig_Man_t *     Aig_ManRemap( Aig_Man_t * p, Vec_Ptr_t * vMap );
 extern Aig_Man_t *     Aig_ManExtractMiter( Aig_Man_t * p, Aig_Obj_t * pNode1, Aig_Obj_t * pNode2 );
 extern void            Aig_ManStop( Aig_Man_t * p );
 extern int             Aig_ManCleanup( Aig_Man_t * p );
-extern int             Aig_ManCountMergeRegs( Aig_Man_t * p );
-extern int             Aig_ManSeqCleanup( Aig_Man_t * p );
 extern void            Aig_ManPrintStats( Aig_Man_t * p );
-extern Aig_Man_t *     Aig_ManReduceLaches( Aig_Man_t * p, int fVerbose );
 /*=== aigMem.c ==========================================================*/
 extern void            Aig_ManStartMemory( Aig_Man_t * p );
 extern void            Aig_ManStopMemory( Aig_Man_t * p );
@@ -436,6 +438,11 @@ extern Aig_Man_t *     Aig_ManRehash( Aig_Man_t * p );
 extern void            Aig_ManCreateChoices( Aig_Man_t * p );
 /*=== aigRet.c ========================================================*/
 extern Aig_Man_t *     Rtm_ManRetime( Aig_Man_t * p, int fForward, int nStepsMax, int fVerbose );
+/*=== aigScl.c ==========================================================*/
+extern Aig_Man_t *     Aig_ManRemap( Aig_Man_t * p, Vec_Ptr_t * vMap );
+extern int             Aig_ManSeqCleanup( Aig_Man_t * p );
+extern int             Aig_ManCountMergeRegs( Aig_Man_t * p );
+extern Aig_Man_t *     Aig_ManReduceLaches( Aig_Man_t * p, int fVerbose );
 /*=== aigSeq.c ========================================================*/
 extern int             Aig_ManSeqStrash( Aig_Man_t * p, int nLatches, int * pInits );
 /*=== aigShow.c ========================================================*/

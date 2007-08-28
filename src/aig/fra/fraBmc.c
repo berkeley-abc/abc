@@ -31,6 +31,8 @@ struct Fra_Bmc_t_
     int              nPref;             // the size of the prefix
     int              nDepth;            // the depth of the frames
     int              nFramesAll;        // the total number of timeframes
+    // implications to be filtered
+    Vec_Int_t *      vImps;
     // AIG managers
     Aig_Man_t *      pAig;              // the original AIG manager
     Aig_Man_t *      pAigFrames;        // initialized timeframes
@@ -67,7 +69,6 @@ static inline Aig_Obj_t *  Bmc_ObjChild1Frames( Aig_Obj_t * pObj, int i ) { asse
 int Fra_BmcNodesAreEqual( Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
 {
     Fra_Man_t * p = pObj0->pData;
-//    Aig_Obj_t ** ppNodes = p->pBmc->pObjToFraig;
     Aig_Obj_t * pObjFrames0, * pObjFrames1;
     Aig_Obj_t * pObjFraig0, * pObjFraig1;
     int i;
@@ -102,6 +103,69 @@ int Fra_BmcNodeIsConst( Aig_Obj_t * pObj )
     return Fra_BmcNodesAreEqual( pObj, Aig_ManConst1(p->pManAig) );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Refines implications using BMC.]
+
+  Description [The input is the combinational FRAIG manager,
+  which is used to FRAIG the timeframes. ]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fra_BmcFilterImplications( Fra_Man_t * p, Fra_Bmc_t * pBmc )
+{
+    Aig_Obj_t * pLeft, * pRight;
+    Aig_Obj_t * pLeftT, * pRightT;
+    Aig_Obj_t * pLeftF, * pRightF;
+    int i, f, Imp, Left, Right;
+    int fComplL, fComplR;
+    assert( p->nFramesAll == 1 );
+    assert( p->pManAig == pBmc->pAigFrames );
+    Vec_IntForEachEntry( pBmc->vImps, Imp, i )
+    {
+        if ( Imp == 0 )
+            continue;
+        Left = Fra_ImpLeft(Imp);
+        Right = Fra_ImpRight(Imp);
+        // get the corresponding nodes
+        pLeft  = Aig_ManObj( pBmc->pAig, Left );
+        pRight = Aig_ManObj( pBmc->pAig, Right );
+        // iterate through the timeframes
+        for ( f = pBmc->nPref; f < pBmc->nFramesAll; f++ )
+        {
+            // get timeframes nodes
+            pLeftT  = Bmc_ObjFrames( pLeft, f );
+            pRightT = Bmc_ObjFrames( pRight, f );
+            // get the corresponding FRAIG nodes
+            pLeftF  = Fra_ObjFraig( Aig_Regular(pLeftT), 0 );
+            pRightF = Fra_ObjFraig( Aig_Regular(pRightT), 0 );
+            // get the complemented attributes
+            fComplL = pLeft->fPhase ^ Aig_IsComplement(pLeftF) ^ Aig_IsComplement(pLeftT);
+            fComplR = pRight->fPhase ^ Aig_IsComplement(pRightF) ^ Aig_IsComplement(pRightT);
+            // check equality
+            if ( Aig_Regular(pLeftF) == Aig_Regular(pRightF) )
+            {
+                if ( fComplL != fComplR )
+                    Vec_IntWriteEntry( pBmc->vImps, i, 0 );
+                break;
+            }
+            // check the implication 
+            // - if true, a clause is added
+            // - if false, a cex is simulated
+            // make sure the implication is refined
+            if ( Fra_NodesAreImp( p, Aig_Regular(pLeftF), Aig_Regular(pRightF), fComplL, fComplR ) != 1 )
+            {
+                Vec_IntWriteEntry( pBmc->vImps, i, 0 );
+                break;
+            }
+        }
+    }
+    Fra_ImpCompactArray( pBmc->vImps );
+}
+
 
 /**Function*************************************************************
 
@@ -125,8 +189,6 @@ Fra_Bmc_t * Fra_BmcStart( Aig_Man_t * pAig, int nPref, int nDepth )
     p->nFramesAll = nPref + nDepth;
     p->pObjToFrames  = ALLOC( Aig_Obj_t *, p->nFramesAll * (Aig_ManObjIdMax(pAig) + 1) );
     memset( p->pObjToFrames, 0, sizeof(Aig_Obj_t *) * p->nFramesAll * (Aig_ManObjIdMax(pAig) + 1) );
-//    p->pObjToFraig  = ALLOC( Aig_Obj_t *, p->nFramesAll * (Aig_ManObjIdMax(pAig) + 1) );
-//    memset( p->pObjToFraig, 0, sizeof(Aig_Obj_t *) * p->nFramesAll * (Aig_ManObjIdMax(pAig) + 1) );
     return p;
 }
 
@@ -215,34 +277,6 @@ Aig_Man_t * Fra_BmcFrames( Fra_Bmc_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Constructs FRAIG manager for the initialized timeframes.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Aig_Man_t * Fra_BmcFraig( Fra_Bmc_t * p )
-{
-    Aig_Man_t * pFraig;
-    Fra_Par_t Pars, * pPars = &Pars; 
-    Fra_ParamsDefault( pPars );
-    pPars->nBTLimitNode = 100000;
-    pPars->fVerbose     = 0;
-    pPars->fProve       = 0;
-    pPars->fDoSparse    = 1;
-    pPars->fSpeculate   = 0;
-    pPars->fChoicing    = 0;
-    pFraig = Fra_FraigPerform( p->pAigFrames, pPars );
-    p->pObjToFraig = p->pAigFrames->pObjCopies;
-    p->pAigFrames->pObjCopies = NULL;
-    return pFraig;
-} 
-
-/**Function*************************************************************
-
   Synopsis    [Performs BMC for the given AIG.]
 
   Description []
@@ -255,12 +289,22 @@ Aig_Man_t * Fra_BmcFraig( Fra_Bmc_t * p )
 void Fra_BmcPerform( Fra_Man_t * p, int nPref, int nDepth )
 {
     Aig_Obj_t * pObj;
-    int i, clk = clock();
+    int i, nImpsOld, clk = clock();
     assert( p->pBmc == NULL );
     // derive and fraig the frames
     p->pBmc = Fra_BmcStart( p->pManAig, nPref, nDepth );
     p->pBmc->pAigFrames = Fra_BmcFrames( p->pBmc );
-    p->pBmc->pAigFraig = Fra_BmcFraig( p->pBmc );
+    // if implications are present, configure the AIG manager to check them
+    if ( p->pCla->vImps )
+    {
+        p->pBmc->pAigFrames->pImpFunc = Fra_BmcFilterImplications;
+        p->pBmc->pAigFrames->pImpData = p->pBmc;
+        p->pBmc->vImps = p->pCla->vImps;
+        nImpsOld = Vec_IntSize(p->pCla->vImps);
+    } 
+    p->pBmc->pAigFraig = Fra_FraigEquivence( p->pBmc->pAigFrames, 1000000 );
+    p->pBmc->pObjToFraig = p->pBmc->pAigFrames->pObjCopies;
+    p->pBmc->pAigFrames->pObjCopies = NULL;
     // annotate frames nodes with pointers to the manager
     Aig_ManForEachObj( p->pBmc->pAigFrames, pObj, i )
         pObj->pData = p;
@@ -271,19 +315,31 @@ void Fra_BmcPerform( Fra_Man_t * p, int nPref, int nDepth )
             Aig_ManNodeNum(p->pBmc->pAig), p->pBmc->nFramesAll, 
             Aig_ManNodeNum(p->pBmc->pAigFrames), Aig_ManNodeNum(p->pBmc->pAigFraig) );
         PRT( "Time", clock() - clk );
-        printf( "Before BMC: " );  Fra_ClassesPrint( p->pCla, 0 );
+        printf( "Before BMC: " );  
+//        Fra_ClassesPrint( p->pCla, 0 );
+        printf( "Const = %5d. Class = %5d. Lit = %5d. ", 
+            Vec_PtrSize(p->pCla->vClasses1), Vec_PtrSize(p->pCla->vClasses), Fra_ClassesCountLits(p->pCla) );
+        if ( p->pCla->vImps && Vec_IntSize(p->pCla->vImps) > 0 )
+            printf( "Imp = %5d. ", nImpsOld );
+        printf( "\n" );
     }
     // refine the classes
     p->pCla->pFuncNodeIsConst   = Fra_BmcNodeIsConst;
     p->pCla->pFuncNodesAreEqual = Fra_BmcNodesAreEqual;
     Fra_ClassesRefine( p->pCla );
-    Fra_ClassesRefine1( p->pCla );
+    Fra_ClassesRefine1( p->pCla, 1, NULL );
     p->pCla->pFuncNodeIsConst   = Fra_SmlNodeIsConst;
     p->pCla->pFuncNodesAreEqual = Fra_SmlNodesAreEqual;
     // report the results
     if ( p->pPars->fVerbose )
     {
-        printf( "After  BMC: " );  Fra_ClassesPrint( p->pCla, 0 );
+        printf( "After  BMC: " );  
+//        Fra_ClassesPrint( p->pCla, 0 );
+        printf( "Const = %5d. Class = %5d. Lit = %5d. ", 
+            Vec_PtrSize(p->pCla->vClasses1), Vec_PtrSize(p->pCla->vClasses), Fra_ClassesCountLits(p->pCla) );
+        if ( p->pCla->vImps && Vec_IntSize(p->pCla->vImps) > 0 )
+            printf( "Imp = %5d. ", Vec_IntSize(p->pCla->vImps) );
+        printf( "\n" );
     }
     // free the BMC manager
     Fra_BmcStop( p->pBmc );  

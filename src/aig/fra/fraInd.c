@@ -177,6 +177,61 @@ Aig_Man_t * Fra_FramesWithClasses( Fra_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Prepares the inductive case with speculative reduction.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fra_FramesAddMore( Aig_Man_t * p, int nFrames )
+{
+    Aig_Obj_t * pObj, ** pLatches;
+    int i, k, f, nNodesOld;
+    // set copy pointer of each object to point to itself
+    Aig_ManForEachObj( p, pObj, i )
+        pObj->pData = pObj;
+    // iterate and add objects
+    nNodesOld = Aig_ManObjIdMax(p);
+    pLatches = ALLOC( Aig_Obj_t *, Aig_ManRegNum(p) );
+    for ( f = 0; f < nFrames; f++ )
+    {
+        // clean latch inputs and outputs
+        Aig_ManForEachLiSeq( p, pObj, i )
+            pObj->pData = NULL;
+        Aig_ManForEachLoSeq( p, pObj, i )
+            pObj->pData = NULL;
+        // save the latch input values
+        k = 0;
+        Aig_ManForEachLiSeq( p, pObj, i )
+        {
+            if ( Aig_ObjFanin0(pObj)->pData )
+                pLatches[k++] = Aig_ObjChild0Copy(pObj);
+            else
+                pLatches[k++] = NULL;
+        }
+        // insert them as the latch output values
+        k = 0;
+        Aig_ManForEachLoSeq( p, pObj, i )
+            pObj->pData = pLatches[k++];
+        // create the next time frame of nodes
+        Aig_ManForEachNode( p, pObj, i )
+        {
+            if ( i > nNodesOld )
+                break;
+            if ( Aig_ObjFanin0(pObj)->pData && Aig_ObjFanin1(pObj)->pData )
+                pObj->pData = Aig_And( p, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+            else
+                pObj->pData = NULL;
+        }
+    }
+    free( pLatches );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs choicing of the AIG.]
 
   Description []
@@ -186,7 +241,7 @@ Aig_Man_t * Fra_FramesWithClasses( Fra_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesP, int nFramesK, int nMaxImps, int fRewrite, int fUseImps, int fLatchCorr, int fVerbose, int * pnIter )
+Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesP, int nFramesK, int nMaxImps, int fRewrite, int fUseImps, int fLatchCorr, int fWriteImps, int fVerbose, int * pnIter )
 {
     int fUseSimpleCnf = 0;
     int fUseOldSimulation = 0;
@@ -201,8 +256,9 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesP, int nFramesK,
     Aig_Obj_t * pObj;
     Cnf_Dat_t * pCnf;
     Aig_Man_t * pManAigNew;
-//    Vec_Int_t * vImps;
+    int nNodesBeg, nRegsBeg, Temp;
     int nIter, i, clk = clock(), clk2;
+
     if ( Aig_ManNodeNum(pManAig) == 0 )
     {
         if ( pnIter ) *pnIter = 0;
@@ -212,6 +268,12 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesP, int nFramesK,
     assert( Aig_ManRegNum(pManAig) > 0 );
     assert( nFramesK > 0 );
 //Aig_ManShow( pManAig, 0, NULL );
+ 
+    nNodesBeg = Aig_ManNodeNum(pManAig);
+    nRegsBeg  = Aig_ManRegNum(pManAig);
+
+    // enhance the AIG by adding timeframes
+//    Fra_FramesAddMore( pManAig, 3 );
 
     // get parameters
     Fra_ParamsDefaultSeq( pPars );
@@ -222,6 +284,7 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesP, int nFramesK,
     pPars->fRewrite   = fRewrite;
     pPars->fLatchCorr = fLatchCorr;
     pPars->fUseImps   = fUseImps;
+    pPars->fWriteImps = fWriteImps;
 
     // start the fraig manager for this run
     p = Fra_ManStart( pManAig, pPars );
@@ -255,19 +318,19 @@ PRT( "Time", clock() - clk );
         p->pSml = Fra_SmlStart( pManAig, 0, pPars->nFramesK + 1, pPars->nSimWords );
     }
 
-    // perform BMC (for the min number of frames)
-    Fra_BmcPerform( p, pPars->nFramesP, pPars->nFramesK );
-//Fra_ClassesPrint( p->pCla, 1 );
-//    p->vCex = Vec_IntAlloc( 1000 );
-
     // select the most expressive implications
     if ( pPars->fUseImps )
         p->pCla->vImps = Fra_ImpDerive( p, 5000000, pPars->nMaxImps, pPars->fLatchCorr );
- 
-    p->nLitsZero = Vec_PtrSize( p->pCla->vClasses1 );
+
+    // perform BMC (for the min number of frames)
+    Fra_BmcPerform( p, pPars->nFramesP, pPars->nFramesK+1 ); // +1 is needed to prevent non-refinement
+//Fra_ClassesPrint( p->pCla, 1 );
+//    if ( p->vCex == NULL )
+//        p->vCex = Vec_IntAlloc( 1000 );
+
     p->nLitsBeg  = Fra_ClassesCountLits( p->pCla );
-    p->nNodesBeg = Aig_ManNodeNum(pManAig);
-    p->nRegsBeg  = Aig_ManRegNum(pManAig);
+    p->nNodesBeg = nNodesBeg; // Aig_ManNodeNum(pManAig);
+    p->nRegsBeg  = nRegsBeg; // Aig_ManRegNum(pManAig);
 
     // dump AIG of the timeframes
 //    pManAigNew = Fra_ClassesDeriveAig( p->pCla, pPars->nFramesK );
@@ -279,6 +342,8 @@ PRT( "Time", clock() - clk );
     p->pCla->fRefinement = 1;
     for ( nIter = 0; p->pCla->fRefinement; nIter++ )
     {
+        int nLitsOld = Fra_ClassesCountLits(p->pCla);
+        int nImpsOld = p->pCla->vImps? Vec_IntSize(p->pCla->vImps) : 0;
         // mark the classes as non-refined
         p->pCla->fRefinement = 0;
         // derive non-init K-timeframes while implementing e-classes
@@ -325,13 +390,13 @@ PRT( "Time", clock() - clk );
         // report the intermediate results
         if ( fVerbose )
         {
-            printf( "%3d : Const = %6d. Class = %6d.  L = %6d. LR = %6d.  %s = %6d. NR = %6d.\n", 
+            printf( "%3d : Const = %6d. Class = %6d.  L = %6d. LR = %6d.  ", 
                 nIter, Vec_PtrSize(p->pCla->vClasses1), Vec_PtrSize(p->pCla->vClasses), 
-                Fra_ClassesCountLits(p->pCla), p->pManFraig->nAsserts,
-                p->pCla->vImps? "I" : "N", 
-                p->pCla->vImps? Vec_IntSize(p->pCla->vImps) : Aig_ManNodeNum(p->pManAig), 
-                Aig_ManNodeNum(p->pManFraig) );
-        }
+                Fra_ClassesCountLits(p->pCla), p->pManFraig->nAsserts );
+            if ( p->pCla->vImps )
+                printf( "I = %6d. ", Vec_IntSize(p->pCla->vImps) );
+            printf( "NR = %6d.\n", Aig_ManNodeNum(p->pManFraig) );
+        } 
 
         // perform sweeping
         p->nSatCallsRecent = 0;
@@ -341,18 +406,40 @@ PRT( "Time", clock() - clk );
         assert( p->vTimeouts == NULL );
         if ( p->vTimeouts )
            printf( "Fra_FraigInduction(): SAT solver timed out!\n" );
-
         // cleanup
         Fra_ManClean( p );
-//        if ( nIter == 3 )
-//            break;
+        // check if refinement has happened
+//        p->pCla->fRefinement = (int)(nLitsOld != Fra_ClassesCountLits(p->pCla));
+        if ( p->pCla->fRefinement && 
+            nLitsOld == Fra_ClassesCountLits(p->pCla) && 
+            nImpsOld == (p->pCla->vImps? Vec_IntSize(p->pCla->vImps) : 0) )
+        {
+            printf( "Fra_FraigInduction(): Internal error. The result may not verify.\n" );
+            break;
+        }
     }
-//    Fra_ClassesPrint( p->pCla, 1 );
-//    Fra_ClassesSelectRepr( p->pCla );
+    // check implications using simulation
+    if ( p->pCla->vImps && Vec_IntSize(p->pCla->vImps) )
+    {
+        int clk = clock();
+        if ( Temp = Fra_ImpVerifyUsingSimulation( p ) )
+            printf( "Implications failing the simulation test = %d (out of %d).  ", Temp, Vec_IntSize(p->pCla->vImps) );
+        else
+            printf( "All %d implications have passed the simulation test.  ", Vec_IntSize(p->pCla->vImps) );
+        PRT( "Time", clock() - clk );
+    }
+
+
     // move the classes into representatives and reduce AIG
 clk2 = clock();
+//    Fra_ClassesPrint( p->pCla, 1 );
+    Fra_ClassesSelectRepr( p->pCla );
     Fra_ClassesCopyReprs( p->pCla, p->vTimeouts );
     pManAigNew = Aig_ManDupRepr( pManAig );
+    // add implications to the manager
+    if ( fWriteImps && p->pCla->vImps && Vec_IntSize(p->pCla->vImps) )
+        Fra_ImpRecordInManager( p, pManAigNew );
+    // cleanup the new manager
     Aig_ManSeqCleanup( pManAigNew );
 //    Aig_ManCountMergeRegs( pManAigNew );
 p->timeTrav += clock() - clk2;

@@ -321,7 +321,7 @@ Vec_Vec_t * Aig_ManSupports( Aig_Man_t * pMan )
         }
         assert( 0 );
     }
-printf( "Memory usage = %d Mb.\n", Vec_PtrSize(p->vMemory) * p->nChunkSize / (1<<20) );
+//printf( "Memory usage = %d Mb.\n", Vec_PtrSize(p->vMemory) * p->nChunkSize / (1<<20) );
     Part_ManStop( p );
     // sort supports by size
     Vec_VecSort( vSupps, 1 );

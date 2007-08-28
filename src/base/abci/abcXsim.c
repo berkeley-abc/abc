@@ -103,7 +103,7 @@ static inline void Abc_XsimPrint( FILE * pFile, int Value )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkXValueSimulate( Abc_Ntk_t * pNtk, int nFrames, int fInputs, int fVerbose )
+void Abc_NtkXValueSimulate( Abc_Ntk_t * pNtk, int nFrames, int fXInputs, int fXState, int fVerbose )
 {
     Abc_Obj_t * pObj;
     int i, f;
@@ -111,19 +111,25 @@ void Abc_NtkXValueSimulate( Abc_Ntk_t * pNtk, int nFrames, int fInputs, int fVer
     srand( 0x12341234 );
     // start simulation
     Abc_ObjSetXsim( Abc_AigConst1(pNtk), XVS1 );
-    if ( fInputs )
+    if ( fXInputs )
     {
         Abc_NtkForEachPi( pNtk, pObj, i )
             Abc_ObjSetXsim( pObj, XVSX );
-        Abc_NtkForEachLatch( pNtk, pObj, i )
-            Abc_ObjSetXsim( Abc_ObjFanout0(pObj), Abc_LatchInit(pObj) );
     }
     else
     {
         Abc_NtkForEachPi( pNtk, pObj, i )
             Abc_ObjSetXsim( pObj, Abc_XsimRand2() );
+    }
+    if ( fXState )
+    {
         Abc_NtkForEachLatch( pNtk, pObj, i )
             Abc_ObjSetXsim( Abc_ObjFanout0(pObj), XVSX );
+    }
+    else
+    {
+        Abc_NtkForEachLatch( pNtk, pObj, i )
+            Abc_ObjSetXsim( Abc_ObjFanout0(pObj), Abc_LatchInit(pObj) );
     }
     // simulate and print the result
     fprintf( stdout, "Frame : Inputs : Latches : Outputs\n" );
@@ -147,14 +153,24 @@ void Abc_NtkXValueSimulate( Abc_Ntk_t * pNtk, int nFrames, int fInputs, int fVer
         fprintf( stdout, " : " );
         Abc_NtkForEachPo( pNtk, pObj, i )
             Abc_XsimPrint( stdout, Abc_ObjGetXsim(pObj) );
+        if ( Abc_NtkAssertNum(pNtk) )
+        {
+        fprintf( stdout, " : " );
+        Abc_NtkForEachAssert( pNtk, pObj, i )
+            Abc_XsimPrint( stdout, Abc_ObjGetXsim(pObj) );
+        }
         fprintf( stdout, "\n" );
         // assign input values
-        if ( fInputs )
+        if ( fXInputs )
+        {
             Abc_NtkForEachPi( pNtk, pObj, i )
                 Abc_ObjSetXsim( pObj, XVSX );
+        }
         else
+        {
             Abc_NtkForEachPi( pNtk, pObj, i )
                 Abc_ObjSetXsim( pObj, Abc_XsimRand2() );
+        }
         // transfer the latch values
         Abc_NtkForEachLatch( pNtk, pObj, i )
             Abc_ObjSetXsim( Abc_ObjFanout0(pObj), Abc_ObjGetXsim(Abc_ObjFanin0(pObj)) );

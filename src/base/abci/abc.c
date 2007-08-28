@@ -123,6 +123,7 @@ static int Abc_CommandIFraig         ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandDFraig         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCSweep         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandHaig           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMini           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBmc            ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -166,6 +167,7 @@ static int Abc_CommandRetime         ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandSeqFpga        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSeqMap         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSeqSweep       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandLcorr          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSeqCleanup     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCycle          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandXsim           ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -326,12 +328,11 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Sequential",   "init",          Abc_CommandInit,             1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "zero",          Abc_CommandZero,             1 );
 //    Cmd_CommandAdd( pAbc, "Sequential",   "pipe",          Abc_CommandPipe,             1 );
-//    Cmd_CommandAdd( pAbc, "Sequential",   "seq",           Abc_CommandSeq,              1 );
-//    Cmd_CommandAdd( pAbc, "Sequential",   "unseq",         Abc_CommandUnseq,            1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "retime",        Abc_CommandRetime,           1 );
 //    Cmd_CommandAdd( pAbc, "Sequential",   "sfpga",         Abc_CommandSeqFpga,          1 );
 //    Cmd_CommandAdd( pAbc, "Sequential",   "smap",          Abc_CommandSeqMap,           1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "ssweep",        Abc_CommandSeqSweep,         1 );
+    Cmd_CommandAdd( pAbc, "Sequential",   "lcorr",         Abc_CommandLcorr,            1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "scleanup",      Abc_CommandSeqCleanup,       1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "cycle",         Abc_CommandCycle,            1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "xsim",          Abc_CommandXsim,             0 );
@@ -339,6 +340,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "cec",           Abc_CommandCec,              0 );
     Cmd_CommandAdd( pAbc, "Verification", "sec",           Abc_CommandSec,              0 );
     Cmd_CommandAdd( pAbc, "Verification", "dsec",          Abc_CommandDSec,             0 );
+    Cmd_CommandAdd( pAbc, "Verification", "dprove",        Abc_CommandDProve,           0 );
     Cmd_CommandAdd( pAbc, "Verification", "sat",           Abc_CommandSat,              0 );
     Cmd_CommandAdd( pAbc, "Verification", "dsat",          Abc_CommandDSat,             0 );
     Cmd_CommandAdd( pAbc, "Verification", "prove",         Abc_CommandProve,            1 );
@@ -2588,22 +2590,34 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
     p = ALLOC( Fxu_Data_t, 1 );
     memset( p, 0, sizeof(Fxu_Data_t) );
     // set the defaults
-    p->nPairsMax = 30000;
-    p->nNodesExt = 10000;
-    p->fOnlyS    = 0;
-    p->fOnlyD    = 0;
-    p->fUse0     = 0;
-    p->fUseCompl = 1;
-    p->fVerbose  = 0;
+    p->nSingleMax = 20000;
+    p->nPairsMax  = 30000;
+    p->nNodesExt  = 10000;
+    p->fOnlyS     = 0;
+    p->fOnlyD     = 0;
+    p->fUse0      = 0;
+    p->fUseCompl  = 1;
+    p->fVerbose   = 0;
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "LNsdzcvh")) != EOF ) 
+    while ( (c = Extra_UtilGetopt(argc, argv, "SDNsdzcvh")) != EOF ) 
     {
         switch (c) 
         {
-            case 'L':
+            case 'S':
                 if ( globalUtilOptind >= argc )
                 {
-                    fprintf( pErr, "Command line switch \"-L\" should be followed by an integer.\n" );
+                    fprintf( pErr, "Command line switch \"-S\" should be followed by an integer.\n" );
+                    goto usage;
+                }
+                p->nSingleMax = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                if ( p->nSingleMax < 0 ) 
+                    goto usage;
+                break;
+            case 'D':
+                if ( globalUtilOptind >= argc )
+                {
+                    fprintf( pErr, "Command line switch \"-D\" should be followed by an integer.\n" );
                     goto usage;
                 }
                 p->nPairsMax = atoi(argv[globalUtilOptind]);
@@ -2643,7 +2657,7 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
             default:
                 goto usage;
         }
-    }
+    } 
 
     if ( pNtk == NULL )
     {
@@ -2673,10 +2687,11 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: fx [-N num] [-L num] [-sdzcvh]\n");
+    fprintf( pErr, "usage: fx [-S num] [-D num] [-N num] [-sdzcvh]\n");
     fprintf( pErr, "\t         performs unate fast extract on the current network\n");
+    fprintf( pErr, "\t-S num : max number of single-cube divisors to consider [default = %d]\n", p->nSingleMax );  
+    fprintf( pErr, "\t-D num : max number of double-cube divisors to consider [default = %d]\n", p->nPairsMax );  
     fprintf( pErr, "\t-N num : the maximum number of divisors to extract [default = %d]\n", p->nNodesExt );  
-    fprintf( pErr, "\t-L num : the maximum number of cube pairs to consider [default = %d]\n", p->nPairsMax );  
     fprintf( pErr, "\t-s     : use only single-cube divisors [default = %s]\n", p->fOnlyS? "yes": "no" );  
     fprintf( pErr, "\t-d     : use only double-cube divisors [default = %s]\n", p->fOnlyD? "yes": "no" );  
     fprintf( pErr, "\t-z     : use zero-weight divisors [default = %s]\n", p->fUse0? "yes": "no" );  
@@ -6175,7 +6190,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nLevels = 128;
+    nLevels = 1000;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Nh" ) ) != EOF )
     {
@@ -6293,7 +6308,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
 //    pNtkRes = Abc_NtkDar( pNtk );
-    pNtkRes = Abc_NtkDarRetime( pNtk, 1000, 1 );
+    pNtkRes = Abc_NtkDarRetime( pNtk, nLevels, 1 );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
@@ -8674,7 +8689,7 @@ int Abc_CommandFraigDress( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fVerbose = 1;
+    fVerbose = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
     {
@@ -10975,12 +10990,12 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nFramesP;
     int nFramesK;
     int nMaxImps;
-    int fExdc;
     int fUseImps;
     int fRewrite;
     int fLatchCorr;
+    int fWriteImps;
     int fVerbose;
-    extern Abc_Ntk_t * Abc_NtkDarSeqSweep( Abc_Ntk_t * pNtk, int nFramesP, int nFrames, int nMaxImps, int fRewrite, int fUseImps, int fLatchCorr, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkDarSeqSweep( Abc_Ntk_t * pNtk, int nFramesP, int nFrames, int nMaxImps, int fRewrite, int fUseImps, int fLatchCorr, int fWriteImps, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -10990,13 +11005,13 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     nFramesP   = 0;
     nFramesK   = 1;
     nMaxImps   = 5000;
-    fExdc      = 1;
     fUseImps   = 0;
     fRewrite   = 0;
     fLatchCorr = 0;
+    fWriteImps = 0;
     fVerbose   = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PFIeirlvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PFIirlevh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -11033,9 +11048,6 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nMaxImps <= 0 ) 
                 goto usage;
             break;
-        case 'e':
-            fExdc ^= 1;
-            break;
         case 'i':
             fUseImps ^= 1;
             break;
@@ -11044,6 +11056,9 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'l':
             fLatchCorr ^= 1;
+            break;
+        case 'e':
+            fWriteImps ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -11069,12 +11084,12 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( !Abc_NtkIsStrash(pNtk) )
     {
-        fprintf( pErr, "Sequential sweep works only for structurally hashed networks (run \"strash\").\n" );
-        return 1;
+        printf( "This command works only for structrally hashed networks. Run \"st\".\n" );
+        return 0;
     }
 
     // get the new network
-    pNtkRes = Abc_NtkDarSeqSweep( pNtk, nFramesP, nFramesK, nMaxImps, fRewrite, fUseImps, fLatchCorr, fVerbose );
+    pNtkRes = Abc_NtkDarSeqSweep( pNtk, nFramesP, nFramesK, nMaxImps, fRewrite, fUseImps, fLatchCorr, fWriteImps, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Sequential sweeping has failed.\n" );
@@ -11085,15 +11100,120 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: ssweep [-P num] [-F num] [-I num] [-ilrvh]\n" );
+    fprintf( pErr, "usage: ssweep [-P num] [-F num] [-I num] [-ilrevh]\n" );
     fprintf( pErr, "\t         performs sequential sweep using K-step induction\n" );
     fprintf( pErr, "\t-P num : number of time frames to use as the prefix [default = %d]\n", nFramesP );
     fprintf( pErr, "\t-F num : number of time frames for induction (1=simple) [default = %d]\n", nFramesK );
     fprintf( pErr, "\t-I num : max number of implications to consider [default = %d]\n", nMaxImps );
-//    fprintf( pErr, "\t-e     : toggle writing EXDC network [default = %s]\n", fExdc? "yes": "no" );
     fprintf( pErr, "\t-i     : toggle using implications [default = %s]\n", fUseImps? "yes": "no" );
     fprintf( pErr, "\t-l     : toggle latch correspondence only [default = %s]\n", fLatchCorr? "yes": "no" );
     fprintf( pErr, "\t-r     : toggle AIG rewriting [default = %s]\n", fRewrite? "yes": "no" );
+    fprintf( pErr, "\t-e     : toggle writing implications as assertions [default = %s]\n", fWriteImps? "yes": "no" );
+    fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandLcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c;
+    int nFramesP;
+    int nConfMax;
+    int fVerbose;
+    extern Abc_Ntk_t * Abc_NtkDarLcorr( Abc_Ntk_t * pNtk, int nFramesP, int nConfMax, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    nFramesP   = 0;
+    nConfMax   = 10000;
+    fVerbose   = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PCvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFramesP = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFramesP < 0 ) 
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nConfMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nConfMax < 0 ) 
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( Abc_NtkIsComb(pNtk) )
+    {
+        fprintf( pErr, "The network is combinational (run \"fraig\" or \"fraig_sweep\").\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        printf( "This command works only for structrally hashed networks. Run \"st\".\n" );
+        return 0;
+    }
+
+    // get the new network
+    pNtkRes = Abc_NtkDarLcorr( pNtk, nFramesP, nConfMax, fVerbose );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Sequential sweeping has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: lcorr [-P num] [-C num] [-vh]\n" );
+    fprintf( pErr, "\t         computes latch correspondence using 1-step induction\n" );
+    fprintf( pErr, "\t-P num : number of time frames to use as the prefix [default = %d]\n", nFramesP );
+    fprintf( pErr, "\t-C num : max conflict number when proving latch equivalence [default = %d]\n", nConfMax );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -11113,12 +11233,12 @@ usage:
 int Abc_CommandSeqCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
-    Abc_Ntk_t * pNtk, * pNtkRes, * pTemp;
+    Abc_Ntk_t * pNtk, * pNtkRes;
     int c;
     int fLatchSweep;
     int fAutoSweep;
     int fVerbose;
-    extern Abc_Ntk_t * Abc_NtkDarLatchSweep( Abc_Ntk_t * pNtk, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkDarLatchSweep( Abc_Ntk_t * pNtk, int fLatchSweep, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -11153,23 +11273,13 @@ int Abc_CommandSeqCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Empty network.\n" );
         return 1;
     }
-    if ( !Abc_NtkIsLogic(pNtk) )
+    if ( !Abc_NtkIsStrash(pNtk) )
     {
-        fprintf( pErr, "Only works for logic networks.\n" );
+        fprintf( pErr, "Only works for structrally hashed networks.\n" );
         return 1;
     }
     // modify the current network
-
-    // get the new network
-    pNtkRes = Abc_NtkDup( pNtk ); 
-    Abc_NtkCleanupSeq( pNtkRes, 0, fAutoSweep, fVerbose );
-    if ( fLatchSweep )
-    {
-        pNtkRes = Abc_NtkStrash( pTemp = pNtkRes, 0, 0, 0 );
-        Abc_NtkDelete( pTemp );
-        pNtkRes = Abc_NtkDarLatchSweep( pTemp = pNtkRes, fVerbose );
-        Abc_NtkDelete( pTemp );
-    }
+    pNtkRes = Abc_NtkDarLatchSweep( pNtk, fLatchSweep, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Sequential cleanup has failed.\n" );
@@ -11180,14 +11290,14 @@ int Abc_CommandSeqCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: scleanup [-lavh]\n" );
+    fprintf( pErr, "usage: scleanup [-lvh]\n" );
     fprintf( pErr, "\t         performs sequential cleanup\n" );
     fprintf( pErr, "\t         - removes nodes/latches that do not feed into POs\n" );
     fprintf( pErr, "\t         - removes stuck-at and identical latches (latch sweep)\n" );
-    fprintf( pErr, "\t         - replaces autonomous logic by free PI variables\n" );
+//    fprintf( pErr, "\t         - replaces autonomous logic by free PI variables\n" );
     fprintf( pErr, "\t           (the latter may change sequential behaviour)\n" );
     fprintf( pErr, "\t-l     : toggle sweeping latches [default = %s]\n", fLatchSweep? "yes": "no" );
-    fprintf( pErr, "\t-a     : toggle removing autonomous logic [default = %s]\n", fAutoSweep? "yes": "no" );
+//    fprintf( pErr, "\t-a     : toggle removing autonomous logic [default = %s]\n", fAutoSweep? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -11291,9 +11401,10 @@ int Abc_CommandXsim( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk;
     int c;
     int nFrames;
-    int fInputs;
+    int fXInputs;
+    int fXState;
     int fVerbose;
-    extern void Abc_NtkXValueSimulate( Abc_Ntk_t * pNtk, int nFrames, int fInputs, int fVerbose );
+    extern void Abc_NtkXValueSimulate( Abc_Ntk_t * pNtk, int nFrames, int fXInputs, int fXState, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -11301,10 +11412,11 @@ int Abc_CommandXsim( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     nFrames    = 10;
-    fInputs    =  0;
+    fXInputs   =  0;
+    fXState    =  0;
     fVerbose   =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Fivh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Fisvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -11320,7 +11432,10 @@ int Abc_CommandXsim( Abc_Frame_t * pAbc, int argc, char ** argv )
                 goto usage;
             break;
         case 'i':
-            fInputs ^= 1;
+            fXInputs ^= 1;
+            break;
+        case 's':
+            fXState ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -11343,14 +11458,15 @@ int Abc_CommandXsim( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    Abc_NtkXValueSimulate( pNtk, nFrames, fInputs, fVerbose );
+    Abc_NtkXValueSimulate( pNtk, nFrames, fXInputs, fXState, fVerbose );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: xsim [-F num] [-ivh]\n" );
+    fprintf( pErr, "usage: xsim [-F num] [-isvh]\n" );
     fprintf( pErr, "\t         performs X-valued simulation of the AIG\n" );
     fprintf( pErr, "\t-F num : the number of frames to simulate [default = %d]\n", nFrames );
-    fprintf( pErr, "\t-i     : toggle X-valued state or X-valued inputs [default = %s]\n", fInputs? "inputs": "state" );
+    fprintf( pErr, "\t-i     : toggle X-valued representation of inputs [default = %s]\n", fXInputs? "yes": "no" );
+    fprintf( pErr, "\t-s     : toggle X-valued representation of state [default = %s]\n", fXState? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -11674,11 +11790,12 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     char ** pArgvNew;
     int nArgcNew;
     int c;
+    int fRetimeFirst;
     int fVerbose;
     int fVeryVerbose;
     int nFrames;
 
-    extern int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames, int fVerbose, int fVeryVerbose );
+    extern int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames, int fRetimeFirst, int fVerbose, int fVeryVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -11686,10 +11803,11 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     nFrames      = 0; // if 0, iterates through frames
-    fVerbose     = 1;
+    fRetimeFirst = 1;
+    fVerbose     = 0;
     fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Fwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Frwvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -11703,6 +11821,9 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( nFrames <= 0 ) 
                 goto usage;
+            break;
+        case 'r':
+            fRetimeFirst ^= 1;
             break;
         case 'w':
             fVeryVerbose ^= 1;
@@ -11727,18 +11848,19 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // perform verification
-    Abc_NtkDarSec( pNtk1, pNtk2, nFrames, fVerbose, fVeryVerbose );
+    Abc_NtkDarSec( pNtk1, pNtk2, nFrames, fRetimeFirst, fVerbose, fVeryVerbose );
 
     if ( fDelete1 ) Abc_NtkDelete( pNtk1 );
     if ( fDelete2 ) Abc_NtkDelete( pNtk2 );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: dsec [-F num] [-wvh] <file1> <file2>\n" );
+    fprintf( pErr, "usage: dsec [-F num] [-rwvh] <file1> <file2>\n" );
     fprintf( pErr, "\t         performs inductive sequential equivalence checking\n" );
     fprintf( pErr, "\t-F num : the number of time frames to use [default = %d]\n", nFrames );
-    fprintf( pErr, "\t-w     : toggles additional verbose output [default = %s]\n", fVeryVerbose? "yes": "no" );
+    fprintf( pErr, "\t-r     : toggles forward retiming at the beginning [default = %s]\n", fRetimeFirst? "yes": "no" );
     fprintf( pErr, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-w     : toggles additional verbose output [default = %s]\n", fVeryVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     fprintf( pErr, "\tfile1  : (optional) the file with the first network\n");
     fprintf( pErr, "\tfile2  : (optional) the file with the second network\n");
@@ -11746,6 +11868,95 @@ usage:
     fprintf( pErr, "\t         if one file is given, uses the current network and the file\n");
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+    int fRetimeFirst;
+    int fVerbose;
+    int fVeryVerbose;
+    int nFrames;
+
+    extern int Abc_NtkDarProve( Abc_Ntk_t * pNtk, int nFrames, int fRetimeFirst, int fVerbose, int fVeryVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    nFrames      = 0; // if 0, iterates through frames
+    fRetimeFirst = 1;
+    fVerbose     = 0;
+    fVeryVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Frwvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFrames = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFrames <= 0 ) 
+                goto usage;
+            break;
+        case 'r':
+            fRetimeFirst ^= 1;
+            break;
+        case 'w':
+            fVeryVerbose ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( Abc_NtkLatchNum(pNtk) == 0 )
+    {
+        printf( "The network has no latches. Used combinational command \"iprove\".\n" );
+        return 0;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        printf( "This command works only for structrally hashed networks. Run \"st\".\n" );
+        return 0;
+    }
+
+    // perform verification
+    Abc_NtkDarProve( pNtk, nFrames, fRetimeFirst, fVerbose, fVeryVerbose );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: dprove [-F num] [-rwvh]\n" );
+    fprintf( pErr, "\t         performs SEC on the sequential miter\n" );
+    fprintf( pErr, "\t-F num : the number of time frames to use [default = %d]\n", nFrames );
+    fprintf( pErr, "\t-r     : toggles forward retiming at the beginning [default = %s]\n", fRetimeFirst? "yes": "no" );
+    fprintf( pErr, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-w     : toggles additional verbose output [default = %s]\n", fVeryVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
 /**Function*************************************************************
 
   Synopsis    []

@@ -662,7 +662,7 @@ void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName )
 {
     FILE * pFile;
     Vec_Ptr_t * vNodes;
-    Aig_Obj_t * pObj, * pConst1 = NULL;
+    Aig_Obj_t * pObj, * pObjLi, * pObjLo, * pConst1 = NULL;
     int i, nDigits, Counter = 0;
     if ( Aig_ManPoNum(p) == 0 )
     {
@@ -687,14 +687,22 @@ void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName )
     fprintf( pFile, ".model test\n" );
     // write PIs
     fprintf( pFile, ".inputs" );
-    Aig_ManForEachPi( p, pObj, i )
+    Aig_ManForEachPiSeq( p, pObj, i )
         fprintf( pFile, " n%0*d", nDigits, (int)pObj->pData );
     fprintf( pFile, "\n" );
     // write POs
     fprintf( pFile, ".outputs" );
-    Aig_ManForEachPo( p, pObj, i )
+    Aig_ManForEachPoSeq( p, pObj, i )
         fprintf( pFile, " n%0*d", nDigits, (int)pObj->pData );
     fprintf( pFile, "\n" );
+    // write latches
+    if ( Aig_ManRegNum(p) )
+    {
+    fprintf( pFile, "\n" );
+    Aig_ManForEachLiLoSeq( p, pObjLi, pObjLo, i )
+        fprintf( pFile, ".latch n%0*d n%0*d 0\n", nDigits, (int)pObjLi->pData, nDigits, (int)pObjLo->pData );
+    fprintf( pFile, "\n" );
+    }
     // write nodes
     Vec_PtrForEachEntry( vNodes, pObj, i )
     {

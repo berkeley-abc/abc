@@ -181,6 +181,8 @@ Aig_Man_t * Fra_ManPrepareComb( Fra_Man_t * p )
     assert( p->pManFraig == NULL );
     // start the fraig package
     pManFraig = Aig_ManStart( Aig_ManObjIdMax(p->pManAig) + 1 );
+    pManFraig->nRegs    = p->pManAig->nRegs;
+    pManFraig->nAsserts = p->pManAig->nAsserts;
     // set the pointers to the available fraig nodes
     Fra_ObjSetFraig( Aig_ManConst1(p->pManAig), 0, Aig_ManConst1(pManFraig) );
     Aig_ManForEachPi( p->pManAig, pObj, i )
@@ -271,9 +273,9 @@ void Fra_ManPrint( Fra_Man_t * p )
 {
     double nMemory = 1.0*Aig_ManObjIdMax(p->pManAig)*(p->pSml->nWordsTotal*sizeof(unsigned)+6*sizeof(void*))/(1<<20);
     printf( "SimWord = %d. Round = %d.  Mem = %0.2f Mb.  LitBeg = %d.  LitEnd = %d. (%6.2f %%).\n", 
-        p->pPars->nSimWords, p->pSml->nSimRounds, nMemory, p->nLitsBeg, p->nLitsEnd, 100.0*p->nLitsEnd/p->nLitsBeg );
-    printf( "Proof = %d. Cex = %d. Fail = %d. FailReal = %d. Zero = %d. C-lim = %d. Vars = %d.\n", 
-        p->nSatProof, p->nSatCallsSat, p->nSatFails, p->nSatFailsReal, p->nLitsZero, p->pPars->nBTLimitNode, p->nSatVars );
+        p->pPars->nSimWords, p->pSml->nSimRounds, nMemory, p->nLitsBeg, p->nLitsEnd, 100.0*p->nLitsEnd/(p->nLitsBeg?p->nLitsBeg:1) );
+    printf( "Proof = %d. Cex = %d. Fail = %d. FailReal = %d. C-lim = %d. ImpRatio = %6.2f %%\n", 
+        p->nSatProof, p->nSatCallsSat, p->nSatFails, p->nSatFailsReal, p->pPars->nBTLimitNode, Fra_ImpComputeStateSpaceRatio(p) );
     printf( "NBeg = %d. NEnd = %d. (Gain = %6.2f %%).  RBeg = %d. REnd = %d. (Gain = %6.2f %%).\n", 
         p->nNodesBeg, p->nNodesEnd, 100.0*(p->nNodesBeg-p->nNodesEnd)/p->nNodesBeg, 
         p->nRegsBeg, p->nRegsEnd, 100.0*(p->nRegsBeg-p->nRegsEnd)/p->nRegsBeg );

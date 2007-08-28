@@ -869,6 +869,7 @@ extern void *             Abc_NtkAttrFree( Abc_Ntk_t * pNtk, int Attr, int fFree
 extern void               Abc_NtkIncrementTravId( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkOrderCisCos( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkGetCubeNum( Abc_Ntk_t * pNtk );
+extern int                Abc_NtkGetCubePairNum( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkGetLitNum( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkGetLitFactNum( Abc_Ntk_t * pNtk );
 extern int                Abc_NtkGetBddNodeNum( Abc_Ntk_t * pNtk );

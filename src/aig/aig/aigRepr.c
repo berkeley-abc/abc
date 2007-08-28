@@ -253,7 +253,7 @@ Aig_Obj_t * Aig_ManDupRepr_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t * pOb
 ***********************************************************************/
 Aig_Man_t * Aig_ManDupRepr( Aig_Man_t * p )
 {
-    int fOrdered = 1;
+    int fOrdered = 0;
     Aig_Man_t * pNew;
     Aig_Obj_t * pObj;
     int i;

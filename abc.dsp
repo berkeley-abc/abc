@@ -2586,6 +2586,10 @@ SOURCE=.\src\aig\fra\fraInd.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\fra\fraLcr.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\fra\fraMan.c
 # End Source File
 # Begin Source File
@@ -2791,6 +2795,10 @@ SOURCE=.\src\aig\aig\aigRepr.c
 # Begin Source File
 
 SOURCE=.\src\aig\aig\aigRet.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\aig\aigScl.c
 # End Source File
 # Begin Source File
 

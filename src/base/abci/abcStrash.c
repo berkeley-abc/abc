@@ -233,7 +233,8 @@ int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fAddPos )
     // perform strashing
     nNewCis = 0;
     Abc_NtkCleanCopy( pNtk2 );
-    Abc_AigConst1(pNtk2)->pCopy = Abc_AigConst1(pNtk1);
+    if ( Abc_NtkIsStrash(pNtk2) )
+        Abc_AigConst1(pNtk2)->pCopy = Abc_AigConst1(pNtk1);
     Abc_NtkForEachCi( pNtk2, pObj, i )
     {
         pName = Abc_ObjName(pObj);

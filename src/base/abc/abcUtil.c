@@ -148,6 +148,33 @@ int Abc_NtkGetCubeNum( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
+  Synopsis    [Reads the number of cubes of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkGetCubePairNum( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNode;
+    int i, nCubes, nCubePairs = 0;
+    assert( Abc_NtkHasSop(pNtk) );
+    Abc_NtkForEachNode( pNtk, pNode, i )
+    {
+        if ( Abc_NodeIsConst(pNode) )
+            continue;
+        assert( pNode->pData );
+        nCubes = Abc_SopGetCubeNum( pNode->pData );
+        nCubePairs += nCubes * (nCubes - 1) / 2;
+    }
+    return nCubePairs;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Reads the number of literals in the SOPs of the nodes.]
 
   Description []

@@ -213,6 +213,9 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
     printf( "Total nodes = %6d   %6.2f Mb   Changes = %6d.\n", 
         s_TotalNodes, s_TotalNodes * 20.0 / (1<<20), s_TotalChanges );
 */
+
+//    if ( Abc_NtkHasSop(pNtk) )
+//        printf( "The total number of cube pairs = %d.\n", Abc_NtkGetCubePairNum(pNtk) );
 }
 
 /**Function*************************************************************
