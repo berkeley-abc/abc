@@ -143,6 +143,7 @@ static inline int             Kit_DsdLitRegular( int Lit )           { return Li
  
 static inline unsigned        Kit_DsdObjOffset( int nFans )          { return (nFans >> 2) + ((nFans & 3) > 0);                    }
 static inline unsigned *      Kit_DsdObjTruth( Kit_DsdObj_t * pObj ) { return pObj->Type == KIT_DSD_PRIME ? (unsigned *)pObj->pFans + pObj->Offset: NULL; }
+static inline int             Kit_DsdNtkObjNum( Kit_DsdNtk_t * pNtk ){ return pNtk->nVars + pNtk->nNodes; }
 static inline Kit_DsdObj_t *  Kit_DsdNtkObj( Kit_DsdNtk_t * pNtk, int Id )      { assert( Id >= 0 && Id < pNtk->nVars + pNtk->nNodes ); return Id < pNtk->nVars ? NULL : pNtk->pNodes[Id - pNtk->nVars]; }
 static inline Kit_DsdObj_t *  Kit_DsdNtkRoot( Kit_DsdNtk_t * pNtk )             { return Kit_DsdNtkObj( pNtk, Kit_DsdLit2Var(pNtk->Root) );                      }
 static inline int             Kit_DsdLitIsLeaf( Kit_DsdNtk_t * pNtk, int Lit )   { int Id = Kit_DsdLit2Var(Lit); assert( Id >= 0 && Id < pNtk->nVars + pNtk->nNodes ); return Id < pNtk->nVars; }
@@ -429,6 +430,25 @@ static inline void Kit_TruthMux( unsigned * pOut, unsigned * pIn0, unsigned * pI
     for ( w = Kit_TruthWordNum(nVars)-1; w >= 0; w-- )
         pOut[w] = (pIn0[w] & ~pCtrl[w]) | (pIn1[w] & pCtrl[w]);
 }
+static inline void Kit_TruthIthVar( unsigned * pTruth, int nVars, int iVar )
+{
+    unsigned Masks[5] = { 0xAAAAAAAA, 0xCCCCCCCC, 0xF0F0F0F0, 0xFF00FF00, 0xFFFF0000 };
+    int k, nWords = (nVars <= 5 ? 1 : (1 << (nVars - 5)));
+    if ( iVar < 5 )
+    {
+        for ( k = 0; k < nWords; k++ )
+            pTruth[k] = Masks[iVar];
+    }
+    else
+    {
+        for ( k = 0; k < nWords; k++ )
+            if ( k & (1 << (iVar-5)) )
+                pTruth[k] = ~(unsigned)0;
+            else
+                pTruth[k] = 0;
+    }
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                           ITERATORS                              ///
@@ -453,12 +473,13 @@ extern DdNode *        Kit_SopToBdd( DdManager * dd, Kit_Sop_t * cSop, int nVars
 extern DdNode *        Kit_GraphToBdd( DdManager * dd, Kit_Graph_t * pGraph );
 extern DdNode *        Kit_TruthToBdd( DdManager * dd, unsigned * pTruth, int nVars, int fMSBonTop );
 /*=== kitDsd.c ==========================================================*/
-extern Kit_DsdMan_t *  Kit_DsdManAlloc( int nVars );
+extern Kit_DsdMan_t *  Kit_DsdManAlloc( int nVars, int nNodes );
 extern void            Kit_DsdManFree( Kit_DsdMan_t * p );
 extern Kit_DsdNtk_t *  Kit_DsdDeriveNtk( unsigned * pTruth, int nVars, int nLutSize );
 extern unsigned *      Kit_DsdTruthCompute( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk, unsigned uSupp );
 extern void            Kit_DsdTruth( Kit_DsdNtk_t * pNtk, unsigned * pTruthRes );
 extern void            Kit_DsdTruthPartial( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk, unsigned * pTruthRes, unsigned uSupp );
+extern void            Kit_DsdTruthPartialTwo( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk, unsigned uSupp, int iVar, unsigned * pTruthCo, unsigned * pTruthDec );
 extern void            Kit_DsdPrint( FILE * pFile, Kit_DsdNtk_t * pNtk );
 extern void            Kit_DsdPrintExpanded( Kit_DsdNtk_t * pNtk );
 extern void            Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars );

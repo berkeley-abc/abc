@@ -5160,7 +5160,7 @@ usage:
   Description []
                
   SideEffects []
-
+ 
   SeeAlso     []
 
 ***********************************************************************/
@@ -11278,6 +11278,11 @@ int Abc_CommandSeqCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Only works for structrally hashed networks.\n" );
         return 1;
     }
+    if ( !Abc_NtkLatchNum(pNtk) )
+    {
+        fprintf( pErr, "Only works for sequential networks.\n" );
+        return 1;
+    }
     // modify the current network
     pNtkRes = Abc_NtkDarLatchSweep( pNtk, fLatchSweep, fVerbose );
     if ( pNtkRes == NULL )
@@ -11365,6 +11370,11 @@ int Abc_CommandCycle( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( !Abc_NtkIsStrash(pNtk) && !Abc_NtkIsSopLogic(pNtk) )
     {
         fprintf( pErr, "Only works for strashed networks or logic SOP networks.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkLatchNum(pNtk) )
+    {
+        fprintf( pErr, "Only works for sequential networks.\n" );
         return 1;
     }
 
@@ -11457,7 +11467,11 @@ int Abc_CommandXsim( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Only works for strashed networks.\n" );
         return 1;
     }
-
+    if ( !Abc_NtkLatchNum(pNtk) )
+    {
+        fprintf( pErr, "Only works for sequential networks.\n" );
+        return 1;
+    }
     Abc_NtkXValueSimulate( pNtk, nFrames, fXInputs, fXState, fVerbose );
     return 0;
 

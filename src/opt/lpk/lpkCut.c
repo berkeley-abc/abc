@@ -410,14 +410,6 @@ void Lpk_NodeCutsOne( Lpk_Man_t * p, Lpk_Cut_t * pCut, int Node )
     // initialize the set of leaves to the nodes in the cut
     assert( p->nCuts < LPK_CUTS_MAX );
     pCutNew = p->pCuts + p->nCuts;
-/*
-if ( p->pObj->Id == 31 && Node == 38 && pCut->pNodes[0] == 31 && pCut->pNodes[1] == 34 && pCut->pNodes[2] == 35 )//p->nCuts == 48 )
-{
-    int x = 0;
-    printf( "Start:\n" );
-    Lpk_NodePrintCut( p, pCut );
-}
-*/
     pCutNew->nLeaves = 0;
     for ( i = 0; i < (int)pCut->nLeaves; i++ )
         if ( pCut->pLeaves[i] != Node )
@@ -443,47 +435,30 @@ if ( p->pObj->Id == 31 && Node == 38 && pCut->pNodes[0] == 31 && pCut->pNodes[1]
         assert( pCutNew->nLeaves <= LPK_SIZE_MAX );
 
     }
-/*
-    printf( "   Trying cut: " );
-    Lpk_NodePrintCut( p, pCutNew, 1 );
-    printf( "\n" );
-*/
     // skip the contained cuts
     Lpk_NodeCutSignature( pCutNew );
     if ( Lpk_NodeCutsOneFilter( p->pCuts, p->nCuts, pCutNew ) )
         return;
 
-
     // update the set of internal nodes
     assert( pCut->nNodes < LPK_SIZE_MAX );
     memcpy( pCutNew->pNodes, pCut->pNodes, pCut->nNodes * sizeof(int) );
     pCutNew->nNodes = pCut->nNodes;
-    pCutNew->pNodes[ pCutNew->nNodes++ ] = Node;
-
-    // add the marked node
-    pCutNew->nNodesDup = pCut->nNodesDup + !Abc_NodeIsTravIdCurrent(pObj);
-/*
-if ( p->pObj->Id == 31 && Node == 38 )//p->nCuts == 48 )
-{
-    int x = 0;
-    printf( "Finish:\n" );
-    Lpk_NodePrintCut( p, pCutNew );
-}
-*/
+    pCutNew->nNodesDup = pCut->nNodesDup;
+    // check if the node is already there
+    for ( i = 0; i < (int)pCutNew->nNodes; i++ )
+        if ( pCutNew->pNodes[i] == Node )
+            break;
+    if ( i == (int)pCutNew->nNodes ) // new node
+    {
+        pCutNew->pNodes[ pCutNew->nNodes++ ] = Node;
+        pCutNew->nNodesDup += !Abc_NodeIsTravIdCurrent(pObj);
+    }
+    // the number of nodes does not exceed MFFC plus duplications
+    assert( pCutNew->nNodes <= p->nMffc + pCutNew->nNodesDup );
     // add the cut to storage
     assert( p->nCuts < LPK_CUTS_MAX );
     p->nCuts++;
-
-//    assert( pCut->nNodes <= p->nMffc + pCutNew->nNodesDup );
-
-/*
-    printf( "      Creating cut: " );
-    Lpk_NodePrintCut( p, pCutNew, 1 );
-    printf( "\n" );
-*/
-
-//    if ( !(pCut->nNodes <= p->nMffc + pCutNew->nNodesDup) )
-//        printf( "Assertion in line 477 failed.\n" );
 }
 
 /**Function*************************************************************
@@ -527,13 +502,6 @@ int Lpk_NodeCuts( Lpk_Man_t * p )
         // try to expand the fanins of this cut
         for ( k = 0; k < (int)pCut->nLeaves; k++ )
         {
-
-            if ( p->pObj->Id == 28 && i == 273 && k == 13 )
-            {
-                Abc_Obj_t * pFanin = Abc_NtkObj(p->pNtk, pCut->pLeaves[k]);
-                int s = 0;
-            }
-
             // create a new cut
             Lpk_NodeCutsOne( p, pCut, pCut->pLeaves[k] );
             // quit if the number of cuts has exceeded the limit
@@ -559,7 +527,7 @@ int Lpk_NodeCuts( Lpk_Man_t * p )
             continue;
         // compute the minimum number of LUTs needed to implement this cut
         // V = N * (K-1) + 1  ~~~~~  N = Ceiling[(V-1)/(K-1)] = (V-1)/(K-1) + [(V-1)%(K-1) > 0]
-        pCut->nLuts = (pCut->nLeaves-1)/(p->pPars->nLutSize-1) + ( (pCut->nLeaves-1)%(p->pPars->nLutSize-1) > 0 ); 
+        pCut->nLuts = Lpk_LutNumLuts( pCut->nLeaves, p->pPars->nLutSize ); 
         pCut->Weight = (float)1.0 * (pCut->nNodes - pCut->nNodesDup) / pCut->nLuts; //p->pPars->nLutsMax;
         if ( pCut->Weight <= 1.001 )
             continue;

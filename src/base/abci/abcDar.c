@@ -834,8 +834,8 @@ int Abc_NtkDSat( Abc_Ntk_t * pNtk, sint64 nConfLimit, sint64 nInsLimit, int fVer
     // conver to the manager
     pMan = Abc_NtkToDar( pNtk, 0 );
     // derive CNF
-//    pCnf = Cnf_Derive( pMan, 0 );
-    pCnf = Cnf_DeriveSimple( pMan, 0 );
+    pCnf = Cnf_Derive( pMan, 0 );
+//    pCnf = Cnf_DeriveSimple( pMan, 0 );
     // convert into the SAT solver
     pSat = Cnf_DataWriteIntoSolver( pCnf );
     vCiIds = Cnf_DataCollectPiSatNums( pCnf, pMan );

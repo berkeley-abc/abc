@@ -27,6 +27,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "satSolver.h"
 
 //#define SAT_USE_SYSTEM_MEMORY_MANAGEMENT
+#define WATCHFLAG  1
 
 //=================================================================================================
 // Debug:
@@ -90,9 +91,11 @@ static inline void  clause_setactivity(clause* c, float a) { *((float*)&c->lits[
 //=================================================================================================
 // Encode literals in clause pointers:
 
-static clause* clause_from_lit (lit l)     { return (clause*)((unsigned long)l + (unsigned long)l + 1);  }
 static bool    clause_is_lit   (clause* c) { return ((unsigned long)c & 1);                              }
+static clause* clause_from_lit (lit l)     { return (clause*)((unsigned long)l + (unsigned long)l + 1);  }
 static lit     clause_read_lit (clause* c) { return (lit)((unsigned long)c >> 1);                        }
+static clause* clause_from_lit2(lit l)     { return (clause*)(unsigned long)l;                           }
+static lit     clause_read_lit2(clause* c) { return (lit)(unsigned long)c;                               }
 
 //=================================================================================================
 // Simple helpers:
@@ -107,6 +110,15 @@ static inline void    vecp_remove(vecp* v, void* e)
     assert(j < vecp_size(v));
     for (; j < vecp_size(v)-1; j++) ws[j] = ws[j+1];
     vecp_resize(v,vecp_size(v)-1);
+}
+static inline void    vecp_remove2(vecp* v, void* e)
+{
+    void** ws = vecp_begin(v);
+    int    j  = 0;
+    for (; ws[j] != e  ; j++);
+    assert(j < vecp_size(v));
+    for (; j < vecp_size(v)-2; j++) ws[j] = ws[j+2];
+    vecp_resize(v,vecp_size(v)-2);
 }
 
 //=================================================================================================
@@ -304,8 +316,26 @@ static clause* clause_new(sat_solver* s, lit* begin, lit* end, int learnt)
     //vecp_push(sat_solver_read_wlist(s,lit_neg(begin[0])),(void*)c);
     //vecp_push(sat_solver_read_wlist(s,lit_neg(begin[1])),(void*)c);
 
-    vecp_push(sat_solver_read_wlist(s,lit_neg(begin[0])),(void*)(size > 2 ? c : clause_from_lit(begin[1])));
-    vecp_push(sat_solver_read_wlist(s,lit_neg(begin[1])),(void*)(size > 2 ? c : clause_from_lit(begin[0])));
+    if ( WATCHFLAG )
+    {
+        if ( size == 2 )
+        {
+            vecp_push(sat_solver_read_wlist(s,lit_neg(begin[0])),(void*)clause_from_lit(begin[1]));
+            vecp_push(sat_solver_read_wlist(s,lit_neg(begin[1])),(void*)clause_from_lit(begin[0]));
+        }
+        else
+        {
+            vecp_push(sat_solver_read_wlist(s,lit_neg(begin[0])),(void*)c);
+            vecp_push(sat_solver_read_wlist(s,lit_neg(begin[0])),(void*)clause_from_lit2(begin[1]));
+            vecp_push(sat_solver_read_wlist(s,lit_neg(begin[1])),(void*)c);
+            vecp_push(sat_solver_read_wlist(s,lit_neg(begin[1])),(void*)clause_from_lit2(begin[0]));
+        }
+    }
+    else
+    {
+        vecp_push(sat_solver_read_wlist(s,lit_neg(begin[0])),(void*)(size > 2 ? c : clause_from_lit(begin[1])));
+        vecp_push(sat_solver_read_wlist(s,lit_neg(begin[1])),(void*)(size > 2 ? c : clause_from_lit(begin[0])));
+    }
 
     return c;
 }
@@ -321,8 +351,24 @@ static void clause_remove(sat_solver* s, clause* c)
     //vecp_remove(sat_solver_read_wlist(s,lit_neg(lits[1])),(void*)c);
 
     assert(lits[0] < s->size*2);
-    vecp_remove(sat_solver_read_wlist(s,lit_neg(lits[0])),(void*)(clause_size(c) > 2 ? c : clause_from_lit(lits[1])));
-    vecp_remove(sat_solver_read_wlist(s,lit_neg(lits[1])),(void*)(clause_size(c) > 2 ? c : clause_from_lit(lits[0])));
+    if ( WATCHFLAG )
+    {
+        if ( clause_size(c) == 2 )
+        {
+            vecp_remove(sat_solver_read_wlist(s,lit_neg(lits[0])),(void*)clause_from_lit(lits[1]));
+            vecp_remove(sat_solver_read_wlist(s,lit_neg(lits[1])),(void*)clause_from_lit(lits[0]));
+        }
+        else
+        {
+            vecp_remove2(sat_solver_read_wlist(s,lit_neg(lits[0])),(void*)c);
+            vecp_remove2(sat_solver_read_wlist(s,lit_neg(lits[1])),(void*)c);
+        }
+    }
+    else
+    {
+        vecp_remove(sat_solver_read_wlist(s,lit_neg(lits[0])),(void*)(clause_size(c) > 2 ? c : clause_from_lit(lits[1])));
+        vecp_remove(sat_solver_read_wlist(s,lit_neg(lits[1])),(void*)(clause_size(c) > 2 ? c : clause_from_lit(lits[0])));
+    }
 
     if (clause_learnt(c)){
         s->stats.learnts--;
@@ -703,6 +749,31 @@ static void sat_solver_analyze(sat_solver* s, clause* c, veci* learnt)
 }
 
 
+void sat_solver_check(sat_solver* s)
+{
+    int j, k;
+    lit Lit, First, *lits;
+    vecp* ws;
+    clause **begin, **end, **i;
+    for ( j = 0; j < s->size; j++ )
+    for ( k = 0; k < 2; k++ )
+    {
+        Lit = toLitCond( j, k );
+        ws = sat_solver_read_wlist(s,Lit);
+        begin = (clause**)vecp_begin(ws);
+        end   = begin + vecp_size(ws);
+        for (i = begin; i < end; i++)
+        {
+            if (clause_is_lit(*i))
+                continue;
+            lits = clause_begin(*i);
+            First = clause_read_lit2(*(i+1));
+            assert( First == lits[0] || First == lits[1] );
+            i++;
+        }
+    }
+}
+
 clause* sat_solver_propagate(sat_solver* s)
 {
     lbool*  values = s->assigns;
@@ -716,15 +787,19 @@ clause* sat_solver_propagate(sat_solver* s)
         clause **begin = (clause**)vecp_begin(ws);
         clause **end   = begin + vecp_size(ws);
         clause **i, **j;
+//        sat_solver_check(s);
 
         s->stats.propagations++;
         s->simpdb_props--;
-
+ 
         //printf("checking lit %d: "L_LIT"\n", veci_size(ws), L_lit(p));
-        for (i = j = begin; i < end; ){
-            if (clause_is_lit(*i)){
+        for (i = j = begin; i < end; i++)
+        {
+            if (clause_is_lit(*i))
+            {
                 *j++ = *i;
-                if (!enqueue(s,clause_read_lit(*i),clause_from_lit(p))){
+                if (!enqueue(s,clause_read_lit(*i),clause_from_lit(p)))
+                {
                     confl = s->binary;
                     (clause_begin(confl))[1] = lit_neg(p);
                     (clause_begin(confl))[0] = clause_read_lit(*i++);
@@ -733,13 +808,27 @@ clause* sat_solver_propagate(sat_solver* s)
                     while (i < end)
                         *j++ = *i++;
                 }
-            }else{
-                lit false_lit;
+            }
+            else
+            {
+                lit false_lit, first;
                 lbool sig;
+
+                if ( WATCHFLAG )
+                {
+                    first = clause_read_lit2(*(i+1));
+                    sig = !lit_sign(first); sig += sig - 1;
+                    if (values[lit_var(first)] == sig)
+                    {
+                        *j++ = *i++;
+                        *j++ = *i;
+                        continue;
+                    }
+                }
 
                 lits = clause_begin(*i);
 
-                // Make sure the false literal is data[1]:
+                // Make sure the false literal is in data[1]:
                 false_lit = lit_neg(p);
                 if (lits[0] == false_lit){
                     lits[0] = lits[1];
@@ -748,35 +837,95 @@ clause* sat_solver_propagate(sat_solver* s)
                 assert(lits[1] == false_lit);
                 //printf("checking clause: "); printlits(lits, lits+clause_size(*i)); printf("\n");
 
-                // If 0th watch is true, then clause is already satisfied.
-                sig = !lit_sign(lits[0]); sig += sig - 1;
-                if (values[lit_var(lits[0])] == sig){
-                    *j++ = *i;
-                }else{
+                if ( WATCHFLAG )
+                {
+/*
+                    // If 0th watch is true, then clause is already satisfied.
+                    sig = !lit_sign(lits[0]); sig += sig - 1;
+                    if (values[lit_var(lits[0])] == sig)
+                    {
+                        *j++ = *i++;
+                        *j++ = *i;
+                        continue;
+                    }
+                    else
+*/
+                    {
                     // Look for new watch:
                     lit* stop = lits + clause_size(*i);
                     lit* k;
-                    for (k = lits + 2; k < stop; k++){
+//                    assert( lits[0] == first );
+                    for (k = lits + 2; k < stop; k++)
+                    {
                         lbool sig = lit_sign(*k); sig += sig - 1;
-                        if (values[lit_var(*k)] != sig){
+                        if (values[lit_var(*k)] != sig)
+                        {
                             lits[1] = *k;
                             *k = false_lit;
-                            vecp_push(sat_solver_read_wlist(s,lit_neg(lits[1])),*i);
-                            goto next; }
+//                            vecp_push(sat_solver_read_wlist(s,lit_neg(lits[1])),*i);
+                            vecp_push(sat_solver_read_wlist(s,lit_neg(lits[1])),*i++);
+                            vecp_push(sat_solver_read_wlist(s,lit_neg(lits[1])),clause_from_lit2(lits[0]));
+                            break; 
+                        }
                     }
+                    if ( k < stop )
+                        continue;
 
                     *j++ = *i;
                     // Clause is unit under assignment:
-                    if (!enqueue(s,lits[0], *i)){
+                    if (!enqueue(s,lits[0], *i))
+                    {
                         confl = *i++;
+                        *j++ = clause_from_lit2(lits[0]); i++; //
                         // Copy the remaining watches:
                         while (i < end)
                             *j++ = *i++;
                     }
+                    else
+                    {
+                        *j++ = clause_from_lit2(lits[0]); i++; //
+                    }
+                    }
+                }
+                else
+                {
+                    // If 0th watch is true, then clause is already satisfied.
+                    sig = !lit_sign(lits[0]); sig += sig - 1;
+                    if (values[lit_var(lits[0])] == sig)
+                    {
+                        *j++ = *i;
+                    }
+                    else
+                    {
+                        // Look for new watch:
+                        lit* stop = lits + clause_size(*i);
+                        lit* k;
+                        for (k = lits + 2; k < stop; k++)
+                        {
+                            lbool sig = lit_sign(*k); sig += sig - 1;
+                            if (values[lit_var(*k)] != sig)
+                            {
+                                lits[1] = *k;
+                                *k = false_lit;
+                                vecp_push(sat_solver_read_wlist(s,lit_neg(lits[1])),*i);
+                                break; 
+                            }
+                        }
+                        if ( k < stop )
+                            continue;
+
+                        *j++ = *i;
+                        // Clause is unit under assignment:
+                        if (!enqueue(s,lits[0], *i))
+                        {
+                            confl = *i++;
+                            // Copy the remaining watches:
+                            while (i < end)
+                                *j++ = *i++;
+                        }
+                    }
                 }
             }
-        next:
-            i++;
         }
 
         s->stats.inspects += j - (clause**)vecp_begin(ws);
@@ -795,7 +944,7 @@ void sat_solver_reducedb(sat_solver* s)
     double   extra_lim = s->cla_inc / vecp_size(&s->learnts); // Remove any clause below this activity
     clause** learnts = (clause**)vecp_begin(&s->learnts);
     clause** reasons = s->reasons;
-
+//printf( "Trying to reduce DB\n" );
     sat_solver_sort(vecp_begin(&s->learnts), vecp_size(&s->learnts), &clause_cmp);
 
     for (i = j = 0; i < vecp_size(&s->learnts) / 2; i++){
@@ -888,8 +1037,10 @@ static lbool sat_solver_search(sat_solver* s, sint64 nof_conflicts, sint64 nof_l
             }
 
             if (sat_solver_dlevel(s) == 0 && !s->fSkipSimplify)
+            {
                 // Simplify the set of problem clauses:
                 sat_solver_simplify(s);
+            }
 
             if (nof_learnts >= 0 && vecp_size(&s->learnts) - s->qtail >= nof_learnts)
                 // Reduce the set of learnt clauses:
@@ -1120,6 +1271,7 @@ bool sat_solver_simplify(sat_solver* s)
 
     if (s->qhead == s->simpdb_assigns || s->simpdb_props > 0)
         return true;
+//printf( "Trying to simplify\n" );
 
     reasons = s->reasons;
     for (type = 0; type < 2; type++){

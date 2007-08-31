@@ -54,7 +54,7 @@ Lpk_Man_t * Lpk_ManStart( Lpk_Par_t * pPars )
     p->vCover = Vec_IntAlloc( 1 << 12 );
     for ( i = 0; i < 8; i++ )
         p->vSets[i] = Vec_IntAlloc(100);
-    p->pDsdMan = Kit_DsdManAlloc( pPars->nVarsMax );
+    p->pDsdMan = Kit_DsdManAlloc( pPars->nVarsMax, 64 );
     return p;
 }
 

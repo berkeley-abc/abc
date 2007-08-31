@@ -39,7 +39,7 @@
   SeeAlso     []
 
 ***********************************************************************/
-Kit_DsdMan_t * Kit_DsdManAlloc( int nVars )
+Kit_DsdMan_t * Kit_DsdManAlloc( int nVars, int nNodes )
 {
     Kit_DsdMan_t * p;
     p = ALLOC( Kit_DsdMan_t, 1 );
@@ -47,7 +47,7 @@ Kit_DsdMan_t * Kit_DsdManAlloc( int nVars )
     p->nVars = nVars;
     p->nWords = Kit_TruthWordNum( p->nVars );
     p->vTtElems = Vec_PtrAllocTruthTables( p->nVars );
-    p->vTtNodes = Vec_PtrAllocSimInfo( 1024, p->nWords );
+    p->vTtNodes = Vec_PtrAllocSimInfo( nNodes, p->nWords );
     return p;
 }
 
@@ -472,11 +472,40 @@ unsigned * Kit_DsdTruthCompute( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk, unsigned 
   SeeAlso     []
 
 ***********************************************************************/
+void Kit_DsdTruthComputeTwo( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk, unsigned uSupp, int iVar )
+{
+    unsigned * pTruthRes;
+    int i;
+    // if support is specified, request that supports are available
+    if ( uSupp )
+        Kit_DsdGetSupports( pNtk );
+    // assign elementary truth tables
+    assert( pNtk->nVars <= p->nVars );
+    for ( i = 0; i < (int)pNtk->nVars; i++ )
+        Kit_TruthCopy( Vec_PtrEntry(p->vTtNodes, i), Vec_PtrEntry(p->vTtElems, i), p->nVars );
+    // compute truth table for each node
+    pTruthRes = Kit_DsdTruthComputeNode_rec( p, pNtk, Kit_DsdLit2Var(pNtk->Root), uSupp );
+    // complement the truth table if needed
+    if ( Kit_DsdLitIsCompl(pNtk->Root) )
+        Kit_TruthNot( pTruthRes, pTruthRes, pNtk->nVars );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives the truth table of the DSD network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Kit_DsdTruth( Kit_DsdNtk_t * pNtk, unsigned * pTruthRes )
 {
     Kit_DsdMan_t * p;
     unsigned * pTruth;
-    p = Kit_DsdManAlloc( pNtk->nVars );
+    p = Kit_DsdManAlloc( pNtk->nVars, Kit_DsdNtkObjNum(pNtk) );
     pTruth = Kit_DsdTruthCompute( p, pNtk, 0 );
     Kit_TruthCopy( pTruthRes, pTruth, pNtk->nVars );
     Kit_DsdManFree( p );
@@ -497,6 +526,29 @@ void Kit_DsdTruthPartial( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk, unsigned * pTru
 {
     unsigned * pTruth = Kit_DsdTruthCompute( p, pNtk, uSupp );
     Kit_TruthCopy( pTruthRes, pTruth, pNtk->nVars );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives the truth table of the DSD network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Kit_DsdTruthPartialTwo( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk, unsigned uSupp, int iVar, unsigned * pTruthCo, unsigned * pTruthDec )
+{
+    unsigned * pTruth;
+    Kit_DsdObj_t * pRoot;
+    Kit_DsdTruthComputeTwo( p, pNtk, uSupp, iVar );
+    pRoot = Kit_DsdNtkRoot( pNtk );
+    pTruth = Vec_PtrEntry( p->vTtNodes, 2*pRoot->Id+0 );
+    Kit_TruthCopy( pTruthCo, pTruth, p->nVars );
+    pTruth = Vec_PtrEntry( p->vTtNodes, 2*pRoot->Id+1 );
+    Kit_TruthCopy( pTruthDec, pTruth, p->nVars );
 }
 
 /**Function*************************************************************
@@ -1620,7 +1672,7 @@ int Kit_DsdEval( unsigned * pTruth, int nVars, int nLutSize )
 //    printf( "Eval = %d.\n", Result );
 
     // recompute the truth table
-    p = Kit_DsdManAlloc( nVars );
+    p = Kit_DsdManAlloc( nVars, Kit_DsdNtkObjNum(pNtk) );
     pTruthC = Kit_DsdTruthCompute( p, pNtk, 0 );
     if ( !Extra_TruthIsEqual( pTruth, pTruthC, nVars ) )
         printf( "Verification failed.\n" );
@@ -1645,7 +1697,7 @@ void Kit_DsdVerify( Kit_DsdNtk_t * pNtk, unsigned * pTruth, int nVars )
 {
     Kit_DsdMan_t * p;
     unsigned * pTruthC;
-    p = Kit_DsdManAlloc( nVars );
+    p = Kit_DsdManAlloc( nVars, Kit_DsdNtkObjNum(pNtk) );
     pTruthC = Kit_DsdTruthCompute( p, pNtk, 0 );
     if ( !Extra_TruthIsEqual( pTruth, pTruthC, nVars ) )
         printf( "Verification failed.\n" );
@@ -1687,7 +1739,7 @@ void Kit_DsdTest( unsigned * pTruth, int nVars )
 //        Kit_DsdTestCofs( pNtk, pTruth );
 
     // recompute the truth table
-    p = Kit_DsdManAlloc( nVars );
+    p = Kit_DsdManAlloc( nVars, Kit_DsdNtkObjNum(pNtk) );
     pTruthC = Kit_DsdTruthCompute( p, pNtk, 0 );
 //    Extra_PrintBinary( stdout, pTruth, 1 << nVars ); printf( "\n" );
 //    Extra_PrintBinary( stdout, pTruthC, 1 << nVars ); printf( "\n" );
@@ -1757,7 +1809,7 @@ void Kit_DsdPrecompute4Vars()
             printf( "\n" );
 */
 
-        p = Kit_DsdManAlloc( 4 );
+        p = Kit_DsdManAlloc( 4, Kit_DsdNtkObjNum(pNtk) );
         pTruthC = Kit_DsdTruthCompute( p, pNtk, 0 );
         if ( !Extra_TruthIsEqual( &uTruth, pTruthC, 4 ) )
             printf( "Verification failed.\n" );

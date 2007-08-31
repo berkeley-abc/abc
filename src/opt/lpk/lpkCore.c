@@ -258,11 +258,6 @@ p->timeCuts += clock() - clk;
         if ( p->pPars->fFirst && i == 1 )
             break;
 
-        if ( p->pObj->Id == 8835 )
-        {
-            int x = 0;
-        }
-
         // compute the truth table
 clk = clock();
         pTruth = Lpk_CutTruth( p, pCut );
@@ -307,6 +302,91 @@ p->timeEval += clock() - clk;
         if ( RetValue )
             break;
     }
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs resynthesis for one node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Lpk_ResynthesizeNodeNew( Lpk_Man_t * p )
+{
+    static int Count = 0;
+    Vec_Ptr_t * vLeaves;
+    Abc_Obj_t * pObjNew;
+    Lpk_Cut_t * pCut;
+    unsigned * pTruth;
+    void * pDsd = NULL;
+    int i, k, clk;
+
+    // compute the cuts
+clk = clock();
+    if ( !Lpk_NodeCuts( p ) )
+    {
+p->timeCuts += clock() - clk;
+        return 0;
+    }
+p->timeCuts += clock() - clk;
+
+    if ( p->pPars->fVeryVerbose )
+    printf( "Node %5d : Mffc size = %5d. Cuts = %5d.\n", p->pObj->Id, p->nMffc, p->nEvals );
+    vLeaves = Vec_PtrAlloc( 32 );
+    // try the good cuts
+    p->nCutsTotal  += p->nCuts;
+    p->nCutsUseful += p->nEvals;
+    for ( i = 0; i < p->nEvals; i++ )
+    {
+        // get the cut
+        pCut = p->pCuts + p->pEvals[i];
+        if ( p->pPars->fFirst && i == 1 )
+            break;
+
+        // collect nodes into the array
+        Vec_PtrClear( vLeaves );
+        for ( k = 0; k < (int)pCut->nLeaves; k++ )
+            Vec_PtrPush( vLeaves, Abc_NtkObj(p->pNtk, pCut->pLeaves[i]) );
+
+        // compute the truth table
+clk = clock();
+        pTruth = Lpk_CutTruth( p, pCut );
+p->timeTruth += clock() - clk;
+
+        if ( p->pPars->fVeryVerbose )
+        {
+//            char * pFileName;
+            int nSuppSize;
+            Kit_DsdNtk_t * pDsdNtk;
+            nSuppSize = Extra_TruthSupportSize(pTruth, pCut->nLeaves);
+            printf( "  C%02d: L= %2d/%2d  V= %2d/%d  N= %d  W= %4.2f  ", 
+                i, pCut->nLeaves, nSuppSize, pCut->nNodes, pCut->nNodesDup, pCut->nLuts, pCut->Weight );
+
+            pDsdNtk = Kit_DsdDecompose( pTruth, pCut->nLeaves ); 
+//        Kit_DsdVerify( pDsdNtk, pTruth, pCut->nLeaves ); 
+            Kit_DsdPrint( stdout, pDsdNtk );
+            Kit_DsdNtkFree( pDsdNtk );
+//            Kit_DsdPrintFromTruth( pTruth, pCut->nLeaves );
+//            pFileName = Kit_TruthDumpToFile( pTruth, pCut->nLeaves, Count++ );
+//            printf( "Saved truth table in file \"%s\".\n", pFileName );
+        }
+
+        // update the network
+clk = clock();
+        pObjNew = Lpk_LpkDecompose( p->pNtk, vLeaves, pTruth, p->pPars->nLutSize,
+            (int)pCut->nNodes - (int)pCut->nNodesDup - 1, Abc_ObjRequiredLevel(p->pObj) );
+p->timeEval += clock() - clk;
+
+        // perform replacement
+        if ( pObjNew )
+            Abc_NtkUpdate( p->pObj, pObjNew, p->vLevels );
+    }
+    Vec_PtrFree( vLeaves );
     return 1;
 }
 

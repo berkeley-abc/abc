@@ -366,7 +366,7 @@ timeFind += clock() - clk2;
             Vec_PtrPush( vPartsAll, vPart );
             Vec_PtrPush( vPartSuppsAll, vPartSupp );
 
-            Vec_PtrPush( vPartSuppsChar, Abc_NtkSuppCharStart(vOne, Abc_NtkPiNum(pNtk)) );
+            Vec_PtrPush( vPartSuppsChar, Abc_NtkSuppCharStart(vOne, Abc_NtkCiNum(pNtk)) );
         }
         else
         {
@@ -380,7 +380,7 @@ timeFind += clock() - clk2;
             // reinsert new support
             Vec_PtrWriteEntry( vPartSuppsAll, iPart, vPartSupp );
 
-            Abc_NtkSuppCharAdd( Vec_PtrEntry(vPartSuppsChar, iPart), vOne, Abc_NtkPiNum(pNtk) );
+            Abc_NtkSuppCharAdd( Vec_PtrEntry(vPartSuppsChar, iPart), vOne, Abc_NtkCiNum(pNtk) );
         }
     }
 
@@ -801,7 +801,7 @@ Abc_Ntk_t * Abc_NtkFraigPartitioned( Abc_Ntk_t * pNtk, void * pParams )
     // perform partitioning
     assert( Abc_NtkIsStrash(pNtk) );
 //    vParts = Abc_NtkPartitionNaive( pNtk, 20 );
-    vParts = Abc_NtkPartitionSmart( pNtk, 0, 1 );
+    vParts = Abc_NtkPartitionSmart( pNtk, 0, 0 );
 
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "unset progressbar" );
 
