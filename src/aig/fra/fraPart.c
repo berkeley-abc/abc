@@ -58,7 +58,7 @@ void Fra_ManPartitionTest( Aig_Man_t * p, int nComLim )
  
     // compute supports
 clk = clock();
-    vSupps = Aig_ManSupports( p );
+    vSupps = (Vec_Vec_t *)Aig_ManSupports( p );
 PRT( "Supports", clock() - clk );
     // remove last entry
     Aig_ManForEachPo( p, pObj, i )
@@ -192,7 +192,7 @@ void Fra_ManPartitionTest2( Aig_Man_t * p )
  
     // compute supports
 clk = clock();
-    vSupps = Aig_ManSupports( p );
+    vSupps = (Vec_Vec_t *)Aig_ManSupports( p );
 PRT( "Supports", clock() - clk );
     // remove last entry
     Aig_ManForEachPo( p, pObj, i )

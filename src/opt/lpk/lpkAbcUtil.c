@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [lpkAbcFun.c]
+  FileName    [lpkAbcUtil.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - April 28, 2007.]
 
-  Revision    [$Id: lpkAbcFun.c,v 1.00 2007/04/28 00:00:00 alanmi Exp $]
+  Revision    [$Id: lpkAbcUtil.c,v 1.00 2007/04/28 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 

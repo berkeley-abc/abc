@@ -118,21 +118,7 @@ struct Lpk_Man_t_
 };
 
 
-// preliminary decomposition result
-typedef struct Lpk_Res_t_ Lpk_Res_t;
-struct Lpk_Res_t_
-{
-    int           nBSVars;
-    unsigned      BSVars;
-    int           nCofVars;
-    char          pCofVars[4];
-    int           nSuppSizeS;
-    int           nSuppSizeL;
-    int           DelayEst;
-    int           AreaEst;
-};
-
-// function to be decomposed
+// internal representation of the function to be decomposed
 typedef struct Lpk_Fun_t_ Lpk_Fun_t;
 struct Lpk_Fun_t_
 {
@@ -148,15 +134,23 @@ struct Lpk_Fun_t_
     unsigned      pTruth[0];        // the truth table (contains room for three truth tables)    
 };
 
-#define Lpk_SuppForEachVar( Supp, Var )\
-    for ( Var = 0; Var < 16; Var++ )\
-        if ( !(Supp & (1<<Var)) ) {} else
+// preliminary decomposition result
+typedef struct Lpk_Res_t_ Lpk_Res_t;
+struct Lpk_Res_t_
+{
+    int           nBSVars;          // the number of bound set variables
+    unsigned      BSVars;           // the bound set
+    int           nCofVars;         // the number of cofactoring variables
+    char          pCofVars[4];      // the cofactoring variables
+    int           nSuppSizeS;       // support size of the smaller (decomposed) function 
+    int           nSuppSizeL;       // support size of the larger (composition) function
+    int           DelayEst;         // estimated delay of the decomposition
+    int           AreaEst;          // estimated area of the decomposition
+};
 
-static inline int Lpk_LutNumVars( int nLutsLim, int nLutK )  { return  nLutsLim * (nLutK - 1) + 1;                                            }
-static inline int Lpk_LutNumLuts( int nVarsMax, int nLutK )  { return (nVarsMax - 1) / (nLutK - 1) + (int)((nVarsMax - 1) % (nLutK - 1) > 0); }
-    
-static inline unsigned * Lpk_FunTruth( Lpk_Fun_t * p, int Num )  { assert( Num < 3 ); return p->pTruth + Kit_TruthWordNum(p->nVars) * Num; }
-
+static inline int        Lpk_LutNumVars( int nLutsLim, int nLutK ) { return  nLutsLim * (nLutK - 1) + 1;                                            }
+static inline int        Lpk_LutNumLuts( int nVarsMax, int nLutK ) { return (nVarsMax - 1) / (nLutK - 1) + (int)((nVarsMax - 1) % (nLutK - 1) > 0); }
+static inline unsigned * Lpk_FunTruth( Lpk_Fun_t * p, int Num )    { assert( Num < 3 ); return p->pTruth + Kit_TruthWordNum(p->nVars) * Num;        }
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
@@ -172,14 +166,23 @@ static inline unsigned * Lpk_FunTruth( Lpk_Fun_t * p, int Num )  { assert( Num <
     for ( i = 0; (i < (int)(pCut)->nNodes) && (((pObj) = Abc_NtkObj(pNtk, (pCut)->pNodes[i])), 1); i++ )
 #define Lpk_CutForEachNodeReverse( pNtk, pCut, pObj, i )                                 \
     for ( i = (int)(pCut)->nNodes - 1; (i >= 0) && (((pObj) = Abc_NtkObj(pNtk, (pCut)->pNodes[i])), 1); i-- )
+#define Lpk_SuppForEachVar( Supp, Var )\
+    for ( Var = 0; Var < 16; Var++ )\
+        if ( !(Supp & (1<<Var)) ) {} else
 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/*=== lpkAbcCore.c ============================================================*/
-extern Abc_Obj_t *    Lpk_LpkDecompose( Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, unsigned * pTruth, int nLutK, int AreaLim, int DelayLim );
-/*=== lpkAbcFun.c ============================================================*/
+/*=== lpkAbcDec.c ============================================================*/
+extern Abc_Obj_t *    Lpk_Decompose( Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, unsigned * pTruth, int nLutK, int AreaLim, int DelayLim );
+/*=== lpkAbcDsd.c ============================================================*/
+extern Lpk_Res_t *    Lpk_DsdAnalize( Lpk_Fun_t * p, int nCofDepth );
+extern Lpk_Fun_t *    Lpk_DsdSplit( Lpk_Fun_t * p, char * pCofVars, int nCofVars, unsigned uBoundSet );
+/*=== lpkAbcMux.c ============================================================*/
+extern int            Lpk_MuxAnalize( Lpk_Fun_t * p );
+extern Lpk_Fun_t *    Lpk_MuxSplit( Lpk_Fun_t * p, int VarPol );
+/*=== lpkAbcUtil.c ============================================================*/
 extern Lpk_Fun_t *    Lpk_FunAlloc( int nVars );
 extern void           Lpk_FunFree( Lpk_Fun_t * p );
 extern Lpk_Fun_t *    Lpk_FunCreate( Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, unsigned * pTruth, int nLutK, int AreaLim, int DelayLim );
@@ -187,12 +190,6 @@ extern Lpk_Fun_t *    Lpk_FunDup( Lpk_Fun_t * p, unsigned * pTruth );
 extern void           Lpk_FunSuppMinimize( Lpk_Fun_t * p );
 extern int            Lpk_SuppDelay( unsigned uSupp, char * pDelays );
 extern int            Lpk_SuppToVars( unsigned uBoundSet, char * pVars );
-/*=== lpkAbcDsd.c ============================================================*/
-extern Lpk_Res_t *    Lpk_FunAnalizeDsd( Lpk_Fun_t * p, int nCofDepth );
-extern Lpk_Fun_t *    Lpk_FunSplitDsd( Lpk_Fun_t * p, char * pCofVars, int nCofVars, unsigned uBoundSet );
-/*=== lpkAbcMux.c ============================================================*/
-extern int            Lpk_FunAnalizeMux( Lpk_Fun_t * p );
-extern Lpk_Fun_t *    Lpk_FunSplitMux( Lpk_Fun_t * p, int VarPol );
 
 
 /*=== lpkCut.c =========================================================*/

@@ -293,7 +293,7 @@ void Abc_NtkCecFraigPart( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, in
         }
         else
         {
-            printf( "Finished part %d (out of %d)\r", i+1, Abc_NtkPoNum(pMiter) );
+            printf( "Finished part %5d (out of %5d)\r", i+1, Abc_NtkPoNum(pMiter) );
             nOutputs += nPartSize;
         }
 //        if ( pMiter->pModel )
@@ -301,7 +301,7 @@ void Abc_NtkCecFraigPart( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, in
         if ( pMiterPart )
             Abc_NtkDelete( pMiterPart );
     }
-
+  
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "set progressbar" );
 
     if ( Status == 1 )
@@ -325,12 +325,13 @@ void Abc_NtkCecFraigPart( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, in
 void Abc_NtkCecFraigPartAuto( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int fVerbose )
 {
     extern int Abc_NtkCombinePos( Abc_Ntk_t * pNtk, int fAnd );
-    extern Vec_Vec_t * Abc_NtkPartitionSmart( Abc_Ntk_t * pNtk, int nPartSizeLimit, int fVerbose );
+    extern Vec_Ptr_t * Abc_NtkPartitionSmart( Abc_Ntk_t * pNtk, int nPartSizeLimit, int fVerbose );
+    extern void Abc_NtkConvertCos( Abc_Ntk_t * pNtk, Vec_Int_t * vOuts, Vec_Ptr_t * vOnePtr );
     extern int Cmd_CommandExecute( void * pAbc, char * sCommand );
     extern void * Abc_FrameGetGlobalFrame();
 
-    Vec_Vec_t * vParts;
-    Vec_Ptr_t * vOne;
+    Vec_Ptr_t * vParts, * vOnePtr;
+    Vec_Int_t * vOne;
     Prove_Params_t Params, * pParams = &Params;
     Abc_Ntk_t * pMiter, * pMiterPart;
     int i, RetValue, Status, nOutputs;
@@ -368,15 +369,17 @@ void Abc_NtkCecFraigPartAuto( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "unset progressbar" );
 
     // partition the outputs
-    vParts = Abc_NtkPartitionSmart( pMiter, 50, 1 );
+    vParts = Abc_NtkPartitionSmart( pMiter, 300, 0 );
 
     // fraig each partition
     Status = 1;
     nOutputs = 0;
-    Vec_VecForEachLevel( vParts, vOne, i )
+    vOnePtr = Vec_PtrAlloc( 1000 );
+    Vec_PtrForEachEntry( vParts, vOne, i )
     {
         // get this part of the miter
-        pMiterPart = Abc_NtkCreateConeArray( pMiter, vOne, 0 );
+        Abc_NtkConvertCos( pMiter, vOne, vOnePtr );
+        pMiterPart = Abc_NtkCreateConeArray( pMiter, vOnePtr, 0 );
         Abc_NtkCombinePos( pMiterPart, 0 );
         // check the miter for being constant
         RetValue = Abc_NtkMiterIsConstant( pMiterPart );
@@ -391,6 +394,9 @@ void Abc_NtkCecFraigPartAuto( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds
             Abc_NtkDelete( pMiterPart );
             continue;
         }
+        printf( "Verifying part %4d  (out of %4d)  PI = %5d. PO = %5d. And = %6d. Lev = %4d.\r", 
+            i+1, Vec_PtrSize(vParts), Abc_NtkPiNum(pMiterPart), Abc_NtkPoNum(pMiterPart), 
+            Abc_NtkNodeNum(pMiterPart), Abc_AigLevel(pMiterPart) );
         // solve the problem
         RetValue = Abc_NtkIvyProve( &pMiterPart, pParams );
         if ( RetValue == -1 )
@@ -412,12 +418,14 @@ void Abc_NtkCecFraigPartAuto( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds
         }
         else
         {
-            printf( "Finished part %d (out of %d)\r", i+1, Vec_VecSize(vParts) );
-            nOutputs += Vec_PtrSize(vOne);
+//            printf( "Finished part %5d (out of %5d)\r", i+1, Vec_PtrSize(vParts) );
+            nOutputs += Vec_IntSize(vOne);
         }
         Abc_NtkDelete( pMiterPart );
     }
-    Vec_VecFree( vParts );
+    printf( "                                                                                          \r" );
+    Vec_VecFree( (Vec_Vec_t *)vParts );
+    Vec_PtrFree( vOnePtr );
 
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "set progressbar" );
 

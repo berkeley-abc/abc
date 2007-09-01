@@ -1542,7 +1542,7 @@ SOURCE=.\src\opt\lpk\lpk.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\opt\lpk\lpkAbcCore.c
+SOURCE=.\src\opt\lpk\lpkAbcDec.c
 # End Source File
 # Begin Source File
 
@@ -1550,11 +1550,11 @@ SOURCE=.\src\opt\lpk\lpkAbcDsd.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\opt\lpk\lpkAbcFun.c
+SOURCE=.\src\opt\lpk\lpkAbcMux.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\opt\lpk\lpkAbcMux.c
+SOURCE=.\src\opt\lpk\lpkAbcUtil.c
 # End Source File
 # Begin Source File
 

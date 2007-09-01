@@ -43,8 +43,8 @@ static Abc_Frame_t * s_GlobalFrame = NULL;
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_FrameReadNtkStore()                  { return s_GlobalFrame->pStored;      } 
-int         Abc_FrameReadNtkStoreSize()              { return s_GlobalFrame->nStored;      }
+Vec_Ptr_t * Abc_FrameReadStore()                     { return s_GlobalFrame->vStore;       } 
+int         Abc_FrameReadStoreSize()                 { return Vec_PtrSize(s_GlobalFrame->vStore); }
 void *      Abc_FrameReadLibLut()                    { return s_GlobalFrame->pLibLut;      } 
 void *      Abc_FrameReadLibGen()                    { return s_GlobalFrame->pLibGen;      } 
 void *      Abc_FrameReadLibSuper()                  { return s_GlobalFrame->pLibSuper;    } 
@@ -53,8 +53,6 @@ void *      Abc_FrameReadManDd()                     { if ( s_GlobalFrame->dd ==
 void *      Abc_FrameReadManDec()                    { if ( s_GlobalFrame->pManDec == NULL ) s_GlobalFrame->pManDec = Dec_ManStart();                                        return s_GlobalFrame->pManDec; } 
 char *      Abc_FrameReadFlag( char * pFlag )        { return Cmd_FlagReadByName( s_GlobalFrame, pFlag );  } 
 
-void        Abc_FrameSetNtkStore( Abc_Ntk_t * pNtk ) { s_GlobalFrame->pStored   = pNtk;    } 
-void        Abc_FrameSetNtkStoreSize( int nStored )  { s_GlobalFrame->nStored   = nStored; }
 void        Abc_FrameSetLibLut( void * pLib )        { s_GlobalFrame->pLibLut   = pLib;    } 
 void        Abc_FrameSetLibGen( void * pLib )        { s_GlobalFrame->pLibGen   = pLib;    } 
 void        Abc_FrameSetLibSuper( void * pLib )      { s_GlobalFrame->pLibSuper = pLib;    } 
@@ -113,6 +111,8 @@ Abc_Frame_t * Abc_FrameAllocate()
     // set the starting step
     p->nSteps = 1;
     p->fBatchMode = 0;
+    // networks to be used by choice
+    p->vStore = Vec_PtrAlloc( 16 );
     // initialize decomposition manager
     define_cube_size(20);
     set_espresso_flags();
@@ -145,6 +145,7 @@ void Abc_FrameDeallocate( Abc_Frame_t * p )
     if ( p->pLibVer ) Abc_LibFree( p->pLibVer, NULL );
     if ( p->pManDec ) Dec_ManStop( p->pManDec );
     if ( p->dd )      Extra_StopManager( p->dd );
+    if ( p->vStore )  Vec_PtrFree( p->vStore );
     Abc_FrameDeleteAllNetworks( p );
     free( p );
     s_GlobalFrame = NULL;

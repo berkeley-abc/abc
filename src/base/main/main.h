@@ -92,8 +92,8 @@ extern void            Abc_FrameDeleteAllNetworks( Abc_Frame_t * p );
 extern void               Abc_FrameSetGlobalFrame( Abc_Frame_t * p );
 extern Abc_Frame_t *   Abc_FrameGetGlobalFrame();
 
-extern Abc_Ntk_t *     Abc_FrameReadNtkStore();                  
-extern int             Abc_FrameReadNtkStoreSize();              
+extern Vec_Ptr_t *     Abc_FrameReadStore();                  
+extern int             Abc_FrameReadStoreSize();              
 extern void *          Abc_FrameReadLibLut();                    
 extern void *          Abc_FrameReadLibGen();                    
 extern void *          Abc_FrameReadLibSuper();                  

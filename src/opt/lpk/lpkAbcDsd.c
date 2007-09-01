@@ -6,7 +6,7 @@
 
   PackageName [Fast Boolean matching for LUT structures.]
 
-  Synopsis    []
+  Synopsis    [LUT-decomposition based on recursive DSD.]
 
   Author      [Alan Mishchenko]
   
@@ -266,7 +266,7 @@ void Lpk_FunFreeTruthTables( Lpk_Fun_t * p, int nCofDepth, unsigned * ppTruths[5
   SeeAlso     []
 
 ***********************************************************************/
-Lpk_Res_t * Lpk_FunAnalizeDsd( Lpk_Fun_t * p, int nCofDepth )
+Lpk_Res_t * Lpk_DsdAnalize( Lpk_Fun_t * p, int nCofDepth )
 {
     static Lpk_Res_t Res, * pRes = &Res;
     unsigned * ppTruths[5][16];
@@ -330,7 +330,7 @@ Lpk_Res_t * Lpk_FunAnalizeDsd( Lpk_Fun_t * p, int nCofDepth )
   SeeAlso     []
 
 ***********************************************************************/
-Lpk_Fun_t * Lpk_FunSplitDsd( Lpk_Fun_t * p, char * pCofVars, int nCofVars, unsigned uBoundSet )
+Lpk_Fun_t * Lpk_DsdSplit( Lpk_Fun_t * p, char * pCofVars, int nCofVars, unsigned uBoundSet )
 {
     Kit_DsdMan_t * pDsdMan;
     Kit_DsdNtk_t * pNtkDec, * pTemp;

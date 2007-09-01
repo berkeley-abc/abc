@@ -378,7 +378,7 @@ p->timeTruth += clock() - clk;
 
         // update the network
 clk = clock();
-        pObjNew = Lpk_LpkDecompose( p->pNtk, vLeaves, pTruth, p->pPars->nLutSize,
+        pObjNew = Lpk_Decompose( p->pNtk, vLeaves, pTruth, p->pPars->nLutSize,
             (int)pCut->nNodes - (int)pCut->nNodesDup - 1, Abc_ObjRequiredLevel(p->pObj) );
 p->timeEval += clock() - clk;
 

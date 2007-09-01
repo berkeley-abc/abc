@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [lpkAbcCore.c]
+  FileName    [lpkAbcDec.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - April 28, 2007.]
 
-  Revision    [$Id: lpkAbcCore.c,v 1.00 2007/04/28 00:00:00 alanmi Exp $]
+  Revision    [$Id: lpkAbcDec.c,v 1.00 2007/04/28 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -39,7 +39,7 @@
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Lpk_FunImplement( Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, Lpk_Fun_t * p )
+Abc_Obj_t * Lpk_ImplementFun( Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, Lpk_Fun_t * p )
 {
     Abc_Obj_t * pObjNew;
     int i;
@@ -73,7 +73,7 @@ Abc_Obj_t * Lpk_FunImplement( Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, Lpk_Fun_t *
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Lpk_LptImplement( Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, int nLeavesOld )
+Abc_Obj_t * Lpk_Implement( Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, int nLeavesOld )
 {
     Lpk_Fun_t * pFun;
     Abc_Obj_t * pRes;
@@ -81,7 +81,7 @@ Abc_Obj_t * Lpk_LptImplement( Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, int nLeaves
     for ( i = Vec_PtrSize(vLeaves) - 1; i >= nLeavesOld; i-- )
     {
         pFun = Vec_PtrEntry( vLeaves, i );
-        pRes = Lpk_FunImplement( pNtk, vLeaves, pFun );
+        pRes = Lpk_ImplementFun( pNtk, vLeaves, pFun );
         Vec_PtrWriteEntry( vLeaves, i, pRes );
         Lpk_FunFree( pFun );
     }
@@ -99,7 +99,7 @@ Abc_Obj_t * Lpk_LptImplement( Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, int nLeaves
   SeeAlso     []
 
 ***********************************************************************/
-int Lpk_LpkDecompose_rec( Lpk_Fun_t * p )
+int Lpk_Decompose_rec( Lpk_Fun_t * p )
 {
     Lpk_Fun_t * p2;
     int VarPol;
@@ -107,14 +107,14 @@ int Lpk_LpkDecompose_rec( Lpk_Fun_t * p )
     if ( p->nVars <= p->nLutK )
         return 1;
     // check if decomposition exists
-    VarPol = Lpk_FunAnalizeMux( p );
+    VarPol = Lpk_MuxAnalize( p );
     if ( VarPol == -1 )
         return 0;
     // split and call recursively
-    p2 = Lpk_FunSplitMux( p, VarPol );
-    if ( !Lpk_LpkDecompose_rec( p2 ) )
+    p2 = Lpk_MuxSplit( p, VarPol );
+    if ( !Lpk_Decompose_rec( p2 ) )
         return 0;
-    return Lpk_LpkDecompose_rec( p );
+    return Lpk_Decompose_rec( p );
 }
 
 
@@ -129,7 +129,7 @@ int Lpk_LpkDecompose_rec( Lpk_Fun_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Lpk_LpkDecompose( Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, unsigned * pTruth, int nLutK, int AreaLim, int DelayLim )
+Abc_Obj_t * Lpk_Decompose( Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, unsigned * pTruth, int nLutK, int AreaLim, int DelayLim )
 {
     Lpk_Fun_t * p;
     Abc_Obj_t * pObjNew = NULL;
@@ -139,8 +139,8 @@ Abc_Obj_t * Lpk_LpkDecompose( Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, unsigned * 
     p = Lpk_FunCreate( pNtk, vLeaves, pTruth, nLutK, AreaLim, DelayLim );
     Lpk_FunSuppMinimize( p );
     // decompose the function 
-    if ( Lpk_LpkDecompose_rec(p) )
-        pObjNew = Lpk_LptImplement( pNtk, vLeaves, nLeaves );
+    if ( Lpk_Decompose_rec(p) )
+        pObjNew = Lpk_Implement( pNtk, vLeaves, nLeaves );
     else
     {
         for ( i = Vec_PtrSize(vLeaves) - 1; i >= nLeaves; i-- )

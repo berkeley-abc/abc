@@ -2977,6 +2977,9 @@ int Abc_CommandLutpack( Abc_Frame_t * pAbc, int argc, char ** argv )
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
+    printf("This command will be available soon\n");
+    return 0;
+
     // set defaults
     memset( pPars, 0, sizeof(Lpk_Par_t) );
     pPars->nLutsMax     =  4; // (N) the maximum number of LUTs in the structure

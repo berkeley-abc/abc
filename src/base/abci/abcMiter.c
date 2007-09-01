@@ -314,7 +314,7 @@ void Abc_NtkMiterFinalize( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Abc_Ntk_t * pNt
             Abc_ObjAddFanin( pNode, pMiter );
             // assign the name to the node
             if ( nPartSize == 1 )
-                sprintf( Buffer, "%s", Abc_ObjName(Abc_NtkPo(pNtk1,i)) );
+                sprintf( Buffer, "%s", Abc_ObjName(Abc_NtkCo(pNtk1,i)) );
             else
                 sprintf( Buffer, "%d", i );
             Abc_ObjAssignName( pNode, "miter_", Buffer );

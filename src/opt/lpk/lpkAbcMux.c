@@ -6,7 +6,7 @@
 
   PackageName [Fast Boolean matching for LUT structures.]
 
-  Synopsis    [Iterative MUX decomposition.]
+  Synopsis    [LUT-decomposition based on recursive MUX decomposition.]
 
   Author      [Alan Mishchenko]
   
@@ -85,7 +85,7 @@ void Lpk_FunComputeCofSupps( Lpk_Fun_t * p, unsigned * puSupps )
   SeeAlso     []
 
 ***********************************************************************/
-int Lpk_FunAnalizeMux( Lpk_Fun_t * p )
+int Lpk_MuxAnalize( Lpk_Fun_t * p )
 {
     unsigned puSupps[32] = {0};
     int nSuppSize0, nSuppSize1, Delay, Delay0, Delay1, DelayA, DelayB;
@@ -193,7 +193,7 @@ int Lpk_FunAnalizeMux( Lpk_Fun_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Lpk_Fun_t * Lpk_FunSplitMux( Lpk_Fun_t * p, int VarPol )
+Lpk_Fun_t * Lpk_MuxSplit( Lpk_Fun_t * p, int VarPol )
 {
     Lpk_Fun_t * pNew;
     unsigned * pTruth  = Lpk_FunTruth( p, 0 );

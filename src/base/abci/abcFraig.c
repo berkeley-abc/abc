@@ -648,46 +648,32 @@ Abc_Obj_t * Abc_NodeFraigTrust( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkFraigStore( Abc_Ntk_t * pNtk )
+int Abc_NtkFraigStore( Abc_Ntk_t * pNtkAdd )
 {
-    Abc_Ntk_t * pStore;
-    int nAndsOld;
-
-    if ( !Abc_NtkIsLogic(pNtk) && !Abc_NtkIsStrash(pNtk) )
+    Vec_Ptr_t * vStore;
+    Abc_Ntk_t * pNtk;
+    // create the network to be stored
+    pNtk = Abc_NtkStrash( pNtkAdd, 0, 0, 0 );
+    if ( pNtk == NULL )
     {
-        printf( "The netlist need to be converted into a logic network before adding it to storage.\n" );
+        printf( "Abc_NtkFraigStore: Initial strashing has failed.\n" );
         return 0;
     }
-
     // get the network currently stored
-    pStore = Abc_FrameReadNtkStore();
-    if ( pStore == NULL )
+    vStore = Abc_FrameReadStore();
+    if ( Vec_PtrSize(vStore) > 0 )
     {
-        // start the stored network
-        pStore = Abc_NtkStrash( pNtk, 0, 0, 0 );
-        if ( pStore == NULL )
+        // check that the networks have the same PIs
+        // reorder PIs of pNtk2 according to pNtk1
+        if ( !Abc_NtkCompareSignals( pNtk, Vec_PtrEntry(vStore, 0), 1, 1 ) )
         {
-            printf( "Abc_NtkFraigStore: Initial strashing has failed.\n" );
-            return 0;
+            printf( "Trying to store the network with different primary inputs.\n" );
+            printf( "The previously stored networks are deleted and this one is added.\n" );
+            Abc_NtkFraigStoreClean();
         }
-        // save the parameters
-        Abc_FrameSetNtkStore( pStore );
-        Abc_FrameSetNtkStoreSize( 1 );
-        nAndsOld = 0;
     }
-    else
-    {
-        // add the new network to storage
-        nAndsOld = Abc_NtkNodeNum( pStore );
-        if ( !Abc_NtkAppend( pStore, pNtk, 0 ) )
-        {
-            printf( "The current network cannot be appended to the stored network.\n" );
-            return 0;
-        }
-        // set the number of networks stored
-        Abc_FrameSetNtkStoreSize( Abc_FrameReadNtkStoreSize() + 1 );
-    }
-    printf( "The number of AIG nodes added to storage = %5d.\n", Abc_NtkNodeNum(pStore) - nAndsOld );
+    Vec_PtrPush( vStore, pNtk );
+    printf( "The number of AIG nodes added to storage = %5d.\n", Abc_NtkNodeNum(pNtk) );
     return 1;
 }
 
@@ -704,54 +690,48 @@ int Abc_NtkFraigStore( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkFraigRestore()
 {
-    extern Abc_Ntk_t * Abc_NtkFraigPartitioned( Abc_Ntk_t * pNtk, void * pParams );
-
+    extern Abc_Ntk_t * Abc_NtkFraigPartitioned( Vec_Ptr_t * vStore, void * pParams );
     Fraig_Params_t Params;
-    Abc_Ntk_t * pStore, * pFraig;
+    Vec_Ptr_t * vStore;
+    Abc_Ntk_t * pNtk, * pFraig;
     int nWords1, nWords2, nWordsMin;
     int clk = clock();
 
     // get the stored network
-    pStore = Abc_FrameReadNtkStore();
-    Abc_FrameSetNtkStore( NULL );
-    if ( pStore == NULL )
+    vStore = Abc_FrameReadStore();
+    if ( Vec_PtrSize(vStore) == 0 )
     {
         printf( "There are no network currently in storage.\n" );
         return NULL;
     }
-    printf( "Currently stored %d networks with %d nodes will be fraiged.\n", 
-        Abc_FrameReadNtkStoreSize(), Abc_NtkNodeNum(pStore) );
+    printf( "Currently stored %d networks will be fraiged.\n", Vec_PtrSize(vStore) );
+    pNtk = Vec_PtrEntry( vStore, 0 );
 
     // to determine the number of simulation patterns
     // use the following strategy
     // at least 64 words (32 words random and 32 words dynamic)
     // no more than 256M for one circuit (128M + 128M)
     nWords1 = 32;
-    nWords2 = (1<<27) / (Abc_NtkNodeNum(pStore) + Abc_NtkCiNum(pStore));
+    nWords2 = (1<<27) / (Abc_NtkNodeNum(pNtk) + Abc_NtkCiNum(pNtk));
     nWordsMin = ABC_MIN( nWords1, nWords2 );
 
     // set parameters for fraiging
     Fraig_ParamsSetDefault( &Params );
-    Params.nPatsRand  = nWordsMin * 32; // the number of words of random simulation info
-    Params.nPatsDyna  = nWordsMin * 32; // the number of words of dynamic simulation info
-    Params.nBTLimit   = 999999;             // the max number of backtracks to perform
-    Params.fFuncRed   =  1;             // performs only one level hashing
-    Params.fFeedBack  =  1;             // enables solver feedback
-    Params.fDist1Pats =  1;             // enables distance-1 patterns
-    Params.fDoSparse  =  1;             // performs equiv tests for sparse functions 
-    Params.fChoicing  =  1;             // enables recording structural choices
-    Params.fTryProve  =  0;             // tries to solve the final miter
-    Params.fVerbose   =  0;             // the verbosiness flag
+    Params.nPatsRand  = nWordsMin * 32;    // the number of words of random simulation info
+    Params.nPatsDyna  = nWordsMin * 32;    // the number of words of dynamic simulation info
+    Params.nBTLimit   = 1000;              // the max number of backtracks to perform
+    Params.fFuncRed   =    1;              // performs only one level hashing
+    Params.fFeedBack  =    1;              // enables solver feedback
+    Params.fDist1Pats =    1;              // enables distance-1 patterns
+    Params.fDoSparse  =    1;              // performs equiv tests for sparse functions 
+    Params.fChoicing  =    1;              // enables recording structural choices
+    Params.fTryProve  =    0;              // tries to solve the final miter
+    Params.fVerbose   =    0;              // the verbosiness flag
 
-//    Fraig_ManReportChoices( p );
-    // transform it into FRAIG
-//    pFraig = Abc_NtkFraig( pStore, &Params, 1, 0 );
-    pFraig = Abc_NtkFraigPartitioned( pStore, &Params );
-
-PRT( "Total fraiging time", clock() - clk );
-    if ( pFraig == NULL )
-        return NULL;
-    Abc_NtkDelete( pStore );
+    // perform partitioned computation of structural choices
+    pFraig = Abc_NtkFraigPartitioned( vStore, &Params );
+    Abc_NtkFraigStoreClean();
+PRT( "Total choicing time", clock() - clk );
     return pFraig;
 }
 
@@ -768,12 +748,13 @@ PRT( "Total fraiging time", clock() - clk );
 ***********************************************************************/
 void Abc_NtkFraigStoreClean()
 {
-    Abc_Ntk_t * pStore;
-    // get the stored network
-    pStore = Abc_FrameReadNtkStore();
-    if ( pStore )
-        Abc_NtkDelete( pStore );
-    Abc_FrameSetNtkStore( NULL );
+    Vec_Ptr_t * vStore;
+    Abc_Ntk_t * pNtk;
+    int i;
+    vStore = Abc_FrameReadStore();
+    Vec_PtrForEachEntry( vStore, pNtk, i )
+        Abc_NtkDelete( pNtk );
+    Vec_PtrClear( vStore );
 }
 
 /**Function*************************************************************
@@ -794,7 +775,7 @@ void Abc_NtkFraigStoreCheck( Abc_Ntk_t * pFraig )
     int i, k;
     // check that the PO functions are correct
     nPoFinal = Abc_NtkPoNum(pFraig);
-    nStored  = Abc_FrameReadNtkStoreSize();
+    nStored  = Abc_FrameReadStoreSize();
     assert( nPoFinal % nStored == 0 );
     nPoOrig  = nPoFinal / nStored;
     for ( i = 0; i < nPoOrig; i++ )

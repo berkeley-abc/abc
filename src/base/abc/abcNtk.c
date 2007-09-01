@@ -623,7 +623,7 @@ Abc_Ntk_t * Abc_NtkCreateConeArray( Abc_Ntk_t * pNtk, Vec_Ptr_t * vRoots, int fU
     }
     Vec_PtrFree( vNodes );
 
-    // add the PO corresponding to the nodes
+    // add the POs corresponding to the root nodes
     Vec_PtrForEachEntry( vRoots, pObj, i )
     {
         // create the PO node
@@ -640,6 +640,59 @@ Abc_Ntk_t * Abc_NtkCreateConeArray( Abc_Ntk_t * pNtk, Vec_Ptr_t * vRoots, int fU
     if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkCreateConeArray(): Network check has failed.\n" );
     return pNtkNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds new nodes to the cone.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkAppendToCone( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk, Vec_Ptr_t * vRoots )
+{
+    Vec_Ptr_t * vNodes;
+    Abc_Obj_t * pObj;
+    int i, iNodeId;
+
+    assert( Abc_NtkIsStrash(pNtkNew) );
+    assert( Abc_NtkIsStrash(pNtk) );
+
+    // collect the nodes in the TFI of the output (mark the TFI)
+    vNodes = Abc_NtkDfsNodes( pNtk, (Abc_Obj_t **)Vec_PtrArray(vRoots), Vec_PtrSize(vRoots) );
+
+    // establish connection between the constant nodes
+    Abc_AigConst1(pNtk)->pCopy = Abc_AigConst1(pNtkNew);
+
+    // create the PIs
+    Abc_NtkForEachCi( pNtk, pObj, i )
+    {
+        // skip CIs that are not used
+        if ( !Abc_NodeIsTravIdCurrent(pObj) )
+            continue;
+        // find the corresponding CI in the new network
+        iNodeId = Nm_ManFindIdByNameTwoTypes( pNtkNew->pManName, Abc_ObjName(pObj), ABC_OBJ_PI, ABC_OBJ_BO );
+        if ( iNodeId == -1 )
+        {
+            pObj->pCopy = Abc_NtkCreatePi(pNtkNew);
+            Abc_ObjAssignName( pObj->pCopy, Abc_ObjName(pObj), NULL );
+        }
+        else
+            pObj->pCopy = Abc_NtkObj( pNtkNew, iNodeId );
+    }
+
+    // copy the nodes
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+        pObj->pCopy = Abc_AigAnd( pNtkNew->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
+    Vec_PtrFree( vNodes );
+
+    // do not add the COs
+    if ( !Abc_NtkCheck( pNtkNew ) )
+        fprintf( stdout, "Abc_NtkAppendToCone(): Network check has failed.\n" );
 }
 
 /**Function*************************************************************

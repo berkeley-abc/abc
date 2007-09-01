@@ -264,18 +264,23 @@ Vec_Int_t * Part_ManTransferEntry( Part_One_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Vec_t * Aig_ManSupports( Aig_Man_t * pMan )
+Vec_Ptr_t * Aig_ManSupports( Aig_Man_t * pMan )
 {
-    Vec_Vec_t * vSupps;
+    Vec_Ptr_t * vSupports;
     Vec_Int_t * vSupp;
     Part_Man_t * p;
     Part_One_t * pPart0, * pPart1;
     Aig_Obj_t * pObj;
-    int i, iIns = 0, iOut = 0;
+    int i;
+    // set the number of PIs/POs
+    Aig_ManForEachPi( pMan, pObj, i )
+        pObj->pNext = (Aig_Obj_t *)i;
+    Aig_ManForEachPo( pMan, pObj, i )
+        pObj->pNext = (Aig_Obj_t *)i;
     // start the support computation manager
     p = Part_ManStart( 1 << 20, 1 << 6 );
     // consider objects in the topological order
-    vSupps = Vec_VecAlloc( Aig_ManPoNum(pMan) );
+    vSupports = Vec_PtrAlloc( Aig_ManPoNum(pMan) );
     Aig_ManCleanData(pMan);
     Aig_ManForEachObj( pMan, pObj, i )
     {
@@ -296,8 +301,8 @@ Vec_Vec_t * Aig_ManSupports( Aig_Man_t * pMan )
         {
             pPart0 = Aig_ObjFanin0(pObj)->pData;
             vSupp = Part_ManTransferEntry(pPart0);
-            Vec_IntPush( vSupp, iOut++ );
-            Vec_PtrPush( (Vec_Ptr_t *)vSupps, vSupp );
+            Vec_IntPush( vSupp, (int)pObj->pNext );
+            Vec_PtrPush( vSupports, vSupp );
             assert( pPart0->nRefs > 0 );
             if ( --pPart0->nRefs == 0 )
                 Part_ManRecycleEntry( p, pPart0 );
@@ -308,7 +313,7 @@ Vec_Vec_t * Aig_ManSupports( Aig_Man_t * pMan )
             if ( pObj->nRefs )
             {
                 pPart0 = Part_ManFetchEntry( p, 1, pObj->nRefs );
-                pPart0->pOuts[ pPart0->nOuts++ ] = iIns++;
+                pPart0->pOuts[ pPart0->nOuts++ ] = (int)pObj->pNext;
                 pObj->pData = pPart0;
             }
             continue;
@@ -324,13 +329,18 @@ Vec_Vec_t * Aig_ManSupports( Aig_Man_t * pMan )
 //printf( "Memory usage = %d Mb.\n", Vec_PtrSize(p->vMemory) * p->nChunkSize / (1<<20) );
     Part_ManStop( p );
     // sort supports by size
-    Vec_VecSort( vSupps, 1 );
+    Vec_VecSort( (Vec_Vec_t *)vSupports, 1 );
+    // clear the number of PIs/POs
+    Aig_ManForEachPi( pMan, pObj, i )
+        pObj->pNext = NULL;
+    Aig_ManForEachPo( pMan, pObj, i )
+        pObj->pNext = NULL;
 /*
     Aig_ManForEachPo( pMan, pObj, i )
-        printf( "%d ", Vec_IntSize( (Vec_Int_t *)Vec_VecEntry(vSupps, i) ) );
+        printf( "%d ", Vec_IntSize( (Vec_Int_t *)Vec_VecEntry(vSupports, i) ) );
     printf( "\n" );
 */
-    return vSupps;
+    return vSupports;
 }
 
 /**Function*************************************************************
@@ -344,16 +354,17 @@ Vec_Vec_t * Aig_ManSupports( Aig_Man_t * pMan )
   SeeAlso     []
 
 ***********************************************************************/
-char * Aig_ManSuppCharStart( Vec_Int_t * vOne, int nPis )
+unsigned * Aig_ManSuppCharStart( Vec_Int_t * vOne, int nPis )
 {
-    char * pBuffer;
+    unsigned * pBuffer;
     int i, Entry;
-    pBuffer = ALLOC( char, nPis );
-    memset( pBuffer, 0, sizeof(char) * nPis );
+    int nWords = Aig_BitWordNum(nPis);
+    pBuffer = ALLOC( unsigned, nWords );
+    memset( pBuffer, 0, sizeof(unsigned) * nWords );
     Vec_IntForEachEntry( vOne, Entry, i )
     {
         assert( Entry < nPis );
-        pBuffer[Entry] = 1;
+        Aig_InfoSetBit( pBuffer, Entry );
     }
     return pBuffer;
 }
@@ -369,13 +380,13 @@ char * Aig_ManSuppCharStart( Vec_Int_t * vOne, int nPis )
   SeeAlso     []
 
 ***********************************************************************/
-void Aig_ManSuppCharAdd( char * pBuffer, Vec_Int_t * vOne, int nPis )
+void Aig_ManSuppCharAdd( unsigned * pBuffer, Vec_Int_t * vOne, int nPis )
 {
     int i, Entry;
     Vec_IntForEachEntry( vOne, Entry, i )
     {
         assert( Entry < nPis );
-        pBuffer[Entry] = 1;
+        Aig_InfoSetBit( pBuffer, Entry );
     }
 }
 
@@ -390,11 +401,11 @@ void Aig_ManSuppCharAdd( char * pBuffer, Vec_Int_t * vOne, int nPis )
   SeeAlso     []
 
 ***********************************************************************/
-int Aig_ManSuppCharCommon( char * pBuffer, Vec_Int_t * vOne )
+int Aig_ManSuppCharCommon( unsigned * pBuffer, Vec_Int_t * vOne )
 {
     int i, Entry, nCommon = 0;
     Vec_IntForEachEntry( vOne, Entry, i )
-        nCommon += pBuffer[Entry];
+        nCommon += Aig_InfoHasBit(pBuffer, Entry);
     return nCommon;
 }
 
@@ -409,24 +420,27 @@ int Aig_ManSuppCharCommon( char * pBuffer, Vec_Int_t * vOne )
   SeeAlso     []
 
 ***********************************************************************/
-int Aig_ManPartitionSmartFindPart( Vec_Ptr_t * vPartSuppsAll, Vec_Ptr_t * vPartsAll, Vec_Ptr_t * vPartSuppsChar, int nPartSizeLimit, Vec_Int_t * vOne )
+int Aig_ManPartitionSmartFindPart( Vec_Ptr_t * vPartSuppsAll, Vec_Ptr_t * vPartsAll, Vec_Ptr_t * vPartSuppsBit, int nSuppSizeLimit, Vec_Int_t * vOne )
 {
-    Vec_Int_t * vPartSupp, * vPart;
+    Vec_Int_t * vPartSupp;//, * vPart;
     int Attract, Repulse, Value, ValueBest;
     int i, nCommon, iBest;
     iBest = -1;
     ValueBest = 0;
     Vec_PtrForEachEntry( vPartSuppsAll, vPartSupp, i )
     {
-        vPart = Vec_PtrEntry( vPartsAll, i );
-        if ( nPartSizeLimit > 0 && Vec_IntSize(vPart) >= nPartSizeLimit )
-            continue;
+//        vPart = Vec_PtrEntry( vPartsAll, i );
+//        if ( nSuppSizeLimit > 0 && Vec_IntSize(vPart) >= nSuppSizeLimit )
+//            continue;
 //        nCommon = Vec_IntTwoCountCommon( vPartSupp, vOne );
-        nCommon = Aig_ManSuppCharCommon( Vec_PtrEntry(vPartSuppsChar, i), vOne );
+        nCommon = Aig_ManSuppCharCommon( Vec_PtrEntry(vPartSuppsBit, i), vOne );
         if ( nCommon == 0 )
             continue;
         if ( nCommon == Vec_IntSize(vOne) )
             return i;
+        // skip partitions whose size exceeds the limit
+        if ( nSuppSizeLimit > 0 && Vec_IntSize(vPartSupp) >= 2 * nSuppSizeLimit )
+            continue;
         Attract = 1000 * nCommon / Vec_IntSize(vOne);
         if ( Vec_IntSize(vPartSupp) < 100 )
             Repulse = 1;
@@ -484,20 +498,20 @@ void Aig_ManPartitionPrint( Aig_Man_t * p, Vec_Ptr_t * vPartsAll, Vec_Ptr_t * vP
   SeeAlso     []
 
 ***********************************************************************/
-void Aig_ManPartitionCompact( Vec_Ptr_t * vPartsAll, Vec_Ptr_t * vPartSuppsAll, int nPartSizeLimit )
+void Aig_ManPartitionCompact( Vec_Ptr_t * vPartsAll, Vec_Ptr_t * vPartSuppsAll, int nSuppSizeLimit )
 {
     Vec_Int_t * vOne, * vPart, * vPartSupp, * vTemp;
     int i, iPart;
 
-    if ( nPartSizeLimit == 0 )
-        nPartSizeLimit = 200;
+    if ( nSuppSizeLimit == 0 )
+        nSuppSizeLimit = 200;
 
     // pack smaller partitions into larger blocks
     iPart = 0;
     vPart = vPartSupp = NULL;
     Vec_PtrForEachEntry( vPartSuppsAll, vOne, i )
     {
-        if ( Vec_IntSize(vOne) < nPartSizeLimit )
+        if ( Vec_IntSize(vOne) < nSuppSizeLimit )
         {
             if ( vPartSupp == NULL )
             {
@@ -513,7 +527,7 @@ void Aig_ManPartitionCompact( Vec_Ptr_t * vPartsAll, Vec_Ptr_t * vPartSuppsAll, 
                 Vec_IntFree( vTemp );
                 Vec_IntFree( Vec_PtrEntry(vPartsAll, i) );
             }
-            if ( Vec_IntSize(vPartSupp) < nPartSizeLimit )
+            if ( Vec_IntSize(vPartSupp) < nSuppSizeLimit )
                 continue;
         }
         else
@@ -556,34 +570,33 @@ void Aig_ManPartitionCompact( Vec_Ptr_t * vPartsAll, Vec_Ptr_t * vPartSuppsAll, 
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Vec_t * Aig_ManPartitionSmart( Aig_Man_t * p, int nPartSizeLimit, int fVerbose, Vec_Vec_t ** pvPartSupps )
+Vec_Ptr_t * Aig_ManPartitionSmart( Aig_Man_t * p, int nSuppSizeLimit, int fVerbose, Vec_Ptr_t ** pvPartSupps )
 {
-    Vec_Ptr_t * vPartSuppsChar;
-    Vec_Ptr_t * vSupps, * vPartsAll, * vPartsAll2, * vPartSuppsAll;//, * vPartPtr;
+    Vec_Ptr_t * vPartSuppsBit;
+    Vec_Ptr_t * vSupports, * vPartsAll, * vPartsAll2, * vPartSuppsAll;//, * vPartPtr;
     Vec_Int_t * vOne, * vPart, * vPartSupp, * vTemp;
     int i, iPart, iOut, clk;
 
     // compute the supports for all outputs
 clk = clock();
-    vSupps = (Vec_Ptr_t *)Aig_ManSupports( p );
+    vSupports = Aig_ManSupports( p );
 if ( fVerbose )
 {
 PRT( "Supps", clock() - clk );
 }
     // start char-based support representation
-    vPartSuppsChar = Vec_PtrAlloc( 1000 );
+    vPartSuppsBit = Vec_PtrAlloc( 1000 );
 
     // create partitions
 clk = clock();
     vPartsAll = Vec_PtrAlloc( 256 );
     vPartSuppsAll = Vec_PtrAlloc( 256 );
-    Vec_PtrForEachEntry( vSupps, vOne, i )
+    Vec_PtrForEachEntry( vSupports, vOne, i )
     {
         // get the output number
         iOut = Vec_IntPop(vOne);
         // find closely matching part
-        iPart = Aig_ManPartitionSmartFindPart( vPartSuppsAll, vPartsAll, vPartSuppsChar, nPartSizeLimit, vOne );
-//printf( "%4d->%4d  ", i, iPart );
+        iPart = Aig_ManPartitionSmartFindPart( vPartSuppsAll, vPartsAll, vPartSuppsBit, nSuppSizeLimit, vOne );
         if ( iPart == -1 )
         {
             // create new partition
@@ -595,7 +608,7 @@ clk = clock();
             Vec_PtrPush( vPartsAll, vPart );
             Vec_PtrPush( vPartSuppsAll, vPartSupp );
 
-            Vec_PtrPush( vPartSuppsChar, Aig_ManSuppCharStart(vOne, Aig_ManPiNum(p)) );
+            Vec_PtrPush( vPartSuppsBit, Aig_ManSuppCharStart(vOne, Aig_ManPiNum(p)) );
         }
         else
         {
@@ -609,14 +622,14 @@ clk = clock();
             // reinsert new support
             Vec_PtrWriteEntry( vPartSuppsAll, iPart, vPartSupp );
 
-            Aig_ManSuppCharAdd( Vec_PtrEntry(vPartSuppsChar, iPart), vOne, Aig_ManPiNum(p) );
+            Aig_ManSuppCharAdd( Vec_PtrEntry(vPartSuppsBit, iPart), vOne, Aig_ManPiNum(p) );
         }
     }
 
     // stop char-based support representation
-    Vec_PtrForEachEntry( vPartSuppsChar, vTemp, i )
+    Vec_PtrForEachEntry( vPartSuppsBit, vTemp, i )
         free( vTemp );
-    Vec_PtrFree( vPartSuppsChar );
+    Vec_PtrFree( vPartSuppsBit );
 
 //printf( "\n" );
 if ( fVerbose )
@@ -640,7 +653,7 @@ clk = clock();
 
     // compact small partitions
 //    Aig_ManPartitionPrint( p, vPartsAll, vPartSuppsAll );
-    Aig_ManPartitionCompact( vPartsAll, vPartSuppsAll, nPartSizeLimit );
+    Aig_ManPartitionCompact( vPartsAll, vPartSuppsAll, nSuppSizeLimit );
     if ( fVerbose )
 //    Aig_ManPartitionPrint( p, vPartsAll, vPartSuppsAll );
     printf( "Created %d partitions.\n", Vec_PtrSize(vPartsAll) );
@@ -651,11 +664,11 @@ if ( fVerbose )
 }
 
     // cleanup
-    Vec_VecFree( (Vec_Vec_t *)vSupps );
+    Vec_VecFree( (Vec_Vec_t *)vSupports );
     if ( pvPartSupps == NULL )
         Vec_VecFree( (Vec_Vec_t *)vPartSuppsAll );
     else
-        *pvPartSupps = (Vec_Vec_t *)vPartSuppsAll;
+        *pvPartSupps = vPartSuppsAll;
 /*
     // converts from intergers to nodes
     Vec_PtrForEachEntry( vPartsAll, vPart, iPart )
@@ -667,7 +680,7 @@ if ( fVerbose )
         Vec_PtrWriteEntry( vPartsAll, iPart, vPartPtr );
     }
 */
-    return (Vec_Vec_t *)vPartsAll;
+    return vPartsAll;
 }
 
 /**Function*************************************************************
@@ -681,15 +694,15 @@ if ( fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Vec_t * Aig_ManPartitionNaive( Aig_Man_t * p, int nPartSize )
+Vec_Ptr_t * Aig_ManPartitionNaive( Aig_Man_t * p, int nPartSize )
 {
-    Vec_Vec_t * vParts;
+    Vec_Ptr_t * vParts;
     Aig_Obj_t * pObj;
     int nParts, i;
     nParts = (Aig_ManPoNum(p) / nPartSize) + ((Aig_ManPoNum(p) % nPartSize) > 0);
-    vParts = Vec_VecStart( nParts );
+    vParts = (Vec_Ptr_t *)Vec_VecStart( nParts );
     Aig_ManForEachPo( p, pObj, i )
-        Vec_VecPush( vParts, i / nPartSize, pObj );
+        Vec_IntPush( Vec_PtrEntry(vParts, i / nPartSize), i );
     return vParts;
 }
 
@@ -787,18 +800,18 @@ Vec_Ptr_t * Aig_ManMiterPartitioned( Aig_Man_t * p1, Aig_Man_t * p2, int nPartSi
     Aig_Man_t * pNew;
     Aig_Obj_t * pMiter;
     Vec_Ptr_t * vMiters, * vNodes1, * vNodes2;
-    Vec_Vec_t * vParts, * vPartSupps;
+    Vec_Ptr_t * vParts, * vPartSupps;
     Vec_Int_t * vPart, * vPartSupp;
     int i, k;
     // partition the first manager
     vParts = Aig_ManPartitionSmart( p1, nPartSize, 0, &vPartSupps );
     // derive miters
-    vMiters = Vec_PtrAlloc( Vec_VecSize(vParts) );
-    for ( i = 0; i < Vec_VecSize(vParts); i++ )
+    vMiters = Vec_PtrAlloc( Vec_PtrSize(vParts) );
+    for ( i = 0; i < Vec_PtrSize(vParts); i++ )
     {
         // get partitions and their support
-        vPart     = Vec_PtrEntry( (Vec_Ptr_t *)vParts, i );
-        vPartSupp = Vec_PtrEntry( (Vec_Ptr_t *)vPartSupps, i );
+        vPart     = Vec_PtrEntry( vParts, i );
+        vPartSupp = Vec_PtrEntry( vPartSupps, i );
         // create the new miter
         pNew = Aig_ManStart( 1000 );
         // create the PIs
@@ -815,8 +828,8 @@ Vec_Ptr_t * Aig_ManMiterPartitioned( Aig_Man_t * p1, Aig_Man_t * p2, int nPartSi
         Aig_ManCleanup( pNew );
         Vec_PtrPush( vMiters, pNew );
     }
-    Vec_VecFree( vParts );
-    Vec_VecFree( vPartSupps );
+    Vec_VecFree( (Vec_Vec_t *)vParts );
+    Vec_VecFree( (Vec_Vec_t *)vPartSupps );
     return vMiters;
 }
 
@@ -837,7 +850,7 @@ Aig_Man_t * Aig_ManChoicePartitioned( Vec_Ptr_t * vAigs, int nPartSize )
     Aig_Man_t * pChoice, * pNew, * pAig, * p;
     Aig_Obj_t * pObj;
     Vec_Ptr_t * vMiters, * vNodes;
-    Vec_Vec_t * vParts, * vPartSupps;
+    Vec_Ptr_t * vParts, * vPartSupps;
     Vec_Int_t * vPart, * vPartSupp;
     int i, k, m;
 
@@ -847,12 +860,12 @@ Aig_Man_t * Aig_ManChoicePartitioned( Vec_Ptr_t * vAigs, int nPartSize )
     vParts = Aig_ManPartitionSmart( pAig, nPartSize, 0, &vPartSupps );
 
     // derive the AIG partitions
-    vMiters = Vec_PtrAlloc( Vec_VecSize(vParts) );
-    for ( i = 0; i < Vec_VecSize(vParts); i++ )
+    vMiters = Vec_PtrAlloc( Vec_PtrSize(vParts) );
+    for ( i = 0; i < Vec_PtrSize(vParts); i++ )
     {
         // get partitions and their support
-        vPart     = Vec_PtrEntry( (Vec_Ptr_t *)vParts, i );
-        vPartSupp = Vec_PtrEntry( (Vec_Ptr_t *)vPartSupps, i );
+        vPart     = Vec_PtrEntry( vParts, i );
+        vPartSupp = Vec_PtrEntry( vPartSupps, i );
         // create the new miter
         pNew = Aig_ManStart( 1000 );
         // create the PIs
@@ -884,13 +897,13 @@ Aig_Man_t * Aig_ManChoicePartitioned( Vec_Ptr_t * vAigs, int nPartSize )
     Vec_PtrForEachEntry( vMiters, p, i )
     {
         // get partitions and their support
-        vPart     = Vec_PtrEntry( (Vec_Ptr_t *)vParts, i );
-        vPartSupp = Vec_PtrEntry( (Vec_Ptr_t *)vPartSupps, i );
+        vPart     = Vec_PtrEntry( vParts, i );
+        vPartSupp = Vec_PtrEntry( vPartSupps, i );
         // copy the component
         vNodes = Aig_ManDupPart( pNew, p, vPart, vPartSupp, 1 );
-        assert( Vec_PtrSize(vNodes) == Vec_VecSize(vParts) * Vec_PtrSize(vAigs) );
+        assert( Vec_PtrSize(vNodes) == Vec_PtrSize(vParts) * Vec_PtrSize(vAigs) );
         // create choice node
-        for ( k = 0; k < Vec_VecSize(vParts); k++ )
+        for ( k = 0; k < Vec_PtrSize(vParts); k++ )
         {
             for ( m = 0; m < Vec_PtrSize(vAigs); m++ )
             {
@@ -901,8 +914,8 @@ Aig_Man_t * Aig_ManChoicePartitioned( Vec_Ptr_t * vAigs, int nPartSize )
         }
         Vec_PtrFree( vNodes );
     }
-    Vec_VecFree( vParts );
-    Vec_VecFree( vPartSupps );
+    Vec_VecFree( (Vec_Vec_t *)vParts );
+    Vec_VecFree( (Vec_Vec_t *)vPartSupps );
 
     // trasfer representatives
     Aig_ManReprStart( pNew, Aig_ManObjIdMax(pNew)+1 );

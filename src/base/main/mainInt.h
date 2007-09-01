@@ -63,8 +63,7 @@ struct Abc_Frame_t_
     int             TimeCommand; // the runtime of the last command
     int             TimeTotal;   // the total runtime of all commands
     // temporary storage for structural choices
-    Abc_Ntk_t *     pStored;     // the stored networks
-    int             nStored;     // the number of stored networks
+    Vec_Ptr_t *     vStore;      // networks to be used by choice
     // decomposition package
     void *          pManDec;     // decomposition manager
     DdManager *     dd;          // temporary BDD package
