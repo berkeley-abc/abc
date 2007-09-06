@@ -41,7 +41,7 @@
 ***********************************************************************/
 void Fra_ManPartitionTest( Aig_Man_t * p, int nComLim )
 {
-    ProgressBar * pProgress;
+    Bar_Progress_t * pProgress;
     Vec_Vec_t * vSupps, * vSuppsIn;
     Vec_Ptr_t * vSuppsNew;
     Vec_Int_t * vSupNew, * vSup, * vSup2, * vTemp;//, * vSupIn;
@@ -86,10 +86,10 @@ clk = clock();
     vSuppsNew = Vec_PtrAlloc( Aig_ManPoNum(p) );
     vOverNew  = Vec_IntAlloc( Aig_ManPoNum(p) );
     vQuantNew = Vec_IntAlloc( Aig_ManPoNum(p) );
-    pProgress = Extra_ProgressBarStart( stdout, Aig_ManPoNum(p) );
+    pProgress = Bar_ProgressStart( stdout, Aig_ManPoNum(p) );
     Aig_ManForEachPo( p, pObj, i )
     {
-        Extra_ProgressBarUpdate( pProgress, i, NULL );
+        Bar_ProgressUpdate( pProgress, i, NULL );
         // get old supports
         vSup = Vec_VecEntry( vSupps, i );
         if ( Vec_IntSize(vSup) < 2 )
@@ -152,7 +152,7 @@ clk = clock();
         printf( "\n" );
 */
     }
-    Extra_ProgressBarStop( pProgress );
+    Bar_ProgressStop( pProgress );
 PRT( "Scanning", clock() - clk );
 
     // print cumulative statistics

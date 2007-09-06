@@ -275,10 +275,12 @@ void Rtm_PrintEdge( Rtm_Man_t * p, Rtm_Edg_t * pEdge )
 {
     unsigned LData = pEdge->LData;
     printf( "%d : ", pEdge->nLats );
+/*
     if ( pEdge->nLats > 10 )
         Extra_PrintBinary( stdout, p->pExtra + pEdge->LData, 2*(pEdge->nLats+1) );
     else
         Extra_PrintBinary( stdout, &LData, 2*(pEdge->nLats+1) );
+*/
     printf( "\n" );
 }
 
@@ -804,7 +806,7 @@ Aig_Man_t * Rtm_ManToAig( Rtm_Man_t * pRtm )
             pObjNew = Aig_ManPi( pNew, pLatches[2*pObjRtm->Id + k] + m );
             pObjNew = Aig_NotCond( pObjNew, Val == RTM_VAL_ONE );
         }
-        assert( Aig_Regular(pObjNew)->nRefs > 0 );
+//        assert( Aig_Regular(pObjNew)->nRefs > 0 );
     }
     free( pLatches );
     pNew->nRegs = nLatches;
@@ -947,6 +949,7 @@ clk = clock();
 
     // get the new manager
     pNew = Rtm_ManToAig( pRtm );
+    pNew->pName = Aig_UtilStrsav( p->pName );
     Rtm_ManFree( pRtm );
     // group the registers
 clk = clock();

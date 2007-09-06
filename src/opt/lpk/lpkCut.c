@@ -30,7 +30,7 @@
 
 /**Function*************************************************************
 
-  Synopsis    [Computes the truth able of one cut.]
+  Synopsis    [Computes the truth table of one cut.]
 
   Description []
                
@@ -445,10 +445,17 @@ void Lpk_NodeCutsOne( Lpk_Man_t * p, Lpk_Cut_t * pCut, int Node )
     memcpy( pCutNew->pNodes, pCut->pNodes, pCut->nNodes * sizeof(int) );
     pCutNew->nNodes = pCut->nNodes;
     pCutNew->nNodesDup = pCut->nNodesDup;
+
     // check if the node is already there
+    // if so, move the node to be the last
     for ( i = 0; i < (int)pCutNew->nNodes; i++ )
         if ( pCutNew->pNodes[i] == Node )
+        {
+            for ( k = i; k < (int)pCutNew->nNodes - 1; k++ )
+                pCutNew->pNodes[k] = pCutNew->pNodes[k+1];
+            pCutNew->pNodes[k] = Node;
             break;
+        }
     if ( i == (int)pCutNew->nNodes ) // new node
     {
         pCutNew->pNodes[ pCutNew->nNodes++ ] = Node;

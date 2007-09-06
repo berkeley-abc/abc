@@ -172,7 +172,7 @@ void If_CutPropagateRequired( If_Man_t * p, If_Cut_t * pCut, float ObjRequired )
 
 /**Function*************************************************************
 
-  Synopsis    [Sorts the pins in the degreasing order of delays.]
+  Synopsis    [Sorts the pins in the decreasing order of delays.]
 
   Description []
                

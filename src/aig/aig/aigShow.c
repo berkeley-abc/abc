@@ -128,7 +128,7 @@ void Aig_WriteDotAig( Aig_Man_t * pMan, char * pFileName, int fHaig, Vec_Ptr_t *
     fprintf( pFile, "%s", "AIG structure visualized by ABC" );
     fprintf( pFile, "\\n" );
     fprintf( pFile, "Benchmark \\\"%s\\\". ", "aig" );
-    fprintf( pFile, "Time was %s. ",  Extra_TimeStamp() );
+//    fprintf( pFile, "Time was %s. ",  Extra_TimeStamp() );
     fprintf( pFile, "\"\n" );
     fprintf( pFile, "         ];\n" );
     fprintf( pFile, "}" );

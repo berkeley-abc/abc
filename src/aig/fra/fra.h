@@ -39,6 +39,7 @@ extern "C" {
 #include "aig.h"
 #include "dar.h"
 #include "satSolver.h"
+#include "bar.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -126,6 +127,7 @@ struct Fra_Man_t_
     // mapping AIG into FRAIG
     int              nFramesAll;        // the number of timeframes used
     Aig_Obj_t **     pMemFraig;         // memory allocated for points to the fraig nodes
+    int              nSizeAlloc;        // allocated size of the arrays for timeframe nodes
     // equivalence classes 
     Fra_Cla_t *      pCla;              // representation of (candidate) equivalent nodes
     // simulation info
@@ -144,7 +146,7 @@ struct Fra_Man_t_
     sint64           nInsLimitGlobal;   // resource limit
     Vec_Ptr_t **     pMemFanins;        // the arrays of fanins for some FRAIG nodes
     int *            pMemSatNums;       // the array of SAT numbers for some FRAIG nodes
-    int              nSizeAlloc;        // allocated size of the arrays
+    int              nMemAlloc;         // allocated size of the arrays for FRAIG varnums and fanins
     Vec_Ptr_t *      vTimeouts;         // the nodes, for which equivalence checking timed out
     // statistics
     int              nSimRounds;
@@ -240,7 +242,7 @@ extern void                Fra_CnfNodeAddToSolver( Fra_Man_t * p, Aig_Obj_t * pO
 extern void                Fra_FraigSweep( Fra_Man_t * pManAig );
 extern int                 Fra_FraigMiterStatus( Aig_Man_t * p );
 extern Aig_Man_t *         Fra_FraigPerform( Aig_Man_t * pManAig, Fra_Par_t * pPars );
-extern Aig_Man_t *         Fra_FraigChoice( Aig_Man_t * pManAig );
+extern Aig_Man_t *         Fra_FraigChoice( Aig_Man_t * pManAig, int nConfMax );
 extern Aig_Man_t *         Fra_FraigEquivence( Aig_Man_t * pManAig, int nConfMax );
 /*=== fraImp.c ========================================================*/
 extern Vec_Int_t *         Fra_ImpDerive( Fra_Man_t * p, int nImpMaxLimit, int nImpUseLimit, int fLatchCorr );
@@ -259,7 +261,7 @@ extern Aig_Man_t *         Fra_FraigLatchCorrespondence( Aig_Man_t * pAig, int n
 extern void                Fra_ParamsDefault( Fra_Par_t * pParams );
 extern void                Fra_ParamsDefaultSeq( Fra_Par_t * pParams );
 extern Fra_Man_t *         Fra_ManStart( Aig_Man_t * pManAig, Fra_Par_t * pParams );
-extern void                Fra_ManClean( Fra_Man_t * p );
+extern void                Fra_ManClean( Fra_Man_t * p, int nNodesMax );
 extern Aig_Man_t *         Fra_ManPrepareComb( Fra_Man_t * p );
 extern void                Fra_ManFinalizeComb( Fra_Man_t * p );
 extern void                Fra_ManStop( Fra_Man_t * p );

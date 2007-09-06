@@ -319,7 +319,7 @@ unsigned * Kit_DsdTruthComputeNode_rec( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk, i
 {
     Kit_DsdObj_t * pObj;
     unsigned * pTruthRes, * pTruthPrime, * pTruthMint, * pTruthFans[16];
-    unsigned i, m, iLit, nMints, fCompl, fPartial = 0;
+    unsigned i, m, iLit, nMints, fCompl, nPartial = 0;
 
     // get the node with this ID
     pObj = Kit_DsdNtkObj( pNtk, Id );
@@ -364,7 +364,7 @@ unsigned * Kit_DsdTruthComputeNode_rec( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk, i
             else
             {
                 pTruthFans[i] = NULL;
-                fPartial = 1;
+                nPartial = 1;
             }
     }
     else
@@ -401,7 +401,7 @@ unsigned * Kit_DsdTruthComputeNode_rec( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk, i
     }
     assert( pObj->Type == KIT_DSD_PRIME );
 
-    if ( uSupp && fPartial )
+    if ( uSupp && nPartial )
     {
         // find the only non-empty component
         Kit_DsdObjForEachFanin( pNtk, pObj, iLit, i )
@@ -463,6 +463,169 @@ unsigned * Kit_DsdTruthCompute( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk, unsigned 
 
 /**Function*************************************************************
 
+  Synopsis    [Derives the truth table of the DSD node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned * Kit_DsdTruthComputeNodeTwo_rec( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk, int Id, unsigned uSupp, int iVar, unsigned * pTruthDec )
+{
+    Kit_DsdObj_t * pObj;
+    unsigned * pTruthRes, * pTruthPrime, * pTruthMint, * pTruthFans[16];
+    unsigned i, m, iLit, nMints, fCompl, uSuppCur, uSuppFan, nPartial;
+    int pfBoundSet[16];
+    assert( uSupp > 0 );
+
+    // get the node with this ID
+    pObj = Kit_DsdNtkObj( pNtk, Id );
+    pTruthRes = Vec_PtrEntry( p->vTtNodes, Id );
+    if ( pObj == NULL )
+    {
+        assert( Id < pNtk->nVars );
+        return pTruthRes;
+    }
+    assert( pObj->Type != KIT_DSD_CONST1 );
+    assert( pObj->Type != KIT_DSD_VAR );
+
+    // count the number of intersecting fanins 
+    // collect the total support of the intersecting fanins
+    nPartial = 0;
+    uSuppFan = 0;
+    Kit_DsdObjForEachFanin( pNtk, pObj, iLit, i )
+    {
+        uSuppCur = Kit_DsdLitSupport(pNtk, iLit);
+        if ( uSupp & uSuppCur )
+        {
+            nPartial++;
+            uSuppFan |= uSuppCur;
+        }
+    }
+
+    // if there is no intersection, or full intersection, use simple procedure
+    if ( nPartial == 0 || nPartial == pObj->nFans )
+        return Kit_DsdTruthComputeNode_rec( p, pNtk, Id, 0 );
+
+    // if support of the component includes some other variables
+    // we need to continue constructing it as usual by the two-function procedure
+    if ( uSuppFan != (uSuppFan & uSupp) )
+    {
+        assert( nPartial == 1 );
+//        return Kit_DsdTruthComputeNodeTwo_rec( p, pNtk, Id, uSupp, iVar, pTruthDec );
+        Kit_DsdObjForEachFanin( pNtk, pObj, iLit, i )
+        {
+            if ( uSupp & Kit_DsdLitSupport(pNtk, iLit) )
+                pTruthFans[i] = Kit_DsdTruthComputeNodeTwo_rec( p, pNtk, Kit_DsdLit2Var(iLit), uSupp, iVar, pTruthDec );
+            else
+                pTruthFans[i] = Kit_DsdTruthComputeNode_rec( p, pNtk, Kit_DsdLit2Var(iLit), 0 );
+        }
+
+        // create composition/decomposition functions
+        if ( pObj->Type == KIT_DSD_AND )
+        {
+            Kit_TruthFill( pTruthRes, pNtk->nVars );
+            Kit_DsdObjForEachFanin( pNtk, pObj, iLit, i )
+                Kit_TruthAndPhase( pTruthRes, pTruthRes, pTruthFans[i], pNtk->nVars, 0, Kit_DsdLitIsCompl(iLit) );
+            return pTruthRes;
+        }
+        if ( pObj->Type == KIT_DSD_XOR )
+        {
+            Kit_TruthClear( pTruthRes, pNtk->nVars );
+            fCompl = 0;
+            Kit_DsdObjForEachFanin( pNtk, pObj, iLit, i )
+            {
+                fCompl ^= Kit_DsdLitIsCompl(iLit);
+                Kit_TruthXor( pTruthRes, pTruthRes, pTruthFans[i], pNtk->nVars );
+            }
+            if ( fCompl )
+                Kit_TruthNot( pTruthRes, pTruthRes, pNtk->nVars );
+            return pTruthRes;
+        }
+        assert( pObj->Type == KIT_DSD_PRIME );
+    }
+    else
+    {
+        assert( uSuppFan == (uSuppFan & uSupp) );
+        assert( nPartial < pObj->nFans );
+        // the support of the insecting component(s) is contained in the bound-set
+        // and yet there are components that are not contained in the bound set
+
+        // solve the fanins and collect info, which components belong to the bound set
+        Kit_DsdObjForEachFanin( pNtk, pObj, iLit, i )
+        {
+            pTruthFans[i] = Kit_DsdTruthComputeNode_rec( p, pNtk, Kit_DsdLit2Var(iLit), 0 );
+            pfBoundSet[i] = (int)((uSupp & Kit_DsdLitSupport(pNtk, iLit)) > 0);
+        }
+
+        // create composition/decomposition functions
+        if ( pObj->Type == KIT_DSD_AND )
+        {
+            Kit_TruthIthVar( pTruthRes, pNtk->nVars, iVar );
+            Kit_TruthFill( pTruthDec, pNtk->nVars );
+            Kit_DsdObjForEachFanin( pNtk, pObj, iLit, i )
+                if ( pfBoundSet[i] )
+                    Kit_TruthAndPhase( pTruthDec, pTruthDec, pTruthFans[i], pNtk->nVars, 0, Kit_DsdLitIsCompl(iLit) );
+                else
+                    Kit_TruthAndPhase( pTruthRes, pTruthRes, pTruthFans[i], pNtk->nVars, 0, Kit_DsdLitIsCompl(iLit) );
+            return pTruthRes;
+        }
+        if ( pObj->Type == KIT_DSD_XOR )
+        {
+            Kit_TruthIthVar( pTruthRes, pNtk->nVars, iVar );
+            Kit_TruthClear( pTruthDec, pNtk->nVars );
+            fCompl = 0;
+            Kit_DsdObjForEachFanin( pNtk, pObj, iLit, i )
+            {
+                fCompl ^= Kit_DsdLitIsCompl(iLit);
+                if ( pfBoundSet[i] )
+                    Kit_TruthXor( pTruthDec, pTruthDec, pTruthFans[i], pNtk->nVars );
+                else
+                    Kit_TruthXor( pTruthRes, pTruthRes, pTruthFans[i], pNtk->nVars );
+            }
+            if ( fCompl )
+                Kit_TruthNot( pTruthRes, pTruthRes, pNtk->nVars );
+            return pTruthRes;
+        }
+        assert( pObj->Type == KIT_DSD_PRIME );
+        assert( nPartial == 1 );
+
+        // find the only non-empty component
+        Kit_DsdObjForEachFanin( pNtk, pObj, iLit, i )
+            if ( pfBoundSet[i] )
+                break;
+        assert( i < pObj->nFans );
+
+        // save this component as the decomposed function
+        Kit_TruthCopy( pTruthDec, pTruthFans[i], pNtk->nVars );
+        // set the corresponding component to be the new variable
+        Kit_TruthIthVar( pTruthFans[i], pNtk->nVars, iVar );
+    }
+
+    // get the truth table of the prime node
+    pTruthPrime = Kit_DsdObjTruth( pObj );
+    // get storage for the temporary minterm
+    pTruthMint = Vec_PtrEntry(p->vTtNodes, pNtk->nVars + pNtk->nNodes);
+
+    // go through the minterms
+    nMints = (1 << pObj->nFans);
+    Kit_TruthClear( pTruthRes, pNtk->nVars );
+    for ( m = 0; m < nMints; m++ )
+    {
+        if ( !Kit_TruthHasBit(pTruthPrime, m) )
+            continue;
+        Kit_TruthFill( pTruthMint, pNtk->nVars );
+        Kit_DsdObjForEachFanin( pNtk, pObj, iLit, i )
+            Kit_TruthAndPhase( pTruthMint, pTruthMint, pTruthFans[i], pNtk->nVars, 0, ((m & (1<<i)) == 0) ^ Kit_DsdLitIsCompl(iLit) );
+        Kit_TruthOr( pTruthRes, pTruthRes, pTruthMint, pNtk->nVars );
+    }
+    return pTruthRes;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Derives the truth table of the DSD network.]
 
   Description []
@@ -472,22 +635,37 @@ unsigned * Kit_DsdTruthCompute( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk, unsigned 
   SeeAlso     []
 
 ***********************************************************************/
-void Kit_DsdTruthComputeTwo( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk, unsigned uSupp, int iVar )
+unsigned * Kit_DsdTruthComputeTwo( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk, unsigned uSupp, int iVar, unsigned * pTruthDec )
 {
-    unsigned * pTruthRes;
+    unsigned * pTruthRes, uSuppAll;
     int i;
-    // if support is specified, request that supports are available
-    if ( uSupp )
-        Kit_DsdGetSupports( pNtk );
-    // assign elementary truth tables
+    assert( uSupp > 0 );
     assert( pNtk->nVars <= p->nVars );
+    // compute support of all nodes
+    uSuppAll = Kit_DsdGetSupports( pNtk );
+    // consider special case - there is no overlap
+    if ( (uSupp & uSuppAll) == 0 )
+    {
+        Kit_TruthClear( pTruthDec, pNtk->nVars );
+        return Kit_DsdTruthCompute( p, pNtk, 0 );
+    }
+    // consider special case - support is fully contained
+    if ( (uSupp & uSuppAll) == uSuppAll )
+    {
+        pTruthRes = Kit_DsdTruthCompute( p, pNtk, 0 );
+        Kit_TruthCopy( pTruthDec, pTruthRes, pNtk->nVars );
+        Kit_TruthIthVar( pTruthRes, pNtk->nVars, iVar );
+        return pTruthRes;
+    }
+    // assign elementary truth tables
     for ( i = 0; i < (int)pNtk->nVars; i++ )
         Kit_TruthCopy( Vec_PtrEntry(p->vTtNodes, i), Vec_PtrEntry(p->vTtElems, i), p->nVars );
     // compute truth table for each node
-    pTruthRes = Kit_DsdTruthComputeNode_rec( p, pNtk, Kit_DsdLit2Var(pNtk->Root), uSupp );
+    pTruthRes = Kit_DsdTruthComputeNodeTwo_rec( p, pNtk, Kit_DsdLit2Var(pNtk->Root), uSupp, iVar, pTruthDec );
     // complement the truth table if needed
     if ( Kit_DsdLitIsCompl(pNtk->Root) )
         Kit_TruthNot( pTruthRes, pTruthRes, pNtk->nVars );
+    return pTruthRes;
 }
 
 /**Function*************************************************************
@@ -522,10 +700,11 @@ void Kit_DsdTruth( Kit_DsdNtk_t * pNtk, unsigned * pTruthRes )
   SeeAlso     []
 
 ***********************************************************************/
-void Kit_DsdTruthPartial( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk, unsigned * pTruthRes, unsigned uSupp )
+void Kit_DsdTruthPartialTwo( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk, unsigned uSupp, int iVar, unsigned * pTruthCo, unsigned * pTruthDec )
 {
-    unsigned * pTruth = Kit_DsdTruthCompute( p, pNtk, uSupp );
-    Kit_TruthCopy( pTruthRes, pTruth, pNtk->nVars );
+    unsigned * pTruth = Kit_DsdTruthComputeTwo( p, pNtk, uSupp, iVar, pTruthDec );
+    if ( pTruthCo )
+        Kit_TruthCopy( pTruthCo, pTruth, pNtk->nVars );
 }
 
 /**Function*************************************************************
@@ -539,16 +718,29 @@ void Kit_DsdTruthPartial( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk, unsigned * pTru
   SeeAlso     []
 
 ***********************************************************************/
-void Kit_DsdTruthPartialTwo( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk, unsigned uSupp, int iVar, unsigned * pTruthCo, unsigned * pTruthDec )
+void Kit_DsdTruthPartial( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk, unsigned * pTruthRes, unsigned uSupp )
 {
-    unsigned * pTruth;
-    Kit_DsdObj_t * pRoot;
-    Kit_DsdTruthComputeTwo( p, pNtk, uSupp, iVar );
-    pRoot = Kit_DsdNtkRoot( pNtk );
-    pTruth = Vec_PtrEntry( p->vTtNodes, 2*pRoot->Id+0 );
-    Kit_TruthCopy( pTruthCo, pTruth, p->nVars );
-    pTruth = Vec_PtrEntry( p->vTtNodes, 2*pRoot->Id+1 );
-    Kit_TruthCopy( pTruthDec, pTruth, p->nVars );
+    unsigned * pTruth = Kit_DsdTruthCompute( p, pNtk, uSupp );
+    Kit_TruthCopy( pTruthRes, pTruth, pNtk->nVars );
+/*
+    // verification
+    {
+        // compute the same function using different procedure
+        unsigned * pTruthTemp = Vec_PtrEntry(p->vTtNodes, pNtk->nVars + pNtk->nNodes + 1);
+        pNtk->pSupps = NULL;
+        Kit_DsdTruthComputeTwo( p, pNtk, uSupp, -1, pTruthTemp );
+//        if ( !Kit_TruthIsEqual( pTruthTemp, pTruthRes, pNtk->nVars ) )
+        if ( !Kit_TruthIsEqualWithPhase( pTruthTemp, pTruthRes, pNtk->nVars ) )
+        {
+            printf( "Verification FAILED!\n" );
+            Kit_DsdPrint( stdout, pNtk );
+            Kit_DsdPrintFromTruth( pTruthRes, pNtk->nVars );
+            Kit_DsdPrintFromTruth( pTruthTemp, pNtk->nVars );
+        }
+//        else
+//            printf( "Verification successful.\n" );
+    }
+*/
 }
 
 /**Function*************************************************************
@@ -1090,9 +1282,10 @@ unsigned Kit_DsdGetSupports_rec( Kit_DsdNtk_t * p, int iLit )
   SeeAlso     []
 
 ***********************************************************************/
-void Kit_DsdGetSupports( Kit_DsdNtk_t * p )
+unsigned Kit_DsdGetSupports( Kit_DsdNtk_t * p )
 {
     Kit_DsdObj_t * pRoot;
+    unsigned uSupport;
     assert( p->pSupps == NULL );
     p->pSupps = ALLOC( unsigned, p->nNodes );
     // consider simple special cases
@@ -1100,16 +1293,17 @@ void Kit_DsdGetSupports( Kit_DsdNtk_t * p )
     if ( pRoot->Type == KIT_DSD_CONST1 )
     {
         assert( p->nNodes == 1 );
-        p->pSupps[0] = 0;
+        uSupport = p->pSupps[0] = 0;
     }
     if ( pRoot->Type == KIT_DSD_VAR )
     {
         assert( p->nNodes == 1 );
-        p->pSupps[0] = Kit_DsdLitSupport( p, pRoot->pFans[0] );
+        uSupport = p->pSupps[0] = Kit_DsdLitSupport( p, pRoot->pFans[0] );
     }
     else
-        Kit_DsdGetSupports_rec( p, p->Root );
-    assert( p->pSupps[0] <= 0xFFFF );
+        uSupport = Kit_DsdGetSupports_rec( p, p->Root );
+    assert( uSupport <= 0xFFFF );
+    return uSupport;
 }
 
 /**Function*************************************************************
@@ -1697,7 +1891,7 @@ void Kit_DsdVerify( Kit_DsdNtk_t * pNtk, unsigned * pTruth, int nVars )
 {
     Kit_DsdMan_t * p;
     unsigned * pTruthC;
-    p = Kit_DsdManAlloc( nVars, Kit_DsdNtkObjNum(pNtk) );
+    p = Kit_DsdManAlloc( nVars, Kit_DsdNtkObjNum(pNtk)+2 );
     pTruthC = Kit_DsdTruthCompute( p, pNtk, 0 );
     if ( !Extra_TruthIsEqual( pTruth, pTruthC, nVars ) )
         printf( "Verification failed.\n" );

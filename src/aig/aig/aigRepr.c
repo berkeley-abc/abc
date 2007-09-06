@@ -164,11 +164,13 @@ static inline void Aig_ObjClearRepr( Aig_Man_t * p, Aig_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-static inline Aig_Obj_t * Aig_ObjFindReprTrans( Aig_Man_t * p, Aig_Obj_t * pNode )
+static inline Aig_Obj_t * Aig_ObjFindReprTransitive( Aig_Man_t * p, Aig_Obj_t * pNode )
 {
-    Aig_Obj_t * pPrev, * pRepr;
-    for ( pPrev = NULL, pRepr = Aig_ObjFindRepr(p, pNode); pRepr; pPrev = pRepr, pRepr = Aig_ObjFindRepr(p, pRepr) );
-    return pPrev;    
+    Aig_Obj_t * pNext, * pRepr;
+    if ( (pRepr = Aig_ObjFindRepr(p, pNode)) )
+        while ( (pNext = Aig_ObjFindRepr(p, pRepr)) )
+            pRepr = pNext;
+    return pRepr;
 }
 
 /**Function*************************************************************
@@ -203,14 +205,22 @@ static inline Aig_Obj_t * Aig_ObjChild1Repr( Aig_Man_t * p, Aig_Obj_t * pObj ) {
   SeeAlso     []
 
 ***********************************************************************/
-void Aig_ManTransferRepr( Aig_Man_t * pNew, Aig_Man_t * p )
+void Aig_ManTransferRepr( Aig_Man_t * pNew, Aig_Man_t * pOld )
 {
     Aig_Obj_t * pObj, * pRepr;
     int k;
     assert( pNew->pReprs != NULL );
+    // extend storage to fix pNew
+    if ( pNew->nReprsAlloc < Aig_ManObjNumMax(pNew) )
+    {
+        int nReprsAllocNew = 2 * Aig_ManObjNumMax(pNew);
+        pNew->pReprs = REALLOC( Aig_Obj_t *, pNew->pReprs, nReprsAllocNew );
+        memset( pNew->pReprs + pNew->nReprsAlloc, 0, sizeof(Aig_Obj_t *) * (nReprsAllocNew-pNew->nReprsAlloc) );
+        pNew->nReprsAlloc = nReprsAllocNew;
+    }
     // go through the nodes which have representatives
-    Aig_ManForEachObj( p, pObj, k )
-        if ( (pRepr = Aig_ObjFindRepr(p, pObj)) )
+    Aig_ManForEachObj( pOld, pObj, k )
+        if ( (pRepr = Aig_ObjFindRepr(pOld, pObj)) )
             Aig_ObjSetRepr( pNew, Aig_Regular(pRepr->pData), Aig_Regular(pObj->pData) ); 
 }
 
@@ -251,16 +261,15 @@ Aig_Obj_t * Aig_ManDupRepr_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t * pOb
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Aig_ManDupRepr( Aig_Man_t * p )
+Aig_Man_t * Aig_ManDupRepr( Aig_Man_t * p, int fOrdered )
 {
-    int fOrdered = 0;
     Aig_Man_t * pNew;
     Aig_Obj_t * pObj;
     int i;
     // start the HOP package
-    pNew = Aig_ManStart( Aig_ManObjIdMax(p) + 1 );
+    pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
+    pNew->pName = Aig_UtilStrsav( p->pName );
     pNew->nRegs = p->nRegs;
-    Aig_ManReprStart( pNew, Aig_ManObjIdMax(p)+1 );
     // map the const and primary inputs
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
@@ -303,7 +312,7 @@ int Aig_ManRemapRepr( Aig_Man_t * p )
     int i, nFanouts = 0;
     Aig_ManForEachNode( p, pObj, i )
     {
-        pRepr = Aig_ObjFindReprTrans( p, pObj );
+        pRepr = Aig_ObjFindReprTransitive( p, pObj );
         if ( pRepr == NULL )
             continue;
         assert( pRepr->Id < pObj->Id );
@@ -379,10 +388,14 @@ int Aig_ObjCheckTfi( Aig_Man_t * p, Aig_Obj_t * pNew, Aig_Obj_t * pOld )
 Aig_Man_t * Aig_ManRehash( Aig_Man_t * p )
 {
     Aig_Man_t * pTemp;
+    int i, nFanouts;
     assert( p->pReprs != NULL );
-    while ( Aig_ManRemapRepr( p ) )
+    for ( i = 0; nFanouts = Aig_ManRemapRepr( p ); i++ )
     {
-        p = Aig_ManDupRepr( pTemp = p );
+//        printf( "Iter = %3d. Fanouts = %6d. Nodes = %7d.\n", i+1, nFanouts, Aig_ManNodeNum(p) );
+        p = Aig_ManDupRepr( pTemp = p, 1 );
+        Aig_ManReprStart( p, Aig_ManObjNumMax(p) );
+        Aig_ManTransferRepr( p, pTemp );
         Aig_ManStop( pTemp );
     }
     return p;
@@ -390,7 +403,7 @@ Aig_Man_t * Aig_ManRehash( Aig_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Creates choices.]
+  Synopsis    [Marks the nodes that are Creates choices.]
 
   Description [The input AIG is assumed to have representatives assigned.]
                
@@ -399,15 +412,15 @@ Aig_Man_t * Aig_ManRehash( Aig_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Aig_ManCreateChoices( Aig_Man_t * p )
+void Aig_ManMarkValidChoices( Aig_Man_t * p )
 {
     Aig_Obj_t * pObj, * pRepr;
     int i;
     assert( p->pReprs != NULL );
     // create equivalent nodes in the manager
     assert( p->pEquivs == NULL );
-    p->pEquivs = ALLOC( Aig_Obj_t *, Aig_ManObjIdMax(p) + 1 );
-    memset( p->pEquivs, 0, sizeof(Aig_Obj_t *) * (Aig_ManObjIdMax(p) + 1) );
+    p->pEquivs = ALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p) );
+    memset( p->pEquivs, 0, sizeof(Aig_Obj_t *) * Aig_ManObjNumMax(p) );
     // make the choice nodes
     Aig_ManForEachNode( p, pObj, i )
     {

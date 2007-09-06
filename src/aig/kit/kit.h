@@ -35,6 +35,7 @@ extern "C" {
 #include <assert.h>
 #include <time.h>
 #include "vec.h"
+#include "extra.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -488,7 +489,7 @@ extern Kit_DsdNtk_t *  Kit_DsdDecomposeMux( unsigned * pTruth, int nVars, int nD
 extern void            Kit_DsdVerify( Kit_DsdNtk_t * pNtk, unsigned * pTruth, int nVars );
 extern void            Kit_DsdNtkFree( Kit_DsdNtk_t * pNtk );
 extern int             Kit_DsdNonDsdSizeMax( Kit_DsdNtk_t * pNtk );
-extern void            Kit_DsdGetSupports( Kit_DsdNtk_t * p );
+extern unsigned        Kit_DsdGetSupports( Kit_DsdNtk_t * p );
 extern Kit_DsdNtk_t *  Kit_DsdExpand( Kit_DsdNtk_t * p );
 extern Kit_DsdNtk_t *  Kit_DsdShrink( Kit_DsdNtk_t * p, int pPrios[] );
 extern void            Kit_DsdRotate( Kit_DsdNtk_t * p, int pFreqs[] );
@@ -510,6 +511,9 @@ extern unsigned        Kit_GraphToTruth( Kit_Graph_t * pGraph );
 extern Kit_Graph_t *   Kit_TruthToGraph( unsigned * pTruth, int nVars, Vec_Int_t * vMemory );
 extern int             Kit_GraphLeafDepth_rec( Kit_Graph_t * pGraph, Kit_Node_t * pNode, Kit_Node_t * pLeaf );
 /*=== kitHop.c ==========================================================*/
+//extern Hop_Obj_t *     Kit_GraphToHop( Hop_Man_t * pMan, Kit_Graph_t * pGraph );
+//extern Hop_Obj_t *     Kit_TruthToHop( Hop_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory );
+//extern Hop_Obj_t *     Kit_CoverToHop( Hop_Man_t * pMan, Vec_Int_t * vCover, int nVars, Vec_Int_t * vMemory );
 /*=== kitIsop.c ==========================================================*/
 extern int             Kit_TruthIsop( unsigned * puTruth, int nVars, Vec_Int_t * vMemory, int fTryBoth );
 /*=== kitSop.c ==========================================================*/

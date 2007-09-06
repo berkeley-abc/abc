@@ -46,7 +46,8 @@ Aig_Man_t * Aig_ManRemap( Aig_Man_t * p, Vec_Ptr_t * vMap )
     Aig_Obj_t * pObj, * pObjMapped;
     int i;
     // create the new manager
-    pNew = Aig_ManStart( Aig_ManObjIdMax(p) + 1 );
+    pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
+    pNew->pName = Aig_UtilStrsav( p->pName );
     pNew->nRegs = p->nRegs;
     pNew->nAsserts = p->nAsserts;
     // create the PIs
@@ -285,7 +286,7 @@ Vec_Ptr_t * Aig_ManReduceLachesOnce( Aig_Man_t * p )
     Aig_ManForEachPiSeq( p, pObj, i )
         Vec_PtrPush( vMap, pObj );
     // create mapping of fanin nodes into the corresponding latch outputs
-    pMapping = ALLOC( int, 2 * (Aig_ManObjIdMax(p) + 1) );
+    pMapping = ALLOC( int, 2 * Aig_ManObjNumMax(p) );
     Aig_ManForEachLiLoSeq( p, pObjLi, pObjLo, i )
     {
         pFanin = Aig_ObjFanin0(pObjLi);
@@ -358,6 +359,8 @@ Aig_Man_t * Aig_ManReduceLaches( Aig_Man_t * p, int fVerbose )
         printf( "REnd = %5d. NEnd = %6d.   ", Aig_ManRegNum(p), Aig_ManNodeNum(p) );
         printf( "\n" );
         }
+        if ( p->nRegs == 0 )
+            break;
     }
     return p;
 }

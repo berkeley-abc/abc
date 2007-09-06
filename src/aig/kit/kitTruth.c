@@ -845,7 +845,7 @@ void Kit_TruthForallSet( unsigned * pRes, unsigned * pTruth, int nVars, unsigned
 
 /**Function*************************************************************
 
-  Synopsis    [Computes negative cofactor of the function.]
+  Synopsis    [Multiplexes two functions with the given variable.]
 
   Description []
                

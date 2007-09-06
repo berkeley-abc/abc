@@ -363,7 +363,7 @@ void If_ManSetupCutTriv( If_Man_t * p, If_Cut_t * pCut, int ObjId )
     if ( p->pPars->fTruth )
     {
         int i, nTruthWords;
-        nTruthWords = Extra_TruthWordNum( pCut->nLimit );
+        nTruthWords = pCut->nLimit <= 5 ? 1 : (1 << (pCut->nLimit - 5));
         for ( i = 0; i < nTruthWords; i++ )
             If_CutTruth(pCut)[i] = 0xAAAAAAAA;
     }

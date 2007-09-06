@@ -57,7 +57,7 @@ void Aig_ManFanoutStart( Aig_Man_t * p )
     assert( Aig_ManBufNum(p) == 0 );
     // allocate fanout datastructure
     assert( p->pFanData == NULL );
-    p->nFansAlloc = 2 * Aig_ManObjIdMax(p);
+    p->nFansAlloc = 2 * Aig_ManObjNumMax(p);
     if ( p->nFansAlloc < (1<<12) )
         p->nFansAlloc = (1<<12);
     p->pFanData = ALLOC( int, 5 * p->nFansAlloc );

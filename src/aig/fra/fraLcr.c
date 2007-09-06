@@ -509,7 +509,7 @@ Aig_Man_t * Fra_FraigLatchCorrespondence( Aig_Man_t * pAig, int nFramesP, int nC
     Fra_Man_t * pTemp;
     Aig_Man_t * pAigPart, * pAigNew = NULL;
     Vec_Int_t * vPart;
-    Aig_Obj_t * pObj = Aig_ManObj(pAig, 2078);
+//    Aig_Obj_t * pObj = Aig_ManObj(pAig, 2078);
     int i, nIter, clk = clock(), clk2, clk3;
     if ( Aig_ManNodeNum(pAig) == 0 )
     {
@@ -622,7 +622,7 @@ clk2 = clock();
     if ( fReprSelect )
         Fra_ClassesSelectRepr( p->pCla );
     Fra_ClassesCopyReprs( p->pCla, NULL );
-    pAigNew = Aig_ManDupRepr( p->pAig );
+    pAigNew = Aig_ManDupRepr( p->pAig, 0 );
     Aig_ManSeqCleanup( pAigNew );
 //    Aig_ManCountMergeRegs( pAigNew );
 p->timeUpdate += clock() - clk2;

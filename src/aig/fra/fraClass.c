@@ -60,8 +60,8 @@ Fra_Cla_t * Fra_ClassesStart( Aig_Man_t * pAig )
     p = ALLOC( Fra_Cla_t, 1 );
     memset( p, 0, sizeof(Fra_Cla_t) );
     p->pAig = pAig;
-    p->pMemRepr  = ALLOC( Aig_Obj_t *, (Aig_ManObjIdMax(pAig) + 1) );
-    memset( p->pMemRepr, 0, sizeof(Aig_Obj_t *) * (Aig_ManObjIdMax(pAig) + 1) );
+    p->pMemRepr  = ALLOC( Aig_Obj_t *, Aig_ManObjNumMax(pAig) );
+    memset( p->pMemRepr, 0, sizeof(Aig_Obj_t *) * Aig_ManObjNumMax(pAig) );
     p->vClasses     = Vec_PtrAlloc( 100 );
     p->vClasses1    = Vec_PtrAlloc( 100 );
     p->vClassesTemp = Vec_PtrAlloc( 100 );
@@ -112,8 +112,8 @@ void Fra_ClassesCopyReprs( Fra_Cla_t * p, Vec_Ptr_t * vFailed )
 {
     Aig_Obj_t * pObj;
     int i;
-    Aig_ManReprStart( p->pAig, Aig_ManObjIdMax(p->pAig) + 1 );
-    memmove( p->pAig->pReprs, p->pMemRepr, sizeof(Aig_Obj_t *) * (Aig_ManObjIdMax(p->pAig) + 1) );
+    Aig_ManReprStart( p->pAig, Aig_ManObjNumMax(p->pAig) );
+    memmove( p->pAig->pReprs, p->pMemRepr, sizeof(Aig_Obj_t *) * Aig_ManObjNumMax(p->pAig) );
     if ( Vec_PtrSize(p->vClasses1) == 0 && Vec_PtrSize(p->vClasses) == 0 )
     {
         Aig_ManForEachObj( p->pAig, pObj, i )
@@ -277,7 +277,7 @@ void Fra_ClassesPrepare( Fra_Cla_t * p, int fLatchCorr )
     int i, k, nTableSize, nEntries, nNodes, iEntry;
 
     // allocate the hash table hashing simulation info into nodes
-    nTableSize = Aig_PrimeCudd( Aig_ManObjIdMax(p->pAig) + 1 );
+    nTableSize = Aig_PrimeCudd( Aig_ManObjNumMax(p->pAig) );
     ppTable = ALLOC( Aig_Obj_t *, nTableSize ); 
     ppNexts = ALLOC( Aig_Obj_t *, nTableSize ); 
     memset( ppTable, 0, sizeof(Aig_Obj_t *) * nTableSize );
@@ -643,8 +643,8 @@ void Fra_ClassesPostprocess( Fra_Cla_t * p )
     // perform combinational simulation
     pComb = Fra_SmlSimulateComb( p->pAig, 32 );
     // compute the weight of each node in the classes
-    pWeights = ALLOC( int, Aig_ManObjIdMax(p->pAig) + 1 );
-    memset( pWeights, 0, sizeof(int) * (Aig_ManObjIdMax(p->pAig) + 1) );
+    pWeights = ALLOC( int, Aig_ManObjNumMax(p->pAig) );
+    memset( pWeights, 0, sizeof(int) * Aig_ManObjNumMax(p->pAig) );
     Aig_ManForEachObj( p->pAig, pObj, i )
     { 
         pRepr = Fra_ClassObjRepr( pObj );
@@ -798,9 +798,10 @@ Aig_Man_t * Fra_ClassesDeriveAig( Fra_Cla_t * p, int nFramesK )
     assert( Aig_ManRegNum(p->pAig) < Aig_ManPiNum(p->pAig) );
     assert( nFramesK > 0 );
     // start the fraig package
-    pManFraig = Aig_ManStart( (Aig_ManObjIdMax(p->pAig) + 1) * nFramesAll );
+    pManFraig = Aig_ManStart( Aig_ManObjNumMax(p->pAig) * nFramesAll );
+    pManFraig->pName = Aig_UtilStrsav( p->pAig->pName );
     // allocate place for the node mapping
-    ppEquivs = ALLOC( Aig_Obj_t *, Aig_ManObjIdMax(p->pAig) + 1 );
+    ppEquivs = ALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pAig) );
     Fra_ObjSetEqu( ppEquivs, Aig_ManConst1(p->pAig), Aig_ManConst1(pManFraig) );
     // create latches for the first frame
     Aig_ManForEachLoSeq( p->pAig, pObj, i )

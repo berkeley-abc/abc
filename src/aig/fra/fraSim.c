@@ -703,7 +703,7 @@ printf( "Refined classes  = %5d.   Changes = %4d.   Lits = %6d.\n", Vec_PtrSize(
 Fra_Sml_t * Fra_SmlStart( Aig_Man_t * pAig, int nPref, int nFrames, int nWordsFrame )
 {
     Fra_Sml_t * p;
-    p = (Fra_Sml_t *)malloc( sizeof(Fra_Sml_t) + sizeof(unsigned) * (Aig_ManObjIdMax(pAig) + 1) * (nPref + nFrames) * nWordsFrame );
+    p = (Fra_Sml_t *)malloc( sizeof(Fra_Sml_t) + sizeof(unsigned) * Aig_ManObjNumMax(pAig) * (nPref + nFrames) * nWordsFrame );
     memset( p, 0, sizeof(Fra_Sml_t) + sizeof(unsigned) * (nPref + nFrames) * nWordsFrame );
     p->pAig        = pAig;
     p->nPref       = nPref;

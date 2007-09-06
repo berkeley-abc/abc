@@ -401,6 +401,27 @@ static inline void Vec_StrPush( Vec_Str_t * p, char Entry )
     p->pArray[p->nSize++] = Entry;
 }
 
+/**Function********************************************************************
+
+  Synopsis    [Finds the smallest integer larger of equal than the logarithm.]
+
+  Description [Returns [Log10(Num)].]
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+static inline Vec_StrBase10Log( unsigned Num )
+{
+    int Res;
+    assert( Num >= 0 );
+    if ( Num == 0 ) return 0;
+    if ( Num == 1 ) return 1;
+    for ( Res = 0, Num--;  Num;  Num /= 10,  Res++ );
+    return Res;
+} /* end of Extra_Base2Log */
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -425,7 +446,7 @@ static inline void Vec_StrPrintNum( Vec_Str_t * p, int Num )
         Vec_StrPush( p, (char)('0' + Num) );
         return;
     }
-    nDigits = Extra_Base10Log( Num );
+    nDigits = Vec_StrBase10Log( Num );
     Vec_StrGrow( p, p->nSize + nDigits );
     for ( i = nDigits - 1; i >= 0; i-- )
     {

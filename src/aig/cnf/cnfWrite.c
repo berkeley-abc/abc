@@ -214,8 +214,8 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped, int nOutputs )
     pCnf->pClauses[nClauses] = pCnf->pClauses[0] + nLiterals;
 
     // create room for variable numbers
-    pCnf->pVarNums = ALLOC( int, 1+Aig_ManObjIdMax(p->pManAig) );
-    memset( pCnf->pVarNums, 0xff, sizeof(int) * (1+Aig_ManObjIdMax(p->pManAig)) );
+    pCnf->pVarNums = ALLOC( int, Aig_ManObjNumMax(p->pManAig) );
+    memset( pCnf->pVarNums, 0xff, sizeof(int) * Aig_ManObjNumMax(p->pManAig) );
     // assign variables to the last (nOutputs) POs
     Number = 1;
     if ( nOutputs )
@@ -246,7 +246,7 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped, int nOutputs )
         for ( k = 0; k < (int)pCut->nFanins; k++ )
         {
             pVars[k] = pCnf->pVarNums[ pCut->pFanins[k] ];
-            assert( pVars[k] <= Aig_ManObjIdMax(p->pManAig) );
+            assert( pVars[k] <= Aig_ManObjNumMax(p->pManAig) );
         }
 
         // positive polarity of the cut
@@ -285,7 +285,7 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped, int nOutputs )
  
     // write the constant literal
     OutVar = pCnf->pVarNums[ Aig_ManConst1(p->pManAig)->Id ];
-    assert( OutVar <= Aig_ManObjIdMax(p->pManAig) );
+    assert( OutVar <= Aig_ManObjNumMax(p->pManAig) );
     *pClas++ = pLits;
     *pLits++ = 2 * OutVar; 
 
@@ -353,8 +353,8 @@ Cnf_Dat_t * Cnf_DeriveSimple( Aig_Man_t * p, int nOutputs )
     pCnf->pClauses[nClauses] = pCnf->pClauses[0] + nLiterals;
 
     // create room for variable numbers
-    pCnf->pVarNums = ALLOC( int, 1+Aig_ManObjIdMax(p) );
-    memset( pCnf->pVarNums, 0xff, sizeof(int) * (1+Aig_ManObjIdMax(p)) );
+    pCnf->pVarNums = ALLOC( int, Aig_ManObjNumMax(p) );
+    memset( pCnf->pVarNums, 0xff, sizeof(int) * Aig_ManObjNumMax(p) );
     // assign variables to the last (nOutputs) POs
     Number = 1;
     if ( nOutputs )
@@ -403,7 +403,7 @@ Cnf_Dat_t * Cnf_DeriveSimple( Aig_Man_t * p, int nOutputs )
  
     // write the constant literal
     OutVar = pCnf->pVarNums[ Aig_ManConst1(p)->Id ];
-    assert( OutVar <= Aig_ManObjIdMax(p) );
+    assert( OutVar <= Aig_ManObjNumMax(p) );
     *pClas++ = pLits;
     *pLits++ = 2 * OutVar; 
 

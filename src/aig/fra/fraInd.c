@@ -133,7 +133,8 @@ Aig_Man_t * Fra_FramesWithClasses( Fra_Man_t * p )
     assert( Aig_ManRegNum(p->pManAig) < Aig_ManPiNum(p->pManAig) );
 
     // start the fraig package
-    pManFraig = Aig_ManStart( (Aig_ManObjIdMax(p->pManAig) + 1) * p->nFramesAll );
+    pManFraig = Aig_ManStart( Aig_ManObjNumMax(p->pManAig) * p->nFramesAll );
+    pManFraig->pName = Aig_UtilStrsav( p->pManAig->pName );
     pManFraig->nRegs = p->pManAig->nRegs;
     // create PI nodes for the frames
     for ( f = 0; f < p->nFramesAll; f++ )
@@ -194,7 +195,7 @@ void Fra_FramesAddMore( Aig_Man_t * p, int nFrames )
     Aig_ManForEachObj( p, pObj, i )
         pObj->pData = pObj;
     // iterate and add objects
-    nNodesOld = Aig_ManObjIdMax(p);
+    nNodesOld = Aig_ManObjNumMax(p);
     pLatches = ALLOC( Aig_Obj_t *, Aig_ManRegNum(p) );
     for ( f = 0; f < nFrames; f++ )
     {
@@ -372,10 +373,13 @@ PRT( "Time", clock() - clk );
             if ( p->pSat == NULL )
                 printf( "Fra_FraigInduction(): Adding implicationsn to CNF led to a conflict.\n" );
         }
-
+ 
         // set the pointers to the manager
         Aig_ManForEachObj( p->pManFraig, pObj, i )
             pObj->pData = p;
+
+        // prepare solver for fraiging the last timeframe
+        Fra_ManClean( p, Aig_ManObjNumMax(p->pManFraig) + Aig_ManNodeNum(p->pManAig) );
 
         // transfer PI/LO variable numbers
         Aig_ManForEachObj( p->pManFraig, pObj, i )
@@ -402,12 +406,14 @@ PRT( "Time", clock() - clk );
         p->nSatCallsRecent = 0;
         p->nSatCallsSkipped = 0;
         Fra_FraigSweep( p );
+        // remove FRAIG and SAT solver
+        Aig_ManStop( p->pManFraig );   p->pManFraig = NULL;
+        sat_solver_delete( p->pSat );  p->pSat = NULL; 
+        memset( p->pMemFraig, 0, sizeof(Aig_Obj_t *) * p->nSizeAlloc * p->nFramesAll );
 //        printf( "Recent SAT called = %d. Skipped = %d.\n", p->nSatCallsRecent, p->nSatCallsSkipped );
         assert( p->vTimeouts == NULL );
         if ( p->vTimeouts )
            printf( "Fra_FraigInduction(): SAT solver timed out!\n" );
-        // cleanup
-        Fra_ManClean( p );
         // check if refinement has happened
 //        p->pCla->fRefinement = (int)(nLitsOld != Fra_ClassesCountLits(p->pCla));
         if ( p->pCla->fRefinement && 
@@ -435,7 +441,7 @@ clk2 = clock();
 //    Fra_ClassesPrint( p->pCla, 1 );
     Fra_ClassesSelectRepr( p->pCla );
     Fra_ClassesCopyReprs( p->pCla, p->vTimeouts );
-    pManAigNew = Aig_ManDupRepr( pManAig );
+    pManAigNew = Aig_ManDupRepr( pManAig, 0 );
     // add implications to the manager
     if ( fWriteImps && p->pCla->vImps && Vec_IntSize(p->pCla->vImps) )
         Fra_ImpRecordInManager( p, pManAigNew );

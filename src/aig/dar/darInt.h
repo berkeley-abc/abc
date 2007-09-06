@@ -38,6 +38,7 @@ extern "C" {
 #include "vec.h"
 #include "aig.h"
 #include "dar.h"
+#include "bar.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -148,6 +149,9 @@ extern Aig_Obj_t *     Dar_LibBuildBest( Dar_Man_t * p );
 extern Dar_Man_t *     Dar_ManStart( Aig_Man_t * pAig, Dar_RwrPar_t * pPars );
 extern void            Dar_ManStop( Dar_Man_t * p );
 extern void            Dar_ManPrintStats( Dar_Man_t * p );
+/*=== darPrec.c ============================================================*/
+extern char **         Dar_Permutations( int n );
+extern void            Dar_Truth4VarNPN( unsigned short ** puCanons, char ** puPhases, char ** puPerms, unsigned char ** puMap );
 
 #ifdef __cplusplus
 }

@@ -42,7 +42,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /I "src\base\abc" /I "src\base\abci" /I "src\base\abcs" /I "src\base\seq" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\ft" /I "src\sat\asat" /I "src\sat\bsat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\sim" /I "src\opt\rwr" /I "src\opt\res" /I "src\opt\lpk" /I "src\map\fpga" /I "src\map\if" /I "src\map\mapper" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\mvc" /I "src\misc\util" /I "src\misc\npn" /I "src\misc\vec" /I "src\misc\espresso" /I "src\misc\nm" /I "src\misc\hash" /I "src\aig\ivy" /I "src\aig\hop" /I "src\aig\rwt" /I "src\aig\deco" /I "src\aig\mem" /I "src\aig\aig" /I "src\aig\dar" /I "src\aig\cnf" /I "src\aig\fra" /I "src\aig\kit" /I "src\aig\bdc" /I "src\temp\esop" /I "src\phys\place" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /FR /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /I "src\base\abc" /I "src\base\abci" /I "src\base\abcs" /I "src\base\seq" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\ft" /I "src\sat\asat" /I "src\sat\bsat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\sim" /I "src\opt\rwr" /I "src\opt\res" /I "src\opt\lpk" /I "src\map\fpga" /I "src\map\if" /I "src\map\mapper" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\mvc" /I "src\misc\util" /I "src\misc\npn" /I "src\misc\vec" /I "src\misc\espresso" /I "src\misc\nm" /I "src\misc\hash" /I "src\aig\ivy" /I "src\aig\hop" /I "src\aig\rwt" /I "src\aig\deco" /I "src\aig\mem" /I "src\aig\aig" /I "src\aig\dar" /I "src\aig\cnf" /I "src\aig\fra" /I "src\aig\kit" /I "src\aig\bdc" /I "src\aig\ioa" /I "src\aig\bar" /I "src\aig\pcm" /I "src\temp\esop" /I "src\phys\place" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /FR /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -66,7 +66,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /c
-# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "src\base\abc" /I "src\base\abci" /I "src\base\abcs" /I "src\base\seq" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\ft" /I "src\sat\asat" /I "src\sat\bsat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\sim" /I "src\opt\rwr" /I "src\opt\res" /I "src\opt\lpk" /I "src\map\fpga" /I "src\map\if" /I "src\map\mapper" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\mvc" /I "src\misc\util" /I "src\misc\npn" /I "src\misc\vec" /I "src\misc\espresso" /I "src\misc\nm" /I "src\misc\hash" /I "src\aig\ivy" /I "src\aig\hop" /I "src\aig\rwt" /I "src\aig\deco" /I "src\aig\mem" /I "src\aig\aig" /I "src\aig\dar" /I "src\aig\cnf" /I "src\aig\fra" /I "src\aig\kit" /I "src\aig\bdc" /I "src\temp\esop" /I "src\phys\place" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /FR /YX /FD /GZ /c
+# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "src\base\abc" /I "src\base\abci" /I "src\base\abcs" /I "src\base\seq" /I "src\base\cmd" /I "src\base\io" /I "src\base\main" /I "src\bdd\cudd" /I "src\bdd\epd" /I "src\bdd\mtr" /I "src\bdd\parse" /I "src\bdd\dsd" /I "src\bdd\reo" /I "src\sop\ft" /I "src\sat\asat" /I "src\sat\bsat" /I "src\sat\msat" /I "src\sat\fraig" /I "src\opt\cut" /I "src\opt\dec" /I "src\opt\fxu" /I "src\opt\sim" /I "src\opt\rwr" /I "src\opt\res" /I "src\opt\lpk" /I "src\map\fpga" /I "src\map\if" /I "src\map\mapper" /I "src\map\mio" /I "src\map\super" /I "src\misc\extra" /I "src\misc\st" /I "src\misc\mvc" /I "src\misc\util" /I "src\misc\npn" /I "src\misc\vec" /I "src\misc\espresso" /I "src\misc\nm" /I "src\misc\hash" /I "src\aig\ivy" /I "src\aig\hop" /I "src\aig\rwt" /I "src\aig\deco" /I "src\aig\mem" /I "src\aig\aig" /I "src\aig\dar" /I "src\aig\cnf" /I "src\aig\fra" /I "src\aig\kit" /I "src\aig\bdc" /I "src\aig\ioa" /I "src\aig\bar" /I "src\aig\pcm" /I "src\temp\esop" /I "src\phys\place" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /FR /YX /FD /GZ /c
 # SUBTRACT CPP /X
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
@@ -1845,6 +1845,74 @@ SOURCE=.\src\map\if\ifTruth.c
 SOURCE=.\src\map\if\ifUtil.c
 # End Source File
 # End Group
+# Begin Group "pcm"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\map\pcm\pcm.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\pcm\pcmAbc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\pcm\pcmAig.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\pcm\pcmApi.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\pcm\pcmCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\pcm\pcmCut.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\pcm\pcmInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\pcm\pcmIter.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\pcm\pcmLib.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\pcm\pcmMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\pcm\pcmMap.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\pcm\pcmPar.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\pcm\pcmReduce.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\pcm\pcmTime.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\pcm\pcmTruth.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\pcm\pcmUtil.c
+# End Source File
+# End Group
 # End Group
 # Begin Group "misc"
 
@@ -2509,9 +2577,25 @@ SOURCE=.\src\aig\mem\mem.c
 SOURCE=.\src\aig\mem\mem.h
 # End Source File
 # End Group
-# Begin Group "ec"
+# Begin Group "ioa"
 
 # PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\aig\ioa\ioa.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ioa\ioaReadAig.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ioa\ioaUtil.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ioa\ioaWriteAig.c
+# End Source File
 # End Group
 # Begin Group "dar"
 
@@ -2547,6 +2631,10 @@ SOURCE=.\src\aig\dar\darLib.c
 # Begin Source File
 
 SOURCE=.\src\aig\dar\darMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\dar\darPrec.c
 # End Source File
 # Begin Source File
 
@@ -2847,6 +2935,18 @@ SOURCE=.\src\aig\aig\aigUtil.c
 # Begin Source File
 
 SOURCE=.\src\aig\aig\aigWin.c
+# End Source File
+# End Group
+# Begin Group "bar"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\aig\bar\bar.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\bar\bar.h
 # End Source File
 # End Group
 # End Group

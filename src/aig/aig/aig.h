@@ -85,6 +85,7 @@ struct Aig_Obj_t_  // 8 words
 // the AIG manager
 struct Aig_Man_t_
 {
+    char *           pName;          // the design name
     // AIG nodes
     Vec_Ptr_t *      vPis;           // the array of PIs
     Vec_Ptr_t *      vPos;           // the array of POs
@@ -148,13 +149,16 @@ struct Aig_Man_t_
 #define PRT(a,t)  printf("%s = ", (a)); printf("%6.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC))
 #endif
 
-static inline int          Aig_BitWordNum( int nBits )            { return (nBits>>5) + ((nBits&31) > 0);           }
-static inline int          Aig_TruthWordNum( int nVars )          { return nVars <= 5 ? 1 : (1 << (nVars - 5));     }
-static inline int          Aig_InfoHasBit( unsigned * p, int i )  { return (p[(i)>>5] & (1<<((i) & 31))) > 0;       }
-static inline void         Aig_InfoSetBit( unsigned * p, int i )  { p[(i)>>5] |= (1<<((i) & 31));                   }
-static inline void         Aig_InfoXorBit( unsigned * p, int i )  { p[(i)>>5] ^= (1<<((i) & 31));                   }
-static inline unsigned     Aig_InfoMask( int nVar )               { return (~(unsigned)0) >> (32-nVar);             }
-static inline unsigned     Aig_ObjCutSign( unsigned ObjId )       { return (1 << (ObjId & 31));                     }
+static inline int          Aig_Base2Log( unsigned n )             { int r; assert( n >= 0 ); if ( n < 2 ) return n; for ( r = 0, n--; n; n >>= 1, r++ ); return r; }
+static inline int          Aig_Base10Log( unsigned n )            { int r; assert( n >= 0 ); if ( n < 2 ) return n; for ( r = 0, n--; n; n /= 10, r++ ); return r; }
+static inline char *       Aig_UtilStrsav( char * s )             { return s ? strcpy(ALLOC(char, strlen(s)+1), s) : NULL; }
+static inline int          Aig_BitWordNum( int nBits )            { return (nBits>>5) + ((nBits&31) > 0);                  }
+static inline int          Aig_TruthWordNum( int nVars )          { return nVars <= 5 ? 1 : (1 << (nVars - 5));            }
+static inline int          Aig_InfoHasBit( unsigned * p, int i )  { return (p[(i)>>5] & (1<<((i) & 31))) > 0;              }
+static inline void         Aig_InfoSetBit( unsigned * p, int i )  { p[(i)>>5] |= (1<<((i) & 31));                          }
+static inline void         Aig_InfoXorBit( unsigned * p, int i )  { p[(i)>>5] ^= (1<<((i) & 31));                          }
+static inline unsigned     Aig_InfoMask( int nVar )               { return (~(unsigned)0) >> (32-nVar);                    }
+static inline unsigned     Aig_ObjCutSign( unsigned ObjId )       { return (1 << (ObjId & 31));                            }
 static inline int          Aig_WordCountOnes( unsigned uWord )
 {
     uWord = (uWord & 0x55555555) + ((uWord>>1) & 0x55555555);
@@ -178,7 +182,7 @@ static inline int          Aig_ManLatchNum( Aig_Man_t * p )       { return p->nO
 static inline int          Aig_ManNodeNum( Aig_Man_t * p )        { return p->nObjs[AIG_OBJ_AND]+p->nObjs[AIG_OBJ_EXOR];   }
 static inline int          Aig_ManGetCost( Aig_Man_t * p )        { return p->nObjs[AIG_OBJ_AND]+3*p->nObjs[AIG_OBJ_EXOR]; }
 static inline int          Aig_ManObjNum( Aig_Man_t * p )         { return p->nCreated - p->nDeleted;               }
-static inline int          Aig_ManObjIdMax( Aig_Man_t * p )       { return Vec_PtrSize(p->vObjs);                   }
+static inline int          Aig_ManObjNumMax( Aig_Man_t * p )      { return Vec_PtrSize(p->vObjs);                   }
 static inline int          Aig_ManRegNum( Aig_Man_t * p )         { return p->nRegs;                                }
 
 static inline Aig_Obj_t *  Aig_ManConst0( Aig_Man_t * p )         { return Aig_Not(p->pConst1);                     }
@@ -200,8 +204,9 @@ static inline int          Aig_ObjIsAnd( Aig_Obj_t * pObj )       { return pObj-
 static inline int          Aig_ObjIsExor( Aig_Obj_t * pObj )      { return pObj->Type == AIG_OBJ_EXOR;   }
 static inline int          Aig_ObjIsLatch( Aig_Obj_t * pObj )     { return pObj->Type == AIG_OBJ_LATCH;  }
 static inline int          Aig_ObjIsNode( Aig_Obj_t * pObj )      { return pObj->Type == AIG_OBJ_AND || pObj->Type == AIG_OBJ_EXOR;   }
-static inline int          Aig_ObjIsTerm( Aig_Obj_t * pObj )      { return pObj->Type == AIG_OBJ_PI  || pObj->Type == AIG_OBJ_PO || pObj->Type == AIG_OBJ_CONST1;  }
-static inline int          Aig_ObjIsHash( Aig_Obj_t * pObj )      { return pObj->Type == AIG_OBJ_AND || pObj->Type == AIG_OBJ_EXOR || pObj->Type == AIG_OBJ_LATCH; }
+static inline int          Aig_ObjIsTerm( Aig_Obj_t * pObj )      { return pObj->Type == AIG_OBJ_PI  || pObj->Type == AIG_OBJ_PO || pObj->Type == AIG_OBJ_CONST1;   }
+static inline int          Aig_ObjIsHash( Aig_Obj_t * pObj )      { return pObj->Type == AIG_OBJ_AND || pObj->Type == AIG_OBJ_EXOR || pObj->Type == AIG_OBJ_LATCH;  }
+static inline int          Aig_ObjIsChoice( Aig_Man_t * p, Aig_Obj_t * pObj )    { return p->pEquivs && p->pEquivs[pObj->Id] && pObj->nRefs > 0;                    }
 
 static inline int          Aig_ObjIsMarkA( Aig_Obj_t * pObj )     { return pObj->fMarkA;  }
 static inline void         Aig_ObjSetMarkA( Aig_Obj_t * pObj )    { pObj->fMarkA = 1;     }
@@ -234,6 +239,7 @@ static inline int          Aig_ObjLevel( Aig_Obj_t * pObj )       { return pObj-
 static inline int          Aig_ObjLevelNew( Aig_Obj_t * pObj )    { return Aig_ObjFanin1(pObj)? 1 + Aig_ObjIsExor(pObj) + AIG_MAX(Aig_ObjFanin0(pObj)->Level, Aig_ObjFanin1(pObj)->Level) : Aig_ObjFanin0(pObj)->Level; }
 static inline void         Aig_ObjClean( Aig_Obj_t * pObj )       { memset( pObj, 0, sizeof(Aig_Obj_t) );                                                             }
 static inline Aig_Obj_t *  Aig_ObjFanout0( Aig_Man_t * p, Aig_Obj_t * pObj )  { assert(p->pFanData && pObj->Id < p->nFansAlloc); return Aig_ManObj(p, p->pFanData[5*pObj->Id] >> 1); } 
+static inline Aig_Obj_t *  Aig_ObjEquiv( Aig_Man_t * p, Aig_Obj_t * pObj )    { return p->pEquivs? p->pEquivs[pObj->Id] : NULL; } 
 static inline int          Aig_ObjWhatFanin( Aig_Obj_t * pObj, Aig_Obj_t * pFanin )    
 { 
     if ( Aig_ObjFanin0(pObj) == pFanin ) return 0; 
@@ -362,6 +368,7 @@ extern Vec_Ptr_t *     Aig_ManDfs( Aig_Man_t * p );
 extern Vec_Ptr_t *     Aig_ManDfsNodes( Aig_Man_t * p, Aig_Obj_t ** ppNodes, int nNodes );
 extern Vec_Ptr_t *     Aig_ManDfsChoices( Aig_Man_t * p );
 extern Vec_Ptr_t *     Aig_ManDfsReverse( Aig_Man_t * p );
+extern int             Aig_ManLevelNum( Aig_Man_t * p );
 extern int             Aig_ManCountLevels( Aig_Man_t * p );
 extern int             Aig_DagSize( Aig_Obj_t * pObj );
 extern int             Aig_SupportSize( Aig_Man_t * p, Aig_Obj_t * pObj );
@@ -428,14 +435,15 @@ extern void            Aig_ObjOrderAdvance( Aig_Man_t * p );
 extern Vec_Ptr_t *     Aig_ManSupports( Aig_Man_t * pMan );
 extern Vec_Ptr_t *     Aig_ManPartitionSmart( Aig_Man_t * p, int nPartSizeLimit, int fVerbose, Vec_Ptr_t ** pvPartSupps );
 extern Vec_Ptr_t *     Aig_ManPartitionNaive( Aig_Man_t * p, int nPartSize );
+extern Aig_Man_t *     Aig_ManChoicePartitioned( Vec_Ptr_t * vAigs, int nPartSize );
 /*=== aigRepr.c =========================================================*/
 extern void            Aig_ManReprStart( Aig_Man_t * p, int nIdMax );
 extern void            Aig_ManReprStop( Aig_Man_t * p );
 extern void            Aig_ObjCreateRepr( Aig_Man_t * p, Aig_Obj_t * pNode1, Aig_Obj_t * pNode2 );
 extern void            Aig_ManTransferRepr( Aig_Man_t * pNew, Aig_Man_t * p );
-extern Aig_Man_t *     Aig_ManDupRepr( Aig_Man_t * p );
+extern Aig_Man_t *     Aig_ManDupRepr( Aig_Man_t * p, int fOrdered );
 extern Aig_Man_t *     Aig_ManRehash( Aig_Man_t * p );
-extern void            Aig_ManCreateChoices( Aig_Man_t * p );
+extern void            Aig_ManMarkValidChoices( Aig_Man_t * p );
 /*=== aigRet.c ========================================================*/
 extern Aig_Man_t *     Rtm_ManRetime( Aig_Man_t * p, int fForward, int nStepsMax, int fVerbose );
 /*=== aigScl.c ==========================================================*/

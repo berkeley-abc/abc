@@ -673,7 +673,7 @@ int Abc_NtkFraigStore( Abc_Ntk_t * pNtkAdd )
         }
     }
     Vec_PtrPush( vStore, pNtk );
-    printf( "The number of AIG nodes added to storage = %5d.\n", Abc_NtkNodeNum(pNtk) );
+//    printf( "The number of AIG nodes added to storage = %5d.\n", Abc_NtkNodeNum(pNtk) );
     return 1;
 }
 
@@ -704,8 +704,14 @@ Abc_Ntk_t * Abc_NtkFraigRestore()
         printf( "There are no network currently in storage.\n" );
         return NULL;
     }
-    printf( "Currently stored %d networks will be fraiged.\n", Vec_PtrSize(vStore) );
+//    printf( "Currently stored %d networks will be fraiged.\n", Vec_PtrSize(vStore) );
     pNtk = Vec_PtrEntry( vStore, 0 );
+
+    // swap the first and last network
+    // this should lead to the primary choice being "better" because of synthesis
+    pNtk = Vec_PtrPop( vStore );
+    Vec_PtrPush( vStore, Vec_PtrEntry(vStore,0) );
+    Vec_PtrWriteEntry( vStore, 0, pNtk );
 
     // to determine the number of simulation patterns
     // use the following strategy
@@ -731,7 +737,7 @@ Abc_Ntk_t * Abc_NtkFraigRestore()
     // perform partitioned computation of structural choices
     pFraig = Abc_NtkFraigPartitioned( vStore, &Params );
     Abc_NtkFraigStoreClean();
-PRT( "Total choicing time", clock() - clk );
+//PRT( "Total choicing time", clock() - clk );
     return pFraig;
 }
 

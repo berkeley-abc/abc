@@ -129,8 +129,8 @@ Dar_Lib_t * Dar_LibAlloc( int nObjs )
     p->pObjs = ALLOC( Dar_LibObj_t, nObjs );
     memset( p->pObjs, 0, sizeof(Dar_LibObj_t) * nObjs );
     // allocate canonical data
-    p->pPerms4 = Extra_Permutations( 4 );
-    Extra_Truth4VarNPN( &p->puCanons, &p->pPhases, &p->pPerms, &p->pMap );
+    p->pPerms4 = Dar_Permutations( 4 );
+    Dar_Truth4VarNPN( &p->puCanons, &p->pPhases, &p->pPerms, &p->pMap );
     // start the elementary objects
     p->iObj = 4;
     for ( i = 0; i < 4; i++ )
@@ -570,8 +570,8 @@ void Dar_LibStart()
     int clk = clock();
     assert( s_DarLib == NULL );
     s_DarLib = Dar_LibRead();
-    printf( "The 4-input library started with %d nodes and %d subgraphs. ", s_DarLib->nObjs - 4, s_DarLib->nSubgrTotal );
-    PRT( "Time", clock() - clk );
+//    printf( "The 4-input library started with %d nodes and %d subgraphs. ", s_DarLib->nObjs - 4, s_DarLib->nSubgrTotal );
+//    PRT( "Time", clock() - clk );
 }
 
 /**Function*************************************************************

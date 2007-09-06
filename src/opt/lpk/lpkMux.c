@@ -167,6 +167,8 @@ If_Obj_t * Lpk_MapSuppRedDec_rec( Lpk_Man_t * p, unsigned * pTruth, int nVars, I
     ppNtks[1] = Kit_DsdExpand( pTemp = ppNtks[1] );      Kit_DsdNtkFree( pTemp );
     Kit_DsdTruthPartial( p->pDsdMan, ppNtks[0], pDec0, uSubset0 );
     Kit_DsdTruthPartial( p->pDsdMan, ppNtks[1], pDec1, uSubset1 );
+//    Kit_DsdTruthPartialTwo( p->pDsdMan, ppNtks[0], uSubset0, iVarReused, pCo0, pDec0 );
+//    Kit_DsdTruthPartialTwo( p->pDsdMan, ppNtks[1], uSubset1, iVarReused, pCo1, pDec1 );
     Kit_DsdNtkFree( ppNtks[0] );
     Kit_DsdNtkFree( ppNtks[1] );
 //Kit_DsdPrintFromTruth( pDec0, nVars );
@@ -218,6 +220,7 @@ If_Obj_t * Lpk_MapSuppRedDec_rec( Lpk_Man_t * p, unsigned * pTruth, int nVars, I
     Kit_TruthMuxVar( pCo1, pCo10, pCo11, nVars, iVarReused );
 //Kit_DsdPrintFromTruth( pCo0, nVars );
 //Kit_DsdPrintFromTruth( pCo1, nVars );
+
     // derive the composition function
     Kit_TruthMuxVar( pCo , pCo0 , pCo1 , nVars, iVar );
 

@@ -115,6 +115,7 @@ static int Abc_CommandIRewrite       ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandDRewrite       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDRefactor      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDCompress2     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDChoice        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDrwsat         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIRewriteSeq    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIResyn         ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -283,6 +284,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "New AIG",      "drw",           Abc_CommandDRewrite,         1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "drf",           Abc_CommandDRefactor,        1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "dcompress2",    Abc_CommandDCompress2,       1 );
+    Cmd_CommandAdd( pAbc, "New AIG",      "dchoice",       Abc_CommandDChoice,          1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "drwsat",        Abc_CommandDrwsat,           1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "irws",          Abc_CommandIRewriteSeq,      1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "iresyn",        Abc_CommandIResyn,           1 );
@@ -2977,8 +2979,8 @@ int Abc_CommandLutpack( Abc_Frame_t * pAbc, int argc, char ** argv )
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
-    printf("This command will be available soon\n");
-    return 0;
+//    printf("This command will be available soon\n");
+//    return 0;
 
     // set defaults
     memset( pPars, 0, sizeof(Lpk_Par_t) );
@@ -6177,6 +6179,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk, * pNtkRes;
     int c;
     int nLevels;
+    int fVerbose;
 //    extern Abc_Ntk_t * Abc_NtkNewAig( Abc_Ntk_t * pNtk );
 //    extern Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk );
 //    extern void Abc_NtkMaxFlowTest( Abc_Ntk_t * pNtk );
@@ -6187,15 +6190,17 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName );
     extern Abc_Ntk_t * Abc_NtkFilter( Abc_Ntk_t * pNtk );
     extern Abc_Ntk_t * Abc_NtkDarRetime( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkPcmTest( Abc_Ntk_t * pNtk, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
+    fVerbose = 0;
     nLevels = 1000;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Nh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -6209,6 +6214,9 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( nLevels < 0 ) 
                 goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -6311,7 +6319,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
 //    pNtkRes = Abc_NtkDar( pNtk );
-    pNtkRes = Abc_NtkDarRetime( pNtk, nLevels, 1 );
+//    pNtkRes = Abc_NtkDarRetime( pNtk, nLevels, 1 );
+    pNtkRes = Abc_NtkPcmTest( pNtk, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
@@ -6323,6 +6332,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     fprintf( pErr, "usage: test [-h]\n" );
     fprintf( pErr, "\t         testbench for new procedures\n" );
+    fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -7131,6 +7141,84 @@ int Abc_CommandDCompress2( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     fprintf( pErr, "usage: dcompress2 [-blvh]\n" );
     fprintf( pErr, "\t         performs combinational AIG optimization\n" );
+    fprintf( pErr, "\t-b     : toggle internal balancing [default = %s]\n", fBalance? "yes": "no" );
+    fprintf( pErr, "\t-l     : toggle updating level [default = %s]\n", fUpdateLevel? "yes": "no" );
+    fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandDChoice( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int fBalance, fVerbose, fUpdateLevel, c;
+
+    extern Abc_Ntk_t * Abc_NtkDChoice( Abc_Ntk_t * pNtk, int fBalance, int fUpdateLevel, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fBalance     = 1;
+    fUpdateLevel = 1;
+    fVerbose     = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "blvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'b':
+            fBalance ^= 1;
+            break;
+        case 'l':
+            fUpdateLevel ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "This command works only for strashed networks.\n" );
+        return 1;
+    }
+    pNtkRes = Abc_NtkDChoice( pNtk, fBalance, fUpdateLevel, fVerbose );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Command has failed.\n" );
+        return 0;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: dchoice [-blvh]\n" );
+    fprintf( pErr, "\t         performs partitioned choicing using a new AIG package\n" );
     fprintf( pErr, "\t-b     : toggle internal balancing [default = %s]\n", fBalance? "yes": "no" );
     fprintf( pErr, "\t-l     : toggle updating level [default = %s]\n", fUpdateLevel? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
@@ -11819,24 +11907,24 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nFrames      = 0; // if 0, iterates through frames
+    nFrames      =16;
     fRetimeFirst = 1;
     fVerbose     = 0;
     fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Frwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Krwvh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'F':
+        case 'K':
             if ( globalUtilOptind >= argc )
             {
-                fprintf( pErr, "Command line switch \"-F\" should be followed by an integer.\n" );
+                fprintf( pErr, "Command line switch \"-K\" should be followed by an integer.\n" );
                 goto usage;
             }
             nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFrames <= 0 ) 
+            if ( nFrames < 0 ) 
                 goto usage;
             break;
         case 'r':
@@ -11872,9 +11960,9 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: dsec [-F num] [-rwvh] <file1> <file2>\n" );
+    fprintf( pErr, "usage: dsec [-K num] [-rwvh] <file1> <file2>\n" );
     fprintf( pErr, "\t         performs inductive sequential equivalence checking\n" );
-    fprintf( pErr, "\t-F num : the number of time frames to use [default = %d]\n", nFrames );
+    fprintf( pErr, "\t-K num : the limit on the depth of induction [default = %d]\n", nFrames );
     fprintf( pErr, "\t-r     : toggles forward retiming at the beginning [default = %s]\n", fRetimeFirst? "yes": "no" );
     fprintf( pErr, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-w     : toggles additional verbose output [default = %s]\n", fVeryVerbose? "yes": "no" );
@@ -11914,24 +12002,24 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nFrames      = 0; // if 0, iterates through frames
-    fRetimeFirst = 1;
-    fVerbose     = 0;
-    fVeryVerbose = 0;
+    nFrames      = 16; 
+    fRetimeFirst =  1;
+    fVerbose     =  0;
+    fVeryVerbose =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Frwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Krwvh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'F':
+        case 'K':
             if ( globalUtilOptind >= argc )
             {
-                fprintf( pErr, "Command line switch \"-F\" should be followed by an integer.\n" );
+                fprintf( pErr, "Command line switch \"-K\" should be followed by an integer.\n" );
                 goto usage;
             }
             nFrames = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFrames <= 0 ) 
+            if ( nFrames < 0 ) 
                 goto usage;
             break;
         case 'r':
@@ -11964,9 +12052,9 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: dprove [-F num] [-rwvh]\n" );
+    fprintf( pErr, "usage: dprove [-K num] [-rwvh]\n" );
     fprintf( pErr, "\t         performs SEC on the sequential miter\n" );
-    fprintf( pErr, "\t-F num : the number of time frames to use [default = %d]\n", nFrames );
+    fprintf( pErr, "\t-K num : the limit on the depth of induction [default = %d]\n", nFrames );
     fprintf( pErr, "\t-r     : toggles forward retiming at the beginning [default = %s]\n", fRetimeFirst? "yes": "no" );
     fprintf( pErr, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-w     : toggles additional verbose output [default = %s]\n", fVeryVerbose? "yes": "no" );

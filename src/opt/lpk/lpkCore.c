@@ -361,17 +361,10 @@ p->timeTruth += clock() - clk;
         if ( p->pPars->fVeryVerbose )
         {
 //            char * pFileName;
-            int nSuppSize;
-            Kit_DsdNtk_t * pDsdNtk;
-            nSuppSize = Extra_TruthSupportSize(pTruth, pCut->nLeaves);
+            int nSuppSize = Extra_TruthSupportSize( pTruth, pCut->nLeaves );
             printf( "  C%02d: L= %2d/%2d  V= %2d/%d  N= %d  W= %4.2f  ", 
                 i, pCut->nLeaves, nSuppSize, pCut->nNodes, pCut->nNodesDup, pCut->nLuts, pCut->Weight );
-
-            pDsdNtk = Kit_DsdDecompose( pTruth, pCut->nLeaves ); 
-//        Kit_DsdVerify( pDsdNtk, pTruth, pCut->nLeaves ); 
-            Kit_DsdPrint( stdout, pDsdNtk );
-            Kit_DsdNtkFree( pDsdNtk );
-//            Kit_DsdPrintFromTruth( pTruth, pCut->nLeaves );
+            Kit_DsdPrintFromTruth( pTruth, pCut->nLeaves );
 //            pFileName = Kit_TruthDumpToFile( pTruth, pCut->nLeaves, Count++ );
 //            printf( "Saved truth table in file \"%s\".\n", pFileName );
         }

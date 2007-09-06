@@ -53,7 +53,8 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
     Vec_Vec_t * vStore;
     int i;
     // create the new manager 
-    pNew = Aig_ManStart( Aig_ManObjIdMax(p) + 1 );
+    pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
+    pNew->pName = Aig_UtilStrsav( p->pName );
     pNew->nRegs = p->nRegs;
     pNew->nAsserts = p->nAsserts;
     // map the PI nodes

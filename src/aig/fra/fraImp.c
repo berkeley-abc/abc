@@ -64,8 +64,8 @@ static inline int * Fra_SmlCountOnes( Fra_Sml_t * p )
 {
     Aig_Obj_t * pObj;
     int i, * pnBits; 
-    pnBits = ALLOC( int, Aig_ManObjIdMax(p->pAig) + 1 );  
-    memset( pnBits, 0, sizeof(int) * (Aig_ManObjIdMax(p->pAig) + 1) );
+    pnBits = ALLOC( int, Aig_ManObjNumMax(p->pAig) );  
+    memset( pnBits, 0, sizeof(int) * Aig_ManObjNumMax(p->pAig) );
     Aig_ManForEachObj( p->pAig, pObj, i )
         pnBits[i] = Fra_SmlCountOnesOne( p, i );
     return pnBits;
@@ -325,7 +325,7 @@ Vec_Int_t * Fra_ImpDerive( Fra_Man_t * p, int nImpMaxLimit, int nImpUseLimit, in
     int nImpsTotal = 0, nImpsTried = 0, nImpsNonSeq = 0, nImpsComb = 0, nImpsCollected = 0;
     int CostMin = AIG_INFINITY, CostMax = 0;
     int i, k, Imp, CostRange, clk = clock();
-    assert( Aig_ManObjIdMax(p->pManAig) + 1 < (1 << 15) );
+    assert( Aig_ManObjNumMax(p->pManAig) < (1 << 15) );
     assert( nImpMaxLimit > 0 && nImpUseLimit > 0 && nImpUseLimit <= nImpMaxLimit );
     // normalize both managers
     pComb = Fra_SmlSimulateComb( p->pManAig, nSimWords );

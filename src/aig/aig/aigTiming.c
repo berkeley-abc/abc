@@ -147,7 +147,7 @@ void Aig_ManStartReverseLevels( Aig_Man_t * p, int nMaxLevelIncrease )
     p->nLevelMax = Aig_ManLevels(p) + nMaxLevelIncrease;
     // start the reverse levels
     p->vLevelR = Vec_IntAlloc( 0 );
-    Vec_IntFill( p->vLevelR, 1 + Aig_ManObjIdMax(p), 0 );
+    Vec_IntFill( p->vLevelR, Aig_ManObjNumMax(p), 0 );
     // compute levels in reverse topological order
     vNodes = Aig_ManDfsReverse( p );
     Vec_PtrForEachEntry( vNodes, pObj, i )

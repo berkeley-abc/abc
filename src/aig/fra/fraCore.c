@@ -267,7 +267,7 @@ static inline void Fra_FraigNode( Fra_Man_t * p, Aig_Obj_t * pObj )
 ***********************************************************************/
 void Fra_FraigSweep( Fra_Man_t * p )
 {
-    ProgressBar * pProgress;
+    Bar_Progress_t * pProgress;
     Aig_Obj_t * pObj, * pObjNew;
     int i, k = 0, Pos = 0;
     // fraig latch outputs
@@ -280,10 +280,10 @@ void Fra_FraigSweep( Fra_Man_t * p )
     if ( p->pPars->fLatchCorr )
         return;
     // fraig internal nodes
-    pProgress = Extra_ProgressBarStart( stdout, Aig_ManObjIdMax(p->pManAig) );
+    pProgress = Bar_ProgressStart( stdout, Aig_ManObjNumMax(p->pManAig) );
     Aig_ManForEachNode( p->pManAig, pObj, i )
     {
-        Extra_ProgressBarUpdate( pProgress, i, NULL );
+        Bar_ProgressUpdate( pProgress, i, NULL );
         // derive and remember the new fraig node
         pObjNew = Aig_And( p->pManFraig, Fra_ObjChild0Fra(pObj,p->pPars->nFramesK), Fra_ObjChild1Fra(pObj,p->pPars->nFramesK) );
         Fra_ObjSetFraig( pObj, p->pPars->nFramesK, pObjNew );
@@ -296,7 +296,7 @@ void Fra_FraigSweep( Fra_Man_t * p )
         if ( p->pPars->fUseImps )
             Pos = Fra_ImpCheckForNode( p, p->pCla->vImps, pObj, Pos );
     }
-    Extra_ProgressBarStop( pProgress );
+    Bar_ProgressStop( pProgress );
     // try to prove the outputs of the miter
     p->nNodesMiter = Aig_ManNodeNum(p->pManFraig);
 //    Fra_MiterStatus( p->pManFraig );
@@ -331,8 +331,8 @@ clk = clock();
     p->pManFraig = Fra_ManPrepareComb( p );
     p->pSml = Fra_SmlStart( pManAig, 0, 1, pPars->nSimWords );
     Fra_SmlSimulate( p, 0 );
-    if ( p->pPars->fChoicing )
-        Aig_ManReprStart( p->pManFraig, Aig_ManObjIdMax(p->pManAig)+1 );
+//    if ( p->pPars->fChoicing )
+//        Aig_ManReprStart( p->pManFraig, Aig_ManObjNumMax(p->pManAig) );
     // collect initial states
     p->nLitsBeg  = Fra_ClassesCountLits( p->pCla );
     p->nNodesBeg = Aig_ManNodeNum(pManAig);
@@ -346,10 +346,12 @@ clk = clock();
     Fra_ManFinalizeComb( p );
     if ( p->pPars->fChoicing )
     {
-        int clk2 = clock();
+int clk2 = clock();
         Fra_ClassesCopyReprs( p->pCla, p->vTimeouts );
-        pManAigNew = Aig_ManDupRepr( p->pManAig );
-        Aig_ManCreateChoices( pManAigNew );
+        pManAigNew = Aig_ManDupRepr( p->pManAig, 1 );
+        Aig_ManReprStart( pManAigNew, Aig_ManObjNumMax(pManAigNew) );
+        Aig_ManTransferRepr( pManAigNew, p->pManAig );
+        Aig_ManMarkValidChoices( pManAigNew );
         Aig_ManStop( p->pManFraig );
         p->pManFraig = NULL;
 p->timeTrav += clock() - clk2;
@@ -359,14 +361,6 @@ p->timeTrav += clock() - clk2;
         Aig_ManCleanup( p->pManFraig );
         pManAigNew = p->pManFraig;
         p->pManFraig = NULL;
-/*
-        Fra_ClassesCopyReprs( p->pCla, p->vTimeouts );
-        pManAigNew = Aig_ManDupRepr( p->pManAig );
-//        Aig_ManCreateChoices( pManAigNew );
-        Aig_ManCleanup( pManAigNew );
-        Aig_ManStop( p->pManFraig );
-        p->pManFraig = NULL;
-*/
     }
 p->timeTotal = clock() - clk;
     // collect final stats
@@ -388,16 +382,16 @@ p->timeTotal = clock() - clk;
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Fra_FraigChoice( Aig_Man_t * pManAig )
+Aig_Man_t * Fra_FraigChoice( Aig_Man_t * pManAig, int nConfMax )
 {
     Fra_Par_t Pars, * pPars = &Pars; 
     Fra_ParamsDefault( pPars );
-    pPars->nBTLimitNode = 1000;
-    pPars->fVerbose     = 0;
-    pPars->fProve       = 0;
+    pPars->nBTLimitNode = nConfMax;
+    pPars->fChoicing    = 1;
     pPars->fDoSparse    = 1;
     pPars->fSpeculate   = 0;
-    pPars->fChoicing    = 1;
+    pPars->fProve       = 0;
+    pPars->fVerbose     = 0;
     return Fra_FraigPerform( pManAig, pPars );
 }
  
@@ -418,11 +412,11 @@ Aig_Man_t * Fra_FraigEquivence( Aig_Man_t * pManAig, int nConfMax )
     Fra_Par_t Pars, * pPars = &Pars; 
     Fra_ParamsDefault( pPars );
     pPars->nBTLimitNode = nConfMax;
-    pPars->fVerbose     = 0;
-    pPars->fProve       = 0;
+    pPars->fChoicing    = 0;
     pPars->fDoSparse    = 1;
     pPars->fSpeculate   = 0;
-    pPars->fChoicing    = 0;
+    pPars->fProve       = 0;
+    pPars->fVerbose     = 0;
     pFraig = Fra_FraigPerform( pManAig, pPars );
     return pFraig;
 } 

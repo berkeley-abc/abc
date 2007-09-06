@@ -30,6 +30,45 @@
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_IntPushMem( Extra_MmStep_t * pMemMan, Vec_Int_t * p, int Entry )
+{
+    if ( p->nSize == p->nCap )
+    {
+        int * pArray;
+        int i;
+
+        if ( p->nSize == 0 )
+            p->nCap = 1;
+        if ( pMemMan )
+            pArray = (int *)Extra_MmStepEntryFetch( pMemMan, p->nCap * 8 );
+        else
+            pArray = ALLOC( int, p->nCap * 2 );
+        if ( p->pArray )
+        {
+            for ( i = 0; i < p->nSize; i++ )
+                pArray[i] = p->pArray[i];
+            if ( pMemMan )
+                Extra_MmStepEntryRecycle( pMemMan, (char *)p->pArray, p->nCap * 4 );
+            else
+                free( p->pArray );
+        }
+        p->nCap *= 2;
+        p->pArray = pArray;
+    }
+    p->pArray[p->nSize++] = Entry;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Creates fanout/fanin relationship between the nodes.]
 
   Description []

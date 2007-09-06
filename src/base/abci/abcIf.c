@@ -299,12 +299,8 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
         }
         else 
         {
-            extern Hop_Obj_t * Kit_GraphToHop( Hop_Man_t * pMan, Kit_Graph_t * pGraph );
-            // transform truth table into the decomposition tree
-            Kit_Graph_t * pGraph = Kit_TruthToGraph( If_CutTruth(pCutBest), If_CutLeaveNum(pCutBest), vCover );
-            // derive the AIG for the decomposition tree
-            pNodeNew->pData = Kit_GraphToHop( pNtkNew->pManFunc, pGraph );
-            Kit_GraphFree( pGraph );
+            extern Hop_Obj_t * Kit_TruthToHop( Hop_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory );
+            pNodeNew->pData = Kit_TruthToHop( pNtkNew->pManFunc, If_CutTruth(pCutBest), If_CutLeaveNum(pCutBest), vCover );
         }
         // complement the node if the cut was complemented
         if ( pCutBest->fCompl )

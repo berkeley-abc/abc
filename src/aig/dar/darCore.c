@@ -65,7 +65,7 @@ void Dar_ManDefaultRwrParams( Dar_RwrPar_t * pPars )
 int Dar_ManRewrite( Aig_Man_t * pAig, Dar_RwrPar_t * pPars )
 {
     Dar_Man_t * p;
-    ProgressBar * pProgress;
+    Bar_Progress_t * pProgress;
     Dar_Cut_t * pCut;
     Aig_Obj_t * pObj, * pObjNew;
     int i, k, nNodesOld, nNodeBefore, nNodeAfter, Required;
@@ -88,15 +88,15 @@ int Dar_ManRewrite( Aig_Man_t * pAig, Dar_RwrPar_t * pPars )
     p->nNodesInit = Aig_ManNodeNum(pAig);
     nNodesOld = Vec_PtrSize( pAig->vObjs );
 
-    pProgress = Extra_ProgressBarStart( stdout, nNodesOld );
+    pProgress = Bar_ProgressStart( stdout, nNodesOld );
     Aig_ManForEachObj( pAig, pObj, i )
-//    pProgress = Extra_ProgressBarStart( stdout, 100 );
+//    pProgress = Bar_ProgressStart( stdout, 100 );
 //    Aig_ManOrderStart( pAig );
 //    Aig_ManForEachNodeInOrder( pAig, pObj )
     {
-//        Extra_ProgressBarUpdate( pProgress, 100*pAig->nAndPrev/pAig->nAndTotal, NULL );
+//        Bar_ProgressUpdate( pProgress, 100*pAig->nAndPrev/pAig->nAndTotal, NULL );
 
-        Extra_ProgressBarUpdate( pProgress, i, NULL );
+        Bar_ProgressUpdate( pProgress, i, NULL );
         if ( !Aig_ObjIsNode(pObj) )
             continue;
         if ( i > nNodesOld )
@@ -167,7 +167,7 @@ p->timeCuts += clock() - clk;
 p->timeTotal = clock() - clkStart;
 p->timeOther = p->timeTotal - p->timeCuts - p->timeEval;
 
-    Extra_ProgressBarStop( pProgress );
+    Bar_ProgressStop( pProgress );
     p->nCutMemUsed = Aig_MmFixedReadMemUsage(p->pMemCuts)/(1<<20);
     Dar_ManCutsFree( p );
     // put the nodes into the DFS order and reassign their IDs

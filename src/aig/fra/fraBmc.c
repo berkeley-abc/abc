@@ -187,8 +187,8 @@ Fra_Bmc_t * Fra_BmcStart( Aig_Man_t * pAig, int nPref, int nDepth )
     p->nPref = nPref;
     p->nDepth = nDepth;
     p->nFramesAll = nPref + nDepth;
-    p->pObjToFrames  = ALLOC( Aig_Obj_t *, p->nFramesAll * (Aig_ManObjIdMax(pAig) + 1) );
-    memset( p->pObjToFrames, 0, sizeof(Aig_Obj_t *) * p->nFramesAll * (Aig_ManObjIdMax(pAig) + 1) );
+    p->pObjToFrames  = ALLOC( Aig_Obj_t *, p->nFramesAll * Aig_ManObjNumMax(pAig) );
+    memset( p->pObjToFrames, 0, sizeof(Aig_Obj_t *) * p->nFramesAll * Aig_ManObjNumMax(pAig) );
     return p;
 }
 
@@ -231,7 +231,8 @@ Aig_Man_t * Fra_BmcFrames( Fra_Bmc_t * p )
     int i, k, f;
 
     // start the fraig package
-    pAigFrames = Aig_ManStart( (Aig_ManObjIdMax(p->pAig) + 1) * p->nFramesAll );
+    pAigFrames = Aig_ManStart( Aig_ManObjNumMax(p->pAig) * p->nFramesAll );
+    pAigFrames->pName = Aig_UtilStrsav( p->pAig->pName );
     // create PI nodes for the frames
     for ( f = 0; f < p->nFramesAll; f++ )
         Bmc_ObjSetFrames( Aig_ManConst1(p->pAig), f, Aig_ManConst1(pAigFrames) );

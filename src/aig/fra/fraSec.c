@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "fra.h"
+#include "ioa.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -100,7 +101,7 @@ PRT( "Time", clock() - clkTotal );
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_FraigSec( Aig_Man_t * p, int nFramesFix, int fRetimeFirst, int fVerbose, int fVeryVerbose )
+int Fra_FraigSec( Aig_Man_t * p, int nFramesMax, int fRetimeFirst, int fVerbose, int fVeryVerbose )
 {
     Aig_Man_t * pNew, * pTemp;
     int nFrames, RetValue, nIter, clk, clkTotal = clock();
@@ -116,7 +117,9 @@ int Fra_FraigSec( Aig_Man_t * p, int nFramesFix, int fRetimeFirst, int fVerbose,
 
     // perform sequential cleanup
 clk = clock();
+    if ( pNew->nRegs )
     pNew = Aig_ManReduceLaches( pNew, 0 );
+    if ( pNew->nRegs )
     pNew = Aig_ManConstReduce( pNew, 0 );
     if ( fVerbose )
     {
@@ -126,7 +129,7 @@ PRT( "Time", clock() - clk );
     }
 
     // perform forward retiming
-    if ( fRetimeFirst )
+    if ( fRetimeFirst && pNew->nRegs )
     {
 clk = clock();
     pNew = Rtm_ManRetime( pTemp = pNew, 1, 1000, 0 );
@@ -141,6 +144,8 @@ PRT( "Time", clock() - clk );
     
     // run latch correspondence
 clk = clock();
+    if ( pNew->nRegs )
+    {
     pNew = Aig_ManDup( pTemp = pNew, 1 );
     Aig_ManStop( pTemp );
     pNew = Fra_FraigLatchCorrespondence( pTemp = pNew, 0, 100000, fVeryVerbose, &nIter );
@@ -150,6 +155,7 @@ clk = clock();
         printf( "Latch-corr (I=%3d):   Latches = %5d. Nodes = %6d. ", 
             nIter, Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
 PRT( "Time", clock() - clk );
+    }
     }
 
     // perform fraiging
@@ -166,7 +172,7 @@ PRT( "Time", clock() - clk );
     // perform seq sweeping while increasing the number of frames
     RetValue = Fra_FraigMiterStatus( pNew );
     if ( RetValue == -1 )
-    for ( nFrames = 1; ; nFrames *= 2 )
+    for ( nFrames = 1; nFrames <= nFramesMax; nFrames *= 2 )
     {
 clk = clock();
         pNew = Fra_FraigInduction( pTemp = pNew, 0, nFrames, 0, 0, 0, fLatchCorr, 0, fVeryVerbose, &nIter );
@@ -203,19 +209,35 @@ clk = clock();
                 Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
 PRT( "Time", clock() - clk );
         }
+        if ( pNew->nRegs )
+        pNew = Aig_ManConstReduce( pNew, 0 );
     }
+
     // get the miter status
     RetValue = Fra_FraigMiterStatus( pNew );
-    Aig_ManStop( pNew );
 
     // report the miter
     if ( RetValue == 1 )
+    {
         printf( "Networks are equivalent.   " );
+PRT( "Time", clock() - clkTotal );
+    }
     else if ( RetValue == 0 )
+    {
         printf( "Networks are NOT EQUIVALENT.   " );
+PRT( "Time", clock() - clkTotal );
+    }
     else
+    {
+        static int Counter = 1;
+        char pFileName[1000];
         printf( "Networks are UNDECIDED.   " );
 PRT( "Time", clock() - clkTotal );
+        sprintf( pFileName, "sm%03d.aig", Counter++ );
+        Ioa_WriteAiger( pNew, pFileName, 0 );
+        printf( "The unsolved reduced miter is written into file \"%s\".\n", pFileName );
+    }
+    Aig_ManStop( pNew );
     return RetValue;
 }
 

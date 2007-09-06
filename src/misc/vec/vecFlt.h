@@ -456,41 +456,6 @@ static inline void Vec_FltPush( Vec_Flt_t * p, float Entry )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Vec_FltPushMem( Extra_MmStep_t * pMemMan, Vec_Flt_t * p, float Entry )
-{
-    if ( p->nSize == p->nCap )
-    {
-        float * pArray;
-        int i;
-
-        if ( p->nSize == 0 )
-            p->nCap = 1;
-        pArray = (float *)Extra_MmStepEntryFetch( pMemMan, p->nCap * 8 );
-//        pArray = ALLOC( float, p->nCap * 2 );
-        if ( p->pArray )
-        {
-            for ( i = 0; i < p->nSize; i++ )
-                pArray[i] = p->pArray[i];
-            Extra_MmStepEntryRecycle( pMemMan, (char *)p->pArray, p->nCap * 4 );
-//            free( p->pArray );
-        }
-        p->nCap *= 2;
-        p->pArray = pArray;
-    }
-    p->pArray[p->nSize++] = Entry;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 static inline void Vec_FltPushOrder( Vec_Flt_t * p, float Entry )
 {
     int i;

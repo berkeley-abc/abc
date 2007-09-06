@@ -139,20 +139,20 @@ Lpk_Fun_t * Lpk_FunDup( Lpk_Fun_t * p, unsigned * pTruth )
 ***********************************************************************/
 void Lpk_FunSuppMinimize( Lpk_Fun_t * p )
 {
-    int j, k, nVarsNew;
+    int i, k, nVarsNew;
     // compress the truth table
     if ( p->uSupp == Kit_BitMask(p->nVars) )
         return;
     // minimize support
     nVarsNew = Kit_WordCountOnes(p->uSupp);
     Kit_TruthShrink( Lpk_FunTruth(p, 1), Lpk_FunTruth(p, 0), nVarsNew, p->nVars, p->uSupp, 1 );
-    for ( j = k = 0; j < (int)p->nVars; j++ )
-        if ( p->uSupp & (1 << j) )
-        {
-            p->pFanins[k] = p->pFanins[j];
-            p->pDelays[k] = p->pDelays[j];
-            k++;
-        }
+    k = 0;
+    Lpk_SuppForEachVar( p->uSupp, i )
+    {
+        p->pFanins[k] = p->pFanins[i];
+        p->pDelays[k] = p->pDelays[i];
+        k++;
+    }
     assert( k == nVarsNew );
     p->nVars = k;
     p->uSupp = Kit_BitMask(p->nVars);

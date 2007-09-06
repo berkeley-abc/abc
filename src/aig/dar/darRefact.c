@@ -309,7 +309,7 @@ Aig_Obj_t * Dar_RefactBuildGraph( Aig_Man_t * pAig, Vec_Ptr_t * vCut, Kit_Graph_
     if ( Kit_GraphIsVar(pGraph) )
         return Aig_NotCond( Kit_GraphVar(pGraph)->pFunc, Kit_GraphIsComplement(pGraph) );
     // build the AIG nodes corresponding to the AND gates of the graph
-//printf( "Building (current number %d):\n", Aig_ManObjIdMax(pAig) );
+//printf( "Building (current number %d):\n", Aig_ManObjNumMax(pAig) );
     Kit_GraphForEachNode( pGraph, pNode, i )
     {
         pAnd0 = Aig_NotCond( Kit_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc, pNode->eEdge0.fCompl ); 

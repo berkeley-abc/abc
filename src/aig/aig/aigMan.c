@@ -87,7 +87,8 @@ Aig_Man_t * Aig_ManStartFrom( Aig_Man_t * p )
     Aig_Obj_t * pObj;
     int i;
     // create the new manager
-    pNew = Aig_ManStart( Aig_ManObjIdMax(p) + 1 );
+    pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
+    pNew->pName = Aig_UtilStrsav( p->pName );
     // create the PIs
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
     Aig_ManForEachPi( p, pObj, i )
@@ -134,7 +135,8 @@ Aig_Man_t * Aig_ManDup( Aig_Man_t * p, int fOrdered )
     Aig_Obj_t * pObj;
     int i;
     // create the new manager
-    pNew = Aig_ManStart( Aig_ManObjIdMax(p) + 1 );
+    pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
+    pNew->pName = Aig_UtilStrsav( p->pName );
     pNew->nRegs = p->nRegs;
     pNew->nAsserts = p->nAsserts;
     // create the PIs
@@ -187,7 +189,8 @@ Aig_Man_t * Aig_ManExtractMiter( Aig_Man_t * p, Aig_Obj_t * pNode1, Aig_Obj_t * 
     Aig_Obj_t * pObj;
     int i;
     // create the new manager
-    pNew = Aig_ManStart( Aig_ManObjIdMax(p) + 1 );
+    pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
+    pNew->pName = Aig_UtilStrsav( p->pName );
     // create the PIs
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
@@ -240,6 +243,7 @@ void Aig_ManStop( Aig_Man_t * p )
     if ( p->vBufs )    Vec_PtrFree( p->vBufs );
     if ( p->vLevelR )  Vec_IntFree( p->vLevelR );
     if ( p->vLevels )  Vec_VecFree( p->vLevels );
+    FREE( p->pName );
     FREE( p->pObjCopies );
     FREE( p->pReprs );
     FREE( p->pEquivs );
@@ -298,7 +302,7 @@ void Aig_ManPrintStats( Aig_Man_t * p )
 //    printf( "Cre = %6d. ",  p->nCreated );
 //    printf( "Del = %6d. ",  p->nDeleted );
 //    printf( "Lev = %3d. ",  Aig_ManCountLevels(p) );
-    printf( "Max = %7d. ",  Aig_ManObjIdMax(p) );
+    printf( "Max = %7d. ",  Aig_ManObjNumMax(p) );
     printf( "Lev = %3d. ",  Aig_ManLevels(p) );
     printf( "\n" );
 }

@@ -129,7 +129,7 @@ Fpga_LutLib_t * Fpga_LutLibCreate( char * FileName, int fVerbose )
                     printf( "Warning: Pin %d of LUT %d has delay %f. Pin delays should be non-negative numbers. Technology mapping may not work correctly.\n", 
                         k, i, p->pLutDelays[i][k] );
                 if ( k && p->pLutDelays[i][k-1] > p->pLutDelays[i][k] )
-                    printf( "Warning: Pin %d of LUT %d has delay %f. Pin %d of LUT %d has delay %f. Pin delays should be in non-degreasing order. Technology mapping may not work correctly.\n", 
+                    printf( "Warning: Pin %d of LUT %d has delay %f. Pin %d of LUT %d has delay %f. Pin delays should be in non-decreasing order. Technology mapping may not work correctly.\n", 
                         k-1, i, p->pLutDelays[i][k-1], 
                         k, i, p->pLutDelays[i][k] );
             }

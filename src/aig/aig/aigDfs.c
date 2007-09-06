@@ -243,6 +243,27 @@ Vec_Ptr_t * Aig_ManDfsReverse( Aig_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+int Aig_ManLevelNum( Aig_Man_t * p )
+{
+    Aig_Obj_t * pObj;
+    int i, LevelsMax;
+    LevelsMax = 0;
+    Aig_ManForEachPo( p, pObj, i )
+        LevelsMax = AIG_MAX( LevelsMax, (int)Aig_ObjFanin0(pObj)->Level );
+    return LevelsMax;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the max number of levels in the manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Aig_ManCountLevels( Aig_Man_t * p )
 {
     Vec_Ptr_t * vNodes;

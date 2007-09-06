@@ -29,7 +29,6 @@
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-
 /**Function*************************************************************
 
   Synopsis    [Transforms the decomposition graph into the AIG.]
@@ -83,6 +82,36 @@ Hop_Obj_t * Kit_GraphToHop( Hop_Man_t * pMan, Kit_Graph_t * pGraph )
         pNode->pFunc = Hop_IthVar( pMan, i );
     // perform strashing
     return Kit_GraphToHopInternal( pMan, pGraph );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Strashed onen logic nodes using its truth table.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Hop_Obj_t * Kit_TruthToHop( Hop_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory )
+{
+    Hop_Obj_t * pObj;
+    Kit_Graph_t * pGraph;
+    // transform truth table into the decomposition tree
+    if ( vMemory == NULL )
+    {
+        vMemory = Vec_IntAlloc( 0 );
+        pGraph = Kit_TruthToGraph( pTruth, nVars, vMemory );
+        Vec_IntFree( vMemory );
+    }
+    else
+        pGraph = Kit_TruthToGraph( pTruth, nVars, vMemory );
+    // derive the AIG for the decomposition tree
+    pObj = Kit_GraphToHop( pMan, pGraph );
+    Kit_GraphFree( pGraph );
+    return pObj;
 }
 
 /**Function*************************************************************

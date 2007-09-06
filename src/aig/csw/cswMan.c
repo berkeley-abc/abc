@@ -57,11 +57,11 @@ Csw_Man_t * Csw_ManStart( Aig_Man_t * pMan, int nCutsMax, int nLeafMax, int fVer
     p->pManRes  = Aig_ManStartFrom( pMan );
     assert( Aig_ManPiNum(p->pManAig) == Aig_ManPiNum(p->pManRes) );
     // allocate room for cuts and equivalent nodes
-    p->pnRefs   = ALLOC( int, Aig_ManObjIdMax(pMan) + 1 );
-    p->pEquiv   = ALLOC( Aig_Obj_t *, Aig_ManObjIdMax(pMan) + 1 );
-    p->pCuts    = ALLOC( Csw_Cut_t *, Aig_ManObjIdMax(pMan) + 1 );
-    memset( p->pCuts, 0, sizeof(Aig_Obj_t *) * (Aig_ManObjIdMax(pMan) + 1) );
-    memset( p->pnRefs, 0, sizeof(int) * (Aig_ManObjIdMax(pMan) + 1) );
+    p->pnRefs   = ALLOC( int, Aig_ManObjNumMax(pMan) );
+    p->pEquiv   = ALLOC( Aig_Obj_t *, Aig_ManObjNumMax(pMan) );
+    p->pCuts    = ALLOC( Csw_Cut_t *, Aig_ManObjNumMax(pMan) );
+    memset( p->pCuts, 0, sizeof(Aig_Obj_t *) * Aig_ManObjNumMax(pMan) );
+    memset( p->pnRefs, 0, sizeof(int) * Aig_ManObjNumMax(pMan) );
     // allocate memory manager
     p->nTruthWords = Aig_TruthWordNum(nLeafMax);
     p->nCutSize = sizeof(Csw_Cut_t) + sizeof(int) * nLeafMax + sizeof(unsigned) * p->nTruthWords;

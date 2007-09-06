@@ -28,8 +28,8 @@
 static unsigned long Hop_Hash( Hop_Obj_t * pObj, int TableSize ) 
 {
     unsigned long Key = Hop_ObjIsExor(pObj) * 1699;
-    Key ^= (long)Hop_ObjFanin0(pObj) * 7937;
-    Key ^= (long)Hop_ObjFanin1(pObj) * 2971;
+    Key ^= Hop_ObjFanin0(pObj)->Id * 7937;
+    Key ^= Hop_ObjFanin1(pObj)->Id * 2971;
     Key ^= Hop_ObjFaninC0(pObj) * 911;
     Key ^= Hop_ObjFaninC1(pObj) * 353;
     return Key % TableSize;

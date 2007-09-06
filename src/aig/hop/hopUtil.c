@@ -523,7 +523,7 @@ void Hop_ManDumpBlif( Hop_Man_t * p, char * pFileName )
         pObj->pData = (void *)Counter++;
     Vec_PtrForEachEntry( vNodes, pObj, i )
         pObj->pData = (void *)Counter++;
-    nDigits = Extra_Base10Log( Counter );
+    nDigits = Hop_Base10Log( Counter );
     // write the file
     pFile = fopen( pFileName, "w" );
     fprintf( pFile, "# BLIF file written by procedure Hop_ManDumpBlif() in ABC\n" );

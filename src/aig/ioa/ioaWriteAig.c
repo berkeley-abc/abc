@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [ioWriteAiger.c]
+  FileName    [ioaWriteAiger.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -15,11 +15,11 @@
 
   Date        [Ver. 1.0. Started - December 16, 2006.]
 
-  Revision    [$Id: ioWriteAiger.c,v 1.00 2006/12/16 00:00:00 alanmi Exp $]
+  Revision    [$Id: ioaWriteAiger.c,v 1.00 2006/12/16 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "io.h"
+#include "ioa.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -125,11 +125,11 @@ Binary Format Definition
 
 */
 
-static unsigned Io_ObjMakeLit( int Var, int fCompl )                 { return (Var << 1) | fCompl;    }
-static unsigned Io_ObjAigerNum( Abc_Obj_t * pObj )                   { return (unsigned)pObj->pCopy;  }
-static void     Io_ObjSetAigerNum( Abc_Obj_t * pObj, unsigned Num )  { pObj->pCopy = (void *)Num;     }
+static unsigned Ioa_ObjMakeLit( int Var, int fCompl )                 { return (Var << 1) | fCompl;    }
+static unsigned Ioa_ObjAigerNum( Aig_Obj_t * pObj )                   { return (unsigned)pObj->pData;  }
+static void     Ioa_ObjSetAigerNum( Aig_Obj_t * pObj, unsigned Num )  { pObj->pData = (void *)Num;     }
 
-int      Io_WriteAigerEncode( char * pBuffer, int Pos, unsigned x );
+int      Ioa_WriteAigerEncode( char * pBuffer, int Pos, unsigned x );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -146,110 +146,111 @@ int      Io_WriteAigerEncode( char * pBuffer, int Pos, unsigned x );
   SeeAlso     []
 
 ***********************************************************************/
-void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols )
+void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols )
 {
-    ProgressBar * pProgress;
+    Bar_Progress_t * pProgress;
     FILE * pFile;
-    Abc_Obj_t * pObj, * pDriver;
+    Aig_Obj_t * pObj, * pDriver;
     int i, nNodes, Pos, nBufferSize;
     unsigned char * pBuffer;
     unsigned uLit0, uLit1, uLit;
 
-    assert( Abc_NtkIsStrash(pNtk) );
+//    assert( Aig_ManIsStrash(pMan) );
     // start the output stream
     pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
-        fprintf( stdout, "Io_WriteAiger(): Cannot open the output file \"%s\".\n", pFileName );
+        fprintf( stdout, "Ioa_WriteAiger(): Cannot open the output file \"%s\".\n", pFileName );
         return;
     }
-    Abc_NtkForEachLatch( pNtk, pObj, i )
-        if ( !Abc_LatchIsInit0(pObj) )
+/*
+    Aig_ManForEachLatch( pMan, pObj, i )
+        if ( !Aig_LatchIsInit0(pObj) )
         {
-            fprintf( stdout, "Io_WriteAiger(): Cannot write AIGER format with non-0 latch init values. Run \"zero\".\n" );
+            fprintf( stdout, "Ioa_WriteAiger(): Cannot write AIGER format with non-0 latch init values. Run \"zero\".\n" );
             return;
         }
-
+*/
     // set the node numbers to be used in the output file
     nNodes = 0;
-    Io_ObjSetAigerNum( Abc_AigConst1(pNtk), nNodes++ );
-    Abc_NtkForEachCi( pNtk, pObj, i )
-        Io_ObjSetAigerNum( pObj, nNodes++ );
-    Abc_AigForEachAnd( pNtk, pObj, i )
-        Io_ObjSetAigerNum( pObj, nNodes++ );
+    Ioa_ObjSetAigerNum( Aig_ManConst1(pMan), nNodes++ );
+    Aig_ManForEachPi( pMan, pObj, i )
+        Ioa_ObjSetAigerNum( pObj, nNodes++ );
+    Aig_ManForEachNode( pMan, pObj, i )
+        Ioa_ObjSetAigerNum( pObj, nNodes++ );
 
     // write the header "M I L O A" where M = I + L + A
     fprintf( pFile, "aig %u %u %u %u %u\n", 
-        Abc_NtkPiNum(pNtk) + Abc_NtkLatchNum(pNtk) + Abc_NtkNodeNum(pNtk), 
-        Abc_NtkPiNum(pNtk),
-        Abc_NtkLatchNum(pNtk),
-        Abc_NtkPoNum(pNtk),
-        Abc_NtkNodeNum(pNtk) );
+        Aig_ManPiNum(pMan) + Aig_ManNodeNum(pMan), 
+        Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan),
+        Aig_ManRegNum(pMan),
+        Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan),
+        Aig_ManNodeNum(pMan) );
 
     // if the driver node is a constant, we need to complement the literal below
     // because, in the AIGER format, literal 0/1 is represented as number 0/1
     // while, in ABC, constant 1 node has number 0 and so literal 0/1 will be 1/0
 
     // write latch drivers
-    Abc_NtkForEachLatchInput( pNtk, pObj, i )
+    Aig_ManForEachLiSeq( pMan, pObj, i )
     {
-        pDriver = Abc_ObjFanin0(pObj);
-        fprintf( pFile, "%u\n", Io_ObjMakeLit( Io_ObjAigerNum(pDriver), Abc_ObjFaninC0(pObj) ^ (Io_ObjAigerNum(pDriver) == 0) ) );
+        pDriver = Aig_ObjFanin0(pObj);
+        fprintf( pFile, "%u\n", Ioa_ObjMakeLit( Ioa_ObjAigerNum(pDriver), Aig_ObjFaninC0(pObj) ^ (Ioa_ObjAigerNum(pDriver) == 0) ) );
     }
 
     // write PO drivers
-    Abc_NtkForEachPo( pNtk, pObj, i )
+    Aig_ManForEachPoSeq( pMan, pObj, i )
     {
-        pDriver = Abc_ObjFanin0(pObj);
-        fprintf( pFile, "%u\n", Io_ObjMakeLit( Io_ObjAigerNum(pDriver), Abc_ObjFaninC0(pObj) ^ (Io_ObjAigerNum(pDriver) == 0) ) );
+        pDriver = Aig_ObjFanin0(pObj);
+        fprintf( pFile, "%u\n", Ioa_ObjMakeLit( Ioa_ObjAigerNum(pDriver), Aig_ObjFaninC0(pObj) ^ (Ioa_ObjAigerNum(pDriver) == 0) ) );
     }
 
     // write the nodes into the buffer
     Pos = 0;
-    nBufferSize = 6 * Abc_NtkNodeNum(pNtk) + 100; // skeptically assuming 3 chars per one AIG edge
+    nBufferSize = 6 * Aig_ManNodeNum(pMan) + 100; // skeptically assuming 3 chars per one AIG edge
     pBuffer = ALLOC( char, nBufferSize );
-    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkObjNumMax(pNtk) );
-    Abc_AigForEachAnd( pNtk, pObj, i )
+    pProgress = Bar_ProgressStart( stdout, Aig_ManObjNumMax(pMan) );
+    Aig_ManForEachNode( pMan, pObj, i )
     {
-        Extra_ProgressBarUpdate( pProgress, i, NULL );
-        uLit  = Io_ObjMakeLit( Io_ObjAigerNum(pObj), 0 );
-        uLit0 = Io_ObjMakeLit( Io_ObjAigerNum(Abc_ObjFanin0(pObj)), Abc_ObjFaninC0(pObj) );
-        uLit1 = Io_ObjMakeLit( Io_ObjAigerNum(Abc_ObjFanin1(pObj)), Abc_ObjFaninC1(pObj) );
+        Bar_ProgressUpdate( pProgress, i, NULL );
+        uLit  = Ioa_ObjMakeLit( Ioa_ObjAigerNum(pObj), 0 );
+        uLit0 = Ioa_ObjMakeLit( Ioa_ObjAigerNum(Aig_ObjFanin0(pObj)), Aig_ObjFaninC0(pObj) );
+        uLit1 = Ioa_ObjMakeLit( Ioa_ObjAigerNum(Aig_ObjFanin1(pObj)), Aig_ObjFaninC1(pObj) );
         assert( uLit0 < uLit1 );
-        Pos = Io_WriteAigerEncode( pBuffer, Pos, uLit  - uLit1 );
-        Pos = Io_WriteAigerEncode( pBuffer, Pos, uLit1 - uLit0 );
+        Pos = Ioa_WriteAigerEncode( pBuffer, Pos, uLit  - uLit1 );
+        Pos = Ioa_WriteAigerEncode( pBuffer, Pos, uLit1 - uLit0 );
         if ( Pos > nBufferSize - 10 )
         {
-            printf( "Io_WriteAiger(): AIGER generation has failed because the allocated buffer is too small.\n" );
+            printf( "Ioa_WriteAiger(): AIGER generation has failed because the allocated buffer is too small.\n" );
             fclose( pFile );
             return;
         }
     }
     assert( Pos < nBufferSize );
-    Extra_ProgressBarStop( pProgress );
+    Bar_ProgressStop( pProgress );
 
     // write the buffer
     fwrite( pBuffer, 1, Pos, pFile );
     free( pBuffer );
-
+/*
     // write the symbol table
     if ( fWriteSymbols )
     {
         // write PIs
-        Abc_NtkForEachPi( pNtk, pObj, i )
-            fprintf( pFile, "i%d %s\n", i, Abc_ObjName(pObj) );
+        Aig_ManForEachPi( pMan, pObj, i )
+            fprintf( pFile, "i%d %s\n", i, Aig_ObjName(pObj) );
         // write latches
-        Abc_NtkForEachLatch( pNtk, pObj, i )
-            fprintf( pFile, "l%d %s\n", i, Abc_ObjName(Abc_ObjFanout0(pObj)) );
+        Aig_ManForEachLatch( pMan, pObj, i )
+            fprintf( pFile, "l%d %s\n", i, Aig_ObjName(Aig_ObjFanout0(pObj)) );
         // write POs
-        Abc_NtkForEachPo( pNtk, pObj, i )
-            fprintf( pFile, "o%d %s\n", i, Abc_ObjName(pObj) );
+        Aig_ManForEachPo( pMan, pObj, i )
+            fprintf( pFile, "o%d %s\n", i, Aig_ObjName(pObj) );
     }
-
+*/
     // write the comment
     fprintf( pFile, "c\n" );
-    fprintf( pFile, "%s\n", pNtk->pName );
-    fprintf( pFile, "This file was produced by ABC on %s\n", Extra_TimeStamp() );
+    fprintf( pFile, "%s\n", pMan->pName );
+    fprintf( pFile, "This file was produced by the AIG package in ABC on %s\n", Ioa_TimeStamp() );
     fprintf( pFile, "For information about AIGER format, refer to %s\n", "http://fmv.jku.at/aiger" );
     fclose( pFile );
 }
@@ -266,7 +267,7 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols )
   SeeAlso     []
 
 ***********************************************************************/
-int Io_WriteAigerEncode( char * pBuffer, int Pos, unsigned x )
+int Ioa_WriteAigerEncode( char * pBuffer, int Pos, unsigned x )
 {
     unsigned char ch;
     while (x & ~0x7f)

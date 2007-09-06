@@ -46,7 +46,7 @@ void Aig_ManOrderStart( Aig_Man_t * p )
     assert( Aig_ManBufNum(p) == 0 );
     // allocate order datastructure
     assert( p->pOrderData == NULL );
-    p->nOrderAlloc = 2 * Aig_ManObjIdMax(p);
+    p->nOrderAlloc = 2 * Aig_ManObjNumMax(p);
     if ( p->nOrderAlloc < (1<<12) )
         p->nOrderAlloc = (1<<12);
     p->pOrderData = ALLOC( unsigned, 2 * p->nOrderAlloc );

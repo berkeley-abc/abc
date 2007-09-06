@@ -67,6 +67,7 @@ Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fRegisters )
     }
     // create the manager
     pMan = Aig_ManStart( Abc_NtkNodeNum(pNtk) + 100 );
+    pMan->pName = Extra_UtilStrsav( pNtk->pName );
     // save the number of registers
     if ( fRegisters )
         pMan->nRegs = Abc_NtkLatchNum(pNtk);
@@ -250,6 +251,7 @@ Abc_Ntk_t * Abc_NtkFromDarChoices( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
     Aig_ManConst1(pMan)->pData = Abc_AigConst1(pNtkNew);
     Aig_ManForEachPi( pMan, pObj, i )
         pObj->pData = Abc_NtkCi(pNtkNew, i);
+
     // rebuild the AIG
     vNodes = Aig_ManDfsChoices( pMan );
     Vec_PtrForEachEntry( vNodes, pObj, i )
@@ -265,21 +267,8 @@ Abc_Ntk_t * Abc_NtkFromDarChoices( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
             pAbcRepr->pData = pAbcObj;
         }
     }
-printf( "Total = %d.  Collected = %d.\n", Aig_ManNodeNum(pMan), Vec_PtrSize(vNodes) );
+//printf( "Total = %d.  Collected = %d.\n", Aig_ManNodeNum(pMan), Vec_PtrSize(vNodes) );
     Vec_PtrFree( vNodes );
-/*
-    {
-        Abc_Obj_t * pNode;
-        int k, Counter = 0;
-        Abc_NtkForEachNode( pNtkNew, pNode, k )
-            if ( pNode->pData != 0 )
-            {
-                int x = 0;
-                Counter++;
-            }
-        printf( "Choices = %d.\n", Counter );
-    }
-*/
     // connect the PO nodes
     Aig_ManForEachPo( pMan, pObj, i )
         Abc_ObjAddFanin( Abc_NtkCo(pNtkNew, i), (Abc_Obj_t *)Aig_ObjChild0Copy(pObj) );
@@ -496,11 +485,11 @@ Abc_Ntk_t * Abc_NtkDarFraig( Abc_Ntk_t * pNtk, int nConfLimit, int fDoSparse, in
         return NULL;
     Fra_ParamsDefault( pPars );
     pPars->nBTLimitNode = nConfLimit;
-    pPars->fVerbose     = fVerbose;
-    pPars->fProve       = fProve;
+    pPars->fChoicing    = fChoicing;
     pPars->fDoSparse    = fDoSparse;
     pPars->fSpeculate   = fSpeculate;
-    pPars->fChoicing    = fChoicing;
+    pPars->fProve       = fProve;
+    pPars->fVerbose     = fVerbose;
     pMan = Fra_FraigPerform( pTemp = pMan, pPars );
     if ( fChoicing )
         pNtkAig = Abc_NtkFromDarChoices( pNtk, pMan );
@@ -631,7 +620,7 @@ clk = clock();
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkDCompress2( Abc_Ntk_t * pNtk, int fBalance, int fUpdateLevel, int fVerbose )
 {
-    Aig_Man_t * pMan;//, * pTemp;
+    Aig_Man_t * pMan, * pTemp;
     Abc_Ntk_t * pNtkAig;
     int clk;
     assert( Abc_NtkIsStrash(pNtk) );
@@ -641,8 +630,8 @@ Abc_Ntk_t * Abc_NtkDCompress2( Abc_Ntk_t * pNtk, int fBalance, int fUpdateLevel,
 //    Aig_ManPrintStats( pMan );
 
 clk = clock();
-    pMan = Dar_ManCompress2( pMan, fBalance, fUpdateLevel, fVerbose ); 
-//    Aig_ManStop( pTemp );
+    pMan = Dar_ManCompress2( pTemp = pMan, fBalance, fUpdateLevel, fVerbose ); 
+    Aig_ManStop( pTemp );
 //PRT( "time", clock() - clk );
 
 //    Aig_ManPrintStats( pMan );
@@ -662,9 +651,35 @@ clk = clock();
   SeeAlso     []
 
 ***********************************************************************/
+Abc_Ntk_t * Abc_NtkDChoice( Abc_Ntk_t * pNtk, int fBalance, int fUpdateLevel, int fVerbose )
+{
+    Aig_Man_t * pMan, * pTemp;
+    Abc_Ntk_t * pNtkAig;
+    assert( Abc_NtkIsStrash(pNtk) );
+    pMan = Abc_NtkToDar( pNtk, 0 );
+    if ( pMan == NULL )
+        return NULL;
+    pMan = Dar_ManChoice( pTemp = pMan, fBalance, fUpdateLevel, fVerbose );
+    Aig_ManStop( pTemp );
+    pNtkAig = Abc_NtkFromDarChoices( pNtk, pMan );
+    Aig_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Abc_Ntk_t * Abc_NtkDrwsat( Abc_Ntk_t * pNtk, int fBalance, int fVerbose )
 {
-    Aig_Man_t * pMan;//, * pTemp;
+    Aig_Man_t * pMan, * pTemp;
     Abc_Ntk_t * pNtkAig;
     int clk;
     assert( Abc_NtkIsStrash(pNtk) );
@@ -674,8 +689,8 @@ Abc_Ntk_t * Abc_NtkDrwsat( Abc_Ntk_t * pNtk, int fBalance, int fVerbose )
 //    Aig_ManPrintStats( pMan );
 
 clk = clock();
-    pMan = Dar_ManRwsat( pMan, fBalance, fVerbose ); 
-//    Aig_ManStop( pTemp );
+    pMan = Dar_ManRwsat( pTemp = pMan, fBalance, fVerbose ); 
+    Aig_ManStop( pTemp );
 //PRT( "time", clock() - clk );
 
 //    Aig_ManPrintStats( pMan );
@@ -1118,8 +1133,10 @@ Abc_Ntk_t * Abc_NtkDarLatchSweep( Abc_Ntk_t * pNtk, int fLatchSweep, int fVerbos
     Aig_ManSeqCleanup( pMan );
     if ( fLatchSweep )
     {
-        pMan = Aig_ManReduceLaches( pMan, fVerbose );
-        pMan = Aig_ManConstReduce( pMan, fVerbose );
+        if ( pMan->nRegs )
+            pMan = Aig_ManReduceLaches( pMan, fVerbose );
+        if ( pMan->nRegs )
+            pMan = Aig_ManConstReduce( pMan, fVerbose );
     }
     pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
     Aig_ManStop( pMan );

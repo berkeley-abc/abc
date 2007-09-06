@@ -140,7 +140,7 @@ clkV = clock() - clkV;
             printf( "AIG = %6d  ", Abc_NtkNodeNum(pNtkSyn) );
             Abc_NtkVectorPrintVars( pNtk, vPiValues, nPars );
             printf( "  " );
-            PRTn( "Syn", clkS );
+//            PRTn( "Syn", clkS );
             PRT( "Ver", clkV );
         }
     }

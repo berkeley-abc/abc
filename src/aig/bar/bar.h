@@ -1,10 +1,10 @@
 /**CFile****************************************************************
 
-  FileName    [vec.h]
+  FileName    [bar.h]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Resizable arrays.]
+  PackageName [Progress bar.]
 
   Synopsis    [External declarations.]
 
@@ -14,12 +14,12 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: vec.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: bar.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
  
-#ifndef __VEC_H__
-#define __VEC_H__
+#ifndef __BAR_H__
+#define __BAR_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,62 +33,34 @@ extern "C" {
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-// this include should be the first one in the list
-// it is used to catch memory leaks on Windows
-#include "leaks.h"       
+////////////////////////////////////////////////////////////////////////
+///                         PARAMETERS                               ///
+////////////////////////////////////////////////////////////////////////
+
+#define BAR_PROGRESS_USE   1
+
+////////////////////////////////////////////////////////////////////////
+///                         BASIC TYPES                              ///
+////////////////////////////////////////////////////////////////////////
+ 
+typedef struct Bar_Progress_t_ Bar_Progress_t;
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifndef ABS
-#define ABS(a)            ((a) < 0 ? -(a) : (a))
-#endif
-
-#ifndef MAX
-#define MAX(a,b)        ((a) > (b) ? (a) : (b))
-#endif
-
-#ifndef MIN
-#define MIN(a,b)        ((a) < (b) ? (a) : (b))
-#endif
-
-#ifndef ALLOC
-#define ALLOC(type, num)     ((type *) malloc(sizeof(type) * (num)))
-#endif
-
-#ifndef FREE
-#define FREE(obj)             ((obj) ? (free((char *) (obj)), (obj) = 0) : 0)
-#endif
-
-#ifndef REALLOC
-#define REALLOC(type, obj, num)    \
-        ((obj) ? ((type *) realloc((char *)(obj), sizeof(type) * (num))) : \
-         ((type *) malloc(sizeof(type) * (num))))
-#endif
-
-#ifndef PRT
-#define PRT(a,t)  printf("%s = ", (a)); printf("%6.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC))
-#endif
-
-#include "vecInt.h"
-#include "vecFlt.h"
-#include "vecStr.h"
-#include "vecPtr.h"
-#include "vecVec.h"
-#include "vecAtt.h"
-
-////////////////////////////////////////////////////////////////////////
-///                         PARAMETERS                               ///
-////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////
-///                         BASIC TYPES                              ///
-////////////////////////////////////////////////////////////////////////
-
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/*=== bar.c ==========================================================*/
+extern Bar_Progress_t *  Bar_ProgressStart( FILE * pFile, int nItemsTotal );
+extern void              Bar_ProgressStop( Bar_Progress_t * p );
+extern void              Bar_ProgressUpdate_int( Bar_Progress_t * p, int nItemsCur, char * pString );
+
+static inline void       Bar_ProgressUpdate( Bar_Progress_t * p, int nItemsCur, char * pString ) {  
+    if ( BAR_PROGRESS_USE && p && (nItemsCur < *((int*)p)) ) return; Bar_ProgressUpdate_int(p, nItemsCur, pString); }
+
 
 #ifdef __cplusplus
 }

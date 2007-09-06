@@ -1,10 +1,10 @@
 /**CFile****************************************************************
 
-  FileName    [vec.h]
+  FileName    [ioa.h]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Resizable arrays.]
+  PackageName [AIG package.]
 
   Synopsis    [External declarations.]
 
@@ -12,71 +12,32 @@
   
   Affiliation [UC Berkeley]
 
-  Date        [Ver. 1.0. Started - June 20, 2005.]
+  Date        [Ver. 1.0. Started - April 28, 2007.]
 
-  Revision    [$Id: vec.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: ioa.h,v 1.00 2007/04/28 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
- 
-#ifndef __VEC_H__
-#define __VEC_H__
+
+#ifndef __IOA_H__
+#define __IOA_H__
 
 #ifdef __cplusplus
 extern "C" {
-#endif
-
-#ifdef _WIN32
-#define inline __inline // compatible with MS VS 6.0
-#endif
+#endif 
 
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-// this include should be the first one in the list
-// it is used to catch memory leaks on Windows
-#include "leaks.h"       
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+#include <time.h>
 
-////////////////////////////////////////////////////////////////////////
-///                      MACRO DEFINITIONS                           ///
-////////////////////////////////////////////////////////////////////////
-
-#ifndef ABS
-#define ABS(a)            ((a) < 0 ? -(a) : (a))
-#endif
-
-#ifndef MAX
-#define MAX(a,b)        ((a) > (b) ? (a) : (b))
-#endif
-
-#ifndef MIN
-#define MIN(a,b)        ((a) < (b) ? (a) : (b))
-#endif
-
-#ifndef ALLOC
-#define ALLOC(type, num)     ((type *) malloc(sizeof(type) * (num)))
-#endif
-
-#ifndef FREE
-#define FREE(obj)             ((obj) ? (free((char *) (obj)), (obj) = 0) : 0)
-#endif
-
-#ifndef REALLOC
-#define REALLOC(type, obj, num)    \
-        ((obj) ? ((type *) realloc((char *)(obj), sizeof(type) * (num))) : \
-         ((type *) malloc(sizeof(type) * (num))))
-#endif
-
-#ifndef PRT
-#define PRT(a,t)  printf("%s = ", (a)); printf("%6.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC))
-#endif
-
-#include "vecInt.h"
-#include "vecFlt.h"
-#include "vecStr.h"
-#include "vecPtr.h"
-#include "vecVec.h"
-#include "vecAtt.h"
+#include "vec.h"
+#include "bar.h"
+#include "aig.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -87,8 +48,25 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
+///                      MACRO DEFINITIONS                           ///
+////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////
+///                             ITERATORS                            ///
+////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/*=== ioaReadAig.c ========================================================*/
+extern Aig_Man_t *    Ioa_ReadAiger( char * pFileName, int fCheck );
+/*=== ioaWriteAig.c =======================================================*/
+extern void           Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols );
+/*=== ioaUtil.c =======================================================*/
+extern int            Ioa_FileSize( char * pFileName );
+extern char *         Ioa_FileNameGeneric( char * FileName );
+extern char *         Ioa_TimeStamp();
 
 #ifdef __cplusplus
 }
