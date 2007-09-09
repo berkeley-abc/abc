@@ -48,6 +48,7 @@ struct Lpk_Par_t_
     int               fSatur;        // iterate till saturation
     int               fZeroCost;     // accept zero-cost replacements
     int               fFirst;        // use root node and first cut only
+    int               fOldAlgo;      // use old algorithm
     int               fVerbose;      // the verbosiness flag
     int               fVeryVerbose;  // additional verbose info printout
     // internal parameters

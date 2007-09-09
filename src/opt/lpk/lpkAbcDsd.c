@@ -41,27 +41,37 @@
   SeeAlso     []
 
 ***********************************************************************/
-int Lpk_FunComputeMinSuppSizeVar( Lpk_Fun_t * p, unsigned ** ppTruths, int nTruths, unsigned ** ppCofs )
+int Lpk_FunComputeMinSuppSizeVar( Lpk_Fun_t * p, unsigned ** ppTruths, int nTruths, unsigned ** ppCofs, unsigned uNonDecSupp )
 {
     int i, Var, VarBest, nSuppSize0, nSuppSize1, nSuppTotalMin, nSuppTotalCur, nSuppMaxMin, nSuppMaxCur;
     assert( nTruths > 0 );
     VarBest = -1;
     Lpk_SuppForEachVar( p->uSupp, Var )
     {
+        if ( (uNonDecSupp & (1 << Var)) == 0 )
+            continue;
         nSuppMaxCur = 0;
         nSuppTotalCur = 0;
         for ( i = 0; i < nTruths; i++ )
         {
-            Kit_TruthCofactor0New( ppCofs[2*i+0], ppTruths[i], p->nVars, Var );
-            Kit_TruthCofactor1New( ppCofs[2*i+1], ppTruths[i], p->nVars, Var );
-            nSuppSize0 = Kit_TruthSupportSize( ppCofs[2*i+0], p->nVars );
-            nSuppSize1 = Kit_TruthSupportSize( ppCofs[2*i+1], p->nVars );
+            if ( nTruths == 1 )
+            {
+                nSuppSize0 = Kit_WordCountOnes( p->puSupps[2*Var+0] );
+                nSuppSize1 = Kit_WordCountOnes( p->puSupps[2*Var+1] );
+            }
+            else
+            {
+                Kit_TruthCofactor0New( ppCofs[2*i+0], ppTruths[i], p->nVars, Var );
+                Kit_TruthCofactor1New( ppCofs[2*i+1], ppTruths[i], p->nVars, Var );
+                nSuppSize0 = Kit_TruthSupportSize( ppCofs[2*i+0], p->nVars );
+                nSuppSize1 = Kit_TruthSupportSize( ppCofs[2*i+1], p->nVars );
+            }        
             nSuppMaxCur = ABC_MAX( nSuppMaxCur, nSuppSize0 );
             nSuppMaxCur = ABC_MAX( nSuppMaxCur, nSuppSize1 );
             nSuppTotalCur += nSuppSize0 + nSuppSize1;
         }
-        if ( VarBest == -1 || nSuppTotalMin > nSuppTotalCur ||
-             (nSuppTotalMin == nSuppTotalCur && nSuppMaxMin > nSuppMaxCur) )
+        if ( VarBest == -1 || nSuppMaxMin > nSuppMaxCur ||
+             (nSuppMaxMin == nSuppMaxCur && nSuppTotalMin > nSuppTotalCur) )
         {
             VarBest = Var;
             nSuppMaxMin = nSuppMaxCur;
@@ -175,6 +185,49 @@ Vec_Int_t * Lpk_ComputeBoundSets( Kit_DsdNtk_t * p, int nSizeMax )
 
 /**Function*************************************************************
 
+  Synopsis    [Prints the sets of subsets.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static void Lpk_PrintSetOne( int uSupport )
+{
+    unsigned k;
+    for ( k = 0; k < 16; k++ )
+        if ( uSupport & (1<<k) )
+            printf( "%c", 'a'+k );
+    printf( " " );
+}
+/**Function*************************************************************
+
+  Synopsis    [Prints the sets of subsets.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static void Lpk_PrintSets( Vec_Int_t * vSets )
+{
+    unsigned uSupport;
+    int Number, i;
+    printf( "Subsets(%d): ", Vec_IntSize(vSets) );
+    Vec_IntForEachEntry( vSets, Number, i )
+    {
+        uSupport = Number;
+        Lpk_PrintSetOne( uSupport );
+    }
+    printf( "\n" );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Merges two bound sets.]
 
   Description []
@@ -196,7 +249,7 @@ Vec_Int_t * Lpk_MergeBoundSets( Vec_Int_t * vSets0, Vec_Int_t * vSets1, int nSiz
         Entry = Entry0 | Entry1;
         if ( (Entry & (Entry >> 16)) )
             continue;
-        if ( Kit_WordCountOnes(Entry) <= nSizeMax )
+        if ( Kit_WordCountOnes(Entry & 0xffff) <= nSizeMax )
             Vec_IntPush( vSets, Entry );
     }
     return vSets;
@@ -204,68 +257,6 @@ Vec_Int_t * Lpk_MergeBoundSets( Vec_Int_t * vSets0, Vec_Int_t * vSets1, int nSiz
 
 /**Function*************************************************************
 
-  Synopsis    [Allocates truth tables for cofactors.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Lpk_FunAllocTruthTables( Lpk_Fun_t * p, int nCofDepth, unsigned * ppTruths[5][16] )
-{
-    int i;
-    assert( nCofDepth <= 4 );
-    ppTruths[0][0] = Lpk_FunTruth( p, 0 );
-    if ( nCofDepth >= 1 )
-    {
-        ppTruths[1][0] = Lpk_FunTruth( p, 1 );
-        ppTruths[1][1] = Lpk_FunTruth( p, 2 );
-    }
-    if ( nCofDepth >= 2 )
-    {
-        ppTruths[2][0] = ALLOC( unsigned, Kit_TruthWordNum(p->nVars) * 4 );
-        for ( i = 1; i < 4; i++ )
-            ppTruths[2][i] = ppTruths[2][0] + Kit_TruthWordNum(p->nVars) * i;
-    }
-    if ( nCofDepth >= 3 )
-    {
-        ppTruths[3][0] = ALLOC( unsigned, Kit_TruthWordNum(p->nVars) * 8 );
-        for ( i = 1; i < 8; i++ )
-            ppTruths[3][i] = ppTruths[3][0] + Kit_TruthWordNum(p->nVars) * i;
-    }
-    if ( nCofDepth >= 4 )
-    {
-        ppTruths[4][0] = ALLOC( unsigned, Kit_TruthWordNum(p->nVars) * 16 );
-        for ( i = 1; i < 16; i++ )
-            ppTruths[4][i] = ppTruths[4][0] + Kit_TruthWordNum(p->nVars) * i;
-    }
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Allocates truth tables for cofactors.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Lpk_FunFreeTruthTables( Lpk_Fun_t * p, int nCofDepth, unsigned * ppTruths[5][16] )
-{
-    if ( nCofDepth >= 2 )
-        free( ppTruths[2][0] );
-    if ( nCofDepth >= 3 )
-        free( ppTruths[3][0] );
-    if ( nCofDepth >= 4 )
-        free( ppTruths[4][0] );
-}
-
-/**Function*************************************************************
-
   Synopsis    [Performs DSD-based decomposition of the function.]
 
   Description []
@@ -275,58 +266,84 @@ void Lpk_FunFreeTruthTables( Lpk_Fun_t * p, int nCofDepth, unsigned * ppTruths[5
   SeeAlso     []
 
 ***********************************************************************/
-void Lpk_DsdAnalizeOne( Lpk_Fun_t * p, int nCofDepth, Lpk_Res_t * pRes )
+void Lpk_FunCompareBoundSets( Lpk_Fun_t * p, Vec_Int_t * vBSets, int nCofDepth, unsigned uNonDecSupp, unsigned uLateArrSupp, Lpk_Res_t * pRes )
 {
-    unsigned * ppTruths[5][16];
-    Vec_Int_t * pvBSets[4][8];
-    Kit_DsdNtk_t * pNtkDec, * pTemp;
+    int fVerbose = 0;
     unsigned uBoundSet;
-    int i, k, nVarsBS, nVarsRem, Delay, Area;
-    assert( nCofDepth >= 0 && nCofDepth < 4 );
-    assert( nCofDepth < (int)p->nLutK - 1 );
-    Lpk_FunAllocTruthTables( p, nCofDepth, ppTruths );
-    // find the best cofactors
-    memset( pRes, 0, sizeof(Lpk_Res_t) );
-    pRes->nCofVars = nCofDepth;
-    for ( i = 0; i < nCofDepth; i++ )
-        pRes->pCofVars[i] = Lpk_FunComputeMinSuppSizeVar( p, ppTruths[i], 1<<i, ppTruths[i+1] );
-    // derive decomposed networks
-    for ( i = 0; i < (1<<nCofDepth); i++ )
-    {
-        pNtkDec = Kit_DsdDecompose( ppTruths[nCofDepth][i], p->nVars );
-        pNtkDec = Kit_DsdExpand( pTemp = pNtkDec );      Kit_DsdNtkFree( pTemp );
-        pvBSets[nCofDepth][i] = Lpk_ComputeBoundSets( pNtkDec, p->nLutK - nCofDepth );
-        Kit_DsdNtkFree( pNtkDec );
-    }
-    // derive the set of feasible boundsets
-    for ( i = nCofDepth - 1; i >= 0; i-- )
-        for ( k = 0; k < (1<<i); k++ )
-            pvBSets[i][k] = Lpk_MergeBoundSets( pvBSets[i+1][2*k+0], pvBSets[i+1][2*k+1], p->nLutK - nCofDepth );
+    int i, nVarsBS, nVarsRem, Delay, Area;
+
     // compare the resulting boundsets
-    Vec_IntForEachEntry( pvBSets[0][0], uBoundSet, i )
+    memset( pRes, 0, sizeof(Lpk_Res_t) );
+    Vec_IntForEachEntry( vBSets, uBoundSet, i )
     {
-        if ( uBoundSet == 0 )
+        if ( (uBoundSet & 0xFFFF) == 0 ) // skip empty boundset
             continue;
+        if ( (uBoundSet & uNonDecSupp) == 0 ) // skip those boundsets that are not in the domain of interest
+            continue;
+        if ( (uBoundSet & uLateArrSupp) ) // skip those boundsets that are late arriving
+            continue;
+if ( fVerbose )
+Lpk_PrintSetOne( uBoundSet );
         assert( (uBoundSet & (uBoundSet >> 16)) == 0 );
         nVarsBS = Kit_WordCountOnes( uBoundSet & 0xFFFF );
+        if ( nVarsBS == 1 )
+            continue;
         assert( nVarsBS <= (int)p->nLutK - nCofDepth );
-        nVarsRem = p->nVars - nVarsBS + nCofDepth + 1;
+        nVarsRem = p->nVars - nVarsBS + 1;
         Area = 1 + Lpk_LutNumLuts( nVarsRem, p->nLutK );
         Delay = 1 + Lpk_SuppDelay( uBoundSet & 0xFFFF, p->pDelays );
+if ( fVerbose )
+printf( "area = %d limit = %d  delay = %d limit = %d\n", Area, (int)p->nAreaLim, Delay, (int)p->nDelayLim );
         if ( Area > (int)p->nAreaLim || Delay > (int)p->nDelayLim )
             continue;
-        if ( pRes->BSVars == 0 || pRes->DelayEst > Delay || pRes->DelayEst == Delay && pRes->nSuppSizeL > nVarsRem )
+        if ( pRes->BSVars == 0 || pRes->nSuppSizeL > nVarsRem || (pRes->nSuppSizeL == nVarsRem && pRes->DelayEst > Delay) )
         {
             pRes->nBSVars = nVarsBS;
-            pRes->BSVars = uBoundSet;
-            pRes->nSuppSizeS = nVarsBS;
+            pRes->BSVars = (uBoundSet & 0xFFFF);
+            pRes->nSuppSizeS = nVarsBS + nCofDepth;
             pRes->nSuppSizeL = nVarsRem;
             pRes->DelayEst = Delay;
             pRes->AreaEst = Area;
         }
     }
-    // free cofactor storage
-    Lpk_FunFreeTruthTables( p, nCofDepth, ppTruths );
+if ( fVerbose )
+{
+if ( pRes->BSVars )
+{
+printf( "Found bound set " );
+Lpk_PrintSetOne( pRes->BSVars );
+printf( "\n" );
+}
+else
+printf( "Did not find boundsets.\n" );
+printf( "\n" );
+}
+    if ( pRes->BSVars )
+    {
+        assert( pRes->DelayEst <= (int)p->nDelayLim );
+        assert( pRes->AreaEst <= (int)p->nAreaLim );
+    }
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Finds late arriving inputs, which cannot be in the bound set.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned Lpk_DsdLateArriving( Lpk_Fun_t * p )
+{
+    unsigned i, uLateArrSupp = 0;
+    Lpk_SuppForEachVar( p->uSupp, i )
+        if ( p->pDelays[i] > (int)p->nDelayLim - 2 )
+            uLateArrSupp |= (1 << i);  
+    return uLateArrSupp;
 }
 
 /**Function*************************************************************
@@ -340,47 +357,185 @@ void Lpk_DsdAnalizeOne( Lpk_Fun_t * p, int nCofDepth, Lpk_Res_t * pRes )
   SeeAlso     []
 
 ***********************************************************************/
-Lpk_Res_t * Lpk_DsdAnalize( Lpk_Fun_t * p )
+int Lpk_DsdAnalizeOne( Lpk_Fun_t * p, unsigned * ppTruths[5][16], Kit_DsdNtk_t * pNtks[], char pCofVars[], int nCofDepth, Lpk_Res_t * pRes )
 {
+    int fVerbose = 0;
+    Vec_Int_t * pvBSets[4][8];
+    unsigned uNonDecSupp, uLateArrSupp;
+    int i, k, nNonDecSize, nNonDecSizeMax;
+    assert( nCofDepth >= 1 && nCofDepth <= 3 );
+    assert( nCofDepth < (int)p->nLutK - 1 );
+    assert( p->fSupports );
+
+    // find the support of the largest non-DSD block
+    nNonDecSizeMax = 0;
+    uNonDecSupp = p->uSupp;
+    for ( i = 0; i < (1<<(nCofDepth-1)); i++ )
+    {
+        nNonDecSize = Kit_DsdNonDsdSizeMax( pNtks[i] );
+        if ( nNonDecSizeMax < nNonDecSize )
+        {
+            nNonDecSizeMax = nNonDecSize;
+            uNonDecSupp = Kit_DsdNonDsdSupports( pNtks[i] );
+        }
+        else if ( nNonDecSizeMax == nNonDecSize )
+            uNonDecSupp |= Kit_DsdNonDsdSupports( pNtks[i] );
+    }
+
+    // remove those variables that cannot be used because of delay constraints
+    // if variables arrival time is more than p->DelayLim - 2, it cannot be used
+    uLateArrSupp = Lpk_DsdLateArriving( p );
+    if ( (uNonDecSupp & ~uLateArrSupp) == 0 )
+    {
+        memset( pRes, 0, sizeof(Lpk_Res_t) );
+        return 0;
+    }
+
+    // find the next cofactoring variable
+    pCofVars[nCofDepth-1] = Lpk_FunComputeMinSuppSizeVar( p, ppTruths[nCofDepth-1], 1<<(nCofDepth-1), ppTruths[nCofDepth], uNonDecSupp & ~uLateArrSupp );
+
+    // derive decomposed networks
+    for ( i = 0; i < (1<<nCofDepth); i++ )
+    {
+        if ( pNtks[i] )
+            Kit_DsdNtkFree( pNtks[i] );
+        pNtks[i] = Kit_DsdDecomposeExpand( ppTruths[nCofDepth][i], p->nVars );
+if ( fVerbose )
+Kit_DsdPrint( stdout, pNtks[i] );
+        pvBSets[nCofDepth][i] = Lpk_ComputeBoundSets( pNtks[i], p->nLutK - nCofDepth ); // try restricting to those in uNonDecSupp!!!
+    }
+
+    // derive the set of feasible boundsets
+    for ( i = nCofDepth - 1; i >= 0; i-- )
+        for ( k = 0; k < (1<<i); k++ )
+            pvBSets[i][k] = Lpk_MergeBoundSets( pvBSets[i+1][2*k+0], pvBSets[i+1][2*k+1], p->nLutK - nCofDepth );
+    // compare bound-sets
+    Lpk_FunCompareBoundSets( p, pvBSets[0][0], nCofDepth, uNonDecSupp, uLateArrSupp, pRes );
+    // free the bound sets
+    for ( i = nCofDepth; i >= 0; i-- )
+        for ( k = 0; k < (1<<i); k++ )
+            Vec_IntFree( pvBSets[i][k] );
+ 
+    // copy the cofactoring variables
+    if ( pRes->BSVars )
+    {
+        pRes->nCofVars = nCofDepth;
+        for ( i = 0; i < nCofDepth; i++ )
+            pRes->pCofVars[i] = pCofVars[i];
+    }
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs DSD-based decomposition of the function.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Lpk_Res_t * Lpk_DsdAnalize( Lpk_Man_t * pMan, Lpk_Fun_t * p, int nShared )
+{ 
     static Lpk_Res_t Res0, * pRes0 = &Res0;
     static Lpk_Res_t Res1, * pRes1 = &Res1;
     static Lpk_Res_t Res2, * pRes2 = &Res2;
     static Lpk_Res_t Res3, * pRes3 = &Res3;
-    memset( pRes0, 0, sizeof(Lpk_Res_t) );
-    memset( pRes1, 0, sizeof(Lpk_Res_t) );
-    memset( pRes2, 0, sizeof(Lpk_Res_t) );
-    memset( pRes3, 0, sizeof(Lpk_Res_t) );
+    int fUseBackLooking = 1;
+    Lpk_Res_t * pRes = NULL;
+    Vec_Int_t * vBSets;
+    Kit_DsdNtk_t * pNtks[8] = {NULL};
+    char pCofVars[5];
+    int i;
+
+    assert( p->nLutK >= 3 );
+    assert( nShared >= 0 && nShared <= 3 );
     assert( p->uSupp == Kit_BitMask(p->nVars) );
 
     // try decomposition without cofactoring
-    Lpk_DsdAnalizeOne( p, 0, pRes0 );
-    if ( pRes0->nBSVars == (int)p->nLutK && pRes0->AreaEst <= (int)p->nAreaLim && pRes0->DelayEst <= (int)p->nDelayLim )
-        return pRes0;
+    pNtks[0] = Kit_DsdDecomposeExpand( Lpk_FunTruth( p, 0 ), p->nVars );
+    if ( pMan->pPars->fVerbose )
+        pMan->nBlocks[ Kit_DsdNonDsdSizeMax(pNtks[0]) ]++;
+    vBSets = Lpk_ComputeBoundSets( pNtks[0], p->nLutK );
+    Lpk_FunCompareBoundSets( p, vBSets, 0, 0xFFFF, Lpk_DsdLateArriving(p), pRes0 );
+    Vec_IntFree( vBSets );
+
+    // check the result
+    if ( pRes0->nBSVars == (int)p->nLutK )
+        { pRes = pRes0; goto finish; }
+    if ( pRes0->nBSVars == (int)p->nLutK - 1 )
+        { pRes = pRes0; goto finish; }
+    if ( nShared == 0 )
+        goto finish;
+
+    // prepare storage
+    Kit_TruthCopy( pMan->ppTruths[0][0], Lpk_FunTruth( p, 0 ), p->nVars );
 
     // cofactor 1 time
-    if ( p->nLutK >= 3 ) 
-        Lpk_DsdAnalizeOne( p, 1, pRes1 );
+    if ( !Lpk_DsdAnalizeOne( p, pMan->ppTruths, pNtks, pCofVars, 1, pRes1 ) )
+        goto finish;
     assert( pRes1->nBSVars <= (int)p->nLutK - 1 );
-    if ( pRes1->nBSVars == (int)p->nLutK - 1 && pRes1->AreaEst <= (int)p->nAreaLim && pRes1->DelayEst <= (int)p->nDelayLim )
-        return pRes1;
+    if ( pRes1->nBSVars == (int)p->nLutK - 1 )
+        { pRes = pRes1; goto finish; }
+    if ( pRes0->nBSVars == (int)p->nLutK - 2 )
+        { pRes = pRes0; goto finish; }
+    if ( pRes1->nBSVars == (int)p->nLutK - 2 )
+        { pRes = pRes1; goto finish; }
+    if ( nShared == 1 )
+        goto finish;
 
     // cofactor 2 times
     if ( p->nLutK >= 4 ) 
-        Lpk_DsdAnalizeOne( p, 2, pRes2 );
-    assert( pRes2->nBSVars <= (int)p->nLutK - 2 );
-    if ( pRes2->nBSVars == (int)p->nLutK - 2 && pRes2->AreaEst <= (int)p->nAreaLim && pRes2->DelayEst <= (int)p->nDelayLim )
-        return pRes2;
+    {
+        if ( !Lpk_DsdAnalizeOne( p, pMan->ppTruths, pNtks, pCofVars, 2, pRes2 ) )
+            goto finish;
+        assert( pRes2->nBSVars <= (int)p->nLutK - 2 );
+        if ( pRes2->nBSVars == (int)p->nLutK - 2 )
+            { pRes = pRes2; goto finish; }
+        if ( fUseBackLooking )
+        {
+            if ( pRes0->nBSVars == (int)p->nLutK - 3 )
+                { pRes = pRes0; goto finish; }
+            if ( pRes1->nBSVars == (int)p->nLutK - 3 )
+                { pRes = pRes1; goto finish; }
+        }
+        if ( pRes2->nBSVars == (int)p->nLutK - 3 )
+            { pRes = pRes2; goto finish; }
+        if ( nShared == 2 )
+            goto finish;
+        assert( nShared == 3 );
+    }
 
     // cofactor 3 times
     if ( p->nLutK >= 5 ) 
-        Lpk_DsdAnalizeOne( p, 3, pRes3 );
-    assert( pRes3->nBSVars <= (int)p->nLutK - 3 );
-    if ( pRes3->nBSVars == (int)p->nLutK - 3 && pRes3->AreaEst <= (int)p->nAreaLim && pRes3->DelayEst <= (int)p->nDelayLim )
-        return pRes3;
+    {
+        if ( !Lpk_DsdAnalizeOne( p, pMan->ppTruths, pNtks, pCofVars, 3, pRes3 ) )
+            goto finish;
+        assert( pRes3->nBSVars <= (int)p->nLutK - 3 );
+        if ( pRes3->nBSVars == (int)p->nLutK - 3 )
+            { pRes = pRes3; goto finish; }
+        if ( fUseBackLooking )
+        {
+            if ( pRes0->nBSVars == (int)p->nLutK - 4 )
+                { pRes = pRes0; goto finish; }
+            if ( pRes1->nBSVars == (int)p->nLutK - 4 )
+                { pRes = pRes1; goto finish; }
+            if ( pRes2->nBSVars == (int)p->nLutK - 4 )
+                { pRes = pRes2; goto finish; }
+        }
+        if ( pRes3->nBSVars == (int)p->nLutK - 4 )
+            { pRes = pRes3; goto finish; }
+    }
 
+finish:
+    // free the networks
+    for ( i = 0; i < (1<<nShared); i++ )
+        if ( pNtks[i] )
+            Kit_DsdNtkFree( pNtks[i] );
     // choose the best under these conditions
-
-    return NULL;
+    return pRes;
 }
 
 /**Function*************************************************************
@@ -394,62 +549,50 @@ Lpk_Res_t * Lpk_DsdAnalize( Lpk_Fun_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Lpk_Fun_t * Lpk_DsdSplit( Lpk_Fun_t * p, char * pCofVars, int nCofVars, unsigned uBoundSet )
+Lpk_Fun_t * Lpk_DsdSplit( Lpk_Man_t * pMan, Lpk_Fun_t * p, char * pCofVars, int nCofVars, unsigned uBoundSet )
 {
     Lpk_Fun_t * pNew;
-    Kit_DsdMan_t * pDsdMan;
-    Kit_DsdNtk_t * pNtkDec, * pTemp;
-    unsigned * pTruth  = Lpk_FunTruth( p, 0 );
-    unsigned * pTruth0 = Lpk_FunTruth( p, 1 );
-    unsigned * pTruth1 = Lpk_FunTruth( p, 2 );
-    unsigned * ppTruths[5][16];
-    char pBSVars[5];
-    int i, k, nVars, iVacVar, nCofs;
-    // get the bound set variables
-    nVars = Lpk_SuppToVars( uBoundSet, pBSVars );
+    Kit_DsdNtk_t * pNtkDec;
+    int i, k, iVacVar, nCofs;
+    // prepare storage
+    Kit_TruthCopy( pMan->ppTruths[0][0], Lpk_FunTruth(p, 0), p->nVars );
     // get the vacuous variable
-    iVacVar = pBSVars[0];
+    iVacVar = Kit_WordFindFirstBit( uBoundSet );
     // compute the cofactors
-    Lpk_FunAllocTruthTables( p, nCofVars + 1, ppTruths );
     for ( i = 0; i < nCofVars; i++ )
         for ( k = 0; k < (1<<i); k++ )
         {
-            Kit_TruthCofactor0New( ppTruths[i+1][2*k+0], ppTruths[i][k], p->nVars, pCofVars[i] );
-            Kit_TruthCofactor1New( ppTruths[i+1][2*k+1], ppTruths[i][k], p->nVars, pCofVars[i] );
+            Kit_TruthCofactor0New( pMan->ppTruths[i+1][2*k+0], pMan->ppTruths[i][k], p->nVars, pCofVars[i] );
+            Kit_TruthCofactor1New( pMan->ppTruths[i+1][2*k+1], pMan->ppTruths[i][k], p->nVars, pCofVars[i] );
         }
     // decompose each cofactor w.r.t. the bound set
     nCofs = (1<<nCofVars);
-    pDsdMan = Kit_DsdManAlloc( p->nVars, p->nVars * 2 );
     for ( k = 0; k < nCofs; k++ )
     {
-        pNtkDec = Kit_DsdDecompose( ppTruths[nCofVars][k], p->nVars );
-        pNtkDec = Kit_DsdExpand( pTemp = pNtkDec );      Kit_DsdNtkFree( pTemp );
-        Kit_DsdTruthPartialTwo( pDsdMan, pNtkDec, uBoundSet, iVacVar, ppTruths[nCofVars+1][k], ppTruths[nCofVars+1][nCofs+k] );
+        pNtkDec = Kit_DsdDecomposeExpand( pMan->ppTruths[nCofVars][k], p->nVars );
+        Kit_DsdTruthPartialTwo( pMan->pDsdMan, pNtkDec, uBoundSet, iVacVar, pMan->ppTruths[nCofVars+1][k], pMan->ppTruths[nCofVars+1][nCofs+k] );
         Kit_DsdNtkFree( pNtkDec );
     }
-    Kit_DsdManFree( pDsdMan );
-    // compute the composition/decomposition functions (they will be in pTruth0/pTruth1)
+    // compute the composition/decomposition functions (they will be in pMan->ppTruths[1][0]/pMan->ppTruths[1][1])
     for ( i = nCofVars; i >= 1; i-- )
         for ( k = 0; k < (1<<i); k++ )
-            Kit_TruthMuxVar( ppTruths[i][k], ppTruths[i+1][2*k+0], ppTruths[i+1][2*k+1], nVars, pCofVars[i-1] );
+            Kit_TruthMuxVar( pMan->ppTruths[i][k], pMan->ppTruths[i+1][2*k+0], pMan->ppTruths[i+1][2*k+1], p->nVars, pCofVars[i-1] );
 
-    // derive the new component
-    pNew = Lpk_FunDup( p, pTruth1 );
-    // update the old component
-    Kit_TruthCopy( pTruth, pTruth0, p->nVars );
-    p->uSupp = Kit_TruthSupport( pTruth0, p->nVars );
+    // derive the new component (decomposition function)
+    pNew = Lpk_FunDup( p, pMan->ppTruths[1][1] );
+    // update the old component (composition function)
+    Kit_TruthCopy( Lpk_FunTruth(p, 0), pMan->ppTruths[1][0], p->nVars );
+    p->uSupp = Kit_TruthSupport( Lpk_FunTruth(p, 0), p->nVars );
     p->pFanins[iVacVar] = pNew->Id;
     p->pDelays[iVacVar] = Lpk_SuppDelay( pNew->uSupp, pNew->pDelays );
     // support minimize both
+    p->fSupports = 0;
     Lpk_FunSuppMinimize( p );
     Lpk_FunSuppMinimize( pNew );
     // update delay and area requirements
     pNew->nDelayLim = p->pDelays[iVacVar];
     pNew->nAreaLim = 1;
     p->nAreaLim = p->nAreaLim - 1;
-
-    // free cofactor storage
-    Lpk_FunFreeTruthTables( p, nCofVars + 1, ppTruths );
     return pNew;
 }
 

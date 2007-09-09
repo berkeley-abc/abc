@@ -36,6 +36,7 @@ extern "C" {
 #include <time.h>
 #include "vec.h"
 #include "extra.h"
+#include "cloud.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -133,6 +134,10 @@ struct Kit_DsdMan_t_
     int            nWords;          // the number of words in TTs
     Vec_Ptr_t *    vTtElems;        // elementary truth tables
     Vec_Ptr_t *    vTtNodes;        // the node truth tables
+    // BDD representation
+    CloudManager * dd;              // BDD package
+    Vec_Ptr_t *    vTtBdds;         // the node truth tables
+    Vec_Int_t *    vNodes;          // temporary array for BDD nodes
 };
 
 static inline int             Kit_DsdVar2Lit( int Var, int fCompl )  { return Var + Var + fCompl; }
@@ -431,6 +436,16 @@ static inline void Kit_TruthMux( unsigned * pOut, unsigned * pIn0, unsigned * pI
     for ( w = Kit_TruthWordNum(nVars)-1; w >= 0; w-- )
         pOut[w] = (pIn0[w] & ~pCtrl[w]) | (pIn1[w] & pCtrl[w]);
 }
+static inline void Kit_TruthMuxPhase( unsigned * pOut, unsigned * pIn0, unsigned * pIn1, unsigned * pCtrl, int nVars, int fComp0 )
+{
+    int w;
+    if ( fComp0 )
+        for ( w = Kit_TruthWordNum(nVars)-1; w >= 0; w-- )
+            pOut[w] = (~pIn0[w] & ~pCtrl[w]) | (pIn1[w] & pCtrl[w]);
+    else
+        for ( w = Kit_TruthWordNum(nVars)-1; w >= 0; w-- )
+            pOut[w] = (pIn0[w] & ~pCtrl[w]) | (pIn1[w] & pCtrl[w]);
+}
 static inline void Kit_TruthIthVar( unsigned * pTruth, int nVars, int iVar )
 {
     unsigned Masks[5] = { 0xAAAAAAAA, 0xCCCCCCCC, 0xF0F0F0F0, 0xFF00FF00, 0xFFFF0000 };
@@ -473,11 +488,18 @@ static inline void Kit_TruthIthVar( unsigned * pTruth, int nVars, int iVar )
 extern DdNode *        Kit_SopToBdd( DdManager * dd, Kit_Sop_t * cSop, int nVars );
 extern DdNode *        Kit_GraphToBdd( DdManager * dd, Kit_Graph_t * pGraph );
 extern DdNode *        Kit_TruthToBdd( DdManager * dd, unsigned * pTruth, int nVars, int fMSBonTop );
+/*=== kitCloud.c ==========================================================*/
+extern CloudNode *     Kit_TruthToCloud( CloudManager * dd, unsigned * pTruth, int nVars );
+extern unsigned *      Kit_CloudToTruth( Vec_Int_t * vNodes, int nVars, Vec_Ptr_t * vStore, int fInv );
+extern int             Kit_CreateCloud( CloudManager * dd, CloudNode * pFunc, Vec_Int_t * vNodes );
+extern int             Kit_CreateCloudFromTruth( CloudManager * dd, unsigned * pTruth, int nVars, Vec_Int_t * vNodes );
+extern unsigned *      Kit_TruthCompose( CloudManager * dd, unsigned * pTruth, int nVars, unsigned ** pInputs, int nVarsAll, Vec_Ptr_t * vStore, Vec_Int_t * vNodes );
+extern void            Kit_TruthCofSupports( Vec_Int_t * vBddDir, Vec_Int_t * vBddInv, int nVars, Vec_Int_t * vMemory, unsigned * puSupps );
 /*=== kitDsd.c ==========================================================*/
 extern Kit_DsdMan_t *  Kit_DsdManAlloc( int nVars, int nNodes );
 extern void            Kit_DsdManFree( Kit_DsdMan_t * p );
 extern Kit_DsdNtk_t *  Kit_DsdDeriveNtk( unsigned * pTruth, int nVars, int nLutSize );
-extern unsigned *      Kit_DsdTruthCompute( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk, unsigned uSupp );
+extern unsigned *      Kit_DsdTruthCompute( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk );
 extern void            Kit_DsdTruth( Kit_DsdNtk_t * pNtk, unsigned * pTruthRes );
 extern void            Kit_DsdTruthPartial( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk, unsigned * pTruthRes, unsigned uSupp );
 extern void            Kit_DsdTruthPartialTwo( Kit_DsdMan_t * p, Kit_DsdNtk_t * pNtk, unsigned uSupp, int iVar, unsigned * pTruthCo, unsigned * pTruthDec );
@@ -485,10 +507,12 @@ extern void            Kit_DsdPrint( FILE * pFile, Kit_DsdNtk_t * pNtk );
 extern void            Kit_DsdPrintExpanded( Kit_DsdNtk_t * pNtk );
 extern void            Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars );
 extern Kit_DsdNtk_t *  Kit_DsdDecompose( unsigned * pTruth, int nVars );
+extern Kit_DsdNtk_t *  Kit_DsdDecomposeExpand( unsigned * pTruth, int nVars );
 extern Kit_DsdNtk_t *  Kit_DsdDecomposeMux( unsigned * pTruth, int nVars, int nDecMux );
 extern void            Kit_DsdVerify( Kit_DsdNtk_t * pNtk, unsigned * pTruth, int nVars );
 extern void            Kit_DsdNtkFree( Kit_DsdNtk_t * pNtk );
 extern int             Kit_DsdNonDsdSizeMax( Kit_DsdNtk_t * pNtk );
+extern unsigned        Kit_DsdNonDsdSupports( Kit_DsdNtk_t * pNtk );
 extern unsigned        Kit_DsdGetSupports( Kit_DsdNtk_t * p );
 extern Kit_DsdNtk_t *  Kit_DsdExpand( Kit_DsdNtk_t * p );
 extern Kit_DsdNtk_t *  Kit_DsdShrink( Kit_DsdNtk_t * p, int pPrios[] );
@@ -548,6 +572,7 @@ extern void            Kit_TruthForallNew( unsigned * pRes, unsigned * pTruth, i
 extern void            Kit_TruthForallSet( unsigned * pRes, unsigned * pTruth, int nVars, unsigned uMask );
 extern void            Kit_TruthUniqueNew( unsigned * pRes, unsigned * pTruth, int nVars, int iVar );
 extern void            Kit_TruthMuxVar( unsigned * pOut, unsigned * pCof0, unsigned * pCof1, int nVars, int iVar );
+extern void            Kit_TruthMuxVarPhase( unsigned * pOut, unsigned * pCof0, unsigned * pCof1, int nVars, int iVar, int fCompl0 );
 extern void            Kit_TruthChangePhase( unsigned * pTruth, int nVars, int iVar );
 extern int             Kit_TruthMinCofSuppOverlap( unsigned * pTruth, int nVars, int * pVarMin );
 extern int             Kit_TruthBestCofVar( unsigned * pTruth, int nVars, unsigned * pCof0, unsigned * pCof1 );

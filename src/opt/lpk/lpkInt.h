@@ -90,12 +90,18 @@ struct Lpk_Man_t_
     int          nCalledSRed;           // the number of called to SRed
     int          pRefs[LPK_SIZE_MAX];   // fanin reference counters 
     int          pCands[LPK_SIZE_MAX];  // internal nodes pointing only to the leaves
+    Vec_Ptr_t *  vLeaves;
     // truth table representation
     Vec_Ptr_t *  vTtElems;              // elementary truth tables
     Vec_Ptr_t *  vTtNodes;              // storage for temporary truth tables of the nodes 
+    Vec_Int_t *  vMemory;
+    Vec_Int_t *  vBddDir;
+    Vec_Int_t *  vBddInv;
+    unsigned     puSupps[32];           // the supports of the cofactors
+    unsigned *   ppTruths[5][16];
     // variable sets
     Vec_Int_t *  vSets[8];
-    Kit_DsdMan_t * pDsdMan;
+    Kit_DsdMan_t* pDsdMan;
     // statistics
     int          nNodesTotal;           // total number of nodes
     int          nNodesOver;            // nodes with cuts over the limit 
@@ -104,17 +110,30 @@ struct Lpk_Man_t_
     int          nGainTotal;            // the gain in LUTs
     int          nChanges;              // the number of changed nodes
     int          nBenefited;            // the number of gainful that benefited from decomposition
+    int          nMuxes;
+    int          nDsds;
     int          nTotalNets;
     int          nTotalNets2;
+    int          nTotalNodes;
+    int          nTotalNodes2;
     // counter of non-DSD blocks
     int          nBlocks[17];
-    // rutime
+    // runtime
     int          timeCuts;
     int          timeTruth;
+    int          timeSupps;
+    int          timeTruth2;
+    int          timeTruth3;
     int          timeEval;
     int          timeMap;
     int          timeOther;
     int          timeTotal;
+    // runtime of eval
+    int          timeEvalMuxAn;
+    int          timeEvalMuxSp;
+    int          timeEvalDsdAn;
+    int          timeEvalDsdSp;
+ 
 };
 
 
@@ -122,32 +141,35 @@ struct Lpk_Man_t_
 typedef struct Lpk_Fun_t_ Lpk_Fun_t;
 struct Lpk_Fun_t_
 {
-    Vec_Ptr_t *   vNodes;           // the array of leaves and decomposition nodes
-    unsigned int  Id         :  8;  // the ID of this node
-    unsigned int  nVars      :  5;  // the number of variables
-    unsigned int  nLutK      :  4;  // the number of LUT inputs
-    unsigned int  nAreaLim   :  5;  // the area limit (the largest allowed)
-    unsigned int  nDelayLim  : 10;  // the delay limit (the largest allowed)
-    char          pDelays[16];      // the delays of the inputs
-    char          pFanins[16];      // the fanins of this function
-    unsigned      uSupp;            // the support of this component
-    unsigned      pTruth[0];        // the truth table (contains room for three truth tables)    
+    Vec_Ptr_t *  vNodes;           // the array of leaves and decomposition nodes
+    unsigned     Id         :  7;  // the ID of this node
+    unsigned     nVars      :  5;  // the number of variables
+    unsigned     nLutK      :  4;  // the number of LUT inputs
+    unsigned     nAreaLim   :  5;  // the area limit (the largest allowed)
+    unsigned     nDelayLim  :  9;  // the delay limit (the largest allowed)
+    unsigned     fSupports  :  1;  // supports of cofactors were precomputed
+    unsigned     fMark      :  1;  // marks the MUX-based dec
+    unsigned     uSupp;            // the support of this component
+    unsigned     puSupps[32];      // the supports of the cofactors
+    char         pDelays[16];      // the delays of the inputs
+    char         pFanins[16];      // the fanins of this function
+    unsigned     pTruth[0];        // the truth table (contains room for three truth tables)    
 };
 
 // preliminary decomposition result
 typedef struct Lpk_Res_t_ Lpk_Res_t;
 struct Lpk_Res_t_
 {
-    int           nBSVars;          // the number of bound set variables
-    unsigned      BSVars;           // the bound set
-    int           nCofVars;         // the number of cofactoring variables
-    char          pCofVars[4];      // the cofactoring variables
-    int           nSuppSizeS;       // support size of the smaller (decomposed) function 
-    int           nSuppSizeL;       // support size of the larger (composition) function
-    int           DelayEst;         // estimated delay of the decomposition
-    int           AreaEst;          // estimated area of the decomposition
-    int           Variable;         // variable in MUX decomposition
-    int           Polarity;         // polarity in MUX decomposition
+    int          nBSVars;          // the number of bound set variables
+    unsigned     BSVars;           // the bound set
+    int          nCofVars;         // the number of cofactoring variables
+    char         pCofVars[4];      // the cofactoring variables
+    int          nSuppSizeS;       // support size of the smaller (decomposed) function 
+    int          nSuppSizeL;       // support size of the larger (composition) function
+    int          DelayEst;         // estimated delay of the decomposition
+    int          AreaEst;          // estimated area of the decomposition
+    int          Variable;         // variable in MUX decomposition
+    int          Polarity;         // polarity in MUX decomposition
 };
 
 static inline int        Lpk_LutNumVars( int nLutsLim, int nLutK ) { return  nLutsLim * (nLutK - 1) + 1;                                            }
@@ -177,25 +199,26 @@ static inline unsigned * Lpk_FunTruth( Lpk_Fun_t * p, int Num )    { assert( Num
 ////////////////////////////////////////////////////////////////////////
 
 /*=== lpkAbcDec.c ============================================================*/
-extern Abc_Obj_t *    Lpk_Decompose( Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, unsigned * pTruth, int nLutK, int AreaLim, int DelayLim );
+extern Abc_Obj_t *    Lpk_Decompose( Lpk_Man_t * pMan, Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, unsigned * pTruth, unsigned * puSupps, int nLutK, int AreaLim, int DelayLim );
 /*=== lpkAbcDsd.c ============================================================*/
-extern Lpk_Res_t *    Lpk_DsdAnalize( Lpk_Fun_t * p );
-extern Lpk_Fun_t *    Lpk_DsdSplit( Lpk_Fun_t * p, char * pCofVars, int nCofVars, unsigned uBoundSet );
+extern Lpk_Res_t *    Lpk_DsdAnalize( Lpk_Man_t * pMan, Lpk_Fun_t * p, int nShared );
+extern Lpk_Fun_t *    Lpk_DsdSplit( Lpk_Man_t * pMan, Lpk_Fun_t * p, char * pCofVars, int nCofVars, unsigned uBoundSet );
 /*=== lpkAbcMux.c ============================================================*/
-extern Lpk_Res_t *    Lpk_MuxAnalize( Lpk_Fun_t * p );
-extern Lpk_Fun_t *    Lpk_MuxSplit( Lpk_Fun_t * p, int Var, int Pol );
+extern Lpk_Res_t *    Lpk_MuxAnalize( Lpk_Man_t * pMan, Lpk_Fun_t * p );
+extern Lpk_Fun_t *    Lpk_MuxSplit( Lpk_Man_t * pMan, Lpk_Fun_t * p, int Var, int Pol );
 /*=== lpkAbcUtil.c ============================================================*/
 extern Lpk_Fun_t *    Lpk_FunAlloc( int nVars );
 extern void           Lpk_FunFree( Lpk_Fun_t * p );
 extern Lpk_Fun_t *    Lpk_FunCreate( Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, unsigned * pTruth, int nLutK, int AreaLim, int DelayLim );
 extern Lpk_Fun_t *    Lpk_FunDup( Lpk_Fun_t * p, unsigned * pTruth );
-extern void           Lpk_FunSuppMinimize( Lpk_Fun_t * p );
+extern int            Lpk_FunSuppMinimize( Lpk_Fun_t * p );
+extern void           Lpk_FunComputeCofSupps( Lpk_Fun_t * p );
 extern int            Lpk_SuppDelay( unsigned uSupp, char * pDelays );
 extern int            Lpk_SuppToVars( unsigned uBoundSet, char * pVars );
 
 
 /*=== lpkCut.c =========================================================*/
-extern unsigned *     Lpk_CutTruth( Lpk_Man_t * p, Lpk_Cut_t * pCut );
+extern unsigned *     Lpk_CutTruth( Lpk_Man_t * p, Lpk_Cut_t * pCut, int fInv );
 extern int            Lpk_NodeCuts( Lpk_Man_t * p );
 /*=== lpkMap.c =========================================================*/
 extern Lpk_Man_t *    Lpk_ManStart( Lpk_Par_t * pPars );

@@ -901,6 +901,68 @@ void Kit_TruthMuxVar( unsigned * pOut, unsigned * pCof0, unsigned * pCof1, int n
 
 /**Function*************************************************************
 
+  Synopsis    [Multiplexes two functions with the given variable.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Kit_TruthMuxVarPhase( unsigned * pOut, unsigned * pCof0, unsigned * pCof1, int nVars, int iVar, int fCompl0 )
+{
+    int nWords = Kit_TruthWordNum( nVars );
+    int i, k, Step;
+
+    if ( fCompl0 == 0 )
+    {
+        Kit_TruthMuxVar( pOut, pCof0, pCof1, nVars, iVar );
+        return;
+    }
+
+    assert( iVar < nVars );
+    switch ( iVar )
+    {
+    case 0:
+        for ( i = 0; i < nWords; i++ )
+            pOut[i] = (~pCof0[i] & 0x55555555) | (pCof1[i] & 0xAAAAAAAA);
+        return;
+    case 1:
+        for ( i = 0; i < nWords; i++ )
+            pOut[i] = (~pCof0[i] & 0x33333333) | (pCof1[i] & 0xCCCCCCCC);
+        return;
+    case 2:
+        for ( i = 0; i < nWords; i++ )
+            pOut[i] = (~pCof0[i] & 0x0F0F0F0F) | (pCof1[i] & 0xF0F0F0F0);
+        return;
+    case 3:
+        for ( i = 0; i < nWords; i++ )
+            pOut[i] = (~pCof0[i] & 0x00FF00FF) | (pCof1[i] & 0xFF00FF00);
+        return;
+    case 4:
+        for ( i = 0; i < nWords; i++ )
+            pOut[i] = (~pCof0[i] & 0x0000FFFF) | (pCof1[i] & 0xFFFF0000);
+        return;
+    default:
+        Step = (1 << (iVar - 5));
+        for ( k = 0; k < nWords; k += 2*Step )
+        {
+            for ( i = 0; i < Step; i++ )
+            {
+                pOut[i]      = ~pCof0[i];
+                pOut[Step+i] = pCof1[Step+i];
+            }
+            pOut += 2*Step;
+            pCof0 += 2*Step;
+            pCof1 += 2*Step;
+        }
+        return;
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Checks symmetry of two variables.]
 
   Description []
@@ -1623,7 +1685,7 @@ char * Kit_TruthDumpToFile( unsigned * pTruth, int nVars, int nFile )
 {
     static char pFileName[100];
     FILE * pFile;
-    sprintf( pFileName, "s%03d", nFile );
+    sprintf( pFileName, "tt\\s%04d", nFile );
     pFile = fopen( pFileName, "w" );
     fprintf( pFile, "rt " );
     Extra_PrintHexadecimal( pFile, pTruth, nVars );

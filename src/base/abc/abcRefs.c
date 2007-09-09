@@ -45,8 +45,8 @@ static int Abc_NodeRefDerefStop( Abc_Obj_t * pNode, bool fReference );
 int Abc_NodeMffcSize( Abc_Obj_t * pNode )
 {
     int nConeSize1, nConeSize2;
-    assert( Abc_NtkIsStrash(pNode->pNtk) );
-    assert( !Abc_ObjIsComplement( pNode ) );
+//    assert( Abc_NtkIsStrash(pNode->pNtk) );
+//    assert( !Abc_ObjIsComplement( pNode ) );
     assert( Abc_ObjIsNode( pNode ) );
     if ( Abc_ObjFaninNum(pNode) == 0 )
         return 0;

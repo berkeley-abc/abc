@@ -2979,22 +2979,20 @@ int Abc_CommandLutpack( Abc_Frame_t * pAbc, int argc, char ** argv )
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
-//    printf("This command will be available soon\n");
-//    return 0;
-
     // set defaults
     memset( pPars, 0, sizeof(Lpk_Par_t) );
     pPars->nLutsMax     =  4; // (N) the maximum number of LUTs in the structure
     pPars->nLutsOver    =  3; // (Q) the maximum number of LUTs not in the MFFC
     pPars->nVarsShared  =  0; // (S) the maximum number of shared variables (crossbars)
-    pPars->nGrowthLevel =  1; // (L) the maximum number of increased levels
+    pPars->nGrowthLevel =  0; // (L) the maximum number of increased levels
     pPars->fSatur       =  1;
     pPars->fZeroCost    =  0; 
     pPars->fFirst       =  0;
+    pPars->fOldAlgo     =  0;
     pPars->fVerbose     =  0;
     pPars->fVeryVerbose =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NQSLszfvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NQSLszfovwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -3051,6 +3049,9 @@ int Abc_CommandLutpack( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'f':
             pPars->fFirst ^= 1;
             break;
+        case 'o':
+            pPars->fOldAlgo ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -3074,6 +3075,11 @@ int Abc_CommandLutpack( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "This command can only be applied to a logic network.\n" );
         return 1;
     }
+    if ( pPars->nVarsShared < 0 || pPars->nVarsShared > 3 )
+    {
+        fprintf( pErr, "The number of shared variables (%d) is not in the range 0 <= S <= 3.\n", pPars->nVarsShared );
+        return 1;
+    }
 
     // modify the current network
     if ( !Lpk_Resynthesize( pNtk, pPars ) )
@@ -3084,17 +3090,18 @@ int Abc_CommandLutpack( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: lutpack [-N <num>] [-Q <num>] [-S <num>] [-L <num>] [-szfvwh]\n" );
+    fprintf( pErr, "usage: lutpack [-N <num>] [-Q <num>] [-S <num>] [-L <num>] [-szfovwh]\n" );
     fprintf( pErr, "\t           performs \"rewriting\" for LUT networks\n" );
     fprintf( pErr, "\t-N <num> : the max number of LUTs in the structure (2 <= num) [default = %d]\n", pPars->nLutsMax );
     fprintf( pErr, "\t-Q <num> : the max number of LUTs not in MFFC (0 <= num) [default = %d]\n", pPars->nLutsOver );
-    fprintf( pErr, "\t-S <num> : the max number of LUT inputs shared (0 <= num) [default = %d]\n", pPars->nVarsShared );
+    fprintf( pErr, "\t-S <num> : the max number of LUT inputs shared (0 <= num <= 3) [default = %d]\n", pPars->nVarsShared );
     fprintf( pErr, "\t-L <num> : the largest increase in node level after resynthesis (0 <= num) [default = %d]\n", pPars->nGrowthLevel );
     fprintf( pErr, "\t-s       : toggle iteration till saturation [default = %s]\n", pPars->fSatur? "yes": "no" );
     fprintf( pErr, "\t-z       : toggle zero-cost replacements [default = %s]\n", pPars->fZeroCost? "yes": "no" );
     fprintf( pErr, "\t-f       : toggle using only first node and first cut [default = %s]\n", pPars->fFirst? "yes": "no" );
+    fprintf( pErr, "\t-o       : toggle using old implementation [default = %s]\n", pPars->fOldAlgo? "yes": "no" );
     fprintf( pErr, "\t-v       : toggle verbose printout [default = %s]\n", pPars->fVerbose? "yes": "no" );
-    fprintf( pErr, "\t-w       : toggle printout subgraph statistics [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
+    fprintf( pErr, "\t-w       : toggle detailed printout of decomposed functions [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     fprintf( pErr, "\t-h       : print the command usage\n");
     return 1;
 } 

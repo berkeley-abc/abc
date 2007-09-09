@@ -42,9 +42,9 @@
 Lpk_Man_t * Lpk_ManStart( Lpk_Par_t * pPars )
 {
     Lpk_Man_t * p;
-    int i;
+    int i, nWords;
     assert( pPars->nLutsMax <= 16 );
-    assert( pPars->nVarsMax > 0 );
+    assert( pPars->nVarsMax > 0 && pPars->nVarsMax <= 16 );
     p = ALLOC( Lpk_Man_t, 1 );
     memset( p, 0, sizeof(Lpk_Man_t) );
     p->pPars = pPars;
@@ -52,9 +52,28 @@ Lpk_Man_t * Lpk_ManStart( Lpk_Par_t * pPars )
     p->vTtElems = Vec_PtrAllocTruthTables( pPars->nVarsMax );
     p->vTtNodes = Vec_PtrAllocSimInfo( 1024, Abc_TruthWordNum(pPars->nVarsMax) );
     p->vCover = Vec_IntAlloc( 1 << 12 );
+    p->vLeaves = Vec_PtrAlloc( 32 );
     for ( i = 0; i < 8; i++ )
         p->vSets[i] = Vec_IntAlloc(100);
     p->pDsdMan = Kit_DsdManAlloc( pPars->nVarsMax, 64 );
+    p->vMemory = Vec_IntAlloc( 1024 * 32 );
+    p->vBddDir = Vec_IntAlloc( 256 );
+    p->vBddInv = Vec_IntAlloc( 256 );
+    // allocate temporary storage for truth tables
+    nWords = Kit_TruthWordNum(pPars->nVarsMax);
+    p->ppTruths[0][0] = ALLOC( unsigned, 32 * nWords );
+    p->ppTruths[1][0] = p->ppTruths[0][0] + 1 * nWords;
+    for ( i = 1; i < 2; i++ )
+        p->ppTruths[1][i] = p->ppTruths[1][0] + i * nWords;
+    p->ppTruths[2][0] = p->ppTruths[1][0] + 2 * nWords;
+    for ( i = 1; i < 4; i++ )
+        p->ppTruths[2][i] = p->ppTruths[2][0] + i * nWords;
+    p->ppTruths[3][0] = p->ppTruths[2][0] + 4 * nWords; 
+    for ( i = 1; i < 8; i++ )
+        p->ppTruths[3][i] = p->ppTruths[3][0] + i * nWords;
+    p->ppTruths[4][0] = p->ppTruths[3][0] + 8 * nWords; 
+    for ( i = 1; i < 16; i++ )
+        p->ppTruths[4][i] = p->ppTruths[4][0] + i * nWords;
     return p;
 }
 
@@ -72,6 +91,10 @@ Lpk_Man_t * Lpk_ManStart( Lpk_Par_t * pPars )
 void Lpk_ManStop( Lpk_Man_t * p )
 {
     int i;
+    free( p->ppTruths[0][0] );
+    Vec_IntFree( p->vBddDir );
+    Vec_IntFree( p->vBddInv );
+    Vec_IntFree( p->vMemory );
     Kit_DsdManFree( p->pDsdMan );
     for ( i = 0; i < 8; i++ )
         Vec_IntFree(p->vSets[i]);
@@ -85,6 +108,7 @@ void Lpk_ManStop( Lpk_Man_t * p )
         Vec_VecFree( p->vLevels );
     if ( p->vVisited )
         Vec_VecFree( p->vVisited );
+    Vec_PtrFree( p->vLeaves );
     Vec_IntFree( p->vCover );
     Vec_PtrFree( p->vTtElems );
     Vec_PtrFree( p->vTtNodes );

@@ -19,6 +19,7 @@
 ***********************************************************************/
  
 #include "lpkInt.h"
+#include "cloud.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -127,6 +128,7 @@ int Lpk_ExploreCut( Lpk_Man_t * p, Lpk_Cut_t * pCut, Kit_DsdNtk_t * pNtk )
     If_Obj_t * pDriver, * ppLeaves[16];
     Abc_Obj_t * pLeaf, * pObjNew;
     int nGain, i, clk;
+    int nNodesBef;
 //    int nOldShared;
 
     // check special cases
@@ -201,6 +203,7 @@ p->timeMap += clock() - clk;
     if ( p->nCalledSRed )
         p->nBenefited++;
 
+    nNodesBef = Abc_NtkNodeNum(p->pNtk);
     // prepare the mapping manager
     If_ManCleanNodeCopy( p->pIfMan );
     If_ManCleanCutData( p->pIfMan );
@@ -212,6 +215,7 @@ p->timeMap += clock() - clk;
     pObjNew->pData = Hop_NotCond( pObjNew->pData, If_IsComplement(pDriver) );
     // perform replacement
     Abc_NtkUpdate( p->pObj, pObjNew, p->vLevels );
+//printf( "%3d : %d-%d=%d(%d) \n", p->nChanges, nNodesBef, Abc_NtkNodeNum(p->pNtk), nNodesBef-Abc_NtkNodeNum(p->pNtk), nGain );
     return 1;
 }
 
@@ -232,8 +236,7 @@ int Lpk_ResynthesizeNode( Lpk_Man_t * p )
     Kit_DsdNtk_t * pDsdNtk;
     Lpk_Cut_t * pCut;
     unsigned * pTruth;
-    void * pDsd = NULL;
-    int i, nSuppSize, RetValue, clk;
+    int i, k, nSuppSize, nCutNodes, RetValue, clk;
 
     // compute the cuts
 clk = clock();
@@ -258,9 +261,22 @@ p->timeCuts += clock() - clk;
         if ( p->pPars->fFirst && i == 1 )
             break;
 
+        // skip bad cuts        
+//        printf( "Mffc size = %d.  ", Abc_NodeMffcLabel(p->pObj) );
+        for ( k = 0; k < (int)pCut->nLeaves; k++ )
+            Abc_NtkObj(p->pNtk, pCut->pLeaves[k])->vFanouts.nSize++;
+        nCutNodes = Abc_NodeMffcLabel(p->pObj);
+//        printf( "Mffc with cut = %d.  ", nCutNodes );
+        for ( k = 0; k < (int)pCut->nLeaves; k++ )
+            Abc_NtkObj(p->pNtk, pCut->pLeaves[k])->vFanouts.nSize--;
+//        printf( "Mffc cut = %d.  ", (int)pCut->nNodes - (int)pCut->nNodesDup );
+//        printf( "\n" );
+        if ( nCutNodes != (int)pCut->nNodes - (int)pCut->nNodesDup )
+            continue;
+
         // compute the truth table
 clk = clock();
-        pTruth = Lpk_CutTruth( p, pCut );
+        pTruth = Lpk_CutTruth( p, pCut, 0 );
         nSuppSize = Extra_TruthSupportSize(pTruth, pCut->nLeaves);
 p->timeTruth += clock() - clk;
 
@@ -289,7 +305,7 @@ p->timeTruth += clock() - clk;
             printf( "  C%02d: L= %2d/%2d  V= %2d/%d  N= %d  W= %4.2f  ", 
                 i, pCut->nLeaves, nSuppSize, pCut->nNodes, pCut->nNodesDup, pCut->nLuts, pCut->Weight );
             Kit_DsdPrint( stdout, pDsdNtk );
-//            Kit_DsdPrintFromTruth( pTruth, pCut->nLeaves );
+            Kit_DsdPrintFromTruth( pTruth, pCut->nLeaves );
 //            pFileName = Kit_TruthDumpToFile( pTruth, pCut->nLeaves, Count++ );
 //            printf( "Saved truth table in file \"%s\".\n", pFileName );
         }
@@ -305,6 +321,32 @@ p->timeEval += clock() - clk;
     return 1;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Computes supports of the cofactors of the function.]
+
+  Description [This procedure should be called after Lpk_CutTruth(p,pCut,0)]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Lpk_ComputeSupports( Lpk_Man_t * p, Lpk_Cut_t * pCut, unsigned * pTruth )
+{
+    unsigned * pTruthInv;
+    int RetValue1, RetValue2;
+    pTruthInv = Lpk_CutTruth( p, pCut, 1 );
+    RetValue1 = Kit_CreateCloudFromTruth( p->pDsdMan->dd, pTruth, pCut->nLeaves, p->vBddDir );
+    RetValue2 = Kit_CreateCloudFromTruth( p->pDsdMan->dd, pTruthInv, pCut->nLeaves, p->vBddInv );
+    if ( RetValue1 && RetValue2 )
+        Kit_TruthCofSupports( p->vBddDir, p->vBddInv, pCut->nLeaves, p->vMemory, p->puSupps ); 
+    else
+        p->puSupps[0] = p->puSupps[1] = 0;
+}
+
+
 /**Function*************************************************************
 
   Synopsis    [Performs resynthesis for one node.]
@@ -319,12 +361,13 @@ p->timeEval += clock() - clk;
 int Lpk_ResynthesizeNodeNew( Lpk_Man_t * p )
 {
     static int Count = 0;
-    Vec_Ptr_t * vLeaves;
-    Abc_Obj_t * pObjNew;
+    Abc_Obj_t * pObjNew, * pLeaf;
     Lpk_Cut_t * pCut;
     unsigned * pTruth;
-    void * pDsd = NULL;
+    int nNodesBef, nNodesAft, nCutNodes;
     int i, k, clk;
+    int Required = Abc_ObjRequiredLevel(p->pObj);
+//    CloudNode * pFun2;//, * pFun1;
 
     // compute the cuts
 clk = clock();
@@ -336,8 +379,8 @@ p->timeCuts += clock() - clk;
 p->timeCuts += clock() - clk;
 
     if ( p->pPars->fVeryVerbose )
-    printf( "Node %5d : Mffc size = %5d. Cuts = %5d.\n", p->pObj->Id, p->nMffc, p->nEvals );
-    vLeaves = Vec_PtrAlloc( 32 );
+        printf( "Node %5d : Mffc size = %5d. Cuts = %5d.  Level = %2d. Req = %2d.\n", 
+            p->pObj->Id, p->nMffc, p->nEvals, p->pObj->Level, Required );
     // try the good cuts
     p->nCutsTotal  += p->nCuts;
     p->nCutsUseful += p->nEvals;
@@ -347,16 +390,48 @@ p->timeCuts += clock() - clk;
         pCut = p->pCuts + p->pEvals[i];
         if ( p->pPars->fFirst && i == 1 )
             break;
+//        if ( pCut->Weight < 1.05 )
+//            continue;
+
+        // skip bad cuts        
+//        printf( "Mffc size = %d.  ", Abc_NodeMffcLabel(p->pObj) );
+        for ( k = 0; k < (int)pCut->nLeaves; k++ )
+            Abc_NtkObj(p->pNtk, pCut->pLeaves[k])->vFanouts.nSize++;
+        nCutNodes = Abc_NodeMffcLabel(p->pObj);
+//        printf( "Mffc with cut = %d.  ", nCutNodes );
+        for ( k = 0; k < (int)pCut->nLeaves; k++ )
+            Abc_NtkObj(p->pNtk, pCut->pLeaves[k])->vFanouts.nSize--;
+//        printf( "Mffc cut = %d.  ", (int)pCut->nNodes - (int)pCut->nNodesDup );
+//        printf( "\n" );
+        if ( nCutNodes != (int)pCut->nNodes - (int)pCut->nNodesDup )
+            continue;
 
         // collect nodes into the array
-        Vec_PtrClear( vLeaves );
+        Vec_PtrClear( p->vLeaves );
         for ( k = 0; k < (int)pCut->nLeaves; k++ )
-            Vec_PtrPush( vLeaves, Abc_NtkObj(p->pNtk, pCut->pLeaves[i]) );
+            Vec_PtrPush( p->vLeaves, Abc_NtkObj(p->pNtk, pCut->pLeaves[k]) );
 
         // compute the truth table
 clk = clock();
-        pTruth = Lpk_CutTruth( p, pCut );
+        pTruth = Lpk_CutTruth( p, pCut, 0 );
 p->timeTruth += clock() - clk;
+clk = clock();
+        Lpk_ComputeSupports( p, pCut, pTruth );        
+p->timeSupps += clock() - clk;
+//clk = clock();
+//        pFun1 = Lpk_CutTruthBdd( p, pCut );
+//p->timeTruth2 += clock() - clk;
+/*
+clk = clock();
+        Cloud_Restart( p->pDsdMan->dd );
+        pFun2 = Kit_TruthToCloud( p->pDsdMan->dd, pTruth, pCut->nLeaves );
+        RetValue = Kit_CreateCloud( p->pDsdMan->dd, pFun2, p->vBddNodes );
+p->timeTruth3 += clock() - clk;
+*/
+//        if ( pFun1 != pFun2 )
+//            printf( "Truth tables do not agree!\n" );
+//        else
+//            printf( "Fine!\n" );
 
         if ( p->pPars->fVeryVerbose )
         {
@@ -364,22 +439,51 @@ p->timeTruth += clock() - clk;
             int nSuppSize = Extra_TruthSupportSize( pTruth, pCut->nLeaves );
             printf( "  C%02d: L= %2d/%2d  V= %2d/%d  N= %d  W= %4.2f  ", 
                 i, pCut->nLeaves, nSuppSize, pCut->nNodes, pCut->nNodesDup, pCut->nLuts, pCut->Weight );
+            Vec_PtrForEachEntry( p->vLeaves, pLeaf, k )
+                printf( "%c=%d ", 'a'+k, Abc_ObjLevel(pLeaf) );
+            printf( "\n" );
             Kit_DsdPrintFromTruth( pTruth, pCut->nLeaves );
 //            pFileName = Kit_TruthDumpToFile( pTruth, pCut->nLeaves, Count++ );
 //            printf( "Saved truth table in file \"%s\".\n", pFileName );
         }
+        if ( p->pObj->Id == 33 && i == 0 )
+        {
+            int x = 0;
+        }
 
         // update the network
+        nNodesBef = Abc_NtkNodeNum(p->pNtk);
 clk = clock();
-        pObjNew = Lpk_Decompose( p->pNtk, vLeaves, pTruth, p->pPars->nLutSize,
-            (int)pCut->nNodes - (int)pCut->nNodesDup - 1, Abc_ObjRequiredLevel(p->pObj) );
+        pObjNew = Lpk_Decompose( p, p->pNtk, p->vLeaves, pTruth, p->puSupps, p->pPars->nLutSize,
+            (int)pCut->nNodes - (int)pCut->nNodesDup - 1 + (int)(p->pPars->fZeroCost > 0), Required );
 p->timeEval += clock() - clk;
+        nNodesAft = Abc_NtkNodeNum(p->pNtk);
 
         // perform replacement
         if ( pObjNew )
+        {
+            int nGain = (int)pCut->nNodes - (int)pCut->nNodesDup - (nNodesAft - nNodesBef);
+            assert( nGain >= 1 - p->pPars->fZeroCost );
+            assert( Abc_ObjLevel(pObjNew) <= Required );
+/*
+            if ( nGain <= 0 )
+            {
+                int x = 0;
+            }
+            if ( Abc_ObjLevel(pObjNew) > Required )
+            {
+                int x = 0;
+            }
+*/
+            p->nGainTotal += nGain;
+            p->nChanges++;
+            if ( p->pPars->fVeryVerbose )
+                printf( "Performed resynthesis: Gain = %2d. Level = %2d. Req = %2d.\n", nGain, Abc_ObjLevel(pObjNew), Required );
             Abc_NtkUpdate( p->pObj, pObjNew, p->vLevels );
+//printf( "%3d : %d-%d=%d(%d) \n", p->nChanges, nNodesBef, Abc_NtkNodeNum(p->pNtk), nNodesBef-Abc_NtkNodeNum(p->pNtk), nGain );
+            break;
+        }
     }
-    Vec_PtrFree( vLeaves );
     return 1;
 }
 
@@ -443,7 +547,10 @@ int Lpk_Resynthesize( Abc_Ntk_t * pNtk, Lpk_Par_t * pPars )
     if ( p->pPars->fSatur )
         p->vVisited = Vec_VecStart( 0 );
     if ( pPars->fVerbose )
+    {
         p->nTotalNets = Abc_NtkGetTotalFanins(pNtk);
+        p->nTotalNodes = Abc_NtkNodeNum(pNtk);
+    }
 
     // iterate over the network
     nNodesPrev = p->nNodesTotal;
@@ -465,7 +572,6 @@ int Lpk_Resynthesize( Abc_Ntk_t * pNtk, Lpk_Par_t * pPars )
                 if ( !Abc_ObjIsCo(Abc_ObjFanout0(pObj)) )
                     continue;
             }
-
             if ( i >= nNodes )
                 break;
             if ( !pPars->fVeryVerbose )
@@ -475,10 +581,10 @@ int Lpk_Resynthesize( Abc_Ntk_t * pNtk, Lpk_Par_t * pPars )
                 continue;
             // resynthesize
             p->pObj = pObj;
-            Lpk_ResynthesizeNode( p );
-
-//            if ( p->nChanges == 3 )
-//                break;
+            if ( p->pPars->fOldAlgo )
+                Lpk_ResynthesizeNode( p );
+            else
+                Lpk_ResynthesizeNodeNew( p );
         }
         if ( !pPars->fVeryVerbose )
             Extra_ProgressBarStop( pProgress );
@@ -498,15 +604,18 @@ int Lpk_Resynthesize( Abc_Ntk_t * pNtk, Lpk_Par_t * pPars )
 
     if ( pPars->fVerbose )
     {
+//        Cloud_PrintInfo( p->pDsdMan->dd );
         p->nTotalNets2 = Abc_NtkGetTotalFanins(pNtk);
-        printf( "Reduction in nodes = %5d. (%.2f %%) ", 
-            p->nGainTotal, 100.0 * p->nGainTotal / p->nNodesTotal );
-        printf( "Reduction in edges = %5d. (%.2f %%) ", 
+        p->nTotalNodes2 = Abc_NtkNodeNum(pNtk);
+        printf( "Node gain = %5d. (%.2f %%)  ", 
+            p->nTotalNodes-p->nTotalNodes2, 100.0*(p->nTotalNodes-p->nTotalNodes2)/p->nTotalNodes );
+        printf( "Edge gain = %5d. (%.2f %%)  ", 
             p->nTotalNets-p->nTotalNets2, 100.0*(p->nTotalNets-p->nTotalNets2)/p->nTotalNets );
+        printf( "Muxes = %4d. Dsds = %4d.", p->nMuxes, p->nDsds );
         printf( "\n" );
-
         printf( "Nodes = %5d (%3d)  Cuts = %5d (%4d)  Changes = %5d  Iter = %2d  Benefit = %d.\n", 
             p->nNodesTotal, p->nNodesOver, p->nCutsTotal, p->nCutsUseful, p->nChanges, Iter, p->nBenefited );
+
         printf( "Non-DSD:" );
         for ( i = 3; i <= pPars->nVarsMax; i++ )
             if ( p->nBlocks[i] )
@@ -518,7 +627,13 @@ int Lpk_Resynthesize( Abc_Ntk_t * pNtk, Lpk_Par_t * pPars )
         p->timeOther = p->timeTotal - p->timeCuts - p->timeTruth - p->timeEval - p->timeMap;
         PRTP( "Cuts  ", p->timeCuts,  p->timeTotal );
         PRTP( "Truth ", p->timeTruth, p->timeTotal );
+        PRTP( "CSupps", p->timeSupps, p->timeTotal );
         PRTP( "Eval  ", p->timeEval,  p->timeTotal );
+        PRTP( " MuxAn", p->timeEvalMuxAn, p->timeEval );
+        PRTP( " MuxSp", p->timeEvalMuxSp, p->timeEval );
+        PRTP( " DsdAn", p->timeEvalDsdAn, p->timeEval );
+        PRTP( " DsdSp", p->timeEvalDsdSp, p->timeEval );
+        PRTP( " Other", p->timeEval-p->timeEvalMuxAn-p->timeEvalMuxSp-p->timeEvalDsdAn-p->timeEvalDsdSp, p->timeEval );
         PRTP( "Map   ", p->timeMap,   p->timeTotal );
         PRTP( "Other ", p->timeOther, p->timeTotal );
         PRTP( "TOTAL ", p->timeTotal, p->timeTotal );

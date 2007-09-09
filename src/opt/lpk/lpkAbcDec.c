@@ -39,17 +39,21 @@
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Lpk_ImplementFun( Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, Lpk_Fun_t * p )
+Abc_Obj_t * Lpk_ImplementFun( Lpk_Man_t * pMan, Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, Lpk_Fun_t * p )
 {
     extern Hop_Obj_t * Kit_TruthToHop( Hop_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory );
     unsigned * pTruth;
     Abc_Obj_t * pObjNew;
     int i;
+    if ( p->fMark )
+        pMan->nMuxes++;
+    else
+        pMan->nDsds++;
     // create the new node
     pObjNew = Abc_NtkCreateNode( pNtk );
     for ( i = 0; i < (int)p->nVars; i++ )
-        Abc_ObjAddFanin( pObjNew, Vec_PtrEntry(vLeaves, p->pFanins[i]) );
-    Abc_ObjLevelNew( pObjNew );
+        Abc_ObjAddFanin( pObjNew, Abc_ObjRegular(Vec_PtrEntry(vLeaves, p->pFanins[i])) );
+    Abc_ObjSetLevel( pObjNew, Abc_ObjLevelNew(pObjNew) );
     // assign the node's function
     pTruth = Lpk_FunTruth(p, 0);
     if ( p->nVars == 0 )
@@ -78,18 +82,48 @@ Abc_Obj_t * Lpk_ImplementFun( Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, Lpk_Fun_t *
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Lpk_Implement( Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, int nLeavesOld )
+Abc_Obj_t * Lpk_Implement_rec( Lpk_Man_t * pMan, Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, Lpk_Fun_t * pFun )
 {
-    Lpk_Fun_t * pFun;
-    Abc_Obj_t * pRes;
+    Abc_Obj_t * pFanin, * pRes;
     int i;
-    for ( i = Vec_PtrSize(vLeaves) - 1; i >= nLeavesOld; i-- )
+    // prepare the leaves of the function
+    for ( i = 0; i < (int)pFun->nVars; i++ )
     {
-        pFun = Vec_PtrEntry( vLeaves, i );
-        pRes = Lpk_ImplementFun( pNtk, vLeaves, pFun );
-        Vec_PtrWriteEntry( vLeaves, i, pRes );
-        Lpk_FunFree( pFun );
+        pFanin = Vec_PtrEntry( vLeaves, pFun->pFanins[i] );
+        if ( !Abc_ObjIsComplement(pFanin) )
+            Lpk_Implement_rec( pMan, pNtk, vLeaves, (Lpk_Fun_t *)pFanin );
+        pFanin = Vec_PtrEntry( vLeaves, pFun->pFanins[i] );
+        assert( Abc_ObjIsComplement(pFanin) );
     }
+    // construct the function
+    pRes = Lpk_ImplementFun( pMan, pNtk, vLeaves, pFun );
+    // replace the function
+    Vec_PtrWriteEntry( vLeaves, pFun->Id, Abc_ObjNot(pRes) );
+    Lpk_FunFree( pFun );
+    return pRes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Implements the function.]
+
+  Description [Returns the node implementing this function.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Lpk_Implement( Lpk_Man_t * pMan, Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, int nLeavesOld )
+{
+    Abc_Obj_t * pFanin, * pRes;
+    int i;
+    assert( nLeavesOld < Vec_PtrSize(vLeaves) );
+    // mark implemented nodes
+    Vec_PtrForEachEntryStop( vLeaves, pFanin, i, nLeavesOld )
+        Vec_PtrWriteEntry( vLeaves, i, Abc_ObjNot(pFanin) );
+    // recursively construct starting from the first entry
+    pRes = Lpk_Implement_rec( pMan, pNtk, vLeaves, Vec_PtrEntry( vLeaves, nLeavesOld ) );
     Vec_PtrShrink( vLeaves, nLeavesOld );
     return pRes;
 }
@@ -107,10 +141,13 @@ Abc_Obj_t * Lpk_Implement( Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, int nLeavesOld
   SeeAlso     []
 
 ***********************************************************************/
-int Lpk_Decompose_rec( Lpk_Fun_t * p )
+int Lpk_Decompose_rec( Lpk_Man_t * pMan, Lpk_Fun_t * p )
 {
+    static Lpk_Res_t Res0, * pRes0 = &Res0;
     Lpk_Res_t * pResMux, * pResDsd;
     Lpk_Fun_t * p2;
+    int clk;
+
     // is only called for non-trivial blocks
     assert( p->nLutK >= 3 && p->nLutK <= 6 );
     assert( p->nVars > p->nLutK );
@@ -120,18 +157,37 @@ int Lpk_Decompose_rec( Lpk_Fun_t * p )
     // skip if delay bound is exceeded
     if ( Lpk_SuppDelay(p->uSupp, p->pDelays) > (int)p->nDelayLim )
         return 0;
+
+    // compute supports if needed
+    if ( !p->fSupports )
+        Lpk_FunComputeCofSupps( p );
+
+    // check DSD decomposition
+clk = clock();
+    pResDsd = Lpk_DsdAnalize( pMan, p, pMan->pPars->nVarsShared );
+pMan->timeEvalDsdAn += clock() - clk;
+    if ( pResDsd && (pResDsd->nBSVars == (int)p->nLutK || pResDsd->nBSVars == (int)p->nLutK - 1) && 
+          pResDsd->AreaEst <= (int)p->nAreaLim && pResDsd->DelayEst <= (int)p->nDelayLim )
+    {
+clk = clock();
+        p2 = Lpk_DsdSplit( pMan, p, pResDsd->pCofVars, pResDsd->nCofVars, pResDsd->BSVars );
+pMan->timeEvalDsdSp += clock() - clk;
+        assert( p2->nVars <= (int)p->nLutK );
+        if ( p->nVars > p->nLutK && !Lpk_Decompose_rec( pMan, p ) )
+            return 0;
+        return 1;
+    }
+
     // check MUX decomposition
-    pResMux = Lpk_MuxAnalize( p );
+clk = clock();
+    pResMux = Lpk_MuxAnalize( pMan, p );
+pMan->timeEvalMuxAn += clock() - clk;
+//    pResMux = NULL;
     assert( !pResMux || (pResMux->DelayEst <= (int)p->nDelayLim && pResMux->AreaEst <= (int)p->nAreaLim) );
     // accept MUX decomposition if it is "good"
     if ( pResMux && pResMux->nSuppSizeS <= (int)p->nLutK && pResMux->nSuppSizeL <= (int)p->nLutK )
         pResDsd = NULL;
-    else
-    {
-        pResDsd = Lpk_DsdAnalize( p );
-        assert( !pResDsd || (pResDsd->DelayEst <= (int)p->nDelayLim && pResDsd->AreaEst <= (int)p->nAreaLim) );
-    }
-    if ( pResMux && pResDsd )
+    else if ( pResMux && pResDsd )
     {
         // compare two decompositions
         if ( pResMux->AreaEst < pResDsd->AreaEst || 
@@ -144,18 +200,22 @@ int Lpk_Decompose_rec( Lpk_Fun_t * p )
     assert( pResMux == NULL || pResDsd == NULL );
     if ( pResMux )
     {
-        p2 = Lpk_MuxSplit( p, pResMux->pCofVars[0], pResMux->Polarity );
-        if ( p2->nVars > p->nLutK && !Lpk_Decompose_rec( p2 ) )
+clk = clock();
+        p2 = Lpk_MuxSplit( pMan, p, pResMux->Variable, pResMux->Polarity );
+pMan->timeEvalMuxSp += clock() - clk;
+        if ( p2->nVars > p->nLutK && !Lpk_Decompose_rec( pMan, p2 ) )
             return 0;
-        if ( p->nVars > p->nLutK && !Lpk_Decompose_rec( p ) )
+        if ( p->nVars > p->nLutK && !Lpk_Decompose_rec( pMan, p ) )
             return 0;
         return 1;
     }
     if ( pResDsd )
     {
-        p2 = Lpk_DsdSplit( p, pResDsd->pCofVars, pResDsd->nCofVars, pResDsd->BSVars );
+clk = clock();
+        p2 = Lpk_DsdSplit( pMan, p, pResDsd->pCofVars, pResDsd->nCofVars, pResDsd->BSVars );
+pMan->timeEvalDsdSp += clock() - clk;
         assert( p2->nVars <= (int)p->nLutK );
-        if ( p->nVars > p->nLutK && !Lpk_Decompose_rec( p ) )
+        if ( p->nVars > p->nLutK && !Lpk_Decompose_rec( pMan, p ) )
             return 0;
         return 1;
     }
@@ -193,17 +253,31 @@ void Lpk_DecomposeClean( Vec_Ptr_t * vLeaves, int nLeavesOld )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Lpk_Decompose( Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, unsigned * pTruth, int nLutK, int AreaLim, int DelayLim )
+Abc_Obj_t * Lpk_Decompose( Lpk_Man_t * p, Abc_Ntk_t * pNtk, Vec_Ptr_t * vLeaves, unsigned * pTruth, unsigned * puSupps, int nLutK, int AreaLim, int DelayLim )
 {
     Lpk_Fun_t * pFun;
     Abc_Obj_t * pObjNew = NULL;
     int nLeaves = Vec_PtrSize( vLeaves );
     pFun = Lpk_FunCreate( pNtk, vLeaves, pTruth, nLutK, AreaLim, DelayLim );
+    if ( puSupps[0] || puSupps[1] )
+    {
+/*
+        int i;
+        Lpk_FunComputeCofSupps( pFun );
+        for ( i = 0; i < nLeaves; i++ )
+        {
+            assert( pFun->puSupps[2*i+0] == puSupps[2*i+0] );
+            assert( pFun->puSupps[2*i+1] == puSupps[2*i+1] );
+        }
+*/
+        memcpy( pFun->puSupps, puSupps, sizeof(unsigned) * 2 * nLeaves );
+        pFun->fSupports = 1;
+    }
     Lpk_FunSuppMinimize( pFun );
     if ( pFun->nVars <= pFun->nLutK )
-        pObjNew = Lpk_ImplementFun( pNtk, vLeaves, pFun );
-    else if ( Lpk_Decompose_rec(pFun) )
-        pObjNew = Lpk_Implement( pNtk, vLeaves, nLeaves );
+        pObjNew = Lpk_ImplementFun( p, pNtk, vLeaves, pFun );
+    else if ( Lpk_Decompose_rec(p, pFun) )
+        pObjNew = Lpk_Implement( p, pNtk, vLeaves, nLeaves );
     Lpk_DecomposeClean( vLeaves, nLeaves );
     return pObjNew;
 }

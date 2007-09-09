@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "lpkInt.h"
+#include "cloud.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -39,7 +40,99 @@
   SeeAlso     []
 
 ***********************************************************************/
-unsigned * Lpk_CutTruth_rec( Hop_Man_t * pMan, Hop_Obj_t * pObj, int nVars, Vec_Ptr_t * vTtNodes, int * iCount )
+CloudNode * Lpk_CutTruthBdd_rec( CloudManager * dd, Hop_Man_t * pMan, Hop_Obj_t * pObj, int nVars )
+{
+    CloudNode * pTruth, * pTruth0, * pTruth1;
+    assert( !Hop_IsComplement(pObj) );
+    if ( pObj->pData )
+    {
+        assert( ((unsigned)pObj->pData) & 0xffff0000 );
+        return pObj->pData;
+    }
+    // get the plan for a new truth table
+    if ( Hop_ObjIsConst1(pObj) )
+        pTruth = dd->one;
+    else
+    {
+        assert( Hop_ObjIsAnd(pObj) );
+        // compute the truth tables of the fanins
+        pTruth0 = Lpk_CutTruthBdd_rec( dd, pMan, Hop_ObjFanin0(pObj), nVars );
+        pTruth1 = Lpk_CutTruthBdd_rec( dd, pMan, Hop_ObjFanin1(pObj), nVars );
+        pTruth0 = Cloud_NotCond( pTruth0, Hop_ObjFaninC0(pObj) );
+        pTruth1 = Cloud_NotCond( pTruth1, Hop_ObjFaninC1(pObj) );
+        // creat the truth table of the node
+        pTruth = Cloud_bddAnd( dd, pTruth0, pTruth1 );
+    }
+    pObj->pData = pTruth;
+    return pTruth;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Verifies that the factoring is correct.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+CloudNode * Lpk_CutTruthBdd( Lpk_Man_t * p, Lpk_Cut_t * pCut )
+{
+    CloudManager * dd = p->pDsdMan->dd;
+    Hop_Man_t * pManHop = p->pNtk->pManFunc;
+    Hop_Obj_t * pObjHop;
+    Abc_Obj_t * pObj, * pFanin;
+    CloudNode * pTruth;
+    int i, k, iCount = 0;
+
+//    return NULL;
+//    Lpk_NodePrintCut( p, pCut );
+    // initialize the leaves
+    Lpk_CutForEachLeaf( p->pNtk, pCut, pObj, i )
+        pObj->pCopy = (Abc_Obj_t *)dd->vars[pCut->nLeaves-1-i];
+
+    // construct truth table in the topological order
+    Lpk_CutForEachNodeReverse( p->pNtk, pCut, pObj, i )
+    {
+        // get the local AIG
+        pObjHop = Hop_Regular(pObj->pData);
+        // clean the data field of the nodes in the AIG subgraph
+        Hop_ObjCleanData_rec( pObjHop );
+        // set the initial truth tables at the fanins
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+        {
+            assert( ((unsigned)pFanin->pCopy) & 0xffff0000 );
+            Hop_ManPi( pManHop, k )->pData = pFanin->pCopy;
+        }
+        // compute the truth table of internal nodes
+        pTruth = Lpk_CutTruthBdd_rec( dd, pManHop, pObjHop, pCut->nLeaves );
+        if ( Hop_IsComplement(pObj->pData) )
+            pTruth = Cloud_Not(pTruth);
+        // set the truth table at the node
+        pObj->pCopy = (Abc_Obj_t *)pTruth;
+        
+    }
+
+//    Cloud_bddPrint( dd, pTruth );
+//    printf( "Bdd size = %d. Total nodes = %d.\n", Cloud_DagSize( dd, pTruth ), dd->nNodesCur-dd->nVars-1 );
+    return pTruth;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the truth table of one cut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned * Lpk_CutTruth_rec( Hop_Man_t * pMan, Hop_Obj_t * pObj, int nVars, Vec_Ptr_t * vTtNodes, int * piCount )
 {
     unsigned * pTruth, * pTruth0, * pTruth1;
     assert( !Hop_IsComplement(pObj) );
@@ -49,17 +142,17 @@ unsigned * Lpk_CutTruth_rec( Hop_Man_t * pMan, Hop_Obj_t * pObj, int nVars, Vec_
         return pObj->pData;
     }
     // get the plan for a new truth table
-    pTruth = Vec_PtrEntry( vTtNodes, (*iCount)++ );
+    pTruth = Vec_PtrEntry( vTtNodes, (*piCount)++ );
     if ( Hop_ObjIsConst1(pObj) )
-        Extra_TruthFill( pTruth, nVars );
+        Kit_TruthFill( pTruth, nVars );
     else
     {
         assert( Hop_ObjIsAnd(pObj) );
         // compute the truth tables of the fanins
-        pTruth0 = Lpk_CutTruth_rec( pMan, Hop_ObjFanin0(pObj), nVars, vTtNodes, iCount );
-        pTruth1 = Lpk_CutTruth_rec( pMan, Hop_ObjFanin1(pObj), nVars, vTtNodes, iCount );
+        pTruth0 = Lpk_CutTruth_rec( pMan, Hop_ObjFanin0(pObj), nVars, vTtNodes, piCount );
+        pTruth1 = Lpk_CutTruth_rec( pMan, Hop_ObjFanin1(pObj), nVars, vTtNodes, piCount );
         // creat the truth table of the node
-        Extra_TruthAndPhase( pTruth, pTruth0, pTruth1, nVars, Hop_ObjFaninC0(pObj), Hop_ObjFaninC1(pObj) );
+        Kit_TruthAndPhase( pTruth, pTruth0, pTruth1, nVars, Hop_ObjFaninC0(pObj), Hop_ObjFaninC1(pObj) );
     }
     pObj->pData = pTruth;
     return pTruth;
@@ -76,7 +169,7 @@ unsigned * Lpk_CutTruth_rec( Hop_Man_t * pMan, Hop_Obj_t * pObj, int nVars, Vec_
   SeeAlso     []
 
 ***********************************************************************/
-unsigned * Lpk_CutTruth( Lpk_Man_t * p, Lpk_Cut_t * pCut )
+unsigned * Lpk_CutTruth( Lpk_Man_t * p, Lpk_Cut_t * pCut, int fInv )
 {
     Hop_Man_t * pManHop = p->pNtk->pManFunc;
     Hop_Obj_t * pObjHop;
@@ -84,10 +177,11 @@ unsigned * Lpk_CutTruth( Lpk_Man_t * p, Lpk_Cut_t * pCut )
     unsigned * pTruth;
     int i, k, iCount = 0;
 //    Lpk_NodePrintCut( p, pCut );
+    assert( pCut->nNodes > 0 );
 
     // initialize the leaves
     Lpk_CutForEachLeaf( p->pNtk, pCut, pObj, i )
-        pObj->pCopy = Vec_PtrEntry( p->vTtElems, i );
+        pObj->pCopy = Vec_PtrEntry( p->vTtElems, fInv? pCut->nLeaves-1-i : i );
 
     // construct truth table in the topological order
     Lpk_CutForEachNodeReverse( p->pNtk, pCut, pObj, i )
@@ -105,13 +199,21 @@ unsigned * Lpk_CutTruth( Lpk_Man_t * p, Lpk_Cut_t * pCut )
         // compute the truth table of internal nodes
         pTruth = Lpk_CutTruth_rec( pManHop, pObjHop, pCut->nLeaves, p->vTtNodes, &iCount );
         if ( Hop_IsComplement(pObj->pData) )
-            Extra_TruthNot( pTruth, pTruth, pCut->nLeaves );
+            Kit_TruthNot( pTruth, pTruth, pCut->nLeaves );
         // set the truth table at the node
         pObj->pCopy = (Abc_Obj_t *)pTruth;
     }
 
+    // make sure direct truth table is stored elsewhere (assuming the first call for direct truth!!!)
+    if ( fInv == 0 )
+    {
+        pTruth = Vec_PtrEntry( p->vTtNodes, iCount++ );
+        Kit_TruthCopy( pTruth, (unsigned *)pObj->pCopy, pCut->nLeaves );
+    }
+    assert( iCount <= Vec_PtrSize(p->vTtNodes) );
     return pTruth;
 }
+
 
 /**Function*************************************************************
 
@@ -535,8 +637,10 @@ int Lpk_NodeCuts( Lpk_Man_t * p )
         // compute the minimum number of LUTs needed to implement this cut
         // V = N * (K-1) + 1  ~~~~~  N = Ceiling[(V-1)/(K-1)] = (V-1)/(K-1) + [(V-1)%(K-1) > 0]
         pCut->nLuts = Lpk_LutNumLuts( pCut->nLeaves, p->pPars->nLutSize ); 
+//        pCut->Weight = (float)1.0 * (pCut->nNodes - pCut->nNodesDup - 1) / pCut->nLuts; //p->pPars->nLutsMax;
         pCut->Weight = (float)1.0 * (pCut->nNodes - pCut->nNodesDup) / pCut->nLuts; //p->pPars->nLutsMax;
         if ( pCut->Weight <= 1.001 )
+//        if ( pCut->Weight <= 0.999 )
             continue;
         pCut->fHasDsd = Lpk_NodeCutsCheckDsd( p, pCut );
         if ( pCut->fHasDsd )

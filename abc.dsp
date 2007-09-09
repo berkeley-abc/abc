@@ -2786,11 +2786,23 @@ SOURCE=.\src\aig\csw\cswTable.c
 # PROP Default_Filter ""
 # Begin Source File
 
+SOURCE=.\src\aig\kit\cloud.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\kit\cloud.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\kit\kit.h
 # End Source File
 # Begin Source File
 
 SOURCE=.\src\aig\kit\kitBdd.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\kit\kitCloud.c
 # End Source File
 # Begin Source File
 

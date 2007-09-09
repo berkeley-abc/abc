@@ -140,7 +140,7 @@ unsigned Lpk_ComputeSets( Kit_DsdNtk_t * p, Vec_Int_t * vSets )
   SeeAlso     []
 
 ***********************************************************************/
-void Lpk_PrintSetOne( int uSupport )
+static void Lpk_PrintSetOne( int uSupport )
 {
     unsigned k;
     for ( k = 0; k < 16; k++ )
@@ -159,7 +159,7 @@ void Lpk_PrintSetOne( int uSupport )
   SeeAlso     []
 
 ***********************************************************************/
-void Lpk_PrintSets( Vec_Int_t * vSets )
+static void Lpk_PrintSets( Vec_Int_t * vSets )
 {
     unsigned uSupport;
     int Number, i;
