@@ -82,7 +82,7 @@ Abc_Ntk_t * Abc_NtkAigToSeq( Abc_Ntk_t * pNtk )
     assert( Abc_NtkIsDfsOrdered(pNtk) );
 
     if ( RetValue = Abc_NtkRemoveSelfFeedLatches(pNtk) )
-        printf( "Modified %d self-feeding latches. The result will not verify.\n", RetValue );
+        printf( "Modified %d self-feeding latches. The result may not verify.\n", RetValue );
     assert( Abc_NtkCountSelfFeedLatches(pNtk) == 0 );
 
     // start the network

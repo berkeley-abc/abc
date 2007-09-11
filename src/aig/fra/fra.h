@@ -111,6 +111,7 @@ struct Fra_Sml_t_
     int              nWordsFrame;       // the number of words in each time frame
     int              nWordsTotal;       // the total number of words at a node
     int              nWordsPref;        // the number of word in the prefix
+    int              fNonConstOut;      // have seen a non-const-0 output during simulation
     int              nSimRounds;        // statistics
     int              timeSim;           // statistics
     unsigned         pData[0];          // simulation data for the nodes
@@ -256,7 +257,7 @@ extern void                Fra_ImpRecordInManager( Fra_Man_t * p, Aig_Man_t * pN
 /*=== fraInd.c ========================================================*/
 extern Aig_Man_t *         Fra_FraigInduction( Aig_Man_t * p, int nFramesP, int nFramesK, int nMaxImps, int fRewrite, int fUseImps, int fLatchCorr, int fWriteImps, int fVerbose, int * pnIter );
 /*=== fraLcr.c ========================================================*/
-extern Aig_Man_t *         Fra_FraigLatchCorrespondence( Aig_Man_t * pAig, int nFramesP, int nConfMax, int fVerbose, int * pnIter );
+extern Aig_Man_t *         Fra_FraigLatchCorrespondence( Aig_Man_t * pAig, int nFramesP, int nConfMax, int fProve, int fVerbose, int * pnIter );
 /*=== fraMan.c ========================================================*/
 extern void                Fra_ParamsDefault( Fra_Par_t * pParams );
 extern void                Fra_ParamsDefaultSeq( Fra_Par_t * pParams );

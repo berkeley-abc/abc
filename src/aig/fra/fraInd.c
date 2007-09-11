@@ -257,7 +257,7 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesP, int nFramesK,
     Aig_Obj_t * pObj;
     Cnf_Dat_t * pCnf;
     Aig_Man_t * pManAigNew;
-    int nNodesBeg, nRegsBeg, Temp;
+    int nNodesBeg, nRegsBeg;
     int nIter, i, clk = clock(), clk2;
 
     if ( Aig_ManNodeNum(pManAig) == 0 )
@@ -424,17 +424,18 @@ PRT( "Time", clock() - clk );
             break;
         }
     }
+/*
     // check implications using simulation
     if ( p->pCla->vImps && Vec_IntSize(p->pCla->vImps) )
     {
-        int clk = clock();
+        int Temp, clk = clock();
         if ( Temp = Fra_ImpVerifyUsingSimulation( p ) )
             printf( "Implications failing the simulation test = %d (out of %d).  ", Temp, Vec_IntSize(p->pCla->vImps) );
         else
             printf( "All %d implications have passed the simulation test.  ", Vec_IntSize(p->pCla->vImps) );
         PRT( "Time", clock() - clk );
     }
-
+*/
 
     // move the classes into representatives and reduce AIG
 clk2 = clock();

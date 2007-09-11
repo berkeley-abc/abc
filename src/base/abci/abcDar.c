@@ -49,10 +49,10 @@ Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fRegisters )
     Aig_Man_t * pMan;
     Aig_Obj_t * pObjNew;
     Abc_Obj_t * pObj;
-    int i, nNodes;
+    int i, nNodes, nDontCares;
     // make sure the latches follow PIs/POs
-    if ( fRegisters )
-    {
+    if ( fRegisters ) 
+    { 
         assert( Abc_NtkBoxNum(pNtk) == Abc_NtkLatchNum(pNtk) );
         Abc_NtkForEachCi( pNtk, pObj, i )
             if ( i < Abc_NtkPiNum(pNtk) )
@@ -64,6 +64,21 @@ Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fRegisters )
                 assert( Abc_ObjIsPo(pObj) );
             else
                 assert( Abc_ObjIsBi(pObj) );
+        // print warning about initial values
+        nDontCares = 0;
+        Abc_NtkForEachLatch( pNtk, pObj, i )
+            if ( Abc_LatchIsInitDc(pObj) )
+            {
+                Abc_LatchSetInit0(pObj);
+                nDontCares++;
+            }
+        if ( nDontCares )
+        {
+            printf( "Warning: %d registers in this network have don't-care init values.\n", nDontCares );
+            printf( "The don't-care are assumed to be 0. The result may not verify.\n" );
+            printf( "Use command \"print_latch\" to see the init values of registers.\n" );
+            printf( "Use command \"init\" to change the values.\n" );
+        }
     }
     // create the manager
     pMan = Aig_ManStart( Abc_NtkNodeNum(pNtk) + 100 );
@@ -985,7 +1000,7 @@ Abc_Ntk_t * Abc_NtkDarLcorr( Abc_Ntk_t * pNtk, int nFramesP, int nConfMax, int f
     pMan = Abc_NtkToDar( pNtk, 1 );
     if ( pMan == NULL )
         return NULL;
-    pMan = Fra_FraigLatchCorrespondence( pTemp = pMan, nFramesP, nConfMax, fVerbose, NULL );
+    pMan = Fra_FraigLatchCorrespondence( pTemp = pMan, nFramesP, nConfMax, 0, fVerbose, NULL );
     Aig_ManStop( pTemp );
     if ( Aig_ManRegNum(pMan) < Abc_NtkLatchNum(pNtk) )
         pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );

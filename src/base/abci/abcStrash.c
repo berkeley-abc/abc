@@ -80,7 +80,7 @@ Abc_Ntk_t * Abc_NtkRestrash( Abc_Ntk_t * pNtk, bool fCleanup )
     }
 //timeRetime = clock() - timeRetime;
 //    if ( RetValue = Abc_NtkRemoveSelfFeedLatches(pNtkAig) )
-//        printf( "Modified %d self-feeding latches. The result will not verify.\n", RetValue );
+//        printf( "Modified %d self-feeding latches. The result may not verify.\n", RetValue );
     return pNtkAig;
 
 }
@@ -145,7 +145,7 @@ Abc_Ntk_t * Abc_NtkRestrashZero( Abc_Ntk_t * pNtk, bool fCleanup )
     }
 //timeRetime = clock() - timeRetime;
 //    if ( RetValue = Abc_NtkRemoveSelfFeedLatches(pNtkAig) )
-//        printf( "Modified %d self-feeding latches. The result will not verify.\n", RetValue );
+//        printf( "Modified %d self-feeding latches. The result may not verify.\n", RetValue );
     return pNtkAig;
 
 }

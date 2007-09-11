@@ -96,7 +96,7 @@ static inline int Sml_NodeCheckImp( Fra_Sml_t * p, int Left, int Right )
 
 /**Function*************************************************************
 
-  Synopsis    [Counts the number of 1s in the reverse implication.]
+  Synopsis    [Counts the number of 1s in the complement of the implication.]
 
   Description []
                
@@ -118,7 +118,7 @@ static inline int Sml_NodeNotImpWeight( Fra_Sml_t * p, int Left, int Right )
 
 /**Function*************************************************************
 
-  Synopsis    [Counts the number of 1s in the reverse implication.]
+  Synopsis    [Computes the complement of the implication.]
 
   Description []
                
@@ -495,7 +495,7 @@ int Fra_ImpCheckForNode( Fra_Man_t * p, Vec_Int_t * vImps, Aig_Obj_t * pNode, in
 {
     Aig_Obj_t * pLeft, * pRight;
     Aig_Obj_t * pLeftF, * pRightF;
-    int i, Imp, Left, Right, Max;
+    int i, Imp, Left, Right, Max, RetValue;
     int fComplL, fComplR;
     Vec_IntForEachEntryStart( vImps, Imp, i, Pos )
     {
@@ -519,18 +519,31 @@ int Fra_ImpCheckForNode( Fra_Man_t * p, Vec_Int_t * vImps, Aig_Obj_t * pNode, in
         // check equality
         if ( Aig_Regular(pLeftF) == Aig_Regular(pRightF) )
         {
-            if ( fComplL != fComplR )
-                Vec_IntWriteEntry( vImps, i, 0 );
+            if ( fComplL == fComplR ) // x => x  - always true
+                continue;
+            assert( fComplL != fComplR );
+            // consider 4 possibilities:
+            // NOT(1) => 1    or   0 => 1  - always true
+            // 1 => NOT(1)    or   1 => 0  - never true
+            // NOT(x) => x    or   x       - not always true
+            // x => NOT(x)    or   NOT(x)  - not always true
+            if ( Aig_ObjIsConst1(Aig_Regular(pLeftF)) && fComplL ) // proved implication
+                continue;
+            // disproved implication
+            p->pCla->fRefinement = 1;
+            Vec_IntWriteEntry( vImps, i, 0 );
             continue;
         }
         // check the implication 
         // - if true, a clause is added
         // - if false, a cex is simulated
         // make sure the implication is refined
-        if ( Fra_NodesAreImp( p, Aig_Regular(pLeftF), Aig_Regular(pRightF), fComplL, fComplR ) == 0 )
+        RetValue = Fra_NodesAreImp( p, Aig_Regular(pLeftF), Aig_Regular(pRightF), fComplL, fComplR );
+        if ( RetValue != 1 )
         {
             p->pCla->fRefinement = 1;
-            Fra_SmlResimulate( p );
+            if ( RetValue == 0 )
+                Fra_SmlResimulate( p );
             if ( Vec_IntEntry(vImps, i) != 0 )
                 printf( "Fra_ImpCheckForNode(): Implication is not refined!\n" );
             assert( Vec_IntEntry(vImps, i) == 0 );
@@ -642,14 +655,15 @@ double Fra_ImpComputeStateSpaceRatio( Fra_Man_t * p )
 ***********************************************************************/
 int Fra_ImpVerifyUsingSimulation( Fra_Man_t * p )
 {
-    int nSimWords = 2000;
+    int nFrames = 2000;
+    int nSimWords = 8;
     Fra_Sml_t * pSeq;
     char * pfFails;
     int Left, Right, Imp, i, Counter;
     if ( p->pCla->vImps == NULL || Vec_IntSize(p->pCla->vImps) == 0 )
         return 0;
     // simulate the AIG manager with combinational patterns
-    pSeq = Fra_SmlSimulateSeq( p->pManAig, p->pPars->nFramesP, nSimWords, 4 );
+    pSeq = Fra_SmlSimulateSeq( p->pManAig, p->pPars->nFramesP, nFrames, nSimWords );
     // go through the implications and check how many of them do not hold
     pfFails = ALLOC( char, Vec_IntSize(p->pCla->vImps) );
     memset( pfFails, 0, sizeof(char) * Vec_IntSize(p->pCla->vImps) );
@@ -664,6 +678,7 @@ int Fra_ImpVerifyUsingSimulation( Fra_Man_t * p )
     for ( i = 0; i < Vec_IntSize(p->pCla->vImps); i++ )
         Counter += pfFails[i];
     free( pfFails );
+    Fra_SmlStop( pSeq );
     return Counter;
 }
 

@@ -48,7 +48,7 @@ Kit_DsdMan_t * Kit_DsdManAlloc( int nVars, int nNodes )
     p->nWords   = Kit_TruthWordNum( p->nVars );
     p->vTtElems = Vec_PtrAllocTruthTables( p->nVars );
     p->vTtNodes = Vec_PtrAllocSimInfo( nNodes, p->nWords );
-    p->dd       = Cloud_Init( 16, 13 );
+    p->dd       = Cloud_Init( 16, 14 );
     p->vTtBdds  = Vec_PtrAllocSimInfo( (1<<12), p->nWords );
     p->vNodes   = Vec_IntAlloc( 512 );
     return p;

@@ -128,7 +128,7 @@ void Fra_BmcFilterImplications( Fra_Man_t * p, Fra_Bmc_t * pBmc )
     {
         if ( Imp == 0 )
             continue;
-        Left = Fra_ImpLeft(Imp);
+        Left  = Fra_ImpLeft(Imp);
         Right = Fra_ImpRight(Imp);
         // get the corresponding nodes
         pLeft  = Aig_ManObj( pBmc->pAig, Left );
@@ -136,7 +136,7 @@ void Fra_BmcFilterImplications( Fra_Man_t * p, Fra_Bmc_t * pBmc )
         // iterate through the timeframes
         for ( f = pBmc->nPref; f < pBmc->nFramesAll; f++ )
         {
-            // get timeframes nodes
+            // get timeframe nodes
             pLeftT  = Bmc_ObjFrames( pLeft, f );
             pRightT = Bmc_ObjFrames( pRight, f );
             // get the corresponding FRAIG nodes
@@ -148,14 +148,21 @@ void Fra_BmcFilterImplications( Fra_Man_t * p, Fra_Bmc_t * pBmc )
             // check equality
             if ( Aig_Regular(pLeftF) == Aig_Regular(pRightF) )
             {
-                if ( fComplL != fComplR )
-                    Vec_IntWriteEntry( pBmc->vImps, i, 0 );
+                if ( fComplL == fComplR ) // x => x  - always true
+                    continue;
+                assert( fComplL != fComplR );
+                // consider 4 possibilities:
+                // NOT(1) => 1    or   0 => 1  - always true
+                // 1 => NOT(1)    or   1 => 0  - never true
+                // NOT(x) => x    or   x       - not always true
+                // x => NOT(x)    or   NOT(x)  - not always true
+                if ( Aig_ObjIsConst1(Aig_Regular(pLeftF)) && fComplL ) // proved implication
+                    continue;
+                // disproved implication
+                Vec_IntWriteEntry( pBmc->vImps, i, 0 ); 
                 break;
             }
             // check the implication 
-            // - if true, a clause is added
-            // - if false, a cex is simulated
-            // make sure the implication is refined
             if ( Fra_NodesAreImp( p, Aig_Regular(pLeftF), Aig_Regular(pRightF), fComplL, fComplR ) != 1 )
             {
                 Vec_IntWriteEntry( pBmc->vImps, i, 0 );
@@ -320,7 +327,7 @@ void Fra_BmcPerform( Fra_Man_t * p, int nPref, int nDepth )
 //        Fra_ClassesPrint( p->pCla, 0 );
         printf( "Const = %5d. Class = %5d. Lit = %5d. ", 
             Vec_PtrSize(p->pCla->vClasses1), Vec_PtrSize(p->pCla->vClasses), Fra_ClassesCountLits(p->pCla) );
-        if ( p->pCla->vImps && Vec_IntSize(p->pCla->vImps) > 0 )
+        if ( p->pCla->vImps )
             printf( "Imp = %5d. ", nImpsOld );
         printf( "\n" );
     }
@@ -338,7 +345,7 @@ void Fra_BmcPerform( Fra_Man_t * p, int nPref, int nDepth )
 //        Fra_ClassesPrint( p->pCla, 0 );
         printf( "Const = %5d. Class = %5d. Lit = %5d. ", 
             Vec_PtrSize(p->pCla->vClasses1), Vec_PtrSize(p->pCla->vClasses), Fra_ClassesCountLits(p->pCla) );
-        if ( p->pCla->vImps && Vec_IntSize(p->pCla->vImps) > 0 )
+        if ( p->pCla->vImps )
             printf( "Imp = %5d. ", Vec_IntSize(p->pCla->vImps) );
         printf( "\n" );
     }

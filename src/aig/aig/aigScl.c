@@ -157,12 +157,21 @@ int Aig_ManSeqCleanup( Aig_Man_t * p )
         Aig_ManForEachPi( p, pObj, i )
             if ( Aig_ObjIsTravIdCurrent(p, pObj) )
                 Vec_PtrPush( vCis, pObj );
+            else
+            {
+                Vec_PtrWriteEntry( p->vObjs, pObj->Id, NULL );
+//                Aig_ManRecycleMemory( p, pObj );
+            }
         vCos = Vec_PtrAlloc( Aig_ManPoNum(p) );
         Aig_ManForEachPo( p, pObj, i )
             if ( Aig_ObjIsTravIdCurrent(p, pObj) )
                 Vec_PtrPush( vCos, pObj );
             else
+            {
                 Aig_ObjDisconnect( p, pObj );
+                Vec_PtrWriteEntry( p->vObjs, pObj->Id, NULL );
+//                Aig_ManRecycleMemory( p, pObj );
+            }
         // remember the number of true PIs/POs
         nTruePis = Aig_ManPiNum(p) - Aig_ManRegNum(p);
         nTruePos = Aig_ManPoNum(p) - Aig_ManRegNum(p);

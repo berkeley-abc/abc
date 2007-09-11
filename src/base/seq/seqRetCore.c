@@ -99,7 +99,7 @@ Abc_Ntk_t * Seq_NtkRetimeDerive( Abc_Ntk_t * pNtk, int fVerbose )
     // make sure it is an AIG without self-feeding latches
     assert( !Abc_NtkHasAig(pNtk) );
     if ( RetValue = Abc_NtkRemoveSelfFeedLatches(pNtk) )
-        printf( "Modified %d self-feeding latches. The result will not verify.\n", RetValue );
+        printf( "Modified %d self-feeding latches. The result may not verify.\n", RetValue );
     assert( Abc_NtkCountSelfFeedLatches(pNtk) == 0 );
 
     // remove the dangling nodes

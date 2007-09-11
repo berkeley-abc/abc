@@ -500,17 +500,18 @@ void Fra_ClassNodesUnmark( Fra_Lcr_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Fra_FraigLatchCorrespondence( Aig_Man_t * pAig, int nFramesP, int nConfMax, int fVerbose, int * pnIter )
+Aig_Man_t * Fra_FraigLatchCorrespondence( Aig_Man_t * pAig, int nFramesP, int nConfMax, int fProve, int fVerbose, int * pnIter )
 {
     int nPartSize    = 200;
     int fReprSelect  = 0;
 
     Fra_Lcr_t * p;
+    Fra_Sml_t * pSml;
     Fra_Man_t * pTemp;
     Aig_Man_t * pAigPart, * pAigNew = NULL;
     Vec_Int_t * vPart;
 //    Aig_Obj_t * pObj = Aig_ManObj(pAig, 2078);
-    int i, nIter, clk = clock(), clk2, clk3;
+    int i, nIter, timeSim, clk = clock(), clk2, clk3;
     if ( Aig_ManNodeNum(pAig) == 0 )
     {
         if ( pnIter ) *pnIter = 0;
@@ -519,23 +520,33 @@ Aig_Man_t * Fra_FraigLatchCorrespondence( Aig_Man_t * pAig, int nFramesP, int nC
     assert( Aig_ManLatchNum(pAig) == 0 );
     assert( Aig_ManRegNum(pAig) > 0 );
 
-    // start the manager
-    p = Lcr_ManAlloc( pAig );
-    p->nFramesP = nFramesP;
-    p->fVerbose = fVerbose;
-
     // simulate the AIG 
 clk2 = clock();
 if ( fVerbose )
 printf( "Simulating AIG with %d nodes for %d cycles ...  ", Aig_ManNodeNum(pAig), nFramesP + 32 );
-    pTemp = Fra_LcrAigPrepare( p->pAig );
-    pTemp->pBmc = (Fra_Bmc_t *)p;
-    pTemp->pSml = Fra_SmlSimulateSeq( p->pAig, p->nFramesP, 32, 1 ); 
+    pSml = Fra_SmlSimulateSeq( pAig, nFramesP, 32, 1 ); 
 if ( fVerbose ) 
 {
 PRT( "Time", clock() - clk2 );
-p->timeSim += clock() - clk2;
+timeSim = clock() - clk2;
 }
+    // check if simulation discovered non-constant-0 POs
+    if ( fProve && pSml->fNonConstOut )
+    {
+        Fra_SmlStop( pSml );
+        return NULL;
+    }
+
+    // start the manager
+    p = Lcr_ManAlloc( pAig );
+    p->nFramesP = nFramesP;
+    p->fVerbose = fVerbose;
+    p->timeSim += timeSim;
+
+    pTemp = Fra_LcrAigPrepare( pAig );
+    pTemp->pBmc = (Fra_Bmc_t *)p;
+    pTemp->pSml = pSml;
+
     // get preliminary info about equivalence classes
     pTemp->pCla = p->pCla = Fra_ClassesStart( p->pAig );
     Fra_ClassesPrepare( p->pCla, 1 );

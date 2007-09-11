@@ -229,6 +229,9 @@ void Aig_ManStop( Aig_Man_t * p )
     // print time
     if ( p->time1 ) { PRT( "time1", p->time1 ); }
     if ( p->time2 ) { PRT( "time2", p->time2 ); }
+    // delete timing
+    if ( p->pManTime )
+        Aig_TManStop( p->pManTime );
     // delete fanout
     if ( p->pFanData ) 
         Aig_ManFanoutStop( p );
@@ -304,6 +307,8 @@ void Aig_ManPrintStats( Aig_Man_t * p )
 //    printf( "Lev = %3d. ",  Aig_ManCountLevels(p) );
     printf( "Max = %7d. ",  Aig_ManObjNumMax(p) );
     printf( "Lev = %3d. ",  Aig_ManLevels(p) );
+    if ( Aig_ManRegNum(p) )
+        printf( "Lat = %5d. ", Aig_ManRegNum(p) );
     printf( "\n" );
 }
 

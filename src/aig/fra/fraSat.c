@@ -75,6 +75,9 @@ int Fra_NodesAreEquiv( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew )
         p->pSat = sat_solver_new();
         p->nSatVars = 1;
         sat_solver_setnvars( p->pSat, 1000 );
+        // var 0 is reserved for const1 node - add the clause
+        pLits[0] = toLit( 0 );
+        sat_solver_addclause( p->pSat, pLits, pLits + 1 );
     }
 
     // if the nodes do not have SAT variables, allocate them
@@ -232,6 +235,9 @@ int Fra_NodesAreImp( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew, int fCom
         p->pSat = sat_solver_new();
         p->nSatVars = 1;
         sat_solver_setnvars( p->pSat, 1000 );
+        // var 0 is reserved for const1 node - add the clause
+        pLits[0] = toLit( 0 );
+        sat_solver_addclause( p->pSat, pLits, pLits + 1 );
     }
 
     // if the nodes do not have SAT variables, allocate them
@@ -318,6 +324,9 @@ int Fra_NodeIsConst( Fra_Man_t * p, Aig_Obj_t * pNew )
         p->pSat = sat_solver_new();
         p->nSatVars = 1;
         sat_solver_setnvars( p->pSat, 1000 );
+        // var 0 is reserved for const1 node - add the clause
+        pLits[0] = toLit( 0 );
+        sat_solver_addclause( p->pSat, pLits, pLits + 1 );
     }
 
     // if the nodes do not have SAT variables, allocate them

@@ -2930,6 +2930,10 @@ SOURCE=.\src\aig\aig\aigTable.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\aig\aigTime.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\aig\aigTiming.c
 # End Source File
 # Begin Source File

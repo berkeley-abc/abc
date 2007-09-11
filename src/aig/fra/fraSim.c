@@ -137,6 +137,28 @@ int Fra_SmlNodeNotEquWeight( Fra_Sml_t * p, int Left, int Right )
     return Counter;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if simulation info is composed of all zeros.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fra_SmlNodeIsZero( Fra_Sml_t * p, Aig_Obj_t * pObj )
+{
+    unsigned * pSims;
+    int i;
+    pSims = Fra_ObjSim(p, pObj->Id);
+    for ( i = p->nWordsPref; i < p->nWordsTotal; i++ )
+        if ( pSims[i] )
+            return 0;
+    return 1;
+}
+
 
 
 /**Function*************************************************************
@@ -550,6 +572,27 @@ void Fra_SmlNodeTransferNext( Fra_Sml_t * p, Aig_Obj_t * pOut, Aig_Obj_t * pIn, 
 
 /**Function*************************************************************
 
+  Synopsis    [Check if any of the POs becomes non-constant.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fra_SmlCheckNonConstOutputs( Fra_Sml_t * p )
+{
+    Aig_Obj_t * pObj;
+    int i;
+    Aig_ManForEachPoSeq( p->pAig, pObj, i )
+        if ( !Fra_SmlNodeIsZero(p, pObj) )
+            return 1;
+    return 0;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Simulates AIG manager.]
 
   Description [Assumes that the PI simulation info is attached.]
@@ -569,14 +612,16 @@ clk = clock();
         // simulate the nodes
         Aig_ManForEachNode( p->pAig, pObj, i )
             Fra_SmlNodeSimulate( p, pObj, f );
+        // copy simulation info into outputs
+        Aig_ManForEachPoSeq( p->pAig, pObj, i )
+            Fra_SmlNodeCopyFanin( p, pObj, f );
+        // quit if this is the last timeframe
         if ( f == p->nFrames - 1 )
             break;
         // copy simulation info into outputs
         Aig_ManForEachLiSeq( p->pAig, pObj, i )
             Fra_SmlNodeCopyFanin( p, pObj, f );
         // copy simulation info into the inputs
-//        for ( i = 0; i < Aig_ManRegNum(p->pAig); i++ )
-//            Fra_SmlNodeTransferNext( p, Aig_ManLi(p->pAig, i), Aig_ManLo(p->pAig, i), f );
         Aig_ManForEachLiLoSeq( p->pAig, pObjLi, pObjLo, i )
             Fra_SmlNodeTransferNext( p, pObjLi, pObjLo, f );
     }
@@ -768,6 +813,7 @@ Fra_Sml_t * Fra_SmlSimulateSeq( Aig_Man_t * pAig, int nPref, int nFrames, int nW
     p = Fra_SmlStart( pAig, nPref, nFrames, nWords );
     Fra_SmlInitialize( p, 1 );
     Fra_SmlSimulateOne( p );
+    p->fNonConstOut = Fra_SmlCheckNonConstOutputs( p );
     return p;
 }
 

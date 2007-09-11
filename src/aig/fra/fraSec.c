@@ -103,6 +103,7 @@ PRT( "Time", clock() - clkTotal );
 ***********************************************************************/
 int Fra_FraigSec( Aig_Man_t * p, int nFramesMax, int fRetimeFirst, int fVerbose, int fVeryVerbose )
 {
+    Fra_Sml_t * pSml;
     Aig_Man_t * pNew, * pTemp;
     int nFrames, RetValue, nIter, clk, clkTotal = clock();
     int fLatchCorr = 0;
@@ -148,8 +149,16 @@ clk = clock();
     {
     pNew = Aig_ManDup( pTemp = pNew, 1 );
     Aig_ManStop( pTemp );
-    pNew = Fra_FraigLatchCorrespondence( pTemp = pNew, 0, 100000, fVeryVerbose, &nIter );
+    pNew = Fra_FraigLatchCorrespondence( pTemp = pNew, 0, 100000, 1, fVeryVerbose, &nIter );
     Aig_ManStop( pTemp );
+    if ( pNew == NULL )
+    {
+        RetValue = 0;
+        printf( "Networks are NOT EQUIVALENT after simulation.   " );
+PRT( "Time", clock() - clkTotal );
+        return RetValue;
+    }
+
     if ( fVerbose )
     {
         printf( "Latch-corr (I=%3d):   Latches = %5d. Nodes = %6d. ", 
@@ -196,7 +205,7 @@ clk = clock();
             printf( "Rewriting:            Latches = %5d. Nodes = %6d. ", 
                 Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
 PRT( "Time", clock() - clk );
-        }
+        } 
         // perform retiming
 clk = clock();
         pNew = Rtm_ManRetime( pTemp = pNew, 1, 1000, 0 );
@@ -211,6 +220,26 @@ PRT( "Time", clock() - clk );
         }
         if ( pNew->nRegs )
         pNew = Aig_ManConstReduce( pNew, 0 );
+
+        // perform sequential simulation
+clk = clock();
+        pSml = Fra_SmlSimulateSeq( pNew, 0, 128 * nFrames, 1 + 16/(1+Aig_ManNodeNum(pNew)/1000) ); 
+        if ( fVerbose )
+        {
+            printf( "Seq simulation  :     Latches = %5d. Nodes = %6d. ", 
+                Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
+PRT( "Time", clock() - clk );
+        }
+        if ( pSml->fNonConstOut )
+        {
+            Fra_SmlStop( pSml );
+            Aig_ManStop( pNew );
+            RetValue = 0;
+            printf( "Networks are NOT EQUIVALENT after simulation.   " );
+PRT( "Time", clock() - clkTotal );
+            return RetValue;
+        }
+        Fra_SmlStop( pSml );
     }
 
     // get the miter status
