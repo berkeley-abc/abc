@@ -270,6 +270,8 @@ Aig_Man_t * Aig_ManDupRepr( Aig_Man_t * p, int fOrdered )
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
     pNew->pName = Aig_UtilStrsav( p->pName );
     pNew->nRegs = p->nRegs;
+    if ( p->vFlopNums )
+        pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
     // map the const and primary inputs
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);

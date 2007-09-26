@@ -50,6 +50,8 @@ Aig_Man_t * Aig_ManRemap( Aig_Man_t * p, Vec_Ptr_t * vMap )
     pNew->pName = Aig_UtilStrsav( p->pName );
     pNew->nRegs = p->nRegs;
     pNew->nAsserts = p->nAsserts;
+    if ( p->vFlopNums )
+        pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
     // create the PIs
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
@@ -152,6 +154,20 @@ int Aig_ManSeqCleanup( Aig_Man_t * p )
     // if some latches are removed, update PIs/POs
     if ( Vec_PtrSize(vNodes) < Aig_ManPoNum(p) )
     {
+        if ( p->vFlopNums )
+        {
+            int nTruePos = Aig_ManPoNum(p)-Aig_ManRegNum(p);
+            // remember numbers of flops in the flops
+            Aig_ManForEachLiSeq( p, pObj, i )
+                pObj->pNext = (void *)Vec_IntEntry( p->vFlopNums, i - nTruePos );
+            // reset the flop numbers
+            Vec_PtrForEachEntryStart( vNodes, pObj, i, nTruePos )
+                Vec_IntWriteEntry( p->vFlopNums, i - nTruePos, (int)pObj->pNext );
+            Vec_IntShrink( p->vFlopNums, Vec_PtrSize(vNodes) - nTruePos );
+            // clean the next pointer
+            Aig_ManForEachLiSeq( p, pObj, i )
+                pObj->pNext = NULL;
+        }
         // collect new CIs/COs
         vCis = Vec_PtrAlloc( Aig_ManPiNum(p) );
         Aig_ManForEachPi( p, pObj, i )
@@ -184,6 +200,7 @@ int Aig_ManSeqCleanup( Aig_Man_t * p )
         Vec_PtrFree( p->vPos );    p->vPos = vCos;
         p->nObjs[AIG_OBJ_PI] = Vec_PtrSize( p->vPis );
         p->nObjs[AIG_OBJ_PO] = Vec_PtrSize( p->vPos );
+                
     }
     Vec_PtrFree( vNodes );
     // remove dangling nodes

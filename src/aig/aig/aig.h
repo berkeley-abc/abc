@@ -68,19 +68,23 @@ typedef enum {
 // the AIG node
 struct Aig_Obj_t_  // 8 words
 {
-    void *           pData;          // misc (cuts, copy, etc)
     Aig_Obj_t *      pNext;          // strashing table
     Aig_Obj_t *      pFanin0;        // fanin
     Aig_Obj_t *      pFanin1;        // fanin
-    unsigned long    Type    :  3;   // object type
-    unsigned long    fPhase  :  1;   // value under 000...0 pattern
-    unsigned long    fMarkA  :  1;   // multipurpose mask
-    unsigned long    fMarkB  :  1;   // multipurpose mask
-    unsigned long    nRefs   : 26;   // reference count 
+    unsigned int     Type    :  3;   // object type
+    unsigned int     fPhase  :  1;   // value under 000...0 pattern
+    unsigned int     fMarkA  :  1;   // multipurpose mask
+    unsigned int     fMarkB  :  1;   // multipurpose mask
+    unsigned int     nRefs   : 26;   // reference count 
     unsigned         Level   : 24;   // the level of this node
     unsigned         nCuts   :  8;   // the number of cuts
     int              TravId;         // unique ID of last traversal involving the node
     int              Id;             // unique ID of the node
+    union {                          // temporary store for user's data
+        void *       pData;
+        int          iData;
+        float        dData;
+    };
 };
 
 // the AIG manager
@@ -133,6 +137,10 @@ struct Aig_Man_t_
     void (*pImpFunc) (void*, void*); // implication checking precedure
     void *           pImpData;       // implication checking data
     Aig_TMan_t *     pManTime;       // the timing manager
+    Vec_Int_t *      vPiIds;
+    Vec_Int_t *      vPoIds;
+    Vec_Ptr_t *      vMapped;
+    Vec_Int_t *      vFlopNums;      
     // timing statistics
     int              time1;
     int              time2;
@@ -497,6 +505,7 @@ extern void            Aig_ObjPrintVerbose( Aig_Obj_t * pObj, int fHaig );
 extern void            Aig_ManPrintVerbose( Aig_Man_t * p, int fHaig );
 extern void            Aig_ManDump( Aig_Man_t * p );
 extern void            Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName );
+extern void            Aig_ManDumpVerilog( Aig_Man_t * p, char * pFileName );
 /*=== aigWin.c =========================================================*/
 extern void            Aig_ManFindCut( Aig_Obj_t * pRoot, Vec_Ptr_t * vFront, Vec_Ptr_t * vVisited, int nSizeLimit, int nFanoutLimit );
  

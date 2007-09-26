@@ -85,7 +85,10 @@ Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fRegisters )
     pMan->pName = Extra_UtilStrsav( pNtk->pName );
     // save the number of registers
     if ( fRegisters )
+    {
         pMan->nRegs = Abc_NtkLatchNum(pNtk);
+        pMan->vFlopNums = Vec_IntStartNatural( pMan->nRegs );
+    }
     // transfer the pointers to the basic nodes
     Abc_AigConst1(pNtk)->pCopy = (Abc_Obj_t *)Aig_ManConst1(pMan);
     Abc_NtkForEachCi( pNtk, pObj, i )
@@ -114,6 +117,7 @@ Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fRegisters )
     // remove dangling nodes
     if ( nNodes = Aig_ManCleanup( pMan ) )
         printf( "Abc_NtkToDar(): Unexpected %d dangling nodes when converting to AIG!\n", nNodes );
+Aig_ManDumpVerilog( pMan, "test.v" );
     if ( !Aig_ManCheck( pMan ) )
     {
         printf( "Abc_NtkToDar: AIG check has failed.\n" );
@@ -141,7 +145,7 @@ Abc_Ntk_t * Abc_NtkFromDar( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
     Abc_Obj_t * pObjNew;
     Aig_Obj_t * pObj;
     int i;
-    assert( Aig_ManRegNum(pMan) == Abc_NtkLatchNum(pNtkOld) );
+//    assert( Aig_ManRegNum(pMan) == Abc_NtkLatchNum(pNtkOld) );
     // perform strashing
     pNtkNew = Abc_NtkStartFrom( pNtkOld, ABC_NTK_STRASH, ABC_FUNC_AIG );
     // transfer the pointers to the basic nodes
@@ -192,7 +196,7 @@ Abc_Ntk_t * Abc_NtkFromDarSeqSweep( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
 {
     Vec_Ptr_t * vNodes;
     Abc_Ntk_t * pNtkNew;
-    Abc_Obj_t * pObjNew;
+    Abc_Obj_t * pObjNew, * pLatch;
     Aig_Obj_t * pObj, * pObjLo, * pObjLi;
     int i;
 //    assert( Aig_ManRegNum(pMan) != Abc_NtkLatchNum(pNtkOld) );
@@ -212,7 +216,19 @@ Abc_Ntk_t * Abc_NtkFromDarSeqSweep( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
         Abc_ObjAddFanin( pObjLo->pData, pObjNew );
         Abc_LatchSetInit0( pObjNew );
     }
-    Abc_NtkAddDummyBoxNames( pNtkNew );
+    if ( pMan->vFlopNums == NULL )
+        Abc_NtkAddDummyBoxNames( pNtkNew );
+    else
+    {
+        assert( Abc_NtkBoxNum(pNtkOld) == Abc_NtkLatchNum(pNtkOld) );
+        Abc_NtkForEachLatch( pNtkNew, pObjNew, i )
+        {
+            pLatch = Abc_NtkBox( pNtkOld, Vec_IntEntry( pMan->vFlopNums, i ) );
+            Abc_ObjAssignName( pObjNew, Abc_ObjName(pLatch), NULL );
+            Abc_ObjAssignName( Abc_ObjFanin0(pObjNew),  Abc_ObjName(Abc_ObjFanin0(pLatch)), NULL );
+            Abc_ObjAssignName( Abc_ObjFanout0(pObjNew), Abc_ObjName(Abc_ObjFanout0(pLatch)), NULL );
+        }
+    }
     // rebuild the AIG
     vNodes = Aig_ManDfs( pMan );
     Vec_PtrForEachEntry( vNodes, pObj, i )
@@ -959,8 +975,8 @@ Abc_Ntk_t * Abc_NtkDarSeqSweep( Abc_Ntk_t * pNtk, int nFramesP, int nFramesK, in
     // so fraiging does not reduce the number of functions represented by nodes
     Fraig_ParamsSetDefault( &Params );
     Params.nBTLimit = 100000;
-    pNtkFraig = Abc_NtkFraig( pNtk, &Params, 0, 0 );
-//    pNtkFraig = Abc_NtkDup( pNtk );
+//    pNtkFraig = Abc_NtkFraig( pNtk, &Params, 0, 0 );
+    pNtkFraig = Abc_NtkDup( pNtk );
 if ( fVerbose ) 
 {
 PRT( "Initial fraiging time", clock() - clk );

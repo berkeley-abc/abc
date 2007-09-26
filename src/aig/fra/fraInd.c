@@ -147,6 +147,7 @@ Aig_Man_t * Fra_FramesWithClasses( Fra_Man_t * p )
         Fra_ObjSetFraig( pObj, 0, Aig_ObjCreatePi(pManFraig) );
 
     // add timeframes
+//    pManFraig->fAddStrash = 1;
     for ( f = 0; f < p->nFramesAll - 1; f++ )
     {
         // set the constraints on the latch outputs
@@ -163,6 +164,7 @@ Aig_Man_t * Fra_FramesWithClasses( Fra_Man_t * p )
         Aig_ManForEachLiLoSeq( p->pManAig, pObjLi, pObjLo, k )
             Fra_ObjSetFraig( pObjLo, f+1, Fra_ObjChild0Fra(pObjLi,f) );
     }
+//    pManFraig->fAddStrash = 0;
     // mark the asserts
     pManFraig->nAsserts = Aig_ManPoNum(pManFraig);
     // add the POs for the latch outputs of the last frame
@@ -348,7 +350,9 @@ PRT( "Time", clock() - clk );
         // mark the classes as non-refined
         p->pCla->fRefinement = 0;
         // derive non-init K-timeframes while implementing e-classes
+clk2 = clock();
         p->pManFraig = Fra_FramesWithClasses( p );
+p->timeTrav += clock() - clk2;
 //Aig_ManDumpBlif( p->pManFraig, "testaig.blif" );
 
         // perform AIG rewriting
@@ -406,6 +410,9 @@ PRT( "Time", clock() - clk );
         p->nSatCallsRecent = 0;
         p->nSatCallsSkipped = 0;
         Fra_FraigSweep( p );
+
+//        Sat_SolverPrintStats( stdout, p->pSat );
+
         // remove FRAIG and SAT solver
         Aig_ManStop( p->pManFraig );   p->pManFraig = NULL;
         sat_solver_delete( p->pSat );  p->pSat = NULL; 
@@ -425,7 +432,7 @@ PRT( "Time", clock() - clk );
         }
     }
 /*
-    // check implications using simulation
+    // verify implications using simulation
     if ( p->pCla->vImps && Vec_IntSize(p->pCla->vImps) )
     {
         int Temp, clk = clock();

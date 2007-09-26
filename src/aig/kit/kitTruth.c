@@ -1634,6 +1634,33 @@ int Kit_TruthCountMinterms( unsigned * pTruth, int nVars, int * pRes, int * pByt
 
 /**Function*************************************************************
 
+  Synopsis    [Prints the hex unsigned into a file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Kit_PrintHexadecimal( FILE * pFile, unsigned Sign[], int nVars )
+{
+    int nDigits, Digit, k;
+    // write the number into the file
+    nDigits = (1 << nVars) / 4;
+    for ( k = nDigits - 1; k >= 0; k-- )
+    {
+        Digit = ((Sign[k/8] >> ((k%8) * 4)) & 15);
+        if ( Digit < 10 )
+            fprintf( pFile, "%d", Digit );
+        else
+            fprintf( pFile, "%c", 'a' + Digit-10 );
+    }
+//    fprintf( pFile, "\n" );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Fast counting minterms for the functions.]
 
   Description [Returns 0 if the function is a constant.]
@@ -1665,7 +1692,7 @@ void Kit_TruthCountMintermsPrecomp()
         uWord |= (bit_count[i & 0x33] << 16);
         uWord |= (bit_count[i & 0x0f] << 24);
         printf( "0x" );
-        Extra_PrintHexadecimal( stdout, &uWord, 5 );
+        Kit_PrintHexadecimal( stdout, &uWord, 5 );
         printf( ", " );
     }
 }

@@ -270,22 +270,22 @@ int Aig_ManCountLevels( Aig_Man_t * p )
     Aig_Obj_t * pObj;
     int i, LevelsMax, Level0, Level1;
     // initialize the levels
-    Aig_ManConst1(p)->pData = NULL;
+    Aig_ManConst1(p)->iData = 0;
     Aig_ManForEachPi( p, pObj, i )
-        pObj->pData = NULL;
+        pObj->iData = 0;
     // compute levels in a DFS order
     vNodes = Aig_ManDfs( p );
     Vec_PtrForEachEntry( vNodes, pObj, i )
     {
-        Level0 = (int)Aig_ObjFanin0(pObj)->pData;
-        Level1 = (int)Aig_ObjFanin1(pObj)->pData;
-        pObj->pData = (void *)(1 + Aig_ObjIsExor(pObj) + AIG_MAX(Level0, Level1));
+        Level0 = Aig_ObjFanin0(pObj)->iData;
+        Level1 = Aig_ObjFanin1(pObj)->iData;
+        pObj->iData = 1 + Aig_ObjIsExor(pObj) + AIG_MAX(Level0, Level1);
     }
     Vec_PtrFree( vNodes );
     // get levels of the POs
     LevelsMax = 0;
     Aig_ManForEachPo( p, pObj, i )
-        LevelsMax = AIG_MAX( LevelsMax, (int)Aig_ObjFanin0(pObj)->pData );
+        LevelsMax = AIG_MAX( LevelsMax, Aig_ObjFanin0(pObj)->iData );
     return LevelsMax;
 }
 

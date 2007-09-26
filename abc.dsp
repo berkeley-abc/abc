@@ -2798,6 +2798,10 @@ SOURCE=.\src\aig\kit\kit.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\kit\kitAig.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\kit\kitBdd.c
 # End Source File
 # Begin Source File

@@ -27,6 +27,10 @@ extern "C" {
 
 #ifdef _WIN32
 #define inline __inline // compatible with MS VS 6.0
+#pragma warning(disable : 4152) // warning C4152: nonstandard extension, function/data pointer conversion in expression
+#pragma warning(disable : 4244) // warning C4244: '+=' : conversion from 'int ' to 'unsigned short ', possible loss of data
+#pragma warning(disable : 4514) // warning C4514: 'Vec_StrPop' : unreferenced inline function has been removed
+#pragma warning(disable : 4710) // warning C4710: function 'Vec_PtrGrow' not inlined
 #endif
 
 ////////////////////////////////////////////////////////////////////////
@@ -69,6 +73,10 @@ extern "C" {
 
 #ifndef PRT
 #define PRT(a,t)  printf("%s = ", (a)); printf("%6.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC))
+#endif
+
+#ifndef PRTP
+#define PRTP(a,t,T)  printf("%s = ", (a)); printf("%6.2f sec (%6.2f %%)\n", (float)(t)/(float)(CLOCKS_PER_SEC), (T)? 100.0*(t)/(T) : 0.0)
 #endif
 
 #include "vecInt.h"

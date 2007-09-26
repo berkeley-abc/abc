@@ -1,4 +1,5 @@
-SRC +=  src/aig/kit/kitBdd.c \
+SRC +=  src/aig/kit/kitAig.c \
+    src/aig/kit/kitBdd.c \
     src/aig/kit/kitCloud.c src/aig/kit/cloud.c \
     src/aig/kit/kitDsd.c \
     src/aig/kit/kitFactor.c \

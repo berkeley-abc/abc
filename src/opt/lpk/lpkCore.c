@@ -507,6 +507,9 @@ int Lpk_Resynthesize( Abc_Ntk_t * pNtk, Lpk_Par_t * pPars )
     int i, Iter, nNodes, nNodesPrev, clk = clock();
     assert( Abc_NtkIsLogic(pNtk) );
 
+    // sweep dangling nodes as a preprocessing step
+    Abc_NtkSweep( pNtk, 0 );
+
     // get the number of inputs
     pPars->nLutSize = Abc_NtkGetFaninMax( pNtk );
     // adjust the number of crossbars based on LUT size

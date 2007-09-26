@@ -211,6 +211,113 @@ void Abc_NtkInsertLatchValues( Abc_Ntk_t * pNtk, Vec_Int_t * vValues )
         pLatch->pData = (void *)(vValues? (Vec_IntEntry(vValues,i)? ABC_INIT_ONE : ABC_INIT_ZERO) : ABC_INIT_DC);
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Creates latch with the given initial value.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Abc_NtkAddLatch( Abc_Ntk_t * pNtk, Abc_Obj_t * pDriver, Abc_InitType_t Init )
+{
+    Abc_Obj_t * pLatchOut, * pLatch, * pLatchIn;
+    pLatchOut = Abc_NtkCreateBo(pNtk);
+    pLatch    = Abc_NtkCreateLatch(pNtk);
+    pLatchIn  = Abc_NtkCreateBi(pNtk);
+    Abc_ObjAssignName( pLatchOut, Abc_ObjName(pLatch), "_lo" );
+    Abc_ObjAssignName( pLatchIn,  Abc_ObjName(pLatch), "_li" );
+    Abc_ObjAddFanin( pLatchOut, pLatch );
+    Abc_ObjAddFanin( pLatch, pLatchIn );
+    Abc_ObjAddFanin( pLatchIn, pDriver );
+    pLatch->pData = (void *)Init;
+    return pLatchOut;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates MUX.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkNodeConvertToMux( Abc_Ntk_t * pNtk, Abc_Obj_t * pNodeC, Abc_Obj_t * pNode1, Abc_Obj_t * pNode0, Abc_Obj_t * pMux )
+{
+    assert( Abc_NtkIsLogic(pNtk) );
+    Abc_ObjAddFanin( pMux, pNodeC );
+    Abc_ObjAddFanin( pMux, pNode1 );
+    Abc_ObjAddFanin( pMux, pNode0 );
+    if ( Abc_NtkHasSop(pNtk) )
+        pMux->pData = Abc_SopRegister( pNtk->pManFunc, "11- 1\n0-1 1\n" );
+    else if ( Abc_NtkHasBdd(pNtk) )
+        pMux->pData = Cudd_bddIte(pNtk->pManFunc,Cudd_bddIthVar(pNtk->pManFunc,0),Cudd_bddIthVar(pNtk->pManFunc,1),Cudd_bddIthVar(pNtk->pManFunc,2)), Cudd_Ref( pMux->pData );
+    else if ( Abc_NtkHasAig(pNtk) )
+        pMux->pData = Hop_Mux(pNtk->pManFunc,Hop_IthVar(pNtk->pManFunc,0),Hop_IthVar(pNtk->pManFunc,1),Hop_IthVar(pNtk->pManFunc,2));
+    else
+        assert( 0 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converts registers with DC values into additional PIs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkConvertDcLatches( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pCtrl, * pLatch, * pMux, * pPi;
+    Abc_InitType_t Init = ABC_INIT_ZERO;
+    int i, fFound = 0, Counter;
+    // check if there are latches with DC values
+    Abc_NtkForEachLatch( pNtk, pLatch, i )
+        if ( Abc_LatchIsInitDc(pLatch) )
+        {
+            fFound = 1;
+            break;
+        }
+    if ( !fFound )
+        return;
+    // add control latch
+    pCtrl = Abc_NtkAddLatch( pNtk, Abc_NtkCreateNodeConst1(pNtk), Init );
+    // add fanouts for each latch with DC values
+    Counter = 0;
+    Abc_NtkForEachLatch( pNtk, pLatch, i )
+    {
+        if ( !Abc_LatchIsInitDc(pLatch) )
+            continue;
+        // change latch value
+        pLatch->pData = (void *)Init;
+        // if the latch output has the same name as a PO, rename it
+        if ( Abc_NodeFindCoFanout( Abc_ObjFanout0(pLatch) ) )
+        {
+            Nm_ManDeleteIdName( pLatch->pNtk->pManName, Abc_ObjFanout0(pLatch)->Id );
+            Abc_ObjAssignName( Abc_ObjFanout0(pLatch), Abc_ObjName(pLatch), "_lo" );
+        }
+        // create new PIs
+        pPi = Abc_NtkCreatePi( pNtk );
+        Abc_ObjAssignName( pPi, Abc_ObjName(pLatch), "_pi" );
+        // create a new node and transfer fanout from latch output to the new node
+        pMux = Abc_NtkCreateNode( pNtk );
+        Abc_ObjTransferFanout( Abc_ObjFanout0(pLatch), pMux );
+        // convert the node into a mux
+        Abc_NtkNodeConvertToMux( pNtk, pCtrl, Abc_ObjFanout0(pLatch), pPi, pMux );
+        Counter++;
+    }
+    printf( "The number of converted latches with DC values = %d.\n", Counter );
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

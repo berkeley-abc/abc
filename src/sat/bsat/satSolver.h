@@ -172,6 +172,8 @@ struct sat_solver_t
     veci     act_vars;      // variables whose activity has changed
     double*  factors;       // the activity factors
     int      nRestarts;     // the number of local restarts
+    int      nCalls;        // the number of local restarts
+    int      nCalls2;        // the number of local restarts
  
     Sat_MmStep_t * pMem;
 

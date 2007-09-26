@@ -249,7 +249,8 @@ void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols )
 */
     // write the comment
     fprintf( pFile, "c\n" );
-    fprintf( pFile, "%s\n", pMan->pName );
+    if ( pMan->pName )
+        fprintf( pFile, ".model %s\n", pMan->pName );
     fprintf( pFile, "This file was produced by the AIG package in ABC on %s\n", Ioa_TimeStamp() );
     fprintf( pFile, "For information about AIGER format, refer to %s\n", "http://fmv.jku.at/aiger" );
     fclose( pFile );

@@ -139,6 +139,8 @@ Aig_Man_t * Aig_ManDup( Aig_Man_t * p, int fOrdered )
     pNew->pName = Aig_UtilStrsav( p->pName );
     pNew->nRegs = p->nRegs;
     pNew->nAsserts = p->nAsserts;
+    if ( p->vFlopNums )
+        pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
     // create the PIs
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
@@ -226,6 +228,8 @@ void Aig_ManStop( Aig_Man_t * p )
 {
     Aig_Obj_t * pObj;
     int i;
+    if ( p->vMapped )
+        Vec_PtrFree( p->vMapped );
     // print time
     if ( p->time1 ) { PRT( "time1", p->time1 ); }
     if ( p->time2 ) { PRT( "time2", p->time2 ); }
@@ -246,6 +250,7 @@ void Aig_ManStop( Aig_Man_t * p )
     if ( p->vBufs )    Vec_PtrFree( p->vBufs );
     if ( p->vLevelR )  Vec_IntFree( p->vLevelR );
     if ( p->vLevels )  Vec_VecFree( p->vLevels );
+    if ( p->vFlopNums) Vec_IntFree( p->vFlopNums );
     FREE( p->pName );
     FREE( p->pObjCopies );
     FREE( p->pReprs );

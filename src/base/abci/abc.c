@@ -161,6 +161,7 @@ static int Abc_CommandIf             ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandScut           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandInit           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandZero           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandUndc           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPipe           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSeq            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandUnseq          ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -329,6 +330,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 //    Cmd_CommandAdd( pAbc, "Sequential",   "scut",          Abc_CommandScut,             0 );
     Cmd_CommandAdd( pAbc, "Sequential",   "init",          Abc_CommandInit,             1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "zero",          Abc_CommandZero,             1 );
+    Cmd_CommandAdd( pAbc, "Sequential",   "undc",          Abc_CommandUndc,             1 );
 //    Cmd_CommandAdd( pAbc, "Sequential",   "pipe",          Abc_CommandPipe,             1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "retime",        Abc_CommandRetime,           1 );
 //    Cmd_CommandAdd( pAbc, "Sequential",   "sfpga",         Abc_CommandSeqFpga,          1 );
@@ -6318,10 +6320,16 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 */
-
+/*
     if ( !Abc_NtkIsStrash(pNtk) )
     {
         fprintf( stdout, "Currently only works for structurally hashed circuits.\n" );
+        return 0;
+    }
+*/
+    if ( Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( stdout, "Currently only works for logic circuits.\n" );
         return 0;
     }
 
@@ -10444,6 +10452,69 @@ int Abc_CommandZero( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     fprintf( pErr, "usage: zero [-h]\n" );
     fprintf( pErr, "\t        converts latches to have const-0 initial value\n" );
+    fprintf( pErr, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandUndc( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( Abc_NtkIsComb(pNtk) )
+    {
+        fprintf( pErr, "The current network is combinational.\n" );
+        return 0;
+    }
+
+    if ( !Abc_NtkIsLogic(pNtk) )
+    {
+        fprintf( pErr, "This command works only for logic networks.\n" );
+        return 0;
+    }
+
+    // get the new network
+    Abc_NtkConvertDcLatches( pNtk );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: undc [-h]\n" );
+    fprintf( pErr, "\t        converts latches with DC init values into free PIs\n" );
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }

@@ -245,6 +245,21 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
 //        printf( "Io_ReadAiger(): I/O/register names are not given. Generating short names.\n" );
         Abc_NtkShortNames( pNtkNew );
     }
+
+    // read the name of the model if given
+    if ( *pCur == 'c' )
+    {
+        if ( !strncmp( pCur + 2, ".model", 6 ) )
+        {
+            char * pTemp;
+            for ( pTemp = pCur + 9; *pTemp && *pTemp != '\n'; pTemp++ );
+            *pTemp = 0;
+            free( pNtkNew->pName );
+            pNtkNew->pName = Extra_UtilStrsav( pCur + 9 );
+        }
+    }
+
+
     // skipping the comments
     free( pContents );
     Vec_PtrFree( vNodes );

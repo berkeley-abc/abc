@@ -105,6 +105,28 @@ static inline Vec_Int_t * Vec_IntStart( int nSize )
 
 /**Function*************************************************************
 
+  Synopsis    [Allocates a vector with the given size and cleans it.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Vec_Int_t * Vec_IntStartNatural( int nSize )
+{
+    Vec_Int_t * p;
+    int i;
+    p = Vec_IntAlloc( nSize );
+    p->nSize = nSize;
+    for ( i = 0; i < nSize; i++ )
+        p->pArray[i] = i;
+    return p;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Creates the vector from an integer array of the given size.]
 
   Description []

@@ -314,7 +314,7 @@ void Abc_NtkPrintLatch( FILE * pFile, Abc_Ntk_t * pNtk )
         }
         else
         {
-            if ( Abc_LatchIsInit1(pLatch) == Abc_NodeIsConst1(pLatch) )
+            if ( Abc_LatchIsInit1(pLatch) == Abc_NodeIsConst1(Abc_ObjFanin0(Abc_ObjFanin0(pLatch))) )
                 Counter2++;
         }
     }

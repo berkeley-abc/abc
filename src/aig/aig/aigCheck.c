@@ -89,7 +89,8 @@ int Aig_ManCheck( Aig_Man_t * p )
         }
     }
     // count the total number of nodes
-    if ( Aig_ManObjNum(p) != 1 + Aig_ManPiNum(p) + Aig_ManPoNum(p) + Aig_ManBufNum(p) + Aig_ManAndNum(p) + Aig_ManExorNum(p) + Aig_ManLatchNum(p) )
+    if ( Aig_ManObjNum(p) != 1 + Aig_ManPiNum(p) + Aig_ManPoNum(p) + 
+        Aig_ManBufNum(p) + Aig_ManAndNum(p) + Aig_ManExorNum(p) + Aig_ManLatchNum(p) )
     {
         printf( "Aig_ManCheck: The number of created nodes is wrong.\n" );
         printf( "C1 = %d. Pi = %d. Po = %d. Buf = %d. And = %d. Xor = %d. Lat = %d. Total = %d.\n",

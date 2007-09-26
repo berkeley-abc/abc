@@ -463,7 +463,7 @@ int Dar_ObjCutLevelAchieved( Vec_Ptr_t * vCut, int nLevelMin )
 ***********************************************************************/
 int Dar_ManRefactor( Aig_Man_t * pAig, Dar_RefPar_t * pPars )
 {
-    ProgressBar * pProgress;
+    Bar_Progress_t * pProgress;
     Ref_Man_t * p;
     Vec_Ptr_t * vCut, * vCut2;
     Aig_Obj_t * pObj, * pObjNew;
@@ -485,10 +485,10 @@ int Dar_ManRefactor( Aig_Man_t * pAig, Dar_RefPar_t * pPars )
     vCut2 = Vec_VecEntry( p->vCuts, 1 );
     p->nNodesInit = Aig_ManNodeNum(pAig);
     nNodesOld = Vec_PtrSize( pAig->vObjs );
-    pProgress = Extra_ProgressBarStart( stdout, nNodesOld );
+    pProgress = Bar_ProgressStart( stdout, nNodesOld );
     Aig_ManForEachObj( pAig, pObj, i )
     {
-        Extra_ProgressBarUpdate( pProgress, i, NULL );
+        Bar_ProgressUpdate( pProgress, i, NULL );
         if ( !Aig_ObjIsNode(pObj) )
             continue;
         if ( i > nNodesOld )
@@ -564,7 +564,7 @@ p->timeEval += clock() - clk;
 p->timeTotal = clock() - clkStart;
 p->timeOther = p->timeTotal - p->timeCuts - p->timeEval;
 
-    Extra_ProgressBarStop( pProgress );
+    Bar_ProgressStop( pProgress );
     // put the nodes into the DFS order and reassign their IDs
 //    Aig_NtkReassignIds( p );
     // fix the levels

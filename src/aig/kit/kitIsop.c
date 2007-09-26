@@ -58,7 +58,7 @@ int Kit_TruthIsop( unsigned * puTruth, int nVars, Vec_Int_t * vMemory, int fTryB
     assert( nVars >= 0 && nVars < 16 );
     // if nVars < 5, make sure it does not depend on those vars
 //    for ( i = nVars; i < 5; i++ )
-//        assert( !Extra_TruthVarInSupport(puTruth, 5, i) );
+//        assert( !Kit_TruthVarInSupport(puTruth, 5, i) );
     // prepare memory manager
     Vec_IntClear( vMemory );
     Vec_IntGrow( vMemory, KIT_ISOP_MEM_LIMIT );
@@ -69,7 +69,7 @@ int Kit_TruthIsop( unsigned * puTruth, int nVars, Vec_Int_t * vMemory, int fTryB
         vMemory->nSize = -1;
         return -1;
     }
-    assert( Extra_TruthIsEqual( puTruth, pResult, nVars ) );
+    assert( Kit_TruthIsEqual( puTruth, pResult, nVars ) );
     if ( pcRes->nCubes == 0 || (pcRes->nCubes == 1 && pcRes->pCubes[0] == 0) )
     {
         vMemory->pArray[0] = 0;
@@ -79,18 +79,18 @@ int Kit_TruthIsop( unsigned * puTruth, int nVars, Vec_Int_t * vMemory, int fTryB
     if ( fTryBoth )
     {
         // compute ISOP for the complemented polarity
-        Extra_TruthNot( puTruth, puTruth, nVars );
+        Kit_TruthNot( puTruth, puTruth, nVars );
         pResult = Kit_TruthIsop_rec( puTruth, puTruth, nVars, pcRes2, vMemory );
         if ( pcRes2->nCubes >= 0 )
         {
-            assert( Extra_TruthIsEqual( puTruth, pResult, nVars ) );
+            assert( Kit_TruthIsEqual( puTruth, pResult, nVars ) );
             if ( pcRes->nCubes > pcRes2->nCubes )
             {
                 RetValue = 1;
                 pcRes = pcRes2;
             }
         }
-        Extra_TruthNot( puTruth, puTruth, nVars );
+        Kit_TruthNot( puTruth, puTruth, nVars );
     }
 //    printf( "%d ", vMemory->nSize );
     // move the cover representation to the beginning of the memory buffer
@@ -117,9 +117,9 @@ unsigned * Kit_TruthIsop_rec( unsigned * puOn, unsigned * puOnDc, int nVars, Kit
     unsigned * puRes0, * puRes1, * puRes2;
     unsigned * puOn0, * puOn1, * puOnDc0, * puOnDc1, * pTemp, * pTemp0, * pTemp1;
     int i, k, Var, nWords, nWordsAll;
-//    assert( Extra_TruthIsImply( puOn, puOnDc, nVars ) );
+//    assert( Kit_TruthIsImply( puOn, puOnDc, nVars ) );
     // allocate room for the resulting truth table
-    nWordsAll = Extra_TruthWordNum( nVars );
+    nWordsAll = Kit_TruthWordNum( nVars );
     pTemp = Vec_IntFetch( vStore, nWordsAll );
     if ( pTemp == NULL )
     {
@@ -127,14 +127,14 @@ unsigned * Kit_TruthIsop_rec( unsigned * puOn, unsigned * puOnDc, int nVars, Kit
         return NULL;
     }
     // check for constants
-    if ( Extra_TruthIsConst0( puOn, nVars ) )
+    if ( Kit_TruthIsConst0( puOn, nVars ) )
     {
         pcRes->nCubes = 0;
         pcRes->pCubes = NULL;
-        Extra_TruthClear( pTemp, nVars );
+        Kit_TruthClear( pTemp, nVars );
         return pTemp;
     }
-    if ( Extra_TruthIsConst1( puOnDc, nVars ) )
+    if ( Kit_TruthIsConst1( puOnDc, nVars ) )
     {
         pcRes->nCubes = 1;
         pcRes->pCubes = Vec_IntFetch( vStore, 1 );
@@ -144,14 +144,14 @@ unsigned * Kit_TruthIsop_rec( unsigned * puOn, unsigned * puOnDc, int nVars, Kit
             return NULL;
         }
         pcRes->pCubes[0] = 0;
-        Extra_TruthFill( pTemp, nVars );
+        Kit_TruthFill( pTemp, nVars );
         return pTemp;
     }
     assert( nVars > 0 );
     // find the topmost var
     for ( Var = nVars-1; Var >= 0; Var-- )
-        if ( Extra_TruthVarInSupport( puOn, nVars, Var ) || 
-             Extra_TruthVarInSupport( puOnDc, nVars, Var ) )
+        if ( Kit_TruthVarInSupport( puOn, nVars, Var ) || 
+             Kit_TruthVarInSupport( puOnDc, nVars, Var ) )
              break;
     assert( Var >= 0 );
     // consider a simple case when one-word computation can be used
@@ -163,30 +163,30 @@ unsigned * Kit_TruthIsop_rec( unsigned * puOn, unsigned * puOnDc, int nVars, Kit
         return pTemp;
     }
     assert( Var >= 5 );
-    nWords = Extra_TruthWordNum( Var );
+    nWords = Kit_TruthWordNum( Var );
     // cofactor
     puOn0   = puOn;    puOn1   = puOn + nWords;
     puOnDc0 = puOnDc;  puOnDc1 = puOnDc + nWords;
     pTemp0  = pTemp;   pTemp1  = pTemp + nWords;
     // solve for cofactors
-    Extra_TruthSharp( pTemp0, puOn0, puOnDc1, Var );
+    Kit_TruthSharp( pTemp0, puOn0, puOnDc1, Var );
     puRes0 = Kit_TruthIsop_rec( pTemp0, puOnDc0, Var, pcRes0, vStore );
     if ( pcRes0->nCubes == -1 )
     {
         pcRes->nCubes = -1;
         return NULL;
     }
-    Extra_TruthSharp( pTemp1, puOn1, puOnDc0, Var );
+    Kit_TruthSharp( pTemp1, puOn1, puOnDc0, Var );
     puRes1 = Kit_TruthIsop_rec( pTemp1, puOnDc1, Var, pcRes1, vStore );
     if ( pcRes1->nCubes == -1 )
     {
         pcRes->nCubes = -1;
         return NULL;
     }
-    Extra_TruthSharp( pTemp0, puOn0, puRes0, Var );
-    Extra_TruthSharp( pTemp1, puOn1, puRes1, Var );
-    Extra_TruthOr( pTemp0, pTemp0, pTemp1, Var );
-    Extra_TruthAnd( pTemp1, puOnDc0, puOnDc1, Var );
+    Kit_TruthSharp( pTemp0, puOn0, puRes0, Var );
+    Kit_TruthSharp( pTemp1, puOn1, puRes1, Var );
+    Kit_TruthOr( pTemp0, pTemp0, pTemp1, Var );
+    Kit_TruthAnd( pTemp1, puOnDc0, puOnDc1, Var );
     puRes2 = Kit_TruthIsop_rec( pTemp0, pTemp1, Var, pcRes2, vStore );
     if ( pcRes2->nCubes == -1 )
     {
@@ -210,16 +210,16 @@ unsigned * Kit_TruthIsop_rec( unsigned * puOn, unsigned * puOnDc, int nVars, Kit
         pcRes->pCubes[k++] = pcRes2->pCubes[i];
     assert( k == pcRes->nCubes );
     // create the resulting truth table
-    Extra_TruthOr( pTemp0, puRes0, puRes2, Var );
-    Extra_TruthOr( pTemp1, puRes1, puRes2, Var );
+    Kit_TruthOr( pTemp0, puRes0, puRes2, Var );
+    Kit_TruthOr( pTemp1, puRes1, puRes2, Var );
     // copy the table if needed
     nWords <<= 1;
     for ( i = 1; i < nWordsAll/nWords; i++ )
         for ( k = 0; k < nWords; k++ )
             pTemp[i*nWords + k] = pTemp[k];
     // verify in the end
-//    assert( Extra_TruthIsImply( puOn, pTemp, nVars ) );
-//    assert( Extra_TruthIsImply( pTemp, puOnDc, nVars ) );
+//    assert( Kit_TruthIsImply( puOn, pTemp, nVars ) );
+//    assert( Kit_TruthIsImply( pTemp, puOnDc, nVars ) );
     return pTemp;
 }
 
@@ -264,17 +264,17 @@ unsigned Kit_TruthIsop5_rec( unsigned uOn, unsigned uOnDc, int nVars, Kit_Sop_t 
     assert( nVars > 0 );
     // find the topmost var
     for ( Var = nVars-1; Var >= 0; Var-- )
-        if ( Extra_TruthVarInSupport( &uOn, 5, Var ) || 
-             Extra_TruthVarInSupport( &uOnDc, 5, Var ) )
+        if ( Kit_TruthVarInSupport( &uOn, 5, Var ) || 
+             Kit_TruthVarInSupport( &uOnDc, 5, Var ) )
              break;
     assert( Var >= 0 );
     // cofactor
     uOn0   = uOn1   = uOn;
     uOnDc0 = uOnDc1 = uOnDc;
-    Extra_TruthCofactor0( &uOn0, Var + 1, Var );
-    Extra_TruthCofactor1( &uOn1, Var + 1, Var );
-    Extra_TruthCofactor0( &uOnDc0, Var + 1, Var );
-    Extra_TruthCofactor1( &uOnDc1, Var + 1, Var );
+    Kit_TruthCofactor0( &uOn0, Var + 1, Var );
+    Kit_TruthCofactor1( &uOn1, Var + 1, Var );
+    Kit_TruthCofactor0( &uOnDc0, Var + 1, Var );
+    Kit_TruthCofactor1( &uOnDc1, Var + 1, Var );
     // solve for cofactors
     uRes0 = Kit_TruthIsop5_rec( uOn0 & ~uOnDc1, uOnDc0, Var, pcRes0, vStore );
     if ( pcRes0->nCubes == -1 )

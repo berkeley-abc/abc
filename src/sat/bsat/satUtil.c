@@ -146,11 +146,13 @@ void Sat_SolverClauseWriteDimacs( FILE * pFile, clause * pC, bool fIncrement )
 ***********************************************************************/
 void Sat_SolverPrintStats( FILE * pFile, sat_solver * p )
 {
-    printf( "starts        : %d\n", (int)p->stats.starts );
-    printf( "conflicts     : %d\n", (int)p->stats.conflicts );
-    printf( "decisions     : %d\n", (int)p->stats.decisions );
-    printf( "propagations  : %d\n", (int)p->stats.propagations );
-    printf( "inspects      : %d\n", (int)p->stats.inspects );
+//    printf( "calls         : %8d (%d)\n", (int)p->nCalls, (int)p->nCalls2 );
+    printf( "starts        : %8d\n", (int)p->stats.starts );
+    printf( "conflicts     : %8d\n", (int)p->stats.conflicts );
+    printf( "decisions     : %8d\n", (int)p->stats.decisions );
+    printf( "propagations  : %8d\n", (int)p->stats.propagations );
+    printf( "inspects      : %8d\n", (int)p->stats.inspects );
+//    printf( "inspects2     : %8d\n", (int)p->stats.inspects2 );
 }
 
 /**Function*************************************************************

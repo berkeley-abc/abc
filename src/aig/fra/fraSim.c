@@ -432,12 +432,11 @@ void Fra_SmlAssignDist1( Fra_Sml_t * p, unsigned * pPat )
 //        assert( p->pManFraig == NULL || nTruePis * p->nFrames + k == Aig_ManPiNum(p->pManFraig) );
 
         // flip one bit of the last frame
-        if ( fUseDist1 && p->nFrames == 2 )
+        if ( fUseDist1 ) //&& p->nFrames == 2 )
         {
             Limit = AIG_MIN( nTruePis, p->nWordsFrame * 32 - 1 );
             for ( i = 0; i < Limit; i++ )
-                Aig_InfoXorBit( Fra_ObjSim( p, Aig_ManPi(p->pAig, i)->Id ), i+1 );
-//            Aig_InfoXorBit( Fra_ObjSim( p, Aig_ManPi(p->pAig, nTruePis*(p->nFrames-2) + i)->Id ), i+1 );
+                Aig_InfoXorBit( Fra_ObjSim( p, Aig_ManPi(p->pAig, i)->Id ) + p->nWordsFrame*(p->nFrames-1), i+1 );
         }
     }
 }

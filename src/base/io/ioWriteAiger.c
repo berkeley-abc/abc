@@ -248,7 +248,8 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols )
 
     // write the comment
     fprintf( pFile, "c\n" );
-    fprintf( pFile, "%s\n", pNtk->pName );
+    if ( pNtk->pName && strlen(pNtk->pName) > 0 )
+        fprintf( pFile, ".model %s\n", pNtk->pName );
     fprintf( pFile, "This file was produced by ABC on %s\n", Extra_TimeStamp() );
     fprintf( pFile, "For information about AIGER format, refer to %s\n", "http://fmv.jku.at/aiger" );
     fclose( pFile );

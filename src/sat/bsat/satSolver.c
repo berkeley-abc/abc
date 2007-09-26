@@ -90,9 +90,9 @@ static inline void  clause_setactivity(clause* c, float a) { *((float*)&c->lits[
 //=================================================================================================
 // Encode literals in clause pointers:
 
-static clause* clause_from_lit (lit l)     { return (clause*)((unsigned long)l + (unsigned long)l + 1);  }
-static bool    clause_is_lit   (clause* c) { return ((unsigned long)c & 1);                              }
-static lit     clause_read_lit (clause* c) { return (lit)((unsigned long)c >> 1);                        }
+static inline clause* clause_from_lit (lit l)     { return (clause*)((unsigned long)l + (unsigned long)l + 1);  }
+static inline bool    clause_is_lit   (clause* c) { return ((unsigned long)c & 1);                              }
+static inline lit     clause_read_lit (clause* c) { return (lit)((unsigned long)c >> 1);                        }
 
 //=================================================================================================
 // Simple helpers:
@@ -148,7 +148,7 @@ static inline void order_unassigned(sat_solver* s, int v) // undoorder
     }
 }
 
-static int  order_select(sat_solver* s, float random_var_freq) // selectvar
+static inline int  order_select(sat_solver* s, float random_var_freq) // selectvar
 {
     int*    heap;
     double* activity;
@@ -442,7 +442,7 @@ static inline void assume(sat_solver* s, lit l){
 }
 
 
-static inline void sat_solver_canceluntil(sat_solver* s, int level) {
+static void sat_solver_canceluntil(sat_solver* s, int level) {
     lit*     trail;   
     lbool*   values;  
     clause** reasons; 
@@ -723,13 +723,14 @@ clause* sat_solver_propagate(sat_solver* s)
         //printf("checking lit %d: "L_LIT"\n", veci_size(ws), L_lit(p));
         for (i = j = begin; i < end; ){
             if (clause_is_lit(*i)){
+//                s->stats.inspects2++;
                 *j++ = *i;
                 if (!enqueue(s,clause_read_lit(*i),clause_from_lit(p))){
                     confl = s->binary;
                     (clause_begin(confl))[1] = lit_neg(p);
                     (clause_begin(confl))[0] = clause_read_lit(*i++);
-
                     // Copy the remaining watches:
+//                    s->stats.inspects2 += end - i;
                     while (i < end)
                         *j++ = *i++;
                 }
@@ -770,6 +771,7 @@ clause* sat_solver_propagate(sat_solver* s)
                     if (!enqueue(s,lits[0], *i)){
                         confl = *i++;
                         // Copy the remaining watches:
+//                        s->stats.inspects2 += end - i;
                         while (i < end)
                             *j++ = *i++;
                     }
@@ -1154,6 +1156,7 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, sint64 nConfLimit, sin
     lit*    i;
 
     // set the external limits
+    s->nCalls++;
     s->nRestarts  = 0;
     s->nConfLimit = 0;
     s->nInsLimit  = 0;
@@ -1175,12 +1178,13 @@ int sat_solver_solve(sat_solver* s, lit* begin, lit* end, sint64 nConfLimit, sin
             assume(s, *i);
             if (sat_solver_propagate(s) == NULL)
                 break;
-            // falltrough
+            // fallthrough
         case -1: /* l_False */
             sat_solver_canceluntil(s, 0);
             return l_False;
         }
     }
+    s->nCalls2++;
 
     s->root_level = sat_solver_dlevel(s);
 

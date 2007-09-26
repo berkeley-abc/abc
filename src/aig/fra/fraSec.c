@@ -169,7 +169,7 @@ PRT( "Time", clock() - clk );
 
     // perform fraiging
 clk = clock();
-    pNew = Fra_FraigEquivence( pTemp = pNew, 1000 );
+    pNew = Fra_FraigEquivence( pTemp = pNew, 100 );
     Aig_ManStop( pTemp );
     if ( fVerbose )
     {
@@ -199,13 +199,14 @@ PRT( "Time", clock() - clk );
 clk = clock();
         pNew = Aig_ManDup( pTemp = pNew, 1 );
         Aig_ManStop( pTemp );
-        pNew = Dar_ManRewriteDefault( pTemp = pNew );
+        pNew = Dar_ManRewriteDefault( pNew );
         if ( fVerbose )
         {
             printf( "Rewriting:            Latches = %5d. Nodes = %6d. ", 
                 Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
 PRT( "Time", clock() - clk );
         } 
+
         // perform retiming
 clk = clock();
         pNew = Rtm_ManRetime( pTemp = pNew, 1, 1000, 0 );
@@ -218,6 +219,7 @@ clk = clock();
                 Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
 PRT( "Time", clock() - clk );
         }
+
         if ( pNew->nRegs )
         pNew = Aig_ManConstReduce( pNew, 0 );
 

@@ -890,7 +890,7 @@ Aig_Man_t * Aig_ManChoicePartitioned( Vec_Ptr_t * vAigs, int nPartSize )
 
     // start the total fraiged AIG
     pAigTotal = Aig_ManStartFrom( pAig );
-    Aig_ManReprStart( pAigTotal, Vec_PtrSize(vAigs) * Aig_ManObjNumMax(pAig) );
+    Aig_ManReprStart( pAigTotal, Vec_PtrSize(vAigs) * Aig_ManObjNumMax(pAig) + 10000 );
     vOutsTotal = Vec_PtrStart( Aig_ManPoNum(pAig) );
 
     // set the PI numbers
@@ -932,7 +932,7 @@ Aig_Man_t * Aig_ManChoicePartitioned( Vec_Ptr_t * vAigs, int nPartSize )
         Aig_ManForEachObj( pAigPart, pObj, k )
             ppData[k] = pObj->pData;
         // report the process
-        printf( "Fraiging part %4d  (out of %4d)  PI = %5d. PO = %5d. And = %6d. Lev = %4d.\r", 
+        printf( "Part %4d  (out of %4d)  PI = %5d. PO = %5d. And = %6d. Lev = %4d.\r", 
             i+1, Vec_PtrSize(vParts), Aig_ManPiNum(pAigPart), Aig_ManPoNum(pAigPart), 
             Aig_ManNodeNum(pAigPart), Aig_ManLevelNum(pAigPart) );
         // compute equivalence classes (to be stored in pNew->pReprs)

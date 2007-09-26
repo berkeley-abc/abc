@@ -67,11 +67,11 @@ struct Hop_Obj_t_  // 6 words
     Hop_Obj_t *      pNext;          // strashing table
     Hop_Obj_t *      pFanin0;        // fanin
     Hop_Obj_t *      pFanin1;        // fanin
-    unsigned long    Type    :  3;   // object type
-    unsigned long    fPhase  :  1;   // value under 000...0 pattern
-    unsigned long    fMarkA  :  1;   // multipurpose mask
-    unsigned long    fMarkB  :  1;   // multipurpose mask
-    unsigned long    nRefs   : 26;   // reference count (level)
+    unsigned int     Type    :  3;   // object type
+    unsigned int     fPhase  :  1;   // value under 000...0 pattern
+    unsigned int     fMarkA  :  1;   // multipurpose mask
+    unsigned int     fMarkB  :  1;   // multipurpose mask
+    unsigned int     nRefs   : 26;   // reference count (level)
     int              Id;             // unique ID of the node
 };
 

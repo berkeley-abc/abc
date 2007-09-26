@@ -34,6 +34,7 @@ static int IoCommandReadBench   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadDsd     ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadEdif    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadEqn     ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandReadInit    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadPla     ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadTruth   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadVerilog ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -86,6 +87,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "read_dsd",      IoCommandReadDsd,      1 );
 //    Cmd_CommandAdd( pAbc, "I/O", "read_edif",     IoCommandReadEdif,     1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_eqn",      IoCommandReadEqn,      1 );
+    Cmd_CommandAdd( pAbc, "I/O", "read_init",     IoCommandReadInit,     1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_pla",      IoCommandReadPla,      1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_truth",    IoCommandReadTruth,    1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_verilog",  IoCommandReadVerilog,  1 );
@@ -638,6 +640,65 @@ usage:
     fprintf( pAbc->Err, "usage: read_eqn [-ch] <file>\n" );
     fprintf( pAbc->Err, "\t         read the network in equation format\n" );
     fprintf( pAbc->Err, "\t-c     : toggle network check after reading [default = %s]\n", fCheck? "yes":"no" );
+    fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IoCommandReadInit( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    char * pFileName;
+    int c;
+    extern void Io_ReadBenchInit( Abc_Ntk_t * pNtk, char * pFileName );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 1 )
+        goto usage;
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    // get the input file name
+    pFileName = argv[globalUtilOptind];
+    // read the file using the corresponding file reader
+    pNtk = Abc_NtkDup( pNtk );
+    Io_ReadBenchInit( pNtk, pFileName );
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: read_init [-h] <file>\n" );
+    fprintf( pAbc->Err, "\t         reads initial state of the network in BENCH format\n" );
     fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
     fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
     return 1;

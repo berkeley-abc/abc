@@ -2058,7 +2058,7 @@ int Kit_DsdEval( unsigned * pTruth, int nVars, int nLutSize )
     // recompute the truth table
     p = Kit_DsdManAlloc( nVars, Kit_DsdNtkObjNum(pNtk) );
     pTruthC = Kit_DsdTruthCompute( p, pNtk );
-    if ( !Extra_TruthIsEqual( pTruth, pTruthC, nVars ) )
+    if ( !Kit_TruthIsEqual( pTruth, pTruthC, nVars ) )
         printf( "Verification failed.\n" );
     Kit_DsdManFree( p );
 
