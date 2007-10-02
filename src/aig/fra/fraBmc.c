@@ -213,7 +213,8 @@ Fra_Bmc_t * Fra_BmcStart( Aig_Man_t * pAig, int nPref, int nDepth )
 void Fra_BmcStop( Fra_Bmc_t * p )
 {
     Aig_ManStop( p->pAigFrames );
-    Aig_ManStop( p->pAigFraig );
+    if ( p->pAigFraig )
+        Aig_ManStop( p->pAigFraig );
     free( p->pObjToFrames );
     free( p->pObjToFraig );
     free( p );
@@ -230,7 +231,7 @@ void Fra_BmcStop( Fra_Bmc_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Fra_BmcFrames( Fra_Bmc_t * p )
+Aig_Man_t * Fra_BmcFrames( Fra_Bmc_t * p, int fKeepPos )
 {
     Aig_Man_t * pAigFrames;
     Aig_Obj_t * pObj, * pObjNew;
@@ -274,11 +275,20 @@ Aig_Man_t * Fra_BmcFrames( Fra_Bmc_t * p )
         assert( k == Aig_ManRegNum(p->pAig) );
     }
     free( pLatches );
-    // add POs to all the dangling nodes
-    Aig_ManForEachObj( pAigFrames, pObjNew, i )
-        if ( Aig_ObjIsNode(pObjNew) && pObjNew->nRefs == 0 )
-            Aig_ObjCreatePo( pAigFrames, pObjNew );
-
+    if ( fKeepPos )
+    {
+        for ( f = 0; f < p->nFramesAll; f++ )
+            Aig_ManForEachPoSeq( p->pAig, pObj, i )
+                Aig_ObjCreatePo( pAigFrames, Bmc_ObjChild0Frames(pObj,f) );
+        Aig_ManCleanup( pAigFrames );
+    }
+    else
+    {
+        // add POs to all the dangling nodes
+        Aig_ManForEachObj( pAigFrames, pObjNew, i )
+            if ( Aig_ObjIsNode(pObjNew) && pObjNew->nRefs == 0 )
+                Aig_ObjCreatePo( pAigFrames, pObjNew );
+    }
     // return the new manager
     return pAigFrames;
 }
@@ -301,7 +311,7 @@ void Fra_BmcPerform( Fra_Man_t * p, int nPref, int nDepth )
     assert( p->pBmc == NULL );
     // derive and fraig the frames
     p->pBmc = Fra_BmcStart( p->pManAig, nPref, nDepth );
-    p->pBmc->pAigFrames = Fra_BmcFrames( p->pBmc );
+    p->pBmc->pAigFrames = Fra_BmcFrames( p->pBmc, 0 );
     // if implications are present, configure the AIG manager to check them
     if ( p->pCla->vImps )
     {
@@ -310,7 +320,7 @@ void Fra_BmcPerform( Fra_Man_t * p, int nPref, int nDepth )
         p->pBmc->vImps = p->pCla->vImps;
         nImpsOld = Vec_IntSize(p->pCla->vImps);
     } 
-    p->pBmc->pAigFraig = Fra_FraigEquivence( p->pBmc->pAigFrames, 1000000 );
+    p->pBmc->pAigFraig = Fra_FraigEquivence( p->pBmc->pAigFrames, 1000000, 0 );
     p->pBmc->pObjToFraig = p->pBmc->pAigFrames->pObjCopies;
     p->pBmc->pAigFrames->pObjCopies = NULL;
     // annotate frames nodes with pointers to the manager
@@ -352,6 +362,56 @@ void Fra_BmcPerform( Fra_Man_t * p, int nPref, int nDepth )
     // free the BMC manager
     Fra_BmcStop( p->pBmc );  
     p->pBmc = NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs BMC for the given AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fra_BmcPerformSimple( Aig_Man_t * pAig, int nFrames, int nBTLimit, int fRewrite, int fVerbose )
+{
+    extern Fra_Man_t * Fra_LcrAigPrepare( Aig_Man_t * pAig );
+    Fra_Man_t * pTemp;
+    Fra_Bmc_t * pBmc;
+    Aig_Man_t * pAigTemp;
+    int iOutput;
+    // derive and fraig the frames
+    pBmc = Fra_BmcStart( pAig, 0, nFrames );
+    pTemp = Fra_LcrAigPrepare( pAig );
+    pTemp->pBmc = pBmc;
+    pBmc->pAigFrames = Fra_BmcFrames( pBmc, 1 );
+    if ( fRewrite )
+    {
+        pBmc->pAigFrames = Dar_ManRwsat( pAigTemp = pBmc->pAigFrames, 1, 0 );
+        Aig_ManStop( pAigTemp );
+    }
+    iOutput = Fra_FraigMiterAssertedOutput( pBmc->pAigFrames );
+    if ( iOutput >= 0 )
+        pAig->pSeqModel = Fra_SmlTrivCounterExample( pAig, iOutput );
+    else
+    {
+        pBmc->pAigFraig = Fra_FraigEquivence( pBmc->pAigFrames, nBTLimit, 1 );
+        iOutput = Fra_FraigMiterAssertedOutput( pBmc->pAigFraig );
+        if ( pBmc->pAigFraig->pData )
+        {
+            pAig->pSeqModel = Fra_SmlCopyCounterExample( pAig, pBmc->pAigFrames, pBmc->pAigFraig->pData );
+            FREE( pBmc->pAigFraig->pData );
+        }
+        else if ( iOutput >= 0 )
+            pAig->pSeqModel = Fra_SmlTrivCounterExample( pAig, iOutput );
+    }
+    if ( fVerbose )
+        printf( "nFrames = %3d. Aig = %6d. Init frames = %6d. Fraiged init frames = %6d.\n", 
+            nFrames, Aig_ManNodeNum(pAig), Aig_ManNodeNum(pBmc->pAigFrames), pBmc->pAigFraig? Aig_ManNodeNum(pBmc->pAigFraig) : -1 );
+    Fra_BmcStop( pBmc );  
+    free( pTemp );
 }
 
 

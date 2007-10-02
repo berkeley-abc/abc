@@ -979,7 +979,8 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     Vec_PtrFree( pNtk->vObjs );
     Vec_PtrFree( pNtk->vBoxes );
     if ( pNtk->vLevelsR ) Vec_IntFree( pNtk->vLevelsR );
-    if ( pNtk->pModel ) free( pNtk->pModel );
+    FREE( pNtk->pModel );
+    FREE( pNtk->pSeqModel );
     TotalMemory  = 0;
     TotalMemory += pNtk->pMmObj? Extra_MmFixedReadMemUsage(pNtk->pMmObj)  : 0;
     TotalMemory += pNtk->pMmStep? Extra_MmStepReadMemUsage(pNtk->pMmStep) : 0;

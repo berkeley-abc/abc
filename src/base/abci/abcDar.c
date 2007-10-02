@@ -1070,6 +1070,44 @@ Abc_Ntk_t * Abc_NtkDarLcorr( Abc_Ntk_t * pNtk, int nFramesP, int nConfMax, int f
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_NtkDarBmc( Abc_Ntk_t * pNtk, int nFrames, int nBTLimit, int fRewrite, int fVerbose )
+{
+    Aig_Man_t * pMan;
+    int clk = clock();
+    // derive the AIG manager
+    pMan = Abc_NtkToDar( pNtk, 1 );
+    if ( pMan == NULL )
+    {
+        printf( "Converting miter into AIG has failed.\n" );
+        return -1;
+    }
+    assert( pMan->nRegs > 0 );
+    // perform verification
+    Fra_BmcPerformSimple( pMan, nFrames, nBTLimit, fRewrite, fVerbose );
+    pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
+    if ( pNtk->pSeqModel )
+    {
+        Fra_Cex_t * pCex = pNtk->pSeqModel;
+        printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump the trace). ", pCex->iPo, pCex->iFrame );
+    }
+    else
+        printf( "No output was asserted after BMC with %d frames. ", nFrames );
+PRT( "Time", clock() - clk );
+    Aig_ManStop( pMan );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_NtkDarProve( Abc_Ntk_t * pNtk, int nFrames, int fRetimeFirst, int fVerbose, int fVeryVerbose )
 {
     Aig_Man_t * pMan;
@@ -1084,6 +1122,12 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, int nFrames, int fRetimeFirst, int fVerbo
     assert( pMan->nRegs > 0 );
     // perform verification
     RetValue = Fra_FraigSec( pMan, nFrames, fRetimeFirst, fVerbose, fVeryVerbose );
+    pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
+    if ( pNtk->pSeqModel )
+    {
+        Fra_Cex_t * pCex = pNtk->pSeqModel;
+        printf( "Output %d was asserted in frame %d (use \"write_counter\" to dump the trace).\n", pCex->iPo, pCex->iFrame );
+    }
     Aig_ManStop( pMan );
     return RetValue;
 }
@@ -1236,6 +1280,46 @@ Abc_Ntk_t * Abc_NtkDarRetime( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose )
     pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
     Aig_ManStop( pMan );
     return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs random simulation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int fVerbose )
+{
+    Aig_Man_t * pMan;
+    Fra_Sml_t * pSml;
+    Fra_Cex_t * pCex;
+    int RetValue, clk = clock();
+    pMan = Abc_NtkToDar( pNtk, 1 );
+    pSml = Fra_SmlSimulateSeq( pMan, 0, nFrames, nWords );
+    if ( pSml->fNonConstOut )
+    {
+        pCex = Fra_SmlGetCounterExample( pSml );
+        if ( pCex )
+            printf( "Simulation of %d frames with %d words asserted output %d in frame %d. ", 
+                nFrames, nWords, pCex->iPo, pCex->iFrame );
+        pNtk->pSeqModel = pCex;
+        RetValue = 1;
+    }
+    else
+    {
+        RetValue = 0;
+        printf( "Simulation of %d frames with %d words did not assert the outputs. ", 
+            nFrames, nWords );
+    }
+    PRT( "Time", clock() - clk );
+    Fra_SmlStop( pSml );
+    Aig_ManStop( pMan );
+    return RetValue;
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -197,6 +197,7 @@ struct Abc_Ntk_t_
     Vec_Int_t *       vLevelsR;      // level in the reverse topological order (for AIGs)
     Vec_Ptr_t *       vSupps;        // CO support information
     int *             pModel;        // counter-example (for miters)
+    void *            pSeqModel;     // counter-example (for sequential miters)
     Abc_Ntk_t *       pExdc;         // the EXDC network (if given)
     void *            pData;         // misc
     Abc_Ntk_t *       pCopy;

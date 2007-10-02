@@ -324,8 +324,8 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped, int nOutputs )
   Synopsis    [Derives a simple CNF for the AIG.]
 
   Description [The last argument shows the number of last outputs
-  of the manager, which will not be converted into clauses but the
-  new variables for which will be introduced.]
+  of the manager, which will not be converted into clauses. 
+  New variables will be introduced for these outputs.]
                
   SideEffects []
 

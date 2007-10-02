@@ -58,27 +58,27 @@
 ***********************************************************************/
 int Fra_FraigMiterStatus( Aig_Man_t * p )
 {
-    Aig_Obj_t * pObj, * pObjNew;
+    Aig_Obj_t * pObj, * pChild;
     int i, CountConst0 = 0, CountNonConst0 = 0, CountUndecided = 0;
     if ( p->pData )
         return 0;
     Aig_ManForEachPoSeq( p, pObj, i )
     {
-        pObjNew = Aig_ObjChild0(pObj);
+        pChild = Aig_ObjChild0(pObj);
         // check if the output is constant 0
-        if ( pObjNew == Aig_ManConst0(p) )
+        if ( pChild == Aig_ManConst0(p) )
         {
             CountConst0++;
             continue;
         }
         // check if the output is constant 1
-        if ( pObjNew == Aig_ManConst1(p) )
+        if ( pChild == Aig_ManConst1(p) )
         {
             CountNonConst0++;
             continue;
         }
         // check if the output can be not constant 0
-        if ( Aig_Regular(pObjNew)->fPhase != (unsigned)Aig_IsComplement(pObjNew) )
+        if ( Aig_Regular(pChild)->fPhase != (unsigned)Aig_IsComplement(pChild) )
         {
             CountNonConst0++;
             continue;
@@ -100,6 +100,37 @@ int Fra_FraigMiterStatus( Aig_Man_t * p )
     if ( CountUndecided )
         return -1;
     return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reports the status of the miter.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fra_FraigMiterAssertedOutput( Aig_Man_t * p )
+{
+    Aig_Obj_t * pObj, * pChild;
+    int i;
+    Aig_ManForEachPoSeq( p, pObj, i )
+    {
+        pChild = Aig_ObjChild0(pObj);
+        // check if the output is constant 0
+        if ( pChild == Aig_ManConst0(p) )
+            continue;
+        // check if the output is constant 1
+        if ( pChild == Aig_ManConst1(p) )
+            return i;
+        // check if the output can be not constant 0
+        if ( Aig_Regular(pChild)->fPhase != (unsigned)Aig_IsComplement(pChild) )
+            return i;
+    }
+    return -1;
 }
 
 /**Function*************************************************************
@@ -410,7 +441,7 @@ Aig_Man_t * Fra_FraigChoice( Aig_Man_t * pManAig, int nConfMax )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Fra_FraigEquivence( Aig_Man_t * pManAig, int nConfMax )
+Aig_Man_t * Fra_FraigEquivence( Aig_Man_t * pManAig, int nConfMax, int fProve )
 {
     Aig_Man_t * pFraig;
     Fra_Par_t Pars, * pPars = &Pars; 
@@ -419,7 +450,7 @@ Aig_Man_t * Fra_FraigEquivence( Aig_Man_t * pManAig, int nConfMax )
     pPars->fChoicing    = 0;
     pPars->fDoSparse    = 1;
     pPars->fSpeculate   = 0;
-    pPars->fProve       = 0;
+    pPars->fProve       = fProve;
     pPars->fVerbose     = 0;
     pPars->fDontShowBar = 1;
     pFraig = Fra_FraigPerform( pManAig, pPars );

@@ -251,6 +251,7 @@ void Aig_ManStop( Aig_Man_t * p )
     if ( p->vLevelR )  Vec_IntFree( p->vLevelR );
     if ( p->vLevels )  Vec_VecFree( p->vLevels );
     if ( p->vFlopNums) Vec_IntFree( p->vFlopNums );
+    FREE( p->pSeqModel );
     FREE( p->pName );
     FREE( p->pObjCopies );
     FREE( p->pReprs );

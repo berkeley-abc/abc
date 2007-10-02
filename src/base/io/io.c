@@ -1569,6 +1569,8 @@ usage:
     return 1;
 }
 
+#include "fra.h"
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -1617,13 +1619,14 @@ int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv )
     // get the input file name
     pFileName = argv[globalUtilOptind];
 
-    if ( pNtk->pModel == NULL )
+    if ( pNtk->pModel == NULL && pNtk->pSeqModel == NULL )
     {
         fprintf( pAbc->Out, "Counter-example is not available.\n" );
         return 0;
     }
 
     // write the counter-example into the file
+    if ( pNtk->pModel )
     {
         Abc_Obj_t * pObj;
         FILE * pFile = fopen( pFileName, "w" );
@@ -1646,12 +1649,50 @@ int IoCommandWriteCounter( Abc_Frame_t * pAbc, int argc, char **argv )
         fprintf( pFile, "\n" );
         fclose( pFile );
     }
+    else
+    {
+        Fra_Cex_t * pCex = pNtk->pSeqModel;
+        Abc_Obj_t * pObj;
+        FILE * pFile;
+        int i, f;
+        Abc_NtkForEachLatch( pNtk, pObj, i )
+            if ( !Abc_LatchIsInit0(pObj) )
+            {
+                fprintf( stdout, "IoCommandWriteCounter(): The init-state should be all-0 for counter-example to work.\n" );
+                fprintf( stdout, "Run commands \"undc\" and \"zero\" and then rerun the equivalence check.\n" );
+                return 1;
+            }
+
+        pFile = fopen( pFileName, "w" );
+        if ( pFile == NULL )
+        {
+            fprintf( stdout, "IoCommandWriteCounter(): Cannot open the output file \"%s\".\n", pFileName );
+            return 1;
+        }
+        if ( fNames )
+        {
+            Abc_NtkForEachLatch( pNtk, pObj, i )
+                fprintf( pFile, "%s@0=%c ", Abc_ObjName(Abc_ObjFanout0(pObj)), '0'+!Abc_LatchIsInit0(pObj) );
+            for ( f = 0; f <= pCex->iFrame; f++ )
+                Abc_NtkForEachPi( pNtk, pObj, i )
+                    fprintf( pFile, "%s@%d=%c ", Abc_ObjName(pObj), f, '0'+Abc_InfoHasBit(pCex->pData, pCex->nRegs+pCex->nPis*f + i) );
+        }
+        else
+        {
+            Abc_NtkForEachLatch( pNtk, pObj, i )
+                fprintf( pFile, "%c", '0'+!Abc_LatchIsInit0(pObj) );
+            for ( i = pCex->nRegs; i < pCex->nBits; i++ )
+                fprintf( pFile, "%c", '0'+Abc_InfoHasBit(pCex->pData, i) );
+        }
+        fprintf( pFile, "\n" );
+        fclose( pFile );
+    }
 
     return 0;
 
 usage:
     fprintf( pAbc->Err, "usage: write_counter [-nh] <file>\n" );
-    fprintf( pAbc->Err, "\t         writes the counter-example derived by \"prove\" or \"sat\"\n" );
+    fprintf( pAbc->Err, "\t         saves counter-example derived by \"sat\", \"iprove\", or \"dprove\"\n" );
     fprintf( pAbc->Err, "\t         the file contains values for each PI in the natural order\n" );
     fprintf( pAbc->Err, "\t-n     : write input names into the file [default = %s]\n", fNames? "yes": "no" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );

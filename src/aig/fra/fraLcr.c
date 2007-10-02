@@ -159,7 +159,8 @@ Fra_Man_t * Fra_LcrAigPrepare( Aig_Man_t * pAig )
     int i;
     p = ALLOC( Fra_Man_t, 1 );
     memset( p, 0, sizeof(Fra_Man_t) );
-    Aig_ManForEachPi( pAig, pObj, i )
+//    Aig_ManForEachPi( pAig, pObj, i )
+    Aig_ManForEachObj( pAig, pObj, i )
         pObj->pData = p;
     return p;
 }
@@ -532,6 +533,7 @@ timeSim = clock() - clk2;
     // check if simulation discovered non-constant-0 POs
     if ( fProve && pSml->fNonConstOut )
     {
+        pAig->pSeqModel = Fra_SmlGetCounterExample( pSml );
         Fra_SmlStop( pSml );
         return NULL;
     }
@@ -587,7 +589,7 @@ clk2 = clock();
             pAigPart = Fra_LcrCreatePart( p, vPart );
 p->timeTrav += clock() - clk2;
 clk2 = clock();
-            pAigNew  = Fra_FraigEquivence( pAigPart, nConfMax );
+            pAigNew  = Fra_FraigEquivence( pAigPart, nConfMax, 0 );
 p->timeFraig += clock() - clk2;
             Vec_PtrPush( p->vFraigs, pAigNew );
             Aig_ManStop( pAigPart );

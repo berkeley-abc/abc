@@ -139,6 +139,7 @@ struct Aig_Man_t_
     Aig_TMan_t *     pManTime;       // the timing manager
     Vec_Ptr_t *      vMapped;
     Vec_Int_t *      vFlopNums;      
+    void *           pSeqModel;
     // timing statistics
     int              time1;
     int              time2;
@@ -174,6 +175,14 @@ static inline int          Aig_WordCountOnes( unsigned uWord )
     uWord = (uWord & 0x0F0F0F0F) + ((uWord>>4) & 0x0F0F0F0F);
     uWord = (uWord & 0x00FF00FF) + ((uWord>>8) & 0x00FF00FF);
     return  (uWord & 0x0000FFFF) + (uWord>>16);
+}
+static inline int          Aig_WordFindFirstBit( unsigned uWord )
+{
+    int i;
+    for ( i = 0; i < 32; i++ )
+        if ( uWord & (1 << i) )
+            return i;
+    return -1;
 }
 
 static inline Aig_Obj_t *  Aig_Regular( Aig_Obj_t * p )           { return (Aig_Obj_t *)((unsigned long)(p) & ~01); }

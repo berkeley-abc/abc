@@ -150,6 +150,7 @@ clk = clock();
     pNew = Aig_ManDup( pTemp = pNew, 1 );
     Aig_ManStop( pTemp );
     pNew = Fra_FraigLatchCorrespondence( pTemp = pNew, 0, 100000, 1, fVeryVerbose, &nIter );
+    p->pSeqModel = pTemp->pSeqModel; pTemp->pSeqModel = NULL;
     Aig_ManStop( pTemp );
     if ( pNew == NULL )
     {
@@ -169,7 +170,7 @@ PRT( "Time", clock() - clk );
 
     // perform fraiging
 clk = clock();
-    pNew = Fra_FraigEquivence( pTemp = pNew, 100 );
+    pNew = Fra_FraigEquivence( pTemp = pNew, 100, 0 );
     Aig_ManStop( pTemp );
     if ( fVerbose )
     {
@@ -240,6 +241,7 @@ PRT( "Time", clock() - clk );
         }
         if ( pSml->fNonConstOut )
         {
+            p->pSeqModel = Fra_SmlGetCounterExample( pSml );
             Fra_SmlStop( pSml );
             Aig_ManStop( pNew );
             RetValue = 0;

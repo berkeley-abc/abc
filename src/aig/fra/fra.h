@@ -53,6 +53,7 @@ typedef struct Fra_Par_t_   Fra_Par_t;
 typedef struct Fra_Man_t_   Fra_Man_t;
 typedef struct Fra_Cla_t_   Fra_Cla_t;
 typedef struct Fra_Sml_t_   Fra_Sml_t;
+typedef struct Fra_Cex_t_   Fra_Cex_t;
 typedef struct Fra_Bmc_t_   Fra_Bmc_t;
 
 // FRAIG parameters
@@ -116,6 +117,17 @@ struct Fra_Sml_t_
     int              nSimRounds;        // statistics
     int              timeSim;           // statistics
     unsigned         pData[0];          // simulation data for the nodes
+};
+
+// simulation manager
+struct Fra_Cex_t_
+{
+    int              iPo;               // the zero-based number of PO, for which verification failed
+    int              iFrame;            // the zero-based number of the time-frame, for which verificaiton failed
+    int              nRegs;             // the number of registers in the miter 
+    int              nPis;              // the number of primary inputs in the miter
+    int              nBits;             // the number of words of bit data used
+    unsigned         pData[0];          // the cex bit data (the number of bits: nRegs + (iFrame+1) * nPis)
 };
 
 // FRAIG manager
@@ -227,6 +239,7 @@ extern int                 Fra_BmcNodeIsConst( Aig_Obj_t * pObj );
 extern int                 Fra_BmcNodesAreEqual( Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 );
 extern void                Fra_BmcStop( Fra_Bmc_t * p );
 extern void                Fra_BmcPerform( Fra_Man_t * p, int nPref, int nDepth );
+extern void                Fra_BmcPerformSimple( Aig_Man_t * pAig, int nFrames, int nBTLimit, int fRewrite, int fVerbose );
 /*=== fraClass.c ========================================================*/
 extern Fra_Cla_t *         Fra_ClassesStart( Aig_Man_t * pAig );
 extern void                Fra_ClassesStop( Fra_Cla_t * p );
@@ -247,9 +260,10 @@ extern void                Fra_CnfNodeAddToSolver( Fra_Man_t * p, Aig_Obj_t * pO
 /*=== fraCore.c ========================================================*/
 extern void                Fra_FraigSweep( Fra_Man_t * pManAig );
 extern int                 Fra_FraigMiterStatus( Aig_Man_t * p );
+extern int                 Fra_FraigMiterAssertedOutput( Aig_Man_t * p );
 extern Aig_Man_t *         Fra_FraigPerform( Aig_Man_t * pManAig, Fra_Par_t * pPars );
 extern Aig_Man_t *         Fra_FraigChoice( Aig_Man_t * pManAig, int nConfMax );
-extern Aig_Man_t *         Fra_FraigEquivence( Aig_Man_t * pManAig, int nConfMax );
+extern Aig_Man_t *         Fra_FraigEquivence( Aig_Man_t * pManAig, int nConfMax, int fProve );
 /*=== fraImp.c ========================================================*/
 extern Vec_Int_t *         Fra_ImpDerive( Fra_Man_t * p, int nImpMaxLimit, int nImpUseLimit, int fLatchCorr );
 extern void                Fra_ImpAddToSolver( Fra_Man_t * p, Vec_Int_t * vImps, int * pSatVarNums );
@@ -291,7 +305,11 @@ extern Fra_Sml_t *         Fra_SmlStart( Aig_Man_t * pAig, int nPref, int nFrame
 extern void                Fra_SmlStop( Fra_Sml_t * p );
 extern Fra_Sml_t *         Fra_SmlSimulateSeq( Aig_Man_t * pAig, int nPref, int nFrames, int nWords );
 extern Fra_Sml_t *         Fra_SmlSimulateComb( Aig_Man_t * pAig, int nWords );
-
+extern Fra_Cex_t *         Fra_SmlGetCounterExample( Fra_Sml_t * p );
+extern Fra_Cex_t *         Fra_SmlCopyCounterExample( Aig_Man_t * pAig, Aig_Man_t * pFrames, int * pModel );
+extern void                Fra_SmlFreeCounterExample( Fra_Cex_t * p );
+extern int                 Fra_SmlRunCounterExample( Aig_Man_t * pAig, Fra_Cex_t * p );
+extern Fra_Cex_t *         Fra_SmlTrivCounterExample( Aig_Man_t * pAig, int iFrameOut );
 
 #ifdef __cplusplus
 }
