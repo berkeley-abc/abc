@@ -164,6 +164,7 @@ static int Abc_CommandPipe           ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandSeq            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandUnseq          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRetime         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDRetime        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSeqFpga        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSeqMap         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSeqSweep       ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -333,6 +334,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Sequential",   "undc",          Abc_CommandUndc,             1 );
 //    Cmd_CommandAdd( pAbc, "Sequential",   "pipe",          Abc_CommandPipe,             1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "retime",        Abc_CommandRetime,           1 );
+    Cmd_CommandAdd( pAbc, "Sequential",   "dretime",       Abc_CommandDRetime,          1 );
 //    Cmd_CommandAdd( pAbc, "Sequential",   "sfpga",         Abc_CommandSeqFpga,          1 );
 //    Cmd_CommandAdd( pAbc, "Sequential",   "smap",          Abc_CommandSeqMap,           1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "ssweep",        Abc_CommandSeqSweep,         1 );
@@ -6189,7 +6191,7 @@ usage:
 int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
-    Abc_Ntk_t * pNtk, * pNtkRes;
+    Abc_Ntk_t * pNtk;//, * pNtkRes;
     int c;
     int nLevels;
     int fVerbose;
@@ -6204,14 +6206,16 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Abc_Ntk_t * Abc_NtkFilter( Abc_Ntk_t * pNtk );
     extern Abc_Ntk_t * Abc_NtkDarRetime( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose );
     extern Abc_Ntk_t * Abc_NtkPcmTest( Abc_Ntk_t * pNtk, int fVerbose );
+    extern Abc_NtkDarHaigRecord( Abc_Ntk_t * pNtk );
+    extern int Abc_NtkDarClau( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fVerbose = 0;
-    nLevels = 1000;
+    fVerbose = 1;
+    nLevels  = 1000;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Nvh" ) ) != EOF )
     {
@@ -6324,13 +6328,14 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 */
-/*
+
     if ( !Abc_NtkIsStrash(pNtk) )
     {
         fprintf( stdout, "Currently only works for structurally hashed circuits.\n" );
         return 0;
     }
-*/
+
+/*
     if ( Abc_NtkIsStrash(pNtk) )
     {
         fprintf( stdout, "Currently only works for logic circuits.\n" );
@@ -6348,6 +6353,9 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+*/
+//    Abc_NtkDarHaigRecord( pNtk );
+    Abc_NtkDarClau( pNtk, 1000, fVerbose );
     return 0;
 usage:
     fprintf( pErr, "usage: test [-h]\n" );
@@ -10805,6 +10813,106 @@ usage:
 //    fprintf( pErr, "\t-f     : toggle forward retiming (for AIGs) [default = %s]\n", fForward? "yes": "no" );
 //    fprintf( pErr, "\t-b     : toggle backward retiming (for AIGs) [default = %s]\n", fBackward? "yes": "no" );
 //    fprintf( pErr, "\t-i     : toggle computation of initial state [default = %s]\n", fInitial? "yes": "no" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandDRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int nStepsMax;
+    int fFastAlgo;
+    int fVerbose;
+    int c;
+    extern Abc_Ntk_t * Abc_NtkDarRetimeF( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    nStepsMax = 100000;
+    fFastAlgo = 0;
+    fVerbose  = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Savh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-S\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nStepsMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nStepsMax < 0 ) 
+                goto usage;
+            break;
+        case 'a':
+            fFastAlgo ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkLatchNum(pNtk) )
+    {
+        fprintf( pErr, "The network has no latches. Retiming is not performed.\n" );
+        return 0;
+    }
+
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        printf( "This command works only for structrally hashed networks. Run \"st\".\n" );
+        return 0;
+    }
+
+    // perform the retiming
+    if ( fFastAlgo )
+        pNtkRes = Abc_NtkDarRetime( pNtk, nStepsMax, fVerbose );
+    else
+        pNtkRes = Abc_NtkDarRetimeF( pNtk, nStepsMax, fVerbose );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Retiming has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: dretime [-S num] [-avh]\n" );
+    fprintf( pErr, "\t         retimes the current network forward\n" );
+    fprintf( pErr, "\t-S num : the max number of retiming steps to perform [default = %d]\n", nStepsMax );
+    fprintf( pErr, "\t-a     : enables a fast algorithm [default = %s]\n", fFastAlgo? "yes": "no" );
+    fprintf( pErr, "\t-v     : enables verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
 }
 
 /**Function*************************************************************

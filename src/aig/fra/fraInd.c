@@ -402,16 +402,21 @@ p->timeTrav += clock() - clk2;
                 Fra_ClassesCountLits(p->pCla), p->pManFraig->nAsserts );
             if ( p->pCla->vImps )
                 printf( "I = %6d. ", Vec_IntSize(p->pCla->vImps) );
-            printf( "NR = %6d.\n", Aig_ManNodeNum(p->pManFraig) );
+            printf( "NR = %6d. ", Aig_ManNodeNum(p->pManFraig) );
+            printf( "\n" );
         } 
 
         // perform sweeping
         p->nSatCallsRecent = 0;
         p->nSatCallsSkipped = 0;
+clk2 = clock();
         Fra_FraigSweep( p );
+        if ( fVerbose )
+        {
+//            PRT( "t", clock() - clk2 ); 
+        } 
 
 //        Sat_SolverPrintStats( stdout, p->pSat );
-
         // remove FRAIG and SAT solver
         Aig_ManStop( p->pManFraig );   p->pManFraig = NULL;
         sat_solver_delete( p->pSat );  p->pSat = NULL; 

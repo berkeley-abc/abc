@@ -193,7 +193,7 @@ char * Extra_UtilStrsav( char *s )
 
   Synopsis    [util_tilde_expand()]
 
-  Description []
+  Description [The code contributed by Niklas Sorensson.]
                
   SideEffects []
 
@@ -203,6 +203,32 @@ char * Extra_UtilStrsav( char *s )
 char * Extra_UtilTildeExpand( char *fname )
 {
     return Extra_UtilStrsav( fname );
+/*
+    int         n_tildes = 0;
+    const char* home;
+    char*       expanded;
+    int         length;
+    int         i, j, k;
+
+    for (i = 0; i < (int)strlen(fname); i++)
+        if (fname[i] == '~') n_tildes++;
+
+    home     = getenv("HOME");
+    length   = n_tildes * strlen(home) + strlen(fname);
+    expanded = ALLOC(char, length + 1);
+
+    j = 0;
+    for (i = 0; i < (int)strlen(fname); i++){
+        if (fname[i] == '~'){
+            for (k = 0; k < (int)strlen(home); k++)
+                expanded[j++] = home[k];
+        }else
+            expanded[j++] = fname[i];
+    }
+
+    expanded[j] = '\0';
+    return expanded; 
+*/
 }
 
 /**Function*************************************************************

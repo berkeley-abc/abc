@@ -649,7 +649,7 @@ void Aig_ManDump( Aig_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Writes the AIG into the BLIF file.]
+  Synopsis    [Writes the AIG into a BLIF file.]
 
   Description []
                
@@ -680,7 +680,7 @@ void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName )
     Vec_PtrForEachEntry( vNodes, pObj, i )
         pObj->iData = Counter++;
     nDigits = Aig_Base10Log( Counter );
-    // write the file
+    // write the file 
     pFile = fopen( pFileName, "w" );
     fprintf( pFile, "# BLIF file written by procedure Aig_ManDumpBlif()\n" );
 //    fprintf( pFile, "# http://www.eecs.berkeley.edu/~alanmi/abc/\n" );
@@ -702,7 +702,7 @@ void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName )
     Aig_ManForEachLiLoSeq( p, pObjLi, pObjLo, i )
         fprintf( pFile, ".latch n%0*d n%0*d 0\n", nDigits, pObjLi->iData, nDigits, pObjLo->iData );
     fprintf( pFile, "\n" );
-    }
+    } 
     // write nodes
     Vec_PtrForEachEntry( vNodes, pObj, i )
     {
@@ -731,7 +731,7 @@ void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName )
 
 /**Function*************************************************************
 
-  Synopsis    [Writes the AIG into the BLIF file.]
+  Synopsis    [Writes the AIG into a Verilog file.]
 
   Description []
                

@@ -184,6 +184,8 @@ Aig_Obj_t * Aig_TableLookupTwo( Aig_Man_t * p, Aig_Obj_t * pFanin0, Aig_Obj_t * 
 void Aig_TableInsert( Aig_Man_t * p, Aig_Obj_t * pObj )
 {
     Aig_Obj_t ** ppPlace;
+    if ( p->pTable == NULL )
+        return;
     assert( !Aig_IsComplement(pObj) );
     assert( Aig_TableLookup(p, pObj) == NULL );
     if ( (pObj->Id & 0xFF) == 0 && 2 * p->nTableSize < Aig_ManNodeNum(p) )
@@ -207,6 +209,8 @@ void Aig_TableInsert( Aig_Man_t * p, Aig_Obj_t * pObj )
 void Aig_TableDelete( Aig_Man_t * p, Aig_Obj_t * pObj )
 {
     Aig_Obj_t ** ppPlace;
+    if ( p->pTable == NULL )
+        return;
     assert( !Aig_IsComplement(pObj) );
     ppPlace = Aig_TableFind( p, pObj );
     assert( *ppPlace == pObj ); // node should be in the table
@@ -259,6 +263,23 @@ void Aig_TableProfile( Aig_Man_t * p )
         if ( Counter ) 
             printf( "%d ", Counter );
     }
+}
+
+/**Function********************************************************************
+
+  Synopsis    [Profiles the hash table.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+void Aig_TableClear( Aig_Man_t * p )
+{
+    FREE( p->pTable );
+    p->nTableSize = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////

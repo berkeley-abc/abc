@@ -188,4 +188,22 @@ struct sat_solver_t
     int      nRoots;
 };
 
+static int sat_solver_var_value( sat_solver* s, int v ) 
+{
+    assert( s->model.ptr != NULL && v < s->size );
+    return (int)(s->model.ptr[v] == l_True);
+}
+static int sat_solver_var_literal( sat_solver* s, int v ) 
+{
+    assert( s->model.ptr != NULL && v < s->size );
+    return toLitCond( v, s->model.ptr[v] != l_True );
+}
+static void sat_solver_act_var_clear(sat_solver* s) 
+{
+    int i;
+    for (i = 0; i < s->size; i++)
+        s->activity[i] = 0.0;
+    s->var_inc = 1.0;
+}
+
 #endif

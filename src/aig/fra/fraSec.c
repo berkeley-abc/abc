@@ -228,9 +228,11 @@ PRT( "Time", clock() - clk );
         }
 
         if ( pNew->nRegs )
-        pNew = Aig_ManConstReduce( pNew, 0 );
+            pNew = Aig_ManConstReduce( pNew, 0 );
 
         // perform sequential simulation
+        if ( pNew->nRegs )
+        {
 clk = clock();
         pSml = Fra_SmlSimulateSeq( pNew, 0, 128 * nFrames, 1 + 16/(1+Aig_ManNodeNum(pNew)/1000) ); 
         if ( fVerbose )
@@ -250,6 +252,7 @@ PRT( "Time", clock() - clkTotal );
             return RetValue;
         }
         Fra_SmlStop( pSml );
+        }
     }
 
     // get the miter status

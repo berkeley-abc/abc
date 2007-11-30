@@ -280,6 +280,8 @@ static inline void Fra_FraigNode( Fra_Man_t * p, Aig_Obj_t * pObj )
 //        Fra_FraigVerifyCounterEx( p, p->vCex );
     // simulate the counter-example and return the Fraig node
     Fra_SmlResimulate( p );
+    if ( p->pManFraig->pData )
+        return;
     if ( !p->pPars->nFramesK && Fra_ClassObjRepr(pObj) == pObjRepr )
         printf( "Fra_FraigNode(): Error in class refinement!\n" );
     assert( p->pPars->nFramesK || Fra_ClassObjRepr(pObj) != pObjRepr );

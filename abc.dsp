@@ -2622,6 +2622,10 @@ SOURCE=.\src\aig\fra\fraClass.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\fra\fraClau.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\fra\fraCnf.c
 # End Source File
 # Begin Source File
@@ -2830,6 +2834,14 @@ SOURCE=.\src\aig\aig\aigFanout.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\aig\aigFrames.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\aig\aigHaig.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\aig\aigMan.c
 # End Source File
 # Begin Source File
@@ -2863,6 +2875,10 @@ SOURCE=.\src\aig\aig\aigRepr.c
 # Begin Source File
 
 SOURCE=.\src\aig\aig\aigRet.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\aig\aigRetF.c
 # End Source File
 # Begin Source File
 

@@ -348,6 +348,8 @@ int IoCommandReadBlif( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Ntk_t * pTemp;
         pNtk = Io_ReadBlif( pFileName, fCheck );
+        if ( pNtk == NULL )
+            return 1;
         pNtk = Abc_NtkToLogic( pTemp = pNtk );
         Abc_NtkDelete( pTemp );
     }

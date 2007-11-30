@@ -52,6 +52,7 @@ alias rh read_hie
 alias rl read_blif
 alias rb read_bench
 alias ret retime
+alias dret dretime
 alias rp read_pla
 alias rt read_truth
 alias rv read_verilog
@@ -121,4 +122,7 @@ alias trec     "rec_start; r c.blif; st; rec_add; rec_use"
 alias trec4    "rec_start -K 4; r i10.blif; st; rec_add; rec_use"
 alias bmc2     "frames -i -F 10; orpos; iprove"
 
+alias t0       "r test/mc1.blif; st; test"
+alias t1       "r s27mc2.blif; st; test"
+alias t2       "r i/intel_001.aig; ps; test"
 

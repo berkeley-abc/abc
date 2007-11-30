@@ -32,7 +32,7 @@
 
   Synopsis    [Remaps the manager.]
 
-  Description [Map in the array specifies for each CI nodes the node that
+  Description [Map in the array specifies for each CI node the node that
   should be used after remapping.]
                
   SideEffects []
@@ -101,7 +101,7 @@ void Aig_ManSeqCleanup_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vNodes 
         Vec_PtrPush( vNodes, pObj->pNext );
         return;
     }
-    if ( Aig_ObjIsPo(pObj) )
+    if ( Aig_ObjIsPo(pObj) || Aig_ObjIsBuf(pObj) )
     {
         Aig_ManSeqCleanup_rec( p, Aig_ObjFanin0(pObj), vNodes );
         return;
@@ -127,7 +127,7 @@ int Aig_ManSeqCleanup( Aig_Man_t * p )
     Vec_Ptr_t * vNodes, * vCis, * vCos;
     Aig_Obj_t * pObj, * pObjLi, * pObjLo;
     int i, nTruePis, nTruePos;
-    assert( Aig_ManBufNum(p) == 0 );
+//    assert( Aig_ManBufNum(p) == 0 );
 
     // mark the PIs
     Aig_ManIncrementTravId( p );

@@ -913,7 +913,7 @@ int Abc_NtkCheckUniqueCoNames( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 int Abc_NtkCheckUniqueCioNames( Abc_Ntk_t * pNtk )
 {
-    Abc_Obj_t * pObj, * pObjCi;
+    Abc_Obj_t * pObj, * pObjCi, * pFanin;
     int i, nCiId, fRetValue = 1;
     assert( !Abc_NtkIsNetlist(pNtk) );
     Abc_NtkForEachCo( pNtk, pObj, i )
@@ -923,9 +923,11 @@ int Abc_NtkCheckUniqueCioNames( Abc_Ntk_t * pNtk )
             continue;
         pObjCi = Abc_NtkObj( pNtk, nCiId );
         assert( !strcmp( Abc_ObjName(pObj), Abc_ObjName(pObjCi) ) );
-        if ( Abc_ObjFanin0(pObj) != pObjCi )
+        pFanin = Abc_ObjFanin0(pObj);
+        if ( pFanin != pObjCi )
         {
-            printf( "Abc_NtkCheck: A CI/CO pair share the name (%s) but do not link directly.\n", Abc_ObjName(pObj) );
+            printf( "Abc_NtkCheck: A CI/CO pair share the name (%s) but do not link directly. The name of the CO fanin is %s.\n", 
+                Abc_ObjName(pObj), Abc_ObjName(Abc_ObjFanin0(pObj)) );
             fRetValue = 0;
         }
     }

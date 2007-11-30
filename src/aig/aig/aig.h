@@ -71,6 +71,7 @@ struct Aig_Obj_t_  // 8 words
     Aig_Obj_t *      pNext;          // strashing table
     Aig_Obj_t *      pFanin0;        // fanin
     Aig_Obj_t *      pFanin1;        // fanin
+    Aig_Obj_t *      pHaig;          // pointer to the HAIG node
     unsigned int     Type    :  3;   // object type
     unsigned int     fPhase  :  1;   // value under 000...0 pattern
     unsigned int     fMarkA  :  1;   // multipurpose mask
@@ -140,6 +141,7 @@ struct Aig_Man_t_
     Vec_Ptr_t *      vMapped;
     Vec_Int_t *      vFlopNums;      
     void *           pSeqModel;
+    Aig_Man_t *      pManHaig;
     // timing statistics
     int              time1;
     int              time2;
@@ -251,11 +253,14 @@ static inline Aig_Obj_t *  Aig_ObjChild0( Aig_Obj_t * pObj )      { return pObj-
 static inline Aig_Obj_t *  Aig_ObjChild1( Aig_Obj_t * pObj )      { return pObj->pFanin1;                          }
 static inline Aig_Obj_t *  Aig_ObjChild0Copy( Aig_Obj_t * pObj )  { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin0(pObj)? Aig_NotCond((Aig_Obj_t *)Aig_ObjFanin0(pObj)->pData, Aig_ObjFaninC0(pObj)) : NULL;  }
 static inline Aig_Obj_t *  Aig_ObjChild1Copy( Aig_Obj_t * pObj )  { assert( !Aig_IsComplement(pObj) ); return Aig_ObjFanin1(pObj)? Aig_NotCond((Aig_Obj_t *)Aig_ObjFanin1(pObj)->pData, Aig_ObjFaninC1(pObj)) : NULL;  }
+static inline void         Aig_ObjChild0Flip( Aig_Obj_t * pObj )  { pObj->pFanin0 = Aig_Not(pObj->pFanin0);        }
+static inline void         Aig_ObjChild1Flip( Aig_Obj_t * pObj )  { pObj->pFanin1 = Aig_Not(pObj->pFanin1);        }
 static inline int          Aig_ObjLevel( Aig_Obj_t * pObj )       { return pObj->Level;                            }
 static inline int          Aig_ObjLevelNew( Aig_Obj_t * pObj )    { return Aig_ObjFanin1(pObj)? 1 + Aig_ObjIsExor(pObj) + AIG_MAX(Aig_ObjFanin0(pObj)->Level, Aig_ObjFanin1(pObj)->Level) : Aig_ObjFanin0(pObj)->Level; }
 static inline void         Aig_ObjClean( Aig_Obj_t * pObj )       { memset( pObj, 0, sizeof(Aig_Obj_t) );                                                             }
 static inline Aig_Obj_t *  Aig_ObjFanout0( Aig_Man_t * p, Aig_Obj_t * pObj )  { assert(p->pFanData && pObj->Id < p->nFansAlloc); return Aig_ManObj(p, p->pFanData[5*pObj->Id] >> 1); } 
-static inline Aig_Obj_t *  Aig_ObjEquiv( Aig_Man_t * p, Aig_Obj_t * pObj )    { return p->pEquivs? p->pEquivs[pObj->Id] : NULL; } 
+static inline Aig_Obj_t *  Aig_ObjEquiv( Aig_Man_t * p, Aig_Obj_t * pObj )    { return p->pEquivs? p->pEquivs[pObj->Id] : NULL;             } 
+static inline Aig_Obj_t *  Aig_ObjHaig( Aig_Obj_t * pObj )        { assert( Aig_Regular(pObj)->pHaig ); return Aig_NotCond( Aig_Regular(pObj)->pHaig, Aig_IsComplement(pObj) ); } 
 static inline int          Aig_ObjWhatFanin( Aig_Obj_t * pObj, Aig_Obj_t * pFanin )    
 { 
     if ( Aig_ObjFanin0(pObj) == pFanin ) return 0; 
@@ -398,6 +403,10 @@ extern void            Aig_ObjAddFanout( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Ob
 extern void            Aig_ObjRemoveFanout( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFanout );
 extern void            Aig_ManFanoutStart( Aig_Man_t * p );
 extern void            Aig_ManFanoutStop( Aig_Man_t * p );
+/*=== aigFrames.c ==========================================================*/
+extern Aig_Man_t *     Aig_ManFrames( Aig_Man_t * pAig, int nFs, int fInit, int fOuts, int fRegs, Aig_Obj_t *** ppObjMap );
+/*=== aigHaig.c ==========================================================*/
+extern void            Aig_ManHaigRecord( Aig_Man_t * p );
 /*=== aigMan.c ==========================================================*/
 extern Aig_Man_t *     Aig_ManStart( int nNodesMax );
 extern Aig_Man_t *     Aig_ManStartFrom( Aig_Man_t * p );
@@ -463,6 +472,8 @@ extern Aig_Man_t *     Aig_ManRehash( Aig_Man_t * p );
 extern void            Aig_ManMarkValidChoices( Aig_Man_t * p );
 /*=== aigRet.c ========================================================*/
 extern Aig_Man_t *     Rtm_ManRetime( Aig_Man_t * p, int fForward, int nStepsMax, int fVerbose );
+/*=== aigRetF.c ========================================================*/
+extern Aig_Man_t *     Aig_ManRetimeFrontier( Aig_Man_t * p, int nStepsMax );
 /*=== aigScl.c ==========================================================*/
 extern Aig_Man_t *     Aig_ManRemap( Aig_Man_t * p, Vec_Ptr_t * vMap );
 extern int             Aig_ManSeqCleanup( Aig_Man_t * p );
@@ -479,6 +490,7 @@ extern void            Aig_TableInsert( Aig_Man_t * p, Aig_Obj_t * pObj );
 extern void            Aig_TableDelete( Aig_Man_t * p, Aig_Obj_t * pObj );
 extern int             Aig_TableCountEntries( Aig_Man_t * p );
 extern void            Aig_TableProfile( Aig_Man_t * p );
+extern void            Aig_TableClear( Aig_Man_t * p );
 /*=== aigTiming.c ========================================================*/
 extern void            Aig_ObjClearReverseLevel( Aig_Man_t * p, Aig_Obj_t * pObj );
 extern int             Aig_ObjRequiredLevel( Aig_Man_t * p, Aig_Obj_t * pObj );

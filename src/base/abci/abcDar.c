@@ -87,7 +87,8 @@ Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fRegisters )
     if ( fRegisters )
     {
         pMan->nRegs = Abc_NtkLatchNum(pNtk);
-        pMan->vFlopNums = Vec_IntStartNatural( pMan->nRegs );
+//        pMan->vFlopNums = Vec_IntStartNatural( pMan->nRegs );
+        pMan->vFlopNums = NULL;
     }
     // transfer the pointers to the basic nodes
     Abc_AigConst1(pNtk)->pCopy = (Abc_Obj_t *)Aig_ManConst1(pMan);
@@ -198,7 +199,7 @@ Abc_Ntk_t * Abc_NtkFromDarSeqSweep( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
     Abc_Ntk_t * pNtkNew;
     Abc_Obj_t * pObjNew, * pLatch;
     Aig_Obj_t * pObj, * pObjLo, * pObjLi;
-    int i;
+    int i, iNodeId;
 //    assert( Aig_ManRegNum(pMan) != Abc_NtkLatchNum(pNtkOld) );
     // perform strashing
     pNtkNew = Abc_NtkStartFromNoLatches( pNtkOld, ABC_NTK_STRASH, ABC_FUNC_AIG );
@@ -242,7 +243,12 @@ Abc_Ntk_t * Abc_NtkFromDarSeqSweep( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
     {
         if ( pMan->nAsserts && i == Aig_ManPoNum(pMan) - pMan->nAsserts )
             break;
-        Abc_ObjAddFanin( Abc_NtkCo(pNtkNew, i), (Abc_Obj_t *)Aig_ObjChild0Copy(pObj) );
+        iNodeId = Nm_ManFindIdByNameTwoTypes( pNtkNew->pManName, Abc_ObjName(Abc_NtkCo(pNtkNew, i)), ABC_OBJ_PI, ABC_OBJ_BO );
+        if ( iNodeId >= 0 )
+            pObjNew = Abc_NtkObj( pNtkNew, iNodeId );
+        else
+            pObjNew = (Abc_Obj_t *)Aig_ObjChild0Copy(pObj);
+        Abc_ObjAddFanin( Abc_NtkCo(pNtkNew, i), pObjNew );
     }
     // if there are assertions, add them
     if ( pMan->nAsserts > 0 )
@@ -1270,6 +1276,9 @@ Abc_Ntk_t * Abc_NtkDarRetime( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose )
     if ( pMan == NULL )
         return NULL;
 //    Aig_ManReduceLachesCount( pMan );
+    if ( pMan->vFlopNums )
+        Vec_IntFree( pMan->vFlopNums ); 
+    pMan->vFlopNums = NULL;
 
     pMan = Rtm_ManRetime( pTemp = pMan, 1, nStepsMax, 0 );
     Aig_ManStop( pTemp );
@@ -1280,6 +1289,65 @@ Abc_Ntk_t * Abc_NtkDarRetime( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose )
     pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
     Aig_ManStop( pMan );
     return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkDarRetimeF( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose )
+{
+    Abc_Ntk_t * pNtkAig;
+    Aig_Man_t * pMan, * pTemp;
+    pMan = Abc_NtkToDar( pNtk, 1 );
+    if ( pMan == NULL )
+        return NULL;
+//    Aig_ManReduceLachesCount( pMan );
+    if ( pMan->vFlopNums )
+        Vec_IntFree( pMan->vFlopNums ); 
+    pMan->vFlopNums = NULL;
+
+    pMan = Aig_ManRetimeFrontier( pTemp = pMan, nStepsMax );
+    Aig_ManStop( pTemp );
+
+//    pMan = Aig_ManReduceLaches( pMan, 1 );
+//    pMan = Aig_ManConstReduce( pMan, 1 );
+
+    pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
+    Aig_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkDarHaigRecord( Abc_Ntk_t * pNtk )
+{
+    Aig_Man_t * pMan;
+    pMan = Abc_NtkToDar( pNtk, 1 );
+    if ( pMan == NULL )
+        return;
+//    Aig_ManReduceLachesCount( pMan );
+    if ( pMan->vFlopNums )
+        Vec_IntFree( pMan->vFlopNums ); 
+    pMan->vFlopNums = NULL;
+    Aig_ManHaigRecord( pMan );
+    Aig_ManStop( pMan );
 }
 
 /**Function*************************************************************
@@ -1320,6 +1388,39 @@ int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int fVerbose )
     Fra_SmlStop( pSml );
     Aig_ManStop( pMan );
     return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkDarClau( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose )
+{
+    extern int Fra_Clau( Aig_Man_t * pMan, int nIters, int fVerbose );
+    Aig_Man_t * pMan;
+    if ( Abc_NtkPoNum(pNtk) != 1 )
+    {
+        printf( "The number of outputs should be 1.\n" );
+        return 1;
+    }
+    pMan = Abc_NtkToDar( pNtk, 1 );
+    if ( pMan == NULL )
+        return 1;
+//    Aig_ManReduceLachesCount( pMan );
+    if ( pMan->vFlopNums )
+        Vec_IntFree( pMan->vFlopNums ); 
+    pMan->vFlopNums = NULL;
+
+    Fra_Clau( pMan, nStepsMax, fVerbose );
+    Aig_ManStop( pMan );
+    return 1;
 }
 
 ////////////////////////////////////////////////////////////////////////

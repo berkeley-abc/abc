@@ -58,6 +58,7 @@ static int  Ver_ParseAlways( Ver_Man_t * p, Abc_Ntk_t * pNtk );
 static int  Ver_ParseInitial( Ver_Man_t * p, Abc_Ntk_t * pNtk );
 static int  Ver_ParseAssign( Ver_Man_t * p, Abc_Ntk_t * pNtk );
 static int  Ver_ParseGateStandard( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Ver_GateType_t GateType );
+static int  Ver_ParseFlopStandard( Ver_Man_t * pMan, Abc_Ntk_t * pNtk );
 static int  Ver_ParseGate( Ver_Man_t * p, Abc_Ntk_t * pNtk, Mio_Gate_t * pGate );
 static int  Ver_ParseBox( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkBox );
 static int  Ver_ParseConnectBox( Ver_Man_t * pMan, Abc_Obj_t * pBox );
@@ -471,6 +472,9 @@ int Ver_ParseModule( Ver_Man_t * pMan )
             RetValue = Ver_ParseGateStandard( pMan, pNtk, VER_GATE_XNOR );
         else if ( !strcmp( pWord, "not" ) )
             RetValue = Ver_ParseGateStandard( pMan, pNtk, VER_GATE_NOT );
+
+        else if ( !strcmp( pWord, "dff" ) )
+            RetValue = Ver_ParseFlopStandard( pMan, pNtk );
 
         else if ( !strcmp( pWord, "assign" ) )
             RetValue = Ver_ParseAssign( pMan, pNtk );
@@ -1366,6 +1370,105 @@ int Ver_ParseGateStandard( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Ver_GateType_t Ga
 
 /**Function*************************************************************
 
+  Synopsis    [Parses one directive.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ver_ParseFlopStandard( Ver_Man_t * pMan, Abc_Ntk_t * pNtk )
+{
+    Ver_Stream_t * p = pMan->pReader;
+    Abc_Obj_t * pNetLi, * pNetLo, * pLatch;
+    char * pWord, Symbol;
+
+    // convert from the blackbox into the network with local functions representated by AIGs
+    if ( !Ver_ParseConvertNetwork( pMan, pNtk, pMan->fMapped ) )
+        return 0;
+
+    // this is gate name - throw it away
+    if ( Ver_StreamPopChar(p) != '(' )
+    {
+        sprintf( pMan->sError, "Cannot parse a standard gate (expected opening paranthesis)." );
+        Ver_ParsePrintErrorMessage( pMan );
+        return 0;
+    }
+    Ver_ParseSkipComments( pMan );
+
+    // parse the output name
+    pWord = Ver_ParseGetName( pMan );
+    if ( pWord == NULL )
+        return 0;
+    // get the net corresponding to this output
+    pNetLo = Ver_ParseFindNet( pNtk, pWord );
+    if ( pNetLo == NULL )
+    {
+        sprintf( pMan->sError, "Net is missing in gate %s.", pWord );
+        Ver_ParsePrintErrorMessage( pMan );
+        return 0;
+    }
+
+    // check if it is the end of gate
+    Ver_ParseSkipComments( pMan );
+    Symbol = Ver_StreamPopChar(p);
+    if ( Symbol == ')' )
+    {
+        sprintf( pMan->sError, "Cannot parse the flop." );
+        Ver_ParsePrintErrorMessage( pMan );
+        return 0;
+    }
+    // skip comma
+    if ( Symbol != ',' )
+    {
+        sprintf( pMan->sError, "Cannot parse the flop." );
+        Ver_ParsePrintErrorMessage( pMan );
+        return 0;
+    }
+    Ver_ParseSkipComments( pMan );
+
+    // parse the output name
+    pWord = Ver_ParseGetName( pMan );
+    if ( pWord == NULL )
+        return 0;
+    // get the net corresponding to this output
+    pNetLi = Ver_ParseFindNet( pNtk, pWord );
+    if ( pNetLi == NULL )
+    {
+        sprintf( pMan->sError, "Net is missing in gate %s.", pWord );
+        Ver_ParsePrintErrorMessage( pMan );
+        return 0;
+    }
+
+    // check if it is the end of gate
+    Ver_ParseSkipComments( pMan );
+    Symbol = Ver_StreamPopChar(p);
+    if ( Symbol != ')' )
+    {
+        sprintf( pMan->sError, "Cannot parse the flop." );
+        Ver_ParsePrintErrorMessage( pMan );
+        return 0;
+    }
+
+    // check if it is the end of gate
+    Ver_ParseSkipComments( pMan );
+    if ( Ver_StreamPopChar(p) != ';' )
+    {
+        sprintf( pMan->sError, "Cannot parse the flop." );
+        Ver_ParsePrintErrorMessage( pMan );
+        return 0;
+    }
+
+    // create the latch
+    pLatch = Ver_ParseCreateLatch( pNtk, pNetLi, pNetLo );
+    Abc_LatchSetInit0( pLatch );
+    return 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns the index of the given pin the gate.]
 
   Description []
@@ -1606,6 +1709,12 @@ int Ver_ParseBox( Ver_Man_t * pMan, Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkBox )
     pNode->pCopy = (Abc_Obj_t *)vBundles;
     while ( 1 )
     {
+/*
+        if ( Ver_StreamGetLineNumber(pMan->pReader) == 5967 )
+        {
+           int x = 0;
+        }
+*/
         // allocate the bundle (formal name + array of actual nets)
         pBundle = ALLOC( Ver_Bundle_t, 1 );
         pBundle->pNameFormal = NULL;

@@ -139,6 +139,15 @@ Aig_Obj_t * Aig_And( Aig_Man_t * p, Aig_Obj_t * p0, Aig_Obj_t * p1 )
 {
     Aig_Obj_t * pGhost, * pResult;
 //    Aig_Obj_t * pFan0, * pFan1;
+    if ( p->pTable == NULL )
+    {
+//        pGhost = Aig_ObjCreateGhost( p, p0, p1, AIG_OBJ_AND );
+        pGhost = Aig_ManGhost(p);
+        pGhost->Type = AIG_OBJ_AND;
+        pGhost->pFanin0 = p0;
+        pGhost->pFanin1 = p1;
+        return Aig_ObjCreate( p, pGhost );
+    }
     // check trivial cases
     if ( p0 == p1 )
         return p0;
