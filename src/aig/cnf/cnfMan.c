@@ -172,18 +172,76 @@ void Cnf_DataWriteIntoFile( Cnf_Dat_t * p, char * pFileName, int fReadable )
   SeeAlso     []
 
 ***********************************************************************/
-void * Cnf_DataWriteIntoSolver( Cnf_Dat_t * p )
+void * Cnf_DataWriteIntoSolver( Cnf_Dat_t * p, int nFrames, int fInit )
 {
     sat_solver * pSat;
-    int i, status;
+    int i, f, status;
+    assert( nFrames > 0 );
     pSat = sat_solver_new();
-    sat_solver_setnvars( pSat, p->nVars );
+    sat_solver_setnvars( pSat, p->nVars * nFrames );
     for ( i = 0; i < p->nClauses; i++ )
     {
         if ( !sat_solver_addclause( pSat, p->pClauses[i], p->pClauses[i+1] ) )
         {
             sat_solver_delete( pSat );
             return NULL;
+        }
+    }
+    if ( nFrames > 1 )
+    {
+        Aig_Obj_t * pObjLo, * pObjLi;
+        int nLitsAll, * pLits, Lits[2];
+        nLitsAll = 2 * p->nVars;
+        pLits = p->pClauses[0];
+        for ( f = 1; f < nFrames; f++ )
+        {
+            // add equality of register inputs/outputs for different timeframes
+            Aig_ManForEachLiLoSeq( p->pMan, pObjLi, pObjLo, i )
+            {
+                Lits[0] = (f-1)*nLitsAll + toLitCond( p->pVarNums[pObjLi->Id], 0 );
+                Lits[1] =  f   *nLitsAll + toLitCond( p->pVarNums[pObjLo->Id], 1 );
+                if ( !sat_solver_addclause( pSat, Lits, Lits + 2 ) )
+                {
+                    sat_solver_delete( pSat );
+                    return NULL;
+                }
+                Lits[0]++;
+                Lits[1]--;
+                if ( !sat_solver_addclause( pSat, Lits, Lits + 2 ) )
+                {
+                    sat_solver_delete( pSat );
+                    return NULL;
+                }
+            }
+            // add clauses for the next timeframe
+            for ( i = 0; i < p->nLiterals; i++ )
+                pLits[i] += nLitsAll;
+            for ( i = 0; i < p->nClauses; i++ )
+            {
+                if ( !sat_solver_addclause( pSat, p->pClauses[i], p->pClauses[i+1] ) )
+                {
+                    sat_solver_delete( pSat );
+                    return NULL;
+                }
+            }
+        }
+        // return literals to their original state
+        nLitsAll = (f-1) * nLitsAll;
+        for ( i = 0; i < p->nLiterals; i++ )
+            pLits[i] -= nLitsAll;
+    }
+    if ( fInit )
+    {
+        Aig_Obj_t * pObjLo;
+        int Lits[1];
+        Aig_ManForEachLoSeq( p->pMan, pObjLo, i )
+        {
+            Lits[0] = toLitCond( p->pVarNums[pObjLo->Id], 1 );
+            if ( !sat_solver_addclause( pSat, Lits, Lits + 1 ) )
+            {
+                sat_solver_delete( pSat );
+                return NULL;
+            }
         }
     }
     status = sat_solver_simplify(pSat);

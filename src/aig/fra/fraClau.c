@@ -233,7 +233,7 @@ Cla_Man_t * Fra_ClauStart( Aig_Man_t * pMan )
     Aig_ObjChild0Flip( Aig_ManPo(pFramesMain, 0) ); // complement the first output
     pCnfMain = Cnf_DeriveSimple( pFramesMain, 0 );
 //Cnf_DataWriteIntoFile( pCnfMain, "temp.cnf", 1 );
-    p->pSatMain = Cnf_DataWriteIntoSolver( pCnfMain );
+    p->pSatMain = Cnf_DataWriteIntoSolver( pCnfMain, 1, 0 );
 /*
     {
         int i;
@@ -248,7 +248,7 @@ Cla_Man_t * Fra_ClauStart( Aig_Man_t * pMan )
     pFramesTest = Aig_ManFrames( pMan, 1, 0, 0, 1, NULL );
     assert( Aig_ManPoNum(pFramesTest) == Aig_ManRegNum(pMan) );
     pCnfTest = Cnf_DeriveSimple( pFramesTest, Aig_ManRegNum(pMan) );
-    p->pSatTest = Cnf_DataWriteIntoSolver( pCnfTest );
+    p->pSatTest = Cnf_DataWriteIntoSolver( pCnfTest, 1, 0 );
     p->nSatVarsTestBeg = p->nSatVarsTestCur = sat_solver_nvars( p->pSatTest );
 
     // derive one timeframe to be checked for BMC
@@ -256,7 +256,7 @@ Cla_Man_t * Fra_ClauStart( Aig_Man_t * pMan )
 //Aig_ManShow( pFramesBmc, 0, NULL );
     assert( Aig_ManPoNum(pFramesBmc) == Aig_ManRegNum(pMan) );
     pCnfBmc = Cnf_DeriveSimple( pFramesBmc, Aig_ManRegNum(pMan) );
-    p->pSatBmc = Cnf_DataWriteIntoSolver( pCnfBmc );
+    p->pSatBmc = Cnf_DataWriteIntoSolver( pCnfBmc, 1, 0 );
 
     // create variable sets
     p->vSatVarsMainCs = Fra_ClauSaveInputVars( pFramesMain, pCnfMain, 2 * (Aig_ManPiNum(pMan)-Aig_ManRegNum(pMan)) );
@@ -496,11 +496,11 @@ void Fra_ClauReduceClause( Vec_Int_t * vMain, Vec_Int_t * vNew )
         LitN = Vec_IntEntry( vNew, j );
         VarM = lit_var( LitM );
         VarN = lit_var( LitN );
-        if ( VarM > VarN )
+        if ( VarM < VarN )
         {
             assert( 0 );
         }
-        else if ( VarM < VarN )
+        else if ( VarM > VarN )
         {
             j++;
         }
@@ -587,14 +587,14 @@ void Fra_ClauMinimizeClause( Cla_Man_t * p, Vec_Int_t * vBasis, Vec_Int_t * vExt
         // copy literals without the given one
         Vec_IntClear( vBasis );
         Vec_IntForEachEntry( vExtra, iLit2, k )
-            if ( iLit2 != iLit )
+            if ( k != i )
                 Vec_IntPush( vBasis, iLit2 );
         // try whether it is inductive
         if ( !Fra_ClauCheckClause( p, vBasis, NULL ) )
             continue;
         // the clause is inductive
         // remove the literal
-        for ( k = iLit; k < Vec_IntSize(vExtra)-1; k++ )
+        for ( k = i; k < Vec_IntSize(vExtra)-1; k++ )
             Vec_IntWriteEntry( vExtra, k, Vec_IntEntry(vExtra,k+1) );
         Vec_IntShrink( vExtra, Vec_IntSize(vExtra)-1 );
     }
@@ -620,11 +620,11 @@ void Fra_ClauPrintClause( Vec_Int_t * vSatCsVars, Vec_Int_t * vCex )
         LitM = Vec_IntEntry( vCex, i );
         VarM = lit_var( LitM );
         VarN = Vec_IntEntry( vSatCsVars, j );
-        if ( VarM > VarN )
+        if ( VarM < VarN )
         {
             assert( 0 );
         }
-        else if ( VarM < VarN )
+        else if ( VarM > VarN )
         {
             j++;
             printf( "-" );
@@ -650,7 +650,7 @@ void Fra_ClauPrintClause( Vec_Int_t * vSatCsVars, Vec_Int_t * vCex )
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_Clau( Aig_Man_t * pMan, int nIters, int fVerbose )
+int Fra_Clau( Aig_Man_t * pMan, int nIters, int fVerbose, int fVeryVerbose )
 {
     Cla_Man_t * p;
     int Iter, RetValue, fFailed, i;
@@ -669,7 +669,7 @@ int Fra_Clau( Aig_Man_t * pMan, int nIters, int fVerbose )
             printf( "%4d : ", Iter );
         // remap clause into the test manager
         Fra_ClauRemapClause( p->pMapCsMainToCsTest, p->vCexMain0, p->vCexMain, 0 );
-        if ( fVerbose )
+        if ( fVerbose && fVeryVerbose )
             Fra_ClauPrintClause( p->vSatVarsTestCs, p->vCexMain );
         // the main counter-example is in p->vCexMain
         // intermediate counter-examples are in p->vCexTest
@@ -679,8 +679,17 @@ int Fra_Clau( Aig_Man_t * pMan, int nIters, int fVerbose )
         {
             Fra_ClauReduceClause( p->vCexMain, p->vCexTest );
             Fra_ClauRemapClause( p->pMapCsTestToNsBmc, p->vCexMain, p->vCexBmc, 0 );
-            if ( !Fra_ClauCheckBmc(p, p->vCexBmc) )
+
+//            if ( !Fra_ClauCheckBmc(p, p->vCexBmc) )
+            if ( Vec_IntSize(p->vCexMain) < 1 )
             {
+                Vec_IntComplement( p->vCexMain0 ); 
+                RetValue = sat_solver_addclause( p->pSatMain, Vec_IntArray(p->vCexMain0), Vec_IntArray(p->vCexMain0) + Vec_IntSize(p->vCexMain0) );
+                if ( RetValue == 0 )
+                {
+                    printf( "\nProperty is proved after %d iterations.\n", Iter+1 );
+                    return 0;
+                }
                 fFailed = 1;
                 break;
             }
@@ -698,14 +707,21 @@ int Fra_Clau( Aig_Man_t * pMan, int nIters, int fVerbose )
             continue;
         }
         if ( fVerbose )
-            printf( " LitsAfterRed = %3d.  ", Vec_IntSize(p->vCexMain) );
+            printf( "  " );
+        if ( fVerbose && fVeryVerbose )
+            Fra_ClauPrintClause( p->vSatVarsTestCs, p->vCexMain );
+        if ( fVerbose )
+            printf( " LitsInd = %3d.  ", Vec_IntSize(p->vCexMain) );
         // minimize the inductive property
         Vec_IntClear( p->vCexBase );
+        if ( Vec_IntSize(p->vCexMain) > 1 )
 //        Fra_ClauMinimizeClause_rec( p, p->vCexBase, p->vCexMain );
-//        Fra_ClauMinimizeClause( p, p->vCexBase, p->vCexMain );
+            Fra_ClauMinimizeClause( p, p->vCexBase, p->vCexMain );
         assert( Vec_IntSize(p->vCexMain) > 0 );
+        if ( fVerbose && fVeryVerbose )
+            Fra_ClauPrintClause( p->vSatVarsTestCs, p->vCexMain );
         if ( fVerbose )
-            printf( " LitsAfterMin = %3d.  ", Vec_IntSize(p->vCexMain) );
+            printf( " LitsRed = %3d.  ", Vec_IntSize(p->vCexMain) );
         if ( fVerbose )
             printf( "\n" );
         // add the clause to the solver
@@ -715,6 +731,12 @@ int Fra_Clau( Aig_Man_t * pMan, int nIters, int fVerbose )
         {
             Iter++;
             break;
+        }
+        if ( p->pSatMain->qtail != p->pSatMain->qhead )
+        {
+            RetValue = sat_solver_simplify(p->pSatMain);
+            assert( RetValue != 0 );
+            assert( p->pSatMain->qtail == p->pSatMain->qhead );
         }
     }
 

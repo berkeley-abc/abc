@@ -192,7 +192,7 @@ clk = clock();
 //    pCnf = Cnf_Derive( pFrames, Aig_ManPoNum(pFrames) - pFrames->nAsserts );
 //Cnf_DataWriteIntoFile( pCnf, "temp.cnf", 1 );
     // create the SAT solver to be used for this problem
-    pSat = Cnf_DataWriteIntoSolver( pCnf );
+    pSat = Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
 
     printf( "HAIG regs = %d. HAIG nodes = %d. Outputs = %d.\n", 
         Aig_ManRegNum(pHaig), Aig_ManNodeNum(pHaig), Aig_ManPoNum(pHaig) );

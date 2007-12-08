@@ -6193,8 +6193,11 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;//, * pNtkRes;
     int c;
+    int fBmc;
+    int nFrames;
     int nLevels;
     int fVerbose;
+    int fVeryVerbose;
 //    extern Abc_Ntk_t * Abc_NtkNewAig( Abc_Ntk_t * pNtk );
 //    extern Abc_Ntk_t * Abc_NtkIvy( Abc_Ntk_t * pNtk );
 //    extern void Abc_NtkMaxFlowTest( Abc_Ntk_t * pNtk );
@@ -6207,20 +6210,34 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Abc_Ntk_t * Abc_NtkDarRetime( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose );
     extern Abc_Ntk_t * Abc_NtkPcmTest( Abc_Ntk_t * pNtk, int fVerbose );
     extern Abc_NtkDarHaigRecord( Abc_Ntk_t * pNtk );
-    extern int Abc_NtkDarClau( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose );
+    extern int Abc_NtkDarClau( Abc_Ntk_t * pNtk, int nFrames, int nStepsMax, int fBmc, int fVerbose, int fVeryVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
+    fVeryVerbose = 0;
     fVerbose = 1;
-    nLevels  = 1000;
+    fBmc     = 1;
+    nFrames  = 1;
+    nLevels  = 200;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Nvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FNbvwh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFrames = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFrames < 0 ) 
+                goto usage;
+            break;
         case 'N':
             if ( globalUtilOptind >= argc )
             {
@@ -6232,8 +6249,14 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nLevels < 0 ) 
                 goto usage;
             break;
+        case 'b':
+            fBmc ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
+            break;
+        case 'w':
+            fVeryVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -6355,12 +6378,13 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
 */
 //    Abc_NtkDarHaigRecord( pNtk );
-    Abc_NtkDarClau( pNtk, 1000, fVerbose );
+    Abc_NtkDarClau( pNtk, nFrames, nLevels, fBmc, fVerbose, fVeryVerbose );
     return 0;
 usage:
-    fprintf( pErr, "usage: test [-h]\n" );
+    fprintf( pErr, "usage: test [-vwh]\n" );
     fprintf( pErr, "\t         testbench for new procedures\n" );
     fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-w     : toggle printing very verbose information [default = %s]\n", fVeryVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
 }

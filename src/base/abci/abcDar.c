@@ -56,12 +56,20 @@ Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fRegisters )
         assert( Abc_NtkBoxNum(pNtk) == Abc_NtkLatchNum(pNtk) );
         Abc_NtkForEachCi( pNtk, pObj, i )
             if ( i < Abc_NtkPiNum(pNtk) )
+            {
                 assert( Abc_ObjIsPi(pObj) );
+                if ( !Abc_ObjIsPi(pObj) )
+                    printf( "Abc_NtkToDar(): Temporary bug: The PI ordering is wrong!\n" );
+            }
             else
                 assert( Abc_ObjIsBo(pObj) );
         Abc_NtkForEachCo( pNtk, pObj, i )
             if ( i < Abc_NtkPoNum(pNtk) )
+            {
                 assert( Abc_ObjIsPo(pObj) );
+                if ( !Abc_ObjIsPo(pObj) )
+                    printf( "Abc_NtkToDar(): Temporary bug: The PO ordering is wrong!\n" );
+            }
             else
                 assert( Abc_ObjIsBi(pObj) );
         // print warning about initial values
@@ -1401,9 +1409,10 @@ int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDarClau( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose )
+int Abc_NtkDarClau( Abc_Ntk_t * pNtk, int nFrames, int nStepsMax, int fBmc, int fVerbose, int fVeryVerbose )
 {
-    extern int Fra_Clau( Aig_Man_t * pMan, int nIters, int fVerbose );
+    extern int Fra_Clau( Aig_Man_t * pMan, int nIters, int fVerbose, int fVeryVerbose );
+    extern int Fra_Claus( Aig_Man_t * pAig, int nFrames, int nClauses, int fBmc, int fVerbose, int fVeryVerbose );
     Aig_Man_t * pMan;
     if ( Abc_NtkPoNum(pNtk) != 1 )
     {
@@ -1418,7 +1427,8 @@ int Abc_NtkDarClau( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose )
         Vec_IntFree( pMan->vFlopNums ); 
     pMan->vFlopNums = NULL;
 
-    Fra_Clau( pMan, nStepsMax, fVerbose );
+//    Fra_Clau( pMan, nStepsMax, fVerbose, fVeryVerbose );
+    Fra_Claus( pMan, nFrames, nStepsMax, fBmc, fVerbose, fVeryVerbose );
     Aig_ManStop( pMan );
     return 1;
 }

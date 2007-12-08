@@ -54,7 +54,7 @@ int Fra_FraigSat( Aig_Man_t * pMan, sint64 nConfLimit, sint64 nInsLimit, int fVe
     pCnf = Cnf_Derive( pMan, 0 );
 //    pCnf = Cnf_DeriveSimple( pMan, 0 );
     // convert into the SAT solver
-    pSat = Cnf_DataWriteIntoSolver( pCnf );
+    pSat = Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
     vCiIds = Cnf_DataCollectPiSatNums( pCnf, pMan );
     Cnf_DataFree( pCnf );
     // solve SAT

@@ -237,8 +237,8 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
             Abc_ObjAssignName( pObj, Abc_ObjName(pObj), NULL );
             Counter++;
         }
-        if ( Counter )
-            printf( "Io_ReadAiger(): Added %d default names for nameless I/O/register objects.\n", Counter );
+//        if ( Counter )
+//            printf( "Io_ReadAiger(): Added %d default names for nameless I/O/register objects.\n", Counter );
     }
     else
     {

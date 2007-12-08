@@ -207,6 +207,7 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped, int nOutputs )
     // allocate CNF
     pCnf = ALLOC( Cnf_Dat_t, 1 );
     memset( pCnf, 0, sizeof(Cnf_Dat_t) );
+    pCnf->pMan = p->pManAig;
     pCnf->nLiterals = nLiterals;
     pCnf->nClauses = nClauses;
     pCnf->pClauses = ALLOC( int *, nClauses + 1 );
@@ -346,6 +347,7 @@ Cnf_Dat_t * Cnf_DeriveSimple( Aig_Man_t * p, int nOutputs )
     // allocate CNF
     pCnf = ALLOC( Cnf_Dat_t, 1 );
     memset( pCnf, 0, sizeof(Cnf_Dat_t) );
+    pCnf->pMan = p;
     pCnf->nLiterals = nLiterals;
     pCnf->nClauses = nClauses;
     pCnf->pClauses = ALLOC( int *, nClauses + 1 );

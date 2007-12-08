@@ -339,7 +339,7 @@ PRT( "Time", clock() - clk );
 //    Aig_ManDumpBlif( pManAigNew, "frame_aig.blif" );
 //    Fra_ManPartitionTest2( pManAigNew );
 //    Aig_ManStop( pManAigNew );
-
+ 
     // iterate the inductive case
     p->pCla->fRefinement = 1;
     for ( nIter = 0; p->pCla->fRefinement; nIter++ )
@@ -365,7 +365,7 @@ p->timeTrav += clock() - clk2;
             pCnf = Cnf_Derive( p->pManFraig, Aig_ManRegNum(p->pManFraig) );
 //Cnf_DataWriteIntoFile( pCnf, "temp.cnf", 1 );
 
-        p->pSat = Cnf_DataWriteIntoSolver( pCnf );
+        p->pSat = Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
         p->nSatVars = pCnf->nVars;
         assert( p->pSat != NULL );
         if ( p->pSat == NULL )

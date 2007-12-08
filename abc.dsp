@@ -2626,6 +2626,10 @@ SOURCE=.\src\aig\fra\fraClau.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\fra\fraClaus.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\fra\fraCnf.c
 # End Source File
 # Begin Source File
