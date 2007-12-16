@@ -30,12 +30,16 @@ typedef struct Clu_Man_t_    Clu_Man_t;
 struct Clu_Man_t_
 {
     // parameters
-    int              nFrames;
-    int              nClausesMax;
-    int              fVerbose;
+    int              nFrames;        // the K of the K-step induction
+    int              nPref;          // the number of timeframes to skip  
+    int              nClausesMax;    // the max number of 4-clauses to consider
+    int              fVerbose;       
     int              fVeryVerbose;
-    int              nSimWords;
-    int              nSimFrames;
+    // internal parameters
+    int              nSimWords;      // the number of simulation words
+    int              nSimWordsPref;  // the number of simulation words in the prefix
+    int              nSimFrames;     // the number of frames to simulate 
+    int              nBTLimit;       // the largest number of backtracks (0 = infinite)
     // the network
     Aig_Man_t *      pAig;
     // SAT solvers
@@ -43,8 +47,6 @@ struct Clu_Man_t_
     sat_solver *     pSatBmc;
     // CNF for the test solver
     Cnf_Dat_t *      pCnf;
-    // the counter example
-    Vec_Int_t *      vValues;
     // clauses
     Vec_Int_t *      vLits;
     Vec_Int_t *      vClauses;
@@ -74,35 +76,17 @@ struct Clu_Man_t_
 int Fra_ClausRunBmc( Clu_Man_t * p )
 {
     Aig_Obj_t * pObj;
-    int * pLits;
-    int nBTLimit = 0;
-    int i, RetValue;
-    pLits = ALLOC( int, p->nFrames + 1 );
+    int Lits[2], nLitsTot, RetValue, i;
     // set the output literals
+    nLitsTot = 2 * p->pCnf->nVars;
     pObj = Aig_ManPo(p->pAig, 0);
-    for ( i = 0; i < p->nFrames; i++ )
-        pLits[i] = i * 2 * p->pCnf->nVars + toLitCond( p->pCnf->pVarNums[pObj->Id], 0 ); 
-    // try to solve the problem
-//    sat_solver_act_var_clear( p->pSatBmc );
-//    RetValue = sat_solver_solve( p->pSatBmc, NULL, NULL, (sint64)nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
-    for ( i = 0; i < p->nFrames; i++ )
+    for ( i = 0; i < p->nPref + p->nFrames; i++ )
     {
-        RetValue = sat_solver_solve( p->pSatBmc, pLits + i, pLits + i + 1, (sint64)nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
+        Lits[0] = i * nLitsTot + toLitCond( p->pCnf->pVarNums[pObj->Id], 0 ); 
+        RetValue = sat_solver_solve( p->pSatBmc, Lits, Lits + 1, (sint64)p->nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
         if ( RetValue != l_False )
-        {
-            free( pLits );
             return 0;
-        }
     }
-    free( pLits );
-
-/*
-    // get the counter-example
-    assert( RetValue == l_True );
-    nVarsTot = p->nFrames * p->pCnf->nVars;
-    Aig_ManForEachObj( p->pAig, pObj, i )
-        Vec_IntWriteEntry( p->vValues, i, sat_solver_var_value(p->pSatBmc, nVarsTot + p->pCnf->pVarNums[i]) );
-*/
     return 1;
 }
 
@@ -119,27 +103,21 @@ int Fra_ClausRunBmc( Clu_Man_t * p )
 ***********************************************************************/
 int Fra_ClausRunSat( Clu_Man_t * p )
 {
-    int nBTLimit = 0;
     Aig_Obj_t * pObj;
     int * pLits;
-    int i, nVarsTot, RetValue;
+    int i, RetValue;
     pLits = ALLOC( int, p->nFrames + 1 );
     // set the output literals
     pObj = Aig_ManPo(p->pAig, 0);
     for ( i = 0; i <= p->nFrames; i++ )
         pLits[i] = i * 2 * p->pCnf->nVars + toLitCond( p->pCnf->pVarNums[pObj->Id], i != p->nFrames ); 
     // try to solve the problem
-//    sat_solver_act_var_clear( p->pSatMain );
-//    RetValue = sat_solver_solve( p->pSatMain, NULL, NULL, (sint64)nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
-    RetValue = sat_solver_solve( p->pSatMain, pLits, pLits + p->nFrames + 1, (sint64)nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
+    RetValue = sat_solver_solve( p->pSatMain, pLits, pLits + p->nFrames + 1, (sint64)p->nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
     free( pLits );
     if ( RetValue == l_False )
         return 1;
     // get the counter-example
     assert( RetValue == l_True );
-    nVarsTot = p->nFrames * p->pCnf->nVars;
-    Aig_ManForEachObj( p->pAig, pObj, i )
-        Vec_IntWriteEntry( p->vValues, i, sat_solver_var_value(p->pSatMain, nVarsTot + p->pCnf->pVarNums[i]) );
     return 0;
 }
 
@@ -156,96 +134,15 @@ int Fra_ClausRunSat( Clu_Man_t * p )
 ***********************************************************************/
 int Fra_ClausRunSat0( Clu_Man_t * p )
 {
-    int nBTLimit = 0;
     Aig_Obj_t * pObj;
     int Lits[2], RetValue;
     pObj = Aig_ManPo(p->pAig, 0);
     Lits[0] = toLitCond( p->pCnf->pVarNums[pObj->Id], 0 ); 
-    RetValue = sat_solver_solve( p->pSatMain, Lits, Lits + 1, (sint64)nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
+    RetValue = sat_solver_solve( p->pSatMain, Lits, Lits + 1, (sint64)p->nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
     if ( RetValue == l_False )
         return 1;
     return 0;
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Processes the clauses.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-/*
-int Fra_ClausProcessClausesCut( Clu_Man_t * p, Dar_Cut_t * pCut )
-{
-    unsigned * pSimsC[4], * pSimsS[4];
-    int pLits[4];
-    int i, b, k, iMint, uMask, RetValue, nLeaves, nWordsTotal, nCounter;
-    // compute parameters
-    nLeaves = pCut->nLeaves;
-    nWordsTotal = p->pComb->nWordsTotal;
-    assert( nLeaves > 1 && nLeaves < 5 );
-    assert( nWordsTotal == p->pSeq->nWordsTotal );
-    // get parameters
-    for ( i = 0; i < (int)pCut->nLeaves; i++ )
-    {
-        pSimsC[i] = Fra_ObjSim( p->pComb, pCut->pLeaves[i] );
-        pSimsS[i] = Fra_ObjSim( p->pSeq,  pCut->pLeaves[i] );
-    }
-    // add combinational patterns
-    uMask = 0;
-    for ( i = 0; i < nWordsTotal; i++ )
-        for ( k = 0; k < 32; k++ )
-        {
-            iMint = 0;
-            for ( b = 0; b < nLeaves; b++ )
-                if ( pSimsC[b][i] & (1 << k) )
-                    iMint |= (1 << b);
-            uMask |= (1 << iMint);
-        }
-    // remove sequential patterns
-    for ( i = 0; i < nWordsTotal; i++ )
-        for ( k = 0; k < 32; k++ )
-        {
-            iMint = 0;
-            for ( b = 0; b < nLeaves; b++ )
-                if ( pSimsS[b][i] & (1 << k) )
-                    iMint |= (1 << b);
-            uMask &= ~(1 << iMint);
-        }
-    if ( uMask == 0 )
-        return 0;
-    // add clauses for the remaining patterns
-    nCounter = 0;
-    for ( i = 0; i < (1<<nLeaves); i++ )
-    {
-        if ( (uMask & (1 << i)) == 0 )
-            continue;
-        nCounter++;
-//        continue;
-
-        // add every third clause
-//        if ( (nCounter % 2) == 0 )
-//            continue;
-
-        for ( b = 0; b < nLeaves; b++ )
-            pLits[b] = toLitCond( p->pCnf->pVarNums[pCut->pLeaves[b]], (i&(1<<b)) );
-        // add the clause
-        RetValue = sat_solver_addclause( p->pSatMain, pLits, pLits + nLeaves );
-//        assert( RetValue == 1 );
-        if ( RetValue == 0 )
-        {
-            printf( "Already UNSAT after %d clauses.\n", nCounter );
-            return -1;
-        }
-    }
-    return nCounter;
-}
-*/
-
 
 /**Function*************************************************************
 
@@ -289,36 +186,23 @@ int Fra_ClausProcessClausesCut( Clu_Man_t * p, Fra_Sml_t * pSimMan, Dar_Cut_t * 
     unsigned Matrix[32];
     unsigned * pSims[4], uWord;
     int nSeries, i, k, j;
+    int nWordsForSim = pSimMan->nWordsTotal - p->nSimWordsPref;
     // compute parameters
     assert( pCut->nLeaves > 1 && pCut->nLeaves < 5 );
-    assert( pSimMan->nWordsTotal % 8 == 0 );
+    assert( nWordsForSim % 8 == 0 );
     // get parameters
     for ( i = 0; i < (int)pCut->nLeaves; i++ )
-        pSims[i] = Fra_ObjSim( pSimMan, pCut->pLeaves[i] );
+        pSims[i] = Fra_ObjSim( pSimMan, pCut->pLeaves[i] ) + p->nSimWordsPref;
     // add combinational patterns
     memset( pScores, 0, sizeof(int) * 16 );
-    nSeries = pSimMan->nWordsTotal / 8;
+    nSeries = nWordsForSim / 8;
     for ( i = 0; i < nSeries; i++ )
     {
         memset( Matrix, 0, sizeof(unsigned) * 32 );
         for ( k = 0; k < 8; k++ )
             for ( j = 0; j < (int)pCut->nLeaves; j++ )
                 Matrix[31-(k*4+j)] = pSims[j][i*8+k];
-/*
-        for ( k = 0; k < 32; k++ )
-        {
-            Extra_PrintBinary( stdout, Matrix + k, 32 ); printf( "\n" );
-        }
-        printf( "\n" );
-*/
         transpose32a( Matrix );
-/*
-        for ( k = 0; k < 32; k++ )
-        {
-            Extra_PrintBinary( stdout, Matrix + k, 32 ); printf( "\n" );
-        }
-        printf( "\n" );
-*/
         for ( k = 0; k < 32; k++ )
             for ( j = 0, uWord = Matrix[k]; j < 8; j++, uWord >>= 4 )
                 pScores[uWord & 0xF]++;
@@ -347,15 +231,16 @@ int Fra_ClausProcessClausesCut2( Clu_Man_t * p, Fra_Sml_t * pSimMan, Dar_Cut_t *
 {
     unsigned * pSims[4], uWord;
     int iMint, i, k, b;
+    int nWordsForSim = pSimMan->nWordsTotal - p->nSimWordsPref;
     // compute parameters
     assert( pCut->nLeaves > 1 && pCut->nLeaves < 5 );
-    assert( pSimMan->nWordsTotal % 8 == 0 );
+    assert( nWordsForSim % 8 == 0 );
     // get parameters
     for ( i = 0; i < (int)pCut->nLeaves; i++ )
-        pSims[i] = Fra_ObjSim( pSimMan, pCut->pLeaves[i] );
+        pSims[i] = Fra_ObjSim( pSimMan, pCut->pLeaves[i] ) + p->nSimWordsPref;
     // add combinational patterns
     memset( pScores, 0, sizeof(int) * 16 );
-    for ( i = 0; i < pSimMan->nWordsTotal; i++ )
+    for ( i = 0; i < nWordsForSim; i++ )
         for ( k = 0; k < 32; k++ )
         {
             iMint = 0;
@@ -372,6 +257,60 @@ int Fra_ClausProcessClausesCut2( Clu_Man_t * p, Fra_Sml_t * pSimMan, Dar_Cut_t *
 //    Extra_PrintBinary( stdout, &uWord, 16 ); printf( "\n" );
     return (int)uWord;
 }
+
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the cut-off cost.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fra_ClausSelectClauses( Clu_Man_t * p )
+{
+    int * pCostCount, nClauCount, Cost, CostMax, i, c;
+    assert( Vec_IntSize(p->vClauses) > p->nClausesMax );   
+    // count how many implications have each cost
+    CostMax = p->nSimWords * 32 + 1;
+    pCostCount = ALLOC( int, CostMax );
+    memset( pCostCount, 0, sizeof(int) * CostMax );
+    Vec_IntForEachEntry( p->vCosts, Cost, i )
+    {
+        assert( Cost < CostMax );
+        pCostCount[ Cost ]++;
+    }
+    assert( pCostCount[0] == 0 );
+    // select the bound on the cost (above this bound, implication will be included)
+    nClauCount = 0;
+    for ( c = CostMax - 1; c > 0; c-- )
+    {
+        assert( pCostCount[c] >= 0 );
+        nClauCount += pCostCount[c];
+        if ( nClauCount >= p->nClausesMax )
+            break;
+    }
+    // collect implications with the given costs
+    nClauCount = 0;
+    Vec_IntForEachEntry( p->vCosts, Cost, i )
+    {
+        if ( Cost >= c && nClauCount < p->nClausesMax )
+        {
+            nClauCount++;
+            continue;
+        }
+        Vec_IntWriteEntry( p->vCosts, i, -1 );
+    }
+    free( pCostCount );
+    p->nClauses = nClauCount;
+if ( p->fVerbose )
+printf( "Selected %d clauses. Cost range: [%d < %d < %d]\n", nClauCount, 1, c, CostMax );
+    return c;
+}
+
 
 /**Function*************************************************************
 
@@ -395,6 +334,74 @@ void Fra_ClausRecordClause( Clu_Man_t * p, Dar_Cut_t * pCut, int iMint, int Cost
 
 /**Function*************************************************************
 
+  Synopsis    [Returns 1 if simulation info is composed of all zeros.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fra_ClausSmlNodeIsConst( Fra_Sml_t * pSeq, Aig_Obj_t * pObj )
+{
+    unsigned * pSims;
+    int i;
+    pSims = Fra_ObjSim(pSeq, pObj->Id);
+    for ( i = pSeq->nWordsPref; i < pSeq->nWordsTotal; i++ )
+        if ( pSims[i] )
+            return 0;
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if implications holds.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fra_ClausSmlNodesAreImp( Fra_Sml_t * pSeq, Aig_Obj_t * pObj1, Aig_Obj_t * pObj2 )
+{
+    unsigned * pSimL, * pSimR;
+    int k;
+    pSimL = Fra_ObjSim(pSeq, pObj1->Id);
+    pSimR = Fra_ObjSim(pSeq, pObj2->Id);
+    for ( k = pSeq->nWordsPref; k < pSeq->nWordsTotal; k++ )
+        if ( pSimL[k] & ~pSimR[k] ) // !(Obj1 -> Obj2)
+            return 0;
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if implications holds.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fra_ClausSmlNodesAreImpC( Fra_Sml_t * pSeq, Aig_Obj_t * pObj1, Aig_Obj_t * pObj2 )
+{
+    unsigned * pSimL, * pSimR;
+    int k;
+    pSimL = Fra_ObjSim(pSeq, pObj1->Id);
+    pSimR = Fra_ObjSim(pSeq, pObj2->Id);
+    for ( k = pSeq->nWordsPref; k < pSeq->nWordsTotal; k++ )
+        if ( pSimL[k] & pSimR[k] )
+            return 0;
+    return 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Processes the clauses.]
 
   Description []
@@ -404,7 +411,78 @@ void Fra_ClausRecordClause( Clu_Man_t * p, Dar_Cut_t * pCut, int iMint, int Cost
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_ClausProcessClauses( Clu_Man_t * p )
+int Fra_ClausCollectLatchClauses( Clu_Man_t * p, Fra_Sml_t * pSeq )
+{
+    Aig_Obj_t * pObj1, * pObj2;
+    unsigned * pSims1, * pSims2;
+    int CostMax, i, k, nCountConst, nCountImps;
+
+    nCountConst = nCountImps = 0;
+    CostMax = p->nSimWords * 32;
+    pSeq->nWordsPref = p->nSimWordsPref;
+    Aig_ManForEachLoSeq( p->pAig, pObj1, i )
+    {
+        pSims1 = Fra_ObjSim( pSeq, pObj1->Id );
+        if ( Fra_ClausSmlNodeIsConst( pSeq, pObj1 ) )
+        {
+            Vec_IntPush( p->vLits, toLitCond( p->pCnf->pVarNums[pObj1->Id], 1 ) );
+            Vec_IntPush( p->vClauses, Vec_IntSize(p->vLits) );
+            Vec_IntPush( p->vCosts, CostMax );
+            nCountConst++;
+            continue;
+        }
+        Aig_ManForEachLoSeq( p->pAig, pObj2, k )
+        {
+            pSims2 = Fra_ObjSim( pSeq, pObj2->Id );
+            if ( Fra_ClausSmlNodesAreImp( pSeq, pObj1, pObj2 ) )
+            {
+                Vec_IntPush( p->vLits, toLitCond( p->pCnf->pVarNums[pObj1->Id], 1 ) );
+                Vec_IntPush( p->vLits, toLitCond( p->pCnf->pVarNums[pObj2->Id], 0 ) );
+                Vec_IntPush( p->vClauses, Vec_IntSize(p->vLits) );
+                Vec_IntPush( p->vCosts, CostMax );
+                nCountImps++;
+                continue;
+            }
+            if ( Fra_ClausSmlNodesAreImp( pSeq, pObj2, pObj1 ) )
+            {
+                Vec_IntPush( p->vLits, toLitCond( p->pCnf->pVarNums[pObj2->Id], 1 ) );
+                Vec_IntPush( p->vLits, toLitCond( p->pCnf->pVarNums[pObj1->Id], 0 ) );
+                Vec_IntPush( p->vClauses, Vec_IntSize(p->vLits) );
+                Vec_IntPush( p->vCosts, CostMax );
+                nCountImps++;
+                continue;
+            }
+            if ( Fra_ClausSmlNodesAreImpC( pSeq, pObj1, pObj2 ) )
+            {
+                Vec_IntPush( p->vLits, toLitCond( p->pCnf->pVarNums[pObj1->Id], 1 ) );
+                Vec_IntPush( p->vLits, toLitCond( p->pCnf->pVarNums[pObj2->Id], 1 ) );
+                Vec_IntPush( p->vClauses, Vec_IntSize(p->vLits) );
+                Vec_IntPush( p->vCosts, CostMax );
+                nCountImps++;
+                continue;
+            }
+        }
+        if ( nCountConst + nCountImps > p->nClausesMax / 2 )
+            break;
+    }
+    pSeq->nWordsPref = 0;
+    if ( p->fVerbose )
+    printf( "Collected %d constants and %d implications.\n", nCountConst, nCountImps );
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Processes the clauses.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fra_ClausProcessClauses( Clu_Man_t * p, int fRefs )
 {
     Aig_MmFixed_t * pMemCuts;
     Fra_Sml_t * pComb, * pSeq;
@@ -415,19 +493,37 @@ int Fra_ClausProcessClauses( Clu_Man_t * p )
     // simulate the AIG
 clk = clock();
     srand( 0xAABBAABB );
-    pSeq = Fra_SmlSimulateSeq( p->pAig, 0, p->nSimFrames, p->nSimWords/p->nSimFrames );
+    pSeq = Fra_SmlSimulateSeq( p->pAig, 0, p->nPref + p->nSimFrames, p->nSimWords/p->nSimFrames );
     if ( pSeq->fNonConstOut )
     {
         printf( "Property failed after sequential simulation!\n" );
         Fra_SmlStop( pSeq );
         return 0;
     }
+if ( p->fVerbose )
+{
 PRT( "Sim-seq", clock() - clk );
+}
+
+
+clk = clock();
+    if ( fRefs )
+    {
+    Fra_ClausCollectLatchClauses( p, pSeq );
+if ( p->fVerbose )
+{
+PRT( "Lat-cla", clock() - clk );
+}
+    }
+
 
     // generate cuts for all nodes, assign cost, and find best cuts
 clk = clock();
     pMemCuts = Dar_ManComputeCuts( p->pAig, 10 );
+if ( p->fVerbose )
+{
 PRT( "Cuts   ", clock() - clk );
+}
 
     // collect sequential info for each cut
 clk = clock();
@@ -442,14 +538,20 @@ clk = clock();
 //                    int x = 0;
 //                }
             }
+if ( p->fVerbose )
+{
 PRT( "Infoseq", clock() - clk );
+}
     Fra_SmlStop( pSeq );
 
     // perform combinational simulation
 clk = clock();
     srand( 0xAABBAABB );
-    pComb = Fra_SmlSimulateComb( p->pAig, p->nSimWords );
+    pComb = Fra_SmlSimulateComb( p->pAig, p->nSimWords + p->nSimWordsPref  );
+if ( p->fVerbose )
+{
 PRT( "Sim-cmb", clock() - clk );
+}
 
     // collect combinational info for each cut
 clk = clock();
@@ -470,10 +572,19 @@ clk = clock();
             }
     Fra_SmlStop( pComb );
     Aig_MmFixedStop( pMemCuts, 0 );
+if ( p->fVerbose )
+{
 PRT( "Infocmb", clock() - clk );
+}
 
+    if ( p->fVerbose )
     printf( "Node = %5d. Non-triv cuts = %7d. Clauses = %6d. Clause per cut = %6.2f.\n", 
         Aig_ManNodeNum(p->pAig), nCuts, Vec_IntSize(p->vClauses), 1.0*Vec_IntSize(p->vClauses)/nCuts );
+
+    if ( Vec_IntSize(p->vClauses) > p->nClausesMax )
+        Fra_ClausSelectClauses( p );
+    else
+        p->nClauses = Vec_IntSize( p->vClauses );
     return 1;
 }
 
@@ -490,7 +601,6 @@ PRT( "Infocmb", clock() - clk );
 ***********************************************************************/
 int Fra_ClausBmcClauses( Clu_Man_t * p )
 {
-    int nBTLimit = 0;
     int * pStart, nLitsTot, RetValue, Beg, End, Counter, i, k, f;
 /*
     for ( i = 0; i < Vec_IntSize(p->vLits); i++ )
@@ -499,7 +609,16 @@ int Fra_ClausBmcClauses( Clu_Man_t * p )
 */
     // add the clauses
     Counter = 0;
+    // skip through the prefix variables
+    if ( p->nPref )
+    {
+        nLitsTot = p->nPref * 2 * p->pCnf->nVars;
+        for ( i = 0; i < Vec_IntSize(p->vLits); i++ )
+            p->vLits->pArray[i] += nLitsTot;
+    }
+    // go through the timeframes
     nLitsTot = 2 * p->pCnf->nVars;
+    pStart = Vec_IntArray(p->vLits);
     for ( f = 0; f < p->nFrames; f++ )
     {
         Beg = 0;
@@ -512,12 +631,13 @@ int Fra_ClausBmcClauses( Clu_Man_t * p )
             }
             assert( Vec_IntEntry( p->vCosts, i ) > 0 );
             assert( End - Beg < 5 );
-            pStart = Vec_IntArray(p->vLits);
+
             for ( k = Beg; k < End; k++ )
                 pStart[k] = lit_neg( pStart[k] );
-            RetValue = sat_solver_solve( p->pSatBmc, pStart + Beg, pStart + End, (sint64)nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
+            RetValue = sat_solver_solve( p->pSatBmc, pStart + Beg, pStart + End, (sint64)p->nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
             for ( k = Beg; k < End; k++ )
                 pStart[k] = lit_neg( pStart[k] );
+
             if ( RetValue != l_False )
             {
                 Beg = End;
@@ -551,7 +671,7 @@ int Fra_ClausBmcClauses( Clu_Man_t * p )
     }
 
     // return clauses back to normal
-    nLitsTot = p->nFrames * nLitsTot;
+    nLitsTot = (p->nPref + p->nFrames) * nLitsTot;
     for ( i = 0; i < Vec_IntSize(p->vLits); i++ )
         p->vLits->pArray[i] -= nLitsTot;
 /*
@@ -561,6 +681,113 @@ int Fra_ClausBmcClauses( Clu_Man_t * p )
 */
     return Counter;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Cleans simulation info.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fra_ClausSimInfoClean( Clu_Man_t * p )
+{
+    assert( p->pCnf->nVars <= Vec_PtrSize(p->vCexes) );
+    Vec_PtrCleanSimInfo( p->vCexes, 0, p->nCexesAlloc/32 );
+    p->nCexes = 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reallocs simulation info.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fra_ClausSimInfoRealloc( Clu_Man_t * p )
+{
+    assert( p->nCexes == p->nCexesAlloc );
+    Vec_PtrReallocSimInfo( p->vCexes );
+    Vec_PtrCleanSimInfo( p->vCexes, p->nCexesAlloc/32, 2 * p->nCexesAlloc/32 );
+    p->nCexesAlloc *= 2;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Records simulation info.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fra_ClausSimInfoRecord( Clu_Man_t * p, int * pModel )
+{
+    int i;
+    if ( p->nCexes == p->nCexesAlloc )
+        Fra_ClausSimInfoRealloc( p );
+    assert( p->nCexes < p->nCexesAlloc );
+    for ( i = 0; i < p->pCnf->nVars; i++ )
+    {
+        if ( pModel[i] == l_True )
+        {
+            assert( Aig_InfoHasBit( Vec_PtrEntry(p->vCexes, i), p->nCexes ) == 0 );
+            Aig_InfoSetBit( Vec_PtrEntry(p->vCexes, i), p->nCexes );
+        }
+    }
+    p->nCexes++;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Uses the simulation info.]
+
+  Description [Returns 1 if the simulation info disproved the clause.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fra_ClausSimInfoCheck( Clu_Man_t * p, int * pLits, int nLits )
+{
+    unsigned * pSims[4], uWord;
+    int nWords, iVar, i, w;
+    for ( i = 0; i < nLits; i++ )
+    {
+        iVar = lit_var(pLits[i]) - p->nFrames * p->pCnf->nVars;
+        assert( iVar > 0 && iVar < p->pCnf->nVars );
+        pSims[i] = Vec_PtrEntry( p->vCexes, iVar );
+    }
+    nWords = p->nCexes / 32;
+    for ( w = 0; w < nWords; w++ )
+    {
+        uWord = ~(unsigned)0;
+        for ( i = 0; i < nLits; i++ )
+            uWord &= (lit_sign(pLits[i])? pSims[i][w] : ~pSims[i][w]);
+        if ( uWord )
+            return 1;
+    }
+    if ( p->nCexes % 32 )
+    {
+        uWord = ~(unsigned)0;
+        for ( i = 0; i < nLits; i++ )
+            uWord &= (lit_sign(pLits[i])? pSims[i][w] : ~pSims[i][w]);
+        if ( uWord & Aig_InfoMask( p->nCexes % 32 ) )
+            return 1;
+    }
+    return 0;
+}
+
 
 /**Function*************************************************************
 
@@ -575,8 +802,8 @@ int Fra_ClausBmcClauses( Clu_Man_t * p )
 ***********************************************************************/
 int Fra_ClausInductiveClauses( Clu_Man_t * p )
 {
-    int nBTLimit = 0;
-    int * pStart, nLitsTot, RetValue, Beg, End, Counter, i, k, f;
+//    Aig_Obj_t * pObjLi, * pObjLo;
+    int * pStart, nLitsTot, RetValue, Beg, End, Counter, i, k, f, fFail = 0, fFlag;//, Lits[2];
 
     // reset the solver
     if ( p->pSatMain )  sat_solver_delete( p->pSatMain );
@@ -585,7 +812,9 @@ int Fra_ClausInductiveClauses( Clu_Man_t * p )
     {
         printf( "Error: Main solver is unsat.\n" );
         return -1;
-    }
+    }  
+    Fra_ClausSimInfoClean( p );
+
 /*
     // check if the property holds
     if ( Fra_ClausRunSat0( p ) )
@@ -593,8 +822,26 @@ int Fra_ClausInductiveClauses( Clu_Man_t * p )
     else
         printf( "Property does not hold without strengthening.\n" );
 */
+/*
+    // add constant registers
+    Aig_ManForEachLiLoSeq( p->pAig, pObjLi, pObjLo, i )  
+        if ( Aig_ObjFanin0(pObjLi) == Aig_ManConst1(p->pAig) )
+        {
+            for ( k = 0; k < p->nFrames; k++ )
+            {
+                Lits[0] = k * 2 * p->pCnf->nVars + toLitCond( p->pCnf->pVarNums[pObjLo->Id], Aig_ObjFaninC0(pObjLi) ); 
+                RetValue = sat_solver_addclause( p->pSatMain, Lits, Lits + 1 );
+                if ( RetValue == 0 )
+                {
+                    printf( "Error: Solver is UNSAT after adding constant-register clauses.\n" );
+                    return -1;
+                }
+            }
+        }
+*/
     // add the clauses
     nLitsTot = 2 * p->pCnf->nVars;
+    pStart = Vec_IntArray(p->vLits);
     for ( f = 0; f < p->nFrames; f++ )
     {
         Beg = 0;
@@ -607,7 +854,6 @@ int Fra_ClausInductiveClauses( Clu_Man_t * p )
             }
             assert( Vec_IntEntry( p->vCosts, i ) > 0 );
             assert( End - Beg < 5 );
-            pStart = Vec_IntArray(p->vLits);
             // add the clause to all timeframes
             RetValue = sat_solver_addclause( p->pSatMain, pStart + Beg, pStart + End );
             if ( RetValue == 0 )
@@ -633,13 +879,15 @@ int Fra_ClausInductiveClauses( Clu_Man_t * p )
     // check if the property holds
     if ( Fra_ClausRunSat0( p ) )
     {
-//        printf( "Property holds with strengthening.\n" );
+        if ( p->fVerbose )
         printf( " Property holds.  " );
     }
     else
     {
+        if ( p->fVerbose )
         printf( " Property fails.  " );
-        return -2;
+//        return -2;
+        fFail = 1;
     }
 
 /*
@@ -683,30 +931,55 @@ int Fra_ClausInductiveClauses( Clu_Man_t * p )
         }
         assert( Vec_IntEntry( p->vCosts, i ) > 0 );
         assert( End - Beg < 5 );
-        pStart = Vec_IntArray(p->vLits);
+
+        if ( Fra_ClausSimInfoCheck(p, pStart + Beg, End - Beg) )
+        {
+            fFlag = 1;
+//            printf( "s-" );
+
+            Beg = End;
+            Vec_IntWriteEntry( p->vCosts, i, -1 );
+            Counter++;
+            continue;
+        }
+        else
+        {
+            fFlag = 0;
+//            printf( "s?" );
+        }
 
         for ( k = Beg; k < End; k++ )
             pStart[k] = lit_neg( pStart[k] );
-        RetValue = sat_solver_solve( p->pSatMain, pStart + Beg, pStart + End, (sint64)nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
+        RetValue = sat_solver_solve( p->pSatMain, pStart + Beg, pStart + End, (sint64)p->nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
         for ( k = Beg; k < End; k++ )
             pStart[k] = lit_neg( pStart[k] );
 
         // the problem is not solved
         if ( RetValue != l_False )
         {
+//            printf( "S- " );
+            Fra_ClausSimInfoRecord( p, (int*)p->pSatMain->model.ptr + p->nFrames * p->pCnf->nVars );
+//            RetValue = Fra_ClausSimInfoCheck(p, pStart + Beg, End - Beg);
+//            assert( RetValue );
+
             Beg = End;
             Vec_IntWriteEntry( p->vCosts, i, -1 );
             Counter++;
             continue;
         }
+//        printf( "S+ " );
+//        assert( !fFlag );
+
+/*
         // add the clause
         RetValue = sat_solver_addclause( p->pSatMain, pStart + Beg, pStart + End );
 //        assert( RetValue == 1 );
         if ( RetValue == 0 )
         {
-            printf( "Error: Solver is UNSAT after adding BMC clauses.\n" );
+            printf( "Error: Solver is UNSAT after adding proved clauses.\n" );
             return -1;
         }
+*/
         Beg = End;
 
         // simplify the solver
@@ -723,8 +996,11 @@ int Fra_ClausInductiveClauses( Clu_Man_t * p )
     for ( i = 0; i < Vec_IntSize(p->vLits); i++ )
         p->vLits->pArray[i] -= nLitsTot;
 
+    if ( fFail )
+        return -2;
     return Counter;
 }
+
 
 
 /**Function*************************************************************
@@ -738,26 +1014,27 @@ int Fra_ClausInductiveClauses( Clu_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Clu_Man_t * Fra_ClausAlloc( Aig_Man_t * pAig, int nFrames, int nClausesMax, int fVerbose, int fVeryVerbose )
+Clu_Man_t * Fra_ClausAlloc( Aig_Man_t * pAig, int nFrames, int nPref, int nClausesMax, int fVerbose, int fVeryVerbose )
 {
     Clu_Man_t * p;
     p = ALLOC( Clu_Man_t, 1 );
     memset( p, 0, sizeof(Clu_Man_t) );
-    p->pAig         = pAig;
-    p->nFrames      = nFrames;
-    p->nClausesMax  = nClausesMax;
-    p->fVerbose     = fVerbose;
-    p->fVeryVerbose = fVeryVerbose;
-    p->nSimWords    = 256;//1024;//64;
-    p->nSimFrames   = 16;//8;//32;
-    p->vValues      = Vec_IntStart( Aig_ManObjNumMax(p->pAig) );
+    p->pAig          = pAig;
+    p->nFrames       = nFrames;
+    p->nPref         = nPref;
+    p->nClausesMax   = nClausesMax;
+    p->fVerbose      = fVerbose;
+    p->fVeryVerbose  = fVeryVerbose;
+    p->nSimWords     = 512;//1024;//64;
+    p->nSimFrames    = 32;//8;//32;
+    p->nSimWordsPref = p->nPref*p->nSimWords/p->nSimFrames;
 
-    p->vLits        = Vec_IntAlloc( 1<<14 );
-    p->vClauses     = Vec_IntAlloc( 1<<12 );
-    p->vCosts       = Vec_IntAlloc( 1<<12 );
+    p->vLits         = Vec_IntAlloc( 1<<14 );
+    p->vClauses      = Vec_IntAlloc( 1<<12 );
+    p->vCosts        = Vec_IntAlloc( 1<<12 );
 
-    p->nCexesAlloc  = 1024;
-    p->vCexes       = Vec_PtrAllocSimInfo( Aig_ManObjNumMax(p->pAig), p->nCexesAlloc/32 );
+    p->nCexesAlloc   = 1024;
+    p->vCexes        = Vec_PtrAllocSimInfo( Aig_ManObjNumMax(p->pAig)+1, p->nCexesAlloc/32 );
     Vec_PtrCleanSimInfo( p->vCexes, 0, p->nCexesAlloc/32 );
     return p;
 }
@@ -779,7 +1056,6 @@ void Fra_ClausFree( Clu_Man_t * p )
     if ( p->vLits )     Vec_IntFree( p->vLits );
     if ( p->vClauses )  Vec_IntFree( p->vClauses );
     if ( p->vCosts )    Vec_IntFree( p->vCosts );
-    if ( p->vValues )   Vec_IntFree( p->vValues );
     if ( p->pCnf )      Cnf_DataFree( p->pCnf );
     if ( p->pSatMain )  sat_solver_delete( p->pSatMain );
     if ( p->pSatBmc )   sat_solver_delete( p->pSatBmc );
@@ -797,40 +1073,46 @@ void Fra_ClausFree( Clu_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_Claus( Aig_Man_t * pAig, int nFrames, int nClausesMax, int fBmc, int fVerbose, int fVeryVerbose )
+int Fra_Claus( Aig_Man_t * pAig, int nFrames, int nPref, int nClausesMax, int fBmc, int fRefs, int fVerbose, int fVeryVerbose )
 {
     Clu_Man_t * p;
     int clk, clkTotal = clock();
-    int Iter, Counter;
+    int Iter, Counter, nPrefOld;
 
     assert( Aig_ManPoNum(pAig) - Aig_ManRegNum(pAig) == 1 );
 
     // create the manager
-    p = Fra_ClausAlloc( pAig, nFrames, nClausesMax, fVerbose, fVeryVerbose );
+    p = Fra_ClausAlloc( pAig, nFrames, nPref, nClausesMax, fVerbose, fVeryVerbose );
 
 clk = clock();
     // derive CNF
     p->pAig->nRegs++;
     p->pCnf = Cnf_DeriveSimple( p->pAig, Aig_ManPoNum(p->pAig) );
     p->pAig->nRegs--;
+if ( fVerbose )
+{
 PRT( "CNF    ", clock() - clk );
+}
 
     // check BMC
 clk = clock();
-    p->pSatBmc = Cnf_DataWriteIntoSolver( p->pCnf, p->nFrames, 1 );
+    p->pSatBmc = Cnf_DataWriteIntoSolver( p->pCnf, p->nPref + p->nFrames, 1 );
     if ( p->pSatBmc == NULL )
     {
         printf( "Error: BMC solver is unsat.\n" );
         Fra_ClausFree( p );
         return 1;
-    }
+    } 
     if ( !Fra_ClausRunBmc( p ) )
     {
-        printf( "Problem trivially fails the base case.\n" );
+        printf( "Problem fails the base case after %d frame expansion.\n", p->nPref + p->nFrames );
         Fra_ClausFree( p );
         return 1;
     }
-PRT( "SAT try", clock() - clk );
+if ( fVerbose )
+{
+PRT( "SAT-bmc", clock() - clk );
+}
 
     // start the SAT solver
 clk = clock();
@@ -848,13 +1130,19 @@ clk = clock();
         Fra_ClausFree( p );
         return 1;
     }
-PRT( "SAT try", clock() - clk );
+if ( fVerbose )
+{
+PRT( "SAT-ind", clock() - clk );
+}
  
     // collect the candidate inductive clauses using 4-cuts
 clk = clock();
-    Fra_ClausProcessClauses( p );
-    p->nClauses = Vec_IntSize( p->vClauses );
-PRT( "Clauses", clock() - clk );
+    nPrefOld = p->nPref; p->nPref = 0; p->nSimWordsPref = 0;
+    Fra_ClausProcessClauses( p, fRefs );
+    p->nPref = nPrefOld;
+    p->nSimWordsPref = p->nPref*p->nSimWords/p->nSimFrames;
+
+//PRT( "Clauses", clock() - clk );
 
 
     // check clauses using BMC
@@ -863,8 +1151,11 @@ PRT( "Clauses", clock() - clk );
 clk = clock();
         Counter = Fra_ClausBmcClauses( p );
         p->nClauses -= Counter;
+if ( fVerbose )
+{
         printf( "BMC disproved %d clauses.\n", Counter );
 PRT( "Cla-bmc", clock() - clk );
+}
     }
 
 
@@ -873,33 +1164,27 @@ clk = clock();
     Counter = 1;
     for ( Iter = 0; Counter > 0; Iter++ )
     {
-        printf( "Iter %3d :  Begin = %5d. ", Iter, p->nClauses );
+        if ( fVerbose )
+        printf( "Iter %3d : Begin = %5d. ", Iter, p->nClauses );
         Counter = Fra_ClausInductiveClauses( p );
         if ( Counter > 0 )
            p->nClauses -= Counter;
-        printf( "End = %5d. ", p->nClauses );
+        if ( fVerbose )
+        {
+        printf( "End = %5d. Exs = %5d.  ", p->nClauses, p->nCexes );
 //        printf( "\n" );
         PRT( "Time", clock() - clk );
+        }
         clk = clock();
     }
     if ( Counter == -1 )
-        printf( "Fra_Claus(): Internal error.\n" );
+        printf( "Fra_Claus(): Internal error.  " );
     else if ( Counter == -2 )
-        printf( "Property FAILS after %d iterations of refinement.\n", Iter );
+        printf( "Property FAILS during refinement.  " );
     else
-        printf( "Property HOLDS inductively after strengthening.\n" );
+        printf( "Property HOLDS inductively after strengthening.  " );
+    PRT( "Time  ", clock() - clkTotal );
 
-/*
-clk = clock();
-    if ( Fra_ClausRunSat( p ) )
-        printf( "Problem is solved.\n" );
-    else
-        printf( "Problem is unsolved.\n" );
-PRT( "SAT try", clock() - clk );
-*/
-
-PRT( "TOTAL  ", clock() - clkTotal );
-printf( "\n" );
     // clean the manager
     Fra_ClausFree( p );
     return 1;

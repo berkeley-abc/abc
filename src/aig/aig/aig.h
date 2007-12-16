@@ -404,7 +404,7 @@ extern void            Aig_ObjRemoveFanout( Aig_Man_t * p, Aig_Obj_t * pObj, Aig
 extern void            Aig_ManFanoutStart( Aig_Man_t * p );
 extern void            Aig_ManFanoutStop( Aig_Man_t * p );
 /*=== aigFrames.c ==========================================================*/
-extern Aig_Man_t *     Aig_ManFrames( Aig_Man_t * pAig, int nFs, int fInit, int fOuts, int fRegs, Aig_Obj_t *** ppObjMap );
+extern Aig_Man_t *     Aig_ManFrames( Aig_Man_t * pAig, int nFs, int fInit, int fOuts, int fRegs, int fEnlarge, Aig_Obj_t *** ppObjMap );
 /*=== aigHaig.c ==========================================================*/
 extern void            Aig_ManHaigRecord( Aig_Man_t * p );
 /*=== aigMan.c ==========================================================*/

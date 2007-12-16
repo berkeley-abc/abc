@@ -245,6 +245,7 @@ p->timeRes += clock() - clk;
 ***********************************************************************/
 Dec_Graph_t * Rwr_CutEvaluate( Rwr_Man_t * p, Abc_Obj_t * pRoot, Cut_Cut_t * pCut, Vec_Ptr_t * vFaninsCur, int nNodesSaved, int LevelMax, int * pGainBest, int fPlaceEnable )
 {
+    extern int            Dec_GraphToNetworkCount( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int NodeMax, int LevelMax );
     Vec_Ptr_t * vSubgraphs;
     Dec_Graph_t * pGraphBest, * pGraphCur;
     Rwr_Node_t * pNode, * pFanin;

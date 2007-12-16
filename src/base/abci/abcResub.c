@@ -139,6 +139,7 @@ extern int s_ResubTime;
 ***********************************************************************/
 int Abc_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutMax, int nStepsMax, int nLevelsOdc, bool fUpdateLevel, bool fVerbose, bool fVeryVerbose )
 {
+    extern void           Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, bool fUpdateLevel, int nGain );
     ProgressBar * pProgress;
     Abc_ManRes_t * pManRes;
     Abc_ManCut_t * pManCut;

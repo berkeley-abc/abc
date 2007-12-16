@@ -124,5 +124,5 @@ alias bmc2     "frames -i -F 10; orpos; iprove"
 
 alias t0       "r test/mc1.blif; st; test"
 alias t1       "r s27mc2.blif; st; test"
-alias t2       "r i/intel_001.aig; ps; test"
+alias t2       "r i/intel_001.aig; ps; indcut -v"
 

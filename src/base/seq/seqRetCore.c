@@ -264,6 +264,7 @@ Abc_Ntk_t * Seq_NtkRetimeDerive( Abc_Ntk_t * pNtk, int fVerbose )
 ***********************************************************************/
 Abc_Obj_t * Seq_NodeRetimeDerive( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pRoot, char * pSop, Vec_Ptr_t * vFanins )
 {
+    extern Abc_Obj_t *    Dec_GraphToNetworkNoStrash( Abc_Ntk_t * pNtk, Dec_Graph_t * pGraph );
     Dec_Graph_t * pFForm;
     Dec_Node_t * pNode;
     Abc_Obj_t * pResult, * pFanin, * pMirror;

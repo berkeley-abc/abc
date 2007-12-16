@@ -211,6 +211,18 @@ Abc_Ntk_t * Abc_NtkFromDarSeqSweep( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
 //    assert( Aig_ManRegNum(pMan) != Abc_NtkLatchNum(pNtkOld) );
     // perform strashing
     pNtkNew = Abc_NtkStartFromNoLatches( pNtkOld, ABC_NTK_STRASH, ABC_FUNC_AIG );
+    // consider the case of target enlargement
+    if ( Abc_NtkCiNum(pNtkNew) < Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan) )
+    {
+        for ( i = Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan) - Abc_NtkCiNum(pNtkNew); i > 0; i-- )
+        {
+            pObjNew = Abc_NtkCreatePi( pNtkNew );
+            Abc_ObjAssignName( pObjNew, Abc_ObjName(pObjNew), NULL );
+        }
+        Abc_NtkOrderCisCos( pNtkNew );
+    }
+    assert( Abc_NtkCiNum(pNtkNew) == Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan) );
+    assert( Abc_NtkCoNum(pNtkNew) == Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan) );
     // transfer the pointers to the basic nodes
     Aig_ManConst1(pMan)->pData = Abc_AigConst1(pNtkNew);
     Aig_ManForEachPiSeq( pMan, pObj, i )
@@ -1040,7 +1052,13 @@ PRT( "Initial fraiging time", clock() - clk );
     if ( Aig_ManRegNum(pMan) < Abc_NtkLatchNum(pNtk) )
         pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
     else
+    {
+        Abc_Obj_t * pObj;
+        int i;
         pNtkAig = Abc_NtkFromDar( pNtk, pMan );
+        Abc_NtkForEachLatch( pNtkAig, pObj, i )
+            Abc_LatchSetInit0( pObj );
+    }
     Aig_ManStop( pMan );
     return pNtkAig;
 }
@@ -1068,7 +1086,13 @@ Abc_Ntk_t * Abc_NtkDarLcorr( Abc_Ntk_t * pNtk, int nFramesP, int nConfMax, int f
     if ( Aig_ManRegNum(pMan) < Abc_NtkLatchNum(pNtk) )
         pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
     else
+    {
+        Abc_Obj_t * pObj;
+        int i;
         pNtkAig = Abc_NtkFromDar( pNtk, pMan );
+        Abc_NtkForEachLatch( pNtkAig, pObj, i )
+            Abc_LatchSetInit0( pObj );
+    }
     Aig_ManStop( pMan );
     return pNtkAig;
 }
@@ -1409,10 +1433,10 @@ int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDarClau( Abc_Ntk_t * pNtk, int nFrames, int nStepsMax, int fBmc, int fVerbose, int fVeryVerbose )
+int Abc_NtkDarClau( Abc_Ntk_t * pNtk, int nFrames, int nPref, int nClauses, int fBmc, int fRefs, int fVerbose, int fVeryVerbose )
 {
     extern int Fra_Clau( Aig_Man_t * pMan, int nIters, int fVerbose, int fVeryVerbose );
-    extern int Fra_Claus( Aig_Man_t * pAig, int nFrames, int nClauses, int fBmc, int fVerbose, int fVeryVerbose );
+    extern int Fra_Claus( Aig_Man_t * pAig, int nFrames, int nPref, int nClauses, int fBmc, int fRefs, int fVerbose, int fVeryVerbose );
     Aig_Man_t * pMan;
     if ( Abc_NtkPoNum(pNtk) != 1 )
     {
@@ -1428,9 +1452,68 @@ int Abc_NtkDarClau( Abc_Ntk_t * pNtk, int nFrames, int nStepsMax, int fBmc, int 
     pMan->vFlopNums = NULL;
 
 //    Fra_Clau( pMan, nStepsMax, fVerbose, fVeryVerbose );
-    Fra_Claus( pMan, nFrames, nStepsMax, fBmc, fVerbose, fVeryVerbose );
+    Fra_Claus( pMan, nFrames, nPref, nClauses, fBmc, fRefs, fVerbose, fVeryVerbose );
     Aig_ManStop( pMan );
     return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs targe enlargement.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkDarEnlarge( Abc_Ntk_t * pNtk, int nFrames, int fVerbose )
+{
+    Abc_Ntk_t * pNtkAig;
+    Aig_Man_t * pMan, * pTemp;
+    pMan = Abc_NtkToDar( pNtk, 1 );
+    if ( pMan == NULL )
+        return NULL;
+    pMan = Aig_ManFrames( pTemp = pMan, nFrames, 0, 1, 1, 1, NULL );
+    Aig_ManStop( pTemp );
+    pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
+    Aig_ManStop( pMan );
+    return pNtkAig;
+}
+
+
+#include "ntl.h"
+
+/**Function*************************************************************
+
+  Synopsis    [Performs targe enlargement.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkDarTestBlif( char * pFileName )
+{
+    char Buffer[1000];
+    Ntl_Man_t * p;
+    p = Ioa_ReadBlif( pFileName, 1 );
+    if ( p == NULL )
+    {
+        printf( "Abc_NtkDarTestBlif(): Reading BLIF has failed.\n" );
+        return;
+    }
+    if ( !Ntl_ManInsertTest( p ) )
+    {
+        printf( "Abc_NtkDarTestBlif(): Tranformation of the netlist has failed.\n" );
+        return;
+    }
+    sprintf( Buffer, "%s_.blif", p->pName );
+    Ioa_WriteBlif( p, Buffer );
+    Ntl_ManFree( p );
 }
 
 ////////////////////////////////////////////////////////////////////////

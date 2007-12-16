@@ -184,8 +184,8 @@ struct Fpga_NodeStruct_t_
     Fpga_Node_t *       pLevel;        // the next node in the linked list by level
     int                 Num;           // the unique number of this node
     int                 NumA;          // the unique number of this node
-    short               Num2;          // the temporary number of this node
-    short               nRefs;         // the number of references (fanouts) of the given node
+    int                 Num2;          // the temporary number of this node
+    int                 nRefs;         // the number of references (fanouts) of the given node
     unsigned            fMark0 : 1;    // the mark used for traversals
     unsigned            fMark1 : 1;    // the mark used for traversals
     unsigned            fInv   : 1;    // the complemented attribute for the equivalent nodes

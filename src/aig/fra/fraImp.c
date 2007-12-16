@@ -345,6 +345,8 @@ Vec_Int_t * Fra_ImpDerive( Fra_Man_t * p, int nImpMaxLimit, int nImpUseLimit, in
     for ( k = pSeq->nWordsTotal * 32; k > 0; k-- )
         for ( i = k - 1; i > 0; i-- )
         {
+            // HERE WE ARE MISSING SOME POTENTIAL IMPLICATIONS (with complement!)
+
             for ( pNodesI = Vec_PtrEntry( vNodes, i ); *pNodesI; pNodesI++ )
             for ( pNodesK = Vec_PtrEntry( vNodes, k ); *pNodesK; pNodesK++ )
             {

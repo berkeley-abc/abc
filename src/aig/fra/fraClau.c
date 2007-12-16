@@ -227,7 +227,7 @@ Cla_Man_t * Fra_ClauStart( Aig_Man_t * pMan )
     p->vCexBmc   = Vec_IntAlloc( Aig_ManRegNum(pMan) );
 
     // derive two timeframes to be checked
-    pFramesMain = Aig_ManFrames( pMan, 2, 0, 1, 0, NULL ); // nFrames, fInit, fOuts, fRegs
+    pFramesMain = Aig_ManFrames( pMan, 2, 0, 1, 0, 0, NULL ); // nFrames, fInit, fOuts, fRegs
 //Aig_ManShow( pFramesMain, 0, NULL );
     assert( Aig_ManPoNum(pFramesMain) == 2 );
     Aig_ObjChild0Flip( Aig_ManPo(pFramesMain, 0) ); // complement the first output
@@ -245,14 +245,14 @@ Cla_Man_t * Fra_ClauStart( Aig_Man_t * pMan )
 */
 
     // derive one timeframe to be checked
-    pFramesTest = Aig_ManFrames( pMan, 1, 0, 0, 1, NULL );
+    pFramesTest = Aig_ManFrames( pMan, 1, 0, 0, 1, 0, NULL );
     assert( Aig_ManPoNum(pFramesTest) == Aig_ManRegNum(pMan) );
     pCnfTest = Cnf_DeriveSimple( pFramesTest, Aig_ManRegNum(pMan) );
     p->pSatTest = Cnf_DataWriteIntoSolver( pCnfTest, 1, 0 );
     p->nSatVarsTestBeg = p->nSatVarsTestCur = sat_solver_nvars( p->pSatTest );
 
     // derive one timeframe to be checked for BMC
-    pFramesBmc = Aig_ManFrames( pMan, 1, 1, 0, 1, NULL );
+    pFramesBmc = Aig_ManFrames( pMan, 1, 1, 0, 1, 0, NULL );
 //Aig_ManShow( pFramesBmc, 0, NULL );
     assert( Aig_ManPoNum(pFramesBmc) == Aig_ManRegNum(pMan) );
     pCnfBmc = Cnf_DeriveSimple( pFramesBmc, Aig_ManRegNum(pMan) );

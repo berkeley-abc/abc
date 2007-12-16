@@ -84,6 +84,7 @@ static Dec_Graph_t *  Abc_NodeRefactor( Abc_ManRef_t * p, Abc_Obj_t * pNode, Vec
 ***********************************************************************/
 int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, bool fUpdateLevel, bool fUseZeros, bool fUseDcs, bool fVerbose )
 {
+    extern void           Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, bool fUpdateLevel, int nGain );
     ProgressBar * pProgress;
     Abc_ManRef_t * pManRef;
     Abc_ManCut_t * pManCut;
@@ -183,6 +184,7 @@ pManRef->timeTotal = clock() - clkStart;
 ***********************************************************************/
 Dec_Graph_t * Abc_NodeRefactor( Abc_ManRef_t * p, Abc_Obj_t * pNode, Vec_Ptr_t * vFanins, bool fUpdateLevel, bool fUseZeros, bool fUseDcs, bool fVerbose )
 {
+    extern int            Dec_GraphToNetworkCount( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int NodeMax, int LevelMax );
     int fVeryVerbose = 0;
     Abc_Obj_t * pFanin;
     Dec_Graph_t * pFForm;

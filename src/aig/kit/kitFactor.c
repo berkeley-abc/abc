@@ -56,7 +56,7 @@ Kit_Graph_t * Kit_SopFactor( Vec_Int_t * vCover, int fCompl, int nVars, Vec_Int_
     Kit_Edge_t eRoot;
 //    int nCubes;
 
-    // works for up to 15 variables because divisin procedure
+    // works for up to 15 variables because division procedure
     // used the last bit for marking the cubes going to the remainder
     assert( nVars < 16 );
 

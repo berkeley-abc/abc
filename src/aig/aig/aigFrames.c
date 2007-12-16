@@ -45,7 +45,7 @@ static inline Aig_Obj_t * Aig_ObjChild1Frames( Aig_Obj_t ** pObjMap, int nFs, Ai
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Aig_ManFrames( Aig_Man_t * pAig, int nFs, int fInit, int fOuts, int fRegs, Aig_Obj_t *** ppObjMap )
+Aig_Man_t * Aig_ManFrames( Aig_Man_t * pAig, int nFs, int fInit, int fOuts, int fRegs, int fEnlarge, Aig_Obj_t *** ppObjMap )
 {
     Aig_Man_t * pFrames;
     Aig_Obj_t * pObj, * pObjLi, * pObjLo, * pObjNew;
@@ -101,7 +101,7 @@ Aig_Man_t * Aig_ManFrames( Aig_Man_t * pAig, int nFs, int fInit, int fOuts, int 
     }
     if ( fOuts )
     {
-        for ( f = 0; f < nFs; f++ )
+        for ( f = fEnlarge?nFs-1:0; f < nFs; f++ )
             Aig_ManForEachPoSeq( pAig, pObj, i )
             {
                 pObjNew = Aig_ObjCreatePo( pFrames, Aig_ObjChild0Frames(pObjMap,nFs,pObj,f) );
@@ -113,7 +113,7 @@ Aig_Man_t * Aig_ManFrames( Aig_Man_t * pAig, int nFs, int fInit, int fOuts, int 
         pFrames->nRegs = pAig->nRegs;
         Aig_ManForEachLiSeq( pAig, pObj, i )
         {
-            pObjNew = Aig_ObjCreatePo( pFrames, Aig_ObjChild0Frames(pObjMap,nFs,pObj,nFs-1) );
+            pObjNew = Aig_ObjCreatePo( pFrames, Aig_ObjChild0Frames(pObjMap,nFs,pObj,fEnlarge?0:nFs-1) );
             Aig_ObjSetFrames( pObjMap, nFs, pObj, nFs-1, pObjNew );
         }
     }

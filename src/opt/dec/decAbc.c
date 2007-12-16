@@ -189,6 +189,7 @@ int Dec_GraphToNetworkCount( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int NodeMa
 ***********************************************************************/
 void Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, bool fUpdateLevel, int nGain )
 {
+    extern Abc_Obj_t *    Dec_GraphToNetwork( Abc_Ntk_t * pNtk, Dec_Graph_t * pGraph );
     Abc_Obj_t * pRootNew;
     Abc_Ntk_t * pNtk = pRoot->pNtk;
     int nNodesNew, nNodesOld;
