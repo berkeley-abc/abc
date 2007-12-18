@@ -77,7 +77,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
             pObj->EstRefs = (float)((2.0 * pObj->EstRefs + pObj->nRefs) / 3.0);
     }
     if ( Mode && pObj->nRefs > 0 )
-        If_CutDeref( p, If_ObjCutBest(pObj), IF_INFINITY );
+        If_CutAreaDeref( p, If_ObjCutBest(pObj) );
 
     // prepare the cutset
     pCutSet = If_ManSetupNodeCutSet( p, pObj );
@@ -89,7 +89,9 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         // recompute the parameters of the best cut
         pCut->Delay = If_CutDelay( p, pCut );
         assert( pCut->Delay <= pObj->Required + p->fEpsilon );
-        pCut->Area = (Mode == 2)? If_CutAreaDerefed( p, pCut, IF_INFINITY ) : If_CutFlow( p, pCut );
+        pCut->Area = (Mode == 2)? If_CutAreaDerefed( p, pCut ) : If_CutAreaFlow( p, pCut );
+        if ( p->pPars->fEdge )
+            pCut->Edge = (Mode == 2)? If_CutEdgeDerefed( p, pCut ) : If_CutEdgeFlow( p, pCut );
         // save the best cut from the previous iteration
         if ( !fPreprocess )
             If_CutCopy( p, pCutSet->ppCuts[pCutSet->nCuts++], pCut );
@@ -129,7 +131,9 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         if ( Mode && pCut->Delay > pObj->Required + p->fEpsilon )
             continue;
         // compute area of the cut (this area may depend on the application specific cost)
-        pCut->Area = (Mode == 2)? If_CutAreaDerefed( p, pCut, IF_INFINITY ) : If_CutFlow( p, pCut );
+        pCut->Area = (Mode == 2)? If_CutAreaDerefed( p, pCut ) : If_CutAreaFlow( p, pCut );
+        if ( p->pPars->fEdge )
+            pCut->Edge = (Mode == 2)? If_CutEdgeDerefed( p, pCut ) : If_CutEdgeFlow( p, pCut );
         pCut->AveRefs = (Mode == 0)? (float)0.0 : If_CutAverageRefs( p, pCut );
         // insert the cut into storage
         If_CutSort( p, pCutSet, pCut );
@@ -147,7 +151,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
 
     // ref the selected cut
     if ( Mode && pObj->nRefs > 0 )
-        If_CutRef( p, If_ObjCutBest(pObj), IF_INFINITY );
+        If_CutAreaRef( p, If_ObjCutBest(pObj) );
 
     // call the user specified function for each cut
     if ( p->pPars->pFuncUser )
@@ -179,7 +183,7 @@ void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fP
 
     // prepare
     if ( Mode && pObj->nRefs > 0 )
-        If_CutDeref( p, If_ObjCutBest(pObj), IF_INFINITY );
+        If_CutAreaDeref( p, If_ObjCutBest(pObj) );
 
     // remove elementary cuts
     for ( pTemp = pObj; pTemp; pTemp = pTemp->pEquiv )
@@ -213,7 +217,9 @@ void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fP
             assert( pCut->fCompl == 0 );
             pCut->fCompl ^= (pObj->fPhase ^ pTemp->fPhase); // why ^= ?
             // compute area of the cut (this area may depend on the application specific cost)
-            pCut->Area = (Mode == 2)? If_CutAreaDerefed( p, pCut, IF_INFINITY ) : If_CutFlow( p, pCut );
+            pCut->Area = (Mode == 2)? If_CutAreaDerefed( p, pCut ) : If_CutAreaFlow( p, pCut );
+            if ( p->pPars->fEdge )
+                pCut->Edge = (Mode == 2)? If_CutEdgeDerefed( p, pCut ) : If_CutEdgeFlow( p, pCut );
             pCut->AveRefs = (Mode == 0)? (float)0.0 : If_CutAverageRefs( p, pCut );
             // insert the cut into storage
             If_CutSort( p, pCutSet, pCut );
@@ -232,7 +238,7 @@ void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fP
 
     // ref the selected cut
     if ( Mode && pObj->nRefs > 0 )
-        If_CutRef( p, If_ObjCutBest(pObj), IF_INFINITY );
+        If_CutAreaRef( p, If_ObjCutBest(pObj) );
 
     // free the cuts
     If_ManDerefChoiceCutSet( p, pObj );

@@ -24,6 +24,8 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+static int If_CutTruthMinimize( If_Man_t * p, If_Cut_t * pCut );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -158,6 +160,123 @@ void If_TruthStretch( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll, 
 
 /**Function*************************************************************
 
+  Synopsis    [Shrinks the truth table according to the phase.]
+
+  Description [The input and output truth tables are in pIn/pOut. The current number
+  of variables is nVars. The total number of variables in nVarsAll. The last argument
+  (Phase) contains shows what variables should remain.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void If_TruthShrink( unsigned * pOut, unsigned * pIn, int nVars, int nVarsAll, unsigned Phase, int fReturnIn )
+{
+    unsigned * pTemp;
+    int i, k, Var = 0, Counter = 0;
+    for ( i = 0; i < nVarsAll; i++ )
+        if ( Phase & (1 << i) )
+        {
+            for ( k = i-1; k >= Var; k-- )
+            {
+                If_TruthSwapAdjacentVars( pOut, pIn, nVarsAll, k );
+                pTemp = pIn; pIn = pOut; pOut = pTemp;
+                Counter++;
+            }
+            Var++;
+        }
+    assert( Var == nVars );
+    // swap if it was moved an even number of times
+    if ( fReturnIn ^ !(Counter & 1) )
+        If_TruthCopy( pOut, pIn, nVarsAll );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if TT depends on the given variable.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_CutTruthVarInSupport( unsigned * pTruth, int nVars, int iVar )
+{
+    int nWords = If_TruthWordNum( nVars );
+    int i, k, Step;
+
+    assert( iVar < nVars );
+    switch ( iVar )
+    {
+    case 0:
+        for ( i = 0; i < nWords; i++ )
+            if ( (pTruth[i] & 0x55555555) != ((pTruth[i] & 0xAAAAAAAA) >> 1) )
+                return 1;
+        return 0;
+    case 1:
+        for ( i = 0; i < nWords; i++ )
+            if ( (pTruth[i] & 0x33333333) != ((pTruth[i] & 0xCCCCCCCC) >> 2) )
+                return 1;
+        return 0;
+    case 2:
+        for ( i = 0; i < nWords; i++ )
+            if ( (pTruth[i] & 0x0F0F0F0F) != ((pTruth[i] & 0xF0F0F0F0) >> 4) )
+                return 1;
+        return 0;
+    case 3:
+        for ( i = 0; i < nWords; i++ )
+            if ( (pTruth[i] & 0x00FF00FF) != ((pTruth[i] & 0xFF00FF00) >> 8) )
+                return 1;
+        return 0;
+    case 4:
+        for ( i = 0; i < nWords; i++ )
+            if ( (pTruth[i] & 0x0000FFFF) != ((pTruth[i] & 0xFFFF0000) >> 16) )
+                return 1;
+        return 0;
+    default:
+        Step = (1 << (iVar - 5));
+        for ( k = 0; k < nWords; k += 2*Step )
+        {
+            for ( i = 0; i < Step; i++ )
+                if ( pTruth[i] != pTruth[Step+i] )
+                    return 1;
+            pTruth += 2*Step;
+        }
+        return 0;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns support of the function.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned If_CutTruthSupport( unsigned * pTruth, int nVars, int * pnSuppSize )
+{
+    int i, Support = 0;
+    int nSuppSize = 0;
+    for ( i = 0; i < nVars; i++ )
+        if ( If_CutTruthVarInSupport( pTruth, nVars, i ) )
+        {
+            Support |= (1 << i);
+            nSuppSize++;
+        }
+    *pnSuppSize = nSuppSize;
+    return Support;
+}
+
+
+/**Function*************************************************************
+
   Synopsis    [Computes the stretching phase of the cut w.r.t. the merged cut.]
 
   Description []
@@ -197,7 +316,7 @@ static inline unsigned If_CutTruthPhase( If_Cut_t * pCut, If_Cut_t * pCut1 )
 ***********************************************************************/
 void If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 )
 {
-    extern void Kit_FactorTest( unsigned * pTruth, int nVars );
+    extern void If_CutFactorTest( unsigned * pTruth, int nVars );
 
     // permute the first table
     if ( fCompl0 ^ pCut0->fCompl ) 
@@ -218,10 +337,65 @@ void If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut
     else
         If_TruthAnd( If_CutTruth(pCut), p->puTemp[2], p->puTemp[3], pCut->nLimit );
 
+    // minimize the support of the cut
+    if ( p->pPars->fCutMin )
+        If_CutTruthMinimize( p, pCut );
+
     // perform 
-//    Kit_FactorTest( If_CutTruth(pCut), pCut->nLimit );
-//    printf( "%d ", If_CutLeaveNum(pCut) - Kit_TruthSupportSize(If_CutTruth(pCut), If_CutLeaveNum(pCut)) );
+//    If_CutFactorTest( If_CutTruth(pCut), pCut->nLimit );
+//    printf( "%d ", If_CutLeaveNum(pCut) - If_CutTruthSupportSize(If_CutTruth(pCut), If_CutLeaveNum(pCut)) );
 }
+
+
+/**Function*************************************************************
+
+  Synopsis    [Minimize support of the cut.]
+
+  Description [Returns 1 if the node's support has changed]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_CutTruthMinimize( If_Man_t * p, If_Cut_t * pCut )
+{
+    unsigned uSupport;
+    int nSuppSize, i, k;
+    // compute the support of the cut's function
+    uSupport = If_CutTruthSupport( If_CutTruth(pCut), If_CutLeaveNum(pCut), &nSuppSize );
+    if ( nSuppSize == If_CutLeaveNum(pCut) )
+        return 0;
+
+// TEMPORARY
+    if ( nSuppSize < 2 )
+    {
+        p->nSmallSupp++;
+        return 0;
+    }
+//    if ( If_CutLeaveNum(pCut) - nSuppSize > 1 )
+//        return 0;
+//printf( "%d %d  ", If_CutLeaveNum(pCut), nSuppSize );
+
+    // shrink the truth table
+    If_TruthShrink( p->puTemp[0], If_CutTruth(pCut), nSuppSize, pCut->nLimit, uSupport, 1 );
+    // update leaves and signature
+    pCut->uSign = 0;
+    for ( i = k = 0; i < If_CutLeaveNum(pCut); i++ )
+    {
+        if ( !(uSupport & (1 << i)) )
+            continue;    
+        pCut->pLeaves[k++] = pCut->pLeaves[i];
+        pCut->uSign |= If_ObjCutSign( pCut->pLeaves[i] );
+    }
+    assert( k == nSuppSize );
+    pCut->nLeaves = nSuppSize;
+    // verify the result
+//    uSupport = If_CutTruthSupport( If_CutTruth(pCut), If_CutLeaveNum(pCut), &nSuppSize );
+//    assert( nSuppSize == If_CutLeaveNum(pCut) );
+    return 1;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

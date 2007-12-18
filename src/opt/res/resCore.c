@@ -246,6 +246,8 @@ int Abc_NtkResynthesize( Abc_Ntk_t * pNtk, Res_Par_t * pPars )
         Extra_ProgressBarUpdate( pProgress, i, NULL );
         if ( !Abc_ObjIsNode(pObj) )
             continue;
+        if ( Abc_ObjFaninNum(pObj) > 8 )
+            continue;
         if ( pObj->Id > nNodesOld )
             break;
 

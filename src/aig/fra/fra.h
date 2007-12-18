@@ -76,6 +76,7 @@ struct Fra_Par_t_
     int              nFramesP;          // the number of timeframes to in the prefix
     int              nFramesK;          // the number of timeframes to unroll
     int              nMaxImps;          // the maximum number of implications to consider
+    int              nMaxLevs;          // the maximum number of levels to consider
     int              fRewrite;          // use rewriting for constraint reduction
     int              fLatchCorr;        // computes latch correspondence only
     int              fUseImps;          // use implications
@@ -245,7 +246,7 @@ extern Fra_Cla_t *         Fra_ClassesStart( Aig_Man_t * pAig );
 extern void                Fra_ClassesStop( Fra_Cla_t * p );
 extern void                Fra_ClassesCopyReprs( Fra_Cla_t * p, Vec_Ptr_t * vFailed );
 extern void                Fra_ClassesPrint( Fra_Cla_t * p, int fVeryVerbose );
-extern void                Fra_ClassesPrepare( Fra_Cla_t * p, int fLatchCorr );
+extern void                Fra_ClassesPrepare( Fra_Cla_t * p, int fLatchCorr, int nMaxLevs );
 extern int                 Fra_ClassesRefine( Fra_Cla_t * p );
 extern int                 Fra_ClassesRefine1( Fra_Cla_t * p, int fRefineNewClass, int * pSkipped );
 extern int                 Fra_ClassesCountLits( Fra_Cla_t * p );
@@ -274,7 +275,7 @@ extern double              Fra_ImpComputeStateSpaceRatio( Fra_Man_t * p );
 extern int                 Fra_ImpVerifyUsingSimulation( Fra_Man_t * p );
 extern void                Fra_ImpRecordInManager( Fra_Man_t * p, Aig_Man_t * pNew );
 /*=== fraInd.c ========================================================*/
-extern Aig_Man_t *         Fra_FraigInduction( Aig_Man_t * p, int nFramesP, int nFramesK, int nMaxImps, int fRewrite, int fUseImps, int fLatchCorr, int fWriteImps, int fVerbose, int * pnIter );
+extern Aig_Man_t *         Fra_FraigInduction( Aig_Man_t * p, int nFramesP, int nFramesK, int nMaxImps, int nMaxLevs, int fRewrite, int fUseImps, int fLatchCorr, int fWriteImps, int fVerbose, int * pnIter );
 /*=== fraLcr.c ========================================================*/
 extern Aig_Man_t *         Fra_FraigLatchCorrespondence( Aig_Man_t * pAig, int nFramesP, int nConfMax, int fProve, int fVerbose, int * pnIter );
 /*=== fraMan.c ========================================================*/

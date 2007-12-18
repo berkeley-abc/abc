@@ -446,10 +446,6 @@ p->timeTruth3 += clock() - clk;
 //            pFileName = Kit_TruthDumpToFile( pTruth, pCut->nLeaves, Count++ );
 //            printf( "Saved truth table in file \"%s\".\n", pFileName );
         }
-        if ( p->pObj->Id == 33 && i == 0 )
-        {
-            int x = 0;
-        }
 
         // update the network
         nNodesBef = Abc_NtkNodeNum(p->pNtk);
@@ -512,6 +508,8 @@ int Lpk_Resynthesize( Abc_Ntk_t * pNtk, Lpk_Par_t * pPars )
 
     // get the number of inputs
     pPars->nLutSize = Abc_NtkGetFaninMax( pNtk );
+    if ( pPars->nLutSize > 6 )
+        pPars->nLutSize = 6;
     // adjust the number of crossbars based on LUT size
     if ( pPars->nVarsShared > pPars->nLutSize - 2 )
         pPars->nVarsShared = pPars->nLutSize - 2;

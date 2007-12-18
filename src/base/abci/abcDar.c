@@ -1022,7 +1022,7 @@ PRT( "Time", clock() - clkTotal );
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkDarSeqSweep( Abc_Ntk_t * pNtk, int nFramesP, int nFramesK, int nMaxImps, int fRewrite, int fUseImps, int fLatchCorr, int fWriteImps, int fVerbose )
+Abc_Ntk_t * Abc_NtkDarSeqSweep( Abc_Ntk_t * pNtk, int nFramesP, int nFramesK, int nMaxImps, int nMaxLevs, int fRewrite, int fUseImps, int fLatchCorr, int fWriteImps, int fVerbose )
 {
     Fraig_Params_t Params;
     Abc_Ntk_t * pNtkAig, * pNtkFraig;
@@ -1046,7 +1046,7 @@ PRT( "Initial fraiging time", clock() - clk );
     if ( pMan == NULL )
         return NULL;
 
-    pMan = Fra_FraigInduction( pTemp = pMan, nFramesP, nFramesK, nMaxImps, fRewrite, fUseImps, fLatchCorr, fWriteImps, fVerbose, NULL );
+    pMan = Fra_FraigInduction( pTemp = pMan, nFramesP, nFramesK, nMaxImps, nMaxLevs, fRewrite, fUseImps, fLatchCorr, fWriteImps, fVerbose, NULL );
     Aig_ManStop( pTemp );
 
     if ( Aig_ManRegNum(pMan) < Abc_NtkLatchNum(pNtk) )

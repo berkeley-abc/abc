@@ -160,6 +160,8 @@ struct Aig_Man_t_
 #define PRT(a,t)  printf("%s = ", (a)); printf("%6.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC))
 #endif
 
+static inline int          Aig_Float2Int( float Val )             { return *((int *)&Val);                                 }
+static inline float        Aig_Int2Float( int Num )               { return *((float *)&Num);                               }
 static inline int          Aig_Base2Log( unsigned n )             { int r; assert( n >= 0 ); if ( n < 2 ) return n; for ( r = 0, n--; n; n >>= 1, r++ ); return r; }
 static inline int          Aig_Base10Log( unsigned n )            { int r; assert( n >= 0 ); if ( n < 2 ) return n; for ( r = 0, n--; n; n /= 10, r++ ); return r; }
 static inline char *       Aig_UtilStrsav( char * s )             { return s ? strcpy(ALLOC(char, strlen(s)+1), s) : NULL; }

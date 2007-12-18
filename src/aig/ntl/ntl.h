@@ -86,6 +86,8 @@ struct Ntl_Mod_t_
     Ntl_Net_t **       pTable;         // the hash table of names into nets
     int                nTableSize;     // the allocated table size
     int                nEntries;       // the number of entries in the hash table
+    // delay information
+    Vec_Int_t *        vDelays;
 }; 
 
 struct Ntl_Obj_t_
@@ -242,6 +244,7 @@ extern char *          Ntl_ManStoreFileName( Ntl_Man_t * p, char * pFileName );
 extern Ntl_Net_t *     Ntl_ModelFindNet( Ntl_Mod_t * p, char * pName );
 extern Ntl_Net_t *     Ntl_ModelFindOrCreateNet( Ntl_Mod_t * p, char * pName );
 extern int             Ntl_ModelSetNetDriver( Ntl_Obj_t * pObj, Ntl_Net_t * pNet );
+extern int             Ntl_ModelFindPioNumber( Ntl_Mod_t * p, char * pName, int * pNumber );
 /*=== ntlReadBlif.c ==========================================================*/
 extern Ntl_Man_t *     Ioa_ReadBlif( char * pFileName, int fCheck );
 /*=== ntlWriteBlif.c ==========================================================*/

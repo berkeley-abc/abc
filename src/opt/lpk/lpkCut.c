@@ -24,7 +24,7 @@
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
-
+ 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -489,7 +489,7 @@ void Lpk_NodeCutsOne( Lpk_Man_t * p, Lpk_Cut_t * pCut, int Node )
     if ( Abc_ObjIsCi(pObj) )
         return;
     assert( Abc_ObjIsNode(pObj) );
-    assert( Abc_ObjFaninNum(pObj) <= p->pPars->nLutSize );
+//    assert( Abc_ObjFaninNum(pObj) <= p->pPars->nLutSize );
 
     // if the node is not in the MFFC, check the limit
     if ( !Abc_NodeIsTravIdCurrent(pObj) )

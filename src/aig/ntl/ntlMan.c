@@ -152,6 +152,7 @@ Ntl_Mod_t * Ntl_ModelAlloc( Ntl_Man_t * pMan, char * pName )
 ***********************************************************************/
 void Ntl_ModelFree( Ntl_Mod_t * p )
 {
+    if ( p->vDelays ) Vec_IntFree( p->vDelays );
     Vec_PtrFree( p->vObjs );
     Vec_PtrFree( p->vPis );
     Vec_PtrFree( p->vPos );

@@ -2865,9 +2865,9 @@ int Abc_CommandImfs( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     pPars->nWindow      = 62;
-    pPars->nGrowthLevel =  1;
     pPars->nCands       =  5;
     pPars->nSimWords    =  4;
+    pPars->nGrowthLevel =  0;
     pPars->fArea        =  0;
     pPars->fVerbose     =  0;
     pPars->fVeryVerbose =  0;
@@ -2959,9 +2959,9 @@ usage:
     fprintf( pErr, "usage: imfs [-W <NM>] [-L <num>] [-C <num>] [-S <num>] [-avwh]\n" );
     fprintf( pErr, "\t           performs resubstitution-based resynthesis with interpolation\n" );
     fprintf( pErr, "\t-W <NM>  : fanin/fanout levels (NxM) of the window (00 <= NM <= 99) [default = %d%d]\n", pPars->nWindow/10, pPars->nWindow%10 );
-    fprintf( pErr, "\t-L <num> : the largest increase in node level after resynthesis (0 <= num) [default = %d]\n", pPars->nGrowthLevel );
     fprintf( pErr, "\t-C <num> : the max number of resub candidates (1 <= n) [default = %d]\n", pPars->nCands );
     fprintf( pErr, "\t-S <num> : the number of simulation words (1 <= n <= 256) [default = %d]\n", pPars->nSimWords );
+    fprintf( pErr, "\t-L <num> : the largest increase in node level after resynthesis (0 <= num) [default = %d]\n", pPars->nGrowthLevel );
     fprintf( pErr, "\t-a       : toggle optimization for area only [default = %s]\n", pPars->fArea? "yes": "no" );
     fprintf( pErr, "\t-v       : toggle verbose printout [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-w       : toggle printout subgraph statistics [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
@@ -3103,7 +3103,9 @@ int Abc_CommandLutpack( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     fprintf( pErr, "usage: lutpack [-N <num>] [-Q <num>] [-S <num>] [-L <num>] [-szfovwh]\n" );
-    fprintf( pErr, "\t           performs \"rewriting\" for LUT networks\n" );
+    fprintf( pErr, "\t           performs \"rewriting\" for LUT networks;\n" );
+    fprintf( pErr, "\t           determines LUT size as the max fanin count of a node;\n" );
+    fprintf( pErr, "\t           if the network is not LUT-mapped, packs it into 6-LUTs\n" );
     fprintf( pErr, "\t-N <num> : the max number of LUTs in the structure (2 <= num) [default = %d]\n", pPars->nLutsMax );
     fprintf( pErr, "\t-Q <num> : the max number of LUTs not in MFFC (0 <= num) [default = %d]\n", pPars->nLutsOver );
     fprintf( pErr, "\t-S <num> : the max number of LUT inputs shared (0 <= num <= 3) [default = %d]\n", pPars->nVarsShared );
@@ -6220,8 +6222,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
-//    printf( "This command is temporarily disabled.\n" );
-//    return 0;
+    printf( "This command is temporarily disabled.\n" );
+    return 0;
 
     // set defaults
     fVeryVerbose = 0;
@@ -10019,13 +10021,15 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nFlowIters  =  1;
     pPars->nAreaIters  =  2;
     pPars->DelayTarget = -1;
-    pPars->fPreprocess =  1;//
+    pPars->fPreprocess =  1;
     pPars->fArea       =  0;
     pPars->fFancy      =  0;
-    pPars->fExpRed     =  1;//
+    pPars->fExpRed     =  1;
     pPars->fLatchPaths =  0;
+    pPars->fEdge       =  0;
+    pPars->fCutMin     =  0;
     pPars->fSeqMap     =  0;
-    pPars->fVerbose    =  0;//
+    pPars->fVerbose    =  0;
     // internal parameters
     pPars->fTruth      =  0;
     pPars->nLatches    =  pNtk? Abc_NtkLatchNum(pNtk) : 0;
@@ -10036,7 +10040,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->pFuncCost   =  NULL;   
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFADpaflrstvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFADpaflemrstvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -10103,14 +10107,20 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'a':
             pPars->fArea ^= 1;
             break;
+        case 'r':
+            pPars->fExpRed ^= 1;
+            break;
         case 'f':
             pPars->fFancy ^= 1;
             break;
         case 'l':
             pPars->fLatchPaths ^= 1;
             break;
-        case 'r':
-            pPars->fExpRed ^= 1;
+        case 'e':
+            pPars->fEdge ^= 1;
+            break;
+        case 'm':
+            pPars->fCutMin ^= 1;
             break;
         case 's':
             pPars->fSeqMap ^= 1;
@@ -10162,19 +10172,26 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
+    // enable truth table computation if choices are selected
     if ( Abc_NtkGetChoiceNum( pNtk ) )
     {
         printf( "Performing FPGA mapping with choices.\n" );
-//        printf( "Currently mapping with choices is not enabled.\n" );
         pPars->fTruth = 1;
-//        return 1;
     }
+    // enable truth table computation if cut minimization is selected
+    if ( pPars->fCutMin )
+        pPars->fTruth = 1;
 
+    // complain if truth tables are requested but the cut size is too large
     if ( pPars->fTruth && pPars->nLutSize > IF_MAX_FUNC_LUTSIZE )
     {
-        fprintf( pErr, "Mapping with choices requires computing truth tables. In this case, the LUT size cannot be more than %d.\n", IF_MAX_FUNC_LUTSIZE );
+        fprintf( pErr, "Truth tables cannot be computed for LUT larger than %d inputs.\n", IF_MAX_FUNC_LUTSIZE );
         return 1;
     }
+
+    // disable cut-expansion if edge-based heuristics are selected
+    if ( pPars->fEdge )
+        pPars->fExpRed = 0;
 
     if ( !Abc_NtkIsStrash(pNtk) )
     {
@@ -10226,7 +10243,7 @@ usage:
         sprintf( LutSize, "library" );
     else
         sprintf( LutSize, "%d", pPars->nLutSize );
-    fprintf( pErr, "usage: if [-K num] [-C num] [-F num] [-A num] [-D float] [-pafrsvh]\n" );
+    fprintf( pErr, "usage: if [-K num] [-C num] [-F num] [-A num] [-D float] [-parlemsvh]\n" );
     fprintf( pErr, "\t           performs FPGA technology mapping of the network\n" );
     fprintf( pErr, "\t-K num   : the number of LUT inputs (2 < num < %d) [default = %s]\n", IF_MAX_LUTSIZE+1, LutSize );
     fprintf( pErr, "\t-C num   : the max number of priority cuts (0 < num < 2^12) [default = %d]\n", pPars->nCutsMax );
@@ -10238,6 +10255,8 @@ usage:
 //    fprintf( pErr, "\t-f       : toggles one fancy feature [default = %s]\n", pPars->fFancy? "yes": "no" );
     fprintf( pErr, "\t-r       : enables expansion/reduction of the best cuts [default = %s]\n", pPars->fExpRed? "yes": "no" );
     fprintf( pErr, "\t-l       : optimizes latch paths for delay, other paths for area [default = %s]\n", pPars->fLatchPaths? "yes": "no" );
+    fprintf( pErr, "\t-e       : uses edge-based cut selection heuristics [default = %s]\n", pPars->fEdge? "yes": "no" );
+    fprintf( pErr, "\t-m       : enables cut minimization by removing vacuous variables [default = %s]\n", pPars->fCutMin? "yes": "no" );
     fprintf( pErr, "\t-s       : toggles sequential mapping [default = %s]\n", pPars->fSeqMap? "yes": "no" );
 //    fprintf( pErr, "\t-t       : toggles the use of true sequential cuts [default = %s]\n", pPars->fLiftLeaves? "yes": "no" );
     fprintf( pErr, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
@@ -11227,12 +11246,13 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nFramesP;
     int nFramesK;
     int nMaxImps;
+    int nMaxLevs;
     int fUseImps;
     int fRewrite;
     int fLatchCorr;
     int fWriteImps;
     int fVerbose;
-    extern Abc_Ntk_t * Abc_NtkDarSeqSweep( Abc_Ntk_t * pNtk, int nFramesP, int nFrames, int nMaxImps, int fRewrite, int fUseImps, int fLatchCorr, int fWriteImps, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkDarSeqSweep( Abc_Ntk_t * pNtk, int nFramesP, int nFrames, int nMaxImps, int nMaxLevs, int fRewrite, int fUseImps, int fLatchCorr, int fWriteImps, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -11242,13 +11262,14 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     nFramesP   = 0;
     nFramesK   = 1;
     nMaxImps   = 5000;
+    nMaxLevs   = 0;
     fUseImps   = 0;
     fRewrite   = 0;
     fLatchCorr = 0;
     fWriteImps = 0;
     fVerbose   = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PFIirlevh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PFILirlevh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -11283,6 +11304,17 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
             nMaxImps = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( nMaxImps <= 0 ) 
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nMaxLevs = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nMaxLevs <= 0 ) 
                 goto usage;
             break;
         case 'i':
@@ -11326,7 +11358,7 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    pNtkRes = Abc_NtkDarSeqSweep( pNtk, nFramesP, nFramesK, nMaxImps, fRewrite, fUseImps, fLatchCorr, fWriteImps, fVerbose );
+    pNtkRes = Abc_NtkDarSeqSweep( pNtk, nFramesP, nFramesK, nMaxImps, nMaxLevs, fRewrite, fUseImps, fLatchCorr, fWriteImps, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Sequential sweeping has failed.\n" );
@@ -11342,6 +11374,7 @@ usage:
     fprintf( pErr, "\t-P num : number of time frames to use as the prefix [default = %d]\n", nFramesP );
     fprintf( pErr, "\t-F num : number of time frames for induction (1=simple) [default = %d]\n", nFramesK );
     fprintf( pErr, "\t-I num : max number of implications to consider [default = %d]\n", nMaxImps );
+    fprintf( pErr, "\t-L num : max number of levels to consider (0=all) [default = %d]\n", nMaxLevs );
     fprintf( pErr, "\t-i     : toggle using implications [default = %s]\n", fUseImps? "yes": "no" );
     fprintf( pErr, "\t-l     : toggle latch correspondence only [default = %s]\n", fLatchCorr? "yes": "no" );
     fprintf( pErr, "\t-r     : toggle AIG rewriting [default = %s]\n", fRewrite? "yes": "no" );

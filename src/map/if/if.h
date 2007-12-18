@@ -74,7 +74,7 @@ typedef struct If_Set_t_     If_Set_t;
 // parameters
 struct If_Par_t_
 {
-    // user-controlable paramters
+    // user-controlable parameters
     int                nLutSize;      // the LUT size
     int                nCutsMax;      // the max number of cuts
     int                nFlowIters;    // the number of iterations of area recovery
@@ -85,6 +85,8 @@ struct If_Par_t_
     int                fFancy;        // a fancy feature
     int                fExpRed;       // expand/reduce of the best cuts
     int                fLatchPaths;   // reset timing on latch paths
+    int                fEdge;         // uses edge-based cut selection heuristics
+    int                fCutMin;       // performs cut minimization by removing functionally reducdant variables
     int                fSeqMap;       // sequential mapping
     int                fVerbose;      // the verbosity flag
     // internal parameters
@@ -158,6 +160,7 @@ struct If_Man_t_
     If_Set_t *         pMemCi;        // memory for CI cutsets
     If_Set_t *         pMemAnd;       // memory for AND cutsets
     If_Set_t *         pFreeList;     // the list of free cutsets
+    int                nSmallSupp;    // the small support
 };
 
 // priority cut
@@ -166,6 +169,7 @@ struct If_Cut_t_
     float              Delay;         // delay of the cut
     float              Area;          // area (or area-flow) of the cut
     float              AveRefs;       // the average number of leaf references
+    float              Edge;          // the edge flow
     unsigned           uSign;         // cut signature
     unsigned           Cost    : 14;  // the user's cost of the cut
     unsigned           fCompl  :  1;  // the complemented attribute 
@@ -258,6 +262,7 @@ static inline void       If_CutSetData( If_Cut_t * pCut, void * pData )      { *
 
 static inline int        If_CutLeaveNum( If_Cut_t * pCut )                   { return pCut->nLeaves;                             }
 static inline unsigned * If_CutTruth( If_Cut_t * pCut )                      { return pCut->pTruth;                              }
+static inline unsigned   If_CutSuppMask( If_Cut_t * pCut )                   { return (~(unsigned)0) >> (32-pCut->nLeaves);      }
 static inline int        If_CutTruthWords( int nVarsMax )                    { return nVarsMax <= 5 ? 1 : (1 << (nVarsMax - 5)); }
 static inline int        If_CutPermWords( int nVarsMax )                     { return nVarsMax / sizeof(int) + ((nVarsMax % sizeof(int)) > 0); }
 
@@ -320,14 +325,19 @@ static inline float      If_CutLutArea( If_Man_t * p, If_Cut_t * pCut )      { r
 extern int             If_ManPerformMapping( If_Man_t * p );
 extern int             If_ManPerformMappingComb( If_Man_t * p );
 /*=== ifCut.c ============================================================*/
-extern float           If_CutAreaDerefed( If_Man_t * p, If_Cut_t * pCut, int nLevels );
-extern float           If_CutAreaRefed( If_Man_t * p, If_Cut_t * pCut, int nLevels );
-extern float           If_CutDeref( If_Man_t * p, If_Cut_t * pCut, int nLevels );
-extern float           If_CutRef( If_Man_t * p, If_Cut_t * pCut, int nLevels );
 extern void            If_CutPrint( If_Man_t * p, If_Cut_t * pCut );
 extern void            If_CutPrintTiming( If_Man_t * p, If_Cut_t * pCut );
-extern float           If_CutFlow( If_Man_t * p, If_Cut_t * pCut );
+extern float           If_CutAreaFlow( If_Man_t * p, If_Cut_t * pCut );
+extern float           If_CutEdgeFlow( If_Man_t * p, If_Cut_t * pCut );
 extern float           If_CutAverageRefs( If_Man_t * p, If_Cut_t * pCut );
+extern float           If_CutAreaDeref( If_Man_t * p, If_Cut_t * pCut );
+extern float           If_CutAreaRef( If_Man_t * p, If_Cut_t * pCut );
+extern float           If_CutAreaDerefed( If_Man_t * p, If_Cut_t * pCut );
+extern float           If_CutAreaRefed( If_Man_t * p, If_Cut_t * pCut );
+extern float           If_CutEdgeDeref( If_Man_t * p, If_Cut_t * pCut );
+extern float           If_CutEdgeRef( If_Man_t * p, If_Cut_t * pCut );
+extern float           If_CutEdgeDerefed( If_Man_t * p, If_Cut_t * pCut );
+extern float           If_CutEdgeRefed( If_Man_t * p, If_Cut_t * pCut );
 extern int             If_CutFilter( If_Set_t * pCutSet, If_Cut_t * pCut );
 extern void            If_CutSort( If_Man_t * p, If_Set_t * pCutSet, If_Cut_t * pCut );
 extern int             If_CutMerge( If_Cut_t * pCut0, If_Cut_t * pCut1, If_Cut_t * pCut );

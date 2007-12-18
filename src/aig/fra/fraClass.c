@@ -270,7 +270,7 @@ void Fra_ClassesPrint( Fra_Cla_t * p, int fVeryVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-void Fra_ClassesPrepare( Fra_Cla_t * p, int fLatchCorr )
+void Fra_ClassesPrepare( Fra_Cla_t * p, int fLatchCorr, int nMaxLevs )
 {
     Aig_Obj_t ** ppTable, ** ppNexts;
     Aig_Obj_t * pObj, * pTemp;
@@ -296,8 +296,8 @@ void Fra_ClassesPrepare( Fra_Cla_t * p, int fLatchCorr )
             if ( !Aig_ObjIsNode(pObj) && !Aig_ObjIsPi(pObj) )
                 continue;
             // skip the node with more that the given number of levels
-//            if ( pObj->Level > 3 )
-//                continue;
+            if ( nMaxLevs && (int)pObj->Level >= nMaxLevs )
+                continue;
         }
         // hash the node by its simulation info
         iEntry = p->pFuncNodeHash( pObj, nTableSize );

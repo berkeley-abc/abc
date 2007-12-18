@@ -550,7 +550,7 @@ timeSim = clock() - clk2;
 
     // get preliminary info about equivalence classes
     pTemp->pCla = p->pCla = Fra_ClassesStart( p->pAig );
-    Fra_ClassesPrepare( p->pCla, 1 );
+    Fra_ClassesPrepare( p->pCla, 1, 0 );
     p->pCla->pFuncNodeIsConst   = Fra_LcrNodeIsConst;
     p->pCla->pFuncNodesAreEqual = Fra_LcrNodesAreEqual;
     Fra_SmlStop( pTemp->pSml );

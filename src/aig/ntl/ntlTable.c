@@ -171,6 +171,45 @@ int Ntl_ModelSetNetDriver( Ntl_Obj_t * pObj, Ntl_Net_t * pNet )
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns -1, 0, +1 (when it is PI, not found, or PO).]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ModelFindPioNumber( Ntl_Mod_t * p, char * pName, int * pNumber )
+{
+    Ntl_Net_t * pNet;
+    Ntl_Obj_t * pObj;
+    int i;
+    *pNumber = -1;
+    pNet = Ntl_ModelFindNet( p, pName );
+    if ( pNet == NULL )
+        return 0;
+    Ntl_ModelForEachPo( p, pObj, i )
+    {
+        if ( Ntl_ObjFanin0(pObj) == pNet )
+        {
+            *pNumber = i;
+            return 1;
+        }
+    }
+    Ntl_ModelForEachPi( p, pObj, i )
+    {
+        if ( Ntl_ObjFanout0(pObj) == pNet )
+        {
+            *pNumber = i;
+            return -1;
+        }
+    }
+    return 0;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

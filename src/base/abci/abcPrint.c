@@ -60,9 +60,9 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
 
     fprintf( pFile, "%-13s:",       pNtk->pName );
     if ( Abc_NtkAssertNum(pNtk) )
-        fprintf( pFile, " i/o/a = %4d/%4d/%4d", Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk), Abc_NtkAssertNum(pNtk) );
+        fprintf( pFile, " i/o/a = %5d/%5d/%5d", Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk), Abc_NtkAssertNum(pNtk) );
     else
-        fprintf( pFile, " i/o = %4d/%4d", Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk) );
+        fprintf( pFile, " i/o = %5d/%5d", Abc_NtkPiNum(pNtk), Abc_NtkPoNum(pNtk) );
     fprintf( pFile, "  lat = %4d", Abc_NtkLatchNum(pNtk) );
     if ( Abc_NtkIsNetlist(pNtk) )
     {
@@ -86,7 +86,7 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
     else 
     {
         fprintf( pFile, "  nd = %5d", Abc_NtkNodeNum(pNtk) );
-        fprintf( pFile, "  net = %5d", Abc_NtkGetTotalFanins(pNtk) );
+        fprintf( pFile, "  edge = %6d", Abc_NtkGetTotalFanins(pNtk) );
     }
 
     if ( Abc_NtkIsStrash(pNtk) || Abc_NtkIsNetlist(pNtk) )

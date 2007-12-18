@@ -28,7 +28,6 @@
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-
 /**Function*************************************************************
 
   Synopsis    [Returns 1 if pDom is contained in pCut.]
@@ -438,6 +437,83 @@ static inline int If_ManSortCompare( If_Man_t * p, If_Cut_t * pC0, If_Cut_t * pC
             return -1;
         if ( pC0->Area > pC1->Area + 0.0001 )
             return 1;
+        if ( pC0->Edge < pC1->Edge - 0.0001 )
+            return -1;
+        if ( pC0->Edge > pC1->Edge + 0.0001 )
+            return 1;
+        if ( pC0->AveRefs > pC1->AveRefs )
+            return -1;
+        if ( pC0->AveRefs < pC1->AveRefs )
+            return 1;
+        if ( pC0->nLeaves < pC1->nLeaves )
+            return -1;
+        if ( pC0->nLeaves > pC1->nLeaves )
+            return 1;
+        if ( pC0->Delay < pC1->Delay - 0.0001 )
+            return -1;
+        if ( pC0->Delay > pC1->Delay + 0.0001 )
+            return 1;
+        return 0;
+    }
+    if ( p->SortMode == 0 ) // delay
+    {
+        if ( pC0->Delay < pC1->Delay - 0.0001 )
+            return -1;
+        if ( pC0->Delay > pC1->Delay + 0.0001 )
+            return 1;
+        if ( pC0->nLeaves < pC1->nLeaves )
+            return -1;
+        if ( pC0->nLeaves > pC1->nLeaves )
+            return 1;
+        if ( pC0->Area < pC1->Area - 0.0001 )
+            return -1;
+        if ( pC0->Area > pC1->Area + 0.0001 )
+            return 1;
+        if ( pC0->Edge < pC1->Edge - 0.0001 )
+            return -1;
+        if ( pC0->Edge > pC1->Edge + 0.0001 )
+            return 1;
+        return 0;
+    }
+    assert( p->SortMode == 2 ); // delay old
+    if ( pC0->Delay < pC1->Delay - 0.0001 )
+        return -1;
+    if ( pC0->Delay > pC1->Delay + 0.0001 )
+        return 1;
+    if ( pC0->Area < pC1->Area - 0.0001 )
+        return -1;
+    if ( pC0->Area > pC1->Area + 0.0001 )
+        return 1;
+    if ( pC0->Edge < pC1->Edge - 0.0001 )
+        return -1;
+    if ( pC0->Edge > pC1->Edge + 0.0001 )
+        return 1;
+    if ( pC0->nLeaves < pC1->nLeaves )
+        return -1;
+    if ( pC0->nLeaves > pC1->nLeaves )
+        return 1;
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Comparison function for two cuts.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int If_ManSortCompare_old( If_Man_t * p, If_Cut_t * pC0, If_Cut_t * pC1 )
+{
+    if ( p->SortMode == 1 ) // area
+    {
+        if ( pC0->Area < pC1->Area - 0.0001 )
+            return -1;
+        if ( pC0->Area > pC1->Area + 0.0001 )
+            return 1;
         if ( pC0->AveRefs > pC1->AveRefs )
             return -1;
         if ( pC0->AveRefs < pC1->AveRefs )
@@ -529,115 +605,6 @@ void If_CutSort( If_Man_t * p, If_Set_t * pCutSet, If_Cut_t * pCut )
 
 /**Function*************************************************************
 
-  Synopsis    [Computes area flow.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-float If_CutFlow( If_Man_t * p, If_Cut_t * pCut )
-{
-    If_Obj_t * pLeaf;
-    float Flow;
-    int i;
-    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
-    Flow = If_CutLutArea(p, pCut);
-    If_CutForEachLeaf( p, pCut, pLeaf, i )
-    {
-        if ( pLeaf->nRefs == 0 )
-            Flow += If_ObjCutBest(pLeaf)->Area;
-        else if ( p->pPars->fSeqMap ) // seq
-            Flow += If_ObjCutBest(pLeaf)->Area / pLeaf->nRefs;
-        else 
-        {
-            assert( pLeaf->EstRefs > p->fEpsilon );
-            Flow += If_ObjCutBest(pLeaf)->Area / pLeaf->EstRefs;
-        }
-    }
-    return Flow;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Average number of references of the leaves.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-float If_CutAverageRefs( If_Man_t * p, If_Cut_t * pCut )
-{
-    If_Obj_t * pLeaf;
-    int nRefsTotal, i;
-    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
-    nRefsTotal = 0;
-    If_CutForEachLeaf( p, pCut, pLeaf, i )
-        nRefsTotal += pLeaf->nRefs;
-    return ((float)nRefsTotal)/pCut->nLeaves;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Computes area of the first level.]
-
-  Description [The cut need to be derefed.]
-               
-  SideEffects []
-
-  SeeAlso     []
- 
-***********************************************************************/
-float If_CutDeref( If_Man_t * p, If_Cut_t * pCut, int nLevels )
-{
-    If_Obj_t * pLeaf;
-    float Area;
-    int i;
-    Area = If_CutLutArea(p, pCut);
-    If_CutForEachLeaf( p, pCut, pLeaf, i )
-    {
-        assert( pLeaf->nRefs > 0 );
-        if ( --pLeaf->nRefs > 0 || !If_ObjIsAnd(pLeaf) || nLevels == 1 )
-            continue;
-        Area += If_CutDeref( p, If_ObjCutBest(pLeaf), nLevels - 1 );
-    }
-    return Area;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Computes area of the first level.]
-
-  Description [The cut need to be derefed.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-float If_CutRef( If_Man_t * p, If_Cut_t * pCut, int nLevels )
-{
-    If_Obj_t * pLeaf;
-    float Area;
-    int i;
-    Area = If_CutLutArea(p, pCut);
-    If_CutForEachLeaf( p, pCut, pLeaf, i )
-    {
-        assert( pLeaf->nRefs >= 0 );
-        if ( pLeaf->nRefs++ > 0 || !If_ObjIsAnd(pLeaf) || nLevels == 1 )
-            continue;
-        Area += If_CutRef( p, If_ObjCutBest(pLeaf), nLevels - 1 );
-    }
-    return Area;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Prints one cut.]
 
   Description []
@@ -679,6 +646,122 @@ void If_CutPrintTiming( If_Man_t * p, If_Cut_t * pCut )
 
 /**Function*************************************************************
 
+  Synopsis    [Computes area flow.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float If_CutAreaFlow( If_Man_t * p, If_Cut_t * pCut )
+{
+    If_Obj_t * pLeaf;
+    float Flow;
+    int i;
+    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
+    Flow = If_CutLutArea(p, pCut);
+    If_CutForEachLeaf( p, pCut, pLeaf, i )
+    {
+        if ( pLeaf->nRefs == 0 )
+            Flow += If_ObjCutBest(pLeaf)->Area;
+        else if ( p->pPars->fSeqMap ) // seq
+            Flow += If_ObjCutBest(pLeaf)->Area / pLeaf->nRefs;
+        else 
+        {
+            assert( pLeaf->EstRefs > p->fEpsilon );
+            Flow += If_ObjCutBest(pLeaf)->Area / pLeaf->EstRefs;
+        }
+    }
+    return Flow;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes area flow.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float If_CutEdgeFlow( If_Man_t * p, If_Cut_t * pCut )
+{
+    If_Obj_t * pLeaf;
+    float Flow;
+    int i;
+    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
+    Flow = pCut->nLeaves;
+    If_CutForEachLeaf( p, pCut, pLeaf, i )
+    {
+        if ( pLeaf->nRefs == 0 )
+            Flow += If_ObjCutBest(pLeaf)->Edge;
+        else if ( p->pPars->fSeqMap ) // seq
+            Flow += If_ObjCutBest(pLeaf)->Edge / pLeaf->nRefs;
+        else 
+        {
+            assert( pLeaf->EstRefs > p->fEpsilon );
+            Flow += If_ObjCutBest(pLeaf)->Edge / pLeaf->EstRefs;
+        }
+    }
+    return Flow;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Average number of references of the leaves.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float If_CutAverageRefs( If_Man_t * p, If_Cut_t * pCut )
+{
+    If_Obj_t * pLeaf;
+    int nRefsTotal, i;
+    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
+    nRefsTotal = 0;
+    If_CutForEachLeaf( p, pCut, pLeaf, i )
+        nRefsTotal += pLeaf->nRefs;
+    return ((float)nRefsTotal)/pCut->nLeaves;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Computes area of the first level.]
+
+  Description [The cut need to be derefed.]
+               
+  SideEffects []
+
+  SeeAlso     []
+ 
+***********************************************************************/
+float If_CutAreaDeref( If_Man_t * p, If_Cut_t * pCut )
+{
+    If_Obj_t * pLeaf;
+    float Area;
+    int i;
+    Area = If_CutLutArea(p, pCut);
+    If_CutForEachLeaf( p, pCut, pLeaf, i )
+    {
+        assert( pLeaf->nRefs > 0 );
+        if ( --pLeaf->nRefs > 0 || !If_ObjIsAnd(pLeaf) )
+            continue;
+        Area += If_CutAreaDeref( p, If_ObjCutBest(pLeaf) );
+    }
+    return Area;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Computes area of the first level.]
 
   Description [The cut need to be derefed.]
@@ -688,12 +771,39 @@ void If_CutPrintTiming( If_Man_t * p, If_Cut_t * pCut )
   SeeAlso     []
 
 ***********************************************************************/
-float If_CutAreaDerefed( If_Man_t * p, If_Cut_t * pCut, int nLevels )
+float If_CutAreaRef( If_Man_t * p, If_Cut_t * pCut )
+{
+    If_Obj_t * pLeaf;
+    float Area;
+    int i;
+    Area = If_CutLutArea(p, pCut);
+    If_CutForEachLeaf( p, pCut, pLeaf, i )
+    {
+        assert( pLeaf->nRefs >= 0 );
+        if ( pLeaf->nRefs++ > 0 || !If_ObjIsAnd(pLeaf) )
+            continue;
+        Area += If_CutAreaRef( p, If_ObjCutBest(pLeaf) );
+    }
+    return Area;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes area of the first level.]
+
+  Description [The cut need to be derefed.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float If_CutAreaDerefed( If_Man_t * p, If_Cut_t * pCut )
 {
     float aResult, aResult2;
     assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
-    aResult2 = If_CutRef( p, pCut, nLevels );
-    aResult  = If_CutDeref( p, pCut, nLevels );
+    aResult2 = If_CutAreaRef( p, pCut );
+    aResult  = If_CutAreaDeref( p, pCut );
     assert( aResult > aResult2 - p->fEpsilon );
     assert( aResult < aResult2 + p->fEpsilon );
     return aResult;
@@ -710,16 +820,116 @@ float If_CutAreaDerefed( If_Man_t * p, If_Cut_t * pCut, int nLevels )
   SeeAlso     []
 
 ***********************************************************************/
-float If_CutAreaRefed( If_Man_t * p, If_Cut_t * pCut, int nLevels )
+float If_CutAreaRefed( If_Man_t * p, If_Cut_t * pCut )
 {
     float aResult, aResult2;
     assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
-    aResult2 = If_CutDeref( p, pCut, nLevels );
-    aResult  = If_CutRef( p, pCut, nLevels );
+    aResult2 = If_CutAreaDeref( p, pCut );
+    aResult  = If_CutAreaRef( p, pCut );
     assert( aResult > aResult2 - p->fEpsilon );
     assert( aResult < aResult2 + p->fEpsilon );
     return aResult;
 }
+
+
+/**Function*************************************************************
+
+  Synopsis    [Computes area of the first level.]
+
+  Description [The cut need to be derefed.]
+               
+  SideEffects []
+
+  SeeAlso     []
+ 
+***********************************************************************/
+float If_CutEdgeDeref( If_Man_t * p, If_Cut_t * pCut )
+{
+    If_Obj_t * pLeaf;
+    float Edge;
+    int i;
+    Edge = pCut->nLeaves;
+    If_CutForEachLeaf( p, pCut, pLeaf, i )
+    {
+        assert( pLeaf->nRefs > 0 );
+        if ( --pLeaf->nRefs > 0 || !If_ObjIsAnd(pLeaf) )
+            continue;
+        Edge += If_CutEdgeDeref( p, If_ObjCutBest(pLeaf) );
+    }
+    return Edge;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes area of the first level.]
+
+  Description [The cut need to be derefed.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float If_CutEdgeRef( If_Man_t * p, If_Cut_t * pCut )
+{
+    If_Obj_t * pLeaf;
+    float Edge;
+    int i;
+    Edge = pCut->nLeaves;
+    If_CutForEachLeaf( p, pCut, pLeaf, i )
+    {
+        assert( pLeaf->nRefs >= 0 );
+        if ( pLeaf->nRefs++ > 0 || !If_ObjIsAnd(pLeaf) )
+            continue;
+        Edge += If_CutEdgeRef( p, If_ObjCutBest(pLeaf) );
+    }
+    return Edge;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes edge of the first level.]
+
+  Description [The cut need to be derefed.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float If_CutEdgeDerefed( If_Man_t * p, If_Cut_t * pCut )
+{
+    float aResult, aResult2;
+    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
+    aResult2 = If_CutEdgeRef( p, pCut );
+    aResult  = If_CutEdgeDeref( p, pCut );
+    assert( aResult > aResult2 - p->fEpsilon );
+    assert( aResult < aResult2 + p->fEpsilon );
+    return aResult;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes area of the first level.]
+
+  Description [The cut need to be derefed.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float If_CutEdgeRefed( If_Man_t * p, If_Cut_t * pCut )
+{
+    float aResult, aResult2;
+    assert( p->pPars->fSeqMap || pCut->nLeaves > 1 );
+    aResult2 = If_CutEdgeDeref( p, pCut );
+    aResult  = If_CutEdgeRef( p, pCut );
+    assert( aResult > aResult2 - p->fEpsilon );
+    assert( aResult < aResult2 + p->fEpsilon );
+    return aResult;
+}
+
 
 /**Function*************************************************************
 

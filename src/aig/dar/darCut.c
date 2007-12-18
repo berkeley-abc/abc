@@ -479,7 +479,7 @@ static inline int Dar_CutSuppMinimize( Dar_Cut_t * pCut )
     unsigned uPhase = 0, uTruth = 0xFFFF & pCut->uTruth;
     int i, k, nLeaves;
     assert( pCut->fUsed );
-    // compute the truth support of the cut's function
+    // compute the support of the cut's function
     nLeaves = pCut->nLeaves;
     for ( i = 0; i < (int)pCut->nLeaves; i++ )
         if ( (uTruth & uMasks[i][0]) == ((uTruth & uMasks[i][1]) >> (1 << i)) )

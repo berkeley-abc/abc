@@ -49,7 +49,7 @@ int Fra_FraigSec2( Aig_Man_t * p, int nFramesFix, int fVerbose, int fVeryVerbose
     {
         nFrames = nFramesFix;
         // perform seq sweeping for one frame number
-        pNew = Fra_FraigInduction( p, 0, nFrames, 0, 0, 0, fLatchCorr, 0, fVeryVerbose, &nIter );
+        pNew = Fra_FraigInduction( p, 0, nFrames, 0, 0, 0, 0, fLatchCorr, 0, fVeryVerbose, &nIter );
     }
     else
     {
@@ -57,7 +57,7 @@ int Fra_FraigSec2( Aig_Man_t * p, int nFramesFix, int fVerbose, int fVeryVerbose
         for ( nFrames = 1; ; nFrames++ )
         {
 clk = clock();
-            pNew = Fra_FraigInduction( p, 0, nFrames, 0, 0, 0, fLatchCorr, 0, fVeryVerbose, &nIter );
+            pNew = Fra_FraigInduction( p, 0, nFrames, 0, 0, 0, 0, fLatchCorr, 0, fVeryVerbose, &nIter );
             RetValue = Fra_FraigMiterStatus( pNew );
             if ( fVerbose )
             {
@@ -185,7 +185,7 @@ PRT( "Time", clock() - clk );
     for ( nFrames = 1; nFrames <= nFramesMax; nFrames *= 2 )
     {
 clk = clock();
-        pNew = Fra_FraigInduction( pTemp = pNew, 0, nFrames, 0, 0, 0, fLatchCorr, 0, fVeryVerbose, &nIter );
+        pNew = Fra_FraigInduction( pTemp = pNew, 0, nFrames, 0, 0, 0, 0, fLatchCorr, 0, fVeryVerbose, &nIter );
         Aig_ManStop( pTemp );
         RetValue = Fra_FraigMiterStatus( pNew );
         if ( fVerbose )

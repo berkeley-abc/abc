@@ -1,6 +1,8 @@
 SRC +=    src/aig/aig/aigCheck.c \
     src/aig/aig/aigDfs.c \
     src/aig/aig/aigFanout.c \
+    src/aig/aig/aigFrames.c \
+    src/aig/aig/aigHaig.c \
     src/aig/aig/aigMan.c \
     src/aig/aig/aigMem.c \
     src/aig/aig/aigMffc.c \
@@ -10,8 +12,10 @@ SRC +=    src/aig/aig/aigCheck.c \
     src/aig/aig/aigPart.c \
     src/aig/aig/aigRepr.c \
     src/aig/aig/aigRet.c \
+    src/aig/aig/aigRetF.c \
     src/aig/aig/aigScl.c \
     src/aig/aig/aigSeq.c \
+    src/aig/aig/aigShow.c \
     src/aig/aig/aigTable.c \
     src/aig/aig/aigTime.c \
     src/aig/aig/aigTiming.c \

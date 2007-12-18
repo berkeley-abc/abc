@@ -243,7 +243,7 @@ void Fra_FramesAddMore( Aig_Man_t * p, int nFrames )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesP, int nFramesK, int nMaxImps, int fRewrite, int fUseImps, int fLatchCorr, int fWriteImps, int fVerbose, int * pnIter )
+Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesP, int nFramesK, int nMaxImps, int nMaxLevs, int fRewrite, int fUseImps, int fLatchCorr, int fWriteImps, int fVerbose, int * pnIter )
 {
     int fUseSimpleCnf = 0;
     int fUseOldSimulation = 0;
@@ -282,12 +282,13 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesP, int nFramesK,
     pPars->nFramesP   = nFramesP;
     pPars->nFramesK   = nFramesK;
     pPars->nMaxImps   = nMaxImps;
+    pPars->nMaxLevs   = nMaxLevs;
     pPars->fVerbose   = fVerbose;
     pPars->fRewrite   = fRewrite;
     pPars->fLatchCorr = fLatchCorr;
     pPars->fUseImps   = fUseImps;
     pPars->fWriteImps = fWriteImps;
-
+ 
     // start the fraig manager for this run
     p = Fra_ManStart( pManAig, pPars );
     // derive and refine e-classes using K initialized frames
@@ -313,7 +314,7 @@ if ( fVerbose )
 {
 PRT( "Time", clock() - clk );
 }
-        Fra_ClassesPrepare( p->pCla, p->pPars->fLatchCorr );
+        Fra_ClassesPrepare( p->pCla, p->pPars->fLatchCorr, p->pPars->nMaxLevs );
 //        Fra_ClassesPostprocess( p->pCla );
         // allocate new simulation manager for simulating counter-examples
         Fra_SmlStop( p->pSml );

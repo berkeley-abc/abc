@@ -685,7 +685,7 @@ void Fra_SmlSimulate( Fra_Man_t * p, int fInit )
     Fra_SmlSimulateOne( p->pSml );
     if ( p->pPars->fProve && Fra_SmlCheckOutput(p) )
         return;
-    Fra_ClassesPrepare( p->pCla, p->pPars->fLatchCorr );
+    Fra_ClassesPrepare( p->pCla, p->pPars->fLatchCorr, 0 );
 //    Fra_ClassesPrint( p->pCla, 0 );
 if ( fVerbose )
 printf( "Starting classes = %5d.   Lits = %6d.\n", Vec_PtrSize(p->pCla->vClasses), Fra_ClassesCountLits(p->pCla) );
