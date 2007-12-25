@@ -46,7 +46,7 @@ void Aig_ManDfs_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vNodes )
     assert( !Aig_IsComplement(pObj) );
     if ( Aig_ObjIsTravIdCurrent(p, pObj) )
         return;
-    assert( Aig_ObjIsNode(pObj) || Aig_ObjIsBuf(pObj) );
+//    assert( Aig_ObjIsNode(pObj) || Aig_ObjIsBuf(pObj) );
     Aig_ManDfs_rec( p, Aig_ObjFanin0(pObj), vNodes );
     Aig_ManDfs_rec( p, Aig_ObjFanin1(pObj), vNodes );
     assert( !Aig_ObjIsTravIdCurrent(p, pObj) ); // loop detection
@@ -85,6 +85,29 @@ Vec_Ptr_t * Aig_ManDfs( Aig_Man_t * p )
     Aig_ManForEachObj( p, pObj, i )
         if ( Aig_ObjIsNode(pObj) || Aig_ObjIsBuf(pObj) )
             Aig_ManDfs_rec( p, pObj, vNodes );
+    return vNodes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects internal nodes in the DFS order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Aig_ManDfsPio( Aig_Man_t * p )
+{
+    Vec_Ptr_t * vNodes;
+    Aig_Obj_t * pObj;
+    int i;
+    Aig_ManIncrementTravId( p );
+    vNodes = Vec_PtrAlloc( Aig_ManObjNumMax(p) );
+    Aig_ManForEachPo( p, pObj, i )
+        Aig_ManDfs_rec( p, pObj, vNodes );
     return vNodes;
 }
 

@@ -978,6 +978,10 @@ SOURCE=.\src\bdd\reo\reoProfile.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\bdd\reo\reoShuffle.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\bdd\reo\reoSift.c
 # End Source File
 # Begin Source File
@@ -2975,6 +2979,10 @@ SOURCE=.\src\aig\ntl\ntlReadBlif.c
 # Begin Source File
 
 SOURCE=.\src\aig\ntl\ntlTable.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ntl\ntlTime.c
 # End Source File
 # Begin Source File
 

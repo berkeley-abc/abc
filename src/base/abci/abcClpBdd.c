@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
+//#include "reo.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -87,6 +88,9 @@ Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, i
     return pNtkNew;
 }
 
+
+//int runtime1, runtime2;
+
 /**Function*************************************************************
 
   Synopsis    [Derives the network with the given global BDD.]
@@ -100,12 +104,19 @@ Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, i
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkFromGlobalBdds( Abc_Ntk_t * pNtk )
 {
+//    extern void Extra_ShuffleTest( reo_man * p, DdManager * dd, DdNode * Func );
+//    reo_man * pReo;
+
     ProgressBar * pProgress;
     Abc_Ntk_t * pNtkNew;
     Abc_Obj_t * pNode, * pDriver, * pNodeNew;
 //    DdManager * dd = pNtk->pManGlob;
     DdManager * dd = Abc_NtkGlobalBddMan( pNtk );
     int i;
+
+//    pReo = Extra_ReorderInit( Abc_NtkCiNum(pNtk), 1000 );
+//    runtime1 = runtime2 = 0;
+
     // start the new network
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_BDD );
     // make sure the new manager has the same number of inputs
@@ -124,8 +135,16 @@ Abc_Ntk_t * Abc_NtkFromGlobalBdds( Abc_Ntk_t * pNtk )
 //        pNodeNew = Abc_NodeFromGlobalBdds( pNtkNew, dd, Vec_PtrEntry(pNtk->vFuncsGlob, i) );
         pNodeNew = Abc_NodeFromGlobalBdds( pNtkNew, dd, Abc_ObjGlobalBdd(pNode) );
         Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
+
+//        Extra_ShuffleTest( pReo, dd, Abc_ObjGlobalBdd(pNode) );
+
     }
     Extra_ProgressBarStop( pProgress );
+
+//    Extra_ReorderQuit( pReo );
+//PRT( "Reo ", runtime1 );
+//PRT( "Cudd", runtime2 );
+
     return pNtkNew;
 }
 

@@ -802,6 +802,28 @@ void Fpga_CutsCleanSign( Fpga_Man_t * pMan )
                 pCut->uSign = 0;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Clean the signatures.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fpga_CutsCleanRoot( Fpga_Man_t * pMan )
+{
+    Fpga_Node_t * pNode;
+    Fpga_Cut_t * pCut;
+    int i;
+    for ( i = 0; i < pMan->nBins; i++ )
+        for ( pNode = pMan->pBins[i]; pNode; pNode = pNode->pNext )
+            for ( pCut = pNode->pCuts; pCut; pCut = pCut->pNext )
+                pCut->pRoot = NULL;
+}
+
 
 
 /**Function*************************************************************

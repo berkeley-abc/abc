@@ -111,6 +111,31 @@ Ntl_Mod_t * Ntl_ManFindModel( Ntl_Man_t * p, char * pName )
 
 /**Function*************************************************************
 
+  Synopsis    [Deallocates the netlist manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntl_ManPrintStats( Ntl_Man_t * p )
+{
+    Ntl_Mod_t * pRoot;
+    pRoot = Vec_PtrEntry( p->vModels, 0 );
+    printf( "%-15s : ",       p->pName );
+    printf( "pi = %5d  ",    Ntl_ModelPiNum(pRoot) );
+    printf( "po = %5d  ",    Ntl_ModelPoNum(pRoot) );
+    printf( "latch = %5d  ", Ntl_ModelLatchNum(pRoot) );
+    printf( "node = %5d  ",  Ntl_ModelNodeNum(pRoot) );
+    printf( "box = %4d  ",   Ntl_ModelBoxNum(pRoot) );
+    printf( "model = %3d",   Vec_PtrSize(p->vModels) );
+    printf( "\n" );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Allocates the model.]
 
   Description []
@@ -152,7 +177,9 @@ Ntl_Mod_t * Ntl_ModelAlloc( Ntl_Man_t * pMan, char * pName )
 ***********************************************************************/
 void Ntl_ModelFree( Ntl_Mod_t * p )
 {
-    if ( p->vDelays ) Vec_IntFree( p->vDelays );
+    if ( p->vRequireds )  Vec_IntFree( p->vRequireds );
+    if ( p->vArrivals )   Vec_IntFree( p->vArrivals );
+    if ( p->vDelays )     Vec_IntFree( p->vDelays );
     Vec_PtrFree( p->vObjs );
     Vec_PtrFree( p->vPis );
     Vec_PtrFree( p->vPos );

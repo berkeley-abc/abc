@@ -78,7 +78,9 @@ extern Fpga_Node_t **  Fpga_ManReadOutputs( Fpga_Man_t * p );
 extern Fpga_Node_t *   Fpga_ManReadConst1 ( Fpga_Man_t * p );
 extern float *         Fpga_ManReadInputArrivals( Fpga_Man_t * p );
 extern int             Fpga_ManReadVerbose( Fpga_Man_t * p );
+extern int             Fpga_ManReadVarMax( Fpga_Man_t * p );
 extern float *         Fpga_ManReadLutAreas( Fpga_Man_t * p );
+extern Fpga_NodeVec_t* Fpga_ManReadMapping( Fpga_Man_t * p );
 extern void            Fpga_ManSetTimeToMap( Fpga_Man_t * p, int Time );
 extern void            Fpga_ManSetTimeToNet( Fpga_Man_t * p, int Time );
 extern void            Fpga_ManSetTimeTotal( Fpga_Man_t * p, int Time );
@@ -141,6 +143,7 @@ extern int             Fpga_Mapping( Fpga_Man_t * p );
 /*=== fpgaCut.c ===============================================================*/
 extern void            Fpga_MappingCreatePiCuts( Fpga_Man_t * p );
 extern void            Fpga_CutsCleanSign( Fpga_Man_t * pMan );
+extern void            Fpga_CutsCleanRoot( Fpga_Man_t * pMan );
 /*=== fpgaCutUtils.c =============================================================*/
 extern void            Fpga_CutCreateFromNode( Fpga_Man_t * p, int iRoot, int * pLeaves, int nLeaves );
 extern void            Fpga_MappingSetUsedCuts( Fpga_Man_t * p );

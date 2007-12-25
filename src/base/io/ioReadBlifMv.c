@@ -167,9 +167,9 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
     pDesign = Io_MvParse( p );
     if ( p->sError[0] )
         fprintf( stdout, "%s\n", p->sError );
+    Io_MvFree( p );
     if ( pDesign == NULL )
         return NULL;
-    Io_MvFree( p );
 // pDesign should be linked to all models of the design
 
     // make sure that everything is okay with the network structure
@@ -619,6 +619,12 @@ static void Io_MvReadPreparse( Io_MvMan_t * p )
             fprintf( stdout, "Line %d: Skipping EXDC network.\n", Io_MvGetLine(p, pCur) );
             break;
         }
+        else if ( !strncmp(pCur, "delay", 5) )
+        {}
+        else if ( !strncmp(pCur, "input_arrival", 13) )
+        {}
+        else if ( !strncmp(pCur, "output_required", 15) )
+        {}
         else
         {
             pCur--;
@@ -863,7 +869,7 @@ static int Io_MvParseLineLatch( Io_MvMod_t * p, char * pLine )
         else
         {
             if ( Vec_PtrSize(vTokens) > 3 )
-                Init = atoi( Vec_PtrEntry(vTokens,3) );
+                Init = atoi( Vec_PtrEntryLast(vTokens) );
             else
                 Init = 2;
             if ( Init < 0 || Init > 2 )

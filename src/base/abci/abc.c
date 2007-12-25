@@ -64,6 +64,7 @@ static int Abc_CommandRenode         ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandCleanup        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSweep          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFastExtract    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandEliminate      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDisjoint       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandImfs           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandLutpack        ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -239,6 +240,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "cleanup",       Abc_CommandCleanup,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "sweep",         Abc_CommandSweep,            1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "fx",            Abc_CommandFastExtract,      1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "eliminate",     Abc_CommandEliminate,        1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "dsd",           Abc_CommandDisjoint,         1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "imfs",          Abc_CommandImfs,             1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "lutpack",       Abc_CommandLutpack,          1 );
@@ -2727,6 +2729,97 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandEliminate( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk;
+    FILE * pOut, * pErr;
+    int nMaxSize;
+    int fReverse;
+    int fVerbose;
+    int c;
+    extern int Abc_NtkEliminate( Abc_Ntk_t * pNtk, int nMaxSize, int fReverse, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set the defaults
+    nMaxSize  = 8;
+    fReverse  = 0;
+    fVerbose  = 0;
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "Nrvh")) != EOF ) 
+    {
+        switch (c) 
+        {
+            case 'N':
+                if ( globalUtilOptind >= argc )
+                {
+                    fprintf( pErr, "Command line switch \"-N\" should be followed by a positive integer.\n" );
+                    goto usage;
+                }
+                nMaxSize = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                if ( nMaxSize <= 0 ) 
+                    goto usage;
+                break;
+            case 'r':
+                fReverse ^= 1;
+                break;
+            case 'v':
+                fVerbose ^= 1;
+                break;
+            case 'h':
+                goto usage;
+                break;
+            default:
+                goto usage;
+        }
+    } 
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( Abc_NtkNodeNum(pNtk) == 0 )
+    {
+        fprintf( pErr, "The network does not have internal nodes.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkIsLogic(pNtk) )
+    {
+        fprintf( pErr, "This command can only be applied to a logic network (run \"renode\" or \"if\").\n" );
+        return 1;
+    }
+
+    // the nodes to be merged are linked into the special linked list
+    Abc_NtkEliminate( pNtk, nMaxSize, fReverse, fVerbose );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: eliminate [-N num] [-rvh]\n");
+    fprintf( pErr, "\t         greedily eliminates nodes by collapsing them into fanouts\n");
+    fprintf( pErr, "\t-N num : the maximum support size after collapsing [default = %d]\n", nMaxSize );  
+    fprintf( pErr, "\t-r     : use the reverse topological order [default = %s]\n", fReverse? "yes": "no" );  
+    fprintf( pErr, "\t-v     : print verbose information [default = %s]\n", fVerbose? "yes": "no" ); 
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;       
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandDisjoint( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
@@ -2958,6 +3051,7 @@ int Abc_CommandImfs( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     fprintf( pErr, "usage: imfs [-W <NM>] [-L <num>] [-C <num>] [-S <num>] [-avwh]\n" );
     fprintf( pErr, "\t           performs resubstitution-based resynthesis with interpolation\n" );
+    fprintf( pErr, "\t           (there is another command for resynthesis after LUT mapping, \"lutpack\")\n" );
     fprintf( pErr, "\t-W <NM>  : fanin/fanout levels (NxM) of the window (00 <= NM <= 99) [default = %d%d]\n", pPars->nWindow/10, pPars->nWindow%10 );
     fprintf( pErr, "\t-C <num> : the max number of resub candidates (1 <= n) [default = %d]\n", pPars->nCands );
     fprintf( pErr, "\t-S <num> : the number of simulation words (1 <= n <= 256) [default = %d]\n", pPars->nSimWords );
@@ -3106,6 +3200,7 @@ usage:
     fprintf( pErr, "\t           performs \"rewriting\" for LUT networks;\n" );
     fprintf( pErr, "\t           determines LUT size as the max fanin count of a node;\n" );
     fprintf( pErr, "\t           if the network is not LUT-mapped, packs it into 6-LUTs\n" );
+    fprintf( pErr, "\t           (there is another command for resynthesis after LUT mapping, \"imfs\")\n" );
     fprintf( pErr, "\t-N <num> : the max number of LUTs in the structure (2 <= num) [default = %d]\n", pPars->nLutsMax );
     fprintf( pErr, "\t-Q <num> : the max number of LUTs not in MFFC (0 <= num) [default = %d]\n", pPars->nLutsOver );
     fprintf( pErr, "\t-S <num> : the max number of LUT inputs shared (0 <= num <= 3) [default = %d]\n", pPars->nVarsShared );
@@ -6213,7 +6308,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Abc_Ntk_t * Abc_NtkDar( Abc_Ntk_t * pNtk );
     extern Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName );
     extern Abc_Ntk_t * Abc_NtkFilter( Abc_Ntk_t * pNtk );
-    extern Abc_Ntk_t * Abc_NtkDarRetime( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose );
+//    extern Abc_Ntk_t * Abc_NtkDarRetime( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose );
     extern Abc_Ntk_t * Abc_NtkPcmTest( Abc_Ntk_t * pNtk, int fVerbose );
     extern Abc_NtkDarHaigRecord( Abc_Ntk_t * pNtk );
     extern void Abc_NtkDarTestBlif( char * pFileName );
@@ -6222,8 +6317,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
-    printf( "This command is temporarily disabled.\n" );
-    return 0;
+//    printf( "This command is temporarily disabled.\n" );
+//    return 0;
 
     // set defaults
     fVeryVerbose = 0;
@@ -8399,6 +8494,7 @@ usage:
     sprintf( Buffer, "%d", pParams->nBTLimit );
     fprintf( pErr, "usage: fraig [-R num] [-D num] [-C num] [-rscpvtah]\n" );
     fprintf( pErr, "\t         transforms a logic network into a functionally reduced AIG\n" );
+    fprintf( pErr, "\t         (there are also newer fraiging commands, \"ifraig\" and \"dfraig\")\n" );
     fprintf( pErr, "\t-R num : number of random patterns (127 < num < 32769) [default = %d]\n",     pParams->nPatsRand );
     fprintf( pErr, "\t-D num : number of systematic patterns (127 < num < 32769) [default = %d]\n", pParams->nPatsDyna );
     fprintf( pErr, "\t-C num : number of backtracks for one SAT problem [default = %s]\n",    pParams->nBTLimit==-1? "infinity" : Buffer );
@@ -10891,6 +10987,7 @@ int Abc_CommandDRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fFastAlgo;
     int fVerbose;
     int c;
+    extern Abc_Ntk_t * Abc_NtkDarRetime( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose );
     extern Abc_Ntk_t * Abc_NtkDarRetimeF( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -12290,6 +12387,7 @@ int Abc_CommandSec( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     fprintf( pErr, "usage: sec [-F num] [-T num] [-C num] [-I num] [-srvh] <file1> <file2>\n" );
     fprintf( pErr, "\t         performs bounded sequential equivalence checking\n" );
+    fprintf( pErr, "\t         (there is also an unbounded SEC commands, \"dsec\" and \"dprove\")\n" );
     fprintf( pErr, "\t-s     : toggle \"SAT only\" and \"FRAIG + SAT\" [default = %s]\n", fSat? "SAT only": "FRAIG + SAT" );
     fprintf( pErr, "\t-r     : toggles retiming verification [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
@@ -12616,6 +12714,7 @@ usage:
     fprintf( pErr, "usage: sat [-C num] [-I num] [-vh]\n" );
     fprintf( pErr, "\t         solves the combinational miter using SAT solver MiniSat-1.14\n" );
     fprintf( pErr, "\t         derives CNF from the current network and leave it unchanged\n" );
+    fprintf( pErr, "\t         (there is also a newer SAT solving command \"dsat\")\n" );
     fprintf( pErr, "\t-C num : limit on the number of conflicts [default = %d]\n",    nConfLimit );
     fprintf( pErr, "\t-I num : limit on the number of inspections [default = %d]\n", nInsLimit );
     fprintf( pErr, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
@@ -12912,6 +13011,7 @@ usage:
     fprintf( pErr, "usage: prove [-N num] [-C num] [-F num] [-L num] [-I num] [-rfbvh]\n" );
     fprintf( pErr, "\t         solves combinational miter by rewriting, FRAIGing, and SAT\n" );
     fprintf( pErr, "\t         replaces the current network by the cone modified by rewriting\n" );
+    fprintf( pErr, "\t         (there are also newer CEC commands, \"iprove\" and \"dprove\")\n" );
     fprintf( pErr, "\t-N num : max number of iterations [default = %d]\n", pParams->nItersMax );
     fprintf( pErr, "\t-C num : max starting number of conflicts in mitering [default = %d]\n", pParams->nMiteringLimitStart );
     fprintf( pErr, "\t-F num : max starting number of conflicts in fraiging [default = %d]\n", pParams->nFraigingLimitStart );

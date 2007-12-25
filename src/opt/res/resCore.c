@@ -221,6 +221,8 @@ int Abc_NtkResynthesize( Abc_Ntk_t * pNtk, Res_Par_t * pPars )
     p->nTotalNets = Abc_NtkGetTotalFanins(pNtk);
     p->nTotalNodes = Abc_NtkNodeNum(pNtk);
     nFaninsMax = Abc_NtkGetFaninMax(pNtk);
+    if ( nFaninsMax > 8 )
+        nFaninsMax = 8;
 
     // perform the network sweep
     Abc_NtkSweep( pNtk, 0 );

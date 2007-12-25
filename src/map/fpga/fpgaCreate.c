@@ -52,7 +52,9 @@ Fpga_Node_t **  Fpga_ManReadOutputs( Fpga_Man_t * p )                     { retu
 Fpga_Node_t *   Fpga_ManReadConst1 ( Fpga_Man_t * p )                     { return p->pConst1;    }
 float *         Fpga_ManReadInputArrivals( Fpga_Man_t * p )               { return p->pInputArrivals;}
 int             Fpga_ManReadVerbose( Fpga_Man_t * p )                     { return p->fVerbose;   }
+int             Fpga_ManReadVarMax( Fpga_Man_t * p )                      { return p->pLutLib->LutMax;     }
 float *         Fpga_ManReadLutAreas( Fpga_Man_t * p )                    { return p->pLutLib->pLutAreas;  }
+Fpga_NodeVec_t* Fpga_ManReadMapping( Fpga_Man_t * p )                     { return p->vMapping;   }
 void            Fpga_ManSetTimeToMap( Fpga_Man_t * p, int Time )          { p->timeToMap = Time;  }
 void            Fpga_ManSetTimeToNet( Fpga_Man_t * p, int Time )          { p->timeToNet = Time;  }
 void            Fpga_ManSetTimeTotal( Fpga_Man_t * p, int Time )          { p->timeTotal = Time;  }

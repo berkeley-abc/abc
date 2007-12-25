@@ -37,6 +37,8 @@ struct Ioa_ReadMod_t_
     Vec_Ptr_t *          vNames;       // .names lines
     Vec_Ptr_t *          vSubckts;     // .subckt lines
     Vec_Ptr_t *          vDelays;      // .delay lines
+    Vec_Ptr_t *          vArrivals;    // .input_arrival lines
+    Vec_Ptr_t *          vRequireds;   // .output_required lines
     int                  fBlackBox;    // indicates blackbox model
     // the resulting network
     Ntl_Mod_t *          pNtk;   
@@ -73,7 +75,7 @@ static Ioa_ReadMod_t *   Ioa_ReadModAlloc();
 static void              Ioa_ReadModFree( Ioa_ReadMod_t * p );
 static char *            Ioa_ReadLoadFile( char * pFileName );
 static void              Ioa_ReadReadPreparse( Ioa_ReadMan_t * p );
-static void              Ioa_ReadReadInterfaces( Ioa_ReadMan_t * p );
+static int               Ioa_ReadReadInterfaces( Ioa_ReadMan_t * p );
 static Ntl_Man_t *       Ioa_ReadParse( Ioa_ReadMan_t * p );
 static int               Ioa_ReadParseLineModel( Ioa_ReadMod_t * p, char * pLine );
 static int               Ioa_ReadParseLineInputs( Ioa_ReadMod_t * p, char * pLine );
@@ -81,6 +83,7 @@ static int               Ioa_ReadParseLineOutputs( Ioa_ReadMod_t * p, char * pLi
 static int               Ioa_ReadParseLineLatch( Ioa_ReadMod_t * p, char * pLine );
 static int               Ioa_ReadParseLineSubckt( Ioa_ReadMod_t * p, char * pLine );
 static int               Ioa_ReadParseLineDelay( Ioa_ReadMod_t * p, char * pLine );
+static int               Ioa_ReadParseLineTimes( Ioa_ReadMod_t * p, char * pLine, int fOutput );
 static int               Ioa_ReadParseLineNamesBlif( Ioa_ReadMod_t * p, char * pLine );
 
 static int               Ioa_ReadCharIsSpace( char s )   { return s == ' ' || s == '\t' || s == '\r' || s == '\n';             }
@@ -132,13 +135,22 @@ Ntl_Man_t * Ioa_ReadBlif( char * pFileName, int fCheck )
     // prepare the file for parsing
     Ioa_ReadReadPreparse( p );
     // parse interfaces of each network
-    Ioa_ReadReadInterfaces( p );
+    if ( !Ioa_ReadReadInterfaces( p ) )
+    {
+        if ( p->sError[0] )
+            fprintf( stdout, "%s\n", p->sError );
+        Ioa_ReadFree( p );
+        return NULL;
+    }
     // construct the network
     pDesign = Ioa_ReadParse( p );
     if ( p->sError[0] )
         fprintf( stdout, "%s\n", p->sError );
     if ( pDesign == NULL )
+    {
+        Ioa_ReadFree( p );
         return NULL;
+    }
     p->pDesign = NULL;
     Ioa_ReadFree( p );
 // pDesign should be linked to all models of the design
@@ -248,6 +260,8 @@ static Ioa_ReadMod_t * Ioa_ReadModAlloc()
     p->vNames   = Vec_PtrAlloc( 512 );
     p->vSubckts = Vec_PtrAlloc( 512 );
     p->vDelays  = Vec_PtrAlloc( 512 );
+    p->vArrivals  = Vec_PtrAlloc( 512 );
+    p->vRequireds = Vec_PtrAlloc( 512 );
     return p;
 }
 
@@ -270,6 +284,8 @@ static void Ioa_ReadModFree( Ioa_ReadMod_t * p )
     Vec_PtrFree( p->vNames );
     Vec_PtrFree( p->vSubckts );
     Vec_PtrFree( p->vDelays );
+    Vec_PtrFree( p->vArrivals );
+    Vec_PtrFree( p->vRequireds );
     free( p );
 }
 
@@ -498,6 +514,10 @@ static void Ioa_ReadReadPreparse( Ioa_ReadMan_t * p )
             Vec_PtrPush( p->pLatest->vSubckts, pCur );
         else if ( !strncmp(pCur, "delay", 5) )
             Vec_PtrPush( p->pLatest->vDelays, pCur );
+        else if ( !strncmp(pCur, "input_arrival", 13) )
+            Vec_PtrPush( p->pLatest->vArrivals, pCur );
+        else if ( !strncmp(pCur, "output_required", 15) )
+            Vec_PtrPush( p->pLatest->vRequireds, pCur );
         else if ( !strncmp(pCur, "blackbox", 8) )
             p->pLatest->fBlackBox = 1;
         else if ( !strncmp(pCur, "model", 5) ) 
@@ -538,7 +558,7 @@ static void Ioa_ReadReadPreparse( Ioa_ReadMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static void Ioa_ReadReadInterfaces( Ioa_ReadMan_t * p )
+static int Ioa_ReadReadInterfaces( Ioa_ReadMan_t * p )
 {
     Ioa_ReadMod_t * pMod;
     char * pLine;
@@ -548,20 +568,27 @@ static void Ioa_ReadReadInterfaces( Ioa_ReadMan_t * p )
     {
         // parse the model
         if ( !Ioa_ReadParseLineModel( pMod, pMod->pFirst ) )
-            return;
+            return 0;
         // parse the inputs
         Vec_PtrForEachEntry( pMod->vInputs, pLine, k )
             if ( !Ioa_ReadParseLineInputs( pMod, pLine ) )
-                return;
+                return 0;
         // parse the outputs
         Vec_PtrForEachEntry( pMod->vOutputs, pLine, k )
             if ( !Ioa_ReadParseLineOutputs( pMod, pLine ) )
-                return;
+                return 0;
         // parse the delay info
         Vec_PtrForEachEntry( pMod->vDelays, pLine, k )
             if ( !Ioa_ReadParseLineDelay( pMod, pLine ) )
-                return;
+                return 0;
+        Vec_PtrForEachEntry( pMod->vArrivals, pLine, k )
+            if ( !Ioa_ReadParseLineTimes( pMod, pLine, 0 ) )
+                return 0;
+        Vec_PtrForEachEntry( pMod->vRequireds, pLine, k )
+            if ( !Ioa_ReadParseLineTimes( pMod, pLine, 1 ) )
+                return 0;
     }
+    return 1;
 }
 
 
@@ -626,7 +653,7 @@ static int Ioa_ReadParseLineModel( Ioa_ReadMod_t * p, char * pLine )
     assert( !strcmp(pToken, "model") );
     if ( Vec_PtrSize(vTokens) != 2 )
     {
-        sprintf( p->pMan->sError, "Line %d: Model line has %d entries while it should have 2.", Ioa_ReadGetLine(p->pMan, pToken), Vec_PtrSize(vTokens) );
+        sprintf( p->pMan->sError, "Line %d: The number of entries in .model line (%d) is different from two.", Ioa_ReadGetLine(p->pMan, pToken), Vec_PtrSize(vTokens) );
         return 0;
     }
     p->pNtk = Ntl_ModelAlloc( p->pMan->pDesign, Vec_PtrEntry(vTokens, 1) );
@@ -866,7 +893,7 @@ static int Ioa_ReadParseLineDelay( Ioa_ReadMod_t * p, char * pLine )
 {
     Vec_Ptr_t * vTokens = p->pMan->vTokens;
     int RetValue1, RetValue2, Number1, Number2, Temp;
-    char * pToken;
+    char * pToken, * pTokenNum;
     float Delay;
     assert( sizeof(float) == sizeof(int) );
     Ioa_ReadSplitIntoTokens( vTokens, pLine, '\0' );
@@ -878,8 +905,9 @@ static int Ioa_ReadParseLineDelay( Ioa_ReadMod_t * p, char * pLine )
         return 0;
     }
     // find the delay number
-    Delay = atof( Vec_PtrEntryLast(vTokens) );
-    if ( Delay < 0.0 )
+    pTokenNum = Vec_PtrEntryLast(vTokens);
+    Delay = atof( pTokenNum );
+    if ( Delay == 0.0 && pTokenNum[0] != '0' )
     {
         sprintf( p->pMan->sError, "Line %d: Delay value (%s) appears to be invalid.", Ioa_ReadGetLine(p->pMan, pToken), Vec_PtrEntryLast(vTokens) );
         return 0;
@@ -924,6 +952,80 @@ static int Ioa_ReadParseLineDelay( Ioa_ReadMod_t * p, char * pLine )
     Vec_IntPush( p->pNtk->vDelays, Number1 );
     Vec_IntPush( p->pNtk->vDelays, Number2 );
     Vec_IntPush( p->pNtk->vDelays, Aig_Float2Int(Delay) );        
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Parses the subckt line.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Ioa_ReadParseLineTimes( Ioa_ReadMod_t * p, char * pLine, int fOutput )
+{
+    Vec_Ptr_t * vTokens = p->pMan->vTokens;
+    int RetValue, Number;
+    char * pToken, * pTokenNum;
+    float Delay;
+    assert( sizeof(float) == sizeof(int) );
+    Ioa_ReadSplitIntoTokens( vTokens, pLine, '\0' );
+    pToken = Vec_PtrEntry(vTokens,0);
+    if ( fOutput )
+        assert( !strcmp(pToken, "output_required") );
+    else
+        assert( !strcmp(pToken, "input_arrival") );
+    if ( Vec_PtrSize(vTokens) != 3 )
+    {
+        sprintf( p->pMan->sError, "Line %d: Delay line does not have a valid number of parameters (3).", Ioa_ReadGetLine(p->pMan, pToken) );
+        return 0;
+    }
+    // find the delay number
+    pTokenNum = Vec_PtrEntryLast(vTokens);
+    if ( !strcmp( pTokenNum, "-inf" ) )
+        Delay = -AIG_INFINITY;
+    else if ( !strcmp( pTokenNum, "inf" ) ) 
+        Delay = AIG_INFINITY;
+    else
+        Delay = atof( pTokenNum );
+    if ( Delay == 0.0 && pTokenNum[0] != '0' )
+    {
+        sprintf( p->pMan->sError, "Line %d: Delay value (%s) appears to be invalid.", Ioa_ReadGetLine(p->pMan, pToken), Vec_PtrEntryLast(vTokens) );
+        return 0;
+    }
+    // find the PI/PO numbers
+    if ( fOutput )
+    {
+        RetValue = Ntl_ModelFindPioNumber( p->pNtk, Vec_PtrEntry(vTokens, 1), &Number );
+        if ( RetValue == 0 )
+        {
+            sprintf( p->pMan->sError, "Line %d: Cannot find signal \"%s\" among POs.", Ioa_ReadGetLine(p->pMan, pToken), Vec_PtrEntry(vTokens, 1) );
+            return 0;
+        }
+        // store the values
+        if ( p->pNtk->vRequireds == NULL )
+            p->pNtk->vRequireds = Vec_IntAlloc( 100 );
+        Vec_IntPush( p->pNtk->vRequireds, Number );
+        Vec_IntPush( p->pNtk->vRequireds, Aig_Float2Int(Delay) );        
+    }
+    else
+    {
+        RetValue = Ntl_ModelFindPioNumber( p->pNtk, Vec_PtrEntry(vTokens, 1), &Number );
+        if ( RetValue == 0 )
+        {
+            sprintf( p->pMan->sError, "Line %d: Cannot find signal \"%s\" among PIs.", Ioa_ReadGetLine(p->pMan, pToken), Vec_PtrEntry(vTokens, 1) );
+            return 0;
+        }
+        // store the values
+        if ( p->pNtk->vArrivals == NULL )
+            p->pNtk->vArrivals = Vec_IntAlloc( 100 );
+        Vec_IntPush( p->pNtk->vArrivals, Number );
+        Vec_IntPush( p->pNtk->vArrivals, Aig_Float2Int(Delay) );        
+    }
     return 1;
 }
 

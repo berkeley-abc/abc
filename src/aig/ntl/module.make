@@ -1,10 +1,11 @@
-SRC +=    src/aig/mem/ntlAig.c \
-    src/aig/mem/ntlCheck.c \
-    src/aig/mem/ntlDfs.c \
-    src/aig/mem/ntlMan.c \
-    src/aig/mem/ntlMap.c \
-    src/aig/mem/ntlObj.c \
-    src/aig/mem/ntlReadBlif.c \
-    src/aig/mem/ntlTable.c \
-    src/aig/mem/ntlWriteBlif.c
+SRC +=    src/aig/ntl/ntlAig.c \
+    src/aig/ntl/ntlCheck.c \
+    src/aig/ntl/ntlDfs.c \
+    src/aig/ntl/ntlMan.c \
+    src/aig/ntl/ntlMap.c \
+    src/aig/ntl/ntlObj.c \
+    src/aig/ntl/ntlReadBlif.c \
+    src/aig/ntl/ntlTable.c \
+    src/aig/ntl/ntlTime.c \
+    src/aig/ntl/ntlWriteBlif.c
 

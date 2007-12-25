@@ -100,7 +100,7 @@ int Ntl_ManDfs( Ntl_Man_t * p )
     // collect primary inputs
     Ntl_ModelForEachPi( pRoot, pObj, i )
     {
-        assert( Ntl_ObjNumFanouts(pObj) == 1 );
+        assert( Ntl_ObjFanoutNum(pObj) == 1 );
         pNet = Ntl_ObjFanout0(pObj);
         Vec_PtrPush( p->vCis, pNet );
         if ( pNet->nVisits )
@@ -113,7 +113,7 @@ int Ntl_ManDfs( Ntl_Man_t * p )
     // collect latch outputs
     Ntl_ModelForEachLatch( pRoot, pObj, i )
     {
-        assert( Ntl_ObjNumFanouts(pObj) == 1 );
+        assert( Ntl_ObjFanoutNum(pObj) == 1 );
         pNet = Ntl_ObjFanout0(pObj);
         Vec_PtrPush( p->vCis, pNet );
         if ( pNet->nVisits )

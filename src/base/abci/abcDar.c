@@ -1506,12 +1506,16 @@ void Abc_NtkDarTestBlif( char * pFileName )
         printf( "Abc_NtkDarTestBlif(): Reading BLIF has failed.\n" );
         return;
     }
+    Ntl_ManPrintStats( p );
+/*
     if ( !Ntl_ManInsertTest( p ) )
     {
         printf( "Abc_NtkDarTestBlif(): Tranformation of the netlist has failed.\n" );
         return;
     }
-    sprintf( Buffer, "%s_.blif", p->pName );
+*/
+//    sprintf( Buffer, "%s_.blif", p->pName );
+    sprintf( Buffer, "test_.blif", p->pName );
     Ioa_WriteBlif( p, Buffer );
     Ntl_ManFree( p );
 }

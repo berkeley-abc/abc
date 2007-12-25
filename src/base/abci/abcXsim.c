@@ -190,28 +190,25 @@ void Abc_NtkXValueSimulate( Abc_Ntk_t * pNtk, int nFrames, int fXInputs, int fXS
 
 ***********************************************************************/
 void Abc_NtkCycleInitState( Abc_Ntk_t * pNtk, int nFrames, int fVerbose )
-{
+{ 
     Abc_Obj_t * pObj;
     int i, f;
     assert( Abc_NtkIsStrash(pNtk) );
     srand( 0x12341234 );
     // initialize the values
     Abc_ObjSetXsim( Abc_AigConst1(pNtk), XVS1 );
-    Abc_NtkForEachPi( pNtk, pObj, i )
-        Abc_ObjSetXsim( pObj, Abc_XsimRand2() );
     Abc_NtkForEachLatch( pNtk, pObj, i )
-        Abc_ObjSetXsim( Abc_ObjFanout0(pObj), Abc_LatchIsInit1(pObj)? XVS1 : XVS0 );
+//        Abc_ObjSetXsim( Abc_ObjFanout0(pObj), Abc_LatchIsInit1(pObj)? XVS1 : XVS0 );
+        Abc_ObjSetXsim( Abc_ObjFanout0(pObj), Abc_LatchInit(pObj) );
     // simulate for the given number of timeframes
     for ( f = 0; f < nFrames; f++ )
     {
+        Abc_NtkForEachPi( pNtk, pObj, i )
+            Abc_ObjSetXsim( pObj, Abc_XsimRand2() );
         Abc_AigForEachAnd( pNtk, pObj, i )
             Abc_ObjSetXsim( pObj, Abc_XsimAnd(Abc_ObjGetXsimFanin0(pObj), Abc_ObjGetXsimFanin1(pObj)) );
         Abc_NtkForEachCo( pNtk, pObj, i )
             Abc_ObjSetXsim( pObj, Abc_ObjGetXsimFanin0(pObj) );
-        // assign input values
-        Abc_NtkForEachPi( pNtk, pObj, i )
-            Abc_ObjSetXsim( pObj, Abc_XsimRand2() );
-        // transfer the latch values
         Abc_NtkForEachLatch( pNtk, pObj, i )
             Abc_ObjSetXsim( Abc_ObjFanout0(pObj), Abc_ObjGetXsim(Abc_ObjFanin0(pObj)) );
     }

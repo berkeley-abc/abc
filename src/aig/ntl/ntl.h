@@ -47,13 +47,13 @@ typedef struct Ntl_Lut_t_    Ntl_Lut_t;
 
 // object types
 typedef enum { 
-    NTL_OBJ_NONE,                     // 0: non-existent object
-    NTL_OBJ_PI,                       // 1: primary input
-    NTL_OBJ_PO,                       // 2: primary output
-    NTL_OBJ_LATCH,                    // 3: latch node
-    NTL_OBJ_NODE,                     // 4: logic node
-    NTL_OBJ_BOX,                      // 5: white box or black box
-    NTL_OBJ_VOID                      // 6: unused object
+    NTL_OBJ_NONE,                      // 0: non-existent object
+    NTL_OBJ_PI,                        // 1: primary input
+    NTL_OBJ_PO,                        // 2: primary output
+    NTL_OBJ_LATCH,                     // 3: latch node
+    NTL_OBJ_NODE,                      // 4: logic node
+    NTL_OBJ_BOX,                       // 5: white box or black box
+    NTL_OBJ_VOID                       // 6: unused object
 } Ntl_Type_t;
 
 struct Ntl_Man_t_
@@ -88,6 +88,9 @@ struct Ntl_Mod_t_
     int                nEntries;       // the number of entries in the hash table
     // delay information
     Vec_Int_t *        vDelays;
+    Vec_Int_t *        vArrivals;
+    Vec_Int_t *        vRequireds;
+    float *            pDelayTable;   
 }; 
 
 struct Ntl_Obj_t_
@@ -148,8 +151,8 @@ static inline char *      Ntl_ModelPoName( Ntl_Mod_t * p, int i ) { return Ntl_M
 
 static inline int         Ntl_ModelIsBlackBox( Ntl_Mod_t * p )    { return Ntl_ModelPiNum(p) + Ntl_ModelPoNum(p) == Vec_PtrSize(p->vObjs); } 
 
-static inline int         Ntl_ObjNumFanins( Ntl_Obj_t * p )       { return p->nFanins;                          } 
-static inline int         Ntl_ObjNumFanouts( Ntl_Obj_t * p )      { return p->nFanouts;                         } 
+static inline int         Ntl_ObjFaninNum( Ntl_Obj_t * p )        { return p->nFanins;                          } 
+static inline int         Ntl_ObjFanoutNum( Ntl_Obj_t * p )       { return p->nFanouts;                         } 
 
 static inline int         Ntl_ObjIsPi( Ntl_Obj_t * p )            { return p->Type == NTL_OBJ_PI;               } 
 static inline int         Ntl_ObjIsPo( Ntl_Obj_t * p )            { return p->Type == NTL_OBJ_PO;               } 
@@ -224,8 +227,9 @@ extern void            Ntl_ModelFixNonDrivenNets( Ntl_Mod_t * pModel );
 extern int             Ntl_ManDfs( Ntl_Man_t * p );
 /*=== ntlMan.c ============================================================*/
 extern Ntl_Man_t *     Ntl_ManAlloc( char * pFileName );
-extern Ntl_Mod_t *     Ntl_ManFindModel( Ntl_Man_t * p, char * pName );
 extern void            Ntl_ManFree( Ntl_Man_t * p );
+extern Ntl_Mod_t *     Ntl_ManFindModel( Ntl_Man_t * p, char * pName );
+extern void            Ntl_ManPrintStats( Ntl_Man_t * p );
 extern Ntl_Mod_t *     Ntl_ModelAlloc( Ntl_Man_t * pMan, char * pName );
 extern void            Ntl_ModelFree( Ntl_Mod_t * p );
 /*=== ntlMap.c ============================================================*/

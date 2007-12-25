@@ -388,6 +388,7 @@ extern void            Aig_ManCheckMarkA( Aig_Man_t * p );
 extern void            Aig_ManCheckPhase( Aig_Man_t * p );
 /*=== aigDfs.c ==========================================================*/
 extern Vec_Ptr_t *     Aig_ManDfs( Aig_Man_t * p );
+extern Vec_Ptr_t *     Aig_ManDfsPio( Aig_Man_t * p );
 extern Vec_Ptr_t *     Aig_ManDfsNodes( Aig_Man_t * p, Aig_Obj_t ** ppNodes, int nNodes );
 extern Vec_Ptr_t *     Aig_ManDfsChoices( Aig_Man_t * p );
 extern Vec_Ptr_t *     Aig_ManDfsReverse( Aig_Man_t * p );
@@ -555,15 +556,16 @@ extern int             Aig_MmStepReadMemUsage( Aig_MmStep_t * p );
 /*=== aigTime.c ===========================================================*/
 extern Aig_TMan_t *    Aig_TManStart( int nPis, int nPos );
 extern void            Aig_TManStop( Aig_TMan_t * p );
-extern void            Aig_TManCreateBox( Aig_TMan_t * p, int * pPis, int nPis, int * pPos, int nPos, float * pPiTimes, float * pPoTimes );
-extern void            Aig_TManSetPiDelay( Aig_TMan_t * p, int iPi, float Delay );
-extern void            Aig_TManSetPoDelay( Aig_TMan_t * p, int iPo, float Delay );
-extern void            Aig_TManSetPiArrival( Aig_TMan_t * p, int iPi, float Delay );
-extern void            Aig_TManSetPoRequired( Aig_TMan_t * p, int iPo, float Delay );
+extern void            Aig_TManSetDelayTables( Aig_TMan_t * p, Vec_Ptr_t * vDelayTables );
+extern void            Aig_TManCreateBox( Aig_TMan_t * p, int * pIns, int nIns, int * pOuts, int nOuts, float * pDelayTable );
+extern void            Aig_TManCreateBoxFirst( Aig_TMan_t * p, int firstIn, int nIns, int firstOut, int nOuts, float * pDelayTable );
 extern void            Aig_TManIncrementTravId( Aig_TMan_t * p );
+extern void            Aig_TManInitPiArrival( Aig_TMan_t * p, int iPi, float Delay );
+extern void            Aig_TManInitPoRequired( Aig_TMan_t * p, int iPo, float Delay );
+extern void            Aig_TManSetPoArrival( Aig_TMan_t * p, int iPo, float Delay );
+extern void            Aig_TManSetPiRequired( Aig_TMan_t * p, int iPi, float Delay );
 extern float           Aig_TManGetPiArrival( Aig_TMan_t * p, int iPi );
 extern float           Aig_TManGetPoRequired( Aig_TMan_t * p, int iPo );
-
 
 #ifdef __cplusplus
 }
