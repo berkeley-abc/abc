@@ -381,6 +381,7 @@ extern void            If_ManCleanMarkV( If_Man_t * p );
 extern float           If_ManDelayMax( If_Man_t * p, int fSeq );
 extern void            If_ManComputeRequired( If_Man_t * p );
 extern float           If_ManScanMapping( If_Man_t * p );
+extern float           If_ManScanMappingDirect( If_Man_t * p );
 extern float           If_ManScanMappingSeq( If_Man_t * p );
 extern void            If_ManResetOriginalRefs( If_Man_t * p );
 extern int             If_ManCrossCut( If_Man_t * p );

@@ -30,6 +30,7 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 
 #include "aig.h"
+#include "tim.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -70,7 +71,7 @@ struct Ntl_Man_t_
     Vec_Ptr_t *        vCos;           // the primary outputs of the extracted part 
     Vec_Ptr_t *        vNodes;         // the nodes of the abstracted part
     Aig_Man_t *        pAig;           // the extracted AIG
-    Aig_TMan_t *       pManTime;       // the timing manager
+    Tim_Man_t *        pManTime;       // the timing manager
 };
 
 struct Ntl_Mod_t_
@@ -219,6 +220,8 @@ static inline void        Ntl_ObjSetFanout( Ntl_Obj_t * p, Ntl_Net_t * pNet, int
 extern int             Ntl_ManExtract( Ntl_Man_t * p );
 extern int             Ntl_ManInsert( Ntl_Man_t * p, Vec_Ptr_t * vMapping );
 extern int             Ntl_ManInsertTest( Ntl_Man_t * p );
+extern int             Ntl_ManInsertTestFpga( Ntl_Man_t * p );
+extern int             Ntl_ManInsertTestIf( Ntl_Man_t * p );
 /*=== ntlCheck.c ==========================================================*/
 extern int             Ntl_ManCheck( Ntl_Man_t * pMan );
 extern int             Ntl_ModelCheck( Ntl_Mod_t * pModel );
@@ -235,6 +238,8 @@ extern void            Ntl_ModelFree( Ntl_Mod_t * p );
 /*=== ntlMap.c ============================================================*/
 extern Vec_Ptr_t *     Ntl_MappingAlloc( int nLuts, int nVars );
 extern Vec_Ptr_t *     Ntl_MappingFromAig( Aig_Man_t * p );
+extern Vec_Ptr_t *     Ntl_MappingFpga( Aig_Man_t * p );
+extern Vec_Ptr_t *     Ntl_MappingIf( Aig_Man_t * p );
 /*=== ntlObj.c ============================================================*/
 extern Ntl_Obj_t *     Ntl_ModelCreatePi( Ntl_Mod_t * pModel );
 extern Ntl_Obj_t *     Ntl_ModelCreatePo( Ntl_Mod_t * pModel, Ntl_Net_t * pNet );

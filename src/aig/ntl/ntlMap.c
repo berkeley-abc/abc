@@ -246,7 +246,7 @@ Vec_Ptr_t * Ntl_ManFromFpga( Aig_Man_t * p, Fpga_Man_t * pMan )
     Aig_Obj_t * pObj;
     Ntl_Lut_t * pLut;
     unsigned * pTruth;
-    int i, k = 0, nLeaves, nWords, nVarsMax;
+    int i, k, nLuts, nLeaves, nWords, nVarsMax;
     // create mapping of FPGA nodes into AIG nodes
     vFpgaToAig = Vec_IntStart( Aig_ManObjNumMax(p) );
     Vec_IntFill( vFpgaToAig, Aig_ManObjNumMax(p), -1 );
@@ -254,18 +254,26 @@ Vec_Ptr_t * Ntl_ManFromFpga( Aig_Man_t * p, Fpga_Man_t * pMan )
     {
         if ( Aig_ObjIsPo(pObj) )
             continue;
+        if ( Aig_ObjIsConst1(pObj) && pObj->pData == NULL )
+            continue;
         pNode = pObj->pData;
         assert( pNode != NULL );
         Vec_IntWriteEntry( vFpgaToAig, Fpga_NodeReadNum(pNode), pObj->Id );
     }
     // create the mapping
+
+
+    // make sure nodes are in the top order!!!
+
+
     nVarsMax = Fpga_ManReadVarMax( pMan );
     nWords   = Aig_TruthWordNum( nVarsMax );
     vFpgaMap = Fpga_ManReadMapping( pMan );
     vMapping = Ntl_MappingAlloc( vFpgaMap->nSize + (int)(Aig_ManConst1(p)->nRefs > 0), nVarsMax );
+    nLuts    = 0;
     if ( Aig_ManConst1(p)->nRefs > 0 )
     {
-        pLut = Vec_PtrEntry( vMapping, k++ );
+        pLut = Vec_PtrEntry( vMapping, nLuts++ );
         pLut->Id = 0;
         pLut->nFanins = 0;
         memset( pLut->pTruth, 0xFF, 4 * nWords );
@@ -281,7 +289,7 @@ Vec_Ptr_t * Ntl_ManFromFpga( Aig_Man_t * p, Fpga_Man_t * pMan )
         nLeaves  = Fpga_CutReadLeavesNum( pCutBest ); 
         ppLeaves = Fpga_CutReadLeaves( pCutBest );
         // fill the LUT
-        pLut = Vec_PtrEntry( vMapping, k++ );
+        pLut = Vec_PtrEntry( vMapping, nLuts++ );
         pLut->Id = Vec_IntEntry( vFpgaToAig, Fpga_NodeReadNum(pNode) );
         pLut->nFanins = nLeaves;
         for ( k = 0; k < nLeaves; k++ )
@@ -290,7 +298,7 @@ Vec_Ptr_t * Ntl_ManFromFpga( Aig_Man_t * p, Fpga_Man_t * pMan )
         pTruth = Ntl_FpgaComputeTruth( pCutBest, vTruthElem, vTruthStore, vVisited, nVarsMax );
         memcpy( pLut->pTruth, pTruth, 4 * nWords );
     }
-    assert( k == Vec_PtrSize(vMapping) );
+    assert( nLuts == Vec_PtrSize(vMapping) );
     Vec_IntFree( vFpgaToAig );
     Vec_PtrFree( vVisited );
     Vec_PtrFree( vTruthElem );
@@ -309,13 +317,13 @@ Vec_Ptr_t * Ntl_ManFromFpga( Aig_Man_t * p, Fpga_Man_t * pMan )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Ntl_ManFpga( Aig_Man_t * p )
+Vec_Ptr_t * Ntl_MappingFpga( Aig_Man_t * p )
 {
     Vec_Ptr_t * vMapping;
     Fpga_Man_t * pMan;
     // print a warning about choice nodes
     if ( p->pEquivs )
-        printf( "Ntl_ManFpga(): Performing FPGA mapping with choices.\n" );
+        printf( "Ntl_MappingFpga(): Performing FPGA mapping with choices.\n" );
     // perform FPGA mapping
     pMan = Ntl_ManToFpga( p );    
     if ( pMan == NULL )
@@ -351,11 +359,12 @@ Vec_Ptr_t * Ntl_ManFpga( Aig_Man_t * p )
 ***********************************************************************/
 void Ntk_ManSetIfParsDefault( If_Par_t * pPars )
 {
-    extern void * Abc_FrameReadLibLut();
+//    extern void * Abc_FrameReadLibLut();
     // set defaults
     memset( pPars, 0, sizeof(If_Par_t) );
     // user-controlable paramters
-    pPars->nLutSize    = -1;
+//    pPars->nLutSize    = -1;
+    pPars->nLutSize    =  6;
     pPars->nCutsMax    =  8;
     pPars->nFlowIters  =  1;
     pPars->nAreaIters  =  2;
@@ -363,21 +372,22 @@ void Ntk_ManSetIfParsDefault( If_Par_t * pPars )
     pPars->fPreprocess =  1;
     pPars->fArea       =  0;
     pPars->fFancy      =  0;
-    pPars->fExpRed     =  1;
+    pPars->fExpRed     =  0;
     pPars->fLatchPaths =  0;
     pPars->fEdge       =  1;
     pPars->fCutMin     =  1;
     pPars->fSeqMap     =  0;
-    pPars->fVerbose    =  0;
+    pPars->fVerbose    =  1;
     // internal parameters
     pPars->fTruth      =  1;
     pPars->nLatches    =  0;
     pPars->fLiftLeaves =  0;
-    pPars->pLutLib     =  Abc_FrameReadLibLut();
+//    pPars->pLutLib     =  Abc_FrameReadLibLut();
+    pPars->pLutLib     =  NULL;
     pPars->pTimesArr   =  NULL; 
     pPars->pTimesArr   =  NULL;   
     pPars->pFuncCost   =  NULL;   
-
+/*
     if ( pPars->nLutSize == -1 )
     {
         if ( pPars->pLutLib == NULL )
@@ -388,6 +398,7 @@ void Ntk_ManSetIfParsDefault( If_Par_t * pPars )
         // get LUT size from the library
         pPars->nLutSize = pPars->pLutLib->LutMax;
     }
+*/
 }
 
 /**Function*************************************************************
@@ -417,16 +428,18 @@ If_Man_t * Ntk_ManToIf( Aig_Man_t * p, If_Par_t * pPars )
     vNodes = Aig_ManDfsPio( p );
     Vec_PtrForEachEntry( vNodes, pNode, i )
     {
-        if ( Aig_ObjIsConst1(pNode) )
-            Aig_ManConst1(p)->pData = If_ManConst1( pIfMan );
+        if ( Aig_ObjIsAnd(pNode) )
+            pNode->pData = (Aig_Obj_t *)If_ManCreateAnd( pIfMan, 
+                If_NotCond( (If_Obj_t *)Aig_ObjFanin0(pNode)->pData, Aig_ObjFaninC0(pNode) ), 
+                If_NotCond( (If_Obj_t *)Aig_ObjFanin1(pNode)->pData, Aig_ObjFaninC1(pNode) ) );
         else if ( Aig_ObjIsPi(pNode) )
             pNode->pData = If_ManCreateCi( pIfMan );
         else if ( Aig_ObjIsPo(pNode) )
             If_ManCreateCo( pIfMan, If_NotCond( Aig_ObjFanin0(pNode)->pData, Aig_ObjFaninC0(pNode) ) );
+        else if ( Aig_ObjIsConst1(pNode) )
+            Aig_ManConst1(p)->pData = If_ManConst1( pIfMan );
         else // add the node to the mapper
-            pNode->pData = (Aig_Obj_t *)If_ManCreateAnd( pIfMan, 
-                If_NotCond( (If_Obj_t *)Aig_ObjFanin0(pNode)->pData, Aig_ObjFaninC0(pNode) ), 
-                If_NotCond( (If_Obj_t *)Aig_ObjFanin1(pNode)->pData, Aig_ObjFaninC1(pNode) ) );
+            assert( 0 );
         // set up the choice node
 //        if ( Aig_AigNodeIsChoice( pNode ) )
 //        {
@@ -461,7 +474,7 @@ Vec_Ptr_t * Ntk_ManFromIf( Aig_Man_t * p, If_Man_t * pMan )
     Aig_Obj_t * pObj;
     Ntl_Lut_t * pLut;
     int * ppLeaves;
-    int i, k = 0, nLeaves, nWords, nVarsMax;
+    int i, k, nLuts, nLeaves, nWords, nVarsMax;
     // create mapping of If nodes into AIG nodes
     vIfToAig = Vec_IntStart( Aig_ManObjNumMax(p) );
     Vec_IntFill( vIfToAig, Aig_ManObjNumMax(p), -1 );
@@ -469,18 +482,24 @@ Vec_Ptr_t * Ntk_ManFromIf( Aig_Man_t * p, If_Man_t * pMan )
     {
         if ( Aig_ObjIsPo(pObj) )
             continue;
+        if ( Aig_ObjIsConst1(pObj) && pObj->pData == NULL )
+            continue;
+        if ( Aig_ObjIsPi(pObj) && pObj->pData == NULL )
+            continue;
         pNode = pObj->pData;
         assert( pNode != NULL );
         Vec_IntWriteEntry( vIfToAig, pNode->Id, pObj->Id );
     }
     // create the mapping
+    If_ManScanMappingDirect( pMan );
     nVarsMax = pMan->pPars->nLutSize;
     nWords   = Aig_TruthWordNum( nVarsMax );
     vIfMap   = pMan->vMapped;
     vMapping = Ntl_MappingAlloc( Vec_PtrSize(vIfMap) + (int)(Aig_ManConst1(p)->nRefs > 0), nVarsMax );
+    nLuts    = 0;
     if ( Aig_ManConst1(p)->nRefs > 0 )
     {
-        pLut = Vec_PtrEntry( vMapping, k++ );
+        pLut = Vec_PtrEntry( vMapping, nLuts++ );
         pLut->Id = 0;
         pLut->nFanins = 0;
         memset( pLut->pTruth, 0xFF, 4 * nWords );
@@ -492,7 +511,7 @@ Vec_Ptr_t * Ntk_ManFromIf( Aig_Man_t * p, If_Man_t * pMan )
         nLeaves  = If_CutLeaveNum( pCutBest ); 
         ppLeaves = If_CutLeaves( pCutBest );
         // fill the LUT
-        pLut = Vec_PtrEntry( vMapping, k++ );
+        pLut = Vec_PtrEntry( vMapping, nLuts++ );
         pLut->Id = Vec_IntEntry( vIfToAig, pNode->Id );
         pLut->nFanins = nLeaves;
         If_CutForEachLeaf( pMan, pCutBest, pLeaf, k )
@@ -500,7 +519,7 @@ Vec_Ptr_t * Ntk_ManFromIf( Aig_Man_t * p, If_Man_t * pMan )
         // compute the truth table
         memcpy( pLut->pTruth, If_CutTruth(pCutBest), 4 * nWords );
     }
-    assert( k == Vec_PtrSize(vMapping) );
+    assert( nLuts == Vec_PtrSize(vMapping) );
     Vec_IntFree( vIfToAig );
     return vMapping;
 }
@@ -516,13 +535,17 @@ Vec_Ptr_t * Ntk_ManFromIf( Aig_Man_t * p, If_Man_t * pMan )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Ntk_ManIf( Aig_Man_t * p )
+Vec_Ptr_t * Ntl_MappingIf( Aig_Man_t * p )
 {
     Vec_Ptr_t * vMapping;
     If_Par_t Pars, * pPars = &Pars;
     If_Man_t * pIfMan;
     // perform FPGA mapping
     Ntk_ManSetIfParsDefault( pPars );
+    // set the arrival times
+    pPars->pTimesArr = ALLOC( float, Aig_ManPiNum(p) );
+    memset( pPars->pTimesArr, 0, sizeof(float) * Aig_ManPiNum(p) );
+    // translate into the mapper
     pIfMan = Ntk_ManToIf( p, pPars );    
     if ( pIfMan == NULL )
         return NULL;

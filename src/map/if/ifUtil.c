@@ -290,6 +290,48 @@ float If_ManScanMapping( If_Man_t * p )
 
   Synopsis    [Computes area, references, and nodes used in the mapping.]
 
+  Description [Collects the nodes in reverse topological order in array 
+  p->vMapping.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float If_ManScanMappingDirect( If_Man_t * p )
+{
+    If_Obj_t * pObj, ** ppStore;
+    float aArea;
+    int i;
+    assert( !p->pPars->fLiftLeaves );
+    // clean all references
+    If_ManForEachObj( p, pObj, i )
+    {
+        pObj->Required = IF_FLOAT_LARGE;
+        pObj->nVisits  = pObj->nVisitsCopy;
+        pObj->nRefs    = 0;
+    }
+    // allocate place to store the nodes
+    ppStore = ALLOC( If_Obj_t *, p->nLevelMax + 1 );
+    memset( ppStore, 0, sizeof(If_Obj_t *) * (p->nLevelMax + 1) );
+    // collect nodes reachable from POs in the DFS order through the best cuts
+    aArea = 0;
+    If_ManForEachCo( p, pObj, i )
+        aArea += If_ManScanMapping_rec( p, If_ObjFanin0(pObj), ppStore );
+    // reconnect the nodes in reverse topological order
+    Vec_PtrClear( p->vMapped );
+//    for ( i = p->nLevelMax; i >= 0; i-- )
+    for ( i = 0; i <= p->nLevelMax; i++ )
+        for ( pObj = ppStore[i]; pObj; pObj = pObj->pCopy )
+            Vec_PtrPush( p->vMapped, pObj );
+    free( ppStore );
+    return aArea;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes area, references, and nodes used in the mapping.]
+
   Description []
                
   SideEffects []

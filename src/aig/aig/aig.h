@@ -50,7 +50,6 @@ typedef struct Aig_Obj_t_            Aig_Obj_t;
 typedef struct Aig_MmFixed_t_        Aig_MmFixed_t;    
 typedef struct Aig_MmFlex_t_         Aig_MmFlex_t;     
 typedef struct Aig_MmStep_t_         Aig_MmStep_t;     
-typedef struct Aig_TMan_t_           Aig_TMan_t;
 
 // object types
 typedef enum { 
@@ -137,7 +136,7 @@ struct Aig_Man_t_
     Aig_Obj_t **     pObjCopies;     // mapping of AIG nodes into FRAIG nodes
     void (*pImpFunc) (void*, void*); // implication checking precedure
     void *           pImpData;       // implication checking data
-    Aig_TMan_t *     pManTime;       // the timing manager
+    void *           pManTime;       // the timing manager
     Vec_Ptr_t *      vMapped;
     Vec_Int_t *      vFlopNums;      
     void *           pSeqModel;
@@ -552,20 +551,6 @@ extern void            Aig_MmStepStop( Aig_MmStep_t * p, int fVerbose );
 extern char *          Aig_MmStepEntryFetch( Aig_MmStep_t * p, int nBytes );
 extern void            Aig_MmStepEntryRecycle( Aig_MmStep_t * p, char * pEntry, int nBytes );
 extern int             Aig_MmStepReadMemUsage( Aig_MmStep_t * p );
-
-/*=== aigTime.c ===========================================================*/
-extern Aig_TMan_t *    Aig_TManStart( int nPis, int nPos );
-extern void            Aig_TManStop( Aig_TMan_t * p );
-extern void            Aig_TManSetDelayTables( Aig_TMan_t * p, Vec_Ptr_t * vDelayTables );
-extern void            Aig_TManCreateBox( Aig_TMan_t * p, int * pIns, int nIns, int * pOuts, int nOuts, float * pDelayTable );
-extern void            Aig_TManCreateBoxFirst( Aig_TMan_t * p, int firstIn, int nIns, int firstOut, int nOuts, float * pDelayTable );
-extern void            Aig_TManIncrementTravId( Aig_TMan_t * p );
-extern void            Aig_TManInitPiArrival( Aig_TMan_t * p, int iPi, float Delay );
-extern void            Aig_TManInitPoRequired( Aig_TMan_t * p, int iPo, float Delay );
-extern void            Aig_TManSetPoArrival( Aig_TMan_t * p, int iPo, float Delay );
-extern void            Aig_TManSetPiRequired( Aig_TMan_t * p, int iPi, float Delay );
-extern float           Aig_TManGetPiArrival( Aig_TMan_t * p, int iPi );
-extern float           Aig_TManGetPoRequired( Aig_TMan_t * p, int iPo );
 
 #ifdef __cplusplus
 }

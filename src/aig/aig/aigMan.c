@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "aig.h"
+#include "tim.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -276,7 +277,7 @@ void Aig_ManStop( Aig_Man_t * p )
     if ( p->time2 ) { PRT( "time2", p->time2 ); }
     // delete timing
     if ( p->pManTime )
-        Aig_TManStop( p->pManTime );
+        Tim_ManStop( p->pManTime );
     // delete fanout
     if ( p->pFanData ) 
         Aig_ManFanoutStop( p );
@@ -347,7 +348,7 @@ void Aig_ManPrintStats( Aig_Man_t * p )
     printf( "A = %7d. ",    Aig_ManAndNum(p) );
     if ( Aig_ManExorNum(p) )
         printf( "X = %5d. ",    Aig_ManExorNum(p) );
-//    if ( Aig_ManBufNum(p) )
+    if ( Aig_ManBufNum(p) )
         printf( "B = %5d. ",    Aig_ManBufNum(p) );
 //    printf( "Cre = %6d. ",  p->nCreated );
 //    printf( "Del = %6d. ",  p->nDeleted );

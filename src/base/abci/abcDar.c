@@ -1507,13 +1507,12 @@ void Abc_NtkDarTestBlif( char * pFileName )
         return;
     }
     Ntl_ManPrintStats( p );
-/*
-    if ( !Ntl_ManInsertTest( p ) )
+//    if ( !Ntl_ManInsertTest( p ) )
+    if ( !Ntl_ManInsertTestIf( p ) )
     {
         printf( "Abc_NtkDarTestBlif(): Tranformation of the netlist has failed.\n" );
         return;
     }
-*/
 //    sprintf( Buffer, "%s_.blif", p->pName );
     sprintf( Buffer, "test_.blif", p->pName );
     Ioa_WriteBlif( p, Buffer );

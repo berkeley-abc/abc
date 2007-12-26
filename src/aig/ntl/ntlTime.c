@@ -76,32 +76,32 @@ float * Ntl_ManCreateDelayTable( Vec_Int_t * vDelays, int nIns, int nOuts )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_TMan_t * Ntl_ManCreateTiming( Ntl_Man_t * p )
+Tim_Man_t * Ntl_ManCreateTiming( Ntl_Man_t * p )
 {
-    Aig_TMan_t * pMan;
+    Tim_Man_t * pMan;
     Vec_Ptr_t * vDelayTables;
     Ntl_Mod_t * pRoot, * pModel;
     Ntl_Obj_t * pObj;
     int i, curPi, curPo, Entry;
     assert( p->pAig != NULL );
     // start the timing manager
-    pMan = Aig_TManStart( Aig_ManPiNum(p->pAig), Aig_ManPoNum(p->pAig) );
+    pMan = Tim_ManStart( Aig_ManPiNum(p->pAig), Aig_ManPoNum(p->pAig) );
     // add arrival time info for the true PIs
     pRoot = Vec_PtrEntry( p->vModels, 0 );
     Ntl_ModelForEachPi( pRoot, pObj, i )
-        Aig_TManInitPiArrival( pMan, i, 0.0 );
+        Tim_ManInitPiArrival( pMan, i, 0.0 );
     // unpack the data in the arrival times
     if ( pRoot->vArrivals )
         Vec_IntForEachEntry( pRoot->vArrivals, Entry, i )
-            Aig_TManInitPiArrival( pMan, Entry, Vec_IntEntry(pRoot->vArrivals,++i) );
+            Tim_ManInitPiArrival( pMan, Entry, Vec_IntEntry(pRoot->vArrivals,++i) );
     // add the required time into for the true POs
     pRoot = Vec_PtrEntry( p->vModels, 0 );
     Ntl_ModelForEachPo( pRoot, pObj, i )
-        Aig_TManInitPoRequired( pMan, i, AIG_INFINITY );
+        Tim_ManInitPoRequired( pMan, i, AIG_INFINITY );
     // unpack the data in the required times
     if ( pRoot->vRequireds )
         Vec_IntForEachEntry( pRoot->vRequireds, Entry, i )
-            Aig_TManInitPoRequired( pMan, Entry, Vec_IntEntry(pRoot->vRequireds,++i) );
+            Tim_ManInitPoRequired( pMan, Entry, Vec_IntEntry(pRoot->vRequireds,++i) );
     // derive timing tables
     vDelayTables = Vec_PtrAlloc( Vec_PtrSize(p->vModels) );
     Ntl_ManForEachModel( p, pModel, i )
@@ -110,13 +110,13 @@ Aig_TMan_t * Ntl_ManCreateTiming( Ntl_Man_t * p )
             pModel->pDelayTable = Ntl_ManCreateDelayTable( pModel->vDelays, Ntl_ModelPiNum(pModel), Ntl_ModelPoNum(pModel) );
         Vec_PtrPush( vDelayTables, pModel->pDelayTable );
     }
-    Aig_TManSetDelayTables( pMan, vDelayTables );
+    Tim_ManSetDelayTables( pMan, vDelayTables );
     // set up the boxes
     curPi = Ntl_ModelPiNum(pRoot);
     curPo = Ntl_ModelPoNum(pRoot);
     Ntl_ManForEachBox( p, pObj, i )
     {
-        Aig_TManCreateBoxFirst( pMan, curPo, Ntl_ObjFanoutNum(pObj), curPi, Ntl_ObjFaninNum(pObj), pObj->pImplem->pDelayTable );
+        Tim_ManCreateBoxFirst( pMan, curPo, Ntl_ObjFanoutNum(pObj), curPi, Ntl_ObjFaninNum(pObj), pObj->pImplem->pDelayTable );
         curPo += Ntl_ObjFanoutNum(pObj);
         curPi += Ntl_ObjFaninNum(pObj);
     }

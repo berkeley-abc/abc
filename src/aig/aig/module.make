@@ -17,7 +17,6 @@ SRC +=    src/aig/aig/aigCheck.c \
     src/aig/aig/aigSeq.c \
     src/aig/aig/aigShow.c \
     src/aig/aig/aigTable.c \
-    src/aig/aig/aigTime.c \
     src/aig/aig/aigTiming.c \
     src/aig/aig/aigTruth.c \
     src/aig/aig/aigTsim.c \

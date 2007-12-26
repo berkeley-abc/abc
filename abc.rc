@@ -25,7 +25,6 @@ alias b balance
 alias cl cleanup
 alias clp collapse
 alias esd ext_seq_dcs
-alias el eliminate
 alias f fraig
 alias fs fraig_sweep
 alias fsto fraig_store
@@ -45,17 +44,15 @@ alias psy print_symm
 alias pun print_unate
 alias q quit
 alias r read
-alias ra read_aiger
 alias r3 retime -M 3
 alias r3f retime -M 3 -f
 alias r3b retime -M 3 -b
-alias r1 retime -M 1
-alias r2 retime -M 2
 alias ren renode
 alias rh read_hie
 alias rl read_blif
 alias rb read_bench
 alias ret retime
+alias dret dretime
 alias rp read_pla
 alias rt read_truth
 alias rv read_verilog
@@ -71,9 +68,7 @@ alias re restructure
 alias rez restructure -z
 alias rs resub
 alias rsz resub -z
-alias rt3 "retime -M 3 -f"
 alias sa set autoexec ps
-alias ua set autoexec
 alias scl scleanup
 alias sif if -s
 alias so source -x
@@ -94,22 +89,18 @@ alias wp write_pla
 alias wv write_verilog
 
 # standard scripts
-alias share       "b; multi; fx; b"
 alias resyn       "b; rw; rwz; b; rwz; b"
 alias resyn2      "b; rw; rf; b; rw; rwz; b; rfz; rwz; b"
 alias resyn2a     "b; rw; b; rw; rwz; b; rwz; b"
 alias resyn3      "b; rs; rs -K 6; b; rsz; rsz -K 6; b; rsz -K 5; b"
 alias compress    "b -l; rw -l; rwz -l; b -l; rwz -l; b -l"
-
 alias compress2   "b -l; rw -l; rf -l; b -l; rw -l; rwz -l; b -l; rfz -l; rwz -l; b -l"
 alias choice      "fraig_store; resyn; fraig_store; resyn2; fraig_store; fraig_restore"
 alias choice2     "fraig_store; balance; fraig_store; resyn; fraig_store; resyn2; fraig_store; resyn2; fraig_store; fraig_restore"
 alias rwsat       "st; rw -l; b -l; rw -l; rf -l"
 alias rwsat2      "st; rw -l; b -l; rw -l; rf -l; fraig; rw -l; b -l; rw -l; rf -l"
 alias shake       "st; ps; sat -C 5000; rw -l; ps; sat -C 5000; b -l; rf -l; ps; sat -C 5000; rfz -l; ps; sat -C 5000; rwz -l; ps; sat -C 5000; rfz -l; ps; sat -C 5000"
-
-alias snap fraig_store
-alias unsnap fraig_restore
+alias share       "st; multi -m; fx; resyn2"
 
 # resubstitution scripts for the IWLS paper
 alias src_rw      "st; rw -l; rwz -l; rwz -l" 
@@ -117,74 +108,21 @@ alias src_rs      "st; rs -K 6 -N 2 -l; rs -K 9 -N 2 -l; rs -K 12 -N 2 -l"
 alias src_rws     "st; rw -l; rs -K 6 -N 2 -l; rwz -l; rs -K 9 -N 2 -l; rwz -l; rs -K 12 -N 2 -l" 
 alias resyn2rs    "b; rs -K 6; rw; rs -K 6 -N 2; rf; rs -K 8; b; rs -K 8 -N 2; rw; rs -K 10; rwz; rs -K 10 -N 2; b; rs -K 12; rfz; rs -K 12 -N 2; rwz; b"
 alias compress2rs "b -l; rs -K 6 -l; rw -l; rs -K 6 -N 2 -l; rf -l; rs -K 8 -l; b -l; rs -K 8 -N 2 -l; rw -l; rs -K 10 -l; rwz -l; rs -K 10 -N 2 -l; b -l; rs -K 12 -l; rfz -l; rs -K 12 -N 2 -l; rwz -l; b -l"
-alias c2 "ua; compress2rs; sa"
-alias ic "indcut -v"
-alias lp "lutpack"
-alias c "ua; compress; sa"
-alias c1 "ua; compress;b -l; rs -K 6 -l; rw -l; rs -K 6 -N 2 -l; rf -l; rs -K 8 -l; b -l; sa" 
 
 # experimental implementation of don't-cares
 alias resyn2rsdc    "b; rs -K 6 -F 2; rw; rs -K 6 -N 2 -F 2; rf; rs -K 8 -F 2; b; rs -K 8 -N 2 -F 2; rw; rs -K 10 -F 2; rwz; rs -K 10 -N 2 -F 2; b; rs -K 12 -F 2; rfz; rs -K 12 -N 2 -F 2; rwz; b"
 alias compress2rsdc "b -l; rs -K 6 -F 2 -l; rw -l; rs -K 6 -N 2 -F 2 -l; rf -l; rs -K 8 -F 2 -l; b -l; rs -K 8 -N 2 -F 2 -l; rw -l; rs -K 10 -F 2 -l; rwz -l; rs -K 10 -N 2 -F 2 -l; b -l; rs -K 12 -F 2 -l; rfz -l; rs -K 12 -N 2 -F 2 -l; rwz -l; b -l"
 
-# minimizing for FF literals
-alias fflitmin    "compress2rs; ren; sop; ps -f"
-
 # temporaries
-#alias t        "rvl th/lib.v; rvv th/t2.v"
-#alias t        "so c/pure_sat/test.c"
-#alias t        "r c/14/csat_998.bench; st; ps"
-#alias t0        "r res.blif; aig; mfs"  
-#alias t        "r res2.blif; aig; mfs"  
-
-#alias tt       "r a/quip_opt/nut_001_opt.blif"
-#alias ttb      "wh a/quip_opt/nut_001_opt.blif 1.blif"
-#alias ttv      "wh a/quip_opt/nut_001_opt.blif 1.v"
-
 alias reach    "st; ps; compress2; ps; qrel; ps; compress2; ps; qreach -v; ps"
-
-alias qs1      "qvar -I 96 -u; ps; qbf -P 96" 
-alias qs2      "qvar -I 96 -u; qvar -I 97 -u; ps; qbf -P 96" 
-alias qs3      "qvar -I 96 -u; qvar -I 97 -u; qvar -I 98 -u; ps; qbf -P 96" 
-alias qs4      "qvar -I 96 -u; qvar -I 97 -u; qvar -I 98 -u; qvar -I 99 -u; ps; qbf -P 96" 
-alias qs5      "qvar -I 96 -u; qvar -I 97 -u; qvar -I 98 -u; qvar -I 99 -u; qvar -I 100 -u; ps; qbf -P 96" 
-alias qs6      "qvar -I 96 -u; qvar -I 97 -u; qvar -I 98 -u; qvar -I 99 -u; qvar -I 100 -u; qvar -I 101 -u; ps; qbf -P 96" 
-alias qs7      "qvar -I 96 -u; qvar -I 97 -u; qvar -I 98 -u; qvar -I 99 -u; qvar -I 100 -u; qvar -I 101 -u; qvar -I 102 -u; ps; qbf -P 96" 
-alias qs8      "qvar -I 96 -u; qvar -I 97 -u; qvar -I 98 -u; qvar -I 99 -u; qvar -I 100 -u; qvar -I 101 -u; qvar -I 102 -u; qvar -I 103 -u; ps; qbf -P 96" 
-alias qs9      "qvar -I 96 -u; qvar -I 97 -u; qvar -I 98 -u; qvar -I 99 -u; qvar -I 100 -u; qvar -I 101 -u; qvar -I 102 -u; qvar -I 103 -u; qvar -I 104 -u; ps; qbf -P 96" 
-alias qsA      "qvar -I 96 -u; qvar -I 97 -u; qvar -I 98 -u; qvar -I 99 -u; qvar -I 100 -u; qvar -I 101 -u; qvar -I 102 -u; qvar -I 103 -u; qvar -I 104 -u; qvar -I 105 -u; ps; qbf -P 96" 
-
 alias chnew    "st; haig_start; resyn2; haig_use"
 alias chnewrs  "st; haig_start; resyn2rs; haig_use"
-
 alias stdsd    "r test/6in.blif; st; ps; u; bdd; dsd -g; st; ps"
 alias trec     "rec_start; r c.blif; st; rec_add; rec_use"
 alias trec4    "rec_start -K 4; r i10.blif; st; rec_add; rec_use"
-alias trec5    "rec_start -K 5; r i10.blif; st; rec_add; rec_use"
-alias trec6    "rec_start -K 6; r i10.blif; st; rec_add; rec_use"
-alias trec7    "rec_start -K 7; r i10.blif; st; rec_add; rec_use"
-alias trec8    "rec_start -K 8; r i10.blif; st; rec_add; rec_use"
-alias trec10   "rec_start -K 10; r i10.blif; st; rec_add; rec_use"
-alias trec12   "rec_start -K 12; r i10.blif; st; rec_add; rec_use"
+alias bmc2     "frames -i -F 10; orpos; iprove"
 
-#alias tsh      "r i10_if.blif; st; ps; u; sw; st; ps; cec"
-alias tst4     "r i10_if4.blif; st; ps; r x/rec4_.blif; st; rec_start; r i10_if4.blif; st -r; ps; cec"
-alias tst4n    "r i10_if4.blif; st; ps; r 5npn/all_functions.aig; st; rec_start; r i10_if4.blif; st -r; ps; cec"
-alias tst6     "r i10_if6.blif; st; ps; r x/rec6_16_.blif; st; rec_start; r i10_if6.blif; st -r; ps; cec"
-
-#alias t        "r c.blif; st; wc c.cnf"
-#alias t        "r test/dsdmap6.blif; lutpack -vw; cec"
-#alias t        "r i10_if4.blif; lp"
-#alias t1        "r pj1_if4.blif; lp"
-#alias t2        "r pj1_if6.blif; lp"
-#alias t        "r pj/pj1.blif; st; dfraig -v"
-#alias t        "r c/16/csat_2.bench; st; dfraig -C 100 -v -r"
-#alias t        "r c/16/csat_147.bench; st; dfraig -C 10 -v -r"
-#alias t        "r i10.blif; st; ps; csweep; ps; cec"
-#alias t        "r c/5/csat_777.bench; st; csweep -v"
-#alias t        "r i10.blif; st; drw -v"
-alias t        "r c.blif; st; drf"
-
-
-
+alias t0       "r test/mc1.blif; st; test"
+alias t1       "r s27mc2.blif; st; test"
+alias t2       "r i/intel_001.aig; ps; indcut -v"
 
