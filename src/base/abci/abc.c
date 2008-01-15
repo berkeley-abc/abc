@@ -166,6 +166,7 @@ static int Abc_CommandSeq            ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandUnseq          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRetime         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDRetime        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFlowRetime     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSeqFpga        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSeqMap         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSeqSweep       ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -339,6 +340,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 //    Cmd_CommandAdd( pAbc, "Sequential",   "pipe",          Abc_CommandPipe,             1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "retime",        Abc_CommandRetime,           1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "dretime",       Abc_CommandDRetime,          1 );
+    Cmd_CommandAdd( pAbc, "Sequential",   "fretime",       Abc_CommandFlowRetime,       1 );
 //    Cmd_CommandAdd( pAbc, "Sequential",   "sfpga",         Abc_CommandSeqFpga,          1 );
 //    Cmd_CommandAdd( pAbc, "Sequential",   "smap",          Abc_CommandSeqMap,           1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "ssweep",        Abc_CommandSeqSweep,         1 );
@@ -6292,7 +6294,7 @@ usage:
 int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
-    Abc_Ntk_t * pNtk;//, * pNtkRes;
+    Abc_Ntk_t * pNtk, * pNtkRes;
     int c;
     int fBmc;
     int nFrames;
@@ -6309,7 +6311,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName );
     extern Abc_Ntk_t * Abc_NtkFilter( Abc_Ntk_t * pNtk );
 //    extern Abc_Ntk_t * Abc_NtkDarRetime( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose );
-    extern Abc_Ntk_t * Abc_NtkPcmTest( Abc_Ntk_t * pNtk, int fVerbose );
+//    extern Abc_Ntk_t * Abc_NtkPcmTest( Abc_Ntk_t * pNtk, int fVerbose );
     extern Abc_NtkDarHaigRecord( Abc_Ntk_t * pNtk );
     extern void Abc_NtkDarTestBlif( char * pFileName );
 
@@ -6471,8 +6473,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 //    pNtkRes = Abc_NtkDar( pNtk );
 //    pNtkRes = Abc_NtkDarRetime( pNtk, nLevels, 1 );
-//    pNtkRes = Abc_NtkPcmTest( pNtk, fVerbose );
-    pNtkRes = NULL;
+    pNtkRes = Abc_NtkPcmTest( pNtk, fVerbose );
+//    pNtkRes = NULL;
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
@@ -6481,6 +6483,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
 */
+
 //    Abc_NtkDarHaigRecord( pNtk );
 //    Abc_NtkDarClau( pNtk, nFrames, nLevels, fBmc, fVerbose, fVeryVerbose );
 
@@ -10441,6 +10444,7 @@ int Abc_CommandInit( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else if ( fRandom )
     {
+        srand( time(NULL) );
         Abc_NtkForEachLatch( pNtk, pObj, i )
             if ( rand() & 1 )
                 Abc_LatchSetInit1( pObj );
@@ -11064,6 +11068,133 @@ usage:
     fprintf( pErr, "\t         retimes the current network forward\n" );
     fprintf( pErr, "\t-S num : the max number of retiming steps to perform [default = %d]\n", nStepsMax );
     fprintf( pErr, "\t-a     : enables a fast algorithm [default = %s]\n", fFastAlgo? "yes": "no" );
+    fprintf( pErr, "\t-v     : enables verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandFlowRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c, nMaxIters;
+    int fForward;
+    int fBackward;
+    int fVerbose;
+    int fComputeInit;
+    int maxDelay;
+
+    extern Abc_Ntk_t* Abc_FlowRetime_MinReg( Abc_Ntk_t * pNtk, int fVerbose, int fComputeInit,
+                                             int fForward, int fBackward, int nMaxIters,
+                                             int maxDelay);
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fForward  =  0;
+    fBackward =  0;
+    fComputeInit =  1;
+    fVerbose  =  0;
+    nMaxIters = 999;
+    maxDelay  = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "MDfbivh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-M\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nMaxIters = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nMaxIters < 0 ) 
+                goto usage;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-D\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            maxDelay = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( maxDelay < 0 ) 
+                goto usage;
+            break;
+        case 'f':
+            fForward ^= 1;
+            break;
+        case 'i':
+            fComputeInit ^= 1;
+            break;
+        case 'b':
+            fBackward ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( fForward && fBackward )
+    {
+        fprintf( pErr, "Only one switch \"-f\" or \"-b\" can be selected at a time.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkLatchNum(pNtk) )
+    {
+        fprintf( pErr, "The network has no latches. Retiming is not performed.\n" );
+        return 0;
+    }
+
+    if ( Abc_NtkGetChoiceNum(pNtk) )
+      {
+        fprintf( pErr, "Retiming with choice nodes is not implemented.\n" );
+        return 0;
+      }
+
+    // perform the retiming
+    pNtkRes = Abc_FlowRetime_MinReg( pNtk, fVerbose, fComputeInit, fForward, fBackward, nMaxIters, maxDelay );
+
+    if (pNtkRes != pNtk)
+      Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: fretime [-M num] [-D num] [-fbvih]\n" );
+    fprintf( pErr, "\t         retimes the current network using flow-based algorithm\n" );
+    fprintf( pErr, "\t-M num : the maximum number of iterations [default = %d]\n", nMaxIters );
+    fprintf( pErr, "\t-D num : the maximum delay [default = none]\n" );
+    fprintf( pErr, "\t-i     : enables init state computation [default = %s]\n", fComputeInit? "yes": "no" );
+    fprintf( pErr, "\t-f     : enables forward-only retiming  [default = %s]\n", fForward? "yes": "no" );
+    fprintf( pErr, "\t-b     : enables backward-only retiming [default = %s]\n", fBackward? "yes": "no" );
     fprintf( pErr, "\t-v     : enables verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;

@@ -14,7 +14,7 @@ MODULES := src/base/abc src/base/abci src/base/cmd \
 	src/misc/extra src/misc/mvc src/misc/st src/misc/util \
 	src/misc/espresso src/misc/nm src/misc/vec src/misc/hash \
 	src/opt/cut src/opt/dec src/opt/fxu src/opt/rwr \
-	src/opt/sim src/opt/ret src/opt/res src/opt/lpk \
+	src/opt/sim src/opt/ret src/opt/res src/opt/lpk src/opt/fret \
 	src/sat/bsat src/sat/csat src/sat/msat src/sat/fraig \
 	src/aig/ivy src/aig/hop src/aig/rwt src/aig/deco \
 	src/aig/mem src/aig/dar src/aig/fra src/aig/cnf \

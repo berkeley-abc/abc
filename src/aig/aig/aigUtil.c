@@ -669,6 +669,10 @@ void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName )
         printf( "Aig_ManDumpBlif(): AIG manager does not have POs.\n" );
         return;
     }
+    // check if constant is used
+    Aig_ManForEachPo( p, pObj, i )
+        if ( Aig_ObjIsConst1(Aig_ObjFanin0(pObj)) )
+            pConst1 = Aig_ManConst1(p);
     // collect nodes in the DFS order
     vNodes = Aig_ManDfs( p );
     // assign IDs to objects
@@ -698,12 +702,14 @@ void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName )
     // write latches
     if ( Aig_ManRegNum(p) )
     {
-    fprintf( pFile, "\n" );
-    Aig_ManForEachLiLoSeq( p, pObjLi, pObjLo, i )
-        fprintf( pFile, ".latch n%0*d n%0*d 0\n", nDigits, pObjLi->iData, nDigits, pObjLo->iData );
-    fprintf( pFile, "\n" );
+        fprintf( pFile, "\n" );
+        Aig_ManForEachLiLoSeq( p, pObjLi, pObjLo, i )
+            fprintf( pFile, ".latch n%0*d n%0*d 0\n", nDigits, pObjLi->iData, nDigits, pObjLo->iData );
+        fprintf( pFile, "\n" );
     } 
     // write nodes
+    if ( pConst1 )
+        fprintf( pFile, ".names n%0*d\n 1\n", nDigits, pConst1->iData );
     Vec_PtrForEachEntry( vNodes, pObj, i )
     {
         fprintf( pFile, ".names n%0*d n%0*d n%0*d\n", 
@@ -719,11 +725,7 @@ void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName )
             nDigits, Aig_ObjFanin0(pObj)->iData, 
             nDigits, pObj->iData );
         fprintf( pFile, "%d 1\n", !Aig_ObjFaninC0(pObj) );
-        if ( Aig_ObjIsConst1(Aig_ObjFanin0(pObj)) )
-            pConst1 = Aig_ManConst1(p);
     }
-    if ( pConst1 )
-        fprintf( pFile, ".names n%0*d\n 1\n", nDigits, pConst1->iData );
     fprintf( pFile, ".end\n\n" );
     fclose( pFile );
     Vec_PtrFree( vNodes );
@@ -751,6 +753,10 @@ void Aig_ManDumpVerilog( Aig_Man_t * p, char * pFileName )
         printf( "Aig_ManDumpBlif(): AIG manager does not have POs.\n" );
         return;
     }
+    // check if constant is used
+    Aig_ManForEachPo( p, pObj, i )
+        if ( Aig_ObjIsConst1(Aig_ObjFanin0(pObj)) )
+            pConst1 = Aig_ManConst1(p);
     // collect nodes in the DFS order
     vNodes = Aig_ManDfs( p );
     // assign IDs to objects
@@ -795,7 +801,11 @@ void Aig_ManDumpVerilog( Aig_Man_t * p, char * pFileName )
     // write nodes
     Vec_PtrForEachEntry( vNodes, pObj, i )
         fprintf( pFile, "wire n%0*d;\n", nDigits, pObj->iData );
+    if ( pConst1 )
+        fprintf( pFile, "wire n%0*d;\n", nDigits, pConst1->iData );
     // write nodes
+    if ( pConst1 )
+        fprintf( pFile, "assign n%0*d = 1\'b1;\n", nDigits, pConst1->iData );
     Vec_PtrForEachEntry( vNodes, pObj, i )
     {
         fprintf( pFile, "assign n%0*d = %sn%0*d & %sn%0*d;\n", 
@@ -810,8 +820,6 @@ void Aig_ManDumpVerilog( Aig_Man_t * p, char * pFileName )
         fprintf( pFile, "assign n%0*d = %sn%0*d;\n", 
             nDigits, pObj->iData,
             !Aig_ObjFaninC0(pObj) ? " " : "~", nDigits, Aig_ObjFanin0(pObj)->iData );
-        if ( Aig_ObjIsConst1(Aig_ObjFanin0(pObj)) )
-            pConst1 = Aig_ManConst1(p);
     }
     if ( Aig_ManRegNum(p) )
     {
@@ -820,12 +828,8 @@ void Aig_ManDumpVerilog( Aig_Man_t * p, char * pFileName )
             fprintf( pFile, "assign n%0*d = %sn%0*d;\n", 
                 nDigits, pObjLi->iData,
                 !Aig_ObjFaninC0(pObjLi) ? " " : "~", nDigits, Aig_ObjFanin0(pObjLi)->iData );
-            if ( Aig_ObjIsConst1(Aig_ObjFanin0(pObjLi)) )
-                pConst1 = Aig_ManConst1(p);
         }
     }
-    if ( pConst1 )
-        fprintf( pFile, "assign n%0*d = 1\'b1;\n", nDigits, pConst1->iData );
 
     // write initial state
     if ( Aig_ManRegNum(p) )
