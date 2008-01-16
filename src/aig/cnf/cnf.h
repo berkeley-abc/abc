@@ -133,6 +133,7 @@ extern Cnf_Man_t *     Cnf_ManStart();
 extern void            Cnf_ManStop( Cnf_Man_t * p );
 extern Vec_Int_t *     Cnf_DataCollectPiSatNums( Cnf_Dat_t * pCnf, Aig_Man_t * p );
 extern void            Cnf_DataFree( Cnf_Dat_t * p );
+extern void            Cnf_DataLift( Cnf_Dat_t * p, int nVarsPlus );
 extern void            Cnf_DataWriteIntoFile( Cnf_Dat_t * p, char * pFileName, int fReadable );
 void *                 Cnf_DataWriteIntoSolver( Cnf_Dat_t * p, int nFrames, int fInit );
 /*=== cnfMap.c ========================================================*/

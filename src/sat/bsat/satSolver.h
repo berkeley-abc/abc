@@ -71,6 +71,7 @@ static inline int  lit_var  (lit l)        { return l >> 1; }
 static inline int  lit_sign (lit l)        { return l & 1; }
 static inline int  lit_print(lit l)        { return lit_sign(l)? -lit_var(l)-1 : lit_var(l)+1; }
 static inline lit  lit_read (int s)        { return s > 0 ? toLit(s-1) : lit_neg(toLit(-s-1)); }
+static inline int  lit_check(lit l, int n) { return l >= 0 && lit_var(l) < n;                  }
 
 
 //=================================================================================================

@@ -1170,6 +1170,10 @@ SOURCE=.\src\sat\bsat\satInter.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\bsat\satInterA.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\bsat\satMem.c
 # End Source File
 # Begin Source File
@@ -2867,6 +2871,10 @@ SOURCE=.\src\aig\aig\aigFrames.c
 # Begin Source File
 
 SOURCE=.\src\aig\aig\aigHaig.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\aig\aigInter.c
 # End Source File
 # Begin Source File
 

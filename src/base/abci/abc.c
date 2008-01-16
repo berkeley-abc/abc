@@ -104,6 +104,7 @@ static int Abc_CommandEspresso       ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandGen            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandXyz            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDouble         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandInter          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTest           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandQuaVar         ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -281,6 +282,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "gen",           Abc_CommandGen,              0 );
 //    Cmd_CommandAdd( pAbc, "Various",      "xyz",           Abc_CommandXyz,              1 );
     Cmd_CommandAdd( pAbc, "Various",      "double",        Abc_CommandDouble,           1 );
+    Cmd_CommandAdd( pAbc, "Various",      "inter",         Abc_CommandInter,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "test",          Abc_CommandTest,             0 );
 
     Cmd_CommandAdd( pAbc, "Various",      "qvar",          Abc_CommandQuaVar,           1 );
@@ -6209,6 +6211,77 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandInter( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes, * pNtk1, * pNtk2;
+    char ** pArgvNew;
+    int nArgcNew;
+    int c, fDelete1, fDelete2;
+    int fVerbose;
+    extern Abc_Ntk_t * Abc_NtkInter( Abc_Ntk_t * pNtkOn, Abc_Ntk_t * pNtkOff, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fVerbose   =  0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    pArgvNew = argv + globalUtilOptind;
+    nArgcNew = argc - globalUtilOptind;
+    if ( !Abc_NtkPrepareTwoNtks( pErr, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )
+        return 1;
+    if ( nArgcNew == 0 )
+    {
+        printf( "Deriving new circuit structure for the current network.\n" );
+        Abc_ObjXorFaninC( Abc_NtkPo(pNtk2,0), 0 );
+    }
+    pNtkRes = Abc_NtkInter( pNtk1, pNtk2, fVerbose );
+    if ( fDelete1 ) Abc_NtkDelete( pNtk1 );
+    if ( fDelete2 ) Abc_NtkDelete( pNtk2 );
+
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Command has failed.\n" );
+        return 0;
+    }
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: inter [-vh] <fileOnSet> <fileOffSet>\n" );
+    fprintf( pErr, "\t         derives interpolant of two networks (onset and offset)\n" );
+    fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandDouble( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
@@ -6311,7 +6384,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName );
     extern Abc_Ntk_t * Abc_NtkFilter( Abc_Ntk_t * pNtk );
 //    extern Abc_Ntk_t * Abc_NtkDarRetime( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose );
-    extern Abc_Ntk_t * Abc_NtkPcmTest( Abc_Ntk_t * pNtk, int fVerbose );
+//    extern Abc_Ntk_t * Abc_NtkPcmTest( Abc_Ntk_t * pNtk, int fVerbose );
     extern Abc_NtkDarHaigRecord( Abc_Ntk_t * pNtk );
     extern void Abc_NtkDarTestBlif( char * pFileName );
 
@@ -6464,7 +6537,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
 */
-
+/*
     if ( Abc_NtkIsStrash(pNtk) )
     {
         fprintf( stdout, "Currently only works for logic circuits.\n" );
@@ -6482,7 +6555,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-
+*/
 
 //    Abc_NtkDarHaigRecord( pNtk );
 //    Abc_NtkDarClau( pNtk, nFrames, nLevels, fBmc, fVerbose, fVeryVerbose );

@@ -1482,6 +1482,54 @@ Abc_Ntk_t * Abc_NtkDarEnlarge( Abc_Ntk_t * pNtk, int nFrames, int fVerbose )
     return pNtkAig;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Interplates two networks.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkInter( Abc_Ntk_t * pNtkOn, Abc_Ntk_t * pNtkOff, int fVerbose )
+{
+    extern Aig_Man_t * Aig_ManInter( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fVerbose );
+    Abc_Ntk_t * pNtkAig;
+    Aig_Man_t * pManOn, * pManOff, * pManAig;
+    if ( Abc_NtkCoNum(pNtkOn) != 1 || Abc_NtkCoNum(pNtkOff) != 1 )
+    {
+        printf( "Currently works only for single output networks.\n" );
+        return NULL;
+    }
+    if ( Abc_NtkCiNum(pNtkOn) != Abc_NtkCiNum(pNtkOff) )
+    {
+        printf( "The number of PIs should be the same.\n" );
+        return NULL;
+    }
+    // create internal AIGs
+    pManOn = Abc_NtkToDar( pNtkOn, 0 );
+    if ( pManOn == NULL )
+        return NULL;
+    pManOff = Abc_NtkToDar( pNtkOff, 0 );
+    if ( pManOff == NULL )
+        return NULL;
+    // derive the interpolant
+    pManAig = Aig_ManInter( pManOn, pManOff, fVerbose );
+    if ( pManAig == NULL )
+    {
+        printf( "Interpolant computation failed.\n" );
+        return NULL;
+    }
+    Aig_ManStop( pManOn );
+    Aig_ManStop( pManOff );
+    // create logic network
+    pNtkAig = Abc_NtkFromDar( pNtkOn, pManAig );
+    Aig_ManStop( pManAig );
+    return pNtkAig;
+}
+
 
 #include "ntl.h"
 

@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [pr.h]
+  FileName    [satStore.h]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -18,11 +18,13 @@
 
 ***********************************************************************/
  
-#ifndef __PR_H__
-#define __PR_H__
+#ifndef __SAT_STORE_H__
+#define __SAT_STORE_H__
+
+#include "satSolver.h"
 
 /*
-    The trace of SAT solving contains the original clause of the problem
+    The trace of SAT solving contains the original clauses of the problem
     along with the learned clauses derived during SAT solving.
     The first line of the resulting file contains 3 numbers instead of 2:
     c <num_vars> <num_all_clauses> <num_root_clauses>
@@ -54,7 +56,18 @@ extern "C" {
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
 
+/*
 typedef unsigned lit;
+// variable/literal conversions (taken from MiniSat)
+static inline lit   toLit    (int v)        { return v + v;  }
+static inline lit   toLitCond(int v, int c) { return v + v + (c != 0); }
+static inline lit   lit_neg  (lit l)        { return l ^ 1;  }
+static inline int   lit_var  (lit l)        { return l >> 1; }
+static inline int   lit_sign (lit l)        { return l & 1;  }
+static inline int   lit_print(lit l)        { return lit_sign(l)? -lit_var(l)-1 : lit_var(l)+1; }
+static inline lit   lit_read (int s)        { return s > 0 ? toLit(s-1) : lit_neg(toLit(-s-1)); }
+static inline int   lit_check(lit l, int n) { return l >= 0 && lit_var(l) < n;                  }
+*/
 
 typedef struct Sto_Cls_t_ Sto_Cls_t;
 struct Sto_Cls_t_
@@ -87,16 +100,6 @@ struct Sto_Man_t_
     char *          pChunkLast;   // the last memory chunk
 };
 
-// variable/literal conversions (taken from MiniSat)
-static inline lit   toLit    (int v)        { return v + v;  }
-static inline lit   toLitCond(int v, int c) { return v + v + (c != 0); }
-static inline lit   lit_neg  (lit l)        { return l ^ 1;  }
-static inline int   lit_var  (lit l)        { return l >> 1; }
-static inline int   lit_sign (lit l)        { return l & 1;  }
-static inline int   lit_print(lit l)        { return lit_sign(l)? -lit_var(l)-1 : lit_var(l)+1; }
-static inline lit   lit_read (int s)        { return s > 0 ? toLit(s-1) : lit_neg(toLit(-s-1)); }
-static inline int   lit_check(lit l, int n) { return l >= 0 && lit_var(l) < n;                  }
-
 // iterators through the clauses
 #define Sto_ManForEachClause( p, pCls )      for( pCls = p->pHead; pCls; pCls = pCls->pNext )
 #define Sto_ManForEachClauseRoot( p, pCls )  for( pCls = p->pHead; pCls && pCls->fRoot; pCls = pCls->pNext )
@@ -121,9 +124,15 @@ extern Sto_Man_t *  Sto_ManLoadClauses( char * pFileName );
 
 /*=== satInter.c ==========================================================*/
 typedef struct Int_Man_t_ Int_Man_t;
-extern Int_Man_t *  Int_ManAlloc( int nVarsAlloc );
+extern Int_Man_t *  Int_ManAlloc();
 extern void         Int_ManFree( Int_Man_t * p );
 extern int          Int_ManInterpolate( Int_Man_t * p, Sto_Man_t * pCnf, int fVerbose, unsigned ** ppResult );
+
+/*=== satInterA.c ==========================================================*/
+typedef struct Inta_Man_t_ Inta_Man_t;
+extern Inta_Man_t * Inta_ManAlloc();
+extern void         Inta_ManFree( Inta_Man_t * p );
+extern void *       Inta_ManInterpolate( Inta_Man_t * p, Sto_Man_t * pCnf, void * vVarsAB, int fVerbose );
 
 #ifdef __cplusplus
 }

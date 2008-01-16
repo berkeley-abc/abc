@@ -100,7 +100,7 @@ Res_Man_t * Res_ManAlloc( Res_Par_t * pPars )
     p->pPars = pPars;
     p->pWin = Res_WinAlloc();
     p->pSim = Res_SimAlloc( pPars->nSimWords );
-    p->pMan = Int_ManAlloc( 512 );
+    p->pMan = Int_ManAlloc();
     p->vMem = Vec_IntAlloc( 0 );
     p->vResubs  = Vec_VecStart( pPars->nCands );
     p->vResubsW = Vec_VecStart( pPars->nCands );
