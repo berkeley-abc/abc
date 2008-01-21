@@ -125,15 +125,118 @@ Binary Format Definition
 
 */
 
-static unsigned Ioa_ObjMakeLit( int Var, int fCompl )                 { return (Var << 1) | fCompl;    }
-static unsigned Ioa_ObjAigerNum( Aig_Obj_t * pObj )                   { return (unsigned)pObj->pData;  }
-static void     Ioa_ObjSetAigerNum( Aig_Obj_t * pObj, unsigned Num )  { pObj->pData = (void *)Num;     }
-
-int      Ioa_WriteAigerEncode( char * pBuffer, int Pos, unsigned x );
+static int      Ioa_ObjMakeLit( int Var, int fCompl )                 { return (Var << 1) | fCompl;  }
+static int      Ioa_ObjAigerNum( Aig_Obj_t * pObj )                   { return pObj->iData;          }
+static void     Ioa_ObjSetAigerNum( Aig_Obj_t * pObj, unsigned Num )  { pObj->iData = Num;           }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Adds one unsigned AIG edge to the output buffer.]
+
+  Description [This procedure is a slightly modified version of Armin Biere's
+  procedure "void encode (FILE * file, unsigned x)" ]
+  
+  SideEffects [Returns the current writing position.]
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ioa_WriteAigerEncode( char * pBuffer, int Pos, unsigned x )
+{
+    unsigned char ch;
+    while (x & ~0x7f)
+    {
+        ch = (x & 0x7f) | 0x80;
+//        putc (ch, file);
+        pBuffer[Pos++] = ch;
+        x >>= 7;
+    }
+    ch = x;
+//    putc (ch, file);
+    pBuffer[Pos++] = ch;
+    return Pos;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Create the array of literals to be written.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Ioa_WriteAigerLiterals( Aig_Man_t * pMan )
+{
+    Vec_Int_t * vLits;
+    Aig_Obj_t * pObj, * pDriver;
+    int i;
+    vLits = Vec_IntAlloc( Aig_ManPoNum(pMan) );
+    Aig_ManForEachLiSeq( pMan, pObj, i )
+    {
+        pDriver = Aig_ObjFanin0(pObj);
+        Vec_IntPush( vLits, Ioa_ObjMakeLit( Ioa_ObjAigerNum(pDriver), Aig_ObjFaninC0(pObj) ^ (Ioa_ObjAigerNum(pDriver) == 0) ) );
+    }
+    Aig_ManForEachPoSeq( pMan, pObj, i )
+    {
+        pDriver = Aig_ObjFanin0(pObj);
+        Vec_IntPush( vLits, Ioa_ObjMakeLit( Ioa_ObjAigerNum(pDriver), Aig_ObjFaninC0(pObj) ^ (Ioa_ObjAigerNum(pDriver) == 0) ) );
+    }
+    return vLits;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates the binary encoded array of literals.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Str_t * Ioa_WriteEncodeLiterals( Vec_Int_t * vLits )
+{
+    Vec_Str_t * vBinary;
+    int Pos = 0, Lit, LitPrev, Diff, i;
+    vBinary = Vec_StrAlloc( 2 * Vec_IntSize(vLits) );
+    LitPrev = Vec_IntEntry( vLits, 0 );
+    Pos = Ioa_WriteAigerEncode( Vec_StrArray(vBinary), Pos, LitPrev ); 
+    Vec_IntForEachEntryStart( vLits, Lit, i, 1 )
+    {
+        Diff = Lit - LitPrev;
+        Diff = (Lit < LitPrev)? -Diff : Diff;
+        Diff = (Diff << 1) | (int)(Lit < LitPrev);
+        Pos = Ioa_WriteAigerEncode( Vec_StrArray(vBinary), Pos, Diff );
+        LitPrev = Lit;
+        if ( Pos + 10 > vBinary->nCap )
+            Vec_StrGrow( vBinary, vBinary->nCap+1 );
+    }
+    vBinary->nSize = Pos;
+/*
+    // verify
+    {
+        extern Vec_Int_t * Ioa_WriteDecodeLiterals( char ** ppPos, int nEntries );
+        char * pPos = Vec_StrArray( vBinary );
+        Vec_Int_t * vTemp = Ioa_WriteDecodeLiterals( &pPos, Vec_IntSize(vLits) );
+        for ( i = 0; i < Vec_IntSize(vLits); i++ )
+        {
+            int Entry1 = Vec_IntEntry(vLits,i);
+            int Entry2 = Vec_IntEntry(vTemp,i);
+            assert( Entry1 == Entry2 );
+        }
+        Vec_IntFree( vTemp );
+    }
+*/
+    return vBinary;
+}
 
 /**Function*************************************************************
 
@@ -146,9 +249,9 @@ int      Ioa_WriteAigerEncode( char * pBuffer, int Pos, unsigned x );
   SeeAlso     []
 
 ***********************************************************************/
-void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols )
+void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int fCompact )
 {
-    Bar_Progress_t * pProgress;
+//    Bar_Progress_t * pProgress;
     FILE * pFile;
     Aig_Obj_t * pObj, * pDriver;
     int i, nNodes, Pos, nBufferSize;
@@ -180,7 +283,8 @@ void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols )
         Ioa_ObjSetAigerNum( pObj, nNodes++ );
 
     // write the header "M I L O A" where M = I + L + A
-    fprintf( pFile, "aig %u %u %u %u %u\n", 
+    fprintf( pFile, "aig%s %u %u %u %u %u\n", 
+        fCompact? "2" : "",
         Aig_ManPiNum(pMan) + Aig_ManNodeNum(pMan), 
         Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan),
         Aig_ManRegNum(pMan),
@@ -191,34 +295,45 @@ void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols )
     // because, in the AIGER format, literal 0/1 is represented as number 0/1
     // while, in ABC, constant 1 node has number 0 and so literal 0/1 will be 1/0
 
-    // write latch drivers
-    Aig_ManForEachLiSeq( pMan, pObj, i )
+    if ( !fCompact ) 
     {
-        pDriver = Aig_ObjFanin0(pObj);
-        fprintf( pFile, "%u\n", Ioa_ObjMakeLit( Ioa_ObjAigerNum(pDriver), Aig_ObjFaninC0(pObj) ^ (Ioa_ObjAigerNum(pDriver) == 0) ) );
-    }
+        // write latch drivers
+        Aig_ManForEachLiSeq( pMan, pObj, i )
+        {
+            pDriver = Aig_ObjFanin0(pObj);
+            fprintf( pFile, "%u\n", Ioa_ObjMakeLit( Ioa_ObjAigerNum(pDriver), Aig_ObjFaninC0(pObj) ^ (Ioa_ObjAigerNum(pDriver) == 0) ) );
+        }
 
-    // write PO drivers
-    Aig_ManForEachPoSeq( pMan, pObj, i )
+        // write PO drivers
+        Aig_ManForEachPoSeq( pMan, pObj, i )
+        {
+            pDriver = Aig_ObjFanin0(pObj);
+            fprintf( pFile, "%u\n", Ioa_ObjMakeLit( Ioa_ObjAigerNum(pDriver), Aig_ObjFaninC0(pObj) ^ (Ioa_ObjAigerNum(pDriver) == 0) ) );
+        }
+    }
+    else
     {
-        pDriver = Aig_ObjFanin0(pObj);
-        fprintf( pFile, "%u\n", Ioa_ObjMakeLit( Ioa_ObjAigerNum(pDriver), Aig_ObjFaninC0(pObj) ^ (Ioa_ObjAigerNum(pDriver) == 0) ) );
+        Vec_Int_t * vLits = Ioa_WriteAigerLiterals( pMan );
+        Vec_Str_t * vBinary = Ioa_WriteEncodeLiterals( vLits );
+        fwrite( Vec_StrArray(vBinary), 1, Vec_StrSize(vBinary), pFile );
+        Vec_StrFree( vBinary );
+        Vec_IntFree( vLits );
     }
 
     // write the nodes into the buffer
     Pos = 0;
     nBufferSize = 6 * Aig_ManNodeNum(pMan) + 100; // skeptically assuming 3 chars per one AIG edge
-    pBuffer = ALLOC( char, nBufferSize );
-    pProgress = Bar_ProgressStart( stdout, Aig_ManObjNumMax(pMan) );
+    pBuffer = ALLOC( unsigned char, nBufferSize );
+//    pProgress = Bar_ProgressStart( stdout, Aig_ManObjNumMax(pMan) );
     Aig_ManForEachNode( pMan, pObj, i )
     {
-        Bar_ProgressUpdate( pProgress, i, NULL );
+//        Bar_ProgressUpdate( pProgress, i, NULL );
         uLit  = Ioa_ObjMakeLit( Ioa_ObjAigerNum(pObj), 0 );
         uLit0 = Ioa_ObjMakeLit( Ioa_ObjAigerNum(Aig_ObjFanin0(pObj)), Aig_ObjFaninC0(pObj) );
         uLit1 = Ioa_ObjMakeLit( Ioa_ObjAigerNum(Aig_ObjFanin1(pObj)), Aig_ObjFaninC1(pObj) );
         assert( uLit0 < uLit1 );
-        Pos = Ioa_WriteAigerEncode( pBuffer, Pos, uLit  - uLit1 );
-        Pos = Ioa_WriteAigerEncode( pBuffer, Pos, uLit1 - uLit0 );
+        Pos = Ioa_WriteAigerEncode( pBuffer, Pos, (unsigned)(uLit  - uLit1) );
+        Pos = Ioa_WriteAigerEncode( pBuffer, Pos, (unsigned)(uLit1 - uLit0) );
         if ( Pos > nBufferSize - 10 )
         {
             printf( "Ioa_WriteAiger(): AIGER generation has failed because the allocated buffer is too small.\n" );
@@ -227,7 +342,7 @@ void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols )
         }
     }
     assert( Pos < nBufferSize );
-    Bar_ProgressStop( pProgress );
+//    Bar_ProgressStop( pProgress );
 
     // write the buffer
     fwrite( pBuffer, 1, Pos, pFile );
@@ -251,39 +366,10 @@ void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols )
     fprintf( pFile, "c\n" );
     if ( pMan->pName )
         fprintf( pFile, ".model %s\n", pMan->pName );
-    fprintf( pFile, "This file was produced by the AIG package in ABC on %s\n", Ioa_TimeStamp() );
+    fprintf( pFile, "This file was produced by the AIG package on %s\n", Ioa_TimeStamp() );
     fprintf( pFile, "For information about AIGER format, refer to %s\n", "http://fmv.jku.at/aiger" );
     fclose( pFile );
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Adds one unsigned AIG edge to the output buffer.]
-
-  Description [This procedure is a slightly modified version of Armin Biere's
-  procedure "void encode (FILE * file, unsigned x)" ]
-  
-  SideEffects [Returns the current writing position.]
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ioa_WriteAigerEncode( char * pBuffer, int Pos, unsigned x )
-{
-    unsigned char ch;
-    while (x & ~0x7f)
-    {
-        ch = (x & 0x7f) | 0x80;
-//        putc (ch, file);
-        pBuffer[Pos++] = ch;
-        x >>= 7;
-    }
-    ch = x;
-//    putc (ch, file);
-    pBuffer[Pos++] = ch;
-    return Pos;
-}
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

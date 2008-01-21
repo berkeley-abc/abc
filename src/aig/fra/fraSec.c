@@ -276,7 +276,7 @@ PRT( "Time", clock() - clkTotal );
         printf( "Networks are UNDECIDED.   " );
 PRT( "Time", clock() - clkTotal );
         sprintf( pFileName, "sm%03d.aig", Counter++ );
-        Ioa_WriteAiger( pNew, pFileName, 0 );
+        Ioa_WriteAiger( pNew, pFileName, 0, 0 );
         printf( "The unsolved reduced miter is written into file \"%s\".\n", pFileName );
     }
     Aig_ManStop( pNew );

@@ -68,8 +68,8 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
 //    p->pMemSet     = Mem_FixedStart( p->nSetBytes );
     // report expected memory usage
     if ( p->pPars->fVerbose )
-        printf( "Memory (bytes): Truth = %4d. Cut = %4d. Obj = %4d. Set = %4d.\n", 
-            4 * p->nTruthWords, p->nCutBytes, p->nObjBytes, p->nSetBytes );
+        printf( "K = %d. Memory (bytes): Truth = %4d. Cut = %4d. Obj = %4d. Set = %4d.\n", 
+            p->pPars->nLutSize, 4 * p->nTruthWords, p->nCutBytes, p->nObjBytes, p->nSetBytes );
     // room for temporary truth tables
     p->puTemp[0] = p->pPars->fTruth? ALLOC( unsigned, 4 * p->nTruthWords ) : NULL;
     p->puTemp[1] = p->puTemp[0] + p->nTruthWords;

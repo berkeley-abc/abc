@@ -6384,7 +6384,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName );
     extern Abc_Ntk_t * Abc_NtkFilter( Abc_Ntk_t * pNtk );
 //    extern Abc_Ntk_t * Abc_NtkDarRetime( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose );
-//    extern Abc_Ntk_t * Abc_NtkPcmTest( Abc_Ntk_t * pNtk, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkPcmTest( Abc_Ntk_t * pNtk, int fVerbose );
     extern Abc_NtkDarHaigRecord( Abc_Ntk_t * pNtk );
     extern void Abc_NtkDarTestBlif( char * pFileName );
 
@@ -6543,6 +6543,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( stdout, "Currently only works for logic circuits.\n" );
         return 0;
     }
+*/
 
 //    pNtkRes = Abc_NtkDar( pNtk );
 //    pNtkRes = Abc_NtkDarRetime( pNtk, nLevels, 1 );
@@ -6555,7 +6556,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-*/
+
 
 //    Abc_NtkDarHaigRecord( pNtk );
 //    Abc_NtkDarClau( pNtk, nFrames, nLevels, fBmc, fVerbose, fVeryVerbose );
@@ -10363,8 +10364,8 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // disable cut-expansion if edge-based heuristics are selected
-    if ( pPars->fEdge )
-        pPars->fExpRed = 0;
+//    if ( pPars->fEdge )
+//        pPars->fExpRed = 0;
 
     if ( !Abc_NtkIsStrash(pNtk) )
     {

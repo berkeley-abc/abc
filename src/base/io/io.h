@@ -87,7 +87,7 @@ extern Abc_Ntk_t *        Io_ReadPla( char * pFileName, int fCheck );
 /*=== abcReadVerilog.c ========================================================*/
 extern Abc_Ntk_t *        Io_ReadVerilog( char * pFileName, int fCheck );
 /*=== abcWriteAiger.c =========================================================*/
-extern void               Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols );
+extern void               Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int fCompact );
 /*=== abcWriteBaf.c ===========================================================*/
 extern void               Io_WriteBaf( Abc_Ntk_t * pNtk, char * pFileName );
 /*=== abcWriteBlif.c ==========================================================*/

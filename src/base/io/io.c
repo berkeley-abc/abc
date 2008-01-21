@@ -1174,16 +1174,21 @@ int IoCommandWriteAiger( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     char * pFileName;
     int fWriteSymbols;
+    int fCompact;
     int c;
 
-    fWriteSymbols = 1;
+    fCompact      = 1;
+    fWriteSymbols = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "sh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "sch" ) ) != EOF )
     {
         switch ( c )
         {
             case 's':
                 fWriteSymbols ^= 1;
+                break;
+            case 'c':
+                fCompact ^= 1;
                 break;
             case 'h':
                 goto usage;
@@ -1196,23 +1201,19 @@ int IoCommandWriteAiger( Abc_Frame_t * pAbc, int argc, char **argv )
     // get the output file name
     pFileName = argv[globalUtilOptind];
     // call the corresponding file writer
-    if ( fWriteSymbols )
-        Io_Write( pAbc->pNtkCur, pFileName, IO_FILE_AIGER );
-    else
+    if ( !Abc_NtkIsStrash(pAbc->pNtkCur) )
     {
-        if ( !Abc_NtkIsStrash(pAbc->pNtkCur) )
-        {
-            fprintf( stdout, "Writing this format is only possible for structurally hashed AIGs.\n" );
-            return 1;
-        }
-        Io_WriteAiger( pAbc->pNtkCur, pFileName, 0 );
+        fprintf( stdout, "Writing this format is only possible for structurally hashed AIGs.\n" );
+        return 1;
     }
+    Io_WriteAiger( pAbc->pNtkCur, pFileName, fWriteSymbols, fCompact );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: write_aiger [-sh] <file>\n" );
+    fprintf( pAbc->Err, "usage: write_aiger [-sch] <file>\n" );
     fprintf( pAbc->Err, "\t         write the network in the AIGER format (http://fmv.jku.at/aiger)\n" );
     fprintf( pAbc->Err, "\t-s     : toggle saving I/O names [default = %s]\n", fWriteSymbols? "yes" : "no" );
+    fprintf( pAbc->Err, "\t-c     : toggle writing more compactly [default = %s]\n", fCompact? "yes" : "no" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write (extension .aig)\n" );
     return 1;

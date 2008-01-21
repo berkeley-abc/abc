@@ -25,11 +25,66 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-unsigned Ioa_ReadAigerDecode( char ** ppPos );
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Extracts one unsigned AIG edge from the input buffer.]
+
+  Description [This procedure is a slightly modified version of Armin Biere's
+  procedure "unsigned decode (FILE * file)". ]
+  
+  SideEffects [Updates the current reading position.]
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned Ioa_ReadAigerDecode( char ** ppPos )
+{
+    unsigned x = 0, i = 0;
+    unsigned char ch;
+
+//    while ((ch = getnoneofch (file)) & 0x80)
+    while ((ch = *(*ppPos)++) & 0x80)
+        x |= (ch & 0x7f) << (7 * i++);
+
+    return x | (ch << (7 * i));
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Decodes the encoded array of literals.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Ioa_WriteDecodeLiterals( char ** ppPos, int nEntries )
+{
+    Vec_Int_t * vLits;
+    int Lit, LitPrev, Diff, i;
+    vLits = Vec_IntAlloc( nEntries );
+    LitPrev = Ioa_ReadAigerDecode( ppPos );
+    Vec_IntPush( vLits, LitPrev );
+    for ( i = 1; i < nEntries; i++ )
+    {
+//        Diff = Lit - LitPrev;
+//        Diff = (Lit < LitPrev)? -Diff : Diff;
+//        Diff = ((2 * Diff) << 1) | (int)(Lit < LitPrev);
+        Diff = Ioa_ReadAigerDecode( ppPos );
+        Diff = (Diff & 1)? -(Diff >> 1) : Diff >> 1;
+        Lit  = Diff + LitPrev;
+        Vec_IntPush( vLits, Lit );
+        LitPrev = Lit;
+    }
+    return vLits;
+}
+
 
 /**Function*************************************************************
 
@@ -44,8 +99,9 @@ unsigned Ioa_ReadAigerDecode( char ** ppPos );
 ***********************************************************************/
 Aig_Man_t * Ioa_ReadAiger( char * pFileName, int fCheck )
 {
-    Bar_Progress_t * pProgress;
+//    Bar_Progress_t * pProgress;
     FILE * pFile;
+    Vec_Int_t * vLits = NULL;
     Vec_Ptr_t * vNodes, * vDrivers;//, * vTerms;
     Aig_Obj_t * pObj, * pNode0, * pNode1;
     Aig_Man_t * pManNew;
@@ -61,7 +117,7 @@ Aig_Man_t * Ioa_ReadAiger( char * pFileName, int fCheck )
     fclose( pFile );
 
     // check if the input file format is correct
-    if ( strncmp(pContents, "aig", 3) != 0 )
+    if ( strncmp(pContents, "aig", 3) != 0 || (pContents[3] != ' ' && pContents[3] != '2') )
     {
         fprintf( stdout, "Wrong input file format.\n" );
         return NULL;
@@ -127,21 +183,27 @@ Aig_Man_t * Ioa_ReadAiger( char * pFileName, int fCheck )
 //        Aig_ObjAssignName( pObj, Aig_ObjNameDummy("_L", i, nDigits), NULL );
 //        printf( "Creating latch %s with input %d and output %d.\n", Aig_ObjName(pObj), pNode0->Id, pNode1->Id );
     } 
-*/
-    
+*/ 
+
     // remember the beginning of latch/PO literals
     pDrivers = pCur;
-
-    // scroll to the beginning of the binary data
-    for ( i = 0; i < nLatches + nOutputs; )
-        if ( *pCur++ == '\n' )
-            i++;
+    if ( pContents[3] == ' ' ) // standard AIGER
+    {
+        // scroll to the beginning of the binary data
+        for ( i = 0; i < nLatches + nOutputs; )
+            if ( *pCur++ == '\n' )
+                i++;
+    }
+    else // modified AIGER
+    {
+        vLits = Ioa_WriteDecodeLiterals( &pCur, nLatches + nOutputs );
+    }
 
     // create the AND gates
-    pProgress = Bar_ProgressStart( stdout, nAnds );
+//    pProgress = Bar_ProgressStart( stdout, nAnds );
     for ( i = 0; i < nAnds; i++ )
     {
-        Bar_ProgressUpdate( pProgress, i, NULL );
+//        Bar_ProgressUpdate( pProgress, i, NULL );
         uLit = ((i + 1 + nInputs + nLatches) << 1);
         uLit1 = uLit  - Ioa_ReadAigerDecode( &pCur );
         uLit0 = uLit1 - Ioa_ReadAigerDecode( &pCur );
@@ -151,32 +213,49 @@ Aig_Man_t * Ioa_ReadAiger( char * pFileName, int fCheck )
         assert( Vec_PtrSize(vNodes) == i + 1 + nInputs + nLatches );
         Vec_PtrPush( vNodes, Aig_And(pManNew, pNode0, pNode1) );
     }
-    Bar_ProgressStop( pProgress );
+//    Bar_ProgressStop( pProgress );
 
     // remember the place where symbols begin
     pSymbols = pCur;
 
     // read the latch driver literals
     vDrivers = Vec_PtrAlloc( nLatches + nOutputs );
-    pCur = pDrivers;
-//    Aig_ManForEachLatchInput( pManNew, pObj, i )
-    for ( i = 0; i < nLatches; i++ )
+    if ( pContents[3] == ' ' ) // standard AIGER
     {
-        uLit0 = atoi( pCur );  while ( *pCur++ != '\n' );
-        pNode0 = Aig_NotCond( Vec_PtrEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );//^ (uLit0 < 2) );
-//        Aig_ObjAddFanin( pObj, pNode0 );
-        Vec_PtrPush( vDrivers, pNode0 );
-    }
-    // read the PO driver literals
-//    Aig_ManForEachPo( pManNew, pObj, i )
-    for ( i = 0; i < nOutputs; i++ )
-    {
-        uLit0 = atoi( pCur );  while ( *pCur++ != '\n' );
-        pNode0 = Aig_NotCond( Vec_PtrEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );//^ (uLit0 < 2) );
-//        Aig_ObjAddFanin( pObj, pNode0 );
-        Vec_PtrPush( vDrivers, pNode0 );
-    }
+        pCur = pDrivers;
+        for ( i = 0; i < nLatches; i++ )
+        {
+            uLit0 = atoi( pCur );  while ( *pCur++ != '\n' );
+            pNode0 = Aig_NotCond( Vec_PtrEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );//^ (uLit0 < 2) );
+            Vec_PtrPush( vDrivers, pNode0 );
+        }
+        // read the PO driver literals
+        for ( i = 0; i < nOutputs; i++ )
+        {
+            uLit0 = atoi( pCur );  while ( *pCur++ != '\n' );
+            pNode0 = Aig_NotCond( Vec_PtrEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );//^ (uLit0 < 2) );
+            Vec_PtrPush( vDrivers, pNode0 );
+        }
 
+    }
+    else
+    {
+        // read the latch driver literals
+        for ( i = 0; i < nLatches; i++ )
+        {
+            uLit0 = Vec_IntEntry( vLits, i );
+            pNode0 = Aig_NotCond( Vec_PtrEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );//^ (uLit0 < 2) );
+            Vec_PtrPush( vDrivers, pNode0 );
+        }
+        // read the PO driver literals
+        for ( i = 0; i < nOutputs; i++ )
+        {
+            uLit0 = Vec_IntEntry( vLits, i+nLatches );
+            pNode0 = Aig_NotCond( Vec_PtrEntry(vNodes, uLit0 >> 1), (uLit0 & 1) );//^ (uLit0 < 2) );
+            Vec_PtrPush( vDrivers, pNode0 );
+        }
+        Vec_IntFree( vLits );
+    }
 
     // create the POs
     for ( i = 0; i < nOutputs; i++ )
@@ -277,31 +356,6 @@ Aig_Man_t * Ioa_ReadAiger( char * pFileName, int fCheck )
         return NULL;
     }
     return pManNew;
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    [Extracts one unsigned AIG edge from the input buffer.]
-
-  Description [This procedure is a slightly modified version of Armin Biere's
-  procedure "unsigned decode (FILE * file)". ]
-  
-  SideEffects [Updates the current reading position.]
-
-  SeeAlso     []
-
-***********************************************************************/
-unsigned Ioa_ReadAigerDecode( char ** ppPos )
-{
-    unsigned x = 0, i = 0;
-    unsigned char ch;
-
-//    while ((ch = getnoneofch (file)) & 0x80)
-    while ((ch = *(*ppPos)++) & 0x80)
-        x |= (ch & 0x7f) << (7 * i++);
-
-    return x | (ch << (7 * i));
 }
 
 

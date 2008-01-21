@@ -36,7 +36,7 @@ extern "C" {
 #include <time.h>
 
 #include "vec.h"
-#include "bar.h"
+//#include "bar.h"
 #include "aig.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -62,7 +62,7 @@ extern "C" {
 /*=== ioaReadAig.c ========================================================*/
 extern Aig_Man_t *    Ioa_ReadAiger( char * pFileName, int fCheck );
 /*=== ioaWriteAig.c =======================================================*/
-extern void           Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols );
+extern void           Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int fCompact );
 /*=== ioaUtil.c =======================================================*/
 extern int            Ioa_FileSize( char * pFileName );
 extern char *         Ioa_FileNameGeneric( char * FileName );

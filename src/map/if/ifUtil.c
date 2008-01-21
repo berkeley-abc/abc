@@ -212,7 +212,7 @@ void If_ManComputeRequired( If_Man_t * p )
     Vec_PtrForEachEntry( p->vMapped, pObj, i )
         If_CutPropagateRequired( p, If_ObjCutBest(pObj), pObj->Required );
 }
-
+ 
 /**Function*************************************************************
 
   Synopsis    [Computes area, references, and nodes used in the mapping.]

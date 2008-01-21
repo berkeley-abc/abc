@@ -326,8 +326,13 @@ static inline float      If_CutLutArea( If_Man_t * p, If_Cut_t * pCut )      { r
 extern int             If_ManPerformMapping( If_Man_t * p );
 extern int             If_ManPerformMappingComb( If_Man_t * p );
 /*=== ifCut.c ============================================================*/
+extern int             If_CutFilter( If_Set_t * pCutSet, If_Cut_t * pCut );
+extern void            If_CutSort( If_Man_t * p, If_Set_t * pCutSet, If_Cut_t * pCut );
+extern int             If_CutMerge( If_Cut_t * pCut0, If_Cut_t * pCut1, If_Cut_t * pCut );
 extern void            If_CutPrint( If_Man_t * p, If_Cut_t * pCut );
 extern void            If_CutPrintTiming( If_Man_t * p, If_Cut_t * pCut );
+extern void            If_CutLift( If_Cut_t * pCut );
+extern void            If_CutCopy( If_Man_t * p, If_Cut_t * pCutDest, If_Cut_t * pCutSrc );
 extern float           If_CutAreaFlow( If_Man_t * p, If_Cut_t * pCut );
 extern float           If_CutEdgeFlow( If_Man_t * p, If_Cut_t * pCut );
 extern float           If_CutAverageRefs( If_Man_t * p, If_Cut_t * pCut );
@@ -339,12 +344,6 @@ extern float           If_CutEdgeDeref( If_Man_t * p, If_Cut_t * pCut );
 extern float           If_CutEdgeRef( If_Man_t * p, If_Cut_t * pCut );
 extern float           If_CutEdgeDerefed( If_Man_t * p, If_Cut_t * pCut );
 extern float           If_CutEdgeRefed( If_Man_t * p, If_Cut_t * pCut );
-extern int             If_CutFilter( If_Set_t * pCutSet, If_Cut_t * pCut );
-extern void            If_CutSort( If_Man_t * p, If_Set_t * pCutSet, If_Cut_t * pCut );
-extern int             If_CutMerge( If_Cut_t * pCut0, If_Cut_t * pCut1, If_Cut_t * pCut );
-extern void            If_CutLift( If_Cut_t * pCut );
-extern void            If_CutCopy( If_Man_t * p, If_Cut_t * pCutDest, If_Cut_t * pCutSrc );
-extern void            If_ManSortCuts( If_Man_t * p, int Mode );
 /*=== ifMan.c =============================================================*/
 extern If_Man_t *      If_ManStart( If_Par_t * pPars );
 extern void            If_ManRestart( If_Man_t * p );

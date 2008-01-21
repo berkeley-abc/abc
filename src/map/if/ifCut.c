@@ -311,21 +311,21 @@ int If_CutMerge( If_Cut_t * pCut0, If_Cut_t * pCut1, If_Cut_t * pCut )
   SeeAlso     []
 
 ***********************************************************************/
-int If_CutCompareDelay( If_Cut_t ** ppC0, If_Cut_t ** ppC1 )
+int If_CutCompareDelay( If_Man_t * p, If_Cut_t ** ppC0, If_Cut_t ** ppC1 )
 {
     If_Cut_t * pC0 = *ppC0;
     If_Cut_t * pC1 = *ppC1;
-    if ( pC0->Delay < pC1->Delay - 0.0001 )
+    if ( pC0->Delay < pC1->Delay - p->fEpsilon )
         return -1;
-    if ( pC0->Delay > pC1->Delay + 0.0001 )
+    if ( pC0->Delay > pC1->Delay + p->fEpsilon )
         return 1;
     if ( pC0->nLeaves < pC1->nLeaves )
         return -1;
     if ( pC0->nLeaves > pC1->nLeaves )
         return 1;
-    if ( pC0->Area < pC1->Area - 0.0001 )
+    if ( pC0->Area < pC1->Area - p->fEpsilon )
         return -1;
-    if ( pC0->Area > pC1->Area + 0.0001 )
+    if ( pC0->Area > pC1->Area + p->fEpsilon )
         return 1;
     return 0;
 }
@@ -341,17 +341,17 @@ int If_CutCompareDelay( If_Cut_t ** ppC0, If_Cut_t ** ppC1 )
   SeeAlso     []
 
 ***********************************************************************/
-int If_CutCompareDelayOld( If_Cut_t ** ppC0, If_Cut_t ** ppC1 )
+int If_CutCompareDelayOld( If_Man_t * p, If_Cut_t ** ppC0, If_Cut_t ** ppC1 )
 {
     If_Cut_t * pC0 = *ppC0;
     If_Cut_t * pC1 = *ppC1;
-    if ( pC0->Delay < pC1->Delay - 0.0001 )
+    if ( pC0->Delay < pC1->Delay - p->fEpsilon )
         return -1;
-    if ( pC0->Delay > pC1->Delay + 0.0001 )
+    if ( pC0->Delay > pC1->Delay + p->fEpsilon )
         return 1;
-    if ( pC0->Area < pC1->Area - 0.0001 )
+    if ( pC0->Area < pC1->Area - p->fEpsilon )
         return -1;
-    if ( pC0->Area > pC1->Area + 0.0001 )
+    if ( pC0->Area > pC1->Area + p->fEpsilon )
         return 1;
     if ( pC0->nLeaves < pC1->nLeaves )
         return -1;
@@ -371,13 +371,13 @@ int If_CutCompareDelayOld( If_Cut_t ** ppC0, If_Cut_t ** ppC1 )
   SeeAlso     []
 
 ***********************************************************************/
-int If_CutCompareArea( If_Cut_t ** ppC0, If_Cut_t ** ppC1 )
+int If_CutCompareArea( If_Man_t * p, If_Cut_t ** ppC0, If_Cut_t ** ppC1 )
 {
     If_Cut_t * pC0 = *ppC0;
     If_Cut_t * pC1 = *ppC1;
-    if ( pC0->Area < pC1->Area - 0.0001 )
+    if ( pC0->Area < pC1->Area - p->fEpsilon )
         return -1;
-    if ( pC0->Area > pC1->Area + 0.0001 )
+    if ( pC0->Area > pC1->Area + p->fEpsilon )
         return 1;
     if ( pC0->AveRefs > pC1->AveRefs )
         return -1;
@@ -387,9 +387,9 @@ int If_CutCompareArea( If_Cut_t ** ppC0, If_Cut_t ** ppC1 )
         return -1;
     if ( pC0->nLeaves > pC1->nLeaves )
         return 1;
-    if ( pC0->Delay < pC1->Delay - 0.0001 )
+    if ( pC0->Delay < pC1->Delay - p->fEpsilon )
         return -1;
-    if ( pC0->Delay > pC1->Delay + 0.0001 )
+    if ( pC0->Delay > pC1->Delay + p->fEpsilon )
         return 1;
     return 0;
 }
@@ -433,13 +433,13 @@ static inline int If_ManSortCompare( If_Man_t * p, If_Cut_t * pC0, If_Cut_t * pC
 {
     if ( p->SortMode == 1 ) // area
     {
-        if ( pC0->Area < pC1->Area - 0.0001 )
+        if ( pC0->Area < pC1->Area - p->fEpsilon )
             return -1;
-        if ( pC0->Area > pC1->Area + 0.0001 )
+        if ( pC0->Area > pC1->Area + p->fEpsilon )
             return 1;
-        if ( pC0->Edge < pC1->Edge - 0.0001 )
+        if ( pC0->Edge < pC1->Edge - p->fEpsilon )
             return -1;
-        if ( pC0->Edge > pC1->Edge + 0.0001 )
+        if ( pC0->Edge > pC1->Edge + p->fEpsilon )
             return 1;
         if ( pC0->AveRefs > pC1->AveRefs )
             return -1;
@@ -449,44 +449,44 @@ static inline int If_ManSortCompare( If_Man_t * p, If_Cut_t * pC0, If_Cut_t * pC
             return -1;
         if ( pC0->nLeaves > pC1->nLeaves )
             return 1;
-        if ( pC0->Delay < pC1->Delay - 0.0001 )
+        if ( pC0->Delay < pC1->Delay - p->fEpsilon )
             return -1;
-        if ( pC0->Delay > pC1->Delay + 0.0001 )
+        if ( pC0->Delay > pC1->Delay + p->fEpsilon )
             return 1;
         return 0;
     }
     if ( p->SortMode == 0 ) // delay
     {
-        if ( pC0->Delay < pC1->Delay - 0.0001 )
+        if ( pC0->Delay < pC1->Delay - p->fEpsilon )
             return -1;
-        if ( pC0->Delay > pC1->Delay + 0.0001 )
+        if ( pC0->Delay > pC1->Delay + p->fEpsilon )
             return 1;
         if ( pC0->nLeaves < pC1->nLeaves )
             return -1;
         if ( pC0->nLeaves > pC1->nLeaves )
             return 1;
-        if ( pC0->Area < pC1->Area - 0.0001 )
+        if ( pC0->Area < pC1->Area - p->fEpsilon )
             return -1;
-        if ( pC0->Area > pC1->Area + 0.0001 )
+        if ( pC0->Area > pC1->Area + p->fEpsilon )
             return 1;
-        if ( pC0->Edge < pC1->Edge - 0.0001 )
+        if ( pC0->Edge < pC1->Edge - p->fEpsilon )
             return -1;
-        if ( pC0->Edge > pC1->Edge + 0.0001 )
+        if ( pC0->Edge > pC1->Edge + p->fEpsilon )
             return 1;
         return 0;
     }
     assert( p->SortMode == 2 ); // delay old
-    if ( pC0->Delay < pC1->Delay - 0.0001 )
+    if ( pC0->Delay < pC1->Delay - p->fEpsilon )
         return -1;
-    if ( pC0->Delay > pC1->Delay + 0.0001 )
+    if ( pC0->Delay > pC1->Delay + p->fEpsilon )
         return 1;
-    if ( pC0->Area < pC1->Area - 0.0001 )
+    if ( pC0->Area < pC1->Area - p->fEpsilon )
         return -1;
-    if ( pC0->Area > pC1->Area + 0.0001 )
+    if ( pC0->Area > pC1->Area + p->fEpsilon )
         return 1;
-    if ( pC0->Edge < pC1->Edge - 0.0001 )
+    if ( pC0->Edge < pC1->Edge - p->fEpsilon )
         return -1;
-    if ( pC0->Edge > pC1->Edge + 0.0001 )
+    if ( pC0->Edge > pC1->Edge + p->fEpsilon )
         return 1;
     if ( pC0->nLeaves < pC1->nLeaves )
         return -1;
@@ -510,9 +510,9 @@ static inline int If_ManSortCompare_old( If_Man_t * p, If_Cut_t * pC0, If_Cut_t 
 {
     if ( p->SortMode == 1 ) // area
     {
-        if ( pC0->Area < pC1->Area - 0.0001 )
+        if ( pC0->Area < pC1->Area - p->fEpsilon )
             return -1;
-        if ( pC0->Area > pC1->Area + 0.0001 )
+        if ( pC0->Area > pC1->Area + p->fEpsilon )
             return 1;
         if ( pC0->AveRefs > pC1->AveRefs )
             return -1;
@@ -522,36 +522,36 @@ static inline int If_ManSortCompare_old( If_Man_t * p, If_Cut_t * pC0, If_Cut_t 
             return -1;
         if ( pC0->nLeaves > pC1->nLeaves )
             return 1;
-        if ( pC0->Delay < pC1->Delay - 0.0001 )
+        if ( pC0->Delay < pC1->Delay - p->fEpsilon )
             return -1;
-        if ( pC0->Delay > pC1->Delay + 0.0001 )
+        if ( pC0->Delay > pC1->Delay + p->fEpsilon )
             return 1;
         return 0;
     }
     if ( p->SortMode == 0 ) // delay
     {
-        if ( pC0->Delay < pC1->Delay - 0.0001 )
+        if ( pC0->Delay < pC1->Delay - p->fEpsilon )
             return -1;
-        if ( pC0->Delay > pC1->Delay + 0.0001 )
+        if ( pC0->Delay > pC1->Delay + p->fEpsilon )
             return 1;
         if ( pC0->nLeaves < pC1->nLeaves )
             return -1;
         if ( pC0->nLeaves > pC1->nLeaves )
             return 1;
-        if ( pC0->Area < pC1->Area - 0.0001 )
+        if ( pC0->Area < pC1->Area - p->fEpsilon )
             return -1;
-        if ( pC0->Area > pC1->Area + 0.0001 )
+        if ( pC0->Area > pC1->Area + p->fEpsilon )
             return 1;
         return 0;
     }
     assert( p->SortMode == 2 ); // delay old
-    if ( pC0->Delay < pC1->Delay - 0.0001 )
+    if ( pC0->Delay < pC1->Delay - p->fEpsilon )
         return -1;
-    if ( pC0->Delay > pC1->Delay + 0.0001 )
+    if ( pC0->Delay > pC1->Delay + p->fEpsilon )
         return 1;
-    if ( pC0->Area < pC1->Area - 0.0001 )
+    if ( pC0->Area < pC1->Area - p->fEpsilon )
         return -1;
-    if ( pC0->Area > pC1->Area + 0.0001 )
+    if ( pC0->Area > pC1->Area + p->fEpsilon )
         return 1;
     if ( pC0->nLeaves < pC1->nLeaves )
         return -1;
@@ -643,6 +643,56 @@ void If_CutPrintTiming( If_Man_t * p, If_Cut_t * pCut )
         printf( " %d(%.2f/%.2f)", pLeaf->Id, If_ObjCutBest(pLeaf)->Delay, pLeaf->Required );
     printf( " }\n" );
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Moves the cut over the latch.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void If_CutLift( If_Cut_t * pCut )
+{
+    unsigned i;
+    for ( i = 0; i < pCut->nLeaves; i++ )
+    {
+        assert( (pCut->pLeaves[i] & 255) < 255 );
+        pCut->pLeaves[i]++;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes area of the first level.]
+
+  Description [The cut need to be derefed.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void If_CutCopy( If_Man_t * p, If_Cut_t * pCutDest, If_Cut_t * pCutSrc )
+{
+    int * pLeaves;
+    char * pPerm;
+    unsigned * pTruth;
+    // save old arrays
+    pLeaves = pCutDest->pLeaves;
+    pPerm   = pCutDest->pPerm;
+    pTruth  = pCutDest->pTruth;
+    // copy the cut info
+    memcpy( pCutDest, pCutSrc, p->nCutBytes );
+    // restore the arrays
+    pCutDest->pLeaves = pLeaves;
+    pCutDest->pPerm   = pPerm;
+    pCutDest->pTruth  = pTruth;
+}
+
 
 /**Function*************************************************************
 
@@ -930,55 +980,6 @@ float If_CutEdgeRefed( If_Man_t * p, If_Cut_t * pCut )
     return aResult;
 }
 
-
-/**Function*************************************************************
-
-  Synopsis    [Moves the cut over the latch.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void If_CutLift( If_Cut_t * pCut )
-{
-    unsigned i;
-    for ( i = 0; i < pCut->nLeaves; i++ )
-    {
-        assert( (pCut->pLeaves[i] & 255) < 255 );
-        pCut->pLeaves[i]++;
-    }
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Computes area of the first level.]
-
-  Description [The cut need to be derefed.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void If_CutCopy( If_Man_t * p, If_Cut_t * pCutDest, If_Cut_t * pCutSrc )
-{
-    int * pLeaves;
-    char * pPerm;
-    unsigned * pTruth;
-    // save old arrays
-    pLeaves = pCutDest->pLeaves;
-    pPerm   = pCutDest->pPerm;
-    pTruth  = pCutDest->pTruth;
-    // copy the cut info
-    memcpy( pCutDest, pCutSrc, p->nCutBytes );
-    // restore the arrays
-    pCutDest->pLeaves = pLeaves;
-    pCutDest->pPerm   = pPerm;
-    pCutDest->pTruth  = pTruth;
-}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

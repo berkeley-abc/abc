@@ -129,11 +129,113 @@ static unsigned Io_ObjMakeLit( int Var, int fCompl )                 { return (V
 static unsigned Io_ObjAigerNum( Abc_Obj_t * pObj )                   { return (unsigned)pObj->pCopy;  }
 static void     Io_ObjSetAigerNum( Abc_Obj_t * pObj, unsigned Num )  { pObj->pCopy = (void *)Num;     }
 
-int      Io_WriteAigerEncode( char * pBuffer, int Pos, unsigned x );
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Adds one unsigned AIG edge to the output buffer.]
+
+  Description [This procedure is a slightly modified version of Armin Biere's
+  procedure "void encode (FILE * file, unsigned x)" ]
+  
+  SideEffects [Returns the current writing position.]
+
+  SeeAlso     []
+
+***********************************************************************/
+int Io_WriteAigerEncode( char * pBuffer, int Pos, unsigned x )
+{
+    unsigned char ch;
+    while (x & ~0x7f)
+    {
+        ch = (x & 0x7f) | 0x80;
+//        putc (ch, file);
+        pBuffer[Pos++] = ch;
+        x >>= 7;
+    }
+    ch = x;
+//    putc (ch, file);
+    pBuffer[Pos++] = ch;
+    return Pos;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Create the array of literals to be written.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Io_WriteAigerLiterals( Abc_Ntk_t * pNtk )
+{
+    Vec_Int_t * vLits;
+    Abc_Obj_t * pObj, * pDriver;
+    int i;
+    vLits = Vec_IntAlloc( Abc_NtkCoNum(pNtk) );
+    Abc_NtkForEachLatchInput( pNtk, pObj, i )
+    {
+        pDriver = Abc_ObjFanin0(pObj);
+        Vec_IntPush( vLits, Io_ObjMakeLit( Io_ObjAigerNum(pDriver), Abc_ObjFaninC0(pObj) ^ (Io_ObjAigerNum(pDriver) == 0) ) );
+    }
+    Abc_NtkForEachPo( pNtk, pObj, i )
+    {
+        pDriver = Abc_ObjFanin0(pObj);
+        Vec_IntPush( vLits, Io_ObjMakeLit( Io_ObjAigerNum(pDriver), Abc_ObjFaninC0(pObj) ^ (Io_ObjAigerNum(pDriver) == 0) ) );
+    }
+    return vLits;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates the binary encoded array of literals.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Str_t * Io_WriteEncodeLiterals( Vec_Int_t * vLits )
+{
+    Vec_Str_t * vBinary;
+    int Pos = 0, Lit, LitPrev, Diff, i;
+    vBinary = Vec_StrAlloc( 2 * Vec_IntSize(vLits) );
+    LitPrev = Vec_IntEntry( vLits, 0 );
+    Pos = Io_WriteAigerEncode( Vec_StrArray(vBinary), Pos, LitPrev ); 
+    Vec_IntForEachEntryStart( vLits, Lit, i, 1 )
+    {
+        Diff = Lit - LitPrev;
+        Diff = (Lit < LitPrev)? -Diff : Diff;
+        Diff = (Diff << 1) | (int)(Lit < LitPrev);
+        Pos = Io_WriteAigerEncode( Vec_StrArray(vBinary), Pos, Diff );
+        LitPrev = Lit;
+        if ( Pos + 10 > vBinary->nCap )
+            Vec_StrGrow( vBinary, vBinary->nCap+1 );
+    }
+    vBinary->nSize = Pos;
+/*
+    // verify
+    {
+        extern Vec_Int_t * Io_WriteDecodeLiterals( char ** ppPos, int nEntries );
+        char * pPos = Vec_StrArray( vBinary );
+        Vec_Int_t * vTemp = Io_WriteDecodeLiterals( &pPos, Vec_IntSize(vLits) );
+        for ( i = 0; i < Vec_IntSize(vLits); i++ )
+        {
+            int Entry1 = Vec_IntEntry(vLits,i);
+            int Entry2 = Vec_IntEntry(vTemp,i);
+            assert( Entry1 == Entry2 );
+        }
+    }
+*/
+    return vBinary;
+}
 
 /**Function*************************************************************
 
@@ -146,7 +248,7 @@ int      Io_WriteAigerEncode( char * pBuffer, int Pos, unsigned x );
   SeeAlso     []
 
 ***********************************************************************/
-void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols )
+void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int fCompact )
 {
     ProgressBar * pProgress;
     FILE * pFile;
@@ -179,7 +281,8 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols )
         Io_ObjSetAigerNum( pObj, nNodes++ );
 
     // write the header "M I L O A" where M = I + L + A
-    fprintf( pFile, "aig %u %u %u %u %u\n", 
+    fprintf( pFile, "aig%s %u %u %u %u %u\n", 
+        fCompact? "2" : "",
         Abc_NtkPiNum(pNtk) + Abc_NtkLatchNum(pNtk) + Abc_NtkNodeNum(pNtk), 
         Abc_NtkPiNum(pNtk),
         Abc_NtkLatchNum(pNtk),
@@ -190,24 +293,34 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols )
     // because, in the AIGER format, literal 0/1 is represented as number 0/1
     // while, in ABC, constant 1 node has number 0 and so literal 0/1 will be 1/0
 
-    // write latch drivers
-    Abc_NtkForEachLatchInput( pNtk, pObj, i )
+    if ( !fCompact ) 
     {
-        pDriver = Abc_ObjFanin0(pObj);
-        fprintf( pFile, "%u\n", Io_ObjMakeLit( Io_ObjAigerNum(pDriver), Abc_ObjFaninC0(pObj) ^ (Io_ObjAigerNum(pDriver) == 0) ) );
+        // write latch drivers
+        Abc_NtkForEachLatchInput( pNtk, pObj, i )
+        {
+            pDriver = Abc_ObjFanin0(pObj);
+            fprintf( pFile, "%u\n", Io_ObjMakeLit( Io_ObjAigerNum(pDriver), Abc_ObjFaninC0(pObj) ^ (Io_ObjAigerNum(pDriver) == 0) ) );
+        }
+        // write PO drivers
+        Abc_NtkForEachPo( pNtk, pObj, i )
+        {
+            pDriver = Abc_ObjFanin0(pObj);
+            fprintf( pFile, "%u\n", Io_ObjMakeLit( Io_ObjAigerNum(pDriver), Abc_ObjFaninC0(pObj) ^ (Io_ObjAigerNum(pDriver) == 0) ) );
+        }
     }
-
-    // write PO drivers
-    Abc_NtkForEachPo( pNtk, pObj, i )
+    else
     {
-        pDriver = Abc_ObjFanin0(pObj);
-        fprintf( pFile, "%u\n", Io_ObjMakeLit( Io_ObjAigerNum(pDriver), Abc_ObjFaninC0(pObj) ^ (Io_ObjAigerNum(pDriver) == 0) ) );
+        Vec_Int_t * vLits = Io_WriteAigerLiterals( pNtk );
+        Vec_Str_t * vBinary = Io_WriteEncodeLiterals( vLits );
+        fwrite( Vec_StrArray(vBinary), 1, Vec_StrSize(vBinary), pFile );
+        Vec_StrFree( vBinary );
+        Vec_IntFree( vLits );
     }
 
     // write the nodes into the buffer
     Pos = 0;
     nBufferSize = 6 * Abc_NtkNodeNum(pNtk) + 100; // skeptically assuming 3 chars per one AIG edge
-    pBuffer = ALLOC( char, nBufferSize );
+    pBuffer = ALLOC( unsigned char, nBufferSize );
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkObjNumMax(pNtk) );
     Abc_AigForEachAnd( pNtk, pObj, i )
     {
@@ -216,8 +329,8 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols )
         uLit0 = Io_ObjMakeLit( Io_ObjAigerNum(Abc_ObjFanin0(pObj)), Abc_ObjFaninC0(pObj) );
         uLit1 = Io_ObjMakeLit( Io_ObjAigerNum(Abc_ObjFanin1(pObj)), Abc_ObjFaninC1(pObj) );
         assert( uLit0 < uLit1 );
-        Pos = Io_WriteAigerEncode( pBuffer, Pos, uLit  - uLit1 );
-        Pos = Io_WriteAigerEncode( pBuffer, Pos, uLit1 - uLit0 );
+        Pos = Io_WriteAigerEncode( pBuffer, Pos, (unsigned)(uLit  - uLit1) );
+        Pos = Io_WriteAigerEncode( pBuffer, Pos, (unsigned)(uLit1 - uLit0) );
         if ( Pos > nBufferSize - 10 )
         {
             printf( "Io_WriteAiger(): AIGER generation has failed because the allocated buffer is too small.\n" );
@@ -254,35 +367,6 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols )
     fprintf( pFile, "For information about AIGER format, refer to %s\n", "http://fmv.jku.at/aiger" );
     fclose( pFile );
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Adds one unsigned AIG edge to the output buffer.]
-
-  Description [This procedure is a slightly modified version of Armin Biere's
-  procedure "void encode (FILE * file, unsigned x)" ]
-  
-  SideEffects [Returns the current writing position.]
-
-  SeeAlso     []
-
-***********************************************************************/
-int Io_WriteAigerEncode( char * pBuffer, int Pos, unsigned x )
-{
-    unsigned char ch;
-    while (x & ~0x7f)
-    {
-        ch = (x & 0x7f) | 0x80;
-//        putc (ch, file);
-        pBuffer[Pos++] = ch;
-        x >>= 7;
-    }
-    ch = x;
-//    putc (ch, file);
-    pBuffer[Pos++] = ch;
-    return Pos;
-}
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

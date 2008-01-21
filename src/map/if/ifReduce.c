@@ -150,6 +150,7 @@ void If_ManImproveNodeExpand( If_Man_t * p, If_Obj_t * pObj, int nLimit, Vec_Ptr
     int CostBef, CostAft, i;
     float DelayOld, AreaBef, AreaAft;
     pCut = If_ObjCutBest(pObj);
+    pCut->Delay = If_CutDelay( p, pCut );
     assert( pCut->Delay <= pObj->Required + p->fEpsilon );
     if ( pObj->nRefs == 0 )
         return;
@@ -449,8 +450,8 @@ int If_ManImproveNodeFaninCompact_int( If_Man_t * p, If_Obj_t * pObj, int nLimit
         return 1;
     if (  Vec_PtrSize(vFront) < nLimit && If_ManImproveNodeFaninCompact1(p, pObj, nLimit, vFront, vVisited) )
         return 1;
-    if ( Vec_PtrSize(vFront) < nLimit && If_ManImproveNodeFaninCompact2(p, pObj, nLimit, vFront, vVisited) )
-        return 1;
+//    if ( Vec_PtrSize(vFront) < nLimit && If_ManImproveNodeFaninCompact2(p, pObj, nLimit, vFront, vVisited) )
+//        return 1;
     assert( Vec_PtrSize(vFront) <= nLimit );
     return 0;
 }
