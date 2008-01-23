@@ -6367,7 +6367,7 @@ usage:
 int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
-    Abc_Ntk_t * pNtk, * pNtkRes;
+    Abc_Ntk_t * pNtk;//, * pNtkRes;
     int c;
     int fBmc;
     int nFrames;
@@ -6544,7 +6544,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
 */
-
+/*
 //    pNtkRes = Abc_NtkDar( pNtk );
 //    pNtkRes = Abc_NtkDarRetime( pNtk, nLevels, 1 );
     pNtkRes = Abc_NtkPcmTest( pNtk, fVerbose );
@@ -6556,18 +6556,18 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-
+*/
 
 //    Abc_NtkDarHaigRecord( pNtk );
 //    Abc_NtkDarClau( pNtk, nFrames, nLevels, fBmc, fVerbose, fVeryVerbose );
-/*
+
     if ( globalUtilOptind != 1 )
     {
         fprintf( pErr, "Command has failed.\n" );
         return 1;
     }
     Abc_NtkDarTestBlif( argv[globalUtilOptind] );
-*/
+
     return 0;
 usage:
     fprintf( pErr, "usage: test [-vwh]\n" );

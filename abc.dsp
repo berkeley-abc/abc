@@ -1850,10 +1850,6 @@ SOURCE=.\src\map\if\ifReduce.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\if\ifSeq.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\map\if\ifTime.c
 # End Source File
 # Begin Source File

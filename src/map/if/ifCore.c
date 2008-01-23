@@ -49,13 +49,15 @@ int If_ManPerformMapping( If_Man_t * p )
     If_ManSetupCiCutSets( p );
     // allocate memory for other cutsets
     If_ManSetupSetAll( p, If_ManCrossCut(p) );
+    // derive reverse top order
+    p->vObjsRev = If_ManReverseOrder( p );
 
     // try sequential mapping
     if ( p->pPars->fSeqMap )
     {
-        int RetValue;
-//        printf( "Currently sequential mapping is not performed.\n" );
-        RetValue = If_ManPerformMappingSeq( p );
+        int RetValue = 1;
+        printf( "Currently sequential mapping is not performed.\n" );
+//        RetValue = If_ManPerformMappingSeq( p );
         return RetValue;
 //        return 1;
     }

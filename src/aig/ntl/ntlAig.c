@@ -367,7 +367,7 @@ Aig_Obj_t * Ntl_ManExtractAigNode( Ntl_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-int Ntl_ManExtract( Ntl_Man_t * p )
+int Ntl_ManExtract_old( Ntl_Man_t * p )
 {
     Ntl_Obj_t * pNode;
     Ntl_Net_t * pNet;
@@ -387,6 +387,30 @@ int Ntl_ManExtract( Ntl_Man_t * p )
     // create the primary outputs
     Ntl_ManForEachCoNet( p, pNet, i )
         Aig_ObjCreatePo( p->pAig, pNet->pFunc );
+    // cleanup the AIG
+    Aig_ManCleanup( p->pAig );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Extracts AIG from the netlist.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ManExtract( Ntl_Man_t * p )
+{
+    // start the AIG manager
+    assert( p->pAig == NULL );
+    p->pAig = Aig_ManStart( 10000 );
+    // check the DFS traversal
+    if ( !Ntl_ManDfs( p ) )
+        return 0;
     // cleanup the AIG
     Aig_ManCleanup( p->pAig );
     return 1;
@@ -557,8 +581,8 @@ int Ntl_ManInsertTestIf( Ntl_Man_t * p )
     if ( !Ntl_ManExtract( p ) )
         return 0;
     assert( p->pAig != NULL );
-    Ntl_ManPerformSynthesis( p );
-    vMapping = Ntl_MappingIf( p->pAig );
+//    Ntl_ManPerformSynthesis( p );
+    vMapping = Ntl_MappingIf( p, p->pAig );
     RetValue = Ntl_ManInsert( p, vMapping );
     Vec_PtrFree( vMapping );
     return RetValue;

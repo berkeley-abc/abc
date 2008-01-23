@@ -36,6 +36,7 @@ extern "C" {
 #include <time.h>
 #include "vec.h"
 #include "mem.h"
+#include "tim.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -127,7 +128,8 @@ struct If_Man_t_
     Vec_Ptr_t *        vCis;          // the primary inputs
     Vec_Ptr_t *        vCos;          // the primary outputs
     Vec_Ptr_t *        vObjs;         // all objects
-    Vec_Ptr_t *        vMapped;       // objects used in the mapping
+    Vec_Ptr_t *        vObjsRev;      // reverse topological order of objects
+//    Vec_Ptr_t *        vMapped;       // objects used in the mapping
     Vec_Ptr_t *        vTemp;         // temporary array
     int                nObjs[IF_VOID];// the number of objects by type
     // various data
@@ -161,6 +163,8 @@ struct If_Man_t_
     If_Set_t *         pMemAnd;       // memory for AND cutsets
     If_Set_t *         pFreeList;     // the list of free cutsets
     int                nSmallSupp;    // the small support
+    // timing manager
+    Tim_Man_t *        pManTim;
 };
 
 // priority cut
@@ -202,6 +206,7 @@ struct If_Obj_t_
     unsigned           fVisit  :  1;  // multipurpose mark
     unsigned           Level   : 22;  // logic level of the node
     int                Id;            // integer ID
+    int                IdPio;         // integer ID of PIs/POs
     int                nRefs;         // the number of references
     int                nVisits;       // the number of visits to this node
     int                nVisitsCopy;   // the number of visits to this node
@@ -236,7 +241,7 @@ static inline If_Obj_t * If_ManObj( If_Man_t * p, int i )                    { r
 static inline int        If_ObjIsConst1( If_Obj_t * pObj )                   { return pObj->Type == IF_CONST1;       }
 static inline int        If_ObjIsCi( If_Obj_t * pObj )                       { return pObj->Type == IF_CI;           }
 static inline int        If_ObjIsCo( If_Obj_t * pObj )                       { return pObj->Type == IF_CO;           }
-static inline int        If_ObjIsPi( If_Obj_t * pObj )                       { return If_ObjIsCi(pObj) && pObj->pFanin0 == NULL; }
+//static inline int        If_ObjIsPi( If_Obj_t * pObj )                       { return If_ObjIsCi(pObj) && pObj->pFanin0 == NULL; }
 static inline int        If_ObjIsLatch( If_Obj_t * pObj )                    { return If_ObjIsCi(pObj) && pObj->pFanin0 != NULL; }
 static inline int        If_ObjIsAnd( If_Obj_t * pObj )                      { return pObj->Type == IF_AND;          }
 
@@ -298,9 +303,12 @@ static inline float      If_CutLutArea( If_Man_t * p, If_Cut_t * pCut )      { r
     Vec_PtrForEachEntryStart( p->vCos, pObj, i, If_ManCoNum(p) - p->pPars->nLatches )
 #define If_ManForEachLatchOutput( p, pObj, i )                                 \
     Vec_PtrForEachEntryStart( p->vCis, pObj, i, If_ManCiNum(p) - p->pPars->nLatches )
-// iterator over all objects, including those currently not used
+// iterator over all objects in topological order
 #define If_ManForEachObj( p, pObj, i )                                         \
     Vec_PtrForEachEntry( p->vObjs, pObj, i )
+// iterator over all objects in reverse topological order
+#define If_ManForEachObjReverse( p, pObj, i )                                  \
+    Vec_PtrForEachEntry( p->vObjsRev, pObj, i )
 // iterator over logic nodes 
 #define If_ManForEachNode( p, pObj, i )                                        \
     If_ManForEachObj( p, pObj, i ) if ( pObj->Type != IF_AND ) {} else
@@ -384,6 +392,11 @@ extern float           If_ManScanMappingDirect( If_Man_t * p );
 extern float           If_ManScanMappingSeq( If_Man_t * p );
 extern void            If_ManResetOriginalRefs( If_Man_t * p );
 extern int             If_ManCrossCut( If_Man_t * p );
+
+extern Vec_Ptr_t *     If_ManReverseOrder( If_Man_t * p );
+extern void            If_ManMarkMapping( If_Man_t * p );
+extern Vec_Ptr_t *     If_ManCollectMappingDirect( If_Man_t * p );
+
 
 #ifdef __cplusplus
 }

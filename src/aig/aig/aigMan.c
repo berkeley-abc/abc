@@ -158,6 +158,7 @@ Aig_Man_t * Aig_ManDup( Aig_Man_t * p, int fOrdered )
     {
         pObjNew = Aig_ObjCreatePi( pNew );
         pObjNew->pHaig = pObj->pHaig;
+        pObjNew->Level = pObj->Level;
         pObj->pData = pObjNew;
     }
     // duplicate internal nodes

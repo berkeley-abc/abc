@@ -99,6 +99,13 @@ float If_CutDelay( If_Man_t * p, If_Cut_t * pCut )
             {
                 If_CutForEachLeaf( p, pCut, pLeaf, i )
                 {
+/*
+                    if ( pLeaf->IdPio > 2000 )
+                    {
+                        int x = 0;
+                        printf( "-%d %6.3f  ", pLeaf->IdPio, If_ObjCutBest(pLeaf)->Delay );
+                    }
+*/
                     DelayCur = If_ObjCutBest(pLeaf)->Delay;
                     Delay = IF_MAX( Delay, DelayCur );
                 }

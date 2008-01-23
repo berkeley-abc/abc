@@ -56,7 +56,7 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
     p->vCis    = Vec_PtrAlloc( 100 );
     p->vCos    = Vec_PtrAlloc( 100 );
     p->vObjs   = Vec_PtrAlloc( 100 );
-    p->vMapped = Vec_PtrAlloc( 100 );
+//    p->vMapped = Vec_PtrAlloc( 100 );
     p->vTemp   = Vec_PtrAlloc( 100 );
     // prepare the memory manager
     p->nTruthWords = p->pPars->fTruth? If_CutTruthWords( p->pPars->nLutSize ) : 0;
@@ -100,7 +100,7 @@ void If_ManRestart( If_Man_t * p )
     Vec_PtrClear( p->vCis );
     Vec_PtrClear( p->vCos );
     Vec_PtrClear( p->vObjs );
-    Vec_PtrClear( p->vMapped );
+//    Vec_PtrClear( p->vMapped );
     Vec_PtrClear( p->vTemp );
     Mem_FixedRestart( p->pMemObj );
     // create the constant node
@@ -128,10 +128,11 @@ void If_ManStop( If_Man_t * p )
     Vec_PtrFree( p->vCis );
     Vec_PtrFree( p->vCos );
     Vec_PtrFree( p->vObjs );
-    Vec_PtrFree( p->vMapped );
+//    Vec_PtrFree( p->vMapped );
     Vec_PtrFree( p->vTemp );
+    if ( p->vObjsRev )    Vec_PtrFree( p->vObjsRev );
     if ( p->vLatchOrder ) Vec_PtrFree( p->vLatchOrder );
-    if ( p->vLags ) Vec_IntFree( p->vLags );
+    if ( p->vLags )       Vec_IntFree( p->vLags );
     Mem_FixedStop( p->pMemObj, 0 );
     FREE( p->pMemCi );
     FREE( p->pMemAnd );
@@ -141,6 +142,8 @@ void If_ManStop( If_Man_t * p )
         FREE( p->pPars->pTimesArr );
     if ( p->pPars->pTimesReq )
         FREE( p->pPars->pTimesReq );
+    if ( p->pManTim )
+        Tim_ManStop( p->pManTim );
     free( p );
 }
 
@@ -160,6 +163,7 @@ If_Obj_t * If_ManCreateCi( If_Man_t * p )
     If_Obj_t * pObj;
     pObj = If_ManSetupObj( p );
     pObj->Type = IF_CI;
+    pObj->IdPio = Vec_PtrSize( p->vCis );
     Vec_PtrPush( p->vCis, pObj );
     p->nObjs[IF_CI]++;
     return pObj;
@@ -180,10 +184,12 @@ If_Obj_t * If_ManCreateCo( If_Man_t * p, If_Obj_t * pDriver )
 {
     If_Obj_t * pObj;
     pObj = If_ManSetupObj( p );
+    pObj->IdPio = Vec_PtrSize( p->vCos );
     Vec_PtrPush( p->vCos, pObj );
     pObj->Type = IF_CO;
     pObj->fCompl0 = If_IsComplement(pDriver); pDriver = If_Regular(pDriver);
     pObj->pFanin0 = pDriver; pDriver->nRefs++; 
+    pObj->Level   = pDriver->Level;
     p->nObjs[IF_CO]++;
     return pObj;
 }

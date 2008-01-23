@@ -49,6 +49,7 @@ Ntl_Man_t * Ntl_ManAlloc( char * pFileName )
     p->vCis = Vec_PtrAlloc( 1000 );
     p->vCos = Vec_PtrAlloc( 1000 );
     p->vNodes = Vec_PtrAlloc( 1000 );
+    p->vBox1Cos = Vec_IntAlloc( 1000 );
     // start the manager
     p->pMemObjs = Aig_MmFlexStart();
     p->pMemSops = Aig_MmFlexStart();
@@ -82,6 +83,7 @@ void Ntl_ManFree( Ntl_Man_t * p )
     if ( p->vCis )     Vec_PtrFree( p->vCis );
     if ( p->vCos )     Vec_PtrFree( p->vCos );
     if ( p->vNodes )   Vec_PtrFree( p->vNodes );
+    if ( p->vBox1Cos ) Vec_IntFree( p->vBox1Cos );
     if ( p->pMemObjs ) Aig_MmFlexStop( p->pMemObjs, 0 );
     if ( p->pMemSops ) Aig_MmFlexStop( p->pMemSops, 0 );
     if ( p->pAig )     Aig_ManStop( p->pAig );

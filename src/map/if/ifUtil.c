@@ -144,75 +144,136 @@ void If_ManComputeRequired( If_Man_t * p )
 {
     If_Obj_t * pObj;
     int i, Counter;
+    float reqTime;
 
     // compute area, clean required times, collect nodes used in the mapping
-    p->nNets = 0;
-    p->AreaGlo = If_ManScanMapping( p );
+//    p->AreaGlo = If_ManScanMapping( p );
+    If_ManMarkMapping( p );
 
-    // consider the case when the required times are given
-    if ( p->pPars->pTimesReq )
+    if ( p->pManTim == NULL )
     {
-        assert( !p->pPars->fAreaOnly );
-        // make sure that the required time hold
-        Counter = 0;
-        If_ManForEachCo( p, pObj, i )
+        // consider the case when the required times are given
+        if ( p->pPars->pTimesReq )
         {
-            if ( If_ObjArrTime(If_ObjFanin0(pObj)) > p->pPars->pTimesReq[i] + p->fEpsilon )
+            assert( !p->pPars->fAreaOnly );
+            // make sure that the required time hold
+            Counter = 0;
+            If_ManForEachCo( p, pObj, i )
             {
-                Counter++;
-//                printf( "Required times are violated for output %d (arr = %d; req = %d).\n", 
-//                    i, (int)If_ObjArrTime(If_ObjFanin0(pObj)), (int)p->pPars->pTimesReq[i] );
+                if ( If_ObjArrTime(If_ObjFanin0(pObj)) > p->pPars->pTimesReq[i] + p->fEpsilon )
+                {
+                    Counter++;
+    //                printf( "Required times are violated for output %d (arr = %d; req = %d).\n", 
+    //                    i, (int)If_ObjArrTime(If_ObjFanin0(pObj)), (int)p->pPars->pTimesReq[i] );
+                }
+                If_ObjFanin0(pObj)->Required = p->pPars->pTimesReq[i];
             }
-            If_ObjFanin0(pObj)->Required = p->pPars->pTimesReq[i];
+            if ( Counter )
+                printf( "Required times are violated for %d outputs.\n", Counter );
         }
-        if ( Counter )
-            printf( "Required times are violated for %d outputs.\n", Counter );
+        else
+        {
+            // get the global required times
+            p->RequiredGlo = If_ManDelayMax( p, 0 );
+            // update the required times according to the target
+            if ( p->pPars->DelayTarget != -1 )
+            {
+                if ( p->RequiredGlo > p->pPars->DelayTarget + p->fEpsilon )
+                {
+                    if ( p->fNextRound == 0 )
+                    {
+                        p->fNextRound = 1;
+                        printf( "Cannot meet the target required times (%4.2f). Mapping continues anyway.\n", p->pPars->DelayTarget );
+                    }
+                }
+                else if ( p->RequiredGlo < p->pPars->DelayTarget - p->fEpsilon )
+                {
+                    if ( p->fNextRound == 0 )
+                    {
+                        p->fNextRound = 1;
+                        printf( "Relaxing the required times from (%4.2f) to the target (%4.2f).\n", p->RequiredGlo, p->pPars->DelayTarget );
+                    }
+                    p->RequiredGlo = p->pPars->DelayTarget;
+                }
+            }
+            // do not propagate required times if area minimization is requested
+            if ( p->pPars->fAreaOnly ) 
+                return;
+            // set the required times for the POs
+            if ( p->pPars->fLatchPaths )
+            {
+                If_ManForEachLatchInput( p, pObj, i )
+                    If_ObjFanin0(pObj)->Required = p->RequiredGlo;
+            }
+            else 
+            {
+                If_ManForEachCo( p, pObj, i )
+                    If_ObjFanin0(pObj)->Required = p->RequiredGlo;
+            }
+        }
+        // go through the nodes in the reverse topological order
+    //    Vec_PtrForEachEntry( p->vMapped, pObj, i )
+    //        If_CutPropagateRequired( p, If_ObjCutBest(pObj), pObj->Required );
+        If_ManForEachObjReverse( p, pObj, i )
+        {
+            if ( pObj->nRefs == 0 )
+                continue;
+            If_CutPropagateRequired( p, If_ObjCutBest(pObj), pObj->Required );
+        }
     }
     else
     {
         // get the global required times
         p->RequiredGlo = If_ManDelayMax( p, 0 );
-        // update the required times according to the target
-        if ( p->pPars->DelayTarget != -1 )
-        {
-            if ( p->RequiredGlo > p->pPars->DelayTarget + p->fEpsilon )
-            {
-                if ( p->fNextRound == 0 )
-                {
-                    p->fNextRound = 1;
-                    printf( "Cannot meet the target required times (%4.2f). Mapping continues anyway.\n", p->pPars->DelayTarget );
-                }
-            }
-            else if ( p->RequiredGlo < p->pPars->DelayTarget - p->fEpsilon )
-            {
-                if ( p->fNextRound == 0 )
-                {
-                    p->fNextRound = 1;
-                    printf( "Relaxing the required times from (%4.2f) to the target (%4.2f).\n", p->RequiredGlo, p->pPars->DelayTarget );
-                }
-                p->RequiredGlo = p->pPars->DelayTarget;
-            }
-        }
         // do not propagate required times if area minimization is requested
         if ( p->pPars->fAreaOnly ) 
             return;
         // set the required times for the POs
+        Tim_ManIncrementTravId( p->pManTim );
         if ( p->pPars->fLatchPaths )
         {
+            assert( 0 );
+            If_ManForEachPo( p, pObj, i )
+                Tim_ManSetPoRequired( p->pManTim, pObj->IdPio, IF_FLOAT_LARGE );
             If_ManForEachLatchInput( p, pObj, i )
-                If_ObjFanin0(pObj)->Required = p->RequiredGlo;
+                Tim_ManSetPoRequired( p->pManTim, pObj->IdPio, p->RequiredGlo );
         }
-        else 
+        else  
         {
-            If_ManForEachCo( p, pObj, i )
-                If_ObjFanin0(pObj)->Required = p->RequiredGlo;
+            Tim_ManSetPoRequiredAll( p->pManTim, p->RequiredGlo );
+//            If_ManForEachCo( p, pObj, i )
+//                Tim_ManSetPoRequired( p->pManTim, pObj->IdPio, p->RequiredGlo );
+        }
+        // go through the nodes in the reverse topological order
+        If_ManForEachObjReverse( p, pObj, i )
+        {
+            if ( If_ObjIsAnd(pObj) )
+            {
+                if ( pObj->nRefs == 0 )
+                    continue;
+                If_CutPropagateRequired( p, If_ObjCutBest(pObj), pObj->Required );
+            }
+            else if ( If_ObjIsCi(pObj) )
+            {
+                reqTime = pObj->Required;
+                Tim_ManSetPiRequired( p->pManTim, pObj->IdPio, reqTime );
+            }
+            else if ( If_ObjIsCo(pObj) )
+            {
+                reqTime = Tim_ManGetPoRequired( p->pManTim, pObj->IdPio );
+                If_ObjFanin0(pObj)->Required = IF_MIN( reqTime, If_ObjFanin0(pObj)->Required );
+            }
+            else if ( If_ObjIsConst1(pObj) )
+            {
+            }
+            else // add the node to the mapper
+                assert( 0 );
         }
     }
-    // go through the nodes in the reverse topological order
-    Vec_PtrForEachEntry( p->vMapped, pObj, i )
-        If_CutPropagateRequired( p, If_ObjCutBest(pObj), pObj->Required );
 }
  
+#if 0
+
 /**Function*************************************************************
 
   Synopsis    [Computes area, references, and nodes used in the mapping.]
@@ -264,6 +325,7 @@ float If_ManScanMapping( If_Man_t * p )
     int i;
     assert( !p->pPars->fLiftLeaves );
     // clean all references
+    p->nNets = 0;
     If_ManForEachObj( p, pObj, i )
     {
         pObj->Required = IF_FLOAT_LARGE;
@@ -392,6 +454,8 @@ float If_ManScanMappingSeq( If_Man_t * p )
     return aArea;
 }
 
+#endif
+
 /**Function*************************************************************
 
   Synopsis    [Computes area, references, and nodes used in the mapping.]
@@ -471,7 +535,7 @@ int If_ManCrossCut( If_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Computes cross-cut of the circuit.]
+  Synopsis    [Computes the reverse topological order of nodes.]
 
   Description []
                
@@ -480,13 +544,111 @@ int If_ManCrossCut( If_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int If_ManCountTrueArea( If_Man_t * p )
+Vec_Ptr_t * If_ManReverseOrder( If_Man_t * p )
+{
+    Vec_Ptr_t * vOrder;
+    If_Obj_t * pObj, ** ppStore;
+    int i;
+    // allocate place to store the nodes
+    ppStore = ALLOC( If_Obj_t *, p->nLevelMax + 1 );
+    memset( ppStore, 0, sizeof(If_Obj_t *) * (p->nLevelMax + 1) );
+    // add the nodes
+    If_ManForEachObj( p, pObj, i )
+    {
+        assert( pObj->Level >= 0 && pObj->Level <= (unsigned)p->nLevelMax );
+        pObj->pCopy = (char *)ppStore[pObj->Level]; 
+        ppStore[pObj->Level] = pObj;
+    }
+    vOrder = Vec_PtrAlloc( If_ManObjNum(p) );
+    for ( i = p->nLevelMax; i >= 0; i-- )
+        for ( pObj = ppStore[i]; pObj; pObj = pObj->pCopy )
+            Vec_PtrPush( vOrder, pObj );
+    free( ppStore );
+    // print the order
+//    Vec_PtrForEachEntry( vOrder, pObj, i )
+//        printf( "Obj %2d   Type %d  Level = %d\n", pObj->Id, pObj->Type, pObj->Level );
+    return vOrder;
+}
+ 
+/**Function*************************************************************
+
+  Synopsis    [Computes area, references, and nodes used in the mapping.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float If_ManMarkMapping_rec( If_Man_t * p, If_Obj_t * pObj )
+{
+    If_Obj_t * pLeaf;
+    If_Cut_t * pCutBest;
+    float aArea;
+    int i;
+    if ( pObj->nRefs++ || If_ObjIsCi(pObj) || If_ObjIsConst1(pObj) )
+        return 0.0;
+    // store the node in the structure by level
+    assert( If_ObjIsAnd(pObj) );
+    // visit the transitive fanin of the selected cut
+    pCutBest = If_ObjCutBest(pObj);
+    p->nNets += pCutBest->nLeaves;
+    aArea = If_CutLutArea( p, pCutBest );
+    If_CutForEachLeaf( p, pCutBest, pLeaf, i )
+        aArea += If_ManMarkMapping_rec( p, pLeaf );
+    return aArea;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes area, references, and nodes used in the mapping.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void If_ManMarkMapping( If_Man_t * p )
 {
     If_Obj_t * pObj;
-    int i, Area = 0;
-    Vec_PtrForEachEntry( p->vMapped, pObj, i )
-        Area += 1 + (If_ObjCutBest(pObj)->nLeaves > (unsigned)p->pPars->nLutSize / 2);
-    return Area;
+    int i;
+    If_ManForEachObj( p, pObj, i )
+    {
+        pObj->Required = IF_FLOAT_LARGE;
+        pObj->nVisits = pObj->nVisitsCopy;
+        pObj->nRefs = 0;
+    }
+    p->nNets = 0;
+    p->AreaGlo = 0.0;
+    If_ManForEachCo( p, pObj, i )
+        p->AreaGlo += If_ManMarkMapping_rec( p, If_ObjFanin0(pObj) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects nodes used in the mapping in the topological order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * If_ManCollectMappingDirect( If_Man_t * p )
+{
+    Vec_Ptr_t * vOrder;
+    If_Obj_t * pObj;
+    int i;
+    If_ManMarkMapping( p );
+    vOrder = Vec_PtrAlloc( If_ManObjNum(p) );
+    If_ManForEachObj( p, pObj, i )
+        if ( If_ObjIsAnd(pObj) && pObj->nRefs )
+            Vec_PtrPush( vOrder, pObj );
+    return vOrder;
 }
 
 ////////////////////////////////////////////////////////////////////////

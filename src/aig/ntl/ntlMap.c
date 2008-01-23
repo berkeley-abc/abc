@@ -412,7 +412,7 @@ void Ntk_ManSetIfParsDefault( If_Par_t * pPars )
   SeeAlso     []
 
 ***********************************************************************/
-If_Man_t * Ntk_ManToIf( Aig_Man_t * p, If_Par_t * pPars )
+If_Man_t * Ntk_ManToIf_old( Aig_Man_t * p, If_Par_t * pPars )
 {
     If_Man_t * pIfMan;
     Aig_Obj_t * pNode;//, * pFanin, * pPrev;
@@ -455,6 +455,58 @@ If_Man_t * Ntk_ManToIf( Aig_Man_t * p, If_Par_t * pPars )
 
 /**Function*************************************************************
 
+  Synopsis    [Load the network into FPGA manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+If_Man_t * Ntk_ManToIf( Aig_Man_t * p, If_Par_t * pPars )
+{
+    If_Man_t * pIfMan;
+    Aig_Obj_t * pNode;//, * pFanin, * pPrev;
+    int i;
+    // start the mapping manager and set its parameters
+    pIfMan = If_ManStart( pPars );
+    // print warning about excessive memory usage
+    if ( 1.0 * Aig_ManObjNum(p) * pIfMan->nObjBytes / (1<<30) > 1.0 )
+        printf( "Warning: The mapper will allocate %.1f Gb for to represent the subject graph with %d AIG nodes.\n", 
+            1.0 * Aig_ManObjNum(p) * pIfMan->nObjBytes / (1<<30), Aig_ManObjNum(p) );
+    // load the AIG into the mapper
+    Aig_ManForEachObj( p, pNode, i )
+    {
+        if ( Aig_ObjIsAnd(pNode) )
+            pNode->pData = (Aig_Obj_t *)If_ManCreateAnd( pIfMan, 
+                If_NotCond( (If_Obj_t *)Aig_ObjFanin0(pNode)->pData, Aig_ObjFaninC0(pNode) ), 
+                If_NotCond( (If_Obj_t *)Aig_ObjFanin1(pNode)->pData, Aig_ObjFaninC1(pNode) ) );
+        else if ( Aig_ObjIsPi(pNode) )
+        {
+            pNode->pData = If_ManCreateCi( pIfMan );
+            ((If_Obj_t *)pNode->pData)->Level = pNode->Level;
+        }
+        else if ( Aig_ObjIsPo(pNode) )
+            If_ManCreateCo( pIfMan, If_NotCond( Aig_ObjFanin0(pNode)->pData, Aig_ObjFaninC0(pNode) ) );
+        else if ( Aig_ObjIsConst1(pNode) )
+            Aig_ManConst1(p)->pData = If_ManConst1( pIfMan );
+        else // add the node to the mapper
+            assert( 0 );
+        // set up the choice node
+//        if ( Aig_AigNodeIsChoice( pNode ) )
+//        {
+//            pIfMan->nChoices++;
+//            for ( pPrev = pNode, pFanin = pNode->pData; pFanin; pPrev = pFanin, pFanin = pFanin->pData )
+//                If_ObjSetChoice( (If_Obj_t *)pPrev->pData, (If_Obj_t *)pFanin->pData );
+//            If_ManCreateChoice( pIfMan, (If_Obj_t *)pNode->pData );
+//        }
+    }
+    return pIfMan;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Creates the mapped network.]
 
   Description []
@@ -491,10 +543,9 @@ Vec_Ptr_t * Ntk_ManFromIf( Aig_Man_t * p, If_Man_t * pMan )
         Vec_IntWriteEntry( vIfToAig, pNode->Id, pObj->Id );
     }
     // create the mapping
-    If_ManScanMappingDirect( pMan );
+    vIfMap   = If_ManCollectMappingDirect( pMan );
     nVarsMax = pMan->pPars->nLutSize;
     nWords   = Aig_TruthWordNum( nVarsMax );
-    vIfMap   = pMan->vMapped;
     vMapping = Ntl_MappingAlloc( Vec_PtrSize(vIfMap) + (int)(Aig_ManConst1(p)->nRefs > 0), nVarsMax );
     nLuts    = 0;
     if ( Aig_ManConst1(p)->nRefs > 0 )
@@ -521,6 +572,7 @@ Vec_Ptr_t * Ntk_ManFromIf( Aig_Man_t * p, If_Man_t * pMan )
     }
     assert( nLuts == Vec_PtrSize(vMapping) );
     Vec_IntFree( vIfToAig );
+    Vec_PtrFree( vIfMap );
     return vMapping;
 }
 
@@ -535,7 +587,7 @@ Vec_Ptr_t * Ntk_ManFromIf( Aig_Man_t * p, If_Man_t * pMan )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Ntl_MappingIf( Aig_Man_t * p )
+Vec_Ptr_t * Ntl_MappingIf( Ntl_Man_t * pMan, Aig_Man_t * p )
 {
     Vec_Ptr_t * vMapping;
     If_Par_t Pars, * pPars = &Pars;
@@ -549,6 +601,7 @@ Vec_Ptr_t * Ntl_MappingIf( Aig_Man_t * p )
     pIfMan = Ntk_ManToIf( p, pPars );    
     if ( pIfMan == NULL )
         return NULL;
+    pIfMan->pManTim = Ntl_ManCreateTiming( pMan );
     if ( !If_ManPerformMapping( pIfMan ) )
     {
         If_ManStop( pIfMan );

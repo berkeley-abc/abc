@@ -67,6 +67,7 @@ struct Tim_Box_t_
 // timing object
 struct Tim_Obj_t_
 {
+    int              Id;             // the ID of this object
     int              TravId;         // traversal ID of this object
     int              iObj2Box;       // mapping of the object into its box
     int              iObj2Num;       // mapping of the object into its number in the box
@@ -80,13 +81,22 @@ static inline Tim_Obj_t * Tim_ManPo( Tim_Man_t * p, int i )                     
 static inline Tim_Box_t * Tim_ManPiBox( Tim_Man_t * p, int i )                        { return Tim_ManPi(p,i)->iObj2Box < 0 ? NULL : Vec_PtrEntry( p->vBoxes, Tim_ManPi(p,i)->iObj2Box ); }
 static inline Tim_Box_t * Tim_ManPoBox( Tim_Man_t * p, int i )                        { return Tim_ManPo(p,i)->iObj2Box < 0 ? NULL : Vec_PtrEntry( p->vBoxes, Tim_ManPo(p,i)->iObj2Box ); }
 
-static inline Tim_Obj_t * Tim_ManBoxInput( Tim_Man_t * p, Tim_Box_t * pBox, int i )   { return p->pPos + pBox->Inouts[i];               }
-static inline Tim_Obj_t * Tim_ManBoxOutput( Tim_Man_t * p, Tim_Box_t * pBox, int i )  { return p->pPis + pBox->Inouts[pBox->nInputs+i]; }
+static inline Tim_Obj_t * Tim_ManBoxInput( Tim_Man_t * p, Tim_Box_t * pBox, int i )   { assert( i < pBox->nInputs  ); return p->pPos + pBox->Inouts[i];               }
+static inline Tim_Obj_t * Tim_ManBoxOutput( Tim_Man_t * p, Tim_Box_t * pBox, int i )  { assert( i < pBox->nOutputs ); return p->pPis + pBox->Inouts[pBox->nInputs+i]; }
 
-#define Tim_ManBoxForEachInput( p, pBox, pObj, i )                                  \
+#define Tim_ManBoxForEachInput( p, pBox, pObj, i )                               \
     for ( i = 0; (i < (pBox)->nInputs) && ((pObj) = Tim_ManBoxInput(p, pBox, i)); i++ )
-#define Tim_ManBoxForEachOutput( p, pBox, pObj, i )                                 \
+#define Tim_ManBoxForEachOutput( p, pBox, pObj, i )                              \
     for ( i = 0; (i < (pBox)->nOutputs) && ((pObj) = Tim_ManBoxOutput(p, pBox, i)); i++ )
+
+#define Tim_ManForEachPi( p, pObj, i )                                           \
+    for ( i = 0; (i < (p)->nPis) && ((pObj) = (p)->pPis + i); i++ )              \
+        if ( pObj->iObj2Box >= 0 ) {} else 
+#define Tim_ManForEachPo( p, pObj, i )                                           \
+    for ( i = 0; (i < (p)->nPos) && ((pObj) = (p)->pPos + i); i++ )              \
+        if ( pObj->iObj2Box >= 0 ) {} else 
+#define Tim_ManForEachBox( p, pBox, i )                                          \
+    Vec_PtrForEachEntry( p->vBoxes, pBox, i )
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -111,7 +121,6 @@ Tim_Man_t * Tim_ManStart( int nPis, int nPos )
     memset( p, 0, sizeof(Tim_Man_t) );
     p->pMemObj = Mem_FlexStart();
     p->vBoxes  = Vec_PtrAlloc( 100 );
-    Vec_PtrPush( p->vBoxes, NULL );
     p->nPis = nPis;
     p->nPos = nPos;
     p->pPis = ALLOC( Tim_Obj_t, nPis );
@@ -119,9 +128,21 @@ Tim_Man_t * Tim_ManStart( int nPis, int nPos )
     p->pPos = ALLOC( Tim_Obj_t, nPos );
     memset( p->pPos, 0, sizeof(Tim_Obj_t) * nPos );
     for ( i = 0; i < nPis; i++ )
+    {
+        p->pPis[i].Id = i;
         p->pPis[i].iObj2Box = p->pPis[i].iObj2Num = -1;
+        p->pPis[i].timeReq = AIG_INFINITY;
+        p->pPis[i].timeArr = 0.0;
+        p->pPis[i].TravId = 0;
+    }
     for ( i = 0; i < nPos; i++ )
+    {
+        p->pPos[i].Id = i;
         p->pPos[i].iObj2Box = p->pPos[i].iObj2Num = -1;
+        p->pPos[i].timeReq = AIG_INFINITY;
+        p->pPos[i].timeArr = 0.0;
+        p->pPos[i].TravId = 0;
+    }
     return p;
 }
 
@@ -151,6 +172,42 @@ void Tim_ManStop( Tim_Man_t * p )
     free( p->pPis );
     free( p->pPos );
     free( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Stops the timing manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Tim_ManPrint( Tim_Man_t * p )
+{
+    Tim_Box_t * pBox;
+    Tim_Obj_t * pObj;
+    int i;
+    printf( "TIMING INFORMATION:\n" );
+    Tim_ManForEachPi( p, pObj, i )
+        printf( "pi%5d :  arr = %5.3f  req = %5.3f\n", i, pObj->timeArr, pObj->timeReq );
+    Tim_ManForEachPo( p, pObj, i )
+        printf( "po%5d :  arr = %5.3f  req = %5.3f\n", i, pObj->timeArr, pObj->timeReq );
+    Tim_ManForEachBox( p, pBox, i )
+    {
+        printf( "*** Box %3d :  Ins = %d. Outs = %d.\n", i, pBox->nInputs, pBox->nOutputs );
+        printf( "Delay table:" );
+        for ( i = 0; i < pBox->nInputs * pBox->nOutputs; i++ )
+            printf( " %5.3f", pBox->pDelayTable[i] );
+        printf( "\n" );
+        Tim_ManBoxForEachInput( p, pBox, pObj, i )
+            printf( "box-inp%3d :  arr = %5.3f  req = %5.3f\n", i, pObj->timeArr, pObj->timeReq );
+        Tim_ManBoxForEachOutput( p, pBox, pObj, i )
+            printf( "box-out%3d :  arr = %5.3f  req = %5.3f\n", i, pObj->timeArr, pObj->timeReq );
+    }
+    printf( "\n" );
 }
 
 /**Function*************************************************************
@@ -295,12 +352,12 @@ void Tim_ManInitPiArrival( Tim_Man_t * p, int iPi, float Delay )
 void Tim_ManInitPoRequired( Tim_Man_t * p, int iPo, float Delay )
 {
     assert( iPo < p->nPos );
-    p->pPos[iPo].timeArr = Delay;
+    p->pPos[iPo].timeReq = Delay;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Updates arrival time of the PO.]
+  Synopsis    [Updates required time of the PO.]
 
   Description []
                
@@ -319,7 +376,7 @@ void Tim_ManSetPoArrival( Tim_Man_t * p, int iPo, float Delay )
 
 /**Function*************************************************************
 
-  Synopsis    [Updates required time of the PI.]
+  Synopsis    [Updates arrival time of the PI.]
 
   Description []
                
@@ -334,6 +391,44 @@ void Tim_ManSetPiRequired( Tim_Man_t * p, int iPi, float Delay )
     assert( p->pPis[iPi].TravId != p->nTravIds );
     p->pPis[iPi].timeReq = Delay;
     p->pPis[iPi].TravId = p->nTravIds;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Updates required time of the PO.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Tim_ManSetPoRequired( Tim_Man_t * p, int iPo, float Delay )
+{
+    assert( iPo < p->nPos );
+    assert( p->pPos[iPo].TravId != p->nTravIds );
+    p->pPos[iPo].timeReq = Delay;
+    p->pPos[iPo].TravId = p->nTravIds;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sets the correct required times for all POs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Tim_ManSetPoRequiredAll( Tim_Man_t * p, float Delay )
+{
+    Tim_Obj_t * pObj;
+    int i;
+    Tim_ManForEachPo( p, pObj, i )
+        Tim_ManSetPoRequired( p, i, Delay );
 }
 
 
@@ -351,20 +446,25 @@ void Tim_ManSetPiRequired( Tim_Man_t * p, int iPi, float Delay )
 float Tim_ManGetPiArrival( Tim_Man_t * p, int iPi )
 {
     Tim_Box_t * pBox;
-    Tim_Obj_t * pObj, * pObjRes;
+    Tim_Obj_t * pObjThis, * pObj, * pObjRes;
     float * pDelays, DelayBest;
     int i, k;
-    // consider the main PI or the already processed PI
+    // consider the already processed PI
+    pObjThis = Tim_ManPi( p, iPi );
+    if ( pObjThis->TravId == p->nTravIds )
+        return pObjThis->timeArr;
+    pObjThis->TravId = p->nTravIds;
+    // consider the main PI
     pBox = Tim_ManPiBox( p, iPi );
-    if ( pBox == NULL || pBox->TravId == p->nTravIds )
-        return Tim_ManPi(p, iPi)->timeArr;
+    if ( pBox == NULL )
+        return pObjThis->timeArr;
     // update box timing
     pBox->TravId = p->nTravIds;
     // get the arrival times of the inputs of the box (POs)
     Tim_ManBoxForEachInput( p, pBox, pObj, i )
         if ( pObj->TravId != p->nTravIds )
             printf( "Tim_ManGetPiArrival(): PO arrival times of the box are not up to date!\n" );
-    // compute the required times for each output of the box (PIs)
+    // compute the arrival times for each output of the box (PIs)
     Tim_ManBoxForEachOutput( p, pBox, pObjRes, i )
     {
         pDelays = pBox->pDelayTable + i * pBox->nInputs;
@@ -374,7 +474,7 @@ float Tim_ManGetPiArrival( Tim_Man_t * p, int iPi )
         pObjRes->timeArr = DelayBest;
         pObjRes->TravId = p->nTravIds;
     }
-    return Tim_ManPi(p, iPi)->timeArr;
+    return pObjThis->timeArr;
 }
 
 /**Function*************************************************************
@@ -391,16 +491,21 @@ float Tim_ManGetPiArrival( Tim_Man_t * p, int iPi )
 float Tim_ManGetPoRequired( Tim_Man_t * p, int iPo )
 {
     Tim_Box_t * pBox;
-    Tim_Obj_t * pObj, * pObjRes;
+    Tim_Obj_t * pObjThis, * pObj, * pObjRes;
     float * pDelays, DelayBest;
     int i, k;
-    // consider the main PO or the already processed PO
+    // consider the already processed PO
+    pObjThis = Tim_ManPo( p, iPo );
+    if ( pObjThis->TravId == p->nTravIds )
+        return pObjThis->timeReq;
+    pObjThis->TravId = p->nTravIds;
+    // consider the main PO
     pBox = Tim_ManPoBox( p, iPo );
-    if ( pBox == NULL || pBox->TravId == p->nTravIds )
-        return Tim_ManPo(p, iPo)->timeReq;
+    if ( pBox == NULL )
+        return pObjThis->timeReq;
     // update box timing
     pBox->TravId = p->nTravIds;
-    // get the arrival times of the inputs of the box (POs)
+    // get the required times of the inputs of the box (POs)
     Tim_ManBoxForEachOutput( p, pBox, pObj, i )
         if ( pObj->TravId != p->nTravIds )
             printf( "Tim_ManGetPoRequired(): PI required times of the box are not up to date!\n" );
@@ -411,12 +516,12 @@ float Tim_ManGetPoRequired( Tim_Man_t * p, int iPo )
         Tim_ManBoxForEachOutput( p, pBox, pObj, k )
         {
             pDelays = pBox->pDelayTable + k * pBox->nInputs;
-            DelayBest = AIG_MIN( DelayBest, pObj->timeReq + pDelays[i] );
+            DelayBest = AIG_MIN( DelayBest, pObj->timeReq - pDelays[i] );
         }
         pObjRes->timeReq = DelayBest;
         pObjRes->TravId = p->nTravIds;
     }
-    return Tim_ManPo(p, iPo)->timeReq;
+    return pObjThis->timeReq;
 }
 
 

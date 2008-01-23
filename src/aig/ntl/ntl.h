@@ -70,6 +70,7 @@ struct Ntl_Man_t_
     Vec_Ptr_t *        vCis;           // the primary inputs of the extracted part
     Vec_Ptr_t *        vCos;           // the primary outputs of the extracted part 
     Vec_Ptr_t *        vNodes;         // the nodes of the abstracted part
+    Vec_Int_t *        vBox1Cos;       // the first COs of the boxes
     Aig_Man_t *        pAig;           // the extracted AIG
     Tim_Man_t *        pManTime;       // the timing manager
 };
@@ -143,6 +144,8 @@ static inline int         Ntl_ModelPoNum( Ntl_Mod_t * p )         { return p->nO
 static inline int         Ntl_ModelNodeNum( Ntl_Mod_t * p )       { return p->nObjs[NTL_OBJ_NODE];              } 
 static inline int         Ntl_ModelLatchNum( Ntl_Mod_t * p )      { return p->nObjs[NTL_OBJ_LATCH];             } 
 static inline int         Ntl_ModelBoxNum( Ntl_Mod_t * p )        { return p->nObjs[NTL_OBJ_BOX];               } 
+static inline int         Ntl_ModelCiNum( Ntl_Mod_t * p )         { return p->nObjs[NTL_OBJ_PI] + p->nObjs[NTL_OBJ_LATCH]; } 
+static inline int         Ntl_ModelCoNum( Ntl_Mod_t * p )         { return p->nObjs[NTL_OBJ_PO] + p->nObjs[NTL_OBJ_LATCH]; } 
 
 static inline Ntl_Obj_t * Ntl_ModelPi( Ntl_Mod_t * p, int i )     { return Vec_PtrEntry(p->vPis, i);            } 
 static inline Ntl_Obj_t * Ntl_ModelPo( Ntl_Mod_t * p, int i )     { return Vec_PtrEntry(p->vPos, i);            } 
@@ -217,6 +220,7 @@ static inline void        Ntl_ObjSetFanout( Ntl_Obj_t * p, Ntl_Net_t * pNet, int
 ////////////////////////////////////////////////////////////////////////
 
 /*=== ntlAig.c ==========================================================*/
+extern Aig_Obj_t *     Ntl_ManExtractAigNode( Ntl_Obj_t * pNode );
 extern int             Ntl_ManExtract( Ntl_Man_t * p );
 extern int             Ntl_ManInsert( Ntl_Man_t * p, Vec_Ptr_t * vMapping );
 extern int             Ntl_ManInsertTest( Ntl_Man_t * p );
@@ -239,7 +243,7 @@ extern void            Ntl_ModelFree( Ntl_Mod_t * p );
 extern Vec_Ptr_t *     Ntl_MappingAlloc( int nLuts, int nVars );
 extern Vec_Ptr_t *     Ntl_MappingFromAig( Aig_Man_t * p );
 extern Vec_Ptr_t *     Ntl_MappingFpga( Aig_Man_t * p );
-extern Vec_Ptr_t *     Ntl_MappingIf( Aig_Man_t * p );
+extern Vec_Ptr_t *     Ntl_MappingIf( Ntl_Man_t * pMan, Aig_Man_t * p );
 /*=== ntlObj.c ============================================================*/
 extern Ntl_Obj_t *     Ntl_ModelCreatePi( Ntl_Mod_t * pModel );
 extern Ntl_Obj_t *     Ntl_ModelCreatePo( Ntl_Mod_t * pModel, Ntl_Net_t * pNet );
@@ -254,6 +258,8 @@ extern Ntl_Net_t *     Ntl_ModelFindNet( Ntl_Mod_t * p, char * pName );
 extern Ntl_Net_t *     Ntl_ModelFindOrCreateNet( Ntl_Mod_t * p, char * pName );
 extern int             Ntl_ModelSetNetDriver( Ntl_Obj_t * pObj, Ntl_Net_t * pNet );
 extern int             Ntl_ModelFindPioNumber( Ntl_Mod_t * p, char * pName, int * pNumber );
+/*=== ntlTime.c ==========================================================*/
+extern Tim_Man_t *     Ntl_ManCreateTiming( Ntl_Man_t * p );
 /*=== ntlReadBlif.c ==========================================================*/
 extern Ntl_Man_t *     Ioa_ReadBlif( char * pFileName, int fCheck );
 /*=== ntlWriteBlif.c ==========================================================*/

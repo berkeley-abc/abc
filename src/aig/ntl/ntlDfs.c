@@ -63,13 +63,27 @@ int Ntl_ManDfs_rec( Ntl_Man_t * p, Ntl_Net_t * pNet )
     // add box inputs/outputs to COs/CIs
     if ( Ntl_ObjIsBox(pObj) )
     {
+        int LevelCur, LevelMax = -AIG_INFINITY;
+        Vec_IntPush( p->vBox1Cos, Aig_ManPoNum(p->pAig) );
         Ntl_ObjForEachFanin( pObj, pNetFanin, i )
+        {
+            LevelCur = Aig_ObjLevel( Aig_Regular(pNetFanin->pFunc) );
+            LevelMax = AIG_MAX( LevelMax, LevelCur );
             Vec_PtrPush( p->vCos, pNetFanin );
+            Aig_ObjCreatePo( p->pAig, pNetFanin->pFunc );
+        }
         Ntl_ObjForEachFanout( pObj, pNetFanin, i )
+        {
             Vec_PtrPush( p->vCis, pNetFanin );
+            pNetFanin->pFunc = Aig_ObjCreatePi( p->pAig );
+            Aig_ObjSetLevel( pNetFanin->pFunc, LevelMax + 1 );
+        }
+//printf( "Creating fake PO with ID = %d.\n", Aig_ManPo(p->pAig, Vec_IntEntryLast(p->vBox1Cos))->Id );
     }
     // store the node
     Vec_PtrPush( p->vNodes, pObj );
+    if ( Ntl_ObjIsNode(pObj) )
+        pNet->pFunc = Ntl_ManExtractAigNode( pObj );
     pNet->nVisits = 2;
     return 1;
 }
@@ -95,6 +109,7 @@ int Ntl_ManDfs( Ntl_Man_t * p )
     assert( Vec_PtrSize(p->vCis) == 0 );
     assert( Vec_PtrSize(p->vCos) == 0 );
     assert( Vec_PtrSize(p->vNodes) == 0 );
+    assert( Vec_IntSize(p->vBox1Cos) == 0 );
     // get the root model
     pRoot = Vec_PtrEntry( p->vModels, 0 );
     // collect primary inputs
@@ -103,6 +118,7 @@ int Ntl_ManDfs( Ntl_Man_t * p )
         assert( Ntl_ObjFanoutNum(pObj) == 1 );
         pNet = Ntl_ObjFanout0(pObj);
         Vec_PtrPush( p->vCis, pNet );
+        pNet->pFunc = Aig_ObjCreatePi( p->pAig );
         if ( pNet->nVisits )
         {
             printf( "Ntl_ManDfs(): Primary input appears twice in the list.\n" );
@@ -116,6 +132,7 @@ int Ntl_ManDfs( Ntl_Man_t * p )
         assert( Ntl_ObjFanoutNum(pObj) == 1 );
         pNet = Ntl_ObjFanout0(pObj);
         Vec_PtrPush( p->vCis, pNet );
+        pNet->pFunc = Aig_ObjCreatePi( p->pAig );
         if ( pNet->nVisits )
         {
             printf( "Ntl_ManDfs(): Latch output is duplicated or defined as a primary input.\n" );
@@ -136,6 +153,7 @@ int Ntl_ManDfs( Ntl_Man_t * p )
             return 0;
         }
         Vec_PtrPush( p->vCos, pNet );
+        Aig_ObjCreatePo( p->pAig, pNet->pFunc );
     }
     // visit the nodes starting from latch inputs outputs
     Ntl_ModelForEachLatch( pRoot, pObj, i )
@@ -150,6 +168,7 @@ int Ntl_ManDfs( Ntl_Man_t * p )
             return 0;
         }
         Vec_PtrPush( p->vCos, pNet );
+        Aig_ObjCreatePo( p->pAig, pNet->pFunc );
     }
     // report the number of dangling objects
     nUselessObjects = Ntl_ModelNodeNum(pRoot) + Ntl_ModelBoxNum(pRoot) - Vec_PtrSize(p->vNodes);

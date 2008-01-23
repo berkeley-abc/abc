@@ -260,6 +260,7 @@ int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPrepr
 //    ProgressBar * pProgress;
     If_Obj_t * pObj;
     int i, clk = clock();
+    float arrTime;
     assert( Mode >= 0 && Mode <= 2 );
     // set the sorting function
     if ( Mode || p->pPars->fArea ) // area
@@ -271,14 +272,56 @@ int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPrepr
     // set the cut number
     p->nCutsUsed   = nCutsUsed;
     p->nCutsMerged = 0;
-    // map the internal nodes
-//    pProgress = Extra_ProgressBarStart( stdout, If_ManObjNum(p) );
+    // make sure the visit counters are all zero
     If_ManForEachNode( p, pObj, i )
+        assert( pObj->nVisits == pObj->nVisitsCopy );
+    // map the internal nodes
+    if ( p->pManTim != NULL )
     {
-//        Extra_ProgressBarUpdate( pProgress, i, pLabel );
-        If_ObjPerformMappingAnd( p, pObj, Mode, fPreprocess );
-        if ( pObj->fRepr )
-            If_ObjPerformMappingChoice( p, pObj, Mode, fPreprocess );
+        Tim_ManIncrementTravId( p->pManTim );
+        If_ManForEachObj( p, pObj, i )
+        {
+            if ( If_ObjIsAnd(pObj) )
+            {
+                If_ObjPerformMappingAnd( p, pObj, Mode, fPreprocess );
+                if ( pObj->fRepr )
+                    If_ObjPerformMappingChoice( p, pObj, Mode, fPreprocess );
+            }
+            else if ( If_ObjIsCi(pObj) )
+            {
+                arrTime = Tim_ManGetPiArrival( p->pManTim, pObj->IdPio );
+                If_ObjSetArrTime( pObj, arrTime );
+/*
+    if ( pObj->IdPio >= 2000 )
+    {
+        int x = 0;
+        printf( "+%d %6.3f  ", pObj->IdPio, arrTime );
+    }
+*/
+            }
+            else if ( If_ObjIsCo(pObj) )
+            {
+                arrTime = If_ObjArrTime( If_ObjFanin0(pObj) );
+                Tim_ManSetPoArrival( p->pManTim, pObj->IdPio, arrTime );
+            }
+            else if ( If_ObjIsConst1(pObj) )
+            {
+            }
+            else
+                assert( 0 );
+        }
+//        Tim_ManPrint( p->pManTim );
+    }
+    else
+    {
+    //    pProgress = Extra_ProgressBarStart( stdout, If_ManObjNum(p) );
+        If_ManForEachNode( p, pObj, i )
+        {
+    //        Extra_ProgressBarUpdate( pProgress, i, pLabel );
+            If_ObjPerformMappingAnd( p, pObj, Mode, fPreprocess );
+            if ( pObj->fRepr )
+                If_ObjPerformMappingChoice( p, pObj, Mode, fPreprocess );
+        }
     }
 //    Extra_ProgressBarStop( pProgress );
     // make sure the visit counters are all zero
@@ -286,6 +329,7 @@ int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPrepr
         assert( pObj->nVisits == 0 );
     // compute required times and stats
     If_ManComputeRequired( p );
+//    Tim_ManPrint( p->pManTim );
     if ( p->pPars->fVerbose )
     {
         char Symb = fPreprocess? 'P' : ((Mode == 0)? 'D' : ((Mode == 1)? 'F' : 'A'));

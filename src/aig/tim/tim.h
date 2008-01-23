@@ -59,6 +59,7 @@ typedef struct Tim_Man_t_           Tim_Man_t;
 /*=== time.c ===========================================================*/
 extern Tim_Man_t *     Tim_ManStart( int nPis, int nPos );
 extern void            Tim_ManStop( Tim_Man_t * p );
+extern void            Tim_ManPrint( Tim_Man_t * p );
 extern void            Tim_ManSetDelayTables( Tim_Man_t * p, Vec_Ptr_t * vDelayTables );
 extern void            Tim_ManCreateBox( Tim_Man_t * p, int * pIns, int nIns, int * pOuts, int nOuts, float * pDelayTable );
 extern void            Tim_ManCreateBoxFirst( Tim_Man_t * p, int firstIn, int nIns, int firstOut, int nOuts, float * pDelayTable );
@@ -67,6 +68,8 @@ extern void            Tim_ManInitPiArrival( Tim_Man_t * p, int iPi, float Delay
 extern void            Tim_ManInitPoRequired( Tim_Man_t * p, int iPo, float Delay );
 extern void            Tim_ManSetPoArrival( Tim_Man_t * p, int iPo, float Delay );
 extern void            Tim_ManSetPiRequired( Tim_Man_t * p, int iPi, float Delay );
+extern void            Tim_ManSetPoRequired( Tim_Man_t * p, int iPo, float Delay );
+extern void            Tim_ManSetPoRequiredAll( Tim_Man_t * p, float Delay );
 extern float           Tim_ManGetPiArrival( Tim_Man_t * p, int iPi );
 extern float           Tim_ManGetPoRequired( Tim_Man_t * p, int iPo );
 
