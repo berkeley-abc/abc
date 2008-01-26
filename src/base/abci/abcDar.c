@@ -1433,10 +1433,10 @@ int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDarClau( Abc_Ntk_t * pNtk, int nFrames, int nPref, int nClauses, int fBmc, int fRefs, int fVerbose, int fVeryVerbose )
+int Abc_NtkDarClau( Abc_Ntk_t * pNtk, int nFrames, int nPref, int nClauses, int nLutSize, int nLevels, int nCutsMax, int nBatches, int fStepUp, int fBmc, int fRefs, int fVerbose, int fVeryVerbose )
 {
     extern int Fra_Clau( Aig_Man_t * pMan, int nIters, int fVerbose, int fVeryVerbose );
-    extern int Fra_Claus( Aig_Man_t * pAig, int nFrames, int nPref, int nClauses, int fBmc, int fRefs, int fVerbose, int fVeryVerbose );
+    extern int Fra_Claus( Aig_Man_t * pAig, int nFrames, int nPref, int nClauses, int nLutSize, int nLevels, int nCutsMax, int nBatches, int fStepUp, int fBmc, int fRefs, int fVerbose, int fVeryVerbose );
     Aig_Man_t * pMan;
     if ( Abc_NtkPoNum(pNtk) != 1 )
     {
@@ -1452,7 +1452,7 @@ int Abc_NtkDarClau( Abc_Ntk_t * pNtk, int nFrames, int nPref, int nClauses, int 
     pMan->vFlopNums = NULL;
 
 //    Fra_Clau( pMan, nStepsMax, fVerbose, fVeryVerbose );
-    Fra_Claus( pMan, nFrames, nPref, nClauses, fBmc, fRefs, fVerbose, fVeryVerbose );
+    Fra_Claus( pMan, nFrames, nPref, nClauses, nLutSize, nLevels, nCutsMax, nBatches, fStepUp, fBmc, fRefs, fVerbose, fVeryVerbose );
     Aig_ManStop( pMan );
     return 1;
 }

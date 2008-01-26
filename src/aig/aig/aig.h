@@ -137,6 +137,7 @@ struct Aig_Man_t_
     void (*pImpFunc) (void*, void*); // implication checking precedure
     void *           pImpData;       // implication checking data
     void *           pManTime;       // the timing manager
+    void *           pManCuts;
     Vec_Ptr_t *      vMapped;
     Vec_Int_t *      vFlopNums;      
     void *           pSeqModel;
@@ -145,6 +146,56 @@ struct Aig_Man_t_
     int              time1;
     int              time2;
 };
+
+// cut computation
+typedef struct Aig_ManCut_t_         Aig_ManCut_t;
+typedef struct Aig_Cut_t_            Aig_Cut_t;
+
+// the cut used to represent node in the AIG
+struct Aig_Cut_t_
+{
+    Aig_Cut_t *     pNext;           // the next cut in the table 
+    int             Cost;            // the cost of the cut
+    unsigned        uSign;           // cut signature
+    int             iNode;           // the node, for which it is the cut
+    short           nCutSize;        // the number of bytes in the cut
+    char            nLeafMax;        // the maximum number of fanins
+    char            nFanins;         // the current number of fanins
+    int             pFanins[0];      // the fanins (followed by the truth table)
+};
+
+// the CNF computation manager
+struct Aig_ManCut_t_
+{
+    // AIG manager
+    Aig_Man_t *     pAig;            // the input AIG manager
+    Aig_Cut_t **    pCuts;           // the cuts for each node in the output manager
+    // parameters
+    int             nCutsMax;        // the max number of cuts at the node
+    int             nLeafMax;        // the max number of leaves of a cut
+    int             fTruth;          // enables truth table computation
+    int             fVerbose;        // enables verbose output
+    // internal variables
+    int             nCutSize;        // the number of bytes needed to store one cut
+    int             nTruthWords;     // the number of truth table words
+    Aig_MmFixed_t * pMemCuts;        // memory manager for cuts
+    unsigned *      puTemp[4];       // used for the truth table computation
+};
+
+static inline Aig_Cut_t *  Aig_ObjCuts( Aig_ManCut_t * p, Aig_Obj_t * pObj )                         { return p->pCuts[pObj->Id];  }
+static inline void         Aig_ObjSetCuts( Aig_ManCut_t * p, Aig_Obj_t * pObj, Aig_Cut_t * pCuts )   { p->pCuts[pObj->Id] = pCuts; }
+
+static inline int          Aig_CutLeaveNum( Aig_Cut_t * pCut )          { return pCut->nFanins;                                    }
+static inline int *        Aig_CutLeaves( Aig_Cut_t * pCut )            { return pCut->pFanins;                                    }
+static inline unsigned *   Aig_CutTruth( Aig_Cut_t * pCut )             { return (unsigned *)(pCut->pFanins + pCut->nLeafMax);     }
+static inline Aig_Cut_t *  Aig_CutNext( Aig_Cut_t * pCut )              { return (Aig_Cut_t *)(((char *)pCut) + pCut->nCutSize);   }
+
+// iterator over cuts of the node
+#define Aig_ObjForEachCut( p, pObj, pCut, i )                           \
+    for ( i = 0, pCut = Aig_ObjCuts(p, pObj); i < p->nCutsMax; i++, pCut = Aig_CutNext(pCut) ) 
+// iterator over leaves of the cut
+#define Aig_CutForEachLeaf( p, pCut, pLeaf, i )                         \
+    for ( i = 0; (i < (int)(pCut)->nFanins) && ((pLeaf) = Aig_ManObj(p, (pCut)->pFanins[i])); i++ )
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
@@ -386,6 +437,9 @@ static inline int     Aig_ObjFanoutNext( Aig_Man_t * p, int iFan )   { assert(iF
 extern int             Aig_ManCheck( Aig_Man_t * p );
 extern void            Aig_ManCheckMarkA( Aig_Man_t * p );
 extern void            Aig_ManCheckPhase( Aig_Man_t * p );
+/*=== aigCuts.c ========================================================*/
+extern Aig_ManCut_t *  Aig_ComputeCuts( Aig_Man_t * pAig, int nCutsMax, int nLeafMax, int fTruth, int fVerbose );
+extern void            Aig_ManCutStop( Aig_ManCut_t * p );
 /*=== aigDfs.c ==========================================================*/
 extern Vec_Ptr_t *     Aig_ManDfs( Aig_Man_t * p );
 extern Vec_Ptr_t *     Aig_ManDfsPio( Aig_Man_t * p );

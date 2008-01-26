@@ -57,7 +57,7 @@ Cnf_Dat_t * Cnf_Derive( Aig_Man_t * pAig, int nOutputs )
 
     // generate cuts for all nodes, assign cost, and find best cuts
 clk = clock();
-    pMemCuts = Dar_ManComputeCuts( pAig, 10 );
+    pMemCuts = Dar_ManComputeCuts( pAig, 10, 0 );
 p->timeCuts = clock() - clk;
 
     // find the mapping

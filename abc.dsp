@@ -1608,6 +1608,10 @@ SOURCE=.\src\opt\fret\fretInit.c
 
 SOURCE=.\src\opt\fret\fretMain.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\fret\fretTime.c
+# End Source File
 # End Group
 # End Group
 # Begin Group "map"
@@ -2851,6 +2855,10 @@ SOURCE=.\src\aig\aig\aig.h
 # Begin Source File
 
 SOURCE=.\src\aig\aig\aigCheck.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\aig\aigCuts.c
 # End Source File
 # Begin Source File
 

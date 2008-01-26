@@ -195,6 +195,34 @@ p->timeOther = p->timeTotal - p->timeCuts - p->timeEval;
 
 /**Function*************************************************************
 
+  Synopsis    [Computes the total number of cuts.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Dar_ManCutCount( Aig_Man_t * pAig, int * pnCutsK )
+{
+    Dar_Cut_t * pCut;
+    Aig_Obj_t * pObj;
+    int i, k, nCuts = 0, nCutsK = 0;
+    Aig_ManForEachNode( pAig, pObj, i )
+        Dar_ObjForEachCut( pObj, pCut, k )
+        {
+            nCuts++;
+            if ( pCut->nLeaves == 4 )
+                nCutsK++;
+        }
+    if ( pnCutsK )
+        *pnCutsK = nCutsK;
+    return nCuts;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -204,13 +232,13 @@ p->timeOther = p->timeTotal - p->timeCuts - p->timeEval;
   SeeAlso     []
 
 ***********************************************************************/
-Aig_MmFixed_t * Dar_ManComputeCuts( Aig_Man_t * pAig, int nCutsMax )
+Aig_MmFixed_t * Dar_ManComputeCuts( Aig_Man_t * pAig, int nCutsMax, int fVerbose )
 {
     Dar_Man_t * p;
     Dar_RwrPar_t Pars, * pPars = &Pars; 
     Aig_Obj_t * pObj;
     Aig_MmFixed_t * pMemCuts;
-    int i, nNodes;
+    int i, nNodes, clk = clock();
     // remove dangling nodes
     if ( (nNodes = Aig_ManCleanup( pAig )) )
     {
@@ -226,6 +254,23 @@ Aig_MmFixed_t * Dar_ManComputeCuts( Aig_Man_t * pAig, int nCutsMax )
     // compute cuts for each nodes in the topological order
     Aig_ManForEachNode( pAig, pObj, i )
         Dar_ObjComputeCuts( p, pObj );
+    // print verbose stats
+    if ( fVerbose )
+    {
+//        Aig_Obj_t * pObj;
+        int nCuts, nCutsK;//, i;
+        nCuts = Dar_ManCutCount( pAig, &nCutsK );
+        printf( "Nodes = %6d. Total cuts = %6d. 4-input cuts = %6d.\n",
+            Aig_ManObjNum(pAig), nCuts, nCutsK );
+        printf( "Cut size = %2d. Truth size = %2d. Total mem = %5.2f Mb  ",
+            sizeof(Dar_Cut_t), 4, 1.0*Aig_MmFixedReadMemUsage(p->pMemCuts)/(1<<20) );
+        PRT( "Runtime", clock() - clk );
+/*
+        Aig_ManForEachNode( pAig, pObj, i )
+            if ( i % 300 == 0 )
+                Dar_ObjCutPrint( pAig, pObj );
+*/
+    }
     // free the cuts
     pMemCuts = p->pMemCuts;
     p->pMemCuts = NULL;

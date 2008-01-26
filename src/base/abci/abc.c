@@ -6392,8 +6392,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
-//    printf( "This command is temporarily disabled.\n" );
-//    return 0;
+    printf( "This command is temporarily disabled.\n" );
+    return 0;
 
     // set defaults
     fVeryVerbose = 0;
@@ -13402,27 +13402,37 @@ int Abc_CommandIndcut( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nFrames;
     int nPref;
     int nClauses;
+    int nLutSize;
+    int nLevels;
+    int nCutsMax;
+    int nBatches;
+    int fStepUp;
     int fBmc;
     int fRegs;
     int fVerbose;
     int fVeryVerbose;
     int c;
-    extern int Abc_NtkDarClau( Abc_Ntk_t * pNtk, int nFrames, int nPref, int nClauses, int fBmc, int fRegs, int fVerbose, int fVeryVerbose );
+    extern int Abc_NtkDarClau( Abc_Ntk_t * pNtk, int nFrames, int nPref, int nClauses, int nLutSize, int nLevels, int nCutsMax, int nBatches, int fStepUp, int fBmc, int fRegs, int fVerbose, int fVeryVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nFrames      = 1;
-    nPref        = 0;
+    nFrames      =    1;
+    nPref        =    0;
     nClauses     = 5000;
-    fBmc         = 1;
-    fRegs        = 1;
-    fVerbose     = 0;
-    fVeryVerbose = 0;
+    nLutSize     =    4;
+    nLevels      =    8;
+    nCutsMax     =   16;
+    nBatches     =    1;
+    fStepUp      =    0;
+    fBmc         =    1;
+    fRegs        =    1;
+    fVerbose     =    0;
+    fVeryVerbose =    0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FPCbrvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FPCMLNBsbrvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -13459,6 +13469,53 @@ int Abc_CommandIndcut( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nClauses < 0 ) 
                 goto usage;
             break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLutSize < 0 ) 
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLevels = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLevels < 0 ) 
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nCutsMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nCutsMax < 0 ) 
+                goto usage;
+            break;
+        case 'B':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-B\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nBatches = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nBatches < 0 ) 
+                goto usage;
+            break;
+        case 's':
+            fStepUp ^= 1;
+            break;
         case 'b':
             fBmc ^= 1;
             break;
@@ -13492,14 +13549,24 @@ int Abc_CommandIndcut( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( stdout, "Currently only works for structurally hashed circuits.\n" );
         return 0;
     }
-    Abc_NtkDarClau( pNtk, nFrames, nPref, nClauses, fBmc, fRegs, fVerbose, fVeryVerbose );
+    if ( nLutSize > 12 )
+    {
+        fprintf( stdout, "The cut size should be not exceed 12.\n" );
+        return 0;
+    }
+    Abc_NtkDarClau( pNtk, nFrames, nPref, nClauses, nLutSize, nLevels, nCutsMax, nBatches, fStepUp, fBmc, fRegs, fVerbose, fVeryVerbose );
     return 0;
 usage:
-    fprintf( pErr, "usage: indcut [-F num] [-P num] [-C num] [-bvh]\n" );
+    fprintf( pErr, "usage: indcut [-FPCMLNB num] [-bvh]\n" );
     fprintf( pErr, "\t         K-step induction strengthened with cut properties\n" );
     fprintf( pErr, "\t-F num : number of time frames for induction (1=simple) [default = %d]\n", nFrames );
     fprintf( pErr, "\t-P num : number of time frames in the prefix (0=no prefix) [default = %d]\n", nPref );
     fprintf( pErr, "\t-C num : the max number of clauses to use for strengthening [default = %d]\n", nClauses );
+    fprintf( pErr, "\t-M num : the cut size (2 <= M <= 12) [default = %d]\n", nLutSize );
+    fprintf( pErr, "\t-L num : the max number of levels for cut computation [default = %d]\n", nLevels );
+    fprintf( pErr, "\t-N num : the max number of cuts to compute at a node [default = %d]\n", nCutsMax );
+    fprintf( pErr, "\t-B num : the max number of invariant batches to try [default = %d]\n", nBatches );
+    fprintf( pErr, "\t-s     : toggle increment cut size in each batch [default = %s]\n", fStepUp? "yes": "no" );
     fprintf( pErr, "\t-b     : toggle enabling BMC check [default = %s]\n", fBmc? "yes": "no" );
     fprintf( pErr, "\t-r     : toggle enabling register clauses [default = %s]\n", fRegs? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );

@@ -59,31 +59,32 @@ void dfsfast_preorder( Abc_Ntk_t *pNtk ) {
 
   // create reverse timing edges for backward traversal
 #if !defined(IGNORE_TIMING)
-  if (maxDelayCon)
+  if (pManMR->maxDelay) {
     Abc_NtkForEachObj( pNtk, pObj, i ) {
       Vec_PtrForEachEntry( FTIMEEDGES(pObj), pNext, j ) {
-        vTimeIn = FDATA(pNext)->vTimeInEdges;
+        vTimeIn = FDATA(pNext)->vNodes;
         if (!vTimeIn) {
-          vTimeIn = FDATA(pNext)->vTimeInEdges = Vec_PtrAlloc(2);
+          vTimeIn = FDATA(pNext)->vNodes = Vec_PtrAlloc(2);
         }
         Vec_PtrPush(vTimeIn, pObj);
       }
     }
+  }
 #endif
 
   // clear histogram
-  memset(Vec_IntArray(vSinkDistHist), 0, sizeof(int)*Vec_IntSize(vSinkDistHist));
+  memset(Vec_IntArray(pManMR->vSinkDistHist), 0, sizeof(int)*Vec_IntSize(pManMR->vSinkDistHist));
 
   // seed queue : latches, PIOs, and blocks
   Abc_NtkForEachObj( pNtk, pObj, i )
     if (Abc_ObjIsPo(pObj) ||
         Abc_ObjIsLatch(pObj) || 
-        (fIsForward && FTEST(pObj, BLOCK))) {
+        (pManMR->fIsForward && FTEST(pObj, BLOCK_OR_CONS) & pManMR->constraintMask)) {
       Vec_PtrPush(qn, pObj);
       Vec_IntPush(qe, 'r');
       FDATA(pObj)->r_dist = 1;
     } else if (Abc_ObjIsPi(pObj) || 
-               (!fIsForward && FTEST(pObj, BLOCK))) {
+               (!pManMR->fIsForward && FTEST(pObj, BLOCK_OR_CONS) & pManMR->constraintMask)) {
       Vec_PtrPush(qn, pObj);
       Vec_IntPush(qe, 'e');
       FDATA(pObj)->e_dist = 1;
@@ -100,7 +101,7 @@ void dfsfast_preorder( Abc_Ntk_t *pNtk ) {
       d = FDATA(pObj)->r_dist;
 
       // 1. structural edges
-      if (fIsForward) {
+      if (pManMR->fIsForward) {
         Abc_ObjForEachFanin( pObj, pNext, i )
           if (!FDATA(pNext)->e_dist) {
             FDATA(pNext)->e_dist = d+1;
@@ -118,26 +119,26 @@ void dfsfast_preorder( Abc_Ntk_t *pNtk ) {
       if (d == 1) continue;
 
       // 2. reverse edges (forward retiming only)
-      if (fIsForward) {
+      if (pManMR->fIsForward) {
         Abc_ObjForEachFanout( pObj, pNext, i )
           if (!FDATA(pNext)->r_dist && !Abc_ObjIsLatch(pNext)) {
             FDATA(pNext)->r_dist = d+1;
             Vec_PtrPush(qn, pNext);
             Vec_IntPush(qe, 'r');
           }          
-      }
 
-      // 3. timimg edges (reverse)
+      // 3. timimg edges (forward retiming only)
 #if !defined(IGNORE_TIMING)
-      if (maxDelayCon && FDATA(pObj)->vTimeInEdges)
-        Vec_PtrForEachEntry( FDATA(pObj)->vTimeInEdges, pNext, i ) {
-          if (!FDATA(pNext)->r_dist) {
-            FDATA(pNext)->r_dist = d+1;
-            Vec_PtrPush(qn, pNext);
-            Vec_IntPush(qe, 'r');
+        if (pManMR->maxDelay && FDATA(pObj)->vNodes)
+          Vec_PtrForEachEntry( FDATA(pObj)->vNodes, pNext, i ) {
+            if (!FDATA(pNext)->r_dist) {
+              FDATA(pNext)->r_dist = d+1;
+              Vec_PtrPush(qn, pNext);
+              Vec_IntPush(qe, 'r');
+            }
           }
-        }
 #endif
+      }
       
     } else { // if 'e'
       if (Abc_ObjIsLatch(pObj)) continue;
@@ -152,39 +153,52 @@ void dfsfast_preorder( Abc_Ntk_t *pNtk ) {
       }
 
       // 2. reverse edges (backward retiming only)
-      if (!fIsForward) {
+      if (!pManMR->fIsForward) {
         Abc_ObjForEachFanin( pObj, pNext, i )
           if (!FDATA(pNext)->e_dist && !Abc_ObjIsLatch(pNext)) {
             FDATA(pNext)->e_dist = d+1;
             Vec_PtrPush(qn, pNext);
             Vec_IntPush(qe, 'e');
           }  
+
+      // 3. timimg edges (backward retiming only)
+#if !defined(IGNORE_TIMING)
+        if (pManMR->maxDelay && FDATA(pObj)->vNodes)
+          Vec_PtrForEachEntry( FDATA(pObj)->vNodes, pNext, i ) {
+            if (!FDATA(pNext)->e_dist) {
+              FDATA(pNext)->e_dist = d+1;
+              Vec_PtrPush(qn, pNext);
+              Vec_IntPush(qe, 'e');
+            }
+          }
+#endif
       }
     }
   }
  
-  // create reverse timing edges for backward traversal
+  // free time edges
 #if !defined(IGNORE_TIMING)
-  if (maxDelayCon)
+  if (pManMR->maxDelay) {
     Abc_NtkForEachObj( pNtk, pObj, i ) {
-      vTimeIn = FDATA(pObj)->vTimeInEdges;
+      vTimeIn = FDATA(pObj)->vNodes;
       if (vTimeIn) {
         Vec_PtrFree(vTimeIn);
-        FDATA(pObj)->vTimeInEdges = 0;
+        FDATA(pObj)->vNodes = 0;
       }
     }
+  }
 #endif
 
   Abc_NtkForEachObj( pNtk, pObj, i ) {
-    Vec_IntAddToEntry(vSinkDistHist, FDATA(pObj)->r_dist, 1);
-    Vec_IntAddToEntry(vSinkDistHist, FDATA(pObj)->e_dist, 1);
+    Vec_IntAddToEntry(pManMR->vSinkDistHist, FDATA(pObj)->r_dist, 1);
+    Vec_IntAddToEntry(pManMR->vSinkDistHist, FDATA(pObj)->e_dist, 1);
 
 #ifdef DEBUG_PREORDER
     printf("node %d\t: r=%d\te=%d\n", Abc_ObjId(pObj), FDATA(pObj)->r_dist, FDATA(pObj)->e_dist);
 #endif
   }
 
-  printf("\t\tpre-ordered (max depth=%d)\n", d+1);
+  // printf("\t\tpre-ordered (max depth=%d)\n", d+1);
 
   // deallocate
   Vec_PtrFree( qn );
@@ -195,11 +209,13 @@ int dfsfast_e( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
   int i;
   Abc_Obj_t *pNext;
   
-  if (fSinkDistTerminate) return 0;
+  if (pManMR->fSinkDistTerminate) return 0;
 
-  if(FTEST(pObj, BLOCK) ||
+  // have we reached the sink?
+  if(FTEST(pObj, BLOCK_OR_CONS) & pManMR->constraintMask ||
      Abc_ObjIsPi(pObj)) {
-    assert(!fIsForward);
+    assert(pPred);
+    assert(!pManMR->fIsForward);
     return 1;
   }
 
@@ -210,7 +226,7 @@ int dfsfast_e( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
 #endif  
 
   // 1. structural edges
-  if (fIsForward)
+  if (pManMR->fIsForward)
     Abc_ObjForEachFanout( pObj, pNext, i ) {
       if (!FTEST(pNext, VISITED_R) &&
           FDIST(pObj, e, pNext, r) &&
@@ -237,7 +253,7 @@ int dfsfast_e( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
     goto not_found;
 
   // 2. reverse edges (backward retiming only)
-  if (!fIsForward) { 
+  if (!pManMR->fIsForward) { 
     Abc_ObjForEachFanout( pObj, pNext, i ) {
       if (!FTEST(pNext, VISITED_E) &&
           FDIST(pObj, e, pNext, e) &&
@@ -248,6 +264,21 @@ int dfsfast_e( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
         goto found;
       }
     }
+
+  // 3. timing edges (backward retiming only)
+#if !defined(IGNORE_TIMING)
+    if (pManMR->maxDelay) 
+      Vec_PtrForEachEntry( FTIMEEDGES(pObj), pNext, i) {
+        if (!FTEST(pNext, VISITED_E) &&
+            FDIST(pObj, e, pNext, e) &&
+            dfsfast_e(pNext, pPred)) {
+#ifdef DEBUG_PRINT_FLOWS
+          printf("o");
+#endif
+          goto found;
+        }
+      }
+#endif
   }
   
   // unwind
@@ -281,7 +312,7 @@ int dfsfast_r( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
   int i;
   Abc_Obj_t *pNext, *pOldPred;
 
-  if (fSinkDistTerminate) return 0;
+  if (pManMR->fSinkDistTerminate) return 0;
 
 #ifdef DEBUG_VISITED
   printf("(%dr=%d) ", Abc_ObjId(pObj), FDATA(pObj)->r_dist);
@@ -289,8 +320,8 @@ int dfsfast_r( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
 
   // have we reached the sink?
   if (Abc_ObjIsLatch(pObj) ||
-      Abc_ObjIsPo(pObj) || 
-      (fIsForward && FTEST(pObj, BLOCK))) {
+      (pManMR->fIsForward && Abc_ObjIsPo(pObj)) || 
+      (pManMR->fIsForward && FTEST(pObj, BLOCK_OR_CONS) & pManMR->constraintMask)) {
     assert(pPred);
     return 1;
   }
@@ -330,7 +361,7 @@ int dfsfast_r( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
   }
  
   // 2. reverse edges (forward retiming only)
-  if (fIsForward) {
+  if (pManMR->fIsForward) {
     Abc_ObjForEachFanin( pObj, pNext, i ) {
       if (!FTEST(pNext, VISITED_R) &&
           FDIST(pObj, r, pNext, r) &&
@@ -342,22 +373,22 @@ int dfsfast_r( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
         goto found;
       }
     }
-  }
   
-  // 3. timing edges
+  // 3. timing edges (forward retiming only)
 #if !defined(IGNORE_TIMING)
-  if (maxDelayCon) 
-    Vec_PtrForEachEntry( FTIMEEDGES(pObj), pNext, i) {
-      if (!FTEST(pNext, VISITED_R) &&
-          FDIST(pObj, r, pNext, r) &&
-          dfsfast_r(pNext, pPred)) {
+    if (pManMR->maxDelay) 
+      Vec_PtrForEachEntry( FTIMEEDGES(pObj), pNext, i) {
+        if (!FTEST(pNext, VISITED_R) &&
+            FDIST(pObj, r, pNext, r) &&
+            dfsfast_r(pNext, pPred)) {
 #ifdef DEBUG_PRINT_FLOWS
-        printf("o");
+          printf("o");
 #endif
-        goto found;
+          goto found;
+        }
       }
-    }
 #endif
+  }
   
   FUNSET(pObj, VISITED_R);
   dfsfast_r_retreat(pObj);
@@ -379,7 +410,7 @@ dfsfast_e_retreat(Abc_Obj_t *pObj) {
   int adj_dist, min_dist = MAX_DIST;
   
   // 1. structural edges
-  if (fIsForward)
+  if (pManMR->fIsForward)
     Abc_ObjForEachFanout( pObj, pNext, i ) {
       adj_dist = FDATA(pNext)->r_dist;
       if (adj_dist) min_dist = MIN(min_dist, adj_dist);
@@ -399,11 +430,20 @@ dfsfast_e_retreat(Abc_Obj_t *pObj) {
   }
 
   // 3. reverse edges (backward retiming only)
-  if (!fIsForward) {
+  if (!pManMR->fIsForward) {
     Abc_ObjForEachFanout( pObj, pNext, i ) {
       adj_dist = FDATA(pNext)->e_dist;
       if (adj_dist) min_dist = MIN(min_dist, adj_dist);
     }
+
+  // 4. timing edges (backward retiming only)
+#if !defined(IGNORE_TIMING)
+    if (pManMR->maxDelay) 
+      Vec_PtrForEachEntry( FTIMEEDGES(pObj), pNext, i) {
+        adj_dist = FDATA(pNext)->e_dist;
+        if (adj_dist) min_dist = MIN(min_dist, adj_dist);
+      }
+#endif
   }
 
  update:
@@ -412,12 +452,12 @@ dfsfast_e_retreat(Abc_Obj_t *pObj) {
   // printf("[%de=%d->%d] ", Abc_ObjId(pObj), old_dist, min_dist+1);
   FDATA(pObj)->e_dist = min_dist;
 
-  assert(min_dist < Vec_IntSize(vSinkDistHist));
-  h = Vec_IntArray(vSinkDistHist);
+  assert(min_dist < Vec_IntSize(pManMR->vSinkDistHist));
+  h = Vec_IntArray(pManMR->vSinkDistHist);
   h[old_dist]--;
   h[min_dist]++;
   if (!h[old_dist]) {
-    fSinkDistTerminate = 1;
+    pManMR->fSinkDistTerminate = 1;
   }
 }
 
@@ -440,34 +480,34 @@ dfsfast_r_retreat(Abc_Obj_t *pObj) {
   }
 
   // 2. reverse edges (forward retiming only)
-  if (fIsForward) {
+  if (pManMR->fIsForward) {
     Abc_ObjForEachFanin( pObj, pNext, i )
       if (!Abc_ObjIsLatch(pNext)) {
         adj_dist = FDATA(pNext)->r_dist;
         if (adj_dist) min_dist = MIN(min_dist, adj_dist);
       }
-  }
 
-  // 3. timing edges
+  // 3. timing edges (forward retiming only)
 #if !defined(IGNORE_TIMING)
-  if (maxDelayCon) 
-    Vec_PtrForEachEntry( FTIMEEDGES(pObj), pNext, i) {
-      adj_dist = FDATA(pNext)->r_dist;
-      if (adj_dist) min_dist = MIN(min_dist, adj_dist);
-    }
+    if (pManMR->maxDelay) 
+      Vec_PtrForEachEntry( FTIMEEDGES(pObj), pNext, i) {
+        adj_dist = FDATA(pNext)->r_dist;
+        if (adj_dist) min_dist = MIN(min_dist, adj_dist);
+      }
 #endif
+  }
 
   ++min_dist;
   if (min_dist >= MAX_DIST) min_dist = 0;
   //printf("[%dr=%d->%d] ", Abc_ObjId(pObj), old_dist, min_dist+1);
   FDATA(pObj)->r_dist = min_dist;
 
-  assert(min_dist < Vec_IntSize(vSinkDistHist));
-  h = Vec_IntArray(vSinkDistHist);
+  assert(min_dist < Vec_IntSize(pManMR->vSinkDistHist));
+  h = Vec_IntArray(pManMR->vSinkDistHist);
   h[old_dist]--;
   h[min_dist]++;
   if (!h[old_dist]) {
-    fSinkDistTerminate = 1;
+    pManMR->fSinkDistTerminate = 1;
   }
 }
 
@@ -487,8 +527,10 @@ int dfsplain_e( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
   int i;
   Abc_Obj_t *pNext;
   
-  if (FTEST(pObj, BLOCK) || Abc_ObjIsPi(pObj)) {
-    assert(!fIsForward);
+  if (FTEST(pObj, BLOCK_OR_CONS) & pManMR->constraintMask || 
+      Abc_ObjIsPi(pObj)) {
+    assert(pPred);
+    assert(!pManMR->fIsForward);
     return 1;
   }
 
@@ -497,7 +539,7 @@ int dfsplain_e( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
   // printf(" %de\n", Abc_ObjId(pObj));
   
   // 1. structural edges
-  if (fIsForward)
+  if (pManMR->fIsForward)
     Abc_ObjForEachFanout( pObj, pNext, i ) {
       if (!FTEST(pNext, VISITED_R) &&
           dfsplain_r(pNext, pPred)) {
@@ -521,8 +563,8 @@ int dfsplain_e( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
   if (Abc_ObjIsLatch(pObj))
     return 0;
 
-  // 2. follow reverse edges
-  if (!fIsForward) { // reverse retiming only
+  // 2. reverse edges (backward retiming only)
+  if (!pManMR->fIsForward) {
     Abc_ObjForEachFanout( pObj, pNext, i ) {
       if (!FTEST(pNext, VISITED_E) &&
           dfsplain_e(pNext, pPred)) {
@@ -532,6 +574,20 @@ int dfsplain_e( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
         goto found;
       }
     }
+
+  // 3. timing edges (backward retiming only)
+#if !defined(IGNORE_TIMING)
+    if (pManMR->maxDelay) 
+      Vec_PtrForEachEntry( FTIMEEDGES(pObj), pNext, i) {
+        if (!FTEST(pNext, VISITED_E) &&
+            dfsplain_e(pNext, pPred)) {
+#ifdef DEBUG_PRINT_FLOWS
+          printf("o");
+#endif
+          goto found;
+        }
+      }
+#endif
   }
   
   // unwind
@@ -562,8 +618,8 @@ int dfsplain_r( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
 
   // have we reached the sink?
   if (Abc_ObjIsLatch(pObj) || 
-      Abc_ObjIsPo(pObj) || 
-      (fIsForward && FTEST(pObj, BLOCK))) {
+      (pManMR->fIsForward && Abc_ObjIsPo(pObj)) || 
+      (pManMR->fIsForward && FTEST(pObj, BLOCK_OR_CONS) & pManMR->constraintMask)) {
     assert(pPred);
     return 1;
   }
@@ -603,7 +659,7 @@ int dfsplain_r( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
   }
  
   // 2. follow reverse edges
-  if (fIsForward) { // forward retiming only
+  if (pManMR->fIsForward) { // forward retiming only
     Abc_ObjForEachFanin( pObj, pNext, i ) {
       if (!FTEST(pNext, VISITED_R) &&
           !Abc_ObjIsLatch(pNext) &&
@@ -614,21 +670,21 @@ int dfsplain_r( Abc_Obj_t *pObj, Abc_Obj_t *pPred ) {
         goto found;
       }
     }
-  }
   
-  // 3. follow timing constraints
+  // 3. timing edges (forward only)
 #if !defined(IGNORE_TIMING)
-  if (maxDelayCon) 
-    Vec_PtrForEachEntry( FTIMEEDGES(pObj), pNext, i) {
-      if (!FTEST(pNext, VISITED_R) &&
-          dfsplain_r(pNext, pPred)) {
+    if (pManMR->maxDelay) 
+      Vec_PtrForEachEntry( FTIMEEDGES(pObj), pNext, i) {
+        if (!FTEST(pNext, VISITED_R) &&
+            dfsplain_r(pNext, pPred)) {
 #ifdef DEBUG_PRINT_FLOWS
-        printf("o");
+          printf("o");
 #endif
-        goto found;
+          goto found;
+        }
       }
-    }
 #endif
+  }
   
   return 0;
 

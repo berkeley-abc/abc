@@ -23,8 +23,8 @@ MODULES := src/base/abc src/base/abci src/base/cmd \
 
 default: $(PROG)
 
-#OPTFLAGS  := -DNDEBUG -O3
-OPTFLAGS  := -g -O
+OPTFLAGS  := -DNDEBUG -O3
+#OPTFLAGS  := -g -O
 
 CFLAGS   += -Wall -Wno-unused-function $(OPTFLAGS) $(patsubst %, -I%, $(MODULES)) 
 CXXFLAGS += $(CFLAGS) 

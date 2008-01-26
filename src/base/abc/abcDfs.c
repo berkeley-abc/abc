@@ -908,7 +908,7 @@ int Abc_NtkLevel_rec( Abc_Obj_t * pNode )
     // skip the PI
     if ( Abc_ObjIsCi(pNode) )
         return pNode->Level;
-    assert( Abc_ObjIsNode( pNode ) );
+    assert( Abc_ObjIsNode( pNode ) || pNode->Type == ABC_OBJ_CONST1);
     // if this node is already visited, return
     if ( Abc_NodeIsTravIdCurrent( pNode ) )
         return pNode->Level;
@@ -946,7 +946,7 @@ int Abc_NtkLevelReverse_rec( Abc_Obj_t * pNode )
     // skip the PI
     if ( Abc_ObjIsCo(pNode) )
         return pNode->Level;
-    assert( Abc_ObjIsNode( pNode ) );
+    assert( Abc_ObjIsNode( pNode ) || pNode->Type == ABC_OBJ_CONST1);
     // if this node is already visited, return
     if ( Abc_NodeIsTravIdCurrent( pNode ) )
         return pNode->Level;

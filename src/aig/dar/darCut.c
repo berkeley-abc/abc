@@ -30,6 +30,47 @@
 
 /**Function*************************************************************
 
+  Synopsis    [Prints one cut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Dar_CutPrint( Dar_Cut_t * pCut )
+{
+    unsigned i;
+    printf( "{" );
+    for ( i = 0; i < pCut->nLeaves; i++ )
+        printf( " %d", pCut->pLeaves[i] );
+    printf( " }\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints one cut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Dar_ObjCutPrint( Aig_Man_t * p, Aig_Obj_t * pObj )
+{
+    Dar_Cut_t * pCut;
+    int i;
+    printf( "Cuts for node %d:\n", pObj->Id );
+    Dar_ObjForEachCut( pObj, pCut, i )
+        Dar_CutPrint( pCut );
+//    printf( "\n" );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns the number of 1s in the machine word.]
 
   Description []

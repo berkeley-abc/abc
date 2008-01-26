@@ -22,6 +22,7 @@
 #include "vec.h"
 #include "io.h"
 #include "fretime.h"
+#include "mio.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION PROTOTYPES                          ///
@@ -35,9 +36,6 @@ static Abc_Obj_t* Abc_FlowRetime_UpdateBackwardInit_rec( Abc_Obj_t *pOrigObj,
                                                          int recurse);
 static void Abc_FlowRetime_SimulateNode( Abc_Obj_t * pObj );
 static void Abc_FlowRetime_SimulateSop( Abc_Obj_t * pObj, char *pSop );
-
-Abc_Ntk_t *pInitNtk;
-int        fSolutionIsDc;
 
 extern void * Abc_FrameReadLibGen();                    
 extern Abc_Ntk_t * Abc_NtkRestrash( Abc_Ntk_t * pNtk, bool fCleanup );
@@ -62,9 +60,9 @@ extern Abc_Ntk_t * Abc_NtkRestrash( Abc_Ntk_t * pNtk, bool fCleanup );
 void
 Abc_FlowRetime_InitState( Abc_Ntk_t * pNtk ) {
 
-  if (!fComputeInitState) return;
+  if (!pManMR->fComputeInitState) return;
 
-  if (fIsForward)
+  if (pManMR->fIsForward)
     Abc_FlowRetime_UpdateForwardInit( pNtk );
   else {
     Abc_FlowRetime_UpdateBackwardInit( pNtk );
@@ -118,7 +116,7 @@ void Abc_FlowRetime_UpdateForwardInit( Abc_Ntk_t * pNtk ) {
   Abc_Obj_t *pObj, *pFanin;
   int i;
 
-  printf("\t\tupdating init state\n");
+  vprintf("\t\tupdating init state\n");
 
   Abc_NtkIncrementTravId( pNtk );
 
@@ -195,7 +193,7 @@ static inline void Abc_FlowRetime_SetInitValue( Abc_Obj_t * pObj,
 void Abc_FlowRetime_SimulateNode( Abc_Obj_t * pObj ) {
   Abc_Ntk_t *pNtk = Abc_ObjNtk(pObj);
   Abc_Obj_t * pFanin;
-  int i, j, rAnd, rOr, rVar, dcAnd, dcOr, dcVar, v;
+  int i, rAnd, rVar, dcAnd, dcVar;
   DdManager * dd = pNtk->pManFunc;
   DdNode *pBdd = pObj->pData, *pVar;
   
@@ -206,7 +204,7 @@ void Abc_FlowRetime_SimulateNode( Abc_Obj_t * pObj ) {
     Abc_FlowRetime_SetInitValue(pObj, 1, 0);
     return;
   }
-  if (!Abc_NtkIsStrash( pNtk ))
+  if (!Abc_NtkIsStrash( pNtk ) && Abc_ObjIsNode(pObj)) {
     if (Abc_NodeIsConst0(pObj)) {
       Abc_FlowRetime_SetInitValue(pObj, 0, 0);
       return;
@@ -214,6 +212,7 @@ void Abc_FlowRetime_SimulateNode( Abc_Obj_t * pObj ) {
       Abc_FlowRetime_SetInitValue(pObj, 1, 0);
       return;
     }
+  }
   
   // (ii) terminal nodes
   if (!Abc_ObjIsNode(pObj)) {
@@ -229,7 +228,7 @@ void Abc_FlowRetime_SimulateNode( Abc_Obj_t * pObj ) {
 
   // ------ SOP network
   if ( Abc_NtkHasSop( pNtk )) {
-    Abc_FlowRetime_SimulateSop( pObj, Abc_ObjData(pObj) );
+    Abc_FlowRetime_SimulateSop( pObj, (char *)Abc_ObjData(pObj) );
     return;
   }
 
@@ -242,12 +241,12 @@ void Abc_FlowRetime_SimulateNode( Abc_Obj_t * pObj ) {
     // do nothing for X values
     Abc_ObjForEachFanin(pObj, pFanin, i) {
       pVar = Cudd_bddIthVar( dd, i );
-      if (FTEST(pFanin, INIT_CARE))
-        if (FTEST(pFanin, INIT_0)) {
+      if (FTEST(pFanin, INIT_CARE)) {
+        if (FTEST(pFanin, INIT_0))
           pBdd = Cudd_Cofactor( dd, pBdd, Cudd_Not(pVar) ); 
-        } else {
+        else
           pBdd = Cudd_Cofactor( dd, pBdd, pVar ); 
-        }
+      }
     }
 
     // if function has not been reduced to 
@@ -285,7 +284,7 @@ void Abc_FlowRetime_SimulateNode( Abc_Obj_t * pObj ) {
 
   // ------ MAPPED network
   else if ( Abc_NtkHasMapping( pNtk )) {
-    Abc_FlowRetime_SimulateSop( pObj, Mio_GateReadSop(pObj->pData) );
+    Abc_FlowRetime_SimulateSop( pObj, (char *)Mio_GateReadSop(pObj->pData) );
     return;
   }
 
@@ -307,7 +306,7 @@ void Abc_FlowRetime_SimulateNode( Abc_Obj_t * pObj ) {
 void Abc_FlowRetime_SimulateSop( Abc_Obj_t * pObj, char *pSop ) {
   Abc_Obj_t * pFanin;
   char *pCube;
-  int i, j, rAnd, rOr, rVar, dcAnd, dcOr, dcVar, v;
+  int i, j, rAnd, rOr, rVar, dcAnd, dcOr, v;
 
   assert( pSop && !Abc_SopIsExorType(pSop) );
       
@@ -363,14 +362,14 @@ void Abc_FlowRetime_SetupBackwardInit( Abc_Ntk_t * pNtk ) {
 
   // create the network used for the initial state computation
   if (Abc_NtkHasMapping(pNtk))
-    pInitNtk = Abc_NtkAlloc( pNtk->ntkType, ABC_FUNC_SOP, 1 );
+    pManMR->pInitNtk = Abc_NtkAlloc( pNtk->ntkType, ABC_FUNC_SOP, 1 );
   else
-    pInitNtk = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc, 1 );
+    pManMR->pInitNtk = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc, 1 );
 
   // mitre inputs
   Abc_NtkForEachLatch( pNtk, pLatch, i ) {
     // map latch to initial state network
-    pPi = Abc_NtkCreatePi( pInitNtk );
+    pPi = Abc_NtkCreatePi( pManMR->pInitNtk );
 
     // has initial state requirement?
     if (Abc_LatchIsInit0(pLatch)) {
@@ -378,7 +377,7 @@ void Abc_FlowRetime_SetupBackwardInit( Abc_Ntk_t * pNtk ) {
       if (Abc_NtkHasAig(pNtk))
         pObj = Abc_ObjNot( pPi );
       else
-        pObj = Abc_NtkCreateNodeInv( pInitNtk, pPi );
+        pObj = Abc_NtkCreateNodeInv( pManMR->pInitNtk, pPi );
 
       Vec_PtrPush(vObj, pObj);
     }
@@ -392,22 +391,24 @@ void Abc_FlowRetime_SetupBackwardInit( Abc_Ntk_t * pNtk ) {
 
   // are there any nodes not DC?
   if (!Vec_PtrSize(vObj)) {
-    fSolutionIsDc = 1;
+    pManMR->fSolutionIsDc = 1;
     return;
   } else 
-    fSolutionIsDc = 0;
+    pManMR->fSolutionIsDc = 0;
 
   // mitre output
   if (Abc_NtkHasAig(pNtk)) {
     // create AND-by-AND
     pObj = Vec_PtrPop( vObj );
     while( Vec_PtrSize(vObj) )
-      pObj = Abc_AigAnd( pInitNtk->pManFunc, pObj, Vec_PtrPop( vObj ) ); 
+      pObj = Abc_AigAnd( pManMR->pInitNtk->pManFunc, pObj, Vec_PtrPop( vObj ) ); 
   } else
     // create n-input AND gate
-    pObj = Abc_NtkCreateNodeAnd( pInitNtk, vObj );
+    pObj = Abc_NtkCreateNodeAnd( pManMR->pInitNtk, vObj );
 
-  Abc_ObjAddFanin( Abc_NtkCreatePo( pInitNtk ), pObj );
+  Abc_ObjAddFanin( Abc_NtkCreatePo( pManMR->pInitNtk ), pObj );
+
+  Vec_PtrFree( vObj );
 }
 
 
@@ -422,27 +423,26 @@ void Abc_FlowRetime_SetupBackwardInit( Abc_Ntk_t * pNtk ) {
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_FlowRetime_SolveBackwardInit( Abc_Ntk_t * pNtk ) {
+int Abc_FlowRetime_SolveBackwardInit( Abc_Ntk_t * pNtk ) {
   int i;
   Abc_Obj_t *pObj, *pInitObj;
-  Abc_Ntk_t *pRestrNtk;
   Vec_Ptr_t *vDelete = Vec_PtrAlloc(0);
   int result;
 
-  assert(pInitNtk);
+  assert(pManMR->pInitNtk);
 
   // is the solution entirely DC's?
-  if (fSolutionIsDc) {
-    Abc_NtkDelete(pInitNtk);
+  if (pManMR->fSolutionIsDc) {
+    Abc_NtkDelete(pManMR->pInitNtk);
     Vec_PtrFree(vDelete);
     Abc_NtkForEachLatch( pNtk, pObj, i ) Abc_LatchSetInitDc( pObj );
-    printf("\tno init state computation: all-don't-care solution\n");
-    return;
+    vprintf("\tno init state computation: all-don't-care solution\n");
+    return 1;
   }
 
   // check that network is combinational
   // mark superfluous BI nodes for deletion
-  Abc_NtkForEachObj( pInitNtk, pObj, i ) {
+  Abc_NtkForEachObj( pManMR->pInitNtk, pObj, i ) {
     assert(!Abc_ObjIsLatch(pObj));
     assert(!Abc_ObjIsBo(pObj));
     
@@ -460,34 +460,36 @@ void Abc_FlowRetime_SolveBackwardInit( Abc_Ntk_t * pNtk ) {
   Vec_PtrFree(vDelete);
 
   // do some final cleanup on the network
-  Abc_NtkAddDummyPoNames(pInitNtk);
-  Abc_NtkAddDummyPiNames(pInitNtk);
-  if (Abc_NtkIsLogic(pInitNtk))
-    Abc_NtkCleanup(pInitNtk, 0);
-  else if (Abc_NtkIsStrash(pInitNtk)) {  
-    Abc_NtkReassignIds(pInitNtk);
+  Abc_NtkAddDummyPoNames(pManMR->pInitNtk);
+  Abc_NtkAddDummyPiNames(pManMR->pInitNtk);
+  if (Abc_NtkIsLogic(pManMR->pInitNtk))
+    Abc_NtkCleanup(pManMR->pInitNtk, 0);
+  else if (Abc_NtkIsStrash(pManMR->pInitNtk)) {  
+    Abc_NtkReassignIds(pManMR->pInitNtk);
   }
   
-  printf("\tsolving for init state (%d nodes)... ", Abc_NtkObjNum(pInitNtk));
+  vprintf("\tsolving for init state (%d nodes)... ", Abc_NtkObjNum(pManMR->pInitNtk));
   fflush(stdout);
 
   // convert SOPs to BDD
-  if (Abc_NtkHasSop(pInitNtk))
-    Abc_NtkSopToBdd( pInitNtk );
+  if (Abc_NtkHasSop(pManMR->pInitNtk))
+    Abc_NtkSopToBdd( pManMR->pInitNtk );
   
   // solve
-  result = Abc_NtkMiterSat( pInitNtk, (sint64)500000, (sint64)50000000, 0, NULL, NULL );
+  result = Abc_NtkMiterSat( pManMR->pInitNtk, (sint64)500000, (sint64)50000000, 0, NULL, NULL );
 
-  if (!result) printf("SUCCESS\n");
-  else  {
-    printf("FAILURE\n");  
-    printf("\tsetting all initial states to don't-care\n");
+  if (!result) { 
+    vprintf("SUCCESS\n");
+  } else  {    
+    vprintf("FAILURE\n");
+    printf("WARNING: no equivalent init state. setting all initial states to don't-cares\n");
     Abc_NtkForEachLatch( pNtk, pObj, i ) Abc_LatchSetInitDc( pObj );
-    return;
+    Abc_NtkDelete(pManMR->pInitNtk);
+    return 0;
   }
 
   // clear initial values, associate PIs to latches
-  Abc_NtkForEachPi( pInitNtk, pInitObj, i ) Abc_ObjSetCopy( pInitObj, NULL );
+  Abc_NtkForEachPi( pManMR->pInitNtk, pInitObj, i ) Abc_ObjSetCopy( pInitObj, NULL );
   Abc_NtkForEachLatch( pNtk, pObj, i ) {
     pInitObj = Abc_ObjData( pObj );
     assert( Abc_ObjIsPi( pInitObj ));
@@ -496,10 +498,10 @@ void Abc_FlowRetime_SolveBackwardInit( Abc_Ntk_t * pNtk ) {
   }
 
   // copy solution from PIs to latches
-  assert(pInitNtk->pModel);
-  Abc_NtkForEachPi( pInitNtk, pInitObj, i ) {
+  assert(pManMR->pInitNtk->pModel);
+  Abc_NtkForEachPi( pManMR->pInitNtk, pInitObj, i ) {
     if ((pObj = Abc_ObjCopy( pInitObj ))) {
-      if ( pInitNtk->pModel[i] )
+      if ( pManMR->pInitNtk->pModel[i] )
         Abc_LatchSetInit1( pObj );
       else
         Abc_LatchSetInit0( pObj );
@@ -512,7 +514,9 @@ void Abc_FlowRetime_SolveBackwardInit( Abc_Ntk_t * pNtk ) {
 #endif
 
   // deallocate
-  Abc_NtkDelete( pInitNtk );
+  Abc_NtkDelete( pManMR->pInitNtk );
+
+  return 1;
 }
 
 
@@ -528,11 +532,10 @@ void Abc_FlowRetime_SolveBackwardInit( Abc_Ntk_t * pNtk ) {
 
 ***********************************************************************/
 void Abc_FlowRetime_UpdateBackwardInit( Abc_Ntk_t * pNtk ) {
-  Abc_Obj_t *pOrigObj,  *pOrigFanin, *pInitObj, *pInitFanin;
+  Abc_Obj_t *pOrigObj,  *pInitObj;
   Vec_Ptr_t *vBo = Vec_PtrAlloc(100);
   Vec_Ptr_t *vOldPis = Vec_PtrAlloc(100);
-  void *pData;
-  int i, j;
+  int i;
 
   // remove PIs from network (from BOs)
   Abc_NtkForEachObj( pNtk, pOrigObj, i )
@@ -624,20 +627,20 @@ Abc_Obj_t* Abc_FlowRetime_UpdateBackwardInit_rec( Abc_Obj_t *pOrigObj,
       if (!pOrigObj->pData) {
         // assume terminal...
         assert(Abc_ObjFaninNum(pOrigObj) == 1);
-        pInitObj = Abc_NtkCreateNodeBuf( pInitNtk, NULL );
+        pInitObj = Abc_NtkCreateNodeBuf( pManMR->pInitNtk, NULL );
       } else {
-        pInitObj = Abc_NtkCreateObj( pInitNtk, Abc_ObjType(pOrigObj) );
+        pInitObj = Abc_NtkCreateObj( pManMR->pInitNtk, Abc_ObjType(pOrigObj) );
         pData = Mio_GateReadSop(pOrigObj->pData);
         assert( Abc_SopGetVarNum(pData) == Abc_ObjFaninNum(pOrigObj) );
 
-        pInitObj->pData = Abc_SopRegister( pInitNtk->pManFunc, pData );
+        pInitObj->pData = Abc_SopRegister( pManMR->pInitNtk->pManFunc, pData );
       }
     } else {
       pData = Abc_ObjCopy( pOrigObj );   // save ptr to flow data    
       if (Abc_NtkIsStrash( pNtk ) && Abc_AigNodeIsConst( pOrigObj ))
-        pInitObj = Abc_AigConst1( pInitNtk );
+        pInitObj = Abc_AigConst1( pManMR->pInitNtk );
       else
-        pInitObj = Abc_NtkDupObj( pInitNtk, pOrigObj, 0 );
+        pInitObj = Abc_NtkDupObj( pManMR->pInitNtk, pOrigObj, 0 );
       Abc_ObjSetCopy( pOrigObj, pData ); // restore ptr to flow data
 
       // copy complementation
@@ -695,7 +698,7 @@ void Abc_FlowRetime_VerifyBackwardInit( Abc_Ntk_t * pNtk ) {
   Abc_Obj_t *pObj, *pFanin;
   int i;
 
-  printf("\t\tupdating init state\n");
+  vprintf("\t\tupdating init state\n");
 
   Abc_NtkIncrementTravId( pNtk );
 
@@ -740,4 +743,20 @@ void Abc_FlowRetime_VerifyBackwardInit_rec( Abc_Obj_t * pObj ) {
   }
   
   Abc_FlowRetime_SimulateNode( pObj );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Constrains backward retiming for initializability.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_FlowRetime_ConstrainInit( ) {
+  // unimplemented
 }
