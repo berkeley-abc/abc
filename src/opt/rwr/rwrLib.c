@@ -28,7 +28,7 @@ static Rwr_Node_t *        Rwr_ManTryNode( Rwr_Man_t * p, Rwr_Node_t * p0, Rwr_N
 static void                Rwr_MarkUsed_rec( Rwr_Man_t * p, Rwr_Node_t * pNode );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

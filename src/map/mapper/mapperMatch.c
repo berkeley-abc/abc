@@ -41,7 +41,7 @@ static void Map_NodeTryDroppingOnePhase( Map_Man_t * p, Map_Node_t * pNode );
 static void Map_NodeTransferArrivalTimes( Map_Man_t * p, Map_Node_t * pNode );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

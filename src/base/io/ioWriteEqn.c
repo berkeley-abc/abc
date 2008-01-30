@@ -25,12 +25,12 @@
 ////////////////////////////////////////////////////////////////////////
 
 static void Io_NtkWriteEqnOne( FILE * pFile, Abc_Ntk_t * pNtk );
-static void Io_NtkWriteEqnCis( FILE * pFile, Abc_Ntk_t * pNtk );
-static void Io_NtkWriteEqnCos( FILE * pFile, Abc_Ntk_t * pNtk );
-static int Io_NtkWriteEqnCheck( Abc_Ntk_t * pNtk );
+static void Io_NtkWriteEqnPis( FILE * pFile, Abc_Ntk_t * pNtk );
+static void Io_NtkWriteEqnPos( FILE * pFile, Abc_Ntk_t * pNtk );
+static void Io_NtkWriteEqnNode( FILE * pFile, Abc_Obj_t * pNode );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -48,13 +48,9 @@ void Io_WriteEqn( Abc_Ntk_t * pNtk, char * pFileName )
 {
     FILE * pFile;
 
-    assert( Abc_NtkIsAigNetlist(pNtk) );
+    assert( Abc_NtkIsSopNetlist(pNtk) );
     if ( Abc_NtkLatchNum(pNtk) > 0 )
         printf( "Warning: only combinational portion is being written.\n" );
-
-    // check that the names are fine for the EQN format
-    if ( !Io_NtkWriteEqnCheck(pNtk) )
-        return;
 
     // start the output stream
     pFile = fopen( pFileName, "w" );
@@ -84,37 +80,28 @@ void Io_WriteEqn( Abc_Ntk_t * pNtk, char * pFileName )
 ***********************************************************************/
 void Io_NtkWriteEqnOne( FILE * pFile, Abc_Ntk_t * pNtk )
 {
-    Vec_Vec_t * vLevels;
     ProgressBar * pProgress;
-    Abc_Obj_t * pNode, * pFanin;
-    int i, k;
+    Abc_Obj_t * pNode;
+    int i;
 
     // write the PIs
     fprintf( pFile, "INORDER =" );
-    Io_NtkWriteEqnCis( pFile, pNtk );
+    Io_NtkWriteEqnPis( pFile, pNtk );
     fprintf( pFile, ";\n" );
 
     // write the POs
     fprintf( pFile, "OUTORDER =" );
-    Io_NtkWriteEqnCos( pFile, pNtk );
+    Io_NtkWriteEqnPos( pFile, pNtk );
     fprintf( pFile, ";\n" );
 
     // write each internal node
-    vLevels = Vec_VecAlloc( 10 );
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkObjNumMax(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
-        fprintf( pFile, "%s = ", Abc_ObjName(Abc_ObjFanout0(pNode)) );
-        // set the input names
-        Abc_ObjForEachFanin( pNode, pFanin, k )
-            Hop_IthVar(pNtk->pManFunc, k)->pData = Abc_ObjName(pFanin);
-        // write the formula
-        Hop_ObjPrintEqn( pFile, pNode->pData, vLevels, 0 );
-        fprintf( pFile, ";\n" );
+        Io_NtkWriteEqnNode( pFile, pNode );
     }
     Extra_ProgressBarStop( pProgress );
-    Vec_VecFree( vLevels );
 }
 
 
@@ -129,7 +116,7 @@ void Io_NtkWriteEqnOne( FILE * pFile, Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Io_NtkWriteEqnCis( FILE * pFile, Abc_Ntk_t * pNtk )
+void Io_NtkWriteEqnPis( FILE * pFile, Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pTerm, * pNet;
     int LineLength;
@@ -169,7 +156,7 @@ void Io_NtkWriteEqnCis( FILE * pFile, Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Io_NtkWriteEqnCos( FILE * pFile, Abc_Ntk_t * pNtk )
+void Io_NtkWriteEqnPos( FILE * pFile, Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pTerm, * pNet;
     int LineLength;
@@ -200,50 +187,72 @@ void Io_NtkWriteEqnCos( FILE * pFile, Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
-  Synopsis    [Make sure the network does not have offending names.]
+  Synopsis    [Write the node into a file.]
 
   Description []
-  
+               
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-int Io_NtkWriteEqnCheck( Abc_Ntk_t * pNtk )
+void Io_NtkWriteEqnNode( FILE * pFile, Abc_Obj_t * pNode )
 {
-    Abc_Obj_t * pObj;
-    char * pName;
-    int i, k, Length;
-    int RetValue = 1;
+    Abc_Obj_t * pNet;
+    int LineLength;
+    int AddedLength;
+    int NameCounter;
+    char * pCube;
+    int Value, fFirstLit, i;
 
-    // make sure the network does not have proper names, such as "0" or "1" or containing parantheses
-    Abc_NtkForEachObj( pNtk, pObj, i )
+    fprintf( pFile, "%s = ", Abc_ObjName(pNode) );
+
+    if ( Abc_SopIsConst0(pNode->pData) )
     {
-        pName = Nm_ManFindNameById(pNtk->pManName, i);
-        if ( pName == NULL )
-            continue;
-        Length = strlen(pName);
-        if ( pName[0] == '0' || pName[0] == '1' )
+        fprintf( pFile, "0;\n" );
+        return;
+    }
+    if ( Abc_SopIsConst1(pNode->pData) )
+    {
+        fprintf( pFile, "1;\n" );
+        return;
+    }
+
+    NameCounter = 0;
+    LineLength  = strlen(Abc_ObjName(pNode)) + 3;
+    Abc_SopForEachCube( pNode->pData, Abc_ObjFaninNum(pNode), pCube )
+    {
+        if ( pCube != pNode->pData )
         {
-            RetValue = 0;
-            break;
+            fprintf( pFile, " + " );
+            LineLength += 3;
         }
-        for ( k = 0; k < Length; k++ )
-            if ( pName[k] == '(' || pName[k] == ')' || pName[k] == '!' || pName[k] == '*' || pName[k] == '+' )
-            {
-                RetValue = 0;
-                break;
+
+        // add the cube
+        fFirstLit = 1;
+        Abc_CubeForEachVar( pCube, Value, i )
+        {
+            if ( Value == '-' )
+                continue;
+            pNet = Abc_ObjFanin( pNode, i );
+            // get the line length after this name is written
+            AddedLength = !fFirstLit + (Value == '0') + strlen(Abc_ObjName(pNet));
+            if ( NameCounter && LineLength + AddedLength + 6 > IO_WRITE_LINE_LENGTH )
+            { // write the line extender
+                fprintf( pFile, " \n " );
+                // reset the line length
+                LineLength  = 0;
+                NameCounter = 0;
             }
-        if ( k < Length )
-            break;
+            fprintf( pFile, "%s%s%s", (fFirstLit? "": "*"), ((Value == '0')? "!":""), Abc_ObjName(pNet) );
+            LineLength += AddedLength;
+            NameCounter++;
+            fFirstLit = 0;
+        }
     }
-    if ( RetValue == 0 )
-    {
-        printf( "The network cannot be written in the EQN format because object %d has name \"%s\".\n", i, pName );
-        printf( "Consider renaming the objects using command \"short_names\" and trying again.\n" );
-    }
-    return RetValue;
+    fprintf( pFile, ";\n" );
 }
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -24,7 +24,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -94,70 +94,11 @@ void * Fpga_TruthsCutBdd( void * dd, Fpga_Cut_t * pCut )
         Cudd_RecursiveDeref( dd, (DdNode*)pCut->uSign );
         pCut->uSign = 0;
     }
-//    printf( "%d ", vVisited->nSize );
     Fpga_NodeVecFree( vVisited );
     Cudd_Deref( bFunc );
     return bFunc;
 }
 
-
-/**Function*************************************************************
-
-  Synopsis    [Recursively derives the truth table for the cut.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Fpga_CutVolume_rec( Fpga_Cut_t * pCut, Fpga_NodeVec_t * vVisited )
-{
-    assert( !Fpga_IsComplement(pCut) );
-    if ( pCut->fMark )
-        return;
-    pCut->fMark = 1;
-    Fpga_CutVolume_rec( Fpga_CutRegular(pCut->pOne), vVisited );
-    Fpga_CutVolume_rec( Fpga_CutRegular(pCut->pTwo), vVisited );
-    Fpga_NodeVecPush( vVisited, (Fpga_Node_t *)pCut );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Derives the truth table for one cut.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Fpga_CutVolume( Fpga_Cut_t * pCut )
-{
-    Fpga_NodeVec_t * vVisited;
-    int Volume, i;
-    assert( pCut->nLeaves > 1 );
-    // set the leaf variables
-    for ( i = 0; i < pCut->nLeaves; i++ )
-        pCut->ppLeaves[i]->pCuts->fMark = 1;
-    // recursively compute the function
-    vVisited = Fpga_NodeVecAlloc( 10 );
-    Fpga_CutVolume_rec( pCut, vVisited ); 
-    // clean the marks
-    for ( i = 0; i < pCut->nLeaves; i++ )
-        pCut->ppLeaves[i]->pCuts->fMark = 0;
-    for ( i = 0; i < vVisited->nSize; i++ )
-    {
-        pCut = (Fpga_Cut_t *)vVisited->pArray[i];
-        pCut->fMark = 0;
-    }
-    Volume = vVisited->nSize;
-    printf( "%d ", Volume );
-    Fpga_NodeVecFree( vVisited );
-    return Volume;
-}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

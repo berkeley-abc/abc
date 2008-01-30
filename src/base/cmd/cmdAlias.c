@@ -25,7 +25,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -45,11 +45,11 @@ void CmdCommandAliasAdd( Abc_Frame_t * pAbc, char * sName, int argc, char ** arg
     int fStatus, i;
 
     pAlias = ALLOC(Abc_Alias, 1);
-    pAlias->sName = Extra_UtilStrsav(sName);
+    pAlias->sName = util_strsav(sName);
     pAlias->argc = argc;
     pAlias->argv = ALLOC(char *, pAlias->argc);
     for(i = 0; i < argc; i++) 
-        pAlias->argv[i] = Extra_UtilStrsav(argv[i]);
+        pAlias->argv[i] = util_strsav(argv[i]);
     fStatus = st_insert( pAbc->tAliases, pAlias->sName, (char *) pAlias );
     assert(!fStatus);  
 }

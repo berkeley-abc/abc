@@ -26,7 +26,7 @@
 #define Fraig_NodeIsSimComplement(p) (Fraig_IsComplement(p)? !(Fraig_Regular(p)->fInv) : (p)->fInv)
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -176,7 +176,6 @@ Fraig_Node_t * Fraig_NodeCreate( Fraig_Man_t * p, Fraig_Node_t * p1, Fraig_Node_
     // compute the level of this node
     pNode->Level = 1 + FRAIG_MAX(Fraig_Regular(p1)->Level, Fraig_Regular(p2)->Level);
     pNode->fInv  = Fraig_NodeIsSimComplement(p1) & Fraig_NodeIsSimComplement(p2);
-    pNode->fFailTfo = Fraig_Regular(p1)->fFailTfo | Fraig_Regular(p2)->fFailTfo;
 
     // derive the simulation info 
 clk = clock();

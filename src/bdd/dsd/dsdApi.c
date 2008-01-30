@@ -23,7 +23,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -89,7 +89,6 @@ void          Dsd_NodeSetMark( Dsd_Node_t * p, int Mark ){ p->Mark = Mark;     }
 ***********************************************************************/
 Dsd_Node_t *  Dsd_ManagerReadRoot( Dsd_Manager_t * pMan, int i )  { return pMan->pRoots[i];  } 
 Dsd_Node_t *  Dsd_ManagerReadInput( Dsd_Manager_t * pMan, int i ) { return pMan->pInputs[i]; } 
-Dsd_Node_t *  Dsd_ManagerReadConst1( Dsd_Manager_t * pMan )       { return pMan->pConst1;    } 
 DdManager *   Dsd_ManagerReadDd( Dsd_Manager_t * pMan )           { return pMan->dd;         } 
 
 ////////////////////////////////////////////////////////////////////////

@@ -30,11 +30,10 @@ static int   Fpga_MappingCompareOutputDelay( Fpga_Node_t ** ppNode1, Fpga_Node_t
 static void  Fpga_MappingFindLatest( Fpga_Man_t * p, int * pNodes, int nNodesMax );
 static void  Fpga_DfsLim_rec( Fpga_Node_t * pNode, int Level, Fpga_NodeVec_t * vNodes );
 static int   Fpga_CollectNodeTfo_rec( Fpga_Node_t * pNode, Fpga_Node_t * pPivot, Fpga_NodeVec_t * vVisited, Fpga_NodeVec_t * vTfo );
-static Fpga_NodeVec_t * Fpga_MappingOrderCosByLevel( Fpga_Man_t * pMan );
 static Fpga_Man_t * s_pMan = NULL;
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 
@@ -51,11 +50,9 @@ static Fpga_Man_t * s_pMan = NULL;
 ***********************************************************************/
 Fpga_NodeVec_t * Fpga_MappingDfs( Fpga_Man_t * pMan, int fCollectEquiv )
 {
-    Fpga_NodeVec_t * vNodes;//, * vNodesCo;
+    Fpga_NodeVec_t * vNodes;
     Fpga_Node_t * pNode;
     int i;
-    // collect the CO nodes by level
-//    vNodesCo = Fpga_MappingOrderCosByLevel( pMan );
     // start the array
     vNodes = Fpga_NodeVecAlloc( 100 );
     // collect the PIs
@@ -68,15 +65,10 @@ Fpga_NodeVec_t * Fpga_MappingDfs( Fpga_Man_t * pMan, int fCollectEquiv )
     // perform the traversal
     for ( i = 0; i < pMan->nOutputs; i++ )
         Fpga_MappingDfs_rec( Fpga_Regular(pMan->pOutputs[i]), vNodes, fCollectEquiv );
-//    for ( i = vNodesCo->nSize - 1; i >= 0 ; i-- )
-//        for ( pNode = vNodesCo->pArray[i]; pNode; pNode = (Fpga_Node_t *)pNode->pData0 )
-//            Fpga_MappingDfs_rec( pNode, vNodes, fCollectEquiv );
-    // clean the node marks
     for ( i = 0; i < vNodes->nSize; i++ )
         vNodes->pArray[i]->fMark0 = 0;
 //    for ( i = 0; i < pMan->nOutputs; i++ )
 //        Fpga_MappingUnmark_rec( Fpga_Regular(pMan->pOutputs[i]) );
-//    Fpga_NodeVecFree( vNodesCo );
     return vNodes;
 }
 
@@ -936,47 +928,6 @@ void Fpga_ManReportChoices( Fpga_Man_t * pMan )
         fclose( pTable );
     }
 */
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Returns the array of CO nodes sorted by level.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Fpga_NodeVec_t * Fpga_MappingOrderCosByLevel( Fpga_Man_t * pMan )
-{
-    Fpga_Node_t * pNode;
-    Fpga_NodeVec_t * vNodes;
-    int i, nLevels;
-    // get the largest level of a CO
-    nLevels = Fpga_MappingMaxLevel( pMan );
-    // allocate the array of nodes
-    vNodes = Fpga_NodeVecAlloc( nLevels + 1 );
-    for ( i = 0; i <= nLevels; i++ )
-        Fpga_NodeVecPush( vNodes, NULL );
-    // clean the marks
-    for ( i = 0; i < pMan->nOutputs; i++ )
-        Fpga_Regular(pMan->pOutputs[i])->fMark0 = 0;
-    // put the nodes into the structure
-    for ( i = 0; i < pMan->nOutputs; i++ )
-    {
-        pNode = Fpga_Regular(pMan->pOutputs[i]);
-        if ( pNode->fMark0 )
-            continue;
-        pNode->fMark0 = 1;
-        pNode->pData0 = (char *)Fpga_NodeVecReadEntry( vNodes, pNode->Level );
-        Fpga_NodeVecWriteEntry( vNodes, pNode->Level, pNode );
-    }
-    for ( i = 0; i < pMan->nOutputs; i++ )
-        Fpga_Regular(pMan->pOutputs[i])->fMark0 = 0;
-    return vNodes;
-
 }
 
 ////////////////////////////////////////////////////////////////////////

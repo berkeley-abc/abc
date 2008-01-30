@@ -348,7 +348,7 @@ int Extra_BitMatrixCountOnesUpper( Extra_BitMat_t * p )
     int i, k, nTotal = 0;
     for ( i = 0; i < p->nSize; i++ )
         for ( k = i + 1; k < p->nSize; k++ )
-            nTotal += ( (p->ppData[i][k>>5] & (1 << (k&31))) > 0 );
+            nTotal += ( (p->ppData[i][k/32] & (1 << (k%32))) > 0 );
     return nTotal;
 }
 

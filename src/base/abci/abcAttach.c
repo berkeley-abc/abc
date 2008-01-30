@@ -40,7 +40,7 @@ static char ** s_pPerms = NULL;
 static int s_nPerms;
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -66,7 +66,7 @@ int Abc_NtkAttach( Abc_Ntk_t * pNtk )
     assert( Abc_NtkIsSopLogic(pNtk) );
 
     // check that the library is available
-    pGenlib = Abc_FrameReadLibGen();
+    pGenlib = Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame());
     if ( pGenlib == NULL )
     {
         printf( "The current library is not available.\n" );
@@ -142,7 +142,7 @@ int Abc_NtkAttach( Abc_Ntk_t * pNtk )
     Abc_NtkForEachNode( pNtk, pNode, i )
         pNode->pData = pNode->pCopy, pNode->pCopy = NULL;
     pNtk->ntkFunc = ABC_FUNC_MAP;
-    Extra_MmFlexStop( pNtk->pManFunc );
+    Extra_MmFlexStop( pNtk->pManFunc, 0 );
     pNtk->pManFunc = pGenlib;
 
     printf( "Library gates are successfully attached to the nodes.\n" );
@@ -187,7 +187,7 @@ int Abc_NodeAttach( Abc_Obj_t * pNode, Mio_Gate_t ** ppGates, unsigned ** puTrut
     Abc_ObjForEachFanin( pNode, pFanin, i )
         pTempInts[i] = pFanin->Id;
     for ( i = 0; i < nFanins; i++ )
-        pNode->vFanins.pArray[Perm[i]] = pTempInts[i];
+        pNode->vFanins.pArray[Perm[i]].iFan = pTempInts[i];
     // set the gate
     pNode->pCopy = (Abc_Obj_t *)pGate;
     return 1;
@@ -387,13 +387,13 @@ void Abc_TruthPermute( char * pPerm, int nVars, unsigned * uTruthNode, unsigned 
     nMints = (1 << nVars);
     for ( iMint = 0; iMint < nMints; iMint++ )
     {
-        if ( (uTruthNode[iMint>>5] & (1 << (iMint&31))) == 0 )
+        if ( (uTruthNode[iMint/32] & (1 << (iMint%32))) == 0 )
             continue;
         iMintPerm = 0;
         for ( v = 0; v < nVars; v++ )
             if ( iMint & (1 << v) )
                 iMintPerm |= (1 << pPerm[v]);
-        uTruthPerm[iMintPerm>>5] |= (1 << (iMintPerm&31));     
+        uTruthPerm[iMintPerm/32] |= (1 << (iMintPerm%32));     
     }
 }
 

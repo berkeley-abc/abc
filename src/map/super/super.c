@@ -28,7 +28,7 @@ static int Super_CommandSupergates   ( Abc_Frame_t * pAbc, int argc, char **argv
 static int Super_CommandSupergatesAnd( Abc_Frame_t * pAbc, int argc, char **argv );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -90,20 +90,20 @@ int Super_CommandSupergatesAnd( Abc_Frame_t * pAbc, int argc, char **argv )
     nVarsMax = 4;
     nLevels  = 3;
     fVerbose = 0;
-    Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "ilvh")) != EOF ) 
+    util_getopt_reset();
+    while ( (c = util_getopt(argc, argv, "ilvh")) != EOF ) 
     {
         switch (c) 
         {
             case 'i':
-                nVarsMax = atoi(argv[globalUtilOptind]);
-                globalUtilOptind++;
+                nVarsMax = atoi(argv[util_optind]);
+                util_optind++;
                 if ( nVarsMax < 0 ) 
                     goto usage;
                 break;
             case 'l':
-                nLevels = atoi(argv[globalUtilOptind]);
-                globalUtilOptind++;
+                nLevels = atoi(argv[util_optind]);
+                util_optind++;
                 if ( nLevels < 0 ) 
                     goto usage;
                 break;
@@ -172,44 +172,44 @@ int Super_CommandSupergates( Abc_Frame_t * pAbc, int argc, char **argv )
     fWriteOldFormat = 0;
     ExcludeFile = 0;
 
-    Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "eiltdasovh")) != EOF ) 
+    util_getopt_reset();
+    while ( (c = util_getopt(argc, argv, "eiltdasovh")) != EOF ) 
     {
         switch (c) 
         {
             case 'e':
-                ExcludeFile = argv[globalUtilOptind];
+                ExcludeFile = argv[util_optind];
                 if ( ExcludeFile == 0 )
                     goto usage;
-                globalUtilOptind++;
+                util_optind++;
                 break;
             case 'i':
-                nVarsMax = atoi(argv[globalUtilOptind]);
-                globalUtilOptind++;
+                nVarsMax = atoi(argv[util_optind]);
+                util_optind++;
                 if ( nVarsMax < 0 ) 
                     goto usage;
                 break;
             case 'l':
-                nLevels = atoi(argv[globalUtilOptind]);
-                globalUtilOptind++;
+                nLevels = atoi(argv[util_optind]);
+                util_optind++;
                 if ( nLevels < 0 ) 
                     goto usage;
                 break;
             case 't':
-                TimeLimit = atoi(argv[globalUtilOptind]);
-                globalUtilOptind++;
+                TimeLimit = atoi(argv[util_optind]);
+                util_optind++;
                 if ( TimeLimit < 0 ) 
                     goto usage;
                 break;
             case 'd':
-                DelayLimit = (float)atof(argv[globalUtilOptind]);
-                globalUtilOptind++;
+                DelayLimit = (float)atof(argv[util_optind]);
+                util_optind++;
                 if ( DelayLimit <= 0.0 ) 
                     goto usage;
                 break;
             case 'a':
-                AreaLimit = (float)atof(argv[globalUtilOptind]);
-                globalUtilOptind++;
+                AreaLimit = (float)atof(argv[util_optind]);
+                util_optind++;
                 if ( AreaLimit <= 0.0 ) 
                     goto usage;
                 break;
@@ -231,7 +231,7 @@ int Super_CommandSupergates( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
 
-    if ( argc != globalUtilOptind + 1 )
+    if ( argc != util_optind + 1 )
     {
         fprintf( pErr, "The GENLIB library file should be given on the command line.\n" );
         goto usage;
@@ -244,9 +244,9 @@ int Super_CommandSupergates( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
     // get the input file name
-    FileName = argv[globalUtilOptind];
-    if ( (pFile = Io_FileOpen( FileName, "open_path", "r", 0 )) == NULL )
-//    if ( (pFile = fopen( FileName, "r" )) == NULL )
+    FileName = argv[util_optind];
+//    if ( (pFile = Io_FileOpen( FileName, "open_path", "r" )) == NULL )
+    if ( (pFile = fopen( FileName, "r" )) == NULL )
     {
         fprintf( pErr, "Cannot open input file \"%s\". ", FileName );
         if (( FileName = Extra_FileGetSimilarName( FileName, ".genlib", ".lib", ".gen", ".g", NULL ) ))

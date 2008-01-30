@@ -28,7 +28,7 @@ static float Map_CutRefDeref( Map_Cut_t * pCut, int fPhase, int fReference );
 static void  Map_MappingSetRefs_rec( Map_Man_t * pMan, Map_Node_t * pNode, Map_Node_t ** ppStore );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -237,7 +237,7 @@ float Map_CutGetAreaRefed( Map_Cut_t * pCut, int fPhase )
     float aResult, aResult2;
     aResult2 = Map_CutRefDeref( pCut, fPhase, 0 ); // dereference
     aResult  = Map_CutRefDeref( pCut, fPhase, 1 ); // reference
-//    assert( aResult == aResult2 );
+    assert( aResult == aResult2 );
     return aResult;
 }
 
@@ -257,7 +257,7 @@ float Map_CutGetAreaDerefed( Map_Cut_t * pCut, int fPhase )
     float aResult, aResult2;
     aResult2 = Map_CutRefDeref( pCut, fPhase, 1 ); // reference
     aResult  = Map_CutRefDeref( pCut, fPhase, 0 ); // dereference
-//    assert( aResult == aResult2 );
+    assert( aResult == aResult2 );
     return aResult;
 }
 

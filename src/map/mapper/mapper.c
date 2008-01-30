@@ -28,7 +28,7 @@
 static int Map_CommandReadLibrary ( Abc_Frame_t * pAbc, int argc, char **argv );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -61,7 +61,7 @@ void Map_Init( Abc_Frame_t * pAbc )
 void Map_End()
 {
 //    Map_SuperLibFree( s_pSuperLib );
-     Map_SuperLibFree( Abc_FrameReadLibSuper() );
+     Map_SuperLibFree( Abc_FrameReadLibSuper(Abc_FrameGetGlobalFrame()) );
 }
 
 
@@ -87,7 +87,7 @@ int Map_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     int fAlgorithm;
     int c;
 
-    pNet = Abc_FrameReadNtk(pAbc);
+    pNet = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
@@ -95,16 +95,16 @@ int Map_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     fVerbose = 1;
     fAlgorithm = 1;
     ExcludeFile = 0;
-    Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "eovh")) != EOF ) 
+    util_getopt_reset();
+    while ( (c = util_getopt(argc, argv, "eovh")) != EOF ) 
     {
         switch (c) 
         {
             case 'e':
-                ExcludeFile = argv[globalUtilOptind];
+                ExcludeFile = argv[util_optind];
                 if ( ExcludeFile == 0 )
                     goto usage;
-                globalUtilOptind++;
+                util_optind++;
                 break;
             case 'o':
                 fAlgorithm ^= 1;
@@ -121,15 +121,15 @@ int Map_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
 
-    if ( argc != globalUtilOptind + 1 )
+    if ( argc != util_optind + 1 )
     {
         goto usage;
     }
 
     // get the input file name
-    FileName = argv[globalUtilOptind];
-    if ( (pFile = Io_FileOpen( FileName, "open_path", "r", 0 )) == NULL )
-//    if ( (pFile = fopen( FileName, "r" )) == NULL )
+    FileName = argv[util_optind];
+//    if ( (pFile = Io_FileOpen( FileName, "open_path", "r" )) == NULL )
+    if ( (pFile = fopen( FileName, "r" )) == NULL )
     {
         fprintf( pErr, "Cannot open input file \"%s\". ", FileName );
         if ( FileName = Extra_FileGetSimilarName( FileName, ".genlib", ".lib", ".gen", ".g", NULL ) )

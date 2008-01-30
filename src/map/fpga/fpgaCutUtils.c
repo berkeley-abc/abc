@@ -23,7 +23,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -290,9 +290,7 @@ void Fpga_CutGetParameters( Fpga_Man_t * pMan, Fpga_Cut_t * pCut )
 //            pCut->aFlow += pFaninCut->aFlow / pCut->ppLeaves[i]->nRefs;
             pCut->aFlow += pFaninCut->aFlow / pCut->ppLeaves[i]->aEstFanouts;
     }
-    // use the first pin to compute the delay of the LUT 
-    // (this mapper does not support the variable pin delay model)
-    pCut->tArrival += pMan->pLutLib->pLutDelays[pCut->nLeaves][0];
+    pCut->tArrival += pMan->pLutLib->pLutDelays[pCut->nLeaves];
 }
 
 
@@ -340,7 +338,7 @@ float Fpga_CutGetAreaRefed( Fpga_Man_t * pMan, Fpga_Cut_t * pCut )
         return 0;
     aResult  = Fpga_CutDeref( pMan, NULL, pCut, 0 );
     aResult2 = Fpga_CutRef( pMan, NULL, pCut, 0 );
-    assert( Fpga_FloatEqual( pMan, aResult, aResult2 ) );
+    assert( aResult == aResult2 );
     return aResult;
 }
 
@@ -362,7 +360,7 @@ float Fpga_CutGetAreaDerefed( Fpga_Man_t * pMan, Fpga_Cut_t * pCut )
         return 0;
     aResult2 = Fpga_CutRef( pMan, NULL, pCut, 0 );
     aResult  = Fpga_CutDeref( pMan, NULL, pCut, 0 );
-    assert( Fpga_FloatEqual( pMan, aResult, aResult2 ) );
+    assert( aResult == aResult2 );
     return aResult;
 }
 

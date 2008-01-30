@@ -35,7 +35,7 @@ static int Mio_GateParseFormula( Mio_Gate_t * pGate );
 static int Mio_GateCollectNames( char * pFormula, char * pPinNames[] );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -213,7 +213,7 @@ int Mio_GateParseFormula( Mio_Gate_t * pGate )
     Cudd_Ref( pGate->bFunc );
 
     // derive the cover (SOP)
-    pGate->pSop = Abc_ConvertBddToSop( pGate->pLib->pMmFlex, dd, pGate->bFunc, pGate->bFunc, nPins, 0, pGate->pLib->vCube, -1 );
+    pGate->pSop = Abc_ConvertBddToSop( pGate->pLib->pMmFlex, dd, pGate->bFunc, pGate->bFunc, nPins, pGate->pLib->vCube, -1 );
     return 0;
 }
 
@@ -253,7 +253,7 @@ int Mio_GateCollectNames( char * pFormula, char * pPinNames[] )
                 break;
         if ( i == nPins )
         { // cannot find this name; save it
-            pPinNames[nPins++] = Extra_UtilStrsav(pTemp);
+            pPinNames[nPins++] = util_strsav(pTemp);
         }
         // get the next name
         pTemp = strtok( NULL, " " );

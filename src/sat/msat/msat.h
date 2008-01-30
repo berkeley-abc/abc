@@ -21,10 +21,6 @@
 #ifndef __MSAT_H__
 #define __MSAT_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -69,7 +65,7 @@ typedef enum { MSAT_FALSE = -1, MSAT_UNKNOWN = 0, MSAT_TRUE = 1 } Msat_Type_t;
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                       MACRO DEFINITIONS                          ///
+///                       MACRO DEFITIONS                            ///
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
@@ -80,10 +76,10 @@ typedef enum { MSAT_FALSE = -1, MSAT_UNKNOWN = 0, MSAT_TRUE = 1 } Msat_Type_t;
 extern bool             Msat_SolverParseDimacs( FILE * pFile, Msat_Solver_t ** p, int fVerbose );
 /*=== satSolver.c ===========================================================*/
 // adding vars, clauses, simplifying the database, and solving
-extern bool             Msat_SolverAddVar( Msat_Solver_t * p, int Level );
+extern bool             Msat_SolverAddVar( Msat_Solver_t * p );
 extern bool             Msat_SolverAddClause( Msat_Solver_t * p, Msat_IntVec_t * pLits );
 extern bool             Msat_SolverSimplifyDB( Msat_Solver_t * p );
-extern bool             Msat_SolverSolve( Msat_Solver_t * p, Msat_IntVec_t * pVecAssumps, int nBackTrackLimit, int nTimeLimit );
+extern bool             Msat_SolverSolve( Msat_Solver_t * p, Msat_IntVec_t * pVecAssumps, int nBackTrackLimit );
 // printing stats, assignments, and clauses
 extern void             Msat_SolverPrintStats( Msat_Solver_t * p );
 extern void             Msat_SolverPrintAssignment( Msat_Solver_t * p );
@@ -91,20 +87,17 @@ extern void             Msat_SolverPrintClauses( Msat_Solver_t * p );
 extern void             Msat_SolverWriteDimacs( Msat_Solver_t * p, char * pFileName );
 // access to the solver internal data
 extern int              Msat_SolverReadVarNum( Msat_Solver_t * p );
-extern int              Msat_SolverReadClauseNum( Msat_Solver_t * p );
 extern int              Msat_SolverReadVarAllocNum( Msat_Solver_t * p );
 extern int *            Msat_SolverReadAssignsArray( Msat_Solver_t * p );
 extern int *            Msat_SolverReadModelArray( Msat_Solver_t * p );
 extern unsigned         Msat_SolverReadTruth( Msat_Solver_t * p );
 extern int              Msat_SolverReadBackTracks( Msat_Solver_t * p );
-extern int              Msat_SolverReadInspects( Msat_Solver_t * p );
 extern void             Msat_SolverSetVerbosity( Msat_Solver_t * p, int fVerbose );
 extern void             Msat_SolverSetProofWriting( Msat_Solver_t * p, int fProof );
 extern void             Msat_SolverSetVarTypeA( Msat_Solver_t * p, int Var );
 extern void             Msat_SolverSetVarMap( Msat_Solver_t * p, Msat_IntVec_t * vVarMap );
 extern void             Msat_SolverMarkLastClauseTypeA( Msat_Solver_t * p );
 extern void             Msat_SolverMarkClausesStart( Msat_Solver_t * p );
-extern float *          Msat_SolverReadFactors( Msat_Solver_t * p );
 // returns the solution after incremental solving
 extern int              Msat_SolverReadSolutions( Msat_Solver_t * p );
 extern int *            Msat_SolverReadSolutionsArray( Msat_Solver_t * p );
@@ -160,13 +153,8 @@ extern double           Msat_VarHeapReadMaxWeight( Msat_VarHeap_t * p );
 extern int              Msat_VarHeapCountNodes( Msat_VarHeap_t * p, double WeightLimit );  
 extern int              Msat_VarHeapReadMax( Msat_VarHeap_t * p );  
 extern int              Msat_VarHeapGetMax( Msat_VarHeap_t * p );  
- 
-#ifdef __cplusplus
-}
-#endif
-
-#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+#endif

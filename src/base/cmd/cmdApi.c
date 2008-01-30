@@ -27,7 +27,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -57,8 +57,8 @@ void Cmd_CommandAdd( Abc_Frame_t * pAbc, char * sGroup, char * sName, void * pFu
 
     // create the new command
     pCommand = ALLOC( Abc_Command, 1 );
-    pCommand->sName   = Extra_UtilStrsav( sName );
-    pCommand->sGroup  = Extra_UtilStrsav( sGroup );
+    pCommand->sName   = util_strsav( sName );
+    pCommand->sGroup  = util_strsav( sGroup );
     pCommand->pFunc   = pFunc;
     pCommand->fChange = fChanges;
     fStatus = st_insert( pAbc->tCommands, sName, (char *)pCommand );

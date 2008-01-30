@@ -17,6 +17,7 @@
 ***********************************************************************/
 
 #include "fxuInt.h" 
+//#include "mvc.h"
 #include "fxu.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -31,7 +32,7 @@ static int s_MemoryTotal;
 static int s_MemoryPeak;
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -58,7 +59,6 @@ int Fxu_FastExtract( Fxu_Data_t * pData )
     Fxu_Single * pSingle;
     Fxu_Double * pDouble;
     int Weight1, Weight2, Weight3;
-    int Counter = 0;
 
     s_MemoryTotal = 0;
     s_MemoryPeak  = 0;
@@ -78,7 +78,7 @@ int Fxu_FastExtract( Fxu_Data_t * pData )
         {
             Weight1 = Fxu_HeapSingleReadMaxWeight( p->pHeapSingle );
             if ( pData->fVerbose )
-                printf( "Div %5d : Best single = %5d.\r", Counter++, Weight1 );
+                printf( "Best single = %3d.\n", Weight1 );
             if ( Weight1 > 0 || Weight1 == 0 && pData->fUse0 )
                 Fxu_UpdateSingle( p );
             else
@@ -93,7 +93,7 @@ int Fxu_FastExtract( Fxu_Data_t * pData )
         {
             Weight2 = Fxu_HeapDoubleReadMaxWeight( p->pHeapDouble );
             if ( pData->fVerbose )
-                printf( "Div %5d : Best double = %5d.\r", Counter++, Weight2 );
+                printf( "Best double = %3d.\n", Weight2 );
             if ( Weight2 > 0 || Weight2 == 0 && pData->fUse0 )
                 Fxu_UpdateDouble( p );
             else
@@ -110,7 +110,7 @@ int Fxu_FastExtract( Fxu_Data_t * pData )
             Weight2 = Fxu_HeapDoubleReadMaxWeight( p->pHeapDouble );
 
             if ( pData->fVerbose )
-                printf( "Div %5d : Best double = %5d. Best single = %5d.\r", Counter++, Weight2, Weight1 );
+                printf( "Best double = %3d. Best single = %3d.\n", Weight2, Weight1 );
 //Fxu_Select( p, &pSingle, &pDouble );
 
             if ( Weight1 >= Weight2 )
@@ -141,8 +141,8 @@ int Fxu_FastExtract( Fxu_Data_t * pData )
             // select the best single and double
             Weight3 = Fxu_Select( p, &pSingle, &pDouble );
             if ( pData->fVerbose )
-                printf( "Div %5d : Best double = %5d. Best single = %5d. Best complement = %5d.\r", 
-                    Counter++, Weight2, Weight1, Weight3 );
+                printf( "Best double = %3d. Best single = %3d. Best complement = %3d.\n", 
+                    Weight2, Weight1, Weight3 );
 
             if ( Weight3 > 0 || Weight3 == 0 && pData->fUse0 )
                 Fxu_Update( p, pSingle, pDouble );
@@ -153,14 +153,13 @@ int Fxu_FastExtract( Fxu_Data_t * pData )
     }
 
     if ( pData->fVerbose )
-        printf( "Total single = %3d. Total double = %3d. Total compl = %3d.                    \n", 
-        p->nDivs1, p->nDivs2, p->nDivs3 );
+        printf( "Total single = %3d. Total double = %3d. Total compl = %3d.\n", p->nDivs1, p->nDivs2, p->nDivs3 );
 
     // create the new covers
     if ( pData->nNodesNew )
         Fxu_CreateCovers( p, pData );
     Fxu_MatrixDelete( p );
-//    printf( "Memory usage after deallocation:   Total = %d. Peak = %d.\n", s_MemoryTotal, s_MemoryPeak );
+//    printf( "Memory usage after delocation:   Total = %d. Peak = %d.\n", s_MemoryTotal, s_MemoryPeak );
     if ( pData->nNodesNew == pData->nNodesExt )
         printf( "Warning: The limit on the number of extracted divisors has been reached.\n" );
     return pData->nNodesNew;

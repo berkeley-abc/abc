@@ -23,7 +23,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 static Mio_Library_t * Mio_LibraryReadOne( Abc_Frame_t * pAbc, char * FileName, bool fExtendedFormat, st_table * tExcludeGate, int fVerbose );
@@ -49,7 +49,7 @@ extern int          isspace( int c );  // to silence the warning in VS
   SeeAlso     []
 
 ***********************************************************************/
-Mio_Library_t * Mio_LibraryRead( void * pAbc, char * FileName, char * ExcludeFile, int fVerbose )
+Mio_Library_t * Mio_LibraryRead( Abc_Frame_t * pAbc, char * FileName, char * ExcludeFile, int fVerbose )
 {
     Mio_Library_t * pLib;
     int num;
@@ -99,7 +99,7 @@ Mio_Library_t * Mio_LibraryReadOne( Abc_Frame_t * pAbc, char * FileName, bool fE
     // allocate the genlib structure
     pLib = ALLOC( Mio_Library_t, 1 );
     memset( pLib, 0, sizeof(Mio_Library_t) );
-    pLib->pName = Extra_UtilStrsav( FileName );
+    pLib->pName = util_strsav( FileName );
     pLib->tName2Gate = st_init_table(strcmp, st_strhash);
     pLib->pMmFlex = Extra_MmFlexStart();
     pLib->vCube = Vec_StrAlloc( 100 );
@@ -114,8 +114,8 @@ Mio_Library_t * Mio_LibraryReadOne( Abc_Frame_t * pAbc, char * FileName, bool fE
         int nFileSize;
 
         // open the BLIF file for binary reading
-        pFile = Io_FileOpen( FileName, "open_path", "rb", 1 );
-//        pFile = fopen( FileName, "rb" );
+//        pFile = Io_FileOpen( FileName, "open_path", "rb" );
+        pFile = fopen( FileName, "rb" );
         // if we got this far, file should be okay otherwise would
         // have been detected by caller
         assert ( pFile != NULL );
@@ -251,7 +251,7 @@ Mio_Gate_t * Mio_LibraryReadGate( char ** ppToken, bool fExtendedFormat )
 
     // read the name
     pToken = strtok( NULL, " \t\r\n" );
-    pGate->pName = Extra_UtilStrsav( pToken );
+    pGate->pName = util_strsav( pToken );
 
     // read the area
     pToken = strtok( NULL, " \t\r\n" );
@@ -265,7 +265,7 @@ Mio_Gate_t * Mio_LibraryReadGate( char ** ppToken, bool fExtendedFormat )
 
     // then rest of the expression 
     pToken = strtok( NULL, ";" );
-    pGate->pForm = Extra_UtilStrsav( pToken );
+    pGate->pForm = util_strsav( pToken );
 
     // read the pin info
     // start the linked list of pins
@@ -319,7 +319,7 @@ Mio_Pin_t * Mio_LibraryReadPin( char ** ppToken, bool fExtendedFormat )
 
     // read the name
     pToken = strtok( NULL, " \t\r\n" );
-    pPin->pName = Extra_UtilStrsav( pToken );
+    pPin->pName = util_strsav( pToken );
 
     // read the pin phase
     pToken = strtok( NULL, " \t\r\n" );
@@ -418,14 +418,12 @@ char *chomp( char *s )
 void Mio_LibraryDetectSpecialGates( Mio_Library_t * pLib )
 {
     Mio_Gate_t * pGate;
-    DdNode * bFuncBuf, * bFuncInv, * bFuncNand2, * bFuncAnd2;
+    DdNode * bFuncBuf, * bFuncInv, * bFuncNand2;
 
     bFuncBuf   = pLib->dd->vars[0];                                              Cudd_Ref( bFuncBuf );
     bFuncInv   = Cudd_Not( pLib->dd->vars[0] );                                  Cudd_Ref( bFuncInv );
     bFuncNand2 = Cudd_bddNand( pLib->dd, pLib->dd->vars[0], pLib->dd->vars[1] ); Cudd_Ref( bFuncNand2 );
-    bFuncAnd2  = Cudd_bddAnd( pLib->dd, pLib->dd->vars[0], pLib->dd->vars[1] );  Cudd_Ref( bFuncAnd2 );
 
-    // get buffer
     Mio_LibraryForEachGate( pLib, pGate )
         if ( pLib->pGateBuf == NULL && pGate->bFunc == bFuncBuf )
         {
@@ -437,8 +435,7 @@ void Mio_LibraryDetectSpecialGates( Mio_Library_t * pLib )
         printf( "Warnings: GENLIB library reader cannot detect the buffer gate.\n" );
         printf( "Some parts of the supergate-based technology mapper may not work correctly.\n" );
     }
- 
-    // get inverter
+
     Mio_LibraryForEachGate( pLib, pGate )
         if ( pLib->pGateInv == NULL && pGate->bFunc == bFuncInv )
         {
@@ -451,28 +448,20 @@ void Mio_LibraryDetectSpecialGates( Mio_Library_t * pLib )
         printf( "Some parts of the supergate-based technology mapper may not work correctly.\n" );
     }
 
-    // get the NAND2 and AND2 gates
     Mio_LibraryForEachGate( pLib, pGate )
         if ( pLib->pGateNand2 == NULL && pGate->bFunc == bFuncNand2 )
         {
             pLib->pGateNand2 = pGate;
             break;
         }
-    Mio_LibraryForEachGate( pLib, pGate )
-        if ( pLib->pGateAnd2 == NULL && pGate->bFunc == bFuncAnd2 )
-        {
-            pLib->pGateAnd2 = pGate;
-            break;
-        }
-    if ( pLib->pGateAnd2 == NULL && pLib->pGateNand2 == NULL )
+    if ( pLib->pGateNand2 == NULL )
     {
-        printf( "Warnings: GENLIB library reader cannot detect the AND2 or NAND2 gate.\n" );
+        printf( "Warnings: GENLIB library reader cannot detect the NAND2 gate.\n" );
         printf( "Some parts of the supergate-based technology mapper may not work correctly.\n" );
     }
 
     Cudd_RecursiveDeref( pLib->dd, bFuncInv );
     Cudd_RecursiveDeref( pLib->dd, bFuncNand2 );
-    Cudd_RecursiveDeref( pLib->dd, bFuncAnd2 );
 }
 
 /**Function*************************************************************
@@ -486,7 +475,7 @@ void Mio_LibraryDetectSpecialGates( Mio_Library_t * pLib )
   SeeAlso     []
 
 ***********************************************************************/
-int Mio_LibraryReadExclude( void * pAbc, char * ExcludeFile, st_table * tExcludeGate )
+int Mio_LibraryReadExclude( Abc_Frame_t * pAbc, char * ExcludeFile, st_table * tExcludeGate )
 {
     int nDel = 0;
     FILE *pEx;
@@ -507,7 +496,7 @@ int Mio_LibraryReadExclude( void * pAbc, char * ExcludeFile, st_table * tExclude
         while (1 == fscanf( pEx, "%127s", buffer ))
         {
             //printf ("Read: '%s'\n", buffer );
-            st_insert( tExcludeGate, Extra_UtilStrsav( buffer ), (char *)0 );
+            st_insert( tExcludeGate, util_strsav( buffer ), (char *)0 );
             nDel++;
         }
 

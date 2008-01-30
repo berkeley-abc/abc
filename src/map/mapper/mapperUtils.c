@@ -40,7 +40,7 @@ static int Map_MappingCountUsedNodes( Map_Man_t * pMan, int fChoices );
 static Map_Man_t * s_pMan = NULL;
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 

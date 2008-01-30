@@ -56,10 +56,10 @@ typedef long long   int64;
 #define ALLOC(type, num)    \
     ((type *) malloc(sizeof(type) * (num)))
 #define REALLOC(type, obj, num)    \
-    ((obj) ? ((type *) realloc((char *)(obj), sizeof(type) * (num))) : \
-        ((type *) malloc(sizeof(type) * (num))))
+    (obj) ? ((type *) realloc((char *) obj, sizeof(type) * (num))) : \
+        ((type *) malloc(sizeof(type) * (num)))
 #define FREE(obj)        \
-    ((obj) ? (free((char *)(obj)), (obj) = 0) : 0)
+    ((obj) ? (free((char *) (obj)), (obj) = 0) : 0)
 
 // By default, custom memory management is used
 // which guarantees constant time allocation/deallocation 
@@ -119,7 +119,6 @@ struct Msat_Solver_t_
     double              dClaDecay;   // INVERSE decay factor for clause activity: stores 1/decay.
 
     double *            pdActivity;  // A heuristic measurement of the activity of a variable.
-    float *             pFactors;    // the multiplicative factors of variable activity
     double              dVarInc;     // Amount to bump next variable with.
     double              dVarDecay;   // INVERSE decay factor for variable activity: stores 1/decay. Use negative value for static variable order.
     Msat_Order_t *      pOrder;      // Keeps track of the decision variable order.
@@ -152,7 +151,6 @@ struct Msat_Solver_t_
     int                 nSeenId;     // the id of current seeing
     Msat_IntVec_t *     vReason;     // the temporary array of literals
     Msat_IntVec_t *     vTemp;       // the temporary array of literals
-    int *               pFreq;       // the number of times each var participated in conflicts
 
     // the memory manager
     Msat_MmStep_t *     pMem;
@@ -186,7 +184,7 @@ struct Msat_IntVec_t_
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                       MACRO DEFINITIONS                          ///
+///                       MACRO DEFITIONS                            ///
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////

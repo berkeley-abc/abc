@@ -223,7 +223,7 @@ Extra_SymmInfo_t * Extra_SymmPairsAllocate( int nVars )
 
 /**Function********************************************************************
 
-  Synopsis    [Deallocates symmetry information structure.]
+  Synopsis    [Delocates symmetry information structure.]
 
   Description []
 

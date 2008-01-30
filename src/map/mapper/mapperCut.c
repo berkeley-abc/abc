@@ -80,7 +80,7 @@ static unsigned         Map_CutComputeTruth( Map_Man_t * p, Map_Cut_t * pCut, Ma
           pCut2 = pCut? pCut->pNext: NULL )
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -149,7 +149,7 @@ void Map_MappingCuts( Map_Man_t * p )
     if ( p->fVerbose )
     {
         nCuts = Map_MappingCountAllCuts(p);
-        printf( "Nodes = %6d.  Total %d-feasible cuts = %10d.  Per node = %.1f. ", 
+        printf( "Nodes = %6d. Total %d-feasible cuts = %d. Per node = %.1f. ", 
                p->nNodes, p->nVarsMax, nCuts, ((float)nCuts)/p->nNodes );
         PRT( "Time", clock() - clk );
     }
@@ -208,7 +208,7 @@ Map_Cut_t * Map_CutCompute( Map_Man_t * p, Map_CutTable_t * pTable, Map_Node_t *
     // set at the node
     pNode->pCuts = pCut;
     // remove the dominated cuts
-    Map_CutFilter( p, pNode );
+//    Map_CutFilter( p, pNode );
     // set the phase correctly
     if ( pNode->pRepr && Map_NodeComparePhase(pNode, pNode->pRepr) )
     {
@@ -612,8 +612,7 @@ int Map_CutMergeTwo( Map_Cut_t * pCut1, Map_Cut_t * pCut2, Map_Node_t * ppNodes[
     {
         min = i;
         for ( k = i+1; k < nTotal; k++ )
-//            if ( ppNodes[k] < ppNodes[min] ) // reported bug fix (non-determinism!)
-            if ( ppNodes[k]->Num < ppNodes[min]->Num )
+            if ( ppNodes[k] < ppNodes[min] )
                 min = k;
         pNodeTemp    = ppNodes[i];
         ppNodes[i]   = ppNodes[min];

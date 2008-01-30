@@ -30,7 +30,7 @@ static DdNode *    Abc_NtkComputeUnreachable( DdManager * dd, Abc_Ntk_t * pNtk, 
 static Abc_Ntk_t * Abc_NtkConstructExdc     ( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bUnreach );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -58,11 +58,11 @@ int Abc_NtkExtractSequentialDcs( Abc_Ntk_t * pNtk, bool fVerbose )
     }
 
     // compute the global BDDs of the latches
-    dd = Abc_NtkBuildGlobalBdds( pNtk, 10000000, 1, 1, fVerbose );    
+    dd = Abc_NtkGlobalBdds( pNtk, 1 );    
     if ( dd == NULL )
         return 0;
     if ( fVerbose )
-        printf( "Shared BDD size = %6d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
+        printf( "The shared BDD size is %d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
 
     // create the transition relation (dereferenced global BDDs)
     bRelation = Abc_NtkTransitionRelation( dd, pNtk, fVerbose );              Cudd_Ref( bRelation );
@@ -87,15 +87,13 @@ int Abc_NtkExtractSequentialDcs( Abc_Ntk_t * pNtk, bool fVerbose )
     // allocate ZDD variables
     Cudd_zddVarsFromBddVars( dd, 2 );
     // create the EXDC network representing the unreachable states
-    if ( pNtk->pExdc )
-        Abc_NtkDelete( pNtk->pExdc );
     pNtk->pExdc = Abc_NtkConstructExdc( dd, pNtk, bUnreach );
     Cudd_RecursiveDeref( dd, bUnreach );
     Extra_StopManager( dd );
-//    pNtk->pManGlob = NULL;
+    pNtk->pManGlob = NULL;
 
     // make sure that everything is okay
-    if ( pNtk->pExdc && !Abc_NtkCheck( pNtk->pExdc ) )
+    if ( !Abc_NtkCheck( pNtk->pExdc ) )
     {
         printf( "Abc_NtkExtractSequentialDcs: The network check has failed.\n" );
         Abc_NtkDelete( pNtk->pExdc );
@@ -137,15 +135,13 @@ DdNode * Abc_NtkTransitionRelation( DdManager * dd, Abc_Ntk_t * pNtk, int fVerbo
     Abc_NtkForEachLatch( pNtk, pNode, i )
     {
         bVar  = Cudd_bddIthVar( dd, Abc_NtkCiNum(pNtk) + i );
-//        bProd = Cudd_bddXnor( dd, bVar, pNtk->vFuncsGlob->pArray[i] );  Cudd_Ref( bProd );
-        bProd = Cudd_bddXnor( dd, bVar, Abc_ObjGlobalBdd(Abc_ObjFanin0(pNode)) );  Cudd_Ref( bProd );
+        bProd = Cudd_bddXnor( dd, bVar, pNtk->vFuncsGlob->pArray[i] );  Cudd_Ref( bProd );
         bRel  = Cudd_bddAnd( dd, bTemp = bRel, bProd );                 Cudd_Ref( bRel );
         Cudd_RecursiveDeref( dd, bTemp ); 
         Cudd_RecursiveDeref( dd, bProd ); 
     }
     // free the global BDDs
-//    Abc_NtkFreeGlobalBdds( pNtk );
-    Abc_NtkFreeGlobalBdds( pNtk, 0 );
+    Abc_NtkFreeGlobalBdds( pNtk );
 
     // quantify the PI variables
     bInputs = Extra_bddComputeRangeCube( dd, 0, Abc_NtkPiNum(pNtk) );    Cudd_Ref( bInputs );
@@ -221,7 +217,7 @@ DdNode * Abc_NtkComputeUnreachable( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * b
 {
     DdNode * bRelation, * bReached, * bCubeCs;
     DdNode * bCurrent, * bNext, * bTemp;
-    int nIters, nMints;
+    int nIters;
 
     // perform reachability analisys
     bCurrent  = bInitial;   Cudd_Ref( bCurrent );
@@ -258,9 +254,9 @@ DdNode * Abc_NtkComputeUnreachable( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * b
     // report the stats
     if ( fVerbose )
     {
-        nMints = (int)Cudd_CountMinterm(dd, bReached, Abc_NtkLatchNum(pNtk) );
-        fprintf( stdout, "Reachability analysis completed in %d iterations.\n", nIters );
-        fprintf( stdout, "The number of minterms in the reachable state set = %d. (%6.2f %%)\n", nMints, 100.0*nMints/(1<<Abc_NtkLatchNum(pNtk)) );
+    fprintf( stdout, "Reachability analysis completed in %d iterations.\n", nIters );
+    fprintf( stdout, "The number of minterms in the reachable state set = %d.\n", 
+                        (int)Cudd_CountMinterm(dd, bReached, Abc_NtkLatchNum(pNtk) ) ); 
     }
 //PRB( dd, bReached );
     Cudd_Deref( bReached );
@@ -286,19 +282,15 @@ Abc_Ntk_t * Abc_NtkConstructExdc( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bUn
     int i;
 
     // start the new network
-    pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_BDD, 1 );
-    pNtkNew->pName = Extra_UtilStrsav( "exdc" );
-    pNtkNew->pSpec = NULL;
-
+    pNtkNew = Abc_NtkAlloc( ABC_TYPE_LOGIC, ABC_FUNC_BDD );
     // create PIs corresponding to LOs
-    Abc_NtkForEachLatchOutput( pNtk, pNode, i )
-        Abc_ObjAssignName( pNode->pCopy = Abc_NtkCreatePi(pNtkNew), Abc_ObjName(pNode), NULL );
-    // cannot ADD POs here because pLatch->pCopy point to the PIs
+    Abc_NtkForEachLatch( pNtk, pNode, i )
+        pNode->pCopy = Abc_NtkCreatePi(pNtkNew);
 
     // create a new node
     pNodeNew = Abc_NtkCreateNode(pNtkNew);
     // add the fanins corresponding to latch outputs
-    Abc_NtkForEachLatchOutput( pNtk, pNode, i )
+    Abc_NtkForEachLatch( pNtk, pNode, i )
         Abc_ObjAddFanin( pNodeNew, pNode->pCopy );
 
     // create the logic function
@@ -312,34 +304,28 @@ Abc_Ntk_t * Abc_NtkConstructExdc( DdManager * dd, Abc_Ntk_t * pNtk, DdNode * bUn
     free( pPermute );
     Abc_NodeMinimumBase( pNodeNew );
 
-    // for each CO, create PO (skip POs equal to CIs because of name conflict)
-    Abc_NtkForEachPo( pNtk, pNode, i )
-        if ( !Abc_ObjIsCi(Abc_ObjFanin0(pNode)) )
-            Abc_ObjAssignName( pNode->pCopy = Abc_NtkCreatePo(pNtkNew), Abc_ObjName(pNode), NULL );
-    Abc_NtkForEachLatchInput( pNtk, pNode, i )
-        Abc_ObjAssignName( pNode->pCopy = Abc_NtkCreatePo(pNtkNew), Abc_ObjName(pNode), NULL );
+    // make the new node drive all the COs
+    Abc_NtkForEachCo( pNtk, pNode, i )
+        Abc_ObjAddFanin( Abc_NtkCreatePo(pNtkNew), pNodeNew );
 
-    // link to the POs of the network 
+    // store the PI names of the EXDC network
+    Abc_NtkForEachLatch( pNtk, pNode, i )
+        Abc_NtkLogicStoreName( Abc_NtkPi(pNtkNew,i), Abc_ObjName(pNode) );
+    // store the PO names of the EXDC network
     Abc_NtkForEachPo( pNtk, pNode, i )
-        if ( !Abc_ObjIsCi(Abc_ObjFanin0(pNode)) )
-            Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
-    Abc_NtkForEachLatchInput( pNtk, pNode, i )
-        Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
+        Abc_NtkLogicStoreName( Abc_NtkPo(pNtkNew,i), Abc_ObjName(pNode) );
+    Abc_NtkForEachLatch( pNtk, pNode, i )
+        Abc_NtkLogicStoreName( Abc_NtkCo(pNtkNew,Abc_NtkPoNum(pNtk) + i), Abc_ObjNameSuffix(pNode, "_in") );
 
-    // remove the extra nodes
-    Abc_AigCleanup( pNtkNew->pManFunc );
+    // make the network minimum base
+    Abc_NtkMinimumBase( pNtkNew );
 
     // fix the problem with complemented and duplicated CO edges
     Abc_NtkLogicMakeSimpleCos( pNtkNew, 0 );
 
     // transform the network to the SOP representation
-    if ( !Abc_NtkBddToSop( pNtkNew, 0 ) )
-    {
-        printf( "Abc_NtkConstructExdc(): Converting to SOPs has failed.\n" );
-        return NULL;
-    }
+    Abc_NtkBddToSop( pNtkNew );
     return pNtkNew;
-//    return NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////

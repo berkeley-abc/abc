@@ -73,7 +73,6 @@ Dsd_Manager_t * Dsd_ManagerStart( DdManager * dd, int nSuppMax, int fVerbose )
     pNode->G = b1;  Cudd_Ref( pNode->G );
     pNode->S = b1;  Cudd_Ref( pNode->S );
     st_insert( dMan->Table, (char*)b1, (char*)pNode );
-    dMan->pConst1 = pNode;
 
     Dsd_CheckCacheAllocate( 5000 );
     return dMan;

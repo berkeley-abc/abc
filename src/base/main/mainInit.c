@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: mainInit.c,v 1.3 2005/09/14 22:53:37 casem Exp $]
+  Revision    [$Id: mainInit.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -38,11 +38,9 @@ extern void Mio_Init( Abc_Frame_t * pAbc );
 extern void Mio_End ( Abc_Frame_t * pAbc );
 extern void Super_Init( Abc_Frame_t * pAbc );
 extern void Super_End ( Abc_Frame_t * pAbc );
-extern void Libs_Init(Abc_Frame_t * pAbc);
-extern void Libs_End(Abc_Frame_t * pAbc);
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -65,7 +63,6 @@ void Abc_FrameInit( Abc_Frame_t * pAbc )
     Map_Init( pAbc );
     Mio_Init( pAbc );
     Super_Init( pAbc );
-    Libs_Init( pAbc );
 }
 
 
@@ -89,7 +86,6 @@ void Abc_FrameEnd( Abc_Frame_t * pAbc )
     Map_End( pAbc );
     Mio_End( pAbc );
     Super_End( pAbc );
-    Libs_End( pAbc );
 }
 
 

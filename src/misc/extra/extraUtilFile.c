@@ -110,7 +110,7 @@ char * Extra_FileGetSimilarName( char * pFileNameWrong, char * pS1, char * pS2, 
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the pointer to the file extension.]
+  Synopsis    []
 
   Description []
 
@@ -119,14 +119,21 @@ char * Extra_FileGetSimilarName( char * pFileNameWrong, char * pS1, char * pS2, 
   SeeAlso     []
 
 ***********************************************************************/
-char * Extra_FileNameExtension( char * FileName )
+int Extra_FileNameCheckExtension( char * FileName, char * Extension )
 {
     char * pDot;
-    // find the last "dot" in the file name, if it is present
+    // find "dot" if it is present in the file name
+//    pDot = strstr( FileName, "." );
     for ( pDot = FileName + strlen(FileName)-1; pDot >= FileName; pDot-- )
         if ( *pDot == '.' )
-            return pDot + 1;
-   return NULL;
+            break;
+    if ( *pDot != '.' )
+        return 0;
+    // check the extension
+    if ( pDot && strcmp( pDot+1, Extension ) == 0 )
+        return 1;
+    else
+        return 0;
 }
 
 /**Function*************************************************************
@@ -165,7 +172,7 @@ char * Extra_FileNameGeneric( char * FileName )
     char * pRes;
     
     // find the generic name of the file
-    pRes = Extra_UtilStrsav( FileName );
+    pRes = util_strsav( FileName );
     // find the pointer to the "." symbol in the file name
 //  pUnd = strstr( FileName, "_" );
     pUnd = NULL;
@@ -248,8 +255,8 @@ char * Extra_FileRead( FILE * pFile )
 char * Extra_TimeStamp()
 {
     static char Buffer[100];
-    char * TimeStamp;
     time_t ltime;
+    char * TimeStamp;
     // get the current time
     time( &ltime );
     TimeStamp = asctime( localtime( &ltime ) );
@@ -309,97 +316,6 @@ void Extra_PrintBinary( FILE * pFile, unsigned Sign[], int nBits )
             fprintf( pFile, "%c", '0' + (int)((Sign[w] & (1<<i)) > 0) );
 
 //  fprintf( pFile, "\n" );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Reads the hex unsigned into the bit-string.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Extra_ReadHexadecimal( unsigned Sign[], char * pString, int nVars )
-{
-    int nWords, nDigits, Digit, k, c;
-    nWords = Extra_TruthWordNum( nVars );
-    for ( k = 0; k < nWords; k++ )
-        Sign[k] = 0;
-    // read the number from the string
-    nDigits = (1 << nVars) / 4;
-    if ( nDigits == 0 )
-        nDigits = 1;
-    for ( k = 0; k < nDigits; k++ )
-    {
-        c = nDigits-1-k;
-        if ( pString[c] >= '0' && pString[c] <= '9' )
-            Digit = pString[c] - '0';
-        else if ( pString[c] >= 'A' && pString[c] <= 'F' )
-            Digit = pString[c] - 'A' + 10;
-        else if ( pString[c] >= 'a' && pString[c] <= 'f' )
-            Digit = pString[c] - 'a' + 10;
-        else { assert( 0 ); return 0; }
-        Sign[k/8] |= ( (Digit & 15) << ((k%8) * 4) );
-    }
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Prints the hex unsigned into a file.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Extra_PrintHexadecimal( FILE * pFile, unsigned Sign[], int nVars )
-{
-    int nDigits, Digit, k;
-    // write the number into the file
-    nDigits = (1 << nVars) / 4;
-    for ( k = nDigits - 1; k >= 0; k-- )
-    {
-        Digit = ((Sign[k/8] >> ((k%8) * 4)) & 15);
-        if ( Digit < 10 )
-            fprintf( pFile, "%d", Digit );
-        else
-            fprintf( pFile, "%c", 'a' + Digit-10 );
-    }
-//    fprintf( pFile, "\n" );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Prints the hex unsigned into a file.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Extra_PrintHexadecimalString( char * pString, unsigned Sign[], int nVars )
-{
-    int nDigits, Digit, k;
-    // write the number into the file
-    nDigits = (1 << nVars) / 4;
-    for ( k = nDigits - 1; k >= 0; k-- )
-    {
-        Digit = ((Sign[k/8] >> ((k%8) * 4)) & 15);
-        if ( Digit < 10 )
-            *pString++ = '0' + Digit;
-        else
-            *pString++ = 'a' + Digit-10;
-    }
-//    fprintf( pFile, "\n" );
-    *pString = 0;
 }
 
 /**Function*************************************************************
@@ -475,7 +391,7 @@ char * Extra_StringAppend( char * pStrGiven, char * pStrAdd )
         free( pStrGiven );
     }
     else
-        pTemp = Extra_UtilStrsav( pStrAdd );
+        pTemp = util_strsav( pStrAdd );
     return pTemp;
 }
 

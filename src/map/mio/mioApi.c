@@ -23,7 +23,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -43,44 +43,18 @@ Mio_Gate_t *      Mio_LibraryReadGates         ( Mio_Library_t * pLib )  { retur
 DdManager *       Mio_LibraryReadDd            ( Mio_Library_t * pLib )  { return pLib->dd;       }
 Mio_Gate_t *      Mio_LibraryReadBuf           ( Mio_Library_t * pLib )  { return pLib->pGateBuf; }
 Mio_Gate_t *      Mio_LibraryReadInv           ( Mio_Library_t * pLib )  { return pLib->pGateInv; }
-Mio_Gate_t *      Mio_LibraryReadConst0        ( Mio_Library_t * pLib )  { return pLib->pGate0;     }
-Mio_Gate_t *      Mio_LibraryReadConst1        ( Mio_Library_t * pLib )  { return pLib->pGate1;     }
+Mio_Gate_t *      Mio_LibraryReadConst0        ( Mio_Library_t * pLib )  { return pLib->pGate0; }
+Mio_Gate_t *      Mio_LibraryReadConst1        ( Mio_Library_t * pLib )  { return pLib->pGate1; }
 Mio_Gate_t *      Mio_LibraryReadNand2         ( Mio_Library_t * pLib )  { return pLib->pGateNand2; }
-Mio_Gate_t *      Mio_LibraryReadAnd2          ( Mio_Library_t * pLib )  { return pLib->pGateAnd2;  }
 float             Mio_LibraryReadDelayInvRise  ( Mio_Library_t * pLib )  { return (float)(pLib->pGateInv?   pLib->pGateInv->pPins->dDelayBlockRise   : 0.0); }
 float             Mio_LibraryReadDelayInvFall  ( Mio_Library_t * pLib )  { return (float)(pLib->pGateInv?   pLib->pGateInv->pPins->dDelayBlockFall   : 0.0); }
 float             Mio_LibraryReadDelayInvMax   ( Mio_Library_t * pLib )  { return (float)(pLib->pGateInv?   pLib->pGateInv->pPins->dDelayBlockMax    : 0.0); }
 float             Mio_LibraryReadDelayNand2Rise( Mio_Library_t * pLib )  { return (float)(pLib->pGateNand2? pLib->pGateNand2->pPins->dDelayBlockRise : 0.0); }
 float             Mio_LibraryReadDelayNand2Fall( Mio_Library_t * pLib )  { return (float)(pLib->pGateNand2? pLib->pGateNand2->pPins->dDelayBlockFall : 0.0); }
 float             Mio_LibraryReadDelayNand2Max ( Mio_Library_t * pLib )  { return (float)(pLib->pGateNand2? pLib->pGateNand2->pPins->dDelayBlockMax  : 0.0); }
-float             Mio_LibraryReadDelayAnd2Max  ( Mio_Library_t * pLib )  { return (float)(pLib->pGateAnd2?  pLib->pGateAnd2->pPins->dDelayBlockMax   : 0.0); }
 float             Mio_LibraryReadAreaInv       ( Mio_Library_t * pLib )  { return (float)(pLib->pGateInv?   pLib->pGateInv->dArea   : 0.0); }
 float             Mio_LibraryReadAreaBuf       ( Mio_Library_t * pLib )  { return (float)(pLib->pGateBuf?   pLib->pGateBuf->dArea   : 0.0); }
 float             Mio_LibraryReadAreaNand2     ( Mio_Library_t * pLib )  { return (float)(pLib->pGateNand2? pLib->pGateNand2->dArea : 0.0); }
-
-/**Function*************************************************************
-
-  Synopsis    [Returns the longest gate name.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Mio_LibraryReadGateNameMax( Mio_Library_t * pLib )
-{
-    Mio_Gate_t * pGate;
-    int LenMax = 0, LenCur;
-    Mio_LibraryForEachGate( pLib, pGate )
-    {
-        LenCur = strlen( Mio_GateReadName(pGate) );
-        if ( LenMax < LenCur )
-            LenMax = LenCur;
-    }
-    return LenMax;
-}
 
 /**Function*************************************************************
 

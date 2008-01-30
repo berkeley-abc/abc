@@ -89,7 +89,7 @@
 static DdNode * Parse_ParserPerformTopOp( DdManager * dd, Parse_StackFn_t * pStackFn, int Oper );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

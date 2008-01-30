@@ -46,7 +46,7 @@
 #else
 #define DBL_MAX_EXP 1024
 #endif
-#include "util_hack.h"
+#include "util.h"
 #include "cuddInt.h"
 
 /*---------------------------------------------------------------------------*/

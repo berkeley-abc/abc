@@ -28,12 +28,8 @@
 #ifndef __DSD_H__
 #define __DSD_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 ////////////////////////////////////////////////////////////////////////
-///                      TYPEDEF DEFINITIONS                         ///
+///                      TYPEDEF DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 typedef struct Dsd_Manager_t_   Dsd_Manager_t;
@@ -59,14 +55,14 @@ enum Dsd_Type_t_ {
 };
 
 ////////////////////////////////////////////////////////////////////////
-///                       MACRO DEFINITIONS                          ///
+///                       MACRO DEFITIONS                            ///
 ////////////////////////////////////////////////////////////////////////
 
 // complementation and testing for pointers for decomposition entries
-#define Dsd_IsComplement(p)  (((int)((unsigned long) (p) & 01)))
-#define Dsd_Regular(p)       ((Dsd_Node_t *)((unsigned long)(p) & ~01)) 
-#define Dsd_Not(p)           ((Dsd_Node_t *)((unsigned long)(p) ^ 01)) 
-#define Dsd_NotCond(p,c)     ((Dsd_Node_t *)((unsigned long)(p) ^ (c)))
+#define Dsd_IsComplement(p)  (((int)((long) (p) & 01)))
+#define Dsd_Regular(p)       ((Dsd_Node_t *)((unsigned)(p) & ~01)) 
+#define Dsd_Not(p)           ((Dsd_Node_t *)((long)(p) ^ 01)) 
+#define Dsd_NotCond(p,c)     ((Dsd_Node_t *)((long)(p) ^ (c)))
 
 ////////////////////////////////////////////////////////////////////////
 ///                         ITERATORS                                ///
@@ -80,7 +76,7 @@ enum Dsd_Type_t_ {
           Index++ )
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /*=== dsdApi.c =======================================================*/
@@ -95,7 +91,6 @@ extern void            Dsd_NodeSetMark( Dsd_Node_t * p, int Mark );
 extern DdManager *     Dsd_ManagerReadDd( Dsd_Manager_t * pMan );
 extern Dsd_Node_t *    Dsd_ManagerReadRoot( Dsd_Manager_t * pMan, int i );
 extern Dsd_Node_t *    Dsd_ManagerReadInput( Dsd_Manager_t * pMan, int i );
-extern Dsd_Node_t *    Dsd_ManagerReadConst1( Dsd_Manager_t * pMan );
 /*=== dsdMan.c =======================================================*/
 extern Dsd_Manager_t * Dsd_ManagerStart( DdManager * dd, int nSuppMax, int fVerbose );
 extern void            Dsd_ManagerStop( Dsd_Manager_t * dMan );
@@ -105,7 +100,6 @@ extern Dsd_Node_t *    Dsd_DecomposeOne( Dsd_Manager_t * pDsdMan, DdNode * bFunc
 /*=== dsdTree.c =======================================================*/
 extern void            Dsd_TreeNodeGetInfo( Dsd_Manager_t * dMan, int * DepthMax, int * GateSizeMax );
 extern void            Dsd_TreeNodeGetInfoOne( Dsd_Node_t * pNode, int * DepthMax, int * GateSizeMax );
-extern int             Dsd_TreeGetAigCost( Dsd_Node_t * pNode );
 extern int             Dsd_TreeCountNonTerminalNodes( Dsd_Manager_t * dMan );
 extern int             Dsd_TreeCountNonTerminalNodesOne( Dsd_Node_t * pRoot );
 extern int             Dsd_TreeCountPrimeNodes( Dsd_Manager_t * pDsdMan );
@@ -114,16 +108,11 @@ extern int             Dsd_TreeCollectDecomposableVars( Dsd_Manager_t * dMan, in
 extern Dsd_Node_t **   Dsd_TreeCollectNodesDfs( Dsd_Manager_t * dMan, int * pnNodes );
 extern Dsd_Node_t **   Dsd_TreeCollectNodesDfsOne( Dsd_Manager_t * pDsdMan, Dsd_Node_t * pNode, int * pnNodes );
 extern void            Dsd_TreePrint( FILE * pFile, Dsd_Manager_t * dMan, char * pInputNames[], char * pOutputNames[], int fShortNames, int Output );
-extern void            Dsd_NodePrint( FILE * pFile, Dsd_Node_t * pNode );
 /*=== dsdLocal.c =======================================================*/
 extern DdNode *        Dsd_TreeGetPrimeFunction( DdManager * dd, Dsd_Node_t * pNode );
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                           END OF FILE                            ///
 ////////////////////////////////////////////////////////////////////////
+
+#endif

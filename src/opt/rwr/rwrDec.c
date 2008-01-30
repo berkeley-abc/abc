@@ -29,7 +29,7 @@ static Dec_Graph_t * Rwr_NodePreprocess( Rwr_Man_t * p, Rwr_Node_t * pNode );
 static Dec_Edge_t    Rwr_TravCollect_rec( Rwr_Man_t * p, Rwr_Node_t * pNode, Dec_Graph_t * pGraph );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -49,8 +49,6 @@ void Rwr_ManPreprocess( Rwr_Man_t * p )
     Rwr_Node_t * pNode;
     int i, k;
     // put the nodes into the structure
-    p->pMapInv  = ALLOC( unsigned short, 222 );
-    memset( p->pMapInv, 0, sizeof(unsigned short) * 222 );
     p->vClasses = Vec_VecStart( 222 );
     for ( i = 0; i < p->nFuncs; i++ )
     {
@@ -62,7 +60,6 @@ void Rwr_ManPreprocess( Rwr_Man_t * p )
             assert( pNode->uTruth == p->pTable[i]->uTruth );
             assert( p->pMap[pNode->uTruth] >= 0 && p->pMap[pNode->uTruth] < 222 );
             Vec_VecPush( p->vClasses, p->pMap[pNode->uTruth], pNode );
-            p->pMapInv[ p->pMap[pNode->uTruth] ] = p->puCanons[pNode->uTruth];
         }
     }
     // compute decomposition forms for each node and verify them
@@ -135,7 +132,7 @@ Dec_Edge_t Rwr_TravCollect_rec( Rwr_Man_t * p, Rwr_Node_t * pNode, Dec_Graph_t *
         eNode1.fCompl = !eNode1.fCompl;
     // create the decomposition node(s)
     if ( pNode->fExor )
-        eNode = Dec_GraphAddNodeXor( pGraph, eNode0, eNode1, 0 );
+        eNode = Dec_GraphAddNodeXor( pGraph, eNode0, eNode1 );
     else
         eNode = Dec_GraphAddNodeAnd( pGraph, eNode0, eNode1 );
     // save the result

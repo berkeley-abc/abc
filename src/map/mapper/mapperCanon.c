@@ -26,7 +26,7 @@ static unsigned Map_CanonComputePhase( unsigned uTruths[][2], int nVars, unsigne
 static void     Map_CanonComputePhase6( unsigned uTruths[][2], int nVars, unsigned uTruth[], unsigned uPhase, unsigned uTruthRes[] );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -218,7 +218,7 @@ int Map_CanonComputeFast( Map_Man_t * p, int nVarsMax, int nVarsReal, unsigned u
     if ( uCanon0 >= uCanon1 ) // using nCanon1 as the main one
     {
         assert( p->pCounters[uTruth1] > 0 );
-        uCanonBest = 0xFFFFFFFF;
+        uCanonBest = 0xFFFF;
         for ( i = 0; i < p->pCounters[uTruth1]; i++ )
         {
             uCanon0 = Extra_TruthPolarize( uTruth0, p->uPhases[uTruth1][i], 4 );
@@ -226,7 +226,6 @@ int Map_CanonComputeFast( Map_Man_t * p, int nVarsMax, int nVarsReal, unsigned u
             {
                 uCanonBest = uCanon0;
                 uPhaseBest = p->uPhases[uTruth1][i];
-                assert( uPhaseBest < 16 );
             }
         }
         uTruthRes[0] = (uCanon1 << 16) | uCanonBest;
@@ -237,7 +236,7 @@ int Map_CanonComputeFast( Map_Man_t * p, int nVarsMax, int nVarsReal, unsigned u
     else if ( uCanon0 < uCanon1 )
     {
         assert( p->pCounters[uTruth0] > 0 );
-        uCanonBest = 0xFFFFFFFF;
+        uCanonBest = 0xFFFF;
         for ( i = 0; i < p->pCounters[uTruth0]; i++ )
         {
             uCanon1 = Extra_TruthPolarize( uTruth1, p->uPhases[uTruth0][i], 4 );
@@ -245,7 +244,6 @@ int Map_CanonComputeFast( Map_Man_t * p, int nVarsMax, int nVarsReal, unsigned u
             {
                 uCanonBest = uCanon1;
                 uPhaseBest = p->uPhases[uTruth0][i];
-                assert( uPhaseBest < 16 );
             }
         }
         uTruthRes[0] = (uCanon0 << 16) | uCanonBest;

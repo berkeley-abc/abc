@@ -41,7 +41,7 @@ static int irand(double seed, int size) {
 static void Msat_SolverSort( Msat_Clause_t ** array, int size, double seed );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

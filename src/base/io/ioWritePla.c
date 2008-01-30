@@ -27,7 +27,7 @@
 static int    Io_WritePlaOne( FILE * pFile, Abc_Ntk_t * pNtk );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -47,7 +47,7 @@ int Io_WritePla( Abc_Ntk_t * pNtk, char * pFileName )
     FILE * pFile;
 
     assert( Abc_NtkIsSopNetlist(pNtk) );
-    assert( Abc_NtkLevel(pNtk) == 1 );
+    assert( Abc_NtkGetLevelNum(pNtk) == 1 );
 
     pFile = fopen( pFileName, "w" );
     if ( pFile == NULL )
@@ -88,7 +88,7 @@ int Io_WritePlaOne( FILE * pFile, Abc_Ntk_t * pNtk )
     nProducts = 0;
     Abc_NtkForEachCo( pNtk, pNode, i )
     {
-        pDriver = Abc_ObjFanin0Ntk( Abc_ObjFanin0(pNode) );
+        pDriver = Abc_ObjFanin0Ntk(pNode);
         if ( !Abc_ObjIsNode(pDriver) )
         {
             nProducts++;
@@ -138,10 +138,9 @@ int Io_WritePlaOne( FILE * pFile, Abc_Ntk_t * pNtk )
         pCubeOut[i] = '1';
 
         // consider special cases of nodes
-        pDriver = Abc_ObjFanin0Ntk( Abc_ObjFanin0(pNode) );
+        pDriver = Abc_ObjFanin0Ntk(pNode);
         if ( !Abc_ObjIsNode(pDriver) )
         {
-            assert( Abc_ObjIsCi(pDriver) );
             pCubeIn[(int)pDriver->pCopy] = '1' - Abc_ObjFaninC0(pNode);
             fprintf( pFile, "%s %s\n", pCubeIn, pCubeOut );
             pCubeIn[(int)pDriver->pCopy] = '-';
@@ -153,29 +152,17 @@ int Io_WritePlaOne( FILE * pFile, Abc_Ntk_t * pNtk )
                 fprintf( pFile, "%s %s\n", pCubeIn, pCubeOut );
             continue;
         }
-
-        // make sure the cover is not complemented
-        assert( !Abc_SopIsComplement( pDriver->pData ) );
-
         // write the cubes
         nFanins = Abc_ObjFaninNum(pDriver);
         Abc_SopForEachCube( pDriver->pData, nFanins, pCube )
         {
             Abc_ObjForEachFanin( pDriver, pFanin, k )
-            {
-                pFanin = Abc_ObjFanin0Ntk(pFanin);
-                assert( (int)pFanin->pCopy < nInputs );
                 pCubeIn[(int)pFanin->pCopy] = pCube[k];
-            }
             fprintf( pFile, "%s %s\n", pCubeIn, pCubeOut );
         }
         // clean the cube for future writing
         Abc_ObjForEachFanin( pDriver, pFanin, k )
-        {
-            pFanin = Abc_ObjFanin0Ntk(pFanin);
-            assert( Abc_ObjIsCi(pFanin) );
             pCubeIn[(int)pFanin->pCopy] = '-';
-        }
         Extra_ProgressBarUpdate( pProgress, i, NULL );
     }
     Extra_ProgressBarStop( pProgress );
@@ -184,8 +171,6 @@ int Io_WritePlaOne( FILE * pFile, Abc_Ntk_t * pNtk )
     // clean the CI nodes
     Abc_NtkForEachCi( pNtk, pNode, i )
         pNode->pCopy = NULL;
-    free( pCubeIn );
-    free( pCubeOut );
     return 1;
 }
 

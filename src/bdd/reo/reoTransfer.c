@@ -51,9 +51,9 @@ reo_unit * reoTransferNodesToUnits_rec( reo_man * p, DdNode * F )
     {
         // search cache - use linear probing
         for ( HKey = hashKey2(p->Signature,F,p->nTableSize); p->HTable[HKey].Sign == p->Signature; HKey = (HKey+1) % p->nTableSize )
-            if ( p->HTable[HKey].Arg1 == (reo_unit *)F )
+            if ( p->HTable[HKey].Arg1 == (unsigned)F )
             {
-                pUnit = p->HTable[HKey].Arg2;  
+                pUnit = (reo_unit*) p->HTable[HKey].Arg2;  
                 assert( pUnit );
                 // increment the edge counter
                 pUnit->n++;
@@ -93,8 +93,8 @@ reo_unit * reoTransferNodesToUnits_rec( reo_man * p, DdNode * F )
         // might have been used. Make sure that its signature is different.
         for ( ; p->HTable[HKey].Sign == p->Signature; HKey = (HKey+1) % p->nTableSize );
         p->HTable[HKey].Sign = p->Signature;
-        p->HTable[HKey].Arg1 = (reo_unit *)F;
-        p->HTable[HKey].Arg2 = pUnit;
+        p->HTable[HKey].Arg1 = (unsigned)F;
+        p->HTable[HKey].Arg2 = (unsigned)pUnit;
     }
 
     // increment the counter of nodes
@@ -126,7 +126,7 @@ DdNode * reoTransferUnitsToNodes_rec( reo_man * p, reo_unit * pUnit )
     if ( pUnit->n != 1 )
     {
         for ( HKey = hashKey2(p->Signature,pUnit,p->nTableSize); p->HTable[HKey].Sign == p->Signature; HKey = (HKey+1) % p->nTableSize )
-            if ( p->HTable[HKey].Arg1 == pUnit )
+            if ( p->HTable[HKey].Arg1 == (unsigned)pUnit )
             {
                 bRes = (DdNode*) p->HTable[HKey].Arg2;  
                 assert( bRes );
@@ -179,8 +179,8 @@ DdNode * reoTransferUnitsToNodes_rec( reo_man * p, reo_unit * pUnit )
          // might have been used. Make sure that its signature is different.
          for ( ; p->HTable[HKey].Sign == p->Signature; HKey = (HKey+1) % p->nTableSize );
          p->HTable[HKey].Sign = p->Signature;
-         p->HTable[HKey].Arg1 = pUnit;
-         p->HTable[HKey].Arg2 = (reo_unit *)bRes;  
+         p->HTable[HKey].Arg1 = (unsigned)pUnit;
+         p->HTable[HKey].Arg2 = (unsigned)bRes;  
 
          // add the DD to the referenced DD list in order to be able to store it in cache
          p->pRefNodes[p->nRefNodes++] = bRes;  Cudd_Ref( bRes ); 

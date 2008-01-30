@@ -24,8 +24,9 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
+#include "util.h"
 #include "extra.h"
-#include "extra.h"
+//#include "vm.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -49,7 +50,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 // cube/list/cover/data
-typedef unsigned int               Mvc_CubeWord_t;
+typedef unsigned long              Mvc_CubeWord_t;
 typedef struct MvcCubeStruct       Mvc_Cube_t;
 typedef struct MvcListStruct       Mvc_List_t;
 typedef struct MvcCoverStruct      Mvc_Cover_t;
@@ -111,7 +112,7 @@ struct MvcManagerStruct
 };
 
 ////////////////////////////////////////////////////////////////////////
-///                       MACRO DEFINITIONS                          ///
+///                       MACRO DEFITIONS                            ///
 ////////////////////////////////////////////////////////////////////////
 
 // reading data from the header of the cube
@@ -565,7 +566,7 @@ struct MvcManagerStruct
 #define MEM_FREE( Manager, Type, Size, Pointer )  if ( Pointer ) { free(Pointer); Pointer = NULL; }
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /*=== mvcApi.c ====================================================*/
@@ -724,9 +725,9 @@ extern Mvc_Manager_t *  Mvc_ManagerAllocCube( int nWords );
 extern Mvc_Manager_t *  Mvc_ManagerFreeCover( Mvc_Cover_t * pCover );
 extern Mvc_Manager_t *  Mvc_ManagerFreeCube( Mvc_Cover_t * pCube, int nWords );
 
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+
+#endif
 

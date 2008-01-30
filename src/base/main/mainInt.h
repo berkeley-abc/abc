@@ -18,8 +18,8 @@
 
 ***********************************************************************/
 
-#ifndef __MAIN_INT_H__
-#define __MAIN_INT_H__
+#ifndef __Abc_INT_H__
+#define __Abc_INT_H__
 
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
@@ -63,7 +63,8 @@ struct Abc_Frame_t_
     int             TimeCommand; // the runtime of the last command
     int             TimeTotal;   // the total runtime of all commands
     // temporary storage for structural choices
-    Vec_Ptr_t *     vStore;      // networks to be used by choice
+    Abc_Ntk_t *     pStored;     // the stored networks
+    int             nStored;     // the number of stored networks
     // decomposition package
     void *          pManDec;     // decomposition manager
     DdManager *     dd;          // temporary BDD package
@@ -71,7 +72,6 @@ struct Abc_Frame_t_
     void *          pLibLut;     // the current LUT library
     void *          pLibGen;     // the current genlib
     void *          pLibSuper;   // the current supergate library
-    void *          pLibVer;     // the current Verilog library
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -79,12 +79,12 @@ struct Abc_Frame_t_
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                       MACRO DEFINITIONS                          ///
+///                       MACRO DEFITIONS                            ///
 ////////////////////////////////////////////////////////////////////////
 
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /*=== mvMain.c ===========================================================*/
@@ -102,8 +102,8 @@ extern void            Abc_UtilsPrintHello( Abc_Frame_t * pAbc );
 extern void            Abc_UtilsPrintUsage( Abc_Frame_t * pAbc, char * ProgName );
 extern void            Abc_UtilsSource( Abc_Frame_t * pAbc );
 
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+
+#endif

@@ -18,25 +18,10 @@
 
 #ifndef __FRAIG_H__
 #define __FRAIG_H__
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
+ 
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
-
-#ifndef SINT64
-#define SINT64
-
-#ifdef _WIN32
-typedef signed __int64     sint64;   // compatible with MS VS 6.0
-#else
-typedef long long          sint64;
-#endif
-
-#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -52,14 +37,12 @@ typedef struct Fraig_NodeVecStruct_t_     Fraig_NodeVec_t;
 typedef struct Fraig_HashTableStruct_t_   Fraig_HashTable_t;
 typedef struct Fraig_ParamsStruct_t_      Fraig_Params_t;
 typedef struct Fraig_PatternsStruct_t_    Fraig_Patterns_t;
-typedef struct Prove_ParamsStruct_t_      Prove_Params_t;
 
 struct Fraig_ParamsStruct_t_
 {
     int  nPatsRand;     // the number of words of random simulation info
     int  nPatsDyna;     // the number of words of dynamic simulation info
     int  nBTLimit;      // the max number of backtracks to perform
-    int  nSeconds;      // the timeout for the final proof
     int  fFuncRed;      // performs only one level hashing
     int  fFeedBack;     // enables solver feedback
     int  fDist1Pats;    // enables distance-1 patterns
@@ -69,39 +52,6 @@ struct Fraig_ParamsStruct_t_
     int  fVerbose;      // the verbosiness flag
     int  fVerboseP;     // the verbosiness flag (for proof reporting)
     int  fInternal;     // is set to 1 for internal fraig calls
-    int  nConfLimit;    // the limit on the number of conflicts
-    sint64 nInspLimit;  // the limit on the number of inspections
-};
-
-struct Prove_ParamsStruct_t_
-{
-    // general parameters
-    int     fUseFraiging;          // enables fraiging
-    int     fUseRewriting;         // enables rewriting
-    int     fUseBdds;              // enables BDD construction when other methods fail
-    int     fVerbose;              // prints verbose stats
-    // iterations
-    int     nItersMax;             // the number of iterations
-    // mitering 
-    int     nMiteringLimitStart;   // starting mitering limit
-    float   nMiteringLimitMulti;   // multiplicative coefficient to increase the limit in each iteration
-    // rewriting 
-    int     nRewritingLimitStart;  // the number of rewriting iterations
-    float   nRewritingLimitMulti;  // multiplicative coefficient to increase the limit in each iteration
-    // fraiging 
-    int     nFraigingLimitStart;   // starting backtrack(conflict) limit
-    float   nFraigingLimitMulti;   // multiplicative coefficient to increase the limit in each iteration
-    // last-gasp BDD construction
-    int     nBddSizeLimit;         // the number of BDD nodes when construction is aborted
-    int     fBddReorder;           // enables dynamic BDD variable reordering
-    // last-gasp mitering
-    int     nMiteringLimitLast;    // final mitering limit
-    // global SAT solver limits
-    sint64  nTotalBacktrackLimit;  // global limit on the number of backtracks
-    sint64  nTotalInspectLimit;    // global limit on the number of clause inspects
-    // global resources applied
-    sint64  nTotalBacktracksMade;  // the total number of backtracks made
-    sint64  nTotalInspectsMade;    // the total number of inspects made
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -109,14 +59,14 @@ struct Prove_ParamsStruct_t_
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                       MACRO DEFINITIONS                          ///
+///                       MACRO DEFITIONS                            ///
 ////////////////////////////////////////////////////////////////////////
  
 // macros working with complemented attributes of the nodes
-#define Fraig_IsComplement(p)    (((int)((unsigned long) (p) & 01)))
-#define Fraig_Regular(p)         ((Fraig_Node_t *)((unsigned long)(p) & ~01)) 
-#define Fraig_Not(p)             ((Fraig_Node_t *)((unsigned long)(p) ^ 01)) 
-#define Fraig_NotCond(p,c)       ((Fraig_Node_t *)((unsigned long)(p) ^ (c)))
+#define Fraig_IsComplement(p)    (((int)((long) (p) & 01)))
+#define Fraig_Regular(p)         ((Fraig_Node_t *)((unsigned)(p) & ~01)) 
+#define Fraig_Not(p)             ((Fraig_Node_t *)((long)(p) ^ 01)) 
+#define Fraig_NotCond(p,c)       ((Fraig_Node_t *)((long)(p) ^ (c)))
 
 // these are currently not used
 #define Fraig_Ref(p)              
@@ -124,7 +74,7 @@ struct Prove_ParamsStruct_t_
 #define Fraig_RecursiveDeref(p,c)
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /*=== fraigApi.c =============================================================*/
@@ -153,9 +103,6 @@ extern int *               Fraig_ManReadModel( Fraig_Man_t * p );
 extern int                 Fraig_ManReadPatternNumRandom( Fraig_Man_t * p );
 extern int                 Fraig_ManReadPatternNumDynamic( Fraig_Man_t * p );
 extern int                 Fraig_ManReadPatternNumDynamicFiltered( Fraig_Man_t * p );
-extern int                 Fraig_ManReadSatFails( Fraig_Man_t * p );      
-extern int                 Fraig_ManReadConflicts( Fraig_Man_t * p );      
-extern int                 Fraig_ManReadInspects( Fraig_Man_t * p );      
 
 extern void                Fraig_ManSetFuncRed( Fraig_Man_t * p, int fFuncRed );        
 extern void                Fraig_ManSetFeedBack( Fraig_Man_t * p, int fFeedBack );      
@@ -200,15 +147,10 @@ extern Fraig_Node_t *      Fraig_NodeMux( Fraig_Man_t * p, Fraig_Node_t * pNode,
 extern void                Fraig_NodeSetChoice( Fraig_Man_t * pMan, Fraig_Node_t * pNodeOld, Fraig_Node_t * pNodeNew );
 
 /*=== fraigMan.c =============================================================*/
-extern void                Prove_ParamsSetDefault( Prove_Params_t * pParams );
 extern void                Fraig_ParamsSetDefault( Fraig_Params_t * pParams );
-extern void                Fraig_ParamsSetDefaultFull( Fraig_Params_t * pParams );
 extern Fraig_Man_t *       Fraig_ManCreate( Fraig_Params_t * pParams );
 extern void                Fraig_ManFree( Fraig_Man_t * pMan );
 extern void                Fraig_ManPrintStats( Fraig_Man_t * p );
-extern Fraig_NodeVec_t *   Fraig_ManGetSimInfo( Fraig_Man_t * p );
-extern int                 Fraig_ManCheckClauseUsingSimInfo( Fraig_Man_t * p, Fraig_Node_t * pNode1, Fraig_Node_t * pNode2 );
-extern void                Fraig_ManAddClause( Fraig_Man_t * p, Fraig_Node_t ** ppNodes, int nNodes );
 
 /*=== fraigDfs.c =============================================================*/
 extern Fraig_NodeVec_t *   Fraig_Dfs( Fraig_Man_t * pMan, int fEquiv );
@@ -220,11 +162,10 @@ extern int                 Fraig_CheckTfi( Fraig_Man_t * pMan, Fraig_Node_t * pO
 extern int                 Fraig_CountLevels( Fraig_Man_t * pMan );
 
 /*=== fraigSat.c =============================================================*/
-extern int                 Fraig_NodesAreEqual( Fraig_Man_t * p, Fraig_Node_t * pNode1, Fraig_Node_t * pNode2, int nBTLimit, int nTimeLimit );
-extern int                 Fraig_NodeIsEquivalent( Fraig_Man_t * p, Fraig_Node_t * pOld, Fraig_Node_t * pNew, int nBTLimit, int nTimeLimit );
+extern int                 Fraig_NodesAreEqual( Fraig_Man_t * p, Fraig_Node_t * pNode1, Fraig_Node_t * pNode2, int nBTLimit );
+extern int                 Fraig_NodeIsEquivalent( Fraig_Man_t * p, Fraig_Node_t * pOld, Fraig_Node_t * pNew, int nBTLimit );
 extern void                Fraig_ManProveMiter( Fraig_Man_t * p );
 extern int                 Fraig_ManCheckMiter( Fraig_Man_t * p );
-extern int                 Fraig_ManCheckClauseUsingSat( Fraig_Man_t * p, Fraig_Node_t * pNode1, Fraig_Node_t * pNode2, int nBTLimit );
 
 /*=== fraigVec.c ===============================================================*/
 extern Fraig_NodeVec_t *   Fraig_NodeVecAlloc( int nCap );
@@ -259,9 +200,4 @@ extern Fraig_NodeVec_t *   Fraig_CollectSupergate( Fraig_Node_t * pNode, int fSt
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
- 
-#ifdef __cplusplus
-}
-#endif
-
 #endif

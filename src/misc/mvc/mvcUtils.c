@@ -38,7 +38,7 @@ static void Mvc_CoverCopyColumn( Mvc_Cover_t * pCoverOld, Mvc_Cover_t * pCoverNe
 
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

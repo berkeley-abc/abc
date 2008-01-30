@@ -27,7 +27,7 @@
 static Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -47,7 +47,7 @@ Abc_Ntk_t * Io_ReadPla( char * pFileName, int fCheck )
     Abc_Ntk_t * pNtk;
 
     // start the file
-    p = Extra_FileReaderAlloc( pFileName, "#", "\n\r", " \t|" );
+    p = Extra_FileReaderAlloc( pFileName, "#", "\n", " \t\r|" );
     if ( p == NULL )
         return NULL;
 
@@ -131,7 +131,7 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p )
             for ( i = 1; i < vTokens->nSize; i++ )
                 Io_ReadCreatePo( pNtk, vTokens->pArray[i] );
         }
-        else 
+        else
         {
             // check if the input/output names are given
             if ( Abc_NtkPiNum(pNtk) == 0 )
@@ -229,7 +229,6 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p )
         {
             Abc_ObjRemoveFanins(pNode);
             pNode->pData = Abc_SopRegister( pNtk->pManFunc, " 0\n" );
-            Vec_StrFree( ppSops[i] );
             continue;
         }
         Vec_StrPush( ppSops[i], 0 );

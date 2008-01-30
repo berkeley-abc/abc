@@ -38,7 +38,7 @@ static void Fraig_Dfs_rec( Fraig_Man_t * pMan, Fraig_Node_t * pNode, Fraig_NodeV
 static int  Fraig_CheckTfi_rec( Fraig_Man_t * pMan, Fraig_Node_t * pNode, Fraig_Node_t * pOld );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

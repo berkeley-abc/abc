@@ -40,7 +40,7 @@ static Abc_Obj_t *  Abc_NodeFromMapSuperChoice_rec( Abc_Ntk_t * pNtkNew, Map_Sup
 
  
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -56,28 +56,28 @@ static Abc_Obj_t *  Abc_NodeFromMapSuperChoice_rec( Abc_Ntk_t * pNtkNew, Map_Sup
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, int fSwitching, int fVerbose )
 {
-    int fShowSwitching = 1;
     Abc_Ntk_t * pNtkNew;
     Map_Man_t * pMan;
     Vec_Int_t * vSwitching;
     float * pSwitching = NULL;
+    int fShowSwitching = 0;
     int clk;
 
     assert( Abc_NtkIsStrash(pNtk) );
 
     // check that the library is available
-    if ( Abc_FrameReadLibGen() == NULL )
+    if ( Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()) == NULL )
     {
         printf( "The current library is not available.\n" );
         return 0;
     }
 
     // derive the supergate library
-    if ( Abc_FrameReadLibSuper() == NULL && Abc_FrameReadLibGen() )
+    if ( Abc_FrameReadLibSuper(Abc_FrameGetGlobalFrame()) == NULL && Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()) )
     {
         printf( "A simple supergate library is derived from gate library \"%s\".\n", 
-            Mio_LibraryReadName(Abc_FrameReadLibGen()) );
-        Map_SuperLibDeriveFromGenlib( Abc_FrameReadLibGen() );
+            Mio_LibraryReadName(Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame())) );
+        Map_SuperLibDeriveFromGenlib( Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()) );
     }
 
     // print a warning about choice nodes
@@ -112,9 +112,6 @@ clk = clock();
     if ( pNtkNew == NULL )
         return NULL;
     Map_ManFree( pMan );
-
-    if ( pNtk->pExdc )
-        pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );
 
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtkNew ) )
@@ -159,7 +156,6 @@ Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, f
 
     // create PIs and remember them in the old nodes
     Abc_NtkCleanCopy( pNtk );
-    Abc_AigConst1(pNtk)->pCopy = (Abc_Obj_t *)Map_ManReadConst1(pMan);
     Abc_NtkForEachCi( pNtk, pNode, i )
     {
         pNodeMap = Map_ManReadInputs(pMan)[i];
@@ -174,6 +170,12 @@ Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, f
     Vec_PtrForEachEntry( vNodes, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
+        // consider the case of a constant
+        if ( Abc_NodeIsConst(pNode) )
+        {
+            Abc_AigConst1(pNtk->pManFunc)->pCopy = (Abc_Obj_t *)Map_ManReadConst1(pMan);
+            continue;
+        }
         // add the node to the mapper
         pNodeMap = Map_NodeAnd( pMan, 
             Map_NotCond( Abc_ObjFanin0(pNode)->pCopy, Abc_ObjFaninC0(pNode) ),
@@ -184,7 +186,7 @@ Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, f
         if ( pSwitching )
             Map_NodeSetSwitching( pNodeMap, pSwitching[pNode->Id] );
         // set up the choice node
-        if ( Abc_AigNodeIsChoice( pNode ) )
+        if ( Abc_NodeIsAigChoice( pNode ) )
             for ( pPrev = pNode, pFanin = pNode->pData; pFanin; pPrev = pFanin, pFanin = pFanin->pData )
             {
                 Map_NodeSetNextE( (Map_Node_t *)pPrev->pCopy, (Map_Node_t *)pFanin->pCopy );
@@ -218,12 +220,17 @@ Abc_Ntk_t * Abc_NtkFromMap( Map_Man_t * pMan, Abc_Ntk_t * pNtk )
     Map_Node_t * pNodeMap;
     Abc_Obj_t * pNode, * pNodeNew;
     int i, nDupGates;
+
     // create the new network
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_MAP );
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_LOGIC, ABC_FUNC_MAP );
     // make the mapper point to the new network
     Map_ManCleanData( pMan );
     Abc_NtkForEachCi( pNtk, pNode, i )
         Map_NodeSetData( Map_ManReadInputs(pMan)[i], 1, (char *)pNode->pCopy );
+    // set the constant node
+    if ( Abc_ObjFanoutNum( Abc_AigConst1(pNtk->pManFunc) ) > 0 )
+        Map_NodeSetData( Map_ManReadConst1(pMan), 1, (char *)Abc_NodeCreateConst1(pNtkNew) );
+
     // assign the mapping of the required phase to the POs
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pNode, i )
@@ -256,10 +263,6 @@ Abc_Ntk_t * Abc_NtkFromMap( Map_Man_t * pMan, Abc_Ntk_t * pNtk )
 Abc_Obj_t * Abc_NodeFromMap_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap, int fPhase )
 {
     Abc_Obj_t * pNodeNew, * pNodeInv;
-
-    // check the case of constant node
-    if ( Map_NodeIsConst(pNodeMap) )
-        return fPhase? Abc_NtkCreateNodeConst1(pNtkNew) : Abc_NtkCreateNodeConst0(pNtkNew);
 
     // check if the phase is already implemented
     pNodeNew = (Abc_Obj_t *)Map_NodeReadData( pNodeMap, fPhase );
@@ -369,7 +372,7 @@ Abc_Obj_t * Abc_NodeFromMapSuper_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap
              * (since the cut only has 4 variables). An interesting question is what
              * if the first variable (and not the fifth one is the redundant one;
              * can that happen?) */
-            return Abc_NtkCreateNodeConst0(pNtkNew);
+            return Abc_NodeCreateConst0(pNtkNew);
         }
     }
 
@@ -387,6 +390,38 @@ Abc_Obj_t * Abc_NodeFromMapSuper_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap
     return pNodeNew;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Unmaps the network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkUnmap( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pNode;
+    char * pSop;
+    int i;
+
+    assert( Abc_NtkIsMappedLogic(pNtk) );
+    // update the functionality manager
+    assert( pNtk->pManFunc == Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()) );
+    pNtk->pManFunc = Extra_MmFlexStart();
+    pNtk->ntkFunc  = ABC_FUNC_SOP;
+    // update the nodes
+    Abc_NtkForEachNode( pNtk, pNode, i )
+    {
+        pSop = Mio_GateReadSop(pNode->pData);
+        assert( Abc_SopGetVarNum(pSop) == Abc_ObjFaninNum(pNode) );
+        pNode->pData = Abc_SopRegister( pNtk->pManFunc, pSop );
+    }
+    return 1;
+}
 
 
 
@@ -411,18 +446,18 @@ Abc_Ntk_t * Abc_NtkSuperChoice( Abc_Ntk_t * pNtk )
     assert( Abc_NtkIsStrash(pNtk) );
 
     // check that the library is available
-    if ( Abc_FrameReadLibGen() == NULL )
+    if ( Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()) == NULL )
     {
         printf( "The current library is not available.\n" );
         return 0;
     }
 
     // derive the supergate library
-    if ( Abc_FrameReadLibSuper() == NULL && Abc_FrameReadLibGen() )
+    if ( Abc_FrameReadLibSuper(Abc_FrameGetGlobalFrame()) == NULL && Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()) )
     {
         printf( "A simple supergate library is derived from gate library \"%s\".\n", 
-            Mio_LibraryReadName(Abc_FrameReadLibGen()) );
-        Map_SuperLibDeriveFromGenlib( Abc_FrameReadLibGen() );
+            Mio_LibraryReadName(Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame())) );
+        Map_SuperLibDeriveFromGenlib( Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()) );
     }
 
     // print a warning about choice nodes
@@ -469,7 +504,6 @@ Abc_Ntk_t * Abc_NtkSuperChoice( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkFromMapSuperChoice( Map_Man_t * pMan, Abc_Ntk_t * pNtk )
 {
-    extern Abc_Ntk_t * Abc_NtkMulti( Abc_Ntk_t * pNtk, int nThresh, int nFaninMax, int fCnf, int fMulti, int fSimple, int fFactor );
     ProgressBar * pProgress;
     Abc_Ntk_t * pNtkNew, * pNtkNew2;
     Abc_Obj_t * pNode;
@@ -485,12 +519,8 @@ Abc_Ntk_t * Abc_NtkFromMapSuperChoice( Map_Man_t * pMan, Abc_Ntk_t * pNtk )
 
     // duplicate the network
     pNtkNew2 = Abc_NtkDup( pNtk );
-    pNtkNew  = Abc_NtkMulti( pNtkNew2, 0, 20, 0, 0, 1, 0 );
-    if ( !Abc_NtkBddToSop( pNtkNew, 0 ) )
-    {
-        printf( "Abc_NtkFromMapSuperChoice(): Converting to SOPs has failed.\n" );
-        return NULL;
-    }
+    pNtkNew  = Abc_NtkRenode( pNtkNew2, 0, 20, 0, 0, 1 );
+    Abc_NtkBddToSop( pNtkNew );
 
     // set the old network to point to the new network
     Abc_NtkForEachCi( pNtk, pNode, i )
@@ -504,14 +534,14 @@ Abc_Ntk_t * Abc_NtkFromMapSuperChoice( Map_Man_t * pMan, Abc_Ntk_t * pNtk )
     // set the pointers from the mapper to the new nodes
     Abc_NtkForEachCi( pNtk, pNode, i )
     {
-        Map_NodeSetData( Map_ManReadInputs(pMan)[i], 0, (char *)Abc_NtkCreateNodeInv(pNtkNew,pNode->pCopy) );
+        Map_NodeSetData( Map_ManReadInputs(pMan)[i], 0, (char *)Abc_NodeCreateInv(pNtkNew,pNode->pCopy) );
         Map_NodeSetData( Map_ManReadInputs(pMan)[i], 1, (char *)pNode->pCopy );
     }
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
-//        if ( Abc_NodeIsConst(pNode) )
-//            continue;
-        Map_NodeSetData( (Map_Node_t *)pNode->pNext, 0, (char *)Abc_NtkCreateNodeInv(pNtkNew,pNode->pCopy) );
+        if ( Abc_NodeIsConst(pNode) )
+            continue;
+        Map_NodeSetData( (Map_Node_t *)pNode->pNext, 0, (char *)Abc_NodeCreateInv(pNtkNew,pNode->pCopy) );
         Map_NodeSetData( (Map_Node_t *)pNode->pNext, 1, (char *)pNode->pCopy );
     }
 
@@ -520,8 +550,8 @@ Abc_Ntk_t * Abc_NtkFromMapSuperChoice( Map_Man_t * pMan, Abc_Ntk_t * pNtk )
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
-//        if ( Abc_NodeIsConst(pNode) )
-//            continue;
+        if ( Abc_NodeIsConst(pNode) )
+            continue;
         Abc_NodeSuperChoice( pNtkNew, pNode );
     }
     Extra_ProgressBarStop( pProgress );
@@ -631,7 +661,7 @@ Abc_Obj_t * Abc_NodeFromMapSuperChoice_rec( Abc_Ntk_t * pNtkNew, Map_Super_t * p
              * (since the cut only has 4 variables). An interesting question is what
              * if the first variable (and not the fifth one is the redundant one;
              * can that happen?) */
-            return Abc_NtkCreateNodeConst0(pNtkNew);
+            return Abc_NodeCreateConst0(pNtkNew);
         }
     }
 

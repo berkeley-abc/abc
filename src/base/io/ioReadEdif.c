@@ -27,7 +27,7 @@
 static Abc_Ntk_t * Io_ReadEdifNetwork( Extra_FileReader_t * p );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -46,11 +46,8 @@ Abc_Ntk_t * Io_ReadEdif( char * pFileName, int fCheck )
     Extra_FileReader_t * p;
     Abc_Ntk_t * pNtk;
 
-    printf( "Currently this parser does not work!\n" );
-    return NULL;
-
     // start the file
-    p = Extra_FileReaderAlloc( pFileName, "#", "\n\r", " \t()" );
+    p = Extra_FileReaderAlloc( pFileName, "#", "\n", " \t\r()" );
     if ( p == NULL )
         return NULL;
 
@@ -117,15 +114,11 @@ Abc_Ntk_t * Io_ReadEdifNetwork( Extra_FileReader_t * p )
             vTokens = Extra_FileReaderGetTokens(p);
             pGateName = vTokens->pArray[1];
             if ( strncmp( pGateName, "Flip", 4 ) == 0 )
-            {
                 pObj = Abc_NtkCreateLatch( pNtk );
-                Abc_LatchSetInit0( pObj );
-            }
             else
             {
                 pObj = Abc_NtkCreateNode( pNtk );
-//                pObj->pData = Abc_NtkRegisterName( pNtk, pGateName );
-                pObj->pData = Extra_UtilStrsav( pGateName ); // memory leak!!!
+                pObj->pData = Abc_NtkRegisterName( pNtk, pGateName );
             }
             Abc_ObjAddFanin( pNet, pObj );
         }
@@ -185,7 +178,7 @@ Abc_Ntk_t * Io_ReadEdifNetwork( Extra_FileReader_t * p )
         else if ( strcmp( vTokens->pArray[0], "design" ) == 0 )
         {
             free( pNtk->pName ); 
-            pNtk->pName = Extra_UtilStrsav( vTokens->pArray[3] );
+            pNtk->pName = util_strsav( vTokens->pArray[3] );
             break;
         }
     }
@@ -195,7 +188,7 @@ Abc_Ntk_t * Io_ReadEdifNetwork( Extra_FileReader_t * p )
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
         if ( strncmp( pObj->pData, "And", 3 ) == 0 )
-            Abc_ObjSetData( pObj, Abc_SopCreateAnd(pNtk->pManFunc, Abc_ObjFaninNum(pObj), NULL) );
+            Abc_ObjSetData( pObj, Abc_SopCreateAnd(pNtk->pManFunc, Abc_ObjFaninNum(pObj)) );
         else if ( strncmp( pObj->pData, "Or", 2 ) == 0 )
             Abc_ObjSetData( pObj, Abc_SopCreateOr(pNtk->pManFunc, Abc_ObjFaninNum(pObj), NULL) );
         else if ( strncmp( pObj->pData, "Nand", 4 ) == 0 )

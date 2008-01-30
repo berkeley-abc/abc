@@ -39,7 +39,7 @@ static int Fpga_CommandPrintLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
 */
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -56,11 +56,8 @@ static int Fpga_CommandPrintLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
 void Fpga_Init( Abc_Frame_t * pAbc )
 {
     // set the default library
-    //Fpga_LutLib_t s_LutLib = { "lutlib", 6, 0, {0,1,2,4,8,16,32}, {{0},{1},{2},{3},{4},{5},{6}} };
-//    Fpga_LutLib_t s_LutLib = { "lutlib", 5, 0, {0,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1}} };
-    Fpga_LutLib_t s_LutLib = { "lutlib", 4, 0, {0,1,1,1,1}, {{0},{1},{1},{1},{1}} };
-    //Fpga_LutLib_t s_LutLib = { "lutlib", 3, 0, {0,1,1,1}, {{0},{1},{1},{1}} };
-
+    //Fpga_LutLib_t s_LutLib = { "lutlib", 6, {0,1,2,4,8,16,32}, {0,1,2,3,4,5,6} };
+    Fpga_LutLib_t s_LutLib = { "lutlib", 5, {0,1,1,1,1,1}, {0,1,1,1,1,1} };
     Abc_FrameSetLibLut( Fpga_LutLibDup(&s_LutLib) );
 
     Cmd_CommandAdd( pAbc, "FPGA mapping", "read_lut",   Fpga_CommandReadLibrary,   0 ); 
@@ -80,7 +77,7 @@ void Fpga_Init( Abc_Frame_t * pAbc )
 ***********************************************************************/
 void Fpga_End()
 {
-    Fpga_LutLibFree( Abc_FrameReadLibLut() );
+    Fpga_LutLibFree( Abc_FrameReadLibLut(Abc_FrameGetGlobalFrame()) );
 }
 
 
@@ -105,14 +102,14 @@ int Fpga_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     int fVerbose;
     int c;
 
-    pNet = Abc_FrameReadNtk(pAbc);
+    pNet = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set the defaults
     fVerbose = 1;
-    Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "vh")) != EOF ) 
+    util_getopt_reset();
+    while ( (c = util_getopt(argc, argv, "vh")) != EOF ) 
     {
         switch (c) 
         {
@@ -128,13 +125,13 @@ int Fpga_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
 
-    if ( argc != globalUtilOptind + 1 )
+    if ( argc != util_optind + 1 )
     {
         goto usage;
     }
 
     // get the input file name
-    FileName = argv[globalUtilOptind];
+    FileName = argv[util_optind];
     if ( (pFile = fopen( FileName, "r" )) == NULL )
     {
         fprintf( pErr, "Cannot open input file \"%s\". ", FileName );
@@ -195,14 +192,14 @@ int Fpga_CommandPrintLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     int fVerbose;
     int c;
 
-    pNet = Abc_FrameReadNtk(pAbc);
+    pNet = Abc_FrameReadNet(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set the defaults
     fVerbose = 1;
-    Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "vh")) != EOF ) 
+    util_getopt_reset();
+    while ( (c = util_getopt(argc, argv, "vh")) != EOF ) 
     {
         switch (c) 
         {
@@ -218,13 +215,13 @@ int Fpga_CommandPrintLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
 
-    if ( argc != globalUtilOptind )
+    if ( argc != util_optind )
     {
         goto usage;
     }
 
     // set the new network
-    Fpga_LutLibPrint( Abc_FrameReadLibLut() );
+    Fpga_LutLibPrint( Abc_FrameReadLibLut(Abc_FrameGetGlobalFrame()) );
     return 0;
 
 usage:
@@ -233,47 +230,6 @@ usage:
     fprintf( pErr, "\t-v      : toggles enabling of verbose output [default = %s]\n", (fVerbose? "yes" : "no") );
     fprintf( pErr, "\t-h      : print the command usage\n");
     return 1;       /* error exit */
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Sets simple LUT library.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Fpga_SetSimpleLutLib( int nLutSize )
-{
-    Fpga_LutLib_t s_LutLib10= { "lutlib",10, 0, {0,1,1,1,1,1,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1},{1},{1},{1},{1},{1}} };
-    Fpga_LutLib_t s_LutLib9 = { "lutlib", 9, 0, {0,1,1,1,1,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1},{1},{1},{1},{1}} };
-    Fpga_LutLib_t s_LutLib8 = { "lutlib", 8, 0, {0,1,1,1,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1},{1},{1},{1}} };
-    Fpga_LutLib_t s_LutLib7 = { "lutlib", 7, 0, {0,1,1,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1},{1},{1}} };
-    Fpga_LutLib_t s_LutLib6 = { "lutlib", 6, 0, {0,1,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1},{1}} };
-    Fpga_LutLib_t s_LutLib5 = { "lutlib", 5, 0, {0,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1}} };
-    Fpga_LutLib_t s_LutLib4 = { "lutlib", 4, 0, {0,1,1,1,1}, {{0},{1},{1},{1},{1}} };
-    Fpga_LutLib_t s_LutLib3 = { "lutlib", 3, 0, {0,1,1,1}, {{0},{1},{1},{1}} };
-    Fpga_LutLib_t * pLutLib;
-    assert( nLutSize >= 3 && nLutSize <= 10 );
-    switch ( nLutSize )
-    {
-        case 3:  pLutLib = &s_LutLib3; break;
-        case 4:  pLutLib = &s_LutLib4; break;
-        case 5:  pLutLib = &s_LutLib5; break;
-        case 6:  pLutLib = &s_LutLib6; break;
-        case 7:  pLutLib = &s_LutLib7; break;
-        case 8:  pLutLib = &s_LutLib8; break;
-        case 9:  pLutLib = &s_LutLib9; break;
-        case 10: pLutLib = &s_LutLib10; break;
-        default: pLutLib = NULL; break;
-    }
-    if ( pLutLib == NULL )
-        return;
-    Fpga_LutLibFree( Abc_FrameReadLibLut() );
-    Abc_FrameSetLibLut( Fpga_LutLibDup(pLutLib) );
 }
 
 ////////////////////////////////////////////////////////////////////////

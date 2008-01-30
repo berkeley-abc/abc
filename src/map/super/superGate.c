@@ -120,7 +120,7 @@ static void           Super_WriteLibraryTree( Super_Man_t * pMan );
 static void           Super_WriteLibraryTree_rec( FILE * pFile, Super_Man_t * pMan, Super_Gate_t * pSuper, int * pCounter );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -886,7 +886,7 @@ Super_Man_t * Super_ManStart()
 ***********************************************************************/
 void Super_ManStop( Super_Man_t * pMan )
 {
-    Extra_MmFixedStop( pMan->pMem );
+    Extra_MmFixedStop( pMan->pMem, 0 );
     if ( pMan->tTable ) stmm_free_table( pMan->tTable );
     FREE( pMan->pGates );
     free( pMan );

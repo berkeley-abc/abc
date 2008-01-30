@@ -19,15 +19,9 @@
 #ifndef __REO_H__
 #define __REO_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include "extra.h"
-
-//#pragma warning( disable : 4514 )
 
 ////////////////////////////////////////////////////////////////////////
 ///                     MACRO DEFINITIONS                            ///
@@ -93,9 +87,9 @@ struct _reo_plane
 struct _reo_hash
 {
     int         Sign;            // signature of the current cache operation
-    reo_unit *  Arg1;            // the first argument
-    reo_unit *  Arg2;            // the second argument
-    reo_unit *  Arg3;            // the third argument
+    unsigned    Arg1;            // the first argument
+    unsigned    Arg2;            // the second argument
+    unsigned    Arg3;            // the second argument
 };
 
 struct _reo_man
@@ -172,8 +166,8 @@ struct _reo_man
 
 // used to manipulate units
 #define Unit_Regular(u)     ((reo_unit *)((unsigned long)(u) & ~01))
-#define Unit_Not(u)         ((reo_unit *)((unsigned long)(u) ^ 01))
-#define Unit_NotCond(u,c)   ((reo_unit *)((unsigned long)(u) ^ (c)))
+#define Unit_Not(u)         ((reo_unit *)((long)(u) ^ 01))
+#define Unit_NotCond(u,c)   ((reo_unit *)((long)(u) ^ (c)))
 #define Unit_IsConstant(u)  ((int)((u)->lev == REO_CONST_LEVEL))
 
 ////////////////////////////////////////////////////////////////////////
@@ -221,12 +215,8 @@ extern DdNode *   Extra_ReorderCudd( DdManager * dd, DdNode * aFunc, int pPermut
 extern int        Extra_bddReorderTest( DdManager * dd, DdNode * bF ); 
 extern int        Extra_addReorderTest( DdManager * dd, DdNode * aF ); 
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 ///                         END OF FILE                              ///
 ////////////////////////////////////////////////////////////////////////
+
+#endif

@@ -6,20 +6,12 @@ CP   := cp
 
 PROG := abc
 
-MODULES := src/base/abc src/base/abci src/base/cmd \
-	src/base/io src/base/main src/base/ver \
-	src/bdd/cudd src/bdd/dsd src/bdd/epd src/bdd/mtr \
-	src/bdd/parse src/bdd/reo src/bdd/cas \
-	src/map/fpga src/map/mapper src/map/mio src/map/super src/map/if \
-	src/misc/extra src/misc/mvc src/misc/st src/misc/util \
-	src/misc/espresso src/misc/nm src/misc/vec src/misc/hash \
-	src/opt/cut src/opt/dec src/opt/fxu src/opt/rwr \
-	src/opt/sim src/opt/ret src/opt/res src/opt/lpk src/opt/fret \
-	src/sat/bsat src/sat/csat src/sat/msat src/sat/fraig \
-	src/aig/ivy src/aig/hop src/aig/rwt src/aig/deco \
-	src/aig/mem src/aig/dar src/aig/fra src/aig/cnf \
-	src/aig/csw src/aig/ioa src/aig/aig src/aig/kit \
-	src/aig/bdc src/aig/bar src/aig/ntl src/aig/tim
+MODULES := src/base/abc src/base/abci src/base/abcs src/base/cmd src/base/io src/base/main \
+           src/bdd/cudd src/bdd/dsd src/bdd/epd src/bdd/mtr src/bdd/parse src/bdd/reo \
+           src/map/fpga src/map/mapper src/map/mio src/map/super \
+           src/misc/extra src/misc/mvc src/misc/st src/misc/util src/misc/vec \
+	   src/opt/cut src/opt/dec src/opt/fxu src/opt/rwr src/opt/sim \
+           src/sat/asat src/sat/csat src/sat/msat src/sat/fraig
 
 default: $(PROG)
 
@@ -29,7 +21,7 @@ OPTFLAGS  := -DNDEBUG -O3
 CFLAGS   += -Wall -Wno-unused-function $(OPTFLAGS) $(patsubst %, -I%, $(MODULES)) 
 CXXFLAGS += $(CFLAGS) 
 
-LIBS := -ldl -rdynamic -lreadline -ltermcap
+LIBS := 
 SRC  := 
 GARBAGE := core core.* *.stackdump ./tags $(PROG)
 
@@ -66,10 +58,6 @@ tags:
 
 $(PROG): $(OBJ)
 	$(LD) -o $@ $^ $(LIBS)
-
-lib$(PROG).a: $(OBJ)
-	ar rv $@ $?
-	ranlib $@
 
 docs:
 	doxygen doxygen.conf

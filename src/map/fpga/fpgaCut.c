@@ -35,11 +35,9 @@ struct Fpga_CutTableStrutct_t
 };
 
 // the largest number of cuts considered
-//#define  FPGA_CUTS_MAX_COMPUTE   500
-#define  FPGA_CUTS_MAX_COMPUTE   2000
+#define  FPGA_CUTS_MAX_COMPUTE   500
 // the largest number of cuts used
-//#define  FPGA_CUTS_MAX_USE       200
-#define  FPGA_CUTS_MAX_USE       1000
+#define  FPGA_CUTS_MAX_USE       200
 
 // primes used to compute the hash key
 static int s_HashPrimes[10] = { 109, 499, 557, 619, 631, 709, 797, 881, 907, 991 };
@@ -97,7 +95,7 @@ static Fpga_Cut_t *      Fpga_CutArray2List( Fpga_Cut_t ** pArray, int nCuts );
 
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -130,10 +128,9 @@ void Fpga_MappingCuts( Fpga_Man_t * p )
     Fpga_CutTable_t * pTable;
     Fpga_Node_t * pNode;
     int nCuts, nNodes, i;
-    int clk = clock();
 
     // set the elementary cuts for the PI variables
-    assert( p->nVarsMax > 1 && p->nVarsMax < 11 );
+    assert( p->nVarsMax > 1 && p->nVarsMax < 7 );
     Fpga_MappingCreatePiCuts( p );
 
     // compute the cuts for the internal nodes
@@ -155,9 +152,8 @@ void Fpga_MappingCuts( Fpga_Man_t * p )
     if ( p->fVerbose )
     {
         nCuts = Fpga_CutCountAll(p);
-        printf( "Nodes = %6d. Total %d-cuts = %d. Cuts per node = %.1f. ", 
+        printf( "Nodes = %6d. Total %d-feasible cuts = %d. Cuts per node = %.1f.\n", 
                p->nNodes, p->nVarsMax, nCuts, ((float)nCuts)/p->nNodes );
-        PRT( "Time", clock() - clk );
     }
 
     // print the cuts for the first primary output
@@ -249,7 +245,7 @@ Fpga_Cut_t * Fpga_CutCompute( Fpga_Man_t * p, Fpga_CutTable_t * pTable, Fpga_Nod
     // set at the node
     pNode->pCuts = pCut;
     // remove the dominated cuts
-//    Fpga_CutFilter( p, pNode );
+    Fpga_CutFilter( p, pNode );
     // set the phase correctly
     if ( pNode->pRepr && Fpga_NodeComparePhase(pNode, pNode->pRepr) )
     {
@@ -351,8 +347,8 @@ void Fpga_CutFilter( Fpga_Man_t * p, Fpga_Node_t * pNode )
 Fpga_Cut_t * Fpga_CutMergeLists( Fpga_Man_t * p, Fpga_CutTable_t * pTable, 
     Fpga_Cut_t * pList1, Fpga_Cut_t * pList2, int fComp1, int fComp2, int fPivot1, int fPivot2 )
 {
-    Fpga_Node_t * ppNodes[FPGA_MAX_LEAVES];
-    Fpga_Cut_t * pListNew, ** ppListNew, * pLists[FPGA_MAX_LEAVES+1] = { NULL };
+    Fpga_Node_t * ppNodes[6];
+    Fpga_Cut_t * pListNew, ** ppListNew, * pLists[7] = { NULL };
     Fpga_Cut_t * pCut, * pPrev, * pTemp1, * pTemp2;
     int nNodes, Counter, i;
     Fpga_Cut_t ** ppArray1, ** ppArray2, ** ppArray3;
@@ -536,8 +532,8 @@ QUITS :
 Fpga_Cut_t * Fpga_CutMergeLists2( Fpga_Man_t * p, Fpga_CutTable_t * pTable, 
     Fpga_Cut_t * pList1, Fpga_Cut_t * pList2, int fComp1, int fComp2, int fPivot1, int fPivot2 )
 {
-    Fpga_Node_t * ppNodes[FPGA_MAX_LEAVES];
-    Fpga_Cut_t * pListNew, ** ppListNew, * pLists[FPGA_MAX_LEAVES+1] = { NULL };
+    Fpga_Node_t * ppNodes[6];
+    Fpga_Cut_t * pListNew, ** ppListNew, * pLists[7] = { NULL };
     Fpga_Cut_t * pCut, * pPrev, * pTemp1, * pTemp2;
     int nNodes, Counter, i;
 
@@ -686,8 +682,7 @@ int Fpga_CutMergeTwo( Fpga_Cut_t * pCut1, Fpga_Cut_t * pCut2, Fpga_Node_t * ppNo
     {
         min = i;
         for ( k = i+1; k < nTotal; k++ )
-//            if ( ppNodes[k] < ppNodes[min] ) // reported bug fix (non-determinism!)
-            if ( ppNodes[k]->Num < ppNodes[min]->Num )
+            if ( ppNodes[k] < ppNodes[min] )
                 min = k;
         pNodeTemp    = ppNodes[i];
         ppNodes[i]   = ppNodes[min];
@@ -772,10 +767,7 @@ int Fpga_CutCountAll( Fpga_Man_t * pMan )
         for ( pNode = pMan->pBins[i]; pNode; pNode = pNode->pNext )
             for ( pCut = pNode->pCuts; pCut; pCut = pCut->pNext )
                 if ( pCut->nLeaves > 1 ) // skip the elementary cuts
-                {
-//                    Fpga_CutVolume( pCut );
                     nCuts++;
-                }
     return nCuts;
 }
 
@@ -800,28 +792,6 @@ void Fpga_CutsCleanSign( Fpga_Man_t * pMan )
         for ( pNode = pMan->pBins[i]; pNode; pNode = pNode->pNext )
             for ( pCut = pNode->pCuts; pCut; pCut = pCut->pNext )
                 pCut->uSign = 0;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Clean the signatures.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Fpga_CutsCleanRoot( Fpga_Man_t * pMan )
-{
-    Fpga_Node_t * pNode;
-    Fpga_Cut_t * pCut;
-    int i;
-    for ( i = 0; i < pMan->nBins; i++ )
-        for ( pNode = pMan->pBins[i]; pNode; pNode = pNode->pNext )
-            for ( pCut = pNode->pCuts; pCut; pCut = pCut->pNext )
-                pCut->pRoot = NULL;
 }
 
 
@@ -1109,7 +1079,7 @@ Fpga_Cut_t * Fpga_CutSortCuts( Fpga_Man_t * pMan, Fpga_CutTable_t * p, Fpga_Cut_
     nCuts = Fpga_CutList2Array( p->pCuts1, pList );
     assert( nCuts <= FPGA_CUTS_MAX_COMPUTE );
     // sort the cuts
-    qsort( (void *)p->pCuts1, nCuts, sizeof(void *), 
+    qsort( (void *)p->pCuts1, nCuts, sizeof(Fpga_Cut_t *), 
             (int (*)(const void *, const void *)) Fpga_CutSortCutsCompare );
     // move them back into the list
     if ( nCuts > FPGA_CUTS_MAX_USE - 1 )

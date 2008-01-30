@@ -61,10 +61,10 @@ struct Super2_GateStruct_t_
 
 
 // manipulation of complemented attributes
-#define Super2_IsComplement(p)    (((int)((unsigned long) (p) & 01)))
-#define Super2_Regular(p)         ((Super2_Gate_t *)((unsigned long)(p) & ~01)) 
-#define Super2_Not(p)             ((Super2_Gate_t *)((unsigned long)(p) ^ 01)) 
-#define Super2_NotCond(p,c)       ((Super2_Gate_t *)((unsigned long)(p) ^ (c)))
+#define Super2_IsComplement(p)    (((int)((long) (p) & 01)))
+#define Super2_Regular(p)         ((Super2_Gate_t *)((unsigned)(p) & ~01)) 
+#define Super2_Not(p)             ((Super2_Gate_t *)((long)(p) ^ 01)) 
+#define Super2_NotCond(p,c)       ((Super2_Gate_t *)((long)(p) ^ (c)))
 
 // iterating through the gates in the library
 #define Super2_LibForEachGate( Lib, Gate )                        \
@@ -93,7 +93,7 @@ static int            Super2_LibWriteCompare( char * pStr1, char * pStr2 );
 static int            Super2_LibCompareGates( Super2_Gate_t ** ppG1, Super2_Gate_t ** ppG2 );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -183,7 +183,7 @@ Super2_Man_t * Super2_ManStart()
 ***********************************************************************/
 void Super2_ManStop( Super2_Man_t * pMan )
 {
-    Extra_MmFixedStop( pMan->pMem );
+    Extra_MmFixedStop( pMan->pMem, 0 );
     stmm_free_table( pMan->tTable );
     free( pMan );
 }

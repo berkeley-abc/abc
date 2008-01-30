@@ -38,7 +38,7 @@ static void Fxu_HeapDoubleMoveUp( Fxu_HeapDouble * p, Fxu_Double * pDiv );
 static void Fxu_HeapDoubleMoveDn( Fxu_HeapDouble * p, Fxu_Double * pDiv );  
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

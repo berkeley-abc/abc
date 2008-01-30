@@ -44,7 +44,7 @@ static int   Abc_NodeBuildCutLevelTwo_int( Vec_Ptr_t * vVisited, Vec_Ptr_t * vLe
 static void  Abc_NodeConeMarkCollect_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vVisited );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -321,9 +321,7 @@ int Abc_NodeBuildCutLevelOne_int( Vec_Ptr_t * vVisited, Vec_Ptr_t * vLeaves, int
     {
         CostCur = Abc_NodeGetLeafCostOne( pNode, nFaninLimit );
 //printf( "    Fanin %s has cost %d.\n", Abc_ObjName(pNode), CostCur );
-//        if ( CostBest > CostCur ) // performance improvement: expand the variable with the smallest level
-        if ( CostBest > CostCur ||
-             (CostBest == CostCur && pNode->Level > pFaninBest->Level) )
+        if ( CostBest > CostCur )
         {
             CostBest   = CostCur;
             pFaninBest = pNode;
@@ -491,20 +489,18 @@ void Abc_NodeConeMarkCollect_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vVisited )
   SeeAlso     []
 
 ***********************************************************************/
-DdNode * Abc_NodeConeBdd( DdManager * dd, DdNode ** pbVars, Abc_Obj_t * pRoot, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vVisited )
+DdNode * Abc_NodeConeBdd( DdManager * dd, DdNode ** pbVars, Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vVisited )
 {
-    Abc_Obj_t * pNode;
     DdNode * bFunc0, * bFunc1, * bFunc;
     int i;
     // get the nodes in the cut without fanins in the DFS order
-    Abc_NodeConeCollect( &pRoot, 1, vLeaves, vVisited, 0 );
+    Abc_NodeConeCollect( &pNode, 1, vLeaves, vVisited, 0 );
     // set the elementary BDDs
     Vec_PtrForEachEntry( vLeaves, pNode, i )
         pNode->pCopy = (Abc_Obj_t *)pbVars[i];
     // compute the BDDs for the collected nodes
     Vec_PtrForEachEntry( vVisited, pNode, i )
     {
-        assert( !Abc_ObjIsPi(pNode) );
         bFunc0 = Cudd_NotCond( Abc_ObjFanin0(pNode)->pCopy, Abc_ObjFaninC0(pNode) );
         bFunc1 = Cudd_NotCond( Abc_ObjFanin1(pNode)->pCopy, Abc_ObjFaninC1(pNode) );
         bFunc  = Cudd_bddAnd( dd, bFunc0, bFunc1 );    Cudd_Ref( bFunc );
@@ -589,7 +585,7 @@ Abc_ManCut_t * Abc_NtkManCutStart( int nNodeSizeMax, int nConeSizeMax, int nNode
     p->vConeLeaves  = Vec_PtrAlloc( 100 );
     p->vVisited     = Vec_PtrAlloc( 100 );
     p->vLevels      = Vec_VecAlloc( 100 );
-    p->vNodesTfo    = Vec_PtrAlloc( 100 );
+    p->vNodesTfo     = Vec_PtrAlloc( 100 );
     p->nNodeSizeMax = nNodeSizeMax;
     p->nConeSizeMax = nConeSizeMax;
     p->nNodeFanStop = nNodeFanStop;
@@ -632,22 +628,6 @@ void Abc_NtkManCutStop( Abc_ManCut_t * p )
 Vec_Ptr_t * Abc_NtkManCutReadCutLarge( Abc_ManCut_t * p )
 {
     return p->vConeLeaves;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Returns the leaves of the cone.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Ptr_t * Abc_NtkManCutReadCutSmall( Abc_ManCut_t * p )
-{
-    return p->vNodeLeaves;
 }
 
 /**Function*************************************************************
@@ -712,7 +692,7 @@ Vec_Ptr_t * Abc_NodeCollectTfoCands( Abc_ManCut_t * p, Abc_Obj_t * pRoot, Vec_Pt
 
     // mark MFFC 
     if ( pRoot )
-        Abc_NodeMffcLabelAig( pRoot );
+        Abc_NodeMffcLabel( pRoot );
 
     // go through the levels up
     Vec_PtrClear( p->vNodesTfo );

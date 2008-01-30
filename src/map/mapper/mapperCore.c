@@ -24,7 +24,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -46,7 +46,7 @@
 ***********************************************************************/
 int Map_Mapping( Map_Man_t * p )
 {
-    int fShowSwitching         = 1;
+    int fShowSwitching         = 0;
     int fUseAreaFlow           = 1;
     int fUseExactArea          = !p->fSwitching;
     int fUseExactAreaWithPhase = !p->fSwitching;
@@ -93,11 +93,7 @@ PRT( "Time", p->timeMatch );
     //////////////////////////////////////////////////////////////////////
 
     if ( !p->fAreaRecovery )
-    {
-        if ( p->fVerbose )
-            Map_MappingPrintOutputArrivals( p );
         return 1;
-    }
 
     //////////////////////////////////////////////////////////////////////
     // perform area recovery using area flow

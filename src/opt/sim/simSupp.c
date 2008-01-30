@@ -35,8 +35,10 @@ static void   Sim_UtilAssignFromFifo( Sim_Man_t * p );
 static void   Sim_SolveTargetsUsingSat( Sim_Man_t * p, int nCounters );
 static int    Sim_SolveSuppModelVerify( Abc_Ntk_t * pNtk, int * pModel, int Input, int Output );
 
+extern Fraig_Man_t * Abc_NtkToFraig( Abc_Ntk_t * pNtk, Fraig_Params_t * pParams, int fAllNodes );
+
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -66,8 +68,8 @@ Vec_Ptr_t * Sim_ComputeStrSupp( Abc_Ntk_t * pNtk )
     // derive the structural supports of the internal nodes
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
-//        if ( Abc_NodeIsConst(pNode) )
-//            continue;
+        if ( Abc_NodeIsConst(pNode) )
+            continue;
         pSimmNode  = vSuppStr->pArray[ pNode->Id ];
         pSimmNode1 = vSuppStr->pArray[ Abc_ObjFaninId0(pNode) ];
         pSimmNode2 = vSuppStr->pArray[ Abc_ObjFaninId1(pNode) ];
@@ -106,7 +108,7 @@ Vec_Ptr_t * Sim_ComputeFunSupp( Abc_Ntk_t * pNtk, int fVerbose )
     srand( 0xABC );
 
     // start the simulation manager
-    p = Sim_ManStart( pNtk, 0 );
+    p = Sim_ManStart( pNtk );
 
     // compute functional support using one round of random simulation
     Sim_UtilAssignRandom( p );
@@ -467,10 +469,9 @@ void Sim_SolveTargetsUsingSat( Sim_Man_t * p, int Limit )
 
         // transform the miter into a fraig
         Fraig_ParamsSetDefault( &Params );
-        Params.nSeconds = ABC_INFINITY;
         Params.fInternal = 1;
 clk = clock();
-        pMan = Abc_NtkToFraig( pMiter, &Params, 0, 0 ); 
+        pMan = Abc_NtkToFraig( pMiter, &Params, 0 ); 
 p->timeFraig += clock() - clk;
 clk = clock();
         Fraig_ManProveMiter( pMan );
@@ -586,6 +587,10 @@ int Sim_SolveSuppModelVerify( Abc_Ntk_t * pNtk, int * pModel, int Input, int Out
     }
     // perform the traversal
     RetValue = 3 & Sim_NtkSimTwoPats_rec( Abc_ObjFanin0( Abc_NtkCo(pNtk,Output) ) );
+    if ( RetValue == 0 || RetValue == 3 )
+    {
+        int x = 0;
+    }
 //    assert( RetValue == 1 || RetValue == 2 ); 
     return RetValue == 1 || RetValue == 2;
 }

@@ -19,10 +19,6 @@
 #ifndef __MAPPER_H__
 #define __MAPPER_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -60,16 +56,16 @@ struct Map_TimeStruct_t_
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                       MACRO DEFINITIONS                          ///
+///                       MACRO DEFITIONS                            ///
 ////////////////////////////////////////////////////////////////////////
  
-#define Map_IsComplement(p)    (((int)((unsigned long) (p) & 01)))
-#define Map_Regular(p)         ((Map_Node_t *)((unsigned long)(p) & ~01)) 
-#define Map_Not(p)             ((Map_Node_t *)((unsigned long)(p) ^ 01)) 
-#define Map_NotCond(p,c)       ((Map_Node_t *)((unsigned long)(p) ^ (c)))
+#define Map_IsComplement(p)    (((int)((long) (p) & 01)))
+#define Map_Regular(p)         ((Map_Node_t *)((unsigned)(p) & ~01)) 
+#define Map_Not(p)             ((Map_Node_t *)((long)(p) ^ 01)) 
+#define Map_NotCond(p,c)       ((Map_Node_t *)((long)(p) ^ (c)))
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /*=== mapperCreate.c =============================================================*/
@@ -184,12 +180,7 @@ extern void            Map_ManCleanData( Map_Man_t * p );
 extern void            Map_MappingSetupTruthTables( unsigned uTruths[][2] );
 extern void            Map_MappingSetupTruthTablesLarge( unsigned uTruths[][32] );
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+#endif

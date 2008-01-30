@@ -29,7 +29,7 @@ static int  Dsd_TreeCountPrimeNodes_rec( Dsd_Node_t * pNode );
 static int  Dsd_TreeCollectDecomposableVars_rec( DdManager * dd, Dsd_Node_t * pNode, int * pVars, int * nVars );
 static void Dsd_TreeCollectNodesDfs_rec( Dsd_Node_t * pNode, Dsd_Node_t * ppNodes[], int * pnNodes );
 static void Dsd_TreePrint_rec( FILE * pFile, Dsd_Node_t * pNode, int fCcmp, char * pInputNames[], char * pOutputName, int nOffset, int * pSigCounter, int fShortNames );
-static void Dsd_NodePrint_rec( FILE * pFile, Dsd_Node_t * pNode, int fComp, char * pOutputName, int nOffset, int * pSigCounter );
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                      STATIC VARIABLES                            ///
@@ -239,58 +239,6 @@ void Dsd_TreeGetInfo_rec( Dsd_Node_t * pNode, int RankCur )
     // call recursively
     for ( i = 0; i < pNode->nDecs; i++ )
         Dsd_TreeGetInfo_rec( Dsd_Regular(pNode->pDecs[i]), RankCur+1 );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Counts AIG nodes needed to implement this node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Dsd_TreeGetAigCost_rec( Dsd_Node_t * pNode )
-{
-    int i, Counter = 0;
-
-    assert( pNode );
-    assert( !Dsd_IsComplement( pNode ) );
-    assert( pNode->nVisits >= 0 );
-
-    if ( pNode->nDecs < 2 )
-        return 0;
-
-    // we don't want the two-input gates to count for non-decomposable blocks
-    if ( pNode->Type == DSD_NODE_OR )
-        Counter += pNode->nDecs - 1;
-    else if ( pNode->Type == DSD_NODE_EXOR )
-        Counter += 3*(pNode->nDecs - 1);
-    else if ( pNode->Type == DSD_NODE_PRIME && pNode->nDecs == 3 )
-        Counter += 3;
-
-    // call recursively
-    for ( i = 0; i < pNode->nDecs; i++ )
-        Counter += Dsd_TreeGetAigCost_rec( Dsd_Regular(pNode->pDecs[i]) );
-    return Counter;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Counts AIG nodes needed to implement this node.]
-
-  Description [Assumes that the only primes of the DSD tree are MUXes.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Dsd_TreeGetAigCost( Dsd_Node_t * pNode )
-{
-    return Dsd_TreeGetAigCost_rec( Dsd_Regular(pNode) );
 }
 
 /**Function*************************************************************
@@ -683,21 +631,27 @@ void Dsd_TreePrint_rec( FILE * pFile, Dsd_Node_t * pNode, int fComp, char * pInp
         pNode->Type == DSD_NODE_PRIME || pNode->Type == DSD_NODE_OR || pNode->Type == DSD_NODE_EXOR ); 
 
     Extra_PrintSymbols( pFile, ' ', nOffset, 0 );
-    if ( !fComp )
-        fprintf( pFile, "%s = ", pOutputName );
-    else
-        fprintf( pFile, "NOT(%s) = ", pOutputName );
+    fprintf( pFile, "%s: ", pOutputName );
     pInputNums = ALLOC( int, pNode->nDecs );
     if ( pNode->Type == DSD_NODE_CONST1 )
     {
-         fprintf( pFile, " Constant 1.\n" );
+        if ( fComp )
+            fprintf( pFile, " Constant 0.\n" );
+        else
+            fprintf( pFile, " Constant 1.\n" );
     }
     else if ( pNode->Type == DSD_NODE_BUF )
     {
+        if ( fComp )
+            fprintf( pFile, " NOT(" );
+        else
+            fprintf( pFile, " " );
         if ( fShortNames )
-            fprintf( pFile, "%d", 'a' + pNode->S->index );
+            fprintf( pFile, "%d", pNode->S->index );
         else
             fprintf( pFile, "%s", pInputNames[pNode->S->index] );
+        if ( fComp )
+            fprintf( pFile, ")" );
         fprintf( pFile, "\n" );
     }
     else if ( pNode->Type == DSD_NODE_PRIME )
@@ -710,25 +664,25 @@ void Dsd_TreePrint_rec( FILE * pFile, Dsd_Node_t * pNode, int fComp, char * pInp
             fCompNew = (int)( pInput != pNode->pDecs[i] );
             if ( i )
                 fprintf( pFile, "," );
-            if ( fCompNew )
-                fprintf( pFile, " NOT(" );
-            else
-                fprintf( pFile, " " );
             if ( pInput->Type == DSD_NODE_BUF )
             {
                 pInputNums[i] = 0;
+                if ( fCompNew )
+                    fprintf( pFile, " NOT(" );
+                else
+                    fprintf( pFile, " " );
                 if ( fShortNames )
                     fprintf( pFile, "%d", pInput->S->index );
                 else
                     fprintf( pFile, "%s", pInputNames[pInput->S->index] );
+                if ( fCompNew )
+                    fprintf( pFile, ")" );
             }
             else
             {
                 pInputNums[i] = (*pSigCounter)++;
-                fprintf( pFile, "<%d>", pInputNums[i] );
+                fprintf( pFile, " <%d>", pInputNums[i] );
             }
-            if ( fCompNew )
-                fprintf( pFile, ")" );
         }
         fprintf( pFile, " )\n" );
         // call recursively for the following blocks
@@ -736,39 +690,43 @@ void Dsd_TreePrint_rec( FILE * pFile, Dsd_Node_t * pNode, int fComp, char * pInp
             if ( pInputNums[i] )
             {
                 pInput   = Dsd_Regular( pNode->pDecs[i] );
+                fCompNew = (int)( pInput != pNode->pDecs[i] );
                 sprintf( Buffer, "<%d>", pInputNums[i] );
-                Dsd_TreePrint_rec( pFile, Dsd_Regular( pNode->pDecs[i] ), 0, pInputNames, Buffer, nOffset + 6, pSigCounter, fShortNames );
+                Dsd_TreePrint_rec( pFile, Dsd_Regular( pNode->pDecs[i] ), fCompNew, pInputNames, Buffer, nOffset + 6, pSigCounter, fShortNames );
             }
     }
     else if ( pNode->Type == DSD_NODE_OR )
     {
         // print the line
-        fprintf( pFile, "OR(" );
+        if ( fComp )
+            fprintf( pFile, "AND(" );
+        else
+            fprintf( pFile, "OR(" );
         for ( i = 0; i < pNode->nDecs; i++ )
         {
             pInput = Dsd_Regular( pNode->pDecs[i] );
             fCompNew  = (int)( pInput != pNode->pDecs[i] );
             if ( i )
                 fprintf( pFile, "," );
-            if ( fCompNew )
-                fprintf( pFile, " NOT(" );
-            else
-                fprintf( pFile, " " );
             if ( pInput->Type == DSD_NODE_BUF )
             {
                 pInputNums[i] = 0;
+                if ( fCompNew )
+                    fprintf( pFile, " NOT(" );
+                else
+                    fprintf( pFile, " " );
                 if ( fShortNames )
-                    fprintf( pFile, "%c", 'a' + pInput->S->index );
+                    fprintf( pFile, "%d", pInput->S->index );
                 else
                     fprintf( pFile, "%s", pInputNames[pInput->S->index] );
+                if ( fCompNew )
+                    fprintf( pFile, ")" );
             }
             else
             {
                 pInputNums[i] = (*pSigCounter)++;
-                fprintf( pFile, "<%d>", pInputNums[i] );
+                fprintf( pFile, " <%d>", pInputNums[i] );
             }
-            if ( fCompNew )
-                fprintf( pFile, ")" );
         }
         fprintf( pFile, " )\n" );
         // call recursively for the following blocks
@@ -776,39 +734,43 @@ void Dsd_TreePrint_rec( FILE * pFile, Dsd_Node_t * pNode, int fComp, char * pInp
             if ( pInputNums[i] )
             {
                 pInput = Dsd_Regular( pNode->pDecs[i] );
+                fCompNew  = (int)( pInput != pNode->pDecs[i] );
                 sprintf( Buffer, "<%d>", pInputNums[i] );
-                Dsd_TreePrint_rec( pFile, Dsd_Regular( pNode->pDecs[i] ), 0, pInputNames, Buffer, nOffset + 6, pSigCounter, fShortNames );
+                Dsd_TreePrint_rec( pFile, Dsd_Regular( pNode->pDecs[i] ), fComp ^ fCompNew, pInputNames, Buffer, nOffset + 6, pSigCounter, fShortNames );
             }
     }
     else if ( pNode->Type == DSD_NODE_EXOR )
     {
         // print the line
-        fprintf( pFile, "EXOR(" );
+        if ( fComp )
+            fprintf( pFile, "NEXOR(" );
+        else
+            fprintf( pFile, "EXOR(" );
         for ( i = 0; i < pNode->nDecs; i++ )
         {
             pInput = Dsd_Regular( pNode->pDecs[i] );
             fCompNew  = (int)( pInput != pNode->pDecs[i] );
             if ( i )
                 fprintf( pFile, "," );
-            if ( fCompNew )
-                fprintf( pFile, " NOT(" );
-            else
-                fprintf( pFile, " " );
             if ( pInput->Type == DSD_NODE_BUF )
             {
                 pInputNums[i] = 0;
+                if ( fCompNew )
+                    fprintf( pFile, " NOT(" );
+                else
+                    fprintf( pFile, " " );
                 if ( fShortNames )
-                    fprintf( pFile, "%c", 'a' + pInput->S->index );
+                    fprintf( pFile, "%d", pInput->S->index );
                 else
                     fprintf( pFile, "%s", pInputNames[pInput->S->index] );
+                if ( fCompNew )
+                    fprintf( pFile, ")" );
             }
             else
             {
                 pInputNums[i] = (*pSigCounter)++;
-                fprintf( pFile, "<%d>", pInputNums[i] );
+                fprintf( pFile, " <%d>", pInputNums[i] );
             }
-            if ( fCompNew )
-                fprintf( pFile, ")" );
         }
         fprintf( pFile, " )\n" );
         // call recursively for the following blocks
@@ -816,177 +778,9 @@ void Dsd_TreePrint_rec( FILE * pFile, Dsd_Node_t * pNode, int fComp, char * pInp
             if ( pInputNums[i] )
             {
                 pInput = Dsd_Regular( pNode->pDecs[i] );
+                fCompNew  = (int)( pInput != pNode->pDecs[i] );
                 sprintf( Buffer, "<%d>", pInputNums[i] );
-                Dsd_TreePrint_rec( pFile, Dsd_Regular( pNode->pDecs[i] ), 0, pInputNames, Buffer, nOffset + 6, pSigCounter, fShortNames );
-            }
-    }
-    free( pInputNums );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Prints the decompostion tree into file.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Dsd_NodePrint( FILE * pFile, Dsd_Node_t * pNode )
-{
-    Dsd_Node_t * pNodeR;
-    int SigCounter = 1;
-    pNodeR = Dsd_Regular(pNode);
-    Dsd_NodePrint_rec( pFile, pNodeR, pNodeR != pNode, "F", 0, &SigCounter );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Prints one node of the decomposition tree.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Dsd_NodePrint_rec( FILE * pFile, Dsd_Node_t * pNode, int fComp, char * pOutputName, int nOffset, int * pSigCounter )
-{
-    char Buffer[100];
-    Dsd_Node_t * pInput;
-    int * pInputNums;
-    int fCompNew, i;
-
-    assert( pNode->Type == DSD_NODE_BUF || pNode->Type == DSD_NODE_CONST1 || 
-        pNode->Type == DSD_NODE_PRIME || pNode->Type == DSD_NODE_OR || pNode->Type == DSD_NODE_EXOR ); 
-
-    Extra_PrintSymbols( pFile, ' ', nOffset, 0 );
-    if ( !fComp )
-        fprintf( pFile, "%s = ", pOutputName );
-    else
-        fprintf( pFile, "NOT(%s) = ", pOutputName );
-    pInputNums = ALLOC( int, pNode->nDecs );
-    if ( pNode->Type == DSD_NODE_CONST1 )
-    {
-        fprintf( pFile, " Constant 1.\n" );
-    }
-    else if ( pNode->Type == DSD_NODE_BUF )
-    {
-        fprintf( pFile, " " );
-        fprintf( pFile, "%c", 'a' + pNode->S->index );
-        fprintf( pFile, "\n" );
-    }
-    else if ( pNode->Type == DSD_NODE_PRIME )
-    {
-        // print the line
-        fprintf( pFile, "PRIME(" );
-        for ( i = 0; i < pNode->nDecs; i++ )
-        {
-            pInput   = Dsd_Regular( pNode->pDecs[i] );
-            fCompNew = (int)( pInput != pNode->pDecs[i] );
-            assert( fCompNew == 0 );
-            if ( i )
-                fprintf( pFile, "," );
-            if ( pInput->Type == DSD_NODE_BUF )
-            {
-                pInputNums[i] = 0;
-                fprintf( pFile, " %c", 'a' + pInput->S->index );
-            }
-            else
-            {
-                pInputNums[i] = (*pSigCounter)++;
-                fprintf( pFile, " <%d>", pInputNums[i] );
-            }
-            if ( fCompNew )
-                fprintf( pFile, "\'" );
-        }
-        fprintf( pFile, " )\n" );
-/*
-        fprintf( pFile, " )  " );  
-        {
-            DdNode * bLocal;
-            bLocal = Dsd_TreeGetPrimeFunction( dd, pNodeDsd );  Cudd_Ref( bLocal );
-            Extra_bddPrint( dd, bLocal );
-            Cudd_RecursiveDeref( dd, bLocal );
-        }
-*/
-        // call recursively for the following blocks
-        for ( i = 0; i < pNode->nDecs; i++ )
-            if ( pInputNums[i] )
-            {
-                pInput   = Dsd_Regular( pNode->pDecs[i] );
-                sprintf( Buffer, "<%d>", pInputNums[i] );
-                Dsd_NodePrint_rec( pFile, Dsd_Regular( pNode->pDecs[i] ), 0, Buffer, nOffset + 6, pSigCounter );
-            }
-    }
-    else if ( pNode->Type == DSD_NODE_OR )
-    {
-        // print the line
-        fprintf( pFile, "OR(" );
-        for ( i = 0; i < pNode->nDecs; i++ )
-        {
-            pInput = Dsd_Regular( pNode->pDecs[i] );
-            fCompNew  = (int)( pInput != pNode->pDecs[i] );
-            if ( i )
-                fprintf( pFile, "," );
-            if ( pInput->Type == DSD_NODE_BUF )
-            {
-                pInputNums[i] = 0;
-                fprintf( pFile, " %c", 'a' + pInput->S->index );
-            }
-            else
-            {
-                pInputNums[i] = (*pSigCounter)++;
-                fprintf( pFile, " <%d>", pInputNums[i] );
-            }
-            if ( fCompNew )
-                fprintf( pFile, "\'" );
-        }
-        fprintf( pFile, " )\n" );
-        // call recursively for the following blocks
-        for ( i = 0; i < pNode->nDecs; i++ )
-            if ( pInputNums[i] )
-            {
-                pInput = Dsd_Regular( pNode->pDecs[i] );
-                sprintf( Buffer, "<%d>", pInputNums[i] );
-                Dsd_NodePrint_rec( pFile, Dsd_Regular( pNode->pDecs[i] ), 0, Buffer, nOffset + 6, pSigCounter );
-            }
-    }
-    else if ( pNode->Type == DSD_NODE_EXOR )
-    {
-        // print the line
-        fprintf( pFile, "EXOR(" );
-        for ( i = 0; i < pNode->nDecs; i++ )
-        {
-            pInput = Dsd_Regular( pNode->pDecs[i] );
-            fCompNew  = (int)( pInput != pNode->pDecs[i] );
-            assert( fCompNew == 0 );
-            if ( i )
-                fprintf( pFile, "," );
-            if ( pInput->Type == DSD_NODE_BUF )
-            {
-                pInputNums[i] = 0;
-                fprintf( pFile, " %c", 'a' + pInput->S->index );
-            }
-            else
-            {
-                pInputNums[i] = (*pSigCounter)++;
-                fprintf( pFile, " <%d>", pInputNums[i] );
-            }
-            if ( fCompNew )
-                fprintf( pFile, "\'" );
-        }
-        fprintf( pFile, " )\n" );
-        // call recursively for the following blocks
-        for ( i = 0; i < pNode->nDecs; i++ )
-            if ( pInputNums[i] )
-            {
-                pInput = Dsd_Regular( pNode->pDecs[i] );
-                sprintf( Buffer, "<%d>", pInputNums[i] );
-                Dsd_NodePrint_rec( pFile, Dsd_Regular( pNode->pDecs[i] ), 0, Buffer, nOffset + 6, pSigCounter );
+                Dsd_TreePrint_rec( pFile, Dsd_Regular( pNode->pDecs[i] ), fCompNew, pInputNames, Buffer, nOffset + 6, pSigCounter, fShortNames );
             }
     }
     free( pInputNums );

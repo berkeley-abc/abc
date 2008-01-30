@@ -60,7 +60,6 @@ struct  Mio_LibraryStruct_t_
     Mio_Gate_t *       pGateBuf;    // the buffer
     Mio_Gate_t *       pGateInv;    // the inverter
     Mio_Gate_t *       pGateNand2;  // the NAND2 gate
-    Mio_Gate_t *       pGateAnd2;   // the AND2 gate
     st_table *         tName2Gate;  // the mapping of gate names into their pointer
     DdManager *        dd;          // the nanager storing functions of gates
     Extra_MmFlex_t *   pMmFlex;     // the memory manaqer for SOPs
@@ -107,19 +106,19 @@ struct  Mio_PinStruct_t_
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                       MACRO DEFINITIONS                          ///
+///                       MACRO DEFITIONS                            ///
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /*=== mio.c =============================================================*/
 /*=== mioRead.c =============================================================*/
 /*=== mioUtils.c =============================================================*/
 
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+
+#endif

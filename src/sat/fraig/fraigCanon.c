@@ -24,7 +24,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -49,8 +49,7 @@
 Fraig_Node_t * Fraig_NodeAndCanon( Fraig_Man_t * pMan, Fraig_Node_t * p1, Fraig_Node_t * p2 )
 {
     Fraig_Node_t * pNodeNew, * pNodeOld, * pNodeRepr;
-    int fUseSatCheck;
-//    int RetValue;
+    int RetValue;
 
     // check for trivial cases
     if ( p1 == p2 )
@@ -69,7 +68,7 @@ Fraig_Node_t * Fraig_NodeAndCanon( Fraig_Man_t * pMan, Fraig_Node_t * p1, Fraig_
             return p1;
         return Fraig_Not(pMan->pConst1);
     }
-/*
+
     // check for less trivial cases
     if ( Fraig_IsComplement(p1) )
     {
@@ -126,7 +125,7 @@ Fraig_Node_t * Fraig_NodeAndCanon( Fraig_Man_t * pMan, Fraig_Node_t * p1, Fraig_
             return Fraig_Not(pMan->pConst1);
         }
     }
-*/
+
     // perform level-one structural hashing
     if ( Fraig_HashTableLookupS( pMan, p1, p2, &pNodeNew ) ) // the node with these children is found
     {
@@ -168,8 +167,7 @@ Fraig_Node_t * Fraig_NodeAndCanon( Fraig_Man_t * pMan, Fraig_Node_t * p1, Fraig_
     // there is another node which looks the same according to simulation
 
     // use SAT to resolve the ambiguity
-    fUseSatCheck = (pMan->nInspLimit == 0 || Fraig_ManReadInspects(pMan) < pMan->nInspLimit); 
-    if ( fUseSatCheck && Fraig_NodeIsEquivalent( pMan, pNodeOld, pNodeNew, pMan->nBTLimit, 1000000 ) )
+    if ( Fraig_NodeIsEquivalent( pMan, pNodeOld, pNodeNew, pMan->nBTLimit ) )
     {
         // set the node to be equivalent with this node
         // to prevent loops, only set if the old node is not in the TFI of the new node

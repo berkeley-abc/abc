@@ -58,7 +58,7 @@ static void Msat_HeapPercolateDown( Msat_Order_t * p, int i );
 extern int timeSelect;
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

@@ -14,10 +14,6 @@
 #ifndef ST_INCLUDED
 #define ST_INCLUDED
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef struct st_table_entry st_table_entry;
 struct st_table_entry {
     char *key;
@@ -52,28 +48,28 @@ enum st_retval {ST_CONTINUE, ST_STOP, ST_DELETE};
 typedef enum st_retval (*ST_PFSR)();
 typedef int (*ST_PFI)();
 
-extern st_table *st_init_table_with_params (ST_PFI, ST_PFI, int, int, double, int);
-extern st_table *st_init_table (ST_PFI, ST_PFI); 
-extern void st_free_table (st_table *);
-extern int st_lookup (st_table *, char *, char **);
-extern int st_lookup_int (st_table *, char *, int *);
-extern int st_insert (st_table *, char *, char *);
-extern int st_add_direct (st_table *, char *, char *);
-extern int st_find_or_add (st_table *, char *, char ***);
-extern int st_find (st_table *, char *, char ***);
-extern st_table *st_copy (st_table *);
-extern int st_delete (st_table *, char **, char **);
-extern int st_delete_int (st_table *, long *, char **);
-extern int st_foreach (st_table *, ST_PFSR, char *);
-extern int st_strhash (char *, int);
-extern int st_numhash (char *, int);
-extern int st_ptrhash (char *, int);
-extern int st_numcmp (char *, char *);
-extern int st_ptrcmp (char *, char *);
-extern st_generator *st_init_gen (st_table *);
-extern int st_gen (st_generator *, char **, char **);
-extern int st_gen_int (st_generator *, char **, long *);
-extern void st_free_gen (st_generator *);
+EXTERN st_table *st_init_table_with_params ARGS((ST_PFI, ST_PFI, int, int, double, int));
+EXTERN st_table *st_init_table ARGS((ST_PFI, ST_PFI)); 
+EXTERN void st_free_table ARGS((st_table *));
+EXTERN int st_lookup ARGS((st_table *, char *, char **));
+EXTERN int st_lookup_int ARGS((st_table *, char *, int *));
+EXTERN int st_insert ARGS((st_table *, char *, char *));
+EXTERN int st_add_direct ARGS((st_table *, char *, char *));
+EXTERN int st_find_or_add ARGS((st_table *, char *, char ***));
+EXTERN int st_find ARGS((st_table *, char *, char ***));
+EXTERN st_table *st_copy ARGS((st_table *));
+EXTERN int st_delete ARGS((st_table *, char **, char **));
+EXTERN int st_delete_int ARGS((st_table *, long *, char **));
+EXTERN int st_foreach ARGS((st_table *, ST_PFSR, char *));
+EXTERN int st_strhash ARGS((char *, int));
+EXTERN int st_numhash ARGS((char *, int));
+EXTERN int st_ptrhash ARGS((char *, int));
+EXTERN int st_numcmp ARGS((char *, char *));
+EXTERN int st_ptrcmp ARGS((char *, char *));
+EXTERN st_generator *st_init_gen ARGS((st_table *));
+EXTERN int st_gen ARGS((st_generator *, char **, char **));
+EXTERN int st_gen_int ARGS((st_generator *, char **, long *));
+EXTERN void st_free_gen ARGS((st_generator *));
 
 
 #define ST_DEFAULT_MAX_DENSITY 5
@@ -88,9 +84,5 @@ extern void st_free_gen (st_generator *);
     for(gen=st_init_gen(table); st_gen_int(gen,key,value) || (st_free_gen(gen),0);)
 
 #define ST_OUT_OF_MEM -10000
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* ST_INCLUDED */

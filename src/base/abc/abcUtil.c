@@ -22,36 +22,16 @@
 #include "main.h"
 #include "mio.h"
 #include "dec.h"
-//#include "seq.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+static int Abc_NodeRefDeref( Abc_Obj_t * pNode, bool fFanouts, bool fReference );
+
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
-
-/**Function*************************************************************
-
-  Synopsis    [Frees one attribute manager.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void * Abc_NtkAttrFree( Abc_Ntk_t * pNtk, int Attr, int fFreeMan ) 
-{  
-    void * pUserMan;
-    Vec_Att_t * pAttrMan;
-    pAttrMan = Vec_PtrEntry( pNtk->vAttrs, Attr );
-    Vec_PtrWriteEntry( pNtk->vAttrs, Attr, NULL );
-    pUserMan = Vec_AttFree( pAttrMan, fFreeMan );
-    return pUserMan;
-}
 
 /**Function*************************************************************
 
@@ -68,56 +48,13 @@ void Abc_NtkIncrementTravId( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj;
     int i;
-    if ( pNtk->nTravIds >= (1<<30)-1 )
+    if ( pNtk->nTravIds == (1<<12)-1 )
     {
         pNtk->nTravIds = 0;
         Abc_NtkForEachObj( pNtk, pObj, i )
             pObj->TravId = 0;
     }
     pNtk->nTravIds++;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Order CI/COs.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkOrderCisCos( Abc_Ntk_t * pNtk )
-{
-    Abc_Obj_t * pObj, * pTerm;
-    int i, k;
-    Vec_PtrClear( pNtk->vCis );
-    Vec_PtrClear( pNtk->vCos );
-    Abc_NtkForEachPi( pNtk, pObj, i )
-        Vec_PtrPush( pNtk->vCis, pObj );
-    Abc_NtkForEachPo( pNtk, pObj, i )
-        Vec_PtrPush( pNtk->vCos, pObj );
-    Abc_NtkForEachAssert( pNtk, pObj, i )
-        Vec_PtrPush( pNtk->vCos, pObj );
-    Abc_NtkForEachBox( pNtk, pObj, i )
-    {
-        if ( Abc_ObjIsLatch(pObj) )
-            continue;
-        Abc_ObjForEachFanin( pObj, pTerm, k )
-            Vec_PtrPush( pNtk->vCos, pTerm );
-        Abc_ObjForEachFanout( pObj, pTerm, k )
-            Vec_PtrPush( pNtk->vCis, pTerm );
-    }
-    Abc_NtkForEachBox( pNtk, pObj, i )
-    {
-        if ( !Abc_ObjIsLatch(pObj) )
-            continue;
-        Abc_ObjForEachFanin( pObj, pTerm, k )
-            Vec_PtrPush( pNtk->vCos, pTerm );
-        Abc_ObjForEachFanout( pObj, pTerm, k )
-            Vec_PtrPush( pNtk->vCis, pTerm );
-    }
 }
 
 /**Function*************************************************************
@@ -138,8 +75,6 @@ int Abc_NtkGetCubeNum( Abc_Ntk_t * pNtk )
     assert( Abc_NtkHasSop(pNtk) );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
-        if ( Abc_NodeIsConst(pNode) )
-            continue;
         assert( pNode->pData );
         nCubes += Abc_SopGetCubeNum( pNode->pData );
     }
@@ -149,33 +84,6 @@ int Abc_NtkGetCubeNum( Abc_Ntk_t * pNtk )
 /**Function*************************************************************
 
   Synopsis    [Reads the number of cubes of the node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_NtkGetCubePairNum( Abc_Ntk_t * pNtk )
-{
-    Abc_Obj_t * pNode;
-    int i, nCubes, nCubePairs = 0;
-    assert( Abc_NtkHasSop(pNtk) );
-    Abc_NtkForEachNode( pNtk, pNode, i )
-    {
-        if ( Abc_NodeIsConst(pNode) )
-            continue;
-        assert( pNode->pData );
-        nCubes = Abc_SopGetCubeNum( pNode->pData );
-        nCubePairs += nCubes * (nCubes - 1) / 2;
-    }
-    return nCubePairs;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Reads the number of literals in the SOPs of the nodes.]
 
   Description []
                
@@ -245,36 +153,7 @@ int Abc_NtkGetBddNodeNum( Abc_Ntk_t * pNtk )
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         assert( pNode->pData );
-        if ( Abc_ObjFaninNum(pNode) < 2 )
-            continue;
-        nNodes += pNode->pData? -1 + Cudd_DagSize( pNode->pData ) : 0;
-    }
-    return nNodes;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Reads the number of BDD nodes.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_NtkGetAigNodeNum( Abc_Ntk_t * pNtk )
-{
-    Abc_Obj_t * pNode;
-    int i, nNodes = 0;
-    assert( Abc_NtkIsAigLogic(pNtk) );
-    Abc_NtkForEachNode( pNtk, pNode, i )
-    {
-        assert( pNode->pData );
-        if ( Abc_ObjFaninNum(pNode) < 2 )
-            continue;
-//printf( "%d ", Hop_DagSize( pNode->pData ) );
-        nNodes += pNode->pData? Hop_DagSize( pNode->pData ) : 0;
+        nNodes += pNode->pData? Cudd_DagSize( pNode->pData ) : 0;
     }
     return nNodes;
 }
@@ -339,12 +218,7 @@ double Abc_NtkGetMappedArea( Abc_Ntk_t * pNtk )
     TotalArea = 0.0;
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
-//        assert( pNode->pData );
-        if ( pNode->pData == NULL )
-        {
-            printf( "Node without mapping is encountered.\n" );
-            continue;
-        }
+        assert( pNode->pData );
         TotalArea += Mio_GateReadArea( pNode->pData );
     }
     return TotalArea;
@@ -372,26 +246,6 @@ int Abc_NtkGetExorNum( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
-  Synopsis    [Counts the number of exors.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_NtkGetMuxNum( Abc_Ntk_t * pNtk )
-{
-    Abc_Obj_t * pNode;
-    int i, Counter = 0;
-    Abc_NtkForEachNode( pNtk, pNode, i )
-        Counter += Abc_NodeIsMuxType(pNode);
-    return Counter;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Returns 1 if it is an AIG with choice nodes.]
 
   Description []
@@ -409,7 +263,7 @@ int Abc_NtkGetChoiceNum( Abc_Ntk_t * pNtk )
         return 0;
     Counter = 0;
     Abc_NtkForEachNode( pNtk, pNode, i )
-        Counter += Abc_AigNodeIsChoice( pNode );
+        Counter += Abc_NodeIsAigChoice( pNode );
     return Counter;
 }
 
@@ -438,26 +292,6 @@ int Abc_NtkGetFaninMax( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
-  Synopsis    [Reads the total number of all fanins.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_NtkGetTotalFanins( Abc_Ntk_t * pNtk )
-{
-    Abc_Obj_t * pNode;
-    int i, nFanins = 0;
-    Abc_NtkForEachNode( pNtk, pNode, i )
-        nFanins += Abc_ObjFaninNum(pNode);
-    return nFanins;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Cleans the copy field of all objects.]
 
   Description []
@@ -471,199 +305,19 @@ void Abc_NtkCleanCopy( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pObj;
     int i;
+    i = 0;
+    // set the data filed to NULL
     Abc_NtkForEachObj( pNtk, pObj, i )
         pObj->pCopy = NULL;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Cleans the copy field of all objects.]
+  Synopsis    [Checks if the internal node has a unique CO.]
 
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkCleanData( Abc_Ntk_t * pNtk )
-{
-    Abc_Obj_t * pObj;
-    int i;
-    Abc_NtkForEachObj( pNtk, pObj, i )
-        pObj->pData = NULL;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Cleans the copy field of all objects.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkCleanEquiv( Abc_Ntk_t * pNtk )
-{
-    Abc_Obj_t * pObj;
-    int i;
-    Abc_NtkForEachObj( pNtk, pObj, i )
-        pObj->pEquiv = NULL;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Counts the number of nodes having non-trivial copies.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_NtkCountCopy( Abc_Ntk_t * pNtk )
-{
-    Abc_Obj_t * pObj;
-    int i, Counter = 0;
-    Abc_NtkForEachObj( pNtk, pObj, i )
-    {
-        if ( Abc_ObjIsNode(pObj) )
-            Counter += (pObj->pCopy != NULL);
-    }
-    return Counter;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Saves copy field of the objects.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Ptr_t * Abc_NtkSaveCopy( Abc_Ntk_t * pNtk )
-{
-    Vec_Ptr_t * vCopies;
-    Abc_Obj_t * pObj;
-    int i;
-    vCopies = Vec_PtrStart( Abc_NtkObjNumMax(pNtk) );
-    Abc_NtkForEachObj( pNtk, pObj, i )
-        Vec_PtrWriteEntry( vCopies, i, pObj->pCopy );
-    return vCopies;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Loads copy field of the objects.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkLoadCopy( Abc_Ntk_t * pNtk, Vec_Ptr_t * vCopies )
-{
-    Abc_Obj_t * pObj;
-    int i;
-    Abc_NtkForEachObj( pNtk, pObj, i )
-        pObj->pCopy = Vec_PtrEntry( vCopies, i );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Cleans the copy field of all objects.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkCleanNext( Abc_Ntk_t * pNtk )
-{
-    Abc_Obj_t * pObj;
-    int i = 0;
-    Abc_NtkForEachObj( pNtk, pObj, i )
-        pObj->pNext = NULL;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Cleans the copy field of all objects.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkCleanMarkA( Abc_Ntk_t * pNtk )
-{
-    Abc_Obj_t * pObj;
-    int i = 0;
-    Abc_NtkForEachObj( pNtk, pObj, i )
-        pObj->fMarkA = 0;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Checks if the internal node has CO fanout.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Obj_t * Abc_NodeFindCoFanout( Abc_Obj_t * pNode )
-{
-    Abc_Obj_t * pFanout;
-    int i;
-    Abc_ObjForEachFanout( pNode, pFanout, i )
-        if ( Abc_ObjIsCo(pFanout) )
-            return pFanout;
-    return NULL;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Checks if the internal node has CO fanout.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Obj_t * Abc_NodeFindNonCoFanout( Abc_Obj_t * pNode )
-{
-    Abc_Obj_t * pFanout;
-    int i;
-    Abc_ObjForEachFanout( pNode, pFanout, i )
-        if ( !Abc_ObjIsCo(pFanout) )
-            return pFanout;
-    return NULL;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Checks if the internal node has CO drivers with the same name.]
-
-  Description [Checks if the internal node can borrow its name from CO fanouts. 
-  This is possible if all COs with non-complemented fanin edge pointing to this 
-  node have the same name.]
+  Description [Checks if the internal node can borrow a name from a CO
+  fanout. This is possible if there is only one CO with non-complemented
+  fanin edge pointing to this node.]
                
   SideEffects []
 
@@ -673,73 +327,23 @@ Abc_Obj_t * Abc_NodeFindNonCoFanout( Abc_Obj_t * pNode )
 Abc_Obj_t * Abc_NodeHasUniqueCoFanout( Abc_Obj_t * pNode )
 {
     Abc_Obj_t * pFanout, * pFanoutCo;
-    int i;
-    pFanoutCo = NULL;
+    int i, Counter;
+    if ( !Abc_ObjIsNode(pNode) )
+        return NULL;
+    Counter = 0;
     Abc_ObjForEachFanout( pNode, pFanout, i )
     {
-        if ( !Abc_ObjIsCo(pFanout) )
-            continue;
-        if ( Abc_ObjFaninC0(pFanout) )
-            continue;
-        if ( pFanoutCo == NULL )
+        if ( Abc_ObjIsCo(pFanout) && !Abc_ObjFaninC0(pFanout) )
         {
             assert( Abc_ObjFaninNum(pFanout) == 1 );
             assert( Abc_ObjFanin0(pFanout) == pNode );
             pFanoutCo = pFanout;
-            continue;
-        }
-        if ( strcmp( Abc_ObjName(pFanoutCo), Abc_ObjName(pFanout) ) ) // they have diff names
-            return NULL;
-    }
-    return pFanoutCo;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Fixes the CO driver problem.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkFixCoDriverProblem( Abc_Obj_t * pDriver, Abc_Obj_t * pNodeCo, int fDuplicate )
-{
-    Abc_Ntk_t * pNtk = pDriver->pNtk;
-    Abc_Obj_t * pDriverNew, * pFanin;
-    int k;
-    if ( fDuplicate && !Abc_ObjIsCi(pDriver) )
-    {
-        pDriverNew = Abc_NtkDupObj( pNtk, pDriver, 0 ); 
-        Abc_ObjForEachFanin( pDriver, pFanin, k )
-            Abc_ObjAddFanin( pDriverNew, pFanin );
-        if ( Abc_ObjFaninC0(pNodeCo) )
-        {
-            // change polarity of the duplicated driver
-            Abc_NodeComplement( pDriverNew );
-            Abc_ObjXorFaninC( pNodeCo, 0 );
+            Counter++;
         }
     }
-    else
-    {
-        // add inverters and buffers when necessary
-        if ( Abc_ObjFaninC0(pNodeCo) )
-        {
-            pDriverNew = Abc_NtkCreateNodeInv( pNtk, pDriver );
-            Abc_ObjXorFaninC( pNodeCo, 0 );
-        }
-        else
-            pDriverNew = Abc_NtkCreateNodeBuf( pNtk, pDriver );        
-    }
-    // update the fanin of the PO node
-    Abc_ObjPatchFanin( pNodeCo, pDriver, pDriverNew );
-    assert( Abc_ObjFanoutNum(pDriverNew) == 1 );
-    // remove the old driver if it dangles
-    // (this happens when the duplicated driver had only one complemented fanout)
-    if ( Abc_ObjFanoutNum(pDriver) == 0 )
-        Abc_NtkDeleteObj( pDriver );
+    if ( Counter == 1 )
+        return pFanoutCo;
+    return NULL;
 }
 
 /**Function*************************************************************
@@ -748,8 +352,9 @@ void Abc_NtkFixCoDriverProblem( Abc_Obj_t * pDriver, Abc_Obj_t * pNodeCo, int fD
 
   Description [The COs of a logic network are simple under three conditions:
   (1) The edge from CO to its driver is not complemented.
-  (2) If CI is a driver of a CO, they have the same name.]
-  (3) If two COs share the same driver, they have the same name.]
+  (2) No two COs share the same driver. 
+  (3) The driver is not a CI unless the CI and the CO have the same name 
+  (and so the inv/buf should not be written into a file).]
                
   SideEffects []
 
@@ -760,27 +365,19 @@ bool Abc_NtkLogicHasSimpleCos( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode, * pDriver;
     int i;
-    assert( Abc_NtkIsLogic(pNtk) );
+    assert( !Abc_NtkIsNetlist(pNtk) );
+    // check if there are complemented or idential POs
     Abc_NtkIncrementTravId( pNtk );
     Abc_NtkForEachCo( pNtk, pNode, i ) 
     {
-        // if the driver is complemented, this is an error
         pDriver = Abc_ObjFanin0(pNode);
         if ( Abc_ObjFaninC0(pNode) )
             return 0;
-        // if the driver is a CI and has different name, this is an error
-        if ( Abc_ObjIsCi(pDriver) && strcmp(Abc_ObjName(pDriver), Abc_ObjName(pNode)) )
+        if ( Abc_NodeIsTravIdCurrent(pDriver) )
             return 0;
-        // if the driver is visited for the first time, remember the CO name
-        if ( !Abc_NodeIsTravIdCurrent(pDriver) )
-        {
-            pDriver->pNext = (Abc_Obj_t *)Abc_ObjName(pNode);
-            Abc_NodeSetTravIdCurrent(pDriver);
-            continue;
-        }
-        // the driver has second CO - if they have different name, this is an error
-        if ( strcmp((char *)pDriver->pNext, Abc_ObjName(pNode)) ) // diff names
+        if ( Abc_ObjIsCi(pDriver) && strcmp( Abc_ObjName(pDriver), Abc_ObjName(pNode) ) != 0 )
             return 0;
+        Abc_NodeSetTravIdCurrent(pDriver);
     }
     return 1;
 }
@@ -790,9 +387,10 @@ bool Abc_NtkLogicHasSimpleCos( Abc_Ntk_t * pNtk )
   Synopsis    [Transforms the network to have simple COs.]
 
   Description [The COs of a logic network are simple under three conditions:
-  (1) The edge from CO to its driver is not complemented.
-  (2) If CI is a driver of a CO, they have the same name.]
-  (3) If two COs share the same driver, they have the same name.
+  (1) The edge from the CO to its driver is not complemented.
+  (2) No two COs share the same driver. 
+  (3) The driver is not a CI unless the CI and the CO have the same name 
+  (and so the inv/buf should not be written into a file).
   In some cases, such as FPGA mapping, we prevent the increase in delay
   by duplicating the driver nodes, rather than adding invs/bufs.]
                
@@ -803,41 +401,63 @@ bool Abc_NtkLogicHasSimpleCos( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 int Abc_NtkLogicMakeSimpleCos( Abc_Ntk_t * pNtk, bool fDuplicate )
 {
-    Abc_Obj_t * pNode, * pDriver;
-    int i, nDupGates = 0;
+    Abc_Obj_t * pNode, * pDriver, * pDriverNew, * pFanin;
+    int i, k, nDupGates = 0;
     assert( Abc_NtkIsLogic(pNtk) );
-    Abc_NtkIncrementTravId( pNtk );
+    // process the COs by adding inverters and buffers when necessary
     Abc_NtkForEachCo( pNtk, pNode, i ) 
     {
-        // if the driver is complemented, this is an error
         pDriver = Abc_ObjFanin0(pNode);
-        if ( Abc_ObjFaninC0(pNode) )
+        if ( Abc_ObjIsCi(pDriver) )
         {
-            Abc_NtkFixCoDriverProblem( pDriver, pNode, fDuplicate );
-            nDupGates++;
-            continue;
+            // skip the case when the driver is a different node with the same name
+            if ( pDriver != pNode && strcmp(Abc_ObjName(pDriver), Abc_ObjName(pNode)) == 0 )
+            {
+                assert( !Abc_ObjFaninC0(pNode) );
+                continue;
+            }
         }
-        // if the driver is a CI and has different name, this is an error
-        if ( Abc_ObjIsCi(pDriver) && strcmp(Abc_ObjName(pDriver), Abc_ObjName(pNode)) )
+        else
         {
-            Abc_NtkFixCoDriverProblem( pDriver, pNode, fDuplicate );
-            nDupGates++;
-            continue;
+            // skip the case when the driver's unique CO fanout is this CO
+            if ( Abc_NodeHasUniqueCoFanout(pDriver) == pNode )
+                continue;
         }
-        // if the driver is visited for the first time, remember the CO name
-        if ( !Abc_NodeIsTravIdCurrent(pDriver) )
+        if ( fDuplicate && !Abc_ObjIsCi(pDriver) )
         {
-            pDriver->pNext = (Abc_Obj_t *)Abc_ObjName(pNode);
-            Abc_NodeSetTravIdCurrent(pDriver);
-            continue;
+            pDriverNew = Abc_NtkDupObj( pNtk, pDriver ); 
+            Abc_ObjForEachFanin( pDriver, pFanin, k )
+                Abc_ObjAddFanin( pDriverNew, pFanin );
+            if ( Abc_ObjFaninC0(pNode) )
+            {
+                // change polarity of the duplicated driver
+                if ( Abc_NtkHasSop(pNtk) )
+                    Abc_SopComplement( pDriverNew->pData );
+                else if ( Abc_NtkHasBdd(pNtk) )
+                    pDriverNew->pData = Cudd_Not( pDriverNew->pData );
+                else
+                    assert( 0 );
+                Abc_ObjXorFaninC(pNode, 0);
+            }
         }
-        // the driver has second CO - if they have different name, this is an error
-        if ( strcmp((char *)pDriver->pNext, Abc_ObjName(pNode)) ) // diff names
+        else
         {
-            Abc_NtkFixCoDriverProblem( pDriver, pNode, fDuplicate );
-            nDupGates++;
-            continue;
+            // add inverters and buffers when necessary
+            if ( Abc_ObjFaninC0(pNode) )
+            {
+                pDriverNew = Abc_NodeCreateInv( pNtk, pDriver );
+                Abc_ObjXorFaninC( pNode, 0 );
+            }
+            else
+                pDriverNew = Abc_NodeCreateBuf( pNtk, pDriver );        
         }
+        // update the fanin of the PO node
+        Abc_ObjPatchFanin( pNode, pDriver, pDriverNew );
+        assert( Abc_ObjFanoutNum(pDriverNew) == 1 );
+        nDupGates++;
+        // remove the old driver if it dangles
+        if ( Abc_ObjFanoutNum(pDriver) == 0 )
+            Abc_NtkDeleteObj( pDriver );
     }
     assert( Abc_NtkLogicHasSimpleCos(pNtk) );
     return nDupGates;
@@ -891,7 +511,7 @@ bool Abc_NodeIsExorType( Abc_Obj_t * pNode )
     // check that the node is regular
     assert( !Abc_ObjIsComplement(pNode) );
     // if the node is not AND, this is not EXOR
-    if ( !Abc_AigNodeIsAnd(pNode) )
+    if ( !Abc_NodeIsAigAnd(pNode) )
         return 0;
     // if the children are not complemented, this is not EXOR
     if ( !Abc_ObjFaninC0(pNode) || !Abc_ObjFaninC1(pNode) )
@@ -924,7 +544,7 @@ bool Abc_NodeIsMuxType( Abc_Obj_t * pNode )
     // check that the node is regular
     assert( !Abc_ObjIsComplement(pNode) );
     // if the node is not AND, this is not MUX
-    if ( !Abc_AigNodeIsAnd(pNode) )
+    if ( !Abc_NodeIsAigAnd(pNode) )
         return 0;
     // if the children are not complemented, this is not MUX
     if ( !Abc_ObjFaninC0(pNode) || !Abc_ObjFaninC1(pNode) )
@@ -940,35 +560,6 @@ bool Abc_NodeIsMuxType( Abc_Obj_t * pNode )
            (Abc_ObjFaninId0(pNode0) == Abc_ObjFaninId1(pNode1) && (Abc_ObjFaninC0(pNode0) ^ Abc_ObjFaninC1(pNode1))) ||
            (Abc_ObjFaninId1(pNode0) == Abc_ObjFaninId0(pNode1) && (Abc_ObjFaninC1(pNode0) ^ Abc_ObjFaninC0(pNode1))) ||
            (Abc_ObjFaninId1(pNode0) == Abc_ObjFaninId1(pNode1) && (Abc_ObjFaninC1(pNode0) ^ Abc_ObjFaninC1(pNode1)));
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Returns 1 if the node is the control type of the MUX.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-bool Abc_NodeIsMuxControlType( Abc_Obj_t * pNode )
-{
-    Abc_Obj_t * pNode0, * pNode1;
-    // check that the node is regular
-    assert( !Abc_ObjIsComplement(pNode) );
-    // skip the node that do not have two fanouts
-    if ( Abc_ObjFanoutNum(pNode) != 2 )
-        return 0;
-    // get the fanouts
-    pNode0 = Abc_ObjFanout( pNode, 0 );
-    pNode1 = Abc_ObjFanout( pNode, 1 );
-    // if they have more than one fanout, we are not interested
-    if ( Abc_ObjFanoutNum(pNode0) != 1 ||  Abc_ObjFanoutNum(pNode1) != 1 )
-        return 0;
-    // if the fanouts have the same fanout, this is MUX or EXOR (or a redundant gate (CA)(CB))
-    return Abc_ObjFanout0(pNode0) == Abc_ObjFanout0(pNode1);
 }
 
 /**Function*************************************************************
@@ -1082,7 +673,7 @@ int Abc_NtkPrepareTwoNtks( FILE * pErr, Abc_Ntk_t * pNtk, char ** argv, int argc
 {
     int fCheck = 1;
     FILE * pFile;
-    Abc_Ntk_t * pNtk1, * pNtk2, * pNtkTemp;
+    Abc_Ntk_t * pNtk1, * pNtk2;
     int util_optind = 0;
 
     *pfDelete1 = 0;
@@ -1107,8 +698,15 @@ int Abc_NtkPrepareTwoNtks( FILE * pErr, Abc_Ntk_t * pNtk, char ** argv, int argc
         }
         else
             fclose( pFile );
-        pNtk1 = pNtk;
-        pNtk2 = Io_Read( pNtk->pSpec, Io_ReadFileType(pNtk->pSpec), fCheck );
+
+        if ( Abc_NtkIsSeq(pNtk) )
+        {
+            pNtk1 = Abc_NtkSeqToLogicSop(pNtk);
+            *pfDelete1 = 1;
+        }
+        else
+            pNtk1 = pNtk;
+        pNtk2 = Io_Read( pNtk->pSpec, fCheck );
         if ( pNtk2 == NULL )
             return 0;
         *pfDelete2 = 1;
@@ -1120,18 +718,24 @@ int Abc_NtkPrepareTwoNtks( FILE * pErr, Abc_Ntk_t * pNtk, char ** argv, int argc
             fprintf( pErr, "Empty current network.\n" );
             return 0;
         }
-        pNtk1 = pNtk;
-        pNtk2 = Io_Read( argv[util_optind], Io_ReadFileType(argv[util_optind]), fCheck );
+        if ( Abc_NtkIsSeq(pNtk) )
+        {
+            pNtk1 = Abc_NtkSeqToLogicSop(pNtk);
+            *pfDelete1 = 1;
+        }
+        else
+            pNtk1 = pNtk;
+        pNtk2 = Io_Read( argv[util_optind], fCheck );
         if ( pNtk2 == NULL )
             return 0;
         *pfDelete2 = 1;
     }
     else if ( argc == util_optind + 2 ) 
     {
-        pNtk1 = Io_Read( argv[util_optind], Io_ReadFileType(argv[util_optind]), fCheck );
+        pNtk1 = Io_Read(  argv[util_optind], fCheck );
         if ( pNtk1 == NULL )
             return 0;
-        pNtk2 = Io_Read( argv[util_optind+1], Io_ReadFileType(argv[util_optind+1]), fCheck );
+        pNtk2 = Io_Read( argv[util_optind+1], fCheck );
         if ( pNtk2 == NULL )
         {
             Abc_NtkDelete( pNtk1 );
@@ -1145,25 +749,6 @@ int Abc_NtkPrepareTwoNtks( FILE * pErr, Abc_Ntk_t * pNtk, char ** argv, int argc
         fprintf( pErr, "Wrong number of arguments.\n" );
         return 0;
     }
-
-    // make sure the networks are strashed
-    if ( !Abc_NtkIsStrash(pNtk1) )
-    {
-        pNtkTemp = Abc_NtkStrash( pNtk1, 0, 1, 0 );
-        if ( *pfDelete1 )
-            Abc_NtkDelete( pNtk1 );
-        pNtk1 = pNtkTemp;
-        *pfDelete1 = 1;
-    }
-    if ( !Abc_NtkIsStrash(pNtk2) )
-    {
-        pNtkTemp = Abc_NtkStrash( pNtk2, 0, 1, 0 );
-        if ( *pfDelete2 )
-            Abc_NtkDelete( pNtk2 );
-        pNtk2 = pNtkTemp;
-        *pfDelete2 = 1;
-    }
-
     *ppNtk1 = pNtk1;
     *ppNtk2 = pNtk2;
     return 1;
@@ -1185,7 +770,7 @@ void Abc_NodeCollectFanins( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
 {
     Abc_Obj_t * pFanin;
     int i;
-    Vec_PtrClear(vNodes);
+    vNodes->nSize = 0;
     Abc_ObjForEachFanin( pNode, pFanin, i )
         Vec_PtrPush( vNodes, pFanin );
 }
@@ -1205,36 +790,14 @@ void Abc_NodeCollectFanouts( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
 {
     Abc_Obj_t * pFanout;
     int i;
-    Vec_PtrClear(vNodes);
+    vNodes->nSize = 0;
     Abc_ObjForEachFanout( pNode, pFanout, i )
         Vec_PtrPush( vNodes, pFanout );
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Collects all latches in the network.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Ptr_t * Abc_NtkCollectLatches( Abc_Ntk_t * pNtk )
-{
-    Vec_Ptr_t * vLatches;
-    Abc_Obj_t * pObj;
-    int i;
-    vLatches = Vec_PtrAlloc( 10 );
-    Abc_NtkForEachObj( pNtk, pObj, i )
-        Vec_PtrPush( vLatches, pObj );
-    return vLatches;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Procedure used for sorting the nodes in increasing order of levels.]
+  Synopsis    [Procedure used for sorting the nodes in decreasing order of levels.]
 
   Description []
                
@@ -1320,461 +883,6 @@ Vec_Ptr_t * Abc_NtkCollectObjects( Abc_Ntk_t * pNtk )
     return vNodes;
 }
 
-/**Function*************************************************************
-
-  Synopsis    [Returns the array of CI IDs.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Int_t * Abc_NtkGetCiIds( Abc_Ntk_t * pNtk )
-{
-    Vec_Int_t * vCiIds;
-    Abc_Obj_t * pObj;
-    int i;
-    vCiIds = Vec_IntAlloc( Abc_NtkCiNum(pNtk) );
-    Abc_NtkForEachCi( pNtk, pObj, i )
-        Vec_IntPush( vCiIds, pObj->Id );
-    return vCiIds;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Puts the nodes into the DFS order and reassign their IDs.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkReassignIds( Abc_Ntk_t * pNtk )
-{
-    Vec_Ptr_t * vNodes;
-    Vec_Ptr_t * vObjsNew;
-    Abc_Obj_t * pNode, * pTemp, * pConst1;
-    int i, k;
-    assert( Abc_NtkIsStrash(pNtk) );
-//printf( "Total = %d. Current = %d.\n", Abc_NtkObjNumMax(pNtk), Abc_NtkObjNum(pNtk) );
-    // start the array of objects with new IDs
-    vObjsNew = Vec_PtrAlloc( pNtk->nObjs );
-    // put constant node first
-    pConst1 = Abc_AigConst1(pNtk);
-    assert( pConst1->Id == 0 );
-    Vec_PtrPush( vObjsNew, pConst1 );
-    // put PI nodes next
-    Abc_NtkForEachPi( pNtk, pNode, i )
-    {
-        pNode->Id = Vec_PtrSize( vObjsNew );
-        Vec_PtrPush( vObjsNew, pNode );
-    }
-    // put PO nodes next
-    Abc_NtkForEachPo( pNtk, pNode, i )
-    {
-        pNode->Id = Vec_PtrSize( vObjsNew );
-        Vec_PtrPush( vObjsNew, pNode );
-    }
-    // put assert nodes next
-    Abc_NtkForEachAssert( pNtk, pNode, i )
-    {
-        pNode->Id = Vec_PtrSize( vObjsNew );
-        Vec_PtrPush( vObjsNew, pNode );
-    }
-    // put latches and their inputs/outputs next
-    Abc_NtkForEachBox( pNtk, pNode, i )
-    {
-        pNode->Id = Vec_PtrSize( vObjsNew );
-        Vec_PtrPush( vObjsNew, pNode );
-        Abc_ObjForEachFanin( pNode, pTemp, k )
-        {
-            pTemp->Id = Vec_PtrSize( vObjsNew );
-            Vec_PtrPush( vObjsNew, pTemp );
-        }
-        Abc_ObjForEachFanout( pNode, pTemp, k )
-        {
-            pTemp->Id = Vec_PtrSize( vObjsNew );
-            Vec_PtrPush( vObjsNew, pTemp );
-        }
-    }
-    // finally, internal nodes in the DFS order
-    vNodes = Abc_AigDfs( pNtk, 1, 0 );
-    Vec_PtrForEachEntry( vNodes, pNode, i )
-    {
-        if ( pNode == pConst1 )
-            continue;
-        pNode->Id = Vec_PtrSize( vObjsNew );
-        Vec_PtrPush( vObjsNew, pNode );
-    }
-    Vec_PtrFree( vNodes );
-    assert( Vec_PtrSize(vObjsNew) == pNtk->nObjs );
-
-    // update the fanin/fanout arrays
-    Abc_NtkForEachObj( pNtk, pNode, i )
-    {
-        Abc_ObjForEachFanin( pNode, pTemp, k )
-            pNode->vFanins.pArray[k] = pTemp->Id;
-        Abc_ObjForEachFanout( pNode, pTemp, k )
-            pNode->vFanouts.pArray[k] = pTemp->Id;
-    }
-
-    // replace the array of objs
-    Vec_PtrFree( pNtk->vObjs );
-    pNtk->vObjs = vObjsNew;
-
-    // rehash the AIG
-    Abc_AigRehash( pNtk->pManFunc );
-
-    // update the name manager!!!
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Detect cases when non-trivial FF matching is possible.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkDetectMatching( Abc_Ntk_t * pNtk )
-{
-/*
-    Abc_Obj_t * pLatch, * pFanin;
-    int i, nTFFs, nJKFFs;
-    nTFFs = nJKFFs = 0;
-    Abc_NtkForEachLatch( pNtk, pLatch, i )
-    {
-        pFanin = Abc_ObjFanin0(pLatch);
-        if ( Abc_ObjFaninNum(pFanin) != 2 )
-            continue;
-        if ( Abc_NodeIsExorType(pLatch) )
-        {
-            if ( Abc_ObjFanin0(Abc_ObjFanin0(pFanin)) == pLatch ||
-                 Abc_ObjFanin1(Abc_ObjFanin0(pFanin)) == pLatch )
-                 nTFFs++;
-        }
-        if ( Abc_ObjFaninNum( Abc_ObjFanin0(pFanin) ) != 2 || 
-             Abc_ObjFaninNum( Abc_ObjFanin1(pFanin) ) != 2 )
-            continue;
-
-        if ( (Abc_ObjFanin0(Abc_ObjFanin0(pFanin)) == pLatch ||
-              Abc_ObjFanin1(Abc_ObjFanin0(pFanin)) == pLatch) && 
-             (Abc_ObjFanin0(Abc_ObjFanin1(pFanin)) == pLatch ||
-              Abc_ObjFanin1(Abc_ObjFanin1(pFanin)) == pLatch) )
-        {
-            nJKFFs++;
-        }
-    }
-    printf( "D = %6d.   T = %6d.   JK = %6d.  (%6.2f %%)\n", 
-        Abc_NtkLatchNum(pNtk), nTFFs, nJKFFs, 100.0 * nJKFFs / Abc_NtkLatchNum(pNtk) );
-*/
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    [Compares the pointers.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_ObjPointerCompare( void ** pp1, void ** pp2 )
-{
-    if ( *pp1 < *pp2 )
-        return -1;
-    if ( *pp1 > *pp2 ) 
-        return 1;
-    return 0; 
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Adjusts the copy pointers.]
-
-  Description [This procedure assumes that the network was transformed
-  into another network, which was in turn transformed into yet another
-  network. It makes the pCopy pointers of the original network point to
-  the objects of the yet another network.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkTransferCopy( Abc_Ntk_t * pNtk )
-{
-    Abc_Obj_t * pObj;
-    int i;
-    Abc_NtkForEachObj( pNtk, pObj, i )
-        if ( !Abc_ObjIsNet(pObj) )
-            pObj->pCopy = pObj->pCopy? Abc_ObjCopyCond(pObj->pCopy) : NULL;
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    [Increaments the cut counter.]
-
-  Description [Returns 1 if it becomes equal to the ref counter.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static inline int Abc_ObjCrossCutInc( Abc_Obj_t * pObj )
-{
-//    pObj->pCopy = (void *)(((int)pObj->pCopy)++);
-    int Value = (int)pObj->pCopy;
-    pObj->pCopy = (void *)(Value + 1);
-    return (int)pObj->pCopy == Abc_ObjFanoutNum(pObj);
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Computes cross-cut of the circuit.]
-
-  Description [Returns 1 if it is the last visit to the node.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_NtkCrossCut_rec( Abc_Obj_t * pObj, int * pnCutSize, int * pnCutSizeMax )
-{
-    Abc_Obj_t * pFanin;
-    int i, nDecrem = 0;
-    int fReverse = 0;
-    if ( Abc_ObjIsCi(pObj) )
-        return 0;
-    // if visited, increment visit counter 
-    if ( Abc_NodeIsTravIdCurrent( pObj ) )
-        return Abc_ObjCrossCutInc( pObj );
-    Abc_NodeSetTravIdCurrent( pObj );
-    // visit the fanins
-    if ( !Abc_ObjIsCi(pObj) )
-    {
-        if ( fReverse )
-        {
-            Abc_ObjForEachFanin( pObj, pFanin, i )
-            {
-                pFanin = Abc_ObjFanin( pObj, Abc_ObjFaninNum(pObj) - 1 - i );
-                nDecrem += Abc_NtkCrossCut_rec( pFanin, pnCutSize, pnCutSizeMax );
-            }
-        }
-        else
-        {
-            Abc_ObjForEachFanin( pObj, pFanin, i )
-                nDecrem += Abc_NtkCrossCut_rec( pFanin, pnCutSize, pnCutSizeMax );
-        }
-    }
-    // count the node
-    (*pnCutSize)++;
-    if ( *pnCutSizeMax < *pnCutSize )
-        *pnCutSizeMax = *pnCutSize;
-    (*pnCutSize) -= nDecrem;
-    return Abc_ObjCrossCutInc( pObj );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Computes cross-cut of the circuit.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_NtkCrossCut( Abc_Ntk_t * pNtk )
-{
-    Abc_Obj_t * pObj;
-    int nCutSize = 0, nCutSizeMax = 0;
-    int i;
-    Abc_NtkCleanCopy( pNtk );
-    Abc_NtkIncrementTravId( pNtk );
-    Abc_NtkForEachCo( pNtk, pObj, i )
-    {
-        Abc_NtkCrossCut_rec( pObj, &nCutSize, &nCutSizeMax );
-        nCutSize--;
-    }
-    assert( nCutSize == 0 );
-    printf( "Max cross cut size = %6d.  Ratio = %6.2f %%\n", nCutSizeMax, 100.0 * nCutSizeMax/Abc_NtkObjNum(pNtk) );
-    return nCutSizeMax;
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    [Prints all 3-var functions.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkPrint256()
-{
-    FILE * pFile;
-    unsigned i;
-    pFile = fopen( "4varfs.txt", "w" );
-    for ( i = 1; i < (1<<16)-1; i++ )
-    {
-        fprintf( pFile, "read_truth " );
-        Extra_PrintBinary( pFile, &i, 16 );
-        fprintf( pFile, "; clp; st; w 1.blif; map; cec 1.blif\n" );
-    }
-    fclose( pFile );
-}
-
-
-static     int * pSupps;
-
-/**Function*************************************************************
-
-  Synopsis    [Compares the supergates by their level.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_NtkCompareConesCompare( int * pNum1, int * pNum2 )
-{
-    if ( pSupps[*pNum1] > pSupps[*pNum2] )
-        return -1;
-    if ( pSupps[*pNum1] < pSupps[*pNum2] )
-        return 1;
-    return 0;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Analyze choice node support.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkCompareCones( Abc_Ntk_t * pNtk )
-{
-    Vec_Ptr_t * vSupp, * vNodes, * vReverse;
-    Abc_Obj_t * pObj, * pTemp;
-    int Iter, i, k, Counter, CounterCos, CounterCosNew;
-    int * pPerms;
-
-    // sort COs by support size
-    pPerms = ALLOC( int, Abc_NtkCoNum(pNtk) );
-    pSupps = ALLOC( int, Abc_NtkCoNum(pNtk) );
-    Abc_NtkForEachCo( pNtk, pObj, i )
-    {
-        pPerms[i] = i;
-        vSupp = Abc_NtkNodeSupport( pNtk, &pObj, 1 );
-        pSupps[i] = Vec_PtrSize(vSupp);
-        Vec_PtrFree( vSupp );
-    }
-    qsort( (void *)pPerms, Abc_NtkCoNum(pNtk), sizeof(int), (int (*)(const void *, const void *)) Abc_NtkCompareConesCompare );
-
-    // consider COs in this order
-    Iter = 0;
-    Abc_NtkForEachCo( pNtk, pObj, i )
-    {
-        pObj = Abc_NtkCo( pNtk, pPerms[i] );
-        if ( pObj->fMarkA )
-            continue;
-        Iter++;
-
-        vSupp = Abc_NtkNodeSupport( pNtk, &pObj, 1 );
-        vNodes = Abc_NtkDfsNodes( pNtk, &pObj, 1 );
-        vReverse = Abc_NtkDfsReverseNodesContained( pNtk, (Abc_Obj_t **)Vec_PtrArray(vSupp), Vec_PtrSize(vSupp) );
-        // count the number of nodes in the reverse cone
-        Counter = 0;
-        for ( k = 1; k < Vec_PtrSize(vReverse) - 1; k++ )
-            for ( pTemp = Vec_PtrEntry(vReverse, k); pTemp; pTemp = pTemp->pCopy )
-                Counter++;
-        CounterCos = CounterCosNew = 0;
-        for ( pTemp = Vec_PtrEntryLast(vReverse); pTemp; pTemp = pTemp->pCopy )
-        {
-            assert( Abc_ObjIsCo(pTemp) );
-            CounterCos++;
-            if ( pTemp->fMarkA == 0 )
-                CounterCosNew++;
-            pTemp->fMarkA = 1;
-        }
-        // print statistics
-        printf( "%4d CO %5d :  Supp = %5d.  Lev = %3d.  Cone = %5d.  Rev = %5d.  COs = %3d (%3d).\n",
-            Iter, pPerms[i], Vec_PtrSize(vSupp), Abc_ObjLevel(Abc_ObjFanin0(pObj)), Vec_PtrSize(vNodes), Counter, CounterCos, CounterCosNew );
-
-        // free arrays
-        Vec_PtrFree( vSupp );
-        Vec_PtrFree( vNodes );
-        Vec_PtrFree( vReverse );
-
-        if ( Vec_PtrSize(vSupp) < 10 )
-            break;
-    }
-    Abc_NtkForEachCo( pNtk, pObj, i )
-        pObj->fMarkA = 0;
-
-    free( pPerms );
-    free( pSupps );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Analyze choice node support.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkCompareSupports( Abc_Ntk_t * pNtk )
-{
-    Vec_Ptr_t * vSupp;
-    Abc_Obj_t * pObj, * pTemp;
-    int i, nNodesOld;
-    assert( Abc_NtkIsStrash(pNtk) );
-    Abc_AigForEachAnd( pNtk, pObj, i )
-    {
-        if ( !Abc_AigNodeIsChoice(pObj) )
-            continue;
-
-        vSupp = Abc_NtkNodeSupport( pNtk, &pObj, 1 );
-        nNodesOld = Vec_PtrSize(vSupp);
-        Vec_PtrFree( vSupp );
-
-        for ( pTemp = pObj->pData; pTemp; pTemp = pTemp->pData )
-        {
-            vSupp = Abc_NtkNodeSupport( pNtk, &pTemp, 1 );
-            if ( nNodesOld != Vec_PtrSize(vSupp) )
-                printf( "Choice orig = %3d  Choice new = %3d\n", nNodesOld, Vec_PtrSize(vSupp) );
-            Vec_PtrFree( vSupp );
-        }
-    }
-}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

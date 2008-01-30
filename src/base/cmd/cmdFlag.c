@@ -25,7 +25,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 
@@ -35,7 +35,8 @@
 
   Description [The command parser maintains a table of named values.  These
   are manipulated using the 'set' and 'unset' commands.  The value of the
-  named flag is returned, or NULL is returned if the flag has not been set.]
+  named flag is returned, or NIL(char) is returned if the flag has not been
+  set.]
 
   SideEffects []
 
@@ -64,9 +65,9 @@ void Cmd_FlagUpdateValue( Abc_Frame_t * pAbc, char * key, char * value )
     if ( !key )
         return;
     if ( value )
-        newValue = Extra_UtilStrsav(value);
+        newValue = util_strsav(value);
     else
-        newValue = Extra_UtilStrsav("");
+        newValue = util_strsav("");
 //        newValue = NULL;
     if ( st_delete(pAbc->tFlags, &key, &oldValue) )
         FREE(oldValue);

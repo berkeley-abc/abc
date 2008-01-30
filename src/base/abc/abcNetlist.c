@@ -19,19 +19,13 @@
 ***********************************************************************/
 
 #include "abc.h"
-//#include "seq.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
-
-static void Abc_NtkAddPoBuffers( Abc_Ntk_t * pNtk );
-static Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk );
-static Abc_Ntk_t * Abc_NtkAigToLogicSop( Abc_Ntk_t * pNtk );
-static Abc_Ntk_t * Abc_NtkAigToLogicSopBench( Abc_Ntk_t * pNtk );
-
+ 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -45,37 +39,33 @@ static Abc_Ntk_t * Abc_NtkAigToLogicSopBench( Abc_Ntk_t * pNtk );
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkToLogic( Abc_Ntk_t * pNtk )
+Abc_Ntk_t * Abc_NtkNetlistToLogic( Abc_Ntk_t * pNtk )
 {
     Abc_Ntk_t * pNtkNew; 
     Abc_Obj_t * pObj, * pFanin;
     int i, k;
-    // consider the case of the AIG
-    if ( Abc_NtkIsStrash(pNtk) )
-        return Abc_NtkAigToLogicSop( pNtk );
     assert( Abc_NtkIsNetlist(pNtk) );
-    // consider simple case when there is hierarchy
-//    assert( pNtk->pDesign == NULL );
-    assert( Abc_NtkWhiteboxNum(pNtk) == 0 );
-    assert( Abc_NtkBlackboxNum(pNtk) == 0 );
     // start the network
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, pNtk->ntkFunc );
+    if ( !Abc_NtkHasMapping(pNtk) )
+        pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_LOGIC, ABC_FUNC_SOP );
+    else
+        pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_LOGIC, ABC_FUNC_MAP );
     // duplicate the nodes 
     Abc_NtkForEachNode( pNtk, pObj, i )
-        Abc_NtkDupObj(pNtkNew, pObj, 0);
+        Abc_NtkDupObj(pNtkNew, pObj);
     // reconnect the internal nodes in the new network
     Abc_NtkForEachNode( pNtk, pObj, i )
         Abc_ObjForEachFanin( pObj, pFanin, k )
             Abc_ObjAddFanin( pObj->pCopy, Abc_ObjFanin0(pFanin)->pCopy );
     // collect the CO nodes
     Abc_NtkFinalize( pNtk, pNtkNew );
-    // fix the problem with CO pointing directly to CIs
+    // fix the problem with CO pointing directing to CIs
     Abc_NtkLogicMakeSimpleCos( pNtkNew, 0 );
     // duplicate EXDC 
     if ( pNtk->pExdc )
-        pNtkNew->pExdc = Abc_NtkToLogic( pNtk->pExdc );
+        pNtkNew->pExdc = Abc_NtkNetlistToLogic( pNtk->pExdc );
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkToLogic(): Network check has failed.\n" );
+        fprintf( stdout, "Abc_NtkNetlistToLogic(): Network check has failed.\n" );
     return pNtkNew;
 }
 
@@ -90,18 +80,31 @@ Abc_Ntk_t * Abc_NtkToLogic( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkToNetlist( Abc_Ntk_t * pNtk )
+Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk )
 {
     Abc_Ntk_t * pNtkNew, * pNtkTemp; 
-    assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsStrash(pNtk) );
+    assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsStrash(pNtk) || Abc_NtkIsSeq(pNtk) );
     if ( Abc_NtkIsStrash(pNtk) )
     {
         pNtkTemp = Abc_NtkAigToLogicSop(pNtk);
-        pNtkNew = Abc_NtkLogicToNetlist( pNtkTemp );
+        pNtkNew = Abc_NtkLogicSopToNetlist( pNtkTemp );
         Abc_NtkDelete( pNtkTemp );
-        return pNtkNew;
     }
-    return Abc_NtkLogicToNetlist( pNtk );
+    else if ( Abc_NtkIsSeq(pNtk) )
+    {
+        pNtkTemp = Abc_NtkSeqToLogicSop(pNtk);
+        pNtkNew = Abc_NtkLogicSopToNetlist( pNtkTemp );
+        Abc_NtkDelete( pNtkTemp );
+    }
+    else if ( Abc_NtkIsBddLogic(pNtk) )
+    {
+        Abc_NtkBddToSop(pNtk);
+        pNtkNew = Abc_NtkLogicSopToNetlist( pNtk );
+        Abc_NtkSopToBdd(pNtk);
+    }
+    else 
+        pNtkNew = Abc_NtkLogicSopToNetlist( pNtk );
+    return pNtkNew;
 }
 
 /**Function*************************************************************
@@ -115,12 +118,12 @@ Abc_Ntk_t * Abc_NtkToNetlist( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkToNetlistBench( Abc_Ntk_t * pNtk )
+Abc_Ntk_t * Abc_NtkLogicToNetlistBench( Abc_Ntk_t * pNtk )
 {
     Abc_Ntk_t * pNtkNew, * pNtkTemp; 
     assert( Abc_NtkIsStrash(pNtk) );
     pNtkTemp = Abc_NtkAigToLogicSopBench( pNtk );
-    pNtkNew = Abc_NtkLogicToNetlist( pNtkTemp );
+    pNtkNew = Abc_NtkLogicSopToNetlist( pNtkTemp );
     Abc_NtkDelete( pNtkTemp );
     return pNtkNew;
 }
@@ -140,31 +143,24 @@ Abc_Ntk_t * Abc_NtkToNetlistBench( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk )
+Abc_Ntk_t * Abc_NtkLogicSopToNetlist( Abc_Ntk_t * pNtk )
 {
     Abc_Ntk_t * pNtkNew; 
     Abc_Obj_t * pObj, * pNet, * pDriver, * pFanin;
+    char * pNameCo;
     int i, k;
 
     assert( Abc_NtkIsLogic(pNtk) );
+    assert( Abc_NtkLogicHasSimpleCos(pNtk) );
 
-    // remove dangling nodes
-    Abc_NtkCleanup( pNtk, 0 );
-
-    // make sure the CO names are unique
-    Abc_NtkCheckUniqueCiNames( pNtk );
-    Abc_NtkCheckUniqueCoNames( pNtk );
-    Abc_NtkCheckUniqueCioNames( pNtk );
-
-//    assert( Abc_NtkLogicHasSimpleCos(pNtk) );
-    if ( !Abc_NtkLogicHasSimpleCos(pNtk) )
-    {
-        printf( "Abc_NtkLogicToNetlist() warning: The network is converted to have simple COs.\n" );
-        Abc_NtkLogicMakeSimpleCos( pNtk, 0 );
-    }
+    if ( Abc_NtkIsBddLogic(pNtk) )
+        Abc_NtkBddToSop(pNtk);
 
     // start the netlist by creating PI/PO/Latch objects
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_NETLIST, pNtk->ntkFunc );
+    if ( Abc_NtkIsSopLogic(pNtk) )
+        pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_NETLIST, ABC_FUNC_SOP );
+    else
+        pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_NETLIST, ABC_FUNC_BDD );
     // create the CI nets and remember them in the new CI nodes
     Abc_NtkForEachCi( pNtk, pObj, i )
     {
@@ -174,7 +170,7 @@ Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk )
     }
     // duplicate all nodes
     Abc_NtkForEachNode( pNtk, pObj, i )
-        Abc_NtkDupObj(pNtkNew, pObj, 0);
+        Abc_NtkDupObj(pNtkNew, pObj);
     // first add the nets to the CO drivers
     Abc_NtkForEachCo( pNtk, pObj, i )
     {
@@ -186,21 +182,18 @@ Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk )
             continue;
         }
         assert( Abc_ObjIsNode(pDriver) );
-        // if the CO driver has no net, create it
-        if ( pDriver->pCopy->pCopy == NULL )
-        {
-            // create the CO net and connect it to CO
-            pNet = Abc_NtkFindOrCreateNet( pNtkNew, Abc_ObjName(pObj) );
-            Abc_ObjAddFanin( pObj->pCopy, pNet );
-            // connect the CO net to the new driver and remember it in the new driver
-            Abc_ObjAddFanin( pNet, pDriver->pCopy );
-            pDriver->pCopy->pCopy = pNet;
-        }
-        else
-        {
-            assert( !strcmp( Abc_ObjName(pDriver->pCopy->pCopy), Abc_ObjName(pObj) ) );
-            Abc_ObjAddFanin( pObj->pCopy, pDriver->pCopy->pCopy );
-        }
+        // the driver is a node
+
+        // get the CO name
+        pNameCo = Abc_ObjIsPo(pObj)? Abc_ObjName(pObj) : Abc_ObjNameSuffix( pObj, "_in" );
+        // make sure CO has a unique name
+        assert( Abc_NtkFindNet( pNtkNew, pNameCo ) == NULL );
+        // create the CO net and connect it to CO
+        pNet = Abc_NtkFindOrCreateNet( pNtkNew, pNameCo );
+        Abc_ObjAddFanin( pObj->pCopy, pNet );
+        // connect the CO net to the new driver and remember it in the new driver
+        Abc_ObjAddFanin( pNet, pDriver->pCopy );
+        pDriver->pCopy->pCopy = pNet;
     }
     // create the missing nets
     Abc_NtkForEachNode( pNtk, pObj, i )
@@ -208,7 +201,7 @@ Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk )
         if ( pObj->pCopy->pCopy ) // the net of the new object is already created
             continue;
         // create the new net
-        pNet = Abc_NtkFindOrCreateNet( pNtkNew, Abc_ObjName(pObj) ); // here we create ridiculous names net line "n48", where 48 is the ID of the node
+        pNet = Abc_NtkFindOrCreateNet( pNtkNew, Abc_ObjName(pObj) );
         Abc_ObjAddFanin( pNet, pObj->pCopy );
         pObj->pCopy->pCopy = pNet;
     }
@@ -218,9 +211,9 @@ Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk )
             Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy->pCopy );
     // duplicate EXDC 
     if ( pNtk->pExdc )
-        pNtkNew->pExdc = Abc_NtkToNetlist( pNtk->pExdc );
+        pNtkNew->pExdc = Abc_NtkLogicToNetlist( pNtk->pExdc );
     if ( !Abc_NtkCheck( pNtkNew ) )
-        fprintf( stdout, "Abc_NtkLogicToNetlist(): Network check has failed.\n" );
+        fprintf( stdout, "Abc_NtkLogicSopToNetlist(): Network check has failed.\n" );
     return pNtkNew;
 }
 
@@ -239,40 +232,40 @@ Abc_Ntk_t * Abc_NtkAigToLogicSop( Abc_Ntk_t * pNtk )
 {
     Abc_Ntk_t * pNtkNew; 
     Abc_Obj_t * pObj, * pFanin, * pNodeNew;
-    Vec_Int_t * vInts;
     int i, k;
     assert( Abc_NtkIsStrash(pNtk) );
     // start the network
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
-    // if the constant node is used, duplicate it
-    pObj = Abc_AigConst1(pNtk);
-    if ( Abc_ObjFanoutNum(pObj) > 0 )
-        pObj->pCopy = Abc_NtkCreateNodeConst1(pNtkNew);
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_LOGIC, ABC_FUNC_SOP );
+    // create the constant node
+    Abc_NtkDupConst1( pNtk, pNtkNew );
     // duplicate the nodes and create node functions
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
-        Abc_NtkDupObj(pNtkNew, pObj, 0);
+        if ( Abc_NodeIsConst(pObj) )
+            continue;
+        Abc_NtkDupObj(pNtkNew, pObj);
         pObj->pCopy->pData = Abc_SopCreateAnd2( pNtkNew->pManFunc, Abc_ObjFaninC0(pObj), Abc_ObjFaninC1(pObj) );
     }
     // create the choice nodes
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
-        if ( !Abc_AigNodeIsChoice(pObj) )
+        if ( Abc_NodeIsConst(pObj) )
+            continue;
+        if ( !Abc_NodeIsAigChoice(pObj) )
             continue;
         // create an OR gate
         pNodeNew = Abc_NtkCreateNode(pNtkNew);
         // add fanins
-        vInts = Vec_IntAlloc( 10 );
+        Vec_IntClear( pNtk->vIntTemp );
         for ( pFanin = pObj; pFanin; pFanin = pFanin->pData )
         {
-            Vec_IntPush( vInts, (int)(pObj->fPhase != pFanin->fPhase) );
+            Vec_IntPush( pNtk->vIntTemp, (int)(pObj->fPhase != pFanin->fPhase) );
             Abc_ObjAddFanin( pNodeNew, pFanin->pCopy );
         }
         // create the logic function
-        pNodeNew->pData = Abc_SopCreateOrMultiCube( pNtkNew->pManFunc, Vec_IntSize(vInts), Vec_IntArray(vInts) );
+        pNodeNew->pData = Abc_SopCreateOrMultiCube( pNtkNew->pManFunc, pNtk->vIntTemp->nSize, pNtk->vIntTemp->pArray );
         // set the new node
         pObj->pCopy->pCopy = pNodeNew;
-        Vec_IntFree( vInts );
     }
     // connect the internal nodes
     Abc_NtkForEachNode( pNtk, pObj, i )
@@ -282,17 +275,7 @@ Abc_Ntk_t * Abc_NtkAigToLogicSop( Abc_Ntk_t * pNtk )
             else
                 Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
     // connect the COs
-//    Abc_NtkFinalize( pNtk, pNtkNew );
-    Abc_NtkForEachCo( pNtk, pObj, i )
-    {
-        pFanin = Abc_ObjFanin0(pObj);
-        if ( pFanin->pCopy->pCopy )
-            pNodeNew = Abc_ObjNotCond(pFanin->pCopy->pCopy, Abc_ObjFaninC0(pObj));
-        else
-            pNodeNew = Abc_ObjNotCond(pFanin->pCopy, Abc_ObjFaninC0(pObj));
-        Abc_ObjAddFanin( pObj->pCopy, pNodeNew );
-    }
-
+    Abc_NtkFinalize( pNtk, pNtkNew );
     // fix the problem with complemented and duplicated CO edges
     Abc_NtkLogicMakeSimpleCos( pNtkNew, 0 );
     // duplicate the EXDC Ntk
@@ -329,26 +312,25 @@ Abc_Ntk_t * Abc_NtkAigToLogicSopBench( Abc_Ntk_t * pNtk )
     if ( Abc_NtkGetChoiceNum(pNtk) )
         printf( "Warning: Choice nodes are skipped.\n" );
     // start the network
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_LOGIC, ABC_FUNC_SOP );
+    // create the constant node
+    Abc_NtkDupConst1( pNtk, pNtkNew );
     // collect the nodes to be used (marks all nodes with current TravId)
     vNodes = Abc_NtkDfs( pNtk, 0 );
     // create inverters for the CI and remember them
-    pObj = Abc_AigConst1(pNtk);
-    if ( Abc_AigNodeHasComplFanoutEdgeTrav(pObj) )
-    {
-        pObj->pCopy = Abc_NtkCreateNodeConst1(pNtkNew);
-        pObj->pCopy->pCopy = Abc_NtkCreateNodeInv( pNtkNew, pObj->pCopy );
-    }
     Abc_NtkForEachCi( pNtk, pObj, i )
         if ( Abc_AigNodeHasComplFanoutEdgeTrav(pObj) )
-            pObj->pCopy->pCopy = Abc_NtkCreateNodeInv( pNtkNew, pObj->pCopy );
+            pObj->pCopy->pCopy = Abc_NodeCreateInv( pNtkNew, pObj->pCopy );
     // duplicate the nodes, create node functions, and inverters
     Vec_PtrForEachEntry( vNodes, pObj, i )
     {
-        Abc_NtkDupObj( pNtkNew, pObj, 0 );
-        pObj->pCopy->pData = Abc_SopCreateAnd( pNtkNew->pManFunc, 2, NULL );
+        if ( !Abc_NodeIsConst(pObj) )
+        {
+            Abc_NtkDupObj( pNtkNew, pObj );
+            pObj->pCopy->pData = Abc_SopCreateAnd( pNtkNew->pManFunc, 2 );
+        }
         if ( Abc_AigNodeHasComplFanoutEdgeTrav(pObj) )
-            pObj->pCopy->pCopy = Abc_NtkCreateNodeInv( pNtkNew, pObj->pCopy );
+            pObj->pCopy->pCopy = Abc_NodeCreateInv( pNtkNew, pObj->pCopy );
     }
     // connect the objects
     Vec_PtrForEachEntry( vNodes, pObj, i )
@@ -377,31 +359,6 @@ Abc_Ntk_t * Abc_NtkAigToLogicSopBench( Abc_Ntk_t * pNtk )
     if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkAigToLogicSopBench(): Network check has failed.\n" );
     return pNtkNew;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Adds buffers for each PO.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkAddPoBuffers( Abc_Ntk_t * pNtk )
-{
-    Abc_Obj_t * pObj, * pFanin, * pFaninNew;
-    int i;
-    assert( Abc_NtkIsStrash(pNtk) );
-    Abc_NtkForEachPo( pNtk, pObj, i )
-    {
-        pFanin = Abc_ObjChild0(pObj);
-        pFaninNew = Abc_NtkCreateNode(pNtk);
-        Abc_ObjAddFanin( pFaninNew, pFanin );
-        Abc_ObjPatchFanin( pObj, pFanin, pFaninNew );
-    }
 }
 
 ////////////////////////////////////////////////////////////////////////

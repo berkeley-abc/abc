@@ -31,7 +31,7 @@ static void            Msat_SolverAnalyze( Msat_Solver_t * p, Msat_Clause_t * pC
 static void            Msat_SolverReduceDB( Msat_Solver_t * p );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -534,17 +534,11 @@ Msat_Type_t Msat_SolverSearch( Msat_Solver_t * p, int nConfLimit, int nLearnedLi
     Msat_Clause_t * pConf;
     Msat_Var_t Var;
     int nLevelBack, nConfs, nAssigns, Value;
-    int i;
 
     assert( Msat_SolverReadDecisionLevel(p) == p->nLevelRoot );
     p->Stats.nStarts++;
     p->dVarDecay = 1 / pPars->dVarDecay;
     p->dClaDecay = 1 / pPars->dClaDecay;
-
-    // reset the activities
-    for ( i = 0; i < p->nVars; i++ )
-       p->pdActivity[i] = (double)p->pFactors[i];
-//       p->pdActivity[i] = 0.0;
 
     nConfs = 0;
     while ( 1 )
@@ -605,7 +599,7 @@ Msat_Type_t Msat_SolverSearch( Msat_Solver_t * p, int nConfLimit, int nLearnedLi
                 Msat_SolverCancelUntil( p, p->nLevelRoot );
                 return MSAT_UNKNOWN; 
             }
-            else if ( nBackTrackLimit > 0 && (int)p->Stats.nConflicts - p->nBackTracks > nBackTrackLimit ) {
+            else if ( nBackTrackLimit > 0 && nConfs > nBackTrackLimit ) {
                 // Reached bound on number of conflicts:
                 Msat_QueueClear( p->pQueue );
                 Msat_SolverCancelUntil( p, p->nLevelRoot );

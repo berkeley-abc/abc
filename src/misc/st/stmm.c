@@ -8,17 +8,12 @@
  *
  */
 #include <stdio.h>
-#include "extra.h"
+#include "util.h"
 #include "stmm.h"
-
-#ifndef ABS
-#  define ABS(a)            ((a) < 0 ? -(a) : (a))
-#endif
 
 #define STMM_NUMCMP(x,y) ((x) != (y))
 #define STMM_NUMHASH(x,size) (ABS((long)x)%(size))
-//#define STMM_PTRHASH(x,size) ((int)((unsigned long)(x)>>2)%size) //  64-bit bug fix 9/17/2007
-#define STMM_PTRHASH(x,size) ((int)(((unsigned long)(x)>>2)%size))
+#define STMM_PTRHASH(x,size) ((int)((unsigned long)(x)>>2)%size)
 #define EQUAL(func, x, y) \
     ((((func) == stmm_numcmp) || ((func) == stmm_ptrcmp)) ?\
       (STMM_NUMCMP((x),(y)) == 0) : ((*func)((x), (y)) == 0))
@@ -46,8 +41,8 @@ stmm_init_table_with_params (compare, hash, size, density, grow_factor,
     stmm_table *new;
 
     new = ALLOC (stmm_table, 1);
-    if (new == NULL) {
-    return NULL;
+    if (new == NIL (stmm_table)) {
+    return NIL (stmm_table);
     }
     new->compare = compare;
     new->hash = hash;
@@ -60,9 +55,9 @@ stmm_init_table_with_params (compare, hash, size, density, grow_factor,
     }
     new->num_bins = size;
     new->bins = ALLOC (stmm_table_entry *, size);
-    if (new->bins == NULL) {
+    if (new->bins == NIL (stmm_table_entry *)) {
     FREE (new);
-    return NULL;
+    return NIL (stmm_table);
     }
     for (i = 0; i < size; i++) {
     new->bins[i] = 0;
@@ -95,7 +90,7 @@ stmm_free_table (table)
     for ( i = 0; i < table->num_bins; i++ )
     {
         ptr = table->bins[i];
-        while ( ptr != NULL )
+        while ( ptr != NIL( stmm_table_entry ) )
         {
             next = ptr->next;
             FREE( ptr );
@@ -106,7 +101,7 @@ stmm_free_table (table)
     // no need to deallocate entries because they are in the memory manager now
     // added by alanmi
     if ( table->pMemMan )
-        Extra_MmFixedStop (table->pMemMan);
+        Extra_MmFixedStop (table->pMemMan, 0);
     FREE (table->bins);
     FREE (table);
 }
@@ -128,7 +123,7 @@ stmm_clean (table)
 
 
 #define PTR_NOT_EQUAL(table, ptr, user_key)\
-(ptr != NULL && !EQUAL(table->compare, user_key, (ptr)->key))
+(ptr != NIL(stmm_table_entry) && !EQUAL(table->compare, user_key, (ptr)->key))
 
 #define FIND_ENTRY(table, hash_val, key, ptr, last) \
     (last) = &(table)->bins[hash_val];\
@@ -136,7 +131,7 @@ stmm_clean (table)
     while (PTR_NOT_EQUAL((table), (ptr), (key))) {\
     (last) = &(ptr)->next; (ptr) = *(last);\
     }\
-    if ((ptr) != NULL && (table)->reorder_flag) {\
+    if ((ptr) != NIL(stmm_table_entry) && (table)->reorder_flag) {\
     *(last) = (ptr)->next;\
     (ptr)->next = (table)->bins[hash_val];\
     (table)->bins[hash_val] = (ptr);\
@@ -155,11 +150,11 @@ stmm_lookup (table, key, value)
 
     FIND_ENTRY (table, hash_val, key, ptr, last);
 
-    if (ptr == NULL) {
+    if (ptr == NIL (stmm_table_entry)) {
     return 0;
     }
     else {
-    if (value != NULL)
+    if (value != NIL (char *))
     {
         *value = ptr->record;
     }
@@ -180,11 +175,11 @@ stmm_lookup_int (table, key, value)
 
     FIND_ENTRY (table, hash_val, key, ptr, last);
 
-    if (ptr == NULL) {
+    if (ptr == NIL (stmm_table_entry)) {
     return 0;
     }
     else {
-    if (value != 0)
+    if (value != NIL (int))
     {
         *value = (long) ptr->record;
     }
@@ -228,7 +223,7 @@ stmm_insert (table, key, value)
 
     FIND_ENTRY (table, hash_val, key, ptr, last);
 
-    if (ptr == NULL) {
+    if (ptr == NIL (stmm_table_entry)) {
     if (table->num_entries / table->num_bins >= table->max_density) {
         if (rehash (table) == STMM_OUT_OF_MEM) {
         return STMM_OUT_OF_MEM;
@@ -238,7 +233,7 @@ stmm_insert (table, key, value)
 
 //              new = ALLOC( stmm_table_entry, 1 );
     new = (stmm_table_entry *) Extra_MmFixedEntryFetch (table->pMemMan);
-    if (new == NULL) {
+    if (new == NIL (stmm_table_entry)) {
         return STMM_OUT_OF_MEM;
     }
 
@@ -274,7 +269,7 @@ stmm_add_direct (table, key, value)
 
 //      new = ALLOC( stmm_table_entry, 1 );
     new = (stmm_table_entry *) Extra_MmFixedEntryFetch (table->pMemMan);
-    if (new == NULL) {
+    if (new == NIL (stmm_table_entry)) {
     return STMM_OUT_OF_MEM;
     }
 
@@ -299,7 +294,7 @@ stmm_find_or_add (table, key, slot)
 
     FIND_ENTRY (table, hash_val, key, ptr, last);
 
-    if (ptr == NULL) {
+    if (ptr == NIL (stmm_table_entry)) {
     if (table->num_entries / table->num_bins >= table->max_density) {
         if (rehash (table) == STMM_OUT_OF_MEM) {
         return STMM_OUT_OF_MEM;
@@ -309,7 +304,7 @@ stmm_find_or_add (table, key, slot)
 
     // new = ALLOC( stmm_table_entry, 1 );
     new = (stmm_table_entry *) Extra_MmFixedEntryFetch (table->pMemMan);
-    if (new == NULL) {
+    if (new == NIL (stmm_table_entry)) {
         return STMM_OUT_OF_MEM;
     }
 
@@ -318,12 +313,12 @@ stmm_find_or_add (table, key, slot)
     new->next = table->bins[hash_val];
     table->bins[hash_val] = new;
     table->num_entries++;
-    if (slot != NULL)
+    if (slot != NIL (char **))
          *slot = &new->record;
     return 0;
     }
     else {
-    if (slot != NULL)
+    if (slot != NIL (char **))
          *slot = &ptr->record;
     return 1;
     }
@@ -342,11 +337,11 @@ stmm_find (table, key, slot)
 
     FIND_ENTRY (table, hash_val, key, ptr, last);
 
-    if (ptr == NULL) {
+    if (ptr == NIL (stmm_table_entry)) {
     return 0;
     }
     else {
-    if (slot != NULL)
+    if (slot != NIL (char **))
     {
         *slot = &ptr->record;
     }
@@ -373,7 +368,7 @@ rehash (table)
     }
     table->num_entries = 0;
     table->bins = ALLOC (stmm_table_entry *, table->num_bins);
-    if (table->bins == NULL) {
+    if (table->bins == NIL (stmm_table_entry *)) {
     table->bins = old_bins;
     table->num_bins = old_num_bins;
     table->num_entries = old_num_entries;
@@ -387,7 +382,7 @@ rehash (table)
     /* copy data over */
     for (i = 0; i < old_num_bins; i++) {
     ptr = old_bins[i];
-    while (ptr != NULL) {
+    while (ptr != NIL (stmm_table_entry)) {
         next = ptr->next;
         hash_val = do_hash (ptr->key, table);
         ptr->next = table->bins[hash_val];
@@ -410,15 +405,15 @@ stmm_copy (old_table)
     int i, /*j, */ num_bins = old_table->num_bins;
 
     new_table = ALLOC (stmm_table, 1);
-    if (new_table == NULL) {
-    return NULL;
+    if (new_table == NIL (stmm_table)) {
+    return NIL (stmm_table);
     }
 
     *new_table = *old_table;
     new_table->bins = ALLOC (stmm_table_entry *, num_bins);
-    if (new_table->bins == NULL) {
+    if (new_table->bins == NIL (stmm_table_entry *)) {
     FREE (new_table);
-    return NULL;
+    return NIL (stmm_table);
     }
 
     // allocate the memory manager for the new table
@@ -426,20 +421,20 @@ stmm_copy (old_table)
     Extra_MmFixedStart (sizeof (stmm_table_entry));
 
     for (i = 0; i < num_bins; i++) {
-    new_table->bins[i] = NULL;
+    new_table->bins[i] = NIL (stmm_table_entry);
     ptr = old_table->bins[i];
-    while (ptr != NULL) {
+    while (ptr != NIL (stmm_table_entry)) {
 //                      new = ALLOC( stmm_table_entry, 1 );
         new =
         (stmm_table_entry *) Extra_MmFixedEntryFetch (new_table->
                                 pMemMan);
 
-        if (new == NULL) {
+        if (new == NIL (stmm_table_entry)) {
 /*
                 for ( j = 0; j <= i; j++ )
                 {
                     newptr = new_table->bins[j];
-                    while ( newptr != NULL )
+                    while ( newptr != NIL( stmm_table_entry ) )
                     {
                         next = newptr->next;
                         FREE( newptr );
@@ -447,11 +442,11 @@ stmm_copy (old_table)
                     }
                 }
 */
-        Extra_MmFixedStop (new_table->pMemMan);
+        Extra_MmFixedStop (new_table->pMemMan, 0);
 
         FREE (new_table->bins);
         FREE (new_table);
-        return NULL;
+        return NIL (stmm_table);
         }
         *new = *ptr;
         new->next = new_table->bins[i];
@@ -476,12 +471,12 @@ stmm_delete (table, keyp, value)
 
     FIND_ENTRY (table, hash_val, key, ptr, last);
 
-    if (ptr == NULL) {
+    if (ptr == NIL (stmm_table_entry)) {
     return 0;
     }
 
     *last = ptr->next;
-    if (value != NULL)
+    if (value != NIL (char *))
      *value = ptr->record;
     *keyp = ptr->key;
 //      FREE( ptr );
@@ -505,12 +500,12 @@ stmm_delete_int (table, keyp, value)
 
     FIND_ENTRY (table, hash_val, key, ptr, last);
 
-    if (ptr == NULL) {
+    if (ptr == NIL (stmm_table_entry)) {
     return 0;
     }
 
     *last = ptr->next;
-    if (value != NULL)
+    if (value != NIL (char *))
      *value = ptr->record;
     *keyp = (long) ptr->key;
 //      FREE( ptr );
@@ -533,7 +528,7 @@ stmm_foreach (table, func, arg)
     for (i = 0; i < table->num_bins; i++) {
     last = &table->bins[i];
     ptr = *last;
-    while (ptr != NULL) {
+    while (ptr != NIL (stmm_table_entry)) {
         retval = (*func) (ptr->key, ptr->record, arg);
         switch (retval) {
         case STMM_CONTINUE:
@@ -609,11 +604,11 @@ stmm_init_gen (table)
     stmm_generator *gen;
 
     gen = ALLOC (stmm_generator, 1);
-    if (gen == NULL) {
-    return NULL;
+    if (gen == NIL (stmm_generator)) {
+    return NIL (stmm_generator);
     }
     gen->table = table;
-    gen->entry = NULL;
+    gen->entry = NIL (stmm_table_entry);
     gen->index = 0;
     return gen;
 }
@@ -627,16 +622,16 @@ stmm_gen (gen, key_p, value_p)
 {
     register int i;
 
-    if (gen->entry == NULL) {
+    if (gen->entry == NIL (stmm_table_entry)) {
     /* try to find next entry */
     for (i = gen->index; i < gen->table->num_bins; i++) {
-        if (gen->table->bins[i] != NULL) {
+        if (gen->table->bins[i] != NIL (stmm_table_entry)) {
         gen->index = i + 1;
         gen->entry = gen->table->bins[i];
         break;
         }
     }
-    if (gen->entry == NULL) {
+    if (gen->entry == NIL (stmm_table_entry)) {
         return 0;        /* that's all folks ! */
     }
     }
@@ -657,21 +652,21 @@ stmm_gen_int (gen, key_p, value_p)
 {
     register int i;
 
-    if (gen->entry == NULL) {
+    if (gen->entry == NIL (stmm_table_entry)) {
     /* try to find next entry */
     for (i = gen->index; i < gen->table->num_bins; i++) {
-        if (gen->table->bins[i] != NULL) {
+        if (gen->table->bins[i] != NIL (stmm_table_entry)) {
         gen->index = i + 1;
         gen->entry = gen->table->bins[i];
         break;
         }
     }
-    if (gen->entry == NULL) {
+    if (gen->entry == NIL (stmm_table_entry)) {
         return 0;        /* that's all folks ! */
     }
     }
     *key_p = gen->entry->key;
-    if (value_p != 0)
+    if (value_p != NIL (long))
     {
     *value_p = (long) gen->entry->record;
     }

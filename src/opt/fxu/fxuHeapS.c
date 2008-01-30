@@ -38,7 +38,7 @@ static void Fxu_HeapSingleMoveUp( Fxu_HeapSingle * p, Fxu_Single * pSingle );
 static void Fxu_HeapSingleMoveDn( Fxu_HeapSingle * p, Fxu_Single * pSingle );  
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

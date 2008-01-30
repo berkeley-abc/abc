@@ -23,7 +23,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -147,9 +147,9 @@ void Map_SuperLibFree( Map_SuperLib_t * p )
         Map_SuperTableFree( p->tTableC );
     if ( p->tTable )
         Map_SuperTableFree( p->tTable );
-    Extra_MmFixedStop( p->mmSupers );
-    Extra_MmFixedStop( p->mmEntries );
-    Extra_MmFlexStop( p->mmForms );
+    Extra_MmFixedStop( p->mmSupers, 0 );
+    Extra_MmFixedStop( p->mmEntries, 0 );
+    Extra_MmFlexStop( p->mmForms, 0 );
     FREE( p->ppSupers );
     FREE( p );
 }
@@ -179,7 +179,7 @@ int Map_SuperLibDeriveFromGenlib( Mio_Library_t * pLib )
         return 0;
 
     // write the current library into the file
-    sprintf( FileNameGenlib, "%s_temp", Mio_LibraryReadName(pLib) );
+    strcpy( FileNameGenlib, Mio_LibraryReadName(pLib) );
     pFile = fopen( FileNameGenlib, "w" );
     Mio_WriteLibrary( pFile, pLib, 0 );
     fclose( pFile );

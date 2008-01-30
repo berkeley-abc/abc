@@ -30,7 +30,7 @@ static void          Map_LibraryComputeTruth_rec( Map_SuperLib_t * pLib, char * 
 static void          Map_LibraryPrintClasses( Map_SuperLib_t * p );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

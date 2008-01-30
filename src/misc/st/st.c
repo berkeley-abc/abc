@@ -8,31 +8,12 @@
  *
  */
 #include <stdio.h>
-#include <stdlib.h>
+#include "util.h"
 #include "st.h"
-
-#ifndef ABS
-#  define ABS(a)            ((a) < 0 ? -(a) : (a))
-#endif
-
-#ifndef ALLOC
-#define ALLOC(type, num)     ((type *) malloc(sizeof(type) * (num)))
-#endif
-
-#ifndef FREE
-#define FREE(obj)             ((obj) ? (free((char *) (obj)), (obj) = 0) : 0)
-#endif
-
-#ifndef REALLOC
-#define REALLOC(type, obj, num)    \
-        ((obj) ? ((type *) realloc((char *)(obj), sizeof(type) * (num))) : \
-         ((type *) malloc(sizeof(type) * (num))))
-#endif
 
 #define ST_NUMCMP(x,y) ((x) != (y))
 #define ST_NUMHASH(x,size) (ABS((long)x)%(size))
-//#define ST_PTRHASH(x,size) ((int)((unsigned long)(x)>>2)%size)  // 64-bit bug fix 9/17/2007
-#define ST_PTRHASH(x,size) ((int)(((unsigned long)(x)>>2)%size))
+#define ST_PTRHASH(x,size) ((int)((unsigned long)(x)>>2)%size)
 #define EQUAL(func, x, y) \
     ((((func) == st_numcmp) || ((func) == st_ptrcmp)) ?\
       (ST_NUMCMP((x),(y)) == 0) : ((*func)((x), (y)) == 0))
@@ -60,8 +41,8 @@ int reorder_flag;
     st_table *new;
 
     new = ALLOC(st_table, 1);
-    if (new == NULL) {
-    return NULL;
+    if (new == NIL(st_table)) {
+    return NIL(st_table);
     }
     new->compare = compare;
     new->hash = hash;
@@ -74,9 +55,9 @@ int reorder_flag;
     }
     new->num_bins = size;
     new->bins = ALLOC(st_table_entry *, size);
-    if (new->bins == NULL) {
+    if (new->bins == NIL(st_table_entry *)) {
     FREE(new);
-    return NULL;
+    return NIL(st_table);
     }
     for(i = 0; i < size; i++) {
     new->bins[i] = 0;
@@ -104,7 +85,7 @@ st_table *table;
 
     for(i = 0; i < table->num_bins ; i++) {
     ptr = table->bins[i];
-    while (ptr != NULL) {
+    while (ptr != NIL(st_table_entry)) {
         next = ptr->next;
         FREE(ptr);
         ptr = next;
@@ -115,7 +96,7 @@ st_table *table;
 }
 
 #define PTR_NOT_EQUAL(table, ptr, user_key)\
-(ptr != NULL && !EQUAL(table->compare, user_key, (ptr)->key))
+(ptr != NIL(st_table_entry) && !EQUAL(table->compare, user_key, (ptr)->key))
 
 #define FIND_ENTRY(table, hash_val, key, ptr, last) \
     (last) = &(table)->bins[hash_val];\
@@ -123,7 +104,7 @@ st_table *table;
     while (PTR_NOT_EQUAL((table), (ptr), (key))) {\
     (last) = &(ptr)->next; (ptr) = *(last);\
     }\
-    if ((ptr) != NULL && (table)->reorder_flag) {\
+    if ((ptr) != NIL(st_table_entry) && (table)->reorder_flag) {\
     *(last) = (ptr)->next;\
     (ptr)->next = (table)->bins[hash_val];\
     (table)->bins[hash_val] = (ptr);\
@@ -142,10 +123,10 @@ char **value;
 
     FIND_ENTRY(table, hash_val, key, ptr, last);
     
-    if (ptr == NULL) {
+    if (ptr == NIL(st_table_entry)) {
     return 0;
     } else {
-    if (value != NULL) {
+    if (value != NIL(char *)) {
         *value = ptr->record; 
     }
     return 1;
@@ -165,10 +146,10 @@ int *value;
 
     FIND_ENTRY(table, hash_val, key, ptr, last);
     
-    if (ptr == NULL) {
+    if (ptr == NIL(st_table_entry)) {
     return 0;
     } else {
-    if (value != 0) {
+    if (value != NIL(int)) {
         *value = (long) ptr->record;
     }
     return 1;
@@ -206,7 +187,7 @@ char *value;
 
     FIND_ENTRY(table, hash_val, key, ptr, last);
 
-    if (ptr == NULL) {
+    if (ptr == NIL(st_table_entry)) {
     if (table->num_entries/table->num_bins >= table->max_density) {
         if (rehash(table) == ST_OUT_OF_MEM) {
         return ST_OUT_OF_MEM;
@@ -214,7 +195,7 @@ char *value;
         hash_val = do_hash(key, table);
     }
     new = ALLOC(st_table_entry, 1);
-    if (new == NULL) {
+    if (new == NIL(st_table_entry)) {
         return ST_OUT_OF_MEM;
     }
     new->key = key;
@@ -246,7 +227,7 @@ char *value;
     }
     hash_val = do_hash(key, table);
     new = ALLOC(st_table_entry, 1);
-    if (new == NULL) {
+    if (new == NIL(st_table_entry)) {
     return ST_OUT_OF_MEM;
     }
     new->key = key;
@@ -270,7 +251,7 @@ char ***slot;
 
     FIND_ENTRY(table, hash_val, key, ptr, last);
 
-    if (ptr == NULL) {
+    if (ptr == NIL(st_table_entry)) {
     if (table->num_entries / table->num_bins >= table->max_density) {
         if (rehash(table) == ST_OUT_OF_MEM) {
         return ST_OUT_OF_MEM;
@@ -278,7 +259,7 @@ char ***slot;
         hash_val = do_hash(key, table);
     }
     new = ALLOC(st_table_entry, 1);
-    if (new == NULL) {
+    if (new == NIL(st_table_entry)) {
         return ST_OUT_OF_MEM;
     }
     new->key = key;
@@ -286,10 +267,10 @@ char ***slot;
     new->next = table->bins[hash_val];
     table->bins[hash_val] = new;
     table->num_entries++;
-    if (slot != NULL) *slot = &new->record;
+    if (slot != NIL(char **)) *slot = &new->record;
     return 0;
     } else {
-    if (slot != NULL) *slot = &ptr->record;
+    if (slot != NIL(char **)) *slot = &ptr->record;
     return 1;
     }
 }
@@ -307,10 +288,10 @@ char ***slot;
 
     FIND_ENTRY(table, hash_val, key, ptr, last);
 
-    if (ptr == NULL) {
+    if (ptr == NIL(st_table_entry)) {
     return 0;
     } else {
-    if (slot != NULL) {
+    if (slot != NIL(char **)) {
         *slot = &ptr->record;
     }
     return 1;
@@ -336,7 +317,7 @@ register st_table *table;
     }
     table->num_entries = 0;
     table->bins = ALLOC(st_table_entry *, table->num_bins);
-    if (table->bins == NULL) {
+    if (table->bins == NIL(st_table_entry *)) {
     table->bins = old_bins;
     table->num_bins = old_num_bins;
     table->num_entries = old_num_entries;
@@ -350,7 +331,7 @@ register st_table *table;
     /* copy data over */
     for (i = 0; i < old_num_bins; i++) {
     ptr = old_bins[i];
-    while (ptr != NULL) {
+    while (ptr != NIL(st_table_entry)) {
         next = ptr->next;
         hash_val = do_hash(ptr->key, table);
         ptr->next = table->bins[hash_val];
@@ -373,25 +354,25 @@ st_table *old_table;
     int i, j, num_bins = old_table->num_bins;
 
     new_table = ALLOC(st_table, 1);
-    if (new_table == NULL) {
-    return NULL;
+    if (new_table == NIL(st_table)) {
+    return NIL(st_table);
     }
     
     *new_table = *old_table;
     new_table->bins = ALLOC(st_table_entry *, num_bins);
-    if (new_table->bins == NULL) {
+    if (new_table->bins == NIL(st_table_entry *)) {
     FREE(new_table);
-    return NULL;
+    return NIL(st_table);
     }
     for(i = 0; i < num_bins ; i++) {
-    new_table->bins[i] = NULL;
+    new_table->bins[i] = NIL(st_table_entry);
     ptr = old_table->bins[i];
-    while (ptr != NULL) {
+    while (ptr != NIL(st_table_entry)) {
         new = ALLOC(st_table_entry, 1);
-        if (new == NULL) {
+        if (new == NIL(st_table_entry)) {
         for (j = 0; j <= i; j++) {
             newptr = new_table->bins[j];
-            while (newptr != NULL) {
+            while (newptr != NIL(st_table_entry)) {
             next = newptr->next;
             FREE(newptr);
             newptr = next;
@@ -399,7 +380,7 @@ st_table *old_table;
         }
         FREE(new_table->bins);
         FREE(new_table);
-        return NULL;
+        return NIL(st_table);
         }
         *new = *ptr;
         new->next = new_table->bins[i];
@@ -424,12 +405,12 @@ char **value;
 
     FIND_ENTRY(table, hash_val, key, ptr ,last);
     
-    if (ptr == NULL) {
+    if (ptr == NIL(st_table_entry)) {
     return 0;
     }
 
     *last = ptr->next;
-    if (value != NULL) *value = ptr->record;
+    if (value != NIL(char *)) *value = ptr->record;
     *keyp = ptr->key;
     FREE(ptr);
     table->num_entries--;
@@ -450,12 +431,12 @@ char **value;
 
     FIND_ENTRY(table, hash_val, key, ptr ,last);
 
-    if (ptr == NULL) {
+    if (ptr == NIL(st_table_entry)) {
         return 0;
     }
 
     *last = ptr->next;
-    if (value != NULL) *value = ptr->record;
+    if (value != NIL(char *)) *value = ptr->record;
     *keyp = (long) ptr->key;
     FREE(ptr);
     table->num_entries--;
@@ -474,7 +455,7 @@ char *arg;
 
     for(i = 0; i < table->num_bins; i++) {
     last = &table->bins[i]; ptr = *last;
-    while (ptr != NULL) {
+    while (ptr != NIL(st_table_entry)) {
         retval = (*func)(ptr->key, ptr->record, arg);
         switch (retval) {
         case ST_CONTINUE:
@@ -547,11 +528,11 @@ st_table *table;
     st_generator *gen;
 
     gen = ALLOC(st_generator, 1);
-    if (gen == NULL) {
-    return NULL;
+    if (gen == NIL(st_generator)) {
+    return NIL(st_generator);
     }
     gen->table = table;
-    gen->entry = NULL;
+    gen->entry = NIL(st_table_entry);
     gen->index = 0;
     return gen;
 }
@@ -565,16 +546,16 @@ char **value_p;
 {
     register int i;
 
-    if (gen->entry == NULL) {
+    if (gen->entry == NIL(st_table_entry)) {
     /* try to find next entry */
     for(i = gen->index; i < gen->table->num_bins; i++) {
-        if (gen->table->bins[i] != NULL) {
+        if (gen->table->bins[i] != NIL(st_table_entry)) {
         gen->index = i+1;
         gen->entry = gen->table->bins[i];
         break;
         }
     }
-    if (gen->entry == NULL) {
+    if (gen->entry == NIL(st_table_entry)) {
         return 0;        /* that's all folks ! */
     }
     }
@@ -595,21 +576,21 @@ long *value_p;
 {
     register int i;
 
-    if (gen->entry == NULL) {
+    if (gen->entry == NIL(st_table_entry)) {
     /* try to find next entry */
     for(i = gen->index; i < gen->table->num_bins; i++) {
-        if (gen->table->bins[i] != NULL) {
+        if (gen->table->bins[i] != NIL(st_table_entry)) {
         gen->index = i+1;
         gen->entry = gen->table->bins[i];
         break;
         }
     }
-    if (gen->entry == NULL) {
+    if (gen->entry == NIL(st_table_entry)) {
         return 0;        /* that's all folks ! */
     }
     }
     *key_p = gen->entry->key;
-    if (value_p != 0) {
+    if (value_p != NIL(long)) {
        *value_p = (long) gen->entry->record;
     }
     gen->entry = gen->entry->next;

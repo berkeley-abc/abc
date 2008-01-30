@@ -20,17 +20,13 @@
 
 #include "mainInt.h"
 
-#ifndef _WIN32
-#include "readline/readline.h"
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 static char * DateReadFromDateString(char * datestr);
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -66,18 +62,9 @@ char * Abc_UtilsGetUsersInput( Abc_Frame_t * pAbc )
 {
     static char Buffer[1000], Prompt[1000];
     sprintf( Prompt, "abc %02d> ", pAbc->nSteps );
-#ifdef _WIN32
     fprintf( pAbc->Out, "%s", Prompt );
     fgets( Buffer, 999, stdin );
     return Buffer;
-#else
-    static char* line = NULL;
-    if (line != NULL) free(line);
-    line = readline(Prompt);  
-    if (line == NULL){ printf("***EOF***\n"); exit(0); }
-    add_history(line);
-    return line;
-#endif
 }
 
 /**Function*************************************************************
@@ -147,72 +134,32 @@ void Abc_UtilsSource( Abc_Frame_t * pAbc )
             printf( "Loaded \"abc.rc\" from the grandparent directory.\n" );
     }
 #else
-
-#if 0
     {
-        char * sPath1, * sPath2;
+    char * sPath1, * sPath2;
 
-         // If .rc is present in both the home and current directories, then read
-         // it from the home directory.  Otherwise, read it from wherever it's located.
-        sPath1 = Extra_UtilFileSearch(".rc", "~/", "r");
-        sPath2 = Extra_UtilFileSearch(".rc", ".",  "r");
+     // If .rc is present in both the home and current directories, then read
+     // it from the home directory.  Otherwise, read it from wherever it's located.
+    sPath1 = util_file_search(".rc", "~/", "r");
+    sPath2 = util_file_search(".rc", ".",  "r");
   
-        if ( sPath1 && sPath2 ) {
-            /* ~/.rc == .rc : Source the file only once */
+    if ( sPath1 && sPath2 ) {
+        /* ~/.rc == .rc : Source the file only once */
+        (void) Cmd_CommandExecute(pAbc, "source -s ~/.rc");
+    }
+    else {
+        if (sPath1) {
             (void) Cmd_CommandExecute(pAbc, "source -s ~/.rc");
         }
-        else {
-            if (sPath1) {
-                (void) Cmd_CommandExecute(pAbc, "source -s ~/.rc");
-            }
-            if (sPath2) {
-                (void) Cmd_CommandExecute(pAbc, "source -s .rc");
-            }
+        if (sPath2) {
+            (void) Cmd_CommandExecute(pAbc, "source -s .rc");
         }
-        if ( sPath1 ) FREE(sPath1);
-        if ( sPath2 ) FREE(sPath2);
+    }
+    if ( sPath1 ) FREE(sPath1);
+    if ( sPath2 ) FREE(sPath2);
     
-        /* execute the abc script which can be open with the "open_path" */
-        Cmd_CommandExecute( pAbc, "source -s abc.rc" );
+    /* execute the abc script which can be open with the "open_path" */
+    Cmd_CommandExecute( pAbc, "source -s abc.rc" );
     }
-#endif
-
-    {
-        char * sPath1, * sPath2;
-        char * home;
-
-         // If .rc is present in both the home and current directories, then read
-         // it from the home directory.  Otherwise, read it from wherever it's located.
-        home = getenv("HOME");
-        if (home){
-            char * sPath3 = ALLOC(char, strlen(home) + 2);
-            (void) sprintf(sPath3, "%s/", home);
-            sPath1 = Extra_UtilFileSearch(".abc.rc", sPath3, "r");
-            FREE(sPath3);
-        }else
-            sPath1 = NULL;
-
-        sPath2 = Extra_UtilFileSearch(".abc.rc", ".",  "r");
-
-        if ( sPath1 && sPath2 ) {
-            /* ~/.rc == .rc : Source the file only once */
-            (void) Cmd_CommandExecute(pAbc, "source -s ~/.abc.rc");
-        }
-        else {
-            if (sPath1) {
-                (void) Cmd_CommandExecute(pAbc, "source -s ~/.abc.rc");
-            }
-            if (sPath2) {
-                (void) Cmd_CommandExecute(pAbc, "source -s .abc.rc");
-            }
-        }
-        if ( sPath1 ) FREE(sPath1);
-        if ( sPath2 ) FREE(sPath2);
-
-        /* execute the abc script which can be open with the "open_path" */
-        Cmd_CommandExecute( pAbc, "source -s abc.rc" );
-    }
-
 #endif //WIN32
     {
         // reset command history

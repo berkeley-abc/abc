@@ -47,18 +47,18 @@ typedef struct ParseStackOpStruct    Parse_StackOp_t;    // the operation stack
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                       MACRO DEFINITIONS                          ///
+///                       MACRO DEFITIONS                            ///
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /*=== parseStack.c =============================================================*/
 extern Parse_StackFn_t *  Parse_StackFnStart  ( int nDepth );
 extern bool               Parse_StackFnIsEmpty( Parse_StackFn_t * p );
-extern void               Parse_StackFnPush   ( Parse_StackFn_t * p, void * bFunc );
-extern void *             Parse_StackFnPop    ( Parse_StackFn_t * p );
+extern void               Parse_StackFnPush   ( Parse_StackFn_t * p, DdNode * bFunc );
+extern DdNode *           Parse_StackFnPop    ( Parse_StackFn_t * p );
 extern void               Parse_StackFnFree   ( Parse_StackFn_t * p );
 
 extern Parse_StackOp_t *  Parse_StackOpStart  ( int nDepth );
@@ -67,8 +67,7 @@ extern void               Parse_StackOpPush   ( Parse_StackOp_t * p, int Oper );
 extern int                Parse_StackOpPop    ( Parse_StackOp_t * p );
 extern void               Parse_StackOpFree   ( Parse_StackOp_t * p );
 
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+#endif

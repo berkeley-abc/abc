@@ -30,7 +30,7 @@
 static int CmdCommandPrintCompare( Abc_Command ** ppC1, Abc_Command ** ppC2 );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -121,10 +121,10 @@ int CmdCommandDispatch( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
     // execute the command
-    clk = Extra_CpuTime();
+    clk = util_cpu_time();
     pFunc = (int (*)(Abc_Frame_t *, int, char **))pCommand->pFunc;
     fError = (*pFunc)( pAbc, argc, argv );
-    pAbc->TimeCommand += (Extra_CpuTime() - clk);
+    pAbc->TimeCommand += (util_cpu_time() - clk);
 
     // automatic execution of arbitrary command after each command 
     // usually this is a passive command ... 
@@ -245,7 +245,7 @@ int CmdApplyAlias( Abc_Frame_t * pAbc, int *argcp, char ***argvp, int *loop )
     argc = *argcp;
     argv = *argvp;
     stopit = 0;
-    for ( ; *loop < 200; ( *loop )++ )
+    for ( ; *loop < 20; ( *loop )++ )
     {
         if ( argc == 0 )
             return 0;
@@ -270,7 +270,7 @@ int CmdApplyAlias( Abc_Frame_t * pAbc, int *argcp, char ***argvp, int *loop )
             }
             for ( i = 1; i <= added; i++ )
             {
-                argv[i] = NULL;
+                argv[i] = NIL( char );
             }
             argc += added;
         }
@@ -278,7 +278,7 @@ int CmdApplyAlias( Abc_Frame_t * pAbc, int *argcp, char ***argvp, int *loop )
         for ( i = 0, offset = 0; i < alias->argc; i++, offset++ )
         {
             arg = CmdHistorySubstitution( pAbc, alias->argv[i], &did_subst );
-            if ( arg == NULL )
+            if ( arg == NIL( char ) )
             {
                 *argcp = argc;
                 *argvp = argv;
@@ -383,11 +383,11 @@ FILE * CmdFileOpen( Abc_Frame_t * pAbc, char *sFileName, char *sMode, char **pFi
     
     if (strcmp(sFileName, "-") == 0) {
         if (strcmp(sMode, "w") == 0) {
-            sRealName = Extra_UtilStrsav( "stdout" );
+            sRealName = util_strsav( "stdout" );
             pFile = stdout;
         }
         else {
-            sRealName = Extra_UtilStrsav( "stdin" );
+            sRealName = util_strsav( "stdin" );
             pFile = stdin;
         }
     }
@@ -403,24 +403,24 @@ FILE * CmdFileOpen( Abc_Frame_t * pAbc, char *sFileName, char *sMode, char **pFi
                 sPathAll = NULL;
             }
             else if ( sPathUsr == NULL ) {
-                sPathAll = Extra_UtilStrsav( sPathLib );
+                sPathAll = util_strsav( sPathLib );
             }
             else if ( sPathLib == NULL ) {
-                sPathAll = Extra_UtilStrsav( sPathUsr );
+                sPathAll = util_strsav( sPathUsr );
             }
             else {
                 sPathAll = ALLOC( char, strlen(sPathLib)+strlen(sPathUsr)+5 );
                 sprintf( sPathAll, "%s:%s",sPathUsr, sPathLib );
             }
-            if ( sPathAll != NULL ) {
-                sRealName = Extra_UtilFileSearch(sFileName, sPathAll, "r");
+            if ( sPathAll != NIL(char) ) {
+                sRealName = util_file_search(sFileName, sPathAll, "r");
                 FREE( sPathAll );
             }
         }
-        if (sRealName == NULL) {
-            sRealName = Extra_UtilTildeExpand(sFileName);
+        if (sRealName == NIL(char)) {
+            sRealName = util_tilde_expand(sFileName);
         }
-        if ((pFile = fopen(sRealName, sMode)) == NULL) {
+        if ((pFile = fopen(sRealName, sMode)) == NIL(FILE)) {
             if (! silent) {
                 perror(sRealName);
             }

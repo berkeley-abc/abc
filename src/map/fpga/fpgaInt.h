@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "extra.h"
+#include "fraig.h"
 #include "fpga.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -38,7 +39,7 @@
 //#define FPGA_ALLOCATE_FANOUT  1
 
 ////////////////////////////////////////////////////////////////////////
-///                       MACRO DEFINITIONS                          ///
+///                       MACRO DEFITIONS                            ///
 ////////////////////////////////////////////////////////////////////////
 
 #ifdef _WIN32
@@ -67,16 +68,16 @@
 #define FPGA_SEQ_SIGN(p)        (1 << (((unsigned)p)%31));
 
 // internal macros to work with cuts
-#define Fpga_CutIsComplement(p)  (((int)((unsigned long) (p) & 01)))
-#define Fpga_CutRegular(p)       ((Fpga_Cut_t *)((unsigned long)(p) & ~01)) 
-#define Fpga_CutNot(p)           ((Fpga_Cut_t *)((unsigned long)(p) ^ 01)) 
-#define Fpga_CutNotCond(p,c)     ((Fpga_Cut_t *)((unsigned long)(p) ^ (c)))
+#define Fpga_CutIsComplement(p)  (((int)((long) (p) & 01)))
+#define Fpga_CutRegular(p)       ((Fpga_Cut_t *)((unsigned)(p) & ~01)) 
+#define Fpga_CutNot(p)           ((Fpga_Cut_t *)((long)(p) ^ 01)) 
+#define Fpga_CutNotCond(p,c)     ((Fpga_Cut_t *)((long)(p) ^ (c)))
 
 // the cut nodes
-#define Fpga_SeqIsComplement( p )      (((int)((unsigned long) (p) & 01)))
-#define Fpga_SeqRegular( p )           ((Fpga_Node_t *)((unsigned long)(p) & ~015))
-#define Fpga_SeqIndex( p )             ((((unsigned long)(p)) >> 1) & 07)
-#define Fpga_SeqIndexCreate( p, Ind )  (((unsigned long)(p)) | (1 << (((unsigned)(Ind)) & 07)))
+#define Fpga_SeqIsComplement( p )      (((int)((long) (p) & 01)))
+#define Fpga_SeqRegular( p )           ((Fpga_Node_t *)((unsigned)(p) & ~015))
+#define Fpga_SeqIndex( p )             ((((unsigned)(p)) >> 1) & 07)
+#define Fpga_SeqIndexCreate( p, Ind )  (((unsigned)(p)) | (1 << (((unsigned)(Ind)) & 07)))
 
 // internal macros for referencing of nodes
 #define Fpga_NodeReadRef(p)      ((Fpga_Regular(p))->nRefs)
@@ -122,9 +123,7 @@ struct Fpga_ManStruct_t_
     int                 fAreaRecovery; // the flag to use area flow as the first parameter
     int                 fVerbose;      // the verbosiness flag
     int                 fSwitching;    // minimize the switching activity (instead of area)
-    int                 fLatchPaths;   // optimize latch paths for delay, other paths for area
-    int                 nTravIds;      // the counter of traversal IDs
-    float               DelayTarget;   // the target required times
+    int                 nTravIds;
 
     // support of choice nodes
     int                 nChoiceNodes;  // the number of choice nodes
@@ -171,9 +170,8 @@ struct Fpga_LutLibStruct_t_
 {
     char *              pName;         // the name of the LUT library
     int                 LutMax;        // the maximum LUT size 
-    int                 fVarPinDelays; // set to 1 if variable pin delays are specified
     float               pLutAreas[FPGA_MAX_LUTSIZE+1]; // the areas of LUTs
-    float               pLutDelays[FPGA_MAX_LUTSIZE+1][FPGA_MAX_LUTSIZE+1];// the delays of LUTs
+    float               pLutDelays[FPGA_MAX_LUTSIZE+1];// the delays of LUTs
 };
 
 // the mapping node
@@ -184,8 +182,8 @@ struct Fpga_NodeStruct_t_
     Fpga_Node_t *       pLevel;        // the next node in the linked list by level
     int                 Num;           // the unique number of this node
     int                 NumA;          // the unique number of this node
-    int                 Num2;          // the temporary number of this node
-    int                 nRefs;         // the number of references (fanouts) of the given node
+    short               Num2;          // the temporary number of this node
+    short               nRefs;         // the number of references (fanouts) of the given node
     unsigned            fMark0 : 1;    // the mark used for traversals
     unsigned            fMark1 : 1;    // the mark used for traversals
     unsigned            fInv   : 1;    // the complemented attribute for the equivalent nodes
@@ -278,16 +276,12 @@ struct Fpga_NodeVecStruct_t_
           pFanout  = pFanout2,                                   \
           pFanout2 = Fpga_NodeReadNextFanout(pNode, pFanout) )
 
-static inline Fpga_FloatMoreThan( Fpga_Man_t * p, float Arg1, float Arg2 ) { return Arg1 > Arg2 + p->fEpsilon; }
-static inline Fpga_FloatLessThan( Fpga_Man_t * p, float Arg1, float Arg2 ) { return Arg1 < Arg2 - p->fEpsilon; }
-static inline Fpga_FloatEqual( Fpga_Man_t * p, float Arg1, float Arg2 )    { return Arg1 > Arg2 - p->fEpsilon && Arg1 < Arg2 + p->fEpsilon; }
-
 ////////////////////////////////////////////////////////////////////////
 ///                       GLOBAL VARIABLES                           ///
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /*=== fpgaCut.c ===============================================================*/
@@ -337,7 +331,7 @@ extern float             Fpga_MappingGetSwitching( Fpga_Man_t * pMan, Fpga_NodeV
 extern float             Fpga_TimeCutComputeArrival( Fpga_Man_t * pMan, Fpga_Cut_t * pCut );
 extern float             Fpga_TimeCutComputeArrival_rec( Fpga_Man_t * pMan, Fpga_Cut_t * pCut );
 extern float             Fpga_TimeComputeArrivalMax( Fpga_Man_t * p );
-extern void              Fpga_TimeComputeRequiredGlobal( Fpga_Man_t * p, int fFirstTime );
+extern void              Fpga_TimeComputeRequiredGlobal( Fpga_Man_t * p );
 extern void              Fpga_TimeComputeRequired( Fpga_Man_t * p, float fRequired );
 extern void              Fpga_TimePropagateRequired( Fpga_Man_t * p, Fpga_NodeVec_t * vNodes );
 extern void              Fpga_TimePropagateArrival( Fpga_Man_t * p );
@@ -381,8 +375,8 @@ extern void              Fpga_MappingSetChoiceLevels( Fpga_Man_t * pMan );
 /*=== CUDD package.c ===============================================================*/
 extern unsigned int      Cudd_Prime( unsigned int p );
 
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
+
+#endif

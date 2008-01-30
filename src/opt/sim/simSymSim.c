@@ -29,7 +29,7 @@ static void Sim_SymmsCreateSquare( Sym_Man_t * p, unsigned * pPat );
 static void Sim_SymmsDeriveInfo( Sym_Man_t * p, unsigned * pPat, Abc_Obj_t * pNode, Vec_Ptr_t * vMatrsNonSym, int Output );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -55,9 +55,9 @@ void Sim_SymmsSimulate( Sym_Man_t * p, unsigned * pPat, Vec_Ptr_t * vMatrsNonSym
 clk = clock();
     Vec_PtrForEachEntry( p->vNodes, pNode, i )
     {
-//        if ( Abc_NodeIsConst(pNode) )
-//            continue;
-        Sim_UtilSimulateNodeOne( pNode, p->vSim, p->nSimWords, 0 );
+        if ( Abc_NodeIsConst(pNode) )
+            continue;
+        Sim_UtilSimulateNodeOne( pNode, p->vSim, p->nSimWords );
     }
 p->timeSim += clock() - clk;
     // collect info into the CO matrices
@@ -65,8 +65,8 @@ clk = clock();
     Abc_NtkForEachCo( p->pNtk, pNode, i )
     {
         pNode = Abc_ObjFanin0(pNode);
-//        if ( Abc_ObjIsCi(pNode) || Abc_AigNodeIsConst(pNode) )
-//            continue;
+        if ( Abc_ObjIsCi(pNode) || Abc_NodeIsConst(pNode) )
+            continue;
         nPairsTotal  = Vec_IntEntry(p->vPairsTotal, i);
         nPairsSym    = Vec_IntEntry(p->vPairsSym,   i);
         nPairsNonSym = Vec_IntEntry(p->vPairsNonSym,i);

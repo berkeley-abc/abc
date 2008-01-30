@@ -20,9 +20,6 @@
 
 #include "mainInt.h"
 
-// this line should be included in the library project
-//#define _LIB
-
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -30,10 +27,8 @@
 static int TypeCheck( Abc_Frame_t * pAbc, char * s);
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
-
-#ifndef _LIB
 
 /**Function*************************************************************
 
@@ -53,14 +48,11 @@ int main( int argc, char * argv[] )
     char * sCommand, * sOutFile, * sInFile;
     int  fStatus = 0;
     bool fBatch, fInitSource, fInitRead, fFinalWrite;
-
+    
     // added to detect memory leaks:
 #ifdef _DEBUG
     _CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 #endif
-    
-//    Npn_Experiment();
-//    Npn_Generate();
 
     // get global frame (singleton pattern)
     // will be initialized on first call
@@ -72,24 +64,24 @@ int main( int argc, char * argv[] )
     fInitRead   = 0;
     fFinalWrite = 0;
     sInFile = sOutFile = NULL;
-    sprintf( sReadCmd,  "read"  );
-    sprintf( sWriteCmd, "write" );
+    sprintf( sReadCmd,  "read_blif_mv"  );
+    sprintf( sWriteCmd, "write_blif_mv" );
     
-    Extra_UtilGetoptReset();
-    while ((c = Extra_UtilGetopt(argc, argv, "c:hf:F:o:st:T:x")) != EOF) {
+    util_getopt_reset();
+    while ((c = util_getopt(argc, argv, "c:hf:F:o:st:T:x")) != EOF) {
         switch(c) {
             case 'c':
-                strcpy( sCommandUsr, globalUtilOptarg );
+                strcpy( sCommandUsr, util_optarg );
                 fBatch = 1;
                 break;
                 
             case 'f':
-                sprintf(sCommandUsr, "source %s", globalUtilOptarg);
+                sprintf(sCommandUsr, "source %s", util_optarg);
                 fBatch = 1;
                 break;
 
             case 'F':
-                sprintf(sCommandUsr, "source -x %s", globalUtilOptarg);
+                sprintf(sCommandUsr, "source -x %s", util_optarg);
                 fBatch = 1;
                 break;
                 
@@ -98,7 +90,7 @@ int main( int argc, char * argv[] )
                 break;
                 
             case 'o':
-                sOutFile = globalUtilOptarg;
+                sOutFile = util_optarg;
                 fFinalWrite = 1;
                 break;
                 
@@ -107,12 +99,12 @@ int main( int argc, char * argv[] )
                 break;
                 
             case 't':
-                if ( TypeCheck( pAbc, globalUtilOptarg ) )
+                if ( TypeCheck( pAbc, util_optarg ) )
                 {
-                    if ( !strcmp(globalUtilOptarg, "none") == 0 )
+                    if ( !strcmp(util_optarg, "none") == 0 )
                     {
                         fInitRead = 1;
-                        sprintf( sReadCmd, "read_%s", globalUtilOptarg );
+                        sprintf( sReadCmd, "read_%s", util_optarg );
                     }
                 }
                 else {
@@ -122,12 +114,12 @@ int main( int argc, char * argv[] )
                 break;
                 
             case 'T':
-                if ( TypeCheck( pAbc, globalUtilOptarg ) )
+                if ( TypeCheck( pAbc, util_optarg ) )
                 {
-                    if (!strcmp(globalUtilOptarg, "none") == 0)
+                    if (!strcmp(util_optarg, "none") == 0)
                     {
                         fFinalWrite = 1;
-                        sprintf( sWriteCmd, "write_%s", globalUtilOptarg);
+                        sprintf( sWriteCmd, "write_%s", util_optarg);
                     }
                 }
                 else {
@@ -151,14 +143,14 @@ int main( int argc, char * argv[] )
     {
         pAbc->fBatchMode = 1;
 
-        if (argc - globalUtilOptind == 0)
+        if (argc - util_optind == 0)
         {
             sInFile = NULL;
         }
-        else if (argc - globalUtilOptind == 1)
+        else if (argc - util_optind == 1)
         {
             fInitRead = 1;
-            sInFile = argv[globalUtilOptind];
+            sInFile = argv[util_optind];
         }
         else
         {
@@ -217,11 +209,14 @@ int main( int argc, char * argv[] )
                 break;
         }
     }
-      
+     
     // if the memory should be freed, quit packages
-    if ( fStatus < 0 ) 
+    if ( fStatus == -2 ) 
     {
-        Abc_Stop();
+        // perform uninitializations
+        Abc_FrameEnd( pAbc );
+        // stop the framework
+        Abc_FrameDeallocate( pAbc );
     }
     return 0;
 
@@ -231,58 +226,6 @@ usage:
     return 1;
 }
 
-#endif
-
-/**Function*************************************************************
-
-  Synopsis    [Initialization procedure for the library project.]
-
-  Description [Note that when Abc_Start() is run in a static library
-  project, it does not load the resource file by default. As a result, 
-  ABC is not set up the same way, as when it is run on a command line. 
-  For example, some error messages while parsing files will not be 
-  produced, and intermediate networks will not be checked for consistancy. 
-  One possibility is to load the resource file after Abc_Start() as follows:
-  Abc_UtilsSource(  Abc_FrameGetGlobalFrame() );]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_Start()
-{
-    Abc_Frame_t * pAbc;
-    // added to detect memory leaks:
-#ifdef _DEBUG
-    _CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
-#endif
-    // start the glocal frame
-    pAbc = Abc_FrameGetGlobalFrame();
-    // source the resource file
-//    Abc_UtilsSource( pAbc );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Deallocation procedure for the library project.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_Stop()
-{
-    Abc_Frame_t * pAbc;
-    pAbc = Abc_FrameGetGlobalFrame();
-    // perform uninitializations
-    Abc_FrameEnd( pAbc );
-    // stop the framework
-    Abc_FrameDeallocate( pAbc );
-}
 
 /**Function********************************************************************
 

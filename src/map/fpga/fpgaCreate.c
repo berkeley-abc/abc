@@ -31,7 +31,7 @@ static Fpga_Node_t *   Fpga_TableLookup( Fpga_Man_t * p, Fpga_Node_t * p1, Fpga_
 static inline unsigned Fpga_HashKey2( Fpga_Node_t * p0, Fpga_Node_t * p1, int TableSize ) { return ((unsigned)(p0) + (unsigned)(p1) * 12582917) % TableSize; }
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -52,9 +52,7 @@ Fpga_Node_t **  Fpga_ManReadOutputs( Fpga_Man_t * p )                     { retu
 Fpga_Node_t *   Fpga_ManReadConst1 ( Fpga_Man_t * p )                     { return p->pConst1;    }
 float *         Fpga_ManReadInputArrivals( Fpga_Man_t * p )               { return p->pInputArrivals;}
 int             Fpga_ManReadVerbose( Fpga_Man_t * p )                     { return p->fVerbose;   }
-int             Fpga_ManReadVarMax( Fpga_Man_t * p )                      { return p->pLutLib->LutMax;     }
 float *         Fpga_ManReadLutAreas( Fpga_Man_t * p )                    { return p->pLutLib->pLutAreas;  }
-Fpga_NodeVec_t* Fpga_ManReadMapping( Fpga_Man_t * p )                     { return p->vMapping;   }
 void            Fpga_ManSetTimeToMap( Fpga_Man_t * p, int Time )          { p->timeToMap = Time;  }
 void            Fpga_ManSetTimeToNet( Fpga_Man_t * p, int Time )          { p->timeToNet = Time;  }
 void            Fpga_ManSetTimeTotal( Fpga_Man_t * p, int Time )          { p->timeTotal = Time;  }
@@ -68,9 +66,7 @@ void            Fpga_ManSetChoiceNodeNum( Fpga_Man_t * p, int nChoiceNodes ) { p
 void            Fpga_ManSetChoiceNum( Fpga_Man_t * p, int nChoices )         { p->nChoices = nChoices;          }   
 void            Fpga_ManSetVerbose( Fpga_Man_t * p, int fVerbose )           { p->fVerbose = fVerbose;          }   
 void            Fpga_ManSetSwitching( Fpga_Man_t * p, int fSwitching )       { p->fSwitching = fSwitching;      }   
-void            Fpga_ManSetLatchPaths( Fpga_Man_t * p, int fLatchPaths )     { p->fLatchPaths = fLatchPaths;    }   
 void            Fpga_ManSetLatchNum( Fpga_Man_t * p, int nLatches )          { p->nLatches = nLatches;          }   
-void            Fpga_ManSetDelayTarget( Fpga_Man_t * p, float DelayTarget )  { p->DelayTarget = DelayTarget;    }   
 void            Fpga_ManSetName( Fpga_Man_t * p, char * pFileName )          { p->pFileName = pFileName;        }   
 
 /**Function*************************************************************
@@ -99,7 +95,6 @@ int             Fpga_LibReadLutMax( Fpga_LutLib_t * pLib )  { return pLib->LutMa
 ***********************************************************************/
 char *          Fpga_NodeReadData0( Fpga_Node_t * p )                   { return p->pData0;    }
 Fpga_Node_t *   Fpga_NodeReadData1( Fpga_Node_t * p )                   { return p->pLevel;    }
-int             Fpga_NodeReadRefs( Fpga_Node_t * p )                    { return p->nRefs;     }
 int             Fpga_NodeReadNum( Fpga_Node_t * p )                     { return p->Num;       }
 int             Fpga_NodeReadLevel( Fpga_Node_t * p )                   { return Fpga_Regular(p)->Level;  }
 Fpga_Cut_t *    Fpga_NodeReadCuts( Fpga_Node_t * p )                    { return p->pCuts;     }
@@ -169,7 +164,7 @@ Fpga_Man_t * Fpga_ManCreate( int nInputs, int nOutputs, int fVerbose )
     // start the manager
     p = ALLOC( Fpga_Man_t, 1 );
     memset( p, 0, sizeof(Fpga_Man_t) );
-    p->pLutLib   = Abc_FrameReadLibLut();
+    p->pLutLib   = Abc_FrameReadLibLut(Abc_FrameGetGlobalFrame());
     p->nVarsMax  = p->pLutLib->LutMax;
     p->fVerbose  = fVerbose;
     p->fAreaRecovery = 1;
@@ -228,8 +223,8 @@ void Fpga_ManFree( Fpga_Man_t * p )
         Fpga_NodeVecFree( p->vAnds );
     if ( p->vNodesAll )    
         Fpga_NodeVecFree( p->vNodesAll );
-    Extra_MmFixedStop( p->mmNodes );
-    Extra_MmFixedStop( p->mmCuts );
+    Extra_MmFixedStop( p->mmNodes, 0 );
+    Extra_MmFixedStop( p->mmCuts, 0 );
     FREE( p->ppOutputNames );
     FREE( p->pInputArrivals );
     FREE( p->pInputs );

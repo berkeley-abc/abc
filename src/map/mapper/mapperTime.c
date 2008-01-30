@@ -27,7 +27,7 @@ static void  Map_TimePropagateRequiredPhase( Map_Man_t * p, Map_Node_t * pNode, 
 static float Map_MatchComputeReqTimes( Map_Cut_t * pCut, int fPhase, Map_Time_t * ptArrRes );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFINITIONS                         ///
+///                     FUNCTION DEFITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 /**function*************************************************************

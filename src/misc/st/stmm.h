@@ -14,10 +14,6 @@
 #ifndef STMM_INCLUDED
 #define STMM_INCLUDED
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "extra.h"
 
 typedef struct stmm_table_entry stmm_table_entry;
@@ -97,7 +93,7 @@ EXTERN void stmm_clean ARGS ((stmm_table *));
 
 // added by Zhihong: no need for memory allocation
 #define stmm_foreach_item2(tb, /* stmm_generator */gen, key, value) \
-    for(gen.table=(tb), gen.entry=NULL, gen.index=0; \
+    for(gen.table=(tb), gen.entry=NIL(stmm_table_entry), gen.index=0; \
         stmm_gen(&(gen),key,value);)
 
 #define stmm_foreach_item(table, gen, key, value) \
@@ -119,9 +115,5 @@ EXTERN void stmm_clean ARGS ((stmm_table *));
 #define st_free_table  stmm_free_table
 
 */
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* STMM_INCLUDED */
