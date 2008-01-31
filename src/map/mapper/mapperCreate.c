@@ -30,7 +30,7 @@ static Map_Node_t *    Map_TableLookup( Map_Man_t * p, Map_Node_t * p1, Map_Node
 static inline unsigned Map_HashKey2( Map_Node_t * p0, Map_Node_t * p1, int TableSize ) { return ((unsigned)(p0) + (unsigned)(p1) * 12582917) % TableSize; }
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -183,7 +183,7 @@ Map_Man_t * Map_ManCreate( int nInputs, int nOutputs, int fVerbose )
     int i;
 
     // derive the supergate library
-    if ( Abc_FrameReadLibSuper(Abc_FrameGetGlobalFrame()) == NULL )
+    if ( Abc_FrameReadLibSuper() == NULL )
     {
         printf( "The supergate library is not specified. Use \"read_library\" or \"read_super\".\n" );
         return NULL;
@@ -192,7 +192,7 @@ Map_Man_t * Map_ManCreate( int nInputs, int nOutputs, int fVerbose )
     // start the manager
     p = ALLOC( Map_Man_t, 1 );
     memset( p, 0, sizeof(Map_Man_t) );
-    p->pSuperLib = Abc_FrameReadLibSuper(Abc_FrameGetGlobalFrame());
+    p->pSuperLib = Abc_FrameReadLibSuper();
     p->nVarsMax  = p->pSuperLib->nVarsMax;
     p->fVerbose  = fVerbose;
     p->fEpsilon  = (float)0.001;
@@ -261,8 +261,8 @@ void Map_ManFree( Map_Man_t * p )
     if ( p->uCanons )   free( p->uCanons );
     if ( p->uPhases )   free( p->uPhases );
     if ( p->pCounters ) free( p->pCounters );
-    Extra_MmFixedStop( p->mmNodes, 0 );
-    Extra_MmFixedStop( p->mmCuts, 0 );
+    Extra_MmFixedStop( p->mmNodes );
+    Extra_MmFixedStop( p->mmCuts );
     FREE( p->pInputArrivals );
     FREE( p->pInputs );
     FREE( p->pOutputs );
@@ -314,7 +314,7 @@ void Map_ManPrintTimeStats( Map_Man_t * p )
 void Map_ManPrintStatsToFile( char * pName, float Area, float Delay, int Time )
 {
     FILE * pTable;
-    pTable = fopen( "stats.txt", "a+" );
+    pTable = fopen( "map_stats.txt", "a+" );
     fprintf( pTable, "%s ", pName );
     fprintf( pTable, "%4.2f ", Area );
     fprintf( pTable, "%4.2f ", Delay );

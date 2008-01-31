@@ -26,7 +26,6 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
-#include "extra.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -45,23 +44,27 @@ struct Vec_Vec_t_
 };
 
 ////////////////////////////////////////////////////////////////////////
-///                      MACRO DEFITIONS                             ///
+///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 // iterators through levels 
 #define Vec_VecForEachLevel( vGlob, vVec, i )                                                 \
-    for ( i = 0; (i < Vec_VecSize(vGlob)) && (((vVec) = Vec_VecEntry(vGlob, i)), 1); i++ )
+    for ( i = 0; (i < Vec_VecSize(vGlob)) && (((vVec) = (Vec_Ptr_t*)Vec_VecEntry(vGlob, i)), 1); i++ )
 #define Vec_VecForEachLevelStart( vGlob, vVec, i, LevelStart )                                \
-    for ( i = LevelStart; (i < Vec_VecSize(vGlob)) && (((vVec) = Vec_VecEntry(vGlob, i)), 1); i++ )
+    for ( i = LevelStart; (i < Vec_VecSize(vGlob)) && (((vVec) = (Vec_Ptr_t*)Vec_VecEntry(vGlob, i)), 1); i++ )
 #define Vec_VecForEachLevelStartStop( vGlob, vVec, i, LevelStart, LevelStop )                 \
-    for ( i = LevelStart; (i <= LevelStop) && (((vVec) = Vec_VecEntry(vGlob, i)), 1); i++ )
+    for ( i = LevelStart; (i <= LevelStop) && (((vVec) = (Vec_Ptr_t*)Vec_VecEntry(vGlob, i)), 1); i++ )
 #define Vec_VecForEachLevelReverse( vGlob, vVec, i )                                          \
-    for ( i = Vec_VecSize(vGlob) - 1; (i >= 0) && (((vVec) = Vec_VecEntry(vGlob, i)), 1); i-- )
+    for ( i = Vec_VecSize(vGlob) - 1; (i >= 0) && (((vVec) = (Vec_Ptr_t*)Vec_VecEntry(vGlob, i)), 1); i-- )
+#define Vec_VecForEachLevelReverseStartStop( vGlob, vVec, i, LevelStart, LevelStop )                                          \
+    for ( i = LevelStart; (i >= LevelStop) && (((vVec) = (Vec_Ptr_t*)Vec_VecEntry(vGlob, i)), 1); i-- )
 
 // iteratores through entries
 #define Vec_VecForEachEntry( vGlob, pEntry, i, k )                                            \
     for ( i = 0; i < Vec_VecSize(vGlob); i++ )                                                \
         Vec_PtrForEachEntry( Vec_VecEntry(vGlob, i), pEntry, k ) 
+#define Vec_VecForEachEntryLevel( vGlob, pEntry, i, Level )                                   \
+        Vec_PtrForEachEntry( Vec_VecEntry(vGlob, Level), pEntry, i ) 
 #define Vec_VecForEachEntryStart( vGlob, pEntry, i, k, LevelStart )                           \
     for ( i = LevelStart; i < Vec_VecSize(vGlob); i++ )                                       \
         Vec_PtrForEachEntry( Vec_VecEntry(vGlob, i), pEntry, k ) 
@@ -71,9 +74,15 @@ struct Vec_Vec_t_
 #define Vec_VecForEachEntryReverse( vGlob, pEntry, i, k )                                     \
     for ( i = 0; i < Vec_VecSize(vGlob); i++ )                                                \
         Vec_PtrForEachEntryReverse( Vec_VecEntry(vGlob, i), pEntry, k ) 
+#define Vec_VecForEachEntryReverseReverse( vGlob, pEntry, i, k )                              \
+    for ( i = Vec_VecSize(vGlob) - 1; i >= 0; i-- )                                           \
+        Vec_PtrForEachEntryReverse( Vec_VecEntry(vGlob, i), pEntry, k ) 
+#define Vec_VecForEachEntryReverseStart( vGlob, pEntry, i, k, LevelStart )                    \
+    for ( i = LevelStart; i >= 0; i-- )                                                       \
+        Vec_PtrForEachEntry( Vec_VecEntry(vGlob, i), pEntry, k ) 
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -119,6 +128,28 @@ static inline Vec_Vec_t * Vec_VecStart( int nSize )
         p->pArray[i] = Vec_PtrAlloc( 0 );
     p->nSize = nSize;
     return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Allocates a vector with the given capacity.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_VecExpand( Vec_Vec_t * p, int Level )
+{
+    int i;
+    if ( p->nSize >= Level + 1 )
+        return;
+    Vec_PtrGrow( (Vec_Ptr_t *)p, Level + 1 );
+    for ( i = p->nSize; i <= Level; i++ )
+        p->pArray[i] = Vec_PtrAlloc( 0 );
+    p->nSize = Level + 1;
 }
 
 /**Function*************************************************************
@@ -234,7 +265,7 @@ static inline void Vec_VecPush( Vec_Vec_t * p, int Level, void * Entry )
             p->pArray[i] = Vec_PtrAlloc( 0 );
         p->nSize = Level + 1;
     }
-    Vec_PtrPush( p->pArray[Level], Entry );
+    Vec_PtrPush( (Vec_Ptr_t*)p->pArray[Level], Entry );
 }
 
 /**Function*************************************************************
@@ -253,12 +284,73 @@ static inline void Vec_VecPushUnique( Vec_Vec_t * p, int Level, void * Entry )
     if ( p->nSize < Level + 1 )
         Vec_VecPush( p, Level, Entry );
     else
-        Vec_PtrPushUnique( p->pArray[Level], Entry );
+        Vec_PtrPushUnique( (Vec_Ptr_t*)p->pArray[Level], Entry );
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Comparison procedure for two arrays.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_VecSortCompare1( Vec_Ptr_t ** pp1, Vec_Ptr_t ** pp2 )
+{
+    if ( Vec_PtrSize(*pp1) < Vec_PtrSize(*pp2) )
+        return -1;
+    if ( Vec_PtrSize(*pp1) > Vec_PtrSize(*pp2) ) 
+        return 1;
+    return 0; 
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Comparison procedure for two integers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_VecSortCompare2( Vec_Ptr_t ** pp1, Vec_Ptr_t ** pp2 )
+{
+    if ( Vec_PtrSize(*pp1) > Vec_PtrSize(*pp2) )
+        return -1;
+    if ( Vec_PtrSize(*pp1) < Vec_PtrSize(*pp2) ) 
+        return 1;
+    return 0; 
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sorting the entries by their integer value.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_VecSort( Vec_Vec_t * p, int fReverse )
+{
+    if ( fReverse ) 
+        qsort( (void *)p->pArray, p->nSize, sizeof(void *), 
+                (int (*)(const void *, const void *)) Vec_VecSortCompare2 );
+    else
+        qsort( (void *)p->pArray, p->nSize, sizeof(void *), 
+                (int (*)(const void *, const void *)) Vec_VecSortCompare1 );
+}
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
-#endif
 

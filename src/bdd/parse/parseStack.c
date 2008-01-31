@@ -24,7 +24,7 @@
 
 struct ParseStackFnStruct
 {
-    DdNode **     pData;        // the array of elements
+    void **     pData;        // the array of elements
     int           Top;          // the index
     int           Size;         // the stack size
 };
@@ -37,7 +37,7 @@ struct ParseStackOpStruct
 };
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -56,7 +56,7 @@ Parse_StackFn_t * Parse_StackFnStart( int nDepth )
     Parse_StackFn_t * p;
     p = ALLOC( Parse_StackFn_t, 1 );
     memset( p, 0, sizeof(Parse_StackFn_t) );
-    p->pData = ALLOC( DdNode *, nDepth );
+    p->pData = ALLOC( void *, nDepth );
     p->Size = nDepth;
     return p;
 }
@@ -88,7 +88,7 @@ bool Parse_StackFnIsEmpty( Parse_StackFn_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Parse_StackFnPush( Parse_StackFn_t * p, DdNode * bFunc )
+void Parse_StackFnPush( Parse_StackFn_t * p, void * bFunc )
 {
     if ( p->Top >= p->Size )
     {
@@ -109,7 +109,7 @@ void Parse_StackFnPush( Parse_StackFn_t * p, DdNode * bFunc )
   SeeAlso     []
 
 ***********************************************************************/
-DdNode * Parse_StackFnPop( Parse_StackFn_t * p )
+void * Parse_StackFnPop( Parse_StackFn_t * p )
 {
     if ( p->Top == 0 )
     {

@@ -29,7 +29,7 @@ static void   Dec_GraphPrintUpdatePos( FILE * pFile, int * pPos, int LitSizeMax 
 static int    Dec_GraphPrintOutputName( FILE * pFile, char * pNameOut, int fCompl );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -101,7 +101,7 @@ void Dec_GraphPrint( FILE * pFile, Dec_Graph_t * pGraph, char * pNamesIn[], char
   SeeAlso     []
 
 ***********************************************************************/
-void Dec_GraphPrint_rec( FILE * pFile, Dec_Graph_t * pGraph, Dec_Node_t * pNode, int fCompl, char * pNamesIn[], int * pPos, int LitSizeMax )
+void Dec_GraphPrint2_rec( FILE * pFile, Dec_Graph_t * pGraph, Dec_Node_t * pNode, int fCompl, char * pNamesIn[], int * pPos, int LitSizeMax )
 {
     Dec_Node_t * pNode0, * pNode1;
     pNode0 = Dec_GraphNode(pGraph, pNode->eEdge0.Node);
@@ -152,6 +152,69 @@ void Dec_GraphPrint_rec( FILE * pFile, Dec_Graph_t * pGraph, Dec_Node_t * pNode,
         return;
     }
     assert( 0 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Dec_GraphPrint_rec( FILE * pFile, Dec_Graph_t * pGraph, Dec_Node_t * pNode, int fCompl, char * pNamesIn[], int * pPos, int LitSizeMax )
+{
+    Dec_Node_t * pNode0, * pNode1;
+    Dec_Node_t * pNode00, * pNode01, * pNode10, * pNode11;
+    pNode0 = Dec_GraphNode(pGraph, pNode->eEdge0.Node);
+    pNode1 = Dec_GraphNode(pGraph, pNode->eEdge1.Node);
+    if ( Dec_GraphNodeIsVar(pGraph, pNode) ) // FT_NODE_LEAF )
+    {
+        (*pPos) += Dec_GraphPrintGetLeafName( pFile, Dec_GraphNodeInt(pGraph,pNode), fCompl, pNamesIn );
+        return;
+    }
+    if ( !Dec_GraphNodeIsVar(pGraph, pNode0) && !Dec_GraphNodeIsVar(pGraph, pNode1) )
+    {
+        pNode00 = Dec_GraphNode(pGraph, pNode0->eEdge0.Node);
+        pNode01 = Dec_GraphNode(pGraph, pNode0->eEdge1.Node);
+        pNode10 = Dec_GraphNode(pGraph, pNode1->eEdge0.Node);
+        pNode11 = Dec_GraphNode(pGraph, pNode1->eEdge1.Node);
+        if ( (pNode00 == pNode10 || pNode00 == pNode11) && (pNode01 == pNode10 || pNode01 == pNode11) )
+        {
+            fprintf( pFile, "(" );
+            (*pPos)++;
+            Dec_GraphPrint_rec( pFile, pGraph, pNode00, pNode00->fCompl0, pNamesIn, pPos, LitSizeMax );
+            fprintf( pFile, " # " );
+            (*pPos) += 3;
+            Dec_GraphPrint_rec( pFile, pGraph, pNode01, pNode01->fCompl1, pNamesIn, pPos, LitSizeMax );
+            fprintf( pFile, ")" );
+            (*pPos)++;
+            return;
+        }
+    }
+    if ( fCompl )
+    {
+        fprintf( pFile, "(" );
+        (*pPos)++;
+        Dec_GraphPrint_rec( pFile, pGraph, pNode0, !pNode->fCompl0, pNamesIn, pPos, LitSizeMax );
+        fprintf( pFile, " + " );
+        (*pPos) += 3;
+        Dec_GraphPrint_rec( pFile, pGraph, pNode1, !pNode->fCompl1, pNamesIn, pPos, LitSizeMax );
+        fprintf( pFile, ")" );
+        (*pPos)++;
+    }
+    else
+    {
+        fprintf( pFile, "(" );
+        (*pPos)++;
+        Dec_GraphPrint_rec( pFile, pGraph, pNode0, pNode->fCompl0, pNamesIn, pPos, LitSizeMax );
+        Dec_GraphPrint_rec( pFile, pGraph, pNode1, pNode->fCompl1, pNamesIn, pPos, LitSizeMax );
+        fprintf( pFile, ")" );
+        (*pPos)++;
+    }
 }
 
 /**Function*************************************************************

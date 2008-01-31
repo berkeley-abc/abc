@@ -37,7 +37,7 @@ static int bit_count[256] = {
 };
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -232,9 +232,6 @@ void Sim_UtilSimulateNode( Sim_Man_t * p, Abc_Obj_t * pNode, bool fType, bool fT
     // simulate the internal nodes
     if ( Abc_ObjIsNode(pNode) )
     {
-        if ( Abc_NodeIsConst(pNode) )
-            return;
-
         if ( fType )
             pSimmNode  = p->vSim1->pArray[ pNode->Id ];
         else
@@ -299,17 +296,18 @@ void Sim_UtilSimulateNode( Sim_Man_t * p, Abc_Obj_t * pNode, bool fType, bool fT
   SeeAlso     []
 
 ***********************************************************************/
-void Sim_UtilSimulateNodeOne( Abc_Obj_t * pNode, Vec_Ptr_t * vSimInfo, int nSimWords )
+void Sim_UtilSimulateNodeOne( Abc_Obj_t * pNode, Vec_Ptr_t * vSimInfo, int nSimWords, int nOffset )
 {
     unsigned * pSimmNode, * pSimmNode1, * pSimmNode2;
     int k, fComp1, fComp2;
     // simulate the internal nodes
     assert( Abc_ObjIsNode(pNode) );
-    if ( Abc_NodeIsConst(pNode) )
-        return;
     pSimmNode  = Vec_PtrEntry(vSimInfo, pNode->Id);
     pSimmNode1 = Vec_PtrEntry(vSimInfo, Abc_ObjFaninId0(pNode));
     pSimmNode2 = Vec_PtrEntry(vSimInfo, Abc_ObjFaninId1(pNode));
+    pSimmNode  += nOffset;
+    pSimmNode1 += nOffset;
+    pSimmNode2 += nOffset;
     fComp1 = Abc_ObjFaninC0(pNode);
     fComp2 = Abc_ObjFaninC1(pNode);
     if ( fComp1 && fComp2 )
@@ -324,6 +322,36 @@ void Sim_UtilSimulateNodeOne( Abc_Obj_t * pNode, Vec_Ptr_t * vSimInfo, int nSimW
     else // if ( fComp1 && fComp2 )
         for ( k = 0; k < nSimWords; k++ )
             pSimmNode[k] =  pSimmNode1[k] &  pSimmNode2[k];
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Simulates one node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Sim_UtilTransferNodeOne( Abc_Obj_t * pNode, Vec_Ptr_t * vSimInfo, int nSimWords, int nOffset, int fShift )
+{
+    unsigned * pSimmNode, * pSimmNode1;
+    int k, fComp1;
+    // simulate the internal nodes
+    assert( Abc_ObjIsCo(pNode) );
+    pSimmNode  = Vec_PtrEntry(vSimInfo, pNode->Id);
+    pSimmNode1 = Vec_PtrEntry(vSimInfo, Abc_ObjFaninId0(pNode));
+    pSimmNode  += nOffset + (fShift > 0)*nSimWords;
+    pSimmNode1 += nOffset;
+    fComp1 = Abc_ObjFaninC0(pNode);
+    if ( fComp1 )
+        for ( k = 0; k < nSimWords; k++ )
+            pSimmNode[k] = ~pSimmNode1[k];
+    else 
+        for ( k = 0; k < nSimWords; k++ )
+            pSimmNode[k] =  pSimmNode1[k];
 }
 
 /**Function*************************************************************
@@ -380,10 +408,9 @@ int Sim_UtilCountOnes( unsigned * pSimInfo, int nSimWords )
     return nOnes;    
 }
 
-
 /**Function*************************************************************
 
-  Synopsis    [Returns the random pattern.]
+  Synopsis    [Counts the number of 1's in the bitstring.]
 
   Description []
                
@@ -392,11 +419,131 @@ int Sim_UtilCountOnes( unsigned * pSimInfo, int nSimWords )
   SeeAlso     []
 
 ***********************************************************************/
-void Sim_UtilGetRandom( unsigned * pPatRand, int nSimWords )
+Vec_Int_t * Sim_UtilCountOnesArray( Vec_Ptr_t * vInfo, int nSimWords )
+{
+    Vec_Int_t * vCounters;
+    unsigned * pSimInfo;
+    int i;
+    vCounters = Vec_IntStart( Vec_PtrSize(vInfo) );
+    Vec_PtrForEachEntry( vInfo, pSimInfo, i )
+        Vec_IntWriteEntry( vCounters, i, Sim_UtilCountOnes(pSimInfo, nSimWords) );
+    return vCounters;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns random patterns.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Sim_UtilSetRandom( unsigned * pPatRand, int nSimWords )
 {
     int k;
     for ( k = 0; k < nSimWords; k++ )
         pPatRand[k] = SIM_RANDOM_UNSIGNED;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns complemented patterns.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Sim_UtilSetCompl( unsigned * pPatRand, int nSimWords )
+{
+    int k;
+    for ( k = 0; k < nSimWords; k++ )
+        pPatRand[k] = ~pPatRand[k];
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns constant patterns.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Sim_UtilSetConst( unsigned * pPatRand, int nSimWords, int fConst1 )
+{
+    int k;
+    for ( k = 0; k < nSimWords; k++ )
+        pPatRand[k] = 0;
+    if ( fConst1 )
+        Sim_UtilSetCompl( pPatRand, nSimWords );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if equal.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Sim_UtilInfoIsEqual( unsigned * pPats1, unsigned * pPats2, int nSimWords )
+{
+    int k;
+    for ( k = 0; k < nSimWords; k++ )
+        if ( pPats1[k] != pPats2[k] )
+            return 0;
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if Node1 implies Node2.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Sim_UtilInfoIsImp( unsigned * pPats1, unsigned * pPats2, int nSimWords )
+{
+    int k;
+    for ( k = 0; k < nSimWords; k++ )
+        if ( pPats1[k] & ~pPats2[k] )
+            return 0;
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if Node1 v Node2 is always true.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Sim_UtilInfoIsClause( unsigned * pPats1, unsigned * pPats2, int nSimWords )
+{
+    int k;
+    for ( k = 0; k < nSimWords; k++ )
+        if ( ~pPats1[k] & ~pPats2[k] )
+            return 0;
+    return 1;
 }
 
 /**Function*************************************************************
@@ -447,6 +594,51 @@ int Sim_UtilCountPairsOne( Extra_BitMat_t * pMat, Vec_Int_t * vSupport )
 //    Counter2 = Extra_BitMatrixCountOnesUpper(pMat);
 //    assert( Counter == Counter2 );
     return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of entries in the array of matrices.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Sim_UtilCountPairsOnePrint( Extra_BitMat_t * pMat, Vec_Int_t * vSupport )
+{
+    int i, k, Index1, Index2;
+    Vec_IntForEachEntry( vSupport, i, Index1 )
+    Vec_IntForEachEntryStart( vSupport, k, Index2, Index1+1 )
+        if ( Extra_BitMatrixLookup1( pMat, i, k ) )
+            printf( "(%d,%d) ", i, k );
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of entries in the array of matrices.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Sim_UtilCountPairsAllPrint( Sym_Man_t * p )
+{
+    int i, clk;
+clk = clock();
+    for ( i = 0; i < p->nOutputs; i++ )
+    {
+        printf( "Output %2d :", i );
+        Sim_UtilCountPairsOnePrint( Vec_PtrEntry(p->vMatrSymms, i), Vec_VecEntry(p->vSupports, i) );
+        printf( "\n" );
+    }
+p->timeCount += clock() - clk;
 }
 
 /**Function*************************************************************

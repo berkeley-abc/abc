@@ -24,8 +24,12 @@
 
 static int  Fpga_MappingPostProcess( Fpga_Man_t * p );
 
+extern int s_MappingTime;
+extern int s_MappingMem;
+
+
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -46,7 +50,7 @@ static int  Fpga_MappingPostProcess( Fpga_Man_t * p );
 int Fpga_Mapping( Fpga_Man_t * p )
 {
     int clk, clkTotal = clock();
-
+ 
     // collect the nodes reachable from POs in the DFS order (including the choices)
     p->vAnds = Fpga_MappingDfs( p, 1 );
     Fpga_ManReportChoices( p ); // recomputes levels
@@ -64,19 +68,23 @@ int Fpga_Mapping( Fpga_Man_t * p )
     p->timeMatch = clock() - clk;
 
     // perform area recovery
-    if ( p->fAreaRecovery )
-    {
-        clk = clock();
-        if ( !Fpga_MappingPostProcess( p ) )
-            return 0;
-        p->timeRecover = clock() - clk;
-    }
+    clk = clock();
+    if ( !Fpga_MappingPostProcess( p ) )
+        return 0;
+    p->timeRecover = clock() - clk;
 //PRT( "Total mapping time", clock() - clkTotal );
+
+    s_MappingTime = clock() - clkTotal;
+    s_MappingMem = Fpga_CutCountAll(p) * (sizeof(Fpga_Cut_t) - sizeof(int) * (FPGA_MAX_LEAVES - p->nVarsMax));
 
     // print the AI-graph used for mapping
     //Fpga_ManShow( p, "test" );
+//    if ( p->fVerbose )
+//        Fpga_MappingPrintOutputArrivals( p );
     if ( p->fVerbose )
-        Fpga_MappingPrintOutputArrivals( p );
+    {
+        PRT( "Total time", clock() - clkTotal );
+    }
     return 1;
 }
 
@@ -88,7 +96,7 @@ int Fpga_Mapping( Fpga_Man_t * p )
   It iterates the loop, in which the required times are computed and
   the mapping is updated. It is conceptually similar to the paper: 
   V. Manohararajah, S. D. Brown, Z. G. Vranesic, Heuristics for area 
-  minimization in LUT-based FGPA technology mapping. Proc. IWLS '04.]
+  minimization in LUT-based FPGA technology mapping. Proc. IWLS '04.]
                
   SideEffects []
 
@@ -97,11 +105,14 @@ int Fpga_Mapping( Fpga_Man_t * p )
 ***********************************************************************/
 int Fpga_MappingPostProcess( Fpga_Man_t * p )
 {
-    int fShowSwitching    = 1;
+    int fShowSwitching    = 0;
     int fRecoverAreaFlow  = 1;
     int fRecoverArea      = 1;
     float aAreaTotalCur, aAreaTotalCur2;
     int Iter, clk;
+
+//if ( p->fVerbose )
+//    printf( "Best clock period = %5.2f\n", Fpga_TimeComputeArrivalMax(p) );
 
     // compute area, set references, and collect nodes used in the mapping
     Iter = 1;
@@ -111,14 +122,20 @@ if ( p->fVerbose )
 printf( "Iteration %dD :  Area = %8.1f  ", Iter++, aAreaTotalCur );
 if ( fShowSwitching )
 printf( "Switch = %8.1f  ", Fpga_MappingGetSwitching(p,p->vMapping) );
+else
+printf( "Delay = %5.2f  ", Fpga_TimeComputeArrivalMax(p) );
+
 PRT( "Time", p->timeMatch );
 }
+
+    if ( !p->fAreaRecovery )
+        return 1;
 
     if ( fRecoverAreaFlow )
     {
 clk = clock();
         // compute the required times and the fanouts
-        Fpga_TimeComputeRequiredGlobal( p );
+        Fpga_TimeComputeRequiredGlobal( p, 1 );
         // remap topologically
         Fpga_MappingMatches( p, 0 );
         // get the resulting area
@@ -131,6 +148,8 @@ if ( p->fVerbose )
 printf( "Iteration %dF :  Area = %8.1f  ", Iter++, aAreaTotalCur );
 if ( fShowSwitching )
 printf( "Switch = %8.1f  ", Fpga_MappingGetSwitching(p,p->vMapping) );
+else
+printf( "Delay = %5.2f  ", Fpga_TimeComputeArrivalMax(p) );
 PRT( "Time", clock() - clk );
 }
     }
@@ -143,7 +162,7 @@ PRT( "Time", clock() - clk );
     {
 clk = clock();
         // compute the required times and the fanouts
-        Fpga_TimeComputeRequiredGlobal( p );
+        Fpga_TimeComputeRequiredGlobal( p, 0 );
         // remap topologically
         if ( p->fSwitching )
             Fpga_MappingMatchesSwitch( p );
@@ -156,6 +175,8 @@ if ( p->fVerbose )
 printf( "Iteration %d%s :  Area = %8.1f  ", Iter++, (p->fSwitching?"S":"A"), aAreaTotalCur );
 if ( fShowSwitching )
 printf( "Switch = %8.1f  ", Fpga_MappingGetSwitching(p,p->vMapping) );
+else
+printf( "Delay = %5.2f  ", Fpga_TimeComputeArrivalMax(p) );
 PRT( "Time", clock() - clk );
 }
     }

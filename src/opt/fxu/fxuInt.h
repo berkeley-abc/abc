@@ -23,7 +23,6 @@
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
-#include "util.h"
 #include "extra.h"
 #include "vec.h"
 
@@ -173,6 +172,8 @@ struct FxuMatrix // ~ 30 words
     // the single cube divisors
     Fxu_ListSingle   lSingles;    // the linked list of single cube divisors  
     Fxu_HeapSingle * pHeapSingle; // the heap of variables by the number of literals in the matrix
+    int              nWeightLimit;// the limit on weight of single cube divisors collected
+    int              nSingleTotal;// the total number of single cube divisors
     // storage for cube pairs
     Fxu_Pair ***     pppPairs;
     Fxu_Pair **      ppPairs;
@@ -272,7 +273,7 @@ struct FxuSingle // 7 words
 };
 
 ////////////////////////////////////////////////////////////////////////
-///                       MACRO DEFITIONS                            ///
+///                       MACRO DEFINITIONS                          ///
 ////////////////////////////////////////////////////////////////////////
 
 // minimum/maximum
@@ -430,7 +431,7 @@ extern void Fxu_MatrixRingVarsUnmark( Fxu_Matrix * p );
 #endif
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /*===== fxu.c ====================================================*/
@@ -460,7 +461,7 @@ extern void         Fxu_PairClearStorage( Fxu_Cube * pCube );
 extern Fxu_Pair *   Fxu_PairAlloc( Fxu_Matrix * p, Fxu_Cube * pCube1, Fxu_Cube * pCube2 );
 extern void         Fxu_PairAdd( Fxu_Pair * pPair );
 /*===== fxuSingle.c ====================================================*/
-extern void         Fxu_MatrixComputeSingles( Fxu_Matrix * p );
+extern void         Fxu_MatrixComputeSingles( Fxu_Matrix * p, int fUse0, int nSingleMax );
 extern void         Fxu_MatrixComputeSinglesOne( Fxu_Matrix * p, Fxu_Var * pVar );
 extern int          Fxu_SingleCountCoincidence( Fxu_Matrix * p, Fxu_Var * pVar1, Fxu_Var * pVar2 );
 /*===== fxuMatrix.c ====================================================*/
@@ -530,8 +531,9 @@ extern int          Fxu_HeapSingleReadMaxWeight( Fxu_HeapSingle * p );
 extern Fxu_Single * Fxu_HeapSingleReadMax( Fxu_HeapSingle * p );
 extern Fxu_Single * Fxu_HeapSingleGetMax( Fxu_HeapSingle * p );  
 
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                         END OF FILE                              ///
 ////////////////////////////////////////////////////////////////////////
-#endif
 

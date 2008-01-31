@@ -30,7 +30,7 @@ static int         Io_ReadEqnStrFind( Vec_Ptr_t * vTokens, char * pName );
 static void        Io_ReadEqnStrCutAt( char * pStr, char * pStop, int fUniqueOnly, Vec_Ptr_t * vTokens );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -85,19 +85,20 @@ Abc_Ntk_t * Io_ReadEqnNetwork( Extra_FileReader_t * p )
 {
     ProgressBar * pProgress;
     Vec_Ptr_t * vTokens;
-    Vec_Ptr_t * vCubes, * vLits, * vVars;
+    Vec_Ptr_t * vVars;
     Abc_Ntk_t * pNtk;
     Abc_Obj_t * pNode;
-    char * pCubesCopy, * pSopCube, * pVarName;
-    int iLine, iNum, i, k;
+    char * pNodeName, * pFormula, * pFormulaCopy, * pVarName;
+    int iLine, i;
     
     // allocate the empty network
-    pNtk = Abc_NtkStartRead( Extra_FileReaderGetFileName(p) );
+    pNtk = Abc_NtkAlloc( ABC_NTK_NETLIST, ABC_FUNC_AIG, 1 );
+    // set the specs
+    pNtk->pName = Extra_FileNameGeneric(Extra_FileReaderGetFileName(p));
+    pNtk->pSpec = Extra_UtilStrsav(Extra_FileReaderGetFileName(p));
 
     // go through the lines of the file
-    vCubes = Vec_PtrAlloc( 100 );
     vVars  = Vec_PtrAlloc( 100 );
-    vLits  = Vec_PtrAlloc( 100 );
     pProgress = Extra_ProgressBarStart( stdout, Extra_FileReaderGetFileSize(p) );
     for ( iLine = 0; vTokens = Extra_FileReaderGetTokens(p); iLine++ )
     {
@@ -131,52 +132,36 @@ Abc_Ntk_t * Io_ReadEqnNetwork( Extra_FileReader_t * p )
         }
         else 
         {
-            // remove spaces
-            pCubesCopy = vTokens->pArray[1];
-            Io_ReadEqnStrCompact( pCubesCopy );
+            extern Hop_Obj_t * Parse_FormulaParserEqn( FILE * pOutput, char * pFormInit, Vec_Ptr_t * vVarNames, Hop_Man_t * pMan );
+
+            // get hold of the node name and its formula
+            pNodeName = vTokens->pArray[0];
+            pFormula  = vTokens->pArray[1];
+            // compact the formula 
+            Io_ReadEqnStrCompact( pFormula );
+
             // consider the case of the constant node
-            if ( (pCubesCopy[0] == '0' || pCubesCopy[0] == '1') && pCubesCopy[1] == 0 )
+            if ( pFormula[1] == 0 && (pFormula[0] == '0' || pFormula[0] == '1') )
             {
-                pNode = Io_ReadCreateNode( pNtk, vTokens->pArray[0], NULL, 0 );
-                if ( pCubesCopy[0] == '0' )
-                    pNode->pData = Abc_SopCreateConst0( pNtk->pManFunc );
-                else
-                    pNode->pData = Abc_SopCreateConst1( pNtk->pManFunc );
-                continue;
+                pFormulaCopy = NULL;
+                Vec_PtrClear( vVars );
             }
-            // determine unique variables
-            pCubesCopy = util_strsav( pCubesCopy );
-            // find the names of the fanins of this node
-            Io_ReadEqnStrCutAt( pCubesCopy, "!*+", 1, vVars );
+            else
+            {
+                // make a copy of formula for names
+                pFormulaCopy = Extra_UtilStrsav( pFormula );
+                // find the names of the fanins of this node
+                Io_ReadEqnStrCutAt( pFormulaCopy, "!*+()", 1, vVars );
+            }
             // create the node
-            pNode = Io_ReadCreateNode( pNtk, vTokens->pArray[0], (char **)vVars->pArray, vVars->nSize );
-            // split the string into cubes
-            Io_ReadEqnStrCutAt( vTokens->pArray[1], "+", 0, vCubes );
-            // start the sop
-            pNode->pData = Abc_SopStart( pNtk->pManFunc, vCubes->nSize, vVars->nSize );
-            // read the cubes
-            i = 0;
-            Abc_SopForEachCube( pNode->pData, vVars->nSize, pSopCube )
-            {
-                // split this cube into lits
-                Io_ReadEqnStrCutAt( vCubes->pArray[i], "*", 0, vLits );
-                // read the literals
-                Vec_PtrForEachEntry( vLits, pVarName, k )
-                {
-                    iNum = Io_ReadEqnStrFind( vVars, pVarName + (pVarName[0] == '!') );
-                    assert( iNum >= 0 );
-                    pSopCube[iNum] = '1' - (pVarName[0] == '!');
-                }
-                i++;
-            }
-            assert( i == vCubes->nSize );
+            pNode = Io_ReadCreateNode( pNtk, pNodeName, (char **)Vec_PtrArray(vVars), Vec_PtrSize(vVars) );
+            // derive the function
+            pNode->pData = Parse_FormulaParserEqn( stdout, pFormula, vVars, pNtk->pManFunc );
             // remove the cubes
-            free( pCubesCopy );
+            FREE( pFormulaCopy );
         }
     }
     Extra_ProgressBarStop( pProgress );
-    Vec_PtrFree( vCubes );
-    Vec_PtrFree( vLits );
     Vec_PtrFree( vVars );
     Abc_NtkFinalizeRead( pNtk );
     return pNtk;

@@ -25,7 +25,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
  
 /**Function*************************************************************
@@ -75,6 +75,33 @@ void Rwr_GetBushVolume( Rwr_Man_t * p, int Entry, int * pVolume, int * pnFuncs )
     }
     *pVolume = Volume;
     *pnFuncs = nFuncs;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds the node to the end of the list.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Rwr_GetBushSumOfVolumes( Rwr_Man_t * p, int Entry )
+{
+    Rwr_Node_t * pNode;
+    int Volume, VolumeTotal = 0;
+    for ( pNode = p->pTable[Entry]; pNode; pNode = pNode->pNext )
+    {
+        if ( pNode->uTruth != p->puCanons[pNode->uTruth] )
+            continue;
+        Volume = 0;
+        Rwr_ManIncTravId( p );
+        Rwr_Trav2_rec( p, pNode, &Volume );
+        VolumeTotal += Volume;
+    }
+    return VolumeTotal;
 }
 
 /**Function*************************************************************
@@ -219,9 +246,9 @@ void Rwr_ManPrint( Rwr_Man_t * p )
             continue;
         if ( i != p->puCanons[i] )
             continue;
-        fprintf( pFile, "\nClass %3d.  Func %6d.  ", p->pMap[i], Counter++ );
+        fprintf( pFile, "\nClass %3d. Func %6d.  ", p->pMap[i], Counter++ );
         Rwr_GetBushVolume( p, i, &Volume, &nFuncs );
-        fprintf( pFile, "Functions = %2d. Volume = %2d. ", nFuncs, Volume );
+        fprintf( pFile, "Roots = %3d. Vol = %3d. Sum = %3d.  ", nFuncs, Volume, Rwr_GetBushSumOfVolumes(p, i) );
         uTruth = i;
         Extra_PrintBinary( pFile, &uTruth, 16 );
         fprintf( pFile, "\n" );

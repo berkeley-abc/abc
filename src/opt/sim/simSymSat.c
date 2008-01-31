@@ -26,11 +26,10 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-extern int Sim_SymmsSatProveOne( Sym_Man_t * p, int Out, int Var1, int Var2, unsigned * pPattern );
-extern Fraig_Man_t * Abc_NtkToFraig( Abc_Ntk_t * pNtk, Fraig_Params_t * pParams, int fAllNodes );
+static int Sim_SymmsSatProveOne( Sym_Man_t * p, int Out, int Var1, int Var2, unsigned * pPattern );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -145,9 +144,10 @@ int Sim_SymmsSatProveOne( Sym_Man_t * p, int Out, int Var1, int Var2, unsigned *
     Params.fInternal = 1;
     Params.nPatsRand = 512;
     Params.nPatsDyna = 512;
+    Params.nSeconds = ABC_INFINITY;
 
 clk = clock();
-    pMan = Abc_NtkToFraig( pMiter, &Params, 0 ); 
+    pMan = Abc_NtkToFraig( pMiter, &Params, 0, 0 ); 
 p->timeFraig += clock() - clk;
 clk = clock();
     Fraig_ManProveMiter( pMan );

@@ -24,16 +24,16 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static void        Fxu_CreateMatrixAddCube( Fxu_Matrix * p, Fxu_Cube * pCube, char * pSopCube, Vec_Fan_t * vFanins, int * pOrder );
+static void        Fxu_CreateMatrixAddCube( Fxu_Matrix * p, Fxu_Cube * pCube, char * pSopCube, Vec_Int_t * vFanins, int * pOrder );
 static int         Fxu_CreateMatrixLitCompare( int * ptrX, int * ptrY );
 static void        Fxu_CreateCoversNode( Fxu_Matrix * p, Fxu_Data_t * pData, int iNode, Fxu_Cube * pCubeFirst, Fxu_Cube * pCubeNext );
 static Fxu_Cube *  Fxu_CreateCoversFirstCube( Fxu_Matrix * p, Fxu_Data_t * pData, int iNode );
-static Abc_Fan_t * s_pLits;
+static int * s_pLits;
 
 extern int         Fxu_PreprocessCubePairs( Fxu_Matrix * p, Vec_Ptr_t * vCovers, int nPairsTotal, int nPairsMax );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -53,7 +53,7 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
     Fxu_Var * pVar;
     Fxu_Cube * pCubeFirst, * pCubeNew;
     Fxu_Cube * pCube1, * pCube2;
-    Vec_Fan_t * vFanins;
+    Vec_Int_t * vFanins;
     char * pSopCover;
     char * pSopCube;
     int * pOrder, nBitsMax;
@@ -69,7 +69,7 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
     nCubesTotal =  0;
     nPairsTotal =  0;
     nPairsStore =  0;
-    nBitsMax    = -1;
+    nBitsMax    = -1; 
     for ( i = 0; i < pData->nNodesOld; i++ )
         if ( pSopCover = pData->vSops->pArray[i] )
         {
@@ -89,7 +89,7 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
         return NULL;
     }
 
-    if ( nPairsStore > 10000000 )
+    if ( nPairsStore > 50000000 )
     {
         printf( "The problem is too large to be solved by \"fxu\" (%d cubes and %d cube pairs)\n", nCubesTotal, nPairsStore );
         return NULL;
@@ -151,7 +151,7 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
             pOrder[v] = v;
         // reorder the fanins
         qsort( (void *)pOrder, nFanins, sizeof(int),(int (*)(const void *, const void *))Fxu_CreateMatrixLitCompare);
-        assert( s_pLits[ pOrder[0] ].iFan < s_pLits[ pOrder[nFanins-1] ].iFan );
+        assert( s_pLits[ pOrder[0] ] < s_pLits[ pOrder[nFanins-1] ] );
         // create the corresponding cubes in the matrix
         pCubeFirst = NULL;
         c = 0;
@@ -178,11 +178,26 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
 
     // consider the case when cube pairs should be preprocessed
     // before adding them to the set of divisors
+//    if ( pData->fVerbose )
+//        printf( "The total number of cube pairs is %d.\n", nPairsTotal );
+    if ( nPairsTotal > 10000000 )
+    {
+        printf( "The total number of cube pairs of the network is more than 10,000,000.\n" );
+        printf( "Command \"fx\" takes a long time to run in such cases. It is suggested\n" );
+        printf( "that the user changes the network by reducing the size of logic node and\n" );
+        printf( "consequently the number of cube pairs to be processed by this command.\n" );
+        printf( "One way to achieve this is to run the commands \"st; multi -m -F <num>\"\n" );
+        printf( "as a proprocessing step, while selecting <num> as approapriate.\n" );
+        return NULL;
+    }
     if ( nPairsTotal > pData->nPairsMax )
-        Fxu_PreprocessCubePairs( p, pData->vSops, nPairsTotal, pData->nPairsMax );
+        if ( !Fxu_PreprocessCubePairs( p, pData->vSops, nPairsTotal, pData->nPairsMax ) )
+            return NULL;
+//    if ( pData->fVerbose )
+//        printf( "Only %d best cube pairs will be used by the fast extract command.\n", pData->nPairsMax );
 
     // add the var pairs to the heap
-    Fxu_MatrixComputeSingles( p );
+    Fxu_MatrixComputeSingles( p, pData->fUse0, pData->nSingleMax );
 
     // print stats
     if ( pData->fVerbose )
@@ -193,9 +208,8 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
             p->lVars.nItems, p->lCubes.nItems );
         fprintf( stdout, "Lits = %d  Density = %.5f%%\n", 
             p->nEntries, Density );
-        fprintf( stdout, "1-cube divisors = %6d.  ",  p->lSingles.nItems );
-        fprintf( stdout, "2-cube divisors = %6d.  ",  p->nDivsTotal );
-        fprintf( stdout, "Cube pairs = %6d.",    nPairsTotal );
+        fprintf( stdout, "1-cube divs = %6d. (Total = %6d)  ",  p->lSingles.nItems, p->nSingleTotal );
+        fprintf( stdout, "2-cube divs = %6d. (Total = %6d)",  p->nDivsTotal, nPairsTotal );
         fprintf( stdout, "\n" );
     }
 //    Fxu_MatrixPrint( stdout, p );
@@ -214,7 +228,7 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
   SeeAlso     []
 
 ***********************************************************************/
-void Fxu_CreateMatrixAddCube( Fxu_Matrix * p, Fxu_Cube * pCube, char * pSopCube, Vec_Fan_t * vFanins, int * pOrder )
+void Fxu_CreateMatrixAddCube( Fxu_Matrix * p, Fxu_Cube * pCube, char * pSopCube, Vec_Int_t * vFanins, int * pOrder )
 {
     Fxu_Var * pVar;
     int Value, i;
@@ -224,12 +238,12 @@ void Fxu_CreateMatrixAddCube( Fxu_Matrix * p, Fxu_Cube * pCube, char * pSopCube,
         Value = pSopCube[pOrder[i]];
         if ( Value == '0' )
         {
-            pVar = p->ppVars[ 2 * vFanins->pArray[pOrder[i]].iFan + 1 ];  // CST
+            pVar = p->ppVars[ 2 * vFanins->pArray[pOrder[i]] + 1 ];  // CST
             Fxu_MatrixAddLiteral( p, pCube, pVar );
         }
         else if ( Value == '1' )
         {
-            pVar = p->ppVars[ 2 * vFanins->pArray[pOrder[i]].iFan ];  // CST
+            pVar = p->ppVars[ 2 * vFanins->pArray[pOrder[i]] ];  // CST
             Fxu_MatrixAddLiteral( p, pCube, pVar );
         }
     }
@@ -409,7 +423,7 @@ Fxu_Cube * Fxu_CreateCoversFirstCube( Fxu_Matrix * p, Fxu_Data_t * pData, int iV
 ***********************************************************************/
 int Fxu_CreateMatrixLitCompare( int * ptrX, int * ptrY )
 {
-    return s_pLits[*ptrX].iFan - s_pLits[*ptrY].iFan;
+    return s_pLits[*ptrX] - s_pLits[*ptrY];
 } 
 
 ////////////////////////////////////////////////////////////////////////

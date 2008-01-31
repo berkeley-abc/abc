@@ -27,7 +27,7 @@
 static int Fxu_CountPairDiffs( char * pCover, unsigned char pDiffs[] );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -90,6 +90,16 @@ int Fxu_PreprocessCubePairs( Fxu_Matrix * p, Vec_Ptr_t * vCovers, int nPairsTota
         pnPairCounters[ pnLitsDiff[k] ]++;
     // determine what pairs to take starting from the lower
     // so that there would be exactly pPairsMax pairs
+    if ( pnPairCounters[0] != 0 )
+    {
+        printf( "The SOPs of the nodes are not cube-free. Run \"bdd; sop\" before \"fx\".\n" );
+        return 0;
+    }
+    if ( pnPairCounters[1] != 0 )
+    {
+        printf( "The SOPs of the nodes are not SCC-free. Run \"bdd; sop\" before \"fx\".\n" );
+        return 0;
+    }
     assert( pnPairCounters[0] == 0 ); // otherwise, covers are not dup-free
     assert( pnPairCounters[1] == 0 ); // otherwise, covers are not SCC-free
     nSum = 0;

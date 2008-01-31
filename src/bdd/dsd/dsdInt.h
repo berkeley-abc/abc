@@ -23,7 +23,7 @@
 #include "dsd.h"
 
 ////////////////////////////////////////////////////////////////////////
-///                      TYPEDEF DEFITIONS                           ///
+///                      TYPEDEF DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
  
 typedef unsigned char byte;
@@ -42,6 +42,7 @@ struct Dsd_Manager_t_
     int            nRootsAlloc;// the number of primary outputs
     Dsd_Node_t **  pInputs;    // the primary input nodes
     Dsd_Node_t **  pRoots;     // the primary output nodes
+    Dsd_Node_t *   pConst1;    // the constant node
     int            fVerbose;   // the verbosity level 
 };
 
@@ -58,7 +59,7 @@ struct Dsd_Node_t_
 };
 
 ////////////////////////////////////////////////////////////////////////
-///                       MACRO DEFITIONS                            ///
+///                       MACRO DEFINITIONS                          ///
 ////////////////////////////////////////////////////////////////////////
 
 #define MAXINPUTS 1000
@@ -82,9 +83,9 @@ extern void         Dsd_TreeNodeDelete( DdManager * dd, Dsd_Node_t * pNode );
 extern void         Dsd_TreeUnmark( Dsd_Manager_t * dMan );
 extern DdNode *     Dsd_TreeGetPrimeFunctionOld( DdManager * dd, Dsd_Node_t * pNode, int fRemap );
 
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                           END OF FILE                            ///
 ////////////////////////////////////////////////////////////////////////
 
-
-#endif

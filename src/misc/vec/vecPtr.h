@@ -26,7 +26,6 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
-#include "extra.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -45,7 +44,7 @@ struct Vec_Ptr_t_
 };
 
 ////////////////////////////////////////////////////////////////////////
-///                      MACRO DEFITIONS                             ///
+///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 // iterators through entries
@@ -53,11 +52,15 @@ struct Vec_Ptr_t_
     for ( i = 0; (i < Vec_PtrSize(vVec)) && (((pEntry) = Vec_PtrEntry(vVec, i)), 1); i++ )
 #define Vec_PtrForEachEntryStart( vVec, pEntry, i, Start )                                   \
     for ( i = Start; (i < Vec_PtrSize(vVec)) && (((pEntry) = Vec_PtrEntry(vVec, i)), 1); i++ )
+#define Vec_PtrForEachEntryStop( vVec, pEntry, i, Stop )                                     \
+    for ( i = 0; (i < Stop) && (((pEntry) = Vec_PtrEntry(vVec, i)), 1); i++ )
+#define Vec_PtrForEachEntryStartStop( vVec, pEntry, i, Start, Stop )                         \
+    for ( i = Start; (i < Stop) && (((pEntry) = Vec_PtrEntry(vVec, i)), 1); i++ )
 #define Vec_PtrForEachEntryReverse( vVec, pEntry, i )                                        \
     for ( i = Vec_PtrSize(vVec) - 1; (i >= 0) && (((pEntry) = Vec_PtrEntry(vVec, i)), 1); i-- )
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -289,6 +292,23 @@ static inline void * Vec_PtrEntry( Vec_Ptr_t * p, int i )
   SeeAlso     []
 
 ***********************************************************************/
+static inline void ** Vec_PtrEntryP( Vec_Ptr_t * p, int i )
+{
+    assert( i >= 0 && i < p->nSize );
+    return p->pArray + i;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline void Vec_PtrWriteEntry( Vec_Ptr_t * p, int i, void * Entry )
 {
     assert( i >= 0 && i < p->nSize );
@@ -308,6 +328,7 @@ static inline void Vec_PtrWriteEntry( Vec_Ptr_t * p, int i, void * Entry )
 ***********************************************************************/
 static inline void * Vec_PtrEntryLast( Vec_Ptr_t * p )
 {
+    assert( p->nSize > 0 );
     return p->pArray[p->nSize-1];
 }
 
@@ -366,10 +387,48 @@ static inline void Vec_PtrFillExtra( Vec_Ptr_t * p, int nSize, void * Entry )
     int i;
     if ( p->nSize >= nSize )
         return;
-    Vec_PtrGrow( p, nSize );
+    assert( p->nSize < nSize );
+    if ( 2 * p->nSize > nSize )
+        Vec_PtrGrow( p, 2 * nSize );
+    else
+        Vec_PtrGrow( p, nSize );
     for ( i = p->nSize; i < nSize; i++ )
         p->pArray[i] = Entry;
     p->nSize = nSize;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the entry even if the place not exist.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void * Vec_PtrGetEntry( Vec_Ptr_t * p, int i )
+{
+    Vec_PtrFillExtra( p, i + 1, NULL );
+    return Vec_PtrEntry( p, i );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Inserts the entry even if the place does not exist.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_PtrSetEntry( Vec_Ptr_t * p, int i, void * Entry )
+{
+    Vec_PtrFillExtra( p, i + 1, NULL );
+    Vec_PtrWriteEntry( p, i, Entry );
 }
 
 /**Function*************************************************************
@@ -403,6 +462,25 @@ static inline void Vec_PtrShrink( Vec_Ptr_t * p, int nSizeNew )
 static inline void Vec_PtrClear( Vec_Ptr_t * p )
 {
     p->nSize = 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Copies the interger array.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_PtrCopy( Vec_Ptr_t * pDest, Vec_Ptr_t * pSour )
+{
+    pDest->nSize = 0;
+    Vec_PtrGrow( pDest, pSour->nSize );
+    memcpy( pDest->pArray, pSour->pArray, sizeof(void *) * pSour->nSize );
+    pDest->nSize = pSour->nSize;
 }
 
 /**Function*************************************************************
@@ -468,6 +546,26 @@ static inline void * Vec_PtrPop( Vec_Ptr_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Find entry.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_PtrFind( Vec_Ptr_t * p, void * Entry )
+{
+    int i;
+    for ( i = 0; i < p->nSize; i++ )
+        if ( p->pArray[i] == Entry )
+            return i;
+    return -1;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -480,10 +578,18 @@ static inline void * Vec_PtrPop( Vec_Ptr_t * p )
 static inline void Vec_PtrRemove( Vec_Ptr_t * p, void * Entry )
 {
     int i;
+    // delete assuming that it is closer to the end
+    for ( i = p->nSize - 1; i >= 0; i-- )
+        if ( p->pArray[i] == Entry )
+            break;
+    assert( i >= 0 );
+/*
+    // delete assuming that it is closer to the beginning
     for ( i = 0; i < p->nSize; i++ )
         if ( p->pArray[i] == Entry )
             break;
     assert( i < p->nSize );
+*/
     for ( i++; i < p->nSize; i++ )
         p->pArray[i-1] = p->pArray[i];
     p->nSize--;
@@ -521,14 +627,186 @@ static inline void Vec_PtrReorder( Vec_Ptr_t * p, int nItems )
 ***********************************************************************/
 static inline void Vec_PtrSort( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)() )
 {
+    if ( p->nSize < 2 )
+        return;
     qsort( (void *)p->pArray, p->nSize, sizeof(void *), 
             (int (*)(const void *, const void *)) Vec_PtrSortCompare );
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Sorting the entries by their integer value.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_PtrUniqify( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)() )
+{
+    int i, k;
+    if ( p->nSize < 2 )
+        return;
+    qsort( (void *)p->pArray, p->nSize, sizeof(void *), 
+            (int (*)(const void *, const void *)) Vec_PtrSortCompare );
+    for ( i = k = 1; i < p->nSize; i++ )
+        if ( p->pArray[i] != p->pArray[i-1] )
+            p->pArray[k++] = p->pArray[i];
+    p->nSize = k;
+}
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Allocates the array of simulation info.]
+
+  Description [Allocates the array containing given number of entries, 
+  each of which contains given number of unsigned words of simulation data.
+  The resulting array can be freed using regular procedure Vec_PtrFree().
+  It is the responsibility of the user to ensure this array is never grown.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Vec_Ptr_t * Vec_PtrAllocSimInfo( int nEntries, int nWords )
+{
+    void ** pMemory;
+    unsigned * pInfo;
+    int i;
+    pMemory = (void **)ALLOC( char, (sizeof(void *) + sizeof(unsigned) * nWords) * nEntries );
+    pInfo = (unsigned *)(pMemory + nEntries);
+    for ( i = 0; i < nEntries; i++ )
+        pMemory[i] = pInfo + i * nWords;
+    return Vec_PtrAllocArray( pMemory, nEntries );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Cleans simulation info of each entry beginning with iWord.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_PtrCleanSimInfo( Vec_Ptr_t * vInfo, int iWord, int nWords )
+{
+    int i;
+    for ( i = 0; i < vInfo->nSize; i++ )
+        memset( (char*)Vec_PtrEntry(vInfo,i) + 4*iWord, 0, 4*(nWords-iWord) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Resizes the array of simulation info.]
+
+  Description [Doubles the number of objects for which siminfo is allocated.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_PtrDoubleSimInfo( Vec_Ptr_t * vInfo )
+{
+    Vec_Ptr_t * vInfoNew;
+    int nWords;
+    assert( Vec_PtrSize(vInfo) > 1 );
+    // get the new array
+    nWords = (unsigned *)Vec_PtrEntry(vInfo,1) - (unsigned *)Vec_PtrEntry(vInfo,0);
+    vInfoNew = Vec_PtrAllocSimInfo( 2*Vec_PtrSize(vInfo), nWords );
+    // copy the simulation info
+    memcpy( Vec_PtrEntry(vInfoNew,0), Vec_PtrEntry(vInfo,0), Vec_PtrSize(vInfo) * nWords * 4 );
+    // replace the array
+    free( vInfo->pArray );
+    vInfo->pArray = vInfoNew->pArray;
+    vInfo->nSize *= 2;
+    vInfo->nCap *= 2;
+    // free the old array
+    vInfoNew->pArray = NULL;
+    free( vInfoNew );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Resizes the array of simulation info.]
+
+  Description [Doubles the number of simulation patterns stored for each object.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_PtrReallocSimInfo( Vec_Ptr_t * vInfo )
+{
+    Vec_Ptr_t * vInfoNew;
+    int nWords, i;
+    assert( Vec_PtrSize(vInfo) > 1 );
+    // get the new array
+    nWords = (unsigned *)Vec_PtrEntry(vInfo,1) - (unsigned *)Vec_PtrEntry(vInfo,0);
+    vInfoNew = Vec_PtrAllocSimInfo( Vec_PtrSize(vInfo), 2*nWords );
+    // copy the simulation info
+    for ( i = 0; i < vInfo->nSize; i++ )
+        memcpy( Vec_PtrEntry(vInfoNew,i), Vec_PtrEntry(vInfo,i), nWords * 4 );
+    // replace the array
+    free( vInfo->pArray );
+    vInfo->pArray = vInfoNew->pArray;
+    // free the old array
+    vInfoNew->pArray = NULL;
+    free( vInfoNew );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Allocates the array of truth tables for the given number of vars.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Vec_Ptr_t * Vec_PtrAllocTruthTables( int nVars )
+{
+    Vec_Ptr_t * p;
+    unsigned Masks[5] = { 0xAAAAAAAA, 0xCCCCCCCC, 0xF0F0F0F0, 0xFF00FF00, 0xFFFF0000 };
+    unsigned * pTruth;
+    int i, k, nWords;
+    nWords = (nVars <= 5 ? 1 : (1 << (nVars - 5)));
+    p = Vec_PtrAllocSimInfo( nVars, nWords );
+    for ( i = 0; i < nVars; i++ )
+    {
+        pTruth = (unsigned *)p->pArray[i];
+        if ( i < 5 )
+        {
+            for ( k = 0; k < nWords; k++ )
+                pTruth[k] = Masks[i];
+        }
+        else
+        {
+            for ( k = 0; k < nWords; k++ )
+                if ( k & (1 << (i-5)) )
+                    pTruth[k] = ~(unsigned)0;
+                else
+                    pTruth[k] = 0;
+        }
+    }
+    return p;
+}
+
+#endif
 
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
-#endif
 

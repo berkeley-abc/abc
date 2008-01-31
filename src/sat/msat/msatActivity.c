@@ -25,7 +25,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -45,7 +45,9 @@ void Msat_SolverVarBumpActivity( Msat_Solver_t * p, Msat_Lit_t Lit )
     if ( p->dVarDecay < 0 ) // (negative decay means static variable order -- don't bump)
         return;
     Var = MSAT_LIT2VAR(Lit);
-    if ( (p->pdActivity[Var] += p->dVarInc) > 1e100 )
+    p->pdActivity[Var] += p->dVarInc;
+//    p->pdActivity[Var] += p->dVarInc * p->pFactors[Var];
+    if ( p->pdActivity[Var] > 1e100 )
         Msat_SolverVarRescaleActivity( p );
     Msat_OrderUpdate( p->pOrder, Var );
 }

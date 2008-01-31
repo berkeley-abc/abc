@@ -27,7 +27,7 @@ Mvc_Cube_t * Mvc_CoverSort_rec( Mvc_Cube_t * pList, int nItems, Mvc_Cube_t * pMa
 Mvc_Cube_t * Mvc_CoverSortMerge( Mvc_Cube_t * pList1, Mvc_Cube_t * pList2, Mvc_Cube_t * pMask, int (* pCompareFunc)(Mvc_Cube_t *, Mvc_Cube_t *, Mvc_Cube_t *) );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FuNCTION DEFITIONS                           ///
+///                     FuNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

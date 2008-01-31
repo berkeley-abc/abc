@@ -30,7 +30,7 @@ static void Abc_NtkFxuCollectInfo( Abc_Ntk_t * pNtk, Fxu_Data_t * p );
 static void Abc_NtkFxuReconstruct( Abc_Ntk_t * pNtk, Fxu_Data_t * p );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 
@@ -53,15 +53,18 @@ static void Abc_NtkFxuReconstruct( Abc_Ntk_t * pNtk, Fxu_Data_t * p );
 bool Abc_NtkFastExtract( Abc_Ntk_t * pNtk, Fxu_Data_t * p )
 {
     assert( Abc_NtkIsLogic(pNtk) );
-    // convert nodes to SOPs
-    if ( Abc_NtkIsMappedLogic(pNtk) )
-        Abc_NtkUnmap(pNtk);
-    else if ( Abc_NtkIsBddLogic(pNtk) )
-        Abc_NtkBddToSop(pNtk);
-    else
+    // if the network is already in the SOP form, it may come from BLIF file
+    // and it may not be SCC-free, in which case FXU will not work correctly
+    if ( Abc_NtkIsSopLogic(pNtk) )
     { // to make sure the SOPs are SCC-free
 //        Abc_NtkSopToBdd(pNtk);
 //        Abc_NtkBddToSop(pNtk);
+    }
+    // get the network in the SOP form
+    if ( !Abc_NtkToSop(pNtk, 0) )
+    {
+        printf( "Abc_NtkFastExtract(): Converting to SOPs has failed.\n" );
+        return 0;
     }
     // check if the network meets the requirements
     if ( !Abc_NtkFxuCheck(pNtk) )
@@ -108,7 +111,7 @@ bool Abc_NtkFxuCheck( Abc_Ntk_t * pNtk )
     {
         Abc_ObjForEachFanin( pNode, pFanin1, i )
         {
-            if ( Abc_ObjFaninC(pNode, i) )
+            if ( i < 2 && Abc_ObjFaninC(pNode, i) )
                 return 0;
             Abc_ObjForEachFanin( pNode, pFanin2, k )
             {

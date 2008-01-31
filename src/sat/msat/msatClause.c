@@ -36,7 +36,7 @@ struct Msat_Clause_t_
 };
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -82,6 +82,10 @@ bool Msat_ClauseCreate( Msat_Solver_t * p, Msat_IntVec_t * vLits, bool fLearned,
         // nSeenId - 1 stands for negative
         // nSeenId     stands for positive
         // Remove false literals
+
+        // there is a bug here!!!!
+        // when the same var in opposite polarities is given, it drops one polarity!!!
+
         for ( i = j = 0; i < nLits; i++ ) {
             // get the corresponding variable
             Var  = MSAT_LIT2VAR(pLits[i]);
@@ -190,6 +194,7 @@ bool Msat_ClauseCreate( Msat_Solver_t * p, Msat_IntVec_t * vLits, bool fLearned,
         {
             Msat_SolverVarBumpActivity( p, pLits[i] );
 //            Msat_SolverVarBumpActivity( p, pLits[i] );
+//            p->pFreq[ MSAT_LIT2VAR(pLits[i]) ]++;
         }
     }
 

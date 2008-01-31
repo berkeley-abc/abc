@@ -28,7 +28,7 @@ static int  Mio_DelayCompare( Mio_Gate_t ** ppG1, Mio_Gate_t ** ppG2 );
 static void Mio_DeriveTruthTable_rec( DdNode * bFunc, unsigned uTruthsIn[][2], unsigned uTruthRes[] );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -53,7 +53,7 @@ void Mio_LibraryDelete( Mio_Library_t * pLib )
     FREE( pLib->pName );
     Mio_LibraryForEachGateSafe( pLib, pGate, pGate2 )
         Mio_GateDelete( pGate );
-    Extra_MmFlexStop( pLib->pMmFlex, 0 );
+    Extra_MmFlexStop( pLib->pMmFlex );
     Vec_StrFree( pLib->vCube );
     if ( pLib->tName2Gate )
         st_free_table( pLib->tName2Gate );
@@ -120,7 +120,7 @@ Mio_Pin_t * Mio_PinDup( Mio_Pin_t * pPin )
 
     pPinNew = ALLOC( Mio_Pin_t, 1 );
     *pPinNew = *pPin;
-    pPinNew->pName = (pPinNew->pName ? util_strsav(pPinNew->pName) : NULL);
+    pPinNew->pName = (pPinNew->pName ? Extra_UtilStrsav(pPinNew->pName) : NULL);
     pPinNew->pNext = NULL;
 
     return pPinNew;
@@ -165,9 +165,9 @@ void Mio_WriteGate( FILE * pFile, Mio_Gate_t * pGate, int fPrintSops )
     Mio_Pin_t * pPin;
 
     fprintf( pFile, "GATE " );
-    fprintf( pFile, "%12s ",   pGate->pName );
+    fprintf( pFile, "%12s ",      pGate->pName );
     fprintf( pFile, "%10.2f   ",  pGate->dArea );
-    fprintf( pFile, "O=%s;\n",    pGate->pForm );
+    fprintf( pFile, "%s=%s;\n",   pGate->pOutName,    pGate->pForm );
     // print the pins
     if ( fPrintSops )
         fprintf( pFile, "%s",       pGate->pSop? pGate->pSop : "unspecified\n" );

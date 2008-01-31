@@ -27,7 +27,7 @@ extern void Map_TruthsCutOne( Map_Man_t * p, Map_Cut_t * pCut, unsigned uTruth[]
 static void Map_CutsCollect_rec( Map_Cut_t * pCut, Map_NodeVec_t * vVisited );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -89,14 +89,15 @@ void Map_MappingTruths( Map_Man_t * pMan )
 
 ***********************************************************************/
 void Map_TruthsCut( Map_Man_t * p, Map_Cut_t * pCut )
-{
+{ 
 //    unsigned uCanon1, uCanon2;
     unsigned uTruth[2], uCanon[2];
     unsigned char uPhases[16];
     unsigned * uCanon2;
     char * pPhases2;
-    int fUseFast = 0;
-    int fUseRec = 1;
+    int fUseFast = 1;
+    int fUseSlow = 0;
+    int fUseRec = 0; // this does not work for Solaris
 
     extern int Map_CanonCompute( int nVarsMax, int nVarsReal, unsigned * pt, unsigned ** pptRes, char ** ppfRes );
  
@@ -117,6 +118,8 @@ void Map_TruthsCut( Map_Man_t * p, Map_Cut_t * pCut )
     // compute the canonical form for the positive phase
     if ( fUseFast )
         Map_CanonComputeFast( p, p->nVarsMax, pCut->nLeaves, uTruth, uPhases, uCanon );
+    else if ( fUseSlow )
+        Map_CanonComputeSlow( p->uTruths, p->nVarsMax, pCut->nLeaves, uTruth, uPhases, uCanon );
     else if ( fUseRec )
     {
 //        Map_CanonComputeSlow( p->uTruths, p->nVarsMax, pCut->nLeaves, uTruth, uPhases, uCanon );
@@ -145,6 +148,8 @@ void Map_TruthsCut( Map_Man_t * p, Map_Cut_t * pCut )
     uTruth[1] = ~uTruth[1];
     if ( fUseFast )
         Map_CanonComputeFast( p, p->nVarsMax, pCut->nLeaves, uTruth, uPhases, uCanon );
+    else if ( fUseSlow )
+        Map_CanonComputeSlow( p->uTruths, p->nVarsMax, pCut->nLeaves, uTruth, uPhases, uCanon );
     else if ( fUseRec )
     {
 //        Map_CanonComputeSlow( p->uTruths, p->nVarsMax, pCut->nLeaves, uTruth, uPhases, uCanon );

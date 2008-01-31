@@ -25,7 +25,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -39,7 +39,7 @@
   SeeAlso     []
 
 ***********************************************************************/
-Cut_Cut_t * Cut_CutMergeTwo( Cut_Man_t * p, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 )
+Cut_Cut_t * Cut_CutMergeTwo2( Cut_Man_t * p, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 )
 { 
     static int M[7][3] = {{0},{0},{0},{0},{0},{0},{0}};
     Cut_Cut_t * pRes;
@@ -164,7 +164,7 @@ Cut_Cut_t * Cut_CutMergeTwo( Cut_Man_t * p, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1
   SeeAlso     []
 
 ***********************************************************************/
-Cut_Cut_t * Cut_CutMergeTwo2( Cut_Man_t * p, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 )
+Cut_Cut_t * Cut_CutMergeTwo( Cut_Man_t * p, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 )
 { 
     Cut_Cut_t * pRes;
     int * pLeaves;
@@ -526,7 +526,7 @@ Cut_Cut_t * Cut_CutMergeTwo5( Cut_Man_t * p, Cut_Cut_t * pCut0, Cut_Cut_t * pCut
                     return NULL;
             }
             pRes = Cut_CutAlloc( p );
-            pRes->uTruth = (uSign1 << 8);
+            pRes->Num1 = uSign1;
         }
         for ( i = 0; i < (int)pCut0->nLeaves; i++ )
             pRes->pLeaves[i] = pCut0->pLeaves[i];
@@ -645,7 +645,8 @@ Cut_Cut_t * Cut_CutMergeTwo5( Cut_Man_t * p, Cut_Cut_t * pCut0, Cut_Cut_t * pCut
     }
     assert( Count == nNodes );
     pRes->nLeaves = nNodes;
-    pRes->uTruth = (uSign1 << 8) | uSign0;
+    pRes->Num1 = uSign1;
+    pRes->Num0 = uSign0;
     return pRes;
 }
 

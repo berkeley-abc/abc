@@ -41,7 +41,7 @@ static void  Sim_SymmsTransferToMatrix( Extra_BitMat_t * pMatSymm, Vec_Int_t * v
 static int * Sim_SymmsCreateMap( Abc_Ntk_t * pNtk );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -74,15 +74,16 @@ void Sim_SymmsStructCompute( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMatrs, Vec_Ptr_t * v
     vNodes = Abc_NtkDfs( pNtk, 0 );
     Vec_PtrForEachEntry( vNodes, pTemp, i )
     {
-        if ( Abc_NodeIsConst(pTemp) )
-            continue;
+//        if ( Abc_NodeIsConst(pTemp) )
+//            continue;
         Sim_SymmsStructComputeOne( pNtk, pTemp, pMap );
     }
     // collect the results for the COs;
     Abc_NtkForEachCo( pNtk, pTemp, i )
     {
+//printf( "Output %d:\n", i );
         pTemp = Abc_ObjFanin0(pTemp);
-        if ( Abc_ObjIsCi(pTemp) || Abc_NodeIsConst(pTemp) )
+        if ( Abc_ObjIsCi(pTemp) || Abc_AigNodeIsConst(pTemp) )
             continue;
         Sim_SymmsTransferToMatrix( Vec_PtrEntry(vMatrs, i), SIM_READ_SYMMS(pTemp), Vec_PtrEntry(vSuppFun, i) );
     }
@@ -92,7 +93,7 @@ void Sim_SymmsStructCompute( Abc_Ntk_t * pNtk, Vec_Ptr_t * vMatrs, Vec_Ptr_t * v
     Abc_NtkForEachCi( pNtk, pTemp, i )
         Vec_IntFree( SIM_READ_SYMMS(pTemp) );
     Vec_PtrForEachEntry( vNodes, pTemp, i )
-        if ( !Abc_NodeIsConst(pTemp) )
+//        if ( !Abc_NodeIsConst(pTemp) )
             Vec_IntFree( SIM_READ_SYMMS(pTemp) );
     Vec_PtrFree( vNodes );
     free( pMap );
@@ -444,6 +445,7 @@ void Sim_SymmsTransferToMatrix( Extra_BitMat_t * pMatSymm, Vec_Int_t * vSymms, u
         uSymm = (unsigned)vSymms->pArray[i];
         Ind1 = (uSymm & 0xffff);
         Ind2 = (uSymm >> 16);
+//printf( "%d,%d ", Ind1, Ind2 );
         // skip variables that are not in the true support
         assert( Sim_HasBit(pSupport, Ind1) == Sim_HasBit(pSupport, Ind2) );
         if ( !Sim_HasBit(pSupport, Ind1) || !Sim_HasBit(pSupport, Ind2) )

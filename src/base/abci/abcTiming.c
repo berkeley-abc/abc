@@ -37,16 +37,16 @@ struct Abc_ManTime_t_
 // static functions
 static Abc_ManTime_t *     Abc_ManTimeStart();
 static void                Abc_ManTimeExpand( Abc_ManTime_t * p, int nSize, int fProgressive );
-static void                Abc_NtkTimePrepare( Abc_Ntk_t * pNtk );
+void                       Abc_NtkTimePrepare( Abc_Ntk_t * pNtk );
 
-static void                Abc_NodeDelayTraceArrival( Abc_Obj_t * pNode );
+void                       Abc_NodeDelayTraceArrival( Abc_Obj_t * pNode );
 
 // accessing the arrival and required times of a node
 static inline Abc_Time_t * Abc_NodeArrival( Abc_Obj_t * pNode )  {  return pNode->pNtk->pManTime->vArrs->pArray[pNode->Id];  }
 static inline Abc_Time_t * Abc_NodeRequired( Abc_Obj_t * pNode ) {  return pNode->pNtk->pManTime->vReqs->pArray[pNode->Id];  }
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -254,9 +254,9 @@ void Abc_NtkTimeInitialize( Abc_Ntk_t * pNtk )
             continue;
         *pTime = pNtk->pManTime->tReqDef;
     }
-    // set the 0 arrival times for latches and constant nodes
+    // set the 0 arrival times for latch outputs and constant nodes
     ppTimes = (Abc_Time_t **)pNtk->pManTime->vArrs->pArray;
-    Abc_NtkForEachLatch( pNtk, pObj, i )
+    Abc_NtkForEachLatchOutput( pNtk, pObj, i )
     {
         pTime = ppTimes[pObj->Id];
         pTime->Fall = pTime->Rise = pTime->Worst = 0.0;
@@ -470,9 +470,9 @@ void Abc_NtkSetNodeLevelsArrival( Abc_Ntk_t * pNtkOld )
     int i;
     if ( pNtkOld->pManTime == NULL )
         return;
-    if ( Mio_LibraryReadNand2(Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame())) == NULL )
+    if ( Mio_LibraryReadNand2(Abc_FrameReadLibGen()) == NULL )
         return;
-    tAndDelay = Mio_LibraryReadDelayNand2Max(Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()));
+    tAndDelay = Mio_LibraryReadDelayNand2Max(Abc_FrameReadLibGen());
     Abc_NtkForEachPi( pNtkOld, pNodeOld, i )
     {
         pNodeNew = pNodeOld->pCopy;
@@ -595,13 +595,12 @@ void Abc_NodeDelayTraceArrival( Abc_Obj_t * pNode )
 
     // start the arrival time of the node
     pTimeOut = Abc_NodeArrival(pNode);
-    pTimeOut->Rise = pTimeOut->Fall = 0; 
+    pTimeOut->Rise = pTimeOut->Fall = -ABC_INFINITY; 
     // go through the pins of the gate
     pPin = Mio_GateReadPins(pNode->pData);
     Abc_ObjForEachFanin( pNode, pFanin, i )
     {
         pTimeIn = Abc_NodeArrival(pFanin);
-        assert( pTimeIn->Worst != -ABC_INFINITY );
         // get the interesting parameters of this pin
         PinPhase = Mio_PinReadPhase(pPin);
         tDelayBlockRise = (float)Mio_PinReadDelayBlockRise( pPin );  
@@ -631,38 +630,133 @@ void Abc_NodeDelayTraceArrival( Abc_Obj_t * pNode )
 
 /**Function*************************************************************
 
-  Synopsis    [Prepares the AIG for the comptuation of required levels.]
+  Synopsis    [Computes the level of the node using its fanin levels.]
 
-  Description [This procedure should be called before the required times
-  are used. It starts internal data structures, which records the level 
-  from the COs of the AIG nodes in reverse topologogical order.]
+  Description []
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkStartReverseLevels( Abc_Ntk_t * pNtk )
+int Abc_ObjLevelNew( Abc_Obj_t * pObj )
+{
+    Abc_Obj_t * pFanin;
+    int i, Level = 0;
+    Abc_ObjForEachFanin( pObj, pFanin, i )
+        Level = ABC_MAX( Level, Abc_ObjLevel(pFanin) );
+    return Level + 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the reverse level of the node using its fanout levels.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_ObjReverseLevelNew( Abc_Obj_t * pObj )
+{
+    Abc_Obj_t * pFanout;
+    int i, LevelCur, Level = 0;
+    Abc_ObjForEachFanout( pObj, pFanout, i )
+    {
+        LevelCur = Abc_ObjReverseLevel( pFanout );
+        Level = ABC_MAX( Level, LevelCur );
+    }
+    return Level + 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns required level of the node.]
+
+  Description [Converts the reverse levels of the node into its required 
+  level as follows: ReqLevel(Node) = MaxLevels(Ntk) + 1 - LevelR(Node).]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_ObjRequiredLevel( Abc_Obj_t * pObj )
+{
+    Abc_Ntk_t * pNtk = pObj->pNtk;
+    assert( pNtk->vLevelsR );
+    return pNtk->LevelMax + 1 - Abc_ObjReverseLevel(pObj);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the reverse level of the node.]
+
+  Description [The reverse level is the level of the node in reverse
+  topological order, starting from the COs.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_ObjReverseLevel( Abc_Obj_t * pObj )
+{
+    Abc_Ntk_t * pNtk = pObj->pNtk;
+    assert( pNtk->vLevelsR );
+    Vec_IntFillExtra( pNtk->vLevelsR, pObj->Id + 1, 0 );
+    return Vec_IntEntry(pNtk->vLevelsR, pObj->Id);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sets the reverse level of the node.]
+
+  Description [The reverse level is the level of the node in reverse
+  topological order, starting from the COs.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_ObjSetReverseLevel( Abc_Obj_t * pObj, int LevelR )
+{
+    Abc_Ntk_t * pNtk = pObj->pNtk;
+    assert( pNtk->vLevelsR );
+    Vec_IntFillExtra( pNtk->vLevelsR, pObj->Id + 1, 0 );
+    Vec_IntWriteEntry( pNtk->vLevelsR, pObj->Id, LevelR );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prepares for the computation of required levels.]
+
+  Description [This procedure should be called before the required times
+  are used. It starts internal data structures, which records the level 
+  from the COs of the network nodes in reverse topologogical order.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkStartReverseLevels( Abc_Ntk_t * pNtk, int nMaxLevelIncrease )
 {
     Vec_Ptr_t * vNodes;
-    Abc_Obj_t * pObj, * pFanout;
-    int i, k, nLevelsCur;
-    assert( Abc_NtkIsStrash(pNtk) );
+    Abc_Obj_t * pObj;
+    int i;
     // remember the maximum number of direct levels
-    pNtk->LevelMax = Abc_AigGetLevelNum(pNtk);
+    pNtk->LevelMax = Abc_NtkLevel(pNtk) + nMaxLevelIncrease;
     // start the reverse levels
     pNtk->vLevelsR = Vec_IntAlloc( 0 );
-    Vec_IntFill( pNtk->vLevelsR, Abc_NtkObjNumMax(pNtk), 0 );
+    Vec_IntFill( pNtk->vLevelsR, 1 + Abc_NtkObjNumMax(pNtk), 0 );
     // compute levels in reverse topological order
     vNodes = Abc_NtkDfsReverse( pNtk );
     Vec_PtrForEachEntry( vNodes, pObj, i )
-    {
-        nLevelsCur = 0;
-        Abc_ObjForEachFanout( pObj, pFanout, k )
-            if ( nLevelsCur < Vec_IntEntry(pNtk->vLevelsR, pFanout->Id) )
-                nLevelsCur = Vec_IntEntry(pNtk->vLevelsR, pFanout->Id);
-        Vec_IntWriteEntry( pNtk->vLevelsR, pObj->Id, nLevelsCur + 1 );
-    }
+        Abc_ObjSetReverseLevel( pObj, Abc_ObjReverseLevelNew(pObj) );
     Vec_PtrFree( vNodes );
 }
 
@@ -688,64 +782,120 @@ void Abc_NtkStopReverseLevels( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
-  Synopsis    [Sets the reverse level of the node.]
+  Synopsis    [Incrementally updates level of the nodes.]
 
-  Description [The reverse level is the level of the node in reverse
-  topological order, starting from the COs.]
+  Description []
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NodeSetReverseLevel( Abc_Obj_t * pObj, int LevelR )
+void Abc_NtkUpdateLevel( Abc_Obj_t * pObjNew, Vec_Vec_t * vLevels )
 {
-    Abc_Ntk_t * pNtk = pObj->pNtk;
-    assert( Abc_NtkIsStrash(pNtk) );
-    assert( pNtk->vLevelsR );
-    Vec_IntFillExtra( pNtk->vLevelsR, pObj->Id + 1, 0 );
-    Vec_IntWriteEntry( pNtk->vLevelsR, pObj->Id, LevelR );
+    Abc_Obj_t * pFanout, * pTemp;
+    int LevelOld, Lev, k, m;
+    // check if level has changed
+    LevelOld = Abc_ObjLevel(pObjNew);
+    if ( LevelOld == Abc_ObjLevelNew(pObjNew) )
+        return;
+    // start the data structure for level update
+    // we cannot fail to visit a node when using this structure because the 
+    // nodes are stored by their _old_ levels, which are assumed to be correct
+    Vec_VecClear( vLevels );
+    Vec_VecPush( vLevels, LevelOld, pObjNew );
+    pObjNew->fMarkA = 1;
+    // recursively update level
+    Vec_VecForEachEntryStart( vLevels, pTemp, Lev, k, LevelOld )
+    {
+        pTemp->fMarkA = 0;
+        assert( Abc_ObjLevel(pTemp) == Lev );
+        Abc_ObjSetLevel( pTemp, Abc_ObjLevelNew(pTemp) );
+        // if the level did not change, no need to check the fanout levels
+        if ( Abc_ObjLevel(pTemp) == Lev )
+            continue;
+        // schedule fanout for level update
+        Abc_ObjForEachFanout( pTemp, pFanout, m )
+        {
+            if ( !Abc_ObjIsCo(pFanout) && !pFanout->fMarkA )
+            {
+                assert( Abc_ObjLevel(pFanout) >= Lev );
+                Vec_VecPush( vLevels, Abc_ObjLevel(pFanout), pFanout );
+                pFanout->fMarkA = 1;
+            }
+        }
+    }
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the reverse level of the node.]
+  Synopsis    [Incrementally updates level of the nodes.]
 
-  Description [The reverse level is the level of the node in reverse
-  topological order, starting from the COs.]
+  Description []
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NodeReadReverseLevel( Abc_Obj_t * pObj )
+void Abc_NtkUpdateReverseLevel( Abc_Obj_t * pObjNew, Vec_Vec_t * vLevels )
 {
-    Abc_Ntk_t * pNtk = pObj->pNtk;
-    assert( Abc_NtkIsStrash(pNtk) );
-    assert( pNtk->vLevelsR );
-    Vec_IntFillExtra( pNtk->vLevelsR, pObj->Id + 1, 0 );
-    return Vec_IntEntry(pNtk->vLevelsR, pObj->Id);
+    Abc_Obj_t * pFanin, * pTemp;
+    int LevelOld, LevFanin, Lev, k, m;
+    // check if level has changed
+    LevelOld = Abc_ObjReverseLevel(pObjNew);
+    if ( LevelOld == Abc_ObjReverseLevelNew(pObjNew) )
+        return;
+    // start the data structure for level update
+    // we cannot fail to visit a node when using this structure because the 
+    // nodes are stored by their _old_ levels, which are assumed to be correct
+    Vec_VecClear( vLevels );
+    Vec_VecPush( vLevels, LevelOld, pObjNew );
+    pObjNew->fMarkA = 1;
+    // recursively update level
+    Vec_VecForEachEntryStart( vLevels, pTemp, Lev, k, LevelOld )
+    {
+        pTemp->fMarkA = 0;
+        LevelOld = Abc_ObjReverseLevel(pTemp); 
+        assert( LevelOld == Lev );
+        Abc_ObjSetReverseLevel( pTemp, Abc_ObjReverseLevelNew(pTemp) );
+        // if the level did not change, no need to check the fanout levels
+        if ( Abc_ObjReverseLevel(pTemp) == Lev )
+            continue;
+        // schedule fanins for level update
+        Abc_ObjForEachFanin( pTemp, pFanin, m )
+        {
+            if ( !Abc_ObjIsCi(pFanin) && !pFanin->fMarkA )
+            {
+                LevFanin = Abc_ObjReverseLevel( pFanin );
+                assert( LevFanin >= Lev );
+                Vec_VecPush( vLevels, LevFanin, pFanin );
+                pFanin->fMarkA = 1;
+            }
+        }
+    }
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Returns required level of the node.]
+  Synopsis    [Replaces the node and incrementally updates levels.]
 
-  Description [Converts the reverse levels of the node into its required 
-  level as follows: ReqLevel(Node) = MaxLevels(Ntk) + 1 - LevelR(Node).]
+  Description []
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NodeReadRequiredLevel( Abc_Obj_t * pObj )
+void Abc_NtkUpdate( Abc_Obj_t * pObj, Abc_Obj_t * pObjNew, Vec_Vec_t * vLevels )
 {
-    Abc_Ntk_t * pNtk = pObj->pNtk;
-    assert( Abc_NtkIsStrash(pNtk) );
-    assert( pNtk->vLevelsR );
-    return pNtk->LevelMax + 1 - Vec_IntEntry(pNtk->vLevelsR, pObj->Id);
+    // replace the old node by the new node
+    pObjNew->Level = pObj->Level;
+    Abc_ObjReplace( pObj, pObjNew );
+    // update the level of the node
+    Abc_NtkUpdateLevel( pObjNew, vLevels );
+    Abc_ObjSetReverseLevel( pObjNew, 0 );
+    Abc_NtkUpdateReverseLevel( pObjNew, vLevels );
 }
 
 ////////////////////////////////////////////////////////////////////////

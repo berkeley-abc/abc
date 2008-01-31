@@ -34,7 +34,7 @@ static int              Dec_FactorVerify( char * pSop, Dec_Graph_t * pFForm );
 static Mvc_Cover_t *    Dec_ConvertSopToMvc( char * pSop );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -183,7 +183,7 @@ Dec_Edge_t Dec_Factor_rec( Dec_Graph_t * pFForm, Mvc_Cover_t * pCover )
 ***********************************************************************/
 Dec_Edge_t Dec_FactorLF_rec( Dec_Graph_t * pFForm, Mvc_Cover_t * pCover, Mvc_Cover_t * pSimple )
 {
-    Dec_Man_t * pManDec = Abc_FrameReadManDec(Abc_FrameGetGlobalFrame());
+    Dec_Man_t * pManDec = Abc_FrameReadManDec();
     Vec_Int_t * vEdgeLits  = pManDec->vLits;
     Mvc_Cover_t * pDiv, * pQuo, * pRem;
     Dec_Edge_t eNodeDiv, eNodeQuo, eNodeRem;
@@ -228,7 +228,7 @@ Dec_Edge_t Dec_FactorLF_rec( Dec_Graph_t * pFForm, Mvc_Cover_t * pCover, Mvc_Cov
 ***********************************************************************/
 Dec_Edge_t Dec_FactorTrivial( Dec_Graph_t * pFForm, Mvc_Cover_t * pCover )
 {
-    Dec_Man_t * pManDec = Abc_FrameReadManDec(Abc_FrameGetGlobalFrame());
+    Dec_Man_t * pManDec = Abc_FrameReadManDec();
     Vec_Int_t * vEdgeCubes = pManDec->vCubes;
     Vec_Int_t * vEdgeLits  = pManDec->vLits;
     Mvc_Manager_t * pMem = pManDec->pMvcMem;
@@ -258,16 +258,15 @@ Dec_Edge_t Dec_FactorTrivial( Dec_Graph_t * pFForm, Mvc_Cover_t * pCover )
 ***********************************************************************/
 Dec_Edge_t Dec_FactorTrivialCube( Dec_Graph_t * pFForm, Mvc_Cover_t * pCover, Mvc_Cube_t * pCube, Vec_Int_t * vEdgeLits )
 {
-//    Dec_Edge_t eNode;
+    Dec_Edge_t eNode;
     int iBit, Value;
     // create the factored form for each literal
     Vec_IntClear( vEdgeLits );
     Mvc_CubeForEachBit( pCover, pCube, iBit, Value )
         if ( Value )
         {
-//            eNode = Dec_EdgeCreate( iBit/2, iBit%2 ); // CST
-//            Vec_IntPush( vEdgeLits, Dec_EdgeToInt_(eNode) );
-            Vec_IntPush( vEdgeLits, iBit );
+            eNode = Dec_EdgeCreate( iBit/2, iBit%2 ); // CST
+            Vec_IntPush( vEdgeLits, Dec_EdgeToInt_(eNode) );
         }
     // balance the factored forms
     return Dec_FactorTrivialTree_rec( pFForm, (Dec_Edge_t *)vEdgeLits->pArray, vEdgeLits->nSize, 0 );
@@ -323,7 +322,7 @@ Dec_Edge_t Dec_FactorTrivialTree_rec( Dec_Graph_t * pFForm, Dec_Edge_t * peNodes
 ***********************************************************************/
 Mvc_Cover_t * Dec_ConvertSopToMvc( char * pSop )
 {
-    Dec_Man_t * pManDec = Abc_FrameReadManDec(Abc_FrameGetGlobalFrame());
+    Dec_Man_t * pManDec = Abc_FrameReadManDec();
     Mvc_Manager_t * pMem = pManDec->pMvcMem;
     Mvc_Cover_t * pMvc;
     Mvc_Cube_t * pMvcCube;
@@ -365,7 +364,8 @@ Mvc_Cover_t * Dec_ConvertSopToMvc( char * pSop )
 ***********************************************************************/
 int Dec_FactorVerify( char * pSop, Dec_Graph_t * pFForm )
 {
-    DdManager * dd = Abc_FrameReadManDd( Abc_FrameGetGlobalFrame() );
+    extern DdNode *       Dec_GraphDeriveBdd( DdManager * dd, Dec_Graph_t * pGraph );
+    DdManager * dd = Abc_FrameReadManDd();
     DdNode * bFunc1, * bFunc2;
     int RetValue;
     bFunc1 = Abc_ConvertSopToBdd( dd, pSop );    Cudd_Ref( bFunc1 );

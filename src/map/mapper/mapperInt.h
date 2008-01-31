@@ -41,7 +41,7 @@
 //#define MAP_ALLOCATE_FANOUT  1
 
 ////////////////////////////////////////////////////////////////////////
-///                       MACRO DEFITIONS                            ///
+///                       MACRO DEFINITIONS                          ///
 ////////////////////////////////////////////////////////////////////////
 
 // the bit masks
@@ -61,10 +61,10 @@
 #define MAP_RANDOM_UNSIGNED   ((((unsigned)rand()) << 24) ^ (((unsigned)rand()) << 12) ^ ((unsigned)rand()))
 
 // internal macros to work with cuts
-#define Map_CutIsComplement(p)  (((int)((long) (p) & 01)))
-#define Map_CutRegular(p)       ((Map_Cut_t *)((unsigned)(p) & ~01)) 
-#define Map_CutNot(p)           ((Map_Cut_t *)((long)(p) ^ 01)) 
-#define Map_CutNotCond(p,c)     ((Map_Cut_t *)((long)(p) ^ (c)))
+#define Map_CutIsComplement(p)  (((int)((unsigned long) (p) & 01)))
+#define Map_CutRegular(p)       ((Map_Cut_t *)((unsigned long)(p) & ~01)) 
+#define Map_CutNot(p)           ((Map_Cut_t *)((unsigned long)(p) ^ 01)) 
+#define Map_CutNotCond(p,c)     ((Map_Cut_t *)((unsigned long)(p) ^ (c)))
 
 // internal macros for referencing of nodes
 #define Map_NodeReadRef(p)      ((Map_Regular(p))->nRefs)
@@ -347,7 +347,7 @@ struct Map_HashEntryStruct_t_
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /*=== mapperCanon.c =============================================================*/
@@ -470,8 +470,8 @@ extern void              Map_NodeVecWriteEntry( Map_NodeVec_t * p, int i, Map_No
 extern Map_Node_t *      Map_NodeVecReadEntry( Map_NodeVec_t * p, int i );
 extern void              Map_NodeVecSortByLevel( Map_NodeVec_t * p );
 
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
-#endif

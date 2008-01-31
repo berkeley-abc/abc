@@ -26,7 +26,7 @@ static void Fraig_TableResizeS( Fraig_HashTable_t * p );
 static void Fraig_TableResizeF( Fraig_HashTable_t * p, int fUseSimR );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************

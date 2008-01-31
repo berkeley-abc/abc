@@ -26,7 +26,7 @@
 ////////////////////////////////////////////////////////////////////////
  
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -71,7 +71,7 @@ p->timeStruct = clock() - clk;
     for ( i = 1; i <= 1000; i++ )
     {
         // simulate this pattern
-        Sim_UtilGetRandom( p->uPatRand, p->nSimWords );
+        Sim_UtilSetRandom( p->uPatRand, p->nSimWords );
         Sim_SymmsSimulate( p, p->uPatRand, p->vMatrNonSymms );
         if ( i % 50 != 0 )
             continue;
@@ -125,6 +125,7 @@ p->timeStruct = clock() - clk;
     if ( fVerbose )
         printf( "Total = %8d.  Sym = %8d.  NonSym = %8d.  Remaining = %8d.\n", 
             p->nPairsTotal, p->nPairsSymm, p->nPairsNonSymm, p->nPairsRem );
+//    Sim_UtilCountPairsAllPrint( p );
 
     Result = p->nPairsSymm;
     vResult = p->vMatrSymms;  

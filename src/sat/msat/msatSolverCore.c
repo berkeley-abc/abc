@@ -25,7 +25,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -39,10 +39,11 @@
   SeeAlso     []
 
 ***********************************************************************/
-bool Msat_SolverAddVar( Msat_Solver_t * p )
+bool Msat_SolverAddVar( Msat_Solver_t * p, int Level )
 {
     if ( p->nVars == p->nVarsAlloc )
         Msat_SolverResize( p, 2 * p->nVarsAlloc );
+    p->pLevel[p->nVars] = Level;
     p->nVars++;
     return 1;
 }
@@ -131,14 +132,18 @@ void Msat_SolverPrintStats( Msat_Solver_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-bool Msat_SolverSolve( Msat_Solver_t * p, Msat_IntVec_t * vAssumps, int nBackTrackLimit )
+bool Msat_SolverSolve( Msat_Solver_t * p, Msat_IntVec_t * vAssumps, int nBackTrackLimit, int nTimeLimit )
 {
     Msat_SearchParams_t Params = { 0.95, 0.999 };
     double nConflictsLimit, nLearnedLimit;
     Msat_Type_t Status;
+    int timeStart = clock();
     int64 nConflictsOld = p->Stats.nConflicts;
     int64 nDecisionsOld = p->Stats.nDecisions;
 
+//    p->pFreq = ALLOC( int, p->nVarsAlloc );
+//    memset( p->pFreq, 0, sizeof(int) * p->nVarsAlloc );
+ 
     if ( vAssumps )
     {
         int * pAssumps, nAssumps, i;
@@ -172,11 +177,31 @@ bool Msat_SolverSolve( Msat_Solver_t * p, Msat_IntVec_t * vAssumps, int nBackTra
         nConflictsLimit *= 1.5;
         nLearnedLimit   *= 1.1;
         // if the limit on the number of backtracks is given, quit the restart loop
-        if ( nBackTrackLimit > 0 )
+        if ( nBackTrackLimit > 0 && (int)p->Stats.nConflicts - p->nBackTracks > nBackTrackLimit )
+            break;
+        // if the runtime limit is exceeded, quit the restart loop
+        if ( nTimeLimit > 0 && clock() - timeStart >= nTimeLimit * CLOCKS_PER_SEC )
             break;
     }
     Msat_SolverCancelUntil( p, 0 );
     p->nBackTracks = (int)p->Stats.nConflicts - p->nBackTracks;
+/*
+    PRT( "True solver runtime", clock() - timeStart );
+    // print the statistics
+    {
+        int i, Counter = 0;
+        for ( i = 0; i < p->nVars; i++ )
+            if ( p->pFreq[i] > 0 )
+            {
+                printf( "%d ", p->pFreq[i] );
+                Counter++;
+            }
+        if ( Counter )
+            printf( "\n" );
+        printf( "Total = %d. Used = %d.  Decisions = %d. Imps = %d. Conflicts = %d. ", p->nVars, Counter, (int)p->Stats.nDecisions, (int)p->Stats.nPropagations, (int)p->Stats.nConflicts );
+        PRT( "Time", clock() - timeStart );
+    }
+*/
     return Status;
 }
 

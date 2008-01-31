@@ -28,7 +28,7 @@
 static void Map_SuperTableResize( Map_HashTable_t * pLib );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -325,7 +325,7 @@ void Map_SuperTableSortSupergates( Map_HashTable_t * p, int nSupersMax )
                 ppSupers[nSupers++] = pSuper;
 
     // sort by usage
-    qsort( (void *)ppSupers, nSupers, sizeof(int), 
+    qsort( (void *)ppSupers, nSupers, sizeof(Map_Super_t *), 
             (int (*)(const void *, const void *)) Map_SuperTableCompareSupergates );
     assert( Map_SuperTableCompareSupergates( ppSupers, ppSupers + nSupers - 1 ) <= 0 );
 
@@ -380,7 +380,7 @@ void Map_SuperTableSortSupergatesByDelay( Map_HashTable_t * p, int nSupersMax )
             if ( nSupers == 0 )
                 continue;
             // sort the gates by delay
-            qsort( (void *)ppSupers, nSupers, sizeof(int), 
+            qsort( (void *)ppSupers, nSupers, sizeof(Map_Super_t *), 
                     (int (*)(const void *, const void *)) Map_SuperTableCompareGatesInList );
             assert( Map_SuperTableCompareGatesInList( ppSupers, ppSupers + nSupers - 1 ) <= 0 );
             // link them in the reverse order

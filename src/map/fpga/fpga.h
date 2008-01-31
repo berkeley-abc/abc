@@ -19,6 +19,10 @@
 #ifndef __FPGA_H__
 #define __FPGA_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -28,7 +32,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 // the maximum size of LUTs used for mapping
-#define FPGA_MAX_LUTSIZE   10
+#define FPGA_MAX_LUTSIZE   32
 
 ////////////////////////////////////////////////////////////////////////
 ///                    STRUCTURE DEFINITIONS                         ///
@@ -45,20 +49,20 @@ typedef struct Fpga_LutLibStruct_t_      Fpga_LutLib_t;
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                       MACRO DEFITIONS                            ///
+///                       MACRO DEFINITIONS                          ///
 ////////////////////////////////////////////////////////////////////////
  
-#define Fpga_IsComplement(p)    (((int)((long) (p) & 01)))
-#define Fpga_Regular(p)         ((Fpga_Node_t *)((unsigned)(p) & ~01)) 
-#define Fpga_Not(p)             ((Fpga_Node_t *)((long)(p) ^ 01)) 
-#define Fpga_NotCond(p,c)       ((Fpga_Node_t *)((long)(p) ^ (c)))
+#define Fpga_IsComplement(p)    (((int)((unsigned long) (p) & 01)))
+#define Fpga_Regular(p)         ((Fpga_Node_t *)((unsigned long)(p) & ~01)) 
+#define Fpga_Not(p)             ((Fpga_Node_t *)((unsigned long)(p) ^ 01)) 
+#define Fpga_NotCond(p,c)       ((Fpga_Node_t *)((unsigned long)(p) ^ (c)))
 
 #define Fpga_Ref(p)   
 #define Fpga_Deref(p)
 #define Fpga_RecursiveDeref(p,c)
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /*=== fpgaCreate.c =============================================================*/
@@ -74,7 +78,9 @@ extern Fpga_Node_t **  Fpga_ManReadOutputs( Fpga_Man_t * p );
 extern Fpga_Node_t *   Fpga_ManReadConst1 ( Fpga_Man_t * p );
 extern float *         Fpga_ManReadInputArrivals( Fpga_Man_t * p );
 extern int             Fpga_ManReadVerbose( Fpga_Man_t * p );
+extern int             Fpga_ManReadVarMax( Fpga_Man_t * p );
 extern float *         Fpga_ManReadLutAreas( Fpga_Man_t * p );
+extern Fpga_NodeVec_t* Fpga_ManReadMapping( Fpga_Man_t * p );
 extern void            Fpga_ManSetTimeToMap( Fpga_Man_t * p, int Time );
 extern void            Fpga_ManSetTimeToNet( Fpga_Man_t * p, int Time );
 extern void            Fpga_ManSetTimeTotal( Fpga_Man_t * p, int Time );
@@ -92,13 +98,16 @@ extern void            Fpga_ManSetChoiceNodeNum( Fpga_Man_t * p, int nChoiceNode
 extern void            Fpga_ManSetChoiceNum( Fpga_Man_t * p, int nChoices );
 extern void            Fpga_ManSetVerbose( Fpga_Man_t * p, int fVerbose );
 extern void            Fpga_ManSetSwitching( Fpga_Man_t * p, int fSwitching );
+extern void            Fpga_ManSetLatchPaths( Fpga_Man_t * p, int fLatchPaths );
 extern void            Fpga_ManSetLatchNum( Fpga_Man_t * p, int nLatches );
+extern void            Fpga_ManSetDelayTarget( Fpga_Man_t * p, float DelayTarget );
 extern void            Fpga_ManSetName( Fpga_Man_t * p, char * pFileName );
 
 extern int             Fpga_LibReadLutMax( Fpga_LutLib_t * pLib );
 
 extern char *          Fpga_NodeReadData0( Fpga_Node_t * p );
 extern Fpga_Node_t *   Fpga_NodeReadData1( Fpga_Node_t * p );
+extern int             Fpga_NodeReadRefs( Fpga_Node_t * p );
 extern int             Fpga_NodeReadNum( Fpga_Node_t * p );
 extern int             Fpga_NodeReadLevel( Fpga_Node_t * p );
 extern Fpga_Cut_t *    Fpga_NodeReadCuts( Fpga_Node_t * p );
@@ -134,23 +143,33 @@ extern int             Fpga_Mapping( Fpga_Man_t * p );
 /*=== fpgaCut.c ===============================================================*/
 extern void            Fpga_MappingCreatePiCuts( Fpga_Man_t * p );
 extern void            Fpga_CutsCleanSign( Fpga_Man_t * pMan );
+extern void            Fpga_CutsCleanRoot( Fpga_Man_t * pMan );
 /*=== fpgaCutUtils.c =============================================================*/
 extern void            Fpga_CutCreateFromNode( Fpga_Man_t * p, int iRoot, int * pLeaves, int nLeaves );
 extern void            Fpga_MappingSetUsedCuts( Fpga_Man_t * p );
-/*=== fpgaFraig.c =============================================================*/
-extern Fpga_Man_t *    Fpga_ManDupFraig( Fraig_Man_t * pManFraig );
-extern Fpga_Man_t *    Fpga_ManBalanceFraig( Fraig_Man_t * pManFraig, int * pInputArrivals );
 /*=== fpgaLib.c =============================================================*/
 extern Fpga_LutLib_t * Fpga_LutLibDup( Fpga_LutLib_t * p );
+extern int             Fpga_LutLibReadVarMax( Fpga_LutLib_t * p );
+extern float *         Fpga_LutLibReadLutAreas( Fpga_LutLib_t * p );
+extern float *         Fpga_LutLibReadLutDelays( Fpga_LutLib_t * p );
+extern float           Fpga_LutLibReadLutArea( Fpga_LutLib_t * p, int Size );
+extern float           Fpga_LutLibReadLutDelay( Fpga_LutLib_t * p, int Size );
 /*=== fpgaTruth.c =============================================================*/
 extern void *          Fpga_TruthsCutBdd( void * dd, Fpga_Cut_t * pCut );
+extern int             Fpga_CutVolume( Fpga_Cut_t * pCut );
 /*=== fpgaUtil.c =============================================================*/
 extern int             Fpga_ManCheckConsistency( Fpga_Man_t * p );
 extern void            Fpga_ManCleanData0( Fpga_Man_t * pMan );
 extern Fpga_NodeVec_t * Fpga_CollectNodeTfo( Fpga_Man_t * pMan, Fpga_Node_t * pNode );
+/*=== fpga.c =============================================================*/
+extern void            Fpga_SetSimpleLutLib( int nLutSize );
 
+#ifdef __cplusplus
+}
+#endif
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-#endif

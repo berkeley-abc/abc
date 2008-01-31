@@ -38,7 +38,7 @@ struct Msat_OrderVar_t_
 {
     Msat_OrderVar_t    * pNext;
     Msat_OrderVar_t    * pPrev;
-    int                 Num;
+    int                  Num;
 };
 
 // the ring of variables data structure (J-boundary)
@@ -82,7 +82,7 @@ extern int timeSelect;
 extern int timeAssign;
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -170,7 +170,8 @@ int Msat_OrderCheck( Msat_Order_t * p )
     Msat_OrderVar_t * pVar, * pNext;
     Msat_IntVec_t * vRound;
     int * pRound, nRound;
-    int * pVars, nVars, i;
+    int * pVars, nVars, i, k;
+    int Counter = 0;
 
     // go through all the variables in the boundary
     Msat_OrderRingForEachEntry( p->rVars.pRoot, pVar, pNext )
@@ -188,10 +189,14 @@ int Msat_OrderCheck( Msat_Order_t * p )
             if ( Msat_OrderVarIsAssigned(p, pRound[i]) )
                 break;
         }
-        assert( i != nRound );
-        if ( i != nRound )
-            return 0;
+//        assert( i != nRound );
+//        if ( i == nRound )
+//            return 0;
+        if ( i == nRound )
+            Counter++;
     }
+    if ( Counter > 0 )
+        printf( "%d(%d) ", Counter, p->rVars.nItems );
 
     // we may also check other unassigned variables in the cone
     // to make sure that if they are not in J-boundary, 
@@ -209,16 +214,16 @@ int Msat_OrderCheck( Msat_Order_t * p )
         vRound = (Msat_IntVec_t *)Msat_ClauseVecReadEntry( p->pSat->vAdjacents, pVars[i] );
         nRound = Msat_IntVecReadSize( vRound );
         pRound = Msat_IntVecReadArray( vRound );
-        for ( i = 0; i < nRound; i++ )
+        for ( k = 0; k < nRound; k++ )
         {
-            if ( !Msat_OrderVarIsUsedInCone(p, pRound[i]) )
+            if ( !Msat_OrderVarIsUsedInCone(p, pRound[k]) )
                 continue;
-            if ( Msat_OrderVarIsAssigned(p, pRound[i]) )
+            if ( Msat_OrderVarIsAssigned(p, pRound[k]) )
                 break;
         }
-        assert( i == nRound );
-        if ( i == nRound )
-            return 0;
+//        assert( k == nRound );
+//        if ( k != nRound )
+//            return 0;
     }
     return 1;
 }
@@ -256,7 +261,7 @@ int Msat_OrderVarSelect( Msat_Order_t * p )
     Msat_OrderVar_t * pVar, * pNext, * pVarBest;
     double * pdActs = p->pSat->pdActivity;
     double dfActBest;
-    int clk = clock();
+//    int clk = clock();
 
     pVarBest = NULL;
     dfActBest = -1.0;
@@ -268,12 +273,13 @@ int Msat_OrderVarSelect( Msat_Order_t * p )
             pVarBest  = pVar;
         }
     }
-timeSelect += clock() - clk;
-timeAssign += clock() - clk;
+//timeSelect += clock() - clk;
+//timeAssign += clock() - clk;
 
 //if ( pVarBest && pVarBest->Num % 1000 == 0 )
 //printf( "%d ", p->rVars.nItems );
 
+//    Msat_OrderCheck( p );
     if ( pVarBest )
     {
         assert( Msat_OrderVarIsUsedInCone(p, pVarBest->Num) );
@@ -296,7 +302,7 @@ timeAssign += clock() - clk;
 void Msat_OrderVarAssigned( Msat_Order_t * p, int Var )
 {
     Msat_IntVec_t * vRound;
-    int i, clk = clock();
+    int i;//, clk = clock();
 
     // make sure the variable is in the boundary
     assert( Var < p->nVarsAlloc );
@@ -316,7 +322,7 @@ void Msat_OrderVarAssigned( Msat_Order_t * p, int Var )
             continue;
         Msat_OrderRingAddLast( &p->rVars, &p->pVars[vRound->pArray[i]] );
     }
-timeSelect += clock() - clk;
+//timeSelect += clock() - clk;
 //    Msat_OrderCheck( p );
 }
 
@@ -334,7 +340,7 @@ timeSelect += clock() - clk;
 void Msat_OrderVarUnassigned( Msat_Order_t * p, int Var )
 {
     Msat_IntVec_t * vRound, * vRound2;
-    int i, k, clk = clock();
+    int i, k;//, clk = clock();
 
     // make sure the variable is not in the boundary
     assert( Var < p->nVarsAlloc );
@@ -363,7 +369,7 @@ void Msat_OrderVarUnassigned( Msat_Order_t * p, int Var )
             if ( k == vRound2->nSize ) // there is no assigned vars, delete this one
                 Msat_OrderRingRemove( &p->rVars, &p->pVars[vRound->pArray[i]] );
         }
-timeSelect += clock() - clk;
+//timeSelect += clock() - clk;
 //    Msat_OrderCheck( p );
 }
 
@@ -450,7 +456,7 @@ void Msat_OrderRingRemove( Msat_OrderRing_t * pRing, Msat_OrderVar_t * pVar )
         pRing->pRoot = pVar->pNext;
     // move the root to the next entry after pVar
     // this way all the additions to the list will be traversed first
-//    pRing->pRoot = pVar->pNext;
+//    pRing->pRoot = pVar->pPrev;
     // delete the node
     pVar->pPrev->pNext = pVar->pNext;
     pVar->pNext->pPrev = pVar->pPrev;

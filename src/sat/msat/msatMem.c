@@ -72,7 +72,7 @@ struct Msat_MmStep_t_
 };
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -231,7 +231,7 @@ void Msat_MmFixedRestart( Msat_MmFixed_t * p )
     int i;
     char * pTemp;
 
-    // delocate all chunks except the first one
+    // deallocate all chunks except the first one
     for ( i = 1; i < p->nChunks; i++ )
         free( p->pChunks[i] );
     p->nChunks = 1;

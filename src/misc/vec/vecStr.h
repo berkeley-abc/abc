@@ -26,7 +26,6 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
-#include "extra.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -45,14 +44,14 @@ struct Vec_Str_t_
 };
 
 ////////////////////////////////////////////////////////////////////////
-///                      MACRO DEFITIONS                             ///
+///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
 #define Vec_StrForEachEntry( vVec, Entry, i )                                               \
     for ( i = 0; (i < Vec_StrSize(vVec)) && (((Entry) = Vec_StrEntry(vVec, i)), 1); i++ )   
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -303,6 +302,7 @@ static inline void Vec_StrWriteEntry( Vec_Str_t * p, int i, char Entry )
 ***********************************************************************/
 static inline char Vec_StrEntryLast( Vec_Str_t * p )
 {
+    assert( p->nSize > 0 );
     return p->pArray[p->nSize-1];
 }
 
@@ -401,6 +401,80 @@ static inline void Vec_StrPush( Vec_Str_t * p, char Entry )
     p->pArray[p->nSize++] = Entry;
 }
 
+/**Function********************************************************************
+
+  Synopsis    [Finds the smallest integer larger of equal than the logarithm.]
+
+  Description [Returns [Log10(Num)].]
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+static inline int Vec_StrBase10Log( unsigned Num )
+{
+    int Res;
+    assert( Num >= 0 );
+    if ( Num == 0 ) return 0;
+    if ( Num == 1 ) return 1;
+    for ( Res = 0, Num--;  Num;  Num /= 10,  Res++ );
+    return Res;
+} /* end of Extra_Base2Log */
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_StrPrintNum( Vec_Str_t * p, int Num )
+{
+    int i, nDigits;
+    if ( Num < 0 )
+    {
+        Vec_StrPush( p, '-' );
+        Num = -Num;
+    }
+    if ( Num < 10 )
+    {
+        Vec_StrPush( p, (char)('0' + Num) );
+        return;
+    }
+    nDigits = Vec_StrBase10Log( Num );
+    Vec_StrGrow( p, p->nSize + nDigits );
+    for ( i = nDigits - 1; i >= 0; i-- )
+    {
+        Vec_StrWriteEntry( p, p->nSize + i, (char)('0' + Num % 10) );
+        Num /= 10;
+    }
+    assert( Num == 0 );
+    p->nSize += nDigits;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_StrPrintStr( Vec_Str_t * p, char * pStr )
+{
+    int i, Length = strlen(pStr);
+    for ( i = 0; i < Length; i++ )
+        Vec_StrPush( p, pStr[i] );
+}
+
 /**Function*************************************************************
 
   Synopsis    [Appends the string to the char vector.]
@@ -494,16 +568,16 @@ static inline int Vec_StrSortCompare2( char * pp1, char * pp2 )
 static inline void Vec_StrSort( Vec_Str_t * p, int fReverse )
 {
     if ( fReverse ) 
-        qsort( (void *)p->pArray, p->nSize, sizeof(int), 
+        qsort( (void *)p->pArray, p->nSize, sizeof(char), 
                 (int (*)(const void *, const void *)) Vec_StrSortCompare2 );
     else
-        qsort( (void *)p->pArray, p->nSize, sizeof(int), 
+        qsort( (void *)p->pArray, p->nSize, sizeof(char), 
                 (int (*)(const void *, const void *)) Vec_StrSortCompare1 );
 }
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
-#endif
 

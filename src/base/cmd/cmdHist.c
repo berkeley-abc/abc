@@ -27,7 +27,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -43,11 +43,11 @@
 ***********************************************************************/
 void Cmd_HistoryAddCommand(    Abc_Frame_t * p, char * command )
 {
-    char Buffer[500];
+    static char Buffer[MAX_STR];
     strcpy( Buffer, command );
     if ( command[strlen(command)-1] != '\n' )
         strcat( Buffer, "\n" );
-    Vec_PtrPush( p->aHistory, util_strsav(Buffer) );
+    Vec_PtrPush( p->aHistory, Extra_UtilStrsav(Buffer) );
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -27,7 +27,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -50,7 +50,7 @@ clk = clock();
     p = ALLOC( Rwr_Man_t, 1 );
     memset( p, 0, sizeof(Rwr_Man_t) );
     p->nFuncs = (1<<16);
-    pManDec   = Abc_FrameReadManDec(Abc_FrameGetGlobalFrame());
+    pManDec   = Abc_FrameReadManDec();
     p->puCanons = pManDec->puCanons; 
     p->pPhases  = pManDec->pPhases; 
     p->pPerms   = pManDec->pPerms; 
@@ -75,6 +75,7 @@ clk = clock();
     p->vLevNums   = Vec_IntAlloc( 50 );
     p->vFanins    = Vec_PtrAlloc( 50 );
     p->vFaninsCur = Vec_PtrAlloc( 50 );
+    p->vNodesTemp = Vec_PtrAlloc( 50 );
     if ( fPrecompute )
     {   // precompute subgraphs
         Rwr_ManPrecompute( p );
@@ -112,11 +113,13 @@ void Rwr_ManStop( Rwr_Man_t * p )
             Dec_GraphFree( (Dec_Graph_t *)pNode->pNext );
     }
     if ( p->vClasses )  Vec_VecFree( p->vClasses );
+    Vec_PtrFree( p->vNodesTemp );
     Vec_PtrFree( p->vForest );
     Vec_IntFree( p->vLevNums );
     Vec_PtrFree( p->vFanins );
     Vec_PtrFree( p->vFaninsCur );
-    Extra_MmFixedStop( p->pMmNode, 0 );
+    Extra_MmFixedStop( p->pMmNode );
+    FREE( p->pMapInv );
     free( p->pTable );
     free( p->pPractical );
     free( p->pPerms4 );
@@ -147,20 +150,50 @@ void Rwr_ManPrintStats( Rwr_Man_t * p )
     printf( "Used NPN classes  = %8d.\n", Counter );
     printf( "Nodes considered  = %8d.\n", p->nNodesConsidered );
     printf( "Nodes rewritten   = %8d.\n", p->nNodesRewritten );
-    printf( "Calculated gain   = %8d.\n", p->nNodesGained     );
+    printf( "Gain              = %8d. (%6.2f %%).\n", p->nNodesBeg-p->nNodesEnd, 100.0*(p->nNodesBeg-p->nNodesEnd)/p->nNodesBeg );
     PRT( "Start       ", p->timeStart );
     PRT( "Cuts        ", p->timeCut );
     PRT( "Resynthesis ", p->timeRes );
+    PRT( "    Mffc    ", p->timeMffc );
     PRT( "    Eval    ", p->timeEval );
+    PRT( "Update      ", p->timeUpdate );
     PRT( "TOTAL       ", p->timeTotal );
 
 /*
-    printf( "The scores are : " );
+    printf( "The scores are:\n" );
     for ( i = 0; i < 222; i++ )
         if ( p->nScores[i] > 0 )
-            printf( "%d=%d ", i, p->nScores[i] );
-    printf( "\n" );
+        {
+            extern void Ivy_TruthDsdComputePrint( unsigned uTruth );
+            printf( "%3d = %8d  canon = %5d  ", i, p->nScores[i], p->pMapInv[i] );
+            Ivy_TruthDsdComputePrint( (unsigned)p->pMapInv[i] | ((unsigned)p->pMapInv[i] << 16) );
+        }
 */
+    printf( "\n" );
+
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Stops the resynthesis manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Rwr_ManPrintStatsFile( Rwr_Man_t * p )
+{
+    FILE * pTable;
+    pTable = fopen( "stats.txt", "a+" );
+    fprintf( pTable, "%d ", p->nCutsGood );
+    fprintf( pTable, "%d ", p->nSubgraphs );
+    fprintf( pTable, "%d ", p->nNodesRewritten );
+    fprintf( pTable, "%d", p->nNodesGained );
+    fprintf( pTable, "\n" );
+    fclose( pTable );
 }
 
 /**Function*************************************************************
@@ -177,6 +210,22 @@ void Rwr_ManPrintStats( Rwr_Man_t * p )
 void * Rwr_ManReadDecs( Rwr_Man_t * p )
 {
     return p->pGraph;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Stops the resynthesis manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Rwr_ManReadLeaves( Rwr_Man_t * p )
+{
+    return p->vFanins;
 }
 
 /**Function*************************************************************
@@ -209,6 +258,22 @@ int Rwr_ManReadCompl( Rwr_Man_t * p )
 void Rwr_ManAddTimeCuts( Rwr_Man_t * p, int Time )
 {
     p->timeCut += Time;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Stops the resynthesis manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Rwr_ManAddTimeUpdate( Rwr_Man_t * p, int Time )
+{
+    p->timeUpdate += Time;
 }
 
 /**Function*************************************************************

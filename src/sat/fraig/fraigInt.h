@@ -47,7 +47,7 @@
 */
 
 ////////////////////////////////////////////////////////////////////////
-///                       MACRO DEFITIONS                            ///
+///                       MACRO DEFINITIONS                          ///
 ////////////////////////////////////////////////////////////////////////
  
 // enable this macro to support the fanouts
@@ -66,7 +66,7 @@
 // the bit masks
 #define FRAIG_MASK(n)             ((~((unsigned)0)) >> (32-(n)))
 #define FRAIG_FULL                 (~((unsigned)0))
-#define FRAIG_NUM_WORDS(n)         ((n)/32 + (((n)%32) > 0))
+#define FRAIG_NUM_WORDS(n)         (((n)>>5) + (((n)&31) > 0))
 
 // maximum/minimum operators
 #define FRAIG_MIN(a,b)             (((a) < (b))? (a) : (b))
@@ -143,6 +143,7 @@ struct Fraig_ManStruct_t_
     int                   nWordsRand;    // the number of words of random simulation info
     int                   nWordsDyna;    // the number of words of dynamic simulation info
     int                   nBTLimit;      // the max number of backtracks to perform
+    int                   nSeconds;      // the runtime limit for the miter proof
     int                   fFuncRed;      // performs only one level hashing
     int                   fFeedBack;     // enables solver feedback
     int                   fDist1Pats;    // enables solver feedback
@@ -151,6 +152,7 @@ struct Fraig_ManStruct_t_
     int                   fTryProve;     // tries to solve the final miter
     int                   fVerbose;      // the verbosiness flag
     int                   fVerboseP;     // the verbosiness flag
+    sint64                nInspLimit;    // the inspection limit
 
     int                   nTravIds;      // the traversal counter
     int                   nTravIds2;     // the traversal counter
@@ -188,7 +190,8 @@ struct Fraig_ManStruct_t_
     int                   nSatCalls;     // the number of times equivalence checking was called
     int                   nSatProof;     // the number of times a proof was found
     int                   nSatCounter;   // the number of times a counter example was found
-    int                   nSatFails;     // the number of times the SAT solver failed to complete
+    int                   nSatFails;     // the number of times the SAT solver failed to complete due to resource limit or prediction
+    int                   nSatFailsReal; // the number of times the SAT solver failed to complete due to resource limit
 
     int                   nSatCallsImp;  // the number of times equivalence checking was called
     int                   nSatProofImp;  // the number of times a proof was found
@@ -242,8 +245,9 @@ struct Fraig_NodeStruct_t_
     unsigned              fMark3   :  1; // the mark used for traversals
     unsigned              fFeedUse :  1; // the presence of the variable in the feedback
     unsigned              fFeedVal :  1; // the value of the variable in the feedback
+    unsigned              fFailTfo :  1; // the node is in the TFO of the failed SAT run
     unsigned              nFanouts :  2; // the indicator of fanouts (none, one, or many)
-    unsigned              nOnes    : 21; // the number of 1's in the random sim info
+    unsigned              nOnes    : 20; // the number of 1's in the random sim info
  
     // the children of the node
     Fraig_Node_t *        p1;            // the first child
@@ -279,9 +283,9 @@ struct Fraig_NodeStruct_t_
 // the vector of nodes
 struct Fraig_NodeVecStruct_t_
 {
-    Fraig_Node_t **       pArray;        // the array of nodes
-    int                   nSize;         // the number of entries in the array
     int                   nCap;          // the number of allocated entries
+    int                   nSize;         // the number of entries in the array
+    Fraig_Node_t **       pArray;        // the array of nodes
 };
 
 // the hash table 
@@ -364,7 +368,7 @@ struct Fraig_HashTableStruct_t_
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /*=== fraigCanon.c =============================================================*/
@@ -380,6 +384,8 @@ extern void                Fraig_FeedBackTest( Fraig_Man_t * p );
 extern int                 Fraig_FeedBackCompress( Fraig_Man_t * p );
 extern int *               Fraig_ManAllocCounterExample( Fraig_Man_t * p );
 extern int *               Fraig_ManSaveCounterExample( Fraig_Man_t * p, Fraig_Node_t * pNode );
+/*=== fraigMan.c =============================================================*/
+extern void                Fraig_ManCreateSolver( Fraig_Man_t * p );
 /*=== fraigMem.c =============================================================*/
 extern Fraig_MemFixed_t *  Fraig_MemFixedStart( int nEntrySize );
 extern void                Fraig_MemFixedStop( Fraig_MemFixed_t * p, int fVerbose );
@@ -438,8 +444,8 @@ extern int                 Fraig_NodeIsTravIdPrevious( Fraig_Man_t * pMan, Fraig
 /*=== fraigVec.c ===============================================================*/
 extern void                Fraig_NodeVecSortByRefCount( Fraig_NodeVec_t * p );
 
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
-#endif

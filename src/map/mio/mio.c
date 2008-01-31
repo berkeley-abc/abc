@@ -55,7 +55,7 @@ static char * pMcncGenlib[25] = {
 };
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -108,7 +108,7 @@ void Mio_Init( Abc_Frame_t * pAbc )
 void Mio_End()
 {
 //    Mio_LibraryDelete( s_pLib );
-    Mio_LibraryDelete( Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()) );
+    Mio_LibraryDelete( Abc_FrameReadLibGen() );
 }
 
 
@@ -133,14 +133,14 @@ int Mio_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     int fVerbose;
     int c;
 
-    pNet = Abc_FrameReadNet(pAbc);
+    pNet = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set the defaults
     fVerbose = 1;
-    util_getopt_reset();
-    while ( (c = util_getopt(argc, argv, "vh")) != EOF ) 
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "vh")) != EOF ) 
     {
         switch (c) 
         {
@@ -156,14 +156,14 @@ int Mio_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
 
-    if ( argc != util_optind + 1 )
+    if ( argc != globalUtilOptind + 1 )
     {
         goto usage;
     }
 
     // get the input file name
-    FileName = argv[util_optind];
-    if ( (pFile = fopen( FileName, "r" )) == NULL )
+    FileName = argv[globalUtilOptind];
+    if ( (pFile = Io_FileOpen( FileName, "open_path", "r", 0 )) == NULL )
     {
         fprintf( pErr, "Cannot open input file \"%s\". ", FileName );
         if ( (FileName = Extra_FileGetSimilarName( FileName, ".genlib", ".lib", ".gen", ".g", NULL )) )
@@ -181,7 +181,7 @@ int Mio_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
         return 1;
     }
     // free the current superlib because it depends on the old Mio library
-    if ( Abc_FrameReadLibSuper(Abc_FrameGetGlobalFrame()) )
+    if ( Abc_FrameReadLibSuper() )
     {
         extern void Map_SuperLibFree( Map_SuperLib_t * p );
 //        Map_SuperLibFree( s_pSuperLib );
@@ -223,14 +223,14 @@ int Mio_CommandPrintLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     int fVerbose;
     int c;
 
-    pNet = Abc_FrameReadNet(pAbc);
+    pNet = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set the defaults
     fVerbose = 1;
-    util_getopt_reset();
-    while ( (c = util_getopt(argc, argv, "vh")) != EOF ) 
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "vh")) != EOF ) 
     {
         switch (c) 
         {
@@ -246,13 +246,13 @@ int Mio_CommandPrintLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
 
-    if ( argc != util_optind )
+    if ( argc != globalUtilOptind )
     {
         goto usage;
     }
 
     // set the new network
-    Mio_WriteLibrary( stdout, Abc_FrameReadLibGen(Abc_FrameGetGlobalFrame()), 0 );
+    Mio_WriteLibrary( stdout, Abc_FrameReadLibGen(), 0 );
     return 0;
 
 usage:

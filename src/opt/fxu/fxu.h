@@ -19,6 +19,10 @@
 #ifndef __FXU_H__
 #define __FXU_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
@@ -33,8 +37,10 @@
 ///                    STRUCTURE DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+#ifndef __cplusplus
 #ifndef bool
 #define bool int
+#endif
 #endif
 
 typedef struct FxuDataStruct   Fxu_Data_t;
@@ -49,7 +55,8 @@ struct FxuDataStruct
     bool              fUseCompl;        // set to 1 to have complement taken into account
     bool              fVerbose;         // set to 1 to have verbose output
     int               nNodesExt;        // the number of divisors to extract
-    int               nPairsMax;        // the maximum number of cube pairs to consider
+    int               nSingleMax;       // the max number of single-cube divisors to consider
+    int               nPairsMax;        // the max number of double-cube divisors to consider
     // the input information
     Vec_Ptr_t *       vSops;            // the SOPs for each node in the network
     Vec_Ptr_t *       vFanins;          // the fanins of each node in the network
@@ -64,19 +71,23 @@ struct FxuDataStruct
 };
 
 ////////////////////////////////////////////////////////////////////////
-///                       MACRO DEFITIONS                            ///
+///                       MACRO DEFINITIONS                          ///
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /*===== fxu.c ==========================================================*/
 extern int          Fxu_FastExtract( Fxu_Data_t * pData );
 
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
-#endif
 

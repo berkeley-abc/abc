@@ -20,21 +20,27 @@
 
 #include "cutInt.h"
 
+/* 
+    Truth tables computed in this package are represented as bit-strings
+    stored in the cut data structure. Cuts of any number of inputs have 
+    the truth table with 2^k bits, where k is the max number of cut inputs.
+*/
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static void Cut_TruthCompute4( Cut_Man_t * p, Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 );
-static void Cut_TruthCompute5( Cut_Man_t * p, Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 );
-static void Cut_TruthCompute6( Cut_Man_t * p, Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 );
+extern int nTotal = 0;
+extern int nGood  = 0;
+extern int nEqual = 0;
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
 
-  Synopsis    [Performs truth table computation.]
+  Synopsis    [Computes the stretching phase of the cut w.r.t. the merged cut.]
 
   Description []
                
@@ -64,256 +70,154 @@ static inline unsigned Cut_TruthPhase( Cut_Cut_t * pCut, Cut_Cut_t * pCut1 )
 
   Synopsis    [Performs truth table computation.]
 
-  Description []
+  Description [This procedure cannot be used while recording oracle
+  because it will overwrite Num0 and Num1.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-void Cut_TruthCompute( Cut_Man_t * p, Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 )
+void Cut_TruthNCanonicize( Cut_Cut_t * pCut )
 {
-int clk = clock();
-    if ( pCut->nVarsMax == 4 )
-        Cut_TruthCompute4( p, pCut, pCut0, pCut1 );
-    else if ( pCut->nVarsMax == 5 )
-        Cut_TruthCompute5( p, pCut, pCut0, pCut1 );
-    else // if ( pCut->nVarsMax == 6 )
-        Cut_TruthCompute6( p, pCut, pCut0, pCut1 );
-p->timeTruth += clock() - clk;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Performs truth table computation.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Cut_TruthCompute4( Cut_Man_t * p, Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 )
-{
-    unsigned * puTruthCut0, * puTruthCut1;
-    unsigned uTruth0, uTruth1, uPhase;
-
-    puTruthCut0 = Cut_CutReadTruth(pCut0);
-    puTruthCut1 = Cut_CutReadTruth(pCut1);
-
-    uPhase  = Cut_TruthPhase( pCut, pCut0 );
-    uTruth0 = Extra_TruthPerm4One( *puTruthCut0, uPhase );
-    uTruth0 = p->fCompl0? ~uTruth0: uTruth0;
-
-    uPhase  = Cut_TruthPhase( pCut, pCut1 );
-    uTruth1 = Extra_TruthPerm4One( *puTruthCut1, uPhase );
-    uTruth1 = p->fCompl1? ~uTruth1: uTruth1;
-
-    uTruth1 = uTruth0 & uTruth1;
-    if ( pCut->fCompl )
-        uTruth1 = ~uTruth1;
-    if ( pCut->nVarsMax == 4 )
-        uTruth1 &= 0xFFFF; 
-    Cut_CutWriteTruth( pCut, &uTruth1 );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Performs truth table computation.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Cut_TruthCompute5( Cut_Man_t * p, Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 )
-{
-    unsigned * puTruthCut0, * puTruthCut1;
-    unsigned uTruth0, uTruth1, uPhase;
-
-    puTruthCut0 = Cut_CutReadTruth(pCut0);
-    puTruthCut1 = Cut_CutReadTruth(pCut1);
-
-    uPhase  = Cut_TruthPhase( pCut, pCut0 );
-    uTruth0 = Extra_TruthPerm5One( *puTruthCut0, uPhase );
-    uTruth0 = p->fCompl0? ~uTruth0: uTruth0;
-
-    uPhase  = Cut_TruthPhase( pCut, pCut1 );
-    uTruth1 = Extra_TruthPerm5One( *puTruthCut1, uPhase );
-    uTruth1 = p->fCompl1? ~uTruth1: uTruth1;
-
-    uTruth1 = uTruth0 & uTruth1;
-    if ( pCut->fCompl )
-        uTruth1 = ~uTruth1;
-    Cut_CutWriteTruth( pCut, &uTruth1 );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Performs truth table computation.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Cut_TruthCompute6( Cut_Man_t * p, Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 )
-{
-    unsigned * puTruthCut0, * puTruthCut1;
-    unsigned uTruth0[2], uTruth1[2], uPhase;
-
-    puTruthCut0 = Cut_CutReadTruth(pCut0);
-    puTruthCut1 = Cut_CutReadTruth(pCut1);
-
-    uPhase = Cut_TruthPhase( pCut, pCut0 );
-    Extra_TruthPerm6One( puTruthCut0, uPhase, uTruth0 );
-    uTruth0[0] = p->fCompl0? ~uTruth0[0]: uTruth0[0];
-    uTruth0[1] = p->fCompl0? ~uTruth0[1]: uTruth0[1];
-
-    uPhase = Cut_TruthPhase( pCut, pCut1 );
-    Extra_TruthPerm6One( puTruthCut1, uPhase, uTruth1 );
-    uTruth1[0] = p->fCompl1? ~uTruth1[0]: uTruth1[0];
-    uTruth1[1] = p->fCompl1? ~uTruth1[1]: uTruth1[1];
-
-    uTruth1[0] = uTruth0[0] & uTruth1[0];
-    uTruth1[1] = uTruth0[1] & uTruth1[1];
-    if ( pCut->fCompl )
-    {
-        uTruth1[0] = ~uTruth0[0];
-        uTruth1[1] = ~uTruth0[1];
-    }
-    Cut_CutWriteTruth( pCut, uTruth1 );
-}
-
-
-
-
-
-
-/**Function*************************************************************
-
-  Synopsis    [Performs truth table computation.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Cut_TruthComputeOld( Cut_Man_t * p, Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1 )
-{
-    unsigned uTruth0, uTruth1, uPhase;
-    int clk = clock();
-
+    unsigned uTruth;
+    unsigned * uCanon2;
+    char * pPhases2;
     assert( pCut->nVarsMax < 6 );
 
-    // assign the truth table
-    if ( pCut0->nLeaves == pCut->nLeaves )
-        uTruth0 = *Cut_CutReadTruth(pCut0);
-    else
-    {
-        assert( pCut0->nLeaves < pCut->nLeaves );
-        uPhase = Cut_TruthPhase( pCut, pCut0 );
-        if ( pCut->nVarsMax == 4 )
-        {
-            assert( pCut0->nLeaves < 4 );
-            assert( uPhase < 16 );
-            uTruth0 = p->pPerms43[pCut0->uTruth & 0xFF][uPhase];
-        }
-        else
-        {
-            assert( pCut->nVarsMax == 5 );
-            assert( pCut0->nLeaves < 5 );
-            assert( uPhase < 32 );
-            if ( pCut0->nLeaves == 4 )
-            {
-//                Count4++;
-/*
-                if ( uPhase == 31-16 ) // 01111
-                    uTruth0 = pCut0->uTruth;
-                else if ( uPhase == 31-8 ) // 10111
-                    uTruth0 = p->pPerms54[pCut0->uTruth & 0xFFFF][0];
-                else if ( uPhase == 31-4 ) // 11011
-                    uTruth0 = p->pPerms54[pCut0->uTruth & 0xFFFF][1];
-                else if ( uPhase == 31-2 ) // 11101
-                    uTruth0 = p->pPerms54[pCut0->uTruth & 0xFFFF][2];
-                else if ( uPhase == 31-1 ) // 11110
-                    uTruth0 = p->pPerms54[pCut0->uTruth & 0xFFFF][3];
-                else
-                    assert( 0 );
-*/
-                uTruth0 = Extra_TruthPerm5One( *Cut_CutReadTruth(pCut0), uPhase );
-            }
-            else
-            {
-//                Count5++;
-//                uTruth0 = p->pPerms53[pCut0->uTruth & 0xFF][uPhase];
-                uTruth0 = Extra_TruthPerm5One( *Cut_CutReadTruth(pCut0), uPhase );
-            }
-        }
-    }
-    uTruth0 = p->fCompl0? ~uTruth0: uTruth0;
+    // get the direct truth table
+    uTruth = *Cut_CutReadTruth(pCut);
 
-    // assign the truth table
-    if ( pCut1->nLeaves == pCut->nLeaves )
-        uTruth0 = *Cut_CutReadTruth(pCut1);
+    // compute the direct truth table
+    Extra_TruthCanonFastN( pCut->nVarsMax, pCut->nLeaves, &uTruth, &uCanon2, &pPhases2 );
+//    uCanon[0] = uCanon2[0];
+//    uCanon[1] = (p->nVarsMax == 6)? uCanon2[1] : uCanon2[0];
+//    uPhases[0] = pPhases2[0];
+    pCut->uCanon0 = uCanon2[0];
+    pCut->Num0    = pPhases2[0];
+
+    // get the complemented truth table
+    uTruth = ~*Cut_CutReadTruth(pCut);
+
+    // compute the direct truth table
+    Extra_TruthCanonFastN( pCut->nVarsMax, pCut->nLeaves, &uTruth, &uCanon2, &pPhases2 );
+//    uCanon[0] = uCanon2[0];
+//    uCanon[1] = (p->nVarsMax == 6)? uCanon2[1] : uCanon2[0];
+//    uPhases[0] = pPhases2[0];
+    pCut->uCanon1 = uCanon2[0];
+    pCut->Num1    = pPhases2[0];
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs truth table computation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cut_TruthComputeOld( Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1, int fCompl0, int fCompl1 )
+{
+    static unsigned uTruth0[8], uTruth1[8];
+    int nTruthWords = Cut_TruthWords( pCut->nVarsMax );
+    unsigned * pTruthRes;
+    int i, uPhase;
+
+    // permute the first table
+    uPhase = Cut_TruthPhase( pCut, pCut0 );
+    Extra_TruthExpand( pCut->nVarsMax, nTruthWords, Cut_CutReadTruth(pCut0), uPhase, uTruth0 );
+    if ( fCompl0 ) 
+    {
+        for ( i = 0; i < nTruthWords; i++ )
+            uTruth0[i] = ~uTruth0[i];
+    }
+
+    // permute the second table
+    uPhase = Cut_TruthPhase( pCut, pCut1 );
+    Extra_TruthExpand( pCut->nVarsMax, nTruthWords, Cut_CutReadTruth(pCut1), uPhase, uTruth1 );
+    if ( fCompl1 ) 
+    {
+        for ( i = 0; i < nTruthWords; i++ )
+            uTruth1[i] = ~uTruth1[i];
+    }
+
+    // write the resulting table
+    pTruthRes = Cut_CutReadTruth(pCut);
+
+    if ( pCut->fCompl )
+    {
+        for ( i = 0; i < nTruthWords; i++ )
+            pTruthRes[i] = ~(uTruth0[i] & uTruth1[i]);
+    }
     else
     {
-        assert( pCut1->nLeaves < pCut->nLeaves );
-        uPhase = Cut_TruthPhase( pCut, pCut1 );
-        if ( pCut->nVarsMax == 4 )
-        {
-            assert( pCut1->nLeaves < 4 );
-            assert( uPhase < 16 );
-            uTruth1 = p->pPerms43[pCut1->uTruth & 0xFF][uPhase];
-        }
-        else
-        {
-            assert( pCut->nVarsMax == 5 );
-            assert( pCut1->nLeaves < 5 );
-            assert( uPhase < 32 );
-            if ( pCut1->nLeaves == 4 )
-            {
-//                Count4++;
-/*
-                if ( uPhase == 31-16 ) // 01111
-                    uTruth1 = pCut1->uTruth;
-                else if ( uPhase == 31-8 ) // 10111
-                    uTruth1 = p->pPerms54[pCut1->uTruth & 0xFFFF][0];
-                else if ( uPhase == 31-4 ) // 11011
-                    uTruth1 = p->pPerms54[pCut1->uTruth & 0xFFFF][1];
-                else if ( uPhase == 31-2 ) // 11101
-                    uTruth1 = p->pPerms54[pCut1->uTruth & 0xFFFF][2];
-                else if ( uPhase == 31-1 ) // 11110
-                    uTruth1 = p->pPerms54[pCut1->uTruth & 0xFFFF][3];
-                else
-                    assert( 0 );
-*/
-                uTruth1 = Extra_TruthPerm5One( *Cut_CutReadTruth(pCut1), uPhase );
-            }
-            else
-            {
-//                Count5++;
-//                uTruth1 = p->pPerms53[pCut1->uTruth & 0xFF][uPhase];
-                uTruth1 = Extra_TruthPerm5One( *Cut_CutReadTruth(pCut1), uPhase );
-            }
-        }
+        for ( i = 0; i < nTruthWords; i++ )
+            pTruthRes[i] = uTruth0[i] & uTruth1[i];
     }
-    uTruth1 = p->fCompl1? ~uTruth1: uTruth1;
-    uTruth1 = uTruth0 & uTruth1;
-    if ( pCut->fCompl )
-        uTruth1 = ~uTruth1;
-    if ( pCut->nVarsMax == 4 )
-        uTruth1 &= 0xFFFF; 
-    Cut_CutWriteTruth( pCut, &uTruth1 );
-p->timeTruth += clock() - clk;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Performs truth table computation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cut_TruthCompute( Cut_Man_t * p, Cut_Cut_t * pCut, Cut_Cut_t * pCut0, Cut_Cut_t * pCut1, int fCompl0, int fCompl1 )
+{
+    // permute the first table
+    if ( fCompl0 ) 
+        Extra_TruthNot( p->puTemp[0], Cut_CutReadTruth(pCut0), pCut->nVarsMax );
+    else
+        Extra_TruthCopy( p->puTemp[0], Cut_CutReadTruth(pCut0), pCut->nVarsMax );
+    Extra_TruthStretch( p->puTemp[2], p->puTemp[0], pCut0->nLeaves, pCut->nVarsMax, Cut_TruthPhase(pCut, pCut0) );
+    // permute the second table
+    if ( fCompl1 ) 
+        Extra_TruthNot( p->puTemp[1], Cut_CutReadTruth(pCut1), pCut->nVarsMax );
+    else
+        Extra_TruthCopy( p->puTemp[1], Cut_CutReadTruth(pCut1), pCut->nVarsMax );
+    Extra_TruthStretch( p->puTemp[3], p->puTemp[1], pCut1->nLeaves, pCut->nVarsMax, Cut_TruthPhase(pCut, pCut1) );
+    // produce the resulting table
+    if ( pCut->fCompl )
+        Extra_TruthNand( Cut_CutReadTruth(pCut), p->puTemp[2], p->puTemp[3], pCut->nVarsMax );
+    else
+        Extra_TruthAnd( Cut_CutReadTruth(pCut), p->puTemp[2], p->puTemp[3], pCut->nVarsMax );
+
+//    Ivy_TruthTestOne( *Cut_CutReadTruth(pCut) );
+
+    // quit if no fancy computation is needed
+    if ( !p->pParams->fFancy )
+        return;
+
+    if ( pCut->nLeaves != 7 )
+        return;
+
+    // count the total number of truth tables computed
+    nTotal++;
+
+    // MAPPING INTO ALTERA 6-2 LOGIC BLOCKS
+    // call this procedure to find the minimum number of common variables in the cofactors
+    // if this number is less or equal than 3, the cut can be implemented using the 6-2 logic block
+    if ( Extra_TruthMinCofSuppOverlap( Cut_CutReadTruth(pCut), pCut->nVarsMax, NULL ) <= 4 )
+        nGood++;
+
+    // MAPPING INTO ACTEL 2x2 CELLS
+    // call this procedure to see if a semi-canonical form can be found in the lookup table 
+    // (if it exists, then a two-level 3-input LUT implementation of the cut exists)
+    // Before this procedure is called, cell manager should be defined by calling
+    // Cut_CellLoad (make sure file "cells22_daomap_iwls.txt" is available in the working dir)
+//    if ( Cut_CellIsRunning() && pCut->nVarsMax <= 9 )
+//        nGood += Cut_CellTruthLookup( Cut_CutReadTruth(pCut), pCut->nVarsMax );
+}
+
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

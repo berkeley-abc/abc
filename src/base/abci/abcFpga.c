@@ -25,12 +25,12 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static Fpga_Man_t * Abc_NtkToFpga( Abc_Ntk_t * pNtk, int fRecovery, float * pSwitching, int fVerbose );
+static Fpga_Man_t * Abc_NtkToFpga( Abc_Ntk_t * pNtk, int fRecovery, float * pSwitching, int fLatchPaths, int fVerbose );
 static Abc_Ntk_t *  Abc_NtkFromFpga( Fpga_Man_t * pMan, Abc_Ntk_t * pNtk );
 static Abc_Obj_t *  Abc_NodeFromFpga_rec( Abc_Ntk_t * pNtkNew, Fpga_Node_t * pNodeFpga );
  
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -44,7 +44,7 @@ static Abc_Obj_t *  Abc_NodeFromFpga_rec( Abc_Ntk_t * pNtkNew, Fpga_Node_t * pNo
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkFpga( Abc_Ntk_t * pNtk, int fRecovery, int fSwitching, int fVerbose )
+Abc_Ntk_t * Abc_NtkFpga( Abc_Ntk_t * pNtk, float DelayTarget, int fRecovery, int fSwitching, int fLatchPaths, int fVerbose )
 {
     int fShowSwitching = 1;
     Abc_Ntk_t * pNtkNew;
@@ -68,11 +68,14 @@ Abc_Ntk_t * Abc_NtkFpga( Abc_Ntk_t * pNtk, int fRecovery, int fSwitching, int fV
     }
 
     // perform FPGA mapping
-    pMan = Abc_NtkToFpga( pNtk, fRecovery, pSwitching, fVerbose );    
+    pMan = Abc_NtkToFpga( pNtk, fRecovery, pSwitching, fLatchPaths, fVerbose );    
     if ( pSwitching ) Vec_IntFree( vSwitching );
     if ( pMan == NULL )
         return NULL;
     Fpga_ManSetSwitching( pMan, fSwitching );
+    Fpga_ManSetLatchPaths( pMan, fLatchPaths );
+    Fpga_ManSetLatchNum( pMan, Abc_NtkLatchNum(pNtk) );
+    Fpga_ManSetDelayTarget( pMan, DelayTarget );
     if ( !Fpga_Mapping( pMan ) )
     {
         Fpga_ManFree( pMan );
@@ -87,6 +90,9 @@ Abc_Ntk_t * Abc_NtkFpga( Abc_Ntk_t * pNtk, int fRecovery, int fSwitching, int fV
 
     // make the network minimum base
     Abc_NtkMinimumBase( pNtkNew );
+
+    if ( pNtk->pExdc )
+        pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );
 
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtkNew ) )
@@ -109,13 +115,14 @@ Abc_Ntk_t * Abc_NtkFpga( Abc_Ntk_t * pNtk, int fRecovery, int fSwitching, int fV
   SeeAlso     []
 
 ***********************************************************************/
-Fpga_Man_t * Abc_NtkToFpga( Abc_Ntk_t * pNtk, int fRecovery, float * pSwitching, int fVerbose )
+Fpga_Man_t * Abc_NtkToFpga( Abc_Ntk_t * pNtk, int fRecovery, float * pSwitching, int fLatchPaths, int fVerbose )
 {
     Fpga_Man_t * pMan;
     ProgressBar * pProgress;
     Fpga_Node_t * pNodeFpga;
     Vec_Ptr_t * vNodes;
     Abc_Obj_t * pNode, * pFanin, * pPrev;
+    float * pfArrivals;
     int i;
 
     assert( Abc_NtkIsStrash(pNtk) );
@@ -126,10 +133,17 @@ Fpga_Man_t * Abc_NtkToFpga( Abc_Ntk_t * pNtk, int fRecovery, float * pSwitching,
         return NULL;
     Fpga_ManSetAreaRecovery( pMan, fRecovery );
     Fpga_ManSetOutputNames( pMan, Abc_NtkCollectCioNames(pNtk, 1) );
-    Fpga_ManSetInputArrivals( pMan, Abc_NtkGetCiArrivalFloats(pNtk) );
+    pfArrivals = Abc_NtkGetCiArrivalFloats(pNtk);
+    if ( fLatchPaths )
+    {
+        for ( i = 0; i < Abc_NtkPiNum(pNtk); i++ )
+            pfArrivals[i] = -FPGA_FLOAT_LARGE;
+    }
+    Fpga_ManSetInputArrivals( pMan, pfArrivals );
 
     // create PIs and remember them in the old nodes
     Abc_NtkCleanCopy( pNtk );
+    Abc_AigConst1(pNtk)->pCopy = (Abc_Obj_t *)Fpga_ManReadConst1(pMan);
     Abc_NtkForEachCi( pNtk, pNode, i )
     {
         pNodeFpga = Fpga_ManReadInputs(pMan)[i];
@@ -144,12 +158,6 @@ Fpga_Man_t * Abc_NtkToFpga( Abc_Ntk_t * pNtk, int fRecovery, float * pSwitching,
     Vec_PtrForEachEntry( vNodes, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
-        // consider the case of a constant
-        if ( Abc_NodeIsConst(pNode) )
-        {
-            Abc_AigConst1(pNtk->pManFunc)->pCopy = (Abc_Obj_t *)Fpga_ManReadConst1(pMan);
-            continue;
-        }
         // add the node to the mapper
         pNodeFpga = Fpga_NodeAnd( pMan, 
             Fpga_NotCond( Abc_ObjFanin0(pNode)->pCopy, Abc_ObjFaninC0(pNode) ),
@@ -160,7 +168,7 @@ Fpga_Man_t * Abc_NtkToFpga( Abc_Ntk_t * pNtk, int fRecovery, float * pSwitching,
         if ( pSwitching )
             Fpga_NodeSetSwitching( pNodeFpga, pSwitching[pNode->Id] );
         // set up the choice node
-        if ( Abc_NodeIsAigChoice( pNode ) )
+        if ( Abc_AigNodeIsChoice( pNode ) )
             for ( pPrev = pNode, pFanin = pNode->pData; pFanin; pPrev = pFanin, pFanin = pFanin->pData )
             {
                 Fpga_NodeSetNextE( (Fpga_Node_t *)pPrev->pCopy, (Fpga_Node_t *)pFanin->pCopy );
@@ -194,15 +202,15 @@ Abc_Ntk_t * Abc_NtkFromFpga( Fpga_Man_t * pMan, Abc_Ntk_t * pNtk )
     Abc_Obj_t * pNode, * pNodeNew;
     int i, nDupGates;
     // create the new network
-    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_TYPE_LOGIC, ABC_FUNC_BDD );
+    pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_BDD );
     // make the mapper point to the new network
     Fpga_CutsCleanSign( pMan );
     Fpga_ManCleanData0( pMan );
     Abc_NtkForEachCi( pNtk, pNode, i )
         Fpga_NodeSetData0( Fpga_ManReadInputs(pMan)[i], (char *)pNode->pCopy );
     // set the constant node
-    if ( Abc_ObjFanoutNum( Abc_AigConst1(pNtk->pManFunc) ) > 0 )
-        Fpga_NodeSetData0( Fpga_ManReadConst1(pMan), (char *)Abc_NodeCreateConst1(pNtkNew) );
+//    if ( Fpga_NodeReadRefs(Fpga_ManReadConst1(pMan)) > 0 )
+        Fpga_NodeSetData0( Fpga_ManReadConst1(pMan), (char *)Abc_NtkCreateNodeConst1(pNtkNew) );
     // process the nodes in topological order
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pNode, i )
@@ -215,6 +223,10 @@ Abc_Ntk_t * Abc_NtkFromFpga( Fpga_Man_t * pMan, Abc_Ntk_t * pNtk )
     Extra_ProgressBarStop( pProgress );
     // finalize the new network
     Abc_NtkFinalize( pNtk, pNtkNew );
+    // remove the constant node if not used
+    pNodeNew = (Abc_Obj_t *)Fpga_NodeReadData0(Fpga_ManReadConst1(pMan));
+    if ( Abc_ObjFanoutNum(pNodeNew) == 0 )
+        Abc_NtkDeleteObj( pNodeNew );
     // decouple the PO driver nodes to reduce the number of levels
     nDupGates = Abc_NtkLogicMakeSimpleCos( pNtkNew, 1 );
 //    if ( nDupGates && Fpga_ManReadVerbose(pMan) )

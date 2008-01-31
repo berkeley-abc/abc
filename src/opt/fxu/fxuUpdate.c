@@ -37,7 +37,7 @@ static void Fxu_UpdateCleanOldSingles( Fxu_Matrix * p );
 static void Fxu_UpdateAddNewSingles( Fxu_Matrix * p, Fxu_Var * pVar );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -757,12 +757,14 @@ void Fxu_UpdateCleanOldSingles( Fxu_Matrix * p )
 { 
     Fxu_Single * pSingle, * pSingle2;
     int WeightNew;
+    int Counter = 0;
 
     Fxu_MatrixForEachSingleSafe( p, pSingle, pSingle2 )
     {
         // if at least one of the variables is marked, recalculate
         if ( pSingle->pVar1->pOrder || pSingle->pVar2->pOrder )
         {
+            Counter++;
             // get the new weight
             WeightNew = -2 + Fxu_SingleCountCoincidence( p, pSingle->pVar1, pSingle->pVar2 );
             if ( WeightNew >= 0 )
@@ -778,6 +780,7 @@ void Fxu_UpdateCleanOldSingles( Fxu_Matrix * p )
             }
         }
     }
+//    printf( "Called procedure %d times.\n", Counter );
 }
 
 /**Function*************************************************************

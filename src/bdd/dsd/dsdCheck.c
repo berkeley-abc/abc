@@ -43,7 +43,7 @@ static Dds_Cache_t * pCache;
 static int Dsd_CheckRootFunctionIdentity_rec( DdManager * dd, DdNode * bF1, DdNode * bF2, DdNode * bC1, DdNode * bC2 );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function********************************************************************
@@ -82,7 +82,7 @@ void Dsd_CheckCacheAllocate( int nEntries )
 
 /**Function********************************************************************
 
-  Synopsis    [Delocates the local cache.]
+  Synopsis    [Deallocates the local cache.]
 
   Description []
 

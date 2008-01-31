@@ -30,11 +30,11 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static void Abc_ShowFile( char * FileNameDot );
+extern void Abc_ShowFile( char * FileNameDot );
 static void Abc_ShowGetFileName( char * pName, char * pBuffer );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -72,47 +72,6 @@ void Abc_NodeShowBdd( Abc_Obj_t * pNode )
     Abc_NodeFreeNames( vNamesIn );
     Abc_NtkCleanCopy( pNode->pNtk );
     fclose( pFile );
-
-    // visualize the file 
-    Abc_ShowFile( FileNameDot );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Visualizes AIG with choices.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkShowAig( Abc_Ntk_t * pNtk )
-{
-    FILE * pFile;
-    Abc_Obj_t * pNode;
-    Vec_Ptr_t * vNodes;
-    char FileNameDot[200];
-    int i;
-
-    assert( Abc_NtkIsStrash(pNtk) );
-    // create the file name
-    Abc_ShowGetFileName( pNtk->pName, FileNameDot );
-    // check that the file can be opened
-    if ( (pFile = fopen( FileNameDot, "w" )) == NULL )
-    {
-        fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", FileNameDot );
-        return;
-    }
-
-    // collect all nodes in the network
-    vNodes = Vec_PtrAlloc( 100 );
-    Abc_NtkForEachObj( pNtk, pNode, i )
-        Vec_PtrPush( vNodes, pNode );
-    // write the DOT file
-    Io_WriteDot( pNtk, vNodes, NULL, FileNameDot );
-    Vec_PtrFree( vNodes );
 
     // visualize the file 
     Abc_ShowFile( FileNameDot );
@@ -170,9 +129,62 @@ void Abc_NodeShowCut( Abc_Obj_t * pNode, int nNodeSizeMax, int nConeSizeMax )
     // add the root node to the cone (for visualization)
     Vec_PtrPush( vCutSmall, pNode );
     // write the DOT file
-    Io_WriteDot( pNode->pNtk, vInside, vCutSmall, FileNameDot );
+    Io_WriteDotNtk( pNode->pNtk, vInside, vCutSmall, FileNameDot, 0, 0 );
     // stop the cut computation manager
     Abc_NtkManCutStop( p );
+
+    // visualize the file 
+    Abc_ShowFile( FileNameDot );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Visualizes AIG with choices.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkShow( Abc_Ntk_t * pNtk, int fGateNames, int fSeq, int fUseReverse )
+{
+    FILE * pFile;
+    Abc_Obj_t * pNode;
+    Vec_Ptr_t * vNodes;
+    char FileNameDot[200];
+    int i;
+
+    assert( Abc_NtkIsStrash(pNtk) || Abc_NtkIsLogic(pNtk) );
+    if ( Abc_NtkIsStrash(pNtk) && Abc_NtkGetChoiceNum(pNtk) )
+    {
+        printf( "Temporarily visualization of AIGs with choice nodes is disabled.\n" );
+        return;
+    }
+    // convert to logic SOP
+    if ( Abc_NtkIsLogic(pNtk) )
+        Abc_NtkToSop( pNtk, 0 );
+    // create the file name
+    Abc_ShowGetFileName( pNtk->pName, FileNameDot );
+    // check that the file can be opened
+    if ( (pFile = fopen( FileNameDot, "w" )) == NULL )
+    {
+        fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", FileNameDot );
+        return;
+    }
+    fclose( pFile );
+
+    // collect all nodes in the network
+    vNodes = Vec_PtrAlloc( 100 );
+    Abc_NtkForEachObj( pNtk, pNode, i )
+        Vec_PtrPush( vNodes, pNode );
+    // write the DOT file
+    if ( fSeq )
+        Io_WriteDotSeq( pNtk, vNodes, NULL, FileNameDot, fGateNames, fUseReverse );
+    else
+        Io_WriteDotNtk( pNtk, vNodes, NULL, FileNameDot, fGateNames, fUseReverse );
+    Vec_PtrFree( vNodes );
 
     // visualize the file 
     Abc_ShowFile( FileNameDot );

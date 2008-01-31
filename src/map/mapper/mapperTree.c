@@ -37,7 +37,7 @@ static unsigned      Map_LibraryGetGateSupp_rec( Map_Super_t * pGate );
 extern const int s_MapFanoutLimits[10] = { 1/*0*/, 10/*1*/, 5/*2*/, 2/*3*/, 1/*4*/, 1/*5*/, 1/*6*/ };
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -60,8 +60,8 @@ int Map_LibraryReadTree( Map_SuperLib_t * pLib, char * pFileName, char * pExclud
 
     // read the beginning of the file
     assert( pLib->pGenlib == NULL );
-//    pFile = Io_FileOpen( pFileName, "open_path", "r" );
-    pFile = fopen( pFileName, "r" ); 
+    pFile = Io_FileOpen( pFileName, "open_path", "r", 1 );
+//    pFile = fopen( pFileName, "r" ); 
     if ( pFile == NULL )
     {
         printf( "Cannot open input file \"%s\".\n", pFileName );
@@ -149,8 +149,8 @@ int Map_LibraryReadFileTree( Map_SuperLib_t * pLib, FILE * pFile, char *pFileNam
     }
 #endif
     
-//    pFileGen = Io_FileOpen( pLibFile, "open_path", "r" );
-    pFileGen = fopen( pLibFile, "r" ); 
+    pFileGen = Io_FileOpen( pLibFile, "open_path", "r", 1 );
+//    pFileGen = fopen( pLibFile, "r" ); 
     if ( pFileGen == NULL )
     {
         printf( "Cannot open the GENLIB file \"%s\".\n", pLibFile );
@@ -439,6 +439,9 @@ int Map_LibraryDeriveGateInfo( Map_SuperLib_t * pLib, st_table * tExcludeGate )
                 pGate->tDelayMax.Fall = pGate->tDelaysF[k].Rise;
             if ( pGate->tDelayMax.Fall < pGate->tDelaysF[k].Fall )
                 pGate->tDelayMax.Fall = pGate->tDelaysF[k].Fall;
+
+            pGate->tDelaysF[k].Worst = MAP_MAX( pGate->tDelaysF[k].Fall, pGate->tDelaysF[k].Rise );
+            pGate->tDelaysR[k].Worst = MAP_MAX( pGate->tDelaysR[k].Fall, pGate->tDelaysR[k].Rise );
         }
 
         // count gates and area of the supergate

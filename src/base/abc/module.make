@@ -1,9 +1,12 @@
 SRC +=    src/base/abc/abcAig.c \
+    src/base/abc/abcBlifMv.c \
     src/base/abc/abcCheck.c \
     src/base/abc/abcDfs.c \
     src/base/abc/abcFanio.c \
     src/base/abc/abcFunc.c \
+    src/base/abc/abcHie.c \
     src/base/abc/abcLatch.c \
+    src/base/abc/abcLib.c \
     src/base/abc/abcMinBase.c \
     src/base/abc/abcNames.c \
     src/base/abc/abcNetlist.c \

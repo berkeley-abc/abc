@@ -25,7 +25,7 @@
 extern unsigned int Cudd_Prime( unsigned int p );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -130,7 +130,7 @@ void Fxu_MatrixDelete( Fxu_Matrix * p )
             MEM_FREE_FXU( p, Fxu_Var, 1, pVar );
     }
 #else
-    Extra_MmFixedStop( p->pMemMan, 0 );
+    Extra_MmFixedStop( p->pMemMan );
 #endif
 
     Vec_PtrFree( p->vPairs );

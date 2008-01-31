@@ -18,7 +18,7 @@
 
 ***********************************************************************/
 
-#include "stdio.h"
+#include <stdio.h>
 #include "extra.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -38,7 +38,7 @@ static void Extra_ProgressBarShow( ProgressBar * p, char * pString );
 static void Extra_ProgressBarClean( ProgressBar * p );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -58,13 +58,17 @@ static void Extra_ProgressBarClean( ProgressBar * p );
 ProgressBar * Extra_ProgressBarStart( FILE * pFile, int nItemsTotal )
 {
     ProgressBar * p;
+    extern int Abc_FrameShowProgress( void * p );
+    extern void * Abc_FrameGetGlobalFrame();
+
+    if ( !Abc_FrameShowProgress(Abc_FrameGetGlobalFrame()) ) return NULL;
     p = ALLOC( ProgressBar, 1 );
     memset( p, 0, sizeof(ProgressBar) );
     p->pFile       = pFile;
     p->nItemsTotal = nItemsTotal;
     p->posTotal    = 78;
     p->posCur      = 1;
-    p->nItemsNext  = (int)((float)p->nItemsTotal/p->posTotal)*(p->posCur+5)+2;
+    p->nItemsNext  = (int)((7.0+p->posCur)*p->nItemsTotal/p->posTotal);
     Extra_ProgressBarShow( p, NULL );
     return p;
 }
@@ -82,14 +86,19 @@ ProgressBar * Extra_ProgressBarStart( FILE * pFile, int nItemsTotal )
 ***********************************************************************/
 void Extra_ProgressBarUpdate_int( ProgressBar * p, int nItemsCur, char * pString )
 {
+    if ( p == NULL ) return;
     if ( nItemsCur < p->nItemsNext )
         return;
-    if ( nItemsCur > p->nItemsTotal )
-        nItemsCur = p->nItemsTotal;
-    p->posCur = (int)((float)nItemsCur * p->posTotal / p->nItemsTotal);
-    p->nItemsNext  = (int)((float)p->nItemsTotal/p->posTotal)*(p->posCur+10)+1;
-    if ( p->posCur == 0 )
-        p->posCur = 1;
+    if ( nItemsCur >= p->nItemsTotal )
+    {
+        p->posCur = 78;
+        p->nItemsNext = 0x7FFFFFFF;
+    }
+    else
+    {
+        p->posCur += 7;
+        p->nItemsNext = (int)((7.0+p->posCur)*p->nItemsTotal/p->posTotal);
+    }
     Extra_ProgressBarShow( p, pString );
 }
 
@@ -107,6 +116,7 @@ void Extra_ProgressBarUpdate_int( ProgressBar * p, int nItemsCur, char * pString
 ***********************************************************************/
 void Extra_ProgressBarStop( ProgressBar * p )
 {
+    if ( p == NULL ) return;
     Extra_ProgressBarClean( p );
     FREE( p );
 }
@@ -125,6 +135,7 @@ void Extra_ProgressBarStop( ProgressBar * p )
 void Extra_ProgressBarShow( ProgressBar * p, char * pString )
 {
     int i;
+    if ( p == NULL ) return;
     if ( pString )
         fprintf( p->pFile, "%s ", pString );
     for ( i = (pString? strlen(pString) + 1 : 0); i < p->posCur; i++ )
@@ -151,6 +162,7 @@ void Extra_ProgressBarShow( ProgressBar * p, char * pString )
 void Extra_ProgressBarClean( ProgressBar * p )
 {
     int i;
+    if ( p == NULL ) return;
     for ( i = 0; i <= p->posTotal; i++ )
         fprintf( p->pFile, " " );
     fprintf( p->pFile, "\r" );

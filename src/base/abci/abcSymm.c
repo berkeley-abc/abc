@@ -24,13 +24,13 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
  
-static void Abc_NtkSymmetriesUsingBdds( Abc_Ntk_t * pNtk, int fNaive, int fVerbose );
+static void Abc_NtkSymmetriesUsingBdds( Abc_Ntk_t * pNtk, int fNaive, int fReorder, int fVerbose );
 static void Abc_NtkSymmetriesUsingSandS( Abc_Ntk_t * pNtk, int fVerbose );
 static void Ntk_NetworkSymmsBdd( DdManager * dd, Abc_Ntk_t * pNtk, int fNaive, int fVerbose );
 static void Ntk_NetworkSymmsPrint( Abc_Ntk_t * pNtk, Extra_SymmInfo_t * pSymms );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -44,10 +44,10 @@ static void Ntk_NetworkSymmsPrint( Abc_Ntk_t * pNtk, Extra_SymmInfo_t * pSymms )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkSymmetries( Abc_Ntk_t * pNtk, int fUseBdds, int fNaive, int fVerbose )
+void Abc_NtkSymmetries( Abc_Ntk_t * pNtk, int fUseBdds, int fNaive, int fReorder, int fVerbose )
 {
-    if ( fUseBdds )
-        Abc_NtkSymmetriesUsingBdds( pNtk, fNaive, fVerbose );
+    if ( fUseBdds || fNaive )
+        Abc_NtkSymmetriesUsingBdds( pNtk, fNaive, fReorder, fVerbose );
     else
         Abc_NtkSymmetriesUsingSandS( pNtk, fVerbose );
 }
@@ -81,15 +81,19 @@ void Abc_NtkSymmetriesUsingSandS( Abc_Ntk_t * pNtk, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkSymmetriesUsingBdds( Abc_Ntk_t * pNtk, int fNaive, int fVerbose )
+void Abc_NtkSymmetriesUsingBdds( Abc_Ntk_t * pNtk, int fNaive, int fReorder, int fVerbose )
 {
     DdManager * dd;
     int clk, clkBdd, clkSym;
+    int fGarbCollect = 1;
 
     // compute the global functions
 clk = clock();
-    dd = Abc_NtkGlobalBdds( pNtk, 0 );
+    dd = Abc_NtkBuildGlobalBdds( pNtk, 10000000, 1, fReorder, fVerbose );
+    printf( "Shared BDD size = %d nodes.\n", Abc_NtkSizeOfGlobalBdds(pNtk) ); 
     Cudd_AutodynDisable( dd );
+    if ( !fGarbCollect )
+        Cudd_DisableGarbageCollection( dd );
     Cudd_zddVarsFromBddVars( dd, 2 );
 clkBdd = clock() - clk;
     // create the collapsed network
@@ -97,10 +101,10 @@ clk = clock();
     Ntk_NetworkSymmsBdd( dd, pNtk, fNaive, fVerbose );
 clkSym = clock() - clk;
     // undo the global functions
-    Abc_NtkFreeGlobalBdds( pNtk );
-    Extra_StopManager( dd );
-    pNtk->pManGlob = NULL;
-
+    Abc_NtkFreeGlobalBdds( pNtk, 1 );
+printf( "Statistics of BDD-based symmetry detection:\n" );
+printf( "Algorithm = %s. Reordering = %s. Garbage collection = %s.\n", 
+       fNaive? "naive" : "fast", fReorder? "yes" : "no", fGarbCollect? "yes" : "no" );
 PRT( "Constructing BDDs", clkBdd );
 PRT( "Computing symms  ", clkSym );
 PRT( "TOTAL            ", clkBdd + clkSym );
@@ -129,7 +133,8 @@ void Ntk_NetworkSymmsBdd( DdManager * dd, Abc_Ntk_t * pNtk, int fNaive, int fVer
     // compute symmetry info for each PO
     Abc_NtkForEachCo( pNtk, pNode, i )
     {
-        bFunc = pNtk->vFuncsGlob->pArray[i];
+//      bFunc = pNtk->vFuncsGlob->pArray[i];
+        bFunc = Abc_ObjGlobalBdd( pNode );
         nSupps += Cudd_SupportSize( dd, bFunc );
         if ( Cudd_IsConstant(bFunc) )
             continue;

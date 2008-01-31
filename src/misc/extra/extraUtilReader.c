@@ -18,7 +18,7 @@
 
 ***********************************************************************/
 
-#include "stdio.h"
+#include <stdio.h>
 #include "extra.h"
 #include "vec.h"
 
@@ -26,7 +26,7 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define EXTRA_BUFFER_SIZE        1048576    // 1M   - size of the data chunk stored in memory
+#define EXTRA_BUFFER_SIZE        4*1048576    // 1M   - size of the data chunk stored in memory
 #define EXTRA_OFFSET_SIZE           4096    // 4K   - load new data when less than this is left
 
 #define EXTRA_MINIMUM(a,b)       (((a) < (b))? (a) : (b))
@@ -67,7 +67,7 @@ static void * Extra_FileReaderGetTokens_int( Extra_FileReader_t * p );
 static void Extra_FileReaderReload( Extra_FileReader_t * p );
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -262,6 +262,9 @@ void * Extra_FileReaderGetTokens_int( Extra_FileReader_t * p )
     // check if the new data should to be loaded
     if ( p->pBufferCur > p->pBufferStop )
         Extra_FileReaderReload( p );
+
+//    printf( "%d\n", p->pBufferEnd - p->pBufferCur );
+
     // process the string starting from the current position
     for ( pChar = p->pBufferCur; pChar < p->pBufferEnd; pChar++ )
     {
@@ -270,6 +273,10 @@ void * Extra_FileReaderGetTokens_int( Extra_FileReader_t * p )
             p->nLineCounter++;
         // switch depending on the character
         MapValue = p->pCharMap[*pChar];
+
+//        printf( "Char value = %d. Map value = %d.\n", *pChar, MapValue );
+
+
         switch ( MapValue )
         {
             case EXTRA_CHAR_COMMENT:
@@ -326,6 +333,14 @@ void * Extra_FileReaderGetTokens_int( Extra_FileReader_t * p )
         return p->vTokens;
     }
     printf( "Extra_FileReader failed to parse the file \"%s\".\n", p->pFileName );
+/*
+    {
+        int i;
+        for ( i = 0; i < p->vTokens->nSize; i++ )
+            printf( "%s ", p->vTokens->pArray[i] );
+        printf( "\n" );
+    }
+*/
     return NULL;
 }
 

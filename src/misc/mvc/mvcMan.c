@@ -24,7 +24,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////
-///                     FUNCTION DEFITIONS                           ///
+///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
 /**Function*************************************************************
@@ -63,10 +63,10 @@ Mvc_Manager_t * Mvc_ManagerStart()
 ***********************************************************************/
 void Mvc_ManagerFree( Mvc_Manager_t * p )
 {
-    Extra_MmFixedStop( p->pMan1, 0 );
-    Extra_MmFixedStop( p->pMan2, 0 );
-    Extra_MmFixedStop( p->pMan4, 0 );
-    Extra_MmFixedStop( p->pManC, 0 );
+    Extra_MmFixedStop( p->pMan1 );
+    Extra_MmFixedStop( p->pMan2 );
+    Extra_MmFixedStop( p->pMan4 );
+    Extra_MmFixedStop( p->pManC );
     free( p );
 }
 
