@@ -36,6 +36,7 @@ alias pex print_exdc -d
 alias pf print_factor
 alias pfan print_fanio
 alias pl print_level
+alias plat print_latch
 alias pio print_io
 alias pk print_kmap
 alias ps print_stats 

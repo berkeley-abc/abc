@@ -391,6 +391,115 @@ Aig_Man_t * Aig_ManReduceLaches( Aig_Man_t * p, int fVerbose )
     return p;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Computes strongly connected components of registers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManComputeSccs( Aig_Man_t * p )
+{
+    Vec_Ptr_t * vSupports, * vMatrix, * vMatrix2;
+    Vec_Int_t * vSupp, * vSupp2, * vComp;
+    char * pVarsTot;
+    int i, k, m, iOut, iIn, nComps;
+    if ( Aig_ManRegNum(p) == 0 )
+    {
+        printf( "The network is combinational.\n" );
+        return;
+    }
+    // get structural supports for each output
+    vSupports = Aig_ManSupports( p );
+    // transforms the supports into the latch dependency matrix
+    vMatrix = Vec_PtrStart( Aig_ManRegNum(p) );
+    Vec_PtrForEachEntry( vSupports, vSupp, i )
+    {
+        // skip true POs
+        iOut = Vec_IntPop( vSupp );
+        iOut -= Aig_ManPoNum(p) - Aig_ManRegNum(p);
+        if ( iOut < 0 )
+            continue;
+        // remove PIs
+        m = 0;
+        Vec_IntForEachEntry( vSupp, iIn, k )
+        {
+            iIn -= Aig_ManPiNum(p) - Aig_ManRegNum(p);
+            if ( iIn < 0 )
+                continue;
+            assert( iIn < Aig_ManRegNum(p) );
+            Vec_IntWriteEntry( vSupp, m++, iIn );
+        }
+        Vec_IntShrink( vSupp, m );
+        // store support in the matrix
+        assert( iOut < Aig_ManRegNum(p) );
+        Vec_PtrWriteEntry( vMatrix, iOut, vSupp );
+    }
+    // create the reverse matrix
+    vMatrix2 = Vec_PtrAlloc( Aig_ManRegNum(p) );
+    for ( i = 0; i < Aig_ManRegNum(p); i++ )
+        Vec_PtrPush( vMatrix2, Vec_IntAlloc(8) );
+    Vec_PtrForEachEntry( vMatrix, vSupp, i )
+    {
+        Vec_IntForEachEntry( vSupp, iIn, k )
+        {
+            vSupp2 = Vec_PtrEntry( vMatrix2, iIn );
+            Vec_IntPush( vSupp2, i );
+        }
+    } 
+
+    // detect strongly connected components
+    vComp = Vec_IntAlloc( Aig_ManRegNum(p) );
+    pVarsTot = ALLOC( char, Aig_ManRegNum(p) );
+    memset( pVarsTot, 0, Aig_ManRegNum(p) * sizeof(char) );
+    for ( nComps = 0; ; nComps++ )
+    {
+        Vec_IntClear( vComp );
+        // get the first support
+        for ( iOut = 0; iOut < Aig_ManRegNum(p); iOut++ )
+            if ( pVarsTot[iOut] == 0 )
+                break;
+        if ( iOut == Aig_ManRegNum(p) )
+            break;
+        pVarsTot[iOut] = 1;
+        Vec_IntPush( vComp, iOut );
+        Vec_IntForEachEntry( vComp, iOut, i )
+        {
+            vSupp = Vec_PtrEntry( vMatrix, iOut );
+            Vec_IntForEachEntry( vSupp, iIn, k )
+            {
+                if ( pVarsTot[iIn] )
+                    continue;
+                pVarsTot[iIn] = 1;
+                Vec_IntPush( vComp, iIn );
+            }
+            vSupp2 = Vec_PtrEntry( vMatrix2, iOut );
+            Vec_IntForEachEntry( vSupp2, iIn, k )
+            {
+                if ( pVarsTot[iIn] )
+                    continue;
+                pVarsTot[iIn] = 1;
+                Vec_IntPush( vComp, iIn );
+            }
+        }
+        if ( Vec_IntSize(vComp) == Aig_ManRegNum(p) )
+        {
+            printf( "There is only one SCC of registers in this network.\n" );
+            break;
+        }
+        printf( "SCC #%d contains %5d registers.\n", nComps+1, Vec_IntSize(vComp) );
+    }
+    free( pVarsTot );
+    Vec_IntFree( vComp );
+    Vec_PtrFree( vMatrix );
+    Vec_VecFree( (Vec_Vec_t *)vMatrix2 );
+    Vec_VecFree( (Vec_Vec_t *)vSupports );
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

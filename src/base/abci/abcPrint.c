@@ -322,11 +322,11 @@ void Abc_NtkPrintLatch( FILE * pFile, Abc_Ntk_t * pNtk )
                 Counter2++;
         }
     }
-    fprintf( pFile, "%-15s:  ", pNtk->pName );
-    fprintf( pFile, "Latch = %6d. No = %4d. Zero = %4d. One = %4d. DC = %4d.\n", 
-        Abc_NtkLatchNum(pNtk), InitNums[0], InitNums[1], InitNums[2], InitNums[3] );
-    fprintf( pFile, "Const fanin = %3d. DC init = %3d. Matching init = %3d. ", Counter0, Counter1, Counter2 );
-    fprintf( pFile, "Self-feed latches = %2d.\n", -1 ); //Abc_NtkCountSelfFeedLatches(pNtk) );
+//    fprintf( pFile, "%-15s:  ", pNtk->pName );
+    fprintf( pFile, "Total latches = %5d. Init0 = %d. Init1 = %d. InitDC = %d. Const data = %d.\n", 
+        Abc_NtkLatchNum(pNtk), InitNums[1], InitNums[2], InitNums[3], Counter0 );
+//    fprintf( pFile, "Const fanin = %3d. DC init = %3d. Matching init = %3d. ", Counter0, Counter1, Counter2 );
+//    fprintf( pFile, "Self-feed latches = %2d.\n", -1 ); //Abc_NtkCountSelfFeedLatches(pNtk) );
 }
 
 /**Function*************************************************************

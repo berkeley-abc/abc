@@ -184,6 +184,11 @@ Abc_Ntk_t * Abc_NtkFromDar( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
             Abc_ObjAssignName( pObjNew, "assert_", Abc_ObjName(pObjNew) );
             Abc_ObjAddFanin( pObjNew, (Abc_Obj_t *)Aig_ObjChild0Copy(pObj) );
         }
+    if ( pMan->pManExdc )
+    {
+        pNtkNew->pManExdc = pMan->pManExdc;
+        pMan->pManExdc = NULL;
+    }
     if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkFromDar(): Network check has failed.\n" );
     return pNtkNew;
@@ -1022,7 +1027,7 @@ PRT( "Time", clock() - clkTotal );
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkDarSeqSweep( Abc_Ntk_t * pNtk, int nFramesP, int nFramesK, int nMaxImps, int nMaxLevs, int fRewrite, int fUseImps, int fLatchCorr, int fWriteImps, int fVerbose )
+Abc_Ntk_t * Abc_NtkDarSeqSweep( Abc_Ntk_t * pNtk, int nFramesP, int nFramesK, int nMaxImps, int nMaxLevs, int fRewrite, int fFraiging, int fUseImps, int fLatchCorr, int fWriteImps, int fUse1Hot, int fVerbose )
 {
     Fraig_Params_t Params;
     Abc_Ntk_t * pNtkAig, * pNtkFraig;
@@ -1034,8 +1039,10 @@ Abc_Ntk_t * Abc_NtkDarSeqSweep( Abc_Ntk_t * pNtk, int nFramesP, int nFramesK, in
     // so fraiging does not reduce the number of functions represented by nodes
     Fraig_ParamsSetDefault( &Params );
     Params.nBTLimit = 100000;
-//    pNtkFraig = Abc_NtkFraig( pNtk, &Params, 0, 0 );
-    pNtkFraig = Abc_NtkDup( pNtk );
+    if ( fFraiging )
+        pNtkFraig = Abc_NtkFraig( pNtk, &Params, 0, 0 );
+    else
+        pNtkFraig = Abc_NtkDup( pNtk );
 if ( fVerbose ) 
 {
 PRT( "Initial fraiging time", clock() - clk );
@@ -1046,7 +1053,7 @@ PRT( "Initial fraiging time", clock() - clk );
     if ( pMan == NULL )
         return NULL;
 
-    pMan = Fra_FraigInduction( pTemp = pMan, nFramesP, nFramesK, nMaxImps, nMaxLevs, fRewrite, fUseImps, fLatchCorr, fWriteImps, fVerbose, NULL );
+    pMan = Fra_FraigInduction( pTemp = pMan, nFramesP, nFramesK, nMaxImps, nMaxLevs, fRewrite, fUseImps, fLatchCorr, fWriteImps, fUse1Hot, fVerbose, NULL );
     Aig_ManStop( pTemp );
 
     if ( Aig_ManRegNum(pMan) < Abc_NtkLatchNum(pNtk) )
@@ -1529,6 +1536,28 @@ Abc_Ntk_t * Abc_NtkInter( Abc_Ntk_t * pNtkOn, Abc_Ntk_t * pNtkOff, int fVerbose 
     Aig_ManStop( pManAig );
     return pNtkAig;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Interplates two networks.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkPrintSccs( Abc_Ntk_t * pNtk, int fVerbose )
+{
+    Aig_Man_t * pMan;
+    pMan = Abc_NtkToDar( pNtk, 1 );
+    if ( pMan == NULL )
+        return;
+    Aig_ManComputeSccs( pMan );
+    Aig_ManStop( pMan );
+}
+
 
 
 #include "ntl.h"

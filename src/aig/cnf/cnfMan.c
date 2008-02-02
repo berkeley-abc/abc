@@ -109,6 +109,57 @@ Vec_Int_t * Cnf_DataCollectPiSatNums( Cnf_Dat_t * pCnf, Aig_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Allocates the new CNF.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Cnf_Dat_t * Cnf_DataAlloc( Aig_Man_t * pAig, int nVars, int nClauses, int nLiterals )
+{
+    Cnf_Dat_t * pCnf;
+    pCnf = ALLOC( Cnf_Dat_t, 1 );
+    memset( pCnf, 0, sizeof(Cnf_Dat_t) );
+    pCnf->pMan = pAig;
+    pCnf->nVars = nVars;
+    pCnf->nClauses = nClauses;
+    pCnf->nLiterals = nLiterals;
+    pCnf->pClauses = ALLOC( int *, nClauses + 1 );
+    pCnf->pClauses[0] = ALLOC( int, nLiterals );
+    pCnf->pClauses[nClauses] = pCnf->pClauses[0] + nLiterals;
+    pCnf->pVarNums = ALLOC( int, Aig_ManObjNumMax(pAig) );
+    memset( pCnf->pVarNums, 0xff, sizeof(int) * Aig_ManObjNumMax(pAig) );
+    return pCnf;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Allocates the new CNF.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Cnf_Dat_t * Cnf_DataDup( Cnf_Dat_t * p )
+{
+    Cnf_Dat_t * pCnf;
+    int i;
+    pCnf = Cnf_DataAlloc( p->pMan, p->nVars, p->nClauses, p->nLiterals );
+    memcpy( pCnf->pClauses[0], p->pClauses[0], sizeof(int) * p->nLiterals );
+    memcpy( pCnf->pVarNums, p->pVarNums, sizeof(int) * Aig_ManObjNumMax(p->pMan) );
+    for ( i = 1; i < p->nClauses; i++ )
+        pCnf->pClauses[i] = pCnf->pClauses[0] + (p->pClauses[i] - p->pClauses[0]);
+    return pCnf;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []

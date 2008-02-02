@@ -946,6 +946,7 @@ sat_solver* sat_solver_new(void)
     veci_new(&s->stack);
     veci_new(&s->model);
     veci_new(&s->act_vars);
+    veci_new(&s->temp_clause);
 
     // initialize arrays
     s->wlists    = 0;
@@ -1020,6 +1021,7 @@ void sat_solver_delete(sat_solver* s)
     veci_delete(&s->stack);
     veci_delete(&s->model);
     veci_delete(&s->act_vars);
+    veci_delete(&s->temp_clause);
     free(s->binary);
 
     // delete arrays
@@ -1051,6 +1053,12 @@ bool sat_solver_addclause(sat_solver* s, lit* begin, lit* end)
     int maxvar;
     lbool* values;
     lit last;
+
+    veci_resize( &s->temp_clause, 0 );
+    for ( i = begin; i < end; i++ )
+        veci_push( &s->temp_clause, *i );
+    begin = veci_begin( &s->temp_clause );
+    end = begin + veci_size( &s->temp_clause );
 
     if (begin == end) return false;
 

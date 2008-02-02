@@ -378,6 +378,7 @@ clk = clock();
     // call back the procedure to check implications
     if ( pManAig->pImpFunc )
         pManAig->pImpFunc( p, pManAig->pImpData );
+    // no need to filter one-hot clauses because they satisfy base case by construction
     // finalize the fraiged manager
     Fra_ManFinalizeComb( p );
     if ( p->pPars->fChoicing )

@@ -251,6 +251,7 @@ void Fra_ManStop( Fra_Man_t * p )
     if ( p->pCla  )     Fra_ClassesStop( p->pCla );
     if ( p->pSml )      Fra_SmlStop( p->pSml );
     if ( p->vCex )      Vec_IntFree( p->vCex );
+    if ( p->vOneHots )  Vec_IntFree( p->vOneHots );
     FREE( p->pMemFraig );
     FREE( p->pMemFanins );
     FREE( p->pMemSatNums );
@@ -279,7 +280,8 @@ void Fra_ManPrint( Fra_Man_t * p )
     printf( "NBeg = %d. NEnd = %d. (Gain = %6.2f %%).  RBeg = %d. REnd = %d. (Gain = %6.2f %%).\n", 
         p->nNodesBeg, p->nNodesEnd, 100.0*(p->nNodesBeg-p->nNodesEnd)/(p->nNodesBeg?p->nNodesBeg:1), 
         p->nRegsBeg, p->nRegsEnd, 100.0*(p->nRegsBeg-p->nRegsEnd)/(p->nRegsBeg?p->nRegsBeg:1) );
-    if ( p->pSat ) Sat_SolverPrintStats( stdout, p->pSat );
+    if ( p->pSat )             Sat_SolverPrintStats( stdout, p->pSat );
+    if ( p->pPars->fUse1Hot )  Fra_OneHotEstimateCoverage( p, p->vOneHots );
     PRT( "AIG simulation  ", p->pSml->timeSim  );
     PRT( "AIG traversal   ", p->timeTrav );
     if ( p->timeRwr )

@@ -67,7 +67,6 @@ struct Clu_Man_t_
     // clauses proven
     Vec_Int_t *      vLitsProven;
     Vec_Int_t *      vClausesProven;
-    int              nClausesProven;
     // counter-examples
     Vec_Ptr_t *      vCexes;
     int              nCexes;
@@ -516,6 +515,21 @@ int Fra_ClausCollectLatchClauses( Clu_Man_t * p, Fra_Sml_t * pSeq )
 
     nCountConst = nCountImps = 0;
     CostMax = p->nSimWords * 32;
+
+    // add the property
+    {
+        Aig_Obj_t * pObj;
+        int Lits[1];
+        pObj = Aig_ManPo( p->pAig, 0 );
+        Lits[0] = toLitCond( p->pCnf->pVarNums[pObj->Id], 1 ); 
+        Vec_IntPush( p->vLits, Lits[0] );
+        Vec_IntPush( p->vClauses, Vec_IntSize(p->vLits) );
+        Vec_IntPush( p->vCosts, CostMax );
+        nCountConst++;
+//        printf( "Added the target property to the set of clauses to be inductively checked.\n" );
+    }
+
+
     pSeq->nWordsPref = p->nSimWordsPref;
     Aig_ManForEachLoSeq( p->pAig, pObj1, i )
     {
@@ -1600,11 +1614,11 @@ if ( p->fVerbose )
 
 clk = clock();
     // derive CNF
-    if ( p->fTarget )
-        p->pAig->nRegs++;
+//    if ( p->fTarget )
+//        p->pAig->nRegs++;
     p->pCnf = Cnf_DeriveSimple( p->pAig, Aig_ManPoNum(p->pAig) );
-    if ( p->fTarget )
-        p->pAig->nRegs--;
+//    if ( p->fTarget )
+//        p->pAig->nRegs--;
 if ( fVerbose )
 {
 //PRT( "CNF    ", clock() - clk );
@@ -1705,6 +1719,9 @@ clk = clock();
             }
             clk = clock();
         }
+        // add proved clauses to storage
+        Fra_ClausAddToStorage( p );
+        // report the results
         if ( p->fTarget )
         {
             if ( Counter == -1 )
@@ -1722,12 +1739,14 @@ clk = clock();
             printf( "Finished proving inductive clauses. " );
             PRT( "Time  ", clock() - clkTotal );
         }
-
-        // add proved clauses to storage
-        Fra_ClausAddToStorage( p );
     }
 
-    if ( !p->fTarget && p->fVerbose )
+    // verify the computed interpolant
+    Fra_InvariantVerify( pAig, nFrames, p->vClausesProven, p->vLitsProven );
+//    printf( "THIS COMMAND IS KNOWN TO HAVE A BUG!\n" );
+
+//    if ( !p->fTarget && p->fVerbose )
+    if ( p->fVerbose )
     {
         Fra_ClausPrintIndClauses( p );
         Fra_ClausEstimateCoverage( p );

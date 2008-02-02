@@ -257,9 +257,10 @@ Vec_Int_t * Part_ManTransferEntry( Part_One_t * p )
 
   Synopsis    [Computes supports of the POs in the multi-output AIG.]
 
-  Description []
+  Description [Returns the array of integer arrays containing indices
+  of the primary inputs.]
                
-  SideEffects []
+  SideEffects [Adds the integer PO number at end of each array.]
 
   SeeAlso     []
 

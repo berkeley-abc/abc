@@ -657,6 +657,8 @@ clk = clock();
     nChanges += Fra_ClassesRefine1( p->pCla, 1, NULL );
     if ( p->pCla->vImps )
         nChanges += Fra_ImpRefineUsingCex( p, p->pCla->vImps );
+    if ( p->vOneHots )
+        nChanges += Fra_OneHotRefineUsingCex( p, p->vOneHots );
 p->timeRef += clock() - clk;
     if ( !p->pPars->nFramesK && nChanges < 1 )
         printf( "Error: A counter-example did not refine classes!\n" );

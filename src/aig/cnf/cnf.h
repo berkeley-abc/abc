@@ -132,6 +132,8 @@ extern void            Cnf_ReadMsops( char ** ppSopSizes, char *** ppSops );
 extern Cnf_Man_t *     Cnf_ManStart();
 extern void            Cnf_ManStop( Cnf_Man_t * p );
 extern Vec_Int_t *     Cnf_DataCollectPiSatNums( Cnf_Dat_t * pCnf, Aig_Man_t * p );
+extern Cnf_Dat_t *     Cnf_DataAlloc( Aig_Man_t * pAig, int nVars, int nClauses, int nLiterals );
+extern Cnf_Dat_t *     Cnf_DataDup( Cnf_Dat_t * p );
 extern void            Cnf_DataFree( Cnf_Dat_t * p );
 extern void            Cnf_DataLift( Cnf_Dat_t * p, int nVarsPlus );
 extern void            Cnf_DataWriteIntoFile( Cnf_Dat_t * p, char * pFileName, int fReadable );

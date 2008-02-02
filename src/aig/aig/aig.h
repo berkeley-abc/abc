@@ -142,6 +142,7 @@ struct Aig_Man_t_
     Vec_Int_t *      vFlopNums;      
     void *           pSeqModel;
     Aig_Man_t *      pManHaig;
+    Aig_Man_t *      pManExdc;
     // timing statistics
     int              time1;
     int              time2;
@@ -210,6 +211,7 @@ static inline Aig_Cut_t *  Aig_CutNext( Aig_Cut_t * pCut )              { return
 #define PRT(a,t)  printf("%s = ", (a)); printf("%6.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC))
 #endif
 
+static inline int          Aig_IntAbs( int n )                    { return (n < 0)? -n : n;                                }
 static inline int          Aig_Float2Int( float Val )             { return *((int *)&Val);                                 }
 static inline float        Aig_Int2Float( int Num )               { return *((float *)&Num);                               }
 static inline int          Aig_Base2Log( unsigned n )             { int r; assert( n >= 0 ); if ( n < 2 ) return n; for ( r = 0, n--; n; n >>= 1, r++ ); return r; }
@@ -536,6 +538,7 @@ extern Aig_Man_t *     Aig_ManRemap( Aig_Man_t * p, Vec_Ptr_t * vMap );
 extern int             Aig_ManSeqCleanup( Aig_Man_t * p );
 extern int             Aig_ManCountMergeRegs( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManReduceLaches( Aig_Man_t * p, int fVerbose );
+extern void            Aig_ManComputeSccs( Aig_Man_t * p );
 /*=== aigSeq.c ========================================================*/
 extern int             Aig_ManSeqStrash( Aig_Man_t * p, int nLatches, int * pInits );
 /*=== aigShow.c ========================================================*/

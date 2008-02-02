@@ -187,6 +187,8 @@ struct sat_solver_t
     FILE *   pFile;
     int      nClauses;
     int      nRoots;
+
+    veci     temp_clause;    // temporary storage for a CNF clause
 };
 
 static int sat_solver_var_value( sat_solver* s, int v ) 

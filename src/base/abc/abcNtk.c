@@ -23,6 +23,8 @@
 #include "main.h"
 #include "mio.h"
 
+#include "aig.h"
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -346,6 +348,8 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
     // duplicate the EXDC Ntk
     if ( pNtk->pExdc )
         pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );
+    if ( pNtk->pManExdc )
+        pNtkNew->pManExdc = Aig_ManDup( pNtk->pManExdc, 0 );
     if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkDup(): Network check has failed.\n" );
     pNtk->pCopy = pNtkNew;
@@ -431,6 +435,7 @@ Abc_Ntk_t * Abc_NtkDouble( Abc_Ntk_t * pNtk )
         Abc_ObjAssignName( Abc_NtkCo(pNtkNew,                      i), "1_", Abc_ObjName(pObj) );
         Abc_ObjAssignName( Abc_NtkCo(pNtkNew, Abc_NtkCoNum(pNtk) + i), "2_", Abc_ObjName(pObj) );
     }
+    Abc_NtkOrderCisCos( pNtkNew );
 
     // perform the final check
     if ( !Abc_NtkCheck( pNtkNew ) )
@@ -936,6 +941,11 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     // free EXDC Ntk
     if ( pNtk->pExdc )
         Abc_NtkDelete( pNtk->pExdc );
+    if ( pNtk->pManExdc )
+    {
+        Aig_ManStop( pNtk->pManExdc );
+        pNtk->pManExdc = NULL;
+    }
     // dereference the BDDs
     if ( Abc_NtkHasBdd(pNtk) )
     {

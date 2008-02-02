@@ -243,7 +243,7 @@ void Fra_FramesAddMore( Aig_Man_t * p, int nFrames )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesP, int nFramesK, int nMaxImps, int nMaxLevs, int fRewrite, int fUseImps, int fLatchCorr, int fWriteImps, int fVerbose, int * pnIter )
+Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesP, int nFramesK, int nMaxImps, int nMaxLevs, int fRewrite, int fUseImps, int fLatchCorr, int fWriteImps, int fUse1Hot, int fVerbose, int * pnIter )
 {
     int fUseSimpleCnf = 0;
     int fUseOldSimulation = 0;
@@ -288,6 +288,10 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesP, int nFramesK,
     pPars->fLatchCorr = fLatchCorr;
     pPars->fUseImps   = fUseImps;
     pPars->fWriteImps = fWriteImps;
+    pPars->fUse1Hot   = fUse1Hot;
+
+    assert( !(pPars->nFramesP > 0 && pPars->fUse1Hot) );
+    assert( !(pPars->nFramesK > 1 && pPars->fUse1Hot) );
  
     // start the fraig manager for this run
     p = Fra_ManStart( pManAig, pPars );
@@ -316,6 +320,9 @@ PRT( "Time", clock() - clk );
 }
         Fra_ClassesPrepare( p->pCla, p->pPars->fLatchCorr, p->pPars->nMaxLevs );
 //        Fra_ClassesPostprocess( p->pCla );
+        // compute one-hotness conditions
+        if ( p->pPars->fUse1Hot )
+            p->vOneHots = Fra_OneHotCompute( p, p->pSml );
         // allocate new simulation manager for simulating counter-examples
         Fra_SmlStop( p->pSml );
         p->pSml = Fra_SmlStart( pManAig, 0, pPars->nFramesK + 1, pPars->nSimWords );
@@ -347,6 +354,7 @@ PRT( "Time", clock() - clk );
     {
         int nLitsOld = Fra_ClassesCountLits(p->pCla);
         int nImpsOld = p->pCla->vImps? Vec_IntSize(p->pCla->vImps) : 0;
+        int nHotsOld = p->vOneHots? Fra_OneHotCount(p, p->vOneHots) : 0;
         // mark the classes as non-refined
         p->pCla->fRefinement = 0;
         // derive non-init K-timeframes while implementing e-classes
@@ -377,7 +385,7 @@ p->timeTrav += clock() - clk2;
             if ( p->pSat == NULL )
                 printf( "Fra_FraigInduction(): Adding implicationsn to CNF led to a conflict.\n" );
         }
- 
+
         // set the pointers to the manager
         Aig_ManForEachObj( p->pManFraig, pObj, i )
             pObj->pData = p;
@@ -395,6 +403,10 @@ p->timeTrav += clock() - clk2;
         }
         Cnf_DataFree( pCnf );
 
+        // add one-hotness clauses
+        if ( p->pPars->fUse1Hot )
+            Fra_OneHotAssume( p, p->vOneHots );
+
         // report the intermediate results
         if ( fVerbose )
         {
@@ -403,6 +415,8 @@ p->timeTrav += clock() - clk2;
                 Fra_ClassesCountLits(p->pCla), p->pManFraig->nAsserts );
             if ( p->pCla->vImps )
                 printf( "I = %6d. ", Vec_IntSize(p->pCla->vImps) );
+            if ( p->pPars->fUse1Hot )
+                printf( "1h = %6d. ", Fra_OneHotCount(p, p->vOneHots) );
             printf( "NR = %6d. ", Aig_ManNodeNum(p->pManFraig) );
             printf( "\n" );
         } 
@@ -411,6 +425,8 @@ p->timeTrav += clock() - clk2;
         p->nSatCallsRecent = 0;
         p->nSatCallsSkipped = 0;
 clk2 = clock();
+        if ( p->pPars->fUse1Hot )
+            Fra_OneHotCheck( p, p->vOneHots );
         Fra_FraigSweep( p );
         if ( fVerbose )
         {
@@ -430,7 +446,8 @@ clk2 = clock();
 //        p->pCla->fRefinement = (int)(nLitsOld != Fra_ClassesCountLits(p->pCla));
         if ( p->pCla->fRefinement && 
             nLitsOld == Fra_ClassesCountLits(p->pCla) && 
-            nImpsOld == (p->pCla->vImps? Vec_IntSize(p->pCla->vImps) : 0) )
+            nImpsOld == (p->pCla->vImps? Vec_IntSize(p->pCla->vImps) : 0) && 
+            nHotsOld == (p->vOneHots? Fra_OneHotCount(p, p->vOneHots) : 0) )
         {
             printf( "Fra_FraigInduction(): Internal error. The result may not verify.\n" );
             break;
@@ -451,13 +468,21 @@ clk2 = clock();
 
     // move the classes into representatives and reduce AIG
 clk2 = clock();
-//    Fra_ClassesPrint( p->pCla, 1 );
-    Fra_ClassesSelectRepr( p->pCla );
-    Fra_ClassesCopyReprs( p->pCla, p->vTimeouts );
-    pManAigNew = Aig_ManDupRepr( pManAig, 0 );
+    if ( p->pPars->fWriteImps && p->vOneHots && Fra_OneHotCount(p, p->vOneHots) )
+    {
+        pManAigNew = Aig_ManDup( pManAig, 1 );
+        pManAigNew->pManExdc = Fra_OneHotCreateExdc( p, p->vOneHots );
+    }
+    else 
+    {
+    //    Fra_ClassesPrint( p->pCla, 1 );
+        Fra_ClassesSelectRepr( p->pCla );
+        Fra_ClassesCopyReprs( p->pCla, p->vTimeouts );
+        pManAigNew = Aig_ManDupRepr( pManAig, 0 );
+    }
     // add implications to the manager
-    if ( fWriteImps && p->pCla->vImps && Vec_IntSize(p->pCla->vImps) )
-        Fra_ImpRecordInManager( p, pManAigNew );
+//    if ( fWriteImps && p->pCla->vImps && Vec_IntSize(p->pCla->vImps) )
+//        Fra_ImpRecordInManager( p, pManAigNew );
     // cleanup the new manager
     Aig_ManSeqCleanup( pManAigNew );
 //    Aig_ManCountMergeRegs( pManAigNew );

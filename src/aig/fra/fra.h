@@ -80,6 +80,7 @@ struct Fra_Par_t_
     int              fRewrite;          // use rewriting for constraint reduction
     int              fLatchCorr;        // computes latch correspondence only
     int              fUseImps;          // use implications
+    int              fUse1Hot;          // use one-hotness conditions
     int              fWriteImps;        // record implications
     int              fDontShowBar;      // does not show progressbar during fraiging
 };
@@ -153,6 +154,8 @@ struct Fra_Man_t_
     int              nPatWords;         // the number of words in the counter example
     unsigned *       pPatWords;         // the counter example
     Vec_Int_t *      vCex;
+    // one-hotness conditions
+    Vec_Int_t *      vOneHots;          
     // satisfiability solving
     sat_solver *     pSat;              // SAT solver
     int              nSatVars;          // the number of variables currently used
@@ -265,6 +268,14 @@ extern int                 Fra_FraigMiterAssertedOutput( Aig_Man_t * p );
 extern Aig_Man_t *         Fra_FraigPerform( Aig_Man_t * pManAig, Fra_Par_t * pPars );
 extern Aig_Man_t *         Fra_FraigChoice( Aig_Man_t * pManAig, int nConfMax );
 extern Aig_Man_t *         Fra_FraigEquivence( Aig_Man_t * pManAig, int nConfMax, int fProve );
+/*=== fraHot.c ========================================================*/
+extern Vec_Int_t *         Fra_OneHotCompute( Fra_Man_t * p, Fra_Sml_t * pSim );
+extern void                Fra_OneHotAssume( Fra_Man_t * p, Vec_Int_t * vOneHots );
+extern void                Fra_OneHotCheck( Fra_Man_t * p, Vec_Int_t * vOneHots );
+extern int                 Fra_OneHotRefineUsingCex( Fra_Man_t * p, Vec_Int_t * vOneHots );
+extern int                 Fra_OneHotCount( Fra_Man_t * p, Vec_Int_t * vOneHots );
+extern void                Fra_OneHotEstimateCoverage( Fra_Man_t * p, Vec_Int_t * vOneHots );
+extern Aig_Man_t *         Fra_OneHotCreateExdc( Fra_Man_t * p, Vec_Int_t * vOneHots );
 /*=== fraImp.c ========================================================*/
 extern Vec_Int_t *         Fra_ImpDerive( Fra_Man_t * p, int nImpMaxLimit, int nImpUseLimit, int fLatchCorr );
 extern void                Fra_ImpAddToSolver( Fra_Man_t * p, Vec_Int_t * vImps, int * pSatVarNums );
@@ -275,7 +286,9 @@ extern double              Fra_ImpComputeStateSpaceRatio( Fra_Man_t * p );
 extern int                 Fra_ImpVerifyUsingSimulation( Fra_Man_t * p );
 extern void                Fra_ImpRecordInManager( Fra_Man_t * p, Aig_Man_t * pNew );
 /*=== fraInd.c ========================================================*/
-extern Aig_Man_t *         Fra_FraigInduction( Aig_Man_t * p, int nFramesP, int nFramesK, int nMaxImps, int nMaxLevs, int fRewrite, int fUseImps, int fLatchCorr, int fWriteImps, int fVerbose, int * pnIter );
+extern Aig_Man_t *         Fra_FraigInduction( Aig_Man_t * p, int nFramesP, int nFramesK, int nMaxImps, int nMaxLevs, int fRewrite, int fUseImps, int fLatchCorr, int fWriteImps, int fUse1Hot, int fVerbose, int * pnIter );
+/*=== fraIndVer.c =====================================================*/
+extern int                 Fra_InvariantVerify( Aig_Man_t * p, int nFrames, Vec_Int_t * vClauses, Vec_Int_t * vLits );
 /*=== fraLcr.c ========================================================*/
 extern Aig_Man_t *         Fra_FraigLatchCorrespondence( Aig_Man_t * pAig, int nFramesP, int nConfMax, int fProve, int fVerbose, int * pnIter );
 /*=== fraMan.c ========================================================*/
@@ -290,6 +303,7 @@ extern void                Fra_ManPrint( Fra_Man_t * p );
 /*=== fraSat.c ========================================================*/
 extern int                 Fra_NodesAreEquiv( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew );
 extern int                 Fra_NodesAreImp( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew, int fComplL, int fComplR );
+extern int                 Fra_NodesAreClause( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew, int fComplL, int fComplR );
 extern int                 Fra_NodeIsConst( Fra_Man_t * p, Aig_Obj_t * pNew );
 /*=== fraSec.c ========================================================*/
 extern int                 Fra_FraigSec( Aig_Man_t * p, int nFrames, int fRetimeFirst, int fVerbose, int fVeryVerbose );

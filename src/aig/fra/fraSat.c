@@ -300,6 +300,113 @@ p->timeSatFail += clock() - clk;
 
 /**Function*************************************************************
 
+  Synopsis    [Runs the result of test for pObj => pNew.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fra_NodesAreClause( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew, int fComplL, int fComplR )
+{
+    int pLits[4], RetValue, RetValue1, nBTLimit, clk;//, clk2 = clock();
+    int status;
+
+    // make sure the nodes are not complemented
+    assert( !Aig_IsComplement(pNew) );
+    assert( !Aig_IsComplement(pOld) );
+    assert( pNew != pOld );
+
+    // if at least one of the nodes is a failed node, perform adjustments:
+    // if the backtrack limit is small, simply skip this node
+    // if the backtrack limit is > 10, take the quare root of the limit
+    nBTLimit = p->pPars->nBTLimitNode;
+/*
+    if ( !p->pPars->fSpeculate && p->pPars->nFramesK == 0 && (nBTLimit > 0 && (pOld->fMarkB || pNew->fMarkB)) )
+    {
+        p->nSatFails++;
+        // fail immediately
+//        return -1;
+        if ( nBTLimit <= 10 )
+            return -1;
+        nBTLimit = (int)pow(nBTLimit, 0.7);
+    }
+*/
+    p->nSatCalls++;
+
+    // make sure the solver is allocated and has enough variables
+    if ( p->pSat == NULL )
+    {
+        p->pSat = sat_solver_new();
+        p->nSatVars = 1;
+        sat_solver_setnvars( p->pSat, 1000 );
+        // var 0 is reserved for const1 node - add the clause
+        pLits[0] = toLit( 0 );
+        sat_solver_addclause( p->pSat, pLits, pLits + 1 );
+    }
+
+    // if the nodes do not have SAT variables, allocate them
+    Fra_CnfNodeAddToSolver( p, pOld, pNew );
+
+    if ( p->pSat->qtail != p->pSat->qhead )
+    {
+        status = sat_solver_simplify(p->pSat);
+        assert( status != 0 );
+        assert( p->pSat->qtail == p->pSat->qhead );
+    }
+
+    // prepare variable activity
+    if ( p->pPars->fConeBias )
+        Fra_SetActivityFactors( p, pOld, pNew ); 
+
+    // solve under assumptions
+    // A = 1; B = 0     OR     A = 1; B = 1 
+clk = clock();
+//    pLits[0] = toLitCond( Fra_ObjSatNum(pOld), 0 );
+//    pLits[1] = toLitCond( Fra_ObjSatNum(pNew), pOld->fPhase == pNew->fPhase );
+    pLits[0] = toLitCond( Fra_ObjSatNum(pOld), !fComplL );
+    pLits[1] = toLitCond( Fra_ObjSatNum(pNew), !fComplR );
+//Sat_SolverWriteDimacs( p->pSat, "temp.cnf", pLits, pLits + 2, 1 );
+    RetValue1 = sat_solver_solve( p->pSat, pLits, pLits + 2, 
+        (sint64)nBTLimit, (sint64)0, 
+        p->nBTLimitGlobal, p->nInsLimitGlobal );
+p->timeSat += clock() - clk;
+    if ( RetValue1 == l_False )
+    {
+p->timeSatUnsat += clock() - clk;
+        pLits[0] = lit_neg( pLits[0] );
+        pLits[1] = lit_neg( pLits[1] );
+        RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
+        assert( RetValue );
+        // continue solving the other implication
+        p->nSatCallsUnsat++;
+    }
+    else if ( RetValue1 == l_True )
+    {
+p->timeSatSat += clock() - clk;
+        Fra_SmlSavePattern( p );
+        p->nSatCallsSat++;
+        return 0;
+    }
+    else // if ( RetValue1 == l_Undef )
+    {
+p->timeSatFail += clock() - clk;
+        // mark the node as the failed node
+        if ( pOld != p->pManFraig->pConst1 ) 
+            pOld->fMarkB = 1;
+        pNew->fMarkB = 1;
+        p->nSatFailsReal++;
+        return -1;
+    }
+    // return SAT proof
+    p->nSatProof++;
+    return 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Runs equivalence test for one node.]
 
   Description [Returns the fraiged node.]
