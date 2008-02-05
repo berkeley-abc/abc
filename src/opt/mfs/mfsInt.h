@@ -34,6 +34,7 @@ extern "C" {
 #include "aig.h"
 #include "cnf.h"
 #include "satSolver.h"
+#include "satStore.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -52,11 +53,23 @@ struct Mfs_Man_t_
     Vec_Ptr_t *         vRoots;    // the roots of the window
     Vec_Ptr_t *         vSupp;     // the support of the window
     Vec_Ptr_t *         vNodes;    // the internal nodes of the window
+    Vec_Ptr_t *         vDivs;     // the divisors of the node
+    Vec_Int_t *         vDivLits;  // the SAT literals of divisor nodes
     Vec_Int_t *         vProjVars; // the projection variables
+    // intermediate simulation data
+    Vec_Ptr_t *         vDivCexes; // the counter-example for dividors
+    int                 nDivWords; // the number of words
+    int                 nCexes;    // the numbe rof current counter-examples
+    int                 nSatCalls; 
+    int                 nSatCexes;
     // solving data
     Aig_Man_t *         pAigWin;   // window AIG with constraints
     Cnf_Dat_t *         pCnf;      // the CNF for the window
     sat_solver *        pSat;      // the SAT solver used 
+    Int_Man_t *         pMan;      // interpolation manager;
+    Vec_Int_t *         vMem;      // memory for intermediate SOPs
+    Vec_Vec_t *         vLevels;   // levelized structure for updating
+    Vec_Ptr_t *         vFanins;   // the new set of fanins
     // the result of solving
     int                 nFanins;   // the number of fanins
     int                 nWords;    // the number of words
@@ -64,14 +77,24 @@ struct Mfs_Man_t_
     unsigned            uCare[(MFS_FANIN_MAX<=5)?1:1<<(MFS_FANIN_MAX-5)];  // the computed care-set
     // performance statistics
     int                 nNodesTried;
-    int                 nNodesBad;
+    int                 nNodesResub;
+    int                 nNodesGained;
     int                 nMintsCare;
     int                 nMintsTotal;
+    int                 nNodesBad;
+    // node/edge stats
+    int                 nTotalNodesBeg;
+    int                 nTotalNodesEnd;
+    int                 nTotalEdgesBeg;
+    int                 nTotalEdgesEnd;
     // statistics
     int                 timeWin;
+    int                 timeDiv;
     int                 timeAig;
     int                 timeCnf;
     int                 timeSat;
+    int                 timeInt;
+    int                 timeTotal;
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -86,10 +109,18 @@ struct Mfs_Man_t_
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+/*=== mfsDiv.c ==========================================================*/
+extern Vec_Ptr_t *      Abc_MfsComputeDivisors( Mfs_Man_t * p, Abc_Obj_t * pNode, int nLevDivMax );
+/*=== mfsInter.c ==========================================================*/
+extern sat_solver *     Abc_MfsCreateSolverResub( Mfs_Man_t * p, int * pCands, int nCands );
+extern Hop_Obj_t *      Abc_NtkMfsInterplate( Mfs_Man_t * p, int * pCands, int nCands );
 /*=== mfsMan.c ==========================================================*/
-extern Mfs_Man_t *      Mfs_ManAlloc();
+extern Mfs_Man_t *      Mfs_ManAlloc( Mfs_Par_t * pPars );
 extern void             Mfs_ManStop( Mfs_Man_t * p );
 extern void             Mfs_ManClean( Mfs_Man_t * p );
+/*=== mfsResub.c ==========================================================*/
+extern int              Abc_NtkMfsResubArea( Mfs_Man_t * p, Abc_Obj_t * pNode );
+extern int              Abc_NtkMfsResubEdge( Mfs_Man_t * p, Abc_Obj_t * pNode );
 /*=== mfsSat.c ==========================================================*/
 extern void             Abc_NtkMfsSolveSat( Mfs_Man_t * p, Abc_Obj_t * pNode );
 /*=== mfsStrash.c ==========================================================*/

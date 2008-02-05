@@ -1496,6 +1496,79 @@ void Fra_ClausPrintIndClauses( Clu_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Writes the clauses into an AIGER file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Obj_t * Fra_ClausGetLiteral( Clu_Man_t * p, int * pVar2Id, int Lit )
+{
+    Aig_Obj_t * pLiteral;
+    int NodeId = pVar2Id[ lit_var(Lit) ];
+    assert( NodeId >= 0 );
+    pLiteral = Aig_ManObj( p->pAig, NodeId )->pData;
+    return Aig_NotCond( pLiteral, lit_sign(Lit) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Writes the clauses into an AIGER file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Fra_ClausWriteIndClauses( Clu_Man_t * p )
+{
+    extern void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int fCompact );
+    Aig_Man_t * pNew;
+    Aig_Obj_t * pClause, * pLiteral;
+    char Buffer[500];
+    int * pStart, * pVar2Id; 
+    int Beg, End, i, k;
+    // create mapping from SAT vars to node IDs
+    pVar2Id = ALLOC( int, p->pCnf->nVars );
+    memset( pVar2Id, 0xFF, sizeof(int) * p->pCnf->nVars );
+    for ( i = 0; i < Aig_ManObjNumMax(p->pAig); i++ )
+        if ( p->pCnf->pVarNums[i] >= 0 )
+        {
+            assert( p->pCnf->pVarNums[i] < p->pCnf->nVars );
+            pVar2Id[ p->pCnf->pVarNums[i] ] = i;
+        }
+    // start the manager
+    pNew = Aig_ManDupWithoutPos( p->pAig );
+    // add the clauses
+    Beg = 0;
+    pStart = Vec_IntArray( p->vLitsProven );
+    Vec_IntForEachEntry( p->vClausesProven, End, i )
+    {
+        pClause = Fra_ClausGetLiteral( p, pVar2Id, pStart[Beg] );
+        for ( k = Beg + 1; k < End; k++ )
+        {
+            pLiteral = Fra_ClausGetLiteral( p, pVar2Id, pStart[k] );
+            pClause = Aig_Or( pNew, pClause, pLiteral );
+        }
+        Aig_ObjCreatePo( pNew, pClause );
+        Beg = End;
+    }
+    free( pVar2Id );
+    Aig_ManCleanup( pNew );
+    // write the manager into a file
+    sprintf( Buffer, "%s_care.aig", p->pAig->pName );
+    printf( "Care clauses are written into file \"%s\".\n", Buffer );
+    Ioa_WriteAiger( pNew, Buffer, 0, 1 );
+    Aig_ManStop( pNew );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Checks if the clause holds using the given simulation info.]
 
   Description []
@@ -1750,6 +1823,11 @@ clk = clock();
     {
         Fra_ClausPrintIndClauses( p );
         Fra_ClausEstimateCoverage( p );
+    }
+
+    if ( !p->fTarget )
+    {
+        Fra_ClausWriteIndClauses( p );
     }
 /*
     // print the statistic into a file

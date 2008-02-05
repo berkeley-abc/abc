@@ -6,7 +6,7 @@
 
   PackageName [The good old minimization with complete don't-cares.]
 
-  Synopsis    []
+  Synopsis    [Procedures to compute windows stretching to the PIs.]
 
   Author      [Alan Mishchenko]
   

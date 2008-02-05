@@ -21,6 +21,7 @@
 #include "abc.h"
 #include "if.h"
 #include "kit.h"
+#include "aig.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -87,7 +88,6 @@ Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
     // duplicate EXDC
     if ( pNtk->pExdc )
         pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );
-
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtkNew ) )
     {

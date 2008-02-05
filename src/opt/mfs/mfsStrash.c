@@ -144,18 +144,18 @@ Aig_Obj_t * Abc_NtkConstructAig_rec( Mfs_Man_t * p, Abc_Obj_t * pNode, Aig_Man_t
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Obj_t * Abc_NtkConstructCare_rec( Mfs_Man_t * p, Aig_Obj_t * pObj, Aig_Man_t * pMan )
+Aig_Obj_t * Abc_NtkConstructCare_rec( Aig_Man_t * pCare, Aig_Obj_t * pObj, Aig_Man_t * pMan )
 {
     Aig_Obj_t * pObj0, * pObj1;
-    if ( Aig_ObjIsTravIdCurrent( pMan, pObj ) )
+    if ( Aig_ObjIsTravIdCurrent( pCare, pObj ) )
         return pObj->pData;
-    Aig_ObjSetTravIdCurrent( pMan, pObj );
+    Aig_ObjSetTravIdCurrent( pCare, pObj );
     if ( Aig_ObjIsPi(pObj) )
         return pObj->pData = NULL;
-    pObj0 = Abc_NtkConstructCare_rec( p, Aig_ObjFanin0(pObj), pMan );
+    pObj0 = Abc_NtkConstructCare_rec( pCare, Aig_ObjFanin0(pObj), pMan );
     if ( pObj0 == NULL )
         return pObj->pData = NULL;
-    pObj1 = Abc_NtkConstructCare_rec( p, Aig_ObjFanin1(pObj), pMan );
+    pObj1 = Abc_NtkConstructCare_rec( pCare, Aig_ObjFanin1(pObj), pMan );
     if ( pObj1 == NULL )
         return pObj->pData = NULL;
     pObj0 = Aig_NotCond( pObj0, Aig_ObjFaninC0(pObj) );
@@ -184,6 +184,7 @@ Aig_Man_t * Abc_NtkConstructAig( Mfs_Man_t * p, Abc_Obj_t * pNode )
     pMan = Aig_ManStart( 1000 );
     // construct the root node's AIG cone
     pObjAig = Abc_NtkConstructAig_rec( p, pNode, pMan );
+//    assert( Aig_ManConst1(pMan) == pObjAig );
     Aig_ObjCreatePo( pMan, pObjAig );
     if ( p->pCare )
     {
@@ -191,27 +192,43 @@ Aig_Man_t * Abc_NtkConstructAig( Mfs_Man_t * p, Abc_Obj_t * pNode )
         Aig_ManIncrementTravId( p->pCare );
         Vec_PtrForEachEntry( p->vSupp, pFanin, i )
         {
-            if ( pFanin->pData == NULL )
-                continue;
-            pPi = Aig_ManPi( p->pCare, ((int)pFanin->pData) - 1 );
+            pPi = Aig_ManPi( p->pCare, (int)pFanin->pData );
             Aig_ObjSetTravIdCurrent( p->pCare, pPi );
             pPi->pData = pFanin->pCopy;
         }
         // construct the constraints
         Aig_ManForEachPo( p->pCare, pPo, i )
         {
-            pObjAig = Abc_NtkConstructCare_rec( p, Aig_ObjFanin0(pPo), pMan );
+//            assert( Aig_ObjFanin0(pPo) != Aig_ManConst1(p->pCare) );
+            if ( Aig_ObjFanin0(pPo) == Aig_ManConst1(p->pCare) )
+                continue;
+            pObjAig = Abc_NtkConstructCare_rec( p->pCare, Aig_ObjFanin0(pPo), pMan );
             if ( pObjAig == NULL )
                 continue;
             pObjAig = Aig_NotCond( pObjAig, Aig_ObjFaninC0(pPo) );
             Aig_ObjCreatePo( pMan, pObjAig );
         }
     }
-    // construct the fanins
-    Abc_ObjForEachFanin( pNode, pFanin, i )
+    if ( p->pPars->fResub )
     {
-        pObjAig = (Aig_Obj_t *)pFanin->pCopy;
+        // construct the node
+        pObjAig = (Aig_Obj_t *)pNode->pCopy;
         Aig_ObjCreatePo( pMan, pObjAig );
+        // construct the divisors
+        Vec_PtrForEachEntry( p->vDivs, pFanin, i )
+        {
+            pObjAig = (Aig_Obj_t *)pFanin->pCopy;
+            Aig_ObjCreatePo( pMan, pObjAig );
+        }
+    }
+    else
+    {
+        // construct the fanins
+        Abc_ObjForEachFanin( pNode, pFanin, i )
+        {
+            pObjAig = (Aig_Obj_t *)pFanin->pCopy;
+            Aig_ObjCreatePo( pMan, pObjAig );
+        }
     }
     Aig_ManCleanup( pMan );
     return pMan;

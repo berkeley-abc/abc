@@ -217,6 +217,40 @@ Aig_Man_t * Aig_ManDup( Aig_Man_t * p, int fOrdered )
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicates the AIG manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Aig_ManDupWithoutPos( Aig_Man_t * p )
+{
+    Aig_Man_t * pNew;
+    Aig_Obj_t * pObj;
+    int i;
+    // create the new manager
+    pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
+    pNew->pName = Aig_UtilStrsav( p->pName );
+    // create the PIs
+    Aig_ManCleanData( p );
+    Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
+    Aig_ManForEachPi( p, pObj, i )
+        pObj->pData = Aig_ObjCreatePi( pNew );
+    // duplicate internal nodes
+    Aig_ManForEachObj( p, pObj, i )
+    {
+        assert( !Aig_ObjIsBuf(pObj) );
+        if ( Aig_ObjIsNode(pObj) )
+            pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+    }
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Extracts the miter composed of XOR of the two nodes.]
 
   Description []

@@ -199,7 +199,7 @@ struct Abc_Ntk_t_
     int *             pModel;        // counter-example (for miters)
     void *            pSeqModel;     // counter-example (for sequential miters)
     Abc_Ntk_t *       pExdc;         // the EXDC network (if given)
-    void *            pManExdc;      // the EXDC network (if given)
+    void *            pExcare;       // the EXDC network (if given)
     void *            pData;         // misc
     Abc_Ntk_t *       pCopy;
     Hop_Man_t *       pHaig;         // history AIG

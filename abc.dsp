@@ -1626,11 +1626,23 @@ SOURCE=.\src\opt\mfs\mfsCore.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\opt\mfs\mfsDiv.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\opt\mfs\mfsInt.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\opt\mfs\mfsInter.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\opt\mfs\mfsMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\mfs\mfsResub.c
 # End Source File
 # Begin Source File
 

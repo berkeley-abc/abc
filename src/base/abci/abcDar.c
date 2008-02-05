@@ -184,11 +184,6 @@ Abc_Ntk_t * Abc_NtkFromDar( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
             Abc_ObjAssignName( pObjNew, "assert_", Abc_ObjName(pObjNew) );
             Abc_ObjAddFanin( pObjNew, (Abc_Obj_t *)Aig_ObjChild0Copy(pObj) );
         }
-    if ( pMan->pManExdc )
-    {
-        pNtkNew->pManExdc = pMan->pManExdc;
-        pMan->pManExdc = NULL;
-    }
     if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkFromDar(): Network check has failed.\n" );
     return pNtkNew;

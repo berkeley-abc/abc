@@ -6,7 +6,7 @@
 
   PackageName [The good old minimization with complete don't-cares.]
 
-  Synopsis    []
+  Synopsis    [Procedures to compute don't-cares using SAT.]
 
   Author      [Alan Mishchenko]
   
@@ -43,9 +43,11 @@ int Abc_NtkMfsSolveSat_iter( Mfs_Man_t * p )
 {
     int Lits[MFS_FANIN_MAX];
     int RetValue, iVar, b, Mint;
-    RetValue = sat_solver_solve( p->pSat, NULL, NULL, (sint64)10000, (sint64)0, (sint64)0, (sint64)0 );
-    if ( RetValue != l_True )
+    RetValue = sat_solver_solve( p->pSat, NULL, NULL, (sint64)0, (sint64)0, (sint64)0, (sint64)0 );
+    assert( RetValue == l_False || RetValue == l_True );
+    if ( RetValue == l_False )
         return 0;
+    p->nCares++;
     // add SAT assignment to the solver
     Mint = 0;
     Vec_IntForEachEntry( p->vProjVars, iVar, b )
@@ -95,15 +97,19 @@ void Abc_NtkMfsSolveSat( Mfs_Man_t * p, Abc_Obj_t * pNode )
     memset( p->uCare, 0, sizeof(unsigned) * p->nWords );
 
     // iterate through the SAT assignments
-    while ( Abc_NtkMfsSolveSat_iter( p ) );
+    p->nCares = 0;
+    while ( Abc_NtkMfsSolveSat_iter(p) );
 
     // write statistics
-    p->nCares = 0;
-    for ( i = 0; i < p->nWords; i++ )
-        p->nCares += Aig_WordCountOnes( p->uCare[i] );
-
     p->nMintsCare  += p->nCares;
-    p->nMintsTotal += 32 * p->nWords;
+    p->nMintsTotal += (1<<p->nFanins);
+
+    if ( p->pPars->fVeryVerbose )
+    {
+        printf( "Node %4d : Care = %2d. Total = %2d.  ", pNode->Id, p->nCares, (1<<p->nFanins) );
+        Extra_PrintBinary( stdout, p->uCare, (1<<p->nFanins) );
+        printf( "\n" );
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////

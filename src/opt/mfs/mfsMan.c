@@ -6,7 +6,7 @@
 
   PackageName [The good old minimization with complete don't-cares.]
 
-  Synopsis    [Procedure to manipulation the manager.]
+  Synopsis    [Procedures working with the manager.]
 
   Author      [Alan Mishchenko]
   
@@ -28,7 +28,6 @@
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-
 /**Function*************************************************************
 
   Synopsis    []
@@ -40,13 +39,21 @@
   SeeAlso     []
 
 ***********************************************************************/
-Mfs_Man_t * Mfs_ManAlloc()
+Mfs_Man_t * Mfs_ManAlloc( Mfs_Par_t * pPars )
 {
     Mfs_Man_t * p;
     // start the manager
     p = ALLOC( Mfs_Man_t, 1 );
     memset( p, 0, sizeof(Mfs_Man_t) );
+    p->pPars     = pPars;
     p->vProjVars = Vec_IntAlloc( 100 );
+    p->vDivLits  = Vec_IntAlloc( 100 );
+    p->nDivWords = Aig_BitWordNum(p->pPars->nDivMax + MFS_FANIN_MAX);
+    p->vDivCexes = Vec_PtrAllocSimInfo( p->pPars->nDivMax+MFS_FANIN_MAX+1, p->nDivWords );
+    p->pMan      = Int_ManAlloc();
+    p->vMem      = Vec_IntAlloc( 0 );
+    p->vLevels   = Vec_VecStart( 32 );
+    p->vFanins   = Vec_PtrAlloc( 32 );
     return p;
 }
 
@@ -75,12 +82,15 @@ void Mfs_ManClean( Mfs_Man_t * p )
         Vec_PtrFree( p->vSupp );
     if ( p->vNodes )
         Vec_PtrFree( p->vNodes );
+    if ( p->vDivs )
+        Vec_PtrFree( p->vDivs );
     p->pAigWin = NULL;
-    p->pCnf = NULL;
-    p->pSat = NULL;
+    p->pCnf   = NULL;
+    p->pSat   = NULL;
     p->vRoots = NULL;
-    p->vSupp = NULL;
+    p->vSupp  = NULL;
     p->vNodes = NULL;
+    p->vDivs  = NULL;
 }
 
 /**Function*************************************************************
@@ -96,14 +106,31 @@ void Mfs_ManClean( Mfs_Man_t * p )
 ***********************************************************************/
 void Mfs_ManPrint( Mfs_Man_t * p )
 {
-    printf( "Nodes tried = %d. Bad nodes = %d.\n", 
-        p->nNodesTried, p->nNodesBad );
-    printf( "Total mints = %d. Care mints = %d. Ratio = %5.2f.\n", 
-        p->nMintsTotal, p->nMintsCare, 1.0 * p->nMintsCare / p->nMintsTotal );
-    PRT( "Win", p->timeWin );
-    PRT( "Aig", p->timeAig );
-    PRT( "Cnf", p->timeCnf );
-    PRT( "Sat", p->timeSat );
+    if ( p->pPars->fResub )
+    {
+        printf( "Reduction in nodes = %5d. (%.2f %%) ", 
+            p->nTotalNodesBeg-p->nTotalNodesEnd, 
+            100.0*(p->nTotalNodesBeg-p->nTotalNodesEnd)/p->nTotalNodesBeg );
+        printf( "Reduction in edges = %5d. (%.2f %%) ", 
+            p->nTotalEdgesBeg-p->nTotalEdgesEnd, 
+            100.0*(p->nTotalEdgesBeg-p->nTotalEdgesEnd)/p->nTotalEdgesBeg );
+        printf( "\n" );
+        printf( "Nodes = %d. Tried = %d. Resub = %d. Skipped = %d. SAT calls = %d.\n", 
+            Abc_NtkNodeNum(p->pNtk), p->nNodesTried, p->nNodesResub, p->nNodesBad, p->nSatCalls );
+    }
+    else
+    {
+        printf( "Nodes = %d.  Care mints = %d. Total mints = %d. Ratio = %5.2f.\n", 
+            p->nNodesTried, p->nMintsCare, p->nMintsTotal, 1.0 * p->nMintsCare / p->nMintsTotal );
+    }
+    PRTP( "Win", p->timeWin            ,  p->timeTotal );
+    PRTP( "Div", p->timeDiv            ,  p->timeTotal );
+    PRTP( "Aig", p->timeAig            ,  p->timeTotal );
+    PRTP( "Cnf", p->timeCnf            ,  p->timeTotal );
+    PRTP( "Sat", p->timeSat-p->timeInt ,  p->timeTotal );
+    PRTP( "Int", p->timeInt            ,  p->timeTotal );
+    PRTP( "ALL", p->timeTotal          ,  p->timeTotal );
+
 }
 
 /**Function*************************************************************
@@ -119,9 +146,18 @@ void Mfs_ManPrint( Mfs_Man_t * p )
 ***********************************************************************/
 void Mfs_ManStop( Mfs_Man_t * p )
 {
-    Mfs_ManPrint( p );
+    if ( p->pPars->fVerbose )
+        Mfs_ManPrint( p );
+    if ( p->pCare )
+        Aig_ManStop( p->pCare );
     Mfs_ManClean( p );
+    Int_ManFree( p->pMan );
+    Vec_IntFree( p->vMem );
+    Vec_VecFree( p->vLevels );
+    Vec_PtrFree( p->vFanins );
     Vec_IntFree( p->vProjVars );
+    Vec_IntFree( p->vDivLits );
+    Vec_PtrFree( p->vDivCexes );
     free( p );
 }
 

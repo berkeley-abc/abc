@@ -101,6 +101,7 @@ static int Abc_CommandShortNames     ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandExdcFree       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandExdcGet        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandExdcSet        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandCareSet        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCut            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandEspresso       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandGen            ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -280,6 +281,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "exdc_free",     Abc_CommandExdcFree,         1 );
     Cmd_CommandAdd( pAbc, "Various",      "exdc_get",      Abc_CommandExdcGet,          1 );
     Cmd_CommandAdd( pAbc, "Various",      "exdc_set",      Abc_CommandExdcSet,          1 );
+    Cmd_CommandAdd( pAbc, "Various",      "care_set",      Abc_CommandCareSet,          1 );
     Cmd_CommandAdd( pAbc, "Various",      "cut",           Abc_CommandCut,              0 );
     Cmd_CommandAdd( pAbc, "Various",      "espresso",      Abc_CommandEspresso,         1 );
     Cmd_CommandAdd( pAbc, "Various",      "gen",           Abc_CommandGen,              0 );
@@ -3257,14 +3259,18 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    pPars->nWinTfoLevs  =  2;
-    pPars->nFanoutsMax  = 10;
-    pPars->nGrowthLevel =  0;
-    pPars->fArea        =  0;
-    pPars->fVerbose     =  0;
-    pPars->fVeryVerbose =  0;
+    pPars->nWinTfoLevs  =   2;
+    pPars->nFanoutsMax  =  10;
+    pPars->nDepthMax    =  20;
+    pPars->nDivMax      = 200;
+    pPars->nWinSizeMax  = 300;
+    pPars->nGrowthLevel =   0;
+    pPars->fResub       =   1;
+    pPars->fArea        =   0;
+    pPars->fVerbose     =   0;
+    pPars->fVeryVerbose =   0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WFLavwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WFDMLravwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -3276,7 +3282,7 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nWinTfoLevs = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nWinTfoLevs < 1 || pPars->nWinTfoLevs > 99 ) 
+            if ( pPars->nWinTfoLevs < 0 ) 
                 goto usage;
             break;
         case 'F':
@@ -3290,6 +3296,28 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nFanoutsMax < 1 ) 
                 goto usage;
             break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-D\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nDepthMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nDepthMax < 0 ) 
+                goto usage;
+            break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nWinSizeMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nWinSizeMax < 0 ) 
+                goto usage;
+            break;
         case 'L':
             if ( globalUtilOptind >= argc )
             {
@@ -3300,6 +3328,9 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( pPars->nGrowthLevel < 0 || pPars->nGrowthLevel > ABC_INFINITY ) 
                 goto usage;
+            break;
+        case 'r':
+            pPars->fResub ^= 1;
             break;
         case 'a':
             pPars->fArea ^= 1;
@@ -3337,14 +3368,17 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: mfs [-W <num>] [-F <num>] [-L <num>] [-vh]\n" );
+    fprintf( pErr, "usage: mfs [-WFDML <num>] [-arvh]\n" );
     fprintf( pErr, "\t           performs don't-care-based optimization of logic networks\n" );
-    fprintf( pErr, "\t-W <num> : the number of levels in the TFO cone (0 <= NM <= 100) [default = %d]\n", pPars->nWinTfoLevs );
-    fprintf( pErr, "\t-F <num> : the max number of fanouts to skip (1 <= n) [default = %d]\n", pPars->nFanoutsMax );
+    fprintf( pErr, "\t-W <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n", pPars->nWinTfoLevs );
+    fprintf( pErr, "\t-F <num> : the max number of fanouts to skip (1 <= num) [default = %d]\n", pPars->nFanoutsMax );
+    fprintf( pErr, "\t-D <num> : the max depth nodes to try (0 = no limit) [default = %d]\n", pPars->nDepthMax );
+    fprintf( pErr, "\t-M <num> : the max size of  window to consider (0 = no limit) [default = %d]\n", pPars->nWinSizeMax );
     fprintf( pErr, "\t-L <num> : the largest increase in node level after resynthesis (0 <= num) [default = %d]\n", pPars->nGrowthLevel );
-//    fprintf( pErr, "\t-a       : toggle optimization for area only [default = %s]\n", pPars->fArea? "yes": "no" );
-    fprintf( pErr, "\t-v       : toggle verbose printout [default = %s]\n", pPars->fVerbose? "yes": "no" );
-//    fprintf( pErr, "\t-w       : toggle printout subgraph statistics [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
+    fprintf( pErr, "\t-a       : toggle minimizing area or edges [default = %s]\n", pPars->fArea? "area": "edges" );
+    fprintf( pErr, "\t-r       : toggle resubstitution and dc-minimization [default = %s]\n", pPars->fResub? "resub": "dc-min" );
+    fprintf( pErr, "\t-v       : toggle printing optimization summary [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-w       : toggle printing detailed stats for each node [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     fprintf( pErr, "\t-h       : print the command usage\n");
     return 1;
 } 
@@ -5736,6 +5770,93 @@ usage:
     fprintf( pErr, "\t         sets the network from file as EXDC for the current network\n" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     fprintf( pErr, "\t<file> : file with the new EXDC network\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandCareSet( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr, * pFile;
+    Abc_Ntk_t * pNtk, * pNtkNew, * pNtkRes;
+    char * FileName;
+    int c;
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( argc != globalUtilOptind + 1 )
+    {
+        goto usage;
+    }
+
+    // get the input file name
+    FileName = argv[globalUtilOptind];
+    if ( (pFile = fopen( FileName, "r" )) == NULL )
+    {
+        fprintf( pAbc->Err, "Cannot open input file \"%s\". ", FileName );
+        if ( FileName = Extra_FileGetSimilarName( FileName, ".mv", ".blif", ".pla", ".eqn", ".bench" ) )
+            fprintf( pAbc->Err, "Did you mean \"%s\"?", FileName );
+        fprintf( pAbc->Err, "\n" );
+        return 1;
+    }
+    fclose( pFile );
+
+    // set the new network
+    pNtkNew = Io_Read( FileName, Io_ReadFileType(FileName), 1 );
+    if ( pNtkNew == NULL )
+    {
+        fprintf( pAbc->Err, "Reading network from file has failed.\n" );
+        return 1;
+    }
+
+    // replace the EXDC
+    if ( pNtk->pExcare )
+    {
+        Abc_NtkDelete( pNtk->pExcare );
+        pNtk->pExcare = NULL;
+    }
+    pNtkRes = Abc_NtkDup( pNtk );
+    pNtkRes->pExcare = pNtkNew;
+
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: care_set [-h] <file>\n" );
+    fprintf( pErr, "\t         sets the network from file as a care for the current network\n" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    fprintf( pErr, "\t<file> : file with the new care network\n");
     return 1;
 }
 

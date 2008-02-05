@@ -23,8 +23,6 @@
 #include "main.h"
 #include "mio.h"
 
-#include "aig.h"
-
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -348,8 +346,8 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
     // duplicate the EXDC Ntk
     if ( pNtk->pExdc )
         pNtkNew->pExdc = Abc_NtkDup( pNtk->pExdc );
-    if ( pNtk->pManExdc )
-        pNtkNew->pManExdc = Aig_ManDup( pNtk->pManExdc, 0 );
+    if ( pNtk->pExcare )
+        pNtkNew->pExcare = Abc_NtkDup( pNtk->pExcare );
     if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkDup(): Network check has failed.\n" );
     pNtk->pCopy = pNtkNew;
@@ -941,11 +939,8 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     // free EXDC Ntk
     if ( pNtk->pExdc )
         Abc_NtkDelete( pNtk->pExdc );
-    if ( pNtk->pManExdc )
-    {
-        Aig_ManStop( pNtk->pManExdc );
-        pNtk->pManExdc = NULL;
-    }
+    if ( pNtk->pExcare )
+        Abc_NtkDelete( pNtk->pExcare );
     // dereference the BDDs
     if ( Abc_NtkHasBdd(pNtk) )
     {

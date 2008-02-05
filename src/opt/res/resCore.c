@@ -183,12 +183,15 @@ void Res_UpdateNetwork( Abc_Obj_t * pObj, Vec_Ptr_t * vFanins, Hop_Obj_t * pFunc
 {
     Abc_Obj_t * pObjNew, * pFanin;
     int k;
+
     // create the new node
     pObjNew = Abc_NtkCreateNode( pObj->pNtk );
     pObjNew->pData = pFunc;
     Vec_PtrForEachEntry( vFanins, pFanin, k )
         Abc_ObjAddFanin( pObjNew, pFanin );
     // replace the old node by the new node
+//printf( "Replacing node " ); Abc_ObjPrint( stdout, pObj );
+//printf( "Inserting node " ); Abc_ObjPrint( stdout, pObjNew );
     // update the level of the node
     Abc_NtkUpdate( pObj, pObjNew, vLevels );
 }
