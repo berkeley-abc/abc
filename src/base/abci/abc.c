@@ -3130,7 +3130,7 @@ int Abc_CommandImfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nWindow      = 62;
     pPars->nCands       =  5;
     pPars->nSimWords    =  4;
-    pPars->nGrowthLevel =  0;
+    pPars->nGrowthLevel =  1;
     pPars->fArea        =  0;
     pPars->fVerbose     =  0;
     pPars->fVeryVerbose =  0;
@@ -3225,7 +3225,7 @@ usage:
     fprintf( pErr, "\t-W <NM>  : fanin/fanout levels (NxM) of the window (00 <= NM <= 99) [default = %d%d]\n", pPars->nWindow/10, pPars->nWindow%10 );
     fprintf( pErr, "\t-C <num> : the max number of resub candidates (1 <= n) [default = %d]\n", pPars->nCands );
     fprintf( pErr, "\t-S <num> : the number of simulation words (1 <= n <= 256) [default = %d]\n", pPars->nSimWords );
-    fprintf( pErr, "\t-L <num> : the largest increase in node level after resynthesis (0 <= num) [default = %d]\n", pPars->nGrowthLevel );
+    fprintf( pErr, "\t-L <num> : the max increase in node level after resynthesis (0 <= num) [default = %d]\n", pPars->nGrowthLevel );
     fprintf( pErr, "\t-a       : toggle optimization for area only [default = %s]\n", pPars->fArea? "yes": "no" );
     fprintf( pErr, "\t-v       : toggle verbose printout [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-w       : toggle printout subgraph statistics [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
@@ -3264,13 +3264,15 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nDepthMax    =  20;
     pPars->nDivMax      = 200;
     pPars->nWinSizeMax  = 300;
-    pPars->nGrowthLevel =   0;
+    pPars->nGrowthLevel =   1;
     pPars->fResub       =   1;
     pPars->fArea        =   0;
+    pPars->fMoreEffort  =   0;
+    pPars->fSwapEdge    =   0;
     pPars->fVerbose     =   0;
     pPars->fVeryVerbose =   0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WFDMLravwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WFDMLraesvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -3335,6 +3337,12 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'a':
             pPars->fArea ^= 1;
             break;
+        case 'e':
+            pPars->fMoreEffort ^= 1;
+            break;
+        case 's':
+            pPars->fSwapEdge ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -3368,15 +3376,17 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: mfs [-WFDML <num>] [-arvh]\n" );
+    fprintf( pErr, "usage: mfs [-WFDML <num>] [-raesvh]\n" );
     fprintf( pErr, "\t           performs don't-care-based optimization of logic networks\n" );
     fprintf( pErr, "\t-W <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n", pPars->nWinTfoLevs );
     fprintf( pErr, "\t-F <num> : the max number of fanouts to skip (1 <= num) [default = %d]\n", pPars->nFanoutsMax );
     fprintf( pErr, "\t-D <num> : the max depth nodes to try (0 = no limit) [default = %d]\n", pPars->nDepthMax );
     fprintf( pErr, "\t-M <num> : the max size of  window to consider (0 = no limit) [default = %d]\n", pPars->nWinSizeMax );
-    fprintf( pErr, "\t-L <num> : the largest increase in node level after resynthesis (0 <= num) [default = %d]\n", pPars->nGrowthLevel );
-    fprintf( pErr, "\t-a       : toggle minimizing area or edges [default = %s]\n", pPars->fArea? "area": "edges" );
+    fprintf( pErr, "\t-L <num> : the max increase in node level after resynthesis (0 <= num) [default = %d]\n", pPars->nGrowthLevel );
     fprintf( pErr, "\t-r       : toggle resubstitution and dc-minimization [default = %s]\n", pPars->fResub? "resub": "dc-min" );
+    fprintf( pErr, "\t-a       : toggle minimizing area or area+edges [default = %s]\n", pPars->fArea? "area": "area+edges" );
+    fprintf( pErr, "\t-e       : toggle high-effort resubstitution [default = %s]\n", pPars->fMoreEffort? "yes": "no" );
+    fprintf( pErr, "\t-s       : toggle evaluation of edge swapping [default = %s]\n", pPars->fSwapEdge? "yes": "no" );
     fprintf( pErr, "\t-v       : toggle printing optimization summary [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-w       : toggle printing detailed stats for each node [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     fprintf( pErr, "\t-h       : print the command usage\n");
@@ -6208,12 +6218,14 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fSorter;
     int fMesh;
     int fFpga;
+    int fOneHot;
     int fVerbose;
     char * FileName;
     extern void Abc_GenAdder( char * pFileName, int nVars );
     extern void Abc_GenSorter( char * pFileName, int nVars );
     extern void Abc_GenMesh( char * pFileName, int nVars );
     extern void Abc_GenFpga( char * pFileName, int nLutSize, int nLuts, int nVars );
+    extern void Abc_GenOneHot( char * pFileName, int nVars );
 
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -6226,9 +6238,10 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     fSorter = 0;
     fMesh = 0;
     fFpga = 0;
+    fOneHot = 0;
     fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Nasmfvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nasmftvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -6254,6 +6267,9 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'f':
             fFpga ^= 1;
+            break;
+        case 't':
+            fOneHot ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -6282,18 +6298,21 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_GenFpga( FileName, 4, 3, 10 );
 //        Abc_GenFpga( FileName, 2, 2, 3 );
 //        Abc_GenFpga( FileName, 3, 2, 5 );
+    else if ( fOneHot )
+        Abc_GenOneHot( FileName, nVars );
     else
         printf( "Type of circuit is not specified.\n" );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: gen [-N] [-asmfvh] <file>\n" );
+    fprintf( pErr, "usage: gen [-N num] [-asmftvh] <file>\n" );
     fprintf( pErr, "\t         generates simple circuits\n" );
     fprintf( pErr, "\t-N num : the number of variables [default = %d]\n", nVars );  
     fprintf( pErr, "\t-a     : generate ripple-carry adder [default = %s]\n", fAdder? "yes": "no" );  
     fprintf( pErr, "\t-s     : generate a sorter [default = %s]\n", fSorter? "yes": "no" );  
     fprintf( pErr, "\t-m     : generate a mesh [default = %s]\n", fMesh? "yes": "no" );  
     fprintf( pErr, "\t-f     : generate a LUT FPGA structure [default = %s]\n", fFpga? "yes": "no" );  
+    fprintf( pErr, "\t-t     : generate one-hotness conditions [default = %s]\n", fOneHot? "yes": "no" );  
     fprintf( pErr, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
     fprintf( pErr, "\t-h     : print the command usage\n");
     fprintf( pErr, "\t<file> : output file name\n");
@@ -6634,7 +6653,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Abc_Ntk_t * Abc_NtkDarToCnf( Abc_Ntk_t * pNtk, char * pFileName );
     extern Abc_Ntk_t * Abc_NtkFilter( Abc_Ntk_t * pNtk );
 //    extern Abc_Ntk_t * Abc_NtkDarRetime( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose );
-    extern Abc_Ntk_t * Abc_NtkPcmTest( Abc_Ntk_t * pNtk, int fVerbose );
+//    extern Abc_Ntk_t * Abc_NtkPcmTest( Abc_Ntk_t * pNtk, int fVerbose );
     extern Abc_NtkDarHaigRecord( Abc_Ntk_t * pNtk );
 //    extern void Abc_NtkDarTestBlif( char * pFileName );
 

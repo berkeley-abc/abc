@@ -471,12 +471,14 @@ clk2 = clock();
     if ( p->pPars->fWriteImps && p->vOneHots && Fra_OneHotCount(p, p->vOneHots) )
     {
         extern void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int fCompact );
-        char Buffer[500];
+        char Buffer[500], * pStart;
         Aig_Man_t * pNew;
         pManAigNew = Aig_ManDup( pManAig, 1 );
 //        pManAigNew->pManExdc = Fra_OneHotCreateExdc( p, p->vOneHots );
         pNew = Fra_OneHotCreateExdc( p, p->vOneHots );
-        sprintf( Buffer, "%s_care.aig", p->pManAig->pName );
+        pStart = Ioa_FileNameGeneric(p->pManAig->pName);
+        sprintf( Buffer, "%s_care.aig", pStart );
+        free( pStart );
         printf( "Care one-hotness clauses are written into file \"%s\".\n", Buffer );
         Ioa_WriteAiger( pNew, Buffer, 0, 1 );
         Aig_ManStop( pNew );

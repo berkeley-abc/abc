@@ -39,7 +39,7 @@ extern "C" {
 #include "aig.h"
 #include "dar.h"
 #include "satSolver.h"
-//#include "bar.h"
+#include "ioa.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///

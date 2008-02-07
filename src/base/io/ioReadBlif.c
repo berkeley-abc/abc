@@ -218,7 +218,20 @@ Abc_Ntk_t * Io_ReadBlifNetworkOne( Io_ReadBlif_t * p )
     p->pNtkCur = pNtk = Abc_NtkAlloc( ABC_NTK_NETLIST, ABC_FUNC_SOP, 1 );
     // read the model name
     if ( strcmp( p->vTokens->pArray[0], ".model" ) == 0 )
-        pNtk->pName = Extra_UtilStrsav( p->vTokens->pArray[1] );
+    {
+        char * pToken, * pPivot;
+        if ( Vec_PtrSize(p->vTokens) != 2 )
+        {
+            p->LineCur = Extra_FileReaderGetLineNumber(p->pReader, 0);
+            sprintf( p->sError, "The .model line does not have exactly two entries." );
+            Io_ReadBlifPrintErrorMessage( p );
+            return NULL;
+        }
+        for ( pPivot = pToken = Vec_PtrEntry(p->vTokens, 1); *pToken; pToken++ )
+            if ( *pToken == '/' || *pToken == '\\' )
+                pPivot = pToken+1;
+        pNtk->pName = Extra_UtilStrsav( pPivot );
+    }
     else if ( strcmp( p->vTokens->pArray[0], ".exdc" ) != 0 ) 
     {
         printf( "%s: File parsing skipped after line %d (\"%s\").\n", p->pFileName, 

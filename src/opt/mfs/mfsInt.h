@@ -49,6 +49,7 @@ struct Mfs_Man_t_
     Mfs_Par_t *         pPars;
     Abc_Ntk_t *         pNtk;
     Aig_Man_t *         pCare;
+    int                 nFaninMax;
     // intermeditate data for the node
     Vec_Ptr_t *         vRoots;    // the roots of the window
     Vec_Ptr_t *         vSupp;     // the support of the window
@@ -78,7 +79,6 @@ struct Mfs_Man_t_
     // performance statistics
     int                 nNodesTried;
     int                 nNodesResub;
-    int                 nNodesGained;
     int                 nMintsCare;
     int                 nMintsTotal;
     int                 nNodesBad;
@@ -119,8 +119,10 @@ extern Mfs_Man_t *      Mfs_ManAlloc( Mfs_Par_t * pPars );
 extern void             Mfs_ManStop( Mfs_Man_t * p );
 extern void             Mfs_ManClean( Mfs_Man_t * p );
 /*=== mfsResub.c ==========================================================*/
-extern int              Abc_NtkMfsResubArea( Mfs_Man_t * p, Abc_Obj_t * pNode );
-extern int              Abc_NtkMfsResubEdge( Mfs_Man_t * p, Abc_Obj_t * pNode );
+extern void             Abc_NtkMfsPrintResubStats( Mfs_Man_t * p );
+extern int              Abc_NtkMfsEdgeSwapEval( Mfs_Man_t * p, Abc_Obj_t * pNode );
+extern int              Abc_NtkMfsResubNode( Mfs_Man_t * p, Abc_Obj_t * pNode );
+extern int              Abc_NtkMfsResubNode2( Mfs_Man_t * p, Abc_Obj_t * pNode );
 /*=== mfsSat.c ==========================================================*/
 extern void             Abc_NtkMfsSolveSat( Mfs_Man_t * p, Abc_Obj_t * pNode );
 /*=== mfsStrash.c ==========================================================*/

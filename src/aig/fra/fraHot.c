@@ -130,7 +130,7 @@ int Fra_OneHotNodesAreClause( Fra_Sml_t * pSeq, Aig_Obj_t * pObj1, Aig_Obj_t * p
 ***********************************************************************/
 Vec_Int_t * Fra_OneHotCompute( Fra_Man_t * p, Fra_Sml_t * pSim )
 {
-    int fSkipConstEqu = 1;
+    int fSkipConstEqu = 0;
     Vec_Int_t * vOneHots;
     Aig_Obj_t * pObj1, * pObj2;
     int i, k;

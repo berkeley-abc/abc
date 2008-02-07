@@ -85,12 +85,12 @@ void Mfs_ManClean( Mfs_Man_t * p )
     if ( p->vDivs )
         Vec_PtrFree( p->vDivs );
     p->pAigWin = NULL;
-    p->pCnf   = NULL;
-    p->pSat   = NULL;
-    p->vRoots = NULL;
-    p->vSupp  = NULL;
-    p->vNodes = NULL;
-    p->vDivs  = NULL;
+    p->pCnf    = NULL;
+    p->pSat    = NULL;
+    p->vRoots  = NULL;
+    p->vSupp   = NULL;
+    p->vNodes  = NULL;
+    p->vDivs   = NULL;
 }
 
 /**Function*************************************************************
@@ -117,6 +117,11 @@ void Mfs_ManPrint( Mfs_Man_t * p )
         printf( "\n" );
         printf( "Nodes = %d. Tried = %d. Resub = %d. Skipped = %d. SAT calls = %d.\n", 
             Abc_NtkNodeNum(p->pNtk), p->nNodesTried, p->nNodesResub, p->nNodesBad, p->nSatCalls );
+        if ( p->pPars->fSwapEdge )
+            printf( "Swappable edges = %d. Total edges = %d. Ratio = %5.2f.\n", 
+                p->nNodesResub, Abc_NtkGetTotalFanins(p->pNtk), 1.00 * p->nNodesResub / Abc_NtkGetTotalFanins(p->pNtk) );
+        else
+            Abc_NtkMfsPrintResubStats( p );
     }
     else
     {

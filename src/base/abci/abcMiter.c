@@ -1130,6 +1130,7 @@ int Abc_NtkCombinePos( Abc_Ntk_t * pNtk, int fAnd )
     pNode = Abc_NtkCreatePo( pNtk );
     Abc_ObjAddFanin( pNode, pMiter );
     Abc_ObjAssignName( pNode, "miter", NULL );
+    Abc_NtkOrderCisCos( pNtk );
     // make sure that everything is okay
     if ( !Abc_NtkCheck( pNtk ) )
     {

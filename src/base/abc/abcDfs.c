@@ -1025,7 +1025,7 @@ int Abc_NtkLevelReverse( Abc_Ntk_t * pNtk )
     return LevelsMax;
 }
 
-
+ 
 /**Function*************************************************************
 
   Synopsis    [Recursively detects combinational loops.]

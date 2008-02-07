@@ -49,6 +49,8 @@ struct Mfs_Par_t_
     int           nGrowthLevel;  // the maximum allowed growth in level
     int           fResub;        // performs resubstitution
     int           fArea;         // performs optimization for area
+    int           fMoreEffort;   // performs high-affort minimization
+    int           fSwapEdge;     // performs edge swapping
     int           fDelay;        // performs optimization for delay
     int           fVerbose;      // enable basic stats
     int           fVeryVerbose;  // enable detailed stats

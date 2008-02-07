@@ -705,6 +705,24 @@ static inline void Vec_PtrCleanSimInfo( Vec_Ptr_t * vInfo, int iWord, int nWords
 
 /**Function*************************************************************
 
+  Synopsis    [Cleans simulation info of each entry beginning with iWord.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_PtrFillSimInfo( Vec_Ptr_t * vInfo, int iWord, int nWords )
+{
+    int i;
+    for ( i = 0; i < vInfo->nSize; i++ )
+        memset( (char*)Vec_PtrEntry(vInfo,i) + 4*iWord, 0xFF, 4*(nWords-iWord) );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Resizes the array of simulation info.]
 
   Description [Doubles the number of objects for which siminfo is allocated.]

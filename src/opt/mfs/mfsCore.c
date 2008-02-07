@@ -74,10 +74,14 @@ clk = clock();
         return 1;
     }
     // solve the SAT problem
-    if ( p->pPars->fArea )
-        Abc_NtkMfsResubArea( p, pNode );
+    if ( p->pPars->fSwapEdge )
+        Abc_NtkMfsEdgeSwapEval( p, pNode );
     else
-        Abc_NtkMfsResubEdge( p, pNode );
+    {
+        Abc_NtkMfsResubNode( p, pNode );
+        if ( p->pPars->fMoreEffort )
+            Abc_NtkMfsResubNode2( p, pNode );
+    }
 p->timeSat += clock() - clk;
     return 1;
 }
@@ -140,12 +144,13 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
     ProgressBar * pProgress;
     Mfs_Man_t * p;
     Abc_Obj_t * pObj;
-    int i, clk = clock();
+    int i, nFaninMax, clk = clock();
     int nTotalNodesBeg = Abc_NtkNodeNum(pNtk);
     int nTotalEdgesBeg = Abc_NtkGetTotalFanins(pNtk);
 
     assert( Abc_NtkIsLogic(pNtk) );
-    if ( Abc_NtkGetFaninMax(pNtk) > MFS_FANIN_MAX )
+    nFaninMax = Abc_NtkGetFaninMax(pNtk);
+    if ( nFaninMax > MFS_FANIN_MAX )
     {
         printf( "Some nodes have more than %d fanins. Quitting.\n", MFS_FANIN_MAX );
         return 1;
@@ -162,7 +167,8 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
 
     // start the manager
     p = Mfs_ManAlloc( pPars );
-    p->pNtk  = pNtk;
+    p->pNtk = pNtk;
+    p->nFaninMax = nFaninMax;
     if ( pNtk->pExcare )
     {
         Abc_Ntk_t * pTemp;
@@ -170,7 +176,7 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
         p->pCare = Abc_NtkToDar( pTemp, 0 );
         Abc_NtkDelete( pTemp );
     }
-    if ( pPars->fVerbose )
+//    if ( pPars->fVerbose )
     {
         if ( p->pCare != NULL )
             printf( "Performing optimization with %d external care clauses.\n", Aig_ManPoNum(p->pCare) );

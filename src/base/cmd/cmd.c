@@ -46,6 +46,7 @@ static int CmdCommandRecall        ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int CmdCommandEmpty         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 #ifdef WIN32
 static int CmdCommandLs            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int CmdCommandScrGen        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 #endif
 static int CmdCommandSis           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandMvsis         ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -86,6 +87,7 @@ void Cmd_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Basic", "empty",     CmdCommandEmpty,          0); 
 #ifdef WIN32
     Cmd_CommandAdd( pAbc, "Basic", "ls",        CmdCommandLs,             0 );
+    Cmd_CommandAdd( pAbc, "Basic", "scrgen",    CmdCommandScrGen,         0 );
 #endif
 
     Cmd_CommandAdd( pAbc, "Various", "sis",     CmdCommandSis,            1); 
@@ -1068,17 +1070,6 @@ usage:
 
 
 #ifdef WIN32
-/**Function*************************************************************
-
-  Synopsis    [Command to print the contents of the current directory (Windows).]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 #include <io.h>
 
 // these structures are defined in <io.h> but are for some reason invisible
@@ -1097,6 +1088,20 @@ extern long _findfirst( char *filespec, struct _finddata_t *fileinfo );
 extern int  _findnext( long handle, struct _finddata_t *fileinfo );
 extern int  _findclose( long handle );
 
+extern char * _getcwd( char * buffer, int maxlen );
+extern int    _chdir( const char *dirname );
+
+/**Function*************************************************************
+
+  Synopsis    [Command to print the contents of the current directory (Windows).]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int CmdCommandLs( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     struct _finddata_t c_file;
@@ -1181,14 +1186,237 @@ int CmdCommandLs( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "Usage: ls [-l] [-b]\n" );
+    fprintf( pAbc->Err, "usage: ls [-l] [-b]\n" );
     fprintf( pAbc->Err, "       print the file names in the current directory\n" );
     fprintf( pAbc->Err, "        -l : print in the long format [default = short]\n" );
     fprintf( pAbc->Err, "        -b : print only .mv files [default = all]\n" );
     return 1; 
 }
-#endif
 
+
+/**Function*************************************************************
+
+  Synopsis    [Generates the script for running ABC.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int CmdCommandScrGen( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    struct _finddata_t c_file;
+    long   hFile;
+    FILE * pFile = NULL;
+    char * pFileStr = "test.s";
+    char * pDirStr = NULL;
+    char * pComStr = "ps";
+    char * pWriteStr = NULL;
+    char   Buffer[1000], Line[2000];
+    int    nFileNameMax, nFileNameCur;
+    int    Counter = 0;
+    int    fUseCurrent;
+    char   c;
+
+    fUseCurrent = 0;
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "FDCWch") ) != EOF )
+    {
+        switch (c)
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pAbc->Err, "Command line switch \"-F\" should be followed by a string.\n" );
+                goto usage;
+            }
+            pFileStr = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pAbc->Err, "Command line switch \"-D\" should be followed by a string.\n" );
+                goto usage;
+            }
+            pDirStr = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pAbc->Err, "Command line switch \"-C\" should be followed by a string.\n" );
+                goto usage;
+            }
+            pComStr = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
+        case 'W':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pAbc->Err, "Command line switch \"-W\" should be followed by a string.\n" );
+                goto usage;
+            }
+            pWriteStr = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
+        case 'c':
+            fUseCurrent ^= 1;
+            break;
+        default:
+            goto usage;
+        }
+    }
+
+//    printf( "File = %s.\n", pFileStr );
+//    printf( "Dir = %s.\n", pDirStr );
+//    printf( "Com = %s.\n", pComStr );
+    if ( pDirStr == NULL )
+        fUseCurrent = 1;
+
+    if ( _getcwd( Buffer, 1000 ) == NULL )
+    {
+        printf( "Cannot get the current directory.\n" );
+        return 0;
+    }
+    if ( fUseCurrent )
+        pFile = fopen( pFileStr, "w" );
+    if ( pDirStr )
+    {
+        if ( _chdir(pDirStr) )
+        {
+            printf( "Cannot change to directory: %s\n", pDirStr );
+            return 0;
+        }
+    }
+    if ( !fUseCurrent )
+        pFile = fopen( pFileStr, "w" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file %s.\n", pFileStr );
+        if ( pDirStr && _chdir(Buffer) )
+        {
+            printf( "Cannot change to the current directory: %s\n", Buffer );
+            return 0;
+        }
+        return 0;
+    }
+
+    // find the first file in the directory
+    if( (hFile = _findfirst( "*.*", &c_file )) == -1L )
+    {
+        if ( pDirStr )
+            printf( "No files in the current directory.\n" );
+        else
+            printf( "No files in directory: %s\n", pDirStr );
+        if ( pDirStr && _chdir(Buffer) )
+        {
+            printf( "Cannot change to the current directory: %s\n", Buffer );
+            return 0;
+        }
+    }
+
+    // get the longest file name
+    {
+        nFileNameMax = 0;
+        do
+        {
+            // skip script and txt files
+            nFileNameCur = strlen(c_file.name);
+            if ( c_file.name[nFileNameCur-1] == '.' )
+                continue;
+            if ( nFileNameCur > 2 &&
+                 c_file.name[nFileNameCur-1] == 's' && 
+                 c_file.name[nFileNameCur-2] == '.' ) 
+                 continue;
+            if ( nFileNameCur > 4 &&
+                 c_file.name[nFileNameCur-1] == 't' && 
+                 c_file.name[nFileNameCur-2] == 'x' && 
+                 c_file.name[nFileNameCur-3] == 't' && 
+                 c_file.name[nFileNameCur-4] == '.' ) 
+                 continue;
+            if ( nFileNameMax < nFileNameCur )
+                nFileNameMax = nFileNameCur;
+        }
+        while( _findnext( hFile, &c_file ) == 0 );
+        _findclose( hFile );
+    }
+
+    // print the script file
+    {
+        if( (hFile = _findfirst( "*.*", &c_file )) == -1L )
+        {
+            if ( pDirStr )
+                printf( "No files in the current directory.\n" );
+            else
+                printf( "No files in directory: %s\n", pDirStr );
+        }
+        fprintf( pFile, "# Script file produced by ABC on %s\n", Extra_TimeStamp() );
+        fprintf( pFile, "# Command line was: scrgen -F %s -D %s -C \"%s\"%s%s\n", 
+            pFileStr, pDirStr, pComStr, pWriteStr?" -W ":"", pWriteStr?pWriteStr:"" );
+        do
+        {
+            // skip script and txt files
+            nFileNameCur = strlen(c_file.name);
+            if ( c_file.name[nFileNameCur-1] == '.' )
+                continue;
+            if ( nFileNameCur > 2 &&
+                 c_file.name[nFileNameCur-1] == 's' && 
+                 c_file.name[nFileNameCur-2] == '.' ) 
+                 continue;
+            if ( nFileNameCur > 4 &&
+                 c_file.name[nFileNameCur-1] == 't' && 
+                 c_file.name[nFileNameCur-2] == 'x' && 
+                 c_file.name[nFileNameCur-3] == 't' && 
+                 c_file.name[nFileNameCur-4] == '.' ) 
+                 continue;
+            sprintf( Line, "r %s%s%-*s ; %s", pDirStr?pDirStr:"", pDirStr?"/":"", nFileNameMax, c_file.name, pComStr );
+            for ( c = (int)strlen(Line)-1; c >= 0; c-- )
+                if ( Line[c] == '\\' )
+                    Line[c] = '/';
+            fprintf( pFile, "%s", Line );
+            if ( pWriteStr )
+            {
+                sprintf( Line, " ; w %s/%-*s", pWriteStr, nFileNameMax, c_file.name );
+                for ( c = (int)strlen(Line)-1; c >= 0; c-- )
+                    if ( Line[c] == '\\' )
+                        Line[c] = '/';
+                fprintf( pFile, "%s", Line );
+            }
+            fprintf( pFile, "\n", Line );
+        }
+        while( _findnext( hFile, &c_file ) == 0 );
+        _findclose( hFile );
+    }
+    fclose( pFile );
+    if ( pDirStr && _chdir(Buffer) )
+    {
+        printf( "Cannot change to the current directory: %s\n", Buffer );
+        return 0;
+    }
+
+    // report
+    if ( fUseCurrent )
+        printf( "Script file \"%s\" was saved in the current directory.\n", pFileStr );
+    else
+        printf( "Script file \"%s\" was saved in directory: %s\n", pFileStr, pDirStr );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: scrgen -F <str> -D <str> -C <str> -W <str> -ch\n" );
+    fprintf( pAbc->Err, "\t          generates script for running ABC\n" );
+    fprintf( pAbc->Err, "\t-F str  : the name of the script file [default = \"test.s\"]\n" );
+    fprintf( pAbc->Err, "\t-D str  : the directory to read files from [default = current]\n" );
+    fprintf( pAbc->Err, "\t-C str  : the sequence of commands to run [default = \"ps\"]\n" );
+    fprintf( pAbc->Err, "\t-W str  : the directory to write the resulting files [default = no writing]\n" );
+    fprintf( pAbc->Err, "\t-c      : toggle placing file in current/target dir [default = %s]\n", fUseCurrent? "current": "target" );
+    fprintf( pAbc->Err, "\t-h      : print the command usage\n\n");
+    fprintf( pAbc->Err, "\tExample : scrgen -F test1.s -D a/in -C \"ps; st; ps\" -W a/out\n" );
+    return 1; 
+}
+#endif
 
 
 #ifdef WIN32

@@ -1530,7 +1530,7 @@ void Fra_ClausWriteIndClauses( Clu_Man_t * p )
     extern void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int fCompact );
     Aig_Man_t * pNew;
     Aig_Obj_t * pClause, * pLiteral;
-    char Buffer[500];
+    char Buffer[500], * pName;
     int * pStart, * pVar2Id; 
     int Beg, End, i, k;
     // create mapping from SAT vars to node IDs
@@ -1561,7 +1561,9 @@ void Fra_ClausWriteIndClauses( Clu_Man_t * p )
     free( pVar2Id );
     Aig_ManCleanup( pNew );
     // write the manager into a file
-    sprintf( Buffer, "%s_care.aig", p->pAig->pName );
+    pName = Ioa_FileNameGeneric(p->pAig->pName);
+    sprintf( Buffer, "%s_care.aig", pName );
+    free( pName );
     printf( "Care clauses are written into file \"%s\".\n", Buffer );
     Ioa_WriteAiger( pNew, Buffer, 0, 1 );
     Aig_ManStop( pNew );

@@ -90,7 +90,7 @@ static Io_MvMod_t *      Io_MvModAlloc();
 static void              Io_MvModFree( Io_MvMod_t * p );
 static char *            Io_MvLoadFile( char * pFileName );
 static void              Io_MvReadPreparse( Io_MvMan_t * p );
-static void              Io_MvReadInterfaces( Io_MvMan_t * p );
+static int               Io_MvReadInterfaces( Io_MvMan_t * p );
 static Abc_Lib_t *       Io_MvParse( Io_MvMan_t * p );
 static int               Io_MvParseLineModel( Io_MvMod_t * p, char * pLine );
 static int               Io_MvParseLineInputs( Io_MvMod_t * p, char * pLine );
@@ -128,7 +128,7 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
     FILE * pFile;
     Io_MvMan_t * p;
     Abc_Ntk_t * pNtk;
-    Abc_Lib_t * pDesign;
+    Abc_Lib_t * pDesign = NULL;
     char * pDesignName;
     int RetValue, i;
 
@@ -161,10 +161,9 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
     p->pDesign->pManFunc = NULL;
     // prepare the file for parsing
     Io_MvReadPreparse( p );
-    // parse interfaces of each network
-    Io_MvReadInterfaces( p );
-    // construct the network
-    pDesign = Io_MvParse( p );
+    // parse interfaces of each network and construct the network
+    if ( Io_MvReadInterfaces( p ) )
+        pDesign = Io_MvParse( p );
     if ( p->sError[0] )
         fprintf( stdout, "%s\n", p->sError );
     Io_MvFree( p );
@@ -646,7 +645,7 @@ static void Io_MvReadPreparse( Io_MvMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static void Io_MvReadInterfaces( Io_MvMan_t * p )
+static int Io_MvReadInterfaces( Io_MvMan_t * p )
 {
     Io_MvMod_t * pMod;
     char * pLine;
@@ -656,22 +655,23 @@ static void Io_MvReadInterfaces( Io_MvMan_t * p )
     {
         // parse the model
         if ( !Io_MvParseLineModel( pMod, pMod->pName ) )
-            return;
+            return 0;
         // add model to the design
         if ( !Abc_LibAddModel( p->pDesign, pMod->pNtk ) )
         {
             sprintf( p->sError, "Line %d: Model %s is defined twice.", Io_MvGetLine(p, pMod->pName), pMod->pName );
-            return;
+            return 0;
         }
         // parse the inputs
         Vec_PtrForEachEntry( pMod->vInputs, pLine, k )
             if ( !Io_MvParseLineInputs( pMod, pLine ) )
-                return;
+                return 0;
         // parse the outputs
         Vec_PtrForEachEntry( pMod->vOutputs, pLine, k )
             if ( !Io_MvParseLineOutputs( pMod, pLine ) )
-                return;
+                return 0;
     }
+    return 1;
 }
 
 
@@ -767,7 +767,7 @@ static Abc_Lib_t * Io_MvParse( Io_MvMan_t * p )
 static int Io_MvParseLineModel( Io_MvMod_t * p, char * pLine )
 {
     Vec_Ptr_t * vTokens = p->pMan->vTokens;
-    char * pToken;
+    char * pToken, * pPivot;
     Io_MvSplitIntoTokens( vTokens, pLine, '\0' );
     pToken = Vec_PtrEntry( vTokens, 0 );
     assert( !strcmp(pToken, "model") );
@@ -782,7 +782,10 @@ static int Io_MvParseLineModel( Io_MvMod_t * p, char * pLine )
         p->pNtk = Abc_NtkAlloc( ABC_NTK_NETLIST, ABC_FUNC_BLIFMV, 1 );
     else 
         p->pNtk = Abc_NtkAlloc( ABC_NTK_NETLIST, ABC_FUNC_SOP, 1 );
-    p->pNtk->pName = Extra_UtilStrsav( Vec_PtrEntry(vTokens, 1) );
+    for ( pPivot = pToken = Vec_PtrEntry(vTokens, 1); *pToken; pToken++ )
+        if ( *pToken == '/' || *pToken == '\\' )
+            pPivot = pToken+1;
+    p->pNtk->pName = Extra_UtilStrsav( pPivot );
     return 1;
 }
 
