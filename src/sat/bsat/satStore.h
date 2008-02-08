@@ -125,6 +125,7 @@ extern Sto_Man_t *  Sto_ManLoadClauses( char * pFileName );
 /*=== satInter.c ==========================================================*/
 typedef struct Int_Man_t_ Int_Man_t;
 extern Int_Man_t *  Int_ManAlloc();
+extern int *        Int_ManSetGlobalVars( Int_Man_t * p, int nGloVars );
 extern void         Int_ManFree( Int_Man_t * p );
 extern int          Int_ManInterpolate( Int_Man_t * p, Sto_Man_t * pCnf, int fVerbose, unsigned ** ppResult );
 

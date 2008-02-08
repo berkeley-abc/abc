@@ -220,6 +220,7 @@ Hop_Obj_t * Abc_NtkMfsInterplate( Mfs_Man_t * p, int * pCands, int nCands )
     Kit_Graph_t * pGraph;
     Hop_Obj_t * pFunc;
     int nFanins, status;
+    int c, i, * pGloVars;
 
     // derive the SAT solver for interpolation
     pSat = Abc_MfsCreateSolverResub( p, pCands, nCands );
@@ -234,6 +235,16 @@ Hop_Obj_t * Abc_NtkMfsInterplate( Mfs_Man_t * p, int * pCands, int nCands )
     // get the learned clauses
     pCnf = sat_solver_store_release( pSat );
     sat_solver_delete( pSat );
+
+    // set the global variables
+    pGloVars = Int_ManSetGlobalVars( p->pMan, nCands );
+    for ( c = 0; c < nCands; c++ )
+    {
+        // get the variable number of this divisor
+        i = lit_var( pCands[c] ) - 2 * p->pCnf->nVars;
+        // get the corresponding SAT variable
+        pGloVars[c] = Vec_IntEntry( p->vProjVars, i );
+    }
 
     // derive the interpolant
     nFanins = Int_ManInterpolate( p->pMan, pCnf, 0, &puTruth );

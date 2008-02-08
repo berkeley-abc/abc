@@ -24,12 +24,16 @@ set gnuplotunix gnuplot
 alias b balance
 alias cl cleanup
 alias clp collapse
+alias cs care_set
+alias dc2 dcompress2
 alias esd ext_seq_dcs
 alias f fraig
 alias fs fraig_sweep
 alias fsto fraig_store
 alias fres fraig_restore
+alias fr fretime
 alias ft fraig_trust
+alias ic indcut
 alias lp lutpack
 alias pd print_dsd
 alias pex print_exdc -d
@@ -122,6 +126,8 @@ alias stdsd    "r test/6in.blif; st; ps; u; bdd; dsd -g; st; ps"
 alias trec     "rec_start; r c.blif; st; rec_add; rec_use"
 alias trec4    "rec_start -K 4; r i10.blif; st; rec_add; rec_use"
 alias bmc2     "frames -i -F 10; orpos; iprove"
+
+alias pjsolve  "scl; dc2; fr; dc2; ic; ic -t; if -a; cs tacas/005_care.aig; mfs; lp; st; ic"
 
 alias t0       "r test/mc1.blif; st; test"
 alias t1       "r s27mc2.blif; st; test"

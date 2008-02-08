@@ -677,7 +677,7 @@ void Abc_NtkNodeSupport_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
     // mark the node as visited
     Abc_NodeSetTravIdCurrent( pNode );
     // collect the CI
-    if ( Abc_ObjIsCi(pNode) )//|| Abc_ObjFaninNum(pNode) == 0 )
+    if ( Abc_ObjIsCi(pNode) || (Abc_NtkIsStrash(pNode->pNtk) && Abc_ObjFaninNum(pNode) == 0) )
     {
         Vec_PtrPush( vNodes, pNode );
         return;

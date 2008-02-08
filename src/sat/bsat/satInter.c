@@ -37,6 +37,8 @@ struct Int_Man_t_
 {
     // clauses of the problems
     Sto_Man_t *     pCnf;         // the set of CNF clauses for A and B
+    int             pGloVars[16]; // global variables
+    int             nGloVars;     // the number of global variables
     // various parameters
     int             fVerbose;     // verbosiness flag
     int             fProofVerif;  // verifies the proof
@@ -116,6 +118,23 @@ Int_Man_t * Int_ManAlloc()
 
 /**Function*************************************************************
 
+  Synopsis    [Allocate proof manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int * Int_ManSetGlobalVars( Int_Man_t * p, int nGloVars )
+{
+    p->nGloVars = nGloVars;
+    return p->pGloVars;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Count common variables in the clauses of A and B.]
 
   Description []
@@ -137,6 +156,13 @@ int Int_ManGlobalVars( Int_Man_t * p )
             break;
         for ( v = 0; v < (int)pClause->nLits; v++ )
             p->pVarTypes[lit_var(pClause->pLits[v])] = 1;
+    }
+
+    if ( p->nGloVars )
+    {
+        for ( v = 0; v < p->nGloVars; v++ )
+            p->pVarTypes[ p->pGloVars[v] ] = - v - 1;
+        return p->nGloVars;
     }
 
     // check variables that appear in clauses of B

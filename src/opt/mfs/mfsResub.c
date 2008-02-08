@@ -235,12 +235,8 @@ p->timeInt += clock() - clk;
 clk = clock();
             // derive the function
             pFunc = Abc_NtkMfsInterplate( p, pCands, nCands+1 );
-            // shift fanins by 1
-            for ( i = Vec_PtrSize(p->vFanins); i > 0; i-- )
-                p->vFanins->pArray[i] = p->vFanins->pArray[i-1];
-            p->vFanins->nSize++;
-            Vec_PtrWriteEntry( p->vFanins, 0, Vec_PtrEntry(p->vDivs, iVar) );
             // update the network
+            Vec_PtrPush( p->vFanins, Vec_PtrEntry(p->vDivs, iVar) );
             Abc_NtkMfsUpdateNetwork( p, pNode, p->vFanins, pFunc );
 p->timeInt += clock() - clk;
             return 1;
@@ -372,17 +368,10 @@ p->timeInt += clock() - clk;
 clk = clock();
             // derive the function
             pFunc = Abc_NtkMfsInterplate( p, pCands, nCands+2 );
-            // shift fanins by 1
-            for ( i = Vec_PtrSize(p->vFanins); i > 0; i-- )
-                p->vFanins->pArray[i] = p->vFanins->pArray[i-1];
-            p->vFanins->nSize++;
-            // shift fanins by 1
-            for ( i = Vec_PtrSize(p->vFanins); i > 0; i-- )
-                p->vFanins->pArray[i] = p->vFanins->pArray[i-1];
-            p->vFanins->nSize++;
-            Vec_PtrWriteEntry( p->vFanins, 0, Vec_PtrEntry(p->vDivs, iVar2) );
-            Vec_PtrWriteEntry( p->vFanins, 1, Vec_PtrEntry(p->vDivs, iVar) );
             // update the network
+            Vec_PtrPush( p->vFanins, Vec_PtrEntry(p->vDivs, iVar2) );
+            Vec_PtrPush( p->vFanins, Vec_PtrEntry(p->vDivs, iVar) );
+            assert( Vec_PtrSize(p->vFanins) == nCands + 2 );
             Abc_NtkMfsUpdateNetwork( p, pNode, p->vFanins, pFunc );
 p->timeInt += clock() - clk;
             return 1;

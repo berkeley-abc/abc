@@ -340,7 +340,7 @@ void Lpk_ComputeSupports( Lpk_Man_t * p, Lpk_Cut_t * pCut, unsigned * pTruth )
     pTruthInv = Lpk_CutTruth( p, pCut, 1 );
     RetValue1 = Kit_CreateCloudFromTruth( p->pDsdMan->dd, pTruth, pCut->nLeaves, p->vBddDir );
     RetValue2 = Kit_CreateCloudFromTruth( p->pDsdMan->dd, pTruthInv, pCut->nLeaves, p->vBddInv );
-    if ( RetValue1 && RetValue2 )
+    if ( RetValue1 && RetValue2 && Vec_IntSize(p->vBddDir) > 1 && Vec_IntSize(p->vBddInv) > 1 )
         Kit_TruthCofSupports( p->vBddDir, p->vBddInv, pCut->nLeaves, p->vMemory, p->puSupps ); 
     else
         p->puSupps[0] = p->puSupps[1] = 0;
