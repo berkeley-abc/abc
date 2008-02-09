@@ -49,6 +49,7 @@ struct Mfs_Man_t_
     Mfs_Par_t *         pPars;
     Abc_Ntk_t *         pNtk;
     Aig_Man_t *         pCare;
+    Vec_Ptr_t *         vSuppsInv;
     int                 nFaninMax;
     // intermeditate data for the node
     Vec_Ptr_t *         vRoots;    // the roots of the window

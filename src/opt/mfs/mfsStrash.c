@@ -179,7 +179,8 @@ Aig_Man_t * Abc_NtkConstructAig( Mfs_Man_t * p, Abc_Obj_t * pNode )
     Aig_Man_t * pMan;
     Abc_Obj_t * pFanin;
     Aig_Obj_t * pObjAig, * pPi, * pPo;
-    int i;
+    Vec_Int_t * vOuts;
+    int i, k, iOut;
     // start the new manager
     pMan = Aig_ManStart( 1000 );
     // construct the root node's AIG cone
@@ -197,6 +198,25 @@ Aig_Man_t * Abc_NtkConstructAig( Mfs_Man_t * p, Abc_Obj_t * pNode )
             pPi->pData = pFanin->pCopy;
         }
         // construct the constraints
+        Vec_PtrForEachEntry( p->vSupp, pFanin, i )
+        {
+            vOuts = Vec_PtrEntry( p->vSuppsInv, (int)pFanin->pData );
+            Vec_IntForEachEntry( vOuts, iOut, k )
+            {
+                pPo = Aig_ManPo( p->pCare, iOut );
+                if ( Aig_ObjIsTravIdCurrent( p->pCare, pPo ) )
+                    continue;
+                Aig_ObjSetTravIdCurrent( p->pCare, pPo );
+                if ( Aig_ObjFanin0(pPo) == Aig_ManConst1(p->pCare) )
+                    continue;
+                pObjAig = Abc_NtkConstructCare_rec( p->pCare, Aig_ObjFanin0(pPo), pMan );
+                if ( pObjAig == NULL )
+                    continue;
+                pObjAig = Aig_NotCond( pObjAig, Aig_ObjFaninC0(pPo) );
+                Aig_ObjCreatePo( pMan, pObjAig );
+            }
+        }
+/*
         Aig_ManForEachPo( p->pCare, pPo, i )
         {
 //            assert( Aig_ObjFanin0(pPo) != Aig_ManConst1(p->pCare) );
@@ -208,6 +228,7 @@ Aig_Man_t * Abc_NtkConstructAig( Mfs_Man_t * p, Abc_Obj_t * pNode )
             pObjAig = Aig_NotCond( pObjAig, Aig_ObjFaninC0(pPo) );
             Aig_ObjCreatePo( pMan, pObjAig );
         }
+*/
     }
     if ( p->pPars->fResub )
     {

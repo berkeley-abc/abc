@@ -155,6 +155,8 @@ void Mfs_ManStop( Mfs_Man_t * p )
         Mfs_ManPrint( p );
     if ( p->pCare )
         Aig_ManStop( p->pCare );
+    if ( p->vSuppsInv )
+        Vec_VecFree( (Vec_Vec_t *)p->vSuppsInv );
     Mfs_ManClean( p );
     Int_ManFree( p->pMan );
     Vec_IntFree( p->vMem );

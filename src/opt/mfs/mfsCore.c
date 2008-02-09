@@ -175,6 +175,7 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
         pTemp = Abc_NtkStrash( pNtk->pExcare, 0, 0, 0 );
         p->pCare = Abc_NtkToDar( pTemp, 0 );
         Abc_NtkDelete( pTemp );
+        p->vSuppsInv = Aig_ManSupportsInverse( p->pCare );
     }
 //    if ( pPars->fVerbose )
     {

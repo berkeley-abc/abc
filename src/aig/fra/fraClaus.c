@@ -515,7 +515,7 @@ int Fra_ClausCollectLatchClauses( Clu_Man_t * p, Fra_Sml_t * pSeq )
 
     nCountConst = nCountImps = 0;
     CostMax = p->nSimWords * 32;
-
+/*
     // add the property
     {
         Aig_Obj_t * pObj;
@@ -528,7 +528,7 @@ int Fra_ClausCollectLatchClauses( Clu_Man_t * p, Fra_Sml_t * pSeq )
         nCountConst++;
 //        printf( "Added the target property to the set of clauses to be inductively checked.\n" );
     }
-
+*/
 
     pSeq->nWordsPref = p->nSimWordsPref;
     Aig_ManForEachLoSeq( p->pAig, pObj1, i )

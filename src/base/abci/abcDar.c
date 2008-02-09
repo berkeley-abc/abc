@@ -95,8 +95,8 @@ Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fRegisters )
     if ( fRegisters )
     {
         pMan->nRegs = Abc_NtkLatchNum(pNtk);
-//        pMan->vFlopNums = Vec_IntStartNatural( pMan->nRegs );
-        pMan->vFlopNums = NULL;
+        pMan->vFlopNums = Vec_IntStartNatural( pMan->nRegs );
+//        pMan->vFlopNums = NULL;
     }
     // transfer the pointers to the basic nodes
     Abc_AigConst1(pNtk)->pCopy = (Abc_Obj_t *)Aig_ManConst1(pMan);
@@ -154,6 +154,7 @@ Abc_Ntk_t * Abc_NtkFromDar( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
     Abc_Obj_t * pObjNew;
     Aig_Obj_t * pObj;
     int i;
+    assert( pMan->nAsserts == 0 );
 //    assert( Aig_ManRegNum(pMan) == Abc_NtkLatchNum(pNtkOld) );
     // perform strashing
     pNtkNew = Abc_NtkStartFrom( pNtkOld, ABC_NTK_STRASH, ABC_FUNC_AIG );
@@ -203,11 +204,12 @@ Abc_Ntk_t * Abc_NtkFromDar( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkFromDarSeqSweep( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
 {
-    Vec_Ptr_t * vNodes;
+    Vec_Ptr_t * vNodes; 
     Abc_Ntk_t * pNtkNew;
     Abc_Obj_t * pObjNew, * pLatch;
     Aig_Obj_t * pObj, * pObjLo, * pObjLi;
-    int i, iNodeId;
+    int i, iNodeId, nDigits; 
+    assert( pMan->nAsserts == 0 );
 //    assert( Aig_ManRegNum(pMan) != Abc_NtkLatchNum(pNtkOld) );
     // perform strashing
     pNtkNew = Abc_NtkStartFromNoLatches( pNtkOld, ABC_NTK_STRASH, ABC_FUNC_AIG );
@@ -237,19 +239,6 @@ Abc_Ntk_t * Abc_NtkFromDarSeqSweep( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
         Abc_ObjAddFanin( pObjLo->pData, pObjNew );
         Abc_LatchSetInit0( pObjNew );
     }
-    if ( pMan->vFlopNums == NULL )
-        Abc_NtkAddDummyBoxNames( pNtkNew );
-    else
-    {
-        assert( Abc_NtkBoxNum(pNtkOld) == Abc_NtkLatchNum(pNtkOld) );
-        Abc_NtkForEachLatch( pNtkNew, pObjNew, i )
-        {
-            pLatch = Abc_NtkBox( pNtkOld, Vec_IntEntry( pMan->vFlopNums, i ) );
-            Abc_ObjAssignName( pObjNew, Abc_ObjName(pLatch), NULL );
-            Abc_ObjAssignName( Abc_ObjFanin0(pObjNew),  Abc_ObjName(Abc_ObjFanin0(pLatch)), NULL );
-            Abc_ObjAssignName( Abc_ObjFanout0(pObjNew), Abc_ObjName(Abc_ObjFanout0(pLatch)), NULL );
-        }
-    }
     // rebuild the AIG
     vNodes = Aig_ManDfs( pMan );
     Vec_PtrForEachEntry( vNodes, pObj, i )
@@ -261,14 +250,37 @@ Abc_Ntk_t * Abc_NtkFromDarSeqSweep( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
     // connect the PO nodes
     Aig_ManForEachPo( pMan, pObj, i )
     {
-        if ( pMan->nAsserts && i == Aig_ManPoNum(pMan) - pMan->nAsserts )
-            break;
+//        if ( pMan->nAsserts && i == Aig_ManPoNum(pMan) - pMan->nAsserts )
+//            break;
         iNodeId = Nm_ManFindIdByNameTwoTypes( pNtkNew->pManName, Abc_ObjName(Abc_NtkCo(pNtkNew, i)), ABC_OBJ_PI, ABC_OBJ_BO );
         if ( iNodeId >= 0 )
             pObjNew = Abc_NtkObj( pNtkNew, iNodeId );
         else
             pObjNew = (Abc_Obj_t *)Aig_ObjChild0Copy(pObj);
         Abc_ObjAddFanin( Abc_NtkCo(pNtkNew, i), pObjNew );
+    }
+    if ( pMan->vFlopNums == NULL )
+        Abc_NtkAddDummyBoxNames( pNtkNew );
+    else
+    {
+        assert( Abc_NtkBoxNum(pNtkOld) == Abc_NtkLatchNum(pNtkOld) );
+        nDigits = Extra_Base10Log( Abc_NtkLatchNum(pNtkNew) );
+        Abc_NtkForEachLatch( pNtkNew, pObjNew, i )
+        {
+            pLatch = Abc_NtkBox( pNtkOld, Vec_IntEntry( pMan->vFlopNums, i ) );
+            iNodeId = Nm_ManFindIdByName( pNtkNew->pManName, Abc_ObjName(Abc_ObjFanout0(pLatch)), ABC_OBJ_PO );
+            if ( iNodeId >= 0 )
+            {
+                Abc_ObjAssignName( pObjNew, Abc_ObjNameDummy("l", i, nDigits), NULL );
+                Abc_ObjAssignName( Abc_ObjFanin0(pObjNew), Abc_ObjNameDummy("li", i, nDigits), NULL );
+                Abc_ObjAssignName( Abc_ObjFanout0(pObjNew), Abc_ObjNameDummy("lo", i, nDigits), NULL );
+//printf( "happening   %s -> %s\n", Abc_ObjName(Abc_ObjFanin0(pObjNew)), Abc_ObjName(Abc_ObjFanout0(pObjNew)) );
+                continue;
+            }
+            Abc_ObjAssignName( pObjNew, Abc_ObjName(pLatch), NULL );
+            Abc_ObjAssignName( Abc_ObjFanin0(pObjNew),  Abc_ObjName(Abc_ObjFanin0(pLatch)), NULL );
+            Abc_ObjAssignName( Abc_ObjFanout0(pObjNew), Abc_ObjName(Abc_ObjFanout0(pLatch)), NULL );
+        }
     }
     // if there are assertions, add them
     if ( pMan->nAsserts > 0 )

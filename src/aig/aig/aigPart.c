@@ -258,7 +258,7 @@ Vec_Int_t * Part_ManTransferEntry( Part_One_t * p )
   Synopsis    [Computes supports of the POs in the multi-output AIG.]
 
   Description [Returns the array of integer arrays containing indices
-  of the primary inputs.]
+  of the primary inputsf or each primary output.]
                
   SideEffects [Adds the integer PO number at end of each array.]
 
@@ -342,6 +342,40 @@ Vec_Ptr_t * Aig_ManSupports( Aig_Man_t * pMan )
     printf( "\n" );
 */
     return vSupports;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the set of outputs for each input.]
+
+  Description [Returns the array of integer arrays containing indices
+  of the primary outputsf for each primary input.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Aig_ManSupportsInverse( Aig_Man_t * p )
+{
+    Vec_Ptr_t * vSupps, * vSuppsInv;
+    Vec_Int_t * vSupp;
+    int i, k, iIn, iOut;
+    // get structural supports for each output
+    vSupps = Aig_ManSupports( p );
+    // start the inverse supports
+    vSuppsInv = Vec_PtrAlloc( Aig_ManPiNum(p) );
+    for ( i = 0; i < Aig_ManPiNum(p); i++ )
+        Vec_PtrPush( vSuppsInv, Vec_IntAlloc(8) );
+    // transforms the supports into the inverse supports
+    Vec_PtrForEachEntry( vSupps, vSupp, i )
+    {
+        iOut = Vec_IntPop( vSupp );
+        Vec_IntForEachEntry( vSupp, iIn, k )
+            Vec_IntPush( Vec_PtrEntry(vSuppsInv, iIn), iOut );
+    }
+    Vec_VecFree( (Vec_Vec_t *)vSupps );
+    return vSuppsInv;
 }
 
 /**Function*************************************************************
