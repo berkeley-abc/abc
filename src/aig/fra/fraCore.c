@@ -303,6 +303,7 @@ void Fra_FraigSweep( Fra_Man_t * p )
 //    Bar_Progress_t * pProgress = NULL;
     Aig_Obj_t * pObj, * pObjNew;
     int i, Pos = 0;
+    int nBTracksOld;
     // fraig latch outputs
     Aig_ManForEachLoSeq( p->pManAig, pObj, i )
     {
@@ -315,6 +316,7 @@ void Fra_FraigSweep( Fra_Man_t * p )
     // fraig internal nodes
 //    if ( !p->pPars->fDontShowBar )
 //        pProgress = Bar_ProgressStart( stdout, Aig_ManObjNumMax(p->pManAig) );
+    nBTracksOld = p->pPars->nBTLimitNode;
     Aig_ManForEachNode( p->pManAig, pObj, i )
     {
 //        if ( pProgress )
@@ -327,7 +329,12 @@ void Fra_FraigSweep( Fra_Man_t * p )
         if ( p->pManFraig->pData )
             continue;
         // perform fraiging
+        if ( p->pPars->nLevelMax && (int)pObj->Level > p->pPars->nLevelMax )
+            p->pPars->nBTLimitNode = 5;
         Fra_FraigNode( p, pObj );
+        if ( p->pPars->nLevelMax && (int)pObj->Level > p->pPars->nLevelMax )
+            p->pPars->nBTLimitNode = nBTracksOld;
+        // check implications
         if ( p->pPars->fUseImps )
             Pos = Fra_ImpCheckForNode( p, p->pCla->vImps, pObj, Pos );
     }
@@ -382,7 +389,7 @@ clk = clock();
     // finalize the fraiged manager
     Fra_ManFinalizeComb( p );
     if ( p->pPars->fChoicing )
-    {
+    { 
 int clk2 = clock();
         Fra_ClassesCopyReprs( p->pCla, p->vTimeouts );
         pManAigNew = Aig_ManDupRepr( p->pManAig, 1 );
@@ -419,7 +426,7 @@ p->timeTotal = clock() - clk;
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Fra_FraigChoice( Aig_Man_t * pManAig, int nConfMax )
+Aig_Man_t * Fra_FraigChoice( Aig_Man_t * pManAig, int nConfMax, int nLevelMax )
 {
     Fra_Par_t Pars, * pPars = &Pars; 
     Fra_ParamsDefault( pPars );
@@ -430,6 +437,7 @@ Aig_Man_t * Fra_FraigChoice( Aig_Man_t * pManAig, int nConfMax )
     pPars->fProve       = 0;
     pPars->fVerbose     = 0;
     pPars->fDontShowBar = 1;
+    pPars->nLevelMax    = nLevelMax;
     return Fra_FraigPerform( pManAig, pPars );
 }
  

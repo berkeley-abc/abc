@@ -720,7 +720,7 @@ clk = clock();
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkDChoice( Abc_Ntk_t * pNtk, int fBalance, int fUpdateLevel, int fVerbose )
+Abc_Ntk_t * Abc_NtkDChoice( Abc_Ntk_t * pNtk, int fBalance, int fUpdateLevel, int nConfMax, int nLevelMax, int fVerbose )
 {
     Aig_Man_t * pMan, * pTemp;
     Abc_Ntk_t * pNtkAig;
@@ -728,7 +728,7 @@ Abc_Ntk_t * Abc_NtkDChoice( Abc_Ntk_t * pNtk, int fBalance, int fUpdateLevel, in
     pMan = Abc_NtkToDar( pNtk, 0 );
     if ( pMan == NULL )
         return NULL;
-    pMan = Dar_ManChoice( pTemp = pMan, fBalance, fUpdateLevel, fVerbose );
+    pMan = Dar_ManChoice( pTemp = pMan, fBalance, fUpdateLevel, nConfMax, nLevelMax, fVerbose );
     Aig_ManStop( pTemp );
     pNtkAig = Abc_NtkFromDarChoices( pNtk, pMan );
     Aig_ManStop( pMan );

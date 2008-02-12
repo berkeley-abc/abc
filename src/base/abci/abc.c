@@ -7675,8 +7675,9 @@ int Abc_CommandDChoice( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
     int fBalance, fVerbose, fUpdateLevel, c;
+    int nConfMax, nLevelMax;
 
-    extern Abc_Ntk_t * Abc_NtkDChoice( Abc_Ntk_t * pNtk, int fBalance, int fUpdateLevel, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkDChoice( Abc_Ntk_t * pNtk, int fBalance, int fUpdateLevel, int nConfMax, int nLevelMax, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -7685,12 +7686,36 @@ int Abc_CommandDChoice( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     fBalance     = 1;
     fUpdateLevel = 1;
+    nConfMax     = 1000;
+    nLevelMax    = 0;
     fVerbose     = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "blvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CLblvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nConfMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nConfMax < 0 ) 
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLevelMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLevelMax < 0 ) 
+                goto usage;
+            break;
         case 'b':
             fBalance ^= 1;
             break;
@@ -7716,7 +7741,7 @@ int Abc_CommandDChoice( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "This command works only for strashed networks.\n" );
         return 1;
     }
-    pNtkRes = Abc_NtkDChoice( pNtk, fBalance, fUpdateLevel, fVerbose );
+    pNtkRes = Abc_NtkDChoice( pNtk, fBalance, fUpdateLevel, nConfMax, nLevelMax, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
@@ -7727,8 +7752,10 @@ int Abc_CommandDChoice( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: dchoice [-blvh]\n" );
+    fprintf( pErr, "usage: dchoice [-C num] [-L num] [-blvh]\n" );
     fprintf( pErr, "\t         performs partitioned choicing using a new AIG package\n" );
+    fprintf( pErr, "\t-C num : the max number of conflicts at a node [default = %d]\n", nConfMax );
+    fprintf( pErr, "\t-L num : the max level of nodes to consider (0 = not used) [default = %d]\n", nLevelMax );
     fprintf( pErr, "\t-b     : toggle internal balancing [default = %s]\n", fBalance? "yes": "no" );
     fprintf( pErr, "\t-l     : toggle updating level [default = %s]\n", fUpdateLevel? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );

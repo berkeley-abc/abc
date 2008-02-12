@@ -429,7 +429,6 @@ void Aig_ManMarkValidChoices( Aig_Man_t * p )
         pRepr = Aig_ObjFindRepr( p, pObj );
         if ( pRepr == NULL )
             continue;
-        assert( pObj->nRefs == 0 );
         // skip constant and PI classes
         if ( !Aig_ObjIsNode(pRepr) )
         {
@@ -444,6 +443,7 @@ void Aig_ManMarkValidChoices( Aig_Man_t * p )
         }
 //printf( "Node %d is represented by node %d.\n", pObj->Id, pRepr->Id );
         // add choice to the choice node
+        assert( pObj->nRefs == 0 );
         p->pEquivs[pObj->Id] = p->pEquivs[pRepr->Id];
         p->pEquivs[pRepr->Id] = pObj;
     }

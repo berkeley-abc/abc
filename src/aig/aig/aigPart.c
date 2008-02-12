@@ -904,11 +904,11 @@ Vec_Ptr_t * Aig_ManMiterPartitioned( Aig_Man_t * p1, Aig_Man_t * p2, int nPartSi
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Aig_ManChoicePartitioned( Vec_Ptr_t * vAigs, int nPartSize, int fVerbose )
+Aig_Man_t * Aig_ManChoicePartitioned( Vec_Ptr_t * vAigs, int nPartSize, int nConfMax, int nLevelMax, int fVerbose )
 {
 //    extern int Cmd_CommandExecute( void * pAbc, char * sCommand );
 //    extern void * Abc_FrameGetGlobalFrame();
-    extern Aig_Man_t * Fra_FraigChoice( Aig_Man_t * pManAig, int nConfMax );
+    extern Aig_Man_t * Fra_FraigChoice( Aig_Man_t * pManAig, int nConfMax, int nLevelMax );
 
     Vec_Ptr_t * vOutsTotal, * vOuts;
     Aig_Man_t * pAigTotal, * pAigPart, * pAig;
@@ -972,7 +972,7 @@ Aig_Man_t * Aig_ManChoicePartitioned( Vec_Ptr_t * vAigs, int nPartSize, int fVer
             i+1, Vec_PtrSize(vParts), Aig_ManPiNum(pAigPart), Aig_ManPoNum(pAigPart), 
             Aig_ManNodeNum(pAigPart), Aig_ManLevelNum(pAigPart) );
         // compute equivalence classes (to be stored in pNew->pReprs)
-        pAig = Fra_FraigChoice( pAigPart, 1000 );
+        pAig = Fra_FraigChoice( pAigPart, nConfMax, nLevelMax );
         Aig_ManStop( pAig );
         // reset the pData pointers
         Aig_ManForEachObj( pAigPart, pObj, k )

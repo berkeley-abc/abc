@@ -2009,9 +2009,9 @@ Ivy_Obj_t * Ivy_FraigAnd( Ivy_FraigMan_t * p, Ivy_Obj_t * pObjOld )
     if ( Ivy_ObjClassNodeRepr(pObjOld) == NULL || // this is a unique node
          (!p->pParams->fDoSparse && Ivy_ObjClassNodeRepr(pObjOld) == p->pManAig->pConst1) ) // this is a sparse node
     {
-        assert( Ivy_Regular(pFanin0New) != Ivy_Regular(pFanin1New) );
-        assert( pObjNew != Ivy_Regular(pFanin0New) );
-        assert( pObjNew != Ivy_Regular(pFanin1New) );
+//        assert( Ivy_Regular(pFanin0New) != Ivy_Regular(pFanin1New) );
+//        assert( pObjNew != Ivy_Regular(pFanin0New) );
+//        assert( pObjNew != Ivy_Regular(pFanin1New) );
         return pObjNew;
     }
     // get the fraiged representative

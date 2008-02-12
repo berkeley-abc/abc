@@ -211,8 +211,8 @@ PRT( "Time", clock() - clk );
         } 
 
         // perform retiming
-//        if ( fRetimeFirst && pNew->nRegs )
-        if ( pNew->nRegs )
+        if ( fRetimeFirst && pNew->nRegs )
+//        if ( pNew->nRegs )
         {
 clk = clock();
         pNew = Rtm_ManRetime( pTemp = pNew, 1, 1000, 0 );

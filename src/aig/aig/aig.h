@@ -522,7 +522,7 @@ extern Vec_Ptr_t *     Aig_ManSupportsInverse( Aig_Man_t * p );
 extern Vec_Ptr_t *     Aig_ManPartitionSmart( Aig_Man_t * p, int nPartSizeLimit, int fVerbose, Vec_Ptr_t ** pvPartSupps );
 extern Vec_Ptr_t *     Aig_ManPartitionNaive( Aig_Man_t * p, int nPartSize );
 extern Vec_Ptr_t *     Aig_ManMiterPartitioned( Aig_Man_t * p1, Aig_Man_t * p2, int nPartSize );
-extern Aig_Man_t *     Aig_ManChoicePartitioned( Vec_Ptr_t * vAigs, int nPartSize, int fVerbose );
+extern Aig_Man_t *     Aig_ManChoicePartitioned( Vec_Ptr_t * vAigs, int nPartSize, int nConfMax, int nLevelMax, int fVerbose );
 /*=== aigRepr.c =========================================================*/
 extern void            Aig_ManReprStart( Aig_Man_t * p, int nIdMax );
 extern void            Aig_ManReprStop( Aig_Man_t * p );

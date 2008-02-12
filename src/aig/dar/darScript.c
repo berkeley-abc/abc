@@ -353,7 +353,7 @@ Vec_Ptr_t * Dar_ManChoiceSynthesisExt()
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Dar_ManChoice( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fVerbose )
+Aig_Man_t * Dar_ManChoice( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int nConfMax, int nLevelMax, int fVerbose )
 {
     Aig_Man_t * pMan, * pTemp;
     Vec_Ptr_t * vAigs;
@@ -374,7 +374,7 @@ if ( fVerbose )
 PRT( "Synthesis time", clock() - clk );
 }
 clk = clock();
-    pMan = Aig_ManChoicePartitioned( vAigs, 300, fVerbose );
+    pMan = Aig_ManChoicePartitioned( vAigs, 300, nConfMax, nLevelMax, fVerbose );
     Vec_PtrForEachEntry( vAigs, pTemp, i )
         Aig_ManStop( pTemp );
     Vec_PtrFree( vAigs );

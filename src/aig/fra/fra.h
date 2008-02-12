@@ -73,6 +73,7 @@ struct Fra_Par_t_
     int              fConeBias;         // bias variables in the cone (good for unsat runs)
     int              nBTLimitNode;      // conflict limit at a node
     int              nBTLimitMiter;     // conflict limit at an output
+    int              nLevelMax;         // the max level to consider seriously
     int              nFramesP;          // the number of timeframes to in the prefix
     int              nFramesK;          // the number of timeframes to unroll
     int              nMaxImps;          // the maximum number of implications to consider
@@ -266,7 +267,7 @@ extern void                Fra_FraigSweep( Fra_Man_t * pManAig );
 extern int                 Fra_FraigMiterStatus( Aig_Man_t * p );
 extern int                 Fra_FraigMiterAssertedOutput( Aig_Man_t * p );
 extern Aig_Man_t *         Fra_FraigPerform( Aig_Man_t * pManAig, Fra_Par_t * pPars );
-extern Aig_Man_t *         Fra_FraigChoice( Aig_Man_t * pManAig, int nConfMax );
+extern Aig_Man_t *         Fra_FraigChoice( Aig_Man_t * pManAig, int nConfMax, int nLevelMax );
 extern Aig_Man_t *         Fra_FraigEquivence( Aig_Man_t * pManAig, int nConfMax, int fProve );
 /*=== fraHot.c ========================================================*/
 extern Vec_Int_t *         Fra_OneHotCompute( Fra_Man_t * p, Fra_Sml_t * pSim );
