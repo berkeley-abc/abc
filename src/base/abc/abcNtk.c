@@ -1031,6 +1031,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     Vec_PtrFree( pNtk->vAttrs );
     FREE( pNtk->pName );
     FREE( pNtk->pSpec );
+    FREE( pNtk->pLutTimes );
     free( pNtk );
 }
 

@@ -380,6 +380,58 @@ Vec_Ptr_t * Aig_ManSupportsInverse( Aig_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the register dependency matrix.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Aig_ManSupportsRegisters( Aig_Man_t * p )
+{
+    Vec_Ptr_t * vSupports, * vMatrix;
+    Vec_Int_t * vSupp;
+    int iOut, iIn, k, m, i;
+    // get structural supports for each output
+    vSupports = Aig_ManSupports( p );
+    // transforms the supports into the latch dependency matrix
+    vMatrix = Vec_PtrStart( Aig_ManRegNum(p) );
+    Vec_PtrForEachEntry( vSupports, vSupp, i )
+    {
+        // skip true POs
+        iOut = Vec_IntPop( vSupp );
+        iOut -= Aig_ManPoNum(p) - Aig_ManRegNum(p);
+        if ( iOut < 0 )
+        {
+            Vec_IntFree( vSupp );
+            continue;
+        }
+        // remove PIs
+        m = 0;
+        Vec_IntForEachEntry( vSupp, iIn, k )
+        {
+            iIn -= Aig_ManPiNum(p) - Aig_ManRegNum(p);
+            if ( iIn < 0 )
+                continue;
+            assert( iIn < Aig_ManRegNum(p) );
+            Vec_IntWriteEntry( vSupp, m++, iIn );
+        }
+        Vec_IntShrink( vSupp, m );
+        // store support in the matrix
+        assert( iOut < Aig_ManRegNum(p) );
+        Vec_PtrWriteEntry( vMatrix, iOut, vSupp );
+    }
+    Vec_PtrFree( vSupports );
+    // check that all supports are used
+    Vec_PtrForEachEntry( vMatrix, vSupp, i )
+        assert( vSupp != NULL );
+    return vMatrix;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Start char-bases support representation.]
 
   Description []

@@ -51,12 +51,13 @@ Abc_Ntk_t * Abc_NtkFpga( Abc_Ntk_t * pNtk, float DelayTarget, int fRecovery, int
     Fpga_Man_t * pMan;
     Vec_Int_t * vSwitching;
     float * pSwitching = NULL;
+    int Num;
 
     assert( Abc_NtkIsStrash(pNtk) );
 
     // print a warning about choice nodes
-    if ( Abc_NtkGetChoiceNum( pNtk ) )
-        printf( "Performing FPGA mapping with choices.\n" );
+    if ( (Num = Abc_NtkGetChoiceNum( pNtk )) )
+        printf( "Performing LUT mapping with %d choices.\n", Num );
 
     // compute switching activity
     fShowSwitching |= fSwitching;

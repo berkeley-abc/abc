@@ -44,7 +44,8 @@ void Cnf_CutAssignAreaFlow( Cnf_Man_t * p, Dar_Cut_t * pCut, int * pAreaFlows )
     Aig_Obj_t * pLeaf;
     int i;
     pCut->Value = 0;
-    pCut->uSign = 100 * Cnf_CutSopCost( p, pCut );
+//    pCut->uSign = 100 * Cnf_CutSopCost( p, pCut );
+    pCut->uSign = 10 * Cnf_CutSopCost( p, pCut );
     Dar_CutForEachLeaf( p->pManAig, pCut, pLeaf, i )
     {
         pCut->Value += pLeaf->nRefs;

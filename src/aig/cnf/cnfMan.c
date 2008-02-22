@@ -223,7 +223,7 @@ void Cnf_DataWriteIntoFile( Cnf_Dat_t * p, char * pFileName, int fReadable )
         return;
     }
     fprintf( pFile, "c Result of efficient AIG-to-CNF conversion using package CNF\n" );
-    fprintf( pFile, "p %d %d\n", p->nVars, p->nClauses );
+    fprintf( pFile, "p cnf %d %d\n", p->nVars, p->nClauses );
     for ( i = 0; i < p->nClauses; i++ )
     {
         for ( pLit = p->pClauses[i], pStop = p->pClauses[i+1]; pLit < pStop; pLit++ )

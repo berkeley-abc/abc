@@ -519,6 +519,7 @@ extern void            Aig_ObjOrderAdvance( Aig_Man_t * p );
 /*=== aigPart.c =========================================================*/
 extern Vec_Ptr_t *     Aig_ManSupports( Aig_Man_t * p );
 extern Vec_Ptr_t *     Aig_ManSupportsInverse( Aig_Man_t * p );
+extern Vec_Ptr_t *     Aig_ManSupportsRegisters( Aig_Man_t * p );
 extern Vec_Ptr_t *     Aig_ManPartitionSmart( Aig_Man_t * p, int nPartSizeLimit, int fVerbose, Vec_Ptr_t ** pvPartSupps );
 extern Vec_Ptr_t *     Aig_ManPartitionNaive( Aig_Man_t * p, int nPartSize );
 extern Vec_Ptr_t *     Aig_ManMiterPartitioned( Aig_Man_t * p1, Aig_Man_t * p2, int nPartSize );

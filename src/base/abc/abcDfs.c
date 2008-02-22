@@ -1031,7 +1031,7 @@ int Abc_NtkLevelReverse( Abc_Ntk_t * pNtk )
   Synopsis    [Recursively detects combinational loops.]
 
   Description []
-               
+                
   SideEffects []
 
   SeeAlso     []

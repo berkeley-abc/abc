@@ -253,7 +253,7 @@ Vec_Ptr_t * Abc_MfsComputeDivisors( Mfs_Man_t * p, Abc_Obj_t * pNode, int nLevDi
             if ( !Abc_ObjIsNode(pFanout) ) 
                 continue;
             // skip nodes with large level
-            if ( (int)pFanout->Level >= nLevDivMax )
+            if ( (int)pFanout->Level > nLevDivMax )
                 continue;
             // skip nodes whose fanins are not divisors
             Abc_ObjForEachFanin( pFanout, pFanin, m )

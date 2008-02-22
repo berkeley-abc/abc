@@ -56,6 +56,7 @@ p->timeWin += clock() - clk;
     // compute the divisors of the window
 clk = clock();
     p->vDivs  = Abc_MfsComputeDivisors( p, pNode, Abc_ObjRequiredLevel(pNode) - 1 );
+    p->nTotalDivs += Vec_PtrSize(p->vDivs);
 p->timeDiv += clock() - clk;
     // construct AIG for the window
 clk = clock();

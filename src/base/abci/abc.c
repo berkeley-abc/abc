@@ -70,6 +70,8 @@ static int Abc_CommandDisjoint       ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandLutpack        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandImfs           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMfs            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandTrace          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSpeedup        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandRewrite        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRefactor       ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -250,6 +252,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "lutpack",       Abc_CommandLutpack,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "imfs",          Abc_CommandImfs,             1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "mfs",           Abc_CommandMfs,              1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "trace",         Abc_CommandTrace,            0 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "speedup",       Abc_CommandSpeedup,          1 );
 
     Cmd_CommandAdd( pAbc, "Synthesis",    "rewrite",       Abc_CommandRewrite,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "refactor",      Abc_CommandRefactor,         1 );
@@ -402,6 +406,10 @@ void Abc_Init( Abc_Frame_t * pAbc )
 void Abc_End()
 {
 //    Dar_LibDumpPriorities();
+    {
+        extern int Abc_NtkCompareAndSaveBest( Abc_Ntk_t * pNtk );
+        Abc_NtkCompareAndSaveBest( NULL );
+    }
 
     {
         extern void Cnf_ClearMemory();
@@ -432,27 +440,27 @@ int Abc_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
-    bool fShort;
-    int c;
     int fFactor;
+    int fSaveBest;
+    int c;
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set the defaults
-    fShort  = 1;
-    fFactor = 0;
+    fFactor   = 0;
+    fSaveBest = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "sfh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "fbh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 's':
-            fShort ^= 1;
-            break;
         case 'f':
             fFactor ^= 1;
+            break;
+        case 'b':
+            fSaveBest ^= 1;
             break;
         case 'h':
             goto usage;
@@ -466,13 +474,14 @@ int Abc_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( Abc_FrameReadErr(pAbc), "Empty network.\n" );
         return 1;
     }
-    Abc_NtkPrintStats( pOut, pNtk, fFactor );
+    Abc_NtkPrintStats( pOut, pNtk, fFactor, fSaveBest );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: print_stats [-fh]\n" );
+    fprintf( pErr, "usage: print_stats [-fbh]\n" );
     fprintf( pErr, "\t        prints the network statistics\n" );
     fprintf( pErr, "\t-f    : toggles printing the literal count in the factored forms [default = %s]\n", fFactor? "yes": "no" );
+    fprintf( pErr, "\t-b    : toggles saving the best logic network in \"best.blif\" [default = %s]\n", fSaveBest? "yes": "no" );
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -558,7 +567,7 @@ int Abc_CommandPrintExdc( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else
         printf( "EXDC network statistics: \n" );
-    Abc_NtkPrintStats( pOut, pNtk->pExdc, 0 );
+    Abc_NtkPrintStats( pOut, pNtk->pExdc, 0, 0 );
     return 0;
 
 usage:
@@ -3130,7 +3139,7 @@ int Abc_CommandImfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nWindow      = 62;
     pPars->nCands       =  5;
     pPars->nSimWords    =  4;
-    pPars->nGrowthLevel =  1;
+    pPars->nGrowthLevel =  0;
     pPars->fArea        =  0;
     pPars->fVerbose     =  0;
     pPars->fVeryVerbose =  0;
@@ -3262,9 +3271,9 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nWinTfoLevs  =   2;
     pPars->nFanoutsMax  =  10;
     pPars->nDepthMax    =  20;
-    pPars->nDivMax      = 200;
+    pPars->nDivMax      = 250;
     pPars->nWinSizeMax  = 300;
-    pPars->nGrowthLevel =   1;
+    pPars->nGrowthLevel =   0;
     pPars->fResub       =   1;
     pPars->fArea        =   0;
     pPars->fMoreEffort  =   0;
@@ -3381,7 +3390,7 @@ usage:
     fprintf( pErr, "\t-W <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n", pPars->nWinTfoLevs );
     fprintf( pErr, "\t-F <num> : the max number of fanouts to skip (1 <= num) [default = %d]\n", pPars->nFanoutsMax );
     fprintf( pErr, "\t-D <num> : the max depth nodes to try (0 = no limit) [default = %d]\n", pPars->nDepthMax );
-    fprintf( pErr, "\t-M <num> : the max size of  window to consider (0 = no limit) [default = %d]\n", pPars->nWinSizeMax );
+    fprintf( pErr, "\t-M <num> : the max node count of windows to consider (0 = no limit) [default = %d]\n", pPars->nWinSizeMax );
     fprintf( pErr, "\t-L <num> : the max increase in node level after resynthesis (0 <= num) [default = %d]\n", pPars->nGrowthLevel );
     fprintf( pErr, "\t-r       : toggle resubstitution and dc-minimization [default = %s]\n", pPars->fResub? "resub": "dc-min" );
     fprintf( pErr, "\t-a       : toggle minimizing area or area+edges [default = %s]\n", pPars->fArea? "area": "area+edges" );
@@ -3392,6 +3401,190 @@ usage:
     fprintf( pErr, "\t-h       : print the command usage\n");
     return 1;
 } 
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandTrace( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    Mfs_Par_t Pars, * pPars = &Pars;
+    int c;
+    int fUseLutLib;
+    int fVerbose;
+    extern void Abc_NtkDelayTracePrint( Abc_Ntk_t * pNtk, int fUseLutLib, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fUseLutLib = 0;
+    fVerbose   = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "lvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'l':
+            fUseLutLib ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsLogic(pNtk) )
+    {
+        fprintf( pErr, "This command can only be applied to a logic network.\n" );
+        return 1;
+    }
+
+    // modify the current network
+    Abc_NtkDelayTracePrint( pNtk, fUseLutLib, fVerbose );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: trace [-lvh]\n" );
+    fprintf( pErr, "\t           performs delay trace of LUT-mapped network\n" );
+    fprintf( pErr, "\t-l       : toggle using unit- or LUT-library-delay model [default = %s]\n", fUseLutLib? "lib": "unit" );
+    fprintf( pErr, "\t-v       : toggle printing optimization summary [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h       : print the command usage\n");
+    return 1;
+} 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandSpeedup( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    Mfs_Par_t Pars, * pPars = &Pars;
+    int c;
+    int fUseLutLib;
+    int Percentage;
+    int Degree;
+    int fVerbose;
+    int fVeryVerbose;
+    extern Abc_Ntk_t * Abc_NtkSpeedup( Abc_Ntk_t * pNtk, int fUseLutLib, int Percentage, int Degree, int fVerbose, int fVeryVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fUseLutLib = 0;
+    Percentage = 3;
+    Degree     = 2;
+    fVerbose   = 0;
+    fVeryVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PNlvwh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Percentage = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Percentage < 1 || Percentage > 100 ) 
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Degree = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Degree < 1 || Degree > 5 ) 
+                goto usage;
+            break;
+        case 'l':
+            fUseLutLib ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'w':
+            fVeryVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsLogic(pNtk) )
+    {
+        fprintf( pErr, "This command can only be applied to a logic network.\n" );
+        return 1;
+    }
+
+    // modify the current network
+    pNtkRes = Abc_NtkSpeedup( pNtk, fUseLutLib, Percentage, Degree, fVerbose, fVeryVerbose );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "The command has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: speedup [-P num] [-N num] [-lvwh]\n" );
+    fprintf( pErr, "\t           transforms LUT-mapped network into an AIG with choices;\n" );
+    fprintf( pErr, "\t           the choices are added to speedup the next round of mapping\n" );
+    fprintf( pErr, "\t-P <num> : delay delta defining critical path for library model [default = %d%%]\n", Percentage );
+    fprintf( pErr, "\t-N <num> : the max critical path degree for resynthesis (0 < num < 6) [default = %d]\n", Degree );
+    fprintf( pErr, "\t-l       : toggle using unit- or LUT-library-delay model [default = %s]\n", fUseLutLib? "lib" : "unit" );
+    fprintf( pErr, "\t-v       : toggle printing optimization summary [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-w       : toggle printing detailed stats for each node [default = %s]\n", fVeryVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h       : print the command usage\n");
+    return 1;
+} 
+
 
 /**Function*************************************************************
 
@@ -6656,13 +6849,14 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern Abc_Ntk_t * Abc_NtkPcmTest( Abc_Ntk_t * pNtk, int fVerbose );
     extern Abc_NtkDarHaigRecord( Abc_Ntk_t * pNtk );
 //    extern void Abc_NtkDarTestBlif( char * pFileName );
+    extern void Abc_NtkDarPartition( Abc_Ntk_t * pNtk );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
-    printf( "This command is temporarily disabled.\n" );
-    return 0;
+//    printf( "This command is temporarily disabled.\n" );
+//    return 0;
 
     // set defaults
     fVeryVerbose = 0;
@@ -6837,6 +7031,9 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     Abc_NtkDarTestBlif( argv[globalUtilOptind] );
 */
+
+    Abc_NtkDarPartition( pNtk );
+
     return 0;
 usage:
     fprintf( pErr, "usage: test [-vwh]\n" );
@@ -10642,10 +10839,16 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    // enable truth table computation if choices are selected
-    if ( Abc_NtkGetChoiceNum( pNtk ) )
+    if ( pPars->fSeqMap )
     {
-        printf( "Performing FPGA mapping with choices.\n" );
+        fprintf( pErr, "Sequential mapping is currently disabled.\n" );
+        return 1;
+    }
+
+    // enable truth table computation if choices are selected
+    if ( (c = Abc_NtkGetChoiceNum( pNtk )) )
+    {
+        printf( "Performing LUT mapping with %d choices.\n", c );
         pPars->fTruth = 1;
     }
     // enable truth table computation if cut minimization is selected
@@ -11034,7 +11237,7 @@ int Abc_CommandPipe( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( Abc_NtkIsComb(pNtk) )
     {
         fprintf( pErr, "The current network is combinational.\n" );
-        return 1;
+        return 0;
     }
 
     // update the network

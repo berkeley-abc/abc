@@ -42,6 +42,66 @@ int s_ResynTime = 0;
 
 /**Function*************************************************************
 
+  Synopsis    [If the network is best, saves it in "best.blif" and returns 1.]
+
+  Description [If the networks are incomparable, saves the new network, 
+  returns its parameters in the internal parameter structure, and returns 1.
+  If the new network is not a logic network, quits without saving and returns 0.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkCompareAndSaveBest( Abc_Ntk_t * pNtk )
+{
+    extern void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType );
+    static struct ParStruct {
+        char * pName;  // name of the best saved network
+        int    Depth;  // depth of the best saved network
+        int    Flops;  // flops in the best saved network 
+        int    Nodes;  // nodes in the best saved network
+        int    nPis;   // the number of primary inputs
+        int    nPos;   // the number of primary outputs
+    } ParsNew, ParsBest = { 0 };
+    // free storage for the name
+    if ( pNtk == NULL )
+    {
+        FREE( ParsBest.pName );
+        return 0;
+    }
+    // quit if not a logic network
+    if ( !Abc_NtkIsLogic(pNtk) )
+        return 0;
+    // get the parameters
+    ParsNew.Depth = Abc_NtkLevel( pNtk );
+    ParsNew.Flops = Abc_NtkLatchNum( pNtk );
+    ParsNew.Nodes = Abc_NtkNodeNum( pNtk );
+    ParsNew.nPis  = Abc_NtkPiNum( pNtk );
+    ParsNew.nPos  = Abc_NtkPoNum( pNtk );
+    // reset the parameters if the network has the same name
+    if ( ParsBest.pName == NULL || 
+         strcmp(ParsBest.pName, pNtk->pName) ||
+         ParsBest.Depth >  ParsNew.Depth || 
+         ParsBest.Depth == ParsNew.Depth && ParsBest.Flops >  ParsNew.Flops || 
+         ParsBest.Depth == ParsNew.Depth && ParsBest.Flops == ParsNew.Flops && ParsBest.Nodes >  ParsNew.Nodes )
+    {
+        FREE( ParsBest.pName );
+        ParsBest.pName = Extra_UtilStrsav( pNtk->pName );
+        ParsBest.Depth = ParsNew.Depth; 
+        ParsBest.Flops = ParsNew.Flops; 
+        ParsBest.Nodes = ParsNew.Nodes; 
+        ParsBest.nPis  = ParsNew.nPis; 
+        ParsBest.nPos  = ParsNew.nPos;
+        // writ the network
+        Io_Write( pNtk, "best.blif", IO_FILE_BLIF );
+        return 1;
+    }
+    return 0;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Print the vital stats of the network.]
 
   Description []
@@ -51,9 +111,12 @@ int s_ResynTime = 0;
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
+void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored, int fSaveBest )
 {
     int Num;
+
+    if ( fSaveBest )
+        Abc_NtkCompareAndSaveBest( pNtk );
 
 //    if ( Abc_NtkIsStrash(pNtk) )
 //        Abc_AigCountNext( pNtk->pManFunc );
@@ -220,6 +283,7 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored )
 
 //    if ( Abc_NtkHasSop(pNtk) )
 //        printf( "The total number of cube pairs = %d.\n", Abc_NtkGetCubePairNum(pNtk) );
+   
 }
 
 /**Function*************************************************************

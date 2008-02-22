@@ -109,7 +109,7 @@ void Res_WinDivisors( Res_Win_t * p, int nLevDivMax )
             if ( !Abc_ObjIsNode(pFanout) ) 
                 continue;
             // skip nodes with large level
-            if ( (int)pFanout->Level >= p->nLevDivMax )
+            if ( (int)pFanout->Level > p->nLevDivMax )
                 continue;
             // skip nodes whose fanins are not divisors
             Abc_ObjForEachFanin( pFanout, pFanin, m )

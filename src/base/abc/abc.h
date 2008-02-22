@@ -203,6 +203,7 @@ struct Abc_Ntk_t_
     void *            pData;         // misc
     Abc_Ntk_t *       pCopy;
     Hop_Man_t *       pHaig;         // history AIG
+    float *           pLutTimes;     // arrivals/requireds/slacks using LUT-delay model
     // node attributes
     Vec_Ptr_t *       vAttrs;        // managers of various node attributes (node functionality, global BDDs, etc)
 };
@@ -521,6 +522,7 @@ extern Abc_Obj_t *        Abc_AigXorLookup( Abc_Aig_t * pMan, Abc_Obj_t * p0, Ab
 extern Abc_Obj_t *        Abc_AigMuxLookup( Abc_Aig_t * pMan, Abc_Obj_t * pC, Abc_Obj_t * pT, Abc_Obj_t * pE, int * pType );
 extern Abc_Obj_t *        Abc_AigOr( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 );
 extern Abc_Obj_t *        Abc_AigXor( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 );
+extern Abc_Obj_t *        Abc_AigMux( Abc_Aig_t * pMan, Abc_Obj_t * pC, Abc_Obj_t * p1, Abc_Obj_t * p0 );
 extern Abc_Obj_t *        Abc_AigMiter( Abc_Aig_t * pMan, Vec_Ptr_t * vPairs );
 extern void               Abc_AigReplace( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew, bool fUpdateLevel );
 extern void               Abc_AigDeleteNode( Abc_Aig_t * pMan, Abc_Obj_t * pOld );
@@ -731,7 +733,7 @@ extern bool               Abc_NodeIsBuf( Abc_Obj_t * pNode );
 extern bool               Abc_NodeIsInv( Abc_Obj_t * pNode );    
 extern void               Abc_NodeComplement( Abc_Obj_t * pNode );
 /*=== abcPrint.c ==========================================================*/
-extern void               Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored );
+extern void               Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored, int fSaveBest );
 extern void               Abc_NtkPrintIo( FILE * pFile, Abc_Ntk_t * pNtk );
 extern void               Abc_NtkPrintLatch( FILE * pFile, Abc_Ntk_t * pNtk );
 extern void               Abc_NtkPrintFanio( FILE * pFile, Abc_Ntk_t * pNtk );

@@ -737,6 +737,22 @@ Abc_Obj_t * Abc_AigXor( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 )
     return Abc_AigOr( pMan, Abc_AigAnd(pMan, p0, Abc_ObjNot(p1)), 
                             Abc_AigAnd(pMan, p1, Abc_ObjNot(p0)) );
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Implements Boolean XOR.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Abc_AigMux( Abc_Aig_t * pMan, Abc_Obj_t * pC, Abc_Obj_t * p1, Abc_Obj_t * p0 )
+{
+    return Abc_AigOr( pMan, Abc_AigAnd(pMan, pC, p1), Abc_AigAnd(pMan, Abc_ObjNot(pC), p0) );
+}
  
 /**Function*************************************************************
 

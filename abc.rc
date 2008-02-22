@@ -44,6 +44,7 @@ alias plat print_latch
 alias pio print_io
 alias pk print_kmap
 alias ps print_stats 
+alias psb print_stats -b
 alias psu print_supp
 alias psy print_symm
 alias pun print_unate
@@ -65,6 +66,7 @@ alias rvl read_verlib
 alias rsup read_super mcnc5_old.super
 alias rlib read_library
 alias rlibc read_library cadence.genlib
+alias rlut read_lut
 alias rw rewrite
 alias rwz rewrite -z
 alias rf refactor
@@ -104,7 +106,6 @@ alias choice      "fraig_store; resyn; fraig_store; resyn2; fraig_store; fraig_r
 alias choice2     "fraig_store; balance; fraig_store; resyn; fraig_store; resyn2; fraig_store; resyn2; fraig_store; fraig_restore"
 alias rwsat       "st; rw -l; b -l; rw -l; rf -l"
 alias rwsat2      "st; rw -l; b -l; rw -l; rf -l; fraig; rw -l; b -l; rw -l; rf -l"
-alias shake       "st; ps; sat -C 5000; rw -l; ps; sat -C 5000; b -l; rf -l; ps; sat -C 5000; rfz -l; ps; sat -C 5000; rwz -l; ps; sat -C 5000; rfz -l; ps; sat -C 5000"
 alias share       "st; multi -m; fx; resyn2"
 
 # resubstitution scripts for the IWLS paper

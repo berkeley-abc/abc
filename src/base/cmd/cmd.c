@@ -169,7 +169,7 @@ int CmdCommandTime( Abc_Frame_t * pAbc, int argc, char **argv )
 
     pAbc->TimeTotal += pAbc->TimeCommand;
     fprintf( pAbc->Out, "elapse: %3.2f seconds, total: %3.2f seconds\n",
-        (float)pAbc->TimeCommand / CLOCKS_PER_SEC, (float)pAbc->TimeTotal / CLOCKS_PER_SEC );
+        (float)(1.0 * pAbc->TimeCommand / CLOCKS_PER_SEC), (float)(1.0 * pAbc->TimeTotal / CLOCKS_PER_SEC) );
 /*
     {
         FILE * pTable;

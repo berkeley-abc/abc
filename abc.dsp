@@ -222,6 +222,10 @@ SOURCE=.\src\base\abci\abcDebug.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcDelay.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcDress.c
 # End Source File
 # Begin Source File
@@ -2959,6 +2963,10 @@ SOURCE=.\src\aig\aig\aigOrder.c
 # Begin Source File
 
 SOURCE=.\src\aig\aig\aigPart.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\aig\aigPartReg.c
 # End Source File
 # Begin Source File
 

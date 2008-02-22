@@ -9,6 +9,7 @@ SRC +=    src/base/abci/abc.c \
     src/base/abci/abcCut.c \
     src/base/abci/abcDar.c \
     src/base/abci/abcDebug.c \
+    src/base/abci/abcDelay.c \
     src/base/abci/abcDress.c \
     src/base/abci/abcDsd.c \
     src/base/abci/abcEspresso.c \

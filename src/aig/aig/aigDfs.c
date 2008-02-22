@@ -46,11 +46,14 @@ void Aig_ManDfs_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vNodes )
     assert( !Aig_IsComplement(pObj) );
     if ( Aig_ObjIsTravIdCurrent(p, pObj) )
         return;
+//    if ( Aig_ObjIsPi(pObj) )
+//        return;
 //    assert( Aig_ObjIsNode(pObj) || Aig_ObjIsBuf(pObj) );
+    Aig_ObjSetTravIdCurrent(p, pObj);
     Aig_ManDfs_rec( p, Aig_ObjFanin0(pObj), vNodes );
     Aig_ManDfs_rec( p, Aig_ObjFanin1(pObj), vNodes );
-    assert( !Aig_ObjIsTravIdCurrent(p, pObj) ); // loop detection
-    Aig_ObjSetTravIdCurrent(p, pObj);
+//    assert( !Aig_ObjIsTravIdCurrent(p, pObj) ); // loop detection
+//    Aig_ObjSetTravIdCurrent(p, pObj);
     Vec_PtrPush( vNodes, pObj );
 }
 
@@ -113,7 +116,7 @@ Vec_Ptr_t * Aig_ManDfsPio( Aig_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Collects internal nodes in the DFS order.]
+  Synopsis    [Collects internal nodes and PIs in the DFS order.]
 
   Description []
                
@@ -125,14 +128,14 @@ Vec_Ptr_t * Aig_ManDfsPio( Aig_Man_t * p )
 Vec_Ptr_t * Aig_ManDfsNodes( Aig_Man_t * p, Aig_Obj_t ** ppNodes, int nNodes )
 {
     Vec_Ptr_t * vNodes;
-    Aig_Obj_t * pObj;
+//    Aig_Obj_t * pObj;
     int i;
     assert( Aig_ManLatchNum(p) == 0 );
     Aig_ManIncrementTravId( p );
     // mark constant and PIs
     Aig_ObjSetTravIdCurrent( p, Aig_ManConst1(p) );
-    Aig_ManForEachPi( p, pObj, i )
-        Aig_ObjSetTravIdCurrent( p, pObj );
+//    Aig_ManForEachPi( p, pObj, i )
+//        Aig_ObjSetTravIdCurrent( p, pObj );
     // go through the nodes
     vNodes = Vec_PtrAlloc( Aig_ManNodeNum(p) );
     for ( i = 0; i < nNodes; i++ )
