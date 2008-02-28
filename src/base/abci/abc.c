@@ -30,6 +30,7 @@
 #include "aig.h"
 #include "dar.h"
 #include "mfs.h"
+#include "fra.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -442,6 +443,8 @@ int Abc_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk;
     int fFactor;
     int fSaveBest;
+    int fDumpResult;
+    int fUseLutLib;
     int c;
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -451,8 +454,10 @@ int Abc_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set the defaults
     fFactor   = 0;
     fSaveBest = 0;
+    fDumpResult = 0;
+    fUseLutLib = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "fbh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "fbdlh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -461,6 +466,12 @@ int Abc_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'b':
             fSaveBest ^= 1;
+            break;
+        case 'd':
+            fDumpResult ^= 1;
+            break;
+        case 'l':
+            fUseLutLib ^= 1;
             break;
         case 'h':
             goto usage;
@@ -474,14 +485,16 @@ int Abc_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( Abc_FrameReadErr(pAbc), "Empty network.\n" );
         return 1;
     }
-    Abc_NtkPrintStats( pOut, pNtk, fFactor, fSaveBest );
+    Abc_NtkPrintStats( pOut, pNtk, fFactor, fSaveBest, fDumpResult, fUseLutLib );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: print_stats [-fbh]\n" );
+    fprintf( pErr, "usage: print_stats [-fbdlh]\n" );
     fprintf( pErr, "\t        prints the network statistics\n" );
     fprintf( pErr, "\t-f    : toggles printing the literal count in the factored forms [default = %s]\n", fFactor? "yes": "no" );
     fprintf( pErr, "\t-b    : toggles saving the best logic network in \"best.blif\" [default = %s]\n", fSaveBest? "yes": "no" );
+    fprintf( pErr, "\t-d    : toggles dumping network into file \"<input_file_name>_dump.blif\" [default = %s]\n", fDumpResult? "yes": "no" );
+    fprintf( pErr, "\t-l    : toggles printing delay of LUT mapping using LUT library [default = %s]\n", fSaveBest? "yes": "no" );
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -567,7 +580,7 @@ int Abc_CommandPrintExdc( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else
         printf( "EXDC network statistics: \n" );
-    Abc_NtkPrintStats( pOut, pNtk->pExdc, 0, 0 );
+    Abc_NtkPrintStats( pOut, pNtk->pExdc, 0, 0, 0, 0 );
     return 0;
 
 usage:
@@ -672,7 +685,7 @@ int Abc_CommandPrintLatch( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fPrintSccs = 0;
+    fPrintSccs = 1;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "sh" ) ) != EOF )
     {
@@ -6829,7 +6842,8 @@ usage:
 int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
-    Abc_Ntk_t * pNtk;//, * pNtkRes;
+    Abc_Ntk_t * pNtk;
+//    Abc_Ntk_t * pNtkRes;
     int c;
     int fBmc;
     int nFrames;
@@ -6849,14 +6863,14 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern Abc_Ntk_t * Abc_NtkPcmTest( Abc_Ntk_t * pNtk, int fVerbose );
     extern Abc_NtkDarHaigRecord( Abc_Ntk_t * pNtk );
 //    extern void Abc_NtkDarTestBlif( char * pFileName );
-    extern void Abc_NtkDarPartition( Abc_Ntk_t * pNtk );
+//    extern Abc_Ntk_t * Abc_NtkDarPartition( Abc_Ntk_t * pNtk );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
-//    printf( "This command is temporarily disabled.\n" );
-//    return 0;
+    printf( "This command is temporarily disabled.\n" );
+    return 0;
 
     // set defaults
     fVeryVerbose = 0;
@@ -7032,8 +7046,17 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_NtkDarTestBlif( argv[globalUtilOptind] );
 */
 
-    Abc_NtkDarPartition( pNtk );
-
+//    Abc_NtkDarPartition( pNtk );
+/*
+    pNtkRes = Abc_NtkDarPartition( pNtk );
+    if ( pNtkRes == NULL )
+    {
+        fprintf( pErr, "Command has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+*/
     return 0;
 usage:
     fprintf( pErr, "usage: test [-vwh]\n" );
@@ -10825,6 +10848,9 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         // get LUT size from the library
         pPars->nLutSize = pPars->pLutLib->LutMax;
+        // if variable pin delay, force truth table computation
+        if ( pPars->pLutLib->fVarPinDelays )
+            pPars->fTruth = 1;
     }
 
     if ( pPars->nLutSize < 3 || pPars->nLutSize > IF_MAX_LUTSIZE )
@@ -11646,6 +11672,7 @@ usage:
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
 }
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -11665,12 +11692,14 @@ int Abc_CommandFlowRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fForward;
     int fBackward;
     int fVerbose;
-    int fComputeInit;
+    int fComputeInit, fGuaranteeInit, fBlockConst;
+    int fFastButConservative;
     int maxDelay;
 
-    extern Abc_Ntk_t* Abc_FlowRetime_MinReg( Abc_Ntk_t * pNtk, int fVerbose, int fComputeInit,
+    extern Abc_Ntk_t* Abc_FlowRetime_MinReg( Abc_Ntk_t * pNtk, int fVerbose, 
+                                             int fComputeInit, int fGuaranteeInit, int fBlockConst,
                                              int fForward, int fBackward, int nMaxIters,
-                                             int maxDelay);
+                                             int maxDelay, int fFastButConservative);
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -11678,13 +11707,16 @@ int Abc_CommandFlowRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     fForward  =  0;
+    fFastButConservative = 0;
     fBackward =  0;
     fComputeInit =  1;
+    fGuaranteeInit =  0;
     fVerbose  =  0;
+    fBlockConst  =  0;
     nMaxIters = 999;
     maxDelay  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "MDfbivh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "MDfcgbkivh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -11709,15 +11741,24 @@ int Abc_CommandFlowRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( maxDelay < 0 ) 
                 goto usage;
-            break;
+           break;
         case 'f':
             fForward ^= 1;
+            break;
+        case 'c':
+            fFastButConservative ^= 1;
             break;
         case 'i':
             fComputeInit ^= 1;
             break;
         case 'b':
             fBackward ^= 1;
+            break;
+        case 'g':
+            fGuaranteeInit ^= 1;
+            break;
+        case 'k':
+            fBlockConst ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -11741,6 +11782,12 @@ int Abc_CommandFlowRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
+    if ( fGuaranteeInit && !fComputeInit )
+    {
+      fprintf( pErr, "Initial state guarantee (-g) requires initial state computation (-i).\n" );
+      return 1;
+    }
+
     if ( !Abc_NtkLatchNum(pNtk) )
     {
         fprintf( pErr, "The network has no latches. Retiming is not performed.\n" );
@@ -11754,7 +11801,10 @@ int Abc_CommandFlowRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
       }
 
     // perform the retiming
-    pNtkRes = Abc_FlowRetime_MinReg( pNtk, fVerbose, fComputeInit, fForward, fBackward, nMaxIters, maxDelay );
+    pNtkRes = Abc_FlowRetime_MinReg( pNtk, fVerbose, fComputeInit,
+                                     fGuaranteeInit, fBlockConst, 
+                                     fForward, fBackward, 
+                                     nMaxIters, maxDelay, fFastButConservative );
 
     if (pNtkRes != pNtk)
       Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
@@ -11767,6 +11817,9 @@ usage:
     fprintf( pErr, "\t-M num : the maximum number of iterations [default = %d]\n", nMaxIters );
     fprintf( pErr, "\t-D num : the maximum delay [default = none]\n" );
     fprintf( pErr, "\t-i     : enables init state computation [default = %s]\n", fComputeInit? "yes": "no" );
+    fprintf( pErr, "\t-k     : blocks retiming over const nodes [default = %s]\n", fBlockConst? "yes": "no" );
+    fprintf( pErr, "\t-g     : guarantees init state computation [default = %s]\n", fGuaranteeInit? "yes": "no" );
+    fprintf( pErr, "\t-c     : very fast (but conserv.) delay constraints [default = %s]\n", fFastButConservative? "yes": "no" );
     fprintf( pErr, "\t-f     : enables forward-only retiming  [default = %s]\n", fForward? "yes": "no" );
     fprintf( pErr, "\t-b     : enables backward-only retiming [default = %s]\n", fBackward? "yes": "no" );
     fprintf( pErr, "\t-v     : enables verbose output [default = %s]\n", fVerbose? "yes": "no" );
@@ -12044,38 +12097,30 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
+    Fra_Ssw_t Pars, * pPars = &Pars;
     int c;
-    int nFramesP;
-    int nFramesK;
-    int nMaxImps;
-    int nMaxLevs;
-    int fUseImps;
-    int fRewrite;
-    int fFraiging;
-    int fLatchCorr;
-    int fWriteImps;
-    int fUse1Hot;
-    int fVerbose;
-    extern Abc_Ntk_t * Abc_NtkDarSeqSweep( Abc_Ntk_t * pNtk, int nFramesP, int nFrames, int nMaxImps, int nMaxLevs, int fRewrite, int fFraiging, int fUseImps, int fLatchCorr, int fWriteImps, int fUse1Hot, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkDarSeqSweep( Abc_Ntk_t * pNtk, Fra_Ssw_t * pPars );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nFramesP   = 0;
-    nFramesK   = 1;
-    nMaxImps   = 5000;
-    nMaxLevs   = 0;
-    fUseImps   = 0;
-    fRewrite   = 0;
-    fFraiging  = 0;
-    fLatchCorr = 0;
-    fWriteImps = 0;
-    fUse1Hot   = 0;
-    fVerbose   = 0;
+    pPars->nPartSize  = 0;
+    pPars->nOverSize  = 0;
+    pPars->nFramesP   = 0;
+    pPars->nFramesK   = 1;
+    pPars->nMaxImps   = 5000;
+    pPars->nMaxLevs   = 0;
+    pPars->fUseImps   = 0;
+    pPars->fRewrite   = 0;
+    pPars->fFraiging  = 0;
+    pPars->fLatchCorr = 0;
+    pPars->fWriteImps = 0;
+    pPars->fUse1Hot   = 0;
+    pPars->fVerbose   = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PFILirfletvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PQNFILirfletvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -12085,9 +12130,31 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
                 fprintf( pErr, "Command line switch \"-P\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nFramesP = atoi(argv[globalUtilOptind]);
+            pPars->nPartSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFramesP < 0 ) 
+            if ( pPars->nPartSize < 2 ) 
+                goto usage;
+            break;
+        case 'Q':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-Q\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nOverSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nOverSize < 0 ) 
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFramesP = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFramesP < 0 ) 
                 goto usage;
             break;
         case 'F':
@@ -12096,9 +12163,9 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
                 fprintf( pErr, "Command line switch \"-F\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nFramesK = atoi(argv[globalUtilOptind]);
+            pPars->nFramesK = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nFramesK <= 0 ) 
+            if ( pPars->nFramesK <= 0 ) 
                 goto usage;
             break;
         case 'I':
@@ -12107,9 +12174,9 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
                 fprintf( pErr, "Command line switch \"-I\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nMaxImps = atoi(argv[globalUtilOptind]);
+            pPars->nMaxImps = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nMaxImps <= 0 ) 
+            if ( pPars->nMaxImps <= 0 ) 
                 goto usage;
             break;
         case 'L':
@@ -12118,31 +12185,31 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
                 fprintf( pErr, "Command line switch \"-L\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nMaxLevs = atoi(argv[globalUtilOptind]);
+            pPars->nMaxLevs = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nMaxLevs <= 0 ) 
+            if ( pPars->nMaxLevs <= 0 ) 
                 goto usage;
             break;
         case 'i':
-            fUseImps ^= 1;
+            pPars->fUseImps ^= 1;
             break;
         case 'r':
-            fRewrite ^= 1;
+            pPars->fRewrite ^= 1;
             break;
         case 'f':
-            fFraiging ^= 1;
+            pPars->fFraiging ^= 1;
             break;
         case 'l':
-            fLatchCorr ^= 1;
+            pPars->fLatchCorr ^= 1;
             break;
         case 'e':
-            fWriteImps ^= 1;
+            pPars->fWriteImps ^= 1;
             break;
         case 't':
-            fUse1Hot ^= 1;
+            pPars->fUse1Hot ^= 1;
             break;
         case 'v':
-            fVerbose ^= 1;
+            pPars->fVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -12169,20 +12236,20 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
 
-    if ( nFramesK > 1 && fUse1Hot )
+    if ( pPars->nFramesK > 1 && pPars->fUse1Hot )
     {
         printf( "Currrently can only use one-hotness for simple induction (K=1).\n" );
         return 0;
     }
 
-    if ( nFramesP && fUse1Hot )
+    if ( pPars->nFramesP && pPars->fUse1Hot )
     {
         printf( "Currrently can only use one-hotness without prefix.\n" );
         return 0;
     }
 
     // get the new network
-    pNtkRes = Abc_NtkDarSeqSweep( pNtk, nFramesP, nFramesK, nMaxImps, nMaxLevs, fRewrite, fFraiging, fUseImps, fLatchCorr, fWriteImps, fUse1Hot, fVerbose );
+    pNtkRes = Abc_NtkDarSeqSweep( pNtk, pPars );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Sequential sweeping has failed.\n" );
@@ -12193,19 +12260,21 @@ int Abc_CommandSeqSweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: ssweep [-P num] [-F num] [-I num] [-ilrfetvh]\n" );
+    fprintf( pErr, "usage: ssweep [-PQNFL num] [-lrfetvh]\n" );
     fprintf( pErr, "\t         performs sequential sweep using K-step induction\n" );
-    fprintf( pErr, "\t-P num : number of time frames to use as the prefix [default = %d]\n", nFramesP );
-    fprintf( pErr, "\t-F num : number of time frames for induction (1=simple) [default = %d]\n", nFramesK );
-    fprintf( pErr, "\t-I num : max number of implications to consider [default = %d]\n", nMaxImps );
-    fprintf( pErr, "\t-L num : max number of levels to consider (0=all) [default = %d]\n", nMaxLevs );
-    fprintf( pErr, "\t-i     : toggle using implications [default = %s]\n", fUseImps? "yes": "no" );
-    fprintf( pErr, "\t-l     : toggle latch correspondence only [default = %s]\n", fLatchCorr? "yes": "no" );
-    fprintf( pErr, "\t-r     : toggle AIG rewriting [default = %s]\n", fRewrite? "yes": "no" );
-    fprintf( pErr, "\t-f     : toggle fraiging (combinational SAT sweeping) [default = %s]\n", fFraiging? "yes": "no" );
-    fprintf( pErr, "\t-e     : toggle writing implications as assertions [default = %s]\n", fWriteImps? "yes": "no" );
-    fprintf( pErr, "\t-t     : toggle using one-hotness conditions [default = %s]\n", fUse1Hot? "yes": "no" );
-    fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-P num : max partition size (0 = no partitioning) [default = %d]\n", pPars->nPartSize );
+    fprintf( pErr, "\t-Q num : partition overlap (0 = no overlap) [default = %d]\n", pPars->nOverSize );
+    fprintf( pErr, "\t-N num : number of time frames to use as the prefix [default = %d]\n", pPars->nFramesP );
+    fprintf( pErr, "\t-F num : number of time frames for induction (1=simple) [default = %d]\n", pPars->nFramesK );
+    fprintf( pErr, "\t-L num : max number of levels to consider (0=all) [default = %d]\n", pPars->nMaxLevs );
+//    fprintf( pErr, "\t-I num : max number of implications to consider [default = %d]\n", pPars->nMaxImps );
+//    fprintf( pErr, "\t-i     : toggle using implications [default = %s]\n", pPars->fUseImps? "yes": "no" );
+    fprintf( pErr, "\t-l     : toggle latch correspondence only [default = %s]\n", pPars->fLatchCorr? "yes": "no" );
+    fprintf( pErr, "\t-r     : toggle AIG rewriting [default = %s]\n", pPars->fRewrite? "yes": "no" );
+    fprintf( pErr, "\t-f     : toggle fraiging (combinational SAT sweeping) [default = %s]\n", pPars->fFraiging? "yes": "no" );
+    fprintf( pErr, "\t-e     : toggle writing implications as assertions [default = %s]\n", pPars->fWriteImps? "yes": "no" );
+    fprintf( pErr, "\t-t     : toggle using one-hotness conditions [default = %s]\n", pPars->fUse1Hot? "yes": "no" );
+    fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -12331,29 +12400,29 @@ int Abc_CommandSeqCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
     int c;
-    int fLatchSweep;
-    int fAutoSweep;
+    int fLatchConst;
+    int fLatchEqual;
     int fVerbose;
-    extern Abc_Ntk_t * Abc_NtkDarLatchSweep( Abc_Ntk_t * pNtk, int fLatchSweep, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkDarLatchSweep( Abc_Ntk_t * pNtk, int fLatchConst, int fLatchEqual, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fLatchSweep = 0;
-    fAutoSweep  = 0;
+    fLatchConst = 1;
+    fLatchEqual = 1;
     fVerbose    = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "lavh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "cevh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'l':
-            fLatchSweep ^= 1;
+        case 'c':
+            fLatchConst ^= 1;
             break;
-        case 'a':
-            fAutoSweep ^= 1;
+        case 'e':
+            fLatchEqual ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -12380,7 +12449,7 @@ int Abc_CommandSeqCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     // modify the current network
-    pNtkRes = Abc_NtkDarLatchSweep( pNtk, fLatchSweep, fVerbose );
+    pNtkRes = Abc_NtkDarLatchSweep( pNtk, fLatchConst, fLatchEqual, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Sequential cleanup has failed.\n" );
@@ -12391,13 +12460,11 @@ int Abc_CommandSeqCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: scleanup [-lvh]\n" );
-    fprintf( pErr, "\t         performs sequential cleanup\n" );
-    fprintf( pErr, "\t         - removes nodes/latches that do not feed into POs\n" );
-    fprintf( pErr, "\t         - removes stuck-at and identical latches (latch sweep)\n" );
-//    fprintf( pErr, "\t         - replaces autonomous logic by free PI variables\n" );
-    fprintf( pErr, "\t-l     : toggle sweeping latches [default = %s]\n", fLatchSweep? "yes": "no" );
-//    fprintf( pErr, "\t-a     : toggle removing autonomous logic [default = %s]\n", fAutoSweep? "yes": "no" );
+    fprintf( pErr, "usage: scleanup [-cevh]\n" );
+    fprintf( pErr, "\t         performs sequential cleanup of the current network\n" );
+    fprintf( pErr, "\t         by removing nodes and latches that do not feed into POs\n" );
+    fprintf( pErr, "\t-c     : sweep stuck-at latches detected by ternary simulation [default = %s]\n", fLatchConst? "yes": "no" );
+    fprintf( pErr, "\t-e     : merge equal latches (same data inputs and init states) [default = %s]\n", fLatchEqual? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -13901,7 +13968,7 @@ usage:
     fprintf( pErr, "\t         perform bounded model checking\n" );
     fprintf( pErr, "\t-F num : the number of time frames [default = %d]\n", nFrames );
     fprintf( pErr, "\t-C num : the max number of conflicts at a node [default = %d]\n", nBTLimit );
-    fprintf( pErr, "\t-r     : toggle initialization of the first frame [default = %s]\n", fRewrite? "yes": "no" );
+    fprintf( pErr, "\t-r     : toggle the use of rewriting [default = %s]\n", fRewrite? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;

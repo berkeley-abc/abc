@@ -50,6 +50,7 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 
 typedef struct Fra_Par_t_   Fra_Par_t;
+typedef struct Fra_Ssw_t_   Fra_Ssw_t;
 typedef struct Fra_Man_t_   Fra_Man_t;
 typedef struct Fra_Cla_t_   Fra_Cla_t;
 typedef struct Fra_Sml_t_   Fra_Sml_t;
@@ -84,6 +85,25 @@ struct Fra_Par_t_
     int              fUse1Hot;          // use one-hotness conditions
     int              fWriteImps;        // record implications
     int              fDontShowBar;      // does not show progressbar during fraiging
+};
+
+// seq SAT sweeping parametesr
+struct Fra_Ssw_t_
+{
+    int              nPartSize;         // size of the partition
+    int              nOverSize;         // size of the overlap between partitions
+    int              nFramesP;          // number of frames in the prefix
+    int              nFramesK;          // number of frames for induction (1=simple) 
+    int              nMaxImps;          // max implications to consider
+    int              nMaxLevs;          // max levels to consider
+    int              fUseImps;          // use implications  
+    int              fRewrite;          // enable rewriting of the specualatively reduced model
+    int              fFraiging;         // enable comb SAT sweeping as preprocessing 
+    int              fLatchCorr;        // perform register correspondence
+    int              fWriteImps;        // write implications into a file
+    int              fUse1Hot;          // use one-hotness constraints
+    int              fVerbose;          // enable verbose output 
+    int              nIters;            // the number of iterations performed
 };
 
 // FRAIG equivalence classes
@@ -287,7 +307,7 @@ extern double              Fra_ImpComputeStateSpaceRatio( Fra_Man_t * p );
 extern int                 Fra_ImpVerifyUsingSimulation( Fra_Man_t * p );
 extern void                Fra_ImpRecordInManager( Fra_Man_t * p, Aig_Man_t * pNew );
 /*=== fraInd.c ========================================================*/
-extern Aig_Man_t *         Fra_FraigInduction( Aig_Man_t * p, int nFramesP, int nFramesK, int nMaxImps, int nMaxLevs, int fRewrite, int fUseImps, int fLatchCorr, int fWriteImps, int fUse1Hot, int fVerbose, int * pnIter );
+extern Aig_Man_t *         Fra_FraigInduction( Aig_Man_t * p, Fra_Ssw_t * pPars );
 /*=== fraIndVer.c =====================================================*/
 extern int                 Fra_InvariantVerify( Aig_Man_t * p, int nFrames, Vec_Int_t * vClauses, Vec_Int_t * vLits );
 /*=== fraLcr.c ========================================================*/

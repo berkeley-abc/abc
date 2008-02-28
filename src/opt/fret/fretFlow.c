@@ -73,6 +73,7 @@ void dfsfast_preorder( Abc_Ntk_t *pNtk ) {
 #endif
 
   // clear histogram
+  assert(pManMR->vSinkDistHist);
   memset(Vec_IntArray(pManMR->vSinkDistHist), 0, sizeof(int)*Vec_IntSize(pManMR->vSinkDistHist));
 
   // seed queue : latches, PIOs, and blocks

@@ -126,6 +126,42 @@ void If_TruthSwapAdjacentVars( unsigned * pOut, unsigned * pIn, int nVars, int i
 
 /**Function*************************************************************
 
+  Synopsis    [Implements given permutation of variables.]
+
+  Description [Permutes truth table in-place (returns it in pIn).]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void If_CutTruthPermute( unsigned * pOut, unsigned * pIn, int nVars, float * pDelays, int * pVars )
+{
+    unsigned * pTemp;
+    float tTemp;
+    int i, Temp, Counter = 0, fChange = 1;
+    while ( fChange )
+    {
+        fChange = 0;
+        for ( i = 0; i < nVars - 1; i++ )
+        {
+            if ( pDelays[i] >= pDelays[i+1] )
+                continue;
+            tTemp = pDelays[i]; pDelays[i] = pDelays[i+1]; pDelays[i+1] = tTemp;
+            Temp = pVars[i]; pVars[i] = pVars[i+1]; pVars[i+1] = Temp;
+            If_TruthSwapAdjacentVars( pOut, pIn, nVars, i );
+            pTemp = pOut; pOut = pIn; pIn = pTemp;
+            fChange = 1;
+            Counter++;
+        }
+    }
+    if ( Counter & 1 )
+        If_TruthCopy( pOut, pIn, nVars );
+}
+
+
+/**Function*************************************************************
+
   Synopsis    [Expands the truth table according to the phase.]
 
   Description [The input and output truth tables are in pIn/pOut. The current number

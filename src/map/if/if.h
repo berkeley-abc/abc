@@ -170,10 +170,10 @@ struct If_Man_t_
 // priority cut
 struct If_Cut_t_
 {
-    float              Delay;         // delay of the cut
     float              Area;          // area (or area-flow) of the cut
     float              AveRefs;       // the average number of leaf references
     float              Edge;          // the edge flow
+    float              Delay;         // delay of the cut
     unsigned           uSign;         // cut signature
     unsigned           Cost    : 14;  // the user's cost of the cut
     unsigned           fCompl  :  1;  // the complemented attribute 
@@ -379,8 +379,10 @@ extern int             If_ManPerformMappingSeq( If_Man_t * p );
 /*=== ifTime.c ============================================================*/
 extern float           If_CutDelay( If_Man_t * p, If_Cut_t * pCut );
 extern void            If_CutPropagateRequired( If_Man_t * p, If_Cut_t * pCut, float Required );
+extern void            If_CutRotatePins( If_Man_t * p, If_Cut_t * pCut );
 /*=== ifTruth.c ===========================================================*/
 extern void            If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 );
+extern void            If_CutTruthPermute( unsigned * pOut, unsigned * pIn, int nVars, float * pDelays, int * pVars );
 /*=== ifUtil.c ============================================================*/
 extern void            If_ManCleanNodeCopy( If_Man_t * p );
 extern void            If_ManCleanCutData( If_Man_t * p );

@@ -28,18 +28,22 @@
 
 static void Abc_FlowRetime_AddDummyFanin( Abc_Obj_t * pObj );
 
-static void Abc_FlowRetime_MainLoop( );
+static Abc_Ntk_t* Abc_FlowRetime_MainLoop( );
 
 static void Abc_FlowRetime_MarkBlocks( Abc_Ntk_t * pNtk );
 static void Abc_FlowRetime_MarkReachable_rec( Abc_Obj_t * pObj, char end );
 static int  Abc_FlowRetime_ImplementCut( Abc_Ntk_t * pNtk );
 static void  Abc_FlowRetime_RemoveLatchBubbles( Abc_Obj_t * pLatch );
 
+static Abc_Ntk_t* Abc_FlowRetime_NtkDup( Abc_Ntk_t * pNtk );
+
 static void Abc_FlowRetime_VerifyPathLatencies( Abc_Ntk_t * pNtk );
 static int  Abc_FlowRetime_VerifyPathLatencies_rec( Abc_Obj_t * pObj, int markD );
 
+static void Abc_FlowRetime_UpdateLags_forw_rec( Abc_Obj_t *pObj );
+static void Abc_FlowRetime_UpdateLags_back_rec( Abc_Obj_t *pObj );
+
 extern void Abc_NtkMarkCone_rec( Abc_Obj_t * pObj, int fForward );
-extern Abc_Ntk_t * Abc_NtkRestrash( Abc_Ntk_t * pNtk, bool fCleanup );
 
 void
 print_node3(Abc_Obj_t *pObj);
@@ -64,12 +68,14 @@ int          fPathError = 0;
 
 ***********************************************************************/
 Abc_Ntk_t *
-Abc_FlowRetime_MinReg( Abc_Ntk_t * pNtk, int fVerbose, int fComputeInitState,
+Abc_FlowRetime_MinReg( Abc_Ntk_t * pNtk, int fVerbose, 
+                       int fComputeInitState, int fGuaranteeInitState, int fBlockConst,
                        int fForwardOnly, int fBackwardOnly, int nMaxIters,
                        int maxDelay, int fFastButConservative ) {
 
   int i;
   Abc_Obj_t   *pObj, *pNext;
+  InitConstraint_t *pData;
 
   // create manager
   pManMR = ALLOC( MinRegMan_t, 1 );
@@ -77,7 +83,8 @@ Abc_FlowRetime_MinReg( Abc_Ntk_t * pNtk, int fVerbose, int fComputeInitState,
   pManMR->pNtk = pNtk;
   pManMR->fVerbose = fVerbose;
   pManMR->fComputeInitState = fComputeInitState;
-  pManMR->fGuaranteeInitState = 0;
+  pManMR->fGuaranteeInitState = fGuaranteeInitState;
+  pManMR->fBlockConst = fBlockConst;
   pManMR->fForwardOnly = fForwardOnly;
   pManMR->fBackwardOnly = fBackwardOnly;
   pManMR->nMaxIters = nMaxIters;
@@ -85,6 +92,10 @@ Abc_FlowRetime_MinReg( Abc_Ntk_t * pNtk, int fVerbose, int fComputeInitState,
   pManMR->fComputeInitState = fComputeInitState;
   pManMR->fConservTimingOnly = fFastButConservative;
   pManMR->vNodes = Vec_PtrAlloc(100);
+  pManMR->vInitConstraints = Vec_PtrAlloc(2);
+  pManMR->pInitNtk = NULL;
+  pManMR->pInitToOrig = NULL;
+  pManMR->sizeInitToOrig = 0;
 
   vprintf("Flow-based minimum-register retiming...\n");  
 
@@ -96,7 +107,7 @@ Abc_FlowRetime_MinReg( Abc_Ntk_t * pNtk, int fVerbose, int fComputeInitState,
   if (maxDelay) {
     vprintf("\tmax delay constraint = %d\n", maxDelay);
     if (maxDelay < (i = Abc_NtkLevel(pNtk))) {
-      printf("ERROR: max delay constraint must be > current max delay (%d)\n", i);
+      printf("ERROR: max delay constraint (%d) must be > current max delay (%d)\n", maxDelay, i);
       return pNtk;
     }
   }
@@ -151,19 +162,18 @@ Abc_FlowRetime_MinReg( Abc_Ntk_t * pNtk, int fVerbose, int fComputeInitState,
   if (maxDelay)
     Abc_FlowRetime_InitTiming( pNtk );
 
-  // create Flow_Data structure
+  // create lag and Flow_Data structure
+  pManMR->vLags = Vec_IntStart(pManMR->nNodes);
+  memset(pManMR->vLags->pArray, 0, sizeof(int)*pManMR->nNodes);
+
   pManMR->pDataArray = ALLOC( Flow_Data_t, pManMR->nNodes );
   Abc_FlowRetime_ClearFlows( 1 );
-  Abc_NtkForEachObj( pNtk, pObj, i )
-    Abc_ObjSetCopy( pObj, (void *)(&pManMR->pDataArray[i]) );
 
   // main loop!
-  Abc_FlowRetime_MainLoop();
+  pNtk = Abc_FlowRetime_MainLoop();
 
-  // clear pCopy field
+  // cleanup node fields
   Abc_NtkForEachObj( pNtk, pObj, i ) {
-    Abc_ObjSetCopy( pObj, NULL );
-
     // if not computing init state, set all latches to DC
     if (!fComputeInitState && Abc_ObjIsLatch(pObj))
       Abc_LatchSetInitDc(pObj);
@@ -171,14 +181,24 @@ Abc_FlowRetime_MinReg( Abc_Ntk_t * pNtk, int fVerbose, int fComputeInitState,
 
   // deallocate space
   FREE( pManMR->pDataArray );
+  if (pManMR->pInitToOrig) FREE( pManMR->pInitToOrig );
   if (pManMR->vNodes) Vec_PtrFree(pManMR->vNodes);
+  if (pManMR->vLags) Vec_IntFree(pManMR->vLags);
   if (pManMR->vSinkDistHist) Vec_IntFree(pManMR->vSinkDistHist);
   if (pManMR->maxDelay) Abc_FlowRetime_FreeTiming( pNtk );
+  while( Vec_PtrSize( pManMR->vInitConstraints )) {
+    pData = Vec_PtrPop( pManMR->vInitConstraints );
+    //assert( pData->pBiasNode );
+    //Abc_NtkDeleteObj( pData->pBiasNode );
+    FREE( pData->vNodes.pArray );
+    FREE( pData );
+  }
+  FREE( pManMR->vInitConstraints );
 
   // restrash if necessary
   if (Abc_NtkIsStrash(pNtk)) {
     Abc_NtkReassignIds( pNtk );
-    pNtk = Abc_NtkRestrash( pNtk, 1 );
+    pNtk = Abc_FlowRetime_NtkSilentRestrash( pNtk, 1 );
   }
   
   vprintf("\tfinal reg count = %d\n", Abc_NtkLatchNum(pNtk));
@@ -205,10 +225,10 @@ Abc_FlowRetime_MinReg( Abc_Ntk_t * pNtk, int fVerbose, int fComputeInitState,
   SeeAlso     []
 
 ***********************************************************************/
-void
+Abc_Ntk_t *
 Abc_FlowRetime_MainLoop( ) {
-  Abc_Ntk_t *pNtk = pManMR->pNtk;
-  // Abc_Obj_t *pObj; int i;
+  Abc_Ntk_t *pNtk = pManMR->pNtk, *pNtkCopy = pNtk;
+  Abc_Obj_t *pObj; int i;
   int last, flow = 0, cut;
 
   // (i) forward retiming loop
@@ -237,30 +257,20 @@ Abc_FlowRetime_MainLoop( ) {
 
     cut = Abc_FlowRetime_ImplementCut( pNtk );
 
+#if defined (DEBUG_PRINT_LEVELS)
     vprintf("\t\tlevels = %d\n", Abc_NtkLevel(pNtk));
-
-#if 0
-    Abc_NtkForEachObj( pNtk, pObj, i ) pObj->Level = 0;
-
-    Abc_NtkLevel(pNtk);
-    Abc_NtkForEachObj( pNtk, pObj, i )
-      if (pObj->Level > pManMR->maxDelay) {
-        print_node( pObj );
-        Vec_PtrForEachEntry( FTIMEEDGES(pObj), p2,j ) {
-          printf(":%d ", p2->Id);
-        }
-      }
-    Abc_NtkLevelReverse(pNtk);
-    Abc_NtkForEachObj( pNtk, pObj, i )
-      if (pObj->Level > pManMR->maxDelay) {
-        print_node( pObj );
-      }
 #endif
 
     Abc_FlowRetime_ClearFlows( 1 );
 
     pManMR->iteration++;
   } while( cut != last );
+  
+  // intermediate cleanup (for strashed networks)
+  if (Abc_NtkIsStrash(pNtk)) {
+    Abc_NtkReassignIds( pNtk );
+    pNtk = pManMR->pNtk = Abc_FlowRetime_NtkSilentRestrash( pNtk, 1 );
+  }
 
   // print info about initial states
   if (pManMR->fComputeInitState && pManMR->fVerbose)
@@ -268,10 +278,18 @@ Abc_FlowRetime_MainLoop( ) {
 
   // (ii) backward retiming loop
   pManMR->fIsForward = 0;
-  pManMR->iteration = 0;
 
   if (!pManMR->fForwardOnly) do {
     // initializability loop
+    pManMR->iteration = 0;
+
+    // copy/restore network
+    if (pManMR->fGuaranteeInitState) {
+      if ( pNtk != pNtkCopy )
+        Abc_NtkDelete( pNtk );
+      pNtk = pManMR->pNtk = Abc_FlowRetime_NtkDup( pNtkCopy );
+      vprintf("\trestoring network. regs = %d\n", Abc_NtkLatchNum( pNtk ));
+    }
 
     if (pManMR->fComputeInitState) {
       Abc_FlowRetime_SetupBackwardInit( pNtk );
@@ -284,8 +302,9 @@ Abc_FlowRetime_MainLoop( ) {
       vprintf("\tbackward iteration %d\n", pManMR->iteration);
       last = Abc_NtkLatchNum( pNtk );
 
+      Abc_FlowRetime_AddInitBias( );
       Abc_FlowRetime_MarkBlocks( pNtk );
-      
+
       if (pManMR->maxDelay) {
         // timing-constrained loop
         Abc_FlowRetime_ConstrainConserv( pNtk );
@@ -296,25 +315,13 @@ Abc_FlowRetime_MainLoop( ) {
       } else {
         flow = Abc_FlowRetime_PushFlows( pNtk, 1 );
       }
-      
+
+      Abc_FlowRetime_RemoveInitBias( );
       cut = Abc_FlowRetime_ImplementCut( pNtk );
 
+#if defined(DEBUG_PRINT_LEVELS)
       vprintf("\t\tlevels = %d\n", Abc_NtkLevelReverse(pNtk));
-      
-#if 0
-    Abc_NtkForEachObj( pNtk, pObj, i ) pObj->Level = 0;
-
-    Abc_NtkLevel(pNtk);
-    Abc_NtkForEachObj( pNtk, pObj, i )
-      if (pObj->Level > pManMR->maxDelay) {
-        print_node( pObj );
-      }
-    Abc_NtkLevelReverse(pNtk);
-    Abc_NtkForEachObj( pNtk, pObj, i )
-      if (pObj->Level > pManMR->maxDelay) {
-        print_node( pObj );
-      }
-#endif
+#endif      
 
       Abc_FlowRetime_ClearFlows( 1 );
 
@@ -328,10 +335,23 @@ Abc_FlowRetime_MainLoop( ) {
       if (pManMR->fVerbose) Abc_FlowRetime_PrintInitStateInfo( pNtk );
       break;
     } else {
-      if (!pManMR->fGuaranteeInitState) break;
+      if (!pManMR->fGuaranteeInitState) {
+        printf("WARNING: no equivalent init state. setting all initial states to don't-cares\n");
+        Abc_NtkForEachLatch( pNtk, pObj, i ) Abc_LatchSetInitDc( pObj );
+        break;
+      }
       Abc_FlowRetime_ConstrainInit( );
     }
+    
+    Abc_NtkDelete(pManMR->pInitNtk);
+    pManMR->pInitNtk = NULL;
   } while(1);
+
+  assert(!pManMR->fComputeInitState || pManMR->pInitNtk);
+  if (pManMR->fComputeInitState)   Abc_NtkDelete(pManMR->pInitNtk);
+  if (pManMR->fGuaranteeInitState) ; /* Abc_NtkDelete(pNtkCopy); note: original ntk deleted later */
+
+  return pNtk;
 }
 
 
@@ -369,7 +389,7 @@ Abc_FlowRetime_RemoveLatchBubbles( Abc_Obj_t * pLatch ) {
   pBi->fCompl0 ^= bubble ^ Abc_ObjFaninC0(pLatch);
 
   // convert bubble to INV if not AIG
-  if (!Abc_NtkHasAig( pNtk ) && Abc_ObjFaninC0(pBi)) {
+  if (!Abc_NtkIsStrash( pNtk ) && Abc_ObjFaninC0(pBi)) {
     pBi->fCompl0 = 0;
     pInv = Abc_NtkCreateNodeInv( pNtk, Abc_ObjFanin0(pBi) );
     Abc_ObjPatchFanin( pBi, Abc_ObjFanin0(pBi), pInv );
@@ -397,6 +417,8 @@ Abc_FlowRetime_MarkBlocks( Abc_Ntk_t * pNtk ) {
   Abc_Obj_t *pObj;
 
   if (pManMR->fIsForward){
+    // --- forward retiming : block TFO of inputs    
+
     // mark the frontier
     Abc_NtkForEachPo( pNtk, pObj, i )
       pObj->fMarkA = 1;
@@ -408,6 +430,8 @@ Abc_FlowRetime_MarkBlocks( Abc_Ntk_t * pNtk ) {
     Abc_NtkForEachPi( pNtk, pObj, i )
       Abc_NtkMarkCone_rec( pObj, pManMR->fIsForward );
   } else {
+    // --- backward retiming : block TFI of outputs
+
     // mark the frontier
     Abc_NtkForEachPi( pNtk, pObj, i )
       pObj->fMarkA = 1;
@@ -418,6 +442,14 @@ Abc_FlowRetime_MarkBlocks( Abc_Ntk_t * pNtk ) {
     // mark the nodes reachable from the POs
     Abc_NtkForEachPo( pNtk, pObj, i )
       Abc_NtkMarkCone_rec( pObj, pManMR->fIsForward );
+    // block constant nodes (if enabled)
+    if (pManMR->fBlockConst) {
+      Abc_NtkForEachObj( pNtk, pObj, i )
+        if ((Abc_NtkIsStrash(pNtk) && Abc_AigNodeIsConst(pObj)) ||
+            (!Abc_NtkIsStrash(pNtk) && Abc_NodeIsConst(pObj))) {
+          FSET(pObj, BLOCK);
+        }
+    }
   }
 
   // copy marks
@@ -518,7 +550,7 @@ Abc_FlowRetime_FixLatchBoxes( Abc_Ntk_t *pNtk, Vec_Ptr_t *vBoxIns ) {
     pBi = (Abc_Obj_t *)Vec_PtrPop( vBoxIns );
     assert(Abc_ObjIsBi(pBi));
     assert(Abc_ObjFanoutNum(pBi) == 1);
-    assert(Abc_ObjFaninNum(pBi) == 1);
+    // APH: broken by bias nodes assert(Abc_ObjFaninNum(pBi) == 1);
     pBo = Abc_ObjFanout0(pBi);
     assert(!Abc_ObjFaninC0(pBo));
 
@@ -546,7 +578,12 @@ Abc_FlowRetime_FixLatchBoxes( Abc_Ntk_t *pNtk, Vec_Ptr_t *vBoxIns ) {
       assert(Abc_ObjFanoutNum(pBi) == 0);
       assert(Abc_ObjFaninNum(pBo) == 0);
       assert(Abc_ObjFanoutNum(pBo) == 0);
-    } else assert(Abc_ObjIsLatch(pBo));
+    } else if (Abc_ObjIsLatch(pBo)) {
+    } else {
+      Abc_ObjPrint(stdout, pBi);
+      Abc_ObjPrint(stdout, pBo);
+      assert(0);
+    }
   }
 
   // 2. add bi/bos as necessary for latches
@@ -803,6 +840,7 @@ Abc_FlowRetime_ImplementCut( Abc_Ntk_t * pNtk ) {
   // insert latches into netlist
   Abc_NtkForEachObj( pNtk, pObj, i ) {
     if (Abc_ObjIsLatch( pObj )) continue;
+    if (FTEST(pObj, BIAS_NODE)) continue;
     
     // a latch is required on every node that lies across the min-cit
     assert(!pManMR->fIsForward || !FTEST(pObj, VISITED_E) || FTEST(pObj, VISITED_R));
@@ -837,7 +875,7 @@ Abc_FlowRetime_ImplementCut( Abc_Ntk_t * pNtk ) {
         if (Abc_ObjIsBi(pNext)) assert(Abc_ObjFaninNum(pNext) == 1);
 
       }
-      if (Abc_ObjIsBi(pObj)) assert(Abc_ObjFaninNum(pObj) == 1);
+      // APH: broken by bias nodes  if (Abc_ObjIsBi(pObj)) assert(Abc_ObjFaninNum(pObj) == 1);
     }
   }
 
@@ -852,6 +890,7 @@ Abc_FlowRetime_ImplementCut( Abc_Ntk_t * pNtk ) {
   }
   
   // update initial states
+  Abc_FlowRetime_UpdateLags( );
   Abc_FlowRetime_InitState( pNtk );
 
   // restore latch boxes
@@ -881,7 +920,7 @@ void
 Abc_FlowRetime_AddDummyFanin( Abc_Obj_t * pObj ) {
   Abc_Ntk_t *pNtk = Abc_ObjNtk( pObj );
 
-  if (Abc_NtkHasAig(pNtk)) 
+  if (Abc_NtkIsStrash(pNtk)) 
     Abc_ObjAddFanin(pObj, Abc_AigConst1( pNtk ));
   else
     Abc_ObjAddFanin(pObj, Abc_NtkCreateNodeConst0( pNtk ));
@@ -1056,4 +1095,282 @@ void Abc_FlowRetime_ClearFlows( bool fClearAll ) {
       pManMR->pDataArray[i].pred = NULL;
     }
   }
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates network.]
+
+  Description [Duplicates any type of network. Preserves copy data.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static Abc_Ntk_t* Abc_FlowRetime_NtkDup( Abc_Ntk_t * pNtk ) {
+  Abc_Ntk_t *pNtkCopy;
+  Abc_Obj_t *pObj, *pObjCopy, *pNext, *pNextCopy;
+  int i, j;
+
+  pNtkCopy = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc, 1 );
+
+  // copy each object
+  Abc_NtkForEachObj( pNtk, pObj, i) {
+
+    if (Abc_NtkIsStrash( pNtk ) && Abc_AigNodeIsConst( pObj ))
+      pObjCopy = Abc_AigConst1( pNtkCopy );
+    else
+      pObjCopy = Abc_NtkDupObj( pNtkCopy, pObj, 0 );
+
+    FDATA( pObj )->pCopy = pObjCopy;
+    FDATA( pObj )->mark = 0;
+
+    // assert( pManMR->fIsForward || pObj->Id == pObjCopy->Id );
+
+    // copy complementation
+    pObjCopy->fCompl0 = pObj->fCompl0;
+    pObjCopy->fCompl1 = pObj->fCompl1;
+    pObjCopy->fPhase = pObj->fPhase;
+  }
+
+  // connect fanin
+  Abc_NtkForEachObj( pNtk, pObj, i) {
+    pObjCopy = FDATA(pObj)->pCopy;
+    assert(pObjCopy);
+    Abc_ObjForEachFanin( pObj, pNext, j ) {
+      pNextCopy = FDATA(pNext)->pCopy;
+      assert(pNextCopy);
+      assert(pNext->Type == pNextCopy->Type);
+
+      Abc_ObjAddFanin(pObjCopy, pNextCopy);
+    }
+  }
+
+#if defined(DEBUG_CHECK) || 1
+  Abc_NtkForEachObj( pNtk, pObj, i) { 
+    pObjCopy = FDATA(pObj)->pCopy;
+    assert( Abc_ObjFanoutNum( pObj ) ==  Abc_ObjFanoutNum( pObjCopy ) );
+    assert( Abc_ObjFaninNum( pObj ) ==  Abc_ObjFaninNum( pObjCopy ) );
+  }
+#endif
+
+  assert(Abc_NtkObjNum( pNtk )   == Abc_NtkObjNum( pNtkCopy ) );
+  assert(Abc_NtkLatchNum( pNtk ) == Abc_NtkLatchNum( pNtkCopy ) );
+  assert(Abc_NtkPoNum( pNtk )    == Abc_NtkPoNum( pNtkCopy ) );
+  assert(Abc_NtkPiNum( pNtk )    == Abc_NtkPiNum( pNtkCopy ) );
+
+  return pNtkCopy;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Silent restrash.]
+
+  Description [Same functionality as Abc_NtkRestrash but w/o warnings.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_FlowRetime_NtkSilentRestrash( Abc_Ntk_t * pNtk, bool fCleanup )
+{
+    Abc_Ntk_t * pNtkAig;
+    Abc_Obj_t * pObj;
+    int i, nNodes;//, RetValue;
+    assert( Abc_NtkIsStrash(pNtk) );
+    // start the new network (constants and CIs of the old network will point to the their counterparts in the new network)
+    pNtkAig = Abc_NtkStartFrom( pNtk, ABC_NTK_STRASH, ABC_FUNC_AIG );
+    // restrash the nodes (assuming a topological order of the old network)
+    Abc_NtkForEachNode( pNtk, pObj, i )
+        pObj->pCopy = Abc_AigAnd( pNtkAig->pManFunc, Abc_ObjChild0Copy(pObj), Abc_ObjChild1Copy(pObj) );
+    // finalize the network
+    Abc_NtkFinalize( pNtk, pNtkAig );
+    // perform cleanup if requested
+    if ( fCleanup )
+      nNodes = Abc_AigCleanup(pNtkAig->pManFunc);
+    // duplicate EXDC 
+    if ( pNtk->pExdc )
+      pNtkAig->pExdc = Abc_NtkDup( pNtk->pExdc );
+    // make sure everything is okay
+    if ( !Abc_NtkCheck( pNtkAig ) )
+      {
+        printf( "Abc_NtkStrash: The network check has failed.\n" );
+        Abc_NtkDelete( pNtkAig );
+        return NULL;
+      }
+    return pNtkAig;
+}
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Updates lag values.]
+
+  Description [Recursive.  Forward retiming.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void
+Abc_FlowRetime_UpdateLags_forw_rec( Abc_Obj_t *pObj ) {
+  Abc_Obj_t *pNext;
+  int i;
+
+  assert(!Abc_ObjIsPi(pObj));
+  assert(!Abc_ObjIsLatch(pObj));
+
+  if (Abc_ObjIsBo(pObj)) return;
+  if (Abc_NodeIsTravIdCurrent(pObj)) return;
+
+  Abc_NodeSetTravIdCurrent(pObj);
+
+  if (Abc_ObjIsNode(pObj)) {
+    Abc_FlowRetime_SetLag( pObj, -1+Abc_FlowRetime_GetLag(pObj) );
+  }
+
+  Abc_ObjForEachFanin( pObj, pNext, i ) {
+    Abc_FlowRetime_UpdateLags_forw_rec( pNext );
+  }
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Updates lag values.]
+
+  Description [Recursive.  Backward retiming.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void
+Abc_FlowRetime_UpdateLags_back_rec( Abc_Obj_t *pObj ) {
+  Abc_Obj_t *pNext;
+  int i;
+
+  assert(!Abc_ObjIsPo(pObj));
+  assert(!Abc_ObjIsLatch(pObj));
+
+  if (Abc_ObjIsBo(pObj)) return;
+  if (Abc_NodeIsTravIdCurrent(pObj)) return;
+
+  Abc_NodeSetTravIdCurrent(pObj);
+
+  if (Abc_ObjIsNode(pObj)) {
+    Abc_FlowRetime_SetLag( pObj, 1+Abc_FlowRetime_GetLag(pObj) );
+  }
+
+  Abc_ObjForEachFanout( pObj, pNext, i ) {
+    Abc_FlowRetime_UpdateLags_back_rec( pNext );
+  }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Updates lag values.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void
+Abc_FlowRetime_UpdateLags( ) {
+  Abc_Obj_t *pObj, *pNext;
+  int i, j;
+
+  Abc_NtkIncrementTravId( pManMR->pNtk );
+
+  Abc_NtkForEachLatch( pManMR->pNtk, pObj, i )
+    if (pManMR->fIsForward) {
+      Abc_ObjForEachFanin( pObj, pNext, j )          
+        Abc_FlowRetime_UpdateLags_forw_rec( pNext );
+    } else {
+      Abc_ObjForEachFanout( pObj, pNext, j )          
+        Abc_FlowRetime_UpdateLags_back_rec( pNext );
+    }
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Gets lag value of a node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int 
+Abc_FlowRetime_GetLag( Abc_Obj_t *pObj ) {
+  assert( !Abc_ObjIsLatch(pObj) );
+  assert( Abc_ObjId(pObj) < Vec_IntSize(pManMR->vLags) );
+
+  return Vec_IntEntry(pManMR->vLags, Abc_ObjId(pObj));
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sets lag value of a node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void 
+Abc_FlowRetime_SetLag( Abc_Obj_t *pObj, int lag ) {
+  assert( Abc_ObjIsNode(pObj) );
+  assert( Abc_ObjId(pObj) < Vec_IntSize(pManMR->vLags) );
+
+  Vec_IntWriteEntry(pManMR->vLags, Abc_ObjId(pObj), lag);
+}
+
+
+static void Abc_ObjPrintNeighborhood_rec( Abc_Obj_t *pObj, Vec_Ptr_t *vNodes, int depth ) {
+  Abc_Obj_t *pObj2;
+  int i;
+  
+  if (pObj->fMarkC || depth < 0) return;
+
+  pObj->fMarkC = 1;
+  Vec_PtrPush( vNodes, pObj );
+
+  Abc_ObjPrint( stdout, pObj );
+
+  Abc_ObjForEachFanout(pObj, pObj2, i) {
+    Abc_ObjPrintNeighborhood_rec( pObj2, vNodes, depth-1 );
+  }
+  Abc_ObjForEachFanin(pObj, pObj2, i) {
+    Abc_ObjPrintNeighborhood_rec( pObj2, vNodes, depth-1 );
+  }
+}
+
+void Abc_ObjPrintNeighborhood( Abc_Obj_t *pObj, int depth ) {
+  Vec_Ptr_t *vNodes = Vec_PtrAlloc(100); 
+  Abc_Obj_t *pObj2;
+
+  Abc_ObjPrintNeighborhood_rec( pObj, vNodes, depth );
+
+  while(Vec_PtrSize(vNodes)) {
+    pObj2 = Vec_PtrPop(vNodes);
+    pObj2->fMarkC = 0;
+  }
+
+  Vec_PtrFree(vNodes);
 }

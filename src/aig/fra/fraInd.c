@@ -234,7 +234,7 @@ void Fra_FramesAddMore( Aig_Man_t * p, int nFrames )
 
 /**Function*************************************************************
 
-  Synopsis    [Performs choicing of the AIG.]
+  Synopsis    [Performs partitioned sequential SAT sweepingG.]
 
   Description []
                
@@ -243,7 +243,77 @@ void Fra_FramesAddMore( Aig_Man_t * p, int nFrames )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesP, int nFramesK, int nMaxImps, int nMaxLevs, int fRewrite, int fUseImps, int fLatchCorr, int fWriteImps, int fUse1Hot, int fVerbose, int * pnIter )
+Aig_Man_t * Fra_FraigInductionPart( Aig_Man_t * pAig, Fra_Ssw_t * pPars )
+{
+    int fPrintParts = 0;
+    char Buffer[100];
+    Aig_Man_t * pTemp, * pNew;
+    Vec_Ptr_t * vResult;
+    Vec_Int_t * vPart;
+    int * pMapBack;
+    int i, nCountPis, nCountRegs;
+    int nClasses, nPartSize, fVerbose;
+
+    // save parameters
+    nPartSize = pPars->nPartSize; pPars->nPartSize = 0;
+    fVerbose  = pPars->fVerbose;  pPars->fVerbose = 0;
+    // generate partitions
+    vResult = Aig_ManRegPartitionSimple( pAig, nPartSize, pPars->nOverSize );
+//    vResult = Aig_ManPartitionSmartRegisters( pAig, nPartSize, 0 ); 
+//    vResult = Aig_ManRegPartitionSmart( pAig, nPartSize );
+    if ( fPrintParts )
+    {
+        // print partitions
+        printf( "Simple partitioning. %d partitions are saved:\n", Vec_PtrSize(vResult) );
+        Vec_PtrForEachEntry( vResult, vPart, i )
+        {
+            sprintf( Buffer, "part%03d.aig", i );
+            pTemp = Aig_ManRegCreatePart( pAig, vPart, &nCountPis, &nCountRegs, NULL );
+            Ioa_WriteAiger( pTemp, Buffer, 0, 0 );
+            printf( "part%03d.aig : Reg = %4d. PI = %4d. (True = %4d. Regs = %4d.) And = %5d.\n", 
+                i, Vec_IntSize(vPart), Aig_ManPiNum(pTemp)-Vec_IntSize(vPart), nCountPis, nCountRegs, Aig_ManNodeNum(pTemp) );
+            Aig_ManStop( pTemp );
+        }
+    }
+
+    // perform SSW with partitions
+    Aig_ManReprStart( pAig, Aig_ManObjNumMax(pAig) );
+    Vec_PtrForEachEntry( vResult, vPart, i )
+    {
+        pTemp = Aig_ManRegCreatePart( pAig, vPart, &nCountPis, &nCountRegs, &pMapBack );
+        // run SSW
+        pNew = Fra_FraigInduction( pTemp, pPars );
+        nClasses = Aig_TransferMappedClasses( pAig, pTemp, pMapBack );
+        if ( fVerbose )
+            printf( "%3d : Reg = %4d. PI = %4d. (True = %4d. Regs = %4d.) And = %5d. It = %3d. Cl = %5d.\n", 
+                i, Vec_IntSize(vPart), Aig_ManPiNum(pTemp)-Vec_IntSize(vPart), nCountPis, nCountRegs, Aig_ManNodeNum(pTemp), pPars->nIters, nClasses );
+        Aig_ManStop( pNew );
+        Aig_ManStop( pTemp );
+        free( pMapBack );
+    }
+    // remap the AIG
+    pNew = Aig_ManDupRepr( pAig, 0 );
+    Aig_ManSeqCleanup( pNew );
+//    Aig_ManPrintStats( pAig );
+//    Aig_ManPrintStats( pNew );
+    Vec_VecFree( (Vec_Vec_t *)vResult );
+    pPars->nPartSize = nPartSize;
+    pPars->fVerbose = fVerbose;
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs sequential SAT sweeping.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, Fra_Ssw_t * pParams )
 {
     int fUseSimpleCnf = 0;
     int fUseOldSimulation = 0;
@@ -263,13 +333,22 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesP, int nFramesK,
 
     if ( Aig_ManNodeNum(pManAig) == 0 )
     {
-        if ( pnIter ) *pnIter = 0;
+        pParams->nIters = 0;
         return Aig_ManDup(pManAig, 1);
     }
     assert( Aig_ManLatchNum(pManAig) == 0 );
     assert( Aig_ManRegNum(pManAig) > 0 );
-    assert( nFramesK > 0 );
+    assert( pParams->nFramesK > 0 );
 //Aig_ManShow( pManAig, 0, NULL );
+
+    if ( pParams->fWriteImps && pParams->nPartSize > 0 )
+    {
+        pParams->nPartSize = 0;
+        printf( "Partitioning was disabled to allow implication writing.\n" );
+    }
+    // perform partitioning
+    if ( pParams->nPartSize > 0 && pParams->nPartSize < Aig_ManRegNum(pManAig) )
+        return Fra_FraigInductionPart( pManAig, pParams );
  
     nNodesBeg = Aig_ManNodeNum(pManAig);
     nRegsBeg  = Aig_ManRegNum(pManAig);
@@ -279,16 +358,16 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesP, int nFramesK,
 
     // get parameters
     Fra_ParamsDefaultSeq( pPars );
-    pPars->nFramesP   = nFramesP;
-    pPars->nFramesK   = nFramesK;
-    pPars->nMaxImps   = nMaxImps;
-    pPars->nMaxLevs   = nMaxLevs;
-    pPars->fVerbose   = fVerbose;
-    pPars->fRewrite   = fRewrite;
-    pPars->fLatchCorr = fLatchCorr;
-    pPars->fUseImps   = fUseImps;
-    pPars->fWriteImps = fWriteImps;
-    pPars->fUse1Hot   = fUse1Hot;
+    pPars->nFramesP   = pParams->nFramesP;
+    pPars->nFramesK   = pParams->nFramesK;
+    pPars->nMaxImps   = pParams->nMaxImps;
+    pPars->nMaxLevs   = pParams->nMaxLevs;
+    pPars->fVerbose   = pParams->fVerbose;
+    pPars->fRewrite   = pParams->fRewrite;
+    pPars->fLatchCorr = pParams->fLatchCorr;
+    pPars->fUseImps   = pParams->fUseImps;
+    pPars->fWriteImps = pParams->fWriteImps;
+    pPars->fUse1Hot   = pParams->fUse1Hot;
 
     assert( !(pPars->nFramesP > 0 && pPars->fUse1Hot) );
     assert( !(pPars->nFramesK > 1 && pPars->fUse1Hot) );
@@ -311,10 +390,10 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, int nFramesP, int nFramesK,
         // bug:  r iscas/blif/s5378.blif    ; st; ssw -v
         // bug:  r iscas/blif/s1238.blif    ; st; ssw -v
         // refine the classes with more simulation rounds
-if ( fVerbose )
+if ( pPars->fVerbose )
 printf( "Simulating %d AIG nodes for %d cycles ... ", Aig_ManNodeNum(pManAig), pPars->nFramesP + 32 );
         p->pSml = Fra_SmlSimulateSeq( pManAig, pPars->nFramesP, 32, 1 ); //pPars->nFramesK + 1, 1 );  
-if ( fVerbose ) 
+if ( pPars->fVerbose ) 
 {
 PRT( "Time", clock() - clk );
 }
@@ -408,7 +487,7 @@ p->timeTrav += clock() - clk2;
             Fra_OneHotAssume( p, p->vOneHots );
 
         // report the intermediate results
-        if ( fVerbose )
+        if ( pPars->fVerbose )
         {
             printf( "%3d : Const = %6d. Class = %6d.  L = %6d. LR = %6d.  ", 
                 nIter, Vec_PtrSize(p->pCla->vClasses1), Vec_PtrSize(p->pCla->vClasses), 
@@ -428,7 +507,7 @@ clk2 = clock();
         if ( p->pPars->fUse1Hot )
             Fra_OneHotCheck( p, p->vOneHots );
         Fra_FraigSweep( p );
-        if ( fVerbose )
+        if ( pPars->fVerbose )
         {
 //            PRT( "t", clock() - clk2 ); 
         } 
@@ -508,7 +587,7 @@ p->timeTotal = clock() - clk;
 //    if ( Aig_ManPoNum(pManAigNew) - Aig_ManRegNum(pManAigNew) == 1 )
 //        if ( Aig_ObjChild0( Aig_ManPo(pManAigNew,0) ) == Aig_ManConst0(pManAigNew) )
 //            printf( "Proved output constant 0.\n" );
-    if ( pnIter ) *pnIter = nIter;
+    pParams->nIters = nIter;
     return pManAigNew;
 }
 

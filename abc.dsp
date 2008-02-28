@@ -2378,6 +2378,10 @@ SOURCE=.\src\misc\espresso\verify.c
 # PROP Default_Filter ""
 # Begin Source File
 
+SOURCE=.\src\misc\util\port_type.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\misc\util\util_hack.h
 # End Source File
 # End Group

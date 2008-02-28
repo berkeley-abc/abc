@@ -263,6 +263,25 @@ Abc_Ntk_t * Abc_NtkFromDarSeqSweep( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
         Abc_NtkAddDummyBoxNames( pNtkNew );
     else
     {
+        {
+            int i, k, iFlop, Counter = 0;
+            FILE * pFile;
+            pFile = fopen( "out.txt", "w" );
+            fprintf( pFile, "The total of %d registers were removed (out of %d):\n", 
+                Abc_NtkLatchNum(pNtkOld)-Vec_IntSize(pMan->vFlopNums), Abc_NtkLatchNum(pNtkOld) );
+            for ( i = 0; i < Abc_NtkLatchNum(pNtkOld); i++ )
+            {
+                Vec_IntForEachEntry( pMan->vFlopNums, iFlop, k )
+                {
+                    if ( i == iFlop )
+                        break;
+                }
+                if ( k == Vec_IntSize(pMan->vFlopNums) )
+                    fprintf( pFile, "%6d (%6d)  :  %s\n", ++Counter, i, Abc_ObjName( Abc_ObjFanout0(Abc_NtkBox(pNtkOld, i)) ) );
+            }
+            fclose( pFile );
+            //printf( "\n" );
+        }
         assert( Abc_NtkBoxNum(pNtkOld) == Abc_NtkLatchNum(pNtkOld) );
         nDigits = Extra_Base10Log( Abc_NtkLatchNum(pNtkNew) );
         Abc_NtkForEachLatch( pNtkNew, pObjNew, i )
@@ -1034,7 +1053,7 @@ PRT( "Time", clock() - clkTotal );
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkDarSeqSweep( Abc_Ntk_t * pNtk, int nFramesP, int nFramesK, int nMaxImps, int nMaxLevs, int fRewrite, int fFraiging, int fUseImps, int fLatchCorr, int fWriteImps, int fUse1Hot, int fVerbose )
+Abc_Ntk_t * Abc_NtkDarSeqSweep( Abc_Ntk_t * pNtk, Fra_Ssw_t * pPars )
 {
     Fraig_Params_t Params;
     Abc_Ntk_t * pNtkAig, * pNtkFraig;
@@ -1046,21 +1065,23 @@ Abc_Ntk_t * Abc_NtkDarSeqSweep( Abc_Ntk_t * pNtk, int nFramesP, int nFramesK, in
     // so fraiging does not reduce the number of functions represented by nodes
     Fraig_ParamsSetDefault( &Params );
     Params.nBTLimit = 100000;
-    if ( fFraiging )
+    if ( pPars->fFraiging && pPars->nPartSize == 0 )
+    {
         pNtkFraig = Abc_NtkFraig( pNtk, &Params, 0, 0 );
-    else
-        pNtkFraig = Abc_NtkDup( pNtk );
-if ( fVerbose ) 
+if ( pPars->fVerbose ) 
 {
 PRT( "Initial fraiging time", clock() - clk );
 }
+    }
+    else
+        pNtkFraig = Abc_NtkDup( pNtk );
 
     pMan = Abc_NtkToDar( pNtkFraig, 1 );
     Abc_NtkDelete( pNtkFraig );
     if ( pMan == NULL )
         return NULL;
 
-    pMan = Fra_FraigInduction( pTemp = pMan, nFramesP, nFramesK, nMaxImps, nMaxLevs, fRewrite, fUseImps, fLatchCorr, fWriteImps, fUse1Hot, fVerbose, NULL );
+    pMan = Fra_FraigInduction( pTemp = pMan, pPars );
     Aig_ManStop( pTemp );
 
     if ( Aig_ManRegNum(pMan) < Abc_NtkLatchNum(pNtk) )
@@ -1283,7 +1304,7 @@ int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames, int fRetim
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkDarLatchSweep( Abc_Ntk_t * pNtk, int fLatchSweep, int fVerbose )
+Abc_Ntk_t * Abc_NtkDarLatchSweep( Abc_Ntk_t * pNtk, int fLatchConst, int fLatchEqual, int fVerbose )
 {
     Abc_Ntk_t * pNtkAig;
     Aig_Man_t * pMan;
@@ -1291,13 +1312,10 @@ Abc_Ntk_t * Abc_NtkDarLatchSweep( Abc_Ntk_t * pNtk, int fLatchSweep, int fVerbos
     if ( pMan == NULL )
         return NULL;
     Aig_ManSeqCleanup( pMan );
-    if ( fLatchSweep )
-    {
-        if ( pMan->nRegs )
-            pMan = Aig_ManReduceLaches( pMan, fVerbose );
-        if ( pMan->nRegs )
-            pMan = Aig_ManConstReduce( pMan, fVerbose );
-    }
+    if ( fLatchConst && pMan->nRegs )
+        pMan = Aig_ManConstReduce( pMan, fVerbose );
+    if ( fLatchEqual && pMan->nRegs )
+        pMan = Aig_ManReduceLaches( pMan, fVerbose );
     pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
     Aig_ManStop( pMan );
     return pNtkAig;
@@ -1557,40 +1575,15 @@ Abc_Ntk_t * Abc_NtkInter( Abc_Ntk_t * pNtkOn, Abc_Ntk_t * pNtkOff, int fVerbose 
 ***********************************************************************/
 void Abc_NtkPrintSccs( Abc_Ntk_t * pNtk, int fVerbose )
 {
+//    extern Vec_Ptr_t * Aig_ManRegPartitionLinear( Aig_Man_t * pAig, int nPartSize );
     Aig_Man_t * pMan;
     pMan = Abc_NtkToDar( pNtk, 1 );
     if ( pMan == NULL )
         return;
     Aig_ManComputeSccs( pMan );
+//    Aig_ManRegPartitionLinear( pMan, 1000 );
     Aig_ManStop( pMan );
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Performs partitioning.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkDarPartition( Abc_Ntk_t * pNtk )
-{
-    extern void Aig_ManRegPartitionRun( Aig_Man_t * pAig );
-    Aig_Man_t * pMan;
-
-    // convert to the AIG manager
-    assert( Abc_NtkIsStrash(pNtk) );
-    pMan = Abc_NtkToDar( pNtk, 1 );
-    if ( pMan == NULL )
-        return;
-
-    Aig_ManRegPartitionRun( pMan );
-    Aig_ManStop( pMan );
-}
-
 
 
 #include "ntl.h"

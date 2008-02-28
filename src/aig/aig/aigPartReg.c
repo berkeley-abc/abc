@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "aig.h"
+#include "fra.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -59,14 +60,14 @@ struct Aig_ManPre_t_
   SeeAlso     []
 
 ***********************************************************************/
-Aig_ManPre_t * Aig_ManRegManStart( Aig_Man_t * pAig )
+Aig_ManPre_t * Aig_ManRegManStart( Aig_Man_t * pAig, int nPartSize )
 {
     Aig_ManPre_t * p;
     p = ALLOC( Aig_ManPre_t, 1 );
     memset( p, 0, sizeof(Aig_ManPre_t) );
     p->pAig      = pAig;
     p->vMatrix   = Aig_ManSupportsRegisters( pAig );
-    p->nRegsMax  = 500;
+    p->nRegsMax  = nPartSize;
     p->vParts    = Vec_PtrAlloc(256);
     p->vRegs     = Vec_IntAlloc(256);
     p->vUniques  = Vec_IntAlloc(256);
@@ -105,9 +106,10 @@ void Aig_ManRegManStop( Aig_ManPre_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Computes the max-support register that is not taken yet.]
+  Synopsis    [Determines what register to use as the seed.]
 
-  Description []
+  Description [The register is selected as the one having the largest
+  number of non-taken registers in its support.]
                
   SideEffects []
 
@@ -116,12 +118,16 @@ void Aig_ManRegManStop( Aig_ManPre_t * p )
 ***********************************************************************/
 int Aig_ManRegFindSeed( Aig_ManPre_t * p )
 {
-    int i, iMax, nRegsCur, nRegsMax = -1;
+    Vec_Int_t * vRegs;
+    int i, k, iReg, iMax, nRegsCur, nRegsMax = -1;
     for ( i = 0; i < Aig_ManRegNum(p->pAig); i++ )
     {
         if ( p->pfUsedRegs[i] )
             continue;
-        nRegsCur = Vec_IntSize( Vec_PtrEntry(p->vMatrix,i) );
+        nRegsCur = 0;
+        vRegs = Vec_PtrEntry( p->vMatrix, i );
+        Vec_IntForEachEntry( vRegs, iReg, k )
+            nRegsCur += !p->pfUsedRegs[iReg];
         if ( nRegsMax < nRegsCur )
         {
             nRegsMax = nRegsCur;
@@ -157,7 +163,11 @@ int Aig_ManRegFindBestVar( Aig_ManPre_t * p )
         // count the number of new vars
         nNewVars = 0;
         Vec_IntForEachEntry( vSupp, iVarSupp, k )
-            nNewVars += !p->pfPartVars[iVarSupp];
+        {
+            if ( p->pfPartVars[iVarSupp] )
+                continue;
+            nNewVars += 1 + 3 * p->pfUsedRegs[iVarSupp];
+        }
         // quit if there is no new variables
         if ( nNewVars == 0 )
             return iVarFree;
@@ -229,14 +239,15 @@ void Aig_ManRegPartitionAdd( Aig_ManPre_t * p, int iReg )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Aig_ManRegCreatePart( Aig_Man_t * pAig, Vec_Int_t * vPart, int * pnCountPis, int * pnCountRegs )
+Aig_Man_t * Aig_ManRegCreatePart( Aig_Man_t * pAig, Vec_Int_t * vPart, int * pnCountPis, int * pnCountRegs, int ** ppMapBack )
 {
     Aig_Man_t * pNew;
-    Aig_Obj_t * pObj;
+    Aig_Obj_t * pObj, * pObjNew;
     Vec_Ptr_t * vNodes;
     Vec_Ptr_t * vRoots;
     int nOffset, iOut, i;
     int nCountPis, nCountRegs;
+    int * pMapBack;
     // collect roots
     vRoots = Vec_PtrAlloc( Vec_IntSize(vPart) );
     nOffset = Aig_ManPoNum(pAig)-Aig_ManRegNum(pAig);
@@ -275,6 +286,7 @@ Aig_Man_t * Aig_ManRegCreatePart( Aig_Man_t * pAig, Vec_Int_t * vPart, int * pnC
             pObj->pData = Aig_ObjCreatePi(pNew);
     // add variables for the register outputs
     // create fake POs to hold the register outputs
+    nOffset = Aig_ManPiNum(pAig)-Aig_ManRegNum(pAig);
     Vec_IntForEachEntry( vPart, iOut, i )
     {
         pObj = Aig_ManPi(pAig, nOffset+iOut);
@@ -285,7 +297,6 @@ Aig_Man_t * Aig_ManRegCreatePart( Aig_Man_t * pAig, Vec_Int_t * vPart, int * pnC
     Vec_PtrForEachEntry( vNodes, pObj, i )
         if ( Aig_ObjIsNode(pObj) )
             pObj->pData = Aig_And(pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
-    Vec_PtrFree( vNodes );
     // add real POs for the registers
     nOffset = Aig_ManPoNum(pAig)-Aig_ManRegNum(pAig);
     Vec_IntForEachEntry( vPart, iOut, i )
@@ -294,6 +305,30 @@ Aig_Man_t * Aig_ManRegCreatePart( Aig_Man_t * pAig, Vec_Int_t * vPart, int * pnC
         Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
     }
     pNew->nRegs = Vec_IntSize(vPart);
+    // create map
+    if ( ppMapBack )
+    {
+        pMapBack = ALLOC( int, Aig_ManObjNumMax(pNew) );
+        memset( pMapBack, 0xff, sizeof(int) * Aig_ManObjNumMax(pNew) );
+        // map constant nodes
+        pMapBack[0] = 0;
+        // logic cones of register outputs
+        Vec_PtrForEachEntry( vNodes, pObj, i )
+        {
+            pObjNew = Aig_Regular(pObj->pData);
+            pMapBack[pObjNew->Id] = pObj->Id;
+        }
+        // map register outputs
+        nOffset = Aig_ManPiNum(pAig)-Aig_ManRegNum(pAig);
+        Vec_IntForEachEntry( vPart, iOut, i )
+        {
+            pObj = Aig_ManPi(pAig, nOffset+iOut);
+            pObjNew = pObj->pData;
+            pMapBack[pObjNew->Id] = pObj->Id;
+        }
+        *ppMapBack = pMapBack;
+    }
+    Vec_PtrFree( vNodes );
     return pNew;
 }
 
@@ -308,7 +343,7 @@ Aig_Man_t * Aig_ManRegCreatePart( Aig_Man_t * pAig, Vec_Int_t * vPart, int * pnC
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Aig_ManRegPartitionSmart( Aig_Man_t * pAig )
+Vec_Ptr_t * Aig_ManRegPartitionSmart( Aig_Man_t * pAig, int nPartSize )
 {
     extern void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int fCompact );
 
@@ -316,11 +351,11 @@ Vec_Ptr_t * Aig_ManRegPartitionSmart( Aig_Man_t * pAig )
     Vec_Ptr_t * vResult;
     int iSeed, iNext, i, k;
     // create the manager
-    p = Aig_ManRegManStart( pAig );
+    p = Aig_ManRegManStart( pAig, nPartSize );
     // add partitions as long as registers remain
     for ( i = 0; (iSeed = Aig_ManRegFindSeed(p)) >= 0; i++ )
     {
-printf( "Seed variable = %d.\n", iSeed );
+//printf( "Seed variable = %d.\n", iSeed );
         // clean the current partition information
         Vec_IntClear( p->vRegs );
         Vec_IntClear( p->vUniques );
@@ -339,9 +374,9 @@ printf( "Seed variable = %d.\n", iSeed );
             // add the register to the support of the partition
             Aig_ManRegPartitionAdd( p, iNext );
             // report the result
-printf( "Part %3d  Reg %3d : Free = %4d. Total = %4d. Ratio = %6.2f. Unique = %4d.\n", i, k, 
-                Vec_IntSize(p->vFreeVars), Vec_IntSize(p->vRegs), 
-                1.0*Vec_IntSize(p->vFreeVars)/Vec_IntSize(p->vRegs), Vec_IntSize(p->vUniques) );
+//printf( "Part %3d  Reg %3d : Free = %4d. Total = %4d. Ratio = %6.2f. Unique = %4d.\n", i, k, 
+//                Vec_IntSize(p->vFreeVars), Vec_IntSize(p->vRegs), 
+//                1.0*Vec_IntSize(p->vFreeVars)/Vec_IntSize(p->vRegs), Vec_IntSize(p->vUniques) );
             // quit if there are not free variables
             if ( Vec_IntSize(p->vFreeVars) == 0 )
                 break;
@@ -351,7 +386,7 @@ printf( "Part %3d  Reg %3d : Free = %4d. Total = %4d. Ratio = %6.2f. Unique = %4
 printf( "Part %3d  SUMMARY:  Free = %4d. Total = %4d. Ratio = %6.2f. Unique = %4d.\n", i,
                 Vec_IntSize(p->vFreeVars), Vec_IntSize(p->vRegs), 
                 1.0*Vec_IntSize(p->vFreeVars)/Vec_IntSize(p->vRegs), Vec_IntSize(p->vUniques) );
-printf( "\n" ); 
+//printf( "\n" ); 
     }
     vResult = p->vParts; p->vParts = NULL;
     Aig_ManRegManStop( p );
@@ -369,22 +404,61 @@ printf( "\n" );
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Aig_ManRegPartitionSimple( Aig_Man_t * pAig, int nPartSize )
+Vec_Ptr_t * Aig_ManRegPartitionSimple( Aig_Man_t * pAig, int nPartSize, int nOverSize )
 {
     Vec_Ptr_t * vResult;
     Vec_Int_t * vPart;
-    int i, k, nParts;
-    nParts = (Aig_ManRegNum(pAig) / nPartSize) + (int)(Aig_ManRegNum(pAig) % nPartSize > 0);
-    vResult = Vec_PtrAlloc( nParts );
-    for ( i = 0; i < nParts; i++ )
+    int i, Counter;
+    if ( nOverSize >= nPartSize )
+    {
+        printf( "Overlap size (%d) if more or equal to the partition size (%d).\n", nOverSize, nPartSize );
+        printf( "Adjusting it to be equal to half of the partition size.\n" );
+        nOverSize = nPartSize/2;
+    }
+    assert( nOverSize < nPartSize );
+    vResult = Vec_PtrAlloc( 100 );
+    for ( Counter = 0; Counter < Aig_ManRegNum(pAig); Counter -= nOverSize )
     {
         vPart = Vec_IntAlloc( nPartSize );
-        for ( k = 0; k < nPartSize; k++ )
-            if ( i * nPartSize + k < Aig_ManRegNum(pAig) )
-                Vec_IntPush( vPart, i * nPartSize + k );
-        Vec_PtrPush( vResult, vPart );
+        for ( i = 0; i < nPartSize; i++ )
+            if ( ++Counter < Aig_ManRegNum(pAig) )
+                Vec_IntPush( vPart, Counter );
+        if ( Vec_IntSize(vPart) <= nOverSize )
+            Vec_IntFree(vPart);
+        else
+            Vec_PtrPush( vResult, vPart );
     }
     return vResult;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Computes partitioning of registers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManRegPartitionTraverse_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vLos )
+{
+    if ( Aig_ObjIsTravIdCurrent(p, pObj) )
+        return;
+    Aig_ObjSetTravIdCurrent( p, pObj );
+    if ( Aig_ObjIsPi(pObj) )
+    {
+        if ( pObj->iData >= Aig_ManPiNum(p) - Aig_ManRegNum(p) )
+        {
+            Vec_PtrPush( vLos, pObj );
+            printf( "%d ", pObj->iData - (Aig_ManPiNum(p) - Aig_ManRegNum(p)) );
+        }
+        return;
+    }
+    Aig_ManRegPartitionTraverse_rec( p, Aig_ObjFanin0(pObj), vLos );
+    Aig_ManRegPartitionTraverse_rec( p, Aig_ObjFanin1(pObj), vLos );
 }
 
 /**Function*************************************************************
@@ -398,26 +472,48 @@ Vec_Ptr_t * Aig_ManRegPartitionSimple( Aig_Man_t * pAig, int nPartSize )
   SeeAlso     []
 
 ***********************************************************************/
-void Aig_ManRegPartitionRun( Aig_Man_t * pAig )
+Vec_Ptr_t * Aig_ManRegPartitionTraverse( Aig_Man_t * p )
 {
-    int nPartSize = 1000;
-    char Buffer[100];
-    Aig_Man_t * pTemp;
-    Vec_Ptr_t * vResult;
-    Vec_Int_t * vPart;
-    int i, nCountPis, nCountRegs;
-    vResult = Aig_ManRegPartitionSimple( pAig, nPartSize );
-    printf( "Simple partitioning: %d partitions are saved:\n", Vec_PtrSize(vResult) );
-    Vec_PtrForEachEntry( vResult, vPart, i )
+    Vec_Ptr_t * vLos;
+    Aig_Obj_t * pObj;
+    int i, nPrev, Counter;
+    // mark the registers
+    Aig_ManForEachPi( p, pObj, i )
+       pObj->iData = i; 
+    // collect registers
+    vLos = Vec_PtrAlloc( Aig_ManRegNum(p) );
+    nPrev = 0;
+    Counter = 0;
+    Aig_ManIncrementTravId( p );
+    Aig_ManForEachLiSeq( p, pObj, i )
     {
-        sprintf( Buffer, "part%03d.aig", i );
-        pTemp = Aig_ManRegCreatePart( pAig, vPart, &nCountPis, &nCountRegs );
-        Ioa_WriteAiger( pTemp, Buffer, 0, 0 );
-        printf( "part%03d.aig : Regs = %4d. PIs = %4d. (True PIs = %4d. Other regs = %4d.)\n", 
-            i, Vec_IntSize(vPart), Aig_ManPiNum(pTemp)-Vec_IntSize(vPart), nCountPis, nCountRegs );
-        Aig_ManStop( pTemp );
+        ++Counter;
+        printf( "Latch %d: ", Counter );
+        Aig_ManRegPartitionTraverse_rec( p, Aig_ObjFanin0(pObj), vLos );
+printf( "%d=%d \n", Counter, Vec_PtrSize(vLos)-nPrev );
+        nPrev = Vec_PtrSize(vLos);
     }
-    Vec_VecFree( (Vec_Vec_t *)vResult );
+    printf( "Total collected = %d. Total regs = %d.\n", Vec_PtrSize(vLos), Aig_ManRegNum(p) );
+    return vLos;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes partitioning of registers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Aig_ManRegPartitionLinear( Aig_Man_t * pAig, int nPartSize )
+{
+    Vec_Ptr_t * vLos;
+    vLos = Aig_ManRegPartitionTraverse( pAig );
+    Vec_PtrFree( vLos );
+    return NULL;
 }
 
 

@@ -221,6 +221,30 @@ void If_CutSortInputPins( If_Man_t * p, If_Cut_t * pCut, int * pPinPerm, float *
     }
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Sorts the pins in the decreasing order of delays.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void If_CutRotatePins( If_Man_t * p, If_Cut_t * pCut )
+{
+    If_Obj_t * pLeaf;
+    float PinDelays[32];
+//    int PinPerm[32];
+    int i;
+    assert( p->pPars->pLutLib && p->pPars->pLutLib->fVarPinDelays && p->pPars->fTruth ); 
+    If_CutForEachLeaf( p, pCut, pLeaf, i )
+        PinDelays[i] = If_ObjCutBest(pLeaf)->Delay;
+    If_CutTruthPermute( p->puTemp[0], If_CutTruth(pCut), If_CutLeaveNum(pCut), PinDelays, If_CutLeaves(pCut) );
+//    If_CutSortInputPins( p, pCut, PinPerm, PinDelays );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

@@ -252,6 +252,8 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
     // create a new node 
     pNodeNew = Abc_NtkCreateNode( pNtkNew );
     pCutBest = If_ObjCutBest( pIfObj );
+    if ( pIfMan->pPars->pLutLib && pIfMan->pPars->pLutLib->fVarPinDelays )
+        If_CutRotatePins( pIfMan, pCutBest );
     if ( pIfMan->pPars->fUseCnfs || pIfMan->pPars->fUseMv )
     {
         If_CutForEachLeafReverse( pIfMan, pCutBest, pIfLeaf, i )

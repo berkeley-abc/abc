@@ -40,73 +40,17 @@
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_FraigSec2( Aig_Man_t * p, int nFramesFix, int fVerbose, int fVeryVerbose )
-{
-    Aig_Man_t * pNew;
-    int nFrames, RetValue, nIter, clk, clkTotal = clock();
-    int fLatchCorr = 0;
-    if ( nFramesFix )
-    {
-        nFrames = nFramesFix;
-        // perform seq sweeping for one frame number
-        pNew = Fra_FraigInduction( p, 0, nFrames, 0, 0, 0, 0, fLatchCorr, 0, 0, fVeryVerbose, &nIter );
-    }
-    else
-    {
-        // perform seq sweeping while increasing the number of frames
-        for ( nFrames = 1; ; nFrames++ )
-        {
-clk = clock();
-            pNew = Fra_FraigInduction( p, 0, nFrames, 0, 0, 0, 0, fLatchCorr, 0, 0, fVeryVerbose, &nIter );
-            RetValue = Fra_FraigMiterStatus( pNew );
-            if ( fVerbose )
-            {
-                printf( "FRAMES %3d : Iters = %3d. ", nFrames, nIter );
-                if ( RetValue == 1 )
-                    printf( "UNSAT     " );
-                else
-                    printf( "UNDECIDED " );
-PRT( "Time", clock() - clk );
-            }
-            if ( RetValue != -1 )
-                break;
-            Aig_ManStop( pNew );
-        }
-    }
-
-    // get the miter status
-    RetValue = Fra_FraigMiterStatus( pNew );
-    Aig_ManStop( pNew );
-
-    // report the miter
-    if ( RetValue == 1 )
-        printf( "Networks are equivalent after seq sweeping with K=%d frames (%d iters). ", nFrames, nIter );
-    else if ( RetValue == 0 )
-        printf( "Networks are NOT EQUIVALENT. " );
-    else
-        printf( "Networks are UNDECIDED after seq sweeping with K=%d frames (%d iters). ", nFrames, nIter );
-PRT( "Time", clock() - clkTotal );
-    return RetValue;
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 int Fra_FraigSec( Aig_Man_t * p, int nFramesMax, int fRetimeFirst, int fVerbose, int fVeryVerbose )
 {
+    Fra_Ssw_t Pars, * pPars = &Pars;
     Fra_Sml_t * pSml;
     Aig_Man_t * pNew, * pTemp;
     int nFrames, RetValue, nIter, clk, clkTotal = clock();
     int fLatchCorr = 0;
+    // prepare parameters
+    memset( pPars, 0, sizeof(Fra_Ssw_t) );
+    pPars->fLatchCorr  = fLatchCorr;
+    pPars->fVerbose = fVeryVerbose;
 
     pNew = Aig_ManDup( p, 1 );
     if ( fVerbose )
@@ -185,13 +129,14 @@ PRT( "Time", clock() - clk );
     for ( nFrames = 1; nFrames <= nFramesMax; nFrames *= 2 )
     {
 clk = clock();
-        pNew = Fra_FraigInduction( pTemp = pNew, 0, nFrames, 0, 0, 0, 0, fLatchCorr, 0, 0, fVeryVerbose, &nIter );
+        pPars->nFramesK = nFrames;
+        pNew = Fra_FraigInduction( pTemp = pNew, pPars );
         Aig_ManStop( pTemp );
         RetValue = Fra_FraigMiterStatus( pNew );
         if ( fVerbose )
         { 
             printf( "K-step (K=%2d,I=%3d):  Latches = %5d. Nodes = %6d. ", 
-                nFrames, nIter, Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
+                nFrames, pPars->nIters, Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
 PRT( "Time", clock() - clk );
         }
         if ( RetValue != -1 )

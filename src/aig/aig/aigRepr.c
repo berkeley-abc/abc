@@ -443,10 +443,45 @@ void Aig_ManMarkValidChoices( Aig_Man_t * p )
         }
 //printf( "Node %d is represented by node %d.\n", pObj->Id, pRepr->Id );
         // add choice to the choice node
+        if ( pObj->nRefs > 0 )
+        {
+            Aig_ObjClearRepr( p, pObj );
+            continue;
+        }
         assert( pObj->nRefs == 0 );
         p->pEquivs[pObj->Id] = p->pEquivs[pRepr->Id];
         p->pEquivs[pRepr->Id] = pObj;
     }
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Transfers the classes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Aig_TransferMappedClasses( Aig_Man_t * pAig, Aig_Man_t * pPart, int * pMapBack )
+{
+    Aig_Obj_t * pObj;
+    int nClasses, k;
+    nClasses = 0;
+    if ( pPart->pReprs )
+    Aig_ManForEachObj( pPart, pObj, k )
+    {
+        if ( pPart->pReprs[pObj->Id] == NULL )
+            continue;
+        nClasses++;
+        Aig_ObjSetRepr( pAig, 
+            Aig_ManObj(pAig, pMapBack[pObj->Id]), 
+            Aig_ManObj(pAig, pMapBack[pPart->pReprs[pObj->Id]->Id]) );
+    }
+    return nClasses;
 }
 
 

@@ -772,6 +772,135 @@ if ( fVerbose )
 
 /**Function*************************************************************
 
+  Synopsis    [Perform the smart partitioning.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Aig_ManPartitionSmartRegisters( Aig_Man_t * pAig, int nSuppSizeLimit, int fVerbose )
+{
+    Vec_Ptr_t * vPartSuppsBit;
+    Vec_Ptr_t * vSupports, * vPartsAll, * vPartsAll2, * vPartSuppsAll;
+    Vec_Int_t * vOne, * vPart, * vPartSupp, * vTemp;
+    int i, iPart, iOut, clk;
+
+    // add output number to each
+clk = clock();
+    vSupports = Aig_ManSupportsRegisters( pAig );
+    assert( Vec_PtrSize(vSupports) == Aig_ManRegNum(pAig) );
+    Vec_PtrForEachEntry( vSupports, vOne, i )
+        Vec_IntPush( vOne, i );
+if ( fVerbose )
+{
+PRT( "Supps", clock() - clk );
+}
+
+    // start char-based support representation
+    vPartSuppsBit = Vec_PtrAlloc( 1000 );
+
+    // create partitions
+clk = clock();
+    vPartsAll = Vec_PtrAlloc( 256 );
+    vPartSuppsAll = Vec_PtrAlloc( 256 );
+    Vec_PtrForEachEntry( vSupports, vOne, i )
+    {
+        // get the output number
+        iOut = Vec_IntPop(vOne);
+        // find closely matching part
+        iPart = Aig_ManPartitionSmartFindPart( vPartSuppsAll, vPartsAll, vPartSuppsBit, nSuppSizeLimit, vOne );
+        if ( iPart == -1 )
+        {
+            // create new partition
+            vPart = Vec_IntAlloc( 32 );
+            Vec_IntPush( vPart, iOut );
+            // create new partition support
+            vPartSupp = Vec_IntDup( vOne );
+            // add this partition and its support
+            Vec_PtrPush( vPartsAll, vPart );
+            Vec_PtrPush( vPartSuppsAll, vPartSupp );
+
+            Vec_PtrPush( vPartSuppsBit, Aig_ManSuppCharStart(vOne, Vec_PtrSize(vSupports)) );
+        }
+        else
+        {
+            // add output to this partition
+            vPart = Vec_PtrEntry( vPartsAll, iPart );
+            Vec_IntPush( vPart, iOut );
+            // merge supports
+            vPartSupp = Vec_PtrEntry( vPartSuppsAll, iPart );
+            vPartSupp = Vec_IntTwoMerge( vTemp = vPartSupp, vOne );
+            Vec_IntFree( vTemp );
+            // reinsert new support
+            Vec_PtrWriteEntry( vPartSuppsAll, iPart, vPartSupp );
+
+            Aig_ManSuppCharAdd( Vec_PtrEntry(vPartSuppsBit, iPart), vOne, Vec_PtrSize(vSupports) );
+        }
+    }
+
+    // stop char-based support representation
+    Vec_PtrForEachEntry( vPartSuppsBit, vTemp, i )
+        free( vTemp );
+    Vec_PtrFree( vPartSuppsBit );
+
+//printf( "\n" );
+if ( fVerbose )
+{
+PRT( "Parts", clock() - clk );
+}
+
+clk = clock();
+    // reorder partitions in the decreasing order of support sizes
+    // remember partition number in each partition support
+    Vec_PtrForEachEntry( vPartSuppsAll, vOne, i )
+        Vec_IntPush( vOne, i );
+    // sort the supports in the decreasing order
+    Vec_VecSort( (Vec_Vec_t *)vPartSuppsAll, 1 );
+    // reproduce partitions
+    vPartsAll2 = Vec_PtrAlloc( 256 );
+    Vec_PtrForEachEntry( vPartSuppsAll, vOne, i )
+        Vec_PtrPush( vPartsAll2, Vec_PtrEntry(vPartsAll, Vec_IntPop(vOne)) );
+    Vec_PtrFree( vPartsAll );
+    vPartsAll = vPartsAll2;
+
+    // compact small partitions
+//    Aig_ManPartitionPrint( p, vPartsAll, vPartSuppsAll );
+    Aig_ManPartitionCompact( vPartsAll, vPartSuppsAll, nSuppSizeLimit );
+    if ( fVerbose )
+//    Aig_ManPartitionPrint( p, vPartsAll, vPartSuppsAll );
+    printf( "Created %d partitions.\n", Vec_PtrSize(vPartsAll) );
+
+if ( fVerbose )
+{
+//PRT( "Comps", clock() - clk );
+}
+
+    // cleanup
+    Vec_VecFree( (Vec_Vec_t *)vSupports );
+//    if ( pvPartSupps == NULL )
+        Vec_VecFree( (Vec_Vec_t *)vPartSuppsAll );
+//    else
+//        *pvPartSupps = vPartSuppsAll;
+
+/*
+    // converts from intergers to nodes
+    Vec_PtrForEachEntry( vPartsAll, vPart, iPart )
+    {
+        vPartPtr = Vec_PtrAlloc( Vec_IntSize(vPart) );
+        Vec_IntForEachEntry( vPart, iOut, i )
+            Vec_PtrPush( vPartPtr, Aig_ManPo(p, iOut) );
+        Vec_IntFree( vPart );
+        Vec_PtrWriteEntry( vPartsAll, iPart, vPartPtr );
+    }
+*/
+    return vPartsAll;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Perform the naive partitioning.]
 
   Description []
@@ -968,16 +1097,21 @@ Aig_Man_t * Aig_ManChoicePartitioned( Vec_Ptr_t * vAigs, int nPartSize, int nCon
     Vec_Ptr_t * vParts;
     Aig_Obj_t * pObj;
     void ** ppData;
-    int i, k, m;
+    int i, k, m, nIdMax;
+    assert( Vec_PtrSize(vAigs) > 1 );
+
+    // compute the total number of IDs
+    nIdMax = 0;
+    Vec_PtrForEachEntry( vAigs, pAig, i )
+        nIdMax += Aig_ManObjNumMax(pAig);
 
     // partition the first AIG in the array
-    assert( Vec_PtrSize(vAigs) > 1 );
     pAig = Vec_PtrEntry( vAigs, 0 );
     vParts = Aig_ManPartitionSmart( pAig, nPartSize, 0, NULL );
 
     // start the total fraiged AIG
     pAigTotal = Aig_ManStartFrom( pAig );
-    Aig_ManReprStart( pAigTotal, Vec_PtrSize(vAigs) * Aig_ManObjNumMax(pAig) + 10000 );
+    Aig_ManReprStart( pAigTotal, nIdMax );
     vOutsTotal = Vec_PtrStart( Aig_ManPoNum(pAig) );
 
     // set the PI numbers

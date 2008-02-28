@@ -521,9 +521,14 @@ extern Vec_Ptr_t *     Aig_ManSupports( Aig_Man_t * p );
 extern Vec_Ptr_t *     Aig_ManSupportsInverse( Aig_Man_t * p );
 extern Vec_Ptr_t *     Aig_ManSupportsRegisters( Aig_Man_t * p );
 extern Vec_Ptr_t *     Aig_ManPartitionSmart( Aig_Man_t * p, int nPartSizeLimit, int fVerbose, Vec_Ptr_t ** pvPartSupps );
+extern Vec_Ptr_t *     Aig_ManPartitionSmartRegisters( Aig_Man_t * pAig, int nSuppSizeLimit, int fVerbose );
 extern Vec_Ptr_t *     Aig_ManPartitionNaive( Aig_Man_t * p, int nPartSize );
 extern Vec_Ptr_t *     Aig_ManMiterPartitioned( Aig_Man_t * p1, Aig_Man_t * p2, int nPartSize );
 extern Aig_Man_t *     Aig_ManChoicePartitioned( Vec_Ptr_t * vAigs, int nPartSize, int nConfMax, int nLevelMax, int fVerbose );
+/*=== aigPartReg.c =========================================================*/
+extern Vec_Ptr_t *     Aig_ManRegPartitionSimple( Aig_Man_t * pAig, int nPartSize, int nOverSize );
+extern Vec_Ptr_t *     Aig_ManRegPartitionSmart( Aig_Man_t * pAig, int nPartSize );
+extern Aig_Man_t *     Aig_ManRegCreatePart( Aig_Man_t * pAig, Vec_Int_t * vPart, int * pnCountPis, int * pnCountRegs, int ** ppMapBack );
 /*=== aigRepr.c =========================================================*/
 extern void            Aig_ManReprStart( Aig_Man_t * p, int nIdMax );
 extern void            Aig_ManReprStop( Aig_Man_t * p );
@@ -532,6 +537,7 @@ extern void            Aig_ManTransferRepr( Aig_Man_t * pNew, Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupRepr( Aig_Man_t * p, int fOrdered );
 extern Aig_Man_t *     Aig_ManRehash( Aig_Man_t * p );
 extern void            Aig_ManMarkValidChoices( Aig_Man_t * p );
+extern int             Aig_TransferMappedClasses( Aig_Man_t * pAig, Aig_Man_t * pPart, int * pMapBack );
 /*=== aigRet.c ========================================================*/
 extern Aig_Man_t *     Rtm_ManRetime( Aig_Man_t * p, int fForward, int nStepsMax, int fVerbose );
 /*=== aigRetF.c ========================================================*/

@@ -111,12 +111,20 @@ int Abc_NtkCompareAndSaveBest( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored, int fSaveBest )
+void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDumpResult, int fUseLutLib )
 {
     int Num;
 
     if ( fSaveBest )
         Abc_NtkCompareAndSaveBest( pNtk );
+    if ( fDumpResult )
+    {
+        char Buffer[1000] = {0};
+        char * pNameGen = pNtk->pSpec? Extra_FileNameGeneric( pNtk->pSpec ) : "nameless_";
+        sprintf( Buffer, "%s_dump.blif", pNameGen );
+        Io_Write( pNtk, Buffer, IO_FILE_BLIF );
+        if ( pNtk->pSpec ) free( pNameGen );
+    }
 
 //    if ( Abc_NtkIsStrash(pNtk) )
 //        Abc_AigCountNext( pNtk->pManFunc );
@@ -181,7 +189,8 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored, int fSave
         fprintf( pFile, "  lev = %3d", Abc_AigLevel(pNtk) );
     else 
         fprintf( pFile, "  lev = %3d", Abc_NtkLevel(pNtk) );
-
+    if ( fUseLutLib && Abc_FrameReadLibLut() )
+        fprintf( pFile, "  delay = %5.2f", Abc_NtkDelayTraceLut(pNtk, 1) );
     fprintf( pFile, "\n" );
 
 //    Abc_NtkCrossCut( pNtk );

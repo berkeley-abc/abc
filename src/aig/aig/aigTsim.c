@@ -25,6 +25,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 #define TSI_MAX_ROUNDS    1000
+#define TSI_ONE_SERIES     300
 
 #define AIG_XVS0   1
 #define AIG_XVS1   2
@@ -282,6 +283,51 @@ void Aig_TsiStatePrint( Aig_Tsi_t * p, unsigned * pState )
     printf( " (0=%5d, 1=%5d, x=%5d)\n", nZeros, nOnes, nDcs );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Count constant values in the state.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Aig_TsiStateCount( Aig_Tsi_t * p, unsigned * pState )
+{
+    Aig_Obj_t * pObjLi, * pObjLo;
+    int i, Value, nCounter = 0;
+    Aig_ManForEachLiLoSeq( p->pAig, pObjLi, pObjLo, i )
+    {
+        Value = (Aig_InfoHasBit( pState, 2 * i + 1 ) << 1) | Aig_InfoHasBit( pState, 2 * i );
+        nCounter += (Value == 1 || Value == 2);
+    }
+    return nCounter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Count constant values in the state.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_TsiStateOrAll( Aig_Tsi_t * pTsi, unsigned * pState )
+{
+    unsigned * pPrev;
+    int i, k;
+    Vec_PtrForEachEntry( pTsi->vStates, pPrev, i )
+    {
+        for ( k = 0; k < pTsi->nWords; k++ )
+            pState[k] |= pPrev[k];
+    }
+}
+
 
 /**Function*************************************************************
 
@@ -300,8 +346,8 @@ Vec_Ptr_t * Aig_ManTernarySimulate( Aig_Man_t * p, int fVerbose )
     Aig_Tsi_t * pTsi;
     Vec_Ptr_t * vMap;
     Aig_Obj_t * pObj, * pObjLi, * pObjLo;
-    unsigned * pState, * pPrev;
-    int i, k, f, fConstants, Value, nCounter;
+    unsigned * pState;//, * pPrev;
+    int i, f, fConstants, Value, nCounter;
     // allocate the simulation manager
     pTsi = Aig_TsiStart( p );
     // initialize the values
@@ -323,10 +369,16 @@ Vec_Ptr_t * Aig_ManTernarySimulate( Aig_Man_t * p, int fVerbose )
             if ( Value & 2 )
                 Aig_InfoSetBit( pState, 2 * i + 1 );
         }
+
+//        printf( "%d ", Aig_TsiStateCount(pTsi, pState) );
 //        Aig_TsiStatePrint( pTsi, pState );
         // check if this state exists
         if ( Aig_TsiStateLookup( pTsi, pState, pTsi->nWords ) )
             break;
+//        nCounter = 0;
+//        Aig_ManForEachLiLoSeq( p, pObjLi, pObjLo, i )
+//            nCounter += (Aig_ObjGetXsim(pObjLo) == AIG_XVS0);
+//printf( "%d -> ", nCounter );
         // insert this state
         Aig_TsiStateInsert( pTsi, pState, pTsi->nWords );
         // simulate internal nodes
@@ -335,9 +387,23 @@ Vec_Ptr_t * Aig_ManTernarySimulate( Aig_Man_t * p, int fVerbose )
         // transfer the latch values
         Aig_ManForEachLiSeq( p, pObj, i )
             Aig_ObjSetXsim( pObj, Aig_ObjGetXsimFanin0(pObj) );
+        nCounter = 0;
         Aig_ManForEachLiLoSeq( p, pObjLi, pObjLo, i )
-            Aig_ObjSetXsim( pObjLo, Aig_ObjGetXsim(pObjLi) );
+        {
+            if ( f < TSI_ONE_SERIES )
+                Aig_ObjSetXsim( pObjLo, Aig_ObjGetXsim(pObjLi) );
+            else
+            {
+                if ( Aig_ObjGetXsim(pObjLi) != Aig_ObjGetXsim(pObjLo) )
+                    Aig_ObjSetXsim( pObjLo, AIG_XVSX );
+            }
+            nCounter += (Aig_ObjGetXsim(pObjLo) == AIG_XVS0);
+        }
+//        if ( f && (f % 1000 == 0) )
+//            printf( "%d \n", f );
+//printf( "%d  ", nCounter );
     }
+//printf( "\n" );
     if ( f == TSI_MAX_ROUNDS )
     {
         printf( "Aig_ManTernarySimulate(): Did not reach a fixed point after %d iterations (not a bug).\n", TSI_MAX_ROUNDS );
@@ -346,11 +412,7 @@ Vec_Ptr_t * Aig_ManTernarySimulate( Aig_Man_t * p, int fVerbose )
     }
     // OR all the states
     pState = Vec_PtrEntry( pTsi->vStates, 0 );
-    Vec_PtrForEachEntry( pTsi->vStates, pPrev, i )
-    {
-        for ( k = 0; k < pTsi->nWords; k++ )
-            pState[k] |= pPrev[k];
-    }
+    Aig_TsiStateOrAll( pTsi, pState );
     // check if there are constants
     fConstants = 0;
     if ( 2*Aig_ManRegNum(p) == 32*pTsi->nWords )

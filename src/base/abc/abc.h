@@ -567,6 +567,8 @@ extern void *             Abc_NodeGetCuts( void * p, Abc_Obj_t * pObj, int fDag,
 extern void               Abc_NodeGetCutsSeq( void * p, Abc_Obj_t * pObj, int fFirst );
 extern void *             Abc_NodeReadCuts( void * p, Abc_Obj_t * pObj );
 extern void               Abc_NodeFreeCuts( void * p, Abc_Obj_t * pObj );
+/*=== abcDelay.c ==========================================================*/
+extern float              Abc_NtkDelayTraceLut( Abc_Ntk_t * pNtk, int fUseLutLib );
 /*=== abcDfs.c ==========================================================*/
 extern Vec_Ptr_t *        Abc_NtkDfs( Abc_Ntk_t * pNtk, int fCollectAll );
 extern Vec_Ptr_t *        Abc_NtkDfsNodes( Abc_Ntk_t * pNtk, Abc_Obj_t ** ppNodes, int nNodes );
@@ -733,7 +735,7 @@ extern bool               Abc_NodeIsBuf( Abc_Obj_t * pNode );
 extern bool               Abc_NodeIsInv( Abc_Obj_t * pNode );    
 extern void               Abc_NodeComplement( Abc_Obj_t * pNode );
 /*=== abcPrint.c ==========================================================*/
-extern void               Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored, int fSaveBest );
+extern void               Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDumpResult, int fUseLutLib );
 extern void               Abc_NtkPrintIo( FILE * pFile, Abc_Ntk_t * pNtk );
 extern void               Abc_NtkPrintLatch( FILE * pFile, Abc_Ntk_t * pNtk );
 extern void               Abc_NtkPrintFanio( FILE * pFile, Abc_Ntk_t * pNtk );

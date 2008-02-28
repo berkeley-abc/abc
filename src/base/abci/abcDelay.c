@@ -74,7 +74,7 @@ void Abc_NtkDelayTraceSortPins( Abc_Obj_t * pNode, int * pPinPerm, float * pPinD
         pPinPerm[best_i] = temp;
     }
     // verify
-    assert( pPinPerm[0] < Abc_ObjFaninNum(pNode) );
+    assert( Abc_ObjFaninNum(pNode) == 0 || pPinPerm[0] < Abc_ObjFaninNum(pNode) );
     for ( i = 1; i < Abc_ObjFaninNum(pNode); i++ )
     {
         assert( pPinPerm[i] < Abc_ObjFaninNum(pNode) );
@@ -96,6 +96,7 @@ void Abc_NtkDelayTraceSortPins( Abc_Obj_t * pNode, int * pPinPerm, float * pPinD
 float Abc_NtkDelayTraceLut( Abc_Ntk_t * pNtk, int fUseLutLib )
 {
     extern void * Abc_FrameReadLibLut();   
+    int fUseSorting = 0;
     int pPinPerm[32];
     float pPinDelays[32];
     If_Lib_t * pLutLib;
@@ -144,10 +145,19 @@ float Abc_NtkDelayTraceLut( Abc_Ntk_t * pNtk, int fUseLutLib )
         else
         {
             pDelays = pLutLib->pLutDelays[Abc_ObjFaninNum(pNode)];
-            Abc_NtkDelayTraceSortPins( pNode, pPinPerm, pPinDelays );
-            Abc_ObjForEachFanin( pNode, pFanin, k )
-                if ( tArrival < Abc_ObjArrival(Abc_ObjFanin(pNode,pPinPerm[k])) + pDelays[k] )
-                    tArrival = Abc_ObjArrival(Abc_ObjFanin(pNode,pPinPerm[k])) + pDelays[k];
+            if ( fUseSorting )
+            {
+                Abc_NtkDelayTraceSortPins( pNode, pPinPerm, pPinDelays );
+                Abc_ObjForEachFanin( pNode, pFanin, k ) 
+                    if ( tArrival < Abc_ObjArrival(Abc_ObjFanin(pNode,pPinPerm[k])) + pDelays[k] )
+                        tArrival = Abc_ObjArrival(Abc_ObjFanin(pNode,pPinPerm[k])) + pDelays[k];
+            }
+            else
+            {
+                Abc_ObjForEachFanin( pNode, pFanin, k )
+                    if ( tArrival < Abc_ObjArrival(pFanin) + pDelays[k] )
+                        tArrival = Abc_ObjArrival(pFanin) + pDelays[k];
+            }
         }
         if ( Abc_ObjFaninNum(pNode) == 0 )
             tArrival = 0.0;
@@ -188,12 +198,24 @@ float Abc_NtkDelayTraceLut( Abc_Ntk_t * pNtk, int fUseLutLib )
         else 
         {
             pDelays = pLutLib->pLutDelays[Abc_ObjFaninNum(pNode)];
-            Abc_NtkDelayTraceSortPins( pNode, pPinPerm, pPinDelays );
-            Abc_ObjForEachFanin( pNode, pFanin, k )
+            if ( fUseSorting )
             {
-                tRequired = Abc_ObjRequired(pNode) - pDelays[k];
-                if ( Abc_ObjRequired(Abc_ObjFanin(pNode,pPinPerm[k])) > tRequired )
-                    Abc_ObjSetRequired( Abc_ObjFanin(pNode,pPinPerm[k]), tRequired );
+                Abc_NtkDelayTraceSortPins( pNode, pPinPerm, pPinDelays );
+                Abc_ObjForEachFanin( pNode, pFanin, k )
+                {
+                    tRequired = Abc_ObjRequired(pNode) - pDelays[k];
+                    if ( Abc_ObjRequired(Abc_ObjFanin(pNode,pPinPerm[k])) > tRequired )
+                        Abc_ObjSetRequired( Abc_ObjFanin(pNode,pPinPerm[k]), tRequired );
+                }
+            }
+            else
+            {
+                Abc_ObjForEachFanin( pNode, pFanin, k )
+                {
+                    tRequired = Abc_ObjRequired(pNode) - pDelays[k];
+                    if ( Abc_ObjRequired(pFanin) > tRequired )
+                        Abc_ObjSetRequired( pFanin, tRequired );
+                }
             }
         }
         // set slack for this object
@@ -265,8 +287,17 @@ unsigned Abc_NtkDelayTraceTCEdges( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, float tD
 void Abc_NtkDelayTracePrint( Abc_Ntk_t * pNtk, int fUseLutLib, int fVerbose )
 {
     Abc_Obj_t * pNode;
+    If_Lib_t * pLutLib;
     int i, Nodes, * pCounters;
     float tArrival, tDelta, nSteps, Num;
+    // get the library
+    pLutLib = fUseLutLib?  Abc_FrameReadLibLut() : NULL;
+    if ( pLutLib && pLutLib->LutMax < Abc_NtkGetFaninMax(pNtk) )
+    {
+        printf( "The max LUT size (%d) is less than the max fanin count (%d).\n", 
+            pLutLib->LutMax, Abc_NtkGetFaninMax(pNtk) );
+        return;
+    }
     // decide how many steps
     nSteps = fUseLutLib ? 20 : Abc_NtkLevel(pNtk);
     pCounters = ALLOC( int, nSteps + 1 );
@@ -277,6 +308,8 @@ void Abc_NtkDelayTracePrint( Abc_Ntk_t * pNtk, int fUseLutLib, int fVerbose )
     // count how many nodes have slack in the corresponding intervals
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
+        if ( Abc_ObjFaninNum(pNode) == 0 )
+            continue;
         Num = Abc_ObjSlack(pNode) / tDelta;
         assert( Num >=0 && Num <= nSteps );
         pCounters[(int)Num]++;
@@ -356,15 +389,20 @@ int Abc_AigCheckTfi( Abc_Obj_t * pNew, Abc_Obj_t * pOld )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkSpeedupNode_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
+int Abc_NtkSpeedupNode_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
 {
     if ( Abc_NodeIsTravIdCurrent(pNode) )
-        return;
+        return 1;
+    if ( Abc_ObjIsCi(pNode) )
+        return 0;
     assert( Abc_ObjIsNode(pNode) );
     Abc_NodeSetTravIdCurrent( pNode );
-    Abc_NtkSpeedupNode_rec( Abc_ObjFanin0(pNode), vNodes );
-    Abc_NtkSpeedupNode_rec( Abc_ObjFanin1(pNode), vNodes );
+    if ( !Abc_NtkSpeedupNode_rec( Abc_ObjFanin0(pNode), vNodes ) )
+        return 0;
+    if ( !Abc_NtkSpeedupNode_rec( Abc_ObjFanin1(pNode), vNodes ) )
+        return 0;
     Vec_PtrPush( vNodes, pNode );
+    return 1;
 }
 
 /**Function*************************************************************
@@ -405,7 +443,12 @@ void Abc_NtkSpeedupNode( Abc_Ntk_t * pNtk, Abc_Ntk_t * pAig, Abc_Obj_t * pNode, 
     }
     // traverse from the root node
     pAnd = pNode->pCopy;
-    Abc_NtkSpeedupNode_rec( Abc_ObjRegular(pAnd), vNodes );
+    if ( !Abc_NtkSpeedupNode_rec( Abc_ObjRegular(pAnd), vNodes ) )
+    {
+//        printf( "Bad node!!!\n" );
+        Vec_PtrFree( vNodes );
+        return;
+    }
 
     // derive cofactors
     nCofs = (1 << Vec_PtrSize(vTimes));

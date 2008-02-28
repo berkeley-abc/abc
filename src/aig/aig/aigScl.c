@@ -376,10 +376,14 @@ Aig_Man_t * Aig_ManReduceLaches( Aig_Man_t * p, int fVerbose )
         printf( "RBeg = %5d. NBeg = %6d.   ", Aig_ManRegNum(p), Aig_ManNodeNum(p) );
         }
         vMap = Aig_ManReduceLachesOnce( p );
+//Aig_ManPrintStats( p );
         p = Aig_ManRemap( pTemp = p, vMap );
+//Aig_ManPrintStats( p );
         Aig_ManStop( pTemp );
         Vec_PtrFree( vMap );
         Aig_ManSeqCleanup( p );
+//Aig_ManPrintStats( p );
+//printf( "\n" );
         if ( fVerbose )
         {
         printf( "REnd = %5d. NEnd = %6d.   ", Aig_ManRegNum(p), Aig_ManNodeNum(p) );
