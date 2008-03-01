@@ -95,11 +95,11 @@ int Dar_ManRewrite( Aig_Man_t * pAig, Dar_RwrPar_t * pPars )
 //    Aig_ManForEachNodeInOrder( pAig, pObj )
     {
 //        Bar_ProgressUpdate( pProgress, 100*pAig->nAndPrev/pAig->nAndTotal, NULL );
-
 //        Bar_ProgressUpdate( pProgress, i, NULL );
         if ( !Aig_ObjIsNode(pObj) )
             continue;
         if ( i > nNodesOld )
+//        if ( p->pPars->fUseZeros && i > nNodesOld )
             break;
 
         // consider freeing the cuts
@@ -109,6 +109,7 @@ int Dar_ManRewrite( Aig_Man_t * pAig, Dar_RwrPar_t * pPars )
         // compute cuts for the node
         p->nNodesTried++;
 clk = clock();
+        Dar_ObjSetCuts( pObj, NULL );
         Dar_ObjComputeCuts_rec( p, pObj );
 p->timeCuts += clock() - clk;
 

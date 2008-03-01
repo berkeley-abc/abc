@@ -230,6 +230,67 @@ void Aig_ManRegPartitionAdd( Aig_ManPre_t * p, int iReg )
 
 /**Function*************************************************************
 
+  Synopsis    [Creates projection of 1-hot registers onto the given partition.]
+
+  Description [Assumes that the relevant register outputs are labeled with
+  the current traversal ID.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Aig_ManRegProjectOnehots( Aig_Man_t * pAig, Aig_Man_t * pPart, Vec_Ptr_t * vOnehots, int fVerbose )
+{
+    Vec_Ptr_t * vOnehotsPart = NULL;
+    Vec_Int_t * vGroup, * vGroupNew;
+    Aig_Obj_t * pObj, * pObjNew;
+    int nOffset, iReg, i, k;
+    // set the PI numbers
+    Aig_ManForEachPi( pPart, pObj, i )
+        pObj->iData = i;
+    // go through each group and check if registers are involved in this one
+    nOffset = Aig_ManPiNum(pAig)-Aig_ManRegNum(pAig);
+    Vec_PtrForEachEntry( vOnehots, vGroup, i )
+    {
+        vGroupNew = NULL;
+        Vec_IntForEachEntry( vGroup, iReg, k )
+        {
+            pObj = Aig_ManPi( pAig, nOffset+iReg );
+            if ( !Aig_ObjIsTravIdCurrent(pAig, pObj) )
+                continue;
+            if ( vGroupNew == NULL )
+                vGroupNew = Vec_IntAlloc( Vec_IntSize(vGroup) );
+            pObjNew = pObj->pData;
+            Vec_IntPush( vGroupNew, pObjNew->iData );
+        }
+        if ( vGroupNew == NULL )
+            continue;
+        if ( Vec_IntSize(vGroupNew) > 1 )
+        {
+            if ( vOnehotsPart == NULL )
+                vOnehotsPart = Vec_PtrAlloc( 100 );
+            Vec_PtrPush( vOnehotsPart, vGroupNew );
+        }
+        else
+            Vec_IntFree( vGroupNew );
+    }
+    // clear the PI numbers
+    Aig_ManForEachPi( pPart, pObj, i )
+        pObj->iData = 0;
+    // print out
+    if ( vOnehotsPart && fVerbose )
+    {
+        printf( "Partition contains %d groups of 1-hot registers: { ", Vec_PtrSize(vOnehotsPart) );
+        Vec_PtrForEachEntry( vOnehotsPart, vGroup, k )
+            printf( "%d ", Vec_IntSize(vGroup) );
+        printf( "}\n" );
+    }
+    return vOnehotsPart;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Computes partitioning of registers.]
 
   Description []
@@ -292,6 +353,7 @@ Aig_Man_t * Aig_ManRegCreatePart( Aig_Man_t * pAig, Vec_Int_t * vPart, int * pnC
         pObj = Aig_ManPi(pAig, nOffset+iOut);
         pObj->pData = Aig_ObjCreatePi(pNew);
         Aig_ObjCreatePo( pNew, pObj->pData );
+        Aig_ObjSetTravIdCurrent( pAig, pObj ); // added
     }
     // create the nodes
     Vec_PtrForEachEntry( vNodes, pObj, i )

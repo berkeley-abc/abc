@@ -420,6 +420,49 @@ Aig_Man_t * Fra_OneHotCreateExdc( Fra_Man_t * p, Vec_Int_t * vOneHots )
     return pNew;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Assumes one-hot implications in the SAT solver.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+**********************************************************************/
+void Fra_OneHotAddKnownConstraint( Fra_Man_t * p, Vec_Ptr_t * vOnehots )
+{
+    Vec_Int_t * vGroup;
+    Aig_Obj_t * pObj1, * pObj2;
+    int k, i, j, Out1, Out2, pLits[2];
+    //
+    // these constrants should be added to different timeframes!
+    // (also note that PIs follow first - then registers)
+    //
+    Vec_PtrForEachEntry( vOnehots, vGroup, k )
+    {
+        Vec_IntForEachEntry( vGroup, Out1, i )
+        Vec_IntForEachEntryStart( vGroup, Out2, j, i+1 )
+        {
+            pObj1 = Aig_ManPi( p->pManFraig, Out1 );
+            pObj2 = Aig_ManPi( p->pManFraig, Out2 );
+            pLits[0] = toLitCond( Fra_ObjSatNum(pObj1), 1 );
+            pLits[1] = toLitCond( Fra_ObjSatNum(pObj2), 1 );
+            // add contraint to solver
+            if ( !sat_solver_addclause( p->pSat, pLits, pLits + 2 ) )
+            {
+                printf( "Fra_OneHotAddKnownConstraint(): Adding clause makes SAT solver unsat.\n" );
+                sat_solver_delete( p->pSat );
+                p->pSat = NULL;
+                return;
+            }
+        }
+    }
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

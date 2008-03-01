@@ -297,6 +297,7 @@ extern int                 Fra_OneHotRefineUsingCex( Fra_Man_t * p, Vec_Int_t * 
 extern int                 Fra_OneHotCount( Fra_Man_t * p, Vec_Int_t * vOneHots );
 extern void                Fra_OneHotEstimateCoverage( Fra_Man_t * p, Vec_Int_t * vOneHots );
 extern Aig_Man_t *         Fra_OneHotCreateExdc( Fra_Man_t * p, Vec_Int_t * vOneHots );
+extern void                Fra_OneHotAddKnownConstraint( Fra_Man_t * p, Vec_Ptr_t * vOnehots );
 /*=== fraImp.c ========================================================*/
 extern Vec_Int_t *         Fra_ImpDerive( Fra_Man_t * p, int nImpMaxLimit, int nImpUseLimit, int fLatchCorr );
 extern void                Fra_ImpAddToSolver( Fra_Man_t * p, Vec_Int_t * vImps, int * pSatVarNums );

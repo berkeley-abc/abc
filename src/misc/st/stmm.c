@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include "extra.h"
 #include "stmm.h"
+#include "port_type.h"
 
 #ifndef ABS
 #  define ABS(a)            ((a) < 0 ? -(a) : (a))
@@ -17,8 +18,8 @@
 
 #define STMM_NUMCMP(x,y) ((x) != (y))
 #define STMM_NUMHASH(x,size) (ABS((long)x)%(size))
-//#define STMM_PTRHASH(x,size) ((int)((unsigned long)(x)>>2)%size) //  64-bit bug fix 9/17/2007
-#define STMM_PTRHASH(x,size) ((int)(((unsigned long)(x)>>2)%size))
+//#define STMM_PTRHASH(x,size) ((int)((PORT_PTRUINT_T)(x)>>2)%size) //  64-bit bug fix 9/17/2007
+#define STMM_PTRHASH(x,size) ((int)(((PORT_PTRUINT_T)(x)>>2)%size))
 #define EQUAL(func, x, y) \
     ((((func) == stmm_numcmp) || ((func) == stmm_ptrcmp)) ?\
       (STMM_NUMCMP((x),(y)) == 0) : ((*func)((x), (y)) == 0))

@@ -52,6 +52,7 @@ extern "C" {
 #include <time.h>
 #include "st.h"
 #include "cuddInt.h"
+#include "port_type.h"
 
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
@@ -314,6 +315,7 @@ extern char *       Extra_FileGetSimilarName( char * pFileNameWrong, char * pS1,
 extern char *       Extra_FileNameExtension( char * FileName );
 extern char *       Extra_FileNameAppend( char * pBase, char * pSuffix );
 extern char *       Extra_FileNameGeneric( char * FileName );
+extern char *       Extra_FileNameGenericAppend( char * pBase, char * pSuffix );
 extern int          Extra_FileSize( char * pFileName );
 extern char *       Extra_FileRead( FILE * pFile );
 extern char *       Extra_TimeStamp();

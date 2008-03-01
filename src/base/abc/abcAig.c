@@ -786,15 +786,23 @@ Abc_Obj_t * Abc_AigMiter_rec( Abc_Aig_t * pMan, Abc_Obj_t ** ppObjs, int nObjs )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_AigMiter( Abc_Aig_t * pMan, Vec_Ptr_t * vPairs )
+Abc_Obj_t * Abc_AigMiter( Abc_Aig_t * pMan, Vec_Ptr_t * vPairs, int fImplic )
 {
     int i;
     if ( vPairs->nSize == 0 )
         return Abc_ObjNot( Abc_AigConst1(pMan->pNtkAig) );
     assert( vPairs->nSize % 2 == 0 );
     // go through the cubes of the node's SOP
-    for ( i = 0; i < vPairs->nSize; i += 2 )
-        vPairs->pArray[i/2] = Abc_AigXor( pMan, vPairs->pArray[i], vPairs->pArray[i+1] );
+    if ( fImplic )
+    {
+        for ( i = 0; i < vPairs->nSize; i += 2 )
+            vPairs->pArray[i/2] = Abc_AigAnd( pMan, vPairs->pArray[i], Abc_ObjNot(vPairs->pArray[i+1]) );
+    }
+    else
+    {
+        for ( i = 0; i < vPairs->nSize; i += 2 )
+            vPairs->pArray[i/2] = Abc_AigXor( pMan, vPairs->pArray[i], vPairs->pArray[i+1] );
+    }
     vPairs->nSize = vPairs->nSize/2;
     return Abc_AigMiter_rec( pMan, (Abc_Obj_t **)vPairs->pArray, vPairs->nSize );
 }

@@ -88,9 +88,6 @@
 // generating random unsigned (#define RAND_MAX 0x7fff)
 #define FPGA_RANDOM_UNSIGNED   ((((unsigned)rand()) << 24) ^ (((unsigned)rand()) << 12) ^ ((unsigned)rand()))
 
-// outputs the runtime in seconds
-#define PRT(a,t)  printf("%s = ", (a)); printf("%6.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC))
-
 ////////////////////////////////////////////////////////////////////////
 ///                    STRUCTURE DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////

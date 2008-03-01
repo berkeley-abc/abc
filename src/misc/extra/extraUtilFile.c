@@ -179,6 +179,29 @@ char * Extra_FileNameGeneric( char * FileName )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the composite name of the file.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Extra_FileNameGenericAppend( char * pBase, char * pSuffix )
+{
+    static char Buffer[1000];
+    char * pDot;
+    strcpy( Buffer, pBase );
+    pDot = strstr( Buffer, "." );
+    if ( pDot )
+        *pDot = 0;
+    strcat( Buffer, pSuffix );
+    return Buffer;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns the file size.]
 
   Description [The file should be closed.]

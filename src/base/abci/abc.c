@@ -685,7 +685,7 @@ int Abc_CommandPrintLatch( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fPrintSccs = 1;
+    fPrintSccs = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "sh" ) ) != EOF )
     {
@@ -736,17 +736,22 @@ int Abc_CommandPrintFanio( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
     int c;
+    int fVerbose;
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
+    fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'v':
+            fVerbose ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -761,12 +766,16 @@ int Abc_CommandPrintFanio( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // print the nodes
-    Abc_NtkPrintFanio( pOut, pNtk );
+    if ( fVerbose )
+        Abc_NtkPrintFanio( pOut, pNtk );
+    else
+        Abc_NtkPrintFanioNew( pOut, pNtk );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: print_fanio [-h]\n" );
+    fprintf( pErr, "usage: print_fanio [-vh]\n" );
     fprintf( pErr, "\t        prints the statistics about fanins/fanouts of all nodes\n" );
+    fprintf( pErr, "\t-v    : toggles verbose way of printing the stats [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -2066,10 +2075,12 @@ int Abc_CommandStrash( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
+    Abc_Obj_t * pObj;
     int c;
     int fAllNodes;
     int fRecord;
     int fCleanup;
+    int fComplOuts;
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -2079,8 +2090,9 @@ int Abc_CommandStrash( Abc_Frame_t * pAbc, int argc, char ** argv )
     fAllNodes = 0;
     fCleanup  = 1;
     fRecord   = 0;
+    fComplOuts= 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "acrh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "acrih" ) ) != EOF )
     {
         switch ( c )
         {
@@ -2092,6 +2104,9 @@ int Abc_CommandStrash( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'r':
             fRecord ^= 1;
+            break;
+        case 'i':
+            fComplOuts ^= 1;
             break;
         case 'h':
             goto usage;
@@ -2113,16 +2128,20 @@ int Abc_CommandStrash( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "Strashing has failed.\n" );
         return 1;
     }
+    if ( fComplOuts )
+    Abc_NtkForEachCo( pNtkRes, pObj, c )
+        Abc_ObjXorFaninC( pObj, 0 );
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: strash [-acrh]\n" );
+    fprintf( pErr, "usage: strash [-acrih]\n" );
     fprintf( pErr, "\t        transforms combinational logic into an AIG\n" );
     fprintf( pErr, "\t-a    : toggles between using all nodes and DFS nodes [default = %s]\n", fAllNodes? "all": "DFS" );
     fprintf( pErr, "\t-c    : toggles cleanup to remove the dagling AIG nodes [default = %s]\n", fCleanup? "all": "DFS" );
-    fprintf( pErr, "\t-r    : enables using the record of AIG subgraphs [default = %s]\n", fRecord? "yes": "no" );
+    fprintf( pErr, "\t-r    : toggles using the record of AIG subgraphs [default = %s]\n", fRecord? "yes": "no" );
+    fprintf( pErr, "\t-i    : toggles complementing the COs of the AIG [default = %s]\n", fComplOuts? "yes": "no" );
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -3281,20 +3300,21 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    pPars->nWinTfoLevs  =   2;
-    pPars->nFanoutsMax  =  10;
-    pPars->nDepthMax    =  20;
-    pPars->nDivMax      = 250;
-    pPars->nWinSizeMax  = 300;
-    pPars->nGrowthLevel =   0;
-    pPars->fResub       =   1;
-    pPars->fArea        =   0;
-    pPars->fMoreEffort  =   0;
-    pPars->fSwapEdge    =   0;
-    pPars->fVerbose     =   0;
-    pPars->fVeryVerbose =   0;
+    pPars->nWinTfoLevs  =    2;
+    pPars->nFanoutsMax  =   10;
+    pPars->nDepthMax    =   20;
+    pPars->nDivMax      =  250;
+    pPars->nWinSizeMax  =  300;
+    pPars->nGrowthLevel =    0;
+    pPars->nBTLimit     =10000;
+    pPars->fResub       =    1;
+    pPars->fArea        =    0;
+    pPars->fMoreEffort  =    0;
+    pPars->fSwapEdge    =    0;
+    pPars->fVerbose     =    0;
+    pPars->fVeryVerbose =    0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WFDMLraesvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WFDMLCraesvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -3353,6 +3373,17 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nGrowthLevel < 0 || pPars->nGrowthLevel > ABC_INFINITY ) 
                 goto usage;
             break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nBTLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nBTLimit < 0 ) 
+                goto usage;
+            break;
         case 'r':
             pPars->fResub ^= 1;
             break;
@@ -3398,13 +3429,14 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: mfs [-WFDML <num>] [-raesvh]\n" );
+    fprintf( pErr, "usage: mfs [-WFDMLC <num>] [-raesvh]\n" );
     fprintf( pErr, "\t           performs don't-care-based optimization of logic networks\n" );
     fprintf( pErr, "\t-W <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n", pPars->nWinTfoLevs );
     fprintf( pErr, "\t-F <num> : the max number of fanouts to skip (1 <= num) [default = %d]\n", pPars->nFanoutsMax );
     fprintf( pErr, "\t-D <num> : the max depth nodes to try (0 = no limit) [default = %d]\n", pPars->nDepthMax );
     fprintf( pErr, "\t-M <num> : the max node count of windows to consider (0 = no limit) [default = %d]\n", pPars->nWinSizeMax );
     fprintf( pErr, "\t-L <num> : the max increase in node level after resynthesis (0 <= num) [default = %d]\n", pPars->nGrowthLevel );
+    fprintf( pErr, "\t-C <num> : the max number of conflicts in one SAT run (0 = no limit) [default = %d]\n", pPars->nBTLimit );
     fprintf( pErr, "\t-r       : toggle resubstitution and dc-minimization [default = %s]\n", pPars->fResub? "resub": "dc-min" );
     fprintf( pErr, "\t-a       : toggle minimizing area or area+edges [default = %s]\n", pPars->fArea? "area": "area+edges" );
     fprintf( pErr, "\t-e       : toggle high-effort resubstitution [default = %s]\n", pPars->fMoreEffort? "yes": "no" );
@@ -4423,6 +4455,7 @@ int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int fCheck;
     int fComb;
+    int fImplic;
     int nPartSize;
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -4432,9 +4465,10 @@ int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     fComb  = 1;
     fCheck = 1;
+    fImplic = 0;
     nPartSize = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Pch" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Pcih" ) ) != EOF )
     {
         switch ( c )
         {
@@ -4452,6 +4486,9 @@ int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'c':
             fComb ^= 1;
             break;
+        case 'i':
+            fImplic ^= 1;
+            break;
         default:
             goto usage;
         }
@@ -4463,7 +4500,7 @@ int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
 
     // compute the miter
-    pNtkRes = Abc_NtkMiter( pNtk1, pNtk2, fComb, nPartSize );
+    pNtkRes = Abc_NtkMiter( pNtk1, pNtk2, fComb, nPartSize, fImplic );
     if ( fDelete1 ) Abc_NtkDelete( pNtk1 );
     if ( fDelete2 ) Abc_NtkDelete( pNtk2 );
 
@@ -4482,10 +4519,11 @@ usage:
         strcpy( Buffer, "unused" );
     else
         sprintf( Buffer, "%d", nPartSize );
-    fprintf( pErr, "usage: miter [-P num] [-ch] <file1> <file2>\n" );
+    fprintf( pErr, "usage: miter [-P num] [-cih] <file1> <file2>\n" );
     fprintf( pErr, "\t         computes the miter of the two circuits\n" );
     fprintf( pErr, "\t-P num : output partition size [default = %s]\n", Buffer );
-    fprintf( pErr, "\t-c     : computes combinational miter (latches as POs) [default = %s]\n", fComb? "yes": "no" );
+    fprintf( pErr, "\t-c     : toggles deriving combinational miter (latches as POs) [default = %s]\n", fComb? "yes": "no" );
+    fprintf( pErr, "\t-i     : toggles deriving implication miter (file1 => file2) [default = %s]\n", fImplic? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     fprintf( pErr, "\tfile1  : (optional) the file with the first network\n");
     fprintf( pErr, "\tfile2  : (optional) the file with the second network\n");

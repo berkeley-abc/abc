@@ -63,10 +63,10 @@ struct Map_TimeStruct_t_
 ///                       MACRO DEFINITIONS                          ///
 ////////////////////////////////////////////////////////////////////////
  
-#define Map_IsComplement(p)    (((int)((unsigned long) (p) & 01)))
-#define Map_Regular(p)         ((Map_Node_t *)((unsigned long)(p) & ~01)) 
-#define Map_Not(p)             ((Map_Node_t *)((unsigned long)(p) ^ 01)) 
-#define Map_NotCond(p,c)       ((Map_Node_t *)((unsigned long)(p) ^ (c)))
+#define Map_IsComplement(p)    (((int)((PORT_PTRUINT_T) (p) & 01)))
+#define Map_Regular(p)         ((Map_Node_t *)((PORT_PTRUINT_T)(p) & ~01)) 
+#define Map_Not(p)             ((Map_Node_t *)((PORT_PTRUINT_T)(p) ^ 01)) 
+#define Map_NotCond(p,c)       ((Map_Node_t *)((PORT_PTRUINT_T)(p) ^ (c)))
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///

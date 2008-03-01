@@ -112,10 +112,10 @@ struct Rwt_Node_t_ // 24 bytes
 };
 
 // manipulation of complemented attributes
-static inline int          Rwt_IsComplement( Rwt_Node_t * p )    { return (int)(((unsigned long)p) & 01);            }
-static inline Rwt_Node_t * Rwt_Regular( Rwt_Node_t * p )         { return (Rwt_Node_t *)((unsigned long)(p) & ~01);  }
-static inline Rwt_Node_t * Rwt_Not( Rwt_Node_t * p )             { return (Rwt_Node_t *)((unsigned long)(p) ^  01);  }
-static inline Rwt_Node_t * Rwt_NotCond( Rwt_Node_t * p, int c )  { return (Rwt_Node_t *)((unsigned long)(p) ^ (c));  }
+static inline int          Rwt_IsComplement( Rwt_Node_t * p )    { return (int)(((PORT_PTRUINT_T)p) & 01);            }
+static inline Rwt_Node_t * Rwt_Regular( Rwt_Node_t * p )         { return (Rwt_Node_t *)((PORT_PTRUINT_T)(p) & ~01);  }
+static inline Rwt_Node_t * Rwt_Not( Rwt_Node_t * p )             { return (Rwt_Node_t *)((PORT_PTRUINT_T)(p) ^  01);  }
+static inline Rwt_Node_t * Rwt_NotCond( Rwt_Node_t * p, int c )  { return (Rwt_Node_t *)((PORT_PTRUINT_T)(p) ^ (c));  }
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///

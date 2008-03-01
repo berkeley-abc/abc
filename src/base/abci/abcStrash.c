@@ -260,7 +260,7 @@ int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fAddPos )
         {
             Abc_NtkDupObj( pNtk1, pObj, 0 );
             Abc_ObjAddFanin( pObj->pCopy, Abc_ObjChild0Copy(pObj) );
-            Abc_ObjAssignName( pObj->pCopy, Abc_ObjName(pObj->pCopy), NULL );
+            Abc_ObjAssignName( pObj->pCopy, Abc_ObjName(pObj), NULL );
         }
     }
     else
@@ -271,6 +271,8 @@ int Abc_NtkAppend( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fAddPos )
         Abc_NtkForEachCo( pNtk2, pObj, i )
         {
             iNodeId = Nm_ManFindIdByNameTwoTypes( pNtk1->pManName, Abc_ObjName(pObj), ABC_OBJ_PO, ABC_OBJ_BI );
+//            if ( iNodeId < 0 )
+//                continue;
             assert( iNodeId >= 0 );
             pObjOld = Abc_NtkObj( pNtk1, iNodeId );
             // derive the new driver

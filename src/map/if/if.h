@@ -221,10 +221,10 @@ struct If_Obj_t_
     If_Cut_t           CutBest;       // the best cut selected 
 };
 
-static inline If_Obj_t * If_Regular( If_Obj_t * p )                          { return (If_Obj_t *)((unsigned long)(p) & ~01);  }
-static inline If_Obj_t * If_Not( If_Obj_t * p )                              { return (If_Obj_t *)((unsigned long)(p) ^  01);  }
-static inline If_Obj_t * If_NotCond( If_Obj_t * p, int c )                   { return (If_Obj_t *)((unsigned long)(p) ^ (c));  }
-static inline int        If_IsComplement( If_Obj_t * p )                     { return (int )(((unsigned long)p) & 01);         }
+static inline If_Obj_t * If_Regular( If_Obj_t * p )                          { return (If_Obj_t *)((PORT_PTRUINT_T)(p) & ~01);  }
+static inline If_Obj_t * If_Not( If_Obj_t * p )                              { return (If_Obj_t *)((PORT_PTRUINT_T)(p) ^  01);  }
+static inline If_Obj_t * If_NotCond( If_Obj_t * p, int c )                   { return (If_Obj_t *)((PORT_PTRUINT_T)(p) ^ (c));  }
+static inline int        If_IsComplement( If_Obj_t * p )                     { return (int )(((PORT_PTRUINT_T)p) & 01);         }
 
 static inline int        If_ManCiNum( If_Man_t * p )                         { return p->nObjs[IF_CI];               }
 static inline int        If_ManCoNum( If_Man_t * p )                         { return p->nObjs[IF_CO];               }
@@ -398,6 +398,9 @@ extern int             If_ManCrossCut( If_Man_t * p );
 extern Vec_Ptr_t *     If_ManReverseOrder( If_Man_t * p );
 extern void            If_ManMarkMapping( If_Man_t * p );
 extern Vec_Ptr_t *     If_ManCollectMappingDirect( If_Man_t * p );
+
+extern int             If_ManCountSpecialPos( If_Man_t * p );
+
 
 
 #ifdef __cplusplus

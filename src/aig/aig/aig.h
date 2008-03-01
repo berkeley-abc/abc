@@ -143,6 +143,7 @@ struct Aig_Man_t_
     void *           pSeqModel;
     Aig_Man_t *      pManHaig;
     Aig_Man_t *      pManExdc;
+    Vec_Ptr_t *      vOnehots;
     // timing statistics
     int              time1;
     int              time2;
@@ -241,28 +242,28 @@ static inline int          Aig_WordFindFirstBit( unsigned uWord )
     return -1;
 }
 
-static inline Aig_Obj_t *  Aig_Regular( Aig_Obj_t * p )           { return (Aig_Obj_t *)((unsigned long)(p) & ~01); }
-static inline Aig_Obj_t *  Aig_Not( Aig_Obj_t * p )               { return (Aig_Obj_t *)((unsigned long)(p) ^  01); }
-static inline Aig_Obj_t *  Aig_NotCond( Aig_Obj_t * p, int c )    { return (Aig_Obj_t *)((unsigned long)(p) ^ (c)); }
-static inline int          Aig_IsComplement( Aig_Obj_t * p )      { return (int)((unsigned long)(p) & 01);          }
+static inline Aig_Obj_t *  Aig_Regular( Aig_Obj_t * p )           { return (Aig_Obj_t *)((PORT_PTRUINT_T)(p) & ~01); }
+static inline Aig_Obj_t *  Aig_Not( Aig_Obj_t * p )               { return (Aig_Obj_t *)((PORT_PTRUINT_T)(p) ^  01); }
+static inline Aig_Obj_t *  Aig_NotCond( Aig_Obj_t * p, int c )    { return (Aig_Obj_t *)((PORT_PTRUINT_T)(p) ^ (c)); }
+static inline int          Aig_IsComplement( Aig_Obj_t * p )      { return (int)((PORT_PTRUINT_T)(p) & 01);          }
 
-static inline int          Aig_ManPiNum( Aig_Man_t * p )          { return p->nObjs[AIG_OBJ_PI];                    }
-static inline int          Aig_ManPoNum( Aig_Man_t * p )          { return p->nObjs[AIG_OBJ_PO];                    }
-static inline int          Aig_ManBufNum( Aig_Man_t * p )         { return p->nObjs[AIG_OBJ_BUF];                   }
-static inline int          Aig_ManAndNum( Aig_Man_t * p )         { return p->nObjs[AIG_OBJ_AND];                   }
-static inline int          Aig_ManExorNum( Aig_Man_t * p )        { return p->nObjs[AIG_OBJ_EXOR];                  }
-static inline int          Aig_ManLatchNum( Aig_Man_t * p )       { return p->nObjs[AIG_OBJ_LATCH];                 }
+static inline int          Aig_ManPiNum( Aig_Man_t * p )          { return p->nObjs[AIG_OBJ_PI];                     }
+static inline int          Aig_ManPoNum( Aig_Man_t * p )          { return p->nObjs[AIG_OBJ_PO];                     }
+static inline int          Aig_ManBufNum( Aig_Man_t * p )         { return p->nObjs[AIG_OBJ_BUF];                    }
+static inline int          Aig_ManAndNum( Aig_Man_t * p )         { return p->nObjs[AIG_OBJ_AND];                    }
+static inline int          Aig_ManExorNum( Aig_Man_t * p )        { return p->nObjs[AIG_OBJ_EXOR];                   }
+static inline int          Aig_ManLatchNum( Aig_Man_t * p )       { return p->nObjs[AIG_OBJ_LATCH];                  }
 static inline int          Aig_ManNodeNum( Aig_Man_t * p )        { return p->nObjs[AIG_OBJ_AND]+p->nObjs[AIG_OBJ_EXOR];   }
 static inline int          Aig_ManGetCost( Aig_Man_t * p )        { return p->nObjs[AIG_OBJ_AND]+3*p->nObjs[AIG_OBJ_EXOR]; }
-static inline int          Aig_ManObjNum( Aig_Man_t * p )         { return p->nCreated - p->nDeleted;               }
-static inline int          Aig_ManObjNumMax( Aig_Man_t * p )      { return Vec_PtrSize(p->vObjs);                   }
-static inline int          Aig_ManRegNum( Aig_Man_t * p )         { return p->nRegs;                                }
+static inline int          Aig_ManObjNum( Aig_Man_t * p )         { return p->nCreated - p->nDeleted;                }
+static inline int          Aig_ManObjNumMax( Aig_Man_t * p )      { return Vec_PtrSize(p->vObjs);                    }
+static inline int          Aig_ManRegNum( Aig_Man_t * p )         { return p->nRegs;                                 }
 
-static inline Aig_Obj_t *  Aig_ManConst0( Aig_Man_t * p )         { return Aig_Not(p->pConst1);                     }
-static inline Aig_Obj_t *  Aig_ManConst1( Aig_Man_t * p )         { return p->pConst1;                              }
-static inline Aig_Obj_t *  Aig_ManGhost( Aig_Man_t * p )          { return &p->Ghost;                               }
-static inline Aig_Obj_t *  Aig_ManPi( Aig_Man_t * p, int i )      { return (Aig_Obj_t *)Vec_PtrEntry(p->vPis, i);   }
-static inline Aig_Obj_t *  Aig_ManPo( Aig_Man_t * p, int i )      { return (Aig_Obj_t *)Vec_PtrEntry(p->vPos, i);   }
+static inline Aig_Obj_t *  Aig_ManConst0( Aig_Man_t * p )         { return Aig_Not(p->pConst1);                      }
+static inline Aig_Obj_t *  Aig_ManConst1( Aig_Man_t * p )         { return p->pConst1;                               }
+static inline Aig_Obj_t *  Aig_ManGhost( Aig_Man_t * p )          { return &p->Ghost;                                }
+static inline Aig_Obj_t *  Aig_ManPi( Aig_Man_t * p, int i )      { return (Aig_Obj_t *)Vec_PtrEntry(p->vPis, i);    }
+static inline Aig_Obj_t *  Aig_ManPo( Aig_Man_t * p, int i )      { return (Aig_Obj_t *)Vec_PtrEntry(p->vPos, i);    }
 static inline Aig_Obj_t *  Aig_ManLo( Aig_Man_t * p, int i )      { return (Aig_Obj_t *)Vec_PtrEntry(p->vPis, Aig_ManPiNum(p)-Aig_ManRegNum(p)+i);   }
 static inline Aig_Obj_t *  Aig_ManLi( Aig_Man_t * p, int i )      { return (Aig_Obj_t *)Vec_PtrEntry(p->vPos, Aig_ManPoNum(p)-Aig_ManRegNum(p)+i);   }
 static inline Aig_Obj_t *  Aig_ManObj( Aig_Man_t * p, int i )     { return p->vObjs ? (Aig_Obj_t *)Vec_PtrEntry(p->vObjs, i) : NULL;  }
@@ -529,6 +530,7 @@ extern Aig_Man_t *     Aig_ManChoicePartitioned( Vec_Ptr_t * vAigs, int nPartSiz
 extern Vec_Ptr_t *     Aig_ManRegPartitionSimple( Aig_Man_t * pAig, int nPartSize, int nOverSize );
 extern Vec_Ptr_t *     Aig_ManRegPartitionSmart( Aig_Man_t * pAig, int nPartSize );
 extern Aig_Man_t *     Aig_ManRegCreatePart( Aig_Man_t * pAig, Vec_Int_t * vPart, int * pnCountPis, int * pnCountRegs, int ** ppMapBack );
+extern Vec_Ptr_t *     Aig_ManRegProjectOnehots( Aig_Man_t * pAig, Aig_Man_t * pPart, Vec_Ptr_t * vOnehots, int fVerbose );
 /*=== aigRepr.c =========================================================*/
 extern void            Aig_ManReprStart( Aig_Man_t * p, int nIdMax );
 extern void            Aig_ManReprStop( Aig_Man_t * p );

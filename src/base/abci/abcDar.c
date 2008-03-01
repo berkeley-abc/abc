@@ -85,7 +85,7 @@ Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fRegisters )
             printf( "Warning: %d registers in this network have don't-care init values.\n", nDontCares );
             printf( "The don't-care are assumed to be 0. The result may not verify.\n" );
             printf( "Use command \"print_latch\" to see the init values of registers.\n" );
-            printf( "Use command \"init\" to change the values.\n" );
+            printf( "Use command \"zero\" to convert or \"init\" to change the values.\n" );
         }
     }
     // create the manager
@@ -97,6 +97,9 @@ Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fRegisters )
         pMan->nRegs = Abc_NtkLatchNum(pNtk);
         pMan->vFlopNums = Vec_IntStartNatural( pMan->nRegs );
 //        pMan->vFlopNums = NULL;
+//        pMan->vOnehots = Abc_NtkConverLatchNamesIntoNumbers( pNtk );
+        if ( pNtk->vOnehots )
+            pMan->vOnehots = (Vec_Ptr_t *)Vec_VecDupInt( (Vec_Vec_t *)pNtk->vOnehots );
     }
     // transfer the pointers to the basic nodes
     Abc_AigConst1(pNtk)->pCopy = (Abc_Obj_t *)Aig_ManConst1(pMan);
@@ -974,7 +977,7 @@ int Abc_NtkDarCec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fPartition, int fVe
     if ( pNtk2 != NULL )
     {
         // get the miter of the two networks
-        pMiter = Abc_NtkMiter( pNtk1, pNtk2, 0, 0 );
+        pMiter = Abc_NtkMiter( pNtk1, pNtk2, 0, 0, 0 );
         if ( pMiter == NULL )
         {
             printf( "Miter computation has failed.\n" );
@@ -1224,7 +1227,7 @@ int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames, int fRetim
     int RetValue;
  
     // get the miter of the two networks
-    pMiter = Abc_NtkMiter( pNtk1, pNtk2, 0, 0 );
+    pMiter = Abc_NtkMiter( pNtk1, pNtk2, 0, 0, 0 );
     if ( pMiter == NULL )
     {
         printf( "Miter computation has failed.\n" );
@@ -1525,7 +1528,7 @@ Abc_Ntk_t * Abc_NtkDarEnlarge( Abc_Ntk_t * pNtk, int nFrames, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkInter( Abc_Ntk_t * pNtkOn, Abc_Ntk_t * pNtkOff, int fVerbose )
+Abc_Ntk_t * Abc_NtkInterOne( Abc_Ntk_t * pNtkOn, Abc_Ntk_t * pNtkOff, int fVerbose )
 {
     extern Aig_Man_t * Aig_ManInter( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fVerbose );
     Abc_Ntk_t * pNtkAig;
@@ -1560,6 +1563,67 @@ Abc_Ntk_t * Abc_NtkInter( Abc_Ntk_t * pNtkOn, Abc_Ntk_t * pNtkOff, int fVerbose 
     pNtkAig = Abc_NtkFromDar( pNtkOn, pManAig );
     Aig_ManStop( pManAig );
     return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Interplates two networks.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkInter( Abc_Ntk_t * pNtkOn, Abc_Ntk_t * pNtkOff, int fVerbose )
+{
+    Abc_Ntk_t * pNtkOn1, * pNtkOff1, * pNtkInter1, * pNtkInter;
+    Abc_Obj_t * pObj;
+    int i;
+    if ( Abc_NtkCoNum(pNtkOn) != Abc_NtkCoNum(pNtkOff) )
+    {
+        printf( "Currently works only for networks with equal number of POs.\n" );
+        return NULL;
+    }
+    if ( Abc_NtkCoNum(pNtkOn) == 1 )
+        return Abc_NtkInterOne( pNtkOn, pNtkOff, fVerbose );
+    // start the new newtork
+    pNtkInter = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG, 1 );
+    pNtkInter->pName = Extra_UtilStrsav(pNtkOn->pName);
+    Abc_NtkForEachPi( pNtkOn, pObj, i )
+        Abc_NtkDupObj( pNtkInter, pObj, 1 );
+    // process each POs separately
+    Abc_NtkForEachCo( pNtkOn, pObj, i )
+    {
+        pNtkOn1 = Abc_NtkCreateCone( pNtkOn, Abc_ObjFanin0(pObj), Abc_ObjName(pObj), 1 );
+        if ( Abc_ObjFaninC0(pObj) )
+            Abc_ObjXorFaninC( Abc_NtkPo(pNtkOn1, 0), 0 );
+
+        pObj   = Abc_NtkCo(pNtkOff, i);
+        pNtkOff1 = Abc_NtkCreateCone( pNtkOff, Abc_ObjFanin0(pObj), Abc_ObjName(pObj), 1 );
+        if ( Abc_ObjFaninC0(pObj) )
+            Abc_ObjXorFaninC( Abc_NtkPo(pNtkOff1, 0), 0 );
+
+        if ( Abc_NtkNodeNum(pNtkOn1) == 0 )
+            pNtkInter1 = Abc_NtkDup( pNtkOn1 );
+        else if ( Abc_NtkNodeNum(pNtkOff1) == 0 )
+        {
+            pNtkInter1 = Abc_NtkDup( pNtkOff1 );
+            Abc_ObjXorFaninC( Abc_NtkPo(pNtkInter1, 0), 0 );
+        }
+        else
+            pNtkInter1 = Abc_NtkInterOne( pNtkOn1, pNtkOff1, fVerbose );
+        Abc_NtkAppend( pNtkInter, pNtkInter1, 1 );
+
+        Abc_NtkDelete( pNtkOn1 );
+        Abc_NtkDelete( pNtkOff1 );
+        Abc_NtkDelete( pNtkInter1 );
+    }
+    // return the network
+    if ( !Abc_NtkCheck( pNtkInter ) )
+        fprintf( stdout, "Abc_NtkAttachBottom(): Network check has failed.\n" );
+    return pNtkInter;
 }
 
 /**Function*************************************************************

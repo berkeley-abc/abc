@@ -124,10 +124,10 @@ static inline void         Hop_InfoXorBit( unsigned * p, int i )  { p[(i)>>5] ^=
 static inline int          Hop_Base2Log( unsigned n )             { int r; assert( n >= 0 ); if ( n < 2 ) return n; for ( r = 0, n--; n; n >>= 1, r++ ); return r; }
 static inline int          Hop_Base10Log( unsigned n )            { int r; assert( n >= 0 ); if ( n < 2 ) return n; for ( r = 0, n--; n; n /= 10, r++ ); return r; }
 
-static inline Hop_Obj_t *  Hop_Regular( Hop_Obj_t * p )           { return (Hop_Obj_t *)((unsigned long)(p) & ~01); }
-static inline Hop_Obj_t *  Hop_Not( Hop_Obj_t * p )               { return (Hop_Obj_t *)((unsigned long)(p) ^  01); }
-static inline Hop_Obj_t *  Hop_NotCond( Hop_Obj_t * p, int c )    { return (Hop_Obj_t *)((unsigned long)(p) ^ (c)); }
-static inline int          Hop_IsComplement( Hop_Obj_t * p )      { return (int)((unsigned long)(p) & 01);          }
+static inline Hop_Obj_t *  Hop_Regular( Hop_Obj_t * p )           { return (Hop_Obj_t *)((PORT_PTRUINT_T)(p) & ~01); }
+static inline Hop_Obj_t *  Hop_Not( Hop_Obj_t * p )               { return (Hop_Obj_t *)((PORT_PTRUINT_T)(p) ^  01); }
+static inline Hop_Obj_t *  Hop_NotCond( Hop_Obj_t * p, int c )    { return (Hop_Obj_t *)((PORT_PTRUINT_T)(p) ^ (c)); }
+static inline int          Hop_IsComplement( Hop_Obj_t * p )      { return (int)((PORT_PTRUINT_T)(p) & 01);          }
 
 static inline Hop_Obj_t *  Hop_ManConst0( Hop_Man_t * p )         { return Hop_Not(p->pConst1);                     }
 static inline Hop_Obj_t *  Hop_ManConst1( Hop_Man_t * p )         { return p->pConst1;                              }

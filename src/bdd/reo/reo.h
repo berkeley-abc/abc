@@ -171,9 +171,9 @@ struct _reo_man
 };
 
 // used to manipulate units
-#define Unit_Regular(u)     ((reo_unit *)((unsigned long)(u) & ~01))
-#define Unit_Not(u)         ((reo_unit *)((unsigned long)(u) ^ 01))
-#define Unit_NotCond(u,c)   ((reo_unit *)((unsigned long)(u) ^ (c)))
+#define Unit_Regular(u)     ((reo_unit *)((PORT_PTRUINT_T)(u) & ~01))
+#define Unit_Not(u)         ((reo_unit *)((PORT_PTRUINT_T)(u) ^ 01))
+#define Unit_NotCond(u,c)   ((reo_unit *)((PORT_PTRUINT_T)(u) ^ (c)))
 #define Unit_IsConstant(u)  ((int)((u)->lev == REO_CONST_LEVEL))
 
 ////////////////////////////////////////////////////////////////////////

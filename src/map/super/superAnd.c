@@ -61,10 +61,10 @@ struct Super2_GateStruct_t_
 
 
 // manipulation of complemented attributes
-#define Super2_IsComplement(p)    (((int)((unsigned long) (p) & 01)))
-#define Super2_Regular(p)         ((Super2_Gate_t *)((unsigned long)(p) & ~01)) 
-#define Super2_Not(p)             ((Super2_Gate_t *)((unsigned long)(p) ^ 01)) 
-#define Super2_NotCond(p,c)       ((Super2_Gate_t *)((unsigned long)(p) ^ (c)))
+#define Super2_IsComplement(p)    (((int)((PORT_PTRUINT_T) (p) & 01)))
+#define Super2_Regular(p)         ((Super2_Gate_t *)((PORT_PTRUINT_T)(p) & ~01)) 
+#define Super2_Not(p)             ((Super2_Gate_t *)((PORT_PTRUINT_T)(p) ^ 01)) 
+#define Super2_NotCond(p,c)       ((Super2_Gate_t *)((PORT_PTRUINT_T)(p) ^ (c)))
 
 // iterating through the gates in the library
 #define Super2_LibForEachGate( Lib, Gate )                        \

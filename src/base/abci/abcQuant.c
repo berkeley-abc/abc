@@ -187,7 +187,7 @@ Abc_Ntk_t * Abc_NtkTransRel( Abc_Ntk_t * pNtk, int fInputs, int fVerbose )
         Vec_PtrPush( vPairs, Abc_ObjChild0Copy(pObj) );
         Vec_PtrPush( vPairs, Abc_NtkPi(pNtkNew, i+nLatches) );
     }
-    pMiter = Abc_AigMiter( pNtkNew->pManFunc, vPairs );
+    pMiter = Abc_AigMiter( pNtkNew->pManFunc, vPairs, 0 );
     Vec_PtrFree( vPairs );
     // add the primary output
     Abc_ObjAddFanin( Abc_NtkPo(pNtkNew,0), Abc_ObjNot(pMiter) );

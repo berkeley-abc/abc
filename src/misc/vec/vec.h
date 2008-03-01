@@ -83,11 +83,11 @@ typedef long long          sint64;
 #endif
 
 #ifndef PRT
-#define PRT(a,t)  printf("%s = ", (a)); printf("%6.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC))
+#define PRT(a,t)  printf("%s = ", (a)); printf("%7.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC))
 #endif
 
 #ifndef PRTP
-#define PRTP(a,t,T)  printf("%s = ", (a)); printf("%6.2f sec (%6.2f %%)\n", (float)(t)/(float)(CLOCKS_PER_SEC), (T)? 100.0*(t)/(T) : 0.0)
+#define PRTP(a,t,T)  printf("%s = ", (a)); printf("%7.2f sec (%6.2f %%)\n", (float)(t)/(float)(CLOCKS_PER_SEC), (T)? 100.0*(t)/(T) : 0.0)
 #endif
 
 #include "vecInt.h"
@@ -96,6 +96,7 @@ typedef long long          sint64;
 #include "vecPtr.h"
 #include "vecVec.h"
 #include "vecAtt.h"
+#include "port_type.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///

@@ -138,6 +138,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
     }
 //    printf( "Cross cut memory = %d.\n", Mem_FixedReadMaxEntriesUsed(p->pMemSet) );
     s_MappingTime = clock() - clkTotal;
+//    printf( "Special POs = %d.\n", If_ManCountSpecialPos(p) );
     return 1;
 }
 

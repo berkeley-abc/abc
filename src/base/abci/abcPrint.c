@@ -468,6 +468,118 @@ void Abc_NtkPrintFanio( FILE * pFile, Abc_Ntk_t * pNtk )
     Vec_IntFree( vFanins );
     Vec_IntFree( vFanouts );
 }
+/**Function*************************************************************
+
+  Synopsis    [Prints the distribution of fanins/fanouts in the network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkPrintFanioNew( FILE * pFile, Abc_Ntk_t * pNtk )
+{
+    char Buffer[100];
+    Abc_Obj_t * pNode;
+    Vec_Int_t * vFanins, * vFanouts;
+    int nFanins, nFanouts, nFaninsMax, nFanoutsMax, nFaninsAll, nFanoutsAll;
+    int i, k, nSizeMax;
+
+    // determine the largest fanin and fanout
+    nFaninsMax = nFanoutsMax = 0;
+    nFaninsAll = nFanoutsAll = 0;
+    Abc_NtkForEachNode( pNtk, pNode, i )
+    {
+        nFanins  = Abc_ObjFaninNum(pNode);
+        if ( Abc_NtkIsNetlist(pNtk) )
+            nFanouts = Abc_ObjFanoutNum( Abc_ObjFanout0(pNode) );
+        else
+            nFanouts = Abc_ObjFanoutNum(pNode);
+        nFaninsAll  += nFanins;
+        nFanoutsAll += nFanouts;
+        nFaninsMax   = ABC_MAX( nFaninsMax, nFanins );
+        nFanoutsMax  = ABC_MAX( nFanoutsMax, nFanouts );
+    }
+
+    // allocate storage for fanin/fanout numbers
+    nSizeMax = ABC_MAX( 10 * (Extra_Base10Log(nFaninsMax) + 1), 10 * (Extra_Base10Log(nFanoutsMax) + 1) );
+    vFanins  = Vec_IntStart( nSizeMax );
+    vFanouts = Vec_IntStart( nSizeMax );
+
+    // count the number of fanins and fanouts
+    Abc_NtkForEachNode( pNtk, pNode, i )
+    {
+        nFanins  = Abc_ObjFaninNum(pNode);
+        if ( Abc_NtkIsNetlist(pNtk) )
+            nFanouts = Abc_ObjFanoutNum( Abc_ObjFanout0(pNode) );
+        else
+            nFanouts = Abc_ObjFanoutNum(pNode);
+//            nFanouts = Abc_NodeMffcSize(pNode);
+
+        if ( nFanins < 10 )
+            Vec_IntAddToEntry( vFanins, nFanins, 1 );
+        else if ( nFanins < 100 )
+            Vec_IntAddToEntry( vFanins, 10 + nFanins/10, 1 );
+        else if ( nFanins < 1000 )
+            Vec_IntAddToEntry( vFanins, 20 + nFanins/100, 1 );
+        else if ( nFanins < 10000 )
+            Vec_IntAddToEntry( vFanins, 30 + nFanins/1000, 1 );
+        else if ( nFanins < 100000 )
+            Vec_IntAddToEntry( vFanins, 40 + nFanins/10000, 1 );
+        else if ( nFanins < 1000000 )
+            Vec_IntAddToEntry( vFanins, 50 + nFanins/100000, 1 );
+        else if ( nFanins < 10000000 )
+            Vec_IntAddToEntry( vFanins, 60 + nFanins/1000000, 1 );
+
+        if ( nFanouts < 10 )
+            Vec_IntAddToEntry( vFanouts, nFanouts, 1 );
+        else if ( nFanouts < 100 )
+            Vec_IntAddToEntry( vFanouts, 10 + nFanouts/10, 1 );
+        else if ( nFanouts < 1000 )
+            Vec_IntAddToEntry( vFanouts, 20 + nFanouts/100, 1 );
+        else if ( nFanouts < 10000 )
+            Vec_IntAddToEntry( vFanouts, 30 + nFanouts/1000, 1 );
+        else if ( nFanouts < 100000 )
+            Vec_IntAddToEntry( vFanouts, 40 + nFanouts/10000, 1 );
+        else if ( nFanouts < 1000000 )
+            Vec_IntAddToEntry( vFanouts, 50 + nFanouts/100000, 1 );
+        else if ( nFanouts < 10000000 )
+            Vec_IntAddToEntry( vFanouts, 60 + nFanouts/1000000, 1 );
+    }
+
+    fprintf( pFile, "The distribution of fanins and fanouts in the network:\n" );
+    fprintf( pFile, "         Number   Nodes with fanin  Nodes with fanout\n" );
+    for ( k = 0; k < nSizeMax; k++ )
+    {
+        if ( vFanins->pArray[k] == 0 && vFanouts->pArray[k] == 0 )
+            continue;
+        if ( k < 10 )
+            fprintf( pFile, "%15d : ", k );
+        else
+        {
+            sprintf( Buffer, "%d - %d", (int)pow(10, k/10) * (k%10), (int)pow(10, k/10) * (k%10+1) - 1 ); 
+            fprintf( pFile, "%15s : ", Buffer );
+        }
+        if ( vFanins->pArray[k] == 0 )
+            fprintf( pFile, "              " );
+        else
+            fprintf( pFile, "%12d  ", vFanins->pArray[k] );
+        fprintf( pFile, "    " );
+        if ( vFanouts->pArray[k] == 0 )
+            fprintf( pFile, "              " );
+        else
+            fprintf( pFile, "%12d  ", vFanouts->pArray[k] );
+        fprintf( pFile, "\n" );
+    }
+    Vec_IntFree( vFanins );
+    Vec_IntFree( vFanouts );
+
+    fprintf( pFile, "Fanins: Max = %d. Ave = %.2f.  Fanouts: Max = %d. Ave =  %.2f.\n", 
+        nFaninsMax,  1.0*nFaninsAll/Abc_NtkNodeNum(pNtk), 
+        nFanoutsMax, 1.0*nFanoutsAll/Abc_NtkNodeNum(pNtk)  );
+}
 
 /**Function*************************************************************
 

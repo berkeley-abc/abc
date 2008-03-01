@@ -47,6 +47,7 @@ struct Mfs_Par_t_
     int           nDivMax;       // the maximum number of divisors
     int           nWinSizeMax;   // the maximum size of the window
     int           nGrowthLevel;  // the maximum allowed growth in level
+    int           nBTLimit;      // the maximum number of conflicts in one SAT run
     int           fResub;        // performs resubstitution
     int           fArea;         // performs optimization for area
     int           fMoreEffort;   // performs high-affort minimization

@@ -125,6 +125,8 @@ Abc_Ntk_t * Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_
     // transfer the names
 //    Abc_NtkTrasferNames( pNtk, pNtkNew );
     Abc_ManTimeDup( pNtk, pNtkNew );
+    if ( pNtk->vOnehots )
+        pNtkNew->vOnehots = (Vec_Ptr_t *)Vec_VecDupInt( (Vec_Vec_t *)pNtk->vOnehots );
     // check that the CI/CO/latches are copied correctly
     assert( Abc_NtkCiNum(pNtk)    == Abc_NtkCiNum(pNtkNew) );
     assert( Abc_NtkCoNum(pNtk)    == Abc_NtkCoNum(pNtkNew) );
@@ -520,7 +522,7 @@ Abc_Ntk_t * Abc_NtkCreateCone( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, char * pNode
     int i, k;
 
     assert( Abc_NtkIsLogic(pNtk) || Abc_NtkIsStrash(pNtk) );
-    assert( Abc_ObjIsNode(pNode) ); 
+    assert( Abc_ObjIsNode(pNode) || (Abc_NtkIsStrash(pNtk) && Abc_AigNodeIsConst(pNode))  ); 
     
     // start the network
     pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc, 1 );
@@ -1032,6 +1034,8 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     FREE( pNtk->pName );
     FREE( pNtk->pSpec );
     FREE( pNtk->pLutTimes );
+    if ( pNtk->vOnehots )
+        Vec_VecFree( (Vec_Vec_t *)pNtk->vOnehots );
     free( pNtk );
 }
 

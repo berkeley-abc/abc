@@ -201,9 +201,10 @@ struct Abc_Ntk_t_
     Abc_Ntk_t *       pExdc;         // the EXDC network (if given)
     void *            pExcare;       // the EXDC network (if given)
     void *            pData;         // misc
-    Abc_Ntk_t *       pCopy;
+    Abc_Ntk_t *       pCopy;         // copy of this network
     Hop_Man_t *       pHaig;         // history AIG
     float *           pLutTimes;     // arrivals/requireds/slacks using LUT-delay model
+    Vec_Ptr_t *       vOnehots;      // names of one-hot-encoded registers
     // node attributes
     Vec_Ptr_t *       vAttrs;        // managers of various node attributes (node functionality, global BDDs, etc)
 };
@@ -328,10 +329,10 @@ static inline Abc_Obj_t * Abc_NtkAssert( Abc_Ntk_t * pNtk, int i )   { return (A
 static inline Abc_Obj_t * Abc_NtkBox( Abc_Ntk_t * pNtk, int i )      { return (Abc_Obj_t *)Vec_PtrEntry( pNtk->vBoxes, i );  }
 
 // working with complemented attributes of objects
-static inline bool        Abc_ObjIsComplement( Abc_Obj_t * p )       { return (bool)((unsigned long)p & (unsigned long)01);             }
-static inline Abc_Obj_t * Abc_ObjRegular( Abc_Obj_t * p )            { return (Abc_Obj_t *)((unsigned long)p & ~(unsigned long)01);     }
-static inline Abc_Obj_t * Abc_ObjNot( Abc_Obj_t * p )                { return (Abc_Obj_t *)((unsigned long)p ^  (unsigned long)01);     }
-static inline Abc_Obj_t * Abc_ObjNotCond( Abc_Obj_t * p, int c )     { return (Abc_Obj_t *)((unsigned long)p ^  (unsigned long)(c!=0)); }
+static inline bool        Abc_ObjIsComplement( Abc_Obj_t * p )       { return (bool)((PORT_PTRUINT_T)p & (PORT_PTRUINT_T)01);             }
+static inline Abc_Obj_t * Abc_ObjRegular( Abc_Obj_t * p )            { return (Abc_Obj_t *)((PORT_PTRUINT_T)p & ~(PORT_PTRUINT_T)01);     }
+static inline Abc_Obj_t * Abc_ObjNot( Abc_Obj_t * p )                { return (Abc_Obj_t *)((PORT_PTRUINT_T)p ^  (PORT_PTRUINT_T)01);     }
+static inline Abc_Obj_t * Abc_ObjNotCond( Abc_Obj_t * p, int c )     { return (Abc_Obj_t *)((PORT_PTRUINT_T)p ^  (PORT_PTRUINT_T)(c!=0)); }
 
 // reading data members of the object
 static inline unsigned    Abc_ObjType( Abc_Obj_t * pObj )            { return pObj->Type;               }
@@ -441,9 +442,6 @@ static inline void *      Abc_ObjMvVar( Abc_Obj_t * pObj )              { return
 static inline int         Abc_ObjMvVarNum( Abc_Obj_t * pObj )           { return (Abc_NtkMvVar(pObj->pNtk) && Abc_ObjMvVar(pObj))? *((int*)Abc_ObjMvVar(pObj)) : 2;   }
 static inline void        Abc_ObjSetMvVar( Abc_Obj_t * pObj, void * pV) { Vec_AttWriteEntry( (Vec_Att_t *)Abc_NtkMvVar(pObj->pNtk), pObj->Id, pV );                }
 
-// outputs the runtime in seconds
-#define PRT(a,t)  printf("%s = ", (a)); printf("%6.2f sec\n", (float)(t)/(float)(CLOCKS_PER_SEC))
-
 ////////////////////////////////////////////////////////////////////////
 ///                        ITERATORS                                 ///
 ////////////////////////////////////////////////////////////////////////
@@ -523,7 +521,7 @@ extern Abc_Obj_t *        Abc_AigMuxLookup( Abc_Aig_t * pMan, Abc_Obj_t * pC, Ab
 extern Abc_Obj_t *        Abc_AigOr( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 );
 extern Abc_Obj_t *        Abc_AigXor( Abc_Aig_t * pMan, Abc_Obj_t * p0, Abc_Obj_t * p1 );
 extern Abc_Obj_t *        Abc_AigMux( Abc_Aig_t * pMan, Abc_Obj_t * pC, Abc_Obj_t * p1, Abc_Obj_t * p0 );
-extern Abc_Obj_t *        Abc_AigMiter( Abc_Aig_t * pMan, Vec_Ptr_t * vPairs );
+extern Abc_Obj_t *        Abc_AigMiter( Abc_Aig_t * pMan, Vec_Ptr_t * vPairs, int fImplic );
 extern void               Abc_AigReplace( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew, bool fUpdateLevel );
 extern void               Abc_AigDeleteNode( Abc_Aig_t * pMan, Abc_Obj_t * pOld );
 extern void               Abc_AigRehash( Abc_Aig_t * pMan );
@@ -635,6 +633,7 @@ extern Vec_Int_t *        Abc_NtkCollectLatchValues( Abc_Ntk_t * pNtk );
 extern void               Abc_NtkInsertLatchValues( Abc_Ntk_t * pNtk, Vec_Int_t * vValues );
 extern Abc_Obj_t *        Abc_NtkAddLatch( Abc_Ntk_t * pNtk, Abc_Obj_t * pDriver, Abc_InitType_t Init );
 extern void               Abc_NtkConvertDcLatches( Abc_Ntk_t * pNtk );
+extern Vec_Ptr_t *        Abc_NtkConverLatchNamesIntoNumbers( Abc_Ntk_t * pNtk );
  /*=== abcLib.c ==========================================================*/
 extern Abc_Lib_t *        Abc_LibCreate( char * pName );
 extern void               Abc_LibFree( Abc_Lib_t * pLib, Abc_Ntk_t * pNtk );
@@ -649,7 +648,7 @@ extern int                Abc_NodeMinimumBase( Abc_Obj_t * pNode );
 extern int                Abc_NtkRemoveDupFanins( Abc_Ntk_t * pNtk );
 extern int                Abc_NodeRemoveDupFanins( Abc_Obj_t * pNode );
 /*=== abcMiter.c ==========================================================*/
-extern Abc_Ntk_t *        Abc_NtkMiter( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb, int nPartSize );
+extern Abc_Ntk_t *        Abc_NtkMiter( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb, int nPartSize, int fImplic );
 extern void               Abc_NtkMiterAddCone( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkMiter, Abc_Obj_t * pNode );
 extern Abc_Ntk_t *        Abc_NtkMiterAnd( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fOr, int fCompl2 );
 extern Abc_Ntk_t *        Abc_NtkMiterCofactor( Abc_Ntk_t * pNtk, Vec_Int_t * vPiValues );
@@ -739,6 +738,7 @@ extern void               Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int
 extern void               Abc_NtkPrintIo( FILE * pFile, Abc_Ntk_t * pNtk );
 extern void               Abc_NtkPrintLatch( FILE * pFile, Abc_Ntk_t * pNtk );
 extern void               Abc_NtkPrintFanio( FILE * pFile, Abc_Ntk_t * pNtk );
+extern void               Abc_NtkPrintFanioNew( FILE * pFile, Abc_Ntk_t * pNtk );
 extern void               Abc_NodePrintFanio( FILE * pFile, Abc_Obj_t * pNode );
 extern void               Abc_NtkPrintFactor( FILE * pFile, Abc_Ntk_t * pNtk, int fUseRealNames );
 extern void               Abc_NodePrintFactor( FILE * pFile, Abc_Obj_t * pNode, int fUseRealNames );

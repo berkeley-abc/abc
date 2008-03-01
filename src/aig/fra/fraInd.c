@@ -253,6 +253,7 @@ Aig_Man_t * Fra_FraigInductionPart( Aig_Man_t * pAig, Fra_Ssw_t * pPars )
     int * pMapBack;
     int i, nCountPis, nCountRegs;
     int nClasses, nPartSize, fVerbose;
+    int clk = clock();
 
     // save parameters
     nPartSize = pPars->nPartSize; pPars->nPartSize = 0;
@@ -281,6 +282,9 @@ Aig_Man_t * Fra_FraigInductionPart( Aig_Man_t * pAig, Fra_Ssw_t * pPars )
     Vec_PtrForEachEntry( vResult, vPart, i )
     {
         pTemp = Aig_ManRegCreatePart( pAig, vPart, &nCountPis, &nCountRegs, &pMapBack );
+        // create the projection of 1-hot registers
+        if ( pAig->vOnehots )
+            pTemp->vOnehots = Aig_ManRegProjectOnehots( pAig, pTemp, pAig->vOnehots, fVerbose );
         // run SSW
         pNew = Fra_FraigInduction( pTemp, pPars );
         nClasses = Aig_TransferMappedClasses( pAig, pTemp, pMapBack );
@@ -299,6 +303,10 @@ Aig_Man_t * Fra_FraigInductionPart( Aig_Man_t * pAig, Fra_Ssw_t * pPars )
     Vec_VecFree( (Vec_Vec_t *)vResult );
     pPars->nPartSize = nPartSize;
     pPars->fVerbose = fVerbose;
+    if ( fVerbose )
+    {
+        PRT( "Total time", clock() - clk );
+    }
     return pNew;
 }
 
@@ -485,6 +493,8 @@ p->timeTrav += clock() - clk2;
         // add one-hotness clauses
         if ( p->pPars->fUse1Hot )
             Fra_OneHotAssume( p, p->vOneHots );
+//        if ( p->pManAig->vOnehots )
+//            Fra_OneHotAddKnownConstraint( p, p->pManAig->vOnehots );
 
         // report the intermediate results
         if ( pPars->fVerbose )

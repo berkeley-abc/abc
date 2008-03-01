@@ -318,6 +318,58 @@ void Abc_NtkConvertDcLatches( Abc_Ntk_t * pNtk )
     printf( "The number of converted latches with DC values = %d.\n", Counter );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Transfors the array of latch names into that of latch numbers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_NtkConverLatchNamesIntoNumbers( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vResult, * vNames;
+    Vec_Int_t * vNumbers;
+    Abc_Obj_t * pObj;
+    char * pName;
+    int i, k, Num;
+    if ( pNtk->vOnehots == NULL )
+        return NULL;
+    // set register numbers
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+        pObj->pNext = (Abc_Obj_t *)i;
+    // add the numbers
+    vResult = Vec_PtrAlloc( Vec_PtrSize(pNtk->vOnehots) );
+    Vec_PtrForEachEntry( pNtk->vOnehots, vNames, i )
+    {
+        vNumbers = Vec_IntAlloc( Vec_PtrSize(vNames) );
+        Vec_PtrForEachEntry( vNames, pName, k )
+        {
+            Num = Nm_ManFindIdByName( pNtk->pManName, pName, ABC_OBJ_BO );
+            if ( Num < 0 )
+                continue;
+            pObj = Abc_NtkObj( pNtk, Num );
+            if ( Abc_ObjFaninNum(pObj) != 1 || !Abc_ObjIsLatch(Abc_ObjFanin0(pObj)) )
+                continue;
+            Vec_IntPush( vNumbers, (int)pObj->pNext );
+        }
+        if ( Vec_IntSize( vNumbers ) > 1 )
+        {
+            Vec_PtrPush( vResult, vNumbers );
+printf( "Converted %d one-hot registers.\n", Vec_IntSize(vNumbers) );
+        }
+        else
+            Vec_IntFree( vNumbers );
+    }
+    // clean the numbers
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+        pObj->pNext = NULL;
+    return vResult;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

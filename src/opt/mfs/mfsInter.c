@@ -226,10 +226,10 @@ Hop_Obj_t * Abc_NtkMfsInterplate( Mfs_Man_t * p, int * pCands, int nCands )
     pSat = Abc_MfsCreateSolverResub( p, pCands, nCands );
 
     // solve the problem
-    status = sat_solver_solve( pSat, NULL, NULL, (sint64)0, (sint64)0, (sint64)0, (sint64)0 );
+    status = sat_solver_solve( pSat, NULL, NULL, (sint64)p->pPars->nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
     if ( status != l_False )
     {
-        printf( "Abc_NtkMfsInterplate(): Internal error. The problem is not UNSAT.\n" );
+        p->nTimeOuts++;
         return NULL;
     }
     // get the learned clauses

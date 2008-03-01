@@ -89,7 +89,7 @@ Abc_Ntk_t * Res_WndStrash( Res_Win_t * p )
     Vec_PtrForEachEntry( p->vRoots, pObj, i )
         Vec_PtrWriteEntry( vPairs, 2 * i + 1, pObj->pCopy );
     // add the miter
-    pMiter = Abc_AigMiter( pAig->pManFunc, vPairs );
+    pMiter = Abc_AigMiter( pAig->pManFunc, vPairs, 0 );
     Abc_ObjAddFanin( Abc_NtkCreatePo(pAig), pMiter );
     Vec_PtrFree( vPairs );
     // add the node

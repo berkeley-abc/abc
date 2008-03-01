@@ -21,7 +21,7 @@
 #include "mainInt.h"
 
 #ifndef _WIN32
-#include "readline/readline.h"
+#include <readline/readline.h>
 #endif
 
 ////////////////////////////////////////////////////////////////////////

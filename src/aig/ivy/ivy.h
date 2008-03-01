@@ -186,10 +186,10 @@ static inline int          Ivy_InfoHasBit( unsigned * p, int i )  { return (p[(i
 static inline void         Ivy_InfoSetBit( unsigned * p, int i )  { p[(i)>>5] |= (1<<((i) & 31));                   }
 static inline void         Ivy_InfoXorBit( unsigned * p, int i )  { p[(i)>>5] ^= (1<<((i) & 31));                   }
 
-static inline Ivy_Obj_t *  Ivy_Regular( Ivy_Obj_t * p )           { return (Ivy_Obj_t *)((unsigned long)(p) & ~01); }
-static inline Ivy_Obj_t *  Ivy_Not( Ivy_Obj_t * p )               { return (Ivy_Obj_t *)((unsigned long)(p) ^  01); }
-static inline Ivy_Obj_t *  Ivy_NotCond( Ivy_Obj_t * p, int c )    { return (Ivy_Obj_t *)((unsigned long)(p) ^ (c)); }
-static inline int          Ivy_IsComplement( Ivy_Obj_t * p )      { return (int)((unsigned long)(p) & 01);          }
+static inline Ivy_Obj_t *  Ivy_Regular( Ivy_Obj_t * p )           { return (Ivy_Obj_t *)((PORT_PTRUINT_T)(p) & ~01); }
+static inline Ivy_Obj_t *  Ivy_Not( Ivy_Obj_t * p )               { return (Ivy_Obj_t *)((PORT_PTRUINT_T)(p) ^  01); }
+static inline Ivy_Obj_t *  Ivy_NotCond( Ivy_Obj_t * p, int c )    { return (Ivy_Obj_t *)((PORT_PTRUINT_T)(p) ^ (c)); }
+static inline int          Ivy_IsComplement( Ivy_Obj_t * p )      { return (int)((PORT_PTRUINT_T)(p) & 01);          }
 
 static inline Ivy_Obj_t *  Ivy_ManConst0( Ivy_Man_t * p )         { return Ivy_Not(p->pConst1);                     }
 static inline Ivy_Obj_t *  Ivy_ManConst1( Ivy_Man_t * p )         { return p->pConst1;                              }

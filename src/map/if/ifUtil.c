@@ -651,6 +651,38 @@ Vec_Ptr_t * If_ManCollectMappingDirect( If_Man_t * p )
     return vOrder;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns the number of POs pointing to the same internal nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_ManCountSpecialPos( If_Man_t * p )
+{
+    If_Obj_t * pObj;
+    int i, Counter = 0;
+    // clean all marks
+    If_ManForEachPo( p, pObj, i )
+        If_ObjFanin0(pObj)->fMark = 0;
+    // label nodes 
+    If_ManForEachPo( p, pObj, i )
+        if ( !If_ObjFaninC0(pObj) )
+            If_ObjFanin0(pObj)->fMark = 1;
+    // label nodes 
+    If_ManForEachPo( p, pObj, i )
+        if ( If_ObjFaninC0(pObj) )
+            Counter += If_ObjFanin0(pObj)->fMark;
+    // clean all marks
+    If_ManForEachPo( p, pObj, i )
+        If_ObjFanin0(pObj)->fMark = 0;
+    return Counter;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

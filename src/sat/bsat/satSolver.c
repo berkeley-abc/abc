@@ -25,6 +25,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <math.h>
 
 #include "satSolver.h"
+#include "port_type.h"
 
 //#define SAT_USE_SYSTEM_MEMORY_MANAGEMENT
 
@@ -90,9 +91,9 @@ static inline void  clause_setactivity(clause* c, float a) { *((float*)&c->lits[
 //=================================================================================================
 // Encode literals in clause pointers:
 
-static inline clause* clause_from_lit (lit l)     { return (clause*)((unsigned long)l + (unsigned long)l + 1);  }
-static inline bool    clause_is_lit   (clause* c) { return ((unsigned long)c & 1);                              }
-static inline lit     clause_read_lit (clause* c) { return (lit)((unsigned long)c >> 1);                        }
+static inline clause* clause_from_lit (lit l)     { return (clause*)((PORT_PTRUINT_T)l + (PORT_PTRUINT_T)l + 1); }
+static inline bool    clause_is_lit   (clause* c) { return ((PORT_PTRUINT_T)c & 1);                              }
+static inline lit     clause_read_lit (clause* c) { return (lit)((PORT_PTRUINT_T)c >> 1);                        }
 
 //=================================================================================================
 // Simple helpers:
@@ -285,7 +286,7 @@ static clause* clause_new(sat_solver* s, lit* begin, lit* end, int learnt)
 #endif
 
     c->size_learnt = (size << 1) | learnt;
-    assert(((unsigned long)c & 1) == 0);
+    assert(((PORT_PTRUINT_T)c & 1) == 0);
 
     for (i = 0; i < size; i++)
         c->lits[i] = begin[i];

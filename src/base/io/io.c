@@ -722,14 +722,19 @@ int IoCommandReadPla( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk;
     char * pFileName;
     int fCheck;
+    int fZeros;
     int c;
 
+    fZeros = 0;
     fCheck = 1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ch" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "zch" ) ) != EOF )
     {
         switch ( c )
         {
+            case 'z':
+                fZeros ^= 1;
+                break;
             case 'c':
                 fCheck ^= 1;
                 break;
@@ -744,7 +749,20 @@ int IoCommandReadPla( Abc_Frame_t * pAbc, int argc, char ** argv )
     // get the input file name
     pFileName = argv[globalUtilOptind];
     // read the file using the corresponding file reader
-    pNtk = Io_Read( pFileName, IO_FILE_PLA, fCheck );
+    if ( fZeros )
+    {
+        Abc_Ntk_t * pTemp;
+        pNtk = Io_ReadPla( pFileName, fZeros, fCheck );
+        if ( pNtk == NULL )
+        {
+            printf( "Reading PLA file has failed.\n" );
+            return 1;
+        }
+        pNtk = Abc_NtkToLogic( pTemp = pNtk );
+        Abc_NtkDelete( pTemp );
+    }
+    else
+        pNtk = Io_Read( pFileName, IO_FILE_PLA, fCheck );
     if ( pNtk == NULL )
         return 1;
     // replace the current network
@@ -752,8 +770,9 @@ int IoCommandReadPla( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: read_pla [-ch] <file>\n" );
+    fprintf( pAbc->Err, "usage: read_pla [-zch] <file>\n" );
     fprintf( pAbc->Err, "\t         read the network in PLA\n" );
+    fprintf( pAbc->Err, "\t-z     : toggle reading on-set and off-set [default = %s]\n", fZeros? "off-set":"on-set" );
     fprintf( pAbc->Err, "\t-c     : toggle network check after reading [default = %s]\n", fCheck? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
     fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );

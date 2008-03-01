@@ -49,6 +49,7 @@ struct Io_MvMod_t_
     Vec_Ptr_t *          vResets;      // .reset lines
     Vec_Ptr_t *          vNames;       // .names lines
     Vec_Ptr_t *          vSubckts;     // .subckt lines
+    Vec_Ptr_t *          vOnehots;     // .onehot lines
     Vec_Ptr_t *          vMvs;         // .mv lines
     int                  fBlackBox;    // indicates blackbox model
     // the resulting network
@@ -97,6 +98,7 @@ static int               Io_MvParseLineInputs( Io_MvMod_t * p, char * pLine );
 static int               Io_MvParseLineOutputs( Io_MvMod_t * p, char * pLine );
 static int               Io_MvParseLineLatch( Io_MvMod_t * p, char * pLine );
 static int               Io_MvParseLineSubckt( Io_MvMod_t * p, char * pLine );
+static Vec_Int_t *       Io_MvParseLineOnehot( Io_MvMod_t * p, char * pLine );
 static int               Io_MvParseLineMv( Io_MvMod_t * p, char * pLine );
 static int               Io_MvParseLineNamesMv( Io_MvMod_t * p, char * pLine, int fReset );
 static int               Io_MvParseLineNamesBlif( Io_MvMod_t * p, char * pLine );
@@ -295,6 +297,7 @@ static Io_MvMod_t * Io_MvModAlloc()
     p->vResets  = Vec_PtrAlloc( 512 );
     p->vNames   = Vec_PtrAlloc( 512 );
     p->vSubckts = Vec_PtrAlloc( 512 );
+    p->vOnehots = Vec_PtrAlloc( 512 );
     p->vMvs     = Vec_PtrAlloc( 512 );
     return p;
 }
@@ -320,6 +323,7 @@ static void Io_MvModFree( Io_MvMod_t * p )
     Vec_PtrFree( p->vResets );
     Vec_PtrFree( p->vNames );
     Vec_PtrFree( p->vSubckts );
+    Vec_PtrFree( p->vOnehots );
     Vec_PtrFree( p->vMvs );
     free( p );
 }
@@ -597,6 +601,8 @@ static void Io_MvReadPreparse( Io_MvMan_t * p )
             Vec_PtrPush( p->pLatest->vOutputs, pCur );
         else if ( !strncmp(pCur, "subckt", 6) )
             Vec_PtrPush( p->pLatest->vSubckts, pCur );
+        else if ( !strncmp(pCur, "onehot", 6) )
+            Vec_PtrPush( p->pLatest->vOnehots, pCur );
         else if ( p->fBlifMv && !strncmp(pCur, "mv", 2) )
             Vec_PtrPush( p->pLatest->vMvs, pCur );
         else if ( !strncmp(pCur, "blackbox", 8) )
@@ -743,6 +749,42 @@ static Abc_Lib_t * Io_MvParse( Io_MvMan_t * p )
                 return NULL;
         // finalize the network
         Abc_NtkFinalizeRead( pMod->pNtk );
+        // read the one-hotness lines
+        if ( Vec_PtrSize(pMod->vOnehots) > 0 )
+        {
+            Vec_Int_t * vLine; 
+            Abc_Obj_t * pObj;
+            // set register numbers
+            Abc_NtkForEachLatch( pMod->pNtk, pObj, k )
+                pObj->pNext = (Abc_Obj_t *)k;
+            // derive register
+            pMod->pNtk->vOnehots = Vec_PtrAlloc( Vec_PtrSize(pMod->vOnehots) );
+            Vec_PtrForEachEntry( pMod->vOnehots, pLine, k )
+            {
+                vLine = Io_MvParseLineOnehot( pMod, pLine );
+                if ( vLine == NULL )
+                    return NULL;
+                Vec_PtrPush( pMod->pNtk->vOnehots, vLine );
+//                printf( "Parsed %d one-hot registers.\n", Vec_IntSize(vLine) );
+            }
+            // reset register numbers
+            Abc_NtkForEachLatch( pMod->pNtk, pObj, k )
+                pObj->pNext = NULL;
+            // print the result
+            printf( "Parsed %d groups of 1-hot registers: { ", Vec_PtrSize(pMod->pNtk->vOnehots) );
+            Vec_PtrForEachEntry( pMod->pNtk->vOnehots, vLine, k )
+                printf( "%d ", Vec_IntSize(vLine) );
+            printf( "}\n" );
+            printf( "The total number of 1-hot registers = %d. (%.2f %%)\n", 
+                Vec_VecSizeSize( (Vec_Vec_t *)pMod->pNtk->vOnehots ), 
+                100.0 * Vec_VecSizeSize( (Vec_Vec_t *)pMod->pNtk->vOnehots ) / Abc_NtkLatchNum(pMod->pNtk) );
+            {
+                extern void Abc_GenOneHotIntervals( char * pFileName, int nPis, int nRegs, Vec_Ptr_t * vOnehots );
+                char * pFileName = Extra_FileNameGenericAppend( pMod->pMan->pFileName, "_1h.blif" );
+                Abc_GenOneHotIntervals( pFileName, Abc_NtkPiNum(pMod->pNtk), Abc_NtkLatchNum(pMod->pNtk), pMod->pNtk->vOnehots );
+                printf( "One-hotness condition is written into file \"%s\".\n", pFileName );
+            }
+        }
     }
     if ( p->nNDnodes )
 //        printf( "Warning: The parser added %d PIs to replace non-deterministic nodes.\n", p->nNDnodes );
@@ -993,6 +1035,63 @@ static int Io_MvParseLineSubckt( Io_MvMod_t * p, char * pLine )
         Abc_ObjAddFanin( pTerm, pBox );
     }
     return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Parses the subckt line.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static Vec_Int_t * Io_MvParseLineOnehot( Io_MvMod_t * p, char * pLine )
+{
+    Vec_Ptr_t * vTokens = p->pMan->vTokens;
+//    Vec_Ptr_t * vResult;
+    Vec_Int_t * vResult;
+    Abc_Obj_t * pNet, * pTerm;
+    char * pToken;
+    int nEquals, i;
+
+    // split the line into tokens
+    nEquals = Io_MvCountChars( pLine, '=' );
+    Io_MvSplitIntoTokensAndClear( vTokens, pLine, '\0', '=' );
+    pToken = Vec_PtrEntry(vTokens,0);
+    assert( !strcmp(pToken, "onehot") );
+
+    // iterate through the register names
+//    vResult = Vec_PtrAlloc( Vec_PtrSize(vTokens) );
+    vResult = Vec_IntAlloc( Vec_PtrSize(vTokens) );
+    Vec_PtrForEachEntryStart( vTokens, pToken, i, 1 )
+    {
+        // check if this register exists
+        pNet = Abc_NtkFindNet( p->pNtk, pToken );
+        if ( pNet == NULL )
+        {
+            sprintf( p->pMan->sError, "Line %d: Signal with name \"%s\" does not exist in the model \"%s\".", 
+                Io_MvGetLine(p->pMan, pToken), pToken, Abc_NtkName(p->pNtk) );
+            return NULL;
+        }
+        // check if this is register output net
+        pTerm = Abc_ObjFanin0( pNet );
+        if ( pTerm == NULL || Abc_ObjFanin0(pTerm) == NULL || !Abc_ObjIsLatch(Abc_ObjFanin0(pTerm)) )
+        {
+            sprintf( p->pMan->sError, "Line %d: Signal with name \"%s\" is not a register in the model \"%s\".", 
+                Io_MvGetLine(p->pMan, pToken), pToken, Abc_NtkName(p->pNtk) );
+            return NULL;
+        }
+        // save register name
+//        Vec_PtrPush( vResult, Abc_ObjName(pNet) );
+        Vec_IntPush( vResult, (int)Abc_ObjFanin0(pTerm)->pNext );
+//        printf( "%d(%d) ", (int)Abc_ObjFanin0(pTerm)->pNext, ((int)Abc_ObjFanin0(pTerm)->pData) -1 );
+        printf( "%d", ((int)Abc_ObjFanin0(pTerm)->pData)-1 );
+    }
+    printf( "\n" );
+    return vResult;
 }
 
 

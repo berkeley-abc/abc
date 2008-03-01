@@ -84,6 +84,7 @@ struct Mfs_Man_t_
     int                 nMintsTotal;
     int                 nNodesBad;
     int                 nTotalDivs;
+    int                 nTimeOuts;
     // node/edge stats
     int                 nTotalNodesBeg;
     int                 nTotalNodesEnd;

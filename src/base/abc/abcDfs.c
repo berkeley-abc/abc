@@ -121,6 +121,8 @@ Vec_Ptr_t * Abc_NtkDfsNodes( Abc_Ntk_t * pNtk, Abc_Obj_t ** ppNodes, int nNodes 
     // go through the PO nodes and call for each of them
     for ( i = 0; i < nNodes; i++ )
     {
+        if ( Abc_NtkIsStrash(pNtk) && Abc_AigNodeIsConst(ppNodes[i]) )
+            continue;
         if ( Abc_ObjIsCo(ppNodes[i]) )
         {
             Abc_NodeSetTravIdCurrent(ppNodes[i]);

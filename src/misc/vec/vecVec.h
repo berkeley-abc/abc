@@ -207,6 +207,48 @@ static inline void Vec_VecFree( Vec_Vec_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Frees the vector.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Vec_Vec_t * Vec_VecDupPtr( Vec_Vec_t * p )
+{
+    Vec_Ptr_t * vNew, * vVec;
+    int i;
+    vNew = Vec_PtrAlloc( Vec_VecSize(p) );
+    Vec_VecForEachLevel( p, vVec, i )
+        Vec_PtrPush( vNew, Vec_PtrDup(vVec) );
+    return (Vec_Vec_t *)vNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Frees the vector.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Vec_Vec_t * Vec_VecDupInt( Vec_Vec_t * p )
+{
+    Vec_Ptr_t * vNew, * vVec;
+    int i;
+    vNew = Vec_PtrAlloc( Vec_VecSize(p) );
+    Vec_VecForEachLevel( p, vVec, i )
+        Vec_PtrPush( vNew, Vec_IntDup((Vec_Int_t *)vVec) );
+    return (Vec_Vec_t *)vNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Frees the vector of vectors.]
 
   Description []

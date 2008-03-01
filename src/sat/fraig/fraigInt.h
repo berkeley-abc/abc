@@ -32,6 +32,7 @@
 
 #include "fraig.h"
 #include "msat.h"
+#include "port_type.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///

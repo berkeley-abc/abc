@@ -24,7 +24,7 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p );
+static Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -41,7 +41,7 @@ static Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p );
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Io_ReadPla( char * pFileName, int fCheck )
+Abc_Ntk_t * Io_ReadPla( char * pFileName, int fZeros, int fCheck )
 {
     Extra_FileReader_t * p;
     Abc_Ntk_t * pNtk;
@@ -52,7 +52,7 @@ Abc_Ntk_t * Io_ReadPla( char * pFileName, int fCheck )
         return NULL;
 
     // read the network
-    pNtk = Io_ReadPlaNetwork( p );
+    pNtk = Io_ReadPlaNetwork( p, fZeros );
     Extra_FileReaderFree( p );
     if ( pNtk == NULL )
         return NULL;
@@ -77,7 +77,7 @@ Abc_Ntk_t * Io_ReadPla( char * pFileName, int fCheck )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p )
+Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros )
 {
     ProgressBar * pProgress;
     Vec_Ptr_t * vTokens;
@@ -205,12 +205,26 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p )
                 Abc_NtkDelete( pNtk );
                 return NULL;
             }
-            for ( i = 0; i < nOutputs; i++ )
+            if ( fZeros )
             {
-                if ( pCubeOut[i] == '1' )
+                for ( i = 0; i < nOutputs; i++ )
                 {
-                    Vec_StrAppend( ppSops[i], pCubeIn );
-                    Vec_StrAppend( ppSops[i], " 1\n" );
+                    if ( pCubeOut[i] == '0' )
+                    {
+                        Vec_StrAppend( ppSops[i], pCubeIn );
+                        Vec_StrAppend( ppSops[i], " 1\n" );
+                    }
+                }
+            }
+            else
+            {
+                for ( i = 0; i < nOutputs; i++ )
+                {
+                    if ( pCubeOut[i] == '1' )
+                    {
+                        Vec_StrAppend( ppSops[i], pCubeIn );
+                        Vec_StrAppend( ppSops[i], " 1\n" );
+                    }
                 }
             }
             nCubes++;

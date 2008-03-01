@@ -110,10 +110,10 @@ struct Bdc_Man_t_
 };
 
 // working with complemented attributes of objects
-static inline int         Bdc_IsComplement( Bdc_Fun_t * p )             { return (int)((unsigned long)p & (unsigned long)01);              }
-static inline Bdc_Fun_t * Bdc_Regular( Bdc_Fun_t * p )                  { return (Bdc_Fun_t *)((unsigned long)p & ~(unsigned long)01);     }
-static inline Bdc_Fun_t * Bdc_Not( Bdc_Fun_t * p )                      { return (Bdc_Fun_t *)((unsigned long)p ^  (unsigned long)01);     }
-static inline Bdc_Fun_t * Bdc_NotCond( Bdc_Fun_t * p, int c )           { return (Bdc_Fun_t *)((unsigned long)p ^  (unsigned long)(c!=0)); }
+static inline int         Bdc_IsComplement( Bdc_Fun_t * p )             { return (int)((PORT_PTRUINT_T)p & (PORT_PTRUINT_T)01);              }
+static inline Bdc_Fun_t * Bdc_Regular( Bdc_Fun_t * p )                  { return (Bdc_Fun_t *)((PORT_PTRUINT_T)p & ~(PORT_PTRUINT_T)01);     }
+static inline Bdc_Fun_t * Bdc_Not( Bdc_Fun_t * p )                      { return (Bdc_Fun_t *)((PORT_PTRUINT_T)p ^  (PORT_PTRUINT_T)01);     }
+static inline Bdc_Fun_t * Bdc_NotCond( Bdc_Fun_t * p, int c )           { return (Bdc_Fun_t *)((PORT_PTRUINT_T)p ^  (PORT_PTRUINT_T)(c!=0)); }
 
 static inline Bdc_Fun_t * Bdc_FunNew( Bdc_Man_t * p )                   { Bdc_Fun_t * pRes; if ( p->nNodes == p->nNodesLimit ) return NULL; pRes = p->pNodes + p->nNodes++; memset( pRes, 0, sizeof(Bdc_Fun_t) ); p->nNodesNew++; return pRes; }
 static inline void        Bdc_IsfStart( Bdc_Man_t * p, Bdc_Isf_t * pF ) { pF->puOn = Vec_IntFetch( p->vMemory, p->nWords ); pF->puOff = Vec_IntFetch( p->vMemory, p->nWords ); }
