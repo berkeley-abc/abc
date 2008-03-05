@@ -10749,6 +10749,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nFlowIters  =  1;
     pPars->nAreaIters  =  2;
     pPars->DelayTarget = -1;
+    pPars->Epsilon     =  (float)0.001;
     pPars->fPreprocess =  1;
     pPars->fArea       =  0;
     pPars->fFancy      =  0;
@@ -10768,7 +10769,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->pFuncCost   =  NULL;   
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFADpaflemrstvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFADEpaflemrstvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -10827,6 +10828,16 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->DelayTarget = (float)atof(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->DelayTarget <= 0.0 ) 
+                goto usage;
+        case 'E':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-E\" should be followed by a floating point number.\n" );
+                goto usage;
+            }
+            pPars->Epsilon = (float)atof(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->Epsilon < 0.0 || pPars->Epsilon > 1.0 ) 
                 goto usage;
             break;
         case 'p':
@@ -10980,13 +10991,14 @@ usage:
         sprintf( LutSize, "library" );
     else
         sprintf( LutSize, "%d", pPars->nLutSize );
-    fprintf( pErr, "usage: if [-K num] [-C num] [-F num] [-A num] [-D float] [-parlemsvh]\n" );
+    fprintf( pErr, "usage: if [-KCFA num] [-DE float] [-parlemsvh]\n" );
     fprintf( pErr, "\t           performs FPGA technology mapping of the network\n" );
     fprintf( pErr, "\t-K num   : the number of LUT inputs (2 < num < %d) [default = %s]\n", IF_MAX_LUTSIZE+1, LutSize );
     fprintf( pErr, "\t-C num   : the max number of priority cuts (0 < num < 2^12) [default = %d]\n", pPars->nCutsMax );
     fprintf( pErr, "\t-F num   : the number of area flow recovery iterations (num >= 0) [default = %d]\n", pPars->nFlowIters );
     fprintf( pErr, "\t-A num   : the number of exact area recovery iterations (num >= 0) [default = %d]\n", pPars->nAreaIters );
     fprintf( pErr, "\t-D float : sets the delay constraint for the mapping [default = %s]\n", Buffer );  
+    fprintf( pErr, "\t-E float : sets epsilon used for tie-breaking [default = %f]\n", pPars->Epsilon );  
     fprintf( pErr, "\t-p       : toggles preprocessing using several starting points [default = %s]\n", pPars->fPreprocess? "yes": "no" );
     fprintf( pErr, "\t-a       : toggles area-oriented mapping [default = %s]\n", pPars->fArea? "yes": "no" );
 //    fprintf( pErr, "\t-f       : toggles one fancy feature [default = %s]\n", pPars->fFancy? "yes": "no" );

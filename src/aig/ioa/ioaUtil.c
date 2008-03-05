@@ -88,6 +88,41 @@ char * Ioa_FileNameGeneric( char * FileName )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the composite name of the file.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Ioa_FileNameGenericAppend( char * pBase, char * pSuffix )
+{
+    static char Buffer[1000];
+    char * pDot;
+    if ( pBase == NULL )
+    {
+        strcpy( Buffer, pSuffix );
+        return Buffer;
+    }
+    strcpy( Buffer, pBase );
+    pDot = strstr( Buffer, "." );
+    if ( pDot )
+        *pDot = 0;
+    strcat( Buffer, pSuffix );
+    // find the last occurrance of slash
+    for ( pDot = Buffer + strlen(Buffer) - 1; pDot >= Buffer; pDot-- )    
+        if (!((*pDot >= '0' && *pDot <= '9') ||
+              (*pDot >= 'a' && *pDot <= 'z') ||
+              (*pDot >= 'A' && *pDot <= 'Z') || 
+               *pDot == '_' || *pDot == '.') )
+               break;
+    return pDot + 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns the time stamp.]
 
   Description [The file should be closed.]

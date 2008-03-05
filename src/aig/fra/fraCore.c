@@ -328,6 +328,8 @@ void Fra_FraigSweep( Fra_Man_t * p )
         // quit if simulation detected a counter-example for a PO
         if ( p->pManFraig->pData )
             continue;
+//        if ( Aig_SupportSize(p->pManAig,pObj) > 16 )
+//            continue;
         // perform fraiging
         if ( p->pPars->nLevelMax && (int)pObj->Level > p->pPars->nLevelMax )
             p->pPars->nBTLimitNode = 5;
@@ -381,6 +383,8 @@ clk = clock();
     p->nNodesBeg = Aig_ManNodeNum(pManAig);
     p->nRegsBeg  = Aig_ManRegNum(pManAig);
     // perform fraig sweep
+if ( p->pPars->fVerbose )
+Fra_ClassesPrint( p->pCla, 1 );
     Fra_FraigSweep( p );
     // call back the procedure to check implications
     if ( pManAig->pImpFunc )

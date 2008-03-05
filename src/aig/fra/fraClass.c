@@ -207,7 +207,7 @@ int Fra_ClassesCountPairs( Fra_Cla_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Fra_PrintClass( Aig_Obj_t ** pClass )
+void Fra_PrintClass( Fra_Cla_t * p, Aig_Obj_t ** pClass )
 {
     Aig_Obj_t * pTemp;
     int i;
@@ -215,7 +215,7 @@ void Fra_PrintClass( Aig_Obj_t ** pClass )
         assert( Fra_ClassObjRepr(pTemp) == pClass[0] );
     printf( "{ " );
     for ( i = 0; (pTemp = pClass[i]); i++ )
-        printf( "%d(%d) ", pTemp->Id, pTemp->Level );
+        printf( "%d(%d,%d) ", pTemp->Id, pTemp->Level, Aig_SupportSize(p->pAig,pTemp) );
     printf( "}\n" );
 }
 
@@ -248,12 +248,12 @@ void Fra_ClassesPrint( Fra_Cla_t * p, int fVeryVerbose )
             assert( Fra_ClassObjRepr(pObj) == Aig_ManConst1(p->pAig) );
         printf( "Constants { " );
         Vec_PtrForEachEntry( p->vClasses1, pObj, i )
-            printf( "%d ", pObj->Id );
+            printf( "%d(%d,%d) ", pObj->Id, pObj->Level, Aig_SupportSize(p->pAig,pObj) );
         printf( "}\n" );
         Vec_PtrForEachEntry( p->vClasses, pClass, i )
         {
             printf( "%3d (%3d) : ", i, Fra_ClassCount(pClass) );
-            Fra_PrintClass( pClass );
+            Fra_PrintClass( p, pClass );
         }
         printf( "\n" );
     }

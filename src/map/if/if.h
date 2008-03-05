@@ -81,6 +81,7 @@ struct If_Par_t_
     int                nFlowIters;    // the number of iterations of area recovery
     int                nAreaIters;    // the number of iterations of area recovery
     float              DelayTarget;   // delay target
+    float              Epsilon;       // value used in comparison floating point numbers
     int                fPreprocess;   // preprossing
     int                fArea;         // area-oriented mapping
     int                fFancy;        // a fancy feature

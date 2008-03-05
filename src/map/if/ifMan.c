@@ -51,7 +51,7 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
     p = ALLOC( If_Man_t, 1 );
     memset( p, 0, sizeof(If_Man_t) );
     p->pPars = pPars;
-    p->fEpsilon = (float)0.001;
+    p->fEpsilon = pPars->Epsilon;
     // allocate arrays for nodes
     p->vCis    = Vec_PtrAlloc( 100 );
     p->vCos    = Vec_PtrAlloc( 100 );
@@ -77,7 +77,7 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
     p->puTemp[3] = p->puTemp[2] + p->nTruthWords;
     // create the constant node
     p->pConst1 = If_ManSetupObj( p );
-    p->pConst1->Type = IF_CONST1;
+    p->pConst1->Type   = IF_CONST1;
     p->pConst1->fPhase = 1;
     p->nObjs[IF_CONST1]++;
     return p;

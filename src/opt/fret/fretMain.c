@@ -1115,6 +1115,8 @@ static Abc_Ntk_t* Abc_FlowRetime_NtkDup( Abc_Ntk_t * pNtk ) {
   int i, j;
 
   pNtkCopy = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc, 1 );
+  pNtkCopy->pName = Extra_UtilStrsav(pNtk->pName);
+  pNtkCopy->pSpec = Extra_UtilStrsav(pNtk->pSpec);
 
   // copy each object
   Abc_NtkForEachObj( pNtk, pObj, i) {

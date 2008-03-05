@@ -26,6 +26,10 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+extern int timeCnf;
+extern int timeSat;
+extern int timeInt;
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -51,17 +55,20 @@ Aig_Man_t * Aig_ManInter( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fVerbose 
     Vec_Int_t * vVarsAB;
     Aig_Obj_t * pObj, * pObj2;
     int Lits[3], status, i;
-    int clk = clock();
+    int clk;
 
     assert( Aig_ManPiNum(pManOn) == Aig_ManPiNum(pManOff) );
 
+clk = clock();
     // derive CNFs
-    pCnfOn  = Cnf_Derive( pManOn, 0 );
-    pCnfOff = Cnf_Derive( pManOff, 0 );
-//    pCnfOn  = Cnf_DeriveSimple( pManOn, 0 );
-//    pCnfOff = Cnf_DeriveSimple( pManOff, 0 );
+//    pCnfOn  = Cnf_Derive( pManOn, 0 );
+//    pCnfOff = Cnf_Derive( pManOff, 0 );
+    pCnfOn  = Cnf_DeriveSimple( pManOn, 0 );
+    pCnfOff = Cnf_DeriveSimple( pManOff, 0 );
     Cnf_DataLift( pCnfOff, pCnfOn->nVars );
+timeCnf += clock() - clk;
 
+clk = clock();
     // start the solver
     pSat = sat_solver_new();
     sat_solver_store_alloc( pSat );
@@ -112,10 +119,6 @@ Aig_Man_t * Aig_ManInter( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fVerbose 
     Cnf_DataFree( pCnfOn );
     Cnf_DataFree( pCnfOff );
     sat_solver_store_mark_roots( pSat );
-    if ( fVerbose )
-    {
-        PRT( "Prepare", clock() - clk );
-    }
 
 /*
     status = sat_solver_simplify(pSat);
@@ -130,12 +133,8 @@ Aig_Man_t * Aig_ManInter( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fVerbose 
 */
 
     // solve the problem
-    clk = clock();
     status = sat_solver_solve( pSat, NULL, NULL, (sint64)0, (sint64)0, (sint64)0, (sint64)0 );
-    if ( fVerbose )
-    {
-        PRT( "Solving", clock() - clk );
-    }
+timeSat += clock() - clk;
     if ( status == l_False )
     {
         pSatCnf = sat_solver_store_release( pSat );
@@ -158,9 +157,11 @@ Aig_Man_t * Aig_ManInter( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fVerbose 
     }
 
     // create the resulting manager
+clk = clock();
     pManInter = Inta_ManAlloc();
     pRes = Inta_ManInterpolate( pManInter, pSatCnf, vVarsAB, fVerbose );
     Inta_ManFree( pManInter );
+timeInt += clock() - clk;
 
     Vec_IntFree( vVarsAB );
     Sto_ManFree( pSatCnf );

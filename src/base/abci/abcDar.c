@@ -1565,6 +1565,11 @@ Abc_Ntk_t * Abc_NtkInterOne( Abc_Ntk_t * pNtkOn, Abc_Ntk_t * pNtkOff, int fVerbo
     return pNtkAig;
 }
 
+
+int timeCnf;
+int timeSat;
+int timeInt;
+
 /**Function*************************************************************
 
   Synopsis    [Interplates two networks.]
@@ -1594,6 +1599,9 @@ Abc_Ntk_t * Abc_NtkInter( Abc_Ntk_t * pNtkOn, Abc_Ntk_t * pNtkOff, int fVerbose 
     Abc_NtkForEachPi( pNtkOn, pObj, i )
         Abc_NtkDupObj( pNtkInter, pObj, 1 );
     // process each POs separately
+timeCnf = 0;
+timeSat = 0;
+timeInt = 0;
     Abc_NtkForEachCo( pNtkOn, pObj, i )
     {
         pNtkOn1 = Abc_NtkCreateCone( pNtkOn, Abc_ObjFanin0(pObj), Abc_ObjName(pObj), 1 );
@@ -1620,6 +1628,10 @@ Abc_Ntk_t * Abc_NtkInter( Abc_Ntk_t * pNtkOn, Abc_Ntk_t * pNtkOff, int fVerbose 
         Abc_NtkDelete( pNtkOff1 );
         Abc_NtkDelete( pNtkInter1 );
     }
+//    PRT( "CNF", timeCnf );
+//    PRT( "SAT", timeSat );
+//    PRT( "Int", timeInt );
+
     // return the network
     if ( !Abc_NtkCheck( pNtkInter ) )
         fprintf( stdout, "Abc_NtkAttachBottom(): Network check has failed.\n" );

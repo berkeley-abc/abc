@@ -1526,11 +1526,11 @@ Aig_Obj_t * Fra_ClausGetLiteral( Clu_Man_t * p, int * pVar2Id, int Lit )
 
 ***********************************************************************/
 void Fra_ClausWriteIndClauses( Clu_Man_t * p )
-{
+{ 
     extern void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int fCompact );
     Aig_Man_t * pNew;
     Aig_Obj_t * pClause, * pLiteral;
-    char Buffer[500], * pName;
+    char * pName;
     int * pStart, * pVar2Id; 
     int Beg, End, i, k;
     // create mapping from SAT vars to node IDs
@@ -1560,12 +1560,9 @@ void Fra_ClausWriteIndClauses( Clu_Man_t * p )
     }
     free( pVar2Id );
     Aig_ManCleanup( pNew );
-    // write the manager into a file
-    pName = Ioa_FileNameGeneric(p->pAig->pName);
-    sprintf( Buffer, "%s_care.aig", pName );
-    free( pName );
-    printf( "Care clauses are written into file \"%s\".\n", Buffer );
-    Ioa_WriteAiger( pNew, Buffer, 0, 1 );
+    pName = Ioa_FileNameGenericAppend( p->pAig->pName, "_care.aig" );
+    printf( "Care one-hotness clauses will be written into file \"%s\".\n", pName );
+    Ioa_WriteAiger( pNew, pName, 0, 1 );
     Aig_ManStop( pNew );
 }
 

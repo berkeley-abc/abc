@@ -66,6 +66,7 @@ extern void           Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fW
 /*=== ioaUtil.c =======================================================*/
 extern int            Ioa_FileSize( char * pFileName );
 extern char *         Ioa_FileNameGeneric( char * FileName );
+extern char *         Ioa_FileNameGenericAppend( char * pBase, char * pSuffix );
 extern char *         Ioa_TimeStamp();
 
 #ifdef __cplusplus
