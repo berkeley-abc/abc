@@ -168,17 +168,17 @@ int CmdCommandTime( Abc_Frame_t * pAbc, int argc, char **argv )
     }
 
     pAbc->TimeTotal += pAbc->TimeCommand;
-    fprintf( pAbc->Out, "elapse: %3.2f seconds, total: %3.2f seconds\n",
-        (float)(1.0 * pAbc->TimeCommand / CLOCKS_PER_SEC), (float)(1.0 * pAbc->TimeTotal / CLOCKS_PER_SEC) );
+    fprintf( pAbc->Out, "elapse: %3.2f seconds, total: %3.2f seconds\n", 
+        pAbc->TimeCommand, pAbc->TimeTotal );
 /*
     {
         FILE * pTable;
         pTable = fopen( "runtimes.txt", "a+" );
-        fprintf( pTable, "%4.2f\n", (float)pAbc->TimeCommand / CLOCKS_PER_SEC );
+        fprintf( pTable, "%4.2f\n", pAbc->TimeCommand );
         fclose( pTable );
     }
 */
-    pAbc->TimeCommand = 0;
+    pAbc->TimeCommand = 0.0;
     return 0;
 
   usage:

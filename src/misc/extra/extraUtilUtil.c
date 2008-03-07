@@ -344,20 +344,36 @@ void (*Extra_UtilMMoutOfMemory)() = Extra_UtilMMout_Of_Memory;
   SeeAlso     []
 
 ***********************************************************************/
-#if defined(NT) || defined(NT64) || defined(WIN32)
 long Extra_CpuTime()
 {
     return clock();
+}
+
+/**Function*************************************************************
+
+  Synopsis    [util_cpu_time()]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+#if defined(NT) || defined(NT64) || defined(WIN32)
+double Extra_CpuTimeDouble()
+{
+    return (double)clock()/CLOCKS_PER_SEC;
 }
 #else
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <unistd.h>
-long Extra_CpuTime()
+double Extra_CpuTimeDouble()
 {
     struct rusage ru;
     getrusage(RUSAGE_SELF, &ru);
-    return (long)(CLOCKS_PER_SEC * ((double)ru.ru_utime.tv_sec + (double)ru.ru_utime.tv_usec / 1000000)); 
+    return (double)ru.ru_utime.tv_sec + (double)ru.ru_utime.tv_usec / 1000000; 
 }
 #endif
 

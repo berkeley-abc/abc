@@ -58,6 +58,7 @@ static int IoCommandWriteList   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWritePla    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteVerilog( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteVerLib ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandWriteSortCnf( Abc_Frame_t * pAbc, int argc, char **argv );
 
 extern int glo_fMapped;
 
@@ -111,6 +112,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "write_pla",     IoCommandWritePla,     0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_verilog", IoCommandWriteVerilog, 0 );
 //    Cmd_CommandAdd( pAbc, "I/O", "write_verlib",  IoCommandWriteVerLib,  0 );
+    Cmd_CommandAdd( pAbc, "I/O", "write_sorter_cnf", IoCommandWriteSortCnf,  0 );
 }
 
 /**Function*************************************************************
@@ -2005,6 +2007,76 @@ int IoCommandWriteVerLib( Abc_Frame_t * pAbc, int argc, char **argv )
 usage:
     fprintf( pAbc->Err, "usage: write_verlib [-h] <file>\n" );
     fprintf( pAbc->Err, "\t         write the current verilog library\n" );
+    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IoCommandWriteSortCnf( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    char * pFileName;
+    int c;
+    int nVars = 16;
+    int nQueens = 4;
+    extern void Abc_NtkWriteSorterCnf( char * pFileName, int nVars, int nQueens );
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NQh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'N':
+                if ( globalUtilOptind >= argc )
+                {
+                    fprintf( stdout, "Command line switch \"-N\" should be followed by an integer.\n" );
+                    goto usage;
+                }
+                nVars = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                if ( nVars <= 0 ) 
+                    goto usage;
+                break;
+            case 'Q':
+                if ( globalUtilOptind >= argc )
+                {
+                    fprintf( stdout, "Command line switch \"-Q\" should be followed by an integer.\n" );
+                    goto usage;
+                }
+                nQueens = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                if ( nQueens <= 0 ) 
+                    goto usage;
+                break;
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 1 )
+        goto usage;
+    // get the output file name
+    pFileName = argv[globalUtilOptind];
+    Abc_NtkWriteSorterCnf( pFileName, nVars, nQueens );
+    // call the corresponding file writer
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: write_sorter_cnf [-N <num>] [-Q <num>] <file>\n" );
+    fprintf( pAbc->Err, "\t         write CNF for the sorter\n" );
+    fprintf( pAbc->Err, "\t-N num : the number of sorter bits [default = %d]\n", nVars );
+    fprintf( pAbc->Err, "\t-Q num : the number of bits to be asserted to 1 [default = %d]\n", nQueens );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
     return 1;

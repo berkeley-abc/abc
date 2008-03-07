@@ -61,8 +61,8 @@ struct Abc_Frame_t_
     FILE *          Err;
     FILE *          Hst;
     // used for runtime measurement
-    PORT_INT64_T    TimeCommand; // the runtime of the last command
-    PORT_INT64_T    TimeTotal;   // the total runtime of all commands
+    double          TimeCommand; // the runtime of the last command
+    double          TimeTotal;   // the total runtime of all commands
     // temporary storage for structural choices
     Vec_Ptr_t *     vStore;      // networks to be used by choice
     // decomposition package

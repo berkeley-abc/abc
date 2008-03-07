@@ -607,6 +607,7 @@ extern unsigned    Extra_TruthSemiCanonicize( unsigned * pInOut, unsigned * pAux
 
 
 extern long        Extra_CpuTime();
+extern double      Extra_CpuTimeDouble();
 extern int         Extra_GetSoftDataLimit();
 extern void        Extra_UtilGetoptReset();
 extern int         Extra_UtilGetopt( int argc, char *argv[], char *optstring );

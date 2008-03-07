@@ -105,8 +105,8 @@ clk2 = clock();
     dd->nSignCur          = 1;
     dd->tUnique[0].s      = dd->nSignCur;
     dd->tUnique[0].v      = CLOUD_CONST_INDEX;
-    dd->tUnique[0].e      = CLOUD_VOID;
-    dd->tUnique[0].t      = CLOUD_VOID;
+    dd->tUnique[0].e      = NULL;
+    dd->tUnique[0].t      = NULL;
     dd->one               = dd->tUnique;
     dd->zero              = Cloud_Not(dd->one);
     dd->nNodesCur         = 1;
@@ -256,7 +256,7 @@ CloudNode * Cloud_MakeNode( CloudManager * dd, CloudVar v, CloudNode * t, CloudN
     if ( Cloud_IsComplement(t) )
     {
         pRes = cloudMakeNode( dd, v, Cloud_Not(t), Cloud_Not(e) );
-        if ( pRes != CLOUD_VOID )
+        if ( pRes != NULL )
             pRes = Cloud_Not(pRes);            
     }
     else
@@ -314,7 +314,7 @@ CloudNode * cloudMakeNode( CloudManager * dd, CloudVar v, CloudNode * t, CloudNo
         printf( "Cloud needs restart!\n" );
 //        fflush( stdout );
 //        exit(1);
-        return CLOUD_VOID;
+        return NULL;
     }
     // create the node
     entryUnique->s   = dd->nSignCur;
@@ -367,7 +367,7 @@ CloudNode * cloudBddAnd( CloudManager * dd, CloudNode * f, CloudNode * g )
     cacheEntry = dd->tCaches[CLOUD_OPER_AND] + cloudHashCudd2(f, g, dd->shiftCache[CLOUD_OPER_AND]);
 //    cacheEntry = dd->tCaches[CLOUD_OPER_AND] + cloudHashBuddy2(f, g, dd->shiftCache[CLOUD_OPER_AND]);
     r = cloudCacheLookup2( cacheEntry, dd->nSignCur, f, g );
-    if ( r != CLOUD_VOID )
+    if ( r != NULL )
     {
         dd->nCacheHits++;
         return r;
@@ -419,16 +419,16 @@ CloudNode * cloudBddAnd( CloudManager * dd, CloudNode * f, CloudNode * g )
     else
         t = cloudBddAnd( dd, gv, fv );
 
-    if ( t == CLOUD_VOID )
-        return CLOUD_VOID;
+    if ( t == NULL )
+        return NULL;
 
     if ( fnv <= gnv )
         e = cloudBddAnd( dd, fnv, gnv );
     else
         e = cloudBddAnd( dd, gnv, fnv );
 
-    if ( e == CLOUD_VOID )
-        return CLOUD_VOID;
+    if ( e == NULL )
+        return NULL;
 
     if ( t == e )
         r = t;
@@ -437,15 +437,15 @@ CloudNode * cloudBddAnd( CloudManager * dd, CloudNode * f, CloudNode * g )
         if ( Cloud_IsComplement(t) )
         {
             r = cloudMakeNode( dd, var, Cloud_Not(t), Cloud_Not(e) );
-            if ( r == CLOUD_VOID )
-                return CLOUD_VOID;
+            if ( r == NULL )
+                return NULL;
             r = Cloud_Not(r);
         }
         else
         {
             r = cloudMakeNode( dd, var, t, e );
-            if ( r == CLOUD_VOID )
-                return CLOUD_VOID;
+            if ( r == NULL )
+                return NULL;
         }
     }
     cloudCacheInsert2( cacheEntry, dd->nSignCur, f, g, r );
@@ -484,8 +484,8 @@ static inline CloudNode * cloudBddAnd_gate( CloudManager * dd, CloudNode * f, Cl
 ******************************************************************************/
 CloudNode * Cloud_bddAnd( CloudManager * dd, CloudNode * f, CloudNode * g )
 {
-    if ( Cloud_Regular(f) == CLOUD_VOID || Cloud_Regular(g) == CLOUD_VOID )
-        return CLOUD_VOID;
+    if ( Cloud_Regular(f) == NULL || Cloud_Regular(g) == NULL )
+        return NULL;
     CLOUD_ASSERT(f);
     CLOUD_ASSERT(g);
     if ( dd->tCaches[CLOUD_OPER_AND] == NULL )
@@ -507,14 +507,14 @@ CloudNode * Cloud_bddAnd( CloudManager * dd, CloudNode * f, CloudNode * g )
 CloudNode * Cloud_bddOr( CloudManager * dd, CloudNode * f, CloudNode * g )
 {
     CloudNode * res;
-    if ( Cloud_Regular(f) == CLOUD_VOID || Cloud_Regular(g) == CLOUD_VOID )
-        return CLOUD_VOID;
+    if ( Cloud_Regular(f) == NULL || Cloud_Regular(g) == NULL )
+        return NULL;
     CLOUD_ASSERT(f);
     CLOUD_ASSERT(g);
     if ( dd->tCaches[CLOUD_OPER_AND] == NULL )
         cloudCacheAllocate( dd, CLOUD_OPER_AND );
     res = cloudBddAnd_gate( dd, Cloud_Not(f), Cloud_Not(g) );
-    res = Cloud_NotCond( res, res != CLOUD_VOID );
+    res = Cloud_NotCond( res, res != NULL );
     return res;
 }
 
@@ -532,18 +532,18 @@ CloudNode * Cloud_bddOr( CloudManager * dd, CloudNode * f, CloudNode * g )
 CloudNode * Cloud_bddXor( CloudManager * dd, CloudNode * f, CloudNode * g )
 {
     CloudNode * t0, * t1, * r;
-    if ( Cloud_Regular(f) == CLOUD_VOID || Cloud_Regular(g) == CLOUD_VOID )
-        return CLOUD_VOID;
+    if ( Cloud_Regular(f) == NULL || Cloud_Regular(g) == NULL )
+        return NULL;
     CLOUD_ASSERT(f);
     CLOUD_ASSERT(g);
     if ( dd->tCaches[CLOUD_OPER_AND] == NULL )
         cloudCacheAllocate( dd, CLOUD_OPER_AND );
     t0 = cloudBddAnd_gate( dd, f, Cloud_Not(g) );
-    if ( t0 == CLOUD_VOID )
-        return CLOUD_VOID;
+    if ( t0 == NULL )
+        return NULL;
     t1 = cloudBddAnd_gate( dd, Cloud_Not(f), g );
-    if ( t1 == CLOUD_VOID )
-        return CLOUD_VOID;
+    if ( t1 == NULL )
+        return NULL;
     r  = Cloud_bddOr( dd, t0, t1 );
     return r;
 }
@@ -631,7 +631,7 @@ CloudNode * Cloud_Support( CloudManager * dd, CloudNode * n )
         if ( support[i] == 1 )
         {
             res = Cloud_bddAnd( dd, res, dd->vars[i] );
-            if ( res == CLOUD_VOID )
+            if ( res == NULL )
                 break;
         }
     FREE( support );
@@ -831,8 +831,8 @@ CloudNode * Cloud_GetOneCube( CloudManager * dd, CloudNode * bFunc )
 
     // try to find the cube with the negative literal
     res = Cloud_GetOneCube( dd, bFunc0 );
-    if ( res == CLOUD_VOID )
-        return CLOUD_VOID;
+    if ( res == NULL )
+        return NULL;
 
     if ( res != dd->zero )
     {
@@ -842,8 +842,8 @@ CloudNode * Cloud_GetOneCube( CloudManager * dd, CloudNode * bFunc )
     {
         // try to find the cube with the positive literal
         res = Cloud_GetOneCube( dd, bFunc1 );
-        if ( res == CLOUD_VOID )
-            return CLOUD_VOID;
+        if ( res == NULL )
+            return NULL;
         assert( res != dd->zero );
         res = Cloud_bddAnd( dd, res, dd->vars[Cloud_V(bFunc)] );
     }
@@ -873,7 +873,7 @@ void Cloud_bddPrint( CloudManager * dd, CloudNode * Func )
         while ( 1 )
         {
             Cube = Cloud_GetOneCube( dd, Func );
-            if ( Cube == CLOUD_VOID || Cube == dd->zero )
+            if ( Cube == NULL || Cube == dd->zero )
                 break;
             if ( fFirst )       fFirst = 0;
             else                printf( " + " );

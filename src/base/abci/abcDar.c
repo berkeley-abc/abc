@@ -266,6 +266,7 @@ Abc_Ntk_t * Abc_NtkFromDarSeqSweep( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
         Abc_NtkAddDummyBoxNames( pNtkNew );
     else
     {
+/*
         {
             int i, k, iFlop, Counter = 0;
             FILE * pFile;
@@ -285,6 +286,7 @@ Abc_Ntk_t * Abc_NtkFromDarSeqSweep( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
             fclose( pFile );
             //printf( "\n" );
         }
+*/
         assert( Abc_NtkBoxNum(pNtkOld) == Abc_NtkLatchNum(pNtkOld) );
         nDigits = Extra_Base10Log( Abc_NtkLatchNum(pNtkNew) );
         Abc_NtkForEachLatch( pNtkNew, pObjNew, i )
@@ -1622,11 +1624,14 @@ timeInt = 0;
         }
         else
             pNtkInter1 = Abc_NtkInterOne( pNtkOn1, pNtkOff1, fVerbose );
-        Abc_NtkAppend( pNtkInter, pNtkInter1, 1 );
+        if ( pNtkInter1 )
+        {
+            Abc_NtkAppend( pNtkInter, pNtkInter1, 1 );
+            Abc_NtkDelete( pNtkInter1 );
+        }
 
         Abc_NtkDelete( pNtkOn1 );
         Abc_NtkDelete( pNtkOff1 );
-        Abc_NtkDelete( pNtkInter1 );
     }
 //    PRT( "CNF", timeCnf );
 //    PRT( "SAT", timeSat );

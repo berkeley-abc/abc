@@ -131,7 +131,7 @@ void Abc_GenSorter( char * pFileName, int nVars )
             fprintf( pFile, " y%02d=%0*d", k, nDigits, Counter++ );
         fprintf( pFile, "\n" );
         Counter -= nVars;
-        for ( i = 1; i < nVars-2; i++ )
+        for ( i = 1; i < 2*nVars-2; i++ )
         {
             fprintf( pFile, ".subckt Layer%d", (i&1) );
             for ( k = 0; k < nVars; k++ )

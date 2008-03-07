@@ -21,6 +21,13 @@ Several things to try if it does not compile on your platform:
   compiling ABC with gcc. Please try installing this library from
   http://tiswww.case.edu/php/chet/readline/rltop.html
 
+To compile the latest version of ABC, you may need to define "LIN" or "LIN64" 
+(depending on whether you are using 32- or 64-bit Linux). 
+For example, instead of
+    OPTFLAGS  := -g -O
+use
+    OPTFLAGS  := -g -O -DLIN64
+in Makefile.
 
 Finally, run regression test:
 abc>>> so regtest.script

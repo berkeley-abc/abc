@@ -33,10 +33,11 @@ static inline void  Abc_ObjSetArrival( Abc_Obj_t * pNode, float Time )  { pNode-
 static inline void  Abc_ObjSetRequired( Abc_Obj_t * pNode, float Time ) { pNode->pNtk->pLutTimes[3*pNode->Id+1] = Time; }
 static inline void  Abc_ObjSetSlack( Abc_Obj_t * pNode, float Time )    { pNode->pNtk->pLutTimes[3*pNode->Id+2] = Time; }
 
+extern void * Abc_FrameReadLibLut();   
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
-
 
 /**Function*************************************************************
 
@@ -95,7 +96,6 @@ void Abc_NtkDelayTraceSortPins( Abc_Obj_t * pNode, int * pPinPerm, float * pPinD
 ***********************************************************************/
 float Abc_NtkDelayTraceLut( Abc_Ntk_t * pNtk, int fUseLutLib )
 {
-    extern void * Abc_FrameReadLibLut();   
     int fUseSorting = 0;
     int pPinPerm[32];
     float pPinDelays[32];

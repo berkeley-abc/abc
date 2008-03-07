@@ -162,7 +162,17 @@ clk = clock();
     pRes = Inta_ManInterpolate( pManInter, pSatCnf, vVarsAB, fVerbose );
     Inta_ManFree( pManInter );
 timeInt += clock() - clk;
-
+/*
+    // test UNSAT core computation
+    {
+        Intp_Man_t * pManProof;
+        Vec_Int_t * vCore;
+        pManProof = Intp_ManAlloc();
+        vCore = Intp_ManUnsatCore( pManProof, pSatCnf, 0 );
+        Intp_ManFree( pManProof );
+        Vec_IntFree( vCore );
+    }
+*/
     Vec_IntFree( vVarsAB );
     Sto_ManFree( pSatCnf );
     return pRes;

@@ -1178,6 +1178,10 @@ SOURCE=.\src\sat\bsat\satInterA.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\bsat\satInterP.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\bsat\satMem.c
 # End Source File
 # Begin Source File
