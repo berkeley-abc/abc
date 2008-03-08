@@ -980,6 +980,149 @@ float If_CutEdgeRefed( If_Man_t * p, If_Cut_t * pCut )
     return aResult;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Computes the cone of the cut in AIG with choices.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_CutGetCutMinLevel( If_Man_t * p, If_Cut_t * pCut )
+{
+    If_Obj_t * pLeaf;
+    int i, nMinLevel = IF_INFINITY;
+    If_CutForEachLeaf( p, pCut, pLeaf, i )
+        nMinLevel = IF_MIN( nMinLevel, (int)pLeaf->Level );
+    return nMinLevel;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the cone of the cut in AIG with choices.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_CutGetCone_rec( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut )
+{
+    If_Obj_t * pTemp;
+    int i, RetValue;
+    // check if the node is in the cut
+    for ( i = 0; i < (int)pCut->nLeaves; i++ )
+        if ( pCut->pLeaves[i] == pObj->Id )
+            return 1;
+        else if ( pCut->pLeaves[i] > pObj->Id )
+            break;
+    // return if we reached the boundary
+    if ( If_ObjIsCi(pObj) )
+        return 0;
+    // check the choice node
+    for ( pTemp = pObj; pTemp; pTemp = pTemp->pEquiv )
+    {
+        // check if the node itself is bound
+        RetValue = If_CutGetCone_rec( p, If_ObjFanin0(pTemp), pCut );
+        if ( RetValue )
+            RetValue &= If_CutGetCone_rec( p, If_ObjFanin1(pTemp), pCut );
+        if ( RetValue )
+            return 1;
+    }
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the cone of the cut in AIG with choices.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_CutGetCones( If_Man_t * p )
+{
+    If_Obj_t * pObj;
+    int i, Counter = 0;
+    int clk = clock();
+    If_ManForEachObj( p, pObj, i )
+    {
+        if ( If_ObjIsAnd(pObj) && pObj->nRefs )
+        {
+            Counter += !If_CutGetCone_rec( p, pObj, If_ObjCutBest(pObj) );
+//            printf( "%d ", If_CutGetCutMinLevel( p, If_ObjCutBest(pObj) ) );
+        }
+    }
+    printf( "Cound not find boundary for %d nodes.\n", Counter );
+    PRT( "Cones", clock() - clk );
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the cone of the cut in AIG with choices.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void If_CutFoundFanins_rec( If_Obj_t * pObj, Vec_Int_t * vLeaves )
+{
+    if ( pObj->nRefs || If_ObjIsCi(pObj) )
+    {
+        Vec_IntPushUnique( vLeaves, pObj->Id );
+        return;
+    }
+    If_CutFoundFanins_rec( If_ObjFanin0(pObj), vLeaves );
+    If_CutFoundFanins_rec( If_ObjFanin1(pObj), vLeaves );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the cone of the cut in AIG with choices.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_CutCountTotalFanins( If_Man_t * p )
+{
+    If_Obj_t * pObj;
+    Vec_Int_t * vLeaves;
+    int i, nFaninsTotal = 0, Counter = 0;
+    int clk = clock();
+    vLeaves = Vec_IntAlloc( 100 );
+    If_ManForEachObj( p, pObj, i )
+    {
+        if ( If_ObjIsAnd(pObj) && pObj->nRefs )
+        {
+            nFaninsTotal += If_ObjCutBest(pObj)->nLeaves;
+            Vec_IntClear( vLeaves );
+            If_CutFoundFanins_rec( If_ObjFanin0(pObj), vLeaves );
+            If_CutFoundFanins_rec( If_ObjFanin1(pObj), vLeaves );
+            Counter += Vec_IntSize(vLeaves);
+        }
+    }
+    printf( "Total cut inputs = %d. Total fanins incremental = %d.\n", nFaninsTotal, Counter );
+    PRT( "Fanins", clock() - clk );
+    Vec_IntFree( vLeaves );
+    return 1;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -122,6 +122,7 @@ void Mfs_ManPrint( Mfs_Man_t * p )
                 p->nNodesResub, Abc_NtkGetTotalFanins(p->pNtk), 1.00 * p->nNodesResub / Abc_NtkGetTotalFanins(p->pNtk) );
         else
             Abc_NtkMfsPrintResubStats( p );
+//        printf( "Average ratio of DCs in the resubed nodes = %.2f.\n", 1.0*p->nDcMints/(64 * p->nNodesResub) );
     }
     else
     {

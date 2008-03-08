@@ -96,7 +96,7 @@ void Abc_NtkDelayTraceSortPins( Abc_Obj_t * pNode, int * pPinPerm, float * pPinD
 ***********************************************************************/
 float Abc_NtkDelayTraceLut( Abc_Ntk_t * pNtk, int fUseLutLib )
 {
-    int fUseSorting = 0;
+    int fUseSorting = 1;
     int pPinPerm[32];
     float pPinDelays[32];
     If_Lib_t * pLutLib;

@@ -252,8 +252,8 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
     // create a new node 
     pNodeNew = Abc_NtkCreateNode( pNtkNew );
     pCutBest = If_ObjCutBest( pIfObj );
-    if ( pIfMan->pPars->pLutLib && pIfMan->pPars->pLutLib->fVarPinDelays )
-        If_CutRotatePins( pIfMan, pCutBest );
+//    if ( pIfMan->pPars->pLutLib && pIfMan->pPars->pLutLib->fVarPinDelays )
+//        If_CutRotatePins( pIfMan, pCutBest );
     if ( pIfMan->pPars->fUseCnfs || pIfMan->pPars->fUseMv )
     {
         If_CutForEachLeafReverse( pIfMan, pCutBest, pIfLeaf, i )
@@ -346,6 +346,54 @@ Hop_Obj_t * Abc_NodeIfToHop_rec( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj_
     return gFunc;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Recursively derives the truth table for the cut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Hop_Obj_t * Abc_NodeIfToHop2_rec( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj_t * pIfObj, Vec_Ptr_t * vVisited )
+{
+    If_Cut_t * pCut;
+    If_Obj_t * pTemp;
+    Hop_Obj_t * gFunc, * gFunc0, * gFunc1;
+    // get the best cut
+    pCut = If_ObjCutBest(pIfObj);
+    // if the cut is visited, return the result
+    if ( If_CutData(pCut) )
+        return If_CutData(pCut);
+    // mark the node as visited
+    Vec_PtrPush( vVisited, pCut );
+    // insert the worst case
+    If_CutSetData( pCut, (void *)1 );
+    // skip in case of primary input
+    if ( If_ObjIsCi(pIfObj) )
+        return If_CutData(pCut);
+    // compute the functions of the children
+    for ( pTemp = pIfObj; pTemp; pTemp = pTemp->pEquiv )
+    {
+        gFunc0 = Abc_NodeIfToHop2_rec( pHopMan, pIfMan, pTemp->pFanin0, vVisited );
+        if ( gFunc0 == (void *)1 )
+            continue;
+        gFunc1 = Abc_NodeIfToHop2_rec( pHopMan, pIfMan, pTemp->pFanin1, vVisited );
+        if ( gFunc1 == (void *)1 )
+            continue;
+        // both branches are solved
+        gFunc = Hop_And( pHopMan, Hop_NotCond(gFunc0, pTemp->fCompl0), Hop_NotCond(gFunc1, pTemp->fCompl1) ); 
+        if ( pTemp->fPhase != pIfObj->fPhase )
+            gFunc = Hop_Not(gFunc);
+        If_CutSetData( pCut, gFunc );
+        break;
+    }
+    return If_CutData(pCut);
+}
+
 /**Function*************************************************************
 
   Synopsis    [Derives the truth table for one cut.]
@@ -371,7 +419,12 @@ Hop_Obj_t * Abc_NodeIfToHop( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj_t * 
         If_CutSetData( If_ObjCutBest(pLeaf), Hop_IthVar(pHopMan, i) );
     // recursively compute the function while collecting visited cuts
     Vec_PtrClear( pIfMan->vTemp );
-    gFunc = Abc_NodeIfToHop_rec( pHopMan, pIfMan, pIfObj, pIfMan->vTemp ); 
+    gFunc = Abc_NodeIfToHop2_rec( pHopMan, pIfMan, pIfObj, pIfMan->vTemp ); 
+    if ( gFunc == (void *)1 )
+    {
+        printf( "Abc_NodeIfToHop(): Computing local AIG has failed.\n" );
+        return NULL;
+    }
 //    printf( "%d ", Vec_PtrSize(p->vTemp) );
     // clean the cuts
     If_CutForEachLeaf( pIfMan, pCut, pLeaf, i )

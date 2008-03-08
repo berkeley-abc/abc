@@ -119,7 +119,11 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         // compute the truth table
         pCut->fCompl = 0;
         if ( p->pPars->fTruth )
+        {
+//            int clk = clock();
             If_CutComputeTruth( p, pCut, pCut0, pCut1, pObj->fCompl0, pObj->fCompl1 );
+//            p->timeTruth += clock() - clk;
+        }
         // compute the application-specific cost and depth
         pCut->fUser = (p->pPars->pFuncCost != NULL);
         pCut->Cost = p->pPars->pFuncCost? p->pPars->pFuncCost(pCut) : 0;

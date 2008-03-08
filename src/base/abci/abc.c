@@ -10750,7 +10750,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nAreaIters  =  2;
     pPars->DelayTarget = -1;
     pPars->Epsilon     =  (float)0.001;
-    pPars->fPreprocess =  1;
+    pPars->fPreprocess =  1; 
     pPars->fArea       =  0;
     pPars->fFancy      =  0;
     pPars->fExpRed     =  1;
@@ -10898,8 +10898,8 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         // get LUT size from the library
         pPars->nLutSize = pPars->pLutLib->LutMax;
         // if variable pin delay, force truth table computation
-        if ( pPars->pLutLib->fVarPinDelays )
-            pPars->fTruth = 1;
+//        if ( pPars->pLutLib->fVarPinDelays )
+//            pPars->fTruth = 1;
     }
 
     if ( pPars->nLutSize < 3 || pPars->nLutSize > IF_MAX_LUTSIZE )
@@ -10924,11 +10924,15 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( (c = Abc_NtkGetChoiceNum( pNtk )) )
     {
         printf( "Performing LUT mapping with %d choices.\n", c );
-        pPars->fTruth = 1;
+//        pPars->fTruth = 1;
+        pPars->fExpRed = 0;
     }
     // enable truth table computation if cut minimization is selected
     if ( pPars->fCutMin )
+    {
         pPars->fTruth = 1;
+        pPars->fExpRed = 0;
+    }
 
     // complain if truth tables are requested but the cut size is too large
     if ( pPars->fTruth && pPars->nLutSize > IF_MAX_FUNC_LUTSIZE )

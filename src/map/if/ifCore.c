@@ -110,14 +110,14 @@ int If_ManPerformMappingComb( If_Man_t * p )
         If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 0, "Delay" );
 
     // try to improve area by expanding and reducing the cuts
-    if ( p->pPars->fExpRed && !p->pPars->fTruth )
+    if ( p->pPars->fExpRed )
         If_ManImproveMapping( p );
 
     // area flow oriented mapping
     for ( i = 0; i < p->pPars->nFlowIters; i++ )
     {
         If_ManPerformMappingRound( p, p->pPars->nCutsMax, 1, 0, "Flow" );
-        if ( p->pPars->fExpRed && !p->pPars->fTruth )
+        if ( p->pPars->fExpRed )
             If_ManImproveMapping( p );
     }
 
@@ -125,7 +125,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
     for ( i = 0; i < p->pPars->nAreaIters; i++ )
     {
         If_ManPerformMappingRound( p, p->pPars->nCutsMax, 2, 0, "Area" );
-        if ( p->pPars->fExpRed && !p->pPars->fTruth )
+        if ( p->pPars->fExpRed )
             If_ManImproveMapping( p );
     }
 
@@ -139,6 +139,13 @@ int If_ManPerformMappingComb( If_Man_t * p )
 //    printf( "Cross cut memory = %d.\n", Mem_FixedReadMaxEntriesUsed(p->pMemSet) );
     s_MappingTime = clock() - clkTotal;
 //    printf( "Special POs = %d.\n", If_ManCountSpecialPos(p) );
+    {
+    extern int If_CutGetCones( If_Man_t * p );
+    extern int If_CutCountTotalFanins( If_Man_t * p );
+//    If_CutGetCones( p );
+//    If_CutCountTotalFanins( p );
+    }
+
     return 1;
 }
 

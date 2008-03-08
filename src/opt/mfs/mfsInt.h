@@ -85,6 +85,7 @@ struct Mfs_Man_t_
     int                 nNodesBad;
     int                 nTotalDivs;
     int                 nTimeOuts;
+    int                 nDcMints;
     // node/edge stats
     int                 nTotalNodesBeg;
     int                 nTotalNodesEnd;
@@ -115,8 +116,9 @@ struct Mfs_Man_t_
 /*=== mfsDiv.c ==========================================================*/
 extern Vec_Ptr_t *      Abc_MfsComputeDivisors( Mfs_Man_t * p, Abc_Obj_t * pNode, int nLevDivMax );
 /*=== mfsInter.c ==========================================================*/
-extern sat_solver *     Abc_MfsCreateSolverResub( Mfs_Man_t * p, int * pCands, int nCands );
+extern sat_solver *     Abc_MfsCreateSolverResub( Mfs_Man_t * p, int * pCands, int nCands, int fInvert );
 extern Hop_Obj_t *      Abc_NtkMfsInterplate( Mfs_Man_t * p, int * pCands, int nCands );
+extern int              Abc_NtkMfsInterplateEval( Mfs_Man_t * p, int * pCands, int nCands );
 /*=== mfsMan.c ==========================================================*/
 extern Mfs_Man_t *      Mfs_ManAlloc( Mfs_Par_t * pPars );
 extern void             Mfs_ManStop( Mfs_Man_t * p );

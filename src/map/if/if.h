@@ -166,6 +166,8 @@ struct If_Man_t_
     int                nSmallSupp;    // the small support
     // timing manager
     Tim_Man_t *        pManTim;
+    // statistics 
+//    int                timeTruth;
 };
 
 // priority cut

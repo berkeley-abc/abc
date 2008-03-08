@@ -82,7 +82,7 @@ int Abc_MfsSatAddXor( sat_solver * pSat, int iVarA, int iVarB, int iVarC )
   SeeAlso     []
 
 ***********************************************************************/
-sat_solver * Abc_MfsCreateSolverResub( Mfs_Man_t * p, int * pCands, int nCands )
+sat_solver * Abc_MfsCreateSolverResub( Mfs_Man_t * p, int * pCands, int nCands, int fInvert )
 {
     sat_solver * pSat;
     Aig_Obj_t * pObjPo;
@@ -90,7 +90,7 @@ sat_solver * Abc_MfsCreateSolverResub( Mfs_Man_t * p, int * pCands, int nCands )
 
     // get the literal for the output of F
     pObjPo = Aig_ManPo( p->pAigWin, Aig_ManPoNum(p->pAigWin) - Vec_PtrSize(p->vDivs) - 1 );
-    Lits[0] = toLitCond( p->pCnf->pVarNums[pObjPo->Id], 0 );
+    Lits[0] = toLitCond( p->pCnf->pVarNums[pObjPo->Id], fInvert );
 
     // collect the outputs of the divisors
     Vec_IntClear( p->vProjVars );
@@ -210,6 +210,100 @@ sat_solver * Abc_MfsCreateSolverResub( Mfs_Man_t * p, int * pCands, int nCands )
   SeeAlso     []
 
 ***********************************************************************/
+unsigned * Abc_NtkMfsInterplateTruth( Mfs_Man_t * p, int * pCands, int nCands, int fInvert )
+{
+    sat_solver * pSat;
+    Sto_Man_t * pCnf = NULL;
+    unsigned * puTruth;
+    int nFanins, status;
+    int c, i, * pGloVars;
+
+    // derive the SAT solver for interpolation
+    pSat = Abc_MfsCreateSolverResub( p, pCands, nCands, fInvert );
+
+    // solve the problem
+    status = sat_solver_solve( pSat, NULL, NULL, (sint64)p->pPars->nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
+    if ( status != l_False )
+    {
+        p->nTimeOuts++;
+        return NULL;
+    }
+    // get the learned clauses
+    pCnf = sat_solver_store_release( pSat );
+    sat_solver_delete( pSat );
+
+    // set the global variables
+    pGloVars = Int_ManSetGlobalVars( p->pMan, nCands );
+    for ( c = 0; c < nCands; c++ )
+    {
+        // get the variable number of this divisor
+        i = lit_var( pCands[c] ) - 2 * p->pCnf->nVars;
+        // get the corresponding SAT variable
+        pGloVars[c] = Vec_IntEntry( p->vProjVars, i );
+    }
+
+    // derive the interpolant
+    nFanins = Int_ManInterpolate( p->pMan, pCnf, 0, &puTruth );
+    Sto_ManFree( pCnf );
+    assert( nFanins == nCands );
+    return puTruth;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs interpolation.]
+
+  Description [Derives the new function of the node.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkMfsInterplateEval( Mfs_Man_t * p, int * pCands, int nCands )
+{
+    unsigned * pTruth, uTruth0[2], uTruth1[2];
+    int nCounter;
+    pTruth = Abc_NtkMfsInterplateTruth( p, pCands, nCands, 0 );
+    if ( nCands == 6 )
+    {
+        uTruth1[0] = pTruth[0];
+        uTruth1[1] = pTruth[1];
+    }
+    else
+    {
+        uTruth1[0] = pTruth[0];
+        uTruth1[1] = pTruth[0];
+    }
+    pTruth = Abc_NtkMfsInterplateTruth( p, pCands, nCands, 1 );
+    if ( nCands == 6 )
+    {
+        uTruth0[0] = ~pTruth[0];
+        uTruth0[1] = ~pTruth[1];
+    }
+    else
+    {
+        uTruth0[0] = ~pTruth[0];
+        uTruth0[1] = ~pTruth[0];
+    }
+    nCounter  = Extra_WordCountOnes( uTruth0[0] ^ uTruth1[0] );
+    nCounter += Extra_WordCountOnes( uTruth0[1] ^ uTruth1[1] );
+//    printf( "%d ", nCounter );
+    return nCounter;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Performs interpolation.]
+
+  Description [Derives the new function of the node.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Hop_Obj_t * Abc_NtkMfsInterplate( Mfs_Man_t * p, int * pCands, int nCands )
 {
     extern Hop_Obj_t * Kit_GraphToHop( Hop_Man_t * pMan, Kit_Graph_t * pGraph );
@@ -222,8 +316,10 @@ Hop_Obj_t * Abc_NtkMfsInterplate( Mfs_Man_t * p, int * pCands, int nCands )
     int nFanins, status;
     int c, i, * pGloVars;
 
+//    p->nDcMints += Abc_NtkMfsInterplateEval( p, pCands, nCands );
+
     // derive the SAT solver for interpolation
-    pSat = Abc_MfsCreateSolverResub( p, pCands, nCands );
+    pSat = Abc_MfsCreateSolverResub( p, pCands, nCands, 0 );
 
     // solve the problem
     status = sat_solver_solve( pSat, NULL, NULL, (sint64)p->pPars->nBTLimit, (sint64)0, (sint64)0, (sint64)0 );

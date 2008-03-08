@@ -68,7 +68,7 @@ clk = clock();
 p->timeCnf += clock() - clk;
     // create the SAT problem
 clk = clock();
-    p->pSat = Abc_MfsCreateSolverResub( p, NULL, 0 );
+    p->pSat = Abc_MfsCreateSolverResub( p, NULL, 0, 0 );
     if ( p->pSat == NULL )
     {
         p->nNodesBad++;
