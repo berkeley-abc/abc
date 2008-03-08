@@ -445,6 +445,7 @@ int Abc_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fSaveBest;
     int fDumpResult;
     int fUseLutLib;
+    int fPrintTime;
     int c;
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -456,8 +457,9 @@ int Abc_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
     fSaveBest = 0;
     fDumpResult = 0;
     fUseLutLib = 0;
+    fPrintTime = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "fbdlh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "fbdlth" ) ) != EOF )
     {
         switch ( c )
         {
@@ -473,6 +475,9 @@ int Abc_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'l':
             fUseLutLib ^= 1;
             break;
+        case 't':
+            fPrintTime ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -486,15 +491,23 @@ int Abc_CommandPrintStats( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     Abc_NtkPrintStats( pOut, pNtk, fFactor, fSaveBest, fDumpResult, fUseLutLib );
+    if ( fPrintTime )
+    {
+        pAbc->TimeTotal += pAbc->TimeCommand;
+        fprintf( pAbc->Out, "elapse: %3.2f seconds, total: %3.2f seconds\n", 
+            pAbc->TimeCommand, pAbc->TimeTotal );
+        pAbc->TimeCommand = 0.0;
+    }
     return 0;
 
 usage:
-    fprintf( pErr, "usage: print_stats [-fbdlh]\n" );
+    fprintf( pErr, "usage: print_stats [-fbdlth]\n" );
     fprintf( pErr, "\t        prints the network statistics\n" );
     fprintf( pErr, "\t-f    : toggles printing the literal count in the factored forms [default = %s]\n", fFactor? "yes": "no" );
     fprintf( pErr, "\t-b    : toggles saving the best logic network in \"best.blif\" [default = %s]\n", fSaveBest? "yes": "no" );
     fprintf( pErr, "\t-d    : toggles dumping network into file \"<input_file_name>_dump.blif\" [default = %s]\n", fDumpResult? "yes": "no" );
     fprintf( pErr, "\t-l    : toggles printing delay of LUT mapping using LUT library [default = %s]\n", fSaveBest? "yes": "no" );
+    fprintf( pErr, "\t-t    : toggles printing runtime statistics [default = %s]\n", fPrintTime? "yes": "no" );
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
