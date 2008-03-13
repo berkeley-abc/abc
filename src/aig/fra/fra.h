@@ -334,6 +334,7 @@ extern int                 Fra_SmlNodeHash( Aig_Obj_t * pObj, int nTableSize );
 extern int                 Fra_SmlNodeIsConst( Aig_Obj_t * pObj );
 extern int                 Fra_SmlNodesAreEqual( Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 );
 extern int                 Fra_SmlNodeNotEquWeight( Fra_Sml_t * p, int Left, int Right );
+extern int                 Fra_SmlNodeCountOnes( Fra_Sml_t * p, Aig_Obj_t * pObj );
 extern int                 Fra_SmlCheckOutput( Fra_Man_t * p );
 extern void                Fra_SmlSavePattern( Fra_Man_t * p );
 extern void                Fra_SmlSimulate( Fra_Man_t * p, int fInit );

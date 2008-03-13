@@ -36,7 +36,7 @@ extern "C" {
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#define BDC_SCALE 100  // value used to compute the cost
+#define BDC_SCALE 1000  // value used to compute the cost
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -47,11 +47,11 @@ typedef enum {
     BDC_TYPE_NONE = 0,  // 0:  unknown
     BDC_TYPE_CONST1,    // 1:  constant 1
     BDC_TYPE_PI,        // 2:  primary input
-    BDC_TYPE_AND,       // 4:  AND-gate
-    BDC_TYPE_OR,        // 5:  OR-gate (temporary)
-    BDC_TYPE_XOR,       // 6:  XOR-gate
-    BDC_TYPE_MUX,       // 7:  MUX-gate
-    BDC_TYPE_OTHER      // 8:  unused
+    BDC_TYPE_AND,       // 3:  AND-gate
+    BDC_TYPE_OR,        // 4:  OR-gate (temporary)
+    BDC_TYPE_XOR,       // 5:  XOR-gate
+    BDC_TYPE_MUX,       // 6:  MUX-gate
+    BDC_TYPE_OTHER      // 7:  unused
 } Bdc_Type_t;
 
 typedef struct Bdc_Fun_t_ Bdc_Fun_t;
@@ -60,7 +60,6 @@ struct Bdc_Fun_t_
     int              Type;         // Const1, PI, AND, XOR, MUX
     Bdc_Fun_t *      pFan0;        // fanin of the given node
     Bdc_Fun_t *      pFan1;        // fanin of the given node
-    Bdc_Fun_t *      pFan2;        // fanin of the given node
     unsigned         uSupp;        // bit mask of current support
     unsigned *       puFunc;       // the function of the node
     Bdc_Fun_t *      pNext;        // next function with same support
@@ -70,8 +69,8 @@ struct Bdc_Fun_t_
 typedef struct Bdc_Isf_t_ Bdc_Isf_t;
 struct Bdc_Isf_t_
 {
-    int              Var;          // the first variable assigned
-    unsigned         uSupp;        // the current support
+    unsigned         uSupp;        // the complete support of this component
+    unsigned         uUniq;        // the unique variables of this component
     unsigned *       puOn;         // on-set
     unsigned *       puOff;        // off-set
 };
@@ -82,13 +81,13 @@ struct Bdc_Man_t_
     Bdc_Par_t *      pPars;        // parameter set
     int              nVars;        // the number of variables
     int              nWords;       // the number of words 
-    int              nNodesLimit;  // the limit on the number of new nodes
+    int              nNodesMax;    // the limit on the number of new nodes
     int              nDivsLimit;   // the limit on the number of divisors
     // internal nodes
     Bdc_Fun_t *      pNodes;       // storage for decomposition nodes
-    int              nNodes;       // the number of nodes used
-    int              nNodesNew;    // the number of nodes used
     int              nNodesAlloc;  // the number of nodes allocated  
+    int              nNodes;       // the number of all nodes created so far
+    int              nNodesNew;    // the number of new AND nodes created so far
     Bdc_Fun_t *      pRoot;        // the root node
     // resub candidates
     Bdc_Fun_t **     pTable;       // hash table of candidates
@@ -115,9 +114,11 @@ static inline Bdc_Fun_t * Bdc_Regular( Bdc_Fun_t * p )                  { return
 static inline Bdc_Fun_t * Bdc_Not( Bdc_Fun_t * p )                      { return (Bdc_Fun_t *)((PORT_PTRUINT_T)p ^  (PORT_PTRUINT_T)01);     }
 static inline Bdc_Fun_t * Bdc_NotCond( Bdc_Fun_t * p, int c )           { return (Bdc_Fun_t *)((PORT_PTRUINT_T)p ^  (PORT_PTRUINT_T)(c!=0)); }
 
-static inline Bdc_Fun_t * Bdc_FunNew( Bdc_Man_t * p )                   { Bdc_Fun_t * pRes; if ( p->nNodes == p->nNodesLimit ) return NULL; pRes = p->pNodes + p->nNodes++; memset( pRes, 0, sizeof(Bdc_Fun_t) ); p->nNodesNew++; return pRes; }
-static inline void        Bdc_IsfStart( Bdc_Man_t * p, Bdc_Isf_t * pF ) { pF->puOn = Vec_IntFetch( p->vMemory, p->nWords ); pF->puOff = Vec_IntFetch( p->vMemory, p->nWords ); }
-static inline void        Bdc_IsfClean( Bdc_Isf_t * p )                 { p->uSupp = 0; p->Var = 0;                                        }
+static inline Bdc_Fun_t * Bdc_FunNew( Bdc_Man_t * p )                   { Bdc_Fun_t * pRes; if ( p->nNodes >= p->nNodesAlloc || p->nNodesNew >= p->nNodesMax ) return NULL; pRes = p->pNodes + p->nNodes++; p->nNodesNew++; memset( pRes, 0, sizeof(Bdc_Fun_t) ); return pRes; }
+static inline Bdc_Fun_t * Bdc_FunWithId( Bdc_Man_t * p, int Id )        { assert( Id < p->nNodes ); return p->pNodes + Id; }
+static inline int         Bdc_FunId( Bdc_Man_t * p, Bdc_Fun_t * pFun )  { return pFun - p->pNodes; }
+static inline void        Bdc_IsfStart( Bdc_Man_t * p, Bdc_Isf_t * pF ) { pF->uSupp = 0; pF->uUniq = 0; pF->puOn = Vec_IntFetch( p->vMemory, p->nWords ); pF->puOff = Vec_IntFetch( p->vMemory, p->nWords ); }
+static inline void        Bdc_IsfClean( Bdc_Isf_t * p )                 { p->uSupp = 0; p->uUniq = 0;                                      }
 static inline void        Bdc_IsfCopy( Bdc_Isf_t * p, Bdc_Isf_t * q )   { Bdc_Isf_t T = *p; *p = *q; *q = T;                               }
 static inline void        Bdc_IsfNot( Bdc_Isf_t * p )                   { unsigned * puT = p->puOn; p->puOn = p->puOff; p->puOff = puT;    }
 

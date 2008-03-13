@@ -1293,6 +1293,13 @@ void sat_solver_store_free( sat_solver * s )
     if ( s->pStore ) Sto_ManFree( s->pStore );
     s->pStore = NULL;
 }
+
+int sat_solver_store_change_last( sat_solver * s )
+{
+    extern int Sto_ManChangeLastClause( void * p );
+    if ( s->pStore ) return Sto_ManChangeLastClause( s->pStore );
+    return -1;
+}
  
 void sat_solver_store_mark_roots( sat_solver * s )
 {

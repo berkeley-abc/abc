@@ -931,6 +931,21 @@ char * Abc_SopFromTruthHex( char * pTruth )
         pCube[nVars + 1] = '1';
         pCube[nVars + 2] = '\n';
     }
+/*
+    // create TT representation
+    {
+        extern void Bdc_ManDecomposeTest( unsigned uTruth, int nVars );
+        unsigned uTruth = 0;
+        int nVarsAll = 4;
+        assert( nVarsAll == 4 );
+        assert( nVars <= nVarsAll );
+        Vec_IntForEachEntry( vMints, Mint, i )
+            uTruth |= (1 << Mint);
+//        uTruth = uTruth | (uTruth << 8) | (uTruth << 16) | (uTruth << 24);
+        uTruth = uTruth | (uTruth << 16);
+        Bdc_ManDecomposeTest( uTruth, nVarsAll );
+    }
+*/
     Vec_IntFree( vMints );
     return pSopCover;
 }

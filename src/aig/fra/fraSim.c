@@ -159,6 +159,27 @@ int Fra_SmlNodeIsZero( Fra_Sml_t * p, Aig_Obj_t * pObj )
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of one's in the patten of the output.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fra_SmlNodeCountOnes( Fra_Sml_t * p, Aig_Obj_t * pObj )
+{
+    unsigned * pSims;
+    int i, Counter = 0;
+    pSims = Fra_ObjSim(p, pObj->Id);
+    for ( i = 0; i < p->nWordsTotal; i++ )
+        Counter += Aig_WordCountOnes( pSims[i] );
+    return Counter;
+}
+
 
 
 /**Function*************************************************************

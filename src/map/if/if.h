@@ -90,6 +90,7 @@ struct If_Par_t_
     int                fEdge;         // uses edge-based cut selection heuristics
     int                fCutMin;       // performs cut minimization by removing functionally reducdant variables
     int                fSeqMap;       // sequential mapping
+    int                fBidec;        // use bi-decomposition
     int                fVerbose;      // the verbosity flag
     // internal parameters
     int                fAreaOnly;     // area only mode

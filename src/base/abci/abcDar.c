@@ -1567,6 +1567,32 @@ Abc_Ntk_t * Abc_NtkInterOne( Abc_Ntk_t * pNtkOn, Abc_Ntk_t * pNtkOff, int fVerbo
     return pNtkAig;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Fast interpolation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkInterFast( Abc_Ntk_t * pNtkOn, Abc_Ntk_t * pNtkOff, int fVerbose )
+{
+    extern void Aig_ManInterFast( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fVerbose );
+    Aig_Man_t * pManOn, * pManOff;
+    // create internal AIGs
+    pManOn = Abc_NtkToDar( pNtkOn, 0 );
+    if ( pManOn == NULL )
+        return;
+    pManOff = Abc_NtkToDar( pNtkOff, 0 );
+    if ( pManOff == NULL )
+        return;
+    Aig_ManInterFast( pManOn, pManOff, fVerbose );
+    Aig_ManStop( pManOn );
+    Aig_ManStop( pManOff );
+}
 
 int timeCnf;
 int timeSat;
@@ -1587,12 +1613,15 @@ Abc_Ntk_t * Abc_NtkInter( Abc_Ntk_t * pNtkOn, Abc_Ntk_t * pNtkOff, int fVerbose 
 {
     Abc_Ntk_t * pNtkOn1, * pNtkOff1, * pNtkInter1, * pNtkInter;
     Abc_Obj_t * pObj;
-    int i;
+    int i, clk = clock();
     if ( Abc_NtkCoNum(pNtkOn) != Abc_NtkCoNum(pNtkOff) )
     {
         printf( "Currently works only for networks with equal number of POs.\n" );
         return NULL;
     }
+    // compute the fast interpolation time
+//    Abc_NtkInterFast( pNtkOn, pNtkOff, fVerbose );
+    // consider the case of one output
     if ( Abc_NtkCoNum(pNtkOn) == 1 )
         return Abc_NtkInterOne( pNtkOn, pNtkOff, fVerbose );
     // start the new newtork
@@ -1636,6 +1665,7 @@ timeInt = 0;
 //    PRT( "CNF", timeCnf );
 //    PRT( "SAT", timeSat );
 //    PRT( "Int", timeInt );
+//    PRT( "Slow interpolation time", clock() - clk );
 
     // return the network
     if ( !Abc_NtkCheck( pNtkInter ) )

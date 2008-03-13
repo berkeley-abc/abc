@@ -58,7 +58,7 @@ struct Bdc_Par_t_
 /*=== bdcCore.c ==========================================================*/
 extern Bdc_Man_t * Bdc_ManAlloc( Bdc_Par_t * pPars );
 extern void        Bdc_ManFree( Bdc_Man_t * p );
-extern int         Bdc_ManDecompose( Bdc_Man_t * p, unsigned * puFunc, unsigned * puCare, int nVars, Vec_Ptr_t * vDivs, int nNodesLimit );
+extern int         Bdc_ManDecompose( Bdc_Man_t * p, unsigned * puFunc, unsigned * puCare, int nVars, Vec_Ptr_t * vDivs, int nNodesMax );
 
 
 #ifdef __cplusplus

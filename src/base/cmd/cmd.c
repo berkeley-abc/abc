@@ -149,12 +149,17 @@ void Cmd_End( Abc_Frame_t * pAbc )
 int CmdCommandTime( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     int c;
+    int fClear;
 
+    fClear = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ch" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'c':
+            fClear ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -162,10 +167,18 @@ int CmdCommandTime( Abc_Frame_t * pAbc, int argc, char **argv )
         }
     }
 
+    if ( fClear )
+    {
+        pAbc->TimeTotal += pAbc->TimeCommand;
+        pAbc->TimeCommand = 0.0;
+        return 0;
+    }
+
     if ( argc != globalUtilOptind )
     {
         goto usage;
     }
+
 
     pAbc->TimeTotal += pAbc->TimeCommand;
     fprintf( pAbc->Out, "elapse: %3.2f seconds, total: %3.2f seconds\n", 
@@ -182,7 +195,9 @@ int CmdCommandTime( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
   usage:
-    fprintf( pAbc->Err, "usage: time [-h]\n" );
+    fprintf( pAbc->Err, "usage: time [-ch]\n" );
+    fprintf( pAbc->Err, "      \t\tprint the runtime since the last call\n" );
+    fprintf( pAbc->Err, "   -c \t\tclears the elapsed time without printing it\n" );
     fprintf( pAbc->Err, "   -h \t\tprint the command usage\n" );
     return 1;
 }

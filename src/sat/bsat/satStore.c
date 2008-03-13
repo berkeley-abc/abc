@@ -260,6 +260,31 @@ void Sto_ManMarkClausesA( Sto_Man_t * p )
     }
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns the literal of the last clause.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Sto_ManChangeLastClause( Sto_Man_t * p )
+{
+    Sto_Cls_t * pClause, * pPrev;
+    pPrev = NULL;
+    Sto_ManForEachClause( p, pClause )
+        pPrev = pClause;
+    assert( pPrev != NULL );
+    assert( pPrev->fA == 1 );
+    assert( pPrev->nLits == 1 );
+    p->nClausesA--;
+    pPrev->fA = 0;
+    return pPrev->pLits[0] >> 1;
+}
+
 
 /**Function*************************************************************
 

@@ -45,10 +45,108 @@ extern int timeInt;
   SeeAlso     []
 
 ***********************************************************************/
+void Aig_ManInterFast( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fVerbose )
+{
+    sat_solver * pSat;
+    Cnf_Dat_t * pCnfOn, * pCnfOff;
+    Aig_Obj_t * pObj, * pObj2;
+    int Lits[3], status, i;
+    int clk = clock();
+
+    assert( Aig_ManPiNum(pManOn) == Aig_ManPiNum(pManOff) );
+    assert( Aig_ManPoNum(pManOn) == Aig_ManPoNum(pManOff) );
+
+    // derive CNFs
+    pManOn->nRegs = Aig_ManPoNum(pManOn);
+    pCnfOn  = Cnf_Derive( pManOn, Aig_ManPoNum(pManOn) );
+    pManOn->nRegs = 0;
+
+    pManOff->nRegs = Aig_ManPoNum(pManOn);
+    pCnfOff = Cnf_Derive( pManOff, Aig_ManPoNum(pManOff) );
+    pManOff->nRegs = 0;
+
+//    pCnfOn  = Cnf_DeriveSimple( pManOn, Aig_ManPoNum(pManOn) );
+//    pCnfOff = Cnf_DeriveSimple( pManOff, Aig_ManPoNum(pManOn) );
+    Cnf_DataLift( pCnfOff, pCnfOn->nVars );
+
+    // start the solver
+    pSat = sat_solver_new();
+    sat_solver_setnvars( pSat, pCnfOn->nVars + pCnfOff->nVars );
+
+    // add clauses of A
+    for ( i = 0; i < pCnfOn->nClauses; i++ )
+    {
+        if ( !sat_solver_addclause( pSat, pCnfOn->pClauses[i], pCnfOn->pClauses[i+1] ) )
+        {
+            Cnf_DataFree( pCnfOn );
+            Cnf_DataFree( pCnfOff );
+            sat_solver_delete( pSat );
+            return;
+        }
+    }
+
+    // add clauses of B
+    for ( i = 0; i < pCnfOff->nClauses; i++ )
+    {
+        if ( !sat_solver_addclause( pSat, pCnfOff->pClauses[i], pCnfOff->pClauses[i+1] ) )
+        {
+            Cnf_DataFree( pCnfOn );
+            Cnf_DataFree( pCnfOff );
+            sat_solver_delete( pSat );
+            return;
+        }
+    }
+
+    // add PI clauses
+    // collect the common variables
+    Aig_ManForEachPi( pManOn, pObj, i )
+    {
+        pObj2 = Aig_ManPi( pManOff, i );
+
+        Lits[0] = toLitCond( pCnfOn->pVarNums[pObj->Id], 0 );
+        Lits[1] = toLitCond( pCnfOff->pVarNums[pObj2->Id], 1 );
+        if ( !sat_solver_addclause( pSat, Lits, Lits+2 ) )
+            assert( 0 );
+        Lits[0] = toLitCond( pCnfOn->pVarNums[pObj->Id], 1 );
+        Lits[1] = toLitCond( pCnfOff->pVarNums[pObj2->Id], 0 );
+        if ( !sat_solver_addclause( pSat, Lits, Lits+2 ) )
+            assert( 0 );
+    }
+    status = sat_solver_simplify( pSat );
+    assert( status != 0 );
+
+    // solve incremental SAT problems
+    Aig_ManForEachPo( pManOn, pObj, i )
+    {
+        pObj2 = Aig_ManPo( pManOff, i );
+
+        Lits[0] = toLitCond( pCnfOn->pVarNums[pObj->Id], 0 );
+        Lits[1] = toLitCond( pCnfOff->pVarNums[pObj2->Id], 0 );
+        status = sat_solver_solve( pSat, Lits, Lits+2, (sint64)0, (sint64)0, (sint64)0, (sint64)0 );
+        if ( status != l_False )
+            printf( "The incremental SAT problem is not UNSAT.\n" );
+    }
+    Cnf_DataFree( pCnfOn );
+    Cnf_DataFree( pCnfOff );
+    sat_solver_delete( pSat );
+//    PRT( "Fast interpolation time", clock() - clk );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Aig_Man_t * Aig_ManInter( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fVerbose )
 {
     void * pSatCnf = NULL;
-    Inta_Man_t * pManInter;
+    Inta_Man_t * pManInter; 
     Aig_Man_t * pRes;
     sat_solver * pSat;
     Cnf_Dat_t * pCnfOn, * pCnfOff;
@@ -56,6 +154,7 @@ Aig_Man_t * Aig_ManInter( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fVerbose 
     Aig_Obj_t * pObj, * pObj2;
     int Lits[3], status, i;
     int clk;
+    int iLast;
 
     assert( Aig_ManPiNum(pManOn) == Aig_ManPiNum(pManOff) );
 
@@ -87,6 +186,12 @@ clk = clock();
     }
     sat_solver_store_mark_clauses_a( pSat );
 
+    // update the last clause
+    {
+        extern int sat_solver_store_change_last( sat_solver * pSat );
+//        iLast = sat_solver_store_change_last( pSat );
+    }
+
     // add clauses of B
     for ( i = 0; i < pCnfOff->nClauses; i++ )
     {
@@ -102,6 +207,8 @@ clk = clock();
     // add PI clauses
     // collect the common variables
     vVarsAB = Vec_IntAlloc( Aig_ManPiNum(pManOn) );
+//    Vec_IntPush( vVarsAB, iLast );
+
     Aig_ManForEachPi( pManOn, pObj, i )
     {
         Vec_IntPush( vVarsAB, pCnfOn->pVarNums[pObj->Id] );
@@ -175,6 +282,8 @@ timeInt += clock() - clk;
 */
     Vec_IntFree( vVarsAB );
     Sto_ManFree( pSatCnf );
+
+//    Ioa_WriteAiger( pRes, "inter2.aig", 0, 0 );
     return pRes;
 }
 

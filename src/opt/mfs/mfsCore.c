@@ -110,6 +110,8 @@ clk = clock();
     p->vSupp  = Abc_NtkNodeSupport( p->pNtk, (Abc_Obj_t **)Vec_PtrArray(p->vRoots), Vec_PtrSize(p->vRoots) );
     p->vNodes = Abc_NtkDfsNodes( p->pNtk, (Abc_Obj_t **)Vec_PtrArray(p->vRoots), Vec_PtrSize(p->vRoots) );
 p->timeWin += clock() - clk;
+    // count the number of patterns
+//    p->dTotalRatios += Abc_NtkConstraintRatio( p, pNode );
     // construct AIG for the window
 clk = clock();
     p->pAigWin = Abc_NtkConstructAig( p, pNode );
@@ -121,6 +123,8 @@ p->timeCnf += clock() - clk;
     // create the SAT problem
 clk = clock();
     p->pSat = Cnf_DataWriteIntoSolver( p->pCnf, 1, 0 );
+    if ( p->pSat == NULL )
+        return 0;
     // solve the SAT problem
     Abc_NtkMfsSolveSat( p, pNode );
 p->timeSat += clock() - clk;

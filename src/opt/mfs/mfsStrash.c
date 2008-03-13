@@ -255,6 +255,87 @@ Aig_Man_t * Abc_NtkConstructAig( Mfs_Man_t * p, Abc_Obj_t * pNode )
     return pMan;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Creates AIG for the window with constraints.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Abc_NtkAigForConstraints( Mfs_Man_t * p, Abc_Obj_t * pNode )
+{
+    Abc_Obj_t * pFanin;
+    Aig_Man_t * pMan;
+    Aig_Obj_t * pPi, * pPo, * pObjAig, * pObjRoot;
+    Vec_Int_t * vOuts;
+    int i, k, iOut;
+    if ( p->pCare == NULL )
+        return NULL;
+    pMan = Aig_ManStart( 1000 );
+    // mark the care set
+    Aig_ManIncrementTravId( p->pCare );
+    Vec_PtrForEachEntry( p->vSupp, pFanin, i )
+    {
+        pPi = Aig_ManPi( p->pCare, (int)pFanin->pData );
+        Aig_ObjSetTravIdCurrent( p->pCare, pPi );
+        pPi->pData = Aig_ObjCreatePi(pMan);
+    }
+    // construct the constraints
+    pObjRoot = Aig_ManConst1(pMan);
+    Vec_PtrForEachEntry( p->vSupp, pFanin, i )
+    {
+        vOuts = Vec_PtrEntry( p->vSuppsInv, (int)pFanin->pData );
+        Vec_IntForEachEntry( vOuts, iOut, k )
+        {
+            pPo = Aig_ManPo( p->pCare, iOut );
+            if ( Aig_ObjIsTravIdCurrent( p->pCare, pPo ) )
+                continue;
+            Aig_ObjSetTravIdCurrent( p->pCare, pPo );
+            if ( Aig_ObjFanin0(pPo) == Aig_ManConst1(p->pCare) )
+                continue;
+            pObjAig = Abc_NtkConstructCare_rec( p->pCare, Aig_ObjFanin0(pPo), pMan );
+            if ( pObjAig == NULL )
+                continue;
+            pObjAig = Aig_NotCond( pObjAig, Aig_ObjFaninC0(pPo) );
+            pObjRoot = Aig_And( pMan, pObjRoot, pObjAig );
+        }
+    }
+    Aig_ObjCreatePo( pMan, pObjRoot );
+    Aig_ManCleanup( pMan );
+    return pMan;
+}
+
+#include "fra.h"
+
+/**Function*************************************************************
+
+  Synopsis    [Compute the ratio of don't-cares.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+double Abc_NtkConstraintRatio( Mfs_Man_t * p, Abc_Obj_t * pNode )
+{
+    int nSimWords = 256;
+    Aig_Man_t * pMan;
+    Fra_Sml_t * pSim;
+    int Counter;
+    pMan = Abc_NtkAigForConstraints( p, pNode );
+    pSim = Fra_SmlSimulateComb( pMan, nSimWords );
+    Counter = Fra_SmlNodeCountOnes( pSim, Aig_ManPo(pMan, 0) );
+    Aig_ManStop( pMan );
+    Fra_SmlStop( pSim );
+    return 1.0 * Counter / (32 * nSimWords);
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

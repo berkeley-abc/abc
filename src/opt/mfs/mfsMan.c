@@ -126,9 +126,13 @@ void Mfs_ManPrint( Mfs_Man_t * p )
     }
     else
     {
-        printf( "Nodes = %d.  Care mints = %d. Total mints = %d. Ratio = %5.2f.\n", 
-            p->nNodesTried, p->nMintsCare, p->nMintsTotal, 1.0 * p->nMintsCare / p->nMintsTotal );
+        printf( "Nodes = %d.  DC mints in local space = %d. Total mints = %d. Ratio = %5.2f.\n", 
+            p->nNodesTried, p->nMintsTotal-p->nMintsCare, p->nMintsTotal, 
+            1.0 * (p->nMintsTotal-p->nMintsCare) / p->nMintsTotal );
+//        printf( "Average ratio of sequential DCs in the global space = %5.2f.\n", 
+//            1.0-(p->dTotalRatios/p->nNodesTried) );
     }
+/*
     PRTP( "Win", p->timeWin            ,  p->timeTotal );
     PRTP( "Div", p->timeDiv            ,  p->timeTotal );
     PRTP( "Aig", p->timeAig            ,  p->timeTotal );
@@ -136,7 +140,7 @@ void Mfs_ManPrint( Mfs_Man_t * p )
     PRTP( "Sat", p->timeSat-p->timeInt ,  p->timeTotal );
     PRTP( "Int", p->timeInt            ,  p->timeTotal );
     PRTP( "ALL", p->timeTotal          ,  p->timeTotal );
-
+*/
 }
 
 /**Function*************************************************************

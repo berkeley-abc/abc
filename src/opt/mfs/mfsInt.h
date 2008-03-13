@@ -86,6 +86,7 @@ struct Mfs_Man_t_
     int                 nTotalDivs;
     int                 nTimeOuts;
     int                 nDcMints;
+    double              dTotalRatios;
     // node/edge stats
     int                 nTotalNodesBeg;
     int                 nTotalNodesEnd;
@@ -132,6 +133,7 @@ extern int              Abc_NtkMfsResubNode2( Mfs_Man_t * p, Abc_Obj_t * pNode )
 extern void             Abc_NtkMfsSolveSat( Mfs_Man_t * p, Abc_Obj_t * pNode );
 /*=== mfsStrash.c ==========================================================*/
 extern Aig_Man_t *      Abc_NtkConstructAig( Mfs_Man_t * p, Abc_Obj_t * pNode );
+extern double           Abc_NtkConstraintRatio( Mfs_Man_t * p, Abc_Obj_t * pNode );
 /*=== mfsWin.c ==========================================================*/
 extern Vec_Ptr_t *      Abc_MfsComputeRoots( Abc_Obj_t * pNode, int nWinTfoMax, int nFanoutLimit );
 

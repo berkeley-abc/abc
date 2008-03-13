@@ -391,6 +391,10 @@ void Abc_Init( Abc_Frame_t * pAbc )
         extern void Dar_LibStart();
         Dar_LibStart();
     }
+    {
+        extern Bdc_ManDecomposeTest( unsigned uTruth, int nVars );
+//        Bdc_ManDecomposeTest( 0x0f0f0f0f, 3 );
+    }
 } 
 
 /**Function*************************************************************
@@ -10771,6 +10775,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->fEdge       =  0;
     pPars->fCutMin     =  0;
     pPars->fSeqMap     =  0;
+    pPars->fBidec      =  0;
     pPars->fVerbose    =  0;
     // internal parameters
     pPars->fTruth      =  0;
@@ -10782,7 +10787,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->pFuncCost   =  NULL;   
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFADEpaflemrstvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFADEpaflemrstbvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -10879,6 +10884,9 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 't':
             pPars->fLiftLeaves ^= 1;
+            break;
+        case 'b':
+            pPars->fBidec ^= 1;
             break;
         case 'v':
             pPars->fVerbose ^= 1;
@@ -11008,7 +11016,7 @@ usage:
         sprintf( LutSize, "library" );
     else
         sprintf( LutSize, "%d", pPars->nLutSize );
-    fprintf( pErr, "usage: if [-KCFA num] [-DE float] [-parlemsvh]\n" );
+    fprintf( pErr, "usage: if [-KCFA num] [-DE float] [-parlemsbvh]\n" );
     fprintf( pErr, "\t           performs FPGA technology mapping of the network\n" );
     fprintf( pErr, "\t-K num   : the number of LUT inputs (2 < num < %d) [default = %s]\n", IF_MAX_LUTSIZE+1, LutSize );
     fprintf( pErr, "\t-C num   : the max number of priority cuts (0 < num < 2^12) [default = %d]\n", pPars->nCutsMax );
@@ -11025,6 +11033,7 @@ usage:
     fprintf( pErr, "\t-m       : enables cut minimization by removing vacuous variables [default = %s]\n", pPars->fCutMin? "yes": "no" );
     fprintf( pErr, "\t-s       : toggles sequential mapping [default = %s]\n", pPars->fSeqMap? "yes": "no" );
 //    fprintf( pErr, "\t-t       : toggles the use of true sequential cuts [default = %s]\n", pPars->fLiftLeaves? "yes": "no" );
+    fprintf( pErr, "\t-b       : toggles deriving local AIGs using bi-decomposition [default = %s]\n", pPars->fBidec? "yes": "no" );
     fprintf( pErr, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h       : prints the command usage\n");
     return 1;
