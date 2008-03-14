@@ -500,6 +500,7 @@ int Lpk_Resynthesize( Abc_Ntk_t * pNtk, Lpk_Par_t * pPars )
     Lpk_Man_t * p;
     Abc_Obj_t * pObj;
     double Delta;
+//    int * pnFanouts, nObjMax;
     int i, Iter, nNodes, nNodesPrev, clk = clock();
     assert( Abc_NtkIsLogic(pNtk) );
  
@@ -554,6 +555,14 @@ int Lpk_Resynthesize( Abc_Ntk_t * pNtk, Lpk_Par_t * pPars )
         p->nTotalNets = Abc_NtkGetTotalFanins(pNtk);
         p->nTotalNodes = Abc_NtkNodeNum(pNtk);
     }
+/*
+    // save the number of fanouts of all objects
+    nObjMax = Abc_NtkObjNumMax( pNtk );
+    pnFanouts = ALLOC( int, nObjMax );
+    memset( pnFanouts, 0, sizeof(int) * nObjMax );
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        pnFanouts[pObj->Id] = Abc_ObjFanoutNum(pObj);
+*/
 
     // iterate over the network
     nNodesPrev = p->nNodesTotal;
@@ -604,6 +613,18 @@ int Lpk_Resynthesize( Abc_Ntk_t * pNtk, Lpk_Par_t * pPars )
             break;
     }
     Abc_NtkStopReverseLevels( pNtk );
+/*
+    // report the fanout changes
+    Abc_NtkForEachObj( pNtk, pObj, i )
+    {
+        if ( i >= nObjMax )
+            continue;
+        if ( Abc_ObjFanoutNum(pObj) - pnFanouts[pObj->Id] == 0 )
+            continue;
+        printf( "%d ", Abc_ObjFanoutNum(pObj) - pnFanouts[pObj->Id] );
+    }
+    printf( "\n" );
+*/
 
     if ( pPars->fVerbose )
     {

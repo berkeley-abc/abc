@@ -131,6 +131,8 @@ void Mfs_ManPrint( Mfs_Man_t * p )
             1.0 * (p->nMintsTotal-p->nMintsCare) / p->nMintsTotal );
 //        printf( "Average ratio of sequential DCs in the global space = %5.2f.\n", 
 //            1.0-(p->dTotalRatios/p->nNodesTried) );
+        printf( "Nodes resyn = %d. Ratio = %5.2f.  Total AIG node gain = %d.\n", 
+            p->nNodesDec, 1.0 * p->nNodesDec / p->nNodesTried, p->nNodesGained );
     }
 /*
     PRTP( "Win", p->timeWin            ,  p->timeTotal );
@@ -158,6 +160,10 @@ void Mfs_ManStop( Mfs_Man_t * p )
 {
     if ( p->pPars->fVerbose )
         Mfs_ManPrint( p );
+    if ( p->vTruth )
+        Vec_IntFree( p->vTruth );
+    if ( p->pManDec )
+        Bdc_ManFree( p->pManDec );
     if ( p->pCare )
         Aig_ManStop( p->pCare );
     if ( p->vSuppsInv )

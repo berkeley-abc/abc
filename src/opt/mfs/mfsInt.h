@@ -35,12 +35,13 @@ extern "C" {
 #include "cnf.h"
 #include "satSolver.h"
 #include "satStore.h"
+#include "bdc.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#define MFS_FANIN_MAX   10
+#define MFS_FANIN_MAX   12
 
 typedef struct Mfs_Man_t_ Mfs_Man_t;
 struct Mfs_Man_t_
@@ -64,6 +65,11 @@ struct Mfs_Man_t_
     int                 nCexes;    // the numbe rof current counter-examples
     int                 nSatCalls; 
     int                 nSatCexes;
+    // used for bidecomposition
+    Vec_Int_t *         vTruth;
+    Bdc_Man_t *         pManDec;
+    int                 nNodesDec;
+    int                 nNodesGained;
     // solving data
     Aig_Man_t *         pAigWin;   // window AIG with constraints
     Cnf_Dat_t *         pCnf;      // the CNF for the window

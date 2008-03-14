@@ -100,7 +100,10 @@ p->timeSat += clock() - clk;
 ***********************************************************************/
 int Abc_NtkMfsNode( Mfs_Man_t * p, Abc_Obj_t * pNode )
 {
-    int clk;
+    Hop_Obj_t * pObj;
+    extern Hop_Obj_t * Abc_NodeIfNodeResyn( Bdc_Man_t * p, Hop_Man_t * pHop, Hop_Obj_t * pRoot, int nVars, Vec_Int_t * vTruth, unsigned * puCare );
+
+    int nGain, clk;
     p->nNodesTried++;
     // prepare data structure for this node
     Mfs_ManClean( p );
@@ -128,6 +131,16 @@ clk = clock();
     // solve the SAT problem
     Abc_NtkMfsSolveSat( p, pNode );
 p->timeSat += clock() - clk;
+    // minimize the local function of the node using bi-decomposition
+    assert( p->nFanins == Abc_ObjFaninNum(pNode) );
+    pObj = Abc_NodeIfNodeResyn( p->pManDec, pNode->pNtk->pManFunc, pNode->pData, p->nFanins, p->vTruth, p->uCare );
+    nGain = Hop_DagSize(pNode->pData) - Hop_DagSize(pObj);
+    if ( nGain >= 0 )
+    {
+        p->nNodesDec++;
+        p->nNodesGained += nGain;
+        pNode->pData = pObj;    
+    }
     return 1;
 }
 
@@ -146,6 +159,7 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
 {
     extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fRegisters );
 
+    Bdc_Par_t Pars = {0}, * pDecPars = &Pars;
     ProgressBar * pProgress;
     Mfs_Man_t * p;
     Abc_Obj_t * pObj;
@@ -157,8 +171,8 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
     nFaninMax = Abc_NtkGetFaninMax(pNtk);
     if ( nFaninMax > MFS_FANIN_MAX )
     {
-        printf( "Some nodes have more than %d fanins. Quitting.\n", MFS_FANIN_MAX );
-        return 1;
+        printf( "Nodes with more than %d fanins will node be processed.\n", MFS_FANIN_MAX );
+        nFaninMax = MFS_FANIN_MAX;
     }
     // perform the network sweep
     Abc_NtkSweep( pNtk, 0 );
@@ -186,11 +200,16 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
     {
         if ( p->pCare != NULL )
             printf( "Performing optimization with %d external care clauses.\n", Aig_ManPoNum(p->pCare) );
-        else
-            printf( "Performing optimization without constraints.\n" );
+//        else
+//            printf( "Performing optimization without constraints.\n" );
     }
     if ( !pPars->fResub )
-        printf( "Currently don't-cares are not used but the stats are printed.\n" );
+    {
+        pDecPars->nVarsMax = nFaninMax;
+        pDecPars->fVerbose = pPars->fVerbose;
+        p->vTruth = Vec_IntAlloc( 0 );
+        p->pManDec = Bdc_ManAlloc( pDecPars );
+    }
 
     // label the register outputs
     if ( p->pCare )
@@ -211,15 +230,26 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
     {
         if ( p->pPars->nDepthMax && (int)pObj->Level > p->pPars->nDepthMax )
             continue;
+        if ( Abc_ObjFaninNum(pObj) > MFS_FANIN_MAX )
+            continue;
         if ( !p->pPars->fVeryVerbose )
             Extra_ProgressBarUpdate( pProgress, i, NULL );
         if ( pPars->fResub )
             Abc_NtkMfsResub( p, pObj );
-        else
+        else if ( Abc_ObjFaninNum(pObj) > 1 && Abc_ObjFaninNum(pObj) <= 12 )
             Abc_NtkMfsNode( p, pObj );
     }
     Extra_ProgressBarStop( pProgress );
     Abc_NtkStopReverseLevels( pNtk );
+
+    // perform the sweeping
+    if ( !pPars->fResub )
+    {
+        extern void Abc_NtkBidecResyn( Abc_Ntk_t * pNtk, int fVerbose );
+        Abc_NtkSweep( pNtk, 0 );
+        Abc_NtkBidecResyn( pNtk, 0 );
+    }
+
     p->nTotalNodesEnd = Abc_NtkNodeNum(pNtk);
     p->nTotalEdgesEnd = Abc_NtkGetTotalFanins(pNtk);
 

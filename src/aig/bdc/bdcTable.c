@@ -30,39 +30,6 @@
 
 /**Function*************************************************************
 
-  Synopsis    [Minimizes the support of the ISF.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Bdc_SuppMinimize( Bdc_Man_t * p, Bdc_Isf_t * pIsf )
-{
-    int v;
-    // compute support
-    pIsf->uSupp = Kit_TruthSupport( pIsf->puOn, p->nVars ) | 
-        Kit_TruthSupport( pIsf->puOff, p->nVars );
-    // go through the support variables
-    for ( v = 0; v < p->nVars; v++ )
-    {
-        if ( (pIsf->uSupp & (1 << v)) == 0 )
-            continue;
-        Kit_TruthExistNew( p->puTemp1, pIsf->puOn, p->nVars, v );
-        Kit_TruthExistNew( p->puTemp2, pIsf->puOff, p->nVars, v );
-        if ( !Kit_TruthIsDisjoint( p->puTemp1, p->puTemp2, p->nVars ) )
-            continue;
-        // remove the variable
-        Kit_TruthCopy( pIsf->puOn, p->puTemp1, p->nVars );
-        Kit_TruthCopy( pIsf->puOff, p->puTemp2, p->nVars );
-        pIsf->uSupp &= ~(1 << v);
-    }
-}
-
-/**Function*************************************************************
-
   Synopsis    [Checks containment of the function in the ISF.]
 
   Description []

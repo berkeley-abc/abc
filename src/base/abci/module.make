@@ -2,6 +2,7 @@ SRC +=    src/base/abci/abc.c \
     src/base/abci/abcAttach.c \
     src/base/abci/abcAuto.c \
     src/base/abci/abcBalance.c \
+    src/base/abci/abcBidec.c \
     src/base/abci/abcBmc.c \
     src/base/abci/abcCas.c \
     src/base/abci/abcClpBdd.c \

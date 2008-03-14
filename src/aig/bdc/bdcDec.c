@@ -30,6 +30,82 @@
 
 /**Function*************************************************************
 
+  Synopsis    [Minimizes the support of the ISF.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Bdc_SuppMinimize2( Bdc_Man_t * p, Bdc_Isf_t * pIsf )
+{
+    int v, clk;
+    if ( p->pPars->fVerbose )
+        clk = clock();
+    // compute support
+    pIsf->uSupp = Kit_TruthSupport( pIsf->puOn, p->nVars ) | 
+        Kit_TruthSupport( pIsf->puOff, p->nVars );
+    // go through the support variables
+    for ( v = 0; v < p->nVars; v++ )
+    {
+        if ( (pIsf->uSupp & (1 << v)) == 0 )
+            continue;
+        Kit_TruthExistNew( p->puTemp1, pIsf->puOn, p->nVars, v );
+        Kit_TruthExistNew( p->puTemp2, pIsf->puOff, p->nVars, v );
+        if ( !Kit_TruthIsDisjoint( p->puTemp1, p->puTemp2, p->nVars ) )
+            continue;
+//        if ( !Kit_TruthVarIsVacuous( pIsf->puOn, pIsf->puOff, p->nVars, v ) )
+//            continue;
+        // remove the variable
+        Kit_TruthCopy( pIsf->puOn, p->puTemp1, p->nVars );
+        Kit_TruthCopy( pIsf->puOff, p->puTemp2, p->nVars );
+//        Kit_TruthExist( pIsf->puOn, p->nVars, v );
+//        Kit_TruthExist( pIsf->puOff, p->nVars, v );
+        pIsf->uSupp &= ~(1 << v);
+    }
+    if ( p->pPars->fVerbose )
+        p->timeSupps += clock() - clk;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Minimizes the support of the ISF.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Bdc_SuppMinimize( Bdc_Man_t * p, Bdc_Isf_t * pIsf )
+{
+    int v, clk;
+    if ( p->pPars->fVerbose )
+        clk = clock();
+    // go through the support variables
+    pIsf->uSupp = 0;
+    for ( v = 0; v < p->nVars; v++ )
+    {
+        if ( !Kit_TruthVarInSupport( pIsf->puOn, p->nVars, v ) && 
+             !Kit_TruthVarInSupport( pIsf->puOff, p->nVars, v ) )
+              continue;
+        if ( Kit_TruthVarIsVacuous( pIsf->puOn, pIsf->puOff, p->nVars, v ) )
+        {
+            Kit_TruthExist( pIsf->puOn, p->nVars, v );
+            Kit_TruthExist( pIsf->puOff, p->nVars, v );
+            continue;
+        }
+        pIsf->uSupp |= (1 << v);
+    }
+    if ( p->pPars->fVerbose )
+        p->timeSupps += clock() - clk;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Updates the ISF of the right after the left was decompoosed.]
 
   Description []
@@ -418,12 +494,16 @@ Bdc_Type_t Bdc_DecomposeStep( Bdc_Man_t * p, Bdc_Isf_t * pIsf, Bdc_Isf_t * pIsfL
     // check if there is any reuse for the components
     if ( WeightOrL + WeightOrR > WeightAndL + WeightAndR )
     {
+        p->numReuse++;
+        p->numOrs++;
         Bdc_IsfCopy( pIsfL, p->pIsfOL );
         Bdc_IsfCopy( pIsfR, p->pIsfOR );
         return BDC_TYPE_OR;
     }
     if ( WeightOrL + WeightOrR < WeightAndL + WeightAndR )
     {
+        p->numReuse++;
+        p->numAnds++;
         Bdc_IsfCopy( pIsfL, p->pIsfAL );
         Bdc_IsfCopy( pIsfR, p->pIsfAR );
         return BDC_TYPE_AND; 
@@ -432,10 +512,16 @@ Bdc_Type_t Bdc_DecomposeStep( Bdc_Man_t * p, Bdc_Isf_t * pIsf, Bdc_Isf_t * pIsfL
     // compare the two-component costs
     if ( WeightOr > WeightAnd )
     {
+        if ( WeightOr < BDC_SCALE )
+            p->numWeaks++;
+        p->numOrs++;
         Bdc_IsfCopy( pIsfL, p->pIsfOL );
         Bdc_IsfCopy( pIsfR, p->pIsfOR );
         return BDC_TYPE_OR;
     }
+    if ( WeightAnd < BDC_SCALE )
+        p->numWeaks++;
+    p->numAnds++;
     Bdc_IsfCopy( pIsfL, p->pIsfAL );
     Bdc_IsfCopy( pIsfR, p->pIsfAR );
     return BDC_TYPE_AND;
@@ -456,6 +542,9 @@ int Bdc_DecomposeStepMux( Bdc_Man_t * p, Bdc_Isf_t * pIsf, Bdc_Isf_t * pIsfL, Bd
 {
     int Var, VarMin, nSuppMin, nSuppCur;
     unsigned uSupp0, uSupp1;
+    int clk;
+    if ( p->pPars->fVerbose )
+        clk = clock();
     VarMin = -1;
     nSuppMin = 1000;
     for ( Var = 0; Var < p->nVars; Var++ )
@@ -473,7 +562,7 @@ int Bdc_DecomposeStepMux( Bdc_Man_t * p, Bdc_Isf_t * pIsf, Bdc_Isf_t * pIsfL, Bd
         {
             nSuppMin = nSuppCur;
             VarMin = Var;
-//            break;
+            break;
         }
     }
     if ( VarMin >= 0 )
@@ -485,6 +574,8 @@ int Bdc_DecomposeStepMux( Bdc_Man_t * p, Bdc_Isf_t * pIsf, Bdc_Isf_t * pIsfL, Bd
         Bdc_SuppMinimize( p, pIsfL );
         Bdc_SuppMinimize( p, pIsfR );
     }
+    if ( p->pPars->fVerbose )
+        p->timeMuxes += clock() - clk;
     return VarMin;
 }
 
@@ -582,6 +673,7 @@ Bdc_Fun_t * Bdc_ManDecompose_rec( Bdc_Man_t * p, Bdc_Isf_t * pIsf )
     Bdc_Fun_t * pFunc, * pFunc0, * pFunc1;
     Bdc_Isf_t IsfL, * pIsfL = &IsfL;
     Bdc_Isf_t IsfB, * pIsfR = &IsfB;
+    int iVar, clk;
 /*
 printf( "Init function (%d):\n", LocalCounter );
 Extra_PrintBinary( stdout, pIsf->puOn, 1<<4 );printf("\n");
@@ -589,13 +681,27 @@ Extra_PrintBinary( stdout, pIsf->puOff, 1<<4 );printf("\n");
 */
     // check computed results
     assert( Kit_TruthIsDisjoint(pIsf->puOn, pIsf->puOff, p->nVars) );
-    if ( pFunc = Bdc_TableLookup( p, pIsf ) )
+    if ( p->pPars->fVerbose )
+        clk = clock();
+    pFunc = Bdc_TableLookup( p, pIsf );
+    if ( p->pPars->fVerbose )
+        p->timeCache += clock() - clk;
+    if ( pFunc )
         return pFunc;
     // decide on the decomposition type
+    if ( p->pPars->fVerbose )
+        clk = clock();
     Type = Bdc_DecomposeStep( p, pIsf, pIsfL, pIsfR );
+    if ( p->pPars->fVerbose )
+        p->timeCheck += clock() - clk;
     if ( Type == BDC_TYPE_MUX )
     {
-        int iVar = Bdc_DecomposeStepMux( p, pIsf, pIsfL, pIsfR );
+        if ( p->pPars->fVerbose )
+            clk = clock();
+        iVar = Bdc_DecomposeStepMux( p, pIsf, pIsfL, pIsfR );
+        if ( p->pPars->fVerbose )
+            p->timeMuxes += clock() - clk;
+        p->numMuxes++;
         pFunc0 = Bdc_ManDecompose_rec( p, pIsfL );
         pFunc1 = Bdc_ManDecompose_rec( p, pIsfR );
         if ( pFunc0 == NULL || pFunc1 == NULL )
@@ -625,9 +731,6 @@ Extra_PrintBinary( stdout, pIsf->puOff, 1<<4 );printf("\n");
         // create new gate
         pFunc = Bdc_ManCreateGate( p, pFunc0, pFunc1, Type );
     }
-    if ( pFunc == NULL )
-        return NULL;
-    assert( Bdc_ManNodeVerify( p, pIsf, pFunc ) );
     return pFunc;
 }
 

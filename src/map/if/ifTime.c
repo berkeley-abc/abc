@@ -238,7 +238,7 @@ void If_CutRotatePins( If_Man_t * p, If_Cut_t * pCut )
     float PinDelays[32];
 //    int PinPerm[32];
     int i;
-    assert( p->pPars->pLutLib && p->pPars->pLutLib->fVarPinDelays && p->pPars->fTruth ); 
+//    assert( p->pPars->pLutLib && p->pPars->pLutLib->fVarPinDelays && p->pPars->fTruth ); 
     If_CutForEachLeaf( p, pCut, pLeaf, i )
         PinDelays[i] = If_ObjCutBest(pLeaf)->Delay;
     If_CutTruthPermute( p->puTemp[0], If_CutTruth(pCut), If_CutLeaveNum(pCut), PinDelays, If_CutLeaves(pCut) );

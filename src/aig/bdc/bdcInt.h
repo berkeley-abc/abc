@@ -106,6 +106,20 @@ struct Bdc_Man_t_
     Bdc_Isf_t * pIsfAR, IsfAR;
     // internal memory manager
     Vec_Int_t *      vMemory;      // memory for internal truth tables
+    // statistics
+    int              numCalls;
+    int              numNodes;
+    int              numMuxes;
+    int              numAnds;
+    int              numOrs;
+    int              numWeaks;
+    int              numReuse;
+    // runtime
+    int              timeCache;
+    int              timeCheck;
+    int              timeMuxes;
+    int              timeSupps;
+    int              timeTotal;
 };
 
 // working with complemented attributes of objects
@@ -132,11 +146,12 @@ static inline void        Bdc_IsfNot( Bdc_Isf_t * p )                   { unsign
 
 /*=== bdcDec.c ==========================================================*/
 extern Bdc_Fun_t *      Bdc_ManDecompose_rec( Bdc_Man_t * p, Bdc_Isf_t * pIsf );
+extern void             Bdc_SuppMinimize( Bdc_Man_t * p, Bdc_Isf_t * pIsf );
+extern int              Bdc_ManNodeVerify( Bdc_Man_t * p, Bdc_Isf_t * pIsf, Bdc_Fun_t * pFunc );
 /*=== bdcTable.c ==========================================================*/
 extern Bdc_Fun_t *      Bdc_TableLookup( Bdc_Man_t * p, Bdc_Isf_t * pIsf );
 extern void             Bdc_TableAdd( Bdc_Man_t * p, Bdc_Fun_t * pFunc );
 extern void             Bdc_TableClear( Bdc_Man_t * p );
-extern void             Bdc_SuppMinimize( Bdc_Man_t * p, Bdc_Isf_t * pIsf );
 extern int              Bdc_TableCheckContainment( Bdc_Man_t * p, Bdc_Isf_t * pIsf, unsigned * puTruth );
 
 #ifdef __cplusplus

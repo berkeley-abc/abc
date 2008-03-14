@@ -520,6 +520,64 @@ void Kit_TruthCofactor1New( unsigned * pOut, unsigned * pIn, int nVars, int iVar
     }
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Computes negative cofactor of the function.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+ 
+***********************************************************************/
+int Kit_TruthVarIsVacuous( unsigned * pOnset, unsigned * pOffset, int nVars, int iVar )
+{
+    int nWords = Kit_TruthWordNum( nVars );
+    int i, k, Step;
+
+    assert( iVar < nVars );
+    switch ( iVar )
+    {
+    case 0:
+        for ( i = 0; i < nWords; i++ )
+            if ( ((pOnset[i] & (pOffset[i] >> 1)) | (pOffset[i] & (pOnset[i] >> 1))) & 0x55555555 )
+                 return 0;
+        return 1;
+    case 1:
+        for ( i = 0; i < nWords; i++ )
+            if ( ((pOnset[i] & (pOffset[i] >> 2)) | (pOffset[i] & (pOnset[i] >> 2))) & 0x33333333 )
+                 return 0;
+            return 1;
+    case 2:
+        for ( i = 0; i < nWords; i++ )
+            if ( ((pOnset[i] & (pOffset[i] >> 4)) | (pOffset[i] & (pOnset[i] >> 4))) & 0x0F0F0F0F )
+                 return 0;
+        return 1;
+    case 3:
+        for ( i = 0; i < nWords; i++ )
+            if ( ((pOnset[i] & (pOffset[i] >> 8)) | (pOffset[i] & (pOnset[i] >> 8))) & 0x00FF00FF )
+                 return 0;
+        return 1;
+    case 4:
+        for ( i = 0; i < nWords; i++ )
+            if ( ((pOnset[i] & (pOffset[i] >> 16)) || (pOffset[i] & (pOnset[i] >> 16))) & 0x0000FFFF )
+                 return 0;
+        return 1;
+    default:
+        Step = (1 << (iVar - 5));
+        for ( k = 0; k < nWords; k += 2*Step )
+        {
+            for ( i = 0; i < Step; i++ )
+                if ( (pOnset[i] & pOffset[Step+i]) | (pOffset[i] & pOnset[Step+i]) )
+                     return 0;
+            pOnset += 2*Step;
+            pOffset += 2*Step;
+        }
+        return 1;
+    }
+}
+
 
 /**Function*************************************************************
 

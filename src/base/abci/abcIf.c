@@ -34,7 +34,7 @@ static Hop_Obj_t * Abc_NodeIfToHop( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_O
 static Vec_Ptr_t * Abc_NtkFindGoodOrder( Abc_Ntk_t * pNtk );
 
 extern void Abc_NtkBddReorder( Abc_Ntk_t * pNtk, int fVerbose );
-extern void Abc_NtkBidecResyn( Abc_Ntk_t * pNtk );
+extern void Abc_NtkBidecResyn( Abc_Ntk_t * pNtk, int fVerbose );
  
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -86,7 +86,7 @@ Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
         return NULL;
     If_ManStop( pIfMan );
     if ( pPars->fBidec && pPars->nLutSize <= 8 )
-        Abc_NtkBidecResyn( pNtkNew );
+        Abc_NtkBidecResyn( pNtkNew, 0 );
 
     // duplicate EXDC
     if ( pNtk->pExdc )
@@ -256,7 +256,7 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
     pNodeNew = Abc_NtkCreateNode( pNtkNew );
     pCutBest = If_ObjCutBest( pIfObj );
 //    if ( pIfMan->pPars->pLutLib && pIfMan->pPars->pLutLib->fVarPinDelays )
-//        If_CutRotatePins( pIfMan, pCutBest );
+    If_CutRotatePins( pIfMan, pCutBest );
     if ( pIfMan->pPars->fUseCnfs || pIfMan->pPars->fUseMv )
     {
         If_CutForEachLeafReverse( pIfMan, pCutBest, pIfLeaf, i )
@@ -548,86 +548,6 @@ Vec_Ptr_t * Abc_NtkFindGoodOrder( Abc_Ntk_t * pNtk )
     }
     Vec_PtrFree( vCos );
     return vNodes;
-}
-
-
-#include "bdc.h"
-#include "bdcInt.h"
-
-static inline Hop_Obj_t * Bdc_FunCopyHop( Bdc_Fun_t * pObj )  { return Hop_NotCond( Bdc_Regular(pObj)->pCopy, Bdc_IsComplement(pObj) );  }
-
-/**Function*************************************************************
-
-  Synopsis    [Resynthesizes nodes using bi-decomposition.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Hop_Obj_t * Abc_NodeIfNodeResyn( Bdc_Man_t * p, Hop_Man_t * pHop, Hop_Obj_t * pRoot, int nVars, Vec_Int_t * vTruth )
-{
-    unsigned * pTruth;
-    Bdc_Fun_t * pFunc;
-    int i;
-    // derive truth table
-    pTruth = Abc_ConvertAigToTruth( pHop, Hop_Regular(pRoot), nVars, vTruth, 0 );
-    if ( Hop_IsComplement(pRoot) )
-        Extra_TruthNot( pTruth, pTruth, nVars );
-    // decompose truth table
-    Bdc_ManDecompose( p, pTruth, NULL, nVars, NULL, 1000 );
-    // convert back into HOP
-    Bdc_FunWithId( p, 0 )->pCopy = Hop_ManConst1( pHop );
-    for ( i = 0; i < nVars; i++ )
-        Bdc_FunWithId( p, i+1 )->pCopy = Hop_ManPi( pHop, i );
-    for ( i = nVars + 1; i < p->nNodes; i++ )
-    {
-        pFunc = Bdc_FunWithId( p, i );
-        pFunc->pCopy = Hop_And( pHop, Bdc_FunCopyHop(pFunc->pFan0), Bdc_FunCopyHop(pFunc->pFan1) );
-    }
-    return Bdc_FunCopyHop(p->pRoot);
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Resynthesizes nodes using bi-decomposition.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkBidecResyn( Abc_Ntk_t * pNtk )
-{
-    Bdc_Par_t Pars = {0}, * pPars = &Pars;
-    Bdc_Man_t * p;
-    Abc_Obj_t * pObj;
-    Vec_Int_t * vTruth;
-    int i, nGainTotal = 0, nNodes1, nNodes2;
-    int clk = clock();
-    pPars->nVarsMax = Abc_NtkGetFaninMax( pNtk );
-    if ( pPars->nVarsMax > 8 )
-    {
-        printf( "Resynthesis is not performed.\n" );
-        return;
-    }
-    vTruth = Vec_IntAlloc( 0 );
-    p = Bdc_ManAlloc( pPars );
-    Abc_NtkForEachNode( pNtk, pObj, i )
-    {
-        nNodes1 = Hop_DagSize(pObj->pData);
-        pObj->pData = Abc_NodeIfNodeResyn( p, pNtk->pManFunc, pObj->pData, Abc_ObjFaninNum(pObj), vTruth );
-        nNodes2 = Hop_DagSize(pObj->pData);
-        nGainTotal += nNodes1 - nNodes2;
-    }
-//    printf( "LUTs = %d.  Total gain in AIG nodes = %d.  ", Abc_NtkNodeNum(pNtk), nGainTotal );
-//    PRT( "Time", clock() - clk );
-    Bdc_ManFree( p );
-    Vec_IntFree( vTruth );
 }
 
 

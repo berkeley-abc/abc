@@ -146,16 +146,18 @@ void If_CutTruthPermute( unsigned * pOut, unsigned * pIn, int nVars, float * pDe
         for ( i = 0; i < nVars - 1; i++ )
         {
             if ( pDelays[i] >= pDelays[i+1] )
+//            if ( pDelays[i] <= pDelays[i+1] )
                 continue;
             tTemp = pDelays[i]; pDelays[i] = pDelays[i+1]; pDelays[i+1] = tTemp;
             Temp = pVars[i]; pVars[i] = pVars[i+1]; pVars[i+1] = Temp;
+            if ( pOut && pIn )
             If_TruthSwapAdjacentVars( pOut, pIn, nVars, i );
             pTemp = pOut; pOut = pIn; pIn = pTemp;
             fChange = 1;
             Counter++;
         }
     }
-    if ( Counter & 1 )
+    if ( pOut && pIn && (Counter & 1) )
         If_TruthCopy( pOut, pIn, nVars );
 }
 

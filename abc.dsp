@@ -194,6 +194,10 @@ SOURCE=.\src\base\abci\abcBalance.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcBidec.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcBmc.c
 # End Source File
 # Begin Source File

@@ -564,6 +564,7 @@ extern void            Kit_TruthCofactor0( unsigned * pTruth, int nVars, int iVa
 extern void            Kit_TruthCofactor1( unsigned * pTruth, int nVars, int iVar );
 extern void            Kit_TruthCofactor0New( unsigned * pOut, unsigned * pIn, int nVars, int iVar );
 extern void            Kit_TruthCofactor1New( unsigned * pOut, unsigned * pIn, int nVars, int iVar );
+extern int             Kit_TruthVarIsVacuous( unsigned * pOnset, unsigned * pOffset, int nVars, int iVar );
 extern void            Kit_TruthExist( unsigned * pTruth, int nVars, int iVar );
 extern void            Kit_TruthExistNew( unsigned * pRes, unsigned * pTruth, int nVars, int iVar );
 extern void            Kit_TruthExistSet( unsigned * pRes, unsigned * pTruth, int nVars, unsigned uMask );

@@ -21,6 +21,9 @@
 #include "darInt.h"
 #include "kit.h"
 
+#include "bdc.h"
+#include "bdcInt.h"
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -44,6 +47,9 @@ struct Ref_Man_t_
     Kit_Graph_t *    pGraphBest;     // the best factored form
     int              GainBest;       // the best gain
     int              LevelBest;      // the level of node with the best gain
+    // bi-decomposition
+    Bdc_Par_t        DecPars;        // decomposition parameters
+    Bdc_Man_t *      pManDec;        // decomposition manager
     // node statistics
     int              nNodesInit;     // the initial number of nodes
     int              nNodesTried;    // the number of nodes tried
@@ -111,6 +117,11 @@ Ref_Man_t * Dar_ManRefStart( Aig_Man_t * pAig, Dar_RefPar_t * pPars )
     p->vMemory      = Vec_IntAlloc( 1 << 16 );
     p->vCutNodes    = Vec_PtrAlloc( 256 );
     p->vLeavesBest  = Vec_PtrAlloc( pPars->nLeafMax );
+    // alloc bi-decomposition manager
+    p->DecPars.nVarsMax = pPars->nLeafMax;
+    p->DecPars.fVerbose = pPars->fVerbose;
+    p->DecPars.fVeryVerbose = 0;
+//    p->pManDec = Bdc_ManAlloc( &p->DecPars );
     return p;
 }
 
@@ -151,6 +162,8 @@ void Dar_ManRefPrintStats( Ref_Man_t * p )
 ***********************************************************************/
 void Dar_ManRefStop( Ref_Man_t * p )
 {
+    if ( p->pManDec )
+        Bdc_ManFree( p->pManDec );
     if ( p->pPars->fVerbose )
         Dar_ManRefPrintStats( p );
     Vec_VecFree( p->vCuts );
@@ -381,6 +394,13 @@ int Dar_ManRefactorTryCuts( Ref_Man_t * p, Aig_Obj_t * pObj, int nNodesSaved, in
         if ( RetValue > -1 )
         {
             pGraphCur = Kit_SopFactor( p->vMemory, 0, Vec_PtrSize(vCut), p->vMemory );
+/*
+{
+    int RetValue;
+    RetValue = Bdc_ManDecompose( p->pManDec, pTruth, NULL, Vec_PtrSize(vCut), NULL, 1000 );
+    printf( "Graph = %d. Bidec = %d.\n", Kit_GraphNodeNum(pGraphCur), RetValue );
+}
+*/
             nNodesAdded = Dar_RefactTryGraph( p->pAig, pObj, vCut, pGraphCur, nNodesSaved - !p->pPars->fUseZeros, Required );
             if ( nNodesAdded > -1 )
             {
@@ -403,9 +423,17 @@ int Dar_ManRefactorTryCuts( Ref_Man_t * p, Aig_Obj_t * pObj, int nNodesSaved, in
         // try negative phase
         Kit_TruthNot( pTruth, pTruth, Vec_PtrSize(vCut) );
         RetValue = Kit_TruthIsop( pTruth, Vec_PtrSize(vCut), p->vMemory, 0 );
+//        Kit_TruthNot( pTruth, pTruth, Vec_PtrSize(vCut) );
         if ( RetValue > -1 )
         {
             pGraphCur = Kit_SopFactor( p->vMemory, 1, Vec_PtrSize(vCut), p->vMemory );
+/*
+{
+    int RetValue;
+    RetValue = Bdc_ManDecompose( p->pManDec, pTruth, NULL, Vec_PtrSize(vCut), NULL, 1000 );
+    printf( "Graph = %d. Bidec = %d.\n", Kit_GraphNodeNum(pGraphCur), RetValue );
+}
+*/
             nNodesAdded = Dar_RefactTryGraph( p->pAig, pObj, vCut, pGraphCur, nNodesSaved - !p->pPars->fUseZeros, Required );
             if ( nNodesAdded > -1 )
             {
@@ -426,6 +454,7 @@ int Dar_ManRefactorTryCuts( Ref_Man_t * p, Aig_Obj_t * pObj, int nNodesSaved, in
                 Kit_GraphFree( pGraphCur );
         }
     }
+
     return p->GainBest;
 }
 

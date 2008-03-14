@@ -48,11 +48,11 @@ Bdc_Man_t * Bdc_ManAlloc( Bdc_Par_t * pPars )
     p->pPars = pPars;
     p->nWords = Kit_TruthWordNum( pPars->nVarsMax );
     p->nDivsLimit = 200;
-    // memory
-    p->vMemory = Vec_IntStart( 1 << 16 );
     // internal nodes
     p->nNodesAlloc = 512;
     p->pNodes = ALLOC( Bdc_Fun_t, p->nNodesAlloc );
+    // memory
+    p->vMemory = Vec_IntStart( 4 * p->nWords * p->nNodesAlloc );
     // set up hash table
     p->nTableSize = (1 << p->pPars->nVarsMax);
     p->pTable = ALLOC( Bdc_Fun_t *, p->nTableSize );
@@ -69,7 +69,7 @@ Bdc_Man_t * Bdc_ManAlloc( Bdc_Par_t * pPars )
     p->pIsfOR = &p->IsfOR;  Bdc_IsfStart( p, p->pIsfOR );
     p->pIsfAL = &p->IsfAL;  Bdc_IsfStart( p, p->pIsfAL );
     p->pIsfAR = &p->IsfAR;  Bdc_IsfStart( p, p->pIsfAR );   
-    return p;
+    return p; 
 }
 
 /**Function*************************************************************
@@ -85,6 +85,18 @@ Bdc_Man_t * Bdc_ManAlloc( Bdc_Par_t * pPars )
 ***********************************************************************/
 void Bdc_ManFree( Bdc_Man_t * p )
 {
+    if ( p->pPars->fVerbose )
+    {
+        printf( "Bi-decomposition stats: Calls = %d.  Nodes = %d. Reuse = %d.\n", 
+            p->numCalls, p->numNodes, p->numReuse );
+        printf( "ANDs = %d.  ORs = %d.  Weak = %d.  Muxes = %d.  Memory = %.2f K\n", 
+            p->numAnds, p->numOrs, p->numWeaks, p->numMuxes, 4.0 * Vec_IntSize(p->vMemory) / (1<<10) );
+        PRT( "Cache", p->timeCache );
+        PRT( "Check", p->timeCheck );
+        PRT( "Muxes", p->timeMuxes );
+        PRT( "Supps", p->timeSupps );
+        PRT( "TOTAL", p->timeTotal );
+    }
     Vec_IntFree( p->vMemory );
     Vec_IntFree( p->vSpots );
     Vec_PtrFree( p->vTruths );
@@ -118,7 +130,8 @@ void Bdc_ManPrepare( Bdc_Man_t * p, Vec_Ptr_t * vDivs )
     // add constant 1
     pNode = Bdc_FunNew( p );
     pNode->Type = BDC_TYPE_CONST1;
-    pNode->puFunc = NULL;
+    pNode->puFunc = (unsigned *)Vec_IntFetch(p->vMemory, p->nWords); 
+    Kit_TruthFill( pNode->puFunc, p->nVars );
     pNode->uSupp = 0;
     Bdc_TableAdd( p, pNode );
     // add variables
@@ -192,6 +205,7 @@ void Bdc_ManDecPrint( Bdc_Man_t * p )
 int Bdc_ManDecompose( Bdc_Man_t * p, unsigned * puFunc, unsigned * puCare, int nVars, Vec_Ptr_t * vDivs, int nNodesMax )
 {
     Bdc_Isf_t Isf, * pIsf = &Isf;
+    int clk = clock();
     assert( nVars <= p->pPars->nVarsMax );
     // set current manager parameters
     p->nVars = nVars;
@@ -213,8 +227,14 @@ int Bdc_ManDecompose( Bdc_Man_t * p, unsigned * puFunc, unsigned * puCare, int n
     Bdc_SuppMinimize( p, pIsf );
     // call decomposition
     p->pRoot = Bdc_ManDecompose_rec( p, pIsf );
+    p->timeTotal += clock() - clk;
+    p->numCalls++;
+    p->numNodes += p->nNodesNew;
     if ( p->pRoot == NULL )
         return -1;
+    if ( !Bdc_ManNodeVerify( p, pIsf, p->pRoot ) )
+        printf( "Bdc_ManDecompose(): Internal verification failed.\n" );
+//    assert( Bdc_ManNodeVerify( p, pIsf, p->pRoot ) );
     return p->nNodesNew;
 }
 

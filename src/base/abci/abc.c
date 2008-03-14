@@ -93,6 +93,7 @@ static int Abc_CommandSop            ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandBdd            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAig            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandReorder        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandBidec          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandOrder          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMuxes          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandExtSeqDcs      ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -275,6 +276,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "bdd",           Abc_CommandBdd,              0 );
     Cmd_CommandAdd( pAbc, "Various",      "aig",           Abc_CommandAig,              0 );
     Cmd_CommandAdd( pAbc, "Various",      "reorder",       Abc_CommandReorder,          0 );
+    Cmd_CommandAdd( pAbc, "Various",      "bidec",         Abc_CommandBidec,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "order",         Abc_CommandOrder,            0 );
     Cmd_CommandAdd( pAbc, "Various",      "muxes",         Abc_CommandMuxes,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "ext_seq_dcs",   Abc_CommandExtSeqDcs,        0 );
@@ -5186,6 +5188,69 @@ int Abc_CommandReorder( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     fprintf( pErr, "usage: reorder [-vh]\n" );
     fprintf( pErr, "\t         reorders local functions of the nodes using sifting\n" );
+    fprintf( pErr, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandBidec( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int c;
+    int fVerbose;
+    extern void Abc_NtkBidecResyn( Abc_Ntk_t * pNtk, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+
+    // get the new network
+    if ( !Abc_NtkIsAigLogic(pNtk) )
+    {
+        fprintf( pErr, "Bi-decomposition only works when node functions are AIGs (run \"aig\").\n" );
+        return 1;
+    }
+    Abc_NtkBidecResyn( pNtk, fVerbose );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: bidec [-vh]\n" );
+    fprintf( pErr, "\t         applies bi-decomposition to local functions of the nodes\n" );
     fprintf( pErr, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;

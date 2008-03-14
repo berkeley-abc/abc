@@ -110,6 +110,18 @@ void Abc_NtkMfsSolveSat( Mfs_Man_t * p, Abc_Obj_t * pNode )
         Extra_PrintBinary( stdout, p->uCare, (1<<p->nFanins) );
         printf( "\n" );
     }
+
+    // map the care 
+    if ( p->nFanins > 4 )
+        return;
+    if ( p->nFanins == 4 )
+        p->uCare[0] = p->uCare[0] | (p->uCare[0] << 16);
+    if ( p->nFanins == 3 )
+        p->uCare[0] = p->uCare[0] | (p->uCare[0] << 8) | (p->uCare[0] << 16) | (p->uCare[0] << 24);
+    if ( p->nFanins == 2 )
+        p->uCare[0] = p->uCare[0] | (p->uCare[0] <<  4) | (p->uCare[0] <<  8) | (p->uCare[0] << 12) |
+              (p->uCare[0] << 16) | (p->uCare[0] << 20) | (p->uCare[0] << 24) | (p->uCare[0] << 28);
+    assert( p->nFanins != 1 );
 }
 
 ////////////////////////////////////////////////////////////////////////
