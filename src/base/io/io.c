@@ -825,7 +825,7 @@ int IoCommandReadTruth( Abc_Frame_t * pAbc, int argc, char ** argv )
         pSopCover = Abc_SopFromTruthHex(argv[globalUtilOptind]);
     else
         pSopCover = Abc_SopFromTruthBin(argv[globalUtilOptind]);
-    if ( pSopCover == NULL )
+    if ( pSopCover == NULL || pSopCover[0] == 0 )
     {
         fprintf( pAbc->Err, "Reading truth table has failed.\n" );
         return 1;

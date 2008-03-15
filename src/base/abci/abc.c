@@ -6809,24 +6809,29 @@ usage:
 int Abc_CommandInter( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
-    Abc_Ntk_t * pNtk, * pNtkRes, * pNtk1, * pNtk2;
+    Abc_Ntk_t * pNtk, * pNtk1, * pNtk2, * pNtkRes = NULL;
     char ** pArgvNew;
     int nArgcNew;
     int c, fDelete1, fDelete2;
+    int fRelation;
     int fVerbose;
-    extern Abc_Ntk_t * Abc_NtkInter( Abc_Ntk_t * pNtkOn, Abc_Ntk_t * pNtkOff, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkInter( Abc_Ntk_t * pNtkOn, Abc_Ntk_t * pNtkOff, int fRelation, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fVerbose   =  0;
+    fRelation = 0;
+    fVerbose  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "rvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'r':
+            fRelation ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -6843,10 +6848,19 @@ int Abc_CommandInter( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     if ( nArgcNew == 0 )
     {
+        Abc_Obj_t * pObj;
+        int i;
         printf( "Deriving new circuit structure for the current network.\n" );
-        Abc_ObjXorFaninC( Abc_NtkPo(pNtk2,0), 0 );
+        Abc_NtkForEachPo( pNtk2, pObj, i )
+            Abc_ObjXorFaninC( pObj, 0 );
     }
-    pNtkRes = Abc_NtkInter( pNtk1, pNtk2, fVerbose );
+    if ( fRelation && Abc_NtkCoNum(pNtk1) != 1 )
+    {
+        printf( "Computation of interplants as a relation only works for single-output functions.\n" );
+        printf( "Use command \"cone\" to extract one output cone from the multi-output network.\n" );
+    }
+    else
+        pNtkRes = Abc_NtkInter( pNtk1, pNtk2, fRelation, fVerbose );
     if ( fDelete1 ) Abc_NtkDelete( pNtk1 );
     if ( fDelete2 ) Abc_NtkDelete( pNtk2 );
 
@@ -6859,10 +6873,26 @@ int Abc_CommandInter( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: inter [-vh] <fileOnSet> <fileOffSet>\n" );
-    fprintf( pErr, "\t         derives interpolant of two networks (onset and offset)\n" );
+    fprintf( pErr, "usage: inter [-rvh] <onset.blif> <offset.blif>\n" );
+    fprintf( pErr, "\t         derives interpolant of two networks representing onset and offset;\n" );
+    fprintf( pErr, "\t-r     : toggle computing interpolant as a relation [default = %s]\n", fRelation? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
+    fprintf( pErr, "\t         \n" );
+    fprintf( pErr, "\t         Comments:\n" );
+    fprintf( pErr, "\t         \n" );
+    fprintf( pErr, "\t         The networks given on the command line should have the same CIs/COs.\n" );
+    fprintf( pErr, "\t         If only one network is given on the command line, this network\n" );
+    fprintf( pErr, "\t         is assumed to be the offset, while the current network is the onset.\n" );
+    fprintf( pErr, "\t         If no network is given on the command line, the current network is\n" );
+    fprintf( pErr, "\t         assumed to be the onset and its complement is taken to be the offset.\n" );
+    fprintf( pErr, "\t         The resulting interpolant is stored as the current network.\n" );
+    fprintf( pErr, "\t         To verify that the interpolant agrees with the onset and the offset,\n" );
+    fprintf( pErr, "\t         save it in file \"inter.blif\" and run the following:\n" );
+    fprintf( pErr, "\t         (a) \"miter -i <onset.blif> <inter.blif>; iprove\"\n" );
+    fprintf( pErr, "\t         (b) \"miter -i <inter.blif> <offset_inv.blif>; iprove\"\n" );
+    fprintf( pErr, "\t         where <offset_inv.blif> is the network derived by complementing the\n" );
+    fprintf( pErr, "\t         outputs of <offset.blif>: \"r <onset.blif>; st -i; w <offset_inv.blif>\"\n" ); 
     return 1;
 }
 

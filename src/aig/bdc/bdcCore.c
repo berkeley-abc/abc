@@ -44,7 +44,7 @@ Bdc_Man_t * Bdc_ManAlloc( Bdc_Par_t * pPars )
     Bdc_Man_t * p;
     p = ALLOC( Bdc_Man_t, 1 );
     memset( p, 0, sizeof(Bdc_Man_t) );
-    assert( pPars->nVarsMax > 3 && pPars->nVarsMax < 16 );
+    assert( pPars->nVarsMax > 2 && pPars->nVarsMax < 16 );
     p->pPars = pPars;
     p->nWords = Kit_TruthWordNum( pPars->nVarsMax );
     p->nDivsLimit = 200;

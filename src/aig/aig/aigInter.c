@@ -143,7 +143,7 @@ void Aig_ManInterFast( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Aig_ManInter( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fVerbose )
+Aig_Man_t * Aig_ManInter( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fRelation, int fVerbose )
 {
     void * pSatCnf = NULL;
     Inta_Man_t * pManInter; 
@@ -187,9 +187,10 @@ clk = clock();
     sat_solver_store_mark_clauses_a( pSat );
 
     // update the last clause
+    if ( fRelation )
     {
         extern int sat_solver_store_change_last( sat_solver * pSat );
-//        iLast = sat_solver_store_change_last( pSat );
+        iLast = sat_solver_store_change_last( pSat );
     }
 
     // add clauses of B
@@ -207,7 +208,8 @@ clk = clock();
     // add PI clauses
     // collect the common variables
     vVarsAB = Vec_IntAlloc( Aig_ManPiNum(pManOn) );
-//    Vec_IntPush( vVarsAB, iLast );
+    if ( fRelation )
+        Vec_IntPush( vVarsAB, iLast );
 
     Aig_ManForEachPi( pManOn, pObj, i )
     {

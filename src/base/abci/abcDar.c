@@ -1530,14 +1530,14 @@ Abc_Ntk_t * Abc_NtkDarEnlarge( Abc_Ntk_t * pNtk, int nFrames, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkInterOne( Abc_Ntk_t * pNtkOn, Abc_Ntk_t * pNtkOff, int fVerbose )
+Abc_Ntk_t * Abc_NtkInterOne( Abc_Ntk_t * pNtkOn, Abc_Ntk_t * pNtkOff, int fRelation, int fVerbose )
 {
-    extern Aig_Man_t * Aig_ManInter( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fVerbose );
+    extern Aig_Man_t * Aig_ManInter( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fRelation, int fVerbose );
     Abc_Ntk_t * pNtkAig;
     Aig_Man_t * pManOn, * pManOff, * pManAig;
     if ( Abc_NtkCoNum(pNtkOn) != 1 || Abc_NtkCoNum(pNtkOff) != 1 )
     {
-        printf( "Currently works only for single output networks.\n" );
+        printf( "Currently works only for single-output networks.\n" );
         return NULL;
     }
     if ( Abc_NtkCiNum(pNtkOn) != Abc_NtkCiNum(pNtkOff) )
@@ -1553,7 +1553,7 @@ Abc_Ntk_t * Abc_NtkInterOne( Abc_Ntk_t * pNtkOn, Abc_Ntk_t * pNtkOff, int fVerbo
     if ( pManOff == NULL )
         return NULL;
     // derive the interpolant
-    pManAig = Aig_ManInter( pManOn, pManOff, fVerbose );
+    pManAig = Aig_ManInter( pManOn, pManOff, fRelation, fVerbose );
     if ( pManAig == NULL )
     {
         printf( "Interpolant computation failed.\n" );
@@ -1561,8 +1561,15 @@ Abc_Ntk_t * Abc_NtkInterOne( Abc_Ntk_t * pNtkOn, Abc_Ntk_t * pNtkOff, int fVerbo
     }
     Aig_ManStop( pManOn );
     Aig_ManStop( pManOff );
+    // for the relation, add an extra input
+    if ( fRelation )
+    {
+        Abc_Obj_t * pObj;
+        pObj = Abc_NtkCreatePi( pNtkOff );
+        Abc_ObjAssignName( pObj, "New", NULL );
+    }
     // create logic network
-    pNtkAig = Abc_NtkFromDar( pNtkOn, pManAig );
+    pNtkAig = Abc_NtkFromDar( pNtkOff, pManAig );
     Aig_ManStop( pManAig );
     return pNtkAig;
 }
@@ -1609,7 +1616,7 @@ int timeInt;
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkInter( Abc_Ntk_t * pNtkOn, Abc_Ntk_t * pNtkOff, int fVerbose )
+Abc_Ntk_t * Abc_NtkInter( Abc_Ntk_t * pNtkOn, Abc_Ntk_t * pNtkOff, int fRelation, int fVerbose )
 {
     Abc_Ntk_t * pNtkOn1, * pNtkOff1, * pNtkInter1, * pNtkInter;
     Abc_Obj_t * pObj;
@@ -1623,7 +1630,7 @@ Abc_Ntk_t * Abc_NtkInter( Abc_Ntk_t * pNtkOn, Abc_Ntk_t * pNtkOff, int fVerbose 
 //    Abc_NtkInterFast( pNtkOn, pNtkOff, fVerbose );
     // consider the case of one output
     if ( Abc_NtkCoNum(pNtkOn) == 1 )
-        return Abc_NtkInterOne( pNtkOn, pNtkOff, fVerbose );
+        return Abc_NtkInterOne( pNtkOn, pNtkOff, fRelation, fVerbose );
     // start the new newtork
     pNtkInter = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG, 1 );
     pNtkInter->pName = Extra_UtilStrsav(pNtkOn->pName);
@@ -1652,7 +1659,7 @@ timeInt = 0;
             Abc_ObjXorFaninC( Abc_NtkPo(pNtkInter1, 0), 0 );
         }
         else
-            pNtkInter1 = Abc_NtkInterOne( pNtkOn1, pNtkOff1, fVerbose );
+            pNtkInter1 = Abc_NtkInterOne( pNtkOn1, pNtkOff1, 0, fVerbose );
         if ( pNtkInter1 )
         {
             Abc_NtkAppend( pNtkInter, pNtkInter1, 1 );

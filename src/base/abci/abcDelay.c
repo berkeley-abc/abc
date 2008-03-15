@@ -566,7 +566,7 @@ Abc_Ntk_t * Abc_NtkSpeedup( Abc_Ntk_t * pNtk, int fUseLutLib, int Percentage, in
         if ( !fVeryVerbose && nTimeCris == 0 )
             continue;
         Counter++;
-        // count the total number of timingn critical second-generation nodes
+        // count the total number of timing critical second-generation nodes
         Vec_PtrClear( vTimeCries );
         if ( nTimeCris )
         {
@@ -602,6 +602,35 @@ Abc_Ntk_t * Abc_NtkSpeedup( Abc_Ntk_t * pNtk, int fUseLutLib, int Percentage, in
         // add the node to choices
         if ( Vec_PtrSize(vTimeCries) == 0 || Vec_PtrSize(vTimeCries) > Degree )
             continue;
+        // order the fanins in the increasing order of criticalily
+        if ( Vec_PtrSize(vTimeCries) > 1 )
+        {
+            pFanin = Vec_PtrEntry( vTimeCries, 0 );
+            pFanin2 = Vec_PtrEntry( vTimeCries, 1 );
+            if ( Abc_ObjSlack(pFanin) < Abc_ObjSlack(pFanin2) )
+            {
+                Vec_PtrWriteEntry( vTimeCries, 0, pFanin2 );
+                Vec_PtrWriteEntry( vTimeCries, 1, pFanin );
+            }
+        }
+        if ( Vec_PtrSize(vTimeCries) > 2 )
+        {
+            pFanin = Vec_PtrEntry( vTimeCries, 1 );
+            pFanin2 = Vec_PtrEntry( vTimeCries, 2 );
+            if ( Abc_ObjSlack(pFanin) < Abc_ObjSlack(pFanin2) )
+            {
+                Vec_PtrWriteEntry( vTimeCries, 1, pFanin2 );
+                Vec_PtrWriteEntry( vTimeCries, 2, pFanin );
+            }
+            pFanin = Vec_PtrEntry( vTimeCries, 0 );
+            pFanin2 = Vec_PtrEntry( vTimeCries, 1 );
+            if ( Abc_ObjSlack(pFanin) < Abc_ObjSlack(pFanin2) )
+            {
+                Vec_PtrWriteEntry( vTimeCries, 0, pFanin2 );
+                Vec_PtrWriteEntry( vTimeCries, 1, pFanin );
+            }
+        }
+        // add choice
         Abc_NtkSpeedupNode( pNtk, pNtkNew, pNode, vTimeFanins, vTimeCries );
     }
     Vec_PtrFree( vTimeCries );
