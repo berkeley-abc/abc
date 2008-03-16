@@ -13390,23 +13390,25 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nArgcNew;
     int c;
     int fRetimeFirst;
+    int fFraiging;
     int fVerbose;
     int fVeryVerbose;
     int nFrames;
 
-    extern int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames, int fRetimeFirst, int fVerbose, int fVeryVerbose );
+    extern int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames, int fRetimeFirst, int fFraiging, int fVerbose, int fVeryVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nFrames      =16;
-    fRetimeFirst = 1;
-    fVerbose     = 0;
-    fVeryVerbose = 0;
+    nFrames      = 16;
+    fRetimeFirst =  1;
+    fFraiging    =  1;
+    fVerbose     =  0;
+    fVeryVerbose =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Krwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Krfwvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -13423,6 +13425,9 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'r':
             fRetimeFirst ^= 1;
+            break;
+        case 'f':
+            fFraiging ^= 1;
             break;
         case 'w':
             fVeryVerbose ^= 1;
@@ -13447,17 +13452,18 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // perform verification
-    Abc_NtkDarSec( pNtk1, pNtk2, nFrames, fRetimeFirst, fVerbose, fVeryVerbose );
+    Abc_NtkDarSec( pNtk1, pNtk2, nFrames, fRetimeFirst, fFraiging, fVerbose, fVeryVerbose );
 
     if ( fDelete1 ) Abc_NtkDelete( pNtk1 );
     if ( fDelete2 ) Abc_NtkDelete( pNtk2 );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: dsec [-K num] [-rwvh] <file1> <file2>\n" );
+    fprintf( pErr, "usage: dsec [-K num] [-rfwvh] <file1> <file2>\n" );
     fprintf( pErr, "\t         performs inductive sequential equivalence checking\n" );
     fprintf( pErr, "\t-K num : the limit on the depth of induction [default = %d]\n", nFrames );
     fprintf( pErr, "\t-r     : toggles forward retiming at the beginning [default = %s]\n", fRetimeFirst? "yes": "no" );
+    fprintf( pErr, "\t-f     : toggles the internal use of fraiging [default = %s]\n", fFraiging? "yes": "no" );
     fprintf( pErr, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-w     : toggles additional verbose output [default = %s]\n", fVeryVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
@@ -13485,11 +13491,12 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk;
     int c;
     int fRetimeFirst;
+    int fFraiging;
     int fVerbose;
     int fVeryVerbose;
     int nFrames;
 
-    extern int Abc_NtkDarProve( Abc_Ntk_t * pNtk, int nFrames, int fRetimeFirst, int fVerbose, int fVeryVerbose );
+    extern int Abc_NtkDarProve( Abc_Ntk_t * pNtk, int nFrames, int fRetimeFirst, int fFraiging, int fVerbose, int fVeryVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -13498,10 +13505,11 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     nFrames      = 16; 
     fRetimeFirst =  1;
+    fFraiging    =  1;
     fVerbose     =  0;
     fVeryVerbose =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Frwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Frfwvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -13518,6 +13526,9 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'r':
             fRetimeFirst ^= 1;
+            break;
+        case 'f':
+            fFraiging ^= 1;
             break;
         case 'w':
             fVeryVerbose ^= 1;
@@ -13542,14 +13553,15 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // perform verification
-    Abc_NtkDarProve( pNtk, nFrames, fRetimeFirst, fVerbose, fVeryVerbose );
+    Abc_NtkDarProve( pNtk, nFrames, fRetimeFirst, fFraiging, fVerbose, fVeryVerbose );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: dprove [-F num] [-rwvh]\n" );
+    fprintf( pErr, "usage: dprove [-F num] [-rfwvh]\n" );
     fprintf( pErr, "\t         performs SEC on the sequential miter\n" );
     fprintf( pErr, "\t-F num : the limit on the depth of induction [default = %d]\n", nFrames );
     fprintf( pErr, "\t-r     : toggles forward retiming at the beginning [default = %s]\n", fRetimeFirst? "yes": "no" );
+    fprintf( pErr, "\t-f     : toggles the internal use of fraiging [default = %s]\n", fFraiging? "yes": "no" );
     fprintf( pErr, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-w     : toggles additional verbose output [default = %s]\n", fVeryVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");

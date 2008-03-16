@@ -1186,7 +1186,7 @@ PRT( "Time", clock() - clk );
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDarProve( Abc_Ntk_t * pNtk, int nFrames, int fRetimeFirst, int fVerbose, int fVeryVerbose )
+int Abc_NtkDarProve( Abc_Ntk_t * pNtk, int nFrames, int fRetimeFirst, int fFraiging, int fVerbose, int fVeryVerbose )
 {
     Aig_Man_t * pMan;
     int RetValue;
@@ -1199,7 +1199,7 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, int nFrames, int fRetimeFirst, int fVerbo
     }
     assert( pMan->nRegs > 0 );
     // perform verification
-    RetValue = Fra_FraigSec( pMan, nFrames, fRetimeFirst, fVerbose, fVeryVerbose );
+    RetValue = Fra_FraigSec( pMan, nFrames, fRetimeFirst, fFraiging, fVerbose, fVeryVerbose );
     pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
     if ( pNtk->pSeqModel )
     {
@@ -1221,7 +1221,7 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, int nFrames, int fRetimeFirst, int fVerbo
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames, int fRetimeFirst, int fVerbose, int fVeryVerbose )
+int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames, int fRetimeFirst, int fFraiging, int fVerbose, int fVeryVerbose )
 {
 //    Fraig_Params_t Params;
     Aig_Man_t * pMan;
@@ -1293,7 +1293,7 @@ int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames, int fRetim
     assert( pMan->nRegs > 0 );
 
     // perform verification
-    RetValue = Fra_FraigSec( pMan, nFrames, fRetimeFirst, fVerbose, fVeryVerbose );
+    RetValue = Fra_FraigSec( pMan, nFrames, fRetimeFirst, fFraiging, fVerbose, fVeryVerbose );
     Aig_ManStop( pMan );
     return RetValue;
 }

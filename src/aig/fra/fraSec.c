@@ -40,7 +40,7 @@
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_FraigSec( Aig_Man_t * p, int nFramesMax, int fRetimeFirst, int fVerbose, int fVeryVerbose )
+int Fra_FraigSec( Aig_Man_t * p, int nFramesMax, int fRetimeFirst, int fFraiging, int fVerbose, int fVeryVerbose )
 {
     Fra_Ssw_t Pars, * pPars = &Pars;
     Fra_Sml_t * pSml;
@@ -113,6 +113,8 @@ PRT( "Time", clock() - clk );
     }
 
     // perform fraiging
+    if ( fFraiging )
+    {
 clk = clock();
     pNew = Fra_FraigEquivence( pTemp = pNew, 100, 0 );
     Aig_ManStop( pTemp );
@@ -121,6 +123,7 @@ clk = clock();
         printf( "Fraiging:             Latches = %5d. Nodes = %6d. ", 
             Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
 PRT( "Time", clock() - clk );
+    }
     }
 
     // perform seq sweeping while increasing the number of frames
