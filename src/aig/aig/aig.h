@@ -526,6 +526,7 @@ extern Vec_Ptr_t *     Aig_ManPartitionSmartRegisters( Aig_Man_t * pAig, int nSu
 extern Vec_Ptr_t *     Aig_ManPartitionNaive( Aig_Man_t * p, int nPartSize );
 extern Vec_Ptr_t *     Aig_ManMiterPartitioned( Aig_Man_t * p1, Aig_Man_t * p2, int nPartSize );
 extern Aig_Man_t *     Aig_ManChoicePartitioned( Vec_Ptr_t * vAigs, int nPartSize, int nConfMax, int nLevelMax, int fVerbose );
+extern Aig_Man_t *     Aig_ManFraigPartitioned( Aig_Man_t * pAig, int nPartSize, int nConfMax, int nLevelMax, int fVerbose );
 /*=== aigPartReg.c =========================================================*/
 extern Vec_Ptr_t *     Aig_ManRegPartitionSimple( Aig_Man_t * pAig, int nPartSize, int nOverSize );
 extern Vec_Ptr_t *     Aig_ManRegPartitionSmart( Aig_Man_t * pAig, int nPartSize );

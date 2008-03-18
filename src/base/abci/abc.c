@@ -8458,23 +8458,39 @@ int Abc_CommandIFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk, * pNtkRes;
     int c, fProve, fVerbose, fDoSparse;
     int nConfLimit;
+    int nPartSize;
+    int nLevelMax;
 
     extern Abc_Ntk_t * Abc_NtkIvyFraig( Abc_Ntk_t * pNtk, int nConfLimit, int fDoSparse, int fProve, int fTransfer, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkDarFraigPart( Abc_Ntk_t * pNtk, int nPartSize, int nConfLimit, int nLevelMax, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
+    nPartSize    = 0;
+    nLevelMax    = 0;
     nConfLimit   = 100;   
     fDoSparse    = 0;
     fProve       = 0;
     fVerbose     = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Cspvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PCLspvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nPartSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nPartSize < 0 ) 
+                goto usage;
+            break;
         case 'C':
             if ( globalUtilOptind >= argc )
             {
@@ -8484,6 +8500,17 @@ int Abc_CommandIFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
             nConfLimit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( nConfLimit < 0 ) 
+                goto usage;
+            break;
+         case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLevelMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLevelMax < 0 ) 
                 goto usage;
             break;
         case 's':
@@ -8512,7 +8539,10 @@ int Abc_CommandIFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    pNtkRes = Abc_NtkIvyFraig( pNtk, nConfLimit, fDoSparse, fProve, 0, fVerbose );
+    if ( nPartSize > 0 )
+        pNtkRes = Abc_NtkDarFraigPart( pNtk, nPartSize, nConfLimit, nLevelMax, fVerbose );
+    else
+        pNtkRes = Abc_NtkIvyFraig( pNtk, nConfLimit, fDoSparse, fProve, 0, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
@@ -8523,9 +8553,11 @@ int Abc_CommandIFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: ifraig [-C num] [-spvh]\n" );
+    fprintf( pErr, "usage: ifraig [-P num] [-C num] [-L num] [-spvh]\n" );
     fprintf( pErr, "\t         performs fraiging using a new method\n" );
+    fprintf( pErr, "\t-P num : partition size (0 = partitioning is not used) [default = %d]\n", nPartSize );
     fprintf( pErr, "\t-C num : limit on the number of conflicts [default = %d]\n", nConfLimit );
+    fprintf( pErr, "\t-L num : limit on node level to fraig (0 = fraig all nodes) [default = %d]\n", nLevelMax );
     fprintf( pErr, "\t-s     : toggle considering sparse functions [default = %s]\n", fDoSparse? "yes": "no" );
     fprintf( pErr, "\t-p     : toggle proving the miter outputs [default = %s]\n", fProve? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
