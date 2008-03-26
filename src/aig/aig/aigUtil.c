@@ -848,6 +848,48 @@ void Aig_ManDumpVerilog( Aig_Man_t * p, char * pFileName )
     Vec_PtrFree( vNodes );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Sets the PI/PO numbers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManSetPioNumbers( Aig_Man_t * p )
+{
+    Aig_Obj_t * pObj;
+    int i;
+    Aig_ManForEachPi( p, pObj, i )
+        pObj->pNext = (Aig_Obj_t *)i;
+    Aig_ManForEachPo( p, pObj, i )
+        pObj->pNext = (Aig_Obj_t *)i;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sets the PI/PO numbers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManCleanPioNumbers( Aig_Man_t * p )
+{
+    Aig_Obj_t * pObj;
+    int i;
+    Aig_ManForEachPi( p, pObj, i )
+        pObj->pNext = NULL;
+    Aig_ManForEachPo( p, pObj, i )
+        pObj->pNext = NULL;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

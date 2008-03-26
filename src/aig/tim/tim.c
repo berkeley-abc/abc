@@ -148,6 +148,49 @@ Tim_Man_t * Tim_ManStart( int nPis, int nPos )
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicates the timing manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Tim_Man_t * Tim_ManDup( Tim_Man_t * p, int fDiscrete )
+{
+    Tim_Man_t * pNew;
+    Tim_Box_t * pBox;
+    float * pDelayTableNew;
+    int i, k;
+    pNew = Tim_ManStart( p->nPis, p->nPos );
+    memcpy( pNew->pPis, p->pPis, sizeof(Tim_Obj_t) * p->nPis );
+    memcpy( pNew->pPos, p->pPos, sizeof(Tim_Obj_t) * p->nPos );
+    for ( k = 0; k < p->nPis; k++ )
+        pNew->pPis[k].TravId = 0;
+    for ( k = 0; k < p->nPos; k++ )
+        pNew->pPos[k].TravId = 0;
+    if ( fDiscrete )
+        for ( k = 0; k < p->nPis; k++ )
+            pNew->pPis[k].timeArr = 0.0; // modify here
+    pNew->vDelayTables = Vec_PtrAlloc( 100 );
+    Tim_ManForEachBox( p, pBox, i )
+    {
+        pDelayTableNew = ALLOC( float, pBox->nInputs * pBox->nOutputs );
+        Vec_PtrPush( pNew->vDelayTables, pDelayTableNew );
+        if ( fDiscrete )
+            for ( k = 0; k < pBox->nInputs * pBox->nOutputs; k++ )
+                pDelayTableNew[k] = 1.0; // modify here
+        else
+            memcpy( pDelayTableNew, pBox->pDelayTable, sizeof(float) * pBox->nInputs * pBox->nOutputs );
+        Tim_ManCreateBoxFirst( pNew, pBox->Inouts[0], pBox->nInputs, 
+            pBox->Inouts[pBox->nInputs], pBox->nOutputs, pDelayTableNew );
+    }
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Stops the timing manager.]
 
   Description []

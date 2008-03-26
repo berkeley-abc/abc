@@ -20,6 +20,7 @@
 
 #include "ntl.h"
 #include "kit.h"
+#include "if.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -105,247 +106,6 @@ Vec_Ptr_t * Ntl_MappingFromAig( Aig_Man_t * p )
 }
 
 
-#include "fpgaInt.h"
-
-/**Function*************************************************************
-
-  Synopsis    [Recursively derives the truth table for the cut.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-unsigned * Ntl_FpgaComputeTruth_rec( Fpga_Cut_t * pCut, Vec_Ptr_t * vTruthElem, Vec_Ptr_t * vTruthStore, Vec_Ptr_t * vVisited, int nVars, int * pnCounter )
-{
-    unsigned * pTruth, * pTruth0, * pTruth1;
-    assert( !Fpga_IsComplement(pCut) );
-    // if the cut is visited, return the result
-    if ( pCut->pRoot )
-        return (unsigned *)pCut->pRoot;
-    // compute the functions of the children
-    pTruth0 = Ntl_FpgaComputeTruth_rec( Fpga_CutRegular(pCut->pOne), vTruthElem, vTruthStore, vVisited, nVars, pnCounter );  
-    if ( Fpga_CutIsComplement(pCut->pOne) )
-        Kit_TruthNot( pTruth0, pTruth0, nVars );
-    pTruth1 = Ntl_FpgaComputeTruth_rec( Fpga_CutRegular(pCut->pTwo), vTruthElem, vTruthStore, vVisited, nVars, pnCounter );   
-    if ( Fpga_CutIsComplement(pCut->pTwo) )
-        Kit_TruthNot( pTruth1, pTruth1, nVars );
-    // get the function of the cut
-    pTruth = Vec_PtrEntry( vTruthStore, (*pnCounter)++ );
-    Kit_TruthAnd( pTruth, pTruth0, pTruth1, nVars );
-    if ( pCut->Phase )
-        Kit_TruthNot( pTruth, pTruth, nVars );
-    assert( pCut->pRoot == NULL );
-    pCut->pRoot = (Fpga_Node_t *)pTruth;
-    // add this cut to the visited list
-    Vec_PtrPush( vVisited, pCut );
-    return pTruth;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Derives the truth table for one cut.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-unsigned * Ntl_FpgaComputeTruth( Fpga_Cut_t * pCut, Vec_Ptr_t * vTruthElem, Vec_Ptr_t * vTruthStore, Vec_Ptr_t * vVisited, int nVars )
-{
-    unsigned * pTruth;
-    int i, nCounter = 0;
-    assert( pCut->nLeaves > 1 );
-    // set the leaf variables
-    for ( i = 0; i < pCut->nLeaves; i++ )
-        pCut->ppLeaves[i]->pCuts->pRoot = (Fpga_Node_t *)Vec_PtrEntry( vTruthElem, i );
-    // recursively compute the function
-    Vec_PtrClear( vVisited );
-    pTruth = Ntl_FpgaComputeTruth_rec( pCut, vTruthElem, vTruthStore, vVisited, nVars, &nCounter ); 
-    // clean the intermediate BDDs
-    for ( i = 0; i < pCut->nLeaves; i++ )
-        pCut->ppLeaves[i]->pCuts->pRoot = NULL;
-    Vec_PtrForEachEntry( vVisited, pCut, i )
-        pCut->pRoot = NULL;
-    return pTruth;
-}
-
-
-/**Function*************************************************************
-
-  Synopsis    [Load the network into FPGA manager.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Fpga_Man_t * Ntl_ManToFpga( Aig_Man_t * p )
-{
-    Fpga_Man_t * pMan;
-    Aig_Obj_t * pNode;//, * pFanin, * pPrev;
-    float * pfArrivals;
-    int i;
-    // start the mapping manager and set its parameters
-    pMan = Fpga_ManCreate( Aig_ManPiNum(p), Aig_ManPoNum(p), 0 );
-    if ( pMan == NULL )
-        return NULL;
-    // set the arrival times
-    pfArrivals = ALLOC( float, Aig_ManPiNum(p) );
-    memset( pfArrivals, 0, sizeof(float) * Aig_ManPiNum(p) );
-    Fpga_ManSetInputArrivals( pMan, pfArrivals );
-    // create PIs and remember them in the old nodes
-    Aig_ManConst1(p)->pData = Fpga_ManReadConst1(pMan);
-    Aig_ManForEachPi( p, pNode, i )
-        pNode->pData = Fpga_ManReadInputs(pMan)[i];
-    // load the AIG into the mapper
-    Aig_ManForEachNode( p, pNode, i )
-    {
-        pNode->pData = Fpga_NodeAnd( pMan, 
-            Fpga_NotCond( Aig_ObjFanin0(pNode)->pData, Aig_ObjFaninC0(pNode) ),
-            Fpga_NotCond( Aig_ObjFanin1(pNode)->pData, Aig_ObjFaninC1(pNode) ) );
-        // set up the choice node
-//        if ( Aig_AigNodeIsChoice( pNode ) )
-//            for ( pPrev = pNode, pFanin = pNode->pData; pFanin; pPrev = pFanin, pFanin = pFanin->pData )
-//            {
-//                Fpga_NodeSetNextE( (If_Obj_t *)pPrev->pData, (If_Obj_t *)pFanin->pData );
-//                Fpga_NodeSetRepr( (If_Obj_t *)pFanin->pData, (If_Obj_t *)pNode->pData );
-//            }
-    }
-    // set the primary outputs while copying the phase
-    Aig_ManForEachPo( p, pNode, i )
-        Fpga_ManReadOutputs(pMan)[i] = Fpga_NotCond( Aig_ObjFanin0(pNode)->pData, Aig_ObjFaninC0(pNode) );
-    assert( Fpga_NodeVecReadSize(pMan->vAnds) == Aig_ManNodeNum(p) );
-    return pMan;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Creates the mapped network.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Ptr_t * Ntl_ManFromFpga( Aig_Man_t * p, Fpga_Man_t * pMan )
-{
-    Fpga_NodeVec_t * vFpgaMap;
-    Fpga_Node_t ** ppLeaves, * pNode; 
-    Fpga_Cut_t * pCutBest;
-    Vec_Ptr_t * vTruthElem, * vTruthStore, * vVisited, * vMapping;
-    Vec_Int_t * vFpgaToAig;
-    Aig_Obj_t * pObj;
-    Ntl_Lut_t * pLut;
-    unsigned * pTruth;
-    int i, k, nLuts, nLeaves, nWords, nVarsMax;
-    // create mapping of FPGA nodes into AIG nodes
-    vFpgaToAig = Vec_IntStart( Aig_ManObjNumMax(p) );
-    Vec_IntFill( vFpgaToAig, Aig_ManObjNumMax(p), -1 );
-    Aig_ManForEachObj( p, pObj, i )
-    {
-        if ( Aig_ObjIsPo(pObj) )
-            continue;
-        if ( Aig_ObjIsConst1(pObj) && pObj->pData == NULL )
-            continue;
-        pNode = pObj->pData;
-        assert( pNode != NULL );
-        Vec_IntWriteEntry( vFpgaToAig, Fpga_NodeReadNum(pNode), pObj->Id );
-    }
-    // create the mapping
-
-
-    // make sure nodes are in the top order!!!
-
-
-    nVarsMax = Fpga_ManReadVarMax( pMan );
-    nWords   = Aig_TruthWordNum( nVarsMax );
-    vFpgaMap = Fpga_ManReadMapping( pMan );
-    vMapping = Ntl_MappingAlloc( vFpgaMap->nSize + (int)(Aig_ManConst1(p)->nRefs > 0), nVarsMax );
-    nLuts    = 0;
-    if ( Aig_ManConst1(p)->nRefs > 0 )
-    {
-        pLut = Vec_PtrEntry( vMapping, nLuts++ );
-        pLut->Id = 0;
-        pLut->nFanins = 0;
-        memset( pLut->pTruth, 0xFF, 4 * nWords );
-    }
-    vVisited    = Vec_PtrAlloc( 1000 );
-    vTruthElem  = Vec_PtrAllocTruthTables( nVarsMax );
-    vTruthStore = Vec_PtrAllocSimInfo( 256, nWords );
-    for ( i = 0; i < vFpgaMap->nSize; i++ )
-    {
-        // get the best cut
-        pNode    = vFpgaMap->pArray[i];
-        pCutBest = Fpga_NodeReadCutBest( pNode );
-        nLeaves  = Fpga_CutReadLeavesNum( pCutBest ); 
-        ppLeaves = Fpga_CutReadLeaves( pCutBest );
-        // fill the LUT
-        pLut = Vec_PtrEntry( vMapping, nLuts++ );
-        pLut->Id = Vec_IntEntry( vFpgaToAig, Fpga_NodeReadNum(pNode) );
-        pLut->nFanins = nLeaves;
-        for ( k = 0; k < nLeaves; k++ )
-            pLut->pFanins[k] = Vec_IntEntry( vFpgaToAig, Fpga_NodeReadNum(ppLeaves[k]) );
-        // compute the truth table
-        pTruth = Ntl_FpgaComputeTruth( pCutBest, vTruthElem, vTruthStore, vVisited, nVarsMax );
-        memcpy( pLut->pTruth, pTruth, 4 * nWords );
-    }
-    assert( nLuts == Vec_PtrSize(vMapping) );
-    Vec_IntFree( vFpgaToAig );
-    Vec_PtrFree( vVisited );
-    Vec_PtrFree( vTruthElem );
-    Vec_PtrFree( vTruthStore );
-    return vMapping;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Interface with the FPGA mapping package.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Ptr_t * Ntl_MappingFpga( Aig_Man_t * p )
-{
-    Vec_Ptr_t * vMapping;
-    Fpga_Man_t * pMan;
-    // print a warning about choice nodes
-    if ( p->pEquivs )
-        printf( "Ntl_MappingFpga(): Performing FPGA mapping with choices.\n" );
-    // perform FPGA mapping
-    pMan = Ntl_ManToFpga( p );    
-    if ( pMan == NULL )
-        return NULL;
-    if ( !Fpga_Mapping( pMan ) )
-    {
-        Fpga_ManFree( pMan );
-        return NULL;
-    }
-    // transform the result of mapping into a BDD network
-    vMapping = Ntl_ManFromFpga( p, pMan );
-    Fpga_ManFree( pMan );
-    if ( vMapping == NULL )
-        return NULL;
-    return vMapping;
-}
-
-
-
-
-#include "if.h"
-
 /**Function*************************************************************
 
   Synopsis    [Load the network into FPGA manager.]
@@ -369,6 +129,7 @@ void Ntk_ManSetIfParsDefault( If_Par_t * pPars )
     pPars->nFlowIters  =  1;
     pPars->nAreaIters  =  2;
     pPars->DelayTarget = -1;
+    pPars->Epsilon     =  (float)0.001;
     pPars->fPreprocess =  1;
     pPars->fArea       =  0;
     pPars->fFancy      =  0;
@@ -486,6 +247,8 @@ If_Man_t * Ntk_ManToIf( Aig_Man_t * p, If_Par_t * pPars )
         {
             pNode->pData = If_ManCreateCi( pIfMan );
             ((If_Obj_t *)pNode->pData)->Level = pNode->Level;
+            if ( pIfMan->nLevelMax < (int)pNode->Level )
+                pIfMan->nLevelMax = (int)pNode->Level;
         }
         else if ( Aig_ObjIsPo(pNode) )
             If_ManCreateCo( pIfMan, If_NotCond( Aig_ObjFanin0(pNode)->pData, Aig_ObjFaninC0(pNode) ) );
@@ -601,7 +364,7 @@ Vec_Ptr_t * Ntl_MappingIf( Ntl_Man_t * pMan, Aig_Man_t * p )
     pIfMan = Ntk_ManToIf( p, pPars );    
     if ( pIfMan == NULL )
         return NULL;
-    pIfMan->pManTim = Ntl_ManCreateTiming( pMan );
+    pIfMan->pManTim = Tim_ManDup( pMan->pManTime, 0 );
     if ( !If_ManPerformMapping( pIfMan ) )
     {
         If_ManStop( pIfMan );

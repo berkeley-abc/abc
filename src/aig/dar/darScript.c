@@ -181,6 +181,14 @@ Aig_Man_t * Dar_ManCompress( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, i
     Aig_ManStop( pTemp );
     if ( fVerbose ) Aig_ManPrintStats( pAig );
 
+    // balance
+    if ( fBalance )
+    {
+    pAig = Dar_ManBalance( pTemp = pAig, fUpdateLevel );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    }
+
     return pAig;
 }
 
@@ -195,7 +203,7 @@ Aig_Man_t * Dar_ManCompress( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, i
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Dar_ManCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fVerbose )
+Aig_Man_t * Dar_ManCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fFanout, int fVerbose )
 //alias compress2   "b -l; rw -l; rf -l; b -l; rw -l; rwz -l; b -l; rfz -l; rwz -l; b -l"
 {
     Aig_Man_t * pTemp;
@@ -208,6 +216,7 @@ Aig_Man_t * Dar_ManCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, 
 
     pParsRwr->fUpdateLevel = fUpdateLevel;
     pParsRef->fUpdateLevel = fUpdateLevel;
+    pParsRwr->fFanout = fFanout;
 
     pParsRwr->fVerbose = 0;//fVerbose;
     pParsRef->fVerbose = 0;//fVerbose;
@@ -310,7 +319,7 @@ Vec_Ptr_t * Dar_ManChoiceSynthesis( Aig_Man_t * pAig, int fBalance, int fUpdateL
     Vec_PtrPush( vAigs, pAig );
     pAig = Dar_ManCompress (pAig, 0, fUpdateLevel, fVerbose);
     Vec_PtrPush( vAigs, pAig );
-    pAig = Dar_ManCompress2(pAig, fBalance, fUpdateLevel, fVerbose);
+    pAig = Dar_ManCompress2(pAig, fBalance, fUpdateLevel, 1, fVerbose);
     Vec_PtrPush( vAigs, pAig );
     return vAigs;
 }

@@ -47,6 +47,7 @@ extern "C" {
 
 typedef struct Aig_Man_t_            Aig_Man_t;
 typedef struct Aig_Obj_t_            Aig_Obj_t;
+typedef struct Aig_Box_t_            Aig_Box_t;
 typedef struct Aig_MmFixed_t_        Aig_MmFixed_t;    
 typedef struct Aig_MmFlex_t_         Aig_MmFlex_t;     
 typedef struct Aig_MmStep_t_         Aig_MmStep_t;     
@@ -61,7 +62,8 @@ typedef enum {
     AIG_OBJ_AND,                     // 5: AND node
     AIG_OBJ_EXOR,                    // 6: EXOR node
     AIG_OBJ_LATCH,                   // 7: latch
-    AIG_OBJ_VOID                     // 8: unused object
+    AIG_OBJ_BOX,                     // 8: latch
+    AIG_OBJ_VOID                     // 9: unused object
 } Aig_Type_t;
 
 // the AIG node
@@ -71,11 +73,11 @@ struct Aig_Obj_t_  // 8 words
     Aig_Obj_t *      pFanin0;        // fanin
     Aig_Obj_t *      pFanin1;        // fanin
     Aig_Obj_t *      pHaig;          // pointer to the HAIG node
-    unsigned int     Type    :  3;   // object type
+    unsigned int     Type    :  4;   // object type
     unsigned int     fPhase  :  1;   // value under 000...0 pattern
     unsigned int     fMarkA  :  1;   // multipurpose mask
     unsigned int     fMarkB  :  1;   // multipurpose mask
-    unsigned int     nRefs   : 26;   // reference count 
+    unsigned int     nRefs   : 25;   // reference count 
     unsigned         Level   : 24;   // the level of this node
     unsigned         nCuts   :  8;   // the number of cuts
     int              TravId;         // unique ID of last traversal involving the node
@@ -85,6 +87,16 @@ struct Aig_Obj_t_  // 8 words
         int          iData;
         float        dData;
     };
+};
+
+// the AIG box
+struct Aig_Box_t_  
+{
+    int              nInputs;        // the number of box inputs (POs)
+    int              i1Input;        // the first PO of the interval
+    int              nOutputs;       // the number of box outputs (PIs)
+    int              i1Output;       // the first PI of the interval
+    float **         pTable;         // the delay table of the box
 };
 
 // the AIG manager
@@ -317,6 +329,7 @@ static inline void         Aig_ObjClean( Aig_Obj_t * pObj )       { memset( pObj
 static inline Aig_Obj_t *  Aig_ObjFanout0( Aig_Man_t * p, Aig_Obj_t * pObj )  { assert(p->pFanData && pObj->Id < p->nFansAlloc); return Aig_ManObj(p, p->pFanData[5*pObj->Id] >> 1); } 
 static inline Aig_Obj_t *  Aig_ObjEquiv( Aig_Man_t * p, Aig_Obj_t * pObj )    { return p->pEquivs? p->pEquivs[pObj->Id] : NULL;             } 
 static inline Aig_Obj_t *  Aig_ObjHaig( Aig_Obj_t * pObj )        { assert( Aig_Regular(pObj)->pHaig ); return Aig_NotCond( Aig_Regular(pObj)->pHaig, Aig_IsComplement(pObj) ); } 
+static inline int          Aig_ObjPioNum( Aig_Obj_t * pObj )      { assert( !Aig_ObjIsNode(pObj) ); return (int)pObj->pNext;                                                    }
 static inline int          Aig_ObjWhatFanin( Aig_Obj_t * pObj, Aig_Obj_t * pFanin )    
 { 
     if ( Aig_ObjFanin0(pObj) == pFanin ) return 0; 
@@ -597,6 +610,9 @@ extern void            Aig_ManPrintVerbose( Aig_Man_t * p, int fHaig );
 extern void            Aig_ManDump( Aig_Man_t * p );
 extern void            Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName );
 extern void            Aig_ManDumpVerilog( Aig_Man_t * p, char * pFileName );
+extern void            Aig_ManSetPioNumbers( Aig_Man_t * p );
+extern void            Aig_ManCleanPioNumbers( Aig_Man_t * p );
+
 /*=== aigWin.c =========================================================*/
 extern void            Aig_ManFindCut( Aig_Obj_t * pRoot, Vec_Ptr_t * vFront, Vec_Ptr_t * vVisited, int nSizeLimit, int nFanoutLimit );
  

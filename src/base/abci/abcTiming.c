@@ -795,6 +795,7 @@ void Abc_NtkUpdateLevel( Abc_Obj_t * pObjNew, Vec_Vec_t * vLevels )
 {
     Abc_Obj_t * pFanout, * pTemp;
     int LevelOld, Lev, k, m;
+//    int Counter = 0, CounterMax = 0;
     // check if level has changed
     LevelOld = Abc_ObjLevel(pObjNew);
     if ( LevelOld == Abc_ObjLevelNew(pObjNew) )
@@ -808,6 +809,7 @@ void Abc_NtkUpdateLevel( Abc_Obj_t * pObjNew, Vec_Vec_t * vLevels )
     // recursively update level
     Vec_VecForEachEntryStart( vLevels, pTemp, Lev, k, LevelOld )
     {
+//        Counter--;
         pTemp->fMarkA = 0;
         assert( Abc_ObjLevel(pTemp) == Lev );
         Abc_ObjSetLevel( pTemp, Abc_ObjLevelNew(pTemp) );
@@ -821,10 +823,13 @@ void Abc_NtkUpdateLevel( Abc_Obj_t * pObjNew, Vec_Vec_t * vLevels )
             {
                 assert( Abc_ObjLevel(pFanout) >= Lev );
                 Vec_VecPush( vLevels, Abc_ObjLevel(pFanout), pFanout );
+//                Counter++;
+//                CounterMax = ABC_MAX( CounterMax, Counter );
                 pFanout->fMarkA = 1;
             }
         }
     }
+//    printf( "%d ", CounterMax );
 }
 
 /**Function*************************************************************

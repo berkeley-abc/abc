@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "darInt.h"
+#include "tim.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -62,23 +63,61 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
     // map the PI nodes
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
-    Aig_ManForEachPi( p, pObj, i )
-        pObj->pData = Aig_ObjCreatePi(pNew);
-    // balance the AIG
     vStore = Vec_VecAlloc( 50 );
-    Aig_ManForEachPo( p, pObj, i )
+    if ( p->pManTime != NULL )
     {
-        pDriver = Aig_ObjReal_rec( Aig_ObjChild0(pObj) );
-        pObjNew = Dar_Balance_rec( pNew, Aig_Regular(pDriver), vStore, 0, fUpdateLevel );
-        pObjNew = Aig_NotCond( pObjNew, Aig_IsComplement(pDriver) );
-        Aig_ObjCreatePo( pNew, pObjNew );
+        float arrTime;
+        Tim_ManIncrementTravId( p->pManTime );
+        Aig_ManSetPioNumbers( p );
+        Aig_ManForEachObj( p, pObj, i )
+        {
+            if ( Aig_ObjIsAnd(pObj) || Aig_ObjIsConst1(pObj) )
+                continue;
+            if ( Aig_ObjIsPi(pObj) )
+            {
+                // copy the PI
+                pObjNew = Aig_ObjCreatePi(pNew); 
+                pObj->pData = pObjNew;
+                // set the arrival time of the new PI
+                arrTime = Tim_ManGetPiArrival( p->pManTime, Aig_ObjPioNum(pObj) );
+                pObjNew->Level = (int)arrTime;
+            }
+            else if ( Aig_ObjIsPo(pObj) )
+            {
+                // perform balancing
+                pDriver = Aig_ObjReal_rec( Aig_ObjChild0(pObj) );
+                pObjNew = Dar_Balance_rec( pNew, Aig_Regular(pDriver), vStore, 0, fUpdateLevel );
+                pObjNew = Aig_NotCond( pObjNew, Aig_IsComplement(pDriver) );
+                Aig_ObjCreatePo( pNew, pObjNew );
+                // save arrival time of the output
+                arrTime = (float)Aig_Regular(pObjNew)->Level;
+                Tim_ManSetPoArrival( p->pManTime, Aig_ObjPioNum(pObj), arrTime );
+            }
+            else
+                assert( 0 );
+        }
+        Aig_ManCleanPioNumbers( p );
+        pNew->pManTime = Tim_ManDup( p->pManTime, 0 );
+    }
+    else
+    {
+        Aig_ManForEachPi( p, pObj, i )
+        {
+            pObjNew = Aig_ObjCreatePi(pNew); 
+            pObjNew->Level = pObj->Level;
+            pObj->pData = pObjNew;
+        }
+        Aig_ManForEachPo( p, pObj, i )
+        {
+            pDriver = Aig_ObjReal_rec( Aig_ObjChild0(pObj) );
+            pObjNew = Dar_Balance_rec( pNew, Aig_Regular(pDriver), vStore, 0, fUpdateLevel );
+            pObjNew = Aig_NotCond( pObjNew, Aig_IsComplement(pDriver) );
+            Aig_ObjCreatePo( pNew, pObjNew );
+        }
     }
     Vec_VecFree( vStore );
     // remove dangling nodes
-    if ( (i = Aig_ManCleanup( pNew )) )
-    {
-//        printf( "Cleanup after balancing removed %d dangling nodes.\n", i );
-    }
+    Aig_ManCleanup( pNew );
     // check the resulting AIG
     if ( !Aig_ManCheck(pNew) )
         printf( "Dar_ManBalance(): The check has failed.\n" );

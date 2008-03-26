@@ -736,7 +736,7 @@ clk = clock();
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkDCompress2( Abc_Ntk_t * pNtk, int fBalance, int fUpdateLevel, int fVerbose )
+Abc_Ntk_t * Abc_NtkDCompress2( Abc_Ntk_t * pNtk, int fBalance, int fUpdateLevel, int fFanout, int fVerbose )
 {
     Aig_Man_t * pMan, * pTemp;
     Abc_Ntk_t * pNtkAig;
@@ -748,7 +748,7 @@ Abc_Ntk_t * Abc_NtkDCompress2( Abc_Ntk_t * pNtk, int fBalance, int fUpdateLevel,
 //    Aig_ManPrintStats( pMan );
 
 clk = clock();
-    pMan = Dar_ManCompress2( pTemp = pMan, fBalance, fUpdateLevel, fVerbose ); 
+    pMan = Dar_ManCompress2( pTemp = pMan, fBalance, fUpdateLevel, fFanout, fVerbose ); 
     Aig_ManStop( pTemp );
 //PRT( "time", clock() - clk );
 
@@ -1744,6 +1744,7 @@ void Abc_NtkPrintSccs( Abc_Ntk_t * pNtk, int fVerbose )
 ***********************************************************************/
 void Abc_NtkDarTestBlif( char * pFileName )
 {
+/*
     char Buffer[1000];
     Ntl_Man_t * p;
     p = Ioa_ReadBlif( pFileName, 1 );
@@ -1763,6 +1764,7 @@ void Abc_NtkDarTestBlif( char * pFileName )
     sprintf( Buffer, "test_.blif", p->pName );
     Ioa_WriteBlif( p, Buffer );
     Ntl_ManFree( p );
+*/
 }
 
 ////////////////////////////////////////////////////////////////////////

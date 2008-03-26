@@ -246,8 +246,8 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
     if ( !pPars->fResub )
     {
         extern void Abc_NtkBidecResyn( Abc_Ntk_t * pNtk, int fVerbose );
-        Abc_NtkSweep( pNtk, 0 );
-        Abc_NtkBidecResyn( pNtk, 0 );
+//        Abc_NtkSweep( pNtk, 0 );
+//        Abc_NtkBidecResyn( pNtk, 0 );
     }
 
     p->nTotalNodesEnd = Abc_NtkNodeNum(pNtk);

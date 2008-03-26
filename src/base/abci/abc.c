@@ -200,9 +200,57 @@ static int Abc_CommandEnlarge        ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandTraceStart     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTraceCheck     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
+static int Abc_CommandAbc8Read       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Write      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Ps         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8If         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8DChoice    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Scl        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Lcorr      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Ssw        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Cec        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8DSec       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_FrameClearDesign()
+{
+    extern Abc_Frame_t * Abc_FrameGetGlobalFrame();
+    extern void Ntl_ManFree( void * );
+    extern void Ntk_ManFree( void * );
+    Abc_Frame_t * pAbc;
+
+    pAbc = Abc_FrameGetGlobalFrame();
+    if ( pAbc->pAbc8Ntl )
+    {
+        Ntl_ManFree( pAbc->pAbc8Ntl );
+        pAbc->pAbc8Ntl = NULL;
+    }
+    if ( pAbc->pAbc8Aig )
+    {
+        Aig_ManStop( pAbc->pAbc8Aig );
+        pAbc->pAbc8Aig = NULL;
+    }
+    if ( pAbc->pAbc8Ntk )
+    {
+        Ntk_ManFree( pAbc->pAbc8Ntk );
+        pAbc->pAbc8Ntk = NULL;
+    }
+}
 
 /**Function*************************************************************
 
@@ -378,6 +426,18 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "indcut",        Abc_CommandIndcut,           0 );
     Cmd_CommandAdd( pAbc, "Verification", "enlarge",       Abc_CommandEnlarge,          1 );
 
+    Cmd_CommandAdd( pAbc, "ABC8",         "*read",         Abc_CommandAbc8Read,         0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*write",        Abc_CommandAbc8Write,        0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*ps",           Abc_CommandAbc8Ps,           0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*if",           Abc_CommandAbc8If,           0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*dchoice",      Abc_CommandAbc8DChoice,      0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*scl",          Abc_CommandAbc8Scl,          0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*lcorr",        Abc_CommandAbc8Lcorr,        0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*ssw",          Abc_CommandAbc8Ssw,          0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*cec",          Abc_CommandAbc8Cec,          0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*dsec",         Abc_CommandAbc8DSec,         0 );
+
+
 //    Cmd_CommandAdd( pAbc, "Verification", "trace_start",   Abc_CommandTraceStart,       0 );
 //    Cmd_CommandAdd( pAbc, "Verification", "trace_check",   Abc_CommandTraceCheck,       0 );
 
@@ -412,6 +472,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
 ***********************************************************************/
 void Abc_End()
 {
+    Abc_FrameClearDesign(); 
+
 //    Dar_LibDumpPriorities();
     {
         extern int Abc_NtkCompareAndSaveBest( Abc_Ntk_t * pNtk );
@@ -7813,12 +7875,12 @@ int Abc_CommandDRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: drw [-C num] [-N num] [-flzvwh]\n" );
+    fprintf( pErr, "usage: drw [-C num] [-N num] [-lfzvwh]\n" );
     fprintf( pErr, "\t         performs combinational AIG rewriting\n" );
     fprintf( pErr, "\t-C num : the max number of cuts at a node [default = %d]\n", pPars->nCutsMax );
     fprintf( pErr, "\t-N num : the max number of subgraphs tried [default = %d]\n", pPars->nSubgMax );
-    fprintf( pErr, "\t-f     : toggle representing fanouts [default = %s]\n", pPars->fFanout? "yes": "no" );
     fprintf( pErr, "\t-l     : toggle preserving the number of levels [default = %s]\n", pPars->fUpdateLevel? "yes": "no" );
+    fprintf( pErr, "\t-f     : toggle representing fanouts [default = %s]\n", pPars->fFanout? "yes": "no" );
     fprintf( pErr, "\t-z     : toggle using zero-cost replacements [default = %s]\n", pPars->fUseZeros? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", pPars->fVerbose? "yes": "no" );
     fprintf( pErr, "\t-w     : toggle very verbose printout [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
@@ -7966,20 +8028,21 @@ int Abc_CommandDCompress2( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
-    int fBalance, fVerbose, fUpdateLevel, c;
+    int fBalance, fVerbose, fUpdateLevel, fFanout, c;
 
-    extern Abc_Ntk_t * Abc_NtkDCompress2( Abc_Ntk_t * pNtk, int fBalance, int fUpdateLevel, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkDCompress2( Abc_Ntk_t * pNtk, int fBalance, int fUpdateLevel, int fFanout, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    fBalance = 0;
-    fVerbose = 0;
+    fBalance     = 0;
+    fVerbose     = 0;
     fUpdateLevel = 0;
+    fFanout      = 1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "blvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "blfvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -7988,6 +8051,9 @@ int Abc_CommandDCompress2( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'l':
             fUpdateLevel ^= 1;
+            break;
+        case 'f':
+            fFanout ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -8008,7 +8074,7 @@ int Abc_CommandDCompress2( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "This command works only for strashed networks.\n" );
         return 1;
     }
-    pNtkRes = Abc_NtkDCompress2( pNtk, fBalance, fUpdateLevel, fVerbose );
+    pNtkRes = Abc_NtkDCompress2( pNtk, fBalance, fUpdateLevel, fFanout, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
@@ -8019,10 +8085,11 @@ int Abc_CommandDCompress2( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: dcompress2 [-blvh]\n" );
+    fprintf( pErr, "usage: dcompress2 [-blfvh]\n" );
     fprintf( pErr, "\t         performs combinational AIG optimization\n" );
     fprintf( pErr, "\t-b     : toggle internal balancing [default = %s]\n", fBalance? "yes": "no" );
     fprintf( pErr, "\t-l     : toggle updating level [default = %s]\n", fUpdateLevel? "yes": "no" );
+    fprintf( pErr, "\t-f     : toggle representing fanouts [default = %s]\n", fFanout? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -14598,6 +14665,356 @@ usage:
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
+
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc8Read( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pFile;
+    char * pFileName;
+    int c;
+    extern void * Ioa_ReadBlif( char * pFileName, int fCheck );
+    extern Aig_Man_t * Ntl_ManExtract( void * p );
+
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    // get the input file name
+    pFileName = argv[globalUtilOptind];
+    if ( (pFile = fopen( pFileName, "r" )) == NULL )
+    {
+        fprintf( stdout, "Cannot open input file \"%s\". ", pFileName );
+        if ( pFileName = Extra_FileGetSimilarName( pFileName, ".blif", NULL, NULL, NULL, NULL ) )
+            fprintf( stdout, "Did you mean \"%s\"?", pFileName );
+        fprintf( stdout, "\n" );
+        return 1;
+    }
+    fclose( pFile );
+
+    Abc_FrameClearDesign(); 
+    pAbc->pAbc8Ntl = Ioa_ReadBlif( pFileName, 1 );
+    if ( pAbc->pAbc8Ntl == NULL )
+    {
+        printf( "Abc_CommandAbc8Read(): Reading BLIF has failed.\n" );
+        return 1;
+    }
+    pAbc->pAbc8Aig = Ntl_ManExtract( pAbc->pAbc8Ntl );
+    if ( pAbc->pAbc8Aig == NULL )
+    {
+        printf( "Abc_CommandAbc8Read(): AIG extraction has failed.\n" );
+        return 1;
+    }
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: *read [-h]\n" );
+    fprintf( stdout, "\t        reads the design with whiteboxes\n" );
+    fprintf( stdout, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc8Write( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    char * pFileName;
+    int c;
+    extern void Ioa_WriteBlif( void * p, char * pFileName );
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pAbc8Ntl == NULL )
+    {
+        printf( "Abc_CommandAbc8Write(): There is no design to write.\n" );
+        return 1;
+    }
+
+    // get the input file name
+    pFileName = argv[globalUtilOptind];
+    Ioa_WriteBlif( pAbc->pAbc8Ntl, pFileName );
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: *write [-h]\n" );
+    fprintf( stdout, "\t        write the design with whiteboxes\n" );
+    fprintf( stdout, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc8Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c;
+    extern void Ntl_ManPrintStats( void * p );
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pAbc8Ntl == NULL )
+    {
+        printf( "Abc_CommandAbc8Write(): There is no design to show.\n" );
+        return 1;
+    }
+
+    // get the input file name
+    if ( pAbc->pAbc8Ntl )
+        Ntl_ManPrintStats( pAbc->pAbc8Ntl );
+    if ( pAbc->pAbc8Aig )
+        Aig_ManPrintStats( pAbc->pAbc8Aig );
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: *ps [-h]\n" );
+    fprintf( stdout, "\t        prints design statistics\n" );
+    fprintf( stdout, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc8If( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c;
+    extern int Ntl_ManInsertTest( void * p, Aig_Man_t * pAig );
+    extern int Ntl_ManInsertTestIf( void * p, Aig_Man_t * pAig );
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pAbc8Aig == NULL )
+    {
+        printf( "Abc_CommandAbc8Write(): There is no AIG to map.\n" );
+        return 1;
+    }
+
+    // get the input file name
+    if ( !Ntl_ManInsertTestIf( pAbc->pAbc8Ntl, pAbc->pAbc8Aig ) )
+//    if ( !Ntl_ManInsertTest( pAbc->pAbc8Ntl, pAbc->pAbc8Aig ) )
+    {
+        printf( "Abc_CommandAbc8Write(): Tranformation of the netlist has failed.\n" );
+        return 1;
+    }
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: *if [-h]\n" );
+    fprintf( stdout, "\t        performs mapping for logic extraced from the design\n" );
+    fprintf( stdout, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc8DChoice( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Aig_Man_t * pAigNew;
+    int c;
+    extern Aig_Man_t * Ntl_ManPerformSynthesis( Aig_Man_t * pAig );
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pAbc8Aig == NULL )
+    {
+        printf( "Abc_CommandAbc8DChoice(): There is no AIG to synthesize.\n" );
+        return 1;
+    }
+
+    // get the input file name
+    pAigNew = Ntl_ManPerformSynthesis( pAbc->pAbc8Aig );
+    if ( pAigNew == NULL )
+    {
+        printf( "Abc_CommandAbc8DChoice(): Tranformation of the AIG has failed.\n" );
+        return 1;
+    }
+    Aig_ManStop( pAbc->pAbc8Aig );
+    pAbc->pAbc8Aig = pAigNew;
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: *dchoice [-h]\n" );
+    fprintf( stdout, "\t        performs AIG-based synthesis\n" );
+    fprintf( stdout, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc8Scl( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc8Lcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc8Ssw( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc8Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc8DSec( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    return 0;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

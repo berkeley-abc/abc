@@ -58,6 +58,7 @@ typedef struct Tim_Man_t_           Tim_Man_t;
 
 /*=== time.c ===========================================================*/
 extern Tim_Man_t *     Tim_ManStart( int nPis, int nPos );
+extern Tim_Man_t *     Tim_ManDup( Tim_Man_t * p, int fDiscrete );
 extern void            Tim_ManStop( Tim_Man_t * p );
 extern void            Tim_ManPrint( Tim_Man_t * p );
 extern void            Tim_ManSetDelayTables( Tim_Man_t * p, Vec_Ptr_t * vDelayTables );

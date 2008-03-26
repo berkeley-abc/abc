@@ -212,6 +212,11 @@ int Bdc_ManDecompose( Bdc_Man_t * p, unsigned * puFunc, unsigned * puCare, int n
     p->nWords = Kit_TruthWordNum( nVars );
     p->nNodesMax = nNodesMax;
     Bdc_ManPrepare( p, vDivs );
+    if ( puCare && Kit_TruthIsConst0( puCare, nVars ) )
+    {
+        p->pRoot = Bdc_Not(p->pNodes);
+        return 0;
+    }
     // copy the function
     Bdc_IsfStart( p, pIsf );
     if ( puCare )

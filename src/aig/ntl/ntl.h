@@ -102,8 +102,8 @@ struct Ntl_Obj_t_
     unsigned           Id     : 27;    // object ID
     unsigned           MarkA  :  1;    // temporary mark  
     unsigned           MarkB  :  1;    // temporary mark
-    short              nFanins;        // the number of fanins
-    short              nFanouts;       // the number of fanouts
+    int                nFanins;        // the number of fanins
+    int                nFanouts;       // the number of fanouts
     union {                            // functionality
         Ntl_Mod_t *    pImplem;        // model (for boxes)
         char *         pSop;           // SOP (for logic nodes)
@@ -219,19 +219,18 @@ static inline void        Ntl_ObjSetFanout( Ntl_Obj_t * p, Ntl_Net_t * pNet, int
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/*=== ntlAig.c ==========================================================*/
-extern Aig_Obj_t *     Ntl_ManExtractAigNode( Ntl_Obj_t * pNode );
-extern int             Ntl_ManExtract( Ntl_Man_t * p );
-extern int             Ntl_ManInsert( Ntl_Man_t * p, Vec_Ptr_t * vMapping );
-extern int             Ntl_ManInsertTest( Ntl_Man_t * p );
-extern int             Ntl_ManInsertTestFpga( Ntl_Man_t * p );
-extern int             Ntl_ManInsertTestIf( Ntl_Man_t * p );
+/*=== ntlCore.c ==========================================================*/
+extern int             Ntl_ManInsertTest( Ntl_Man_t * p, Aig_Man_t * pAig );
+extern int             Ntl_ManInsertTestIf( Ntl_Man_t * p, Aig_Man_t * pAig );
+/*=== ntlExtract.c ==========================================================*/
+extern Aig_Man_t *     Ntl_ManExtract( Ntl_Man_t * p );
+extern char *          Ntl_SopFromTruth( Ntl_Man_t * p, unsigned * pTruth, int nVars, Vec_Int_t * vCover );
+/*=== ntlInsert.c ==========================================================*/
+extern int             Ntl_ManInsert( Ntl_Man_t * p, Vec_Ptr_t * vMapping, Aig_Man_t * pAig );
 /*=== ntlCheck.c ==========================================================*/
 extern int             Ntl_ManCheck( Ntl_Man_t * pMan );
 extern int             Ntl_ModelCheck( Ntl_Mod_t * pModel );
 extern void            Ntl_ModelFixNonDrivenNets( Ntl_Mod_t * pModel );
-/*=== ntlDfs.c ==========================================================*/
-extern int             Ntl_ManDfs( Ntl_Man_t * p );
 /*=== ntlMan.c ============================================================*/
 extern Ntl_Man_t *     Ntl_ManAlloc( char * pFileName );
 extern void            Ntl_ManFree( Ntl_Man_t * p );

@@ -85,7 +85,7 @@ Aig_Man_t * Aig_ManStart( int nNodesMax )
 Aig_Man_t * Aig_ManStartFrom( Aig_Man_t * p )
 {
     Aig_Man_t * pNew;
-    Aig_Obj_t * pObj;
+    Aig_Obj_t * pObj, * pObjNew;
     int i;
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
@@ -93,7 +93,11 @@ Aig_Man_t * Aig_ManStartFrom( Aig_Man_t * p )
     // create the PIs
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
     Aig_ManForEachPi( p, pObj, i )
-        pObj->pData = Aig_ObjCreatePi(pNew);
+    {
+        pObjNew = Aig_ObjCreatePi( pNew );
+        pObjNew->Level = pObj->Level;
+        pObj->pData = pObjNew;
+    }
     return pNew;
 }
 
@@ -154,17 +158,11 @@ Aig_Man_t * Aig_ManDup( Aig_Man_t * p, int fOrdered )
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
     Aig_ManConst1(pNew)->pHaig = Aig_ManConst1(p)->pHaig;
-    Aig_ManForEachPi( p, pObj, i )
-    {
-        pObjNew = Aig_ObjCreatePi( pNew );
-        pObjNew->pHaig = pObj->pHaig;
-        pObjNew->Level = pObj->Level;
-        pObj->pData = pObjNew;
-    }
     // duplicate internal nodes
     if ( fOrdered )
     {
         Aig_ManForEachObj( p, pObj, i )
+        {
             if ( Aig_ObjIsBuf(pObj) )
             {
                 if ( pNew->pManHaig == NULL )
@@ -187,28 +185,70 @@ Aig_Man_t * Aig_ManDup( Aig_Man_t * p, int fOrdered )
                     pObj->pData = pObjNew;
                 }
             }
+            else if ( Aig_ObjIsPi(pObj) )
+            {
+                pObjNew = Aig_ObjCreatePi( pNew );
+                pObjNew->pHaig = pObj->pHaig;
+                pObjNew->Level = pObj->Level;
+                pObj->pData = pObjNew;
+            }
+            else if ( Aig_ObjIsPo(pObj) )
+            {
+                pObjNew = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+                pObjNew->pHaig = pObj->pHaig;
+                pObj->pData = pObjNew;
+            }
+            else
+                assert( 0 );
+        }
     }
     else
     {
+/*
+        Aig_ManForEachPi( p, pObj, i )
+        {
+            pObjNew = Aig_ObjCreatePi( pNew );
+            pObjNew->pHaig = pObj->pHaig;
+            pObjNew->Level = pObj->Level;
+            pObj->pData = pObjNew;
+        }
+*/
         Aig_ManForEachObj( p, pObj, i )
-            if ( !Aig_ObjIsPo(pObj) )
+        {
+            if ( Aig_ObjIsPi(pObj) )
             {
-                Aig_ManDup_rec( pNew, p, pObj );        
-                assert( pObj->Level == ((Aig_Obj_t*)pObj->pData)->Level );
+                pObjNew = Aig_ObjCreatePi( pNew );
+                pObjNew->pHaig = pObj->pHaig;
+                pObjNew->Level = pObj->Level;
+                pObj->pData = pObjNew;
             }
+            else if ( Aig_ObjIsPo(pObj) )
+            {
+                Aig_ManDup_rec( pNew, p, Aig_ObjFanin0(pObj) );        
+//                assert( pObj->Level == ((Aig_Obj_t*)pObj->pData)->Level );
+                pObjNew = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+                pObjNew->pHaig = pObj->pHaig;
+                pObj->pData = pObjNew;
+            }
+        }
+/*
+        Aig_ManForEachPo( p, pObj, i )
+        {
+            pObjNew = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+            pObjNew->pHaig = pObj->pHaig;
+            pObj->pData = pObjNew;
+        }
+*/
     }
     // add the POs
-    Aig_ManForEachPo( p, pObj, i )
-    {
-        pObjNew = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
-        pObjNew->pHaig = pObj->pHaig;
-        pObj->pData = pObjNew;
-    }
     assert( Aig_ManBufNum(p) != 0 || Aig_ManNodeNum(p) == Aig_ManNodeNum(pNew) );
     // pass the HAIG to the new AIG
     p->pManHaig = NULL;
     Aig_ManForEachObj( p, pObj, i )
         pObj->pHaig = NULL;
+    // duplicate the timing manager
+    if ( p->pManTime )
+        pNew->pManTime = Tim_ManDup( p->pManTime, 0 );
     // check the resulting network
     if ( !Aig_ManCheck(pNew) )
         printf( "Aig_ManDup(): The check has failed.\n" );

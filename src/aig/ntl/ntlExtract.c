@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [ntlAig.c]
+  FileName    [ntlExtract.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: ntlAig.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: ntlExtract.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -353,6 +353,168 @@ Aig_Obj_t * Ntl_ManExtractAigNode( Ntl_Obj_t * pNode )
     return Ntl_ConvertSopToAigInternal( pMan, pNode, pNode->pSop );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Collects the nodes in a topological order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ManExtract_rec( Ntl_Man_t * p, Ntl_Net_t * pNet )
+{
+    Ntl_Obj_t * pObj;
+    Ntl_Net_t * pNetFanin;
+    int i;
+    // skip visited
+    if ( pNet->nVisits == 2 ) 
+        return 1;
+    // if the node is on the path, this is a combinational loop
+    if ( pNet->nVisits == 1 )
+        return 0; 
+    // mark the node as the one on the path
+    pNet->nVisits = 1;
+    // derive the box
+    pObj = pNet->pDriver;
+    assert( Ntl_ObjIsNode(pObj) || Ntl_ObjIsBox(pObj) );
+    // visit the input nets of the box
+    Ntl_ObjForEachFanin( pObj, pNetFanin, i )
+        if ( !Ntl_ManExtract_rec( p, pNetFanin ) )
+            return 0;
+    // add box inputs/outputs to COs/CIs
+    if ( Ntl_ObjIsBox(pObj) )
+    {
+        int LevelCur, LevelMax = -AIG_INFINITY;
+        Vec_IntPush( p->vBox1Cos, Aig_ManPoNum(p->pAig) );
+        Ntl_ObjForEachFanin( pObj, pNetFanin, i )
+        {
+            LevelCur = Aig_ObjLevel( Aig_Regular(pNetFanin->pFunc) );
+            LevelMax = AIG_MAX( LevelMax, LevelCur );
+            Vec_PtrPush( p->vCos, pNetFanin );
+            Aig_ObjCreatePo( p->pAig, pNetFanin->pFunc );
+        }
+        Ntl_ObjForEachFanout( pObj, pNetFanin, i )
+        {
+            Vec_PtrPush( p->vCis, pNetFanin );
+            pNetFanin->pFunc = Aig_ObjCreatePi( p->pAig );
+            Aig_ObjSetLevel( pNetFanin->pFunc, LevelMax + 1 );
+        }
+//printf( "Creating fake PO with ID = %d.\n", Aig_ManPo(p->pAig, Vec_IntEntryLast(p->vBox1Cos))->Id );
+    }
+    // store the node
+    Vec_PtrPush( p->vNodes, pObj );
+    if ( Ntl_ObjIsNode(pObj) )
+        pNet->pFunc = Ntl_ManExtractAigNode( pObj );
+    pNet->nVisits = 2;
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs DFS.]
+
+  Description [Checks for combinational loops. Collects PI/PO nets.
+  Collects nodes in the topological order.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Ntl_ManExtract( Ntl_Man_t * p )
+{
+    Aig_Man_t * pAig;
+    Ntl_Mod_t * pRoot;
+    Ntl_Obj_t * pObj;
+    Ntl_Net_t * pNet;
+    int i, nUselessObjects;
+    assert( Vec_PtrSize(p->vCis) == 0 );
+    assert( Vec_PtrSize(p->vCos) == 0 );
+    assert( Vec_PtrSize(p->vNodes) == 0 );
+    assert( Vec_IntSize(p->vBox1Cos) == 0 );
+    // start the AIG manager
+    assert( p->pAig == NULL );
+    p->pAig = Aig_ManStart( 10000 );
+    // get the root model
+    pRoot = Vec_PtrEntry( p->vModels, 0 );
+    // collect primary inputs
+    Ntl_ModelForEachPi( pRoot, pObj, i )
+    {
+        assert( Ntl_ObjFanoutNum(pObj) == 1 );
+        pNet = Ntl_ObjFanout0(pObj);
+        Vec_PtrPush( p->vCis, pNet );
+        pNet->pFunc = Aig_ObjCreatePi( p->pAig );
+        if ( pNet->nVisits )
+        {
+            printf( "Ntl_ManExtract(): Primary input appears twice in the list.\n" );
+            return 0;
+        }
+        pNet->nVisits = 2;
+    }
+    // collect latch outputs
+    Ntl_ModelForEachLatch( pRoot, pObj, i )
+    {
+        assert( Ntl_ObjFanoutNum(pObj) == 1 );
+        pNet = Ntl_ObjFanout0(pObj);
+        Vec_PtrPush( p->vCis, pNet );
+        pNet->pFunc = Aig_ObjCreatePi( p->pAig );
+        if ( pNet->nVisits )
+        {
+            printf( "Ntl_ManExtract(): Latch output is duplicated or defined as a primary input.\n" );
+            return 0;
+        }
+        pNet->nVisits = 2;
+    }
+    // visit the nodes starting from primary outputs
+    Ntl_ModelForEachPo( pRoot, pObj, i )
+    {
+        pNet = Ntl_ObjFanin0(pObj);
+        if ( !Ntl_ManExtract_rec( p, pNet ) )
+        {
+            printf( "Ntl_ManExtract(): Error: Combinational loop is detected.\n" );
+            Vec_PtrClear( p->vCis );
+            Vec_PtrClear( p->vCos );
+            Vec_PtrClear( p->vNodes );
+            return 0;
+        }
+        Vec_PtrPush( p->vCos, pNet );
+        Aig_ObjCreatePo( p->pAig, pNet->pFunc );
+    }
+    // visit the nodes starting from latch inputs outputs
+    Ntl_ModelForEachLatch( pRoot, pObj, i )
+    {
+        pNet = Ntl_ObjFanin0(pObj);
+        if ( !Ntl_ManExtract_rec( p, pNet ) )
+        {
+            printf( "Ntl_ManExtract(): Error: Combinational loop is detected.\n" );
+            Vec_PtrClear( p->vCis );
+            Vec_PtrClear( p->vCos );
+            Vec_PtrClear( p->vNodes );
+            return 0;
+        }
+        Vec_PtrPush( p->vCos, pNet );
+        Aig_ObjCreatePo( p->pAig, pNet->pFunc );
+    }
+    // report the number of dangling objects
+    nUselessObjects = Ntl_ModelNodeNum(pRoot) + Ntl_ModelBoxNum(pRoot) - Vec_PtrSize(p->vNodes);
+    if ( nUselessObjects )
+        printf( "The number of nodes that do not feed into POs = %d.\n", nUselessObjects );
+    // cleanup the AIG
+    Aig_ManCleanup( p->pAig );
+    // extract the timing manager
+    assert( p->pManTime == NULL );
+    p->pManTime = Ntl_ManCreateTiming( p );
+    // discretize timing info
+    p->pAig->pManTime = Tim_ManDup( p->pManTime, 1 );
+    pAig = p->pAig; p->pAig = NULL;
+    return pAig;    
+}
+
+
+
 
 
 
@@ -367,6 +529,7 @@ Aig_Obj_t * Ntl_ManExtractAigNode( Ntl_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
+/*
 int Ntl_ManExtract_old( Ntl_Man_t * p )
 {
     Ntl_Obj_t * pNode;
@@ -391,202 +554,7 @@ int Ntl_ManExtract_old( Ntl_Man_t * p )
     Aig_ManCleanup( p->pAig );
     return 1;
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Extracts AIG from the netlist.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ntl_ManExtract( Ntl_Man_t * p )
-{
-    // start the AIG manager
-    assert( p->pAig == NULL );
-    p->pAig = Aig_ManStart( 10000 );
-    // check the DFS traversal
-    if ( !Ntl_ManDfs( p ) )
-        return 0;
-    // cleanup the AIG
-    Aig_ManCleanup( p->pAig );
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Inserts the given mapping into the netlist.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ntl_ManInsert( Ntl_Man_t * p, Vec_Ptr_t * vMapping )
-{
-    char Buffer[100];
-    Vec_Ptr_t * vCopies;
-    Vec_Int_t * vCover;
-    Ntl_Mod_t * pRoot;
-    Ntl_Obj_t * pNode;
-    Ntl_Net_t * pNet, * pNetCo;
-    Ntl_Lut_t * pLut;
-    int i, k, nDigits;
-    // remove old nodes
-    pRoot = Vec_PtrEntry( p->vModels, 0 );
-    Ntl_ModelForEachNode( pRoot, pNode, i )
-        Vec_PtrWriteEntry( pRoot->vObjs, pNode->Id, NULL );
-    // start mapping of AIG nodes into their copies
-    vCopies = Vec_PtrStart( Aig_ManObjNumMax(p->pAig) );
-    Ntl_ManForEachCiNet( p, pNet, i )
-        Vec_PtrWriteEntry( vCopies, pNet->pFunc->Id, pNet );
-    // create a new node for each LUT
-    vCover = Vec_IntAlloc( 1 << 16 );
-    nDigits = Aig_Base10Log( Vec_PtrSize(vMapping) );
-    Vec_PtrForEachEntry( vMapping, pLut, i )
-    {
-        pNode = Ntl_ModelCreateNode( pRoot, pLut->nFanins );
-        pNode->pSop = Ntl_SopFromTruth( p, pLut->pTruth, pLut->nFanins, vCover );
-        if ( !Kit_TruthIsConst0(pLut->pTruth, pLut->nFanins) && !Kit_TruthIsConst1(pLut->pTruth, pLut->nFanins) )
-        {
-            for ( k = 0; k < pLut->nFanins; k++ )
-            {
-                pNet = Vec_PtrEntry( vCopies, pLut->pFanins[k] );
-                if ( pNet == NULL )
-                {
-                    printf( "Ntl_ManInsert(): Internal error: Net not found.\n" );
-                    return 0;
-                }
-                Ntl_ObjSetFanin( pNode, pNet, k );
-            }
-        }
-        sprintf( Buffer, "lut%0*d", nDigits, i );
-        if ( (pNet = Ntl_ModelFindNet( pRoot, Buffer )) )
-        {
-            printf( "Ntl_ManInsert(): Internal error: Intermediate net name is not unique.\n" );
-            return 0;
-        }
-        pNet = Ntl_ModelFindOrCreateNet( pRoot, Buffer );
-        if ( !Ntl_ModelSetNetDriver( pNode, pNet ) )
-        {
-            printf( "Ntl_ManInsert(): Internal error: Net has more than one fanin.\n" );
-            return 0;
-        }
-        Vec_PtrWriteEntry( vCopies, pLut->Id, pNet );
-    }
-    Vec_IntFree( vCover );
-    // mark CIs and outputs of the registers
-    Ntl_ManForEachCiNet( p, pNetCo, i )
-        pNetCo->nVisits = 101;
-    // update the CO pointers
-    Ntl_ManForEachCoNet( p, pNetCo, i )
-    {
-        if ( pNetCo->nVisits == 101 )
-            continue;
-        pNetCo->nVisits = 101;
-        pNet = Vec_PtrEntry( vCopies, Aig_Regular(pNetCo->pFunc)->Id );
-        pNode = Ntl_ModelCreateNode( pRoot, 1 );
-        pNode->pSop = Aig_IsComplement(pNetCo->pFunc)? Ntl_ManStoreSop( p, "0 1\n" ) : Ntl_ManStoreSop( p, "1 1\n" );
-        Ntl_ObjSetFanin( pNode, pNet, 0 );
-        // update the CO driver net
-        pNetCo->pDriver = NULL;
-        if ( !Ntl_ModelSetNetDriver( pNode, pNetCo ) )
-        {
-            printf( "Ntl_ManInsert(): Internal error: PO net has more than one fanin.\n" );
-            return 0;
-        }
-    }
-    Vec_PtrFree( vCopies );
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Extracts AIG from the netlist.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ntl_ManPerformSynthesis( Ntl_Man_t * p )
-{
-    extern Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel );
-    extern Aig_Man_t * Dar_ManCompress( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fVerbose );
-    Aig_Man_t * pTemp;
-    Ntl_Net_t * pNet;
-    int i;
-    // perform synthesis
-printf( "Pre-synthesis AIG:  " );
-Aig_ManPrintStats( p->pAig );
-//    p->pAig = Dar_ManBalance( pTemp = p->pAig, 1 );
-    p->pAig = Dar_ManCompress( pTemp = p->pAig, 1, 1, 0 );
-    Ntl_ManForEachCiNet( p, pNet, i )
-        pNet->pFunc = Aig_ManPi( p->pAig, i );
-    Ntl_ManForEachCoNet( p, pNet, i )
-        pNet->pFunc = Aig_ObjChild0( Aig_ManPo( p->pAig, i ) );
-    Aig_ManStop( pTemp );
-printf( "Post-synthesis AIG: " );
-Aig_ManPrintStats( p->pAig );
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Testing procedure for insertion of mapping into the netlist.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ntl_ManInsertTest( Ntl_Man_t * p )
-{
-    Vec_Ptr_t * vMapping;
-    int RetValue;
-    if ( !Ntl_ManExtract( p ) )
-        return 0;
-    assert( p->pAig != NULL );
-    Ntl_ManPerformSynthesis( p );
-    vMapping = Ntl_MappingFromAig( p->pAig );
-    RetValue = Ntl_ManInsert( p, vMapping );
-    Vec_PtrFree( vMapping );
-    return RetValue;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Testing procedure for insertion of mapping into the netlist.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ntl_ManInsertTestIf( Ntl_Man_t * p )
-{
-    Vec_Ptr_t * vMapping;
-    int RetValue;
-    if ( !Ntl_ManExtract( p ) )
-        return 0;
-    assert( p->pAig != NULL );
-//    Ntl_ManPerformSynthesis( p );
-    vMapping = Ntl_MappingIf( p, p->pAig );
-    RetValue = Ntl_ManInsert( p, vMapping );
-    Vec_PtrFree( vMapping );
-    return RetValue;
-}
+*/
 
 
 ////////////////////////////////////////////////////////////////////////

@@ -87,6 +87,7 @@ void Ntl_ManFree( Ntl_Man_t * p )
     if ( p->pMemObjs ) Aig_MmFlexStop( p->pMemObjs, 0 );
     if ( p->pMemSops ) Aig_MmFlexStop( p->pMemSops, 0 );
     if ( p->pAig )     Aig_ManStop( p->pAig );
+    if ( p->pManTime ) Tim_ManStop( p->pManTime );
     free( p );
 }
 

@@ -3050,15 +3050,19 @@ SOURCE=.\src\aig\ntl\ntl.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\ntl\ntlAig.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\aig\ntl\ntlCheck.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\ntl\ntlDfs.c
+SOURCE=.\src\aig\ntl\ntlCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ntl\ntlExtract.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ntl\ntlInsert.c
 # End Source File
 # Begin Source File
 
@@ -3087,6 +3091,42 @@ SOURCE=.\src\aig\ntl\ntlTime.c
 # Begin Source File
 
 SOURCE=.\src\aig\ntl\ntlWriteBlif.c
+# End Source File
+# End Group
+# Begin Group "ntk"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\aig\ntk\ntk.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ntk\ntkDfs.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ntk\ntkFanio.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ntk\ntkMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ntk\ntkMap.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ntk\ntkObj.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ntk\ntkTiming.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ntk\ntkUtil.c
 # End Source File
 # End Group
 # Begin Group "tim"

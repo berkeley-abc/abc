@@ -73,6 +73,11 @@ struct Abc_Frame_t_
     void *          pLibGen;     // the current genlib
     void *          pLibSuper;   // the current supergate library
     void *          pLibVer;     // the current Verilog library
+
+    // new code
+    void *          pAbc8Ntl;    // the current design
+    void *          pAbc8Ntk;    // the current mapped network
+    void *          pAbc8Aig;    // the current AIG
 };
 
 ////////////////////////////////////////////////////////////////////////

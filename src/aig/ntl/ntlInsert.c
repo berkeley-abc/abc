@@ -1,0 +1,131 @@
+/**CFile****************************************************************
+
+  FileName    [ntlInsert.c]
+
+  SystemName  [ABC: Logic synthesis and verification system.]
+
+  PackageName [Netlist representation.]
+
+  Synopsis    [Procedures to insert mapping into a design.]
+
+  Author      [Alan Mishchenko]
+  
+  Affiliation [UC Berkeley]
+
+  Date        [Ver. 1.0. Started - June 20, 2005.]
+
+  Revision    [$Id: ntlInsert.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+
+***********************************************************************/
+
+#include "ntl.h"
+#include "kit.h"
+
+////////////////////////////////////////////////////////////////////////
+///                        DECLARATIONS                              ///
+////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////
+///                     FUNCTION DEFINITIONS                         ///
+////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Inserts the given mapping into the netlist.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ManInsert( Ntl_Man_t * p, Vec_Ptr_t * vMapping, Aig_Man_t * pAig )
+{
+    char Buffer[100];
+    Vec_Ptr_t * vCopies;
+    Vec_Int_t * vCover;
+    Ntl_Mod_t * pRoot;
+    Ntl_Obj_t * pNode;
+    Ntl_Net_t * pNet, * pNetCo;
+    Ntl_Lut_t * pLut;
+    int i, k, nDigits;
+    // map the AIG back onto the design
+    Ntl_ManForEachCiNet( p, pNet, i )
+        pNet->pFunc = Aig_ManPi( pAig, i );
+    Ntl_ManForEachCoNet( p, pNet, i )
+        pNet->pFunc = Aig_ObjChild0( Aig_ManPo( pAig, i ) );
+    // remove old nodes
+    pRoot = Vec_PtrEntry( p->vModels, 0 );
+    Ntl_ModelForEachNode( pRoot, pNode, i )
+        Vec_PtrWriteEntry( pRoot->vObjs, pNode->Id, NULL );
+    // start mapping of AIG nodes into their copies
+    vCopies = Vec_PtrStart( Aig_ManObjNumMax(pAig) );
+    Ntl_ManForEachCiNet( p, pNet, i )
+        Vec_PtrWriteEntry( vCopies, pNet->pFunc->Id, pNet );
+    // create a new node for each LUT
+    vCover = Vec_IntAlloc( 1 << 16 );
+    nDigits = Aig_Base10Log( Vec_PtrSize(vMapping) );
+    Vec_PtrForEachEntry( vMapping, pLut, i )
+    {
+        pNode = Ntl_ModelCreateNode( pRoot, pLut->nFanins );
+        pNode->pSop = Ntl_SopFromTruth( p, pLut->pTruth, pLut->nFanins, vCover );
+        if ( !Kit_TruthIsConst0(pLut->pTruth, pLut->nFanins) && !Kit_TruthIsConst1(pLut->pTruth, pLut->nFanins) )
+        {
+            for ( k = 0; k < pLut->nFanins; k++ )
+            {
+                pNet = Vec_PtrEntry( vCopies, pLut->pFanins[k] );
+                if ( pNet == NULL )
+                {
+                    printf( "Ntl_ManInsert(): Internal error: Net not found.\n" );
+                    return 0;
+                }
+                Ntl_ObjSetFanin( pNode, pNet, k );
+            }
+        }
+        sprintf( Buffer, "lut%0*d", nDigits, i );
+        if ( (pNet = Ntl_ModelFindNet( pRoot, Buffer )) )
+        {
+            printf( "Ntl_ManInsert(): Internal error: Intermediate net name is not unique.\n" );
+            return 0;
+        }
+        pNet = Ntl_ModelFindOrCreateNet( pRoot, Buffer );
+        if ( !Ntl_ModelSetNetDriver( pNode, pNet ) )
+        {
+            printf( "Ntl_ManInsert(): Internal error: Net has more than one fanin.\n" );
+            return 0;
+        }
+        Vec_PtrWriteEntry( vCopies, pLut->Id, pNet );
+    }
+    Vec_IntFree( vCover );
+    // mark CIs and outputs of the registers
+    Ntl_ManForEachCiNet( p, pNetCo, i )
+        pNetCo->nVisits = 101;
+    // update the CO pointers
+    Ntl_ManForEachCoNet( p, pNetCo, i )
+    {
+        if ( pNetCo->nVisits == 101 )
+            continue;
+        pNetCo->nVisits = 101;
+        pNet = Vec_PtrEntry( vCopies, Aig_Regular(pNetCo->pFunc)->Id );
+        pNode = Ntl_ModelCreateNode( pRoot, 1 );
+        pNode->pSop = Aig_IsComplement(pNetCo->pFunc)? Ntl_ManStoreSop( p, "0 1\n" ) : Ntl_ManStoreSop( p, "1 1\n" );
+        Ntl_ObjSetFanin( pNode, pNet, 0 );
+        // update the CO driver net
+        pNetCo->pDriver = NULL;
+        if ( !Ntl_ModelSetNetDriver( pNode, pNetCo ) )
+        {
+            printf( "Ntl_ManInsert(): Internal error: PO net has more than one fanin.\n" );
+            return 0;
+        }
+    }
+    Vec_PtrFree( vCopies );
+    return 1;
+}
+
+
+////////////////////////////////////////////////////////////////////////
+///                       END OF FILE                                ///
+////////////////////////////////////////////////////////////////////////
+
+
