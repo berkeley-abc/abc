@@ -978,6 +978,32 @@ int Abc_NtkLevelReverse_rec( Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
+Vec_Vec_t * Abc_NtkLevelize( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;
+    Vec_Vec_t * vLevels;
+    int nLevels, i;
+    nLevels = Abc_NtkLevel( pNtk );
+    vLevels = Vec_VecStart( nLevels + 1 );
+    Abc_NtkForEachNode( pNtk, pObj, i )
+    {
+        assert( (int)pObj->Level <= nLevels );
+        Vec_VecPush( vLevels, pObj->Level, pObj );
+    }
+    return vLevels;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the number of logic levels not counting PIs/POs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_NtkLevel( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode;

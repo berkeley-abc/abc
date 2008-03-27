@@ -96,6 +96,7 @@ Aig_Man_t * Aig_ManStartFrom( Aig_Man_t * p )
     {
         pObjNew = Aig_ObjCreatePi( pNew );
         pObjNew->Level = pObj->Level;
+        pObjNew->pHaig = pObj->pHaig;
         pObj->pData = pObjNew;
     }
     return pNew;
@@ -114,20 +115,16 @@ Aig_Man_t * Aig_ManStartFrom( Aig_Man_t * p )
 ***********************************************************************/
 Aig_Obj_t * Aig_ManDup_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t * pObj )
 {
+    Aig_Obj_t * pObjNew;
     if ( pObj->pData )
         return pObj->pData;
     Aig_ManDup_rec( pNew, p, Aig_ObjFanin0(pObj) );
     if ( Aig_ObjIsBuf(pObj) )
         return pObj->pData = Aig_ObjChild0Copy(pObj);
     Aig_ManDup_rec( pNew, p, Aig_ObjFanin1(pObj) );
-    if ( pNew->pManHaig == NULL )
-        return pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
-    else
-    {
-        Aig_Obj_t * pObjNew = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
-        Aig_Regular(pObjNew->pHaig)->pHaig = Aig_Regular(pObj->pHaig);
-        return pObj->pData = pObjNew;
-    }
+    pObjNew = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+    Aig_Regular(pObjNew)->pHaig = pObj->pHaig;
+    return pObj->pData = pObjNew;
 }
 
 /**Function*************************************************************
@@ -156,8 +153,6 @@ Aig_Man_t * Aig_ManDup( Aig_Man_t * p, int fOrdered )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
     // create the PIs
     Aig_ManCleanData( p );
-    Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
-    Aig_ManConst1(pNew)->pHaig = Aig_ManConst1(p)->pHaig;
     // duplicate internal nodes
     if ( fOrdered )
     {
@@ -165,61 +160,42 @@ Aig_Man_t * Aig_ManDup( Aig_Man_t * p, int fOrdered )
         {
             if ( Aig_ObjIsBuf(pObj) )
             {
-                if ( pNew->pManHaig == NULL )
-                    pObj->pData = Aig_ObjChild0Copy(pObj);
-                else
-                {
-                    Aig_Obj_t * pObjNew = Aig_ObjChild0Copy(pObj);
-                    Aig_Regular(pObjNew->pHaig)->pHaig = Aig_Regular(pObj->pHaig);
-                    pObj->pData = pObjNew;
-                }
+                pObjNew = Aig_ObjChild0Copy(pObj);
             }
             else if ( Aig_ObjIsNode(pObj) )
             {
-                if ( pNew->pManHaig == NULL )
-                    pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
-                else
-                {
-                    Aig_Obj_t * pObjNew = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
-                    Aig_Regular(pObjNew->pHaig)->pHaig = Aig_Regular(pObj->pHaig);
-                    pObj->pData = pObjNew;
-                }
+                pObjNew = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
             }
             else if ( Aig_ObjIsPi(pObj) )
             {
                 pObjNew = Aig_ObjCreatePi( pNew );
-                pObjNew->pHaig = pObj->pHaig;
                 pObjNew->Level = pObj->Level;
-                pObj->pData = pObjNew;
             }
             else if ( Aig_ObjIsPo(pObj) )
             {
                 pObjNew = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
-                pObjNew->pHaig = pObj->pHaig;
-                pObj->pData = pObjNew;
+            }
+            else if ( Aig_ObjIsConst1(pObj) )
+            {
+                pObjNew = Aig_ManConst1(pNew);
             }
             else
                 assert( 0 );
+            Aig_Regular(pObjNew)->pHaig = pObj->pHaig;
+            pObj->pData = pObjNew;
         }
     }
     else
     {
-/*
-        Aig_ManForEachPi( p, pObj, i )
-        {
-            pObjNew = Aig_ObjCreatePi( pNew );
-            pObjNew->pHaig = pObj->pHaig;
-            pObjNew->Level = pObj->Level;
-            pObj->pData = pObjNew;
-        }
-*/
+        Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
+        Aig_ManConst1(pNew)->pHaig = Aig_ManConst1(p)->pHaig;
         Aig_ManForEachObj( p, pObj, i )
         {
             if ( Aig_ObjIsPi(pObj) )
             {
                 pObjNew = Aig_ObjCreatePi( pNew );
-                pObjNew->pHaig = pObj->pHaig;
                 pObjNew->Level = pObj->Level;
+                Aig_Regular(pObjNew)->pHaig = pObj->pHaig;
                 pObj->pData = pObjNew;
             }
             else if ( Aig_ObjIsPo(pObj) )
@@ -227,18 +203,10 @@ Aig_Man_t * Aig_ManDup( Aig_Man_t * p, int fOrdered )
                 Aig_ManDup_rec( pNew, p, Aig_ObjFanin0(pObj) );        
 //                assert( pObj->Level == ((Aig_Obj_t*)pObj->pData)->Level );
                 pObjNew = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
-                pObjNew->pHaig = pObj->pHaig;
+                Aig_Regular(pObjNew)->pHaig = pObj->pHaig;
                 pObj->pData = pObjNew;
             }
         }
-/*
-        Aig_ManForEachPo( p, pObj, i )
-        {
-            pObjNew = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
-            pObjNew->pHaig = pObj->pHaig;
-            pObj->pData = pObjNew;
-        }
-*/
     }
     // add the POs
     assert( Aig_ManBufNum(p) != 0 || Aig_ManNodeNum(p) == Aig_ManNodeNum(pNew) );
@@ -372,6 +340,7 @@ void Aig_ManStop( Aig_Man_t * p )
     if ( p->vOnehots ) Vec_VecFree( (Vec_Vec_t *)p->vOnehots );
     FREE( p->pSeqModel );
     FREE( p->pName );
+    FREE( p->pSpec );
     FREE( p->pObjCopies );
     FREE( p->pReprs );
     FREE( p->pEquivs );
@@ -410,6 +379,27 @@ int Aig_ManCleanup( Aig_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Performs one iteration of AIG rewriting.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Aig_ManHaigCounter( Aig_Man_t * pAig )
+{
+    Aig_Obj_t * pObj;
+    int Counter, i;
+    Counter = 0;
+    Aig_ManForEachNode( pAig, pObj, i )
+        Counter += (pObj->pHaig != NULL);
+    return Counter;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Stops the AIG manager.]
 
   Description []
@@ -421,8 +411,12 @@ int Aig_ManCleanup( Aig_Man_t * p )
 ***********************************************************************/
 void Aig_ManPrintStats( Aig_Man_t * p )
 {
+    int nChoices = Aig_ManCountChoices(p);
     printf( "PI/PO/Lat = %5d/%5d/%5d   ", Aig_ManPiNum(p), Aig_ManPoNum(p), Aig_ManLatchNum(p) );
-    printf( "A = %7d. ",    Aig_ManAndNum(p) );
+    printf( "A = %7d. ",   Aig_ManAndNum(p) );
+    printf( "Eq = %7d. ",  Aig_ManHaigCounter(p) );
+    if ( nChoices )
+        printf( "Ch = %5d. ",  nChoices );
     if ( Aig_ManExorNum(p) )
         printf( "X = %5d. ",    Aig_ManExorNum(p) );
     if ( Aig_ManBufNum(p) )

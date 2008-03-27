@@ -150,7 +150,8 @@ Tim_Man_t * Tim_ManStart( int nPis, int nPos )
 
   Synopsis    [Duplicates the timing manager.]
 
-  Description []
+  Description [Derives discrete-delay-model timing manager. 
+  Useful for AIG optimization with approximate timing information.]
                
   SideEffects []
 
@@ -171,18 +172,64 @@ Tim_Man_t * Tim_ManDup( Tim_Man_t * p, int fDiscrete )
     for ( k = 0; k < p->nPos; k++ )
         pNew->pPos[k].TravId = 0;
     if ( fDiscrete )
+    {
         for ( k = 0; k < p->nPis; k++ )
             pNew->pPis[k].timeArr = 0.0; // modify here
+        // modify the required times
+    }
     pNew->vDelayTables = Vec_PtrAlloc( 100 );
     Tim_ManForEachBox( p, pBox, i )
     {
         pDelayTableNew = ALLOC( float, pBox->nInputs * pBox->nOutputs );
         Vec_PtrPush( pNew->vDelayTables, pDelayTableNew );
         if ( fDiscrete )
+        {
             for ( k = 0; k < pBox->nInputs * pBox->nOutputs; k++ )
                 pDelayTableNew[k] = 1.0; // modify here
+        }
         else
             memcpy( pDelayTableNew, pBox->pDelayTable, sizeof(float) * pBox->nInputs * pBox->nOutputs );
+        Tim_ManCreateBoxFirst( pNew, pBox->Inouts[0], pBox->nInputs, 
+            pBox->Inouts[pBox->nInputs], pBox->nOutputs, pDelayTableNew );
+    }
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the timing manager.]
+
+  Description [Derives unit-delay-model timing manager. 
+  Useful for levelizing the network.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Tim_Man_t * Tim_ManDupUnit( Tim_Man_t * p )
+{
+    Tim_Man_t * pNew;
+    Tim_Box_t * pBox;
+    float * pDelayTableNew;
+    int i, k;
+    pNew = Tim_ManStart( p->nPis, p->nPos );
+    memcpy( pNew->pPis, p->pPis, sizeof(Tim_Obj_t) * p->nPis );
+    memcpy( pNew->pPos, p->pPos, sizeof(Tim_Obj_t) * p->nPos );
+    for ( k = 0; k < p->nPis; k++ )
+    {
+        pNew->pPis[k].TravId = 0;
+        pNew->pPis[k].timeArr = 0.0; 
+    }
+    for ( k = 0; k < p->nPos; k++ )
+        pNew->pPos[k].TravId = 0;
+    pNew->vDelayTables = Vec_PtrAlloc( 100 );
+    Tim_ManForEachBox( p, pBox, i )
+    {
+        pDelayTableNew = ALLOC( float, pBox->nInputs * pBox->nOutputs );
+        Vec_PtrPush( pNew->vDelayTables, pDelayTableNew );
+        for ( k = 0; k < pBox->nInputs * pBox->nOutputs; k++ )
+            pDelayTableNew[k] = 1.0;
         Tim_ManCreateBoxFirst( pNew, pBox->Inouts[0], pBox->nInputs, 
             pBox->Inouts[pBox->nInputs], pBox->nOutputs, pDelayTableNew );
     }
@@ -565,6 +612,110 @@ float Tim_ManGetPoRequired( Tim_Man_t * p, int iPo )
         pObjRes->TravId = p->nTravIds;
     }
     return pObjThis->timeReq;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the box number for the given input.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Tim_ManBoxForCi( Tim_Man_t * p, int iCi )
+{
+    if ( iCi >= p->nPis )
+        return -1;
+    return p->pPis[iCi].iObj2Box;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the box number for the given output.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Tim_ManBoxForCo( Tim_Man_t * p, int iCo )
+{
+    if ( iCo >= p->nPos )
+        return -1;
+    return p->pPos[iCo].iObj2Box;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the first input of the box.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Tim_ManBoxInputFirst( Tim_Man_t * p, int iBox )
+{
+    Tim_Box_t * pBox = Vec_PtrEntry( p->vBoxes, iBox );
+    return pBox->Inouts[0];
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the first input of the box.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Tim_ManBoxOutputFirst( Tim_Man_t * p, int iBox )
+{
+    Tim_Box_t * pBox = Vec_PtrEntry( p->vBoxes, iBox );
+    return pBox->Inouts[pBox->nInputs];
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the first input of the box.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Tim_ManBoxInputNum( Tim_Man_t * p, int iBox )
+{
+    Tim_Box_t * pBox = Vec_PtrEntry( p->vBoxes, iBox );
+    return pBox->nInputs;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the first input of the box.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Tim_ManBoxOutputNum( Tim_Man_t * p, int iBox )
+{
+    Tim_Box_t * pBox = Vec_PtrEntry( p->vBoxes, iBox );
+    return pBox->nOutputs;
 }
 
 

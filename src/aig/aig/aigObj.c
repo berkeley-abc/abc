@@ -97,12 +97,14 @@ Aig_Obj_t * Aig_ObjCreate( Aig_Man_t * p, Aig_Obj_t * pGhost )
     // update node counters of the manager
     p->nObjs[Aig_ObjType(pObj)]++;
     assert( pObj->pData == NULL );
+/*
     if ( p->pManHaig )
     {
         pGhost->pFanin0 = Aig_ObjHaig( pGhost->pFanin0 );
         pGhost->pFanin1 = Aig_ObjHaig( pGhost->pFanin1 );
         pObj->pHaig = Aig_ObjCreate( p->pManHaig, pGhost );
     }
+*/
     return pObj;
 }
 
@@ -360,6 +362,7 @@ int Aig_ManPropagateBuffers( Aig_Man_t * p, int fNodesOnly, int fUpdateLevel )
 void Aig_ObjReplace( Aig_Man_t * p, Aig_Obj_t * pObjOld, Aig_Obj_t * pObjNew, int fNodesOnly, int fUpdateLevel )
 {
     Aig_Obj_t * pObjNewR = Aig_Regular(pObjNew);
+    Aig_Obj_t * pHaig = pObjNewR->pHaig? pObjNewR->pHaig : pObjOld->pHaig;
     // the object to be replaced cannot be complemented
     assert( !Aig_IsComplement(pObjOld) );
     // the object to be replaced cannot be a terminal
@@ -422,6 +425,7 @@ void Aig_ObjReplace( Aig_Man_t * p, Aig_Obj_t * pObjOld, Aig_Obj_t * pObjNew, in
         p->nBufMax = AIG_MAX( p->nBufMax, Vec_PtrSize(p->vBufs) );
         Aig_ManPropagateBuffers( p, fNodesOnly, fUpdateLevel );
     }
+    pObjOld->pHaig = pHaig;
 }
 
 ////////////////////////////////////////////////////////////////////////

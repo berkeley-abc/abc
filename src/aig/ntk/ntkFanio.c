@@ -279,7 +279,7 @@ void Ntk_ObjTransferFanout( Ntk_Obj_t * pNodeFrom, Ntk_Obj_t * pNodeTo )
     Vec_Ptr_t * vFanouts = pNodeFrom->pMan->vTemp;
     Ntk_Obj_t * pTemp;
     int nFanoutsOld, i;
-    assert( !Ntk_ObjIsPo(pNodeFrom) && !Ntk_ObjIsPo(pNodeTo) );
+    assert( !Ntk_ObjIsCo(pNodeFrom) && !Ntk_ObjIsCo(pNodeTo) );
     assert( pNodeFrom->pMan == pNodeTo->pMan );
     assert( pNodeFrom != pNodeTo );
     assert( Ntk_ObjFanoutNum(pNodeFrom) > 0 );

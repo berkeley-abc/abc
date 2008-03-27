@@ -19,7 +19,6 @@
 ***********************************************************************/
 
 #include "ntk.h"
-#include "if.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -108,19 +107,17 @@ void Ntk_ManDelayTraceSortPins( Ntk_Obj_t * pNode, int * pPinPerm, float * pPinD
   SeeAlso     []
 
 ***********************************************************************/
-float Ntk_ManDelayTraceLut( Ntk_Man_t * pNtk, int fUseLutLib )
+float Ntk_ManDelayTraceLut( Ntk_Man_t * pNtk, If_Lib_t * pLutLib )
 {
     int fUseSorting = 1;
     int pPinPerm[32];
     float pPinDelays[32];
-    If_Lib_t * pLutLib;
-    Ntk_Obj_t * pNode, * pFanin;
+    Ntk_Obj_t * pObj, * pFanin;
     Vec_Ptr_t * vNodes;
     float tArrival, tRequired, tSlack, * pDelays;
     int i, k;
 
     // get the library
-    pLutLib = fUseLutLib?  Abc_FrameReadLibLut() : NULL;
     if ( pLutLib && pLutLib->LutMax < Ntk_ManGetFaninMax(pNtk) )
     {
         printf( "The max LUT size (%d) is less than the max fanin count (%d).\n", 
@@ -128,156 +125,141 @@ float Ntk_ManDelayTraceLut( Ntk_Man_t * pNtk, int fUseLutLib )
         return -AIG_INFINITY;
     }
 
+    // compute the reverse order of all objects
+    vNodes = Ntk_ManDfsReverse( pNtk );
+
     // initialize the arrival times
     Abc_NtkPrepareTiming( pNtk );
 
     // propagate arrival times
-    vNodes = Ntk_ManDfs( pNtk );
-    Vec_PtrForEachEntry( vNodes, pNode, i )
+    Tim_ManIncrementTravId( pNtk->pManTime );
+    Ntk_ManForEachObj( pNtk, pObj, i )
     {
-        tArrival = -AIG_INFINITY;
-        if ( pLutLib == NULL )
+        if ( Ntk_ObjIsNode(pObj) )
         {
-            Ntk_ObjForEachFanin( pNode, pFanin, k )
-                if ( tArrival < Ntk_ObjArrival(pFanin) + 1.0 )
-                    tArrival = Ntk_ObjArrival(pFanin) + 1.0;
-        }
-        else if ( !pLutLib->fVarPinDelays )
-        {
-            pDelays = pLutLib->pLutDelays[Ntk_ObjFaninNum(pNode)];
-            Ntk_ObjForEachFanin( pNode, pFanin, k )
-                if ( tArrival < Ntk_ObjArrival(pFanin) + pDelays[0] )
-                    tArrival = Ntk_ObjArrival(pFanin) + pDelays[0];
-        }
-        else
-        {
-            pDelays = pLutLib->pLutDelays[Ntk_ObjFaninNum(pNode)];
-            if ( fUseSorting )
+            tArrival = -AIG_INFINITY;
+            if ( pLutLib == NULL )
             {
-                Ntk_ManDelayTraceSortPins( pNode, pPinPerm, pPinDelays );
-                Ntk_ObjForEachFanin( pNode, pFanin, k ) 
-                    if ( tArrival < Ntk_ObjArrival(Ntk_ObjFanin(pNode,pPinPerm[k])) + pDelays[k] )
-                        tArrival = Ntk_ObjArrival(Ntk_ObjFanin(pNode,pPinPerm[k])) + pDelays[k];
+                Ntk_ObjForEachFanin( pObj, pFanin, k )
+                    if ( tArrival < Ntk_ObjArrival(pFanin) + 1.0 )
+                        tArrival = Ntk_ObjArrival(pFanin) + 1.0;
+            }
+            else if ( !pLutLib->fVarPinDelays )
+            {
+                pDelays = pLutLib->pLutDelays[Ntk_ObjFaninNum(pObj)];
+                Ntk_ObjForEachFanin( pObj, pFanin, k )
+                    if ( tArrival < Ntk_ObjArrival(pFanin) + pDelays[0] )
+                        tArrival = Ntk_ObjArrival(pFanin) + pDelays[0];
             }
             else
             {
-                Ntk_ObjForEachFanin( pNode, pFanin, k )
-                    if ( tArrival < Ntk_ObjArrival(pFanin) + pDelays[k] )
-                        tArrival = Ntk_ObjArrival(pFanin) + pDelays[k];
+                pDelays = pLutLib->pLutDelays[Ntk_ObjFaninNum(pObj)];
+                if ( fUseSorting )
+                {
+                    Ntk_ManDelayTraceSortPins( pObj, pPinPerm, pPinDelays );
+                    Ntk_ObjForEachFanin( pObj, pFanin, k ) 
+                        if ( tArrival < Ntk_ObjArrival(Ntk_ObjFanin(pObj,pPinPerm[k])) + pDelays[k] )
+                            tArrival = Ntk_ObjArrival(Ntk_ObjFanin(pObj,pPinPerm[k])) + pDelays[k];
+                }
+                else
+                {
+                    Ntk_ObjForEachFanin( pObj, pFanin, k )
+                        if ( tArrival < Ntk_ObjArrival(pFanin) + pDelays[k] )
+                            tArrival = Ntk_ObjArrival(pFanin) + pDelays[k];
+                }
             }
+            if ( Ntk_ObjFaninNum(pObj) == 0 )
+                tArrival = 0.0;
         }
-        if ( Ntk_ObjFaninNum(pNode) == 0 )
-            tArrival = 0.0;
-        Ntk_ObjSetArrival( pNode, tArrival );
+        else if ( Ntk_ObjIsCi(pObj) )
+        {
+            tArrival = Tim_ManGetPiArrival( pNtk->pManTime, pObj->PioId );
+        }
+        else if ( Ntk_ObjIsCo(pObj) )
+        {
+            tArrival = Ntk_ObjArrival( Ntk_ObjFanin0(pObj) );
+            Tim_ManSetPoArrival( pNtk->pManTime, pObj->PioId, tArrival );
+        }
+        else
+            assert( 0 );
+        Ntk_ObjSetArrival( pObj, tArrival );
     }
-    Vec_PtrFree( vNodes );
 
     // get the latest arrival times
     tArrival = -AIG_INFINITY;
-    Ntk_ManForEachPo( pNtk, pNode, i )
-        if ( tArrival < Ntk_ObjArrival(Ntk_ObjFanin0(pNode)) )
-            tArrival = Ntk_ObjArrival(Ntk_ObjFanin0(pNode));
+    Ntk_ManForEachPo( pNtk, pObj, i )
+        if ( tArrival < Ntk_ObjArrival(Ntk_ObjFanin0(pObj)) )
+            tArrival = Ntk_ObjArrival(Ntk_ObjFanin0(pObj));
 
     // initialize the required times
-    Ntk_ManForEachPo( pNtk, pNode, i )
-        if ( Ntk_ObjRequired(Ntk_ObjFanin0(pNode)) > tArrival )
-            Ntk_ObjSetRequired( Ntk_ObjFanin0(pNode), tArrival );
+    Ntk_ManForEachPo( pNtk, pObj, i )
+        if ( Ntk_ObjRequired(Ntk_ObjFanin0(pObj)) > tArrival )
+            Ntk_ObjSetRequired( Ntk_ObjFanin0(pObj), tArrival );
 
     // propagate the required times
-    vNodes = Ntk_ManDfsReverse( pNtk );
-    Vec_PtrForEachEntry( vNodes, pNode, i )
+    Tim_ManIncrementTravId( pNtk->pManTime );
+    Vec_PtrForEachEntry( vNodes, pObj, i )
     {
-        if ( pLutLib == NULL )
+        if ( Ntk_ObjIsNode(pObj) )
         {
-            tRequired = Ntk_ObjRequired(pNode) - (float)1.0;
-            Ntk_ObjForEachFanin( pNode, pFanin, k )
-                if ( Ntk_ObjRequired(pFanin) > tRequired )
-                    Ntk_ObjSetRequired( pFanin, tRequired );
-        }
-        else if ( !pLutLib->fVarPinDelays )
-        {
-            pDelays = pLutLib->pLutDelays[Ntk_ObjFaninNum(pNode)];
-            tRequired = Ntk_ObjRequired(pNode) - pDelays[0];
-            Ntk_ObjForEachFanin( pNode, pFanin, k )
-                if ( Ntk_ObjRequired(pFanin) > tRequired )
-                    Ntk_ObjSetRequired( pFanin, tRequired );
-        }
-        else 
-        {
-            pDelays = pLutLib->pLutDelays[Ntk_ObjFaninNum(pNode)];
-            if ( fUseSorting )
+            if ( pLutLib == NULL )
             {
-                Ntk_ManDelayTraceSortPins( pNode, pPinPerm, pPinDelays );
-                Ntk_ObjForEachFanin( pNode, pFanin, k )
-                {
-                    tRequired = Ntk_ObjRequired(pNode) - pDelays[k];
-                    if ( Ntk_ObjRequired(Ntk_ObjFanin(pNode,pPinPerm[k])) > tRequired )
-                        Ntk_ObjSetRequired( Ntk_ObjFanin(pNode,pPinPerm[k]), tRequired );
-                }
-            }
-            else
-            {
-                Ntk_ObjForEachFanin( pNode, pFanin, k )
-                {
-                    tRequired = Ntk_ObjRequired(pNode) - pDelays[k];
+                tRequired = Ntk_ObjRequired(pObj) - (float)1.0;
+                Ntk_ObjForEachFanin( pObj, pFanin, k )
                     if ( Ntk_ObjRequired(pFanin) > tRequired )
                         Ntk_ObjSetRequired( pFanin, tRequired );
+            }
+            else if ( !pLutLib->fVarPinDelays )
+            {
+                pDelays = pLutLib->pLutDelays[Ntk_ObjFaninNum(pObj)];
+                tRequired = Ntk_ObjRequired(pObj) - pDelays[0];
+                Ntk_ObjForEachFanin( pObj, pFanin, k )
+                    if ( Ntk_ObjRequired(pFanin) > tRequired )
+                        Ntk_ObjSetRequired( pFanin, tRequired );
+            }
+            else 
+            {
+                pDelays = pLutLib->pLutDelays[Ntk_ObjFaninNum(pObj)];
+                if ( fUseSorting )
+                {
+                    Ntk_ManDelayTraceSortPins( pObj, pPinPerm, pPinDelays );
+                    Ntk_ObjForEachFanin( pObj, pFanin, k )
+                    {
+                        tRequired = Ntk_ObjRequired(pObj) - pDelays[k];
+                        if ( Ntk_ObjRequired(Ntk_ObjFanin(pObj,pPinPerm[k])) > tRequired )
+                            Ntk_ObjSetRequired( Ntk_ObjFanin(pObj,pPinPerm[k]), tRequired );
+                    }
+                }
+                else
+                {
+                    Ntk_ObjForEachFanin( pObj, pFanin, k )
+                    {
+                        tRequired = Ntk_ObjRequired(pObj) - pDelays[k];
+                        if ( Ntk_ObjRequired(pFanin) > tRequired )
+                            Ntk_ObjSetRequired( pFanin, tRequired );
+                    }
                 }
             }
         }
+        else if ( Ntk_ObjIsCi(pObj) )
+        {
+            tRequired = Ntk_ObjRequired(pObj);
+            Tim_ManSetPiRequired( pNtk->pManTime, pObj->PioId, tRequired );
+        }
+        else if ( Ntk_ObjIsCo(pObj) )
+        {
+            tRequired = Tim_ManGetPoRequired( pNtk->pManTime, pObj->PioId );
+            if ( Ntk_ObjRequired(Ntk_ObjFanin0(pObj)) > tRequired )
+                Ntk_ObjSetRequired( Ntk_ObjFanin0(pObj), tRequired );
+        }
+
         // set slack for this object
-        tSlack = Ntk_ObjRequired(pNode) - Ntk_ObjArrival(pNode);
+        tSlack = Ntk_ObjRequired(pObj) - Ntk_ObjArrival(pObj);
         assert( tSlack + 0.001 > 0.0 );
-        Ntk_ObjSetSlack( pNode, tSlack < 0.0 ? 0.0 : tSlack );
+        Ntk_ObjSetSlack( pObj, tSlack < 0.0 ? 0.0 : tSlack );
     }
     Vec_PtrFree( vNodes );
     return tArrival;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Determines timing-critical edges of the node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-unsigned Ntk_ManDelayTraceTCEdges( Ntk_Man_t * pNtk, Ntk_Obj_t * pNode, float tDelta, int fUseLutLib )
-{
-    int pPinPerm[32];
-    float pPinDelays[32];
-    If_Lib_t * pLutLib;
-    Ntk_Obj_t * pFanin;
-    unsigned uResult = 0;
-    float tRequired, * pDelays;
-    int k;
-    pLutLib = fUseLutLib?  Abc_FrameReadLibLut() : NULL;
-    tRequired = Ntk_ObjRequired(pNode);
-    if ( pLutLib == NULL )
-    {
-        Ntk_ObjForEachFanin( pNode, pFanin, k )
-            if ( tRequired < Ntk_ObjArrival(pFanin) + 1.0 + tDelta )
-                uResult |= (1 << k);
-    }
-    else if ( !pLutLib->fVarPinDelays )
-    {
-        pDelays = pLutLib->pLutDelays[Ntk_ObjFaninNum(pNode)];
-        Ntk_ObjForEachFanin( pNode, pFanin, k )
-            if ( tRequired < Ntk_ObjArrival(pFanin) + pDelays[0] + tDelta )
-                uResult |= (1 << k);
-    }
-    else
-    {
-        pDelays = pLutLib->pLutDelays[Ntk_ObjFaninNum(pNode)];
-        Ntk_ManDelayTraceSortPins( pNode, pPinPerm, pPinDelays );
-        Ntk_ObjForEachFanin( pNode, pFanin, k )
-            if ( tRequired < Ntk_ObjArrival(Ntk_ObjFanin(pNode,pPinPerm[k])) + pDelays[k] + tDelta )
-                uResult |= (1 << pPinPerm[k]);
-    }
-    return uResult;
 }
 
 /**Function*************************************************************
@@ -291,14 +273,12 @@ unsigned Ntk_ManDelayTraceTCEdges( Ntk_Man_t * pNtk, Ntk_Obj_t * pNode, float tD
   SeeAlso     []
 
 ***********************************************************************/
-void Ntk_ManDelayTracePrint( Ntk_Man_t * pNtk, int fUseLutLib, int fVerbose )
+void Ntk_ManDelayTracePrint( Ntk_Man_t * pNtk, If_Lib_t * pLutLib )
 {
     Ntk_Obj_t * pNode;
-    If_Lib_t * pLutLib;
     int i, Nodes, * pCounters;
     float tArrival, tDelta, nSteps, Num;
     // get the library
-    pLutLib = fUseLutLib?  Abc_FrameReadLibLut() : NULL;
     if ( pLutLib && pLutLib->LutMax < Ntk_ManGetFaninMax(pNtk) )
     {
         printf( "The max LUT size (%d) is less than the max fanin count (%d).\n", 
@@ -306,11 +286,11 @@ void Ntk_ManDelayTracePrint( Ntk_Man_t * pNtk, int fUseLutLib, int fVerbose )
         return;
     }
     // decide how many steps
-    nSteps = fUseLutLib ? 20 : Ntk_ManLevel(pNtk);
+    nSteps = pLutLib ? 20 : Ntk_ManLevel(pNtk);
     pCounters = ALLOC( int, nSteps + 1 );
     memset( pCounters, 0, sizeof(int)*(nSteps + 1) );
     // perform delay trace
-    tArrival = Ntk_ManDelayTraceLut( pNtk, fUseLutLib );
+    tArrival = Ntk_ManDelayTraceLut( pNtk, pLutLib );
     tDelta = tArrival / nSteps;
     // count how many nodes have slack in the corresponding intervals
     Ntk_ManForEachNode( pNtk, pNode, i )
@@ -318,17 +298,19 @@ void Ntk_ManDelayTracePrint( Ntk_Man_t * pNtk, int fUseLutLib, int fVerbose )
         if ( Ntk_ObjFaninNum(pNode) == 0 )
             continue;
         Num = Ntk_ObjSlack(pNode) / tDelta;
+        if ( Num > nSteps )
+            continue;
         assert( Num >=0 && Num <= nSteps );
         pCounters[(int)Num]++;
     }
     // print the results
-    printf( "Max delay = %6.2f. Delay trace using %s model:\n", tArrival, fUseLutLib? "LUT library" : "unit-delay" );
+    printf( "Max delay = %6.2f. Delay trace using %s model:\n", tArrival, pLutLib? "LUT library" : "unit-delay" );
     Nodes = 0;
     for ( i = 0; i < nSteps; i++ )
     {
         Nodes += pCounters[i];
-        printf( "%3d %s : %5d  (%6.2f %%)\n", fUseLutLib? 5*(i+1) : i+1, 
-            fUseLutLib? "%":"lev", Nodes, 100.0*Nodes/Ntk_ManNodeNum(pNtk) );
+        printf( "%3d %s : %5d  (%6.2f %%)\n", pLutLib? 5*(i+1) : i+1, 
+            pLutLib? "%":"lev", Nodes, 100.0*Nodes/Ntk_ManNodeNum(pNtk) );
     }
     free( pCounters );
 }

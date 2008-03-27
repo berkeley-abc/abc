@@ -42,9 +42,14 @@
 int Abc_NtkMfsSolveSat_iter( Mfs_Man_t * p )
 {
     int Lits[MFS_FANIN_MAX];
-    int RetValue, iVar, b, Mint;
-    RetValue = sat_solver_solve( p->pSat, NULL, NULL, (sint64)0, (sint64)0, (sint64)0, (sint64)0 );
-    assert( RetValue == l_False || RetValue == l_True );
+    int RetValue, nBTLimit, iVar, b, Mint;
+    if ( p->nTotConfLim && p->nTotConfLim <= p->pSat->stats.conflicts )
+        return -1;
+    nBTLimit = p->nTotConfLim? p->nTotConfLim - p->pSat->stats.conflicts : 0;
+    RetValue = sat_solver_solve( p->pSat, NULL, NULL, (sint64)nBTLimit, (sint64)0, (sint64)0, (sint64)0 );
+    assert( RetValue == l_Undef || RetValue == l_True || RetValue == l_False );
+    if ( RetValue == l_Undef )
+        return -1;
     if ( RetValue == l_False )
         return 0;
     p->nCares++;
@@ -77,12 +82,12 @@ int Abc_NtkMfsSolveSat_iter( Mfs_Man_t * p )
   SideEffects []
 
   SeeAlso     []
-
+ 
 ***********************************************************************/
-void Abc_NtkMfsSolveSat( Mfs_Man_t * p, Abc_Obj_t * pNode )
+int Abc_NtkMfsSolveSat( Mfs_Man_t * p, Abc_Obj_t * pNode )
 {
     Aig_Obj_t * pObjPo;
-    int i;
+    int RetValue, i;
     // collect projection variables
     Vec_IntClear( p->vProjVars );
     Vec_PtrForEachEntryStart( p->pAigWin->vPos, pObjPo, i, Aig_ManPoNum(p->pAigWin) - Abc_ObjFaninNum(pNode) )
@@ -98,7 +103,10 @@ void Abc_NtkMfsSolveSat( Mfs_Man_t * p, Abc_Obj_t * pNode )
 
     // iterate through the SAT assignments
     p->nCares = 0;
-    while ( Abc_NtkMfsSolveSat_iter(p) );
+    p->nTotConfLim = p->pPars->nBTLimit;
+    while ( (RetValue = Abc_NtkMfsSolveSat_iter(p)) == 1 );
+    if ( RetValue == -1 )
+        return 0;
 
     // write statistics
     p->nMintsCare  += p->nCares;
@@ -113,7 +121,7 @@ void Abc_NtkMfsSolveSat( Mfs_Man_t * p, Abc_Obj_t * pNode )
 
     // map the care 
     if ( p->nFanins > 4 )
-        return;
+        return 1;
     if ( p->nFanins == 4 )
         p->uCare[0] = p->uCare[0] | (p->uCare[0] << 16);
     if ( p->nFanins == 3 )
@@ -122,6 +130,7 @@ void Abc_NtkMfsSolveSat( Mfs_Man_t * p, Abc_Obj_t * pNode )
         p->uCare[0] = p->uCare[0] | (p->uCare[0] <<  4) | (p->uCare[0] <<  8) | (p->uCare[0] << 12) |
               (p->uCare[0] << 16) | (p->uCare[0] << 20) | (p->uCare[0] << 24) | (p->uCare[0] << 28);
     assert( p->nFanins != 1 );
+    return 1;
 }
 
 ////////////////////////////////////////////////////////////////////////

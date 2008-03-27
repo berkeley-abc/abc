@@ -30,7 +30,9 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 
 #include "aig.h"
+#include "hop.h"
 #include "tim.h"
+#include "if.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -66,7 +68,7 @@ struct Ntk_Man_t_
     int                nObjs[NTK_OBJ_VOID]; // counter of objects of each type
     int                nFanioPlus;     // the number of extra fanins/fanouts alloc by default
     // functionality, timing, memory, etc
-    Aig_Man_t *        pAig;           // the functionality representation
+    Hop_Man_t *        pManHop;        // the functionality representation
     Tim_Man_t *        pManTime;       // the timing manager
     Aig_MmFlex_t *     pMemObjs;       // memory for objects
     Vec_Ptr_t *        vTemp;          // array used for incremental updates
@@ -77,9 +79,10 @@ struct Ntk_Obj_t_
 {
     Ntk_Man_t *        pMan;           // the manager  
     void *             pCopy;          // temporary pointer
-    void *             pFunc;          // functionality
+    Hop_Obj_t *        pFunc;          // functionality
     // node information
     int                Id;             // unique ID
+    int                PioId;          // number of this node in the PI/PO list
     unsigned           Type     :  3;  // object type
     unsigned           fCompl   :  1;  // complemented attribute
     unsigned           MarkA    :  1;  // temporary mark  
@@ -113,6 +116,10 @@ static inline int         Ntk_ManLatchNum( Ntk_Man_t * p )        { return p->nO
 static inline int         Ntk_ManBoxNum( Ntk_Man_t * p )          { return p->nObjs[NTK_OBJ_BOX];               } 
 static inline int         Ntk_ManObjNumMax( Ntk_Man_t * p )       { return Vec_PtrSize(p->vObjs);               }
 
+static inline Ntk_Obj_t * Ntk_ManCi( Ntk_Man_t * p, int i )       { return Vec_PtrEntry( p->vCis, i );          } 
+static inline Ntk_Obj_t * Ntk_ManCo( Ntk_Man_t * p, int i )       { return Vec_PtrEntry( p->vCos, i );          } 
+static inline Ntk_Obj_t * Ntk_ManObj( Ntk_Man_t * p, int i )      { return Vec_PtrEntry( p->vObjs, i );         } 
+
 static inline int         Ntk_ObjFaninNum( Ntk_Obj_t * p )        { return p->nFanins;                          } 
 static inline int         Ntk_ObjFanoutNum( Ntk_Obj_t * p )       { return p->nFanouts;                         } 
 
@@ -126,8 +133,8 @@ static inline int         Ntk_ObjIsCo( Ntk_Obj_t * p )            { return p->Ty
 static inline int         Ntk_ObjIsNode( Ntk_Obj_t * p )          { return p->Type == NTK_OBJ_NODE;             } 
 static inline int         Ntk_ObjIsLatch( Ntk_Obj_t * p )         { return p->Type == NTK_OBJ_LATCH;            } 
 static inline int         Ntk_ObjIsBox( Ntk_Obj_t * p )           { return p->Type == NTK_OBJ_BOX;              } 
-static inline int         Ntk_ObjIsPi( Ntk_Obj_t * p )            { return Ntk_ObjFaninNum(p) == 0 || (Ntk_ObjFaninNum(p) == 1 && Ntk_ObjIsLatch(Ntk_ObjFanin0(p)));   } 
-static inline int         Ntk_ObjIsPo( Ntk_Obj_t * p )            { return Ntk_ObjFanoutNum(p)== 0 || (Ntk_ObjFanoutNum(p)== 1 && Ntk_ObjIsLatch(Ntk_ObjFanout0(p)));  } 
+static inline int         Ntk_ObjIsPi( Ntk_Obj_t * p )            { return Ntk_ObjIsCi(p) && Tim_ManBoxForCi(p->pMan->pManTime, p->PioId) == -1; } 
+static inline int         Ntk_ObjIsPo( Ntk_Obj_t * p )            { return Ntk_ObjIsCo(p) && Tim_ManBoxForCo(p->pMan->pManTime, p->PioId) == -1;  }
 
 static inline float       Ntk_ObjArrival( Ntk_Obj_t * pObj )                 { return pObj->tArrival;           }
 static inline float       Ntk_ObjRequired( Ntk_Obj_t * pObj )                { return pObj->tRequired;          }
@@ -181,42 +188,41 @@ static inline int         Ntk_ObjIsTravIdPrevious( Ntk_Obj_t * pObj )        { r
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/*=== ntlDfs.c ==========================================================*/
+/*=== ntkDfs.c ==========================================================*/
+extern int             Ntk_ManLevel( Ntk_Man_t * pNtk );
+extern int             Ntk_ManLevel2( Ntk_Man_t * pNtk );
 extern Vec_Ptr_t *     Ntk_ManDfs( Ntk_Man_t * pNtk );
 extern Vec_Ptr_t *     Ntk_ManDfsReverse( Ntk_Man_t * pNtk );
-/*=== ntlFanio.c ==========================================================*/
+/*=== ntkFanio.c ==========================================================*/
 extern void            Ntk_ObjCollectFanins( Ntk_Obj_t * pNode, Vec_Ptr_t * vNodes );
 extern void            Ntk_ObjCollectFanouts( Ntk_Obj_t * pNode, Vec_Ptr_t * vNodes );
 extern void            Ntk_ObjAddFanin( Ntk_Obj_t * pObj, Ntk_Obj_t * pFanin );
 extern void            Ntk_ObjDeleteFanin( Ntk_Obj_t * pObj, Ntk_Obj_t * pFanin );
 extern void            Ntk_ObjPatchFanin( Ntk_Obj_t * pObj, Ntk_Obj_t * pFaninOld, Ntk_Obj_t * pFaninNew );
 extern void            Ntk_ObjReplace( Ntk_Obj_t * pNodeOld, Ntk_Obj_t * pNodeNew );
-/*=== ntlMan.c ============================================================*/
+/*=== ntkMan.c ============================================================*/
 extern Ntk_Man_t *     Ntk_ManAlloc();
 extern void            Ntk_ManFree( Ntk_Man_t * p );
-extern void            Ntk_ManPrintStats( Ntk_Man_t * p );
-/*=== ntlMap.c ============================================================*/
-extern Ntk_Man_t *     Ntk_MappingIf( Aig_Man_t * p, void * pPars );
-/*=== ntlObj.c ============================================================*/
-extern Ntk_Obj_t *     Ntk_ManCreatePi( Ntk_Man_t * pMan );
-extern Ntk_Obj_t *     Ntk_ManCreatePo( Ntk_Man_t * pMan );
+extern void            Ntk_ManPrintStats( Ntk_Man_t * p, If_Lib_t * pLutLib );
+/*=== ntkMap.c ============================================================*/
+/*=== ntkObj.c ============================================================*/
+extern Ntk_Obj_t *     Ntk_ManCreateCi( Ntk_Man_t * pMan, int nFanouts );
+extern Ntk_Obj_t *     Ntk_ManCreateCo( Ntk_Man_t * pMan );
 extern Ntk_Obj_t *     Ntk_ManCreateNode( Ntk_Man_t * pMan, int nFanins, int nFanouts );
 extern Ntk_Obj_t *     Ntk_ManCreateBox( Ntk_Man_t * pMan, int nFanins, int nFanouts );
 extern Ntk_Obj_t *     Ntk_ManCreateLatch( Ntk_Man_t * pMan );
 extern void            Ntk_ManDeleteNode( Ntk_Obj_t * pObj );
 extern void            Ntk_ManDeleteNode_rec( Ntk_Obj_t * pObj );
-/*=== ntlUtil.c ============================================================*/
+/*=== ntkTiming.c ============================================================*/
+extern float           Ntk_ManDelayTraceLut( Ntk_Man_t * pNtk, If_Lib_t * pLutLib );
+extern void            Ntk_ManDelayTracePrint( Ntk_Man_t * pNtk, If_Lib_t * pLutLib );
+/*=== ntkUtil.c ============================================================*/
 extern void            Ntk_ManIncrementTravId( Ntk_Man_t * pNtk );
 extern int             Ntk_ManGetFaninMax( Ntk_Man_t * pNtk );
 extern int             Ntk_ManGetTotalFanins( Ntk_Man_t * pNtk );
-extern int             Ntk_ManLevel( Ntk_Man_t * pNtk );
 extern int             Ntk_ManPiNum( Ntk_Man_t * pNtk );
 extern int             Ntk_ManPoNum( Ntk_Man_t * pNtk );
-
-/*=== ntlReadBlif.c ==========================================================*/
-extern Ntk_Man_t *     Ioa_ReadBlif( char * pFileName, int fCheck );
-/*=== ntlWriteBlif.c ==========================================================*/
-extern void            Ioa_WriteBlif( Ntk_Man_t * p, char * pFileName );
+extern int             Ntk_ManGetAigNodeNum( Ntk_Man_t * pNtk );
 
 #ifdef __cplusplus
 }

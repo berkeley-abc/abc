@@ -383,7 +383,7 @@ Abc_Obj_t * Abc_NodeStrash( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNodeOld, int fReco
         extern int Abc_NtkRecStrashNode( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, unsigned * pTruth, int nVars );
         int nVars = Abc_NtkRecVarNum();
         Vec_Int_t * vMemory = Abc_NtkRecMemory();
-        unsigned * pTruth = Abc_ConvertAigToTruth( pMan, Hop_Regular(pRoot), nVars, vMemory, 0 );
+        unsigned * pTruth = Hop_ManConvertAigToTruth( pMan, Hop_Regular(pRoot), nVars, vMemory, 0 );
         assert( Extra_TruthSupportSize(pTruth, nVars) == Abc_ObjFaninNum(pNodeOld) ); // should be swept
         if ( Hop_IsComplement(pRoot) )
             Extra_TruthNot( pTruth, pTruth, nVars );

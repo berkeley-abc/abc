@@ -245,8 +245,9 @@ static inline If_Obj_t * If_ManObj( If_Man_t * p, int i )                    { r
 static inline int        If_ObjIsConst1( If_Obj_t * pObj )                   { return pObj->Type == IF_CONST1;       }
 static inline int        If_ObjIsCi( If_Obj_t * pObj )                       { return pObj->Type == IF_CI;           }
 static inline int        If_ObjIsCo( If_Obj_t * pObj )                       { return pObj->Type == IF_CO;           }
-//static inline int        If_ObjIsPi( If_Obj_t * pObj )                       { return If_ObjIsCi(pObj) && pObj->pFanin0 == NULL; }
-static inline int        If_ObjIsLatch( If_Obj_t * pObj )                    { return If_ObjIsCi(pObj) && pObj->pFanin0 != NULL; }
+static inline int        If_ObjIsTerm( If_Obj_t * pObj )                     { return pObj->Type == IF_CI || pObj->Type == IF_CO; }
+//static inline int        If_ObjIsPi( If_Obj_t * pObj )                       { return If_ObjIsCi(pObj) && pObj->pFanin0 == NULL;  }
+static inline int        If_ObjIsLatch( If_Obj_t * pObj )                    { return If_ObjIsCi(pObj) && pObj->pFanin0 != NULL;  }
 static inline int        If_ObjIsAnd( If_Obj_t * pObj )                      { return pObj->Type == IF_AND;          }
 
 static inline If_Obj_t * If_ObjFanin0( If_Obj_t * pObj )                     { return pObj->pFanin0;                 }
@@ -402,6 +403,8 @@ extern int             If_ManCrossCut( If_Man_t * p );
 extern Vec_Ptr_t *     If_ManReverseOrder( If_Man_t * p );
 extern void            If_ManMarkMapping( If_Man_t * p );
 extern Vec_Ptr_t *     If_ManCollectMappingDirect( If_Man_t * p );
+extern Vec_Int_t *     If_ManCollectMappingInt( If_Man_t * p );
+
 
 extern int             If_ManCountSpecialPos( If_Man_t * p );
 

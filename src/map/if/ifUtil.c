@@ -653,6 +653,40 @@ Vec_Ptr_t * If_ManCollectMappingDirect( If_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Collects nodes used in the mapping in the topological order.]
+
+  Description [Represents mapping as an array of integers.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * If_ManCollectMappingInt( If_Man_t * p )
+{
+    Vec_Int_t * vOrder;
+    If_Cut_t * pCutBest;
+    If_Obj_t * pObj;
+    int i, k, nLeaves, * ppLeaves;
+    If_ManMarkMapping( p );
+    vOrder = Vec_IntAlloc( If_ManObjNum(p) );
+    If_ManForEachObj( p, pObj, i )
+        if ( If_ObjIsAnd(pObj) && pObj->nRefs )
+        {
+            pCutBest = If_ObjCutBest( pObj );
+            nLeaves  = If_CutLeaveNum( pCutBest ); 
+            ppLeaves = If_CutLeaves( pCutBest );
+            // save the number of leaves, the leaves, and finally, the root
+            Vec_IntPush( vOrder, nLeaves );
+            for ( k = 0; k < nLeaves; k++ )
+                Vec_IntPush( vOrder, ppLeaves[k] );
+            Vec_IntPush( vOrder, pObj->Id );
+        }
+    return vOrder;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns the number of POs pointing to the same internal nodes.]
 
   Description []

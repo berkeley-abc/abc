@@ -258,7 +258,7 @@ int Io_WriteBenchLutOneNode( FILE * pFile, Abc_Obj_t * pNode, Vec_Int_t * vTruth
     nFanins = Abc_ObjFaninNum(pNode);
     assert( nFanins <= 8 );
     // compute the truth table
-    pTruth = Abc_ConvertAigToTruth( pNode->pNtk->pManFunc, Hop_Regular(pNode->pData), nFanins, vTruth, 0 );
+    pTruth = Hop_ManConvertAigToTruth( pNode->pNtk->pManFunc, Hop_Regular(pNode->pData), nFanins, vTruth, 0 );
     if ( Hop_IsComplement(pNode->pData) )
         Extra_TruthNot( pTruth, pTruth, nFanins );
     // consider simple cases

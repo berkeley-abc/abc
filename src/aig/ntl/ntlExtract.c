@@ -438,6 +438,8 @@ Aig_Man_t * Ntl_ManExtract( Ntl_Man_t * p )
     // start the AIG manager
     assert( p->pAig == NULL );
     p->pAig = Aig_ManStart( 10000 );
+    p->pAig->pName = Aig_UtilStrsav( p->pName );
+    p->pAig->pSpec = Aig_UtilStrsav( p->pSpec );
     // get the root model
     pRoot = Vec_PtrEntry( p->vModels, 0 );
     // collect primary inputs

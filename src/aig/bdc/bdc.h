@@ -37,6 +37,7 @@ extern "C" {
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
 
+typedef struct Bdc_Fun_t_ Bdc_Fun_t;
 typedef struct Bdc_Man_t_ Bdc_Man_t;
 typedef struct Bdc_Par_t_ Bdc_Par_t;
 struct Bdc_Par_t_
@@ -46,6 +47,12 @@ struct Bdc_Par_t_
     int           fVerbose;      // enable basic stats
     int           fVeryVerbose;  // enable detailed stats
 };
+
+// working with complemented attributes of objects
+static inline int         Bdc_IsComplement( Bdc_Fun_t * p )      { return (int)((PORT_PTRUINT_T)p & (PORT_PTRUINT_T)01);              }
+static inline Bdc_Fun_t * Bdc_Regular( Bdc_Fun_t * p )           { return (Bdc_Fun_t *)((PORT_PTRUINT_T)p & ~(PORT_PTRUINT_T)01);     }
+static inline Bdc_Fun_t * Bdc_Not( Bdc_Fun_t * p )               { return (Bdc_Fun_t *)((PORT_PTRUINT_T)p ^  (PORT_PTRUINT_T)01);     }
+static inline Bdc_Fun_t * Bdc_NotCond( Bdc_Fun_t * p, int c )    { return (Bdc_Fun_t *)((PORT_PTRUINT_T)p ^  (PORT_PTRUINT_T)(c!=0)); }
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
@@ -59,6 +66,13 @@ struct Bdc_Par_t_
 extern Bdc_Man_t * Bdc_ManAlloc( Bdc_Par_t * pPars );
 extern void        Bdc_ManFree( Bdc_Man_t * p );
 extern int         Bdc_ManDecompose( Bdc_Man_t * p, unsigned * puFunc, unsigned * puCare, int nVars, Vec_Ptr_t * vDivs, int nNodesMax );
+extern Bdc_Fun_t * Bdc_ManFunc( Bdc_Man_t * p, int i );
+extern Bdc_Fun_t * Bdc_ManRoot( Bdc_Man_t * p );
+extern int         Bdc_ManNodeNum( Bdc_Man_t * p );
+extern Bdc_Fun_t * Bdc_FuncFanin0( Bdc_Fun_t * p );
+extern Bdc_Fun_t * Bdc_FuncFanin1( Bdc_Fun_t * p );
+extern void *      Bdc_FuncCopy( Bdc_Fun_t * p );
+extern void        Bdc_FuncSetCopy( Bdc_Fun_t * p, void * pCopy );
 
 
 #ifdef __cplusplus

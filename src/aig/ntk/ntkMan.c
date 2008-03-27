@@ -50,6 +50,7 @@ Ntk_Man_t * Ntk_ManAlloc()
     p->vTemp = Vec_PtrAlloc( 1000 );
     p->nFanioPlus = 4;
     p->pMemObjs = Aig_MmFlexStart();
+    p->pManHop = Hop_ManStart();
     return p;
 }
 
@@ -72,9 +73,9 @@ void Ntk_ManFree( Ntk_Man_t * p )
     if ( p->vCos )     Vec_PtrFree( p->vCos );
     if ( p->vObjs )    Vec_PtrFree( p->vObjs );
     if ( p->vTemp )    Vec_PtrFree( p->vTemp );
-    if ( p->pAig )     Aig_ManStop( p->pAig );
     if ( p->pManTime ) Tim_ManStop( p->pManTime );
     if ( p->pMemObjs ) Aig_MmFlexStop( p->pMemObjs, 0 );
+    if ( p->pManHop )  Hop_ManStop( p->pManHop );
     free( p );
 }
 
@@ -89,7 +90,7 @@ void Ntk_ManFree( Ntk_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Ntk_ManPrintStats( Ntk_Man_t * p )
+void Ntk_ManPrintStats( Ntk_Man_t * p, If_Lib_t * pLutLib )
 {
     printf( "%-15s : ",      p->pName );
     printf( "pi = %5d  ",    Ntk_ManPiNum(p) );
@@ -97,10 +98,15 @@ void Ntk_ManPrintStats( Ntk_Man_t * p )
     printf( "ci = %5d  ",    Ntk_ManCiNum(p) );
     printf( "co = %5d  ",    Ntk_ManCoNum(p) );
     printf( "lat = %5d  ",   Ntk_ManLatchNum(p) );
-    printf( "box = %5d  ",   Ntk_ManBoxNum(p) );
+//    printf( "box = %5d  ",   Ntk_ManBoxNum(p) );
     printf( "node = %5d  ",  Ntk_ManNodeNum(p) );
-    printf( "aig = %6d  ",   Aig_ManNodeNum(p->pAig) );
+    printf( "aig = %6d  ",   Ntk_ManGetAigNodeNum(p) );
+    printf( "lev = %3d  ",   Ntk_ManLevel(p) );
+    printf( "lev2 = %3d  ",  Ntk_ManLevel2(p) );
+    printf( "delay = %5.2f", Ntk_ManDelayTraceLut(p, pLutLib) );
     printf( "\n" );
+
+    Ntk_ManDelayTracePrint( p, pLutLib );
 }
 
 ////////////////////////////////////////////////////////////////////////

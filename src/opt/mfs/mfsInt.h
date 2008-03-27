@@ -70,6 +70,7 @@ struct Mfs_Man_t_
     Bdc_Man_t *         pManDec;
     int                 nNodesDec;
     int                 nNodesGained;
+    int                 nNodesGainedLevel;
     // solving data
     Aig_Man_t *         pAigWin;   // window AIG with constraints
     Cnf_Dat_t *         pCnf;      // the CNF for the window
@@ -78,6 +79,8 @@ struct Mfs_Man_t_
     Vec_Int_t *         vMem;      // memory for intermediate SOPs
     Vec_Vec_t *         vLevels;   // levelized structure for updating
     Vec_Ptr_t *         vFanins;   // the new set of fanins
+    int                 nTotConfLim; // total conflict limit
+    int                 nTotConfLevel; // total conflicts on this level
     // the result of solving
     int                 nFanins;   // the number of fanins
     int                 nWords;    // the number of words
@@ -91,6 +94,7 @@ struct Mfs_Man_t_
     int                 nNodesBad;
     int                 nTotalDivs;
     int                 nTimeOuts;
+    int                 nTimeOutsLevel;
     int                 nDcMints;
     double              dTotalRatios;
     // node/edge stats
@@ -136,7 +140,7 @@ extern int              Abc_NtkMfsEdgeSwapEval( Mfs_Man_t * p, Abc_Obj_t * pNode
 extern int              Abc_NtkMfsResubNode( Mfs_Man_t * p, Abc_Obj_t * pNode );
 extern int              Abc_NtkMfsResubNode2( Mfs_Man_t * p, Abc_Obj_t * pNode );
 /*=== mfsSat.c ==========================================================*/
-extern void             Abc_NtkMfsSolveSat( Mfs_Man_t * p, Abc_Obj_t * pNode );
+extern int              Abc_NtkMfsSolveSat( Mfs_Man_t * p, Abc_Obj_t * pNode );
 /*=== mfsStrash.c ==========================================================*/
 extern Aig_Man_t *      Abc_NtkConstructAig( Mfs_Man_t * p, Abc_Obj_t * pNode );
 extern double           Abc_NtkConstraintRatio( Mfs_Man_t * p, Abc_Obj_t * pNode );

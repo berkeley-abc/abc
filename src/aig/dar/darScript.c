@@ -112,6 +112,26 @@ Aig_Man_t * Dar_ManRwsat( Aig_Man_t * pAig, int fBalance, int fVerbose )
     return pAig;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Performs one iteration of AIG rewriting.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Dar_ManHaigPrintStats( Aig_Man_t * pAig )
+{
+    Aig_Obj_t * pObj;
+    int Counter, i;
+    Counter = 0;
+    Aig_ManForEachNode( pAig, pObj, i )
+        Counter += (pObj->pHaig != NULL);
+    printf( "Total nodes = %6d. Equiv nodes = %6d.\n", Aig_ManNodeNum(pAig), Counter );
+}
 
 /**Function*************************************************************
 
@@ -314,42 +334,28 @@ Vec_Ptr_t * Dar_ManChoiceSynthesis( Aig_Man_t * pAig, int fBalance, int fUpdateL
 //alias resyn2   "b; rw; rf; b; rw; rwz; b; rfz; rwz; b"
 {
     Vec_Ptr_t * vAigs;
+    Aig_Obj_t * pObj;
+    int i;
+
     vAigs = Vec_PtrAlloc( 3 );
     pAig = Aig_ManDup(pAig, 0);
     Vec_PtrPush( vAigs, pAig );
+
+    Aig_ManForEachObj( pAig, pObj, i )
+        pObj->pHaig = pObj;
+
     pAig = Dar_ManCompress (pAig, 0, fUpdateLevel, fVerbose);
     Vec_PtrPush( vAigs, pAig );
+//Aig_ManPrintStats( pAig );
+
+    Aig_ManForEachObj( pAig, pObj, i )
+        pObj->pHaig = pObj;
+
     pAig = Dar_ManCompress2(pAig, fBalance, fUpdateLevel, 1, fVerbose);
     Vec_PtrPush( vAigs, pAig );
+//Aig_ManPrintStats( pAig );
     return vAigs;
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Gives the current ABC network to AIG manager for processing.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-/*
-Vec_Ptr_t * Dar_ManChoiceSynthesisExt()
-{
-    Vec_Ptr_t * vAigs;
-    Aig_Man_t * pMan;
-    vAigs = Vec_PtrAlloc( 3 );
-    pMan = Ioa_ReadAiger( "i10_1.aig", 1 );
-    Vec_PtrPush( vAigs, pMan );
-    pMan = Ioa_ReadAiger( "i10_2.aig", 1 );
-    Vec_PtrPush( vAigs, pMan );
-    pMan = Ioa_ReadAiger( "i10_3.aig", 1 );
-    Vec_PtrPush( vAigs, pMan );
-    return vAigs;
-}
-*/
 
 /**Function*************************************************************
 
@@ -362,7 +368,7 @@ Vec_Ptr_t * Dar_ManChoiceSynthesisExt()
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Dar_ManChoice( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int nConfMax, int nLevelMax, int fVerbose )
+Aig_Man_t * Dar_ManChoice( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fConstruct, int nConfMax, int nLevelMax, int fVerbose )
 {
     Aig_Man_t * pMan, * pTemp;
     Vec_Ptr_t * vAigs;
@@ -374,16 +380,22 @@ clk = clock();
 
     // swap the first and last network
     // this should lead to the primary choice being "better" because of synthesis
-    pMan = Vec_PtrPop( vAigs );
-    Vec_PtrPush( vAigs, Vec_PtrEntry(vAigs,0) );
-    Vec_PtrWriteEntry( vAigs, 0, pMan );
+    if ( !fConstruct )
+    {
+        pMan = Vec_PtrPop( vAigs );
+        Vec_PtrPush( vAigs, Vec_PtrEntry(vAigs,0) );
+        Vec_PtrWriteEntry( vAigs, 0, pMan );
+    }
 
 if ( fVerbose )
 {
 PRT( "Synthesis time", clock() - clk );
 }
 clk = clock();
-    pMan = Aig_ManChoicePartitioned( vAigs, 300, nConfMax, nLevelMax, fVerbose );
+    if ( fConstruct )
+        pMan = Aig_ManChoiceConstructive( vAigs, fVerbose );
+    else
+        pMan = Aig_ManChoicePartitioned( vAigs, 300, nConfMax, nLevelMax, fVerbose );
     Vec_PtrForEachEntry( vAigs, pTemp, i )
         Aig_ManStop( pTemp );
     Vec_PtrFree( vAigs );

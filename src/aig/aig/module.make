@@ -3,7 +3,6 @@ SRC +=    src/aig/aig/aigCheck.c \
     src/aig/aig/aigDfs.c \
     src/aig/aig/aigFanout.c \
     src/aig/aig/aigFrames.c \
-    src/aig/aig/aigHaig.c \
     src/aig/aig/aigInter.c \
     src/aig/aig/aigMan.c \
     src/aig/aig/aigMem.c \

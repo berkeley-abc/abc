@@ -95,37 +95,6 @@ int Ntk_ManGetTotalFanins( Ntk_Man_t * pNtk )
     return nFanins;
 }
 
-/**Function*************************************************************
-
-  Synopsis    [Computes the number of logic levels not counting PIs/POs.]
-
-  Description [Assumes topological ordering of the nodes.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ntk_ManLevel( Ntk_Man_t * pNtk )
-{
-    Ntk_Obj_t * pObj, * pFanin;
-    int i, k, LevelMax;
-    Ntk_ManForEachPi( pNtk, pObj, i )
-        Ntk_ObjSetLevel( pObj, 0 );
-    Ntk_ManForEachNode( pNtk, pObj, i )
-    {
-        LevelMax = 0;
-        Ntk_ObjForEachFanin( pObj, pFanin, k )
-            if ( LevelMax < Ntk_ObjLevel(pFanin) )
-                LevelMax = Ntk_ObjLevel(pFanin);
-        Ntk_ObjSetLevel( pFanin, LevelMax+1 );
-    }
-    LevelMax = 0;
-    Ntk_ManForEachPo( pNtk, pObj, i )
-        if ( LevelMax < Ntk_ObjLevel(pObj) )
-            LevelMax = Ntk_ObjLevel(pObj);
-    return LevelMax;
-}
 
 /**Function*************************************************************
 
@@ -142,8 +111,8 @@ int Ntk_ManPiNum( Ntk_Man_t * pNtk )
 {
     Ntk_Obj_t * pNode;
     int i, Counter = 0;
-    Ntk_ManForEachPi( pNtk, pNode, i )
-        Counter++;
+    Ntk_ManForEachCi( pNtk, pNode, i )
+        Counter += Ntk_ObjIsPi( pNode );
     return Counter;
 }
 
@@ -162,9 +131,38 @@ int Ntk_ManPoNum( Ntk_Man_t * pNtk )
 {
     Ntk_Obj_t * pNode;
     int i, Counter = 0;
-    Ntk_ManForEachPo( pNtk, pNode, i )
-        Counter++;
+    Ntk_ManForEachCo( pNtk, pNode, i )
+        Counter += Ntk_ObjIsPo( pNode );
     return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reads the number of BDD nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntk_ManGetAigNodeNum( Ntk_Man_t * pNtk )
+{
+    Ntk_Obj_t * pNode;
+    int i, nNodes = 0;
+    Ntk_ManForEachNode( pNtk, pNode, i )
+    {
+        if ( pNode->pFunc == NULL )
+        {
+            printf( "Ntk_ManGetAigNodeNum(): Local AIG of node %d is not assigned.\n", pNode->Id );
+            continue;
+        }
+        if ( Ntk_ObjFaninNum(pNode) < 2 )
+            continue;
+        nNodes += Hop_DagSize( pNode->pFunc );
+    }
+    return nNodes;
 }
 
 ////////////////////////////////////////////////////////////////////////

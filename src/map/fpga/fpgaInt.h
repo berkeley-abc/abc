@@ -314,7 +314,7 @@ extern void              Fpga_NodeAddFaninFanout( Fpga_Node_t * pFanin, Fpga_Nod
 extern void              Fpga_NodeRemoveFaninFanout( Fpga_Node_t * pFanin, Fpga_Node_t * pFanoutToRemove );
 extern int               Fpga_NodeGetFanoutNum( Fpga_Node_t * pNode );
 /*=== fpgaLib.c ============================================================*/
-extern Fpga_LutLib_t *   Fpga_LutLibCreate( char * FileName, int fVerbose );
+extern Fpga_LutLib_t *   Fpga_LutLibRead( char * FileName, int fVerbose );
 extern void              Fpga_LutLibFree( Fpga_LutLib_t * p );
 extern void              Fpga_LutLibPrint( Fpga_LutLib_t * pLutLib );
 extern int               Fpga_LutLibDelaysAreDiscrete( Fpga_LutLib_t * pLutLib );

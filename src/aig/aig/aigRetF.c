@@ -178,6 +178,7 @@ Aig_Man_t * Aig_ManRetimeFrontier( Aig_Man_t * p, int nStepsMax )
             p->nObjs[AIG_OBJ_BUF]++;
             Aig_ObjConnect( p, pObj, Aig_NotCond(pObjLo, fCompl), NULL );
             // create HAIG if defined
+/*
             if ( p->pManHaig )
             {
                 // create HAIG latch
@@ -188,6 +189,7 @@ Aig_Man_t * Aig_ManRetimeFrontier( Aig_Man_t * p, int nStepsMax )
                 assert( pObjLo->pHaig->pHaig == NULL );
                 pObjLo->pHaig->pHaig = Aig_Regular(pObj->pHaig);
             }
+*/
             // mark the change
             fChange = 1;
             // check the limit

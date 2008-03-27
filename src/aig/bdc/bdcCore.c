@@ -24,9 +24,29 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Accessing contents of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Bdc_Fun_t *  Bdc_ManFunc( Bdc_Man_t * p, int i )               { return Bdc_FunWithId(p, i); }
+Bdc_Fun_t *  Bdc_ManRoot( Bdc_Man_t * p )                      { return p->pRoot;            }
+int          Bdc_ManNodeNum( Bdc_Man_t * p )                   { return p->nNodes;           }
+Bdc_Fun_t *  Bdc_FuncFanin0( Bdc_Fun_t * p )                   { return p->pFan0;            }
+Bdc_Fun_t *  Bdc_FuncFanin1( Bdc_Fun_t * p )                   { return p->pFan1;            }
+void *       Bdc_FuncCopy( Bdc_Fun_t * p )                     { return p->pCopy;            }
+void         Bdc_FuncSetCopy( Bdc_Fun_t * p, void * pCopy )    { p->pCopy = pCopy;           }
 
 /**Function*************************************************************
 

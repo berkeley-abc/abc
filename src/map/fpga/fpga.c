@@ -146,7 +146,7 @@ int Fpga_CommandReadLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     fclose( pFile );
 
     // set the new network
-    pLib = Fpga_LutLibCreate( FileName, fVerbose );
+    pLib = Fpga_LutLibRead( FileName, fVerbose );
     if ( pLib == NULL )
     {
         fprintf( pErr, "Reading LUT library has failed.\n" );
@@ -228,7 +228,7 @@ int Fpga_CommandPrintLibrary( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pErr, "\nusage: read_print [-vh]\n");
+    fprintf( pErr, "\nusage: print_lut [-vh]\n");
     fprintf( pErr, "\t          print the current LUT library\n" );  
     fprintf( pErr, "\t-v      : toggles enabling of verbose output [default = %s]\n", (fVerbose? "yes" : "no") );
     fprintf( pErr, "\t-h      : print the command usage\n");

@@ -295,13 +295,6 @@ int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPrepr
             {
                 arrTime = Tim_ManGetPiArrival( p->pManTim, pObj->IdPio );
                 If_ObjSetArrTime( pObj, arrTime );
-/*
-    if ( pObj->IdPio >= 2000 )
-    {
-        int x = 0;
-        printf( "+%d %6.3f  ", pObj->IdPio, arrTime );
-    }
-*/
             }
             else if ( If_ObjIsCo(pObj) )
             {

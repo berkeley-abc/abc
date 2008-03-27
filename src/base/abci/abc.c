@@ -205,6 +205,8 @@ static int Abc_CommandAbc8Write      ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandAbc8Ps         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8If         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8DChoice    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8ReadLut    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8PrintLut   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Scl        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Lcorr      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Ssw        ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -431,6 +433,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC8",         "*ps",           Abc_CommandAbc8Ps,           0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*if",           Abc_CommandAbc8If,           0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*dchoice",      Abc_CommandAbc8DChoice,      0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*read_lut",     Abc_CommandAbc8ReadLut,      0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*print_lut",    Abc_CommandAbc8PrintLut,     0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*scl",          Abc_CommandAbc8Scl,          0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*lcorr",        Abc_CommandAbc8Lcorr,        0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*ssw",          Abc_CommandAbc8Ssw,          0 );
@@ -473,6 +477,11 @@ void Abc_Init( Abc_Frame_t * pAbc )
 void Abc_End()
 {
     Abc_FrameClearDesign(); 
+    {
+        extern void If_LutLibFree( void * pLutLib );
+        if ( Abc_FrameGetGlobalFrame()->pAbc8Lib )
+            If_LutLibFree( Abc_FrameGetGlobalFrame()->pAbc8Lib );
+    }
 
 //    Dar_LibDumpPriorities();
     {
@@ -1754,7 +1763,7 @@ int Abc_CommandPrintDsd( Abc_Frame_t * pAbc, int argc, char ** argv )
             fprintf( pErr, "Currently works only for up to 16 inputs.\n" );
             return 1;
         }
-        pTruth = Abc_ConvertAigToTruth( pNtk->pManFunc, Hop_Regular(pObj->pData), Abc_ObjFaninNum(pObj), vMemory, 0 );
+        pTruth = Hop_ManConvertAigToTruth( pNtk->pManFunc, Hop_Regular(pObj->pData), Abc_ObjFaninNum(pObj), vMemory, 0 );
         if ( Hop_IsComplement(pObj->pData) )
             Extra_TruthNot( pTruth, pTruth, Abc_ObjFaninNum(pObj) );
         Extra_PrintBinary( stdout, pTruth, 1 << Abc_ObjFaninNum(pObj) );
@@ -3387,7 +3396,7 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nDivMax      =  250;
     pPars->nWinSizeMax  =  300;
     pPars->nGrowthLevel =    0;
-    pPars->nBTLimit     =10000;
+    pPars->nBTLimit     = 5000;
     pPars->fResub       =    1;
     pPars->fArea        =    0;
     pPars->fMoreEffort  =    0;
@@ -7073,7 +7082,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Abc_Ntk_t * Abc_NtkFilter( Abc_Ntk_t * pNtk );
 //    extern Abc_Ntk_t * Abc_NtkDarRetime( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose );
 //    extern Abc_Ntk_t * Abc_NtkPcmTest( Abc_Ntk_t * pNtk, int fVerbose );
-    extern Abc_NtkDarHaigRecord( Abc_Ntk_t * pNtk );
+//    extern Abc_NtkDarHaigRecord( Abc_Ntk_t * pNtk );
 //    extern void Abc_NtkDarTestBlif( char * pFileName );
 //    extern Abc_Ntk_t * Abc_NtkDarPartition( Abc_Ntk_t * pNtk );
 
@@ -8111,10 +8120,10 @@ int Abc_CommandDChoice( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
-    int fBalance, fVerbose, fUpdateLevel, c;
+    int fBalance, fVerbose, fUpdateLevel, fConstruct, c;
     int nConfMax, nLevelMax;
 
-    extern Abc_Ntk_t * Abc_NtkDChoice( Abc_Ntk_t * pNtk, int fBalance, int fUpdateLevel, int nConfMax, int nLevelMax, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkDChoice( Abc_Ntk_t * pNtk, int fBalance, int fUpdateLevel, int fConstruct, int nConfMax, int nLevelMax, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -8123,11 +8132,12 @@ int Abc_CommandDChoice( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     fBalance     = 1;
     fUpdateLevel = 1;
+    fConstruct   = 0;
     nConfMax     = 1000;
     nLevelMax    = 0;
     fVerbose     = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CLblvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CLblcvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -8159,6 +8169,9 @@ int Abc_CommandDChoice( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'l':
             fUpdateLevel ^= 1;
             break;
+        case 'c':
+            fConstruct ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -8178,7 +8191,7 @@ int Abc_CommandDChoice( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( pErr, "This command works only for strashed networks.\n" );
         return 1;
     }
-    pNtkRes = Abc_NtkDChoice( pNtk, fBalance, fUpdateLevel, nConfMax, nLevelMax, fVerbose );
+    pNtkRes = Abc_NtkDChoice( pNtk, fBalance, fUpdateLevel, fConstruct, nConfMax, nLevelMax, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
@@ -8189,12 +8202,13 @@ int Abc_CommandDChoice( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: dchoice [-C num] [-L num] [-blvh]\n" );
+    fprintf( pErr, "usage: dchoice [-C num] [-L num] [-blcvh]\n" );
     fprintf( pErr, "\t         performs partitioned choicing using a new AIG package\n" );
     fprintf( pErr, "\t-C num : the max number of conflicts at a node [default = %d]\n", nConfMax );
     fprintf( pErr, "\t-L num : the max level of nodes to consider (0 = not used) [default = %d]\n", nLevelMax );
     fprintf( pErr, "\t-b     : toggle internal balancing [default = %s]\n", fBalance? "yes": "no" );
     fprintf( pErr, "\t-l     : toggle updating level [default = %s]\n", fUpdateLevel? "yes": "no" );
+    fprintf( pErr, "\t-c     : toggle constructive computation of choices [default = %s]\n", fConstruct? "yes": "no" );
     fprintf( pErr, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -14751,6 +14765,7 @@ int Abc_CommandAbc8Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     char * pFileName;
     int c;
     extern void Ioa_WriteBlif( void * p, char * pFileName );
+    extern int Ntl_ManInsertNtk( void * p, void * pNtk );
 
     // set defaults
     Extra_UtilGetoptReset();
@@ -14772,6 +14787,17 @@ int Abc_CommandAbc8Write( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // get the input file name
     pFileName = argv[globalUtilOptind];
+    if ( pAbc->pAbc8Ntk != NULL )
+    {
+        if ( !Ntl_ManInsertNtk( pAbc->pAbc8Ntl, pAbc->pAbc8Ntk ) )
+        {
+            printf( "Abc_CommandAbc8Write(): There is no design to write.\n" );
+            return 1;
+        }
+        printf( "Writing the mapped design.\n" );
+    }
+    else
+        printf( "Writing the original design.\n" );
     Ioa_WriteBlif( pAbc->pAbc8Ntl, pFileName );
     return 0;
 
@@ -14797,6 +14823,7 @@ int Abc_CommandAbc8Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     int c;
     extern void Ntl_ManPrintStats( void * p );
+    extern void Ntk_ManPrintStats( void * p, void * pLutLib );
 
     // set defaults
     Extra_UtilGetoptReset();
@@ -14821,6 +14848,8 @@ int Abc_CommandAbc8Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
         Ntl_ManPrintStats( pAbc->pAbc8Ntl );
     if ( pAbc->pAbc8Aig )
         Aig_ManPrintStats( pAbc->pAbc8Aig );
+    if ( pAbc->pAbc8Ntk )
+        Ntk_ManPrintStats( pAbc->pAbc8Ntk, pAbc->pAbc8Lib );
     return 0;
 
 usage:
@@ -14843,11 +14872,26 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc8If( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    If_Par_t Pars, * pPars = &Pars;
+    void * pNtkNew;
     int c;
     extern int Ntl_ManInsertTest( void * p, Aig_Man_t * pAig );
     extern int Ntl_ManInsertTestIf( void * p, Aig_Man_t * pAig );
+    extern void * Ntk_MappingIf( Aig_Man_t * p, Tim_Man_t * pManTime, If_Par_t * pPars );
+    extern Tim_Man_t * Ntl_ManReadTimeMan( void * p );
+    extern void * If_SetSimpleLutLib( int nLutSize );
+    extern void Ntk_ManSetIfParsDefault( If_Par_t * pPars );
+    extern void Ntk_ManFree( void * );
+
+    if ( pAbc->pAbc8Lib == NULL )
+    {
+        printf( "LUT library is not given. Using defaul 6-LUT library.\n" );
+        pAbc->pAbc8Lib = If_SetSimpleLutLib( 6 );
+    }
 
     // set defaults
+    Ntk_ManSetIfParsDefault( pPars );
+    pPars->pLutLib = pAbc->pAbc8Lib;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
     {
@@ -14864,7 +14908,7 @@ int Abc_CommandAbc8If( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "Abc_CommandAbc8Write(): There is no AIG to map.\n" );
         return 1;
     }
-
+/*
     // get the input file name
     if ( !Ntl_ManInsertTestIf( pAbc->pAbc8Ntl, pAbc->pAbc8Aig ) )
 //    if ( !Ntl_ManInsertTest( pAbc->pAbc8Ntl, pAbc->pAbc8Aig ) )
@@ -14872,6 +14916,16 @@ int Abc_CommandAbc8If( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "Abc_CommandAbc8Write(): Tranformation of the netlist has failed.\n" );
         return 1;
     }
+*/
+    pNtkNew = Ntk_MappingIf( pAbc->pAbc8Aig, Ntl_ManReadTimeMan(pAbc->pAbc8Ntl), pPars );
+    if ( pNtkNew == NULL )
+    {
+        printf( "Abc_CommandAbc8If(): Mapping of the AIG has failed.\n" );
+        return 1;
+    }
+    if ( pAbc->pAbc8Ntk != NULL )
+        Ntk_ManFree( pAbc->pAbc8Ntk );
+    pAbc->pAbc8Ntk = pNtkNew;
     return 0;
 
 usage:
@@ -14935,6 +14989,138 @@ usage:
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Command procedure to read LUT libraries.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc8ReadLut( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    FILE * pFile;
+    char * FileName;
+    void * pLib;
+    int c;
+    extern void * If_LutLibRead( char * FileName );
+    extern void If_LutLibFree( void * pLutLib );
+
+    // set the defaults
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "h")) != EOF ) 
+    {
+        switch (c) 
+        {
+            case 'h':
+                goto usage;
+                break;
+            default:
+                goto usage;
+        }
+    }
+
+
+    if ( argc != globalUtilOptind + 1 )
+    {
+        goto usage;
+    }
+
+    // get the input file name
+    FileName = argv[globalUtilOptind];
+    if ( (pFile = fopen( FileName, "r" )) == NULL )
+    {
+        fprintf( stdout, "Cannot open input file \"%s\". ", FileName );
+        if ( FileName = Extra_FileGetSimilarName( FileName, ".lut", NULL, NULL, NULL, NULL ) )
+            fprintf( stdout, "Did you mean \"%s\"?", FileName );
+        fprintf( stdout, "\n" );
+        return 1;
+    }
+    fclose( pFile );
+
+    // set the new network
+    pLib = If_LutLibRead( FileName );
+    if ( pLib == NULL )
+    {
+        fprintf( stdout, "Reading LUT library has failed.\n" );
+        goto usage;
+    }
+    // replace the current library
+    if ( pAbc->pAbc8Lib != NULL )
+        If_LutLibFree( pAbc->pAbc8Lib );
+    pAbc->pAbc8Lib = pLib;
+    return 0;
+
+usage:
+    fprintf( stdout, "\nusage: *read_lut [-h]\n");
+    fprintf( stdout, "\t          read the LUT library from the file\n" );  
+    fprintf( stdout, "\t-h      : print the command usage\n");
+    fprintf( stdout, "\t                                        \n");
+    fprintf( stdout, "\t          File format for a LUT library:\n");
+    fprintf( stdout, "\t          (the default library is shown)\n");
+    fprintf( stdout, "\t                                        \n");
+    fprintf( stdout, "\t          # The area/delay of k-variable LUTs:\n");
+    fprintf( stdout, "\t          # k  area   delay\n");
+    fprintf( stdout, "\t          1      1      1\n");
+    fprintf( stdout, "\t          2      2      2\n");
+    fprintf( stdout, "\t          3      4      3\n");
+    fprintf( stdout, "\t          4      8      4\n");
+    fprintf( stdout, "\t          5     16      5\n");
+    fprintf( stdout, "\t          6     32      6\n");
+    return 1;       /* error exit */
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Command procedure to read LUT libraries.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc8PrintLut( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    int c;
+    extern void If_LutLibPrint( void * pLutLib );
+
+    // set the defaults
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "h")) != EOF ) 
+    {
+        switch (c) 
+        {
+            case 'h':
+                goto usage;
+                break;
+            default:
+                goto usage;
+        }
+    }
+
+    if ( argc != globalUtilOptind )
+    {
+        goto usage;
+    }
+
+    // set the new network
+    if ( pAbc->pAbc8Lib == NULL )
+        printf( "LUT library is not specified.\n" );
+    else
+        If_LutLibPrint( pAbc->pAbc8Lib );
+    return 0;
+
+usage:
+    fprintf( stdout, "\nusage: *print_lut [-h]\n");
+    fprintf( stdout, "\t          print the current LUT library\n" );  
+    fprintf( stdout, "\t-h      : print the command usage\n");
+    return 1;       /* error exit */
+}
 /**Function*************************************************************
 
   Synopsis    []

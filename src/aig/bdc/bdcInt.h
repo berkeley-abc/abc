@@ -54,7 +54,6 @@ typedef enum {
     BDC_TYPE_OTHER      // 7:  unused
 } Bdc_Type_t;
 
-typedef struct Bdc_Fun_t_ Bdc_Fun_t;
 struct Bdc_Fun_t_
 {
     int              Type;         // Const1, PI, AND, XOR, MUX
@@ -121,12 +120,6 @@ struct Bdc_Man_t_
     int              timeSupps;
     int              timeTotal;
 };
-
-// working with complemented attributes of objects
-static inline int         Bdc_IsComplement( Bdc_Fun_t * p )             { return (int)((PORT_PTRUINT_T)p & (PORT_PTRUINT_T)01);              }
-static inline Bdc_Fun_t * Bdc_Regular( Bdc_Fun_t * p )                  { return (Bdc_Fun_t *)((PORT_PTRUINT_T)p & ~(PORT_PTRUINT_T)01);     }
-static inline Bdc_Fun_t * Bdc_Not( Bdc_Fun_t * p )                      { return (Bdc_Fun_t *)((PORT_PTRUINT_T)p ^  (PORT_PTRUINT_T)01);     }
-static inline Bdc_Fun_t * Bdc_NotCond( Bdc_Fun_t * p, int c )           { return (Bdc_Fun_t *)((PORT_PTRUINT_T)p ^  (PORT_PTRUINT_T)(c!=0)); }
 
 static inline Bdc_Fun_t * Bdc_FunNew( Bdc_Man_t * p )                   { Bdc_Fun_t * pRes; if ( p->nNodes >= p->nNodesAlloc || p->nNodesNew >= p->nNodesMax ) return NULL; pRes = p->pNodes + p->nNodes++; p->nNodesNew++; memset( pRes, 0, sizeof(Bdc_Fun_t) ); return pRes; }
 static inline Bdc_Fun_t * Bdc_FunWithId( Bdc_Man_t * p, int Id )        { assert( Id < p->nNodes ); return p->pNodes + Id; }

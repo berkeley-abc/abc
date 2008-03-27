@@ -164,6 +164,7 @@ Aig_Obj_t * Dar_Balance_rec( Aig_Man_t * pNew, Aig_Obj_t * pObjOld, Vec_Vec_t * 
     // make sure the balanced node is not assigned
 //    assert( pObjOld->Level >= Aig_Regular(pObjNew)->Level );
     assert( pObjOld->pData == NULL );
+    Aig_Regular(pObjNew)->pHaig = pObjOld->pHaig;
     return pObjOld->pData = pObjNew;
 }
 

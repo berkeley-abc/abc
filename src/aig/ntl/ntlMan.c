@@ -139,6 +139,22 @@ void Ntl_ManPrintStats( Ntl_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Deallocates the netlist manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Tim_Man_t * Ntl_ManReadTimeMan( Ntl_Man_t * p )
+{
+    return p->pManTime;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Allocates the model.]
 
   Description []

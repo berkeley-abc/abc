@@ -31,6 +31,7 @@ extern "C" {
 
 #include "aig.h"
 #include "tim.h"
+#include "ntk.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -227,6 +228,7 @@ extern Aig_Man_t *     Ntl_ManExtract( Ntl_Man_t * p );
 extern char *          Ntl_SopFromTruth( Ntl_Man_t * p, unsigned * pTruth, int nVars, Vec_Int_t * vCover );
 /*=== ntlInsert.c ==========================================================*/
 extern int             Ntl_ManInsert( Ntl_Man_t * p, Vec_Ptr_t * vMapping, Aig_Man_t * pAig );
+extern int             Ntl_ManInsertNtk( Ntl_Man_t * p, Ntk_Man_t * pNtk );
 /*=== ntlCheck.c ==========================================================*/
 extern int             Ntl_ManCheck( Ntl_Man_t * pMan );
 extern int             Ntl_ModelCheck( Ntl_Mod_t * pModel );
@@ -236,6 +238,7 @@ extern Ntl_Man_t *     Ntl_ManAlloc( char * pFileName );
 extern void            Ntl_ManFree( Ntl_Man_t * p );
 extern Ntl_Mod_t *     Ntl_ManFindModel( Ntl_Man_t * p, char * pName );
 extern void            Ntl_ManPrintStats( Ntl_Man_t * p );
+extern Tim_Man_t *     Ntl_ManReadTimeMan( Ntl_Man_t * p );
 extern Ntl_Mod_t *     Ntl_ModelAlloc( Ntl_Man_t * pMan, char * pName );
 extern void            Ntl_ModelFree( Ntl_Mod_t * p );
 /*=== ntlMap.c ============================================================*/

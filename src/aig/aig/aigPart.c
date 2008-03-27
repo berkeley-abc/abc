@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "aig.h"
+#include "tim.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -1345,6 +1346,235 @@ Aig_Man_t * Aig_ManFraigPartitioned( Aig_Man_t * pAig, int nPartSize, int nConfM
     return Aig_ManDupRepr( pAig, 0 );
 }
 
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Set the representative.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Aig_ObjSetRepr( Aig_Man_t * p, Aig_Obj_t * pNode1, Aig_Obj_t * pNode2 )
+{
+    assert( p->pReprs != NULL );
+    assert( !Aig_IsComplement(pNode1) );
+    assert( !Aig_IsComplement(pNode2) );
+    assert( pNode1->Id < p->nReprsAlloc );
+    assert( pNode2->Id < p->nReprsAlloc );
+    if ( pNode1 == pNode2 )
+        return;
+    if ( pNode1->Id < pNode2->Id )
+        p->pReprs[pNode2->Id] = pNode1;
+    else
+        p->pReprs[pNode1->Id] = pNode2;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Constructively accumulates choices.]
+
+  Description [pNew is a new AIG with choices under construction.
+  pPrev is the AIG preceding pThis in the order of deriving choices.
+  pThis is the current AIG to be added to pNew while creating choices.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManChoiceConstructiveOne( Aig_Man_t * pNew, Aig_Man_t * pPrev, Aig_Man_t * pThis )
+{
+    Aig_Obj_t * pObj, * pObjNew;
+    int i;
+    assert( Aig_ManPiNum(pNew) == Aig_ManPiNum(pPrev) );
+    assert( Aig_ManPiNum(pNew) == Aig_ManPiNum(pThis) );
+    assert( Aig_ManPoNum(pNew) == Aig_ManPoNum(pPrev) );
+    assert( Aig_ManPoNum(pNew) == Aig_ManPoNum(pThis) );
+    // make sure the nodes of pPrev point to pNew
+    Aig_ManForEachObj( pNew, pObj, i )
+        pObj->fMarkB = 1;
+    Aig_ManForEachObj( pPrev, pObj, i )
+        assert( Aig_Regular(pObj->pData)->fMarkB );
+    Aig_ManForEachObj( pNew, pObj, i )
+        pObj->fMarkB = 0;
+    // make sure the nodes of pThis point to pPrev
+    Aig_ManForEachObj( pPrev, pObj, i )
+        pObj->fMarkB = 1;
+    Aig_ManForEachObj( pThis, pObj, i )
+        assert( pObj->pHaig == NULL || (!Aig_IsComplement(pObj->pHaig) && pObj->pHaig->fMarkB) );
+    Aig_ManForEachObj( pPrev, pObj, i )
+        pObj->fMarkB = 0;
+    // remap nodes of pThis on top of pNew using pPrev
+    pObj = Aig_ManConst1(pThis);
+    pObj->pData = Aig_ManConst1(pNew);
+    Aig_ManForEachPi( pThis, pObj, i )
+        pObj->pData = Aig_ManPi(pNew, i);
+    Aig_ManForEachPo( pThis, pObj, i )
+        pObj->pData = Aig_ManPo(pNew, i);
+    // go through the nodes in the topological order
+    Aig_ManForEachNode( pThis, pObj, i )
+    {
+        pObj->pData = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+        if ( pObj->pHaig == NULL )
+            continue;
+        // pObj->pData and pObj->pHaig->pData are equivalent
+        Aig_ObjSetRepr( pNew, Aig_Regular(pObj->pData), Aig_Regular(pObj->pHaig->pData) );
+    }
+    // set the inputs of POs as equivalent
+    Aig_ManForEachPo( pThis, pObj, i )
+    {
+        pObjNew = Aig_ObjFanin0( Aig_ManPo(pNew,i) );
+        // pObjNew and Aig_ObjFanin0(pObj)->pData are equivalent
+        Aig_ObjSetRepr( pNew, pObjNew, Aig_Regular(Aig_ObjFanin0(pObj)->pData) );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes levels for AIG with choices and white boxes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManChoiceLevel_rec( Aig_Man_t * pNew, Aig_Obj_t * pObj )
+{
+    Aig_Obj_t * pNext;
+    int i, iBox, iTerm1, nTerms, LevelMax = 0;
+    if ( Aig_ObjIsTravIdCurrent( pNew, pObj ) )
+        return;
+    Aig_ObjSetTravIdCurrent( pNew, pObj );
+    if ( Aig_ObjIsPi(pObj) )
+    {
+        if ( pNew->pManTime )
+        {
+            iBox = Tim_ManBoxForCi( pNew->pManTime, Aig_ObjPioNum(pObj) );
+            if ( iBox >= 0 ) // this is not a true PI
+            {
+                iTerm1 = Tim_ManBoxInputFirst( pNew->pManTime, iBox );
+                nTerms = Tim_ManBoxInputNum( pNew->pManTime, iBox );
+                for ( i = 0; i < nTerms; i++ )
+                {
+                    pNext = Aig_ManPo(pNew, iTerm1 + i);
+                    Aig_ManChoiceLevel_rec( pNew, pNext );
+                    if ( LevelMax < Aig_ObjLevel(pNext) )
+                        LevelMax = Aig_ObjLevel(pNext);
+                }
+                LevelMax++;
+            }
+        }
+    }
+    else if ( Aig_ObjIsPo(pObj) )
+    {
+        pNext = Aig_ObjFanin0(pObj);
+        Aig_ManChoiceLevel_rec( pNew, pNext );
+        if ( LevelMax < Aig_ObjLevel(pNext) )
+            LevelMax = Aig_ObjLevel(pNext);
+    }
+    else if ( Aig_ObjIsNode(pObj) )
+    { 
+        // get the maximum level of the two fanins
+        pNext = Aig_ObjFanin0(pObj);
+        Aig_ManChoiceLevel_rec( pNew, pNext );
+        if ( LevelMax < Aig_ObjLevel(pNext) )
+            LevelMax = Aig_ObjLevel(pNext);
+        pNext = Aig_ObjFanin1(pObj);
+        Aig_ManChoiceLevel_rec( pNew, pNext );
+        if ( LevelMax < Aig_ObjLevel(pNext) )
+            LevelMax = Aig_ObjLevel(pNext);
+        LevelMax++;
+
+        // get the level of the nodes in the choice node
+        if ( pNew->pEquivs && (pNext = pNew->pEquivs[pObj->iData]) )
+        {
+            Aig_ManChoiceLevel_rec( pNew, pNext );
+            if ( LevelMax < Aig_ObjLevel(pNext) )
+                LevelMax = Aig_ObjLevel(pNext);
+        }
+    }
+    else
+        assert( 0 );
+    Aig_ObjSetLevel( pObj, LevelMax );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes levels for AIG with choices and white boxes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Aig_ManChoiceLevel( Aig_Man_t * pNew )
+{
+    Aig_Obj_t * pObj;
+    int i, LevelMax = 0;
+    Aig_ManForEachObj( pNew, pObj, i )
+        Aig_ObjSetLevel( pObj, 0 );
+    Aig_ManSetPioNumbers( pNew );
+    Aig_ManIncrementTravId( pNew );
+    Aig_ManForEachPo( pNew, pObj, i )
+    {
+        Aig_ManChoiceLevel_rec( pNew, pObj );
+        if ( LevelMax < Aig_ObjLevel(pObj) )
+            LevelMax = Aig_ObjLevel(pObj);
+    }
+    Aig_ManCleanPioNumbers( pNew );
+    return LevelMax;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Constructively accumulates choices.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Aig_ManChoiceConstructive( Vec_Ptr_t * vAigs, int fVerbose )
+{
+    Aig_Man_t * pNew, * pThis, * pPrev;
+    int i;
+    // start AIG with choices
+    pPrev = Vec_PtrEntry( vAigs, 0 );
+    pNew = Aig_ManDup( pPrev, 1 );
+    // create room for equivalent nodes and representatives
+    assert( pNew->pReprs == NULL );
+    pNew->nReprsAlloc = Vec_PtrSize(vAigs) * Aig_ManObjNumMax(pNew);
+    pNew->pReprs = ALLOC( Aig_Obj_t *, pNew->nReprsAlloc );
+    memset( pNew->pReprs, 0, sizeof(Aig_Obj_t *) * pNew->nReprsAlloc );
+    // add other AIGs one by one
+    Vec_PtrForEachEntryStart( vAigs, pThis, i, 1 )
+    {
+        Aig_ManChoiceConstructiveOne( pNew, pPrev, pThis );
+        pPrev = pThis;
+    }
+    // derive the result of choicing
+//Aig_ManPrintStats( pNew );
+    pNew = Aig_ManRehash( pNew );
+//Aig_ManPrintStats( pNew );
+    // create the equivalent nodes lists
+    Aig_ManMarkValidChoices( pNew );
+//Aig_ManPrintStats( pNew );
+    // reset levels
+    Aig_ManChoiceLevel( pNew );
+    return pNew;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

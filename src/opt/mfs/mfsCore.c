@@ -101,6 +101,7 @@ p->timeSat += clock() - clk;
 int Abc_NtkMfsNode( Mfs_Man_t * p, Abc_Obj_t * pNode )
 {
     Hop_Obj_t * pObj;
+    int RetValue;
     extern Hop_Obj_t * Abc_NodeIfNodeResyn( Bdc_Man_t * p, Hop_Man_t * pHop, Hop_Obj_t * pRoot, int nVars, Vec_Int_t * vTruth, unsigned * puCare );
 
     int nGain, clk;
@@ -129,8 +130,15 @@ clk = clock();
     if ( p->pSat == NULL )
         return 0;
     // solve the SAT problem
-    Abc_NtkMfsSolveSat( p, pNode );
+    RetValue = Abc_NtkMfsSolveSat( p, pNode );
+    p->nTotConfLevel += p->pSat->stats.conflicts;
 p->timeSat += clock() - clk;
+    if ( RetValue == 0 )
+    {
+        p->nTimeOutsLevel++;
+        p->nTimeOuts++;
+        return 0;
+    }
     // minimize the local function of the node using bi-decomposition
     assert( p->nFanins == Abc_ObjFaninNum(pNode) );
     pObj = Abc_NodeIfNodeResyn( p->pManDec, pNode->pNtk->pManFunc, pNode->pData, p->nFanins, p->vTruth, p->uCare );
@@ -139,6 +147,7 @@ p->timeSat += clock() - clk;
     {
         p->nNodesDec++;
         p->nNodesGained += nGain;
+        p->nNodesGainedLevel += nGain;
         pNode->pData = pObj;    
     }
     return 1;
@@ -163,7 +172,9 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
     ProgressBar * pProgress;
     Mfs_Man_t * p;
     Abc_Obj_t * pObj;
-    int i, nFaninMax, clk = clock();
+    Vec_Vec_t * vLevels;
+    Vec_Ptr_t * vNodes;
+    int i, k, nNodes, nFaninMax, clk = clock(), clk2;
     int nTotalNodesBeg = Abc_NtkNodeNum(pNtk);
     int nTotalEdgesBeg = Abc_NtkGetTotalFanins(pNtk);
 
@@ -223,24 +234,44 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
     Abc_NtkStartReverseLevels( pNtk, pPars->nGrowthLevel );
 
     // compute don't-cares for each node
+    nNodes = 0;
     p->nTotalNodesBeg = nTotalNodesBeg;
     p->nTotalEdgesBeg = nTotalEdgesBeg;
-    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkObjNumMax(pNtk) );
-    Abc_NtkForEachNode( pNtk, pObj, i )
+    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkNodeNum(pNtk) );
+    vLevels = Abc_NtkLevelize( pNtk );
+    Vec_VecForEachLevelStart( vLevels, vNodes, k, 1 )
     {
-        if ( p->pPars->nDepthMax && (int)pObj->Level > p->pPars->nDepthMax )
-            continue;
-        if ( Abc_ObjFaninNum(pObj) > MFS_FANIN_MAX )
-            continue;
         if ( !p->pPars->fVeryVerbose )
-            Extra_ProgressBarUpdate( pProgress, i, NULL );
-        if ( pPars->fResub )
-            Abc_NtkMfsResub( p, pObj );
-        else if ( Abc_ObjFaninNum(pObj) > 1 && Abc_ObjFaninNum(pObj) <= 12 )
-            Abc_NtkMfsNode( p, pObj );
+            Extra_ProgressBarUpdate( pProgress, nNodes, NULL );
+        p->nNodesGainedLevel = 0;
+        p->nTotConfLevel = 0;
+        p->nTimeOutsLevel = 0;
+        clk2 = clock();
+        Vec_PtrForEachEntry( vNodes, pObj, i )
+        {
+            if ( p->pPars->nDepthMax && (int)pObj->Level > p->pPars->nDepthMax )
+                break;
+            if ( Abc_ObjFaninNum(pObj) > MFS_FANIN_MAX )
+                continue;
+            if ( pPars->fResub )
+                Abc_NtkMfsResub( p, pObj );
+            else if ( Abc_ObjFaninNum(pObj) > 1 && Abc_ObjFaninNum(pObj) <= 12 )
+                Abc_NtkMfsNode( p, pObj );
+        }
+        nNodes += Vec_PtrSize(vNodes);
+        if ( pPars->fVerbose )
+        {
+        printf( "Lev = %2d. Node = %4d. Ave gain = %6.2f. Ave conf = %6.2f. Timeouts = %6.2f %%  ", 
+            k, Vec_PtrSize(vNodes),
+            1.0*p->nNodesGainedLevel/Vec_PtrSize(vNodes),
+            1.0*p->nTotConfLevel/Vec_PtrSize(vNodes),
+            100.0*p->nTimeOutsLevel/Vec_PtrSize(vNodes) );
+        PRT( "Time", clock() - clk2 );
+        }
     }
     Extra_ProgressBarStop( pProgress );
     Abc_NtkStopReverseLevels( pNtk );
+    Vec_VecFree( vLevels );
 
     // perform the sweeping
     if ( !pPars->fResub )

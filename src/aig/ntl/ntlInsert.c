@@ -123,6 +123,105 @@ int Ntl_ManInsert( Ntl_Man_t * p, Vec_Ptr_t * vMapping, Aig_Man_t * pAig )
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Inserts the given mapping into the netlist.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ManInsertNtk( Ntl_Man_t * p, Ntk_Man_t * pNtk )
+{
+    char Buffer[100];
+    Vec_Int_t * vTruth;
+    Vec_Int_t * vCover;
+    Ntl_Mod_t * pRoot;
+    Ntl_Obj_t * pNode;
+    Ntl_Net_t * pNet, * pNetCo;
+    Ntk_Obj_t * pObj, * pFanin;
+    int i, k, nDigits;
+    unsigned * pTruth;
+    assert( Vec_PtrSize(p->vCis) == Ntk_ManCiNum(pNtk) );
+    assert( Vec_PtrSize(p->vCos) == Ntk_ManCoNum(pNtk) );
+    // set the correspondence between the PI/PO nodes
+    Ntl_ManForEachCiNet( p, pNet, i )
+        Ntk_ManCi( pNtk, i )->pCopy = pNet;
+//    Ntl_ManForEachCoNet( p, pNet, i )
+//        Ntk_ManCo( pNtk, i )->pCopy = pNet;
+    // remove old nodes
+    pRoot = Vec_PtrEntry( p->vModels, 0 );
+    Ntl_ModelForEachNode( pRoot, pNode, i )
+        Vec_PtrWriteEntry( pRoot->vObjs, pNode->Id, NULL );
+    // create a new node for each LUT
+    vTruth = Vec_IntAlloc( 1 << 16 );
+    vCover = Vec_IntAlloc( 1 << 16 );
+    nDigits = Aig_Base10Log( Ntk_ManNodeNum(pNtk) );
+    Ntk_ManForEachNode( pNtk, pObj, i )
+    {
+        pNode = Ntl_ModelCreateNode( pRoot, Ntk_ObjFaninNum(pObj) );
+        pTruth = Hop_ManConvertAigToTruth( pNtk->pManHop, pObj->pFunc, Ntk_ObjFaninNum(pObj), vTruth, 0 );
+        pNode->pSop = Ntl_SopFromTruth( p, pTruth, Ntk_ObjFaninNum(pObj), vCover );
+        if ( !Kit_TruthIsConst0(pTruth, Ntk_ObjFaninNum(pObj)) && !Kit_TruthIsConst1(pTruth, Ntk_ObjFaninNum(pObj)) )
+        {
+            Ntk_ObjForEachFanin( pObj, pFanin, k )
+            {
+                pNet = pFanin->pCopy;
+                if ( pNet == NULL )
+                {
+                    printf( "Ntl_ManInsert(): Internal error: Net not found.\n" );
+                    return 0;
+                }
+                Ntl_ObjSetFanin( pNode, pNet, k );
+            }
+        }
+        sprintf( Buffer, "lut%0*d", nDigits, i );
+        if ( (pNet = Ntl_ModelFindNet( pRoot, Buffer )) )
+        {
+            printf( "Ntl_ManInsert(): Internal error: Intermediate net name is not unique.\n" );
+            return 0;
+        }
+        pNet = Ntl_ModelFindOrCreateNet( pRoot, Buffer );
+        if ( !Ntl_ModelSetNetDriver( pNode, pNet ) )
+        {
+            printf( "Ntl_ManInsert(): Internal error: Net has more than one fanin.\n" );
+            return 0;
+        }
+        pObj->pCopy = pNet;
+    }
+    Vec_IntFree( vCover );
+    Vec_IntFree( vTruth );
+    // mark CIs and outputs of the registers
+    Ntl_ManForEachCiNet( p, pNetCo, i )
+        pNetCo->nVisits = 101;
+    // update the CO pointers
+    Ntl_ManForEachCoNet( p, pNetCo, i )
+    {
+        if ( pNetCo->nVisits == 101 )
+            continue;
+        pNetCo->nVisits = 101;
+        // get the corresponding PO and its driver
+        pObj = Ntk_ManCo( pNtk, i );
+        pFanin = Ntk_ObjFanin0( pObj );
+        // get the net driving the driver
+        pNet = pFanin->pCopy; //Vec_PtrEntry( vCopies, Aig_Regular(pNetCo->pFunc)->Id );
+        pNode = Ntl_ModelCreateNode( pRoot, 1 );
+        pNode->pSop = pObj->fCompl /*Aig_IsComplement(pNetCo->pFunc)*/? Ntl_ManStoreSop( p, "0 1\n" ) : Ntl_ManStoreSop( p, "1 1\n" );
+        Ntl_ObjSetFanin( pNode, pNet, 0 );
+        // update the CO driver net
+        pNetCo->pDriver = NULL;
+        if ( !Ntl_ModelSetNetDriver( pNode, pNetCo ) )
+        {
+            printf( "Ntl_ManInsert(): Internal error: PO net has more than one fanin.\n" );
+            return 0;
+        }
+    }
+    return 1;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

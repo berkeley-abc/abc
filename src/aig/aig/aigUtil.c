@@ -890,6 +890,28 @@ void Aig_ManCleanPioNumbers( Aig_Man_t * p )
         pObj->pNext = NULL;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Sets the PI/PO numbers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Aig_ManCountChoices( Aig_Man_t * p )
+{
+    Aig_Obj_t * pObj;
+    int i, Counter = 0;
+    Aig_ManForEachNode( p, pObj, i )
+        Counter += Aig_ObjIsChoice( p, pObj );
+    return Counter;
+}
+
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

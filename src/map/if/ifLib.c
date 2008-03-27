@@ -1,45 +1,34 @@
 /**CFile****************************************************************
 
-  FileName    [fpgaLib.c]
+  FileName    [ifLib.c]
 
-  PackageName [MVSIS 1.3: Multi-valued logic synthesis system.]
+  SystemName  [ABC: Logic synthesis and verification system.]
 
-  Synopsis    [Technology mapping for variable-size-LUT FPGAs.]
+  PackageName [FPGA mapping based on priority cuts.]
 
-  Author      [MVSIS Group]
+  Synopsis    [LUT library.]
+
+  Author      [Alan Mishchenko]
   
   Affiliation [UC Berkeley]
 
-  Date        [Ver. 2.0. Started - August 18, 2004.]
+  Date        [Ver. 1.0. Started - November 21, 2006.]
 
-  Revision    [$Id: fpgaLib.c,v 1.4 2005/01/23 06:59:41 alanmi Exp $]
+  Revision    [$Id: ifLib.c,v 1.00 2006/11/21 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "fpgaInt.h"
+#include "if.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+static inline char * If_UtilStrsav( char *s ) {  return !s ? s : strcpy(ALLOC(char, strlen(s)+1), s);  }
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
-
-/**Function*************************************************************
-
-  Synopsis    [APIs to access LUT library.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int         Fpga_LutLibReadVarMax( Fpga_LutLib_t * p )               { return p->LutMax;     }
-float *     Fpga_LutLibReadLutAreas( Fpga_LutLib_t * p )             { return p->pLutAreas;  }
-float       Fpga_LutLibReadLutArea( Fpga_LutLib_t * p, int Size )    { assert( Size <= p->LutMax ); return p->pLutAreas[Size];  }
 
 /**Function*************************************************************
 
@@ -52,10 +41,10 @@ float       Fpga_LutLibReadLutArea( Fpga_LutLib_t * p, int Size )    { assert( S
   SeeAlso     []
 
 ***********************************************************************/
-Fpga_LutLib_t * Fpga_LutLibRead( char * FileName, int fVerbose )
+If_Lib_t * If_LutLibRead( char * FileName )
 {
     char pBuffer[1000], * pToken;
-    Fpga_LutLib_t * p;
+    If_Lib_t * p;
     FILE * pFile;
     int i, k;
 
@@ -66,9 +55,9 @@ Fpga_LutLib_t * Fpga_LutLibRead( char * FileName, int fVerbose )
         return NULL;
     }
 
-    p = ALLOC( Fpga_LutLib_t, 1 );
-    memset( p, 0, sizeof(Fpga_LutLib_t) );
-    p->pName = Extra_UtilStrsav( FileName );
+    p = ALLOC( If_Lib_t, 1 );
+    memset( p, 0, sizeof(If_Lib_t) );
+    p->pName = If_UtilStrsav( FileName );
 
     i = 1;
     while ( fgets( pBuffer, 1000, pFile ) != NULL )
@@ -105,7 +94,7 @@ Fpga_LutLib_t * Fpga_LutLibRead( char * FileName, int fVerbose )
         if ( k > 1 )
             p->fVarPinDelays = 1;
 
-        if ( i == FPGA_MAX_LUTSIZE )
+        if ( i == IF_MAX_LUTSIZE )
         {
             printf( "Skipping LUTs of size more than %d.\n", i );
             return NULL;
@@ -113,12 +102,6 @@ Fpga_LutLib_t * Fpga_LutLibRead( char * FileName, int fVerbose )
         i++;
     }
     p->LutMax = i-1;
-
-    if ( p->LutMax > FPGA_MAX_LEAVES )
-    {
-        p->LutMax = FPGA_MAX_LEAVES;
-        printf( "Warning: LUTs with more than %d inputs will not be used.\n", FPGA_MAX_LEAVES );
-    }
 
     // check the library
     if ( p->fVarPinDelays )
@@ -159,12 +142,12 @@ Fpga_LutLib_t * Fpga_LutLibRead( char * FileName, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Fpga_LutLib_t * Fpga_LutLibDup( Fpga_LutLib_t * p )
+If_Lib_t * If_LutLibDup( If_Lib_t * p )
 {
-    Fpga_LutLib_t * pNew;
-    pNew = ALLOC( Fpga_LutLib_t, 1 );
+    If_Lib_t * pNew;
+    pNew = ALLOC( If_Lib_t, 1 );
     *pNew = *p;
-    pNew->pName = Extra_UtilStrsav( pNew->pName );
+    pNew->pName = If_UtilStrsav( pNew->pName );
     return pNew;
 }
 
@@ -179,7 +162,7 @@ Fpga_LutLib_t * Fpga_LutLibDup( Fpga_LutLib_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Fpga_LutLibFree( Fpga_LutLib_t * pLutLib )
+void If_LutLibFree( If_Lib_t * pLutLib )
 {
     if ( pLutLib == NULL )
         return;
@@ -199,7 +182,7 @@ void Fpga_LutLibFree( Fpga_LutLib_t * pLutLib )
   SeeAlso     []
 
 ***********************************************************************/
-void Fpga_LutLibPrint( Fpga_LutLib_t * pLutLib )
+void If_LutLibPrint( If_Lib_t * pLutLib )
 {
     int i, k;
     printf( "# The area/delay of k-variable LUTs:\n" );
@@ -230,7 +213,7 @@ void Fpga_LutLibPrint( Fpga_LutLib_t * pLutLib )
   SeeAlso     []
 
 ***********************************************************************/
-int Fpga_LutLibDelaysAreDiscrete( Fpga_LutLib_t * pLutLib )
+int If_LutLibDelaysAreDiscrete( If_Lib_t * pLutLib )
 {
     float Delay;
     int i;
@@ -241,6 +224,46 @@ int Fpga_LutLibDelaysAreDiscrete( Fpga_LutLib_t * pLutLib )
             return 0;
     }
     return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sets simple LUT library.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+If_Lib_t * If_SetSimpleLutLib( int nLutSize )
+{
+    If_Lib_t s_LutLib10= { "lutlib",10, 0, {0,1,1,1,1,1,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1},{1},{1},{1},{1},{1}} };
+    If_Lib_t s_LutLib9 = { "lutlib", 9, 0, {0,1,1,1,1,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1},{1},{1},{1},{1}} };
+    If_Lib_t s_LutLib8 = { "lutlib", 8, 0, {0,1,1,1,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1},{1},{1},{1}} };
+    If_Lib_t s_LutLib7 = { "lutlib", 7, 0, {0,1,1,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1},{1},{1}} };
+    If_Lib_t s_LutLib6 = { "lutlib", 6, 0, {0,1,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1},{1}} };
+    If_Lib_t s_LutLib5 = { "lutlib", 5, 0, {0,1,1,1,1,1}, {{0},{1},{1},{1},{1},{1}} };
+    If_Lib_t s_LutLib4 = { "lutlib", 4, 0, {0,1,1,1,1}, {{0},{1},{1},{1},{1}} };
+    If_Lib_t s_LutLib3 = { "lutlib", 3, 0, {0,1,1,1}, {{0},{1},{1},{1}} };
+    If_Lib_t * pLutLib;
+    assert( nLutSize >= 3 && nLutSize <= 10 );
+    switch ( nLutSize )
+    {
+        case 3:  pLutLib = &s_LutLib3; break;
+        case 4:  pLutLib = &s_LutLib4; break;
+        case 5:  pLutLib = &s_LutLib5; break;
+        case 6:  pLutLib = &s_LutLib6; break;
+        case 7:  pLutLib = &s_LutLib7; break;
+        case 8:  pLutLib = &s_LutLib8; break;
+        case 9:  pLutLib = &s_LutLib9; break;
+        case 10: pLutLib = &s_LutLib10; break;
+        default: pLutLib = NULL; break;
+    }
+    if ( pLutLib == NULL )
+        return NULL;
+    return If_LutLibDup(pLutLib);
 }
 
 ////////////////////////////////////////////////////////////////////////

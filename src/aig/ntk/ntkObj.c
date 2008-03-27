@@ -63,10 +63,11 @@ Ntk_Obj_t * Ntk_ManCreateObj( Ntk_Man_t * p, int nFanins, int nFanouts )
   SeeAlso     []
 
 ***********************************************************************/
-Ntk_Obj_t * Ntk_ManCreatePi( Ntk_Man_t * p )
+Ntk_Obj_t * Ntk_ManCreateCi( Ntk_Man_t * p, int nFanouts )
 {
     Ntk_Obj_t * pObj;
-    pObj = Ntk_ManCreateObj( p, 1, 1 );
+    pObj = Ntk_ManCreateObj( p, 1, nFanouts );
+    pObj->PioId = Vec_PtrSize( p->vCis );
     Vec_PtrPush( p->vCis, pObj );
     pObj->Type = NTK_OBJ_CI;
     p->nObjs[NTK_OBJ_CI]++;
@@ -84,10 +85,11 @@ Ntk_Obj_t * Ntk_ManCreatePi( Ntk_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Ntk_Obj_t * Ntk_ManCreatePo( Ntk_Man_t * p )
+Ntk_Obj_t * Ntk_ManCreateCo( Ntk_Man_t * p )
 {
     Ntk_Obj_t * pObj;
     pObj = Ntk_ManCreateObj( p, 1, 1 );
+    pObj->PioId = Vec_PtrSize( p->vCos );
     Vec_PtrPush( p->vCos, pObj );
     pObj->Type = NTK_OBJ_CO;
     p->nObjs[NTK_OBJ_CO]++;
@@ -200,7 +202,7 @@ void Ntk_ManDeleteNode_rec( Ntk_Obj_t * pObj )
 {
     Vec_Ptr_t * vNodes;
     int i;
-    assert( !Ntk_ObjIsPi(pObj) );
+    assert( !Ntk_ObjIsCi(pObj) );
     assert( Ntk_ObjFanoutNum(pObj) == 0 );
     vNodes = Vec_PtrAlloc( 100 );
     Ntk_ObjCollectFanins( pObj, vNodes );

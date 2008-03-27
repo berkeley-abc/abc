@@ -103,6 +103,7 @@ struct Aig_Box_t_
 struct Aig_Man_t_
 {
     char *           pName;          // the design name
+    char *           pSpec;          // the input file name
     // AIG nodes
     Vec_Ptr_t *      vPis;           // the array of PIs
     Vec_Ptr_t *      vPos;           // the array of POs
@@ -328,7 +329,6 @@ static inline int          Aig_ObjSetLevel( Aig_Obj_t * pObj, int i ) { assert( 
 static inline void         Aig_ObjClean( Aig_Obj_t * pObj )       { memset( pObj, 0, sizeof(Aig_Obj_t) );                                                             }
 static inline Aig_Obj_t *  Aig_ObjFanout0( Aig_Man_t * p, Aig_Obj_t * pObj )  { assert(p->pFanData && pObj->Id < p->nFansAlloc); return Aig_ManObj(p, p->pFanData[5*pObj->Id] >> 1); } 
 static inline Aig_Obj_t *  Aig_ObjEquiv( Aig_Man_t * p, Aig_Obj_t * pObj )    { return p->pEquivs? p->pEquivs[pObj->Id] : NULL;             } 
-static inline Aig_Obj_t *  Aig_ObjHaig( Aig_Obj_t * pObj )        { assert( Aig_Regular(pObj)->pHaig ); return Aig_NotCond( Aig_Regular(pObj)->pHaig, Aig_IsComplement(pObj) ); } 
 static inline int          Aig_ObjPioNum( Aig_Obj_t * pObj )      { assert( !Aig_ObjIsNode(pObj) ); return (int)pObj->pNext;                                                    }
 static inline int          Aig_ObjWhatFanin( Aig_Obj_t * pObj, Aig_Obj_t * pFanin )    
 { 
@@ -540,6 +540,7 @@ extern Vec_Ptr_t *     Aig_ManPartitionNaive( Aig_Man_t * p, int nPartSize );
 extern Vec_Ptr_t *     Aig_ManMiterPartitioned( Aig_Man_t * p1, Aig_Man_t * p2, int nPartSize );
 extern Aig_Man_t *     Aig_ManChoicePartitioned( Vec_Ptr_t * vAigs, int nPartSize, int nConfMax, int nLevelMax, int fVerbose );
 extern Aig_Man_t *     Aig_ManFraigPartitioned( Aig_Man_t * pAig, int nPartSize, int nConfMax, int nLevelMax, int fVerbose );
+extern Aig_Man_t *     Aig_ManChoiceConstructive( Vec_Ptr_t * vAigs, int fVerbose );
 /*=== aigPartReg.c =========================================================*/
 extern Vec_Ptr_t *     Aig_ManRegPartitionSimple( Aig_Man_t * pAig, int nPartSize, int nOverSize );
 extern Vec_Ptr_t *     Aig_ManRegPartitionSmart( Aig_Man_t * pAig, int nPartSize );
@@ -612,6 +613,7 @@ extern void            Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName );
 extern void            Aig_ManDumpVerilog( Aig_Man_t * p, char * pFileName );
 extern void            Aig_ManSetPioNumbers( Aig_Man_t * p );
 extern void            Aig_ManCleanPioNumbers( Aig_Man_t * p );
+extern int             Aig_ManCountChoices( Aig_Man_t * p );
 
 /*=== aigWin.c =========================================================*/
 extern void            Aig_ManFindCut( Aig_Obj_t * pRoot, Vec_Ptr_t * vFront, Vec_Ptr_t * vVisited, int nSizeLimit, int nFanoutLimit );

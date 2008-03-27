@@ -1,12 +1,12 @@
 /**CFile****************************************************************
 
-  FileName    [abcBidec.c]
+  FileName    [ntkBidec.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Network and node package.]
+  PackageName [Netlist representation.]
 
-  Synopsis    [Interface to bi-decomposition.]
+  Synopsis    [Bi-decomposition of local functions.]
 
   Author      [Alan Mishchenko]
   
@@ -14,11 +14,11 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: abcBidec.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: ntkBidec.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "abc.h"
+#include "ntk.h"
 #include "bdc.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -42,7 +42,7 @@ static inline Hop_Obj_t * Bdc_FunCopyHop( Bdc_Fun_t * pObj )  { return Hop_NotCo
   SeeAlso     []
 
 ***********************************************************************/
-Hop_Obj_t * Abc_NodeIfNodeResyn( Bdc_Man_t * p, Hop_Man_t * pHop, Hop_Obj_t * pRoot, int nVars, Vec_Int_t * vTruth, unsigned * puCare )
+Hop_Obj_t * Ntk_NodeIfNodeResyn( Bdc_Man_t * p, Hop_Man_t * pHop, Hop_Obj_t * pRoot, int nVars, Vec_Int_t * vTruth, unsigned * puCare )
 {
     unsigned * pTruth;
     Bdc_Fun_t * pFunc;
@@ -51,7 +51,8 @@ Hop_Obj_t * Abc_NodeIfNodeResyn( Bdc_Man_t * p, Hop_Man_t * pHop, Hop_Obj_t * pR
     // derive truth table
     pTruth = Hop_ManConvertAigToTruth( pHop, Hop_Regular(pRoot), nVars, vTruth, 0 );
     if ( Hop_IsComplement(pRoot) )
-        Extra_TruthNot( pTruth, pTruth, nVars );
+        for ( i = Aig_TruthWordNum(nVars)-1; i >= 0; i-- )
+            pTruth[i] = ~pTruth[i];
     // decompose truth table
     Bdc_ManDecompose( p, pTruth, puCare, nVars, NULL, 1000 );
     // convert back into HOP
@@ -78,18 +79,15 @@ Hop_Obj_t * Abc_NodeIfNodeResyn( Bdc_Man_t * p, Hop_Man_t * pHop, Hop_Obj_t * pR
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkBidecResyn( Abc_Ntk_t * pNtk, int fVerbose )
+void Ntk_ManBidecResyn( Ntk_Man_t * pNtk, int fVerbose )
 {
     Bdc_Par_t Pars = {0}, * pPars = &Pars;
     Bdc_Man_t * p;
-    Abc_Obj_t * pObj;
+    Ntk_Obj_t * pObj;
     Vec_Int_t * vTruth;
     int i, nGainTotal = 0, nNodes1, nNodes2;
     int clk = clock();
-    assert( Abc_NtkIsLogic(pNtk) );
-    if ( !Abc_NtkToAig(pNtk) )
-        return;
-    pPars->nVarsMax = Abc_NtkGetFaninMax( pNtk );
+    pPars->nVarsMax = Ntk_ManGetFaninMax( pNtk );
     pPars->fVerbose = fVerbose;
     if ( pPars->nVarsMax > 15 )
     {
@@ -99,13 +97,13 @@ void Abc_NtkBidecResyn( Abc_Ntk_t * pNtk, int fVerbose )
     }
     vTruth = Vec_IntAlloc( 0 );
     p = Bdc_ManAlloc( pPars );
-    Abc_NtkForEachNode( pNtk, pObj, i )
+    Ntk_ManForEachNode( pNtk, pObj, i )
     {
-        if ( Abc_ObjFaninNum(pObj) > 15 )
+        if ( Ntk_ObjFaninNum(pObj) > 15 )
             continue;
-        nNodes1 = Hop_DagSize(pObj->pData);
-        pObj->pData = Abc_NodeIfNodeResyn( p, pNtk->pManFunc, pObj->pData, Abc_ObjFaninNum(pObj), vTruth, NULL );
-        nNodes2 = Hop_DagSize(pObj->pData);
+        nNodes1 = Hop_DagSize(pObj->pFunc);
+        pObj->pFunc = Ntk_NodeIfNodeResyn( p, pNtk->pManHop, pObj->pFunc, Ntk_ObjFaninNum(pObj), vTruth, NULL );
+        nNodes2 = Hop_DagSize(pObj->pFunc);
         nGainTotal += nNodes1 - nNodes2;
     }
     Bdc_ManFree( p );
