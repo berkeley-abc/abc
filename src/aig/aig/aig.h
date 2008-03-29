@@ -47,7 +47,6 @@ extern "C" {
 
 typedef struct Aig_Man_t_            Aig_Man_t;
 typedef struct Aig_Obj_t_            Aig_Obj_t;
-typedef struct Aig_Box_t_            Aig_Box_t;
 typedef struct Aig_MmFixed_t_        Aig_MmFixed_t;    
 typedef struct Aig_MmFlex_t_         Aig_MmFlex_t;     
 typedef struct Aig_MmStep_t_         Aig_MmStep_t;     
@@ -61,9 +60,7 @@ typedef enum {
     AIG_OBJ_BUF,                     // 4: buffer node
     AIG_OBJ_AND,                     // 5: AND node
     AIG_OBJ_EXOR,                    // 6: EXOR node
-    AIG_OBJ_LATCH,                   // 7: latch
-    AIG_OBJ_BOX,                     // 8: latch
-    AIG_OBJ_VOID                     // 9: unused object
+    AIG_OBJ_VOID                     // 7: unused object
 } Aig_Type_t;
 
 // the AIG node
@@ -73,11 +70,11 @@ struct Aig_Obj_t_  // 8 words
     Aig_Obj_t *      pFanin0;        // fanin
     Aig_Obj_t *      pFanin1;        // fanin
     Aig_Obj_t *      pHaig;          // pointer to the HAIG node
-    unsigned int     Type    :  4;   // object type
+    unsigned int     Type    :  3;   // object type
     unsigned int     fPhase  :  1;   // value under 000...0 pattern
     unsigned int     fMarkA  :  1;   // multipurpose mask
     unsigned int     fMarkB  :  1;   // multipurpose mask
-    unsigned int     nRefs   : 25;   // reference count 
+    unsigned int     nRefs   : 26;   // reference count 
     unsigned         Level   : 24;   // the level of this node
     unsigned         nCuts   :  8;   // the number of cuts
     int              TravId;         // unique ID of last traversal involving the node
@@ -87,16 +84,6 @@ struct Aig_Obj_t_  // 8 words
         int          iData;
         float        dData;
     };
-};
-
-// the AIG box
-struct Aig_Box_t_  
-{
-    int              nInputs;        // the number of box inputs (POs)
-    int              i1Input;        // the first PO of the interval
-    int              nOutputs;       // the number of box outputs (PIs)
-    int              i1Output;       // the first PI of the interval
-    float **         pTable;         // the delay table of the box
 };
 
 // the AIG manager
@@ -154,7 +141,6 @@ struct Aig_Man_t_
     Vec_Ptr_t *      vMapped;
     Vec_Int_t *      vFlopNums;      
     void *           pSeqModel;
-    Aig_Man_t *      pManHaig;
     Aig_Man_t *      pManExdc;
     Vec_Ptr_t *      vOnehots;
     // timing statistics
@@ -265,7 +251,6 @@ static inline int          Aig_ManPoNum( Aig_Man_t * p )          { return p->nO
 static inline int          Aig_ManBufNum( Aig_Man_t * p )         { return p->nObjs[AIG_OBJ_BUF];                    }
 static inline int          Aig_ManAndNum( Aig_Man_t * p )         { return p->nObjs[AIG_OBJ_AND];                    }
 static inline int          Aig_ManExorNum( Aig_Man_t * p )        { return p->nObjs[AIG_OBJ_EXOR];                   }
-static inline int          Aig_ManLatchNum( Aig_Man_t * p )       { return p->nObjs[AIG_OBJ_LATCH];                  }
 static inline int          Aig_ManNodeNum( Aig_Man_t * p )        { return p->nObjs[AIG_OBJ_AND]+p->nObjs[AIG_OBJ_EXOR];   }
 static inline int          Aig_ManGetCost( Aig_Man_t * p )        { return p->nObjs[AIG_OBJ_AND]+3*p->nObjs[AIG_OBJ_EXOR]; }
 static inline int          Aig_ManObjNum( Aig_Man_t * p )         { return p->nCreated - p->nDeleted;                }
@@ -289,10 +274,9 @@ static inline int          Aig_ObjIsPo( Aig_Obj_t * pObj )        { return pObj-
 static inline int          Aig_ObjIsBuf( Aig_Obj_t * pObj )       { return pObj->Type == AIG_OBJ_BUF;    }
 static inline int          Aig_ObjIsAnd( Aig_Obj_t * pObj )       { return pObj->Type == AIG_OBJ_AND;    }
 static inline int          Aig_ObjIsExor( Aig_Obj_t * pObj )      { return pObj->Type == AIG_OBJ_EXOR;   }
-static inline int          Aig_ObjIsLatch( Aig_Obj_t * pObj )     { return pObj->Type == AIG_OBJ_LATCH;  }
 static inline int          Aig_ObjIsNode( Aig_Obj_t * pObj )      { return pObj->Type == AIG_OBJ_AND || pObj->Type == AIG_OBJ_EXOR;   }
 static inline int          Aig_ObjIsTerm( Aig_Obj_t * pObj )      { return pObj->Type == AIG_OBJ_PI  || pObj->Type == AIG_OBJ_PO || pObj->Type == AIG_OBJ_CONST1;   }
-static inline int          Aig_ObjIsHash( Aig_Obj_t * pObj )      { return pObj->Type == AIG_OBJ_AND || pObj->Type == AIG_OBJ_EXOR || pObj->Type == AIG_OBJ_LATCH;  }
+static inline int          Aig_ObjIsHash( Aig_Obj_t * pObj )      { return pObj->Type == AIG_OBJ_AND || pObj->Type == AIG_OBJ_EXOR;                                 }
 static inline int          Aig_ObjIsChoice( Aig_Man_t * p, Aig_Obj_t * pObj )    { return p->pEquivs && p->pEquivs[pObj->Id] && pObj->nRefs > 0;                    }
 
 static inline int          Aig_ObjIsMarkA( Aig_Obj_t * pObj )     { return pObj->fMarkA;  }
@@ -405,6 +389,9 @@ static inline void Aig_ManRecycleMemory( Aig_Man_t * p, Aig_Obj_t * pEntry )
 // iterator over all nodes
 #define Aig_ManForEachNode( p, pObj, i )                                        \
     Vec_PtrForEachEntry( p->vObjs, pObj, i ) if ( (pObj) == NULL || !Aig_ObjIsNode(pObj) ) {} else
+// iterator over all nodes
+#define Aig_ManForEachExor( p, pObj, i )                                        \
+    Vec_PtrForEachEntry( p->vObjs, pObj, i ) if ( (pObj) == NULL || !Aig_ObjIsExor(pObj) ) {} else
 // iterator over the nodes whose IDs are stored in the array
 #define Aig_ManForEachNodeVec( p, vIds, pObj, i )                               \
     for ( i = 0; i < Vec_IntSize(vIds) && ((pObj) = Aig_ManObj(p, Vec_IntEntry(vIds,i))); i++ )
@@ -458,6 +445,7 @@ extern Aig_ManCut_t *  Aig_ComputeCuts( Aig_Man_t * pAig, int nCutsMax, int nLea
 extern void            Aig_ManCutStop( Aig_ManCut_t * p );
 /*=== aigDfs.c ==========================================================*/
 extern Vec_Ptr_t *     Aig_ManDfs( Aig_Man_t * p );
+extern Vec_Vec_t *     Aig_ManLevelize( Aig_Man_t * p );
 extern Vec_Ptr_t *     Aig_ManDfsPio( Aig_Man_t * p );
 extern Vec_Ptr_t *     Aig_ManDfsNodes( Aig_Man_t * p, Aig_Obj_t ** ppNodes, int nNodes );
 extern Vec_Ptr_t *     Aig_ManDfsChoices( Aig_Man_t * p );
@@ -514,7 +502,6 @@ extern void            Aig_ObjReplace( Aig_Man_t * p, Aig_Obj_t * pObjOld, Aig_O
 extern Aig_Obj_t *     Aig_IthVar( Aig_Man_t * p, int i );
 extern Aig_Obj_t *     Aig_Oper( Aig_Man_t * p, Aig_Obj_t * p0, Aig_Obj_t * p1, Aig_Type_t Type );
 extern Aig_Obj_t *     Aig_And( Aig_Man_t * p, Aig_Obj_t * p0, Aig_Obj_t * p1 );
-extern Aig_Obj_t *     Aig_Latch( Aig_Man_t * p, Aig_Obj_t * pObj, int fInitOne );
 extern Aig_Obj_t *     Aig_Or( Aig_Man_t * p, Aig_Obj_t * p0, Aig_Obj_t * p1 );
 extern Aig_Obj_t *     Aig_Exor( Aig_Man_t * p, Aig_Obj_t * p0, Aig_Obj_t * p1 );
 extern Aig_Obj_t *     Aig_Mux( Aig_Man_t * p, Aig_Obj_t * pC, Aig_Obj_t * p1, Aig_Obj_t * p0 );
@@ -564,9 +551,7 @@ extern Aig_Man_t *     Aig_ManRemap( Aig_Man_t * p, Vec_Ptr_t * vMap );
 extern int             Aig_ManSeqCleanup( Aig_Man_t * p );
 extern int             Aig_ManCountMergeRegs( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManReduceLaches( Aig_Man_t * p, int fVerbose );
-extern void            Aig_ManComputeSccs( Aig_Man_t * p );
-/*=== aigSeq.c ========================================================*/
-extern int             Aig_ManSeqStrash( Aig_Man_t * p, int nLatches, int * pInits );
+extern void            Aig_ManComputeSccs( Aig_Man_t * p ); 
 /*=== aigShow.c ========================================================*/
 extern void            Aig_ManShow( Aig_Man_t * pMan, int fHaig, Vec_Ptr_t * vBold );
 /*=== aigTable.c ========================================================*/

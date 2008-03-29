@@ -371,7 +371,6 @@ Aig_Man_t * Fra_FraigPerform( Aig_Man_t * pManAig, Fra_Par_t * pPars )
     if ( Aig_ManNodeNum(pManAig) == 0 )
         return Aig_ManDup(pManAig, 1);
 clk = clock();
-    assert( Aig_ManLatchNum(pManAig) == 0 );
     p = Fra_ManStart( pManAig, pPars );
     p->pManFraig = Fra_ManPrepareComb( p );
     p->pSml = Fra_SmlStart( pManAig, 0, 1, pPars->nSimWords );

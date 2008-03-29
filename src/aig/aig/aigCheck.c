@@ -90,23 +90,23 @@ int Aig_ManCheck( Aig_Man_t * p )
     }
     // count the total number of nodes
     if ( Aig_ManObjNum(p) != 1 + Aig_ManPiNum(p) + Aig_ManPoNum(p) + 
-        Aig_ManBufNum(p) + Aig_ManAndNum(p) + Aig_ManExorNum(p) + Aig_ManLatchNum(p) )
+        Aig_ManBufNum(p) + Aig_ManAndNum(p) + Aig_ManExorNum(p) )
     {
         printf( "Aig_ManCheck: The number of created nodes is wrong.\n" );
-        printf( "C1 = %d. Pi = %d. Po = %d. Buf = %d. And = %d. Xor = %d. Lat = %d. Total = %d.\n",
-            1, Aig_ManPiNum(p), Aig_ManPoNum(p), Aig_ManBufNum(p), Aig_ManAndNum(p), Aig_ManExorNum(p), Aig_ManLatchNum(p), 
-            1 + Aig_ManPiNum(p) + Aig_ManPoNum(p) + Aig_ManBufNum(p) + Aig_ManAndNum(p) + Aig_ManExorNum(p) + Aig_ManLatchNum(p) );
+        printf( "C1 = %d. Pi = %d. Po = %d. Buf = %d. And = %d. Xor = %d. Total = %d.\n",
+            1, Aig_ManPiNum(p), Aig_ManPoNum(p), Aig_ManBufNum(p), Aig_ManAndNum(p), Aig_ManExorNum(p), 
+            1 + Aig_ManPiNum(p) + Aig_ManPoNum(p) + Aig_ManBufNum(p) + Aig_ManAndNum(p) + Aig_ManExorNum(p) );
         printf( "Created = %d. Deleted = %d. Existing = %d.\n",
             p->nCreated, p->nDeleted, p->nCreated - p->nDeleted );
         return 0;
     }
     // count the number of nodes in the table
-    if ( Aig_TableCountEntries(p) != Aig_ManAndNum(p) + Aig_ManExorNum(p) + Aig_ManLatchNum(p) )
+    if ( Aig_TableCountEntries(p) != Aig_ManAndNum(p) + Aig_ManExorNum(p) )
     {
         printf( "Aig_ManCheck: The number of nodes in the structural hashing table is wrong.\n" );
-        printf( "Entries = %d. And = %d. Xor = %d. Lat = %d. Total = %d.\n", 
-            Aig_TableCountEntries(p), Aig_ManAndNum(p), Aig_ManExorNum(p), Aig_ManLatchNum(p),
-            Aig_ManAndNum(p) + Aig_ManExorNum(p) + Aig_ManLatchNum(p) );
+        printf( "Entries = %d. And = %d. Xor = %d. Total = %d.\n", 
+            Aig_TableCountEntries(p), Aig_ManAndNum(p), Aig_ManExorNum(p), 
+            Aig_ManAndNum(p) + Aig_ManExorNum(p) );
 
         return 0;
     }

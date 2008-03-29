@@ -170,7 +170,7 @@ void Aig_WriteDotAig( Aig_Man_t * pMan, char * pFileName, int fHaig, Vec_Ptr_t *
 */
         fprintf( pFile, "  Node%d [label = \"%d\"", pNode->Id, pNode->Id ); 
 
-        fprintf( pFile, ", shape = %s", (Aig_ObjIsLatch(pNode)? "box":"invtriangle") );
+        fprintf( pFile, ", shape = %s", "invtriangle" );
         fprintf( pFile, ", color = coral, fillcolor = coral" );
         fprintf( pFile, "];\n" );
     }
@@ -237,7 +237,7 @@ void Aig_WriteDotAig( Aig_Man_t * pMan, char * pFileName, int fHaig, Vec_Ptr_t *
 */
         fprintf( pFile, "  Node%d [label = \"%d\"", pNode->Id, pNode->Id ); 
 
-        fprintf( pFile, ", shape = %s", (Aig_ObjIsLatch(pNode)? "box":"triangle") );
+        fprintf( pFile, ", shape = %s", "triangle" );
         fprintf( pFile, ", color = coral, fillcolor = coral" );
         fprintf( pFile, "];\n" );
     }
@@ -248,7 +248,7 @@ void Aig_WriteDotAig( Aig_Man_t * pMan, char * pFileName, int fHaig, Vec_Ptr_t *
     // generate invisible edges from the square down
     fprintf( pFile, "title1 -> title2 [style = invis];\n" );
     Aig_ManForEachPo( pMan, pNode, i )
-        fprintf( pFile, "title2 -> Node%d%s [style = invis];\n", pNode->Id, (Aig_ObjIsLatch(pNode)? "_in":"") );
+        fprintf( pFile, "title2 -> Node%d [style = invis];\n", pNode->Id );
 
     // generate edges
     Aig_ManForEachObj( pMan, pNode, i )
@@ -256,9 +256,9 @@ void Aig_WriteDotAig( Aig_Man_t * pMan, char * pFileName, int fHaig, Vec_Ptr_t *
         if ( !Aig_ObjIsNode(pNode) && !Aig_ObjIsPo(pNode) && !Aig_ObjIsBuf(pNode) )
             continue;
         // generate the edge from this node to the next
-        fprintf( pFile, "Node%d%s",  pNode->Id, (Aig_ObjIsLatch(pNode)? "_in":"") );
+        fprintf( pFile, "Node%d",  pNode->Id );
         fprintf( pFile, " -> " );
-        fprintf( pFile, "Node%d%s",  Aig_ObjFaninId0(pNode), (Aig_ObjIsLatch(Aig_ObjFanin0(pNode))? "_out":"") );
+        fprintf( pFile, "Node%d",  Aig_ObjFaninId0(pNode) );
         fprintf( pFile, " [" );
         fprintf( pFile, "style = %s", Aig_ObjFaninC0(pNode)? "dotted" : "bold" );
 //        if ( Aig_NtkIsSeq(pNode->pMan) && Seq_ObjFaninL0(pNode) > 0 )
@@ -270,7 +270,7 @@ void Aig_WriteDotAig( Aig_Man_t * pMan, char * pFileName, int fHaig, Vec_Ptr_t *
         // generate the edge from this node to the next
         fprintf( pFile, "Node%d",  pNode->Id );
         fprintf( pFile, " -> " );
-        fprintf( pFile, "Node%d%s",  Aig_ObjFaninId1(pNode), (Aig_ObjIsLatch(Aig_ObjFanin1(pNode))? "_out":"") );
+        fprintf( pFile, "Node%d",  Aig_ObjFaninId1(pNode) );
         fprintf( pFile, " [" );
         fprintf( pFile, "style = %s", Aig_ObjFaninC1(pNode)? "dotted" : "bold" );
 //        if ( Aig_NtkIsSeq(pNode->pMan) && Seq_ObjFaninL1(pNode) > 0 )

@@ -88,7 +88,7 @@ Aig_Obj_t * Aig_ObjCreate( Aig_Man_t * p, Aig_Obj_t * pGhost )
     Aig_Obj_t * pObj;
     assert( !Aig_IsComplement(pGhost) );
     assert( Aig_ObjIsHash(pGhost) );
-//    assert( pGhost == &p->Ghost );
+    assert( pGhost == &p->Ghost );
     // get memory for the new object
     pObj = Aig_ManFetchMemory( p );
     pObj->Type = pGhost->Type;
@@ -97,14 +97,6 @@ Aig_Obj_t * Aig_ObjCreate( Aig_Man_t * p, Aig_Obj_t * pGhost )
     // update node counters of the manager
     p->nObjs[Aig_ObjType(pObj)]++;
     assert( pObj->pData == NULL );
-/*
-    if ( p->pManHaig )
-    {
-        pGhost->pFanin0 = Aig_ObjHaig( pGhost->pFanin0 );
-        pGhost->pFanin1 = Aig_ObjHaig( pGhost->pFanin1 );
-        pObj->pHaig = Aig_ObjCreate( p->pManHaig, pGhost );
-    }
-*/
     return pObj;
 }
 
@@ -374,13 +366,6 @@ void Aig_ObjReplace( Aig_Man_t * p, Aig_Obj_t * pObjOld, Aig_Obj_t * pObjNew, in
     // make sure object is not pointing to itself
     assert( pObjOld != Aig_ObjFanin0(pObjNewR) );
     assert( pObjOld != Aig_ObjFanin1(pObjNewR) );
-    // map the HAIG nodes
-    if ( p->pManHaig != NULL )
-    {
-        assert( pObjNewR->pHaig != NULL );
-        assert( pObjNewR->pHaig->pHaig == NULL );
-        pObjNewR->pHaig->pHaig = pObjOld->pHaig;
-    }
     // recursively delete the old node - but leave the object there
     pObjNewR->nRefs++;
     Aig_ObjDelete_rec( p, pObjOld, 0 );

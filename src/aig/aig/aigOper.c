@@ -89,43 +89,6 @@ Aig_Obj_t * Aig_Oper( Aig_Man_t * p, Aig_Obj_t * p0, Aig_Obj_t * p1, Aig_Type_t 
 
 /**Function*************************************************************
 
-  Synopsis    [Creates the canonical form of the node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Aig_Obj_t * Aig_CanonPair_rec( Aig_Man_t * p, Aig_Obj_t * pGhost )
-{
-    Aig_Obj_t * pResult, * pLat0, * pLat1;
-    int fCompl0, fCompl1;
-    Aig_Type_t Type;
-    assert( Aig_ObjIsNode(pGhost) );
-    // consider the case when the pair is canonical
-    if ( !Aig_ObjIsLatch(Aig_ObjFanin0(pGhost)) || !Aig_ObjIsLatch(Aig_ObjFanin1(pGhost)) )
-    {
-        if ( (pResult = Aig_TableLookup( p, pGhost )) )
-            return pResult;
-        return Aig_ObjCreate( p, pGhost );
-    }
-    /// remember the latches
-    pLat0 = Aig_ObjFanin0(pGhost);
-    pLat1 = Aig_ObjFanin1(pGhost);
-    // remember type and compls
-    Type = Aig_ObjType(pGhost);
-    fCompl0 = Aig_ObjFaninC0(pGhost);
-    fCompl1 = Aig_ObjFaninC1(pGhost);
-    // call recursively
-    pResult = Aig_Oper( p, Aig_NotCond(Aig_ObjChild0(pLat0), fCompl0), Aig_NotCond(Aig_ObjChild0(pLat1), fCompl1), Type );
-    // build latch on top of this
-    return Aig_Latch( p, pResult, (Type == AIG_OBJ_AND)? fCompl0 & fCompl1 : fCompl0 ^ fCompl1 );
-}
-
-/**Function*************************************************************
-
   Synopsis    [Performs canonicization step.]
 
   Description [The argument nodes can be complemented.]
@@ -138,16 +101,7 @@ Aig_Obj_t * Aig_CanonPair_rec( Aig_Man_t * p, Aig_Obj_t * pGhost )
 Aig_Obj_t * Aig_And( Aig_Man_t * p, Aig_Obj_t * p0, Aig_Obj_t * p1 )
 {
     Aig_Obj_t * pGhost, * pResult;
-//    Aig_Obj_t * pFan0, * pFan1;
-    if ( p->pTable == NULL )
-    {
-//        pGhost = Aig_ObjCreateGhost( p, p0, p1, AIG_OBJ_AND );
-        pGhost = Aig_ManGhost(p);
-        pGhost->Type = AIG_OBJ_AND;
-        pGhost->pFanin0 = p0;
-        pGhost->pFanin1 = p1;
-        return Aig_ObjCreate( p, pGhost );
-    }
+    Aig_Obj_t * pFan0, * pFan1;
     // check trivial cases
     if ( p0 == p1 )
         return p0;
@@ -241,32 +195,12 @@ Aig_Obj_t * Aig_And( Aig_Man_t * p, Aig_Obj_t * p0, Aig_Obj_t * p1 )
         }
     }
     // check if it can be an EXOR gate
-//    if ( Aig_ObjIsExorType( p0, p1, &pFan0, &pFan1 ) )
-//        return Aig_Exor( p, pFan0, pFan1 );
+    if ( p->fCatchExor && Aig_ObjIsExorType( p0, p1, &pFan0, &pFan1 ) )
+        return Aig_Exor( p, pFan0, pFan1 );
     pGhost = Aig_ObjCreateGhost( p, p0, p1, AIG_OBJ_AND );
-    pResult = Aig_CanonPair_rec( p, pGhost );
-    return pResult;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Creates the canonical form of the node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Aig_Obj_t * Aig_Latch( Aig_Man_t * p, Aig_Obj_t * pObj, int fInitOne )
-{
-    Aig_Obj_t * pGhost, * pResult;
-    pGhost = Aig_ObjCreateGhost( p, Aig_NotCond(pObj, fInitOne), NULL, AIG_OBJ_LATCH );
-    pResult = Aig_TableLookup( p, pGhost );
-    if ( pResult == NULL )
-        pResult = Aig_ObjCreate( p, pGhost );
-    return Aig_NotCond( pResult, fInitOne );
+    if ( (pResult = Aig_TableLookup( p, pGhost )) )
+        return pResult;
+    return Aig_ObjCreate( p, pGhost );
 }
 
 /**Function*************************************************************
@@ -282,8 +216,8 @@ Aig_Obj_t * Aig_Latch( Aig_Man_t * p, Aig_Obj_t * pObj, int fInitOne )
 ***********************************************************************/
 Aig_Obj_t * Aig_Exor( Aig_Man_t * p, Aig_Obj_t * p0, Aig_Obj_t * p1 )
 {
-/*
     Aig_Obj_t * pGhost, * pResult;
+    int fCompl;
     // check trivial cases
     if ( p0 == p1 )
         return Aig_Not(p->pConst1);
@@ -293,13 +227,19 @@ Aig_Obj_t * Aig_Exor( Aig_Man_t * p, Aig_Obj_t * p0, Aig_Obj_t * p1 )
         return Aig_NotCond( p1, p0 == p->pConst1 );
     if ( Aig_Regular(p1) == p->pConst1 )
         return Aig_NotCond( p0, p1 == p->pConst1 );
-    // check the table
+    // when there is no special XOR gates
+    if ( !p->fCatchExor )
+        return Aig_Or( p, Aig_And(p, p0, Aig_Not(p1)), Aig_And(p, Aig_Not(p0), p1) );
+    // canonicize
+    fCompl = Aig_IsComplement(p0) ^ Aig_IsComplement(p1);
+    p0 = Aig_Regular(p0);
+    p1 = Aig_Regular(p1);
     pGhost = Aig_ObjCreateGhost( p, p0, p1, AIG_OBJ_EXOR );
+    // check the table
     if ( pResult = Aig_TableLookup( p, pGhost ) )
-        return pResult;
-    return Aig_ObjCreate( p, pGhost );
-*/
-    return Aig_Or( p, Aig_And(p, p0, Aig_Not(p1)), Aig_And(p, Aig_Not(p0), p1) );
+        return Aig_NotCond( pResult, fCompl );
+    pResult = Aig_ObjCreate( p, pGhost );
+    return Aig_NotCond( pResult, fCompl );
 }
 
 /**Function*************************************************************
@@ -331,7 +271,7 @@ Aig_Obj_t * Aig_Or( Aig_Man_t * p, Aig_Obj_t * p0, Aig_Obj_t * p1 )
 ***********************************************************************/
 Aig_Obj_t * Aig_Mux( Aig_Man_t * p, Aig_Obj_t * pC, Aig_Obj_t * p1, Aig_Obj_t * p0 )
 {
-/*    
+/*
     Aig_Obj_t * pTempA1, * pTempA2, * pTempB1, * pTempB2, * pTemp;
     int Count0, Count1;
     // consider trivial cases

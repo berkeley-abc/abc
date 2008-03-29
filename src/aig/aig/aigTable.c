@@ -39,15 +39,8 @@ static unsigned long Aig_Hash( Aig_Obj_t * pObj, int TableSize )
 static Aig_Obj_t ** Aig_TableFind( Aig_Man_t * p, Aig_Obj_t * pObj )
 {
     Aig_Obj_t ** ppEntry;
-    if ( Aig_ObjIsLatch(pObj) )
-    {
-        assert( Aig_ObjChild0(pObj) && Aig_ObjChild1(pObj) == NULL );
-    }
-    else
-    {
-        assert( Aig_ObjChild0(pObj) && Aig_ObjChild1(pObj) );
-        assert( Aig_ObjFanin0(pObj)->Id < Aig_ObjFanin1(pObj)->Id );
-    }
+    assert( Aig_ObjChild0(pObj) && Aig_ObjChild1(pObj) );
+    assert( Aig_ObjFanin0(pObj)->Id < Aig_ObjFanin1(pObj)->Id );
     for ( ppEntry = p->pTable + Aig_Hash(pObj, p->nTableSize); *ppEntry; ppEntry = &(*ppEntry)->pNext )
         if ( *ppEntry == pObj )
             return ppEntry;
@@ -119,20 +112,11 @@ Aig_Obj_t * Aig_TableLookup( Aig_Man_t * p, Aig_Obj_t * pGhost )
 {
     Aig_Obj_t * pEntry;
     assert( !Aig_IsComplement(pGhost) );
-    if ( pGhost->Type == AIG_OBJ_LATCH )
-    {
-        assert( Aig_ObjChild0(pGhost) && Aig_ObjChild1(pGhost) == NULL );
-        if ( !Aig_ObjRefs(Aig_ObjFanin0(pGhost)) )
-            return NULL;
-    }
-    else
-    {
-        assert( pGhost->Type == AIG_OBJ_AND );
-        assert( Aig_ObjChild0(pGhost) && Aig_ObjChild1(pGhost) );
-        assert( Aig_ObjFanin0(pGhost)->Id < Aig_ObjFanin1(pGhost)->Id );
-        if ( !Aig_ObjRefs(Aig_ObjFanin0(pGhost)) || !Aig_ObjRefs(Aig_ObjFanin1(pGhost)) )
-            return NULL;
-    }
+    assert( Aig_ObjIsNode(pGhost) );
+    assert( Aig_ObjChild0(pGhost) && Aig_ObjChild1(pGhost) );
+    assert( Aig_ObjFanin0(pGhost)->Id < Aig_ObjFanin1(pGhost)->Id );
+    if ( !Aig_ObjRefs(Aig_ObjFanin0(pGhost)) || !Aig_ObjRefs(Aig_ObjFanin1(pGhost)) )
+        return NULL;
     for ( pEntry = p->pTable[Aig_Hash(pGhost, p->nTableSize)]; pEntry; pEntry = pEntry->pNext )
     {
         if ( Aig_ObjChild0(pEntry) == Aig_ObjChild0(pGhost) && 
@@ -184,8 +168,6 @@ Aig_Obj_t * Aig_TableLookupTwo( Aig_Man_t * p, Aig_Obj_t * pFanin0, Aig_Obj_t * 
 void Aig_TableInsert( Aig_Man_t * p, Aig_Obj_t * pObj )
 {
     Aig_Obj_t ** ppPlace;
-    if ( p->pTable == NULL )
-        return;
     assert( !Aig_IsComplement(pObj) );
     assert( Aig_TableLookup(p, pObj) == NULL );
     if ( (pObj->Id & 0xFF) == 0 && 2 * p->nTableSize < Aig_ManNodeNum(p) )
@@ -209,8 +191,6 @@ void Aig_TableInsert( Aig_Man_t * p, Aig_Obj_t * pObj )
 void Aig_TableDelete( Aig_Man_t * p, Aig_Obj_t * pObj )
 {
     Aig_Obj_t ** ppPlace;
-    if ( p->pTable == NULL )
-        return;
     assert( !Aig_IsComplement(pObj) );
     ppPlace = Aig_TableFind( p, pObj );
     assert( *ppPlace == pObj ); // node should be in the table

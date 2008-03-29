@@ -2255,6 +2255,9 @@ int Abc_CommandBalance( Abc_Frame_t * pAbc, int argc, char ** argv )
     bool fDuplicate;
     bool fSelective;
     bool fUpdateLevel;
+    int fExor;
+    int fVerbose;
+    extern Abc_Ntk_t * Abc_NtkBalanceExor( Abc_Ntk_t * pNtk, int fUpdateLevel, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -2264,8 +2267,10 @@ int Abc_CommandBalance( Abc_Frame_t * pAbc, int argc, char ** argv )
     fDuplicate   = 0;
     fSelective   = 0;
     fUpdateLevel = 1;
+    fExor        = 0;
+    fVerbose     = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ldsh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ldsxvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -2277,6 +2282,12 @@ int Abc_CommandBalance( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 's':
             fSelective ^= 1;
+            break;
+        case 'x':
+            fExor ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -2293,7 +2304,10 @@ int Abc_CommandBalance( Abc_Frame_t * pAbc, int argc, char ** argv )
     // get the new network
     if ( Abc_NtkIsStrash(pNtk) )
     {
-        pNtkRes = Abc_NtkBalance( pNtk, fDuplicate, fSelective, fUpdateLevel );
+        if ( fExor ) 
+            pNtkRes = Abc_NtkBalanceExor( pNtk, fUpdateLevel, fVerbose );
+        else
+            pNtkRes = Abc_NtkBalance( pNtk, fDuplicate, fSelective, fUpdateLevel );
     }
     else
     {
@@ -2303,7 +2317,10 @@ int Abc_CommandBalance( Abc_Frame_t * pAbc, int argc, char ** argv )
             fprintf( pErr, "Strashing before balancing has failed.\n" );
             return 1;
         }
-        pNtkRes = Abc_NtkBalance( pNtkTemp, fDuplicate, fSelective, fUpdateLevel );
+        if ( fExor ) 
+            pNtkRes = Abc_NtkBalanceExor( pNtkTemp, fUpdateLevel, fVerbose );
+        else
+            pNtkRes = Abc_NtkBalance( pNtkTemp, fDuplicate, fSelective, fUpdateLevel );
         Abc_NtkDelete( pNtkTemp );
     }
 
@@ -2318,11 +2335,13 @@ int Abc_CommandBalance( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: balance [-ldsh]\n" );
+    fprintf( pErr, "usage: balance [-ldsxvh]\n" );
     fprintf( pErr, "\t        transforms the current network into a well-balanced AIG\n" );
     fprintf( pErr, "\t-l    : toggle minimizing the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
     fprintf( pErr, "\t-d    : toggle duplication of logic [default = %s]\n", fDuplicate? "yes": "no" );
     fprintf( pErr, "\t-s    : toggle duplication on the critical paths [default = %s]\n", fSelective? "yes": "no" );
+    fprintf( pErr, "\t-x    : toggle balancing multi-input EXORs [default = %s]\n", fExor? "yes": "no" );
+    fprintf( pErr, "\t-v    : print verbose information [default = %s]\n", fVerbose? "yes": "no" ); 
     fprintf( pErr, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -7085,6 +7104,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern Abc_NtkDarHaigRecord( Abc_Ntk_t * pNtk );
 //    extern void Abc_NtkDarTestBlif( char * pFileName );
 //    extern Abc_Ntk_t * Abc_NtkDarPartition( Abc_Ntk_t * pNtk );
+//    extern Abc_Ntk_t * Abc_NtkTestExor( Abc_Ntk_t * pNtk, int fVerbose );
+
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -7269,7 +7290,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 //    Abc_NtkDarPartition( pNtk );
 /*
-    pNtkRes = Abc_NtkDarPartition( pNtk );
+    pNtkRes = Abc_NtkTestExor( pNtk, 0 );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
@@ -13363,7 +13384,6 @@ int Abc_CommandSec( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     extern void Abc_NtkSecSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nConfLimit, int nInsLimit, int nFrames );
     extern int Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nFrames, int fVerbose );
-    extern void Abc_NtkSecRetime( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2 );
 
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -13453,9 +13473,7 @@ int Abc_CommandSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // perform equivalence checking
-    if ( fRetime )
-        Abc_NtkSecRetime( pNtk1, pNtk2 );
-    else if ( fSat )
+    if ( fSat )
         Abc_NtkSecSat( pNtk1, pNtk2, nConfLimit, nInsLimit, nFrames );
     else
         Abc_NtkSecFraig( pNtk1, pNtk2, nSeconds, nFrames, fVerbose );

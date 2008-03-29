@@ -344,7 +344,6 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, Fra_Ssw_t * pParams )
         pParams->nIters = 0;
         return Aig_ManDup(pManAig, 1);
     }
-    assert( Aig_ManLatchNum(pManAig) == 0 );
     assert( Aig_ManRegNum(pManAig) > 0 );
     assert( pParams->nFramesK > 0 );
 //Aig_ManShow( pManAig, 0, NULL );

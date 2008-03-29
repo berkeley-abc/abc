@@ -180,10 +180,21 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
 
     assert( Abc_NtkIsLogic(pNtk) );
     nFaninMax = Abc_NtkGetFaninMax(pNtk);
-    if ( nFaninMax > MFS_FANIN_MAX )
+    if ( pPars->fResub )
     {
-        printf( "Nodes with more than %d fanins will node be processed.\n", MFS_FANIN_MAX );
-        nFaninMax = MFS_FANIN_MAX;
+        if ( nFaninMax > 8 )
+        {
+            printf( "Nodes with more than %d fanins will node be processed.\n", 8 );
+            nFaninMax = 8;
+        }
+    }
+    else
+    {
+        if ( nFaninMax > MFS_FANIN_MAX )
+        {
+            printf( "Nodes with more than %d fanins will node be processed.\n", MFS_FANIN_MAX );
+            nFaninMax = MFS_FANIN_MAX;
+        }
     }
     // perform the network sweep
     Abc_NtkSweep( pNtk, 0 );
@@ -237,41 +248,62 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
     nNodes = 0;
     p->nTotalNodesBeg = nTotalNodesBeg;
     p->nTotalEdgesBeg = nTotalEdgesBeg;
-    pProgress = Extra_ProgressBarStart( stdout, Abc_NtkNodeNum(pNtk) );
-    vLevels = Abc_NtkLevelize( pNtk );
-    Vec_VecForEachLevelStart( vLevels, vNodes, k, 1 )
+    if ( pPars->fResub )
     {
-        if ( !p->pPars->fVeryVerbose )
-            Extra_ProgressBarUpdate( pProgress, nNodes, NULL );
-        p->nNodesGainedLevel = 0;
-        p->nTotConfLevel = 0;
-        p->nTimeOutsLevel = 0;
-        clk2 = clock();
-        Vec_PtrForEachEntry( vNodes, pObj, i )
+        pProgress = Extra_ProgressBarStart( stdout, Abc_NtkObjNumMax(pNtk) );
+        Abc_NtkForEachNode( pNtk, pObj, i )
         {
             if ( p->pPars->nDepthMax && (int)pObj->Level > p->pPars->nDepthMax )
-                break;
-            if ( Abc_ObjFaninNum(pObj) > MFS_FANIN_MAX )
                 continue;
+            if ( Abc_ObjFaninNum(pObj) < 2 || Abc_ObjFaninNum(pObj) > nFaninMax )
+                continue;
+            if ( !p->pPars->fVeryVerbose )
+                Extra_ProgressBarUpdate( pProgress, i, NULL );
             if ( pPars->fResub )
                 Abc_NtkMfsResub( p, pObj );
-            else if ( Abc_ObjFaninNum(pObj) > 1 && Abc_ObjFaninNum(pObj) <= 12 )
+            else
                 Abc_NtkMfsNode( p, pObj );
         }
-        nNodes += Vec_PtrSize(vNodes);
-        if ( pPars->fVerbose )
-        {
-        printf( "Lev = %2d. Node = %4d. Ave gain = %6.2f. Ave conf = %6.2f. Timeouts = %6.2f %%  ", 
-            k, Vec_PtrSize(vNodes),
-            1.0*p->nNodesGainedLevel/Vec_PtrSize(vNodes),
-            1.0*p->nTotConfLevel/Vec_PtrSize(vNodes),
-            100.0*p->nTimeOutsLevel/Vec_PtrSize(vNodes) );
-        PRT( "Time", clock() - clk2 );
-        }
+        Extra_ProgressBarStop( pProgress );
     }
-    Extra_ProgressBarStop( pProgress );
+    else
+    {
+        pProgress = Extra_ProgressBarStart( stdout, Abc_NtkNodeNum(pNtk) );
+        vLevels = Abc_NtkLevelize( pNtk );
+        Vec_VecForEachLevelStart( vLevels, vNodes, k, 1 )
+        {
+            if ( !p->pPars->fVeryVerbose )
+                Extra_ProgressBarUpdate( pProgress, nNodes, NULL );
+            p->nNodesGainedLevel = 0;
+            p->nTotConfLevel = 0;
+            p->nTimeOutsLevel = 0;
+            clk2 = clock();
+            Vec_PtrForEachEntry( vNodes, pObj, i )
+            {
+                if ( p->pPars->nDepthMax && (int)pObj->Level > p->pPars->nDepthMax )
+                    break;
+                if ( Abc_ObjFaninNum(pObj) < 2 || Abc_ObjFaninNum(pObj) > nFaninMax )
+                    continue;
+                if ( pPars->fResub )
+                    Abc_NtkMfsResub( p, pObj );
+                else 
+                    Abc_NtkMfsNode( p, pObj );
+            }
+            nNodes += Vec_PtrSize(vNodes);
+            if ( pPars->fVerbose )
+            {
+            printf( "Lev = %2d. Node = %5d. Ave gain = %5.2f. Ave conf = %5.2f. T/o = %6.2f %%  ", 
+                k, Vec_PtrSize(vNodes),
+                1.0*p->nNodesGainedLevel/Vec_PtrSize(vNodes),
+                1.0*p->nTotConfLevel/Vec_PtrSize(vNodes),
+                100.0*p->nTimeOutsLevel/Vec_PtrSize(vNodes) );
+            PRT( "Time", clock() - clk2 );
+            }
+        }
+        Extra_ProgressBarStop( pProgress );
+        Vec_VecFree( vLevels );
+    }
     Abc_NtkStopReverseLevels( pNtk );
-    Vec_VecFree( vLevels );
 
     // perform the sweeping
     if ( !pPars->fResub )

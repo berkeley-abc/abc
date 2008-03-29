@@ -176,8 +176,10 @@ unsigned * Hop_ManConvertAigToTruth( Hop_Man_t * p, Hop_Obj_t * pRoot, int nVars
 //    assert( Hop_ManPiNum(p) <= 8 ); 
     if ( fMsbFirst )
     {
-        Hop_ManForEachPi( p, pObj, i )
+//        Hop_ManForEachPi( p, pObj, i )
+        for ( i = 0; i < nVars; i++ )
         {
+            pObj = Hop_ManPi( p, i );
             if ( vTtElems )
                 pObj->pData = Vec_PtrEntry(vTtElems, nVars-1-i);
             else               
@@ -186,8 +188,10 @@ unsigned * Hop_ManConvertAigToTruth( Hop_Man_t * p, Hop_Obj_t * pRoot, int nVars
     }
     else
     {
-        Hop_ManForEachPi( p, pObj, i )
+//        Hop_ManForEachPi( p, pObj, i )
+        for ( i = 0; i < nVars; i++ )
         {
+            pObj = Hop_ManPi( p, i );
             if ( vTtElems )
                 pObj->pData = Vec_PtrEntry(vTtElems, i);
             else               

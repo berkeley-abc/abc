@@ -176,6 +176,7 @@ int Abc_NtkMfsSolveSatResub( Mfs_Man_t * p, Abc_Obj_t * pNode, int iFanin, int f
         if ( fVeryVerbose )
         printf( "Node %d: Fanin %d can be removed.\n", pNode->Id, iFanin );
         p->nNodesResub++;
+        p->nNodesGainedLevel++;
         if ( fSkipUpdate )
             return 1;
 clk = clock();
@@ -243,6 +244,7 @@ p->timeInt += clock() - clk;
             if ( fVeryVerbose )
             printf( "Node %d: Fanin %d can be replaced by divisor %d.\n", pNode->Id, iFanin, iVar );
             p->nNodesResub++;
+            p->nNodesGainedLevel++;
             if ( fSkipUpdate )
                 return 1;
 clk = clock();
@@ -315,6 +317,7 @@ int Abc_NtkMfsSolveSatResub2( Mfs_Man_t * p, Abc_Obj_t * pNode, int iFanin, int 
         if ( fVeryVerbose )
         printf( "Node %d: Fanins %d/%d can be removed.\n", pNode->Id, iFanin, iFanin2 );
         p->nNodesResub++;
+        p->nNodesGainedLevel++;
 clk = clock();
         // derive the function
         pFunc = Abc_NtkMfsInterplate( p, pCands, nCands );
@@ -388,6 +391,7 @@ p->timeInt += clock() - clk;
             if ( fVeryVerbose )
             printf( "Node %d: Fanins %d/%d can be replaced by divisors %d/%d.\n", pNode->Id, iFanin, iFanin2, iVar, iVar2 );
             p->nNodesResub++;
+            p->nNodesGainedLevel++;
 clk = clock();
             // derive the function
             pFunc = Abc_NtkMfsInterplate( p, pCands, nCands+2 );

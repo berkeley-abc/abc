@@ -201,14 +201,6 @@ Aig_Man_t * Dar_ManCompress( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, i
     Aig_ManStop( pTemp );
     if ( fVerbose ) Aig_ManPrintStats( pAig );
 
-    // balance
-    if ( fBalance )
-    {
-    pAig = Dar_ManBalance( pTemp = pAig, fUpdateLevel );
-    Aig_ManStop( pTemp );
-    if ( fVerbose ) Aig_ManPrintStats( pAig );
-    }
-
     return pAig;
 }
 

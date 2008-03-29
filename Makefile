@@ -19,7 +19,7 @@ MODULES := src/base/abc src/base/abci src/base/cmd \
 	src/aig/ivy src/aig/hop src/aig/rwt src/aig/deco \
 	src/aig/mem src/aig/dar src/aig/fra src/aig/cnf \
 	src/aig/csw src/aig/ioa src/aig/aig src/aig/kit \
-	src/aig/bdc src/aig/bar src/aig/ntl src/aig/ntk src/aig/tim
+	src/aig/bdc src/aig/bar src/aig/ntl src/aig/tim
 
 default: $(PROG)
 
