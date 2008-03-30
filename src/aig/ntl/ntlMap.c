@@ -136,7 +136,7 @@ void Ntl_ManSetIfParsDefault( If_Par_t * pPars )
     pPars->fExpRed     =  0;
     pPars->fLatchPaths =  0;
     pPars->fEdge       =  1;
-    pPars->fCutMin     =  1;
+    pPars->fCutMin     =  0;
     pPars->fSeqMap     =  0;
     pPars->fVerbose    =  1;
     // internal parameters

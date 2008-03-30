@@ -1,10 +1,10 @@
 /**CFile****************************************************************
 
-  FileName    [ntkBidec.c]
+  FileName    [nwkBidec.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Netlist representation.]
+  PackageName [Logic network representation.]
 
   Synopsis    [Bi-decomposition of local functions.]
 
@@ -14,12 +14,11 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: ntkBidec.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: nwkBidec.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "ntk.h"
-#include "bdc.h"
+#include "nwk.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -42,7 +41,7 @@ static inline Hop_Obj_t * Bdc_FunCopyHop( Bdc_Fun_t * pObj )  { return Hop_NotCo
   SeeAlso     []
 
 ***********************************************************************/
-Hop_Obj_t * Ntk_NodeIfNodeResyn( Bdc_Man_t * p, Hop_Man_t * pHop, Hop_Obj_t * pRoot, int nVars, Vec_Int_t * vTruth, unsigned * puCare )
+Hop_Obj_t * Nwk_NodeIfNodeResyn( Bdc_Man_t * p, Hop_Man_t * pHop, Hop_Obj_t * pRoot, int nVars, Vec_Int_t * vTruth, unsigned * puCare )
 {
     unsigned * pTruth;
     Bdc_Fun_t * pFunc;
@@ -79,15 +78,15 @@ Hop_Obj_t * Ntk_NodeIfNodeResyn( Bdc_Man_t * p, Hop_Man_t * pHop, Hop_Obj_t * pR
   SeeAlso     []
 
 ***********************************************************************/
-void Ntk_ManBidecResyn( Ntk_Man_t * pNtk, int fVerbose )
+void Nwk_ManBidecResyn( Nwk_Man_t * pNtk, int fVerbose )
 {
     Bdc_Par_t Pars = {0}, * pPars = &Pars;
     Bdc_Man_t * p;
-    Ntk_Obj_t * pObj;
+    Nwk_Obj_t * pObj;
     Vec_Int_t * vTruth;
     int i, nGainTotal = 0, nNodes1, nNodes2;
     int clk = clock();
-    pPars->nVarsMax = Ntk_ManGetFaninMax( pNtk );
+    pPars->nVarsMax = Nwk_ManGetFaninMax( pNtk );
     pPars->fVerbose = fVerbose;
     if ( pPars->nVarsMax > 15 )
     {
@@ -97,12 +96,12 @@ void Ntk_ManBidecResyn( Ntk_Man_t * pNtk, int fVerbose )
     }
     vTruth = Vec_IntAlloc( 0 );
     p = Bdc_ManAlloc( pPars );
-    Ntk_ManForEachNode( pNtk, pObj, i )
+    Nwk_ManForEachNode( pNtk, pObj, i )
     {
-        if ( Ntk_ObjFaninNum(pObj) > 15 )
+        if ( Nwk_ObjFaninNum(pObj) > 15 )
             continue;
         nNodes1 = Hop_DagSize(pObj->pFunc);
-        pObj->pFunc = Ntk_NodeIfNodeResyn( p, pNtk->pManHop, pObj->pFunc, Ntk_ObjFaninNum(pObj), vTruth, NULL );
+        pObj->pFunc = Nwk_NodeIfNodeResyn( p, pNtk->pManHop, pObj->pFunc, Nwk_ObjFaninNum(pObj), vTruth, NULL );
         nNodes2 = Hop_DagSize(pObj->pFunc);
         nGainTotal += nNodes1 - nNodes2;
     }

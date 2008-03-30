@@ -1,10 +1,10 @@
 /**CFile****************************************************************
 
-  FileName    [ntkUtil.c]
+  FileName    [nwkUtil.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Netlist representation.]
+  PackageName [Logic network representation.]
 
   Synopsis    [Various utilities.]
 
@@ -14,11 +14,11 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: ntkUtil.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: nwkUtil.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "ntk.h"
+#include "nwk.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -39,14 +39,14 @@
   SeeAlso     []
 
 ***********************************************************************/
-void Ntk_ManIncrementTravId( Ntk_Man_t * pNtk )
+void Nwk_ManIncrementTravId( Nwk_Man_t * pNtk )
 {
-    Ntk_Obj_t * pObj;
+    Nwk_Obj_t * pObj;
     int i;
     if ( pNtk->nTravIds >= (1<<26)-1 )
     {
         pNtk->nTravIds = 0;
-        Ntk_ManForEachObj( pNtk, pObj, i )
+        Nwk_ManForEachObj( pNtk, pObj, i )
             pObj->TravId = 0;
     }
     pNtk->nTravIds++;
@@ -63,14 +63,14 @@ void Ntk_ManIncrementTravId( Ntk_Man_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_ManGetFaninMax( Ntk_Man_t * pNtk )
+int Nwk_ManGetFaninMax( Nwk_Man_t * pNtk )
 {
-    Ntk_Obj_t * pNode;
+    Nwk_Obj_t * pNode;
     int i, nFaninsMax = 0;
-    Ntk_ManForEachNode( pNtk, pNode, i )
+    Nwk_ManForEachNode( pNtk, pNode, i )
     {
-        if ( nFaninsMax < Ntk_ObjFaninNum(pNode) )
-            nFaninsMax = Ntk_ObjFaninNum(pNode);
+        if ( nFaninsMax < Nwk_ObjFaninNum(pNode) )
+            nFaninsMax = Nwk_ObjFaninNum(pNode);
     }
     return nFaninsMax;
 }
@@ -86,12 +86,12 @@ int Ntk_ManGetFaninMax( Ntk_Man_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_ManGetTotalFanins( Ntk_Man_t * pNtk )
+int Nwk_ManGetTotalFanins( Nwk_Man_t * pNtk )
 {
-    Ntk_Obj_t * pNode;
+    Nwk_Obj_t * pNode;
     int i, nFanins = 0;
-    Ntk_ManForEachNode( pNtk, pNode, i )
-        nFanins += Ntk_ObjFaninNum(pNode);
+    Nwk_ManForEachNode( pNtk, pNode, i )
+        nFanins += Nwk_ObjFaninNum(pNode);
     return nFanins;
 }
 
@@ -107,12 +107,12 @@ int Ntk_ManGetTotalFanins( Ntk_Man_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_ManPiNum( Ntk_Man_t * pNtk )
+int Nwk_ManPiNum( Nwk_Man_t * pNtk )
 {
-    Ntk_Obj_t * pNode;
+    Nwk_Obj_t * pNode;
     int i, Counter = 0;
-    Ntk_ManForEachCi( pNtk, pNode, i )
-        Counter += Ntk_ObjIsPi( pNode );
+    Nwk_ManForEachCi( pNtk, pNode, i )
+        Counter += Nwk_ObjIsPi( pNode );
     return Counter;
 }
 
@@ -127,12 +127,12 @@ int Ntk_ManPiNum( Ntk_Man_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_ManPoNum( Ntk_Man_t * pNtk )
+int Nwk_ManPoNum( Nwk_Man_t * pNtk )
 {
-    Ntk_Obj_t * pNode;
+    Nwk_Obj_t * pNode;
     int i, Counter = 0;
-    Ntk_ManForEachCo( pNtk, pNode, i )
-        Counter += Ntk_ObjIsPo( pNode );
+    Nwk_ManForEachCo( pNtk, pNode, i )
+        Counter += Nwk_ObjIsPo( pNode );
     return Counter;
 }
 
@@ -147,22 +147,64 @@ int Ntk_ManPoNum( Ntk_Man_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-int Ntk_ManGetAigNodeNum( Ntk_Man_t * pNtk )
+int Nwk_ManGetAigNodeNum( Nwk_Man_t * pNtk )
 {
-    Ntk_Obj_t * pNode;
+    Nwk_Obj_t * pNode;
     int i, nNodes = 0;
-    Ntk_ManForEachNode( pNtk, pNode, i )
+    Nwk_ManForEachNode( pNtk, pNode, i )
     {
         if ( pNode->pFunc == NULL )
         {
-            printf( "Ntk_ManGetAigNodeNum(): Local AIG of node %d is not assigned.\n", pNode->Id );
+            printf( "Nwk_ManGetAigNodeNum(): Local AIG of node %d is not assigned.\n", pNode->Id );
             continue;
         }
-        if ( Ntk_ObjFaninNum(pNode) < 2 )
+        if ( Nwk_ObjFaninNum(pNode) < 2 )
             continue;
         nNodes += Hop_DagSize( pNode->pFunc );
     }
     return nNodes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Procedure used for sorting the nodes in increasing order of levels.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Nwk_NodeCompareLevelsIncrease( Nwk_Obj_t ** pp1, Nwk_Obj_t ** pp2 )
+{
+    int Diff = (*pp1)->Level - (*pp2)->Level;
+    if ( Diff < 0 )
+        return -1;
+    if ( Diff > 0 ) 
+        return 1;
+    return 0; 
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Procedure used for sorting the nodes in decreasing order of levels.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Nwk_NodeCompareLevelsDecrease( Nwk_Obj_t ** pp1, Nwk_Obj_t ** pp2 )
+{
+    int Diff = (*pp1)->Level - (*pp2)->Level;
+    if ( Diff > 0 )
+        return -1;
+    if ( Diff < 0 ) 
+        return 1;
+    return 0; 
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -30,6 +30,7 @@
 #include "aig.h"
 #include "dar.h"
 #include "mfs.h"
+#include "mfx.h"
 #include "fra.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -205,12 +206,19 @@ static int Abc_CommandAbc8Write      ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandAbc8Ps         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8If         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8DChoice    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8DC2        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Bidec      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Strash     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8ReadLut    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8PrintLut   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Mfs        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Lutpack    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Balance    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Speedup    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Cec        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Scl        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Lcorr      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Ssw        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc8Cec        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8DSec       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 
@@ -233,7 +241,7 @@ void Abc_FrameClearDesign()
 {
     extern Abc_Frame_t * Abc_FrameGetGlobalFrame();
     extern void Ntl_ManFree( void * );
-    extern void Ntk_ManFree( void * );
+    extern void Nwk_ManFree( void * );
     Abc_Frame_t * pAbc;
 
     pAbc = Abc_FrameGetGlobalFrame();
@@ -247,10 +255,10 @@ void Abc_FrameClearDesign()
         Aig_ManStop( pAbc->pAbc8Aig );
         pAbc->pAbc8Aig = NULL;
     }
-    if ( pAbc->pAbc8Ntk )
+    if ( pAbc->pAbc8Nwk )
     {
-        Ntk_ManFree( pAbc->pAbc8Ntk );
-        pAbc->pAbc8Ntk = NULL;
+        Nwk_ManFree( pAbc->pAbc8Nwk );
+        pAbc->pAbc8Nwk = NULL;
     }
 }
 
@@ -428,17 +436,24 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "indcut",        Abc_CommandIndcut,           0 );
     Cmd_CommandAdd( pAbc, "Verification", "enlarge",       Abc_CommandEnlarge,          1 );
 
-    Cmd_CommandAdd( pAbc, "ABC8",         "*read",         Abc_CommandAbc8Read,         0 );
-    Cmd_CommandAdd( pAbc, "ABC8",         "*write",        Abc_CommandAbc8Write,        0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*r",            Abc_CommandAbc8Read,         0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*w",            Abc_CommandAbc8Write,        0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*ps",           Abc_CommandAbc8Ps,           0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*if",           Abc_CommandAbc8If,           0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*dchoice",      Abc_CommandAbc8DChoice,      0 );
-    Cmd_CommandAdd( pAbc, "ABC8",         "*read_lut",     Abc_CommandAbc8ReadLut,      0 );
-    Cmd_CommandAdd( pAbc, "ABC8",         "*print_lut",    Abc_CommandAbc8PrintLut,     0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*dc2",          Abc_CommandAbc8DC2,          0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*bidec",        Abc_CommandAbc8Bidec,        0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*st",           Abc_CommandAbc8Strash,       0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*rlut",         Abc_CommandAbc8ReadLut,      0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*plut",         Abc_CommandAbc8PrintLut,     0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*mfs",          Abc_CommandAbc8Mfs,          0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*lp",           Abc_CommandAbc8Lutpack,      0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*b",            Abc_CommandAbc8Balance,      0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*speedup",      Abc_CommandAbc8Speedup,      0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*cec",          Abc_CommandAbc8Cec,          0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*scl",          Abc_CommandAbc8Scl,          0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*lcorr",        Abc_CommandAbc8Lcorr,        0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*ssw",          Abc_CommandAbc8Ssw,          0 );
-    Cmd_CommandAdd( pAbc, "ABC8",         "*cec",          Abc_CommandAbc8Cec,          0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*dsec",         Abc_CommandAbc8DSec,         0 );
 
 
@@ -478,7 +493,7 @@ void Abc_End()
 {
     Abc_FrameClearDesign(); 
     {
-        extern void If_LutLibFree( void * pLutLib );
+        extern void If_LutLibFree( If_Lib_t * pLutLib );
         if ( Abc_FrameGetGlobalFrame()->pAbc8Lib )
             If_LutLibFree( Abc_FrameGetGlobalFrame()->pAbc8Lib );
     }
@@ -3233,7 +3248,7 @@ int Abc_CommandLutpack( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     fprintf( pErr, "usage: lutpack [-N <num>] [-Q <num>] [-S <num>] [-L <num>] [-szfovwh]\n" );
-    fprintf( pErr, "\t           performs \"rewriting\" for LUT networks;\n" );
+    fprintf( pErr, "\t           performs \"rewriting\" for LUT network;\n" );
     fprintf( pErr, "\t           determines LUT size as the max fanin count of a node;\n" );
     fprintf( pErr, "\t           if the network is not LUT-mapped, packs it into 6-LUTs\n" );
     fprintf( pErr, "\t           (there is another command for resynthesis after LUT mapping, \"imfs\")\n" );
@@ -3409,19 +3424,7 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    pPars->nWinTfoLevs  =    2;
-    pPars->nFanoutsMax  =   10;
-    pPars->nDepthMax    =   20;
-    pPars->nDivMax      =  250;
-    pPars->nWinSizeMax  =  300;
-    pPars->nGrowthLevel =    0;
-    pPars->nBTLimit     = 5000;
-    pPars->fResub       =    1;
-    pPars->fArea        =    0;
-    pPars->fMoreEffort  =    0;
-    pPars->fSwapEdge    =    0;
-    pPars->fVerbose     =    0;
-    pPars->fVeryVerbose =    0;
+    Abc_NtkMfsParsDefault( pPars );
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "WFDMLCraesvwh" ) ) != EOF )
     {
@@ -7083,7 +7086,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
-//    Abc_Ntk_t * pNtkRes;
+    Abc_Ntk_t * pNtkRes;
     int c;
     int fBmc;
     int nFrames;
@@ -7105,14 +7108,16 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern void Abc_NtkDarTestBlif( char * pFileName );
 //    extern Abc_Ntk_t * Abc_NtkDarPartition( Abc_Ntk_t * pNtk );
 //    extern Abc_Ntk_t * Abc_NtkTestExor( Abc_Ntk_t * pNtk, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkNtkTest( Abc_Ntk_t * pNtk );
+
 
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
-    printf( "This command is temporarily disabled.\n" );
-    return 0;
+//    printf( "This command is temporarily disabled.\n" );
+//    return 0;
 
     // set defaults
     fVeryVerbose = 0;
@@ -7289,8 +7294,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 */
 
 //    Abc_NtkDarPartition( pNtk );
-/*
-    pNtkRes = Abc_NtkTestExor( pNtk, 0 );
+
+    pNtkRes = Abc_NtkNtkTest( pNtk );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
@@ -7298,7 +7303,6 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
-*/
     return 0;
 usage:
     fprintf( pErr, "usage: test [-vwh]\n" );
@@ -14761,7 +14765,7 @@ int Abc_CommandAbc8Read( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( stdout, "usage: *read [-h]\n" );
+    fprintf( stdout, "usage: *r [-h]\n" );
     fprintf( stdout, "\t        reads the design with whiteboxes\n" );
     fprintf( stdout, "\t-h    : print the command usage\n");
     return 1;
@@ -14781,9 +14785,12 @@ usage:
 int Abc_CommandAbc8Write( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     char * pFileName;
+    void * pTemp;
     int c;
     extern void Ioa_WriteBlif( void * p, char * pFileName );
     extern int Ntl_ManInsertNtk( void * p, void * pNtk );
+    extern void * Ntl_ManDup( void * pOld );
+    extern void Ntl_ManFree( void * p );
 
     // set defaults
     Extra_UtilGetoptReset();
@@ -14802,12 +14809,11 @@ int Abc_CommandAbc8Write( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "Abc_CommandAbc8Write(): There is no design to write.\n" );
         return 1;
     }
-
-    // get the input file name
-    pFileName = argv[globalUtilOptind];
-    if ( pAbc->pAbc8Ntk != NULL )
+    // create the design to write
+    pTemp = Ntl_ManDup( pAbc->pAbc8Ntl );
+    if ( pAbc->pAbc8Nwk != NULL )
     {
-        if ( !Ntl_ManInsertNtk( pAbc->pAbc8Ntl, pAbc->pAbc8Ntk ) )
+        if ( !Ntl_ManInsertNtk( pTemp, pAbc->pAbc8Nwk ) )
         {
             printf( "Abc_CommandAbc8Write(): There is no design to write.\n" );
             return 1;
@@ -14816,11 +14822,14 @@ int Abc_CommandAbc8Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else
         printf( "Writing the original design.\n" );
-    Ioa_WriteBlif( pAbc->pAbc8Ntl, pFileName );
+    // get the input file name
+    pFileName = argv[globalUtilOptind];
+    Ioa_WriteBlif( pTemp, pFileName );
+    Ntl_ManFree( pTemp );
     return 0;
 
 usage:
-    fprintf( stdout, "usage: *write [-h]\n" );
+    fprintf( stdout, "usage: *w [-h]\n" );
     fprintf( stdout, "\t        write the design with whiteboxes\n" );
     fprintf( stdout, "\t-h    : print the command usage\n");
     return 1;
@@ -14841,7 +14850,7 @@ int Abc_CommandAbc8Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     int c;
     extern void Ntl_ManPrintStats( void * p );
-    extern void Ntk_ManPrintStats( void * p, void * pLutLib );
+    extern void Nwk_ManPrintStats( void * p, void * pLutLib );
 
     // set defaults
     Extra_UtilGetoptReset();
@@ -14863,11 +14872,20 @@ int Abc_CommandAbc8Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // get the input file name
     if ( pAbc->pAbc8Ntl )
+    {
+        printf( "NETLIST: " );
         Ntl_ManPrintStats( pAbc->pAbc8Ntl );
+    }
     if ( pAbc->pAbc8Aig )
+    {
+        printf( "AIG:     " );
         Aig_ManPrintStats( pAbc->pAbc8Aig );
-    if ( pAbc->pAbc8Ntk )
-        Ntk_ManPrintStats( pAbc->pAbc8Ntk, pAbc->pAbc8Lib );
+    }
+    if ( pAbc->pAbc8Nwk )
+    {
+        printf( "MAPPED:  " );
+        Nwk_ManPrintStats( pAbc->pAbc8Nwk, pAbc->pAbc8Lib );
+    }
     return 0;
 
 usage:
@@ -14895,11 +14913,11 @@ int Abc_CommandAbc8If( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     extern int Ntl_ManInsertTest( void * p, Aig_Man_t * pAig );
     extern int Ntl_ManInsertTestIf( void * p, Aig_Man_t * pAig );
-    extern void * Ntk_MappingIf( Aig_Man_t * p, Tim_Man_t * pManTime, If_Par_t * pPars );
+    extern void * Nwk_MappingIf( Aig_Man_t * p, Tim_Man_t * pManTime, If_Par_t * pPars );
     extern Tim_Man_t * Ntl_ManReadTimeMan( void * p );
-    extern void * If_SetSimpleLutLib( int nLutSize );
-    extern void Ntk_ManSetIfParsDefault( If_Par_t * pPars );
-    extern void Ntk_ManFree( void * );
+    extern If_Lib_t * If_SetSimpleLutLib( int nLutSize );
+    extern void Nwk_ManSetIfParsDefault( If_Par_t * pPars );
+    extern void Nwk_ManFree( void * );
 
     if ( pAbc->pAbc8Lib == NULL )
     {
@@ -14908,7 +14926,7 @@ int Abc_CommandAbc8If( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // set defaults
-    Ntk_ManSetIfParsDefault( pPars );
+    Nwk_ManSetIfParsDefault( pPars );
     pPars->pLutLib = pAbc->pAbc8Lib;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
@@ -14935,15 +14953,15 @@ int Abc_CommandAbc8If( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 */
-    pNtkNew = Ntk_MappingIf( pAbc->pAbc8Aig, Ntl_ManReadTimeMan(pAbc->pAbc8Ntl), pPars );
+    pNtkNew = Nwk_MappingIf( pAbc->pAbc8Aig, Ntl_ManReadTimeMan(pAbc->pAbc8Ntl), pPars );
     if ( pNtkNew == NULL )
     {
         printf( "Abc_CommandAbc8If(): Mapping of the AIG has failed.\n" );
         return 1;
     }
-    if ( pAbc->pAbc8Ntk != NULL )
-        Ntk_ManFree( pAbc->pAbc8Ntk );
-    pAbc->pAbc8Ntk = pNtkNew;
+    if ( pAbc->pAbc8Nwk != NULL )
+        Nwk_ManFree( pAbc->pAbc8Nwk );
+    pAbc->pAbc8Nwk = pNtkNew;
     return 0;
 
 usage:
@@ -15002,10 +15020,179 @@ int Abc_CommandAbc8DChoice( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     fprintf( stdout, "usage: *dchoice [-h]\n" );
-    fprintf( stdout, "\t        performs AIG-based synthesis\n" );
+    fprintf( stdout, "\t        performs AIG-based synthesis and derives choices\n" );
     fprintf( stdout, "\t-h    : print the command usage\n");
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc8DC2( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Aig_Man_t * pAigNew;
+    int c;
+    int fBalance;
+    int fUpdateLevel;
+    int fVerbose;
+
+    extern Aig_Man_t * Dar_ManCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fFanout, int fVerbose );
+
+    // set defaults
+    fBalance     = 0;
+    fUpdateLevel = 1;
+    fVerbose     = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "blh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'b':
+            fBalance ^= 1;
+            break;
+        case 'l':
+            fUpdateLevel ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pAbc8Aig == NULL )
+    {
+        printf( "Abc_CommandAbc8DChoice(): There is no AIG to synthesize.\n" );
+        return 1;
+    }
+
+    // get the input file name
+    pAigNew = Dar_ManCompress2( pAbc->pAbc8Aig, fBalance, fUpdateLevel, 1, fVerbose );
+    if ( pAigNew == NULL )
+    {
+        printf( "Abc_CommandAbc8DChoice(): Tranformation of the AIG has failed.\n" );
+        return 1;
+    }
+    Aig_ManStop( pAbc->pAbc8Aig );
+    pAbc->pAbc8Aig = pAigNew;
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: *dc2 [-blvh]\n" );
+    fprintf( stdout, "\t        performs AIG-based synthesis without deriving choices\n" );
+    fprintf( stdout, "\t-b    : toggle internal balancing [default = %s]\n", fBalance? "yes": "no" );
+    fprintf( stdout, "\t-l    : toggle updating level [default = %s]\n", fUpdateLevel? "yes": "no" );
+    fprintf( stdout, "\t-v    : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( stdout, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc8Bidec( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c;
+    extern void Nwk_ManBidecResyn( void * pNtk, int fVerbose );
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pAbc8Nwk == NULL )
+    {
+        printf( "Abc_CommandAbc8DChoice(): There is no mapped network to strash.\n" );
+        return 1;
+    }
+    Nwk_ManBidecResyn( pAbc->pAbc8Nwk, 0 );
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: *bidec [-h]\n" );
+    fprintf( stdout, "\t        performs bi-decomposition of local functions\n" );
+    fprintf( stdout, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc8Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Aig_Man_t * pAigNew;
+    int c;
+    extern Aig_Man_t * Nwk_ManStrash( void * pNtk );
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pAbc8Nwk == NULL )
+    {
+        printf( "Abc_CommandAbc8DChoice(): There is no mapped network to strash.\n" );
+        return 1;
+    }
+
+    pAigNew = Nwk_ManStrash( pAbc->pAbc8Nwk );
+    if ( pAigNew == NULL )
+    {
+        printf( "Abc_CommandAbc8Strash(): Tranformation of the AIG has failed.\n" );
+        return 1;
+    }
+    Aig_ManStop( pAbc->pAbc8Aig );
+    pAbc->pAbc8Aig = pAigNew;
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: *st [-h]\n" );
+    fprintf( stdout, "\t        performs structural hashing of mapped network\n" );
+    fprintf( stdout, "\t-h    : print the command usage\n");
+    return 1;
+}
+
 
 /**Function*************************************************************
 
@@ -15024,8 +15211,8 @@ int Abc_CommandAbc8ReadLut( Abc_Frame_t * pAbc, int argc, char **argv )
     char * FileName;
     void * pLib;
     int c;
-    extern void * If_LutLibRead( char * FileName );
-    extern void If_LutLibFree( void * pLutLib );
+    extern If_Lib_t * If_LutLibRead( char * FileName );
+    extern void If_LutLibFree( If_Lib_t * pLutLib );
 
     // set the defaults
     Extra_UtilGetoptReset();
@@ -15073,7 +15260,7 @@ int Abc_CommandAbc8ReadLut( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( stdout, "\nusage: *read_lut [-h]\n");
+    fprintf( stdout, "\nusage: *rlut [-h]\n");
     fprintf( stdout, "\t          read the LUT library from the file\n" );  
     fprintf( stdout, "\t-h      : print the command usage\n");
     fprintf( stdout, "\t                                        \n");
@@ -15105,7 +15292,7 @@ usage:
 int Abc_CommandAbc8PrintLut( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     int c;
-    extern void If_LutLibPrint( void * pLutLib );
+    extern void If_LutLibPrint( If_Lib_t * pLutLib );
 
     // set the defaults
     Extra_UtilGetoptReset();
@@ -15134,11 +15321,493 @@ int Abc_CommandAbc8PrintLut( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( stdout, "\nusage: *print_lut [-h]\n");
+    fprintf( stdout, "\nusage: *plut [-h]\n");
     fprintf( stdout, "\t          print the current LUT library\n" );  
     fprintf( stdout, "\t-h      : print the command usage\n");
     return 1;       /* error exit */
 }
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc8Mfs( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Mfx_Par_t Pars, * pPars = &Pars;
+    int c;
+    extern int Mfx_Perform( void * pNtk, Mfx_Par_t * pPars );
+
+    // set defaults
+    Mfx_ParsDefault( pPars );
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WFDMLCraesvwh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'W':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-W\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nWinTfoLevs = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nWinTfoLevs < 0 ) 
+                goto usage;
+            break;
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFanoutsMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFanoutsMax < 1 ) 
+                goto usage;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-D\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nDepthMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nDepthMax < 0 ) 
+                goto usage;
+            break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nWinSizeMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nWinSizeMax < 0 ) 
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nGrowthLevel = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nGrowthLevel < 0 || pPars->nGrowthLevel > ABC_INFINITY ) 
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nBTLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nBTLimit < 0 ) 
+                goto usage;
+            break;
+        case 'r':
+            pPars->fResub ^= 1;
+            break;
+        case 'a':
+            pPars->fArea ^= 1;
+            break;
+        case 'e':
+            pPars->fMoreEffort ^= 1;
+            break;
+        case 's':
+            pPars->fSwapEdge ^= 1;
+            break;
+        case 'v':
+            pPars->fVerbose ^= 1;
+            break;
+        case 'w':
+            pPars->fVeryVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pAbc8Nwk == NULL )
+    {
+        printf( "Abc_CommandAbc8Mfs(): There is no mapped network to strash.\n" );
+        return 1;
+    }
+
+    // modify the current network
+    if ( !Mfx_Perform( pAbc->pAbc8Nwk, pPars ) )
+    {
+        fprintf( stdout, "Abc_CommandAbc8Mfs(): Command has failed.\n" );
+        return 1;
+    }
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: *mfs [-WFDMLC <num>] [-raesvh]\n" );
+    fprintf( stdout, "\t           performs don't-care-based optimization of logic networks\n" );
+    fprintf( stdout, "\t-W <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n", pPars->nWinTfoLevs );
+    fprintf( stdout, "\t-F <num> : the max number of fanouts to skip (1 <= num) [default = %d]\n", pPars->nFanoutsMax );
+    fprintf( stdout, "\t-D <num> : the max depth nodes to try (0 = no limit) [default = %d]\n", pPars->nDepthMax );
+    fprintf( stdout, "\t-M <num> : the max node count of windows to consider (0 = no limit) [default = %d]\n", pPars->nWinSizeMax );
+    fprintf( stdout, "\t-L <num> : the max increase in node level after resynthesis (0 <= num) [default = %d]\n", pPars->nGrowthLevel );
+    fprintf( stdout, "\t-C <num> : the max number of conflicts in one SAT run (0 = no limit) [default = %d]\n", pPars->nBTLimit );
+    fprintf( stdout, "\t-r       : toggle resubstitution and dc-minimization [default = %s]\n", pPars->fResub? "resub": "dc-min" );
+    fprintf( stdout, "\t-a       : toggle minimizing area or area+edges [default = %s]\n", pPars->fArea? "area": "area+edges" );
+    fprintf( stdout, "\t-e       : toggle high-effort resubstitution [default = %s]\n", pPars->fMoreEffort? "yes": "no" );
+    fprintf( stdout, "\t-s       : toggle evaluation of edge swapping [default = %s]\n", pPars->fSwapEdge? "yes": "no" );
+    fprintf( stdout, "\t-v       : toggle printing optimization summary [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    fprintf( stdout, "\t-w       : toggle printing detailed stats for each node [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
+    fprintf( stdout, "\t-h       : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc8Lutpack( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c;
+
+    printf( "This command is temporarily disabled.\n" );
+    return 0;
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pAbc8Nwk == NULL )
+    {
+        printf( "Abc_CommandAbc8DChoice(): There is no mapped network to strash.\n" );
+        return 1;
+    }
+
+    
+    return 0;
+usage:
+/*
+    fprintf( stdout, "usage: *lp [-h]\n" );
+    fprintf( stdout, "usage: lutpack [-N <num>] [-Q <num>] [-S <num>] [-L <num>] [-szfovwh]\n" );
+    fprintf( stdout, "\t           performs \"rewriting\" for LUT network;\n" );
+    fprintf( stdout, "\t           determines LUT size as the max fanin count of a node;\n" );
+    fprintf( stdout, "\t           if the network is not LUT-mapped, packs it into 6-LUTs\n" );
+    fprintf( stdout, "\t           (there is another command for resynthesis after LUT mapping, \"imfs\")\n" );
+    fprintf( stdout, "\t-N <num> : the max number of LUTs in the structure (2 <= num) [default = %d]\n", pPars->nLutsMax );
+    fprintf( stdout, "\t-Q <num> : the max number of LUTs not in MFFC (0 <= num) [default = %d]\n", pPars->nLutsOver );
+    fprintf( stdout, "\t-S <num> : the max number of LUT inputs shared (0 <= num <= 3) [default = %d]\n", pPars->nVarsShared );
+    fprintf( stdout, "\t-L <num> : max level increase after resynthesis (0 <= num) [default = %d]\n", pPars->nGrowthLevel );
+    fprintf( stdout, "\t-s       : toggle iteration till saturation [default = %s]\n", pPars->fSatur? "yes": "no" );
+    fprintf( stdout, "\t-z       : toggle zero-cost replacements [default = %s]\n", pPars->fZeroCost? "yes": "no" );
+    fprintf( stdout, "\t-f       : toggle using only first node and first cut [default = %s]\n", pPars->fFirst? "yes": "no" );
+    fprintf( stdout, "\t-o       : toggle using old implementation [default = %s]\n", pPars->fOldAlgo? "yes": "no" );
+    fprintf( stdout, "\t-v       : toggle verbose printout [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    fprintf( stdout, "\t-w       : toggle detailed printout of decomposed functions [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
+    fprintf( stdout, "\t-h       : print the command usage\n");
+*/
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc8Balance( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Aig_Man_t * pAigNew;
+    int c;
+    int fExor;
+    int fUpdateLevel;
+    int fVerbose;
+    extern Aig_Man_t *  Dar_ManBalanceXor( Aig_Man_t * pAig, int fExor, int fUpdateLevel, int fVerbose );
+
+    // set defaults
+    fExor        = 0;
+    fUpdateLevel = 1;
+    fVerbose     = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "xlh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'x':
+            fExor ^= 1;
+            break;
+        case 'l':
+            fUpdateLevel ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pAbc8Aig == NULL )
+    {
+        printf( "Abc_CommandAbc8DChoice(): There is no AIG to synthesize.\n" );
+        return 1;
+    }
+
+    // get the input file name
+    pAigNew = Dar_ManBalanceXor( pAbc->pAbc8Aig, fExor, fUpdateLevel, fVerbose );
+    if ( pAigNew == NULL )
+    {
+        printf( "Abc_CommandAbc8Balance(): Tranformation of the AIG has failed.\n" );
+        return 1;
+    }
+    Aig_ManStop( pAbc->pAbc8Aig );
+    pAbc->pAbc8Aig = pAigNew;
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: *b [-xlvh]\n" );
+    fprintf( stdout, "\t        performs balanacing of the AIG\n" );
+    fprintf( stdout, "\t-x    : toggle using XOR-balancing [default = %s]\n", fExor? "yes": "no" );
+    fprintf( stdout, "\t-l    : toggle updating level [default = %s]\n", fUpdateLevel? "yes": "no" );
+    fprintf( stdout, "\t-v    : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( stdout, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc8Speedup( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Aig_Man_t * pAigNew;
+    int c;
+    int fUseLutLib;
+    int Percentage;
+    int Degree;
+    int fVerbose;
+    int fVeryVerbose;
+    extern Aig_Man_t * Nwk_ManSpeedup( void * pNtk );
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PNlvwh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Percentage = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Percentage < 1 || Percentage > 100 ) 
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Degree = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Degree < 1 || Degree > 5 ) 
+                goto usage;
+            break;
+        case 'l':
+            fUseLutLib ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'w':
+            fVeryVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pAbc8Nwk == NULL )
+    {
+        printf( "Abc_CommandAbc8DChoice(): There is no mapped network to strash.\n" );
+        return 1;
+    }
+
+    pAigNew = Nwk_ManSpeedup( pAbc->pAbc8Nwk );
+    if ( pAigNew == NULL )
+    {
+        printf( "Abc_CommandAbc8Speedup(): Tranformation of the AIG has failed.\n" );
+        return 1;
+    }
+    Aig_ManStop( pAbc->pAbc8Aig );
+    pAbc->pAbc8Aig = pAigNew;
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: *speedup [-P num] [-N num] [-lvwh]\n" );
+    fprintf( stdout, "\t           transforms LUT-mapped network into an AIG with choices;\n" );
+    fprintf( stdout, "\t           the choices are added to speedup the next round of mapping\n" );
+    fprintf( stdout, "\t-P <num> : delay delta defining critical path for library model [default = %d%%]\n", Percentage );
+    fprintf( stdout, "\t-N <num> : the max critical path degree for resynthesis (0 < num < 6) [default = %d]\n", Degree );
+    fprintf( stdout, "\t-l       : toggle using unit- or LUT-library-delay model [default = %s]\n", fUseLutLib? "lib" : "unit" );
+    fprintf( stdout, "\t-v       : toggle printing optimization summary [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( stdout, "\t-w       : toggle printing detailed stats for each node [default = %s]\n", fVeryVerbose? "yes": "no" );
+    fprintf( stdout, "\t-h       : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc8Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Aig_Man_t * pAig1, * pAig2;
+    void * pTemp;
+    char ** pArgvNew;
+    int nArgcNew;
+    int c;
+    int fVerbose;
+    int nConfLimit;
+    int fPartition;
+    extern Aig_Man_t * Ntl_ManCollapse( void * p );
+    extern void * Ntl_ManDup( void * pOld );
+    extern void Ntl_ManFree( void * p );
+
+    extern int Fra_FraigCecTop( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int nConfLimit, int fPartition, int fVerbose );
+
+    // set defaults
+    fVerbose =  0;
+    nConfLimit = 10000;   
+    fPartition = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Cpvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nConfLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nConfLimit < 0 ) 
+                goto usage;
+            break;
+        case 'p':
+            fPartition ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        default:
+            goto usage;
+        }
+    }
+
+    pArgvNew = argv + globalUtilOptind;
+    nArgcNew = argc - globalUtilOptind;
+    if ( nArgcNew != 0 )
+    {
+        printf( "Currently can only compare current network against the spec.\n" );
+        return 0;
+    }
+    if ( pAbc->pAbc8Ntl == NULL )
+    {
+        printf( "Abc_CommandAbc8Cec(): There is no design to verify.\n" );
+        return 0;
+    }
+    if ( pAbc->pAbc8Nwk == NULL )
+    {
+        printf( "Abc_CommandAbc8Cec(): There is no mapped network to verify.\n" );
+        return 0;
+    }
+
+    // derive AIGs
+    pAig1 = Ntl_ManCollapse( pAbc->pAbc8Ntl );
+    pTemp = Ntl_ManDup( pAbc->pAbc8Ntl );
+    if ( !Ntl_ManInsertNtk( pTemp, pAbc->pAbc8Nwk ) )
+    {
+        printf( "Abc_CommandAbc8Cec(): Inserting the design has failed.\n" );
+        return 1;
+    }
+    pAig2 = Ntl_ManCollapse( pTemp );
+    Ntl_ManFree( pTemp );
+
+    // perform verification
+    Fra_FraigCecTop( pAig1, pAig2, nConfLimit, fPartition, fVerbose );
+    Aig_ManStop( pAig1 );
+    Aig_ManStop( pAig2 );
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: *cec [-C num] [-pvh] <file1> <file2>\n" );
+    fprintf( stdout, "\t         performs combinational equivalence checking\n" );
+    fprintf( stdout, "\t-C num : limit on the number of conflicts [default = %d]\n", nConfLimit );
+    fprintf( stdout, "\t-p     : toggle automatic partitioning [default = %s]\n", fPartition? "yes": "no" );
+    fprintf( stdout, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( stdout, "\t-h     : print the command usage\n");
+    fprintf( stdout, "\tfile1  : (optional) the file with the first network\n");
+    fprintf( stdout, "\tfile2  : (optional) the file with the second network\n");
+    fprintf( stdout, "\t         if no files are given, uses the current network and its spec\n");
+    fprintf( stdout, "\t         if one file is given, uses the current network and the file\n");
+    return 1;
+}
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -15183,22 +15852,6 @@ int Abc_CommandAbc8Lcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 ***********************************************************************/
 int Abc_CommandAbc8Ssw( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    return 0;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandAbc8Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     return 0;
 }

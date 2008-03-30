@@ -52,17 +52,17 @@ int Ntl_ManInsert( Ntl_Man_t * p, Vec_Ptr_t * vMapping, Aig_Man_t * pAig )
     int i, k, nDigits;
     // map the AIG back onto the design
     Ntl_ManForEachCiNet( p, pNet, i )
-        pNet->pFunc = Aig_ManPi( pAig, i );
+        pNet->pCopy = Aig_ManPi( pAig, i );
     Ntl_ManForEachCoNet( p, pNet, i )
-        pNet->pFunc = Aig_ObjChild0( Aig_ManPo( pAig, i ) );
+        pNet->pCopy = Aig_ObjChild0( Aig_ManPo( pAig, i ) );
     // remove old nodes
-    pRoot = Vec_PtrEntry( p->vModels, 0 );
+    pRoot = Ntl_ManRootModel( p );
     Ntl_ModelForEachNode( pRoot, pNode, i )
         Vec_PtrWriteEntry( pRoot->vObjs, pNode->Id, NULL );
     // start mapping of AIG nodes into their copies
     vCopies = Vec_PtrStart( Aig_ManObjNumMax(pAig) );
     Ntl_ManForEachCiNet( p, pNet, i )
-        Vec_PtrWriteEntry( vCopies, pNet->pFunc->Id, pNet );
+        Vec_PtrWriteEntry( vCopies, ((Aig_Obj_t *)pNet->pCopy)->Id, pNet );
     // create a new node for each LUT
     vCover = Vec_IntAlloc( 1 << 16 );
     nDigits = Aig_Base10Log( Vec_PtrSize(vMapping) );
@@ -100,16 +100,16 @@ int Ntl_ManInsert( Ntl_Man_t * p, Vec_Ptr_t * vMapping, Aig_Man_t * pAig )
     Vec_IntFree( vCover );
     // mark CIs and outputs of the registers
     Ntl_ManForEachCiNet( p, pNetCo, i )
-        pNetCo->nVisits = 101;
+        pNetCo->nVisits = 101; // using "101" is harmless because nVisits can only be 0, 1 or 2
     // update the CO pointers
     Ntl_ManForEachCoNet( p, pNetCo, i )
     {
         if ( pNetCo->nVisits == 101 )
             continue;
         pNetCo->nVisits = 101;
-        pNet = Vec_PtrEntry( vCopies, Aig_Regular(pNetCo->pFunc)->Id );
+        pNet = Vec_PtrEntry( vCopies, Aig_Regular(pNetCo->pCopy)->Id );
         pNode = Ntl_ModelCreateNode( pRoot, 1 );
-        pNode->pSop = Aig_IsComplement(pNetCo->pFunc)? Ntl_ManStoreSop( p, "0 1\n" ) : Ntl_ManStoreSop( p, "1 1\n" );
+        pNode->pSop = Aig_IsComplement(pNetCo->pCopy)? Ntl_ManStoreSop( p, "0 1\n" ) : Ntl_ManStoreSop( p, "1 1\n" );
         Ntl_ObjSetFanin( pNode, pNet, 0 );
         // update the CO driver net
         pNetCo->pDriver = NULL;
@@ -134,7 +134,7 @@ int Ntl_ManInsert( Ntl_Man_t * p, Vec_Ptr_t * vMapping, Aig_Man_t * pAig )
   SeeAlso     []
 
 ***********************************************************************/
-int Ntl_ManInsertNtk( Ntl_Man_t * p, Ntk_Man_t * pNtk )
+int Ntl_ManInsertNtk( Ntl_Man_t * p, Nwk_Man_t * pNtk )
 {
     char Buffer[100];
     Vec_Int_t * vTruth;
@@ -142,32 +142,34 @@ int Ntl_ManInsertNtk( Ntl_Man_t * p, Ntk_Man_t * pNtk )
     Ntl_Mod_t * pRoot;
     Ntl_Obj_t * pNode;
     Ntl_Net_t * pNet, * pNetCo;
-    Ntk_Obj_t * pObj, * pFanin;
+    Nwk_Obj_t * pObj, * pFanin;
     int i, k, nDigits;
     unsigned * pTruth;
-    assert( Vec_PtrSize(p->vCis) == Ntk_ManCiNum(pNtk) );
-    assert( Vec_PtrSize(p->vCos) == Ntk_ManCoNum(pNtk) );
+    assert( Vec_PtrSize(p->vCis) == Nwk_ManCiNum(pNtk) );
+    assert( Vec_PtrSize(p->vCos) == Nwk_ManCoNum(pNtk) );
     // set the correspondence between the PI/PO nodes
     Ntl_ManForEachCiNet( p, pNet, i )
-        Ntk_ManCi( pNtk, i )->pCopy = pNet;
+        Nwk_ManCi( pNtk, i )->pCopy = pNet;
 //    Ntl_ManForEachCoNet( p, pNet, i )
-//        Ntk_ManCo( pNtk, i )->pCopy = pNet;
+//        Nwk_ManCo( pNtk, i )->pCopy = pNet;
     // remove old nodes
-    pRoot = Vec_PtrEntry( p->vModels, 0 );
+    pRoot = Ntl_ManRootModel( p );
     Ntl_ModelForEachNode( pRoot, pNode, i )
         Vec_PtrWriteEntry( pRoot->vObjs, pNode->Id, NULL );
     // create a new node for each LUT
     vTruth = Vec_IntAlloc( 1 << 16 );
     vCover = Vec_IntAlloc( 1 << 16 );
-    nDigits = Aig_Base10Log( Ntk_ManNodeNum(pNtk) );
-    Ntk_ManForEachNode( pNtk, pObj, i )
+    nDigits = Aig_Base10Log( Nwk_ManNodeNum(pNtk) );
+    Nwk_ManForEachNode( pNtk, pObj, i )
     {
-        pNode = Ntl_ModelCreateNode( pRoot, Ntk_ObjFaninNum(pObj) );
-        pTruth = Hop_ManConvertAigToTruth( pNtk->pManHop, pObj->pFunc, Ntk_ObjFaninNum(pObj), vTruth, 0 );
-        pNode->pSop = Ntl_SopFromTruth( p, pTruth, Ntk_ObjFaninNum(pObj), vCover );
-        if ( !Kit_TruthIsConst0(pTruth, Ntk_ObjFaninNum(pObj)) && !Kit_TruthIsConst1(pTruth, Ntk_ObjFaninNum(pObj)) )
+        pNode = Ntl_ModelCreateNode( pRoot, Nwk_ObjFaninNum(pObj) );
+        pTruth = Hop_ManConvertAigToTruth( pNtk->pManHop, Hop_Regular(pObj->pFunc), Nwk_ObjFaninNum(pObj), vTruth, 0 );
+        if ( Hop_IsComplement(pObj->pFunc) )
+            Kit_TruthNot( pTruth, pTruth, Nwk_ObjFaninNum(pObj) );
+        pNode->pSop = Ntl_SopFromTruth( p, pTruth, Nwk_ObjFaninNum(pObj), vCover );
+        if ( !Kit_TruthIsConst0(pTruth, Nwk_ObjFaninNum(pObj)) && !Kit_TruthIsConst1(pTruth, Nwk_ObjFaninNum(pObj)) )
         {
-            Ntk_ObjForEachFanin( pObj, pFanin, k )
+            Nwk_ObjForEachFanin( pObj, pFanin, k )
             {
                 pNet = pFanin->pCopy;
                 if ( pNet == NULL )
@@ -204,12 +206,12 @@ int Ntl_ManInsertNtk( Ntl_Man_t * p, Ntk_Man_t * pNtk )
             continue;
         pNetCo->nVisits = 101;
         // get the corresponding PO and its driver
-        pObj = Ntk_ManCo( pNtk, i );
-        pFanin = Ntk_ObjFanin0( pObj );
+        pObj = Nwk_ManCo( pNtk, i );
+        pFanin = Nwk_ObjFanin0( pObj );
         // get the net driving the driver
-        pNet = pFanin->pCopy; //Vec_PtrEntry( vCopies, Aig_Regular(pNetCo->pFunc)->Id );
+        pNet = pFanin->pCopy; //Vec_PtrEntry( vCopies, Aig_Regular(pNetCo->pCopy)->Id );
         pNode = Ntl_ModelCreateNode( pRoot, 1 );
-        pNode->pSop = pObj->fCompl /*Aig_IsComplement(pNetCo->pFunc)*/? Ntl_ManStoreSop( p, "0 1\n" ) : Ntl_ManStoreSop( p, "1 1\n" );
+        pNode->pSop = pObj->fCompl /*Aig_IsComplement(pNetCo->pCopy)*/? Ntl_ManStoreSop( p, "0 1\n" ) : Ntl_ManStoreSop( p, "1 1\n" );
         Ntl_ObjSetFanin( pNode, pNet, 0 );
         // update the CO driver net
         pNetCo->pDriver = NULL;

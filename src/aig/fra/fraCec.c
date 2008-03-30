@@ -247,13 +247,13 @@ PRT( "Time", clock() - clk );
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_FraigCecPartitioned( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int fVerbose )
+int Fra_FraigCecPartitioned( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int nPartSize, int fVerbose )
 {
     Aig_Man_t * pAig;
     Vec_Ptr_t * vParts;
     int i, RetValue = 1, nOutputs;
     // create partitions
-    vParts = Aig_ManMiterPartitioned( pMan1, pMan2, 100 );
+    vParts = Aig_ManMiterPartitioned( pMan1, pMan2, nPartSize );
     // solve the partitions
     nOutputs = -1;
     Vec_PtrForEachEntry( vParts, pAig, i )
@@ -292,6 +292,60 @@ int Fra_FraigCecPartitioned( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int fVerbose 
     Vec_PtrForEachEntry( vParts, pAig, i )
         Aig_ManStop( pAig );
     Vec_PtrFree( vParts );
+    return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Fra_FraigCecTop( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int nConfLimit, int fPartition, int fVerbose )
+{
+    //Abc_NtkDarCec( pNtk1, pNtk2, fPartition, fVerbose );
+    int RetValue, clkTotal = clock();
+
+    if ( Aig_ManPiNum(pMan1) != Aig_ManPiNum(pMan1) )
+    {
+        printf( "Abc_CommandAbc8Cec(): Miters have different number of PIs.\n" );
+        return 0;
+    }
+    if ( Aig_ManPoNum(pMan1) != Aig_ManPoNum(pMan1) )
+    {
+        printf( "Abc_CommandAbc8Cec(): Miters have different number of POs.\n" );
+        return 0;
+    }
+    assert( Aig_ManPiNum(pMan1) == Aig_ManPiNum(pMan1) );
+    assert( Aig_ManPoNum(pMan1) == Aig_ManPoNum(pMan1) );
+
+    if ( fPartition )
+        RetValue = Fra_FraigCecPartitioned( pMan1, pMan2, 100, fVerbose );
+    else
+        RetValue = Fra_FraigCecPartitioned( pMan1, pMan2, Aig_ManPoNum(pMan1), fVerbose );
+
+    // report the miter
+    if ( RetValue == 1 )
+    {
+        printf( "Networks are equivalent.   " );
+PRT( "Time", clock() - clkTotal );
+    }
+    else if ( RetValue == 0 )
+    {
+        printf( "Networks are NOT EQUIVALENT.   " );
+PRT( "Time", clock() - clkTotal );
+    }
+    else
+    {
+        printf( "Networks are UNDECIDED.   " );
+PRT( "Time", clock() - clkTotal );
+    }
+    fflush( stdout );
     return RetValue;
 }
 

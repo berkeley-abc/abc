@@ -88,13 +88,13 @@ Aig_Man_t * Dar_ManRwsat( Aig_Man_t * pAig, int fBalance, int fVerbose )
     pAig = Aig_ManDup( pTemp = pAig, 0 ); 
     Aig_ManStop( pTemp );
     if ( fVerbose ) Aig_ManPrintStats( pAig );
-    
+/*    
     // refactor
     Dar_ManRefactor( pAig, pParsRef );
     pAig = Aig_ManDup( pTemp = pAig, 0 ); 
     Aig_ManStop( pTemp );
     if ( fVerbose ) Aig_ManPrintStats( pAig );
-
+*/
     // balance
     if ( fBalance )
     {
@@ -397,6 +397,35 @@ PRT( "Choicing time ", clock() - clk );
 }
     return pMan;
 //    return NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reproduces script "compress2".]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Dar_ManBalanceXor( Aig_Man_t * pAig, int fExor, int fUpdateLevel, int fVerbose )
+{
+    Aig_Man_t * pAigXor, * pRes;
+    if ( fExor )
+    {
+        pAigXor = Aig_ManDupExor( pAig );
+        if ( fVerbose )
+            Dar_BalancePrintStats( pAigXor );
+        pRes = Dar_ManBalance( pAigXor, fUpdateLevel );
+        Aig_ManStop( pAigXor );
+    }
+    else
+    {
+        pRes = Dar_ManBalance( pAig, fUpdateLevel );
+    }
+    return pRes;
 }
 
 ////////////////////////////////////////////////////////////////////////

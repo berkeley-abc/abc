@@ -42,7 +42,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /I "src/base/abc" /I "src/base/abci" /I "src/base/cmd" /I "src/base/io" /I "src/base/main" /I "src/base/ver" /I "src/bdd/cudd" /I "src/bdd/dsd" /I "src/bdd/epd" /I "src/bdd/mtr" /I "src/bdd/parse" /I "src/bdd/reo" /I "src/bdd/cas" /I "src/map/fpga" /I "src/map/mapper" /I "src/map/mio" /I "src/map/super" /I "src/map/if" /I "src/map/pcm" /I "src/map/ply" /I "src/misc/extra" /I "src/misc/mvc" /I "src/misc/st" /I "src/misc/util" /I "src/misc/espresso" /I "src/misc/nm" /I "src/misc/vec" /I "src/misc/hash" /I "src/opt/cut" /I "src/opt/dec" /I "src/opt/fxu" /I "src/opt/rwr" /I "src/opt/sim" /I "src/opt/ret" /I "src/opt/res" /I "src/opt/lpk" /I "src/sat/bsat" /I "src/sat/csat" /I "src/sat/msat" /I "src/sat/fraig" /I "src/aig/ivy" /I "src/aig/hop" /I "src/aig/rwt" /I "src/aig/deco" /I "src/aig/mem" /I "src/aig/dar" /I "src/aig/fra" /I "src/aig/cnf" /I "src/aig/csw" /I "src/aig/ioa" /I "src/aig/aig" /I "src/aig/kit" /I "src/aig/bdc" /I "src/aig/bar" /I "src/aig/ntl" /I "src/aig/ntk" /I "src/aig/tim" /I "src/opt/mfs" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /FR /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /I "src/base/abc" /I "src/base/abci" /I "src/base/cmd" /I "src/base/io" /I "src/base/main" /I "src/base/ver" /I "src/bdd/cudd" /I "src/bdd/dsd" /I "src/bdd/epd" /I "src/bdd/mtr" /I "src/bdd/parse" /I "src/bdd/reo" /I "src/bdd/cas" /I "src/map/fpga" /I "src/map/mapper" /I "src/map/mio" /I "src/map/super" /I "src/map/if" /I "src/map/pcm" /I "src/map/ply" /I "src/misc/extra" /I "src/misc/mvc" /I "src/misc/st" /I "src/misc/util" /I "src/misc/espresso" /I "src/misc/nm" /I "src/misc/vec" /I "src/misc/hash" /I "src/opt/cut" /I "src/opt/dec" /I "src/opt/fxu" /I "src/opt/rwr" /I "src/opt/sim" /I "src/opt/ret" /I "src/opt/res" /I "src/opt/lpk" /I "src/sat/bsat" /I "src/sat/csat" /I "src/sat/msat" /I "src/sat/fraig" /I "src/aig/ivy" /I "src/aig/hop" /I "src/aig/rwt" /I "src/aig/deco" /I "src/aig/mem" /I "src/aig/dar" /I "src/aig/fra" /I "src/aig/cnf" /I "src/aig/csw" /I "src/aig/ioa" /I "src/aig/aig" /I "src/aig/kit" /I "src/aig/bdc" /I "src/aig/bar" /I "src/aig/ntl" /I "src/aig/nwk" /I "src/aig/tim" /I "src/opt/mfs" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /FR /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -66,7 +66,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /c
-# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "src/base/abc" /I "src/base/abci" /I "src/base/cmd" /I "src/base/io" /I "src/base/main" /I "src/base/ver" /I "src/bdd/cudd" /I "src/bdd/dsd" /I "src/bdd/epd" /I "src/bdd/mtr" /I "src/bdd/parse" /I "src/bdd/reo" /I "src/bdd/cas" /I "src/map/fpga" /I "src/map/mapper" /I "src/map/mio" /I "src/map/super" /I "src/map/if" /I "src/map/pcm" /I "src/map/ply" /I "src/misc/extra" /I "src/misc/mvc" /I "src/misc/st" /I "src/misc/util" /I "src/misc/espresso" /I "src/misc/nm" /I "src/misc/vec" /I "src/misc/hash" /I "src/opt/cut" /I "src/opt/dec" /I "src/opt/fxu" /I "src/opt/rwr" /I "src/opt/sim" /I "src/opt/ret" /I "src/opt/res" /I "src/opt/lpk" /I "src/sat/bsat" /I "src/sat/csat" /I "src/sat/msat" /I "src/sat/fraig" /I "src/aig/ivy" /I "src/aig/hop" /I "src/aig/rwt" /I "src/aig/deco" /I "src/aig/mem" /I "src/aig/dar" /I "src/aig/fra" /I "src/aig/cnf" /I "src/aig/csw" /I "src/aig/ioa" /I "src/aig/aig" /I "src/aig/kit" /I "src/aig/bdc" /I "src/aig/bar" /I "src/aig/ntl" /I "src/aig/ntk" /I "src/aig/tim" /I "src/opt/mfs" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /FR /YX /FD /GZ /c
+# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "src/base/abc" /I "src/base/abci" /I "src/base/cmd" /I "src/base/io" /I "src/base/main" /I "src/base/ver" /I "src/bdd/cudd" /I "src/bdd/dsd" /I "src/bdd/epd" /I "src/bdd/mtr" /I "src/bdd/parse" /I "src/bdd/reo" /I "src/bdd/cas" /I "src/map/fpga" /I "src/map/mapper" /I "src/map/mio" /I "src/map/super" /I "src/map/if" /I "src/map/pcm" /I "src/map/ply" /I "src/misc/extra" /I "src/misc/mvc" /I "src/misc/st" /I "src/misc/util" /I "src/misc/espresso" /I "src/misc/nm" /I "src/misc/vec" /I "src/misc/hash" /I "src/opt/cut" /I "src/opt/dec" /I "src/opt/fxu" /I "src/opt/rwr" /I "src/opt/sim" /I "src/opt/ret" /I "src/opt/res" /I "src/opt/lpk" /I "src/sat/bsat" /I "src/sat/csat" /I "src/sat/msat" /I "src/sat/fraig" /I "src/aig/ivy" /I "src/aig/hop" /I "src/aig/rwt" /I "src/aig/deco" /I "src/aig/mem" /I "src/aig/dar" /I "src/aig/fra" /I "src/aig/cnf" /I "src/aig/csw" /I "src/aig/ioa" /I "src/aig/aig" /I "src/aig/kit" /I "src/aig/bdc" /I "src/aig/bar" /I "src/aig/ntl" /I "src/aig/nwk" /I "src/aig/tim" /I "src/opt/mfs" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /D "__STDC__" /FR /YX /FD /GZ /c
 # SUBTRACT CPP /X
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
@@ -179,6 +179,10 @@ SOURCE=.\src\base\abc\abcUtil.c
 # Begin Source File
 
 SOURCE=.\src\base\abci\abc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcAbc8.c
 # End Source File
 # Begin Source File
 
@@ -3002,10 +3006,6 @@ SOURCE=.\src\aig\aig\aigScl.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\aig\aigSeq.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\aig\aig\aigShow.c
 # End Source File
 # Begin Source File
@@ -3097,50 +3097,6 @@ SOURCE=.\src\aig\ntl\ntlTime.c
 SOURCE=.\src\aig\ntl\ntlWriteBlif.c
 # End Source File
 # End Group
-# Begin Group "ntk"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\aig\ntk\ntk.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\ntk\ntkBidec.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\ntk\ntkCheck.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\ntk\ntkDfs.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\ntk\ntkFanio.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\ntk\ntkMan.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\ntk\ntkMap.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\ntk\ntkObj.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\ntk\ntkTiming.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\ntk\ntkUtil.c
-# End Source File
-# End Group
 # Begin Group "tim"
 
 # PROP Default_Filter ""
@@ -3151,6 +3107,102 @@ SOURCE=.\src\aig\tim\tim.c
 # Begin Source File
 
 SOURCE=.\src\aig\tim\tim.h
+# End Source File
+# End Group
+# Begin Group "nwk"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\aig\nwk\nwk.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nwk\nwkBidec.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nwk\nwkCheck.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nwk\nwkDfs.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nwk\nwkFanio.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nwk\nwkMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nwk\nwkMap.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nwk\nwkObj.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nwk\nwkSpeedup.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nwk\nwkStrash.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nwk\nwkTiming.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nwk\nwkUtil.c
+# End Source File
+# End Group
+# Begin Group "mfx"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\aig\mfx\mfx.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\mfx\mfxCore.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\mfx\mfxDiv.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\mfx\mfxInt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\mfx\mfxInter.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\mfx\mfxMan.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\mfx\mfxResub.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\mfx\mfxSat.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\mfx\mfxStrash.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\mfx\mfxWin.c
 # End Source File
 # End Group
 # End Group

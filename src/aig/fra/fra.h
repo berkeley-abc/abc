@@ -258,7 +258,7 @@ static inline int          Fra_ImpCreate( int Left, int Right )                 
 /*=== fraCec.c ========================================================*/
 extern int                 Fra_FraigSat( Aig_Man_t * pMan, sint64 nConfLimit, sint64 nInsLimit, int fVerbose );
 extern int                 Fra_FraigCec( Aig_Man_t ** ppAig, int fVerbose );
-extern int                 Fra_FraigCecPartitioned( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int fVerbose );
+extern int                 Fra_FraigCecPartitioned( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int nPartSize, int fVerbose );
 /*=== fraClass.c ========================================================*/
 extern int                 Fra_BmcNodeIsConst( Aig_Obj_t * pObj );
 extern int                 Fra_BmcNodesAreEqual( Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 );

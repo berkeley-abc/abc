@@ -1,10 +1,10 @@
 /**CFile****************************************************************
 
-  FileName    [ntkMap.c]
+  FileName    [nwkMap.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Netlist representation.]
+  PackageName [Logic network representation.]
 
   Synopsis    [Interface to technology mapping.]
 
@@ -14,11 +14,11 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: ntkMap.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: nwkMap.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "ntk.h"
+#include "nwk.h"
 #include "if.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -40,7 +40,7 @@
   SeeAlso     []
 
 ***********************************************************************/
-void Ntk_ManSetIfParsDefault( If_Par_t * pPars )
+void Nwk_ManSetIfParsDefault( If_Par_t * pPars )
 {
 //    extern void * Abc_FrameReadLibLut();
     // set defaults
@@ -59,9 +59,9 @@ void Ntk_ManSetIfParsDefault( If_Par_t * pPars )
     pPars->fExpRed     =  0;
     pPars->fLatchPaths =  0;
     pPars->fEdge       =  1;
-    pPars->fCutMin     =  1;
+    pPars->fCutMin     =  0;
     pPars->fSeqMap     =  0;
-    pPars->fVerbose    =  1;
+    pPars->fVerbose    =  0;
     // internal parameters
     pPars->fTruth      =  0;
     pPars->nLatches    =  0;
@@ -96,7 +96,7 @@ void Ntk_ManSetIfParsDefault( If_Par_t * pPars )
   SeeAlso     []
 
 ***********************************************************************/
-If_Man_t * Ntk_ManToIf( Aig_Man_t * p, If_Par_t * pPars )
+If_Man_t * Nwk_ManToIf( Aig_Man_t * p, If_Par_t * pPars )
 {
     If_Man_t * pIfMan;
     Aig_Obj_t * pNode;//, * pFanin, * pPrev;
@@ -156,7 +156,7 @@ If_Man_t * Ntk_ManToIf( Aig_Man_t * p, If_Par_t * pPars )
   SeeAlso     []
 
 ***********************************************************************/
-Hop_Obj_t * Ntk_NodeIfToHop2_rec( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj_t * pIfObj, Vec_Ptr_t * vVisited )
+Hop_Obj_t * Nwk_NodeIfToHop2_rec( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj_t * pIfObj, Vec_Ptr_t * vVisited )
 {
     If_Cut_t * pCut;
     If_Obj_t * pTemp;
@@ -176,10 +176,10 @@ Hop_Obj_t * Ntk_NodeIfToHop2_rec( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj
     // compute the functions of the children
     for ( pTemp = pIfObj; pTemp; pTemp = pTemp->pEquiv )
     {
-        gFunc0 = Ntk_NodeIfToHop2_rec( pHopMan, pIfMan, pTemp->pFanin0, vVisited );
+        gFunc0 = Nwk_NodeIfToHop2_rec( pHopMan, pIfMan, pTemp->pFanin0, vVisited );
         if ( gFunc0 == (void *)1 )
             continue;
-        gFunc1 = Ntk_NodeIfToHop2_rec( pHopMan, pIfMan, pTemp->pFanin1, vVisited );
+        gFunc1 = Nwk_NodeIfToHop2_rec( pHopMan, pIfMan, pTemp->pFanin1, vVisited );
         if ( gFunc1 == (void *)1 )
             continue;
         // both branches are solved
@@ -203,7 +203,7 @@ Hop_Obj_t * Ntk_NodeIfToHop2_rec( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj
   SeeAlso     []
 
 ***********************************************************************/
-Hop_Obj_t * Ntk_NodeIfToHop( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj_t * pIfObj )
+Hop_Obj_t * Nwk_NodeIfToHop( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj_t * pIfObj )
 {
     If_Cut_t * pCut;
     Hop_Obj_t * gFunc;
@@ -217,10 +217,10 @@ Hop_Obj_t * Ntk_NodeIfToHop( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj_t * 
         If_CutSetData( If_ObjCutBest(pLeaf), Hop_IthVar(pHopMan, i) );
     // recursively compute the function while collecting visited cuts
     Vec_PtrClear( pIfMan->vTemp );
-    gFunc = Ntk_NodeIfToHop2_rec( pHopMan, pIfMan, pIfObj, pIfMan->vTemp ); 
+    gFunc = Nwk_NodeIfToHop2_rec( pHopMan, pIfMan, pIfObj, pIfMan->vTemp ); 
     if ( gFunc == (void *)1 )
     {
-        printf( "Ntk_NodeIfToHop(): Computing local AIG has failed.\n" );
+        printf( "Nwk_NodeIfToHop(): Computing local AIG has failed.\n" );
         return NULL;
     }
 //    printf( "%d ", Vec_PtrSize(p->vTemp) );
@@ -243,10 +243,10 @@ Hop_Obj_t * Ntk_NodeIfToHop( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj_t * 
   SeeAlso     []
 
 ***********************************************************************/
-Ntk_Man_t * Ntk_ManFromIf( If_Man_t * pIfMan, Aig_Man_t * p )
+Nwk_Man_t * Nwk_ManFromIf( If_Man_t * pIfMan, Aig_Man_t * p )
 {
-    Ntk_Man_t * pNtk;
-    Ntk_Obj_t * pObjNew;
+    Nwk_Man_t * pNtk;
+    Nwk_Obj_t * pObjNew;
     Aig_Obj_t * pObj;
     If_Obj_t * pIfObj;
     If_Cut_t * pCutBest;
@@ -256,7 +256,7 @@ Ntk_Man_t * Ntk_ManFromIf( If_Man_t * pIfMan, Aig_Man_t * p )
     assert( Aig_ManNodeNum(p) == If_ManAndNum(pIfMan) );
     If_ManCleanCutData( pIfMan );
     // construct the network
-    pNtk = Ntk_ManAlloc();
+    pNtk = Nwk_ManAlloc();
     pNtk->pName = Aig_UtilStrsav( p->pName );
     pNtk->pSpec = Aig_UtilStrsav( p->pSpec );
     Aig_ManForEachObj( p, pObj, i )
@@ -270,23 +270,23 @@ Ntk_Man_t * Ntk_ManFromIf( If_Man_t * pIfMan, Aig_Man_t * p )
             nLeaves  = If_CutLeaveNum( pCutBest ); 
             ppLeaves = If_CutLeaves( pCutBest );
             // create node
-            pObjNew = Ntk_ManCreateNode( pNtk, nLeaves, pIfObj->nRefs );
+            pObjNew = Nwk_ManCreateNode( pNtk, nLeaves, pIfObj->nRefs );
             for ( k = 0; k < nLeaves; k++ )
-                Ntk_ObjAddFanin( pObjNew, Aig_ManObj(p, ppLeaves[k])->pData );
+                Nwk_ObjAddFanin( pObjNew, Aig_ManObj(p, ppLeaves[k])->pData );
             // get the functionality
-            pObjNew->pFunc = Ntk_NodeIfToHop( pNtk->pManHop, pIfMan, pIfObj );
+            pObjNew->pFunc = Nwk_NodeIfToHop( pNtk->pManHop, pIfMan, pIfObj );
         }
         else if ( Aig_ObjIsPi(pObj) )
-            pObjNew = Ntk_ManCreateCi( pNtk, pIfObj->nRefs );
+            pObjNew = Nwk_ManCreateCi( pNtk, pIfObj->nRefs );
         else if ( Aig_ObjIsPo(pObj) )
         {
-            pObjNew = Ntk_ManCreateCo( pNtk );
+            pObjNew = Nwk_ManCreateCo( pNtk );
             pObjNew->fCompl = Aig_ObjFaninC0(pObj);
-            Ntk_ObjAddFanin( pObjNew, Aig_ObjFanin0(pObj)->pData );
+            Nwk_ObjAddFanin( pObjNew, Aig_ObjFanin0(pObj)->pData );
         }
         else if ( Aig_ObjIsConst1(pObj) )
         {
-            pObjNew = Ntk_ManCreateNode( pNtk, 0, pIfObj->nRefs );
+            pObjNew = Nwk_ManCreateNode( pNtk, 0, pIfObj->nRefs );
             pObjNew->pFunc = Hop_ManConst1( pNtk->pManHop );
         }
         else
@@ -308,16 +308,16 @@ Ntk_Man_t * Ntk_ManFromIf( If_Man_t * pIfMan, Aig_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Ntk_Man_t * Ntk_MappingIf( Aig_Man_t * p, Tim_Man_t * pManTime, If_Par_t * pPars )
+Nwk_Man_t * Nwk_MappingIf( Aig_Man_t * p, Tim_Man_t * pManTime, If_Par_t * pPars )
 {
-    Ntk_Man_t * pNtk;
+    Nwk_Man_t * pNtk;
     If_Man_t * pIfMan;
     // perform FPGA mapping
     // set the arrival times
     pPars->pTimesArr = ALLOC( float, Aig_ManPiNum(p) );
     memset( pPars->pTimesArr, 0, sizeof(float) * Aig_ManPiNum(p) );
     // translate into the mapper
-    pIfMan = Ntk_ManToIf( p, pPars );    
+    pIfMan = Nwk_ManToIf( p, pPars );    
     if ( pIfMan == NULL )
         return NULL;
     pIfMan->pManTim = Tim_ManDup( pManTime, 0 );
@@ -327,7 +327,7 @@ Ntk_Man_t * Ntk_MappingIf( Aig_Man_t * p, Tim_Man_t * pManTime, If_Par_t * pPars
         return NULL;
     }
     // transform the result of mapping into the new network
-    pNtk = Ntk_ManFromIf( pIfMan, p );
+    pNtk = Nwk_ManFromIf( pIfMan, p );
     If_ManStop( pIfMan );
     return pNtk;
 }

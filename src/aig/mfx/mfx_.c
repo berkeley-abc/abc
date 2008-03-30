@@ -1,10 +1,10 @@
 /**CFile****************************************************************
 
-  FileName    [ntk_.c]
+  FileName    [mfs_.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [Netlist representation.]
+  PackageName [The good old minimization with complete don't-cares.]
 
   Synopsis    []
 
@@ -14,11 +14,11 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: ntk_.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: mfs_.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "ntk.h"
+#include "mfsInt.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///

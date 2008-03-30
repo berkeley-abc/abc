@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [mfs.h]
+  FileName    [mfx.h]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,12 +14,12 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: mfs.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: mfx.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
  
-#ifndef __MFS_H__
-#define __MFS_H__
+#ifndef __MFX_H__
+#define __MFX_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,8 +37,8 @@ extern "C" {
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
 
-typedef struct Mfs_Par_t_ Mfs_Par_t;
-struct Mfs_Par_t_
+typedef struct Mfx_Par_t_ Mfx_Par_t;
+struct Mfx_Par_t_
 {
     // general parameters
     int           nWinTfoLevs;   // the maximum fanout levels
@@ -65,10 +65,8 @@ struct Mfs_Par_t_
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/*=== mfsCore.c ==========================================================*/
-extern void        Abc_NtkMfsParsDefault( Mfs_Par_t * pPars );
-extern int         Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars );
-
+/*=== mfxCore.c ==========================================================*/
+extern void        Mfx_ParsDefault( Mfx_Par_t * pPars );
  
 #ifdef __cplusplus
 }

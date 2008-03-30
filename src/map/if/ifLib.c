@@ -266,6 +266,38 @@ If_Lib_t * If_SetSimpleLutLib( int nLutSize )
     return If_LutLibDup(pLutLib);
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Gets the delay of the fastest pin.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float If_LutLibFastestPinDelay( If_Lib_t * p )
+{
+    return !p? 1.0 : p->pLutDelays[p->LutMax][0];
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gets the delay of the slowest pin.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float If_LutLibSlowestPinDelay( If_Lib_t * p )
+{
+    return !p? 1.0 : (p->fVarPinDelays? p->pLutDelays[p->LutMax][p->LutMax-1]: p->pLutDelays[p->LutMax][0]);
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

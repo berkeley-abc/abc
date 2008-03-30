@@ -84,7 +84,7 @@ Tim_Man_t * Ntl_ManCreateTiming( Ntl_Man_t * p )
     Ntl_Obj_t * pObj;
     int i, curPi, iBox, Entry;
     assert( p->pAig != NULL );
-    pRoot = Vec_PtrEntry( p->vModels, 0 );
+    pRoot = Ntl_ManRootModel( p );
     // start the timing manager
     pMan = Tim_ManStart( Aig_ManPiNum(p->pAig), Aig_ManPoNum(p->pAig) );
     // unpack the data in the arrival times

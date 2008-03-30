@@ -61,6 +61,57 @@ Ntl_Man_t * Ntl_ManAlloc( char * pFileName )
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicates the interface of the top level model.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ntl_Man_t * Ntl_ManStartFrom( Ntl_Man_t * pOld )
+{
+    return NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the interface of the top level model.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ntl_Man_t * Ntl_ManDup( Ntl_Man_t * pOld )
+{
+    Ntl_Man_t * pNew;
+    Ntl_Mod_t * pModel;
+    Ntl_Obj_t * pBox;
+    Ntl_Net_t * pNet;
+    int i, k;
+    pNew = Ntl_ManAlloc( pOld->pSpec );
+    Vec_PtrForEachEntry( pOld->vModels, pModel, i )
+        pModel->pCopy = Ntl_ModelDup( pNew, pModel );
+    Vec_PtrForEachEntry( pOld->vModels, pModel, i )
+        Ntl_ModelForEachBox( pModel, pBox, k )
+            ((Ntl_Obj_t *)pBox->pCopy)->pImplem = pBox->pImplem->pCopy;
+    Ntl_ManForEachCiNet( pOld, pNet, i )
+        Vec_PtrPush( pNew->vCis, pNet->pCopy );
+    Ntl_ManForEachCoNet( pOld, pNet, i )
+        Vec_PtrPush( pNew->vCos, pNet->pCopy );
+    if ( pOld->pManTime )
+        pNew->pManTime = Tim_ManDup( pOld->pManTime, 0 );
+    if ( !Ntl_ManCheck( pNew ) )
+        printf( "Ntl_ManDup: The check has failed for design %s.\n", pNew->pName );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Deallocates the netlist manager.]
 
   Description []
@@ -126,15 +177,16 @@ Ntl_Mod_t * Ntl_ManFindModel( Ntl_Man_t * p, char * pName )
 void Ntl_ManPrintStats( Ntl_Man_t * p )
 {
     Ntl_Mod_t * pRoot;
-    pRoot = Vec_PtrEntry( p->vModels, 0 );
+    pRoot = Ntl_ManRootModel( p );
     printf( "%-15s : ",       p->pName );
     printf( "pi = %5d  ",    Ntl_ModelPiNum(pRoot) );
     printf( "po = %5d  ",    Ntl_ModelPoNum(pRoot) );
-    printf( "latch = %5d  ", Ntl_ModelLatchNum(pRoot) );
+    printf( "lat = %5d  ", Ntl_ModelLatchNum(pRoot) );
     printf( "node = %5d  ",  Ntl_ModelNodeNum(pRoot) );
     printf( "box = %4d  ",   Ntl_ModelBoxNum(pRoot) );
-    printf( "model = %3d",   Vec_PtrSize(p->vModels) );
+    printf( "mod = %3d",   Vec_PtrSize(p->vModels) );
     printf( "\n" );
+    fflush( stdout );
 }
 
 /**Function*************************************************************
@@ -173,14 +225,49 @@ Ntl_Mod_t * Ntl_ModelAlloc( Ntl_Man_t * pMan, char * pName )
     p->pMan  = pMan;
     p->pName = Ntl_ManStoreName( p->pMan, pName );
     Vec_PtrPush( pMan->vModels, p );
-    p->vObjs = Vec_PtrAlloc( 10000 );
-    p->vPis  = Vec_PtrAlloc( 1000 );
-    p->vPos  = Vec_PtrAlloc( 1000 );
+    p->vObjs = Vec_PtrAlloc( 1000 );
+    p->vPis  = Vec_PtrAlloc( 100 );
+    p->vPos  = Vec_PtrAlloc( 100 );
     // start the table
-    p->nTableSize = Aig_PrimeCudd( 10000 );
+    p->nTableSize = Aig_PrimeCudd( 1000 );
     p->pTable = ALLOC( Ntl_Net_t *, p->nTableSize );
     memset( p->pTable, 0, sizeof(Ntl_Net_t *) * p->nTableSize );
     return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the model.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ntl_Mod_t * Ntl_ModelDup( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld )
+{
+    Ntl_Mod_t * pModelNew;
+    Ntl_Net_t * pNet;
+    Ntl_Obj_t * pObj;
+    int i, k;
+    pModelNew = Ntl_ModelAlloc( pManNew, pModelOld->pName );
+    Ntl_ModelForEachNet( pModelOld, pNet, i )
+        pNet->pCopy = Ntl_ModelFindOrCreateNet( pModelNew, pNet->pName );
+    Ntl_ModelForEachObj( pModelOld, pObj, i )
+    {
+        pObj->pCopy = Ntl_ModelDupObj( pModelNew, pObj );
+        Ntl_ObjForEachFanin( pObj, pNet, k )
+            Ntl_ObjSetFanin( pObj->pCopy, pNet->pCopy, k );
+        Ntl_ObjForEachFanout( pObj, pNet, k )
+            Ntl_ObjSetFanout( pObj->pCopy, pNet->pCopy, k );
+        if ( Ntl_ObjIsLatch(pObj) )
+            ((Ntl_Obj_t *)pObj->pCopy)->LatchId = pObj->LatchId;
+        if ( Ntl_ObjIsNode(pObj) )
+            ((Ntl_Obj_t *)pObj->pCopy)->pSop = Ntl_ManStoreSop( pManNew, pObj->pSop );
+    }
+    return pModelNew;
 }
 
 /**Function*************************************************************

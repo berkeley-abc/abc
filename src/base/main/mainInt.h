@@ -76,7 +76,7 @@ struct Abc_Frame_t_
 
     // new code
     void *          pAbc8Ntl;    // the current design
-    void *          pAbc8Ntk;    // the current mapped network
+    void *          pAbc8Nwk;    // the current mapped network
     void *          pAbc8Aig;    // the current AIG
     void *          pAbc8Lib;    // the current LUT library
 };

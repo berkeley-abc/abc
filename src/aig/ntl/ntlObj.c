@@ -163,6 +163,33 @@ Ntl_Obj_t * Ntl_ModelCreateBox( Ntl_Mod_t * pModel, int nFanins, int nFanouts )
 
 /**Function*************************************************************
 
+  Synopsis    [Create the latch.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ntl_Obj_t * Ntl_ModelDupObj( Ntl_Mod_t * pModel, Ntl_Obj_t * pOld )
+{
+    Ntl_Obj_t * pNew;
+    if ( Ntl_ObjIsPi( pOld ) )
+        pNew = Ntl_ModelCreatePi( pModel ); 
+    else if ( Ntl_ObjIsPo( pOld ) )
+        pNew = Ntl_ModelCreatePo( pModel, NULL ); 
+    else if ( Ntl_ObjIsLatch( pOld ) )
+        pNew = Ntl_ModelCreateLatch( pModel ); 
+    else if ( Ntl_ObjIsNode( pOld ) )
+        pNew = Ntl_ModelCreateNode( pModel, Ntl_ObjFaninNum(pOld) ); 
+    else if ( Ntl_ObjIsBox( pOld ) )
+        pNew = Ntl_ModelCreateBox( pModel, Ntl_ObjFaninNum(pOld), Ntl_ObjFanoutNum(pOld) ); 
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Allocates memory and copies the name into it.]
 
   Description []

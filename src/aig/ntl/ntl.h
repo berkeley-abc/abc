@@ -31,7 +31,7 @@ extern "C" {
 
 #include "aig.h"
 #include "tim.h"
-#include "ntk.h"
+#include "nwk.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -94,11 +94,14 @@ struct Ntl_Mod_t_
     Vec_Int_t *        vArrivals;
     Vec_Int_t *        vRequireds;
     float *            pDelayTable;   
+    // other data members
+    void *             pCopy;
 }; 
 
 struct Ntl_Obj_t_
 {
     Ntl_Mod_t *        pModel;         // the model  
+    void *             pCopy;          // the copy of this object
     unsigned           Type   :  3;    // object type
     unsigned           Id     : 27;    // object ID
     unsigned           MarkA  :  1;    // temporary mark  
@@ -115,9 +118,9 @@ struct Ntl_Obj_t_
 
 struct Ntl_Net_t_
 {
-    Ntl_Obj_t *        pDriver;        // driver of the net
     Ntl_Net_t *        pNext;          // next net in the hash table
-    Aig_Obj_t *        pFunc;          // the AIG representation
+    void *             pCopy;          // the copy of this object
+    Ntl_Obj_t *        pDriver;        // driver of the net
     char               nVisits;        // the number of times the net is visited
     char               fMark;          // temporary mark
     char               pName[0];       // the name of this net
@@ -139,6 +142,8 @@ struct Ntl_Lut_t_
 ////////////////////////////////////////////////////////////////////////
 ///                      INLINED FUNCTIONS                           ///
 ////////////////////////////////////////////////////////////////////////
+
+static inline Ntl_Mod_t * Ntl_ManRootModel( Ntl_Man_t * p )       { return Vec_PtrEntry( p->vModels, 0 );       } 
 
 static inline int         Ntl_ModelPiNum( Ntl_Mod_t * p )         { return p->nObjs[NTL_OBJ_PI];                } 
 static inline int         Ntl_ModelPoNum( Ntl_Mod_t * p )         { return p->nObjs[NTL_OBJ_PO];                } 
@@ -169,7 +174,7 @@ static inline Ntl_Net_t * Ntl_ObjFanin0( Ntl_Obj_t * p )          { return p->pF
 static inline Ntl_Net_t * Ntl_ObjFanout0( Ntl_Obj_t * p )         { return p->pFanio[p->nFanins];               } 
 
 static inline Ntl_Net_t * Ntl_ObjFanin( Ntl_Obj_t * p, int i )    { return p->pFanio[i];                        } 
-static inline Ntl_Net_t * Ntl_ObjFanout( Ntl_Obj_t * p, int i )   { return p->pFanio[p->nFanins+1];             } 
+static inline Ntl_Net_t * Ntl_ObjFanout( Ntl_Obj_t * p, int i )   { return p->pFanio[p->nFanins+i];             } 
 
 static inline void        Ntl_ObjSetFanin( Ntl_Obj_t * p, Ntl_Net_t * pNet, int i )    { p->pFanio[i] = pNet;   } 
 static inline void        Ntl_ObjSetFanout( Ntl_Obj_t * p, Ntl_Net_t * pNet, int i )   { p->pFanio[p->nFanins+i] = pNet; pNet->pDriver = p; } 
@@ -186,10 +191,10 @@ static inline void        Ntl_ObjSetFanout( Ntl_Obj_t * p, Ntl_Net_t * pNet, int
     Vec_PtrForEachEntry( p->vCos, pNtl, i )
 #define Ntl_ManForEachNode( p, pObj, i )                                   \
     for ( i = 0; (i < Vec_PtrSize(p->vNodes)) && (((pObj) = Vec_PtrEntry(p->vNodes, i)), 1); i++ ) \
-        if ( !Ntl_ObjIsNode(pObj) ) {} else
+        if ( (pObj) == NULL || !Ntl_ObjIsNode(pObj) ) {} else
 #define Ntl_ManForEachBox( p, pObj, i )                                    \
     for ( i = 0; (i < Vec_PtrSize(p->vNodes)) && (((pObj) = Vec_PtrEntry(p->vNodes, i)), 1); i++ ) \
-        if ( !Ntl_ObjIsBox(pObj) ) {} else
+        if ( (pObj) == NULL || !Ntl_ObjIsBox(pObj) ) {} else
 
 #define Ntl_ModelForEachPi( pNtl, pObj, i )                                     \
     Vec_PtrForEachEntry( pNtl->vPis, pObj, i )
@@ -200,13 +205,13 @@ static inline void        Ntl_ObjSetFanout( Ntl_Obj_t * p, Ntl_Net_t * pNet, int
         if ( pObj == NULL ) {} else
 #define Ntl_ModelForEachLatch( pNtl, pObj, i )                                  \
     for ( i = 0; (i < Vec_PtrSize(pNtl->vObjs)) && (((pObj) = Vec_PtrEntry(pNtl->vObjs, i)), 1); i++ ) \
-        if ( !Ntl_ObjIsLatch(pObj) ) {} else
+        if ( (pObj) == NULL || !Ntl_ObjIsLatch(pObj) ) {} else
 #define Ntl_ModelForEachNode( pNtl, pObj, i )                                   \
     for ( i = 0; (i < Vec_PtrSize(pNtl->vObjs)) && (((pObj) = Vec_PtrEntry(pNtl->vObjs, i)), 1); i++ ) \
-        if ( !Ntl_ObjIsNode(pObj) ) {} else
+        if ( (pObj) == NULL || !Ntl_ObjIsNode(pObj) ) {} else
 #define Ntl_ModelForEachBox( pNtl, pObj, i )                                    \
     for ( i = 0; (i < Vec_PtrSize(pNtl->vObjs)) && (((pObj) = Vec_PtrEntry(pNtl->vObjs, i)), 1); i++ ) \
-        if ( !Ntl_ObjIsBox(pObj) ) {} else
+        if ( (pObj) == NULL || !Ntl_ObjIsBox(pObj) ) {} else
 #define Ntl_ModelForEachNet( pNtl, pNet, i )                                    \
     for ( i = 0; i < pNtl->nTableSize; i++ )                                    \
         for ( pNet = pNtl->pTable[i]; pNet; pNet = pNet->pNext ) 
@@ -225,21 +230,25 @@ extern int             Ntl_ManInsertTest( Ntl_Man_t * p, Aig_Man_t * pAig );
 extern int             Ntl_ManInsertTestIf( Ntl_Man_t * p, Aig_Man_t * pAig );
 /*=== ntlExtract.c ==========================================================*/
 extern Aig_Man_t *     Ntl_ManExtract( Ntl_Man_t * p );
+extern Aig_Man_t *     Ntl_ManCollapse( Ntl_Man_t * p );
 extern char *          Ntl_SopFromTruth( Ntl_Man_t * p, unsigned * pTruth, int nVars, Vec_Int_t * vCover );
 /*=== ntlInsert.c ==========================================================*/
 extern int             Ntl_ManInsert( Ntl_Man_t * p, Vec_Ptr_t * vMapping, Aig_Man_t * pAig );
-extern int             Ntl_ManInsertNtk( Ntl_Man_t * p, Ntk_Man_t * pNtk );
+extern int             Ntl_ManInsertNtk( Ntl_Man_t * p, Nwk_Man_t * pNtk );
 /*=== ntlCheck.c ==========================================================*/
 extern int             Ntl_ManCheck( Ntl_Man_t * pMan );
 extern int             Ntl_ModelCheck( Ntl_Mod_t * pModel );
 extern void            Ntl_ModelFixNonDrivenNets( Ntl_Mod_t * pModel );
 /*=== ntlMan.c ============================================================*/
 extern Ntl_Man_t *     Ntl_ManAlloc( char * pFileName );
+extern Ntl_Man_t *     Ntl_ManStartFrom( Ntl_Man_t * p );
+extern Ntl_Man_t *     Ntl_ManDup( Ntl_Man_t * p );
 extern void            Ntl_ManFree( Ntl_Man_t * p );
 extern Ntl_Mod_t *     Ntl_ManFindModel( Ntl_Man_t * p, char * pName );
 extern void            Ntl_ManPrintStats( Ntl_Man_t * p );
 extern Tim_Man_t *     Ntl_ManReadTimeMan( Ntl_Man_t * p );
 extern Ntl_Mod_t *     Ntl_ModelAlloc( Ntl_Man_t * pMan, char * pName );
+extern Ntl_Mod_t *     Ntl_ModelDup( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld );
 extern void            Ntl_ModelFree( Ntl_Mod_t * p );
 /*=== ntlMap.c ============================================================*/
 extern Vec_Ptr_t *     Ntl_MappingAlloc( int nLuts, int nVars );
@@ -252,14 +261,15 @@ extern Ntl_Obj_t *     Ntl_ModelCreatePo( Ntl_Mod_t * pModel, Ntl_Net_t * pNet )
 extern Ntl_Obj_t *     Ntl_ModelCreateLatch( Ntl_Mod_t * pModel );
 extern Ntl_Obj_t *     Ntl_ModelCreateNode( Ntl_Mod_t * pModel, int nFanins );
 extern Ntl_Obj_t *     Ntl_ModelCreateBox( Ntl_Mod_t * pModel, int nFanins, int nFanouts );
+extern Ntl_Obj_t *     Ntl_ModelDupObj( Ntl_Mod_t * pModel, Ntl_Obj_t * pOld );
 extern char *          Ntl_ManStoreName( Ntl_Man_t * p, char * pName );
 extern char *          Ntl_ManStoreSop( Ntl_Man_t * p, char * pSop );
 extern char *          Ntl_ManStoreFileName( Ntl_Man_t * p, char * pFileName );
 /*=== ntlTable.c ==========================================================*/
 extern Ntl_Net_t *     Ntl_ModelFindNet( Ntl_Mod_t * p, char * pName );
 extern Ntl_Net_t *     Ntl_ModelFindOrCreateNet( Ntl_Mod_t * p, char * pName );
-extern int             Ntl_ModelSetNetDriver( Ntl_Obj_t * pObj, Ntl_Net_t * pNet );
 extern int             Ntl_ModelFindPioNumber( Ntl_Mod_t * p, char * pName, int * pNumber );
+extern int             Ntl_ModelSetNetDriver( Ntl_Obj_t * pObj, Ntl_Net_t * pNet );
 /*=== ntlTime.c ==========================================================*/
 extern Tim_Man_t *     Ntl_ManCreateTiming( Ntl_Man_t * p );
 /*=== ntlReadBlif.c ==========================================================*/

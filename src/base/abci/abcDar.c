@@ -946,7 +946,7 @@ int Abc_NtkDarCec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fPartition, int fVe
     {
         pMan1 = Abc_NtkToDar( pNtk1, 0, 0 );
         pMan2 = Abc_NtkToDar( pNtk2, 0, 0 );
-        RetValue = Fra_FraigCecPartitioned( pMan1, pMan2, fVerbose );
+        RetValue = Fra_FraigCecPartitioned( pMan1, pMan2, 100, fVerbose );
         Aig_ManStop( pMan1 );
         Aig_ManStop( pMan2 );
         goto finish;
@@ -1716,43 +1716,6 @@ Abc_Ntk_t * Abc_NtkBalanceExor( Abc_Ntk_t * pNtk, int fUpdateLevel, int fVerbose
 }
 
 
-#include "ntl.h"
-
-/**Function*************************************************************
-
-  Synopsis    [Performs targe enlargement.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Abc_NtkDarTestBlif( char * pFileName )
-{
-/*
-    char Buffer[1000];
-    Ntl_Man_t * p;
-    p = Ioa_ReadBlif( pFileName, 1 );
-    if ( p == NULL )
-    {
-        printf( "Abc_NtkDarTestBlif(): Reading BLIF has failed.\n" );
-        return;
-    }
-    Ntl_ManPrintStats( p );
-//    if ( !Ntl_ManInsertTest( p ) )
-    if ( !Ntl_ManInsertTestIf( p ) )
-    {
-        printf( "Abc_NtkDarTestBlif(): Tranformation of the netlist has failed.\n" );
-        return;
-    }
-//    sprintf( Buffer, "%s_.blif", p->pName );
-    sprintf( Buffer, "test_.blif", p->pName );
-    Ioa_WriteBlif( p, Buffer );
-    Ntl_ManFree( p );
-*/
-}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

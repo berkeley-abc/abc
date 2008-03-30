@@ -67,7 +67,7 @@ void Abc_NtkDfs_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes )
 
   Synopsis    [Returns the DFS ordered array of logic nodes.]
 
-  Description [Collects only the internal nodes, leaving CIs and CO.
+  Description [Collects only the internal nodes, leaving out CIs and CO.
   However it marks with the current TravId both CIs and COs.]
                
   SideEffects []
@@ -747,6 +747,31 @@ Vec_Ptr_t * Abc_NtkNodeSupport( Abc_Ntk_t * pNtk, Abc_Obj_t ** ppNodes, int nNod
         else
             Abc_NtkNodeSupport_rec( ppNodes[i], vNodes );
     return vNodes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes the sum total of supports of all outputs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkSupportSum( Abc_Ntk_t * pNtk )
+{
+    Vec_Ptr_t * vSupp;
+    Abc_Obj_t * pObj;
+    int i, nTotalSupps = 0;
+    Abc_NtkForEachCo( pNtk, pObj, i )
+    {
+        vSupp = Abc_NtkNodeSupport( pNtk, &pObj, 1 );
+        nTotalSupps += Vec_PtrSize( vSupp );
+        Vec_PtrFree( vSupp );
+    }
+    printf( "Total supports = %d.\n", nTotalSupps );
 }
 
 

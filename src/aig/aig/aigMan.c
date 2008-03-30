@@ -102,6 +102,71 @@ Aig_Man_t * Aig_ManStartFrom( Aig_Man_t * p )
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the AIG manager to have EXOR gates.]
+
+  Description [Assumes topological ordering of the nodes.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Aig_ManDupExor( Aig_Man_t * p )
+{
+    Aig_Man_t * pNew;
+    Aig_Obj_t * pObj, * pObjNew;
+    int i;
+    // create the new manager
+    pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
+    pNew->fCatchExor = 1;
+    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->nRegs = p->nRegs;
+    pNew->nAsserts = p->nAsserts;
+    if ( p->vFlopNums )
+        pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
+    // create the PIs
+    Aig_ManCleanData( p );
+    // duplicate internal nodes
+    Aig_ManForEachObj( p, pObj, i )
+    {
+        if ( Aig_ObjIsBuf(pObj) )
+        {
+            pObjNew = Aig_ObjChild0Copy(pObj);
+        }
+        else if ( Aig_ObjIsNode(pObj) )
+        {
+            pObjNew = Aig_Oper( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj), Aig_ObjType(pObj) );
+        }
+        else if ( Aig_ObjIsPi(pObj) )
+        {
+            pObjNew = Aig_ObjCreatePi( pNew );
+            pObjNew->Level = pObj->Level;
+        }
+        else if ( Aig_ObjIsPo(pObj) )
+        {
+            pObjNew = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+        }
+        else if ( Aig_ObjIsConst1(pObj) )
+        {
+            pObjNew = Aig_ManConst1(pNew);
+        }
+        else
+            assert( 0 );
+        Aig_Regular(pObjNew)->pHaig = pObj->pHaig;
+        pObj->pData = pObjNew;
+    }
+    Aig_ManCleanup( pNew );
+    // duplicate the timing manager
+    if ( p->pManTime )
+        pNew->pManTime = Tim_ManDup( p->pManTime, 0 );
+    // check the resulting network
+    if ( !Aig_ManCheck(pNew) )
+        printf( "Aig_ManDup(): The check has failed.\n" );
+    return pNew;
+}
+
 //#if 0
 
 /**Function*************************************************************
@@ -584,22 +649,24 @@ int Aig_ManHaigCounter( Aig_Man_t * pAig )
 void Aig_ManPrintStats( Aig_Man_t * p )
 {
     int nChoices = Aig_ManCountChoices(p);
-    printf( "PI/PO = %5d/%5d   ", Aig_ManPiNum(p), Aig_ManPoNum(p) );
-    printf( "A = %7d. ",   Aig_ManAndNum(p) );
-    printf( "Eq = %7d. ",  Aig_ManHaigCounter(p) );
-    if ( nChoices )
-        printf( "Ch = %5d. ",  nChoices );
-    if ( Aig_ManExorNum(p) )
-        printf( "X = %5d. ",    Aig_ManExorNum(p) );
-    if ( Aig_ManBufNum(p) )
-        printf( "B = %5d. ",    Aig_ManBufNum(p) );
-//    printf( "Cre = %6d. ",  p->nCreated );
-//    printf( "Del = %6d. ",  p->nDeleted );
-//    printf( "Lev = %3d. ",  Aig_ManCountLevels(p) );
-    printf( "Max = %7d. ",  Aig_ManObjNumMax(p) );
-    printf( "Lev = %3d. ",  Aig_ManLevels(p) );
+    printf( "%-15s : ",      p->pName );
+    printf( "pi = %5d  ",    Aig_ManPiNum(p) );
+    printf( "po = %5d  ",    Aig_ManPoNum(p) );
     if ( Aig_ManRegNum(p) )
-        printf( "Lat = %5d. ", Aig_ManRegNum(p) );
+    printf( "lat = %5d  ", Aig_ManRegNum(p) );
+    printf( "and = %7d  ",   Aig_ManAndNum(p) );
+//    printf( "Eq = %7d  ",     Aig_ManHaigCounter(p) );
+    if ( Aig_ManExorNum(p) )
+    printf( "xor = %5d  ",    Aig_ManExorNum(p) );
+    if ( nChoices )
+    printf( "ch = %5d  ",  nChoices );
+    if ( Aig_ManBufNum(p) )
+    printf( "buf = %5d  ",    Aig_ManBufNum(p) );
+//    printf( "Cre = %6d  ",  p->nCreated );
+//    printf( "Del = %6d  ",  p->nDeleted );
+//    printf( "Lev = %3d  ",  Aig_ManCountLevels(p) );
+//    printf( "Max = %7d  ",  Aig_ManObjNumMax(p) );
+    printf( "lev = %3d",  Aig_ManLevels(p) );
     printf( "\n" );
     fflush( stdout );
 }

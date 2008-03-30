@@ -47,6 +47,7 @@ struct Tim_Man_t_
     Vec_Ptr_t *      vDelayTables;   // pointers to the delay tables
     Mem_Flex_t *     pMemObj;        // memory manager for boxes
     int              nTravIds;       // traversal ID of the manager
+    int              fUseTravId;     // enables the use of traversal ID
     int              nPis;           // the number of PIs
     int              nPos;           // the number of POs
     Tim_Obj_t *      pPis;           // timing info for the PIs
@@ -143,6 +144,7 @@ Tim_Man_t * Tim_ManStart( int nPis, int nPos )
         p->pPos[i].timeArr = 0.0;
         p->pPos[i].TravId = 0;
     }
+    p->fUseTravId = 1;
     return p;
 }
 
@@ -238,6 +240,33 @@ Tim_Man_t * Tim_ManDupUnit( Tim_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicates the timing manager.]
+
+  Description [Derives the approximate timing manager with realistic delays
+  but without white-boxes.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Tim_Man_t * Tim_ManDupApprox( Tim_Man_t * p )
+{
+    Tim_Man_t * pNew;
+    int k;
+    pNew = Tim_ManStart( p->nPis, p->nPos );
+    for ( k = 0; k < p->nPis; k++ )
+        if ( p->pPis[k].iObj2Box == -1 )
+            pNew->pPis[k].timeArr = p->pPis[k].timeArr;
+        else
+            pNew->pPis[k].timeArr = p->pPis[k].timeReq;
+    for ( k = 0; k < p->nPos; k++ )
+        pNew->pPos[k].timeReq = p->pPos[k].timeReq;
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Stops the timing manager.]
 
   Description []
@@ -298,6 +327,38 @@ void Tim_ManPrint( Tim_Man_t * p )
             printf( "box-out%3d :  arr = %5.3f  req = %5.3f\n", i, pObj->timeArr, pObj->timeReq );
     }
     printf( "\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Disables the use of the traversal ID.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Tim_ManTravIdDisable( Tim_Man_t * p )
+{
+    p->fUseTravId = 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Enables the use of the traversal ID.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Tim_ManTravIdEnable( Tim_Man_t * p )
+{
+    p->fUseTravId = 1;
 }
 
 /**Function*************************************************************
@@ -459,7 +520,7 @@ void Tim_ManInitPoRequired( Tim_Man_t * p, int iPo, float Delay )
 void Tim_ManSetPoArrival( Tim_Man_t * p, int iPo, float Delay )
 {
     assert( iPo < p->nPos );
-    assert( p->pPos[iPo].TravId != p->nTravIds );
+    assert( !p->fUseTravId || p->pPos[iPo].TravId != p->nTravIds );
     p->pPos[iPo].timeArr = Delay;
     p->pPos[iPo].TravId = p->nTravIds;
 }
@@ -478,7 +539,7 @@ void Tim_ManSetPoArrival( Tim_Man_t * p, int iPo, float Delay )
 void Tim_ManSetPiRequired( Tim_Man_t * p, int iPi, float Delay )
 {
     assert( iPi < p->nPis );
-    assert( p->pPis[iPi].TravId != p->nTravIds );
+    assert( !p->fUseTravId || p->pPis[iPi].TravId != p->nTravIds );
     p->pPis[iPi].timeReq = Delay;
     p->pPis[iPi].TravId = p->nTravIds;
 }
@@ -497,7 +558,7 @@ void Tim_ManSetPiRequired( Tim_Man_t * p, int iPi, float Delay )
 void Tim_ManSetPoRequired( Tim_Man_t * p, int iPo, float Delay )
 {
     assert( iPo < p->nPos );
-    assert( p->pPos[iPo].TravId != p->nTravIds );
+    assert( !p->fUseTravId || p->pPos[iPo].TravId != p->nTravIds );
     p->pPos[iPo].timeReq = Delay;
     p->pPos[iPo].TravId = p->nTravIds;
 }
@@ -541,7 +602,7 @@ float Tim_ManGetPiArrival( Tim_Man_t * p, int iPi )
     int i, k;
     // consider the already processed PI
     pObjThis = Tim_ManPi( p, iPi );
-    if ( pObjThis->TravId == p->nTravIds )
+    if ( p->fUseTravId && pObjThis->TravId == p->nTravIds )
         return pObjThis->timeArr;
     pObjThis->TravId = p->nTravIds;
     // consider the main PI
@@ -551,9 +612,10 @@ float Tim_ManGetPiArrival( Tim_Man_t * p, int iPi )
     // update box timing
     pBox->TravId = p->nTravIds;
     // get the arrival times of the inputs of the box (POs)
+    if ( p->fUseTravId )
     Tim_ManBoxForEachInput( p, pBox, pObj, i )
         if ( pObj->TravId != p->nTravIds )
-            printf( "Tim_ManGetPiArrival(): PO arrival times of the box are not up to date!\n" );
+            printf( "Tim_ManGetPiArrival(): Input arrival times of the box are not up to date!\n" );
     // compute the arrival times for each output of the box (PIs)
     Tim_ManBoxForEachOutput( p, pBox, pObjRes, i )
     {
@@ -586,7 +648,7 @@ float Tim_ManGetPoRequired( Tim_Man_t * p, int iPo )
     int i, k;
     // consider the already processed PO
     pObjThis = Tim_ManPo( p, iPo );
-    if ( pObjThis->TravId == p->nTravIds )
+    if ( p->fUseTravId && pObjThis->TravId == p->nTravIds )
         return pObjThis->timeReq;
     pObjThis->TravId = p->nTravIds;
     // consider the main PO
@@ -595,11 +657,12 @@ float Tim_ManGetPoRequired( Tim_Man_t * p, int iPo )
         return pObjThis->timeReq;
     // update box timing
     pBox->TravId = p->nTravIds;
-    // get the required times of the inputs of the box (POs)
+    // get the required times of the outputs of the box (PIs)
+    if ( p->fUseTravId )
     Tim_ManBoxForEachOutput( p, pBox, pObj, i )
         if ( pObj->TravId != p->nTravIds )
-            printf( "Tim_ManGetPoRequired(): PI required times of the box are not up to date!\n" );
-    // compute the required times for each output of the box (PIs)
+            printf( "Tim_ManGetPoRequired(): Output required times of the box are not up to date!\n" );
+    // compute the required times for each input of the box (POs)
     Tim_ManBoxForEachInput( p, pBox, pObjRes, i )
     {
         DelayBest = AIG_INFINITY;

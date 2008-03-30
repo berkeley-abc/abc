@@ -357,6 +357,15 @@ extern float           If_CutEdgeDeref( If_Man_t * p, If_Cut_t * pCut );
 extern float           If_CutEdgeRef( If_Man_t * p, If_Cut_t * pCut );
 extern float           If_CutEdgeDerefed( If_Man_t * p, If_Cut_t * pCut );
 extern float           If_CutEdgeRefed( If_Man_t * p, If_Cut_t * pCut );
+/*=== ifLib.c =============================================================*/
+extern If_Lib_t *      If_LutLibRead( char * FileName );
+extern If_Lib_t *      If_LutLibDup( If_Lib_t * p );
+extern void            If_LutLibFree( If_Lib_t * pLutLib );
+extern void            If_LutLibPrint( If_Lib_t * pLutLib );
+extern int             If_LutLibDelaysAreDiscrete( If_Lib_t * pLutLib );
+extern If_Lib_t *      If_SetSimpleLutLib( int nLutSize );
+extern float           If_LutLibFastestPinDelay( If_Lib_t * p );
+extern float           If_LutLibSlowestPinDelay( If_Lib_t * p );
 /*=== ifMan.c =============================================================*/
 extern If_Man_t *      If_ManStart( If_Par_t * pPars );
 extern void            If_ManRestart( If_Man_t * p );

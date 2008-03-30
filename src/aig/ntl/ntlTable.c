@@ -151,28 +151,6 @@ Ntl_Net_t * Ntl_ModelFindOrCreateNet( Ntl_Mod_t * p, char * pName )
 
 /**Function*************************************************************
 
-  Synopsis    [Finds or creates the net.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ntl_ModelSetNetDriver( Ntl_Obj_t * pObj, Ntl_Net_t * pNet )
-{
-    if ( pObj->pFanio[pObj->nFanins] != NULL )
-        return 0;
-    if ( pNet->pDriver != NULL )
-        return 0;
-    pObj->pFanio[pObj->nFanins] = pNet;
-    pNet->pDriver = pObj;
-    return 1;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Returns -1, 0, +1 (when it is PI, not found, or PO).]
 
   Description []
@@ -208,6 +186,28 @@ int Ntl_ModelFindPioNumber( Ntl_Mod_t * p, char * pName, int * pNumber )
         }
     }
     return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Finds or creates the net.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ModelSetNetDriver( Ntl_Obj_t * pObj, Ntl_Net_t * pNet )
+{
+    if ( pObj->pFanio[pObj->nFanins] != NULL )
+        return 0;
+    if ( pNet->pDriver != NULL )
+        return 0;
+    pObj->pFanio[pObj->nFanins] = pNet;
+    pNet->pDriver = pObj;
+    return 1;
 }
 
 ////////////////////////////////////////////////////////////////////////

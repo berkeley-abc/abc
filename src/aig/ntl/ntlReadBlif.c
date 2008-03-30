@@ -108,9 +108,7 @@ Ntl_Man_t * Ioa_ReadBlif( char * pFileName, int fCheck )
 {
     FILE * pFile;
     Ioa_ReadMan_t * p;
-    Ntl_Mod_t * pNtk;
     Ntl_Man_t * pDesign;
-    int i;
 
     // check that the file is available
     pFile = fopen( pFileName, "rb" );
@@ -158,20 +156,9 @@ Ntl_Man_t * Ioa_ReadBlif( char * pFileName, int fCheck )
     // make sure that everything is okay with the network structure
     if ( fCheck )
     {
-        // check individual models
-        Vec_PtrForEachEntry( pDesign->vModels, pNtk, i )
-        {
-            if ( !Ntl_ModelCheck( pNtk ) )
-            {
-                printf( "Ioa_ReadBlif: The network check has failed for network %s.\n", pNtk->pName );
-                Ntl_ManFree( pDesign );
-                return NULL;
-            }
-        }
-        // check the hierarchy
         if ( !Ntl_ManCheck( pDesign ) )
         {
-            printf( "Ioa_ReadBlif: The hierarchy check has failed for design %s.\n", pDesign->pName );
+            printf( "Ioa_ReadBlif: The check has failed for design %s.\n", pDesign->pName );
             Ntl_ManFree( pDesign );
             return NULL;
         }
