@@ -80,6 +80,7 @@ extern void            Dar_LibStart();
 extern void            Dar_LibStop();
 /*=== darBalance.c ========================================================*/
 extern Aig_Man_t *     Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel );
+extern Aig_Man_t *     Dar_ManBalanceXor( Aig_Man_t * pAig, int fExor, int fUpdateLevel, int fVerbose );
 extern void            Dar_BalancePrintStats( Aig_Man_t * p );
 /*=== darCore.c ========================================================*/
 extern void            Dar_ManDefaultRwrParams( Dar_RwrPar_t * pPars );
@@ -94,7 +95,6 @@ extern Aig_Man_t *     Dar_ManRwsat( Aig_Man_t * pAig, int fBalance, int fVerbos
 extern Aig_Man_t *     Dar_ManCompress( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fVerbose );
 extern Aig_Man_t *     Dar_ManCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fFanout, int fVerbose );
 extern Aig_Man_t *     Dar_ManChoice( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fConstruct, int nConfMax, int nLevelMax, int fVerbose );
-extern Aig_Man_t *     Dar_ManBalanceXor( Aig_Man_t * pAig, int fExor, int fUpdateLevel, int fVerbose );
 
 #ifdef __cplusplus
 }

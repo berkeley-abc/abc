@@ -30,6 +30,63 @@
 
 /**Function*************************************************************
 
+  Synopsis    [Verifies that the objects are in a topo order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Nwk_ManVerifyTopoOrder( Nwk_Man_t * pNtk )
+{
+    Nwk_Obj_t * pObj, * pNext;
+    int i, k, iBox, iTerm1, nTerms;
+    Nwk_ManIncrementTravId( pNtk );
+    Nwk_ManForEachObj( pNtk, pObj, i )
+    {
+        if ( Nwk_ObjIsNode(pObj) || Nwk_ObjIsCo(pObj) )
+        {
+            Nwk_ObjForEachFanin( pObj, pNext, k )
+            {
+                if ( !Nwk_ObjIsTravIdCurrent(pNext) )
+                {
+                    printf( "Node %d has fanin %d that is not in a topological order.\n", pObj->Id, pNext->Id );
+                    return 0;
+                }
+            }
+        }
+        else if ( Nwk_ObjIsCi(pObj) )
+        {
+            if ( pNtk->pManTime )
+            {
+                iBox = Tim_ManBoxForCi( pNtk->pManTime, pObj->PioId );
+                if ( iBox >= 0 ) // this is not a true PI
+                {
+                    iTerm1 = Tim_ManBoxInputFirst( pNtk->pManTime, iBox );
+                    nTerms = Tim_ManBoxInputNum( pNtk->pManTime, iBox );
+                    for ( i = 0; i < nTerms; i++ )
+                    {
+                        pNext = Nwk_ManCo( pNtk, iTerm1 + i );
+                        if ( !Nwk_ObjIsTravIdCurrent(pNext) )
+                        {
+                            printf( "Box %d has input %d that is not in a topological order.\n", iBox, pNext->Id );
+                            return 0;
+                        }
+                    }
+                }
+            }
+        }
+        else
+            assert( 0 );
+        Nwk_ObjSetTravIdCurrent( pObj );
+    }
+    return 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Computes the number of logic levels not counting PIs/POs.]
 
   Description [Assumes that white boxes have unit level.]
@@ -39,11 +96,12 @@
   SeeAlso     []
 
 ***********************************************************************/
-int Nwk_ManLevel( Nwk_Man_t * pNtk )
+int Nwk_ManLevelBackup( Nwk_Man_t * pNtk )
 {
     Tim_Man_t * pManTimeUnit;
     Nwk_Obj_t * pObj, * pFanin;
     int i, k, LevelMax, Level;
+    assert( Nwk_ManVerifyTopoOrder(pNtk) );
     // clean the levels
     Nwk_ManForEachObj( pNtk, pObj, i )
         Nwk_ObjSetLevel( pObj, 0 );
@@ -85,11 +143,9 @@ int Nwk_ManLevel( Nwk_Man_t * pNtk )
     return LevelMax;
 }
 
-
-
 /**Function*************************************************************
 
-  Synopsis    [Performs DFS for one node.]
+  Synopsis    [Computes the number of logic levels not counting PIs/POs.]
 
   Description []
                
@@ -98,8 +154,9 @@ int Nwk_ManLevel( Nwk_Man_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Nwk_ManLevel2_rec( Nwk_Obj_t * pObj )
+void Nwk_ManLevel_rec( Nwk_Obj_t * pObj )
 {
+    Tim_Man_t * pManTime = pObj->pMan->pManTime;
     Nwk_Obj_t * pNext;
     int i, iBox, iTerm1, nTerms, LevelMax = 0;
     if ( Nwk_ObjIsTravIdCurrent( pObj ) )
@@ -107,30 +164,33 @@ void Nwk_ManLevel2_rec( Nwk_Obj_t * pObj )
     Nwk_ObjSetTravIdCurrent( pObj );
     if ( Nwk_ObjIsCi(pObj) )
     {
-        iBox = Tim_ManBoxForCi( pObj->pMan->pManTime, pObj->PioId );
-        if ( iBox >= 0 ) // this is not a true PI
+        if ( pManTime ) 
         {
-            iTerm1 = Tim_ManBoxInputFirst( pObj->pMan->pManTime, iBox );
-            nTerms = Tim_ManBoxInputNum( pObj->pMan->pManTime, iBox );
-            for ( i = 0; i < nTerms; i++ )
+            iBox = Tim_ManBoxForCi( pManTime, pObj->PioId );
+            if ( iBox >= 0 ) // this is not a true PI
             {
-                pNext = Nwk_ManCo(pObj->pMan, iTerm1 + i);
-                Nwk_ManLevel2_rec( pNext );
-                if ( LevelMax < Nwk_ObjLevel(pNext) )
-                    LevelMax = Nwk_ObjLevel(pNext);
+                iTerm1 = Tim_ManBoxInputFirst( pManTime, iBox );
+                nTerms = Tim_ManBoxInputNum( pManTime, iBox );
+                for ( i = 0; i < nTerms; i++ )
+                {
+                    pNext = Nwk_ManCo(pObj->pMan, iTerm1 + i);
+                    Nwk_ManLevel_rec( pNext );
+                    if ( LevelMax < Nwk_ObjLevel(pNext) )
+                        LevelMax = Nwk_ObjLevel(pNext);
+                }
+                LevelMax++;
             }
-            LevelMax++;
         }
     }
     else if ( Nwk_ObjIsNode(pObj) || Nwk_ObjIsCo(pObj) )
     {
         Nwk_ObjForEachFanin( pObj, pNext, i )
         {
-            Nwk_ManLevel2_rec( pNext );
+            Nwk_ManLevel_rec( pNext );
             if ( LevelMax < Nwk_ObjLevel(pNext) )
                 LevelMax = Nwk_ObjLevel(pNext);
         }
-        if ( Nwk_ObjIsNode(pObj) )
+        if ( Nwk_ObjIsNode(pObj) && Nwk_ObjFaninNum(pObj) > 0 )
             LevelMax++;
     }
     else
@@ -140,16 +200,16 @@ void Nwk_ManLevel2_rec( Nwk_Obj_t * pObj )
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the DFS ordered array of all objects except latches.]
+  Synopsis    [Computes the number of logic levels not counting PIs/POs.]
 
-  Description []
+  Description [Does not assume that the objects are in a topo order.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-int Nwk_ManLevel2( Nwk_Man_t * pNtk )
+int Nwk_ManLevel( Nwk_Man_t * pNtk )
 {
     Nwk_Obj_t * pObj;
     int i, LevelMax = 0;
@@ -158,7 +218,7 @@ int Nwk_ManLevel2( Nwk_Man_t * pNtk )
     Nwk_ManIncrementTravId( pNtk );
     Nwk_ManForEachPo( pNtk, pObj, i )
     {
-        Nwk_ManLevel2_rec( pObj );
+        Nwk_ManLevel_rec( pObj );
         if ( LevelMax < Nwk_ObjLevel(pObj) )
             LevelMax = Nwk_ObjLevel(pObj);
     }
@@ -168,6 +228,27 @@ int Nwk_ManLevel2( Nwk_Man_t * pNtk )
 /**Function*************************************************************
 
   Synopsis    [Computes the number of logic levels not counting PIs/POs.]
+
+  Description [Does not assume that the objects are in a topo order.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Nwk_ManLevelMax( Nwk_Man_t * pNtk )
+{
+    Nwk_Obj_t * pObj;
+    int i, LevelMax = 0;
+    Nwk_ManForEachPo( pNtk, pObj, i )
+        if ( LevelMax < Nwk_ObjLevel(pObj) )
+            LevelMax = Nwk_ObjLevel(pObj);
+    return LevelMax;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the array of objects in the AIG manager ordered by level.]
 
   Description []
                
@@ -181,7 +262,8 @@ Vec_Vec_t * Nwk_ManLevelize( Nwk_Man_t * pNtk )
     Nwk_Obj_t * pObj;
     Vec_Vec_t * vLevels;
     int nLevels, i;
-    nLevels = Nwk_ManLevel( pNtk );
+    assert( Nwk_ManVerifyLevel(pNtk) );
+    nLevels = Nwk_ManLevelMax( pNtk );
     vLevels = Vec_VecStart( nLevels + 1 );
     Nwk_ManForEachNode( pNtk, pObj, i )
     {

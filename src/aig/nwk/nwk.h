@@ -131,6 +131,7 @@ static inline Nwk_Obj_t * Nwk_ObjFanout0( Nwk_Obj_t * p )         { return p->pF
 static inline Nwk_Obj_t * Nwk_ObjFanin( Nwk_Obj_t * p, int i )    { return p->pFanio[i];                        } 
 static inline Nwk_Obj_t * Nwk_ObjFanout( Nwk_Obj_t * p, int i )   { return p->pFanio[p->nFanins+1];             } 
 
+static inline int         Nwk_ObjIsNone( Nwk_Obj_t * p )          { return p->Type == NWK_OBJ_NONE;             } 
 static inline int         Nwk_ObjIsCi( Nwk_Obj_t * p )            { return p->Type == NWK_OBJ_CI;               } 
 static inline int         Nwk_ObjIsCo( Nwk_Obj_t * p )            { return p->Type == NWK_OBJ_CO;               } 
 static inline int         Nwk_ObjIsNode( Nwk_Obj_t * p )          { return p->Type == NWK_OBJ_NODE;             } 
@@ -153,6 +154,10 @@ static inline void        Nwk_ObjSetTravIdCurrent( Nwk_Obj_t * pObj )        { p
 static inline void        Nwk_ObjSetTravIdPrevious( Nwk_Obj_t * pObj )       { pObj->TravId = pObj->pMan->nTravIds - 1;         }
 static inline int         Nwk_ObjIsTravIdCurrent( Nwk_Obj_t * pObj )         { return pObj->TravId == pObj->pMan->nTravIds;     }
 static inline int         Nwk_ObjIsTravIdPrevious( Nwk_Obj_t * pObj )        { return pObj->TravId == pObj->pMan->nTravIds - 1; }
+
+static inline int         Nwk_ManTimeEqual( float f1, float f2, float Eps )  { return (f1 < f2 + Eps) && (f2 < f1 + Eps);  }
+static inline int         Nwk_ManTimeLess( float f1, float f2, float Eps )   { return (f1 < f2 + Eps);                     }
+static inline int         Nwk_ManTimeMore( float f1, float f2, float Eps )   { return (f1 + Eps > f2);                     }
 
 ////////////////////////////////////////////////////////////////////////
 ///                         ITERATORS                                ///
@@ -191,8 +196,10 @@ static inline int         Nwk_ObjIsTravIdPrevious( Nwk_Obj_t * pObj )        { r
 extern void            Nwk_ManBidecResyn( Nwk_Man_t * pNtk, int fVerbose );
 extern Hop_Obj_t *     Nwk_NodeIfNodeResyn( Bdc_Man_t * p, Hop_Man_t * pHop, Hop_Obj_t * pRoot, int nVars, Vec_Int_t * vTruth, unsigned * puCare );
 /*=== nwkDfs.c ==========================================================*/
+extern int             Nwk_ManVerifyTopoOrder( Nwk_Man_t * pNtk );
+extern int             Nwk_ManLevelBackup( Nwk_Man_t * pNtk );
 extern int             Nwk_ManLevel( Nwk_Man_t * pNtk );
-extern int             Nwk_ManLevel2( Nwk_Man_t * pNtk );
+extern int             Nwk_ManLevelMax( Nwk_Man_t * pNtk );
 extern Vec_Vec_t *     Nwk_ManLevelize( Nwk_Man_t * pNtk );
 extern Vec_Ptr_t *     Nwk_ManDfs( Nwk_Man_t * pNtk );
 extern Vec_Ptr_t *     Nwk_ManDfsNodes( Nwk_Man_t * pNtk, Nwk_Obj_t ** ppNodes, int nNodes );
@@ -203,9 +210,12 @@ extern int             Nwk_ObjMffcLabel( Nwk_Obj_t * pNode );
 /*=== nwkFanio.c ==========================================================*/
 extern void            Nwk_ObjCollectFanins( Nwk_Obj_t * pNode, Vec_Ptr_t * vNodes );
 extern void            Nwk_ObjCollectFanouts( Nwk_Obj_t * pNode, Vec_Ptr_t * vNodes );
+extern int             Nwk_ObjFindFanin( Nwk_Obj_t * pObj, Nwk_Obj_t * pFanin );
+extern int             Nwk_ObjFindFanout( Nwk_Obj_t * pObj, Nwk_Obj_t * pFanout );
 extern void            Nwk_ObjAddFanin( Nwk_Obj_t * pObj, Nwk_Obj_t * pFanin );
 extern void            Nwk_ObjDeleteFanin( Nwk_Obj_t * pObj, Nwk_Obj_t * pFanin );
 extern void            Nwk_ObjPatchFanin( Nwk_Obj_t * pObj, Nwk_Obj_t * pFaninOld, Nwk_Obj_t * pFaninNew );
+extern void            Nwk_ObjTransferFanout( Nwk_Obj_t * pNodeFrom, Nwk_Obj_t * pNodeTo );
 extern void            Nwk_ObjReplace( Nwk_Obj_t * pNodeOld, Nwk_Obj_t * pNodeNew );
 /*=== nwkMan.c ============================================================*/
 extern Nwk_Man_t *     Nwk_ManAlloc();
@@ -222,10 +232,11 @@ extern Nwk_Obj_t *     Nwk_ManCreateLatch( Nwk_Man_t * pMan );
 extern void            Nwk_ManDeleteNode( Nwk_Obj_t * pObj );
 extern void            Nwk_ManDeleteNode_rec( Nwk_Obj_t * pObj );
 /*=== nwkTiming.c ============================================================*/
-extern float           Nwk_ManDelayTraceLut( Nwk_Man_t * pNtk, If_Lib_t * pLutLib );
-extern void            Nwk_ManDelayTracePrint( Nwk_Man_t * pNtk, If_Lib_t * pLutLib );
+extern int             Nwk_ManVerifyTiming(  Nwk_Man_t * pNtk );
+extern float           Nwk_ManDelayTraceLut( Nwk_Man_t * pNtk );
+extern void            Nwk_ManDelayTracePrint( Nwk_Man_t * pNtk );
 extern void            Nwk_ManUpdate( Nwk_Obj_t * pObj, Nwk_Obj_t * pObjNew, Vec_Vec_t * vLevels );
-extern void            Nwk_ManVerifyLevel( Nwk_Man_t * pNtk );
+extern int             Nwk_ManVerifyLevel( Nwk_Man_t * pNtk );
 /*=== nwkUtil.c ============================================================*/
 extern void            Nwk_ManIncrementTravId( Nwk_Man_t * pNtk );
 extern int             Nwk_ManGetFaninMax( Nwk_Man_t * pNtk );
@@ -235,6 +246,7 @@ extern int             Nwk_ManPoNum( Nwk_Man_t * pNtk );
 extern int             Nwk_ManGetAigNodeNum( Nwk_Man_t * pNtk );
 extern int             Nwk_NodeCompareLevelsIncrease( Nwk_Obj_t ** pp1, Nwk_Obj_t ** pp2 );
 extern int             Nwk_NodeCompareLevelsDecrease( Nwk_Obj_t ** pp1, Nwk_Obj_t ** pp2 );
+extern void            Nwk_ObjPrint( Nwk_Obj_t * pObj );
 
 #ifdef __cplusplus
 }

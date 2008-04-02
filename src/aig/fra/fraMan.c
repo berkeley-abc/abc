@@ -178,6 +178,7 @@ Aig_Man_t * Fra_ManPrepareComb( Fra_Man_t * p )
     // start the fraig package
     pManFraig = Aig_ManStart( Aig_ManObjNumMax(p->pManAig) );
     pManFraig->pName = Aig_UtilStrsav( p->pManAig->pName );
+    pManFraig->pSpec = Aig_UtilStrsav( p->pManAig->pSpec );
     pManFraig->nRegs    = p->pManAig->nRegs;
     pManFraig->nAsserts = p->pManAig->nAsserts;
     // set the pointers to the available fraig nodes

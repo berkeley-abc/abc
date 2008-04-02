@@ -88,17 +88,17 @@ Vec_Ptr_t * Abc_MfxWinMarkTfi( Nwk_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_MfxWinSweepLeafTfo_rec( Nwk_Obj_t * pObj, int nLevelLimit )
+void Abc_MfxWinSweepLeafTfo_rec( Nwk_Obj_t * pObj, float tArrivalMax )
 {
     Nwk_Obj_t * pFanout;
     int i;
-    if ( Nwk_ObjIsCo(pObj) || (int)pObj->Level > nLevelLimit )
+    if ( Nwk_ObjIsCo(pObj) || Nwk_ObjArrival(pObj) > tArrivalMax )
         return;
     if ( Nwk_ObjIsTravIdCurrent(pObj) )
         return;
     Nwk_ObjSetTravIdCurrent( pObj );
     Nwk_ObjForEachFanout( pObj, pFanout, i )
-        Abc_MfxWinSweepLeafTfo_rec( pFanout, nLevelLimit );
+        Abc_MfxWinSweepLeafTfo_rec( pFanout, tArrivalMax );
 }
 
 /**Function*************************************************************
@@ -187,7 +187,7 @@ int Abc_MfxWinVisitMffc( Nwk_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Mfx_ComputeDivisors( Mfx_Man_t * p, Nwk_Obj_t * pNode, int nLevDivMax )
+Vec_Ptr_t * Mfx_ComputeDivisors( Mfx_Man_t * p, Nwk_Obj_t * pNode, float tArrivalMax )
 {
     Vec_Ptr_t * vCone, * vDivs;
     Nwk_Obj_t * pObj, * pFanout, * pFanin;
@@ -210,7 +210,7 @@ Vec_Ptr_t * Mfx_ComputeDivisors( Mfx_Man_t * p, Nwk_Obj_t * pNode, int nLevDivMa
     // (2) the MFFC of the node
     // (3) the node's fanins (these are treated as a special case)
     Nwk_ManIncrementTravId( pNode->pMan );
-    Abc_MfxWinSweepLeafTfo_rec( pNode, nLevDivMax );
+    Abc_MfxWinSweepLeafTfo_rec( pNode, tArrivalMax );
     Abc_MfxWinVisitMffc( pNode );
     Nwk_ObjForEachFanin( pNode, pObj, k )
         Nwk_ObjSetTravIdCurrent( pObj );
@@ -225,7 +225,7 @@ Vec_Ptr_t * Mfx_ComputeDivisors( Mfx_Man_t * p, Nwk_Obj_t * pNode, int nLevDivMa
     {
         if ( !Nwk_ObjIsTravIdPrevious(pObj) )
             continue;
-        if ( (int)pObj->Level > nLevDivMax )
+        if ( Nwk_ObjArrival(pObj) > tArrivalMax )
             continue;
         Vec_PtrPush( vDivs, pObj );
         if ( Vec_PtrSize(vDivs) >= p->pPars->nDivMax )
@@ -253,7 +253,7 @@ Vec_Ptr_t * Mfx_ComputeDivisors( Mfx_Man_t * p, Nwk_Obj_t * pNode, int nLevDivMa
             if ( !Nwk_ObjIsNode(pFanout) ) 
                 continue;
             // skip nodes with large level
-            if ( (int)pFanout->Level > nLevDivMax )
+            if ( Nwk_ObjArrival(pFanout) > tArrivalMax )
                 continue;
             // skip nodes whose fanins are not divisors
             Nwk_ObjForEachFanin( pFanout, pFanin, m )

@@ -207,6 +207,38 @@ int Nwk_NodeCompareLevelsDecrease( Nwk_Obj_t ** pp1, Nwk_Obj_t ** pp2 )
     return 0; 
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Deletes the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Nwk_ObjPrint( Nwk_Obj_t * pObj )
+{
+    Nwk_Obj_t * pNext;
+    int i;
+    printf( "ObjId = %5d.  ", pObj->Id );
+    if ( Nwk_ObjIsPi(pObj) )
+        printf( "PI" );
+    if ( Nwk_ObjIsPo(pObj) )
+        printf( "PO" );
+    if ( Nwk_ObjIsNode(pObj) )
+        printf( "Node" );
+    printf( "   Fanins = " );
+    Nwk_ObjForEachFanin( pObj, pNext, i )
+        printf( "%d ", pNext->Id );
+    printf( "   Fanouts = " );
+    Nwk_ObjForEachFanout( pObj, pNext, i )
+        printf( "%d ", pNext->Id );
+    printf( "\n" );
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

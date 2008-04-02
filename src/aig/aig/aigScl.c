@@ -48,6 +48,7 @@ Aig_Man_t * Aig_ManRemap( Aig_Man_t * p, Vec_Ptr_t * vMap )
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
     pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
     pNew->nRegs = p->nRegs;
     pNew->nAsserts = p->nAsserts;
     if ( p->vFlopNums )

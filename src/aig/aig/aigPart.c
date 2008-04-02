@@ -1494,7 +1494,7 @@ void Aig_ManChoiceLevel_rec( Aig_Man_t * pNew, Aig_Obj_t * pObj )
         LevelMax++;
 
         // get the level of the nodes in the choice node
-        if ( pNew->pEquivs && (pNext = pNew->pEquivs[pObj->iData]) )
+        if ( pNew->pEquivs && (pNext = pNew->pEquivs[pObj->Id]) )
         {
             Aig_ManChoiceLevel_rec( pNew, pNext );
             if ( LevelMax < Aig_ObjLevel(pNext) )
@@ -1504,6 +1504,7 @@ void Aig_ManChoiceLevel_rec( Aig_Man_t * pNew, Aig_Obj_t * pObj )
     else
         assert( 0 );
     Aig_ObjSetLevel( pObj, LevelMax );
+    assert( !Aig_ObjIsNode(pObj) || LevelMax > 0 );
 }
 
 /**Function*************************************************************
@@ -1546,6 +1547,46 @@ int Aig_ManChoiceLevel( Aig_Man_t * pNew )
   SeeAlso     []
 
 ***********************************************************************/
+void Aig_ManChoiceEval( Aig_Man_t * p )
+{
+    Vec_Ptr_t * vSupp;
+    Aig_Obj_t * pNode, * pTemp;
+    int i, Counter;
+
+    vSupp = Vec_PtrAlloc( 100 );
+    Aig_ManForEachNode( p, pNode, i )
+    {
+        if ( !Aig_ObjIsChoice(p, pNode) )
+            continue; 
+        if ( pNode->Id == 4225 )
+        {
+            int x = 0;
+        }
+        Counter = 0;
+        for ( pTemp = pNode; pTemp; pTemp = p->pEquivs[pTemp->Id] )
+            Counter++;
+        printf( "Choice node = %5d. Level = %2d. Choices = %d. { ", pNode->Id, pNode->Level, Counter );
+        for ( pTemp = pNode; pTemp; pTemp = p->pEquivs[pTemp->Id] )
+        {
+            Counter = Aig_NodeMffsSupp( p, pTemp, 0, vSupp );
+            printf( "S=%d N=%d L=%d  ", Vec_PtrSize(vSupp), Counter, pTemp->Level );
+        }
+        printf( "}\n" );
+    }
+    Vec_PtrFree( vSupp );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Constructively accumulates choices.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Aig_Man_t * Aig_ManChoiceConstructive( Vec_Ptr_t * vAigs, int fVerbose )
 {
     Aig_Man_t * pNew, * pThis, * pPrev;
@@ -1573,6 +1614,7 @@ Aig_Man_t * Aig_ManChoiceConstructive( Vec_Ptr_t * vAigs, int fVerbose )
 //Aig_ManPrintStats( pNew );
     // reset levels
     Aig_ManChoiceLevel( pNew );
+//    Aig_ManChoiceEval( pNew );
     return pNew;
 }
 

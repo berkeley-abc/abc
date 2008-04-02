@@ -574,7 +574,7 @@ void Mem_StepEntryRecycle( Mem_Step_t * p, char * pEntry, int nBytes )
         return;
     if ( nBytes > p->nMapSize )
     {
-        free( pEntry );
+//        free( pEntry );
         return;
     }
     Mem_FixedEntryRecycle( p->pMap[nBytes], pEntry );

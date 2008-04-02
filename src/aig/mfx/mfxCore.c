@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "mfxInt.h"
+#include "bar.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -83,8 +84,8 @@ p->timeWin += clock() - clk;
         return 1;
     // compute the divisors of the window
 clk = clock();
-//    p->vDivs  = Mfx_ComputeDivisors( p, pNode, Nwk_ObjRequired(pNode) - If_LutLibSlowestPinDelay(pNode->pMan->pLutLib) );
-    p->vDivs  = Mfx_ComputeDivisors( p, pNode, AIG_INFINITY );
+    p->vDivs  = Mfx_ComputeDivisors( p, pNode, Nwk_ObjRequired(pNode) - If_LutLibSlowestPinDelay(pNode->pMan->pLutLib) );
+//    p->vDivs  = Mfx_ComputeDivisors( p, pNode, AIG_INFINITY );
     p->nTotalDivs += Vec_PtrSize(p->vDivs);
 p->timeDiv += clock() - clk;
     // construct AIG for the window
@@ -192,10 +193,10 @@ p->timeSat += clock() - clk;
   SeeAlso     []
 
 ***********************************************************************/
-int Mfx_Perform( Nwk_Man_t * pNtk, Mfx_Par_t * pPars )
+int Mfx_Perform( Nwk_Man_t * pNtk, Mfx_Par_t * pPars, If_Lib_t * pLutLib )
 {
     Bdc_Par_t Pars = {0}, * pDecPars = &Pars;
-//    ProgressBar * pProgress;
+    Bar_Progress_t * pProgress;
     Mfx_Man_t * p;
     Tim_Man_t * pManTimeOld = NULL;
     Nwk_Obj_t * pObj;
@@ -223,23 +224,19 @@ int Mfx_Perform( Nwk_Man_t * pNtk, Mfx_Par_t * pPars )
             nFaninMax = MFX_FANIN_MAX;
         }
     }
-
-/*
-    // prepare timing information
-    if ( pNtk->pManTime )
+    if ( pLutLib && pLutLib->LutMax < nFaninMax )
     {
-        // compute levels
-        Nwk_ManLevel( pNtk );
-        // compute delay trace with white-boxes
-        Nwk_ManDelayTraceLut( pNtk, pNtk->pLutLib );
-        // save the general timing manager
-        pManTimeOld = pNtk->pManTime;
-        // derive an approximate timing manager without white-boxes
-        pNtk->pManTime = Tim_ManDupApprox( pNtk->pManTime );
+        printf( "The selected LUT library with max LUT size (%d) cannot be used to compute timing for network with %d-input nodes. Using unit-delay model.\n", pLutLib->LutMax, nFaninMax );
+        pLutLib = NULL;
     }
-    // compute delay trace with the given timing manager
-    Nwk_ManDelayTraceLut( pNtk, pNtk->pLutLib );
-*/
+    pNtk->pLutLib = pLutLib;
+
+    // compute levels
+    Nwk_ManLevel( pNtk );
+    assert( Nwk_ManVerifyLevel( pNtk ) );
+    // compute delay trace with white-boxes
+    Nwk_ManDelayTraceLut( pNtk );
+    assert( Nwk_ManVerifyTiming( pNtk ) );
 
     // start the manager
     p = Mfx_ManAlloc( pPars );
@@ -259,27 +256,27 @@ int Mfx_Perform( Nwk_Man_t * pNtk, Mfx_Par_t * pPars )
     p->nTotalEdgesBeg = nTotalEdgesBeg;
     if ( pPars->fResub )
     {
-//        pProgress = Extra_ProgressBarStart( stdout, Nwk_ObjNumMax(pNtk) );
+        pProgress = Bar_ProgressStart( stdout, Nwk_ManObjNumMax(pNtk) );
         Nwk_ManForEachNode( pNtk, pObj, i )
         {
             if ( p->pPars->nDepthMax && pObj->Level > p->pPars->nDepthMax )
                 continue;
             if ( Nwk_ObjFaninNum(pObj) < 2 || Nwk_ObjFaninNum(pObj) > nFaninMax )
                 continue;
-//            if ( !p->pPars->fVeryVerbose )
-//                Extra_ProgressBarUpdate( pProgress, i, NULL );
+            if ( !p->pPars->fVeryVerbose )
+                Bar_ProgressUpdate( pProgress, i, NULL );
             Mfx_Resub( p, pObj );
         }
-//        Extra_ProgressBarStop( pProgress );
+        Bar_ProgressStop( pProgress );
     }
     else
     {
-//        pProgress = Extra_ProgressBarStart( stdout, Nwk_NodeNum(pNtk) );
+        pProgress = Bar_ProgressStart( stdout, Nwk_ManNodeNum(pNtk) );
         vLevels = Nwk_ManLevelize( pNtk );
         Vec_VecForEachLevelStart( vLevels, vNodes, k, 1 )
         {
-//            if ( !p->pPars->fVeryVerbose )
-//                Extra_ProgressBarUpdate( pProgress, nNodes, NULL );
+            if ( !p->pPars->fVeryVerbose )
+                Bar_ProgressUpdate( pProgress, nNodes, NULL );
             p->nNodesGainedLevel = 0;
             p->nTotConfLevel = 0;
             p->nTimeOutsLevel = 0;
@@ -303,20 +300,15 @@ int Mfx_Perform( Nwk_Man_t * pNtk, Mfx_Par_t * pPars )
             PRT( "Time", clock() - clk2 );
             }
         }
-//        Extra_ProgressBarStop( pProgress );
+        Bar_ProgressStop( pProgress );
         Vec_VecFree( vLevels );
     }
     p->nTotalNodesEnd = Nwk_ManNodeNum(pNtk);
     p->nTotalEdgesEnd = Nwk_ManGetTotalFanins(pNtk);
-/*
-    // reset the timing manager
-    if ( pNtk->pManTime )
-    {
-        Tim_ManStop( pNtk->pManTime );
-        pNtk->pManTime = pManTimeOld;
-    }
-    Nwk_ManVerifyLevel( pNtk );
-*/
+
+    assert( Nwk_ManVerifyLevel( pNtk ) );
+    assert( Nwk_ManVerifyTiming( pNtk ) );
+
     // free the manager
     p->timeTotal = clock() - clk;
     Mfx_ManStop( p );

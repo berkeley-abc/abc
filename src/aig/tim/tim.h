@@ -65,6 +65,8 @@ extern void            Tim_ManStop( Tim_Man_t * p );
 extern void            Tim_ManPrint( Tim_Man_t * p );
 extern void            Tim_ManTravIdDisable( Tim_Man_t * p );
 extern void            Tim_ManTravIdEnable( Tim_Man_t * p );
+extern void            Tim_ManSetCurrentTravIdBoxInputs( Tim_Man_t * p, int iBox );
+extern void            Tim_ManSetCurrentTravIdBoxOutputs( Tim_Man_t * p, int iBox );
 extern void            Tim_ManSetDelayTables( Tim_Man_t * p, Vec_Ptr_t * vDelayTables );
 extern void            Tim_ManCreateBox( Tim_Man_t * p, int * pIns, int nIns, int * pOuts, int nOuts, float * pDelayTable );
 extern void            Tim_ManCreateBoxFirst( Tim_Man_t * p, int firstIn, int nIns, int firstOut, int nOuts, float * pDelayTable );

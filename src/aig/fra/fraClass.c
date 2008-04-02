@@ -801,6 +801,7 @@ Aig_Man_t * Fra_ClassesDeriveAig( Fra_Cla_t * p, int nFramesK )
     // start the fraig package
     pManFraig = Aig_ManStart( Aig_ManObjNumMax(p->pAig) * nFramesAll );
     pManFraig->pName = Aig_UtilStrsav( p->pAig->pName );
+    pManFraig->pSpec = Aig_UtilStrsav( p->pAig->pSpec );
     // allocate place for the node mapping
     ppEquivs = ALLOC( Aig_Obj_t *, Aig_ManObjNumMax(p->pAig) );
     Fra_ObjSetEqu( ppEquivs, Aig_ManConst1(p->pAig), Aig_ManConst1(pManFraig) );

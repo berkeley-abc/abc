@@ -341,11 +341,19 @@ Vec_Ptr_t * Dar_ManChoiceSynthesis( Aig_Man_t * pAig, int fBalance, int fUpdateL
 //Aig_ManPrintStats( pAig );
 
     Aig_ManForEachObj( pAig, pObj, i )
+    {
+        pObj->pNext = pObj->pHaig;
         pObj->pHaig = pObj;
+    }
 
     pAig = Dar_ManCompress2(pAig, fBalance, fUpdateLevel, 1, fVerbose);
     Vec_PtrPush( vAigs, pAig );
 //Aig_ManPrintStats( pAig );
+
+    pAig = Vec_PtrEntry( vAigs, 1 );
+    Aig_ManForEachObj( pAig, pObj, i )
+        pObj->pHaig = pObj->pNext;
+
     return vAigs;
 }
 
@@ -397,35 +405,6 @@ PRT( "Choicing time ", clock() - clk );
 }
     return pMan;
 //    return NULL;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Reproduces script "compress2".]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Aig_Man_t * Dar_ManBalanceXor( Aig_Man_t * pAig, int fExor, int fUpdateLevel, int fVerbose )
-{
-    Aig_Man_t * pAigXor, * pRes;
-    if ( fExor )
-    {
-        pAigXor = Aig_ManDupExor( pAig );
-        if ( fVerbose )
-            Dar_BalancePrintStats( pAigXor );
-        pRes = Dar_ManBalance( pAigXor, fUpdateLevel );
-        Aig_ManStop( pAigXor );
-    }
-    else
-    {
-        pRes = Dar_ManBalance( pAig, fUpdateLevel );
-    }
-    return pRes;
 }
 
 ////////////////////////////////////////////////////////////////////////

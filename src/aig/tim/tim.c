@@ -78,6 +78,7 @@ struct Tim_Obj_t_
 
 static inline Tim_Obj_t * Tim_ManPi( Tim_Man_t * p, int i )                           { assert( i < p->nPis ); return p->pPis + i;    }
 static inline Tim_Obj_t * Tim_ManPo( Tim_Man_t * p, int i )                           { assert( i < p->nPos ); return p->pPos + i;    }
+static inline Tim_Box_t * Tim_ManBox( Tim_Man_t * p, int i )                          { return Vec_PtrEntry(p->vBoxes, i);            }
 
 static inline Tim_Box_t * Tim_ManPiBox( Tim_Man_t * p, int i )                        { return Tim_ManPi(p,i)->iObj2Box < 0 ? NULL : Vec_PtrEntry( p->vBoxes, Tim_ManPi(p,i)->iObj2Box ); }
 static inline Tim_Box_t * Tim_ManPoBox( Tim_Man_t * p, int i )                        { return Tim_ManPo(p,i)->iObj2Box < 0 ? NULL : Vec_PtrEntry( p->vBoxes, Tim_ManPo(p,i)->iObj2Box ); }
@@ -363,6 +364,48 @@ void Tim_ManTravIdEnable( Tim_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Label box inputs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Tim_ManSetCurrentTravIdBoxInputs( Tim_Man_t * p, int iBox )
+{
+    Tim_Box_t * pBox;
+    Tim_Obj_t * pObj;
+    int i;
+    pBox = Tim_ManBox( p, iBox );
+    Tim_ManBoxForEachInput( p, pBox, pObj, i )
+        pObj->TravId = p->nTravIds;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Label box outputs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Tim_ManSetCurrentTravIdBoxOutputs( Tim_Man_t * p, int iBox )
+{
+    Tim_Box_t * pBox;
+    Tim_Obj_t * pObj;
+    int i;
+    pBox = Tim_ManBox( p, iBox );
+    Tim_ManBoxForEachOutput( p, pBox, pObj, i )
+        pObj->TravId = p->nTravIds;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Sets the vector of timing tables associated with the manager.]
 
   Description []
@@ -469,6 +512,16 @@ void Tim_ManCreateBoxFirst( Tim_Man_t * p, int firstIn, int nIns, int firstOut, 
 ***********************************************************************/
 void Tim_ManIncrementTravId( Tim_Man_t * p )
 {
+    int i;
+    if ( p->nTravIds >= (1<<30)-1 )
+    {
+        p->nTravIds = 0;
+        for ( i = 0; i < p->nPis; i++ )
+            p->pPis[i].TravId = 0;
+        for ( i = 0; i < p->nPos; i++ )
+            p->pPos[i].TravId = 0;
+    }
+    assert( p->nTravIds < (1<<30)-1 );
     p->nTravIds++;
 }
 

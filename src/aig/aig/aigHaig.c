@@ -101,6 +101,7 @@ Aig_Man_t * Aig_ManHaigFrames( Aig_Man_t * pHaig, int nFrames )
     // start the frames
     pFrames = Aig_ManStart( Aig_ManObjNumMax(pHaig) * nFrames );
     pFrames->pName = Aig_UtilStrsav( pHaig->pName );
+    pFrames->pSpec = Aig_UtilStrsav( pHaig->pSpec );
     pFrames->nRegs = pHaig->nRegs;
 
     // create PI nodes for the frames

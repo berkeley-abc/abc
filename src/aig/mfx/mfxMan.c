@@ -120,8 +120,8 @@ void Mfx_ManPrint( Mfx_Man_t * p )
         if ( p->pPars->fSwapEdge )
             printf( "Swappable edges = %d. Total edges = %d. Ratio = %5.2f.\n", 
                 p->nNodesResub, Nwk_ManGetTotalFanins(p->pNtk), 1.00 * p->nNodesResub / Nwk_ManGetTotalFanins(p->pNtk) );
-        else
-            Mfx_PrintResubStats( p );
+//        else
+//            Mfx_PrintResubStats( p );
 //        printf( "Average ratio of DCs in the resubed nodes = %.2f.\n", 1.0*p->nDcMints/(64 * p->nNodesResub) );
     }
     else

@@ -134,6 +134,7 @@ Aig_Man_t * Fra_FramesWithClasses( Fra_Man_t * p )
     // start the fraig package
     pManFraig = Aig_ManStart( Aig_ManObjNumMax(p->pManAig) * p->nFramesAll );
     pManFraig->pName = Aig_UtilStrsav( p->pManAig->pName );
+    pManFraig->pSpec = Aig_UtilStrsav( p->pManAig->pSpec );
     pManFraig->nRegs = p->pManAig->nRegs;
     // create PI nodes for the frames
     for ( f = 0; f < p->nFramesAll; f++ )

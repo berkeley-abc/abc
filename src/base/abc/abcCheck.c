@@ -154,10 +154,7 @@ bool Abc_NtkDoCheck( Abc_Ntk_t * pNtk )
     if ( Abc_NtkIsNetlist(pNtk) )
     {
         if ( Abc_NtkNetNum(pNtk) == 0 )
-        {
-            fprintf( stdout, "NetworkCheck: Netlist has no nets.\n" );
-            return 0;
-        }
+            fprintf( stdout, "NetworkCheck: Warning! Netlist has no nets.\n" );
         // check the nets
         Abc_NtkForEachNet( pNtk, pNet, i )
             if ( !Abc_NtkCheckNet( pNtk, pNet ) )

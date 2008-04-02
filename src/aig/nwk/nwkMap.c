@@ -96,50 +96,45 @@ void Nwk_ManSetIfParsDefault( If_Par_t * pPars )
   SeeAlso     []
 
 ***********************************************************************/
-If_Man_t * Nwk_ManToIf( Aig_Man_t * p, If_Par_t * pPars )
+If_Man_t * Nwk_ManToIf( Aig_Man_t * p, If_Par_t * pPars, Vec_Ptr_t * vAigToIf )
 {
     If_Man_t * pIfMan;
-    Aig_Obj_t * pNode;//, * pFanin, * pPrev;
+    If_Obj_t * pIfObj;
+    Aig_Obj_t * pNode, * pFanin, * pPrev;
     int i;
     // start the mapping manager and set its parameters
     pIfMan = If_ManStart( pPars );
-    // print warning about excessive memory usage
-//    if ( 1.0 * Aig_ManObjNum(p) * pIfMan->nObjBytes / (1<<30) > 1.0 )
-//        printf( "Warning: The mapper will allocate %.1f Gb for to represent the subject graph with %d AIG nodes.\n", 
-//            1.0 * Aig_ManObjNum(p) * pIfMan->nObjBytes / (1<<30), Aig_ManObjNum(p) );
     // load the AIG into the mapper
     Aig_ManForEachObj( p, pNode, i )
     {
         if ( Aig_ObjIsAnd(pNode) )
-            pNode->pData = (Aig_Obj_t *)If_ManCreateAnd( pIfMan, 
-                If_NotCond( (If_Obj_t *)Aig_ObjFanin0(pNode)->pData, Aig_ObjFaninC0(pNode) ), 
-                If_NotCond( (If_Obj_t *)Aig_ObjFanin1(pNode)->pData, Aig_ObjFaninC1(pNode) ) );
+            pIfObj = If_ManCreateAnd( pIfMan, 
+                If_NotCond( Aig_ObjFanin0(pNode)->pData, Aig_ObjFaninC0(pNode) ), 
+                If_NotCond( Aig_ObjFanin1(pNode)->pData, Aig_ObjFaninC1(pNode) ) );
         else if ( Aig_ObjIsPi(pNode) )
         {
-            pNode->pData = If_ManCreateCi( pIfMan );
-            ((If_Obj_t *)pNode->pData)->Level = pNode->Level;
-            if ( pIfMan->nLevelMax < (int)pNode->Level )
-                pIfMan->nLevelMax = (int)pNode->Level;
+            pIfObj = If_ManCreateCi( pIfMan );
+            If_ObjSetLevel( pIfObj, Aig_ObjLevel(pNode) );
         }
         else if ( Aig_ObjIsPo(pNode) )
-            pNode->pData = If_ManCreateCo( pIfMan, If_NotCond( Aig_ObjFanin0(pNode)->pData, Aig_ObjFaninC0(pNode) ) );
+            pIfObj = If_ManCreateCo( pIfMan, If_NotCond( Aig_ObjFanin0(pNode)->pData, Aig_ObjFaninC0(pNode) ) );
         else if ( Aig_ObjIsConst1(pNode) )
-            Aig_ManConst1(p)->pData = If_ManConst1( pIfMan );
+            pIfObj = If_ManConst1( pIfMan );
         else // add the node to the mapper
             assert( 0 );
+        // save the result
+        assert( Vec_PtrEntry(vAigToIf, i) == NULL );
+        Vec_PtrWriteEntry( vAigToIf, i, pIfObj );
+        pNode->pData = pIfObj;
         // set up the choice node
-//        if ( Aig_AigNodeIsChoice( pNode ) )
-//        {
-//            pIfMan->nChoices++;
-//            for ( pPrev = pNode, pFanin = pNode->pData; pFanin; pPrev = pFanin, pFanin = pFanin->pData )
-//                If_ObjSetChoice( (If_Obj_t *)pPrev->pData, (If_Obj_t *)pFanin->pData );
-//            If_ManCreateChoice( pIfMan, (If_Obj_t *)pNode->pData );
-//        }
+        if ( Aig_ObjIsChoice( p, pNode ) )
         {
-            If_Obj_t * pIfObj = pNode->pData;
-            assert( !If_IsComplement(pIfObj) );
-            assert( pIfObj->Id == pNode->Id );
+            pIfMan->nChoices++;
+            for ( pPrev = pNode, pFanin = pNode->pData; pFanin; pPrev = pFanin, pFanin = pFanin->pData )
+                If_ObjSetChoice( pPrev->pData, pFanin->pData );
+            If_ManCreateChoice( pIfMan, pNode->pData );
         }
+        assert( If_ObjLevel(pIfObj) == Aig_ObjLevel(pNode) );
     }
     return pIfMan;
 }
@@ -243,7 +238,7 @@ Hop_Obj_t * Nwk_NodeIfToHop( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj_t * 
   SeeAlso     []
 
 ***********************************************************************/
-Nwk_Man_t * Nwk_ManFromIf( If_Man_t * pIfMan, Aig_Man_t * p )
+Nwk_Man_t * Nwk_ManFromIf( If_Man_t * pIfMan, Aig_Man_t * p, Vec_Ptr_t * vAigToIf )
 {
     Nwk_Man_t * pNtk;
     Nwk_Obj_t * pObjNew;
@@ -261,7 +256,7 @@ Nwk_Man_t * Nwk_ManFromIf( If_Man_t * pIfMan, Aig_Man_t * p )
     pNtk->pSpec = Aig_UtilStrsav( p->pSpec );
     Aig_ManForEachObj( p, pObj, i )
     {
-        pIfObj = If_ManObj( pIfMan, i );
+        pIfObj = Vec_PtrEntry( vAigToIf, i );
         if ( pIfObj->nRefs == 0 && !If_ObjIsTerm(pIfObj) )
             continue;
         if ( Aig_ObjIsNode(pObj) )
@@ -312,12 +307,13 @@ Nwk_Man_t * Nwk_MappingIf( Aig_Man_t * p, Tim_Man_t * pManTime, If_Par_t * pPars
 {
     Nwk_Man_t * pNtk;
     If_Man_t * pIfMan;
-    // perform FPGA mapping
+    Vec_Ptr_t * vAigToIf;
     // set the arrival times
     pPars->pTimesArr = ALLOC( float, Aig_ManPiNum(p) );
     memset( pPars->pTimesArr, 0, sizeof(float) * Aig_ManPiNum(p) );
     // translate into the mapper
-    pIfMan = Nwk_ManToIf( p, pPars );    
+    vAigToIf = Vec_PtrStart( Aig_ManObjNumMax(p) );
+    pIfMan = Nwk_ManToIf( p, pPars, vAigToIf );    
     if ( pIfMan == NULL )
         return NULL;
     pIfMan->pManTim = Tim_ManDup( pManTime, 0 );
@@ -327,8 +323,9 @@ Nwk_Man_t * Nwk_MappingIf( Aig_Man_t * p, Tim_Man_t * pManTime, If_Par_t * pPars
         return NULL;
     }
     // transform the result of mapping into the new network
-    pNtk = Nwk_ManFromIf( pIfMan, p );
+    pNtk = Nwk_ManFromIf( pIfMan, p, vAigToIf );
     If_ManStop( pIfMan );
+    Vec_PtrFree( vAigToIf );
     return pNtk;
 }
 

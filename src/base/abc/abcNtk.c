@@ -953,8 +953,8 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     Abc_NtkForEachObj( pNtk, pObj, i )
     {
         // free large fanout arrays
-        if ( pNtk->pMmObj && pObj->vFanouts.nCap * 4 > LargePiece )
-            FREE( pObj->vFanouts.pArray );
+//        if ( pNtk->pMmObj && pObj->vFanouts.nCap * 4 > LargePiece )
+//            FREE( pObj->vFanouts.pArray );
         // these flags should be always zero
         // if this is not true, something is wrong somewhere
         assert( pObj->fMarkA == 0 );

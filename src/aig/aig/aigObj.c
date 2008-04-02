@@ -142,6 +142,7 @@ void Aig_ObjConnect( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFan0, Aig_Obj
     // add the node to the dynamically updated topological order
 //    if ( p->pOrderData && Aig_ObjIsNode(pObj) )
 //        Aig_ObjOrderInsert( p, pObj->Id );
+    assert( !Aig_ObjIsNode(pObj) || pObj->Level > 0 );
 }
 
 /**Function*************************************************************

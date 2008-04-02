@@ -95,11 +95,13 @@ Aig_Obj_t * Nwk_ManStrashNode( Aig_Man_t * p, Nwk_Obj_t * pObj )
 ***********************************************************************/
 Aig_Man_t * Nwk_ManStrash( Nwk_Man_t * pNtk )
 {
-    Aig_Man_t * pMan;
+    Aig_Man_t * pMan;//, * pTemp;
     Aig_Obj_t * pObjNew;
     Nwk_Obj_t * pObj;
     int i, Level;
     pMan = Aig_ManStart( Nwk_ManGetAigNodeNum(pNtk) );
+    pMan->pName = Aig_UtilStrsav( pNtk->pName );
+    pMan->pSpec = Aig_UtilStrsav( pNtk->pSpec );
     pMan->pManTime = Tim_ManDup( pNtk->pManTime, 1 );
     Tim_ManIncrementTravId( pMan->pManTime );
     Nwk_ManForEachObj( pNtk, pObj, i )
@@ -125,6 +127,8 @@ Aig_Man_t * Nwk_ManStrash( Nwk_Man_t * pNtk )
         pObj->pCopy = pObjNew;
     }
     Aig_ManCleanup( pMan );
+//    pMan = Aig_ManDup( pTemp = pMan, 1 );
+//    Aig_ManStop( pTemp );
     return pMan;
 }
 

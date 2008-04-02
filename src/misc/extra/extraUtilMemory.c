@@ -527,12 +527,12 @@ void Extra_MmStepStop( Extra_MmStep_t * p )
     int i;
     for ( i = 0; i < p->nMems; i++ )
         Extra_MmFixedStop( p->pMems[i] );
-//    if ( p->pLargeChunks ) 
-//    {
-//      for ( i = 0; i < p->nLargeChunks; i++ )
-//          free( p->pLargeChunks[i] );
-//      free( p->pLargeChunks );
-//    }
+    if ( p->pLargeChunks ) 
+    {
+      for ( i = 0; i < p->nLargeChunks; i++ )
+          free( p->pLargeChunks[i] );
+      free( p->pLargeChunks );
+    }
     free( p->pMems );
     free( p->pMap );
     free( p );
@@ -556,18 +556,16 @@ char * Extra_MmStepEntryFetch( Extra_MmStep_t * p, int nBytes )
     if ( nBytes > p->nMapSize )
     {
 //        printf( "Allocating %d bytes.\n", nBytes );
-/*
+//        return ALLOC( char, nBytes );
         if ( p->nLargeChunks == p->nLargeChunksAlloc )
         {
             if ( p->nLargeChunksAlloc == 0 )
-                p->nLargeChunksAlloc = 5;
+                p->nLargeChunksAlloc = 32;
             p->nLargeChunksAlloc *= 2;
             p->pLargeChunks = REALLOC( char *, p->pLargeChunks, p->nLargeChunksAlloc ); 
         }
         p->pLargeChunks[ p->nLargeChunks++ ] = ALLOC( char, nBytes );
         return p->pLargeChunks[ p->nLargeChunks - 1 ];
-*/
-        return ALLOC( char, nBytes );
     }
     return Extra_MmFixedEntryFetch( p->pMap[nBytes] );
 }
@@ -590,7 +588,7 @@ void Extra_MmStepEntryRecycle( Extra_MmStep_t * p, char * pEntry, int nBytes )
         return;
     if ( nBytes > p->nMapSize )
     {
-        free( pEntry );
+//        free( pEntry );
         return;
     }
     Extra_MmFixedEntryRecycle( p->pMap[nBytes], pEntry );

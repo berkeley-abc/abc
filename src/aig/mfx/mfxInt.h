@@ -125,7 +125,7 @@ struct Mfx_Man_t_
 ////////////////////////////////////////////////////////////////////////
 
 /*=== mfxDiv.c ==========================================================*/
-extern Vec_Ptr_t *      Mfx_ComputeDivisors( Mfx_Man_t * p, Nwk_Obj_t * pNode, int nLevDivMax );
+extern Vec_Ptr_t *      Mfx_ComputeDivisors( Mfx_Man_t * p, Nwk_Obj_t * pNode, float tArrivalMax );
 /*=== mfxInter.c ==========================================================*/
 extern sat_solver *     Mfx_CreateSolverResub( Mfx_Man_t * p, int * pCands, int nCands, int fInvert );
 extern Hop_Obj_t *      Mfx_Interplate( Mfx_Man_t * p, int * pCands, int nCands );

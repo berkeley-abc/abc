@@ -90,6 +90,7 @@ Aig_Man_t * Aig_ManStartFrom( Aig_Man_t * p )
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
     pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
     // create the PIs
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
     Aig_ManForEachPi( p, pObj, i )
@@ -122,6 +123,7 @@ Aig_Man_t * Aig_ManDupExor( Aig_Man_t * p )
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
     pNew->fCatchExor = 1;
     pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
     pNew->nRegs = p->nRegs;
     pNew->nAsserts = p->nAsserts;
     if ( p->vFlopNums )
@@ -213,6 +215,7 @@ Aig_Man_t * Aig_ManDup( Aig_Man_t * p, int fOrdered )
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
     pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
     pNew->nRegs = p->nRegs;
     pNew->nAsserts = p->nAsserts;
     if ( p->vFlopNums )
@@ -254,7 +257,6 @@ Aig_Man_t * Aig_ManDup( Aig_Man_t * p, int fOrdered )
     else
     {
 /*
-
         Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
         Aig_ManConst1(pNew)->pHaig = Aig_ManConst1(p)->pHaig;
         Aig_ManForEachObj( p, pObj, i )
@@ -276,6 +278,7 @@ Aig_Man_t * Aig_ManDup( Aig_Man_t * p, int fOrdered )
             }
         }
 */
+
         Vec_Vec_t * vLevels;
         int k;
 
@@ -399,6 +402,7 @@ Aig_Man_t * Aig_ManDup( Aig_Man_t * p, int fOrdered )
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
     pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
     pNew->nRegs = p->nRegs;
     pNew->nAsserts = p->nAsserts;
     if ( p->vFlopNums )
@@ -481,6 +485,7 @@ Aig_Man_t * Aig_ManDupWithoutPos( Aig_Man_t * p )
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
     pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
     // create the PIs
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
@@ -515,6 +520,7 @@ Aig_Man_t * Aig_ManExtractMiter( Aig_Man_t * p, Aig_Obj_t * pNode1, Aig_Obj_t * 
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
     pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
     // create the PIs
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);

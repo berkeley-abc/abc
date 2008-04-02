@@ -950,6 +950,7 @@ clk = clock();
     // get the new manager
     pNew = Rtm_ManToAig( pRtm );
     pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
     Rtm_ManFree( pRtm );
     // group the registers
 clk = clock();

@@ -198,8 +198,9 @@ clk = clock();
 PRT( "Time", clock() - clk );
 
     pMan = Abc_NtkToNtkNew( pNtk );
+    pMan->pLutLib = Abc_FrameReadLibLut();
 clk = clock();
-    printf( "%6.2f\n", Nwk_ManDelayTraceLut( pMan, Abc_FrameReadLibLut() ) );
+    printf( "%6.2f\n", Nwk_ManDelayTraceLut( pMan ) );
 PRT( "Time", clock() - clk );
 
     pNtkNew = Abc_NtkFromNtkNew( pNtk, pMan );
@@ -218,9 +219,9 @@ PRT( "Time", clock() - clk );
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkNtkTest( Abc_Ntk_t * pNtk ) 
+Abc_Ntk_t * Abc_NtkNtkTest( Abc_Ntk_t * pNtk, If_Lib_t * pLutLib ) 
 {
-    extern int Mfx_Perform( Nwk_Man_t * pNtk, Mfx_Par_t * pPars );
+    extern int Mfx_Perform( Nwk_Man_t * pNtk, Mfx_Par_t * pPars, If_Lib_t * pLutLib );
 
     Mfx_Par_t Pars, * pPars = &Pars;
     Abc_Ntk_t * pNtkNew;
@@ -228,7 +229,7 @@ Abc_Ntk_t * Abc_NtkNtkTest( Abc_Ntk_t * pNtk )
     pMan = Abc_NtkToNtkNew( pNtk );
 
     Mfx_ParsDefault( pPars );
-    Mfx_Perform( pMan, pPars );
+    Mfx_Perform( pMan, pPars, pLutLib );
 
     pNtkNew = Abc_NtkFromNtkNew( pNtk, pMan );
     Nwk_ManFree( pMan );

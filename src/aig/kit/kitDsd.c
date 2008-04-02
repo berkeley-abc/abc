@@ -2111,8 +2111,8 @@ void Kit_DsdTest( unsigned * pTruth, int nVars )
 
 //    if ( Kit_DsdNtkRoot(pNtk)->nFans == (unsigned)nVars && nVars == 6 )
 
-    printf( "\n" );
-    Kit_DsdPrint( stdout, pNtk );
+//    printf( "\n" );
+//    Kit_DsdPrint( stdout, pNtk );
 
     pNtk = Kit_DsdExpand( pTemp = pNtk );
     Kit_DsdNtkFree( pTemp );

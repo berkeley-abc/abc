@@ -93,6 +93,7 @@ void Nwk_ManFree( Nwk_Man_t * p )
 ***********************************************************************/
 void Nwk_ManPrintStats( Nwk_Man_t * p, If_Lib_t * pLutLib )
 {
+    p->pLutLib = pLutLib;
     printf( "%-15s : ",      p->pName );
     printf( "pi = %5d  ",    Nwk_ManPiNum(p) );
     printf( "po = %5d  ",    Nwk_ManPoNum(p) );
@@ -102,8 +103,8 @@ void Nwk_ManPrintStats( Nwk_Man_t * p, If_Lib_t * pLutLib )
     printf( "node = %5d  ",  Nwk_ManNodeNum(p) );
     printf( "aig = %6d  ",   Nwk_ManGetAigNodeNum(p) );
     printf( "lev = %3d  ",   Nwk_ManLevel(p) );
-//    printf( "lev2 = %3d  ",  Nwk_ManLevel2(p) );
-    printf( "delay = %5.2f", Nwk_ManDelayTraceLut(p, pLutLib) );
+//    printf( "lev2 = %3d  ",  Nwk_ManLevelBackup(p) );
+    printf( "delay = %5.2f", Nwk_ManDelayTraceLut(p) );
     printf( "\n" );
 //    Nwk_ManDelayTracePrint( p, pLutLib );
     fflush( stdout );

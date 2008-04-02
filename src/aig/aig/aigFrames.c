@@ -59,6 +59,7 @@ Aig_Man_t * Aig_ManFrames( Aig_Man_t * pAig, int nFs, int fInit, int fOuts, int 
     // start the fraig package
     pFrames = Aig_ManStart( Aig_ManObjNumMax(pAig) * nFs );
     pFrames->pName = Aig_UtilStrsav( pAig->pName );
+    pFrames->pSpec = Aig_UtilStrsav( pAig->pSpec );
     // map constant nodes
     for ( f = 0; f < nFs; f++ )
         Aig_ObjSetFrames( pObjMap, nFs, Aig_ManConst1(pAig), f, Aig_ManConst1(pFrames) );

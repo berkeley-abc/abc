@@ -45,17 +45,10 @@ void Mfx_UpdateNetwork( Mfx_Man_t * p, Nwk_Obj_t * pObj, Vec_Ptr_t * vFanins, Ho
     int k;
     // create the new node
     pObjNew = Nwk_ManCreateNode( pObj->pMan, Vec_PtrSize(vFanins), Nwk_ObjFanoutNum(pObj) );
-if ( pObjNew->Id == 19969 )
-{
-    int x = 0;
-}
     pObjNew->pFunc = pFunc;
     Vec_PtrForEachEntry( vFanins, pFanin, k )
         Nwk_ObjAddFanin( pObjNew, pFanin );
     // replace the old node by the new node
-//printf( "Replacing node " ); Nwk_ObjPrint( stdout, pObj );
-//printf( "Inserting node " ); Nwk_ObjPrint( stdout, pObjNew );
-    // update the level of the node
     Nwk_ManUpdate( pObj, pObjNew, p->vLevels );
 }
 

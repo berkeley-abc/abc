@@ -255,6 +255,8 @@ static inline If_Obj_t * If_ObjFanin1( If_Obj_t * pObj )                     { r
 static inline int        If_ObjFaninC0( If_Obj_t * pObj )                    { return pObj->fCompl0;                 }
 static inline int        If_ObjFaninC1( If_Obj_t * pObj )                    { return pObj->fCompl1;                 }
 static inline void *     If_ObjCopy( If_Obj_t * pObj )                       { return pObj->pCopy;                   }
+static inline int        If_ObjLevel( If_Obj_t * pObj )                      { return pObj->Level;                   }
+static inline void       If_ObjSetLevel( If_Obj_t * pObj, int Level )        { pObj->Level = Level;                  }
 static inline void       If_ObjSetCopy( If_Obj_t * pObj, void * pCopy )      { pObj->pCopy = pCopy;                  }
 static inline void       If_ObjSetChoice( If_Obj_t * pObj, If_Obj_t * pEqu ) { pObj->pEquiv = pEqu;                  }
 

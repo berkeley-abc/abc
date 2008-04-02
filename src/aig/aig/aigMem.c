@@ -64,10 +64,14 @@ struct Aig_MmFlex_t_
 
 struct Aig_MmStep_t_
 {
-    int             nMems;    // the number of fixed memory managers employed
+    int               nMems;    // the number of fixed memory managers employed
     Aig_MmFixed_t **  pMems;    // memory managers: 2^1 words, 2^2 words, etc
-    int             nMapSize; // the size of the memory array
+    int               nMapSize; // the size of the memory array
     Aig_MmFixed_t **  pMap;     // maps the number of bytes into its memory manager
+    // additional memory chunks
+    int           nChunksAlloc;  // the maximum number of memory chunks 
+    int           nChunks;       // the current number of memory chunks 
+    char **       pChunks;       // the allocated memory
 };
 
 #define ALLOC(type, num)     ((type *) malloc(sizeof(type) * (num)))
@@ -486,6 +490,9 @@ Aig_MmStep_t * Aig_MmStepStart( int nSteps )
             p->pMap[k] = p->pMems[i];
 //for ( i = 1; i < 100; i ++ )
 //printf( "%10d: size = %10d\n", i, p->pMap[i]->nEntrySize );
+    p->nChunksAlloc  = 64;
+    p->nChunks       = 0;
+    p->pChunks       = ALLOC( char *, p->nChunksAlloc );
     return p;
 }
 
@@ -505,12 +512,12 @@ void Aig_MmStepStop( Aig_MmStep_t * p, int fVerbose )
     int i;
     for ( i = 0; i < p->nMems; i++ )
         Aig_MmFixedStop( p->pMems[i], fVerbose );
-//    if ( p->pLargeChunks ) 
-//    {
-//      for ( i = 0; i < p->nLargeChunks; i++ )
-//          free( p->pLargeChunks[i] );
-//      free( p->pLargeChunks );
-//    }
+    if ( p->nChunksAlloc )
+    {
+        for ( i = 0; i < p->nChunks; i++ )
+            free( p->pChunks[i] );
+        free( p->pChunks );
+    }
     free( p->pMems );
     free( p->pMap );
     free( p );
@@ -533,19 +540,13 @@ char * Aig_MmStepEntryFetch( Aig_MmStep_t * p, int nBytes )
         return NULL;
     if ( nBytes > p->nMapSize )
     {
-//        printf( "Allocating %d bytes.\n", nBytes );
-/*
-        if ( p->nLargeChunks == p->nLargeChunksAlloc )
+        if ( p->nChunks == p->nChunksAlloc )
         {
-            if ( p->nLargeChunksAlloc == 0 )
-                p->nLargeChunksAlloc = 5;
-            p->nLargeChunksAlloc *= 2;
-            p->pLargeChunks = REALLOC( char *, p->pLargeChunks, p->nLargeChunksAlloc ); 
+            p->nChunksAlloc *= 2;
+            p->pChunks = REALLOC( char *, p->pChunks, p->nChunksAlloc ); 
         }
-        p->pLargeChunks[ p->nLargeChunks++ ] = ALLOC( char, nBytes );
-        return p->pLargeChunks[ p->nLargeChunks - 1 ];
-*/
-        return ALLOC( char, nBytes );
+        p->pChunks[ p->nChunks++ ] = ALLOC( char, nBytes );
+        return p->pChunks[p->nChunks-1];
     }
     return Aig_MmFixedEntryFetch( p->pMap[nBytes] );
 }
@@ -568,7 +569,7 @@ void Aig_MmStepEntryRecycle( Aig_MmStep_t * p, char * pEntry, int nBytes )
         return;
     if ( nBytes > p->nMapSize )
     {
-        free( pEntry );
+//        free( pEntry );
         return;
     }
     Aig_MmFixedEntryRecycle( p->pMap[nBytes], pEntry );

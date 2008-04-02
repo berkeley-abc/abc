@@ -444,6 +444,7 @@ extern void            Aig_ManCheckPhase( Aig_Man_t * p );
 extern Aig_ManCut_t *  Aig_ComputeCuts( Aig_Man_t * pAig, int nCutsMax, int nLeafMax, int fTruth, int fVerbose );
 extern void            Aig_ManCutStop( Aig_ManCut_t * p );
 /*=== aigDfs.c ==========================================================*/
+extern int             Aig_ManVerifyTopoOrder( Aig_Man_t * p );
 extern Vec_Ptr_t *     Aig_ManDfs( Aig_Man_t * p );
 extern Vec_Vec_t *     Aig_ManLevelize( Aig_Man_t * p );
 extern Vec_Ptr_t *     Aig_ManDfsPio( Aig_Man_t * p );

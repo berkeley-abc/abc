@@ -17,7 +17,7 @@
   Revision    [$Id: abc.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
-
+ 
 #include "abc.h"
 #include "mainInt.h"
 #include "fraig.h"
@@ -1781,8 +1781,8 @@ int Abc_CommandPrintDsd( Abc_Frame_t * pAbc, int argc, char ** argv )
         pTruth = Hop_ManConvertAigToTruth( pNtk->pManFunc, Hop_Regular(pObj->pData), Abc_ObjFaninNum(pObj), vMemory, 0 );
         if ( Hop_IsComplement(pObj->pData) )
             Extra_TruthNot( pTruth, pTruth, Abc_ObjFaninNum(pObj) );
-        Extra_PrintBinary( stdout, pTruth, 1 << Abc_ObjFaninNum(pObj) );
-        printf( "\n" );
+//        Extra_PrintBinary( stdout, pTruth, 1 << Abc_ObjFaninNum(pObj) );
+//        printf( "\n" );
         if ( fCofactor )
             Kit_DsdPrintCofactors( pTruth, Abc_ObjFaninNum(pObj), nCofLevel, 1 );
         else
@@ -7108,7 +7108,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern void Abc_NtkDarTestBlif( char * pFileName );
 //    extern Abc_Ntk_t * Abc_NtkDarPartition( Abc_Ntk_t * pNtk );
 //    extern Abc_Ntk_t * Abc_NtkTestExor( Abc_Ntk_t * pNtk, int fVerbose );
-    extern Abc_Ntk_t * Abc_NtkNtkTest( Abc_Ntk_t * pNtk );
+    extern Abc_Ntk_t * Abc_NtkNtkTest( Abc_Ntk_t * pNtk, If_Lib_t * pLutLib );
 
 
 
@@ -7295,7 +7295,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 //    Abc_NtkDarPartition( pNtk );
 
-    pNtkRes = Abc_NtkNtkTest( pNtk );
+    pNtkRes = Abc_NtkNtkTest( pNtk, Abc_FrameReadLibLut() );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
@@ -15343,7 +15343,7 @@ int Abc_CommandAbc8Mfs( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Mfx_Par_t Pars, * pPars = &Pars;
     int c;
-    extern int Mfx_Perform( void * pNtk, Mfx_Par_t * pPars );
+    extern int Mfx_Perform( void * pNtk, Mfx_Par_t * pPars, If_Lib_t * pLutLib );
 
     // set defaults
     Mfx_ParsDefault( pPars );
@@ -15449,7 +15449,7 @@ int Abc_CommandAbc8Mfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // modify the current network
-    if ( !Mfx_Perform( pAbc->pAbc8Nwk, pPars ) )
+    if ( !Mfx_Perform( pAbc->pAbc8Nwk, pPars, pAbc->pAbc8Lib ) )
     {
         fprintf( stdout, "Abc_CommandAbc8Mfs(): Command has failed.\n" );
         return 1;

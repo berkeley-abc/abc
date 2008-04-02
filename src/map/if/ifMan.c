@@ -191,6 +191,8 @@ If_Obj_t * If_ManCreateCo( If_Man_t * p, If_Obj_t * pDriver )
     pObj->fCompl0 = If_IsComplement(pDriver); pDriver = If_Regular(pDriver);
     pObj->pFanin0 = pDriver; pDriver->nRefs++; 
     pObj->Level   = pDriver->Level;
+    if ( p->nLevelMax < (int)pObj->Level )
+        p->nLevelMax = (int)pObj->Level;
     p->nObjs[IF_CO]++;
     return pObj;
 }

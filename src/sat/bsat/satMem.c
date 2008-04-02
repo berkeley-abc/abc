@@ -63,10 +63,14 @@ struct Sat_MmFlex_t_
 
 struct Sat_MmStep_t_
 {
-    int                nMems;    // the number of fixed memory managers employed
-    Sat_MmFixed_t **  pMems;    // memory managers: 2^1 words, 2^2 words, etc
-    int                nMapSize; // the size of the memory array
-    Sat_MmFixed_t **  pMap;     // maps the number of bytes into its memory manager
+    int               nMems;     // the number of fixed memory managers employed
+    Sat_MmFixed_t **  pMems;     // memory managers: 2^1 words, 2^2 words, etc
+    int               nMapSize;  // the size of the memory array
+    Sat_MmFixed_t **  pMap;      // maps the number of bytes into its memory manager
+    // additional memory chunks
+    int           nChunksAlloc;  // the maximum number of memory chunks 
+    int           nChunks;       // the current number of memory chunks 
+    char **       pChunks;       // the allocated memory
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -291,7 +295,7 @@ Sat_MmFlex_t * Sat_MmFlexStart()
     p->pCurrent      = NULL;
     p->pEnd          = NULL;
 
-    p->nChunkSize    = (1 << 12);
+    p->nChunkSize    = (1 << 16);
     p->nChunksAlloc  = 64;
     p->nChunks       = 0;
     p->pChunks       = ALLOC( char *, p->nChunksAlloc );
@@ -436,6 +440,9 @@ Sat_MmStep_t * Sat_MmStepStart( int nSteps )
             p->pMap[k] = p->pMems[i];
 //for ( i = 1; i < 100; i ++ )
 //printf( "%10d: size = %10d\n", i, p->pMap[i]->nEntrySize );
+    p->nChunksAlloc  = 64;
+    p->nChunks       = 0;
+    p->pChunks       = ALLOC( char *, p->nChunksAlloc );
     return p;
 }
 
@@ -453,6 +460,12 @@ Sat_MmStep_t * Sat_MmStepStart( int nSteps )
 void Sat_MmStepStop( Sat_MmStep_t * p, int fVerbose )
 {
     int i;
+    if ( p->nChunksAlloc )
+    {
+        for ( i = 0; i < p->nChunks; i++ )
+            free( p->pChunks[i] );
+        free( p->pChunks );
+    }
     for ( i = 0; i < p->nMems; i++ )
         Sat_MmFixedStop( p->pMems[i], fVerbose );
     free( p->pMems );
@@ -477,8 +490,13 @@ char * Sat_MmStepEntryFetch( Sat_MmStep_t * p, int nBytes )
         return NULL;
     if ( nBytes > p->nMapSize )
     {
-//        printf( "Allocating %d bytes.\n", nBytes );
-        return ALLOC( char, nBytes );
+        if ( p->nChunks == p->nChunksAlloc )
+        {
+            p->nChunksAlloc *= 2;
+            p->pChunks = REALLOC( char *, p->pChunks, p->nChunksAlloc ); 
+        }
+        p->pChunks[ p->nChunks++ ] = ALLOC( char, nBytes );
+        return p->pChunks[p->nChunks-1];
     }
     return Sat_MmFixedEntryFetch( p->pMap[nBytes] );
 }
@@ -501,7 +519,7 @@ void Sat_MmStepEntryRecycle( Sat_MmStep_t * p, char * pEntry, int nBytes )
         return;
     if ( nBytes > p->nMapSize )
     {
-        free( pEntry );
+//        free( pEntry );
         return;
     }
     Sat_MmFixedEntryRecycle( p->pMap[nBytes], pEntry );

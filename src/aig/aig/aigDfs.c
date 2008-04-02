@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "aig.h"
+#include "tim.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -27,6 +28,79 @@
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Verifies that the objects are in a topo order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Aig_ManVerifyTopoOrder( Aig_Man_t * p )
+{
+    Aig_Obj_t * pObj, * pNext;
+    int i, iBox, iTerm1, nTerms;
+    Aig_ManSetPioNumbers( p );
+    Aig_ManIncrementTravId( p );
+    Aig_ManForEachObj( p, pObj, i )
+    {
+        if ( Aig_ObjIsNode(pObj) )
+        {
+            pNext = Aig_ObjFanin0(pObj);
+            if ( !Aig_ObjIsTravIdCurrent(p,pNext) )
+            {
+                printf( "Node %d has fanin %d that is not in a topological order.\n", pObj->Id, pNext->Id );
+                return 0;
+            }
+            pNext = Aig_ObjFanin1(pObj);
+            if ( !Aig_ObjIsTravIdCurrent(p,pNext) )
+            {
+                printf( "Node %d has fanin %d that is not in a topological order.\n", pObj->Id, pNext->Id );
+                return 0;
+            }
+        }
+        else if ( Aig_ObjIsPo(pObj) )
+        {
+            pNext = Aig_ObjFanin0(pObj);
+            if ( !Aig_ObjIsTravIdCurrent(p,pNext) )
+            {
+                printf( "Node %d has fanin %d that is not in a topological order.\n", pObj->Id, pNext->Id );
+                return 0;
+            }
+        }
+        else if ( Aig_ObjIsPi(pObj) )
+        {
+            if ( p->pManTime )
+            {
+                iBox = Tim_ManBoxForCi( p->pManTime, Aig_ObjPioNum(pObj) );
+                if ( iBox >= 0 ) // this is not a true PI
+                {
+                    iTerm1 = Tim_ManBoxInputFirst( p->pManTime, iBox );
+                    nTerms = Tim_ManBoxInputNum( p->pManTime, iBox );
+                    for ( i = 0; i < nTerms; i++ )
+                    {
+                        pNext = Aig_ManPo( p, iTerm1 + i );
+                        assert( Tim_ManBoxForCo( p->pManTime, Aig_ObjPioNum(pNext) ) == iBox ); 
+                        if ( !Aig_ObjIsTravIdCurrent(p,pNext) )
+                        {
+                            printf( "Box %d has input %d that is not in a topological order.\n", iBox, pNext->Id );
+                            return 0;
+                        }
+                    }
+                }
+            }
+        }
+        else
+            assert( 0 );
+        Aig_ObjSetTravIdCurrent( p, pObj );
+    }
+    Aig_ManCleanPioNumbers( p );
+    return 1;
+}
 
 /**Function*************************************************************
 

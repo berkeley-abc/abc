@@ -269,6 +269,7 @@ Aig_Man_t * Aig_ManDupRepr( Aig_Man_t * p, int fOrdered )
     // start the HOP package
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
     pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
     pNew->nRegs = p->nRegs;
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );

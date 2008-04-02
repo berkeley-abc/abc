@@ -241,6 +241,7 @@ Aig_Man_t * Fra_BmcFrames( Fra_Bmc_t * p, int fKeepPos )
     // start the fraig package
     pAigFrames = Aig_ManStart( Aig_ManObjNumMax(p->pAig) * p->nFramesAll );
     pAigFrames->pName = Aig_UtilStrsav( p->pAig->pName );
+    pAigFrames->pSpec = Aig_UtilStrsav( p->pAig->pSpec );
     // create PI nodes for the frames
     for ( f = 0; f < p->nFramesAll; f++ )
         Bmc_ObjSetFrames( Aig_ManConst1(p->pAig), f, Aig_ManConst1(pAigFrames) );

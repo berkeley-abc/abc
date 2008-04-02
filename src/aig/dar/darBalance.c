@@ -333,7 +333,7 @@ Aig_Obj_t * Dar_Balance_rec( Aig_Man_t * pNew, Aig_Obj_t * pObjOld, Vec_Vec_t * 
     if ( vSuper->nSize == 0 )
         return pObjOld->pData = Aig_ManConst0(pNew);
     if ( Vec_PtrSize(vSuper) < 2 )
-        printf( "BUG!\n" );
+        printf( "Dar_Balance_rec: Internal error!\n" );
     // for each old node, derive the new well-balanced node
     for ( i = 0; i < Vec_PtrSize(vSuper); i++ )
     {
@@ -366,9 +366,11 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
     Aig_Obj_t * pObj, * pDriver, * pObjNew;
     Vec_Vec_t * vStore;
     int i;
+    assert( Aig_ManVerifyTopoOrder(p) );
     // create the new manager 
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
     pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
     pNew->nRegs = p->nRegs;
     pNew->nAsserts = p->nAsserts;
     if ( p->vFlopNums )
@@ -435,6 +437,35 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
     if ( !Aig_ManCheck(pNew) )
         printf( "Dar_ManBalance(): The check has failed.\n" );
     return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reproduces script "compress2".]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Dar_ManBalanceXor( Aig_Man_t * pAig, int fExor, int fUpdateLevel, int fVerbose )
+{
+    Aig_Man_t * pAigXor, * pRes;
+    if ( fExor )
+    {
+        pAigXor = Aig_ManDupExor( pAig );
+        if ( fVerbose )
+            Dar_BalancePrintStats( pAigXor );
+        pRes = Dar_ManBalance( pAigXor, fUpdateLevel );
+        Aig_ManStop( pAigXor );
+    }
+    else
+    {
+        pRes = Dar_ManBalance( pAig, fUpdateLevel );
+    }
+    return pRes;
 }
 
 /**Function*************************************************************
