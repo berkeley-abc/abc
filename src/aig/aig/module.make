@@ -1,6 +1,7 @@
 SRC +=    src/aig/aig/aigCheck.c \
     src/aig/aig/aigCuts.c \
     src/aig/aig/aigDfs.c \
+    src/aig/aig/aigDup.c \
     src/aig/aig/aigFanout.c \
     src/aig/aig/aigFrames.c \
     src/aig/aig/aigInter.c \

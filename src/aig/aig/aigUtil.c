@@ -593,6 +593,12 @@ void Aig_ObjPrintVerbose( Aig_Obj_t * pObj, int fHaig )
         printf( "constant 1" );
     else if ( Aig_ObjIsPi(pObj) )
         printf( "PI" );
+    else if ( Aig_ObjIsPo(pObj) )
+    {
+        printf( "PO" );
+        printf( "%p%s", 
+            Aig_ObjFanin0(pObj), (Aig_ObjFaninC0(pObj)? "\'" : " ") );
+    }
     else
         printf( "AND( %p%s, %p%s )", 
             Aig_ObjFanin0(pObj), (Aig_ObjFaninC0(pObj)? "\'" : " "), 
@@ -620,7 +626,7 @@ void Aig_ManPrintVerbose( Aig_Man_t * p, int fHaig )
     Aig_ManForEachPi( p, pObj, i )
         printf( " %p", pObj );
     printf( "\n" );
-    vNodes = Aig_ManDfs( p );
+    vNodes = Aig_ManDfs( p, 0 );
     Vec_PtrForEachEntry( vNodes, pObj, i )
         Aig_ObjPrintVerbose( pObj, fHaig ), printf( "\n" );
     printf( "\n" );
@@ -674,7 +680,7 @@ void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName )
         if ( Aig_ObjIsConst1(Aig_ObjFanin0(pObj)) )
             pConst1 = Aig_ManConst1(p);
     // collect nodes in the DFS order
-    vNodes = Aig_ManDfs( p );
+    vNodes = Aig_ManDfs( p, 1 );
     // assign IDs to objects
     Aig_ManConst1(p)->iData = Counter++;
     Aig_ManForEachPi( p, pObj, i )
@@ -758,7 +764,7 @@ void Aig_ManDumpVerilog( Aig_Man_t * p, char * pFileName )
         if ( Aig_ObjIsConst1(Aig_ObjFanin0(pObj)) )
             pConst1 = Aig_ManConst1(p);
     // collect nodes in the DFS order
-    vNodes = Aig_ManDfs( p );
+    vNodes = Aig_ManDfs( p, 1 );
     // assign IDs to objects
     Aig_ManConst1(p)->iData = Counter++;
     Aig_ManForEachPi( p, pObj, i )

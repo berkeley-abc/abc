@@ -127,7 +127,7 @@ Aig_Man_t * Nwk_ManStrash( Nwk_Man_t * pNtk )
         pObj->pCopy = pObjNew;
     }
     Aig_ManCleanup( pMan );
-//    pMan = Aig_ManDup( pTemp = pMan, 1 );
+//    pMan = Aig_ManDupOrdered( pTemp = pMan );
 //    Aig_ManStop( pTemp );
     return pMan;
 }

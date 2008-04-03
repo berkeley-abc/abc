@@ -52,7 +52,8 @@ int Fra_FraigSec( Aig_Man_t * p, int nFramesMax, int fRetimeFirst, int fFraiging
     pPars->fLatchCorr  = fLatchCorr;
     pPars->fVerbose = fVeryVerbose;
 
-    pNew = Aig_ManDup( p, 1 );
+    pNew = Aig_ManDupOrdered( p );
+//    pNew = Aig_ManDupDfs( p );
     if ( fVerbose )
     {
         printf( "Original miter:       Latches = %5d. Nodes = %6d.\n", 
@@ -91,7 +92,8 @@ PRT( "Time", clock() - clk );
 clk = clock();
     if ( pNew->nRegs )
     {
-    pNew = Aig_ManDup( pTemp = pNew, 1 );
+    pNew = Aig_ManDupOrdered( pTemp = pNew );
+//    pNew = Aig_ManDupDfs( pTemp = pNew );
     Aig_ManStop( pTemp );
     pNew = Fra_FraigLatchCorrespondence( pTemp = pNew, 0, 100000, 1, fVeryVerbose, &nIter );
     p->pSeqModel = pTemp->pSeqModel; pTemp->pSeqModel = NULL;
@@ -147,7 +149,7 @@ PRT( "Time", clock() - clk );
 
         // perform rewriting
 clk = clock();
-        pNew = Aig_ManDup( pTemp = pNew, 1 );
+        pNew = Aig_ManDupOrdered( pTemp = pNew );
         Aig_ManStop( pTemp );
         pNew = Dar_ManRewriteDefault( pTemp = pNew );
         Aig_ManStop( pTemp );
@@ -165,7 +167,7 @@ PRT( "Time", clock() - clk );
 clk = clock();
         pNew = Rtm_ManRetime( pTemp = pNew, 1, 1000, 0 );
         Aig_ManStop( pTemp );
-        pNew = Aig_ManDup( pTemp = pNew, 1 );
+        pNew = Aig_ManDupOrdered( pTemp = pNew );
         Aig_ManStop( pTemp );
         if ( fVerbose )
         {

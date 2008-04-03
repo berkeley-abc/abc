@@ -250,7 +250,7 @@ void Aig_ManHaigRecord( Aig_Man_t * p )
     Aig_Obj_t * pObj;
     int i;
     // start the HAIG
-    p->pManHaig = Aig_ManDup( p, 1 );
+    p->pManHaig = Aig_ManDupOrdered( p );
     // set the pointers to the HAIG nodes
     Aig_ManForEachObj( p, pObj, i )
         pObj->pHaig = pObj->pData;

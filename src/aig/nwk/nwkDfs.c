@@ -66,9 +66,9 @@ int Nwk_ManVerifyTopoOrder( Nwk_Man_t * pNtk )
                 {
                     iTerm1 = Tim_ManBoxInputFirst( pNtk->pManTime, iBox );
                     nTerms = Tim_ManBoxInputNum( pNtk->pManTime, iBox );
-                    for ( i = 0; i < nTerms; i++ )
+                    for ( k = 0; k < nTerms; k++ )
                     {
-                        pNext = Nwk_ManCo( pNtk, iTerm1 + i );
+                        pNext = Nwk_ManCo( pNtk, iTerm1 + k );
                         if ( !Nwk_ObjIsTravIdCurrent(pNext) )
                         {
                             printf( "Box %d has input %d that is not in a topological order.\n", iBox, pNext->Id );

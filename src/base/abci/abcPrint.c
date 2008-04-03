@@ -293,6 +293,7 @@ void Abc_NtkPrintStats( FILE * pFile, Abc_Ntk_t * pNtk, int fFactored, int fSave
 //    if ( Abc_NtkHasSop(pNtk) )
 //        printf( "The total number of cube pairs = %d.\n", Abc_NtkGetCubePairNum(pNtk) );
    
+    fflush( stdout );
 }
 
 /**Function*************************************************************

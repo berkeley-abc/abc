@@ -199,7 +199,7 @@ Aig_Man_t * Aig_ManRetimeFrontier( Aig_Man_t * p, int nStepsMax )
     // remove useless registers
     Aig_ManSeqCleanup( p );
     // rehash the nodes
-    return Aig_ManDup( p, 1 ); 
+    return Aig_ManDupOrdered( p ); 
 }
 
 ////////////////////////////////////////////////////////////////////////

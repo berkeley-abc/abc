@@ -115,9 +115,13 @@ If_Man_t * Nwk_ManToIf( Aig_Man_t * p, If_Par_t * pPars, Vec_Ptr_t * vAigToIf )
         {
             pIfObj = If_ManCreateCi( pIfMan );
             If_ObjSetLevel( pIfObj, Aig_ObjLevel(pNode) );
+//            printf( "pi=%d ", pIfObj->Level );
         }
         else if ( Aig_ObjIsPo(pNode) )
+        {
             pIfObj = If_ManCreateCo( pIfMan, If_NotCond( Aig_ObjFanin0(pNode)->pData, Aig_ObjFaninC0(pNode) ) );
+//            printf( "po=%d ", pIfObj->Level );
+        }
         else if ( Aig_ObjIsConst1(pNode) )
             pIfObj = If_ManConst1( pIfMan );
         else // add the node to the mapper
@@ -130,11 +134,11 @@ If_Man_t * Nwk_ManToIf( Aig_Man_t * p, If_Par_t * pPars, Vec_Ptr_t * vAigToIf )
         if ( Aig_ObjIsChoice( p, pNode ) )
         {
             pIfMan->nChoices++;
-            for ( pPrev = pNode, pFanin = pNode->pData; pFanin; pPrev = pFanin, pFanin = pFanin->pData )
+            for ( pPrev = pNode, pFanin = p->pEquivs[pNode->Id]; pFanin; pPrev = pFanin, pFanin = p->pEquivs[pFanin->Id] )
                 If_ObjSetChoice( pPrev->pData, pFanin->pData );
             If_ManCreateChoice( pIfMan, pNode->pData );
         }
-        assert( If_ObjLevel(pIfObj) == Aig_ObjLevel(pNode) );
+//        assert( If_ObjLevel(pIfObj) == Aig_ObjLevel(pNode) );
     }
     return pIfMan;
 }

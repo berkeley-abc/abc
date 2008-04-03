@@ -369,6 +369,7 @@ void Fraig_ManPrintStats( Fraig_Man_t * p )
     if ( p->time4 > 0 ) { Fraig_PrintTime( "time4", p->time4 ); }
 //    PRT( "Selection ", timeSelect );
 //    PRT( "Assignment", timeAssign );
+    fflush( stdout );
 }
 
 /**Function*************************************************************

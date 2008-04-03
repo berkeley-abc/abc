@@ -14986,15 +14986,56 @@ usage:
 int Abc_CommandAbc8DChoice( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Aig_Man_t * pAigNew;
-    int c;
-    extern Aig_Man_t * Ntl_ManPerformSynthesis( Aig_Man_t * pAig );
+    int fBalance, fVerbose, fUpdateLevel, fConstruct, c;
+    int nConfMax, nLevelMax;
+    extern Aig_Man_t * Ntl_ManPerformSynthesis( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fConstruct, int nConfMax, int nLevelMax, int fVerbose );
 
     // set defaults
+    fBalance     = 1;
+    fUpdateLevel = 1;
+    fConstruct   = 0;
+    nConfMax     = 1000;
+    nLevelMax    = 0;
+    fVerbose     = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CLblcvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nConfMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nConfMax < 0 ) 
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLevelMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLevelMax < 0 ) 
+                goto usage;
+            break;
+        case 'b':
+            fBalance ^= 1;
+            break;
+        case 'l':
+            fUpdateLevel ^= 1;
+            break;
+        case 'c':
+            fConstruct ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -15008,7 +15049,7 @@ int Abc_CommandAbc8DChoice( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the input file name
-    pAigNew = Ntl_ManPerformSynthesis( pAbc->pAbc8Aig );
+    pAigNew = Ntl_ManPerformSynthesis( pAbc->pAbc8Aig, fBalance, fUpdateLevel, fConstruct, nConfMax, nLevelMax, fVerbose );
     if ( pAigNew == NULL )
     {
         printf( "Abc_CommandAbc8DChoice(): Tranformation of the AIG has failed.\n" );
@@ -15019,9 +15060,15 @@ int Abc_CommandAbc8DChoice( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( stdout, "usage: *dchoice [-h]\n" );
-    fprintf( stdout, "\t        performs AIG-based synthesis and derives choices\n" );
-    fprintf( stdout, "\t-h    : print the command usage\n");
+    fprintf( stdout, "usage: *dchoice [-C num] [-L num] [-blcvh]\n" );
+    fprintf( stdout, "\t         performs AIG-based synthesis and derives choices\n" );
+    fprintf( stdout, "\t-C num : the max number of conflicts at a node [default = %d]\n", nConfMax );
+    fprintf( stdout, "\t-L num : the max level of nodes to consider (0 = not used) [default = %d]\n", nLevelMax );
+    fprintf( stdout, "\t-b     : toggle internal balancing [default = %s]\n", fBalance? "yes": "no" );
+    fprintf( stdout, "\t-l     : toggle updating level [default = %s]\n", fUpdateLevel? "yes": "no" );
+    fprintf( stdout, "\t-c     : toggle constructive computation of choices [default = %s]\n", fConstruct? "yes": "no" );
+    fprintf( stdout, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( stdout, "\t-h     : print the command usage\n");
     return 1;
 }
 

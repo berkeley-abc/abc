@@ -251,6 +251,31 @@ int Fra_LcrNodeIsConst( Aig_Obj_t * pObj )
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicates the AIG manager recursively.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Obj_t * Fra_LcrManDup_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t * pObj )
+{
+    Aig_Obj_t * pObjNew;
+    if ( pObj->pData )
+        return pObj->pData;
+    Fra_LcrManDup_rec( pNew, p, Aig_ObjFanin0(pObj) );
+    if ( Aig_ObjIsBuf(pObj) )
+        return pObj->pData = Aig_ObjChild0Copy(pObj);
+    Fra_LcrManDup_rec( pNew, p, Aig_ObjFanin1(pObj) );
+    pObjNew = Aig_Oper( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj), Aig_ObjType(pObj) );
+    Aig_Regular(pObjNew)->pHaig = pObj->pHaig;
+    return pObj->pData = pObjNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Give the AIG and classes, reduces AIG for partitioning.]
 
   Description [Ignores registers that are not in the classes. 
@@ -290,7 +315,7 @@ Aig_Man_t * Fra_LcrDeriveAigForPartitioning( Fra_Lcr_t * pLcr )
         {
             assert( Aig_ObjIsPi(ppClass[c]) );
             pObjPo  = Aig_ManPo( pLcr->pAig, Offset+(long)ppClass[c]->pNext );
-            pObjNew = Aig_ManDup_rec( pNew, pLcr->pAig, Aig_ObjFanin0(pObjPo) );
+            pObjNew = Fra_LcrManDup_rec( pNew, pLcr->pAig, Aig_ObjFanin0(pObjPo) );
             pMiter  = Aig_Exor( pNew, pMiter, pObjNew );
         }
         Aig_ObjCreatePo( pNew, pMiter );
@@ -300,7 +325,7 @@ Aig_Man_t * Fra_LcrDeriveAigForPartitioning( Fra_Lcr_t * pLcr )
     {
         assert( Aig_ObjIsPi(pObj) );
         pObjPo = Aig_ManPo( pLcr->pAig, Offset+(long)pObj->pNext );
-        pMiter = Aig_ManDup_rec( pNew, pLcr->pAig, Aig_ObjFanin0(pObjPo) );
+        pMiter = Fra_LcrManDup_rec( pNew, pLcr->pAig, Aig_ObjFanin0(pObjPo) );
         Aig_ObjCreatePo( pNew, pMiter );
     }
     return pNew;
@@ -514,7 +539,7 @@ Aig_Man_t * Fra_FraigLatchCorrespondence( Aig_Man_t * pAig, int nFramesP, int nC
     if ( Aig_ManNodeNum(pAig) == 0 )
     {
         if ( pnIter ) *pnIter = 0;
-        return Aig_ManDup(pAig, 1);
+        return Aig_ManDupOrdered(pAig);
     }
     assert( Aig_ManRegNum(pAig) > 0 );
 

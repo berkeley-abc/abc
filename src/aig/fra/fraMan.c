@@ -298,6 +298,7 @@ void Fra_ManPrint( Fra_Man_t * p )
     if ( p->time1 ) { PRT( "time1           ", p->time1 ); }
     if ( p->nSpeculs )
     printf( "Speculations = %d.\n", p->nSpeculs );
+    fflush( stdout );
 }
 
 ////////////////////////////////////////////////////////////////////////

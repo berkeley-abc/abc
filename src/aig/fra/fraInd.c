@@ -343,7 +343,7 @@ Aig_Man_t * Fra_FraigInduction( Aig_Man_t * pManAig, Fra_Ssw_t * pParams )
     if ( Aig_ManNodeNum(pManAig) == 0 )
     {
         pParams->nIters = 0;
-        return Aig_ManDup(pManAig, 1);
+        return Aig_ManDupOrdered(pManAig);
     }
     assert( Aig_ManRegNum(pManAig) > 0 );
     assert( pParams->nFramesK > 0 );
@@ -563,7 +563,7 @@ clk2 = clock();
         Aig_Man_t * pNew;
         char * pFileName = Ioa_FileNameGenericAppend( p->pManAig->pName, "_care.aig" );
         printf( "Care one-hotness clauses will be written into file \"%s\".\n", pFileName );
-        pManAigNew = Aig_ManDup( pManAig, 1 );
+        pManAigNew = Aig_ManDupOrdered( pManAig );
         pNew = Fra_OneHotCreateExdc( p, p->vOneHots );
         Ioa_WriteAiger( pNew, pFileName, 0, 1 );
         Aig_ManStop( pNew );

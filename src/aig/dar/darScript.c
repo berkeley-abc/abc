@@ -45,9 +45,9 @@ Aig_Man_t * Dar_ManRewriteDefault( Aig_Man_t * pAig )
     Aig_Man_t * pTemp;
     Dar_RwrPar_t Pars, * pPars = &Pars;
     Dar_ManDefaultRwrParams( pPars );
-    pAig = Aig_ManDup( pAig, 0 ); 
+    pAig = Aig_ManDupDfs( pAig ); 
     Dar_ManRewrite( pAig, pPars );
-    pAig = Aig_ManDup( pTemp = pAig, 0 ); 
+    pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
     return pAig;
 }
@@ -80,18 +80,18 @@ Aig_Man_t * Dar_ManRwsat( Aig_Man_t * pAig, int fBalance, int fVerbose )
     pParsRwr->fVerbose = fVerbose;
     pParsRef->fVerbose = fVerbose;
 
-    pAig = Aig_ManDup( pAig, 0 ); 
+    pAig = Aig_ManDupDfs( pAig ); 
     if ( fVerbose ) Aig_ManPrintStats( pAig );
     
     // rewrite
     Dar_ManRewrite( pAig, pParsRwr );
-    pAig = Aig_ManDup( pTemp = pAig, 0 ); 
+    pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
     if ( fVerbose ) Aig_ManPrintStats( pAig );
 /*    
     // refactor
     Dar_ManRefactor( pAig, pParsRef );
-    pAig = Aig_ManDup( pTemp = pAig, 0 ); 
+    pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
     if ( fVerbose ) Aig_ManPrintStats( pAig );
 */
@@ -105,7 +105,7 @@ Aig_Man_t * Dar_ManRwsat( Aig_Man_t * pAig, int fBalance, int fVerbose )
     
     // rewrite
     Dar_ManRewrite( pAig, pParsRwr );
-    pAig = Aig_ManDup( pTemp = pAig, 0 ); 
+    pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
     if ( fVerbose ) Aig_ManPrintStats( pAig );
 
@@ -161,7 +161,7 @@ Aig_Man_t * Dar_ManCompress( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, i
     pParsRwr->fVerbose = 0;//fVerbose;
     pParsRef->fVerbose = 0;//fVerbose;
 
-    pAig = Aig_ManDup( pAig, 0 ); 
+    pAig = Aig_ManDupDfs( pAig ); 
     if ( fVerbose ) Aig_ManPrintStats( pAig );
 
     // balance
@@ -174,13 +174,13 @@ Aig_Man_t * Dar_ManCompress( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, i
     
     // rewrite
     Dar_ManRewrite( pAig, pParsRwr );
-    pAig = Aig_ManDup( pTemp = pAig, 0 ); 
+    pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
     if ( fVerbose ) Aig_ManPrintStats( pAig );
     
     // refactor
     Dar_ManRefactor( pAig, pParsRef );
-    pAig = Aig_ManDup( pTemp = pAig, 0 ); 
+    pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
     if ( fVerbose ) Aig_ManPrintStats( pAig );
 
@@ -197,7 +197,7 @@ Aig_Man_t * Dar_ManCompress( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, i
     
     // rewrite
     Dar_ManRewrite( pAig, pParsRwr );
-    pAig = Aig_ManDup( pTemp = pAig, 0 ); 
+    pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
     if ( fVerbose ) Aig_ManPrintStats( pAig );
 
@@ -233,7 +233,7 @@ Aig_Man_t * Dar_ManCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, 
     pParsRwr->fVerbose = 0;//fVerbose;
     pParsRef->fVerbose = 0;//fVerbose;
 
-    pAig = Aig_ManDup( pAig, 0 ); 
+    pAig = Aig_ManDupDfs( pAig ); 
     if ( fVerbose ) Aig_ManPrintStats( pAig );
 
     // balance
@@ -247,13 +247,13 @@ Aig_Man_t * Dar_ManCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, 
 
     // rewrite
     Dar_ManRewrite( pAig, pParsRwr );
-    pAig = Aig_ManDup( pTemp = pAig, 0 ); 
+    pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
     if ( fVerbose ) Aig_ManPrintStats( pAig );
     
     // refactor
     Dar_ManRefactor( pAig, pParsRef );
-    pAig = Aig_ManDup( pTemp = pAig, 0 ); 
+    pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
     if ( fVerbose ) Aig_ManPrintStats( pAig );
 
@@ -267,7 +267,7 @@ Aig_Man_t * Dar_ManCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, 
     
     // rewrite
     Dar_ManRewrite( pAig, pParsRwr );
-    pAig = Aig_ManDup( pTemp = pAig, 0 ); 
+    pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
     if ( fVerbose ) Aig_ManPrintStats( pAig );
 
@@ -276,7 +276,7 @@ Aig_Man_t * Dar_ManCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, 
     
     // rewrite
     Dar_ManRewrite( pAig, pParsRwr );
-    pAig = Aig_ManDup( pTemp = pAig, 0 ); 
+    pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
     if ( fVerbose ) Aig_ManPrintStats( pAig );
 
@@ -290,13 +290,13 @@ Aig_Man_t * Dar_ManCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, 
     
     // refactor
     Dar_ManRefactor( pAig, pParsRef );
-    pAig = Aig_ManDup( pTemp = pAig, 0 ); 
+    pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
     if ( fVerbose ) Aig_ManPrintStats( pAig );
     
     // rewrite
     Dar_ManRewrite( pAig, pParsRwr );
-    pAig = Aig_ManDup( pTemp = pAig, 0 ); 
+    pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
     if ( fVerbose ) Aig_ManPrintStats( pAig );
 
@@ -330,7 +330,7 @@ Vec_Ptr_t * Dar_ManChoiceSynthesis( Aig_Man_t * pAig, int fBalance, int fUpdateL
     int i;
 
     vAigs = Vec_PtrAlloc( 3 );
-    pAig = Aig_ManDup(pAig, 0);
+    pAig = Aig_ManDupDfs(pAig);
     Vec_PtrPush( vAigs, pAig );
 
     Aig_ManForEachObj( pAig, pObj, i )

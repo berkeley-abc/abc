@@ -39,16 +39,18 @@
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Ntl_ManPerformSynthesis( Aig_Man_t * pAig )
+Aig_Man_t * Ntl_ManPerformSynthesis( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fConstruct, int nConfMax, int nLevelMax, int fVerbose )
 {
     extern Aig_Man_t * Dar_ManBalance( Aig_Man_t * pAig, int fUpdateLevel );
     extern Aig_Man_t * Dar_ManCompress( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fVerbose );
+    extern Aig_Man_t * Dar_ManChoice( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fConstruct, int nConfMax, int nLevelMax, int fVerbose );
     Aig_Man_t * pTemp;
     // perform synthesis
 //printf( "Pre-synthesis AIG:  " );
 //Aig_ManPrintStats( pAig );
 //    pTemp = Dar_ManBalance( pAig, 1 );
-    pTemp = Dar_ManCompress( pAig, 1, 1, 0 );
+//    pTemp = Dar_ManCompress( pAig, 1, 1, 0 );
+    pTemp = Dar_ManChoice( pAig, fBalance, fUpdateLevel, fConstruct, nConfMax, nLevelMax, fVerbose );
 //printf( "Post-synthesis AIG: " );
 //Aig_ManPrintStats( pTemp );
     return pTemp;

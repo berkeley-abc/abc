@@ -169,7 +169,7 @@ Abc_Ntk_t * Abc_NtkFromDar( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
     Aig_ManForEachPi( pMan, pObj, i )
         pObj->pData = Abc_NtkCi(pNtkNew, i);
     // rebuild the AIG
-    vNodes = Aig_ManDfs( pMan );
+    vNodes = Aig_ManDfs( pMan, 1 );
     Vec_PtrForEachEntry( vNodes, pObj, i )
         if ( Aig_ObjIsBuf(pObj) )
             pObj->pData = (Abc_Obj_t *)Aig_ObjChild0Copy(pObj);
@@ -246,7 +246,7 @@ Abc_Ntk_t * Abc_NtkFromDarSeqSweep( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
         Abc_LatchSetInit0( pObjNew );
     }
     // rebuild the AIG
-    vNodes = Aig_ManDfs( pMan );
+    vNodes = Aig_ManDfs( pMan, 1 );
     Vec_PtrForEachEntry( vNodes, pObj, i )
         if ( Aig_ObjIsBuf(pObj) )
             pObj->pData = (Abc_Obj_t *)Aig_ObjChild0Copy(pObj);
@@ -411,7 +411,7 @@ Abc_Ntk_t * Abc_NtkFromDarSeq( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
     }
     Abc_NtkAddDummyBoxNames( pNtkNew );
     // rebuild the AIG
-    vNodes = Aig_ManDfs( pMan );
+    vNodes = Aig_ManDfs( pMan, 1 );
     Vec_PtrForEachEntry( vNodes, pObj, i )
     {
         // add the first fanin
@@ -629,7 +629,7 @@ Abc_Ntk_t * Abc_NtkDRewrite( Abc_Ntk_t * pNtk, Dar_RwrPar_t * pPars )
 //    Aig_ManStop( pTemp );
 
 clk = clock();
-    pMan = Aig_ManDup( pTemp = pMan, 0 ); 
+    pMan = Aig_ManDupDfs( pTemp = pMan ); 
     Aig_ManStop( pTemp );
 //PRT( "time", clock() - clk );
 
@@ -666,7 +666,7 @@ Abc_Ntk_t * Abc_NtkDRefactor( Abc_Ntk_t * pNtk, Dar_RefPar_t * pPars )
 //    Aig_ManStop( pTemp );
 
 clk = clock();
-    pMan = Aig_ManDup( pTemp = pMan, 0 ); 
+    pMan = Aig_ManDupDfs( pTemp = pMan ); 
     Aig_ManStop( pTemp );
 //PRT( "time", clock() - clk );
 

@@ -43,7 +43,7 @@
 int Aig_ManVerifyTopoOrder( Aig_Man_t * p )
 {
     Aig_Obj_t * pObj, * pNext;
-    int i, iBox, iTerm1, nTerms;
+    int i, k, iBox, iTerm1, nTerms;
     Aig_ManSetPioNumbers( p );
     Aig_ManIncrementTravId( p );
     Aig_ManForEachObj( p, pObj, i )
@@ -63,7 +63,7 @@ int Aig_ManVerifyTopoOrder( Aig_Man_t * p )
                 return 0;
             }
         }
-        else if ( Aig_ObjIsPo(pObj) )
+        else if ( Aig_ObjIsPo(pObj) || Aig_ObjIsBuf(pObj) )
         {
             pNext = Aig_ObjFanin0(pObj);
             if ( !Aig_ObjIsTravIdCurrent(p,pNext) )
@@ -81,9 +81,9 @@ int Aig_ManVerifyTopoOrder( Aig_Man_t * p )
                 {
                     iTerm1 = Tim_ManBoxInputFirst( p->pManTime, iBox );
                     nTerms = Tim_ManBoxInputNum( p->pManTime, iBox );
-                    for ( i = 0; i < nTerms; i++ )
+                    for ( k = 0; k < nTerms; k++ )
                     {
-                        pNext = Aig_ManPo( p, iTerm1 + i );
+                        pNext = Aig_ManPo( p, iTerm1 + k );
                         assert( Tim_ManBoxForCo( p->pManTime, Aig_ObjPioNum(pNext) ) == iBox ); 
                         if ( !Aig_ObjIsTravIdCurrent(p,pNext) )
                         {
@@ -94,7 +94,7 @@ int Aig_ManVerifyTopoOrder( Aig_Man_t * p )
                 }
             }
         }
-        else
+        else if ( !Aig_ObjIsConst1(pObj) )
             assert( 0 );
         Aig_ObjSetTravIdCurrent( p, pObj );
     }
@@ -120,49 +120,53 @@ void Aig_ManDfs_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vNodes )
     assert( !Aig_IsComplement(pObj) );
     if ( Aig_ObjIsTravIdCurrent(p, pObj) )
         return;
-//    if ( Aig_ObjIsPi(pObj) )
-//        return;
-//    assert( Aig_ObjIsNode(pObj) || Aig_ObjIsBuf(pObj) );
     Aig_ObjSetTravIdCurrent(p, pObj);
+    if ( p->pEquivs && p->pEquivs[pObj->Id] )
+        Aig_ManDfs_rec( p, p->pEquivs[pObj->Id], vNodes );
     Aig_ManDfs_rec( p, Aig_ObjFanin0(pObj), vNodes );
     Aig_ManDfs_rec( p, Aig_ObjFanin1(pObj), vNodes );
-//    assert( !Aig_ObjIsTravIdCurrent(p, pObj) ); // loop detection
-//    Aig_ObjSetTravIdCurrent(p, pObj);
     Vec_PtrPush( vNodes, pObj );
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Collects internal nodes in the DFS order.]
+  Synopsis    [Collects objects of the AIG in the DFS order.]
 
-  Description []
+  Description [Works with choice nodes.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Aig_ManDfs( Aig_Man_t * p )
+Vec_Ptr_t * Aig_ManDfs( Aig_Man_t * p, int fNodesOnly )
 {
     Vec_Ptr_t * vNodes;
     Aig_Obj_t * pObj;
     int i;
     Aig_ManIncrementTravId( p );
-    // mark constant and PIs
     Aig_ObjSetTravIdCurrent( p, Aig_ManConst1(p) );
-    Aig_ManForEachPi( p, pObj, i )
-        Aig_ObjSetTravIdCurrent( p, pObj );
-    // go through the nodes
-    vNodes = Vec_PtrAlloc( Aig_ManNodeNum(p) );
-    Aig_ManForEachObj( p, pObj, i )
-        if ( Aig_ObjIsNode(pObj) || Aig_ObjIsBuf(pObj) )
-            Aig_ManDfs_rec( p, pObj, vNodes );
+    // start the array of nodes
+    vNodes = Vec_PtrAlloc( Aig_ManObjNumMax(p) );
+    // mark PIs if they should not be collected
+    if ( fNodesOnly )
+        Aig_ManForEachPi( p, pObj, i )
+            Aig_ObjSetTravIdCurrent( p, pObj );
+    else
+        Vec_PtrPush( vNodes, Aig_ManConst1(p) );
+    // collect nodes reachable in the DFS order
+    Aig_ManForEachPo( p, pObj, i )
+        Aig_ManDfs_rec( p, fNodesOnly? Aig_ObjFanin0(pObj): pObj, vNodes );
+    if ( fNodesOnly )
+        assert( Vec_PtrSize(vNodes) == Aig_ManNodeNum(p) );
+    else
+        assert( Vec_PtrSize(vNodes) == Aig_ManObjNum(p) );
     return vNodes;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Levelizes the nodes
+  Synopsis    [Levelizes the nodes.]
 
   Description []
                
@@ -178,35 +182,12 @@ Vec_Vec_t * Aig_ManLevelize( Aig_Man_t * p )
     int nLevels, i;
     nLevels = Aig_ManLevelNum( p );
     vLevels = Vec_VecStart( nLevels + 1 );
-    Aig_ManForEachNode( p, pObj, i )
+    Aig_ManForEachObj( p, pObj, i )
     {
         assert( (int)pObj->Level <= nLevels );
         Vec_VecPush( vLevels, pObj->Level, pObj );
     }
     return vLevels;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Collects internal nodes in the DFS order.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Ptr_t * Aig_ManDfsPio( Aig_Man_t * p )
-{
-    Vec_Ptr_t * vNodes;
-    Aig_Obj_t * pObj;
-    int i;
-    Aig_ManIncrementTravId( p );
-    vNodes = Vec_PtrAlloc( Aig_ManObjNumMax(p) );
-    Aig_ManForEachPo( p, pObj, i )
-        Aig_ManDfs_rec( p, pObj, vNodes );
-    return vNodes;
 }
 
 /**Function*************************************************************
@@ -368,9 +349,11 @@ int Aig_ManLevelNum( Aig_Man_t * p )
     return LevelsMax;
 }
 
+//#if 0
+
 /**Function*************************************************************
 
-  Synopsis    [Computes the max number of levels in the manager.]
+  Synopsis    [Computes levels for AIG with choices and white boxes.]
 
   Description []
                
@@ -379,30 +362,99 @@ int Aig_ManLevelNum( Aig_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Aig_ManCountLevels( Aig_Man_t * p )
+void Aig_ManChoiceLevel_rec( Aig_Man_t * p, Aig_Obj_t * pObj )
 {
-    Vec_Ptr_t * vNodes;
-    Aig_Obj_t * pObj;
-    int i, LevelsMax, Level0, Level1;
-    // initialize the levels
-    Aig_ManConst1(p)->iData = 0;
-    Aig_ManForEachPi( p, pObj, i )
-        pObj->iData = 0;
-    // compute levels in a DFS order
-    vNodes = Aig_ManDfs( p );
-    Vec_PtrForEachEntry( vNodes, pObj, i )
+    Aig_Obj_t * pNext;
+    int i, iBox, iTerm1, nTerms, LevelMax = 0;
+    if ( Aig_ObjIsTravIdCurrent( p, pObj ) )
+        return;
+    Aig_ObjSetTravIdCurrent( p, pObj );
+    if ( Aig_ObjIsPi(pObj) )
     {
-        Level0 = Aig_ObjFanin0(pObj)->iData;
-        Level1 = Aig_ObjFanin1(pObj)->iData;
-        pObj->iData = 1 + Aig_ObjIsExor(pObj) + AIG_MAX(Level0, Level1);
+        if ( p->pManTime )
+        {
+            iBox = Tim_ManBoxForCi( p->pManTime, Aig_ObjPioNum(pObj) );
+            if ( iBox >= 0 ) // this is not a true PI
+            {
+                iTerm1 = Tim_ManBoxInputFirst( p->pManTime, iBox );
+                nTerms = Tim_ManBoxInputNum( p->pManTime, iBox );
+                for ( i = 0; i < nTerms; i++ )
+                {
+                    pNext = Aig_ManPo(p, iTerm1 + i);
+                    Aig_ManChoiceLevel_rec( p, pNext );
+                    if ( LevelMax < Aig_ObjLevel(pNext) )
+                        LevelMax = Aig_ObjLevel(pNext);
+                }
+                LevelMax++;
+            }
+        }
+//        printf( "%d ", pObj->Level );
     }
-    Vec_PtrFree( vNodes );
-    // get levels of the POs
-    LevelsMax = 0;
-    Aig_ManForEachPo( p, pObj, i )
-        LevelsMax = AIG_MAX( LevelsMax, Aig_ObjFanin0(pObj)->iData );
-    return LevelsMax;
+    else if ( Aig_ObjIsPo(pObj) )
+    {
+        pNext = Aig_ObjFanin0(pObj);
+        Aig_ManChoiceLevel_rec( p, pNext );
+        if ( LevelMax < Aig_ObjLevel(pNext) )
+            LevelMax = Aig_ObjLevel(pNext);
+    }
+    else if ( Aig_ObjIsNode(pObj) )
+    { 
+        // get the maximum level of the two fanins
+        pNext = Aig_ObjFanin0(pObj);
+        Aig_ManChoiceLevel_rec( p, pNext );
+        if ( LevelMax < Aig_ObjLevel(pNext) )
+            LevelMax = Aig_ObjLevel(pNext);
+        pNext = Aig_ObjFanin1(pObj);
+        Aig_ManChoiceLevel_rec( p, pNext );
+        if ( LevelMax < Aig_ObjLevel(pNext) )
+            LevelMax = Aig_ObjLevel(pNext);
+        LevelMax++;
+
+        // get the level of the nodes in the choice node
+        if ( p->pEquivs && (pNext = p->pEquivs[pObj->Id]) )
+        {
+            Aig_ManChoiceLevel_rec( p, pNext );
+            if ( LevelMax < Aig_ObjLevel(pNext) )
+                LevelMax = Aig_ObjLevel(pNext);
+        }
+    }
+    else
+        assert( 0 );
+    Aig_ObjSetLevel( pObj, LevelMax );
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Computes levels for AIG with choices and white boxes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Aig_ManChoiceLevel( Aig_Man_t * p )
+{
+    Aig_Obj_t * pObj;
+    int i, LevelMax = 0;
+    Aig_ManForEachObj( p, pObj, i )
+        Aig_ObjSetLevel( pObj, 0 );
+    Aig_ManSetPioNumbers( p );
+    Aig_ManIncrementTravId( p );
+    Aig_ManForEachPo( p, pObj, i )
+    {
+        Aig_ManChoiceLevel_rec( p, pObj );
+        if ( LevelMax < Aig_ObjLevel(pObj) )
+            LevelMax = Aig_ObjLevel(pObj);
+    }
+    Aig_ManCleanPioNumbers( p );
+    Aig_ManForEachNode( p, pObj, i )
+        assert( Aig_ObjLevel(pObj) > 0 );
+    return LevelMax;
+}
+
+//#endif
 
 /**Function*************************************************************
 

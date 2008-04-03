@@ -1162,7 +1162,7 @@ Aig_Man_t * Aig_ManChoicePartitioned( Vec_Ptr_t * vAigs, int nPartSize, int nCon
     extern Aig_Man_t * Fra_FraigChoice( Aig_Man_t * pManAig, int nConfMax, int nLevelMax );
 
     Vec_Ptr_t * vOutsTotal, * vOuts;
-    Aig_Man_t * pAigTotal, * pAigPart, * pAig;
+    Aig_Man_t * pAigTotal, * pAigPart, * pAig, * pTemp;
     Vec_Int_t * vPart, * vPartSupp;
     Vec_Ptr_t * vParts;
     Aig_Obj_t * pObj;
@@ -1272,6 +1272,15 @@ Aig_Man_t * Aig_ManChoicePartitioned( Vec_Ptr_t * vAigs, int nPartSize, int nCon
     pAig = Aig_ManRehash( pAigTotal );
     // create the equivalent nodes lists
     Aig_ManMarkValidChoices( pAig );
+    // reconstruct the network
+    pAig = Aig_ManDupDfsOrder( pTemp = pAig, Vec_PtrEntry( vAigs, 0 ) );
+    Aig_ManStop( pTemp );
+    // duplicate the timing manager
+    pTemp = Vec_PtrEntry( vAigs, 0 );
+    if ( pTemp->pManTime )
+        pAig->pManTime = Tim_ManDup( pTemp->pManTime, 0 );
+    // reset levels
+    Aig_ManChoiceLevel( pAig );
     return pAig;
 }
 
@@ -1437,107 +1446,6 @@ void Aig_ManChoiceConstructiveOne( Aig_Man_t * pNew, Aig_Man_t * pPrev, Aig_Man_
 
 /**Function*************************************************************
 
-  Synopsis    [Computes levels for AIG with choices and white boxes.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Aig_ManChoiceLevel_rec( Aig_Man_t * pNew, Aig_Obj_t * pObj )
-{
-    Aig_Obj_t * pNext;
-    int i, iBox, iTerm1, nTerms, LevelMax = 0;
-    if ( Aig_ObjIsTravIdCurrent( pNew, pObj ) )
-        return;
-    Aig_ObjSetTravIdCurrent( pNew, pObj );
-    if ( Aig_ObjIsPi(pObj) )
-    {
-        if ( pNew->pManTime )
-        {
-            iBox = Tim_ManBoxForCi( pNew->pManTime, Aig_ObjPioNum(pObj) );
-            if ( iBox >= 0 ) // this is not a true PI
-            {
-                iTerm1 = Tim_ManBoxInputFirst( pNew->pManTime, iBox );
-                nTerms = Tim_ManBoxInputNum( pNew->pManTime, iBox );
-                for ( i = 0; i < nTerms; i++ )
-                {
-                    pNext = Aig_ManPo(pNew, iTerm1 + i);
-                    Aig_ManChoiceLevel_rec( pNew, pNext );
-                    if ( LevelMax < Aig_ObjLevel(pNext) )
-                        LevelMax = Aig_ObjLevel(pNext);
-                }
-                LevelMax++;
-            }
-        }
-    }
-    else if ( Aig_ObjIsPo(pObj) )
-    {
-        pNext = Aig_ObjFanin0(pObj);
-        Aig_ManChoiceLevel_rec( pNew, pNext );
-        if ( LevelMax < Aig_ObjLevel(pNext) )
-            LevelMax = Aig_ObjLevel(pNext);
-    }
-    else if ( Aig_ObjIsNode(pObj) )
-    { 
-        // get the maximum level of the two fanins
-        pNext = Aig_ObjFanin0(pObj);
-        Aig_ManChoiceLevel_rec( pNew, pNext );
-        if ( LevelMax < Aig_ObjLevel(pNext) )
-            LevelMax = Aig_ObjLevel(pNext);
-        pNext = Aig_ObjFanin1(pObj);
-        Aig_ManChoiceLevel_rec( pNew, pNext );
-        if ( LevelMax < Aig_ObjLevel(pNext) )
-            LevelMax = Aig_ObjLevel(pNext);
-        LevelMax++;
-
-        // get the level of the nodes in the choice node
-        if ( pNew->pEquivs && (pNext = pNew->pEquivs[pObj->Id]) )
-        {
-            Aig_ManChoiceLevel_rec( pNew, pNext );
-            if ( LevelMax < Aig_ObjLevel(pNext) )
-                LevelMax = Aig_ObjLevel(pNext);
-        }
-    }
-    else
-        assert( 0 );
-    Aig_ObjSetLevel( pObj, LevelMax );
-    assert( !Aig_ObjIsNode(pObj) || LevelMax > 0 );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Computes levels for AIG with choices and white boxes.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Aig_ManChoiceLevel( Aig_Man_t * pNew )
-{
-    Aig_Obj_t * pObj;
-    int i, LevelMax = 0;
-    Aig_ManForEachObj( pNew, pObj, i )
-        Aig_ObjSetLevel( pObj, 0 );
-    Aig_ManSetPioNumbers( pNew );
-    Aig_ManIncrementTravId( pNew );
-    Aig_ManForEachPo( pNew, pObj, i )
-    {
-        Aig_ManChoiceLevel_rec( pNew, pObj );
-        if ( LevelMax < Aig_ObjLevel(pObj) )
-            LevelMax = Aig_ObjLevel(pObj);
-    }
-    Aig_ManCleanPioNumbers( pNew );
-    return LevelMax;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Constructively accumulates choices.]
 
   Description []
@@ -1593,7 +1501,7 @@ Aig_Man_t * Aig_ManChoiceConstructive( Vec_Ptr_t * vAigs, int fVerbose )
     int i;
     // start AIG with choices
     pPrev = Vec_PtrEntry( vAigs, 0 );
-    pNew = Aig_ManDup( pPrev, 1 );
+    pNew = Aig_ManDupOrdered( pPrev );
     // create room for equivalent nodes and representatives
     assert( pNew->pReprs == NULL );
     pNew->nReprsAlloc = Vec_PtrSize(vAigs) * Aig_ManObjNumMax(pNew);

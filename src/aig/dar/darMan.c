@@ -122,6 +122,7 @@ void Dar_ManPrintStats( Dar_Man_t * p )
 //        PRTP( "T", p->ClassTimes[i], p->timeEval );
         printf( "\n" );
     }
+    fflush( stdout );
 }
 
 

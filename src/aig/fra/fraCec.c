@@ -166,7 +166,7 @@ PRT( "Time", clock() - clk );
 
     // duplicate the AIG
 clk = clock();
-//    pAig = Aig_ManDup( pTemp = pAig );
+//    pAig = Aig_ManDupDfs( pTemp = pAig );
     pAig = Dar_ManRwsat( pTemp = pAig, 0, 0 );
     Aig_ManStop( pTemp );
     if ( fVerbose )

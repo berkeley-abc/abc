@@ -462,6 +462,7 @@ void Ivy_ManPrintStats( Ivy_Man_t * p )
 //    printf( "Del = %d. ",     p->nDeleted );
     printf( "Lev = %3d. ",     Ivy_ManLatchNum(p)? -1 : Ivy_ManLevels(p) );
     printf( "\n" );
+    fflush( stdout );
 }
 
 /**Function*************************************************************

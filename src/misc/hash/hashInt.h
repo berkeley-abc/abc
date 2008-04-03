@@ -90,7 +90,7 @@ static inline Hash_Int_t * Hash_IntAlloc( int nBins )
   p->nBins = nBins;
   p->fHash = Hash_DefaultHashFunc;
   p->nSize  = 0;
-  p->pArray = ALLOC( Hash_Int_Entry_t *, nBins );
+  p->pArray = ALLOC( Hash_Int_Entry_t *, nBins+1 );
   for(i=0; i<nBins; i++)
     p->pArray[i] = NULL;
 
@@ -270,17 +270,18 @@ static inline int* Hash_IntEntryPtr( Hash_Int_t *p, int key )
 ***********************************************************************/
 static inline void Hash_IntFree( Hash_Int_t *p ) {
   int bin;
-  Hash_Int_Entry_t *pEntry;
+  Hash_Int_Entry_t *pEntry, *pTemp;
 
   // free bins
   for(bin = 0; bin < p->nBins; bin++) {
     pEntry = p->pArray[bin];
     while(pEntry) {
+      pTemp = pEntry;
       pEntry = pEntry->pNext;
-      FREE( pEntry );
+      FREE( pTemp );
     }
   }
- 
+
   // free hash
   FREE( p->pArray );
   FREE( p );

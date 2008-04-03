@@ -445,14 +445,13 @@ extern Aig_ManCut_t *  Aig_ComputeCuts( Aig_Man_t * pAig, int nCutsMax, int nLea
 extern void            Aig_ManCutStop( Aig_ManCut_t * p );
 /*=== aigDfs.c ==========================================================*/
 extern int             Aig_ManVerifyTopoOrder( Aig_Man_t * p );
-extern Vec_Ptr_t *     Aig_ManDfs( Aig_Man_t * p );
+extern Vec_Ptr_t *     Aig_ManDfs( Aig_Man_t * p, int fNodesOnly );
 extern Vec_Vec_t *     Aig_ManLevelize( Aig_Man_t * p );
-extern Vec_Ptr_t *     Aig_ManDfsPio( Aig_Man_t * p );
 extern Vec_Ptr_t *     Aig_ManDfsNodes( Aig_Man_t * p, Aig_Obj_t ** ppNodes, int nNodes );
 extern Vec_Ptr_t *     Aig_ManDfsChoices( Aig_Man_t * p );
 extern Vec_Ptr_t *     Aig_ManDfsReverse( Aig_Man_t * p );
 extern int             Aig_ManLevelNum( Aig_Man_t * p );
-extern int             Aig_ManCountLevels( Aig_Man_t * p );
+extern int             Aig_ManChoiceLevel( Aig_Man_t * p );
 extern int             Aig_DagSize( Aig_Obj_t * pObj );
 extern int             Aig_SupportSize( Aig_Man_t * p, Aig_Obj_t * pObj );
 extern void            Aig_ConeUnmark_rec( Aig_Obj_t * pObj );
@@ -460,6 +459,13 @@ extern Aig_Obj_t *     Aig_Transfer( Aig_Man_t * pSour, Aig_Man_t * pDest, Aig_O
 extern Aig_Obj_t *     Aig_Compose( Aig_Man_t * p, Aig_Obj_t * pRoot, Aig_Obj_t * pFunc, int iVar );
 extern void            Aig_ObjCollectCut( Aig_Obj_t * pRoot, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vNodes );
 extern int             Aig_ObjCollectSuper( Aig_Obj_t * pObj, Vec_Ptr_t * vSuper );
+/*=== aigDup.c ==========================================================*/
+extern Aig_Man_t *     Aig_ManDupOrdered( Aig_Man_t * p );
+extern Aig_Man_t *     Aig_ManDupExor( Aig_Man_t * p );
+extern Aig_Man_t *     Aig_ManDupDfs( Aig_Man_t * p );
+extern Aig_Man_t *     Aig_ManDupDfsOrder( Aig_Man_t * p, Aig_Man_t * pOrder );
+extern Aig_Man_t *     Aig_ManDupLevelized( Aig_Man_t * p );
+extern Aig_Man_t *     Aig_ManDupWithoutPos( Aig_Man_t * p );
 /*=== aigFanout.c ==========================================================*/
 extern void            Aig_ObjAddFanout( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFanout );
 extern void            Aig_ObjRemoveFanout( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFanout );
@@ -472,10 +478,6 @@ extern void            Aig_ManHaigRecord( Aig_Man_t * p );
 /*=== aigMan.c ==========================================================*/
 extern Aig_Man_t *     Aig_ManStart( int nNodesMax );
 extern Aig_Man_t *     Aig_ManStartFrom( Aig_Man_t * p );
-extern Aig_Man_t *     Aig_ManDupExor( Aig_Man_t * p );
-extern Aig_Obj_t *     Aig_ManDup_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t * pObj );
-extern Aig_Man_t *     Aig_ManDup( Aig_Man_t * p, int fOrdered );
-extern Aig_Man_t *     Aig_ManDupWithoutPos( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManExtractMiter( Aig_Man_t * p, Aig_Obj_t * pNode1, Aig_Obj_t * pNode2 );
 extern void            Aig_ManStop( Aig_Man_t * p );
 extern int             Aig_ManCleanup( Aig_Man_t * p );
