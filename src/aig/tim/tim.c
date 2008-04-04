@@ -31,7 +31,6 @@
 #define AIG_MIN(a,b)       (((a) < (b))? (a) : (b))
 #define AIG_MAX(a,b)       (((a) > (b))? (a) : (b))
 #define AIG_ABS(a)         (((a) >= 0)?  (a) :-(a))
-#define AIG_INFINITY       (100000000)
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -133,7 +132,7 @@ Tim_Man_t * Tim_ManStart( int nPis, int nPos )
     {
         p->pPis[i].Id = i;
         p->pPis[i].iObj2Box = p->pPis[i].iObj2Num = -1;
-        p->pPis[i].timeReq = AIG_INFINITY;
+        p->pPis[i].timeReq = TIME_ETERNITY;
         p->pPis[i].timeArr = 0.0;
         p->pPis[i].TravId = 0;
     }
@@ -141,7 +140,7 @@ Tim_Man_t * Tim_ManStart( int nPis, int nPos )
     {
         p->pPos[i].Id = i;
         p->pPos[i].iObj2Box = p->pPos[i].iObj2Num = -1;
-        p->pPos[i].timeReq = AIG_INFINITY;
+        p->pPos[i].timeReq = TIME_ETERNITY;
         p->pPos[i].timeArr = 0.0;
         p->pPos[i].TravId = 0;
     }
@@ -673,7 +672,7 @@ float Tim_ManGetPiArrival( Tim_Man_t * p, int iPi )
     Tim_ManBoxForEachOutput( p, pBox, pObjRes, i )
     {
         pDelays = pBox->pDelayTable + i * pBox->nInputs;
-        DelayBest = -AIG_INFINITY;
+        DelayBest = -TIME_ETERNITY;
         Tim_ManBoxForEachInput( p, pBox, pObj, k )
             DelayBest = AIG_MAX( DelayBest, pObj->timeArr + pDelays[k] );
         pObjRes->timeArr = DelayBest;
@@ -718,7 +717,7 @@ float Tim_ManGetPoRequired( Tim_Man_t * p, int iPo )
     // compute the required times for each input of the box (POs)
     Tim_ManBoxForEachInput( p, pBox, pObjRes, i )
     {
-        DelayBest = AIG_INFINITY;
+        DelayBest = TIME_ETERNITY;
         Tim_ManBoxForEachOutput( p, pBox, pObj, k )
         {
             pDelays = pBox->pDelayTable + k * pBox->nInputs;

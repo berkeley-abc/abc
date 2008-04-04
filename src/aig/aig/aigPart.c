@@ -1092,6 +1092,63 @@ Aig_Man_t * Aig_ManDupPartAll( Aig_Man_t * pOld, Vec_Int_t * vPart )
 
 /**Function*************************************************************
 
+  Synopsis    [Collects internal nodes in the DFS order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManSupportNodes_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Int_t * vSupport )
+{
+    if ( Aig_ObjIsTravIdCurrent(p, pObj) )
+        return;
+    Aig_ObjSetTravIdCurrent(p, pObj);
+    if ( Aig_ObjIsPi(pObj) )
+    {
+        Vec_IntPush( vSupport, Aig_ObjPioNum(pObj) );
+        return;
+    }
+    Aig_ManSupportNodes_rec( p, Aig_ObjFanin0(pObj), vSupport );
+    Aig_ManSupportNodes_rec( p, Aig_ObjFanin1(pObj), vSupport );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collects internal nodes and PIs in the DFS order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Aig_ManSupportNodes( Aig_Man_t * p, Vec_Ptr_t * vParts )
+{
+    Vec_Ptr_t * vPartSupps;
+    Vec_Int_t * vPart, * vSupport;
+    int i, k, iOut;
+    Aig_ManSetPioNumbers( p );
+    vPartSupps = Vec_PtrAlloc( Vec_PtrSize(vParts) );
+    Vec_PtrForEachEntry( vParts, vPart, i )
+    {
+        vSupport = Vec_IntAlloc( 100 );
+        Aig_ManIncrementTravId( p );
+        Aig_ObjSetTravIdCurrent( p, Aig_ManConst1(p) );
+        Vec_IntForEachEntry( vPart, iOut, k )
+            Aig_ManSupportNodes_rec( p, Aig_ObjFanin0(Aig_ManPo(p, iOut)), vSupport );
+//        Vec_IntSort( vSupport, 0 );
+        Vec_PtrPush( vPartSupps, vSupport );
+    }
+    Aig_ManCleanPioNumbers( p );
+    return vPartSupps;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Create partitioned miter of the two AIGs.]
 
   Description [Assumes that each output in the second AIG cannot have 
@@ -1102,7 +1159,7 @@ Aig_Man_t * Aig_ManDupPartAll( Aig_Man_t * pOld, Vec_Int_t * vPart )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Aig_ManMiterPartitioned( Aig_Man_t * p1, Aig_Man_t * p2, int nPartSize )
+Vec_Ptr_t * Aig_ManMiterPartitioned( Aig_Man_t * p1, Aig_Man_t * p2, int nPartSize, int fSmart )
 {
     Aig_Man_t * pNew;
     Aig_Obj_t * pMiter;
@@ -1111,7 +1168,13 @@ Vec_Ptr_t * Aig_ManMiterPartitioned( Aig_Man_t * p1, Aig_Man_t * p2, int nPartSi
     Vec_Int_t * vPart, * vPartSupp;
     int i, k;
     // partition the first manager
-    vParts = Aig_ManPartitionSmart( p1, nPartSize, 0, &vPartSupps );
+    if ( fSmart )
+        vParts = Aig_ManPartitionSmart( p1, nPartSize, 0, &vPartSupps );
+    else
+    {
+        vParts = Aig_ManPartitionNaive( p1, nPartSize );
+        vPartSupps = Aig_ManSupportNodes( p1, vParts );
+    }
     // derive miters
     vMiters = Vec_PtrAlloc( Vec_PtrSize(vParts) );
     for ( i = 0; i < Vec_PtrSize(vParts); i++ )
@@ -1121,7 +1184,6 @@ Vec_Ptr_t * Aig_ManMiterPartitioned( Aig_Man_t * p1, Aig_Man_t * p2, int nPartSi
         vPartSupp = Vec_PtrEntry( vPartSupps, i );
         // create the new miter
         pNew = Aig_ManStart( 1000 );
-//        pNew->pName = Extra_UtilStrsav( p1->pName );
         // create the PIs
         for ( k = 0; k < Vec_IntSize(vPartSupp); k++ )
             Aig_ObjCreatePi( pNew );
@@ -1497,7 +1559,7 @@ void Aig_ManChoiceEval( Aig_Man_t * p )
 ***********************************************************************/
 Aig_Man_t * Aig_ManChoiceConstructive( Vec_Ptr_t * vAigs, int fVerbose )
 {
-    Aig_Man_t * pNew, * pThis, * pPrev;
+    Aig_Man_t * pNew, * pThis, * pPrev, * pTemp;
     int i;
     // start AIG with choices
     pPrev = Vec_PtrEntry( vAigs, 0 );
@@ -1514,15 +1576,18 @@ Aig_Man_t * Aig_ManChoiceConstructive( Vec_Ptr_t * vAigs, int fVerbose )
         pPrev = pThis;
     }
     // derive the result of choicing
-//Aig_ManPrintStats( pNew );
     pNew = Aig_ManRehash( pNew );
-//Aig_ManPrintStats( pNew );
     // create the equivalent nodes lists
     Aig_ManMarkValidChoices( pNew );
-//Aig_ManPrintStats( pNew );
+    // reconstruct the network
+    pNew = Aig_ManDupDfsOrder( pTemp = pNew, Vec_PtrEntry( vAigs, 0 ) );
+    Aig_ManStop( pTemp );
+    // duplicate the timing manager
+    pTemp = Vec_PtrEntry( vAigs, 0 );
+    if ( pTemp->pManTime )
+        pNew->pManTime = Tim_ManDup( pTemp->pManTime, 0 );
     // reset levels
     Aig_ManChoiceLevel( pNew );
-//    Aig_ManChoiceEval( pNew );
     return pNew;
 }
 

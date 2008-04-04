@@ -359,7 +359,7 @@ Aig_Man_t * Aig_ManDupDfsOrder( Aig_Man_t * p, Aig_Man_t * pOrder )
         }
     }
     Vec_PtrFree( vPios );
-    assert( Aig_ManBufNum(p) != 0 || Aig_ManNodeNum(p) == Aig_ManNodeNum(pNew) );
+//    assert( Aig_ManBufNum(p) != 0 || Aig_ManNodeNum(p) == Aig_ManNodeNum(pNew) );
     if ( p->pEquivs == NULL && p->pReprs == NULL && (nNodes = Aig_ManCleanup( pNew )) )
         printf( "Aig_ManDupDfs(): Cleanup after AIG duplication removed %d nodes.\n", nNodes );
     // duplicate the timing manager

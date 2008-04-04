@@ -418,7 +418,7 @@ void Aig_ManChoiceLevel_rec( Aig_Man_t * p, Aig_Obj_t * pObj )
                 LevelMax = Aig_ObjLevel(pNext);
         }
     }
-    else
+    else if ( !Aig_ObjIsConst1(pObj) )
         assert( 0 );
     Aig_ObjSetLevel( pObj, LevelMax );
 }

@@ -376,14 +376,14 @@ int Dar_ManRefactorTryCuts( Ref_Man_t * p, Aig_Obj_t * pObj, int nNodesSaved, in
         pTruth = Aig_ManCutTruth( pObj, vCut, p->vCutNodes, p->vTruthElem, p->vTruthStore );
         if ( Kit_TruthIsConst0(pTruth, Vec_PtrSize(vCut)) )
         {
-            p->GainBest = Vec_PtrSize(p->vCutNodes);
+            p->GainBest = Aig_NodeMffsSupp( p->pAig, pObj, 0, NULL );
             p->pGraphBest = Kit_GraphCreateConst0();
             Vec_PtrCopy( p->vLeavesBest, vCut );
             return p->GainBest;
         }
         if ( Kit_TruthIsConst1(pTruth, Vec_PtrSize(vCut)) )
         {
-            p->GainBest = Vec_PtrSize(p->vCutNodes);
+            p->GainBest = Aig_NodeMffsSupp( p->pAig, pObj, 0, NULL );
             p->pGraphBest = Kit_GraphCreateConst1();
             Vec_PtrCopy( p->vLeavesBest, vCut );
             return p->GainBest;

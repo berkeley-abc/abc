@@ -397,6 +397,7 @@ void Abc_NtkCecFraigPartAuto( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds
         printf( "Verifying part %4d  (out of %4d)  PI = %5d. PO = %5d. And = %6d. Lev = %4d.\r", 
             i+1, Vec_PtrSize(vParts), Abc_NtkPiNum(pMiterPart), Abc_NtkPoNum(pMiterPart), 
             Abc_NtkNodeNum(pMiterPart), Abc_AigLevel(pMiterPart) );
+        fflush( stdout );
         // solve the problem
         RetValue = Abc_NtkIvyProve( &pMiterPart, pParams );
         if ( RetValue == -1 )

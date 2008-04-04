@@ -15094,7 +15094,7 @@ int Abc_CommandAbc8DC2( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Aig_Man_t * Dar_ManCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, int fFanout, int fVerbose );
 
     // set defaults
-    fBalance     = 0;
+    fBalance     = 1;
     fUpdateLevel = 1;
     fVerbose     = 0;
     Extra_UtilGetoptReset();
@@ -15768,19 +15768,21 @@ int Abc_CommandAbc8Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int fVerbose;
     int nConfLimit;
-    int fPartition;
+    int fSmart;
+    int nPartSize;
     extern Aig_Man_t * Ntl_ManCollapse( void * p );
     extern void * Ntl_ManDup( void * pOld );
     extern void Ntl_ManFree( void * p );
 
-    extern int Fra_FraigCecTop( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int nConfLimit, int fPartition, int fVerbose );
+    extern int Fra_FraigCecTop( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int nConfLimit, int nPartSize, int fSmart, int fVerbose );
 
     // set defaults
-    fVerbose =  0;
     nConfLimit = 10000;   
-    fPartition = 0;
+    nPartSize  = 100;
+    fSmart     = 0;
+    fVerbose   =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Cpvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CPsvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -15795,8 +15797,19 @@ int Abc_CommandAbc8Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nConfLimit < 0 ) 
                 goto usage;
             break;
-        case 'p':
-            fPartition ^= 1;
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nPartSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nPartSize < 0 ) 
+                goto usage;
+            break;
+        case 's':
+            fSmart ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -15836,16 +15849,17 @@ int Abc_CommandAbc8Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     Ntl_ManFree( pTemp );
 
     // perform verification
-    Fra_FraigCecTop( pAig1, pAig2, nConfLimit, fPartition, fVerbose );
+    Fra_FraigCecTop( pAig1, pAig2, nConfLimit, nPartSize, fSmart, fVerbose );
     Aig_ManStop( pAig1 );
     Aig_ManStop( pAig2 );
     return 0;
 
 usage:
-    fprintf( stdout, "usage: *cec [-C num] [-pvh] <file1> <file2>\n" );
+    fprintf( stdout, "usage: *cec [-C num] [-P num] [-svh] <file1> <file2>\n" );
     fprintf( stdout, "\t         performs combinational equivalence checking\n" );
     fprintf( stdout, "\t-C num : limit on the number of conflicts [default = %d]\n", nConfLimit );
-    fprintf( stdout, "\t-p     : toggle automatic partitioning [default = %s]\n", fPartition? "yes": "no" );
+    fprintf( stdout, "\t-P num : the partition size for partitioned CEC [default = %d]\n", nPartSize );
+    fprintf( stdout, "\t-s     : toggle smart and natural output partitioning [default = %s]\n", fSmart? "smart": "natural" );
     fprintf( stdout, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( stdout, "\t-h     : print the command usage\n");
     fprintf( stdout, "\tfile1  : (optional) the file with the first network\n");

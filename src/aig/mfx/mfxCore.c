@@ -312,6 +312,10 @@ int Mfx_Perform( Nwk_Man_t * pNtk, Mfx_Par_t * pPars, If_Lib_t * pLutLib )
     // free the manager
     p->timeTotal = clock() - clk;
     Mfx_ManStop( p );
+
+    // update network into the topological order
+//    if ( pPars->fResub )
+//        Nwk_ManTopological( pNtk );
     return 1;
 }
 

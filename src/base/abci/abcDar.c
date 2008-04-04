@@ -946,7 +946,7 @@ int Abc_NtkDarCec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fPartition, int fVe
     {
         pMan1 = Abc_NtkToDar( pNtk1, 0, 0 );
         pMan2 = Abc_NtkToDar( pNtk2, 0, 0 );
-        RetValue = Fra_FraigCecPartitioned( pMan1, pMan2, 100, fVerbose );
+        RetValue = Fra_FraigCecPartitioned( pMan1, pMan2, 100, 1, fVerbose );
         Aig_ManStop( pMan1 );
         Aig_ManStop( pMan2 );
         goto finish;

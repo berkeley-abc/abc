@@ -90,7 +90,7 @@ If_Lib_t * If_LutLibRead( char * FileName )
             return NULL;
         }
 
-        // check if var delays are specifies
+        // check if var delays are specified
         if ( k > 1 )
             p->fVarPinDelays = 1;
 

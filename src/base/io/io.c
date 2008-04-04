@@ -1408,7 +1408,7 @@ int IoCommandWriteBench( Abc_Frame_t * pAbc, int argc, char **argv )
     // call the corresponding file writer
     if ( !fUseLuts )
         Io_Write( pAbc->pNtkCur, pFileName, IO_FILE_BENCH );
-    else
+    else if ( pAbc->pNtkCur )
     {
         Abc_Ntk_t * pNtkTemp;
         pNtkTemp = Abc_NtkToNetlist( pAbc->pNtkCur );
@@ -1416,6 +1416,8 @@ int IoCommandWriteBench( Abc_Frame_t * pAbc, int argc, char **argv )
         Io_WriteBenchLut( pNtkTemp, pFileName );
         Abc_NtkDelete( pNtkTemp );
     }
+    else
+        printf( "There is no current network.\n" );
     return 0;
 
 usage:

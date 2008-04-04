@@ -88,6 +88,11 @@ void Nwk_ManBidecResyn( Nwk_Man_t * pNtk, int fVerbose )
     int clk = clock();
     pPars->nVarsMax = Nwk_ManGetFaninMax( pNtk );
     pPars->fVerbose = fVerbose;
+    if ( pPars->nVarsMax < 2 )
+    {
+        printf( "Resynthesis is not performed for networks whose nodes are less than 2 inputs.\n" );
+        return;
+    }
     if ( pPars->nVarsMax > 15 )
     {
         if ( fVerbose )

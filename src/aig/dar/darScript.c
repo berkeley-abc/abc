@@ -82,19 +82,27 @@ Aig_Man_t * Dar_ManRwsat( Aig_Man_t * pAig, int fBalance, int fVerbose )
 
     pAig = Aig_ManDupDfs( pAig ); 
     if ( fVerbose ) Aig_ManPrintStats( pAig );
+
+    // balance
+    if ( fBalance )
+    {
+    pAig = Dar_ManBalance( pTemp = pAig, 0 );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    }
     
     // rewrite
     Dar_ManRewrite( pAig, pParsRwr );
     pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
     if ( fVerbose ) Aig_ManPrintStats( pAig );
-/*    
+
     // refactor
     Dar_ManRefactor( pAig, pParsRef );
     pAig = Aig_ManDupDfs( pTemp = pAig ); 
     Aig_ManStop( pTemp );
     if ( fVerbose ) Aig_ManPrintStats( pAig );
-*/
+
     // balance
     if ( fBalance )
     {
@@ -167,9 +175,9 @@ Aig_Man_t * Dar_ManCompress( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, i
     // balance
     if ( fBalance )
     {
-//    pAig = Dar_ManBalance( pTemp = pAig, fUpdateLevel );
-//    Aig_ManStop( pTemp );
-//    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    pAig = Dar_ManBalance( pTemp = pAig, fUpdateLevel );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) Aig_ManPrintStats( pAig );
     }
     
     // rewrite
@@ -239,9 +247,9 @@ Aig_Man_t * Dar_ManCompress2( Aig_Man_t * pAig, int fBalance, int fUpdateLevel, 
     // balance
     if ( fBalance )
     {
-//    pAig = Dar_ManBalance( pTemp = pAig, fUpdateLevel );
-//    Aig_ManStop( pTemp );
-//    if ( fVerbose ) Aig_ManPrintStats( pAig );
+    pAig = Dar_ManBalance( pTemp = pAig, fUpdateLevel );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) Aig_ManPrintStats( pAig );
     }
     
 
@@ -336,7 +344,7 @@ Vec_Ptr_t * Dar_ManChoiceSynthesis( Aig_Man_t * pAig, int fBalance, int fUpdateL
     Aig_ManForEachObj( pAig, pObj, i )
         pObj->pHaig = pObj;
 
-    pAig = Dar_ManCompress (pAig, 0, fUpdateLevel, fVerbose);
+    pAig = Dar_ManCompress (pAig, fBalance, fUpdateLevel, fVerbose);
     Vec_PtrPush( vAigs, pAig );
 //Aig_ManPrintStats( pAig );
 

@@ -187,7 +187,7 @@ void Dar_BalancePermute( Aig_Man_t * p, Vec_Ptr_t * vSuper, int LeftBound, int f
     // get the two last nodes
     pObj1 = Vec_PtrEntry( vSuper, RightBound + 1 );
     pObj2 = Vec_PtrEntry( vSuper, RightBound     );
-    if ( Aig_Regular(pObj1) == p->pConst1 || Aig_Regular(pObj2) == p->pConst1 )
+    if ( Aig_Regular(pObj1) == p->pConst1 || Aig_Regular(pObj2) == p->pConst1 || Aig_Regular(pObj1) == Aig_Regular(pObj2) )
         return;
     // find the first node that can be shared
     for ( i = RightBound; i >= LeftBound; i-- )

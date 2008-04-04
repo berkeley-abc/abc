@@ -387,7 +387,7 @@ int Ntl_ManExtract_rec( Ntl_Man_t * p, Ntl_Net_t * pNet )
     // add box inputs/outputs to COs/CIs
     if ( Ntl_ObjIsBox(pObj) )
     {
-        int LevelCur, LevelMax = -AIG_INFINITY;
+        int LevelCur, LevelMax = -TIME_ETERNITY;
         Vec_IntPush( p->vBox1Cos, Aig_ManPoNum(p->pAig) );
         Ntl_ObjForEachFanin( pObj, pNetFanin, i )
         {

@@ -137,6 +137,7 @@ int Ntl_ManInsert( Ntl_Man_t * p, Vec_Ptr_t * vMapping, Aig_Man_t * pAig )
 int Ntl_ManInsertNtk( Ntl_Man_t * p, Nwk_Man_t * pNtk )
 {
     char Buffer[100];
+    Vec_Ptr_t * vObjs;
     Vec_Int_t * vTruth;
     Vec_Int_t * vCover;
     Ntl_Mod_t * pRoot;
@@ -160,8 +161,13 @@ int Ntl_ManInsertNtk( Ntl_Man_t * p, Nwk_Man_t * pNtk )
     vTruth = Vec_IntAlloc( 1 << 16 );
     vCover = Vec_IntAlloc( 1 << 16 );
     nDigits = Aig_Base10Log( Nwk_ManNodeNum(pNtk) );
-    Nwk_ManForEachNode( pNtk, pObj, i )
+//    Nwk_ManForEachObj( pNtk, pObj, i )
+    vObjs = Nwk_ManDfs( pNtk );
+    Vec_PtrForEachEntry( vObjs, pObj, i )
+//    Nwk_ManForEachNode( pNtk, pObj, i )
     {
+        if ( !Nwk_ObjIsNode(pObj) )
+            continue;
         pNode = Ntl_ModelCreateNode( pRoot, Nwk_ObjFaninNum(pObj) );
         pTruth = Hop_ManConvertAigToTruth( pNtk->pManHop, Hop_Regular(pObj->pFunc), Nwk_ObjFaninNum(pObj), vTruth, 0 );
         if ( Hop_IsComplement(pObj->pFunc) )
@@ -194,6 +200,7 @@ int Ntl_ManInsertNtk( Ntl_Man_t * p, Nwk_Man_t * pNtk )
         }
         pObj->pCopy = pNet;
     }
+    Vec_PtrFree( vObjs );
     Vec_IntFree( vCover );
     Vec_IntFree( vTruth );
     // mark CIs and outputs of the registers
