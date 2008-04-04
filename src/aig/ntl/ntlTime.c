@@ -90,11 +90,11 @@ Tim_Man_t * Ntl_ManCreateTiming( Ntl_Man_t * p )
     // unpack the data in the arrival times
     if ( pRoot->vArrivals )
         Vec_IntForEachEntry( pRoot->vArrivals, Entry, i )
-            Tim_ManInitPiArrival( pMan, Entry, Aig_Int2Float(Vec_IntEntry(pRoot->vArrivals,++i)) );
+            Tim_ManInitCiArrival( pMan, Entry, Aig_Int2Float(Vec_IntEntry(pRoot->vArrivals,++i)) );
     // unpack the data in the required times
     if ( pRoot->vRequireds )
         Vec_IntForEachEntry( pRoot->vRequireds, Entry, i )
-            Tim_ManInitPoRequired( pMan, Entry, Aig_Int2Float(Vec_IntEntry(pRoot->vRequireds,++i)) );
+            Tim_ManInitCoRequired( pMan, Entry, Aig_Int2Float(Vec_IntEntry(pRoot->vRequireds,++i)) );
     // derive timing tables
     vDelayTables = Vec_PtrAlloc( Vec_PtrSize(p->vModels) );
     Ntl_ManForEachModel( p, pModel, i )

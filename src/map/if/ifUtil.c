@@ -234,15 +234,15 @@ void If_ManComputeRequired( If_Man_t * p )
         {
             assert( 0 );
             If_ManForEachPo( p, pObj, i )
-                Tim_ManSetPoRequired( p->pManTim, pObj->IdPio, IF_FLOAT_LARGE );
+                Tim_ManSetCoRequired( p->pManTim, pObj->IdPio, IF_FLOAT_LARGE );
             If_ManForEachLatchInput( p, pObj, i )
-                Tim_ManSetPoRequired( p->pManTim, pObj->IdPio, p->RequiredGlo );
+                Tim_ManSetCoRequired( p->pManTim, pObj->IdPio, p->RequiredGlo );
         }
         else  
         {
-            Tim_ManSetPoRequiredAll( p->pManTim, p->RequiredGlo );
+            Tim_ManSetCoRequiredAll( p->pManTim, p->RequiredGlo );
 //            If_ManForEachCo( p, pObj, i )
-//                Tim_ManSetPoRequired( p->pManTim, pObj->IdPio, p->RequiredGlo );
+//                Tim_ManSetCoRequired( p->pManTim, pObj->IdPio, p->RequiredGlo );
         }
         // go through the nodes in the reverse topological order
         If_ManForEachObjReverse( p, pObj, i )
@@ -256,11 +256,11 @@ void If_ManComputeRequired( If_Man_t * p )
             else if ( If_ObjIsCi(pObj) )
             {
                 reqTime = pObj->Required;
-                Tim_ManSetPiRequired( p->pManTim, pObj->IdPio, reqTime );
+                Tim_ManSetCiRequired( p->pManTim, pObj->IdPio, reqTime );
             }
             else if ( If_ObjIsCo(pObj) )
             {
-                reqTime = Tim_ManGetPoRequired( p->pManTim, pObj->IdPio );
+                reqTime = Tim_ManGetCoRequired( p->pManTim, pObj->IdPio );
                 If_ObjFanin0(pObj)->Required = IF_MIN( reqTime, If_ObjFanin0(pObj)->Required );
             }
             else if ( If_ObjIsConst1(pObj) )

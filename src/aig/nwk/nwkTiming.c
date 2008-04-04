@@ -46,7 +46,7 @@ void Nwk_ManCleanTiming( Nwk_Man_t * pNtk )
     Nwk_ManForEachObj( pNtk, pObj, i )
     {
         pObj->tArrival = pObj->tSlack = 0.0;
-        pObj->tRequired = TIME_ETERNITY;
+        pObj->tRequired = TIM_ETERNITY;
     }
 }
 
@@ -138,7 +138,7 @@ float Nwk_NodeComputeArrival( Nwk_Obj_t * pObj, int fUseSorting )
         return Nwk_ObjArrival(pObj);
     if ( Nwk_ObjIsCo(pObj) )
         return Nwk_ObjArrival( Nwk_ObjFanin0(pObj) );
-    tArrival = -TIME_ETERNITY;
+    tArrival = -TIM_ETERNITY;
     if ( pLutLib == NULL )
     {
         Nwk_ObjForEachFanin( pObj, pFanin, k )
@@ -196,7 +196,7 @@ float Nwk_NodeComputeRequired( Nwk_Obj_t * pObj, int fUseSorting )
     assert( Nwk_ObjIsNode(pObj) || Nwk_ObjIsCi(pObj) || Nwk_ObjIsCo(pObj) );
     if ( Nwk_ObjIsCo(pObj) )
         return Nwk_ObjRequired(pObj);
-    tRequired = TIME_ETERNITY;
+    tRequired = TIM_ETERNITY;
     if ( pLutLib == NULL )
     {
         Nwk_ObjForEachFanout( pObj, pFanout, k )
@@ -321,6 +321,7 @@ float Nwk_NodePropagateRequired( Nwk_Obj_t * pObj, int fUseSorting )
 ***********************************************************************/
 float Nwk_ManDelayTraceLut( Nwk_Man_t * pNtk )
 {
+    Vec_Ptr_t * vObjs;
     int fUseSorting = 1;
     If_Lib_t * pLutLib = pNtk->pLutLib;
     Vec_Ptr_t * vNodes;
@@ -333,7 +334,7 @@ float Nwk_ManDelayTraceLut( Nwk_Man_t * pNtk )
     {
         printf( "The max LUT size (%d) is less than the max fanin count (%d).\n", 
             pLutLib->LutMax, Nwk_ManGetFaninMax(pNtk) );
-        return -TIME_ETERNITY;
+        return -TIM_ETERNITY;
     }
 
     // compute the reverse order of all objects
@@ -345,18 +346,21 @@ float Nwk_ManDelayTraceLut( Nwk_Man_t * pNtk )
     // propagate arrival times
     if ( pNtk->pManTime )
         Tim_ManIncrementTravId( pNtk->pManTime );
-    Nwk_ManForEachObj( pNtk, pObj, i )
+//    Nwk_ManForEachObj( pNtk, pObj, i )
+    vObjs = Nwk_ManDfs( pNtk );
+    Vec_PtrForEachEntry( vObjs, pObj, i )
     {
         tArrival = Nwk_NodeComputeArrival( pObj, fUseSorting );
         if ( Nwk_ObjIsCo(pObj) && pNtk->pManTime )
-            Tim_ManSetPoArrival( pNtk->pManTime, pObj->PioId, tArrival );
+            Tim_ManSetCoArrival( pNtk->pManTime, pObj->PioId, tArrival );
         if ( Nwk_ObjIsCi(pObj) && pNtk->pManTime )
-            tArrival = Tim_ManGetPiArrival( pNtk->pManTime, pObj->PioId );
+            tArrival = Tim_ManGetCiArrival( pNtk->pManTime, pObj->PioId );
         Nwk_ObjSetArrival( pObj, tArrival );
     }
+    Vec_PtrFree( vObjs );
 
     // get the latest arrival times
-    tArrival = -TIME_ETERNITY;
+    tArrival = -TIM_ETERNITY;
     Nwk_ManForEachPo( pNtk, pObj, i )
         if ( tArrival < Nwk_ObjArrival(pObj) )
             tArrival = Nwk_ObjArrival(pObj);
@@ -365,7 +369,7 @@ float Nwk_ManDelayTraceLut( Nwk_Man_t * pNtk )
     if ( pNtk->pManTime )
     {
         Tim_ManIncrementTravId( pNtk->pManTime );
-        Tim_ManSetPoRequiredAll( pNtk->pManTime, tArrival );
+        Tim_ManSetCoRequiredAll( pNtk->pManTime, tArrival );
     }
     else
     {
@@ -383,13 +387,13 @@ float Nwk_ManDelayTraceLut( Nwk_Man_t * pNtk )
         else if ( Nwk_ObjIsCi(pObj) )
         {
             if ( pNtk->pManTime )
-                Tim_ManSetPiRequired( pNtk->pManTime, pObj->PioId, Nwk_ObjRequired(pObj) );
+                Tim_ManSetCiRequired( pNtk->pManTime, pObj->PioId, Nwk_ObjRequired(pObj) );
         }
         else if ( Nwk_ObjIsCo(pObj) )
         {
             if ( pNtk->pManTime )
             {
-                tRequired = Tim_ManGetPoRequired( pNtk->pManTime, pObj->PioId );
+                tRequired = Tim_ManGetCoRequired( pNtk->pManTime, pObj->PioId );
                 Nwk_ObjSetRequired( pObj, tRequired );
             }
             if ( Nwk_ObjRequired(Nwk_ObjFanin0(pObj)) > Nwk_ObjRequired(pObj) )
@@ -523,7 +527,6 @@ void Nwk_NodeUpdateAddToQueue( Vec_Ptr_t * vQueue, Nwk_Obj_t * pObj, int iCurren
             if ( Nwk_ObjLevel(pTemp2) >= Nwk_ObjLevel(pTemp1) )
                 break;
         }
-//        assert( i-1 > iCurrent );
         vQueue->pArray[i-1] = pTemp1;
         vQueue->pArray[i]   = pTemp2;
     }
@@ -557,7 +560,7 @@ void Nwk_NodeUpdateArrival( Nwk_Obj_t * pObj )
     Vec_Ptr_t * vQueue = pObj->pMan->vTemp;
     Nwk_Obj_t * pTemp, * pNext;
     float tArrival;
-    int i, k, iBox, iTerm1, nTerms;
+    int iCur, k, iBox, iTerm1, nTerms;
     assert( Nwk_ObjIsNode(pObj) );
     // verify the arrival time
     tArrival = Nwk_NodeComputeArrival( pObj, 1 );
@@ -569,12 +572,12 @@ void Nwk_NodeUpdateArrival( Nwk_Obj_t * pObj )
     // process objects
     if ( pManTime )
         Tim_ManIncrementTravId( pManTime );
-    Vec_PtrForEachEntry( vQueue, pTemp, i )
+    Vec_PtrForEachEntry( vQueue, pTemp, iCur )
     {
         pTemp->MarkA = 0;
         tArrival = Nwk_NodeComputeArrival( pTemp, 1 );
         if ( Nwk_ObjIsCi(pTemp) && pManTime )
-            tArrival = Tim_ManGetPiArrival( pManTime, pTemp->PioId );
+            tArrival = Tim_ManGetCiArrival( pManTime, pTemp->PioId );
         if ( Nwk_ManTimeEqual( tArrival, Nwk_ObjArrival(pTemp), (float)0.01 ) )
             continue;
         Nwk_ObjSetArrival( pTemp, tArrival );
@@ -583,19 +586,23 @@ void Nwk_NodeUpdateArrival( Nwk_Obj_t * pObj )
         {
             if ( pManTime )
             {
-                Tim_ManSetPoArrival( pManTime, pTemp->PioId, tArrival );
-                iBox = Tim_ManBoxForCo( pManTime, pNext->PioId );
-                if ( iBox >= 0 ) // this is not a true PO
+                // it may happen that a box-input (CO) was already marked as visited
+                // when some other box-input of the same box was visited - here we undo this
+                iBox = Tim_ManBoxForCo( pManTime, pTemp->PioId );
+                if ( Tim_ManIsCoTravIdCurrent( pManTime, pTemp->PioId ) )
+                    Tim_ManSetPreviousTravIdBoxInputs( pManTime, iBox );
+                Tim_ManSetCoArrival( pManTime, pTemp->PioId, tArrival );
+                if ( iBox >= 0 ) // this CO is an input of the box
                 {
                     Tim_ManSetCurrentTravIdBoxInputs( pManTime, iBox );
                     iTerm1 = Tim_ManBoxOutputFirst( pManTime, iBox );
                     nTerms = Tim_ManBoxOutputNum( pManTime, iBox );
-                    for ( i = 0; i < nTerms; i++ )
+                    for ( k = 0; k < nTerms; k++ )
                     {
-                        pNext = Nwk_ManCi(pNext->pMan, iTerm1 + i);
+                        pNext = Nwk_ManCi(pNext->pMan, iTerm1 + k);
                         if ( pNext->MarkA )
                             continue;
-                        Nwk_NodeUpdateAddToQueue( vQueue, pNext, i, 1 );
+                        Nwk_NodeUpdateAddToQueue( vQueue, pNext, iCur, 1 );
                         pNext->MarkA = 1;
                     }
                 }
@@ -607,7 +614,7 @@ void Nwk_NodeUpdateArrival( Nwk_Obj_t * pObj )
             {
                 if ( pNext->MarkA )
                     continue;
-                Nwk_NodeUpdateAddToQueue( vQueue, pNext, i, 1 );
+                Nwk_NodeUpdateAddToQueue( vQueue, pNext, iCur, 1 );
                 pNext->MarkA = 1;
             }
         }
@@ -632,7 +639,7 @@ void Nwk_NodeUpdateRequired( Nwk_Obj_t * pObj )
     Vec_Ptr_t * vQueue = pObj->pMan->vTemp;
     Nwk_Obj_t * pTemp, * pNext;
     float tRequired;
-    int i, k, iBox, iTerm1, nTerms;
+    int iCur, k, iBox, iTerm1, nTerms;
     assert( Nwk_ObjIsNode(pObj) );
     // make sure the node's required time remained the same
     tRequired = Nwk_NodeComputeRequired( pObj, 1 );
@@ -649,12 +656,12 @@ void Nwk_NodeUpdateRequired( Nwk_Obj_t * pObj )
     // process objects
     if ( pManTime )
         Tim_ManIncrementTravId( pManTime );
-    Vec_PtrForEachEntry( vQueue, pTemp, i )
+    Vec_PtrForEachEntry( vQueue, pTemp, iCur )
     {
         pTemp->MarkA = 0;
         tRequired = Nwk_NodeComputeRequired( pTemp, 1 );
         if ( Nwk_ObjIsCo(pTemp) && pManTime )
-            tRequired = Tim_ManGetPoRequired( pManTime, pTemp->PioId );
+            tRequired = Tim_ManGetCoRequired( pManTime, pTemp->PioId );
         if ( Nwk_ManTimeEqual( tRequired, Nwk_ObjRequired(pTemp), (float)0.01 ) )
             continue;
         Nwk_ObjSetRequired( pTemp, tRequired );
@@ -663,19 +670,23 @@ void Nwk_NodeUpdateRequired( Nwk_Obj_t * pObj )
         {
             if ( pManTime )
             {
-                Tim_ManSetPiRequired( pManTime, pTemp->PioId, tRequired );
-                iBox = Tim_ManBoxForCi( pManTime, pNext->PioId );
-                if ( iBox >= 0 ) // this is not a true PO
+                // it may happen that a box-output (CI) was already marked as visited
+                // when some other box-output of the same box was visited - here we undo this
+                iBox = Tim_ManBoxForCi( pManTime, pTemp->PioId );
+                if ( Tim_ManIsCiTravIdCurrent( pManTime, pTemp->PioId ) )
+                    Tim_ManSetPreviousTravIdBoxOutputs( pManTime, iBox );
+                Tim_ManSetCiRequired( pManTime, pTemp->PioId, tRequired );
+                if ( iBox >= 0 ) // this CI is an output of the box
                 {
                     Tim_ManSetCurrentTravIdBoxOutputs( pManTime, iBox );
                     iTerm1 = Tim_ManBoxInputFirst( pManTime, iBox );
                     nTerms = Tim_ManBoxInputNum( pManTime, iBox );
-                    for ( i = 0; i < nTerms; i++ )
+                    for ( k = 0; k < nTerms; k++ )
                     {
-                        pNext = Nwk_ManCo(pNext->pMan, iTerm1 + i);
+                        pNext = Nwk_ManCo(pNext->pMan, iTerm1 + k);
                         if ( pNext->MarkA )
                             continue;
-                        Nwk_NodeUpdateAddToQueue( vQueue, pNext, i, 0 );
+                        Nwk_NodeUpdateAddToQueue( vQueue, pNext, iCur, 0 );
                         pNext->MarkA = 1;
                     }
                 }
@@ -687,7 +698,7 @@ void Nwk_NodeUpdateRequired( Nwk_Obj_t * pObj )
             {
                 if ( pNext->MarkA )
                     continue;
-                Nwk_NodeUpdateAddToQueue( vQueue, pNext, i, 0 );
+                Nwk_NodeUpdateAddToQueue( vQueue, pNext, iCur, 0 );
                 pNext->MarkA = 1;
             }
         }
@@ -715,7 +726,7 @@ int Nwk_ObjLevelNew( Nwk_Obj_t * pObj )
         if ( pManTime )
         {
             iBox = Tim_ManBoxForCi( pManTime, pObj->PioId );
-            if ( iBox >= 0 ) // this is not a true PI
+            if ( iBox >= 0 ) // this CI is an output of the box
             {
                 iTerm1 = Tim_ManBoxInputFirst( pManTime, iBox );
                 nTerms = Tim_ManBoxInputNum( pManTime, iBox );
@@ -751,14 +762,14 @@ void Nwk_ManUpdateLevel( Nwk_Obj_t * pObj )
     Tim_Man_t * pManTime = pObj->pMan->pManTime;
     Vec_Ptr_t * vQueue = pObj->pMan->vTemp;
     Nwk_Obj_t * pTemp, * pNext;
-    int LevelNew, i, k, iBox, iTerm1, nTerms;
+    int LevelNew, iCur, k, iBox, iTerm1, nTerms;
     assert( Nwk_ObjIsNode(pObj) );
     // initialize the queue with the node
     Vec_PtrClear( vQueue );
     Vec_PtrPush( vQueue, pObj );
     pObj->MarkA = 1;
     // process objects
-    Vec_PtrForEachEntry( vQueue, pTemp, i )
+    Vec_PtrForEachEntry( vQueue, pTemp, iCur )
     {
         pTemp->MarkA = 0;
         LevelNew = Nwk_ObjLevelNew( pTemp );
@@ -770,18 +781,18 @@ void Nwk_ManUpdateLevel( Nwk_Obj_t * pObj )
         {
             if ( pManTime )
             {
-                iBox = Tim_ManBoxForCo( pManTime, pNext->PioId );
+                iBox = Tim_ManBoxForCo( pManTime, pTemp->PioId );
                 if ( iBox >= 0 ) // this is not a true PO
                 {
                     Tim_ManSetCurrentTravIdBoxInputs( pManTime, iBox );
                     iTerm1 = Tim_ManBoxOutputFirst( pManTime, iBox );
                     nTerms = Tim_ManBoxOutputNum( pManTime, iBox );
-                    for ( i = 0; i < nTerms; i++ )
+                    for ( k = 0; k < nTerms; k++ )
                     {
-                        pNext = Nwk_ManCi(pNext->pMan, iTerm1 + i);
+                        pNext = Nwk_ManCi(pNext->pMan, iTerm1 + k);
                         if ( pNext->MarkA )
                             continue;
-                        Nwk_NodeUpdateAddToQueue( vQueue, pNext, i, 1 );
+                        Nwk_NodeUpdateAddToQueue( vQueue, pNext, iCur, 1 );
                         pNext->MarkA = 1;
                     }
                 }
@@ -793,7 +804,7 @@ void Nwk_ManUpdateLevel( Nwk_Obj_t * pObj )
             {
                 if ( pNext->MarkA )
                     continue;
-                Nwk_NodeUpdateAddToQueue( vQueue, pNext, i, 1 );
+                Nwk_NodeUpdateAddToQueue( vQueue, pNext, iCur, 1 );
                 pNext->MarkA = 1;
             }
         }
@@ -855,7 +866,7 @@ void Nwk_ManUpdate( Nwk_Obj_t * pObj, Nwk_Obj_t * pObjNew, Vec_Vec_t * vLevels )
     pObjNew->tArrival = pObj->tArrival;
     pObjNew->tRequired = pObj->tRequired;
     // update required times of the old fanins
-    pObj->tRequired = TIME_ETERNITY;
+    pObj->tRequired = TIM_ETERNITY;
     Nwk_NodeUpdateRequired( pObj );
     // remove the old node
     Nwk_ManDeleteNode_rec( pObj );

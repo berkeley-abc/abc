@@ -600,10 +600,21 @@ p->timeOther = p->timeTotal - p->timeCuts - p->timeEval;
     Aig_ManFanoutStop( pAig );
     if ( p->pPars->fUpdateLevel )
         Aig_ManStopReverseLevels( pAig );
+/*
+    Aig_ManForEachObj( p->pAig, pObj, i )
+        if ( Aig_ObjIsNode(pObj) && Aig_ObjRefs(pObj) == 0 )
+        {
+            printf( "Unreferenced " );
+            Aig_ObjPrintVerbose( pObj, 0 );
+            printf( "\n" );
+        }
+*/
+    // remove dangling nodes (they should not be here!)
+    Aig_ManCleanup( pAig );
 
     // stop the rewriting manager
     Dar_ManRefStop( p );
-    Aig_ManCheckPhase( pAig );
+//    Aig_ManCheckPhase( pAig );
     if ( !Aig_ManCheck( pAig ) )
     {
         printf( "Dar_ManRefactor: The network check has failed.\n" );

@@ -974,9 +974,9 @@ static int Ioa_ReadParseLineTimes( Ioa_ReadMod_t * p, char * pLine, int fOutput 
     // find the delay number
     pTokenNum = Vec_PtrEntryLast(vTokens);
     if ( !strcmp( pTokenNum, "-inf" ) )
-        Delay = -TIME_ETERNITY;
+        Delay = -TIM_ETERNITY;
     else if ( !strcmp( pTokenNum, "inf" ) ) 
-        Delay = TIME_ETERNITY;
+        Delay = TIM_ETERNITY;
     else
         Delay = atof( pTokenNum );
     if ( Delay == 0.0 && pTokenNum[0] != '0' )

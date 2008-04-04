@@ -114,14 +114,14 @@ int Nwk_ManLevelBackup( Nwk_Man_t * pNtk )
     {
         if ( Nwk_ObjIsCi(pObj) )
         {
-            Level = pManTimeUnit? (int)Tim_ManGetPiArrival( pManTimeUnit, pObj->PioId ) : 0;
+            Level = pManTimeUnit? (int)Tim_ManGetCiArrival( pManTimeUnit, pObj->PioId ) : 0;
             Nwk_ObjSetLevel( pObj, Level );
         }
         else if ( Nwk_ObjIsCo(pObj) )
         {
             Level = Nwk_ObjLevel( Nwk_ObjFanin0(pObj) );
             if ( pManTimeUnit )
-                Tim_ManSetPoArrival( pManTimeUnit, pObj->PioId, (float)Level );
+                Tim_ManSetCoArrival( pManTimeUnit, pObj->PioId, (float)Level );
             Nwk_ObjSetLevel( pObj, Level );
             if ( LevelMax < Nwk_ObjLevel(pObj) )
                 LevelMax = Nwk_ObjLevel(pObj);

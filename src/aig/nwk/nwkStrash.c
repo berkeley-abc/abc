@@ -114,14 +114,14 @@ Aig_Man_t * Nwk_ManStrash( Nwk_Man_t * pNtk )
         if ( Nwk_ObjIsCi(pObj) )
         {
             pObjNew = Aig_ObjCreatePi(pMan);
-            Level = Tim_ManGetPiArrival( pMan->pManTime, pObj->PioId );
+            Level = Tim_ManGetCiArrival( pMan->pManTime, pObj->PioId );
             Aig_ObjSetLevel( pObjNew, Level );
         }
         else if ( Nwk_ObjIsCo(pObj) )
         {
             pObjNew = Aig_ObjCreatePo( pMan, Aig_NotCond(Nwk_ObjFanin0(pObj)->pCopy, pObj->fCompl) );
             Level = Aig_ObjLevel( pObjNew );
-            Tim_ManSetPoArrival( pMan->pManTime, pObj->PioId, (float)Level );
+            Tim_ManSetCoArrival( pMan->pManTime, pObj->PioId, (float)Level );
         }
         else if ( Nwk_ObjIsNode(pObj) )
         {

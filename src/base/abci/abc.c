@@ -15780,7 +15780,7 @@ int Abc_CommandAbc8Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     nConfLimit = 10000;   
     nPartSize  = 100;
     fSmart     = 0;
-    fVerbose   =  0;
+    fVerbose   = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "CPsvh" ) ) != EOF )
     {

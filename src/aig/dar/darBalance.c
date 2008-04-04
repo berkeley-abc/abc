@@ -199,6 +199,14 @@ void Dar_BalancePermute( Aig_Man_t * p, Vec_Ptr_t * vSuper, int LeftBound, int f
             Vec_PtrWriteEntry( vSuper, RightBound, pObj3 );
             return;
         }
+        if ( Aig_Regular(pObj1) == Aig_Regular(pObj3) )
+        {
+            if ( pObj3 == pObj2 )
+                return;
+            Vec_PtrWriteEntry( vSuper, i,          pObj2 );
+            Vec_PtrWriteEntry( vSuper, RightBound, pObj3 );
+            return;
+        }
         pGhost = Aig_ObjCreateGhost( p, pObj1, pObj3, fExor? AIG_OBJ_EXOR : AIG_OBJ_AND );
         if ( Aig_TableLookup( p, pGhost ) )
         {
@@ -394,7 +402,7 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
                 pObjNew = Aig_ObjCreatePi(pNew); 
                 pObj->pData = pObjNew;
                 // set the arrival time of the new PI
-                arrTime = Tim_ManGetPiArrival( p->pManTime, Aig_ObjPioNum(pObj) );
+                arrTime = Tim_ManGetCiArrival( p->pManTime, Aig_ObjPioNum(pObj) );
                 pObjNew->Level = (int)arrTime;
             }
             else if ( Aig_ObjIsPo(pObj) )
@@ -406,7 +414,7 @@ Aig_Man_t * Dar_ManBalance( Aig_Man_t * p, int fUpdateLevel )
                 Aig_ObjCreatePo( pNew, pObjNew );
                 // save arrival time of the output
                 arrTime = (float)Aig_Regular(pObjNew)->Level;
-                Tim_ManSetPoArrival( p->pManTime, Aig_ObjPioNum(pObj), arrTime );
+                Tim_ManSetCoArrival( p->pManTime, Aig_ObjPioNum(pObj), arrTime );
             }
             else
                 assert( 0 );

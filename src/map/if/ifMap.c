@@ -293,13 +293,13 @@ int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPrepr
             }
             else if ( If_ObjIsCi(pObj) )
             {
-                arrTime = Tim_ManGetPiArrival( p->pManTim, pObj->IdPio );
+                arrTime = Tim_ManGetCiArrival( p->pManTim, pObj->IdPio );
                 If_ObjSetArrTime( pObj, arrTime );
             }
             else if ( If_ObjIsCo(pObj) )
             {
                 arrTime = If_ObjArrTime( If_ObjFanin0(pObj) );
-                Tim_ManSetPoArrival( p->pManTim, pObj->IdPio, arrTime );
+                Tim_ManSetCoArrival( p->pManTim, pObj->IdPio, arrTime );
             }
             else if ( If_ObjIsConst1(pObj) )
             {
