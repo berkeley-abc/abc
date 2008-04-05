@@ -231,8 +231,13 @@ extern Nwk_Obj_t *     Nwk_ManCreateBox( Nwk_Man_t * pMan, int nFanins, int nFan
 extern Nwk_Obj_t *     Nwk_ManCreateLatch( Nwk_Man_t * pMan );
 extern void            Nwk_ManDeleteNode( Nwk_Obj_t * pObj );
 extern void            Nwk_ManDeleteNode_rec( Nwk_Obj_t * pObj );
+/*=== nwkSpeedup.c ============================================================*/
+extern Aig_Man_t *     Nwk_ManSpeedup( Nwk_Man_t * pNtk, int fUseLutLib, int Percentage, int Degree, int fVerbose, int fVeryVerbose );
+/*=== nwkStrash.c ============================================================*/
+extern Aig_Man_t *     Nwk_ManStrash( Nwk_Man_t * pNtk );
 /*=== nwkTiming.c ============================================================*/
 extern int             Nwk_ManVerifyTiming(  Nwk_Man_t * pNtk );
+extern void            Nwk_ManDelayTraceSortPins( Nwk_Obj_t * pNode, int * pPinPerm, float * pPinDelays );
 extern float           Nwk_ManDelayTraceLut( Nwk_Man_t * pNtk );
 extern void            Nwk_ManDelayTracePrint( Nwk_Man_t * pNtk );
 extern void            Nwk_ManUpdate( Nwk_Obj_t * pObj, Nwk_Obj_t * pObjNew, Vec_Vec_t * vLevels );

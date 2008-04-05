@@ -341,6 +341,8 @@ int Aig_ObjCheckTfi_rec( Aig_Man_t * p, Aig_Obj_t * pNode, Aig_Obj_t * pOld )
     // check the trivial cases
     if ( pNode == NULL )
         return 0;
+    if ( Aig_ObjIsPi(pNode) )
+        return 0;
 //    if ( pNode->Id < pOld->Id ) // cannot use because of choices of pNode
 //        return 0;
     if ( pNode == pOld )

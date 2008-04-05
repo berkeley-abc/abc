@@ -229,52 +229,6 @@ float Abc_NtkDelayTraceLut( Abc_Ntk_t * pNtk, int fUseLutLib )
 
 /**Function*************************************************************
 
-  Synopsis    [Determines timing-critical edges of the node.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-unsigned Abc_NtkDelayTraceTCEdges( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, float tDelta, int fUseLutLib )
-{
-    int pPinPerm[32];
-    float pPinDelays[32];
-    If_Lib_t * pLutLib;
-    Abc_Obj_t * pFanin;
-    unsigned uResult = 0;
-    float tRequired, * pDelays;
-    int k;
-    pLutLib = fUseLutLib?  Abc_FrameReadLibLut() : NULL;
-    tRequired = Abc_ObjRequired(pNode);
-    if ( pLutLib == NULL )
-    {
-        Abc_ObjForEachFanin( pNode, pFanin, k )
-            if ( tRequired < Abc_ObjArrival(pFanin) + 1.0 + tDelta )
-                uResult |= (1 << k);
-    }
-    else if ( !pLutLib->fVarPinDelays )
-    {
-        pDelays = pLutLib->pLutDelays[Abc_ObjFaninNum(pNode)];
-        Abc_ObjForEachFanin( pNode, pFanin, k )
-            if ( tRequired < Abc_ObjArrival(pFanin) + pDelays[0] + tDelta )
-                uResult |= (1 << k);
-    }
-    else
-    {
-        pDelays = pLutLib->pLutDelays[Abc_ObjFaninNum(pNode)];
-        Abc_NtkDelayTraceSortPins( pNode, pPinPerm, pPinDelays );
-        Abc_ObjForEachFanin( pNode, pFanin, k )
-            if ( tRequired < Abc_ObjArrival(Abc_ObjFanin(pNode,pPinPerm[k])) + pDelays[k] + tDelta )
-                uResult |= (1 << pPinPerm[k]);
-    }
-    return uResult;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Delay tracing of the LUT mapped network.]
 
   Description []
@@ -493,6 +447,52 @@ void Abc_NtkSpeedupNode( Abc_Ntk_t * pNtk, Abc_Ntk_t * pAig, Abc_Obj_t * pNode, 
         pAnd->pData = pObj;
     }
 
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Determines timing-critical edges of the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+unsigned Abc_NtkDelayTraceTCEdges( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, float tDelta, int fUseLutLib )
+{
+    int pPinPerm[32];
+    float pPinDelays[32];
+    If_Lib_t * pLutLib;
+    Abc_Obj_t * pFanin;
+    unsigned uResult = 0;
+    float tRequired, * pDelays;
+    int k;
+    pLutLib = fUseLutLib?  Abc_FrameReadLibLut() : NULL;
+    tRequired = Abc_ObjRequired(pNode);
+    if ( pLutLib == NULL )
+    {
+        Abc_ObjForEachFanin( pNode, pFanin, k )
+            if ( tRequired < Abc_ObjArrival(pFanin) + 1.0 + tDelta )
+                uResult |= (1 << k);
+    }
+    else if ( !pLutLib->fVarPinDelays )
+    {
+        pDelays = pLutLib->pLutDelays[Abc_ObjFaninNum(pNode)];
+        Abc_ObjForEachFanin( pNode, pFanin, k )
+            if ( tRequired < Abc_ObjArrival(pFanin) + pDelays[0] + tDelta )
+                uResult |= (1 << k);
+    }
+    else
+    {
+        pDelays = pLutLib->pLutDelays[Abc_ObjFaninNum(pNode)];
+        Abc_NtkDelayTraceSortPins( pNode, pPinPerm, pPinDelays );
+        Abc_ObjForEachFanin( pNode, pFanin, k )
+            if ( tRequired < Abc_ObjArrival(Abc_ObjFanin(pNode,pPinPerm[k])) + pDelays[k] + tDelta )
+                uResult |= (1 << pPinPerm[k]);
+    }
+    return uResult;
 }
 
 /**Function*************************************************************

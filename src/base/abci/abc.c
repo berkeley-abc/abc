@@ -215,6 +215,7 @@ static int Abc_CommandAbc8Mfs        ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandAbc8Lutpack    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Balance    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Speedup    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Fraig      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Cec        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Scl        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Lcorr      ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -450,6 +451,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC8",         "*lp",           Abc_CommandAbc8Lutpack,      0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*b",            Abc_CommandAbc8Balance,      0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*speedup",      Abc_CommandAbc8Speedup,      0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*fraig",        Abc_CommandAbc8Fraig,        0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*cec",          Abc_CommandAbc8Cec,          0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*scl",          Abc_CommandAbc8Scl,          0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*lcorr",        Abc_CommandAbc8Lcorr,        0 );
@@ -15674,9 +15676,14 @@ int Abc_CommandAbc8Speedup( Abc_Frame_t * pAbc, int argc, char ** argv )
     int Degree;
     int fVerbose;
     int fVeryVerbose;
-    extern Aig_Man_t * Nwk_ManSpeedup( void * pNtk );
+    extern Aig_Man_t * Nwk_ManSpeedup( void * pNtk, int fUseLutLib, int Percentage, int Degree, int fVerbose, int fVeryVerbose );
 
     // set defaults
+    fUseLutLib = 0;
+    Percentage = 3;
+    Degree     = 2;
+    fVerbose   = 0;
+    fVeryVerbose = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "PNlvwh" ) ) != EOF )
     {
@@ -15724,8 +15731,8 @@ int Abc_CommandAbc8Speedup( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "Abc_CommandAbc8DChoice(): There is no mapped network to strash.\n" );
         return 1;
     }
-
-    pAigNew = Nwk_ManSpeedup( pAbc->pAbc8Nwk );
+       
+    pAigNew = Nwk_ManSpeedup( pAbc->pAbc8Nwk, fUseLutLib, Percentage, Degree, fVerbose, fVeryVerbose );
     if ( pAigNew == NULL )
     {
         printf( "Abc_CommandAbc8Speedup(): Tranformation of the AIG has failed.\n" );
@@ -15746,6 +15753,22 @@ usage:
     fprintf( stdout, "\t-w       : toggle printing detailed stats for each node [default = %s]\n", fVeryVerbose? "yes": "no" );
     fprintf( stdout, "\t-h       : print the command usage\n");
     return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc8Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    return 0;
 }
 
 /**Function*************************************************************

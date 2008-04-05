@@ -544,6 +544,7 @@ extern void            Aig_ObjCreateRepr( Aig_Man_t * p, Aig_Obj_t * pNode1, Aig
 extern void            Aig_ManTransferRepr( Aig_Man_t * pNew, Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupRepr( Aig_Man_t * p, int fOrdered );
 extern Aig_Man_t *     Aig_ManRehash( Aig_Man_t * p );
+extern int             Aig_ObjCheckTfi( Aig_Man_t * p, Aig_Obj_t * pNew, Aig_Obj_t * pOld );
 extern void            Aig_ManMarkValidChoices( Aig_Man_t * p );
 extern int             Aig_TransferMappedClasses( Aig_Man_t * pAig, Aig_Man_t * pPart, int * pMapBack );
 /*=== aigRet.c ========================================================*/
