@@ -186,7 +186,7 @@ Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk )
     Abc_Ntk_t * pNtkNew;
     Abc_Obj_t * pNode, * pNodeNew;
     Vec_Int_t * vCover;
-    int i, nDupGates;
+    int i;//, nDupGates;
     // create the new network
     if ( pIfMan->pPars->fUseBdds || pIfMan->pPars->fUseCnfs || pIfMan->pPars->fUseMv )
         pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_BDD );
@@ -223,7 +223,7 @@ Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk )
     if ( pIfMan->pPars->fUseBdds )
         Abc_NtkBddReorder( pNtkNew, 0 );
     // decouple the PO driver nodes to reduce the number of levels
-    nDupGates = Abc_NtkLogicMakeSimpleCos( pNtkNew, 1 );
+//    nDupGates = Abc_NtkLogicMakeSimpleCos( pNtkNew, 1 );
 //    if ( nDupGates && If_ManReadVerbose(pIfMan) )
 //        printf( "Duplicated %d gates to decouple the CO drivers.\n", nDupGates );
     return pNtkNew;

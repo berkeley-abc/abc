@@ -50,8 +50,8 @@ void Fra_FraigInductionRewrite( Fra_Man_t * p )
 //    pTemp = Dar_ManRwsat( pTemp, 1, 0 );
     pTemp = Dar_ManRewriteDefault( p->pManFraig );
 //    printf( "Before = %6d.  After = %6d.\n", Aig_ManNodeNum(p->pManFraig), Aig_ManNodeNum(pTemp) ); 
-//Aig_ManDumpBlif( p->pManFraig, "1.blif" );
-//Aig_ManDumpBlif( pTemp, "2.blif" );
+//Aig_ManDumpBlif( p->pManFraig, "1.blif", NULL, NULL );
+//Aig_ManDumpBlif( pTemp, "2.blif", NULL, NULL );
 //    Fra_FramesWriteCone( pTemp );
 //    Aig_ManStop( pTemp );
     // transfer PI/register pointers
@@ -431,7 +431,7 @@ PRT( "Time", clock() - clk );
 
     // dump AIG of the timeframes
 //    pManAigNew = Fra_ClassesDeriveAig( p->pCla, pPars->nFramesK );
-//    Aig_ManDumpBlif( pManAigNew, "frame_aig.blif" );
+//    Aig_ManDumpBlif( pManAigNew, "frame_aig.blif", NULL, NULL );
 //    Fra_ManPartitionTest2( pManAigNew );
 //    Aig_ManStop( pManAigNew );
  
@@ -448,7 +448,7 @@ PRT( "Time", clock() - clk );
 clk2 = clock();
         p->pManFraig = Fra_FramesWithClasses( p );
 p->timeTrav += clock() - clk2;
-//Aig_ManDumpBlif( p->pManFraig, "testaig.blif" );
+//Aig_ManDumpBlif( p->pManFraig, "testaig.blif", NULL, NULL );
 
         // perform AIG rewriting
         if ( p->pPars->fRewrite )

@@ -155,7 +155,7 @@ static inline void Fra_FraigNodeSpeculate( Fra_Man_t * p, Aig_Obj_t * pObj, Aig_
     pTemp = Aig_ManExtractMiter( p->pManFraig, pObjFraig, pObjReprFraig );
     // dump the logic into a file
     sprintf( FileName, "aig\\%03d.blif", ++Counter );
-    Aig_ManDumpBlif( pTemp, FileName );
+    Aig_ManDumpBlif( pTemp, FileName, NULL, NULL );
     printf( "Speculation cone with %d nodes was written into file \"%s\".\n", Aig_ManNodeNum(pTemp), FileName );
     // clean up
     Aig_ManStop( pTemp );

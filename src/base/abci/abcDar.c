@@ -353,7 +353,7 @@ Abc_Ntk_t * Abc_NtkFromDarChoices( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
     Vec_PtrForEachEntry( vNodes, pObj, i )
     {
         pObj->pData = Abc_AigAnd( pNtkNew->pManFunc, (Abc_Obj_t *)Aig_ObjChild0Copy(pObj), (Abc_Obj_t *)Aig_ObjChild1Copy(pObj) );
-        if ( (pTemp = pMan->pEquivs[pObj->Id]) )
+        if ( (pTemp = Aig_ObjEquiv(pMan, pObj)) )
         {
             Abc_Obj_t * pAbcRepr, * pAbcObj;
             assert( pTemp->pData != NULL );

@@ -91,6 +91,29 @@ void Nwk_ManFree( Nwk_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+void Nwk_ManPrintLutSizes( Nwk_Man_t * p, If_Lib_t * pLutLib )
+{
+    Nwk_Obj_t * pObj;
+    int i, Counters[256] = {0};
+    Nwk_ManForEachNode( p, pObj, i )
+        Counters[Nwk_ObjFaninNum(pObj)]++;
+    printf( "LUTs by size: " );
+    for ( i = 0; i <= pLutLib->LutMax; i++ )
+        printf( "%d:%d ", i, Counters[i] );
+    printf( "\n" );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints stats of the manager.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Nwk_ManPrintStats( Nwk_Man_t * p, If_Lib_t * pLutLib )
 {
     p->pLutLib = pLutLib;
@@ -104,7 +127,8 @@ void Nwk_ManPrintStats( Nwk_Man_t * p, If_Lib_t * pLutLib )
     printf( "aig = %6d  ",   Nwk_ManGetAigNodeNum(p) );
     printf( "lev = %3d  ",   Nwk_ManLevel(p) );
 //    printf( "lev2 = %3d  ",  Nwk_ManLevelBackup(p) );
-    printf( "delay = %5.2f", Nwk_ManDelayTraceLut(p) );
+    printf( "delay = %5.2f   ", Nwk_ManDelayTraceLut(p) );
+    Nwk_ManPrintLutSizes( p, pLutLib );
     printf( "\n" );
 //    Nwk_ManDelayTracePrint( p, pLutLib );
     fflush( stdout );

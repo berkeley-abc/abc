@@ -312,7 +312,8 @@ static inline int          Aig_ObjLevelNew( Aig_Obj_t * pObj )    { assert( !Aig
 static inline int          Aig_ObjSetLevel( Aig_Obj_t * pObj, int i ) { assert( !Aig_IsComplement(pObj) ); return pObj->Level = i;                    }
 static inline void         Aig_ObjClean( Aig_Obj_t * pObj )       { memset( pObj, 0, sizeof(Aig_Obj_t) );                                                             }
 static inline Aig_Obj_t *  Aig_ObjFanout0( Aig_Man_t * p, Aig_Obj_t * pObj )  { assert(p->pFanData && pObj->Id < p->nFansAlloc); return Aig_ManObj(p, p->pFanData[5*pObj->Id] >> 1); } 
-static inline Aig_Obj_t *  Aig_ObjEquiv( Aig_Man_t * p, Aig_Obj_t * pObj )    { return p->pEquivs? p->pEquivs[pObj->Id] : NULL;             } 
+static inline Aig_Obj_t *  Aig_ObjEquiv( Aig_Man_t * p, Aig_Obj_t * pObj )    { return p->pEquivs? p->pEquivs[pObj->Id] : NULL;           } 
+static inline Aig_Obj_t *  Aig_ObjRepr( Aig_Man_t * p, Aig_Obj_t * pObj )     { return p->pReprs? p->pReprs[pObj->Id] : NULL;             } 
 static inline int          Aig_ObjPioNum( Aig_Obj_t * pObj )      { assert( !Aig_ObjIsNode(pObj) ); return (int)pObj->pNext;                                                    }
 static inline int          Aig_ObjWhatFanin( Aig_Obj_t * pObj, Aig_Obj_t * pFanin )    
 { 
@@ -466,6 +467,8 @@ extern Aig_Man_t *     Aig_ManDupDfs( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupDfsOrder( Aig_Man_t * p, Aig_Man_t * pOrder );
 extern Aig_Man_t *     Aig_ManDupLevelized( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupWithoutPos( Aig_Man_t * p );
+extern Aig_Man_t *     Aig_ManDupRepres( Aig_Man_t * p );
+extern Aig_Man_t *     Aig_ManDupRepresDfs( Aig_Man_t * p );
 /*=== aigFanout.c ==========================================================*/
 extern void            Aig_ObjAddFanout( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFanout );
 extern void            Aig_ObjRemoveFanout( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFanout );
@@ -599,7 +602,7 @@ extern void            Aig_ObjPrintVerilog( FILE * pFile, Aig_Obj_t * pObj, Vec_
 extern void            Aig_ObjPrintVerbose( Aig_Obj_t * pObj, int fHaig );
 extern void            Aig_ManPrintVerbose( Aig_Man_t * p, int fHaig );
 extern void            Aig_ManDump( Aig_Man_t * p );
-extern void            Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName );
+extern void            Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName, Vec_Ptr_t * vPiNames, Vec_Ptr_t * vPoNames );
 extern void            Aig_ManDumpVerilog( Aig_Man_t * p, char * pFileName );
 extern void            Aig_ManSetPioNumbers( Aig_Man_t * p );
 extern void            Aig_ManCleanPioNumbers( Aig_Man_t * p );

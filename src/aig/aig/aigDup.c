@@ -178,8 +178,8 @@ Aig_Obj_t * Aig_ManDupDfs_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t * pObj
     Aig_Obj_t * pObjNew, * pEquivNew = NULL;
     if ( pObj->pData )
         return pObj->pData;
-    if ( p->pEquivs && p->pEquivs[pObj->Id] )
-        pEquivNew = Aig_ManDupDfs_rec( pNew, p, p->pEquivs[pObj->Id] );
+    if ( p->pEquivs && Aig_ObjEquiv(p, pObj) )
+        pEquivNew = Aig_ManDupDfs_rec( pNew, p, Aig_ObjEquiv(p, pObj) );
     Aig_ManDupDfs_rec( pNew, p, Aig_ObjFanin0(pObj) );
     if ( Aig_ObjIsBuf(pObj) )
         return pObj->pData = Aig_ObjChild0Copy(pObj);
@@ -481,6 +481,144 @@ Aig_Man_t * Aig_ManDupWithoutPos( Aig_Man_t * p )
     return pNew;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Returns representatives of fanin in approapriate polarity.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Aig_Obj_t * Aig_ObjGetRepres( Aig_Man_t * p, Aig_Obj_t * pObj )
+{
+    Aig_Obj_t * pRepr;
+    if ( (pRepr = Aig_ObjRepr(p, pObj)) )
+        return Aig_NotCond( pRepr->pData, pObj->fPhase ^ pRepr->fPhase );
+    return pObj->pData;
+}
+static inline Aig_Obj_t * Aig_ObjChild0Repres( Aig_Man_t * p, Aig_Obj_t * pObj ) { return Aig_NotCond( Aig_ObjGetRepres(p, Aig_ObjFanin0(pObj)), Aig_ObjFaninC0(pObj) ); }
+static inline Aig_Obj_t * Aig_ObjChild1Repres( Aig_Man_t * p, Aig_Obj_t * pObj ) { return Aig_NotCond( Aig_ObjGetRepres(p, Aig_ObjFanin1(pObj)), Aig_ObjFaninC1(pObj) ); }
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates AIG while substituting representatives.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Aig_ManDupRepres( Aig_Man_t * p )
+{
+    Aig_Man_t * pNew;
+    Aig_Obj_t * pObj;
+    int i;
+    // start the HOP package
+    pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
+    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    pNew->nRegs = p->nRegs;
+    if ( p->vFlopNums )
+        pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
+    // map the const and primary inputs
+    Aig_ManCleanData( p );
+    Aig_ManForEachObj( p, pObj, i )
+    {
+        if ( Aig_ObjIsNode(pObj) )
+            pObj->pData = Aig_And( pNew, Aig_ObjChild0Repres(p, pObj), Aig_ObjChild1Repres(p, pObj) );
+        else if ( Aig_ObjIsPi(pObj) )
+            pObj->pData = Aig_ObjCreatePi(pNew);
+        else if ( Aig_ObjIsPo(pObj) )
+            pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Repres(p, pObj) );
+        else if ( Aig_ObjIsConst1(pObj) )
+            pObj->pData = Aig_ManConst1(pNew);
+        else
+            assert( 0 );
+    }
+    // check the new manager
+    if ( !Aig_ManCheck(pNew) )
+        printf( "Aig_ManDupReprentative: Check has failed.\n" );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the AIG manager recursively.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Obj_t * Aig_ManDupRepres_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t * pObj )
+{
+    Aig_Obj_t * pRepr;
+    if ( pObj->pData )
+        return pObj->pData;
+    if ( (pRepr = Aig_ObjRepr(p, pObj)) )
+    {
+        Aig_ManDupRepres_rec( pNew, p, pRepr );
+        return pObj->pData = Aig_NotCond( pRepr->pData, pRepr->fPhase ^ pObj->fPhase );
+    }
+    Aig_ManDupRepres_rec( pNew, p, Aig_ObjFanin0(pObj) );
+    Aig_ManDupRepres_rec( pNew, p, Aig_ObjFanin1(pObj) );
+    return pObj->pData = Aig_And( pNew, Aig_ObjChild0Repres(p, pObj), Aig_ObjChild1Repres(p, pObj) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates AIG while substituting representatives.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Aig_ManDupRepresDfs( Aig_Man_t * p )
+{
+    Aig_Man_t * pNew;
+    Aig_Obj_t * pObj;
+    int i;
+    // start the HOP package
+    pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
+    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    pNew->nRegs = p->nRegs;
+    if ( p->vFlopNums )
+        pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
+    // map the const and primary inputs
+    Aig_ManCleanData( p );
+    Aig_ManForEachObj( p, pObj, i )
+    {
+        if ( Aig_ObjIsNode(pObj) )
+            continue;
+        if ( Aig_ObjIsPi(pObj) )
+            pObj->pData = Aig_ObjCreatePi(pNew);
+        else if ( Aig_ObjIsPo(pObj) )
+        {
+            Aig_ManDupRepres_rec( pNew, p, Aig_ObjFanin0(pObj) );
+            pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Repres(p, pObj) );
+        }
+        else if ( Aig_ObjIsConst1(pObj) )
+            pObj->pData = Aig_ManConst1(pNew);
+        else 
+            assert( 0 );
+    }
+    // check the new manager
+    if ( !Aig_ManCheck(pNew) )
+        printf( "Aig_ManDupReprentative: Check has failed.\n" );
+    return pNew;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

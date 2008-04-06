@@ -134,6 +134,35 @@ Ntl_Net_t * Ntl_ModelFindNet( Ntl_Mod_t * p, char * pName )
   SeeAlso     []
 
 ***********************************************************************/
+void Ntl_ModelDeleteNet( Ntl_Mod_t * p, Ntl_Net_t * pNet )
+{
+    Ntl_Net_t * pEnt, * pPrev;
+    unsigned Key = Ntl_HashString( pNet->pName, p->nTableSize );
+    for ( pPrev = NULL, pEnt = p->pTable[Key]; pEnt; pPrev = pEnt, pEnt = pEnt->pNext )
+        if ( pEnt == pNet )
+            break;
+    if ( pEnt == NULL )
+    {
+        printf( "Ntl_ModelDeleteNet(): Net to be deleted is not found in the hash table.\n" );
+        return;
+    }
+    if ( pPrev == NULL )
+        p->pTable[Key] = pEnt->pNext;
+    else
+        pPrev->pNext = pEnt->pNext;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Finds or creates the net.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Ntl_Net_t * Ntl_ModelFindOrCreateNet( Ntl_Mod_t * p, char * pName )
 {
     Ntl_Net_t * pEnt;

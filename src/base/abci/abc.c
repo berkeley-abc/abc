@@ -202,7 +202,9 @@ static int Abc_CommandTraceStart     ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandTraceCheck     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbc8Read       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8ReadLogic  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Write      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8WriteLogic ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Ps         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8If         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8DChoice    ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -438,7 +440,9 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "enlarge",       Abc_CommandEnlarge,          1 );
 
     Cmd_CommandAdd( pAbc, "ABC8",         "*r",            Abc_CommandAbc8Read,         0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*rlogic",       Abc_CommandAbc8ReadLogic,    0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*w",            Abc_CommandAbc8Write,        0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*wlogic",       Abc_CommandAbc8WriteLogic,   0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*ps",           Abc_CommandAbc8Ps,           0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*if",           Abc_CommandAbc8If,           0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*dchoice",      Abc_CommandAbc8DChoice,      0 );
@@ -457,7 +461,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC8",         "*lcorr",        Abc_CommandAbc8Lcorr,        0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*ssw",          Abc_CommandAbc8Ssw,          0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*dsec",         Abc_CommandAbc8DSec,         0 );
-
+ 
 
 //    Cmd_CommandAdd( pAbc, "Verification", "trace_start",   Abc_CommandTraceStart,       0 );
 //    Cmd_CommandAdd( pAbc, "Verification", "trace_check",   Abc_CommandTraceCheck,       0 );
@@ -11007,7 +11011,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->fFancy      =  0;
     pPars->fExpRed     =  1;
     pPars->fLatchPaths =  0;
-    pPars->fEdge       =  0;
+    pPars->fEdge       =  1;
     pPars->fCutMin     =  0;
     pPars->fSeqMap     =  0;
     pPars->fBidec      =  0;
@@ -14784,15 +14788,14 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_CommandAbc8Write( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandAbc8ReadLogic( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    FILE * pFile;
     char * pFileName;
-    void * pTemp;
+    void * pNtkNew;
     int c;
-    extern void Ioa_WriteBlif( void * p, char * pFileName );
-    extern int Ntl_ManInsertNtk( void * p, void * pNtk );
-    extern void * Ntl_ManDup( void * pOld );
-    extern void Ntl_ManFree( void * p );
+    extern void * Ntl_ManReadNwk( char * pFileName, Aig_Man_t * pAig, Tim_Man_t * pManTime );
+    extern Tim_Man_t * Ntl_ManReadTimeMan( void * p );
 
     // set defaults
     Extra_UtilGetoptReset();
@@ -14806,6 +14809,85 @@ int Abc_CommandAbc8Write( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+
+    // get the input file name
+    pFileName = argv[globalUtilOptind];
+    if ( (pFile = fopen( pFileName, "r" )) == NULL )
+    {
+        fprintf( stdout, "Cannot open input file \"%s\". ", pFileName );
+        if ( pFileName = Extra_FileGetSimilarName( pFileName, ".blif", NULL, NULL, NULL, NULL ) )
+            fprintf( stdout, "Did you mean \"%s\"?", pFileName );
+        fprintf( stdout, "\n" );
+        return 1;
+    }
+    fclose( pFile );
+
+    if ( pAbc->pAbc8Ntl == NULL || pAbc->pAbc8Aig == NULL )
+    {
+        printf( "Abc_CommandAbc8ReadLogic(): There is no design or its AIG.\n" );
+        return 1;
+    }
+
+    // read the new logic
+    pNtkNew = Ntl_ManReadNwk( pFileName, pAbc->pAbc8Aig, Ntl_ManReadTimeMan(pAbc->pAbc8Ntl) );
+    if ( pNtkNew == NULL )
+    {
+        printf( "Abc_CommandAbc8ReadLogic(): Procedure has failed.\n" );
+        return 1;
+    }
+    if ( pAbc->pAbc8Nwk != NULL )
+        Nwk_ManFree( pAbc->pAbc8Nwk );
+    pAbc->pAbc8Nwk = pNtkNew;    
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: *rlogic [-h]\n" );
+    fprintf( stdout, "\t        reads the logic part of the design without whiteboxes\n" );
+    fprintf( stdout, "\t        and sets the new logic as the current mapped network\n" );
+    fprintf( stdout, "\t        (the logic part should be comb and with the same PIs/POs)\n" );
+    fprintf( stdout, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc8Write( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    char * pFileName;
+    void * pTemp;
+    int fAig;
+    int c;
+    extern void Ioa_WriteBlif( void * p, char * pFileName );
+    extern int Ntl_ManInsertNtk( void * p, void * pNtk );
+    extern int Ntl_ManInsertAig( void * p, Aig_Man_t * pAig );
+    extern void * Ntl_ManDup( void * pOld );
+    extern void Ntl_ManFree( void * p );
+
+    // set defaults
+    fAig = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ah" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'a':
+            fAig ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
     if ( pAbc->pAbc8Ntl == NULL )
     {
         printf( "Abc_CommandAbc8Write(): There is no design to write.\n" );
@@ -14813,17 +14895,35 @@ int Abc_CommandAbc8Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // create the design to write
     pTemp = Ntl_ManDup( pAbc->pAbc8Ntl );
-    if ( pAbc->pAbc8Nwk != NULL )
+    if ( fAig )
     {
-        if ( !Ntl_ManInsertNtk( pTemp, pAbc->pAbc8Nwk ) )
+        if ( pAbc->pAbc8Aig != NULL )
         {
-            printf( "Abc_CommandAbc8Write(): There is no design to write.\n" );
+            if ( !Ntl_ManInsertAig( pTemp, pAbc->pAbc8Aig ) )
+            {
+                printf( "Abc_CommandAbc8Write(): Inserting AIG has failed.\n" );
+                return 1;
+            }
+        }
+        else
+        {
+            printf( "There is no AIG to write.\n" );
             return 1;
         }
-        printf( "Writing the mapped design.\n" );
     }
-    else
-        printf( "Writing the original design.\n" );
+    else 
+    {
+        if ( pAbc->pAbc8Nwk != NULL ) 
+        {
+            if ( !Ntl_ManInsertNtk( pTemp, pAbc->pAbc8Nwk ) )
+            {
+                printf( "Abc_CommandAbc8Write():  Inserting mapped network has failed.\n" );
+                return 1;
+            }
+        }
+        else
+            printf( "Writing the original design.\n" );
+    }
     // get the input file name
     pFileName = argv[globalUtilOptind];
     Ioa_WriteBlif( pTemp, pFileName );
@@ -14831,8 +14931,87 @@ int Abc_CommandAbc8Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( stdout, "usage: *w [-h]\n" );
+    fprintf( stdout, "usage: *w [-ah]\n" );
     fprintf( stdout, "\t        write the design with whiteboxes\n" );
+    fprintf( stdout, "\t-a    : toggle writing mapped network or AIG [default = %s]\n", fAig? "AIG": "mapped" );
+    fprintf( stdout, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc8WriteLogic( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Vec_Ptr_t * vCiNames = NULL, * vCoNames = NULL;
+    char * pFileName;
+    int fAig;
+    int c;
+    extern Vec_Ptr_t * Ntl_ManCollectCiNames( void * p );
+    extern Vec_Ptr_t * Ntl_ManCollectCoNames( void * p );
+    extern void Nwk_ManDumpBlif( void * p, char * pFileName, Vec_Ptr_t * vCiNames, Vec_Ptr_t * vCoNames );
+
+    // set defaults
+    fAig = 1;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ah" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'a':
+            fAig ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pAbc8Ntl == NULL )
+    {
+        printf( "Abc_CommandAbc8Write(): There is no design to write.\n" );
+        return 1;
+    }
+    // create the design to write
+    pFileName = argv[globalUtilOptind];
+//    vCiNames = Ntl_ManCollectCiNames( pAbc->pAbc8Ntl );
+//    vCoNames = Ntl_ManCollectCoNames( pAbc->pAbc8Ntl );
+    if ( fAig )
+    {
+        if ( pAbc->pAbc8Aig != NULL )
+            Aig_ManDumpBlif( pAbc->pAbc8Aig, pFileName, vCiNames, vCoNames );
+        else
+        {
+            printf( "There is no AIG to write.\n" );
+            return 1;
+        }
+    }
+    else 
+    {
+        if ( pAbc->pAbc8Nwk != NULL ) 
+            Nwk_ManDumpBlif( pAbc->pAbc8Nwk, pFileName, vCiNames, vCoNames );
+        else
+        {
+            printf( "There is no mapped network to write.\n" );
+            return 1;
+        }
+    }
+    if ( vCiNames )  Vec_PtrFree( vCiNames );
+    if ( vCoNames )  Vec_PtrFree( vCoNames );
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: *wlogic [-ah]\n" );
+    fprintf( stdout, "\t        write the logic part of the design without whiteboxes\n" );
+    fprintf( stdout, "\t-a    : toggle writing mapped network or AIG [default = %s]\n", fAig? "AIG": "mapped" );
     fprintf( stdout, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -15768,7 +15947,98 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc8Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    Aig_Man_t * pAigNew;
+    int c, fVerbose;
+    int nPartSize;
+    int nConfLimit;
+    int nLevelMax;
+    extern Aig_Man_t * Ntl_ManFraig( void * p, Aig_Man_t * pAig, int nPartSize, int nConfLimit, int nLevelMax, int fVerbose );
+
+    // set defaults
+    nPartSize    = 0;
+    nConfLimit   = 100;   
+    nLevelMax    = 0;
+    fVerbose     = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PCLvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nPartSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nPartSize < 0 ) 
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nConfLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nConfLimit < 0 ) 
+                goto usage;
+            break;
+         case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLevelMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLevelMax < 0 ) 
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pAbc->pAbc8Ntl == NULL )
+    {
+        printf( "Abc_CommandAbc8Fraig(): There is no design to SAT sweep.\n" );
+        return 1;
+    }
+    if ( pAbc->pAbc8Aig == NULL )
+    {
+        printf( "Abc_CommandAbc8Fraig(): There is no AIG to SAT sweep.\n" );
+        return 1;
+    }
+
+    // get the input file name
+    pAigNew = Ntl_ManFraig( pAbc->pAbc8Ntl, pAbc->pAbc8Aig, nPartSize, nConfLimit, nLevelMax, fVerbose );
+    if ( pAigNew == NULL )
+    {
+        printf( "Abc_CommandAbc8Fraig(): Tranformation of the AIG has failed.\n" );
+        return 1;
+    }
+    if ( pAbc->pAbc8Aig )
+        Aig_ManStop( pAbc->pAbc8Aig );
+    pAbc->pAbc8Aig = pAigNew;
     return 0;
+
+usage:
+    fprintf( stdout, "usage: *fraig [-P num] [-C num] [-L num] [-vh]\n" );
+    fprintf( stdout, "\t         performs SAT sweeping with white-boxes\n" );
+    fprintf( stdout, "\t-P num : partition size (0 = partitioning is not used) [default = %d]\n", nPartSize );
+    fprintf( stdout, "\t-C num : limit on the number of conflicts [default = %d]\n", nConfLimit );
+    fprintf( stdout, "\t-L num : limit on node level to fraig (0 = fraig all nodes) [default = %d]\n", nLevelMax );
+    fprintf( stdout, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( stdout, "\t-h     : print the command usage\n");
+    return 1;
 }
 
 /**Function*************************************************************

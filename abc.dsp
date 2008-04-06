@@ -3070,6 +3070,10 @@ SOURCE=.\src\aig\ntl\ntlExtract.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\ntl\ntlFraig.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\ntl\ntlInsert.c
 # End Source File
 # Begin Source File
@@ -3095,6 +3099,10 @@ SOURCE=.\src\aig\ntl\ntlTable.c
 # Begin Source File
 
 SOURCE=.\src\aig\ntl\ntlTime.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ntl\ntlUtil.c
 # End Source File
 # Begin Source File
 

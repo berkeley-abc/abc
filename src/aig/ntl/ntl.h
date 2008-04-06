@@ -103,9 +103,8 @@ struct Ntl_Obj_t_
     Ntl_Mod_t *        pModel;         // the model  
     void *             pCopy;          // the copy of this object
     unsigned           Type   :  3;    // object type
-    unsigned           Id     : 27;    // object ID
-    unsigned           MarkA  :  1;    // temporary mark  
-    unsigned           MarkB  :  1;    // temporary mark
+    unsigned           fMark  :  1;    // temporary mark  
+    unsigned           Id     : 28;    // object ID
     int                nFanins;        // the number of fanins
     int                nFanouts;       // the number of fanouts
     union {                            // functionality
@@ -123,6 +122,7 @@ struct Ntl_Net_t_
     Ntl_Obj_t *        pDriver;        // driver of the net
     char               nVisits;        // the number of times the net is visited
     char               fMark;          // temporary mark
+    char               fCompl;         // complemented attribue
     char               pName[0];       // the name of this net
 };
 
@@ -234,6 +234,7 @@ extern Aig_Man_t *     Ntl_ManCollapse( Ntl_Man_t * p );
 extern char *          Ntl_SopFromTruth( Ntl_Man_t * p, unsigned * pTruth, int nVars, Vec_Int_t * vCover );
 /*=== ntlInsert.c ==========================================================*/
 extern int             Ntl_ManInsert( Ntl_Man_t * p, Vec_Ptr_t * vMapping, Aig_Man_t * pAig );
+extern int             Ntl_ManInsertAig( Ntl_Man_t * p, Aig_Man_t * pAig );
 extern int             Ntl_ManInsertNtk( Ntl_Man_t * p, Nwk_Man_t * pNtk );
 /*=== ntlCheck.c ==========================================================*/
 extern int             Ntl_ManCheck( Ntl_Man_t * pMan );
@@ -270,12 +271,17 @@ extern Ntl_Net_t *     Ntl_ModelFindNet( Ntl_Mod_t * p, char * pName );
 extern Ntl_Net_t *     Ntl_ModelFindOrCreateNet( Ntl_Mod_t * p, char * pName );
 extern int             Ntl_ModelFindPioNumber( Ntl_Mod_t * p, char * pName, int * pNumber );
 extern int             Ntl_ModelSetNetDriver( Ntl_Obj_t * pObj, Ntl_Net_t * pNet );
+extern void            Ntl_ModelDeleteNet( Ntl_Mod_t * p, Ntl_Net_t * pNet );
 /*=== ntlTime.c ==========================================================*/
 extern Tim_Man_t *     Ntl_ManCreateTiming( Ntl_Man_t * p );
 /*=== ntlReadBlif.c ==========================================================*/
 extern Ntl_Man_t *     Ioa_ReadBlif( char * pFileName, int fCheck );
 /*=== ntlWriteBlif.c ==========================================================*/
 extern void            Ioa_WriteBlif( Ntl_Man_t * p, char * pFileName );
+/*=== ntlUtil.c ==========================================================*/
+extern int             Ntl_ManTransformCoDrivers( Ntl_Man_t * p );
+extern Vec_Ptr_t *     Ntl_ManCollectCiNames( Ntl_Man_t * p );
+extern Vec_Ptr_t *     Ntl_ManCollectCoNames( Ntl_Man_t * p );
 
 #ifdef __cplusplus
 }

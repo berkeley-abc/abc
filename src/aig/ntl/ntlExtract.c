@@ -213,6 +213,41 @@ char * Ntl_SopCreateFromIsop( Aig_MmFlex_t * pMan, int nVars, Vec_Int_t * vCover
 
 /**Function*************************************************************
 
+  Synopsis    [Creates the cover from the ISOP computed from TT.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntl_SopToIsop( char * pSop, Vec_Int_t * vCover )
+{
+    char * pCube;
+    int k, nVars, Entry;
+    nVars = Ntl_SopGetVarNum( pSop );
+    assert( nVars > 0 );
+    // create cubes
+    Vec_IntClear( vCover );
+    for ( pCube = pSop; *pCube; pCube += nVars + 3 )
+    {
+        Entry = 0;
+        for ( k = nVars - 1; k >= 0; k-- )
+            if ( pCube[k] == '0' )
+                Entry = (Entry << 2) | 1;
+            else if ( pCube[k] == '1' )
+                Entry = (Entry << 2) | 2;
+            else if ( pCube[k] == '-' )
+                Entry = (Entry << 2);
+            else 
+                assert( 0 );
+        Vec_IntPush( vCover, Entry );
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Transforms truth table into the SOP.]
 
   Description []
@@ -404,10 +439,11 @@ int Ntl_ManExtract_rec( Ntl_Man_t * p, Ntl_Net_t * pNet )
         }
 //printf( "Creating fake PO with ID = %d.\n", Aig_ManPo(p->pAig, Vec_IntEntryLast(p->vBox1Cos))->Id );
     }
-    // store the node
     Vec_PtrPush( p->vNodes, pObj );
     if ( Ntl_ObjIsNode(pObj) )
         pNet->pCopy = Ntl_ManBuildNodeAig( pObj );
+    if ( pNet->fCompl )
+        pNet->pCopy = Aig_Not(pNet->pCopy);
     pNet->nVisits = 2;
     return 1;
 }
@@ -602,9 +638,10 @@ int Ntl_ManCollapse_rec( Ntl_Man_t * p, Ntl_Net_t * pNet )
         if ( !Ntl_ManBuildModelAig( p, pObj ) )
             return 0;
     }
-    // store the node
     if ( Ntl_ObjIsNode(pObj) )
         pNet->pCopy = Ntl_ManBuildNodeAig( pObj );
+    if ( pNet->fCompl )
+        pNet->pCopy = Aig_Not(pNet->pCopy);
     pNet->nVisits = 2;
     return 1;
 }
@@ -690,6 +727,174 @@ Aig_Man_t * Ntl_ManCollapse( Ntl_Man_t * p )
     Aig_ManCleanup( p->pAig );
     pAig = p->pAig; p->pAig = NULL;
     return pAig;    
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Increments reference counter of the net.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Ntl_NetIncrementRefs( Ntl_Net_t * pNet )
+{
+    int nRefs = (int)pNet->pCopy;
+    pNet->pCopy = (void *)(nRefs + 1);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Extracts logic newtork out of the netlist.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Nwk_Obj_t * Ntl_ManExtractNwk_rec( Ntl_Man_t * p, Ntl_Net_t * pNet, Nwk_Man_t * pNtk, Vec_Int_t * vCover, Vec_Int_t * vMemory )
+{
+    extern Hop_Obj_t * Kit_CoverToHop( Hop_Man_t * pMan, Vec_Int_t * vCover, int nVars, Vec_Int_t * vMemory );
+    Ntl_Net_t * pFaninNet;
+    Nwk_Obj_t * pNode;
+    int i;
+    if ( pNet->fMark )
+        return pNet->pCopy;
+    pNet->fMark = 1;
+    pNode = Nwk_ManCreateNode( pNtk, Ntl_ObjFaninNum(pNet->pDriver), (int)pNet->pCopy );
+    Ntl_ObjForEachFanin( pNet->pDriver, pFaninNet, i )
+    {
+        Ntl_ManExtractNwk_rec( p, pFaninNet, pNtk, vCover, vMemory );
+        Nwk_ObjAddFanin( pNode, pFaninNet->pCopy );
+    }
+    if ( Ntl_ObjFaninNum(pNet->pDriver) == 0 )
+        pNode->pFunc = Hop_NotCond( Hop_ManConst1(pNtk->pManHop), Ntl_SopIsConst0(pNet->pDriver->pSop) );
+    else
+    {
+        Ntl_SopToIsop( pNet->pDriver->pSop, vCover );
+        pNode->pFunc = Kit_CoverToHop( pNtk->pManHop, vCover, Ntl_ObjFaninNum(pNet->pDriver), vMemory );
+    }
+    return pNet->pCopy = pNode;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Extracts logic newtork out of the netlist.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Nwk_Man_t * Ntl_ManExtractNwk( Ntl_Man_t * p, Aig_Man_t * pAig )
+{
+    Nwk_Man_t * pNtk;
+    Nwk_Obj_t * pNode;
+    Ntl_Mod_t * pRoot;
+    Ntl_Net_t * pNet;
+    Ntl_Obj_t * pObj;
+    Aig_Obj_t * pAnd;
+    Vec_Int_t * vCover, * vMemory;
+    int i, k;
+    pRoot = Ntl_ManRootModel( p );
+    assert( Ntl_ModelBoxNum(pRoot) == 0 );
+    assert( Ntl_ModelLatchNum(pRoot) == 0 );
+    assert( Ntl_ModelPiNum(pRoot) == Aig_ManPiNum(pAig) );
+    assert( Ntl_ModelPoNum(pRoot) == Aig_ManPoNum(pAig) );
+    vCover = Vec_IntAlloc( 100 );
+    vMemory = Vec_IntAlloc( 1 << 16 );
+    // count the number of fanouts of each net
+    Ntl_ModelForEachNet( pRoot, pNet, i )
+    {
+        pNet->pCopy = NULL;
+        pNet->fMark = 0;
+    }
+    Ntl_ModelForEachObj( pRoot, pObj, i )
+        Ntl_ObjForEachFanin( pObj, pNet, k )
+            Ntl_NetIncrementRefs( pNet );
+    // construct the network
+    pNtk = Nwk_ManAlloc();
+    pNtk->pName = Aig_UtilStrsav( pAig->pName );
+    pNtk->pSpec = Aig_UtilStrsav( pAig->pSpec );
+    Aig_ManSetPioNumbers( pAig );
+    Aig_ManForEachObj( pAig, pAnd, i )
+    {
+        if ( Aig_ObjIsPi(pAnd) )
+        {
+            pObj = Ntl_ModelPi( pRoot, Aig_ObjPioNum(pAnd) );
+            pNet = Ntl_ObjFanout0(pObj);
+            pNet->fMark = 1;
+            pNet->pCopy = Nwk_ManCreateCi( pNtk, (int)pNet->pCopy ); 
+        }
+        else if ( Aig_ObjIsPo(pAnd) )
+        {
+            pObj = Ntl_ModelPo( pRoot, Aig_ObjPioNum(pAnd) );
+            pNet = Ntl_ObjFanin0(pObj);
+            pNet->pCopy = Ntl_ManExtractNwk_rec( p, pNet, pNtk, vCover, vMemory ); 
+            pNode = Nwk_ManCreateCo( pNtk );
+            pNode->fCompl = pNet->fCompl;
+            Nwk_ObjAddFanin( pNode, pNet->pCopy );
+        }
+    }
+    Aig_ManCleanPioNumbers( pAig );
+    Ntl_ModelForEachNet( pRoot, pNet, i )
+    {
+        pNet->pCopy = NULL;
+        pNet->fMark = 0;
+    }
+    Vec_IntFree( vCover );
+    Vec_IntFree( vMemory );
+    // create timing manager from the current design
+    return pNtk;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Extracts logic newtork out of the netlist.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Nwk_Man_t * Ntl_ManReadNwk( char * pFileName, Aig_Man_t * pAig, Tim_Man_t * pManTime )
+{
+    Nwk_Man_t * pNtk;
+    Ntl_Man_t * pNtl;
+    Ntl_Mod_t * pRoot;
+    pNtl = Ioa_ReadBlif( pFileName, 1 );
+    if ( pNtl == NULL )
+    {
+        printf( "Ntl_ManReadNwk(): Reading BLIF has failed.\n" );
+        return NULL;
+    }
+    pRoot = Ntl_ManRootModel( pNtl );
+    if ( Ntl_ModelPiNum(pRoot) != Aig_ManPiNum(pAig) )
+    {
+        printf( "Ntl_ManReadNwk(): The number of primary inputs does not match (%d and %d).\n",
+            Ntl_ModelPiNum(pRoot), Aig_ManPiNum(pAig) );
+        return NULL;
+    }
+    if ( Ntl_ModelPoNum(pRoot) != Aig_ManPoNum(pAig) )
+    {
+        printf( "Ntl_ManReadNwk(): The number of primary outputs does not match (%d and %d).\n",
+            Ntl_ModelPoNum(pRoot), Aig_ManPoNum(pAig) );
+        return NULL;
+    }
+    pNtk = Ntl_ManExtractNwk( pNtl, pAig );
+    Ntl_ManFree( pNtl );
+    if ( pManTime )
+        pNtk->pManTime = Tim_ManDup( pManTime, 0 );
+    return pNtk;
 }
 
 

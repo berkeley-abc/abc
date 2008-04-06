@@ -252,6 +252,7 @@ extern int             Nwk_ManGetAigNodeNum( Nwk_Man_t * pNtk );
 extern int             Nwk_NodeCompareLevelsIncrease( Nwk_Obj_t ** pp1, Nwk_Obj_t ** pp2 );
 extern int             Nwk_NodeCompareLevelsDecrease( Nwk_Obj_t ** pp1, Nwk_Obj_t ** pp2 );
 extern void            Nwk_ObjPrint( Nwk_Obj_t * pObj );
+extern void            Nwk_ManDumpBlif( Nwk_Man_t * pNtk, char * pFileName, Vec_Ptr_t * vCiNames, Vec_Ptr_t * vCoNames );
 
 #ifdef __cplusplus
 }

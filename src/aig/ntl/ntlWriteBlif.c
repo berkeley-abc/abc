@@ -44,6 +44,7 @@ void Ioa_WriteBlifModel( FILE * pFile, Ntl_Mod_t * pModel )
 {
     Ntl_Obj_t * pObj;
     Ntl_Net_t * pNet;
+    float Delay;
     int i, k;
     fprintf( pFile, ".model %s\n", pModel->pName );
     fprintf( pFile, ".inputs" );
@@ -54,6 +55,51 @@ void Ioa_WriteBlifModel( FILE * pFile, Ntl_Mod_t * pModel )
     Ntl_ModelForEachPo( pModel, pObj, i )
         fprintf( pFile, " %s", Ntl_ObjFanin0(pObj)->pName );
     fprintf( pFile, "\n" );
+    // write delays
+    if ( pModel->vDelays )
+    {
+        for ( i = 0; i < Vec_IntSize(pModel->vDelays); i += 3 )
+        {
+            fprintf( pFile, ".delay" );
+            fprintf( pFile, " %s", Ntl_ObjFanout0(Ntl_ModelPi(pModel, Vec_IntEntry(pModel->vDelays,i)))->pName );
+            fprintf( pFile, " %s", Ntl_ObjFanin0(Ntl_ModelPo(pModel, Vec_IntEntry(pModel->vDelays,i+1)))->pName );
+            fprintf( pFile, " %.3f", Aig_Int2Float(Vec_IntEntry(pModel->vDelays,i+2)) );
+            fprintf( pFile, "\n" );
+        }
+    }
+    if ( pModel->vArrivals )
+    {
+        for ( i = 0; i < Vec_IntSize(pModel->vArrivals); i += 2 )
+        {
+            fprintf( pFile, ".input_arrival" );
+            fprintf( pFile, " %s", Ntl_ObjFanout0(Ntl_ModelPi(pModel, Vec_IntEntry(pModel->vArrivals,i)))->pName );
+            Delay = Aig_Int2Float(Vec_IntEntry(pModel->vArrivals,i+1));
+            if ( Delay == -TIM_ETERNITY )
+                fprintf( pFile, " -inf" );
+            else if ( Delay == TIM_ETERNITY )
+                fprintf( pFile, " inf" );
+            else
+                fprintf( pFile, " %.3f", Delay );
+            fprintf( pFile, "\n" );
+        }
+    }
+    if ( pModel->vRequireds )
+    {
+        for ( i = 0; i < Vec_IntSize(pModel->vRequireds); i += 2 )
+        {
+            fprintf( pFile, ".output_required" );
+            fprintf( pFile, " %s", Ntl_ObjFanin0(Ntl_ModelPo(pModel, Vec_IntEntry(pModel->vRequireds,i)))->pName );
+            Delay = Aig_Int2Float(Vec_IntEntry(pModel->vRequireds,i+1));
+            if ( Delay == -TIM_ETERNITY )
+                fprintf( pFile, " -inf" );
+            else if ( Delay == TIM_ETERNITY )
+                fprintf( pFile, " inf" );
+            else
+                fprintf( pFile, " %.3f", Delay );
+            fprintf( pFile, "\n" );
+        }
+    }
+    // write objects
     Ntl_ModelForEachObj( pModel, pObj, i )
     {
         if ( Ntl_ObjIsNode(pObj) )

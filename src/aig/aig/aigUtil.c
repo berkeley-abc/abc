@@ -649,7 +649,7 @@ void Aig_ManDump( Aig_Man_t * p )
     char FileName[20];
     // dump the logic into a file
     sprintf( FileName, "aigbug\\%03d.blif", ++Counter );
-    Aig_ManDumpBlif( p, FileName );
+    Aig_ManDumpBlif( p, FileName, NULL, NULL );
     printf( "Intermediate AIG with %d nodes was written into file \"%s\".\n", Aig_ManNodeNum(p), FileName );
 }
 
@@ -664,7 +664,7 @@ void Aig_ManDump( Aig_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName )
+void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName, Vec_Ptr_t * vPiNames, Vec_Ptr_t * vPoNames )
 {
     FILE * pFile;
     Vec_Ptr_t * vNodes;
@@ -694,44 +694,75 @@ void Aig_ManDumpBlif( Aig_Man_t * p, char * pFileName )
     pFile = fopen( pFileName, "w" );
     fprintf( pFile, "# BLIF file written by procedure Aig_ManDumpBlif()\n" );
 //    fprintf( pFile, "# http://www.eecs.berkeley.edu/~alanmi/abc/\n" );
-    fprintf( pFile, ".model test\n" );
+    fprintf( pFile, ".model %s\n", p->pName );
     // write PIs
     fprintf( pFile, ".inputs" );
     Aig_ManForEachPiSeq( p, pObj, i )
-        fprintf( pFile, " n%0*d", nDigits, pObj->iData );
+        if ( vPiNames )
+            fprintf( pFile, " %s", Vec_PtrEntry(vPiNames, i) );
+        else
+            fprintf( pFile, " n%0*d", nDigits, pObj->iData );
     fprintf( pFile, "\n" );
     // write POs
     fprintf( pFile, ".outputs" );
     Aig_ManForEachPoSeq( p, pObj, i )
-        fprintf( pFile, " n%0*d", nDigits, pObj->iData );
+        if ( vPoNames )
+            fprintf( pFile, " %s", Vec_PtrEntry(vPoNames, i) );
+        else
+            fprintf( pFile, " n%0*d", nDigits, pObj->iData );
     fprintf( pFile, "\n" );
     // write latches
     if ( Aig_ManRegNum(p) )
     {
         fprintf( pFile, "\n" );
         Aig_ManForEachLiLoSeq( p, pObjLi, pObjLo, i )
-            fprintf( pFile, ".latch n%0*d n%0*d 0\n", nDigits, pObjLi->iData, nDigits, pObjLo->iData );
+        {
+            fprintf( pFile, ".latch" );
+            if ( vPoNames )
+                fprintf( pFile, " %s", Vec_PtrEntry(vPoNames, Aig_ManPoNum(p)-Aig_ManRegNum(p)+i) );
+            else
+                fprintf( pFile, " n%0*d", nDigits, pObjLi->iData );
+            if ( vPiNames )
+                fprintf( pFile, " %s", Vec_PtrEntry(vPiNames, Aig_ManPiNum(p)-Aig_ManRegNum(p)+i) );
+            else
+                fprintf( pFile, " n%0*d", nDigits, pObjLo->iData );
+            fprintf( pFile, " 0\n" );
+        }
         fprintf( pFile, "\n" );
     } 
     // write nodes
     if ( pConst1 )
         fprintf( pFile, ".names n%0*d\n 1\n", nDigits, pConst1->iData );
+    Aig_ManSetPioNumbers( p );
     Vec_PtrForEachEntry( vNodes, pObj, i )
     {
-        fprintf( pFile, ".names n%0*d n%0*d n%0*d\n", 
-            nDigits, Aig_ObjFanin0(pObj)->iData, 
-            nDigits, Aig_ObjFanin1(pObj)->iData, 
-            nDigits, pObj->iData );
+        fprintf( pFile, ".names" );
+        if ( vPiNames && Aig_ObjIsPi(Aig_ObjFanin0(pObj)) )
+            fprintf( pFile, " %s", Vec_PtrEntry(vPiNames, Aig_ObjPioNum(Aig_ObjFanin0(pObj))) );
+        else
+            fprintf( pFile, " n%0*d", nDigits, Aig_ObjFanin0(pObj)->iData );
+        if ( vPiNames && Aig_ObjIsPi(Aig_ObjFanin1(pObj)) )
+            fprintf( pFile, " %s", Vec_PtrEntry(vPiNames, Aig_ObjPioNum(Aig_ObjFanin1(pObj))) );
+        else
+            fprintf( pFile, " n%0*d", nDigits, Aig_ObjFanin1(pObj)->iData );
+        fprintf( pFile, " n%0*d\n", nDigits, pObj->iData );
         fprintf( pFile, "%d%d 1\n", !Aig_ObjFaninC0(pObj), !Aig_ObjFaninC1(pObj) );
     }
     // write POs
     Aig_ManForEachPo( p, pObj, i )
     {
-        fprintf( pFile, ".names n%0*d n%0*d\n", 
-            nDigits, Aig_ObjFanin0(pObj)->iData, 
-            nDigits, pObj->iData );
+        fprintf( pFile, ".names" );
+        if ( vPiNames && Aig_ObjIsPi(Aig_ObjFanin0(pObj)) )
+            fprintf( pFile, " %s", Vec_PtrEntry(vPiNames, Aig_ObjPioNum(Aig_ObjFanin0(pObj))) );
+        else
+            fprintf( pFile, " n%0*d", nDigits, Aig_ObjFanin0(pObj)->iData );
+        if ( vPoNames )
+            fprintf( pFile, " %s\n", Vec_PtrEntry(vPoNames, Aig_ObjPioNum(pObj)) );
+        else
+            fprintf( pFile, " n%0*d\n", nDigits, pObj->iData );
         fprintf( pFile, "%d 1\n", !Aig_ObjFaninC0(pObj) );
     }
+    Aig_ManCleanPioNumbers( p );
     fprintf( pFile, ".end\n\n" );
     fclose( pFile );
     Vec_PtrFree( vNodes );

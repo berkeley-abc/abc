@@ -77,7 +77,7 @@ void Cudd2_Init( unsigned int numVars, unsigned int numVarsZ, unsigned int numSl
 void Cudd2_Quit( void * pCudd )
 {
     assert( s_pCuddMan != NULL );
-    Aig_ManDumpBlif( s_pCuddMan->pAig, "aig_temp.blif" );
+    Aig_ManDumpBlif( s_pCuddMan->pAig, "aig_temp.blif", NULL, NULL );
     Aig_ManStop( s_pCuddMan->pAig );
     st_free_table( s_pCuddMan->pTable );
     free( s_pCuddMan );

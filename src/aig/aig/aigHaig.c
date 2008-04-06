@@ -259,7 +259,7 @@ void Aig_ManHaigRecord( Aig_Man_t * p )
     // perform a sequence of synthesis steps
     pNew = Aig_ManRetimeFrontier( p, 10000 );
     // use the haig for verification
-    Aig_ManDumpBlif( pNew->pManHaig, "haig_temp.blif" );
+    Aig_ManDumpBlif( pNew->pManHaig, "haig_temp.blif", NULL, NULL );
     Aig_ManHaigVerify( pNew->pManHaig );
     Aig_ManStop( pNew );
 }

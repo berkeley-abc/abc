@@ -238,6 +238,21 @@ void Nwk_ObjPrint( Nwk_Obj_t * pObj )
     printf( "\n" );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Deletes the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Nwk_ManDumpBlif( Nwk_Man_t * pNtk, char * pFileName, Vec_Ptr_t * vCiNames, Vec_Ptr_t * vCoNames )
+{
+    printf( "Dumping logic network is currently not supported.\n" );
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

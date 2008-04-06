@@ -1376,8 +1376,7 @@ Aig_Man_t * Aig_ManFraigPartitioned( Aig_Man_t * pAig, int nPartSize, int nConfM
     Aig_ManReprStart( pAig, Aig_ManObjNumMax(pAig) );
 
     // set the PI numbers
-    Aig_ManForEachPi( pAig, pObj, k )
-        pObj->pNext = (Aig_Obj_t *)(long)k;
+    Aig_ManSetPioNumbers( pAig );
 
     // create the total fraiged AIG
     Vec_PtrForEachEntry( vParts, vPart, i )
@@ -1410,8 +1409,7 @@ Aig_Man_t * Aig_ManFraigPartitioned( Aig_Man_t * pAig, int nPartSize, int nConfM
     Vec_VecFree( (Vec_Vec_t *)vParts );
 
     // clear the PI numbers
-    Aig_ManForEachPi( pAig, pObj, k )
-        pObj->pNext = NULL;
+    Aig_ManCleanPioNumbers( pAig );
 
     // derive the result of choicing
     return Aig_ManDupRepr( pAig, 0 );
@@ -1533,10 +1531,10 @@ void Aig_ManChoiceEval( Aig_Man_t * p )
             int x = 0;
         }
         Counter = 0;
-        for ( pTemp = pNode; pTemp; pTemp = p->pEquivs[pTemp->Id] )
+        for ( pTemp = pNode; pTemp; pTemp = Aig_ObjEquiv(p, pTemp) )
             Counter++;
         printf( "Choice node = %5d. Level = %2d. Choices = %d. { ", pNode->Id, pNode->Level, Counter );
-        for ( pTemp = pNode; pTemp; pTemp = p->pEquivs[pTemp->Id] )
+        for ( pTemp = pNode; pTemp; pTemp = Aig_ObjEquiv(p, pTemp) )
         {
             Counter = Aig_NodeMffsSupp( p, pTemp, 0, vSupp );
             printf( "S=%d N=%d L=%d  ", Vec_PtrSize(vSupp), Counter, pTemp->Level );

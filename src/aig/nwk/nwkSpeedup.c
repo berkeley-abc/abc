@@ -137,7 +137,7 @@ void Aig_ManSpeedupNode( Nwk_Man_t * pNtk, Aig_Man_t * pAig, Nwk_Obj_t * pNode, 
     // create choice node
     pAnd  = Aig_Regular(pNode->pCopy); // repr
     pTemp = Aig_Regular(ppCofs[0]);    // new
-    if ( pAig->pEquivs[pAnd->Id] == NULL && pAig->pEquivs[pTemp->Id] == NULL && !Aig_ObjCheckTfi(pAig, pTemp, pAnd) )
+    if ( Aig_ObjEquiv(pAig, pAnd) == NULL && Aig_ObjEquiv(pAig, pTemp) == NULL && !Aig_ObjCheckTfi(pAig, pTemp, pAnd) )
         pAig->pEquivs[pAnd->Id] = pTemp;
 }
 
@@ -339,9 +339,9 @@ Aig_Man_t * Nwk_ManSpeedup( Nwk_Man_t * pNtk, int fUseLutLib, int Percentage, in
 
     // remove invalid choice nodes
     Aig_ManForEachNode( pAig, pAnd, i )
-        if ( pAig->pEquivs[pAnd->Id] )
+        if ( Aig_ObjEquiv(pAig, pAnd) )
         {
-            if ( Aig_ObjRefs(pAig->pEquivs[pAnd->Id]) > 0 )
+            if ( Aig_ObjRefs(Aig_ObjEquiv(pAig, pAnd)) > 0 )
                 pAig->pEquivs[pAnd->Id] = NULL;
         }
 

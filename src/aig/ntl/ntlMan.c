@@ -267,6 +267,9 @@ Ntl_Mod_t * Ntl_ModelDup( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld )
         if ( Ntl_ObjIsNode(pObj) )
             ((Ntl_Obj_t *)pObj->pCopy)->pSop = Ntl_ManStoreSop( pManNew, pObj->pSop );
     }
+    pModelNew->vDelays = pModelOld->vDelays? Vec_IntDup( pModelOld->vDelays ) : NULL;
+    pModelNew->vArrivals = pModelOld->vArrivals? Vec_IntDup( pModelOld->vArrivals ) : NULL;
+    pModelNew->vRequireds = pModelOld->vRequireds? Vec_IntDup( pModelOld->vRequireds ) : NULL;
     return pModelNew;
 }
 

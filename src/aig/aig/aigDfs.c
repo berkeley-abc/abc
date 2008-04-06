@@ -121,8 +121,8 @@ void Aig_ManDfs_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vNodes )
     if ( Aig_ObjIsTravIdCurrent(p, pObj) )
         return;
     Aig_ObjSetTravIdCurrent(p, pObj);
-    if ( p->pEquivs && p->pEquivs[pObj->Id] )
-        Aig_ManDfs_rec( p, p->pEquivs[pObj->Id], vNodes );
+    if ( p->pEquivs && Aig_ObjEquiv(p, pObj) )
+        Aig_ManDfs_rec( p, Aig_ObjEquiv(p, pObj), vNodes );
     Aig_ManDfs_rec( p, Aig_ObjFanin0(pObj), vNodes );
     Aig_ManDfs_rec( p, Aig_ObjFanin1(pObj), vNodes );
     Vec_PtrPush( vNodes, pObj );
@@ -239,7 +239,7 @@ void Aig_ManDfsChoices_rec( Aig_Man_t * p, Aig_Obj_t * pObj, Vec_Ptr_t * vNodes 
     assert( Aig_ObjIsNode(pObj) );
     Aig_ManDfsChoices_rec( p, Aig_ObjFanin0(pObj), vNodes );
     Aig_ManDfsChoices_rec( p, Aig_ObjFanin1(pObj), vNodes );
-    Aig_ManDfsChoices_rec( p, p->pEquivs[pObj->Id], vNodes );
+    Aig_ManDfsChoices_rec( p, Aig_ObjEquiv(p, pObj), vNodes );
     assert( !Aig_ObjIsTravIdCurrent(p, pObj) ); // loop detection
     Aig_ObjSetTravIdCurrent(p, pObj);
     Vec_PtrPush( vNodes, pObj );
@@ -411,7 +411,7 @@ void Aig_ManChoiceLevel_rec( Aig_Man_t * p, Aig_Obj_t * pObj )
         LevelMax++;
 
         // get the level of the nodes in the choice node
-        if ( p->pEquivs && (pNext = p->pEquivs[pObj->Id]) )
+        if ( p->pEquivs && (pNext = Aig_ObjEquiv(p, pObj)) )
         {
             Aig_ManChoiceLevel_rec( p, pNext );
             if ( LevelMax < Aig_ObjLevel(pNext) )

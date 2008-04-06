@@ -134,7 +134,7 @@ If_Man_t * Nwk_ManToIf( Aig_Man_t * p, If_Par_t * pPars, Vec_Ptr_t * vAigToIf )
         if ( Aig_ObjIsChoice( p, pNode ) )
         {
             pIfMan->nChoices++;
-            for ( pPrev = pNode, pFanin = p->pEquivs[pNode->Id]; pFanin; pPrev = pFanin, pFanin = p->pEquivs[pFanin->Id] )
+            for ( pPrev = pNode, pFanin = Aig_ObjEquiv(p, pNode); pFanin; pPrev = pFanin, pFanin = Aig_ObjEquiv(p, pFanin) )
                 If_ObjSetChoice( pPrev->pData, pFanin->pData );
             If_ManCreateChoice( pIfMan, pNode->pData );
         }

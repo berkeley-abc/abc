@@ -59,7 +59,7 @@ int Fra_FraigSec( Aig_Man_t * p, int nFramesMax, int fRetimeFirst, int fFraiging
         printf( "Original miter:       Latches = %5d. Nodes = %6d.\n", 
             Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
     }
-//Aig_ManDumpBlif( pNew, "after.blif" );
+//Aig_ManDumpBlif( pNew, "after.blif", NULL, NULL );
 
     // perform sequential cleanup
 clk = clock();

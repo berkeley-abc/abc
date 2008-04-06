@@ -439,6 +439,41 @@ char * Abc_SopCreateFromIsop( Extra_MmFlex_t * pMan, int nVars, Vec_Int_t * vCov
 
 /**Function*************************************************************
 
+  Synopsis    [Creates the cover from the ISOP computed from TT.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_SopToIsop( char * pSop, Vec_Int_t * vCover )
+{
+    char * pCube;
+    int k, nVars, Entry;
+    nVars = Abc_SopGetVarNum( pSop );
+    assert( nVars > 0 );
+    // create cubes
+    Vec_IntClear( vCover );
+    for ( pCube = pSop; *pCube; pCube += nVars + 3 )
+    {
+        Entry = 0;
+        for ( k = nVars - 1; k >= 0; k-- )
+            if ( pCube[k] == '0' )
+                Entry = (Entry << 2) | 1;
+            else if ( pCube[k] == '1' )
+                Entry = (Entry << 2) | 2;
+            else if ( pCube[k] == '-' )
+                Entry = (Entry << 2);
+            else 
+                assert( 0 );
+        Vec_IntPush( vCover, Entry );
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Reads the number of cubes in the cover.]
 
   Description []

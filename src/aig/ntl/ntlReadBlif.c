@@ -109,6 +109,7 @@ Ntl_Man_t * Ioa_ReadBlif( char * pFileName, int fCheck )
     FILE * pFile;
     Ioa_ReadMan_t * p;
     Ntl_Man_t * pDesign;
+    int nNodes;
 
     // check that the file is available
     pFile = fopen( pFileName, "rb" );
@@ -164,6 +165,9 @@ Ntl_Man_t * Ioa_ReadBlif( char * pFileName, int fCheck )
         }
 
     }
+    // transform the design by removing the CO drivers
+    if ( (nNodes = Ntl_ManTransformCoDrivers(pDesign)) )
+        printf( "The design was transformed by removing %d buf/inv CO drivers.\n", nNodes );
 //Ioa_WriteBlif( pDesign, "_temp_.blif" );
     return pDesign;
 }
@@ -614,6 +618,11 @@ static Ntl_Man_t * Ioa_ReadParse( Ioa_ReadMan_t * p )
         // finalize the network
         Ntl_ModelFixNonDrivenNets( pMod->pNtk );
     }
+    if ( i == 0 )
+        return NULL;
+    // update the design name
+    pMod = Vec_PtrEntry( p->vModels, 0 );
+    p->pDesign->pName = Ntl_ManStoreName( p->pDesign, pMod->pNtk->pName );
     // return the network
     pDesign = p->pDesign;
     p->pDesign = NULL;

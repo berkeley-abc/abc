@@ -184,15 +184,15 @@ static inline Aig_Obj_t * Aig_ObjFindReprTransitive( Aig_Man_t * p, Aig_Obj_t * 
   SeeAlso     []
 
 ***********************************************************************/
-static inline Aig_Obj_t * Aig_ObjRepr( Aig_Man_t * p, Aig_Obj_t * pObj )
+static inline Aig_Obj_t * Aig_ObjGetRepr( Aig_Man_t * p, Aig_Obj_t * pObj )
 {
     Aig_Obj_t * pRepr;
     if ( (pRepr = Aig_ObjFindRepr(p, pObj)) )
         return Aig_NotCond( pRepr->pData, pObj->fPhase ^ pRepr->fPhase );
     return pObj->pData;
 }
-static inline Aig_Obj_t * Aig_ObjChild0Repr( Aig_Man_t * p, Aig_Obj_t * pObj ) { return Aig_NotCond( Aig_ObjRepr(p, Aig_ObjFanin0(pObj)), Aig_ObjFaninC0(pObj) ); }
-static inline Aig_Obj_t * Aig_ObjChild1Repr( Aig_Man_t * p, Aig_Obj_t * pObj ) { return Aig_NotCond( Aig_ObjRepr(p, Aig_ObjFanin1(pObj)), Aig_ObjFaninC1(pObj) ); }
+static inline Aig_Obj_t * Aig_ObjChild0Repr( Aig_Man_t * p, Aig_Obj_t * pObj ) { return Aig_NotCond( Aig_ObjGetRepr(p, Aig_ObjFanin0(pObj)), Aig_ObjFaninC0(pObj) ); }
+static inline Aig_Obj_t * Aig_ObjChild1Repr( Aig_Man_t * p, Aig_Obj_t * pObj ) { return Aig_NotCond( Aig_ObjGetRepr(p, Aig_ObjFanin1(pObj)), Aig_ObjFaninC1(pObj) ); }
 
 /**Function*************************************************************
 
@@ -357,7 +357,7 @@ int Aig_ObjCheckTfi_rec( Aig_Man_t * p, Aig_Obj_t * pNode, Aig_Obj_t * pOld )
     if ( Aig_ObjCheckTfi_rec( p, Aig_ObjFanin1(pNode), pOld ) )
         return 1;
     // check equivalent nodes
-    return Aig_ObjCheckTfi_rec( p, p->pEquivs[pNode->Id], pOld );
+    return Aig_ObjCheckTfi_rec( p, Aig_ObjEquiv(p, pNode), pOld );
 }
 
 /**Function*************************************************************
