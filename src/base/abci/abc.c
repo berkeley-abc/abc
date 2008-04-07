@@ -14796,6 +14796,7 @@ int Abc_CommandAbc8ReadLogic( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     extern void * Ntl_ManReadNwk( char * pFileName, Aig_Man_t * pAig, Tim_Man_t * pManTime );
     extern Tim_Man_t * Ntl_ManReadTimeMan( void * p );
+    extern void Nwk_ManFree( void * );
 
     // set defaults
     Extra_UtilGetoptReset();
@@ -16066,6 +16067,7 @@ int Abc_CommandAbc8Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Aig_Man_t * Ntl_ManCollapse( void * p );
     extern void * Ntl_ManDup( void * pOld );
     extern void Ntl_ManFree( void * p );
+    extern int Ntl_ManInsertNtk( void * p, void * pNtk );
 
     extern int Fra_FraigCecTop( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int nConfLimit, int nPartSize, int fSmart, int fVerbose );
 
