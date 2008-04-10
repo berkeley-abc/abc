@@ -47,13 +47,18 @@ int Fra_FraigSec( Aig_Man_t * p, int nFramesMax, int fRetimeFirst, int fFraiging
     Aig_Man_t * pNew, * pTemp;
     int nFrames, RetValue, nIter, clk, clkTotal = clock();
     int fLatchCorr = 0;
+
+    // try the miter before solving
+    RetValue = Fra_FraigMiterStatus( p );
+    if ( RetValue == 0 || RetValue == 1 )
+        goto finish;
+
     // prepare parameters
     memset( pPars, 0, sizeof(Fra_Ssw_t) );
     pPars->fLatchCorr  = fLatchCorr;
     pPars->fVerbose = fVeryVerbose;
 
-    pNew = Aig_ManDupOrdered( p );
-//    pNew = Aig_ManDupDfs( p );
+    pNew = Aig_ManDup( p );
     if ( fVerbose )
     {
         printf( "Original miter:       Latches = %5d. Nodes = %6d.\n", 
@@ -208,6 +213,7 @@ PRT( "Time", clock() - clkTotal );
     // get the miter status
     RetValue = Fra_FraigMiterStatus( pNew );
 
+finish:
     // report the miter
     if ( RetValue == 1 )
     {

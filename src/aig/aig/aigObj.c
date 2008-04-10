@@ -258,6 +258,8 @@ void Aig_ObjPatchFanin0( Aig_Man_t * p, Aig_Obj_t * pObj, Aig_Obj_t * pFaninNew 
     Aig_ObjDeref( pFaninOld );
     // update the fanin
     pObj->pFanin0 = pFaninNew;
+    pObj->Level = Aig_ObjLevelNew( pObj );
+    pObj->fPhase = Aig_ObjPhaseReal(pObj->pFanin0);
     // increment ref and add fanout
     if ( p->pFanData )
         Aig_ObjAddFanout( p, Aig_ObjFanin0(pObj), pObj );

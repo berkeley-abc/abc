@@ -33,6 +33,72 @@
 
   Synopsis    [Duplicates the AIG manager.]
 
+  Description [Orders nodes as follows: PIs, ANDs, POs.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Aig_ManDup( Aig_Man_t * p )
+{
+    Aig_Man_t * pNew;
+    Aig_Obj_t * pObj, * pObjNew;
+    int i;
+    // create the new manager
+    pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
+    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    pNew->nRegs = p->nRegs;
+    pNew->nAsserts = p->nAsserts;
+    if ( p->vFlopNums )
+        pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
+    // create the PIs
+    Aig_ManCleanData( p );
+    Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
+    Aig_ManConst1(pNew)->pHaig = Aig_ManConst1(p)->pHaig;
+    Aig_ManForEachPi( p, pObj, i )
+    {
+        pObjNew = Aig_ObjCreatePi( pNew );
+        pObjNew->pHaig = pObj->pHaig;
+        pObjNew->Level = pObj->Level;
+        pObj->pData = pObjNew;
+    }
+    // duplicate internal nodes
+    Aig_ManForEachObj( p, pObj, i )
+        if ( Aig_ObjIsBuf(pObj) )
+        {
+            pObjNew = Aig_ObjChild0Copy(pObj);
+            Aig_Regular(pObjNew)->pHaig = pObj->pHaig;
+            pObj->pData = pObjNew;
+        }
+        else if ( Aig_ObjIsNode(pObj) )
+        {
+            pObjNew = Aig_And( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj) );
+            Aig_Regular(pObjNew)->pHaig = pObj->pHaig;
+            pObj->pData = pObjNew;
+        }
+    // add the POs
+    Aig_ManForEachPo( p, pObj, i )
+    {
+        pObjNew = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+        pObjNew->pHaig = pObj->pHaig;
+        pObj->pData = pObjNew;
+    }
+    assert( Aig_ManBufNum(p) != 0 || Aig_ManNodeNum(p) == Aig_ManNodeNum(pNew) );
+    // duplicate the timing manager
+    if ( p->pManTime )
+        pNew->pManTime = Tim_ManDup( p->pManTime, 0 );
+    // check the resulting network
+    if ( !Aig_ManCheck(pNew) )
+        printf( "Aig_ManDup(): The check has failed.\n" );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the AIG manager.]
+
   Description [Assumes topological ordering of the nodes.]
                
   SideEffects []
@@ -543,7 +609,7 @@ Aig_Man_t * Aig_ManDupRepres( Aig_Man_t * p )
     }
     // check the new manager
     if ( !Aig_ManCheck(pNew) )
-        printf( "Aig_ManDupReprentative: Check has failed.\n" );
+        printf( "Aig_ManDupRepres: Check has failed.\n" );
     return pNew;
 }
 
@@ -616,7 +682,7 @@ Aig_Man_t * Aig_ManDupRepresDfs( Aig_Man_t * p )
     }
     // check the new manager
     if ( !Aig_ManCheck(pNew) )
-        printf( "Aig_ManDupReprentative: Check has failed.\n" );
+        printf( "Aig_ManDupRepresDfs: Check has failed.\n" );
     return pNew;
 }
 

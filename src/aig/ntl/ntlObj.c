@@ -131,7 +131,10 @@ Ntl_Obj_t * Ntl_ModelCreateNode( Ntl_Mod_t * pModel, int nFanins )
     p->Type     = NTL_OBJ_NODE;
     p->nFanins  = nFanins;
     p->nFanouts = 1;
-    pModel->nObjs[NTL_OBJ_NODE]++;
+    if ( nFanins == 1 )
+        pModel->nObjs[NTL_OBJ_LUT1]++;
+    else
+        pModel->nObjs[NTL_OBJ_NODE]++;
     return p;
 }
 
@@ -186,6 +189,30 @@ Ntl_Obj_t * Ntl_ModelDupObj( Ntl_Mod_t * pModel, Ntl_Obj_t * pOld )
     else if ( Ntl_ObjIsBox( pOld ) )
         pNew = Ntl_ModelCreateBox( pModel, Ntl_ObjFaninNum(pOld), Ntl_ObjFanoutNum(pOld) ); 
     return pNew;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Creates the primary input with the given name.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ntl_Obj_t * Ntl_ModelCreatePiWithName( Ntl_Mod_t * pModel, char * pName )
+{
+    Ntl_Obj_t * pObj;
+    Ntl_Net_t * pNet;
+    pNet = Ntl_ModelFindOrCreateNet( pModel, pName );
+    if ( pNet->pDriver )
+        return NULL;
+    pObj = Ntl_ModelCreatePi( pModel );
+    Ntl_ModelSetNetDriver( pObj, pNet );
+    return pObj;
 }
 
 /**Function*************************************************************

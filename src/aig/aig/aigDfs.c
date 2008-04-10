@@ -449,10 +449,10 @@ int Aig_ManChoiceLevel( Aig_Man_t * p )
             LevelMax = Aig_ObjLevel(pObj);
     }
     Aig_ManCleanPioNumbers( p );
-    Aig_ManForEachNode( p, pObj, i )
-        assert( Aig_ObjLevel(pObj) > 0 );
+//    Aig_ManForEachNode( p, pObj, i )
+//        assert( Aig_ObjLevel(pObj) > 0 );
     return LevelMax;
-}
+} 
 
 //#endif
 

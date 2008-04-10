@@ -725,7 +725,8 @@ bool Abc_NtkCompareBoxes( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int fComb )
 
   Description []
                
-  SideEffects []
+  SideEffects [Ordering POs by name is a very bad idea! It destroys
+  the natural order of the logic in the circuit.]
 
   SeeAlso     []
 

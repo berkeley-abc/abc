@@ -206,6 +206,7 @@ void Aig_ManStop( Aig_Man_t * p )
     if ( p->vLevelR )  Vec_IntFree( p->vLevelR );
     if ( p->vLevels )  Vec_VecFree( p->vLevels );
     if ( p->vFlopNums) Vec_IntFree( p->vFlopNums );
+    if ( p->vFlopReprs)Vec_IntFree( p->vFlopReprs );
     if ( p->pManExdc ) Aig_ManStop( p->pManExdc );
     if ( p->vOnehots ) Vec_VecFree( (Vec_Vec_t *)p->vOnehots );
     FREE( p->pData );

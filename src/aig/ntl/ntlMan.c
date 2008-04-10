@@ -61,7 +61,36 @@ Ntl_Man_t * Ntl_ManAlloc( char * pFileName )
 
 /**Function*************************************************************
 
-  Synopsis    [Duplicates the interface of the top level model.]
+  Synopsis    [Cleanups extended representation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntl_ManCleanup( Ntl_Man_t * p )
+{
+    Vec_PtrClear( p->vCis );
+    Vec_PtrClear( p->vCos );
+    Vec_PtrClear( p->vNodes );
+    Vec_IntClear( p->vBox1Cos );
+    if ( p->pAig )
+    {
+        Aig_ManStop( p->pAig );
+        p->pAig = NULL;
+    }
+    if ( p->pManTime )
+    {
+        Tim_ManStop( p->pManTime );
+        p->pManTime = NULL;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the design without the nodes of the root model.]
 
   Description []
                
@@ -72,12 +101,36 @@ Ntl_Man_t * Ntl_ManAlloc( char * pFileName )
 ***********************************************************************/
 Ntl_Man_t * Ntl_ManStartFrom( Ntl_Man_t * pOld )
 {
-    return NULL;
+    Ntl_Man_t * pNew;
+    Ntl_Mod_t * pModel;
+    Ntl_Obj_t * pBox;
+    Ntl_Net_t * pNet;
+    int i, k;
+    pNew = Ntl_ManAlloc( pOld->pSpec );
+    Vec_PtrForEachEntry( pOld->vModels, pModel, i )
+        if ( i == 0 )
+        {
+            Ntl_ManMarkCiCoNets( pOld );
+            pModel->pCopy = Ntl_ModelStartFrom( pNew, pModel );
+            Ntl_ManUnmarkCiCoNets( pOld );
+        }
+        else
+            pModel->pCopy = Ntl_ModelDup( pNew, pModel );
+    Vec_PtrForEachEntry( pOld->vModels, pModel, i )
+        Ntl_ModelForEachBox( pModel, pBox, k )
+            ((Ntl_Obj_t *)pBox->pCopy)->pImplem = pBox->pImplem->pCopy;
+    Ntl_ManForEachCiNet( pOld, pNet, i )
+        Vec_PtrPush( pNew->vCis, pNet->pCopy );
+    Ntl_ManForEachCoNet( pOld, pNet, i )
+        Vec_PtrPush( pNew->vCos, pNet->pCopy );
+    if ( pOld->pManTime )
+        pNew->pManTime = Tim_ManDup( pOld->pManTime, 0 );
+    return pNew;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Duplicates the interface of the top level model.]
+  Synopsis    [Duplicates the design.]
 
   Description []
                
@@ -144,6 +197,22 @@ void Ntl_ManFree( Ntl_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns 1 if the design is combinational.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ManIsComb( Ntl_Man_t * p )          
+{ 
+    return Ntl_ModelLatchNum(Ntl_ManRootModel(p)) == 0; 
+} 
+
+/**Function*************************************************************
+
   Synopsis    [Find the model with the given name.]
 
   Description []
@@ -178,15 +247,18 @@ void Ntl_ManPrintStats( Ntl_Man_t * p )
 {
     Ntl_Mod_t * pRoot;
     pRoot = Ntl_ManRootModel( p );
-    printf( "%-15s : ",       p->pName );
-    printf( "pi = %5d  ",    Ntl_ModelPiNum(pRoot) );
-    printf( "po = %5d  ",    Ntl_ModelPoNum(pRoot) );
-    printf( "lat = %5d  ", Ntl_ModelLatchNum(pRoot) );
-    printf( "node = %5d  ",  Ntl_ModelNodeNum(pRoot) );
-    printf( "box = %4d  ",   Ntl_ModelBoxNum(pRoot) );
-    printf( "mod = %3d",   Vec_PtrSize(p->vModels) );
+    printf( "%-15s : ",        p->pName );
+    printf( "pi = %5d  ",      Ntl_ModelPiNum(pRoot) );
+    printf( "po = %5d  ",      Ntl_ModelPoNum(pRoot) );
+    printf( "lat = %5d  ",     Ntl_ModelLatchNum(pRoot) );
+    printf( "node = %5d  ",    Ntl_ModelNodeNum(pRoot) );
+    printf( "inv/buf = %5d  ", Ntl_ModelLut1Num(pRoot) );
+    printf( "box = %4d  ",     Ntl_ModelBoxNum(pRoot) );
+    printf( "mod = %3d  ",     Vec_PtrSize(p->vModels) );
+    printf( "net = %d",       Ntl_ModelCountNets(pRoot) );
     printf( "\n" );
     fflush( stdout );
+    assert( Ntl_ModelLut1Num(pRoot) == Ntl_ModelCountLut1(pRoot) );
 }
 
 /**Function*************************************************************
@@ -233,6 +305,50 @@ Ntl_Mod_t * Ntl_ModelAlloc( Ntl_Man_t * pMan, char * pName )
     p->pTable = ALLOC( Ntl_Net_t *, p->nTableSize );
     memset( p->pTable, 0, sizeof(Ntl_Net_t *) * p->nTableSize );
     return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the model without nodes but with CI/CO nets.]
+
+  Description [The CI/CO nets of the old model should be marked before 
+  calling this procedure.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ntl_Mod_t * Ntl_ModelStartFrom( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld )
+{
+    Ntl_Mod_t * pModelNew;
+    Ntl_Net_t * pNet;
+    Ntl_Obj_t * pObj;
+    int i, k;
+    pModelNew = Ntl_ModelAlloc( pManNew, pModelOld->pName );
+    Ntl_ModelForEachNet( pModelOld, pNet, i )
+        if ( pNet->fMark )
+            pNet->pCopy = Ntl_ModelFindOrCreateNet( pModelNew, pNet->pName );
+        else
+            pNet->pCopy = NULL;
+    Ntl_ModelForEachObj( pModelOld, pObj, i )
+    {
+        if ( Ntl_ObjIsNode(pObj) )
+            continue;
+        pObj->pCopy = Ntl_ModelDupObj( pModelNew, pObj );
+        Ntl_ObjForEachFanin( pObj, pNet, k )
+            if ( pNet->pCopy != NULL )
+                Ntl_ObjSetFanin( pObj->pCopy, pNet->pCopy, k );
+        Ntl_ObjForEachFanout( pObj, pNet, k )
+            if ( pNet->pCopy != NULL )
+                Ntl_ObjSetFanout( pObj->pCopy, pNet->pCopy, k );
+        if ( Ntl_ObjIsLatch(pObj) )
+            ((Ntl_Obj_t *)pObj->pCopy)->LatchId = pObj->LatchId;
+    }
+    pModelNew->vDelays = pModelOld->vDelays? Vec_IntDup( pModelOld->vDelays ) : NULL;
+    pModelNew->vArrivals = pModelOld->vArrivals? Vec_IntDup( pModelOld->vArrivals ) : NULL;
+    pModelNew->vRequireds = pModelOld->vRequireds? Vec_IntDup( pModelOld->vRequireds ) : NULL;
+    return pModelNew;
 }
 
 /**Function*************************************************************
@@ -286,6 +402,7 @@ Ntl_Mod_t * Ntl_ModelDup( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld )
 ***********************************************************************/
 void Ntl_ModelFree( Ntl_Mod_t * p )
 {
+    assert( Ntl_ManCheckNetsAreNotMarked(p) );
     if ( p->vRequireds )  Vec_IntFree( p->vRequireds );
     if ( p->vArrivals )   Vec_IntFree( p->vArrivals );
     if ( p->vDelays )     Vec_IntFree( p->vDelays );

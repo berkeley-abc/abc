@@ -467,6 +467,7 @@ Aig_Man_t * Ntl_ManExtract( Ntl_Man_t * p )
     Ntl_Obj_t * pObj;
     Ntl_Net_t * pNet;
     int i, nUselessObjects;
+    Ntl_ManCleanup( p );
     assert( Vec_PtrSize(p->vCis) == 0 );
     assert( Vec_PtrSize(p->vCos) == 0 );
     assert( Vec_PtrSize(p->vNodes) == 0 );
@@ -540,7 +541,7 @@ Aig_Man_t * Ntl_ManExtract( Ntl_Man_t * p )
         Aig_ObjCreatePo( p->pAig, pNet->pCopy );
     }
     // report the number of dangling objects
-    nUselessObjects = Ntl_ModelNodeNum(pRoot) + Ntl_ModelBoxNum(pRoot) - Vec_PtrSize(p->vNodes);
+    nUselessObjects = Ntl_ModelNodeNum(pRoot) + Ntl_ModelLut1Num(pRoot) + Ntl_ModelBoxNum(pRoot) - Vec_PtrSize(p->vNodes);
     if ( nUselessObjects )
         printf( "The number of nodes that do not feed into POs = %d.\n", nUselessObjects );
     // cleanup the AIG
@@ -658,7 +659,7 @@ int Ntl_ManCollapse_rec( Ntl_Man_t * p, Ntl_Net_t * pNet )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Ntl_ManCollapse( Ntl_Man_t * p )
+Aig_Man_t * Ntl_ManCollapse( Ntl_Man_t * p, int fSeq )
 {
     Aig_Man_t * pAig;
     Ntl_Mod_t * pRoot;
@@ -694,6 +695,8 @@ Aig_Man_t * Ntl_ManCollapse( Ntl_Man_t * p )
         assert( Ntl_ObjFanoutNum(pObj) == 1 );
         pNet = Ntl_ObjFanout0(pObj);
         pNet->pCopy = Aig_ObjCreatePi( p->pAig );
+        if ( fSeq && (pObj->LatchId & 3) == 1 )
+            pNet->pCopy = Aig_Not(pNet->pCopy);
         if ( pNet->nVisits )
         {
             printf( "Ntl_ManCollapse(): Latch output is duplicated or defined as a primary input.\n" );
@@ -721,6 +724,60 @@ Aig_Man_t * Ntl_ManCollapse( Ntl_Man_t * p )
             printf( "Ntl_ManCollapse(): Error: Combinational loop is detected.\n" );
             return 0;
         }
+        if ( fSeq && (pObj->LatchId & 3) == 1 )
+            Aig_ObjCreatePo( p->pAig, Aig_Not(pNet->pCopy) );
+        else
+            Aig_ObjCreatePo( p->pAig, pNet->pCopy );
+    }
+    // cleanup the AIG
+    Aig_ManCleanup( p->pAig );
+    pAig = p->pAig; p->pAig = NULL;
+    return pAig;    
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives AIG for CEC.]
+
+  Description [Uses CIs/COs collected in the internal arrays.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Ntl_ManCollapseForCec( Ntl_Man_t * p )
+{
+    Aig_Man_t * pAig;
+    Ntl_Obj_t * pObj;
+    Ntl_Net_t * pNet;
+    int i;
+    // create the manager
+    p->pAig = Aig_ManStart( 10000 );
+    p->pAig->pName = Aig_UtilStrsav( p->pName );
+    p->pAig->pSpec = Aig_UtilStrsav( p->pSpec );
+    // set the inputs
+    Ntl_ManForEachCiNet( p, pObj, i )
+    {
+        assert( Ntl_ObjFanoutNum(pObj) == 1 );
+        pNet = Ntl_ObjFanout0(pObj);
+        pNet->pCopy = Aig_ObjCreatePi( p->pAig );
+        if ( pNet->nVisits )
+        {
+            printf( "Ntl_ManCollapseForCec(): Primary input appears twice in the list.\n" );
+            return 0;
+        }
+        pNet->nVisits = 2;
+    }
+    // derive the outputs
+    Ntl_ManForEachCoNet( p, pObj, i )
+    {
+        pNet = Ntl_ObjFanin0(pObj);
+        if ( !Ntl_ManCollapse_rec( p, pNet ) )
+        {
+            printf( "Ntl_ManCollapseForCec(): Error: Combinational loop is detected.\n" );
+            return 0;
+        }
         Aig_ObjCreatePo( p->pAig, pNet->pCopy );
     }
     // cleanup the AIG
@@ -728,6 +785,164 @@ Aig_Man_t * Ntl_ManCollapse( Ntl_Man_t * p )
     pAig = p->pAig; p->pAig = NULL;
     return pAig;    
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Performs DFS.]
+
+  Description [Checks for combinational loops. Collects PI/PO nets.
+  Collects nodes in the topological order.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Ntl_ManCollapseForSec( Ntl_Man_t * p1, Ntl_Man_t * p2 )
+{
+    Aig_Man_t * pAig;
+    Aig_Obj_t * pMiter;
+    Ntl_Mod_t * pRoot1, * pRoot2;
+    Ntl_Obj_t * pObj;
+    Ntl_Net_t * pNet;
+    Vec_Ptr_t * vPairs;
+    int i;
+    assert( Vec_PtrSize(p1->vCis) > 0 );
+    assert( Vec_PtrSize(p1->vCos) > 0 );
+    assert( Vec_PtrSize(p1->vCis) == Vec_PtrSize(p2->vCis) );
+    assert( Vec_PtrSize(p1->vCos) == Vec_PtrSize(p2->vCos) );
+
+    // create the manager
+    pAig = p1->pAig = p2->pAig = Aig_ManStart( 10000 );
+    pAig->pName = Aig_UtilStrsav( p1->pName );
+    pAig->pSpec = Aig_UtilStrsav( p1->pSpec );
+    vPairs = Vec_PtrStart( 2 * Vec_PtrSize(p1->vCos) );
+    // placehoder output to be used later for the miter output
+    Aig_ObjCreatePo( pAig, Aig_ManConst1(pAig) );
+
+    /////////////////////////////////////////////////////
+    // primary inputs
+    Ntl_ManForEachCiNet( p1, pObj, i )
+    {
+        assert( Ntl_ObjFanoutNum(pObj) == 1 );
+        pNet = Ntl_ObjFanout0(pObj);
+        pNet->pCopy = Aig_ObjCreatePi( pAig );
+        if ( pNet->nVisits )
+        {
+            printf( "Ntl_ManCollapseForSec(): Primary input appears twice in the list.\n" );
+            return 0;
+        }
+        pNet->nVisits = 2;
+    }
+    // latch outputs
+    pRoot1 = Ntl_ManRootModel(p1);
+    Ntl_ModelForEachLatch( pRoot1, pObj, i )
+    {
+        assert( Ntl_ObjFanoutNum(pObj) == 1 );
+        pNet = Ntl_ObjFanout0(pObj);
+        pNet->pCopy = Aig_ObjCreatePi( pAig );
+        if ( (pObj->LatchId & 3) == 1 )
+            pNet->pCopy = Aig_Not(pNet->pCopy);
+        if ( pNet->nVisits )
+        {
+            printf( "Ntl_ManCollapseForSec(): Latch output is duplicated or defined as a primary input.\n" );
+            return 0;
+        }
+        pNet->nVisits = 2;
+    }
+    // derive the outputs
+    Ntl_ManForEachCoNet( p1, pObj, i )
+    {
+        pNet = Ntl_ObjFanin0(pObj);
+        if ( !Ntl_ManCollapse_rec( p1, pNet ) )
+        {
+            printf( "Ntl_ManCollapseForSec(): Error: Combinational loop is detected.\n" );
+            return 0;
+        }
+//        Aig_ObjCreatePo( pAig, pNet->pCopy );
+        Vec_PtrWriteEntry( vPairs, 2 * i, pNet->pCopy );
+    }
+    // visit the nodes starting from latch inputs outputs
+    Ntl_ModelForEachLatch( pRoot1, pObj, i )
+    {
+        pNet = Ntl_ObjFanin0(pObj);
+        if ( !Ntl_ManCollapse_rec( p1, pNet ) )
+        {
+            printf( "Ntl_ManCollapseForSec(): Error: Combinational loop is detected.\n" );
+            return 0;
+        }
+        if ( (pObj->LatchId & 3) == 1 )
+            Aig_ObjCreatePo( pAig, Aig_Not(pNet->pCopy) );
+        else
+            Aig_ObjCreatePo( pAig, pNet->pCopy );
+    }
+
+    /////////////////////////////////////////////////////
+    // primary inputs
+    Ntl_ManForEachCiNet( p2, pObj, i )
+    {
+        assert( Ntl_ObjFanoutNum(pObj) == 1 );
+        pNet = Ntl_ObjFanout0(pObj);
+        pNet->pCopy = Aig_ManPi( pAig, i );
+        if ( pNet->nVisits )
+        {
+            printf( "Ntl_ManCollapseForSec(): Primary input appears twice in the list.\n" );
+            return 0;
+        }
+        pNet->nVisits = 2;
+    }
+    // latch outputs
+    pRoot2 = Ntl_ManRootModel(p2);
+    Ntl_ModelForEachLatch( pRoot2, pObj, i )
+    {
+        assert( Ntl_ObjFanoutNum(pObj) == 1 );
+        pNet = Ntl_ObjFanout0(pObj);
+        pNet->pCopy = Aig_ObjCreatePi( pAig );
+        if ( (pObj->LatchId & 3) == 1 )
+            pNet->pCopy = Aig_Not(pNet->pCopy);
+        if ( pNet->nVisits )
+        {
+            printf( "Ntl_ManCollapseForSec(): Latch output is duplicated or defined as a primary input.\n" );
+            return 0;
+        }
+        pNet->nVisits = 2;
+    }
+    // derive the outputs
+    Ntl_ManForEachCoNet( p2, pObj, i )
+    {
+        pNet = Ntl_ObjFanin0(pObj);
+        if ( !Ntl_ManCollapse_rec( p2, pNet ) )
+        {
+            printf( "Ntl_ManCollapseForSec(): Error: Combinational loop is detected.\n" );
+            return 0;
+        }
+//        Aig_ObjCreatePo( pAig, pNet->pCopy );
+        Vec_PtrWriteEntry( vPairs, 2 * i + 1, pNet->pCopy );
+    }
+    // visit the nodes starting from latch inputs outputs
+    Ntl_ModelForEachLatch( pRoot2, pObj, i )
+    {
+        pNet = Ntl_ObjFanin0(pObj);
+        if ( !Ntl_ManCollapse_rec( p2, pNet ) )
+        {
+            printf( "Ntl_ManCollapseForSec(): Error: Combinational loop is detected.\n" );
+            return 0;
+        }
+        if ( (pObj->LatchId & 3) == 1 )
+            Aig_ObjCreatePo( pAig, Aig_Not(pNet->pCopy) );
+        else
+            Aig_ObjCreatePo( pAig, pNet->pCopy );
+    }
+
+    /////////////////////////////////////////////////////
+    pMiter = Aig_Miter(pAig, vPairs);
+    Vec_PtrFree( vPairs );
+    Aig_ObjPatchFanin0( pAig, Aig_ManPo(pAig,0), pMiter  );
+    pAig->nRegs = Ntl_ModelLatchNum( pRoot1 ) + Ntl_ModelLatchNum( pRoot2 );
+    Aig_ManCleanup( pAig );
+    return pAig;    
+}
+
 
 /**Function*************************************************************
 

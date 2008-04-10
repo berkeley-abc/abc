@@ -1288,15 +1288,20 @@ int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames, int fRetim
 Abc_Ntk_t * Abc_NtkDarLatchSweep( Abc_Ntk_t * pNtk, int fLatchConst, int fLatchEqual, int fVerbose )
 {
     Abc_Ntk_t * pNtkAig;
-    Aig_Man_t * pMan;
+    Aig_Man_t * pMan, * pTemp;
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
     if ( pMan == NULL )
         return NULL;
-    Aig_ManSeqCleanup( pMan );
-    if ( fLatchConst && pMan->nRegs )
-        pMan = Aig_ManConstReduce( pMan, fVerbose );
-    if ( fLatchEqual && pMan->nRegs )
-        pMan = Aig_ManReduceLaches( pMan, fVerbose );
+//    Aig_ManSeqCleanup( pMan );
+//    if ( fLatchConst && pMan->nRegs )
+//        pMan = Aig_ManConstReduce( pMan, fVerbose );
+//    if ( fLatchEqual && pMan->nRegs )
+//        pMan = Aig_ManReduceLaches( pMan, fVerbose );
+    if ( pMan->vFlopNums )
+        Vec_IntFree( pMan->vFlopNums );
+    pMan->vFlopNums = NULL;
+    pMan = Aig_ManScl( pTemp = pMan, fLatchConst, fLatchEqual, fVerbose );
+    Aig_ManStop( pTemp );
     pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
     Aig_ManStop( pMan );
     return pNtkAig;

@@ -218,6 +218,7 @@ static int Abc_CommandAbc8Lutpack    ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandAbc8Balance    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Speedup    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Fraig      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Sweep      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Cec        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Scl        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Lcorr      ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -456,6 +457,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC8",         "*b",            Abc_CommandAbc8Balance,      0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*speedup",      Abc_CommandAbc8Speedup,      0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*fraig",        Abc_CommandAbc8Fraig,        0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*sw",           Abc_CommandAbc8Sweep,        0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*cec",          Abc_CommandAbc8Cec,          0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*scl",          Abc_CommandAbc8Scl,          0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*lcorr",        Abc_CommandAbc8Lcorr,        0 );
@@ -14868,8 +14870,8 @@ int Abc_CommandAbc8Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fAig;
     int c;
     extern void Ioa_WriteBlif( void * p, char * pFileName );
-    extern int Ntl_ManInsertNtk( void * p, void * pNtk );
-    extern int Ntl_ManInsertAig( void * p, Aig_Man_t * pAig );
+    extern void * Ntl_ManInsertNtk( void * p, void * pNtk );
+    extern void * Ntl_ManInsertAig( void * p, Aig_Man_t * pAig );
     extern void * Ntl_ManDup( void * pOld );
     extern void Ntl_ManFree( void * p );
 
@@ -14895,16 +14897,19 @@ int Abc_CommandAbc8Write( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     // create the design to write
-    pTemp = Ntl_ManDup( pAbc->pAbc8Ntl );
+    pFileName = argv[globalUtilOptind];
     if ( fAig )
     {
         if ( pAbc->pAbc8Aig != NULL )
         {
-            if ( !Ntl_ManInsertAig( pTemp, pAbc->pAbc8Aig ) )
+            pTemp = Ntl_ManInsertAig( pAbc->pAbc8Ntl, pAbc->pAbc8Aig );
+            if ( pTemp == NULL )
             {
                 printf( "Abc_CommandAbc8Write(): Inserting AIG has failed.\n" );
                 return 1;
             }
+            Ioa_WriteBlif( pTemp, pFileName );
+            Ntl_ManFree( pTemp );
         }
         else
         {
@@ -14916,19 +14921,22 @@ int Abc_CommandAbc8Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         if ( pAbc->pAbc8Nwk != NULL ) 
         {
-            if ( !Ntl_ManInsertNtk( pTemp, pAbc->pAbc8Nwk ) )
+            pTemp = Ntl_ManInsertNtk( pAbc->pAbc8Ntl, pAbc->pAbc8Nwk );
+            if ( pTemp == NULL )
             {
                 printf( "Abc_CommandAbc8Write():  Inserting mapped network has failed.\n" );
                 return 1;
             }
+            Ioa_WriteBlif( pTemp, pFileName );
+            Ntl_ManFree( pTemp );
         }
         else
+        {
+            pTemp = pAbc->pAbc8Ntl;
             printf( "Writing the original design.\n" );
+            Ioa_WriteBlif( pTemp, pFileName );
+        }
     }
-    // get the input file name
-    pFileName = argv[globalUtilOptind];
-    Ioa_WriteBlif( pTemp, pFileName );
-    Ntl_ManFree( pTemp );
     return 0;
 
 usage:
@@ -15093,8 +15101,6 @@ int Abc_CommandAbc8If( Abc_Frame_t * pAbc, int argc, char ** argv )
     If_Par_t Pars, * pPars = &Pars;
     void * pNtkNew;
     int c;
-    extern int Ntl_ManInsertTest( void * p, Aig_Man_t * pAig );
-    extern int Ntl_ManInsertTestIf( void * p, Aig_Man_t * pAig );
     extern void * Nwk_MappingIf( Aig_Man_t * p, Tim_Man_t * pManTime, If_Par_t * pPars );
     extern Tim_Man_t * Ntl_ManReadTimeMan( void * p );
     extern If_Lib_t * If_SetSimpleLutLib( int nLutSize );
@@ -15126,15 +15132,7 @@ int Abc_CommandAbc8If( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "Abc_CommandAbc8Write(): There is no AIG to map.\n" );
         return 1;
     }
-/*
-    // get the input file name
-    if ( !Ntl_ManInsertTestIf( pAbc->pAbc8Ntl, pAbc->pAbc8Aig ) )
-//    if ( !Ntl_ManInsertTest( pAbc->pAbc8Ntl, pAbc->pAbc8Aig ) )
-    {
-        printf( "Abc_CommandAbc8Write(): Tranformation of the netlist has failed.\n" );
-        return 1;
-    }
-*/
+
     pNtkNew = Nwk_MappingIf( pAbc->pAbc8Aig, Ntl_ManReadTimeMan(pAbc->pAbc8Ntl), pPars );
     if ( pNtkNew == NULL )
     {
@@ -16053,6 +16051,78 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandAbc8Sweep( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    void * pNtlNew;
+    int fVerbose;
+    int c;
+    extern void * Ntl_ManSweep( void * p, Aig_Man_t * pAig, int fVerbose );
+    extern Aig_Man_t * Ntl_ManExtract( void * p );
+
+    // set defaults
+    fVerbose = 1;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pAbc8Ntl == NULL )
+    {
+        printf( "Abc_CommandAbc8Sweep(): There is no design to sweep.\n" );
+        return 1;
+    }
+    if ( pAbc->pAbc8Aig == NULL )
+    {
+        printf( "Abc_CommandAbc8Sweep(): There is no AIG to use.\n" );
+        return 1;
+    }
+
+    // sweep the current design
+    pNtlNew = Ntl_ManSweep( pAbc->pAbc8Ntl, pAbc->pAbc8Aig, fVerbose );
+    if ( pNtlNew == NULL )
+    {
+        printf( "Abc_CommandAbc8Sweep(): Sweeping has failed.\n" );
+        return 1;
+    }
+    // replace
+    Abc_FrameClearDesign(); 
+    pAbc->pAbc8Ntl = pNtlNew;
+    pAbc->pAbc8Aig = Ntl_ManExtract( pAbc->pAbc8Ntl );
+    if ( pAbc->pAbc8Aig == NULL )
+    {
+        printf( "Abc_CommandAbc8Sweep(): AIG extraction has failed.\n" );
+        return 1;
+    }
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: *sw [-h]\n" );
+    fprintf( stdout, "\t        reads the design with whiteboxes\n" );
+    fprintf( stdout, "\t-v    : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( stdout, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandAbc8Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Aig_Man_t * pAig1, * pAig2;
@@ -16064,11 +16134,12 @@ int Abc_CommandAbc8Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nConfLimit;
     int fSmart;
     int nPartSize;
-    extern Aig_Man_t * Ntl_ManCollapse( void * p );
+    extern Aig_Man_t * Ntl_ManCollapse( void * p, int fSeq );
     extern void * Ntl_ManDup( void * pOld );
     extern void Ntl_ManFree( void * p );
-    extern int Ntl_ManInsertNtk( void * p, void * pNtk );
+    extern void * Ntl_ManInsertNtk( void * p, void * pNtk );
 
+    extern void Ntl_ManPrepareCec( char * pFileName1, char * pFileName2, Aig_Man_t ** ppMan1, Aig_Man_t ** ppMan2 );
     extern int Fra_FraigCecTop( Aig_Man_t * pMan1, Aig_Man_t * pMan2, int nConfLimit, int nPartSize, int fSmart, int fVerbose );
 
     // set defaults
@@ -16116,31 +16187,42 @@ int Abc_CommandAbc8Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     pArgvNew = argv + globalUtilOptind;
     nArgcNew = argc - globalUtilOptind;
-    if ( nArgcNew != 0 )
+    if ( nArgcNew != 0 && nArgcNew != 2 )
     {
-        printf( "Currently can only compare current network against the spec.\n" );
+        printf( "Currently can only compare current mapped network against the spec, or designs derived from two files.\n" );
         return 0;
     }
+    if ( nArgcNew == 2 )
+    {
+        Ntl_ManPrepareCec( pArgvNew[0], pArgvNew[1], &pAig1, &pAig2 );
+        if ( !pAig1 || !pAig2 )
+            return 1;
+        Fra_FraigCecTop( pAig1, pAig2, nConfLimit, nPartSize, fSmart, fVerbose );
+        Aig_ManStop( pAig1 );
+        Aig_ManStop( pAig2 );
+        return 0;
+    }
+
     if ( pAbc->pAbc8Ntl == NULL )
     {
         printf( "Abc_CommandAbc8Cec(): There is no design to verify.\n" );
-        return 0;
+        return 1;
     }
     if ( pAbc->pAbc8Nwk == NULL )
     {
         printf( "Abc_CommandAbc8Cec(): There is no mapped network to verify.\n" );
-        return 0;
+        return 1;
     }
 
     // derive AIGs
-    pAig1 = Ntl_ManCollapse( pAbc->pAbc8Ntl );
-    pTemp = Ntl_ManDup( pAbc->pAbc8Ntl );
-    if ( !Ntl_ManInsertNtk( pTemp, pAbc->pAbc8Nwk ) )
+    pAig1 = Ntl_ManCollapse( pAbc->pAbc8Ntl, 0 );
+    pTemp = Ntl_ManInsertNtk( pAbc->pAbc8Ntl, pAbc->pAbc8Nwk );
+    if ( pTemp == NULL )
     {
         printf( "Abc_CommandAbc8Cec(): Inserting the design has failed.\n" );
         return 1;
     }
-    pAig2 = Ntl_ManCollapse( pTemp );
+    pAig2 = Ntl_ManCollapse( pTemp, 0 );
     Ntl_ManFree( pTemp );
 
     // perform verification
@@ -16160,7 +16242,7 @@ usage:
     fprintf( stdout, "\tfile1  : (optional) the file with the first network\n");
     fprintf( stdout, "\tfile2  : (optional) the file with the second network\n");
     fprintf( stdout, "\t         if no files are given, uses the current network and its spec\n");
-    fprintf( stdout, "\t         if one file is given, uses the current network and the file\n");
+    fprintf( stdout, "\t         if two files are given, compares designs derived from files\n");
     return 1;
 }
 
@@ -16177,7 +16259,77 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc8Scl( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    Aig_Man_t * pAigNew;
+    int c;
+    int fLatchConst;
+    int fLatchEqual;
+    int fVerbose;
+    extern Aig_Man_t * Ntl_ManScl( void * p, Aig_Man_t * pAig, int fLatchConst, int fLatchEqual, int fVerbose );
+    extern int Ntl_ManIsComb( void * p );
+
+    // set defaults
+    fLatchConst = 1;
+    fLatchEqual = 1;
+    fVerbose    = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "cevh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'c':
+            fLatchConst ^= 1;
+            break;
+        case 'e':
+            fLatchEqual ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pAbc->pAbc8Ntl == NULL )
+    {
+        printf( "Abc_CommandAbc8Scl(): There is no design to SAT sweep.\n" );
+        return 1;
+    }
+    if ( pAbc->pAbc8Aig == NULL )
+    {
+        printf( "Abc_CommandAbc8Scl(): There is no AIG to SAT sweep.\n" );
+        return 1;
+    }
+
+    if ( Ntl_ManIsComb(pAbc->pAbc8Ntl) )
+    {
+        fprintf( stdout, "The network is combinational (run \"*fraig\").\n" );
+        return 0;
+    }
+
+    // get the input file name
+    pAigNew = Ntl_ManScl( pAbc->pAbc8Ntl, pAbc->pAbc8Aig, fLatchConst, fLatchEqual, fVerbose );
+    if ( pAigNew == NULL )
+    {
+        printf( "Abc_CommandAbc8Scl(): Tranformation of the AIG has failed.\n" );
+        return 1;
+    }
+    if ( pAbc->pAbc8Aig )
+        Aig_ManStop( pAbc->pAbc8Aig );
+    pAbc->pAbc8Aig = pAigNew;
     return 0;
+
+usage:
+    fprintf( stdout, "usage: *scl [-cevh]\n" );
+    fprintf( stdout, "\t         performs sequential cleanup of the current network\n" );
+    fprintf( stdout, "\t         by removing nodes and latches that do not feed into POs\n" );
+    fprintf( stdout, "\t-c     : sweep stuck-at latches detected by ternary simulation [default = %s]\n", fLatchConst? "yes": "no" );
+    fprintf( stdout, "\t-e     : merge equal latches (same data inputs and init states) [default = %s]\n", fLatchEqual? "yes": "no" );
+    fprintf( stdout, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( stdout, "\t-h     : print the command usage\n");
+    return 1;
 }
 
 /**Function*************************************************************
@@ -16193,7 +16345,92 @@ int Abc_CommandAbc8Scl( Abc_Frame_t * pAbc, int argc, char ** argv )
 ***********************************************************************/
 int Abc_CommandAbc8Lcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    Aig_Man_t * pAigNew;
+    int c;
+    int nFramesP;
+    int nConfMax;
+    int fVerbose;
+    extern Aig_Man_t * Ntl_ManLcorr( void * p, Aig_Man_t * pAig, int nConfMax, int fVerbose );
+    extern int Ntl_ManIsComb( void * p );
+
+    // set defaults
+    nFramesP   = 0;
+    nConfMax   = 10000;
+    fVerbose   = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PCvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFramesP = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFramesP < 0 ) 
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nConfMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nConfMax < 0 ) 
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pAbc->pAbc8Ntl == NULL )
+    {
+        printf( "Abc_CommandAbc8Ssw(): There is no design to SAT sweep.\n" );
+        return 1;
+    }
+    if ( pAbc->pAbc8Aig == NULL )
+    {
+        printf( "Abc_CommandAbc8Ssw(): There is no AIG to SAT sweep.\n" );
+        return 1;
+    }
+
+    if ( Ntl_ManIsComb(pAbc->pAbc8Ntl) )
+    {
+        fprintf( stdout, "The network is combinational (run \"*fraig\").\n" );
+        return 0;
+    }
+
+    // get the input file name
+    pAigNew = Ntl_ManLcorr( pAbc->pAbc8Ntl, pAbc->pAbc8Aig, nConfMax, fVerbose );
+    if ( pAigNew == NULL )
+    {
+        printf( "Abc_CommandAbc8Ssw(): Tranformation of the AIG has failed.\n" );
+        return 1;
+    }
+    if ( pAbc->pAbc8Aig )
+        Aig_ManStop( pAbc->pAbc8Aig );
+    pAbc->pAbc8Aig = pAigNew;
     return 0;
+
+usage:
+    fprintf( stdout, "usage: *lcorr [-C num] [-vh]\n" );
+    fprintf( stdout, "\t         computes latch correspondence using 1-step induction\n" );
+//    fprintf( stdout, "\t-P num : number of time frames to use as the prefix [default = %d]\n", nFramesP );
+    fprintf( stdout, "\t-C num : max conflict number when proving latch equivalence [default = %d]\n", nConfMax );
+    fprintf( stdout, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( stdout, "\t-h     : print the command usage\n");
+    return 1;
 }
 
 /**Function*************************************************************
@@ -16209,7 +16446,184 @@ int Abc_CommandAbc8Lcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
 ***********************************************************************/
 int Abc_CommandAbc8Ssw( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    Aig_Man_t * pAigNew;
+    Fra_Ssw_t Pars, * pPars = &Pars;
+    int c;
+    extern Aig_Man_t * Ntl_ManSsw( void * p, Aig_Man_t * pAig, Fra_Ssw_t * pPars );
+    extern int Ntl_ManIsComb( void * p );
+
+    // set defaults
+    pPars->nPartSize  = 0;
+    pPars->nOverSize  = 0;
+    pPars->nFramesP   = 0;
+    pPars->nFramesK   = 1;
+    pPars->nMaxImps   = 5000;
+    pPars->nMaxLevs   = 0;
+    pPars->fUseImps   = 0;
+    pPars->fRewrite   = 0;
+    pPars->fFraiging  = 0;
+    pPars->fLatchCorr = 0;
+    pPars->fWriteImps = 0;
+    pPars->fUse1Hot   = 0;
+    pPars->fVerbose   = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PQNFILirfletvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nPartSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nPartSize < 2 ) 
+                goto usage;
+            break;
+        case 'Q':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-Q\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nOverSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nOverSize < 0 ) 
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFramesP = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFramesP < 0 ) 
+                goto usage;
+            break;
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFramesK = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFramesK <= 0 ) 
+                goto usage;
+            break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nMaxImps = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nMaxImps <= 0 ) 
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nMaxLevs = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nMaxLevs <= 0 ) 
+                goto usage;
+            break;
+        case 'i':
+            pPars->fUseImps ^= 1;
+            break;
+        case 'r':
+            pPars->fRewrite ^= 1;
+            break;
+        case 'f':
+            pPars->fFraiging ^= 1;
+            break;
+        case 'l':
+            pPars->fLatchCorr ^= 1;
+            break;
+        case 'e':
+            pPars->fWriteImps ^= 1;
+            break;
+        case 't':
+            pPars->fUse1Hot ^= 1;
+            break;
+        case 'v':
+            pPars->fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pAbc->pAbc8Ntl == NULL )
+    {
+        printf( "Abc_CommandAbc8Ssw(): There is no design to SAT sweep.\n" );
+        return 1;
+    }
+    if ( pAbc->pAbc8Aig == NULL )
+    {
+        printf( "Abc_CommandAbc8Ssw(): There is no AIG to SAT sweep.\n" );
+        return 1;
+    }
+
+    if ( Ntl_ManIsComb(pAbc->pAbc8Ntl) )
+    {
+        fprintf( stdout, "The network is combinational (run \"*fraig\").\n" );
+        return 0;
+    }
+
+    if ( pPars->nFramesK > 1 && pPars->fUse1Hot )
+    {
+        printf( "Currrently can only use one-hotness for simple induction (K=1).\n" );
+        return 0;
+    }
+
+    if ( pPars->nFramesP && pPars->fUse1Hot )
+    {
+        printf( "Currrently can only use one-hotness without prefix.\n" );
+        return 0;
+    }
+
+    // get the input file name
+    pAigNew = Ntl_ManSsw( pAbc->pAbc8Ntl, pAbc->pAbc8Aig, pPars );
+    if ( pAigNew == NULL )
+    {
+        printf( "Abc_CommandAbc8Ssw(): Tranformation of the AIG has failed.\n" );
+        return 1;
+    }
+    if ( pAbc->pAbc8Aig )
+        Aig_ManStop( pAbc->pAbc8Aig );
+    pAbc->pAbc8Aig = pAigNew;
     return 0;
+
+usage:
+    fprintf( stdout, "usage: *ssw [-PQNFL num] [-lrfetvh]\n" );
+    fprintf( stdout, "\t         performs sequential sweep using K-step induction\n" );
+    fprintf( stdout, "\t-P num : max partition size (0 = no partitioning) [default = %d]\n", pPars->nPartSize );
+    fprintf( stdout, "\t-Q num : partition overlap (0 = no overlap) [default = %d]\n", pPars->nOverSize );
+    fprintf( stdout, "\t-N num : number of time frames to use as the prefix [default = %d]\n", pPars->nFramesP );
+    fprintf( stdout, "\t-F num : number of time frames for induction (1=simple) [default = %d]\n", pPars->nFramesK );
+    fprintf( stdout, "\t-L num : max number of levels to consider (0=all) [default = %d]\n", pPars->nMaxLevs );
+//    fprintf( stdout, "\t-I num : max number of implications to consider [default = %d]\n", pPars->nMaxImps );
+//    fprintf( stdout, "\t-i     : toggle using implications [default = %s]\n", pPars->fUseImps? "yes": "no" );
+    fprintf( stdout, "\t-l     : toggle latch correspondence only [default = %s]\n", pPars->fLatchCorr? "yes": "no" );
+    fprintf( stdout, "\t-r     : toggle AIG rewriting [default = %s]\n", pPars->fRewrite? "yes": "no" );
+    fprintf( stdout, "\t-f     : toggle fraiging (combinational SAT sweeping) [default = %s]\n", pPars->fFraiging? "yes": "no" );
+    fprintf( stdout, "\t-e     : toggle writing implications as assertions [default = %s]\n", pPars->fWriteImps? "yes": "no" );
+    fprintf( stdout, "\t-t     : toggle using one-hotness conditions [default = %s]\n", pPars->fUse1Hot? "yes": "no" );
+    fprintf( stdout, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
+    fprintf( stdout, "\t-h     : print the command usage\n");
+    return 1;
 }
 
 /**Function*************************************************************
@@ -16225,7 +16639,85 @@ int Abc_CommandAbc8Ssw( Abc_Frame_t * pAbc, int argc, char ** argv )
 ***********************************************************************/
 int Abc_CommandAbc8DSec( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    Aig_Man_t * pAig;
+    char ** pArgvNew;
+    int nArgcNew;
+    int c;
+    int fRetimeFirst;
+    int fFraiging;
+    int fVerbose;
+    int fVeryVerbose;
+    int nFrames;
+
+    extern int Fra_FraigSec( Aig_Man_t * p, int nFramesMax, int fRetimeFirst, int fFraiging, int fVerbose, int fVeryVerbose );
+    extern Aig_Man_t * Ntl_ManPrepareSec( char * pFileName1, char * pFileName2 );
+
+    // set defaults
+    nFrames      = 16;
+    fRetimeFirst =  1;
+    fFraiging    =  1;
+    fVerbose     =  0;
+    fVeryVerbose =  0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Krfwvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( stdout, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFrames = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFrames < 0 ) 
+                goto usage;
+            break;
+        case 'r':
+            fRetimeFirst ^= 1;
+            break;
+        case 'f':
+            fFraiging ^= 1;
+            break;
+        case 'w':
+            fVeryVerbose ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        default:
+            goto usage;
+        }
+    }
+
+    pArgvNew = argv + globalUtilOptind;
+    nArgcNew = argc - globalUtilOptind;
+    if ( nArgcNew != 2 )
+    {
+        printf( "Only works for two designs written from files specified on the command line.\n" );
+        return 1;
+    }
+
+    pAig = Ntl_ManPrepareSec( pArgvNew[0], pArgvNew[1] );
+    Fra_FraigSec( pAig, nFrames, fRetimeFirst, fFraiging, fVerbose, fVeryVerbose );
+    Aig_ManStop( pAig );
     return 0;
+
+usage:
+    fprintf( stdout, "usage: *dsec [-K num] [-rfwvh] <file1> <file2>\n" );
+    fprintf( stdout, "\t         performs sequential equivalence checking for two designs\n" );
+    fprintf( stdout, "\t-K num : the limit on the depth of induction [default = %d]\n", nFrames );
+    fprintf( stdout, "\t-r     : toggles forward retiming at the beginning [default = %s]\n", fRetimeFirst? "yes": "no" );
+    fprintf( stdout, "\t-f     : toggles the internal use of fraiging [default = %s]\n", fFraiging? "yes": "no" );
+    fprintf( stdout, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( stdout, "\t-w     : toggles additional verbose output [default = %s]\n", fVeryVerbose? "yes": "no" );
+    fprintf( stdout, "\t-h     : print the command usage\n");
+    fprintf( stdout, "\tfile1  : the file with the first design\n");
+    fprintf( stdout, "\tfile2  : the file with the second design\n");
+//    fprintf( stdout, "\t         if no files are given, uses the current network and its spec\n");
+//    fprintf( stdout, "\t         if one file is given, uses the current network and the file\n");
+    return 1;
 }
 
 

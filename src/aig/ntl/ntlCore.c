@@ -69,10 +69,13 @@ Aig_Man_t * Ntl_ManPerformSynthesis( Aig_Man_t * pAig, int fBalance, int fUpdate
 ***********************************************************************/
 int Ntl_ManInsertTest( Ntl_Man_t * p, Aig_Man_t * pAig )
 {
+    Ntl_Man_t * pNew;
     Vec_Ptr_t * vMapping;
     int RetValue;
     vMapping = Ntl_MappingFromAig( pAig );
-    RetValue = Ntl_ManInsert( p, vMapping, pAig );
+    pNew = Ntl_ManInsertMapping( p, vMapping, pAig );
+    RetValue = (pNew != NULL);
+    Ntl_ManFree( pNew );
     Vec_PtrFree( vMapping );
     return RetValue;
 }
@@ -90,10 +93,13 @@ int Ntl_ManInsertTest( Ntl_Man_t * p, Aig_Man_t * pAig )
 ***********************************************************************/
 int Ntl_ManInsertTestIf( Ntl_Man_t * p, Aig_Man_t * pAig )
 {
+    Ntl_Man_t * pNew;
     Vec_Ptr_t * vMapping;
     int RetValue;
     vMapping = Ntl_MappingIf( p, pAig );
-    RetValue = Ntl_ManInsert( p, vMapping, pAig );
+    pNew = Ntl_ManInsertMapping( p, vMapping, pAig );
+    RetValue = (pNew != NULL);
+    Ntl_ManFree( pNew );
     Vec_PtrFree( vMapping );
     return RetValue;
 }

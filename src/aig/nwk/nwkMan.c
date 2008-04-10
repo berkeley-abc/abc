@@ -100,7 +100,6 @@ void Nwk_ManPrintLutSizes( Nwk_Man_t * p, If_Lib_t * pLutLib )
     printf( "LUTs by size: " );
     for ( i = 0; i <= pLutLib->LutMax; i++ )
         printf( "%d:%d ", i, Counters[i] );
-    printf( "\n" );
 }
 
 /**Function*************************************************************
@@ -124,6 +123,7 @@ void Nwk_ManPrintStats( Nwk_Man_t * p, If_Lib_t * pLutLib )
     printf( "co = %5d  ",    Nwk_ManCoNum(p) );
     printf( "lat = %5d  ",   Nwk_ManLatchNum(p) );
     printf( "node = %5d  ",  Nwk_ManNodeNum(p) );
+    printf( "edge = %5d  ",  Nwk_ManGetTotalFanins(p) );
     printf( "aig = %6d  ",   Nwk_ManGetAigNodeNum(p) );
     printf( "lev = %3d  ",   Nwk_ManLevel(p) );
 //    printf( "lev2 = %3d  ",  Nwk_ManLevelBackup(p) );

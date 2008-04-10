@@ -44,25 +44,52 @@ Aig_Man_t * Aig_ManRemap( Aig_Man_t * p, Vec_Ptr_t * vMap )
 {
     Aig_Man_t * pNew;
     Aig_Obj_t * pObj, * pObjMapped;
-    int i;
+    int i, nTruePis;
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
     pNew->pName = Aig_UtilStrsav( p->pName );
     pNew->pSpec = Aig_UtilStrsav( p->pSpec );
     pNew->nRegs = p->nRegs;
     pNew->nAsserts = p->nAsserts;
+    assert( p->vFlopNums == NULL || Vec_IntSize(p->vFlopNums) == p->nRegs );
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );
+    if ( p->vFlopReprs )
+        pNew->vFlopReprs = Vec_IntDup( p->vFlopReprs );
     // create the PIs
     Aig_ManCleanData( p );
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
     Aig_ManForEachPi( p, pObj, i )
         pObj->pData = Aig_ObjCreatePi(pNew);
     // implement the mapping
+    nTruePis = Aig_ManPiNum(p)-Aig_ManRegNum(p);
+    if ( p->vFlopReprs )
+    {
+        Aig_ManForEachLoSeq( p, pObj, i )
+            pObj->pNext = (Aig_Obj_t *)(long)Vec_IntEntry( p->vFlopNums, i-nTruePis );
+    }
     Aig_ManForEachPi( p, pObj, i )
     {
         pObjMapped = Vec_PtrEntry( vMap, i );
         pObj->pData = Aig_NotCond( Aig_Regular(pObjMapped)->pData, Aig_IsComplement(pObjMapped) );
+        if ( pNew->vFlopReprs && i >= nTruePis && pObj != pObjMapped )
+        {
+            Vec_IntPush( pNew->vFlopReprs, Aig_ObjPioNum(pObj) );
+            if ( Aig_ObjIsConst1( Aig_Regular(pObjMapped) ) )
+                Vec_IntPush( pNew->vFlopReprs, -1 );
+            else
+            {
+                assert( !Aig_IsComplement(pObjMapped) );
+                assert( Aig_ObjIsPi(pObjMapped) );
+                assert( Aig_ObjPioNum(pObj) != Aig_ObjPioNum(pObjMapped) );
+                Vec_IntPush( pNew->vFlopReprs, Aig_ObjPioNum(pObjMapped) );
+            }
+        }
+    }
+    if ( p->vFlopReprs )
+    {
+        Aig_ManForEachLoSeq( p, pObj, i )
+            pObj->pNext = NULL;
     }
     // duplicate internal nodes
     Aig_ManForEachObj( p, pObj, i )
@@ -158,16 +185,15 @@ int Aig_ManSeqCleanup( Aig_Man_t * p )
         if ( p->vFlopNums )
         {
             int nTruePos = Aig_ManPoNum(p)-Aig_ManRegNum(p);
-            // remember numbers of flops in the flops
-            Aig_ManForEachLiSeq( p, pObj, i )
-                pObj->pNext = (Aig_Obj_t *)(long)Vec_IntEntry( p->vFlopNums, i - nTruePos );
-            // reset the flop numbers
-            Vec_PtrForEachEntryStart( vNodes, pObj, i, nTruePos )
-                Vec_IntWriteEntry( p->vFlopNums, i - nTruePos, (int)(long)pObj->pNext );
-            Vec_IntShrink( p->vFlopNums, Vec_PtrSize(vNodes) - nTruePos );
-            // clean the next pointer
-            Aig_ManForEachLiSeq( p, pObj, i )
-                pObj->pNext = NULL;
+            int iNum, k = 0;
+            Aig_ManForEachPo( p, pObj, i )
+                if ( i >= nTruePos && Aig_ObjIsTravIdCurrent(p, pObj) )
+                {
+                    iNum = Vec_IntEntry( p->vFlopNums, i - nTruePos );
+                    Vec_IntWriteEntry( p->vFlopNums, k++, iNum );
+                }
+            assert( k == Vec_PtrSize(vNodes) - nTruePos );
+            Vec_IntShrink( p->vFlopNums, k );
         }
         // collect new CIs/COs
         vCis = Vec_PtrAlloc( Aig_ManPiNum(p) );
@@ -505,6 +531,54 @@ void Aig_ManComputeSccs( Aig_Man_t * p )
     Vec_VecFree( (Vec_Vec_t *)vSupports );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Aig_ManScl( Aig_Man_t * pAig, int fLatchConst, int fLatchEqual, int fVerbose )
+{
+    Aig_Man_t * pAigInit, * pAigNew;
+    Aig_Obj_t * pFlop1, * pFlop2;
+    int i, Entry1, Entry2, nTruePis;
+    // store the original AIG
+    assert( pAig->vFlopNums == NULL );
+    pAigInit = pAig;
+    pAig = Aig_ManDup( pAig );
+    // create storage for latch numbers
+    pAig->vFlopNums = Vec_IntStartNatural( pAig->nRegs );
+    pAig->vFlopReprs = Vec_IntAlloc( 100 );
+    Aig_ManSeqCleanup( pAig );
+    if ( fLatchConst && pAig->nRegs )
+        pAig = Aig_ManConstReduce( pAig, fVerbose );
+    if ( fLatchEqual && pAig->nRegs )
+        pAig = Aig_ManReduceLaches( pAig, fVerbose );
+    // translate pairs into reprs
+    nTruePis = Aig_ManPiNum(pAigInit)-Aig_ManRegNum(pAigInit);
+    Aig_ManReprStart( pAigInit, Aig_ManObjNumMax(pAigInit) );
+    Vec_IntForEachEntry( pAig->vFlopReprs, Entry1, i )
+    {
+        Entry2 = Vec_IntEntry( pAig->vFlopReprs, ++i ); 
+        pFlop1 = Aig_ManPi( pAigInit, nTruePis + Entry1 );
+        pFlop2 = (Entry2 == -1)? Aig_ManConst1(pAigInit) : Aig_ManPi( pAigInit, nTruePis + Entry2 );
+        assert( pFlop1 != pFlop2 );
+        if ( pFlop1->Id > pFlop2->Id )
+            pAigInit->pReprs[pFlop1->Id] = pFlop2;
+        else
+            pAigInit->pReprs[pFlop2->Id] = pFlop1;
+    }
+    Aig_ManStop( pAig );
+//    Aig_ManSeqCleanup( pAigInit );
+    pAigNew = Aig_ManDupRepr( pAigInit, 0 );
+    Aig_ManSeqCleanup( pAigNew );
+    return pAigNew;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

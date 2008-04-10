@@ -40,7 +40,7 @@
   SeeAlso     []
 
 ***********************************************************************/
-int Ntl_ManInsert( Ntl_Man_t * p, Vec_Ptr_t * vMapping, Aig_Man_t * pAig )
+Ntl_Man_t * Ntl_ManInsertMapping( Ntl_Man_t * p, Vec_Ptr_t * vMapping, Aig_Man_t * pAig )
 {
     char Buffer[100];
     Vec_Ptr_t * vCopies;
@@ -50,16 +50,14 @@ int Ntl_ManInsert( Ntl_Man_t * p, Vec_Ptr_t * vMapping, Aig_Man_t * pAig )
     Ntl_Net_t * pNet, * pNetCo;
     Ntl_Lut_t * pLut;
     int i, k, nDigits;
+    assert( Vec_PtrSize(p->vCis) == Aig_ManPiNum(pAig) );
+    assert( Vec_PtrSize(p->vCos) == Aig_ManPoNum(pAig) );
+    p = Ntl_ManStartFrom( p );
+    pRoot = Ntl_ManRootModel( p );
+    assert( Ntl_ModelNodeNum(pRoot) == 0 );
     // map the AIG back onto the design
     Ntl_ManForEachCiNet( p, pNet, i )
         pNet->pCopy = Aig_ManPi( pAig, i );
-    Ntl_ManForEachCoNet( p, pNet, i )
-        pNet->pCopy = Aig_ObjChild0( Aig_ManPo( pAig, i ) );
-    // remove old nodes
-    pRoot = Ntl_ManRootModel( p );
-    Ntl_ModelForEachNode( pRoot, pNode, i )
-        Vec_PtrWriteEntry( pRoot->vObjs, pNode->Id, NULL );
-    pRoot->nObjs[NTL_OBJ_NODE] = 0;
     // start mapping of AIG nodes into their copies
     vCopies = Vec_PtrStart( Aig_ManObjNumMax(pAig) );
     Ntl_ManForEachCiNet( p, pNet, i )
@@ -101,19 +99,19 @@ int Ntl_ManInsert( Ntl_Man_t * p, Vec_Ptr_t * vMapping, Aig_Man_t * pAig )
     Vec_IntFree( vCover );
     // mark CIs and outputs of the registers
     Ntl_ManForEachCiNet( p, pNetCo, i )
-        pNetCo->nVisits = 101; // using "101" is harmless because nVisits can only be 0, 1 or 2
+        pNetCo->fMark = 1;
     // update the CO pointers
     Ntl_ManForEachCoNet( p, pNetCo, i )
     {
-        if ( pNetCo->nVisits == 101 )
+        if ( pNetCo->fMark )
             continue;
-        pNetCo->nVisits = 101;
+        pNetCo->fMark = 1;
         pNet = Vec_PtrEntry( vCopies, Aig_Regular(pNetCo->pCopy)->Id );
         pNode = Ntl_ModelCreateNode( pRoot, 1 );
         pNode->pSop = Aig_IsComplement(pNetCo->pCopy)? Ntl_ManStoreSop( p, "0 1\n" ) : Ntl_ManStoreSop( p, "1 1\n" );
         Ntl_ObjSetFanin( pNode, pNet, 0 );
         // update the CO driver net
-        pNetCo->pDriver = NULL;
+        assert( pNetCo->pDriver == NULL );
         if ( !Ntl_ModelSetNetDriver( pNode, pNetCo ) )
         {
             printf( "Ntl_ManInsert(): Internal error: PO net has more than one fanin.\n" );
@@ -121,7 +119,11 @@ int Ntl_ManInsert( Ntl_Man_t * p, Vec_Ptr_t * vMapping, Aig_Man_t * pAig )
         }
     }
     Vec_PtrFree( vCopies );
-    return 1;
+    // clean CI/CO marks
+    Ntl_ManUnmarkCiCoNets( p );
+    if ( !Ntl_ManCheck( p ) )
+        printf( "Ntl_ManInsertNtk: The check has failed for design %s.\n", p->pName );
+    return p;
 }
 
 /**Function*************************************************************
@@ -135,7 +137,7 @@ int Ntl_ManInsert( Ntl_Man_t * p, Vec_Ptr_t * vMapping, Aig_Man_t * pAig )
   SeeAlso     []
 
 ***********************************************************************/
-int Ntl_ManInsertAig( Ntl_Man_t * p, Aig_Man_t * pAig )
+Ntl_Man_t * Ntl_ManInsertAig( Ntl_Man_t * p, Aig_Man_t * pAig )
 {
     char Buffer[100];
     Ntl_Mod_t * pRoot;
@@ -145,17 +147,13 @@ int Ntl_ManInsertAig( Ntl_Man_t * p, Aig_Man_t * pAig )
     int i, nDigits, Counter;
     assert( Vec_PtrSize(p->vCis) == Aig_ManPiNum(pAig) );
     assert( Vec_PtrSize(p->vCos) == Aig_ManPoNum(pAig) );
+    p = Ntl_ManStartFrom( p );
+    pRoot = Ntl_ManRootModel( p );
+    assert( Ntl_ModelNodeNum(pRoot) == 0 );
     // set the correspondence between the PI/PO nodes
     Aig_ManCleanData( pAig );
     Ntl_ManForEachCiNet( p, pNet, i )
         Aig_ManPi( pAig, i )->pData = pNet;
-//    Ntl_ManForEachCoNet( p, pNet, i )
-//        Nwk_ManCo( pNtk, i )->pCopy = pNet;
-    // remove old nodes
-    pRoot = Ntl_ManRootModel( p );
-    Ntl_ModelForEachNode( pRoot, pNode, i )
-        Vec_PtrWriteEntry( pRoot->vObjs, pNode->Id, NULL );
-    pRoot->nObjs[NTL_OBJ_NODE] = 0;
     // create constant node if needed
     if ( Aig_ManConst1(pAig)->nRefs > 0 )
     {
@@ -213,13 +211,13 @@ int Ntl_ManInsertAig( Ntl_Man_t * p, Aig_Man_t * pAig )
     }
     // mark CIs and outputs of the registers
     Ntl_ManForEachCiNet( p, pNetCo, i )
-        pNetCo->nVisits = 101;
+        pNetCo->fMark = 1;
     // update the CO pointers
     Ntl_ManForEachCoNet( p, pNetCo, i )
     {
-        if ( pNetCo->nVisits == 101 )
+        if ( pNetCo->fMark )
             continue;
-        pNetCo->nVisits = 101;
+        pNetCo->fMark = 1;
         // get the corresponding PO and its driver
         pObj = Aig_ManPo( pAig, i );
         pFanin = Aig_ObjFanin0( pObj );
@@ -229,14 +227,18 @@ int Ntl_ManInsertAig( Ntl_Man_t * p, Aig_Man_t * pAig )
         pNode->pSop = Aig_ObjFaninC0(pObj)? Ntl_ManStoreSop( p, "0 1\n" ) : Ntl_ManStoreSop( p, "1 1\n" );
         Ntl_ObjSetFanin( pNode, pNet, 0 );
         // update the CO driver net
-        pNetCo->pDriver = NULL;
+        assert( pNetCo->pDriver == NULL );
         if ( !Ntl_ModelSetNetDriver( pNode, pNetCo ) )
         {
-            printf( "Ntl_ManInsert(): Internal error: PO net has more than one fanin.\n" );
+            printf( "Ntl_ManInsertAig(): Internal error: PO net has more than one fanin.\n" );
             return 0;
         }
     }
-    return 1;
+    // clean CI/CO marks
+    Ntl_ManUnmarkCiCoNets( p );
+    if ( !Ntl_ManCheck( p ) )
+        printf( "Ntl_ManInsertAig: The check has failed for design %s.\n", p->pName );
+    return p;
 }
 
 
@@ -251,7 +253,7 @@ int Ntl_ManInsertAig( Ntl_Man_t * p, Aig_Man_t * pAig )
   SeeAlso     []
 
 ***********************************************************************/
-int Ntl_ManInsertNtk( Ntl_Man_t * p, Nwk_Man_t * pNtk )
+Ntl_Man_t * Ntl_ManInsertNtk( Ntl_Man_t * p, Nwk_Man_t * pNtk )
 {
     char Buffer[100];
     Vec_Ptr_t * vObjs;
@@ -265,16 +267,12 @@ int Ntl_ManInsertNtk( Ntl_Man_t * p, Nwk_Man_t * pNtk )
     unsigned * pTruth;
     assert( Vec_PtrSize(p->vCis) == Nwk_ManCiNum(pNtk) );
     assert( Vec_PtrSize(p->vCos) == Nwk_ManCoNum(pNtk) );
+    p = Ntl_ManStartFrom( p );
+    pRoot = Ntl_ManRootModel( p );
+    assert( Ntl_ModelNodeNum(pRoot) == 0 );
     // set the correspondence between the PI/PO nodes
     Ntl_ManForEachCiNet( p, pNet, i )
         Nwk_ManCi( pNtk, i )->pCopy = pNet;
-//    Ntl_ManForEachCoNet( p, pNet, i )
-//        Nwk_ManCo( pNtk, i )->pCopy = pNet;
-    // remove old nodes
-    pRoot = Ntl_ManRootModel( p );
-    Ntl_ModelForEachNode( pRoot, pNode, i )
-        Vec_PtrWriteEntry( pRoot->vObjs, pNode->Id, NULL );
-    pRoot->nObjs[NTL_OBJ_NODE] = 0;
     // create a new node for each LUT
     vTruth = Vec_IntAlloc( 1 << 16 );
     vCover = Vec_IntAlloc( 1 << 16 );
@@ -298,7 +296,7 @@ int Ntl_ManInsertNtk( Ntl_Man_t * p, Nwk_Man_t * pNtk )
                 pNet = pFanin->pCopy;
                 if ( pNet == NULL )
                 {
-                    printf( "Ntl_ManInsert(): Internal error: Net not found.\n" );
+                    printf( "Ntl_ManInsertNtk(): Internal error: Net not found.\n" );
                     return 0;
                 }
                 Ntl_ObjSetFanin( pNode, pNet, k );
@@ -307,13 +305,13 @@ int Ntl_ManInsertNtk( Ntl_Man_t * p, Nwk_Man_t * pNtk )
         sprintf( Buffer, "lut%0*d", nDigits, i );
         if ( (pNet = Ntl_ModelFindNet( pRoot, Buffer )) )
         {
-            printf( "Ntl_ManInsert(): Internal error: Intermediate net name is not unique.\n" );
+            printf( "Ntl_ManInsertNtk(): Internal error: Intermediate net name is not unique.\n" );
             return 0;
         }
         pNet = Ntl_ModelFindOrCreateNet( pRoot, Buffer );
         if ( !Ntl_ModelSetNetDriver( pNode, pNet ) )
         {
-            printf( "Ntl_ManInsert(): Internal error: Net has more than one fanin.\n" );
+            printf( "Ntl_ManInsertNtk(): Internal error: Net has more than one fanin.\n" );
             return 0;
         }
         pObj->pCopy = pNet;
@@ -323,13 +321,13 @@ int Ntl_ManInsertNtk( Ntl_Man_t * p, Nwk_Man_t * pNtk )
     Vec_IntFree( vTruth );
     // mark CIs and outputs of the registers
     Ntl_ManForEachCiNet( p, pNetCo, i )
-        pNetCo->nVisits = 101;
+        pNetCo->fMark = 1;
     // update the CO pointers
     Ntl_ManForEachCoNet( p, pNetCo, i )
     {
-        if ( pNetCo->nVisits == 101 )
+        if ( pNetCo->fMark )
             continue;
-        pNetCo->nVisits = 101;
+        pNetCo->fMark = 1;
         // get the corresponding PO and its driver
         pObj = Nwk_ManCo( pNtk, i );
         pFanin = Nwk_ObjFanin0( pObj );
@@ -339,14 +337,18 @@ int Ntl_ManInsertNtk( Ntl_Man_t * p, Nwk_Man_t * pNtk )
         pNode->pSop = pObj->fCompl /*Aig_IsComplement(pNetCo->pCopy)*/? Ntl_ManStoreSop( p, "0 1\n" ) : Ntl_ManStoreSop( p, "1 1\n" );
         Ntl_ObjSetFanin( pNode, pNet, 0 );
         // update the CO driver net
-        pNetCo->pDriver = NULL;
+        assert( pNetCo->pDriver == NULL );
         if ( !Ntl_ModelSetNetDriver( pNode, pNetCo ) )
         {
-            printf( "Ntl_ManInsert(): Internal error: PO net has more than one fanin.\n" );
+            printf( "Ntl_ManInsertNtk(): Internal error: PO net has more than one fanin.\n" );
             return 0;
         }
     }
-    return 1;
+    // clean CI/CO marks
+    Ntl_ManUnmarkCiCoNets( p );
+    if ( !Ntl_ManCheck( p ) )
+        printf( "Ntl_ManInsertNtk: The check has failed for design %s.\n", p->pName );
+    return p;
 }
 
 

@@ -140,6 +140,7 @@ struct Aig_Man_t_
     void *           pManCuts;
     Vec_Ptr_t *      vMapped;
     Vec_Int_t *      vFlopNums;      
+    Vec_Int_t *      vFlopReprs;      
     void *           pSeqModel;
     Aig_Man_t *      pManExdc;
     Vec_Ptr_t *      vOnehots;
@@ -314,7 +315,7 @@ static inline void         Aig_ObjClean( Aig_Obj_t * pObj )       { memset( pObj
 static inline Aig_Obj_t *  Aig_ObjFanout0( Aig_Man_t * p, Aig_Obj_t * pObj )  { assert(p->pFanData && pObj->Id < p->nFansAlloc); return Aig_ManObj(p, p->pFanData[5*pObj->Id] >> 1); } 
 static inline Aig_Obj_t *  Aig_ObjEquiv( Aig_Man_t * p, Aig_Obj_t * pObj )    { return p->pEquivs? p->pEquivs[pObj->Id] : NULL;           } 
 static inline Aig_Obj_t *  Aig_ObjRepr( Aig_Man_t * p, Aig_Obj_t * pObj )     { return p->pReprs? p->pReprs[pObj->Id] : NULL;             } 
-static inline int          Aig_ObjPioNum( Aig_Obj_t * pObj )      { assert( !Aig_ObjIsNode(pObj) ); return (int)pObj->pNext;                                                    }
+static inline int          Aig_ObjPioNum( Aig_Obj_t * pObj )      { assert( !Aig_ObjIsNode(pObj) ); return (int)(long)pObj->pNext;                                                    }
 static inline int          Aig_ObjWhatFanin( Aig_Obj_t * pObj, Aig_Obj_t * pFanin )    
 { 
     if ( Aig_ObjFanin0(pObj) == pFanin ) return 0; 
@@ -461,6 +462,7 @@ extern Aig_Obj_t *     Aig_Compose( Aig_Man_t * p, Aig_Obj_t * pRoot, Aig_Obj_t 
 extern void            Aig_ObjCollectCut( Aig_Obj_t * pRoot, Vec_Ptr_t * vLeaves, Vec_Ptr_t * vNodes );
 extern int             Aig_ObjCollectSuper( Aig_Obj_t * pObj, Vec_Ptr_t * vSuper );
 /*=== aigDup.c ==========================================================*/
+extern Aig_Man_t *     Aig_ManDup( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupOrdered( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupExor( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupDfs( Aig_Man_t * p );
@@ -560,6 +562,7 @@ extern int             Aig_ManSeqCleanup( Aig_Man_t * p );
 extern int             Aig_ManCountMergeRegs( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManReduceLaches( Aig_Man_t * p, int fVerbose );
 extern void            Aig_ManComputeSccs( Aig_Man_t * p ); 
+extern Aig_Man_t *     Aig_ManScl( Aig_Man_t * pAig, int fLatchConst, int fLatchEqual, int fVerbose );
 /*=== aigShow.c ========================================================*/
 extern void            Aig_ManShow( Aig_Man_t * pMan, int fHaig, Vec_Ptr_t * vBold );
 /*=== aigTable.c ========================================================*/

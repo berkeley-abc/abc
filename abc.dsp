@@ -3066,6 +3066,10 @@ SOURCE=.\src\aig\ntl\ntlCore.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\ntl\ntlEc.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\ntl\ntlExtract.c
 # End Source File
 # Begin Source File
@@ -3091,6 +3095,10 @@ SOURCE=.\src\aig\ntl\ntlObj.c
 # Begin Source File
 
 SOURCE=.\src\aig\ntl\ntlReadBlif.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\ntl\ntlSweep.c
 # End Source File
 # Begin Source File
 

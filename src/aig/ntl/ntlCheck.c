@@ -31,7 +31,7 @@
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Checks one model.]
 
   Description []
                
@@ -49,12 +49,12 @@ int Ntl_ModelCheck( Ntl_Mod_t * pModel )
     {
         if ( pNet->pName == NULL )
         {
-            printf( "Net %d does not have a name\n", i );
+            printf( "Net in bin %d does not have a name\n", i );
             fStatus = 0;
         }
         if ( pNet->pDriver == NULL )
         {
-            printf( "Net %d (%s) does not have a driver\n", i, pNet->pName );
+            printf( "Net %s does not have a driver\n", pNet->pName );
             fStatus = 0;
         }
     }
@@ -78,7 +78,7 @@ int Ntl_ModelCheck( Ntl_Mod_t * pModel )
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Checks the netlist.]
 
   Description []
                
@@ -131,7 +131,7 @@ int Ntl_ManCheck( Ntl_Man_t * pMan )
 
 /**Function*************************************************************
 
-  Synopsis    [Reads the verilog file.]
+  Synopsis    [Fixed problems with non-driven nets in the model.]
 
   Description []
                

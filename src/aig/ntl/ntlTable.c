@@ -239,6 +239,26 @@ int Ntl_ModelSetNetDriver( Ntl_Obj_t * pObj, Ntl_Net_t * pNet )
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Finds or creates the net.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ModelCountNets( Ntl_Mod_t * p )
+{
+    Ntl_Net_t * pNet;
+    int i, Counter = 0;
+    Ntl_ModelForEachNet( p, pNet, i )
+        Counter++;
+    return Counter;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

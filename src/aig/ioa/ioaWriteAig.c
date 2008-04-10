@@ -145,7 +145,7 @@ static void     Ioa_ObjSetAigerNum( Aig_Obj_t * pObj, unsigned Num )  { pObj->iD
   SeeAlso     []
 
 ***********************************************************************/
-int Ioa_WriteAigerEncode( char * pBuffer, int Pos, unsigned x )
+int Ioa_WriteAigerEncode( unsigned char * pBuffer, int Pos, unsigned x )
 {
     unsigned char ch;
     while (x & ~0x7f)
@@ -332,8 +332,8 @@ void Ioa_WriteAiger( Aig_Man_t * pMan, char * pFileName, int fWriteSymbols, int 
         uLit0 = Ioa_ObjMakeLit( Ioa_ObjAigerNum(Aig_ObjFanin0(pObj)), Aig_ObjFaninC0(pObj) );
         uLit1 = Ioa_ObjMakeLit( Ioa_ObjAigerNum(Aig_ObjFanin1(pObj)), Aig_ObjFaninC1(pObj) );
         assert( uLit0 < uLit1 );
-        Pos = Ioa_WriteAigerEncode( pBuffer, Pos, (unsigned)(uLit  - uLit1) );
-        Pos = Ioa_WriteAigerEncode( pBuffer, Pos, (unsigned)(uLit1 - uLit0) );
+        Pos = Ioa_WriteAigerEncode( pBuffer, Pos, uLit  - uLit1 );
+        Pos = Ioa_WriteAigerEncode( pBuffer, Pos, uLit1 - uLit0 );
         if ( Pos > nBufferSize - 10 )
         {
             printf( "Ioa_WriteAiger(): AIGER generation has failed because the allocated buffer is too small.\n" );

@@ -278,6 +278,8 @@ Aig_Man_t * Aig_ManDupRepr( Aig_Man_t * p, int fOrdered )
     Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
     Aig_ManForEachPi( p, pObj, i )
         pObj->pData = Aig_ObjCreatePi(pNew);
+//    Aig_ManForEachPi( p, pObj, i )
+//        pObj->pData = Aig_ObjGetRepr( p, pObj );
     // map the internal nodes
     if ( fOrdered )
     {
