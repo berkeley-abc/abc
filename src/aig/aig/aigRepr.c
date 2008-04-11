@@ -329,6 +329,28 @@ int Aig_ManRemapRepr( Aig_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Transfer representatives and return the number of critical fanouts.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Aig_ManCountReprs( Aig_Man_t * p )
+{
+    Aig_Obj_t * pObj;
+    int i, Counter = 0;
+    if ( p->pReprs == NULL )
+        return 0;
+    Aig_ManForEachObj( p, pObj, i )
+        Counter += (p->pReprs[i] != NULL);
+    return Counter;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns 1 if pOld is in the TFI of pNew.]
 
   Description []

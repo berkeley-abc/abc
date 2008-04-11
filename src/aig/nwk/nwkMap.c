@@ -56,7 +56,7 @@ void Nwk_ManSetIfParsDefault( If_Par_t * pPars )
     pPars->fPreprocess =  1;
     pPars->fArea       =  0;
     pPars->fFancy      =  0;
-    pPars->fExpRed     =  0;
+    pPars->fExpRed     =  1; ////
     pPars->fLatchPaths =  0;
     pPars->fEdge       =  1;
     pPars->fCutMin     =  0;
@@ -244,16 +244,25 @@ Hop_Obj_t * Nwk_NodeIfToHop( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj_t * 
 ***********************************************************************/
 Nwk_Man_t * Nwk_ManFromIf( If_Man_t * pIfMan, Aig_Man_t * p, Vec_Ptr_t * vAigToIf )
 {
+    Vec_Ptr_t * vIfToAig;
     Nwk_Man_t * pNtk;
     Nwk_Obj_t * pObjNew;
-    Aig_Obj_t * pObj;
+    Aig_Obj_t * pObj, * pObjRepr;
     If_Obj_t * pIfObj;
     If_Cut_t * pCutBest;
     int i, k, nLeaves, * ppLeaves;
     assert( Aig_ManPiNum(p) == If_ManCiNum(pIfMan) );
     assert( Aig_ManPoNum(p) == If_ManCoNum(pIfMan) );
     assert( Aig_ManNodeNum(p) == If_ManAndNum(pIfMan) );
+    Aig_ManCleanData( p );
     If_ManCleanCutData( pIfMan );
+    // create mapping of IF to AIG
+    vIfToAig = Vec_PtrStart( If_ManObjNum(pIfMan) );
+    Aig_ManForEachObj( p, pObj, i )
+    {
+        pIfObj = Vec_PtrEntry( vAigToIf, i );
+        Vec_PtrWriteEntry( vIfToAig, pIfObj->Id, pObj );
+    }
     // construct the network
     pNtk = Nwk_ManAlloc();
     pNtk->pName = Aig_UtilStrsav( p->pName );
@@ -271,7 +280,10 @@ Nwk_Man_t * Nwk_ManFromIf( If_Man_t * pIfMan, Aig_Man_t * p, Vec_Ptr_t * vAigToI
             // create node
             pObjNew = Nwk_ManCreateNode( pNtk, nLeaves, pIfObj->nRefs );
             for ( k = 0; k < nLeaves; k++ )
-                Nwk_ObjAddFanin( pObjNew, Aig_ManObj(p, ppLeaves[k])->pData );
+            {
+                pObjRepr = Vec_PtrEntry( vIfToAig, ppLeaves[k] );
+                Nwk_ObjAddFanin( pObjNew, pObjRepr->pData );
+            }
             // get the functionality
             pObjNew->pFunc = Nwk_NodeIfToHop( pNtk->pManHop, pIfMan, pIfObj );
         }
@@ -292,7 +304,9 @@ Nwk_Man_t * Nwk_ManFromIf( If_Man_t * pIfMan, Aig_Man_t * p, Vec_Ptr_t * vAigToI
             assert( 0 );
         pObj->pData = pObjNew;
     }
+    Vec_PtrFree( vIfToAig );
     pNtk->pManTime = Tim_ManDup( pIfMan->pManTim, 0 );
+    assert( Nwk_ManCheck( pNtk ) );
     return pNtk;
 }
 
@@ -328,6 +342,8 @@ Nwk_Man_t * Nwk_MappingIf( Aig_Man_t * p, Tim_Man_t * pManTime, If_Par_t * pPars
     }
     // transform the result of mapping into the new network
     pNtk = Nwk_ManFromIf( pIfMan, p, vAigToIf );
+    if ( pPars->fBidec && pPars->nLutSize <= 8 )
+        Nwk_ManBidecResyn( pNtk, 0 );
     If_ManStop( pIfMan );
     Vec_PtrFree( vAigToIf );
     return pNtk;

@@ -364,7 +364,7 @@ Aig_Obj_t * Ntl_GraphToNetworkAig( Aig_Man_t * pMan, Dec_Graph_t * pGraph )
 Aig_Obj_t * Ntl_ManBuildNodeAig( Ntl_Obj_t * pNode )
 {
     Aig_Man_t * pMan = pNode->pModel->pMan->pAig;
-    int fUseFactor = 0;
+    int fUseFactor = 1;
     // consider the constant node
     if ( Ntl_SopGetVarNum(pNode->pSop) == 0 )
         return Aig_NotCond( Aig_ManConst1(pMan), Ntl_SopIsConst0(pNode->pSop) );
@@ -957,8 +957,8 @@ Aig_Man_t * Ntl_ManCollapseForSec( Ntl_Man_t * p1, Ntl_Man_t * p2 )
 ***********************************************************************/
 static inline void Ntl_NetIncrementRefs( Ntl_Net_t * pNet )
 {
-    int nRefs = (int)pNet->pCopy;
-    pNet->pCopy = (void *)(nRefs + 1);
+    int nRefs = (int)(long)pNet->pCopy;
+    pNet->pCopy = (void *)(long)(nRefs + 1);
 }
 
 /**Function*************************************************************
@@ -981,7 +981,7 @@ Nwk_Obj_t * Ntl_ManExtractNwk_rec( Ntl_Man_t * p, Ntl_Net_t * pNet, Nwk_Man_t * 
     if ( pNet->fMark )
         return pNet->pCopy;
     pNet->fMark = 1;
-    pNode = Nwk_ManCreateNode( pNtk, Ntl_ObjFaninNum(pNet->pDriver), (int)pNet->pCopy );
+    pNode = Nwk_ManCreateNode( pNtk, Ntl_ObjFaninNum(pNet->pDriver), (int)(long)pNet->pCopy );
     Ntl_ObjForEachFanin( pNet->pDriver, pFaninNet, i )
     {
         Ntl_ManExtractNwk_rec( p, pFaninNet, pNtk, vCover, vMemory );
@@ -1046,7 +1046,7 @@ Nwk_Man_t * Ntl_ManExtractNwk( Ntl_Man_t * p, Aig_Man_t * pAig )
             pObj = Ntl_ModelPi( pRoot, Aig_ObjPioNum(pAnd) );
             pNet = Ntl_ObjFanout0(pObj);
             pNet->fMark = 1;
-            pNet->pCopy = Nwk_ManCreateCi( pNtk, (int)pNet->pCopy ); 
+            pNet->pCopy = Nwk_ManCreateCi( pNtk, (int)(long)pNet->pCopy ); 
         }
         else if ( Aig_ObjIsPo(pAnd) )
         {

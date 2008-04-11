@@ -221,7 +221,7 @@ void Nwk_ObjAddFanin( Nwk_Obj_t * pObj, Nwk_Obj_t * pFanin )
         Nwk_ManReallocNode( pObj );
     if ( Nwk_ObjReallocIsNeeded(pFanin) )
         Nwk_ManReallocNode( pFanin );
-    for ( i = pObj->nFanins + pObj->nFanouts; i > (int)pObj->nFanins; i-- )
+    for ( i = pObj->nFanins + pObj->nFanouts; i > pObj->nFanins; i-- )
         pObj->pFanio[i] = pObj->pFanio[i-1];
     pObj->pFanio[pObj->nFanins++] = pFanin;
     pFanin->pFanio[pFanin->nFanins + pFanin->nFanouts++] = pObj;
@@ -247,15 +247,15 @@ void Nwk_ObjDeleteFanin( Nwk_Obj_t * pObj, Nwk_Obj_t * pFanin )
     for ( k = i = 0; i < Limit; i++ )
         if ( pObj->pFanio[i] != pFanin )
             pObj->pFanio[k++] = pObj->pFanio[i];
-    assert( i == k + 1 );
+    assert( i == k + 1 ); // if it fails, likely because of duplicated fanin
     pObj->nFanins--;
     // remove pObj from the fanout list of pFanin
     Limit = pFanin->nFanins + pFanin->nFanouts;
     for ( k = i = pFanin->nFanins; i < Limit; i++ )
         if ( pFanin->pFanio[i] != pObj )
             pFanin->pFanio[k++] = pFanin->pFanio[i];
-    assert( i == k + 1 );
-    pFanin->nFanouts--;
+    assert( i == k + 1 ); // if it fails, likely because of duplicated fanout
+    pFanin->nFanouts--; 
 }
 
 /**Function*************************************************************

@@ -469,6 +469,7 @@ void Abc_NtkPrintFanio( FILE * pFile, Abc_Ntk_t * pNtk )
     Vec_IntFree( vFanins );
     Vec_IntFree( vFanouts );
 }
+
 /**Function*************************************************************
 
   Synopsis    [Prints the distribution of fanins/fanouts in the network.]

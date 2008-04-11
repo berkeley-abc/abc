@@ -30,7 +30,7 @@
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Checking the logic network for consistency.]
 
   Description []
                
@@ -39,6 +39,32 @@
   SeeAlso     []
 
 ***********************************************************************/
+int Nwk_ManCheck( Nwk_Man_t * p )
+{
+    Nwk_Obj_t * pObj;
+    int i, k, m;
+    // check if the nodes have duplicated fanins
+    Nwk_ManForEachNode( p, pObj, i )
+    {
+        for ( k = 0; k < pObj->nFanins; k++ )
+            for ( m = k + 1; m < pObj->nFanins; m++ )
+                if ( pObj->pFanio[k] == pObj->pFanio[m] )
+                    printf( "Node %d has duplicated fanin %d.\n", pObj->Id, pObj->pFanio[k]->Id );
+    }
+/*
+    // check if all nodes are in the correct fanin/fanout relationship
+    Nwk_ManForEachObj( p, pObj, i )
+    {
+        Nwk_ObjForEachFanin( pObj, pNext, k )
+            if ( Nwk_ObjFindFanout( pNext, pObj ) == -1 )
+                printf( "Nwk_ManCheck(): Object %d has fanin %d which does not have a corresponding fanout.\n", pObj->Id, pNext->Id );
+        Nwk_ObjForEachFanout( pObj, pNext, k )
+            if ( Nwk_ObjFindFanin( pNext, pObj ) == -1 )
+                printf( "Nwk_ManCheck(): Object %d has fanout %d which does not have a corresponding fanin.\n", pObj->Id, pNext->Id );
+    }
+*/
+    return 1;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

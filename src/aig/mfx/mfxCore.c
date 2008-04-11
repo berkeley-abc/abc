@@ -206,6 +206,7 @@ int Mfx_Perform( Nwk_Man_t * pNtk, Mfx_Par_t * pPars, If_Lib_t * pLutLib )
     int nTotalNodesBeg = Nwk_ManNodeNum(pNtk);
     int nTotalEdgesBeg = Nwk_ManGetTotalFanins(pNtk);
 
+//    assert( Nwk_ManCheck( pNtk ) );
     // check limits on the number of fanins
     nFaninMax = Nwk_ManGetFaninMax(pNtk);
     if ( pPars->fResub )

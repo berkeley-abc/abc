@@ -195,6 +195,8 @@ static inline int         Nwk_ManTimeMore( float f1, float f2, float Eps )   { r
 /*=== nwkBidec.c ==========================================================*/
 extern void            Nwk_ManBidecResyn( Nwk_Man_t * pNtk, int fVerbose );
 extern Hop_Obj_t *     Nwk_NodeIfNodeResyn( Bdc_Man_t * p, Hop_Man_t * pHop, Hop_Obj_t * pRoot, int nVars, Vec_Int_t * vTruth, unsigned * puCare );
+/*=== nwkCheck.c ==========================================================*/
+extern int             Nwk_ManCheck( Nwk_Man_t * p );
 /*=== nwkDfs.c ==========================================================*/
 extern int             Nwk_ManVerifyTopoOrder( Nwk_Man_t * pNtk );
 extern int             Nwk_ManLevelBackup( Nwk_Man_t * pNtk );
@@ -253,6 +255,7 @@ extern int             Nwk_NodeCompareLevelsIncrease( Nwk_Obj_t ** pp1, Nwk_Obj_
 extern int             Nwk_NodeCompareLevelsDecrease( Nwk_Obj_t ** pp1, Nwk_Obj_t ** pp2 );
 extern void            Nwk_ObjPrint( Nwk_Obj_t * pObj );
 extern void            Nwk_ManDumpBlif( Nwk_Man_t * pNtk, char * pFileName, Vec_Ptr_t * vCiNames, Vec_Ptr_t * vCoNames );
+extern void            Nwk_ManPrintFanioNew( Nwk_Man_t * pNtk );
 
 #ifdef __cplusplus
 }

@@ -246,7 +246,6 @@ static inline int        If_ObjIsConst1( If_Obj_t * pObj )                   { r
 static inline int        If_ObjIsCi( If_Obj_t * pObj )                       { return pObj->Type == IF_CI;           }
 static inline int        If_ObjIsCo( If_Obj_t * pObj )                       { return pObj->Type == IF_CO;           }
 static inline int        If_ObjIsTerm( If_Obj_t * pObj )                     { return pObj->Type == IF_CI || pObj->Type == IF_CO; }
-//static inline int        If_ObjIsPi( If_Obj_t * pObj )                       { return If_ObjIsCi(pObj) && pObj->pFanin0 == NULL;  }
 static inline int        If_ObjIsLatch( If_Obj_t * pObj )                    { return If_ObjIsCi(pObj) && pObj->pFanin0 != NULL;  }
 static inline int        If_ObjIsAnd( If_Obj_t * pObj )                      { return pObj->Type == IF_AND;          }
 
@@ -343,8 +342,10 @@ extern int             If_ManPerformMappingComb( If_Man_t * p );
 /*=== ifCut.c ============================================================*/
 extern int             If_CutFilter( If_Set_t * pCutSet, If_Cut_t * pCut );
 extern void            If_CutSort( If_Man_t * p, If_Set_t * pCutSet, If_Cut_t * pCut );
+extern void            If_CutOrder( If_Cut_t * pCut );
 extern int             If_CutMerge( If_Cut_t * pCut0, If_Cut_t * pCut1, If_Cut_t * pCut );
-extern void            If_CutPrint( If_Man_t * p, If_Cut_t * pCut );
+extern int             If_CutCheck( If_Cut_t * pCut );
+extern void            If_CutPrint( If_Cut_t * pCut );
 extern void            If_CutPrintTiming( If_Man_t * p, If_Cut_t * pCut );
 extern void            If_CutLift( If_Cut_t * pCut );
 extern void            If_CutCopy( If_Man_t * p, If_Cut_t * pCutDest, If_Cut_t * pCutSrc );
@@ -365,6 +366,7 @@ extern If_Lib_t *      If_LutLibDup( If_Lib_t * p );
 extern void            If_LutLibFree( If_Lib_t * pLutLib );
 extern void            If_LutLibPrint( If_Lib_t * pLutLib );
 extern int             If_LutLibDelaysAreDiscrete( If_Lib_t * pLutLib );
+extern int             If_LutLibDelaysAreDifferent( If_Lib_t * pLutLib );
 extern If_Lib_t *      If_SetSimpleLutLib( int nLutSize );
 extern float           If_LutLibFastestPinDelay( If_Lib_t * p );
 extern float           If_LutLibSlowestPinDelay( If_Lib_t * p );

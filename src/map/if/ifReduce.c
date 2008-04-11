@@ -263,6 +263,7 @@ void If_ManImproveNodeUpdate( If_Man_t * p, If_Obj_t * pObj, Vec_Ptr_t * vFront 
     pCut->nLeaves = Vec_PtrSize(vFront);
     Vec_PtrForEachEntry( vFront, pFanin, i )
         pCut->pLeaves[i] = pFanin->Id;
+    If_CutOrder( pCut );
     // ref the new cut
     If_CutAreaRef( p, pCut );
 }

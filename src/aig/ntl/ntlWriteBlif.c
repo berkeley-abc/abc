@@ -45,7 +45,7 @@ void Ioa_WriteBlifModel( FILE * pFile, Ntl_Mod_t * pModel )
     Ntl_Obj_t * pObj;
     Ntl_Net_t * pNet;
     float Delay;
-    int i, k;
+    int i, k, fClockAdded = 0;
     fprintf( pFile, ".model %s\n", pModel->pName );
     fprintf( pFile, ".inputs" );
     Ntl_ModelForEachPi( pModel, pObj, i )
@@ -117,8 +117,10 @@ void Ioa_WriteBlifModel( FILE * pFile, Ntl_Mod_t * pModel )
             fprintf( pFile, " %s", Ntl_ObjFanout0(pObj)->pName );
             if ( pObj->LatchId >> 2 )
                 fprintf( pFile, " %d", pObj->LatchId >> 2 );
-            if ( pObj->pFanio[1] != NULL )
+            if ( Ntl_ObjFanin(pObj, 1) != NULL )
                 fprintf( pFile, " %s", Ntl_ObjFanin(pObj, 1)->pName );
+            else if ( pObj->LatchId >> 2 )
+                fprintf( pFile, " clock" ), fClockAdded = 1;
             fprintf( pFile, " %d", pObj->LatchId & 3 );
             fprintf( pFile, "\n" );
         }
@@ -132,6 +134,8 @@ void Ioa_WriteBlifModel( FILE * pFile, Ntl_Mod_t * pModel )
             fprintf( pFile, "\n" );
         }
     }
+    if ( fClockAdded )
+        fprintf( pFile, ".names clock\n 0\n" );
     fprintf( pFile, ".end\n\n" );
 }
 

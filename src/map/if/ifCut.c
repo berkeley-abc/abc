@@ -297,6 +297,7 @@ int If_CutMerge( If_Cut_t * pCut0, If_Cut_t * pCut1, If_Cut_t * pCut )
             return 0;
     }
     pCut->uSign = pCut0->uSign | pCut1->uSign;
+    assert( If_CutCheck( pCut ) );
     return 1;
 }
 
@@ -605,6 +606,63 @@ void If_CutSort( If_Man_t * p, If_Set_t * pCutSet, If_Cut_t * pCut )
 
 /**Function*************************************************************
 
+  Synopsis    [Orders the leaves of the cut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void If_CutOrder( If_Cut_t * pCut )
+{
+    int i, Temp, fChanges;
+    do {
+        fChanges = 0;
+        for ( i = 0; i < (int)pCut->nLeaves - 1; i++ )
+        {
+            assert( pCut->pLeaves[i] != pCut->pLeaves[i+1] );
+            if ( pCut->pLeaves[i] <= pCut->pLeaves[i+1] )
+                continue;
+            Temp = pCut->pLeaves[i];
+            pCut->pLeaves[i] = pCut->pLeaves[i+1];
+            pCut->pLeaves[i+1] = Temp;
+            fChanges = 1;
+        }
+    } while ( fChanges );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks correctness of the cut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_CutCheck( If_Cut_t * pCut )
+{
+    int i;
+    assert( pCut->nLeaves <= pCut->nLimit );
+    for ( i = 1; i < (int)pCut->nLeaves; i++ )
+    {
+        if ( pCut->pLeaves[i-1] >= pCut->pLeaves[i] )
+        {
+            printf( "If_CutCheck(): Cut has wrong ordering of inputs.\n" );
+            return 0;
+        }
+        assert( pCut->pLeaves[i-1] < pCut->pLeaves[i] );
+    }
+    return 1;
+}
+
+
+/**Function*************************************************************
+
   Synopsis    [Prints one cut.]
 
   Description []
@@ -614,7 +672,7 @@ void If_CutSort( If_Man_t * p, If_Set_t * pCutSet, If_Cut_t * pCut )
   SeeAlso     []
 
 ***********************************************************************/
-void If_CutPrint( If_Man_t * p, If_Cut_t * pCut )
+void If_CutPrint( If_Cut_t * pCut )
 {
     unsigned i;
     printf( "{" );

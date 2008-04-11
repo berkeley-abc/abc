@@ -154,10 +154,8 @@ void Nwk_ManDeleteNode( Nwk_Obj_t * pObj )
     Vec_Ptr_t * vNodes = pObj->pMan->vTemp;
     Nwk_Obj_t * pTemp;
     int i;
-    // delete fanins and fanouts
-    Nwk_ObjCollectFanouts( pObj, vNodes );
-    Vec_PtrForEachEntry( vNodes, pTemp, i )
-        Nwk_ObjDeleteFanin( pTemp, pObj );
+    assert( Nwk_ObjFanoutNum(pObj) == 0 );
+    // delete fanins
     Nwk_ObjCollectFanins( pObj, vNodes );
     Vec_PtrForEachEntry( vNodes, pTemp, i )
         Nwk_ObjDeleteFanin( pObj, pTemp );

@@ -222,7 +222,7 @@ int main( int argc, char * argv[] )
     if ( fStatus < 0 ) 
     {
         Abc_Stop();
-    }
+    } 
     return 0;
 
 usage:

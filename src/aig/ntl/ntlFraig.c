@@ -192,6 +192,8 @@ Aig_Man_t * Ntl_ManScl( Ntl_Man_t * p, Aig_Man_t * pAig, int fLatchConst, int fL
 
     // derive the new AIG
     pTemp = Aig_ManDupRepresDfs( pAig );
+printf( "Intermediate:\n" );
+Aig_ManPrintStats( pTemp );
     // duplicate the timing manager
     if ( pAig->pManTime )
         pTemp->pManTime = Tim_ManDup( pAig->pManTime, 0 );
@@ -230,17 +232,21 @@ Aig_Man_t * Ntl_ManLcorr( Ntl_Man_t * p, Aig_Man_t * pAig, int nConfMax, int fVe
     // perform fraiging for the given design
     pAigCol->nRegs = Ntl_ModelLatchNum(Ntl_ManRootModel(p));
     pTemp = Fra_FraigLatchCorrespondence( pAigCol, 0, nConfMax, 0, fVerbose, NULL );
+//printf( "Reprs = %d.\n", Aig_ManCountReprs(pAigCol) );
     Aig_ManStop( pTemp );
 
     // transfer equivalence classes to the original AIG
     pAig->pReprs = Ntl_ManFraigDeriveClasses( pAig, pNew, pAigCol );
     pAig->nReprsAlloc = Aig_ManObjNumMax(pAig);
+//printf( "Reprs = %d.\n", Aig_ManCountReprs(pAig) );
     // cleanup
     Aig_ManStop( pAigCol );
     Ntl_ManFree( pNew );
 
     // derive the new AIG
     pTemp = Aig_ManDupRepresDfs( pAig );
+//printf( "Intermediate LCORR:\n" );
+//Aig_ManPrintStats( pTemp );
     // duplicate the timing manager
     if ( pAig->pManTime )
         pTemp->pManTime = Tim_ManDup( pAig->pManTime, 0 );

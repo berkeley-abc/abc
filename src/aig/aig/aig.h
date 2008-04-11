@@ -548,6 +548,7 @@ extern void            Aig_ManReprStop( Aig_Man_t * p );
 extern void            Aig_ObjCreateRepr( Aig_Man_t * p, Aig_Obj_t * pNode1, Aig_Obj_t * pNode2 );
 extern void            Aig_ManTransferRepr( Aig_Man_t * pNew, Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupRepr( Aig_Man_t * p, int fOrdered );
+extern int             Aig_ManCountReprs( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManRehash( Aig_Man_t * p );
 extern int             Aig_ObjCheckTfi( Aig_Man_t * p, Aig_Obj_t * pNew, Aig_Obj_t * pOld );
 extern void            Aig_ManMarkValidChoices( Aig_Man_t * p );

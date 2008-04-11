@@ -228,6 +228,37 @@ int If_LutLibDelaysAreDiscrete( If_Lib_t * pLutLib )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns 1 if the delays are discrete.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_LutLibDelaysAreDifferent( If_Lib_t * pLutLib )
+{
+    int i, k;
+    float Delay = pLutLib->pLutDelays[1][0];
+    if ( pLutLib->fVarPinDelays )
+    {
+        for ( i = 2; i <= pLutLib->LutMax; i++ )
+        for ( k = 0; k < i; k++ )
+            if ( pLutLib->pLutDelays[i][k] != Delay )
+                return 1;
+    }
+    else
+    {
+        for ( i = 2; i <= pLutLib->LutMax; i++ )
+            if ( pLutLib->pLutDelays[i][0] != Delay )
+                return 1;
+    }
+    return 0;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Sets simple LUT library.]
 
   Description []
