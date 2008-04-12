@@ -16932,6 +16932,8 @@ int Abc_CommandAbc8DSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     pAig = Ntl_ManPrepareSec( pArgvNew[0], pArgvNew[1] );
+    if ( pAig == NULL )
+        return 0;
     Fra_FraigSec( pAig, nFrames, fRetimeFirst, fFraiging, fVerbose, fVeryVerbose );
     Aig_ManStop( pAig );
     return 0;

@@ -1312,19 +1312,7 @@ Aig_Man_t * Aig_ManChoicePartitioned( Vec_Ptr_t * vAigs, int nPartSize, int nCon
     Vec_PtrForEachEntry( vAigs, pAig, i )
         Aig_ManForEachPi( pAig, pObj, k )
             pObj->pNext = NULL;
-/*
-    // collect the missing outputs (outputs whose driver is not a node)
-    pAig = Vec_PtrEntry( vAigs, 0 );
-    Aig_ManConst1(pAig)->pData = Aig_ManConst1(pAigTotal);
-    Aig_ManForEachPi( pAig, pObj, i )
-        pAig->pData = Aig_ManPi( pAigTotal, i );
-    Aig_ManForEachPo( pAig, pObj, i )
-        if ( !Aig_ObjIsNode(Aig_ObjFanin0(pObj)) )
-        {
-            assert( Vec_PtrEntry( vOutsTotal, i ) == NULL );
-            Vec_PtrWriteEntry( vOutsTotal, i, Aig_ObjChild0Copy(pObj) );
-        }
-*/
+
     // add the outputs in the same order
     Vec_PtrForEachEntry( vOutsTotal, pObj, i )
         Aig_ObjCreatePo( pAigTotal, pObj );
@@ -1335,7 +1323,7 @@ Aig_Man_t * Aig_ManChoicePartitioned( Vec_Ptr_t * vAigs, int nPartSize, int nCon
     // create the equivalent nodes lists
     Aig_ManMarkValidChoices( pAig );
     // reconstruct the network
-    pAig = Aig_ManDupDfsOrder( pTemp = pAig, Vec_PtrEntry( vAigs, 0 ) );
+    pAig = Aig_ManDupDfsOrder( pTemp = pAig, Vec_PtrEntry(vAigs,0) );
     Aig_ManStop( pTemp );
     // duplicate the timing manager
     pTemp = Vec_PtrEntry( vAigs, 0 );

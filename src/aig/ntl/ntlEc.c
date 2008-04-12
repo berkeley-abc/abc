@@ -276,7 +276,7 @@ Aig_Man_t * Ntl_ManPrepareSec( char * pFileName1, char * pFileName2 )
     {
         if ( pMan1 )  Ntl_ManFree( pMan1 );
         if ( pMan2 )  Ntl_ManFree( pMan2 );
-        printf( "Ntl_ManPrepareSec(): The designs have no latches. Used combinational command \"*cec\".\n" );
+        printf( "Ntl_ManPrepareSec(): The designs have no latches. Use combinational command \"*cec\".\n" );
         return NULL;
     }
     if ( Ntl_ModelPiNum(pModel1) != Ntl_ModelPiNum(pModel2) )

@@ -366,6 +366,45 @@ Vec_Ptr_t * Aig_ManOrderPios( Aig_Man_t * p, Aig_Man_t * pOrder )
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicates the AIG manager recursively.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Obj_t * Aig_ManDupDfsOrder_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t * pObj )
+{
+    Aig_Obj_t * pObjNew, * pEquivNew = NULL;
+    if ( pObj->pData )
+        return pObj->pData;
+    if ( Aig_ObjIsPi(pObj) )
+        return NULL;
+    if ( p->pEquivs && Aig_ObjEquiv(p, pObj) )
+        pEquivNew = Aig_ManDupDfsOrder_rec( pNew, p, Aig_ObjEquiv(p, pObj) );
+    if ( !Aig_ManDupDfsOrder_rec( pNew, p, Aig_ObjFanin0(pObj) ) )
+        return NULL;
+    if ( Aig_ObjIsBuf(pObj) )
+        return pObj->pData = Aig_ObjChild0Copy(pObj);
+    if ( !Aig_ManDupDfsOrder_rec( pNew, p, Aig_ObjFanin1(pObj) ) )
+        return NULL;
+    pObjNew = Aig_Oper( pNew, Aig_ObjChild0Copy(pObj), Aig_ObjChild1Copy(pObj), Aig_ObjType(pObj) );
+    if ( pObj->pHaig )
+        Aig_Regular(pObjNew)->pHaig = pObj->pHaig;
+    if ( pEquivNew )
+    {
+        if ( pNew->pEquivs )
+            pNew->pEquivs[Aig_Regular(pObjNew)->Id] = Aig_Regular(pEquivNew);        
+        if ( pNew->pReprs )
+            pNew->pReprs[Aig_Regular(pEquivNew)->Id] = Aig_Regular(pObjNew);
+    }
+    return pObj->pData = pObjNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Duplicates the AIG manager.]
 
   Description [This duplicator works for AIGs with choices.]
@@ -417,7 +456,7 @@ Aig_Man_t * Aig_ManDupDfsOrder( Aig_Man_t * p, Aig_Man_t * pOrder )
         }
         else if ( Aig_ObjIsPo(pObj) )
         {
-            Aig_ManDupDfs_rec( pNew, p, Aig_ObjFanin0(pObj) );        
+            Aig_ManDupDfsOrder_rec( pNew, p, Aig_ObjFanin0(pObj) );        
 //            assert( pObj->Level == ((Aig_Obj_t*)pObj->pData)->Level );
             pObjNew = Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
             Aig_Regular(pObjNew)->pHaig = pObj->pHaig;
