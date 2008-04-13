@@ -129,7 +129,7 @@ Abc_Ntk_t * Abc_NtkFromNtkNew( Abc_Ntk_t * pNtkOld, Nwk_Man_t * pNtk )
     Nwk_ManForEachCo( pNtk, pObj, i )
     {
         pObjNew = Abc_NtkCreatePo( pNtkNew );
-        if ( pObj->fCompl )
+        if ( pObj->fInvert )
             pFaninNew = Abc_NtkCreateNodeInv( pNtkNew, Nwk_ObjFanin0(pObj)->pCopy );
         else
             pFaninNew = Nwk_ObjFanin0(pObj)->pCopy;

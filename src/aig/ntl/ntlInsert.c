@@ -68,7 +68,7 @@ Ntl_Man_t * Ntl_ManInsertMapping( Ntl_Man_t * p, Vec_Ptr_t * vMapping, Aig_Man_t
     Vec_PtrForEachEntry( vMapping, pLut, i )
     {
         pNode = Ntl_ModelCreateNode( pRoot, pLut->nFanins );
-        pNode->pSop = Ntl_SopFromTruth( p, pLut->pTruth, pLut->nFanins, vCover );
+        pNode->pSop = Kit_PlaFromTruth( p->pMemSops, pLut->pTruth, pLut->nFanins, vCover );
         if ( !Kit_TruthIsConst0(pLut->pTruth, pLut->nFanins) && !Kit_TruthIsConst1(pLut->pTruth, pLut->nFanins) )
         {
             for ( k = 0; k < pLut->nFanins; k++ )
@@ -108,7 +108,7 @@ Ntl_Man_t * Ntl_ManInsertMapping( Ntl_Man_t * p, Vec_Ptr_t * vMapping, Aig_Man_t
         pNetCo->fMark = 1;
         pNet = Vec_PtrEntry( vCopies, Aig_Regular(pNetCo->pCopy)->Id );
         pNode = Ntl_ModelCreateNode( pRoot, 1 );
-        pNode->pSop = Aig_IsComplement(pNetCo->pCopy)? Ntl_ManStoreSop( p, "0 1\n" ) : Ntl_ManStoreSop( p, "1 1\n" );
+        pNode->pSop = Aig_IsComplement(pNetCo->pCopy)? Ntl_ManStoreSop( p->pMemSops, "0 1\n" ) : Ntl_ManStoreSop( p->pMemSops, "1 1\n" );
         Ntl_ObjSetFanin( pNode, pNet, 0 );
         // update the CO driver net
         assert( pNetCo->pDriver == NULL );
@@ -158,7 +158,7 @@ Ntl_Man_t * Ntl_ManInsertAig( Ntl_Man_t * p, Aig_Man_t * pAig )
     if ( Aig_ManConst1(pAig)->nRefs > 0 )
     {
         pNode = Ntl_ModelCreateNode( pRoot, 0 );
-        pNode->pSop = Ntl_ManStoreSop( p, " 1\n" );
+        pNode->pSop = Ntl_ManStoreSop( p->pMemSops, " 1\n" );
         if ( (pNet = Ntl_ModelFindNet( pRoot, "Const1" )) )
         {
             printf( "Ntl_ManInsertAig(): Internal error: Intermediate net name is not unique.\n" );
@@ -188,13 +188,13 @@ Ntl_Man_t * Ntl_ManInsertAig( Ntl_Man_t * p, Aig_Man_t * pAig )
         Ntl_ObjSetFanin( pNode, Aig_ObjFanin0(pObj)->pData, 0 );
         Ntl_ObjSetFanin( pNode, Aig_ObjFanin1(pObj)->pData, 1 );
         if ( Aig_ObjFaninC0(pObj) && Aig_ObjFaninC1(pObj) )
-            pNode->pSop = Ntl_ManStoreSop( p, "00 1\n" );
+            pNode->pSop = Ntl_ManStoreSop( p->pMemSops, "00 1\n" );
         else if ( Aig_ObjFaninC0(pObj) && !Aig_ObjFaninC1(pObj) )
-            pNode->pSop = Ntl_ManStoreSop( p, "01 1\n" );
+            pNode->pSop = Ntl_ManStoreSop( p->pMemSops, "01 1\n" );
         else if ( !Aig_ObjFaninC0(pObj) && Aig_ObjFaninC1(pObj) )
-            pNode->pSop = Ntl_ManStoreSop( p, "10 1\n" );
+            pNode->pSop = Ntl_ManStoreSop( p->pMemSops, "10 1\n" );
         else // if ( Aig_ObjFaninC0(pObj) && Aig_ObjFaninC1(pObj) )
-            pNode->pSop = Ntl_ManStoreSop( p, "11 1\n" );
+            pNode->pSop = Ntl_ManStoreSop( p->pMemSops, "11 1\n" );
         sprintf( Buffer, "and%0*d", nDigits, Counter++ );
         if ( (pNet = Ntl_ModelFindNet( pRoot, Buffer )) )
         {
@@ -224,7 +224,7 @@ Ntl_Man_t * Ntl_ManInsertAig( Ntl_Man_t * p, Aig_Man_t * pAig )
         // get the net driving the driver
         pNet = pFanin->pData; 
         pNode = Ntl_ModelCreateNode( pRoot, 1 );
-        pNode->pSop = Aig_ObjFaninC0(pObj)? Ntl_ManStoreSop( p, "0 1\n" ) : Ntl_ManStoreSop( p, "1 1\n" );
+        pNode->pSop = Aig_ObjFaninC0(pObj)? Ntl_ManStoreSop( p->pMemSops, "0 1\n" ) : Ntl_ManStoreSop( p->pMemSops, "1 1\n" );
         Ntl_ObjSetFanin( pNode, pNet, 0 );
         // update the CO driver net
         assert( pNetCo->pDriver == NULL );
@@ -288,7 +288,7 @@ Ntl_Man_t * Ntl_ManInsertNtk( Ntl_Man_t * p, Nwk_Man_t * pNtk )
         pTruth = Hop_ManConvertAigToTruth( pNtk->pManHop, Hop_Regular(pObj->pFunc), Nwk_ObjFaninNum(pObj), vTruth, 0 );
         if ( Hop_IsComplement(pObj->pFunc) )
             Kit_TruthNot( pTruth, pTruth, Nwk_ObjFaninNum(pObj) );
-        pNode->pSop = Ntl_SopFromTruth( p, pTruth, Nwk_ObjFaninNum(pObj), vCover );
+        pNode->pSop = Kit_PlaFromTruth( p->pMemSops, pTruth, Nwk_ObjFaninNum(pObj), vCover );
         if ( !Kit_TruthIsConst0(pTruth, Nwk_ObjFaninNum(pObj)) && !Kit_TruthIsConst1(pTruth, Nwk_ObjFaninNum(pObj)) )
         {
             Nwk_ObjForEachFanin( pObj, pFanin, k )
@@ -332,9 +332,9 @@ Ntl_Man_t * Ntl_ManInsertNtk( Ntl_Man_t * p, Nwk_Man_t * pNtk )
         pObj = Nwk_ManCo( pNtk, i );
         pFanin = Nwk_ObjFanin0( pObj );
         // get the net driving the driver
-        pNet = pFanin->pCopy; //Vec_PtrEntry( vCopies, Aig_Regular(pNetCo->pCopy)->Id );
+        pNet = pFanin->pCopy;
         pNode = Ntl_ModelCreateNode( pRoot, 1 );
-        pNode->pSop = pObj->fCompl /*Aig_IsComplement(pNetCo->pCopy)*/? Ntl_ManStoreSop( p, "0 1\n" ) : Ntl_ManStoreSop( p, "1 1\n" );
+        pNode->pSop = pObj->fInvert? Ntl_ManStoreSop( p->pMemSops, "0 1\n" ) : Ntl_ManStoreSop( p->pMemSops, "1 1\n" );
         Ntl_ObjSetFanin( pNode, pNet, 0 );
         // update the CO driver net
         assert( pNetCo->pDriver == NULL );

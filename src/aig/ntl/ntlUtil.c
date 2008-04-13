@@ -107,157 +107,6 @@ int Ntl_ManCountSimpleCoDrivers( Ntl_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Removes the CO drivers that are bufs/invs.]
-
-  Description [Should be called immediately after reading from file.]
-               
-  SideEffects [This procedure does not work because the internal net
-  (pNetFanin) may have other drivers.]
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ntl_ManTransformCoDrivers( Ntl_Man_t * p )
-{
-    Vec_Ptr_t * vCoNets;
-    Ntl_Net_t * pNetCo, * pNetFanin;
-    Ntl_Obj_t * pObj;
-    Ntl_Mod_t * pRoot;
-    int i, k, Counter;
-    pRoot = Ntl_ManRootModel( p );
-    // collect the nets of the root model
-    vCoNets = Vec_PtrAlloc( 1000 );
-    Ntl_ModelForEachPo( pRoot, pObj, i )
-        if ( !Ntl_ObjFanin0(pObj)->fMark )
-        {
-            Ntl_ObjFanin0(pObj)->fMark = 1;
-            Vec_PtrPush( vCoNets, Ntl_ObjFanin0(pObj) );
-        }
-    Ntl_ModelForEachLatch( pRoot, pObj, i )
-        if ( !Ntl_ObjFanin0(pObj)->fMark )
-        {
-            Ntl_ObjFanin0(pObj)->fMark = 1;
-            Vec_PtrPush( vCoNets, Ntl_ObjFanin0(pObj) );
-        }
-    Ntl_ModelForEachBox( pRoot, pObj, k )
-    Ntl_ObjForEachFanin( pObj, pNetCo, i )
-        if ( !pNetCo->fMark )
-        {
-            pNetCo->fMark = 1;
-            Vec_PtrPush( vCoNets, pNetCo );
-        }
-    // check the nets
-    Vec_PtrForEachEntry( vCoNets, pNetCo, i )
-    {
-        if ( !Ntl_ObjIsNode(pNetCo->pDriver) )
-            continue;
-        if ( Ntl_ObjFaninNum(pNetCo->pDriver) != 1 )
-            break;
-        pNetFanin = Ntl_ObjFanin0(pNetCo->pDriver);
-        if ( !Ntl_ObjIsNode(pNetFanin->pDriver) )
-            break;
-    }
-    if ( i < Vec_PtrSize(vCoNets) )
-    {
-        Vec_PtrFree( vCoNets );
-        return 0;
-    }
-
-
-    // remove the buffers/inverters
-    Counter = 0;
-    Vec_PtrForEachEntry( vCoNets, pNetCo, i )
-    {
-        pNetCo->fMark = 0;
-        if ( !Ntl_ObjIsNode(pNetCo->pDriver) )
-            continue;
-        // if this net is driven by an interver
-        // set the complemented attribute of the CO
-        assert( Ntl_ObjFaninNum(pNetCo->pDriver) == 1 );
-        pNetCo->fCompl = (int)(pNetCo->pDriver->pSop[0] == '0');
-        // remove the driver
-        Vec_PtrWriteEntry( pRoot->vObjs, pNetCo->pDriver->Id, NULL );
-        // remove the net
-        pNetFanin = Ntl_ObjFanin0(pNetCo->pDriver);
-        Ntl_ModelDeleteNet( pRoot, pNetFanin );
-        // make the CO net point to the new driver
-        assert( Ntl_ObjIsNode(pNetFanin->pDriver) );
-        pNetCo->pDriver = NULL;
-        pNetFanin->pDriver->pFanio[pNetFanin->pDriver->nFanins] = NULL;
-        Ntl_ModelSetNetDriver( pNetFanin->pDriver, pNetCo );
-        Counter++;
-    }
-    Vec_PtrFree( vCoNets );
-    pRoot->nObjs[NTL_OBJ_LUT1] -= Counter;
-    return Counter;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Connects COs to the internal nodes other than inv/bufs.]
-
-  Description [Should be called immediately after reading from file.]
-               
-  SideEffects [This procedure does not work because the internal net
-  (pNetFanin) may have other drivers.]
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ntl_ManReconnectCoDriverOne( Ntl_Net_t * pNetCo )
-{
-    Ntl_Net_t * pNetFanin;
-    // skip the case when the net is not driven by a node
-    if ( !Ntl_ObjIsNode(pNetCo->pDriver) )
-        return 0;
-    // skip the case when the node is not an inv/buf
-    if ( Ntl_ObjFaninNum(pNetCo->pDriver) != 1 )
-        return 0;
-    // skip the case when the second-generation driver is not a node
-    pNetFanin = Ntl_ObjFanin0(pNetCo->pDriver);
-    if ( !Ntl_ObjIsNode(pNetFanin->pDriver) )
-        return 0;
-    // set the complemented attribute of the net
-    pNetCo->fCompl = (int)(pNetCo->pDriver->pSop[0] == '0');
-    // drive the CO net with the second-generation driver
-    pNetCo->pDriver = NULL;
-    pNetFanin->pDriver->pFanio[pNetFanin->pDriver->nFanins] = NULL;
-    if ( !Ntl_ModelSetNetDriver( pNetFanin->pDriver, pNetCo ) )
-        printf( "Ntl_ManReconnectCoDriverOne(): Cannot connect the net.\n" );
-    return 1;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Connects COs to the internal nodes other than inv/bufs.]
-
-  Description [Should be called immediately after reading from file.]
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ntl_ManReconnectCoDrivers( Ntl_Man_t * p )
-{
-    Ntl_Net_t * pNetCo;
-    Ntl_Obj_t * pObj;
-    Ntl_Mod_t * pRoot;
-    int i, k, Counter;
-    Counter = 0;
-    pRoot = Ntl_ManRootModel( p );
-    Ntl_ModelForEachPo( pRoot, pObj, i )
-        Counter += Ntl_ManReconnectCoDriverOne( Ntl_ObjFanin0(pObj) );
-    Ntl_ModelForEachLatch( pRoot, pObj, i )
-        Counter += Ntl_ManReconnectCoDriverOne( Ntl_ObjFanin0(pObj) );
-    Ntl_ModelForEachBox( pRoot, pObj, i )
-        Ntl_ObjForEachFanin( pObj, pNetCo, k )
-            Counter += Ntl_ManReconnectCoDriverOne( pNetCo );
-    return Counter;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Derives the array of CI names.]
 
   Description []
@@ -360,6 +209,119 @@ int Ntl_ManCheckNetsAreNotMarked( Ntl_Mod_t * pModel )
     Ntl_ModelForEachNet( pModel, pNet, i )
         assert( pNet->fMark == 0 );
     return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Convert initial values of registers to be zero.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntl_ManSetZeroInitValues( Ntl_Man_t * p )
+{
+    Ntl_Mod_t * pRoot;
+    Ntl_Obj_t * pObj;
+    int i;
+    pRoot = Ntl_ManRootModel(p);
+    Ntl_ModelForEachLatch( pRoot, pObj, i )
+        pObj->LatchId &= ~3;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Transforms the netlist to have latches with const-0 init-values.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntl_ManAddInverters( Ntl_Obj_t * pObj )
+{
+    char * pStore;
+    Ntl_Mod_t * pRoot = pObj->pModel;
+    Ntl_Man_t * pMan = pRoot->pMan;
+    Ntl_Net_t * pNetLo, * pNetLi, * pNetLoInv, * pNetLiInv;
+    Ntl_Obj_t * pNode;
+    int nLength, RetValue;
+    assert( (pObj->LatchId & 3) == 1 );
+    // get the nets
+    pNetLi = Ntl_ObjFanin0(pObj);
+    pNetLo = Ntl_ObjFanout0(pObj);
+    // get storage for net names
+    nLength = strlen(pNetLi->pName) + strlen(pNetLo->pName) + 10; 
+    pStore = Aig_MmFlexEntryFetch( pMan->pMemSops, nLength );
+    // create input interter
+    pNode = Ntl_ModelCreateNode( pRoot, 1 );
+    pNode->pSop = Ntl_ManStoreSop( pMan->pMemSops, "0 1\n" );
+    Ntl_ObjSetFanin( pNode, pNetLi, 0 );
+    // create input net
+    strcpy( pStore, pNetLi->pName );
+    strcat( pStore, "_inv" );
+    if ( Ntl_ModelFindNet( pRoot, pStore ) )
+    {
+        printf( "Ntl_ManTransformInitValues(): Internal error! Cannot create net with LI-name + _inv\n" );
+        return;
+    }
+    pNetLiInv = Ntl_ModelFindOrCreateNet( pRoot, pStore );
+    RetValue = Ntl_ModelSetNetDriver( pNode, pNetLiInv );
+    assert( RetValue );
+    // connect latch to the input net
+    Ntl_ObjSetFanin( pObj, pNetLiInv, 0 );
+    // disconnect latch from the output net
+    RetValue = Ntl_ModelClearNetDriver( pObj, pNetLo );
+    assert( RetValue );
+    // create the output net
+    strcpy( pStore, pNetLo->pName );
+    strcat( pStore, "_inv" );
+    if ( Ntl_ModelFindNet( pRoot, pStore ) )
+    {
+        printf( "Ntl_ManTransformInitValues(): Internal error! Cannot create net with LO-name + _inv\n" );
+        return;
+    }
+    pNetLoInv = Ntl_ModelFindOrCreateNet( pRoot, pStore );
+    RetValue = Ntl_ModelSetNetDriver( pObj, pNetLoInv );
+    assert( RetValue );
+    // create output interter
+    pNode = Ntl_ModelCreateNode( pRoot, 1 );
+    pNode->pSop = Ntl_ManStoreSop( pMan->pMemSops, "0 1\n" );
+    Ntl_ObjSetFanin( pNode, pNetLoInv, 0 );
+    // redirect the old output net
+    RetValue = Ntl_ModelSetNetDriver( pNode, pNetLo );
+    assert( RetValue );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Transforms the netlist to have latches with const-0 init-values.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntl_ManTransformInitValues( Ntl_Man_t * p )
+{
+    Ntl_Mod_t * pRoot;
+    Ntl_Obj_t * pObj;
+    int i;
+    pRoot = Ntl_ManRootModel(p);
+    Ntl_ModelForEachLatch( pRoot, pObj, i )
+    {
+        if ( (pObj->LatchId & 3) == 1 )
+            Ntl_ManAddInverters( pObj );
+        pObj->LatchId &= ~3;
+    }
+
 }
 
 ////////////////////////////////////////////////////////////////////////

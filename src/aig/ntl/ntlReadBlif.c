@@ -1048,7 +1048,7 @@ static char * Ioa_ReadParseTableBlif( Ioa_ReadMod_t * p, char * pTable, int nFan
     // get the tokens
     Ioa_ReadSplitIntoTokens( vTokens, pTable, '.' );
     if ( Vec_PtrSize(vTokens) == 0 )
-        return Ntl_ManStoreSop( p->pMan->pDesign, " 0\n" );
+        return Ntl_ManStoreSop( p->pMan->pDesign->pMemSops, " 0\n" );
     if ( Vec_PtrSize(vTokens) == 1 )
     {
         pOutput = Vec_PtrEntry( vTokens, 0 );
@@ -1057,7 +1057,7 @@ static char * Ioa_ReadParseTableBlif( Ioa_ReadMod_t * p, char * pTable, int nFan
             sprintf( p->pMan->sError, "Line %d: Constant table has wrong output value \"%s\".", Ioa_ReadGetLine(p->pMan, pOutput), pOutput );
             return NULL;
         }
-        return Ntl_ManStoreSop( p->pMan->pDesign, (pOutput[0] == '0') ? " 0\n" : " 1\n" );
+        return Ntl_ManStoreSop( p->pMan->pDesign->pMemSops, (pOutput[0] == '0') ? " 0\n" : " 1\n" );
     }
     pProduct = Vec_PtrEntry( vTokens, 0 );
     if ( Vec_PtrSize(vTokens) % 2 == 1 )
@@ -1123,12 +1123,6 @@ static int Ioa_ReadParseLineNamesBlif( Ioa_ReadMod_t * p, char * pLine )
     // parse the regular name line
     assert( !strcmp(Vec_PtrEntry(vTokens,0), "names") );
     pNameOut = Vec_PtrEntryLast( vTokens );
-/*
-    if ( strcmp( pNameOut, "18434" ) == 0 )
-    {
-        int x = 0;
-    }
-*/
     pNetOut = Ntl_ModelFindOrCreateNet( p->pNtk, pNameOut );
     // create fanins
     pNode = Ntl_ModelCreateNode( p->pNtk, Vec_PtrSize(vTokens) - 2 );
@@ -1147,7 +1141,7 @@ static int Ioa_ReadParseLineNamesBlif( Ioa_ReadMod_t * p, char * pLine )
     pNode->pSop = Ioa_ReadParseTableBlif( p, pNameOut + strlen(pNameOut), pNode->nFanins );
     if ( pNode->pSop == NULL )
         return 0;
-    pNode->pSop = Ntl_ManStoreSop( p->pNtk->pMan, pNode->pSop );
+    pNode->pSop = Ntl_ManStoreSop( p->pNtk->pMan->pMemSops, pNode->pSop );
     return 1;
 }
 

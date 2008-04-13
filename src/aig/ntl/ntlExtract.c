@@ -26,254 +26,9 @@
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define Ntl_SopForEachCube( pSop, nFanins, pCube )                \
-    for ( pCube = (pSop); *pCube; pCube += (nFanins) + 3 )
-#define Ntl_CubeForEachVar( pCube, Value, i )                     \
-    for ( i = 0; (pCube[i] != ' ') && (Value = pCube[i]); i++ )           
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
-
-/**Function*************************************************************
-
-  Synopsis    [Checks if the cover is constant 0.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ntl_SopIsConst0( char * pSop )
-{
-    return pSop[0] == ' ' && pSop[1] == '0';
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Reads the number of variables in the cover.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ntl_SopGetVarNum( char * pSop )
-{
-    char * pCur;
-    for ( pCur = pSop; *pCur != '\n'; pCur++ );
-    return pCur - pSop - 2;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Reads the number of cubes in the cover.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ntl_SopGetCubeNum( char * pSop )
-{
-    char * pCur;
-    int nCubes = 0;
-    if ( pSop == NULL )
-        return 0;
-    for ( pCur = pSop; *pCur; pCur++ )
-        nCubes += (*pCur == '\n');
-    return nCubes;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Ntl_SopIsComplement( char * pSop )
-{
-    char * pCur;
-    for ( pCur = pSop; *pCur; pCur++ )
-        if ( *pCur == '\n' )
-            return (int)(*(pCur - 1) == '0' || *(pCur - 1) == 'n');
-    assert( 0 );
-    return 0;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ntl_SopComplement( char * pSop )
-{
-    char * pCur;
-    for ( pCur = pSop; *pCur; pCur++ )
-        if ( *pCur == '\n' )
-        {
-            if ( *(pCur - 1) == '0' )
-                *(pCur - 1) = '1';
-            else if ( *(pCur - 1) == '1' )
-                *(pCur - 1) = '0';
-            else if ( *(pCur - 1) == 'x' )
-                *(pCur - 1) = 'n';
-            else if ( *(pCur - 1) == 'n' )
-                *(pCur - 1) = 'x';
-            else
-                assert( 0 );
-        }
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Creates the constant 1 cover with the given number of variables and cubes.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-char * Ntl_SopStart( Aig_MmFlex_t * pMan, int nCubes, int nVars )
-{
-    char * pSopCover, * pCube;
-    int i, Length;
-
-    Length = nCubes * (nVars + 3);
-    pSopCover = Aig_MmFlexEntryFetch( pMan, Length + 1 );
-    memset( pSopCover, '-', Length );
-    pSopCover[Length] = 0;
-
-    for ( i = 0; i < nCubes; i++ )
-    {
-        pCube = pSopCover + i * (nVars + 3);
-        pCube[nVars + 0] = ' ';
-        pCube[nVars + 1] = '1';
-        pCube[nVars + 2] = '\n';
-    }
-    return pSopCover;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Creates the cover from the ISOP computed from TT.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-char * Ntl_SopCreateFromIsop( Aig_MmFlex_t * pMan, int nVars, Vec_Int_t * vCover )
-{
-    char * pSop, * pCube;
-    int i, k, Entry, Literal;
-    assert( Vec_IntSize(vCover) > 0 );
-    if ( Vec_IntSize(vCover) == 0 )
-        return NULL;
-    // start the cover
-    pSop = Ntl_SopStart( pMan, Vec_IntSize(vCover), nVars );
-    // create cubes
-    Vec_IntForEachEntry( vCover, Entry, i )
-    {
-        pCube = pSop + i * (nVars + 3);
-        for ( k = 0; k < nVars; k++ )
-        {
-            Literal = 3 & (Entry >> (k << 1));
-            if ( Literal == 1 )
-                pCube[k] = '0';
-            else if ( Literal == 2 )
-                pCube[k] = '1';
-            else if ( Literal != 0 )
-                assert( 0 );
-        }
-    }
-    return pSop;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Creates the cover from the ISOP computed from TT.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Ntl_SopToIsop( char * pSop, Vec_Int_t * vCover )
-{
-    char * pCube;
-    int k, nVars, Entry;
-    nVars = Ntl_SopGetVarNum( pSop );
-    assert( nVars > 0 );
-    // create cubes
-    Vec_IntClear( vCover );
-    for ( pCube = pSop; *pCube; pCube += nVars + 3 )
-    {
-        Entry = 0;
-        for ( k = nVars - 1; k >= 0; k-- )
-            if ( pCube[k] == '0' )
-                Entry = (Entry << 2) | 1;
-            else if ( pCube[k] == '1' )
-                Entry = (Entry << 2) | 2;
-            else if ( pCube[k] == '-' )
-                Entry = (Entry << 2);
-            else 
-                assert( 0 );
-        Vec_IntPush( vCover, Entry );
-    }
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Transforms truth table into the SOP.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-char * Ntl_SopFromTruth( Ntl_Man_t * p, unsigned * pTruth, int nVars, Vec_Int_t * vCover )
-{
-    char * pSop;
-    int RetValue;
-    if ( Kit_TruthIsConst0(pTruth, nVars) )
-        return Ntl_ManStoreSop( p, " 0\n" );
-    if ( Kit_TruthIsConst1(pTruth, nVars) )
-        return Ntl_ManStoreSop( p, " 1\n" );
-    RetValue = Kit_TruthIsop( pTruth, nVars, vCover, 0 ); // 1 );
-    assert( RetValue == 0 || RetValue == 1 );
-    pSop = Ntl_SopCreateFromIsop( p->pMemSops, nVars, vCover );
-    if ( RetValue )
-        Ntl_SopComplement( pSop );
-    return pSop;
-}
-
-
 
 /**Function*************************************************************
 
@@ -293,14 +48,14 @@ Aig_Obj_t * Ntl_ConvertSopToAigInternal( Aig_Man_t * pMan, Ntl_Obj_t * pNode, ch
     int i, Value, nFanins;
     char * pCube;
     // get the number of variables
-    nFanins = Ntl_SopGetVarNum(pSop);
+    nFanins = Kit_PlaGetVarNum(pSop);
     // go through the cubes of the node's SOP
     pSum = Aig_ManConst0(pMan);
-    Ntl_SopForEachCube( pSop, nFanins, pCube )
+    Kit_PlaForEachCube( pSop, nFanins, pCube )
     {
         // create the AND of literals
         pAnd = Aig_ManConst1(pMan);
-        Ntl_CubeForEachVar( pCube, Value, i )
+        Kit_PlaCubeForEachVar( pCube, Value, i )
         {
             pNet = Ntl_ObjFanin( pNode, i );
             if ( Value == '1' )
@@ -312,7 +67,7 @@ Aig_Obj_t * Ntl_ConvertSopToAigInternal( Aig_Man_t * pMan, Ntl_Obj_t * pNode, ch
         pSum = Aig_Or( pMan, pSum, pAnd );
     }
     // decide whether to complement the result
-    if ( Ntl_SopIsComplement(pSop) )
+    if ( Kit_PlaIsComplement(pSop) )
         pSum = Aig_Not(pSum);
     return pSum;
 }
@@ -366,10 +121,10 @@ Aig_Obj_t * Ntl_ManBuildNodeAig( Ntl_Obj_t * pNode )
     Aig_Man_t * pMan = pNode->pModel->pMan->pAig;
     int fUseFactor = 1;
     // consider the constant node
-    if ( Ntl_SopGetVarNum(pNode->pSop) == 0 )
-        return Aig_NotCond( Aig_ManConst1(pMan), Ntl_SopIsConst0(pNode->pSop) );
+    if ( Kit_PlaGetVarNum(pNode->pSop) == 0 )
+        return Aig_NotCond( Aig_ManConst1(pMan), Kit_PlaIsConst0(pNode->pSop) );
     // decide when to use factoring
-    if ( fUseFactor && Ntl_SopGetVarNum(pNode->pSop) > 2 && Ntl_SopGetCubeNum(pNode->pSop) > 1 )
+    if ( fUseFactor && Kit_PlaGetVarNum(pNode->pSop) > 2 && Kit_PlaGetCubeNum(pNode->pSop) > 1 )
     {
         Dec_Graph_t * pFForm;
         Dec_Node_t * pFFNode;
@@ -437,13 +192,10 @@ int Ntl_ManExtract_rec( Ntl_Man_t * p, Ntl_Net_t * pNet )
             pNetFanin->pCopy = Aig_ObjCreatePi( p->pAig );
             Aig_ObjSetLevel( pNetFanin->pCopy, LevelMax + 1 );
         }
-//printf( "Creating fake PO with ID = %d.\n", Aig_ManPo(p->pAig, Vec_IntEntryLast(p->vBox1Cos))->Id );
     }
     Vec_PtrPush( p->vNodes, pObj );
     if ( Ntl_ObjIsNode(pObj) )
         pNet->pCopy = Ntl_ManBuildNodeAig( pObj );
-    if ( pNet->fCompl )
-        pNet->pCopy = Aig_Not(pNet->pCopy);
     pNet->nVisits = 2;
     return 1;
 }
@@ -517,9 +269,6 @@ Aig_Man_t * Ntl_ManExtract( Ntl_Man_t * p )
         if ( !Ntl_ManExtract_rec( p, pNet ) )
         {
             printf( "Ntl_ManExtract(): Error: Combinational loop is detected.\n" );
-            Vec_PtrClear( p->vCis );
-            Vec_PtrClear( p->vCos );
-            Vec_PtrClear( p->vNodes );
             return 0;
         }
         Vec_PtrPush( p->vCos, pNet );
@@ -532,9 +281,6 @@ Aig_Man_t * Ntl_ManExtract( Ntl_Man_t * p )
         if ( !Ntl_ManExtract_rec( p, pNet ) )
         {
             printf( "Ntl_ManExtract(): Error: Combinational loop is detected.\n" );
-            Vec_PtrClear( p->vCis );
-            Vec_PtrClear( p->vCos );
-            Vec_PtrClear( p->vNodes );
             return 0;
         }
         Vec_PtrPush( p->vCos, pNet );
@@ -554,8 +300,6 @@ Aig_Man_t * Ntl_ManExtract( Ntl_Man_t * p )
     pAig = p->pAig; p->pAig = NULL;
     return pAig;    
 }
-
-
 
 /**Function*************************************************************
 
@@ -641,8 +385,6 @@ int Ntl_ManCollapse_rec( Ntl_Man_t * p, Ntl_Net_t * pNet )
     }
     if ( Ntl_ObjIsNode(pObj) )
         pNet->pCopy = Ntl_ManBuildNodeAig( pObj );
-    if ( pNet->fCompl )
-        pNet->pCopy = Aig_Not(pNet->pCopy);
     pNet->nVisits = 2;
     return 1;
 }
@@ -659,7 +401,7 @@ int Ntl_ManCollapse_rec( Ntl_Man_t * p, Ntl_Net_t * pNet )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Ntl_ManCollapse( Ntl_Man_t * p, int fSeq )
+Aig_Man_t * Ntl_ManCollapse( Ntl_Man_t * p )
 {
     Aig_Man_t * pAig;
     Ntl_Mod_t * pRoot;
@@ -695,8 +437,6 @@ Aig_Man_t * Ntl_ManCollapse( Ntl_Man_t * p, int fSeq )
         assert( Ntl_ObjFanoutNum(pObj) == 1 );
         pNet = Ntl_ObjFanout0(pObj);
         pNet->pCopy = Aig_ObjCreatePi( p->pAig );
-        if ( fSeq && (pObj->LatchId & 3) == 1 )
-            pNet->pCopy = Aig_Not(pNet->pCopy);
         if ( pNet->nVisits )
         {
             printf( "Ntl_ManCollapse(): Latch output is duplicated or defined as a primary input.\n" );
@@ -724,10 +464,7 @@ Aig_Man_t * Ntl_ManCollapse( Ntl_Man_t * p, int fSeq )
             printf( "Ntl_ManCollapse(): Error: Combinational loop is detected.\n" );
             return 0;
         }
-        if ( fSeq && (pObj->LatchId & 3) == 1 )
-            Aig_ObjCreatePo( p->pAig, Aig_Not(pNet->pCopy) );
-        else
-            Aig_ObjCreatePo( p->pAig, pNet->pCopy );
+        Aig_ObjCreatePo( p->pAig, pNet->pCopy );
     }
     // cleanup the AIG
     Aig_ManCleanup( p->pAig );
@@ -788,10 +525,9 @@ Aig_Man_t * Ntl_ManCollapseForCec( Ntl_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Performs DFS.]
+  Synopsis    [Derives AIG for SEC.]
 
-  Description [Checks for combinational loops. Collects PI/PO nets.
-  Collects nodes in the topological order.]
+  Description [Uses CIs/COs collected in the internal arrays.]
                
   SideEffects []
 
@@ -988,18 +724,20 @@ Nwk_Obj_t * Ntl_ManExtractNwk_rec( Ntl_Man_t * p, Ntl_Net_t * pNet, Nwk_Man_t * 
         Nwk_ObjAddFanin( pNode, pFaninNet->pCopy );
     }
     if ( Ntl_ObjFaninNum(pNet->pDriver) == 0 )
-        pNode->pFunc = Hop_NotCond( Hop_ManConst1(pNtk->pManHop), Ntl_SopIsConst0(pNet->pDriver->pSop) );
+        pNode->pFunc = Hop_NotCond( Hop_ManConst1(pNtk->pManHop), Kit_PlaIsConst0(pNet->pDriver->pSop) );
     else
     {
-        Ntl_SopToIsop( pNet->pDriver->pSop, vCover );
+        Kit_PlaToIsop( pNet->pDriver->pSop, vCover );
         pNode->pFunc = Kit_CoverToHop( pNtk->pManHop, vCover, Ntl_ObjFaninNum(pNet->pDriver), vMemory );
+        if ( Kit_PlaIsComplement(pNet->pDriver->pSop) )
+            pNode->pFunc = Hop_Not(pNode->pFunc);
     }
     return pNet->pCopy = pNode;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Extracts logic newtork out of the netlist.]
+  Synopsis    [Extracts logic network out of the netlist.]
 
   Description []
                
@@ -1054,7 +792,6 @@ Nwk_Man_t * Ntl_ManExtractNwk( Ntl_Man_t * p, Aig_Man_t * pAig )
             pNet = Ntl_ObjFanin0(pObj);
             pNet->pCopy = Ntl_ManExtractNwk_rec( p, pNet, pNtk, vCover, vMemory ); 
             pNode = Nwk_ManCreateCo( pNtk );
-            pNode->fCompl = pNet->fCompl;
             Nwk_ObjAddFanin( pNode, pNet->pCopy );
         }
     }
@@ -1111,7 +848,6 @@ Nwk_Man_t * Ntl_ManReadNwk( char * pFileName, Aig_Man_t * pAig, Tim_Man_t * pMan
         pNtk->pManTime = Tim_ManDup( pManTime, 0 );
     return pNtk;
 }
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

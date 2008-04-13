@@ -219,7 +219,7 @@ int Ntl_ModelFindPioNumber( Ntl_Mod_t * p, char * pName, int * pNumber )
 
 /**Function*************************************************************
 
-  Synopsis    [Finds or creates the net.]
+  Synopsis    [Sets the driver of the net.]
 
   Description []
                
@@ -241,7 +241,29 @@ int Ntl_ModelSetNetDriver( Ntl_Obj_t * pObj, Ntl_Net_t * pNet )
 
 /**Function*************************************************************
 
-  Synopsis    [Finds or creates the net.]
+  Synopsis    [Clears the driver of the net.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ModelClearNetDriver( Ntl_Obj_t * pObj, Ntl_Net_t * pNet )
+{
+    if ( pObj->pFanio[pObj->nFanins] == NULL )
+        return 0;
+    if ( pNet->pDriver == NULL )
+        return 0;
+    pObj->pFanio[pObj->nFanins] = NULL;
+    pNet->pDriver = NULL;
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Counts the number of nets.]
 
   Description []
                

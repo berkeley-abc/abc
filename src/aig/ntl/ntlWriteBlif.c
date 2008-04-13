@@ -120,7 +120,7 @@ void Ioa_WriteBlifModel( FILE * pFile, Ntl_Mod_t * pModel )
             if ( Ntl_ObjFanin(pObj, 1) != NULL )
                 fprintf( pFile, " %s", Ntl_ObjFanin(pObj, 1)->pName );
             else if ( pObj->LatchId >> 2 )
-                fprintf( pFile, " clock" ), fClockAdded = 1;
+                fprintf( pFile, " clock99" ), fClockAdded = 1;
             fprintf( pFile, " %d", pObj->LatchId & 3 );
             fprintf( pFile, "\n" );
         }
@@ -135,7 +135,7 @@ void Ioa_WriteBlifModel( FILE * pFile, Ntl_Mod_t * pModel )
         }
     }
     if ( fClockAdded )
-        fprintf( pFile, ".names clock\n 0\n" );
+        fprintf( pFile, ".names clock99\n 0\n" );
     fprintf( pFile, ".end\n\n" );
 }
 

@@ -326,16 +326,27 @@ Ntl_Mod_t * Ntl_ModelStartFrom( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld )
     Ntl_Obj_t * pObj;
     int i, k;
     pModelNew = Ntl_ModelAlloc( pManNew, pModelOld->pName );
+    Ntl_ModelForEachObj( pModelOld, pObj, i )
+    {
+        if ( Ntl_ObjIsNode(pObj) )
+            pObj->pCopy = NULL;
+        else
+            pObj->pCopy = Ntl_ModelDupObj( pModelNew, pObj );
+    }
     Ntl_ModelForEachNet( pModelOld, pNet, i )
+    {
         if ( pNet->fMark )
+        {
             pNet->pCopy = Ntl_ModelFindOrCreateNet( pModelNew, pNet->pName );
+            ((Ntl_Net_t *)pNet->pCopy)->pDriver = pNet->pDriver->pCopy;
+        }
         else
             pNet->pCopy = NULL;
+    }
     Ntl_ModelForEachObj( pModelOld, pObj, i )
     {
         if ( Ntl_ObjIsNode(pObj) )
             continue;
-        pObj->pCopy = Ntl_ModelDupObj( pModelNew, pObj );
         Ntl_ObjForEachFanin( pObj, pNet, k )
             if ( pNet->pCopy != NULL )
                 Ntl_ObjSetFanin( pObj->pCopy, pNet->pCopy, k );
@@ -369,11 +380,16 @@ Ntl_Mod_t * Ntl_ModelDup( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld )
     Ntl_Obj_t * pObj;
     int i, k;
     pModelNew = Ntl_ModelAlloc( pManNew, pModelOld->pName );
+    Ntl_ModelForEachObj( pModelOld, pObj, i )
+        pObj->pCopy = Ntl_ModelDupObj( pModelNew, pObj );
     Ntl_ModelForEachNet( pModelOld, pNet, i )
+    {
         pNet->pCopy = Ntl_ModelFindOrCreateNet( pModelNew, pNet->pName );
+        ((Ntl_Net_t *)pNet->pCopy)->pDriver = pNet->pDriver->pCopy;
+        assert( pNet->pDriver->pCopy != NULL );
+    }
     Ntl_ModelForEachObj( pModelOld, pObj, i )
     {
-        pObj->pCopy = Ntl_ModelDupObj( pModelNew, pObj );
         Ntl_ObjForEachFanin( pObj, pNet, k )
             Ntl_ObjSetFanin( pObj->pCopy, pNet->pCopy, k );
         Ntl_ObjForEachFanout( pObj, pNet, k )
@@ -381,7 +397,7 @@ Ntl_Mod_t * Ntl_ModelDup( Ntl_Man_t * pManNew, Ntl_Mod_t * pModelOld )
         if ( Ntl_ObjIsLatch(pObj) )
             ((Ntl_Obj_t *)pObj->pCopy)->LatchId = pObj->LatchId;
         if ( Ntl_ObjIsNode(pObj) )
-            ((Ntl_Obj_t *)pObj->pCopy)->pSop = Ntl_ManStoreSop( pManNew, pObj->pSop );
+            ((Ntl_Obj_t *)pObj->pCopy)->pSop = Ntl_ManStoreSop( pManNew->pMemSops, pObj->pSop );
     }
     pModelNew->vDelays = pModelOld->vDelays? Vec_IntDup( pModelOld->vDelays ) : NULL;
     pModelNew->vArrivals = pModelOld->vArrivals? Vec_IntDup( pModelOld->vArrivals ) : NULL;

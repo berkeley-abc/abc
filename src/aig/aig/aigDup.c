@@ -638,7 +638,10 @@ Aig_Man_t * Aig_ManDupRepres( Aig_Man_t * p )
         if ( Aig_ObjIsNode(pObj) )
             pObj->pData = Aig_And( pNew, Aig_ObjChild0Repres(p, pObj), Aig_ObjChild1Repres(p, pObj) );
         else if ( Aig_ObjIsPi(pObj) )
+        {
             pObj->pData = Aig_ObjCreatePi(pNew);
+            pObj->pData = Aig_ObjGetRepres( p, pObj );
+        }
         else if ( Aig_ObjIsPo(pObj) )
             pObj->pData = Aig_ObjCreatePo( pNew, Aig_ObjChild0Repres(p, pObj) );
         else if ( Aig_ObjIsConst1(pObj) )

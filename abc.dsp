@@ -2894,6 +2894,10 @@ SOURCE=.\src\aig\kit\kitIsop.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\kit\kitPla.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\kit\kitSop.c
 # End Source File
 # Begin Source File

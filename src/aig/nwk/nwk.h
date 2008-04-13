@@ -85,7 +85,7 @@ struct Nwk_Obj_t_
     void *             pNext;          // temporary pointer
     // node information
     unsigned           Type     :  3;  // object type
-    unsigned           fCompl   :  1;  // complemented attribute
+    unsigned           fInvert  :  1;  // complemented attribute
     unsigned           MarkA    :  1;  // temporary mark  
     unsigned           MarkB    :  1;  // temporary mark
     unsigned           PioId    : 26;  // number of this node in the PI/PO list
@@ -123,6 +123,8 @@ static inline Nwk_Obj_t * Nwk_ManCi( Nwk_Man_t * p, int i )       { return Vec_P
 static inline Nwk_Obj_t * Nwk_ManCo( Nwk_Man_t * p, int i )       { return Vec_PtrEntry( p->vCos, i );          } 
 static inline Nwk_Obj_t * Nwk_ManObj( Nwk_Man_t * p, int i )      { return Vec_PtrEntry( p->vObjs, i );         } 
 
+static inline int         Nwk_ObjId( Nwk_Obj_t * p )              { return p->Id;                               } 
+static inline int         Nwk_ObjPioNum( Nwk_Obj_t * p )          { return p->PioId;                            } 
 static inline int         Nwk_ObjFaninNum( Nwk_Obj_t * p )        { return p->nFanins;                          } 
 static inline int         Nwk_ObjFanoutNum( Nwk_Obj_t * p )       { return p->nFanouts;                         } 
 

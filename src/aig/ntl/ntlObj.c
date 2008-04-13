@@ -245,10 +245,10 @@ char * Ntl_ManStoreName( Ntl_Man_t * p, char * pName )
   SeeAlso     []
 
 ***********************************************************************/
-char * Ntl_ManStoreSop( Ntl_Man_t * p, char * pSop )
+char * Ntl_ManStoreSop( Aig_MmFlex_t * pMan, char * pSop )
 {
     char * pStore;
-    pStore = Aig_MmFlexEntryFetch( p->pMemSops, strlen(pSop) + 1 );
+    pStore = Aig_MmFlexEntryFetch( pMan, strlen(pSop) + 1 );
     strcpy( pStore, pSop );
     return pStore;
 }

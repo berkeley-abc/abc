@@ -226,6 +226,7 @@ static int Abc_CommandAbc8Scl        ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandAbc8Lcorr      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Ssw        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8Sweep      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc8Zero       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbc8Cec        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc8DSec       ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -470,6 +471,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC8",         "*lcorr",        Abc_CommandAbc8Lcorr,        0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*ssw",          Abc_CommandAbc8Ssw,          0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*sw",           Abc_CommandAbc8Sweep,        0 );
+    Cmd_CommandAdd( pAbc, "ABC8",         "*zero",         Abc_CommandAbc8Zero,         0 );
 
     Cmd_CommandAdd( pAbc, "ABC8",         "*cec",          Abc_CommandAbc8Cec,          0 );
     Cmd_CommandAdd( pAbc, "ABC8",         "*dsec",         Abc_CommandAbc8DSec,         0 );
@@ -14780,6 +14782,7 @@ int Abc_CommandAbc8Read( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "Abc_CommandAbc8Read(): AIG extraction has failed.\n" );
         return 1;
     }
+
     return 0;
 
 usage:
@@ -14943,7 +14946,7 @@ int Abc_CommandAbc8Write( Abc_Frame_t * pAbc, int argc, char ** argv )
         else
         {
             pTemp = pAbc->pAbc8Ntl;
-            printf( "Writing the original design.\n" );
+            printf( "Writing the unmapped netlist.\n" );
             Ioa_WriteBlif( pTemp, pFileName );
         }
     }
@@ -14979,7 +14982,7 @@ int Abc_CommandAbc8WriteLogic( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Nwk_ManDumpBlif( void * p, char * pFileName, Vec_Ptr_t * vCiNames, Vec_Ptr_t * vCoNames );
 
     // set defaults
-    fAig = 1;
+    fAig = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "ah" ) ) != EOF )
     {
@@ -15003,6 +15006,7 @@ int Abc_CommandAbc8WriteLogic( Abc_Frame_t * pAbc, int argc, char ** argv )
     pFileName = argv[globalUtilOptind];
 //    vCiNames = Ntl_ManCollectCiNames( pAbc->pAbc8Ntl );
 //    vCoNames = Ntl_ManCollectCoNames( pAbc->pAbc8Ntl );
+    // the problem is duplicated CO names...
     if ( fAig )
     {
         if ( pAbc->pAbc8Aig != NULL )
@@ -16169,12 +16173,14 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc8Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Aig_Man_t * pAigNew;
+    void * pNtlNew;
     int c, fVerbose;
     int nPartSize;
     int nConfLimit;
     int nLevelMax;
-    extern Aig_Man_t * Ntl_ManFraig( void * p, Aig_Man_t * pAig, int nPartSize, int nConfLimit, int nLevelMax, int fVerbose );
+    extern Aig_Man_t * Ntl_ManExtract( void * p );
+    extern void * Ntl_ManFraig( void * p, int nPartSize, int nConfLimit, int nLevelMax, int fVerbose );
+    extern void Ntl_ManFree( void * p );
 
     // set defaults
     nPartSize    = 0;
@@ -16234,29 +16240,33 @@ int Abc_CommandAbc8Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "Abc_CommandAbc8Fraig(): There is no design to SAT sweep.\n" );
         return 1;
     }
-    if ( pAbc->pAbc8Aig == NULL )
-    {
-        printf( "Abc_CommandAbc8Fraig(): There is no AIG to SAT sweep.\n" );
-        return 1;
-    }
 
     // get the input file name
-    pAigNew = Ntl_ManFraig( pAbc->pAbc8Ntl, pAbc->pAbc8Aig, nPartSize, nConfLimit, nLevelMax, fVerbose );
-    if ( pAigNew == NULL )
+    pNtlNew = Ntl_ManFraig( pAbc->pAbc8Ntl, nPartSize, nConfLimit, nLevelMax, fVerbose );
+    if ( pNtlNew == NULL )
     {
         printf( "Abc_CommandAbc8Fraig(): Tranformation of the AIG has failed.\n" );
         return 1;
     }
-    if ( pAbc->pAbc8Aig )
-        Aig_ManStop( pAbc->pAbc8Aig );
-    pAbc->pAbc8Aig = pAigNew;
 
-    Abc_CommandAbc8Sweep( pAbc, 0, NULL );
+    Abc_FrameClearDesign(); 
+    pAbc->pAbc8Ntl = pNtlNew;
+    if ( pAbc->pAbc8Ntl == NULL )
+    {
+        printf( "Abc_CommandAbc8Fraig(): Reading BLIF has failed.\n" );
+        return 1;
+    }
+    pAbc->pAbc8Aig = Ntl_ManExtract( pAbc->pAbc8Ntl );
+    if ( pAbc->pAbc8Aig == NULL )
+    {
+        printf( "Abc_CommandAbc8Fraig(): AIG extraction has failed.\n" );
+        return 1;
+    }
     return 0;
 
 usage:
     fprintf( stdout, "usage: *fraig [-P num] [-C num] [-L num] [-vh]\n" );
-    fprintf( stdout, "\t         performs SAT sweeping with white-boxes\n" );
+    fprintf( stdout, "\t         applies SAT sweeping to netlist with white-boxes\n" );
     fprintf( stdout, "\t-P num : partition size (0 = partitioning is not used) [default = %d]\n", nPartSize );
     fprintf( stdout, "\t-C num : limit on the number of conflicts [default = %d]\n", nConfLimit );
     fprintf( stdout, "\t-L num : limit on node level to fraig (0 = fraig all nodes) [default = %d]\n", nLevelMax );
@@ -16278,12 +16288,13 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc8Scl( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Aig_Man_t * pAigNew;
+    void * pNtlNew;
     int c;
     int fLatchConst;
     int fLatchEqual;
     int fVerbose;
-    extern Aig_Man_t * Ntl_ManScl( void * p, Aig_Man_t * pAig, int fLatchConst, int fLatchEqual, int fVerbose );
+    extern Aig_Man_t * Ntl_ManExtract( void * p );
+    extern void * Ntl_ManScl( void * p, int fLatchConst, int fLatchEqual, int fVerbose );
     extern int Ntl_ManIsComb( void * p );
 
     // set defaults
@@ -16316,35 +16327,39 @@ int Abc_CommandAbc8Scl( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "Abc_CommandAbc8Scl(): There is no design to SAT sweep.\n" );
         return 1;
     }
-    if ( pAbc->pAbc8Aig == NULL )
-    {
-        printf( "Abc_CommandAbc8Scl(): There is no AIG to SAT sweep.\n" );
-        return 1;
-    }
 
     if ( Ntl_ManIsComb(pAbc->pAbc8Ntl) )
     {
-        fprintf( stdout, "The network is combinational (run \"*fraig\").\n" );
+        fprintf( stdout, "Abc_CommandAbc8Scl(): The network is combinational (run \"*fraig\").\n" );
         return 0;
     }
 
     // get the input file name
-    pAigNew = Ntl_ManScl( pAbc->pAbc8Ntl, pAbc->pAbc8Aig, fLatchConst, fLatchEqual, fVerbose );
-    if ( pAigNew == NULL )
+    pNtlNew = Ntl_ManScl( pAbc->pAbc8Ntl, fLatchConst, fLatchEqual, fVerbose );
+    if ( pNtlNew == NULL )
     {
         printf( "Abc_CommandAbc8Scl(): Tranformation of the AIG has failed.\n" );
         return 1;
     }
-    if ( pAbc->pAbc8Aig )
-        Aig_ManStop( pAbc->pAbc8Aig );
-    pAbc->pAbc8Aig = pAigNew;
 
-    Abc_CommandAbc8Sweep( pAbc, 0, NULL );
+    Abc_FrameClearDesign(); 
+    pAbc->pAbc8Ntl = pNtlNew;
+    if ( pAbc->pAbc8Ntl == NULL )
+    {
+        printf( "Abc_CommandAbc8Scl(): Reading BLIF has failed.\n" );
+        return 1;
+    }
+    pAbc->pAbc8Aig = Ntl_ManExtract( pAbc->pAbc8Ntl );
+    if ( pAbc->pAbc8Aig == NULL )
+    {
+        printf( "Abc_CommandAbc8Scl(): AIG extraction has failed.\n" );
+        return 1;
+    }
     return 0;
 
 usage:
     fprintf( stdout, "usage: *scl [-cevh]\n" );
-    fprintf( stdout, "\t         performs sequential cleanup of the current network\n" );
+    fprintf( stdout, "\t         performs sequential cleanup of the netlist\n" );
     fprintf( stdout, "\t         by removing nodes and latches that do not feed into POs\n" );
     fprintf( stdout, "\t-c     : sweep stuck-at latches detected by ternary simulation [default = %s]\n", fLatchConst? "yes": "no" );
     fprintf( stdout, "\t-e     : merge equal latches (same data inputs and init states) [default = %s]\n", fLatchEqual? "yes": "no" );
@@ -16366,12 +16381,13 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc8Lcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Aig_Man_t * pAigNew;
+    void * pNtlNew;
     int c;
     int nFramesP;
     int nConfMax;
     int fVerbose;
-    extern Aig_Man_t * Ntl_ManLcorr( void * p, Aig_Man_t * pAig, int nConfMax, int fVerbose );
+    extern Aig_Man_t * Ntl_ManExtract( void * p );
+    extern void * Ntl_ManLcorr( void * p, int nConfMax, int fVerbose );
     extern int Ntl_ManIsComb( void * p );
 
     // set defaults
@@ -16417,38 +16433,42 @@ int Abc_CommandAbc8Lcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( pAbc->pAbc8Ntl == NULL )
     {
-        printf( "Abc_CommandAbc8Ssw(): There is no design to SAT sweep.\n" );
-        return 1;
-    }
-    if ( pAbc->pAbc8Aig == NULL )
-    {
-        printf( "Abc_CommandAbc8Ssw(): There is no AIG to SAT sweep.\n" );
+        printf( "Abc_CommandAbc8Lcorr(): There is no design to SAT sweep.\n" );
         return 1;
     }
 
     if ( Ntl_ManIsComb(pAbc->pAbc8Ntl) )
     {
-        fprintf( stdout, "The network is combinational (run \"*fraig\").\n" );
+        fprintf( stdout, "Abc_CommandAbc8Lcorr(): The network is combinational (run \"*fraig\").\n" );
         return 0;
     }
 
     // get the input file name
-    pAigNew = Ntl_ManLcorr( pAbc->pAbc8Ntl, pAbc->pAbc8Aig, nConfMax, fVerbose );
-    if ( pAigNew == NULL )
+    pNtlNew = Ntl_ManLcorr( pAbc->pAbc8Ntl, nConfMax, fVerbose );
+    if ( pNtlNew == NULL )
     {
-        printf( "Abc_CommandAbc8Ssw(): Tranformation of the AIG has failed.\n" );
+        printf( "Abc_CommandAbc8Lcorr(): Tranformation of the AIG has failed.\n" );
         return 1;
     }
-    if ( pAbc->pAbc8Aig )
-        Aig_ManStop( pAbc->pAbc8Aig );
-    pAbc->pAbc8Aig = pAigNew;
 
-    Abc_CommandAbc8Sweep( pAbc, 0, NULL );
+    Abc_FrameClearDesign(); 
+    pAbc->pAbc8Ntl = pNtlNew;
+    if ( pAbc->pAbc8Ntl == NULL )
+    {
+        printf( "Abc_CommandAbc8Lcorr(): Reading BLIF has failed.\n" );
+        return 1;
+    }
+    pAbc->pAbc8Aig = Ntl_ManExtract( pAbc->pAbc8Ntl );
+    if ( pAbc->pAbc8Aig == NULL )
+    {
+        printf( "Abc_CommandAbc8Lcorr(): AIG extraction has failed.\n" );
+        return 1;
+    }
     return 0;
 
 usage:
     fprintf( stdout, "usage: *lcorr [-C num] [-vh]\n" );
-    fprintf( stdout, "\t         computes latch correspondence using 1-step induction\n" );
+    fprintf( stdout, "\t         computes latch correspondence for the netlist\n" );
 //    fprintf( stdout, "\t-P num : number of time frames to use as the prefix [default = %d]\n", nFramesP );
     fprintf( stdout, "\t-C num : max conflict number when proving latch equivalence [default = %d]\n", nConfMax );
     fprintf( stdout, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
@@ -16469,10 +16489,11 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc8Ssw( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Aig_Man_t * pAigNew;
+    void * pNtlNew;
     Fra_Ssw_t Pars, * pPars = &Pars;
     int c;
-    extern Aig_Man_t * Ntl_ManSsw( void * p, Aig_Man_t * pAig, Fra_Ssw_t * pPars );
+    extern Aig_Man_t * Ntl_ManExtract( void * p );
+    extern void * Ntl_ManSsw( void * p, Fra_Ssw_t * pPars );
     extern int Ntl_ManIsComb( void * p );
 
     // set defaults
@@ -16593,11 +16614,6 @@ int Abc_CommandAbc8Ssw( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "Abc_CommandAbc8Ssw(): There is no design to SAT sweep.\n" );
         return 1;
     }
-    if ( pAbc->pAbc8Aig == NULL )
-    {
-        printf( "Abc_CommandAbc8Ssw(): There is no AIG to SAT sweep.\n" );
-        return 1;
-    }
 
     if ( Ntl_ManIsComb(pAbc->pAbc8Ntl) )
     {
@@ -16618,22 +16634,31 @@ int Abc_CommandAbc8Ssw( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the input file name
-    pAigNew = Ntl_ManSsw( pAbc->pAbc8Ntl, pAbc->pAbc8Aig, pPars );
-    if ( pAigNew == NULL )
+    pNtlNew = Ntl_ManSsw( pAbc->pAbc8Ntl, pPars );
+    if ( pNtlNew == NULL )
     {
         printf( "Abc_CommandAbc8Ssw(): Tranformation of the AIG has failed.\n" );
         return 1;
     }
-    if ( pAbc->pAbc8Aig )
-        Aig_ManStop( pAbc->pAbc8Aig );
-    pAbc->pAbc8Aig = pAigNew;
 
-    Abc_CommandAbc8Sweep( pAbc, 0, NULL );
+    Abc_FrameClearDesign(); 
+    pAbc->pAbc8Ntl = pNtlNew;
+    if ( pAbc->pAbc8Ntl == NULL )
+    {
+        printf( "Abc_CommandAbc8Ssw(): Reading BLIF has failed.\n" );
+        return 1;
+    }
+    pAbc->pAbc8Aig = Ntl_ManExtract( pAbc->pAbc8Ntl );
+    if ( pAbc->pAbc8Aig == NULL )
+    {
+        printf( "Abc_CommandAbc8Ssw(): AIG extraction has failed.\n" );
+        return 1;
+    }
     return 0;
 
 usage:
     fprintf( stdout, "usage: *ssw [-PQNFL num] [-lrfetvh]\n" );
-    fprintf( stdout, "\t         performs sequential sweep using K-step induction\n" );
+    fprintf( stdout, "\t         performs sequential sweep using K-step induction on the netlist \n" );
     fprintf( stdout, "\t-P num : max partition size (0 = no partitioning) [default = %d]\n", pPars->nPartSize );
     fprintf( stdout, "\t-Q num : partition overlap (0 = no overlap) [default = %d]\n", pPars->nOverSize );
     fprintf( stdout, "\t-N num : number of time frames to use as the prefix [default = %d]\n", pPars->nFramesP );
@@ -16664,11 +16689,10 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc8Sweep( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    void * pNtlNew;
+    int Counter;
     int fVerbose;
     int c;
-    extern void * Ntl_ManSweep( void * p, Aig_Man_t * pAig, int fVerbose );
-    extern Aig_Man_t * Ntl_ManExtract( void * p );
+    extern int Ntl_ManSweep( void * p, int fVerbose );
 
     // set defaults
     fVerbose = 0;
@@ -16691,34 +16715,75 @@ int Abc_CommandAbc8Sweep( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "Abc_CommandAbc8Sweep(): There is no design to sweep.\n" );
         return 1;
     }
-    if ( pAbc->pAbc8Aig == NULL )
-    {
-        printf( "Abc_CommandAbc8Sweep(): There is no AIG to use.\n" );
-        return 1;
-    }
 
     // sweep the current design
-    pNtlNew = Ntl_ManSweep( pAbc->pAbc8Ntl, pAbc->pAbc8Aig, fVerbose );
-    if ( pNtlNew == NULL )
-    {
-        printf( "Abc_CommandAbc8Sweep(): Sweeping has failed.\n" );
-        return 1;
-    }
-    // replace
-    Abc_FrameClearDesign(); 
-    pAbc->pAbc8Ntl = pNtlNew;
-    pAbc->pAbc8Aig = Ntl_ManExtract( pAbc->pAbc8Ntl );
-    if ( pAbc->pAbc8Aig == NULL )
-    {
-        printf( "Abc_CommandAbc8Sweep(): AIG extraction has failed.\n" );
-        return 1;
-    }
+    Counter = Ntl_ManSweep( pAbc->pAbc8Ntl, fVerbose );
+    if ( Counter == 0 )
+        printf( "The netlist is unchanged by sweep.\n" );
     return 0;
 
 usage:
     fprintf( stdout, "usage: *sw [-h]\n" );
-    fprintf( stdout, "\t        performs structural sweep of the design\n" );
+    fprintf( stdout, "\t        performs structural sweep of the netlist\n" );
     fprintf( stdout, "\t        removes dangling nodes, registers, and white-boxes\n" );
+    fprintf( stdout, "\t-v    : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( stdout, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc8Zero( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    void * pNtlNew;
+    int fVerbose;
+    int c;
+    extern void Ntl_ManTransformInitValues( void * p );
+
+    // set defaults
+    fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pAbc8Ntl == NULL )
+    {
+        printf( "Abc_CommandAbc8Zero(): There is no design to convert.\n" );
+        return 1;
+    }
+
+    // transform the registers
+    pNtlNew = pAbc->pAbc8Ntl;
+    pAbc->pAbc8Ntl = NULL;
+    Ntl_ManTransformInitValues( pNtlNew );
+
+    // replace the design
+    Abc_FrameClearDesign(); 
+    pAbc->pAbc8Ntl = pNtlNew;
+    return 0;
+
+usage:
+    fprintf( stdout, "usage: *zero [-h]\n" );
+    fprintf( stdout, "\t        converts registers to have constant-0 initial value\n" );
     fprintf( stdout, "\t-v    : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( stdout, "\t-h    : print the command usage\n");
     return 1;
@@ -16746,7 +16811,7 @@ int Abc_CommandAbc8Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nConfLimit;
     int fSmart;
     int nPartSize;
-    extern Aig_Man_t * Ntl_ManCollapse( void * p, int fSeq );
+    extern Aig_Man_t * Ntl_ManCollapse( void * p );
     extern void * Ntl_ManDup( void * pOld );
     extern void Ntl_ManFree( void * p );
     extern void * Ntl_ManInsertNtk( void * p, void * pNtk );
@@ -16827,14 +16892,14 @@ int Abc_CommandAbc8Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // derive AIGs
-    pAig1 = Ntl_ManCollapse( pAbc->pAbc8Ntl, 0 );
+    pAig1 = Ntl_ManCollapse( pAbc->pAbc8Ntl );
     pTemp = Ntl_ManInsertNtk( pAbc->pAbc8Ntl, pAbc->pAbc8Nwk );
     if ( pTemp == NULL )
     {
         printf( "Abc_CommandAbc8Cec(): Inserting the design has failed.\n" );
         return 1;
     }
-    pAig2 = Ntl_ManCollapse( pTemp, 0 );
+    pAig2 = Ntl_ManCollapse( pTemp );
     Ntl_ManFree( pTemp );
 
     // perform verification
@@ -16886,7 +16951,7 @@ int Abc_CommandAbc8DSec( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     nFrames      = 16;
-    fRetimeFirst =  1;
+    fRetimeFirst =  0;
     fFraiging    =  1;
     fVerbose     =  0;
     fVeryVerbose =  0;

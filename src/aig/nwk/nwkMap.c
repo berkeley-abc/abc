@@ -292,7 +292,7 @@ Nwk_Man_t * Nwk_ManFromIf( If_Man_t * pIfMan, Aig_Man_t * p, Vec_Ptr_t * vAigToI
         else if ( Aig_ObjIsPo(pObj) )
         {
             pObjNew = Nwk_ManCreateCo( pNtk );
-            pObjNew->fCompl = Aig_ObjFaninC0(pObj);
+            pObjNew->fInvert = Aig_ObjFaninC0(pObj);
             Nwk_ObjAddFanin( pObjNew, Aig_ObjFanin0(pObj)->pData );
         }
         else if ( Aig_ObjIsConst1(pObj) )

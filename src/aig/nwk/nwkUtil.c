@@ -19,7 +19,8 @@
 ***********************************************************************/
 
 #include "nwk.h"
-#include "math.h"
+#include "kit.h"
+#include <math.h>
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -250,9 +251,93 @@ void Nwk_ObjPrint( Nwk_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-void Nwk_ManDumpBlif( Nwk_Man_t * pNtk, char * pFileName, Vec_Ptr_t * vCiNames, Vec_Ptr_t * vCoNames )
+void Nwk_ManDumpBlif( Nwk_Man_t * pNtk, char * pFileName, Vec_Ptr_t * vPiNames, Vec_Ptr_t * vPoNames )
 {
-    printf( "Dumping logic network is currently not supported.\n" );
+    FILE * pFile;
+    Vec_Ptr_t * vNodes;
+    Vec_Int_t * vTruth;
+    Vec_Int_t * vCover;
+    Nwk_Obj_t * pObj, * pFanin;
+    Aig_MmFlex_t * pMem;
+    char * pSop = NULL;
+    unsigned * pTruth;
+    int i, k, nDigits, Counter = 0;
+    if ( Nwk_ManPoNum(pNtk) == 0 )
+    {
+        printf( "Nwk_ManDumpBlif(): Network does not have POs.\n" );
+        return;
+    }
+    // collect nodes in the DFS order
+    nDigits = Aig_Base10Log( Nwk_ManObjNumMax(pNtk) );
+    // write the file 
+    pFile = fopen( pFileName, "w" );
+    fprintf( pFile, "# BLIF file written by procedure Nwk_ManDumpBlif()\n" );
+//    fprintf( pFile, "# http://www.eecs.berkeley.edu/~alanmi/abc/\n" );
+    fprintf( pFile, ".model %s\n", pNtk->pName );
+    // write PIs
+    fprintf( pFile, ".inputs" );
+    Nwk_ManForEachCi( pNtk, pObj, i )
+        if ( vPiNames )
+            fprintf( pFile, " %s", Vec_PtrEntry(vPiNames, i) );
+        else
+            fprintf( pFile, " n%0*d", nDigits, pObj->Id );
+    fprintf( pFile, "\n" );
+    // write POs
+    fprintf( pFile, ".outputs" );
+    Nwk_ManForEachCo( pNtk, pObj, i )
+        if ( vPoNames )
+            fprintf( pFile, " %s", Vec_PtrEntry(vPoNames, i) );
+        else
+            fprintf( pFile, " n%0*d", nDigits, pObj->Id );
+    fprintf( pFile, "\n" );
+    // write nodes
+    pMem = Aig_MmFlexStart();
+    vTruth = Vec_IntAlloc( 1 << 16 );
+    vCover = Vec_IntAlloc( 1 << 16 );
+    vNodes = Nwk_ManDfs( pNtk );
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+    {
+        if ( !Nwk_ObjIsNode(pObj) )
+            continue;
+        // derive SOP for the AIG
+        pTruth = Hop_ManConvertAigToTruth( pNtk->pManHop, Hop_Regular(pObj->pFunc), Nwk_ObjFaninNum(pObj), vTruth, 0 );
+        if ( Hop_IsComplement(pObj->pFunc) )
+            Kit_TruthNot( pTruth, pTruth, Nwk_ObjFaninNum(pObj) );
+        pSop = Kit_PlaFromTruth( pMem, pTruth, Nwk_ObjFaninNum(pObj), vCover );
+        // write the node
+        fprintf( pFile, ".names" );
+        if ( !Kit_TruthIsConst0(pTruth, Nwk_ObjFaninNum(pObj)) && !Kit_TruthIsConst1(pTruth, Nwk_ObjFaninNum(pObj)) )
+        {
+            Nwk_ObjForEachFanin( pObj, pFanin, k )
+                if ( vPiNames && Nwk_ObjIsPi(pFanin) )
+                    fprintf( pFile, " %s", Vec_PtrEntry(vPiNames, Nwk_ObjPioNum(pFanin)) );
+                else
+                    fprintf( pFile, " n%0*d", nDigits, pFanin->Id );
+        }
+        fprintf( pFile, " n%0*d\n", nDigits, pObj->Id );
+        // write the function
+        fprintf( pFile, "%s", pSop );
+    }
+    Vec_IntFree( vCover );
+    Vec_IntFree( vTruth );
+    Vec_PtrFree( vNodes );
+    Aig_MmFlexStop( pMem, 0 );
+    // write POs
+    Nwk_ManForEachCo( pNtk, pObj, i )
+    {
+        fprintf( pFile, ".names" );
+        if ( vPiNames && Nwk_ObjIsPi(Nwk_ObjFanin0(pObj)) )
+            fprintf( pFile, " %s", Vec_PtrEntry(vPiNames, Nwk_ObjPioNum(Nwk_ObjFanin0(pObj))) );
+        else
+            fprintf( pFile, " n%0*d", nDigits, Nwk_ObjFanin0(pObj)->Id );
+        if ( vPoNames )
+            fprintf( pFile, " %s\n", Vec_PtrEntry(vPoNames, Nwk_ObjPioNum(pObj)) );
+        else
+            fprintf( pFile, " n%0*d\n", nDigits, pObj->Id );
+        fprintf( pFile, "%d 1\n", !pObj->fInvert );
+    }
+    fprintf( pFile, ".end\n\n" );
+    fclose( pFile );
 }
 
 /**Function*************************************************************

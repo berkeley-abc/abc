@@ -158,7 +158,7 @@ void Ntl_ModelFixNonDrivenNets( Ntl_Mod_t * pModel )
             continue;
         // add the constant 0 driver
         pNode = Ntl_ModelCreateNode( pModel, 0 );
-        pNode->pSop = Ntl_ManStoreSop( pModel->pMan, " 0\n" );
+        pNode->pSop = Ntl_ManStoreSop( pModel->pMan->pMemSops, " 0\n" );
         Ntl_ModelSetNetDriver( pNode, pNet );
         // add the net to those for which the warning will be printed
         Vec_PtrPush( vNets, pNet );

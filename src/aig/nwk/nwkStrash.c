@@ -119,7 +119,7 @@ Aig_Man_t * Nwk_ManStrash( Nwk_Man_t * pNtk )
         }
         else if ( Nwk_ObjIsCo(pObj) )
         {
-            pObjNew = Aig_ObjCreatePo( pMan, Aig_NotCond(Nwk_ObjFanin0(pObj)->pCopy, pObj->fCompl) );
+            pObjNew = Aig_ObjCreatePo( pMan, Aig_NotCond(Nwk_ObjFanin0(pObj)->pCopy, pObj->fInvert) );
             Level = Aig_ObjLevel( pObjNew );
             Tim_ManSetCoArrival( pMan->pManTime, pObj->PioId, (float)Level );
         }

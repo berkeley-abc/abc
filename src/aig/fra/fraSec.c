@@ -44,7 +44,7 @@ int Fra_FraigSec( Aig_Man_t * p, int nFramesMax, int fRetimeFirst, int fFraiging
 {
     Fra_Ssw_t Pars, * pPars = &Pars;
     Fra_Sml_t * pSml;
-    Aig_Man_t * pNew, * pTemp;
+    Aig_Man_t * pNew = NULL, * pTemp;
     int nFrames, RetValue, nIter, clk, clkTotal = clock();
     int fLatchCorr = 0;
 
@@ -235,7 +235,8 @@ PRT( "Time", clock() - clkTotal );
         Ioa_WriteAiger( pNew, pFileName, 0, 0 );
         printf( "The unsolved reduced miter is written into file \"%s\".\n", pFileName );
     }
-    Aig_ManStop( pNew );
+    if ( pNew )
+        Aig_ManStop( pNew );
     return RetValue;
 }
 

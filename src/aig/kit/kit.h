@@ -160,6 +160,11 @@ static inline unsigned        Kit_DsdLitSupport( Kit_DsdNtk_t * pNtk, int Lit ) 
 #define Kit_DsdObjForEachFanin( pNtk, pObj, iLit, i )                              \
     for ( i = 0; (i < (pObj)->nFans) && ((iLit) = (pObj)->pFans[i], 1); i++ )
 
+#define Kit_PlaForEachCube( pSop, nFanins, pCube )                \
+    for ( pCube = (pSop); *pCube; pCube += (nFanins) + 3 )
+#define Kit_PlaCubeForEachVar( pCube, Value, i )                     \
+    for ( i = 0; (pCube[i] != ' ') && (Value = pCube[i]); i++ )           
+
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
@@ -540,6 +545,17 @@ extern int             Kit_GraphLeafDepth_rec( Kit_Graph_t * pGraph, Kit_Node_t 
 //extern Hop_Obj_t *     Kit_CoverToHop( Hop_Man_t * pMan, Vec_Int_t * vCover, int nVars, Vec_Int_t * vMemory );
 /*=== kitIsop.c ==========================================================*/
 extern int             Kit_TruthIsop( unsigned * puTruth, int nVars, Vec_Int_t * vMemory, int fTryBoth );
+/*=== kitPla.c ==========================================================*/
+extern int             Kit_PlaIsConst0( char * pSop );
+extern int             Kit_PlaGetVarNum( char * pSop );
+extern int             Kit_PlaGetCubeNum( char * pSop );
+extern int             Kit_PlaIsComplement( char * pSop );
+extern void            Kit_PlaComplement( char * pSop );
+extern char *          Kit_PlaStart( void * p, int nCubes, int nVars );
+extern char *          Kit_PlaCreateFromIsop( void * p, int nVars, Vec_Int_t * vCover );
+extern void            Kit_PlaToIsop( char * pSop, Vec_Int_t * vCover );
+extern char *          Kit_PlaStoreSop( void * p, char * pSop );
+extern char *          Kit_PlaFromTruth( void * p, unsigned * pTruth, int nVars, Vec_Int_t * vCover );
 /*=== kitSop.c ==========================================================*/
 extern void            Kit_SopCreate( Kit_Sop_t * cResult, Vec_Int_t * vInput, int nVars, Vec_Int_t * vMemory );
 extern void            Kit_SopCreateInverse( Kit_Sop_t * cResult, Vec_Int_t * vInput, int nVars, Vec_Int_t * vMemory );
