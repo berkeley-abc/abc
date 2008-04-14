@@ -236,6 +236,9 @@ Ntl_Man_t * Ntl_ManFraig( Ntl_Man_t * p, int nPartSize, int nConfLimit, int nLev
     Ntl_Man_t * pNew, * pAux;
     Aig_Man_t * pAig, * pAigCol, * pTemp;
 
+    if ( Ntl_ModelNodeNum(Ntl_ManRootModel(p)) == 0 )
+        return Ntl_ManDup(p);
+
     // collapse the AIG
     pAig = Ntl_ManExtract( p );
     pNew = Ntl_ManInsertAig( p, pAig );
