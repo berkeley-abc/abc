@@ -99,6 +99,8 @@ struct Aig_Man_t_
     Aig_Obj_t *      pConst1;        // the constant 1 node
     Aig_Obj_t        Ghost;          // the ghost node
     int              nRegs;          // the number of registers (registers are last POs)
+    int              nTruePis;       // the number of registers (registers are last POs)
+    int              nTruePos;       // the number of registers (registers are last POs)
     int              nAsserts;       // the number of asserts among POs (asserts are first POs)
     // AIG node counters
     int              nObjs[AIG_OBJ_VOID];// the number of objects by type
@@ -486,6 +488,7 @@ extern Aig_Man_t *     Aig_ManStartFrom( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManExtractMiter( Aig_Man_t * p, Aig_Obj_t * pNode1, Aig_Obj_t * pNode2 );
 extern void            Aig_ManStop( Aig_Man_t * p );
 extern int             Aig_ManCleanup( Aig_Man_t * p );
+extern int             Aig_ManPiCleanup( Aig_Man_t * p );
 extern void            Aig_ManPrintStats( Aig_Man_t * p );
 /*=== aigMem.c ==========================================================*/
 extern void            Aig_ManStartMemory( Aig_Man_t * p );

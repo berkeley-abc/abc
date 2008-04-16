@@ -222,9 +222,9 @@ void Aig_ManStop( Aig_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Returns the number of dangling nodes removed.]
+  Synopsis    [Removes combinational logic that does not feed into POs.]
 
-  Description []
+  Description [Returns the number of dangling nodes removed.]
                
   SideEffects []
 
@@ -247,6 +247,37 @@ int Aig_ManCleanup( Aig_Man_t * p )
         Aig_ObjDelete_rec( p, pNode, 1 );
     Vec_PtrFree( vObjs );
     return nNodesOld - Aig_ManNodeNum(p);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Removes PIs without fanouts.]
+
+  Description [Returns the number of PIs removed.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Aig_ManPiCleanup( Aig_Man_t * p )
+{
+    Aig_Obj_t * pObj;
+    int i, k = 0, nPisOld = Aig_ManPiNum(p);
+    Vec_PtrForEachEntry( p->vPis, pObj, i )
+    {
+        if ( i >= Aig_ManPiNum(p) - Aig_ManRegNum(p) )
+            Vec_PtrWriteEntry( p->vPis, k++, pObj );
+        else if ( Aig_ObjRefs(pObj) > 0 )
+            Vec_PtrWriteEntry( p->vPis, k++, pObj );
+        else
+            Vec_PtrWriteEntry( p->vObjs, pObj->Id, NULL );
+    }
+    Vec_PtrShrink( p->vPis, k );
+    p->nObjs[AIG_OBJ_PI] = Vec_PtrSize( p->vPis );
+    if ( Aig_ManRegNum(p) )
+        p->nTruePis = Aig_ManPiNum(p) - Aig_ManRegNum(p);
+    return nPisOld - Aig_ManPiNum(p);
 }
 
 /**Function*************************************************************

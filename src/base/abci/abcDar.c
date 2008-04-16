@@ -326,6 +326,77 @@ Abc_Ntk_t * Abc_NtkFromDarSeqSweep( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
 
   Synopsis    [Converts the network from the AIG manager into ABC.]
 
+  Description [This procedure should be called after seq sweeping, 
+  which changes the number of registers.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan )
+{
+    Vec_Ptr_t * vNodes; 
+    Abc_Ntk_t * pNtkNew;
+    Abc_Obj_t * pObjNew;
+    Aig_Obj_t * pObj, * pObjLo, * pObjLi;
+    int i; 
+    assert( pMan->nAsserts == 0 );
+    // perform strashing
+    pNtkNew = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG, 1 );
+    Aig_ManConst1(pMan)->pData = Abc_AigConst1(pNtkNew);
+    // create PIs
+    Aig_ManForEachPiSeq( pMan, pObj, i )
+    {
+        pObjNew = Abc_NtkCreatePi( pNtkNew );
+        Abc_ObjAssignName( pObjNew, Abc_ObjName(pObjNew), NULL );
+        pObj->pData = pObjNew;
+    }
+    // create POs
+    Aig_ManForEachPoSeq( pMan, pObj, i )
+    {
+        pObjNew = Abc_NtkCreatePo( pNtkNew );
+        Abc_ObjAssignName( pObjNew, Abc_ObjName(pObjNew), NULL );
+        pObj->pData = pObjNew;
+    }
+    assert( Abc_NtkCiNum(pNtkNew) == Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan) );
+    assert( Abc_NtkCoNum(pNtkNew) == Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan) );
+    // create as many latches as there are registers in the manager
+    Aig_ManForEachLiLoSeq( pMan, pObjLi, pObjLo, i )
+    {
+        pObjNew = Abc_NtkCreateLatch( pNtkNew );
+        pObjLi->pData = Abc_NtkCreateBi( pNtkNew );
+        pObjLo->pData = Abc_NtkCreateBo( pNtkNew );
+        Abc_ObjAddFanin( pObjNew, pObjLi->pData );
+        Abc_ObjAddFanin( pObjLo->pData, pObjNew );
+        Abc_LatchSetInit0( pObjNew );
+        Abc_ObjAssignName( pObjLi->pData, Abc_ObjName(pObjLi->pData), NULL );
+        Abc_ObjAssignName( pObjLo->pData, Abc_ObjName(pObjLo->pData), NULL );
+    }
+    // rebuild the AIG
+    vNodes = Aig_ManDfs( pMan, 1 );
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+        if ( Aig_ObjIsBuf(pObj) )
+            pObj->pData = (Abc_Obj_t *)Aig_ObjChild0Copy(pObj);
+        else
+            pObj->pData = Abc_AigAnd( pNtkNew->pManFunc, (Abc_Obj_t *)Aig_ObjChild0Copy(pObj), (Abc_Obj_t *)Aig_ObjChild1Copy(pObj) );
+    Vec_PtrFree( vNodes );
+    // connect the PO nodes
+    Aig_ManForEachPo( pMan, pObj, i )
+    {
+        pObjNew = (Abc_Obj_t *)Aig_ObjChild0Copy(pObj);
+        Abc_ObjAddFanin( Abc_NtkCo(pNtkNew, i), pObjNew );
+    }
+    // check the resulting AIG
+    if ( !Abc_NtkCheck( pNtkNew ) )
+        fprintf( stdout, "Abc_NtkFromAigPhase(): Network check has failed.\n" );
+    return pNtkNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Converts the network from the AIG manager into ABC.]
+
   Description []
                
   SideEffects []
@@ -463,8 +534,14 @@ Vec_Int_t * Abc_NtkGetLatchValues( Abc_Ntk_t * pNtk )
     vInits = Vec_IntAlloc( Abc_NtkLatchNum(pNtk) );
     Abc_NtkForEachLatch( pNtk, pLatch, i )
     {
-        assert( Abc_LatchIsInit1(pLatch) == 0 );
-        Vec_IntPush( vInits, Abc_LatchIsInit1(pLatch) );
+        if ( Abc_LatchIsInit0(pLatch) )
+            Vec_IntPush( vInits, 0 );
+        else if ( Abc_LatchIsInit1(pLatch) )
+            Vec_IntPush( vInits, 1 );
+        else if ( Abc_LatchIsInitDc(pLatch) )
+            Vec_IntPush( vInits, 2 );
+        else
+            assert( 0 );
     }
     return vInits;
 }
@@ -1720,6 +1797,42 @@ Abc_Ntk_t * Abc_NtkBalanceExor( Abc_Ntk_t * pNtk, int fUpdateLevel, int fVerbose
     return pNtkAig;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Performs phase abstraction.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkPhaseAbstract( Abc_Ntk_t * pNtk, int nFrames, int fIgnore, int fPrint, int fVerbose )
+{
+    extern Aig_Man_t * Saig_ManPhaseAbstract( Aig_Man_t * p, Vec_Int_t * vInits, int nFrames, int fIgnore, int fPrint, int fVerbose );
+    Vec_Int_t * vInits;
+    Abc_Ntk_t * pNtkAig;
+    Aig_Man_t * pMan, * pTemp;
+    pMan = Abc_NtkToDar( pNtk, 0, 0 );
+    pMan->nRegs = Abc_NtkLatchNum(pNtk);
+    pMan->nTruePis = Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan); 
+    pMan->nTruePos = Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan); 
+    if ( pMan == NULL )
+        return NULL;
+    vInits = Abc_NtkGetLatchValues(pNtk);
+    pMan = Saig_ManPhaseAbstract( pTemp = pMan, vInits, nFrames, fIgnore, fPrint, fVerbose );
+    Vec_IntFree( vInits );
+    Aig_ManStop( pTemp );
+    if ( pMan == NULL )
+        return NULL;
+    pNtkAig = Abc_NtkFromAigPhase( pMan );
+    pNtkAig->pName = Extra_UtilStrsav(pNtk->pName);
+    pNtkAig->pSpec = Extra_UtilStrsav(pNtk->pSpec);
+    Aig_ManStop( pMan );
+    return pNtkAig;
+}
 
 
 ////////////////////////////////////////////////////////////////////////

@@ -230,6 +230,8 @@ int Aig_ManSeqCleanup( Aig_Man_t * p )
                 
     }
     Vec_PtrFree( vNodes );
+    p->nTruePis = Aig_ManPiNum(p) - Aig_ManRegNum(p); 
+    p->nTruePos = Aig_ManPoNum(p) - Aig_ManRegNum(p); 
     // remove dangling nodes
     return Aig_ManCleanup( p );
 }

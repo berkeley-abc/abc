@@ -184,6 +184,7 @@ static int Abc_CommandSeqCleanup     ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandCycle          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandXsim           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSim            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandDarPhase       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandCec            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDCec           ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -431,6 +432,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Sequential",   "cycle",         Abc_CommandCycle,            1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "xsim",          Abc_CommandXsim,             0 );
     Cmd_CommandAdd( pAbc, "Sequential",   "sim",           Abc_CommandSim,              0 );
+    Cmd_CommandAdd( pAbc, "Sequential",   "phase",         Abc_CommandDarPhase,         1 );
 
     Cmd_CommandAdd( pAbc, "Verification", "cec",           Abc_CommandCec,              0 );
     Cmd_CommandAdd( pAbc, "Verification", "dcec",          Abc_CommandDCec,             0 );
@@ -4944,7 +4946,7 @@ int Abc_CommandAppend( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( Abc_NtkLatchNum(pNtk2) )
     {
         fprintf( pErr, "The second network has latches. Appending does not work for such networks.\n" );
-        return 1;
+        return 0;
     }
 
     // get the new network
@@ -12683,7 +12685,7 @@ int Abc_CommandLcorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( Abc_NtkIsComb(pNtk) )
     {
         fprintf( pErr, "The network is combinational (run \"fraig\" or \"fraig_sweep\").\n" );
-        return 1;
+        return 0;
     }
 
     if ( !Abc_NtkIsStrash(pNtk) )
@@ -12774,8 +12776,8 @@ int Abc_CommandSeqCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( !Abc_NtkLatchNum(pNtk) )
     {
-        fprintf( pErr, "Only works for sequential networks.\n" );
-        return 1;
+        fprintf( pErr, "The network is combinational.\n" );
+        return 0;
     }
     // modify the current network
     pNtkRes = Abc_NtkDarLatchSweep( pNtk, fLatchConst, fLatchEqual, fVerbose );
@@ -12865,8 +12867,8 @@ int Abc_CommandCycle( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( !Abc_NtkLatchNum(pNtk) )
     {
-        fprintf( pErr, "Only works for sequential networks.\n" );
-        return 1;
+        fprintf( pErr, "The network is combinational.\n" );
+        return 0;
     }
 
     if ( Abc_NtkIsStrash(pNtk) )
@@ -12960,8 +12962,8 @@ int Abc_CommandXsim( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( !Abc_NtkLatchNum(pNtk) )
     {
-        fprintf( pErr, "Only works for sequential networks.\n" );
-        return 1;
+        fprintf( pErr, "The network is combinational.\n" );
+        return 0;
     }
     Abc_NtkXValueSimulate( pNtk, nFrames, fXInputs, fXState, fVerbose );
     return 0;
@@ -13056,8 +13058,8 @@ int Abc_CommandSim( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( !Abc_NtkLatchNum(pNtk) )
     {
-        fprintf( pErr, "Only works for sequential networks.\n" );
-        return 1;
+        fprintf( pErr, "The network is combinational.\n" );
+        return 0;
     }
 
     FREE( pNtk->pSeqModel );
@@ -13070,6 +13072,111 @@ usage:
     fprintf( pErr, "\t-F num : the number of frames to simulate [default = %d]\n", nFrames );
     fprintf( pErr, "\t-W num : the number of words to simulate [default = %d]\n", nWords );
     fprintf( pErr, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandDarPhase( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c;
+    int nFrames;
+    int fIgnore;
+    int fPrint;
+    int fVerbose;
+    extern Abc_Ntk_t * Abc_NtkPhaseAbstract( Abc_Ntk_t * pNtk, int nFrames, int fIgnore, int fPrint, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    nFrames     = 0;
+    fIgnore     = 0;
+    fPrint      = 0;
+    fVerbose    = 1;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Fipvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFrames = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFrames < 0 ) 
+                goto usage;
+            break;
+        case 'i':
+            fIgnore ^= 1;
+            break;
+        case 'p':
+            fPrint ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( pErr, "Only works for structrally hashed networks.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkLatchNum(pNtk) )
+    {
+        fprintf( pErr, "The network is combinational.\n" );
+        return 0;
+    }
+    if ( fPrint )
+    {
+        Abc_NtkPhaseAbstract( pNtk, 0, fIgnore, 1, fVerbose );
+        return 0;
+    }
+    // modify the current network
+    pNtkRes = Abc_NtkPhaseAbstract( pNtk, nFrames, fIgnore, 0, fVerbose );
+    if ( pNtkRes == NULL )
+    {
+//        fprintf( pErr, "Phase abstraction has failed.\n" );
+        return 0;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: phase [-F <num>] [-ipvh]\n" );
+    fprintf( pErr, "\t         performs sequential cleanup of the current network\n" );
+    fprintf( pErr, "\t         by removing nodes and latches that do not feed into POs\n" );
+    fprintf( pErr, "\t-F num : the number of frames to abstract [default = %d]\n", nFrames );
+    fprintf( pErr, "\t-i     : toggle ignoring the initial state [default = %s]\n", fIgnore? "yes": "no" );
+    fprintf( pErr, "\t-p     : toggle printing statistics about generators [default = %s]\n", fPrint? "yes": "no" );
+    fprintf( pErr, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -14474,8 +14581,8 @@ int Abc_CommandIndcut( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( Abc_NtkIsComb(pNtk) )
     {
-        fprintf( pErr, "Only works for sequential networks.\n" );
-        return 1;
+        fprintf( pErr, "The network is combinational.\n" );
+        return 0;
     }
     if ( !Abc_NtkIsStrash(pNtk) )
     {
@@ -14568,8 +14675,8 @@ int Abc_CommandEnlarge( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( Abc_NtkIsComb(pNtk) )
     {
-        fprintf( pErr, "Only works for sequential networks.\n" );
-        return 1;
+        fprintf( pErr, "The network is combinational.\n" );
+        return 0;
     }
     if ( !Abc_NtkIsStrash(pNtk) )
     {

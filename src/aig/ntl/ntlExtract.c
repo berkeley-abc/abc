@@ -288,8 +288,8 @@ Aig_Man_t * Ntl_ManExtract( Ntl_Man_t * p )
     }
     // report the number of dangling objects
     nUselessObjects = Ntl_ModelNodeNum(pRoot) + Ntl_ModelLut1Num(pRoot) + Ntl_ModelBoxNum(pRoot) - Vec_PtrSize(p->vNodes);
-    if ( nUselessObjects )
-        printf( "The number of nodes that do not feed into POs = %d.\n", nUselessObjects );
+//    if ( nUselessObjects )
+//        printf( "The number of nodes that do not feed into POs = %d.\n", nUselessObjects );
     // cleanup the AIG
     Aig_ManCleanup( p->pAig );
     // extract the timing manager
