@@ -50,7 +50,7 @@ Nwk_Man_t * Abc_NtkToNtkNew( Abc_Ntk_t * pNtk )
     int i, k;
     if ( !Abc_NtkIsLogic(pNtk) )
     {
-        fprintf( stdout, "Thsi is not a logic network.\n" );
+        fprintf( stdout, "This is not a logic network.\n" );
         return 0;
     }
     // convert into the AIG
@@ -219,7 +219,7 @@ PRT( "Time", clock() - clk );
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkNtkTest( Abc_Ntk_t * pNtk, If_Lib_t * pLutLib ) 
+Abc_Ntk_t * Abc_NtkNtkTest4( Abc_Ntk_t * pNtk, If_Lib_t * pLutLib ) 
 {
     extern int Mfx_Perform( Nwk_Man_t * pNtk, Mfx_Par_t * pPars, If_Lib_t * pLutLib );
 
@@ -230,6 +230,37 @@ Abc_Ntk_t * Abc_NtkNtkTest( Abc_Ntk_t * pNtk, If_Lib_t * pLutLib )
 
     Mfx_ParsDefault( pPars );
     Mfx_Perform( pMan, pPars, pLutLib );
+
+    pNtkNew = Abc_NtkFromNtkNew( pNtk, pMan );
+    Nwk_ManFree( pMan );
+    return pNtkNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkNtkTest( Abc_Ntk_t * pNtk, If_Lib_t * pLutLib ) 
+{
+    Vec_Ptr_t * vNodes;
+    extern Vec_Ptr_t * Nwk_ManRetimeCutForward( Nwk_Man_t * pMan, int nLatches, int fVerbose );
+    extern Vec_Ptr_t * Nwk_ManRetimeCutBackward( Nwk_Man_t * pMan, int nLatches, int fVerbose );
+
+    Mfx_Par_t Pars, * pPars = &Pars;
+    Abc_Ntk_t * pNtkNew;
+    Nwk_Man_t * pMan;
+    pMan = Abc_NtkToNtkNew( pNtk );
+
+    vNodes = Nwk_ManRetimeCutBackward( pMan, Abc_NtkLatchNum(pNtk), 1 );
+//    vNodes = Nwk_ManRetimeCutForward( pMan, Abc_NtkLatchNum(pNtk), 1 );
+    Vec_PtrFree( vNodes );
 
     pNtkNew = Abc_NtkFromNtkNew( pNtk, pMan );
     Nwk_ManFree( pMan );

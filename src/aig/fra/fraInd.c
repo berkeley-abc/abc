@@ -580,6 +580,10 @@ clk2 = clock();
 //        Fra_ImpRecordInManager( p, pManAigNew );
     // cleanup the new manager
     Aig_ManSeqCleanup( pManAigNew );
+    // remove pointers to the dead nodes
+//    Aig_ManForEachObj( pManAig, pObj, i )
+//        if ( pObj->pData && Aig_ObjIsNone(pObj->pData) )
+//            pObj->pData = NULL;
 //    Aig_ManCountMergeRegs( pManAigNew );
 p->timeTrav += clock() - clk2;
 p->timeTotal = clock() - clk;

@@ -3142,6 +3142,10 @@ SOURCE=.\src\aig\nwk\nwk.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\nwk\nwkAig.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\nwk\nwkBidec.c
 # End Source File
 # Begin Source File
@@ -3155,6 +3159,10 @@ SOURCE=.\src\aig\nwk\nwkDfs.c
 # Begin Source File
 
 SOURCE=.\src\aig\nwk\nwkFanio.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\nwk\nwkFlow.c
 # End Source File
 # Begin Source File
 

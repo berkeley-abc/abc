@@ -120,6 +120,7 @@ struct Ntl_Net_t_
 {
     Ntl_Net_t *        pNext;          // next net in the hash table
     void *             pCopy;          // the copy of this object
+    void *             pCopy2;         // the copy of this object
     Ntl_Obj_t *        pDriver;        // driver of the net
     char               nVisits;        // the number of times the net is visited
     char               fMark;          // temporary mark

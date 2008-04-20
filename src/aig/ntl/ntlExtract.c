@@ -233,7 +233,10 @@ Aig_Man_t * Ntl_ManExtract( Ntl_Man_t * p )
     pRoot = Ntl_ManRootModel( p );
     // clear net visited flags
     Ntl_ModelForEachNet( pRoot, pNet, i )
+    {
         pNet->nVisits = 0;
+        pNet->pCopy = NULL;
+    }
     // collect primary inputs
     Ntl_ModelForEachPi( pRoot, pObj, i )
     {
@@ -417,7 +420,10 @@ Aig_Man_t * Ntl_ManCollapse( Ntl_Man_t * p )
     pRoot = Ntl_ManRootModel( p );
     // clear net visited flags
     Ntl_ModelForEachNet( pRoot, pNet, i )
+    {
         pNet->nVisits = 0;
+        pNet->pCopy = NULL;
+    }
     // collect primary inputs
     Ntl_ModelForEachPi( pRoot, pObj, i )
     {
@@ -486,9 +492,17 @@ Aig_Man_t * Ntl_ManCollapse( Ntl_Man_t * p )
 Aig_Man_t * Ntl_ManCollapseForCec( Ntl_Man_t * p )
 {
     Aig_Man_t * pAig;
+    Ntl_Mod_t * pRoot;
     Ntl_Obj_t * pObj;
     Ntl_Net_t * pNet;
     int i;
+    // clear net visited flags
+    pRoot = Ntl_ManRootModel(p);
+    Ntl_ModelForEachNet( pRoot, pNet, i )
+    {
+        pNet->nVisits = 0;
+        pNet->pCopy = NULL;
+    }
     // create the manager
     p->pAig = Aig_ManStart( 10000 );
     p->pAig->pName = Aig_UtilStrsav( p->pName );
@@ -557,6 +571,13 @@ Aig_Man_t * Ntl_ManCollapseForSec( Ntl_Man_t * p1, Ntl_Man_t * p2 )
     Aig_ObjCreatePo( pAig, Aig_ManConst1(pAig) );
 
     /////////////////////////////////////////////////////
+    // clear net visited flags
+    pRoot1 = Ntl_ManRootModel(p1);
+    Ntl_ModelForEachNet( pRoot1, pNet, i )
+    {
+        pNet->nVisits = 0;
+        pNet->pCopy = NULL;
+    }
     // primary inputs
     Ntl_ManForEachCiNet( p1, pObj, i )
     {
@@ -571,7 +592,6 @@ Aig_Man_t * Ntl_ManCollapseForSec( Ntl_Man_t * p1, Ntl_Man_t * p2 )
         pNet->nVisits = 2;
     }
     // latch outputs
-    pRoot1 = Ntl_ManRootModel(p1);
     Ntl_ModelForEachLatch( pRoot1, pObj, i )
     {
         assert( Ntl_ObjFanoutNum(pObj) == 1 );
@@ -614,6 +634,13 @@ Aig_Man_t * Ntl_ManCollapseForSec( Ntl_Man_t * p1, Ntl_Man_t * p2 )
     }
 
     /////////////////////////////////////////////////////
+    // clear net visited flags
+    pRoot2 = Ntl_ManRootModel(p2);
+    Ntl_ModelForEachNet( pRoot2, pNet, i )
+    {
+        pNet->nVisits = 0;
+        pNet->pCopy = NULL;
+    }
     // primary inputs
     Ntl_ManForEachCiNet( p2, pObj, i )
     {
@@ -628,7 +655,6 @@ Aig_Man_t * Ntl_ManCollapseForSec( Ntl_Man_t * p1, Ntl_Man_t * p2 )
         pNet->nVisits = 2;
     }
     // latch outputs
-    pRoot2 = Ntl_ManRootModel(p2);
     Ntl_ModelForEachLatch( pRoot2, pObj, i )
     {
         assert( Ntl_ObjFanoutNum(pObj) == 1 );

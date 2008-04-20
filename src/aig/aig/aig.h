@@ -66,7 +66,10 @@ typedef enum {
 // the AIG node
 struct Aig_Obj_t_  // 8 words
 {
-    Aig_Obj_t *      pNext;          // strashing table
+    union {                         
+        Aig_Obj_t *  pNext;          // strashing table
+        int          PioNum;         // the number of PI/PO
+    };
     Aig_Obj_t *      pFanin0;        // fanin
     Aig_Obj_t *      pFanin1;        // fanin
     Aig_Obj_t *      pHaig;          // pointer to the HAIG node
@@ -551,6 +554,7 @@ extern void            Aig_ManReprStop( Aig_Man_t * p );
 extern void            Aig_ObjCreateRepr( Aig_Man_t * p, Aig_Obj_t * pNode1, Aig_Obj_t * pNode2 );
 extern void            Aig_ManTransferRepr( Aig_Man_t * pNew, Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManDupRepr( Aig_Man_t * p, int fOrdered );
+extern Aig_Man_t *     Aig_ManDupReprBasic( Aig_Man_t * p );
 extern int             Aig_ManCountReprs( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManRehash( Aig_Man_t * p );
 extern int             Aig_ObjCheckTfi( Aig_Man_t * p, Aig_Obj_t * pNew, Aig_Obj_t * pOld );
@@ -563,6 +567,7 @@ extern Aig_Man_t *     Aig_ManRetimeFrontier( Aig_Man_t * p, int nStepsMax );
 /*=== aigScl.c ==========================================================*/
 extern Aig_Man_t *     Aig_ManRemap( Aig_Man_t * p, Vec_Ptr_t * vMap );
 extern int             Aig_ManSeqCleanup( Aig_Man_t * p );
+extern int             Aig_ManSeqCleanupBasic( Aig_Man_t * p );
 extern int             Aig_ManCountMergeRegs( Aig_Man_t * p );
 extern Aig_Man_t *     Aig_ManReduceLaches( Aig_Man_t * p, int fVerbose );
 extern void            Aig_ManComputeSccs( Aig_Man_t * p ); 

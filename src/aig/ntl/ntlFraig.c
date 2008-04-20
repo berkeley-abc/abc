@@ -369,6 +369,128 @@ Ntl_Man_t * Ntl_ManSsw( Ntl_Man_t * p, Fra_Ssw_t * pPars )
 }
 
 
+
+
+/**Function*************************************************************
+
+  Synopsis    [Transfers the copy field into the second copy field.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntl_ManTransferCopy( Ntl_Man_t * p )
+{
+    Ntl_Net_t * pNet;
+    Ntl_Mod_t * pRoot;
+    int i;
+    pRoot = Ntl_ManRootModel( p );
+    Ntl_ModelForEachNet( pRoot, pNet, i )
+    {
+        pNet->pCopy2 = pNet->pCopy;
+        pNet->pCopy = NULL;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reattaches one white-box.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntl_ManAttachWhiteBox( Ntl_Man_t * p, Aig_Man_t * pAigCol, Aig_Man_t * pAigRed, Ntl_Man_t * pNew, Ntl_Obj_t * pBox )
+{
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reattaches white-boxes after reducing the netlist.]
+
+  Description [The following parameters are given:
+  Original netlist (p) whose nets point to the nodes of collapsed AIG.
+  Collapsed AIG (pAigCol) whose objects point to those of reduced AIG.
+  Reduced AIG (pAigRed) whose objects point to the nets of the new netlist.
+  The new netlist is changed by this procedure to have those white-boxes
+  from the original AIG (p) those outputs are preserved after reduction.
+  Note that if outputs are preserved, the inputs are also preserved.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntl_ManAttachWhiteBoxes( Ntl_Man_t * p, Aig_Man_t * pAigCol, Aig_Man_t * pAigRed, Ntl_Man_t * pNew, int fVerbose )
+{
+    Ntl_Mod_t * pRoot;
+    Ntl_Obj_t * pBox;
+    Ntl_Net_t * pNet;
+    int i, k, Counter = 0;
+    // go through the white-boxes and check if they are preserved
+    pRoot = Ntl_ManRootModel( p );
+    Ntl_ModelForEachBox( pRoot, pBox, i )
+    {
+        Ntl_ObjForEachFanout( pBox, pNet, k )
+        {
+            // skip dangling outputs of the box
+            if ( pNet->pCopy == NULL )
+                continue;
+            // skip the outputs that are not preserved after merging equivalence
+            if ( Aig_Regular(pNet->pCopy2)->pData == NULL )
+                continue;
+            break;
+        }
+        if ( k == Ntl_ObjFanoutNum(pBox) )
+            continue;
+        // the box is preserved
+        Ntl_ManAttachWhiteBox( p, pAigCol, pAigRed, pNew, pBox );
+        Counter++;
+    }
+    if ( fVerbose )
+        printf( "Attached %d boxed (out of %d).\n", Counter, Ntl_ModelBoxNum(pRoot) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns AIG with WB after sequential SAT sweeping.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ntl_Man_t * Ntl_ManSsw2( Ntl_Man_t * p, Fra_Ssw_t * pPars )
+{
+    Ntl_Man_t * pNew;
+    Aig_Man_t * pAigRed, * pAigCol;
+    // collapse the AIG
+    pAigCol = Ntl_ManCollapse( p );
+    pAigCol->nRegs = Ntl_ModelLatchNum(Ntl_ManRootModel(p));
+    // transform the collapsed AIG
+    pAigRed = Fra_FraigInduction( pAigCol, pPars );
+    Aig_ManStop( pAigRed );
+    pAigRed = Aig_ManDupReprBasic( pAigCol );
+    // insert the result back
+    Ntl_ManTransferCopy( p );
+    pNew = Ntl_ManInsertAig( p, pAigRed );
+    // attach the white-boxes
+    Ntl_ManAttachWhiteBoxes( p, pAigCol, pAigRed, pNew, pPars->fVerbose );
+    Ntl_ManSweep( pNew, pPars->fVerbose );
+    // cleanup
+    Aig_ManStop( pAigRed );
+    Aig_ManStop( pAigCol );
+    return pNew;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

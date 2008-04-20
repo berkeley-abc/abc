@@ -466,6 +466,148 @@ void Nwk_ManCleanMarks( Nwk_Man_t * pMan )
         pObj->MarkA = pObj->MarkB = 0;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Nwk_ManMarkCone_rec( Nwk_Obj_t * pObj )
+{
+    Nwk_Obj_t * pNext;
+    int i;
+    if ( pObj->MarkA )
+        return;
+    pObj->MarkA = 1;
+    Nwk_ObjForEachFanin( pObj, pNext, i )
+        Nwk_ManMarkCone_rec( pNext );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns 1 if the flow can be pushed.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Nwk_ManPushFlow_rec( Nwk_Obj_t * pObj )
+{
+    Nwk_Obj_t * pNext;
+    int i;
+    if ( Nwk_ObjIsTravIdCurrent( pObj ) )
+        return 0;
+    Nwk_ObjSetTravIdCurrent( pObj );
+    // check the case when there is no flow
+    if ( !pObj->MarkB )
+    {
+        if ( pObj->MarkA )
+            return pObj->MarkB = 1;
+        Nwk_ObjForEachFanin( pObj, pNext, i )
+            if ( Nwk_ManPushFlow_rec( pNext ) )
+                return pObj->MarkB = 1;
+    }
+    // check the case when there is no flow or we could not push the flow
+    Nwk_ObjForEachFanout( pObj, pNext, i )
+        if ( Nwk_ManPushFlow_rec( pNext ) )
+            return 1;
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes min-cut using max-flow.]
+
+  Description [MarkA means the sink. MarkB means the flow is present.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Nwk_ManComputeCut( Nwk_Man_t * pMan, int nLatches )
+{
+    Vec_Ptr_t * vNodes;
+    Nwk_Obj_t * pObj, * pNext;
+    int i, k, RetValue, Counter = 0;
+    // set the sequential parameters
+    pMan->nLatches = nLatches;
+    pMan->nTruePis = Nwk_ManCiNum(pMan) - nLatches;
+    pMan->nTruePos = Nwk_ManCoNum(pMan) - nLatches;
+    // mark the CIs
+    Nwk_ManForEachCi( pMan, pObj, i )
+        pObj->MarkA = 1;
+    // mark the TFI of the POs
+    Nwk_ManForEachPoSeq( pMan, pObj, i )
+        Nwk_ManMarkCone_rec( pObj );
+    // start flow computation from each LI
+//    Nwk_ManIncrementTravId( pMan );
+    Nwk_ManForEachLiSeq( pMan, pObj, i )
+    {
+        Nwk_ManIncrementTravId( pMan );
+        if ( !Nwk_ManPushFlow_rec( pObj ) )
+            continue;
+//        Nwk_ManIncrementTravId( pMan );
+        Counter++;
+    }
+    // mark the nodes reachable from the LIs
+    Nwk_ManIncrementTravId( pMan );
+    Nwk_ManForEachLiSeq( pMan, pObj, i )
+    {
+        RetValue = Nwk_ManPushFlow_rec( pObj );
+        assert( RetValue == 0 );
+    }
+    // collect labeled nodes whose all fanins are labeled
+    vNodes = Vec_PtrAlloc( Counter );
+    Nwk_ManForEachObj( pMan, pObj, i )
+    {
+        // skip unlabeled
+        if ( !Nwk_ObjIsTravIdCurrent(pObj) )
+            continue;
+        // visit the fanins
+        Nwk_ObjForEachFanin( pObj, pNext, k )
+            if ( !Nwk_ObjIsTravIdCurrent(pNext) )
+                break;
+        if ( k == Nwk_ObjFaninNum(pObj) )
+            Vec_PtrPush( vNodes, pObj );
+    }
+    // unlabel these nodes
+    Nwk_ManIncrementTravId( pMan );
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+        Nwk_ObjSetTravIdCurrent( pObj );
+    // collect labeled nodes having unlabeled fanouts
+    Vec_PtrClear( vNodes );
+    Nwk_ManForEachObj( pMan, pObj, i )
+    {
+        // skip unreachable nodes
+        if ( !Nwk_ObjIsTravIdPrevious(pObj) )
+            continue;
+        if ( Nwk_ObjIsCo(pObj) )
+        {
+            Vec_PtrPush( vNodes, pObj );
+            continue;
+        }
+        Nwk_ObjForEachFanout( pObj, pNext, k )
+            if ( Nwk_ObjIsTravIdCurrent(pNext) )
+                break;
+        if ( k < Nwk_ObjFanoutNum(pObj) )
+            Vec_PtrPush( vNodes, pObj );
+    }
+
+    // clean the marks
+    Nwk_ManCleanMarks( pMan );
+    printf( "Flow = %5d.  Cut = %5d. \n", Counter, Vec_PtrSize(vNodes) );
+    Vec_PtrFree( vNodes );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

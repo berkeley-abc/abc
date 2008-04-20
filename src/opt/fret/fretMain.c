@@ -347,7 +347,7 @@ Abc_FlowRetime_MainLoop( ) {
     pManMR->pInitNtk = NULL;
   } while(1);
 
-  assert(!pManMR->fComputeInitState || pManMR->pInitNtk);
+//  assert(!pManMR->fComputeInitState || pManMR->pInitNtk);
   if (pManMR->fComputeInitState)   Abc_NtkDelete(pManMR->pInitNtk);
   if (pManMR->fGuaranteeInitState) ; /* Abc_NtkDelete(pNtkCopy); note: original ntk deleted later */
 
@@ -478,6 +478,7 @@ int
 Abc_FlowRetime_PushFlows( Abc_Ntk_t * pNtk, bool fVerbose ) {
   int i, j, flow = 0, last, srcDist = 0;
   Abc_Obj_t   *pObj, *pObj2;
+  int clk = clock();
 
   pManMR->constraintMask |= BLOCK;
 
@@ -522,6 +523,7 @@ Abc_FlowRetime_PushFlows( Abc_Ntk_t * pNtk, bool fVerbose ) {
   
   if (fVerbose) vprintf("max-flow2 = %d\n", flow);
 
+  PRT( "time", clock() - clk );
   return flow;
 }
 

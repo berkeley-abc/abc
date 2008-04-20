@@ -75,6 +75,10 @@ struct Nwk_Man_t_
     Vec_Ptr_t *        vTemp;          // array used for incremental updates
     int                nTravIds;       // the counter of traversal IDs
     int                nRealloced;     // the number of realloced nodes
+    // sequential information
+    int                nLatches;       // the total number of latches 
+    int                nTruePis;       // the number of true primary inputs
+    int                nTruePos;       // the number of true primary outputs
 };
 
 struct Nwk_Obj_t_
@@ -88,7 +92,8 @@ struct Nwk_Obj_t_
     unsigned           fInvert  :  1;  // complemented attribute
     unsigned           MarkA    :  1;  // temporary mark  
     unsigned           MarkB    :  1;  // temporary mark
-    unsigned           PioId    : 26;  // number of this node in the PI/PO list
+    unsigned           MarkC    :  1;  // temporary mark
+    unsigned           PioId    : 25;  // number of this node in the PI/PO list
     int                Id;             // unique ID
     int                TravId;         // traversal ID
     // timing information
@@ -140,6 +145,8 @@ static inline int         Nwk_ObjIsNode( Nwk_Obj_t * p )          { return p->Ty
 static inline int         Nwk_ObjIsLatch( Nwk_Obj_t * p )         { return p->Type == NWK_OBJ_LATCH;            } 
 static inline int         Nwk_ObjIsPi( Nwk_Obj_t * p )            { return Nwk_ObjIsCi(p) && (p->pMan->pManTime == NULL || Tim_ManBoxForCi(p->pMan->pManTime, p->PioId) == -1); } 
 static inline int         Nwk_ObjIsPo( Nwk_Obj_t * p )            { return Nwk_ObjIsCo(p) && (p->pMan->pManTime == NULL || Tim_ManBoxForCo(p->pMan->pManTime, p->PioId) == -1);  }
+static inline int         Nwk_ObjIsLi( Nwk_Obj_t * p )            { return p->pMan->nTruePos && Nwk_ObjIsCo(p) && (int)p->PioId >= p->pMan->nTruePos;       } 
+static inline int         Nwk_ObjIsLo( Nwk_Obj_t * p )            { return p->pMan->nTruePis && Nwk_ObjIsCi(p) && (int)p->PioId >= p->pMan->nTruePis;       } 
 
 static inline float       Nwk_ObjArrival( Nwk_Obj_t * pObj )                 { return pObj->tArrival;           }
 static inline float       Nwk_ObjRequired( Nwk_Obj_t * pObj )                { return pObj->tRequired;          }
@@ -190,10 +197,26 @@ static inline int         Nwk_ManTimeMore( float f1, float f2, float Eps )   { r
 #define Nwk_ObjForEachFanout( pObj, pFanout, i )                                \
     for ( i = 0; (i < (int)(pObj)->nFanouts) && ((pFanout) = (pObj)->pFanio[(pObj)->nFanins+i]); i++ )
 
+// sequential iterators
+#define Nwk_ManForEachPiSeq( p, pObj, i )                                           \
+    Vec_PtrForEachEntryStop( p->vCis, pObj, i, (p)->nTruePis )
+#define Nwk_ManForEachPoSeq( p, pObj, i )                                           \
+    Vec_PtrForEachEntryStop( p->vCos, pObj, i, (p)->nTruePos )
+#define Nwk_ManForEachLoSeq( p, pObj, i )                                           \
+    for ( i = 0; (i < (p)->nLatches) && (((pObj) = Vec_PtrEntry(p->vCis, i+(p)->nTruePis)), 1); i++ )
+#define Nwk_ManForEachLiSeq( p, pObj, i )                                           \
+    for ( i = 0; (i < (p)->nLatches) && (((pObj) = Vec_PtrEntry(p->vCos, i+(p)->nTruePos)), 1); i++ )
+#define Nwk_ManForEachLiLoSeq( p, pObjLi, pObjLo, i )                               \
+    for ( i = 0; (i < (p)->nLatches) && (((pObjLi) = Nwk_ManCo(p, i+(p)->nTruePos)), 1)        \
+        && (((pObjLo) = Nwk_ManCi(p, i+(p)->nTruePis)), 1); i++ )
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+/*=== nwkAig.c ==========================================================*/
+extern Vec_Ptr_t *     Nwk_ManDeriveRetimingCut( Aig_Man_t * p, int fForward, int fVerbose );
 /*=== nwkBidec.c ==========================================================*/
 extern void            Nwk_ManBidecResyn( Nwk_Man_t * pNtk, int fVerbose );
 extern Hop_Obj_t *     Nwk_NodeIfNodeResyn( Bdc_Man_t * p, Hop_Man_t * pHop, Hop_Obj_t * pRoot, int nVars, Vec_Int_t * vTruth, unsigned * puCare );
@@ -221,6 +244,9 @@ extern void            Nwk_ObjDeleteFanin( Nwk_Obj_t * pObj, Nwk_Obj_t * pFanin 
 extern void            Nwk_ObjPatchFanin( Nwk_Obj_t * pObj, Nwk_Obj_t * pFaninOld, Nwk_Obj_t * pFaninNew );
 extern void            Nwk_ObjTransferFanout( Nwk_Obj_t * pNodeFrom, Nwk_Obj_t * pNodeTo );
 extern void            Nwk_ObjReplace( Nwk_Obj_t * pNodeOld, Nwk_Obj_t * pNodeNew );
+/*=== nwkFlow.c ============================================================*/
+extern Vec_Ptr_t *     Nwk_ManRetimeCutForward( Nwk_Man_t * pMan, int nLatches, int fVerbose );
+extern Vec_Ptr_t *     Nwk_ManRetimeCutBackward( Nwk_Man_t * pMan, int nLatches, int fVerbose );
 /*=== nwkMan.c ============================================================*/
 extern Nwk_Man_t *     Nwk_ManAlloc();
 extern void            Nwk_ManFree( Nwk_Man_t * p );
@@ -258,6 +284,7 @@ extern int             Nwk_NodeCompareLevelsDecrease( Nwk_Obj_t ** pp1, Nwk_Obj_
 extern void            Nwk_ObjPrint( Nwk_Obj_t * pObj );
 extern void            Nwk_ManDumpBlif( Nwk_Man_t * pNtk, char * pFileName, Vec_Ptr_t * vCiNames, Vec_Ptr_t * vCoNames );
 extern void            Nwk_ManPrintFanioNew( Nwk_Man_t * pNtk );
+extern void            Nwk_ManCleanMarks( Nwk_Man_t * pNtk );
 
 #ifdef __cplusplus
 }

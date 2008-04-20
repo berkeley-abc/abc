@@ -11021,7 +11021,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nFlowIters  =  1;
     pPars->nAreaIters  =  2;
     pPars->DelayTarget = -1;
-    pPars->Epsilon     =  (float)0.001;
+    pPars->Epsilon     =  (float)0.005;
     pPars->fPreprocess =  1; 
     pPars->fArea       =  0;
     pPars->fFancy      =  0;
@@ -11918,23 +11918,30 @@ int Abc_CommandDRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk, * pNtkRes;
+    int fMinArea;
+    int fForwardOnly;
+    int fBackwardOnly;
     int nStepsMax;
     int fFastAlgo;
     int fVerbose;
     int c;
     extern Abc_Ntk_t * Abc_NtkDarRetime( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose );
     extern Abc_Ntk_t * Abc_NtkDarRetimeF( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkDarRetimeMinArea( Abc_Ntk_t * pNtk, int fForwardOnly, int fBackwardOnly, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
+    fMinArea  = 1;
+    fForwardOnly = 1;
+    fBackwardOnly = 0;
     nStepsMax = 100000;
-    fFastAlgo = 0;
+    fFastAlgo = 1;
     fVerbose  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Savh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Smfbavh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -11948,6 +11955,15 @@ int Abc_CommandDRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( nStepsMax < 0 ) 
                 goto usage;
+            break;
+        case 'm':
+            fMinArea ^= 1;
+            break;
+        case 'f':
+            fForwardOnly ^= 1;
+            break;
+        case 'b':
+            fBackwardOnly ^= 1;
             break;
         case 'a':
             fFastAlgo ^= 1;
@@ -11981,7 +11997,9 @@ int Abc_CommandDRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // perform the retiming
-    if ( fFastAlgo )
+    if ( fMinArea )
+        pNtkRes = Abc_NtkDarRetimeMinArea( pNtk, fForwardOnly, fBackwardOnly, fVerbose );
+    else if ( fFastAlgo )
         pNtkRes = Abc_NtkDarRetime( pNtk, nStepsMax, fVerbose );
     else
         pNtkRes = Abc_NtkDarRetimeF( pNtk, nStepsMax, fVerbose );
@@ -11995,10 +12013,13 @@ int Abc_CommandDRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: dretime [-S num] [-avh]\n" );
+    fprintf( pErr, "usage: dretime [-S num] [-mfbavh]\n" );
     fprintf( pErr, "\t         retimes the current network forward\n" );
-    fprintf( pErr, "\t-S num : the max number of retiming steps to perform [default = %d]\n", nStepsMax );
-    fprintf( pErr, "\t-a     : enables a fast algorithm [default = %s]\n", fFastAlgo? "yes": "no" );
+    fprintf( pErr, "\t-m     : toggle min-area and most-forward retiming [default = %s]\n", fMinArea? "min-area": "most-fwd" );
+    fprintf( pErr, "\t-f     : enables forward-only retiming [default = %s]\n", fForwardOnly? "yes": "no" );
+    fprintf( pErr, "\t-b     : enables backward-only retiming [default = %s]\n", fBackwardOnly? "yes": "no" );
+    fprintf( pErr, "\t-S num : the max number of forward retiming steps to perform [default = %d]\n", nStepsMax );
+    fprintf( pErr, "\t-a     : enables a fast most-forward algorithm [default = %s]\n", fFastAlgo? "yes": "no" );
     fprintf( pErr, "\t-v     : enables verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;

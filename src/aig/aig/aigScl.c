@@ -240,6 +240,60 @@ int Aig_ManSeqCleanup( Aig_Man_t * p )
 
   Synopsis    [Returns the number of dangling nodes removed.]
 
+  Description [This cleanup procedure is different in that 
+  it removes logic but does not remove the dangling latches.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Aig_ManSeqCleanupBasic( Aig_Man_t * p )
+{
+    Vec_Ptr_t * vNodes;
+    Aig_Obj_t * pObj, * pObjLi, * pObjLo;
+    int i;
+//    assert( Aig_ManBufNum(p) == 0 );
+
+    // mark the PIs
+    Aig_ManIncrementTravId( p );
+    Aig_ObjSetTravIdCurrent( p, Aig_ManConst1(p) );
+    Aig_ManForEachPiSeq( p, pObj, i )
+        Aig_ObjSetTravIdCurrent( p, pObj );
+
+    // prepare to collect nodes reachable from POs
+    vNodes = Vec_PtrAlloc( 100 );
+    Aig_ManForEachPoSeq( p, pObj, i )
+        Vec_PtrPush( vNodes, pObj );
+
+    // remember latch inputs in latch outputs
+    Aig_ManForEachLiLoSeq( p, pObjLi, pObjLo, i )
+        pObjLo->pNext = pObjLi;
+    // mark the nodes reachable from these nodes
+    Vec_PtrForEachEntry( vNodes, pObj, i )
+        Aig_ManSeqCleanup_rec( p, pObj, vNodes );
+    assert( Vec_PtrSize(vNodes) <= Aig_ManPoNum(p) );
+    // clean latch output pointers
+    Aig_ManForEachLiLoSeq( p, pObjLi, pObjLo, i )
+        pObjLo->pNext = NULL;
+
+    // if some latches are removed, update PIs/POs
+    if ( Vec_PtrSize(vNodes) < Aig_ManPoNum(p) )
+    {
+        // add constant drivers to the dangling latches
+        Aig_ManForEachPo( p, pObj, i )
+            if ( !Aig_ObjIsTravIdCurrent(p, pObj) )
+                Aig_ObjPatchFanin0( p, pObj, Aig_ManConst0(p) );
+    }
+    Vec_PtrFree( vNodes );
+    // remove dangling nodes
+    return Aig_ManCleanup( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the number of dangling nodes removed.]
+
   Description []
                
   SideEffects []

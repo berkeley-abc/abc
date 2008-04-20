@@ -1429,6 +1429,40 @@ Abc_Ntk_t * Abc_NtkDarRetime( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
+Abc_Ntk_t * Abc_NtkDarRetimeMinArea( Abc_Ntk_t * pNtk, int fForwardOnly, int fBackwardOnly, int fVerbose )
+{
+    extern Aig_Man_t * Saig_ManRetimeMinArea( Aig_Man_t * p, int fForwardOnly, int fBackwardOnly, int fVerbose );
+    Abc_Ntk_t * pNtkAig;
+    Aig_Man_t * pMan, * pTemp;
+    pMan = Abc_NtkToDar( pNtk, 0, 1 );
+    if ( pMan == NULL )
+        return NULL;
+    if ( pMan->vFlopNums )
+        Vec_IntFree( pMan->vFlopNums ); 
+    pMan->vFlopNums = NULL;
+
+    pMan->nTruePis = Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan); 
+    pMan->nTruePos = Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan); 
+
+    pMan = Saig_ManRetimeMinArea( pTemp = pMan, fForwardOnly, fBackwardOnly, fVerbose );
+    Aig_ManStop( pTemp );
+
+    pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
+    Aig_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Abc_Ntk_t * Abc_NtkDarRetimeF( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose )
 {
     Abc_Ntk_t * pNtkAig;

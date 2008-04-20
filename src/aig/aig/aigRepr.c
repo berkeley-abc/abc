@@ -302,6 +302,34 @@ Aig_Man_t * Aig_ManDupRepr( Aig_Man_t * p, int fOrdered )
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicates AIG with representatives without removing registers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Aig_ManDupReprBasic( Aig_Man_t * p )
+{
+    Aig_Man_t * pNew;
+    Aig_Obj_t * pObj;
+    int i;
+    assert( p->pReprs != NULL );
+    // reconstruct AIG with representatives
+    pNew = Aig_ManDupRepr( p, 0 );
+    // perfrom sequential cleanup but do not remove registers
+    Aig_ManSeqCleanupBasic( pNew );
+    // remove pointers to the dead nodes
+    Aig_ManForEachObj( p, pObj, i )
+        if ( pObj->pData && Aig_ObjIsNone(pObj->pData) )
+            pObj->pData = NULL;
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Transfer representatives and return the number of critical fanouts.]
 
   Description []
