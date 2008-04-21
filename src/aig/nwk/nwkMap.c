@@ -267,6 +267,9 @@ Nwk_Man_t * Nwk_ManFromIf( If_Man_t * pIfMan, Aig_Man_t * p, Vec_Ptr_t * vAigToI
     pNtk = Nwk_ManAlloc();
     pNtk->pName = Aig_UtilStrsav( p->pName );
     pNtk->pSpec = Aig_UtilStrsav( p->pSpec );
+//    pNtk->nLatches = Aig_ManRegNum(p);
+//    pNtk->nTruePis = Nwk_ManCiNum(pNtk) - pNtk->nLatches;
+//    pNtk->nTruePos = Nwk_ManCoNum(pNtk) - pNtk->nLatches;
     Aig_ManForEachObj( p, pObj, i )
     {
         pIfObj = Vec_PtrEntry( vAigToIf, i );

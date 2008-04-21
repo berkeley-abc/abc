@@ -238,7 +238,7 @@ void Ntl_ManPrepareCec( char * pFileName1, char * pFileName2, Aig_Man_t ** ppMan
     // derive AIGs
     *ppMan1 = Ntl_ManCollapseForCec( pMan1 );
     *ppMan2 = Ntl_ManCollapseForCec( pMan2 );
-    // cleanup
+    // cleanup 
     Ntl_ManFree( pMan1 );
     Ntl_ManFree( pMan2 );
 }

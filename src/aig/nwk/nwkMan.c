@@ -104,6 +104,92 @@ void Nwk_ManPrintLutSizes( Nwk_Man_t * p, If_Lib_t * pLutLib )
 
 /**Function*************************************************************
 
+  Synopsis    [If the network is best, saves it in "best.blif" and returns 1.]
+
+  Description [If the networks are incomparable, saves the new network, 
+  returns its parameters in the internal parameter structure, and returns 1.
+  If the new network is not a logic network, quits without saving and returns 0.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Nwk_ManCompareAndSaveBest( Nwk_Man_t * pNtk, void * pNtl )
+{
+    extern void Ioa_WriteBlifLogic( Nwk_Man_t * pNtk, void * pNtl, char * pFileName );
+    static struct ParStruct {
+        char * pName;  // name of the best saved network
+        int    Depth;  // depth of the best saved network
+        int    Flops;  // flops in the best saved network 
+        int    Nodes;  // nodes in the best saved network
+        int    nPis;   // the number of primary inputs
+        int    nPos;   // the number of primary outputs
+    } ParsNew, ParsBest = { 0 };
+    // free storage for the name
+    if ( pNtk == NULL )
+    {
+        FREE( ParsBest.pName );
+        return 0;
+    }
+    // get the parameters
+    ParsNew.Depth = Nwk_ManLevel( pNtk );
+    ParsNew.Flops = Nwk_ManLatchNum( pNtk );
+    ParsNew.Nodes = Nwk_ManNodeNum( pNtk );
+    ParsNew.nPis  = Nwk_ManPiNum( pNtk );
+    ParsNew.nPos  = Nwk_ManPoNum( pNtk );
+    // reset the parameters if the network has the same name
+    if ( ParsBest.pName == NULL || 
+         strcmp(ParsBest.pName, pNtk->pName) ||
+         ParsBest.Depth >  ParsNew.Depth || 
+         ParsBest.Depth == ParsNew.Depth && ParsBest.Flops >  ParsNew.Flops || 
+         ParsBest.Depth == ParsNew.Depth && ParsBest.Flops == ParsNew.Flops && ParsBest.Nodes >  ParsNew.Nodes )
+    {
+        FREE( ParsBest.pName );
+        ParsBest.pName = Aig_UtilStrsav( pNtk->pName );
+        ParsBest.Depth = ParsNew.Depth; 
+        ParsBest.Flops = ParsNew.Flops; 
+        ParsBest.Nodes = ParsNew.Nodes; 
+        ParsBest.nPis  = ParsNew.nPis; 
+        ParsBest.nPos  = ParsNew.nPos;
+        // writ the network
+        Ioa_WriteBlifLogic( pNtk, pNtl, "best.blif" );
+        return 1;
+    }
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Nwk_FileNameGeneric( char * FileName )
+{
+    char * pDot;
+    char * pUnd;
+    char * pRes;
+    // find the generic name of the file
+    pRes = Aig_UtilStrsav( FileName );
+    // find the pointer to the "." symbol in the file name
+//  pUnd = strstr( FileName, "_" );
+    pUnd = NULL;
+    pDot = strstr( FileName, "." );
+    if ( pUnd )
+        pRes[pUnd - FileName] = 0;
+    else if ( pDot )
+        pRes[pDot - FileName] = 0;
+    return pRes;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Prints stats of the manager.]
 
   Description []
@@ -113,24 +199,37 @@ void Nwk_ManPrintLutSizes( Nwk_Man_t * p, If_Lib_t * pLutLib )
   SeeAlso     []
 
 ***********************************************************************/
-void Nwk_ManPrintStats( Nwk_Man_t * p, If_Lib_t * pLutLib )
+void Nwk_ManPrintStats( Nwk_Man_t * pNtk, If_Lib_t * pLutLib, int fSaveBest, int fDumpResult, void * pNtl )
 {
-    p->pLutLib = pLutLib;
-    printf( "%-15s : ",      p->pName );
-    printf( "pi = %5d  ",    Nwk_ManPiNum(p) );
-    printf( "po = %5d  ",    Nwk_ManPoNum(p) );
-    printf( "ci = %5d  ",    Nwk_ManCiNum(p) );
-    printf( "co = %5d  ",    Nwk_ManCoNum(p) );
-    printf( "lat = %5d  ",   Nwk_ManLatchNum(p) );
-    printf( "node = %5d  ",  Nwk_ManNodeNum(p) );
-    printf( "edge = %5d  ",  Nwk_ManGetTotalFanins(p) );
-    printf( "aig = %6d  ",   Nwk_ManGetAigNodeNum(p) );
-    printf( "lev = %3d  ",   Nwk_ManLevel(p) );
-//    printf( "lev2 = %3d  ",  Nwk_ManLevelBackup(p) );
-    printf( "delay = %5.2f   ", Nwk_ManDelayTraceLut(p) );
-    Nwk_ManPrintLutSizes( p, pLutLib );
+    extern int Ntl_ManLatchNum( void * p );
+    extern void Ioa_WriteBlifLogic( Nwk_Man_t * pNtk, void * pNtl, char * pFileName );
+    if ( fSaveBest )
+        Nwk_ManCompareAndSaveBest( pNtk, pNtl );
+    if ( fDumpResult )
+    {
+        char Buffer[1000] = {0};
+        char * pNameGen = pNtk->pSpec? Nwk_FileNameGeneric( pNtk->pSpec ) : "nameless_";
+        sprintf( Buffer, "%s_dump.blif", pNameGen );
+        Ioa_WriteBlifLogic( pNtk, pNtl, Buffer );
+        if ( pNtk->pSpec ) free( pNameGen );
+    }
+
+    pNtk->pLutLib = pLutLib;
+    printf( "%-15s : ",      pNtk->pName );
+    printf( "pi = %5d  ",    Nwk_ManPiNum(pNtk) );
+    printf( "po = %5d  ",    Nwk_ManPoNum(pNtk) );
+    printf( "ci = %5d  ",    Nwk_ManCiNum(pNtk) );
+    printf( "co = %5d  ",    Nwk_ManCoNum(pNtk) );
+    printf( "lat = %5d  ",   Ntl_ManLatchNum(pNtl) );
+    printf( "node = %5d  ",  Nwk_ManNodeNum(pNtk) );
+    printf( "edge = %5d  ",  Nwk_ManGetTotalFanins(pNtk) );
+    printf( "aig = %6d  ",   Nwk_ManGetAigNodeNum(pNtk) );
+    printf( "lev = %3d  ",   Nwk_ManLevel(pNtk) );
+//    printf( "lev2 = %3d  ",  Nwk_ManLevelBackup(pNtk) );
+    printf( "delay = %5.2f   ", Nwk_ManDelayTraceLut(pNtk) );
+    Nwk_ManPrintLutSizes( pNtk, pLutLib );
     printf( "\n" );
-//    Nwk_ManDelayTracePrint( p, pLutLib );
+//    Nwk_ManDelayTracePrint( pNtk, pLutLib );
     fflush( stdout );
 }
 

@@ -11935,8 +11935,8 @@ int Abc_CommandDRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     fMinArea  = 1;
-    fForwardOnly = 1;
-    fBackwardOnly = 0;
+    fForwardOnly = 0;
+    fBackwardOnly = 1;
     nStepsMax = 100000;
     fFastAlgo = 1;
     fVerbose  = 0;
@@ -15315,15 +15315,25 @@ usage:
 int Abc_CommandAbc8Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     int c;
+    int fSaveBest;
+    int fDumpResult;
     extern void Ntl_ManPrintStats( void * p );
-    extern void Nwk_ManPrintStats( void * p, void * pLutLib );
+    extern void Nwk_ManPrintStats( void * p, void * pLutLib, int fSaveBest, int fDumpResult, void * pNtl );
 
     // set defaults
+    fSaveBest = 0;
+    fDumpResult = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "bdh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'b':
+            fSaveBest ^= 1;
+            break;
+        case 'd':
+            fDumpResult ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -15350,13 +15360,15 @@ int Abc_CommandAbc8Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pAbc->pAbc8Nwk )
     {
         printf( "MAPPED:  " );
-        Nwk_ManPrintStats( pAbc->pAbc8Nwk, pAbc->pAbc8Lib );
+        Nwk_ManPrintStats( pAbc->pAbc8Nwk, pAbc->pAbc8Lib, fSaveBest, fDumpResult, pAbc->pAbc8Ntl );
     }
     return 0;
 
 usage:
-    fprintf( stdout, "usage: *ps [-h]\n" );
+    fprintf( stdout, "usage: *ps [-bdh]\n" );
     fprintf( stdout, "\t        prints design statistics\n" );
+    fprintf( stdout, "\t-b    : toggles saving the best logic network in \"best.blif\" [default = %s]\n", fSaveBest? "yes": "no" );
+    fprintf( stdout, "\t-d    : toggles dumping network into file \"<input_file_name>_dump.blif\" [default = %s]\n", fDumpResult? "yes": "no" );
     fprintf( stdout, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -16939,7 +16951,7 @@ int Abc_CommandAbc8Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nConfLimit;
     int fSmart;
     int nPartSize;
-    extern Aig_Man_t * Ntl_ManCollapse( void * p );
+    extern Aig_Man_t * Ntl_ManCollapse( void * p, int fSeq );
     extern void * Ntl_ManDup( void * pOld );
     extern void Ntl_ManFree( void * p );
     extern void * Ntl_ManInsertNtk( void * p, void * pNtk );
@@ -17020,14 +17032,14 @@ int Abc_CommandAbc8Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // derive AIGs
-    pAig1 = Ntl_ManCollapse( pAbc->pAbc8Ntl );
+    pAig1 = Ntl_ManCollapse( pAbc->pAbc8Ntl, 0 );
     pTemp = Ntl_ManInsertNtk( pAbc->pAbc8Ntl, pAbc->pAbc8Nwk );
     if ( pTemp == NULL )
     {
         printf( "Abc_CommandAbc8Cec(): Inserting the design has failed.\n" );
         return 1;
     }
-    pAig2 = Ntl_ManCollapse( pTemp );
+    pAig2 = Ntl_ManCollapse( pTemp, 0 );
     Ntl_ManFree( pTemp );
 
     // perform verification

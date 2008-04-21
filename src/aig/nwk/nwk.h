@@ -250,7 +250,7 @@ extern Vec_Ptr_t *     Nwk_ManRetimeCutBackward( Nwk_Man_t * pMan, int nLatches,
 /*=== nwkMan.c ============================================================*/
 extern Nwk_Man_t *     Nwk_ManAlloc();
 extern void            Nwk_ManFree( Nwk_Man_t * p );
-extern void            Nwk_ManPrintStats( Nwk_Man_t * p, If_Lib_t * pLutLib );
+extern void            Nwk_ManPrintStats( Nwk_Man_t * p, If_Lib_t * pLutLib, int fSaveBest, int fDumpResult, void * pNtl );
 /*=== nwkMap.c ============================================================*/
 extern Nwk_Man_t *     Nwk_MappingIf( Aig_Man_t * p, Tim_Man_t * pManTime, If_Par_t * pPars );
 /*=== nwkObj.c ============================================================*/

@@ -235,7 +235,7 @@ extern void            Ntl_ManPrepareCec( char * pFileName1, char * pFileName2, 
 extern Aig_Man_t *     Ntl_ManPrepareSec( char * pFileName1, char * pFileName2 );
 /*=== ntlExtract.c ==========================================================*/
 extern Aig_Man_t *     Ntl_ManExtract( Ntl_Man_t * p );
-extern Aig_Man_t *     Ntl_ManCollapse( Ntl_Man_t * p );
+extern Aig_Man_t *     Ntl_ManCollapse( Ntl_Man_t * p, int fSeq );
 extern Aig_Man_t *     Ntl_ManCollapseForCec( Ntl_Man_t * p );
 extern Aig_Man_t *     Ntl_ManCollapseForSec( Ntl_Man_t * p1, Ntl_Man_t * p2 );
 /*=== ntlInsert.c ==========================================================*/
@@ -247,12 +247,13 @@ extern int             Ntl_ManCheck( Ntl_Man_t * pMan );
 extern int             Ntl_ModelCheck( Ntl_Mod_t * pModel );
 extern void            Ntl_ModelFixNonDrivenNets( Ntl_Mod_t * pModel );
 /*=== ntlMan.c ============================================================*/
-extern Ntl_Man_t *     Ntl_ManAlloc( char * pFileName );
+extern Ntl_Man_t *     Ntl_ManAlloc();
 extern void            Ntl_ManCleanup( Ntl_Man_t * p );
 extern Ntl_Man_t *     Ntl_ManStartFrom( Ntl_Man_t * p );
 extern Ntl_Man_t *     Ntl_ManDup( Ntl_Man_t * p );
 extern void            Ntl_ManFree( Ntl_Man_t * p );
 extern int             Ntl_ManIsComb( Ntl_Man_t * p );
+extern int             Ntl_ManLatchNum( Ntl_Man_t * p );
 extern Ntl_Mod_t *     Ntl_ManFindModel( Ntl_Man_t * p, char * pName );
 extern void            Ntl_ManPrintStats( Ntl_Man_t * p );
 extern Tim_Man_t *     Ntl_ManReadTimeMan( Ntl_Man_t * p );
@@ -292,6 +293,7 @@ extern Tim_Man_t *     Ntl_ManCreateTiming( Ntl_Man_t * p );
 extern Ntl_Man_t *     Ioa_ReadBlif( char * pFileName, int fCheck );
 /*=== ntlWriteBlif.c ==========================================================*/
 extern void            Ioa_WriteBlif( Ntl_Man_t * p, char * pFileName );
+extern void            Ioa_WriteBlifLogic( Nwk_Man_t * pNtk, Ntl_Man_t * p, char * pFileName );
 /*=== ntlUtil.c ==========================================================*/
 extern int             Ntl_ModelCountLut1( Ntl_Mod_t * pRoot );
 extern int             Ntl_ManCountSimpleCoDrivers( Ntl_Man_t * p );

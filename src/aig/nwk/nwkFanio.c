@@ -125,58 +125,6 @@ static inline int Nwk_ObjReallocIsNeeded( Nwk_Obj_t * pObj )
 {  
     return pObj->nFanins + pObj->nFanouts == pObj->nFanioAlloc;
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Reallocates the object.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-static Nwk_Obj_t * Nwk_ManReallocNode_old( Nwk_Obj_t * pObj )
-{  
-    Nwk_Obj_t * pObjNew, * pTemp;
-    int i, iNum;
-    assert( Nwk_ObjReallocIsNeeded(pObj) );
-    pObjNew = (Nwk_Obj_t *)Aig_MmFlexEntryFetch( pObj->pMan->pMemObjs, sizeof(Nwk_Obj_t) + 2 * pObj->nFanioAlloc * sizeof(Nwk_Obj_t *) );
-    memmove( pObjNew, pObj, sizeof(Nwk_Obj_t) + pObj->nFanioAlloc * sizeof(Nwk_Obj_t *) );
-    pObjNew->nFanioAlloc = 2 * pObj->nFanioAlloc;
-    // update the fanouts' fanins
-    Nwk_ObjForEachFanout( pObj, pTemp, i )
-    {
-        iNum = Nwk_ObjFindFanin( pTemp, pObj );
-        if ( iNum == -1 )
-            printf( "Nwk_ManReallocNode(): Error! Fanin cannot be found.\n" );
-        pTemp->pFanio[iNum] = pObjNew;
-    }
-    // update the fanins' fanouts
-    Nwk_ObjForEachFanin( pObj, pTemp, i )
-    {
-        iNum = Nwk_ObjFindFanout( pTemp, pObj );
-        if ( iNum == -1 )
-            printf( "Nwk_ManReallocNode(): Error! Fanout cannot be found.\n" );
-        pTemp->pFanio[pTemp->nFanins+iNum] = pObjNew;
-    }
-    memset( pObj, 0, sizeof(Nwk_Obj_t) + pObj->nFanioAlloc * sizeof(Nwk_Obj_t *) );
-    assert( Nwk_ManObj(pObjNew->pMan, pObjNew->Id) == pObj );
-    Vec_PtrWriteEntry( pObjNew->pMan->vObjs, pObjNew->Id, pObjNew );
-    if ( Nwk_ObjIsCi(pObjNew) )
-    {
-        assert( Nwk_ManCi(pObjNew->pMan, pObjNew->PioId) == pObj );
-        Vec_PtrWriteEntry( pObjNew->pMan->vCis, pObjNew->PioId, pObjNew );
-    }
-    if ( Nwk_ObjIsCo(pObjNew) )
-    {
-        assert( Nwk_ManCo(pObjNew->pMan, pObjNew->PioId) == pObj );
-        Vec_PtrWriteEntry( pObjNew->pMan->vCos, pObjNew->PioId, pObjNew );
-    }
-    pObjNew->pMan->nRealloced++;
-    return pObjNew;
-}
  
 /**Function*************************************************************
 
@@ -199,7 +147,6 @@ static Nwk_Obj_t * Nwk_ManReallocNode( Nwk_Obj_t * pObj )
     pObj->pMan->nRealloced++;
     return NULL;
 }
-
 
 /**Function*************************************************************
 

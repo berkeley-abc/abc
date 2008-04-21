@@ -131,6 +131,8 @@ Ntl_Man_t * Ioa_ReadBlif( char * pFileName, int fCheck )
     }
     // set the design name
     p->pDesign = Ntl_ManAlloc( pFileName );
+    p->pDesign->pName = Ntl_ManStoreFileName( p->pDesign, pFileName );
+    p->pDesign->pSpec = Ntl_ManStoreName( p->pDesign, pFileName );
     // prepare the file for parsing
     Ioa_ReadReadPreparse( p );
     // parse interfaces of each network

@@ -524,7 +524,7 @@ Vec_Ptr_t * Nwk_ManRetimeCutBackward( Nwk_Man_t * pMan, int nLatches, int fVerbo
         pObj->MarkA = 1;
     Nwk_ManForEachPoSeq( pMan, pObj, i )
         Nwk_ManMarkTfiCone_rec( pObj );
-    Nwk_ManForEachObj( pMan, pObj, i )
+    Nwk_ManForEachNode( pMan, pObj, i )
         if ( Nwk_ObjFaninNum(pObj) == 0 )
             pObj->MarkA = 1;
     // start flow computation from each LI driver

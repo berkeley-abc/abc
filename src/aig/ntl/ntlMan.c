@@ -39,7 +39,7 @@
   SeeAlso     []
 
 ***********************************************************************/
-Ntl_Man_t * Ntl_ManAlloc( char * pFileName )
+Ntl_Man_t * Ntl_ManAlloc()
 {
     Ntl_Man_t * p;
     // start the manager
@@ -53,9 +53,6 @@ Ntl_Man_t * Ntl_ManAlloc( char * pFileName )
     // start the manager
     p->pMemObjs = Aig_MmFlexStart();
     p->pMemSops = Aig_MmFlexStart();
-    // same the names
-    p->pName = Ntl_ManStoreFileName( p, pFileName );
-    p->pSpec = Ntl_ManStoreName( p, pFileName );
     return p;
 }
 
@@ -106,7 +103,9 @@ Ntl_Man_t * Ntl_ManStartFrom( Ntl_Man_t * pOld )
     Ntl_Obj_t * pBox;
     Ntl_Net_t * pNet;
     int i, k;
-    pNew = Ntl_ManAlloc( pOld->pSpec );
+    pNew = Ntl_ManAlloc();
+    pNew->pName = Ntl_ManStoreFileName( pNew, pOld->pName );
+    pNew->pSpec = Ntl_ManStoreName( pNew, pOld->pName );
     Vec_PtrForEachEntry( pOld->vModels, pModel, i )
         if ( i == 0 )
         {
@@ -146,7 +145,9 @@ Ntl_Man_t * Ntl_ManDup( Ntl_Man_t * pOld )
     Ntl_Obj_t * pBox;
     Ntl_Net_t * pNet;
     int i, k;
-    pNew = Ntl_ManAlloc( pOld->pSpec );
+    pNew = Ntl_ManAlloc();
+    pNew->pName = Ntl_ManStoreFileName( pNew, pOld->pName );
+    pNew->pSpec = Ntl_ManStoreName( pNew, pOld->pName );
     Vec_PtrForEachEntry( pOld->vModels, pModel, i )
         pModel->pCopy = Ntl_ModelDup( pNew, pModel );
     Vec_PtrForEachEntry( pOld->vModels, pModel, i )
@@ -209,6 +210,22 @@ void Ntl_ManFree( Ntl_Man_t * p )
 int Ntl_ManIsComb( Ntl_Man_t * p )          
 { 
     return Ntl_ModelLatchNum(Ntl_ManRootModel(p)) == 0; 
+} 
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the number of registers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ManLatchNum( Ntl_Man_t * p )          
+{ 
+    return Ntl_ModelLatchNum(Ntl_ManRootModel(p)); 
 } 
 
 /**Function*************************************************************

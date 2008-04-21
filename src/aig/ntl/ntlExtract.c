@@ -404,7 +404,7 @@ int Ntl_ManCollapse_rec( Ntl_Man_t * p, Ntl_Net_t * pNet )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Ntl_ManCollapse( Ntl_Man_t * p )
+Aig_Man_t * Ntl_ManCollapse( Ntl_Man_t * p, int fSeq )
 {
     Aig_Man_t * pAig;
     Ntl_Mod_t * pRoot;
@@ -443,6 +443,8 @@ Aig_Man_t * Ntl_ManCollapse( Ntl_Man_t * p )
         assert( Ntl_ObjFanoutNum(pObj) == 1 );
         pNet = Ntl_ObjFanout0(pObj);
         pNet->pCopy = Aig_ObjCreatePi( p->pAig );
+        if ( fSeq && (pObj->LatchId & 3) == 1 )
+            pNet->pCopy = Aig_Not(pNet->pCopy);
         if ( pNet->nVisits )
         {
             printf( "Ntl_ManCollapse(): Latch output is duplicated or defined as a primary input.\n" );
@@ -470,7 +472,10 @@ Aig_Man_t * Ntl_ManCollapse( Ntl_Man_t * p )
             printf( "Ntl_ManCollapse(): Error: Combinational loop is detected.\n" );
             return 0;
         }
-        Aig_ObjCreatePo( p->pAig, pNet->pCopy );
+        if ( fSeq && (pObj->LatchId & 3) == 1 )
+            Aig_ObjCreatePo( p->pAig, Aig_Not(pNet->pCopy) );
+        else
+            Aig_ObjCreatePo( p->pAig, pNet->pCopy );
     }
     // cleanup the AIG
     Aig_ManCleanup( p->pAig );

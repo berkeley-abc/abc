@@ -427,7 +427,7 @@ int Nwk_ManVerifyTiming(  Nwk_Man_t * pNtk )
     int i;
     Nwk_ManForEachObj( pNtk, pObj, i )
     {
-        if ( Nwk_ObjIsPi(pObj) && Nwk_ObjFanoutNum(pObj) == 0 )
+        if ( Nwk_ObjIsCi(pObj) && Nwk_ObjFanoutNum(pObj) == 0 )
             continue;
         tArrival = Nwk_NodeComputeArrival( pObj, 1 );
         tRequired = Nwk_NodeComputeRequired( pObj, 1 );

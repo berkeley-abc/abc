@@ -181,6 +181,35 @@ void Ntl_ManReduce( Ntl_Man_t * p, Aig_Man_t * pAig )
 
 /**Function*************************************************************
 
+  Synopsis    [Resets complemented attributes of the collapsed AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntl_ManResetComplemented( Ntl_Man_t * p, Aig_Man_t * pAigCol )
+{
+    Ntl_Mod_t * pRoot;
+    Ntl_Obj_t * pObj;
+    Aig_Obj_t * pObjCol;
+    int i;
+    pRoot = Ntl_ManRootModel(p);
+    Ntl_ModelForEachLatch( pRoot, pObj, i )
+    {
+        if ( (pObj->LatchId & 3) == 1 )
+        {
+            pObjCol = Ntl_ObjFanout0(pObj)->pCopy;
+            assert( pObjCol->fPhase == 0 );
+            pObjCol->fPhase = 1;
+        }
+    }
+}
+ 
+/**Function*************************************************************
+
   Synopsis    [Finalizes the transformation.]
 
   Description []
@@ -242,14 +271,14 @@ Ntl_Man_t * Ntl_ManFraig( Ntl_Man_t * p, int nPartSize, int nConfLimit, int nLev
     // collapse the AIG
     pAig = Ntl_ManExtract( p );
     pNew = Ntl_ManInsertAig( p, pAig );
-    pAigCol = Ntl_ManCollapse( pNew );
+    pAigCol = Ntl_ManCollapse( pNew, 0 );
 
     // perform fraiging for the given design
     nPartSize = nPartSize? nPartSize : Aig_ManPoNum(pAigCol);
     pTemp = Aig_ManFraigPartitioned( pAigCol, nPartSize, nConfLimit, nLevelMax, fVerbose );
     Aig_ManStop( pTemp );
 
-    // finalize the transformatoin
+    // finalize the transformation
     pNew = Ntl_ManFinalize( pAux = pNew, pAig, pAigCol, fVerbose );
     Ntl_ManFree( pAux );
     Aig_ManStop( pAig );
@@ -273,20 +302,17 @@ Ntl_Man_t * Ntl_ManScl( Ntl_Man_t * p, int fLatchConst, int fLatchEqual, int fVe
     Ntl_Man_t * pNew, * pAux;
     Aig_Man_t * pAig, * pAigCol, * pTemp;
 
-    // transform the design
-    Ntl_ManTransformInitValues( p );
-
     // collapse the AIG
     pAig = Ntl_ManExtract( p );
     pNew = Ntl_ManInsertAig( p, pAig );
-    pAigCol = Ntl_ManCollapse( pNew );
+    pAigCol = Ntl_ManCollapse( pNew, 1 );
 
     // perform SCL for the given design
     pAigCol->nRegs = Ntl_ModelLatchNum(Ntl_ManRootModel(p));
     pTemp = Aig_ManScl( pAigCol, fLatchConst, fLatchEqual, fVerbose );
     Aig_ManStop( pTemp );
 
-    // finalize the transformatoin
+    // finalize the transformation
     pNew = Ntl_ManFinalize( pAux = pNew, pAig, pAigCol, fVerbose );
     Ntl_ManFree( pAux );
     Aig_ManStop( pAig );
@@ -310,20 +336,17 @@ Ntl_Man_t * Ntl_ManLcorr( Ntl_Man_t * p, int nConfMax, int fVerbose )
     Ntl_Man_t * pNew, * pAux;
     Aig_Man_t * pAig, * pAigCol, * pTemp;
 
-    // transform the design
-    Ntl_ManTransformInitValues( p );
-
     // collapse the AIG
     pAig = Ntl_ManExtract( p );
     pNew = Ntl_ManInsertAig( p, pAig );
-    pAigCol = Ntl_ManCollapse( pNew );
+    pAigCol = Ntl_ManCollapse( pNew, 1 );
 
     // perform SCL for the given design
     pAigCol->nRegs = Ntl_ModelLatchNum(Ntl_ManRootModel(p));
     pTemp = Fra_FraigLatchCorrespondence( pAigCol, 0, nConfMax, 0, fVerbose, NULL );
     Aig_ManStop( pTemp );
 
-    // finalize the transformatoin
+    // finalize the transformation
     pNew = Ntl_ManFinalize( pAux = pNew, pAig, pAigCol, fVerbose );
     Ntl_ManFree( pAux );
     Aig_ManStop( pAig );
@@ -347,20 +370,17 @@ Ntl_Man_t * Ntl_ManSsw( Ntl_Man_t * p, Fra_Ssw_t * pPars )
     Ntl_Man_t * pNew, * pAux;
     Aig_Man_t * pAig, * pAigCol, * pTemp;
 
-    // transform the design
-    Ntl_ManTransformInitValues( p );
-
     // collapse the AIG
     pAig = Ntl_ManExtract( p );
     pNew = Ntl_ManInsertAig( p, pAig );
-    pAigCol = Ntl_ManCollapse( pNew );
+    pAigCol = Ntl_ManCollapse( pNew, 1 );
 
     // perform SCL for the given design
     pAigCol->nRegs = Ntl_ModelLatchNum(Ntl_ManRootModel(p));
     pTemp = Fra_FraigInduction( pAigCol, pPars );
     Aig_ManStop( pTemp );
 
-    // finalize the transformatoin
+    // finalize the transformation
     pNew = Ntl_ManFinalize( pAux = pNew, pAig, pAigCol, pPars->fVerbose );
     Ntl_ManFree( pAux );
     Aig_ManStop( pAig );
@@ -459,6 +479,63 @@ void Ntl_ManAttachWhiteBoxes( Ntl_Man_t * p, Aig_Man_t * pAigCol, Aig_Man_t * pA
 
 /**Function*************************************************************
 
+  Synopsis    [Flip complemented edges.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntl_ManFlipEdges( Ntl_Man_t * p, Aig_Man_t * pAigCol )
+{
+    Ntl_Mod_t * pRoot;
+    Ntl_Obj_t * pObj;
+    Aig_Obj_t * pObjCol, * pFanin;
+    int i, iLatch;
+    pRoot = Ntl_ManRootModel(p);
+    iLatch = 0;
+    Ntl_ModelForEachLatch( pRoot, pObj, i )
+    {
+        if ( (pObj->LatchId & 3) == 1 )
+        {
+            pObjCol = Aig_ManPi( pAigCol, Ntl_ModelPiNum(pRoot) + iLatch );
+            assert( pObjCol->fMarkA == 0 );
+            pObjCol->fMarkA = 1;
+        }
+        iLatch++;
+    }
+    // flip pointers to the complemented edges
+    Aig_ManForEachObj( pAigCol, pObjCol, i )
+    {
+        pFanin = Aig_ObjFanin0(pObjCol);
+        if ( pFanin && pFanin->fMarkA )
+            pObjCol->pFanin0 = Aig_Not(pObjCol->pFanin0);
+        pFanin = Aig_ObjFanin1(pObjCol);
+        if ( pFanin && pFanin->fMarkA )
+            pObjCol->pFanin1 = Aig_Not(pObjCol->pFanin1);
+    }
+    // flip complemented latch derivers and undo the marks
+    iLatch = 0;
+    Ntl_ModelForEachLatch( pRoot, pObj, i )
+    {
+        if ( (pObj->LatchId & 3) == 1 )
+        {
+            // flip the latch input
+            pObjCol = Aig_ManPo( pAigCol, Ntl_ModelPoNum(pRoot) + iLatch );
+            pObjCol->pFanin0 = Aig_Not(pObjCol->pFanin0);
+            // unmark the latch output
+            pObjCol = Aig_ManPi( pAigCol, Ntl_ModelPiNum(pRoot) + iLatch );
+            assert( pObjCol->fMarkA == 1 );
+            pObjCol->fMarkA = 0;
+        }
+        iLatch++;
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns AIG with WB after sequential SAT sweeping.]
 
   Description []
@@ -473,13 +550,14 @@ Ntl_Man_t * Ntl_ManSsw2( Ntl_Man_t * p, Fra_Ssw_t * pPars )
     Ntl_Man_t * pNew;
     Aig_Man_t * pAigRed, * pAigCol;
     // collapse the AIG
-    pAigCol = Ntl_ManCollapse( p );
+    pAigCol = Ntl_ManCollapse( p, 1 );
     pAigCol->nRegs = Ntl_ModelLatchNum(Ntl_ManRootModel(p));
     // transform the collapsed AIG
     pAigRed = Fra_FraigInduction( pAigCol, pPars );
     Aig_ManStop( pAigRed );
     pAigRed = Aig_ManDupReprBasic( pAigCol );
     // insert the result back
+    Ntl_ManFlipEdges( p, pAigRed );
     Ntl_ManTransferCopy( p );
     pNew = Ntl_ManInsertAig( p, pAigRed );
     // attach the white-boxes

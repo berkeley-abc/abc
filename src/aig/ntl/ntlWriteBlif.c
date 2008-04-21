@@ -141,7 +141,7 @@ void Ioa_WriteBlifModel( FILE * pFile, Ntl_Mod_t * pModel )
 
 /**Function*************************************************************
 
-  Synopsis    [Writes the network into the BLIF file.]
+  Synopsis    [Writes the netlist into the BLIF file.]
 
   Description []
                
@@ -168,6 +168,25 @@ void Ioa_WriteBlif( Ntl_Man_t * p, char * pFileName )
         Ioa_WriteBlifModel( pFile, pModel );
     // close the file
     fclose( pFile );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Writes the logic network into the BLIF file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ioa_WriteBlifLogic( Nwk_Man_t * pNtk, Ntl_Man_t * p, char * pFileName )
+{
+    Ntl_Man_t * pNew;
+    pNew = Ntl_ManInsertNtk( p, pNtk );
+    Ioa_WriteBlif( pNew, pFileName );
+    Ntl_ManFree( pNew );
 }
 
 ////////////////////////////////////////////////////////////////////////
