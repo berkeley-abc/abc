@@ -440,6 +440,108 @@ Cnf_Dat_t * Cnf_DeriveSimple( Aig_Man_t * p, int nOutputs )
     return pCnf;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Derives a simple CNF for backward retiming computation.]
+
+  Description [The last argument shows the number of last outputs
+  of the manager, which will not be converted into clauses. 
+  New variables will be introduced for these outputs.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Cnf_Dat_t * Cnf_DeriveSimpleForRetiming( Aig_Man_t * p )
+{
+    Aig_Obj_t * pObj;
+    Cnf_Dat_t * pCnf;
+    int OutVar, PoVar, pVars[32], * pLits, ** pClas;
+    int i, nLiterals, nClauses, Number;
+
+    // count the number of literals and clauses
+    nLiterals = 1 + 7 * Aig_ManNodeNum(p) + 5 * Aig_ManPoNum(p);
+    nClauses = 1 + 3 * Aig_ManNodeNum(p) + 3 * Aig_ManPoNum(p);
+
+    // allocate CNF
+    pCnf = ALLOC( Cnf_Dat_t, 1 );
+    memset( pCnf, 0, sizeof(Cnf_Dat_t) );
+    pCnf->pMan = p;
+    pCnf->nLiterals = nLiterals;
+    pCnf->nClauses = nClauses;
+    pCnf->pClauses = ALLOC( int *, nClauses + 1 );
+    pCnf->pClauses[0] = ALLOC( int, nLiterals );
+    pCnf->pClauses[nClauses] = pCnf->pClauses[0] + nLiterals;
+
+    // create room for variable numbers
+    pCnf->pVarNums = ALLOC( int, Aig_ManObjNumMax(p) );
+    memset( pCnf->pVarNums, 0xff, sizeof(int) * Aig_ManObjNumMax(p) );
+    // assign variables to the last (nOutputs) POs
+    Number = 1;
+    Aig_ManForEachPo( p, pObj, i )
+        pCnf->pVarNums[pObj->Id] = Number++;
+    // assign variables to the internal nodes
+    Aig_ManForEachNode( p, pObj, i )
+        pCnf->pVarNums[pObj->Id] = Number++;
+    // assign variables to the PIs and constant node
+    Aig_ManForEachPi( p, pObj, i )
+        pCnf->pVarNums[pObj->Id] = Number++;
+    pCnf->pVarNums[Aig_ManConst1(p)->Id] = Number++;
+    pCnf->nVars = Number;
+    // assign the clauses
+    pLits = pCnf->pClauses[0];
+    pClas = pCnf->pClauses;
+    Aig_ManForEachNode( p, pObj, i )
+    {
+        OutVar   = pCnf->pVarNums[ pObj->Id ];
+        pVars[0] = pCnf->pVarNums[ Aig_ObjFanin0(pObj)->Id ];
+        pVars[1] = pCnf->pVarNums[ Aig_ObjFanin1(pObj)->Id ];
+
+        // positive phase
+        *pClas++ = pLits;
+        *pLits++ = 2 * OutVar; 
+        *pLits++ = 2 * pVars[0] + !Aig_ObjFaninC0(pObj); 
+        *pLits++ = 2 * pVars[1] + !Aig_ObjFaninC1(pObj); 
+        // negative phase
+        *pClas++ = pLits;
+        *pLits++ = 2 * OutVar + 1; 
+        *pLits++ = 2 * pVars[0] + Aig_ObjFaninC0(pObj); 
+        *pClas++ = pLits;
+        *pLits++ = 2 * OutVar + 1; 
+        *pLits++ = 2 * pVars[1] + Aig_ObjFaninC1(pObj); 
+    }
+ 
+    // write the constant literal
+    OutVar = pCnf->pVarNums[ Aig_ManConst1(p)->Id ];
+    assert( OutVar <= Aig_ManObjNumMax(p) );
+    *pClas++ = pLits;
+    *pLits++ = 2 * OutVar; 
+
+    // write the output literals
+    Aig_ManForEachPo( p, pObj, i )
+    {
+        OutVar = pCnf->pVarNums[ Aig_ObjFanin0(pObj)->Id ];
+        PoVar  = pCnf->pVarNums[ pObj->Id ];
+        // first clause
+        *pClas++ = pLits;
+        *pLits++ = 2 * PoVar; 
+        *pLits++ = 2 * OutVar + !Aig_ObjFaninC0(pObj); 
+        // second clause
+        *pClas++ = pLits;
+        *pLits++ = 2 * PoVar + 1; 
+        *pLits++ = 2 * OutVar + Aig_ObjFaninC0(pObj); 
+        // final clause (init-state is always 0 -> set the output to 0)
+        *pClas++ = pLits;
+        *pLits++ = 2 * PoVar + 1; 
+    }
+
+    // verify that the correct number of literals and clauses was written
+    assert( pLits - pCnf->pClauses[0] == nLiterals );
+    assert( pClas - pCnf->pClauses == nClauses );
+    return pCnf;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

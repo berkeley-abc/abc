@@ -1364,6 +1364,7 @@ int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames, int fRetim
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkDarLatchSweep( Abc_Ntk_t * pNtk, int fLatchConst, int fLatchEqual, int fVerbose )
 {
+    extern void Aig_ManPrintControlFanouts( Aig_Man_t * p );
     Abc_Ntk_t * pNtkAig;
     Aig_Man_t * pMan, * pTemp;
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
@@ -1380,6 +1381,7 @@ Abc_Ntk_t * Abc_NtkDarLatchSweep( Abc_Ntk_t * pNtk, int fLatchConst, int fLatchE
     pMan = Aig_ManScl( pTemp = pMan, fLatchConst, fLatchEqual, fVerbose );
     Aig_ManStop( pTemp );
     pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
+//Aig_ManPrintControlFanouts( pMan );
     Aig_ManStop( pMan );
     return pNtkAig;
 }
@@ -1429,9 +1431,9 @@ Abc_Ntk_t * Abc_NtkDarRetime( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkDarRetimeMinArea( Abc_Ntk_t * pNtk, int fForwardOnly, int fBackwardOnly, int fVerbose )
+Abc_Ntk_t * Abc_NtkDarRetimeMinArea( Abc_Ntk_t * pNtk, int fForwardOnly, int fBackwardOnly, int fInitial, int fVerbose )
 {
-    extern Aig_Man_t * Saig_ManRetimeMinArea( Aig_Man_t * p, int fForwardOnly, int fBackwardOnly, int fVerbose );
+    extern Aig_Man_t * Saig_ManRetimeMinArea( Aig_Man_t * p, int fForwardOnly, int fBackwardOnly, int fInitial, int fVerbose );
     Abc_Ntk_t * pNtkAig;
     Aig_Man_t * pMan, * pTemp;
     pMan = Abc_NtkToDar( pNtk, 0, 1 );
@@ -1444,7 +1446,7 @@ Abc_Ntk_t * Abc_NtkDarRetimeMinArea( Abc_Ntk_t * pNtk, int fForwardOnly, int fBa
     pMan->nTruePis = Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan); 
     pMan->nTruePos = Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan); 
 
-    pMan = Saig_ManRetimeMinArea( pTemp = pMan, fForwardOnly, fBackwardOnly, fVerbose );
+    pMan = Saig_ManRetimeMinArea( pTemp = pMan, fForwardOnly, fBackwardOnly, fInitial, fVerbose );
     Aig_ManStop( pTemp );
 
     pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );

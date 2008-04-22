@@ -11921,13 +11921,14 @@ int Abc_CommandDRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fMinArea;
     int fForwardOnly;
     int fBackwardOnly;
+    int fInitial;
     int nStepsMax;
     int fFastAlgo;
     int fVerbose;
     int c;
     extern Abc_Ntk_t * Abc_NtkDarRetime( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose );
     extern Abc_Ntk_t * Abc_NtkDarRetimeF( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose );
-    extern Abc_Ntk_t * Abc_NtkDarRetimeMinArea( Abc_Ntk_t * pNtk, int fForwardOnly, int fBackwardOnly, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkDarRetimeMinArea( Abc_Ntk_t * pNtk, int fForwardOnly, int fBackwardOnly, int fInitial, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -11936,12 +11937,13 @@ int Abc_CommandDRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     fMinArea  = 1;
     fForwardOnly = 0;
-    fBackwardOnly = 1;
+    fBackwardOnly = 0;
+    fInitial = 1;
     nStepsMax = 100000;
     fFastAlgo = 1;
     fVerbose  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Smfbavh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Smfbiavh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -11964,6 +11966,9 @@ int Abc_CommandDRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'b':
             fBackwardOnly ^= 1;
+            break;
+        case 'i':
+            fInitial ^= 1;
             break;
         case 'a':
             fFastAlgo ^= 1;
@@ -11998,7 +12003,7 @@ int Abc_CommandDRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // perform the retiming
     if ( fMinArea )
-        pNtkRes = Abc_NtkDarRetimeMinArea( pNtk, fForwardOnly, fBackwardOnly, fVerbose );
+        pNtkRes = Abc_NtkDarRetimeMinArea( pNtk, fForwardOnly, fBackwardOnly, fInitial, fVerbose );
     else if ( fFastAlgo )
         pNtkRes = Abc_NtkDarRetime( pNtk, nStepsMax, fVerbose );
     else
@@ -12013,11 +12018,12 @@ int Abc_CommandDRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: dretime [-S num] [-mfbavh]\n" );
-    fprintf( pErr, "\t         retimes the current network forward\n" );
+    fprintf( pErr, "usage: dretime [-S num] [-mfbiavh]\n" );
+    fprintf( pErr, "\t         new implementation of min-area retiming\n" );
     fprintf( pErr, "\t-m     : toggle min-area and most-forward retiming [default = %s]\n", fMinArea? "min-area": "most-fwd" );
     fprintf( pErr, "\t-f     : enables forward-only retiming [default = %s]\n", fForwardOnly? "yes": "no" );
     fprintf( pErr, "\t-b     : enables backward-only retiming [default = %s]\n", fBackwardOnly? "yes": "no" );
+    fprintf( pErr, "\t-i     : enables init state computation [default = %s]\n", fInitial? "yes": "no" );
     fprintf( pErr, "\t-S num : the max number of forward retiming steps to perform [default = %d]\n", nStepsMax );
     fprintf( pErr, "\t-a     : enables a fast most-forward algorithm [default = %s]\n", fFastAlgo? "yes": "no" );
     fprintf( pErr, "\t-v     : enables verbose output [default = %s]\n", fVerbose? "yes": "no" );
@@ -13127,7 +13133,7 @@ int Abc_CommandDarPhase( Abc_Frame_t * pAbc, int argc, char ** argv )
     nFrames     = 0;
     fIgnore     = 0;
     fPrint      = 0;
-    fVerbose    = 1;
+    fVerbose    = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Fipvh" ) ) != EOF )
     {

@@ -947,6 +947,48 @@ int Aig_ManCountChoices( Aig_Man_t * p )
     return Counter;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Prints the fanouts of the control register.]
+
+  Description [Useful only for Intel MC benchmarks.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManPrintControlFanouts( Aig_Man_t * p )
+{
+    Aig_Obj_t * pObj, * pFanin0, * pFanin1, * pCtrl;
+    int i, Counter = 0;
+
+    pCtrl = Aig_ManPi( p, Aig_ManPiNum(p) - 1 );
+
+    printf( "Control signal:\n" );
+    Aig_ObjPrint( p, pCtrl ); printf( "\n\n" );
+
+    Aig_ManForEachObj( p, pObj, i )
+    {
+        if ( !Aig_ObjIsNode(pObj) )
+            continue;
+        assert( pObj != pCtrl );
+        pFanin0 = Aig_ObjFanin0(pObj);
+        pFanin1 = Aig_ObjFanin1(pObj);
+        if ( pFanin0 == pCtrl && Aig_ObjIsPi(pFanin1) )
+        {
+            Aig_ObjPrint( p, pObj ); printf( "\n" );
+            Aig_ObjPrint( p, pFanin1 ); printf( "\n" );
+            printf( "\n" );
+        }
+        if ( pFanin1 == pCtrl && Aig_ObjIsPi(pFanin0) )
+        {
+            Aig_ObjPrint( p, pObj ); printf( "\n" );
+            Aig_ObjPrint( p, pFanin0 ); printf( "\n" );
+            printf( "\n" );
+        }
+    }
+}
 
 
 ////////////////////////////////////////////////////////////////////////

@@ -272,7 +272,7 @@ void Saig_TsiPrintTraces( Saig_Tsim_t * p, int nWords, int nPrefix )
         else
             continue;
         // print trace
-        printf( "%5d : %5d  ", Counter, i );
+        printf( "%5d : %5d %5d  ", Counter, i, Saig_ManLo(p->pAig, i)->Id );
         Vec_PtrForEachEntryStop( p->vStates, pState, k, Vec_PtrSize(p->vStates)-1 )
         {
             Value = (Aig_InfoHasBit( pState, 2 * i + 1 ) << 1) | Aig_InfoHasBit( pState, 2 * i );
@@ -536,6 +536,60 @@ Saig_Tsim_t * Saig_ManReachableTernary( Aig_Man_t * p, Vec_Int_t * vInits )
 
 /**Function*************************************************************
 
+  Synopsis    [Analize initial value of the selected register.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Saig_ManAnalizeControl( Aig_Man_t * p, int Reg )
+{
+    Aig_Obj_t * pObj, * pReg, * pCtrl, * pAnd;
+    int i;
+    pReg = Saig_ManLo( p, Reg );
+    pCtrl = Saig_ManLo( p, Saig_ManRegNum(p)-1 );
+    assert( pReg->Id < pCtrl->Id );
+    // find a node pointing to both
+    pAnd = NULL;
+    Aig_ManForEachNode( p, pObj, i )
+    {
+        if ( Aig_ObjFanin0(pObj) == pReg && Aig_ObjFanin1(pObj) == pCtrl )
+        {
+            pAnd = pObj;
+            break;
+        }
+    }
+    if ( pAnd == NULL )
+    {
+        printf( "Register is not found.\n" );
+        return;
+    }
+    printf( "Clock-like register: \n" );
+    Aig_ObjPrint( p, pReg );
+    printf( "\n" );
+    printf( "Control register: \n" );
+    Aig_ObjPrint( p, pCtrl );
+    printf( "\n" );
+    printf( "Their fanout: \n" );
+    Aig_ObjPrint( p, pAnd );
+    printf( "\n" );
+ 
+    // find the fanouts of pAnd
+    printf( "Fanouts of the fanout: \n" );
+    Aig_ManForEachObj( p, pObj, i )
+        if ( Aig_ObjFanin0(pObj) == pAnd || Aig_ObjFanin1(pObj) == pAnd )
+        {
+            Aig_ObjPrint( p, pObj );
+            printf( "\n" );
+        }
+    printf( "\n" );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Finds the registers to phase-abstract.]
 
   Description []
@@ -587,6 +641,9 @@ int Saig_ManFindRegisters( Saig_Tsim_t * pTsi, int nFrames, int fIgnore, int fVe
             for ( k = 0; k < nFrames; k++ )
                 Saig_XsimPrint( stdout, Values[k] );
             printf( "]\n" );
+
+            if ( fVerbose )
+            Saig_ManAnalizeControl( pTsi->pAig, Reg );
         }
     }
     Vec_IntShrink( pTsi->vNonXRegs, r );
@@ -594,6 +651,7 @@ int Saig_ManFindRegisters( Saig_Tsim_t * pTsi, int nFrames, int fIgnore, int fVe
         printf( "Found %3d useful registers.\n", Vec_IntSize(pTsi->vNonXRegs) );
     return Vec_IntSize(pTsi->vNonXRegs);
 }
+
 
 /**Function*************************************************************
 
@@ -662,7 +720,7 @@ Aig_Man_t * Saig_ManPerformAbstraction( Saig_Tsim_t * pTsi, int nFrames, int fVe
             pState = Vec_PtrEntry( pTsi->vStates, f );
             Value = (Aig_InfoHasBit( pState, 2 * Reg + 1 ) << 1) | Aig_InfoHasBit( pState, 2 * Reg );
             assert( Value == SAIG_XVS0 || Value == SAIG_XVS1 );
-            pObjNew = Value? Aig_ManConst1(pFrames) : Aig_ManConst0(pFrames);
+            pObjNew = (Value == SAIG_XVS1)? Aig_ManConst1(pFrames) : Aig_ManConst0(pFrames);
             Saig_ObjSetFrames( pObjMap, nFrames, pObj, f, pObjNew );
         }
         // add internal nodes of this frame

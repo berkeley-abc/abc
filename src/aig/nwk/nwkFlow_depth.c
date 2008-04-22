@@ -28,6 +28,8 @@
     under simultaneous delay and initial state constraints". Proc. DAC'08. 
 */
 
+int DepthFwd, DepthBwd, DepthFwdMax, DepthBwdMax;
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -225,22 +227,33 @@ int Nwk_ManPushForwardBot_rec( Nwk_Obj_t * pObj, Nwk_Obj_t * pPred )
     if ( Nwk_ObjVisitedBot(pObj) )
         return 0;
     Nwk_ObjSetVisitedBot(pObj);
+    DepthFwd++;
+    if ( DepthFwdMax < DepthFwd )
+        DepthFwdMax = DepthFwd;
     // propagate through the internal edge
     if ( Nwk_ObjHasFlow(pObj) )
     {
         if ( Nwk_ObjPred(pObj) )
             if ( Nwk_ManPushForwardTop_rec( Nwk_ObjPred(pObj), Nwk_ObjPred(pObj) ) )
+            {
+                DepthFwd--;
                 return Nwk_ObjSetPred( pObj, pPred ); 
+            }
     }
     else if ( Nwk_ManPushForwardTop_rec(pObj, pObj) )
     {
+        DepthFwd--;
         Nwk_ObjSetFlow( pObj );
         return Nwk_ObjSetPred( pObj, pPred );
     }
     // try to push through the fanins
     Nwk_ObjForEachFanin( pObj, pNext, i )
         if ( Nwk_ManPushForwardBot_rec( pNext, pPred ) )
+        {
+            DepthFwd--;
             return 1;
+        }
+    DepthFwd--;
     return 0;
 }
 
@@ -265,17 +278,25 @@ int Nwk_ManPushForwardTop_rec( Nwk_Obj_t * pObj, Nwk_Obj_t * pPred )
     // check if this is the sink
     if ( Nwk_ObjIsSink(pObj) )
         return 1;
+    DepthFwd++;
+    if ( DepthFwdMax < DepthFwd )
+        DepthFwdMax = DepthFwd;
     // try to push through the fanouts
     Nwk_ObjForEachFanout( pObj, pNext, i )
         if ( Nwk_ManPushForwardBot_rec( pNext, pPred ) )
+        {
+            DepthFwd--;
             return 1;
+        }
     // redirect the flow
     if ( Nwk_ObjHasFlow(pObj) && !Nwk_ObjIsCi(pObj) )
         if ( Nwk_ManPushForwardBot_rec( pObj, Nwk_ObjPred(pObj) ) )
         {
+            DepthFwd--;
             Nwk_ObjClearFlow( pObj );
             return Nwk_ObjSetPred( pObj, NULL );
         }
+    DepthFwd--;
     return 0;
 }
   
@@ -376,7 +397,7 @@ int Nwk_ManVerifyCut_rec( Nwk_Obj_t * pObj )
             return 0;
     return 1;
 }
- 
+
 /**Function*************************************************************
 
   Synopsis    [Verifies the forward cut.]
@@ -463,14 +484,18 @@ Vec_Ptr_t * Nwk_ManRetimeCutForward( Nwk_Man_t * pMan, int nLatches, int fVerbos
     if ( fVerbose )
     printf( "Forward:  Max-flow = %4d -> ", Counter );
     // continue flow computation from each LO
+    DepthFwdMax = DepthFwd = 0;
     Nwk_ManIncrementTravIdFlow( pMan );
     Nwk_ManForEachLoSeq( pMan, pObj, i )
     {
+    printf( "%d ", DepthFwdMax );
         if ( !Nwk_ManPushForwardBot_rec( pObj, NULL ) )
             continue;
+        assert( DepthFwd == 0 );
         Nwk_ManIncrementTravIdFlow( pMan );
         Counter2++;
     }
+    printf( "DepthMax = %d.\n", DepthFwdMax );
     if ( fVerbose )
     printf( "%4d.  ", Counter+Counter2 );
     // repeat flow computation from each LO
@@ -497,7 +522,7 @@ Vec_Ptr_t * Nwk_ManRetimeCutForward( Nwk_Man_t * pMan, int nLatches, int fVerbos
         }
     }
     Nwk_ManCleanMarks( pMan );
-//    assert( Nwk_ManRetimeVerifyCutForward(pMan, vNodes) );
+    assert( Nwk_ManRetimeVerifyCutForward(pMan, vNodes) );
     if ( fVerbose )
     {
     printf( "Min-cut = %4d.  Unmoved = %4d. ", Vec_PtrSize(vNodes), Counter );
@@ -584,7 +609,7 @@ Vec_Ptr_t * Nwk_ManRetimeCutBackward( Nwk_Man_t * pMan, int nLatches, int fVerbo
         if ( Nwk_ObjVisitedBotOnly( Nwk_ObjFanin0(pObj) ) )
             Counter++;
     Nwk_ManCleanMarks( pMan );
-//    assert( Nwk_ManRetimeVerifyCutBackward(pMan, vNodes) );
+    assert( Nwk_ManRetimeVerifyCutBackward(pMan, vNodes) );
     if ( fVerbose )
     {
     printf( "Min-cut = %4d.  Unmoved = %4d. ", Vec_PtrSize(vNodes), Counter );

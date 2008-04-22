@@ -19,8 +19,10 @@
 ***********************************************************************/
 
 #include "saig.h"
-#include "satSolver.h"
+
 #include "cnf.h"
+#include "satSolver.h"
+#include "satStore.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -31,6 +33,147 @@ extern Vec_Ptr_t * Nwk_ManDeriveRetimingCut( Aig_Man_t * p, int fForward, int fV
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Derives the initial state after backward retiming.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Saig_ManRetimeInitState( Aig_Man_t * p )
+{
+    int nConfLimit = 1000000;
+    Vec_Int_t * vCiIds, * vInit = NULL;
+    Cnf_Dat_t * pCnf;
+    sat_solver * pSat;
+    Aig_Obj_t * pObj;
+    int i, RetValue, * pModel;
+    // solve the SAT problem
+    pCnf = Cnf_DeriveSimpleForRetiming( p );
+    pSat = Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
+    if ( pSat == NULL )
+    {
+        Cnf_DataFree( pCnf );
+        return NULL;
+    }
+    RetValue = sat_solver_solve( pSat, NULL, NULL, (sint64)nConfLimit, (sint64)0, (sint64)0, (sint64)0 );
+    assert( RetValue != l_Undef );
+    // create counter-example
+    if ( RetValue == l_True )
+    {
+        // accumulate SAT variables of the CIs
+        vCiIds = Vec_IntAlloc( Aig_ManPiNum(p) );
+        Aig_ManForEachPi( p, pObj, i )
+            Vec_IntPush( vCiIds, pCnf->pVarNums[pObj->Id] );
+        // create the model
+        pModel = Sat_SolverGetModel( pSat, vCiIds->pArray, vCiIds->nSize );
+        vInit = Vec_IntAllocArray( pModel, Aig_ManPiNum(p) );
+        Vec_IntFree( vCiIds );
+    }
+    sat_solver_delete( pSat );
+    Cnf_DataFree( pCnf );
+    return vInit;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Uses UNSAT core to find the part of AIG to be excluded.]
+
+  Description [Returns the number of the PO that appears in the UNSAT core.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Saig_ManRetimeUnsatCore( Aig_Man_t * p, int fVerbose )
+{
+    int fVeryVerbose = 0;
+    int nConfLimit = 1000000;
+    void * pSatCnf = NULL; 
+    Intp_Man_t * pManProof;
+    Vec_Int_t * vCore = NULL;
+    Cnf_Dat_t * pCnf;
+    sat_solver * pSat;
+    Aig_Obj_t * pObj;
+    int * pClause1, * pClause2, * pLit, * pVars;
+    int i, RetValue, iBadPo, iClause, nVars, nPos;
+    // create the SAT solver
+    pCnf = Cnf_DeriveSimpleForRetiming( p );
+    pSat = sat_solver_new();
+    sat_solver_store_alloc( pSat ); 
+    sat_solver_setnvars( pSat, pCnf->nVars );
+    for ( i = 0; i < pCnf->nClauses; i++ )
+    {
+        if ( !sat_solver_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1] ) )
+        {
+            Cnf_DataFree( pCnf );
+            sat_solver_delete( pSat );
+            return -1;
+        }
+    }
+    sat_solver_store_mark_roots( pSat ); 
+    // solve the problem
+    RetValue = sat_solver_solve( pSat, NULL, NULL, (sint64)nConfLimit, (sint64)0, (sint64)0, (sint64)0 );
+    assert( RetValue != l_Undef );
+    assert( RetValue == l_False );
+    pSatCnf = sat_solver_store_release( pSat ); 
+    sat_solver_delete( pSat );
+    // derive the UNSAT core
+    pManProof = Intp_ManAlloc();
+    vCore = Intp_ManUnsatCore( pManProof, pSatCnf, fVeryVerbose );
+    Intp_ManFree( pManProof );
+    Sto_ManFree( pSatCnf );
+    // derive the set of variables on which the core depends
+    // collect the variable numbers
+    nVars = 0;
+    pVars = ALLOC( int, pCnf->nVars );
+    memset( pVars, 0, sizeof(int) * pCnf->nVars );
+    Vec_IntForEachEntry( vCore, iClause, i )
+    {
+        pClause1 = pCnf->pClauses[iClause];
+        pClause2 = pCnf->pClauses[iClause+1];
+        for ( pLit = pClause1; pLit < pClause2; pLit++ )
+        {
+            if ( pVars[ (*pLit) >> 1 ] == 0 )
+                nVars++;
+            pVars[ (*pLit) >> 1 ] = 1;
+            if ( fVeryVerbose )
+            printf( "%s%d ", ((*pLit) & 1)? "-" : "+", (*pLit) >> 1 );
+        }
+        if ( fVeryVerbose )
+        printf( "\n" );
+    }
+    // collect the nodes
+    if ( fVeryVerbose )
+    Aig_ManForEachObj( p, pObj, i )
+        if ( pCnf->pVarNums[pObj->Id] >= 0 && pVars[ pCnf->pVarNums[pObj->Id] ] == 1 )
+        {
+            Aig_ObjPrint( p, pObj );
+            printf( "\n" );
+        }
+    // pick the first PO in the list
+    nPos = 0;
+    iBadPo = -1;
+    Aig_ManForEachPo( p, pObj, i )
+        if ( pCnf->pVarNums[pObj->Id] >= 0 && pVars[ pCnf->pVarNums[pObj->Id] ] == 1 )
+        {
+            if ( iBadPo == -1 )
+                iBadPo = i;
+            nPos++;
+        }
+    if ( fVerbose )
+        printf( "UNSAT core: %d clauses, %d variables, %d POs.  ", Vec_IntSize(vCore), nVars, nPos );
+    free( pVars );
+    Vec_IntFree( vCore );
+    Cnf_DataFree( pCnf );
+    return iBadPo;
+}
 
 /**Function*************************************************************
 
@@ -98,52 +241,6 @@ int Saig_ManRetimeCountCut( Aig_Man_t * p, Vec_Ptr_t * vCut )
     RetValue = Vec_PtrSize( vNodes );
     Vec_PtrFree( vNodes );
     return RetValue;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Computes the new cut after excluding the nodes in the set.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Ptr_t * Saig_ManRetimeExtendCut( Aig_Man_t * p, Vec_Ptr_t * vCut, Vec_Ptr_t * vToExclude )
-{
-    Vec_Ptr_t * vNodes;
-    Aig_Obj_t * pObj, * pFanin;
-    int i;
-    // mark the cones
-    Aig_ManIncrementTravId( p );
-    Vec_PtrForEachEntry( vCut, pObj, i )
-        Saig_ManMarkCone_rec( p, pObj );
-    Vec_PtrForEachEntry( vToExclude, pObj, i )
-        Saig_ManMarkCone_rec( p, pObj );
-    // collect the new cut
-    vNodes = Vec_PtrAlloc( 1000 );
-    Aig_ManForEachObj( p, pObj, i )
-    {
-        if ( Aig_ObjIsTravIdCurrent(p, pObj) )
-            continue;
-        pFanin = Aig_ObjFanin0( pObj );
-        if ( pFanin && !pFanin->fMarkA && Aig_ObjIsTravIdCurrent(p, pFanin) )
-        {
-            Vec_PtrPush( vNodes, pFanin );
-            pFanin->fMarkA = 1;
-        }
-        pFanin = Aig_ObjFanin1( pObj );
-        if ( pFanin && !pFanin->fMarkA && Aig_ObjIsTravIdCurrent(p, pFanin) )
-        {
-            Vec_PtrPush( vNodes, pFanin );
-            pFanin->fMarkA = 1;
-        }
-    }
-    Vec_PtrForEachEntry( vNodes, pObj, i )
-        pObj->fMarkA = 0;
-    return vNodes;
 }
 
 /**Function*************************************************************
@@ -222,6 +319,73 @@ Aig_Man_t * Saig_ManRetimeDupForward( Aig_Man_t * p, Vec_Ptr_t * vCut )
         Saig_ManRetimeDup_rec( pNew, pObj );
         Aig_ObjCreatePo( pNew, Aig_NotCond(pObj->pData, pObj->fPhase) );
     }
+    Aig_ManCleanup( pNew );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the AIG while retiming the registers to the cut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Saig_ManRetimeDupBackward( Aig_Man_t * p, Vec_Ptr_t * vCut, Vec_Int_t * vInit )
+{
+    Aig_Man_t * pNew;
+    Aig_Obj_t * pObj, * pObjLi, * pObjLo;
+    int i;
+    // mark the cones under the cut
+//    assert( Vec_PtrSize(vCut) == Saig_ManRetimeCountCut(p, vCut) );
+    // create the new manager
+    pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
+    pNew->pName = Aig_UtilStrsav( p->pName );
+    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
+    pNew->nRegs = Vec_PtrSize(vCut);
+    pNew->nTruePis = p->nTruePis;
+    pNew->nTruePos = p->nTruePos;
+    // create the true PIs
+    Aig_ManCleanData( p );
+    Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
+    Saig_ManForEachPi( p, pObj, i )
+        pObj->pData = Aig_ObjCreatePi( pNew );
+    // create the registers
+    Vec_PtrForEachEntry( vCut, pObj, i )
+        pObj->pData = Aig_NotCond( Aig_ObjCreatePi(pNew), vInit?Vec_IntEntry(vInit,i):0 );
+    // duplicate logic above the cut and remember values
+    Saig_ManForEachLi( p, pObj, i )
+    {
+        Saig_ManRetimeDup_rec( pNew, Aig_ObjFanin0(pObj) );
+        pObj->pData = Aig_ObjChild0Copy(pObj);
+    }
+    // transfer values from the LIs to the LOs
+    Saig_ManForEachLiLo( p, pObjLi, pObjLo, i )
+        pObjLo->pData = pObjLi->pData;
+    // erase the data values on the internal nodes of the cut
+    Vec_PtrForEachEntry( vCut, pObj, i )
+        if ( Aig_ObjIsNode(pObj) )
+            pObj->pData = NULL;
+    // replicate the data on the constant node and the PIs
+    pObj = Aig_ManConst1(p);
+    pObj->pData = Aig_ManConst1(pNew);
+    Saig_ManForEachPi( p, pObj, i )
+        pObj->pData = Aig_ManPi( pNew, i );
+    // duplicate logic below the cut
+    Saig_ManForEachPo( p, pObj, i )
+    {
+        Saig_ManRetimeDup_rec( pNew, Aig_ObjFanin0(pObj) );
+        Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+    }
+    Vec_PtrForEachEntry( vCut, pObj, i )
+    {
+        Saig_ManRetimeDup_rec( pNew, pObj );
+        Aig_ObjCreatePo( pNew, Aig_NotCond(pObj->pData, vInit?Vec_IntEntry(vInit,i):0) );
+    }
+    Aig_ManCleanup( pNew );
     return pNew;
 }
 
@@ -262,49 +426,6 @@ Aig_Man_t * Saig_ManRetimeDupInitState( Aig_Man_t * p, Vec_Ptr_t * vCut )
 
 /**Function*************************************************************
 
-  Synopsis    [Derives the initial state after backward retiming.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Vec_Int_t * Saig_ManRetimeFindInitState( Aig_Man_t * p )
-{
-    int nConfLimit = 1000000;
-    Vec_Int_t * vCiIds, * vInit = NULL;
-    Cnf_Dat_t * pCnf;
-    sat_solver * pSat;
-    Aig_Obj_t * pObj;
-    int i, RetValue, * pAssumps, * pModel;
-    // solve the SAT problem
-    pCnf = Cnf_DeriveSimple( p, Aig_ManPoNum(p) );
-    pSat = Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
-    pAssumps = ALLOC( int, Aig_ManPoNum(p) );
-    Aig_ManForEachPo( p, pObj, i )
-        pAssumps[i] = toLitCond( pCnf->pVarNums[pObj->Id], 1 );
-    RetValue = sat_solver_solve( pSat, pAssumps, pAssumps+Aig_ManPoNum(p), (sint64)nConfLimit, (sint64)0, (sint64)0, (sint64)0 );
-    free( pAssumps );
-    if ( RetValue == l_True )
-    {
-        // accumulate SAT variables of the CIs
-        vCiIds = Vec_IntAlloc( Aig_ManPiNum(p) );
-        Aig_ManForEachPi( p, pObj, i )
-            Vec_IntPush( vCiIds, pCnf->pVarNums[pObj->Id] );
-        // create the model
-        pModel = Sat_SolverGetModel( pSat, vCiIds->pArray, vCiIds->nSize );
-        vInit = Vec_IntAllocArray( pModel, Aig_ManPiNum(p) );
-        Vec_IntFree( vCiIds );
-    }
-    sat_solver_delete( pSat );
-    Cnf_DataFree( pCnf );
-    return vInit;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Returns the array of bad registers.]
 
   Description []
@@ -316,7 +437,7 @@ Vec_Int_t * Saig_ManRetimeFindInitState( Aig_Man_t * p )
 ***********************************************************************/
 Vec_Ptr_t * Saig_ManGetRegistersToExclude( Aig_Man_t * p )
 {
-    Vec_Ptr_t * vNodes = NULL;
+    Vec_Ptr_t * vNodes;
     Aig_Obj_t * pObj, * pFanin;
     int i, Diffs;
     assert( Saig_ManRegNum(p) > 0 );
@@ -334,13 +455,20 @@ Vec_Ptr_t * Saig_ManGetRegistersToExclude( Aig_Man_t * p )
         pFanin = Aig_ObjFanin0(pObj);
         Diffs += pFanin->fMarkA && pFanin->fMarkB;
     }
+    vNodes = Vec_PtrAlloc( 100 );
     if ( Diffs > 0 )
-        vNodes = Vec_PtrAlloc( Diffs );
+    {
+        Saig_ManForEachLi( p, pObj, i )
+        {
+            pFanin = Aig_ObjFanin0(pObj);
+            if ( pFanin->fMarkA && pFanin->fMarkB )
+                Vec_PtrPush( vNodes, pObj );
+        }
+        assert( Vec_PtrSize(vNodes) == Diffs );
+    }
     Saig_ManForEachLi( p, pObj, i )
     {
         pFanin = Aig_ObjFanin0(pObj);
-        if ( vNodes && pFanin->fMarkA && pFanin->fMarkB )
-            Vec_PtrPush( vNodes, pFanin );
         pFanin->fMarkA = pFanin->fMarkB = 0;
     }
     return vNodes;
@@ -348,7 +476,7 @@ Vec_Ptr_t * Saig_ManGetRegistersToExclude( Aig_Man_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Duplicates the AIG while retiming the registers to the cut.]
+  Synopsis    [Hides the registers that cannot be backward retimed.]
 
   Description []
                
@@ -357,79 +485,125 @@ Vec_Ptr_t * Saig_ManGetRegistersToExclude( Aig_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Saig_ManRetimeDupBackward( Aig_Man_t * p, Vec_Ptr_t * vCutInit )
+int Saig_ManHideBadRegs( Aig_Man_t * p, Vec_Ptr_t * vBadRegs )
 {
-    Vec_Ptr_t * vToExclude, * vCut;
-    Vec_Int_t * vInit = NULL;
-    Aig_Man_t * pNew, * pInit;
-    Aig_Obj_t * pObj, * pObjLi, * pObjLo;
-    int i;
-    // check if there are bad registers
-    vToExclude = Saig_ManGetRegistersToExclude( p );
-    if ( vToExclude )
-    {
-        vCut = Saig_ManRetimeExtendCut( p, vCutInit, vToExclude );
-        printf( "Bad registers = %d. Extended cut from %d to %d nodes.\n", 
-            Vec_PtrSize(vToExclude), Vec_PtrSize(vCutInit), Vec_PtrSize(vCut) );
-        Vec_PtrFree( vToExclude );
-    }
-    else
-        vCut = Vec_PtrDup( vCutInit );
-    // mark the cones under the cut
-//    assert( Vec_PtrSize(vCut) == Saig_ManRetimeCountCut(p, vCut) );
-    // count if there are registers to disable
-    // derive the initial state
-    pInit = Saig_ManRetimeDupInitState( p, vCut );
-    vInit = Saig_ManRetimeFindInitState( pInit );
-    if ( vInit == NULL )
-        printf( "Initial state computation has failed.\n" );
-    Aig_ManStop( pInit );
-    // create the new manager
-    pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
-    pNew->pName = Aig_UtilStrsav( p->pName );
-    pNew->pSpec = Aig_UtilStrsav( p->pSpec );
-    pNew->nRegs = Vec_PtrSize(vCut);
-    pNew->nTruePis = p->nTruePis;
-    pNew->nTruePos = p->nTruePos;
-    // create the true PIs
-    Aig_ManCleanData( p );
-    Aig_ManConst1(p)->pData = Aig_ManConst1(pNew);
-    Saig_ManForEachPi( p, pObj, i )
-        pObj->pData = Aig_ObjCreatePi( pNew );
-    // create the registers
-    Vec_PtrForEachEntry( vCut, pObj, i )
-        pObj->pData = Aig_NotCond( Aig_ObjCreatePi(pNew), vInit?Vec_IntEntry(vInit,i):0 );
-    // duplicate logic above the cut and remember values
-    Saig_ManForEachLi( p, pObj, i )
-    {
-        Saig_ManRetimeDup_rec( pNew, Aig_ObjFanin0(pObj) );
-        pObj->pData = Aig_ObjChild0Copy(pObj);
-    }
-    // transfer values from the LIs to the LOs
+    Vec_Ptr_t * vPisNew, * vPosNew;
+    Aig_Obj_t * pObjLi, * pObjLo;
+    int nTruePi, nTruePo, nBadRegs, i;
+    if ( Vec_PtrSize(vBadRegs) == 0 )
+        return 0;
+    // attached LOs to LIs
     Saig_ManForEachLiLo( p, pObjLi, pObjLo, i )
-        pObjLo->pData = pObjLi->pData;
-    // erase the data values on the internal nodes of the cut
-    Vec_PtrForEachEntry( vCut, pObj, i )
-        if ( Aig_ObjIsNode(pObj) )
-            pObj->pData = NULL;
-    // replicate the data on the primary inputs
-    Saig_ManForEachPi( p, pObj, i )
-        pObj->pData = Aig_ManPi( pNew, i );
-    // duplicate logic below the cut
-    Saig_ManForEachPo( p, pObj, i )
+        pObjLi->pData = pObjLo;
+    // reorder them by putting bad registers first
+    vPisNew = Vec_PtrDup( p->vPis );
+    vPosNew = Vec_PtrDup( p->vPos );
+    nTruePi = Aig_ManPiNum(p) - Aig_ManRegNum(p);
+    nTruePo = Aig_ManPoNum(p) - Aig_ManRegNum(p);
+    assert( nTruePi == p->nTruePis );
+    assert( nTruePo == p->nTruePos );
+    Vec_PtrForEachEntry( vBadRegs, pObjLi, i )
     {
-        Saig_ManRetimeDup_rec( pNew, Aig_ObjFanin0(pObj) );
-        Aig_ObjCreatePo( pNew, Aig_ObjChild0Copy(pObj) );
+        Vec_PtrWriteEntry( vPisNew, nTruePi++, pObjLi->pData );
+        Vec_PtrWriteEntry( vPosNew, nTruePo++, pObjLi );
+        pObjLi->fMarkA = 1;
     }
-    Vec_PtrForEachEntry( vCut, pObj, i )
+    Saig_ManForEachLiLo( p, pObjLi, pObjLo, i )
     {
-        Saig_ManRetimeDup_rec( pNew, pObj );
-        Aig_ObjCreatePo( pNew, Aig_NotCond(pObj->pData, vInit?Vec_IntEntry(vInit,i):0) );
+        if ( pObjLi->fMarkA )
+        {
+            pObjLi->fMarkA = 0;
+            continue;
+        }
+        Vec_PtrWriteEntry( vPisNew, nTruePi++, pObjLo );
+        Vec_PtrWriteEntry( vPosNew, nTruePo++, pObjLi );
     }
-    if ( vInit )
-        Vec_IntFree( vInit );
-    Vec_PtrFree( vCut );
-    return pNew;
+    // check the sizes
+    assert( nTruePi == Aig_ManPiNum(p) );
+    assert( nTruePo == Aig_ManPoNum(p) );
+    // transfer the arrays
+    Vec_PtrFree( p->vPis ); p->vPis = vPisNew;
+    Vec_PtrFree( p->vPos ); p->vPos = vPosNew;
+    // update the PIs
+    nBadRegs = Vec_PtrSize(vBadRegs);
+    p->nRegs -= nBadRegs;
+    p->nTruePis += nBadRegs;
+    p->nTruePos += nBadRegs;
+    return nBadRegs;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Exposes bad registers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Saig_ManExposeBadRegs( Aig_Man_t * p, int nBadRegs )
+{
+    p->nRegs += nBadRegs;
+    p->nTruePis -= nBadRegs;
+    p->nTruePos -= nBadRegs;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs min-area retiming backward with initial state.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Saig_ManRetimeMinAreaBackward( Aig_Man_t * pNew, int fVerbose )
+{
+    Aig_Man_t * pInit, * pFinal;
+    Vec_Ptr_t * vBadRegs, * vCut;
+    Vec_Int_t * vInit;
+    int iBadReg;
+    // transform the AIG to have no bad registers
+    vBadRegs = Saig_ManGetRegistersToExclude( pNew );
+    if ( fVerbose && Vec_PtrSize(vBadRegs) )
+        printf( "Excluding %d registers that cannot be backward retimed.\n", Vec_PtrSize(vBadRegs) ); 
+    while ( 1 )
+    {
+        Saig_ManHideBadRegs( pNew, vBadRegs );
+        Vec_PtrFree( vBadRegs );
+        // compute cut
+        vCut = Nwk_ManDeriveRetimingCut( pNew, 0, fVerbose );
+        if ( Vec_PtrSize(vCut) >= Aig_ManRegNum(pNew) )
+        {
+            Vec_PtrFree( vCut );
+            return NULL;
+        }
+        // derive the initial state
+        pInit = Saig_ManRetimeDupInitState( pNew, vCut );
+        vInit = Saig_ManRetimeInitState( pInit );
+        if ( vInit != NULL )
+        {
+            pFinal = Saig_ManRetimeDupBackward( pNew, vCut, vInit );
+            Vec_IntFree( vInit );
+            Vec_PtrFree( vCut );
+            Aig_ManStop( pInit );
+            return pFinal;
+        }
+        Vec_PtrFree( vCut );
+        // there is no initial state - find the offending output
+        iBadReg = Saig_ManRetimeUnsatCore( pInit, fVerbose );
+        Aig_ManStop( pInit );
+        if ( fVerbose )
+            printf( "Excluding register %d.\n", iBadReg ); 
+        // prepare to remove this output
+        vBadRegs = Vec_PtrAlloc( 1 );
+        Vec_PtrPush( vBadRegs, Aig_ManPo( pNew, Saig_ManPoNum(pNew) + iBadReg ) );
+    }
+    return NULL;
 }
 
 /**Function*************************************************************
@@ -443,36 +617,73 @@ Aig_Man_t * Saig_ManRetimeDupBackward( Aig_Man_t * p, Vec_Ptr_t * vCutInit )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Saig_ManRetimeMinArea( Aig_Man_t * p, int fForwardOnly, int fBackwardOnly, int fVerbose )
+Aig_Man_t * Saig_ManRetimeMinArea( Aig_Man_t * p, int fForwardOnly, int fBackwardOnly, int fInitial, int fVerbose )
 {
     Vec_Ptr_t * vCut;
-    Aig_Man_t * pNew, * pTemp;
+    Aig_Man_t * pNew, * pTemp, * pCopy;
+    int fChanges;
     pNew = Aig_ManDup( p );
     // perform several iterations of forward retiming
+    fChanges = 0;
     if ( !fBackwardOnly )
     while ( 1 )
     {
         vCut = Nwk_ManDeriveRetimingCut( pNew, 1, fVerbose );
         if ( Vec_PtrSize(vCut) >= Aig_ManRegNum(pNew) )
         {
+            if ( fVerbose && !fChanges )
+                printf( "Forward retiming cannot reduce registers.\n" );
             Vec_PtrFree( vCut );
             break;
         }
         pNew = Saig_ManRetimeDupForward( pTemp = pNew, vCut );
         Aig_ManStop( pTemp );
         Vec_PtrFree( vCut );
+        if ( fVerbose )
+            Aig_ManReportImprovement( p, pNew );
+        fChanges = 1;
     }
-    // perform one iteration of backward retiming
-    if ( !fForwardOnly )
+    // perform several iterations of backward retiming
+    fChanges = 0;
+    if ( !fForwardOnly && !fInitial )
+    while ( 1 )
     {
         vCut = Nwk_ManDeriveRetimingCut( pNew, 0, fVerbose );
-        if ( Vec_PtrSize(vCut) < Aig_ManRegNum(pNew) )
+        if ( Vec_PtrSize(vCut) >= Aig_ManRegNum(pNew) )
         {
-            pNew = Saig_ManRetimeDupBackward( pTemp = pNew, vCut );
-            Aig_ManStop( pTemp );
+            if ( fVerbose && !fChanges )
+                printf( "Backward retiming cannot reduce registers.\n" );
+            Vec_PtrFree( vCut );
+            break;
         }
+        pNew = Saig_ManRetimeDupBackward( pTemp = pNew, vCut, NULL );
+        Aig_ManStop( pTemp );
         Vec_PtrFree( vCut );
+        if ( fVerbose )
+            Aig_ManReportImprovement( p, pNew );
+        fChanges = 1;
     }
+    else if ( !fForwardOnly && fInitial )
+    while ( 1 )
+    {
+        pCopy = Aig_ManDup( pNew );
+        pTemp = Saig_ManRetimeMinAreaBackward( pCopy, fVerbose );
+        Aig_ManStop( pCopy );
+        if ( pTemp == NULL )
+        {
+            if ( fVerbose && !fChanges )
+                printf( "Backward retiming cannot reduce registers.\n" );
+            break;
+        }
+        Saig_ManExposeBadRegs( pTemp, Saig_ManPoNum(pTemp) - Saig_ManPoNum(pNew) );
+        Aig_ManStop( pNew );
+        pNew = pTemp;
+        if ( fVerbose )
+            Aig_ManReportImprovement( p, pNew );
+        fChanges = 1;
+    }
+    if ( !fForwardOnly && !fInitial && fChanges )
+        printf( "Assuming const-0 init-state after backward retiming. Result will not verify.\n" );
     return pNew;
 }
 

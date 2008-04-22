@@ -337,6 +337,28 @@ void Aig_ManPrintStats( Aig_Man_t * p )
     fflush( stdout );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Reports the reduction of the AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Aig_ManReportImprovement( Aig_Man_t * p, Aig_Man_t * pNew )
+{
+    printf( "REGs: Beg = %d. End = %d. (R = %6.2f %%).  ",
+        Aig_ManRegNum(p), Aig_ManRegNum(pNew), 
+        Aig_ManRegNum(p)? 100.0*(Aig_ManRegNum(p)-Aig_ManRegNum(pNew))/Aig_ManRegNum(p) : 0.0 );
+    printf( "ANDs: Beg = %d. End = %d. (R = %6.2f %%).",
+        Aig_ManNodeNum(p), Aig_ManNodeNum(pNew), 
+        Aig_ManNodeNum(p)? 100.0*(Aig_ManNodeNum(p)-Aig_ManNodeNum(pNew))/Aig_ManNodeNum(p) : 0.0 );
+    printf( "\n" );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
