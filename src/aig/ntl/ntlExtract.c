@@ -277,7 +277,7 @@ Aig_Man_t * Ntl_ManExtract( Ntl_Man_t * p )
         Vec_PtrPush( p->vCos, pNet );
         Aig_ObjCreatePo( p->pAig, pNet->pCopy );
     }
-    // visit the nodes starting from latch inputs outputs
+    // visit the nodes starting from latch inputs 
     Ntl_ModelForEachLatch( pRoot, pObj, i )
     {
         pNet = Ntl_ObjFanin0(pObj);
@@ -777,21 +777,22 @@ Nwk_Obj_t * Ntl_ManExtractNwk_rec( Ntl_Man_t * p, Ntl_Net_t * pNet, Nwk_Man_t * 
   SeeAlso     []
 
 ***********************************************************************/
-Nwk_Man_t * Ntl_ManExtractNwk( Ntl_Man_t * p, Aig_Man_t * pAig )
+Nwk_Man_t * Ntl_ManExtractNwk( Ntl_Man_t * p, Aig_Man_t * pAig, Tim_Man_t * pManTime )
 {
     Nwk_Man_t * pNtk;
     Nwk_Obj_t * pNode;
     Ntl_Mod_t * pRoot;
-    Ntl_Net_t * pNet;
+    Ntl_Net_t * pNet, * pNetSimple;
     Ntl_Obj_t * pObj;
     Aig_Obj_t * pAnd;
     Vec_Int_t * vCover, * vMemory;
     int i, k;
     pRoot = Ntl_ManRootModel( p );
-    assert( Ntl_ModelBoxNum(pRoot) == 0 );
-    assert( Ntl_ModelLatchNum(pRoot) == 0 );
-    assert( Ntl_ModelPiNum(pRoot) == Aig_ManPiNum(pAig) );
-    assert( Ntl_ModelPoNum(pRoot) == Aig_ManPoNum(pAig) );
+    if ( Ntl_ModelGetFaninMax(pRoot) > 6 )
+    {
+        printf( "The network contains logic nodes with more than 6 inputs.\n" );
+        return NULL;
+    }
     vCover = Vec_IntAlloc( 100 );
     vMemory = Vec_IntAlloc( 1 << 16 );
     // count the number of fanouts of each net
@@ -803,30 +804,59 @@ Nwk_Man_t * Ntl_ManExtractNwk( Ntl_Man_t * p, Aig_Man_t * pAig )
     Ntl_ModelForEachObj( pRoot, pObj, i )
         Ntl_ObjForEachFanin( pObj, pNet, k )
             Ntl_NetIncrementRefs( pNet );
+    // remember netlist objects int the AIG nodes
+    if ( pManTime != NULL ) // logic netlist
+    {
+        assert( Ntl_ModelPiNum(pRoot) == Aig_ManPiNum(pAig) );
+        assert( Ntl_ModelPoNum(pRoot) == Aig_ManPoNum(pAig) );
+        Aig_ManForEachPi( pAig, pAnd, i )
+            pAnd->pData = Ntl_ObjFanout0( Ntl_ModelPi(pRoot, i) );
+        Aig_ManForEachPo( pAig, pAnd, i )
+            pAnd->pData = Ntl_ObjFanin0(Ntl_ModelPo(pRoot, i) );
+    }
+    else // real netlist
+    {
+        assert( p->vCis && p->vCos );
+        Aig_ManForEachPi( pAig, pAnd, i )
+            pAnd->pData = Vec_PtrEntry( p->vCis, i );
+        Aig_ManForEachPo( pAig, pAnd, i )
+            pAnd->pData = Vec_PtrEntry( p->vCos, i );
+    }
     // construct the network
     pNtk = Nwk_ManAlloc();
     pNtk->pName = Aig_UtilStrsav( pAig->pName );
     pNtk->pSpec = Aig_UtilStrsav( pAig->pSpec );
-    Aig_ManSetPioNumbers( pAig );
+//    Aig_ManSetPioNumbers( pAig );
     Aig_ManForEachObj( pAig, pAnd, i )
     {
         if ( Aig_ObjIsPi(pAnd) )
         {
-            pObj = Ntl_ModelPi( pRoot, Aig_ObjPioNum(pAnd) );
-            pNet = Ntl_ObjFanout0(pObj);
+//            pObj = Ntl_ModelPi( pRoot, Aig_ObjPioNum(pAnd) );
+//            pNet = Ntl_ObjFanout0(pObj);
+            pNet = pAnd->pData;
             pNet->fMark = 1;
             pNet->pCopy = Nwk_ManCreateCi( pNtk, (int)(long)pNet->pCopy ); 
         }
         else if ( Aig_ObjIsPo(pAnd) )
         {
-            pObj = Ntl_ModelPo( pRoot, Aig_ObjPioNum(pAnd) );
-            pNet = Ntl_ObjFanin0(pObj);
-            pNet->pCopy = Ntl_ManExtractNwk_rec( p, pNet, pNtk, vCover, vMemory ); 
+//            pObj = Ntl_ModelPo( pRoot, Aig_ObjPioNum(pAnd) );
+//            pNet = Ntl_ObjFanin0(pObj);
+            pNet = pAnd->pData;
             pNode = Nwk_ManCreateCo( pNtk );
-            Nwk_ObjAddFanin( pNode, pNet->pCopy );
+            if ( (pNetSimple = Ntl_ModelFindSimpleNet( pNet )) )
+            {
+                pNetSimple->pCopy = Ntl_ManExtractNwk_rec( p, pNetSimple, pNtk, vCover, vMemory ); 
+                Nwk_ObjAddFanin( pNode, pNetSimple->pCopy );
+                pNode->fInvert = Kit_PlaIsInv( pNet->pDriver->pSop );
+            }
+            else
+            {
+                pNet->pCopy = Ntl_ManExtractNwk_rec( p, pNet, pNtk, vCover, vMemory ); 
+                Nwk_ObjAddFanin( pNode, pNet->pCopy );
+            }
         }
     }
-    Aig_ManCleanPioNumbers( pAig );
+//    Aig_ManCleanPioNumbers( pAig );
     Ntl_ModelForEachNet( pRoot, pNet, i )
     {
         pNet->pCopy = NULL;
@@ -835,6 +865,10 @@ Nwk_Man_t * Ntl_ManExtractNwk( Ntl_Man_t * p, Aig_Man_t * pAig )
     Vec_IntFree( vCover );
     Vec_IntFree( vMemory );
     // create timing manager from the current design
+    if ( pManTime )
+        pNtk->pManTime = Tim_ManDup( pManTime, 0 );
+    else
+        pNtk->pManTime = Tim_ManDup( p->pManTime, 0 );
     return pNtk;
 }
 
@@ -861,6 +895,16 @@ Nwk_Man_t * Ntl_ManReadNwk( char * pFileName, Aig_Man_t * pAig, Tim_Man_t * pMan
         return NULL;
     }
     pRoot = Ntl_ManRootModel( pNtl );
+    if ( Ntl_ModelLatchNum(pRoot) != 0 )
+    {
+        printf( "Ntl_ManReadNwk(): The input network has %d registers.\n", Ntl_ModelLatchNum(pRoot) );
+        return NULL;
+    }
+    if ( Ntl_ModelBoxNum(pRoot) != 0 )
+    {
+        printf( "Ntl_ManReadNwk(): The input network has %d boxes.\n", Ntl_ModelBoxNum(pRoot) );
+        return NULL;
+    }
     if ( Ntl_ModelPiNum(pRoot) != Aig_ManPiNum(pAig) )
     {
         printf( "Ntl_ManReadNwk(): The number of primary inputs does not match (%d and %d).\n",
@@ -873,10 +917,8 @@ Nwk_Man_t * Ntl_ManReadNwk( char * pFileName, Aig_Man_t * pAig, Tim_Man_t * pMan
             Ntl_ModelPoNum(pRoot), Aig_ManPoNum(pAig) );
         return NULL;
     }
-    pNtk = Ntl_ManExtractNwk( pNtl, pAig );
+    pNtk = Ntl_ManExtractNwk( pNtl, pAig, pManTime );
     Ntl_ManFree( pNtl );
-    if ( pManTime )
-        pNtk->pManTime = Tim_ManDup( pManTime, 0 );
     return pNtk;
 }
 

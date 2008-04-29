@@ -51,6 +51,51 @@ int Ntl_ModelCountLut1( Ntl_Mod_t * pRoot )
 
 /**Function*************************************************************
 
+  Synopsis    [Reads the maximum number of fanins.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Ntl_ModelGetFaninMax( Ntl_Mod_t * pRoot )
+{
+    Ntl_Obj_t * pNode;
+    int i, nFaninsMax = 0;
+    Ntl_ModelForEachNode( pRoot, pNode, i )
+    {
+        if ( nFaninsMax < Ntl_ObjFaninNum(pNode) )
+            nFaninsMax = Ntl_ObjFaninNum(pNode);
+    }
+    return nFaninsMax;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [If the net is driven by an inv/buf, returns its fanin.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Ntl_Net_t * Ntl_ModelFindSimpleNet( Ntl_Net_t * pNetCo )
+{
+    // skip the case when the net is not driven by a node
+    if ( !Ntl_ObjIsNode(pNetCo->pDriver) )
+        return NULL;
+    // skip the case when the node is not an inv/buf
+    if ( Ntl_ObjFaninNum(pNetCo->pDriver) != 1 )
+        return NULL;
+    return Ntl_ObjFanin0(pNetCo->pDriver);
+}
+
+/**Function*************************************************************
+
   Synopsis    [Connects COs to the internal nodes other than inv/bufs.]
 
   Description [Should be called immediately after reading from file.]

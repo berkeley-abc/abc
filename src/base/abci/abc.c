@@ -14874,16 +14874,21 @@ int Abc_CommandAbc8Read( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pFile;
     char * pFileName;
     int c;
+    int fMapped;
     extern void * Ioa_ReadBlif( char * pFileName, int fCheck );
     extern Aig_Man_t * Ntl_ManExtract( void * p );
-
+    extern void * Ntl_ManExtractNwk( void * p, Aig_Man_t * pAig, Tim_Man_t * pManTime );
 
     // set defaults
+    fMapped = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "mh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'm':
+            fMapped ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -14916,12 +14921,18 @@ int Abc_CommandAbc8Read( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "Abc_CommandAbc8Read(): AIG extraction has failed.\n" );
         return 1;
     }
-
+    if ( fMapped )
+    {
+        pAbc->pAbc8Nwk = Ntl_ManExtractNwk( pAbc->pAbc8Ntl, pAbc->pAbc8Aig, NULL );
+        if ( pAbc->pAbc8Nwk == NULL )
+            printf( "Abc_CommandAbc8Read(): Warning! Mapped network is not extracted.\n" );
+    }
     return 0;
 
 usage:
-    fprintf( stdout, "usage: *r [-h]\n" );
+    fprintf( stdout, "usage: *r [-mh]\n" );
     fprintf( stdout, "\t        reads the design with whiteboxes\n" );
+    fprintf( stdout, "\t-m    : toggle extracting mapped network [default = %s]\n", fMapped? "yes": "no" );
     fprintf( stdout, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -15365,6 +15376,11 @@ int Abc_CommandAbc8Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pAbc8Nwk )
     {
+        if ( pAbc->pAbc8Lib == NULL )
+        {
+            printf( "LUT library is not given. Using default 6-LUT library.\n" );
+            pAbc->pAbc8Lib = If_SetSimpleLutLib( 6 );
+        }
         printf( "MAPPED:  " );
         Nwk_ManPrintStats( pAbc->pAbc8Nwk, pAbc->pAbc8Lib, fSaveBest, fDumpResult, pAbc->pAbc8Ntl );
     }

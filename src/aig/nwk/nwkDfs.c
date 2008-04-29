@@ -267,8 +267,8 @@ Vec_Vec_t * Nwk_ManLevelize( Nwk_Man_t * pNtk )
     vLevels = Vec_VecStart( nLevels + 1 );
     Nwk_ManForEachNode( pNtk, pObj, i )
     {
-        assert( (int)pObj->tArrival <= nLevels );
-        Vec_VecPush( vLevels, (int)pObj->tArrival, pObj );
+        assert( Nwk_ObjLevel(pObj) <= nLevels );
+        Vec_VecPush( vLevels, Nwk_ObjLevel(pObj), pObj );
     }
     return vLevels;
 }

@@ -547,6 +547,9 @@ extern int             Kit_GraphLeafDepth_rec( Kit_Graph_t * pGraph, Kit_Node_t 
 extern int             Kit_TruthIsop( unsigned * puTruth, int nVars, Vec_Int_t * vMemory, int fTryBoth );
 /*=== kitPla.c ==========================================================*/
 extern int             Kit_PlaIsConst0( char * pSop );
+extern int             Kit_PlaIsConst1( char * pSop );
+extern int             Kit_PlaIsBuf( char * pSop );
+extern int             Kit_PlaIsInv( char * pSop );
 extern int             Kit_PlaGetVarNum( char * pSop );
 extern int             Kit_PlaGetCubeNum( char * pSop );
 extern int             Kit_PlaIsComplement( char * pSop );

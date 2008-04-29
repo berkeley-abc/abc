@@ -47,6 +47,62 @@ int Kit_PlaIsConst0( char * pSop )
 
 /**Function*************************************************************
 
+  Synopsis    [Checks if the cover is constant 1.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Kit_PlaIsConst1( char * pSop )
+{
+    return pSop[0] == ' ' && pSop[1] == '1';
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks if the cover is a buffer.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Kit_PlaIsBuf( char * pSop )
+{
+    if ( pSop[4] != 0 )
+        return 0;
+    if ( (pSop[0] == '1' && pSop[2] == '1') || (pSop[0] == '0' && pSop[2] == '0') )
+        return 1;
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks if the cover is an inverter.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Kit_PlaIsInv( char * pSop )
+{
+    if ( pSop[4] != 0 )
+        return 0;
+    if ( (pSop[0] == '0' && pSop[2] == '1') || (pSop[0] == '1' && pSop[2] == '0') )
+        return 1;
+    return 0;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Reads the number of variables in the cover.]
 
   Description []

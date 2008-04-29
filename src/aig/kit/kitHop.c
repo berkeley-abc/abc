@@ -130,6 +130,7 @@ Hop_Obj_t * Kit_CoverToHop( Hop_Man_t * pMan, Vec_Int_t * vCover, int nVars, Vec
     Kit_Graph_t * pGraph;
     Hop_Obj_t * pFunc;
     // perform factoring
+    Vec_IntClear( vMemory );
     pGraph = Kit_SopFactor( vCover, 0, nVars, vMemory );
     // convert graph to the AIG
     pFunc = Kit_GraphToHop( pMan, pGraph );

@@ -118,6 +118,7 @@ void Nwk_ManPrintLutSizes( Nwk_Man_t * p, If_Lib_t * pLutLib )
 int Nwk_ManCompareAndSaveBest( Nwk_Man_t * pNtk, void * pNtl )
 {
     extern void Ioa_WriteBlifLogic( Nwk_Man_t * pNtk, void * pNtl, char * pFileName );
+    extern void Nwk_ManDumpBlif( Nwk_Man_t * pNtk, char * pFileName, Vec_Ptr_t * vPiNames, Vec_Ptr_t * vPoNames );
     static struct ParStruct {
         char * pName;  // name of the best saved network
         int    Depth;  // depth of the best saved network
@@ -154,6 +155,7 @@ int Nwk_ManCompareAndSaveBest( Nwk_Man_t * pNtk, void * pNtl )
         ParsBest.nPos  = ParsNew.nPos;
         // writ the network
         Ioa_WriteBlifLogic( pNtk, pNtl, "best.blif" );
+//        Nwk_ManDumpBlif( pNtk, "best_map.blif", NULL, NULL );
         return 1;
     }
     return 0;
@@ -211,6 +213,8 @@ void Nwk_ManPrintStats( Nwk_Man_t * pNtk, If_Lib_t * pLutLib, int fSaveBest, int
         char * pNameGen = pNtk->pSpec? Nwk_FileNameGeneric( pNtk->pSpec ) : "nameless_";
         sprintf( Buffer, "%s_dump.blif", pNameGen );
         Ioa_WriteBlifLogic( pNtk, pNtl, Buffer );
+//        sprintf( Buffer, "%s_dump_map.blif", pNameGen );
+//        Nwk_ManDumpBlif( pNtk, Buffer, NULL, NULL );
         if ( pNtk->pSpec ) free( pNameGen );
     }
 

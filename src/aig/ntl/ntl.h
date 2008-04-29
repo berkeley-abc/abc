@@ -198,25 +198,25 @@ static inline void        Ntl_ObjSetFanout( Ntl_Obj_t * p, Ntl_Net_t * pNet, int
     for ( i = 0; (i < Vec_PtrSize(p->vNodes)) && (((pObj) = Vec_PtrEntry(p->vNodes, i)), 1); i++ ) \
         if ( (pObj) == NULL || !Ntl_ObjIsBox(pObj) ) {} else
 
-#define Ntl_ModelForEachPi( pNtl, pObj, i )                                     \
-    Vec_PtrForEachEntry( pNtl->vPis, pObj, i )
-#define Ntl_ModelForEachPo( pNtl, pObj, i )                                     \
-    Vec_PtrForEachEntry( pNtl->vPos, pObj, i )
-#define Ntl_ModelForEachObj( pNtl, pObj, i )                                    \
-    for ( i = 0; (i < Vec_PtrSize(pNtl->vObjs)) && (((pObj) = Vec_PtrEntry(pNtl->vObjs, i)), 1); i++ ) \
+#define Ntl_ModelForEachPi( pNwk, pObj, i )                                     \
+    Vec_PtrForEachEntry( pNwk->vPis, pObj, i )
+#define Ntl_ModelForEachPo( pNwk, pObj, i )                                     \
+    Vec_PtrForEachEntry( pNwk->vPos, pObj, i )
+#define Ntl_ModelForEachObj( pNwk, pObj, i )                                    \
+    for ( i = 0; (i < Vec_PtrSize(pNwk->vObjs)) && (((pObj) = Vec_PtrEntry(pNwk->vObjs, i)), 1); i++ ) \
         if ( pObj == NULL ) {} else
-#define Ntl_ModelForEachLatch( pNtl, pObj, i )                                  \
-    for ( i = 0; (i < Vec_PtrSize(pNtl->vObjs)) && (((pObj) = Vec_PtrEntry(pNtl->vObjs, i)), 1); i++ ) \
+#define Ntl_ModelForEachLatch( pNwk, pObj, i )                                  \
+    for ( i = 0; (i < Vec_PtrSize(pNwk->vObjs)) && (((pObj) = Vec_PtrEntry(pNwk->vObjs, i)), 1); i++ ) \
         if ( (pObj) == NULL || !Ntl_ObjIsLatch(pObj) ) {} else
-#define Ntl_ModelForEachNode( pNtl, pObj, i )                                   \
-    for ( i = 0; (i < Vec_PtrSize(pNtl->vObjs)) && (((pObj) = Vec_PtrEntry(pNtl->vObjs, i)), 1); i++ ) \
+#define Ntl_ModelForEachNode( pNwk, pObj, i )                                   \
+    for ( i = 0; (i < Vec_PtrSize(pNwk->vObjs)) && (((pObj) = Vec_PtrEntry(pNwk->vObjs, i)), 1); i++ ) \
         if ( (pObj) == NULL || !Ntl_ObjIsNode(pObj) ) {} else
-#define Ntl_ModelForEachBox( pNtl, pObj, i )                                    \
-    for ( i = 0; (i < Vec_PtrSize(pNtl->vObjs)) && (((pObj) = Vec_PtrEntry(pNtl->vObjs, i)), 1); i++ ) \
+#define Ntl_ModelForEachBox( pNwk, pObj, i )                                    \
+    for ( i = 0; (i < Vec_PtrSize(pNwk->vObjs)) && (((pObj) = Vec_PtrEntry(pNwk->vObjs, i)), 1); i++ ) \
         if ( (pObj) == NULL || !Ntl_ObjIsBox(pObj) ) {} else
-#define Ntl_ModelForEachNet( pNtl, pNet, i )                                    \
-    for ( i = 0; i < pNtl->nTableSize; i++ )                                    \
-        for ( pNet = pNtl->pTable[i]; pNet; pNet = pNet->pNext ) 
+#define Ntl_ModelForEachNet( pNwk, pNet, i )                                    \
+    for ( i = 0; i < pNwk->nTableSize; i++ )                                    \
+        for ( pNet = pNwk->pTable[i]; pNet; pNet = pNet->pNext ) 
 
 #define Ntl_ObjForEachFanin( pObj, pFanin, i )                                  \
     for ( i = 0; (i < (pObj)->nFanins) && ((pFanin) = (pObj)->pFanio[i]); i++ )
@@ -296,6 +296,8 @@ extern void            Ioa_WriteBlif( Ntl_Man_t * p, char * pFileName );
 extern void            Ioa_WriteBlifLogic( Nwk_Man_t * pNtk, Ntl_Man_t * p, char * pFileName );
 /*=== ntlUtil.c ==========================================================*/
 extern int             Ntl_ModelCountLut1( Ntl_Mod_t * pRoot );
+extern int             Ntl_ModelGetFaninMax( Ntl_Mod_t * pRoot );
+extern Ntl_Net_t *     Ntl_ModelFindSimpleNet( Ntl_Net_t * pNetCo );
 extern int             Ntl_ManCountSimpleCoDrivers( Ntl_Man_t * p );
 extern Vec_Ptr_t *     Ntl_ManCollectCiNames( Ntl_Man_t * p );
 extern Vec_Ptr_t *     Ntl_ManCollectCoNames( Ntl_Man_t * p );
