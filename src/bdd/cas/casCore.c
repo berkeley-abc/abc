@@ -52,7 +52,7 @@ DdNode * Cudd_bddTransferPermute( DdManager * ddSource, DdManager * ddDestinatio
 ////////////////////////////////////////////////////////////////////////
 
 #define PRD(p)       printf( "\nDECOMPOSITION TREE:\n\n" ); PrintDecEntry( (p), 0 ) 
-#define PRB(f)       printf( #f " = " ); Cudd_bddPrint(dd,f); printf( "\n" )
+#define PRB_(f)       printf( #f " = " ); Cudd_bddPrint(dd,f); printf( "\n" )
 #define PRK(f,n)     Cudd_PrintKMap(stdout,dd,(f),Cudd_Not(f),(n),NULL,0); printf( "K-map for function" #f "\n\n" )
 #define PRK2(f,g,n)  Cudd_PrintKMap(stdout,dd,(f),(g),(n),NULL,0); printf( "K-map for function <" #f ", " #g ">\n\n" ) 
 

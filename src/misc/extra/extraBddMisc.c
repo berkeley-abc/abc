@@ -961,6 +961,34 @@ void Extra_bddPermuteArray( DdManager * manager, DdNode ** bNodesIn, DdNode ** b
 }    /* end of Extra_bddPermuteArray */
 
 
+/**Function********************************************************************
+
+  Synopsis    [Computes the positive polarty cube composed of the first vars in the array.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+DdNode * Extra_bddComputeCube( DdManager * dd, DdNode ** bXVars, int nVars )
+{
+    DdNode * bRes;
+    DdNode * bTemp;
+    int i;
+
+    bRes = b1; Cudd_Ref( bRes );
+    for ( i = 0; i < nVars; i++ )
+    {
+        bRes = Cudd_bddAnd( dd, bTemp = bRes, bXVars[i] );  Cudd_Ref( bRes );
+        Cudd_RecursiveDeref( dd, bTemp );
+    }
+
+    Cudd_Deref( bRes );
+    return bRes;
+}
+
 /*---------------------------------------------------------------------------*/
 /* Definition of internal functions                                          */
 /*---------------------------------------------------------------------------*/

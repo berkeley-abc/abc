@@ -479,14 +479,12 @@ Aig_Man_t * Aig_ManConstReduce( Aig_Man_t * p, int fVerbose )
     Vec_Ptr_t * vMap;
     while ( (vMap = Aig_ManTernarySimulate( p, fVerbose )) )
     {
-        if ( fVerbose )
-        printf( "RBeg = %5d. NBeg = %6d.   ", Aig_ManRegNum(p), Aig_ManNodeNum(p) );
         p = Aig_ManRemap( pTemp = p, vMap );
-        Aig_ManStop( pTemp );
         Vec_PtrFree( vMap );
         Aig_ManSeqCleanup( p );
         if ( fVerbose )
-        printf( "REnd = %5d. NEnd = %6d.  \n", Aig_ManRegNum(p), Aig_ManNodeNum(p) );
+            Aig_ManReportImprovement( pTemp, p );
+        Aig_ManStop( pTemp );
     }
     return p;
 }

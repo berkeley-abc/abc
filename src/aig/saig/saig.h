@@ -49,6 +49,11 @@ static inline int          Saig_ManRegNum( Aig_Man_t * p )         { return p->n
 static inline Aig_Obj_t *  Saig_ManLo( Aig_Man_t * p, int i )      { return (Aig_Obj_t *)Vec_PtrEntry(p->vPis, Saig_ManPiNum(p)+i);   }
 static inline Aig_Obj_t *  Saig_ManLi( Aig_Man_t * p, int i )      { return (Aig_Obj_t *)Vec_PtrEntry(p->vPos, Saig_ManPoNum(p)+i);   }
 
+static inline int          Saig_ObjIsPi( Aig_Man_t * p, Aig_Obj_t * pObj )    { return Aig_ObjIsPi(pObj) && Aig_ObjPioNum(pObj) < Saig_ManPiNum(p); }
+static inline int          Saig_ObjIsPo( Aig_Man_t * p, Aig_Obj_t * pObj )    { return Aig_ObjIsPo(pObj) && Aig_ObjPioNum(pObj) < Saig_ManPoNum(p); }
+static inline int          Saig_ObjIsLo( Aig_Man_t * p, Aig_Obj_t * pObj )    { return Aig_ObjIsPi(pObj) && Aig_ObjPioNum(pObj) >= Saig_ManPiNum(p); }
+static inline int          Saig_ObjIsLi( Aig_Man_t * p, Aig_Obj_t * pObj )    { return Aig_ObjIsPo(pObj) && Aig_ObjPioNum(pObj) >= Saig_ManPoNum(p); }
+
 // iterator over the primary inputs/outputs
 #define Saig_ManForEachPi( p, pObj, i )                                           \
     Vec_PtrForEachEntryStop( p->vPis, pObj, i, Saig_ManPiNum(p) )
@@ -69,7 +74,15 @@ static inline Aig_Obj_t *  Saig_ManLi( Aig_Man_t * p, int i )      { return (Aig
 ////////////////////////////////////////////////////////////////////////
 
 /*=== saigPhase.c ==========================================================*/
- 
+extern Aig_Man_t *       Saig_ManPhaseAbstract( Aig_Man_t * p, Vec_Int_t * vInits, int nFrames, int fIgnore, int fPrint, int fVerbose );
+/*=== saigRetFwd.c ==========================================================*/
+extern Aig_Man_t *       Saig_ManRetimeForward( Aig_Man_t * p, int nMaxIters, int fVerbose );
+/*=== saigRetMin.c ==========================================================*/
+extern Aig_Man_t *       Saig_ManRetimeDupForward( Aig_Man_t * p, Vec_Ptr_t * vCut );
+extern Aig_Man_t *       Saig_ManRetimeMinArea( Aig_Man_t * p, int nMaxIters, int fForwardOnly, int fBackwardOnly, int fInitial, int fVerbose );
+/*=== saigScl.c ==========================================================*/
+extern void              Saig_ManReportUselessRegisters( Aig_Man_t * pAig );
+
 #ifdef __cplusplus
 }
 #endif

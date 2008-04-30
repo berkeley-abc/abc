@@ -451,27 +451,17 @@ Aig_Man_t * Aig_ManReduceLaches( Aig_Man_t * p, int fVerbose )
     Aig_Man_t * pTemp;
     Vec_Ptr_t * vMap;
     int nSaved, nCur;
+    if ( fVerbose )
+        printf( "Performing combinational register sweep:\n" );
     for ( nSaved = 0; (nCur = Aig_ManReduceLachesCount(p)); nSaved += nCur )
     {
-        if ( fVerbose )
-        {
-        printf( "Saved = %5d.   ", nCur );
-        printf( "RBeg = %5d. NBeg = %6d.   ", Aig_ManRegNum(p), Aig_ManNodeNum(p) );
-        }
         vMap = Aig_ManReduceLachesOnce( p );
-//Aig_ManPrintStats( p );
         p = Aig_ManRemap( pTemp = p, vMap );
-//Aig_ManPrintStats( p );
-        Aig_ManStop( pTemp );
         Vec_PtrFree( vMap );
         Aig_ManSeqCleanup( p );
-//Aig_ManPrintStats( p );
-//printf( "\n" );
         if ( fVerbose )
-        {
-        printf( "REnd = %5d. NEnd = %6d.   ", Aig_ManRegNum(p), Aig_ManNodeNum(p) );
-        printf( "\n" );
-        }
+            Aig_ManReportImprovement( pTemp, p );
+        Aig_ManStop( pTemp );
         if ( p->nRegs == 0 )
             break;
     }
@@ -600,6 +590,8 @@ void Aig_ManComputeSccs( Aig_Man_t * p )
 ***********************************************************************/
 Aig_Man_t * Aig_ManScl( Aig_Man_t * pAig, int fLatchConst, int fLatchEqual, int fVerbose )
 {
+    extern void Saig_ManReportUselessRegisters( Aig_Man_t * pAig );
+
     Aig_Man_t * pAigInit, * pAigNew;
     Aig_Obj_t * pFlop1, * pFlop2;
     int i, Entry1, Entry2, nTruePis;
@@ -633,6 +625,8 @@ Aig_Man_t * Aig_ManScl( Aig_Man_t * pAig, int fLatchConst, int fLatchEqual, int 
 //    Aig_ManSeqCleanup( pAigInit );
     pAigNew = Aig_ManDupRepr( pAigInit, 0 );
     Aig_ManSeqCleanup( pAigNew );
+
+    Saig_ManReportUselessRegisters( pAigNew );
     return pAigNew;
 }
 

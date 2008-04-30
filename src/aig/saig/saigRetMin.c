@@ -617,16 +617,16 @@ Aig_Man_t * Saig_ManRetimeMinAreaBackward( Aig_Man_t * pNew, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Saig_ManRetimeMinArea( Aig_Man_t * p, int fForwardOnly, int fBackwardOnly, int fInitial, int fVerbose )
+Aig_Man_t * Saig_ManRetimeMinArea( Aig_Man_t * p, int nMaxIters, int fForwardOnly, int fBackwardOnly, int fInitial, int fVerbose )
 {
     Vec_Ptr_t * vCut;
     Aig_Man_t * pNew, * pTemp, * pCopy;
-    int fChanges;
+    int i, fChanges;
     pNew = Aig_ManDup( p );
     // perform several iterations of forward retiming
     fChanges = 0;
     if ( !fBackwardOnly )
-    while ( 1 )
+    for ( i = 0; i < nMaxIters; i++ )
     {
         vCut = Nwk_ManDeriveRetimingCut( pNew, 1, fVerbose );
         if ( Vec_PtrSize(vCut) >= Aig_ManRegNum(pNew) )
@@ -646,7 +646,7 @@ Aig_Man_t * Saig_ManRetimeMinArea( Aig_Man_t * p, int fForwardOnly, int fBackwar
     // perform several iterations of backward retiming
     fChanges = 0;
     if ( !fForwardOnly && !fInitial )
-    while ( 1 )
+    for ( i = 0; i < nMaxIters; i++ )
     {
         vCut = Nwk_ManDeriveRetimingCut( pNew, 0, fVerbose );
         if ( Vec_PtrSize(vCut) >= Aig_ManRegNum(pNew) )
@@ -664,7 +664,7 @@ Aig_Man_t * Saig_ManRetimeMinArea( Aig_Man_t * p, int fForwardOnly, int fBackwar
         fChanges = 1;
     }
     else if ( !fForwardOnly && fInitial )
-    while ( 1 )
+    for ( i = 0; i < nMaxIters; i++ )
     {
         pCopy = Aig_ManDup( pNew );
         pTemp = Saig_ManRetimeMinAreaBackward( pCopy, fVerbose );

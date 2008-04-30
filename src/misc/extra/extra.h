@@ -118,6 +118,10 @@ typedef unsigned long long uint64;
 #define PRTP(a,t,T)  printf("%s = ", (a)); printf("%6.2f sec (%6.2f %%)\n", (float)(t)/(float)(CLOCKS_PER_SEC), (T)? 100.0*(t)/(T) : 0.0)
 #endif
 
+#ifndef PRB
+#define PRB(dd,f)       printf("%s = ", #f); Extra_bddPrint(dd,f); printf("\n")
+#endif
+
 /*===========================================================================*/
 /*     Various Utilities                                                     */
 /*===========================================================================*/
@@ -162,6 +166,26 @@ extern int          Extra_bddNodePathsUnderCutArray( DdManager * dd, DdNode ** p
 /* find the profile of a DD (the number of edges crossing each level) */
 extern int          Extra_ProfileWidth( DdManager * dd, DdNode * F, int * Profile, int CutLevel );
 
+/*=== extraBddImage.c ================================================================*/
+
+typedef struct Extra_ImageTree_t_  Extra_ImageTree_t;
+extern Extra_ImageTree_t * Extra_bddImageStart( 
+    DdManager * dd, DdNode * bCare,
+    int nParts, DdNode ** pbParts,
+    int nVars, DdNode ** pbVars, int fVerbose );
+extern DdNode *    Extra_bddImageCompute( Extra_ImageTree_t * pTree, DdNode * bCare );
+extern void        Extra_bddImageTreeDelete( Extra_ImageTree_t * pTree );
+extern DdNode *    Extra_bddImageRead( Extra_ImageTree_t * pTree );
+
+typedef struct Extra_ImageTree2_t_  Extra_ImageTree2_t;
+extern Extra_ImageTree2_t * Extra_bddImageStart2( 
+    DdManager * dd, DdNode * bCare,
+    int nParts, DdNode ** pbParts,
+    int nVars, DdNode ** pbVars, int fVerbose );
+extern DdNode *    Extra_bddImageCompute2( Extra_ImageTree2_t * pTree, DdNode * bCare );
+extern void        Extra_bddImageTreeDelete2( Extra_ImageTree2_t * pTree );
+extern DdNode *    Extra_bddImageRead2( Extra_ImageTree2_t * pTree );
+
 /*=== extraBddMisc.c ========================================================*/
 
 extern DdNode *     Extra_TransferPermute( DdManager * ddSource, DdManager * ddDestination, DdNode * f, int * Permute );
@@ -190,6 +214,7 @@ extern DdNode *     Extra_bddCreateOr( DdManager * dd, int nVars );
 extern DdNode *     Extra_bddCreateExor( DdManager * dd, int nVars );
 extern DdNode *     Extra_zddPrimes( DdManager * dd, DdNode * F );
 extern void         Extra_bddPermuteArray( DdManager * dd, DdNode ** bNodesIn, DdNode ** bNodesOut, int nNodes, int *permut );
+extern DdNode *     Extra_bddComputeCube( DdManager * dd, DdNode ** bXVars, int nVars );
 
 /*=== extraBddKmap.c ================================================================*/
 

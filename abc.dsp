@@ -342,6 +342,10 @@ SOURCE=.\src\base\abci\abcQuant.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcReach.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcRec.c
 # End Source File
 # Begin Source File
@@ -2034,6 +2038,10 @@ SOURCE=.\src\misc\extra\extraBddCas.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\misc\extra\extraBddImage.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\misc\extra\extraBddKmap.c
 # End Source File
 # Begin Source File
@@ -3250,7 +3258,15 @@ SOURCE=.\src\aig\saig\saigPhase.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\saig\saigRetFwd.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\saig\saigRetMin.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\saig\saigScl.c
 # End Source File
 # End Group
 # End Group

@@ -1409,45 +1409,11 @@ Abc_Ntk_t * Abc_NtkDarRetime( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose )
         Vec_IntFree( pMan->vFlopNums ); 
     pMan->vFlopNums = NULL;
 
-    pMan = Rtm_ManRetime( pTemp = pMan, 1, nStepsMax, 0 );
+    pMan = Rtm_ManRetime( pTemp = pMan, 1, nStepsMax, fVerbose );
     Aig_ManStop( pTemp );
 
 //    pMan = Aig_ManReduceLaches( pMan, 1 );
 //    pMan = Aig_ManConstReduce( pMan, 1 );
-
-    pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
-    Aig_ManStop( pMan );
-    return pNtkAig;
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Gives the current ABC network to AIG manager for processing.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Abc_Ntk_t * Abc_NtkDarRetimeMinArea( Abc_Ntk_t * pNtk, int fForwardOnly, int fBackwardOnly, int fInitial, int fVerbose )
-{
-    extern Aig_Man_t * Saig_ManRetimeMinArea( Aig_Man_t * p, int fForwardOnly, int fBackwardOnly, int fInitial, int fVerbose );
-    Abc_Ntk_t * pNtkAig;
-    Aig_Man_t * pMan, * pTemp;
-    pMan = Abc_NtkToDar( pNtk, 0, 1 );
-    if ( pMan == NULL )
-        return NULL;
-    if ( pMan->vFlopNums )
-        Vec_IntFree( pMan->vFlopNums ); 
-    pMan->vFlopNums = NULL;
-
-    pMan->nTruePis = Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan); 
-    pMan->nTruePos = Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan); 
-
-    pMan = Saig_ManRetimeMinArea( pTemp = pMan, fForwardOnly, fBackwardOnly, fInitial, fVerbose );
-    Aig_ManStop( pTemp );
 
     pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
     Aig_ManStop( pMan );
@@ -1482,6 +1448,79 @@ Abc_Ntk_t * Abc_NtkDarRetimeF( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose )
 
 //    pMan = Aig_ManReduceLaches( pMan, 1 );
 //    pMan = Aig_ManConstReduce( pMan, 1 );
+
+    pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
+    Aig_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkDarRetimeMostFwd( Abc_Ntk_t * pNtk, int nMaxIters, int fVerbose )
+{
+    extern Aig_Man_t * Saig_ManRetimeForward( Aig_Man_t * p, int nIters, int fVerbose );
+
+    Abc_Ntk_t * pNtkAig;
+    Aig_Man_t * pMan, * pTemp;
+    pMan = Abc_NtkToDar( pNtk, 0, 1 );
+    if ( pMan == NULL )
+        return NULL;
+//    Aig_ManReduceLachesCount( pMan );
+    if ( pMan->vFlopNums )
+        Vec_IntFree( pMan->vFlopNums ); 
+    pMan->vFlopNums = NULL;
+
+    pMan->nTruePis = Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan); 
+    pMan->nTruePos = Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan); 
+
+    pMan = Saig_ManRetimeForward( pTemp = pMan, nMaxIters, fVerbose );
+    Aig_ManStop( pTemp );
+
+//    pMan = Aig_ManReduceLaches( pMan, 1 );
+//    pMan = Aig_ManConstReduce( pMan, 1 );
+
+    pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
+    Aig_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkDarRetimeMinArea( Abc_Ntk_t * pNtk, int nMaxIters, int fForwardOnly, int fBackwardOnly, int fInitial, int fVerbose )
+{
+    extern Aig_Man_t * Saig_ManRetimeMinArea( Aig_Man_t * p, int nMaxIters, int fForwardOnly, int fBackwardOnly, int fInitial, int fVerbose );
+    Abc_Ntk_t * pNtkAig;
+    Aig_Man_t * pMan, * pTemp;
+    pMan = Abc_NtkToDar( pNtk, 0, 1 );
+    if ( pMan == NULL )
+        return NULL;
+    if ( pMan->vFlopNums )
+        Vec_IntFree( pMan->vFlopNums ); 
+    pMan->vFlopNums = NULL;
+
+    pMan->nTruePis = Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan); 
+    pMan->nTruePos = Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan); 
+
+    pMan = Saig_ManRetimeMinArea( pTemp = pMan, nMaxIters, fForwardOnly, fBackwardOnly, fInitial, fVerbose );
+    Aig_ManStop( pTemp );
 
     pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
     Aig_ManStop( pMan );

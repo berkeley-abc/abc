@@ -245,7 +245,7 @@ int Mfx_Perform( Nwk_Man_t * pNtk, Mfx_Par_t * pPars, If_Lib_t * pLutLib )
     p->nFaninMax = nFaninMax;
     if ( !pPars->fResub )
     {
-        pDecPars->nVarsMax = nFaninMax;
+        pDecPars->nVarsMax = (nFaninMax < 3) ? 3 : nFaninMax;
         pDecPars->fVerbose = pPars->fVerbose;
         p->vTruth = Vec_IntAlloc( 0 );
         p->pManDec = Bdc_ManAlloc( pDecPars );

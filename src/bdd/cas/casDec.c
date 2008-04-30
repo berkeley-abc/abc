@@ -94,7 +94,7 @@ long s_EncComputeTime;
 ///                      debugging macros                            ///
 ////////////////////////////////////////////////////////////////////////
 
-#define PRB(f)       printf( #f " = " ); Cudd_bddPrint(dd,f); printf( "\n" )
+#define PRB_(f)       printf( #f " = " ); Cudd_bddPrint(dd,f); printf( "\n" )
 #define PRK(f,n)     Cudd_PrintKMap(stdout,dd,(f),Cudd_Not(f),(n),NULL,0); printf( "K-map for function" #f "\n\n" )
 #define PRK2(f,g,n)  Cudd_PrintKMap(stdout,dd,(f),(g),(n),NULL,0); printf( "K-map for function <" #f ", " #g ">\n\n" ) 
 

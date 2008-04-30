@@ -98,6 +98,7 @@ static int Abc_CommandBidec          ( Abc_Frame_t * pAbc, int argc, char ** arg
 static int Abc_CommandOrder          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMuxes          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandExtSeqDcs      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandReach          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCone           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandNode           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTopmost        ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -349,6 +350,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "order",         Abc_CommandOrder,            0 );
     Cmd_CommandAdd( pAbc, "Various",      "muxes",         Abc_CommandMuxes,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "ext_seq_dcs",   Abc_CommandExtSeqDcs,        0 );
+    Cmd_CommandAdd( pAbc, "Various",      "reach",         Abc_CommandReach,            0 );
     Cmd_CommandAdd( pAbc, "Various",      "cone",          Abc_CommandCone,             1 );
     Cmd_CommandAdd( pAbc, "Various",      "node",          Abc_CommandNode,             1 );
     Cmd_CommandAdd( pAbc, "Various",      "topmost",       Abc_CommandTopmost,          1 );
@@ -5589,6 +5591,116 @@ int Abc_CommandExtSeqDcs( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     fprintf( pErr, "usage: ext_seq_dcs [-vh]\n" );
     fprintf( pErr, "\t         create EXDC network using unreachable states\n" );
+    fprintf( pErr, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
+    fprintf( pErr, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandReach( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNtk;
+    int nBddMax;
+    int nIterMax;
+    int fPartition;
+    int fReorder;
+    int fVerbose;
+    int c;
+    extern void Abc_NtkVerifyUsingBdds( Abc_Ntk_t * pNtk, int nBddMax, int nIterMax, int fPartition, int fReorder, int fVerbose );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set defaults
+    nBddMax    = 50000;
+    nIterMax   = 1000;
+    fPartition = 1;
+    fReorder   = 1;
+    fVerbose   = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "BFprvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'B':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-B\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nBddMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nBddMax < 0 ) 
+                goto usage;
+            break;
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nIterMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nIterMax < 0 ) 
+                goto usage;
+            break;
+        case 'p':
+            fPartition ^= 1;
+            break;
+        case 'r':
+            fReorder ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        fprintf( pErr, "Empty network.\n" );
+        return 1;
+    }
+    if ( Abc_NtkLatchNum(pNtk) == 0 )
+    {
+        fprintf( stdout, "The current network has no latches.\n" );
+        return 0;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        fprintf( stdout, "Reachability analysis works only for AIGs (run \"strash\").\n" );
+        return 1;
+    }
+    if ( Abc_NtkPoNum(pNtk) != 1 )
+    {
+        fprintf( stdout, "The sequential miter has more than one output (run \"orpos\").\n" );
+        return 1;
+    }
+    Abc_NtkVerifyUsingBdds( pNtk, nBddMax, nIterMax, fPartition, fReorder, fVerbose );
+    return 0;
+
+usage:
+    fprintf( pErr, "usage: reach [-BF num] [-prvh]\n" );
+    fprintf( pErr, "\t         verifies sequential miter using BDD-based reachability\n" );
+    fprintf( pErr, "\t-B num : max number of nodes in the intermediate BDDs [default = %d]\n", nBddMax );
+    fprintf( pErr, "\t-F num : max number of reachability iterations [default = %d]\n", nIterMax );
+    fprintf( pErr, "\t-p     : enable partitioned image computation [default = %s]\n", fPartition? "yes": "no" );  
+    fprintf( pErr, "\t-r     : enable dynamic BDD variable reordering [default = %s]\n", fReorder? "yes": "no" );  
     fprintf( pErr, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );  
     fprintf( pErr, "\t-h     : print the command usage\n");
     return 1;
@@ -11925,10 +12037,11 @@ int Abc_CommandDRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nStepsMax;
     int fFastAlgo;
     int fVerbose;
-    int c;
+    int c, nMaxIters;
     extern Abc_Ntk_t * Abc_NtkDarRetime( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose );
     extern Abc_Ntk_t * Abc_NtkDarRetimeF( Abc_Ntk_t * pNtk, int nStepsMax, int fVerbose );
-    extern Abc_Ntk_t * Abc_NtkDarRetimeMinArea( Abc_Ntk_t * pNtk, int fForwardOnly, int fBackwardOnly, int fInitial, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkDarRetimeMinArea( Abc_Ntk_t * pNtk, int nMaxIters, int fForwardOnly, int fBackwardOnly, int fInitial, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkDarRetimeMostFwd( Abc_Ntk_t * pNtk, int nMaxIters, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -11940,13 +12053,25 @@ int Abc_CommandDRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     fBackwardOnly = 0;
     fInitial = 1;
     nStepsMax = 100000;
-    fFastAlgo = 1;
+    fFastAlgo = 0;
+    nMaxIters = 20;
     fVerbose  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Smfbiavh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NSmfbiavh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                fprintf( pErr, "Command line switch \"-N\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nMaxIters = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nMaxIters < 0 ) 
+                goto usage;
+            break;
         case 'S':
             if ( globalUtilOptind >= argc )
             {
@@ -12003,11 +12128,12 @@ int Abc_CommandDRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // perform the retiming
     if ( fMinArea )
-        pNtkRes = Abc_NtkDarRetimeMinArea( pNtk, fForwardOnly, fBackwardOnly, fInitial, fVerbose );
+        pNtkRes = Abc_NtkDarRetimeMinArea( pNtk, nMaxIters, fForwardOnly, fBackwardOnly, fInitial, fVerbose );
     else if ( fFastAlgo )
         pNtkRes = Abc_NtkDarRetime( pNtk, nStepsMax, fVerbose );
     else
-        pNtkRes = Abc_NtkDarRetimeF( pNtk, nStepsMax, fVerbose );
+//        pNtkRes = Abc_NtkDarRetimeF( pNtk, nStepsMax, fVerbose );
+        pNtkRes = Abc_NtkDarRetimeMostFwd( pNtk, nMaxIters, fVerbose );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Retiming has failed.\n" );
@@ -12018,12 +12144,13 @@ int Abc_CommandDRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: dretime [-S num] [-mfbiavh]\n" );
-    fprintf( pErr, "\t         new implementation of min-area retiming\n" );
-    fprintf( pErr, "\t-m     : toggle min-area and most-forward retiming [default = %s]\n", fMinArea? "min-area": "most-fwd" );
+    fprintf( pErr, "usage: dretime [-NS num] [-mfbiavh]\n" );
+    fprintf( pErr, "\t         new implementation of min-area (or most-forward) retiming\n" );
+    fprintf( pErr, "\t-m     : toggle min-area retiming and most-forward retiming [default = %s]\n", fMinArea? "min-area": "most-fwd" );
     fprintf( pErr, "\t-f     : enables forward-only retiming [default = %s]\n", fForwardOnly? "yes": "no" );
     fprintf( pErr, "\t-b     : enables backward-only retiming [default = %s]\n", fBackwardOnly? "yes": "no" );
     fprintf( pErr, "\t-i     : enables init state computation [default = %s]\n", fInitial? "yes": "no" );
+    fprintf( pErr, "\t-N num : the max number of one-frame iterations to perform [default = %d]\n", nMaxIters );
     fprintf( pErr, "\t-S num : the max number of forward retiming steps to perform [default = %d]\n", nStepsMax );
     fprintf( pErr, "\t-a     : enables a fast most-forward algorithm [default = %s]\n", fFastAlgo? "yes": "no" );
     fprintf( pErr, "\t-v     : enables verbose output [default = %s]\n", fVerbose? "yes": "no" );

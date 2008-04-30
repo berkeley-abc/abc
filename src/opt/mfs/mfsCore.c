@@ -241,21 +241,23 @@ int Abc_NtkMfs( Abc_Ntk_t * pNtk, Mfs_Par_t * pPars )
     if ( pNtk->pExcare )
     {
         Abc_Ntk_t * pTemp;
-        pTemp = Abc_NtkStrash( pNtk->pExcare, 0, 0, 0 );
-        p->pCare = Abc_NtkToDar( pTemp, 0 );
-        Abc_NtkDelete( pTemp );
-        p->vSuppsInv = Aig_ManSupportsInverse( p->pCare );
+        if ( Abc_NtkPiNum(pNtk->pExcare) != Abc_NtkCiNum(pNtk) )
+            printf( "The PI count of careset (%d) and logic network (%d) differ. Careset is not used.\n", 
+                Abc_NtkPiNum(pNtk->pExcare), Abc_NtkCiNum(pNtk) );
+        else
+        {
+            pTemp = Abc_NtkStrash( pNtk->pExcare, 0, 0, 0 );
+            p->pCare = Abc_NtkToDar( pTemp, 0 );
+            Abc_NtkDelete( pTemp );
+            p->vSuppsInv = Aig_ManSupportsInverse( p->pCare );
+        }
     }
-//    if ( pPars->fVerbose )
-    {
-        if ( p->pCare != NULL )
-            printf( "Performing optimization with %d external care clauses.\n", Aig_ManPoNum(p->pCare) );
-//        else
-//            printf( "Performing optimization without constraints.\n" );
-    }
+    if ( p->pCare != NULL )
+        printf( "Performing optimization with %d external care clauses.\n", Aig_ManPoNum(p->pCare) );
+    // prepare the BDC manager
     if ( !pPars->fResub )
     {
-        pDecPars->nVarsMax = nFaninMax;
+        pDecPars->nVarsMax = (nFaninMax < 3) ? 3 : nFaninMax;
         pDecPars->fVerbose = pPars->fVerbose;
         p->vTruth = Vec_IntAlloc( 0 );
         p->pManDec = Bdc_ManAlloc( pDecPars );
