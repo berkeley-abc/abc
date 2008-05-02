@@ -523,7 +523,7 @@ Abc_FlowRetime_PushFlows( Abc_Ntk_t * pNtk, bool fVerbose ) {
   
   if (fVerbose) vprintf("max-flow2 = %d\n", flow);
 
-  PRT( "time", clock() - clk );
+//  PRT( "time", clock() - clk );
   return flow;
 }
 

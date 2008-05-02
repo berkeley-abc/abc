@@ -226,6 +226,13 @@ void Ntl_ManPrepareCec( char * pFileName1, char * pFileName2, Aig_Man_t ** ppMan
     }
     // normalize inputs/outputs
     Ntl_ManCreateMissingInputs( pModel1, pModel2, 0 );
+    if ( Ntl_ModelCiNum(pModel1) != Ntl_ModelCiNum(pModel2) )
+    {
+        if ( pMan1 )  Ntl_ManFree( pMan1 );
+        if ( pMan2 )  Ntl_ManFree( pMan2 );
+        printf( "Ntl_ManPrepareCec(): Cannot verify designs with too many different CIs.\n" );
+        return;
+    }
     Ntl_ManDeriveCommonCis( pMan1, pMan2, 0 );
     Ntl_ManDeriveCommonCos( pMan1, pMan2, 0 );
     if ( Vec_PtrSize(pMan1->vCos) == 0 )

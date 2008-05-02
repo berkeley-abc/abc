@@ -31,6 +31,7 @@ struct Ioa_ReadMod_t_
 {
     // file lines
     char *               pFirst;       // .model line
+    char *               pAttrib;      // .attrib line
     Vec_Ptr_t *          vInputs;      // .inputs lines
     Vec_Ptr_t *          vOutputs;     // .outputs lines
     Vec_Ptr_t *          vLatches;     // .latch lines
@@ -78,6 +79,7 @@ static void              Ioa_ReadReadPreparse( Ioa_ReadMan_t * p );
 static int               Ioa_ReadReadInterfaces( Ioa_ReadMan_t * p );
 static Ntl_Man_t *       Ioa_ReadParse( Ioa_ReadMan_t * p );
 static int               Ioa_ReadParseLineModel( Ioa_ReadMod_t * p, char * pLine );
+static int               Ioa_ReadParseLineAttrib( Ioa_ReadMod_t * p, char * pLine );
 static int               Ioa_ReadParseLineInputs( Ioa_ReadMod_t * p, char * pLine );
 static int               Ioa_ReadParseLineOutputs( Ioa_ReadMod_t * p, char * pLine );
 static int               Ioa_ReadParseLineLatch( Ioa_ReadMod_t * p, char * pLine );
@@ -519,6 +521,8 @@ static void Ioa_ReadReadPreparse( Ioa_ReadMan_t * p )
             p->pLatest->pFirst = pCur;
             p->pLatest->pMan = p;
         }
+        else if ( !strncmp(pCur, "attrib", 6) ) 
+            p->pLatest->pAttrib = pCur;
         else if ( !strncmp(pCur, "end", 3) )
         {
             if ( p->pLatest )
@@ -561,6 +565,9 @@ static int Ioa_ReadReadInterfaces( Ioa_ReadMan_t * p )
     {
         // parse the model
         if ( !Ioa_ReadParseLineModel( pMod, pMod->pFirst ) )
+            return 0;
+        // parse the model attributes
+        if ( pMod->pAttrib && !Ioa_ReadParseLineAttrib( pMod, pMod->pAttrib ) )
             return 0;
         // parse the inputs
         Vec_PtrForEachEntry( pMod->vInputs, pLine, k )
@@ -651,10 +658,43 @@ static int Ioa_ReadParseLineModel( Ioa_ReadMod_t * p, char * pLine )
     assert( !strcmp(pToken, "model") );
     if ( Vec_PtrSize(vTokens) != 2 )
     {
-        sprintf( p->pMan->sError, "Line %d: The number of entries in .model line (%d) is different from two.", Ioa_ReadGetLine(p->pMan, pToken), Vec_PtrSize(vTokens) );
+        sprintf( p->pMan->sError, "Line %d: The number of entries (%d) in .model line is different from two.", Ioa_ReadGetLine(p->pMan, pToken), Vec_PtrSize(vTokens) );
         return 0;
     }
     p->pNtk = Ntl_ModelAlloc( p->pMan->pDesign, Vec_PtrEntry(vTokens, 1) );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Parses the model line.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Ioa_ReadParseLineAttrib( Ioa_ReadMod_t * p, char * pLine )
+{
+    Vec_Ptr_t * vTokens = p->pMan->vTokens;
+    char * pToken;
+    Ioa_ReadSplitIntoTokens( vTokens, pLine, '\0' );
+    pToken = Vec_PtrEntry( vTokens, 0 );
+    assert( !strcmp(pToken, "attrib") );
+    if ( Vec_PtrSize(vTokens) != 2 )
+    {
+        sprintf( p->pMan->sError, "Line %d: The number of entries (%d) in .attrib line is different from two.", Ioa_ReadGetLine(p->pMan, pToken), Vec_PtrSize(vTokens) );
+        return 0;
+    }
+    if ( strcmp( Vec_PtrEntry(vTokens, 1), "keep" ) == 0 )
+        p->pNtk->fKeep = 1;
+    else
+    {
+        sprintf( p->pMan->sError, "Line %d: Unknown attribute (%s) in the .attrib line of model %s.", Ioa_ReadGetLine(p->pMan, pToken), Vec_PtrEntry(vTokens, 1), p->pNtk->pName );
+        return 0;
+    }
     return 1;
 }
 

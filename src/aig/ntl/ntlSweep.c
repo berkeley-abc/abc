@@ -77,11 +77,15 @@ void Ntl_ManSweepMark( Ntl_Man_t * p )
     // start from the primary outputs
     Ntl_ModelForEachPo( pRoot, pObj, i )
         Ntl_ManSweepMark_rec( p, pObj );
+    // start from the persistant boxes
+    Ntl_ModelForEachBox( pRoot, pObj, i )
+        if ( pObj->pImplem->fKeep )
+            Ntl_ManSweepMark_rec( p, pObj );
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Derives new netlist by sweeping current netlist with the current AIG.]
+  Synopsis    [Removes logic that does not fanout into POs.]
 
   Description []
                

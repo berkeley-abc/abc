@@ -47,6 +47,8 @@ void Ioa_WriteBlifModel( FILE * pFile, Ntl_Mod_t * pModel )
     float Delay;
     int i, k, fClockAdded = 0;
     fprintf( pFile, ".model %s\n", pModel->pName );
+    if ( pModel->fKeep )
+        fprintf( pFile, ".attrib keep\n" );
     fprintf( pFile, ".inputs" );
     Ntl_ModelForEachPi( pModel, pObj, i )
         fprintf( pFile, " %s", Ntl_ObjFanout0(pObj)->pName );

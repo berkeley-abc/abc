@@ -293,7 +293,16 @@ DdManager * Abc_NtkBuildGlobalBdds( Abc_Ntk_t * pNtk, int nBddSizeMax, int fDrop
             if ( fVerbose )
             printf( "Constructing global BDDs is aborted.\n" );
             Abc_NtkFreeGlobalBdds( pNtk, 0 );
-            Cudd_Quit( dd );
+            Cudd_Quit( dd ); 
+
+            // reset references
+            Abc_NtkForEachObj( pNtk, pObj, i )
+                if ( !Abc_ObjIsBox(pObj) && !Abc_ObjIsBi(pObj) )
+                    pObj->vFanouts.nSize = 0;
+            Abc_NtkForEachObj( pNtk, pObj, i )
+                if ( !Abc_ObjIsBox(pObj) && !Abc_ObjIsBo(pObj) )
+                    Abc_ObjForEachFanin( pObj, pFanin, k )
+                        pFanin->vFanouts.nSize++;
             return NULL;
         }
         bFunc = Cudd_NotCond( bFunc, Abc_ObjFaninC0(pObj) );  Cudd_Ref( bFunc ); 
@@ -321,6 +330,9 @@ DdManager * Abc_NtkBuildGlobalBdds( Abc_Ntk_t * pNtk, int nBddSizeMax, int fDrop
     }
 */
     // reset references
+    Abc_NtkForEachObj( pNtk, pObj, i )
+        if ( !Abc_ObjIsBox(pObj) && !Abc_ObjIsBi(pObj) )
+            pObj->vFanouts.nSize = 0;
     Abc_NtkForEachObj( pNtk, pObj, i )
         if ( !Abc_ObjIsBox(pObj) && !Abc_ObjIsBo(pObj) )
             Abc_ObjForEachFanin( pObj, pFanin, k )

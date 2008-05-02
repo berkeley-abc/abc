@@ -252,8 +252,8 @@ static int Abc_CommandAbc8DSec       ( Abc_Frame_t * pAbc, int argc, char ** arg
 void Abc_FrameClearDesign()
 {
     extern Abc_Frame_t * Abc_FrameGetGlobalFrame();
-    extern void Ntl_ManFree( void * );
-    extern void Nwk_ManFree( void * );
+    extern void Ntl_ManFree( void * p );
+    extern void Nwk_ManFree( void * p );
     Abc_Frame_t * pAbc;
 
     pAbc = Abc_FrameGetGlobalFrame();
@@ -15083,7 +15083,7 @@ int Abc_CommandAbc8ReadLogic( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     extern void * Ntl_ManReadNwk( char * pFileName, Aig_Man_t * pAig, Tim_Man_t * pManTime );
     extern Tim_Man_t * Ntl_ManReadTimeMan( void * p );
-    extern void Nwk_ManFree( void * );
+    extern void Nwk_ManFree( void * p );
 
     // set defaults
     Extra_UtilGetoptReset();
@@ -15432,7 +15432,7 @@ int Abc_CommandAbc8PrintLut( Abc_Frame_t * pAbc, int argc, char **argv )
 
     // set the new network
     if ( pAbc->pAbc8Lib == NULL )
-        printf( "LUT library is not specified.\n" );
+        printf( "Abc_CommandAbc8PrintLut(): LUT library is not specified.\n" );
     else
         If_LutLibPrint( pAbc->pAbc8Lib );
     return 0;
@@ -15486,7 +15486,7 @@ int Abc_CommandAbc8Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pAbc8Ntl == NULL )
     {
-        printf( "Abc_CommandAbc8Write(): There is no design to show.\n" );
+        printf( "Abc_CommandAbc8Ps(): There is no design to show.\n" );
         return 1;
     }
 
@@ -15587,7 +15587,7 @@ int Abc_CommandAbc8If( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Tim_Man_t * Ntl_ManReadTimeMan( void * p );
     extern If_Lib_t * If_SetSimpleLutLib( int nLutSize );
     extern void Nwk_ManSetIfParsDefault( If_Par_t * pPars );
-    extern void Nwk_ManFree( void * );
+    extern void Nwk_ManFree( void * p );
 
     if ( pAbc->pAbc8Lib == NULL )
     {
@@ -15710,7 +15710,7 @@ int Abc_CommandAbc8If( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pAbc8Aig == NULL )
     {
-        printf( "Abc_CommandAbc8Write(): There is no AIG to map.\n" );
+        printf( "Abc_CommandAbc8If(): There is no AIG to map.\n" );
         return 1;
     }
 
@@ -15937,7 +15937,7 @@ int Abc_CommandAbc8DC2( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pAbc8Aig == NULL )
     {
-        printf( "Abc_CommandAbc8DChoice(): There is no AIG to synthesize.\n" );
+        printf( "Abc_CommandAbc8DC2(): There is no AIG to synthesize.\n" );
         return 1;
     }
 
@@ -15945,7 +15945,7 @@ int Abc_CommandAbc8DC2( Abc_Frame_t * pAbc, int argc, char ** argv )
     pAigNew = Dar_ManCompress2( pAbc->pAbc8Aig, fBalance, fUpdateLevel, 1, fVerbose );
     if ( pAigNew == NULL )
     {
-        printf( "Abc_CommandAbc8DChoice(): Tranformation of the AIG has failed.\n" );
+        printf( "Abc_CommandAbc8DC2(): Tranformation of the AIG has failed.\n" );
         return 1;
     }
     Aig_ManStop( pAbc->pAbc8Aig );
@@ -15993,7 +15993,7 @@ int Abc_CommandAbc8Bidec( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pAbc8Nwk == NULL )
     {
-        printf( "Abc_CommandAbc8DChoice(): There is no mapped network to strash.\n" );
+        printf( "Abc_CommandAbc8Bidec(): There is no mapped network to strash.\n" );
         return 1;
     }
     Nwk_ManBidecResyn( pAbc->pAbc8Nwk, 0 );
@@ -16037,7 +16037,7 @@ int Abc_CommandAbc8Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pAbc8Nwk == NULL )
     {
-        printf( "Abc_CommandAbc8DChoice(): There is no mapped network to strash.\n" );
+        printf( "Abc_CommandAbc8Strash(): There is no mapped network to strash.\n" );
         return 1;
     }
 
@@ -16250,7 +16250,7 @@ int Abc_CommandAbc8Lutpack( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pAbc8Nwk == NULL )
     {
-        printf( "Abc_CommandAbc8DChoice(): There is no mapped network to strash.\n" );
+        printf( "Abc_CommandAbc8Lutpack(): There is no mapped network to strash.\n" );
         return 1;
     }
 
@@ -16325,7 +16325,7 @@ int Abc_CommandAbc8Balance( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pAbc8Aig == NULL )
     {
-        printf( "Abc_CommandAbc8DChoice(): There is no AIG to synthesize.\n" );
+        printf( "Abc_CommandAbc8Balance(): There is no AIG to synthesize.\n" );
         return 1;
     }
 
@@ -16422,7 +16422,7 @@ int Abc_CommandAbc8Speedup( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pAbc8Nwk == NULL )
     {
-        printf( "Abc_CommandAbc8DChoice(): There is no mapped network to strash.\n" );
+        printf( "Abc_CommandAbc8Speedup(): There is no mapped network to strash.\n" );
         return 1;
     }
        
@@ -16978,18 +16978,24 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc8Sweep( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    void * pNtlTemp;
     int Counter;
+    int fMapped;
     int fVerbose;
     int c;
     extern int Ntl_ManSweep( void * p, int fVerbose );
 
     // set defaults
+    fMapped  = 0;
     fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "mvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'm':
+            fMapped ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -17005,16 +17011,65 @@ int Abc_CommandAbc8Sweep( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
+    // if mapped, insert the network
+    if ( fMapped )
+    {
+        if ( pAbc->pAbc8Nwk == NULL )
+        {
+            printf( "Abc_CommandAbc8Sweep(): There is no mapped network to sweep.\n" );
+            return 1;
+        }
+        pNtlTemp = Ntl_ManInsertNtk( pAbc->pAbc8Ntl, pAbc->pAbc8Nwk );
+        if ( pNtlTemp == NULL )
+        {
+            printf( "Abc_CommandAbc8Sweep():  Inserting mapped network has failed.\n" );
+            return 1;
+        }
+        Abc_FrameClearDesign(); 
+        pAbc->pAbc8Ntl = pNtlTemp;
+    }
+
     // sweep the current design
     Counter = Ntl_ManSweep( pAbc->pAbc8Ntl, fVerbose );
     if ( Counter == 0 )
         printf( "The netlist is unchanged by sweep.\n" );
+
+    // if mapped, create new AIG and new mapped network
+    if ( fMapped )
+    {
+        pAbc->pAbc8Aig = Ntl_ManExtract( pAbc->pAbc8Ntl );
+        if ( pAbc->pAbc8Aig == NULL )
+        {
+            printf( "Abc_CommandAbc8Sweep(): AIG extraction has failed.\n" );
+            return 1;
+        }
+        pAbc->pAbc8Nwk = Ntl_ManExtractNwk( pAbc->pAbc8Ntl, pAbc->pAbc8Aig, NULL );
+        if ( pAbc->pAbc8Nwk == NULL )
+        {
+            printf( "Abc_CommandAbc8Sweep(): Failed to extract the mapped network.\n" );
+            return 1;
+        }
+    }
+    else // remove old AIG/mapped and create new AIG
+    {
+        pNtlTemp = pAbc->pAbc8Ntl; pAbc->pAbc8Ntl = NULL;
+        Abc_FrameClearDesign(); 
+        pAbc->pAbc8Ntl = pNtlTemp;
+        // extract new AIG
+        pAbc->pAbc8Aig = Ntl_ManExtract( pAbc->pAbc8Ntl );
+        if ( pAbc->pAbc8Aig == NULL )
+        {
+            printf( "Abc_CommandAbc8Sweep(): AIG extraction has failed.\n" );
+            return 1;
+        }
+    }
     return 0;
 
 usage:
-    fprintf( stdout, "usage: *sw [-h]\n" );
+    fprintf( stdout, "usage: *sw [-mvh]\n" );
     fprintf( stdout, "\t        performs structural sweep of the netlist\n" );
     fprintf( stdout, "\t        removes dangling nodes, registers, and white-boxes\n" );
+    fprintf( stdout, "\t-m    : inserts mapped network into netlist and sweeps it [default = %s]\n", fMapped? "yes": "no" );
     fprintf( stdout, "\t-v    : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( stdout, "\t-h    : print the command usage\n");
     return 1;

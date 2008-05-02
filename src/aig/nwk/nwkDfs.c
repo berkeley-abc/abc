@@ -222,6 +222,12 @@ int Nwk_ManLevel( Nwk_Man_t * pNtk )
         if ( LevelMax < Nwk_ObjLevel(pObj) )
             LevelMax = Nwk_ObjLevel(pObj);
     }
+    Nwk_ManForEachCi( pNtk, pObj, i )
+    {
+        Nwk_ManLevel_rec( pObj );
+        if ( LevelMax < Nwk_ObjLevel(pObj) )
+            LevelMax = Nwk_ObjLevel(pObj);
+    }
     return LevelMax;
 }
 
@@ -297,7 +303,7 @@ void Nwk_ManDfs_rec( Nwk_Obj_t * pObj, Vec_Ptr_t * vNodes )
         Nwk_ManDfs_rec( pNext, vNodes );
     Vec_PtrPush( vNodes, pObj );
 }
-
+ 
 /**Function*************************************************************
 
   Synopsis    [Returns the DFS ordered array of all objects except latches.]
@@ -448,6 +454,10 @@ Vec_Ptr_t * Nwk_ManDfsReverse( Nwk_Man_t * pNtk )
     vNodes = Vec_PtrAlloc( 100 );
     Nwk_ManForEachPi( pNtk, pObj, i )
         Nwk_ManDfsReverse_rec( pObj, vNodes );
+    // add nodes without fanins
+    Nwk_ManForEachNode( pNtk, pObj, i )
+        if ( Nwk_ObjFaninNum(pObj) == 0 && !Nwk_ObjIsTravIdCurrent(pObj) )
+            Vec_PtrPush( vNodes, pObj );
     return vNodes;
 }
 

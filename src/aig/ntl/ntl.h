@@ -86,6 +86,7 @@ struct Ntl_Mod_t_
     Vec_Ptr_t *        vPis;           // the array of PI objects
     Vec_Ptr_t *        vPos;           // the array of PO objects
     int                nObjs[NTL_OBJ_VOID]; // counter of objects of each type
+    int                fKeep;          // indicates persistant model
     // hashing names into nets
     Ntl_Net_t **       pTable;         // the hash table of names into nets
     int                nTableSize;     // the allocated table size
@@ -219,9 +220,9 @@ static inline void        Ntl_ObjSetFanout( Ntl_Obj_t * p, Ntl_Net_t * pNet, int
         for ( pNet = pNwk->pTable[i]; pNet; pNet = pNet->pNext ) 
 
 #define Ntl_ObjForEachFanin( pObj, pFanin, i )                                  \
-    for ( i = 0; (i < (pObj)->nFanins) && ((pFanin) = (pObj)->pFanio[i]); i++ )
+    for ( i = 0; (i < (pObj)->nFanins) && (((pFanin) = (pObj)->pFanio[i]), 1); i++ )
 #define Ntl_ObjForEachFanout( pObj, pFanout, i )                                \
-    for ( i = 0; (i < (pObj)->nFanouts) && ((pFanout) = (pObj)->pFanio[(pObj)->nFanins+i]); i++ )
+    for ( i = 0; (i < (pObj)->nFanouts) && (((pFanout) = (pObj)->pFanio[(pObj)->nFanins+i]), 1); i++ )
 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///

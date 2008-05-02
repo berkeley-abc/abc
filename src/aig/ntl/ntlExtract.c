@@ -289,6 +289,16 @@ Aig_Man_t * Ntl_ManExtract( Ntl_Man_t * p )
         Vec_PtrPush( p->vCos, pNet );
         Aig_ObjCreatePo( p->pAig, pNet->pCopy );
     }
+    // visit dangling boxes
+    Ntl_ModelForEachBox( pRoot, pObj, i )
+    {
+        pNet = Ntl_ObjFanout0(pObj);
+        if ( !Ntl_ManExtract_rec( p, pNet ) )
+        {
+            printf( "Ntl_ManExtract(): Error: Combinational loop is detected.\n" );
+            return 0;
+        }
+    }
     // report the number of dangling objects
     nUselessObjects = Ntl_ModelNodeNum(pRoot) + Ntl_ModelLut1Num(pRoot) + Ntl_ModelBoxNum(pRoot) - Vec_PtrSize(p->vNodes);
 //    if ( nUselessObjects )

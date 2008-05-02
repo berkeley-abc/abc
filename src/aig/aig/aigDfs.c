@@ -448,6 +448,13 @@ int Aig_ManChoiceLevel( Aig_Man_t * p )
         if ( LevelMax < Aig_ObjLevel(pObj) )
             LevelMax = Aig_ObjLevel(pObj);
     }
+    // account for dangling boxes
+    Aig_ManForEachPi( p, pObj, i )
+    {
+        Aig_ManChoiceLevel_rec( p, pObj );
+        if ( LevelMax < Aig_ObjLevel(pObj) )
+            LevelMax = Aig_ObjLevel(pObj);
+    }
     Aig_ManCleanPioNumbers( p );
 //    Aig_ManForEachNode( p, pObj, i )
 //        assert( Aig_ObjLevel(pObj) > 0 );
