@@ -45,6 +45,8 @@ extern "C" {
 
 static inline int          Saig_ManPiNum( Aig_Man_t * p )          { return p->nTruePis;                     }
 static inline int          Saig_ManPoNum( Aig_Man_t * p )          { return p->nTruePos;                     }
+static inline int          Saig_ManCiNum( Aig_Man_t * p )          { return p->nTruePis + p->nRegs;          }
+static inline int          Saig_ManCoNum( Aig_Man_t * p )          { return p->nTruePos + p->nRegs;          }
 static inline int          Saig_ManRegNum( Aig_Man_t * p )         { return p->nRegs;                        }
 static inline Aig_Obj_t *  Saig_ManLo( Aig_Man_t * p, int i )      { return (Aig_Obj_t *)Vec_PtrEntry(p->vPis, Saig_ManPiNum(p)+i);   }
 static inline Aig_Obj_t *  Saig_ManLi( Aig_Man_t * p, int i )      { return (Aig_Obj_t *)Vec_PtrEntry(p->vPos, Saig_ManPoNum(p)+i);   }

@@ -825,7 +825,7 @@ static int Ioa_ReadParseLineLatch( Ioa_ReadMod_t * p, char * pLine )
     {
         pToken = Vec_PtrEntry(vTokens,Vec_PtrSize(vTokens)-2);
         pNetLi = Ntl_ModelFindOrCreateNet( p->pNtk, pToken );
-        pObj->pFanio[1] = pNetLi;
+//        pObj->pFanio[1] = pNetLi;
     }
     return 1;
 }

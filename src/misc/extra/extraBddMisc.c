@@ -281,6 +281,7 @@ void Extra_bddPrint( DdManager * dd, DdNode * F )
 
 //  printf("\n");
 }
+
 /**Function********************************************************************
 
   Synopsis    [Returns the size of the support.]

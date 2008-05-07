@@ -800,7 +800,7 @@ Aig_Man_t * Saig_ManPhaseAbstract( Aig_Man_t * p, Vec_Int_t * vInits, int nFrame
         printf( "Print-out finished. Phase assignment is not performed.\n" );
     else if ( nFrames < 2 )
         printf( "The number of frames is less than 2. Phase assignment is not performed.\n" );
-    else if ( pTsi->nCycle == 0 )
+    else if ( pTsi->nCycle == 1 )
         printf( "The cycle of ternary states is trivial. Phase abstraction cannot be done.\n" );
     else if ( pTsi->nCycle % nFrames != 0 )
         printf( "The cycle (%d) is not modulo the number of frames (%d). Phase abstraction cannot be done.\n", pTsi->nCycle, nFrames );
@@ -811,6 +811,75 @@ Aig_Man_t * Saig_ManPhaseAbstract( Aig_Man_t * p, Vec_Int_t * vInits, int nFrame
     else
         pNew = Saig_ManPerformAbstraction( pTsi, nFrames, fVerbose );
     Saig_TsiStop( pTsi );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs automated phase abstraction.]
+
+  Description [Takes the AIG manager and the array of initial states.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Saig_ManPhaseAbstractAuto( Aig_Man_t * p, int fVerbose )
+{
+    Aig_Man_t * pNew = NULL;
+    Saig_Tsim_t * pTsi;
+    int fPrint = 0;
+    int nFrames;
+    assert( Saig_ManRegNum(p) );
+    assert( Saig_ManPiNum(p) );
+    assert( Saig_ManPoNum(p) );
+    // perform terminary simulation
+    pTsi = Saig_ManReachableTernary( p, NULL );
+    if ( pTsi == NULL )
+        return NULL;
+    // derive information
+    pTsi->nPrefix = Saig_TsiComputePrefix( pTsi, Vec_PtrEntryLast(pTsi->vStates), pTsi->nWords );
+    pTsi->nCycle = Vec_PtrSize(pTsi->vStates) - 1 - pTsi->nPrefix;
+    pTsi->nNonXRegs = Saig_TsiCountNonXValuedRegisters(pTsi, pTsi->nWords);
+    // print statistics
+    if ( fVerbose )
+    {
+        printf( "Prefix = %5d. Cycle = %5d.  Total = %5d. Non-ternary = %5d.\n", 
+            pTsi->nPrefix, pTsi->nCycle, p->nRegs, pTsi->nNonXRegs );
+        if ( pTsi->nNonXRegs < 100 )
+            Saig_TsiPrintTraces( pTsi, pTsi->nWords, pTsi->nPrefix );
+    }
+    nFrames = pTsi->nCycle;
+    if ( fPrint )
+    {
+        printf( "Print-out finished. Phase assignment is not performed.\n" );
+    }
+    else if ( nFrames < 2 )
+    {
+//        printf( "The number of frames is less than 2. Phase assignment is not performed.\n" );
+    }
+    else if ( pTsi->nCycle == 1 )
+    {
+//        printf( "The cycle of ternary states is trivial. Phase abstraction cannot be done.\n" );
+    }
+    else if ( pTsi->nCycle % nFrames != 0 )
+    {
+//        printf( "The cycle (%d) is not modulo the number of frames (%d). Phase abstraction cannot be done.\n", pTsi->nCycle, nFrames );
+    }
+    else if ( pTsi->nNonXRegs == 0 )
+    {
+//        printf( "All registers have X-valued states. Phase abstraction cannot be done.\n" );
+    }
+    else if ( !Saig_ManFindRegisters( pTsi, nFrames, 0, fVerbose ) )
+    {
+//        printf( "There is no registers to abstract with %d frames.\n", nFrames );
+    }
+    else
+        pNew = Saig_ManPerformAbstraction( pTsi, nFrames, fVerbose );
+    Saig_TsiStop( pTsi );
+    if ( pNew == NULL )
+        pNew = Aig_ManDup( p );
     return pNew;
 }
 

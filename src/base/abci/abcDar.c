@@ -1239,7 +1239,7 @@ PRT( "Time", clock() - clk );
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDarProve( Abc_Ntk_t * pNtk, int nFrames, int fRetimeFirst, int fFraiging, int fVerbose, int fVeryVerbose )
+int Abc_NtkDarProve( Abc_Ntk_t * pNtk, int nFrames, int fPhaseAbstract, int fRetimeFirst, int fRetimeRegs, int fFraiging, int fVerbose, int fVeryVerbose )
 {
     Aig_Man_t * pMan;
     int RetValue;
@@ -1252,7 +1252,7 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, int nFrames, int fRetimeFirst, int fFraig
     }
     assert( pMan->nRegs > 0 );
     // perform verification
-    RetValue = Fra_FraigSec( pMan, nFrames, fRetimeFirst, fFraiging, fVerbose, fVeryVerbose );
+    RetValue = Fra_FraigSec( pMan, nFrames, fPhaseAbstract, fRetimeFirst, fRetimeRegs, fFraiging, fVerbose, fVeryVerbose );
     pNtk->pSeqModel = pMan->pSeqModel; pMan->pSeqModel = NULL;
     if ( pNtk->pSeqModel )
     {
@@ -1274,7 +1274,7 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, int nFrames, int fRetimeFirst, int fFraig
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames, int fRetimeFirst, int fFraiging, int fVerbose, int fVeryVerbose )
+int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames, int fPhaseAbstract, int fRetimeFirst, int fRetimeRegs, int fFraiging, int fVerbose, int fVeryVerbose )
 {
 //    Fraig_Params_t Params;
     Aig_Man_t * pMan;
@@ -1346,7 +1346,7 @@ int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames, int fRetim
     assert( pMan->nRegs > 0 );
 
     // perform verification
-    RetValue = Fra_FraigSec( pMan, nFrames, fRetimeFirst, fFraiging, fVerbose, fVeryVerbose );
+    RetValue = Fra_FraigSec( pMan, nFrames, fPhaseAbstract, fRetimeFirst, fRetimeRegs, fFraiging, fVerbose, fVeryVerbose );
     Aig_ManStop( pMan );
     return RetValue;
 }
@@ -1907,6 +1907,31 @@ Abc_Ntk_t * Abc_NtkPhaseAbstract( Abc_Ntk_t * pNtk, int nFrames, int fIgnore, in
     pNtkAig->pSpec = Extra_UtilStrsav(pNtk->pSpec);
     Aig_ManStop( pMan );
     return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs BDD-based reachability analysis.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkDarReach( Abc_Ntk_t * pNtk, int nBddMax, int nIterMax, int fPartition, int fReorder, int fVerbose )
+{
+    extern int Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fPartition, int fReorder, int fVerbose );
+    Aig_Man_t * pMan;
+    pMan = Abc_NtkToDar( pNtk, 0, 0 );
+    pMan->nRegs = Abc_NtkLatchNum(pNtk);
+    pMan->nTruePis = Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan); 
+    pMan->nTruePos = Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan); 
+    if ( pMan == NULL )
+        return;
+    Aig_ManVerifyUsingBdds( pMan, nBddMax, nIterMax, fPartition, fReorder, fVerbose );
+    Aig_ManStop( pMan );
 }
 
 

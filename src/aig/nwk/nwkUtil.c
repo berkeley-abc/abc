@@ -56,7 +56,7 @@ void Nwk_ManIncrementTravId( Nwk_Man_t * pNtk )
 
 /**Function*************************************************************
 
-  Synopsis    [Reads the maximum number of fanins.]
+  Synopsis    [Reads the maximum number of fanins of a node.]
 
   Description []
                
@@ -100,7 +100,7 @@ int Nwk_ManGetTotalFanins( Nwk_Man_t * pNtk )
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Returns the number of true PIs.]
 
   Description []
                
@@ -120,7 +120,7 @@ int Nwk_ManPiNum( Nwk_Man_t * pNtk )
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Returns the number of true POs.]
 
   Description []
                
@@ -140,7 +140,7 @@ int Nwk_ManPoNum( Nwk_Man_t * pNtk )
 
 /**Function*************************************************************
 
-  Synopsis    [Reads the number of BDD nodes.]
+  Synopsis    [Reads the number of AIG nodes.]
 
   Description []
                
@@ -211,7 +211,7 @@ int Nwk_NodeCompareLevelsDecrease( Nwk_Obj_t ** pp1, Nwk_Obj_t ** pp2 )
 
 /**Function*************************************************************
 
-  Synopsis    [Deletes the node.]
+  Synopsis    [Prints the objects.]
 
   Description []
                
@@ -242,7 +242,7 @@ void Nwk_ObjPrint( Nwk_Obj_t * pObj )
 
 /**Function*************************************************************
 
-  Synopsis    [Deletes the node.]
+  Synopsis    [Dumps the BLIF file for the network.]
 
   Description []
                
@@ -449,7 +449,7 @@ void Nwk_ManPrintFanioNew( Nwk_Man_t * pNtk )
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Cleans the temporary marks of the nodes.]
 
   Description []
                
@@ -464,6 +464,48 @@ void Nwk_ManCleanMarks( Nwk_Man_t * pMan )
     int i;
     Nwk_ManForEachObj( pMan, pObj, i )
         pObj->MarkA = pObj->MarkB = 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Minimizes the support of all nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Nwk_ManMinimumBase( Nwk_Man_t * pNtk, int fVerbose )
+{
+    unsigned * pTruth;
+    Vec_Int_t * vTruth;
+    Nwk_Obj_t * pObj, * pFanin, * pObjNew;
+    int uSupp, nSuppSize, i, k, Counter = 0;
+    vTruth = Vec_IntAlloc( 1 << 16 );
+    Nwk_ManForEachNode( pNtk, pObj, i )
+    {
+        pTruth = Hop_ManConvertAigToTruth( pNtk->pManHop, Hop_Regular(pObj->pFunc), Nwk_ObjFaninNum(pObj), vTruth, 0 );
+        nSuppSize = Kit_TruthSupportSize(pTruth, Nwk_ObjFaninNum(pObj));
+        if ( nSuppSize == Nwk_ObjFaninNum(pObj) )
+            continue;
+        Counter++;
+        uSupp = Kit_TruthSupport( pTruth, Nwk_ObjFaninNum(pObj) );
+        // create new node with the given support
+        pObjNew = Nwk_ManCreateNode( pNtk, nSuppSize, Nwk_ObjFanoutNum(pObj) );
+        Nwk_ObjForEachFanin( pObj, pFanin, k )
+            if ( uSupp & (1 << k) )
+                Nwk_ObjAddFanin( pObjNew, pFanin );
+        pObjNew->pFunc = Hop_Remap( pNtk->pManHop, pObj->pFunc, uSupp, Nwk_ObjFaninNum(pObj) );
+        if ( fVerbose )
+            printf( "Reducing node %d fanins from %d to %d.\n", 
+                pObj->Id, Nwk_ObjFaninNum(pObj), Nwk_ObjFaninNum(pObjNew) );
+        Nwk_ObjReplace( pObj, pObjNew );
+    }
+    if ( fVerbose && Counter )
+        printf( "Support minimization reduced support of %d nodes.\n", Counter );
+    Vec_IntFree( vTruth );
 }
 
 ////////////////////////////////////////////////////////////////////////

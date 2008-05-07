@@ -89,7 +89,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         // recompute the parameters of the best cut
         pCut->Delay = If_CutDelay( p, pCut );
 //        assert( pCut->Delay <= pObj->Required + p->fEpsilon );
-        if ( pCut->Delay > pObj->Required + p->fEpsilon )
+        if ( pCut->Delay > pObj->Required + 2*p->fEpsilon )
             printf( "If_ObjPerformMappingAnd(): Warning! Delay of node %d (%f) exceeds the required times (%f).\n", 
                 pObj->Id, pCut->Delay, pObj->Required + p->fEpsilon );
         pCut->Area = (Mode == 2)? If_CutAreaDerefed( p, pCut ) : If_CutAreaFlow( p, pCut );

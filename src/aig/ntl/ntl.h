@@ -52,7 +52,7 @@ typedef enum {
     NTL_OBJ_NONE,                      // 0: non-existent object
     NTL_OBJ_PI,                        // 1: primary input
     NTL_OBJ_PO,                        // 2: primary output
-    NTL_OBJ_LATCH,                     // 3: latch node
+    NTL_OBJ_LATCH,                     // 3: latch 
     NTL_OBJ_NODE,                      // 4: logic node
     NTL_OBJ_LUT1,                      // 5: inverter/buffer
     NTL_OBJ_BOX,                       // 6: white box or black box

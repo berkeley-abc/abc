@@ -40,7 +40,7 @@
   SeeAlso     []
 
 ***********************************************************************/
-int Fra_FraigSec( Aig_Man_t * p, int nFramesMax, int fRetimeFirst, int fFraiging, int fVerbose, int fVeryVerbose )
+int Fra_FraigSec( Aig_Man_t * p, int nFramesMax, int fPhaseAbstract, int fRetimeFirst, int fRetimeRegs, int fFraiging, int fVerbose, int fVeryVerbose )
 {
     Fra_Ssw_t Pars, * pPars = &Pars;
     Fra_Sml_t * pSml;
@@ -77,6 +77,23 @@ clk = clock();
         printf( "Sequential cleanup:   Latches = %5d. Nodes = %6d. ", 
             Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
 PRT( "Time", clock() - clk );
+    }
+
+    // perform phase abstraction
+clk = clock();
+    if ( fPhaseAbstract )
+    {
+        extern Aig_Man_t * Saig_ManPhaseAbstractAuto( Aig_Man_t * p, int fVerbose );
+        pNew->nTruePis = Aig_ManPiNum(pNew) - Aig_ManRegNum(pNew); 
+        pNew->nTruePos = Aig_ManPoNum(pNew) - Aig_ManRegNum(pNew); 
+        pNew = Saig_ManPhaseAbstractAuto( pTemp = pNew, 0 );
+        Aig_ManStop( pTemp );
+        if ( fVerbose )
+        {
+            printf( "Phase abstraction:    Latches = %5d. Nodes = %6d. ", 
+                Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
+PRT( "Time", clock() - clk );
+        }
     }
 
     // perform forward retiming
@@ -133,6 +150,26 @@ PRT( "Time", clock() - clk );
     }
     }
 
+    // perform min-area retiming
+    if ( fRetimeRegs && pNew->nRegs )
+    {
+    extern Aig_Man_t * Saig_ManRetimeMinArea( Aig_Man_t * p, int nMaxIters, int fForwardOnly, int fBackwardOnly, int fInitial, int fVerbose );
+clk = clock();
+    pNew->nTruePis = Aig_ManPiNum(pNew) - Aig_ManRegNum(pNew); 
+    pNew->nTruePos = Aig_ManPoNum(pNew) - Aig_ManRegNum(pNew); 
+//        pNew = Rtm_ManRetime( pTemp = pNew, 1, 1000, 0 );
+    pNew = Saig_ManRetimeMinArea( pTemp = pNew, 1000, 0, 0, 1, 0 );
+    Aig_ManStop( pTemp );
+    pNew = Aig_ManDupOrdered( pTemp = pNew );
+    Aig_ManStop( pTemp );
+    if ( fVerbose )
+    {
+    printf( "Min-reg retiming:     Latches = %5d. Nodes = %6d. ", 
+        Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
+PRT( "Time", clock() - clk );
+    }
+    }
+
     // perform seq sweeping while increasing the number of frames
     RetValue = Fra_FraigMiterStatus( pNew );
     if ( RetValue == -1 )
@@ -152,31 +189,22 @@ PRT( "Time", clock() - clk );
         if ( RetValue != -1 )
             break;
 
-        // perform rewriting
-clk = clock();
-        pNew = Aig_ManDupOrdered( pTemp = pNew );
-        Aig_ManStop( pTemp );
-        pNew = Dar_ManRewriteDefault( pTemp = pNew );
-        Aig_ManStop( pTemp );
-        if ( fVerbose )
-        {
-            printf( "Rewriting:            Latches = %5d. Nodes = %6d. ", 
-                Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
-PRT( "Time", clock() - clk );
-        } 
-
         // perform retiming
-        if ( fRetimeFirst && pNew->nRegs )
-//        if ( pNew->nRegs )
+//        if ( fRetimeFirst && pNew->nRegs )
+        if ( pNew->nRegs )
         {
+        extern Aig_Man_t * Saig_ManRetimeMinArea( Aig_Man_t * p, int nMaxIters, int fForwardOnly, int fBackwardOnly, int fInitial, int fVerbose );
 clk = clock();
-        pNew = Rtm_ManRetime( pTemp = pNew, 1, 1000, 0 );
+        pNew->nTruePis = Aig_ManPiNum(pNew) - Aig_ManRegNum(pNew); 
+        pNew->nTruePos = Aig_ManPoNum(pNew) - Aig_ManRegNum(pNew); 
+//        pNew = Rtm_ManRetime( pTemp = pNew, 1, 1000, 0 );
+        pNew = Saig_ManRetimeMinArea( pTemp = pNew, 1000, 0, 0, 1, 0 );
         Aig_ManStop( pTemp );
         pNew = Aig_ManDupOrdered( pTemp = pNew );
         Aig_ManStop( pTemp );
         if ( fVerbose )
         {
-            printf( "Forward retiming:     Latches = %5d. Nodes = %6d. ", 
+            printf( "Min-reg retiming:     Latches = %5d. Nodes = %6d. ", 
                 Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
 PRT( "Time", clock() - clk );
         }
@@ -184,6 +212,20 @@ PRT( "Time", clock() - clk );
 
         if ( pNew->nRegs )
             pNew = Aig_ManConstReduce( pNew, 0 );
+
+        // perform rewriting
+clk = clock();
+        pNew = Aig_ManDupOrdered( pTemp = pNew );
+        Aig_ManStop( pTemp );
+//        pNew = Dar_ManRewriteDefault( pTemp = pNew );
+        pNew = Dar_ManCompress2( pTemp = pNew, 1, 0, 1, 0 ); 
+        Aig_ManStop( pTemp );
+        if ( fVerbose )
+        {
+            printf( "Rewriting:            Latches = %5d. Nodes = %6d. ", 
+                Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
+PRT( "Time", clock() - clk );
+        } 
 
         // perform sequential simulation
         if ( pNew->nRegs )
@@ -212,6 +254,18 @@ PRT( "Time", clock() - clkTotal );
 
     // get the miter status
     RetValue = Fra_FraigMiterStatus( pNew );
+
+    // try reachability analysis
+    if ( RetValue == -1 && Aig_ManRegNum(pNew) < 200 )
+    {
+        extern int Aig_ManVerifyUsingBdds( Aig_Man_t * p, int nBddMax, int nIterMax, int fPartition, int fReorder, int fVerbose );
+        assert( Aig_ManRegNum(pNew) > 0 );
+        pNew->nTruePis = Aig_ManPiNum(pNew) - Aig_ManRegNum(pNew); 
+        pNew->nTruePos = Aig_ManPoNum(pNew) - Aig_ManRegNum(pNew); 
+clk = clock();
+        RetValue = Aig_ManVerifyUsingBdds( pNew, 100000, 1000, 1, 1, 0 );
+PRT( "Time", clock() - clk );
+    }
 
 finish:
     // report the miter

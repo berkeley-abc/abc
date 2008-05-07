@@ -5618,6 +5618,7 @@ int Abc_CommandReach( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fVerbose;
     int c;
     extern void Abc_NtkVerifyUsingBdds( Abc_Ntk_t * pNtk, int nBddMax, int nIterMax, int fPartition, int fReorder, int fVerbose );
+    extern void Abc_NtkDarReach( Abc_Ntk_t * pNtk, int nBddMax, int nIterMax, int fPartition, int fReorder, int fVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -5686,12 +5687,22 @@ int Abc_CommandReach( Abc_Frame_t * pAbc, int argc, char ** argv )
         fprintf( stdout, "Reachability analysis works only for AIGs (run \"strash\").\n" );
         return 1;
     }
+/*
+    if ( Abc_NtkLatchNum(pNtk) > 60 || Abc_NtkNodeNum(pNtk) > 3000 )
+    {
+        fprintf( stdout, "The number of latches %d and nodes %d. Skippping...\n", Abc_NtkLatchNum(pNtk), Abc_NtkNodeNum(pNtk) );
+        return 0;
+    }
+*/
+/*
     if ( Abc_NtkPoNum(pNtk) != 1 )
     {
         fprintf( stdout, "The sequential miter has more than one output (run \"orpos\").\n" );
         return 1;
     }
-    Abc_NtkVerifyUsingBdds( pNtk, nBddMax, nIterMax, fPartition, fReorder, fVerbose );
+*/
+//    Abc_NtkVerifyUsingBdds( pNtk, nBddMax, nIterMax, fPartition, fReorder, fVerbose );
+    Abc_NtkDarReach( pNtk, nBddMax, nIterMax, fPartition, fReorder, fVerbose );
     return 0;
 
 usage:
@@ -13804,34 +13815,38 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fDelete1, fDelete2;
     char ** pArgvNew;
     int nArgcNew;
-    int c;
+    int nFrames;
+    int fPhaseAbstract;
     int fRetimeFirst;
+    int fRetimeRegs;
     int fFraiging;
     int fVerbose;
     int fVeryVerbose;
-    int nFrames;
+    int c;
 
-    extern int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames, int fRetimeFirst, int fFraiging, int fVerbose, int fVeryVerbose );
+    extern int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nFrames, int fPhaseAbstract, int fRetimeFirst, int fRetimeRegs, int fFraiging, int fVerbose, int fVeryVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nFrames      = 16;
-    fRetimeFirst =  1;
-    fFraiging    =  1;
-    fVerbose     =  0;
-    fVeryVerbose =  0;
+    nFrames        = 16;
+    fPhaseAbstract =  1;
+    fRetimeFirst   =  1;
+    fRetimeRegs    =  1;
+    fFraiging      =  1;
+    fVerbose       =  0;
+    fVeryVerbose   =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Krfwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Farmfwvh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'K':
+        case 'F':
             if ( globalUtilOptind >= argc )
             {
-                fprintf( pErr, "Command line switch \"-K\" should be followed by an integer.\n" );
+                fprintf( pErr, "Command line switch \"-F\" should be followed by an integer.\n" );
                 goto usage;
             }
             nFrames = atoi(argv[globalUtilOptind]);
@@ -13839,8 +13854,14 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nFrames < 0 ) 
                 goto usage;
             break;
+        case 'a':
+            fPhaseAbstract ^= 1;
+            break;
         case 'r':
             fRetimeFirst ^= 1;
+            break;
+        case 'm':
+            fRetimeRegs ^= 1;
             break;
         case 'f':
             fFraiging ^= 1;
@@ -13868,17 +13889,19 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // perform verification
-    Abc_NtkDarSec( pNtk1, pNtk2, nFrames, fRetimeFirst, fFraiging, fVerbose, fVeryVerbose );
+    Abc_NtkDarSec( pNtk1, pNtk2, nFrames, fPhaseAbstract, fRetimeFirst, fRetimeRegs, fFraiging, fVerbose, fVeryVerbose );
 
     if ( fDelete1 ) Abc_NtkDelete( pNtk1 );
     if ( fDelete2 ) Abc_NtkDelete( pNtk2 );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: dsec [-K num] [-rfwvh] <file1> <file2>\n" );
+    fprintf( pErr, "usage: dsec [-F num] [-armfwvh] <file1> <file2>\n" );
     fprintf( pErr, "\t         performs inductive sequential equivalence checking\n" );
-    fprintf( pErr, "\t-K num : the limit on the depth of induction [default = %d]\n", nFrames );
+    fprintf( pErr, "\t-F num : the limit on the depth of induction [default = %d]\n", nFrames );
+    fprintf( pErr, "\t-a     : toggles the use of phase abstraction [default = %s]\n", fPhaseAbstract? "yes": "no" );
     fprintf( pErr, "\t-r     : toggles forward retiming at the beginning [default = %s]\n", fRetimeFirst? "yes": "no" );
+    fprintf( pErr, "\t-m     : toggles min-register retiming [default = %s]\n", fRetimeRegs? "yes": "no" );
     fprintf( pErr, "\t-f     : toggles the internal use of fraiging [default = %s]\n", fFraiging? "yes": "no" );
     fprintf( pErr, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-w     : toggles additional verbose output [default = %s]\n", fVeryVerbose? "yes": "no" );
@@ -13905,27 +13928,31 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     FILE * pOut, * pErr;
     Abc_Ntk_t * pNtk;
-    int c;
+    int nFrames;
+    int fPhaseAbstract;
     int fRetimeFirst;
+    int fRetimeRegs;
     int fFraiging;
     int fVerbose;
     int fVeryVerbose;
-    int nFrames;
+    int c;
 
-    extern int Abc_NtkDarProve( Abc_Ntk_t * pNtk, int nFrames, int fRetimeFirst, int fFraiging, int fVerbose, int fVeryVerbose );
+    extern int Abc_NtkDarProve( Abc_Ntk_t * pNtk, int nFrames, int fPhaseAbstract, int fRetimeFirst, int fRetimeRegs, int fFraiging, int fVerbose, int fVeryVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
 
     // set defaults
-    nFrames      = 16; 
-    fRetimeFirst =  1;
-    fFraiging    =  1;
-    fVerbose     =  0;
-    fVeryVerbose =  0;
+    nFrames        =  8; 
+    fPhaseAbstract =  1;
+    fRetimeFirst   =  1;
+    fRetimeRegs    =  1;
+    fFraiging      =  1;
+    fVerbose       =  0;
+    fVeryVerbose   =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Frfwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Farmfwvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -13940,8 +13967,14 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nFrames < 0 ) 
                 goto usage;
             break;
+        case 'a':
+            fPhaseAbstract ^= 1;
+            break;
         case 'r':
             fRetimeFirst ^= 1;
+            break;
+        case 'm':
+            fRetimeRegs ^= 1;
             break;
         case 'f':
             fFraiging ^= 1;
@@ -13959,7 +13992,8 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( Abc_NtkLatchNum(pNtk) == 0 )
     {
-        printf( "The network has no latches. Used combinational command \"iprove\".\n" );
+        printf( "The network has no latches. Running combinational command \"iprove\".\n" );
+        Cmd_CommandExecute( pAbc, "orpos; st; iprove" );
         return 0;
     }
     if ( !Abc_NtkIsStrash(pNtk) )
@@ -13969,14 +14003,16 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // perform verification
-    Abc_NtkDarProve( pNtk, nFrames, fRetimeFirst, fFraiging, fVerbose, fVeryVerbose );
+    Abc_NtkDarProve( pNtk, nFrames, fPhaseAbstract, fRetimeFirst, fRetimeRegs, fFraiging, fVerbose, fVeryVerbose );
     return 0;
 
 usage:
-    fprintf( pErr, "usage: dprove [-F num] [-rfwvh]\n" );
+    fprintf( pErr, "usage: dprove [-F num] [-armfwvh]\n" );
     fprintf( pErr, "\t         performs SEC on the sequential miter\n" );
     fprintf( pErr, "\t-F num : the limit on the depth of induction [default = %d]\n", nFrames );
+    fprintf( pErr, "\t-a     : toggles the use of phase abstraction [default = %s]\n", fPhaseAbstract? "yes": "no" );
     fprintf( pErr, "\t-r     : toggles forward retiming at the beginning [default = %s]\n", fRetimeFirst? "yes": "no" );
+    fprintf( pErr, "\t-m     : toggles min-register retiming [default = %s]\n", fRetimeRegs? "yes": "no" );
     fprintf( pErr, "\t-f     : toggles the internal use of fraiging [default = %s]\n", fFraiging? "yes": "no" );
     fprintf( pErr, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-w     : toggles additional verbose output [default = %s]\n", fVeryVerbose? "yes": "no" );
@@ -17283,31 +17319,34 @@ int Abc_CommandAbc8DSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     Aig_Man_t * pAig;
     char ** pArgvNew;
     int nArgcNew;
-    int c;
+    int nFrames;
+    int fPhaseAbstract;
     int fRetimeFirst;
+    int fRetimeRegs;
     int fFraiging;
     int fVerbose;
     int fVeryVerbose;
-    int nFrames;
+    int c;
 
-    extern int Fra_FraigSec( Aig_Man_t * p, int nFramesMax, int fRetimeFirst, int fFraiging, int fVerbose, int fVeryVerbose );
+    extern int Fra_FraigSec( Aig_Man_t * p, int nFramesMax, int fPhaseAbstract, int fRetimeFirst, int fRetimeRegs, int fFraiging, int fVerbose, int fVeryVerbose );
     extern Aig_Man_t * Ntl_ManPrepareSec( char * pFileName1, char * pFileName2 );
 
     // set defaults
     nFrames      = 16;
     fRetimeFirst =  0;
+    fRetimeRegs  =  0;
     fFraiging    =  1;
     fVerbose     =  0;
     fVeryVerbose =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Krfwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Farmfwvh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'K':
+        case 'F':
             if ( globalUtilOptind >= argc )
             {
-                fprintf( stdout, "Command line switch \"-K\" should be followed by an integer.\n" );
+                fprintf( stdout, "Command line switch \"-F\" should be followed by an integer.\n" );
                 goto usage;
             }
             nFrames = atoi(argv[globalUtilOptind]);
@@ -17315,8 +17354,14 @@ int Abc_CommandAbc8DSec( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nFrames < 0 ) 
                 goto usage;
             break;
+        case 'a':
+            fPhaseAbstract ^= 1;
+            break;
         case 'r':
             fRetimeFirst ^= 1;
+            break;
+        case 'm':
+            fRetimeRegs ^= 1;
             break;
         case 'f':
             fFraiging ^= 1;
@@ -17343,15 +17388,17 @@ int Abc_CommandAbc8DSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     pAig = Ntl_ManPrepareSec( pArgvNew[0], pArgvNew[1] );
     if ( pAig == NULL )
         return 0;
-    Fra_FraigSec( pAig, nFrames, fRetimeFirst, fFraiging, fVerbose, fVeryVerbose );
+    Fra_FraigSec( pAig, nFrames, fPhaseAbstract, fRetimeFirst, fRetimeRegs, fFraiging, fVerbose, fVeryVerbose );
     Aig_ManStop( pAig );
     return 0;
 
 usage:
-    fprintf( stdout, "usage: *dsec [-K num] [-rfwvh] <file1> <file2>\n" );
+    fprintf( stdout, "usage: *dsec [-F num] [-armfwvh] <file1> <file2>\n" );
     fprintf( stdout, "\t         performs sequential equivalence checking for two designs\n" );
-    fprintf( stdout, "\t-K num : the limit on the depth of induction [default = %d]\n", nFrames );
+    fprintf( stdout, "\t-F num : the limit on the depth of induction [default = %d]\n", nFrames );
+    fprintf( stdout, "\t-a     : toggles the use of phase abstraction [default = %s]\n", fPhaseAbstract? "yes": "no" );
     fprintf( stdout, "\t-r     : toggles forward retiming at the beginning [default = %s]\n", fRetimeFirst? "yes": "no" );
+    fprintf( stdout, "\t-m     : toggles min-register retiming [default = %s]\n", fRetimeRegs? "yes": "no" );
     fprintf( stdout, "\t-f     : toggles the internal use of fraiging [default = %s]\n", fFraiging? "yes": "no" );
     fprintf( stdout, "\t-v     : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( stdout, "\t-w     : toggles additional verbose output [default = %s]\n", fVeryVerbose? "yes": "no" );

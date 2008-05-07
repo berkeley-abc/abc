@@ -328,7 +328,7 @@ extern int                 Fra_NodesAreImp( Fra_Man_t * p, Aig_Obj_t * pOld, Aig
 extern int                 Fra_NodesAreClause( Fra_Man_t * p, Aig_Obj_t * pOld, Aig_Obj_t * pNew, int fComplL, int fComplR );
 extern int                 Fra_NodeIsConst( Fra_Man_t * p, Aig_Obj_t * pNew );
 /*=== fraSec.c ========================================================*/
-extern int                 Fra_FraigSec( Aig_Man_t * p, int nFrames, int fRetimeFirst, int fFraiging, int fVerbose, int fVeryVerbose );
+extern int                 Fra_FraigSec( Aig_Man_t * p, int nFrames, int fPhaseAbstract, int fRetimeFirst, int fRetimeRegs, int fFraiging, int fVerbose, int fVeryVerbose );
 /*=== fraSim.c ========================================================*/
 extern int                 Fra_SmlNodeHash( Aig_Obj_t * pObj, int nTableSize );
 extern int                 Fra_SmlNodeIsConst( Aig_Obj_t * pObj );

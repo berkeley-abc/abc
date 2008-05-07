@@ -285,6 +285,7 @@ extern void            Nwk_ObjPrint( Nwk_Obj_t * pObj );
 extern void            Nwk_ManDumpBlif( Nwk_Man_t * pNtk, char * pFileName, Vec_Ptr_t * vCiNames, Vec_Ptr_t * vCoNames );
 extern void            Nwk_ManPrintFanioNew( Nwk_Man_t * pNtk );
 extern void            Nwk_ManCleanMarks( Nwk_Man_t * pNtk );
+extern void            Nwk_ManMinimumBase( Nwk_Man_t * pNtk, int fVerbose );
 
 #ifdef __cplusplus
 }

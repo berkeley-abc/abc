@@ -76,6 +76,8 @@ Aig_Obj_t ** Ntl_ManFraigDeriveClasses( Aig_Man_t * pAig, Ntl_Man_t * pNew, Aig_
         if ( Aig_ObjIsPo(pObj) )
             continue;
         pObjCol = pObj->pData;
+        if ( pObjCol == NULL )
+            continue;
         if ( pMapBack[pObjCol->Id] == NULL )
             pMapBack[pObjCol->Id] = pObj;
     }
@@ -89,6 +91,8 @@ Aig_Obj_t ** Ntl_ManFraigDeriveClasses( Aig_Man_t * pAig, Ntl_Man_t * pNew, Aig_
             continue;
         // get the collapsed node
         pObjCol = pObj->pData;
+        if ( pObjCol == NULL )
+            continue;
         // get the representative of the collapsed node
         pObjColRepr = pAigCol->pReprs[pObjCol->Id];
         if ( pObjColRepr == NULL )

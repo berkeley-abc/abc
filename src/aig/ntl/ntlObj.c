@@ -103,7 +103,7 @@ Ntl_Obj_t * Ntl_ModelCreateLatch( Ntl_Mod_t * pModel )
     Vec_PtrPush( pModel->vObjs, p );
     p->pModel   = pModel;
     p->Type     = NTL_OBJ_LATCH;
-    p->nFanins  = 2;
+    p->nFanins  = 1;
     p->nFanouts = 1;
     pModel->nObjs[NTL_OBJ_LATCH]++;
     return p;

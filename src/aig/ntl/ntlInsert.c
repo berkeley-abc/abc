@@ -82,6 +82,8 @@ Ntl_Man_t * Ntl_ManInsertMapping( Ntl_Man_t * p, Vec_Ptr_t * vMapping, Aig_Man_t
                 Ntl_ObjSetFanin( pNode, pNet, k );
             }
         }
+        else
+            pNode->nFanins = 0;
         sprintf( Buffer, "lut%0*d", nDigits, i );
         if ( (pNet = Ntl_ModelFindNet( pRoot, Buffer )) )
         {
@@ -302,6 +304,8 @@ Ntl_Man_t * Ntl_ManInsertNtk( Ntl_Man_t * p, Nwk_Man_t * pNtk )
                 Ntl_ObjSetFanin( pNode, pNet, k );
             }
         }
+        else
+            pNode->nFanins = 0;
         sprintf( Buffer, "lut%0*d", nDigits, i );
         if ( (pNet = Ntl_ModelFindNet( pRoot, Buffer )) )
         {
@@ -341,13 +345,16 @@ Ntl_Man_t * Ntl_ManInsertNtk( Ntl_Man_t * p, Nwk_Man_t * pNtk )
         if ( !Ntl_ModelSetNetDriver( pNode, pNetCo ) )
         {
             printf( "Ntl_ManInsertNtk(): Internal error: PO net has more than one fanin.\n" );
-            return 0;
+            return NULL;
         }
     }
     // clean CI/CO marks
     Ntl_ManUnmarkCiCoNets( p );
     if ( !Ntl_ManCheck( p ) )
+    {
         printf( "Ntl_ManInsertNtk: The check has failed for design %s.\n", p->pName );
+        return NULL;
+    }
     return p;
 }
 

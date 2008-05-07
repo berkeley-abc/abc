@@ -146,7 +146,7 @@ If_Man_t * Nwk_ManToIf( Aig_Man_t * p, If_Par_t * pPars, Vec_Ptr_t * vAigToIf )
 
 /**Function*************************************************************
 
-  Synopsis    [Recursively derives the truth table for the cut.]
+  Synopsis    [Recursively derives the local AIG for the cut.]
 
   Description []
                
@@ -193,7 +193,7 @@ Hop_Obj_t * Nwk_NodeIfToHop2_rec( Hop_Man_t * pHopMan, If_Man_t * pIfMan, If_Obj
 
 /**Function*************************************************************
 
-  Synopsis    [Derives the truth table for one cut.]
+  Synopsis    [Derives the local AIG for the cut.]
 
   Description []
                
@@ -309,6 +309,7 @@ Nwk_Man_t * Nwk_ManFromIf( If_Man_t * pIfMan, Aig_Man_t * p, Vec_Ptr_t * vAigToI
     }
     Vec_PtrFree( vIfToAig );
     pNtk->pManTime = Tim_ManDup( pIfMan->pManTim, 0 );
+    Nwk_ManMinimumBase( pNtk, 0 );
     assert( Nwk_ManCheck( pNtk ) );
     return pNtk;
 }
