@@ -58,13 +58,13 @@ static inline int  Saig_XsimAnd( int Value0, int Value1 )
 }
 static inline int  Saig_XsimRand2()   
 {
-    return (rand() & 1) ? SAIG_XVS1 : SAIG_XVS0;
+    return (Aig_ManRandom(0) & 1) ? SAIG_XVS1 : SAIG_XVS0;
 }
 static inline int  Saig_XsimRand3()   
 {
     int RetValue;
     do { 
-        RetValue = rand() & 3; 
+        RetValue = Aig_ManRandom(0) & 3; 
     } while ( RetValue == 0 );
     return RetValue;
 }
@@ -601,11 +601,11 @@ void Saig_ManAnalizeControl( Aig_Man_t * p, int Reg )
 ***********************************************************************/
 int Saig_ManFindRegisters( Saig_Tsim_t * pTsi, int nFrames, int fIgnore, int fVerbose )
 {
-    int Values[256];
+    int Values[257];
     unsigned * pState;
     int r, i, k, Reg, Value;
     int nTests = pTsi->nPrefix + 2 * pTsi->nCycle;
-    assert( nFrames < 256 );
+    assert( nFrames <= 256 );
     r = 0;
     Vec_IntForEachEntry( pTsi->vNonXRegs, Reg, i )
     {
@@ -800,6 +800,8 @@ Aig_Man_t * Saig_ManPhaseAbstract( Aig_Man_t * p, Vec_Int_t * vInits, int nFrame
         printf( "Print-out finished. Phase assignment is not performed.\n" );
     else if ( nFrames < 2 )
         printf( "The number of frames is less than 2. Phase assignment is not performed.\n" );
+    else if ( nFrames > 256 )
+        printf( "The number of frames is more than 256. Phase assignment is not performed.\n" );
     else if ( pTsi->nCycle == 1 )
         printf( "The cycle of ternary states is trivial. Phase abstraction cannot be done.\n" );
     else if ( pTsi->nCycle % nFrames != 0 )
@@ -858,6 +860,10 @@ Aig_Man_t * Saig_ManPhaseAbstractAuto( Aig_Man_t * p, int fVerbose )
     else if ( nFrames < 2 )
     {
 //        printf( "The number of frames is less than 2. Phase assignment is not performed.\n" );
+    }
+    else if ( nFrames > 256 )
+    {
+//        printf( "The number of frames is more than 256. Phase assignment is not performed.\n" );
     }
     else if ( pTsi->nCycle == 1 )
     {

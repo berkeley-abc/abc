@@ -220,7 +220,7 @@ void Dar_BalancePermute( Aig_Man_t * p, Vec_Ptr_t * vSuper, int LeftBound, int f
 /*
     // we did not find the node to share, randomize choice
     {
-        int Choice = rand() % (RightBound - LeftBound + 1);
+        int Choice = Aig_ManRandom(0) % (RightBound - LeftBound + 1);
         pObj3 = Vec_PtrEntry( vSuper, LeftBound + Choice );
         if ( pObj3 == pObj2 )
             return;

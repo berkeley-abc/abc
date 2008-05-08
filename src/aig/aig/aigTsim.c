@@ -53,13 +53,13 @@ static inline int  Aig_XsimAnd( int Value0, int Value1 )
 }
 static inline int  Aig_XsimRand2()   
 {
-    return (rand() & 1) ? AIG_XVS1 : AIG_XVS0;
+    return (Aig_ManRandom(0) & 1) ? AIG_XVS1 : AIG_XVS0;
 }
 static inline int  Aig_XsimRand3()   
 {
     int RetValue;
     do { 
-        RetValue = rand() & 3; 
+        RetValue = Aig_ManRandom(0) & 3; 
     } while ( RetValue == 0 );
     return RetValue;
 }

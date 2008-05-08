@@ -221,9 +221,18 @@ Cnf_Dat_t * Cnf_ManWriteCnf( Cnf_Man_t * p, Vec_Ptr_t * vMapped, int nOutputs )
     Number = 1;
     if ( nOutputs )
     {
-        assert( nOutputs == Aig_ManRegNum(p->pManAig) );
-        Aig_ManForEachLiSeq( p->pManAig, pObj, i )
-            pCnf->pVarNums[pObj->Id] = Number++;
+        if ( Aig_ManRegNum(p->pManAig) == 0 )
+        {
+            assert( nOutputs == Aig_ManPoNum(p->pManAig) );
+            Aig_ManForEachPo( p->pManAig, pObj, i )
+                pCnf->pVarNums[pObj->Id] = Number++;
+        }
+        else
+        {
+            assert( nOutputs == Aig_ManRegNum(p->pManAig) );
+            Aig_ManForEachLiSeq( p->pManAig, pObj, i )
+                pCnf->pVarNums[pObj->Id] = Number++;
+        }
     }
     // assign variables to the internal nodes
     Vec_PtrForEachEntry( vMapped, pObj, i )

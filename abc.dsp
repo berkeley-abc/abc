@@ -462,7 +462,7 @@ SOURCE=.\src\base\io\io.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\io\io.h
+SOURCE=.\src\base\io\ioabc.h
 # End Source File
 # Begin Source File
 
@@ -3263,6 +3263,10 @@ SOURCE=.\src\aig\saig\saigRetFwd.c
 # Begin Source File
 
 SOURCE=.\src\aig\saig\saigRetMin.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\saig\saigRetStep.c
 # End Source File
 # Begin Source File
 

@@ -622,6 +622,7 @@ extern void            Aig_ManDumpVerilog( Aig_Man_t * p, char * pFileName );
 extern void            Aig_ManSetPioNumbers( Aig_Man_t * p );
 extern void            Aig_ManCleanPioNumbers( Aig_Man_t * p );
 extern int             Aig_ManCountChoices( Aig_Man_t * p );
+extern unsigned        Aig_ManRandom( int fReset );
 
 /*=== aigWin.c =========================================================*/
 extern void            Aig_ManFindCut( Aig_Obj_t * pRoot, Vec_Ptr_t * vFront, Vec_Ptr_t * vVisited, int nSizeLimit, int nFanoutLimit );

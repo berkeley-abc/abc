@@ -326,6 +326,30 @@ void * Cnf_DataWriteIntoSolver( Cnf_Dat_t * p, int nFrames, int fInit )
     return pSat;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Adds the OR-clause.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cnf_DataWriteOrClause( void * p, Cnf_Dat_t * pCnf )
+{
+    sat_solver * pSat = p;
+    Aig_Obj_t * pObj;
+    int i, * pLits;
+    pLits = ALLOC( int, Aig_ManPoNum(pCnf->pMan) );
+    Aig_ManForEachPo( pCnf->pMan, pObj, i )
+        pLits[i] = toLitCond( pCnf->pVarNums[pObj->Id], 0 );
+    if ( !sat_solver_addclause( pSat, pLits, pLits + Aig_ManPoNum(pCnf->pMan) ) )
+        assert( 0 );
+    free( pLits );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

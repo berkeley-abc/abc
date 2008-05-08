@@ -82,6 +82,8 @@ extern Aig_Man_t *       Saig_ManRetimeForward( Aig_Man_t * p, int nMaxIters, in
 /*=== saigRetMin.c ==========================================================*/
 extern Aig_Man_t *       Saig_ManRetimeDupForward( Aig_Man_t * p, Vec_Ptr_t * vCut );
 extern Aig_Man_t *       Saig_ManRetimeMinArea( Aig_Man_t * p, int nMaxIters, int fForwardOnly, int fBackwardOnly, int fInitial, int fVerbose );
+/*=== saigRetStep.c ==========================================================*/
+extern void              Saig_ManRetimeSteps( Aig_Man_t * p, int nSteps, int fForward );
 /*=== saigScl.c ==========================================================*/
 extern void              Saig_ManReportUselessRegisters( Aig_Man_t * pAig );
 

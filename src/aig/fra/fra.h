@@ -226,7 +226,7 @@ struct Fra_Man_t_
 ////////////////////////////////////////////////////////////////////////
 
 static inline unsigned *   Fra_ObjSim( Fra_Sml_t * p, int Id )                           { return p->pData + p->nWordsTotal * Id; }
-static inline unsigned     Fra_ObjRandomSim()                                            { return (rand() << 24) ^ (rand() << 12) ^ rand();                                                   }
+static inline unsigned     Fra_ObjRandomSim()                                            { return Aig_ManRandom(0);               }
 
 static inline Aig_Obj_t *  Fra_ObjFraig( Aig_Obj_t * pObj, int i )                       { return ((Fra_Man_t *)pObj->pData)->pMemFraig[((Fra_Man_t *)pObj->pData)->nFramesAll*pObj->Id + i];  }
 static inline void         Fra_ObjSetFraig( Aig_Obj_t * pObj, int i, Aig_Obj_t * pNode ) { ((Fra_Man_t *)pObj->pData)->pMemFraig[((Fra_Man_t *)pObj->pData)->nFramesAll*pObj->Id + i] = pNode; }

@@ -52,7 +52,7 @@ typedef struct Abc_Frame_t_      Abc_Frame_t;
 // core packages
 #include "abc.h"
 #include "cmd.h"
-#include "io.h"
+#include "ioAbc.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///

@@ -500,6 +500,11 @@ void Abc_Init( Abc_Frame_t * pAbc )
         extern Bdc_ManDecomposeTest( unsigned uTruth, int nVars );
 //        Bdc_ManDecomposeTest( 0x0f0f0f0f, 3 );
     }
+
+    {
+//        extern void Aig_ManRandomTest1();
+//        Aig_ManRandomTest1();
+    }
 } 
 
 /**Function*************************************************************
@@ -7253,7 +7258,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern void Abc_NtkDarTestBlif( char * pFileName );
 //    extern Abc_Ntk_t * Abc_NtkDarPartition( Abc_Ntk_t * pNtk );
 //    extern Abc_Ntk_t * Abc_NtkTestExor( Abc_Ntk_t * pNtk, int fVerbose );
-    extern Abc_Ntk_t * Abc_NtkNtkTest( Abc_Ntk_t * pNtk, If_Lib_t * pLutLib );
+//    extern Abc_Ntk_t * Abc_NtkNtkTest( Abc_Ntk_t * pNtk, If_Lib_t * pLutLib );
+    extern Abc_Ntk_t * Abc_NtkDarRetimeStep( Abc_Ntk_t * pNtk, int fVerbose );
 
 
 
@@ -7440,7 +7446,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 //    Abc_NtkDarPartition( pNtk );
 
-    pNtkRes = Abc_NtkNtkTest( pNtk, Abc_FrameReadLibLut() );
+    pNtkRes = Abc_NtkDarRetimeStep( pNtk, 0 );
     if ( pNtkRes == NULL )
     {
         fprintf( pErr, "Command has failed.\n" );
@@ -17020,6 +17026,9 @@ int Abc_CommandAbc8Sweep( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fVerbose;
     int c;
     extern int Ntl_ManSweep( void * p, int fVerbose );
+    extern void * Ntl_ManInsertNtk( void * p, void * pNtk );
+    extern Aig_Man_t * Ntl_ManExtract( void * p );
+    extern void * Ntl_ManExtractNwk( void * p, Aig_Man_t * pAig, Tim_Man_t * pManTime );
 
     // set defaults
     fMapped  = 0;
@@ -17332,12 +17341,13 @@ int Abc_CommandAbc8DSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Aig_Man_t * Ntl_ManPrepareSec( char * pFileName1, char * pFileName2 );
 
     // set defaults
-    nFrames      = 16;
-    fRetimeFirst =  0;
-    fRetimeRegs  =  0;
-    fFraiging    =  1;
-    fVerbose     =  0;
-    fVeryVerbose =  0;
+    nFrames        =  8;
+    fPhaseAbstract =  0;
+    fRetimeFirst   =  0;
+    fRetimeRegs    =  0;
+    fFraiging      =  1;
+    fVerbose       =  0;
+    fVeryVerbose   =  0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Farmfwvh" ) ) != EOF )
     {

@@ -20,7 +20,7 @@
 
 #include "abc.h"
 #include "vec.h"
-#include "io.h"
+#include "ioAbc.h"
 #include "fretime.h"
 #include "mio.h"
 #include "hop.h"

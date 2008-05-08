@@ -1085,7 +1085,7 @@ usage:
 
 
 #ifdef WIN32
-#include <io.h>
+#include <direct.h>
 
 // these structures are defined in <io.h> but are for some reason invisible
 typedef unsigned long _fsize_t; // Could be 64 bits for Win32

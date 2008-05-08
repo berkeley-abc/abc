@@ -19,7 +19,7 @@
 
 ***********************************************************************/
 
-#include "io.h"
+#include "ioAbc.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -327,7 +327,7 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
     }
 
     // read the name of the model if given
-    if ( *pCur == 'c' )
+    if ( *pCur == 'c' && pCur < pContents + nFileSize )
     {
         if ( !strncmp( pCur + 2, ".model", 6 ) )
         {

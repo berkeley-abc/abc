@@ -118,6 +118,8 @@ Aig_Man_t * Aig_ManDupOrdered( Aig_Man_t * p )
     pNew->pName = Aig_UtilStrsav( p->pName );
     pNew->pSpec = Aig_UtilStrsav( p->pSpec );
     pNew->nRegs = p->nRegs;
+    pNew->nTruePis = p->nTruePis;
+    pNew->nTruePos = p->nTruePos;
     pNew->nAsserts = p->nAsserts;
     if ( p->vFlopNums )
         pNew->vFlopNums = Vec_IntDup( p->vFlopNums );

@@ -606,7 +606,8 @@ int Fra_ClausProcessClauses( Clu_Man_t * p, int fRefs )
 
     // simulate the AIG
 clk = clock();
-    srand( 0xAABBAABB );
+//    srand( 0xAABBAABB );
+    Aig_ManRandom(1);
     pSeq = Fra_SmlSimulateSeq( p->pAig, 0, p->nPref + p->nSimFrames, p->nSimWords/p->nSimFrames );
     if ( p->fTarget && pSeq->fNonConstOut )
     {
@@ -661,7 +662,8 @@ PRT( "Infoseq", clock() - clk );
 
     // perform combinational simulation
 clk = clock();
-    srand( 0xAABBAABB );
+//    srand( 0xAABBAABB );
+    Aig_ManRandom(1);
     pComb = Fra_SmlSimulateComb( p->pAig, p->nSimWords + p->nSimWordsPref  );
 if ( p->fVerbose )
 {
@@ -728,7 +730,8 @@ int Fra_ClausProcessClauses2( Clu_Man_t * p, int fRefs )
 
     // simulate the AIG
 clk = clock();
-    srand( 0xAABBAABB );
+//    srand( 0xAABBAABB );
+    Aig_ManRandom(1);
     pSeq = Fra_SmlSimulateSeq( p->pAig, 0, p->nPref + p->nSimFrames, p->nSimWords/p->nSimFrames );
     if ( p->fTarget && pSeq->fNonConstOut )
     {
@@ -743,7 +746,8 @@ if ( p->fVerbose )
 
     // perform combinational simulation
 clk = clock();
-    srand( 0xAABBAABB );
+//    srand( 0xAABBAABB );
+    Aig_ManRandom(1);
     pComb = Fra_SmlSimulateComb( p->pAig, p->nSimWords + p->nSimWordsPref  );
 if ( p->fVerbose )
 {
@@ -1614,7 +1618,8 @@ void Fra_ClausEstimateCoverage( Clu_Man_t * p )
     int * pStart, * pVar2Id; 
     int clk = clock();
     // simulate the circuit with nCombSimWords * 32 = 64K patterns
-    srand( 0xAABBAABB );
+//    srand( 0xAABBAABB );
+    Aig_ManRandom(1);
     pComb = Fra_SmlSimulateComb( p->pAig, nCombSimWords );
     // create mapping from SAT vars to node IDs
     pVar2Id = ALLOC( int, p->pCnf->nVars );

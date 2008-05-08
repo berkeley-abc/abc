@@ -20,6 +20,7 @@
 
 #include "abc.h"
 #include "aig.h"
+#include "saig.h"
 #include "dar.h"
 #include "cnf.h"
 #include "fra.h"
@@ -1521,6 +1522,41 @@ Abc_Ntk_t * Abc_NtkDarRetimeMinArea( Abc_Ntk_t * pNtk, int nMaxIters, int fForwa
 
     pMan = Saig_ManRetimeMinArea( pTemp = pMan, nMaxIters, fForwardOnly, fBackwardOnly, fInitial, fVerbose );
     Aig_ManStop( pTemp );
+
+    pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
+    Aig_ManStop( pMan );
+    return pNtkAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gives the current ABC network to AIG manager for processing.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkDarRetimeStep( Abc_Ntk_t * pNtk, int fVerbose )
+{
+    Abc_Ntk_t * pNtkAig;
+    Aig_Man_t * pMan;
+    assert( Abc_NtkIsStrash(pNtk) );
+    pMan = Abc_NtkToDar( pNtk, 0, 1 );
+    if ( pMan == NULL )
+        return NULL;
+    if ( pMan->vFlopNums )
+        Vec_IntFree( pMan->vFlopNums ); 
+    pMan->vFlopNums = NULL;
+
+    pMan->nTruePis = Aig_ManPiNum(pMan) - Aig_ManRegNum(pMan); 
+    pMan->nTruePos = Aig_ManPoNum(pMan) - Aig_ManRegNum(pMan); 
+
+    Aig_ManPrintStats(pMan);
+    Saig_ManRetimeSteps( pMan, 1, 0 );
+    Aig_ManPrintStats(pMan);
 
     pNtkAig = Abc_NtkFromDarSeqSweep( pNtk, pMan );
     Aig_ManStop( pMan );

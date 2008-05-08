@@ -89,7 +89,7 @@ struct Bbr_ImageVar_t_
 /* Macro declarations                                                        */
 /*---------------------------------------------------------------------------*/
 
-#define BDD_BLOW_UP  1000000
+#define BDD_BLOW_UP  2000000
 
 #define     b0     Cudd_Not((dd)->one)
 #define     b1              (dd)->one
@@ -698,7 +698,7 @@ int Bbr_bddImageCompute_rec( Bbr_ImageTree_t * pTree, Bbr_ImageNode_t * pNode )
         if ( pTree->nNodesMax < nNodes )
             pTree->nNodesMax = nNodes;
     }
-    if ( dd->keys > BDD_BLOW_UP )
+    if ( dd->keys-dd->dead > BDD_BLOW_UP )
         return 0;
     return 1;
 }
@@ -808,7 +808,7 @@ int Bbr_BuildTreeNode( DdManager * dd,
     }
 
     *pfStop = 0;
-    if ( dd->keys > BDD_BLOW_UP )
+    if ( dd->keys-dd->dead > BDD_BLOW_UP )
     {
         *pfStop = 1;
         return 0;

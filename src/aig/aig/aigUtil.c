@@ -990,6 +990,94 @@ void Aig_ManPrintControlFanouts( Aig_Man_t * p )
     }
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Creates a sequence or random numbers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     [http://en.wikipedia.org/wiki/LFSR]
+
+***********************************************************************/
+void Aig_ManRandomTest2()
+{
+    FILE * pFile;
+    unsigned int lfsr = 1;
+    unsigned int period = 0; 
+    pFile = fopen( "rand.txt", "w" );
+    do {
+//        lfsr = (lfsr >> 1) ^ (-(lfsr & 1u) & 0xd0000001u); // taps 32 31 29 1 
+        lfsr = 1; // to prevent the warning
+        ++period;
+        fprintf( pFile, "%10d : %10d ", period, lfsr );
+//        Extra_PrintBinary( pFile, &lfsr, 32 );
+        fprintf( pFile, "\n" );
+        if ( period == 20000 )
+            break;
+    } while(lfsr != 1u);
+    fclose( pFile );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates a sequence or random numbers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     [http://www.codeproject.com/KB/recipes/SimpleRNG.aspx]
+
+***********************************************************************/
+void Aig_ManRandomTest1()
+{
+    FILE * pFile;
+    unsigned int lfsr;
+    unsigned int period = 0; 
+    pFile = fopen( "rand.txt", "w" );
+    do {
+        lfsr = Aig_ManRandom( 0 );
+        ++period;
+        fprintf( pFile, "%10d : %10d ", period, lfsr );
+//        Extra_PrintBinary( pFile, &lfsr, 32 );
+        fprintf( pFile, "\n" );
+        if ( period == 20000 )
+            break;
+    } while(lfsr != 1u);
+    fclose( pFile );
+}
+
+ 
+#define NUMBER1  3716960521
+#define NUMBER2  2174103536
+
+/**Function*************************************************************
+
+  Synopsis    [Creates a sequence or random numbers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     [http://www.codeproject.com/KB/recipes/SimpleRNG.aspx]
+
+***********************************************************************/
+unsigned Aig_ManRandom( int fReset )
+{
+    static unsigned int m_z = NUMBER1;
+    static unsigned int m_w = NUMBER2;
+    if ( fReset )
+    {
+        m_z = NUMBER1;
+        m_w = NUMBER2;
+    }
+    m_z = 36969 * (m_z & 65535) + (m_z >> 16);
+    m_w = 18000 * (m_w & 65535) + (m_w >> 16);
+    return (m_z << 16) + m_w;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -1,3 +1,3 @@
 SRC +=    src/aig/bbr/bbrImage.c \
     src/aig/bbr/bbrNtbdd.c \
-    src/aig/bdr/bbrReach.c
+    src/aig/bbr/bbrReach.c

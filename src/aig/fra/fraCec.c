@@ -47,14 +47,16 @@ int Fra_FraigSat( Aig_Man_t * pMan, sint64 nConfLimit, sint64 nInsLimit, int fVe
     int status, RetValue, clk = clock();
     Vec_Int_t * vCiIds;
 
-    assert( Aig_ManPoNum(pMan) == 1 );
+    assert( Aig_ManRegNum(pMan) == 0 );
     pMan->pData = NULL;
 
     // derive CNF
-    pCnf = Cnf_Derive( pMan, 0 );
-//    pCnf = Cnf_DeriveSimple( pMan, 0 );
+    pCnf = Cnf_Derive( pMan, Aig_ManPoNum(pMan) );
+//    pCnf = Cnf_DeriveSimple( pMan, Aig_ManPoNum(pMan) );
     // convert into the SAT solver
     pSat = Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
+    // add the OR clause for the outputs
+    Cnf_DataWriteOrClause( pSat, pCnf );
     vCiIds = Cnf_DataCollectPiSatNums( pCnf, pMan );
     Cnf_DataFree( pCnf );
     // solve SAT

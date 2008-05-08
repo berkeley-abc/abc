@@ -120,7 +120,8 @@ Fra_Man_t * Fra_ManStart( Aig_Man_t * pManAig, Fra_Par_t * pPars )
     p->pMemFraig  = ALLOC( Aig_Obj_t *, p->nSizeAlloc * p->nFramesAll );
     memset( p->pMemFraig, 0, sizeof(Aig_Obj_t *) * p->nSizeAlloc * p->nFramesAll );
     // set random number generator
-    srand( 0xABCABC );
+//    srand( 0xABCABC );
+    Aig_ManRandom(1);
     // set the pointer to the manager
     Aig_ManForEachObj( p->pManAig, pObj, i )
         pObj->pData = p;

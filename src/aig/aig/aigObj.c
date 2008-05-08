@@ -361,7 +361,8 @@ void Aig_ObjReplace( Aig_Man_t * p, Aig_Obj_t * pObjOld, Aig_Obj_t * pObjNew, in
     // the object to be replaced cannot be complemented
     assert( !Aig_IsComplement(pObjOld) );
     // the object to be replaced cannot be a terminal
-    assert( !Aig_ObjIsPi(pObjOld) && !Aig_ObjIsPo(pObjOld) );
+//    assert( !Aig_ObjIsPi(pObjOld) && !Aig_ObjIsPo(pObjOld) );
+    assert( !Aig_ObjIsPo(pObjOld) );
     // the object to be used cannot be a buffer or a PO
     assert( !Aig_ObjIsBuf(pObjNewR) && !Aig_ObjIsPo(pObjNewR) );
     // the object cannot be the same
@@ -371,7 +372,8 @@ void Aig_ObjReplace( Aig_Man_t * p, Aig_Obj_t * pObjOld, Aig_Obj_t * pObjNew, in
     assert( pObjOld != Aig_ObjFanin1(pObjNewR) );
     // recursively delete the old node - but leave the object there
     pObjNewR->nRefs++;
-    Aig_ObjDelete_rec( p, pObjOld, 0 );
+    if ( !Aig_ObjIsPi(pObjOld) )
+        Aig_ObjDelete_rec( p, pObjOld, 0 );
     pObjNewR->nRefs--;
     // if the new object is complemented or already used, create a buffer
     p->nObjs[pObjOld->Type]--;

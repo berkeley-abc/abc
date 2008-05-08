@@ -44,21 +44,20 @@ int Fra_FraigSec( Aig_Man_t * p, int nFramesMax, int fPhaseAbstract, int fRetime
 {
     Fra_Ssw_t Pars, * pPars = &Pars;
     Fra_Sml_t * pSml;
-    Aig_Man_t * pNew = NULL, * pTemp;
+    Aig_Man_t * pNew, * pTemp;
     int nFrames, RetValue, nIter, clk, clkTotal = clock();
     int fLatchCorr = 0;
 
     // try the miter before solving
-    RetValue = Fra_FraigMiterStatus( p );
-    if ( RetValue == 0 || RetValue == 1 )
+    pNew = Aig_ManDup( p );
+    RetValue = Fra_FraigMiterStatus( pNew );
+    if ( RetValue >= 0 )
         goto finish;
 
     // prepare parameters
     memset( pPars, 0, sizeof(Fra_Ssw_t) );
     pPars->fLatchCorr  = fLatchCorr;
     pPars->fVerbose = fVeryVerbose;
-
-    pNew = Aig_ManDup( p );
     if ( fVerbose )
     {
         printf( "Original miter:       Latches = %5d. Nodes = %6d.\n", 
@@ -78,6 +77,9 @@ clk = clock();
             Aig_ManRegNum(pNew), Aig_ManNodeNum(pNew) );
 PRT( "Time", clock() - clk );
     }
+    RetValue = Fra_FraigMiterStatus( pNew );
+    if ( RetValue >= 0 )
+        goto finish;
 
     // perform phase abstraction
 clk = clock();
@@ -149,6 +151,13 @@ clk = clock();
 PRT( "Time", clock() - clk );
     }
     }
+
+    if ( pNew->nRegs == 0 )
+        RetValue = Fra_FraigCec( &pNew, 0 );
+
+    RetValue = Fra_FraigMiterStatus( pNew );
+    if ( RetValue >= 0 )
+        goto finish;
 
     // perform min-area retiming
     if ( fRetimeRegs && pNew->nRegs )
@@ -262,9 +271,7 @@ PRT( "Time", clock() - clkTotal );
         assert( Aig_ManRegNum(pNew) > 0 );
         pNew->nTruePis = Aig_ManPiNum(pNew) - Aig_ManRegNum(pNew); 
         pNew->nTruePos = Aig_ManPoNum(pNew) - Aig_ManRegNum(pNew); 
-clk = clock();
         RetValue = Aig_ManVerifyUsingBdds( pNew, 100000, 1000, 1, 1, 0 );
-PRT( "Time", clock() - clk );
     }
 
 finish:
@@ -289,8 +296,7 @@ PRT( "Time", clock() - clkTotal );
         Ioa_WriteAiger( pNew, pFileName, 0, 0 );
         printf( "The unsolved reduced miter is written into file \"%s\".\n", pFileName );
     }
-    if ( pNew )
-        Aig_ManStop( pNew );
+    Aig_ManStop( pNew );
     return RetValue;
 }
 
